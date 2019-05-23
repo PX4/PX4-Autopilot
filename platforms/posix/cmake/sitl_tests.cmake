@@ -32,7 +32,7 @@ set(tests
 	rc
 	search_min
 	servo
-	sf0x
+	#sf0x
 	sleep
 	uorb
 	versioning

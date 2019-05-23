@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,42 +31,19 @@
  *
  ****************************************************************************/
 
-#include <drivers/drv_mag.h>
-#include <drivers/drv_hrt.h>
-#include <lib/cdev/CDev.hpp>
-#include <lib/conversion/rotation.h>
-#include <uORB/uORB.h>
-#include <uORB/Publication.hpp>
-#include <uORB/topics/sensor_mag.h>
+#include <gtest/gtest.h>
+#include <Takeoff.hpp>
 
-class PX4Magnetometer : public cdev::CDev
+TEST(TakeoffTest, Initialization)
 {
+	Takeoff takeoff;
+	EXPECT_EQ(takeoff.getTakeoffState(), TakeoffState::disarmed);
+}
 
-public:
-	PX4Magnetometer(uint32_t device_id, uint8_t priority, enum Rotation rotation);
-	~PX4Magnetometer() override;
-
-	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
-
-	void set_device_type(uint8_t devtype);
-	void set_error_count(uint64_t error_count) { _sensor_mag_pub.get().error_count = error_count; }
-	void set_scale(float scale) { _sensor_mag_pub.get().scaling = scale; }
-	void set_temperature(float temperature) { _sensor_mag_pub.get().temperature = temperature; }
-	void set_external(bool external) { _sensor_mag_pub.get().is_external = external; }
-
-	void update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z);
-
-	void print_status();
-
-private:
-
-	uORB::Publication<sensor_mag_s>	_sensor_mag_pub;
-
-	const enum Rotation	_rotation;
-
-	matrix::Vector3f	_calibration_scale{1.0f, 1.0f, 1.0f};
-	matrix::Vector3f	_calibration_offset{0.0f, 0.0f, 0.0f};
-
-	int			_class_device_instance{-1};
-
-};
+// TEST(TakeoffTest, Ramp)
+// {
+// 	Takeoff takeoff;
+// 	takeoff.updateTakeoffState(true, false, true, 1.f, false);
+// 	takeoff.updateThrustRamp(1.f, 0.1f);
+// 	EXPECT_EQ(takeoff.getTakeoffState(), TakeoffState::disarmed);
+// }

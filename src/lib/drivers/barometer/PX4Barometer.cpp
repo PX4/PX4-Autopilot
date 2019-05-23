@@ -31,42 +31,59 @@
  *
  ****************************************************************************/
 
-#include <drivers/drv_mag.h>
-#include <drivers/drv_hrt.h>
-#include <lib/cdev/CDev.hpp>
-#include <lib/conversion/rotation.h>
-#include <uORB/uORB.h>
-#include <uORB/Publication.hpp>
-#include <uORB/topics/sensor_mag.h>
 
-class PX4Magnetometer : public cdev::CDev
+#include "PX4Barometer.hpp"
+
+#include <lib/drivers/device/Device.hpp>
+
+PX4Barometer::PX4Barometer(uint32_t device_id, uint8_t priority) :
+	CDev(nullptr),
+	_sensor_baro_pub{ORB_ID(sensor_baro), priority}
 {
+	_class_device_instance = register_class_devname(BARO_BASE_DEVICE_PATH);
 
-public:
-	PX4Magnetometer(uint32_t device_id, uint8_t priority, enum Rotation rotation);
-	~PX4Magnetometer() override;
+	_sensor_baro_pub.get().device_id = device_id;
 
-	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
+	// force initial publish to allocate uORB buffer
+	// TODO: can be removed once all drivers are in threads
+	_sensor_baro_pub.update();
+}
 
-	void set_device_type(uint8_t devtype);
-	void set_error_count(uint64_t error_count) { _sensor_mag_pub.get().error_count = error_count; }
-	void set_scale(float scale) { _sensor_mag_pub.get().scaling = scale; }
-	void set_temperature(float temperature) { _sensor_mag_pub.get().temperature = temperature; }
-	void set_external(bool external) { _sensor_mag_pub.get().is_external = external; }
+PX4Barometer::~PX4Barometer()
+{
+	if (_class_device_instance != -1) {
+		unregister_class_devname(BARO_BASE_DEVICE_PATH, _class_device_instance);
+	}
+}
 
-	void update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z);
+void PX4Barometer::set_device_type(uint8_t devtype)
+{
+	// current DeviceStructure
+	union device::Device::DeviceId device_id;
+	device_id.devid = _sensor_baro_pub.get().device_id;
 
-	void print_status();
+	// update to new device type
+	device_id.devid_s.devtype = devtype;
 
-private:
+	// copy back to report
+	_sensor_baro_pub.get().device_id = device_id.devid;
+}
 
-	uORB::Publication<sensor_mag_s>	_sensor_mag_pub;
+void PX4Barometer::update(hrt_abstime timestamp, float pressure)
+{
+	sensor_baro_s &report = _sensor_baro_pub.get();
 
-	const enum Rotation	_rotation;
+	report.timestamp = timestamp;
+	report.pressure = pressure;
 
-	matrix::Vector3f	_calibration_scale{1.0f, 1.0f, 1.0f};
-	matrix::Vector3f	_calibration_offset{0.0f, 0.0f, 0.0f};
+	poll_notify(POLLIN);
 
-	int			_class_device_instance{-1};
+	_sensor_baro_pub.update();
+}
 
-};
+void PX4Barometer::print_status()
+{
+	PX4_INFO(BARO_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
+
+	print_message(_sensor_baro_pub.get());
+}

@@ -185,20 +185,17 @@ protected:
 	uORB::Subscription<vehicle_attitude_s> *_sub_attitude{nullptr};
 	uint8_t _heading_reset_counter{0}; /**< estimator heading reset */
 
-	/**
-	 * Reset all setpoints to NAN
-	 */
+	/** Reset all setpoints to NAN */
 	void _resetSetpoints();
 
-	/**
-	 * Check and update local position
-	 */
+	/** Check and update local position */
 	void _evaluateVehicleLocalPosition();
 
-	/**
-	 * Set constraints to default values
-	 */
-	virtual void  _setDefaultConstraints();
+	/** Set constraints to default values */
+	virtual void _setDefaultConstraints();
+
+	/** determines when to trigger a takeoff (ignored in flight) */
+	virtual bool _checkTakeoff();
 
 	/* Time abstraction */
 	static constexpr uint64_t _timeout = 500000; /**< maximal time in us before a loop or data times out */

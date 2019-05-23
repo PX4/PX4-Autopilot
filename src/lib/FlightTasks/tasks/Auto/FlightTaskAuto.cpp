@@ -106,6 +106,7 @@ bool FlightTaskAuto::updateFinalize()
 	// If the FlightTask generates a yaw or a yawrate setpoint that exceeds this value
 	// it will see its setpoint constrained here
 	_limitYawRate();
+	_constraints.want_takeoff = _checkTakeoff();
 	return true;
 }
 

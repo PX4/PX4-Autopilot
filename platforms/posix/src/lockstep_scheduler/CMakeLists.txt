@@ -1,41 +1,13 @@
 cmake_minimum_required(VERSION 2.8.12)
 
-if(NOT PROJECT_NAME STREQUAL "px4")
+# We want to test the lockstep schedule even if it is not used otherwise.
+add_library(lockstep_scheduler
+	src/lockstep_scheduler.cpp
+)
 
-	project(lockstep_scheduler)
+target_include_directories(lockstep_scheduler
+	PUBLIC
+	${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 
-	set (CMAKE_CXX_STANDARD 11)
-
-	add_definitions(-DUNIT_TESTS)
-
-	add_library(lockstep_scheduler
-		src/lockstep_scheduler.cpp
-	)
-
-	target_include_directories(lockstep_scheduler
-		PUBLIC
-			$<INSTALL_INTERFACE:include>
-			$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-		PRIVATE
-			${CMAKE_CURRENT_SOURCE_DIR}/src
-	)
-
-	target_link_libraries(lockstep_scheduler
-		pthread
-	)
-
-	target_compile_options(lockstep_scheduler PRIVATE -Wall -Wextra -Werror -O2)
-
-	add_subdirectory(test)
-
-else()
-
-	add_library(lockstep_scheduler
-		src/lockstep_scheduler.cpp
-	)
-	target_include_directories(lockstep_scheduler
-		PUBLIC
-		${CMAKE_CURRENT_SOURCE_DIR}/include
-	)
-
-endif()
+px4_add_gtest(SRC test/src/lockstep_scheduler_test.cpp LINKLIBS lockstep_scheduler)

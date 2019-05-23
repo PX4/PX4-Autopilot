@@ -31,41 +31,33 @@
  *
  ****************************************************************************/
 
-#include <drivers/drv_mag.h>
+#include <drivers/drv_baro.h>
 #include <drivers/drv_hrt.h>
 #include <lib/cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
 #include <uORB/uORB.h>
 #include <uORB/Publication.hpp>
-#include <uORB/topics/sensor_mag.h>
+#include <uORB/topics/sensor_baro.h>
 
-class PX4Magnetometer : public cdev::CDev
+class PX4Barometer : public cdev::CDev
 {
 
 public:
-	PX4Magnetometer(uint32_t device_id, uint8_t priority, enum Rotation rotation);
-	~PX4Magnetometer() override;
-
-	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
+	PX4Barometer(uint32_t device_id, uint8_t priority);
+	~PX4Barometer() override;
 
 	void set_device_type(uint8_t devtype);
-	void set_error_count(uint64_t error_count) { _sensor_mag_pub.get().error_count = error_count; }
-	void set_scale(float scale) { _sensor_mag_pub.get().scaling = scale; }
-	void set_temperature(float temperature) { _sensor_mag_pub.get().temperature = temperature; }
-	void set_external(bool external) { _sensor_mag_pub.get().is_external = external; }
+	void set_error_count(uint64_t error_count) { _sensor_baro_pub.get().error_count = error_count; }
 
-	void update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z);
+	void set_temperature(float temperature) { _sensor_baro_pub.get().temperature = temperature; }
+
+	void update(hrt_abstime timestamp, float pressure);
 
 	void print_status();
 
 private:
 
-	uORB::Publication<sensor_mag_s>	_sensor_mag_pub;
-
-	const enum Rotation	_rotation;
-
-	matrix::Vector3f	_calibration_scale{1.0f, 1.0f, 1.0f};
-	matrix::Vector3f	_calibration_offset{0.0f, 0.0f, 0.0f};
+	uORB::Publication<sensor_baro_s>	_sensor_baro_pub;
 
 	int			_class_device_instance{-1};
 
