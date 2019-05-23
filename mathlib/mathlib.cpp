@@ -70,6 +70,16 @@ float degrees(float radians)
 	return (radians * 180.0f) / M_PI_F;
 }
 
+int floorf(float input)
+{
+ 	int res = int(input);
+	if (res > input) {
+    	res--; 
+	}
+
+	return res;
+}
+
 } // namespace math
 
 #endif /* ECL_STANDALONE */
