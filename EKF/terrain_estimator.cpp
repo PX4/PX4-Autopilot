@@ -242,6 +242,7 @@ void Ekf::fuseFlowForTerrain()
 		_terrain_vpos += Kx * _flow_innov[0];
 		// guard against negative variance
 		_terrain_var = fmaxf(_terrain_var - KxHxP, 0.0f);
+		_time_last_of_fuse = _time_last_imu;
 	}
 
 	// Calculate observation matrix for flow around the vehicle y axis
@@ -269,6 +270,7 @@ void Ekf::fuseFlowForTerrain()
 		_terrain_vpos += Ky * _flow_innov[1];
 		// guard against negative variance
 		_terrain_var = fmaxf(_terrain_var - KyHyP, 0.0f);
+		_time_last_of_fuse = _time_last_imu;
 	}
 }
 
@@ -281,7 +283,15 @@ bool Ekf::get_terrain_valid()
 // determine terrain validity
 void Ekf::update_terrain_valid()
 {
-	if (_terrain_initialised && ((_time_last_imu - _time_last_hagl_fuse) < (uint64_t)5e6)) {
+	// we have been fusing range finder measurements in the last 5 seconds
+	bool recent_range_fusion = (_time_last_imu - _time_last_hagl_fuse) < 5*1000*1000;
+
+	// we have been fusing optical flow measurements for terrain estimation within the last 5 seconds
+	// this can only be the case if the main filter does not fuse optical flow
+	bool recent_flow_for_terrain_fusion = ((_time_last_imu - _time_last_of_fuse) < 5*1000*1000) && !_control_status.flags.opt_flow;
+
+
+	if (_terrain_initialised && (recent_range_fusion || recent_flow_for_terrain_fusion)) {
 
 		_hagl_valid = true;
 
