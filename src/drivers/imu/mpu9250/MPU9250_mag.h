@@ -33,20 +33,18 @@
 
 #pragma once
 
-#include "drivers/device/ringbuffer.h"	// ringbuffer::RingBuffer
-#include "drivers/drv_mag.h"		// mag_calibration_s
+#include <cdev/CDev.hpp>
 #include <perf/perf_counter.h>
+#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <drivers/device/Device.hpp>
 
 /* in 16-bit sampling mode the mag resolution is 1.5 milli Gauss per bit */
-
-#define MPU9250_MAG_RANGE_GA        1.5e-3f;
+static constexpr float MPU9250_MAG_RANGE_GA{1.5e-3f};
 
 /* we are using the continuous fixed sampling rate of 100Hz */
-
 #define MPU9250_AK8963_SAMPLE_RATE 100
 
 /* ak8963 register address and bit definitions */
-
 #define AK8963_I2C_ADDR         0x0C
 #define AK8963_DEVICE_ID        0x48
 
@@ -128,14 +126,11 @@ typedef device::Device *(*MPU9250_mag_constructor)(int, bool);
 /**
  * Helper class implementing the magnetometer driver node.
  */
-class MPU9250_mag : public device::CDev
+class MPU9250_mag
 {
 public:
-	MPU9250_mag(MPU9250 *parent, device::Device *interface, const char *path);
+	MPU9250_mag(MPU9250 *parent, device::Device *interface, enum Rotation rotation);
 	~MPU9250_mag();
-
-	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
-	virtual int init();
 
 	void set_passthrough(uint8_t reg, uint8_t size, uint8_t *out = NULL);
 	void passthrough_read(uint8_t reg, uint8_t *buf, uint8_t size);
@@ -148,8 +143,10 @@ public:
 	bool ak8963_check_id(uint8_t &id);
 	bool ak8963_read_adjustments(void);
 
+	void print_status() { _px4_mag.print_status(); }
+
 protected:
-	Device			*_interface;
+	device::Device			*_interface;
 
 	friend class MPU9250;
 
@@ -157,7 +154,7 @@ protected:
 	void measure();
 
 	/* Update the state with prefetched data (internally called by the regular measure() )*/
-	void _measure(struct ak8963_regs data);
+	void _measure(hrt_abstime timestamp, struct ak8963_regs data);
 
 	uint8_t read_reg(unsigned reg);
 	void write_reg(unsigned reg, uint8_t value);
@@ -165,27 +162,23 @@ protected:
 	bool is_passthrough() { return _interface == nullptr; }
 
 private:
+
+	PX4Magnetometer		_px4_mag;
+
 	MPU9250 *_parent;
-	orb_advert_t _mag_topic;
-	int _mag_orb_class_instance;
-	int _mag_class_instance;
-	bool _mag_reading_data;
-	ringbuffer::RingBuffer *_mag_reports;
-	struct mag_calibration_s _mag_scale;
-	float _mag_range_scale;
+
+	bool _mag_reading_data{false};
+
 	perf_counter_t _mag_reads;
 	perf_counter_t _mag_errors;
 	perf_counter_t _mag_overruns;
 	perf_counter_t _mag_overflows;
 	perf_counter_t _mag_duplicates;
-	float _mag_asa_x;
-	float _mag_asa_y;
-	float _mag_asa_z;
 
 	bool check_duplicate(uint8_t *mag_data);
 
 	// keep last mag reading for duplicate detection
-	uint8_t			_last_mag_data[6];
+	uint8_t			_last_mag_data[6] {};
 
 	/* do not allow to copy this class due to pointer data members */
 	MPU9250_mag(const MPU9250_mag &);
