@@ -826,8 +826,10 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		/* yaw ignore flag mapps to ignore_attitude */
 		offboard_control_mode.ignore_attitude = (bool)(set_position_target_local_ned.type_mask & 0x400);
 		/* yawrate ignore flag mapps to ignore_bodyrate */
-		offboard_control_mode.ignore_bodyrate = (bool)(set_position_target_local_ned.type_mask & 0x800);
-
+		// offboard_control_mode.ignore_bodyrate = (bool)(set_position_target_local_ned.type_mask & 0x800);
+		offboard_control_mode.ignore_bodyrate_x = (bool)(set_position_target_local_ned.type_mask & 0x800);
+		offboard_control_mode.ignore_bodyrate_y = (bool)(set_position_target_local_ned.type_mask & 0x800);
+		offboard_control_mode.ignore_bodyrate_z = (bool)(set_position_target_local_ned.type_mask & 0x800);
 
 		bool is_takeoff_sp = (bool)(set_position_target_local_ned.type_mask & 0x1000);
 		bool is_land_sp = (bool)(set_position_target_local_ned.type_mask & 0x2000);
@@ -938,7 +940,9 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					}
 
 					/* set the yawrate sp value */
-					if (!offboard_control_mode.ignore_bodyrate) {
+					if (!(offboard_control_mode.ignore_bodyrate_x ||
+					      offboard_control_mode.ignore_bodyrate_y ||
+					      offboard_control_mode.ignore_bodyrate_z)) {
 						pos_sp_triplet.current.yawspeed_valid = true;
 						pos_sp_triplet.current.yawspeed = set_position_target_local_ned.yaw_rate;
 
@@ -994,7 +998,9 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 		/* ignore all since we are setting raw actuators here */
 		offboard_control_mode.ignore_thrust             = true;
 		offboard_control_mode.ignore_attitude           = true;
-		offboard_control_mode.ignore_bodyrate           = true;
+		offboard_control_mode.ignore_bodyrate_x         = true;
+		offboard_control_mode.ignore_bodyrate_y         = true;
+		offboard_control_mode.ignore_bodyrate_z         = true;
 		offboard_control_mode.ignore_position           = true;
 		offboard_control_mode.ignore_velocity           = true;
 		offboard_control_mode.ignore_acceleration_force = true;
@@ -1289,16 +1295,28 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		 * throttle and has the ignore bits set for attitude and rates don't change the flags for attitude and
 		 * body rates to keep the controllers running
 		 */
-		bool ignore_bodyrate_msg = (bool)(set_attitude_target.type_mask & 0x7);
+		bool ignore_bodyrate_msg_x = (bool)(set_attitude_target.type_mask & 0x1);
+		bool ignore_bodyrate_msg_y = (bool)(set_attitude_target.type_mask & 0x2);
+		bool ignore_bodyrate_msg_z = (bool)(set_attitude_target.type_mask & 0x4);
 		bool ignore_attitude_msg = (bool)(set_attitude_target.type_mask & (1 << 7));
 
-		if (ignore_bodyrate_msg && ignore_attitude_msg && !_offboard_control_mode.ignore_thrust) {
+
+		if ((ignore_bodyrate_msg_x || ignore_bodyrate_msg_y ||
+		     ignore_bodyrate_msg_z) &&
+		    ignore_attitude_msg && !_offboard_control_mode.ignore_thrust) {
 			/* Message want's us to ignore everything except thrust: only ignore if previously ignored */
-			_offboard_control_mode.ignore_bodyrate = ignore_bodyrate_msg && _offboard_control_mode.ignore_bodyrate;
+			_offboard_control_mode.ignore_bodyrate_x =
+				ignore_bodyrate_msg_x && _offboard_control_mode.ignore_bodyrate_x;
+			_offboard_control_mode.ignore_bodyrate_y =
+				ignore_bodyrate_msg_y && _offboard_control_mode.ignore_bodyrate_y;
+			_offboard_control_mode.ignore_bodyrate_z =
+				ignore_bodyrate_msg_z && _offboard_control_mode.ignore_bodyrate_z;
 			_offboard_control_mode.ignore_attitude = ignore_attitude_msg && _offboard_control_mode.ignore_attitude;
 
 		} else {
-			_offboard_control_mode.ignore_bodyrate = ignore_bodyrate_msg;
+			_offboard_control_mode.ignore_bodyrate_x = ignore_bodyrate_msg_x;
+			_offboard_control_mode.ignore_bodyrate_y = ignore_bodyrate_msg_y;
+			_offboard_control_mode.ignore_bodyrate_z = ignore_bodyrate_msg_z;
 			_offboard_control_mode.ignore_attitude = ignore_attitude_msg;
 		}
 
@@ -1357,13 +1375,22 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 
 				/* Publish attitude rate setpoint if bodyrate and thrust ignore bits are not set */
 				///XXX add support for ignoring individual axes
-				if (!(_offboard_control_mode.ignore_bodyrate)) {
+				if (!_offboard_control_mode.ignore_bodyrate_x ||
+				    !_offboard_control_mode.ignore_bodyrate_y ||
+				    !_offboard_control_mode.ignore_bodyrate_z) {
 					vehicle_rates_setpoint_s rates_sp = {};
 					rates_sp.timestamp = hrt_absolute_time();
 
-					if (!ignore_bodyrate_msg) { // only copy att rates sp if message contained new data
+					// only copy att rates sp if message contained new data
+					if (!ignore_bodyrate_msg_x) {
 						rates_sp.roll = set_attitude_target.body_roll_rate;
+					}
+
+					if (!ignore_bodyrate_msg_y) {
 						rates_sp.pitch = set_attitude_target.body_pitch_rate;
+					}
+
+					if (!ignore_bodyrate_msg_z) {
 						rates_sp.yaw = set_attitude_target.body_yaw_rate;
 					}
 
