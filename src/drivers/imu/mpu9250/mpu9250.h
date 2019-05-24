@@ -35,26 +35,14 @@
 
 #include <perf/perf_counter.h>
 #include <systemlib/conversions.h>
-
-#include <board_config.h>
 #include <drivers/drv_hrt.h>
-
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/drv_mag.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/conversion/rotation.h>
-#include <systemlib/err.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
-
 #include <uORB/uORB.h>
 
-#include "mag.h"
-#include "accel.h"
-#include "gyro.h"
-
+#include "MPU9250_mag.h"
 
 #if defined(PX4_I2C_OBDEV_MPU9250) || defined(PX4_I2C_BUS_EXPANSION)
 #  define USE_I2C
@@ -248,21 +236,17 @@ extern int MPU9250_probe(device::Device *dev);
 typedef device::Device *(*MPU9250_constructor)(int, uint32_t, bool);
 
 class MPU9250_mag;
-class MPU9250_accel;
-class MPU9250_gyro;
 
 class MPU9250 : public px4::ScheduledWorkItem
 {
 public:
-	MPU9250(device::Device *interface, device::Device *mag_interface, const char *path_accel, const char *path_gyro,
-		const char *path_mag,
-		enum Rotation rotation,
+	MPU9250(device::Device *interface, device::Device *mag_interface, const char *path, enum Rotation rotation,
 		bool magnetometer_only);
 
 	virtual ~MPU9250();
 
 	virtual int		init();
-	uint8_t			get_whoami();
+	uint8_t			get_whoami() { return _whoami; }
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -271,42 +255,30 @@ public:
 
 protected:
 	device::Device *_interface;
-	uint8_t			_whoami;	/** whoami result */
+	uint8_t			_whoami{0};	/** whoami result */
 
 	virtual int		probe();
 
-	friend class MPU9250_accel;
 	friend class MPU9250_mag;
-	friend class MPU9250_gyro;
 
 	void Run() override;
 
 private:
-	MPU9250_accel   *_accel;
-	MPU9250_gyro	*_gyro;
-	MPU9250_mag     *_mag;
+
+	PX4Accelerometer	_px4_accel;
+	PX4Gyroscope		_px4_gyro;
+
+	MPU9250_mag		_mag;
 	uint8_t 		_selected_bank;			/* Remember selected memory bank to avoid polling / setting on each read/write */
 	bool
 	_magnetometer_only;     /* To disable accel and gyro reporting if only magnetometer is used (e.g. as external magnetometer) */
 
-	unsigned		_call_interval;
-
-	ringbuffer::RingBuffer	*_accel_reports;
-
-	struct accel_calibration_s	_accel_scale;
-	float			_accel_range_scale;
-	float			_accel_range_m_s2;
-	orb_advert_t		_accel_topic;
-
-	ringbuffer::RingBuffer	*_gyro_reports;
-
-	struct gyro_calibration_s	_gyro_scale;
-	float			_gyro_range_scale;
-	float			_gyro_range_rad_s;
+	unsigned		_call_interval{1000};
 
 	unsigned		_dlpf_freq;
 
-	unsigned		_sample_rate;
+	unsigned		_sample_rate{1000};
+
 	perf_counter_t		_accel_reads;
 	perf_counter_t		_gyro_reads;
 	perf_counter_t		_sample_perf;
@@ -316,48 +288,32 @@ private:
 	perf_counter_t		_reset_retries;
 	perf_counter_t		_duplicates;
 
-	uint8_t			_register_wait;
-	uint64_t		_reset_wait;
-
-	math::LowPassFilter2p	_accel_filter_x;
-	math::LowPassFilter2p	_accel_filter_y;
-	math::LowPassFilter2p	_accel_filter_z;
-	math::LowPassFilter2p	_gyro_filter_x;
-	math::LowPassFilter2p	_gyro_filter_y;
-	math::LowPassFilter2p	_gyro_filter_z;
-
-	Integrator		_accel_int;
-	Integrator		_gyro_int;
-
-	enum Rotation		_rotation;
+	uint8_t			_register_wait{0};
+	uint64_t		_reset_wait{0};
 
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
 
-#ifndef MAX
-#define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
-#endif
-
 	static constexpr int MPU9250_NUM_CHECKED_REGISTERS{11};
 	static const uint16_t	_mpu9250_checked_registers[MPU9250_NUM_CHECKED_REGISTERS];
 
-	const uint16_t			*_checked_registers;
+	const uint16_t			*_checked_registers{nullptr};
 
-	uint8_t					_checked_values[MPU9250_NUM_CHECKED_REGISTERS];
-	uint8_t					_checked_bad[MPU9250_NUM_CHECKED_REGISTERS];
-	unsigned				_checked_next;
-	unsigned				_num_checked_registers;
+	uint8_t					_checked_values[MPU9250_NUM_CHECKED_REGISTERS] {};
+	uint8_t					_checked_bad[MPU9250_NUM_CHECKED_REGISTERS] {};
+	unsigned				_checked_next{0};
+	unsigned				_num_checked_registers{0};
 
 
 	// last temperature reading for print_info()
-	float			_last_temperature;
+	float			_last_temperature{0.0f};
 
 	bool check_null_data(uint16_t *data, uint8_t size);
 	bool check_duplicate(uint8_t *accel_data);
 	// keep last accel reading for duplicate detection
-	uint8_t			_last_accel_data[6];
-	bool			_got_duplicate;
+	uint8_t			_last_accel_data[6] {};
+	bool			_got_duplicate{false};
 
 	/**
 	 * Start automatic measurement.
@@ -476,11 +432,6 @@ private:
 	  set sample rate (approximate) - 1kHz to 5Hz
 	*/
 	void _set_sample_rate(unsigned desired_sample_rate_hz);
-
-	/*
-	  set poll rate
-	 */
-	int _set_pollrate(unsigned long rate);
 
 	/*
 	  check that key registers still have the right value
