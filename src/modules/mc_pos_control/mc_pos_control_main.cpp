@@ -85,6 +85,19 @@
  */
 extern "C" __EXPORT int mc_pos_control_main(int argc, char *argv[]);
 
+sem_t sem_pos;// INRIA: semaphore to activate and block the attitude control task
+hrt_call		_call_pos; // INRIA
+
+extern "C" __EXPORT int pos_task_activation();
+
+int pos_task_activation() //INRIA
+{
+
+	sem_post(&sem_pos);
+	return 0;
+
+}
+
 class MulticopterPositionControl : public control::SuperBlock
 {
 public:
@@ -305,6 +318,13 @@ private:
 	uint8_t _heading_reset_counter;
 
 	matrix::Dcmf _R_setpoint;
+
+	//sem_t sem_pos;// INRIA: semaphore to activate and block the attitude control task
+	//hrt_call		_call_pos; // INRIA
+
+	//static void		pos_task_activation(void *arg); // INRIA: called by HRT periodically to activate mc_pos_control task
+
+	//int pos_sem_release(); //INRIA: release semaphore for the blocked task: Position control
 
 	/**
 	 * Update our local parameter cache.
@@ -576,6 +596,23 @@ MulticopterPositionControl::warn_rate_limited(const char *string)
 		_last_warn = now;
 	}
 }
+
+/*
+void
+MulticopterPositionControl::pos_task_activation(void *arg) //INRIA
+{
+	MulticopterPositionControl *dev = reinterpret_cast<MulticopterPositionControl *>(arg);
+
+	// release sem_pos semaphore 
+	dev->pos_sem_release();
+}
+
+int MulticopterPositionControl::pos_sem_release() { //INRIA
+
+	sem_post(&sem_pos);
+	return 0;
+
+}*/
 
 int
 MulticopterPositionControl::parameters_update(bool force)
@@ -3023,9 +3060,26 @@ MulticopterPositionControl::task_main()
 	fds[0].fd = _local_pos_sub;
 	fds[0].events = POLLIN;
 
+	//INRIA: Get the handle to the hrt position parameter
+	param_t hrt_param_handle = PARAM_INVALID;
+	hrt_param_handle = param_find("HRT_INTVL_POS");
+
+	//INRIA: Query the value of the parameter when needed
+	int32_t hrt_pos_param = 0;
+	param_get(hrt_param_handle, &hrt_pos_param);
+
+	//INRIA: calling pos_task_activation every hrt_pos_param (= period) using High Resolution Timer to release sem_pos semaphore
+	hrt_call_every(&_call_pos,
+			       0,
+			       hrt_pos_param,
+			       (hrt_callout)&pos_task_activation, this); /*MulticopterPositionControl::*/
+
 	while (!_task_should_exit) {
+		
+		sem_wait(&sem_pos); // INRIA 
+
 		/* wait for up to 20ms for data */
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 20);
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 0); // INRIA: Don't need to wait for up to 20 ms since we r using HRT
 
 		/* timed out - periodic check for _task_should_exit */
 		if (pret == 0) {

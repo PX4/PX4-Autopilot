@@ -574,3 +574,18 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
+
+/**
+ * Hrt interval parameter for Position task
+ *
+ * This parameter is used by the "hrt_call_every" function used in "mc_pos_control_main.cpp" to call function "pos_task_activation" to activate the Position task every HRT_INTVL_POS us (period)
+ *
+ * @unit us
+ * @min 2000
+ * @max 20000
+ * @decimal 2000
+ * @increment 0.05
+ * @reboot_required true
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(HRT_INTVL_POS, 6666);
