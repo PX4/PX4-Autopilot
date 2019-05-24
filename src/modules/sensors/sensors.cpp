@@ -129,6 +129,19 @@ using namespace sensors;
  */
 extern "C" __EXPORT int sensors_main(int argc, char *argv[]);
 
+extern "C" __EXPORT int sensors_main(int argc, char *argv[]);
+
+sem_t sem_sens;// INRIA: semaphore to activate and block the attitude control task
+hrt_call		_call_sens; // INRIA
+
+extern "C" __EXPORT int sens_task_activation(); //INRIA
+int sens_task_activation()
+{
+	sem_post(&sem_sens);
+	
+	return 0;
+}
+
 class Sensors : public ModuleBase<Sensors>
 {
 public:
@@ -170,6 +183,9 @@ private:
 	orb_advert_t	_sensor_pub{nullptr};			/**< combined sensor data topic */
 	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] {};			/**< battery status */
 
+	//sem_t sem_sens;// INRIA: semaphore to activate and block the attitude control task
+	//hrt_call		_call_sens; // INRIA
+
 #if BOARD_NUMBER_BRICKS > 1
 	int 			_battery_pub_intance0ndx {0}; /**< track the index of instance 0 */
 #endif
@@ -199,6 +215,10 @@ private:
 	 * Update our local parameter cache.
 	 */
 	int		parameters_update();
+
+	//static void		sens_task_activation(void *arg); // INRIA: called by HRT periodically 
+
+	//int sens_sem_release(); //INRIA: release semaphore for the blocked task: Sensors
 
 	/**
 	 * Do adc-related initialisation.
@@ -288,6 +308,22 @@ Sensors::parameters_update()
 	return ret;
 }
 
+/*
+void
+Sensors::sens_task_activation(void *arg) //INRIA
+{
+	Sensors *dev = reinterpret_cast<Sensors *>(arg);
+
+	// release semaphore 
+	dev->sens_sem_release();
+}
+
+int Sensors::sens_sem_release() { //INRIA
+	sem_post(&sem_sens);
+	
+	return 0;
+
+}*/
 
 int
 Sensors::adc_init()
@@ -631,16 +667,32 @@ Sensors::run()
 
 	poll_fds.events = POLLIN;
 
+	//INRIA: Get the handle to the hrt sensors parameter
+	param_t hrt_param_handle = PARAM_INVALID;
+	hrt_param_handle = param_find("HRT_INTVL_SENS");
+
+	//INRIA: Query the value of the parameter when needed
+	int32_t hrt_sens_param = 0;
+	param_get(hrt_param_handle, &hrt_sens_param);
+
 	uint64_t last_config_update = hrt_absolute_time();
 
+	//INRIA: calling sens_task_activation every hrt_sens_param (= period) using High Resolution Timer to activate sensors task
+	hrt_call_every(&_call_sens,
+			       0,
+			       hrt_sens_param,
+			       (hrt_callout)&sens_task_activation, this); /*Sensors::*/
+
 	while (!should_exit()) {
+
+		sem_wait(&sem_sens); // INRIA
 
 		/* use the best-voted gyro to pace output */
 		poll_fds.fd = _voted_sensors_update.best_gyro_fd();
 
 		/* wait for up to 50ms for data (Note that this implies, we can have a fail-over time of 50ms,
 		 * if a gyro fails) */
-		int pret = px4_poll(&poll_fds, 1, 50);
+		int pret = px4_poll(&poll_fds, 1, 0); // INRIA: Don't need to wait for up to 50 ms since we r using HRT
 
 		/* if pret == 0 it timed out - periodic check for should_exit(), etc. */
 

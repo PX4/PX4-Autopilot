@@ -315,3 +315,18 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
 * @group Sensors
 */
 PARAM_DEFINE_FLOAT(IMU_ACCEL_CUTOFF, 30.0f);
+
+/**
+ * Hrt interval parameter for Sensors
+ *
+ * This parameter is used by the "hrt_call_every" function used in "sensors.cpp" to call function "sens_task_activation" to activate the Sensors task every HRT_INTVL_SENS us (period)
+ *
+ * @unit us
+ * @min 2000
+ * @max 20000
+ * @decimal 2000
+ * @increment 0.05
+ * @reboot_required true
+ * @group Sensors
+ */
+PARAM_DEFINE_INT32(HRT_INTVL_SENS, 6666);
