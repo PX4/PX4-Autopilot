@@ -46,10 +46,10 @@
 
 #include <mathlib/mathlib.h>
 
+#include <math.h>
 #include <stdint.h>
 
 using math::constrain;
-using math::floorf;
 
 /** set this always to the sampling in degrees for the table below */
 static constexpr float SAMPLING_RES = 10.0f;
