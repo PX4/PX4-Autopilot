@@ -63,6 +63,8 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/uORB.h>
 
 using matrix::Dcmf;
@@ -94,6 +96,7 @@ public:
 private:
 	orb_advert_t	_attitude_sp_pub{nullptr};		/**< attitude setpoint */
 	orb_advert_t	_pos_ctrl_status_pub{nullptr};		/**< navigation capabilities publication */
+	orb_advert_t    _actuator_controls_pub{nullptr};	/**< actuator controls publication */
 
 	bool		_task_should_exit{false};		/**< if true, sensor task should exit */
 	bool		_task_running{false};			/**< if true, task is running in its mainloop */
@@ -109,6 +112,7 @@ private:
 	vehicle_attitude_setpoint_s		_att_sp{};			/**< vehicle attitude setpoint */
 	vehicle_control_mode_s			_control_mode{};			/**< control mode */
 	vehicle_global_position_s		_global_pos{};			/**< global vehicle position */
+	actuator_controls_s			_act_controls{};		/**< direct control of actuators */
 
 	SubscriptionData<vehicle_attitude_s>	_sub_attitude;
 	SubscriptionData<sensor_bias_s>	_sub_sensors;

@@ -66,7 +66,6 @@ px4_add_board(
 		ekf2
 		fw_att_control
 		fw_pos_control_l1
-		gnd_att_control
 		gnd_pos_control
 		land_detector
 		landing_target_estimator

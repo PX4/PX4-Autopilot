@@ -42,7 +42,6 @@ px4_add_board(
 		dataman
 		ekf2
 		events
-		gnd_att_control
 		gnd_pos_control
 		land_detector
 		load_mon
