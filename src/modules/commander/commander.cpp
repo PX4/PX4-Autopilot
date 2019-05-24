@@ -259,6 +259,11 @@ static bool _last_condition_global_position_valid = false;
 
 static struct vehicle_land_detected_s land_detector = {};
 
+static sem_t sem_cmdr;// INRIA: semaphore to activate and block the commander task
+hrt_call		_call_cmdr; // INRIA
+
+static int	cmdr_task_activation(void *arg); // INRIA: called by HRT periodically to release semaphore for the blocked task: commander
+
 /**
  * The daemon app only briefly exists to start
  * the background job. The stack size assigned in the
@@ -347,6 +352,11 @@ static void answer_command(struct vehicle_command_s &cmd, unsigned result,
 /* publish vehicle status flags from the global variable status_flags*/
 static void publish_status_flags(orb_advert_t &vehicle_status_flags_pub);
 
+int cmdr_task_activation(void *arg) { //INRIA
+	sem_post(&sem_cmdr);
+	return 0;
+
+}
 
 static int power_button_state_notification_cb(board_power_button_state_notification_e request)
 {
@@ -1819,7 +1829,23 @@ int commander_thread_main(int argc, char *argv[])
 
 	arm_auth_init(&mavlink_log_pub, &status.system_id);
 
+	//INRIA: Get the handle to the hrt commander parameter
+	param_t hrt_param_handle = PARAM_INVALID;
+	hrt_param_handle = param_find("HRT_INTVL_CMDR");
+
+	//INRIA: Query the value of the parameter when needed
+	int32_t hrt_cmdr_param = 0;
+	param_get(hrt_param_handle, &hrt_cmdr_param);
+
+	//INRIA: calling comm_task_activation at a specific period: hrt_comdr_param, using High Resolution Timer
+	hrt_call_every(&_call_cmdr,
+			       0,
+			       hrt_cmdr_param,
+			       (hrt_callout)&cmdr_task_activation, 0);
+
 	while (!thread_should_exit) {
+
+		sem_wait(&sem_cmdr); // INRIA
 
 		arming_ret = TRANSITION_NOT_CHANGED;
 
@@ -3300,7 +3326,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		arm_auth_update(now);
 
-		usleep(COMMANDER_MONITORING_INTERVAL);
+		//usleep(COMMANDER_MONITORING_INTERVAL); //INRIA: Commander task is now activated every 10ms
 	}
 
 	/* wait for threads to complete */

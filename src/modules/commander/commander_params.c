@@ -700,3 +700,19 @@ PARAM_DEFINE_INT32(COM_POS_FS_GAIN, 10);
  * @min 0
  */
 PARAM_DEFINE_INT32(COM_FLIGHT_UUID, 0);
+
+/**
+ * Hrt interval parameter for commander task
+ *
+ * This parameter is used by the "hrt_call_every" function used in "commander.cpp" to call function "cmdr_task_activation" to activate the commander task every HRT_INTVL_CMDR us (period)
+ *
+ * @unit us
+ * @min 2000
+ * @max 100000
+ * @decimal 2000
+ * @increment 0.05
+ * @reboot_required true
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(HRT_INTVL_CMDR, 10000);
+
