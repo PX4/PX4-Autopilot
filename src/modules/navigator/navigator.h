@@ -250,6 +250,9 @@ private:
 	bool		_task_should_exit{false};	/**< if true, sensor task should exit */
 	int		_navigator_task{-1};		/**< task handle for sensor task */
 
+	//sem_t sem_nav;// INRIA: semaphore to activate and block the navigator task
+	//hrt_call		_call_nav; // INRIA
+
 	int		_fw_pos_ctrl_status_sub{-1};	/**< notification of vehicle capabilities updates */
 	int		_global_pos_sub{-1};		/**< global position subscription */
 	int		_gps_pos_sub{-1};		/**< gps position subscription */
@@ -346,6 +349,10 @@ private:
 	 * Shim for calling task_main from task_create.
 	 */
 	static void	task_main_trampoline(int argc, char *argv[]);
+
+	//static void		nav_task_activation(void *arg); // INRIA: called by HRT periodically 
+
+	//int nav_sem_release(); //INRIA: release semaphore for the blocked task: navigator
 
 	/**
 	 * Main task.

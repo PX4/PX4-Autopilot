@@ -198,3 +198,18 @@ PARAM_DEFINE_FLOAT(NAV_AH_ALT, 600.0f);
  * @group Mission
  */
 PARAM_DEFINE_INT32(NAV_FORCE_VT, 1);
+
+/**
+ * Hrt interval parameter for navigator task
+ *
+ * This parameter is used by the "hrt_call_every" function used in "navigator_main.cpp" to call function "nav_task_activation" to activate the Navigator task every HRT_INTVL_NAV us (period)
+ *
+ * @unit us
+ * @min 2000
+ * @max 1000000
+ * @decimal 2000
+ * @increment 0.05
+ * @reboot_required true
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(HRT_INTVL_NAV, 50000);

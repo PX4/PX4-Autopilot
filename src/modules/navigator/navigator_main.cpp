@@ -76,6 +76,19 @@
  */
 extern "C" __EXPORT int navigator_main(int argc, char *argv[]);
 
+sem_t sem_nav;// INRIA: semaphore to activate and block the navigator task
+hrt_call		_call_nav; // INRIA
+
+extern "C" __EXPORT int nav_task_activation(); //INRIA
+	
+int nav_task_activation() //INRIA
+{
+
+	sem_post(&sem_nav);
+	return 0;
+
+}
+
 #define GEOFENCE_CHECK_INTERVAL 200000
 
 namespace navigator
@@ -220,6 +233,22 @@ Navigator::params_update()
 	}
 }
 
+/*
+void
+Navigator::nav_task_activation(void *arg) //INRIA
+{
+	Navigator *dev = reinterpret_cast<Navigator *>(arg);
+
+	// release another semaphores 
+	dev->nav_sem_release();
+}
+
+int Navigator::nav_sem_release() { //INRIA
+	sem_post(&sem_nav);
+	return 0;
+
+}*/
+
 void
 Navigator::task_main_trampoline(int argc, char *argv[])
 {
@@ -274,15 +303,32 @@ Navigator::task_main()
 	fds[0].events = POLLIN;
 
 	/* rate-limit position subscription to 20 Hz / 50 ms */
-	orb_set_interval(_local_pos_sub, 50);
+	//orb_set_interval(_local_pos_sub, 50); //INRIA: we don't need to set interval to 50ms, we are activating the anvigator task each 50ms with hrt
+
+	//INRIA: Get the handle to the hrt navigator parameter
+	param_t hrt_param_handle = PARAM_INVALID;
+	hrt_param_handle = param_find("HRT_INTVL_NAV");
+
+	//INRIA: Query the value of the parameter when needed
+	int32_t hrt_nav_param = 0;
+	param_get(hrt_param_handle, &hrt_nav_param);
+
+	//INRIA: calling nav_task_activation at a specific period: hrt_nav_param, using High Resolution Timer
+	hrt_call_every(&_call_nav,
+			       0,
+			       hrt_nav_param,
+			       (hrt_callout)&nav_task_activation, this); /*Navigator::*/
 
 	while (!_task_should_exit) {
 
-		/* wait for up to 1000ms for data */
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 1000);
+		sem_wait(&sem_nav); // INRIA
+
+		
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 0); // INRIA: Don't need to wait for up to 1000 ms since we r using HRT
 
 		if (pret == 0) {
 			/* Let the loop run anyway, don't do `continue` here. */
+			local_position_update(); // INRIA: update local position (old values)
 
 		} else if (pret < 0) {
 			/* this is undesirable but not much we can do - might want to flag unhappy status */
