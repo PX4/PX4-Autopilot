@@ -255,8 +255,24 @@ void PositionControl::_velocityController(const float &dt)
 	// 	 consideration of the desired thrust in D-direction. In addition, the thrust in
 	// 	 NE-direction is also limited by the maximum tilt.
 
+	// Filter acceleration feedforward
+	if (_param_mpc_a_ff_cutoff.get() > FLT_EPSILON) {
+		// Apply a first order IIR filter
+		const float omega_c = M_TWOPI_F * _param_mpc_a_ff_cutoff.get();
+		const float alpha =  omega_c * dt / (1 + omega_c * dt);
+		_acc_sp_filtered = alpha * _acc_sp + (1 - alpha) * _acc_sp_filtered;
+
+	} else if (_param_mpc_a_ff_cutoff.get() < -FLT_EPSILON) {
+		// Disable feedforward
+		_acc_sp_filtered.zero();
+
+	} else {
+		// Do not filter
+		_acc_sp_filtered = _acc_sp;
+	}
+
 	// Acceleration to thrust feedforward conversion
-	const Vector3f thr_ff = _acc_sp * _param_mpc_thr_hover.get() / CONSTANTS_ONE_G;
+	const Vector3f thr_ff = _acc_sp_filtered * _param_mpc_thr_hover.get() / CONSTANTS_ONE_G;
 
 	const Vector3f vel_err = _vel_sp - _vel;
 

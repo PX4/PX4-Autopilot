@@ -234,6 +234,25 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_I, 0.02f);
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 
 /**
+ * Cutoff frequency for the low pass filter on the acceleration feedforward of the PID velocity controller
+ *
+ * The velocity controller can use acceleration as a feedforward to improve tracking performance. However,
+ * since this feedforward is directly translated to attitude setpoint, the signal need to be low-passed if
+ * it is not smooth.
+ *
+ * A value of 0 disables the filter.
+ * A value of -1 disables acceleration feedforward.
+ *
+ * @unit Hz
+ * @min -1
+ * @max 20
+ * @decimal 0
+ * @increment 1
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MPC_A_FF_CUTOFF, 10.f);
+
+/**
  * Maximum horizontal velocity in mission
  *
  * Normal horizontal velocity in AUTO modes (includes
