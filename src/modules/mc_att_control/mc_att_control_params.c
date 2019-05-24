@@ -554,3 +554,18 @@ PARAM_DEFINE_FLOAT(MC_TPA_RATE_I, 0.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_TPA_RATE_D, 0.0f);
+
+/**
+ * Hrt interval parameter for Attitude task
+ *
+ * This parameter is used by the "hrt_call_every" function used in "mc_att_control_main.cpp" to call function "att_task_activation" to activate the Attitude task every HRT_INTVL_ATT us (period)
+ *
+ * @unit us
+ * @min 2000
+ * @max 20000
+ * @decimal 2000
+ * @increment 0.05
+ * @reboot_required true
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_INT32(HRT_INTVL_ATT, 6666);

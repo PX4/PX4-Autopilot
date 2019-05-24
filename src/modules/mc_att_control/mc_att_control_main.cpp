@@ -91,6 +91,20 @@
  */
 extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 
+	sem_t sem_att;// INRIA: semaphore to activate and block the attitude control task
+	hrt_call		_call_att; // INRIA
+
+extern "C" __EXPORT int att_task_activation(); //INRIA
+
+int att_task_activation() //INRIA
+{
+
+	sem_post(&sem_att);
+
+	return 0;
+
+}
+
 #define MIN_TAKEOFF_THRUST    0.2f
 #define TPA_RATE_LOWER_LIMIT 0.05f
 #define ATTITUDE_TC_DEFAULT 0.2f
@@ -126,6 +140,9 @@ private:
 
 	bool	_task_should_exit;		/**< if true, task_main() should exit */
 	int		_control_task;			/**< task handle */
+
+	//sem_t sem_att;// INRIA: semaphore to activate and block the attitude control task
+	//hrt_call		_call_att; // INRIA
 
 	int		_v_att_sub;		/**< vehicle attitude subscription */
 	int		_v_att_sp_sub;			/**< vehicle attitude setpoint subscription */
@@ -279,6 +296,10 @@ private:
 	 * Update our local parameter cache.
 	 */
 	void			parameters_update();
+
+	//static void		att_task_activation(void *arg); // INRIA: called by HRT periodically to activate mc_att_control task
+
+	//int att_sem_release(); //INRIA: release semaphore for the blocked task: Attitude control
 
 	/**
 	 * Check for parameter update and handle it.
@@ -632,6 +653,22 @@ MulticopterAttitudeControl::parameters_update()
 					 M_DEG_TO_RAD_F * _params.board_offset[2]);
 	_board_rotation = board_rotation_offset * _board_rotation;
 }
+
+/*void
+MulticopterAttitudeControl::att_task_activation(void *arg) //INRIA
+{
+	MulticopterAttitudeControl *dev = reinterpret_cast<MulticopterAttitudeControl *>(arg);
+
+	// release sem_att semaphore 
+	dev->att_sem_release();
+}
+
+int MulticopterAttitudeControl::att_sem_release() { //INRIA
+	sem_post(&sem_att);
+
+	return 0;
+
+}*/
 
 void
 MulticopterAttitudeControl::parameter_update_poll()
@@ -1097,16 +1134,32 @@ MulticopterAttitudeControl::task_main()
 	px4_pollfd_struct_t poll_fds = {};
 	poll_fds.events = POLLIN;
 
+	//INRIA: Get the handle to the hrt attitude control parameter
+	param_t hrt_param_handle = PARAM_INVALID;
+	hrt_param_handle = param_find("HRT_INTVL_ATT");
+
+	//INRIA: Query the value of the parameter when needed
+	int32_t hrt_att_param = 0;
+	param_get(hrt_param_handle, &hrt_att_param);
+
+	//INRIA: calling att_task_activation every hrt_att_param (= period) using High Resolution Timer to release sem_att semaphore
+	hrt_call_every(&_call_att,
+			       0,
+			       hrt_att_param,
+			       (hrt_callout)&att_task_activation, this); /*MulticopterAttitudeControl::*/
+
 	while (!_task_should_exit) {
+
+		sem_wait(&sem_att); // INRIA
 
 		poll_fds.fd = _sensor_gyro_sub[_selected_gyro];
 
 		/* wait for up to 100ms for data */
-		int pret = px4_poll(&poll_fds, 1, 100);
+		int pret = px4_poll(&poll_fds, 1, 0); //INRIA: don't wait for up to 100ms we have hrt now
 
 		/* timed out - periodic check for _task_should_exit */
 		if (pret == 0) {
-			continue;
+			//continue; // INRIA: go through the loop
 		}
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
