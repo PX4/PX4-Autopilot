@@ -34,10 +34,17 @@ then
 	param set GND_WR_IMAX 0.1
 	param set GND_WR_D 0.1
 	param set GND_SP_CTRL_MODE 1
-	param set GND_L1_DIST 10
+	param set GND_L1_DIST 2.0
+	param set GND_L1_PERIOD 2.0
 	param set GND_THR_IDLE 0
-	param set GND_THR_CRUISE 0
+	param set GND_THR_CRUISE 0.7
 	param set GND_THR_MAX 0.5
+
+	# Because this is differential drive, it can make a turn with radius 0.
+	# This corresponds to a turn angle of pi radians.
+	# If a special case is made for differential-drive, this will need to change.
+	param set GND_MAX_ANG 3.142
+
 	# TODO: Set to -1.0, to allow reversing. This will require many changes in the codebase
 	# to support negative throttle.
 	param set GND_THR_MIN 0.0
