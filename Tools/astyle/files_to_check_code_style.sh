@@ -7,7 +7,7 @@ if [ $# -gt 0 ]; then
     PATTERN="$1"
 fi
 
-exec find build boards msg src platforms \
+exec find boards msg src platforms \
     -path msg/templates/urtps -prune -o \
     -path platforms/nuttx/NuttX -prune -o \
     -path src/drivers/uavcan/libuavcan -prune -o \
@@ -17,5 +17,4 @@ exec find build boards msg src platforms \
     -path src/lib/systemlib/uthash -prune -o \
     -path src/modules/micrortps_bridge/micro-CDR -prune -o \
     -path src/modules/micrortps_bridge/microRTPS_client -prune -o \
-    -path build/*/src/modules/micrortps_bridge/micrortps_client/micrortps_agent -prune -o \
     -type f \( -name "*.c" -o -name "*.h" -o -name "*.cpp" -o -name "*.hpp" \) | grep $PATTERN
