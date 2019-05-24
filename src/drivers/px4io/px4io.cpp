@@ -105,6 +105,20 @@
 #define ORB_CHECK_INTERVAL		200000		// 200 ms -> 5 Hz
 #define IO_POLL_INTERVAL		20000		// 20 ms -> 50 Hz
 
+extern "C" __EXPORT int px4io_task_activation(); //INRIA
+
+sem_t sem_px4io;// INRIA: semaphore to activate and block the Px4io task
+hrt_call		_call_px4io; // INRIA
+
+int px4io_task_activation() //INRIA
+{
+
+	sem_post(&sem_px4io);
+
+	return 0;
+
+}
+
 /**
  * The PX4IO class.
  *
@@ -288,6 +302,13 @@ private:
 	float			_analog_rc_rssi_volt; ///< analog RSSI voltage
 
 	bool			_test_fmu_fail; ///< To test what happens if IO looses FMU
+
+	//sem_t sem_px4io;// INRIA: semaphore to activate and block the Px4io task
+	//hrt_call		_call_px4io; // INRIA
+
+	//static void		px4io_task_activation(void *arg); // INRIA: called by HRT periodically 
+
+	//int px4io_sem_release(); //INRIA: release semaphore for the blocked task: Px4io
 
 	/**
 	 * Trampoline to the worker task
@@ -872,6 +893,23 @@ PX4IO::init()
 	return OK;
 }
 
+/*
+void
+PX4IO::px4io_task_activation(void *arg) //INRIA
+{
+	PX4IO *dev = reinterpret_cast<PX4IO *>(arg);
+
+	// release another semaphores 
+	dev->px4io_sem_release();
+}
+
+int PX4IO::px4io_sem_release() { //INRIA
+	sem_post(&sem_px4io);
+
+	return 0;
+
+}*/
+
 void
 PX4IO::task_main_trampoline(int argc, char *argv[])
 {
@@ -881,15 +919,23 @@ PX4IO::task_main_trampoline(int argc, char *argv[])
 void
 PX4IO::task_main()
 {
-	hrt_abstime poll_last = 0;
+	//hrt_abstime poll_last = 0; //INRIA: we don't use it
 	hrt_abstime orb_check_last = 0;
+
+	//INRIA: Get the handle to the hrt Px4io parameter
+	param_t hrt_param_handle = PARAM_INVALID;
+	hrt_param_handle = param_find("HRT_INTVL_IO");
+
+	//INRIA: Query the value of the parameter when needed
+	int32_t hrt_io_param = 0;
+	param_get(hrt_param_handle, &hrt_io_param);
 
 	/*
 	 * Subscribe to the appropriate PWM output topic based on whether we are the
 	 * primary PWM output or not.
 	 */
 	_t_actuator_controls_0 = orb_subscribe(ORB_ID(actuator_controls_0));
-	orb_set_interval(_t_actuator_controls_0, 20);		/* default to 50Hz */
+	//orb_set_interval(_t_actuator_controls_0, 20);		/* default to 50Hz */ //INRIA: don't need to set interval since we are running the task at 6666us (default)
 	_t_actuator_controls_1 = orb_subscribe(ORB_ID(actuator_controls_1));
 	orb_set_interval(_t_actuator_controls_1, 33);		/* default to 30Hz */
 	_t_actuator_controls_2 = orb_subscribe(ORB_ID(actuator_controls_2));
@@ -920,14 +966,22 @@ PX4IO::task_main()
 
 	_param_update_force = true;
 
+	//INRIA: calling ctrl_tasks_activation every hrt_io_param (= period) using High Resolution Timer
+	hrt_call_every(&_call_px4io,
+			       0,
+			       hrt_io_param,
+			       (hrt_callout)&px4io_task_activation, this); /*PX4IO::*/
+
 	/* lock against the ioctl handler */
 	lock();
 
 	/* loop talking to IO */
 	while (!_task_should_exit) {
 
-		/* adjust update interval */
-		if (_update_interval != 0) {
+		sem_wait(&sem_px4io); //INRIA
+
+		/* adjust update interval */ //INRIA: the task is running at a specific period see: hrt_io_param parameter
+		/*if (_update_interval != 0) { 
 			if (_update_interval < UPDATE_INTERVAL_MIN) {
 				_update_interval = UPDATE_INTERVAL_MIN;
 			}
@@ -937,16 +991,14 @@ PX4IO::task_main()
 			}
 
 			orb_set_interval(_t_actuator_controls_0, _update_interval);
-			/*
-			 * NOT changing the rate of groups 1-3 here, because only attitude
-			 * really needs to run fast.
-			 */
+			//NOT changing the rate of groups 1-3 here, because only attitude really needs to run fast.
+			 
 			_update_interval = 0;
-		}
+		}*/ 
 
-		/* sleep waiting for topic updates, but no more than 20ms */
+		/* INRIA: we don't wait for data since we are using HRT */
 		unlock();
-		int ret = ::poll(fds, 1, 20);
+		int ret = ::poll(fds, 1, 0); //20ms
 		lock();
 
 		/* this would be bad... */
@@ -959,16 +1011,17 @@ PX4IO::task_main()
 		hrt_abstime now = hrt_absolute_time();
 
 		/* if we have new control data from the ORB, handle it */
-		if (fds[0].revents & POLLIN) {
+		//if (fds[0].revents & POLLIN) {
 
 			/* we're not nice to the lower-priority control groups and only check them
 			   when the primary group updated (which is now). */
-			(void)io_set_control_groups();
-		}
+			(void)io_set_control_groups(); //INRIA: check the lower-priority control groups even if we don't have new data
+		//}
 
-		if (now >= poll_last + IO_POLL_INTERVAL) {
+		//if (now >= poll_last + IO_POLL_INTERVAL) //INRIA: publishing at the task's rate
+		{
 			/* run at 50-250Hz */
-			poll_last = now;
+			//poll_last = now;
 
 			/* pull status and alarms from IO */
 			io_get_status();

@@ -306,3 +306,18 @@ PARAM_DEFINE_INT32(RC_RSSI_PWM_MAX, 1000);
  *
  */
 PARAM_DEFINE_INT32(RC_RSSI_PWM_MIN, 2000);
+
+/**
+ * Hrt interval parameter for Px4io
+ *
+ * This parameter is used by the "hrt_call_every" function used in "px4io.cpp" to call function "px4io_task_activation" to activate the Px4io task every HRT_INTVL_IO us (period)
+ *
+ * @unit us
+ * @min 2000
+ * @max 100000
+ * @decimal 2000
+ * @increment 0.05
+ * @reboot_required true
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(HRT_INTVL_IO, 6666);
