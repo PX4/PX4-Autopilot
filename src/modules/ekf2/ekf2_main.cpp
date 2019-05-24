@@ -78,6 +78,20 @@ using math::constrain;
 
 extern "C" __EXPORT int ekf2_main(int argc, char *argv[]);
 
+sem_t sem_ekf2;// INRIA: semaphore to activate and block the attitude control task
+hrt_call		_call_ekf2; // INRIA
+
+extern "C" __EXPORT int ekf2_task_activation(); //INRIA
+
+int ekf2_task_activation()
+{
+
+	sem_post(&sem_ekf2);
+
+	return 0;
+
+}
+
 class Ekf2 final : public control::SuperBlock, public ModuleBase<Ekf2>
 {
 public:
@@ -105,10 +119,17 @@ public:
 
 	int print_status() override;
 
+	//static void		ekf2_task_activation(void *arg); // INRIA: called by HRT periodically 
+
+	//int ekf2_sem_release(); //INRIA: release semaphore for the blocked task; Ekf2
+
 private:
 	int getRangeSubIndex(const int *subs); ///< get subscription index of first downward-facing range sensor
 
 	bool 	_replay_mode = false;			///< true when we use replay data from a log
+
+	//sem_t sem_ekf2;// INRIA: semaphore to activate and block the attitude control task
+	//hrt_call		_call_ekf2; // INRIA
 
 	// time slip monitoring
 	uint64_t _integrated_time_us = 0;	///< integral of gyro delta time from start (uSec)
@@ -449,6 +470,23 @@ int Ekf2::print_status()
 	return 0;
 }
 
+/*
+void
+Ekf2::ekf2_task_activation(void *arg) //INRIA
+{
+	Ekf2 *dev = reinterpret_cast<Ekf2 *>(arg);
+
+	// release sem_ekf2 semaphore 
+	dev->ekf2_sem_release();
+}
+
+int Ekf2::ekf2_sem_release() { //INRIA
+	sem_post(&sem_ekf2);
+
+	return 0;
+
+}*/
+
 void Ekf2::run()
 {
 	// subscribe to relevant topics
@@ -497,12 +535,29 @@ void Ekf2::run()
 	sensor_baro_s sensor_baro = {};
 	sensor_baro.pressure = 1013.5f; // initialise pressure to sea level
 
+	//INRIA: Get the handle to the hrt ekf2 parameter
+	param_t hrt_param_handle = PARAM_INVALID;
+	hrt_param_handle = param_find("HRT_INTVL_EKF2");
+
+	//INRIA: Query the value of the parameter when needed
+	int32_t hrt_ekf2_param = 0;
+	param_get(hrt_param_handle, &hrt_ekf2_param);
+
+	//INRIA: calling ekf2_task_activation every hrt_ekf2_param (= period) using High Resolution Timer to release sem_ekf2 semaphore
+	hrt_call_every(&_call_ekf2,
+			       0,
+			       hrt_ekf2_param,
+			       (hrt_callout)&ekf2_task_activation, this); /* Ekf2::*/
+
 	while (!should_exit()) {
-		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
+
+		sem_wait(&sem_ekf2); // INRIA
+
+		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 0); // INRIA: Don't need to wait for up to 1000 ms since we r using HRT
 
 		if (!(fds[0].revents & POLLIN)) {
 			// no new data
-			continue;
+			//continue; INRIA
 		}
 
 		if (ret < 0) {
@@ -512,7 +567,7 @@ void Ekf2::run()
 
 		} else if (ret == 0) {
 			// Poll timeout or no new data, do nothing
-			continue;
+			// continue; // INRIA
 		}
 
 		bool params_updated = false;

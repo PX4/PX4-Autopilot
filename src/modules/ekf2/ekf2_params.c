@@ -1218,3 +1218,18 @@ PARAM_DEFINE_FLOAT(EKF2_ABL_GYRLIM, 3.0f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_ABL_TAU, 0.5f);
+
+/**
+ * Hrt interval parameter for Ekf2 task
+ *
+ * This parameter is used by the "hrt_call_every" function used in "ekf2_main.cpp" to call function "ekf2_task_activation" to activate the Ekf2 task every HRT_INTVL_EKF2 us (period)
+ *
+ * @unit us
+ * @min 2000
+ * @max 20000
+ * @decimal 2000
+ * @increment 0.05
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(HRT_INTVL_EKF2, 6666);
+
