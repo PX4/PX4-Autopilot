@@ -118,6 +118,20 @@ enum PortMode {
 	PORT_CAPTURE,
 };
 
+sem_t sem_fmu;// INRIA: semaphore to activate and block the Fmu task
+hrt_call		_call_fmu; // INRIA
+
+extern "C" __EXPORT int fmu_task_activation(); //INRIA
+
+int fmu_task_activation() //INRIA
+{
+
+	sem_post(&sem_fmu);
+
+	return 0;
+
+}
+
 #if !defined(BOARD_HAS_PWM)
 #  error "board_config.h needs to define BOARD_HAS_PWM"
 #endif
@@ -210,6 +224,9 @@ private:
 		"ST24"
 	};
 
+	//sem_t sem_fmu;// INRIA: semaphore to activate and block the Fmu task
+	//hrt_call		_call_fmu; // INRIA
+
 	hrt_abstime _rc_scan_begin = 0;
 	bool _rc_scan_locked = false;
 	bool _report_lock = true;
@@ -300,6 +317,10 @@ private:
 	void		update_pwm_out_state(bool on);
 
 	void		update_params();
+
+	//static void		fmu_task_activation(void *arg); // INRIA: called by HRT periodically 
+
+	//int fmu_sem_release(); //INRIA: release semaphore for the blocked task: Fmu
 
 	struct GPIOConfig {
 		uint32_t	input;
@@ -1175,7 +1196,23 @@ PX4FMU::run()
 void
 PX4FMU::cycle()
 {
+	//INRIA: Get the handle to the hrt fmu parameter
+	param_t hrt_param_handle = PARAM_INVALID;
+	hrt_param_handle = param_find("HRT_INTVL_FMU");
+
+	//INRIA: Query the value of the parameter when needed
+	int32_t hrt_fmu_param = 0;
+	param_get(hrt_param_handle, &hrt_fmu_param);
+
+	//INRIA: calling fmu_task_activation every hrt_fmu_param (= period) using High Resolution Timer
+	hrt_call_every(&_call_fmu,
+			       0,
+			       hrt_fmu_param,
+			       (hrt_callout)&fmu_task_activation, this);  /*PX4FMU::*/
+
 	while (true) {
+
+		sem_wait(&sem_fmu); // INRIA
 
 		if (_groups_subscribed != _groups_required) {
 			subscribe();
@@ -1184,8 +1221,9 @@ PX4FMU::cycle()
 			_current_update_rate = 0;
 		}
 
-		int poll_timeout = 5; // needs to be small enough so that we don't miss RC input data
+		int poll_timeout = 0; // needs to be small enough so that we don't miss RC input data // INRIA: we don't wait for data since we are using HRT
 
+		// INRIA: always false, since FMU is a task now
 		if (!_run_as_task) {
 			/*
 			 * Adjust actuator topic update rate to keep up with
@@ -1233,7 +1271,7 @@ PX4FMU::cycle()
 		if (ret < 0) {
 			DEVICE_LOG("poll error %d", errno);
 
-		} else if (ret == 0) {
+		/*} else if (ret == 0) {*/
 			/* timeout: no control data, switch to failsafe values */
 			//			PX4_WARN("no PWM: failsafe");
 
@@ -1247,13 +1285,13 @@ PX4FMU::cycle()
 				for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 					if (_control_subs[i] > 0) {
 
-						if (_poll_fds[poll_id].revents & POLLIN) {
+						//if (_poll_fds[poll_id].revents & POLLIN) {
 							if (i == 0) {
 								n_updates++;
 							}
 
 							orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
-						}
+						//}
 
 						poll_id++;
 					}

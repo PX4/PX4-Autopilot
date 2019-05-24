@@ -211,3 +211,18 @@ PARAM_DEFINE_FLOAT(MOT_SLEW_MAX, 0.0f);
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_FMU_TASK, 0);
+
+/**
+ * Hrt interval parameter for Fmu task
+ *
+ * This parameter is used by the "hrt_call_every" function used in "fmu.cpp" to call function "fmu_task_activation" to activate the Fmu task every HRT_INTVL_FMU us (period)
+ *
+ * @unit us
+ * @min 2000
+ * @max 100000
+ * @decimal 2000
+ * @increment 0.05
+ * @reboot_required true
+ * @group PWM Outputs
+ */
+PARAM_DEFINE_INT32(HRT_INTVL_FMU, 6666);
