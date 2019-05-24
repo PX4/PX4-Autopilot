@@ -72,9 +72,9 @@ float degrees(float radians)
 
 int floorf(float input)
 {
- 	int res = int(input);
+	int res = int(input);
 	if (res > input) {
-    	res--; 
+		res--;
 	}
 
 	return res;
