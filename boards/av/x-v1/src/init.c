@@ -143,32 +143,6 @@ __EXPORT void board_on_reset(int status)
 	}
 }
 
-/****************************************************************************
- * Name: board_app_finalinitialize
- *
- * Description:
- *   Perform application specific initialization.  This function is never
- *   called directly from application code, but only indirectly via the
- *   (non-standard) boardctl() interface using the command
- *   BOARDIOC_FINALINIT.
- *
- * Input Parameters:
- *   arg - The argument has no meaning.
- *
- * Returned Value:
- *   Zero (OK) is returned on success; a negated errno value is returned on
- *   any failure to indicate the nature of the failure.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_BOARDCTL_FINALINIT
-int board_app_finalinitialize(uintptr_t arg)
-{
-	board_configure_dcache(1);
-	return 0;
-}
-#endif
-
 /************************************************************************************
  * Name: stm32_boardinitialize
  *
@@ -223,9 +197,6 @@ stm32_boardinitialize(void)
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
-
-	board_configure_dcache(0);
-
 	px4_platform_init();
 
 	/* configure the DMA allocator */
