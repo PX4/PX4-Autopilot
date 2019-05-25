@@ -84,13 +84,9 @@ void FlightTaskManualPosition::_scaleSticks()
 	FlightTaskManualAltitude::_scaleSticks();
 
 	/* Constrain length of stick inputs to 1 for xy*/
-	Vector2f stick_xy(&_sticks_expo(0));
-
-	float mag = math::constrain(stick_xy.length(), 0.0f, 1.0f);
-
-	if (mag > FLT_EPSILON) {
-		stick_xy = stick_xy.normalized() * mag;
-	}
+	Vector2f vel_sp_xy(&_sticks_expo(0));
+	_position_lock.limitStickUnitLengthXY(vel_sp_xy);
+	_position_lock.rotateIntoHeadingFrameXY(vel_sp_xy, _yaw, _yaw_setpoint);
 
 	// scale the stick inputs
 	if (PX4_ISFINITE(_sub_vehicle_local_position.get().vxy_max)) {
@@ -101,7 +97,7 @@ void FlightTaskManualPosition::_scaleSticks()
 		// Allow for a minimum of 0.3 m/s for repositioning
 		_velocity_scale = fmaxf(_velocity_scale, 0.3f);
 
-	} else if (stick_xy.length() > 0.5f) {
+	} else if (vel_sp_xy.length() > 0.5f) {
 		// raise the limit at a constant rate up to the user specified value
 
 		if (_velocity_scale < _constraints.speed_xy) {
@@ -114,10 +110,7 @@ void FlightTaskManualPosition::_scaleSticks()
 	}
 
 	// scale velocity to its maximum limits
-	Vector2f vel_sp_xy = stick_xy * _velocity_scale;
-
-	/* Rotate setpoint into local frame. */
-	_rotateIntoHeadingFrame(vel_sp_xy);
+	vel_sp_xy *= _velocity_scale;
 
 	// collision prevention
 	if (_collision_prevention.is_active()) {

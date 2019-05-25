@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,8 +31,14 @@
 #
 ############################################################################
 
-px4_add_library(FlightTask
-	FlightTask.cpp
+px4_add_library(PositionControl
+	PositionControl.cpp
+	ControlMath.cpp
+)
+target_include_directories(PositionControl
+	PUBLIC
+	${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_include_directories(FlightTask PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+px4_add_unit_gtest(SRC PositionControlTest.cpp LINKLIBS PositionControl)
+px4_add_unit_gtest(SRC ControlMathTest.cpp LINKLIBS PositionControl)

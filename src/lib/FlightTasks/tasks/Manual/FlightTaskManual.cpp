@@ -104,6 +104,12 @@ bool FlightTaskManual::_evaluateSticks()
 	}
 }
 
+bool FlightTaskManual::_checkTakeoff()
+{
+	// stick is deflected above 65% throttle (_sticks(2) is in the range [-1,1])
+	return _sticks(2) < -0.3f;
+}
+
 void FlightTaskManual::_applyGearSwitch(uint8_t gswitch)
 {
 	if (gswitch == manual_control_setpoint_s::SWITCH_POS_OFF) {

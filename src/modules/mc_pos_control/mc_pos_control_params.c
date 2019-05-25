@@ -456,7 +456,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
 /**
  * Acceleration for auto and for manual
  *
- * Note: In manual, this parameter is only used in MPC_POS_MODE 1.
+ * Note: In manual, this parameter is only used in MPC_POS_MODE 1, 4.
  *
  * @unit m/s/s
  * @min 2.0

@@ -168,8 +168,8 @@ public:
 
 protected:
 
-	uORB::SubscriptionData<vehicle_local_position_s>	_sub_vehicle_local_position{ORB_ID(vehicle_local_position)};
-	uORB::SubscriptionData<vehicle_attitude_s>		_sub_attitude{ORB_ID(vehicle_attitude)};
+	uORB::SubscriptionData<vehicle_local_position_s> _sub_vehicle_local_position{ORB_ID(vehicle_local_position)};
+	uORB::SubscriptionData<vehicle_attitude_s> _sub_attitude{ORB_ID(vehicle_attitude)};
 
 	/** Reset all setpoints to NAN */
 	void _resetSetpoints();
@@ -222,8 +222,8 @@ protected:
 	matrix::Vector3f _acceleration_setpoint;
 	matrix::Vector3f _jerk_setpoint;
 	matrix::Vector3f _thrust_setpoint;
-	float _yaw_setpoint;
-	float _yawspeed_setpoint;
+	float _yaw_setpoint = 0.f;
+	float _yawspeed_setpoint = 0.f;
 
 	matrix::Vector3f _velocity_setpoint_feedback;
 	matrix::Vector3f _thrust_setpoint_feedback;

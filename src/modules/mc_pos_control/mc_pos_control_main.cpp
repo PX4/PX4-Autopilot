@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 - 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 - 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,7 +51,6 @@
 #include <px4_module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_posix.h>
-#include <px4_tasks.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
@@ -68,7 +67,7 @@
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 
 #include "PositionControl.hpp"
-#include "Utility/ControlMath.hpp"
+#include "PositionControl/ControlMath.hpp"
 #include "Takeoff.hpp"
 
 #include <float.h>
@@ -107,11 +106,10 @@ public:
 private:
 	Takeoff _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
 
-	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
+	orb_id_t _attitude_setpoint_id{nullptr}; ///< orb metadata to publish attitude setpoint dependent if VTOL or not
+	orb_advert_t _vehicle_attitude_setpoint_pub{nullptr}; ///< attitude setpoint publication handle
 	uORB::PublicationQueued<vehicle_command_s> _pub_vehicle_command{ORB_ID(vehicle_command)};	 /**< vehicle command publication */
 	orb_advert_t _mavlink_log_pub{nullptr};
-
-	orb_id_t _attitude_setpoint_id{nullptr};
 
 	uORB::Publication<landing_gear_s>			_landing_gear_pub{ORB_ID(landing_gear)};
 	uORB::Publication<vehicle_local_position_setpoint_s>	_local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};	/**< vehicle local position setpoint publication */
@@ -141,7 +139,6 @@ private:
 		.landed = true,
 	};
 
-	vehicle_attitude_setpoint_s	_att_sp{};			/**< vehicle attitude setpoint */
 	vehicle_control_mode_s	_control_mode{};		/**< vehicle control mode */
 	vehicle_local_position_s _local_pos{};			/**< vehicle local position */
 	home_position_s	_home_pos{};			/**< home position */
@@ -149,24 +146,36 @@ private:
 	int8_t _old_landing_gear_position{landing_gear_s::GEAR_KEEP};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _param_mpc_tko_ramp_t, /**< time constant for smooth takeoff ramp */
+		// Position Control
+		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p,
+		(ParamFloat<px4::params::MPC_Z_P>) _param_mpc_z_p,
+		(ParamFloat<px4::params::MPC_XY_VEL_P>) _param_mpc_xy_vel_p,
+		(ParamFloat<px4::params::MPC_XY_VEL_I>) _param_mpc_xy_vel_i,
+		(ParamFloat<px4::params::MPC_XY_VEL_D>) _param_mpc_xy_vel_d,
+		(ParamFloat<px4::params::MPC_Z_VEL_P>) _param_mpc_z_vel_p,
+		(ParamFloat<px4::params::MPC_Z_VEL_I>) _param_mpc_z_vel_i,
+		(ParamFloat<px4::params::MPC_Z_VEL_D>) _param_mpc_z_vel_d,
 		(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _param_mpc_xy_vel_max,
-		(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual,
-		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
-		(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
+		(ParamFloat<px4::params::MPC_TILTMAX_AIR>) _param_mpc_tiltmax_air,
+		(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover,
+
+		// Takeoff / Land
+		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) _param_mpc_spoolup_time, /**< time to let motors spool up after arming */
+		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _param_mpc_tko_ramp_t, /**< time constant for smooth takeoff ramp */
 		(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
+		(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
+
+		(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual,
+		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
 		(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2, /**< downwards speed limited below this altitude */
 		(ParamInt<px4::params::MPC_POS_MODE>) _param_mpc_pos_mode,
 		(ParamInt<px4::params::MPC_AUTO_MODE>) _param_mpc_auto_mode,
 		(ParamInt<px4::params::MPC_ALT_MODE>) _param_mpc_alt_mode,
-		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) _param_mpc_spoolup_time, /**< time to let motors spool up after arming */
 		(ParamFloat<px4::params::MPC_TILTMAX_LND>) _param_mpc_tiltmax_lnd, /**< maximum tilt for landing and smooth takeoff */
-		(ParamFloat<px4::params::MPC_THR_MIN>)_param_mpc_thr_min,
-		(ParamFloat<px4::params::MPC_THR_HOVER>)_param_mpc_thr_hover,
-		(ParamFloat<px4::params::MPC_THR_MAX>)_param_mpc_thr_max,
-		(ParamFloat<px4::params::MPC_Z_VEL_P>)_param_mpc_z_vel_p
+		(ParamFloat<px4::params::MPC_THR_MIN>) _param_mpc_thr_min,
+		(ParamFloat<px4::params::MPC_THR_MAX>) _param_mpc_thr_max
 	);
 
 	control::BlockDerivative _vel_x_deriv; /**< velocity derivative in x */
@@ -193,6 +202,7 @@ private:
 	systemlib::Hysteresis _failsafe_land_hysteresis{false}; /**< becomes true if task did not update correctly for LOITER_TIME_BEFORE_DESCEND */
 
 	WeatherVane *_wv_controller{nullptr};
+	Vector3f _wv_dcm_z_sp_prev{0, 0, 1};
 
 	perf_counter_t _cycle_perf;
 
@@ -225,18 +235,6 @@ private:
 	 * @param str the message that has to be printed.
 	 */
 	void warn_rate_limited(const char *str);
-
-	/**
-	 * Publish attitude.
-	 */
-	void publish_attitude();
-
-	/**
-	 * Adjust the setpoint during landing.
-	 * Thrust is adjusted to support the land-detector during detection.
-	 * @param setpoint gets adjusted based on land-detector state
-	 */
-	void limit_thrust_during_landing(vehicle_local_position_setpoint_s &setpoint);
 
 	/**
 	 * Start flightasks based on navigation state.
@@ -287,7 +285,6 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
-	_control(this),
 	_cycle_perf(perf_alloc_once(PC_ELAPSED, MODULE_NAME": cycle time"))
 {
 	// fetch initial parameter values
@@ -344,6 +341,15 @@ MulticopterPositionControl::parameters_update(bool force)
 		// update parameters from storage
 		ModuleParams::updateParams();
 		SuperBlock::updateParams();
+
+		_control.setPositionGains(Vector3f(_param_mpc_xy_p.get(), _param_mpc_xy_p.get(), _param_mpc_z_p.get()));
+		_control.setVelocityGains(Vector3f(_param_mpc_xy_vel_p.get(), _param_mpc_xy_vel_p.get(), _param_mpc_z_vel_p.get()),
+					  Vector3f(_param_mpc_xy_vel_i.get(), _param_mpc_xy_vel_i.get(), _param_mpc_z_vel_i.get()),
+					  Vector3f(_param_mpc_xy_vel_d.get(), _param_mpc_xy_vel_d.get(), _param_mpc_z_vel_d.get()));
+		_control.setVelocityLimits(_param_mpc_xy_vel_max.get(), _param_mpc_z_vel_max_up.get(), _param_mpc_z_vel_max_dn.get());
+		_control.setThrustLimits(_param_mpc_thr_min.get(), _param_mpc_thr_max.get());
+		_control.setTiltLimit(M_DEG_TO_RAD_F * _param_mpc_tiltmax_air.get()); // convert to radians!
+		_control.setHoverThrust(_param_mpc_thr_hover.get());
 
 		// Check that the design parameters are inside the absolute maximum constraints
 		if (_param_mpc_xy_cruise.get() > _param_mpc_xy_vel_max.get()) {
@@ -555,7 +561,7 @@ MulticopterPositionControl::Run()
 				}
 			}
 
-			_wv_controller->update(matrix::Quatf(_att_sp.q_d), _states.yaw);
+			_wv_controller->update(_wv_dcm_z_sp_prev, _states.yaw);
 		}
 
 		// an update is necessary here because otherwise the takeoff state doesn't get skiped with non-altitude-controlled modes
@@ -591,19 +597,6 @@ MulticopterPositionControl::Run()
 				constraints = _flight_tasks.getConstraints();
 
 				_failsafe_land_hysteresis.set_state_and_update(false, time_stamp_current);
-
-				// Check if position, velocity or thrust pairs are valid -> trigger failsaife if no pair is valid
-				if (!(PX4_ISFINITE(setpoint.x) && PX4_ISFINITE(setpoint.y)) &&
-				    !(PX4_ISFINITE(setpoint.vx) && PX4_ISFINITE(setpoint.vy)) &&
-				    !(PX4_ISFINITE(setpoint.thrust[0]) && PX4_ISFINITE(setpoint.thrust[1]))) {
-					failsafe(setpoint, _states, true, !was_in_failsafe);
-				}
-
-				// Check if altitude, climbrate or thrust in D-direction are valid -> trigger failsafe if none
-				// of these setpoints are valid
-				if (!PX4_ISFINITE(setpoint.z) && !PX4_ISFINITE(setpoint.vz) && !PX4_ISFINITE(setpoint.thrust[2])) {
-					failsafe(setpoint, _states, true, !was_in_failsafe);
-				}
 			}
 
 			// publish trajectory setpoint
@@ -619,22 +612,39 @@ MulticopterPositionControl::Run()
 						    constraints.speed_up, !_control_mode.flag_control_climb_rate_enabled, time_stamp_current);
 			constraints.speed_up = _takeoff.updateRamp(_dt, constraints.speed_up);
 
-			if (_takeoff.getTakeoffState() < TakeoffState::rampup && !PX4_ISFINITE(setpoint.thrust[2])) {
+			if (_takeoff.getTakeoffState() < TakeoffState::rampup) {
 				// we are not flying yet and need to avoid any corrections
 				reset_setpoint_to_nan(setpoint);
+				Vector3f(0.f, 0.f, 100.f).copyTo(setpoint.acceleration);
 				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
 				// set yaw-sp to current yaw
 				// TODO: we need a clean way to disable yaw control
 				setpoint.yaw = _states.yaw;
 				setpoint.yawspeed = 0.f;
 				// prevent any integrator windup
-				_control.resetIntegralXY();
-				_control.resetIntegralZ();
+				_control.resetIntegral();
 				// reactivate the task which will reset the setpoint to current state
 				_flight_tasks.reActivate();
 			}
 
-			if (_takeoff.getTakeoffState() < TakeoffState::flight && !PX4_ISFINITE(setpoint.thrust[2])) {
+			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
+			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.
+			// Note: only adust thrust output if there was not thrust-setpoint demand in D-direction.
+			if (_takeoff.getTakeoffState() > TakeoffState::rampup) {
+				if (_vehicle_land_detected.ground_contact
+				    || _vehicle_land_detected.maybe_landed) {
+					// we set thrust to zero, this will help to decide if we are actually landed or not
+					Vector3f(0.f, 0.f, 100.f).copyTo(setpoint.acceleration);
+					setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
+					// set yaw-sp to current yaw to avoid any corrections
+					setpoint.yaw = _states.yaw;
+					setpoint.yawspeed = 0.f;
+					// prevent any integrator windup
+					_control.resetIntegral();
+				}
+			}
+
+			if (_takeoff.getTakeoffState() < TakeoffState::flight) {
 				constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
 			}
 
@@ -643,94 +653,54 @@ MulticopterPositionControl::Run()
 				limit_altitude(setpoint);
 			}
 
-			// Update states, setpoints and constraints.
-			_control.updateConstraints(constraints);
-			_control.updateState(_states);
+			// Run position control
+			_control.setState(_states);
+			_control.setInputSetpoint(setpoint);
+			_control.setConstraints(constraints);
 
-			// update position controller setpoints
-			if (!_control.updateSetpoint(setpoint)) {
-				warn_rate_limited("Position-Control Setpoint-Update failed");
+			if (!_control.update(_dt)) {
+				warn_rate_limited("PositionControl: invalid setpoints");
 				failsafe(setpoint, _states, true, !was_in_failsafe);
-				_control.updateSetpoint(setpoint);
-				constraints = FlightTask::empty_constraints;
+				_control.setInputSetpoint(setpoint);
+				_control.setConstraints(FlightTask::empty_constraints);
+				_control.update(_dt);
 			}
 
-			// Generate desired thrust and yaw.
-			_control.generateThrustYawSetpoint(_dt);
-
-			// Fill local position, velocity and thrust setpoint.
-			// This message contains setpoints where each type of setpoint is either the input to the PositionController
-			// or was generated by the PositionController and therefore corresponds to the PositioControl internal states (states that were generated by P-PID).
-			// Example:
-			// If the desired setpoint is position-setpoint, _local_pos_sp will contain
-			// position-, velocity- and thrust-setpoint where the velocity- and thrust-setpoint were generated by the PositionControlller.
-			// If the desired setpoint has a velocity-setpoint only, then _local_pos_sp will contain valid velocity- and thrust-setpoint, but the position-setpoint
-			// will remain NAN. Given that the PositionController cannot generate a position-setpoint, this type of setpoint is always equal to the input to the
-			// PositionController.
+			// Get position control output
 			vehicle_local_position_setpoint_s local_pos_sp{};
 			local_pos_sp.timestamp = hrt_absolute_time();
-			local_pos_sp.x = setpoint.x;
-			local_pos_sp.y = setpoint.y;
-			local_pos_sp.z = setpoint.z;
-			local_pos_sp.yaw = _control.getYawSetpoint();
-			local_pos_sp.yawspeed = _control.getYawspeedSetpoint();
-			local_pos_sp.vx = PX4_ISFINITE(_control.getVelSp()(0)) ? _control.getVelSp()(0) : setpoint.vx;
-			local_pos_sp.vy = PX4_ISFINITE(_control.getVelSp()(1)) ? _control.getVelSp()(1) : setpoint.vy;
-			local_pos_sp.vz = PX4_ISFINITE(_control.getVelSp()(2)) ? _control.getVelSp()(2) : setpoint.vz;
-			_control.getThrustSetpoint().copyTo(local_pos_sp.thrust);
+			_control.getLocalPositionSetpoint(local_pos_sp);
+			vehicle_attitude_setpoint_s attitude_setpoint{};
+			attitude_setpoint.timestamp = hrt_absolute_time();
+			_control.getAttitudeSetpoint(attitude_setpoint);
 
 			// Publish local position setpoint
-			// This message will be used by other modules (such as Landdetector) to determine
-			// vehicle intention.
+			// This message will be used by other modules (such as Landdetector) to determine vehicle intention.
 			_local_pos_sp_pub.publish(local_pos_sp);
+
+			// Publish attitude setpoint
+			// Note: Only publish attitude setpoint when it's not coming from another source like
+			// stabilized mode direct attitude setpoint generation or offboard attitude commands.
+			if (_attitude_setpoint_id != nullptr) {
+				orb_publish_auto(_attitude_setpoint_id, &_vehicle_attitude_setpoint_pub, &attitude_setpoint, nullptr, ORB_PRIO_DEFAULT);
+			}
 
 			// Inform FlightTask about the input and output of the velocity controller
 			// This is used to properly initialize the velocity setpoint when onpening the position loop (position unlock)
-			_flight_tasks.updateVelocityControllerIO(_control.getVelSp(), Vector3f(local_pos_sp.thrust));
+			_flight_tasks.updateVelocityControllerIO(Vector3f(local_pos_sp.vx, local_pos_sp.vy, local_pos_sp.vz),
+					Vector3f(local_pos_sp.thrust));
 
-			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
-			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.
-			// Note: only adust thrust output if there was not thrust-setpoint demand in D-direction.
-			if (_takeoff.getTakeoffState() > TakeoffState::rampup && !PX4_ISFINITE(setpoint.thrust[2])) {
-				limit_thrust_during_landing(local_pos_sp);
-			}
-
-			// Fill attitude setpoint. Attitude is computed from yaw and thrust setpoint.
-			_att_sp = ControlMath::thrustToAttitude(matrix::Vector3f(local_pos_sp.thrust), local_pos_sp.yaw);
-			_att_sp.yaw_sp_move_rate = _control.getYawspeedSetpoint();
-			_att_sp.fw_control_yaw = false;
-			_att_sp.apply_flaps = false;
-
-			// publish attitude setpoint
-			// Note: this requires review. The reason for not sending
-			// an attitude setpoint is because for non-flighttask modes
-			// the attitude septoint should come from another source, otherwise
-			// they might conflict with each other such as in offboard attitude control.
-			publish_attitude();
+			_wv_dcm_z_sp_prev = Quatf(attitude_setpoint.q_d).dcm_z();
 
 			// if there's any change in landing gear setpoint publish it
 			if (gear.landing_gear != _old_landing_gear_position
 			    && gear.landing_gear != landing_gear_s::GEAR_KEEP) {
-
-				_landing_gear.landing_gear = gear.landing_gear;
 				_landing_gear.timestamp = hrt_absolute_time();
-
+				_landing_gear.landing_gear = gear.landing_gear;
 				_landing_gear_pub.publish(_landing_gear);
 			}
 
 			_old_landing_gear_position = gear.landing_gear;
-
-		} else {
-			// no flighttask is active: set attitude setpoint to idle
-			_att_sp.roll_body = _att_sp.pitch_body = 0.0f;
-			_att_sp.yaw_body = _states.yaw;
-			_att_sp.yaw_sp_move_rate = 0.0f;
-			_att_sp.fw_control_yaw = false;
-			_att_sp.apply_flaps = false;
-			matrix::Quatf q_sp = matrix::Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body);
-			q_sp.copyTo(_att_sp.q_d);
-			_att_sp.q_d_valid = true;
-			_att_sp.thrust_body[2] = 0.0f;
 		}
 	}
 
@@ -882,6 +852,11 @@ MulticopterPositionControl::start_flight_task()
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmoothVel);
 			break;
 
+		case 4:
+			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualAcceleration);
+			break;
+
+
 		default:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPosition);
 			break;
@@ -956,22 +931,6 @@ MulticopterPositionControl::start_flight_task()
 }
 
 void
-MulticopterPositionControl::limit_thrust_during_landing(vehicle_local_position_setpoint_s &setpoint)
-{
-	if (_vehicle_land_detected.ground_contact
-	    || _vehicle_land_detected.maybe_landed) {
-		// we set thrust to zero, this will help to decide if we are actually landed or not
-		setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
-		// set yaw-sp to current yaw to avoid any corrections
-		setpoint.yaw = _states.yaw;
-		setpoint.yawspeed = 0.f;
-		// prevent any integrator windup
-		_control.resetIntegralXY();
-		_control.resetIntegralZ();
-	}
-}
-
-void
 MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint, const PositionControlStates &states,
 				     const bool force, const bool warn)
 {
@@ -993,6 +952,7 @@ MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint
 
 		} else {
 			// descend with land speed since we can't stop
+			setpoint.acceleration[0] = setpoint.acceleration[1] = 0.0f;
 			setpoint.thrust[0] = setpoint.thrust[1] = 0.f;
 			setpoint.vz = _param_mpc_land_speed.get();
 
@@ -1010,7 +970,8 @@ MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint
 		} else {
 			// emergency descend with a bit below hover thrust
 			setpoint.vz = NAN;
-			setpoint.thrust[2] = _param_mpc_thr_hover.get() * .8f;
+			setpoint.thrust[2] = -_param_mpc_thr_hover.get() * .8f;
+			Vector3f(0, 0, 0.3).copyTo(setpoint.acceleration);
 
 			if (warn) {
 				PX4_WARN("Failsafe: blind descend");
@@ -1027,21 +988,8 @@ MulticopterPositionControl::reset_setpoint_to_nan(vehicle_local_position_setpoin
 	setpoint.x = setpoint.y = setpoint.z = NAN;
 	setpoint.vx = setpoint.vy = setpoint.vz = NAN;
 	setpoint.yaw = setpoint.yawspeed = NAN;
-	setpoint.acc_x = setpoint.acc_y = setpoint.acc_z = NAN;
+	setpoint.acceleration[0] = setpoint.acceleration[1] = setpoint.acceleration[2] = NAN;
 	setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = NAN;
-}
-
-void
-MulticopterPositionControl::publish_attitude()
-{
-	_att_sp.timestamp = hrt_absolute_time();
-
-	if (_att_sp_pub != nullptr) {
-		orb_publish(_attitude_setpoint_id, _att_sp_pub, &_att_sp);
-
-	} else if (_attitude_setpoint_id) {
-		_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
-	}
 }
 
 void MulticopterPositionControl::check_failure(bool task_failure, uint8_t nav_state)

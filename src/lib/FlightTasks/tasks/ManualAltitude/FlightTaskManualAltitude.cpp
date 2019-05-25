@@ -86,7 +86,8 @@ bool FlightTaskManualAltitude::activate(vehicle_local_position_setpoint_s last_s
 void FlightTaskManualAltitude::_scaleSticks()
 {
 	// Use sticks input with deadzone and exponential curve for vertical velocity and yawspeed
-	_yawspeed_setpoint = _sticks_expo(3) * math::radians(_param_mpc_man_y_max.get());
+	_position_lock.updateYawFromStick(_yawspeed_setpoint, _yaw_setpoint,
+					  _sticks_expo(3) * math::radians(_param_mpc_man_y_max.get()), _yaw, _deltatime);
 
 	const float vel_max_z = (_sticks(2) > 0.0f) ? _constraints.speed_down : _constraints.speed_up;
 	_velocity_setpoint(2) = vel_max_z * _sticks_expo(2);
@@ -279,31 +280,6 @@ void FlightTaskManualAltitude::_respectGroundSlowdown()
 	}
 }
 
-void FlightTaskManualAltitude::_rotateIntoHeadingFrame(Vector2f &v)
-{
-	float yaw_rotate = PX4_ISFINITE(_yaw_setpoint) ? _yaw_setpoint : _yaw;
-	Vector3f v_r = Vector3f(Dcmf(Eulerf(0.0f, 0.0f, yaw_rotate)) * Vector3f(v(0), v(1), 0.0f));
-	v(0) = v_r(0);
-	v(1) = v_r(1);
-}
-
-void FlightTaskManualAltitude::_updateHeadingSetpoints()
-{
-	/* Yaw-lock depends on stick input. If not locked,
-	 * yaw_sp is set to NAN.
-	 * TODO: add yawspeed to get threshold.*/
-	if (fabsf(_yawspeed_setpoint) > FLT_EPSILON) {
-		// no fixed heading when rotating around yaw by stick
-		_yaw_setpoint = NAN;
-
-	} else {
-		// hold the current heading when no more rotation commanded
-		if (!PX4_ISFINITE(_yaw_setpoint)) {
-			_yaw_setpoint = _yaw;
-		}
-	}
-}
-
 void FlightTaskManualAltitude::_ekfResetHandlerHeading(float delta_psi)
 {
 	// Only reset the yaw setpoint when the heading is locked
@@ -314,32 +290,17 @@ void FlightTaskManualAltitude::_ekfResetHandlerHeading(float delta_psi)
 
 void FlightTaskManualAltitude::_updateSetpoints()
 {
-	_updateHeadingSetpoints(); // get yaw setpoint
-
 	// Thrust in xy are extracted directly from stick inputs. A magnitude of
 	// 1 means that maximum thrust along xy is demanded. A magnitude of 0 means no
 	// thrust along xy is demanded. The maximum thrust along xy depends on the thrust
 	// setpoint along z-direction, which is computed in PositionControl.cpp.
-
-	Vector2f sp(&_sticks(0));
-	_rotateIntoHeadingFrame(sp);
-
-	if (sp.length() > 1.0f) {
-		sp.normalize();
-	}
-
-	_thrust_setpoint(0) = sp(0);
-	_thrust_setpoint(1) = sp(1);
-	_thrust_setpoint(2) = NAN;
+	Vector2f stick_xy(&_sticks(0));
+	_position_lock.limitStickUnitLengthXY(stick_xy);
+	_position_lock.rotateIntoHeadingFrameXY(stick_xy, _yaw, _yaw_setpoint);
+	_thrust_setpoint = Vector3f(stick_xy(0), stick_xy(1), NAN);
 
 	_updateAltitudeLock();
 	_respectGroundSlowdown();
-}
-
-bool FlightTaskManualAltitude::_checkTakeoff()
-{
-	// stick is deflected above 65% throttle (_sticks(2) is in the range [-1,1])
-	return _sticks(2) < -0.3f;
 }
 
 bool FlightTaskManualAltitude::update()

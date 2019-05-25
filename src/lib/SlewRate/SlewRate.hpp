@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,51 +32,53 @@
  ****************************************************************************/
 
 /**
- * @file ControlMath.hpp
+ * @file SlewRate.hpp
  *
- * Simple functions for vector manipulation that do not fit into matrix lib.
- * These functions are specific for controls.
+ * Library limit the rate of change of a value with a maximum slew rate.
+ *
+ * @author Matthias Grob <maetugr@gmail.com>
  */
 
 #pragma once
 
-#include <matrix/matrix/math.hpp>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <mathlib/mathlib.h>
 
-namespace ControlMath
+template<typename Type>
+class SlewRate
 {
-/**
- * Converts thrust vector and yaw set-point to a desired attitude.
- * @param thr_sp a 3D vector
- * @param yaw_sp the desired yaw
- * @return vehicle_attitude_setpoints_s structure
- */
-vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp);
+public:
+	SlewRate() = default;
+	~SlewRate() = default;
 
-/**
- * Outputs the sum of two vectors but respecting the limits and priority.
- * The sum of two vectors are constraint such that v0 has priority over v1.
- * This means that if the length of (v0+v1) exceeds max, then it is constraint such
- * that v0 has priority.
- *
- * @param v0 a 2D vector that has priority given the maximum available magnitude.
- * @param v1 a 2D vector that less priority given the maximum available magnitude.
- * @return 2D vector
- */
-matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f &v1, const float &max);
+	/**
+	 * Set maximum rate of change for the value
+	 * @param slew_rate maximum rate of change
+	 */
+	void setSlewRate(const Type slew_rate) { _slew_rate = slew_rate; }
 
-/**
- * This method was used for smoothing the corners along two lines.
- *
- * @param sphere_c
- * @param sphere_r
- * @param line_a
- * @param line_b
- * @param res
- * return boolean
- *
- * Note: this method is not used anywhere and first requires review before usage.
- */
-bool cross_sphere_line(const matrix::Vector3f &sphere_c, const float sphere_r, const matrix::Vector3f &line_a,
-		       const matrix::Vector3f &line_b, matrix::Vector3f &res);
-}
+	/**
+	 * Set value ignoring slew rate for initialization purpose
+	 * @param value new applied value
+	 */
+	void setForcedValue(const Type value) { _value = value; }
+
+	/**
+	 * Update slewrate
+	 * @param new_value desired new value
+	 * @param deltatime time in seconds since last update
+	 * @return actual value that complies with the slew rate
+	 */
+	Type update(const Type new_value, const float deltatime)
+	{
+		// Limit the rate of change of the value
+		const Type dvalue_desired = new_value - _value;
+		const Type dvalue_max = _slew_rate * deltatime;
+		const Type dvalue = math::constrain(dvalue_desired, -dvalue_max, dvalue_max);
+		_value += dvalue;
+		return _value;
+	}
+
+private:
+	Type _slew_rate = 0; ///< maximum rate of change for the value
+	Type _value = (Type)0; ///< state to keep last value of the slew rate
+};

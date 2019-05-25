@@ -39,9 +39,10 @@ px4_add_library(FlightTaskUtility
 	VelocitySmoothing.cpp
 	ManualVelocitySmoothingXY.cpp
 	ManualVelocitySmoothingZ.cpp
+	PositionLock.hpp
 )
 
-target_link_libraries(FlightTaskUtility PUBLIC FlightTask hysteresis)
+target_link_libraries(FlightTaskUtility PUBLIC FlightTask hysteresis SlewRate)
 target_include_directories(FlightTaskUtility PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 px4_add_unit_gtest(SRC VelocitySmoothingTest.cpp LINKLIBS FlightTaskUtility)

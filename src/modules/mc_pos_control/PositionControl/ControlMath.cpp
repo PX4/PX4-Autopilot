@@ -1,7 +1,6 @@
-
 /****************************************************************************
  *
- *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2018 - 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,47 +41,76 @@
 #include <mathlib/mathlib.h>
 
 using namespace matrix;
+
 namespace ControlMath
 {
-vehicle_attitude_setpoint_s thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp)
+void thrustToAttitude(vehicle_attitude_setpoint_s &att_sp, const Vector3f &thr_sp, const float yaw_sp)
 {
-	vehicle_attitude_setpoint_s att_sp = {};
-	att_sp.yaw_body = yaw_sp;
+	bodyzToAttitude(att_sp, -thr_sp, yaw_sp);
+	att_sp.thrust_body[2] = -thr_sp.length();
+}
 
-	// desired body_z axis = -normalize(thrust_vector)
-	Vector3f body_x, body_y, body_z;
+void accelerationToAttitude(vehicle_attitude_setpoint_s &att_sp, const Vector3f &acc_sp, const float yaw_sp,
+			    const float hover_thrust, const float tilt_max)
+{
+	// Assume standard acceleration due to gravity in vertical direction for attitude generation
+	Vector3f body_z_unit = Vector3f(-acc_sp(0), -acc_sp(1), CONSTANTS_ONE_G).unit();
+	limitTilt(body_z_unit, Vector3f(0, 0, 1), tilt_max);
+	bodyzToAttitude(att_sp, body_z_unit, yaw_sp);
+	// Scale thrust assuming hover thrust produces standard gravity
+	att_sp.thrust_body[2] = acc_sp(2) * (hover_thrust / CONSTANTS_ONE_G) - hover_thrust;
+	// Project thrust to planned body attitude
+	att_sp.thrust_body[2] /= (Vector3f(0, 0, 1).dot(body_z_unit));
+}
 
-	if (thr_sp.length() > 0.00001f) {
-		body_z = -thr_sp.normalized();
+void limitTilt(Vector3f &body_unit, const Vector3f &world_unit, const float max_angle)
+{
+	// determine tilt
+	const float dot_product_unit = body_unit.dot(world_unit);
+	float angle = acosf(dot_product_unit);
+	// limit tilt
+	angle = math::min(angle, max_angle);
+	Vector3f rejection = body_unit - (dot_product_unit * world_unit);
 
-	} else {
-		// no thrust, set Z axis to safe value
-		body_z = Vector3f(0.f, 0.f, 1.f);
+	// corner case exactly parallel vectors
+	if (rejection.norm_squared() < FLT_EPSILON) {
+		rejection(0) = 1.f;
 	}
 
+	body_unit = cosf(angle) * world_unit + sinf(angle) * rejection.unit();
+}
+
+void bodyzToAttitude(vehicle_attitude_setpoint_s &att_sp, Vector3f body_z, const float yaw_sp)
+{
+	// zero vector, no direction, set safe level value
+	if (body_z.norm_squared() < FLT_EPSILON) {
+		body_z(2) = 1.f;
+	}
+
+	body_z.normalize();
+
 	// vector of desired yaw direction in XY plane, rotated by PI/2
-	Vector3f y_C(-sinf(att_sp.yaw_body), cosf(att_sp.yaw_body), 0.0f);
+	Vector3f y_C(-sinf(yaw_sp), cosf(yaw_sp), 0.0f);
 
-	if (fabsf(body_z(2)) > 0.000001f) {
-		// desired body_x axis, orthogonal to body_z
-		body_x = y_C % body_z;
+	// desired body_x axis, orthogonal to body_z
+	Vector3f body_x = y_C % body_z;
 
-		// keep nose to front while inverted upside down
-		if (body_z(2) < 0.0f) {
-			body_x = -body_x;
-		}
+	// keep nose to front while inverted upside down
+	if (body_z(2) < 0.0f) {
+		body_x = -body_x;
+	}
 
-		body_x.normalize();
-
-	} else {
+	if (fabsf(body_z(2)) < 0.000001f) {
 		// desired thrust is in XY plane, set X downside to construct correct matrix,
 		// but yaw component will not be used actually
 		body_x.zero();
 		body_x(2) = 1.0f;
 	}
 
+	body_x.normalize();
+
 	// desired body_y axis
-	body_y = body_z % body_x;
+	Vector3f body_y = body_z % body_x;
 
 	Dcmf R_sp;
 
@@ -93,7 +121,7 @@ vehicle_attitude_setpoint_s thrustToAttitude(const Vector3f &thr_sp, const float
 		R_sp(i, 2) = body_z(i);
 	}
 
-	//copy quaternion setpoint to attitude setpoint topic
+	// copy quaternion setpoint to attitude setpoint topic
 	Quatf q_sp = R_sp;
 	q_sp.copyTo(att_sp.q_d);
 	att_sp.q_d_valid = true;
@@ -102,9 +130,7 @@ vehicle_attitude_setpoint_s thrustToAttitude(const Vector3f &thr_sp, const float
 	Eulerf euler = R_sp;
 	att_sp.roll_body = euler(0);
 	att_sp.pitch_body = euler(1);
-	att_sp.thrust_body[2] = -thr_sp.length();
-
-	return att_sp;
+	att_sp.yaw_body = euler(2);
 }
 
 Vector2f constrainXY(const Vector2f &v0, const Vector2f &v1, const float &max)

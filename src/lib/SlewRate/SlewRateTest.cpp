@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,38 +31,42 @@
  *
  ****************************************************************************/
 
-/**
- * @file FlightManualPositionSmooth.cpp
- */
+#include <gtest/gtest.h>
+#include <SlewRate.hpp>
 
-#include "FlightTaskManualPositionSmooth.hpp"
-
-using namespace matrix;
-
-FlightTaskManualPositionSmooth::FlightTaskManualPositionSmooth() :
-	_smoothingXY(this, Vector2f(_velocity)),
-	_smoothingZ(this, _velocity(2), _sticks(2))
-{}
-
-void FlightTaskManualPositionSmooth::_updateSetpoints()
+TEST(SlewRateTest, SlewUpLimited)
 {
-	/* Get yaw setpont, un-smoothed position setpoints.*/
-	FlightTaskManualPosition::_updateSetpoints();
+	SlewRate<float> _slew_rate;
+	_slew_rate.setSlewRate(.1f);
+	_slew_rate.setForcedValue(-5.5f);
 
-	/* Smooth velocity setpoint in xy.*/
-	Vector2f vel(_velocity);
-	Vector2f vel_sp_xy(_velocity_setpoint);
-	_smoothingXY.updateMaxVelocity(_constraints.speed_xy);
-	_smoothingXY.smoothVelocity(vel_sp_xy, vel, _yaw, _yawspeed_setpoint, _deltatime);
-	_velocity_setpoint(0) = vel_sp_xy(0);
-	_velocity_setpoint(1) = vel_sp_xy(1);
+	for (int i = 1; i <= 10; i++) {
+		EXPECT_FLOAT_EQ(_slew_rate.update(20.f, .2f), -5.5f + i * .02f);
+	}
+}
 
-	/* Check for xy position lock.*/
-	_updateXYlock();
+TEST(SlewRateTest, SlewDownLimited)
+{
+	SlewRate<float> _slew_rate;
+	_slew_rate.setSlewRate(1.1f);
+	_slew_rate.setForcedValue(17.3f);
 
-	/* Smooth velocity in z.*/
-	_smoothingZ.smoothVelFromSticks(_velocity_setpoint(2), _deltatime);
+	for (int i = 1; i <= 10; i++) {
+		EXPECT_FLOAT_EQ(_slew_rate.update(-50.f, .3f), 17.3f - i * .33f);
+	}
+}
 
-	/* Check for altitude lock*/
-	_updateAltitudeLock();
+TEST(SlewRateTest, ReachValueSlewed)
+{
+	SlewRate<float> _slew_rate;
+	_slew_rate.setSlewRate(.2f);
+	_slew_rate.setForcedValue(8.f);
+
+	for (int i = 1; i <= 10; i++) {
+		EXPECT_FLOAT_EQ(_slew_rate.update(10.f, 1.f), 8.f + i * .2f);
+	}
+
+	for (int i = 1; i <= 10; i++) {
+		EXPECT_FLOAT_EQ(_slew_rate.update(10.f, 1.f), 10.f);
+	}
 }
