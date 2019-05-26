@@ -71,6 +71,7 @@
 #include <systemlib/px4_macros.h>
 #include <px4_init.h>
 #include <px4_i2c.h>
+#include <drivers/boards/common/board_dma_alloc.h>
 
 static int configure_switch(void);
 
