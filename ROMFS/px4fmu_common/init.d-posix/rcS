@@ -94,15 +94,16 @@ then
 
 	param set BAT_N_CELLS 3
 
-	param set CAL_ACC0_ID 1376264
-	param set CAL_ACC1_ID 1310728
-	param set CAL_ACC_PRIME 1376264
+	param set CAL_ACC0_ID 1311244
+	param set CAL_ACC_PRIME 1311244
 
-	param set CAL_GYRO0_ID 2293768
-	param set CAL_GYRO_PRIME 2293768
+	param set CAL_GYRO0_ID 2294028
+	param set CAL_GYRO_PRIME 2294028
 
-	param set CAL_MAG0_ID 196616
-	param set CAL_MAG_PRIME 196616
+	param set CAL_MAG0_ID 197388
+	param set CAL_MAG_PRIME 197388
+
+	param set CAL_BARO_PRIME 6620172
 
 	param set CBRK_AIRSPD_CHK 0
 
@@ -201,11 +202,8 @@ sh "$autostart_file"
 
 dataman start
 replay tryapplyparams
-simulator start -s -c $simulator_tcp_port
+simulator start -c $simulator_tcp_port
 tone_alarm start
-gyrosim start
-accelsim start
-barosim start
 gpssim start
 sensors start
 commander start
@@ -225,15 +223,6 @@ if param greater TRIG_MODE 0
 then
 	camera_trigger start
 	camera_feedback start
-fi
-
-
-if [ ${VEHICLE_TYPE} = fw -o ${VEHICLE_TYPE} = vtol ]
-then
-	if param compare CBRK_AIRSPD_CHK 0
-	then
-		measairspeedsim start
-	fi
 fi
 
 # Configure vehicle type specific parameters.
