@@ -89,8 +89,8 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 		float &yaw_speed_sp)
 {
 
-	if (!COM_OBS_AVOID.get() || _sub_vehicle_status->get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
-		// if avoidance disabled or in failsafe nav_state LOITER, don't inject setpoints from avoidance system
+	if (_sub_vehicle_status->get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+		// if in failsafe nav_state LOITER, don't inject setpoints from avoidance system
 		return;
 	}
 
