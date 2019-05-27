@@ -91,10 +91,12 @@ bool FlightTaskAutoMapper2::update()
 		break;
 	}
 
-	_obstacle_avoidance.updateAvoidanceDesiredSetpoints(_position_setpoint, _velocity_setpoint);
+	if (_param_com_obs_avoid.get()) {
+		_obstacle_avoidance.updateAvoidanceDesiredSetpoints(_position_setpoint, _velocity_setpoint);
+		_obstacle_avoidance.injectAvoidanceSetpoints(_position_setpoint, _velocity_setpoint, _yaw_setpoint,
+				_yawspeed_setpoint);
+	}
 
-	_obstacle_avoidance.injectAvoidanceSetpoints(_position_setpoint, _velocity_setpoint, _yaw_setpoint,
-			_yawspeed_setpoint);
 
 	_generateSetpoints();
 
