@@ -109,7 +109,7 @@ private:
 	uORB::Subscription<vehicle_status_s> *_sub_vehicle_status{nullptr}; /**< vehicle status subscription */
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_MC_ALT_RAD>) NAV_MC_ALT_RAD          /**< Acceptance radius for multicopter altitude */
+		(ParamFloat<px4::params::NAV_MC_ALT_RAD>) _param_nav_mc_alt_rad    /**< Acceptance radius for multicopter altitude */
 	);
 
 	vehicle_trajectory_waypoint_s _desired_waypoint = {};  /**< desired vehicle trajectory waypoint to be sent to OA */
