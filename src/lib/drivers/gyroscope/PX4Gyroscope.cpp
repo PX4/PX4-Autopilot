@@ -104,19 +104,18 @@ void PX4Gyroscope::set_sample_rate(unsigned rate)
 	_filter.set_cutoff_frequency(_sample_rate, _filter.get_cutoff_freq());
 }
 
-void PX4Gyroscope::update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z)
+void PX4Gyroscope::update(hrt_abstime timestamp, float x, float y, float z)
 {
 	sensor_gyro_s &report = _sensor_gyro_pub.get();
 	report.timestamp = timestamp;
 
 	// Apply rotation (before scaling)
-	float xraw_f = x;
-	float yraw_f = y;
-	float zraw_f = z;
-	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
+	rotate_3f(_rotation, x, y, z);
+
+	const matrix::Vector3f raw{x, y, z};
 
 	// Apply range scale and the calibrating offset/scale
-	const matrix::Vector3f val_calibrated{(((matrix::Vector3f{xraw_f, yraw_f, zraw_f} * report.scaling) - _calibration_offset).emult(_calibration_scale))};
+	const matrix::Vector3f val_calibrated{(((raw * report.scaling) - _calibration_offset).emult(_calibration_scale))};
 
 	// Filtered values
 	const matrix::Vector3f val_filtered{_filter.apply(val_calibrated)};
