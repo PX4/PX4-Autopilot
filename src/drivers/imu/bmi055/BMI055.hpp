@@ -60,8 +60,6 @@ protected:
 
 	uint8_t         _whoami;    /** whoami result */
 
-	unsigned        _call_interval;
-
 	uint8_t         _register_wait;
 	uint64_t        _reset_wait;
 
