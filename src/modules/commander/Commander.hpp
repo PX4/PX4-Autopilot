@@ -165,10 +165,9 @@ private:
 	float		_load_factor_ratio{0.5f};	/**< ratio of maximum load factor predicted by stall speed to measured load factor */
 	float		_apsd_innov_integ_state{0.0f};	/**< inegral of excess normalised airspeed innovation (sec) */
 
-	/* geofence flags */
 	bool _geofence_loiter_on{false};
 	bool _geofence_rtl_on{false};
-	bool _warning_action_on{false};
+	bool _geofence_warning_action_on{false};
 	bool _geofence_violated_prev{false};
 
 	FailureDetector _failure_detector;
