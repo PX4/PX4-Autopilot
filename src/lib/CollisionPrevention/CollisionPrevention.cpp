@@ -88,8 +88,8 @@ void CollisionPrevention::publishConstrainedSetpoint(const Vector2f &original_se
 	}
 }
 
-void CollisionPrevention::calculateConstrainedSetpoint(Vector2f &setpoint, const float max_acc,
-		const Vector2f &curr_vel)
+void CollisionPrevention::calculateConstrainedSetpoint(Vector2f &setpoint,
+		const Vector2f &curr_pos, const Vector2f &curr_vel)
 {
 	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance->get();
 
@@ -99,7 +99,7 @@ void CollisionPrevention::calculateConstrainedSetpoint(Vector2f &setpoint, const
 	Vector2f setpoint_sqrd = setpoint * setpoint_length;
 
 	//Limit the deviation of the adapted setpoint from the originally given joystick input (slightly less than 90 degrees)
-	float max_slide_angle_rad = 1.2f;
+	float max_slide_angle_rad = 0.5f;
 
 	if (hrt_elapsed_time(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US) {
 		if (setpoint_length > 0.001f) {
@@ -121,13 +121,11 @@ void CollisionPrevention::calculateConstrainedSetpoint(Vector2f &setpoint, const
 					float sp_orth = setpoint_sqrd.dot(orth_direction);
 					float curr_vel_parallel = math::max(0.f, curr_vel.dot(bin_direction));
 
-					//max admissible velocity in current bin direction: v = sqrt(2 * a * d), where d is the distance to standstill
-					//a is the constant acceleration and v the current velocity. We use a = a_max/2  and j = j_max/2 to stay well within the limits
-					float acceleration_distance = 2.f * curr_vel_parallel * max_acc / _param_mpc_jerk_max.get();
-					float distance_to_standstill = math::max(0.f, distance - _param_mpc_col_prev_d.get() - acceleration_distance);
-					float vel_max_sqrd = max_acc * distance_to_standstill;
-
-
+					//calculate max allowed velocity with a P-controller (same gain as in the position controller)
+					float delay_distance = curr_vel_parallel * _param_mpc_col_prev_dly.get();
+					float vel_max_posctrl = math::max(0.f,
+									  _param_mpc_xy_p.get() * (distance - _param_mpc_col_prev_d.get() - delay_distance));
+					float vel_max_sqrd = vel_max_posctrl * vel_max_posctrl;
 
 					//limit the setpoint to respect vel_max by subtracting from the parallel component
 					if (sp_parallel > vel_max_sqrd) {
@@ -171,11 +169,11 @@ void CollisionPrevention::calculateConstrainedSetpoint(Vector2f &setpoint, const
 }
 
 void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const float max_speed,
-		const float max_acc, const Vector2f &curr_vel)
+		const Vector2f &curr_pos, const Vector2f &curr_vel)
 {
 	//calculate movement constraints based on range data
 	Vector2f new_setpoint = original_setpoint;
-	calculateConstrainedSetpoint(new_setpoint, max_acc, curr_vel);
+	calculateConstrainedSetpoint(new_setpoint, curr_pos, curr_vel);
 
 	//warn user if collision prevention starts to interfere
 	bool currently_interfering = (new_setpoint(0) < original_setpoint(0) - 0.05f * max_speed
