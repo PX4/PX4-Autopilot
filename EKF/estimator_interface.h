@@ -123,10 +123,10 @@ public:
 	virtual void get_drag_innov(float drag_innov[2]) = 0;
 
 	// gets the innovation variance of the HAGL measurement
-	virtual void get_hagl_innov_var(float *flow_innov_var) = 0;
+	virtual void get_hagl_innov_var(float *hagl_innov_var) = 0;
 
 	// gets the innovation of the HAGL measurement
-	virtual void get_hagl_innov(float *flow_innov_var) = 0;
+	virtual void get_hagl_innov(float *hagl_innov) = 0;
 
 	// return an array containing the output predictor angular, velocity and position tracking
 	// error magnitudes (rad), (m/s), (m)
