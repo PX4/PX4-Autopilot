@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 - 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -148,6 +148,13 @@ public:
 	 * 	@return The yawspeed set-point member.
 	 */
 	const float &getYawspeedSetpoint() { return _yawspeed_sp; }
+
+	/**
+	 * 	Get the
+	 * 	@see _acc_sp
+	 * 	@return The velocity set-point that was executed in the control-loop. Nan if velocity control-loop was skipped.
+	 */
+	const matrix::Vector3f getAccelerationSetpoint() { return _acc_sp; }
 
 	/**
 	 * 	Get the

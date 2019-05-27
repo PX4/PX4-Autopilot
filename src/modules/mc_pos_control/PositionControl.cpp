@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 - 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -170,6 +170,9 @@ bool PositionControl::_interfaceMapping()
 			// nothing is valid. do failsafe
 			failsafe = true;
 		}
+
+		// Set the acceleration setpoint to 0 if it's unused to not add anything in the feed-forward.
+		_acc_sp(i) = PX4_ISFINITE(_acc_sp(i)) ? _acc_sp(i) : 0.f;
 	}
 
 	// ensure that vel_dot is finite, otherwise set to 0
