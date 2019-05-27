@@ -68,8 +68,8 @@ public:
 
 	bool is_active() { return _param_mpc_col_prev_d.get() > 0; }
 
-	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed, const float max_acc,
-			    const matrix::Vector2f &curr_vel);
+	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed,
+			    const matrix::Vector2f &curr_pos, const matrix::Vector2f &curr_vel);
 
 private:
 
@@ -87,12 +87,14 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_COL_PREV_D>) _param_mpc_col_prev_d, /**< collision prevention keep minimum distance */
-		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max /**< maximum jerk allowed in position controller*/
+		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p, /**< p gain from position controller*/
+		(ParamFloat<px4::params::MPC_COL_PREV_DLY>) _param_mpc_col_prev_dly /**< delay of the range measurement data*/
 	)
 
 	void update();
 
-	void calculateConstrainedSetpoint(matrix::Vector2f &setpoint, const float max_acc, const matrix::Vector2f &curr_vel);
+	void calculateConstrainedSetpoint(matrix::Vector2f &setpoint, const matrix::Vector2f &curr_pos,
+					  const matrix::Vector2f &curr_vel);
 
 	void publishConstrainedSetpoint(const matrix::Vector2f &original_setpoint, const matrix::Vector2f &adapted_setpoint);
 
