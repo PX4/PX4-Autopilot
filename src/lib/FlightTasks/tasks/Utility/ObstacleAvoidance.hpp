@@ -109,7 +109,6 @@ private:
 	uORB::Subscription<vehicle_status_s> *_sub_vehicle_status{nullptr}; /**< vehicle status subscription */
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::COM_OBS_AVOID>) COM_OBS_AVOID,             /**< obstacle avoidance enabled */
 		(ParamFloat<px4::params::NAV_MC_ALT_RAD>) NAV_MC_ALT_RAD          /**< Acceptance radius for multicopter altitude */
 	);
 
