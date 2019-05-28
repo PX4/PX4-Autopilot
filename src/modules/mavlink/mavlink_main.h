@@ -189,6 +189,7 @@ public:
 		MAVLINK_MODE_IRIDIUM,
 		MAVLINK_MODE_MINIMAL,
 		MAVLINK_MODE_EXTVISION,
+		MAVLINK_MODE_EXTVISIONMIN,
 
 		MAVLINK_MODE_COUNT
 	};
@@ -234,6 +235,9 @@ public:
 
 		case MAVLINK_MODE_EXTVISION:
 			return "ExtVision";
+
+		case MAVLINK_MODE_EXTVISIONMIN:
+			return "ExtVisionMin";
 
 		default:
 			return "Unknown";
