@@ -39,12 +39,11 @@ px4_add_board(
 		magnetometer # all available magnetometer drivers
 		#md25
 		mkblctrl
+		optical_flow # all available optical flow drivers
 		pca9685
-		pmw3901
 		#protocol_splitter
 		#pwm_input
 		pwm_out_sim
-		px4flow
 		px4fmu
 		rc_input
 		#roboclaw
