@@ -33,10 +33,11 @@ px4_add_board(
 		lights/rgbled
 		magnetometer # all available magnetometer drivers
 		mkblctrl
+		#optical_flow # all available optical flow drivers
+		optical_flow/px4flow
 		pca9685
 		pwm_input
 		pwm_out_sim
-		px4flow
 		px4fmu
 		rc_input
 		stm32

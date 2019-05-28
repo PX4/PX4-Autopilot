@@ -30,7 +30,7 @@ px4_add_board(
 		irlock
 		lights/rgbled
 		magnetometer/hmc5883
-		px4flow
+		optical_flow/px4flow
 		px4fmu
 		px4io
 		stm32

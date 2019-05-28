@@ -29,10 +29,10 @@ px4_add_board(
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		#mkblctrl
+		optical_flow/px4flow
 		#pca9685
 		#pwm_input
 		#pwm_out_sim
-		px4flow
 		px4fmu
 		rc_input
 		stm32
