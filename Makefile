@@ -248,6 +248,7 @@ px4fmu_firmware: \
 	check_px4_fmu-v4_default \
 	check_px4_fmu-v4pro_default \
 	check_px4_fmu-v5_default \
+	check_px4_fmu-v5x_default \
 	sizes
 
 misc_qgc_extra_firmware: \
