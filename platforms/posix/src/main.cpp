@@ -405,7 +405,7 @@ void register_sig_handler()
 	// SIGSEGV
 	struct sigaction sig_segv {};
 	sig_segv.sa_handler = sig_segv_handler;
-	sig_segv.sa_flags = SA_RESTART | SA_SIGINFO;
+	sig_segv.sa_flags = SA_RESTART | SA_SIGINFO | SA_RESETHAND;
 
 #ifdef __PX4_CYGWIN
 	// Do not catch SIGINT on Cygwin such that the process gets killed
