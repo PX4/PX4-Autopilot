@@ -336,7 +336,22 @@ if (CATKIN_DEVEL_PREFIX)
 	endif()
 endif()
 
-find_package(PythonInterp REQUIRED)
+
+# Python3
+if(${CMAKE_VERSION} VERSION_GREATER "3.11.0")
+	find_package(Python3 COMPONENTS Interpreter)
+	if(Python3_FOUND)
+		set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
+	else()
+		message(FATAL_ERROR "Python3 required")
+	endif()
+else()
+	find_package(PythonInterp 3)
+
+	if(NOT PYTHONINTERP_FOUND)
+		message(FATAL_ERROR "Python3 required")
+	endif()
+endif()
 
 option(PYTHON_COVERAGE "Python code coverage" OFF)
 if(PYTHON_COVERAGE)
@@ -345,6 +360,8 @@ if(PYTHON_COVERAGE)
 else()
 	# run normally (broken under coveragepy)
 	px4_find_python_module(jinja2 REQUIRED)
+	px4_find_python_module(toml REQUIRED)
+	px4_find_python_module(yaml REQUIRED)
 endif()
 
 #=============================================================================

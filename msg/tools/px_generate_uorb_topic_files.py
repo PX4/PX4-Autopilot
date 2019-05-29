@@ -56,15 +56,15 @@ try:
 except ImportError as e:
     print("python import error: ", e)
     print('''
-Required python packages not installed.
+Required python3 packages not installed.
 
 On a Debian/Ubuntu system please run:
 
-  sudo apt-get install python-empy
-  sudo pip install catkin_pkg
+  sudo apt-get install python3-empy
+  sudo python3 -m pip install catkin_pkg
 
 On MacOS please run:
-  sudo pip install empy catkin_pkg
+  sudo python3 -m pip install empy catkin_pkg
 
 On Windows please run:
   easy_install empy catkin_pkg
