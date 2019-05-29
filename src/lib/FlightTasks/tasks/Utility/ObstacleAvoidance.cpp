@@ -42,6 +42,8 @@ using namespace time_literals;
 
 /** Timeout in us for trajectory data to get considered invalid */
 static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500_ms;
+/** If Flighttask fails, keep 0.5 seconds the current setpoint before going into failsafe land */
+static constexpr uint64_t TIME_BEFORE_FAILSAFE = 500_ms;
 
 const vehicle_trajectory_waypoint_s empty_trajectory_waypoint = {0, 0, {0, 0, 0, 0, 0, 0, 0},
 	{	{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
@@ -57,6 +59,8 @@ ObstacleAvoidance::ObstacleAvoidance(ModuleParams *parent) :
 {
 	_desired_waypoint = empty_trajectory_waypoint;
 	_failsafe_position.setNaN();
+	_avoidance_point_not_valid_hysteresis.set_hysteresis_time_from(false, TIME_BEFORE_FAILSAFE);
+
 }
 
 ObstacleAvoidance::~ObstacleAvoidance()
@@ -99,7 +103,9 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 	const bool avoidance_point_valid =
 		_sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true;
 
-	if (avoidance_data_timeout || !avoidance_point_valid) {
+	_avoidance_point_not_valid_hysteresis.set_state_and_update(!avoidance_point_valid, hrt_absolute_time());
+
+	if (avoidance_data_timeout || _avoidance_point_not_valid_hysteresis.get_state()) {
 		PX4_WARN("Obstacle Avoidance system failed, loitering");
 		_publishVehicleCmdDoLoiter();
 
@@ -119,14 +125,17 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 		_failsafe_position.setNaN();
 	}
 
-	pos_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position;
-	vel_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity;
+	if (avoidance_point_valid) {
+		pos_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position;
+		vel_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity;
 
-	if (!_ext_yaw_active) {
-		// inject yaw setpoints only if weathervane isn't active
-		yaw_sp =  _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw;
-		yaw_speed_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed;
+		if (!_ext_yaw_active) {
+			// inject yaw setpoints only if weathervane isn't active
+			yaw_sp =  _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw;
+			yaw_speed_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed;
+		}
 	}
+
 }
 
 void ObstacleAvoidance::updateAvoidanceDesiredWaypoints(const Vector3f &curr_wp, const float curr_yaw,
