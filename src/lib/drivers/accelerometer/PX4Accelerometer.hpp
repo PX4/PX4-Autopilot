@@ -57,7 +57,7 @@ public:
 	void set_scale(float scale) { _sensor_accel_pub.get().scaling = scale; }
 	void set_temperature(float temperature) { _sensor_accel_pub.get().temperature = temperature; }
 
-	void set_sample_rate(unsigned rate) { _sample_rate = rate; }
+	void set_sample_rate(unsigned rate) { _sample_rate = rate; _filter.set_cutoff_frequency(_sample_rate, _filter.get_cutoff_freq()); }
 
 	void configure_filter(float cutoff_freq) { _filter.set_cutoff_frequency(_sample_rate, cutoff_freq); }
 
