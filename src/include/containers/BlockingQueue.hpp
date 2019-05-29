@@ -81,7 +81,7 @@ private:
 	px4_sem_t	_sem_head;
 	px4_sem_t	_sem_tail;
 
-	T _data[N];
+	T _data[N] {};
 
 	size_t _head{0};
 	size_t _tail{0};
