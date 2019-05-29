@@ -72,7 +72,6 @@ __END_DECLS
  ****************************************************************************/
 #define PX4_INFO(FMT, ...) 	qurt_log(_PX4_LOG_LEVEL_INFO, __FILE__, __LINE__, FMT, ##__VA_ARGS__)
 #define PX4_INFO_RAW(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_INFO, FMT, ##__VA_ARGS__)
-#define PX4_BACKTRACE()
 
 #if defined(TRACE_BUILD)
 /****************************************************************************
@@ -141,7 +140,6 @@ __attribute__((format(printf, 2, 3)));
 
 __END_DECLS
 
-#define PX4_BACKTRACE() px4_backtrace()
 
 /****************************************************************************
  * Implementation of log section formatting based on printf
