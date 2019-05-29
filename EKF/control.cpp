@@ -80,12 +80,12 @@ void Ekf::controlFusionModes()
 
 	}
 
-	// check faultiness (before pop_first_older_than) to see if we can change back to original height sensor
+	// check for intermittent data (before pop_first_older_than)
 	const baroSample &baro_init = _baro_buffer.get_newest();
 	_baro_hgt_faulty = !((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
 
 	const gpsSample &gps_init = _gps_buffer.get_newest();
-	_gps_hgt_faulty = !((_time_last_imu - gps_init.time_us) < 2 * GPS_MAX_INTERVAL);
+	_gps_hgt_intermittent = !((_time_last_imu - gps_init.time_us) < 2 * GPS_MAX_INTERVAL);
 
 	// check for arrival of new sensor data at the fusion time horizon
 	_gps_data_ready = _gps_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_gps_sample_delayed);
@@ -115,7 +115,7 @@ void Ekf::controlFusionModes()
 		Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
 		_range_sample_delayed.rng += pos_offset_earth(2) / _R_rng_to_earth_2_2;
 	}
-	
+
 	// We don't fuse flow data immediately because we have to wait for the mid integration point to fall behind the fusion time horizon.
 	// This means we stop looking for new data until the old data has been fused.
 	if (!_flow_data_ready) {
@@ -697,7 +697,7 @@ void Ekf::controlGpsFusion()
 		_control_status.flags.gps = false;
 		ECL_WARN("EKF GPS data stopped");
 	}  else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)1e6) && (_control_status.flags.opt_flow || _control_status.flags.ev_pos)) {
-		// Handle the case where we are fusing another position source along GPS, 
+		// Handle the case where we are fusing another position source along GPS,
 		// stop waiting for GPS after 1 s of lost signal
 		_control_status.flags.gps = false;
 		ECL_WARN("EKF GPS data stopped, using only EV or OF");
@@ -754,7 +754,6 @@ void Ekf::controlHeightSensorTimeouts()
 		if (_control_status.flags.baro_hgt) {
 			// check if GPS height is available
 			const gpsSample &gps_init = _gps_buffer.get_newest();
-			bool gps_hgt_available = ((_time_last_imu - gps_init.time_us) < 2 * GPS_MAX_INTERVAL);
 			bool gps_hgt_accurate = (gps_init.vacc < _params.req_vacc);
 
 			const baroSample &baro_init = _baro_buffer.get_newest();
@@ -764,10 +763,10 @@ void Ekf::controlHeightSensorTimeouts()
 			bool prev_bad_vert_accel = (_time_last_imu - _time_bad_vert_accel < BADACC_PROBATION);
 
 			// reset to GPS if adequate GPS data is available and the timeout cannot be blamed on IMU data
-			bool reset_to_gps = gps_hgt_available && gps_hgt_accurate && !_gps_hgt_faulty && !prev_bad_vert_accel;
+			bool reset_to_gps = !_gps_hgt_intermittent && gps_hgt_accurate && !prev_bad_vert_accel;
 
 			// reset to GPS if GPS data is available and there is no Baro data
-			reset_to_gps = reset_to_gps || (gps_hgt_available && !baro_hgt_available);
+			reset_to_gps = reset_to_gps || (!_gps_hgt_intermittent && !baro_hgt_available);
 
 			// reset to Baro if we are not doing a GPS reset and baro data is available
 			bool reset_to_baro = !reset_to_gps && baro_hgt_available;
@@ -775,9 +774,6 @@ void Ekf::controlHeightSensorTimeouts()
 			if (reset_to_gps) {
 				// set height sensor health
 				_baro_hgt_faulty = true;
-
-				// declare the GPS height healthy
-				_gps_hgt_faulty = false;
 
 				// reset the height mode
 				setControlGPSHeight();
@@ -809,7 +805,6 @@ void Ekf::controlHeightSensorTimeouts()
 		if (_control_status.flags.gps_hgt) {
 			// check if GPS height is available
 			const gpsSample &gps_init = _gps_buffer.get_newest();
-			bool gps_hgt_available = ((_time_last_imu - gps_init.time_us) < 2 * GPS_MAX_INTERVAL);
 			bool gps_hgt_accurate = (gps_init.vacc < _params.req_vacc);
 
 			// check the baro height source for consistency and freshness
@@ -822,14 +817,13 @@ void Ekf::controlHeightSensorTimeouts()
 			bool reset_to_baro = baro_data_consistent && baro_data_fresh && !_baro_hgt_faulty && !gps_hgt_accurate;
 
 			// if GPS height is unavailable and baro data is available, reset height to baro
-			reset_to_baro = reset_to_baro || (!gps_hgt_available && baro_data_fresh);
+			reset_to_baro = reset_to_baro || (_gps_hgt_intermittent && baro_data_fresh);
 
 			// if we cannot switch to baro and GPS data is available, reset height to GPS
-			bool reset_to_gps = !reset_to_baro && gps_hgt_available;
+			bool reset_to_gps = !reset_to_baro && !_gps_hgt_intermittent;
 
 			if (reset_to_baro) {
 				// set height sensor health
-				_gps_hgt_faulty = true;
 				_baro_hgt_faulty = false;
 
 				// reset the height mode
@@ -840,9 +834,6 @@ void Ekf::controlHeightSensorTimeouts()
 				ECL_WARN("EKF gps hgt timeout - reset to baro");
 
 			} else if (reset_to_gps) {
-				// set height sensor health
-				_gps_hgt_faulty = false;
-
 				// reset the height mode
 				setControlGPSHeight();
 
@@ -999,7 +990,7 @@ void Ekf::controlHeightFusion()
 				}
 			}
 
-		} else if (_control_status.flags.gps_hgt && _gps_data_ready && !_gps_hgt_faulty) {
+		} else if (_control_status.flags.gps_hgt && _gps_data_ready && !_gps_hgt_intermittent) {
 			// switch to gps if there was a reset to gps
 			_fuse_height = true;
 
@@ -1063,7 +1054,7 @@ void Ekf::controlHeightFusion()
 				}
 			}
 
-		} else if (!_range_aid_mode_selected && _gps_data_ready && !_gps_hgt_faulty) {
+		} else if (!_range_aid_mode_selected && _gps_data_ready && !_gps_hgt_intermittent && _gps_checks_passed) {
 			setControlGPSHeight();
 			_fuse_height = true;
 
