@@ -432,7 +432,7 @@ FixedwingPositionControl::vehicle_attitude_poll()
 
 	// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
 	// between multirotor and fixed wing flight
-	if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
+	if (static_cast<vtol_type>(_parameters.vtol_type) == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
 		Dcmf R_offset = Eulerf(0, M_PI_2_F, 0);
 		_R_nb = _R_nb * R_offset;
 	}
@@ -2004,7 +2004,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 
 	// tailsitters use the multicopter frame as reference, in fixed wing
 	// we need to use the fixed wing frame
-	if (_parameters.vtol_type == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
+	if (static_cast<vtol_type>(_parameters.vtol_type) == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
 		float tmp = accel_body(0);
 		accel_body(0) = -accel_body(2);
 		accel_body(2) = tmp;

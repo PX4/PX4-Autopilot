@@ -94,13 +94,13 @@ VtolAttitudeControl::VtolAttitudeControl()
 	/* fetch initial parameter values */
 	parameters_update();
 
-	if (_params.vtol_type == vtol_type::TAILSITTER) {
+	if (static_cast<vtol_type>(_params.vtol_type) == vtol_type::TAILSITTER) {
 		_vtol_type = new Tailsitter(this);
 
-	} else if (_params.vtol_type == vtol_type::TILTROTOR) {
+	} else if (static_cast<vtol_type>(_params.vtol_type) == vtol_type::TILTROTOR) {
 		_vtol_type = new Tiltrotor(this);
 
-	} else if (_params.vtol_type == vtol_type::STANDARD) {
+	} else if (static_cast<vtol_type>(_params.vtol_type) == vtol_type::STANDARD) {
 		_vtol_type = new Standard(this);
 
 	} else {
@@ -499,7 +499,7 @@ VtolAttitudeControl::parameters_update()
 	// normally the parameter fw_motors_off can be used to specify this, however, since historically standard vtol code
 	// did not use the interface of the VtolType class to disable motors we will have users flying  around with a wrong
 	// parameter value. Therefore, explicitly set it here such that all motors will be disabled as expected.
-	if (_params.vtol_type == vtol_type::STANDARD) {
+	if (static_cast<vtol_type>(_params.vtol_type) == vtol_type::STANDARD) {
 		_params.fw_motors_off = 12345678;
 	}
 
@@ -571,13 +571,13 @@ void VtolAttitudeControl::task_main()
 
 		// run vtol_att on MC actuator publications, unless in full FW mode
 		switch (_vtol_type->get_mode()) {
-		case TRANSITION_TO_FW:
-		case TRANSITION_TO_MC:
-		case ROTARY_WING:
+		case mode::TRANSITION_TO_FW:
+		case mode::TRANSITION_TO_MC:
+		case mode::ROTARY_WING:
 			fds[0].fd = _actuator_inputs_mc;
 			break;
 
-		case FIXED_WING:
+		case mode::FIXED_WING:
 			fds[0].fd = _actuator_inputs_fw;
 			break;
 		}
@@ -616,13 +616,13 @@ void VtolAttitudeControl::task_main()
 
 		// reset transition command if not auto control
 		if (_v_control_mode.flag_control_manual_enabled) {
-			if (_vtol_type->get_mode() == ROTARY_WING) {
+			if (_vtol_type->get_mode() == mode::ROTARY_WING) {
 				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
-			} else if (_vtol_type->get_mode() == FIXED_WING) {
+			} else if (_vtol_type->get_mode() == mode::FIXED_WING) {
 				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 
-			} else if (_vtol_type->get_mode() == TRANSITION_TO_MC) {
+			} else if (_vtol_type->get_mode() == mode::TRANSITION_TO_MC) {
 				/* We want to make sure that a mode change (manual>auto) during the back transition
 				 * doesn't result in an unsafe state. This prevents the instant fall back to
 				 * fixed-wing on the switch from manual to auto */
@@ -631,7 +631,7 @@ void VtolAttitudeControl::task_main()
 		}
 
 		// check in which mode we are in and call mode specific functions
-		if (_vtol_type->get_mode() == ROTARY_WING) {
+		if (_vtol_type->get_mode() == mode::ROTARY_WING) {
 
 			mc_virtual_att_sp_poll();
 
@@ -643,7 +643,7 @@ void VtolAttitudeControl::task_main()
 			// got data from mc attitude controller
 			_vtol_type->update_mc_state();
 
-		} else if (_vtol_type->get_mode() == FIXED_WING) {
+		} else if (_vtol_type->get_mode() == mode::FIXED_WING) {
 
 			fw_virtual_att_sp_poll();
 
@@ -654,7 +654,7 @@ void VtolAttitudeControl::task_main()
 
 			_vtol_type->update_fw_state();
 
-		} else if (_vtol_type->get_mode() == TRANSITION_TO_MC || _vtol_type->get_mode() == TRANSITION_TO_FW) {
+		} else if (_vtol_type->get_mode() == mode::TRANSITION_TO_MC || _vtol_type->get_mode() == mode::TRANSITION_TO_FW) {
 
 			mc_virtual_att_sp_poll();
 			fw_virtual_att_sp_poll();
@@ -662,7 +662,7 @@ void VtolAttitudeControl::task_main()
 			// vehicle is doing a transition
 			_vtol_vehicle_status.vtol_in_trans_mode = true;
 			_vtol_vehicle_status.vtol_in_rw_mode = true; //making mc attitude controller work during transition
-			_vtol_vehicle_status.in_transition_to_fw = (_vtol_type->get_mode() == TRANSITION_TO_FW);
+			_vtol_vehicle_status.in_transition_to_fw = (_vtol_type->get_mode() == mode::TRANSITION_TO_FW);
 
 			_vtol_type->update_transition_state();
 		}
