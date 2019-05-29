@@ -546,7 +546,7 @@ void Ekf2::run()
 	//INRIA: calling ekf2_task_activation every hrt_ekf2_param (= period) using High Resolution Timer to release sem_ekf2 semaphore
 	hrt_call_every(&_call_ekf2,
 			       0,
-			       hrt_ekf2_param,
+			       4000/*hrt_ekf2_param*/,
 			       (hrt_callout)&ekf2_task_activation, this); /* Ekf2::*/
 
 	while (!should_exit()) {
@@ -557,7 +557,7 @@ void Ekf2::run()
 
 		if (!(fds[0].revents & POLLIN)) {
 			// no new data
-			//continue; INRIA
+			continue; 
 		}
 
 		if (ret < 0) {
@@ -567,7 +567,7 @@ void Ekf2::run()
 
 		} else if (ret == 0) {
 			// Poll timeout or no new data, do nothing
-			// continue; // INRIA
+			 continue;
 		}
 
 		bool params_updated = false;

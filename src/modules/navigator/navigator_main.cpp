@@ -328,7 +328,7 @@ Navigator::task_main()
 
 		if (pret == 0) {
 			/* Let the loop run anyway, don't do `continue` here. */
-			local_position_update(); // INRIA: update local position (old values)
+		
 
 		} else if (pret < 0) {
 			/* this is undesirable but not much we can do - might want to flag unhappy status */

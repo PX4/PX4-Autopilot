@@ -1207,7 +1207,7 @@ PX4FMU::cycle()
 	//INRIA: calling fmu_task_activation every hrt_fmu_param (= period) using High Resolution Timer
 	hrt_call_every(&_call_fmu,
 			       0,
-			       hrt_fmu_param,
+			       4000/*hrt_fmu_param*/,
 			       (hrt_callout)&fmu_task_activation, this);  /*PX4FMU::*/
 
 	while (true) {
@@ -1221,7 +1221,7 @@ PX4FMU::cycle()
 			_current_update_rate = 0;
 		}
 
-		int poll_timeout = 0; // needs to be small enough so that we don't miss RC input data // INRIA: we don't wait for data since we are using HRT
+		int poll_timeout = 0; // needs to be small enough so that we don't miss RC input data // INRIA: we don't wait for data since we are using HRT (5)
 
 		// INRIA: always false, since FMU is a task now
 		if (!_run_as_task) {
@@ -1271,7 +1271,7 @@ PX4FMU::cycle()
 		if (ret < 0) {
 			DEVICE_LOG("poll error %d", errno);
 
-		/*} else if (ret == 0) {*/
+		} else if (ret == 0) {
 			/* timeout: no control data, switch to failsafe values */
 			//			PX4_WARN("no PWM: failsafe");
 
@@ -1285,13 +1285,13 @@ PX4FMU::cycle()
 				for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 					if (_control_subs[i] > 0) {
 
-						//if (_poll_fds[poll_id].revents & POLLIN) {
+						if (_poll_fds[poll_id].revents & POLLIN) {
 							if (i == 0) {
 								n_updates++;
 							}
 
 							orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
-						//}
+						}
 
 						poll_id++;
 					}

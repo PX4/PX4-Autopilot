@@ -919,7 +919,7 @@ PX4IO::task_main_trampoline(int argc, char *argv[])
 void
 PX4IO::task_main()
 {
-	//hrt_abstime poll_last = 0; //INRIA: we don't use it
+	hrt_abstime poll_last = 0; 
 	hrt_abstime orb_check_last = 0;
 
 	//INRIA: Get the handle to the hrt Px4io parameter
@@ -969,7 +969,7 @@ PX4IO::task_main()
 	//INRIA: calling ctrl_tasks_activation every hrt_io_param (= period) using High Resolution Timer
 	hrt_call_every(&_call_px4io,
 			       0,
-			       hrt_io_param,
+			       4000/*hrt_io_param*/,
 			       (hrt_callout)&px4io_task_activation, this); /*PX4IO::*/
 
 	/* lock against the ioctl handler */
@@ -981,7 +981,7 @@ PX4IO::task_main()
 		sem_wait(&sem_px4io); //INRIA
 
 		/* adjust update interval */ //INRIA: the task is running at a specific period see: hrt_io_param parameter
-		/*if (_update_interval != 0) { 
+		if (_update_interval != 0) { 
 			if (_update_interval < UPDATE_INTERVAL_MIN) {
 				_update_interval = UPDATE_INTERVAL_MIN;
 			}
@@ -994,7 +994,7 @@ PX4IO::task_main()
 			//NOT changing the rate of groups 1-3 here, because only attitude really needs to run fast.
 			 
 			_update_interval = 0;
-		}*/ 
+		}
 
 		/* INRIA: we don't wait for data since we are using HRT */
 		unlock();
@@ -1011,17 +1011,17 @@ PX4IO::task_main()
 		hrt_abstime now = hrt_absolute_time();
 
 		/* if we have new control data from the ORB, handle it */
-		//if (fds[0].revents & POLLIN) {
+		if (fds[0].revents & POLLIN) {
 
 			/* we're not nice to the lower-priority control groups and only check them
 			   when the primary group updated (which is now). */
 			(void)io_set_control_groups(); //INRIA: check the lower-priority control groups even if we don't have new data
-		//}
+		}
 
-		//if (now >= poll_last + IO_POLL_INTERVAL) //INRIA: publishing at the task's rate
+		if (now >= poll_last + IO_POLL_INTERVAL) 
 		{
 			/* run at 50-250Hz */
-			//poll_last = now;
+			poll_last = now;
 
 			/* pull status and alarms from IO */
 			io_get_status();

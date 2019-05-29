@@ -1145,7 +1145,7 @@ MulticopterAttitudeControl::task_main()
 	//INRIA: calling att_task_activation every hrt_att_param (= period) using High Resolution Timer to release sem_att semaphore
 	hrt_call_every(&_call_att,
 			       0,
-			       hrt_att_param,
+			       4000/*hrt_att_param*/,
 			       (hrt_callout)&att_task_activation, this); /*MulticopterAttitudeControl::*/
 
 	while (!_task_should_exit) {
@@ -1159,7 +1159,7 @@ MulticopterAttitudeControl::task_main()
 
 		/* timed out - periodic check for _task_should_exit */
 		if (pret == 0) {
-			//continue; // INRIA: go through the loop
+			continue;
 		}
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */

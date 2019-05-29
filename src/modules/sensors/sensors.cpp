@@ -680,7 +680,7 @@ Sensors::run()
 	//INRIA: calling sens_task_activation every hrt_sens_param (= period) using High Resolution Timer to activate sensors task
 	hrt_call_every(&_call_sens,
 			       0,
-			       hrt_sens_param,
+			       4000/*hrt_sens_param*/,
 			       (hrt_callout)&sens_task_activation, this); /*Sensors::*/
 
 	while (!should_exit()) {

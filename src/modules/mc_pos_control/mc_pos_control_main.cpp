@@ -3071,7 +3071,7 @@ MulticopterPositionControl::task_main()
 	//INRIA: calling pos_task_activation every hrt_pos_param (= period) using High Resolution Timer to release sem_pos semaphore
 	hrt_call_every(&_call_pos,
 			       0,
-			       hrt_pos_param,
+			       4000/*hrt_pos_param*/,
 			       (hrt_callout)&pos_task_activation, this); /*MulticopterPositionControl::*/
 
 	while (!_task_should_exit) {
