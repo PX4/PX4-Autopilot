@@ -48,7 +48,7 @@
 
 VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_attc(att_controller),
-	_vtol_mode(ROTARY_WING)
+	_vtol_mode(mode::ROTARY_WING)
 {
 	_v_att = _attc->get_att();
 	_v_att_sp = _attc->get_att_sp();
@@ -123,8 +123,8 @@ void VtolType::update_mc_state()
 		flag_idle_mc = set_idle_mc();
 	}
 
-	if (_motor_state != ENABLED) {
-		_motor_state = VtolType::set_motor_state(_motor_state, ENABLED);
+	if (_motor_state != motor_state::ENABLED) {
+		_motor_state = VtolType::set_motor_state(_motor_state, motor_state::ENABLED);
 	}
 
 	// copy virtual attitude setpoint to real attitude setpoint
@@ -142,8 +142,8 @@ void VtolType::update_fw_state()
 		flag_idle_mc = !set_idle_fw();
 	}
 
-	if (_motor_state != DISABLED) {
-		_motor_state = VtolType::set_motor_state(_motor_state, DISABLED);
+	if (_motor_state != motor_state::DISABLED) {
+		_motor_state = VtolType::set_motor_state(_motor_state, motor_state::DISABLED);
 	}
 
 	// copy virtual attitude setpoint to real attitude setpoint
@@ -323,10 +323,10 @@ motor_state VtolType::set_motor_state(const motor_state current_state, const mot
 	}
 
 	switch (next_state) {
-	case ENABLED:
+	case motor_state::ENABLED:
 		break;
 
-	case DISABLED:
+	case motor_state::DISABLED:
 		for (int i = 0; i < _params->vtol_motor_count; i++) {
 			if (is_motor_off_channel(i)) {
 				pwm_values.values[i] = _disarmed_pwm_values.values[i];
@@ -335,7 +335,7 @@ motor_state VtolType::set_motor_state(const motor_state current_state, const mot
 
 		break;
 
-	case IDLE:
+	case motor_state::IDLE:
 
 		for (int i = 0; i < _params->vtol_motor_count; i++) {
 			if (is_motor_off_channel(i)) {
@@ -345,7 +345,7 @@ motor_state VtolType::set_motor_state(const motor_state current_state, const mot
 
 		break;
 
-	case VALUE:
+	case motor_state::VALUE:
 		for (int i = 0; i < _params->vtol_motor_count; i++) {
 			if (is_motor_off_channel(i)) {
 				pwm_values.values[i] = value;

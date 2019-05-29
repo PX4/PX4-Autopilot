@@ -180,20 +180,20 @@ void Tiltrotor::update_vtol_state()
 	// map tiltrotor specific control phases to simple control modes
 	switch (_vtol_schedule.flight_mode) {
 	case MC_MODE:
-		_vtol_mode = ROTARY_WING;
+		_vtol_mode = mode::ROTARY_WING;
 		break;
 
 	case FW_MODE:
-		_vtol_mode = FIXED_WING;
+		_vtol_mode = mode::FIXED_WING;
 		break;
 
 	case TRANSITION_FRONT_P1:
 	case TRANSITION_FRONT_P2:
-		_vtol_mode = TRANSITION_TO_FW;
+		_vtol_mode = mode::TRANSITION_TO_FW;
 		break;
 
 	case TRANSITION_BACK:
-		_vtol_mode = TRANSITION_TO_MC;
+		_vtol_mode = mode::TRANSITION_TO_MC;
 		break;
 	}
 }
@@ -227,8 +227,8 @@ void Tiltrotor::update_transition_state()
 
 	if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P1) {
 		// for the first part of the transition the rear rotors are enabled
-		if (_motor_state != ENABLED) {
-			_motor_state = set_motor_state(_motor_state, ENABLED);
+		if (_motor_state != motor_state::ENABLED) {
+			_motor_state = set_motor_state(_motor_state, motor_state::ENABLED);
 		}
 
 		// tilt rotors forward up to certain angle
@@ -277,14 +277,14 @@ void Tiltrotor::update_transition_state()
 				 (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) + PWM_DEFAULT_MIN;
 
 
-		_motor_state = set_motor_state(_motor_state, VALUE, rear_value);
+		_motor_state = set_motor_state(_motor_state, motor_state::VALUE, rear_value);
 
 
 		_thrust_transition = -_mc_virtual_att_sp->thrust_body[2];
 
 	} else if (_vtol_schedule.flight_mode == TRANSITION_BACK) {
-		if (_motor_state != ENABLED) {
-			_motor_state = set_motor_state(_motor_state, ENABLED);
+		if (_motor_state != motor_state::ENABLED) {
+			_motor_state = set_motor_state(_motor_state, motor_state::ENABLED);
 		}
 
 

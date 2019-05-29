@@ -74,14 +74,14 @@ struct Params {
 };
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg
-enum mode {
+enum class mode {
 	TRANSITION_TO_FW = 1,
 	TRANSITION_TO_MC = 2,
 	ROTARY_WING = 3,
 	FIXED_WING = 4
 };
 
-enum vtol_type {
+enum class vtol_type {
 	TAILSITTER = 0,
 	TILTROTOR,
 	STANDARD
@@ -91,7 +91,7 @@ enum vtol_type {
 // e.g. if we need to shut off some motors after transitioning to fixed wing mode
 // we can individually disable them while others might still need to be enabled to produce thrust.
 // we can select the target motors via VT_FW_MOT_OFFID
-enum motor_state {
+enum class motor_state {
 	ENABLED = 0,		// motor max pwm will be set to the standard max pwm value
 	DISABLED,			// motor max pwm will be set to a value that shuts the motor off
 	IDLE,				// motor max pwm will be set to VT_IDLE_PWM_MC
@@ -101,7 +101,7 @@ enum motor_state {
 /**
  * @brief      Used to specify if min or max pwm values should be altered
  */
-enum pwm_limit_type {
+enum class pwm_limit_type {
 	TYPE_MINIMUM = 0,
 	TYPE_MAXIMUM
 };

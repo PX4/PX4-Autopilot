@@ -256,7 +256,7 @@ MulticopterAttitudeControl::vehicle_status_poll()
 
 				int32_t vt_type = -1;
 				if (param_get(param_find("VT_TYPE"), &vt_type) == PX4_OK) {
-					_is_tailsitter = (vt_type == vtol_type::TAILSITTER);
+					_is_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
 				}
 
 			} else {
