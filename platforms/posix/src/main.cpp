@@ -434,7 +434,6 @@ void sig_fpe_handler(int sig_num)
 {
 	fflush(stdout);
 	printf("\nfloating point exception\n");
-	PX4_BACKTRACE();
 	fflush(stdout);
 	px4_daemon::Pxh::stop();
 	_exit_requested = true;
@@ -444,7 +443,6 @@ void sig_segv_handler(int sig_num)
 {
 	fflush(stdout);
 	printf("\nSegmentation Fault\n");
-	PX4_BACKTRACE();
 	fflush(stdout);
 }
 
