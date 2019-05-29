@@ -425,9 +425,10 @@ endif()
 # enable test filtering to run only specific tests with the ctest -R regex functionality
 set(TESTFILTER "" CACHE STRING "Filter string for ctest to selectively only run specific tests (ctest -R)")
 
-# if testing is enabled download and configure gtest
 list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake/gtest/)
 include(px4_add_gtest)
+
+# if testing is enabled download and configure gtest
 if(BUILD_TESTING)
 	include(gtest)
 endif()

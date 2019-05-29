@@ -1,5 +1,5 @@
 #include <lockstep_scheduler/lockstep_scheduler.h>
-#include <gtest/gtest.h>
+#include <px4_unittesting.h>
 #include <thread>
 #include <atomic>
 #include <random>

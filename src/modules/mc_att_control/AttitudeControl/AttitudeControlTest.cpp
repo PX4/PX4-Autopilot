@@ -31,8 +31,9 @@
  *
  ****************************************************************************/
 
-#include <gtest/gtest.h>
-#include <AttitudeControl.hpp>
+#include <px4_unittesting.h>
+
+#include "AttitudeControl.hpp"
 
 using namespace matrix;
 

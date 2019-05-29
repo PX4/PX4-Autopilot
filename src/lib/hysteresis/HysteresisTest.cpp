@@ -36,7 +36,7 @@
  * Tests for system timing hysteresis.
  */
 
-#include <gtest/gtest.h>
+#include <px4_unittesting.h>
 
 #include "hysteresis.h"
 

@@ -107,6 +107,7 @@ px4_add_board(
 		#topic_listener
 		tune_control
 		ver
+		ntest # needs to be last
 
 	EXAMPLES
 		#bottle_drop # OBC challenge

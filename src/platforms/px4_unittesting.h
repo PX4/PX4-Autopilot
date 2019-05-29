@@ -31,20 +31,17 @@
  *
  ****************************************************************************/
 
-#include <px4_unittesting.h>
+/**
+ * @file px4_unittesting.h
+ *
+ * File to include the appropriate header files for unit testing on the
+ * respective platform.
+ */
 
-#include "Takeoff.hpp"
+#pragma once
 
-TEST(TakeoffTest, Initialization)
-{
-	Takeoff takeoff;
-	EXPECT_EQ(takeoff.getTakeoffState(), TakeoffState::disarmed);
-}
-
-// TEST(TakeoffTest, Ramp)
-// {
-// 	Takeoff takeoff;
-// 	takeoff.updateTakeoffState(true, false, true, 1.f, false);
-// 	takeoff.updateThrustRamp(1.f, 0.1f);
-// 	EXPECT_EQ(takeoff.getTakeoffState(), TakeoffState::disarmed);
-// }
+#ifdef __PX4_NUTTX
+#include <lib/ntestlib/ntestlib.h>
+#else
+#include <gtest/gtest.h>
+#endif

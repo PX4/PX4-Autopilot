@@ -114,6 +114,7 @@ px4_add_board(
 		tune_control
 		usb_connected
 		ver
+		ntest # needs to be last
 
 	EXAMPLES
 		bottle_drop # OBC challenge
