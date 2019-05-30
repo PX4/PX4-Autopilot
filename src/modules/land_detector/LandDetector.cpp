@@ -54,6 +54,7 @@ namespace land_detector
 {
 
 LandDetector::LandDetector() :
+	ScheduledWorkItem(px4::wq_configurations::hp_default),
 	_cycle_perf(perf_alloc(PC_ELAPSED, "land_detector_cycle"))
 {
 }
@@ -65,19 +66,12 @@ LandDetector::~LandDetector()
 
 int LandDetector::start()
 {
-	/* schedule a cycle to start things */
-	return work_queue(HPWORK, &_work, (worker_t)&LandDetector::_cycle_trampoline, this, 0);
+	ScheduleOnInterval(LAND_DETECTOR_UPDATE_INTERVAL, 10000);
+
+	return PX4_OK;
 }
 
-void
-LandDetector::_cycle_trampoline(void *arg)
-{
-	LandDetector *dev = reinterpret_cast<LandDetector *>(arg);
-
-	dev->_cycle();
-}
-
-void LandDetector::_cycle()
+void LandDetector::Run()
 {
 	perf_begin(_cycle_perf);
 
@@ -155,13 +149,8 @@ void LandDetector::_cycle()
 
 	perf_end(_cycle_perf);
 
-	if (!should_exit()) {
-
-		// Schedule next cycle.
-		work_queue(HPWORK, &_work, (worker_t)&LandDetector::_cycle_trampoline, this,
-			   USEC2TICK(1_s / LAND_DETECTOR_UPDATE_RATE_HZ));
-
-	} else {
+	if (should_exit()) {
+		ScheduleClear();
 		exit_and_cleanup();
 	}
 }
