@@ -208,7 +208,7 @@ private:
 	 */
 	void		data_link_check(bool &status_changed);
 
-	int		_telemetry_status_sub{-1};
+	uORB::Subscription _telemetry_status_sub{ORB_ID(telemetry_status)};
 
 	hrt_abstime	_datalink_last_heartbeat_gcs{0};
 
@@ -221,12 +221,12 @@ private:
 	bool		_avoidance_system_status_change{false};
 	uint8_t	_datalink_last_status_avoidance_system{telemetry_status_s::MAV_STATE_UNINIT};
 
-	int			_iridiumsbd_status_sub{-1};
+	uORB::Subscription _iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 
 	hrt_abstime	_high_latency_datalink_heartbeat{0};
 	hrt_abstime	_high_latency_datalink_lost{0};
 
-	int _battery_sub{-1};
+	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
 	uint8_t _battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	float _battery_current{0.0f};
 
