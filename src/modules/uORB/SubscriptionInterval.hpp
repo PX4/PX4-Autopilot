@@ -45,11 +45,13 @@
 #include "uORBManager.hpp"
 #include "uORBUtils.hpp"
 
+#include "Subscription.hpp"
+
 namespace uORB
 {
 
 // Base subscription wrapper class
-class Subscription
+class SubscriptionInterval
 {
 public:
 
@@ -57,101 +59,75 @@ public:
 	 * Constructor
 	 *
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
+	 * @param interval The requested maximum update interval in milliseconds.
 	 * @param instance The instance for multi sub.
 	 */
-	Subscription(const orb_metadata *meta, uint8_t instance = 0) : _meta(meta), _instance(instance)
-	{
-		subscribe();
-	}
+	SubscriptionInterval(const orb_metadata *meta, uint16_t interval_ms = 0, uint8_t instance = 0) :
+		_subscription{meta, instance},
+		_interval(interval_ms)
+	{}
 
-	~Subscription()
-	{
-		unsubscribe();
-	}
+	SubscriptionInterval() : _subscription{nullptr} {}
 
-	bool subscribe();
-	void unsubscribe();
+	~SubscriptionInterval() = default;
 
-	bool valid() const { return _node != nullptr; }
-	bool published() { return valid() ? _node->is_published() : init(); }
+	bool subscribe() { return _subscription.subscribe(); }
 
 	/**
 	 * Check if there is a new update.
-	 * @return true only if topic was updated.
 	 * */
-	bool updated() { return published() ? (_node->published_message_count() != _last_generation) : false; }
+	bool updated()
+	{
+		if (hrt_elapsed_time(&_last_update) >= (_interval * 1000)) {
+			return _subscription.updated();
+		}
+
+		return false;
+	}
 
 	/**
 	 * Copy the struct if updated.
 	 * @param dst The destination pointer where the struct will be copied.
 	 * @return true only if topic was updated and copied successfully.
 	 */
-	bool update(void *dst) { return updated() ? copy(dst) : false; }
+	bool update(void *dst)
+	{
+		if (updated()) {
+			return copy(dst);
+		}
 
-	/**
-	 * Check if subscription updated based on timestamp.
-	 *
-	 * @return true only if topic was updated based on a timestamp and
-	 * copied to buffer successfully.
-	 * If topic was not updated since last check it will return false but
-	 * still copy the data.
-	 * If no data available data buffer will be filled with zeros.
-	 */
-	bool update(uint64_t *time, void *dst);
+		return false;
+	}
 
 	/**
 	 * Copy the struct
 	 * @param dst The destination pointer where the struct will be copied.
 	 * @return true only if topic was copied successfully.
 	 */
-	bool copy(void *dst) { return published() ? _node->copy(dst, _last_generation) : false; }
-
-	uint8_t get_instance() const { return _instance; }
-	orb_id_t get_topic() const { return _meta; }
-
-protected:
-
-	bool init();
-
-	DeviceNode		*_node{nullptr};
-	const orb_metadata	*_meta{nullptr};
-
-	/**
-	 * Subscription's latest data generation.
-	 * Also used to track (and rate limit) subscription
-	 * attempts if the topic has not yet been published.
-	 */
-	unsigned		_last_generation{0};
-	uint8_t			_instance{0};
-};
-
-// Subscription wrapper class with data
-template<class T>
-class SubscriptionData : public Subscription
-{
-public:
-	/**
-	 * Constructor
-	 *
-	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
-	 * @param instance The instance for multi sub.
-	 */
-	SubscriptionData(const orb_metadata *meta, uint8_t instance = 0) :
-		Subscription(meta, instance)
+	bool copy(void *dst)
 	{
-		copy(&_data);
+		if (_subscription.copy(dst)) {
+			_last_update = hrt_absolute_time();
+			return true;
+		}
+
+		return false;
 	}
 
-	~SubscriptionData() = default;
+	bool		valid() const { return _subscription.valid(); }
 
-	// update the embedded struct.
-	bool update() { return Subscription::update((void *)(&_data)); }
+	uint8_t		get_instance() const { return _subscription.get_instance(); }
+	orb_id_t	get_topic() const { return _subscription.get_topic(); }
+	uint16_t	get_interval() const { return _interval; }
 
-	const T &get() const { return _data; }
+	void		set_interval(uint16_t interval) { _interval = interval; }
 
 private:
 
-	T _data{};
+	Subscription	_subscription;
+	uint64_t	_last_update{0};	// last update in microseconds
+	uint16_t	_interval{0};		// maximum update interval in milliseconds
+
 };
 
 } // namespace uORB

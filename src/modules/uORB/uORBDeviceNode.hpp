@@ -196,14 +196,6 @@ public:
 	void set_priority(uint8_t priority) { _priority = priority; }
 
 	/**
-	 * Copies the timestamp of the last update atomically.
-	 *
-	 * @return uint64_t
-	 *   Returns the timestamp of the most recent data.
-	 */
-	hrt_abstime last_update();
-
-	/**
 	 * Copies data and the corresponding generation
 	 * from a node to the buffer provided.
 	 *

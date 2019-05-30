@@ -39,13 +39,18 @@
 #include "util.h"
 #include <px4_defines.h>
 #include <drivers/drv_hrt.h>
-#include <uORB/Subscription.hpp>
 #include <version/version.h>
 #include <parameters/param.h>
 #include <systemlib/printload.h>
 #include <px4_module.h>
 
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/log_message.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_status.h>
 
 extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 
@@ -79,27 +84,17 @@ inline bool operator&(SDLogProfileMask a, SDLogProfileMask b)
 	return static_cast<int32_t>(a) & static_cast<int32_t>(b);
 }
 
-struct LoggerSubscription {
-	int fd[ORB_MULTI_MAX_INSTANCES]; ///< uorb subscription. The first fd is also used to store the interval if
-	/// not subscribed yet (-interval - 1)
-	const orb_metadata *metadata = nullptr;
-	uint8_t msg_ids[ORB_MULTI_MAX_INSTANCES];
+static constexpr uint8_t MSG_ID_INVALID = UINT8_MAX;
 
-	LoggerSubscription() {}
+struct LoggerSubscription : public uORB::SubscriptionInterval {
 
-	LoggerSubscription(int fd_, const orb_metadata *metadata_) :
-		metadata(metadata_)
-	{
-		fd[0] = fd_;
+	uint8_t msg_ids{MSG_ID_INVALID};
 
-		for (int i = 1; i < ORB_MULTI_MAX_INSTANCES; i++) {
-			fd[i] = -1;
-		}
+	LoggerSubscription() = default;
 
-		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-			msg_ids[i] = (uint8_t) - 1;
-		}
-	}
+	LoggerSubscription(const orb_metadata *meta, unsigned interval = 0, uint8_t instance = 0) :
+		uORB::SubscriptionInterval(meta, interval, instance)
+	{}
 };
 
 class Logger : public ModuleBase<Logger>
@@ -149,7 +144,8 @@ public:
 	 * @param interval limit rate if >0, otherwise log as fast as the topic is updated.
 	 * @return true on success
 	 */
-	bool add_topic(const char *name, unsigned interval = 0);
+	bool add_topic(const char *name, unsigned interval = 0, uint8_t instance = 0);
+	bool add_topic_multi(const char *name, unsigned interval = 0);
 
 	/**
 	 * add a logged topic (called by add_topic() above).
@@ -157,7 +153,7 @@ public:
 	 * and sets the file descriptor of LoggerSubscription accordingly
 	 * @return the newly added subscription on success, nullptr otherwise
 	 */
-	LoggerSubscription *add_topic(const orb_metadata *topic);
+	LoggerSubscription *add_topic(const orb_metadata *topic, unsigned interval = 0, uint8_t instance = 0);
 
 	/**
 	 * request the logger thread to stop (this method does not block).
@@ -177,7 +173,7 @@ private:
 		Watchdog
 	};
 
-	static constexpr size_t 	MAX_TOPICS_NUM = 64; /**< Maximum number of logged topics */
+	static constexpr size_t 	MAX_TOPICS_NUM = 96; /**< Maximum number of logged topics */
 	static constexpr int		MAX_MISSION_TOPICS_NUM = 5; /**< Maximum number of mission topics */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
 	static constexpr const char	*LOG_ROOT[(int)LogType::Count] = {
@@ -214,7 +210,7 @@ private:
 	 * Write an ADD_LOGGED_MSG to the log for a given subscription and instance.
 	 * _writer.lock() must be held when calling this.
 	 */
-	void write_add_logged_msg(LogType type, LoggerSubscription &subscription, int instance);
+	void write_add_logged_msg(LogType type, LoggerSubscription &subscription);
 
 	/**
 	 * Create logging directory
@@ -297,13 +293,7 @@ private:
 
 	void write_changed_parameters(LogType type);
 
-	inline bool copy_if_updated_multi(int sub_idx, int multi_instance, void *buffer, bool try_to_subscribe);
-
-	/**
-	 * Check if a topic instance exists and subscribe to it
-	 * @return true when topic exists and subscription successful
-	 */
-	bool try_to_subscribe_topic(LoggerSubscription &sub, int multi_instance);
+	bool copy_if_updated(int sub_idx, void *buffer, bool try_to_subscribe);
 
 	/**
 	 * Write exactly one ulog message to the logger and handle dropouts.
@@ -355,9 +345,9 @@ private:
 	 * @param mission_log_type
 	 * @return true if log started
 	 */
-	bool start_stop_logging(int vehicle_status_sub, int manual_control_sp_sub, MissionLogType mission_log_type);
+	bool start_stop_logging(MissionLogType mission_log_type);
 
-	void handle_vehicle_command_update(int vehicle_command_sub, orb_advert_t &vehicle_command_ack_pub);
+	void handle_vehicle_command_update(orb_advert_t &vehicle_command_ack_pub);
 	void ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, vehicle_command_s *cmd, uint32_t result);
 
 	/**
@@ -406,6 +396,12 @@ private:
 	print_load_s					_load{}; ///< process load data
 	hrt_abstime					_next_load_print{0}; ///< timestamp when to print the process load
 	PrintLoadReason					_print_load_reason {PrintLoadReason::Preflight};
+
+	uORB::Subscription				_manual_control_sp_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription				_parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription				_vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription				_vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::SubscriptionInterval			_log_message_sub{ORB_ID(log_message), 20};
 
 	param_t						_sdlog_profile_handle{PARAM_INVALID};
 	param_t						_log_utc_offset{PARAM_INVALID};

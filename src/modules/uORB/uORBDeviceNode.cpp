@@ -218,18 +218,6 @@ uORB::DeviceNode::copy_and_get_timestamp(void *dst, unsigned &generation)
 	return update_time;
 }
 
-hrt_abstime
-uORB::DeviceNode::last_update()
-{
-	ATOMIC_ENTER;
-
-	const hrt_abstime update_time = _last_update;
-
-	ATOMIC_LEAVE;
-
-	return update_time;
-}
-
 ssize_t
 uORB::DeviceNode::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
