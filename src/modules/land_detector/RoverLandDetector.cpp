@@ -46,10 +46,6 @@
 namespace land_detector
 {
 
-void RoverLandDetector::_initialize_topics()
-{
-}
-
 void RoverLandDetector::_update_topics()
 {
 }
