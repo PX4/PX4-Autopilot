@@ -47,8 +47,9 @@
 #include <lib/hysteresis/hysteresis.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
-#include <uORB/uORB.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_land_detected.h>
 
 namespace land_detector
@@ -97,10 +98,6 @@ public:
 	int start();
 
 protected:
-	/**
-	 * Called once to initialize uORB topics.
-	 */
-	virtual void _initialize_topics() = 0;
 
 	/**
 	 * Update uORB topics.
@@ -142,13 +139,6 @@ protected:
 	 */
 	virtual bool _get_ground_effect_state() { return false; }
 
-	/**
-	 * Convenience function for polling uORB subscriptions.
-	 *
-	 * @return true if there was new data and it was successfully copied
-	 */
-	static bool _orb_update(const struct orb_metadata *meta, int handle, void *buffer);
-
 	/** Run main land detector loop at this rate in Hz. */
 	static constexpr uint32_t LAND_DETECTOR_UPDATE_RATE_HZ = 50;
 
@@ -185,9 +175,8 @@ private:
 
 	bool _previous_arming_state{false}; ///< stores the previous _arming.armed state
 
-	int _parameterSub{ -1};
-	int _armingSub{ -1};
+	uORB::Subscription _parameterSub{ORB_ID(parameter_update)};
+	uORB::Subscription _armingSub{ORB_ID(actuator_armed)};
 };
-
 
 } // namespace land_detector
