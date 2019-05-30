@@ -77,6 +77,7 @@ struct Parameters {
 	int32_t rc_map_yaw;
 	int32_t rc_map_throttle;
 	int32_t rc_map_failsafe;
+	int32_t rc_map_reverse;
 
 	int32_t rc_map_mode_sw;
 	int32_t rc_map_return_sw;
@@ -119,6 +120,7 @@ struct Parameters {
 	float rc_gear_th;
 	float rc_stab_th;
 	float rc_man_th;
+	float rc_reverse_th;
 
 	bool rc_assist_inv;
 	bool rc_auto_inv;
@@ -134,6 +136,7 @@ struct Parameters {
 	bool rc_gear_inv;
 	bool rc_stab_inv;
 	bool rc_man_inv;
+	bool rc_reverse_inv;
 
 	float rc_flt_smp_rate;
 	float rc_flt_cutoff;
@@ -170,6 +173,7 @@ struct ParameterHandles {
 	param_t rc_map_yaw;
 	param_t rc_map_throttle;
 	param_t rc_map_failsafe;
+	param_t rc_map_reverse;
 
 	param_t rc_map_mode_sw;
 	param_t rc_map_return_sw;
@@ -216,6 +220,7 @@ struct ParameterHandles {
 	param_t rc_gear_th;
 	param_t rc_stab_th;
 	param_t rc_man_th;
+	param_t rc_reverse_th;
 
 	param_t rc_flt_smp_rate;
 	param_t rc_flt_cutoff;

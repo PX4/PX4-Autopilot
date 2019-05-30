@@ -319,6 +319,10 @@ GroundRoverAttitudeControl::task_main()
 				_actuators.control[actuator_controls_s::INDEX_PITCH] = -_manual.x;
 				_actuators.control[actuator_controls_s::INDEX_YAW] = _manual.r * _parameters.man_yaw_scale + _parameters.trim_yaw;
 				_actuators.control[actuator_controls_s::INDEX_THROTTLE] = _manual.z;
+
+				if (_manual.reverse_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
+					_actuators.control[actuator_controls_s::INDEX_THROTTLE] = -_manual.z;
+				}
 			}
 
 			/* lazily publish the setpoint only once available */

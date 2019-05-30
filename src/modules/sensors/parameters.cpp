@@ -77,6 +77,8 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.rc_map_throttle = param_find("RC_MAP_THROTTLE");
 	parameter_handles.rc_map_failsafe = param_find("RC_MAP_FAILSAFE");
 
+	parameter_handles.rc_map_reverse = param_find("RC_MAP_REVERSE");
+
 	/* mandatory mode switches, mapped to channel 5 and 6 per default */
 	parameter_handles.rc_map_mode_sw = param_find("RC_MAP_MODE_SW");
 	parameter_handles.rc_map_return_sw = param_find("RC_MAP_RETURN_SW");
@@ -129,6 +131,7 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.rc_gear_th = param_find("RC_GEAR_TH");
 	parameter_handles.rc_stab_th = param_find("RC_STAB_TH");
 	parameter_handles.rc_man_th = param_find("RC_MAN_TH");
+	parameter_handles.rc_reverse_th = param_find("RC_REVERSE_TH");
 
 	/* RC low pass filter configuration */
 	parameter_handles.rc_flt_smp_rate = param_find("RC_FLT_SMP_RATE");
@@ -254,6 +257,10 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 		PX4_WARN("%s", paramerr);
 	}
 
+	if (param_get(parameter_handles.rc_map_reverse, &(parameters.rc_map_reverse)) != OK) {
+		PX4_WARN("%s", paramerr);
+	}
+
 	if (param_get(parameter_handles.rc_map_mode_sw, &(parameters.rc_map_mode_sw)) != OK) {
 		PX4_WARN("%s", paramerr);
 	}
@@ -366,6 +373,10 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	param_get(parameter_handles.rc_man_th, &(parameters.rc_man_th));
 	parameters.rc_man_inv = (parameters.rc_man_th < 0);
 	parameters.rc_man_th = fabsf(parameters.rc_man_th);
+
+	param_get(parameter_handles.rc_reverse_th, &(parameters.rc_reverse_th));
+	parameters.rc_reverse_inv = (parameters.rc_reverse_th < 0);
+	parameters.rc_reverse_th = fabsf(parameters.rc_reverse_th);
 
 	param_get(parameter_handles.rc_flt_smp_rate, &(parameters.rc_flt_smp_rate));
 	parameters.rc_flt_smp_rate = math::max(1.0f, parameters.rc_flt_smp_rate);
