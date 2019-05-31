@@ -2,50 +2,17 @@
 #define BMI160_HPP_
 
 #include <px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-
 #include <perf/perf_counter.h>
-#include <systemlib/err.h>
 #include <systemlib/conversions.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/clock.h>
-
-#include <board_config.h>
 #include <drivers/drv_hrt.h>
-
 #include <drivers/device/spi.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/drv_mag.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 
 #define DIR_READ                0x80
 #define DIR_WRITE               0x00
-
-#define BMI160_DEVICE_PATH_ACCEL    "/dev/bmi160_accel"
-#define BMI160_DEVICE_PATH_GYRO		"/dev/bmi160_gyro"
-#define BMI160_DEVICE_PATH_MAG		"/dev/bmi160_mag"
-#define BMI160_DEVICE_PATH_ACCEL_EXT    "/dev/bmi160_accel_ext"
-#define BMI160_DEVICE_PATH_GYRO_EXT		"/dev/bmi160_gyro_ext"
-#define BMI160_DEVICE_PATH_MAG_EXT	"/dev/bmi160_mag_ext"
 
 // BMI 160 registers
 
@@ -242,18 +209,15 @@
 
 #define BMI160_TIMER_REDUCTION				200
 
-class BMI160_gyro;
+using namespace time_literals;
 
 class BMI160 : public device::SPI, public px4::ScheduledWorkItem
 {
 public:
-	BMI160(int bus, const char *path_accel, const char *path_gyro, uint32_t device, enum Rotation rotation);
+	BMI160(int bus, uint32_t device, enum Rotation rotation);
 	virtual ~BMI160();
 
 	virtual int		init();
-
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -268,36 +232,18 @@ public:
 protected:
 	virtual int		probe();
 
-	friend class BMI160_gyro;
-
-	virtual ssize_t		gyro_read(struct file *filp, char *buffer, size_t buflen);
-	virtual int		gyro_ioctl(struct file *filp, int cmd, unsigned long arg);
-
 private:
-	BMI160_gyro		*_gyro;
+
+	PX4Accelerometer	_px4_accel;
+	PX4Gyroscope		_px4_gyro;
+
 	uint8_t			_whoami;	/** whoami result */
-
-	unsigned		_call_interval;
-
-	ringbuffer::RingBuffer	*_accel_reports;
-
-	struct accel_calibration_s	_accel_scale;
-	float			_accel_range_scale;
-	float			_accel_range_m_s2;
-	orb_advert_t		_accel_topic;
-	int			_accel_orb_class_instance;
-	int			_accel_class_instance;
-
-	ringbuffer::RingBuffer	*_gyro_reports;
-
-	struct gyro_calibration_s	_gyro_scale;
-	float			_gyro_range_scale;
-	float			_gyro_range_rad_s;
 
 	unsigned		_dlpf_freq;
 
-	float		_accel_sample_rate;
-	float		_gyro_sample_rate;
+	float			_accel_sample_rate{BMI160_ACCEL_DEFAULT_RATE};
+	float			_gyro_sample_rate{BMI160_GYRO_DEFAULT_RATE};
+
 	perf_counter_t		_accel_reads;
 	perf_counter_t		_gyro_reads;
 	perf_counter_t		_sample_perf;
@@ -307,36 +253,21 @@ private:
 	perf_counter_t		_reset_retries;
 	perf_counter_t		_duplicates;
 
-	uint8_t			_register_wait;
-	uint64_t		_reset_wait;
-
-	math::LowPassFilter2p	_accel_filter_x;
-	math::LowPassFilter2p	_accel_filter_y;
-	math::LowPassFilter2p	_accel_filter_z;
-	math::LowPassFilter2p	_gyro_filter_x;
-	math::LowPassFilter2p	_gyro_filter_y;
-	math::LowPassFilter2p	_gyro_filter_z;
-
-	Integrator		_accel_int;
-	Integrator		_gyro_int;
-
-	enum Rotation		_rotation;
+	uint8_t			_register_wait{0};
+	uint64_t		_reset_wait{0};
 
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
-#define BMI160_NUM_CHECKED_REGISTERS 10
+	static constexpr int BMI160_NUM_CHECKED_REGISTERS{10};
 	static const uint8_t	_checked_registers[BMI160_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_values[BMI160_NUM_CHECKED_REGISTERS];
 	uint8_t			_checked_bad[BMI160_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_next;
-
-	// last temperature reading for print_info()
-	float			_last_temperature;
+	uint8_t			_checked_next{0};
 
 	// keep last accel reading for duplicate detection
-	uint16_t		_last_accel[3];
-	bool			_got_duplicate;
+	uint16_t		_last_accel[3] {};
+	bool			_got_duplicate{false};
 
 	/**
 	 * Start automatic measurement.
@@ -412,13 +343,6 @@ private:
 	 * Swap a 16-bit value read from the BMI160 to native byte order.
 	 */
 	uint16_t		swap16(uint16_t val) { return (val >> 8) | (val << 8);	}
-
-	/**
-	 * Measurement self test
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int 			self_test();
 
 	/*
 	  set low pass filter frequency
