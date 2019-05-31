@@ -50,6 +50,7 @@
 #include <perf/perf_counter.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <drivers/drv_hrt.h>
 
 
 class UavcanEscController
@@ -78,6 +79,11 @@ private:
 	 */
 	void orb_pub_timer_cb(const uavcan::TimerEvent &event);
 
+	/**
+	 * Checks all the ESCs freshness based on timestamp, if an ESC exceeds the timeout then is flagged offline.
+	 */
+	uint8_t check_escs_status();
+
 
 	static constexpr unsigned MAX_RATE_HZ = 200;			///< XXX make this configurable
 	static constexpr unsigned ESC_STATUS_UPDATE_RATE_HZ = 10;
@@ -95,6 +101,7 @@ private:
 	esc_status_s	_esc_status = {};
 	orb_advert_t	_esc_status_pub = nullptr;
 	orb_advert_t _actuator_outputs_pub = nullptr;
+	hrt_abstime _last_received_msg[esc_status_s::CONNECTED_ESC_MAX] {0};
 
 	/*
 	 * libuavcan related things
