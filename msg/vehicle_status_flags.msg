@@ -36,3 +36,5 @@ bool usb_connected                                # status of the USB power supp
 
 bool avoidance_system_required					  # Set to true if avoidance system is enabled via COM_OBS_AVOID parameter
 bool avoidance_system_valid                       # Status of the obstacle avoidance system
+
+uint8 number_of_actuators       # Number of active actuators
