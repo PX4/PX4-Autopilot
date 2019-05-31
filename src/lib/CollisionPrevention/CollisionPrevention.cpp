@@ -128,24 +128,32 @@ void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle_di
 		    (distance_sensor.current_distance > distance_sensor.min_distance) &&
 		    (distance_sensor.current_distance < distance_sensor.max_distance)) {
 
-			if (obstacle_distance.increment > 0) {
-				// obstacle distance has already data from offboard
+			if (obstacle_distance.increment_f > 0.f) {
 				obstacle_distance.timestamp = math::min(obstacle_distance.timestamp, distance_sensor.timestamp);
 				obstacle_distance.max_distance = math::max((int)obstacle_distance.max_distance,
 								 (int)distance_sensor.max_distance * 100);
 				obstacle_distance.min_distance = math::min((int)obstacle_distance.min_distance,
 								 (int)distance_sensor.min_distance * 100);
 
+			} else if (obstacle_distance.increment > 0) {
+				// obstacle distance has already data from offboard
+				obstacle_distance.timestamp = math::min(obstacle_distance.timestamp, distance_sensor.timestamp);
+				obstacle_distance.max_distance = math::max((int)obstacle_distance.max_distance,
+								 (int)distance_sensor.max_distance * 100);
+				obstacle_distance.min_distance = math::min((int)obstacle_distance.min_distance,
+								 (int)distance_sensor.min_distance * 100);
+				obstacle_distance.increment_f = (float)obstacle_distance.increment;
+
 			} else {
 				obstacle_distance.timestamp = distance_sensor.timestamp;
 				obstacle_distance.max_distance = distance_sensor.max_distance * 100; // convert to cm
 				obstacle_distance.min_distance = distance_sensor.min_distance * 100; // convert to cm
-				obstacle_distance.increment = 5; // smaller increment possible to lower fov discretization error
 				memset(&obstacle_distance.distances[0], UINT16_MAX, sizeof(obstacle_distance.distances));
+				obstacle_distance.increment_f = math::degrees(distance_sensor.h_fov);
 			}
 
-			// init offset for sensor orientation distance_sensor_s::ROTATION_FORWARD_FACING
-			float offset = 0.0f;
+			// init offset for sensor orientation distance_sensor_s::ROTATION_FORWARD_FACING or with offset coming from the companion
+			float offset = obstacle_distance.angle_offset > 0.f ? math::radians(obstacle_distance.angle_offset) : 0.0f;
 
 			switch (distance_sensor.orientation) {
 			case distance_sensor_s::ROTATION_RIGHT_FACING:
@@ -175,17 +183,23 @@ void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle_di
 			}
 
 			// calculate the field of view boundary bin indices
-			const int lower_bound = (int)floor(sensor_orientation - (math::degrees(distance_sensor.h_fov / 2.0f))) /
-						(float)obstacle_distance.increment;
-			const int upper_bound = (int)floor(sensor_orientation + (math::degrees(distance_sensor.h_fov / 2.0f))) /
-						(float)obstacle_distance.increment;
+			int lower_bound = (int)floor((sensor_orientation - math::degrees(distance_sensor.h_fov / 2.0f)) /
+						     obstacle_distance.increment_f);
+			int upper_bound = (int)floor((sensor_orientation + math::degrees(distance_sensor.h_fov / 2.0f)) /
+						     obstacle_distance.increment_f);
+
+			if (lower_bound > 71 || upper_bound > 71) {
+				obstacle_distance.angle_offset = sensor_orientation;
+				upper_bound -= lower_bound;
+				lower_bound  = 0;
+			}
 
 			for (int bin = lower_bound; bin <= upper_bound; ++bin) {
 				int wrap_bin = bin;
 
 				if (wrap_bin < 0) {
 					// wrap bin index around the array
-					wrap_bin = (360 / obstacle_distance.increment) + bin;
+					wrap_bin = (int)floor(360.f / obstacle_distance.increment_f) + bin;
 				}
 
 				// compensate measurement for vehicle tilt and convert to cm
@@ -213,9 +227,13 @@ void CollisionPrevention::_updateRangeConstraints()
 		for (int i = 0; i < distances_array_size; i++) {
 			//determine if distance bin is valid and contains a valid distance measurement
 			if (distance_data.distances[i] < distance_data.max_distance &&
-			    distance_data.distances[i] > distance_data.min_distance && i * distance_data.increment < 360) {
+			    distance_data.distances[i] > distance_data.min_distance && i * distance_data.increment_f < 360.f) {
 				float distance = distance_data.distances[i] / 100.0f; //convert to meters
-				float angle = math::radians((float)i * distance_data.increment);
+				float angle = math::radians((float)i * distance_data.increment_f);
+
+				if (distance_data.angle_offset > 0.f) {
+					angle += math::radians(distance_data.angle_offset);
+				}
 
 				//calculate normalized velocity reductions
 				float vel_lim_x = (max_detection_distance - distance) / (max_detection_distance - _param_mpc_col_prev_d.get()) * cos(
