@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#pragma once
 
 #include <drivers/device/integrator.h>
 #include <drivers/drv_accel.h>
