@@ -404,7 +404,7 @@ Sensors::adc_poll()
 		 * Selection is done in HW ala a LTC4417 or similar, or may be hard coded
 		 * Like in the FMUv4
 		 */
-
+#if !defined(BOARD_NUMBER_DIGITAL_BRICKS)
 		/* The ADC channels that  are associated with each brick, in power controller
 		 * priority order highest to lowest, as defined by the board config.
 		 */
@@ -414,6 +414,8 @@ Sensors::adc_poll()
 		if (_parameters.battery_adc_channel >= 0) {  // overwrite default
 			bat_voltage_v_chan[0] = _parameters.battery_adc_channel;
 		}
+
+#endif
 
 		/* The valid signals (HW dependent) are associated with each brick */
 		bool  valid_chan[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
@@ -479,7 +481,7 @@ Sensors::adc_poll()
 							 */
 							selected_source = b;
 
-#if BOARD_NUMBER_BRICKS > 1
+#  if BOARD_NUMBER_BRICKS > 1
 
 							/* Move the selected_source to instance 0 */
 							if (_battery_pub_intance0ndx != selected_source) {
@@ -490,8 +492,10 @@ Sensors::adc_poll()
 								_battery_pub_intance0ndx = selected_source;
 							}
 
-#endif /* BOARD_NUMBER_BRICKS > 1 */
+#  endif /* BOARD_NUMBER_BRICKS > 1 */
 						}
+
+#  if  !defined(BOARD_NUMBER_DIGITAL_BRICKS)
 
 						// todo:per brick scaling
 						/* look for specific channels and process the raw voltage to measurement data */
@@ -503,6 +507,8 @@ Sensors::adc_poll()
 							bat_current_a[b] = ((buf_adc[i].am_data * _parameters.battery_current_scaling)
 									    - _parameters.battery_current_offset) * _parameters.battery_a_per_v;
 						}
+
+#  endif /* !defined(BOARD_NUMBER_DIGITAL_BRICKS) */
 					}
 
 #endif /* BOARD_NUMBER_BRICKS > 0 */

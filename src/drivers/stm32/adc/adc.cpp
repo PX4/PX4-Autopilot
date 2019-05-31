@@ -440,13 +440,15 @@ ADC::update_system_power(hrt_abstime now)
 #endif
 
 	/* The valid signals (HW dependent) are associated with each brick */
-
+#if !defined(BOARD_NUMBER_DIGITAL_BRICKS)
 	bool  valid_chan[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
 	system_power.brick_valid = 0;
 
 	for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 		system_power.brick_valid |=  valid_chan[b] ? 1 << b : 0;
 	}
+
+#endif
 
 	system_power.servo_valid   = BOARD_ADC_SERVO_VALID;
 
