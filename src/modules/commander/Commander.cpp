@@ -96,6 +96,7 @@
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vtol_vehicle_status.h>
+#include <uORB/topics/esc_status.h>
 
 typedef enum VEHICLE_MODE_FLAG {
 	VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED = 1, /* 0b00000001 Reserved for future use. | */
@@ -150,6 +151,7 @@ static uint8_t _last_sp_man_arm_switch = 0;
 
 static struct vtol_vehicle_status_s vtol_status = {};
 static struct cpuload_s cpuload = {};
+static struct esc_status_s esc_status = {};
 
 static bool last_overload = false;
 
@@ -372,7 +374,7 @@ int commander_main(int argc, char *argv[])
 		bool preflight_check_res = Commander::preflight_check(true);
 		PX4_INFO("Preflight check: %s", preflight_check_res ? "OK" : "FAILED");
 
-		bool prearm_check_res = prearm_check(&mavlink_log_pub, status_flags, safety, arm_requirements);
+		bool prearm_check_res = prearm_check(&mavlink_log_pub, status_flags, safety, arm_requirements, esc_status);
 		PX4_INFO("Prearm check: %s", prearm_check_res ? "OK" : "FAILED");
 
 		return 0;
@@ -534,7 +536,7 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 					     mavlink_log_pub_local,
 					     &status_flags,
 					     arm_requirements,
-					     hrt_elapsed_time(&commander_boot_timestamp));
+					     hrt_elapsed_time(&commander_boot_timestamp), esc_status);
 
 	if (arming_res == TRANSITION_CHANGED) {
 		mavlink_log_info(mavlink_log_pub_local, "%s by %s", arm ? "ARMED" : "DISARMED", armedBy);
@@ -1189,7 +1191,12 @@ Commander::run()
 	/* failsafe response to loss of navigation accuracy */
 	param_t _param_posctl_nav_loss_act = param_find("COM_POSCTL_NAVL");
 
+	param_t com_act_count_handle = param_find("COM_ACT_COUNT");
+	int8_t  com_act_count = -1;
+	param_get(com_act_count_handle, &com_act_count);
+
 	status_flags.avoidance_system_required = _param_com_obs_avoid.get();
+	status_flags.number_of_actuators = com_act_count;
 
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
@@ -1217,6 +1224,7 @@ Commander::run()
 	if (board_register_power_state_notification_cb(power_button_state_notification_cb) != 0) {
 		PX4_ERR("Failed to register power notification callback");
 	}
+
 
 	get_circuit_breaker_params();
 
@@ -1250,6 +1258,7 @@ Commander::run()
 	uORB::Subscription subsys_sub{ORB_ID(subsystem_info)};
 	uORB::Subscription system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
+	uORB::Subscription esc_status_sub{ORB_ID(esc_status)};
 
 	geofence_result_s geofence_result {};
 
@@ -1519,7 +1528,7 @@ Commander::run()
 
 					if (TRANSITION_CHANGED == arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY,
 							&armed, true /* fRunPreArmChecks */, &mavlink_log_pub,
-							&status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp))
+							&status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp), esc_status)
 					   ) {
 						status_changed = true;
 					}
@@ -1583,6 +1592,14 @@ Commander::run()
 					status_changed = true;
 				}
 			}
+		}
+
+		/* update ESCs status*/
+		orb_check(esc_status_sub, &updated);
+
+		if (updated) {
+			/* ESCs status changed */
+			orb_copy(ORB_ID(esc_status), esc_status_sub, &esc_status);
 		}
 
 		estimator_check(&status_changed);
@@ -1689,7 +1706,7 @@ Commander::run()
 
 			arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
 							     true /* fRunPreArmChecks */, &mavlink_log_pub, &status_flags,
-							     arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
+							     arm_requirements, hrt_elapsed_time(&commander_boot_timestamp), esc_status);
 
 			if (arming_ret == TRANSITION_DENIED) {
 				/* do not complain if not allowed into standby */
@@ -1939,7 +1956,7 @@ Commander::run()
 				} else if ((stick_off_counter == rc_arm_hyst && stick_on_counter < rc_arm_hyst) || arm_switch_to_disarm_transition) {
 					arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
 									     true /* fRunPreArmChecks */,
-									     &mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
+									     &mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp), esc_status);
 				}
 
 				stick_off_counter++;
@@ -1989,7 +2006,7 @@ Commander::run()
 					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 						arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_ARMED, &armed,
 										     !in_arming_grace_period /* fRunPreArmChecks */,
-										     &mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
+										     &mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp), esc_status);
 
 						if (arming_ret != TRANSITION_CHANGED) {
 							px4_usleep(100000);
@@ -3386,7 +3403,7 @@ void *commander_low_prio_loop(void *arg)
 					/* try to go to INIT/PREFLIGHT arming state */
 					if (TRANSITION_DENIED == arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_INIT, &armed,
 							false /* fRunPreArmChecks */, &mavlink_log_pub, &status_flags,
-							arm_requirements, hrt_elapsed_time(&commander_boot_timestamp))) {
+							arm_requirements, hrt_elapsed_time(&commander_boot_timestamp), esc_status)) {
 
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
 						break;
@@ -3474,7 +3491,7 @@ void *commander_low_prio_loop(void *arg)
 
 						arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
 									false /* fRunPreArmChecks */,
-									&mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
+									&mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp), esc_status);
 
 					} else {
 						tune_negative(true);
