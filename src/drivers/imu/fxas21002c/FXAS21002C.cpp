@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,20 +31,12 @@
  *
  ****************************************************************************/
 
-/**
- * @file fxas21002c.cpp
- * Driver for the NXP FXAS21002C 3-Axis Digital Angular Rate Gyroscope
- * connected via SPI
- */
+#include "FXAS21002C.hpp"
 
-#include <drivers/device/spi.h>
 #include <drivers/drv_hrt.h>
-#include <lib/conversion/rotation.h>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-#include <perf/perf_counter.h>
 #include <px4_config.h>
 #include <px4_defines.h>
-#include <px4_getopt.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
 
 /* SPI protocol address bits */
@@ -188,168 +180,20 @@
  */
 #define FXAS21002C_TIMER_REDUCTION				250
 
-using namespace time_literals;
-
-extern "C" { __EXPORT int fxas21002c_main(int argc, char *argv[]); }
-
-class FXAS21002C : public device::SPI, public px4::ScheduledWorkItem
-{
-public:
-	FXAS21002C(int bus, uint32_t device, enum Rotation rotation);
-	virtual ~FXAS21002C();
-
-	virtual int init();
-
-	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
-	void print_info();
-
-	/**
-	 * dump register values
-	 */
-	void print_registers();
-
-	/**
-	 * deliberately trigger an error
-	 */
-	void test_error();
-
-protected:
-	virtual int probe();
-
-private:
-
-	PX4Gyroscope _px4_gyro;
-
-	unsigned _current_rate{800};
-
-	unsigned _read{0};
-
-	perf_counter_t _sample_perf;
-	perf_counter_t _errors;
-	perf_counter_t _bad_registers;
-	perf_counter_t _duplicates;
-
-	uint8_t _register_wait{0};
-
-	/* this is used to support runtime checking of key
-	 *configuration registers to detect SPI bus errors and sensor
-	 * reset
-	 */
-	static constexpr int FXAS21002C_NUM_CHECKED_REGISTERS{6};
-	static constexpr uint8_t _checked_registers[FXAS21002C_NUM_CHECKED_REGISTERS] {
-		FXAS21002C_WHO_AM_I,
-		FXAS21002C_F_SETUP,
-		FXAS21002C_CTRL_REG0,
-		FXAS21002C_CTRL_REG1,
-		FXAS21002C_CTRL_REG2,
-		FXAS21002C_CTRL_REG3,
-	};
-
-	uint8_t _checked_values[FXAS21002C_NUM_CHECKED_REGISTERS] {};
-	uint8_t _checked_next{0};
-
-	/**
-	 * Start automatic measurement.
-	 */
-	void start();
-
-	/**
-	 * Stop automatic measurement.
-	 */
-	void stop();
-
-	/**
-	 * Reset chip.
-	 *
-	 * Resets the chip and measurements ranges, but not scale and offset.
-	 */
-	void reset();
-
-	/**
-	 * Put the chip In stand by
-	 */
-	void set_standby(int rate, bool standby_true);
-
-	void Run() override;
-
-	/**
-	 * check key registers for correct values
-	 */
-	void check_registers(void);
-
-	/**
-	 * Fetch accel measurements from the sensor and update the report ring.
-	 */
-	void measure();
-
-	/**
-	 * Read a register from the FXAS21002C
-	 *
-	 * @param		The register to read.
-	 * @return		The value that was read.
-	 */
-	uint8_t read_reg(unsigned reg);
-
-	/**
-	 * Write a register in the FXAS21002C
-	 *
-	 * @param reg		The register to write.
-	 * @param value		The new value to write.
-	 */
-	void write_reg(unsigned reg, uint8_t value);
-
-	/**
-	 * Modify a register in the FXAS21002C
-	 *
-	 * Bits are cleared before bits are set.
-	 *
-	 * @param reg		The register to modify.
-	 * @param clearbits	Bits in the register to clear.
-	 * @param setbits	Bits in the register to set.
-	 */
-	void modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits);
-
-	/**
-	 * Write a register in the FXAS21002C, updating _checked_values
-	 *
-	 * @param reg		The register to write.
-	 * @param value		The new value to write.
-	 */
-	void write_checked_reg(unsigned reg, uint8_t value);
-
-	/**
-	 * Set the FXAS21002C measurement range.
-	 *
-	 * @param max_dps	The measurement range is set to permit reading at least
-	 *			this rate in degrees per second.
-	 *			Zero selects the maximum supported range.
-	 * @return		OK if the value can be supported, -ERANGE otherwise.
-	 */
-	int set_range(unsigned max_dps);
-
-	/**
-	 * Set the FXAS21002C internal sampling frequency.
-	 *
-	 * @param frequency	The internal sampling frequency is set to not less than
-	 *			this value.
-	 *			Zero selects the maximum rate supported.
-	 * @return		OK if the value can be supported.
-	 */
-	int set_samplerate(unsigned frequency);
-
-	/*
-	  set onchip low pass filter frequency
-	 */
-	void set_onchip_lowpass_filter(int frequency_hz);
-};
-
 /*
   list of registers that will be checked in check_registers(). Note
   that ADDR_WHO_AM_I must be first in the list.
  */
-constexpr uint8_t FXAS21002C::_checked_registers[];
+static constexpr uint8_t _checked_registers[] {
+	FXAS21002C_WHO_AM_I,
+	FXAS21002C_F_SETUP,
+	FXAS21002C_CTRL_REG0,
+	FXAS21002C_CTRL_REG1,
+	FXAS21002C_CTRL_REG2,
+	FXAS21002C_CTRL_REG3,
+};
+
+using namespace time_literals;
 
 FXAS21002C::FXAS21002C(int bus, uint32_t device, enum Rotation rotation) :
 	SPI("FXAS21002C", nullptr, bus, device, SPIDEV_MODE0, 2 * 1000 * 1000),
@@ -703,8 +547,6 @@ FXAS21002C::measure()
 	} raw_gyro_report{};
 #pragma pack(pop)
 
-	sensor_gyro_s gyro_report;
-
 	/* start the performance counter */
 	perf_begin(_sample_perf);
 
@@ -746,11 +588,11 @@ FXAS21002C::measure()
 	// whether it has had failures
 	_px4_gyro.set_error_count(perf_event_count(_bad_registers));
 
-	gyro_report.x_raw = swap16(raw_gyro_report.x);
-	gyro_report.y_raw = swap16(raw_gyro_report.y);
-	gyro_report.z_raw = swap16(raw_gyro_report.z);
+	int16_t x_raw = swap16(raw_gyro_report.x);
+	int16_t y_raw = swap16(raw_gyro_report.y);
+	int16_t z_raw = swap16(raw_gyro_report.z);
 
-	_px4_gyro.update(timestamp_sample, gyro_report.x_raw, gyro_report.y_raw, gyro_report.z_raw);
+	_px4_gyro.update(timestamp_sample, x_raw, y_raw, z_raw);
 
 	_read++;
 
@@ -823,187 +665,4 @@ FXAS21002C::test_error()
 {
 	// trigger an error
 	write_reg(FXAS21002C_CTRL_REG1, 0);
-}
-
-/**
- * Local functions in support of the shell command.
- */
-namespace fxas21002c
-{
-
-FXAS21002C	*g_dev;
-
-void	start(bool external_bus, enum Rotation rotation);
-void	info();
-void	regdump();
-void	usage();
-void	test_error();
-
-/**
- * Start the driver.
- *
- * This function call only returns once the driver is
- * up and running or failed to detect the sensor.
- */
-void
-start(bool external_bus, enum Rotation rotation)
-{
-	if (g_dev != nullptr) {
-		PX4_INFO("already started");
-		exit(0);
-	}
-
-	/* create the driver */
-	if (external_bus) {
-#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_GYRO)
-		g_dev = new FXAS21002C(PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_GYRO, rotation);
-#else
-		PX4_ERR("External SPI not available");
-		exit(0);
-#endif
-
-	} else {
-		g_dev = new FXAS21002C(PX4_SPI_BUS_SENSORS, PX4_SPIDEV_GYRO, rotation);
-	}
-
-	if (g_dev == nullptr) {
-		PX4_ERR("failed instantiating FXAS21002C obj");
-		goto fail;
-	}
-
-	if (OK != g_dev->init()) {
-		goto fail;
-	}
-
-	exit(0);
-fail:
-
-	if (g_dev != nullptr) {
-		delete g_dev;
-		g_dev = nullptr;
-	}
-
-	errx(1, "driver start failed");
-}
-
-/**
- * Print a little info about the driver.
- */
-void
-info()
-{
-	if (g_dev == nullptr) {
-		PX4_ERR("driver not running\n");
-		exit(1);
-	}
-
-	printf("state @ %p\n", g_dev);
-	g_dev->print_info();
-
-	exit(0);
-}
-
-/**
- * dump registers from device
- */
-void
-regdump()
-{
-	if (g_dev == nullptr) {
-		PX4_ERR("driver not running\n");
-		exit(1);
-	}
-
-	printf("regdump @ %p\n", g_dev);
-	g_dev->print_registers();
-
-	exit(0);
-}
-
-/**
- * trigger an error
- */
-void
-test_error()
-{
-	if (g_dev == nullptr) {
-		PX4_ERR("driver not running\n");
-		exit(1);
-	}
-
-	g_dev->test_error();
-
-	exit(0);
-}
-
-void
-usage()
-{
-	PX4_INFO("missing command: try 'start', 'info', 'testerror' or 'regdump'");
-	PX4_INFO("options:");
-	PX4_INFO("    -X    (external bus)");
-	PX4_INFO("    -R rotation");
-}
-
-} // namespace
-
-int
-fxas21002c_main(int argc, char *argv[])
-{
-	bool external_bus = false;
-	enum Rotation rotation = ROTATION_NONE;
-
-	int ch = 0;
-	int myoptind = 1;
-	const char *myoptarg = NULL;
-
-	while ((ch = px4_getopt(argc, argv, "XR:", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'X':
-			external_bus = true;
-			break;
-
-		case 'R':
-			rotation = (enum Rotation)atoi(myoptarg);
-			break;
-
-		default:
-			fxas21002c::usage();
-			return 0;
-		}
-	}
-
-	const char *verb = argv[myoptind];
-
-	/*
-	 * Start/load the driver.
-
-	 */
-	if (!strcmp(verb, "start")) {
-		fxas21002c::start(external_bus, rotation);
-	}
-
-	/*
-	 * Print driver information.
-	 */
-	if (!strcmp(verb, "info")) {
-		fxas21002c::info();
-	}
-
-	/*
-	 * dump device registers
-	 */
-	if (!strcmp(verb, "regdump")) {
-		fxas21002c::regdump();
-	}
-
-	/*
-	 * trigger an error
-	 */
-	if (!strcmp(verb, "testerror")) {
-		fxas21002c::test_error();
-	}
-
-	PX4_WARN("unrecognized command, try 'start', 'info', 'testerror' or 'regdump'");
-	return -1;
 }
