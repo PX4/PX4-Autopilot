@@ -98,6 +98,12 @@ void PX4Gyroscope::set_device_type(uint8_t devtype)
 	_sensor_gyro_pub.get().device_id = device_id.devid;
 }
 
+void PX4Gyroscope::set_sample_rate(unsigned rate)
+{
+	_sample_rate = rate;
+	_filter.set_cutoff_frequency(_sample_rate, _filter.get_cutoff_freq());
+}
+
 void PX4Gyroscope::update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z)
 {
 	sensor_gyro_s &report = _sensor_gyro_pub.get();

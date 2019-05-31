@@ -220,51 +220,53 @@ static void fill_rc_input_msg(input_rc_s *rc, mavlink_rc_channels_t *rc_channels
 	rc->values[17] = rc_channels->chan18_raw;
 }
 
-void Simulator::update_sensors(const mavlink_hil_sensor_t *imu)
+void Simulator::update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &imu)
 {
-	// write sensor data to memory so that drivers can copy data from there
-	RawMPUData mpu = {};
-	mpu.accel_x = imu->xacc;
-	mpu.accel_y = imu->yacc;
-	mpu.accel_z = imu->zacc;
-	mpu.temp = imu->temperature;
-	mpu.gyro_x = imu->xgyro;
-	mpu.gyro_y = imu->ygyro;
-	mpu.gyro_z = imu->zgyro;
+	if ((imu.fields_updated & 0x1FFF) != 0x1FFF) {
+		PX4_DEBUG("All sensor fields in mavlink HIL_SENSOR packet not updated.  Got %08x", imu.fields_updated);
+	}
 
-	write_MPU_data(&mpu);
-	perf_begin(_perf_mpu);
+	// gyro
+	{
+		static constexpr float scaling = 1000.0f;
+		_px4_gyro.set_scale(1 / scaling);
+		_px4_gyro.set_temperature(imu.temperature);
+		_px4_gyro.update(time, imu.xgyro * scaling, imu.ygyro * scaling, imu.zgyro * scaling);
+	}
 
-	RawAccelData accel = {};
-	accel.x = imu->xacc;
-	accel.y = imu->yacc;
-	accel.z = imu->zacc;
+	// accel
+	{
+		static constexpr float scaling = 1000.0f;
+		_px4_accel.set_scale(1 / scaling);
+		_px4_accel.set_temperature(imu.temperature);
+		_px4_accel.update(time, imu.xacc * scaling, imu.yacc * scaling, imu.zacc * scaling);
+	}
 
-	write_accel_data(&accel);
-	perf_begin(_perf_accel);
+	// magnetometer
+	{
+		static constexpr float scaling = 1000.0f;
+		_px4_mag.set_scale(1 / scaling);
+		_px4_mag.set_temperature(imu.temperature);
+		_px4_mag.update(time, imu.xmag * scaling, imu.ymag * scaling, imu.zmag * scaling);
+	}
 
-	RawMagData mag = {};
-	mag.x = imu->xmag;
-	mag.y = imu->ymag;
-	mag.z = imu->zmag;
+	// baro
+	{
+		_px4_baro.set_temperature(imu.temperature);
+		_px4_baro.update(time, imu.abs_pressure);
+	}
 
-	write_mag_data(&mag);
-	perf_begin(_perf_mag);
+	// differential pressure
+	{
+		differential_pressure_s report{};
+		report.timestamp = time;
+		report.temperature = imu.temperature;
+		report.differential_pressure_filtered_pa = imu.diff_pressure * 100.0f; // convert from millibar to bar;
+		report.differential_pressure_raw_pa = imu.diff_pressure * 100.0f; // convert from millibar to bar;
 
-	RawBaroData baro = {};
-
-	// Get air pressure and pressure altitude
-	// valid for troposphere (below 11km AMSL)
-	baro.pressure = imu->abs_pressure;
-	baro.temperature = imu->temperature;
-
-	write_baro_data(&baro);
-
-	RawAirspeedData airspeed = {};
-	airspeed.temperature = imu->temperature;
-	airspeed.diff_pressure = imu->diff_pressure;
-
-	write_airspeed_data(&airspeed);
+		int instance;
+		orb_publish_auto(ORB_ID(differential_pressure), &_differential_pressure_pub, &report, &instance, ORB_PRIO_DEFAULT);
+	}
 }
 
 void Simulator::update_gps(const mavlink_hil_gps_t *gps_sim)
@@ -340,10 +342,6 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 	mavlink_hil_gps_t gps_sim;
 	mavlink_msg_hil_gps_decode(msg, &gps_sim);
 
-	if (_publish) {
-		//PX4_WARN("FIXME:  Need to publish GPS topic.  Not done yet.");
-	}
-
 	update_gps(&gps_sim);
 }
 
@@ -351,9 +349,6 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 {
 	mavlink_hil_sensor_t imu;
 	mavlink_msg_hil_sensor_decode(msg, &imu);
-
-	// set temperature to a decent value
-	imu.temperature = 32.0f;
 
 	struct timespec ts;
 	abstime_to_ts(&ts, imu.time_usec);
@@ -374,11 +369,7 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 	last_time = now_us;
 #endif
 
-	if (_publish) {
-		publish_sensor_topics(&imu);
-	}
-
-	update_sensors(&imu);
+	update_sensors(now_us, imu);
 
 	// battery simulation (limit update to 100Hz)
 	if (hrt_elapsed_time(&_battery_status.timestamp) >= 10_ms) {
@@ -540,10 +531,8 @@ void Simulator::handle_message_rc_channels(const mavlink_message_t *msg)
 	fill_rc_input_msg(&_rc_input, &rc_channels);
 
 	// publish message
-	if (_publish) {
-		int rc_multi;
-		orb_publish_auto(ORB_ID(input_rc), &_rc_channels_pub, &_rc_input, &rc_multi, ORB_PRIO_HIGH);
-	}
+	int rc_multi;
+	orb_publish_auto(ORB_ID(input_rc), &_rc_channels_pub, &_rc_input, &rc_multi, ORB_PRIO_HIGH);
 }
 
 void Simulator::handle_message_vision_position_estimate(const mavlink_message_t *msg)
@@ -650,38 +639,6 @@ void Simulator::send_heartbeat()
 	hb.base_mode |= (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) ? 128 : 0;
 	mavlink_msg_heartbeat_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &hb);
 	send_mavlink_message(message);
-}
-
-void Simulator::initialize_sensor_data()
-{
-	// Write sensor data to memory so that drivers can copy data from there.
-	RawMPUData mpu = {};
-	mpu.accel_z = CONSTANTS_ONE_G;
-
-	write_MPU_data(&mpu);
-
-	RawAccelData accel = {};
-	accel.z = CONSTANTS_ONE_G;
-
-	write_accel_data(&accel);
-
-	RawMagData mag = {};
-	mag.x = 0.4f;
-	mag.y = 0.0f;
-	mag.z = 0.6f;
-
-	write_mag_data((void *)&mag);
-
-	RawBaroData baro = {};
-	// calculate air pressure from altitude (valid for low altitude)
-	baro.pressure = 120000.0f;
-	baro.temperature = 25.0f;
-
-	write_baro_data(&baro);
-
-	RawAirspeedData airspeed {};
-
-	write_airspeed_data(&airspeed);
 }
 
 void Simulator::poll_for_MAVLink_messages()
@@ -812,8 +769,6 @@ void Simulator::poll_for_MAVLink_messages()
 	// Request HIL_STATE_QUATERNION for ground truth.
 	request_hil_state_quaternion();
 
-	_initialized = true;
-
 	while (true) {
 
 		// wait for new mavlink messages to arrive
@@ -857,11 +812,7 @@ void Simulator::poll_for_MAVLink_messages()
 
 				for (int i = 0; i < len; ++i) {
 					if (mavlink_parse_char(MAVLINK_COMM_1, serial_buf[i], &msg, &serial_status)) {
-						// have a message, handle it
-						bool prev_publish = _publish;
-						set_publish(true);
 						handle_message(&msg);
-						set_publish(prev_publish);
 					}
 				}
 			}
@@ -968,101 +919,6 @@ int openUart(const char *uart_name, int baud)
 	return uart_fd;
 }
 #endif
-
-int Simulator::publish_sensor_topics(const mavlink_hil_sensor_t *imu)
-{
-	uint64_t timestamp = hrt_absolute_time();
-
-	if ((imu->fields_updated & 0x1FFF) != 0x1FFF) {
-		PX4_DEBUG("All sensor fields in mavlink HIL_SENSOR packet not updated.  Got %08x", imu->fields_updated);
-	}
-
-	/*
-	  static int count=0;
-	  static uint64_t last_timestamp=0;
-	  count++;
-	  if (!(count % 200)) {
-		PX4_WARN("TIME : %lu,   dt: %lu",
-			 (unsigned long) timestamp,(unsigned long) timestamp - (unsigned long) last_timestamp);
-		PX4_WARN("IMU  : %f %f %f",imu->xgyro,imu->ygyro,imu->zgyro);
-		PX4_WARN("ACCEL: %f %f %f",imu->xacc,imu->yacc,imu->zacc);
-		PX4_WARN("MAG  : %f %f %f",imu->xmag,imu->ymag,imu->zmag);
-		PX4_WARN("BARO : %f %f %f",imu->abs_pressure,imu->pressure_alt,imu->temperature);
-	}
-	last_timestamp = timestamp;
-	*/
-	/* gyro */
-	{
-		sensor_gyro_s gyro = {};
-
-		gyro.timestamp = timestamp;
-		gyro.device_id = 2293768;
-		gyro.x_raw = imu->xgyro * 1000.0f;
-		gyro.y_raw = imu->ygyro * 1000.0f;
-		gyro.z_raw = imu->zgyro * 1000.0f;
-		gyro.x = imu->xgyro;
-		gyro.y = imu->ygyro;
-		gyro.z = imu->zgyro;
-
-		gyro.temperature = imu->temperature;
-
-		int gyro_multi;
-		orb_publish_auto(ORB_ID(sensor_gyro), &_gyro_pub, &gyro, &gyro_multi, ORB_PRIO_HIGH);
-	}
-
-	/* accelerometer */
-	{
-		sensor_accel_s accel = {};
-
-		accel.timestamp = timestamp;
-		accel.device_id = 1376264;
-		accel.x_raw = imu->xacc / (CONSTANTS_ONE_G / 1000.0f);
-		accel.y_raw = imu->yacc / (CONSTANTS_ONE_G / 1000.0f);
-		accel.z_raw = imu->zacc / (CONSTANTS_ONE_G / 1000.0f);
-		accel.x = imu->xacc;
-		accel.y = imu->yacc;
-		accel.z = imu->zacc;
-
-		accel.temperature = imu->temperature;
-
-		int accel_multi;
-		orb_publish_auto(ORB_ID(sensor_accel), &_accel_pub, &accel, &accel_multi, ORB_PRIO_HIGH);
-	}
-
-	/* magnetometer */
-	{
-		struct mag_report mag = {};
-
-		mag.timestamp = timestamp;
-		mag.device_id = 196616;
-		mag.x_raw = imu->xmag * 1000.0f;
-		mag.y_raw = imu->ymag * 1000.0f;
-		mag.z_raw = imu->zmag * 1000.0f;
-		mag.x = imu->xmag;
-		mag.y = imu->ymag;
-		mag.z = imu->zmag;
-
-		mag.temperature = imu->temperature;
-
-		int mag_multi;
-		orb_publish_auto(ORB_ID(sensor_mag), &_mag_pub, &mag, &mag_multi, ORB_PRIO_HIGH);
-	}
-
-	/* baro */
-	{
-		sensor_baro_s baro = {};
-
-		baro.timestamp = timestamp;
-		baro.device_id = 478459;
-		baro.pressure = imu->abs_pressure;
-		baro.temperature = imu->temperature;
-
-		int baro_multi;
-		orb_publish_auto(ORB_ID(sensor_baro), &_baro_pub, &baro, &baro_multi, ORB_PRIO_HIGH);
-	}
-
-	return OK;
-}
 
 int Simulator::publish_flow_topic(const mavlink_hil_optical_flow_t *flow_mavlink)
 {
@@ -1239,9 +1095,4 @@ int Simulator::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavl
 	orb_publish_auto(ORB_ID(distance_sensor), &_dist_pub, &dist, &dist_multi, ORB_PRIO_HIGH);
 
 	return OK;
-}
-
-void Simulator::set_publish(const bool publish)
-{
-	_publish = publish;
 }
