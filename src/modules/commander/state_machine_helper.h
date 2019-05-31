@@ -51,6 +51,7 @@
 #include <uORB/topics/safety.h>
 #include <uORB/topics/commander_state.h>
 #include <uORB/topics/vehicle_status_flags.h>
+#include <uORB/topics/esc_status.h>
 
 typedef enum {
 	TRANSITION_DENIED = -1,
@@ -73,6 +74,7 @@ typedef enum {
 	ARM_REQ_MISSION_BIT = (1 << 0),
 	ARM_REQ_ARM_AUTH_BIT = (1 << 1),
 	ARM_REQ_GPS_BIT = (1 << 2),
+	ARM_REQ_ESCS_CHECK_BIT = (1 << 3)
 } arm_requirements_t;
 
 extern const char *const arming_state_names[];
