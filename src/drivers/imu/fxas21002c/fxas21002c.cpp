@@ -37,51 +37,20 @@
  * connected via SPI
  */
 
+#include <drivers/device/spi.h>
+#include <drivers/drv_hrt.h>
+#include <lib/conversion/rotation.h>
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+#include <perf/perf_counter.h>
 #include <px4_config.h>
 #include <px4_defines.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-
-
-#include <px4_log.h>
-
-#include <perf/perf_counter.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/clock.h>
-
-#include <drivers/drv_hrt.h>
-#include <drivers/device/spi.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
-
-#include <board_config.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <lib/conversion/rotation.h>
 #include <px4_getopt.h>
-#include <systemlib/err.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
 
 /* SPI protocol address bits */
 #define DIR_READ(a)                     ((a) | (1 << 7))
 #define DIR_WRITE(a)                    ((a) & 0x7f)
 #define swap16(w)                       __builtin_bswap16((w))
-#define FXAS21002C_DEVICE_PATH_GYRO     "/dev/fxas21002c_gyro"
-#define FXAS21002C_DEVICE_PATH_GYRO_EXT "/dev/fxas21002c_gyro_ext"
 
 #define FXAS21002C_STATUS                0x00
 #define FXAS21002C_OUT_X_MSB             0x01
@@ -210,8 +179,6 @@
 #define FXAS21002C_TEMP_OFFSET_CELSIUS   40
 #define FXAS21002C_DEFAULT_ONCHIP_FILTER_FREQ 	64 // ODR dependant
 
-#define FXAS21002C_MAX_OFFSET			0.45f /**< max offset: 25 degrees/s */
-
 /*
   we set the timer interrupt to run a bit faster than the desired
   sample rate and then throw away duplicates using the data ready bit.
@@ -221,18 +188,17 @@
  */
 #define FXAS21002C_TIMER_REDUCTION				250
 
+using namespace time_literals;
+
 extern "C" { __EXPORT int fxas21002c_main(int argc, char *argv[]); }
 
 class FXAS21002C : public device::SPI, public px4::ScheduledWorkItem
 {
 public:
-	FXAS21002C(int bus, const char *path, uint32_t device, enum Rotation rotation);
+	FXAS21002C(int bus, uint32_t device, enum Rotation rotation);
 	virtual ~FXAS21002C();
 
 	virtual int init();
-
-	virtual ssize_t read(struct file *filp, char *buffer, size_t buflen);
-	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -254,48 +220,35 @@ protected:
 
 private:
 
-	unsigned _call_interval;
+	PX4Gyroscope _px4_gyro;
 
-	ringbuffer::RingBuffer *_reports;
+	unsigned _current_rate{800};
 
-	struct gyro_calibration_s _gyro_scale;
-	float _gyro_range_scale;
-	float _gyro_range_rad_s;
-	orb_advert_t _gyro_topic;
-	int _orb_class_instance;
-	int _class_instance;
-
-	unsigned _current_rate;
-	unsigned _orientation;
-	float _last_temperature;
-
-	unsigned _read;
-
+	unsigned _read{0};
 
 	perf_counter_t _sample_perf;
 	perf_counter_t _errors;
 	perf_counter_t _bad_registers;
 	perf_counter_t _duplicates;
 
-	uint8_t _register_wait;
-
-	math::LowPassFilter2p _gyro_filter_x;
-	math::LowPassFilter2p _gyro_filter_y;
-	math::LowPassFilter2p _gyro_filter_z;
-
-	Integrator _gyro_int;
-
-	enum Rotation _rotation;
-
+	uint8_t _register_wait{0};
 
 	/* this is used to support runtime checking of key
 	 *configuration registers to detect SPI bus errors and sensor
 	 * reset
 	 */
-#define FXAS21002C_NUM_CHECKED_REGISTERS 6
-	static const uint8_t _checked_registers[FXAS21002C_NUM_CHECKED_REGISTERS];
-	uint8_t _checked_values[FXAS21002C_NUM_CHECKED_REGISTERS];
-	uint8_t _checked_next;
+	static constexpr int FXAS21002C_NUM_CHECKED_REGISTERS{6};
+	static constexpr uint8_t _checked_registers[FXAS21002C_NUM_CHECKED_REGISTERS] {
+		FXAS21002C_WHO_AM_I,
+		FXAS21002C_F_SETUP,
+		FXAS21002C_CTRL_REG0,
+		FXAS21002C_CTRL_REG1,
+		FXAS21002C_CTRL_REG2,
+		FXAS21002C_CTRL_REG3,
+	};
+
+	uint8_t _checked_values[FXAS21002C_NUM_CHECKED_REGISTERS] {};
+	uint8_t _checked_next{0};
 
 	/**
 	 * Start automatic measurement.
@@ -313,11 +266,6 @@ private:
 	 * Resets the chip and measurements ranges, but not scale and offset.
 	 */
 	void reset();
-
-	/**
-	 * disable I2C on the chip
-	 */
-	void disable_i2c();
 
 	/**
 	 * Put the chip In stand by
@@ -391,104 +339,34 @@ private:
 	 */
 	int set_samplerate(unsigned frequency);
 
-	/**
-	 * Set the lowpass filter of the driver
-	 *
-	 * @param samplerate	The current samplerate
-	 * @param frequency	The cutoff frequency for the lowpass filter
-	 */
-	void set_sw_lowpass_filter(float samplerate, float bandwidth);
-
 	/*
 	  set onchip low pass filter frequency
 	 */
 	void set_onchip_lowpass_filter(int frequency_hz);
-
-	/**
-	 * Self test
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int self_test();
-
-
-	/* this class cannot be copied */
-	FXAS21002C(const FXAS21002C &);
-	FXAS21002C operator=(const FXAS21002C &);
 };
 
 /*
   list of registers that will be checked in check_registers(). Note
   that ADDR_WHO_AM_I must be first in the list.
  */
-const uint8_t FXAS21002C::_checked_registers[FXAS21002C_NUM_CHECKED_REGISTERS] = {
-	FXAS21002C_WHO_AM_I,
-	FXAS21002C_F_SETUP,
-	FXAS21002C_CTRL_REG0,
-	FXAS21002C_CTRL_REG1,
-	FXAS21002C_CTRL_REG2,
-	FXAS21002C_CTRL_REG3,
-};
+constexpr uint8_t FXAS21002C::_checked_registers[];
 
-
-FXAS21002C::FXAS21002C(int bus, const char *path, uint32_t device, enum Rotation rotation) :
-	SPI("FXAS21002C", path, bus, device, SPIDEV_MODE0, 2 * 1000 * 1000),
+FXAS21002C::FXAS21002C(int bus, uint32_t device, enum Rotation rotation) :
+	SPI("FXAS21002C", nullptr, bus, device, SPIDEV_MODE0, 2 * 1000 * 1000),
 	ScheduledWorkItem(px4::device_bus_to_wq(this->get_device_id())),
-	_call_interval(0),
-	_reports(nullptr),
-	_gyro_scale{},
-	_gyro_range_scale(0.0f),
-	_gyro_range_rad_s(0.0f),
-	_gyro_topic(nullptr),
-	_orb_class_instance(-1),
-	_class_instance(-1),
-	_current_rate(800),
-	_orientation(0),
-	_last_temperature(0.0f),
-	_read(0),
+	_px4_gyro(get_device_id(), (external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "fxas21002c_acc_read")),
 	_errors(perf_alloc(PC_COUNT, "fxas21002c_err")),
 	_bad_registers(perf_alloc(PC_COUNT, "fxas21002c_bad_reg")),
-	_duplicates(perf_alloc(PC_COUNT, "fxas21002c_acc_dupe")),
-	_register_wait(0),
-	_gyro_filter_x(FXAS21002C_DEFAULT_RATE, FXAS21002C_DEFAULT_FILTER_FREQ),
-	_gyro_filter_y(FXAS21002C_DEFAULT_RATE, FXAS21002C_DEFAULT_FILTER_FREQ),
-	_gyro_filter_z(FXAS21002C_DEFAULT_RATE, FXAS21002C_DEFAULT_FILTER_FREQ),
-	_gyro_int(1000000 / FXAS21002C_MAX_OUTPUT_RATE, true),
-	_rotation(rotation),
-	_checked_values{},
-	_checked_next(0)
+	_duplicates(perf_alloc(PC_COUNT, "fxas21002c_acc_dupe"))
 {
-	// enable debug() calls
-	//_debug_enabled = false;
-
-	_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_FXAS2100C;
-
-
-	// default scale factors
-	_gyro_scale.x_offset = 0.0f;
-	_gyro_scale.x_scale  = 1.0f;
-	_gyro_scale.y_offset = 0.0f;
-	_gyro_scale.y_scale  = 1.0f;
-	_gyro_scale.z_offset = 0.0f;
-	_gyro_scale.z_scale  = 1.0f;
-
+	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_FXAS2100C);
 }
 
 FXAS21002C::~FXAS21002C()
 {
 	/* make sure we are truly inactive */
 	stop();
-
-	/* free any existing reports */
-	if (_reports != nullptr) {
-		delete _reports;
-	}
-
-	if (_class_instance != -1) {
-		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _class_instance);
-	}
-
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
@@ -506,46 +384,12 @@ FXAS21002C::init()
 		return PX4_ERROR;
 	}
 
-	param_t gyro_cut_ph = param_find("IMU_GYRO_CUTOFF");
-	float gyro_cut = FXAS21002C_DEFAULT_FILTER_FREQ;
-
-	if (gyro_cut_ph != PARAM_INVALID && param_get(gyro_cut_ph, &gyro_cut) == PX4_OK) {
-		set_sw_lowpass_filter(FXAS21002C_DEFAULT_RATE, gyro_cut);
-
-	} else {
-		PX4_ERR("IMU_GYRO_CUTOFF param invalid");
-	}
-
-	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_gyro_s));
-
-	if (_reports == nullptr) {
-		return PX4_ERROR;
-	}
-
 	reset();
 
-	/* fill report structures */
-	measure();
-
-	_class_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
-
-	/* advertise sensor topic, measure manually to initialize valid report */
-	sensor_gyro_s grp;
-	_reports->get(&grp);
-
-	/* measurement will have generated a report, publish */
-	_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-					  &_orb_class_instance, (external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
-
-	if (_gyro_topic == nullptr) {
-		PX4_ERR("ADVERT ERR");
-		return PX4_ERROR;
-	}
+	start();
 
 	return PX4_OK;
 }
-
 
 void
 FXAS21002C::reset()
@@ -556,7 +400,6 @@ FXAS21002C::reset()
 	 * [4-2]: DR[2-0]=000 for 200Hz ODR
 	 * [1-0]: Active=0, Ready=0 for Standby mode
 	 */
-
 	write_reg(FXAS21002C_CTRL_REG1, 0);
 
 	/* write 0000 0000 = 0x00 to CTRL_REG0 to configure range and filters
@@ -566,18 +409,16 @@ FXAS21002C::reset()
 	 *  [2]: HPF_EN=0 disable HPF
 	 * [1-0]: FS[1-0]=00 for 1600dps (TBD CHANGE TO 2000dps when final trimmed parts available)
 	 */
-
 	write_checked_reg(FXAS21002C_CTRL_REG0, CTRL_REG0_BW_LOW | CTRL_REG0_FS_2000_DPS);
 
 	/* write CTRL_REG1 to configure 800Hz ODR and enter Active mode */
-
 	write_checked_reg(FXAS21002C_CTRL_REG1, CTRL_REG1_DR_800HZ | CTRL_REG1_ACTIVE);
 
 	/* Set the default */
-
-	set_samplerate(0);
+	set_samplerate(FXAS21002C_DEFAULT_RATE);
 	set_range(FXAS21002C_DEFAULT_RANGE_DPS);
 	set_onchip_lowpass_filter(FXAS21002C_DEFAULT_ONCHIP_FILTER_FREQ);
+
 	_read = 0;
 }
 
@@ -593,122 +434,6 @@ FXAS21002C::probe()
 	}
 
 	return -EIO;
-}
-
-ssize_t
-FXAS21002C::read(struct file *filp, char *buffer, size_t buflen)
-{
-	unsigned count = buflen / sizeof(sensor_gyro_s);
-	sensor_gyro_s *gbuf = reinterpret_cast<sensor_gyro_s *>(buffer);
-	int ret = 0;
-
-	/* buffer must be large enough */
-	if (count < 1) {
-		return -ENOSPC;
-	}
-
-	/* if automatic measurement is enabled */
-	if (_call_interval > 0) {
-
-		/*
-		 * While there is space in the caller's buffer, and reports, copy them.
-		 * Note that we may be pre-empted by the measurement code while we are doing this;
-		 * we are careful to avoid racing with it.
-		 */
-		while (count--) {
-			if (_reports->get(gbuf)) {
-				ret += sizeof(*gbuf);
-				gbuf++;
-			}
-		}
-
-		/* if there was no data, warn the caller */
-		return ret ? ret : -EAGAIN;
-	}
-
-	/* manual measurement */
-	_reports->flush();
-	measure();
-
-	/* measurement will have generated a report, copy it out */
-	if (_reports->get(gbuf)) {
-		ret = sizeof(*gbuf);
-	}
-
-	return ret;
-}
-
-int
-FXAS21002C::ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-
-	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
-
-			/* zero would be bad */
-			case 0:
-				return -EINVAL;
-
-			/* set default polling rate */
-			case SENSOR_POLLRATE_DEFAULT:
-				return ioctl(filp, SENSORIOCSPOLLRATE, FXAS21002C_DEFAULT_RATE);
-
-			/* adjust to a legal polling interval in Hz */
-			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_call_interval == 0);
-
-					/* convert hz to hrt interval via microseconds */
-					unsigned interval = 1000000 / arg;
-
-					/* check against maximum sane rate */
-					if (interval < 1000) {
-						return -EINVAL;
-					}
-
-					/* update interval for next measurement */
-					/* XXX this is a bit shady, but no other way to adjust... */
-					_call_interval = interval;
-
-					/* adjust filters */
-					float cutoff_freq_hz = _gyro_filter_x.get_cutoff_freq();
-					float sample_rate = 1.0e6f / interval;
-					set_sw_lowpass_filter(sample_rate, cutoff_freq_hz);
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-					}
-
-					return OK;
-				}
-			}
-		}
-
-	case SENSORIOCRESET:
-		reset();
-		return OK;
-
-	case GYROIOCSSCALE:
-		/* copy scale in */
-		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
-		return OK;
-
-	default:
-		/* give it to the superclass */
-		return SPI::ioctl(filp, cmd, arg);
-	}
-}
-
-int
-FXAS21002C::self_test()
-{
-	if (_read == 0) {
-		return 1;
-	}
-
-	return 0;
 }
 
 uint8_t
@@ -750,9 +475,7 @@ FXAS21002C::write_checked_reg(unsigned reg, uint8_t value)
 void
 FXAS21002C::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 {
-	uint8_t	val;
-
-	val = read_reg(reg);
+	uint8_t	val = read_reg(reg);
 	val &= ~clearbits;
 	val |= setbits;
 	write_checked_reg(reg, val);
@@ -763,29 +486,28 @@ FXAS21002C::set_range(unsigned max_dps)
 {
 	uint8_t bits = CTRL_REG0_FS_250_DPS;
 	float new_range_scale_dps_digit;
-	float new_range;
 
 	if (max_dps == 0) {
 		max_dps = 2000;
 	}
 
 	if (max_dps <= 250) {
-		new_range = 250;
+		//new_range = 250;
 		new_range_scale_dps_digit = 7.8125e-3f;
 		bits = CTRL_REG0_FS_250_DPS;
 
 	} else if (max_dps <= 500) {
-		new_range = 500;
+		//new_range = 500;
 		new_range_scale_dps_digit = 15.625e-3f;
 		bits = CTRL_REG0_FS_500_DPS;
 
 	} else if (max_dps <= 1000) {
-		new_range = 1000;
+		//new_range = 1000;
 		new_range_scale_dps_digit = 31.25e-3f;
 		bits = CTRL_REG0_FS_1000_DPS;
 
 	} else if (max_dps <= 2000) {
-		new_range = 2000;
+		//new_range = 2000;
 		new_range_scale_dps_digit = 62.5e-3f;
 		bits = CTRL_REG0_FS_2000_DPS;
 
@@ -794,15 +516,17 @@ FXAS21002C::set_range(unsigned max_dps)
 	}
 
 	set_standby(_current_rate, true);
-	_gyro_range_rad_s = new_range / 180.0f * M_PI_F;
-	_gyro_range_scale = new_range_scale_dps_digit / 180.0f * M_PI_F;
+
+	_px4_gyro.set_scale(new_range_scale_dps_digit / 180.0f * M_PI_F);
+
 	modify_reg(FXAS21002C_CTRL_REG0, CTRL_REG0_FS_MASK, bits);
 	set_standby(_current_rate, false);
 
 	return OK;
 }
 
-void FXAS21002C::set_standby(int rate, bool standby_true)
+void
+FXAS21002C::set_standby(int rate, bool standby_true)
 {
 	uint8_t c = 0;
 	uint8_t s = 0;
@@ -869,10 +593,14 @@ FXAS21002C::set_samplerate(unsigned frequency)
 	set_standby(last_rate, true);
 	modify_reg(FXAS21002C_CTRL_REG1, CTRL_REG1_DR_MASK, bits);
 	set_standby(_current_rate, false);
+
+	_px4_gyro.set_sample_rate(_current_rate);
+
 	return OK;
 }
 
-void	FXAS21002C::set_onchip_lowpass_filter(int frequency_hz)
+void
+FXAS21002C::set_onchip_lowpass_filter(int frequency_hz)
 {
 	int high = 256 / (800 / _current_rate);
 	int med = high / 2 ;
@@ -907,37 +635,20 @@ void	FXAS21002C::set_onchip_lowpass_filter(int frequency_hz)
 	set_standby(_current_rate, false);
 }
 
-
-void
-FXAS21002C::set_sw_lowpass_filter(float samplerate, float bandwidth)
-{
-	_gyro_filter_x.set_cutoff_frequency(samplerate, bandwidth);
-	_gyro_filter_y.set_cutoff_frequency(samplerate, bandwidth);
-	_gyro_filter_z.set_cutoff_frequency(samplerate, bandwidth);
-}
-
-
 void
 FXAS21002C::start()
 {
 	/* make sure we are stopped first */
 	stop();
 
-	/* reset the report ring */
-	_reports->flush();
-
 	/* start polling at the specified rate */
-	ScheduleOnInterval(_call_interval - FXAS21002C_TIMER_REDUCTION, 10000);
+	ScheduleOnInterval((1_s / FXAS21002C_DEFAULT_RATE) - FXAS21002C_TIMER_REDUCTION, 10000);
 }
 
 void
 FXAS21002C::stop()
 {
 	ScheduleClear();
-
-	/* reset internal states */
-	/* discard unread data in the buffers */
-	_reports->flush();
 }
 
 void
@@ -989,7 +700,7 @@ FXAS21002C::measure()
 		int16_t		x;
 		int16_t		y;
 		int16_t		z;
-	} raw_gyro_report;
+	} raw_gyro_report{};
 #pragma pack(pop)
 
 	sensor_gyro_s gyro_report;
@@ -1008,8 +719,8 @@ FXAS21002C::measure()
 	}
 
 	/* fetch data from the sensor */
-	memset(&raw_gyro_report, 0, sizeof(raw_gyro_report));
 	raw_gyro_report.cmd = DIR_READ(FXAS21002C_STATUS);
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
 	transfer((uint8_t *)&raw_gyro_report, (uint8_t *)&raw_gyro_report, sizeof(raw_gyro_report));
 
 	if (!(raw_gyro_report.status & DR_STATUS_ZYXDR)) {
@@ -1024,86 +735,28 @@ FXAS21002C::measure()
 	 * compensated (factory trim values applied) when the device is operating in the Active
 	 * mode and actively measuring the angular rate.
 	 */
-
 	if ((_read % _current_rate) == 0) {
-		_last_temperature = read_reg(FXAS21002C_TEMP) * 1.0f;
-		gyro_report.temperature = _last_temperature;
+		const float temperature = read_reg(FXAS21002C_TEMP) * 1.0f;
+		_px4_gyro.set_temperature(temperature);
 	}
-
-	/*
-	 * 1) Scale raw value to SI units using scaling from datasheet.
-	 * 2) Subtract static offset (in SI units)
-	 * 3) Scale the statically calibrated values with a linear
-	 *    dynamically obtained factor
-	 *
-	 * Note: the static sensor offset is the number the sensor outputs
-	 * 	 at a nominally 'zero' input. Therefore the offset has to
-	 * 	 be subtracted.
-	 *
-	 *	 Example: A gyro outputs a value of 74 at zero angular rate
-	 *	 	  the offset is 74 from the origin and subtracting
-	 *		  74 from all measurements centers them around zero.
-	 */
-
-	gyro_report.timestamp = hrt_absolute_time();
 
 	// report the error count as the number of bad
 	// register reads. This allows the higher level
 	// code to decide if it should use this sensor based on
 	// whether it has had failures
-	gyro_report.error_count = perf_event_count(_bad_registers);
+	_px4_gyro.set_error_count(perf_event_count(_bad_registers));
 
 	gyro_report.x_raw = swap16(raw_gyro_report.x);
 	gyro_report.y_raw = swap16(raw_gyro_report.y);
 	gyro_report.z_raw = swap16(raw_gyro_report.z);
 
-	float xraw_f = gyro_report.x_raw;
-	float yraw_f = gyro_report.y_raw;
-	float zraw_f = gyro_report.z_raw;
-
-	// apply user specified rotation
-	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
-
-	float x_in_new = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	float y_in_new = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	float z_in_new = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
-
-	gyro_report.x = _gyro_filter_x.apply(x_in_new);
-	gyro_report.y = _gyro_filter_y.apply(y_in_new);
-	gyro_report.z = _gyro_filter_z.apply(z_in_new);
-
-	matrix::Vector3f gval(x_in_new, y_in_new, z_in_new);
-	matrix::Vector3f gval_integrated;
-
-	bool gyro_notify = _gyro_int.put(gyro_report.timestamp, gval, gval_integrated, gyro_report.integral_dt);
-	gyro_report.x_integral = gval_integrated(0);
-	gyro_report.y_integral = gval_integrated(1);
-	gyro_report.z_integral = gval_integrated(2);
-
-	gyro_report.scaling = _gyro_range_scale;
-
-	/* return device ID */
-	gyro_report.device_id = _device_id.devid;
-
-
-	_reports->force(&gyro_report);
-
-	/* notify anyone waiting for data */
-	if (gyro_notify) {
-		poll_notify(POLLIN);
-
-		if (!(_pub_blocked)) {
-			/* publish it */
-			orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &gyro_report);
-		}
-	}
+	_px4_gyro.update(timestamp_sample, gyro_report.x_raw, gyro_report.y_raw, gyro_report.z_raw);
 
 	_read++;
 
 	/* stop the perf counter */
 	perf_end(_sample_perf);
 }
-
 
 void
 FXAS21002C::print_info()
@@ -1113,7 +766,6 @@ FXAS21002C::print_info()
 	perf_print_counter(_errors);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_duplicates);
-	_reports->print_info("report queue");
 	::printf("checked_next: %u\n", _checked_next);
 
 	for (uint8_t i = 0; i < FXAS21002C_NUM_CHECKED_REGISTERS; i++) {
@@ -1127,7 +779,7 @@ FXAS21002C::print_info()
 		}
 	}
 
-	::printf("temperature: %.2f\n", (double)_last_temperature);
+	_px4_gyro.print_status();
 }
 
 void
@@ -1182,8 +834,6 @@ namespace fxas21002c
 FXAS21002C	*g_dev;
 
 void	start(bool external_bus, enum Rotation rotation);
-void	test();
-void	reset();
 void	info();
 void	regdump();
 void	usage();
@@ -1198,8 +848,6 @@ void	test_error();
 void
 start(bool external_bus, enum Rotation rotation)
 {
-	int fd;
-
 	if (g_dev != nullptr) {
 		PX4_INFO("already started");
 		exit(0);
@@ -1208,14 +856,14 @@ start(bool external_bus, enum Rotation rotation)
 	/* create the driver */
 	if (external_bus) {
 #if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_GYRO)
-		g_dev = new FXAS21002C(PX4_SPI_BUS_EXT, FXAS21002C_DEVICE_PATH_GYRO, PX4_SPIDEV_EXT_GYRO, rotation);
+		g_dev = new FXAS21002C(PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_GYRO, rotation);
 #else
 		PX4_ERR("External SPI not available");
 		exit(0);
 #endif
 
 	} else {
-		g_dev = new FXAS21002C(PX4_SPI_BUS_SENSORS, FXAS21002C_DEVICE_PATH_GYRO, PX4_SPIDEV_GYRO, rotation);
+		g_dev = new FXAS21002C(PX4_SPI_BUS_SENSORS, PX4_SPIDEV_GYRO, rotation);
 	}
 
 	if (g_dev == nullptr) {
@@ -1227,19 +875,6 @@ start(bool external_bus, enum Rotation rotation)
 		goto fail;
 	}
 
-	/* set the poll rate to default, starts automatic data collection */
-	fd = open(FXAS21002C_DEVICE_PATH_GYRO, O_RDONLY);
-
-	if (fd < 0) {
-		goto fail;
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		goto fail;
-	}
-
-	close(fd);
-
 	exit(0);
 fail:
 
@@ -1249,72 +884,6 @@ fail:
 	}
 
 	errx(1, "driver start failed");
-}
-
-/**
- * Perform some basic functional tests on the driver;
- * make sure we can collect data from the sensor in polled
- * and automatic modes.
- */
-void
-test()
-{
-	int fd_gyro = -1;
-	sensor_gyro_s g_report{};
-	ssize_t sz;
-
-	/* get the driver */
-	fd_gyro = open(FXAS21002C_DEVICE_PATH_GYRO, O_RDONLY);
-
-	if (fd_gyro < 0) {
-		err(1, "%s open failed", FXAS21002C_DEVICE_PATH_GYRO);
-	}
-
-	/* do a simple demand read */
-	sz = read(fd_gyro, &g_report, sizeof(g_report));
-
-	if (sz != sizeof(g_report)) {
-		err(1, "immediate gyro read failed");
-	}
-
-	print_message(g_report);
-
-	if (ioctl(fd_gyro, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "reset to default polling");
-	}
-
-	close(fd_gyro);
-
-	/* XXX add poll-rate tests here too */
-	errx(0, "PASS");
-}
-
-/**
- * Reset the driver.
- */
-void
-reset()
-{
-	int fd = open(FXAS21002C_DEVICE_PATH_GYRO, O_RDONLY);
-
-	if (fd < 0) {
-		PX4_ERR("Open failed\n");
-		exit(1);
-	}
-
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		PX4_ERR("driver reset failed");
-		exit(1);
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		PX4_ERR("accel pollrate reset failed");
-		exit(1);
-	}
-
-	close(fd);
-
-	exit(0);
 }
 
 /**
@@ -1370,11 +939,10 @@ test_error()
 void
 usage()
 {
-	PX4_INFO("missing command: try 'start', 'info', 'test', 'reset', 'testerror' or 'regdump'");
+	PX4_INFO("missing command: try 'start', 'info', 'testerror' or 'regdump'");
 	PX4_INFO("options:");
 	PX4_INFO("    -X    (external bus)");
 	PX4_INFO("    -R rotation");
-	PX4_INFO("    -a range in ga 2,4,8");
 }
 
 } // namespace
@@ -1383,13 +951,13 @@ int
 fxas21002c_main(int argc, char *argv[])
 {
 	bool external_bus = false;
-	int ch;
 	enum Rotation rotation = ROTATION_NONE;
 
+	int ch = 0;
 	int myoptind = 1;
 	const char *myoptarg = NULL;
 
-	while ((ch = px4_getopt(argc, argv, "XR:a:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XR:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			external_bus = true;
@@ -1401,7 +969,7 @@ fxas21002c_main(int argc, char *argv[])
 
 		default:
 			fxas21002c::usage();
-			exit(0);
+			return 0;
 		}
 	}
 
@@ -1413,20 +981,6 @@ fxas21002c_main(int argc, char *argv[])
 	 */
 	if (!strcmp(verb, "start")) {
 		fxas21002c::start(external_bus, rotation);
-	}
-
-	/*
-	 * Test the driver/device.
-	 */
-	if (!strcmp(verb, "test")) {
-		fxas21002c::test();
-	}
-
-	/*
-	 * Reset the driver.
-	 */
-	if (!strcmp(verb, "reset")) {
-		fxas21002c::reset();
 	}
 
 	/*
@@ -1450,5 +1004,6 @@ fxas21002c_main(int argc, char *argv[])
 		fxas21002c::test_error();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset', 'info', 'testerror' or 'regdump'");
+	PX4_WARN("unrecognized command, try 'start', 'info', 'testerror' or 'regdump'");
+	return -1;
 }
