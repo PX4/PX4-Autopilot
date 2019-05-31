@@ -1010,6 +1010,14 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 
 	}
 
+	if (status_flags.condition_escs_error && (arm_requirements & ARM_REQ_ESCS_CHECK_BIT)) {
+		if (prearm_ok && reportFailures) {
+			mavlink_log_critical(mavlink_log_pub, "Arming denied! One or more ESCs are offline");
+			prearm_ok = false;
+		}
+	}
+
+
 	return prearm_ok;
 }
 

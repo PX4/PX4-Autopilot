@@ -14,7 +14,7 @@ bool condition_local_velocity_valid		# set to true by the commander app if the q
 bool condition_local_altitude_valid
 bool condition_power_input_valid                # set if input power is valid
 bool condition_battery_healthy                # set if battery is available and not low
-
+bool condition_escs_error		      # set to true in case of standard ESCs that do not provide status OR if all the ESCs are online
 bool circuit_breaker_engaged_power_check
 bool circuit_breaker_engaged_airspd_check
 bool circuit_breaker_engaged_enginefailure_check
@@ -22,6 +22,7 @@ bool circuit_breaker_engaged_gpsfailure_check
 bool circuit_breaker_flight_termination_disabled
 bool circuit_breaker_engaged_usb_check
 bool circuit_breaker_engaged_posfailure_check	# set to true when the position valid checks have been disabled
+bool circuit_breaker_engaged_escs_check
 
 bool offboard_control_signal_found_once
 bool offboard_control_signal_lost
@@ -36,5 +37,3 @@ bool usb_connected                                # status of the USB power supp
 
 bool avoidance_system_required					  # Set to true if avoidance system is enabled via COM_OBS_AVOID parameter
 bool avoidance_system_valid                       # Status of the obstacle avoidance system
-
-uint8 number_of_actuators       # Number of active actuators
