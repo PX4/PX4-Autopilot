@@ -208,7 +208,7 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 		auto &ref = _esc_status.esc[msg.esc_index];
 
 		ref.esc_address = msg.getSrcNodeID().get();
-
+		ref.timestamp       = hrt_absolute_time();
 		ref.esc_voltage     = msg.voltage;
 		ref.esc_current     = msg.current;
 		ref.esc_temperature = msg.temperature;
@@ -222,6 +222,7 @@ void UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent &)
 {
 	_esc_status.counter += 1;
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
+	_esc_status.esc_online_flags = UavcanEscController::check_escs_status();
 
 	if (_esc_status_pub != nullptr) {
 		(void)orb_publish(ORB_ID(esc_status), _esc_status_pub, &_esc_status);
@@ -229,4 +230,21 @@ void UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent &)
 	} else {
 		_esc_status_pub = orb_advertise(ORB_ID(esc_status), &_esc_status);
 	}
+}
+
+uint8_t UavcanEscController::check_escs_status()
+{
+	int esc_status_flags = 255;
+
+	for (int index = 0; index < esc_status_s::CONNECTED_ESC_MAX; index++) {
+		if (_esc_status.esc[index].timestamp == 0) {
+			esc_status_flags &= ~(1 << index);
+
+		} else if (hrt_elapsed_time(&_esc_status.esc[index].timestamp) > 800000.0f) {
+			esc_status_flags &= ~(1 << index);
+		}
+
+	}
+
+	return esc_status_flags;
 }
