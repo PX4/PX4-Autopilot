@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -118,7 +118,7 @@ struct ak09916_regs {
 #pragma pack(pop)
 
 
-extern device::Device *AK8963_I2C_interface(int bus, bool external_bus);
+extern device::Device *AK8963_I2C_interface(int bus);
 
 typedef device::Device *(*MPU9250_mag_constructor)(int, bool);
 
@@ -137,11 +137,10 @@ public:
 	void passthrough_write(uint8_t reg, uint8_t val);
 	void read_block(uint8_t reg, uint8_t *val, uint8_t count);
 
-	int ak8963_reset(void);
-	int ak8963_setup(void);
-	int ak8963_setup_master_i2c(void);
-	bool ak8963_check_id(uint8_t &id);
-	bool ak8963_read_adjustments(void);
+	int ak8963_reset();
+	int ak8963_setup();
+	int ak8963_setup_master_i2c();
+	bool ak8963_read_adjustments();
 
 	void print_status() { _px4_mag.print_status(); }
 

@@ -310,7 +310,7 @@ struct ICMReport {
 	uint8_t		gyro_y[2];
 	uint8_t		gyro_z[2];
 	uint8_t		temp[2];
-	struct ak8963_regs mag;
+	struct ak09916_regs mag;
 };
 #pragma pack(pop)
 
@@ -332,7 +332,7 @@ struct MPUReport {
 	uint8_t		gyro_x[2];
 	uint8_t		gyro_y[2];
 	uint8_t		gyro_z[2];
-	struct ak8963_regs mag;
+	struct ak09916_regs mag;
 };
 #pragma pack(pop)
 

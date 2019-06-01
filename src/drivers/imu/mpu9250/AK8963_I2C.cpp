@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,9 +44,7 @@
 #include "mpu9250.h"
 #include "MPU9250_mag.h"
 
-#ifdef USE_I2C
-
-device::Device *AK8963_I2C_interface(int bus, bool external_bus);
+device::Device *AK8963_I2C_interface(int bus);
 
 class AK8963_I2C : public device::I2C
 {
@@ -63,7 +61,7 @@ protected:
 };
 
 device::Device *
-AK8963_I2C_interface(int bus, bool external_bus)
+AK8963_I2C_interface(int bus)
 {
 	return new AK8963_I2C(bus);
 }
@@ -76,7 +74,7 @@ AK8963_I2C::AK8963_I2C(int bus) : I2C("AK8963_I2C", nullptr, bus, AK8963_I2C_ADD
 int
 AK8963_I2C::write(unsigned reg_speed, void *data, unsigned count)
 {
-	uint8_t cmd[MPU_MAX_WRITE_BUFFER_SIZE];
+	uint8_t cmd[2];
 
 	if (sizeof(cmd) < (count + 1)) {
 		return -EIO;
@@ -110,5 +108,3 @@ AK8963_I2C::probe()
 
 	return OK;
 }
-
-#endif

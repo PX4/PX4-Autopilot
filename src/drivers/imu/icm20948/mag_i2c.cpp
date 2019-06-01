@@ -34,7 +34,7 @@
 /**
  * @file mag_i2c.cpp
  *
- * I2C interface for AK8963
+ * I2C interface for AK09916
  */
 
 #include "icm20948.h"
@@ -44,13 +44,13 @@
 
 #ifdef USE_I2C
 
-device::Device *AK8963_I2C_interface(int bus, bool external_bus);
+device::Device *AK09916_I2C_interface(int bus, bool external_bus);
 
-class AK8963_I2C : public device::I2C
+class AK09916_I2C : public device::I2C
 {
 public:
-	AK8963_I2C(int bus);
-	~AK8963_I2C() override = default;
+	AK09916_I2C(int bus);
+	~AK09916_I2C() override = default;
 
 	int	read(unsigned address, void *data, unsigned count) override;
 	int	write(unsigned address, void *data, unsigned count) override;
@@ -61,19 +61,19 @@ protected:
 };
 
 device::Device *
-AK8963_I2C_interface(int bus, bool external_bus)
+AK09916_I2C_interface(int bus, bool external_bus)
 {
-	return new AK8963_I2C(bus);
+	return new AK09916_I2C(bus);
 }
 
-AK8963_I2C::AK8963_I2C(int bus) :
-	I2C("AK8963_I2C", nullptr, bus, AK8963_I2C_ADDR, 400000)
+AK09916_I2C::AK09916_I2C(int bus) :
+	I2C("AK09916_I2C", nullptr, bus, AK09916_I2C_ADDR, 400000)
 {
 	_device_id.devid_s.devtype =  DRV_MAG_DEVTYPE_MPU9250;
 }
 
 int
-AK8963_I2C::write(unsigned reg_speed, void *data, unsigned count)
+AK09916_I2C::write(unsigned reg_speed, void *data, unsigned count)
 {
 	uint8_t cmd[MPU_MAX_WRITE_BUFFER_SIZE] {};
 
@@ -87,19 +87,19 @@ AK8963_I2C::write(unsigned reg_speed, void *data, unsigned count)
 }
 
 int
-AK8963_I2C::read(unsigned reg_speed, void *data, unsigned count)
+AK09916_I2C::read(unsigned reg_speed, void *data, unsigned count)
 {
 	uint8_t cmd = MPU9250_REG(reg_speed);
 	return transfer(&cmd, 1, (uint8_t *)data, count);
 }
 
 int
-AK8963_I2C::probe()
+AK09916_I2C::probe()
 {
 	uint8_t whoami = 0;
-	uint8_t expected = AK8963_DEVICE_ID;
+	uint8_t expected = AK09916_DEVICE_ID;
 
-	if (PX4_OK != read(AK8963REG_WIA, &whoami, 1)) {
+	if (PX4_OK != read(AK09916REG_WIA, &whoami, 1)) {
 		return -EIO;
 	}
 

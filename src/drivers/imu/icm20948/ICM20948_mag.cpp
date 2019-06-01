@@ -34,7 +34,7 @@
 /**
  * @file mag.cpp
  *
- * Driver for the ak8963 magnetometer within the Invensense mpu9250
+ * Driver for the ak09916 magnetometer within the Invensense mpu9250
  *
  * @author Robert Dickenson
  *
@@ -90,24 +90,18 @@ bool ICM20948_mag::check_duplicate(uint8_t *mag_data)
 void
 ICM20948_mag::measure()
 {
-	union raw_data_t {
-		struct ak8963_regs ak8963_data;
-		struct ak09916_regs ak09916_data;
-	} raw_data;
-
+	struct ak09916_regs raw_data {};
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 	int ret = _interface->read(AK09916REG_ST1, &raw_data, sizeof(struct ak09916_regs));
 
 	if (ret == OK) {
-		raw_data.ak8963_data.st2 = raw_data.ak09916_data.st2;
-
-		_measure(timestamp_sample, raw_data.ak8963_data);
+		_measure(timestamp_sample, raw_data);
 	}
 }
 
 void
-ICM20948_mag::_measure(hrt_abstime timestamp_sample, ak8963_regs data)
+ICM20948_mag::_measure(hrt_abstime timestamp_sample, ak09916_regs data)
 {
 	if (check_duplicate((uint8_t *)&data.x) && !(data.st1 & 0x02)) {
 		perf_count(_mag_duplicates);
@@ -146,10 +140,10 @@ ICM20948_mag::set_passthrough(uint8_t reg, uint8_t size, uint8_t *out)
 
 	if (out) {
 		_parent->write_reg(ICMREG_20948_I2C_SLV0_DO, *out);
-		addr = AK8963_I2C_ADDR;
+		addr = AK09916_I2C_ADDR;
 
 	} else {
-		addr = AK8963_I2C_ADDR | BIT_I2C_READ_FLAG;
+		addr = AK09916_I2C_ADDR | BIT_I2C_READ_FLAG;
 	}
 
 	_parent->write_reg(ICMREG_20948_I2C_SLV0_ADDR, addr);
@@ -188,11 +182,11 @@ ICM20948_mag::read_reg(unsigned int reg)
 }
 
 bool
-ICM20948_mag::ak8963_check_id(uint8_t &deviceid)
+ICM20948_mag::ak09916_check_id(uint8_t &deviceid)
 {
-	deviceid = read_reg(AK8963REG_WIA);
+	deviceid = read_reg(AK09916REG_WIA);
 
-	return (AK8963_DEVICE_ID == deviceid);
+	return (AK09916_DEVICE_ID == deviceid);
 }
 
 /*
@@ -219,56 +213,56 @@ ICM20948_mag::write_reg(unsigned reg, uint8_t value)
 }
 
 int
-ICM20948_mag::ak8963_reset(void)
+ICM20948_mag::ak09916_reset(void)
 {
 	// First initialize it to use the bus
-	int rv = ak8963_setup();
+	int rv = ak09916_setup();
 
 	if (rv == OK) {
 		// Now reset the mag
-		write_reg(AK09916REG_CNTL3, AK8963_RESET);
+		write_reg(AK09916REG_CNTL3, AK09916_RESET);
 
 		// Then re-initialize the bus/mag
-		rv = ak8963_setup();
+		rv = ak09916_setup();
 	}
 
 	return rv;
 }
 
 bool
-ICM20948_mag::ak8963_read_adjustments(void)
+ICM20948_mag::ak09916_read_adjustments(void)
 {
 	uint8_t response[3];
-	float ak8963_ASA[3];
+	float ak09916_ASA[3];
 
-	write_reg(AK8963REG_CNTL1, AK8963_FUZE_MODE | AK8963_16BIT_ADC);
+	write_reg(AK09916REG_CNTL1, AK09916_FUZE_MODE | AK09916_16BIT_ADC);
 	px4_usleep(50);
 
 	if (_interface != nullptr) {
-		_interface->read(AK8963REG_ASAX, response, 3);
+		_interface->read(AK09916REG_ASAX, response, 3);
 
 	} else {
-		passthrough_read(AK8963REG_ASAX, response, 3);
+		passthrough_read(AK09916REG_ASAX, response, 3);
 	}
 
-	write_reg(AK8963REG_CNTL1, AK8963_POWERDOWN_MODE);
+	write_reg(AK09916REG_CNTL1, AK09916_POWERDOWN_MODE);
 
 	for (int i = 0; i < 3; i++) {
 		if (0 != response[i] && 0xff != response[i]) {
-			ak8963_ASA[i] = ((float)(response[i] - 128) / 256.0f) + 1.0f;
+			ak09916_ASA[i] = ((float)(response[i] - 128) / 256.0f) + 1.0f;
 
 		} else {
 			return false;
 		}
 	}
 
-	_px4_mag.set_sensitivity(ak8963_ASA[0], ak8963_ASA[1], ak8963_ASA[2]);
+	_px4_mag.set_sensitivity(ak09916_ASA[0], ak09916_ASA[1], ak09916_ASA[2]);
 
 	return true;
 }
 
 int
-ICM20948_mag::ak8963_setup_master_i2c(void)
+ICM20948_mag::ak09916_setup_master_i2c(void)
 {
 	/* When _interface is null we are using SPI and must
 	 * use the parent interface to configure the device to act
@@ -288,29 +282,29 @@ ICM20948_mag::ak8963_setup_master_i2c(void)
 	return OK;
 }
 int
-ICM20948_mag::ak8963_setup(void)
+ICM20948_mag::ak09916_setup(void)
 {
 	int retries = 10;
 
 	do {
 
-		ak8963_setup_master_i2c();
-		write_reg(AK09916REG_CNTL3, AK8963_RESET);
+		ak09916_setup_master_i2c();
+		write_reg(AK09916REG_CNTL3, AK09916_RESET);
 
 		uint8_t id = 0;
 
-		if (ak8963_check_id(id)) {
+		if (ak09916_check_id(id)) {
 			break;
 		}
 
 		retries--;
-		PX4_WARN("AK8963: bad id %d retries %d", id, retries);
+		PX4_WARN("AK09916: bad id %d retries %d", id, retries);
 		_parent->modify_reg(ICMREG_20948_USER_CTRL, 0, BIT_I2C_MST_RST);
 		up_udelay(100);
 	} while (retries > 0);
 
 	if (retries == 0) {
-		PX4_ERR("AK8963: failed to initialize, disabled!");
+		PX4_ERR("AK09916: failed to initialize, disabled!");
 		_parent->modify_checked_reg(ICMREG_20948_USER_CTRL, BIT_I2C_MST_EN, 0);
 		_parent->write_reg(ICMREG_20948_I2C_MST_CTRL, 0);
 		return -EIO;
@@ -320,7 +314,7 @@ ICM20948_mag::ak8963_setup(void)
 
 	if (_interface == NULL) {
 
-		/* Configure mpu' I2c Master interface to read ak8963 data
+		/* Configure mpu' I2c Master interface to read ak09916 data
 		 * Into to fifo
 		 */
 

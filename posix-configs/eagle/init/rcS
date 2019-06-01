@@ -174,7 +174,7 @@ else
 fi
 
 
-qshell df_mpu9250_wrapper start
+qshell mpu9250 start
 qshell df_bmp280_wrapper start
 qshell sensors start
 

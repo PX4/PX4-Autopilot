@@ -42,10 +42,7 @@
 
 #include "I2C.hpp"
 
-#ifdef __PX4_LINUX
-
-#include <linux/i2c.h>
-#include <linux/i2c-dev.h>
+#include "dev_fs_lib_i2c.h"
 
 namespace device
 {
@@ -86,7 +83,7 @@ I2C::init()
 
 	// Open the actual I2C device
 	char dev_path[16];
-	snprintf(dev_path, sizeof(dev_path), "/dev/i2c-%i", get_device_bus());
+	snprintf(dev_path, sizeof(dev_path), "/dev/iic-%i", get_device_bus());
 	_fd = ::open(dev_path, O_RDWR);
 
 	if (_fd < 0) {
@@ -101,66 +98,21 @@ I2C::init()
 int
 I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
 {
-	struct i2c_msg msgv[2];
-	unsigned msgs;
-	int ret = PX4_ERROR;
-	unsigned retry_count = 0;
+	dspal_i2c_ioctl_combined_write_read ioctl_write_read{};
 
-	if (_fd < 0) {
-		PX4_ERR("I2C device not opened");
-		return 1;
+	ioctl_write_read.write_buf = (uint8_t *)send;
+	ioctl_write_read.write_buf_len = send_len;
+	ioctl_write_read.read_buf = recv;
+	ioctl_write_read.read_buf_len = recv_len;
+
+	int bytes_read = ::ioctl(_fd, I2C_IOCTL_RDWR, &ioctl_write_read);
+
+	if (bytes_read != (ssize_t)recv_len) {
+		PX4_ERR("error: read register reports a read of %d bytes, but attempted to read %d bytes", bytes_read, recv_len);
+		return -1;
 	}
 
-	do {
-		DEVICE_DEBUG("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
-		msgs = 0;
-
-		if (send_len > 0) {
-			msgv[msgs].addr = get_device_address();
-			msgv[msgs].flags = 0;
-			msgv[msgs].buf = const_cast<uint8_t *>(send);
-			msgv[msgs].len = send_len;
-			msgs++;
-		}
-
-		if (recv_len > 0) {
-			msgv[msgs].addr = get_device_address();
-			msgv[msgs].flags = I2C_M_READ;
-			msgv[msgs].buf = recv;
-			msgv[msgs].len = recv_len;
-			msgs++;
-		}
-
-		if (msgs == 0) {
-			return -EINVAL;
-		}
-
-		struct i2c_rdwr_ioctl_data packets;
-
-		packets.msgs  = msgv;
-
-		packets.nmsgs = msgs;
-
-		ret = ::ioctl(_fd, I2C_RDWR, (unsigned long)&packets);
-
-		if (ret == -1) {
-			DEVICE_DEBUG("I2C transfer failed");
-			ret = PX4_ERROR;
-
-		} else {
-			ret = PX4_OK;
-		}
-
-		/* success */
-		if (ret == PX4_OK) {
-			break;
-		}
-
-	} while (retry_count++ < _retries);
-
-	return ret;
+	return 0;
 }
 
 } // namespace device
-
-#endif // __PX4_LINUX

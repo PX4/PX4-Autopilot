@@ -156,7 +156,7 @@ start_bus(struct icm20948_bus_option &bus, enum Rotation rotation, bool external
 	bool is_i2c = bus.busid == ICM20948_BUS_I2C_INTERNAL || bus.busid == ICM20948_BUS_I2C_EXTERNAL;
 
 	if (is_i2c) {
-		mag_interface = AK8963_I2C_interface(bus.busnum, external);
+		mag_interface = AK09916_I2C_interface(bus.busnum, external);
 	}
 
 #endif

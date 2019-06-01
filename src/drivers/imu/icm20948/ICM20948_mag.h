@@ -42,30 +42,25 @@ static constexpr float MPU9250_MAG_RANGE_GA{1.5e-3f};
 
 /* we are using the continuous fixed sampling rate of 100Hz */
 
-#define MPU9250_AK8963_SAMPLE_RATE 100
+#define MPU9250_AK09916_SAMPLE_RATE 100
 
-/* ak8963 register address and bit definitions */
+#define AK09916_I2C_ADDR         0x0C
+#define AK09916_DEVICE_ID        0x48
 
-#define AK8963_I2C_ADDR         0x0C
-#define AK8963_DEVICE_ID        0x48
+#define AK09916REG_WIA           0x00
+#define AK09916REG_CNTL1         0x0A
+#define AK09916REG_ASAX          0x10
 
-#define AK8963REG_WIA           0x00
-#define AK8963REG_ST1           0x02
-#define AK8963REG_HXL           0x03
-#define AK8963REG_ASAX          0x10
-#define AK8963REG_CNTL1         0x0A
-#define AK8963REG_CNTL2         0x0B
-
-#define AK8963_SINGLE_MEAS_MODE 0x01
-#define AK8963_CONTINUOUS_MODE1 0x02
-#define AK8963_CONTINUOUS_MODE2 0x06
-#define AK8963_POWERDOWN_MODE   0x00
-#define AK8963_SELFTEST_MODE    0x08
-#define AK8963_FUZE_MODE        0x0F
-#define AK8963_16BIT_ADC        0x10
-#define AK8963_14BIT_ADC        0x00
-#define AK8963_RESET            0x01
-#define AK8963_HOFL             0x08
+#define AK09916_SINGLE_MEAS_MODE 0x01
+#define AK09916_CONTINUOUS_MODE1 0x02
+#define AK09916_CONTINUOUS_MODE2 0x06
+#define AK09916_POWERDOWN_MODE   0x00
+#define AK09916_SELFTEST_MODE    0x08
+#define AK09916_FUZE_MODE        0x0F
+#define AK09916_16BIT_ADC        0x10
+#define AK09916_14BIT_ADC        0x00
+#define AK09916_RESET            0x01
+#define AK09916_HOFL             0x08
 
 /* ak09916 deviating register addresses and bit definitions */
 
@@ -95,18 +90,7 @@ static constexpr float MPU9250_MAG_RANGE_GA{1.5e-3f};
 #define AK09916_ST1_DRDY                        0x01
 #define AK09916_ST1_DOR                         0x02
 
-
 class ICM20948;
-
-#pragma pack(push, 1)
-struct ak8963_regs {
-	uint8_t st1;
-	int16_t x;
-	int16_t y;
-	int16_t z;
-	uint8_t st2;
-};
-#pragma pack(pop)
 
 #pragma pack(push, 1)
 struct ak09916_regs {
@@ -119,11 +103,9 @@ struct ak09916_regs {
 };
 #pragma pack(pop)
 
-
-extern device::Device *AK8963_I2C_interface(int bus, bool external_bus);
+extern device::Device *AK09916_I2C_interface(int bus, bool external_bus);
 
 typedef device::Device *(*ICM20948_mag_constructor)(int, bool);
-
 
 /**
  * Helper class implementing the magnetometer driver node.
@@ -139,11 +121,11 @@ public:
 	void passthrough_write(uint8_t reg, uint8_t val);
 	void read_block(uint8_t reg, uint8_t *val, uint8_t count);
 
-	int ak8963_reset(void);
-	int ak8963_setup(void);
-	int ak8963_setup_master_i2c(void);
-	bool ak8963_check_id(uint8_t &id);
-	bool ak8963_read_adjustments(void);
+	int ak09916_reset(void);
+	int ak09916_setup(void);
+	int ak09916_setup_master_i2c(void);
+	bool ak09916_check_id(uint8_t &id);
+	bool ak09916_read_adjustments(void);
 
 	void print_status() { _px4_mag.print_status(); }
 
@@ -156,7 +138,7 @@ protected:
 	void measure();
 
 	/* Update the state with prefetched data (internally called by the regular measure() )*/
-	void _measure(hrt_abstime timestamp, struct ak8963_regs data);
+	void _measure(hrt_abstime timestamp, struct ak09916_regs data);
 
 	uint8_t read_reg(unsigned reg);
 	void write_reg(unsigned reg, uint8_t value);

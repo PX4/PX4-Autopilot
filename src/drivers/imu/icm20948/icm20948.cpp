@@ -159,12 +159,12 @@ ICM20948::init()
 	px4_usleep(100);
 
 	if (!_mag.is_passthrough() && _mag._interface->init() != PX4_OK) {
-		PX4_ERR("failed to setup ak8963 interface");
+		PX4_ERR("failed to setup ak09916 interface");
 	}
 
 #endif /* USE_I2C */
 
-	ret = _mag.ak8963_reset();
+	ret = _mag.ak09916_reset();
 
 	if (ret != OK) {
 		PX4_DEBUG("mag reset failed");
@@ -193,7 +193,7 @@ int ICM20948::reset()
 	int ret = reset_mpu();
 
 	if (ret == OK && (_whoami == ICM_WHOAMI_20948)) {
-		ret = _mag.ak8963_reset();
+		ret = _mag.ak09916_reset();
 	}
 
 	_reset_wait = hrt_absolute_time() + 10;

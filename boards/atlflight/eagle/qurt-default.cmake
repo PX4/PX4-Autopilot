@@ -46,12 +46,12 @@ px4_add_board(
 
 	DRIVERS
 		gps
+		imu/mpu9250
 		spektrum_rc
 		qshell/qurt
 		snapdragon_pwm_out
 
 	DF_DRIVERS
-		mpu9250
 		bmp280
 		hmc5883
 		trone
