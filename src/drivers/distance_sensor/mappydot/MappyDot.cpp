@@ -142,8 +142,9 @@
 /* Configuration Constants */
 #define MAPPYDOT_BASE_ADDR                                  0x08
 #define MAPPYDOT_BUS_DEFAULT                                PX4_I2C_BUS_EXPANSION2
-#define MAPPYDOT_MEASUREMENT_INTERVAL_USEC                  10000  // 10ms measurement interval, 100Hz.
+#define MAPPYDOT_MEASUREMENT_INTERVAL_USEC                  20000  // 20ms measurement interval, 50Hz.
 
+using namespace time_literals;
 
 class MappyDot : public device::I2C, public ModuleParams, public px4::ScheduledWorkItem
 {
@@ -152,8 +153,8 @@ public:
 	virtual ~MappyDot();
 
 	/**
-	 * Initializes the ringbuffer, advertises uORB topic,
-	 * sets device addresses and records the driver start time.
+	 * Initializes the sensors, advertises uORB topic,
+	 * sets device addresses
 	 */
 	virtual int init() override;
 
@@ -218,15 +219,12 @@ private:
 
 	uint64_t _measure_interval{MAPPYDOT_MEASUREMENT_INTERVAL_USEC};
 
-	size_t _measurement_count{0};
 	size_t _sensor_count{0};
 
-	hrt_abstime _driver_start_time{0};
+	orb_advert_t _distance_sensor_topic{nullptr};
 
-	orb_advert_t _distance_sensor_topic{nullptr};  // Change to _distance_sensor_topic.
-
-	perf_counter_t _comms_errors{perf_alloc(PC_ELAPSED, "mappydot_comms_err")};
-	perf_counter_t _sample_perf{perf_alloc(PC_COUNT, "mappydot_sample_perf")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, "mappydot_comms_err")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "mappydot_sample_perf")};
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::SENS_EN_MPDT>)    _p_sensor_enabled,
@@ -286,7 +284,6 @@ MappyDot::collect()
 
 		// Transfer data from the bus.
 		int ret_val = transfer(nullptr, 0, &val[0], 2);
-		_measurement_count++;
 
 		if (ret_val < 0) {
 			PX4_INFO("error reading from sensor: %i, address: 0x%02X", index, _sensor_addresses[index]);
@@ -315,9 +312,6 @@ MappyDot::collect()
 					 ORB_PRIO_DEFAULT);
 		}
 
-		// Notify anyone waiting for data.
-		poll_notify(POLLIN);
-		perf_count(_sample_perf);
 	}
 
 	perf_end(_sample_perf);
@@ -368,18 +362,11 @@ MappyDot::init()
 		return PX4_ERROR;
 	}
 
-	// Get a publish handle on the obstacle distance topic.
-	distance_sensor_s report {};
-	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &report,
-				 &_orb_class_instance, ORB_PRIO_DEFAULT);
-
-	if (_distance_sensor_topic == nullptr) {
-		PX4_ERR("failed to create distance_sensor object");
-		return PX4_ERROR;
-	}
+	// Allow for sensor auto-addressing time
+	px4_usleep(500_ms);
 
 	// Check for connected rangefinders on each i2c port,
-	// starting from the base address 0x08 and incrementing.
+	// starting from the base address 0x08 and incrementing
 	for (size_t i = 0; i <= RANGE_FINDER_MAX_SENSORS; i++) {
 		set_device_address(MAPPYDOT_BASE_ADDR + i);
 
@@ -388,7 +375,7 @@ MappyDot::init()
 			break;
 		}
 
-		// Store I2C address.
+		// Store I2C address
 		_sensor_addresses[i] = MAPPYDOT_BASE_ADDR + i;
 		_sensor_rotations[i] = get_sensor_rotation(i);
 		_sensor_count++;
@@ -402,7 +389,17 @@ MappyDot::init()
 
 	PX4_INFO("%i sensors connected at %i Hz", _sensor_count, 1000000 / MAPPYDOT_MEASUREMENT_INTERVAL_USEC);
 
-	_driver_start_time = hrt_absolute_time();
+	// Get a publish handle on the distance sensor topic
+	distance_sensor_s report {};
+	_distance_sensor_topic = orb_advertise_multi_queue(ORB_ID(distance_sensor), &report,
+				 &_orb_class_instance, ORB_PRIO_DEFAULT, _sensor_count);
+
+	if (_distance_sensor_topic == nullptr) {
+		PX4_ERR("failed to create distance_sensor object");
+		return PX4_ERROR;
+	}
+
+
 	return PX4_OK;
 }
 
@@ -424,15 +421,8 @@ MappyDot::measure()
 void
 MappyDot::print_info()
 {
-	hrt_abstime time_since_start_usec = hrt_elapsed_time(&_driver_start_time);
-	float time_since_start_sec = time_since_start_usec * 1e-6f;
-	float measurement_rate = _measurement_count / (_sensor_count * time_since_start_sec);
-
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_sample_perf);
-	PX4_INFO("measurement count:    %u", _measurement_count);
-	PX4_INFO("measurement interval: %u msec", MAPPYDOT_MEASUREMENT_INTERVAL_USEC / 1000);
-	PX4_INFO("measurement rate:     %.2f Hz", static_cast<double>(measurement_rate));
 }
 
 void
@@ -493,29 +483,11 @@ namespace mappydot
 
 MappyDot *g_dev;
 
-int reset();
 int start();
 int start_bus(int i2c_bus);
 int status();
 int stop();
 int usage();
-
-/**
- * Reset the driver.
- */
-int
-reset()
-{
-	if (g_dev == nullptr) {
-		PX4_ERR("driver not running");
-		return PX4_ERROR;
-	}
-
-	g_dev->stop();
-	g_dev->start();
-	PX4_INFO("driver reset");
-	return PX4_OK;
-}
 
 /**
  * Attempt to start driver on all available I2C busses.
@@ -620,7 +592,7 @@ usage()
 	PX4_INFO("\t-a --all");
 	PX4_INFO("\t-b --bus i2cbus (%i)", MAPPYDOT_BUS_DEFAULT);
 	PX4_INFO("command:");
-	PX4_INFO("\treset|start|start_bus|status|stop|usage");
+	PX4_INFO("\tstart|start_bus|status|stop");
 	return PX4_OK;
 }
 
@@ -648,7 +620,6 @@ extern "C" __EXPORT int mappydot_main(int argc, char *argv[])
 
 		case 'b':
 			i2c_bus = atoi(myoptarg);
-			PX4_INFO("Specific I2C Bus selected: %i", i2c_bus);
 			break;
 
 		default:
@@ -659,11 +630,6 @@ extern "C" __EXPORT int mappydot_main(int argc, char *argv[])
 
 	if (myoptind >= argc) {
 		return mappydot::usage();
-	}
-
-	// Reset the driver.
-	if (!strcmp(argv[myoptind], "reset")) {
-		return mappydot::reset();
 	}
 
 	if (!strcmp(argv[myoptind], "start")) {
