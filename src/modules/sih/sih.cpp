@@ -46,6 +46,7 @@
 #include <px4_log.h>
 
 #include <drivers/drv_pwm_output.h>         // to get PWM flags
+#include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/vehicle_status.h>     // to get the HIL status
 
 #include <unistd.h>
@@ -283,28 +284,6 @@ void Sih::init_variables()
 
 void Sih::init_sensors()
 {
-
-    _sensor_accel.device_id=1;
-    _sensor_accel.error_count=0;
-    _sensor_accel.integral_dt=0;
-    _sensor_accel.temperature=T1_C;
-    _sensor_accel.scaling=0.0f;
-
-    _sensor_gyro.device_id=1;
-    _sensor_gyro.error_count=0;
-    _sensor_gyro.integral_dt=0;
-    _sensor_gyro.temperature=T1_C;
-    _sensor_gyro.scaling=0.0f;
-
-    _sensor_mag.device_id=1;
-    _sensor_mag.error_count=0;
-    _sensor_mag.temperature=T1_C;
-    _sensor_mag.scaling=0.0f;
-    _sensor_mag.is_external=false;
-
-    _sensor_baro.error_count=0;
-    _sensor_baro.device_id=1;
-
     _vehicle_gps_pos.fix_type=3;    // 3D fix
     _vehicle_gps_pos.satellites_used=8;
     _vehicle_gps_pos.heading=NAN;
@@ -410,44 +389,35 @@ void Sih::reconstruct_sensors_signals()
 
 void Sih::send_IMU()
 {
-    _sensor_accel.timestamp=_now;
-    _sensor_accel.x=_acc(0);
-    _sensor_accel.y=_acc(1);
-    _sensor_accel.z=_acc(2);
-    if (_sensor_accel_pub != nullptr) {
-        orb_publish(ORB_ID(sensor_accel), _sensor_accel_pub, &_sensor_accel);
-    } else {
-        _sensor_accel_pub = orb_advertise(ORB_ID(sensor_accel), &_sensor_accel);
-    }
+	// gyro
+	{
+		static constexpr float scaling = 1000.0f;
+		_px4_gyro.set_scale(1 / scaling);
+		_px4_gyro.set_temperature(T1_C);
+		_px4_gyro.update(_now, _gyro(0) * scaling, _gyro(1) * scaling, _gyro(2) * scaling);
+	}
 
-    _sensor_gyro.timestamp=_now;
-    _sensor_gyro.x=_gyro(0);
-    _sensor_gyro.y=_gyro(1);
-    _sensor_gyro.z=_gyro(2);
-    if (_sensor_gyro_pub != nullptr) {
-        orb_publish(ORB_ID(sensor_gyro), _sensor_gyro_pub, &_sensor_gyro);
-    } else {
-        _sensor_gyro_pub = orb_advertise(ORB_ID(sensor_gyro), &_sensor_gyro);
-    }
+	// accel
+	{
+		static constexpr float scaling = 1000.0f;
+		_px4_accel.set_scale(1 / scaling);
+		_px4_accel.set_temperature(T1_C);
+		_px4_accel.update(_now, _acc(0) * scaling, _acc(1) * scaling, _acc(2) * scaling);
+	}
 
-    _sensor_mag.timestamp=_now;
-    _sensor_mag.x=_mag(0);
-    _sensor_mag.y=_mag(1);
-    _sensor_mag.z=_mag(2);
-    if (_sensor_mag_pub != nullptr) {
-        orb_publish(ORB_ID(sensor_mag), _sensor_mag_pub, &_sensor_mag);
-    } else {
-        _sensor_mag_pub = orb_advertise(ORB_ID(sensor_mag), &_sensor_mag);
-    }
+	// magnetometer
+	{
+		static constexpr float scaling = 1000.0f;
+		_px4_mag.set_scale(1 / scaling);
+		_px4_mag.set_temperature(T1_C);
+		_px4_mag.update(_now, _mag(0) * scaling, _mag(1) * scaling, _mag(2) * scaling);
+	}
 
-    _sensor_baro.timestamp=_now;
-    _sensor_baro.pressure=_baro_p_mBar;
-    _sensor_baro.temperature=_baro_temp_c;
-    if (_sensor_baro_pub != nullptr) {
-        orb_publish(ORB_ID(sensor_baro), _sensor_baro_pub, &_sensor_baro);
-    } else {
-        _sensor_baro_pub = orb_advertise(ORB_ID(sensor_baro), &_sensor_baro);
-    }
+	// baro
+	{
+		_px4_baro.set_temperature(_baro_temp_c);
+		_px4_baro.update(_now, _baro_p_mBar);
+	}
 }
 
 void Sih::send_gps()
@@ -501,7 +471,7 @@ void Sih::publish_sih()
     } else {
         _att_gt_sub = orb_advertise(ORB_ID(vehicle_attitude_groundtruth), &_att_gt);
     }
-} 
+}
 
 float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1
 {
