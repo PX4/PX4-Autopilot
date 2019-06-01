@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,9 +41,7 @@
 
 #include "mpu9250.h"
 
-#ifdef USE_I2C
-
-device::Device *MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus);
+device::Device *MPU9250_I2C_interface(int bus, uint32_t address);
 
 class MPU9250_I2C : public device::I2C
 {
@@ -62,7 +60,7 @@ private:
 };
 
 device::Device *
-MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus)
+MPU9250_I2C_interface(int bus, uint32_t address)
 {
 	return new MPU9250_I2C(bus, address);
 }
@@ -76,7 +74,7 @@ MPU9250_I2C::MPU9250_I2C(int bus, uint32_t address) :
 int
 MPU9250_I2C::write(unsigned reg_speed, void *data, unsigned count)
 {
-	uint8_t cmd[MPU_MAX_WRITE_BUFFER_SIZE] {};
+	uint8_t cmd[2] {};
 
 	if (sizeof(cmd) < (count + 1)) {
 		return -EIO;
@@ -115,5 +113,3 @@ MPU9250_I2C::probe()
 
 	return -ENODEV;
 }
-
-#endif /* USE_I2C */

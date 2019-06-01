@@ -278,9 +278,7 @@ void VotedSensorsUpdate::parameters_update()
 
 				} else {
 					/* apply new scaling and offsets */
-					config_ok = apply_gyro_calibration(h, &gscale, device_id);
-
-					if (!config_ok) {
+					if (h.ioctl(GYROIOCSSCALE, (long unsigned int)&gscale) != PX4_OK) {
 						PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "gyro ", i);
 					}
 				}
@@ -366,9 +364,7 @@ void VotedSensorsUpdate::parameters_update()
 
 				} else {
 					/* apply new scaling and offsets */
-					config_ok = apply_accel_calibration(h, &ascale, device_id);
-
-					if (!config_ok) {
+					if (h.ioctl(ACCELIOCSSCALE, (long unsigned int)&ascale) == PX4_OK) {
 						PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "accel ", i);
 					}
 				}
@@ -435,8 +431,6 @@ void VotedSensorsUpdate::parameters_update()
 				DevMgr::releaseHandle(h);
 			}
 		}
-
-		bool config_ok = false;
 
 		/* run through all stored calibrations */
 		for (unsigned i = 0; i < MAG_COUNT_MAX; i++) {
@@ -511,9 +505,7 @@ void VotedSensorsUpdate::parameters_update()
 				} else {
 
 					/* apply new scaling and offsets */
-					config_ok = apply_mag_calibration(h, &mscale, device_id);
-
-					if (!config_ok) {
+					if (h.ioctl(MAGIOCSSCALE, (long unsigned int)&mscale) == PX4_OK) {
 						PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "mag ", i);
 					}
 				}
@@ -1010,52 +1002,6 @@ void VotedSensorsUpdate::print_status()
 	_baro.voter.print();
 
 	_temperature_compensation.print_status();
-}
-
-bool
-VotedSensorsUpdate::apply_gyro_calibration(DevHandle &h, const struct gyro_calibration_s *gcal, const int device_id)
-{
-#if defined(__PX4_NUTTX)
-
-	/* On most systems, we can just use the IOCTL call to set the calibration params. */
-	return !h.ioctl(GYROIOCSSCALE, (long unsigned int)gcal);
-
-#else
-	/* On QURT, the params are read directly in the respective wrappers. */
-	return true;
-#endif
-}
-
-bool
-VotedSensorsUpdate::apply_accel_calibration(DevHandle &h, const struct accel_calibration_s *acal, const int device_id)
-{
-#if defined(__PX4_NUTTX)
-
-	/* On most systems, we can just use the IOCTL call to set the calibration params. */
-	return !h.ioctl(ACCELIOCSSCALE, (long unsigned int)acal);
-
-#else
-	/* On QURT, the params are read directly in the respective wrappers. */
-	return true;
-#endif
-}
-
-bool
-VotedSensorsUpdate::apply_mag_calibration(DevHandle &h, const struct mag_calibration_s *mcal, const int device_id)
-{
-#if defined(__PX4_NUTTX)
-
-	if (!h.isValid()) {
-		return false;
-	}
-
-	/* On most systems, we can just use the IOCTL call to set the calibration params. */
-	return !h.ioctl(MAGIOCSSCALE, (long unsigned int)mcal);
-
-#else
-	/* On QURT & POSIX, the params are read directly in the respective wrappers. */
-	return true;
-#endif
 }
 
 void VotedSensorsUpdate::sensors_poll(sensor_combined_s &raw, vehicle_air_data_s &airdata,

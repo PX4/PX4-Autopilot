@@ -126,6 +126,8 @@ const wq_config_t &device_bus_to_wq(uint32_t device_id_int)
 
 	if (bus_type == device::Device::DeviceBusType_I2C) {
 		switch (bus) {
+		case 0: return wq_configurations::I2C0;
+
 		case 1: return wq_configurations::I2C1;
 
 		case 2: return wq_configurations::I2C2;
@@ -137,6 +139,8 @@ const wq_config_t &device_bus_to_wq(uint32_t device_id_int)
 
 	} else if (bus_type == device::Device::DeviceBusType_SPI) {
 		switch (bus) {
+		case 0: return wq_configurations::SPI0;
+
 		case 1: return wq_configurations::SPI1;
 
 		case 2: return wq_configurations::SPI2;
@@ -201,7 +205,7 @@ static void WorkQueueManagerRun()
 #ifndef __PX4_QURT
 			const size_t stacksize = math::max(PTHREAD_STACK_MIN, PX4_STACK_ADJUSTED(wq->stacksize));
 #else
-			const size_t stacksize = math::max(8 * 1024, PX4_STACK_ADJUSTED(wq->stacksize));
+			const size_t stacksize = PX4_STACK_ADJUSTED(wq->stacksize);
 #endif
 			int ret_setstacksize = pthread_attr_setstacksize(&attr, stacksize);
 
@@ -209,15 +213,15 @@ static void WorkQueueManagerRun()
 				PX4_ERR("setting stack size for %s failed (%i)", wq->name, ret_setstacksize);
 			}
 
-#ifndef __PX4_QURT
 			// schedule policy FIFO
+#ifndef __PX4_QURT
 			int ret_setschedpolicy = pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
 
 			if (ret_setschedpolicy != 0) {
 				PX4_ERR("failed to set sched policy SCHED_FIFO (%i)", ret_setschedpolicy);
 			}
 
-#endif // ! QuRT
+#endif // __PX4_QURT
 
 			// priority
 			param.sched_priority = sched_get_priority_max(SCHED_FIFO) + wq->relative_priority;

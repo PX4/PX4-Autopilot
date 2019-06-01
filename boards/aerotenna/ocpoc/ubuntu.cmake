@@ -16,6 +16,7 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		gps
 		#imu # all available imu drivers
+		imu/mpu9250
 		lights/rgbled
 		linux_pwm_out
 		linux_sbus
@@ -24,7 +25,6 @@ px4_add_board(
 		#telemetry # all available telemetry drivers
 
 	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
-		mpu9250
 		ms5611
 		hmc5883
 
