@@ -36,6 +36,7 @@ import sys
 import os
 import argparse
 import yaml
+import re
 
 
 class Classifier():
@@ -44,8 +45,11 @@ class Classifier():
     """
 
     def __init__(self, yaml_file, msg_folder):
-        self.msg_id_map = self.parse_yaml_msg_id_file(yaml_file)
         self.msg_folder = msg_folder
+        self.all_msgs_list = self.set_all_msgs()
+        self.msg_id_map = self.parse_yaml_msg_id_file(yaml_file)
+        self.check_if_listed(yaml_file)
+
         self.msgs_to_send = self.set_msgs_to_send()
         self.msgs_to_receive = self.set_msgs_to_receive()
         self.msgs_to_ignore = self.set_msgs_to_ignore()
@@ -54,6 +58,13 @@ class Classifier():
         self.msg_files_ignore = self.set_msg_files_ignore()
 
     # setters (for class init)
+    def set_all_msgs(self):
+        msg_list = []
+        for filename in os.listdir(self.msg_folder):
+            if '.msg' in filename:
+                msg_list.append(re.sub(".msg", "", filename))
+        return msg_list
+
     def set_msgs_to_send(self):
         send = {}
         for dict in self.msg_id_map['rtps']:
@@ -86,6 +97,29 @@ class Classifier():
     def set_msg_files_ignore(self):
         return [os.path.join(self.msg_folder, msg + ".msg")
                 for msg in self.msgs_to_ignore.keys()]
+
+    def check_if_listed(self, yaml_file):
+        """
+        Checks if all msgs are listed under the RTPS ID yaml file
+        """
+        none_listed_msgs = []
+        for msg in self.all_msgs_list:
+            result = not any(
+                dict.values()[0] == msg for dict in self.msg_id_map['rtps'])
+            if result:
+                none_listed_msgs.append(msg)
+
+        if len(none_listed_msgs) > 0:
+            if len(none_listed_msgs) == 1:
+                error_msg = "The following message is not listen under "
+            elif len(none_listed_msgs) > 1:
+                error_msg = "The following messages are not listen under "
+
+            raise AssertionError(
+                "\n%s %s: " % (error_msg, yaml_file) + ", ".join('%s' % msg for msg in none_listed_msgs) +
+                "\n\nPlease add them to the yaml file with the respective ID and, if applicable, mark them" +
+                "to be sent or received by the micro-RTPS bridge.\n"
+                "NOTE: If the message has multi-topics (#TOPICS), these should be added as well.\n")
 
     @staticmethod
     def parse_yaml_msg_id_file(yaml_file):
@@ -128,8 +162,8 @@ if __name__ == "__main__":
         msg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     else:
         msg_dir = os.path.abspath(args.msgdir)
-    classifier = (Classifier(os.path.abspath(args.yaml_file), msg_dir) if os.path.isabs(args.yaml_file) \
-        else Classifier(os.path.join(msg_dir, args.yaml_file), msg_dir))
+    classifier = (Classifier(os.path.abspath(args.yaml_file), msg_dir) if os.path.isabs(args.yaml_file)
+                  else Classifier(os.path.join(msg_dir, args.yaml_file), msg_dir))
 
     if args.send:
         if args.path:
