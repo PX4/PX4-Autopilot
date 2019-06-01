@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(drivers_board
+add_library(drivers_board
 	can.c
 	i2c.c
 	init.c
