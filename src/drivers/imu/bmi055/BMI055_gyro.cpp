@@ -64,6 +64,10 @@ BMI055_gyro::~BMI055_gyro()
 	/* make sure we are truly inactive */
 	stop();
 
+	if (_dma_data_buffer != nullptr) {
+		board_dma_free(_dma_data_buffer, (size_t)512);
+	}
+
 	/* delete the perf counter */
 	perf_free(_sample_perf);
 	perf_free(_measure_interval);
@@ -81,6 +85,13 @@ BMI055_gyro::init()
 	if (ret != OK) {
 		DEVICE_DEBUG("SPI setup failed");
 		return ret;
+	}
+
+	_dma_data_buffer = (uint8_t *)board_dma_alloc((size_t)512);
+
+	if (_dma_data_buffer == nullptr) {
+		PX4_ERR("DMA alloc failed");
+		return PX4_ERROR;
 	}
 
 	return reset();
@@ -329,8 +340,6 @@ BMI055_gyro::measure()
 		return;
 	}
 
-	struct BMI_GyroReport bmi_gyroreport;
-
 	struct Report {
 		int16_t     temp;
 		int16_t     gyro_x;
@@ -344,11 +353,12 @@ BMI055_gyro::measure()
 	/*
 	 * Fetch the full set of measurements from the BMI055 gyro in one pass.
 	 */
-	bmi_gyroreport.cmd = BMI055_GYR_X_L | DIR_READ;
+	BMI_GyroReport *bmi_gyroreport = (BMI_GyroReport *)_dma_data_buffer;
+	bmi_gyroreport->cmd = BMI055_GYR_X_L | DIR_READ;
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	if (OK != transfer((uint8_t *)&bmi_gyroreport, ((uint8_t *)&bmi_gyroreport), sizeof(bmi_gyroreport))) {
+	if (OK != transfer((uint8_t *)bmi_gyroreport, (uint8_t *)bmi_gyroreport, sizeof(BMI_GyroReport))) {
 		return;
 	}
 
@@ -357,9 +367,9 @@ BMI055_gyro::measure()
 	int8_t temp = read_reg(BMI055_ACC_TEMP);
 	report.temp = temp;
 
-	report.gyro_x = bmi_gyroreport.gyro_x;
-	report.gyro_y = bmi_gyroreport.gyro_y;
-	report.gyro_z = bmi_gyroreport.gyro_z;
+	report.gyro_x = bmi_gyroreport->gyro_x;
+	report.gyro_y = bmi_gyroreport->gyro_y;
+	report.gyro_z = bmi_gyroreport->gyro_z;
 
 	if (report.temp == 0 &&
 	    report.gyro_x == 0 &&

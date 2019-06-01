@@ -50,6 +50,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/device/spi.h>
 #include <lib/conversion/rotation.h>
+#include <drivers/boards/common/board_dma_alloc.h>
 
 #include "MPU9250_mag.h"
 #include "mpu9250.h"
@@ -106,6 +107,10 @@ MPU9250::~MPU9250()
 	/* make sure we are truly inactive */
 	stop();
 
+	if (_dma_data_buffer != nullptr) {
+		board_dma_free(_dma_data_buffer, (size_t)512);
+	}
+
 	/* delete the perf counter */
 	perf_free(_sample_perf);
 	perf_free(_bad_transfers);
@@ -133,6 +138,13 @@ MPU9250::init()
 	if (ret != OK) {
 		PX4_DEBUG("probe failed");
 		return ret;
+	}
+
+	_dma_data_buffer = (uint8_t *)board_dma_alloc((size_t)512);
+
+	if (_dma_data_buffer == nullptr) {
+		PX4_ERR("DMA alloc failed");
+		return PX4_ERROR;
 	}
 
 	_reset_wait = hrt_absolute_time() + 100000;
@@ -641,8 +653,6 @@ MPU9250::measure()
 		return;
 	}
 
-	struct MPUReport mpu_report;
-
 	struct Report {
 		int16_t		accel_x;
 		int16_t		accel_y;
@@ -661,10 +671,11 @@ MPU9250::measure()
 	/*
 	 * Fetch the full set of measurements from the MPU9250 in one pass
 	 */
+	MPUReport *mpu_report = (MPUReport *)_dma_data_buffer;
 
 	if ((!_magnetometer_only || _mag.is_passthrough()) && _register_wait == 0) {
 		if (_whoami == MPU_WHOAMI_9250 || _whoami == MPU_WHOAMI_6500) {
-			if (OK != read_reg_range(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED, (uint8_t *)&mpu_report, sizeof(mpu_report))) {
+			if (OK != read_reg_range(MPUREG_INT_STATUS, MPU9250_HIGH_BUS_SPEED, _dma_data_buffer, sizeof(MPUReport))) {
 				perf_end(_sample_perf);
 				return;
 			}
@@ -673,7 +684,7 @@ MPU9250::measure()
 
 		check_registers();
 
-		if (check_duplicate(&mpu_report.accel_x[0])) {
+		if (check_duplicate(&mpu_report->accel_x[0])) {
 			return;
 		}
 	}
@@ -689,7 +700,7 @@ MPU9250::measure()
 #   endif
 
 		if (_register_wait == 0) {
-			_mag._measure(timestamp_sample, mpu_report.mag);
+			_mag._measure(timestamp_sample, mpu_report->mag);
 		}
 
 #   ifdef USE_I2C
@@ -708,13 +719,13 @@ MPU9250::measure()
 		/*
 		 * Convert from big to little endian
 		 */
-		report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
-		report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
-		report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
-		report.temp    = int16_t_from_bytes(mpu_report.temp);
-		report.gyro_x  = int16_t_from_bytes(mpu_report.gyro_x);
-		report.gyro_y  = int16_t_from_bytes(mpu_report.gyro_y);
-		report.gyro_z  = int16_t_from_bytes(mpu_report.gyro_z);
+		report.accel_x = int16_t_from_bytes(mpu_report->accel_x);
+		report.accel_y = int16_t_from_bytes(mpu_report->accel_y);
+		report.accel_z = int16_t_from_bytes(mpu_report->accel_z);
+		report.temp    = int16_t_from_bytes(mpu_report->temp);
+		report.gyro_x  = int16_t_from_bytes(mpu_report->gyro_x);
+		report.gyro_y  = int16_t_from_bytes(mpu_report->gyro_y);
+		report.gyro_z  = int16_t_from_bytes(mpu_report->gyro_z);
 
 		if (check_null_data((uint16_t *)&report, sizeof(report) / 2)) {
 			return;

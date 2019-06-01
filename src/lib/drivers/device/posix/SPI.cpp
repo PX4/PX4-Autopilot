@@ -65,8 +65,6 @@ SPI::SPI(const char *name, const char *devname, int bus, uint32_t device, enum s
 	_device_id.devid_s.bus_type = DeviceBusType_SPI;
 	_device_id.devid_s.bus = bus;
 	_device_id.devid_s.address = (uint8_t)device;
-	// devtype needs to be filled in by the driver
-	_device_id.devid_s.devtype = 0;
 }
 
 SPI::~SPI()
@@ -80,8 +78,6 @@ SPI::~SPI()
 int
 SPI::init()
 {
-	int ret = OK;
-
 	// Open the actual SPI device
 	char dev_path[16];
 	snprintf(dev_path, sizeof(dev_path), "/dev/spidev%i.%i", get_device_bus(), PX4_SPI_DEV_ID(_device));
@@ -94,7 +90,7 @@ SPI::init()
 	}
 
 	/* call the probe function to check whether the device is present */
-	ret = probe();
+	int ret = probe();
 
 	if (ret != OK) {
 		DEVICE_DEBUG("probe failed");

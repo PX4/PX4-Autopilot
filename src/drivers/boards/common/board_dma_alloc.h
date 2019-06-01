@@ -44,6 +44,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+__BEGIN_DECLS
+
 /************************************************************************************
  * Name: board_dma_alloc_init
  *
@@ -112,7 +114,7 @@ __EXPORT int board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16
 #if defined(BOARD_DMA_ALLOC_POOL_SIZE)
 __EXPORT void *board_dma_alloc(size_t size);
 #else
-#define board_dma_alloc(size) (NULL)
+#define board_dma_alloc(size) malloc(size)
 #endif
 
 /************************************************************************************
@@ -129,5 +131,7 @@ __EXPORT void *board_dma_alloc(size_t size);
 #if defined(BOARD_DMA_ALLOC_POOL_SIZE)
 __EXPORT void board_dma_free(FAR void *memory, size_t size);
 #else
-#define board_dma_free(memory, size) ()
+#define board_dma_free(memory, size) free(memory)
 #endif
+
+__END_DECLS

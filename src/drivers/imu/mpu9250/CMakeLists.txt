@@ -47,4 +47,5 @@ px4_add_module(
 		drivers_accelerometer
 		drivers_gyroscope
 		drivers_magnetometer
+		drivers_boards_common
 	)

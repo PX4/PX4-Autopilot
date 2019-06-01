@@ -464,7 +464,7 @@
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
-#define BOARD_DMA_ALLOC_POOL_SIZE 5120
+#define BOARD_DMA_ALLOC_POOL_SIZE 6144	// 5120 fat + 1024 spi
 
 #define BOARD_HAS_ON_RESET 1
 
@@ -493,7 +493,6 @@ __BEGIN_DECLS
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
-
 
 /****************************************************************************************************
  * Name: board_spi_reset board_peripheral_reset

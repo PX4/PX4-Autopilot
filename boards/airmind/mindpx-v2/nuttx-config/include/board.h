@@ -281,6 +281,9 @@
 #define GPIO_SPI4_MOSI	(GPIO_SPI4_MOSI_1|GPIO_SPEED_50MHz)
 #define GPIO_SPI4_SCK	(GPIO_SPI4_SCK_1|GPIO_SPEED_50MHz)
 
+#define DMACHAN_SPI4_RX DMAMAP_SPI4_RX_1
+#define DMACHAN_SPI4_TX DMAMAP_SPI4_TX_2
+
 /************************************************************************************
  * Public Data
  ************************************************************************************/

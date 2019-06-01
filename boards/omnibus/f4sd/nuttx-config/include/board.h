@@ -302,6 +302,9 @@
 #define GPIO_SPI1_MISO GPIO_SPI1_MISO_1
 #define GPIO_SPI1_MOSI GPIO_SPI1_MOSI_1
 
+#define DMACHAN_SPI1_RX DMAMAP_SPI1_RX_1
+#define DMACHAN_SPI1_TX DMAMAP_SPI1_TX_1
+
 /* SPI2:
  *  SD Card
  *  CS: PB12 -- configured in board_config.h

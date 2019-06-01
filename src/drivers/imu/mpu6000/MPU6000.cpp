@@ -33,6 +33,8 @@
 
 #include "MPU6000.hpp"
 
+#include <drivers/boards/common/board_dma_alloc.h>
+
 /*
   list of registers that will be checked in check_registers(). Note
   that MPUREG_PRODUCT_ID must be first in the list.
@@ -82,6 +84,10 @@ MPU6000::~MPU6000()
 	/* make sure we are truly inactive */
 	stop();
 
+	if (_dma_data_buffer != nullptr) {
+		board_dma_free(_dma_data_buffer, (size_t)512);
+	}
+
 	/* delete the perf counter */
 	perf_free(_sample_perf);
 	perf_free(_measure_interval);
@@ -110,6 +116,13 @@ MPU6000::init()
 	if (ret != OK) {
 		PX4_DEBUG("CDev init failed");
 		return ret;
+	}
+
+	_dma_data_buffer = (uint8_t *)board_dma_alloc((size_t)512);
+
+	if (_dma_data_buffer == nullptr) {
+		PX4_ERR("DMA alloc failed");
+		return PX4_ERROR;
 	}
 
 	if (reset() != OK) {
@@ -741,8 +754,6 @@ MPU6000::measure()
 		return OK;
 	}
 
-	struct MPUReport mpu_report;
-
 	struct Report {
 		int16_t		accel_x;
 		int16_t		accel_y;
@@ -761,11 +772,11 @@ MPU6000::measure()
 	 */
 
 	// sensor transfer at high clock speed
-
+	MPUReport *mpu_report = (MPUReport *)_dma_data_buffer;
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	if (sizeof(mpu_report) != _interface->read(MPU6000_SET_SPEED(MPUREG_INT_STATUS, MPU6000_HIGH_BUS_SPEED),
-			(uint8_t *)&mpu_report, sizeof(mpu_report))) {
+	if (sizeof(MPUReport) != _interface->read(MPU6000_SET_SPEED(MPUREG_INT_STATUS, MPU6000_HIGH_BUS_SPEED), mpu_report,
+			sizeof(MPUReport))) {
 
 		return -EIO;
 	}
@@ -780,7 +791,7 @@ MPU6000::measure()
 	   sampled at 8kHz, so we would incorrectly think we have new
 	   data when we are in fact getting duplicate accelerometer data.
 	*/
-	if (!_got_duplicate && memcmp(&mpu_report.accel_x[0], &_last_accel[0], 6) == 0) {
+	if (!_got_duplicate && memcmp(&mpu_report->accel_x[0], &_last_accel[0], 6) == 0) {
 		// it isn't new data - wait for next timer
 		perf_end(_sample_perf);
 		perf_count(_duplicates);
@@ -788,22 +799,22 @@ MPU6000::measure()
 		return OK;
 	}
 
-	memcpy(&_last_accel[0], &mpu_report.accel_x[0], 6);
+	memcpy(&_last_accel[0], &mpu_report->accel_x[0], 6);
 	_got_duplicate = false;
 
 	/*
 	 * Convert from big to little endian
 	 */
 
-	report.accel_x = int16_t_from_bytes(mpu_report.accel_x);
-	report.accel_y = int16_t_from_bytes(mpu_report.accel_y);
-	report.accel_z = int16_t_from_bytes(mpu_report.accel_z);
+	report.accel_x = int16_t_from_bytes(mpu_report->accel_x);
+	report.accel_y = int16_t_from_bytes(mpu_report->accel_y);
+	report.accel_z = int16_t_from_bytes(mpu_report->accel_z);
 
-	report.temp = int16_t_from_bytes(mpu_report.temp);
+	report.temp = int16_t_from_bytes(mpu_report->temp);
 
-	report.gyro_x = int16_t_from_bytes(mpu_report.gyro_x);
-	report.gyro_y = int16_t_from_bytes(mpu_report.gyro_y);
-	report.gyro_z = int16_t_from_bytes(mpu_report.gyro_z);
+	report.gyro_x = int16_t_from_bytes(mpu_report->gyro_x);
+	report.gyro_y = int16_t_from_bytes(mpu_report->gyro_y);
+	report.gyro_z = int16_t_from_bytes(mpu_report->gyro_z);
 
 	if (report.accel_x == 0 &&
 	    report.accel_y == 0 &&
