@@ -263,6 +263,8 @@ protected:
 
 private:
 
+	uint8_t			*_dma_data_buffer{nullptr};
+
 	PX4Accelerometer	_px4_accel;
 	PX4Gyroscope		_px4_gyro;
 

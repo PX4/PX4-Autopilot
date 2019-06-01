@@ -63,6 +63,10 @@ BMI055_accel::~BMI055_accel()
 	/* make sure we are truly inactive */
 	stop();
 
+	if (_dma_data_buffer != nullptr) {
+		board_dma_free(_dma_data_buffer, 8u);
+	}
+
 	/* delete the perf counter */
 	perf_free(_sample_perf);
 	perf_free(_measure_interval);
@@ -81,6 +85,13 @@ BMI055_accel::init()
 	if (ret != OK) {
 		DEVICE_DEBUG("SPI setup failed");
 		return ret;
+	}
+
+	_dma_data_buffer = (uint8_t *)board_dma_alloc(8u);
+
+	if (_dma_data_buffer == nullptr) {
+		PX4_ERR("DMA alloc failed");
+		return PX4_ERROR;
 	}
 
 	return reset();
@@ -307,12 +318,14 @@ BMI055_accel::measure()
 	 * Fetch the full set of measurements from the BMI055 in one pass.
 	 */
 	uint8_t index = 0;
-	uint8_t accel_data[8] {};
+
+	uint8_t *accel_data = (uint8_t *)_dma_data_buffer;
+
 	accel_data[index] = BMI055_ACC_X_L | DIR_READ;
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	if (OK != transfer(accel_data, accel_data, sizeof(accel_data))) {
+	if (OK != transfer(_dma_data_buffer, _dma_data_buffer, 8)) {
 		return;
 	}
 

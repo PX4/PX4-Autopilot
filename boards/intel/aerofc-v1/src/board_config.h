@@ -137,6 +137,9 @@
  */
 #define BOARD_TAP_ESC_MODE 1
 
+/* This board provides a DMA pool and APIs. */
+#define BOARD_DMA_ALLOC_POOL_SIZE 1024	// 1024 spi
+
 #define MEMORY_CONSTRAINED_SYSTEM
 
 #define BOARD_CRASHDUMP_RESET_ONLY

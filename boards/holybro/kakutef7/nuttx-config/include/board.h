@@ -293,6 +293,9 @@
 #define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_1   /* PE6 */
 #define GPIO_SPI4_SCK    GPIO_SPI4_SCK_1    /* PE2 */
 
+#define DMAMAP_SPI4_RX   DMAMAP_SPI4_RX_1
+#define DMAMAP_SPI4_TX   DMAMAP_SPI4_TX_2
+
 /* I2C
  */
 

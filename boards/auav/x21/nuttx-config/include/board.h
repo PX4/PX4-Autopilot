@@ -205,13 +205,12 @@
  *   DMAMAP_SDIO_2 = Channel 4, Stream 6
  */
 
-#define DMAMAP_SDIO DMAMAP_SDIO_1
+#define DMAMAP_SDIO DMAMAP_SDIO_2
 
 /* Alternate function pin selections ************************************************/
 
-/*
- * UARTs.
- */
+/* UARTs */
+
 #define GPIO_USART1_RX   GPIO_USART1_RX_1    /* Console in from IO */
 #define GPIO_USART1_TX   0                   /* USART1 is RX-only */
 
@@ -234,16 +233,13 @@
 #define GPIO_UART7_RX    GPIO_UART7_RX_1
 #define GPIO_UART7_TX    GPIO_UART7_TX_1
 
-
 /* UART8 has no alternate pin config */
 
 /* UART RX DMA configurations */
+#define DMAMAP_USART1_RX DMAMAP_USART1_RX_1
+#define DMAMAP_USART6_RX DMAMAP_USART6_RX_1
 
-#define DMAMAP_USART1_RX DMAMAP_USART1_RX_2
-#define DMAMAP_USART6_RX DMAMAP_USART6_RX_2
-
-/*
- * CAN
+/* CAN
  *
  * CAN1 is routed to the onboard transceiver.
  */
@@ -262,22 +258,28 @@
 #define GPIO_I2C1_SCL_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN8)
 #define GPIO_I2C1_SDA_GPIO	(GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN9)
 
-/*
- * SPI
+/* SPI
  *
  * There are sensors on SPI1, and SPI2 is connected to the FRAM.
  */
+
 #define GPIO_SPI1_MISO   GPIO_SPI1_MISO_1
 #define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_1
 #define GPIO_SPI1_SCK    GPIO_SPI1_SCK_1
+
+#define DMACHAN_SPI1_RX  DMAMAP_SPI1_RX_1
+#define DMACHAN_SPI1_TX  DMAMAP_SPI1_TX_2
 
 #define GPIO_SPI2_MISO   GPIO_SPI2_MISO_1
 #define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_1
 #define GPIO_SPI2_SCK    GPIO_SPI2_SCK_2
 
-#define GPIO_SPI4_MISO	GPIO_SPI4_MISO_1
-#define GPIO_SPI4_MOSI	GPIO_SPI4_MOSI_1
-#define GPIO_SPI4_SCK	GPIO_SPI4_SCK_1
+#define GPIO_SPI4_MISO   GPIO_SPI4_MISO_1
+#define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_1
+#define GPIO_SPI4_SCK    GPIO_SPI4_SCK_1
+
+#define DMACHAN_SPI4_RX  DMAMAP_SPI4_RX_2
+#define DMACHAN_SPI4_TX  DMAMAP_SPI4_TX_2
 
 /************************************************************************************
  * Public Data

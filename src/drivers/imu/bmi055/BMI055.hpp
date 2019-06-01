@@ -39,6 +39,8 @@
 #include <px4_getopt.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
 
+#include <drivers/boards/common/board_dma_alloc.h>
+
 #define DIR_READ                0x80
 #define DIR_WRITE               0x00
 
@@ -62,6 +64,8 @@ protected:
 	enum Rotation       _rotation;
 
 	uint8_t         _checked_next;
+
+	uint8_t		*_dma_data_buffer{nullptr};
 
 	/**
 	* Read a register from the BMI055

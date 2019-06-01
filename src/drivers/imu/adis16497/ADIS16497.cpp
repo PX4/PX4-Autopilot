@@ -33,6 +33,8 @@
 
 #include "ADIS16497.hpp"
 
+#include <drivers/boards/common/board_dma_alloc.h>
+
 #define DIR_READ				0x00
 #define DIR_WRITE				0x80
 
@@ -94,6 +96,10 @@ ADIS16497::~ADIS16497()
 	// make sure we are truly inactive
 	stop();
 
+	if (_dma_data_buffer != nullptr) {
+		board_dma_free(_dma_data_buffer, sizeof(ADISReport));
+	}
+
 	// delete the perf counters
 	perf_free(_sample_interval_perf);
 	perf_free(_sample_perf);
@@ -107,6 +113,13 @@ ADIS16497::init()
 	if (SPI::init() != OK) {
 		// if probe/setup failed, bail now
 		PX4_DEBUG("SPI setup failed");
+		return PX4_ERROR;
+	}
+
+	_dma_data_buffer = (uint8_t *)board_dma_alloc(sizeof(ADISReport));
+
+	if (_dma_data_buffer == nullptr) {
+		PX4_ERR("DMA alloc failed");
 		return PX4_ERROR;
 	}
 
@@ -384,15 +397,12 @@ ADIS16497::Run()
 int
 ADIS16497::measure()
 {
-	perf_count(_sample_interval_perf);
 	perf_begin(_sample_perf);
+	perf_count(_sample_interval_perf);
 
 	// Fetch the full set of measurements from the ADIS16497 in one pass (burst read).
-	ADISReport adis_report{};
+	ADISReport &adis_report = *(ADISReport *)_dma_data_buffer;
 	adis_report.cmd = ((BURST_CMD | DIR_READ) << 8) & 0xff00;
-
-	// ADIS16497 burst report should be 320 bits
-	static_assert(sizeof(adis_report) == (320 / 8), "ADIS16497 report not 320 bits");
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 

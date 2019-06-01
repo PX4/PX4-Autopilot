@@ -347,6 +347,8 @@ private:
 
 	void Run() override;
 
+	uint8_t			*_dma_data_buffer{nullptr};
+
 	int 			_device_type;
 	uint8_t			_product{0};	/** product code */
 

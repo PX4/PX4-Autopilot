@@ -58,6 +58,8 @@
 
 #if defined(CONFIG_GRAN)
 
+__BEGIN_DECLS
+
 static GRAN_HANDLE dma_allocator;
 
 /*
@@ -70,6 +72,7 @@ static GRAN_HANDLE dma_allocator;
  * We use a fundamental alignment / granule size of 64B; this is sufficient
  * to guarantee alignment for the largest STM32 DMA burst (16 beats x 32bits).
  */
+static_assert(!(BOARD_DMA_ALLOC_POOL_SIZE % 512), "DMA alloc pool multiple of 512");
 static uint8_t g_dma_heap[BOARD_DMA_ALLOC_POOL_SIZE] __attribute__((aligned(64)));
 static perf_counter_t g_dma_perf;
 static uint16_t dma_heap_inuse;
@@ -132,6 +135,8 @@ board_dma_free(FAR void *memory, size_t size)
 	gran_free(dma_allocator, memory, size);
 	dma_heap_inuse -= size;
 }
+
+__END_DECLS
 
 #endif /* CONFIG_GRAN */
 #endif /* BOARD_DMA_ALLOC_POOL_SIZE */

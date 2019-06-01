@@ -98,6 +98,8 @@ protected:
 
 private:
 
+	uint8_t			*_dma_data_buffer{nullptr};
+
 	PX4Accelerometer	_px4_accel;
 	PX4Gyroscope		_px4_gyro;
 
@@ -105,7 +107,6 @@ private:
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_bad_transfers;
 
-#pragma pack(push, 1)
 	// Report conversation with the ADIS16497, including command byte.
 	struct ADISReport {
 		uint16_t	cmd;
@@ -129,7 +130,8 @@ private:
 		uint16_t	CRC_LWR;
 		uint16_t	CRC_UPR;
 	};
-#pragma pack(pop)
+	// ADIS16497 burst report should be 320 bits
+	static_assert(sizeof(ADISReport) == (320 / 8), "ADIS16497 report not 320 bits");
 
 	/**
 	 * Start automatic measurement.

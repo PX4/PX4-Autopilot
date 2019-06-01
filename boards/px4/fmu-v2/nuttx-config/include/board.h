@@ -204,7 +204,7 @@
  *   DMAMAP_SDIO_2 = Channel 4, Stream 6
  */
 
-#define DMAMAP_SDIO DMAMAP_SDIO_1
+#define DMAMAP_SDIO DMAMAP_SDIO_2
 
 /* Alternate function pin selections ************************************************/
 
@@ -235,9 +235,8 @@
 /* UART8 has no alternate pin config */
 
 /* UART RX DMA configurations */
-
-#define DMAMAP_USART1_RX DMAMAP_USART1_RX_2
-#define DMAMAP_USART6_RX DMAMAP_USART6_RX_2
+#define DMAMAP_USART1_RX DMAMAP_USART1_RX_1
+#define DMAMAP_USART6_RX DMAMAP_USART6_RX_1
 
 /* CAN
  *
@@ -276,13 +275,19 @@
 #define GPIO_SPI1_MOSI   GPIO_SPI1_MOSI_1
 #define GPIO_SPI1_SCK    GPIO_SPI1_SCK_1
 
+#define DMACHAN_SPI1_RX  DMAMAP_SPI1_RX_1
+#define DMACHAN_SPI1_TX  DMAMAP_SPI1_TX_2
+
 #define GPIO_SPI2_MISO   GPIO_SPI2_MISO_1
 #define GPIO_SPI2_MOSI   GPIO_SPI2_MOSI_1
 #define GPIO_SPI2_SCK    GPIO_SPI2_SCK_2
 
-#define GPIO_SPI4_MISO	GPIO_SPI4_MISO_1
-#define GPIO_SPI4_MOSI	GPIO_SPI4_MOSI_1
-#define GPIO_SPI4_SCK	GPIO_SPI4_SCK_1
+#define GPIO_SPI4_MISO   GPIO_SPI4_MISO_1
+#define GPIO_SPI4_MOSI   GPIO_SPI4_MOSI_1
+#define GPIO_SPI4_SCK    GPIO_SPI4_SCK_1
+
+#define DMACHAN_SPI4_RX  DMAMAP_SPI4_RX_2
+#define DMACHAN_SPI4_TX  DMAMAP_SPI4_TX_2
 
 /* LED Definitions.  Needed if CONFIG_ARCH_LEDs is defined */
 
