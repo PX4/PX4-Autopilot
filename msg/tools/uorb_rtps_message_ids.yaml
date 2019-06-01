@@ -1,11 +1,11 @@
 rtps:
   - msg: actuator_armed
     id: 0
-  - msg: actuator_control
+  - msg: actuator_controls
     id: 1
   - msg: actuator_direct
     id: 2
-  - msg: actuator_output
+  - msg: actuator_outputs
     id: 3
   - msg: adc_report
     id: 4
@@ -80,7 +80,7 @@ rtps:
     send: true
   - msg: irlock_report
     id: 32
-  - msg: landing_target_innovation
+  - msg: landing_target_innovations
     id: 33
   - msg: landing_target_pose
     id: 34
@@ -246,14 +246,24 @@ rtps:
   - msg: collision_constraints
     id: 107
     send: true
+  - msg: multirotor_motor_limits
+    id: 108
+  - msg: vehicle_constraints
+    id: 109
+  - msg: orbit_status
+    id: 110
+  - msg: power_monitor
+    id: 111
+  - msg: landing_gear
+    id: 112
   # multi topics
-  - msg: actuator_control0
+  - msg: actuator_controls_0
     id: 120
-  - msg: actuator_control1
+  - msg: actuator_controls_1
     id: 121
-  - msg: actuator_control2
+  - msg: actuator_controls_2
     id: 122
-  - msg: actuator_control3
+  - msg: actuator_controls_3
     id: 123
   - msg: actuator_controls_virtual_fw
     id: 124
