@@ -18,9 +18,11 @@ import gencpp
 from px_generate_uorb_topic_helper import * # this is in Tools/
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
-topic_names = [single_spec.short_name for single_spec in spec]
-send_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
-recv_topics = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
+topic_names = [s.short_name for idx, s in enumerate(spec)]
+send_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
+send_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
+recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
+receive_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
 }@
 /****************************************************************************
  *
@@ -108,11 +110,11 @@ void* send(void* /*unused*/)
         if (updated)
         {
             // obtained data for the file descriptor
-            struct @(topic)_s data;
+            struct @(send_base_types[idx])_s data;
             // copy raw data into local buffer
             if (orb_copy(ORB_ID(@(topic)), fds[@(idx)], &data) == 0) {
                 /* payload is shifted by header length to make room for header*/
-                serialize_@(topic)(&writer, &data, &data_buffer[header_length], &length);
+                serialize_@(send_base_types[idx])(&writer, &data, &data_buffer[header_length], &length);
 
                 if (0 < (read = transport_node->write((char)@(rtps_message_id(ids, topic)), data_buffer, length)))
                 {
@@ -161,8 +163,8 @@ void micrortps_start_topics(struct timespec &begin, int &total_read, uint32_t &r
     uint8_t topic_ID = 255;
 
     // Declare received topics
-@[for topic in recv_topics]@
-    struct @(topic)_s @(topic)_data;
+@[for idx, topic in enumerate(recv_topics)]@
+    struct @(receive_base_types[idx])_s @(topic)_data;
     orb_advert_t @(topic)_pub = nullptr;
 @[end for]@
 
@@ -188,11 +190,10 @@ void micrortps_start_topics(struct timespec &begin, int &total_read, uint32_t &r
             total_read += read;
             switch (topic_ID)
             {
-@[for topic in recv_topics]@
-
+@[for idx, topic in enumerate(recv_topics)]@
                 case @(rtps_message_id(ids, topic)):
                 {
-                    deserialize_@(topic)(&reader, &@(topic)_data, data_buffer);
+                    deserialize_@(receive_base_types[idx])(&reader, &@(topic)_data, data_buffer);
                     if (!@(topic)_pub) {
                         @(topic)_pub = orb_advertise(ORB_ID(@(topic)), &@(topic)_data);
                     } else {

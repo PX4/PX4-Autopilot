@@ -50,9 +50,9 @@ class Classifier():
         self.msg_id_map = self.parse_yaml_msg_id_file(yaml_file)
         self.check_if_listed(yaml_file)
 
-        self.msgs_to_send = self.set_msgs_to_send()
-        self.msgs_to_receive = self.set_msgs_to_receive()
-        self.msgs_to_ignore = self.set_msgs_to_ignore()
+        self.msgs_to_send, self.alias_msgs_to_send = self.set_msgs_to_send()
+        self.msgs_to_receive, self.alias_msgs_to_receive = self.set_msgs_to_receive()
+        self.msgs_to_ignore, self.alias_msgs_to_ignore = self.set_msgs_to_ignore()
         self.msg_files_send = self.set_msg_files_send()
         self.msg_files_receive = self.set_msg_files_receive()
         self.msg_files_ignore = self.set_msg_files_ignore()
@@ -67,24 +67,36 @@ class Classifier():
 
     def set_msgs_to_send(self):
         send = {}
+        send_alias = []
         for dict in self.msg_id_map['rtps']:
             if 'send' in dict.keys():
-                send.update({dict['msg']: dict['id']})
-        return send
+                if 'alias' in dict.keys():
+                    send_alias.append(({dict['msg']: dict['id']}, dict['alias']))
+                else:
+                    send.update({dict['msg']: dict['id']})
+        return send, send_alias
 
     def set_msgs_to_receive(self):
         receive = {}
+        receive_alias = []
         for dict in self.msg_id_map['rtps']:
             if 'receive' in dict.keys():
-                receive.update({dict['msg']: dict['id']})
-        return receive
+                if 'alias' in dict.keys():
+                    receive_alias.append(({dict['msg']: dict['id']}, dict['alias']))
+                else:
+                    receive.update({dict['msg']: dict['id']})
+        return receive, receive_alias
 
     def set_msgs_to_ignore(self):
         ignore = {}
+        ignore_alias = []
         for dict in self.msg_id_map['rtps']:
-            if ('send' not in dict.keys()) and ('receive' not in dict.keys()):
-                ignore.update({dict['msg']: dict['id']})
-        return ignore
+            if (('send' not in dict.keys()) and ('receive' not in dict.keys())):
+                if 'alias' in dict.keys():
+                    ignore_alias.append(({dict['msg']: dict['id']}, dict['alias']))
+                else:
+                    ignore.update({dict['msg']: dict['id']})
+        return ignore, ignore_alias
 
     def set_msg_files_send(self):
         return [os.path.join(self.msg_folder, msg + ".msg")
@@ -141,7 +153,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-s", "--send", dest='send',
-                        action="store_true", help="Get topics to be sended")
+                        action="store_true", help="Get topics to be sent")
+    parser.add_argument("-a", "--alias", dest='alias',
+                        action="store_true", help="Get alias topics")
     parser.add_argument("-r", "--receive", dest='receive',
                         action="store_true", help="Get topics to be received")
     parser.add_argument("-i", "--ignore", dest='ignore',
@@ -170,19 +184,34 @@ if __name__ == "__main__":
             print ('send files: ' + ', '.join(str(msg_file)
                                               for msg_file in classifier.msgs_files_send) + '\n')
         else:
-            print (', '.join(str(msg)
-                             for msg in classifier.msgs_to_send.keys()) + '\n')
+            if args.alias:
+                print (', '.join(str(msg)
+                                 for msg in classifier.msgs_to_send.keys()) + (' alias ' + ', '.join(str(msg[0].keys()[0])
+                                                                                                     for msg in classifier.alias_msgs_to_send) if len(classifier.alias_msgs_to_send) > 0 else '') + '\n')
+            else:
+                print (', '.join(str(msg)
+                                 for msg in classifier.msgs_to_send.keys()))
     if args.receive:
         if args.path:
             print ('receive files: ' + ', '.join(str(msg_file)
                                                  for msg_file in classifier.msgs_files_receive) + '\n')
         else:
-            print (', '.join(str(msg)
-                             for msg in classifier.msgs_to_receive.keys()) + '\n')
+            if args.alias:
+                print (', '.join(str(msg)
+                                 for msg in classifier.msgs_to_receive.keys()) + (' alias ' + ', '.join(str(msg[0].keys()[0])
+                                                                                                        for msg in classifier.alias_msgs_to_receive) if len(classifier.alias_msgs_to_receive) > 0 else '') + '\n')
+            else:
+                print (', '.join(str(msg)
+                                 for msg in classifier.msgs_to_receive.keys()))
     if args.ignore:
         if args.path:
             print ('ignore files: ' + ', '.join(str(msg_file)
                                                 for msg_file in classifier.msgs_files_ignore) + '\n')
         else:
-            print (', '.join(str(msg)
-                             for msg in classifier.msgs_to_ignore.keys()) + '\n')
+            if args.alias:
+                print (', '.join(str(msg)
+                                 for msg in classifier.msgs_to_ignore.keys()) + (' alias ' + ', '.join(str(msg[0].keys()[0])
+                                                                                                       for msg in classifier.alias_msgs_to_ignore) if len(classifier.alias_msgs_to_ignore) > 0 else '') + '\n')
+            else:
+                print (', '.join(str(msg)
+                                 for msg in classifier.msgs_to_ignore.keys()))
