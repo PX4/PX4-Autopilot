@@ -44,6 +44,7 @@ enum class ULogMessageType : uint8_t {
 	SYNC = 'S',
 	DROPOUT = 'O',
 	LOGGING = 'L',
+	LOGGING_OBC = 'C',
 	FLAG_BITS = 'B',
 };
 

@@ -1190,6 +1190,29 @@ void Logger::run()
 				}
 			}
 
+			// Add sync magic
+			if ((loop_time - last_sync_time) > 5e5) {
+				ulog_message_sync_s sync_message;
+
+				uint16_t write_msg_size = static_cast<uint16_t>(sizeof(ulog_message_sync_s) - ULOG_MSG_HEADER_LEN);
+				_msg_buffer[0] = (uint8_t)write_msg_size;
+				_msg_buffer[1] = (uint8_t)(write_msg_size >> 8);
+				_msg_buffer[2] = static_cast<uint8_t>(ULogMessageType::SYNC);
+
+				// sync byte sequence
+				_msg_buffer[3] = 0x2F;
+				_msg_buffer[4] = 0x73;
+				_msg_buffer[5] = 0x13;
+				_msg_buffer[6] = 0x20;
+				_msg_buffer[7] = 0x25;
+				_msg_buffer[8] = 0x0C;
+				_msg_buffer[9] = 0xBB;
+				_msg_buffer[10] = 0x12;
+
+				write_message(_msg_buffer, write_msg_size + ULOG_MSG_HEADER_LEN);
+				last_sync_time = loop_time;
+			}
+
 			// update buffer statistics
 			for (int i = 0; i < (int)LogType::Count; ++i) {
 				if (!_statistics[i].dropout_start && _writer.get_buffer_fill_count_file((LogType)i) > _statistics[i].high_water) {
