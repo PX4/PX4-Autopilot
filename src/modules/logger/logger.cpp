@@ -1191,7 +1191,7 @@ void Logger::run()
 			}
 
 			// Add sync magic
-			if ((loop_time - last_sync_time) > 5e5) {
+			if ((loop_time - _last_sync_time) > 5e5) {
 				ulog_message_sync_s sync_message;
 
 				uint16_t write_msg_size = static_cast<uint16_t>(sizeof(ulog_message_sync_s) - ULOG_MSG_HEADER_LEN);
@@ -1209,8 +1209,8 @@ void Logger::run()
 				_msg_buffer[9] = 0xBB;
 				_msg_buffer[10] = 0x12;
 
-				write_message(_msg_buffer, write_msg_size + ULOG_MSG_HEADER_LEN);
-				last_sync_time = loop_time;
+				write_message(LogType::Full, _msg_buffer, write_msg_size + ULOG_MSG_HEADER_LEN);
+				_last_sync_time = loop_time;
 			}
 
 			// update buffer statistics

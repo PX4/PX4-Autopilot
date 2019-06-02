@@ -195,7 +195,6 @@ private:
 	struct Statistics {
 		hrt_abstime start_time_file{0};				///< Time when logging started, file backend (not the logger thread)
 		hrt_abstime dropout_start{0};				///< start of current dropout (0 = no dropout)
-		hrt_abstime last_sync_time{0};				///< last time a sync msg was sent
 		float max_dropout_duration{0.0f};			///< max duration of dropout [s]
 		size_t write_dropouts{0};				///< failed buffer writes due to buffer overflow
 		size_t high_water{0};					///< maximum used write buffer
@@ -383,6 +382,7 @@ private:
 	bool						_manually_logging_override{false};
 
 	Statistics					_statistics[(int)LogType::Count];
+	hrt_abstime					_last_sync_time{0}; ///< last time a sync msg was sent
 
 	LogMode						_log_mode;
 	const bool					_log_name_timestamp;
