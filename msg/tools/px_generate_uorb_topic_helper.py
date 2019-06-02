@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #############################################################################
 #
-#   Copyright (C) 2013-2018 PX4 Pro Development Team. All rights reserved.
+#   Copyright (C) 2013-2019 PX4 Pro Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
