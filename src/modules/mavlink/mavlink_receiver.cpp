@@ -992,16 +992,16 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 	    (mavlink_system.compid == set_actuator_control_target.target_component ||
 	     set_actuator_control_target.target_component == 0) &&
 	    values_finite) {
-
+		bool ignore_setpoints = bool(set_actuator_control_target.group_mlx != 2);
 		/* ignore all since we are setting raw actuators here */
-		offboard_control_mode.ignore_thrust             = true;
-		offboard_control_mode.ignore_attitude           = true;
-		offboard_control_mode.ignore_bodyrate_x         = true;
-		offboard_control_mode.ignore_bodyrate_y         = true;
-		offboard_control_mode.ignore_bodyrate_z         = true;
-		offboard_control_mode.ignore_position           = true;
-		offboard_control_mode.ignore_velocity           = true;
-		offboard_control_mode.ignore_acceleration_force = true;
+		offboard_control_mode.ignore_thrust             = ignore_setpoints;
+		offboard_control_mode.ignore_attitude           = ignore_setpoints;
+		offboard_control_mode.ignore_bodyrate_x         = ignore_setpoints;
+		offboard_control_mode.ignore_bodyrate_y         = ignore_setpoints;
+		offboard_control_mode.ignore_bodyrate_z         = ignore_setpoints;
+		offboard_control_mode.ignore_position           = ignore_setpoints;
+		offboard_control_mode.ignore_velocity           = ignore_setpoints;
+		offboard_control_mode.ignore_acceleration_force = ignore_setpoints;
 
 		offboard_control_mode.timestamp = hrt_absolute_time();
 
