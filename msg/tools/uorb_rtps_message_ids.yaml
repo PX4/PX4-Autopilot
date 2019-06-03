@@ -255,22 +255,22 @@ rtps:
   # multi topics
   - msg: actuator_controls_0
     id: 120
-    alias: actuactor_controls
+    alias: actuator_controls
   - msg: actuator_controls_1
     id: 121
-    alias: actuactor_controls
+    alias: actuator_controls
   - msg: actuator_controls_2
     id: 122
-    alias: actuactor_controls
+    alias: actuator_controls
   - msg: actuator_controls_3
     id: 123
-    alias: actuactor_controls
+    alias: actuator_controls
   - msg: actuator_controls_virtual_fw
     id: 124
-    alias: actuactor_controls
+    alias: actuator_controls
   - msg: actuator_controls_virtual_mc
     id: 125
-    alias: actuactor_controls
+    alias: actuator_controls
   - msg: mc_virtual_attitude_setpoint
     id: 126
     alias: vehicle_attitude_setpoint

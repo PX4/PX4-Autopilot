@@ -37,6 +37,7 @@ import os
 import argparse
 import yaml
 import re
+import difflib
 
 
 class Classifier():
@@ -48,7 +49,10 @@ class Classifier():
         self.msg_folder = msg_folder
         self.all_msgs_list = self.set_all_msgs()
         self.msg_id_map = self.parse_yaml_msg_id_file(yaml_file)
+
+        # Checkers
         self.check_if_listed(yaml_file)
+        self.check_base_type()
 
         self.msgs_to_send, self.alias_msgs_to_send = self.set_msgs_to_send()
         self.msgs_to_receive, self.alias_msgs_to_receive = self.set_msgs_to_receive()
@@ -71,7 +75,8 @@ class Classifier():
         for dict in self.msg_id_map['rtps']:
             if 'send' in dict.keys():
                 if 'alias' in dict.keys():
-                    send_alias.append(({dict['msg']: dict['id']}, dict['alias']))
+                    send_alias.append(
+                        ({dict['msg']: dict['id']}, dict['alias']))
                 else:
                     send.update({dict['msg']: dict['id']})
         return send, send_alias
@@ -82,7 +87,8 @@ class Classifier():
         for dict in self.msg_id_map['rtps']:
             if 'receive' in dict.keys():
                 if 'alias' in dict.keys():
-                    receive_alias.append(({dict['msg']: dict['id']}, dict['alias']))
+                    receive_alias.append(
+                        ({dict['msg']: dict['id']}, dict['alias']))
                 else:
                     receive.update({dict['msg']: dict['id']})
         return receive, receive_alias
@@ -93,7 +99,8 @@ class Classifier():
         for dict in self.msg_id_map['rtps']:
             if (('send' not in dict.keys()) and ('receive' not in dict.keys())):
                 if 'alias' in dict.keys():
-                    ignore_alias.append(({dict['msg']: dict['id']}, dict['alias']))
+                    ignore_alias.append(
+                        ({dict['msg']: dict['id']}, dict['alias']))
                 else:
                     ignore.update({dict['msg']: dict['id']})
         return ignore, ignore_alias
@@ -132,6 +139,24 @@ class Classifier():
                 "\n\nPlease add them to the yaml file with the respective ID and, if applicable, mark them" +
                 "to be sent or received by the micro-RTPS bridge.\n"
                 "NOTE: If the message has multi-topics (#TOPICS), these should be added as well.\n")
+
+    def check_base_type(self):
+        """
+        Check if alias message has correct base type
+        """
+        rtps_registered_msgs = list(
+            dict['alias'] for dict in self.msg_id_map['rtps'] if 'alias' in dict.keys())
+        uorb_msg = list(msg for msg in self.all_msgs_list)
+        incorrect_base_types = list(set(rtps_registered_msgs) - set(uorb_msg))
+
+        base_types = {}
+        for incorrect in incorrect_base_types:
+            base_types.update({incorrect: difflib.get_close_matches(
+                incorrect, uorb_msg, n=1, cutoff=0.8)})
+
+        if len(base_types) > 0:
+            raise AssertionError(
+                ('\n' + '\n'.join('\t- The multi-topic message base type {} does not exist. Did you mean \'{}\'?'.format(k, v[0]) for k, v in base_types.items())))
 
     @staticmethod
     def parse_yaml_msg_id_file(yaml_file):
