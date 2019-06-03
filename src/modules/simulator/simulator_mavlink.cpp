@@ -803,7 +803,7 @@ void Simulator::poll_for_MAVLink_messages()
 
 		// got data from PIXHAWK
 		if (fd_count > 1 && fds[1].revents & POLLIN) {
-			len = ::read(serial_fd, serial_buf, sizeof(serial_buf));
+			int len = ::read(serial_fd, serial_buf, sizeof(serial_buf));
 
 			if (len > 0) {
 				mavlink_message_t msg;
