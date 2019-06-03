@@ -128,21 +128,16 @@ void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle_di
 		    (distance_sensor.current_distance > distance_sensor.min_distance) &&
 		    (distance_sensor.current_distance < distance_sensor.max_distance)) {
 
-			if (obstacle_distance.increment_f > 0.f) {
+			if (obstacle_distance.increment_f > 0.f || obstacle_distance.increment > 0) {
+				// data from companion
 				obstacle_distance.timestamp = math::min(obstacle_distance.timestamp, distance_sensor.timestamp);
 				obstacle_distance.max_distance = math::max((int)obstacle_distance.max_distance,
 								 (int)distance_sensor.max_distance * 100);
 				obstacle_distance.min_distance = math::min((int)obstacle_distance.min_distance,
 								 (int)distance_sensor.min_distance * 100);
-
-			} else if (obstacle_distance.increment > 0) {
-				// obstacle distance has already data from offboard
-				obstacle_distance.timestamp = math::min(obstacle_distance.timestamp, distance_sensor.timestamp);
-				obstacle_distance.max_distance = math::max((int)obstacle_distance.max_distance,
-								 (int)distance_sensor.max_distance * 100);
-				obstacle_distance.min_distance = math::min((int)obstacle_distance.min_distance,
-								 (int)distance_sensor.min_distance * 100);
-				obstacle_distance.increment_f = (float)obstacle_distance.increment;
+				obstacle_distance.increment_f = math::max(obstacle_distance.increment_f, (float)obstacle_distance.increment);
+				obstacle_distance.increment_f = math::max(obstacle_distance.increment_f, math::degrees(distance_sensor.h_fov));
+				obstacle_distance.angle_offset = 0.f; //companion not sending this field (needs mavros update)
 
 			} else {
 				obstacle_distance.timestamp = distance_sensor.timestamp;
@@ -150,6 +145,7 @@ void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle_di
 				obstacle_distance.min_distance = distance_sensor.min_distance * 100; // convert to cm
 				memset(&obstacle_distance.distances[0], UINT16_MAX, sizeof(obstacle_distance.distances));
 				obstacle_distance.increment_f = math::degrees(distance_sensor.h_fov);
+				obstacle_distance.angle_offset = 0.f;
 			}
 
 			// init offset for sensor orientation distance_sensor_s::ROTATION_FORWARD_FACING or with offset coming from the companion
@@ -188,9 +184,12 @@ void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle_di
 			int upper_bound = (int)floor((sensor_orientation + math::degrees(distance_sensor.h_fov / 2.0f)) /
 						     obstacle_distance.increment_f);
 
-			if (lower_bound > 71 || upper_bound > 71) {
+			// if increment_f is lower than 5deg, use an offset
+			const int distances_array_size = sizeof(obstacle_distance.distances) / sizeof(obstacle_distance.distances[0]);
+
+			if (lower_bound > distances_array_size || upper_bound > distances_array_size) {
 				obstacle_distance.angle_offset = sensor_orientation;
-				upper_bound -= lower_bound;
+				upper_bound  = abs(upper_bound - lower_bound);
 				lower_bound  = 0;
 			}
 
@@ -218,6 +217,7 @@ void CollisionPrevention::_updateRangeConstraints()
 
 	// incorporate distance data from offboard on obstacle_distance with onboard sensors on distance_sensor
 	_updateDistanceSensor(distance_data);
+
 
 	if (hrt_elapsed_time(&distance_data.timestamp) < RANGE_STREAM_TIMEOUT_US) {
 		float max_detection_distance = distance_data.max_distance / 100.0f; //convert to meters
