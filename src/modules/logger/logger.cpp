@@ -1191,7 +1191,7 @@ void Logger::run()
 			}
 
 			// Add sync magic
-			if ((loop_time - _last_sync_time) > 5e5) {
+			if (loop_time - _last_sync_time > 500_ms) {
 				ulog_message_sync_s sync_message;
 
 				uint16_t write_msg_size = static_cast<uint16_t>(sizeof(ulog_message_sync_s) - ULOG_MSG_HEADER_LEN);
