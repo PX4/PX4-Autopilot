@@ -125,6 +125,24 @@ const T expo_deadzone(const T &value, const T &e, const T &dz)
 	return expo(deadzone(value, dz), e);
 }
 
+template<typename T>
+const T hysteretic_filter(const T &input, const T &output_prev, const T &delta)
+{
+	T output;
+	T input_abs = fabsf(input);
+
+	if ((input_abs >= fabsf(output_prev) + delta)
+	    || (input_abs <= fabsf(output_prev) - delta)
+	    || (input_abs < 0.01f)
+	    || (input_abs >= 0.99f)) {
+		output  = input;
+
+	} else {
+		output = output_prev;
+	}
+
+	return output;
+}
 
 /*
  * Constant, linear, constant function with the two corner points as parameters
