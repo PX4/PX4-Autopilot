@@ -80,11 +80,10 @@ bool FlightTaskManual::_evaluateSticks()
 		_sticks(2) = -(_sub_manual_control_setpoint->get().z - 0.5f) * 2.f; /* NED z, "thrust" resacaled from [0,1] to [-1,1] */
 		_sticks(3) = _sub_manual_control_setpoint->get().r; /* "yaw" [-1,1] */
 
-		float delta = 0.1f;
-		_sticks_filtered(0) = math::hysteretic_filter(_sticks(0), _sticks_filtered(0), delta);
-		_sticks_filtered(1) = math::hysteretic_filter(_sticks(1), _sticks_filtered(1), delta);
-		_sticks_filtered(2) = math::hysteretic_filter(_sticks(2), _sticks_filtered(2), delta);
-		_sticks_filtered(3) = math::hysteretic_filter(_sticks(3), _sticks_filtered(3), delta);
+		_sticks_filtered(0) = math::hysteretic_filter(_sticks(0), _sticks_filtered(0), _param_mpc_man_hyst.get());
+		_sticks_filtered(1) = math::hysteretic_filter(_sticks(1), _sticks_filtered(1), _param_mpc_man_hyst.get());
+		_sticks_filtered(2) = math::hysteretic_filter(_sticks(2), _sticks_filtered(2), _param_mpc_man_hyst.get());
+		_sticks_filtered(3) = math::hysteretic_filter(_sticks(3), _sticks_filtered(3), _param_mpc_man_hyst.get());
 
 		/* Exponential scale */
 		_sticks_expo(0) = math::expo_deadzone(_sticks_filtered(0), _param_mpc_xy_man_expo.get(), _param_mpc_hold_dz.get());

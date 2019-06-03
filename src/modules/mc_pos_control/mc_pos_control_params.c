@@ -413,6 +413,18 @@ PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 200.0f);
 PARAM_DEFINE_FLOAT(MPC_HOLD_DZ, 0.1f);
 
 /**
+ * Half-width of the hysteretic filter applied to the sticks.
+ * The hysteretic filter is used to supress noise while not adding
+ * delay or phase lag to the signal.
+ *
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_MAN_HYST, 0.01f);
+
+/**
  * Maximum horizontal velocity for which position hold is enabled (use 0 to disable check)
  *
  * @unit m/s

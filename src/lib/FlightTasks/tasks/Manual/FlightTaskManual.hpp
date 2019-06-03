@@ -73,6 +73,7 @@ private:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_HOLD_DZ>) _param_mpc_hold_dz, /**< 0-deadzone around the center for the sticks */
+					(ParamFloat<px4::params::MPC_MAN_HYST>) _param_mpc_man_hyst, /**< hysteresis width for stick filtering*/
 					(ParamFloat<px4::params::MPC_XY_MAN_EXPO>)
 					_param_mpc_xy_man_expo, /**< ratio of exponential curve for stick input in xy direction */
 					(ParamFloat<px4::params::MPC_Z_MAN_EXPO>)
