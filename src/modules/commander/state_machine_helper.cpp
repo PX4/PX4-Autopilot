@@ -1016,7 +1016,7 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 
 		for (int index = 0; index < status_flags.number_of_actuators; index++) {
 			if ((bool)!(esc_status.esc_online_flags & (1 << index))) {
-				cx = snprintf(fail_msg + cx, 50 - cx, "ESC%d ", index);
+				cx = snprintf(fail_msg + cx, 50 - cx, "ESC%d ", index + 1);
 			}
 		}
 
