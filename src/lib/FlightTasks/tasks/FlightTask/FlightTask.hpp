@@ -224,6 +224,7 @@ protected:
 	matrix::Vector3f _acceleration_setpoint;
 	matrix::Vector3f _jerk_setpoint;
 	matrix::Vector3f _thrust_setpoint;
+	matrix::Vector3f _velocity_target;
 	float _yaw_setpoint;
 	float _yawspeed_setpoint;
 

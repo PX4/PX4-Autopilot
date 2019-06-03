@@ -139,6 +139,8 @@ void FlightTaskManualPosition::_scaleSticks()
 
 	_velocity_setpoint(0) = vel_sp_xy(0);
 	_velocity_setpoint(1) = vel_sp_xy(1);
+	_velocity_target(0) = _velocity_setpoint(0);
+	_velocity_target(1) = _velocity_setpoint(1);
 }
 
 void FlightTaskManualPosition::_updateXYlock()

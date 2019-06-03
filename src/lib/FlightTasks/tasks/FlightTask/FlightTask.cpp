@@ -69,6 +69,10 @@ const vehicle_local_position_setpoint_s FlightTask::getPositionSetpoint()
 	vehicle_local_position_setpoint.jerk_y = _jerk_setpoint(1);
 	vehicle_local_position_setpoint.jerk_z = _jerk_setpoint(2);
 
+	vehicle_local_position_setpoint.vx_target = _velocity_target(0);
+	vehicle_local_position_setpoint.vy_target = _velocity_target(1);
+	vehicle_local_position_setpoint.vz_target = _velocity_target(2);
+
 	_thrust_setpoint.copyTo(vehicle_local_position_setpoint.thrust);
 	vehicle_local_position_setpoint.yaw = _yaw_setpoint;
 	vehicle_local_position_setpoint.yawspeed = _yawspeed_setpoint;
@@ -83,6 +87,7 @@ void FlightTask::_resetSetpoints()
 	_acceleration_setpoint.setAll(NAN);
 	_jerk_setpoint.setAll(NAN);
 	_thrust_setpoint.setAll(NAN);
+	_velocity_target.setAll(NAN);
 	_yaw_setpoint = _yawspeed_setpoint = NAN;
 }
 

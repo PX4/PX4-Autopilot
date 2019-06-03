@@ -100,6 +100,8 @@ void FlightTaskManualAltitude::_scaleSticks()
 
 	const float vel_max_z = (_sticks(2) > 0.0f) ? _constraints.speed_down : _constraints.speed_up;
 	_velocity_setpoint(2) = vel_max_z * _sticks_expo(2);
+	_velocity_target(2) = _velocity_setpoint(2);
+
 }
 
 void FlightTaskManualAltitude::_updateAltitudeLock()

@@ -18,5 +18,8 @@ float32 jerk_x		# in meters/(sec*sec*sec)
 float32 jerk_y		# in meters/(sec*sec*sec)
 float32 jerk_z		# in meters/(sec*sec*sec)
 float32[3] thrust	# normalized thrust vector in NED
+float32 vx_target 	# desired velocity from stick input in meters/sec
+float32 vy_target 	# desired velocity from stick input in meters/sec
+float32 vz_target 	# desired velocity from stick input in meters/sec
 
 # TOPICS vehicle_local_position_setpoint trajectory_setpoint
