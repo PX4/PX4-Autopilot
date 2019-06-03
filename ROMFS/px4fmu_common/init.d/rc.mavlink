@@ -7,6 +7,9 @@
 # NOTE: Normal mode uses baud rate of 57600 (default) and data rate of 1000 bytes/s.
 #
 
+# Serial mavlink
+mavlink start -r 2000 -b 57600 -d /dev/ttyS6
+
 ###############################################################################
 #               Begin Setup for board specific configurations.                #
 ###############################################################################
