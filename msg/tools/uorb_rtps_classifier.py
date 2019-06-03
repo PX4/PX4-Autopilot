@@ -152,7 +152,7 @@ class Classifier():
         base_types = {}
         for incorrect in incorrect_base_types:
             base_types.update({incorrect: difflib.get_close_matches(
-                incorrect, uorb_msg, n=1, cutoff=0.8)})
+                incorrect, uorb_msg, n=1, cutoff=0.6)})
 
         if len(base_types) > 0:
             raise AssertionError(
