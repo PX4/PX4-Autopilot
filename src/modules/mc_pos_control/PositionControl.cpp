@@ -258,29 +258,33 @@ void PositionControl::_velocityController(const float &dt)
 	const Vector3f vel_err = _vel_sp - _vel;
 	float z_err = 0.0;
 
-	z_err = _pos_sp(2) - _pos(2);
-	float k1 = _param_mpc_hov_est_p.get();
-	float est_gain  = -_param_mpc_hov_adt_rate.get();
-	printf("Zerr %.5f - vel_err %.5f \n", (double)z_err, (double)vel_err(2));
+	if (_param_mpc_hov_est_en.get()) {
+		float k1 = _param_mpc_hov_est_p.get();
+		float est_gain  = -_param_mpc_hov_adt_rate.get();
 
-	float p = vel_err(2) + k1 * z_err;
-	printf("p = %.2f \n", (double) p);
+		z_err = _pos_sp(2) - _pos(2);
 
-	if (_hover_est >= 1.0f && p <= 0) {
-		printf("Max hover \n");
-		p = 0;
-	}
+		printf("Zerr %.5f - vel_err %.5f \n", (double)z_err, (double)vel_err(2));
 
-	if (_hover_est <= 0.0f && p >= 0) {
-		p = 0;
-		printf("Min hover \n");
-	}
+		float p = vel_err(2) + k1 * z_err;
+		printf("p = %.2f \n", (double) p);
+
+		if (_hover_est >= 1.0f && p <= 0) {
+			printf("Max hover \n");
+			p = 0;
+		}
+
+		if (_hover_est <= 0.0f && p >= 0) {
+			p = 0;
+			printf("Min hover \n");
+		}
 
 
-	_hover_est += est_gain * p * dt;
+		_hover_est += est_gain * p * dt;
 
-	printf("Stima hover %.2f \n", (double) _hover_est);
+		printf("Stima hover %.2f \n", (double) _hover_est);
 
+	} else {_hover_est = _param_mpc_thr_hover.get();}
 
 	// Consider thrust in D-direction.
 	// float thrust_desired_D = _param_mpc_z_vel_p.get() * vel_err(2) +  _param_mpc_z_vel_d.get() * _vel_dot(2) + _thr_int(

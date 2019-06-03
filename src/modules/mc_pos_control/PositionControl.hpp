@@ -248,7 +248,9 @@ private:
 		(ParamFloat<px4::params::MPC_XY_VEL_I>) _param_mpc_xy_vel_i,
 		(ParamFloat<px4::params::MPC_XY_VEL_D>) _param_mpc_xy_vel_d,
 		(ParamFloat<px4::params::MPC_HOV_ADT_RATE>) _param_mpc_hov_adt_rate,
-		(ParamFloat<px4::params::MPC_HOV_EST_P>) _param_mpc_hov_est_p
+		(ParamFloat<px4::params::MPC_HOV_EST_P>) _param_mpc_hov_est_p,
+		(ParamInt<px4::params::MPC_HOV_EST_EN>) _param_mpc_hov_est_en
+
 
 	)
 };
