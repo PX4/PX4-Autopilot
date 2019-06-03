@@ -49,7 +49,6 @@ public:
 	FlightTaskManualPosition();
 
 	virtual ~FlightTaskManualPosition() = default;
-	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 	bool activate() override;
 	bool updateInitialize() override;
 

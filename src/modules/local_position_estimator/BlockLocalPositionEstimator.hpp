@@ -9,7 +9,7 @@
 #include <matrix/Matrix.hpp>
 
 // uORB Subscriptions
-#include <uORB/SubscriptionPollable.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_land_detected.h>
@@ -117,7 +117,7 @@ public:
 	enum {Y_mocap_x = 0, Y_mocap_y, Y_mocap_z, n_y_mocap};
 	enum {Y_land_vx = 0, Y_land_vy, Y_land_agl, n_y_land};
 	enum {Y_target_x = 0, Y_target_y, n_y_target};
-	enum {POLL_FLOW = 0, POLL_SENSORS, POLL_PARAM, n_poll};
+	enum {POLL_FLOW = 0, POLL_SENSORS, n_poll};
 	enum {
 		FUSE_GPS = 1 << 0,
 		FUSE_FLOW = 1 << 1,
@@ -149,8 +149,14 @@ public:
 
 	// public methods
 	BlockLocalPositionEstimator();
+
 	void update();
-	virtual ~BlockLocalPositionEstimator() = default;
+
+	virtual ~BlockLocalPositionEstimator()
+	{
+		orb_unsubscribe(_sub_flow_fd);
+		orb_unsubscribe(_sub_sensor_fd);
+	}
 
 private:
 	BlockLocalPositionEstimator(const BlockLocalPositionEstimator &) = delete;
@@ -245,32 +251,36 @@ private:
 	// attributes
 	// ----------------------------
 
+	int _sub_flow_fd{-1};
+	int _sub_sensor_fd{-1};
+
+	sensor_combined_s	_sensor_combined{};
+	optical_flow_s		_optical_flow{};
+
 	// subscriptions
-	uORB::SubscriptionPollable<actuator_armed_s> _sub_armed;
-	uORB::SubscriptionPollable<vehicle_land_detected_s> _sub_land;
-	uORB::SubscriptionPollable<vehicle_attitude_s> _sub_att;
-	uORB::SubscriptionPollable<optical_flow_s> _sub_flow;
-	uORB::SubscriptionPollable<sensor_combined_s> _sub_sensor;
-	uORB::SubscriptionPollable<parameter_update_s> _sub_param_update;
-	uORB::SubscriptionPollable<vehicle_gps_position_s> _sub_gps;
-	uORB::SubscriptionPollable<vehicle_odometry_s> _sub_visual_odom;
-	uORB::SubscriptionPollable<vehicle_odometry_s> _sub_mocap_odom;
-	uORB::SubscriptionPollable<distance_sensor_s> _sub_dist0;
-	uORB::SubscriptionPollable<distance_sensor_s> _sub_dist1;
-	uORB::SubscriptionPollable<distance_sensor_s> _sub_dist2;
-	uORB::SubscriptionPollable<distance_sensor_s> _sub_dist3;
-	uORB::SubscriptionPollable<distance_sensor_s> *_dist_subs[N_DIST_SUBS];
-	uORB::SubscriptionPollable<distance_sensor_s> *_sub_lidar;
-	uORB::SubscriptionPollable<distance_sensor_s> *_sub_sonar;
-	uORB::SubscriptionPollable<landing_target_pose_s> _sub_landing_target_pose;
-	uORB::SubscriptionPollable<vehicle_air_data_s> _sub_airdata;
+	uORB::SubscriptionData<actuator_armed_s> _sub_armed;
+	uORB::SubscriptionData<vehicle_land_detected_s> _sub_land;
+	uORB::SubscriptionData<vehicle_attitude_s> _sub_att;
+	uORB::SubscriptionData<parameter_update_s> _sub_param_update;
+	uORB::SubscriptionData<vehicle_gps_position_s> _sub_gps;
+	uORB::SubscriptionData<vehicle_odometry_s> _sub_visual_odom;
+	uORB::SubscriptionData<vehicle_odometry_s> _sub_mocap_odom;
+	uORB::SubscriptionData<distance_sensor_s> _sub_dist0;
+	uORB::SubscriptionData<distance_sensor_s> _sub_dist1;
+	uORB::SubscriptionData<distance_sensor_s> _sub_dist2;
+	uORB::SubscriptionData<distance_sensor_s> _sub_dist3;
+	uORB::SubscriptionData<distance_sensor_s> *_dist_subs[N_DIST_SUBS];
+	uORB::SubscriptionData<distance_sensor_s> *_sub_lidar;
+	uORB::SubscriptionData<distance_sensor_s> *_sub_sonar;
+	uORB::SubscriptionData<landing_target_pose_s> _sub_landing_target_pose;
+	uORB::SubscriptionData<vehicle_air_data_s> _sub_airdata;
 
 	// publications
-	uORB::Publication<vehicle_local_position_s> _pub_lpos;
-	uORB::Publication<vehicle_global_position_s> _pub_gpos;
-	uORB::Publication<vehicle_odometry_s> _pub_odom;
-	uORB::Publication<estimator_status_s> _pub_est_status;
-	uORB::Publication<ekf2_innovations_s> _pub_innov;
+	uORB::PublicationData<vehicle_local_position_s> _pub_lpos;
+	uORB::PublicationData<vehicle_global_position_s> _pub_gpos;
+	uORB::PublicationData<vehicle_odometry_s> _pub_odom;
+	uORB::PublicationData<estimator_status_s> _pub_est_status;
+	uORB::PublicationData<ekf2_innovations_s> _pub_innov;
 
 	// map projection
 	struct map_projection_reference_s _map_ref;
@@ -372,7 +382,7 @@ private:
 	BlockDelay<uint64_t, 1, 1, HIST_LEN> _tDelay;
 
 	// misc
-	px4_pollfd_struct_t _polls[3];
+	px4_pollfd_struct_t _polls[2];
 	uint64_t _timeStamp;
 	uint64_t _time_origin;
 	uint64_t _timeStampLastBaro;

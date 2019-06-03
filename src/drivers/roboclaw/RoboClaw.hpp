@@ -45,7 +45,7 @@
 
 #include <poll.h>
 #include <stdio.h>
-#include <uORB/SubscriptionPollable.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <drivers/device/i2c.h>
 
@@ -169,7 +169,8 @@ private:
 	struct pollfd _controlPoll;
 
 	/** actuator controls subscription */
-	uORB::SubscriptionPollable<actuator_controls_s> _actuators;
+	int _actuators_sub{-1};
+	actuator_controls_s _actuators{};
 
 	// private data
 	float _motor1Position;

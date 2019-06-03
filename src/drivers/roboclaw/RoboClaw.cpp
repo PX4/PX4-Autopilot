@@ -65,7 +65,6 @@ RoboClaw::RoboClaw(const char *deviceName, uint16_t address,
 	_pulsesPerRev(pulsesPerRev),
 	_uart(0),
 	_controlPoll(),
-	_actuators(ORB_ID(actuator_controls_0), 20),
 	_motor1Position(0),
 	_motor1Speed(0),
 	_motor1Overflow(0),
@@ -73,8 +72,10 @@ RoboClaw::RoboClaw(const char *deviceName, uint16_t address,
 	_motor2Speed(0),
 	_motor2Overflow(0)
 {
+	_actuators_sub = orb_subscribe(ORB_ID(actuator_controls_0));
+
 	// setup control polling
-	_controlPoll.fd = _actuators.getHandle();
+	_controlPoll.fd = _actuators_sub;
 	_controlPoll.events = POLLIN;
 
 	// start serial port
@@ -296,10 +297,9 @@ int RoboClaw::update()
 	if (::poll(&_controlPoll, 1, 1000) < 0) { return -1; } // poll error
 
 	// if new data, send to motors
-	if (_actuators.updated()) {
-		_actuators.update();
-		setMotorDutyCycle(MOTOR_1, _actuators.get().control[CH_VOLTAGE_LEFT]);
-		setMotorDutyCycle(MOTOR_2, _actuators.get().control[CH_VOLTAGE_RIGHT]);
+	if (orb_copy(ORB_ID(actuator_controls_0), _actuators_sub, &_actuators) == PX4_OK) {
+		setMotorDutyCycle(MOTOR_1, _actuators.control[CH_VOLTAGE_LEFT]);
+		setMotorDutyCycle(MOTOR_2, _actuators.control[CH_VOLTAGE_RIGHT]);
 	}
 
 	return 0;

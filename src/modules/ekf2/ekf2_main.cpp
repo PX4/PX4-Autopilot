@@ -39,6 +39,7 @@
  */
 
 #include <float.h>
+#include <errno.h>
 
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/EKF/ekf.h>
@@ -284,9 +285,9 @@ private:
 	orb_advert_t _sensor_bias_pub{nullptr};
 	orb_advert_t _blended_gps_pub{nullptr};
 
-	uORB::Publication<vehicle_local_position_s> _vehicle_local_position_pub;
-	uORB::Publication<vehicle_global_position_s> _vehicle_global_position_pub;
-	uORB::Publication<vehicle_odometry_s> _vehicle_odometry_pub;
+	uORB::PublicationData<vehicle_local_position_s> _vehicle_local_position_pub;
+	uORB::PublicationData<vehicle_global_position_s> _vehicle_global_position_pub;
+	uORB::PublicationData<vehicle_odometry_s> _vehicle_odometry_pub;
 
 	Ekf _ekf;
 

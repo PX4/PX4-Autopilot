@@ -59,7 +59,7 @@ public:
 
 private:
 
-	uORB::Publication<sensor_baro_s>	_sensor_baro_pub;
+	uORB::PublicationData<sensor_baro_s>	_sensor_baro_pub;
 
 	int			_class_device_instance{-1};
 

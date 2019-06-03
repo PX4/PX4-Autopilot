@@ -33,7 +33,6 @@
 
 px4_add_library(FlightTask
     FlightTask.cpp
-    SubscriptionArray.cpp
 )
 
 target_include_directories(FlightTask PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,15 +31,9 @@
  *
  ****************************************************************************/
 
-/**
- * @file Publication.hpp
- *
- */
-
 #pragma once
 
 #include <uORB/uORB.h>
-#include <containers/List.hpp>
 #include <systemlib/err.h>
 
 namespace uORB
@@ -49,7 +43,7 @@ namespace uORB
  * Base publication wrapper class, used in list traversal
  * of various publications.
  */
-class __EXPORT PublicationBase
+class Publication
 {
 public:
 
@@ -61,15 +55,16 @@ public:
 	 * @param priority The priority for multi pub/sub, 0-based, -1 means
 	 * 	don't publish as multi
 	 */
-	PublicationBase(const struct orb_metadata *meta, int priority = -1);
+	Publication(const orb_metadata *meta, int priority = -1) : _meta(meta), _priority(priority)
+	{}
 
-	virtual ~PublicationBase();
+	~Publication() { orb_unadvertise(_handle); }
 
 	// no copy, assignment, move, move assignment
-	PublicationBase(const PublicationBase &) = delete;
-	PublicationBase &operator=(const PublicationBase &) = delete;
-	PublicationBase(PublicationBase &&) = delete;
-	PublicationBase &operator=(PublicationBase &&) = delete;
+	Publication(const Publication &) = delete;
+	Publication &operator=(const Publication &) = delete;
+	Publication(Publication &&) = delete;
+	Publication &operator=(Publication &&) = delete;
 
 	/**
 	 * Update the struct
@@ -78,48 +73,18 @@ public:
 	bool update(void *data);
 
 protected:
-	const struct orb_metadata *_meta;
+	const orb_metadata *_meta;
+
 	const int _priority;
 
 	orb_advert_t _handle{nullptr};
 };
 
 /**
- * alias class name so it is clear that the base class
- * can be used by itself if desired
- */
-typedef PublicationBase PublicationTiny;
-
-/**
- * The publication base class as a list node.
- */
-class __EXPORT PublicationNode : public PublicationBase, public ListNode<PublicationNode *>
-{
-public:
-	/**
-	 * Constructor
-	 *
-	 * @param meta The uORB metadata (usually from
-	 * 	the ORB_ID() macro) for the topic.
-	 * @param priority The priority for multi pub, 0-based.
-	 * @param list A list interface for adding to
-	 * 	list during construction
-	 */
-	PublicationNode(const struct orb_metadata *meta, int priority = -1, List<PublicationNode *> *list = nullptr);
-	virtual ~PublicationNode() override = default;
-
-	/**
-	 * This function is the callback for list traversal
-	 * updates, a child class must implement it.
-	 */
-	virtual bool update() = 0;
-};
-
-/**
  * Publication wrapper class
  */
 template<class T>
-class __EXPORT Publication final : public PublicationNode
+class PublicationData final : public Publication
 {
 public:
 	/**
@@ -128,22 +93,18 @@ public:
 	 * @param meta The uORB metadata (usually from
 	 * 	the ORB_ID() macro) for the topic.
 	 * @param priority The priority for multi pub, 0-based.
-	 * @param list A list interface for adding to
-	 * 	list during construction
 	 */
-	Publication(const struct orb_metadata *meta, int priority = -1, List<PublicationNode *> *list = nullptr)  :
-		PublicationNode(meta, priority, list),
-		_data()
+	PublicationData(const orb_metadata *meta, int priority = -1) : Publication(meta, priority)
 	{
 	}
 
-	~Publication() override = default;
+	~PublicationData() = default;
 
 	// no copy, assignment, move, move assignment
-	Publication(const Publication &) = delete;
-	Publication &operator=(const Publication &) = delete;
-	Publication(Publication &&) = delete;
-	Publication &operator=(Publication &&) = delete;
+	PublicationData(const PublicationData &) = delete;
+	PublicationData &operator=(const PublicationData &) = delete;
+	PublicationData(PublicationData &&) = delete;
+	PublicationData &operator=(PublicationData &&) = delete;
 
 	/*
 	 * This function gets the T struct
@@ -153,9 +114,9 @@ public:
 	/**
 	 * Create an update function that uses the embedded struct.
 	 */
-	bool update() override
+	bool update()
 	{
-		return PublicationBase::update((void *)(&_data));
+		return Publication::update((void *)(&_data));
 	}
 
 	bool update(const T &data)
@@ -165,7 +126,7 @@ public:
 	}
 
 private:
-	T _data;
+	T _data{};
 };
 
 } // namespace uORB

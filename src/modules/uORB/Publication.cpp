@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,29 +31,15 @@
  *
  ****************************************************************************/
 
-/**
- * @file Publication.cpp
- *
- */
-
 #include "Publication.hpp"
+
 #include <px4_defines.h>
 
 namespace uORB
 {
 
-PublicationBase::PublicationBase(const struct orb_metadata *meta, int priority) :
-	_meta(meta),
-	_priority(priority)
-{
-}
-
-PublicationBase::~PublicationBase()
-{
-	orb_unadvertise(_handle);
-}
-
-bool PublicationBase::update(void *data)
+bool
+Publication::update(void *data)
 {
 	bool updated = false;
 
@@ -86,14 +72,6 @@ bool PublicationBase::update(void *data)
 	}
 
 	return updated;
-}
-
-PublicationNode::PublicationNode(const struct orb_metadata *meta, int priority, List<PublicationNode *> *list) :
-	PublicationBase(meta, priority)
-{
-	if (list != nullptr) {
-		list->add(this);
-	}
 }
 
 }  // namespace uORB
