@@ -44,6 +44,8 @@
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
 
+#include <px4_work_queue/WorkItem.hpp>
+
 uORB::Manager *uORB::Manager::_Instance = nullptr;
 
 bool uORB::Manager::initialize()
@@ -314,6 +316,44 @@ int uORB::Manager::orb_get_interval(int handle, unsigned *interval)
 	int ret = px4_ioctl(handle, ORBIOCGETINTERVAL, (unsigned long)interval);
 	*interval /= 1000;
 	return ret;
+}
+
+int
+uORB::Manager::orb_register_work_callback(px4::WorkItem *item, const orb_metadata *meta, int instance)
+{
+	// find node and insert callback (like pollset)
+	if ((item != nullptr) && (meta != nullptr)) {
+		if (get_device_master()) {
+			uORB::DeviceNode *node = _device_master->getDeviceNode(meta, instance);
+
+			if (node != nullptr) {
+				if (node->register_work_item(item)) {
+					return PX4_OK;
+				}
+			}
+		}
+	}
+
+	return PX4_ERROR;
+}
+
+int
+uORB::Manager::orb_unregister_work_callback(px4::WorkItem *item, const orb_metadata *meta, int instance)
+{
+	// find node in list and remove
+	if ((item != nullptr) && (meta != nullptr)) {
+		if (get_device_master()) {
+			uORB::DeviceNode *node = _device_master->getDeviceNode(meta, instance);
+
+			if (node != nullptr) {
+				if (node->unregister_work_item(item)) {
+					return PX4_OK;
+				}
+			}
+		}
+	}
+
+	return PX4_ERROR;
 }
 
 int uORB::Manager::node_advertise(const struct orb_metadata *meta, int *instance, int priority)

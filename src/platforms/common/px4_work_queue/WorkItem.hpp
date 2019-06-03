@@ -38,13 +38,14 @@
 #include "WorkQueue.hpp"
 
 #include <containers/IntrusiveQueue.hpp>
+#include <containers/List.hpp>
 #include <px4_defines.h>
 #include <drivers/drv_hrt.h>
 
 namespace px4
 {
 
-class WorkItem : public IntrusiveQueueNode<WorkItem *>
+class WorkItem : public IntrusiveQueueNode<WorkItem *>, public ListNode<WorkItem *>
 {
 public:
 

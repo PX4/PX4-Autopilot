@@ -43,6 +43,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+namespace px4
+{
+class WorkItem; // forward declaration
+} // namespace px4
+#endif
 
 /**
  * Object metadata.
@@ -249,6 +255,22 @@ extern int	orb_set_interval(int handle, unsigned interval) __EXPORT;
  * @see uORB::Manager::orb_get_interval()
  */
 extern int	orb_get_interval(int handle, unsigned *interval) __EXPORT;
+
+#ifdef __cplusplus
+/**
+ * @see uORB::Manager::orb_register_work_callback()
+ */
+extern int
+orb_register_work_callback(px4::WorkItem *item, const orb_metadata *meta, int instance = 0) __EXPORT;
+
+/**
+ * @see uORB::Manager::orb_unregister_work_callback()
+ */
+
+extern int
+orb_unregister_work_callback(px4::WorkItem *item, const orb_metadata *meta, int instance = 0) __EXPORT;
+
+#endif /* __cplusplus */
 
 __END_DECLS
 

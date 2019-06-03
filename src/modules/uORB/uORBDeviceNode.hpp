@@ -39,6 +39,7 @@
 #include <lib/cdev/CDev.hpp>
 
 #include <containers/List.hpp>
+#include <px4_work_queue/WorkItem.hpp>
 
 namespace uORB
 {
@@ -231,6 +232,12 @@ public:
 	 */
 	uint64_t copy_and_get_timestamp(void *dst, unsigned &generation);
 
+	// add item to list of work items to schedule on node update
+	bool register_work_item(px4::WorkItem *item);
+
+	// remove item from list of work items
+	bool unregister_work_item(px4::WorkItem *item);
+
 protected:
 
 	pollevent_t poll_state(cdev::file_t *filp) override;
@@ -269,6 +276,7 @@ private:
 	uint8_t     *_data{nullptr};   /**< allocated object buffer */
 	hrt_abstime   _last_update{0}; /**< time the object was last updated */
 	volatile unsigned   _generation{0};  /**< object generation count */
+	List<px4::WorkItem *>	_registered_work_items;
 	uint8_t   _priority;  /**< priority of the topic */
 	bool _published{false};  /**< has ever data been published */
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
