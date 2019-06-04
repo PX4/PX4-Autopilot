@@ -381,7 +381,7 @@ CM8JL65::collect()
 
 	//printf("val (int): %d, raw: 0x%08X, valid: %s \n", _distance_mm, _frame_data, ((crc_valid) ? "OK" : "NO"));
 
-	struct distance_sensor_s report;
+	struct distance_sensor_s report = {};
 
 	report.timestamp = hrt_absolute_time();
 	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
@@ -391,6 +391,7 @@ CM8JL65::collect()
 	report.max_distance = get_maximum_distance();
 	report.variance = 0.0f;
 	report.signal_quality = -1;
+	report.h_fov = 2.8f;
 	/* TODO: set proper ID */
 	report.id = 0;
 
