@@ -56,8 +56,6 @@ MPU9250_mag::MPU9250_mag(MPU9250 *parent, device::Device *interface, enum Rotati
 	_px4_mag(parent->_interface->get_device_id(), (parent->_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH),
 		 rotation),
 	_parent(parent),
-	_mag_reads(perf_alloc(PC_COUNT, "mpu9250_mag_reads")),
-	_mag_errors(perf_alloc(PC_COUNT, "mpu9250_mag_errors")),
 	_mag_overruns(perf_alloc(PC_COUNT, "mpu9250_mag_overruns")),
 	_mag_overflows(perf_alloc(PC_COUNT, "mpu9250_mag_overflows")),
 	_mag_duplicates(perf_alloc(PC_COUNT, "mpu9250_mag_duplicates"))
@@ -68,8 +66,6 @@ MPU9250_mag::MPU9250_mag(MPU9250 *parent, device::Device *interface, enum Rotati
 
 MPU9250_mag::~MPU9250_mag()
 {
-	perf_free(_mag_reads);
-	perf_free(_mag_errors);
 	perf_free(_mag_overruns);
 	perf_free(_mag_overflows);
 	perf_free(_mag_duplicates);
@@ -126,7 +122,7 @@ MPU9250_mag::_measure(hrt_abstime timestamp_sample, struct ak8963_regs data)
 
 	_px4_mag.set_external(_parent->is_external());
 	_px4_mag.set_temperature(_parent->_last_temperature);
-	_px4_mag.set_error_count(perf_event_count(_mag_errors));
+	//_px4_mag.set_error_count(perf_event_count(_mag_errors));
 
 	/*
 	 * Align axes - note the accel & gryo are also re-aligned so this

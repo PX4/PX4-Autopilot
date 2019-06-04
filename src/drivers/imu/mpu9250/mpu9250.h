@@ -279,13 +279,10 @@ private:
 
 	unsigned		_sample_rate{1000};
 
-	perf_counter_t		_accel_reads;
-	perf_counter_t		_gyro_reads;
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_bad_transfers;
 	perf_counter_t		_bad_registers;
 	perf_counter_t		_good_transfers;
-	perf_counter_t		_reset_retries;
 	perf_counter_t		_duplicates;
 
 	uint8_t			_register_wait{0};
