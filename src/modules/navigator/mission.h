@@ -53,6 +53,7 @@
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
 #include <px4_module_params.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
@@ -242,7 +243,8 @@ private:
 		(ParamInt<px4::params::MIS_MNT_YAW_CTL>) _param_mis_mnt_yaw_ctl
 	)
 
-	struct mission_s _mission {};
+	uORB::Subscription	_mission_sub{ORB_ID(mission)};		/**< mission subscription */
+	mission_s		_mission {};
 
 	int32_t _current_mission_index{-1};
 
