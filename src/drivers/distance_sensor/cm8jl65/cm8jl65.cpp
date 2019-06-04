@@ -327,9 +327,10 @@ CM8JL65::collect()
 
 	bytes_read = OK;
 
-	distance_sensor_s report;
+	distance_sensor_s report = {};
 	report.current_distance = static_cast<float>(distance_mm) / 1000.0f;
 	report.id               = 0;	// TODO: set proper ID.
+	report.h_fov            = 0.0488692f;
 	report.max_distance     = _max_distance;
 	report.min_distance     = _min_distance;
 	report.orientation      = _rotation;
