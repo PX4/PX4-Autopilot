@@ -40,7 +40,7 @@
  */
 
 /**
- * VTOL number of engines
+ * VTOL number of engines when in multicopter mode
  *
  * @min 0
  * @max 8
@@ -49,6 +49,17 @@
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_MOT_COUNT, 0);
+
+/**
+ * VTOL number of push / pull engines
+ *
+ * @min 1
+ * @max 8
+ * @increment 1
+ * @decimal 0
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_INT32(VT_PSH_MOT_COUNT, 1);
 
 /**
  * Idle speed of VTOL when in multicopter mode

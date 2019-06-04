@@ -94,7 +94,8 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 	    _system_type == MAV_TYPE_VTOL_DUOROTOR ||
 	    _system_type == MAV_TYPE_VTOL_QUADROTOR ||
 	    _system_type == MAV_TYPE_VTOL_TILTROTOR ||
-	    _system_type == MAV_TYPE_VTOL_RESERVED2) {
+	    _system_type == MAV_TYPE_VTOL_RESERVED2 ||
+	    _system_type == MAV_TYPE_VTOL_RESERVED3) {
 
 		/* multirotors: set number of rotor outputs depending on type */
 
@@ -114,6 +115,12 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 		case MAV_TYPE_VTOL_RESERVED2:
 			// this is the standard VTOL / quad plane with 5 propellers
 			n = 5;
+			break;
+
+		case MAV_TYPE_VTOL_RESERVED3:
+			// this is the nonstandard VTOL plane with one or more push / pull propellers
+			n = _param_vtol_mot_count.get();
+			n += _param_vtol_push_mot_count.get();
 			break;
 
 		case MAV_TYPE_HEXAROTOR:
