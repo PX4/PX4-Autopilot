@@ -20,6 +20,7 @@ px4_add_board(
 		TEL4:/dev/ttyS6
 
 	DRIVERS
+		adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -55,8 +56,7 @@ px4_add_board(
 		px4io
 		roboclaw
 		stm32
-		stm32/adc
-		stm32/tone_alarm
+		system_power
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm

@@ -36,6 +36,8 @@
 #include <px4_defines.h>
 #include <cmath>
 
+#ifdef TONE_ALARM_TIMER
+
 /* Check that tone alarm and HRT timers are different */
 #if defined(TONE_ALARM_TIMER) && defined(HRT_TIMER)
 # if TONE_ALARM_TIMER == HRT_TIMER
@@ -284,3 +286,5 @@ void ToneAlarmInterface::stop_note()
 	// Ensure the GPIO is not driving the speaker.
 	px4_arch_configgpio(GPIO_TONE_ALARM_IDLE);
 }
+
+#endif // TONE_ALARM_TIMER

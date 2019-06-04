@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (C) 2016  Intel Corporation. All rights reserved.
+#   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,12 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE drivers__aerofc_adc
-	MAIN aerofc_adc
-	COMPILE_FLAGS
+	MODULE drivers__adc
+	MAIN adc
 	SRCS
-		aerofc_adc.cpp
-	DEPENDS
-		drivers__device
+		adc.cpp
 	)

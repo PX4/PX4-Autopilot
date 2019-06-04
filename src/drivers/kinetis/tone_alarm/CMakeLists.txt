@@ -31,6 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(tone_alarm_interface
+add_library(tone_alarm_interface
 	ToneAlarmInterface.cpp
 )
+target_link_libraries(tone_alarm_interface PRIVATE prebuild_targets)

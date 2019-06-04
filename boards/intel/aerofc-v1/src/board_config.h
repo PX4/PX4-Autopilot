@@ -92,14 +92,6 @@
 #define PX4_SPIDEV_MPU		PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
 
 /*
- * STM32 ADC channels
- *
- * These are the channel numbers of the ADCs of the microcontroller that can
- * be used by the PX4 Firmware in the adc driver
- */
-#define ADC_CHANNELS 0
-
-/*
  * ADC channels: these use the ADC block implemented in the FPGA. There are 5
  * channels in the FPGA, but only 1 is phisically connected, that's dedicated
  * for voltage reading.

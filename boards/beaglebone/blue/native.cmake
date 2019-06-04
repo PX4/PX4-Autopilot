@@ -7,6 +7,7 @@ px4_add_board(
 	TESTING
 
 	DRIVERS
+		adc
 		#barometer # all available barometer drivers
 		batt_smbus
 		camera_trigger
@@ -16,6 +17,7 @@ px4_add_board(
 		#imu # all available imu drivers
 		#magnetometer # all available magnetometer drivers
 		pwm_out_sim
+		system_power
 		#telemetry # all available telemetry drivers
 
 		linux_pwm_out

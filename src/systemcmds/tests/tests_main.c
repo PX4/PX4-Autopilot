@@ -70,7 +70,6 @@ const struct {
 	{"jig",			test_jig,		OPT_NOJIGTEST | OPT_NOALLTEST},
 
 #ifdef __PX4_NUTTX
-	{"adc",			test_adc,		OPT_NOJIGTEST},
 	{"file",		test_file,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"led",			test_led,		0},
 	{"sensors",		test_sensors,		0},
@@ -95,7 +94,6 @@ const struct {
 	{"hrt",			test_hrt,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"int",			test_int,		0},
 	{"IntrusiveQueue",	test_IntrusiveQueue,	0},
-	{"jig_voltages",	test_jig_voltages,	OPT_NOALLTEST},
 	{"List",		test_List,		0},
 	{"mathlib",		test_mathlib,		0},
 	{"matrix",		test_matrix,		0},

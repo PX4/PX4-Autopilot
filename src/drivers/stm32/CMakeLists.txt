@@ -33,12 +33,14 @@
 
 add_library(drivers_arch
 	drv_hrt.c
+	drv_input_capture.c
 	drv_io_timer.c
+	drv_led_pwm.cpp
 	drv_pwm_servo.c
 	drv_pwm_trigger.c
-	drv_input_capture.c
-	drv_led_pwm.cpp
 )
 add_dependencies(drivers_arch prebuild_targets)
 target_link_libraries(drivers_arch PRIVATE drivers_board)
 target_compile_options(drivers_arch PRIVATE -Wno-cast-align) # TODO: fix and enable
+
+add_subdirectory(tone_alarm)

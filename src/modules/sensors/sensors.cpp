@@ -64,7 +64,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
-#include <drivers/drv_adc.h>
 #include <drivers/drv_airspeed.h>
 
 #include <airspeed/airspeed.h>
@@ -75,7 +74,8 @@
 
 #include <conversion/rotation.h>
 
-#include <uORB/uORB.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/adc_report.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/parameter_update.h>
@@ -156,14 +156,10 @@ public:
 	int print_status() override;
 
 private:
-	DevHandle 	_h_adc;				/**< ADC driver handle */
-
-	hrt_abstime	_last_adc{0};			/**< last time we took input from the ADC */
-
-	const bool	_hil_enabled;			/**< if true, HIL is active */
 	bool		_armed{false};				/**< arming status of the vehicle */
 
 	uORB::Subscription	_actuator_ctrl_0_sub{ORB_ID(actuator_controls_0)};		/**< attitude controls sub */
+	uORB::Subscription	_adc_sub{ORB_ID(adc_report)};					/**< ADC report sub */
 	uORB::Subscription	_diff_pres_sub{ORB_ID(differential_pressure)};			/**< raw differential pressure subscription */
 	uORB::Subscription	_vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
 	uORB::Subscription	_params_sub{ORB_ID(parameter_update)};				/**< notification of parameter updates */
@@ -208,11 +204,6 @@ private:
 	int		parameters_update();
 
 	/**
-	 * Do adc-related initialisation.
-	 */
-	int		adc_init();
-
-	/**
 	 * Poll the differential pressure sensor for updated data.
 	 *
 	 * @param raw			Combined sensor data structure into which
@@ -236,7 +227,6 @@ private:
 
 Sensors::Sensors(bool hil_enabled) :
 	ModuleParams(nullptr),
-	_hil_enabled(hil_enabled),
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
 	_rc_update(_parameters),
 	_voted_sensors_update(_parameters, hil_enabled)
@@ -275,31 +265,17 @@ Sensors::parameters_update()
 	return ret;
 }
 
-
-int
-Sensors::adc_init()
-{
-	DevMgr::getHandle(ADC0_DEVICE_PATH, _h_adc);
-
-	if (!_h_adc.isValid()) {
-		PX4_ERR("no ADC found: %s (%d)", ADC0_DEVICE_PATH, _h_adc.getError());
-		return PX4_ERROR;
-	}
-
-	return OK;
-}
-
 void
 Sensors::diff_pres_poll(const vehicle_air_data_s &raw)
 {
-	differential_pressure_s diff_pres{};
+	differential_pressure_s diff_pres;
 
 	if (_diff_pres_sub.update(&diff_pres)) {
 
 		float air_temperature_celsius = (diff_pres.temperature > -300.0f) ? diff_pres.temperature :
 						(raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
 
-		airspeed_s airspeed;
+		airspeed_s airspeed{};
 		airspeed.timestamp = diff_pres.timestamp;
 
 		/* push data into validator */
@@ -382,19 +358,9 @@ Sensors::parameter_update_poll(bool forced)
 void
 Sensors::adc_poll()
 {
-	/* only read if not in HIL mode */
-	if (_hil_enabled) {
-		return;
-	}
+	adc_report_s adc_report;
 
-	hrt_abstime t = hrt_absolute_time();
-
-	/* rate limit to 100 Hz */
-	if (t - _last_adc >= 10000) {
-		/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
-		px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS];
-		/* read all channels available */
-		int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
+	if (_adc_sub.update(&adc_report)) {
 
 #if BOARD_NUMBER_BRICKS > 0
 		//todo:abosorb into new class Power
@@ -415,7 +381,7 @@ Sensors::adc_poll()
 			bat_voltage_v_chan[0] = _parameters.battery_adc_channel;
 		}
 
-#endif
+#endif // BOARD_NUMBER_DIGITAL_BRICKS
 
 		/* The valid signals (HW dependent) are associated with each brick */
 		bool  valid_chan[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
@@ -433,135 +399,126 @@ Sensors::adc_poll()
 
 #endif /* BOARD_NUMBER_BRICKS > 0 */
 
-		if (ret >= (int)sizeof(buf_adc[0])) {
-
-			/* Read add channels we got */
-			for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {
+		/* Read add channels we got */
+		for (unsigned i = 0; i < adc_report.channels; i++) {
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 
-				if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
+			if (ADC_AIRSPEED_VOLTAGE_CHANNEL == adc_report.channel_id[i]) {
 
-					/* calculate airspeed, raw is the difference from */
-					const float voltage = (float)(buf_adc[i].am_data) * 3.3f / 4096.0f * 2.0f;  // V_ref/4096 * (voltage divider factor)
+				/* calculate airspeed, raw is the difference from */
+				const float voltage = (float)(adc_report.channel_value[i]) * 3.3f / 4096.0f *
+						      2.0f;  // V_ref/4096 * (voltage divider factor)
 
-					/**
-					 * The voltage divider pulls the signal down, only act on
-					 * a valid voltage from a connected sensor. Also assume a non-
-					 * zero offset from the sensor if its connected.
-					 */
-					if (voltage > 0.4f && (_parameters.diff_pres_analog_scale > 0.0f)) {
+				/**
+				 * The voltage divider pulls the signal down, only act on
+				 * a valid voltage from a connected sensor. Also assume a non-
+				 * zero offset from the sensor if its connected.
+				 */
+				if (voltage > 0.4f && (_parameters.diff_pres_analog_scale > 0.0f)) {
 
-						const float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
+					const float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
 
-						_diff_pres.timestamp = t;
-						_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
-						_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) +
-								(diff_pres_pa_raw * 0.1f);
-						_diff_pres.temperature = -1000.0f;
+					_diff_pres.timestamp = adc_report.timestamp;
+					_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
+					_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) +
+							(diff_pres_pa_raw * 0.1f);
+					_diff_pres.temperature = -1000.0f;
 
-						int instance;
-						orb_publish_auto(ORB_ID(differential_pressure), &_diff_pres_pub, &_diff_pres, &instance, ORB_PRIO_DEFAULT);
-					}
-
-				} else
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
-				{
-
-#if BOARD_NUMBER_BRICKS > 0
-
-					for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
-
-						/* Once we have subscriptions, Do this once for the lowest (highest priority
-						 * supply on power controller) that is valid.
-						 */
-						if (_battery_pub[b] != nullptr && selected_source < 0 && valid_chan[b]) {
-							/* Indicate the lowest brick (highest priority supply on power controller)
-							 * that is valid as the one that is the selected source for the
-							 * VDD_5V_IN
-							 */
-							selected_source = b;
-
-#  if BOARD_NUMBER_BRICKS > 1
-
-							/* Move the selected_source to instance 0 */
-							if (_battery_pub_intance0ndx != selected_source) {
-
-								orb_advert_t tmp_h = _battery_pub[_battery_pub_intance0ndx];
-								_battery_pub[_battery_pub_intance0ndx] = _battery_pub[selected_source];
-								_battery_pub[selected_source] = tmp_h;
-								_battery_pub_intance0ndx = selected_source;
-							}
-
-#  endif /* BOARD_NUMBER_BRICKS > 1 */
-						}
-
-#  if  !defined(BOARD_NUMBER_DIGITAL_BRICKS)
-
-						// todo:per brick scaling
-						/* look for specific channels and process the raw voltage to measurement data */
-						if (bat_voltage_v_chan[b] == buf_adc[i].am_channel) {
-							/* Voltage in volts */
-							bat_voltage_v[b] = (buf_adc[i].am_data * _parameters.battery_voltage_scaling) * _parameters.battery_v_div;
-
-						} else if (bat_voltage_i_chan[b] == buf_adc[i].am_channel) {
-							bat_current_a[b] = ((buf_adc[i].am_data * _parameters.battery_current_scaling)
-									    - _parameters.battery_current_offset) * _parameters.battery_a_per_v;
-						}
-
-#  endif /* !defined(BOARD_NUMBER_DIGITAL_BRICKS) */
-					}
-
-#endif /* BOARD_NUMBER_BRICKS > 0 */
+					int instance;
+					orb_publish_auto(ORB_ID(differential_pressure), &_diff_pres_pub, &_diff_pres, &instance, ORB_PRIO_DEFAULT);
 				}
-			}
+
+			} else
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
+			{
 
 #if BOARD_NUMBER_BRICKS > 0
-
-			if (_parameters.battery_source == 0) {
 
 				for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 
-					/* Consider the brick connected if there is a voltage */
-					bool connected = bat_voltage_v[b] > BOARD_ADC_OPEN_CIRCUIT_V;
+					/* Once we have subscriptions, Do this once for the lowest (highest priority
+					* supply on power controller) that is valid.
+					*/
+					if (_battery_pub[b] != nullptr && selected_source < 0 && valid_chan[b]) {
+						/* Indicate the lowest brick (highest priority supply on power controller)
+						* that is valid as the one that is the selected source for the
+						* VDD_5V_IN
+						*/
+						selected_source = b;
 
-					/* In the case where the BOARD_ADC_OPEN_CIRCUIT_V is
-					 * greater than the BOARD_VALID_UV let the HW qualify that it
-					 * is connected.
-					 */
-					if (BOARD_ADC_OPEN_CIRCUIT_V > BOARD_VALID_UV) {
-						connected &= valid_chan[b];
+#if BOARD_NUMBER_BRICKS > 1
+
+						/* Move the selected_source to instance 0 */
+						if (_battery_pub_intance0ndx != selected_source) {
+
+							orb_advert_t tmp_h = _battery_pub[_battery_pub_intance0ndx];
+							_battery_pub[_battery_pub_intance0ndx] = _battery_pub[selected_source];
+							_battery_pub[selected_source] = tmp_h;
+							_battery_pub_intance0ndx = selected_source;
+						}
+
+#endif /* BOARD_NUMBER_BRICKS > 1 */
 					}
 
-					actuator_controls_s ctrl{};
-					_actuator_ctrl_0_sub.copy(&ctrl);
+#  if  !defined(BOARD_NUMBER_DIGITAL_BRICKS)
 
-					battery_status_s battery_status{};
-					_battery[b].updateBatteryStatus(t, bat_voltage_v[b], bat_current_a[b],
-									connected, selected_source == b, b,
-									ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-									_armed, &battery_status);
-					int instance;
-					orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &battery_status, &instance, ORB_PRIO_DEFAULT);
+					// todo:per brick scaling
+					/* look for specific channels and process the raw voltage to measurement data */
+					if (bat_voltage_v_chan[b] == adc_report.channel_id[i]) {
+						/* Voltage in volts */
+						bat_voltage_v[b] = (adc_report.channel_value[i] * _parameters.battery_voltage_scaling) * _parameters.battery_v_div;
+
+					} else if (bat_voltage_i_chan[b] == adc_report.channel_id[i]) {
+						bat_current_a[b] = ((adc_report.channel_value[i] * _parameters.battery_current_scaling)
+								    - _parameters.battery_current_offset) * _parameters.battery_a_per_v;
+
+					}
+
+#  endif /* !defined(BOARD_NUMBER_DIGITAL_BRICKS) */
+
 				}
-			}
 
 #endif /* BOARD_NUMBER_BRICKS > 0 */
-
-			_last_adc = t;
+			}
 		}
+
+#if BOARD_NUMBER_BRICKS > 0
+
+		if (_parameters.battery_source == 0) {
+
+			for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+
+				/* Consider the brick connected if there is a voltage */
+				bool connected = bat_voltage_v[b] > BOARD_ADC_OPEN_CIRCUIT_V;
+
+				/* In the case where the BOARD_ADC_OPEN_CIRCUIT_V is
+				 * greater than the BOARD_VALID_UV let the HW qualify that it
+				 * is connected.
+				 */
+				if (BOARD_ADC_OPEN_CIRCUIT_V > BOARD_VALID_UV) {
+					connected &= valid_chan[b];
+				}
+
+				actuator_controls_s ctrl{};
+				_actuator_ctrl_0_sub.copy(&ctrl);
+
+				battery_status_s battery_status;
+				_battery[b].updateBatteryStatus(adc_report.timestamp, bat_voltage_v[b], bat_current_a[b],
+								connected, selected_source == b, b,
+								ctrl.control[actuator_controls_s::INDEX_THROTTLE],
+								_armed, &battery_status);
+				int instance;
+				orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &battery_status, &instance, ORB_PRIO_DEFAULT);
+			}
+		}
+
+#endif /* BOARD_NUMBER_BRICKS > 0 */
 	}
 }
-
 
 void
 Sensors::run()
 {
-	if (!_hil_enabled) {
-#if !defined(__PX4_QURT) && BOARD_NUMBER_BRICKS > 0
-		adc_init();
-#endif
-	}
-
 	sensor_combined_s raw = {};
 	sensor_preflight_s preflt = {};
 	vehicle_air_data_s airdata = {};

@@ -49,6 +49,7 @@
 #include <px4_log.h>
 #include <px4_module.h>
 #include <px4_workqueue.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/adc_report.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/vehicle_command.h>

@@ -16,6 +16,7 @@ px4_add_board(
 		TEL4:/dev/ttyS6
 
 	DRIVERS
+		adc
 		barometer/ms5611
 		batt_smbus
 		camera_capture
@@ -32,8 +33,7 @@ px4_add_board(
 		px4fmu
 		px4io
 		stm32
-		stm32/adc
-		stm32/tone_alarm
+		system_power
 		tone_alarm
 
 	MODULES

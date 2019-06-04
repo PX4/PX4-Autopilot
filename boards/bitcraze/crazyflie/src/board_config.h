@@ -146,13 +146,6 @@
  */
 #define GPIO_OTGFS_VBUS		(GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
 
-/*
- * ADC channels
- *
- * These are the channel numbers of the ADCs of the microcontroller that can be used by the Px4 Firmware in the adc driver
- */
-#define ADC_CHANNELS 0
-
 // ADC defines to be used in sensors.cpp to read from a particular channel
 // Crazyflie 2 performs battery sensing via the NRF module
 #define ADC_BATTERY_VOLTAGE_CHANNEL	((uint8_t)(-1))

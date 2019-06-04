@@ -41,42 +41,6 @@
 
 #pragma once
 
-/************************************************************************************
- * Included Files
- ************************************************************************************/
-
-/************************************************************************************
- * Name: board_adc_init
- *
- * Description:
- *   boards may provide this function to allow complex version-ing.
- *
- * Input Parameters:
- *   None.
- *
- * Returned Value:
- *
- *      OK, or -1 if the function failed.
- */
-
-__EXPORT int board_adc_init(void);
-
-/************************************************************************************
- * Name: board_adc_sample
- *
- * Description:
- *   boards provide this function to allow complex version-ing.
- *
- * Input Parameters:
- *   channel  - The number of the adc channel to read.
- *
- * Returned Value:
- *    The ADC DN read for the channel or 0xffff if there
- *    is an error reading the channel.
- */
-
-__EXPORT uint16_t board_adc_sample(unsigned channel);
-
 
 /************************************************************************************
  * Name: board_gpio_init
@@ -94,6 +58,7 @@ __EXPORT uint16_t board_adc_sample(unsigned channel);
  ************************************************************************************/
 
 __EXPORT void board_gpio_init(const uint32_t list[], int count);
+
 
 /************************************************************************************
   * Name: board_determine_hw_info

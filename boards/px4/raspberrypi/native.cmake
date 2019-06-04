@@ -7,6 +7,7 @@ px4_add_board(
 	TESTING
 
 	DRIVERS
+		adc
 		#barometer # all available barometer drivers
 		batt_smbus
 		camera_trigger

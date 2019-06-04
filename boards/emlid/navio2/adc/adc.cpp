@@ -1,0 +1,311 @@
+/****************************************************************************
+ *
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file adc.cpp
+ *
+ * Navio2 ADC Driver
+ *
+ * This driver exports the sysfs-based ADC driver on Navio2.
+ *
+ * @author Nicolae Rosia <nicolae.rosia@gmail.com>
+ */
+
+#include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
+#include <px4_config.h>
+#include <px4_getopt.h>
+#include <px4_log.h>
+#include <px4_module.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/adc_report.h>
+
+#define ADC_SYSFS_PATH "/sys/kernel/rcio/adc/ch0"
+#define ADC_MAX_CHAN 6
+
+/*
+ * ADC Channels:
+ * A0 - Board voltage (5V)
+ * A1 - servo rail voltage
+ * A2 - power module voltage (ADC0, POWER port)
+ * A3 - power module current (ADC1, POWER port)
+ * A4 - ADC2 (ADC port)
+ * A5 - ADC3 (ADC port)
+ */
+
+#define NAVIO_ADC_BATTERY_VOLTAGE_CHANNEL (2)
+#define NAVIO_ADC_BATTERY_CURRENT_CHANNEL (3)
+
+using namespace time_literals;
+
+class ADC : public ModuleBase<ADC>, public px4::ScheduledWorkItem
+{
+public:
+	ADC();
+	~ADC();
+
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
+	int		init();
+	int		start();
+	int		stop();
+
+private:
+	void			Run() override;
+
+	void			update_adc_report(const hrt_abstime &now);
+
+	static constexpr uint32_t TICKRATE{10_ms};	/**< 100Hz base rate */
+
+	perf_counter_t				_sample_perf;
+	adc_report_s				_samples{};		/**< sample buffer */
+
+	uORB::Publication<adc_report_s>		_adc_report_pub{ORB_ID(adc_report)};
+
+	int					_fd[ADC_MAX_CHAN] {};
+};
+
+ADC::ADC() :
+	ScheduledWorkItem(px4::wq_configurations::hp_default),
+	_sample_perf(perf_alloc(PC_ELAPSED, "adc_sample"))
+{
+	for (int i = 0; i < ADC_MAX_CHAN; i++) {
+		_fd[i] = -1;
+	}
+
+	for (int i = 0; i < adc_report_s::MAX_CHANNELS; i++) {
+		_samples.channel_id[i] = -1;
+	}
+}
+
+ADC::~ADC()
+{
+	ScheduleClear();
+	perf_free(_sample_perf);
+
+	for (int i = 0; i < ADC_MAX_CHAN; i++) {
+		if (_fd[i] != -1) {
+			close(_fd[i]);
+		}
+	}
+}
+
+int
+ADC::start()
+{
+	/* and schedule regular updates */
+	ScheduleOnInterval(TICKRATE);
+	return PX4_OK;
+}
+
+void
+ADC::Run()
+{
+	adc_report_s tmp_samples{};
+
+	for (int i = 0; i < ADC_MAX_CHAN; ++i) {
+		/* Currently we only use these channels */
+		if (i != NAVIO_ADC_BATTERY_VOLTAGE_CHANNEL &&
+		    i != NAVIO_ADC_BATTERY_CURRENT_CHANNEL) {
+
+			tmp_samples.channel_id[i] = i;
+			tmp_samples.channel_value[i] = 0;
+
+			continue;
+		}
+
+		tmp_samples.channel_value[i] = board_adc_sample(i);
+
+		// if (ret < 0) {
+		// 	PX4_ERR("read_channel(%d): %d", i, ret);
+		// 	tmp_samples.channel_id[i] = i;
+		// 	tmp_samples.channel_value[i] = 0;
+		// }
+	}
+
+	//tmp_samples[NAVIO_ADC_BATTERY_VOLTAGE_CHANNEL].am_channel = ADC_BATTERY_VOLTAGE_CHANNEL;
+	//tmp_samples[NAVIO_ADC_BATTERY_CURRENT_CHANNEL].am_channel = ADC_BATTERY_CURRENT_CHANNEL;
+
+	tmp_samples.timestamp = hrt_absolute_time();
+
+	_adc_report_pub.publish(tmp_samples);
+}
+
+int
+ADC::init()
+{
+	for (int i = 0; i < ADC_MAX_CHAN; i++) {
+		char channel_path[sizeof(ADC_SYSFS_PATH)] {};
+		strncpy(channel_path, ADC_SYSFS_PATH, sizeof(ADC_SYSFS_PATH));
+		channel_path[sizeof(ADC_SYSFS_PATH) - 2] += i;
+
+		_fd[i] = ::open(channel_path, O_RDONLY);
+
+		if (_fd[i] == -1) {
+			PX4_ERR("init: open: %s (%d)", strerror(err), err);
+			goto cleanup;
+		}
+	}
+
+	ScheduleOnInterval(100_ms);
+
+	return PX4_OK;
+
+cleanup:
+
+	for (int i = 0; i < ADC_MAX_CHAN; i++) {
+		if (_fd[i] != -1) {
+			close(_fd[i]);
+		}
+	}
+
+	return ret;
+}
+
+uint16_t board_adc_sample(unsigned channel)
+{
+	uint16_t result = 0xffff;
+
+	char buffer[11] {}; /* 32bit max INT has maximum 10 chars */
+
+	if (channel < 0 || channel >= ADC_MAX_CHAN) {
+		return result;
+	}
+
+	int ret = lseek(_fd[channel], 0, SEEK_SET);
+
+	if (ret == -1) {
+		PX4_ERR("read_channel %d: lseek: %s (%d)", channel, strerror(ret), ret);
+		return result;
+	}
+
+	ret = ::read(_fd[channel], buffer, sizeof(buffer) - 1);
+
+	if (ret == -1) {
+		ret = errno;
+		PX4_ERR("read_channel %d: read: %s (%d)", channel, strerror(ret), ret);
+		return result;
+
+	} else if (ret == 0) {
+		PX4_ERR("read_channel %d: read empty", channel);
+		return result;
+	}
+
+	buffer[ret] = 0;
+
+	result = strtol(buffer, NULL, 10);
+
+	return result;
+}
+
+int
+ADC::print_status()
+{
+	PX4_INFO("Running");
+
+	perf_print_counter(_sample_perf);
+
+	return 0;
+}
+
+int
+ADC::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
+}
+
+int
+ADC::task_spawn(int argc, char *argv[])
+{
+	ADC *instance = new ADC(ADC_CHANNELS);
+
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->start() == PX4_OK) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
+	}
+
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
+}
+
+int
+ADC::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+ADC driver.
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_COMMAND("start");
+
+	PRINT_MODULE_USAGE_NAME("adc", "driver");
+
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
+/*
+ * Driver 'main' command.
+ */
+extern "C" __EXPORT int adc_main(int argc, char *argv[]);
+
+int adc_main(int argc, char *argv[])
+{
+	return ADC::main(argc, argv);
+}

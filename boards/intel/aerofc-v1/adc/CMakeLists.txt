@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (C) 2016-2019 Intel Corporation. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -36,4 +36,7 @@ px4_add_module(
 	MAIN adc
 	SRCS
 		adc.cpp
+	DEPENDS
+		drivers__device
+		px4_work_queue
 	)

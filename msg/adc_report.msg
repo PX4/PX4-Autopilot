@@ -1,3 +1,8 @@
 uint64 timestamp		# time since system start (microseconds)
+
+uint8 MAX_CHANNELS = 12
+
 int16[12] channel_id		# ADC channel IDs, negative for non-existent
-float32[12] channel_value	# ADC channel value in volt, valid if channel ID is positive
+int16[12] channel_value		# ADC convert result (2 bytes)
+
+uint8 channels

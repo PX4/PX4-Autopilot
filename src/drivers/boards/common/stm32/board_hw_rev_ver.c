@@ -41,7 +41,7 @@
 #include <stdio.h>
 #include "board_config.h"
 
-#include "../board_internal_common.h"
+#include <drivers/boards/common/board_internal_common.h>
 
 #include <systemlib/px4_macros.h>
 
@@ -77,7 +77,6 @@ static char hw_info[] = HW_INFO_INIT;
 
 static int dn_to_ordinal(uint16_t dn)
 {
-
 	const struct {
 		uint16_t low;  // High(n-1) + 1
 		uint16_t high; // Average High(n)+Low(n+1) EX. 1356 = AVRG(1331,1382)
@@ -196,9 +195,7 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 
 	if ((high ^ low) && low == 0) {
 
-
 		/* Yes - Fire up the ADC (it has once control) */
-
 		if (board_adc_init() == OK) {
 
 			/* Read the value */

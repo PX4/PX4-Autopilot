@@ -371,11 +371,13 @@ RCInput::cycle()
 			for (unsigned i = 0; i < adc_chans; i++) {
 				if (adc.channel_id[i] == ADC_RC_RSSI_CHANNEL) {
 
+					float rssi_volts = adc.channel_value[i] * 3.3f / 4096.0f;
+
 					if (_analog_rc_rssi_volt < 0.0f) {
-						_analog_rc_rssi_volt = adc.channel_value[i];
+						_analog_rc_rssi_volt = rssi_volts;
 					}
 
-					_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.995f + adc.channel_value[i] * 0.005f;
+					_analog_rc_rssi_volt = _analog_rc_rssi_volt * 0.995f + rssi_volts * 0.005f;
 
 					/* only allow this to be used if we see a high RSSI once */
 					if (_analog_rc_rssi_volt > 2.5f) {

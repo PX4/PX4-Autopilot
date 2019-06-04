@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,62 +31,52 @@
  *
  ****************************************************************************/
 
-/**
- * @file test_adc.c
- * Test for the analog to digital converter.
- */
+#pragma once
 
-#include <px4_time.h>
+#include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_config.h>
-#include <px4_posix.h>
+#include <px4_getopt.h>
 #include <px4_log.h>
+#include <px4_module.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/adc_report.h>
+#include <uORB/topics/system_power.h>
 
-#include <sys/types.h>
+using namespace time_literals;
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-
-#include "tests_main.h"
-
-#include <drivers/drv_adc.h>
-
-int test_adc(int argc, char *argv[])
+class SystemPower : public ModuleBase<SystemPower>, public px4::ScheduledWorkItem
 {
-	int fd = px4_open(ADC0_DEVICE_PATH, O_RDONLY);
+public:
+	SystemPower();
+	~SystemPower() override;
 
-	if (fd < 0) {
-		PX4_ERR("ERROR: can't open ADC device");
-		return 1;
-	}
+	/** @see ModuleBase */
+	static int		task_spawn(int argc, char *argv[]);
 
-	for (unsigned i = 0; i < 5; i++) {
-		/* make space for a maximum number of channels */
-		px4_adc_msg_t data[PX4_MAX_ADC_CHANNELS];
-		/* read all channels available */
-		ssize_t count = px4_read(fd, data, sizeof(data));
+	/** @see ModuleBase */
+	static int		custom_command(int argc, char *argv[]);
 
-		if (count < 0) {
-			goto errout_with_dev;
-		}
+	/** @see ModuleBase */
+	static int		print_usage(const char *reason = nullptr);
 
-		unsigned channels = count / sizeof(data[0]);
+	/** @see ModuleBase::print_status() */
+	int			print_status() override;
 
-		for (unsigned j = 0; j < channels; j++) {
-			printf("%d: %u  ", data[j].am_channel, data[j].am_data);
-		}
+	int			init();
 
-		printf("\n");
-		px4_usleep(150000);
-	}
+	int			start();
+	int			stop();
 
-	printf("\t ADC test successful.\n");
+private:
+	void			Run() override;
 
-errout_with_dev:
+	static constexpr uint32_t TICKRATE{10_ms};	/**< 100Hz base rate */
 
-	if (fd != 0) { px4_close(fd); }
+	perf_counter_t				_sample_perf;
 
-	return OK;
-}
+	uORB::Subscription			_adc_report_sub{ORB_ID(adc_report)};
+	uORB::Publication<system_power_s>	_system_power_pub{ORB_ID(system_power)};
+};

@@ -32,7 +32,6 @@
 ############################################################################
 
 set(srcs
-	test_adc.c
 	test_autodeclination.cpp
 	test_bezierQuad.cpp
 	test_bson.cpp
@@ -46,7 +45,6 @@ set(srcs
 	test_hrt.cpp
 	test_int.cpp
 	test_IntrusiveQueue.cpp
-	test_jig_voltages.c
 	test_led.c
 	test_List.cpp
 	test_mathlib.cpp

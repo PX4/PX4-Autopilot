@@ -995,6 +995,41 @@ int board_shutdown(void);
 static inline int board_register_power_state_notification_cb(power_button_state_notification_t cb) { return 0; }
 static inline int board_shutdown(void) { return -EINVAL; }
 #endif
+
+
+/************************************************************************************
+ * Name: board_adc_init
+ *
+ * Description:
+ *   boards may provide this function to allow complex version-ing.
+ *
+ * Input Parameters:
+ *   None.
+ *
+ * Returned Value:
+ *
+ *      OK, or -1 if the function failed.
+ */
+
+int board_adc_init(void);
+
+
+/************************************************************************************
+ * Name: board_adc_sample
+ *
+ * Description:
+ *   boards provide this function to allow complex version-ing.
+ *
+ * Input Parameters:
+ *   channel  - The number of the adc channel to read.
+ *
+ * Returned Value:
+ *    The ADC DN read for the channel or 0xffff if there
+ *    is an error reading the channel.
+ */
+
+uint16_t board_adc_sample(unsigned channel);
+
 __END_DECLS
 
 /************************************************************************************

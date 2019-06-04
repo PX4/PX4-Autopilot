@@ -12,6 +12,7 @@ px4_add_board(
 		URT6:/dev/ttyS2
 
 	DRIVERS
+		adc
 		#barometer # all available barometer drivers
 		barometer/bmp280
 		#batt_smbus
@@ -30,19 +31,19 @@ px4_add_board(
 		magnetometer/hmc5883
 		#mkblctrl
 		optical_flow/px4flow
+		osd
 		#pca9685
 		#pwm_input
 		#pwm_out_sim
 		px4fmu
 		rc_input
 		stm32
-		stm32/adc
 		#stm32/tone_alarm
+		system_power
 		#tap_esc
 		#telemetry # all available telemetry drivers
 		telemetry/frsky_telemetry
 		#test_ppm
-		osd
 
 	MODULES
 		attitude_estimator_q

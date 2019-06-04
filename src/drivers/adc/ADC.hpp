@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,34 +32,58 @@
  ****************************************************************************/
 
 /**
- * @file drv_adc.h
+ * @file ADC.cpp
  *
- * ADC driver interface.
+ * Driver for the ADC.
  *
- * This defines additional operations over and above the standard NuttX
- * ADC API.
+ * This is a low-rate driver, designed for sampling things like voltages
+ * and so forth. It avoids the gross complexity of the NuttX ADC driver.
  */
 
 #pragma once
 
-#include <stdint.h>
-#include <sys/ioctl.h>
+#include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
+#include <px4_config.h>
+#include <px4_getopt.h>
+#include <px4_log.h>
+#include <px4_module.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/adc_report.h>
 
-/* Define the PX4 low level format ADC and the maximum
- * number of channels that can be returned by a lowlevel
- * ADC driver. Drivers may return less than PX4_MAX_ADC_CHANNELS
- * but no more than PX4_MAX_ADC_CHANNELS.
- *
- */
-#define PX4_MAX_ADC_CHANNELS 12
-typedef struct __attribute__((packed)) px4_adc_msg_t {
-	uint8_t      am_channel;               /* The 8-bit ADC Channel */
-	int32_t      am_data;                  /* ADC convert result (4 bytes) */
-} px4_adc_msg_t;
+using namespace time_literals;
 
+class ADC : public ModuleBase<ADC>, public px4::ScheduledWorkItem
+{
+public:
+	ADC();
+	~ADC() override;
 
-#define ADC0_DEVICE_PATH	"/dev/adc0"
+	/** @see ModuleBase */
+	static int		task_spawn(int argc, char *argv[]);
 
-/*
- * ioctl definitions
- */
+	/** @see ModuleBase */
+	static int		custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int		print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::print_status() */
+	int			print_status() override;
+
+	int			init();
+
+	int			start();
+	int			stop();
+
+private:
+	void			Run() override;
+
+	static constexpr uint32_t TICKRATE{10_ms};	/**< 100Hz base rate */
+
+	perf_counter_t				_sample_perf;
+	adc_report_s				_samples{};		/**< sample buffer */
+
+	uORB::Publication<adc_report_s>		_adc_report_pub{ORB_ID(adc_report)};
+};
