@@ -57,14 +57,6 @@
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <systemlib/mavlink_log.h>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/mission.h>
-#include <uORB/topics/position_controller_landing_status.h>
-#include <uORB/topics/transponder_report.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_command_ack.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/uORB.h>
 
 /**
  * navigator app start / stop handling function
@@ -114,85 +106,31 @@ Navigator::Navigator() :
 	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
 	_handle_reverse_delay = param_find("VT_B_REV_DEL");
 
-	// subscriptions
-	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	_pos_ctrl_landing_status_sub = orb_subscribe(ORB_ID(position_controller_landing_status));
-	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
-	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
-	_mission_sub = orb_subscribe(ORB_ID(mission));
-	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
-	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
-	_traffic_sub = orb_subscribe(ORB_ID(transponder_report));
 
 	reset_triplets();
 }
 
 Navigator::~Navigator()
 {
-	orb_unsubscribe(_global_pos_sub);
 	orb_unsubscribe(_local_pos_sub);
-	orb_unsubscribe(_gps_pos_sub);
-	orb_unsubscribe(_pos_ctrl_landing_status_sub);
-	orb_unsubscribe(_vstatus_sub);
-	orb_unsubscribe(_land_detected_sub);
-	orb_unsubscribe(_home_pos_sub);
-	orb_unsubscribe(_mission_sub);
-	orb_unsubscribe(_param_update_sub);
-	orb_unsubscribe(_vehicle_command_sub);
-}
-
-void
-Navigator::global_position_update()
-{
-	orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
-}
-
-void
-Navigator::local_position_update()
-{
-	orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
-}
-
-void
-Navigator::gps_position_update()
-{
-	orb_copy(ORB_ID(vehicle_gps_position), _gps_pos_sub, &_gps_pos);
-}
-
-void
-Navigator::home_position_update(bool force)
-{
-	bool updated = false;
-	orb_check(_home_pos_sub, &updated);
-
-	if (updated || force) {
-		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
-	}
 }
 
 void
 Navigator::vehicle_status_update()
 {
-	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK) {
+	if (_vstatus_sub.update(&_vstatus)) {
 		/* in case the commander is not be running */
 		_vstatus.arming_state = vehicle_status_s::ARMING_STATE_STANDBY;
 	}
 }
 
 void
-Navigator::vehicle_land_detected_update()
-{
-	orb_copy(ORB_ID(vehicle_land_detected), _land_detected_sub, &_land_detected);
-}
-
-void
 Navigator::params_update()
 {
 	parameter_update_s param_update;
-	orb_copy(ORB_ID(parameter_update), _param_update_sub, &param_update);
+	_param_update_sub.update(&param_update);
+
 	updateParams();
 
 	if (_handle_back_trans_dec_mss != PARAM_INVALID) {
@@ -220,11 +158,6 @@ Navigator::run()
 
 	/* copy all topics first time */
 	vehicle_status_update();
-	vehicle_land_detected_update();
-	global_position_update();
-	local_position_update();
-	gps_position_update();
-	home_position_update(true);
 	params_update();
 
 	/* wakeup source(s) */
@@ -256,19 +189,15 @@ Navigator::run()
 		} else {
 			if (fds[0].revents & POLLIN) {
 				/* success, local pos is available */
-				local_position_update();
+				orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 			}
 		}
 
 		perf_begin(_loop_perf);
 
-		bool updated;
-
 		/* gps updated */
-		orb_check(_gps_pos_sub, &updated);
-
-		if (updated) {
-			gps_position_update();
+		if (_gps_pos_sub.updated()) {
+			_gps_pos_sub.copy(&_gps_pos);
 
 			if (_geofence.getSource() == Geofence::GF_SOURCE_GPS) {
 				have_geofence_position_data = true;
@@ -276,10 +205,8 @@ Navigator::run()
 		}
 
 		/* global position updated */
-		orb_check(_global_pos_sub, &updated);
-
-		if (updated) {
-			global_position_update();
+		if (_global_pos_sub.updated()) {
+			_global_pos_sub.copy(&_global_pos);
 
 			if (_geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
 				have_geofence_position_data = true;
@@ -287,42 +214,18 @@ Navigator::run()
 		}
 
 		/* parameters updated */
-		orb_check(_param_update_sub, &updated);
-
-		if (updated) {
+		if (_param_update_sub.updated()) {
 			params_update();
 		}
 
-		/* vehicle status updated */
-		orb_check(_vstatus_sub, &updated);
-
-		if (updated) {
-			vehicle_status_update();
-		}
-
-		/* vehicle land detected updated */
-		orb_check(_land_detected_sub, &updated);
-
-		if (updated) {
-			vehicle_land_detected_update();
-		}
-
-		/* navigation capabilities updated */
+		vehicle_status_update();
+		_land_detected_sub.update(&_land_detected);
 		_position_controller_status_sub.update();
+		_home_pos_sub.update(&_home_pos);
 
-		/* home position updated */
-		orb_check(_home_pos_sub, &updated);
-
-		if (updated) {
-			home_position_update();
-		}
-
-		/* vehicle_command updated */
-		orb_check(_vehicle_command_sub, &updated);
-
-		if (updated) {
-			vehicle_command_s cmd;
-			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
+		if (_vehicle_command_sub.updated()) {
+			vehicle_command_s cmd{};
+			_vehicle_command_sub.copy(&cmd);
 
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND) {
 
@@ -1054,23 +957,22 @@ void Navigator::check_traffic()
 	// float vel_e = get_global_position()->vel_e;
 	// float vel_d = get_global_position()->vel_d;
 
-	bool changed;
-	orb_check(_traffic_sub, &changed);
+	bool changed = _traffic_sub.updated();
 
 	float horizontal_separation = 500;
 	float vertical_separation = 500;
 
 	while (changed) {
 
-		transponder_report_s tr;
-		orb_copy(ORB_ID(transponder_report), _traffic_sub, &tr);
+		transponder_report_s tr{};
+		_traffic_sub.copy(&tr);
 
 		uint16_t required_flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
 					  transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
 					  transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY | transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
 
 		if ((tr.flags & required_flags) != required_flags) {
-			orb_check(_traffic_sub, &changed);
+			changed = _traffic_sub.updated();
 			continue;
 		}
 
@@ -1145,7 +1047,7 @@ void Navigator::check_traffic()
 			}
 		}
 
-		orb_check(_traffic_sub, &changed);
+		changed = _traffic_sub.updated();
 	}
 }
 
@@ -1158,15 +1060,11 @@ Navigator::abort_landing()
 	if (_pos_sp_triplet.current.valid
 	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
-		bool updated = false;
-
-		orb_check(_pos_ctrl_landing_status_sub, &updated);
-
-		if (updated) {
-			position_controller_landing_status_s landing_status = {};
+		if (_pos_ctrl_landing_status_sub.updated()) {
+			position_controller_landing_status_s landing_status{};
 
 			// landing status from position controller must be newer than navigator's last position setpoint
-			if (orb_copy(ORB_ID(position_controller_landing_status), _pos_ctrl_landing_status_sub, &landing_status) == PX4_OK) {
+			if (_pos_ctrl_landing_status_sub.copy(&landing_status)) {
 				if (landing_status.timestamp > _pos_sp_triplet.timestamp) {
 					should_abort = landing_status.abort_landing;
 				}
