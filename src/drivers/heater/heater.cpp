@@ -49,14 +49,12 @@
 #error "To use the heater driver, the board_config.h must define and initialize GPIO_HEATER_INPUT and GPIO_HEATER_OUTPUT"
 #endif
 
-struct work_s Heater::_work = {};
-
 Heater::Heater() :
-	ModuleParams(nullptr)
+	ModuleParams(nullptr),
+	ScheduledWorkItem(px4::wq_configurations::lp_default)
 {
 	px4_arch_configgpio(GPIO_HEATER_OUTPUT);
 	px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 0);
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 }
 
 Heater::~Heater()
@@ -69,13 +67,6 @@ Heater::~Heater()
 		px4_arch_configgpio(GPIO_HEATER_INPUT);
 		px4_arch_configgpio(GPIO_HEATER_OUTPUT);
 		px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 0);
-	}
-
-	// Unsubscribe from uORB topics.
-	orb_unsubscribe(_params_sub);
-
-	if (_sensor_accel_sub >= 0) {
-		orb_unsubscribe(_sensor_accel_sub);
 	}
 }
 
@@ -128,7 +119,7 @@ int Heater::custom_command(int argc, char *argv[])
 	return PX4_OK;
 }
 
-void Heater::cycle()
+void Heater::Run()
 {
 	if (should_exit()) {
 		exit_and_cleanup();
@@ -150,7 +141,7 @@ void Heater::cycle()
 	} else {
 		update_params(false);
 
-		orb_update(ORB_ID(sensor_accel), _sensor_accel_sub, &_sensor_accel);
+		_sensor_accel_sub.update(&_sensor_accel);
 
 		// Obtain the current IMU sensor temperature.
 		_sensor_temperature = _sensor_accel.temperature;
@@ -181,45 +172,33 @@ void Heater::cycle()
 
 	// Schedule the next cycle.
 	if (_heater_on) {
-		work_queue(LPWORK, &_work, (worker_t)&Heater::cycle_trampoline, this,
-			   USEC2TICK(_controller_time_on_usec));
+		ScheduleDelayed(_controller_time_on_usec);
 
 	} else {
-		work_queue(LPWORK, &_work, (worker_t)&Heater::cycle_trampoline, this,
-			   USEC2TICK(_controller_period_usec - _controller_time_on_usec));
+		ScheduleDelayed(_controller_period_usec - _controller_time_on_usec);
 	}
-}
-
-void Heater::cycle_trampoline(void *argv)
-{
-	Heater *obj = reinterpret_cast<Heater *>(argv);
-	obj->cycle();
 }
 
 void Heater::initialize_topics()
 {
 	// Get the total number of accelerometer instances.
-	size_t number_of_imus = orb_group_count(ORB_ID(sensor_accel));
+	uint8_t number_of_imus = orb_group_count(ORB_ID(sensor_accel));
 
 	// Check each instance for the correct ID.
-	for (size_t x = 0; x < number_of_imus; x++) {
-		_sensor_accel_sub = orb_subscribe_multi(ORB_ID(sensor_accel), (int)x);
+	for (uint8_t x = 0; x < number_of_imus; x++) {
+		_sensor_accel_sub = uORB::Subscription{ORB_ID(sensor_accel), x};
 
-		if (_sensor_accel_sub < 0) {
+		if (!_sensor_accel_sub.published()) {
 			continue;
 		}
 
-		while (orb_update(ORB_ID(sensor_accel), _sensor_accel_sub, &_sensor_accel) != PX4_OK) {
-			usleep(200000);
-		}
+		_sensor_accel_sub.copy(&_sensor_accel);
 
 		// If the correct ID is found, exit the for-loop with _sensor_accel_sub pointing to the correct instance.
 		if (_sensor_accel.device_id == (uint32_t)_param_sens_temp_id.get()) {
 			PX4_INFO("IMU sensor identified.");
 			break;
 		}
-
-		orb_unsubscribe(_sensor_accel_sub);
 	}
 
 	PX4_INFO("Device ID:  %d", _sensor_accel.device_id);
@@ -231,19 +210,6 @@ void Heater::initialize_topics()
 	}
 }
 
-void Heater::initialize_trampoline(void *argv)
-{
-	Heater *heater = new Heater();
-
-	if (!heater) {
-		PX4_ERR("driver allocation failed");
-		return;
-	}
-
-	_object.store(heater);
-	heater->start();
-}
-
 float Heater::integrator(char *argv[])
 {
 	if (argv[1]) {
@@ -252,26 +218,6 @@ float Heater::integrator(char *argv[])
 
 	PX4_INFO("Integrator gain:  %2.5f", (double)_param_sens_imu_temp_i.get());
 	return _param_sens_imu_temp_i.get();
-}
-
-int Heater::orb_update(const struct orb_metadata *meta, int handle, void *buffer)
-{
-	bool newData = false;
-
-	// Check if there is new data to obtain.
-	if (orb_check(handle, &newData) != OK) {
-		return PX4_ERROR;
-	}
-
-	if (!newData) {
-		return PX4_ERROR;
-	}
-
-	if (orb_copy(meta, handle, buffer) != OK) {
-		return PX4_ERROR;
-	}
-
-	return PX4_OK;
 }
 
 int Heater::print_status()
@@ -339,8 +285,7 @@ int Heater::start()
 	update_params(true);
 	initialize_topics();
 
-	// Kick off the cycling. We can call it directly because we're already in the work queue context
-	cycle();
+	ScheduleNow();
 
 	PX4_INFO("Driver started successfully.");
 
@@ -349,19 +294,18 @@ int Heater::start()
 
 int Heater::task_spawn(int argc, char *argv[])
 {
-	int ret = work_queue(LPWORK, &_work, (worker_t)&Heater::initialize_trampoline, nullptr, 0);
+	Heater *heater = new Heater();
 
-	if (ret < 0) {
-		return ret;
+	if (!heater) {
+		PX4_ERR("driver allocation failed");
+		return PX4_ERROR;
 	}
 
-	ret = wait_until_running();
-
-	if (ret < 0) {
-		return ret;
-	}
-
+	_object.store(heater);
 	_task_id = task_id_is_work_queue;
+
+	heater->start();
+
 	return 0;
 }
 
@@ -377,17 +321,11 @@ float Heater::temperature_setpoint(char *argv[])
 
 void Heater::update_params(const bool force)
 {
-	bool updated;
 	parameter_update_s param_update;
-
-	orb_check(_params_sub, &updated);
-
-	if (updated || force) {
+	if (_params_sub.update(&param_update) || force) {
 		ModuleParams::updateParams();
-		orb_copy(ORB_ID(parameter_update), _params_sub, &param_update);
 	}
 }
-
 
 /**
  * Main entry point for the heater driver module
