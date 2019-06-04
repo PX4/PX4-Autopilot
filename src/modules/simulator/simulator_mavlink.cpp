@@ -119,8 +119,8 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 
 		case MAV_TYPE_VTOL_RESERVED3:
 			// this is the nonstandard VTOL plane with one or more push / pull propellers
-			n = _param_vtol_mot_count.get();
-			n += _param_vtol_push_mot_count.get();
+			n = _param_vtol_mc_mot_count.get();
+			n += _param_vtol_fw_mot_count.get();
 			break;
 
 		case MAV_TYPE_HEXAROTOR:

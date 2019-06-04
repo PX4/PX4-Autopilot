@@ -248,7 +248,7 @@ bool VtolType::set_idle_mc()
 	struct pwm_output_values pwm_values;
 	memset(&pwm_values, 0, sizeof(pwm_values));
 
-	for (int i = 0; i < _params->vtol_motor_count; i++) {
+	for (int i = 0; i < _params->vtol_mc_motor_count; i++) {
 		if (is_motor_off_channel(i)) {
 			pwm_values.values[i] = pwm_value;
 
@@ -268,7 +268,7 @@ bool VtolType::set_idle_fw()
 
 	memset(&pwm_values, 0, sizeof(pwm_values));
 
-	for (int i = 0; i < _params->vtol_motor_count; i++) {
+	for (int i = 0; i < _params->vtol_mc_motor_count; i++) {
 		if (is_motor_off_channel(i)) {
 			pwm_values.values[i] = PWM_MOTOR_OFF;
 
@@ -315,10 +315,10 @@ bool VtolType::apply_pwm_limits(struct pwm_output_values &pwm_values, pwm_limit_
 motor_state VtolType::set_motor_state(const motor_state current_state, const motor_state next_state, const int value)
 {
 	struct pwm_output_values pwm_values = {};
-	pwm_values.channel_count = _params->vtol_motor_count;
+	pwm_values.channel_count = _params->vtol_mc_motor_count;
 
-	// per default all motors are running
-	for (int i = 0; i < _params->vtol_motor_count; i++) {
+	// per default all mc mode motors are running
+	for (int i = 0; i < _params->vtol_mc_motor_count; i++) {
 		pwm_values.values[i] = _max_mc_pwm_values.values[i];
 	}
 
@@ -327,7 +327,7 @@ motor_state VtolType::set_motor_state(const motor_state current_state, const mot
 		break;
 
 	case motor_state::DISABLED:
-		for (int i = 0; i < _params->vtol_motor_count; i++) {
+		for (int i = 0; i < _params->vtol_mc_motor_count; i++) {
 			if (is_motor_off_channel(i)) {
 				pwm_values.values[i] = _disarmed_pwm_values.values[i];
 			}
@@ -337,7 +337,7 @@ motor_state VtolType::set_motor_state(const motor_state current_state, const mot
 
 	case motor_state::IDLE:
 
-		for (int i = 0; i < _params->vtol_motor_count; i++) {
+		for (int i = 0; i < _params->vtol_mc_motor_count; i++) {
 			if (is_motor_off_channel(i)) {
 				pwm_values.values[i] = _params->idle_pwm_mc;
 			}
@@ -346,7 +346,7 @@ motor_state VtolType::set_motor_state(const motor_state current_state, const mot
 		break;
 
 	case motor_state::VALUE:
-		for (int i = 0; i < _params->vtol_motor_count; i++) {
+		for (int i = 0; i < _params->vtol_mc_motor_count; i++) {
 			if (is_motor_off_channel(i)) {
 				pwm_values.values[i] = value;
 			}

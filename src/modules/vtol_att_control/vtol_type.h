@@ -49,7 +49,7 @@
 
 struct Params {
 	int32_t idle_pwm_mc;			// pwm value for idle in mc mode
-	int32_t vtol_motor_count;		// number of motors
+	int32_t vtol_mc_motor_count;		// number of motors in mc mode
 	int32_t vtol_type;
 	bool elevons_mc_lock;		// lock elevons in multicopter mode
 	float fw_min_alt;			// minimum relative altitude for FW mode (QuadChute)

@@ -59,7 +59,7 @@ then
 	param set SYS_RESTART_TYPE 2
 
 	param set VT_F_TRANS_THR 0.75
-	param set VT_MOT_COUNT 4
+	param set VT_MC_MOT_COUNT 4
 	param set VT_TYPE 2
 
 	# Indicate that FW roll direction was fixed in mixer, to be removed in v1.10

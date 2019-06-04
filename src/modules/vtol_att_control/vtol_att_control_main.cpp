@@ -62,10 +62,10 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
 
 	_params.idle_pwm_mc = PWM_DEFAULT_MIN;
-	_params.vtol_motor_count = 0;
+	_params.vtol_mc_motor_count = 0;
 
 	_params_handles.idle_pwm_mc = param_find("VT_IDLE_PWM_MC");
-	_params_handles.vtol_motor_count = param_find("VT_MOT_COUNT");
+	_params_handles.vtol_mc_motor_count = param_find("VT_MC_MOT_COUNT");
 	_params_handles.vtol_fw_permanent_stab = param_find("VT_FW_PERM_STAB");
 	_params_handles.vtol_type = param_find("VT_TYPE");
 	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
@@ -438,7 +438,7 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.idle_pwm_mc, &_params.idle_pwm_mc);
 
 	/* vtol motor count */
-	param_get(_params_handles.vtol_motor_count, &_params.vtol_motor_count);
+	param_get(_params_handles.vtol_mc_motor_count, &_params.vtol_mc_motor_count);
 
 	/* vtol fw permanent stabilization */
 	param_get(_params_handles.vtol_fw_permanent_stab, &l);
