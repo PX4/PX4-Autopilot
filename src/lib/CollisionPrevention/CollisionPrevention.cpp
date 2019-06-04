@@ -187,7 +187,8 @@ void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle_di
 			// if increment_f is lower than 5deg, use an offset
 			const int distances_array_size = sizeof(obstacle_distance.distances) / sizeof(obstacle_distance.distances[0]);
 
-			if (lower_bound > distances_array_size || upper_bound > distances_array_size) {
+			if (((lower_bound < 0 || upper_bound < 0) || (lower_bound >= distances_array_size
+					|| upper_bound >= distances_array_size)) && obstacle_distance.increment_f < 5.f) {
 				obstacle_distance.angle_offset = sensor_orientation;
 				upper_bound  = abs(upper_bound - lower_bound);
 				lower_bound  = 0;
@@ -199,6 +200,11 @@ void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle_di
 				if (wrap_bin < 0) {
 					// wrap bin index around the array
 					wrap_bin = (int)floor(360.f / obstacle_distance.increment_f) + bin;
+				}
+
+				if (wrap_bin >= distances_array_size) {
+					// wrap bin index around the array
+					wrap_bin = bin - distances_array_size;
 				}
 
 				// compensate measurement for vehicle tilt and convert to cm
