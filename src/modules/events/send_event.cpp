@@ -40,47 +40,48 @@
 #include <px4_log.h>
 #include <drivers/drv_hrt.h>
 
+using namespace time_literals;
+
 namespace events
 {
 
-struct work_s SendEvent::_work = {};
-
 // Run it at 30 Hz.
-const unsigned SEND_EVENT_INTERVAL_US = 33000;
-
+static constexpr uint32_t SEND_EVENT_INTERVAL_US{1_s / 30};
 
 int SendEvent::task_spawn(int argc, char *argv[])
 {
-	int ret = work_queue(LPWORK, &_work, (worker_t)&SendEvent::initialize_trampoline, nullptr, 0);
+	SendEvent *send_event = new SendEvent();
 
-	if (ret < 0) {
-		return ret;
+	if (!send_event) {
+		PX4_ERR("alloc failed");
+		return PX4_ERROR;
 	}
 
-	ret = wait_until_running();
-
-	if (ret < 0) {
-		return ret;
-	}
-
+	_object.store(send_event);
 	_task_id = task_id_is_work_queue;
+
+	send_event->start();
 
 	return 0;
 }
 
-SendEvent::SendEvent() : ModuleParams(nullptr)
+SendEvent::SendEvent() :
+	ModuleParams(nullptr),
+	ScheduledWorkItem(px4::wq_configurations::lp_default)
 {
 	if (_param_ev_tsk_stat_dis.get()) {
-		_status_display = new status::StatusDisplay(_subscriber_handler);
+		_status_display = new status::StatusDisplay();
 	}
 
 	if (_param_ev_tsk_rc_loss.get()) {
-		_rc_loss_alarm = new rc_loss::RC_Loss_Alarm(_subscriber_handler);
+		_rc_loss_alarm = new rc_loss::RC_Loss_Alarm();
 	}
 }
 
 SendEvent::~SendEvent()
 {
+	ScheduleClear();
+
 	if (_status_display != nullptr) {
 		delete _status_display;
 	}
@@ -92,48 +93,17 @@ SendEvent::~SendEvent()
 
 int SendEvent::start()
 {
-	if (is_running()) {
-		return 0;
-	}
+	ScheduleOnInterval(SEND_EVENT_INTERVAL_US, 10000);
 
-	// Subscribe to the topics.
-	_subscriber_handler.subscribe();
-
-	// Kick off the cycling. We can call it directly because we're already in the work queue context.
-	cycle();
-
-	return 0;
+	return PX4_OK;
 }
 
-void SendEvent::initialize_trampoline(void *arg)
-{
-	SendEvent *send_event = new SendEvent();
-
-	if (!send_event) {
-		PX4_ERR("alloc failed");
-		return;
-	}
-
-	send_event->start();
-	_object.store(send_event);
-}
-
-void SendEvent::cycle_trampoline(void *arg)
-{
-	SendEvent *obj = reinterpret_cast<SendEvent *>(arg);
-
-	obj->cycle();
-}
-
-void SendEvent::cycle()
+void SendEvent::Run()
 {
 	if (should_exit()) {
-		_subscriber_handler.unsubscribe();
 		exit_and_cleanup();
 		return;
 	}
-
-	_subscriber_handler.check_for_updates();
 
 	process_commands();
 
@@ -144,20 +114,15 @@ void SendEvent::cycle()
 	if (_rc_loss_alarm != nullptr) {
 		_rc_loss_alarm->process();
 	}
-
-	work_queue(LPWORK, &_work, (worker_t)&SendEvent::cycle_trampoline, this,
-		   USEC2TICK(SEND_EVENT_INTERVAL_US));
 }
 
 void SendEvent::process_commands()
 {
-	if (!_subscriber_handler.vehicle_command_updated()) {
+	vehicle_command_s cmd{};
+
+	if (!_vehicle_command_sub.update(&cmd)) {
 		return;
 	}
-
-	struct vehicle_command_s cmd;
-
-	orb_copy(ORB_ID(vehicle_command), _subscriber_handler.get_vehicle_command_sub(), &cmd);
 
 	bool got_temperature_calibration_command = false, accel = false, baro = false, gyro = false;
 
