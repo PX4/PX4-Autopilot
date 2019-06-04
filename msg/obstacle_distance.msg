@@ -13,3 +13,6 @@ uint8 increment # Angular width in degrees of each array element.
 
 uint16 min_distance # Minimum distance the sensor can measure in centimeters.
 uint16 max_distance # Maximum distance the sensor can measure in centimeters.
+
+float32 increment_f # Angular width in degrees of each array element. If greater than 0, it's used instead of increment.
+float32 angle_offset # Relative angle offset of the 0-index element in the distances array. Value of 0 corresponds to forward. Positive values are offsets to the right.
