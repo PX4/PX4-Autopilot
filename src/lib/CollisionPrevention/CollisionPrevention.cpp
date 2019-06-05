@@ -125,26 +125,7 @@ void CollisionPrevention::updateDistanceSensor(obstacle_distance_s &obstacle)
 			if ((distance_sensor.current_distance > distance_sensor.min_distance) &&
 			    (distance_sensor.current_distance < distance_sensor.max_distance)) {
 
-				// init offset for sensor orientation distance_sensor_s::ROTATION_FORWARD_FACING or with offset coming from the companion
-				float sensor_yaw_body_rad = obstacle.angle_offset > 0.f ? math::radians(obstacle.angle_offset) : 0.0f;
-
-				switch (distance_sensor.orientation) {
-				case distance_sensor_s::ROTATION_RIGHT_FACING:
-					sensor_yaw_body_rad = M_PI_F / 2.0f;
-					break;
-
-				case distance_sensor_s::ROTATION_LEFT_FACING:
-					sensor_yaw_body_rad = -M_PI_F / 2.0f;
-					break;
-
-				case distance_sensor_s::ROTATION_BACKWARD_FACING:
-					sensor_yaw_body_rad = M_PI_F;
-					break;
-
-				case distance_sensor_s::ROTATION_CUSTOM:
-					sensor_yaw_body_rad = Eulerf(Quatf(distance_sensor.q)).psi();
-					break;
-				}
+				float sensor_yaw_body_rad = sensorOrientationToYawOffset(distance_sensor, obstacle.angle_offset);
 
 				matrix::Quatf attitude = Quatf(_sub_vehicle_attitude.get().q);
 				// convert the sensor orientation from body to local frame in the range [0, 360]
