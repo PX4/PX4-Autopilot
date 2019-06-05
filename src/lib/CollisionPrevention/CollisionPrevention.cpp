@@ -104,7 +104,7 @@ void CollisionPrevention::updateDistanceSensor(obstacle_distance_s &obstacle)
 		    (distance_sensor.current_distance < distance_sensor.max_distance)) {
 
 
-			if (obstacle.increment_f > 0.f || obstacle.increment > 0) {
+			if (obstacle.increment > 0) {
 				// data from companion
 				obstacle.timestamp = math::min(obstacle.timestamp, distance_sensor.timestamp);
 				obstacle.max_distance = math::max((int)obstacle.max_distance,
@@ -113,7 +113,6 @@ void CollisionPrevention::updateDistanceSensor(obstacle_distance_s &obstacle)
 								  (int)distance_sensor.min_distance * 100);
 				// since the data from the companion are already in the distances data structure,
 				// keep the increment that is sent
-				obstacle.increment_f = math::max(obstacle.increment_f, (float)obstacle.increment);
 				obstacle.angle_offset = 0.f; //companion not sending this field (needs mavros update)
 
 			} else {
@@ -121,53 +120,47 @@ void CollisionPrevention::updateDistanceSensor(obstacle_distance_s &obstacle)
 				obstacle.max_distance = distance_sensor.max_distance * 100; // convert to cm
 				obstacle.min_distance = distance_sensor.min_distance * 100; // convert to cm
 				memset(&obstacle.distances[0], UINT16_MAX, sizeof(obstacle.distances));
-				obstacle.increment_f = math::degrees(distance_sensor.h_fov);
+				obstacle.increment = math::degrees(distance_sensor.h_fov);
 				obstacle.angle_offset = 0.f;
 			}
 
-
 			// init offset for sensor orientation distance_sensor_s::ROTATION_FORWARD_FACING or with offset coming from the companion
-			float offset = obstacle.angle_offset > 0.f ? math::radians(obstacle.angle_offset) : 0.0f;
+			float sensor_yaw_body_rad = obstacle.angle_offset > 0.f ? math::radians(obstacle.angle_offset) : 0.0f;
 
 			switch (distance_sensor.orientation) {
 			case distance_sensor_s::ROTATION_RIGHT_FACING:
-				offset = M_PI_F / 2.0f;
+				sensor_yaw_body_rad = M_PI_F / 2.0f;
 				break;
 
 			case distance_sensor_s::ROTATION_LEFT_FACING:
-				offset = -M_PI_F / 2.0f;
+				sensor_yaw_body_rad = -M_PI_F / 2.0f;
 				break;
 
 			case distance_sensor_s::ROTATION_BACKWARD_FACING:
-				offset = M_PI_F;
+				sensor_yaw_body_rad = M_PI_F;
 				break;
 
 			case distance_sensor_s::ROTATION_CUSTOM:
-				offset = Eulerf(Quatf(distance_sensor.q)).psi();
+				sensor_yaw_body_rad = Eulerf(Quatf(distance_sensor.q)).psi();
 				break;
 			}
 
 			matrix::Quatf attitude = Quatf(_sub_vehicle_attitude.get().q);
-			// convert the sensor orientation from body to local frame
-			float sensor_orientation = math::degrees(wrap_pi(Eulerf(attitude).psi() + offset));
-
-			// convert orientation from range [-180, 180] to [0, 360]
-			if ((sensor_orientation <= FLT_EPSILON) || (sensor_orientation >= 180.0f)) {
-				sensor_orientation += 360.0f;
-			}
+			// convert the sensor orientation from body to local frame in the range [0, 360]
+			float sensor_yaw_local_deg  = math::degrees(wrap_2pi(Eulerf(attitude).psi() + sensor_yaw_body_rad));
 
 			// calculate the field of view boundary bin indices
-			int lower_bound = (int)floor((sensor_orientation - math::degrees(distance_sensor.h_fov / 2.0f)) /
-						     obstacle.increment_f);
-			int upper_bound = (int)floor((sensor_orientation + math::degrees(distance_sensor.h_fov / 2.0f)) /
-						     obstacle.increment_f);
+			int lower_bound = (int)floor((sensor_yaw_local_deg  - math::degrees(distance_sensor.h_fov / 2.0f)) /
+						     obstacle.increment);
+			int upper_bound = (int)floor((sensor_yaw_local_deg  + math::degrees(distance_sensor.h_fov / 2.0f)) /
+						     obstacle.increment);
 
-			// if increment_f is lower than 5deg, use an offset
+			// if increment is lower than 5deg, use an offset
 			const int distances_array_size = sizeof(obstacle.distances) / sizeof(obstacle.distances[0]);
 
 			if (((lower_bound < 0 || upper_bound < 0) || (lower_bound >= distances_array_size
-					|| upper_bound >= distances_array_size)) && obstacle.increment_f < 5.f) {
-				obstacle.angle_offset = sensor_orientation;
+					|| upper_bound >= distances_array_size)) && obstacle.increment < 5.f) {
+				obstacle.angle_offset = sensor_yaw_local_deg ;
 				upper_bound  = abs(upper_bound - lower_bound);
 				lower_bound  = 0;
 			}
@@ -177,7 +170,7 @@ void CollisionPrevention::updateDistanceSensor(obstacle_distance_s &obstacle)
 
 				if (wrap_bin < 0) {
 					// wrap bin index around the array
-					wrap_bin = (int)floor(360.f / obstacle.increment_f) + bin;
+					wrap_bin = (int)floor(360.f / obstacle.increment) + bin;
 				}
 
 				if (wrap_bin >= distances_array_size) {
@@ -216,9 +209,9 @@ void CollisionPrevention::calculateConstrainedSetpoint(Vector2f &setpoint,
 			for (int i = 0; i < distances_array_size; i++) {
 
 				if (obstacle.distances[i] < obstacle.max_distance &&
-				    obstacle.distances[i] > obstacle.min_distance && (float)i * obstacle.increment_f < 360.f) {
+				    obstacle.distances[i] > obstacle.min_distance && (float)i * obstacle.increment < 360.f) {
 					float distance = obstacle.distances[i] / 100.0f; //convert to meters
-					float angle = math::radians((float)i * obstacle.increment_f);
+					float angle = math::radians((float)i * obstacle.increment);
 
 					if (obstacle.angle_offset > 0.f) {
 						angle += math::radians(obstacle.angle_offset);
