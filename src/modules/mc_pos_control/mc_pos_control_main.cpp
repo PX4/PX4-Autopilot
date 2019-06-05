@@ -46,6 +46,7 @@
 #include <lib/hysteresis/hysteresis.h>
 #include <commander/px4_custom_mode.h>
 
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -112,13 +113,14 @@ private:
 	orb_id_t _attitude_setpoint_id{nullptr};
 	orb_advert_t	_landing_gear_pub{nullptr};
 
-	int		_vehicle_status_sub{-1};		/**< vehicle status subscription */
-	int		_vehicle_land_detected_sub{-1};	/**< vehicle land detected subscription */
-	int		_control_mode_sub{-1};		/**< vehicle control mode subscription */
-	int		_params_sub{-1};			/**< notification of parameter updates */
 	int		_local_pos_sub{-1};			/**< vehicle local position */
-	int		_att_sub{-1};				/**< vehicle attitude */
-	int		_home_pos_sub{-1}; 			/**< home position */
+
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			/**< vehicle status subscription */
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
+	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
+	uORB::Subscription _params_sub{ORB_ID(parameter_update)};			/**< notification of parameter updates */
+	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};				/**< vehicle attitude */
+	uORB::Subscription _home_pos_sub{ORB_ID(home_position)}; 			/**< home position */
 
 	int _task_failure_count{0};         /**< counter for task failures */
 
@@ -338,14 +340,8 @@ MulticopterPositionControl::warn_rate_limited(const char *string)
 int
 MulticopterPositionControl::parameters_update(bool force)
 {
-	bool updated;
-	struct parameter_update_s param_upd;
-
-	orb_check(_params_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(parameter_update), _params_sub, &param_upd);
-	}
+	parameter_update_s param_upd;
+	bool updated = _params_sub.update(&param_upd);
 
 	if (updated || force) {
 		ModuleParams::updateParams();
@@ -376,12 +372,7 @@ MulticopterPositionControl::poll_subscriptions()
 	// This is polled for, so all we need to do is a copy now.
 	orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 
-	bool updated;
-
-	orb_check(_vehicle_status_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+	if (_vehicle_status_sub.update(&_vehicle_status)) {
 
 		// set correct uORB ID, depending on if vehicle is VTOL or not
 		if (!_attitude_setpoint_id) {
@@ -399,33 +390,16 @@ MulticopterPositionControl::poll_subscriptions()
 		}
 	}
 
-	orb_check(_vehicle_land_detected_sub, &updated);
+	_vehicle_land_detected_sub.update(&_vehicle_land_detected);
+	_control_mode_sub.update(&_control_mode);
+	_home_pos_sub.update(&_home_pos);
 
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
-	}
-
-	orb_check(_control_mode_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
-	}
-
-	orb_check(_att_sub, &updated);
-
-	if (updated) {
+	if (_att_sub.updated()) {
 		vehicle_attitude_s att;
-		if (orb_copy(ORB_ID(vehicle_attitude), _att_sub, &att) == PX4_OK && PX4_ISFINITE(att.q[0])) {
+		if (_att_sub.copy(&att) && PX4_ISFINITE(att.q[0])) {
 			_states.yaw = Eulerf(Quatf(att.q)).psi();
 		}
 	}
-
-	orb_check(_home_pos_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
-	}
-
 }
 
 void
@@ -508,7 +482,6 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 		_vel_z_deriv.update(0.0f);
 
 	}
-
 }
 
 int
@@ -526,14 +499,6 @@ void
 MulticopterPositionControl::run()
 {
 	hrt_abstime time_stamp_last_loop = hrt_absolute_time(); // time stamp of last loop iteration
-
-	// initialize all subscriptions
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	orb_set_interval(_local_pos_sub, 20); // 50 Hz updates
@@ -759,13 +724,7 @@ MulticopterPositionControl::run()
 		}
 	}
 
-	orb_unsubscribe(_vehicle_status_sub);
-	orb_unsubscribe(_vehicle_land_detected_sub);
-	orb_unsubscribe(_control_mode_sub);
-	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_local_pos_sub);
-	orb_unsubscribe(_att_sub);
-	orb_unsubscribe(_home_pos_sub);
 }
 
 void
