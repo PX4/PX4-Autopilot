@@ -99,9 +99,7 @@ void CollisionPrevention::updateDistanceSensor(obstacle_distance_s &obstacle)
 		// consider only instaces with updated, valid data and orientations useful for collision prevention
 		if ((hrt_elapsed_time(&distance_sensor.timestamp) < RANGE_STREAM_TIMEOUT_US) &&
 		    (distance_sensor.orientation != distance_sensor_s::ROTATION_DOWNWARD_FACING) &&
-		    (distance_sensor.orientation != distance_sensor_s::ROTATION_UPWARD_FACING) &&
-		    (distance_sensor.current_distance > distance_sensor.min_distance) &&
-		    (distance_sensor.current_distance < distance_sensor.max_distance)) {
+		    (distance_sensor.orientation != distance_sensor_s::ROTATION_UPWARD_FACING)) {
 
 
 			if (obstacle.increment > 0) {
@@ -124,63 +122,67 @@ void CollisionPrevention::updateDistanceSensor(obstacle_distance_s &obstacle)
 				obstacle.angle_offset = 0.f;
 			}
 
-			// init offset for sensor orientation distance_sensor_s::ROTATION_FORWARD_FACING or with offset coming from the companion
-			float sensor_yaw_body_rad = obstacle.angle_offset > 0.f ? math::radians(obstacle.angle_offset) : 0.0f;
+			if ((distance_sensor.current_distance > distance_sensor.min_distance) &&
+			    (distance_sensor.current_distance < distance_sensor.max_distance)) {
 
-			switch (distance_sensor.orientation) {
-			case distance_sensor_s::ROTATION_RIGHT_FACING:
-				sensor_yaw_body_rad = M_PI_F / 2.0f;
-				break;
+				// init offset for sensor orientation distance_sensor_s::ROTATION_FORWARD_FACING or with offset coming from the companion
+				float sensor_yaw_body_rad = obstacle.angle_offset > 0.f ? math::radians(obstacle.angle_offset) : 0.0f;
 
-			case distance_sensor_s::ROTATION_LEFT_FACING:
-				sensor_yaw_body_rad = -M_PI_F / 2.0f;
-				break;
+				switch (distance_sensor.orientation) {
+				case distance_sensor_s::ROTATION_RIGHT_FACING:
+					sensor_yaw_body_rad = M_PI_F / 2.0f;
+					break;
 
-			case distance_sensor_s::ROTATION_BACKWARD_FACING:
-				sensor_yaw_body_rad = M_PI_F;
-				break;
+				case distance_sensor_s::ROTATION_LEFT_FACING:
+					sensor_yaw_body_rad = -M_PI_F / 2.0f;
+					break;
 
-			case distance_sensor_s::ROTATION_CUSTOM:
-				sensor_yaw_body_rad = Eulerf(Quatf(distance_sensor.q)).psi();
-				break;
-			}
+				case distance_sensor_s::ROTATION_BACKWARD_FACING:
+					sensor_yaw_body_rad = M_PI_F;
+					break;
 
-			matrix::Quatf attitude = Quatf(_sub_vehicle_attitude.get().q);
-			// convert the sensor orientation from body to local frame in the range [0, 360]
-			float sensor_yaw_local_deg  = math::degrees(wrap_2pi(Eulerf(attitude).psi() + sensor_yaw_body_rad));
-
-			// calculate the field of view boundary bin indices
-			int lower_bound = (int)floor((sensor_yaw_local_deg  - math::degrees(distance_sensor.h_fov / 2.0f)) /
-						     obstacle.increment);
-			int upper_bound = (int)floor((sensor_yaw_local_deg  + math::degrees(distance_sensor.h_fov / 2.0f)) /
-						     obstacle.increment);
-
-			// if increment is lower than 5deg, use an offset
-			const int distances_array_size = sizeof(obstacle.distances) / sizeof(obstacle.distances[0]);
-
-			if (((lower_bound < 0 || upper_bound < 0) || (lower_bound >= distances_array_size
-					|| upper_bound >= distances_array_size)) && obstacle.increment < 5.f) {
-				obstacle.angle_offset = sensor_yaw_local_deg ;
-				upper_bound  = abs(upper_bound - lower_bound);
-				lower_bound  = 0;
-			}
-
-			for (int bin = lower_bound; bin <= upper_bound; ++bin) {
-				int wrap_bin = bin;
-
-				if (wrap_bin < 0) {
-					// wrap bin index around the array
-					wrap_bin = (int)floor(360.f / obstacle.increment) + bin;
+				case distance_sensor_s::ROTATION_CUSTOM:
+					sensor_yaw_body_rad = Eulerf(Quatf(distance_sensor.q)).psi();
+					break;
 				}
 
-				if (wrap_bin >= distances_array_size) {
-					// wrap bin index around the array
-					wrap_bin = bin - distances_array_size;
+				matrix::Quatf attitude = Quatf(_sub_vehicle_attitude.get().q);
+				// convert the sensor orientation from body to local frame in the range [0, 360]
+				float sensor_yaw_local_deg  = math::degrees(wrap_2pi(Eulerf(attitude).psi() + sensor_yaw_body_rad));
+
+				// calculate the field of view boundary bin indices
+				int lower_bound = (int)floor((sensor_yaw_local_deg  - math::degrees(distance_sensor.h_fov / 2.0f)) /
+							     obstacle.increment);
+				int upper_bound = (int)floor((sensor_yaw_local_deg  + math::degrees(distance_sensor.h_fov / 2.0f)) /
+							     obstacle.increment);
+
+				// if increment is lower than 5deg, use an offset
+				const int distances_array_size = sizeof(obstacle.distances) / sizeof(obstacle.distances[0]);
+
+				if (((lower_bound < 0 || upper_bound < 0) || (lower_bound >= distances_array_size
+						|| upper_bound >= distances_array_size)) && obstacle.increment < 5.f) {
+					obstacle.angle_offset = sensor_yaw_local_deg ;
+					upper_bound  = abs(upper_bound - lower_bound);
+					lower_bound  = 0;
 				}
 
-				// compensate measurement for vehicle tilt and convert to cm
-				obstacle.distances[wrap_bin] = math::min((int)obstacle.distances[wrap_bin],
-							       (int)(100 * distance_sensor.current_distance * cosf(Eulerf(attitude).theta())));
+				for (int bin = lower_bound; bin <= upper_bound; ++bin) {
+					int wrap_bin = bin;
+
+					if (wrap_bin < 0) {
+						// wrap bin index around the array
+						wrap_bin = (int)floor(360.f / obstacle.increment) + bin;
+					}
+
+					if (wrap_bin >= distances_array_size) {
+						// wrap bin index around the array
+						wrap_bin = bin - distances_array_size;
+					}
+
+					// compensate measurement for vehicle tilt and convert to cm
+					obstacle.distances[wrap_bin] = math::min((int)obstacle.distances[wrap_bin],
+								       (int)(100 * distance_sensor.current_distance * cosf(Eulerf(attitude).theta())));
+				}
 			}
 		}
 	}
