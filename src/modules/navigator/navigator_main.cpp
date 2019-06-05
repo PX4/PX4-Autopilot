@@ -549,6 +549,7 @@ Navigator::run()
 			have_geofence_position_data = false;
 
 			_geofence_result.timestamp = hrt_absolute_time();
+			_geofence_result.empty = _geofence.isEmpty();
 			_geofence_result.geofence_action = _geofence.getGeofenceAction();
 			_geofence_result.home_required = _geofence.isHomeRequired();
 
