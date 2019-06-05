@@ -907,3 +907,20 @@ PARAM_DEFINE_INT32(COM_ASPD_FS_ACT, 0);
  */
 PARAM_DEFINE_INT32(COM_ASPD_FS_DLY, 0);
 
+/**
+ * User Flight Profile
+ *
+ * Describes the intended use of the vehicle.
+ * Can be used by ground control software or log post processing.
+ * This param does not influence the behavior within the firmware. This means for example the control logic is independent of the setting of this param (but depends on other params).
+ *
+ * 0: Default
+ * 100: Pro User
+ * 200: Flight Tester
+ * 300: Developer
+ *
+ * @min 0
+ * @max 1000
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_FLT_PROFILE, 0);
