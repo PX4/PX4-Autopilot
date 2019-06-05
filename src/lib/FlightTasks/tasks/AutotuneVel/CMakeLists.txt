@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,15 +31,9 @@
 #
 ############################################################################
 
-# add the core Flight tasks that the additional flight tasks depend on
-add_subdirectory(FlightTask)
-add_subdirectory(Utility)
-add_subdirectory(Manual)
-add_subdirectory(Auto)
-add_subdirectory(AutoMapper)
-add_subdirectory(AutoMapper2)
+px4_add_library(FlightTaskAutotuneVel
+	FlightTaskAutotuneVel.cpp
+)
 
-# add all additional flight tasks
-foreach(task ${flight_tasks_all})
-    add_subdirectory(${task})
-endforeach()
+target_link_libraries(FlightTaskAutotuneVel PUBLIC FlightTaskManual)
+target_include_directories(FlightTaskAutotuneVel PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

@@ -234,6 +234,15 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_I, 0.02f);
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 
 /**
+ * Velocity PID auto-tuner
+ *
+ * @boolean
+ *
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_XY_VEL_ATUNE, 0);
+
+/**
  * Maximum horizontal velocity in mission
  *
  * Normal horizontal velocity in AUTO modes (includes

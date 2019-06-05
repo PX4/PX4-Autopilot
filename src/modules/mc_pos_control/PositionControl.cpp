@@ -40,6 +40,7 @@
 #include <mathlib/mathlib.h>
 #include "Utility/ControlMath.hpp"
 #include <px4_defines.h>
+#include <drivers/drv_hrt.h>
 
 using namespace matrix;
 
@@ -294,6 +295,7 @@ void PositionControl::_velocityController(const float &dt)
 		Vector2f thrust_desired_NE;
 		thrust_desired_NE(0) = _param_mpc_xy_vel_p.get() * vel_err(0) + _param_mpc_xy_vel_d.get() * _vel_dot(0) + _thr_int(0);
 		thrust_desired_NE(1) = _param_mpc_xy_vel_p.get() * vel_err(1) + _param_mpc_xy_vel_d.get() * _vel_dot(1) + _thr_int(1);
+
 
 		// Get maximum allowed thrust in NE based on tilt and excess thrust.
 		float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);

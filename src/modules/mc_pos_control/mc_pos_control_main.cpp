@@ -157,6 +157,7 @@ private:
 		(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed,
 		(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2, /**< downwards speed limited below this altitude */
 		(ParamInt<px4::params::MPC_POS_MODE>) _param_mpc_pos_mode,
+		(ParamBool<px4::params::MPC_XY_VEL_ATUNE>) _param_mpc_xy_vel_atune,
 		(ParamInt<px4::params::MPC_AUTO_MODE>) _param_mpc_auto_mode,
 		(ParamInt<px4::params::MPC_ALT_MODE>) _param_mpc_alt_mode,
 		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) _param_mpc_spoolup_time, /**< time to let motors spool up after arming */
@@ -831,22 +832,27 @@ MulticopterPositionControl::start_flight_task()
 		should_disable_task = false;
 		int error = 0;
 
-		switch (_param_mpc_pos_mode.get()) {
-		case 1:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmooth);
-			break;
+		if (_param_mpc_xy_vel_atune.get()) {
+			error =  _flight_tasks.switchTask(FlightTaskIndex::AutotuneVel);
 
-		case 2:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::Sport);
-			break;
+		} else {
+			switch (_param_mpc_pos_mode.get()) {
+			case 1:
+				error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmooth);
+				break;
 
-		case 3:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmoothVel);
-			break;
+			case 2:
+				error =  _flight_tasks.switchTask(FlightTaskIndex::Sport);
+				break;
 
-		default:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPosition);
-			break;
+			case 3:
+				error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPositionSmoothVel);
+				break;
+
+			default:
+				error =  _flight_tasks.switchTask(FlightTaskIndex::ManualPosition);
+				break;
+			}
 		}
 
 		if (error != 0) {
