@@ -56,20 +56,10 @@ CollisionPrevention::~CollisionPrevention()
 	}
 }
 
-bool CollisionPrevention::initializeSubscriptions(SubscriptionArray &subscription_array)
-{
-	if (!subscription_array.get(ORB_ID(obstacle_distance), _sub_obstacle_distance)) {
-		return false;
-	}
-
-	return true;
-}
-
 void CollisionPrevention::publishConstrainedSetpoint(const Vector2f &original_setpoint,
 		const Vector2f &adapted_setpoint)
 {
-
-	collision_constraints_s	constraints;	/**< collision constraints message */
+	collision_constraints_s	constraints{};	/**< collision constraints message */
 
 	//fill in values
 	constraints.timestamp = hrt_absolute_time();
@@ -91,7 +81,8 @@ void CollisionPrevention::publishConstrainedSetpoint(const Vector2f &original_se
 void CollisionPrevention::calculateConstrainedSetpoint(Vector2f &setpoint,
 		const Vector2f &curr_pos, const Vector2f &curr_vel)
 {
-	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance->get();
+	_sub_obstacle_distance.update();
+	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance.get();
 
 	//The maximum velocity formula contains a square root, therefore the whole calculation is done with squared norms.
 	//that way the root does not have to be calculated for every range bin but once at the end.

@@ -49,9 +49,8 @@
 #include <mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/mavlink_log.h>
-#include <uORB/uORB.h>
+#include <uORB/Subscription.hpp>
 #include <systemlib/mavlink_log.h>
-#include <lib/FlightTasks/tasks/FlightTask/SubscriptionArray.hpp>
 
 class CollisionPrevention : public ModuleParams
 {
@@ -59,12 +58,6 @@ public:
 	CollisionPrevention(ModuleParams *parent);
 
 	~CollisionPrevention();
-
-	/**
-	 * Initialize the uORB subscriptions using an array
-	 * @return true on success, false on error
-	 */
-	bool initializeSubscriptions(SubscriptionArray &subscription_array);
 
 	bool is_active() { return _param_mpc_col_prev_d.get() > 0; }
 
@@ -78,7 +71,7 @@ private:
 	orb_advert_t _constraints_pub{nullptr};  	/**< constraints publication */
 	orb_advert_t _mavlink_log_pub{nullptr};	 	/**< Mavlink log uORB handle */
 
-	uORB::SubscriptionPollable<obstacle_distance_s> *_sub_obstacle_distance{nullptr}; /**< obstacle distances received form a range sensor */
+	uORB::SubscriptionData<obstacle_distance_s> _sub_obstacle_distance{ORB_ID(obstacle_distance)}; /**< obstacle distances received form a range sensor */
 
 	static constexpr uint64_t RANGE_STREAM_TIMEOUT_US{500000};
 	static constexpr uint64_t MESSAGE_THROTTLE_US{5000000};
