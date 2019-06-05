@@ -46,7 +46,7 @@
 #include <matrix/matrix/math.hpp>
 #include <mathlib/mathlib.h>
 #include <px4_module_params.h>
-#include <systemlib/hysteresis/hysteresis.h>
+#include <hysteresis/hysteresis.h>
 
 // subscriptions
 #include <uORB/Subscription.hpp>
