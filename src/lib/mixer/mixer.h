@@ -773,7 +773,8 @@ private:
 	 * Mix roll, pitch, yaw, thrust and set the outputs vector.
 	 *
 	 * Desaturation behavior: full airmode for roll/pitch/yaw:
-	 * thrust is increased/decreased as much as required to meet demanded the roll/pitch/yaw.
+	 * thrust is increased/decreased as much as required to meet demanded the roll/pitch/yaw,
+	 * while giving priority to roll and pitch over yaw.
 	 */
 	inline void mix_airmode_rpy(float roll, float pitch, float yaw, float thrust, float *outputs);
 
