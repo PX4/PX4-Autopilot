@@ -90,6 +90,32 @@ private:
 
 	void update();
 
+	inline float sensorOrientationToYawOffset(const distance_sensor_s &distance_sensor, float angle_offset)
+	{
+
+		float offset = angle_offset > 0.f ? math::radians(angle_offset) : 0.0f;
+
+		switch (distance_sensor.orientation) {
+		case distance_sensor_s::ROTATION_RIGHT_FACING:
+			offset = M_PI_F / 2.0f;
+			break;
+
+		case distance_sensor_s::ROTATION_LEFT_FACING:
+			offset = -M_PI_F / 2.0f;
+			break;
+
+		case distance_sensor_s::ROTATION_BACKWARD_FACING:
+			offset = M_PI_F;
+			break;
+
+		case distance_sensor_s::ROTATION_CUSTOM:
+			offset = matrix::Eulerf(matrix::Quatf(distance_sensor.q)).psi();
+			break;
+		}
+
+		return offset;
+	}
+
 	void calculateConstrainedSetpoint(matrix::Vector2f &setpoint, const matrix::Vector2f &curr_pos,
 					  const matrix::Vector2f &curr_vel);
 
