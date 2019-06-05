@@ -52,10 +52,6 @@ bool FlightTaskManualPosition::initializeSubscriptions(SubscriptionArray &subscr
 		return false;
 	}
 
-	if (!_collision_prevention.initializeSubscriptions(subscription_array)) {
-		return false;
-	}
-
 	return true;
 }
 
