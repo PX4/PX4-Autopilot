@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,8 +45,6 @@ using namespace time_literals;
 extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[]);
 
 FixedwingAttitudeControl::FixedwingAttitudeControl() :
-	_airspeed_sub(ORB_ID(airspeed)),
-
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fwa_dt")),
 	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fwa_nani")),
@@ -133,29 +131,11 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	// subscriptions
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
-	_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 }
 
 FixedwingAttitudeControl::~FixedwingAttitudeControl()
 {
 	orb_unsubscribe(_att_sub);
-	orb_unsubscribe(_att_sp_sub);
-	orb_unsubscribe(_vcontrol_mode_sub);
-	orb_unsubscribe(_params_sub);
-	orb_unsubscribe(_manual_sub);
-	orb_unsubscribe(_global_pos_sub);
-	orb_unsubscribe(_vehicle_status_sub);
-	orb_unsubscribe(_vehicle_land_detected_sub);
-	orb_unsubscribe(_battery_status_sub);
-	orb_unsubscribe(_rates_sp_sub);
 
 	perf_free(_loop_perf);
 	perf_free(_nonfinite_input_perf);
@@ -279,14 +259,7 @@ FixedwingAttitudeControl::parameters_update()
 void
 FixedwingAttitudeControl::vehicle_control_mode_poll()
 {
-	bool updated = false;
-
-	/* Check if vehicle control mode has changed */
-	orb_check(_vcontrol_mode_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &_vcontrol_mode);
-	}
+	_vcontrol_mode_sub.update(&_vcontrol_mode);
 
 	if (_vehicle_status.is_vtol) {
 		const bool is_hovering = _vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode;
@@ -308,7 +281,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 	if (_vcontrol_mode.flag_control_manual_enabled && (!is_tailsitter_transition || is_fixed_wing)) {
 
 		// Always copy the new manual setpoint, even if it wasn't updated, to fill the _actuators with valid values
-		if (orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual) == PX4_OK) {
+		if (_manual_sub.copy(&_manual)) {
 
 			// Check if we are in rattitude mode and the pilot is above the threshold on pitch
 			if (_vcontrol_mode.flag_control_rattitude_enabled) {
@@ -378,29 +351,17 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 void
 FixedwingAttitudeControl::vehicle_attitude_setpoint_poll()
 {
-	/* check if there is a new setpoint */
-	bool updated = false;
-	orb_check(_att_sp_sub, &updated);
-
-	if (updated) {
-		if (orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp) == PX4_OK) {
-			_rates_sp.thrust_body[0] = _att_sp.thrust_body[0];
-			_rates_sp.thrust_body[1] = _att_sp.thrust_body[1];
-			_rates_sp.thrust_body[2] = _att_sp.thrust_body[2];
-		}
+	if (_att_sp_sub.update(&_att_sp)) {
+		_rates_sp.thrust_body[0] = _att_sp.thrust_body[0];
+		_rates_sp.thrust_body[1] = _att_sp.thrust_body[1];
+		_rates_sp.thrust_body[2] = _att_sp.thrust_body[2];
 	}
 }
 
 void
 FixedwingAttitudeControl::vehicle_rates_setpoint_poll()
 {
-	/* check if there is a new setpoint */
-	bool updated = false;
-	orb_check(_rates_sp_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_rates_setpoint), _rates_sp_sub, &_rates_sp);
-
+	if (_rates_sp_sub.update(&_rates_sp)) {
 		if (_is_tailsitter) {
 			float tmp = _rates_sp.roll;
 			_rates_sp.roll = -_rates_sp.yaw;
@@ -410,27 +371,9 @@ FixedwingAttitudeControl::vehicle_rates_setpoint_poll()
 }
 
 void
-FixedwingAttitudeControl::global_pos_poll()
-{
-	/* check if there is a new global position */
-	bool global_pos_updated;
-	orb_check(_global_pos_sub, &global_pos_updated);
-
-	if (global_pos_updated) {
-		orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
-	}
-}
-
-void
 FixedwingAttitudeControl::vehicle_status_poll()
 {
-	/* check if there is new status information */
-	bool vehicle_status_updated;
-	orb_check(_vehicle_status_sub, &vehicle_status_updated);
-
-	if (vehicle_status_updated) {
-		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
-
+	if (_vehicle_status_sub.update(&_vehicle_status)) {
 		/* set correct uORB ID, depending on if vehicle is VTOL or not */
 		if (!_actuators_id) {
 			if (_vehicle_status.is_vtol) {
@@ -454,14 +397,10 @@ FixedwingAttitudeControl::vehicle_status_poll()
 void
 FixedwingAttitudeControl::vehicle_land_detected_poll()
 {
-	/* check if there is new status information */
-	bool vehicle_land_detected_updated;
-	orb_check(_vehicle_land_detected_sub, &vehicle_land_detected_updated);
-
-	if (vehicle_land_detected_updated) {
+	if (_vehicle_land_detected_sub.updated()) {
 		vehicle_land_detected_s vehicle_land_detected {};
 
-		if (orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &vehicle_land_detected) == PX4_OK) {
+		if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
 			_landed = vehicle_land_detected.landed;
 		}
 	}
@@ -520,13 +459,12 @@ void FixedwingAttitudeControl::run()
 	while (!should_exit()) {
 
 		/* only update parameters if they changed */
-		bool params_updated = false;
-		orb_check(_params_sub, &params_updated);
+		bool params_updated = _params_sub.updated();
 
 		if (params_updated) {
 			/* read from param to clear updated flag */
 			parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
+			_params_sub.copy(&update);
 
 			/* update parameters from storage */
 			parameters_update();
@@ -613,7 +551,7 @@ void FixedwingAttitudeControl::run()
 			vehicle_attitude_setpoint_poll();
 			vehicle_control_mode_poll();
 			vehicle_manual_poll();
-			global_pos_poll();
+			_global_pos_sub.update(&_global_pos);
 			vehicle_status_poll();
 			vehicle_land_detected_poll();
 
@@ -801,13 +739,10 @@ void FixedwingAttitudeControl::run()
 						if (_parameters.bat_scale_en &&
 						    _actuators.control[actuator_controls_s::INDEX_THROTTLE] > 0.1f) {
 
-							bool updated = false;
-							orb_check(_battery_status_sub, &updated);
+							if (_battery_status_sub.updated()) {
+								battery_status_s battery_status{};
 
-							if (updated) {
-								battery_status_s battery_status = {};
-
-								if (orb_copy(ORB_ID(battery_status), _battery_status_sub, &battery_status) == PX4_OK) {
+								if (_battery_status_sub.copy(&battery_status)) {
 									if (battery_status.scale > 0.0f) {
 										_battery_scale = battery_status.scale;
 									}
