@@ -405,7 +405,7 @@ private:
 											will be stopped after load printing (for the full log) */
 	print_load_s					_load{}; ///< process load data
 	hrt_abstime					_next_load_print{0}; ///< timestamp when to print the process load
-	PrintLoadReason					_print_load_reason;
+	PrintLoadReason					_print_load_reason {PrintLoadReason::Preflight};
 
 	param_t						_sdlog_profile_handle{PARAM_INVALID};
 	param_t						_log_utc_offset{PARAM_INVALID};
