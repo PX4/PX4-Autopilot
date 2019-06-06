@@ -72,6 +72,20 @@ int PX4Magnetometer::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 
 		return PX4_OK;
 
+	case MAGIOCGSCALE: {
+			// copy out scale factors
+			mag_calibration_s cal{};
+			cal.x_offset = _calibration_offset(0);
+			cal.y_offset = _calibration_offset(1);
+			cal.z_offset = _calibration_offset(2);
+			cal.x_scale = _calibration_scale(0);
+			cal.y_scale = _calibration_scale(1);
+			cal.z_scale = _calibration_scale(2);
+			memcpy((mag_calibration_s *)arg, &cal, sizeof(cal));
+		}
+
+		return 0;
+
 	case DEVIOCGDEVICEID:
 		return _sensor_mag_pub.get().device_id;
 
