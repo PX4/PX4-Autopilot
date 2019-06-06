@@ -128,6 +128,9 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	struct sched_param param = {};
 	char *p = (char *)argv;
 
+	// The name is added as the first argument.
+	len += strlen(name) + 1;
+
 	// Calculate argc
 	while (p != (char *)nullptr) {
 		p = argv[argc];
@@ -140,6 +143,10 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		len += strlen(p) + 1;
 	}
 
+	// We add one argument for the name as argv[0].
+	++argc;
+
+	// argc + 1 because we have to add nullptr at the end.
 	unsigned long structsize = sizeof(pthdata_t) + (argc + 1) * sizeof(char *);
 
 	// not safe to pass stack data to the thread creation
@@ -157,11 +164,15 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	taskdata->entry = entry;
 	taskdata->argc = argc;
 
-	for (i = 0; i < argc; i++) {
-		PX4_DEBUG("arg %d %s\n", i, argv[i]);
+	taskdata->argv[0] = (char *)offset;
+	strcpy(taskdata->argv[0], name);
+	offset += strlen(name) + 1;
+
+	for (i = 1; i < argc; i++) {
+		PX4_DEBUG("arg %d %s\n", i, argv[i - 1]);
 		taskdata->argv[i] = (char *)offset;
-		strcpy((char *)offset, argv[i]);
-		offset += strlen(argv[i]) + 1;
+		strcpy((char *)offset, argv[i - 1]);
+		offset += strlen(argv[i - 1]) + 1;
 	}
 
 	// Must add NULL at end of argv
