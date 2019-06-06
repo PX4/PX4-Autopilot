@@ -687,10 +687,9 @@ MulticopterAttitudeControl::run()
 					}
 
 					control_attitude();
-					if (_v_control_mode.flag_control_yawrate_override_enabled)
-					{
+					if (_v_control_mode.flag_control_yawrate_override_enabled) {
 						/* Yaw rate override enabled, overwrite the yaw setpoint */
-						vehicle_rates_setpoint_poll();
+						_v_rates_sp_sub.update(&_v_rates_sp);
 						const auto yawrate_reference = _v_rates_sp.yaw;
 						_rates_sp(2) = yawrate_reference;
 					}
