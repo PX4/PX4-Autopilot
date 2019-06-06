@@ -2,6 +2,11 @@
  * 串口读取函数
  * rw_uart.c 
  */
+
+#include <px4_posix.h>
+#include <px4_defines.h>
+#include <px4_config.h>
+#include <px4_tasks.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <termios.h>
@@ -9,6 +14,7 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <drivers/drv_hrt.h>
+#include <poll.h>
 #include <string.h>
 #include <systemlib/err.h>
 //#include <systemlib/systemlib.h>
@@ -18,6 +24,8 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/pm3901_with_tof.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_attitude.h>
 #include <systemlib/mavlink_log.h>
 
 // ORB_DEFINE(rw_uart_topic, struct rw_uart_topic_s);
@@ -100,8 +108,11 @@ int rw_uart_main(int argc, char *argv[])
 
     // initialize the orb topic
     orb_advert_t pub_fd = orb_advertise(ORB_ID(pm3901_with_tof), &pm3901_tof_data);
-    int    pm3901_and_tof_sub = orb_subscribe(ORB_ID(pm3901_with_tof));
     struct pm3901_with_tof_s test;
+
+    int  pm3901_and_tof_sub = orb_subscribe(ORB_ID(pm3901_with_tof));
+    int _att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+    
 
     char data = '0';
     char buffer[6] = "";
@@ -121,38 +132,76 @@ int rw_uart_main(int argc, char *argv[])
     mavlink_log_critical(&mavlink_log_pub, "pm3901_with_tof start successful");
     //printf("[JXF]uart init is successful\n");
 
+    /* wakeup source */
+    px4_pollfd_struct_t fds[1];
+
+    /* Setup of loop */
+    fds[0].fd = _att_sub;
+    fds[0].events = POLLIN;
+
+    int error_counter = 0;
+
     while(true){
-        read(uart_read,&data,1);
-        if(data == 0xaa){
-            for(int i = 0; i < 6; ++ i){
-                read(uart_read, &data, 1);
-                buffer[i] = data;
-                data = '0';
+        /* wait for sensor update of 1 file descriptor for 1000 ms (1 second) */
+        int poll_ret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 25);
+
+        /* handle the poll result */
+        if (poll_ret == 0) {
+            /* this means none of our providers is giving us data */
+            PX4_ERR("Got no data within a second");
+
+        } else if (poll_ret < 0) {
+            /* this is seriously bad - should be an emergency */
+            if (error_counter < 10 || error_counter % 50 == 0) {
+                /* use a counter to prevent flooding (and slowing us down) */
+                PX4_ERR("ERROR return value from poll(): %d", poll_ret);
             }
 
-            float xvel    = buffer[1];
-            float yvel    = - buffer[2];
-            float quality = buffer[3];
-            float height  = (buffer[4] + (buffer[5]<<8))/1000.f;
+            error_counter++;
 
-            pm3901_tof_data.xvel       = xvel;
-            pm3901_tof_data.yvel       = yvel;
-            pm3901_tof_data.quality    = quality;
-            pm3901_tof_data.tof_height = height;
+        } else {
+            read(uart_read,&data,1);
+            if(data == 0xaa) {
 
-            orb_publish(ORB_ID(pm3901_with_tof), pub_fd, &pm3901_tof_data);
+                for(int i = 0; i < 6; ++ i) {
 
-            static int count = 0; count ++;
-            if(count % 100 == 0)
-            {
-                printf("xvel: %d yvel: %d quality: %d height: %.4f\n", buffer[1], -buffer[2], buffer[3], (double)(height));
+                    read(uart_read, &data, 1);
+                    buffer[i] = data;
+                    data = '0';
+                }
+            }
 
-                orb_copy(ORB_ID(pm3901_with_tof), pm3901_and_tof_sub, &test);
+            if (fds[0].revents & POLLIN) {
 
-                printf("height:%.4f\n", (double)(test.tof_height));
+                char  xvel    = buffer[1];
+                char  yvel    = - buffer[2];
+                char  quality = buffer[3];
+                float height  = (buffer[4] + (buffer[5]<<8))/1000.f;
+
+                pm3901_tof_data.xvel       = xvel;
+                pm3901_tof_data.yvel       = yvel;
+                pm3901_tof_data.quality    = quality;
+                pm3901_tof_data.tof_height = height;
+
+                orb_publish(ORB_ID(pm3901_with_tof), pub_fd, &pm3901_tof_data);
+
+                // Display the original height data
+                static int count = 0; count ++;
+                if(count % 400 == 0)
+                {
+                    printf("origin height: %.6f\n", (double)(height));
+                    printf("xvel: %d yvel: %d quality: %d height: %.6f\n", pm3901_tof_data.xvel, pm3901_tof_data.yvel, pm3901_tof_data.quality, (double)(pm3901_tof_data.tof_height));
+                }
+                else if(count % 400 == 50)
+                {
+                    orb_copy(ORB_ID(pm3901_with_tof), pm3901_and_tof_sub, &test);
+
+                    printf("check: xvel: %d yvel: %d quality: %d height: %.6f\n", test.xvel, test.yvel, test.quality, (double)(test.tof_height));
+                }
             }
         }
     }
+    PX4_INFO("exiting");
 
     return 0;
 }

@@ -662,6 +662,7 @@ void Logger::add_default_topics()
 	add_topic("vehicle_status_flags", 100);
 	add_topic("vtol_vehicle_status", 0);
 	add_topic("wind_estimate", 200);
+	add_topic("pm3901_with_tof", 0);
 
 #ifdef CONFIG_ARCH_BOARD_PX4_SITL
 	add_topic("actuator_controls_virtual_fw");
