@@ -4,15 +4,6 @@
 #------------------------------------------------------------------------------
 
 
-# transition from params file to flash-based params (2018-12-20)
-if [ -f $PARAM_FILE ]
-then
-	param load $PARAM_FILE
-	param save
-	# create a backup
-	mv $PARAM_FILE ${PARAM_FILE}.bak
-	reboot
-fi
 
 if [ $AUTOCNF = yes ]
 then
