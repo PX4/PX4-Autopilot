@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <px4_config.h>
+#include <px4_console_buffer.h>
 #include "logger.h"
 #include "messages.h"
 #include "watchdog.h"
@@ -53,6 +54,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 
 #include <drivers/drv_hrt.h>
+#include <mathlib/math/Limits.hpp>
 #include <px4_getopt.h>
 #include <px4_log.h>
 #include <px4_posix.h>
@@ -934,7 +936,7 @@ void Logger::run()
 	}
 
 	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	uORB::Subscription<parameter_update_s> parameter_update_sub(ORB_ID(parameter_update));
+	uORB::SubscriptionData<parameter_update_s> parameter_update_sub(ORB_ID(parameter_update));
 	int log_message_sub = orb_subscribe(ORB_ID(log_message));
 	orb_set_interval(log_message_sub, 20);
 
@@ -1628,6 +1630,7 @@ void Logger::start_log_file(LogType type)
 	if (type == LogType::Full) {
 		write_parameters(type);
 		write_perf_data(true);
+		write_console_output();
 	}
 	write_all_add_logged_msg(type);
 	_writer.set_need_reliable_transfer(false);
@@ -1675,6 +1678,7 @@ void Logger::start_log_mavlink()
 	write_formats(LogType::Full);
 	write_parameters(LogType::Full);
 	write_perf_data(true);
+	write_console_output();
 	write_all_add_logged_msg(LogType::Full);
 	_writer.set_need_reliable_transfer(false);
 	_writer.unselect_write_backend();
@@ -1700,7 +1704,7 @@ struct perf_callback_data_t {
 void Logger::perf_iterate_callback(perf_counter_t handle, void *user)
 {
 	perf_callback_data_t *callback_data = (perf_callback_data_t *)user;
-	const int buffer_length = 256;
+	const int buffer_length = 220;
 	char buffer[buffer_length];
 	const char *perf_name;
 
@@ -1788,6 +1792,25 @@ void Logger::write_load_output()
 	// and mavlink log is started, this will be added to the file as well)
 	print_load_buffer(curr_time, buffer, sizeof(buffer), print_load_callback, &callback_data, &_load);
 	_writer.set_need_reliable_transfer(false);
+}
+
+void Logger::write_console_output()
+{
+	const int buffer_length = 220;
+	char buffer[buffer_length];
+	int size = px4_console_buffer_size();
+	int offset = -1;
+	bool first = true;
+	while (size > 0) {
+		int read_size = px4_console_buffer_read(buffer, buffer_length-1, &offset);
+		if (read_size <= 0) { break; }
+		buffer[math::min(read_size, size)] = '\0';
+		write_info_multiple(LogType::Full, "boot_console_output", buffer, !first);
+
+		size -= read_size;
+		first = false;
+	}
+
 }
 
 void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats &written_formats, ulog_message_format_s& msg, int level)
@@ -1996,6 +2019,8 @@ void Logger::write_info_multiple(LogType type, const char *name, const char *val
 		msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
 		write_message(type, buffer, msg_size);
+	} else {
+		PX4_ERR("info_multiple str too long (%i), key=%s", msg.key_len, msg.key);
 	}
 
 	_writer.unlock();

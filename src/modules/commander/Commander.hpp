@@ -62,8 +62,6 @@
 #include <uORB/topics/vehicle_local_position.h>
 
 using math::constrain;
-using uORB::Publication;
-using uORB::Subscription;
 
 using namespace time_literals;
 
@@ -129,7 +127,8 @@ private:
 		(ParamInt<px4::params::COM_TAS_FS_T2>) _tas_use_start_delay,
 		(ParamInt<px4::params::COM_ASPD_FS_ACT>) _airspeed_fail_action,
 		(ParamFloat<px4::params::COM_ASPD_STALL>) _airspeed_stall,
-		(ParamInt<px4::params::COM_ASPD_FS_DLY>) _airspeed_rtl_delay
+		(ParamInt<px4::params::COM_ASPD_FS_DLY>) _airspeed_rtl_delay,
+		(ParamInt<px4::params::COM_FLT_PROFILE>) _param_com_flt_profile
 
 	)
 
@@ -165,8 +164,13 @@ private:
 	float		_load_factor_ratio{0.5f};	/**< ratio of maximum load factor predicted by stall speed to measured load factor */
 	float		_apsd_innov_integ_state{0.0f};	/**< inegral of excess normalised airspeed innovation (sec) */
 
+	bool _geofence_loiter_on{false};
+	bool _geofence_rtl_on{false};
+	bool _geofence_warning_action_on{false};
+	bool _geofence_violated_prev{false};
+
 	FailureDetector _failure_detector;
-	bool _failure_detector_termination_printed{false};
+	bool _flight_termination_triggered{false};
 
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd, actuator_armed_s *armed,
 			    orb_advert_t *command_ack_pub, bool *changed);
@@ -205,7 +209,7 @@ private:
 	 */
 	void		data_link_check(bool &status_changed);
 
-	int		_telemetry_status_sub{-1};
+	uORB::Subscription _telemetry_status_sub{ORB_ID(telemetry_status)};
 
 	hrt_abstime	_datalink_last_heartbeat_gcs{0};
 
@@ -218,12 +222,12 @@ private:
 	bool		_avoidance_system_status_change{false};
 	uint8_t	_datalink_last_status_avoidance_system{telemetry_status_s::MAV_STATE_UNINIT};
 
-	int			_iridiumsbd_status_sub{-1};
+	uORB::Subscription _iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 
 	hrt_abstime	_high_latency_datalink_heartbeat{0};
 	hrt_abstime	_high_latency_datalink_lost{0};
 
-	int _battery_sub{-1};
+	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
 	uint8_t _battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	float _battery_current{0.0f};
 
@@ -233,14 +237,15 @@ private:
 	bool _print_avoidance_msg_once{false};
 
 	// Subscriptions
-	Subscription<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
-	Subscription<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
-	Subscription<mission_result_s>			_mission_result_sub{ORB_ID(mission_result)};
-	Subscription<sensor_bias_s>			_sensor_bias_sub{ORB_ID(sensor_bias)};
-	Subscription<vehicle_global_position_s>		_global_position_sub{ORB_ID(vehicle_global_position)};
-	Subscription<vehicle_local_position_s>		_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::SubscriptionData<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
+	uORB::SubscriptionData<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
+	uORB::SubscriptionData<mission_result_s>		_mission_result_sub{ORB_ID(mission_result)};
+	uORB::SubscriptionData<sensor_bias_s>			_sensor_bias_sub{ORB_ID(sensor_bias)};
+	uORB::SubscriptionData<vehicle_global_position_s>	_global_position_sub{ORB_ID(vehicle_global_position)};
+	uORB::SubscriptionData<vehicle_local_position_s>	_local_position_sub{ORB_ID(vehicle_local_position)};
 
-	Publication<home_position_s>			_home_pub{ORB_ID(home_position)};
+	// Publications
+	uORB::Publication<home_position_s>			_home_pub{ORB_ID(home_position)};
 
 	orb_advert_t					_status_pub{nullptr};
 };

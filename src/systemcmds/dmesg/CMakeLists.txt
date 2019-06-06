@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,16 +31,9 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__bmi160
-	MAIN bmi160
-	STACK_MAIN 1200
-	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
+	MODULE systemcmds__dmesg
+	MAIN dmesg
+	STACK_MAIN 900
 	SRCS
-		bmi160.cpp
-		bmi160_main.cpp
-	DEPENDS
-		px4_work_queue
-		drivers_accelerometer
-		drivers_gyroscope
+		dmesg.cpp
 	)

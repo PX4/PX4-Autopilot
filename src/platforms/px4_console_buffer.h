@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,74 +32,68 @@
  ****************************************************************************/
 
 /**
- * @file failure_detector_params.c
- *
- * Parameters used by the Failure Detector.
- *
- * @author Mathieu Bresciani <brescianimathieu@gmail.com>
+ * @file px4_console_buffer.h
+ * This implements a simple console buffer to store the full bootup output.
+ * It can be printed via the 'dmesg' utility.
+ * The output of stdout is redirected to CONSOLE_BUFFER_DEVICE, which is stored
+ * to a circular buffer and output to stderr, so that everything is still printed
+ * to the original console.
  */
 
 #include <px4_config.h>
-#include <parameters/param.h>
+
+
+#define CONSOLE_BUFFER_DEVICE "/dev/console_buf"
+
+#ifdef BOARD_ENABLE_CONSOLE_BUFFER
+
+__BEGIN_DECLS
 
 /**
- * FailureDetector Max Roll
- *
- * Maximum roll angle before FailureDetector triggers the attitude_failure flag
- * If flight termination is enabled (@CBRK_FLIGHTTERM set to 0), the autopilot
- * will terminate the flight and set all the outputs to their failsafe value
- * as soon as the attitude_failure flag is set.
- *
- * Setting this parameter to 0 disables the check
- *
- * @min 60
- * @max 180
- * @unit degrees
- * @group Failure Detector
+ * Initialize the console buffer: register the CONSOLE_BUFFER_DEVICE
+ * @return 0 on success, <0 error otherwise
  */
-PARAM_DEFINE_INT32(FD_FAIL_R, 60);
+int px4_console_buffer_init();
 
 /**
- * FailureDetector Max Pitch
- *
- * Maximum pitch angle before FailureDetector triggers the attitude_failure flag
- * If flight termination is enabled (@CBRK_FLIGHTTERM set to 0), the autopilot
- * will terminate the flight and set all the outputs to their failsafe value
- * as soon as the attitude_failure flag is set.
- *
- * Setting this parameter to 0 disables the check
- *
- * @min 60
- * @max 180
- * @unit degrees
- * @group Failure Detector
+ * Print content of the console buffer to stdout
+ * @param follow if true keep waiting and print new content whenever the buffer
+ *               is updated
  */
-PARAM_DEFINE_INT32(FD_FAIL_P, 60);
+void px4_console_buffer_print(bool follow);
 
 /**
- * Roll failure trigger time
- *
- * Seconds (decimal) that roll has to exceed FD_FAIL_R before being considered as a failure.
- *
- * @unit s
- * @min 0.02
- * @max 5
- * @decimal 2
- *
- * @group Failure Detector
+ * Get the current used buffer size
  */
-PARAM_DEFINE_FLOAT(FD_FAIL_R_TTRI, 0.3);
+int px4_console_buffer_size();
 
 /**
- * Pitch failure trigger time
- *
- * Seconds (decimal) that pitch has to exceed FD_FAIL_P before being considered as a failure.
- *
- * @unit s
- * @min 0.02
- * @max 5
- * @decimal 2
- *
- * @group Failure Detector
+ * Read (chunks) of the console buffer.
+ * Note that no lock is held between reading multiple chunks, so the buffer could get
+ * updated meanwhile. Use px4_console_buffer_size() to read no more than expected.
+ * @param buffer output buffer
+ * @param buffer_length output buffer length
+ * @param offset input and output argument for the offset. Initially set this to -1.
+ * @return number of bytes written to the buffer (or <0 on error)
  */
-PARAM_DEFINE_FLOAT(FD_FAIL_P_TTRI, 0.3);
+int px4_console_buffer_read(char *buffer, int buffer_length, int *offset);
+
+__END_DECLS
+
+#else
+
+static inline int px4_console_buffer_init()
+{
+	return 0;
+}
+
+static inline int px4_console_buffer_size()
+{
+	return 0;
+}
+
+static inline int px4_console_buffer_read(char *buffer, int buffer_length, int *offset)
+{
+	return 0;
+}
+#endif /* BOARD_ENABLE_CONSOLE_BUFFER */

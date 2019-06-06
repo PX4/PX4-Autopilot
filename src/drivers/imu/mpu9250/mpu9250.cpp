@@ -91,13 +91,10 @@ MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const
 	_selected_bank(0xFF),	// invalid/improbable bank value, will be set on first read/write
 	_magnetometer_only(magnetometer_only),
 	_dlpf_freq(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
-	_accel_reads(perf_alloc(PC_COUNT, "mpu9250_acc_read")),
-	_gyro_reads(perf_alloc(PC_COUNT, "mpu9250_gyro_read")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu9250_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "mpu9250_bad_trans")),
 	_bad_registers(perf_alloc(PC_COUNT, "mpu9250_bad_reg")),
 	_good_transfers(perf_alloc(PC_COUNT, "mpu9250_good_trans")),
-	_reset_retries(perf_alloc(PC_COUNT, "mpu9250_reset")),
 	_duplicates(perf_alloc(PC_COUNT, "mpu9250_dupe"))
 {
 	_px4_accel.set_device_type(DRV_ACC_DEVTYPE_MPU9250);
@@ -111,12 +108,9 @@ MPU9250::~MPU9250()
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
-	perf_free(_accel_reads);
-	perf_free(_gyro_reads);
 	perf_free(_bad_transfers);
 	perf_free(_bad_registers);
 	perf_free(_good_transfers);
-	perf_free(_reset_retries);
 	perf_free(_duplicates);
 }
 
@@ -805,12 +799,9 @@ void
 MPU9250::print_info()
 {
 	perf_print_counter(_sample_perf);
-	perf_print_counter(_accel_reads);
-	perf_print_counter(_gyro_reads);
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_good_transfers);
-	perf_print_counter(_reset_retries);
 	perf_print_counter(_duplicates);
 
 	if (!_magnetometer_only) {

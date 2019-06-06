@@ -161,6 +161,75 @@ uORB::DeviceNode::close(cdev::file_t *filp)
 	return CDev::close(filp);
 }
 
+bool
+uORB::DeviceNode::copy_locked(void *dst, unsigned &generation)
+{
+	bool updated = false;
+
+	if ((dst != nullptr) && (_data != nullptr)) {
+
+		if (_generation > generation + _queue_size) {
+			// Reader is too far behind: some messages are lost
+			_lost_messages += _generation - (generation + _queue_size);
+			generation = _generation - _queue_size;
+		}
+
+		if ((_generation == generation) && (generation > 0)) {
+			/* The subscriber already read the latest message, but nothing new was published yet.
+			 * Return the previous message
+			 */
+			--generation;
+		}
+
+		memcpy(dst, _data + (_meta->o_size * (generation % _queue_size)), _meta->o_size);
+
+		if (generation < _generation) {
+			++generation;
+		}
+
+		updated = true;
+	}
+
+	return updated;
+}
+
+bool
+uORB::DeviceNode::copy(void *dst, unsigned &generation)
+{
+	ATOMIC_ENTER;
+
+	bool updated = copy_locked(dst, generation);
+
+	ATOMIC_LEAVE;
+
+	return updated;
+}
+
+uint64_t
+uORB::DeviceNode::copy_and_get_timestamp(void *dst, unsigned &generation)
+{
+	ATOMIC_ENTER;
+
+	const hrt_abstime update_time = _last_update;
+	copy_locked(dst, generation);
+
+	ATOMIC_LEAVE;
+
+	return update_time;
+}
+
+hrt_abstime
+uORB::DeviceNode::last_update()
+{
+	ATOMIC_ENTER;
+
+	const hrt_abstime update_time = _last_update;
+
+	ATOMIC_LEAVE;
+
+	return update_time;
+}
+
 ssize_t
 uORB::DeviceNode::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
@@ -181,29 +250,7 @@ uORB::DeviceNode::read(cdev::file_t *filp, char *buffer, size_t buflen)
 	 */
 	ATOMIC_ENTER;
 
-	const unsigned gen = published_message_count();
-
-	if (gen > sd->generation + _queue_size) {
-		/* Reader is too far behind: some messages are lost */
-		_lost_messages += gen - (sd->generation + _queue_size);
-		sd->generation = gen - _queue_size;
-	}
-
-	if (gen == sd->generation && sd->generation > 0) {
-		/* The subscriber already read the latest message, but nothing new was published yet.
-		 * Return the previous message
-		 */
-		--sd->generation;
-	}
-
-	/* if the caller doesn't want the data, don't give it to them */
-	if (nullptr != buffer) {
-		memcpy(buffer, _data + (_meta->o_size * (sd->generation % _queue_size)), _meta->o_size);
-	}
-
-	if (sd->generation < gen) {
-		++sd->generation;
-	}
+	copy_locked(buffer, sd->generation);
 
 	// if subscriber has an interval track the last update time
 	if (sd->update_interval) {

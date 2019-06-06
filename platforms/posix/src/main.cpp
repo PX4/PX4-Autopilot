@@ -95,7 +95,6 @@ void init_once();
 
 static void sig_int_handler(int sig_num);
 static void sig_fpe_handler(int sig_num);
-static void sig_segv_handler(int sig_num);
 
 static void register_sig_handler();
 static void set_cpu_scaling();
@@ -402,11 +401,6 @@ void register_sig_handler()
 	struct sigaction sig_pipe {};
 	sig_pipe.sa_handler = SIG_IGN;
 
-	// SIGSEGV
-	struct sigaction sig_segv {};
-	sig_segv.sa_handler = sig_segv_handler;
-	sig_segv.sa_flags = SA_RESTART | SA_SIGINFO | SA_RESETHAND;
-
 #ifdef __PX4_CYGWIN
 	// Do not catch SIGINT on Cygwin such that the process gets killed
 	// TODO: All threads should exit gracefully see https://github.com/PX4/Firmware/issues/11027
@@ -418,7 +412,6 @@ void register_sig_handler()
 	//sigaction(SIGTERM, &sig_int, nullptr);
 	sigaction(SIGFPE, &sig_fpe, nullptr);
 	sigaction(SIGPIPE, &sig_pipe, nullptr);
-	sigaction(SIGSEGV, &sig_segv, nullptr);
 }
 
 void sig_int_handler(int sig_num)
@@ -434,18 +427,9 @@ void sig_fpe_handler(int sig_num)
 {
 	fflush(stdout);
 	printf("\nfloating point exception\n");
-	PX4_BACKTRACE();
 	fflush(stdout);
 	px4_daemon::Pxh::stop();
 	_exit_requested = true;
-}
-
-void sig_segv_handler(int sig_num)
-{
-	fflush(stdout);
-	printf("\nSegmentation Fault\n");
-	PX4_BACKTRACE();
-	fflush(stdout);
 }
 
 void set_cpu_scaling()

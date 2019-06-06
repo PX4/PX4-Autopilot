@@ -105,8 +105,8 @@ public:
 
 private:
 
-	uORB::Subscription<vehicle_trajectory_waypoint_s> *_sub_vehicle_trajectory_waypoint{nullptr}; /**< vehicle trajectory waypoint subscription */
-	uORB::Subscription<vehicle_status_s> *_sub_vehicle_status{nullptr}; /**< vehicle status subscription */
+	uORB::SubscriptionPollable<vehicle_trajectory_waypoint_s> *_sub_vehicle_trajectory_waypoint{nullptr}; /**< vehicle trajectory waypoint subscription */
+	uORB::SubscriptionPollable<vehicle_status_s> *_sub_vehicle_status{nullptr}; /**< vehicle status subscription */
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::NAV_MC_ALT_RAD>) _param_nav_mc_alt_rad    /**< Acceptance radius for multicopter altitude */

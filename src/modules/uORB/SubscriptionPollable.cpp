@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,73 +32,79 @@
  ****************************************************************************/
 
 /**
- * @file FixedwingLandDetector.h
- * Land detector implementation for fixedwing.
+ * @file SubscriptionPollable.cpp
  *
- * @author Johan Jansen <jnsn.johan@gmail.com>
- * @author Morten Lysgaard <morten@lysgaard.no>
- * @author Julian Oes <julian@oes.ch>
  */
 
-#pragma once
+#include "SubscriptionPollable.hpp"
+#include <px4_defines.h>
 
-#include <drivers/drv_hrt.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/airspeed.h>
-#include <uORB/topics/sensor_bias.h>
-#include <uORB/topics/vehicle_local_position.h>
-
-#include "LandDetector.h"
-
-using namespace time_literals;
-
-namespace land_detector
+namespace uORB
 {
 
-class FixedwingLandDetector final : public LandDetector
+SubscriptionPollableBase::SubscriptionPollableBase(const struct orb_metadata *meta, unsigned interval,
+		unsigned instance) :
+	_meta(meta),
+	_instance(instance)
 {
-public:
-	FixedwingLandDetector();
+	if (instance > 0) {
+		_handle = orb_subscribe_multi(_meta, instance);
 
-protected:
-	void _update_params() override;
-	void _update_topics() override;
+	} else {
+		_handle = orb_subscribe(_meta);
+	}
 
-	bool _get_landed_state() override;
-	float _get_max_altitude() override;
+	if (_handle < 0) {
+		PX4_ERR("%s sub failed", _meta->o_name);
+	}
 
-private:
+	if (interval > 0) {
+		orb_set_interval(_handle, interval);
+	}
+}
 
-	/** Time in us that landing conditions have to hold before triggering a land. */
-	static constexpr hrt_abstime LANDED_TRIGGER_TIME_US = 2_s;
-	static constexpr hrt_abstime FLYING_TRIGGER_TIME_US = 0_us;
+bool SubscriptionPollableBase::updated()
+{
+	bool isUpdated = false;
 
-	struct {
-		param_t maxVelocity;
-		param_t maxClimbRate;
-		param_t maxAirSpeed;
-		param_t maxXYAccel;
-	} _paramHandle{};
+	if (orb_check(_handle, &isUpdated) != PX4_OK) {
+		PX4_ERR("%s check failed", _meta->o_name);
+	}
 
-	struct {
-		float maxVelocity;
-		float maxClimbRate;
-		float maxAirSpeed;
-		float maxXYAccel;
-	} _params{};
+	return isUpdated;
+}
 
-	uORB::Subscription _airspeedSub{ORB_ID(airspeed)};
-	uORB::Subscription _sensor_bias_sub{ORB_ID(sensor_bias)};
-	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position});
+bool SubscriptionPollableBase::update(void *data)
+{
+	bool orb_updated = false;
 
-	airspeed_s _airspeed{};
-	sensor_bias_s _sensors{};
-	vehicle_local_position_s _local_pos{};
+	if (updated()) {
+		if (orb_copy(_meta, _handle, data) != PX4_OK) {
+			PX4_ERR("%s copy failed", _meta->o_name);
 
-	float _velocity_xy_filtered{0.0f};
-	float _velocity_z_filtered{0.0f};
-	float _airspeed_filtered{0.0f};
-	float _accel_horz_lp{0.0f};
-};
+		} else {
+			orb_updated = true;
+		}
+	}
 
-} // namespace land_detector
+	return orb_updated;
+}
+
+SubscriptionPollableBase::~SubscriptionPollableBase()
+{
+	if (orb_unsubscribe(_handle) != PX4_OK) {
+		PX4_ERR("%s unsubscribe failed", _meta->o_name);
+	}
+}
+
+SubscriptionPollableNode::SubscriptionPollableNode(const struct orb_metadata *meta, unsigned interval,
+		unsigned instance,
+		List<SubscriptionPollableNode *> *list)
+	: SubscriptionPollableBase(meta, interval, instance)
+{
+	if (list != nullptr) {
+		list->add(this);
+	}
+}
+
+} // namespace uORB

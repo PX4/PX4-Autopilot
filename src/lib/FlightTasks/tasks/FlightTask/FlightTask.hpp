@@ -44,7 +44,7 @@
 #include <px4_module_params.h>
 #include <drivers/drv_hrt.h>
 #include <matrix/matrix/math.hpp>
-#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionPollable.hpp>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
@@ -181,8 +181,8 @@ public:
 
 protected:
 
-	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
-	uORB::Subscription<vehicle_attitude_s> *_sub_attitude{nullptr};
+	uORB::SubscriptionPollable<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
+	uORB::SubscriptionPollable<vehicle_attitude_s> *_sub_attitude{nullptr};
 	uint8_t _heading_reset_counter{0}; /**< estimator heading reset */
 
 	/** Reset all setpoints to NAN */

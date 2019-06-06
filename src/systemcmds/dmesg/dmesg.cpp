@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,57 +31,65 @@
  *
  ****************************************************************************/
 
-/**
- * @file RoverLandDetector.cpp
- * Land detection algorithm for Rovers
- *
- * @author Roman Bapst <bapstroma@gmail.com>
- * @author Julian Oes <julian@oes.ch>
- */
+#include <px4_config.h>
+#include <px4_console_buffer.h>
+#include <px4_module.h>
+#include <px4_getopt.h>
 
-#include <drivers/drv_hrt.h>
+#ifndef BOARD_ENABLE_CONSOLE_BUFFER
+#error "This module can only be used on boards that enable BOARD_ENABLE_CONSOLE_BUFFER"
+#endif
 
-#include "RoverLandDetector.h"
+static void	usage();
 
-namespace land_detector
-{
-
-void RoverLandDetector::_update_topics()
-{
+extern "C" {
+	__EXPORT int dmesg_main(int argc, char *argv[]);
 }
 
-void RoverLandDetector::_update_params()
+static void
+usage()
 {
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+Command-line tool to show bootup console messages.
+Note that output from NuttX's work queues and syslog are not captured.
+
+### Examples
+
+Keep printing all messages in the background:
+$ dmesg -f &
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("dmesg", "system");
+	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Follow: wait for new messages", true);
+
 }
 
-bool RoverLandDetector::_get_ground_contact_state()
+int
+dmesg_main(int argc, char *argv[])
 {
-	return true;
-}
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+	bool follow = false;
 
-bool RoverLandDetector::_get_maybe_landed_state()
-{
-	return false;
-}
+	while ((ch = px4_getopt(argc, argv, "f", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'f':
+			follow = true;
+			break;
 
-
-bool RoverLandDetector::_get_landed_state()
-{
-	if (!_arming.armed) {
-		return true;
+		default:
+			usage();
+			return -1;
+			break;
+		}
 	}
 
-	return false;
-}
+	px4_console_buffer_print(follow);
 
-bool RoverLandDetector::_get_freefall_state()
-{
-	return false;
+	return 0;
 }
-
-float RoverLandDetector::_get_max_altitude()
-{
-	return 0.0f;
-}
-
-} // namespace land_detector

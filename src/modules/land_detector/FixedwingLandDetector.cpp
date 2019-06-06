@@ -62,18 +62,11 @@ FixedwingLandDetector::FixedwingLandDetector()
 	_landed_hysteresis.set_hysteresis_time_from(true, FLYING_TRIGGER_TIME_US);
 }
 
-void FixedwingLandDetector::_initialize_topics()
-{
-	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
-	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
-}
-
 void FixedwingLandDetector::_update_topics()
 {
-	_orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
-	_orb_update(ORB_ID(sensor_bias), _sensor_bias_sub, &_sensors);
-	_orb_update(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+	_airspeedSub.update(&_airspeed);
+	_sensor_bias_sub.update(&_sensors);
+	_local_pos_sub.update(&_local_pos);
 }
 
 void FixedwingLandDetector::_update_params()
