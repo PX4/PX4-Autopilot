@@ -65,7 +65,9 @@ fi
 
 
 # Use environment variable PX4_ESTIMATOR to choose estimator.
-if [ "$PX4_ESTIMATOR" = "ekf2" ]; then
+if [ "$PX4_ESTIMATOR" = "q" ]; then
+	param set SYS_MC_EST_GROUP 3
+elif [ "$PX4_ESTIMATOR" = "ekf2" ]; then
 	param set SYS_MC_EST_GROUP 2
 elif [ "$PX4_ESTIMATOR" = "lpe" ]; then
 	param set SYS_MC_EST_GROUP 1

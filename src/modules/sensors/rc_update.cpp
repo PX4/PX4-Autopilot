@@ -39,14 +39,8 @@
 
 #include "rc_update.h"
 
-#include <string.h>
-#include <float.h>
-#include <errno.h>
-
-#include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/input_rc.h>
 
 using namespace sensors;
 
@@ -57,32 +51,6 @@ RCUpdate::RCUpdate(const Parameters &parameters)
 	  _filter_yaw(50.0f, 10.f),
 	  _filter_throttle(50.0f, 10.f)
 {
-	memset(&_rc, 0, sizeof(_rc));
-	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
-	memset(&_param_rc_values, 0, sizeof(_param_rc_values));
-}
-
-int RCUpdate::init()
-{
-	_rc_sub = orb_subscribe(ORB_ID(input_rc));
-
-	if (_rc_sub < 0) {
-		return -errno;
-	}
-
-	_rc_parameter_map_sub = orb_subscribe(ORB_ID(rc_parameter_map));
-
-	if (_rc_parameter_map_sub < 0) {
-		return -errno;
-	}
-
-	return 0;
-}
-
-void RCUpdate::deinit()
-{
-	orb_unsubscribe(_rc_sub);
-	orb_unsubscribe(_rc_parameter_map_sub);
 }
 
 void RCUpdate::update_rc_functions()
@@ -134,11 +102,8 @@ void RCUpdate::update_rc_functions()
 void
 RCUpdate::rc_parameter_map_poll(ParameterHandles &parameter_handles, bool forced)
 {
-	bool map_updated;
-	orb_check(_rc_parameter_map_sub, &map_updated);
-
-	if (map_updated) {
-		orb_copy(ORB_ID(rc_parameter_map), _rc_parameter_map_sub, &_rc_parameter_map);
+	if (_rc_parameter_map_sub.updated()) {
+		_rc_parameter_map_sub.copy(&_rc_parameter_map);
 
 		/* update parameter handles to which the RC channels are mapped */
 		for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
@@ -253,14 +218,10 @@ RCUpdate::set_params_from_rc(const ParameterHandles &parameter_handles)
 void
 RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 {
-	bool rc_updated;
-	orb_check(_rc_sub, &rc_updated);
-
-	if (rc_updated) {
+	if (_rc_sub.updated()) {
 		/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
-		struct input_rc_s rc_input;
-
-		orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
+		input_rc_s rc_input{};
+		_rc_sub.copy(&rc_input);
 
 		/* detect RC signal loss */
 		bool signal_lost;

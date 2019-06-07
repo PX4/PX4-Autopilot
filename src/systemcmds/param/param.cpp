@@ -709,7 +709,7 @@ do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OP
 	/* set nothing if parameter cannot be found */
 	if (param == PARAM_INVALID) {
 		/* param not found */
-		PX4_ERR("Parameter %s not found", name);
+		PX4_DEBUG("Parameter %s not found", name);
 		return 1;
 	}
 
