@@ -345,7 +345,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 
 	_landing_gear.landing_gear = get_landing_gear_state();
 	_landing_gear.timestamp = hrt_absolute_time();
-	orb_publish_auto(ORB_ID(landing_gear), &_landing_gear_pub, &_landing_gear, nullptr, ORB_PRIO_DEFAULT);
+	_landing_gear_pub.publish(_landing_gear);
 }
 
 /**
@@ -508,7 +508,8 @@ MulticopterAttitudeControl::publish_rates_setpoint()
 	_v_rates_sp.thrust_body[1] = 0.0f;
 	_v_rates_sp.thrust_body[2] = -_thrust_sp;
 	_v_rates_sp.timestamp = hrt_absolute_time();
-	orb_publish_auto(ORB_ID(vehicle_rates_setpoint), &_v_rates_sp_pub, &_v_rates_sp, nullptr, ORB_PRIO_DEFAULT);
+
+	_v_rates_sp_pub.publish(_v_rates_sp);
 }
 
 void
@@ -522,7 +523,8 @@ MulticopterAttitudeControl::publish_rate_controller_status()
 	rate_ctrl_status.rollspeed_integ = _rates_int(0);
 	rate_ctrl_status.pitchspeed_integ = _rates_int(1);
 	rate_ctrl_status.yawspeed_integ = _rates_int(2);
-	orb_publish_auto(ORB_ID(rate_ctrl_status), &_controller_status_pub, &rate_ctrl_status, nullptr, ORB_PRIO_DEFAULT);
+
+	_controller_status_pub.publish(rate_ctrl_status);
 }
 
 void

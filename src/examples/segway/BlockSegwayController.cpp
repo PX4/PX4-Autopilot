@@ -61,6 +61,6 @@ void BlockSegwayController::update()
 		actuators.control[CH_RIGHT] = -_manual.get().x;
 	}
 
-	// update all publications
-	updatePublications();
+	// publish
+	_actuators.update();
 }
