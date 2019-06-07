@@ -1083,37 +1083,6 @@ Navigator::force_vtol()
 	       && _param_nav_force_vt.get();
 }
 
-int Navigator::print_usage(const char *reason)
-{
-	if (reason) {
-		PX4_WARN("%s\n", reason);
-	}
-
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Module that is responsible for autonomous flight modes. This includes missions (read from dataman),
-takeoff and RTL.
-It is also responsible for geofence violation checking.
-
-### Implementation
-The different internal modes are implemented as separate classes that inherit from a common base class `NavigatorMode`.
-The member `_navigation_mode` contains the current active mode.
-
-Navigator publishes position setpoint triplets (`position_setpoint_triplet_s`), which are then used by the position
-controller.
-
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("navigator", "controller");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("fencefile", "load a geofence file from SD card, stored at etc/geofence.txt");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("fake_traffic", "publishes 3 fake transponder_report_s uORB messages");
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
-	return 0;
-}
-
 int Navigator::custom_command(int argc, char *argv[])
 {
 	if (!is_running()) {
@@ -1242,4 +1211,35 @@ Navigator::publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t res
 		_vehicle_cmd_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
 				       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
 	}
+}
+
+int Navigator::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Module that is responsible for autonomous flight modes. This includes missions (read from dataman),
+takeoff and RTL.
+It is also responsible for geofence violation checking.
+
+### Implementation
+The different internal modes are implemented as separate classes that inherit from a common base class `NavigatorMode`.
+The member `_navigation_mode` contains the current active mode.
+
+Navigator publishes position setpoint triplets (`position_setpoint_triplet_s`), which are then used by the position
+controller.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("navigator", "controller");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("fencefile", "load a geofence file from SD card, stored at etc/geofence.txt");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("fake_traffic", "publishes 3 fake transponder_report_s uORB messages");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
 }
