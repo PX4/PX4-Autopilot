@@ -155,35 +155,7 @@ private:
 
 extern "C" __EXPORT int leddar_one_main(int argc, char *argv[]);
 
-static void help()
-{
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Serial bus driver for the LeddarOne LiDAR.
-
-Most boards are configured to enable/start the driver on a specified UART using the SENS_LEDDAR1_CFG parameter.
-
-Setup/usage information: https://docs.px4.io/en/sensor/leddar_one.html
-
-### Examples
-
-Attempt to start driver on a specified serial device.
-$ leddar_one start -d /dev/ttyS1
-Stop driver
-$ leddar_one stop
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("leddar_one", "driver");
-	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
-	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
-	PRINT_MODULE_USAGE_PARAM_INT('r', 25, 1, 25, "Sensor rotation - downward facing by default", true);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
-
-}
+static void help();
 
 int leddar_one_main(int argc, char *argv[])
 {
@@ -579,4 +551,34 @@ ssize_t leddar_one::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	return ret ? ret : -EAGAIN;
+}
+
+void help()
+{
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+Serial bus driver for the LeddarOne LiDAR.
+
+Most boards are configured to enable/start the driver on a specified UART using the SENS_LEDDAR1_CFG parameter.
+
+Setup/usage information: https://docs.px4.io/en/sensor/leddar_one.html
+
+### Examples
+
+Attempt to start driver on a specified serial device.
+$ leddar_one start -d /dev/ttyS1
+Stop driver
+$ leddar_one stop
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("leddar_one", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
+	PRINT_MODULE_USAGE_PARAM_INT('r', 25, 1, 25, "Sensor rotation - downward facing by default", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
+
 }
