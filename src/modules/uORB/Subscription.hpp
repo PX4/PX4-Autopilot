@@ -105,6 +105,19 @@ public:
 	uint8_t		get_instance() const { return _instance; }
 	orb_id_t	get_topic() const { return _meta; }
 
+	bool change_topic(const orb_metadata *meta, uint8_t instance = 0)
+	{
+		unsubscribe();
+
+		// switch to new topic and instance
+		_meta = meta;
+		_instance = instance;
+
+		return forceInit();
+	}
+
+	DeviceNode		*get_node() { return _node; }
+
 protected:
 
 	bool subscribe();
