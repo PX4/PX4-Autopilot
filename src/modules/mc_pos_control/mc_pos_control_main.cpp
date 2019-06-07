@@ -279,32 +279,6 @@ private:
 	void		task_main();
 };
 
-
-int MulticopterPositionControl::print_usage(const char *reason)
-{
-	if (reason) {
-		PX4_WARN("%s\n", reason);
-	}
-
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-The controller has two loops: a P loop for position error and a PID loop for velocity error.
-Output of the velocity controller is thrust vector that is split to thrust direction
-(i.e. rotation matrix for multicopter orientation) and thrust scalar (i.e. multicopter thrust itself).
-
-The controller doesn't use Euler angles for its work, they are generated only for more human-friendly control and
-logging.
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("mc_pos_control", "controller");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
-	return 0;
-}
-
-
 MulticopterPositionControl::MulticopterPositionControl() :
 	SuperBlock(nullptr, "MPC"),
 	ModuleParams(nullptr),
@@ -396,6 +370,7 @@ MulticopterPositionControl::poll_subscriptions()
 
 	if (_att_sub.updated()) {
 		vehicle_attitude_s att;
+
 		if (_att_sub.copy(&att) && PX4_ISFINITE(att.q[0])) {
 			_states.yaw = Eulerf(Quatf(att.q)).psi();
 		}
@@ -489,9 +464,11 @@ MulticopterPositionControl::print_status()
 {
 	if (_flight_tasks.isAnyTaskActive()) {
 		PX4_INFO("Running, active flight task: %i", _flight_tasks.getActiveTask());
+
 	} else {
 		PX4_INFO("Running, no flight task active");
 	}
+
 	return 0;
 }
 
@@ -515,6 +492,7 @@ MulticopterPositionControl::run()
 	while (!should_exit()) {
 		// poll for new data on the local position state topic (wait for up to 20ms)
 		const int poll_return = px4_poll(&poll_fd, 1, 20);
+
 		// poll_return == 0: go through the loop anyway to copy manual input at 50 Hz
 		// this is undesirable but not much we can do
 		if (poll_return < 0) {
@@ -550,7 +528,8 @@ MulticopterPositionControl::run()
 		}
 
 		// an update is necessary here because otherwise the takeoff state doesn't get skiped with non-altitude-controlled modes
-		_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f, !_control_mode.flag_control_climb_rate_enabled, time_stamp_current);
+		_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f,
+					    !_control_mode.flag_control_climb_rate_enabled, time_stamp_current);
 
 		// takeoff delay for motors to reach idle speed
 		if (_takeoff.getTakeoffState() >= TakeoffState::ready_for_takeoff) {
@@ -603,7 +582,8 @@ MulticopterPositionControl::run()
 			set_vehicle_states(setpoint.vz);
 
 			// handle smooth takeoff
-			_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, constraints.want_takeoff, constraints.speed_up, !_control_mode.flag_control_climb_rate_enabled, time_stamp_current);
+			_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, constraints.want_takeoff,
+						    constraints.speed_up, !_control_mode.flag_control_climb_rate_enabled, time_stamp_current);
 			constraints.speed_up = _takeoff.updateRamp(_dt, constraints.speed_up);
 
 			if (_takeoff.getTakeoffState() < TakeoffState::rampup && !PX4_ISFINITE(setpoint.thrust[2])) {
@@ -695,7 +675,7 @@ MulticopterPositionControl::run()
 
 			// if there's any change in landing gear setpoint publish it
 			if (gear.landing_gear != _old_landing_gear_position
-				&& gear.landing_gear != landing_gear_s::GEAR_KEEP) {
+			    && gear.landing_gear != landing_gear_s::GEAR_KEEP) {
 
 				_landing_gear.landing_gear = gear.landing_gear;
 				_landing_gear.timestamp = hrt_absolute_time();
@@ -748,6 +728,7 @@ MulticopterPositionControl::start_flight_task()
 			if (prev_failure_count == 0) {
 				PX4_WARN("Transition activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
+
 			task_failure = true;
 			_task_failure_count++;
 
@@ -774,6 +755,7 @@ MulticopterPositionControl::start_flight_task()
 			if (prev_failure_count == 0) {
 				PX4_WARN("Offboard activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
+
 			task_failure = true;
 			_task_failure_count++;
 
@@ -792,6 +774,7 @@ MulticopterPositionControl::start_flight_task()
 			if (prev_failure_count == 0) {
 				PX4_WARN("Follow-Me activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
+
 			task_failure = true;
 			_task_failure_count++;
 
@@ -804,6 +787,7 @@ MulticopterPositionControl::start_flight_task()
 		// Auto related maneuvers
 		should_disable_task = false;
 		int error = 0;
+
 		switch (_param_mpc_auto_mode.get()) {
 		case 1:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLineSmoothVel);
@@ -818,6 +802,7 @@ MulticopterPositionControl::start_flight_task()
 			if (prev_failure_count == 0) {
 				PX4_WARN("Auto activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
+
 			task_failure = true;
 			_task_failure_count++;
 
@@ -854,6 +839,7 @@ MulticopterPositionControl::start_flight_task()
 			if (prev_failure_count == 0) {
 				PX4_WARN("Position-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
+
 			task_failure = true;
 			_task_failure_count++;
 
@@ -886,6 +872,7 @@ MulticopterPositionControl::start_flight_task()
 			if (prev_failure_count == 0) {
 				PX4_WARN("Altitude-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
+
 			task_failure = true;
 			_task_failure_count++;
 
@@ -910,6 +897,7 @@ MulticopterPositionControl::start_flight_task()
 			// No task was activated.
 			_flight_tasks.switchTask(FlightTaskIndex::None);
 		}
+
 	} else if (should_disable_task) {
 		_flight_tasks.switchTask(FlightTaskIndex::None);
 	}
@@ -948,6 +936,7 @@ MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint
 			// descend downwards with landspeed.
 			setpoint.vz = _param_mpc_land_speed.get();
 			setpoint.thrust[0] = setpoint.thrust[1] = 0.0f;
+
 			if (warn) {
 				PX4_WARN("Failsafe: Descend with land-speed.");
 			}
@@ -958,6 +947,7 @@ MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint
 				PX4_WARN("Failsafe: Descend with just attitude control.");
 			}
 		}
+
 		_in_failsafe = true;
 	}
 }
@@ -1069,11 +1059,11 @@ void MulticopterPositionControl::send_vehicle_cmd_do(uint8_t nav_state)
 int MulticopterPositionControl::task_spawn(int argc, char *argv[])
 {
 	_task_id = px4_task_spawn_cmd("mc_pos_control",
-					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_POSITION_CONTROL,
-					   1900,
-					   (px4_main_t)&run_trampoline,
-					   (char *const *)argv);
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_POSITION_CONTROL,
+				      1900,
+				      (px4_main_t)&run_trampoline,
+				      (char *const *)argv);
 
 	if (_task_id < 0) {
 		_task_id = -1;
@@ -1091,6 +1081,30 @@ MulticopterPositionControl *MulticopterPositionControl::instantiate(int argc, ch
 int MulticopterPositionControl::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
+}
+
+int MulticopterPositionControl::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+The controller has two loops: a P loop for position error and a PID loop for velocity error.
+Output of the velocity controller is thrust vector that is split to thrust direction
+(i.e. rotation matrix for multicopter orientation) and thrust scalar (i.e. multicopter thrust itself).
+
+The controller doesn't use Euler angles for its work, they are generated only for more human-friendly control and
+logging.
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("mc_pos_control", "controller");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
 }
 
 int mc_pos_control_main(int argc, char *argv[])
