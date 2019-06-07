@@ -128,9 +128,6 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 	struct sched_param param = {};
 	char *p = (char *)argv;
 
-	// The name is added as the first argument.
-	len += strlen(name) + 1;
-
 	// Calculate argc
 	while (p != (char *)nullptr) {
 		p = argv[argc];
@@ -143,7 +140,8 @@ px4_task_t px4_task_spawn_cmd(const char *name, int scheduler, int priority, int
 		len += strlen(p) + 1;
 	}
 
-	// We add one argument for the name as argv[0].
+	// The name is added as the first argument argv[0].
+	len += strlen(name) + 1;
 	++argc;
 
 	// argc + 1 because we have to add nullptr at the end.
