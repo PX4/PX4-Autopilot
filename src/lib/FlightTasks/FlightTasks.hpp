@@ -42,7 +42,6 @@
 #pragma once
 
 #include "FlightTask.hpp"
-#include "SubscriptionArray.hpp"
 #include "FlightTasks_generated.hpp"
 #include <lib/WeatherVane/WeatherVane.hpp>
 
@@ -157,8 +156,6 @@ private:
 		FlightTaskIndex index;
 	};
 	flight_task_t _current_task = {nullptr, FlightTaskIndex::None};
-
-	SubscriptionArray _subscription_array;
 
 	struct task_error_t {
 		int error;

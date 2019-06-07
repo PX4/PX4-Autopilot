@@ -91,27 +91,29 @@ void FlightTaskManualPositionSmoothVel::reset(Axes axes, bool force_z_zero)
 
 void FlightTaskManualPositionSmoothVel::_checkEkfResetCounters()
 {
+	_sub_vehicle_local_position.update();
+
 	// Check if a reset event has happened.
-	if (_sub_vehicle_local_position->get().xy_reset_counter != _reset_counters.xy) {
+	if (_sub_vehicle_local_position.get().xy_reset_counter != _reset_counters.xy) {
 		_smoothing[0].setCurrentPosition(_position(0));
 		_smoothing[1].setCurrentPosition(_position(1));
-		_reset_counters.xy = _sub_vehicle_local_position->get().xy_reset_counter;
+		_reset_counters.xy = _sub_vehicle_local_position.get().xy_reset_counter;
 	}
 
-	if (_sub_vehicle_local_position->get().vxy_reset_counter != _reset_counters.vxy) {
+	if (_sub_vehicle_local_position.get().vxy_reset_counter != _reset_counters.vxy) {
 		_smoothing[0].setCurrentVelocity(_velocity(0));
 		_smoothing[1].setCurrentVelocity(_velocity(1));
-		_reset_counters.vxy = _sub_vehicle_local_position->get().vxy_reset_counter;
+		_reset_counters.vxy = _sub_vehicle_local_position.get().vxy_reset_counter;
 	}
 
-	if (_sub_vehicle_local_position->get().z_reset_counter != _reset_counters.z) {
+	if (_sub_vehicle_local_position.get().z_reset_counter != _reset_counters.z) {
 		_smoothing[2].setCurrentPosition(_position(2));
-		_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
+		_reset_counters.z = _sub_vehicle_local_position.get().z_reset_counter;
 	}
 
-	if (_sub_vehicle_local_position->get().vz_reset_counter != _reset_counters.vz) {
+	if (_sub_vehicle_local_position.get().vz_reset_counter != _reset_counters.vz) {
 		_smoothing[2].setCurrentVelocity(_velocity(2));
-		_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
+		_reset_counters.vz = _sub_vehicle_local_position.get().vz_reset_counter;
 	}
 }
 

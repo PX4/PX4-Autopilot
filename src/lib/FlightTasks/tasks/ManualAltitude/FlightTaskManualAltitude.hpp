@@ -47,7 +47,6 @@ class FlightTaskManualAltitude : public FlightTaskManual
 public:
 	FlightTaskManualAltitude() = default;
 	virtual ~FlightTaskManualAltitude() = default;
-	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 	bool activate() override;
 	bool updateInitialize() override;
 	bool update() override;
@@ -110,7 +109,7 @@ private:
 	 */
 	void _respectGroundSlowdown();
 
-	uORB::SubscriptionPollable<home_position_s> *_sub_home_position{nullptr};
+	uORB::SubscriptionData<home_position_s> _sub_home_position{ORB_ID(home_position)};
 
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
 	float _max_speed_up = 10.0f;

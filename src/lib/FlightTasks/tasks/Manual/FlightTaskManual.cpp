@@ -42,23 +42,10 @@
 using namespace matrix;
 using namespace time_literals;
 
-bool FlightTaskManual::initializeSubscriptions(SubscriptionArray &subscription_array)
-{
-	if (!FlightTask::initializeSubscriptions(subscription_array)) {
-		return false;
-	}
-
-	if (!subscription_array.get(ORB_ID(manual_control_setpoint), _sub_manual_control_setpoint)) {
-		return false;
-	}
-
-	return true;
-}
-
 bool FlightTaskManual::updateInitialize()
 {
 	bool ret = FlightTask::updateInitialize();
-	const bool sticks_available = _evaluateSticks();
+	const bool sticks_available = _sub_manual_control_setpoint.published();
 
 	if (_sticks_data_required) {
 		ret = ret && sticks_available;
@@ -69,16 +56,22 @@ bool FlightTaskManual::updateInitialize()
 
 bool FlightTaskManual::_evaluateSticks()
 {
+	manual_control_setpoint_s man_sp;
+
+	if (!_sub_manual_control_setpoint.update(&man_sp)) {
+		return false;
+	}
+
 	hrt_abstime rc_timeout = (_param_com_rc_loss_t.get() * 1.5f) * 1_s;
 
 	/* Sticks are rescaled linearly and exponentially to [-1,1] */
-	if ((_time_stamp_current - _sub_manual_control_setpoint->get().timestamp) < rc_timeout) {
+	if ((_time_stamp_current - man_sp.timestamp) < rc_timeout) {
 
 		/* Linear scale  */
-		_sticks(0) = _sub_manual_control_setpoint->get().x; /* NED x, "pitch" [-1,1] */
-		_sticks(1) = _sub_manual_control_setpoint->get().y; /* NED y, "roll" [-1,1] */
-		_sticks(2) = -(_sub_manual_control_setpoint->get().z - 0.5f) * 2.f; /* NED z, "thrust" resacaled from [0,1] to [-1,1] */
-		_sticks(3) = _sub_manual_control_setpoint->get().r; /* "yaw" [-1,1] */
+		_sticks(0) = man_sp.x; /* NED x, "pitch" [-1,1] */
+		_sticks(1) = man_sp.y; /* NED y, "roll" [-1,1] */
+		_sticks(2) = -(man_sp.z - 0.5f) * 2.f; /* NED z, "thrust" resacaled from [0,1] to [-1,1] */
+		_sticks(3) = man_sp.r; /* "yaw" [-1,1] */
 
 		/* Exponential scale */
 		_sticks_expo(0) = math::expo_deadzone(_sticks(0), _param_mpc_xy_man_expo.get(), _param_mpc_hold_dz.get());
@@ -89,7 +82,7 @@ bool FlightTaskManual::_evaluateSticks()
 		// Only switch the landing gear up if the user switched from gear down to gear up.
 		// If the user had the switch in the gear up position and took off ignore it
 		// until he toggles the switch to avoid retracting the gear immediately on takeoff.
-		int8_t gear_switch = _sub_manual_control_setpoint->get().gear_switch;
+		int8_t gear_switch = man_sp.gear_switch;
 
 		if (_gear_switch_old != gear_switch) {
 			_applyGearSwitch(gear_switch);
@@ -98,10 +91,10 @@ bool FlightTaskManual::_evaluateSticks()
 		_gear_switch_old = gear_switch;
 
 		// valid stick inputs are required
-		const bool valid_sticks =  PX4_ISFINITE(_sticks(0))
-					   && PX4_ISFINITE(_sticks(1))
-					   && PX4_ISFINITE(_sticks(2))
-					   && PX4_ISFINITE(_sticks(3));
+		const bool valid_sticks = PX4_ISFINITE(_sticks(0))
+					  && PX4_ISFINITE(_sticks(1))
+					  && PX4_ISFINITE(_sticks(2))
+					  && PX4_ISFINITE(_sticks(3));
 
 		return valid_sticks;
 

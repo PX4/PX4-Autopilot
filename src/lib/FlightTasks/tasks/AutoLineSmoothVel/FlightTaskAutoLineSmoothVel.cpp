@@ -113,26 +113,32 @@ inline float FlightTaskAutoLineSmoothVel::_constrainOneSide(float val, float con
 void FlightTaskAutoLineSmoothVel::_checkEkfResetCounters()
 {
 	// Check if a reset event has happened.
-	if (_sub_vehicle_local_position->get().xy_reset_counter != _reset_counters.xy) {
+	if (!_sub_vehicle_local_position.update()) {
+		return;
+	}
+
+	const vehicle_local_position_s &lpos = _sub_vehicle_local_position.get();
+
+	if (lpos.xy_reset_counter != _reset_counters.xy) {
 		_trajectory[0].setCurrentPosition(_position(0));
 		_trajectory[1].setCurrentPosition(_position(1));
-		_reset_counters.xy = _sub_vehicle_local_position->get().xy_reset_counter;
+		_reset_counters.xy = lpos.xy_reset_counter;
 	}
 
-	if (_sub_vehicle_local_position->get().vxy_reset_counter != _reset_counters.vxy) {
+	if (lpos.vxy_reset_counter != _reset_counters.vxy) {
 		_trajectory[0].setCurrentVelocity(_velocity(0));
 		_trajectory[1].setCurrentVelocity(_velocity(1));
-		_reset_counters.vxy = _sub_vehicle_local_position->get().vxy_reset_counter;
+		_reset_counters.vxy = lpos.vxy_reset_counter;
 	}
 
-	if (_sub_vehicle_local_position->get().z_reset_counter != _reset_counters.z) {
+	if (lpos.z_reset_counter != _reset_counters.z) {
 		_trajectory[2].setCurrentPosition(_position(2));
-		_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
+		_reset_counters.z = lpos.z_reset_counter;
 	}
 
-	if (_sub_vehicle_local_position->get().vz_reset_counter != _reset_counters.vz) {
+	if (lpos.vz_reset_counter != _reset_counters.vz) {
 		_trajectory[2].setCurrentVelocity(_velocity(2));
-		_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
+		_reset_counters.vz = lpos.vz_reset_counter;
 	}
 }
 

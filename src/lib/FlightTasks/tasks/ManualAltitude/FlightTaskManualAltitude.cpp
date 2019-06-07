@@ -41,19 +41,6 @@
 
 using namespace matrix;
 
-bool FlightTaskManualAltitude::initializeSubscriptions(SubscriptionArray &subscription_array)
-{
-	if (!FlightTaskManual::initializeSubscriptions(subscription_array)) {
-		return false;
-	}
-
-	if (!subscription_array.get(ORB_ID(home_position), _sub_home_position)) {
-		return false;
-	}
-
-	return true;
-}
-
 bool FlightTaskManualAltitude::updateInitialize()
 {
 	bool ret = FlightTaskManual::updateInitialize();
@@ -73,15 +60,17 @@ bool FlightTaskManualAltitude::activate()
 
 	_constraints.tilt = math::radians(_param_mpc_man_tilt_max.get());
 
-	if (PX4_ISFINITE(_sub_vehicle_local_position->get().hagl_min)) {
-		_constraints.min_distance_to_ground = _sub_vehicle_local_position->get().hagl_min;
+	_sub_vehicle_local_position.update();
+
+	if (PX4_ISFINITE(_sub_vehicle_local_position.get().hagl_min)) {
+		_constraints.min_distance_to_ground = _sub_vehicle_local_position.get().hagl_min;
 
 	} else {
 		_constraints.min_distance_to_ground = -INFINITY;
 	}
 
-	if (PX4_ISFINITE(_sub_vehicle_local_position->get().hagl_max)) {
-		_constraints.max_distance_to_ground = _sub_vehicle_local_position->get().hagl_max;
+	if (PX4_ISFINITE(_sub_vehicle_local_position.get().hagl_max)) {
+		_constraints.max_distance_to_ground = _sub_vehicle_local_position.get().hagl_max;
 
 	} else {
 		_constraints.max_distance_to_ground = INFINITY;
@@ -182,9 +171,9 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 		} else if (PX4_ISFINITE(_position_setpoint(2)) && apply_brake) {
 			// Position is locked but check if a reset event has happened.
 			// We will shift the setpoints.
-			if (_sub_vehicle_local_position->get().z_reset_counter != _reset_counter) {
+			if (_sub_vehicle_local_position.get().z_reset_counter != _reset_counter) {
 				_position_setpoint(2) = _position(2);
-				_reset_counter = _sub_vehicle_local_position->get().z_reset_counter;
+				_reset_counter = _sub_vehicle_local_position.get().z_reset_counter;
 			}
 
 		} else  {
@@ -267,14 +256,16 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 
 void FlightTaskManualAltitude::_respectGroundSlowdown()
 {
+	_sub_home_position.update();
+
 	float dist_to_ground = NAN;
 
 	// if there is a valid distance to bottom or vertical distance to home
 	if (PX4_ISFINITE(_dist_to_bottom)) {
 		dist_to_ground = _dist_to_bottom;
 
-	} else if (_sub_home_position->get().valid_alt) {
-		dist_to_ground = -(_position(2) - _sub_home_position->get().z);
+	} else if (_sub_home_position.get().valid_alt) {
+		dist_to_ground = -(_position(2) - _sub_home_position.get().z);
 	}
 
 	// limit speed gradually within the altitudes MPC_LAND_ALT1 and MPC_LAND_ALT2
@@ -299,6 +290,8 @@ void FlightTaskManualAltitude::_rotateIntoHeadingFrame(Vector2f &v)
 
 void FlightTaskManualAltitude::_updateHeadingSetpoints()
 {
+	_sub_attitude.update();
+
 	/* Yaw-lock depends on stick input. If not locked,
 	 * yaw_sp is set to NAN.
 	 * TODO: add yawspeed to get threshold.*/
@@ -313,9 +306,9 @@ void FlightTaskManualAltitude::_updateHeadingSetpoints()
 
 		} else {
 			// check reset counter and update yaw setpoint if necessary
-			if (_sub_attitude->get().quat_reset_counter != _heading_reset_counter) {
-				_yaw_setpoint += matrix::Eulerf(matrix::Quatf(_sub_attitude->get().delta_q_reset)).psi();
-				_heading_reset_counter = _sub_attitude->get().quat_reset_counter;
+			if (_sub_attitude.get().quat_reset_counter != _heading_reset_counter) {
+				_yaw_setpoint += matrix::Eulerf(matrix::Quatf(_sub_attitude.get().delta_q_reset)).psi();
+				_heading_reset_counter = _sub_attitude.get().quat_reset_counter;
 			}
 		}
 	}

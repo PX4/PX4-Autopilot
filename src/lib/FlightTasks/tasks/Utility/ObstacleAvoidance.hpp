@@ -46,6 +46,7 @@
 #include <commander/px4_custom_mode.h>
 #include <drivers/drv_hrt.h>
 
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
@@ -55,15 +56,11 @@
 
 #include <matrix/matrix/math.hpp>
 
-#include <SubscriptionArray.hpp>
-
 class ObstacleAvoidance : public ModuleParams
 {
 public:
 	ObstacleAvoidance(ModuleParams *parent);
 	~ObstacleAvoidance();
-
-	bool initializeSubscriptions(SubscriptionArray &subscription_array);
 
 	/**
 	 * Inject setpoints from obstacle avoidance system into FlightTasks.
@@ -105,8 +102,8 @@ public:
 
 private:
 
-	uORB::SubscriptionPollable<vehicle_trajectory_waypoint_s> *_sub_vehicle_trajectory_waypoint{nullptr}; /**< vehicle trajectory waypoint subscription */
-	uORB::SubscriptionPollable<vehicle_status_s> *_sub_vehicle_status{nullptr}; /**< vehicle status subscription */
+	uORB::SubscriptionData<vehicle_trajectory_waypoint_s>	_sub_vehicle_trajectory_waypoint{ORB_ID(vehicle_trajectory_waypoint)};
+	uORB::SubscriptionData<vehicle_status_s>		_sub_vehicle_status{ORB_ID(vehicle_status)};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::NAV_MC_ALT_RAD>) _param_nav_mc_alt_rad    /**< Acceptance radius for multicopter altitude */
