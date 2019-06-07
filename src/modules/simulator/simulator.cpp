@@ -99,14 +99,14 @@ int Simulator::start(int argc, char *argv[])
 	if (_instance) {
 		drv_led_start();
 
-		if (argc == 4 && strcmp(argv[2], "-u") == 0) {
+		if (argc == 5 && strcmp(argv[3], "-u") == 0) {
 			_instance->set_ip(InternetProtocol::UDP);
-			_instance->set_port(atoi(argv[3]));
+			_instance->set_port(atoi(argv[4]));
 		}
 
-		if (argc == 4 && strcmp(argv[2], "-c") == 0) {
+		if (argc == 5 && strcmp(argv[3], "-c") == 0) {
 			_instance->set_ip(InternetProtocol::TCP);
-			_instance->set_port(atoi(argv[3]));
+			_instance->set_port(atoi(argv[4]));
 		}
 
 #ifndef __PX4_QURT
