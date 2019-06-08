@@ -182,14 +182,6 @@ public:
 	int      		set_update_rate(int rate);
 
 	/**
-	 * Push failsafe values to IO.
-	 *
-	 * @param[in] vals	Failsafe control inputs: in us PPM (900 for zero, 1500 for centered, 2100 for full)
-	 * @param[in] len	Number of channels, could up to 8
-	 */
-	int			set_failsafe_values(const uint16_t *vals, unsigned len);
-
-	/**
 	 * Disable RC input handling
 	 */
 	int			disable_rc_handling();
@@ -734,16 +726,55 @@ PX4IO::init()
 			errx(1, "PRM CMPID");
 		}
 
-		/* send command to arm system via command API */
+		/* prepare vehicle command */
 		vehicle_command_s vcmd = {};
-		vcmd.timestamp = hrt_absolute_time();
-		vcmd.param1 = 1.0f; /* request arming */
-		vcmd.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
 		vcmd.target_system = (uint8_t)sys_id;
 		vcmd.target_component = (uint8_t)comp_id;
 		vcmd.source_system = (uint8_t)sys_id;
 		vcmd.source_component = (uint8_t)comp_id;
 		vcmd.confirmation = true; /* ask to confirm command */
+
+		if (reg & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE) {
+			mavlink_log_emergency(&_mavlink_log_pub, "IO is in failsafe, force failsafe");
+			/* send command to terminate flight via command API */
+			vcmd.timestamp = hrt_absolute_time();
+			vcmd.param1 = 1.0f; /* request flight termination */
+			vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION;
+
+			/* send command once */
+			orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+
+			/* spin here until IO's state has propagated into the system */
+			do {
+				orb_check(safety_sub, &updated);
+
+				if (updated) {
+					orb_copy(ORB_ID(actuator_armed), safety_sub, &safety);
+				}
+
+				/* wait 50 ms */
+				px4_usleep(50000);
+
+				/* abort after 5s */
+				if ((hrt_absolute_time() - try_start_time) / 1000 > 2000) {
+					mavlink_log_emergency(&_mavlink_log_pub, "Failed to recover from in-air restart (3), abort");
+					return 1;
+				}
+
+				/* re-send if necessary */
+				if (!safety.force_failsafe) {
+					orb_publish(ORB_ID(vehicle_command), pub, &vcmd);
+					PX4_WARN("re-sending flight termination cmd");
+				}
+
+				/* keep waiting for state change for 2 s */
+			} while (!safety.force_failsafe);
+		}
+
+		/* send command to arm system via command API */
+		vcmd.timestamp = hrt_absolute_time();
+		vcmd.param1 = 1.0f; /* request arming */
+		vcmd.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
 
 		/* send command once */
 		orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
@@ -1031,21 +1062,15 @@ PX4IO::task_main()
 					}
 				}
 
-				int32_t safety_param_val;
-				param_t safety_param = param_find("CBRK_IO_SAFETY");
-
-				if (safety_param != PARAM_INVALID) {
-
-					param_get(safety_param, &safety_param_val);
-
-					if (safety_param_val == PX4IO_FORCE_SAFETY_MAGIC) {
-						/* disable IO safety if circuit breaker asked for it */
-						(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, safety_param_val);
-					}
-				}
+				/* Check if the IO safety circuit breaker has been updated */
+				bool circuit_breaker_io_safety_enabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
+				/* Bypass IO safety switch logic by setting FORCE_SAFETY_OFF */
+				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_FORCE_SAFETY_OFF, circuit_breaker_io_safety_enabled);
 
 				/* Check if the flight termination circuit breaker has been updated */
 				_cb_flighttermination = circuit_breaker_enabled("CBRK_FLIGHTTERM", CBRK_FLIGHTTERM_KEY);
+				/* Tell IO that it can terminate the flight if FMU is not responding or if a failure has been reported by the FailureDetector logic */
+				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION, !_cb_flighttermination);
 
 				param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
 				param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
@@ -1385,8 +1410,7 @@ PX4IO::io_set_arming_state()
 			_lockdown_override = false;
 		}
 
-		/* Do not set failsafe if circuit breaker is enabled */
-		if (armed.force_failsafe && !_cb_flighttermination) {
+		if (armed.force_failsafe) {
 			set |= PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE;
 
 		} else {
@@ -2217,7 +2241,7 @@ PX4IO::print_status(bool extended_status)
 	       ((alarms & PX4IO_P_STATUS_ALARMS_PWM_ERROR)     ? " PWM_ERROR" : ""),
 	       ((alarms & PX4IO_P_STATUS_ALARMS_VSERVO_FAULT)  ? " VSERVO_FAULT" : ""));
 	/* now clear alarms */
-	io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, 0xFFFF);
+	io_reg_set(PX4IO_PAGE_STATUS, PX4IO_P_STATUS_ALARMS, 0x0000);
 
 	if (_hardware == 2) {
 		printf("vservo %u mV vservo scale %u\n",

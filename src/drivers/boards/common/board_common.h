@@ -503,56 +503,6 @@ int board_read_VBUS_state(void);
 #endif
 
 /************************************************************************************
- * Name: board_dma_alloc_init
- *
- * Description:
- *   All boards may optionally provide this API to instantiate a pool of
- *   memory for uses with FAST FS DMA operations.
- *
- *   Provision is controlled by declaring BOARD_DMA_ALLOC_POOL_SIZE in board_config.h
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   Zero (OK) is returned on success; a negated errno value is returned on failure
- *   EPERM - board does not support function
- *   ENOMEM - There is not enough memory to satisfy allocation.
- *
- ************************************************************************************/
-#if defined(BOARD_DMA_ALLOC_POOL_SIZE)
-__EXPORT int board_dma_alloc_init(void);
-#else
-#define board_dma_alloc_init() (-EPERM)
-#endif
-
-/************************************************************************************
- * Name: board_get_dma_usage
- *
- * Description:
- *   All boards may optionally provide this API to supply instrumentation for a pool of
- *   memory used for DMA operations.
- *
- *   Provision is controlled by declaring BOARD_DMA_ALLOC_POOL_SIZE in board_config.h
- *
- * Input Parameters:
- *   dma_total     -  A pointer to receive the total allocation size of the memory
- *                    allocated with board_dma_alloc_init. It should be equal to
- *                    BOARD_DMA_ALLOC_POOL_SIZE.
- *   dma_used      -  A pointer to receive the current allocation in use.
- *   dma_peak_used -  A pointer to receive the peak allocation used.
- *
- * Returned Value:
- *   Zero (OK) is returned on success;
- *
- ************************************************************************************/
-#if defined(BOARD_DMA_ALLOC_POOL_SIZE)
-__EXPORT int board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16_t *dma_peak_used);
-#else
-#define board_get_dma_usage(dma_total,dma_used, dma_peak_used) (-ENOMEM)
-#endif
-
-/************************************************************************************
  * Name: board_rc_input
  *
  * Description:

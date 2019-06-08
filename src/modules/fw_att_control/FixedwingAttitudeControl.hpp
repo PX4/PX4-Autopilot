@@ -64,7 +64,7 @@
 using matrix::Eulerf;
 using matrix::Quatf;
 
-using uORB::Subscription;
+using uORB::SubscriptionData;
 
 class FixedwingAttitudeControl final : public ModuleBase<FixedwingAttitudeControl>
 {
@@ -93,15 +93,18 @@ public:
 private:
 
 	int		_att_sub{-1};				/**< vehicle attitude */
-	int		_att_sp_sub{-1};			/**< vehicle attitude setpoint */
-	int		_rates_sp_sub{-1};			/**< vehicle rates setpoint */
-	int		_battery_status_sub{-1};		/**< battery status subscription */
-	int		_global_pos_sub{-1};			/**< global position subscription */
-	int		_manual_sub{-1};			/**< notification of manual control updates */
-	int		_params_sub{-1};			/**< notification of parameter updates */
-	int		_vcontrol_mode_sub{-1};			/**< vehicle status subscription */
-	int		_vehicle_land_detected_sub{-1};		/**< vehicle land detected subscription */
-	int		_vehicle_status_sub{-1};		/**< vehicle status subscription */
+
+	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};		/**< vehicle attitude setpoint */
+	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};			/**< battery status subscription */
+	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};		/**< global position subscription */
+	uORB::Subscription _manual_sub{ORB_ID(manual_control_setpoint)};		/**< notification of manual control updates */
+	uORB::Subscription _params_sub{ORB_ID(parameter_update)};			/**< notification of parameter updates */
+	uORB::Subscription _rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};		/**< vehicle rates setpoint */
+	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle status subscription */
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			/**< vehicle status subscription */
+
+	uORB::SubscriptionData<airspeed_s> _airspeed_sub{ORB_ID(airspeed)};
 
 	orb_advert_t	_rate_sp_pub{nullptr};			/**< rate setpoint publication */
 	orb_advert_t	_attitude_sp_pub{nullptr};		/**< attitude setpoint point */
@@ -121,8 +124,6 @@ private:
 	vehicle_global_position_s		_global_pos {};		/**< global position */
 	vehicle_rates_setpoint_s		_rates_sp {};		/* attitude rates setpoint */
 	vehicle_status_s			_vehicle_status {};	/**< vehicle status */
-
-	Subscription<airspeed_s>			_airspeed_sub;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
@@ -294,7 +295,6 @@ private:
 	void		vehicle_manual_poll();
 	void		vehicle_attitude_setpoint_poll();
 	void		vehicle_rates_setpoint_poll();
-	void		global_pos_poll();
 	void		vehicle_status_poll();
 	void		vehicle_land_detected_poll();
 

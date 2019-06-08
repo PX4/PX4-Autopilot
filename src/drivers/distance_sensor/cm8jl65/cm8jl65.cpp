@@ -43,7 +43,7 @@
 
 #include <px4_config.h>
 #include <px4_getopt.h>
-#include <px4_workqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -69,10 +69,6 @@
 
 /* Configuration Constants */
 
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
-
 #define CM8JL65_TAKE_RANGE_REG		'd'
 
 // designated serial port on Pixhawk (TELEM2)
@@ -82,7 +78,7 @@
 #define CM8JL65_CONVERSION_INTERVAL 50*1000UL/* 50ms */
 
 
-class CM8JL65 : public cdev::CDev
+class CM8JL65 : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
 
@@ -90,10 +86,10 @@ public:
 	CM8JL65(const char *port = CM8JL65_DEFAULT_PORT, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 
 	// Virtual destructor
-	virtual ~CM8JL65();
+	virtual ~CM8JL65() override;
 
-	virtual int  init();
-	virtual int  ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual int  init() override;
+	virtual int  ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
 	/**
 	* Diagnostics - print some basic information about the driver.
@@ -107,7 +103,6 @@ private:
 	float				             _min_distance;
 	float				             _max_distance;
 	int         	             _conversion_interval;
-	work_s				             _work{};
 	ringbuffer::RingBuffer	  *_reports;
 	int				               _fd;
 	uint8_t			             _linebuf[25];
@@ -151,15 +146,9 @@ private:
 	* Perform a reading cycle; collect from the previous measurement
 	* and start a new one.
 	*/
-	void				cycle();
+	void				Run() override;
+
 	int				collect();
-	/**
-	* Static trampoline from the workq context; because we don't have a
-	* generic workq wrapper yet.
-	*
-	* @param arg		Instance pointer for the driver that is polling.
-	*/
-	static void			cycle_trampoline(void *arg);
 
 };
 
@@ -176,6 +165,7 @@ extern "C" __EXPORT int cm8jl65_main(int argc, char *argv[]);
 
 CM8JL65::CM8JL65(const char *port, uint8_t rotation) :
 	CDev(RANGE_FINDER0_DEVICE_PATH),
+	ScheduledWorkItem(px4::wq_configurations::hp_default),
 	_rotation(rotation),
 	_min_distance(0.10f),
 	_max_distance(9.0f),
@@ -194,10 +184,10 @@ CM8JL65::CM8JL65(const char *port, uint8_t rotation) :
 	_comms_errors(perf_alloc(PC_COUNT, "cm8jl65_com_err"))
 {
 	/* store port name */
-	strncpy(_port, port, sizeof(_port));
+	strncpy(_port, port, sizeof(_port) - 1);
+
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
-
 }
 
 // Destructor
@@ -310,10 +300,10 @@ CM8JL65::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			default: {
 
 					/* convert hz to tick interval via microseconds */
-					int ticks = USEC2TICK(1000000 / arg);
+					int interval = (1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(_conversion_interval)) {
+					if (interval < _conversion_interval) {
 						return -EINVAL;
 					}
 
@@ -428,26 +418,17 @@ CM8JL65::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&CM8JL65::cycle_trampoline, this, 1);
-
+	ScheduleNow();
 }
 
 void
 CM8JL65::stop()
 {
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 }
 
 void
-CM8JL65::cycle_trampoline(void *arg)
-{
-	CM8JL65 *dev = static_cast<CM8JL65 *>(arg);
-
-	dev->cycle();
-}
-
-void
-CM8JL65::cycle()
+CM8JL65::Run()
 {
 	/* fds initialized? */
 	if (_fd < 0) {
@@ -495,9 +476,8 @@ CM8JL65::cycle()
 		_cycle_counter++;
 	}
 
-
 	/* schedule a fresh cycle call when a complete packet has been received */
-	work_queue(HPWORK, &_work, (worker_t)&CM8JL65::cycle_trampoline, this, USEC2TICK(_conversion_interval));
+	ScheduleDelayed(_conversion_interval);
 	_cycle_counter = 0;
 }
 

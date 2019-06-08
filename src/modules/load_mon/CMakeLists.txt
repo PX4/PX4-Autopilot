@@ -38,5 +38,6 @@ px4_add_module(
 	SRCS
 		load_mon.cpp
 	DEPENDS
+		px4_work_queue
 	)
 

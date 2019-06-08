@@ -57,7 +57,7 @@
 #include <px4_getopt.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <nuttx/clock.h>
 
 #include <perf/perf_counter.h>
@@ -80,7 +80,7 @@
 
 #define OREOLED_CMD_QUEUE_SIZE	10		///< up to 10 messages can be queued up to send to the LEDs
 
-class OREOLED : public device::I2C
+class OREOLED : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
 	OREOLED(int bus, int i2c_addr, bool autoupdate, bool alwaysupdate);
@@ -113,14 +113,9 @@ private:
 	void			stop();
 
 	/**
-	 * static function that is called by worker queue
-	 */
-	static void		cycle_trampoline(void *arg);
-
-	/**
 	 * update the colours displayed by the LEDs
 	 */
-	void			cycle();
+	void			Run() override;
 
 	int				bootloader_app_reset(int led_num);
 	int				bootloader_app_ping(int led_num);
@@ -136,7 +131,6 @@ private:
 	int				bootloader_coerce_healthy(void);
 
 	/* internal variables */
-	work_s			_work;							///< work queue for scheduling reads
 	bool			_healthy[OREOLED_NUM_LEDS];		///< health of each LED
 	bool			_in_boot[OREOLED_NUM_LEDS];		///< true for each LED that is in bootloader mode
 	uint8_t			_num_healthy;					///< number of healthy LEDs
@@ -171,7 +165,7 @@ extern "C" __EXPORT int oreoled_main(int argc, char *argv[]);
 /* constructor */
 OREOLED::OREOLED(int bus, int i2c_addr, bool autoupdate, bool alwaysupdate) :
 	I2C("oreoled", OREOLED0_DEVICE_PATH, bus, i2c_addr, 100000),
-	_work{},
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 	_num_healthy(0),
 	_num_inboot(0),
 	_cmd_queue(nullptr),
@@ -279,28 +273,17 @@ void
 OREOLED::start()
 {
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&OREOLED::cycle_trampoline, this, 1);
+	ScheduleNow();
 }
 
 void
 OREOLED::stop()
 {
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 }
 
 void
-OREOLED::cycle_trampoline(void *arg)
-{
-	OREOLED *dev = (OREOLED *)arg;
-
-	/* check global oreoled and cycle */
-	if (g_oreoled != nullptr) {
-		dev->cycle();
-	}
-}
-
-void
-OREOLED::cycle()
+OREOLED::Run()
 {
 	/* check time since startup */
 	uint64_t now = hrt_absolute_time();
@@ -369,8 +352,8 @@ OREOLED::cycle()
 		}
 
 		/* schedule another attempt in 0.1 sec */
-		work_queue(HPWORK, &_work, (worker_t)&OREOLED::cycle_trampoline, this,
-			   USEC2TICK(OREOLED_STARTUP_INTERVAL_US));
+		ScheduleDelayed(OREOLED_STARTUP_INTERVAL_US);
+
 		return;
 
 	} else if (_alwaysupdate) {
@@ -406,8 +389,7 @@ OREOLED::cycle()
 		_alwaysupdate = false;
 
 		/* schedule a fresh cycle call when the measurement is done */
-		work_queue(HPWORK, &_work, (worker_t)&OREOLED::cycle_trampoline, this,
-			   USEC2TICK(OREOLED_UPDATE_INTERVAL_US));
+		ScheduleDelayed(OREOLED_UPDATE_INTERVAL_US);
 		return;
 
 	} else if (_autoupdate) {
@@ -461,8 +443,7 @@ OREOLED::cycle()
 		_autoupdate = false;
 
 		/* schedule a fresh cycle call when the measurement is done */
-		work_queue(HPWORK, &_work, (worker_t)&OREOLED::cycle_trampoline, this,
-			   USEC2TICK(OREOLED_UPDATE_INTERVAL_US));
+		ScheduleDelayed(OREOLED_UPDATE_INTERVAL_US);
 		return;
 
 	} else if (_num_inboot > 0) {
@@ -480,8 +461,7 @@ OREOLED::cycle()
 		_num_inboot = 0;
 
 		/* schedule a fresh cycle call when the measurement is done */
-		work_queue(HPWORK, &_work, (worker_t)&OREOLED::cycle_trampoline, this,
-			   USEC2TICK(OREOLED_UPDATE_INTERVAL_US));
+		ScheduleDelayed(OREOLED_UPDATE_INTERVAL_US);
 		return;
 
 	} else if (!_is_ready) {
@@ -539,8 +519,7 @@ OREOLED::cycle()
 	}
 
 	/* schedule a fresh cycle call when the command is sent */
-	work_queue(HPWORK, &_work, (worker_t)&OREOLED::cycle_trampoline, this,
-		   USEC2TICK(OREOLED_UPDATE_INTERVAL_US));
+	ScheduleDelayed(OREOLED_UPDATE_INTERVAL_US);
 }
 
 int

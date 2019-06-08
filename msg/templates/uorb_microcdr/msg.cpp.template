@@ -131,14 +131,10 @@ def add_deserialize_functions(fields, scope_name):
                         add_deserialize_functions(children_fields, name + ('[%d].' %i))
 
 def add_code_to_serialize():
-    # sort fields (using a stable sort) as in the declaration of the type
-    sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
-    add_serialize_functions(sorted_fields, "")
+    add_serialize_functions(spec.parsed_fields(), "")
 
 def add_code_to_deserialize():
-    # sort fields (using a stable sort) as in the declaration of the type
-    sorted_fields = sorted(spec.parsed_fields(), key=sizeof_field_type, reverse=True)
-    add_deserialize_functions(sorted_fields, "")
+    add_deserialize_functions(spec.parsed_fields(), "")
 }@
 
 void serialize_@(topic_name)(ucdrBuffer *writer, const struct @(uorb_struct) *input, char *output, uint32_t *length)

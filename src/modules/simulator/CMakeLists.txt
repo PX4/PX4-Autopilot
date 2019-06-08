@@ -41,7 +41,7 @@ if(ENABLE_UART_RC_INPUT)
 	elseif (WIN32)
 		set(PIXHAWK_DEVICE "COM3")
 	endif()
-		
+
 	set(PIXHAWK_DEVICE_BAUD 115200)
 endif()
 configure_file(simulator_config.h.in simulator_config.h @ONLY)
@@ -61,6 +61,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-double-promotion
 		-Wno-cast-align
+		-Wno-address-of-packed-member # TODO: fix in c_library_v2
 	INCLUDES
 		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS
@@ -72,11 +73,11 @@ px4_add_module(
 		drivers__ledsim
 		git_ecl
 		ecl_geo
+		drivers_accelerometer
+		drivers_barometer
+		drivers_gyroscope
+		drivers_magnetometer
 	)
 target_include_directories(modules__simulator INTERFACE ${PX4_SOURCE_DIR}/mavlink/include/mavlink)
 
-add_subdirectory(accelsim)
-add_subdirectory(airspeedsim)
-add_subdirectory(barosim)
 add_subdirectory(gpssim)
-add_subdirectory(gyrosim)

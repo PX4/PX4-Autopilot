@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#pragma once
 
 #include <drivers/device/integrator.h>
 #include <drivers/drv_gyro.h>
@@ -47,7 +48,7 @@ class PX4Gyroscope : public cdev::CDev, public ModuleParams
 {
 
 public:
-	PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation rotation);
+	PX4Gyroscope(uint32_t device_id, uint8_t priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
 	~PX4Gyroscope() override;
 
 	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
@@ -57,15 +58,15 @@ public:
 	void set_scale(float scale) { _sensor_gyro_pub.get().scaling = scale; }
 	void set_temperature(float temperature) { _sensor_gyro_pub.get().temperature = temperature; }
 
-	void set_sample_rate(unsigned rate) { _sample_rate = rate; }
-
-	void configure_filter(float cutoff_freq) { _filter.set_cutoff_frequency(_sample_rate, cutoff_freq); }
+	void set_sample_rate(unsigned rate);
 
 	void update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z);
 
 	void print_status();
 
 private:
+
+	void configure_filter(float cutoff_freq) { _filter.set_cutoff_frequency(_sample_rate, cutoff_freq); }
 
 	uORB::Publication<sensor_gyro_s>	_sensor_gyro_pub;
 
@@ -79,7 +80,7 @@ private:
 
 	int			_class_device_instance{-1};
 
-	unsigned	_sample_rate{1000};
+	unsigned		_sample_rate{1000};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff

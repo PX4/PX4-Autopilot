@@ -89,8 +89,8 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 		float &yaw_speed_sp)
 {
 
-	if (!COM_OBS_AVOID.get() || _sub_vehicle_status->get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
-		// if avoidance disabled or in failsafe nav_state LOITER, don't inject setpoints from avoidance system
+	if (_sub_vehicle_status->get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+		// if in failsafe nav_state LOITER, don't inject setpoints from avoidance system
 		return;
 	}
 
@@ -121,17 +121,22 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 
 	pos_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position;
 	vel_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity;
-	yaw_sp =  _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw;
-	yaw_speed_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed;
+
+	if (!_ext_yaw_active) {
+		// inject yaw setpoints only if weathervane isn't active
+		yaw_sp =  _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw;
+		yaw_speed_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed;
+	}
 }
 
 void ObstacleAvoidance::updateAvoidanceDesiredWaypoints(const Vector3f &curr_wp, const float curr_yaw,
 		const float curr_yawspeed,
-		const Vector3f &next_wp, const float next_yaw, const float next_yawspeed)
+		const Vector3f &next_wp, const float next_yaw, const float next_yawspeed, const bool ext_yaw_active)
 {
 	_desired_waypoint.timestamp = hrt_absolute_time();
 	_desired_waypoint.type = vehicle_trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
 	_curr_wp = curr_wp;
+	_ext_yaw_active = ext_yaw_active;
 
 	curr_wp.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].position);
 	Vector3f(NAN, NAN, NAN).copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].velocity);
@@ -162,7 +167,7 @@ void ObstacleAvoidance::updateAvoidanceDesiredSetpoints(const Vector3f &pos_sp, 
 }
 
 void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector3f &prev_wp,
-		float target_acceptance_radius, const Vector2f &closest_pt)
+		float target_acceptance_radius, const Vector2f &closest_pt, const int wp_type)
 {
 	_position = pos;
 	position_controller_status_s pos_control_status = {};
@@ -185,7 +190,8 @@ void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector
 
 	const float pos_to_target_z = fabsf(_curr_wp(2) - _position(2));
 
-	if (pos_to_target.length() < target_acceptance_radius && pos_to_target_z > NAV_MC_ALT_RAD.get()) {
+	if (pos_to_target.length() < target_acceptance_radius && pos_to_target_z > _param_nav_mc_alt_rad.get()
+	    && wp_type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 		// vehicle above or below the target waypoint
 		pos_control_status.altitude_acceptance = pos_to_target_z + 0.5f;
 	}

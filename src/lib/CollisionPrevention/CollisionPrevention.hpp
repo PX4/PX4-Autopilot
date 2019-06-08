@@ -49,9 +49,8 @@
 #include <mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/mavlink_log.h>
-#include <uORB/uORB.h>
+#include <uORB/Subscription.hpp>
 #include <systemlib/mavlink_log.h>
-#include <lib/FlightTasks/tasks/FlightTask/SubscriptionArray.hpp>
 
 class CollisionPrevention : public ModuleParams
 {
@@ -60,45 +59,36 @@ public:
 
 	~CollisionPrevention();
 
-	/**
-	 * Initialize the uORB subscriptions using an array
-	 * @return true on success, false on error
-	 */
-	bool initializeSubscriptions(SubscriptionArray &subscription_array);
-
 	bool is_active() { return _param_mpc_col_prev_d.get() > 0; }
 
-	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed);
+	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed,
+			    const matrix::Vector2f &curr_pos, const matrix::Vector2f &curr_vel);
 
 private:
 
-	bool _interfering = false;		/**< states if the collision prevention interferes with the user input */
+	bool _interfering{false};		/**< states if the collision prevention interferes with the user input */
 
-	orb_advert_t _constraints_pub{nullptr};		/**< constraints publication */
+	orb_advert_t _constraints_pub{nullptr};  	/**< constraints publication */
 	orb_advert_t _mavlink_log_pub{nullptr};	 	/**< Mavlink log uORB handle */
 
-	uORB::Subscription<obstacle_distance_s> *_sub_obstacle_distance{nullptr}; /**< obstacle distances received form a range sensor */
+	uORB::SubscriptionData<obstacle_distance_s> _sub_obstacle_distance{ORB_ID(obstacle_distance)}; /**< obstacle distances received form a range sensor */
 
-	static constexpr uint64_t RANGE_STREAM_TIMEOUT_US = 500000;
-	static constexpr uint64_t MESSAGE_THROTTLE_US = 5000000;
+	static constexpr uint64_t RANGE_STREAM_TIMEOUT_US{500000};
+	static constexpr uint64_t MESSAGE_THROTTLE_US{5000000};
 
-	hrt_abstime _last_message;
-
-	matrix::Vector2f _move_constraints_x_normalized;
-	matrix::Vector2f _move_constraints_y_normalized;
-	matrix::Vector2f _move_constraints_x;
-	matrix::Vector2f _move_constraints_y;
+	hrt_abstime _last_message{0};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_COL_PREV_D>) _param_mpc_col_prev_d /**< collision prevention keep minimum distance */
+		(ParamFloat<px4::params::MPC_COL_PREV_D>) _param_mpc_col_prev_d, /**< collision prevention keep minimum distance */
+		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p, /**< p gain from position controller*/
+		(ParamFloat<px4::params::MPC_COL_PREV_DLY>) _param_mpc_col_prev_dly /**< delay of the range measurement data*/
 	)
 
 	void update();
 
-	void update_range_constraints();
+	void calculateConstrainedSetpoint(matrix::Vector2f &setpoint, const matrix::Vector2f &curr_pos,
+					  const matrix::Vector2f &curr_vel);
 
-	void reset_constraints();
-
-	void publish_constraints(const matrix::Vector2f &original_setpoint, const matrix::Vector2f &adapted_setpoint);
+	void publishConstrainedSetpoint(const matrix::Vector2f &original_setpoint, const matrix::Vector2f &adapted_setpoint);
 
 };

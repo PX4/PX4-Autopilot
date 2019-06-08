@@ -46,12 +46,12 @@ class ListNode
 {
 public:
 
-	void setSibling(T sibling) { _sibling = sibling; }
-	const T getSibling() const { return _sibling; }
+	void setSibling(T sibling) { _list_node_sibling = sibling; }
+	const T getSibling() const { return _list_node_sibling; }
 
 protected:
 
-	T _sibling{nullptr};
+	T _list_node_sibling{nullptr};
 
 };
 

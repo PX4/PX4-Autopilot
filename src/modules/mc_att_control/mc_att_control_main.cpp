@@ -171,83 +171,20 @@ MulticopterAttitudeControl::parameters_updated()
 void
 MulticopterAttitudeControl::parameter_update_poll()
 {
-	bool updated;
-
 	/* Check if parameters have changed */
-	orb_check(_params_sub, &updated);
+	parameter_update_s param_update;
 
-	if (updated) {
-		struct parameter_update_s param_update;
-		orb_copy(ORB_ID(parameter_update), _params_sub, &param_update);
+	if (_params_sub.update(&param_update)) {
 		updateParams();
 		parameters_updated();
 	}
 }
 
 void
-MulticopterAttitudeControl::vehicle_control_mode_poll()
-{
-	bool updated;
-
-	/* Check if vehicle control mode has changed */
-	orb_check(_v_control_mode_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_control_mode), _v_control_mode_sub, &_v_control_mode);
-	}
-}
-
-bool
-MulticopterAttitudeControl::vehicle_manual_poll()
-{
-	bool updated;
-
-	/* get pilots inputs */
-	orb_check(_manual_control_sp_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(manual_control_setpoint), _manual_control_sp_sub, &_manual_control_sp);
-		return true;
-	}
-	return false;
-}
-
-void
-MulticopterAttitudeControl::vehicle_attitude_setpoint_poll()
-{
-	/* check if there is a new setpoint */
-	bool updated;
-	orb_check(_v_att_sp_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_attitude_setpoint), _v_att_sp_sub, &_v_att_sp);
-	}
-}
-
-bool
-MulticopterAttitudeControl::vehicle_rates_setpoint_poll()
-{
-	/* check if there is a new setpoint */
-	bool updated;
-	orb_check(_v_rates_sp_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_rates_setpoint), _v_rates_sp_sub, &_v_rates_sp);
-		return true;
-	}
-	return false;
-}
-
-void
 MulticopterAttitudeControl::vehicle_status_poll()
 {
 	/* check if there is new status information */
-	bool vehicle_status_updated;
-	orb_check(_vehicle_status_sub, &vehicle_status_updated);
-
-	if (vehicle_status_updated) {
-		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
-
+	if (_vehicle_status_sub.update(&_vehicle_status)) {
 		/* set correct uORB ID, depending on if vehicle is VTOL or not */
 		if (_actuators_id == nullptr) {
 			if (_vehicle_status.is_vtol) {
@@ -256,7 +193,7 @@ MulticopterAttitudeControl::vehicle_status_poll()
 
 				int32_t vt_type = -1;
 				if (param_get(param_find("VT_TYPE"), &vt_type) == PX4_OK) {
-					_is_tailsitter = (vt_type == vtol_type::TAILSITTER);
+					_is_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
 				}
 
 			} else {
@@ -271,26 +208,10 @@ void
 MulticopterAttitudeControl::vehicle_motor_limits_poll()
 {
 	/* check if there is a new message */
-	bool updated;
-	orb_check(_motor_limits_sub, &updated);
+	multirotor_motor_limits_s motor_limits{};
 
-	if (updated) {
-		multirotor_motor_limits_s motor_limits = {};
-		orb_copy(ORB_ID(multirotor_motor_limits), _motor_limits_sub, &motor_limits);
-
+	if (_motor_limits_sub.update(&motor_limits)) {
 		_saturation_status.value = motor_limits.saturation_status;
-	}
-}
-
-void
-MulticopterAttitudeControl::battery_status_poll()
-{
-	/* check if there is a new message */
-	bool updated;
-	orb_check(_battery_status_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(battery_status), _battery_status_sub, &_battery_status);
 	}
 }
 
@@ -298,14 +219,9 @@ bool
 MulticopterAttitudeControl::vehicle_attitude_poll()
 {
 	/* check if there is a new message */
-	bool updated;
-	orb_check(_v_att_sub, &updated);
+	const uint8_t prev_quat_reset_counter = _v_att.quat_reset_counter;
 
-	if (updated) {
-		uint8_t prev_quat_reset_counter = _v_att.quat_reset_counter;
-
-		orb_copy(ORB_ID(vehicle_attitude), _v_att_sub, &_v_att);
-
+	if (_v_att_sub.update(&_v_att)) {
 		// Check for a heading reset
 		if (prev_quat_reset_counter != _v_att.quat_reset_counter) {
 			// we only extract the heading change from the delta quaternion
@@ -314,60 +230,6 @@ MulticopterAttitudeControl::vehicle_attitude_poll()
 		return true;
 	}
 	return false;
-}
-
-void
-MulticopterAttitudeControl::sensor_correction_poll()
-{
-	/* check if there is a new message */
-	bool updated;
-	orb_check(_sensor_correction_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(sensor_correction), _sensor_correction_sub, &_sensor_correction);
-	}
-
-	/* update the latest gyro selection */
-	if (_sensor_correction.selected_gyro_instance < _gyro_count) {
-		_selected_gyro = _sensor_correction.selected_gyro_instance;
-	}
-}
-
-void
-MulticopterAttitudeControl::sensor_bias_poll()
-{
-	/* check if there is a new message */
-	bool updated;
-	orb_check(_sensor_bias_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(sensor_bias), _sensor_bias_sub, &_sensor_bias);
-	}
-
-}
-
-void
-MulticopterAttitudeControl::vehicle_land_detected_poll()
-{
-	/* check if there is a new message */
-	bool updated;
-	orb_check(_vehicle_land_detected_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
-	}
-
-}
-
-void
-MulticopterAttitudeControl::landing_gear_state_poll()
-{
-	bool updated;
-	orb_check(_landing_gear_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(landing_gear), _landing_gear_sub, &_landing_gear);
-	}
 }
 
 float
@@ -519,7 +381,13 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 void
 MulticopterAttitudeControl::control_attitude()
 {
-	vehicle_attitude_setpoint_poll();
+	_v_att_sp_sub.update(&_v_att_sp);
+
+	// reinitialize the setpoint while not armed to make sure no value from the last flight is still kept
+	if (!_v_control_mode.flag_armed) {
+		Quatf().copyTo(_v_att_sp.q_d);
+		Vector3f().copyTo(_v_att_sp.thrust_body);
+	}
 
 	// physical thrust axis is the negative of body z axis
 	_thrust_sp = -_v_att_sp.thrust_body[2];
@@ -708,30 +576,11 @@ MulticopterAttitudeControl::publish_actuator_controls()
 void
 MulticopterAttitudeControl::run()
 {
-
-	/*
-	 * do subscriptions
-	 */
-	_v_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_v_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-	_v_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
-	_v_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	_motor_limits_sub = orb_subscribe(ORB_ID(multirotor_motor_limits));
-	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
-
 	_gyro_count = math::constrain(orb_group_count(ORB_ID(sensor_gyro)), 1, MAX_GYRO_COUNT);
 
 	for (unsigned s = 0; s < _gyro_count; s++) {
 		_sensor_gyro_sub[s] = orb_subscribe_multi(ORB_ID(sensor_gyro), s);
 	}
-
-	_sensor_correction_sub = orb_subscribe(ORB_ID(sensor_correction));
-	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
-	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-	_landing_gear_sub = orb_subscribe(ORB_ID(landing_gear));
 
 	/* wakeup source: gyro data from sensor selected by the sensor app */
 	px4_pollfd_struct_t poll_fds = {};
@@ -748,7 +597,13 @@ MulticopterAttitudeControl::run()
 	while (!should_exit()) {
 
 		// check if the selected gyro has updated first
-		sensor_correction_poll();
+		_sensor_correction_sub.update(&_sensor_correction);
+
+		/* update the latest gyro selection */
+		if (_sensor_correction.selected_gyro_instance < _gyro_count) {
+			_selected_gyro = _sensor_correction.selected_gyro_instance;
+		}
+
 		poll_fds.fd = _sensor_gyro_sub[_selected_gyro];
 
 		/* wait for up to 100ms for data */
@@ -789,15 +644,16 @@ MulticopterAttitudeControl::run()
 			}
 
 			/* check for updates in other topics */
-			vehicle_control_mode_poll();
+			_v_control_mode_sub.update(&_v_control_mode);
+			_battery_status_sub.update(&_battery_status);
+			_sensor_bias_sub.update(&_sensor_bias);
+			_vehicle_land_detected_sub.update(&_vehicle_land_detected);
+			_landing_gear_sub.update(&_landing_gear);
 			vehicle_status_poll();
 			vehicle_motor_limits_poll();
-			battery_status_poll();
-			sensor_bias_poll();
-			vehicle_land_detected_poll();
-			landing_gear_state_poll();
-			const bool manual_control_updated = vehicle_manual_poll();
+			const bool manual_control_updated = _manual_control_sp_sub.update(&_manual_control_sp);
 			const bool attitude_updated = vehicle_attitude_poll();
+
 			attitude_dt += dt;
 
 			/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
@@ -831,6 +687,13 @@ MulticopterAttitudeControl::run()
 					}
 
 					control_attitude();
+					if (_v_control_mode.flag_control_yawrate_override_enabled) {
+						/* Yaw rate override enabled, overwrite the yaw setpoint */
+						_v_rates_sp_sub.update(&_v_rates_sp);
+						const auto yawrate_reference = _v_rates_sp.yaw;
+						_rates_sp(2) = yawrate_reference;
+					}
+
 					publish_rates_setpoint();
 				}
 
@@ -850,7 +713,7 @@ MulticopterAttitudeControl::run()
 
 				} else {
 					/* attitude controller disabled, poll rates setpoint topic */
-					if (vehicle_rates_setpoint_poll()) {
+					if (_v_rates_sp_sub.update(&_v_rates_sp)) {
 						_rates_sp(0) = _v_rates_sp.roll;
 						_rates_sp(1) = _v_rates_sp.pitch;
 						_rates_sp(2) = _v_rates_sp.yaw;
@@ -899,24 +762,9 @@ MulticopterAttitudeControl::run()
 		perf_end(_loop_perf);
 	}
 
-	orb_unsubscribe(_v_att_sub);
-	orb_unsubscribe(_v_att_sp_sub);
-	orb_unsubscribe(_v_rates_sp_sub);
-	orb_unsubscribe(_v_control_mode_sub);
-	orb_unsubscribe(_params_sub);
-	orb_unsubscribe(_manual_control_sp_sub);
-	orb_unsubscribe(_vehicle_status_sub);
-	orb_unsubscribe(_motor_limits_sub);
-	orb_unsubscribe(_battery_status_sub);
-
 	for (unsigned s = 0; s < _gyro_count; s++) {
 		orb_unsubscribe(_sensor_gyro_sub[s]);
 	}
-
-	orb_unsubscribe(_sensor_correction_sub);
-	orb_unsubscribe(_sensor_bias_sub);
-	orb_unsubscribe(_vehicle_land_detected_sub);
-	orb_unsubscribe(_landing_gear_sub);
 }
 
 int MulticopterAttitudeControl::task_spawn(int argc, char *argv[])

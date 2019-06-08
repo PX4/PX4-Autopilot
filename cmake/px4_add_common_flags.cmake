@@ -51,10 +51,16 @@ function(px4_add_common_flags)
 		-fdata-sections
 		-ffunction-sections
 		-fomit-frame-pointer
-		-funsafe-math-optimizations
+
+		#-funsafe-math-optimizations # Enables -fno-signed-zeros, -fno-trapping-math, -fassociative-math and -freciprocal-math
+		-fno-signed-zeros	# Allow optimizations for floating-point arithmetic that ignore the signedness of zero
+		-fno-trapping-math	# Compile code assuming that floating-point operations cannot generate user-visible traps
+		#-fassociative-math	# Allow re-association of operands in series of floating-point operations
+		-freciprocal-math	# Allow the reciprocal of a value to be used instead of dividing by the value if this enables optimizations
+
+		-fno-math-errno		# Do not set errno after calling math functions that are executed with a single instruction, e.g., sqrt
 
 		-fno-strict-aliasing
-		-fno-math-errno
 
 		# visibility
 		-fvisibility=hidden

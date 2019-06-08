@@ -42,7 +42,7 @@
 
 #include "LidarLite.h"
 
-#include <px4_workqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 #include <perf/perf_counter.h>
 
@@ -78,7 +78,7 @@
 #define LL40LS_PEAK_STRENGTH_LOW 135			// Minimum peak strength raw value for accepting a measurement
 #define LL40LS_PEAK_STRENGTH_HIGH 234			// Max peak strength raw value
 
-class LidarLiteI2C : public LidarLite, public device::I2C
+class LidarLiteI2C : public LidarLite, public device::I2C, public px4::ScheduledWorkItem
 {
 public:
 	LidarLiteI2C(int bus, const char *path,
@@ -113,7 +113,6 @@ protected:
 
 private:
 	uint8_t _rotation;
-	work_s              _work;
 	ringbuffer::RingBuffer          *_reports;
 	bool                _sensor_ok;
 	bool                _collect_phase;
@@ -173,16 +172,8 @@ private:
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
 	*/
-	void                cycle();
+	void                Run() override;
 	int                 collect() override;
-
-	/**
-	* Static trampoline from the workq context; because we don't have a
-	* generic workq wrapper yet.
-	*
-	* @param arg        Instance pointer for the driver that is polling.
-	*/
-	static void     cycle_trampoline(void *arg);
 
 private:
 	LidarLiteI2C(const LidarLiteI2C &copy) = delete;

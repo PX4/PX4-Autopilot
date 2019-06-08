@@ -34,9 +34,11 @@
 #include "px4_init.h"
 
 #include <px4_config.h>
+#include <px4_console_buffer.h>
 #include <px4_defines.h>
 #include <drivers/drv_hrt.h>
 #include <lib/parameters/param.h>
+#include <px4_work_queue/WorkQueueManager.hpp>
 #include <systemlib/cpuload.h>
 
 #include <fcntl.h>
@@ -95,6 +97,21 @@ int px4_platform_init(void)
 
 #endif
 
+	int ret = px4_console_buffer_init();
+
+	if (ret < 0) {
+		return ret;
+	}
+
+	// replace stdout with our buffered console
+	int fd_buf = open(CONSOLE_BUFFER_DEVICE, O_WRONLY);
+
+	if (fd_buf >= 0) {
+		dup2(fd_buf, 1);
+		// keep stderr(2) untouched: the buffered console will use it to output to the original console
+		close(fd_buf);
+	}
+
 	hrt_init();
 
 	param_init();
@@ -103,6 +120,8 @@ int px4_platform_init(void)
 #ifdef CONFIG_SCHED_INSTRUMENTATION
 	cpuload_initialize_once();
 #endif
+
+	px4::WorkQueueManagerStart();
 
 	return PX4_OK;
 }

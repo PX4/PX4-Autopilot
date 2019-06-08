@@ -65,8 +65,8 @@ GroundRoverPositionControl	*g_control = nullptr;
 
 GroundRoverPositionControl::GroundRoverPositionControl() :
 	/* performance counters */
-	_sub_attitude(ORB_ID(vehicle_attitude), 0, 0, nullptr),
-	_sub_sensors(ORB_ID(sensor_bias), 0, 0, nullptr),
+	_sub_attitude(ORB_ID(vehicle_attitude)),
+	_sub_sensors(ORB_ID(sensor_bias)),
 	_loop_perf(perf_alloc(PC_ELAPSED, "rover position control")) // TODO : do we even need these perf counters
 {
 	_parameter_handles.l1_period = param_find("GND_L1_PERIOD");

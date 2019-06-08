@@ -57,7 +57,6 @@ protected:
 	virtual void _updateSetpoints() override;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualPosition,
-					(ParamFloat<px4::params::MPC_JERK_MIN>) _param_mpc_jerk_min, /**< Minimum jerk (velocity-based if > 0) */
 					(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
 					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
 					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max

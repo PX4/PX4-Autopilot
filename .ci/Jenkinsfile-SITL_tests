@@ -73,12 +73,12 @@ pipeline {
               mission: "VTOL_mission_1",
               vehicle: "tailsitter"
             ],
-            [
-              name: "VTOL_tiltrotor",
-              test: "mavros_posix_test_mission.test",
-              mission: "VTOL_mission_1",
-              vehicle: "tiltrotor"
-            ],
+            // [
+            //   name: "VTOL_tiltrotor",
+            //   test: "mavros_posix_test_mission.test",
+            //   mission: "VTOL_mission_1",
+            //   vehicle: "tiltrotor"
+            // ],
             [
               name: "MC_avoidance",
               test: "mavros_posix_test_avoidance.test",

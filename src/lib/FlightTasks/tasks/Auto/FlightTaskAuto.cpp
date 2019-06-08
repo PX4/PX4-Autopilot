@@ -106,6 +106,7 @@ bool FlightTaskAuto::updateFinalize()
 	// If the FlightTask generates a yaw or a yawrate setpoint that exceeds this value
 	// it will see its setpoint constrained here
 	_limitYawRate();
+	_constraints.want_takeoff = _checkTakeoff();
 	return true;
 }
 
@@ -177,10 +178,12 @@ bool FlightTaskAuto::_evaluateTriplets()
 		} else {
 			tmp_target(0) = _lock_position_xy(0);
 			tmp_target(1) = _lock_position_xy(1);
-			_lock_position_xy.setAll(NAN);
 		}
 
 	} else {
+		// reset locked position if current lon and lat are valid
+		_lock_position_xy.setAll(NAN);
+
 		// Convert from global to local frame.
 		map_projection_project(&_reference_position,
 				       _sub_triplet_setpoint->get().current.lat, _sub_triplet_setpoint->get().current.lon, &tmp_target(0), &tmp_target(1));
@@ -275,9 +278,10 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_obstacle_avoidance.updateAvoidanceDesiredWaypoints(_triplet_target, _yaw_setpoint, _yawspeed_setpoint,
 				_triplet_next_wp,
 				_sub_triplet_setpoint->get().next.yaw,
-				_sub_triplet_setpoint->get().next.yawspeed_valid ? _sub_triplet_setpoint->get().next.yawspeed : NAN);
-		_obstacle_avoidance.updateAvoidanceDesiredSetpoints(_position_setpoint, _velocity_setpoint);
-		_obstacle_avoidance.checkAvoidanceProgress(_position, _triplet_prev_wp, _target_acceptance_radius, _closest_pt);
+				_sub_triplet_setpoint->get().next.yawspeed_valid ? _sub_triplet_setpoint->get().next.yawspeed : NAN,
+				_ext_yaw_handler != nullptr && _ext_yaw_handler->is_active());
+		_obstacle_avoidance.checkAvoidanceProgress(_position, _triplet_prev_wp, _target_acceptance_radius, _closest_pt,
+				_sub_triplet_setpoint->get().current.type);
 	}
 
 	return true;
