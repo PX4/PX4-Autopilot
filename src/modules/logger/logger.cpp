@@ -526,6 +526,7 @@ void Logger::add_default_topics()
 	add_topic("estimator_status", 200);
 	add_topic("home_position");
 	add_topic("input_rc", 200);
+	add_topic("logger_status", 200);
 	add_topic("mission");
 	add_topic("mission_result");
 	add_topic("optical_flow", 50);
@@ -1064,8 +1065,30 @@ void Logger::run()
 
 			// update buffer statistics
 			for (int i = 0; i < (int)LogType::Count; ++i) {
-				if (!_statistics[i].dropout_start && (_writer.get_buffer_fill_count_file((LogType)i) > _statistics[i].high_water)) {
-					_statistics[i].high_water = _writer.get_buffer_fill_count_file((LogType)i);
+
+				const size_t buffer_fill_count_file = _writer.get_buffer_fill_count_file((LogType)i);
+
+				if (!_statistics[i].dropout_start && (buffer_fill_count_file > _statistics[i].high_water)) {
+					_statistics[i].high_water = buffer_fill_count_file;
+				}
+
+				if (i == 0) {
+					logger_status_s &status = _logger_status_pub.get();
+
+					status.timestamp = hrt_absolute_time();
+
+					const float kb_written = _writer.get_total_written_file((LogType)i) / 1024.0f;
+					const float seconds = ((float)(status.timestamp - _statistics[(int)i].start_time_file)) / 1000000.0f;
+
+					status.type = i;
+					status.num_messages = _subscriptions.size();
+					status.written_kb = kb_written;
+					status.write_rate_kb_s = kb_written / seconds;
+					status.buffer_size_bytes = _writer.get_buffer_size_file((LogType)i);
+					status.buffer_used_bytes = buffer_fill_count_file;
+					status.dropouts = _statistics[i].write_dropouts;
+
+					_logger_status_pub.update();
 				}
 			}
 
