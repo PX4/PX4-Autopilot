@@ -89,6 +89,10 @@
 using math::constrain;
 using namespace time_literals;
 
+using matrix::Vector2f;
+using matrix::Vector3f;
+using matrix::Quatf;
+
 extern "C" __EXPORT int ekf2_main(int argc, char *argv[]);
 
 class Ekf2 final : public ModuleBase<Ekf2>, public ModuleParams
@@ -119,6 +123,9 @@ public:
 	int print_status() override;
 
 private:
+
+	void UpdateParameters();
+
 	int getRangeSubIndex(); ///< get subscription index of first downward-facing range sensor
 
 	template<typename Param>
@@ -232,9 +239,9 @@ private:
 	//static constexpr float ev_max_std_dev = 100.0f;	///< Maximum permissible standard deviation for estimated velocity
 
 	// GPS blending and switching
-	gps_message _gps_state[GPS_MAX_RECEIVERS] {}; ///< internal state data for the physical GPS
-	gps_message _gps_blended_state{};		///< internal state data for the blended GPS
-	gps_message _gps_output[GPS_MAX_RECEIVERS + 1] {}; ///< output state data for the physical and blended GPS
+	estimator::gps_message _gps_state[GPS_MAX_RECEIVERS] {}; ///< internal state data for the physical GPS
+	estimator::gps_message _gps_blended_state{};		///< internal state data for the blended GPS
+	estimator::gps_message _gps_output[GPS_MAX_RECEIVERS + 1] {}; ///< output state data for the physical and blended GPS
 	Vector2f _NE_pos_offset_m[GPS_MAX_RECEIVERS] = {}; ///< Filtered North,East position offset from GPS instance to blended solution in _output_state.location (m)
 	float _hgt_offset_mm[GPS_MAX_RECEIVERS] = {};	///< Filtered height offset from GPS instance relative to blended solution in _output_state.location (mm)
 	Vector3f _blended_antenna_offset = {};		///< blended antenna offset
@@ -288,9 +295,9 @@ private:
 	uORB::PublicationData<vehicle_global_position_s>	_vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
 	uORB::PublicationData<vehicle_local_position_s>		_vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
 
-	Ekf _ekf;
+	estimator::Ekf _ekf;
 
-	parameters *_params;	///< pointer to ekf parameter struct (located in _ekf class instance)
+	estimator::parameters *_params;	///< pointer to ekf parameter struct (located in _ekf class instance)
 
 	DEFINE_PARAMETERS(
 		(ParamExtInt<px4::params::EKF2_MIN_OBS_DT>)
@@ -432,26 +439,26 @@ private:
 		_param_ekf2_of_gate,	///< optical flow fusion innovation consistency gate size (STD)
 
 		// sensor positions in body frame
-		(ParamExtFloat<px4::params::EKF2_IMU_POS_X>) _param_ekf2_imu_pos_x,		///< X position of IMU in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_IMU_POS_Y>) _param_ekf2_imu_pos_y,		///< Y position of IMU in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_IMU_POS_Z>) _param_ekf2_imu_pos_z,		///< Z position of IMU in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_GPS_POS_X>) _param_ekf2_gps_pos_x,		///< X position of GPS antenna in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_GPS_POS_Y>) _param_ekf2_gps_pos_y,		///< Y position of GPS antenna in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_GPS_POS_Z>) _param_ekf2_gps_pos_z,		///< Z position of GPS antenna in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_RNG_POS_X>) _param_ekf2_rng_pos_x,		///< X position of range finder in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_RNG_POS_Y>) _param_ekf2_rng_pos_y,		///< Y position of range finder in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_RNG_POS_Z>) _param_ekf2_rng_pos_z,		///< Z position of range finder in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_OF_POS_X>)
+		(ParamFloat<px4::params::EKF2_IMU_POS_X>) _param_ekf2_imu_pos_x,		///< X position of IMU in body frame (m)
+		(ParamFloat<px4::params::EKF2_IMU_POS_Y>) _param_ekf2_imu_pos_y,		///< Y position of IMU in body frame (m)
+		(ParamFloat<px4::params::EKF2_IMU_POS_Z>) _param_ekf2_imu_pos_z,		///< Z position of IMU in body frame (m)
+		(ParamFloat<px4::params::EKF2_GPS_POS_X>) _param_ekf2_gps_pos_x,		///< X position of GPS antenna in body frame (m)
+		(ParamFloat<px4::params::EKF2_GPS_POS_Y>) _param_ekf2_gps_pos_y,		///< Y position of GPS antenna in body frame (m)
+		(ParamFloat<px4::params::EKF2_GPS_POS_Z>) _param_ekf2_gps_pos_z,		///< Z position of GPS antenna in body frame (m)
+		(ParamFloat<px4::params::EKF2_RNG_POS_X>) _param_ekf2_rng_pos_x,		///< X position of range finder in body frame (m)
+		(ParamFloat<px4::params::EKF2_RNG_POS_Y>) _param_ekf2_rng_pos_y,		///< Y position of range finder in body frame (m)
+		(ParamFloat<px4::params::EKF2_RNG_POS_Z>) _param_ekf2_rng_pos_z,		///< Z position of range finder in body frame (m)
+		(ParamFloat<px4::params::EKF2_OF_POS_X>)
 		_param_ekf2_of_pos_x,	///< X position of optical flow sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_OF_POS_Y>)
+		(ParamFloat<px4::params::EKF2_OF_POS_Y>)
 		_param_ekf2_of_pos_y,	///< Y position of optical flow sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_OF_POS_Z>)
+		(ParamFloat<px4::params::EKF2_OF_POS_Z>)
 		_param_ekf2_of_pos_z,	///< Z position of optical flow sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_EV_POS_X>)
+		(ParamFloat<px4::params::EKF2_EV_POS_X>)
 		_param_ekf2_ev_pos_x,		///< X position of VI sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_EV_POS_Y>)
+		(ParamFloat<px4::params::EKF2_EV_POS_Y>)
 		_param_ekf2_ev_pos_y,		///< Y position of VI sensor focal point in body frame (m)
-		(ParamExtFloat<px4::params::EKF2_EV_POS_Z>)
+		(ParamFloat<px4::params::EKF2_EV_POS_Z>)
 		_param_ekf2_ev_pos_z,		///< Z position of VI sensor focal point in body frame (m)
 
 		// control of airspeed and sideslip fusion
@@ -601,21 +608,6 @@ Ekf2::Ekf2():
 	_param_ekf2_of_n_max(_params->flow_noise_qual_min),
 	_param_ekf2_of_qmin(_params->flow_qual_min),
 	_param_ekf2_of_gate(_params->flow_innov_gate),
-	_param_ekf2_imu_pos_x(_params->imu_pos_body(0)),
-	_param_ekf2_imu_pos_y(_params->imu_pos_body(1)),
-	_param_ekf2_imu_pos_z(_params->imu_pos_body(2)),
-	_param_ekf2_gps_pos_x(_params->gps_pos_body(0)),
-	_param_ekf2_gps_pos_y(_params->gps_pos_body(1)),
-	_param_ekf2_gps_pos_z(_params->gps_pos_body(2)),
-	_param_ekf2_rng_pos_x(_params->rng_pos_body(0)),
-	_param_ekf2_rng_pos_y(_params->rng_pos_body(1)),
-	_param_ekf2_rng_pos_z(_params->rng_pos_body(2)),
-	_param_ekf2_of_pos_x(_params->flow_pos_body(0)),
-	_param_ekf2_of_pos_y(_params->flow_pos_body(1)),
-	_param_ekf2_of_pos_z(_params->flow_pos_body(2)),
-	_param_ekf2_ev_pos_x(_params->ev_pos_body(0)),
-	_param_ekf2_ev_pos_y(_params->ev_pos_body(1)),
-	_param_ekf2_ev_pos_z(_params->ev_pos_body(2)),
 	_param_ekf2_tau_vel(_params->vel_Tau),
 	_param_ekf2_tau_pos(_params->pos_Tau),
 	_param_ekf2_gbias_init(_params->switch_on_gyro_bias),
@@ -632,10 +624,7 @@ Ekf2::Ekf2():
 {
 	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
 
-	// initialise parameter cache
-	updateParams();
-
-	_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
+	UpdateParameters();
 }
 
 Ekf2::~Ekf2()
@@ -644,6 +633,35 @@ Ekf2::~Ekf2()
 	perf_free(_perf_ekf_update);
 
 	orb_unsubscribe(_sensors_sub);
+}
+
+void
+Ekf2::UpdateParameters()
+{
+	// initialise parameter cache
+	updateParams();
+
+	_ekf.set_min_required_gps_health_time(_param_ekf2_req_gps_h.get() * 1_s);
+
+	_params->imu_pos_body(0) = _param_ekf2_imu_pos_x.get();
+	_params->imu_pos_body(1) = _param_ekf2_imu_pos_y.get();
+	_params->imu_pos_body(2) = _param_ekf2_imu_pos_z.get();
+
+	_params->gps_pos_body(0) = _param_ekf2_gps_pos_x.get();
+	_params->gps_pos_body(1) = _param_ekf2_gps_pos_y.get();
+	_params->gps_pos_body(2) = _param_ekf2_gps_pos_z.get();
+
+	_params->rng_pos_body(0) = _param_ekf2_rng_pos_x.get();
+	_params->rng_pos_body(1) = _param_ekf2_rng_pos_y.get();
+	_params->rng_pos_body(2) = _param_ekf2_rng_pos_z.get();
+
+	_params->flow_pos_body(0) = _param_ekf2_of_pos_x.get();
+	_params->flow_pos_body(1) = _param_ekf2_of_pos_y.get();
+	_params->flow_pos_body(2) = _param_ekf2_of_pos_z.get();
+
+	_params->ev_pos_body(0) = _param_ekf2_ev_pos_x.get();
+	_params->ev_pos_body(1) = _param_ekf2_ev_pos_y.get();
+	_params->ev_pos_body(2) = _param_ekf2_ev_pos_z.get();
 }
 
 int Ekf2::print_status()
@@ -733,7 +751,8 @@ void Ekf2::run()
 			// read from param to clear updated flag
 			parameter_update_s update;
 			_params_sub.copy(&update);
-			updateParams();
+
+			UpdateParameters();
 		}
 
 		orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors);
@@ -789,12 +808,14 @@ void Ekf2::run()
 		const hrt_abstime now = sensors.timestamp;
 
 		// push imu data into estimator
-		imuSample imu_sample_new;
+		estimator::imuSample imu_sample_new;
 		imu_sample_new.time_us = now;
 		imu_sample_new.delta_ang_dt = sensors.gyro_integral_dt * 1.e-6f;
-		imu_sample_new.delta_ang = Vector3f{sensors.gyro_rad} * imu_sample_new.delta_ang_dt;
+		imu_sample_new.delta_ang = matrix::Vector3<ecl_float_t> {sensors.gyro_rad[0], sensors.gyro_rad[1], sensors.gyro_rad[2]} *
+					   imu_sample_new.delta_ang_dt;
 		imu_sample_new.delta_vel_dt = sensors.accelerometer_integral_dt * 1.e-6f;
-		imu_sample_new.delta_vel = Vector3f{sensors.accelerometer_m_s2} * imu_sample_new.delta_vel_dt;
+		imu_sample_new.delta_vel = matrix::Vector3<ecl_float_t> {sensors.accelerometer_m_s2[0], sensors.accelerometer_m_s2[1], sensors.accelerometer_m_s2[2]} *
+					   imu_sample_new.delta_vel_dt;
 
 		_ekf.setIMUData(imu_sample_new);
 
@@ -1093,7 +1114,7 @@ void Ekf2::run()
 			optical_flow_s optical_flow;
 
 			if (_optical_flow_sub.copy(&optical_flow)) {
-				flow_message flow;
+				estimator::flow_message flow;
 				flow.flowdata(0) = optical_flow.pixel_flow_x_integral;
 				flow.flowdata(1) = optical_flow.pixel_flow_y_integral;
 				flow.quality = optical_flow.quality;
@@ -1137,7 +1158,7 @@ void Ekf2::run()
 					}
 
 					if (range_finder_updated) {
-						_ekf.setRangeData(range_finder.timestamp, range_finder.current_distance);
+						_ekf.setRangeData(range_finder.timestamp, range_finder.current_distance, range_finder.signal_quality);
 					}
 
 					// Save sensor limits reported by the rangefinder
@@ -1159,7 +1180,7 @@ void Ekf2::run()
 			vehicle_odometry_s ev_odom;
 			_ev_odom_sub.copy(&ev_odom);
 
-			ext_vision_message ev_data;
+			estimator::ext_vision_message ev_data;
 
 			// check for valid position data
 			if (PX4_ISFINITE(ev_odom.x) && PX4_ISFINITE(ev_odom.y) && PX4_ISFINITE(ev_odom.z)) {
@@ -1183,7 +1204,10 @@ void Ekf2::run()
 
 			// check for valid orientation data
 			if (PX4_ISFINITE(ev_odom.q[0])) {
-				ev_data.quat = matrix::Quatf(ev_odom.q);
+				ev_data.quat(0) = ev_odom.q[0];
+				ev_data.quat(1) = ev_odom.q[1];
+				ev_data.quat(2) = ev_odom.q[2];
+				ev_data.quat(3) = ev_odom.q[3];
 
 				// orientation measurement error from parameters
 				if (PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_ROLL_VARIANCE])) {
@@ -1249,7 +1273,7 @@ void Ekf2::run()
 
 		if (updated) {
 
-			filter_control_status_u control_status;
+			estimator::filter_control_status_u control_status;
 			_ekf.get_control_mode(&control_status.value);
 
 			// only publish position after successful alignment
@@ -1404,7 +1428,7 @@ void Ekf2::run()
 				}
 
 				// Get covariances to vehicle odometry
-				float covariances[24];
+				ecl_float_t covariances[24];
 				_ekf.covariances_diagonal().copyTo(covariances);
 
 				// get the covariance matrix size
@@ -1503,7 +1527,14 @@ void Ekf2::run()
 			status.timestamp = now;
 			_ekf.get_state_delayed(status.states);
 			status.n_states = 24;
-			_ekf.covariances_diagonal().copyTo(status.covariances);
+
+			// _ekf.covariances_diagonal().copyTo(status.covariances);
+			const auto cov = _ekf.covariances_diagonal();
+
+			for (int i = 0; i < 24; i++) {
+				status.covariances[i] = cov(i);
+			}
+
 			_ekf.get_gps_check_status(&status.gps_check_fail_flags);
 			// only report enabled GPS check failures (the param indexes are shifted by 1 bit, because they don't include
 			// the GPS Fix bit, which is always checked)
@@ -2426,7 +2457,7 @@ int Ekf2::task_spawn(int argc, char *argv[])
 	_task_id = px4_task_spawn_cmd("ekf2",
 				      SCHED_DEFAULT,
 				      SCHED_PRIORITY_ESTIMATOR,
-				      6600,
+				      9600,
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);
 

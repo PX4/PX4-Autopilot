@@ -132,6 +132,8 @@ define_property(GLOBAL PROPERTY PX4_MODULE_PATHS
 # configuration
 #
 
+option(ECL_USE_DOUBLE_FPU "ECL use float_t = double on appropriate hardware" OFF)
+
 set(CONFIG "px4_sitl_default" CACHE STRING "desired configuration")
 
 include(px4_add_module)

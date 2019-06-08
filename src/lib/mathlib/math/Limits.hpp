@@ -102,7 +102,7 @@ inline bool isZero(float val)
 /** Safe way to check if double is zero */
 inline bool isZero(double val)
 {
-	return fabs(val - 0.0) < DBL_EPSILON;
+	return fabs(val - (double)0.0) < DBL_EPSILON;
 }
 
 }

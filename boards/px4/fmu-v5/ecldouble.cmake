@@ -1,15 +1,18 @@
 
+
+set(ECL_USE_DOUBLE_FPU ON)
+
 px4_add_board(
 	PLATFORM nuttx
 	VENDOR px4
 	MODEL fmu-v5
-	LABEL stackcheck
+	LABEL ecldouble
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
 	TESTING
-	#UAVCAN_INTERFACES 2
+	UAVCAN_INTERFACES 2
 
 	SERIAL_PORTS
 		GPS1:/dev/ttyS0
@@ -20,41 +23,43 @@ px4_add_board(
 	DRIVERS
 		adc
 		barometer # all available barometer drivers
-		#batt_smbus
+		batt_smbus
 		camera_capture
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
 		#heater
-		#imu/adis16448
+		imu/adis16448
+		imu/adis16497
 		#imu # all available imu drivers
-		#imu/bmi055
+		imu/bmi055
 		imu/mpu6000
-		#imu/mpu9250
-		#irlock
-		#lights/blinkm
+		imu/mpu9250
+		irlock
+		lights/blinkm
 		lights/rgbled
-		#lights/rgbled_ncp5623c
+		lights/rgbled_ncp5623c
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		#md25
-		#mkblctrl
+		mkblctrl
 		optical_flow # all available optical flow drivers
-		#pca9685
+		pca9685
+		power_monitor/ina226
 		#protocol_splitter
 		pwm_input
 		pwm_out_sim
 		px4fmu
 		px4io
 		rc_input
-		#roboclaw
+		roboclaw
 		safety_button
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
-		#uavcan
+		uavcan
 
 	MODULES
 		attitude_estimator_q
@@ -74,7 +79,6 @@ px4_add_board(
 		mavlink
 		mc_att_control
 		mc_pos_control
-		#micrortps_bridge
 		navigator
 		sensors
 		sih
@@ -111,14 +115,15 @@ px4_add_board(
 		ver
 
 	EXAMPLES
-		#bottle_drop # OBC challenge
-		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
-		#hello
-		#hwtest # Hardware test
+		bottle_drop # OBC challenge
+		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		hello
+		hwtest # Hardware test
 		#matlab_csv_serial
-		#px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
-		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
-		#rover_steering_control # Rover example app
-		#segway
-		#uuv_example_app
+		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
+		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
+		rover_steering_control # Rover example app
+		segway
+		uuv_example_app
+
 	)

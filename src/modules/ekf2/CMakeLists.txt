@@ -34,7 +34,9 @@ px4_add_module(
 	MODULE modules__ekf2
 	MAIN ekf2
 	COMPILE_FLAGS
-	STACK_MAX 2400
+		-Wno-narrowing
+		-Wno-double-promotion
+	STACK_MAX 4700
 	SRCS
 		ekf2_main.cpp
 	DEPENDS
@@ -43,3 +45,4 @@ px4_add_module(
 		ecl_geo
 		perf
 	)
+
