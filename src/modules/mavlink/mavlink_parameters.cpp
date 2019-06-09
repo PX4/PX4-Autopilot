@@ -42,33 +42,16 @@
 
 #include <stdio.h>
 
-#include <uORB/topics/uavcan_parameter_request.h>
-#include <uORB/topics/uavcan_parameter_value.h>
-
 #include "mavlink_parameters.h"
 #include "mavlink_main.h"
 
 MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) :
-	_send_all_index(-1),
-	_uavcan_open_request_list(nullptr),
-	_uavcan_waiting_for_request_response(false),
-	_uavcan_queued_request_items(0),
-	_rc_param_map_pub(nullptr),
-	_rc_param_map(),
-	_uavcan_parameter_request_pub(nullptr),
-	_uavcan_parameter_value_sub(-1),
-	_mavlink_parameter_sub(-1),
-	_param_update_time(0),
-	_param_update_index(0),
 	_mavlink(mavlink)
 {
 }
+
 MavlinkParametersManager::~MavlinkParametersManager()
 {
-	if (_uavcan_parameter_value_sub >= 0) {
-		orb_unsubscribe(_uavcan_parameter_value_sub);
-	}
-
 	if (_uavcan_parameter_request_pub) {
 		orb_unadvertise(_uavcan_parameter_request_pub);
 	}
@@ -349,18 +332,10 @@ MavlinkParametersManager::send_untransmitted()
 {
 	bool sent_one = false;
 
-	// Check for untransmitted system parameters
-	if (_mavlink_parameter_sub < 0) {
-		_mavlink_parameter_sub = orb_subscribe(ORB_ID(parameter_update));
-	}
-
-	bool param_ready;
-	orb_check(_mavlink_parameter_sub, &param_ready);
-
-	if (param_ready) {
+	if (_mavlink_parameter_sub.updated()) {
 		// Clear the ready flag
-		struct parameter_update_s value;
-		orb_copy(ORB_ID(parameter_update), _mavlink_parameter_sub, &value);
+		parameter_update_s value;
+		_mavlink_parameter_sub.update(&value);
 
 		// Schedule an update if not already the case
 		if (_param_update_time == 0) {
@@ -408,16 +383,9 @@ bool
 MavlinkParametersManager::send_uavcan()
 {
 	/* Send parameter values received from the UAVCAN topic */
-	if (_uavcan_parameter_value_sub < 0) {
-		_uavcan_parameter_value_sub = orb_subscribe(ORB_ID(uavcan_parameter_value));
-	}
-
-	bool param_value_ready;
-	orb_check(_uavcan_parameter_value_sub, &param_value_ready);
-
-	if (param_value_ready) {
-		struct uavcan_parameter_value_s value;
-		orb_copy(ORB_ID(uavcan_parameter_value), _uavcan_parameter_value_sub, &value);
+	if (_uavcan_parameter_value_sub.updated()) {
+		uavcan_parameter_value_s value;
+		_uavcan_parameter_value_sub.update(&value);
 
 		// Check if we received a matching parameter, drop it from the list and request the next
 		if (_uavcan_open_request_list != nullptr

@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <px4_config.h>
+#include <px4_console_buffer.h>
 #include "logger.h"
 #include "messages.h"
 #include "watchdog.h"
@@ -53,6 +54,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 
 #include <drivers/drv_hrt.h>
+#include <mathlib/math/Limits.hpp>
 #include <px4_getopt.h>
 #include <px4_log.h>
 #include <px4_posix.h>
@@ -155,66 +157,6 @@ int Logger::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-int Logger::print_usage(const char *reason)
-{
-	if (reason) {
-		PX4_WARN("%s\n", reason);
-	}
-
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-System logger which logs a configurable set of uORB topics and system printf messages
-(`PX4_WARN` and `PX4_ERR`) to ULog files. These can be used for system and flight performance evaluation,
-tuning, replay and crash analysis.
-
-It supports 2 backends:
-- Files: write ULog files to the file system (SD card)
-- MAVLink: stream ULog data via MAVLink to a client (the client must support this)
-
-Both backends can be enabled and used at the same time.
-
-The file backend supports 2 types of log files: full (the normal log) and a mission
-log. The mission log is a reduced ulog file and can be used for example for geotagging or
-vehicle management. It can be enabled and configured via SDLOG_MISSION parameter.
-The normal log is always a superset of the mission log.
-
-### Implementation
-The implementation uses two threads:
-- The main thread, running at a fixed rate (or polling on a topic if started with -p) and checking for
-  data updates
-- The writer thread, writing data to the file
-
-In between there is a write buffer with configurable size (and another fixed-size buffer for
-the mission log). It should be large to avoid dropouts.
-
-### Examples
-Typical usage to start logging immediately:
-$ logger start -e -t
-
-Or if already running:
-$ logger on
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("logger", "system");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAM_STRING('m', "all", "file|mavlink|all", "Backend mode", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Enable/disable logging via Aux1 RC channel", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('e', "Enable logging right after start until disarm (otherwise only when armed)", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Log until shutdown (implies -e)", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('t', "Use date/time for naming log directories and files", true);
-	PRINT_MODULE_USAGE_PARAM_INT('r', 280, 0, 8000, "Log rate in Hz, 0 means unlimited rate", true);
-	PRINT_MODULE_USAGE_PARAM_INT('b', 12, 4, 10000, "Log buffer size in KiB", true);
-	PRINT_MODULE_USAGE_PARAM_INT('q', 14, 1, 100, "uORB queue size for mavlink mode", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "<topic_name>",
-					 "Poll on a topic instead of running with fixed rate (Log rate and topic intervals are ignored if this is set)", true);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("on", "start logging now, override arming (logger must be running)");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("off", "stop logging now, override arming (logger must be running)");
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
-	return 0;
-}
-
 int Logger::task_spawn(int argc, char *argv[])
 {
 	_task_id = px4_task_spawn_cmd("logger",
@@ -237,6 +179,7 @@ int Logger::print_status()
 	PX4_INFO("Running in mode: %s", configured_backend_mode());
 
 	bool is_logging = false;
+
 	if (_writer.is_started(LogType::Full, LogWriter::BackendFile)) {
 		PX4_INFO("Full File Logging Running:");
 		print_statistics(LogType::Full);
@@ -266,6 +209,7 @@ void Logger::print_statistics(LogType type)
 	if (!_writer.is_started(type, LogWriter::BackendFile)) { //currently only statistics for file logging
 		return;
 	}
+
 	Statistics &stats = _statistics[(int)type];
 
 	/* this is only for the file backend */
@@ -274,11 +218,14 @@ void Logger::print_statistics(LogType type)
 	float seconds = ((float)(hrt_absolute_time() - stats.start_time_file)) / 1000000.0f;
 
 	PX4_INFO("Log file: %s/%s/%s", LOG_ROOT[(int)type], _file_name[(int)type].log_dir, _file_name[(int)type].log_file_name);
+
 	if (mebibytes < 0.1f) {
 		PX4_INFO("Wrote %4.2f KiB (avg %5.2f KiB/s)", (double)kibibytes, (double)(kibibytes / seconds));
+
 	} else {
 		PX4_INFO("Wrote %4.2f MiB (avg %5.2f KiB/s)", (double)mebibytes, (double)(kibibytes / seconds));
 	}
+
 	PX4_INFO("Since last status: dropouts: %zu (max len: %.3f s), max used buffer: %zu / %zu B",
 		 stats.write_dropouts, (double)stats.max_dropout_duration, stats.high_water, _writer.get_buffer_size_file(type));
 	stats.high_water = 0;
@@ -389,6 +336,7 @@ Logger *Logger::instantiate(int argc, char *argv[])
 	if (log_on_start) {
 		if (log_until_shutdown) {
 			log_mode = Logger::LogMode::boot_until_shutdown;
+
 		} else {
 			log_mode = Logger::LogMode::boot_until_disarm;
 		}
@@ -398,7 +346,8 @@ Logger *Logger::instantiate(int argc, char *argv[])
 		return nullptr;
 	}
 
-	Logger *logger = new Logger(backend, log_buffer_size, log_interval, poll_topic, log_mode, log_name_timestamp, queue_size);
+	Logger *logger = new Logger(backend, log_buffer_size, log_interval, poll_topic, log_mode, log_name_timestamp,
+				    queue_size);
 
 #if defined(DBGPRINT) && defined(__PX4_NUTTX)
 	struct mallinfo alloc_info = mallinfo();
@@ -439,7 +388,7 @@ Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_inte
 	_mission_log = param_find("SDLOG_MISSION");
 
 	if (poll_topic_name) {
-		const orb_metadata *const*topics = orb_get_topics();
+		const orb_metadata *const *topics = orb_get_topics();
 
 		for (size_t i = 0; i < orb_topics_count(); i++) {
 			if (strcmp(poll_topic_name, topics[i]->o_name) == 0) {
@@ -475,7 +424,7 @@ bool Logger::request_stop_static()
 	return true;
 }
 
-LoggerSubscription* Logger::add_topic(const orb_metadata *topic)
+LoggerSubscription *Logger::add_topic(const orb_metadata *topic)
 {
 	LoggerSubscription *subscription = nullptr;
 	size_t fields_len = strlen(topic->o_fields) + strlen(topic->o_name) + 1; //1 for ':'
@@ -488,6 +437,7 @@ LoggerSubscription* Logger::add_topic(const orb_metadata *topic)
 	}
 
 	int fd = -1;
+
 	// Only subscribe to the topic now if it's published. If published later on, we'll dynamically
 	// add the subscription then
 	if (orb_exists(topic, 0) == 0) {
@@ -497,14 +447,17 @@ LoggerSubscription* Logger::add_topic(const orb_metadata *topic)
 			PX4_WARN("logger: %s subscribe failed (%i)", topic->o_name, errno);
 			return nullptr;
 		}
+
 	} else {
 		PX4_DEBUG("Topic %s does not exist. Not subscribing (yet)", topic->o_name);
 	}
 
 	if (_subscriptions.push_back(LoggerSubscription(fd, topic))) {
 		subscription = &_subscriptions[_subscriptions.size() - 1];
+
 	} else {
 		PX4_WARN("logger: failed to add topic. Too many subscriptions");
+
 		if (fd >= 0) {
 			orb_unsubscribe(fd);
 		}
@@ -515,7 +468,7 @@ LoggerSubscription* Logger::add_topic(const orb_metadata *topic)
 
 bool Logger::add_topic(const char *name, unsigned interval)
 {
-	const orb_metadata *const*topics = orb_get_topics();
+	const orb_metadata *const *topics = orb_get_topics();
 	LoggerSubscription *subscription = nullptr;
 
 	for (size_t i = 0; i < orb_topics_count(); i++) {
@@ -549,6 +502,7 @@ bool Logger::add_topic(const char *name, unsigned interval)
 	if (subscription) {
 		if (subscription->fd[0] >= 0) {
 			orb_set_interval(subscription->fd[0], interval);
+
 		} else {
 			// store the interval: use a value < 0 to know it's not a valid fd
 			subscription->fd[0] = -interval - 1;
@@ -569,6 +523,7 @@ bool Logger::copy_if_updated_multi(int sub_idx, int multi_instance, void *buffer
 		if (try_to_subscribe_topic(sub, multi_instance)) {
 
 			write_add_logged_msg(LogType::Full, sub, multi_instance);
+
 			if (sub_idx < _num_mission_subs) {
 				write_add_logged_msg(LogType::Mission, sub, multi_instance);
 			}
@@ -593,13 +548,15 @@ bool Logger::copy_if_updated_multi(int sub_idx, int multi_instance, void *buffer
 bool Logger::try_to_subscribe_topic(LoggerSubscription &sub, int multi_instance)
 {
 	bool ret = false;
+
 	if (OK == orb_exists(sub.metadata, multi_instance)) {
 
 		unsigned int interval;
 
 		if (multi_instance == 0) {
 			// the first instance and no subscription yet: this means we stored the negative interval as fd
-			interval = (unsigned int) (-(sub.fd[0] + 1));
+			interval = (unsigned int)(-(sub.fd[0] + 1));
+
 		} else {
 			// set to the same interval as the first instance
 			if (orb_get_interval(sub.fd[0], &interval) != 0) {
@@ -612,14 +569,18 @@ bool Logger::try_to_subscribe_topic(LoggerSubscription &sub, int multi_instance)
 
 		if (handle >= 0) {
 			PX4_DEBUG("subscribed to instance %d of topic %s", multi_instance, sub.metadata->o_name);
+
 			if (interval > 0) {
 				orb_set_interval(handle, interval);
 			}
+
 			ret = true;
+
 		} else {
 			PX4_ERR("orb_subscribe_multi %s failed (%i)", sub.metadata->o_name, errno);
 		}
 	}
+
 	return ret;
 }
 
@@ -836,6 +797,7 @@ void Logger::initialize_mission_topics(MissionLogType type)
 		add_mission_topic("mission_result");
 		add_mission_topic("vehicle_global_position", 1000);
 		add_mission_topic("vehicle_status", 1000);
+
 	} else if (type == MissionLogType::Geotagging) {
 		add_mission_topic("camera_capture");
 	}
@@ -847,8 +809,9 @@ void Logger::initialize_configured_topics()
 	SDLogProfileMask sdlog_profile = SDLogProfileMask::DEFAULT;
 
 	if (_sdlog_profile_handle != PARAM_INVALID) {
-		param_get(_sdlog_profile_handle, (int32_t*)&sdlog_profile);
+		param_get(_sdlog_profile_handle, (int32_t *)&sdlog_profile);
 	}
+
 	if ((int32_t)sdlog_profile == 0) {
 		PX4_WARN("No logging profile selected. Using default set");
 		sdlog_profile = SDLogProfileMask::DEFAULT;
@@ -890,13 +853,14 @@ void Logger::initialize_configured_topics()
 }
 
 
-void Logger::add_mission_topic(const char* name, unsigned interval)
+void Logger::add_mission_topic(const char *name, unsigned interval)
 {
 	if (_num_mission_subs >= MAX_MISSION_TOPICS_NUM) {
 		PX4_ERR("Max num mission topics exceeded");
 		return;
 	}
-	if(add_topic(name, interval)) {
+
+	if (add_topic(name, interval)) {
 		_mission_subscriptions[_num_mission_subs].min_delta_ms = interval;
 		_mission_subscriptions[_num_mission_subs].next_write_time = 0;
 		++_num_mission_subs;
@@ -928,13 +892,13 @@ void Logger::run()
 		}
 
 		if (util::check_free_space(LOG_ROOT[(int)LogType::Full], max_log_dirs_to_keep, _mavlink_log_pub,
-				_file_name[(int)LogType::Full].sess_dir_index) == 1) {
+					   _file_name[(int)LogType::Full].sess_dir_index) == 1) {
 			return;
 		}
 	}
 
 	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	uORB::Subscription<parameter_update_s> parameter_update_sub(ORB_ID(parameter_update));
+	uORB::SubscriptionData<parameter_update_s> parameter_update_sub(ORB_ID(parameter_update));
 	int log_message_sub = orb_subscribe(ORB_ID(log_message));
 	orb_set_interval(log_message_sub, 20);
 
@@ -947,6 +911,7 @@ void Logger::run()
 
 		if (_num_mission_subs > 0) {
 			int mkdir_ret = mkdir(LOG_ROOT[(int)LogType::Mission], S_IRWXU | S_IRWXG | S_IRWXO);
+
 			if (mkdir_ret != 0 && errno != EEXIST) {
 				PX4_ERR("failed creating log root dir: %s (%i)", LOG_ROOT[(int)LogType::Mission], errno);
 			}
@@ -954,6 +919,7 @@ void Logger::run()
 	}
 
 	int manual_control_sp_sub = -1;
+
 	if (_log_mode == LogMode::rc_aux1) {
 		manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	}
@@ -1026,7 +992,7 @@ void Logger::run()
 	}
 
 	/* init the update timer */
-	struct hrt_call timer_call{};
+	struct hrt_call timer_call {};
 	timer_callback_data_s timer_callback_data;
 	px4_sem_init(&timer_callback_data.semaphore, 0, 0);
 	/* timer_semaphore use case is a signal */
@@ -1063,7 +1029,9 @@ void Logger::run()
 	while (!should_exit()) {
 
 		// Start/stop logging (depending on logging mode, by default when arming/disarming)
-		const bool logging_started = start_stop_logging(vehicle_status_sub, manual_control_sp_sub, (MissionLogType)mission_log_mode);
+		const bool logging_started = start_stop_logging(vehicle_status_sub, manual_control_sp_sub,
+					     (MissionLogType)mission_log_mode);
+
 		if (logging_started) {
 #ifdef DBGPRINT
 			timer_start = hrt_absolute_time();
@@ -1151,9 +1119,11 @@ void Logger::run()
 							if (_writer.is_started(LogType::Mission)) {
 								if (_mission_subscriptions[sub_idx].next_write_time < (loop_time / 100000)) {
 									unsigned delta_time = _mission_subscriptions[sub_idx].min_delta_ms;
+
 									if (delta_time > 0) {
 										_mission_subscriptions[sub_idx].next_write_time = (loop_time / 100000) + delta_time / 100;
 									}
+
 									if (write_message(LogType::Mission, _msg_buffer, msg_size)) {
 										data_written = true;
 									}
@@ -1250,6 +1220,7 @@ void Logger::run()
 						try_to_subscribe_topic(_subscriptions[next_subscribe_topic_index], instance);
 					}
 				}
+
 				if (++next_subscribe_topic_index >= (int)_subscriptions.size()) {
 					next_subscribe_topic_index = -1;
 					next_subscribe_check = loop_time + TRY_SUBSCRIBE_INTERVAL;
@@ -1341,14 +1312,15 @@ void Logger::debug_print_buffer(uint32_t &total_bytes, hrt_abstime &timer_start)
 		struct mallinfo alloc_info = mallinfo();
 		double throughput = total_bytes / deltat;
 		PX4_INFO("%8.1f kB/s, %zu highWater,  %d dropouts, %5.3f sec max, free heap: %d",
-				throughput / 1.e3, _statistics[0].high_water, _statistics[0].write_dropouts,
-				(double)_statistics[0].max_dropout_duration, alloc_info.fordblks);
+			 throughput / 1.e3, _statistics[0].high_water, _statistics[0].write_dropouts,
+			 (double)_statistics[0].max_dropout_duration, alloc_info.fordblks);
 
 		_statistics[0].high_water = 0;
 		_statistics[0].max_dropout_duration = 0.f;
 		total_bytes = 0;
 		timer_start = hrt_absolute_time();
 	}
+
 #endif /* DBGPRINT */
 }
 
@@ -1370,6 +1342,7 @@ bool Logger::start_stop_logging(int vehicle_status_sub, int manual_control_sp_su
 
 			if (_prev_state != should_start) {
 				_prev_state = should_start;
+
 				if (should_start) {
 					want_start = true;
 
@@ -1414,6 +1387,7 @@ bool Logger::start_stop_logging(int vehicle_status_sub, int manual_control_sp_su
 		if (mission_log_type != MissionLogType::Disabled) {
 			start_log_file(LogType::Mission);
 		}
+
 	} else if (want_stop) {
 		// delayed stop: we measure the process loads and then stop
 		initialize_load_output(PrintLoadReason::Postflight);
@@ -1423,6 +1397,7 @@ bool Logger::start_stop_logging(int vehicle_status_sub, int manual_control_sp_su
 			stop_log_file(LogType::Mission);
 		}
 	}
+
 	return bret;
 }
 
@@ -1438,22 +1413,22 @@ void Logger::handle_vehicle_command_update(int vehicle_command_sub, orb_advert_t
 		if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
 			if ((int)(command.param1 + 0.5f) != 0) {
 				ack_vehicle_command(vehicle_command_ack_pub, &command,
-						vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
+						    vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
 
 			} else if (can_start_mavlink_log()) {
 				ack_vehicle_command(vehicle_command_ack_pub, &command,
-						vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+						    vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 				start_log_mavlink();
 
 			} else {
 				ack_vehicle_command(vehicle_command_ack_pub, &command,
-						vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
+						    vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
 			}
 
 		} else if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP) {
 			stop_log_mavlink();
 			ack_vehicle_command(vehicle_command_ack_pub, &command,
-					vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+					    vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		}
 	}
 }
@@ -1461,6 +1436,7 @@ void Logger::handle_vehicle_command_update(int vehicle_command_sub, orb_advert_t
 bool Logger::write_message(LogType type, void *ptr, size_t size)
 {
 	Statistics &stats = _statistics[(int)type];
+
 	if (_writer.write_message(type, ptr, size, stats.dropout_start) != -1) {
 
 		if (stats.dropout_start) {
@@ -1487,7 +1463,7 @@ bool Logger::write_message(LogType type, void *ptr, size_t size)
 
 int Logger::create_log_dir(LogType type, tm *tt, char *log_dir, int log_dir_len)
 {
-	LogFileName& file_name = _file_name[(int)type];
+	LogFileName &file_name = _file_name[(int)type];
 
 	/* create dir on sdcard if needed */
 	int n = snprintf(log_dir, log_dir_len, "%s/", LOG_ROOT[(int)type]);
@@ -1572,6 +1548,7 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 
 	if (time_ok) {
 		int n = create_log_dir(type, &tt, file_name, file_name_size);
+
 		if (n < 0) {
 			return -1;
 		}
@@ -1583,6 +1560,7 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 
 	} else {
 		int n = create_log_dir(type, nullptr, file_name, file_name_size);
+
 		if (n < 0) {
 			return -1;
 		}
@@ -1646,10 +1624,13 @@ void Logger::start_log_file(LogType type)
 	write_header(type);
 	write_version(type);
 	write_formats(type);
+
 	if (type == LogType::Full) {
 		write_parameters(type);
 		write_perf_data(true);
+		write_console_output();
 	}
+
 	write_all_add_logged_msg(type);
 	_writer.set_need_reliable_transfer(false);
 	_writer.unselect_write_backend();
@@ -1677,6 +1658,7 @@ void Logger::stop_log_file(LogType type)
 		write_perf_data(false);
 		_writer.set_need_reliable_transfer(false);
 	}
+
 	_writer.stop_log_file(type);
 }
 
@@ -1696,6 +1678,7 @@ void Logger::start_log_mavlink()
 	write_formats(LogType::Full);
 	write_parameters(LogType::Full);
 	write_perf_data(true);
+	write_console_output();
 	write_all_add_logged_msg(LogType::Full);
 	_writer.set_need_reliable_transfer(false);
 	_writer.unselect_write_backend();
@@ -1721,7 +1704,7 @@ struct perf_callback_data_t {
 void Logger::perf_iterate_callback(perf_counter_t handle, void *user)
 {
 	perf_callback_data_t *callback_data = (perf_callback_data_t *)user;
-	const int buffer_length = 256;
+	const int buffer_length = 220;
 	char buffer[buffer_length];
 	const char *perf_name;
 
@@ -1760,21 +1743,25 @@ void Logger::print_load_callback(void *user)
 	}
 
 	switch (callback_data->logger->_print_load_reason) {
-		case PrintLoadReason::Preflight:
-			perf_name = "perf_top_preflight";
-			break;
-		case PrintLoadReason::Postflight:
-			perf_name = "perf_top_postflight";
-			break;
-		case PrintLoadReason::Watchdog:
-			perf_name = "perf_top_watchdog";
-			break;
-		default:
-			perf_name = "perf_top";
-			break;
+	case PrintLoadReason::Preflight:
+		perf_name = "perf_top_preflight";
+		break;
+
+	case PrintLoadReason::Postflight:
+		perf_name = "perf_top_postflight";
+		break;
+
+	case PrintLoadReason::Watchdog:
+		perf_name = "perf_top_watchdog";
+		break;
+
+	default:
+		perf_name = "perf_top";
+		break;
 	}
 
-	callback_data->logger->write_info_multiple(LogType::Full, perf_name, callback_data->buffer, callback_data->counter != 0);
+	callback_data->logger->write_info_multiple(LogType::Full, perf_name, callback_data->buffer,
+			callback_data->counter != 0);
 	++callback_data->counter;
 }
 
@@ -1798,6 +1785,7 @@ void Logger::write_load_output()
 	if (_print_load_reason == PrintLoadReason::Watchdog) {
 		PX4_ERR("Writing watchdog data"); // this is just that we see it easily in the log
 	}
+
 	perf_callback_data_t callback_data = {};
 	char buffer[140];
 	callback_data.logger = this;
@@ -1811,7 +1799,30 @@ void Logger::write_load_output()
 	_writer.set_need_reliable_transfer(false);
 }
 
-void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats &written_formats, ulog_message_format_s& msg, int level)
+void Logger::write_console_output()
+{
+	const int buffer_length = 220;
+	char buffer[buffer_length];
+	int size = px4_console_buffer_size();
+	int offset = -1;
+	bool first = true;
+
+	while (size > 0) {
+		int read_size = px4_console_buffer_read(buffer, buffer_length - 1, &offset);
+
+		if (read_size <= 0) { break; }
+
+		buffer[math::min(read_size, size)] = '\0';
+		write_info_multiple(LogType::Full, "boot_console_output", buffer, !first);
+
+		size -= read_size;
+		first = false;
+	}
+
+}
+
+void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats &written_formats,
+			  ulog_message_format_s &msg, int level)
 {
 	if (level > 3) {
 		// precaution: limit recursion level. If we land here it's either a bug or nested topic definitions. In the
@@ -1833,70 +1844,82 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 
 	// Now go through the fields and check for nested type usages.
 	// o_fields looks like this for example: "uint64_t timestamp;uint8_t[5] array;"
-	const char* fmt = meta.o_fields;
+	const char *fmt = meta.o_fields;
+
 	while (fmt && *fmt) {
 		// extract the type name
 		char type_name[64];
 		const char *space = strchr(fmt, ' ');
+
 		if (!space) {
 			PX4_ERR("invalid format %s", fmt);
 			break;
 		}
+
 		const char *array_start = strchr(fmt, '['); // check for an array
 
 		int type_length;
+
 		if (array_start && array_start < space) {
 			type_length = array_start - fmt;
+
 		} else {
 			type_length = space - fmt;
 		}
+
 		if (type_length >= (int)sizeof(type_name)) {
 			PX4_ERR("buf len too small");
 			break;
 		}
+
 		memcpy(type_name, fmt, type_length);
 		type_name[type_length] = '\0';
 
 		// ignore built-in types
 		if (strcmp(type_name, "int8_t") != 0 &&
-				strcmp(type_name, "uint8_t") != 0 &&
-				strcmp(type_name, "int16_t") != 0 &&
-				strcmp(type_name, "uint16_t") != 0 &&
-				strcmp(type_name, "int16_t") != 0 &&
-				strcmp(type_name, "uint16_t") != 0 &&
-				strcmp(type_name, "int32_t") != 0 &&
-				strcmp(type_name, "uint32_t") != 0 &&
-				strcmp(type_name, "int64_t") != 0 &&
-				strcmp(type_name, "uint64_t") != 0 &&
-				strcmp(type_name, "float") != 0 &&
-				strcmp(type_name, "double") != 0 &&
-				strcmp(type_name, "bool") != 0) {
+		    strcmp(type_name, "uint8_t") != 0 &&
+		    strcmp(type_name, "int16_t") != 0 &&
+		    strcmp(type_name, "uint16_t") != 0 &&
+		    strcmp(type_name, "int16_t") != 0 &&
+		    strcmp(type_name, "uint16_t") != 0 &&
+		    strcmp(type_name, "int32_t") != 0 &&
+		    strcmp(type_name, "uint32_t") != 0 &&
+		    strcmp(type_name, "int64_t") != 0 &&
+		    strcmp(type_name, "uint64_t") != 0 &&
+		    strcmp(type_name, "float") != 0 &&
+		    strcmp(type_name, "double") != 0 &&
+		    strcmp(type_name, "bool") != 0) {
 
 			// find orb meta for type
-			const orb_metadata *const*topics = orb_get_topics();
+			const orb_metadata *const *topics = orb_get_topics();
 			const orb_metadata *found_topic = nullptr;
+
 			for (size_t i = 0; i < orb_topics_count(); i++) {
 				if (strcmp(topics[i]->o_name, type_name) == 0) {
 					found_topic = topics[i];
 				}
 			}
+
 			if (found_topic) {
 				// check if we already wrote the format
-				for (const auto& written_format: written_formats) {
+				for (const auto &written_format : written_formats) {
 					if (written_format == found_topic) {
 						found_topic = nullptr;
 						break;
 					}
 				}
+
 				if (found_topic) {
-					write_format(type, *found_topic, written_formats, msg, level+1);
+					write_format(type, *found_topic, written_formats, msg, level + 1);
 				}
+
 			} else {
 				PX4_ERR("No definition for topic %s found", fmt);
 			}
 		}
 
 		fmt = strchr(fmt, ';');
+
 		if (fmt) { ++fmt; }
 	}
 }
@@ -1911,9 +1934,11 @@ void Logger::write_formats(LogType type)
 
 	// write all subscribed formats
 	size_t sub_count = _subscriptions.size();
+
 	if (type == LogType::Mission) {
 		sub_count = _num_mission_subs;
 	}
+
 	for (size_t i = 0; i < sub_count; ++i) {
 		const LoggerSubscription &sub = _subscriptions[i];
 		write_format(type, *sub.metadata, written_formats, msg);
@@ -1927,11 +1952,14 @@ void Logger::write_all_add_logged_msg(LogType type)
 	_writer.lock();
 
 	size_t sub_count = _subscriptions.size();
+
 	if (type == LogType::Mission) {
 		sub_count = _num_mission_subs;
 	}
+
 	for (size_t i = 0; i < sub_count; ++i) {
 		LoggerSubscription &sub = _subscriptions[i];
+
 		for (int instance = 0; instance < ORB_MULTI_MAX_INSTANCES; ++instance) {
 			if (sub.fd[instance] >= 0) {
 				write_add_logged_msg(type, sub, instance);
@@ -1952,6 +1980,7 @@ void Logger::write_add_logged_msg(LogType type, LoggerSubscription &subscription
 			PX4_ERR("limit for _next_topic_id reached");
 			return;
 		}
+
 		subscription.msg_ids[instance] = _next_topic_id++;
 	}
 
@@ -2017,6 +2046,9 @@ void Logger::write_info_multiple(LogType type, const char *name, const char *val
 		msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
 
 		write_message(type, buffer, msg_size);
+
+	} else {
+		PX4_ERR("info_multiple str too long (%i), key=%s", msg.key_len, msg.key);
 	}
 
 	_writer.unlock();
@@ -2098,6 +2130,7 @@ void Logger::write_version(LogType type)
 	if (board_sub_type && board_sub_type[0]) {
 		write_info(type, "ver_hw_subtype", board_sub_type);
 	}
+
 	write_info(type, "sys_name", "PX4");
 	write_info(type, "sys_os_name", px4_os_name());
 	const char *os_version = px4_os_version_string();
@@ -2116,7 +2149,7 @@ void Logger::write_version(LogType type)
 	write_info(type, "sys_toolchain", px4_toolchain_name());
 	write_info(type, "sys_toolchain_ver", px4_toolchain_version());
 
-	const char* ecl_version = px4_ecl_lib_version_string();
+	const char *ecl_version = px4_ecl_lib_version_string();
 
 	if (ecl_version && ecl_version[0]) {
 		write_info(type, "sys_lib_ecl_ver", ecl_version);
@@ -2145,6 +2178,7 @@ void Logger::write_version(LogType type)
 			write_info(type, "sys_uuid", px4_uuid_string);
 		}
 	}
+
 #endif /* BOARD_HAS_NO_UUID */
 
 	int32_t utc_offset = 0;
@@ -2209,16 +2243,17 @@ void Logger::write_parameters(LogType type)
 			// copy parameter value directly to buffer
 			switch (ptype) {
 			case PARAM_TYPE_INT32:
-				param_get(param, (int32_t*)&buffer[msg_size]);
+				param_get(param, (int32_t *)&buffer[msg_size]);
 				break;
 
 			case PARAM_TYPE_FLOAT:
-				param_get(param, (float*)&buffer[msg_size]);
+				param_get(param, (float *)&buffer[msg_size]);
 				break;
 
 			default:
 				continue;
 			}
+
 			msg_size += value_size;
 
 			msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;
@@ -2278,16 +2313,17 @@ void Logger::write_changed_parameters(LogType type)
 			// copy parameter value directly to buffer
 			switch (ptype) {
 			case PARAM_TYPE_INT32:
-				param_get(param, (int32_t*)&buffer[msg_size]);
+				param_get(param, (int32_t *)&buffer[msg_size]);
 				break;
 
 			case PARAM_TYPE_FLOAT:
-				param_get(param, (float*)&buffer[msg_size]);
+				param_get(param, (float *)&buffer[msg_size]);
 				break;
 
 			default:
 				continue;
 			}
+
 			msg_size += value_size;
 
 			// msg_size is now 1 (msg_type) + 2 (msg_size) + 1 (key_len) + key_len + value_size
@@ -2311,10 +2347,72 @@ void Logger::ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, vehicle_
 	vehicle_command_ack.target_component = cmd->source_component;
 
 	if (vehicle_command_ack_pub == nullptr) {
-		vehicle_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &vehicle_command_ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+		vehicle_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &vehicle_command_ack,
+					  vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+
 	} else {
 		orb_publish(ORB_ID(vehicle_command_ack), vehicle_command_ack_pub, &vehicle_command_ack);
 	}
+}
+
+int Logger::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+System logger which logs a configurable set of uORB topics and system printf messages
+(`PX4_WARN` and `PX4_ERR`) to ULog files. These can be used for system and flight performance evaluation,
+tuning, replay and crash analysis.
+
+It supports 2 backends:
+- Files: write ULog files to the file system (SD card)
+- MAVLink: stream ULog data via MAVLink to a client (the client must support this)
+
+Both backends can be enabled and used at the same time.
+
+The file backend supports 2 types of log files: full (the normal log) and a mission
+log. The mission log is a reduced ulog file and can be used for example for geotagging or
+vehicle management. It can be enabled and configured via SDLOG_MISSION parameter.
+The normal log is always a superset of the mission log.
+
+### Implementation
+The implementation uses two threads:
+- The main thread, running at a fixed rate (or polling on a topic if started with -p) and checking for
+  data updates
+- The writer thread, writing data to the file
+
+In between there is a write buffer with configurable size (and another fixed-size buffer for
+the mission log). It should be large to avoid dropouts.
+
+### Examples
+Typical usage to start logging immediately:
+$ logger start -e -t
+
+Or if already running:
+$ logger on
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("logger", "system");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_STRING('m', "all", "file|mavlink|all", "Backend mode", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('x', "Enable/disable logging via Aux1 RC channel", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('e', "Enable logging right after start until disarm (otherwise only when armed)", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Log until shutdown (implies -e)", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('t', "Use date/time for naming log directories and files", true);
+	PRINT_MODULE_USAGE_PARAM_INT('r', 280, 0, 8000, "Log rate in Hz, 0 means unlimited rate", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 12, 4, 10000, "Log buffer size in KiB", true);
+	PRINT_MODULE_USAGE_PARAM_INT('q', 14, 1, 100, "uORB queue size for mavlink mode", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('p', nullptr, "<topic_name>",
+					 "Poll on a topic instead of running with fixed rate (Log rate and topic intervals are ignored if this is set)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("on", "start logging now, override arming (logger must be running)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("off", "stop logging now, override arming (logger must be running)");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
 }
 
 } // namespace logger

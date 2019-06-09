@@ -51,20 +51,12 @@ VtolLandDetector::VtolLandDetector()
 	_paramHandle.maxAirSpeed = param_find("LNDFW_AIRSPD_MAX");
 }
 
-void VtolLandDetector::_initialize_topics()
-{
-	MulticopterLandDetector::_initialize_topics();
-
-	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-}
-
 void VtolLandDetector::_update_topics()
 {
 	MulticopterLandDetector::_update_topics();
 
-	_orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
-	_orb_update(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+	_airspeedSub.update(&_airspeed);
+	_vehicle_status_sub.update(&_vehicle_status);
 }
 
 bool VtolLandDetector::_get_maybe_landed_state()

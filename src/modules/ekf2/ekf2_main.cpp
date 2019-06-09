@@ -51,6 +51,7 @@
 #include <px4_tasks.h>
 #include <px4_time.h>
 #include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_innovations.h>
@@ -117,7 +118,7 @@ public:
 	int print_status() override;
 
 private:
-	int getRangeSubIndex(const int *subs); ///< get subscription index of first downward-facing range sensor
+	int getRangeSubIndex(); ///< get subscription index of first downward-facing range sensor
 
 	template<typename Param>
 	void update_mag_bias(Param &mag_bias_param, int axis_index);
@@ -253,24 +254,25 @@ private:
 	uint64_t _gps_alttitude_ellipsoid_previous_timestamp[GPS_MAX_RECEIVERS] {}; ///< storage for previous timestamp to compute dt
 	float   _wgs84_hgt_offset = 0;  ///< height offset between AMSL and WGS84
 
-	int _airdata_sub{ -1};
-	int _airspeed_sub{ -1};
-	int _ev_odom_sub{ -1};
-	int _landing_target_pose_sub{ -1};
-	int _magnetometer_sub{ -1};
-	int _optical_flow_sub{ -1};
-	int _params_sub{ -1};
-	int _sensor_selection_sub{ -1};
+	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
+	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
+	uORB::Subscription _ev_odom_sub{ORB_ID(vehicle_visual_odometry)};
+	uORB::Subscription _landing_target_pose_sub{ORB_ID(landing_target_pose)};
+	uORB::Subscription _magnetometer_sub{ORB_ID(vehicle_magnetometer)};
+	uORB::Subscription _optical_flow_sub{ORB_ID(optical_flow)};
+	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _sensor_selection_sub{ORB_ID(sensor_selection)};
+	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
+
 	int _sensors_sub{ -1};
-	int _status_sub{ -1};
-	int _vehicle_land_detected_sub{ -1};
 
 	// because we can have several distance sensor instances with different orientations
-	int _range_finder_subs[ORB_MULTI_MAX_INSTANCES] {};
+	uORB::Subscription _range_finder_subs[ORB_MULTI_MAX_INSTANCES] {{ORB_ID(distance_sensor), 0}, {ORB_ID(distance_sensor), 1}, {ORB_ID(distance_sensor), 2}, {ORB_ID(distance_sensor), 3}};
 	int _range_finder_sub_index = -1; // index for downward-facing range finder subscription
 
 	// because we can have multiple GPS instances
-	int _gps_subs[GPS_MAX_RECEIVERS] {};
+	uORB::Subscription _gps_subs[GPS_MAX_RECEIVERS] {{ORB_ID(vehicle_gps_position), 0}, {ORB_ID(vehicle_gps_position), 1}};
 	int _gps_orb_instance{ -1};
 
 	orb_advert_t _att_pub{nullptr};
@@ -631,25 +633,7 @@ Ekf2::Ekf2():
 	_param_ekf2_bcoef_y(_params->bcoef_y),
 	_param_ekf2_move_test(_params->is_moving_scaler)
 {
-	_airdata_sub = orb_subscribe(ORB_ID(vehicle_air_data));
-	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
-	_ev_odom_sub = orb_subscribe(ORB_ID(vehicle_visual_odometry));
-	_landing_target_pose_sub = orb_subscribe(ORB_ID(landing_target_pose));
-	_magnetometer_sub = orb_subscribe(ORB_ID(vehicle_magnetometer));
-	_optical_flow_sub = orb_subscribe(ORB_ID(optical_flow));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_sensor_selection_sub = orb_subscribe(ORB_ID(sensor_selection));
 	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
-	_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-
-	for (unsigned i = 0; i < GPS_MAX_RECEIVERS; i++) {
-		_gps_subs[i] = orb_subscribe_multi(ORB_ID(vehicle_gps_position), i);
-	}
-
-	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-		_range_finder_subs[i] = orb_subscribe_multi(ORB_ID(distance_sensor), i);
-	}
 
 	// initialise parameter cache
 	updateParams();
@@ -662,25 +646,7 @@ Ekf2::~Ekf2()
 	perf_free(_perf_update_data);
 	perf_free(_perf_ekf_update);
 
-	orb_unsubscribe(_airdata_sub);
-	orb_unsubscribe(_airspeed_sub);
-	orb_unsubscribe(_ev_odom_sub);
-	orb_unsubscribe(_landing_target_pose_sub);
-	orb_unsubscribe(_magnetometer_sub);
-	orb_unsubscribe(_optical_flow_sub);
-	orb_unsubscribe(_params_sub);
-	orb_unsubscribe(_sensor_selection_sub);
 	orb_unsubscribe(_sensors_sub);
-	orb_unsubscribe(_status_sub);
-	orb_unsubscribe(_vehicle_land_detected_sub);
-
-	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-		orb_unsubscribe(_range_finder_subs[i]);
-	}
-
-	for (unsigned i = 0; i < GPS_MAX_RECEIVERS; i++) {
-		orb_unsubscribe(_gps_subs[i]);
-	}
 }
 
 int Ekf2::print_status()
@@ -766,13 +732,10 @@ void Ekf2::run()
 
 		perf_begin(_perf_update_data);
 
-		bool params_updated = false;
-		orb_check(_params_sub, &params_updated);
-
-		if (params_updated) {
+		if (_params_sub.updated()) {
 			// read from param to clear updated flag
 			parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
+			_params_sub.copy(&update);
 			updateParams();
 		}
 
@@ -791,30 +754,19 @@ void Ekf2::run()
 		ekf2_timestamps.visual_odometry_timestamp_rel = ekf2_timestamps_s::RELATIVE_TIMESTAMP_INVALID;
 
 		// update all other topics if they have new data
+		if (_status_sub.update(&vehicle_status)) {
+			// only fuse synthetic sideslip measurements if conditions are met
+			_ekf.set_fuse_beta_flag(!vehicle_status.is_rotary_wing && (_param_ekf2_fuse_beta.get() == 1));
 
-		bool vehicle_status_updated = false;
-
-		orb_check(_status_sub, &vehicle_status_updated);
-
-		if (vehicle_status_updated) {
-			if (orb_copy(ORB_ID(vehicle_status), _status_sub, &vehicle_status) == PX4_OK) {
-				// only fuse synthetic sideslip measurements if conditions are met
-				_ekf.set_fuse_beta_flag(!vehicle_status.is_rotary_wing && (_param_ekf2_fuse_beta.get() == 1));
-
-				// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
-				_ekf.set_is_fixed_wing(!vehicle_status.is_rotary_wing);
-			}
+			// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
+			_ekf.set_is_fixed_wing(!vehicle_status.is_rotary_wing);
 		}
 
-		bool sensor_selection_updated = false;
-
-		orb_check(_sensor_selection_sub, &sensor_selection_updated);
-
 		// Always update sensor selction first time through if time stamp is non zero
-		if (sensor_selection_updated || (sensor_selection.timestamp == 0)) {
-			sensor_selection_s sensor_selection_prev = sensor_selection;
+		if (_sensor_selection_sub.updated() || (sensor_selection.timestamp == 0)) {
+			const sensor_selection_s sensor_selection_prev = sensor_selection;
 
-			if (orb_copy(ORB_ID(sensor_selection), _sensor_selection_sub, &sensor_selection) == PX4_OK) {
+			if (_sensor_selection_sub.copy(&sensor_selection)) {
 				if ((sensor_selection_prev.timestamp > 0) && (sensor_selection.timestamp > sensor_selection_prev.timestamp)) {
 					if (sensor_selection.accel_device_id != sensor_selection_prev.accel_device_id) {
 						PX4_WARN("accel id changed, resetting IMU bias");
@@ -850,13 +802,10 @@ void Ekf2::run()
 		publish_attitude(sensors, now);
 
 		// read mag data
-		bool magnetometer_updated = false;
-		orb_check(_magnetometer_sub, &magnetometer_updated);
-
-		if (magnetometer_updated) {
+		if (_magnetometer_sub.updated()) {
 			vehicle_magnetometer_s magnetometer;
 
-			if (orb_copy(ORB_ID(vehicle_magnetometer), _magnetometer_sub, &magnetometer) == PX4_OK) {
+			if (_magnetometer_sub.copy(&magnetometer)) {
 				// Reset learned bias parameters if there has been a persistant change in magnetometer ID
 				// Do not reset parmameters when armed to prevent potential time slips casued by parameter set
 				// and notification events
@@ -922,13 +871,10 @@ void Ekf2::run()
 		}
 
 		// read baro data
-		bool airdata_updated = false;
-		orb_check(_airdata_sub, &airdata_updated);
-
-		if (airdata_updated) {
+		if (_airdata_sub.updated()) {
 			vehicle_air_data_s airdata;
 
-			if (orb_copy(ORB_ID(vehicle_air_data), _airdata_sub, &airdata) == PX4_OK) {
+			if (_airdata_sub.copy(&airdata)) {
 				// If the time last used by the EKF is less than specified, then accumulate the
 				// data and push the average when the specified interval is reached.
 				_balt_time_sum_ms += airdata.timestamp / 1000;
@@ -991,13 +937,12 @@ void Ekf2::run()
 		}
 
 		// read gps1 data if available
-		bool gps1_updated = false;
-		orb_check(_gps_subs[0], &gps1_updated);
+		bool gps1_updated = _gps_subs[0].updated();
 
 		if (gps1_updated) {
 			vehicle_gps_position_s gps;
 
-			if (orb_copy(ORB_ID(vehicle_gps_position), _gps_subs[0], &gps) == PX4_OK) {
+			if (_gps_subs[0].copy(&gps)) {
 				_gps_state[0].time_usec = gps.timestamp;
 				_gps_state[0].lat = gps.lat;
 				_gps_state[0].lon = gps.lon;
@@ -1023,13 +968,12 @@ void Ekf2::run()
 		}
 
 		// check for second GPS receiver data
-		bool gps2_updated = false;
-		orb_check(_gps_subs[1], &gps2_updated);
+		bool gps2_updated = _gps_subs[1].updated();
 
 		if (gps2_updated) {
 			vehicle_gps_position_s gps;
 
-			if (orb_copy(ORB_ID(vehicle_gps_position), _gps_subs[1], &gps) == PX4_OK) {
+			if (_gps_subs[1].copy(&gps)) {
 				_gps_state[1].time_usec = gps.timestamp;
 				_gps_state[1].lat = gps.lat;
 				_gps_state[1].lon = gps.lon;
@@ -1129,13 +1073,10 @@ void Ekf2::run()
 			}
 		}
 
-		bool airspeed_updated = false;
-		orb_check(_airspeed_sub, &airspeed_updated);
-
-		if (airspeed_updated) {
+		if (_airspeed_sub.updated()) {
 			airspeed_s airspeed;
 
-			if (orb_copy(ORB_ID(airspeed), _airspeed_sub, &airspeed) == PX4_OK) {
+			if (_airspeed_sub.copy(&airspeed)) {
 				// only set airspeed data if condition for airspeed fusion are met
 				if ((_param_ekf2_arsp_thr.get() > FLT_EPSILON) && (airspeed.true_airspeed_m_s > _param_ekf2_arsp_thr.get())) {
 
@@ -1148,14 +1089,10 @@ void Ekf2::run()
 			}
 		}
 
-		bool optical_flow_updated = false;
-
-		orb_check(_optical_flow_sub, &optical_flow_updated);
-
-		if (optical_flow_updated) {
+		if (_optical_flow_sub.updated()) {
 			optical_flow_s optical_flow;
 
-			if (orb_copy(ORB_ID(optical_flow), _optical_flow_sub, &optical_flow) == PX4_OK) {
+			if (_optical_flow_sub.copy(&optical_flow)) {
 				flow_message flow;
 				flow.flowdata(0) = optical_flow.pixel_flow_x_integral;
 				flow.flowdata(1) = optical_flow.pixel_flow_y_integral;
@@ -1181,14 +1118,12 @@ void Ekf2::run()
 		}
 
 		if (_range_finder_sub_index >= 0) {
-			bool range_finder_updated = false;
-
-			orb_check(_range_finder_subs[_range_finder_sub_index], &range_finder_updated);
+			bool range_finder_updated = _range_finder_subs[_range_finder_sub_index].updated();
 
 			if (range_finder_updated) {
 				distance_sensor_s range_finder;
 
-				if (orb_copy(ORB_ID(distance_sensor), _range_finder_subs[_range_finder_sub_index], &range_finder) == PX4_OK) {
+				if (_range_finder_subs[_range_finder_sub_index].copy(&range_finder)) {
 					// check distance sensor data quality
 					// TODO - move this check inside the ecl library
 					if (range_finder.signal_quality == 0) {
@@ -1201,7 +1136,9 @@ void Ekf2::run()
 						}
 					}
 
-					if (range_finder_updated) { _ekf.setRangeData(range_finder.timestamp, range_finder.current_distance); }
+					if (range_finder_updated) {
+						_ekf.setRangeData(range_finder.timestamp, range_finder.current_distance);
+					}
 
 					// Save sensor limits reported by the rangefinder
 					_ekf.set_rangefinder_limits(range_finder.min_distance, range_finder.max_distance);
@@ -1212,18 +1149,15 @@ void Ekf2::run()
 			}
 
 		} else {
-			_range_finder_sub_index = getRangeSubIndex(_range_finder_subs);
+			_range_finder_sub_index = getRangeSubIndex();
 		}
 
 		// get external vision data
 		// if error estimates are unavailable, use parameter defined defaults
-		bool visual_odometry_updated = false;
-		orb_check(_ev_odom_sub, &visual_odometry_updated);
-
-		if (visual_odometry_updated) {
+		if (_ev_odom_sub.updated()) {
 			// copy both attitude & position, we need both to fill a single ext_vision_message
 			vehicle_odometry_s ev_odom;
-			orb_copy(ORB_ID(vehicle_visual_odometry), _ev_odom_sub, &ev_odom);
+			_ev_odom_sub.copy(&ev_odom);
 
 			ext_vision_message ev_data;
 
@@ -1273,23 +1207,19 @@ void Ekf2::run()
 					(int64_t)ekf2_timestamps.timestamp / 100);
 		}
 
-		bool vehicle_land_detected_updated = false;
-		orb_check(_vehicle_land_detected_sub, &vehicle_land_detected_updated);
+		bool vehicle_land_detected_updated = _vehicle_land_detected_sub.updated();
 
 		if (vehicle_land_detected_updated) {
-			if (orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &vehicle_land_detected) == PX4_OK) {
+			if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
 				_ekf.set_in_air_status(!vehicle_land_detected.landed);
 			}
 		}
 
 		// use the landing target pose estimate as another source of velocity data
-		bool landing_target_pose_updated = false;
-		orb_check(_landing_target_pose_sub, &landing_target_pose_updated);
-
-		if (landing_target_pose_updated) {
+		if (_landing_target_pose_sub.updated()) {
 			landing_target_pose_s landing_target_pose;
 
-			if (orb_copy(ORB_ID(landing_target_pose), _landing_target_pose_sub, &landing_target_pose) == PX4_OK) {
+			if (_landing_target_pose_sub.copy(&landing_target_pose)) {
 				// we can only use the landing target if it has a fixed position and  a valid velocity estimate
 				if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid) {
 					// velocity of vehicle relative to target has opposite sign to target relative to vehicle
@@ -1822,16 +1752,12 @@ void Ekf2::run()
 	}
 }
 
-int Ekf2::getRangeSubIndex(const int *subs)
+int Ekf2::getRangeSubIndex()
 {
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-		bool updated = false;
-		orb_check(subs[i], &updated);
+		distance_sensor_s report{};
 
-		if (updated) {
-			distance_sensor_s report;
-			orb_copy(ORB_ID(distance_sensor), subs[i], &report);
-
+		if (_range_finder_subs[i].update(&report)) {
 			// only use the first instace which has the correct orientation
 			if (report.orientation == distance_sensor_s::ROTATION_DOWNWARD_FACING) {
 				PX4_INFO("Found range finder with instance %d", i);

@@ -42,7 +42,7 @@
 
 #include <cstring>
 
-#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionPollable.hpp>
 #include <uORB/Publication.hpp>
 
 namespace control
@@ -102,7 +102,7 @@ void Block::updateParams()
 
 void Block::updateSubscriptions()
 {
-	uORB::SubscriptionNode *sub = getSubscriptions().getHead();
+	uORB::SubscriptionPollableNode *sub = getSubscriptions().getHead();
 	int count = 0;
 
 	while (sub != nullptr) {
@@ -211,6 +211,6 @@ void SuperBlock::updateChildPublications()
 
 } // namespace control
 
-template class List<uORB::SubscriptionNode *>;
+template class List<uORB::SubscriptionPollableNode *>;
 template class List<uORB::PublicationNode *>;
 template class List<control::BlockParamBase *>;

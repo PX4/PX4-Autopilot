@@ -79,10 +79,7 @@ Mission::on_inactive()
 	}
 
 	if (_inited) {
-		bool mission_sub_updated = false;
-		orb_check(_navigator->get_mission_sub(), &mission_sub_updated);
-
-		if (mission_sub_updated) {
+		if (_mission_sub.updated()) {
 			update_mission();
 
 			if (_mission_type == MISSION_TYPE_NONE && _mission.count > 0) {
@@ -180,8 +177,7 @@ Mission::on_active()
 	check_mission_valid(false);
 
 	/* check if anything has changed */
-	bool mission_sub_updated = false;
-	orb_check(_navigator->get_mission_sub(), &mission_sub_updated);
+	bool mission_sub_updated = _mission_sub.updated();
 
 	if (mission_sub_updated) {
 		update_mission();
@@ -453,9 +449,9 @@ Mission::update_mission()
 	 * an existing ROI setting from previous missions */
 	_navigator->reset_vroi();
 
-	struct mission_s old_mission = _mission;
+	const mission_s old_mission = _mission;
 
-	if (orb_copy(ORB_ID(mission), _navigator->get_mission_sub(), &_mission) == OK) {
+	if (_mission_sub.copy(&_mission)) {
 		/* determine current index */
 		if (_mission.current_seq >= 0 && _mission.current_seq < (int)_mission.count) {
 			_current_mission_index = _mission.current_seq;
@@ -499,7 +495,7 @@ Mission::update_mission()
 		}
 
 	} else {
-		PX4_ERR("mission update failed, handle: %d", _navigator->get_mission_sub());
+		PX4_ERR("mission update failed");
 	}
 
 	if (failed) {

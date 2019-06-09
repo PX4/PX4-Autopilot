@@ -38,6 +38,9 @@ px4_add_module(
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		bmi160.cpp
-		bmi160_gyro.cpp
 		bmi160_main.cpp
+	DEPENDS
+		px4_work_queue
+		drivers_accelerometer
+		drivers_gyroscope
 	)

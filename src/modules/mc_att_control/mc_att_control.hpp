@@ -41,6 +41,7 @@
 #include <px4_module_params.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -101,19 +102,10 @@ private:
 	/**
 	 * Check for parameter update and handle it.
 	 */
-	void		battery_status_poll();
 	void		parameter_update_poll();
-	void		sensor_bias_poll();
-	void		vehicle_land_detected_poll();
-	void		sensor_correction_poll();
 	bool		vehicle_attitude_poll();
-	void		vehicle_attitude_setpoint_poll();
-	void		vehicle_control_mode_poll();
-	bool		vehicle_manual_poll();
 	void		vehicle_motor_limits_poll();
-	bool		vehicle_rates_setpoint_poll();
 	void		vehicle_status_poll();
-	void 		landing_gear_state_poll();
 
 	void		publish_actuator_controls();
 	void		publish_rates_setpoint();
@@ -150,20 +142,21 @@ private:
 
 	AttitudeControl _attitude_control; /**< class for attitude control calculations */
 
-	int		_v_att_sub{-1};			/**< vehicle attitude subscription */
-	int		_v_att_sp_sub{-1};		/**< vehicle attitude setpoint subscription */
-	int		_v_rates_sp_sub{-1};		/**< vehicle rates setpoint subscription */
-	int		_v_control_mode_sub{-1};	/**< vehicle control mode subscription */
-	int		_params_sub{-1};		/**< parameter updates subscription */
-	int		_manual_control_sp_sub{-1};	/**< manual control setpoint subscription */
-	int		_vehicle_status_sub{-1};	/**< vehicle status subscription */
-	int		_motor_limits_sub{-1};		/**< motor limits subscription */
-	int		_battery_status_sub{-1};	/**< battery status subscription */
+	uORB::Subscription _v_att_sub{ORB_ID(vehicle_attitude)};			/**< vehicle attitude subscription */
+	uORB::Subscription _v_att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};		/**< vehicle attitude setpoint subscription */
+	uORB::Subscription _v_rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};		/**< vehicle rates setpoint subscription */
+	uORB::Subscription _v_control_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
+	uORB::Subscription _params_sub{ORB_ID(parameter_update)};			/**< parameter updates subscription */
+	uORB::Subscription _manual_control_sp_sub{ORB_ID(manual_control_setpoint)};	/**< manual control setpoint subscription */
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			/**< vehicle status subscription */
+	uORB::Subscription _motor_limits_sub{ORB_ID(multirotor_motor_limits)};		/**< motor limits subscription */
+	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};			/**< battery status subscription */
+	uORB::Subscription _sensor_correction_sub{ORB_ID(sensor_correction)};		/**< sensor thermal correction subscription */
+	uORB::Subscription _sensor_bias_sub{ORB_ID(sensor_bias)};			/**< sensor in-run bias correction subscription */
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
+	uORB::Subscription _landing_gear_sub{ORB_ID(landing_gear)};
+
 	int		_sensor_gyro_sub[MAX_GYRO_COUNT];	/**< gyro data subscription */
-	int		_sensor_correction_sub{-1};	/**< sensor thermal correction subscription */
-	int		_sensor_bias_sub{-1};		/**< sensor in-run bias correction subscription */
-	int		_vehicle_land_detected_sub{-1};	/**< vehicle land detected subscription */
-	int		_landing_gear_sub{-1};
 
 	unsigned _gyro_count{1};
 	int _selected_gyro{0};

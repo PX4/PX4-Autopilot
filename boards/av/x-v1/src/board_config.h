@@ -266,6 +266,8 @@
 #define HRT_TIMER		     5  /* use timer5 for the HRT */
 #define HRT_TIMER_CHANNEL    1  /* use capture/compare channel 3 */
 
+/* RC Serial port */
+
 #define RC_UXART_BASE                      STM32_UART5_BASE
 #define RC_SERIAL_PORT                     "/dev/ttyS4"
 #define BOARD_HAS_SINGLE_WIRE              0 /* HW is capable of Single Wire */
@@ -329,6 +331,8 @@
 		GPIO_CAN1_TX,                     \
 	}
 
+#define BOARD_ENABLE_CONSOLE_BUFFER
+
 __BEGIN_DECLS
 
 /****************************************************************************************************
@@ -364,16 +368,6 @@ int stm32_sdio_initialize(void);
  ****************************************************************************************************/
 
 extern void stm32_spiinitialize(void);
-
-/************************************************************************************
- * Name: stm32_spi_bus_initialize
- *
- * Description:
- *   Called to configure SPI Buses.
- *
- ************************************************************************************/
-
-extern int stm32_spi_bus_initialize(void);
 
 void board_spi_reset(int ms);
 #define board_peripheral_reset(ms)

@@ -101,13 +101,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_att.q[0] = 1.0f;
 }
 
-MavlinkReceiver::~MavlinkReceiver()
-{
-	orb_unsubscribe(_control_mode_sub);
-	orb_unsubscribe(_actuator_armed_sub);
-	orb_unsubscribe(_vehicle_attitude_sub);
-}
-
 void
 MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result)
 {
@@ -350,10 +343,10 @@ MavlinkReceiver::send_flight_information()
 		flight_info.flight_uuid = (uint64_t)flight_uuid;
 	}
 
-	actuator_armed_s actuator_armed;
-	int ret = orb_copy(ORB_ID(actuator_armed), _actuator_armed_sub, &actuator_armed);
+	actuator_armed_s actuator_armed{};
+	bool ret = _actuator_armed_sub.copy(&actuator_armed);
 
-	if (ret == 0 && actuator_armed.timestamp != 0) {
+	if (ret && actuator_armed.timestamp != 0) {
 		flight_info.arming_time_utc = flight_info.takeoff_time_utc = actuator_armed.armed_time_ms;
 	}
 
@@ -832,9 +825,9 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		bool is_force_sp = (bool)(set_position_target_local_ned.type_mask & (1 << 9));
 		/* yaw ignore flag mapps to ignore_attitude */
 		offboard_control_mode.ignore_attitude = (bool)(set_position_target_local_ned.type_mask & 0x400);
-		/* yawrate ignore flag mapps to ignore_bodyrate */
-		offboard_control_mode.ignore_bodyrate = (bool)(set_position_target_local_ned.type_mask & 0x800);
-
+		offboard_control_mode.ignore_bodyrate_x = (bool)(set_position_target_local_ned.type_mask & 0x800);
+		offboard_control_mode.ignore_bodyrate_y = (bool)(set_position_target_local_ned.type_mask & 0x800);
+		offboard_control_mode.ignore_bodyrate_z = (bool)(set_position_target_local_ned.type_mask & 0x800);
 
 		bool is_takeoff_sp = (bool)(set_position_target_local_ned.type_mask & 0x1000);
 		bool is_land_sp = (bool)(set_position_target_local_ned.type_mask & 0x2000);
@@ -853,12 +846,8 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 		/* If we are in offboard control mode and offboard control loop through is enabled
 		 * also publish the setpoint topic which is read by the controller */
 		if (_mavlink->get_forward_externalsp()) {
-			bool updated;
-			orb_check(_control_mode_sub, &updated);
 
-			if (updated) {
-				orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
-			}
+			_control_mode_sub.update(&_control_mode);
 
 			if (_control_mode.flag_control_offboard_enabled) {
 				if (is_force_sp && offboard_control_mode.ignore_position &&
@@ -949,7 +938,9 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 					}
 
 					/* set the yawrate sp value */
-					if (!offboard_control_mode.ignore_bodyrate) {
+					if (!(offboard_control_mode.ignore_bodyrate_x ||
+					      offboard_control_mode.ignore_bodyrate_y ||
+					      offboard_control_mode.ignore_bodyrate_z)) {
 						pos_sp_triplet.current.yawspeed_valid = true;
 						pos_sp_triplet.current.yawspeed = set_position_target_local_ned.yaw_rate;
 
@@ -1005,7 +996,9 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 		/* ignore all since we are setting raw actuators here */
 		offboard_control_mode.ignore_thrust             = true;
 		offboard_control_mode.ignore_attitude           = true;
-		offboard_control_mode.ignore_bodyrate           = true;
+		offboard_control_mode.ignore_bodyrate_x         = true;
+		offboard_control_mode.ignore_bodyrate_y         = true;
+		offboard_control_mode.ignore_bodyrate_z         = true;
 		offboard_control_mode.ignore_position           = true;
 		offboard_control_mode.ignore_velocity           = true;
 		offboard_control_mode.ignore_acceleration_force = true;
@@ -1019,14 +1012,8 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 			orb_publish(ORB_ID(offboard_control_mode), _offboard_control_mode_pub, &offboard_control_mode);
 		}
 
-
 		/* If we are in offboard control mode, publish the actuator controls */
-		bool updated;
-		orb_check(_control_mode_sub, &updated);
-
-		if (updated) {
-			orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
-		}
+		_control_mode_sub.update(&_control_mode);
 
 		if (_control_mode.flag_control_offboard_enabled) {
 
@@ -1184,9 +1171,6 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		odometry.pose_covariance[i] = odom.pose_covariance[i];
 	}
 
-	bool updated;
-	orb_check(_vehicle_attitude_sub, &updated);
-
 	if (odom.child_frame_id == MAV_FRAME_BODY_FRD) { /* WRT to estimated vehicle body-fixed frame */
 		/* get quaternion from the msg quaternion itself and build DCM matrix from it */
 		Rbl = matrix::Dcmf(matrix::Quatf(odometry.q)).I();
@@ -1207,8 +1191,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		}
 
 	} else if (odom.child_frame_id == MAV_FRAME_BODY_NED) { /* WRT to vehicle body-NED frame */
-		if (updated) {
-			orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_att);
+		if (_vehicle_attitude_sub.update(&_att)) {
 
 			/* get quaternion from vehicle_attitude quaternion and build DCM matrix from it */
 			Rbl = matrix::Dcmf(matrix::Quatf(_att.q)).I();
@@ -1233,8 +1216,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	} else if (odom.child_frame_id == MAV_FRAME_VISION_NED || /* WRT to vehicle local NED frame */
 		   odom.child_frame_id == MAV_FRAME_MOCAP_NED) {
 
-		if (updated) {
-			orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_att);
+		if (_vehicle_attitude_sub.update(&_att)) {
 
 			/* get quaternion from vehicle_attitude quaternion and build DCM matrix from it */
 			matrix::Dcmf Rlb = matrix::Quatf(_att.q);
@@ -1311,16 +1293,28 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		 * throttle and has the ignore bits set for attitude and rates don't change the flags for attitude and
 		 * body rates to keep the controllers running
 		 */
-		bool ignore_bodyrate_msg = (bool)(set_attitude_target.type_mask & 0x7);
+		bool ignore_bodyrate_msg_x = (bool)(set_attitude_target.type_mask & 0x1);
+		bool ignore_bodyrate_msg_y = (bool)(set_attitude_target.type_mask & 0x2);
+		bool ignore_bodyrate_msg_z = (bool)(set_attitude_target.type_mask & 0x4);
 		bool ignore_attitude_msg = (bool)(set_attitude_target.type_mask & (1 << 7));
 
-		if (ignore_bodyrate_msg && ignore_attitude_msg && !_offboard_control_mode.ignore_thrust) {
+
+		if ((ignore_bodyrate_msg_x || ignore_bodyrate_msg_y ||
+		     ignore_bodyrate_msg_z) &&
+		    ignore_attitude_msg && !_offboard_control_mode.ignore_thrust) {
 			/* Message want's us to ignore everything except thrust: only ignore if previously ignored */
-			_offboard_control_mode.ignore_bodyrate = ignore_bodyrate_msg && _offboard_control_mode.ignore_bodyrate;
+			_offboard_control_mode.ignore_bodyrate_x =
+				ignore_bodyrate_msg_x && _offboard_control_mode.ignore_bodyrate_x;
+			_offboard_control_mode.ignore_bodyrate_y =
+				ignore_bodyrate_msg_y && _offboard_control_mode.ignore_bodyrate_y;
+			_offboard_control_mode.ignore_bodyrate_z =
+				ignore_bodyrate_msg_z && _offboard_control_mode.ignore_bodyrate_z;
 			_offboard_control_mode.ignore_attitude = ignore_attitude_msg && _offboard_control_mode.ignore_attitude;
 
 		} else {
-			_offboard_control_mode.ignore_bodyrate = ignore_bodyrate_msg;
+			_offboard_control_mode.ignore_bodyrate_x = ignore_bodyrate_msg_x;
+			_offboard_control_mode.ignore_bodyrate_y = ignore_bodyrate_msg_y;
+			_offboard_control_mode.ignore_bodyrate_z = ignore_bodyrate_msg_z;
 			_offboard_control_mode.ignore_attitude = ignore_attitude_msg;
 		}
 
@@ -1340,12 +1334,8 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 		/* If we are in offboard control mode and offboard control loop through is enabled
 		 * also publish the setpoint topic which is read by the controller */
 		if (_mavlink->get_forward_externalsp()) {
-			bool updated;
-			orb_check(_control_mode_sub, &updated);
 
-			if (updated) {
-				orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
-			}
+			_control_mode_sub.update(&_control_mode);
 
 			if (_control_mode.flag_control_offboard_enabled) {
 
@@ -1382,14 +1372,22 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 				}
 
 				/* Publish attitude rate setpoint if bodyrate and thrust ignore bits are not set */
-				///XXX add support for ignoring individual axes
-				if (!(_offboard_control_mode.ignore_bodyrate)) {
+				if (!_offboard_control_mode.ignore_bodyrate_x ||
+				    !_offboard_control_mode.ignore_bodyrate_y ||
+				    !_offboard_control_mode.ignore_bodyrate_z) {
 					vehicle_rates_setpoint_s rates_sp = {};
 					rates_sp.timestamp = hrt_absolute_time();
 
-					if (!ignore_bodyrate_msg) { // only copy att rates sp if message contained new data
+					// only copy att rates sp if message contained new data
+					if (!ignore_bodyrate_msg_x) {
 						rates_sp.roll = set_attitude_target.body_roll_rate;
+					}
+
+					if (!ignore_bodyrate_msg_y) {
 						rates_sp.pitch = set_attitude_target.body_pitch_rate;
+					}
+
+					if (!ignore_bodyrate_msg_z) {
 						rates_sp.yaw = set_attitude_target.body_yaw_rate;
 					}
 
@@ -2704,12 +2702,6 @@ MavlinkReceiver::receive_thread(void *arg)
 	}
 
 	return nullptr;
-}
-
-void
-MavlinkReceiver::print_status()
-{
-
 }
 
 void *

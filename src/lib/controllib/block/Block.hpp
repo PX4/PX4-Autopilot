@@ -41,7 +41,7 @@
 
 #include <containers/List.hpp>
 #include <uORB/Publication.hpp>
-#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionPollable.hpp>
 #include <controllib/block/BlockParam.hpp>
 
 namespace control
@@ -87,7 +87,7 @@ protected:
 	virtual void updateParamsSubclass() {}
 
 	SuperBlock *getParent() { return _parent; }
-	List<uORB::SubscriptionNode *> &getSubscriptions() { return _subscriptions; }
+	List<uORB::SubscriptionPollableNode *> &getSubscriptions() { return _subscriptions; }
 	List<uORB::PublicationNode *> &getPublications() { return _publications; }
 	List<BlockParamBase *> &getParams() { return _params; }
 
@@ -95,7 +95,7 @@ protected:
 	SuperBlock *_parent;
 	float _dt{0.0f};
 
-	List<uORB::SubscriptionNode *> _subscriptions;
+	List<uORB::SubscriptionPollableNode *> _subscriptions;
 	List<uORB::PublicationNode *> _publications;
 	List<BlockParamBase *> _params;
 };
