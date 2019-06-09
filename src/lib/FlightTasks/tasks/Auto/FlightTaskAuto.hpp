@@ -43,6 +43,7 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/position_setpoint.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <lib/ecl/geo/geo.h>
 #include <ObstacleAvoidance.hpp>
@@ -99,6 +100,7 @@ protected:
 	float _mc_cruise_speed{0.0f}; /**< Requested cruise speed. If not valid, default cruise speed is used. */
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
 	uORB::SubscriptionPollable<home_position_s> *_sub_home_position{nullptr};
+	uORB::SubscriptionPollable<manual_control_setpoint_s> *_sub_manual_control_setpoint{nullptr};
 
 	State _current_state{State::none};
 	float _target_acceptance_radius = 0.0f; /**< Acceptances radius of the target */
