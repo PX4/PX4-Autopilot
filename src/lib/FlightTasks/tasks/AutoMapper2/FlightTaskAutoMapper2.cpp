@@ -201,25 +201,23 @@ float FlightTaskAutoMapper2::_getLandSpeed()
 	float throttle = 0.5;
 	uint64_t timestamp_us = _sub_manual_control_setpoint->get().timestamp;
 
-	if(hrt_absolute_time() - timestamp_us < 500000) // 500ms
-	{
+	if (hrt_absolute_time() - timestamp_us < 500000) { // 500ms
 		throttle = _sub_manual_control_setpoint->get().z;
 	}
 
 	float speed = 0;
-	if(_alt_above_ground > _param_mpc_land_alt1.get())
-	{
+
+	if (_alt_above_ground > _param_mpc_land_alt1.get()) {
 		speed = _constraints.speed_down;
-	}
-	else
-	{
+
+	} else {
 		float land_speed = _param_mpc_land_speed.get();
 		float head_room = _constraints.speed_down - land_speed;
 
 		speed = land_speed + (0.5f - throttle) * head_room;
+
 		// Allow minimum assisted land speed to be half of parameter
-		if(speed < land_speed * 0.5f)
-		{
+		if (speed < land_speed * 0.5f) {
 			speed = land_speed * 0.5f;
 		}
 	}

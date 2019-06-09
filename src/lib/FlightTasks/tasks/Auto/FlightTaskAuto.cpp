@@ -69,7 +69,7 @@ bool FlightTaskAuto::initializeSubscriptions(SubscriptionArray &subscription_arr
 	if (!subscription_array.get(ORB_ID(manual_control_setpoint), _sub_manual_control_setpoint)) {
 		return false;
 	}
-	
+
 	if (!_obstacle_avoidance.initializeSubscriptions(subscription_array)) {
 		return false;
 	}
