@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,22 +46,22 @@
  * @author Andreas Antener 	<andreas@uaventure.com>
  *
  */
-#ifndef VTOL_ATT_CONTROL_MAIN_H
-#define VTOL_ATT_CONTROL_MAIN_H
+
+#pragma once
 
 #include <px4_config.h>
 #include <px4_defines.h>
-#include <px4_tasks.h>
+#include <px4_module.h>
+#include <px4_work_queue/WorkItem.hpp>
 #include <px4_posix.h>
-
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
 #include <lib/ecl/geo/geo.h>
-#include <mathlib/mathlib.h>
+#include <lib/mathlib/mathlib.h>
 #include <matrix/math.hpp>
-#include <parameters/param.h>
-
+#include <lib/parameters/param.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -82,18 +82,31 @@
 #include "tailsitter.h"
 #include "standard.h"
 
-
 extern "C" __EXPORT int vtol_att_control_main(int argc, char *argv[]);
 
-
-class VtolAttitudeControl
+class VtolAttitudeControl : public ModuleBase<VtolAttitudeControl>, public px4::WorkItem
 {
 public:
 
 	VtolAttitudeControl();
-	~VtolAttitudeControl();
+	~VtolAttitudeControl() = default;
 
-	int start();	/* start the task and return OK on success */
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	void Run() override;
+
+	bool init();
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
+
 	bool is_fixed_wing_requested();
 	void abort_front_transition(const char *reason);
 
@@ -116,15 +129,10 @@ public:
 
 	struct Params 					*get_params() {return &_params;}
 
-
 private:
-//******************flags & handlers******************************************************
-	bool	_task_should_exit{false};
-	int	_control_task{-1};		//task handle for VTOL attitude controller
-
 	/* handlers for subscriptions */
-	int _actuator_inputs_fw{-1};	//topic on which the fw_att_controller publishes actuator inputs
-	int _actuator_inputs_mc{-1};	//topic on which the mc_att_controller publishes actuator inputs
+	uORB::SubscriptionCallbackWorkItem _actuator_inputs_fw{this, ORB_ID(actuator_controls_virtual_fw)};
+	uORB::SubscriptionCallbackWorkItem _actuator_inputs_mc{this, ORB_ID(actuator_controls_virtual_mc)};
 
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};			// airspeed subscription
 	uORB::Subscription _fw_virtual_att_sp_sub{ORB_ID(fw_virtual_attitude_setpoint)};
@@ -140,15 +148,12 @@ private:
 	uORB::Subscription _v_control_mode_sub{ORB_ID(vehicle_control_mode)};	//vehicle control mode subscription
 	uORB::Subscription _vehicle_cmd_sub{ORB_ID(vehicle_command)};
 
-	//handlers for publishers
 	orb_advert_t	_actuators_0_pub{nullptr};		//input for the mixer (roll,pitch,yaw,thrust)
 	orb_advert_t	_mavlink_log_pub{nullptr};	// mavlink log uORB handle
 	orb_advert_t	_v_att_sp_pub{nullptr};
 	orb_advert_t	_v_cmd_ack_pub{nullptr};
 	orb_advert_t	_vtol_vehicle_status_pub{nullptr};
 	orb_advert_t 	_actuators_1_pub{nullptr};
-
-//*******************data containers***********************************************************
 
 	vehicle_attitude_setpoint_s		_v_att_sp{};			//vehicle attitude setpoint
 	vehicle_attitude_setpoint_s 		_fw_virtual_att_sp{};	// virtual fw attitude setpoint
@@ -167,7 +172,7 @@ private:
 	vehicle_command_s			_vehicle_cmd{};
 	vehicle_control_mode_s			_v_control_mode{};	//vehicle control mode
 	vehicle_land_detected_s			_land_detected{};
-	vehicle_local_position_s			_local_pos{};
+	vehicle_local_position_s		_local_pos{};
 	vehicle_local_position_setpoint_s	_local_pos_sp{};
 	vtol_vehicle_status_s 			_vtol_vehicle_status{};
 
@@ -208,18 +213,11 @@ private:
 
 	VtolType *_vtol_type{nullptr};	// base class for different vtol types
 
-//*****************Member functions***********************************************************************
-
-	void 		task_main();	//main task
-	static int	task_main_trampoline(int argc, char *argv[]);	//Shim for calling task_main from task_create.
+	bool		_initialized{false};
 
 	void		vehicle_cmd_poll();
-	void 		actuator_controls_fw_poll();	//Check for changes in fw_attitude_control output
-	void 		actuator_controls_mc_poll();	//Check for changes in mc_attitude_control output
 
 	int 		parameters_update();			//Update local parameter cache
 
 	void		handle_command();
 };
-
-#endif
