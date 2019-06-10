@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,8 +65,9 @@
 #include <px4_module.h>
 #include <px4_module_params.h>
 #include <px4_posix.h>
-#include <px4_tasks.h>
+#include <px4_work_queue/WorkItem.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
@@ -123,19 +124,15 @@ static constexpr float MANUAL_THROTTLE_CLIMBOUT_THRESH =
 	0.85f; ///< a throttle / pitch input above this value leads to the system switching to climbout mode
 static constexpr float ALTHOLD_EPV_RESET_THRESH = 5.0f;
 
-class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams
+class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
+	public px4::WorkItem
 {
 public:
 	FixedwingPositionControl();
 	~FixedwingPositionControl() override;
-	FixedwingPositionControl(const FixedwingPositionControl &) = delete;
-	FixedwingPositionControl operator=(const FixedwingPositionControl &other) = delete;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static FixedwingPositionControl *instantiate(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
@@ -143,8 +140,9 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	/** @see ModuleBase::run() */
-	void run() override;
+	void Run() override;
+
+	bool init();
 
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
@@ -152,7 +150,7 @@ public:
 private:
 	orb_advert_t	_mavlink_log_pub{nullptr};
 
-	int		_global_pos_sub{-1};
+	uORB::SubscriptionCallbackWorkItem _global_pos_sub{this, ORB_ID(vehicle_global_position)};
 
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};		///< control mode subscription */
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
