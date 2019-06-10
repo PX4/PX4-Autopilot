@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,10 +48,11 @@
 #include <px4_module.h>
 #include <px4_module_params.h>
 #include <px4_posix.h>
-#include <px4_tasks.h>
+#include <px4_work_queue/WorkItem.hpp>
 #include <px4_time.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/ekf2_innovations.h>
@@ -90,7 +91,7 @@ using namespace time_literals;
 
 extern "C" __EXPORT int ekf2_main(int argc, char *argv[]);
 
-class Ekf2 final : public ModuleBase<Ekf2>, public ModuleParams
+class Ekf2 final : public ModuleBase<Ekf2>, public ModuleParams, public px4::WorkItem
 {
 public:
 	Ekf2();
@@ -100,16 +101,14 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	static Ekf2 *instantiate(int argc, char *argv[]);
-
-	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	/** @see ModuleBase::run() */
-	void run() override;
+	void Run() override;
+
+	bool init();
 
 	void set_replay_mode(bool replay) { _replay_mode = replay; }
 
@@ -265,7 +264,7 @@ private:
 	uORB::Subscription _status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};
 
-	int _sensors_sub{ -1};
+	uORB::SubscriptionCallbackWorkItem _sensors_sub{this, ORB_ID(sensor_combined)};	/**< gyro data subscription */
 
 	// because we can have several distance sensor instances with different orientations
 	uORB::Subscription _range_finder_subs[ORB_MULTI_MAX_INSTANCES] {{ORB_ID(distance_sensor), 0}, {ORB_ID(distance_sensor), 1}, {ORB_ID(distance_sensor), 2}, {ORB_ID(distance_sensor), 3}};
@@ -274,6 +273,15 @@ private:
 	// because we can have multiple GPS instances
 	uORB::Subscription _gps_subs[GPS_MAX_RECEIVERS] {{ORB_ID(vehicle_gps_position), 0}, {ORB_ID(vehicle_gps_position), 1}};
 	int _gps_orb_instance{ -1};
+
+	bool _imu_bias_reset_request{false};
+
+	// initialize data structures outside of loop
+	// because they will else not always be
+	// properly populated
+	vehicle_land_detected_s vehicle_land_detected{};
+	vehicle_status_s vehicle_status{};
+	sensor_selection_s sensor_selection{};
 
 	uORB::Publication<ekf2_innovations_s>			_estimator_innovations_pub{ORB_ID(ekf2_innovations)};
 	uORB::Publication<ekf2_timestamps_s>			_ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
@@ -532,6 +540,7 @@ private:
 
 Ekf2::Ekf2():
 	ModuleParams(nullptr),
+	WorkItem(px4::wq_configurations::att_pos_ctrl),
 	_perf_update_data(perf_alloc_once(PC_ELAPSED, "EKF2 data acquisition")),
 	_perf_ekf_update(perf_alloc_once(PC_ELAPSED, "EKF2 update")),
 	_params(_ekf.getParamHandle()),
@@ -629,7 +638,6 @@ Ekf2::Ekf2():
 	_param_ekf2_bcoef_y(_params->bcoef_y),
 	_param_ekf2_move_test(_params->is_moving_scaler)
 {
-	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
 
 	// initialise parameter cache
 	updateParams();
@@ -641,8 +649,17 @@ Ekf2::~Ekf2()
 {
 	perf_free(_perf_update_data);
 	perf_free(_perf_ekf_update);
+}
 
-	orb_unsubscribe(_sensors_sub);
+bool
+Ekf2::init()
+{
+	if (!_sensors_sub.register_callback()) {
+		PX4_ERR("sensor combined callback registration failed!");
+		return false;
+	}
+
+	return true;
 }
 
 int Ekf2::print_status()
@@ -692,40 +709,17 @@ bool Ekf2::update_mag_decl(Param &mag_decl_param)
 	return false;
 }
 
-void Ekf2::run()
+void Ekf2::Run()
 {
-	bool imu_bias_reset_request = false;
+	if (should_exit()) {
+		_sensors_sub.unregister_callback();
+		exit_and_cleanup();
+		return;
+	}
 
-	px4_pollfd_struct_t fds[1] = {};
-	fds[0].fd = _sensors_sub;
-	fds[0].events = POLLIN;
+	sensor_combined_s sensors;
 
-	// initialize data structures outside of loop
-	// because they will else not always be
-	// properly populated
-	sensor_combined_s sensors = {};
-	vehicle_land_detected_s vehicle_land_detected = {};
-	vehicle_status_s vehicle_status = {};
-	sensor_selection_s sensor_selection = {};
-
-	while (!should_exit()) {
-		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 1000);
-
-		if (!(fds[0].revents & POLLIN)) {
-			// no new data
-			continue;
-		}
-
-		if (ret < 0) {
-			// Poll error, sleep and try again
-			px4_usleep(10000);
-			continue;
-
-		} else if (ret == 0) {
-			// Poll timeout or no new data, do nothing
-			continue;
-		}
-
+	if (_sensors_sub.update(&sensors)) {
 		perf_begin(_perf_update_data);
 
 		if (_params_sub.updated()) {
@@ -734,8 +728,6 @@ void Ekf2::run()
 			_params_sub.copy(&update);
 			updateParams();
 		}
-
-		orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors);
 
 		// ekf2_timestamps (using 0.1 ms relative timestamps)
 		ekf2_timestamps_s ekf2_timestamps = {};
@@ -769,20 +761,20 @@ void Ekf2::run()
 				if ((sensor_selection_prev.timestamp > 0) && (sensor_selection.timestamp > sensor_selection_prev.timestamp)) {
 					if (sensor_selection.accel_device_id != sensor_selection_prev.accel_device_id) {
 						PX4_WARN("accel id changed, resetting IMU bias");
-						imu_bias_reset_request = true;
+						_imu_bias_reset_request = true;
 					}
 
 					if (sensor_selection.gyro_device_id != sensor_selection_prev.gyro_device_id) {
 						PX4_WARN("gyro id changed, resetting IMU bias");
-						imu_bias_reset_request = true;
+						_imu_bias_reset_request = true;
 					}
 				}
 			}
 		}
 
 		// attempt reset until successful
-		if (imu_bias_reset_request) {
-			imu_bias_reset_request = !_ekf.reset_imu_bias();
+		if (_imu_bias_reset_request) {
+			_imu_bias_reset_request = !_ekf.reset_imu_bias();
 		}
 
 		const hrt_abstime now = sensors.timestamp;
@@ -2394,19 +2386,6 @@ float Ekf2::filter_altitude_ellipsoid(float amsl_hgt)
 	return amsl_hgt + _wgs84_hgt_offset;
 }
 
-Ekf2 *Ekf2::instantiate(int argc, char *argv[])
-{
-	Ekf2 *instance = new Ekf2();
-
-	if (instance) {
-		if (argc >= 2 && !strcmp(argv[1], "-r")) {
-			instance->set_replay_mode(true);
-		}
-	}
-
-	return instance;
-}
-
 int Ekf2::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
@@ -2440,19 +2419,30 @@ timestamps from the sensor topics.
 
 int Ekf2::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("ekf2",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_ESTIMATOR,
-				      6600,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	Ekf2 *instance = new Ekf2();
 
-	if (_task_id < 0) {
-		_task_id = -1;
-		return -errno;
+	if (instance) {
+
+		// if (argc >= 2 && !strcmp(argv[1], "-r")) {
+		// 	instance->set_replay_mode(true);
+		// }
+
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
 	}
 
-	return 0;
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
 }
 
 int ekf2_main(int argc, char *argv[])
