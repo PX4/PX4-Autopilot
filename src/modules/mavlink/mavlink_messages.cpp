@@ -2961,12 +2961,29 @@ private:
 	MavlinkStreamHILActuatorControls(MavlinkStreamHILActuatorControls &) = delete;
 	MavlinkStreamHILActuatorControls &operator = (const MavlinkStreamHILActuatorControls &) = delete;
 
+	int32_t _param_vtol_mc_mot_count_val;
+	int32_t _param_vtol_fw_mot_count_val;
+
 protected:
 	explicit MavlinkStreamHILActuatorControls(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
 		_act_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_outputs))),
 		_act_time(0)
-	{}
+	{
+		param_t ph;
+
+		ph = param_find("VT_MC_MOT_COUNT");
+
+		if (ph == PARAM_INVALID || param_get(ph, &_param_vtol_mc_mot_count_val) != PX4_OK) {
+			_param_vtol_mc_mot_count_val = 0;
+		}
+
+		ph = param_find("VT_FW_MOT_COUNT");
+
+		if (ph == PARAM_INVALID || param_get(ph, &_param_vtol_fw_mot_count_val) != PX4_OK) {
+			_param_vtol_fw_mot_count_val = 1;
+		}
+	}
 
 	bool send(const hrt_abstime t)
 	{
@@ -2995,7 +3012,8 @@ protected:
 				    system_type == MAV_TYPE_OCTOROTOR ||
 				    system_type == MAV_TYPE_VTOL_DUOROTOR ||
 				    system_type == MAV_TYPE_VTOL_QUADROTOR ||
-				    system_type == MAV_TYPE_VTOL_RESERVED2) {
+				    system_type == MAV_TYPE_VTOL_RESERVED2 ||
+				    system_type == MAV_TYPE_VTOL_RESERVED3) {
 
 					/* multirotors: set number of rotor outputs depending on type */
 
@@ -3020,6 +3038,12 @@ protected:
 
 					case MAV_TYPE_VTOL_RESERVED2:
 						n = 8;
+						break;
+
+					case MAV_TYPE_VTOL_RESERVED3:
+						// this is the nonstandard VTOL plane with one or more push / pull propellers
+						n = _param_vtol_mc_mot_count_val;
+						n += _param_vtol_fw_mot_count_val;
 						break;
 
 					default:
