@@ -2972,13 +2972,13 @@ protected:
 	{
 		param_t ph;
 
-		ph = param_find("VT_MC_MOT_COUNT");
+		ph = param_find_no_notification("VT_MC_MOT_COUNT");
 
 		if (ph == PARAM_INVALID || param_get(ph, &_param_vtol_mc_mot_count_val) != PX4_OK) {
 			_param_vtol_mc_mot_count_val = 0;
 		}
 
-		ph = param_find("VT_FW_MOT_COUNT");
+		ph = param_find_no_notification("VT_FW_MOT_COUNT");
 
 		if (ph == PARAM_INVALID || param_get(ph, &_param_vtol_fw_mot_count_val) != PX4_OK) {
 			_param_vtol_fw_mot_count_val = 1;
