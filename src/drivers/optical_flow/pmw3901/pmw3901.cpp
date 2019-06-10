@@ -341,9 +341,6 @@ PMW3901::init()
 		_yaw_rotation = (enum Rotation)val;
 	}
 
-	/* For devices competing with NuttX SPI drivers on a bus (Crazyflie SD Card expansion board) */
-	SPI::set_lockmode(LOCK_THREADS);
-
 	/* do SPI init (and probe) first */
 	if (SPI::init() != OK) {
 		goto out;
