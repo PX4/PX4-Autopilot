@@ -40,9 +40,10 @@
 #include <px4_module.h>
 #include <px4_module_params.h>
 #include <px4_posix.h>
-#include <px4_tasks.h>
+#include <px4_work_queue/WorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -71,18 +72,16 @@ extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 #define MAX_GYRO_COUNT 3
 
 
-class MulticopterAttitudeControl : public ModuleBase<MulticopterAttitudeControl>, public ModuleParams
+class MulticopterAttitudeControl : public ModuleBase<MulticopterAttitudeControl>, public ModuleParams,
+	public px4::WorkItem
 {
 public:
 	MulticopterAttitudeControl();
 
-	virtual ~MulticopterAttitudeControl() = default;
+	virtual ~MulticopterAttitudeControl();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static MulticopterAttitudeControl *instantiate(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
@@ -90,15 +89,21 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	/** @see ModuleBase::run() */
-	void run() override;
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
+
+	void Run() override;
+
+	bool init();
 
 private:
+
+	bool		selected_gyro_update();
 
 	/**
 	 * initialize some vectors/matrices from parameters
 	 */
-	void			parameters_updated();
+	void		parameters_updated();
 
 	/**
 	 * Check for parameter update and handle it.
@@ -157,10 +162,14 @@ private:
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
 	uORB::Subscription _landing_gear_sub{ORB_ID(landing_gear)};
 
-	int		_sensor_gyro_sub[MAX_GYRO_COUNT];	/**< gyro data subscription */
+	uORB::SubscriptionCallbackWorkItem _sensor_gyro_sub[MAX_GYRO_COUNT] {		/**< gyro data subscription */
+		{this, ORB_ID(sensor_gyro), 0},
+		{this, ORB_ID(sensor_gyro), 1},
+		{this, ORB_ID(sensor_gyro), 2}
+	};
 
 	unsigned _gyro_count{1};
-	int _selected_gyro{0};
+	int _selected_gyro{-1};
 
 	uORB::Publication<rate_ctrl_status_s>		_controller_status_pub{ORB_ID(rate_ctrl_status), ORB_PRIO_DEFAULT};	/**< controller status publication */
 	uORB::Publication<landing_gear_s>		_landing_gear_pub{ORB_ID(landing_gear)};
@@ -208,6 +217,14 @@ private:
 
 	float _man_yaw_sp{0.f};				/**< current yaw setpoint in manual mode */
 	bool _gear_state_initialized{false};		/**< true if the gear state has been initialized */
+
+	hrt_abstime _task_start{hrt_absolute_time()};
+	hrt_abstime _last_run{0};
+	float _dt_accumulator{0.0f};
+	int _loop_counter{0};
+
+	bool _reset_yaw_sp{true};
+	float _attitude_dt{0.0f};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MC_ROLL_P>) _param_mc_roll_p,
