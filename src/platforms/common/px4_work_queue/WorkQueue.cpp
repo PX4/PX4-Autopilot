@@ -74,12 +74,32 @@ WorkQueue::~WorkQueue()
 
 void WorkQueue::Add(WorkItem *item)
 {
+	// TODO: prevent additions when shutting down
+
 	work_lock();
 	_q.push(item);
 	work_unlock();
 
 	// Wake up the worker thread
 	px4_sem_post(&_process_lock);
+}
+
+void WorkQueue::Remove(WorkItem *item)
+{
+	work_lock();
+	_q.remove(item);
+	work_unlock();
+}
+
+void WorkQueue::Clear()
+{
+	work_lock();
+
+	while (!_q.empty()) {
+		_q.pop();
+	}
+
+	work_unlock();
 }
 
 void WorkQueue::Run()
