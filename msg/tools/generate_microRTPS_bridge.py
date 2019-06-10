@@ -265,15 +265,15 @@ classifier = (Classifier(os.path.abspath(args.yaml_file), msg_dir) if os.path.is
 check_rtps_id_uniqueness(classifier)
 
 
-uRTPS_CLIENT_TEMPL_FILE = 'microRTPS_client.cpp.template'
-uRTPS_AGENT_TOPICS_H_TEMPL_FILE = 'RtpsTopics.h.template'
-uRTPS_AGENT_TOPICS_SRC_TEMPL_FILE = 'RtpsTopics.cpp.template'
-uRTPS_AGENT_TEMPL_FILE = 'microRTPS_agent.cpp.template'
-uRTPS_AGENT_CMAKELISTS_TEMPL_FILE = 'microRTPS_agent_CMakeLists.txt.template'
-uRTPS_PUBLISHER_SRC_TEMPL_FILE = 'Publisher.cpp.template'
-uRTPS_PUBLISHER_H_TEMPL_FILE = 'Publisher.h.template'
-uRTPS_SUBSCRIBER_SRC_TEMPL_FILE = 'Subscriber.cpp.template'
-uRTPS_SUBSCRIBER_H_TEMPL_FILE = 'Subscriber.h.template'
+uRTPS_CLIENT_TEMPL_FILE = 'microRTPS_client.cpp.em'
+uRTPS_AGENT_TOPICS_H_TEMPL_FILE = 'RtpsTopics.h.em'
+uRTPS_AGENT_TOPICS_SRC_TEMPL_FILE = 'RtpsTopics.cpp.em'
+uRTPS_AGENT_TEMPL_FILE = 'microRTPS_agent.cpp.em'
+uRTPS_AGENT_CMAKELISTS_TEMPL_FILE = 'microRTPS_agent_CMakeLists.txt.em'
+uRTPS_PUBLISHER_SRC_TEMPL_FILE = 'Publisher.cpp.em'
+uRTPS_PUBLISHER_H_TEMPL_FILE = 'Publisher.h.em'
+uRTPS_SUBSCRIBER_SRC_TEMPL_FILE = 'Subscriber.cpp.em'
+uRTPS_SUBSCRIBER_H_TEMPL_FILE = 'Subscriber.h.em'
 
 
 def generate_agent(out_dir):
