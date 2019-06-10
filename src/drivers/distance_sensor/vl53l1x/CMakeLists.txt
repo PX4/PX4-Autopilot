@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,17 +31,11 @@
 #
 ############################################################################
 
-add_subdirectory(cm8jl65)
-#add_subdirectory(hc_sr04) # not currently supported
-add_subdirectory(leddar_one)
-add_subdirectory(ll40ls)
-add_subdirectory(mb12xx)
-add_subdirectory(pga460)
-add_subdirectory(sf0x)
-add_subdirectory(sf1xx)
-add_subdirectory(srf02)
-add_subdirectory(teraranger)
-add_subdirectory(tfmini)
-add_subdirectory(ulanding)
-add_subdirectory(vl53lxx)
-add_subdirectory(vl53l1x)
+px4_add_module(
+	MODULE drivers__vl53l1x
+	MAIN vl53l1x
+	SRCS
+		vl53l1x_main.cpp
+		VL53L1X.cpp
+		VL53L1X.hpp
+	)
