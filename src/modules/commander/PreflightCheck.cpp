@@ -727,7 +727,8 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 
 	/* Perform airspeed check only if circuit breaker is not
 	 * engaged and it's not a rotary wing */
-	if (!status_flags.circuit_breaker_engaged_airspd_check && (!status.is_rotary_wing || status.is_vtol)) {
+	if (!status_flags.circuit_breaker_engaged_airspd_check &&
+	    (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING || status.is_vtol)) {
 		checkAirspeed = true;
 	}
 
@@ -960,7 +961,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 	// only check EKF2 data if EKF2 is selected as the estimator and GNSS checking is enabled
 	int32_t estimator_type = -1;
 
-	if (status.is_rotary_wing && !status.is_vtol) {
+	if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !status.is_vtol) {
 		param_get(param_find("SYS_MC_EST_GROUP"), &estimator_type);
 
 	} else {

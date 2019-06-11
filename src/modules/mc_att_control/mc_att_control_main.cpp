@@ -69,7 +69,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 		_sensor_gyro_sub[i] = -1;
 	}
 
-	_vehicle_status.is_rotary_wing = true;
+	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 	/* initialize quaternions in messages to be valid */
 	_v_att.q[0] = 1.f;
@@ -400,7 +400,7 @@ void
 MulticopterAttitudeControl::control_attitude_rates(float dt)
 {
 	/* reset integral if disarmed */
-	if (!_v_control_mode.flag_armed || !_vehicle_status.is_rotary_wing) {
+	if (!_v_control_mode.flag_armed || _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		_rates_int.zero();
 	}
 
@@ -644,7 +644,8 @@ MulticopterAttitudeControl::run()
 
 			bool attitude_setpoint_generated = false;
 
-			const bool is_hovering = _vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode;
+			const bool is_hovering = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+						 && !_vehicle_status.in_transition_mode;
 
 			// vehicle is a tailsitter in transition mode
 			const bool is_tailsitter_transition = _vehicle_status.in_transition_mode && _is_tailsitter;
@@ -678,6 +679,7 @@ MulticopterAttitudeControl::run()
 			} else {
 				/* attitude controller disabled, poll rates setpoint topic */
 				if (_v_control_mode.flag_control_manual_enabled && is_hovering) {
+
 					if (manual_control_updated) {
 						/* manual rates control - ACRO mode */
 						Vector3f man_rate_sp(
