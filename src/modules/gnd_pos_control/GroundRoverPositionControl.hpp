@@ -66,7 +66,6 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/uORB.h>
-#include "../../../build/px4_sitl_default/msg/tmp/headers/vehicle_attitude.h"
 
 using matrix::Dcmf;
 

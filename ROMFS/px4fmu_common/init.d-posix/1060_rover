@@ -30,6 +30,10 @@ then
 	param set NAV_LOITER_RAD 2
 
 	param set CBRK_AIRSPD_CHK 162128
+
+    param set GND_MAX_ANG 0.6
+    param set GND_WHEEL_BASE 2.0
+
 fi
 
 set MAV_TYPE 10

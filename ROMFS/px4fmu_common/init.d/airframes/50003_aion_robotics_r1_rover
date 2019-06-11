@@ -34,8 +34,8 @@ then
 	param set GND_WR_IMAX 0.1
 	param set GND_WR_D 0.1
 	param set GND_SP_CTRL_MODE 1
-	param set GND_L1_DIST 2.0
-	param set GND_L1_PERIOD 2.0
+	param set GND_L1_DIST 5.0
+	param set GND_L1_PERIOD 7.0
 	param set GND_THR_IDLE 0
 	param set GND_THR_CRUISE 0.7
 	param set GND_THR_MAX 0.5
@@ -69,6 +69,9 @@ then
 
 	# Enable Airspeed check circuit breaker because Rovers will have no airspeed sensor
 	param set CBRK_AIRSPD_CHK 162128
+
+	# Differential drive acts like ackermann steering with a maximum turn angle of 180 degrees, or pi radians
+	param set GND_MAX_ANG 3.1415
 fi
 
 # Configure this as rover
