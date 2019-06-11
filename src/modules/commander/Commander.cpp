@@ -431,7 +431,8 @@ int commander_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "transition")) {
 
 		bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION,
-						(float)(status.is_rotary_wing ? vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW :
+						(float)(status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING ?
+							vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW :
 							vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC));
 
 		return (ret ? 0 : 1);
@@ -1288,7 +1289,20 @@ Commander::run()
 	int32_t system_type;
 	param_get(_param_sys_type, &system_type); // get system type
 	status.system_type = (uint8_t)system_type;
-	status.is_rotary_wing = is_rotary_wing(&status) || is_vtol(&status);
+
+	if (is_rotary_wing(&status) || is_vtol(&status)) {
+		status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+
+	} else if (is_fixed_wing(&status)) {
+		status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+
+	} else if (is_ground_rover(&status)) {
+		status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_GROUND;
+
+	} else {
+		status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_UNKNOWN;
+	}
+
 	status.is_vtol = is_vtol(&status);
 
 	commander_boot_timestamp = hrt_absolute_time();
@@ -1395,10 +1409,13 @@ Commander::run()
 
 				/* disable manual override for all systems that rely on electronic stabilization */
 				if (is_rotary_wing(&status) || (is_vtol(&status) && vtol_status.vtol_in_rw_mode)) {
-					status.is_rotary_wing = true;
+					status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
-				} else {
-					status.is_rotary_wing = false;
+				} else if (is_fixed_wing(&status) || is_vtol(&status)) {
+					status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+
+				} else if (is_ground_rover(&status)) {
+					status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_GROUND;
 				}
 
 				/* set vehicle_status.is_vtol flag */
@@ -1621,8 +1638,10 @@ Commander::run()
 			if (is_vtol(&status)) {
 
 				// Check if there has been any change while updating the flags
-				if (status.is_rotary_wing != vtol_status.vtol_in_rw_mode) {
-					status.is_rotary_wing = vtol_status.vtol_in_rw_mode;
+				if ((status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) != vtol_status.vtol_in_rw_mode) {
+					status.vehicle_type = vtol_status.vtol_in_rw_mode ?
+							      vehicle_status_s::VEHICLE_TYPE_ROTARY_WING :
+							      vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 					status_changed = true;
 				}
 
@@ -1641,8 +1660,8 @@ Commander::run()
 					status_changed = true;
 				}
 
-				if (armed.soft_stop != !status.is_rotary_wing) {
-					armed.soft_stop = !status.is_rotary_wing;
+				if (armed.soft_stop != (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
+					armed.soft_stop = status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 					status_changed = true;
 				}
 			}
@@ -1989,7 +2008,7 @@ Commander::run()
 
 			if (in_armed_state &&
 			    status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
-			    (status.is_rotary_wing || (!status.is_rotary_wing && land_detector.landed)) &&
+			    (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || land_detector.landed) &&
 			    (stick_in_lower_left || arm_button_pressed || arm_switch_to_disarm_transition)) {
 
 				if (internal_state.main_state != commander_state_s::MAIN_STATE_MANUAL &&
@@ -2137,7 +2156,7 @@ Commander::run()
 			 * only for fixed wing for now
 			 */
 			if (!status_flags.circuit_breaker_engaged_enginefailure_check &&
-			    !status.is_rotary_wing && !status.is_vtol && armed.armed) {
+			    status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING && !status.is_vtol && armed.armed) {
 
 				actuator_controls_s actuator_controls = {};
 				actuator_controls_sub.copy(&actuator_controls);
@@ -2924,10 +2943,10 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 				/* manual mode is stabilized already for multirotors, so switch to acro
 				 * for any non-manual mode
 				 */
-				if (status.is_rotary_wing && !status.is_vtol) {
+				if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !status.is_vtol) {
 					res = main_state_transition(status_local, commander_state_s::MAIN_STATE_ACRO, status_flags, &internal_state);
 
-				} else if (!status.is_rotary_wing) {
+				} else if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 					res = main_state_transition(status_local, commander_state_s::MAIN_STATE_STAB, status_flags, &internal_state);
 
 				} else {
@@ -2937,7 +2956,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 			} else if (sp_man.rattitude_switch == manual_control_setpoint_s::SWITCH_POS_ON) {
 				/* Similar to acro transitions for multirotors.  FW aircraft don't need a
 				 * rattitude mode.*/
-				if (status.is_rotary_wing) {
+				if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 					res = main_state_transition(status_local, commander_state_s::MAIN_STATE_RATTITUDE, status_flags, &internal_state);
 
 				} else {
@@ -3133,7 +3152,8 @@ set_control_mode()
 {
 	/* set vehicle_control_mode according to set_navigation_state */
 	control_mode.flag_armed = armed.armed;
-	control_mode.flag_external_manual_override_ok = (!status.is_rotary_wing && !status.is_vtol);
+	control_mode.flag_external_manual_override_ok = (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+			&& !status.is_vtol);
 	control_mode.flag_control_offboard_enabled = false;
 
 	switch (status.nav_state) {
@@ -3364,10 +3384,11 @@ set_control_mode()
 bool
 stabilization_required()
 {
-	return (status.is_rotary_wing ||		// is a rotary wing, or
+	return (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING ||		// is a rotary wing, or
 		status.vtol_fw_permanent_stab || 	// is a VTOL in fixed wing mode and stabilisation is on, or
 		(vtol_status.vtol_in_trans_mode && 	// is currently a VTOL transitioning AND
-		 !status.is_rotary_wing));	// is a fixed wing, ie: transitioning back to rotary wing mode
+		 status.vehicle_type ==
+		 vehicle_status_s::VEHICLE_TYPE_FIXED_WING));	// is a fixed wing, ie: transitioning back to rotary wing mode
 }
 
 void
@@ -4034,9 +4055,11 @@ void Commander::airspeed_use_check()
 	_sensor_bias_sub.update();
 	const sensor_bias_s &sensors = _sensor_bias_sub.get();
 
+	bool is_fixed_wing = status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+
 	// assume airspeed sensor is good before starting FW flight
 	bool valid_flight_condition = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) &&
-				      !status.is_rotary_wing && !land_detector.landed;
+				      is_fixed_wing && !land_detector.landed;
 	bool fault_declared = false;
 	bool fault_cleared = false;
 	bool bad_number_fail = !PX4_ISFINITE(airspeed.indicated_airspeed_m_s) || !PX4_ISFINITE(airspeed.true_airspeed_m_s);
@@ -4332,7 +4355,7 @@ void Commander::estimator_check(bool *status_changed)
 		 * for a short time interval after takeoff. Fixed wing vehicles can recover using GPS heading,
 		 * but rotary wing vehicles cannot so the position and velocity validity needs to be latched
 		 * to false after failure to prevent flyaway crashes */
-		if (run_quality_checks && status.is_rotary_wing) {
+		if (run_quality_checks && status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
 			if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 				// reset flags and timer

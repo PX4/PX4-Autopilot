@@ -751,11 +751,14 @@ void Ekf2::run()
 
 		// update all other topics if they have new data
 		if (_status_sub.update(&vehicle_status)) {
+
+			bool is_fixed_wing = vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+
 			// only fuse synthetic sideslip measurements if conditions are met
-			_ekf.set_fuse_beta_flag(!vehicle_status.is_rotary_wing && (_param_ekf2_fuse_beta.get() == 1));
+			_ekf.set_fuse_beta_flag(is_fixed_wing && (_param_ekf2_fuse_beta.get() == 1));
 
 			// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
-			_ekf.set_is_fixed_wing(!vehicle_status.is_rotary_wing);
+			_ekf.set_is_fixed_wing(is_fixed_wing);
 		}
 
 		// Always update sensor selction first time through if time stamp is non zero
@@ -1671,7 +1674,7 @@ void Ekf2::run()
 
 					float yaw_test_limit;
 
-					if (doing_ne_aiding && vehicle_status.is_rotary_wing) {
+					if (doing_ne_aiding && vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 						// use a smaller tolerance when doing NE inertial frame aiding as a rotary wing
 						// vehicle which cannot use GPS course to realign heading in flight
 						yaw_test_limit = _nav_yaw_innov_test_lim;
