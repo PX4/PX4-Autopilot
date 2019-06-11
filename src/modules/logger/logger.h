@@ -387,6 +387,7 @@ private:
 	bool						_manually_logging_override{false};
 
 	Statistics					_statistics[(int)LogType::Count];
+	hrt_abstime					_last_sync_time{0}; ///< last time a sync msg was sent
 
 	LogMode						_log_mode;
 	const bool					_log_name_timestamp;
