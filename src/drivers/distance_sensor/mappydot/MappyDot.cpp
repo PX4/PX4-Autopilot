@@ -407,8 +407,6 @@ MappyDot::print_info()
 void
 MappyDot::Run()
 {
-	hrt_abstime _cycle_start_time = hrt_absolute_time();
-
 	// Collect the sensor data.
 	if (collect() != PX4_OK) {
 		PX4_INFO("collection error");
@@ -416,11 +414,6 @@ MappyDot::Run()
 		start();
 		return;
 	}
-
-	hrt_abstime time_remaining = hrt_elapsed_time(&_cycle_start_time);
-
-	// Schedule the next cycle call.
-	ScheduleDelayed(MAPPYDOT_MEASUREMENT_INTERVAL_USEC - time_remaining);
 }
 
 void
@@ -429,8 +422,8 @@ MappyDot::start()
 	// Fetch parameter values.
 	ModuleParams::updateParams();
 
-	// Schedule the first cycle.
-	ScheduleNow();
+	// Schedule the driver to run on a set interval
+	ScheduleOnInterval(MAPPYDOT_MEASUREMENT_INTERVAL_USEC, 10000);
 }
 
 void
