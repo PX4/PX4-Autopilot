@@ -67,9 +67,11 @@
 
 using namespace DriverFramework;
 
+#define VEHICLE_TYPE_FIXED_WING 1
 #define VEHICLE_TYPE_QUADROTOR 2
 #define VEHICLE_TYPE_COAXIAL 3
 #define VEHICLE_TYPE_HELICOPTER 4
+#define VEHICLE_TYPE_GROUND_ROVER 10
 #define VEHICLE_TYPE_HEXAROTOR 13
 #define VEHICLE_TYPE_OCTOROTOR 14
 #define VEHICLE_TYPE_TRICOPTER 15
@@ -106,6 +108,16 @@ bool is_vtol(const struct vehicle_status_s *current_status)
 		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED3 ||
 		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED4 ||
 		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED5);
+}
+
+bool is_fixed_wing(const struct vehicle_status_s *current_status)
+{
+	return current_status->system_type == VEHICLE_TYPE_FIXED_WING;
+}
+
+bool is_ground_rover(const struct vehicle_status_s *current_status)
+{
+	return current_status->system_type == VEHICLE_TYPE_GROUND_ROVER;
 }
 
 static hrt_abstime blink_msg_end = 0;	// end time for currently blinking LED message, 0 if no blink message
