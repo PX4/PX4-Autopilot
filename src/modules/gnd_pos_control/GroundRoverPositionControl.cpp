@@ -65,7 +65,6 @@ GroundRoverPositionControl	*g_control = nullptr;
 
 GroundRoverPositionControl::GroundRoverPositionControl() :
 	/* performance counters */
-	_sub_attitude(ORB_ID(vehicle_attitude)),
 	_sub_sensors(ORB_ID(sensor_bias)),
 	_loop_perf(perf_alloc(PC_ELAPSED, "rover position control")) // TODO : do we even need these perf counters
 {
@@ -241,7 +240,7 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 			}
 
 			// Velocity in body frame
-			const Dcmf R_to_body(Quatf(_sub_attitude.get().q).inversed());
+			const Dcmf R_to_body(Quatf(_vehicle_att.q).inversed());
 			const Vector3f vel = R_to_body * Vector3f(ground_speed(0), ground_speed(1), ground_speed(2));
 
 			const float x_vel = vel(0);
@@ -316,6 +315,7 @@ GroundRoverPositionControl::task_main()
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
+	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 
 	/* rate limit control mode updates to 5Hz */
 	orb_set_interval(_control_mode_sub, 200);
@@ -340,7 +340,7 @@ GroundRoverPositionControl::task_main()
 	fds[1].events = POLLIN;
 	fds[2].fd = _manual_control_sub;
 	fds[2].events = POLLIN;
-	fds[3].fd = _sub_attitude.getHandle();
+	fds[3].fd = _vehicle_attitude_sub;
 	fds[3].events = POLLIN;
 
 	_task_running = true;
@@ -365,7 +365,7 @@ GroundRoverPositionControl::task_main()
 		vehicle_control_mode_poll();
 		manual_control_setpoint_poll();
 		position_setpoint_triplet_poll();
-		_sub_attitude.update();
+		//_sub_attitude.update();
 		_sub_sensors.update();
 
 		/* only update parameters if they changed */
@@ -475,6 +475,9 @@ GroundRoverPositionControl::task_main()
 		}
 
 		if (fds[3].revents & POLLIN) {
+
+			orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_vehicle_att);
+
 			_act_controls.timestamp = hrt_absolute_time();
 
 			if (_actuator_controls_pub != nullptr) {

@@ -66,6 +66,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/uORB.h>
+#include "../../../build/px4_sitl_default/msg/tmp/headers/vehicle_attitude.h"
 
 using matrix::Dcmf;
 
@@ -106,6 +107,7 @@ private:
 	int		_manual_control_sub{-1};		/**< notification of manual control updates */
 	int		_params_sub{-1};			/**< notification of parameter updates */
 	int		_pos_sp_triplet_sub{-1};
+	int     _vehicle_attitude_sub{-1};
 
 	manual_control_setpoint_s		_manual{};			/**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
@@ -113,8 +115,8 @@ private:
 	vehicle_control_mode_s			_control_mode{};			/**< control mode */
 	vehicle_global_position_s		_global_pos{};			/**< global vehicle position */
 	actuator_controls_s			_act_controls{};		/**< direct control of actuators */
+	vehicle_attitude_s              _vehicle_att{};
 
-	SubscriptionData<vehicle_attitude_s>	_sub_attitude;
 	SubscriptionData<sensor_bias_s>	_sub_sensors;
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
