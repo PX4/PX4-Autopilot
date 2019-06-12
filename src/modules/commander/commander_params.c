@@ -337,7 +337,7 @@ PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 0.0f);
  * @value 1 Hold mode
  * @value 2 Return mode
  *
- * @group Mission
+ * @group Commander
  */
 PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
 
@@ -353,7 +353,7 @@ PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
  * @value 3 Return mode
  * @value 4 Land mode
  * @value 5 Hold mode
- * @group Mission
+ * @group Commander
  */
 PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
 
