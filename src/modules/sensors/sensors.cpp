@@ -41,7 +41,6 @@
  * @author Beat Küng <beat-kueng@gmx.net>
  */
 
-#include <drivers/drv_adc.h>
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
 #include <lib/airspeed/airspeed.h>
@@ -110,7 +109,6 @@ public:
 	int print_status() override;
 
 private:
-	const bool	_hil_enabled;			/**< if true, HIL is active */
 	bool		_armed{false};				/**< arming status of the vehicle */
 
 	uORB::Subscription	_actuator_ctrl_0_sub{ORB_ID(actuator_controls_0)};		/**< attitude controls sub */
@@ -127,15 +125,6 @@ private:
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
-
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-	DevHandle 	_h_adc;				/**< ADC driver handle */
-
-	hrt_abstime	_last_adc{0};			/**< last time we took input from the ADC */
-
-	differential_pressure_s	_diff_pres {};
-	uORB::PublicationMulti<differential_pressure_s>	_diff_pres_pub{ORB_ID(differential_pressure)};		/**< differential_pressure */
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
 	Parameters		_parameters{};			/**< local copies of interesting parameters */
 	ParameterHandles	_parameter_handles{};		/**< handles for interesting parameters */
@@ -165,24 +154,10 @@ private:
 	 */
 	void 		parameter_update_poll(bool forced = false);
 
-	/**
-	 * Do adc-related initialisation.
-	 */
-	int		adc_init();
-
-	/**
-	 * Poll the ADC and update readings to suit.
-	 *
-	 * @param raw			Combined sensor data structure into which
-	 *				data should be returned.
-	 */
-	void		adc_poll();
-
 };
 
 Sensors::Sensors(bool hil_enabled) :
 	ModuleParams(nullptr),
-	_hil_enabled(hil_enabled),
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
 	_voted_sensors_update(_parameters, hil_enabled)
 {
@@ -214,28 +189,6 @@ Sensors::parameters_update()
 	_voted_sensors_update.parametersUpdate();
 
 	return PX4_OK;
-}
-
-int
-Sensors::adc_init()
-{
-	if (!_hil_enabled) {
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-
-
-
-		DevMgr::getHandle(ADC0_DEVICE_PATH, _h_adc);
-
-		if (!_h_adc.isValid()) {
-			PX4_ERR("no ADC found: %s (%d)", ADC0_DEVICE_PATH, _h_adc.getError());
-			return PX4_ERROR;
-		}
-
-
-#endif // ADC_AIRSPEED_VOLTAGE_CHANNEL
-	}
-
-	return OK;
 }
 
 void
@@ -329,67 +282,8 @@ Sensors::parameter_update_poll(bool forced)
 }
 
 void
-Sensors::adc_poll()
-{
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-
-	/* only read if not in HIL mode */
-	if (_hil_enabled) {
-		return;
-	}
-
-	if (_parameters.diff_pres_analog_scale > 0.0f) {
-
-		hrt_abstime t = hrt_absolute_time();
-
-		/* rate limit to 100 Hz */
-		if (t - _last_adc >= 10000) {
-			/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
-			px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS];
-			/* read all channels available */
-			int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
-
-			if (ret >= (int)sizeof(buf_adc[0])) {
-
-				/* Read add channels we got */
-				for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {
-					if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
-
-						/* calculate airspeed, raw is the difference from */
-						const float voltage = (float)(buf_adc[i].am_data) * 3.3f / 4096.0f * 2.0f;  // V_ref/4096 * (voltage divider factor)
-
-						/**
-						 * The voltage divider pulls the signal down, only act on
-						 * a valid voltage from a connected sensor. Also assume a non-
-						 * zero offset from the sensor if its connected.
-						 */
-						if (voltage > 0.4f) {
-							const float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
-
-							_diff_pres.timestamp = t;
-							_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
-							_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) +
-									(diff_pres_pa_raw * 0.1f);
-							_diff_pres.temperature = -1000.0f;
-
-							_diff_pres_pub.publish(_diff_pres);
-						}
-					}
-				}
-
-				_last_adc = t;
-			}
-		}
-	}
-
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
-}
-
-void
 Sensors::run()
 {
-	adc_init();
-
 	sensor_combined_s raw = {};
 	sensor_preflight_s preflt = {};
 	vehicle_air_data_s airdata = {};
@@ -451,9 +345,6 @@ Sensors::run()
 		const uint64_t magnetometer_prev_timestamp = magnetometer.timestamp;
 
 		_voted_sensors_update.sensorsPoll(raw, airdata, magnetometer);
-
-		/* check analog airspeed */
-		adc_poll();
 
 		diff_pres_poll(airdata);
 

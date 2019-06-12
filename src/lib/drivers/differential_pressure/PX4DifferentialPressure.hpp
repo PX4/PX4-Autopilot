@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,58 +33,46 @@
 
 #pragma once
 
-/**
- * @file parameters.h
- *
- * defines the list of parameters that are used within the sensors module
- *
- * @author Beat Kueng <beat-kueng@gmx.net>
- */
+#include <drivers/drv_airspeed.h>
+#include <drivers/drv_hrt.h>
+#include <lib/cdev/CDev.hpp>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <uORB/uORB.h>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/differential_pressure.h>
 
-#include <lib/parameters/param.h>
-
-namespace sensors
+class PX4DifferentialPressure : public cdev::CDev
 {
 
-struct Parameters {
-	float diff_pres_offset_pa;
+public:
+	PX4DifferentialPressure(uint32_t device_id, uint8_t priority = ORB_PRIO_DEFAULT);
+	~PX4DifferentialPressure() override;
 
-	int32_t board_rotation;
+	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
 
-	float board_offset[3];
+	void set_device_type(uint8_t devtype);
+	void set_error_count(uint64_t error_count) { _differential_pressure_pub.get().error_count = error_count; }
+	void set_temperature(float temperature) { _differential_pressure_pub.get().temperature = temperature; }
 
-	float baro_qnh;
+	void set_sample_rate(unsigned rate);
 
-	int32_t air_cmodel;
-	float air_tube_length;
-	float air_tube_diameter_mm;
+	void update(hrt_abstime timestamp, float differential_pressure);
+
+	void print_status();
+
+private:
+
+	void configure_filter(float cutoff_freq) { _filter.set_cutoff_frequency(_sample_rate, cutoff_freq); }
+
+	uORB::PublicationMultiData<differential_pressure_s>	_differential_pressure_pub;
+
+	math::LowPassFilter2p	_filter{100, 10};
+
+	float			_calibration_scale{1.0f};
+	float			_calibration_offset{0.0f};
+
+	int			_class_device_instance{-1};
+
+	unsigned		_sample_rate{100};
+
 };
-
-struct ParameterHandles {
-	param_t diff_pres_offset_pa;
-
-	param_t board_rotation;
-
-	param_t board_offset[3];
-
-	param_t baro_qnh;
-
-	param_t air_cmodel;
-	param_t air_tube_length;
-	param_t air_tube_diameter_mm;
-
-};
-
-/**
- * initialize ParameterHandles struct
- */
-void initialize_parameter_handles(ParameterHandles &parameter_handles);
-
-
-/**
- * Read out the parameters using the handles into the parameters struct.
- * @return 0 on success, <0 on error
- */
-void update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters);
-
-} /* namespace sensors */

@@ -33,6 +33,34 @@
 
 #include "MS5525.hpp"
 
+/* Measurement rate is 100Hz */
+static constexpr int MEAS_RATE{100};
+static constexpr uint32_t CONVERSION_INTERVAL{1000000 / MEAS_RATE};
+
+MS5525::MS5525(uint8_t bus, uint8_t address) :
+	I2C(MODULE_NAME, nullptr, bus, address, 400000),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+	_px4_diff_press(get_device_id())
+{
+	_px4_diff_press.set_device_type(DRV_DIFF_PRESS_DEVTYPE_MS5525);
+}
+
+void
+MS5525::start()
+{
+	/* reset the report ring and state machine */
+	_collect_phase = false;
+
+	/* schedule a cycle to start things */
+	ScheduleNow();
+}
+
+void
+MS5525::stop()
+{
+	ScheduleClear();
+}
+
 int
 MS5525::measure()
 {
@@ -172,11 +200,13 @@ MS5525::collect()
 	perf_begin(_sample_perf);
 
 	// read ADC
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
 	uint8_t cmd = CMD_ADC_READ;
 	int ret = transfer(&cmd, 1, nullptr, 0);
 
 	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
+		perf_end(_sample_perf);
 		return ret;
 	}
 
@@ -197,7 +227,8 @@ MS5525::collect()
 	// incorrect result as well.
 	if (adc == 0) {
 		perf_count(_comms_errors);
-		return EAGAIN;
+		perf_end(_sample_perf);
+		return -EAGAIN;
 	}
 
 	if (_current_cmd == CMD_CONVERT_PRES) {
@@ -219,6 +250,7 @@ MS5525::collect()
 
 	// not ready yet
 	if (D1 == 0 || D2 == 0) {
+		perf_end(_sample_perf);
 		return EAGAIN;
 	}
 
@@ -250,21 +282,9 @@ MS5525::collect()
 
 	const float temperature_c = TEMP * 0.01f;
 
-	differential_pressure_s diff_pressure = {
-		.timestamp = hrt_absolute_time(),
-		.error_count = perf_event_count(_comms_errors),
-		.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset,
-		.differential_pressure_filtered_pa =  _filter.apply(diff_press_pa_raw) - _diff_pres_offset,
-		.temperature = temperature_c,
-		.device_id = _device_id.devid
-	};
-
-	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &diff_pressure);
-	}
-
-	ret = OK;
+	_px4_diff_press.set_error_count(perf_event_count(_comms_errors));
+	_px4_diff_press.set_temperature(temperature_c);
+	_px4_diff_press.update(timestamp_sample, diff_press_pa_raw);
 
 	perf_end(_sample_perf);
 
@@ -290,15 +310,6 @@ MS5525::Run()
 
 		// next phase is measurement
 		_collect_phase = false;
-
-		// is there a collect->measure gap?
-		if (_measure_interval > CONVERSION_INTERVAL) {
-
-			// schedule a fresh cycle call when we are ready to measure again
-			ScheduleDelayed(_measure_interval - CONVERSION_INTERVAL);
-
-			return;
-		}
 	}
 
 	/* measurement phase */

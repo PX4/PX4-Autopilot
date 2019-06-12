@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,14 +31,45 @@
  *
  ****************************************************************************/
 
-/**
- * @file SDP3X.hpp
- *
- * Driver for Sensirion SDP3X Differential Pressure Sensor
- *
- */
-
 #include "SDP3X.hpp"
+
+static constexpr float SDP3X_SCALE_TEMPERATURE{200.0f};
+
+static constexpr uint8_t SDP3X_RESET_ADDR{0x00};
+static constexpr uint8_t SDP3X_RESET_CMD{0x06};
+
+static constexpr uint16_t SDP3X_CONT_MEAS_AVG_MODE{0x3615};
+
+static constexpr uint16_t SDP3X_SCALE_PRESSURE_SDP31{60};
+static constexpr uint16_t SDP3X_SCALE_PRESSURE_SDP32{240};
+static constexpr uint16_t SDP3X_SCALE_PRESSURE_SDP33{20};
+
+// Measurement rate is 20Hz
+static constexpr int MEAS_RATE{100};
+static constexpr uint32_t CONVERSION_INTERVAL{1000000 / MEAS_RATE};
+
+SDP3X::SDP3X(uint8_t bus, uint8_t address) :
+	I2C(MODULE_NAME, nullptr, bus, address, 100000),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+	_px4_diff_press(get_device_id())
+{
+}
+
+void
+SDP3X::start()
+{
+	/* reset the report ring and state machine */
+	_collect_phase = false;
+
+	/* schedule a cycle to start things */
+	ScheduleNow();
+}
+
+void
+SDP3X::stop()
+{
+	ScheduleClear();
+}
 
 int
 SDP3X::probe()
@@ -46,7 +77,8 @@ SDP3X::probe()
 	return !init_sdp3x();
 }
 
-int SDP3X::write_command(uint16_t command)
+int
+SDP3X::write_command(uint16_t command)
 {
 	uint8_t cmd[2];
 	cmd[0] = static_cast<uint8_t>(command >> 8);
@@ -103,15 +135,15 @@ SDP3X::init_sdp3x()
 
 	switch (_scale) {
 	case SDP3X_SCALE_PRESSURE_SDP31:
-		_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SDP31;
+		_px4_diff_press.set_device_type(DRV_DIFF_PRESS_DEVTYPE_SDP31);
 		break;
 
 	case SDP3X_SCALE_PRESSURE_SDP32:
-		_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SDP32;
+		_px4_diff_press.set_device_type(DRV_DIFF_PRESS_DEVTYPE_SDP32);
 		break;
 
 	case SDP3X_SCALE_PRESSURE_SDP33:
-		_device_id.devid_s.devtype = DRV_DIFF_PRESS_DEVTYPE_SDP33;
+		_px4_diff_press.set_device_type(DRV_DIFF_PRESS_DEVTYPE_SDP33);
 		break;
 	}
 
@@ -124,6 +156,7 @@ SDP3X::collect()
 	perf_begin(_sample_perf);
 
 	// read 9 bytes from the sensor
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
 	uint8_t val[6];
 	int ret = transfer(nullptr, 0, &val[0], sizeof(val));
 
@@ -147,20 +180,9 @@ SDP3X::collect()
 	float diff_press_pa_raw = static_cast<float>(P) / static_cast<float>(_scale);
 	float temperature_c = temp / static_cast<float>(SDP3X_SCALE_TEMPERATURE);
 
-	differential_pressure_s report;
-
-	report.timestamp = hrt_absolute_time();
-	report.error_count = perf_event_count(_comms_errors);
-	report.temperature = temperature_c;
-	report.differential_pressure_filtered_pa = _filter.apply(diff_press_pa_raw) - _diff_pres_offset;
-	report.differential_pressure_raw_pa = diff_press_pa_raw - _diff_pres_offset;
-	report.device_id = _device_id.devid;
-
-	if (_airspeed_pub != nullptr && !(_pub_blocked)) {
-		orb_publish(ORB_ID(differential_pressure), _airspeed_pub, &report);
-	}
-
-	ret = OK;
+	_px4_diff_press.set_error_count(perf_event_count(_comms_errors));
+	_px4_diff_press.set_temperature(temperature_c);
+	_px4_diff_press.update(timestamp_sample, diff_press_pa_raw);
 
 	perf_end(_sample_perf);
 

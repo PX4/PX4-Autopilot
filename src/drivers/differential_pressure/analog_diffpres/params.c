@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,60 +31,16 @@
  *
  ****************************************************************************/
 
-#pragma once
-
 /**
- * @file parameters.h
+ * Differential pressure sensor analog scaling
  *
- * defines the list of parameters that are used within the sensors module
+ * Pick the appropriate scaling from the datasheet.
+ * this number defines the (linear) conversion from voltage
+ * to Pascal (pa). For the MPXV7002DP this is 1000.
  *
- * @author Beat Kueng <beat-kueng@gmx.net>
+ * NOTE: If the sensor always registers zero, try switching
+ * the static and dynamic tubes.
+ *
+ * @group Sensor Calibration
  */
-
-#include <lib/parameters/param.h>
-
-namespace sensors
-{
-
-struct Parameters {
-	float diff_pres_offset_pa;
-
-	int32_t board_rotation;
-
-	float board_offset[3];
-
-	float baro_qnh;
-
-	int32_t air_cmodel;
-	float air_tube_length;
-	float air_tube_diameter_mm;
-};
-
-struct ParameterHandles {
-	param_t diff_pres_offset_pa;
-
-	param_t board_rotation;
-
-	param_t board_offset[3];
-
-	param_t baro_qnh;
-
-	param_t air_cmodel;
-	param_t air_tube_length;
-	param_t air_tube_diameter_mm;
-
-};
-
-/**
- * initialize ParameterHandles struct
- */
-void initialize_parameter_handles(ParameterHandles &parameter_handles);
-
-
-/**
- * Read out the parameters using the handles into the parameters struct.
- * @return 0 on success, <0 on error
- */
-void update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters);
-
-} /* namespace sensors */
+PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0);

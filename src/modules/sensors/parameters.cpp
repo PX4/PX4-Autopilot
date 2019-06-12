@@ -46,9 +46,6 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 {
 	/* Differential pressure offset */
 	parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-	parameter_handles.diff_pres_analog_scale = param_find("SENS_DPRES_ANSC");
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
 	/* rotations */
 	parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
@@ -97,9 +94,6 @@ void update_parameters(const ParameterHandles &parameter_handles, Parameters &pa
 {
 	/* Airspeed offset */
 	param_get(parameter_handles.diff_pres_offset_pa, &(parameters.diff_pres_offset_pa));
-#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-	param_get(parameter_handles.diff_pres_analog_scale, &(parameters.diff_pres_analog_scale));
-#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
 	param_get(parameter_handles.board_rotation, &(parameters.board_rotation));
 

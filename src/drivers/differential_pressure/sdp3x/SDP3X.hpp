@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,75 +32,52 @@
  ****************************************************************************/
 
 /**
- * @file SDP3X.hpp
  *
  * Driver for Sensirion SDP3X Differential Pressure Sensor
  *
  * Datasheet: https://www.sensirion.com/fileadmin/user_upload/customers/sensirion/Dokumente/8_Differential_Pressure/Sensirion_Differential_Pressure_Sensors_SDP3x_Digital_Datasheet_V0.8.pdf
  */
 
-#ifndef DRIVERS_SDP3X_AIRSPEED_HPP_
-#define DRIVERS_SDP3X_AIRSPEED_HPP_
+#pragma once
 
-#include <drivers/airspeed/airspeed.h>
-#include <math.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <px4_platform_common/getopt.h>
+#include <drivers/device/i2c.h>
+#include <lib/perf/perf_counter.h>
+#include <drivers/drv_hrt.h>
+#include <lib/drivers/differential_pressure/PX4DifferentialPressure.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-#define I2C_ADDRESS_1_SDP3X		0x21
-#define I2C_ADDRESS_2_SDP3X		0x22
-#define I2C_ADDRESS_3_SDP3X		0x23
-
-#define SDP3X_SCALE_TEMPERATURE		200.0f
-#define SDP3X_RESET_ADDR		0x00
-#define SDP3X_RESET_CMD			0x06
-#define SDP3X_CONT_MEAS_AVG_MODE	0x3615
-
-#define SDP3X_SCALE_PRESSURE_SDP31	60
-#define SDP3X_SCALE_PRESSURE_SDP32	240
-#define SDP3X_SCALE_PRESSURE_SDP33	20
-
-#define PATH_SDP3X "/dev/sdp3x"
-
-// Measurement rate is 20Hz
-#define SPD3X_MEAS_RATE 100
-#define SDP3X_MEAS_DRIVER_FILTER_FREQ 3.0f
-#define CONVERSION_INTERVAL	(1000000 / SPD3X_MEAS_RATE)	/* microseconds */
-
-class SDP3X : public Airspeed
+class SDP3X : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
-	SDP3X(int bus, int address = I2C_ADDRESS_1_SDP3X, const char *path = PATH_SDP3X) :
-		Airspeed(bus, address, CONVERSION_INTERVAL, path)
-	{
-	}
+	SDP3X(uint8_t bus, uint8_t address);
+	virtual ~SDP3X() override = default;
+
+	void	start();
+	void	stop();
 
 private:
 
-	/**
-	 * Perform a poll cycle; collect from the previous measurement
-	 * and start a new one.
-	 */
 	void	Run() override;
-	int	measure() override { return 0; }
-	int	collect() override;
+
+	int	collect();
+
 	int	probe() override;
 
-	math::LowPassFilter2p _filter{SPD3X_MEAS_RATE, SDP3X_MEAS_DRIVER_FILTER_FREQ};
+	bool	init_sdp3x();
 
-	bool init_sdp3x();
-
-	/**
-	 * Calculate the CRC8 for the sensor payload data
-	 */
+	// Calculate the CRC8 for the sensor payload data
 	bool crc(const uint8_t data[], unsigned size, uint8_t checksum);
 
-	/**
-	 * Write a command in Sensirion specific logic
-	 */
+	// Write a command in Sensirion specific logic
 	int write_command(uint16_t command);
 
 	uint16_t _scale{0};
-};
 
-#endif /* DRIVERS_SDP3X_AIRSPEED_HPP_ */
+	PX4DifferentialPressure	_px4_diff_press;
+
+	bool			_sensor_ok{true};
+	bool			_collect_phase{false};
+
+	perf_counter_t		_sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t		_comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com err")};
+};

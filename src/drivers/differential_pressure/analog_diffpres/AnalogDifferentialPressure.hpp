@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,60 +31,52 @@
  *
  ****************************************************************************/
 
+/**
+ *
+ * Driver for analog differential pressure sensor
+ *
+ */
+
 #pragma once
 
-/**
- * @file parameters.h
- *
- * defines the list of parameters that are used within the sensors module
- *
- * @author Beat Kueng <beat-kueng@gmx.net>
- */
+#ifndef ADC_AIRSPEED_VOLTAGE_CHANNEL
+#error "AnalogDifferentialPressure requires ADC and ADC_AIRSPEED_VOLTAGE_CHANNEL"
+#endif // ADC_AIRSPEED_VOLTAGE_CHANNEL
 
-#include <lib/parameters/param.h>
+#include <lib/perf/perf_counter.h>
+#include <drivers/drv_hrt.h>
+#include <lib/drivers/differential_pressure/PX4DifferentialPressure.hpp>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <drivers/drv_adc.h>
 
-namespace sensors
+class AnalogDifferentialPressure : public ModuleParams, public px4::ScheduledWorkItem
 {
+public:
+	AnalogDifferentialPressure(uint8_t bus, uint8_t address);
+	virtual ~AnalogDifferentialPressure() override = default;
 
-struct Parameters {
-	float diff_pres_offset_pa;
+	void	start();
+	void	stop();
 
-	int32_t board_rotation;
+private:
 
-	float board_offset[3];
+	void	Run() override;
 
-	float baro_qnh;
+	PX4DifferentialPressure	_px4_diff_press;
 
-	int32_t air_cmodel;
-	float air_tube_length;
-	float air_tube_diameter_mm;
+	perf_counter_t		_sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t		_comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com err")};
+
+
+	SENS_DPRES_ANSC
+
+
+	DevHandle 	_h_adc;				/**< ADC driver handle */
+
+	hrt_abstime	_last_adc{0};			/**< last time we took input from the ADC */
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::SENS_DPRES_ANSC>) _param_sens_dpres_ansc
+	)
 };
-
-struct ParameterHandles {
-	param_t diff_pres_offset_pa;
-
-	param_t board_rotation;
-
-	param_t board_offset[3];
-
-	param_t baro_qnh;
-
-	param_t air_cmodel;
-	param_t air_tube_length;
-	param_t air_tube_diameter_mm;
-
-};
-
-/**
- * initialize ParameterHandles struct
- */
-void initialize_parameter_handles(ParameterHandles &parameter_handles);
-
-
-/**
- * Read out the parameters using the handles into the parameters struct.
- * @return 0 on success, <0 on error
- */
-void update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters);
-
-} /* namespace sensors */

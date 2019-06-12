@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,82 +31,48 @@
  *
  ****************************************************************************/
 
+/**
+ *
+ * Driver for the MEAS Spec series connected via I2C.
+ *
+ * Supported sensors:
+ *
+ *    - MS4515DO (http://www.meas-spec.com/downloads/MS4515DO.pdf)
+ *
+ * Interface application notes:
+ *
+ *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
+ */
+
 #pragma once
 
-#include <string.h>
 #include <drivers/device/i2c.h>
-#include <drivers/drv_airspeed.h>
+#include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/defines.h>
-#include <perf/perf_counter.h>
-#include <uORB/topics/differential_pressure.h>
-#include <uORB/uORB.h>
+#include <lib/drivers/differential_pressure/PX4DifferentialPressure.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-/* Default I2C bus */
-static constexpr uint8_t PX4_I2C_BUS_DEFAULT = PX4_I2C_BUS_EXPANSION;
-
-class __EXPORT Airspeed : public device::I2C, public px4::ScheduledWorkItem
+class MS4515 : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
-	Airspeed(int bus, int address, unsigned conversion_interval, const char *path);
-	virtual ~Airspeed();
+	MS4515(uint8_t bus, uint8_t address);
+	virtual ~MS4515() override = default;
 
-	virtual int	init();
-
-	virtual int	ioctl(device::file_t *filp, int cmd, unsigned long arg);
-
-private:
-	/* this class has pointer data members and should not be copied */
-	Airspeed(const Airspeed &);
-	Airspeed &operator=(const Airspeed &);
-
-protected:
-	virtual int	probe();
-
-	/**
-	* Perform a poll cycle; collect from the previous measurement
-	* and start a new one.
-	*/
-	virtual void	Run() = 0;
-	virtual int	measure() = 0;
-	virtual int	collect() = 0;
-
-	bool			_sensor_ok;
-	int				_measure_interval;
-	bool			_collect_phase;
-	float			_diff_pres_offset;
-
-	orb_advert_t		_airspeed_pub;
-	int			_airspeed_orb_class_instance;
-
-	int			_class_instance;
-
-	unsigned		_conversion_interval;
-
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
-
-	/**
-	* Initialise the automatic measurement state machine and start it.
-	*
-	* @note This function is called at open and error time.  It might make sense
-	*       to make it more aggressive about resetting the bus in case of errors.
-	*/
 	void	start();
-
-	/**
-	* Stop the automatic measurement state machine.
-	*/
 	void	stop();
 
-	/**
-	* add a new report to the reports queue
-	*
-	* @param report		differential_pressure_s report
-	*/
-	void	new_report(const differential_pressure_s &report);
+private:
+
+	void	Run() override;
+
+	int	measure();
+	int	collect();
+
+	PX4DifferentialPressure	_px4_diff_press;
+
+	bool			_sensor_ok{true};
+	bool			_collect_phase{false};
+
+	perf_counter_t		_sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
+	perf_counter_t		_comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com err")};
 };
-
-

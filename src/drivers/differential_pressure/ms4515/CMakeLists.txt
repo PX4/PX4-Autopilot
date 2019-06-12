@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,12 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE drivers__ets_airspeed
-	MAIN ets_airspeed
-	COMPILE_FLAGS
+	MODULE drivers__differential_pressure__ms4515
+	MAIN ms4515
 	SRCS
-		ets_airspeed.cpp
+		MS4515.cpp
+		MS4515.hpp
+		ms4515_main.cpp
 	DEPENDS
-		drivers__airspeed
+		drivers_differential_pressure
+		px4_work_queue
 	)

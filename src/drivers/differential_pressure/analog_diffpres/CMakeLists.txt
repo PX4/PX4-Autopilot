@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,13 +31,14 @@
 #
 ############################################################################
 
-add_subdirectory(accelerometer)
-add_subdirectory(barometer)
-add_subdirectory(device)
-add_subdirectory(differential_pressure)
-add_subdirectory(gyroscope)
-add_subdirectory(led)
-add_subdirectory(linux_gpio)
-add_subdirectory(magnetometer)
-add_subdirectory(rangefinder)
-add_subdirectory(smbus)
+px4_add_module(
+	MODULE drivers__differential_pressure__analog_diffpres
+	MAIN analog_diffpres
+	SRCS
+		AnalogDifferentialPressure.cpp
+		AnalogDifferentialPressure.hpp
+		analog_diffpres_main.cpp
+	DEPENDS
+		drivers_differential_pressure
+		px4_work_queue
+	)

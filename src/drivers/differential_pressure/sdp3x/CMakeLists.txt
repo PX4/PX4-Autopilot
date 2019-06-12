@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,12 +31,13 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__sdp3x_airspeed
-	MAIN sdp3x_airspeed
-	COMPILE_FLAGS
+	MODULE drivers__sdp3x
+	MAIN sdp3x
 	SRCS
 		SDP3X.cpp
-		SDP3X_main.cpp
+		SDP3X.hpp
+		sdp3x_main.cpp
 	DEPENDS
-		drivers__airspeed
+		drivers_differential_pressure
+		px4_work_queue
 	)
