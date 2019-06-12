@@ -358,7 +358,7 @@ MulticopterAttitudeControl::control_attitude()
 {
 	_v_att_sp_sub.update(&_v_att_sp);
 
-	// reinitialize the setpoint while not armed to make sure no value from the last flight is still kept
+	// reinitialize the setpoint while not armed to make sure no value from the last mode or flight is still kept
 	if (!_v_control_mode.flag_armed) {
 		Quatf().copyTo(_v_att_sp.q_d);
 		Vector3f().copyTo(_v_att_sp.thrust_body);
