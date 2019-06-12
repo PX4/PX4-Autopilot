@@ -26,6 +26,7 @@
 #include <uORB/topics/pm3901_with_tof.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/debug_key_value.h>
 #include <systemlib/mavlink_log.h>
 
 // ORB_DEFINE(rw_uart_topic, struct rw_uart_topic_s);
@@ -112,6 +113,10 @@ int rw_uart_main(int argc, char *argv[])
 
     int  pm3901_and_tof_sub = orb_subscribe(ORB_ID(pm3901_with_tof));
     int _att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+
+    /* advertise debug value */
+    struct debug_key_value_s dbg = { .key = "tof_height", .value = 0.0f };
+    orb_advert_t pub_dbg = orb_advertise(ORB_ID(debug_key_value), &dbg);
     
 
     char data = '0';
@@ -147,6 +152,9 @@ int rw_uart_main(int argc, char *argv[])
 
         /* handle the poll result */
         if (poll_ret == 0) {
+
+            orb_publish(ORB_ID(pm3901_with_tof), pub_fd, &pm3901_tof_data);
+
             /* this means none of our providers is giving us data */
             PX4_ERR("Got no data within a second");
 
@@ -181,22 +189,26 @@ int rw_uart_main(int argc, char *argv[])
                 pm3901_tof_data.xvel       = xvel;
                 pm3901_tof_data.yvel       = yvel;
                 pm3901_tof_data.quality    = quality;
-                pm3901_tof_data.tof_height = height;
 
+                if(height < 3.0f) {
+                    dbg.value = height;
+                    pm3901_tof_data.tof_height = height;
+                }
+                
                 orb_publish(ORB_ID(pm3901_with_tof), pub_fd, &pm3901_tof_data);
 
                 // Display the original height data
                 static int count = 0; count ++;
-                if(count % 400 == 0)
+                if(count % 100 == 0)
                 {
                     printf("origin height: %.6f\n", (double)(height));
                     printf("xvel: %d yvel: %d quality: %d height: %.6f\n", pm3901_tof_data.xvel, pm3901_tof_data.yvel, pm3901_tof_data.quality, (double)(pm3901_tof_data.tof_height));
-                }
-                else if(count % 400 == 50)
-                {
                     orb_copy(ORB_ID(pm3901_with_tof), pm3901_and_tof_sub, &test);
-
                     printf("check: xvel: %d yvel: %d quality: %d height: %.6f\n", test.xvel, test.yvel, test.quality, (double)(test.tof_height));
+                }
+                if(count % 10 == 0)
+                {
+                    orb_publish(ORB_ID(debug_key_value), pub_dbg, &dbg);
                 }
             }
         }
