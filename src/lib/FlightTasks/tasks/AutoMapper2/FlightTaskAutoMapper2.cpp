@@ -198,7 +198,7 @@ bool FlightTaskAutoMapper2::_highEnoughForLandingGear()
 
 float FlightTaskAutoMapper2::_getLandSpeed()
 {
-	float throttle = 0.5;
+	float throttle = 0.5f;
 	uint64_t timestamp_us = _sub_manual_control_setpoint->get().timestamp;
 
 	if (hrt_absolute_time() - timestamp_us < 500000) { // 500ms
