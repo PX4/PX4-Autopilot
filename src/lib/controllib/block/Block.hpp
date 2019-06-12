@@ -40,7 +40,6 @@
 #pragma once
 
 #include <containers/List.hpp>
-#include <uORB/Publication.hpp>
 #include <uORB/SubscriptionPollable.hpp>
 #include <controllib/block/BlockParam.hpp>
 
@@ -50,7 +49,6 @@ namespace control
 static constexpr uint8_t maxChildrenPerBlock = 100;
 static constexpr uint8_t maxParamsPerBlock = 110;
 static constexpr uint8_t maxSubscriptionsPerBlock = 100;
-static constexpr uint8_t maxPublicationsPerBlock = 100;
 static constexpr uint8_t blockNameLengthMax = 40;
 
 // forward declaration
@@ -77,7 +75,6 @@ public:
 
 	virtual void updateParams();
 	virtual void updateSubscriptions();
-	virtual void updatePublications();
 
 	virtual void setDt(float dt) { _dt = dt; }
 	float getDt() { return _dt; }
@@ -88,7 +85,6 @@ protected:
 
 	SuperBlock *getParent() { return _parent; }
 	List<uORB::SubscriptionPollableNode *> &getSubscriptions() { return _subscriptions; }
-	List<uORB::PublicationNode *> &getPublications() { return _publications; }
 	List<BlockParamBase *> &getParams() { return _params; }
 
 	const char *_name;
@@ -96,7 +92,6 @@ protected:
 	float _dt{0.0f};
 
 	List<uORB::SubscriptionPollableNode *> _subscriptions;
-	List<uORB::PublicationNode *> _publications;
 	List<BlockParamBase *> _params;
 };
 
@@ -130,18 +125,11 @@ public:
 
 		if (getChildren().getHead() != nullptr) { updateChildSubscriptions(); }
 	}
-	void updatePublications() override
-	{
-		Block::updatePublications();
-
-		if (getChildren().getHead() != nullptr) { updateChildPublications(); }
-	}
 
 protected:
 	List<Block *> &getChildren() { return _children; }
 	void updateChildParams();
 	void updateChildSubscriptions();
-	void updateChildPublications();
 
 	List<Block *> _children;
 };

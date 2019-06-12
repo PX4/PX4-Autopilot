@@ -117,11 +117,6 @@ public:
 	 */
 	void		load_fence_from_file(const char *filename);
 
-	/**
-	 * Publish the geofence result
-	 */
-	void		publish_geofence_result();
-
 	void		publish_vehicle_cmd(vehicle_command_s *vcmd);
 
 	/**
@@ -329,13 +324,14 @@ private:
 
 	uORB::SubscriptionData<position_controller_status_s>	_position_controller_status_sub{ORB_ID(position_controller_status)};
 
-	orb_advert_t	_geofence_result_pub{nullptr};
+	uORB::Publication<geofence_result_s>		_geofence_result_pub{ORB_ID(geofence_result)};
+	uORB::Publication<mission_result_s>		_mission_result_pub{ORB_ID(mission_result)};
+	uORB::Publication<position_setpoint_triplet_s>	_pos_sp_triplet_pub{ORB_ID(position_setpoint_triplet)};
+	uORB::Publication<vehicle_roi_s>		_vehicle_roi_pub{ORB_ID(vehicle_roi)};
+
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
-	orb_advert_t	_mission_result_pub{nullptr};
-	orb_advert_t	_pos_sp_triplet_pub{nullptr};
 	orb_advert_t	_vehicle_cmd_ack_pub{nullptr};
 	orb_advert_t	_vehicle_cmd_pub{nullptr};
-	orb_advert_t	_vehicle_roi_pub{nullptr};
 
 	// Subscriptions
 	home_position_s					_home_pos{};		/**< home position for RTL */

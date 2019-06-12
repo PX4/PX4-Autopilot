@@ -41,6 +41,7 @@
 #include <px4_module_params.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
@@ -161,11 +162,12 @@ private:
 	unsigned _gyro_count{1};
 	int _selected_gyro{0};
 
-	orb_advert_t	_v_rates_sp_pub{nullptr};		/**< rate setpoint publication */
+	uORB::Publication<rate_ctrl_status_s>		_controller_status_pub{ORB_ID(rate_ctrl_status), ORB_PRIO_DEFAULT};	/**< controller status publication */
+	uORB::Publication<landing_gear_s>		_landing_gear_pub{ORB_ID(landing_gear)};
+	uORB::Publication<vehicle_rates_setpoint_s>	_v_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};			/**< rate setpoint publication */
+
 	orb_advert_t	_actuators_0_pub{nullptr};		/**< attitude actuator controls publication */
-	orb_advert_t	_controller_status_pub{nullptr};	/**< controller status publication */
 	orb_advert_t	_vehicle_attitude_setpoint_pub{nullptr};
-	orb_advert_t	_landing_gear_pub{nullptr};
 
 	orb_id_t _actuators_id{nullptr};	/**< pointer to correct actuator controls0 uORB metadata structure */
 	orb_id_t _attitude_sp_id{nullptr};	/**< pointer to correct attitude setpoint uORB metadata structure */
