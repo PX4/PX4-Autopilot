@@ -55,10 +55,13 @@ protected:
 	virtual void _updateSetpoints(); /**< updates all setpoints */
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManual,
-					(ParamBool<px4::params::MPC_XY_VEL_ATUNE>) _param_mpc_xy_vel_atune,
 					(ParamFloat<px4::params::MPC_XY_VEL_P>) _param_mpc_xy_vel_p,
 					(ParamFloat<px4::params::MPC_XY_VEL_I>) _param_mpc_xy_vel_i,
-					(ParamFloat<px4::params::MPC_XY_VEL_D>) _param_mpc_xy_vel_d
+					(ParamFloat<px4::params::MPC_XY_VEL_D>) _param_mpc_xy_vel_d,
+					(ParamBool<px4::params::MPC_XY_ATUNE>) _param_mpc_xy_atune,
+					(ParamFloat<px4::params::MPC_XY_ATUNE_P>) _param_mpc_atune_gain,
+					(ParamInt<px4::params::MPC_XY_ATUNE_CNT>) _param_mpc_atune_cnt,
+					(ParamFloat<px4::params::MPC_XY_ATUNE_THR>) _param_mpc_atune_thr
 				       )
 private:
 	bool _checkSticks(); /**< check if the user wants to abort the autotuning */
@@ -73,7 +76,6 @@ private:
 	float _ku{}; /**< ultimate gain of the controller */
 	float _period_u{}; /**< ultimate period is seconds **/
 	float _epsilon{0.0001};
-	float _alpha{0.05f};
 	bool _done{false};
 
 	matrix::Vector2f _current_position_xy{};

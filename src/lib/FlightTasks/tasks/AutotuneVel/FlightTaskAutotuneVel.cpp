@@ -118,11 +118,11 @@ void FlightTaskAutotuneVel::_updateSetpoints()
 void FlightTaskAutotuneVel::_updateUltimateGain()
 {
 	// epsilon << alpha
-	float ku_dot = -_alpha * fabsf(_thrust - _thrust_sat) + _epsilon;
+	float ku_dot = -_param_mpc_atune_gain.get() * fabsf(_thrust - _thrust_sat) + _epsilon;
 	printf("ku = %.3f\n, ku_dot = %.3f\n", (double)_ku, (double)ku_dot);
 	_ku += ku_dot;
 
-	if (fabs(ku_dot) < 0.002f && _ku < 1.4f) {
+	if (fabs(ku_dot) < _param_mpc_atune_thr.get() && _ku < 1.4f) {
 		_convergence_counter++;
 
 	} else {
@@ -192,8 +192,8 @@ void FlightTaskAutotuneVel::_computeControlGains()
 
 void FlightTaskAutotuneVel::_exit()
 {
-	_param_mpc_xy_vel_atune.set(false);
-	_param_mpc_xy_vel_atune.commit();
+	_param_mpc_xy_atune.set(false);
+	_param_mpc_xy_atune.commit();
 	_done = true;
 }
 
@@ -210,7 +210,7 @@ bool FlightTaskAutotuneVel::update()
 
 	_updateSetpoints();
 
-	if (_convergence_counter < 500) {
+	if (_convergence_counter < _param_mpc_atune_cnt.get()) {
 		_updateUltimateGain();
 
 	} else {

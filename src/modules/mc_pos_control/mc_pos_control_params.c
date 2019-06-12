@@ -234,13 +234,43 @@ PARAM_DEFINE_FLOAT(MPC_XY_VEL_I, 0.02f);
 PARAM_DEFINE_FLOAT(MPC_XY_VEL_D, 0.01f);
 
 /**
- * Velocity PID auto-tuner
+ * Velocity PID auto-tuner trigger
  *
  * @boolean
  *
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_INT32(MPC_XY_VEL_ATUNE, 0);
+PARAM_DEFINE_INT32(MPC_XY_ATUNE, 0);
+
+/**
+ * Velocity PID auto-tuner adaptation rate
+ *
+ * @boolean
+ *
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_XY_ATUNE_P, 0.05f);
+
+/**
+ * Velocity PID auto-tuner convergence criteria hysteresis width
+ *
+ * @boolean
+ *
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_INT32(MPC_XY_ATUNE_CNT, 500);
+
+/**
+ * Velocity PID auto-tuner convergence criteria
+ *
+ * @min 0.0001
+ * @max 0.1
+ * @increment 1
+ * @decimal 4
+ *
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_XY_ATUNE_THR, 0.002);
 
 /**
  * Maximum horizontal velocity in mission
