@@ -238,11 +238,16 @@ bool IntrusiveQueueTest::test_remove()
 	for (int remove_i = 0; remove_i < 100; remove_i++) {
 
 		// find node with i == remove_i
+		testContainer *removed = nullptr;
+
 		for (auto t : q1) {
 			if (t->i == remove_i) {
 				ut_assert_true(q1.remove(t));
+				t = removed;
 			}
 		}
+
+		delete removed;
 
 		// iterate list again to verify removal
 		for (auto t : q1) {
