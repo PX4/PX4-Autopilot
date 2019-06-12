@@ -94,7 +94,6 @@ public:
 	bool		task_running() { return _task_running; }
 
 private:
-	orb_advert_t	_attitude_sp_pub{nullptr};		/**< attitude setpoint */
 	orb_advert_t	_pos_ctrl_status_pub{nullptr};		/**< navigation capabilities publication */
 	orb_advert_t    _actuator_controls_pub{nullptr};	/**< actuator controls publication */
 
@@ -108,12 +107,11 @@ private:
 	int		_pos_sp_triplet_sub{-1};
 	int     _vehicle_attitude_sub{-1};
 
-	manual_control_setpoint_s		_manual{};			/**< r/c channel data */
+	manual_control_setpoint_s		_manual{};			    /**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
-	vehicle_attitude_setpoint_s		_att_sp{};			/**< vehicle attitude setpoint */
-	vehicle_control_mode_s			_control_mode{};			/**< control mode */
+	vehicle_control_mode_s			_control_mode{};		/**< control mode */
 	vehicle_global_position_s		_global_pos{};			/**< global vehicle position */
-	actuator_controls_s			_act_controls{};		/**< direct control of actuators */
+	actuator_controls_s			    _act_controls{};		/**< direct control of actuators */
 	vehicle_attitude_s              _vehicle_att{};
 
 	SubscriptionData<sensor_bias_s>	_sub_sensors;

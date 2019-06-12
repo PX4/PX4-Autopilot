@@ -274,7 +274,6 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 
 			/* waypoint is a plain navigation waypoint or the takeoff waypoint, does not matter */
 			_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
-			//_att_sp.thrust_body[0] = mission_throttle;
 
 			_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = mission_throttle;
 
@@ -286,21 +285,10 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 			control_effort = math::constrain(control_effort, -1.0f, 1.0f);
 			_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
 
-//			PX4_INFO("Acc: %7.4f | R: %8.1f | Theta: %6.3f | Ctrl: %7.4f | Thr: %6.4f", (double) _gnd_control.nav_lateral_acceleration_demand(),
-//				 (double) desired_r, (double) desired_theta, (double) control_effort, (double) mission_throttle);
-
 		}
 
 	} else {
 		_control_mode_current = UGV_POSCTRL_MODE_OTHER;
-
-		_att_sp.roll_body = 0.0f;
-		_att_sp.pitch_body = 0.0f;
-		_att_sp.yaw_body = 0.0f;
-		_att_sp.fw_control_yaw = true;
-		_att_sp.thrust_body[0] = 0.0f;
-
-		/* do not publish the setpoint */
 		setpoint = false;
 	}
 
@@ -407,28 +395,11 @@ GroundRoverPositionControl::task_main()
 				* publish setpoint.
 				*/
 				if (control_position(current_position, ground_speed, _pos_sp_triplet)) {
-					_att_sp.timestamp = hrt_absolute_time();
-
-
-					Quatf q(Eulerf(_att_sp.roll_body, _att_sp.pitch_body, _att_sp.yaw_body));
-					q.copyTo(_att_sp.q_d);
-					_att_sp.q_d_valid = true;
 
 					if (!_control_mode.flag_control_offboard_enabled ||
 					    _control_mode.flag_control_position_enabled ||
 					    _control_mode.flag_control_velocity_enabled ||
 					    _control_mode.flag_control_acceleration_enabled) {
-
-						// /* lazily publish the setpoint only once available */
-						// if (_attitude_sp_pub != nullptr) {
-						// 	/* publish the attitude setpoint */
-						// 	orb_publish(ORB_ID(vehicle_attitude_setpoint), _attitude_sp_pub, &_att_sp);
-
-						// } else {
-						// 	/* advertise and publish */
-						// 	_attitude_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_att_sp);
-						// }
-
 
 
 						/* XXX check if radius makes sense here */
