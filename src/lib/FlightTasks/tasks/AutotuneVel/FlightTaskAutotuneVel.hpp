@@ -70,11 +70,13 @@ private:
 	float _thrust{};
 	float _thrust_sat{};
 	float _thrust_max{0.1f}; /**< maximum allowed thrust amplitude **/
-	float _ku{1.5f}; /**< ultimate gain of the controller */
+	float _ku{}; /**< ultimate gain of the controller */
 	float _period_u{}; /**< ultimate period is seconds **/
 	float _epsilon{0.0001};
 	float _alpha{0.05f};
 	bool _done{false};
+
+	matrix::Vector2f _current_position_xy{};
 
 	int _convergence_counter{}; /**< counts how many times the exit criteria has been true **/
 

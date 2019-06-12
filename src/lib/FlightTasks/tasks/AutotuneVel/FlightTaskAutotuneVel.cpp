@@ -66,6 +66,7 @@ bool FlightTaskAutotuneVel::activate()
 	_yaw_setpoint = NAN;
 	_yawspeed_setpoint = 0.0f;
 	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, NAN);
+	_current_position_xy = matrix::Vector2f(_position);
 	_position_setpoint(2) = _position(2);
 	_velocity_setpoint(2) = 0.0f;
 	_setDefaultConstraints();
@@ -96,18 +97,21 @@ void FlightTaskAutotuneVel::_updateSetpoints()
 	_thrust = -_velocity(0) * _ku;
 
 	// Saturation block
-	if (_thrust_sat > _thrust_max) {
+	if (_thrust > _thrust_max) {
 		_thrust_sat = _thrust_max;
 
-	} else if (_thrust_sat < -_thrust_max) {
+	} else if (_thrust < -_thrust_max) {
 		_thrust_sat = -_thrust_max;
 
 	} else {
 		_thrust_sat = _thrust;
 	}
 
-	_thrust_setpoint(0) = _thrust_sat;
-	_thrust_setpoint(1) = 0.f;
+	// Loose position controller
+	const matrix::Vector2f pos_control_xy = (_current_position_xy - matrix::Vector2f(_position)) * 0.002f;
+
+	_thrust_setpoint(0) = _thrust_sat + pos_control_xy(0);
+	_thrust_setpoint(1) = 0.f + pos_control_xy(1);
 	_thrust_setpoint(2) = NAN;
 }
 
