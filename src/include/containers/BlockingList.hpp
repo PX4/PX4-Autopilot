@@ -68,7 +68,7 @@ public:
 		return List<T>::remove(removeNode);
 	}
 
-	size_t size() const
+	size_t size()
 	{
 		LockGuard lg{_mutex};
 		return List<T>::size();

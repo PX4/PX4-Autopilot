@@ -141,6 +141,8 @@ bool ListTest::test_remove()
 		for (auto t : list1) {
 			ut_assert_true(t->i != remove_i);
 		}
+
+		ut_assert_true(list1.size() == 100 - remove_i - 1);
 	}
 
 	// list should now be empty
