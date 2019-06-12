@@ -245,7 +245,7 @@ private:
 	uORB::SubscriptionData<vehicle_local_position_s>	_local_position_sub{ORB_ID(vehicle_local_position)};
 
 	// Publications
-	uORB::Publication<home_position_s>			_home_pub{ORB_ID(home_position)};
+	uORB::PublicationData<home_position_s>			_home_pub{ORB_ID(home_position)};
 
 	orb_advert_t					_status_pub{nullptr};
 };

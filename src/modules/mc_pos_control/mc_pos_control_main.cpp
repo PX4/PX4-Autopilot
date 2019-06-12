@@ -46,6 +46,7 @@
 #include <lib/hysteresis/hysteresis.h>
 #include <commander/px4_custom_mode.h>
 
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/parameter_update.h>
@@ -107,11 +108,13 @@ private:
 	Takeoff _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
 
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
-	orb_advert_t	_traj_sp_pub{nullptr};		/**< trajectory setpoints publication */
-	orb_advert_t	_local_pos_sp_pub{nullptr};		/**< vehicle local position setpoint publication */
 	orb_advert_t _pub_vehicle_command{nullptr};           /**< vehicle command publication */
+
 	orb_id_t _attitude_setpoint_id{nullptr};
-	orb_advert_t	_landing_gear_pub{nullptr};
+
+	uORB::Publication<landing_gear_s>			_landing_gear_pub{ORB_ID(landing_gear)};
+	uORB::Publication<vehicle_local_position_setpoint_s>	_local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};	/**< vehicle local position setpoint publication */
+	uORB::Publication<vehicle_local_position_setpoint_s>	_traj_sp_pub{ORB_ID(trajectory_setpoint)};			/**< trajectory setpoints publication */
 
 	int		_local_pos_sub{-1};			/**< vehicle local position */
 
@@ -217,18 +220,6 @@ private:
 	 * Publish attitude.
 	 */
 	void publish_attitude();
-
-	/**
-	 * Publish local position setpoint.
-	 * This is only required for logging.
-	 */
-	void publish_local_pos_sp(const vehicle_local_position_setpoint_s &local_pos_sp);
-
-	/**
-	 * Publish local position setpoint.
-	 * This is only required for logging.
-	 */
-	void publish_trajectory_sp(const vehicle_local_position_setpoint_s &traj);
 
 	/**
 	 * Adjust the setpoint during landing.
@@ -573,7 +564,8 @@ MulticopterPositionControl::run()
 				}
 			}
 
-			publish_trajectory_sp(setpoint);
+			// publish trajectory setpoint
+			_traj_sp_pub.publish(setpoint);
 
 			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
 			landing_gear_s gear = _flight_tasks.getGear();
@@ -647,7 +639,7 @@ MulticopterPositionControl::run()
 			// Publish local position setpoint
 			// This message will be used by other modules (such as Landdetector) to determine
 			// vehicle intention.
-			publish_local_pos_sp(local_pos_sp);
+			_local_pos_sp_pub.publish(local_pos_sp);
 
 			// Inform FlightTask about the input and output of the velocity controller
 			// This is used to properly initialize the velocity setpoint when onpening the position loop (position unlock)
@@ -680,12 +672,7 @@ MulticopterPositionControl::run()
 				_landing_gear.landing_gear = gear.landing_gear;
 				_landing_gear.timestamp = hrt_absolute_time();
 
-				if (_landing_gear_pub != nullptr) {
-					orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear);
-
-				} else {
-					_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear);
-				}
+				_landing_gear_pub.publish(_landing_gear);
 			}
 
 			_old_landing_gear_position = gear.landing_gear;
@@ -972,30 +959,6 @@ MulticopterPositionControl::publish_attitude()
 
 	} else if (_attitude_setpoint_id) {
 		_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
-	}
-}
-
-void
-MulticopterPositionControl::publish_trajectory_sp(const vehicle_local_position_setpoint_s &traj)
-{
-	// publish trajectory
-	if (_traj_sp_pub != nullptr) {
-		orb_publish(ORB_ID(trajectory_setpoint), _traj_sp_pub, &traj);
-
-	} else {
-		_traj_sp_pub = orb_advertise(ORB_ID(trajectory_setpoint), &traj);
-	}
-}
-
-void
-MulticopterPositionControl::publish_local_pos_sp(const vehicle_local_position_setpoint_s &local_pos_sp)
-{
-	// publish local position setpoint
-	if (_local_pos_sp_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &local_pos_sp);
-
-	} else {
-		_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &local_pos_sp);
 	}
 }
 

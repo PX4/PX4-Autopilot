@@ -583,8 +583,7 @@ int md25Sine(const char *deviceName, uint8_t bus, uint8_t address, float amplitu
 	float prev_revolution = md25.getRevolutions1();
 
 	// debug publication
-	uORB::Publication<debug_key_value_s> debug_msg(NULL,
-			ORB_ID(debug_key_value));
+	uORB::PublicationData<debug_key_value_s> debug_msg{ORB_ID(debug_key_value)};
 
 	// sine wave for motor 1
 	md25.resetEncoders();

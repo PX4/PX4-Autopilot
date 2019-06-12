@@ -427,12 +427,7 @@ Navigator::run()
 
 				_vroi.timestamp = hrt_absolute_time();
 
-				if (_vehicle_roi_pub != nullptr) {
-					orb_publish(ORB_ID(vehicle_roi), _vehicle_roi_pub, &_vroi);
-
-				} else {
-					_vehicle_roi_pub = orb_advertise(ORB_ID(vehicle_roi), &_vroi);
-				}
+				_vehicle_roi_pub.publish(_vroi);
 
 				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 			}
@@ -473,7 +468,7 @@ Navigator::run()
 				_geofence_violation_warning_sent = false;
 			}
 
-			publish_geofence_result();
+			_geofence_result_pub.publish(_geofence_result);
 		}
 
 		/* Do stuff according to navigation state set by commander */
@@ -746,12 +741,7 @@ Navigator::publish_position_setpoint_triplet()
 	_pos_sp_triplet.timestamp = hrt_absolute_time();
 
 	/* lazily publish the position setpoint triplet only once available */
-	if (_pos_sp_triplet_pub != nullptr) {
-		orb_publish(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_pub, &_pos_sp_triplet);
-
-	} else {
-		_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet), &_pos_sp_triplet);
-	}
+	_pos_sp_triplet_pub.publish(_pos_sp_triplet);
 
 	_pos_sp_triplet_updated = false;
 }
@@ -1115,14 +1105,7 @@ Navigator::publish_mission_result()
 	_mission_result.timestamp = hrt_absolute_time();
 
 	/* lazily publish the mission result only once available */
-	if (_mission_result_pub != nullptr) {
-		/* publish mission result */
-		orb_publish(ORB_ID(mission_result), _mission_result_pub, &_mission_result);
-
-	} else {
-		/* advertise and publish */
-		_mission_result_pub = orb_advertise(ORB_ID(mission_result), &_mission_result);
-	}
+	_mission_result_pub.publish(_mission_result);
 
 	/* reset some of the flags */
 	_mission_result.item_do_jump_changed = false;
@@ -1130,20 +1113,6 @@ Navigator::publish_mission_result()
 	_mission_result.item_do_jump_remaining = 0;
 
 	_mission_result_updated = false;
-}
-
-void
-Navigator::publish_geofence_result()
-{
-	/* lazily publish the geofence result only once available */
-	if (_geofence_result_pub != nullptr) {
-		/* publish mission result */
-		orb_publish(ORB_ID(geofence_result), _geofence_result_pub, &_geofence_result);
-
-	} else {
-		/* advertise and publish */
-		_geofence_result_pub = orb_advertise(ORB_ID(geofence_result), &_geofence_result);
-	}
 }
 
 void

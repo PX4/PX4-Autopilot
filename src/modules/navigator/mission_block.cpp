@@ -440,12 +440,7 @@ MissionBlock::issue_command(const mission_item_s &item)
 		// params[1] new value for selected actuator in ms 900...2000
 		actuators.control[(int)item.params[0]] = 1.0f / 2000 * -item.params[1];
 
-		if (_actuator_pub != nullptr) {
-			orb_publish(ORB_ID(actuator_controls_2), _actuator_pub, &actuators);
-
-		} else {
-			_actuator_pub = orb_advertise(ORB_ID(actuator_controls_2), &actuators);
-		}
+		_actuator_pub.publish(actuators);
 
 	} else {
 		_action_start = hrt_absolute_time();
