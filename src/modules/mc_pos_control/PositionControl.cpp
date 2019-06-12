@@ -284,11 +284,16 @@ void PositionControl::_velocityController(const float &dt)
 	_thr_sp(2) = math::constrain(thrust_desired_D, uMin, uMax);
 
 	if (PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1))) {
-		// Thrust set-point in NE-direction is already provided. Only
-		// scaling by the maximum tilt is required.
-		float thr_xy_max = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);
-		_thr_sp(0) *= thr_xy_max;
-		_thr_sp(1) *= thr_xy_max;
+		// Thrust set-point in NE-direction is already provided.
+		if (_constraints.rescale_xy_thrust) {
+			// Scaling by the maximum tilt is required.
+			float thr_xy_max = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);
+			_thr_sp(0) *= thr_xy_max;
+			_thr_sp(1) *= thr_xy_max;
+
+		} else {
+			// Directly apply desired thrust
+		}
 
 	} else {
 		// PID-velocity controller for NE-direction.

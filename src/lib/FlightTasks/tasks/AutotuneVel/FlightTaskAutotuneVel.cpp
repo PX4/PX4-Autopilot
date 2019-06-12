@@ -113,6 +113,7 @@ void FlightTaskAutotuneVel::_updateSetpoints()
 	_thrust_setpoint(0) = _thrust_sat + pos_control_xy(0);
 	_thrust_setpoint(1) = 0.f + pos_control_xy(1);
 	_thrust_setpoint(2) = NAN;
+	_constraints.rescale_xy_thrust = false;
 }
 
 void FlightTaskAutotuneVel::_updateUltimateGain()
