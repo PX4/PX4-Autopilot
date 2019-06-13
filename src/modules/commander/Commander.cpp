@@ -1486,8 +1486,19 @@ Commander::run()
 
 		sp_man_sub.update(&sp_man);
 
-		if (offboard_control_mode_sub.updated()) {
-			offboard_control_mode_s old = offboard_control_mode;
+		// if this is the first time entering OFFBOARD the subscription may not be active yet
+		bool force_offboard_update = false;
+
+		if (commander_state_s::MAIN_STATE_OFFBOARD) {
+			if (offboard_control_mode.timestamp == 0) {
+				offboard_control_mode_sub.forceInit();
+				force_offboard_update = true;
+			}
+		}
+
+		if (offboard_control_mode_sub.updated() || force_offboard_update) {
+
+			const offboard_control_mode_s old = offboard_control_mode;
 			offboard_control_mode_sub.copy(&offboard_control_mode);
 
 			if (old.ignore_thrust != offboard_control_mode.ignore_thrust ||
@@ -1499,13 +1510,16 @@ Commander::run()
 			    old.ignore_velocity != offboard_control_mode.ignore_velocity ||
 			    old.ignore_acceleration_force != offboard_control_mode.ignore_acceleration_force ||
 			    old.ignore_alt_hold != offboard_control_mode.ignore_alt_hold) {
+
 				status_changed = true;
 			}
 		}
 
 		if (offboard_control_mode.timestamp != 0 &&
 		    offboard_control_mode.timestamp + OFFBOARD_TIMEOUT > hrt_absolute_time()) {
+
 			if (status_flags.offboard_control_signal_lost) {
+
 				status_flags.offboard_control_signal_lost = false;
 				status_flags.offboard_control_loss_timeout = false;
 				status_changed = true;
