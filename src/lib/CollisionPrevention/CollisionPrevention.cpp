@@ -160,9 +160,13 @@ void CollisionPrevention::updateDistanceSensor(obstacle_distance_s &obstacle)
 						wrap_bin = bin - distances_array_size;
 					}
 
+					// rotate vehicle attitude into the sensor body frame
+					matrix::Quatf attitude_sensor_frame = attitude;
+					attitude_sensor_frame.rotate(Vector3f(0.f, 0.f, sensor_yaw_body_rad));
+
 					// compensate measurement for vehicle tilt and convert to cm
 					obstacle.distances[wrap_bin] = math::min((int)obstacle.distances[wrap_bin],
-								       (int)(100 * distance_sensor.current_distance * cosf(Eulerf(attitude).theta())));
+								       (int)(100 * distance_sensor.current_distance * cosf(Eulerf(attitude_sensor_frame).theta())));
 				}
 			}
 		}
