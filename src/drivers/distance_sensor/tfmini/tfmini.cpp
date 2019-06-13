@@ -77,6 +77,8 @@
 
 #include "tfmini_parser.h"
 
+#define TFMINI_DEFAULT_PORT	"/dev/ttyS3"
+
 /* Configuration Constants */
 
 class TFMINI : public cdev::CDev, public px4::ScheduledWorkItem
@@ -804,7 +806,7 @@ extern "C" __EXPORT int tfmini_main(int argc, char *argv[])
 {
 	int ch;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	const char *device_path = "";
+	const char *device_path = TFMINI_DEFAULT_PORT;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
