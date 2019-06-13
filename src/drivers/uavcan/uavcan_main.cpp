@@ -901,9 +901,11 @@ int UavcanNode::run()
 
 			} else if (controls_updated && (_mixers != nullptr)) {
 
-				// XXX one output group has 8 outputs max,
+				// XXX one output group has 16 (esc_status_s::CONNECTED_ESC_MAX) outputs max (Q2/2019),
 				// but this driver could well serve multiple groups.
-				unsigned num_outputs_max = 8;
+				unsigned num_outputs_max = (
+								   esc_status_s::CONNECTED_ESC_MAX < static_cast<unsigned>(uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize) ?
+								   esc_status_s::CONNECTED_ESC_MAX : static_cast<unsigned>(uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize));
 
 				_mixers->set_airmode(_airmode);
 
