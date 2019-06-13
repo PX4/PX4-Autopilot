@@ -566,10 +566,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	mavlink_optical_flow_rad_t flow;
 	mavlink_msg_optical_flow_rad_decode(msg, &flow);
 
-	/* read flow sensor parameters */
-	const enum Rotation flow_rot = (Rotation)_param_sens_flow_rot.get();
-
-	struct optical_flow_s f = {};
+	optical_flow_s f = {};
 
 	f.timestamp = _mavlink_timesync.sync_stamp(flow.time_usec);
 	f.time_since_last_sonar_update = flow.time_delta_distance_us;
@@ -587,9 +584,12 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	f.min_ground_distance   = _param_sens_flow_minhgt.get();
 	f.max_ground_distance   = _param_sens_flow_maxhgt.get();
 
+	/* read flow sensor parameters */
+	const Rotation flow_rot = (Rotation)_param_sens_flow_rot.get();
+
 	/* rotate measurements according to parameter */
-	float zeroval = 0.0f;
-	rotate_3f(flow_rot, f.pixel_flow_x_integral, f.pixel_flow_y_integral, zeroval);
+	float zero_val = 0.0f;
+	rotate_3f(flow_rot, f.pixel_flow_x_integral, f.pixel_flow_y_integral, zero_val);
 	rotate_3f(flow_rot, f.gyro_x_rate_integral, f.gyro_y_rate_integral, f.gyro_z_rate_integral);
 
 	if (_flow_pub == nullptr) {
@@ -600,7 +600,7 @@ MavlinkReceiver::handle_message_optical_flow_rad(mavlink_message_t *msg)
 	}
 
 	/* Use distance value for distance sensor topic */
-	struct distance_sensor_s d = {};
+	distance_sensor_s d = {};
 
 	if (flow.distance > 0.0f) { // negative values signal invalid data
 		d.timestamp = f.timestamp;
@@ -2590,7 +2590,10 @@ MavlinkReceiver::receive_thread(void *arg)
 	hrt_abstime last_send_update = 0;
 
 	while (!_mavlink->_task_should_exit) {
-		update_params(false);
+		// Check for updated parameters.
+		if (_param_update_sub.updated()) {
+			update_params();
+		}
 
 		if (poll(&fds[0], 1, timeout) > 0) {
 			if (_mavlink->get_protocol() == SERIAL) {
@@ -2743,15 +2746,9 @@ MavlinkReceiver::receive_start(pthread_t *thread, Mavlink *parent)
 }
 
 void
-MavlinkReceiver::update_params(const bool force)
+MavlinkReceiver::update_params()
 {
-	bool updated;
 	parameter_update_s param_update;
-
-	orb_check(_param_sub, &updated);
-
-	if (updated || force) {
-		updateParams();
-		orb_copy(ORB_ID(parameter_update), _param_sub, &param_update);
-	}
+	_param_update_sub.update(&param_update);
+	updateParams();
 }
