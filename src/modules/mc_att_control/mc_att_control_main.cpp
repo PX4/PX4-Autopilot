@@ -79,17 +79,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_thrust_sp = 0.0f;
 	_att_control.zero();
 
-	/* initialize thermal corrections as we might not immediately get a topic update (only non-zero values) */
-	for (unsigned i = 0; i < 3; i++) {
-		// used scale factors to unity
-		_sensor_correction.gyro_scale_0[i] = 1.0f;
-		_sensor_correction.gyro_scale_1[i] = 1.0f;
-		_sensor_correction.gyro_scale_2[i] = 1.0f;
-	}
-
 	parameters_updated();
-
-	_gyro_count = math::constrain(orb_group_count(ORB_ID(sensor_gyro)), 1, MAX_GYRO_COUNT);
 }
 
 MulticopterAttitudeControl::~MulticopterAttitudeControl()
@@ -100,7 +90,12 @@ MulticopterAttitudeControl::~MulticopterAttitudeControl()
 bool
 MulticopterAttitudeControl::init()
 {
-	return selected_gyro_update();
+	if (!_vehicle_angular_velocity_sub.register_callback()) {
+		PX4_ERR("vehicle angular velocity callback registration failed!");
+		return false;
+	}
+
+	return true;
 }
 
 void
@@ -137,16 +132,6 @@ MulticopterAttitudeControl::parameters_updated()
 	_man_tilt_max = math::radians(_param_mpc_man_tilt_max.get());
 
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
-
-	/* get transformation matrix from sensor/board to body frame */
-	_board_rotation = get_rot_matrix((enum Rotation)_param_sens_board_rot.get());
-
-	/* fine tune the rotation */
-	Dcmf board_rotation_offset(Eulerf(
-					   M_DEG_TO_RAD_F * _param_sens_board_x_off.get(),
-					   M_DEG_TO_RAD_F * _param_sens_board_y_off.get(),
-					   M_DEG_TO_RAD_F * _param_sens_board_z_off.get()));
-	_board_rotation = board_rotation_offset * _board_rotation;
 }
 
 void
@@ -413,44 +398,12 @@ MulticopterAttitudeControl::pid_attenuations(float tpa_breakpoint, float tpa_rat
  * Output: '_att_control' vector
  */
 void
-MulticopterAttitudeControl::control_attitude_rates(float dt)
+MulticopterAttitudeControl::control_attitude_rates(float dt, const Vector3f &rates)
 {
 	/* reset integral if disarmed */
 	if (!_v_control_mode.flag_armed || _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		_rates_int.zero();
 	}
-
-	// get the raw gyro data and correct for thermal errors
-	Vector3f rates;
-
-	if (_selected_gyro == 0) {
-		rates(0) = (_sensor_gyro.x - _sensor_correction.gyro_offset_0[0]) * _sensor_correction.gyro_scale_0[0];
-		rates(1) = (_sensor_gyro.y - _sensor_correction.gyro_offset_0[1]) * _sensor_correction.gyro_scale_0[1];
-		rates(2) = (_sensor_gyro.z - _sensor_correction.gyro_offset_0[2]) * _sensor_correction.gyro_scale_0[2];
-
-	} else if (_selected_gyro == 1) {
-		rates(0) = (_sensor_gyro.x - _sensor_correction.gyro_offset_1[0]) * _sensor_correction.gyro_scale_1[0];
-		rates(1) = (_sensor_gyro.y - _sensor_correction.gyro_offset_1[1]) * _sensor_correction.gyro_scale_1[1];
-		rates(2) = (_sensor_gyro.z - _sensor_correction.gyro_offset_1[2]) * _sensor_correction.gyro_scale_1[2];
-
-	} else if (_selected_gyro == 2) {
-		rates(0) = (_sensor_gyro.x - _sensor_correction.gyro_offset_2[0]) * _sensor_correction.gyro_scale_2[0];
-		rates(1) = (_sensor_gyro.y - _sensor_correction.gyro_offset_2[1]) * _sensor_correction.gyro_scale_2[1];
-		rates(2) = (_sensor_gyro.z - _sensor_correction.gyro_offset_2[2]) * _sensor_correction.gyro_scale_2[2];
-
-	} else {
-		rates(0) = _sensor_gyro.x;
-		rates(1) = _sensor_gyro.y;
-		rates(2) = _sensor_gyro.z;
-	}
-
-	// rotate corrected measurements from sensor to body frame
-	rates = _board_rotation * rates;
-
-	// correct for in-run bias errors
-	rates(0) -= _sensor_bias.gyro_x_bias;
-	rates(1) -= _sensor_bias.gyro_y_bias;
-	rates(2) -= _sensor_bias.gyro_z_bias;
 
 	Vector3f rates_p_scaled = _rate_p.emult(pid_attenuations(_param_mc_tpa_break_p.get(), _param_mc_tpa_rate_p.get()));
 	Vector3f rates_i_scaled = _rate_i.emult(pid_attenuations(_param_mc_tpa_break_i.get(), _param_mc_tpa_rate_i.get()));
@@ -519,7 +472,6 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	/* explicitly limit the integrator state */
 	for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
 		_rates_int(i) = math::constrain(_rates_int(i), -_rate_int_lim(i), _rate_int_lim(i));
-
 	}
 }
 
@@ -542,9 +494,6 @@ MulticopterAttitudeControl::publish_rate_controller_status()
 {
 	rate_ctrl_status_s rate_ctrl_status = {};
 	rate_ctrl_status.timestamp = hrt_absolute_time();
-	rate_ctrl_status.rollspeed = _rates_prev(0);
-	rate_ctrl_status.pitchspeed = _rates_prev(1);
-	rate_ctrl_status.yawspeed = _rates_prev(2);
 	rate_ctrl_status.rollspeed_integ = _rates_int(0);
 	rate_ctrl_status.pitchspeed_integ = _rates_int(1);
 	rate_ctrl_status.yawspeed_integ = _rates_int(2);
@@ -561,7 +510,6 @@ MulticopterAttitudeControl::publish_actuator_controls()
 	_actuators.control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
 	_actuators.control[7] = (float)_landing_gear.landing_gear;
 	_actuators.timestamp = hrt_absolute_time();
-	_actuators.timestamp_sample = _sensor_gyro.timestamp;
 
 	/* scale effort by battery status */
 	if (_param_mc_bat_scale_en.get() && _battery_status.scale > 0.0f) {
@@ -575,43 +523,11 @@ MulticopterAttitudeControl::publish_actuator_controls()
 	}
 }
 
-bool
-MulticopterAttitudeControl::selected_gyro_update()
-{
-	// check if the selected gyro has updated first
-	_sensor_correction_sub.update(&_sensor_correction);
-
-	/* update the latest gyro selection */
-	if (_selected_gyro != _sensor_correction.selected_gyro_instance) {
-		if (_sensor_correction.selected_gyro_instance < _gyro_count) {
-			// clear all registered callbacks
-			for (auto sub : _sensor_gyro_sub) {
-				sub.unregister_callback();
-			}
-
-			const int gyro_new = _sensor_correction.selected_gyro_instance;
-
-			if (_sensor_gyro_sub[gyro_new].register_callback()) {
-				_selected_gyro = gyro_new;
-				PX4_WARN("selected gyro changed %d -> %d", _selected_gyro, gyro_new);
-
-				return true;
-			}
-		}
-	}
-
-	return false;
-}
-
 void
 MulticopterAttitudeControl::Run()
 {
 	if (should_exit()) {
-		// clear all registered callbacks
-		for (auto sub : _sensor_gyro_sub) {
-			sub.unregister_callback();
-		}
-
+		_vehicle_angular_velocity_sub.unregister_callback();
 		exit_and_cleanup();
 		return;
 	}
@@ -619,16 +535,22 @@ MulticopterAttitudeControl::Run()
 	perf_begin(_loop_perf);
 
 	/* run controller on gyro changes */
-	if (_sensor_gyro_sub[_selected_gyro].update(&_sensor_gyro)) {
+	vehicle_angular_velocity_s angular_velocity;
+
+	if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
 		const hrt_abstime now = hrt_absolute_time();
 
 		// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
 		const float dt = math::constrain(((now - _last_run) / 1e6f), 0.0002f, 0.02f);
 		_last_run = now;
 
+		const Vector3f rates{angular_velocity.rollspeed, angular_velocity.pitchspeed, angular_velocity.yawspeed};
+
+		_actuators.timestamp_sample = angular_velocity.timestamp_sample;
+
 		/* run the rate controller immediately after a gyro update */
 		if (_v_control_mode.flag_control_rates_enabled) {
-			control_attitude_rates(dt);
+			control_attitude_rates(dt, rates);
 
 			publish_actuator_controls();
 			publish_rate_controller_status();
@@ -637,7 +559,6 @@ MulticopterAttitudeControl::Run()
 		/* check for updates in other topics */
 		_v_control_mode_sub.update(&_v_control_mode);
 		_battery_status_sub.update(&_battery_status);
-		_sensor_bias_sub.update(&_sensor_bias);
 		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
 		_landing_gear_sub.update(&_landing_gear);
 		vehicle_status_poll();
@@ -658,7 +579,8 @@ MulticopterAttitudeControl::Run()
 
 		bool attitude_setpoint_generated = false;
 
-		const bool is_hovering = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !_vehicle_status.in_transition_mode;
+		const bool is_hovering = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+					 && !_vehicle_status.in_transition_mode;
 
 		// vehicle is a tailsitter in transition mode
 		const bool is_tailsitter_transition = _vehicle_status.in_transition_mode && _is_tailsitter;
@@ -780,8 +702,6 @@ int MulticopterAttitudeControl::task_spawn(int argc, char *argv[])
 int MulticopterAttitudeControl::print_status()
 {
 	PX4_INFO("Running");
-
-	PX4_INFO("selected gyro: %d", _selected_gyro);
 
 	perf_print_counter(_loop_perf);
 

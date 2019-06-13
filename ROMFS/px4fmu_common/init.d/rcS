@@ -321,6 +321,7 @@ else
 	then
 		set OUTPUT_MODE hil
 		sensors start -h
+		vehicle_angular_velocity start
 		commander start --hil
 		# disable GPS
 		param set GPS_1_CONFIG 0
