@@ -188,10 +188,9 @@ private:
 	void send_storage_information(int storage_id);
 
 	/**
-	 * @brief Updates and checks for updated uORB parameters.
-	 * @param force Boolean to determine if an update check should be forced.
+	 * @brief Checks for updated uORB parameters and updates the params if required.
 	 */
-	void update_params(const bool force = false);
+	void update_params();
 
 	Mavlink	*_mavlink;
 
@@ -261,7 +260,6 @@ private:
 	static constexpr unsigned int MOM_SWITCH_COUNT{8};
 
 	int _orb_class_instance{-1};
-	int _param_sub{-1};
 
 	uint8_t _mom_switch_pos[MOM_SWITCH_COUNT] {};
 
@@ -272,6 +270,8 @@ private:
 	float _hil_local_alt0{0.0f};
 
 	bool _hil_local_proj_inited{false};
+
+	uORB::Subscription _param_update_sub{ORB_ID(parameter_update)};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
