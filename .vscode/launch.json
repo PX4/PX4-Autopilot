@@ -21,9 +21,9 @@
                     "value": "shell"
                 }
             ],
-            "externalConsole": false,
             "linux": {
                 "MIMode": "gdb",
+                "externalConsole": false,
                 "setupCommands": [
                     {
                         "description": "Enable pretty-printing for gdb",
@@ -39,6 +39,7 @@
             },
             "osx": {
                 "MIMode": "lldb",
+                "externalConsole": true,
                 "setupCommands": [
                     {
                         "text": "pro hand -p true -s false -n false SIGCONT",
@@ -66,11 +67,11 @@
                     "value": "iris"
                 }
             ],
-            "externalConsole": false,
             "preLaunchTask": "jmavsim",
             "postDebugTask": "jmavsim kill",
             "linux": {
                 "MIMode": "gdb",
+                "externalConsole": false,
                 "setupCommands": [
                     {
                         "description": "Enable pretty-printing for gdb",
@@ -86,6 +87,7 @@
             },
             "osx": {
                 "MIMode": "lldb",
+                "externalConsole": true,
                 "setupCommands": [
                     {
                         "text": "pro hand -p true -s false -n false SIGCONT",
@@ -118,6 +120,7 @@
             "postDebugTask": "gazebo kill",
             "linux": {
                 "MIMode": "gdb",
+                "externalConsole": false,
                 "setupCommands": [
                     {
                         "description": "Enable pretty-printing for gdb",
@@ -133,6 +136,7 @@
             },
             "osx": {
                 "MIMode": "lldb",
+                "externalConsole": true,
                 "setupCommands": [
                     {
                         "text": "pro hand -p true -s false -n false SIGCONT",
