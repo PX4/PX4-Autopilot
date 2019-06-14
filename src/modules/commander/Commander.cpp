@@ -1537,7 +1537,7 @@ Commander::run()
 		}
 
 		if (offboard_control_mode.timestamp != 0 &&
-		    offboard_control_mode.timestamp + OFFBOARD_TIMEOUT > hrt_absolute_time()) {
+		    offboard_control_mode.timestamp + OFFBOARD_TIMEOUT > hrt_absolute_env_time()) {
 
 			if (status_flags.offboard_control_signal_lost) {
 
@@ -1561,7 +1561,7 @@ Commander::run()
 				} else {
 					/* wait for timeout if set */
 					status_flags.offboard_control_loss_timeout = offboard_control_mode.timestamp +
-							OFFBOARD_TIMEOUT + offboard_loss_timeout * 1e6f < hrt_absolute_time();
+							OFFBOARD_TIMEOUT + offboard_loss_timeout * 1e6f < hrt_absolute_env_time();
 				}
 
 				if (status_flags.offboard_control_loss_timeout) {
@@ -3831,6 +3831,12 @@ void Commander::data_link_check(bool &status_changed)
 
 		if (_telemetry_status_sub.copy(&telemetry)) {
 
+			// We need to overwrite the telemetry timestamp because we need to
+			// use the actual host time instead of the fake lockstep time.
+			// This is due to the fact that heartbeats arrive with the schedule
+			// of the ground station and not PX4.
+			telemetry.heartbeat_time = hrt_absolute_env_time();
+
 			// handle different radio types
 			switch (telemetry.type) {
 			case telemetry_status_s::LINK_TYPE_USB:
@@ -3846,7 +3852,7 @@ void Commander::data_link_check(bool &status_changed)
 						_high_latency_datalink_heartbeat = iridium_status.last_heartbeat;
 
 						if (status.high_latency_data_link_lost) {
-							if (hrt_elapsed_time(&_high_latency_datalink_lost) > (_param_com_hldl_reg_t.get() * 1_s)) {
+							if (hrt_elapsed_env_time(&_high_latency_datalink_lost) > (_param_com_hldl_reg_t.get() * 1_s)) {
 								status.high_latency_data_link_lost = false;
 								status_changed = true;
 							}
@@ -3919,7 +3925,7 @@ void Commander::data_link_check(bool &status_changed)
 	// GCS data link loss failsafe
 	if (!status.data_link_lost) {
 		if (_datalink_last_heartbeat_gcs != 0
-		    && hrt_elapsed_time(&_datalink_last_heartbeat_gcs) > (_param_com_dl_loss_t.get() * 1_s)) {
+		    && hrt_elapsed_env_time(&_datalink_last_heartbeat_gcs) > (_param_com_dl_loss_t.get() * 1_s)) {
 
 			status.data_link_lost = true;
 			status.data_link_lost_counter++;
@@ -3932,7 +3938,7 @@ void Commander::data_link_check(bool &status_changed)
 
 	// ONBOARD CONTROLLER data link loss failsafe (hard coded 5 seconds)
 	if ((_datalink_last_heartbeat_onboard_controller > 0)
-	    && (hrt_elapsed_time(&_datalink_last_heartbeat_onboard_controller) > 5_s)
+	    && (hrt_elapsed_env_time(&_datalink_last_heartbeat_onboard_controller) > 5_s)
 	    && !_onboard_controller_lost) {
 
 		mavlink_log_critical(&mavlink_log_pub, "Onboard controller lost");
@@ -3945,7 +3951,7 @@ void Commander::data_link_check(bool &status_changed)
 
 		//if avoidance never started
 		if (_datalink_last_heartbeat_avoidance_system == 0
-		    && hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > _param_com_oa_boot_t.get() * 1_s) {
+		    && hrt_elapsed_env_time(&_datalink_last_heartbeat_avoidance_system) > _param_com_oa_boot_t.get() * 1_s) {
 			if (!_print_avoidance_msg_once) {
 				mavlink_log_critical(&mavlink_log_pub, "Avoidance system not available");
 				_print_avoidance_msg_once = true;
@@ -3955,7 +3961,7 @@ void Commander::data_link_check(bool &status_changed)
 
 		//if heartbeats stop
 		if (!_avoidance_system_lost && (_datalink_last_heartbeat_avoidance_system > 0)
-		    && (hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > 5_s)) {
+		    && (hrt_elapsed_env_time(&_datalink_last_heartbeat_avoidance_system) > 5_s)) {
 			_avoidance_system_lost = true;
 			mavlink_log_critical(&mavlink_log_pub, "Avoidance system lost");
 			status_flags.avoidance_system_valid = false;
@@ -3990,8 +3996,8 @@ void Commander::data_link_check(bool &status_changed)
 
 	// high latency data link loss failsafe
 	if (_high_latency_datalink_heartbeat > 0
-	    && hrt_elapsed_time(&_high_latency_datalink_heartbeat) > (_param_com_hldl_loss_t.get() * 1_s)) {
-		_high_latency_datalink_lost = hrt_absolute_time();
+	    && hrt_elapsed_env_time(&_high_latency_datalink_heartbeat) > (_param_com_hldl_loss_t.get() * 1_s)) {
+		_high_latency_datalink_lost = hrt_absolute_env_time();
 
 		if (!status.high_latency_data_link_lost) {
 			status.high_latency_data_link_lost = true;
