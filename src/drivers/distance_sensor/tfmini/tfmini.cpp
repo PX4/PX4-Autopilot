@@ -790,6 +790,7 @@ $ tfmini stop
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
 	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
 	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 1, 25, "Sensor rotation - downward facing by default", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status","Driver status");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status","Print driver status");
@@ -853,8 +854,7 @@ extern "C" __EXPORT int tfmini_main(int argc, char *argv[])
 	}
 
 	// Print driver information.
-	if (!strcmp(argv[myoptind], "info") ||
-	    !strcmp(argv[myoptind], "status")) {
+	if (!strcmp(argv[myoptind], "status")) {
 		return tfmini::status();
 	}
 
