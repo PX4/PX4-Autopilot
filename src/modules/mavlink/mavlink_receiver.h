@@ -188,7 +188,7 @@ private:
 	void send_storage_information(int storage_id);
 
 	/**
-	 * @brief Checks for updated uORB parameters and updates the params if required.
+	 * @brief Updates the battery, optical flow, and flight ID subscribed parameters.
 	 */
 	void update_params();
 
