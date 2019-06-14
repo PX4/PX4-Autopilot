@@ -80,8 +80,21 @@ typedef struct hrt_call {
 
 /**
  * Get absolute time in [us] (does not wrap).
+ * This time is faked for simulation purposes.
  */
 __EXPORT extern hrt_abstime hrt_absolute_time(void);
+
+#ifdef __PX4_POSIX
+/**
+ * Get absolute time in [us] (does not wrap).
+ * This time won't be faked for simulation purposes but uses
+ * the host / environment time.
+ */
+__EXPORT extern hrt_abstime hrt_absolute_env_time(void);
+#else
+// On everything else but Posix this is always the same as hrt_absolute_time.
+#define hrt_absolute_env_time hrt_absolute_time
+#endif
 
 /**
  * Convert a timespec to absolute time.
@@ -103,6 +116,21 @@ static inline hrt_abstime hrt_elapsed_time(const hrt_abstime *then)
 {
 	return hrt_absolute_time() - *then;
 }
+
+#ifdef __PX4_POSIX
+/**
+ * This elapsed time won't be faked for simulation purposes but uses
+ * the host / environment time.
+ */
+static inline hrt_abstime hrt_elapsed_env_time(const hrt_abstime *then)
+{
+	return hrt_absolute_env_time() - *then;
+}
+#else
+// On everything else but Posix this is always the same as hrt_elapsed_time.
+#define hrt_elapsed_env_time hrt_elapsed_time
+#endif
+
 
 /**
  * Compute the delta between a timestamp taken in the past

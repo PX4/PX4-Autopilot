@@ -150,6 +150,25 @@ uint64_t hrt_system_time()
 #endif
 
 /*
+ * The absolute environment time can be used if the real host time is needed
+ * instead of the possibly faked time by lockstep.
+ *
+ * For instance this should be is used to check for timeouts of external
+ * messages which are sent at the rate of e.g. the ground station running on
+ * the normal clock while PX4 might be running faster on the lockstep clock.
+ */
+hrt_abstime hrt_absolute_env_time()
+{
+	struct timespec ts;
+	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
+#ifdef __PX4_QURT
+	return ts_to_abstime(&ts) + dsp_offset;
+#else
+	return ts_to_abstime(&ts);
+#endif
+}
+
+/*
  * Get absolute time.
  */
 hrt_abstime hrt_absolute_time()
@@ -159,15 +178,15 @@ hrt_abstime hrt_absolute_time()
 	const uint64_t abstime = lockstep_scheduler->get_absolute_time();
 	return abstime - px4_timestart_monotonic;
 #else // defined(ENABLE_LOCKSTEP_SCHEDULER)
-	struct timespec ts;
-	px4_clock_gettime(CLOCK_MONOTONIC, &ts);
-#ifdef __PX4_QURT
-	return ts_to_abstime(&ts) + dsp_offset;
-#else
-	return ts_to_abstime(&ts);
-#endif
+	return hrt_absolute_env_time();
 #endif // defined(ENABLE_LOCKSTEP_SCHEDULER)
 }
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+#define hrt_absolute_env_time hrt_absolute_time
+#else
+#define hrt_absolute_env_time hrt_absolute_time
+#endif
 
 #ifdef __PX4_QURT
 int hrt_set_absolute_time_offset(int32_t time_diff_us)
