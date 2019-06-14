@@ -303,6 +303,102 @@ pipeline {
           }
         }
 
+        stage('px4_fmu-v5_default (pixhawk 4)') {
+          agent {
+            label 'pixhawk_4'
+          }
+          steps {
+            script {
+              try {
+                sh 'export'
+                sh 'find /dev/serial'
+                unstash 'px4_fmu-v5_default'
+                sh './platforms/nuttx/Debug/jlink_gdb_upload.sh  build/px4_fmu-v5_default/px4_fmu-v5_default.elf'
+                sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
+                sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+              } catch (Exception err) {
+                  // always report passed for now
+                  currentBuild.result = 'SUCCESS'
+              }
+            } // script
+          }
+          options {
+            timeout(time: 600, unit: 'SECONDS')
+          }
+        }
+
+        stage('px4_fmu-v5_default (pixhawk 4 mini)') {
+          agent {
+            label 'pixhawk_4_mini'
+          }
+          steps {
+            script {
+              try {
+                sh 'export'
+                sh 'find /dev/serial'
+                unstash 'px4_fmu-v5_default'
+                sh './platforms/nuttx/Debug/jlink_gdb_upload.sh  build/px4_fmu-v5_default/px4_fmu-v5_default.elf'
+                sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
+                sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+              } catch (Exception err) {
+                  // always report passed for now
+                  currentBuild.result = 'SUCCESS'
+              }
+            } // script
+          }
+          options {
+            timeout(time: 600, unit: 'SECONDS')
+          }
+        }
+
+        stage('px4_fmu-v5_default (CUAV V5 Nano)') {
+          agent {
+            label 'cuav_v5_nano'
+          }
+          steps {
+            script {
+              try {
+                sh 'export'
+                sh 'find /dev/serial'
+                unstash 'px4_fmu-v5_default'
+                sh './platforms/nuttx/Debug/jlink_gdb_upload.sh  build/px4_fmu-v5_default/px4_fmu-v5_default.elf'
+                sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
+                sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+              } catch (Exception err) {
+                  // always report passed for now
+                  currentBuild.result = 'SUCCESS'
+              }
+            } // script
+          }
+          options {
+            timeout(time: 600, unit: 'SECONDS')
+          }
+        }
+
+        stage('px4_fmu-v5_default (CUAV V5+)') {
+          agent {
+            label 'cuav_v5_plus'
+          }
+          steps {
+            script {
+              try {
+                sh 'export'
+                sh 'find /dev/serial'
+                unstash 'px4_fmu-v5_default'
+                sh './platforms/nuttx/Debug/jlink_gdb_upload.sh  build/px4_fmu-v5_default/px4_fmu-v5_default.elf'
+                sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
+                sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+              } catch (Exception err) {
+                  // always report passed for now
+                  currentBuild.result = 'SUCCESS'
+              }
+            } // script
+          }
+          options {
+            timeout(time: 600, unit: 'SECONDS')
+          }
+        }
+
         stage('px4_fmu-v5_stackcheck') {
           agent {
             label 'px4_fmu-v5'
