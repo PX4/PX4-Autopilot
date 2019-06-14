@@ -111,20 +111,6 @@ private:
 	 * Perform a reading cycle; collect from the previous measurement
 	 * and start a new one.
 	 */
-	void cycle();
-
-	/**
-	 * Static trampoline from the workq context; because we don't have a
-	 * generic workq wrapper yet.
-	 *
-	 * @param arg Instance pointer for the driver that is polling.
-	 */
-	static void cycle_trampoline(void *arg);
-
-	/**
-	 * Perform a reading cycle; collect from the previous measurement
-	 * and start a new one.
-	 */
 	void Run() override;
 
 	/**
@@ -442,29 +428,12 @@ namespace cm8jl65
 
 CM8JL65	*g_dev;
 
-int info();
 int reset();
-int start(const char *port, uint8_t rotation);
+int start(const char *port, const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+int status();
 int stop();
 int test();
 int usage();
-
-/**
- * Print a little info about the driver.
- */
-int
-info()
-{
-	if (g_dev == nullptr) {
-		PX4_ERR("driver not running");
-		return PX4_ERROR;
-	}
-
-	printf("state @ %p\n", g_dev);
-	g_dev->print_info();
-
-	return PX4_OK;
-}
 
 /**
  * Reset the driver.
@@ -496,51 +465,63 @@ reset()
  * Start the driver.
  */
 int
-start(const char *port, uint8_t rotation)
+start(const char *port, const uint8_t rotation)
 {
-	int fd;
-
 	if (g_dev != nullptr) {
-		PX4_WARN("already started");
-		return -1;
+		PX4_INFO("already started");
+		return PX4_OK;
 	}
 
-	/* create the driver */
+	// Instantiate the driver.
 	g_dev = new CM8JL65(port, rotation);
 
 	if (g_dev == nullptr) {
-		goto fail;
+		PX4_ERR("object instantiate failed");
+		return PX4_ERROR;
 	}
 
-	if (OK != g_dev->init()) {
-		goto fail;
+	if (g_dev->init() != PX4_OK) {
+		PX4_ERR("driver start failed");
+		delete g_dev;
+		g_dev = nullptr;
+		return PX4_ERROR;
 	}
 
-	/* set the poll rate to default, starts automatic data collection */
-	fd = open(RANGE_FINDER0_DEVICE_PATH, 0);
+	// Set the poll rate to default, starts automatic data collection.
+	int fd = open(RANGE_FINDER0_DEVICE_PATH, 0);
 
 	if (fd < 0) {
-		PX4_ERR("device open fail (%i)", errno);
-		goto fail;
+		PX4_ERR("Opening device '%s' failed", port);
+		delete g_dev;
+		g_dev = nullptr;
+		return PX4_ERROR;
 	}
 
 	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		PX4_ERR("failed to set baudrate %d", B115200);
-		goto fail;
-	}
-
-	PX4_DEBUG("cm8jl65::start() succeeded");
-	return 0;
-
-fail:
-	PX4_DEBUG("cm8jl65::start() failed");
-
-	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
+		return PX4_ERROR;
 	}
 
-	return -1;
+	return PX4_OK;
+}
+
+/**
+ * Print the driver status.
+ */
+int
+status()
+{
+	if (g_dev == nullptr) {
+		PX4_ERR("driver not running");
+		return PX4_ERROR;
+	}
+
+	printf("state @ %p\n", g_dev);
+	g_dev->print_info();
+
+	return PX4_OK;
 }
 
 /**
@@ -551,12 +532,10 @@ int stop()
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
-
-	} else {
-		return -1;
+		return PX4_OK;
 	}
 
-	return 0;
+	return PX4_ERROR;
 }
 
 /**
@@ -630,7 +609,7 @@ usage()
 {
 	PX4_INFO("usage: cm8jl65 command [options]");
 	PX4_INFO("command:");
-	PX4_INFO("\tstart|stop|test|info");
+	PX4_INFO("\treset|start|status|stop|test");
 	PX4_INFO("options:");
 	PX4_INFO("\t-R --rotation (%d)", distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	PX4_INFO("\t-d --device_path");
@@ -671,9 +650,19 @@ extern "C" __EXPORT int cm8jl65_main(int argc, char *argv[])
 		return cm8jl65::usage();
 	}
 
+	// Reset the driver.
+	if (!strcmp(argv[myoptind], "reset")) {
+		return cm8jl65::reset();
+	}
+
 	// Start/load the driver.
 	if (!strcmp(argv[myoptind], "start")) {
 		return cm8jl65::start(device_path, rotation);
+	}
+
+	// Print driver information.
+	if (!strcmp(argv[myoptind], "status")) {
+		return cm8jl65::status();
 	}
 
 	// Stop the driver
@@ -684,16 +673,6 @@ extern "C" __EXPORT int cm8jl65_main(int argc, char *argv[])
 	// Test the driver/device.
 	if (!strcmp(argv[myoptind], "test")) {
 		return cm8jl65::test();
-	}
-
-	// Reset the driver.
-	if (!strcmp(argv[myoptind], "reset")) {
-		return cm8jl65::reset();
-	}
-
-	// Print driver information.
-	if (!strcmp(argv[myoptind], "info") || !strcmp(argv[myoptind], "status")) {
-		return cm8jl65::info();
 	}
 
 	return cm8jl65::usage();
