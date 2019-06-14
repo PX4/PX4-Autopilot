@@ -85,5 +85,6 @@
         "window.title": "${dirty} ${activeEditorMedium}${separator}${rootName}",
         "workbench.editor.highlightModifiedTabs": true,
         "workbench.settings.enableNaturalLanguageSearch": false,
-        "workbench.statusBar.feedback.visible": false
+        "workbench.statusBar.feedback.visible": false,
+        "git.ignoreLimitWarning": true
 }
