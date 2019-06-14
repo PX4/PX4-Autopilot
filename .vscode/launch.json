@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "SITL shell",
+            "name": "Debug SITL (shell)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
@@ -48,55 +48,7 @@
             }
         },
         {
-            "name": "SITL jmavsim iris",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${command:cmake.launchTargetPath}",
-            "args": [
-                "${workspaceFolder}/ROMFS/px4fmu_common",
-                "-s",
-                "etc/init.d-posix/rcS",
-                "-t",
-                "${workspaceFolder}/test_data"
-            ],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build/px4_sitl_default/tmp",
-            "environment": [
-                {
-                    "name": "PX4_SIM_MODEL",
-                    "value": "iris"
-                }
-            ],
-            "preLaunchTask": "jmavsim",
-            "postDebugTask": "jmavsim kill",
-            "linux": {
-                "MIMode": "gdb",
-                "externalConsole": false,
-                "setupCommands": [
-                    {
-                        "description": "Enable pretty-printing for gdb",
-                        "text": "-enable-pretty-printing",
-                        "ignoreFailures": true
-                    },
-                    {
-                        "description": "PX4 ignore wq signals",
-                        "text": "handle SIGCONT nostop noprint nopass",
-                        "ignoreFailures": true
-                    }
-                ]
-            },
-            "osx": {
-                "MIMode": "lldb",
-                "externalConsole": true,
-                "setupCommands": [
-                    {
-                        "text": "pro hand -p true -s false -n false SIGCONT",
-                    }
-                ]
-            }
-        },
-        {
-            "name": "SITL gazebo iris",
+            "name": "Debug SITL (gazebo iris)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
@@ -145,7 +97,55 @@
             }
         },
         {
-            "name": "px4_fmu-v2/v3/v4 (jlink)",
+            "name": "Debug SITL (jmavsim iris)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [
+                "${workspaceFolder}/ROMFS/px4fmu_common",
+                "-s",
+                "etc/init.d-posix/rcS",
+                "-t",
+                "${workspaceFolder}/test_data"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build/px4_sitl_default/tmp",
+            "environment": [
+                {
+                    "name": "PX4_SIM_MODEL",
+                    "value": "iris"
+                }
+            ],
+            "preLaunchTask": "jmavsim",
+            "postDebugTask": "jmavsim kill",
+            "linux": {
+                "MIMode": "gdb",
+                "externalConsole": false,
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description": "PX4 ignore wq signals",
+                        "text": "handle SIGCONT nostop noprint nopass",
+                        "ignoreFailures": true
+                    }
+                ]
+            },
+            "osx": {
+                "MIMode": "lldb",
+                "externalConsole": true,
+                "setupCommands": [
+                    {
+                        "text": "pro hand -p true -s false -n false SIGCONT",
+                    }
+                ]
+            }
+        },
+        {
+            "name": "Debug px4_fmu-v2/v3/v4 (jlink)",
             "device": "STM32F427VI",
             "svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/STM32F427.svd",
             "executable": "${command:cmake.launchTargetPath}",
@@ -165,7 +165,7 @@
             ]
         },
         {
-            "name": "px4_fmu-v4pro (jlink)",
+            "name": "Debug px4_fmu-v4pro (jlink)",
             "device": "STM32F469VI",
             "svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/STM32F469.svd",
             "executable": "${command:cmake.launchTargetPath}",
@@ -184,7 +184,7 @@
             ]
         },
         {
-            "name": "px4_fmu-v5 (jlink)",
+            "name": "Debug px4_fmu-v5 (jlink)",
             "device": "STM32F765VI",
             "svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/STM32F7x5.svd",
             "executable": "${command:cmake.launchTargetPath}",
