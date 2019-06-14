@@ -378,8 +378,8 @@ void Ekf::resetHeight()
 // align output filter states to match EKF states at the fusion time horizon
 void Ekf::alignOutputFilter()
 {
-	// calculate the quaternion delta between the output and EKF quaternions at the EKF fusion time horizon
-	Quatf q_delta = _output_sample_delayed.quat_nominal.inversed() *  _state.quat_nominal;
+	// calculate the quaternion rotation delta from the EKF to output observer states at the EKF fusion time horizon
+	Quatf q_delta = _state.quat_nominal * _output_sample_delayed.quat_nominal.inversed();
 	q_delta.normalize();
 
 	// calculate the velocity and position deltas between the output and EKF at the EKF fusion time horizon
@@ -388,16 +388,16 @@ void Ekf::alignOutputFilter()
 
 	// loop through the output filter state history and add the deltas
 	for (uint8_t i = 0; i < _output_buffer.get_length(); i++) {
-		_output_buffer[i].quat_nominal *= q_delta;
+		_output_buffer[i].quat_nominal = q_delta * _output_buffer[i].quat_nominal;
 		_output_buffer[i].quat_nominal.normalize();
 		_output_buffer[i].vel += vel_delta;
 		_output_buffer[i].pos += pos_delta;
 	}
 
-	_output_new.quat_nominal *= q_delta;
+	_output_new.quat_nominal = q_delta * _output_new.quat_nominal;
 	_output_new.quat_nominal.normalize();
 
-	_output_sample_delayed.quat_nominal *= q_delta;
+	_output_sample_delayed.quat_nominal = q_delta * _output_sample_delayed.quat_nominal;
 	_output_sample_delayed.quat_nominal.normalize();
 }
 
