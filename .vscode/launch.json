@@ -141,54 +141,62 @@
             }
         },
         {
-            "name": "px4_fmu-v2 (jlink) ",
+            "name": "px4_fmu-v2/v3/v4 (jlink)",
+            "device": "STM32F427VI",
+            "svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/STM32F427.svd",
             "executable": "${command:cmake.launchTargetPath}",
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "jlink",
-            "device": "STM32F427VI",
-            "svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/STM32F427.svd",
-            "interface": "swd"
-        },
-        {
-            "name": "px4_fmu-v3 (jlink)",
-            "executable": "${command:cmake.launchTargetPath}",
-            "request": "launch",
-            "type": "cortex-debug",
-            "servertype": "jlink",
-            "device": "STM32F427VI",
-            "svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/STM32F427.svd",
-            "interface": "swd"
-        },
-        {
-            "name": "px4_fmu-v4 (jlink)",
-            "executable": "${command:cmake.launchTargetPath}",
-            "request": "launch",
-            "type": "cortex-debug",
-            "servertype": "jlink",
-            "device": "STM32F427VI",
-            "svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/STM32F427.svd",
-            "interface": "swd"
+            "interface": "swd",
+            "cwd": "${workspaceRoot}",
+            "internalConsoleOptions": "openOnSessionStart",
+            "preLaunchCommands": [
+                "source ${workspaceRoot}/platforms/nuttx/Debug/PX4",
+                "source ${workspaceRoot}/platforms/nuttx/Debug/NuttX",
+                "source ${workspaceRoot}/platforms/nuttx/Debug/ARMv7M",
+                "set mem inaccessible-by-default off",
+                "set print pretty",
+                "showtasks",
+            ]
         },
         {
             "name": "px4_fmu-v4pro (jlink)",
+            "device": "STM32F469VI",
+            "svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/STM32F469.svd",
             "executable": "${command:cmake.launchTargetPath}",
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "jlink",
-            "device": "STM32F469VI",
-            "svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/STM32F469.svd",
-            "interface": "swd"
+            "interface": "swd",
+            "internalConsoleOptions": "openOnSessionStart",
+            "preLaunchCommands": [
+                "source ${workspaceRoot}/platforms/nuttx/Debug/PX4",
+                "source ${workspaceRoot}/platforms/nuttx/Debug/NuttX",
+                "source ${workspaceRoot}/platforms/nuttx/Debug/ARMv7M",
+                "set mem inaccessible-by-default off",
+                "set print pretty",
+                "showtasks",
+            ]
         },
         {
             "name": "px4_fmu-v5 (jlink)",
+            "device": "STM32F765VI",
+            "svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/STM32F7x5.svd",
             "executable": "${command:cmake.launchTargetPath}",
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "jlink",
-            "device": "STM32F765VI",
-            "svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/STM32F7x5.svd",
-            "interface": "swd"
-        },
+            "interface": "swd",
+            "internalConsoleOptions": "openOnSessionStart",
+            "preLaunchCommands": [
+                "source ${workspaceRoot}/platforms/nuttx/Debug/PX4",
+                "source ${workspaceRoot}/platforms/nuttx/Debug/NuttX",
+                "source ${workspaceRoot}/platforms/nuttx/Debug/ARMv7M",
+                "set mem inaccessible-by-default off",
+                "set print pretty",
+                "showtasks",
+            ]
+        }
     ]
 }
