@@ -10,22 +10,38 @@ def do_test(port, baudrate, test_name):
     databits = serial.EIGHTBITS
     stopbits = serial.STOPBITS_ONE
     parity = serial.PARITY_NONE
-    ser = serial.Serial(port, baudrate, databits, parity, stopbits, 100)
+    ser = serial.Serial(port, baudrate, databits, parity, stopbits, timeout=10)
+
     ser.write('\n\n')
 
     finished = 0
+    success = False
+
+    timeout = 10  # 10 seconds
+    timeout_start = time.time()
+
     while finished == 0:
         serial_line = ser.readline()
         print(serial_line.replace('\n',''))
 
         if "nsh>" in serial_line:
             finished = 1
-        time.sleep(0.05)
 
+        if time.time() > timeout_start + timeout:
+            print("Error, timeout")
+            finished = 1
+            break
+
+
+    # run test
     ser.write('tests ' + test_name + '\n')
+    time.sleep(0.05)
 
     finished = 0
-    success = False
+    timeout = 300  # 5 minutes
+    timeout_start = time.time()
+    timeout_newline = time.time()
+
     while finished == 0:
         serial_line = ser.readline()
         print(serial_line.replace('\n',''))
@@ -37,7 +53,17 @@ def do_test(port, baudrate, test_name):
             finished = 1
             success = False
 
-        time.sleep(0.05)
+        if time.time() > timeout_start + timeout:
+            print("Error, timeout")
+            print(test_name + " FAILED")
+            finished = 1
+            success = False
+            break
+
+        # newline every 30 seconds if still running
+        if time.time() - timeout_newline > 30:
+            ser.write('\n')
+            timeout_newline = time.time()
 
     ser.close()
 
