@@ -36,7 +36,6 @@ px4_add_module(
 	STACK_MAIN 1400
 	SRCS
 		cm8jl65.cpp
-		cm8jl65_parser.cpp
   MODULE_CONFIG
 	  module.yaml
 	)
