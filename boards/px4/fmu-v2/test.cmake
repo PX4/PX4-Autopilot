@@ -6,7 +6,7 @@ px4_add_board(
 	LABEL test
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
-	ROMFSROOT px4fmu_test
+	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
 	TESTING
 	#UAVCAN_INTERFACES 2
@@ -23,9 +23,9 @@ px4_add_board(
 		#batt_smbus
 		camera_trigger
 		#differential_pressure # all available differential pressure drivers
-		differential_pressure/ms4525
+		#differential_pressure/ms4525
 		#distance_sensor # all available distance sensor drivers
-		distance_sensor/ll40ls
+		#distance_sensor/ll40ls
 		distance_sensor/sf0x
 		gps
 		#heater
@@ -34,7 +34,7 @@ px4_add_board(
 		imu/l3gd20
 		imu/lsm303d
 		imu/mpu6000
-		imu/mpu9250
+		#imu/mpu9250
 		#iridiumsbd
 		#irlock
 		#lights/blinkm
@@ -44,7 +44,7 @@ px4_add_board(
 		magnetometer/hmc5883
 		#mkblctrl
 		#optical_flow # all available optical flow drivers
-		optical_flow/px4flow
+		#optical_flow/px4flow
 		#pca9685
 		#protocol_splitter
 		#pwm_input
@@ -62,27 +62,27 @@ px4_add_board(
 
 	MODULES
 		#attitude_estimator_q
-		camera_feedback
+		#camera_feedback
 		commander
 		dataman
 		#ekf2
-		events
+		#events
 		#fw_att_control
 		#fw_pos_control_l1
 		#gnd_att_control
 		#gnd_pos_control
 		land_detector
-		landing_target_estimator
+		#landing_target_estimator
 		load_mon
 		#local_position_estimator
 		logger
 		mavlink
-		mc_att_control
+		#mc_att_control
 		mc_pos_control
 		navigator
 		sensors
 		vmount
-		vtol_att_control
+		#vtol_att_control
 		#wind_estimator
 
 	SYSTEMCMDS

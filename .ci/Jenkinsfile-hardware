@@ -20,10 +20,10 @@ pipeline {
             sh 'make distclean'
             sh 'ccache -z'
             sh 'git fetch --tags'
-            sh 'make px4_fmu-v2_default'
+            sh 'make px4_fmu-v2_test'
             sh 'make sizes'
             sh 'ccache -s'
-            stash includes: 'build/px4_fmu-v2_default/px4_fmu-v2_default.elf', name: 'px4_fmu-v2_test'
+            stash includes: 'build/px4_fmu-v2_test/px4_fmu-v2_test.elf', name: 'px4_fmu-v2_test'
           }
           post {
             always {
