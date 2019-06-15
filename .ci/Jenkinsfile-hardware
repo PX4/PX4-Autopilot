@@ -222,6 +222,7 @@ pipeline {
             // status commands
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dmesg"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "free"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /dev"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /obj"'
@@ -232,6 +233,7 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf latency"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ps"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "pwm info"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sensors status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "top once"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
@@ -259,6 +261,7 @@ pipeline {
             // status commands
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dmesg"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "free"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /dev"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /obj"'
@@ -269,6 +272,7 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf latency"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ps"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "pwm info"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sensors status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "top once"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
@@ -296,6 +300,7 @@ pipeline {
             // status commands
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dmesg"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "free"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /dev"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /obj"'
@@ -306,6 +311,7 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf latency"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ps"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "pwm info"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sensors status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "top once"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
@@ -333,6 +339,7 @@ pipeline {
             // status commands
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dmesg"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "free"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /dev"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /obj"'
@@ -343,6 +350,7 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf latency"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ps"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "pwm info"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sensors status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "top once"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
@@ -370,6 +378,7 @@ pipeline {
             // status commands
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dmesg"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "free"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /dev"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /obj"'
@@ -380,6 +389,7 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf latency"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ps"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "pwm info"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sensors status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "top once"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
@@ -407,6 +417,7 @@ pipeline {
             // status commands
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dmesg"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "free"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /dev"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /obj"'
@@ -417,6 +428,7 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf latency"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ps"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "pwm info"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sensors status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "top once"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
@@ -444,6 +456,7 @@ pipeline {
             // status commands
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dmesg"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "free"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /dev"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /obj"'
@@ -454,6 +467,7 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf latency"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ps"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "pwm info"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sensors status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "top once"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
@@ -501,8 +515,10 @@ pipeline {
             // flash board and watch bootup
             sh './platforms/nuttx/Debug/jlink_gdb_upload.sh build/nxp_fmuk66-v3_default/nxp_fmuk66-v3_default.elf'
             sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
-            // commands
+            // status commands
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dmesg"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "free"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /dev"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /obj"'
@@ -513,6 +529,7 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf latency"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ps"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "pwm info"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sensors status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "top once"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
