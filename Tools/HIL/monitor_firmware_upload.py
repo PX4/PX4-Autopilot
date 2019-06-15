@@ -14,7 +14,7 @@ def monitor_firmware_upload(port, baudrate):
 
     finished = 0
 
-    timeout = 60  # 60 seconds
+    timeout = 300  # 5 minutes
     timeout_start = time.time()
     timeout_newline = time.time()
 

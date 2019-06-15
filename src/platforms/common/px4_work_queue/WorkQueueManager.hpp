@@ -62,8 +62,8 @@ static constexpr wq_config_t I2C2{"wq:I2C2", 1250, -8};
 static constexpr wq_config_t I2C3{"wq:I2C3", 1250, -9};
 static constexpr wq_config_t I2C4{"wq:I2C4", 1250, -10};
 
-static constexpr wq_config_t hp_default{"wq:hp_default", 1250, -11};
-static constexpr wq_config_t lp_default{"wq:lp_default", 1250, -50};
+static constexpr wq_config_t hp_default{"wq:hp_default", 1500, -11};
+static constexpr wq_config_t lp_default{"wq:lp_default", 1500, -50};
 
 static constexpr wq_config_t test1{"wq:test1", 800, 0};
 static constexpr wq_config_t test2{"wq:test2", 800, 0};
