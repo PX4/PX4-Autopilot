@@ -26,11 +26,11 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		gps
 		#heater
-		imu/adis16448
+		#imu/adis16448
 		#imu # all available imu drivers
-		imu/bmi055
+		#imu/bmi055
 		imu/mpu6000
-		imu/mpu9250
+		#imu/mpu9250
 		#irlock
 		#lights/blinkm
 		#lights/oreoled
