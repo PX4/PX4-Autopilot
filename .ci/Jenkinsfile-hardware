@@ -411,7 +411,7 @@ pipeline {
                 unstash 'px4_fmu-v5_stackcheck'
                 sh './platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf'
                 sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
-                sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+                // sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`' // TODO: currently unusably slow
               } catch (Exception err) {
                   // always report passed for now
                   currentBuild.result = 'SUCCESS'
