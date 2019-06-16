@@ -427,12 +427,7 @@ Navigator::run()
 
 				_vroi.timestamp = hrt_absolute_time();
 
-				if (_vehicle_roi_pub != nullptr) {
-					orb_publish(ORB_ID(vehicle_roi), _vehicle_roi_pub, &_vroi);
-
-				} else {
-					_vehicle_roi_pub = orb_advertise(ORB_ID(vehicle_roi), &_vroi);
-				}
+				_vehicle_roi_pub.publish(_vroi);
 
 				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 			}
@@ -473,7 +468,7 @@ Navigator::run()
 				_geofence_violation_warning_sent = false;
 			}
 
-			publish_geofence_result();
+			_geofence_result_pub.publish(_geofence_result);
 		}
 
 		/* Do stuff according to navigation state set by commander */
@@ -746,12 +741,7 @@ Navigator::publish_position_setpoint_triplet()
 	_pos_sp_triplet.timestamp = hrt_absolute_time();
 
 	/* lazily publish the position setpoint triplet only once available */
-	if (_pos_sp_triplet_pub != nullptr) {
-		orb_publish(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_pub, &_pos_sp_triplet);
-
-	} else {
-		_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet), &_pos_sp_triplet);
-	}
+	_pos_sp_triplet_pub.publish(_pos_sp_triplet);
 
 	_pos_sp_triplet_updated = false;
 }
@@ -771,7 +761,7 @@ Navigator::get_acceptance_radius()
 float
 Navigator::get_default_altitude_acceptance_radius()
 {
-	if (!get_vstatus()->is_rotary_wing) {
+	if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		return _param_nav_fw_alt_rad.get();
 
 	} else {
@@ -791,7 +781,7 @@ Navigator::get_default_altitude_acceptance_radius()
 float
 Navigator::get_altitude_acceptance_radius()
 {
-	if (!get_vstatus()->is_rotary_wing) {
+	if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		const position_setpoint_s &next_sp = get_position_setpoint_triplet()->next;
 
 		if (next_sp.type == position_setpoint_s::SETPOINT_TYPE_LAND && next_sp.valid) {
@@ -807,7 +797,7 @@ float
 Navigator::get_cruising_speed()
 {
 	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
-	if (_vstatus.is_rotary_wing) {
+	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		if (is_planned_mission() && _mission_cruising_speed_mc > 0.0f) {
 			return _mission_cruising_speed_mc;
 
@@ -828,7 +818,7 @@ Navigator::get_cruising_speed()
 void
 Navigator::set_cruising_speed(float speed)
 {
-	if (_vstatus.is_rotary_wing) {
+	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		_mission_cruising_speed_mc = speed;
 
 	} else {
@@ -1079,39 +1069,8 @@ bool
 Navigator::force_vtol()
 {
 	return _vstatus.is_vtol &&
-	       (!_vstatus.is_rotary_wing || _vstatus.in_transition_to_fw)
+	       (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING || _vstatus.in_transition_to_fw)
 	       && _param_nav_force_vt.get();
-}
-
-int Navigator::print_usage(const char *reason)
-{
-	if (reason) {
-		PX4_WARN("%s\n", reason);
-	}
-
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Module that is responsible for autonomous flight modes. This includes missions (read from dataman),
-takeoff and RTL.
-It is also responsible for geofence violation checking.
-
-### Implementation
-The different internal modes are implemented as separate classes that inherit from a common base class `NavigatorMode`.
-The member `_navigation_mode` contains the current active mode.
-
-Navigator publishes position setpoint triplets (`position_setpoint_triplet_s`), which are then used by the position
-controller.
-
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("navigator", "controller");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("fencefile", "load a geofence file from SD card, stored at etc/geofence.txt");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("fake_traffic", "publishes 3 fake transponder_report_s uORB messages");
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
-	return 0;
 }
 
 int Navigator::custom_command(int argc, char *argv[])
@@ -1146,14 +1105,7 @@ Navigator::publish_mission_result()
 	_mission_result.timestamp = hrt_absolute_time();
 
 	/* lazily publish the mission result only once available */
-	if (_mission_result_pub != nullptr) {
-		/* publish mission result */
-		orb_publish(ORB_ID(mission_result), _mission_result_pub, &_mission_result);
-
-	} else {
-		/* advertise and publish */
-		_mission_result_pub = orb_advertise(ORB_ID(mission_result), &_mission_result);
-	}
+	_mission_result_pub.publish(_mission_result);
 
 	/* reset some of the flags */
 	_mission_result.item_do_jump_changed = false;
@@ -1161,20 +1113,6 @@ Navigator::publish_mission_result()
 	_mission_result.item_do_jump_remaining = 0;
 
 	_mission_result_updated = false;
-}
-
-void
-Navigator::publish_geofence_result()
-{
-	/* lazily publish the geofence result only once available */
-	if (_geofence_result_pub != nullptr) {
-		/* publish mission result */
-		orb_publish(ORB_ID(geofence_result), _geofence_result_pub, &_geofence_result);
-
-	} else {
-		/* advertise and publish */
-		_geofence_result_pub = orb_advertise(ORB_ID(geofence_result), &_geofence_result);
-	}
 }
 
 void
@@ -1242,4 +1180,35 @@ Navigator::publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t res
 		_vehicle_cmd_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
 				       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
 	}
+}
+
+int Navigator::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Module that is responsible for autonomous flight modes. This includes missions (read from dataman),
+takeoff and RTL.
+It is also responsible for geofence violation checking.
+
+### Implementation
+The different internal modes are implemented as separate classes that inherit from a common base class `NavigatorMode`.
+The member `_navigation_mode` contains the current active mode.
+
+Navigator publishes position setpoint triplets (`position_setpoint_triplet_s`), which are then used by the position
+controller.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("navigator", "controller");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("fencefile", "load a geofence file from SD card, stored at etc/geofence.txt");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("fake_traffic", "publishes 3 fake transponder_report_s uORB messages");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
 }

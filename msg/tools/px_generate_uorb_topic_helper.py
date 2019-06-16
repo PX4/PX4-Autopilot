@@ -33,7 +33,7 @@
 #############################################################################
 
 '''
-Helper methods & common code for the uorb message templates msg.{cpp,h}.template
+Helper methods & common code for the uorb message templates msg.{cpp,h}.em
 
 Another positive effect of having the code here, is that this file will get
 precompiled and thus message generation will be much faster

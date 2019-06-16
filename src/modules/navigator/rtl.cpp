@@ -318,7 +318,8 @@ RTL::advance_rtl()
 			_rtl_state = RTL_STATE_LAND;
 		}
 
-		if (_navigator->get_vstatus()->is_vtol && !_navigator->get_vstatus()->is_rotary_wing) {
+		if (_navigator->get_vstatus()->is_vtol
+		    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 			_rtl_state = RTL_STATE_TRANSITION_TO_MC;
 		}
 

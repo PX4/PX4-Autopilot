@@ -96,7 +96,7 @@ public:
 	/**
 	 * Get the work queue going.
 	 */
-	int start();
+	void start();
 
 protected:
 

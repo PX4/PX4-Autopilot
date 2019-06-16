@@ -298,7 +298,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 	case commander_state_s::MAIN_STATE_ORBIT:
 
 		/* Follow and orbit only implemented for multicopter */
-		if (status.is_rotary_wing) {
+		if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -339,7 +339,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 		/* need local and global position, and precision land only implemented for multicopters */
 		if (status_flags.condition_local_position_valid
 		    && status_flags.condition_global_position_valid
-		    && status.is_rotary_wing) {
+		    && status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
 			ret = TRANSITION_CHANGED;
 		}
@@ -469,7 +469,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 			} else if (is_armed
 				   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, !(posctl_nav_loss_act == 1),
-						   !status->is_rotary_wing)) {
+						   status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
 				// nothing to do - everything done in check_invalid_pos_nav_state
 
 			} else {
@@ -691,7 +691,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 
 				} else if (status_flags.condition_local_altitude_valid) {
-					if (status->is_rotary_wing) {
+					//TODO: Add case for rover
+					if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 						status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
 					} else {
@@ -730,7 +731,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
 				} else if (status_flags.condition_local_altitude_valid) {
-					if (status->is_rotary_wing) {
+					if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 						status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
 					} else {
@@ -747,7 +748,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 
 				} else if (status_flags.condition_local_altitude_valid) {
-					if (status->is_rotary_wing) {
+					if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 						status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
 					} else {
@@ -788,7 +789,8 @@ bool check_invalid_pos_nav_state(vehicle_status_s *status, bool old_failsafe, or
 	if (fallback_required) {
 		if (use_rc) {
 			// fallback to a mode that gives the operator stick control
-			if (status->is_rotary_wing && status_flags.condition_local_position_valid) {
+			if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+			    && status_flags.condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
 
 			} else if (status_flags.condition_local_altitude_valid) {
@@ -804,7 +806,7 @@ bool check_invalid_pos_nav_state(vehicle_status_s *status, bool old_failsafe, or
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
 			} else  if (status_flags.condition_local_altitude_valid) {
-				if (status->is_rotary_wing) {
+				if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
 				} else {
@@ -869,7 +871,7 @@ void set_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
 			return;
 
 		} else {
-			if (status->is_rotary_wing) {
+			if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 				if (status_flags.condition_local_position_valid) {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 					return;

@@ -83,7 +83,8 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 	failed = failed || !checkHomePositionAltitude(mission, home_alt, home_alt_valid, warned);
 
 	// VTOL always respects rotary wing feasibility
-	if (_navigator->get_vstatus()->is_rotary_wing || _navigator->get_vstatus()->is_vtol) {
+	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+	    || _navigator->get_vstatus()->is_vtol) {
 		failed = failed || !checkRotarywing(mission, home_alt);
 
 	} else {

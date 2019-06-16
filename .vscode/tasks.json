@@ -93,5 +93,14 @@
             "command": "killall gzserver",
             "problemMatcher": []
         },
+        {
+            "label": "mavlink shell",
+            "type": "shell",
+            "command": "./Tools/mavlink_shell.py",
+            "options": {
+                "cwd": "${workspaceRoot}"
+            },
+            "problemMatcher": []
+        }
     ]
 }

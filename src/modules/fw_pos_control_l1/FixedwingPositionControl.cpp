@@ -716,7 +716,7 @@ FixedwingPositionControl::update_desired_altitude(float dt)
 	}
 
 	if (_vehicle_status.is_vtol) {
-		if (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode) {
+		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || _vehicle_status.in_transition_mode) {
 			_hold_alt = _global_pos.alt;
 		}
 	}
@@ -764,7 +764,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 	_l1_control.set_dt(dt);
 
 	/* only run position controller in fixed-wing mode and during transitions for VTOL */
-	if (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
+	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !_vehicle_status.in_transition_mode) {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 		return false;
 	}
@@ -1799,7 +1799,8 @@ FixedwingPositionControl::run()
 					}
 
 					// only publish status in full FW mode
-					if (!_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
+					if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+					    && !_vehicle_status.in_transition_mode) {
 						status_publish();
 					}
 				}
@@ -1869,7 +1870,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	// (it should also not run during VTOL blending because airspeed is too low still)
 	if (_vehicle_status.is_vtol) {
-		if (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode) {
+		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || _vehicle_status.in_transition_mode) {
 			run_tecs = false;
 		}
 

@@ -275,18 +275,17 @@ private:
 	uORB::Subscription _gps_subs[GPS_MAX_RECEIVERS] {{ORB_ID(vehicle_gps_position), 0}, {ORB_ID(vehicle_gps_position), 1}};
 	int _gps_orb_instance{ -1};
 
-	orb_advert_t _att_pub{nullptr};
-	orb_advert_t _wind_pub{nullptr};
-	orb_advert_t _estimator_status_pub{nullptr};
-	orb_advert_t _ekf_gps_drift_pub{nullptr};
-	orb_advert_t _estimator_innovations_pub{nullptr};
-	orb_advert_t _ekf2_timestamps_pub{nullptr};
-	orb_advert_t _sensor_bias_pub{nullptr};
-	orb_advert_t _blended_gps_pub{nullptr};
-
-	uORB::Publication<vehicle_local_position_s> _vehicle_local_position_pub;
-	uORB::Publication<vehicle_global_position_s> _vehicle_global_position_pub;
-	uORB::Publication<vehicle_odometry_s> _vehicle_odometry_pub;
+	uORB::Publication<ekf2_innovations_s>			_estimator_innovations_pub{ORB_ID(ekf2_innovations)};
+	uORB::Publication<ekf2_timestamps_s>			_ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
+	uORB::Publication<ekf_gps_drift_s>			_ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
+	uORB::Publication<ekf_gps_position_s>			_blended_gps_pub{ORB_ID(ekf_gps_position)};
+	uORB::Publication<estimator_status_s>			_estimator_status_pub{ORB_ID(estimator_status)};
+	uORB::Publication<sensor_bias_s>			_sensor_bias_pub{ORB_ID(sensor_bias)};
+	uORB::Publication<vehicle_attitude_s>			_att_pub{ORB_ID(vehicle_attitude)};
+	uORB::Publication<vehicle_odometry_s>			_vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
+	uORB::Publication<wind_estimate_s>			_wind_pub{ORB_ID(wind_estimate)};
+	uORB::PublicationData<vehicle_global_position_s>	_vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
+	uORB::PublicationData<vehicle_local_position_s>		_vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
 
 	Ekf _ekf;
 
@@ -535,9 +534,6 @@ Ekf2::Ekf2():
 	ModuleParams(nullptr),
 	_perf_update_data(perf_alloc_once(PC_ELAPSED, "EKF2 data acquisition")),
 	_perf_ekf_update(perf_alloc_once(PC_ELAPSED, "EKF2 update")),
-	_vehicle_local_position_pub(ORB_ID(vehicle_local_position)),
-	_vehicle_global_position_pub(ORB_ID(vehicle_global_position)),
-	_vehicle_odometry_pub(ORB_ID(vehicle_odometry)),
 	_params(_ekf.getParamHandle()),
 	_param_ekf2_min_obs_dt(_params->sensor_interval_min_ms),
 	_param_ekf2_mag_delay(_params->mag_delay_ms),
@@ -755,11 +751,14 @@ void Ekf2::run()
 
 		// update all other topics if they have new data
 		if (_status_sub.update(&vehicle_status)) {
+
+			bool is_fixed_wing = vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+
 			// only fuse synthetic sideslip measurements if conditions are met
-			_ekf.set_fuse_beta_flag(!vehicle_status.is_rotary_wing && (_param_ekf2_fuse_beta.get() == 1));
+			_ekf.set_fuse_beta_flag(is_fixed_wing && (_param_ekf2_fuse_beta.get() == 1));
 
 			// let the EKF know if the vehicle motion is that of a fixed wing (forward flight only relative to wind)
-			_ekf.set_is_fixed_wing(!vehicle_status.is_rotary_wing);
+			_ekf.set_is_fixed_wing(is_fixed_wing);
 		}
 
 		// Always update sensor selction first time through if time stamp is non zero
@@ -1066,7 +1065,7 @@ void Ekf2::run()
 				gps.selected = _gps_select_index;
 
 				// Publish to the EKF blended GPS topic
-				orb_publish_auto(ORB_ID(ekf_gps_position), &_blended_gps_pub, &gps, &_gps_orb_instance, ORB_PRIO_LOW);
+				_blended_gps_pub.publish(gps);
 
 				// clear flag to avoid re-use of the same data
 				_gps_new_output_data = false;
@@ -1258,7 +1257,7 @@ void Ekf2::run()
 				vehicle_local_position_s &lpos = _vehicle_local_position_pub.get();
 
 				// generate vehicle odometry data
-				vehicle_odometry_s &odom = _vehicle_odometry_pub.get();
+				vehicle_odometry_s odom{};
 
 				lpos.timestamp = now;
 				odom.timestamp = lpos.timestamp;
@@ -1438,7 +1437,7 @@ void Ekf2::run()
 				_vehicle_local_position_pub.update();
 
 				// publish vehicle odometry data
-				_vehicle_odometry_pub.update();
+				_vehicle_odometry_pub.publish(odom);
 
 				if (_ekf.global_position_is_valid() && !_preflt_fail) {
 					// generate and publish global position data
@@ -1509,12 +1508,7 @@ void Ekf2::run()
 				bias.accel_y = sensors.accelerometer_m_s2[1] - accel_bias[1];
 				bias.accel_z = sensors.accelerometer_m_s2[2] - accel_bias[2];
 
-				if (_sensor_bias_pub == nullptr) {
-					_sensor_bias_pub = orb_advertise(ORB_ID(sensor_bias), &bias);
-
-				} else {
-					orb_publish(ORB_ID(sensor_bias), _sensor_bias_pub, &bias);
-				}
+				_sensor_bias_pub.publish(bias);
 			}
 
 			// publish estimator status
@@ -1543,12 +1537,7 @@ void Ekf2::run()
 			status.timeout_flags = 0.0f; // unused
 			status.pre_flt_fail = _preflt_fail;
 
-			if (_estimator_status_pub == nullptr) {
-				_estimator_status_pub = orb_advertise(ORB_ID(estimator_status), &status);
-
-			} else {
-				orb_publish(ORB_ID(estimator_status), _estimator_status_pub, &status);
-			}
+			_estimator_status_pub.publish(status);
 
 			// publish GPS drift data only when updated to minimise overhead
 			float gps_drift[3];
@@ -1562,12 +1551,7 @@ void Ekf2::run()
 				drift_data.hspd = gps_drift[2];
 				drift_data.blocked = blocked;
 
-				if (_ekf_gps_drift_pub == nullptr) {
-					_ekf_gps_drift_pub = orb_advertise(ORB_ID(ekf_gps_drift), &drift_data);
-
-				} else {
-					orb_publish(ORB_ID(ekf_gps_drift), _ekf_gps_drift_pub, &drift_data);
-				}
+				_ekf_gps_drift_pub.publish(drift_data);
 			}
 
 			{
@@ -1690,7 +1674,7 @@ void Ekf2::run()
 
 					float yaw_test_limit;
 
-					if (doing_ne_aiding && vehicle_status.is_rotary_wing) {
+					if (doing_ne_aiding && vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 						// use a smaller tolerance when doing NE inertial frame aiding as a rotary wing
 						// vehicle which cannot use GPS course to realign heading in flight
 						yaw_test_limit = _nav_yaw_innov_test_lim;
@@ -1732,23 +1716,12 @@ void Ekf2::run()
 					_preflt_fail = false;
 				}
 
-				if (_estimator_innovations_pub == nullptr) {
-					_estimator_innovations_pub = orb_advertise(ORB_ID(ekf2_innovations), &innovations);
-
-				} else {
-					orb_publish(ORB_ID(ekf2_innovations), _estimator_innovations_pub, &innovations);
-				}
+				_estimator_innovations_pub.publish(innovations);
 			}
-
 		}
 
 		// publish ekf2_timestamps
-		if (_ekf2_timestamps_pub == nullptr) {
-			_ekf2_timestamps_pub = orb_advertise(ORB_ID(ekf2_timestamps), &ekf2_timestamps);
-
-		} else {
-			orb_publish(ORB_ID(ekf2_timestamps), _ekf2_timestamps_pub, &ekf2_timestamps);
-		}
+		_ekf2_timestamps_pub.publish(ekf2_timestamps);
 	}
 }
 
@@ -1788,18 +1761,15 @@ bool Ekf2::publish_attitude(const sensor_combined_s &sensors, const hrt_abstime 
 		att.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
 		att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
 
-		int instance;
-		orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &instance, ORB_PRIO_HIGH);
+		_att_pub.publish(att);
 
 		return true;
 
 	}  else if (_replay_mode) {
 		// in replay mode we have to tell the replay module not to wait for an update
 		// we do this by publishing an attitude with zero timestamp
-		vehicle_attitude_s att = {};
-
-		int instance;
-		orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &instance, ORB_PRIO_HIGH);
+		vehicle_attitude_s att{};
+		_att_pub.publish(att);
 	}
 
 	return false;
@@ -1822,8 +1792,7 @@ bool Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
 		wind_estimate.variance_north = wind_var[0];
 		wind_estimate.variance_east = wind_var[1];
 
-		int instance;
-		orb_publish_auto(ORB_ID(wind_estimate), &_wind_pub, &wind_estimate, &instance, ORB_PRIO_DEFAULT);
+		_wind_pub.publish(wind_estimate);
 
 		return true;
 	}

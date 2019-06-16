@@ -68,7 +68,7 @@ private:
 
 	void configure_filter(float cutoff_freq) { _filter.set_cutoff_frequency(_sample_rate, cutoff_freq); }
 
-	uORB::Publication<sensor_gyro_s>	_sensor_gyro_pub;
+	uORB::PublicationData<sensor_gyro_s>	_sensor_gyro_pub;
 
 	math::LowPassFilter2pVector3f _filter{1000, 100};
 	Integrator _integrator{4000, true};
