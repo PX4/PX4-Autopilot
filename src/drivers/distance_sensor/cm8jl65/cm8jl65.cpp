@@ -157,8 +157,6 @@ public:
 	 */
 	virtual int  init() override;
 
-	virtual int  ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
-
 	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
@@ -218,7 +216,6 @@ private:
 
 	unsigned char _frame_data[PARSER_BUF_LENGTH] {START_FRAME_DIGIT1, START_FRAME_DIGIT2, 0, 0};
 
-	int _class_instance{-1};
 	int _measure_interval{CM8JL65_MEASURE_INTERVAL};
 	int _file_descriptor{-1};
 	int _orb_class_instance{-1};
@@ -231,8 +228,6 @@ private:
 
 	float _max_distance{9.0f};
 	float _min_distance{0.10f};
-
-	ringbuffer::RingBuffer *_reports{nullptr};
 
 	CM8JL65_PARSE_STATE _parse_state{WAITING_FRAME};
 
@@ -259,16 +254,6 @@ CM8JL65::~CM8JL65()
 {
 	// Ensure we are truly inactive.
 	stop();
-
-	// Free any existing reports.
-	if (_reports != nullptr) {
-		delete _reports;
-	}
-
-	// Unregister the device class name.
-	if (_class_instance != -1) {
-		unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_instance);
-	}
 
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
@@ -356,8 +341,6 @@ CM8JL65::collect()
 	// Publish the new report.
 	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
 
-	_reports->force(&report);
-
 	// Notify anyone waiting for data.
 	poll_notify(POLLIN);
 	perf_end(_sample_perf);
@@ -442,16 +425,6 @@ CM8JL65::init()
 		return PX4_ERROR;
 	}
 
-	// Allocate basic report buffers.
-	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
-
-	if (_reports == nullptr) {
-		PX4_ERR("alloc failed");
-		return PX4_ERROR;
-	}
-
-	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
-
 	// Get a publish handle on the range finder topic.
 	distance_sensor_s ds_report = {};
 	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
@@ -461,50 +434,8 @@ CM8JL65::init()
 		PX4_ERR("failed to create distance_sensor object");
 	}
 
+	start();
 	return PX4_OK;
-}
-
-int
-CM8JL65::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-
-	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
-
-			// Zero would be bad.
-			case 0:
-				return -EINVAL;
-
-			// Set default polling rate.
-			case SENSOR_POLLRATE_DEFAULT: {
-					start();
-					return OK;
-				}
-
-			// Adjust to a legal polling interval in Hz.
-			default: {
-
-					// Convert hz to tick interval via microseconds.
-					int interval = (1000000 / arg);
-
-					// Check against maximum rate.
-					if (interval < _measure_interval) {
-						return -EINVAL;
-					}
-
-					start();
-
-
-					return OK;
-				}
-			}
-		}
-
-	default:
-		// give it to the superclass.
-		return CDev::ioctl(filp, cmd, arg);
-	}
 }
 
 int
@@ -574,7 +505,6 @@ CM8JL65::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	_reports->print_info("report queue");
 }
 
 void
@@ -594,9 +524,6 @@ CM8JL65::Run()
 void
 CM8JL65::start()
 {
-	// Flush the report ring buffer.
-	_reports->flush();
-
 	// Schedule the driver at regular intervals.
 	ScheduleOnInterval(CM8JL65_MEASURE_INTERVAL, 0);
 	PX4_INFO("driver started");
@@ -621,7 +548,6 @@ namespace cm8jl65
 
 CM8JL65	*g_dev;
 
-int device_init();
 int reset(const char *port = CM8JL65_DEFAULT_PORT);
 int start(const char *port = CM8JL65_DEFAULT_PORT,
 	  const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
@@ -629,29 +555,6 @@ int status();
 int stop();
 int test(const char *port = CM8JL65_DEFAULT_PORT);
 int usage();
-
-/**
- * Configures the rangefinder character device polling.
- */
-int
-device_init()
-{
-	// Set the poll rate to default, starts automatic data collection.
-	int fd = open(RANGE_FINDER_BASE_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		PX4_ERR("Opening device '%s' failed", RANGE_FINDER_BASE_DEVICE_PATH);
-		return PX4_ERROR;
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		PX4_ERR("failed to set CDev pollrate %d", SENSOR_POLLRATE_DEFAULT);
-		return PX4_ERROR;
-	}
-
-	close(fd);
-	return PX4_OK;
-}
 
 /**
  * Reset the driver.
@@ -692,7 +595,7 @@ start(const char *port, const uint8_t rotation)
 		return PX4_ERROR;
 	}
 
-	return device_init();
+	return PX4_OK;
 }
 
 /**
@@ -750,44 +653,6 @@ test(const char *port)
 	}
 
 	print_message(report);
-
-	// Start the sensor polling at 2 Hz rate.
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		PX4_ERR("failed to set 2Hz poll rate");
-		return PX4_ERROR;
-	}
-
-	// Read the sensor 5x and report each value.
-	for (unsigned i = 0; i < 5; i++) {
-		pollfd fds;
-
-		// Wait for data to be ready.
-		fds.fd = fd;
-		fds.events = POLLIN;
-		int ret = poll(&fds, 1, 2000);
-
-		if (ret != 1) {
-			PX4_ERR("timed out");
-			break;
-		}
-
-		// Now go get it.
-		bytes_read = read(fd, &report, sizeof(report));
-
-		if (bytes_read != sizeof(report)) {
-			PX4_ERR("read failed: got %zi vs exp. %zu", bytes_read, sizeof(report));
-			break;
-		}
-
-		print_message(report);
-	}
-
-	// Reset the sensor polling to the default rate.
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		PX4_ERR("ioctl SENSORIOCSPOLLRATE failed");
-		return PX4_ERROR;
-	}
-
 	return PX4_OK;
 }
 
