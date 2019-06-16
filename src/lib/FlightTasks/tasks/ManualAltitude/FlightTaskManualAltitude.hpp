@@ -56,6 +56,7 @@ protected:
 	void _updateHeadingSetpoints(); /**< sets yaw or yaw speed */
 	virtual void _updateSetpoints(); /**< updates all setpoints */
 	virtual void _scaleSticks(); /**< scales sticks to velocity in z */
+	bool _checkTakeoff() override;
 
 	/**
 	 * rotates vector into local frame
@@ -70,16 +71,18 @@ protected:
 	void _updateAltitudeLock();
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManual,
-					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) MPC_HOLD_MAX_Z,
-					(ParamInt<px4::params::MPC_ALT_MODE>) MPC_ALT_MODE,
-					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) MPC_HOLD_MAX_XY,
-					(ParamFloat<px4::params::MPC_Z_P>) MPC_Z_P, /**< position controller altitude propotional gain */
-					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) MPC_MAN_Y_MAX, /**< scaling factor from stick to yaw rate */
-					(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) MPC_MAN_TILT_MAX, /**< maximum tilt allowed for manual flight */
-					(ParamFloat<px4::params::MPC_LAND_ALT1>) MPC_LAND_ALT1, /**< altitude at which to start downwards slowdown */
-					(ParamFloat<px4::params::MPC_LAND_ALT2>) MPC_LAND_ALT2, /**< altitude below wich to land with land speed */
-					(ParamFloat<px4::params::MPC_LAND_SPEED>) MPC_LAND_SPEED, /**< desired downwards speed when approaching the ground */
-					(ParamFloat<px4::params::MPC_TKO_SPEED>) MPC_TKO_SPEED /**< desired upwards speed when still close to the ground */
+					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) _param_mpc_hold_max_z,
+					(ParamInt<px4::params::MPC_ALT_MODE>) _param_mpc_alt_mode,
+					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) _param_mpc_hold_max_xy,
+					(ParamFloat<px4::params::MPC_Z_P>) _param_mpc_z_p, /**< position controller altitude propotional gain */
+					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max, /**< scaling factor from stick to yaw rate */
+					(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _param_mpc_man_tilt_max, /**< maximum tilt allowed for manual flight */
+					(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_mpc_land_alt1, /**< altitude at which to start downwards slowdown */
+					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2, /**< altitude below wich to land with land speed */
+					(ParamFloat<px4::params::MPC_LAND_SPEED>)
+					_param_mpc_land_speed, /**< desired downwards speed when approaching the ground */
+					(ParamFloat<px4::params::MPC_TKO_SPEED>)
+					_param_mpc_tko_speed /**< desired upwards speed when still close to the ground */
 				       )
 private:
 	/**
@@ -107,7 +110,7 @@ private:
 	 */
 	void _respectGroundSlowdown();
 
-	uORB::Subscription<home_position_s> *_sub_home_position{nullptr};
+	uORB::SubscriptionPollable<home_position_s> *_sub_home_position{nullptr};
 
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
 	float _max_speed_up = 10.0f;

@@ -224,23 +224,24 @@ private:
 	bool _ctrl_vel[3] = {true, true, true}; /**< True if the control-loop for velocity was used */
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_THR_MAX>) MPC_THR_MAX,
-		(ParamFloat<px4::params::MPC_THR_HOVER>) MPC_THR_HOVER,
-		(ParamFloat<px4::params::MPC_THR_MIN>) MPC_THR_MIN,
-		(ParamFloat<px4::params::MPC_MANTHR_MIN>) MPC_MANTHR_MIN,
-		(ParamFloat<px4::params::MPC_XY_VEL_MAX>) MPC_XY_VEL_MAX,
-		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) MPC_Z_VEL_MAX_DN,
-		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) MPC_Z_VEL_MAX_UP,
+		(ParamFloat<px4::params::MPC_THR_MAX>) _param_mpc_thr_max,
+		(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover,
+		(ParamFloat<px4::params::MPC_THR_MIN>) _param_mpc_thr_min,
+		(ParamFloat<px4::params::MPC_MANTHR_MIN>) _param_mpc_manthr_min,
+		(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _param_mpc_xy_vel_max,
+		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
+		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
 		(ParamFloat<px4::params::MPC_TILTMAX_AIR>)
-		MPC_TILTMAX_AIR_rad, // maximum tilt for any position controlled mode in radians
-		(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) MPC_MAN_TILT_MAX_rad, // maximum til for stabilized/altitude mode in radians
-		(ParamFloat<px4::params::MPC_Z_P>) MPC_Z_P,
-		(ParamFloat<px4::params::MPC_Z_VEL_P>) MPC_Z_VEL_P,
-		(ParamFloat<px4::params::MPC_Z_VEL_I>) MPC_Z_VEL_I,
-		(ParamFloat<px4::params::MPC_Z_VEL_D>) MPC_Z_VEL_D,
-		(ParamFloat<px4::params::MPC_XY_P>) MPC_XY_P,
-		(ParamFloat<px4::params::MPC_XY_VEL_P>) MPC_XY_VEL_P,
-		(ParamFloat<px4::params::MPC_XY_VEL_I>) MPC_XY_VEL_I,
-		(ParamFloat<px4::params::MPC_XY_VEL_D>) MPC_XY_VEL_D
+		_param_mpc_tiltmax_air, // maximum tilt for any position controlled mode in radians
+		(ParamFloat<px4::params::MPC_MAN_TILT_MAX>)
+		_param_mpc_man_tilt_max, // maximum til for stabilized/altitude mode in radians
+		(ParamFloat<px4::params::MPC_Z_P>) _param_mpc_z_p,
+		(ParamFloat<px4::params::MPC_Z_VEL_P>) _param_mpc_z_vel_p,
+		(ParamFloat<px4::params::MPC_Z_VEL_I>) _param_mpc_z_vel_i,
+		(ParamFloat<px4::params::MPC_Z_VEL_D>) _param_mpc_z_vel_d,
+		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p,
+		(ParamFloat<px4::params::MPC_XY_VEL_P>) _param_mpc_xy_vel_p,
+		(ParamFloat<px4::params::MPC_XY_VEL_I>) _param_mpc_xy_vel_i,
+		(ParamFloat<px4::params::MPC_XY_VEL_D>) _param_mpc_xy_vel_d
 	)
 };

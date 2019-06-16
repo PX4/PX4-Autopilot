@@ -90,27 +90,15 @@ MulticopterLandDetector::MulticopterLandDetector()
 	_ground_contact_hysteresis.set_hysteresis_time_from(false, GROUND_CONTACT_TRIGGER_TIME_US);
 }
 
-void MulticopterLandDetector::_initialize_topics()
-{
-	// subscribe to position, attitude and velocity changes
-	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_vehicleLocalPositionSetpointSub = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
-	_attitudeSub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_actuatorsSub = orb_subscribe(ORB_ID(actuator_controls_0));
-	_sensor_bias_sub = orb_subscribe(ORB_ID(sensor_bias));
-	_vehicle_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_battery_sub = orb_subscribe(ORB_ID(battery_status));
-}
-
 void MulticopterLandDetector::_update_topics()
 {
-	_orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub, &_vehicleLocalPosition);
-	_orb_update(ORB_ID(vehicle_local_position_setpoint), _vehicleLocalPositionSetpointSub, &_vehicleLocalPositionSetpoint);
-	_orb_update(ORB_ID(vehicle_attitude), _attitudeSub, &_vehicleAttitude);
-	_orb_update(ORB_ID(actuator_controls_0), _actuatorsSub, &_actuators);
-	_orb_update(ORB_ID(sensor_bias), _sensor_bias_sub, &_sensors);
-	_orb_update(ORB_ID(vehicle_control_mode), _vehicle_control_mode_sub, &_control_mode);
-	_orb_update(ORB_ID(battery_status), _battery_sub, &_battery);
+	_vehicleLocalPositionSub.update(&_vehicleLocalPosition);
+	_vehicleLocalPositionSetpointSub.update(&_vehicleLocalPositionSetpoint);
+	_attitudeSub.update(&_vehicleAttitude);
+	_actuatorsSub.update(&_actuators);
+	_sensor_bias_sub.update(&_sensors);
+	_vehicle_control_mode_sub.update(&_control_mode);
+	_battery_sub.update(&_battery);
 }
 
 void MulticopterLandDetector::_update_params()
@@ -128,9 +116,7 @@ void MulticopterLandDetector::_update_params()
 	param_get(_paramHandle.altitude_max, &_params.altitude_max);
 	param_get(_paramHandle.landSpeed, &_params.landSpeed);
 	param_get(_paramHandle.low_thrust_threshold, &_params.low_thrust_threshold);
-
 }
-
 
 bool MulticopterLandDetector::_get_freefall_state()
 {

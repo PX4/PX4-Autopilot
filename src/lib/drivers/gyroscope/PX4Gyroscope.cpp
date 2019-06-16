@@ -49,7 +49,7 @@ PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation r
 
 	// set software low pass filter for controllers
 	updateParams();
-	configure_filter(_filter_cutoff.get());
+	configure_filter(_param_imu_gyro_cutoff.get());
 
 	// force initial publish to allocate uORB buffer
 	// TODO: can be removed once all drivers are in threads
@@ -96,6 +96,12 @@ void PX4Gyroscope::set_device_type(uint8_t devtype)
 
 	// copy back to report
 	_sensor_gyro_pub.get().device_id = device_id.devid;
+}
+
+void PX4Gyroscope::set_sample_rate(unsigned rate)
+{
+	_sample_rate = rate;
+	_filter.set_cutoff_frequency(_sample_rate, _filter.get_cutoff_freq());
 }
 
 void PX4Gyroscope::update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z)

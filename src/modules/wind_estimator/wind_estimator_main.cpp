@@ -38,7 +38,7 @@
 #include <perf/perf_counter.h>
 #include <px4_module.h>
 #include <px4_module_params.h>
-#include <px4_workqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/parameter_update.h>
@@ -49,14 +49,14 @@
 
 using namespace time_literals;
 
-#define SCHEDULE_INTERVAL	100000	/**< The schedule interval in usec (10 Hz) */
+static constexpr uint32_t SCHEDULE_INTERVAL{100_ms};	/**< The schedule interval in usec (10 Hz) */
 
 using matrix::Dcmf;
 using matrix::Quatf;
 using matrix::Vector2f;
 using matrix::Vector3f;
 
-class WindEstimatorModule : public ModuleBase<WindEstimatorModule>, public ModuleParams
+class WindEstimatorModule : public ModuleBase<WindEstimatorModule>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 
@@ -74,20 +74,19 @@ public:
 	static int print_usage(const char *reason = nullptr);
 
 	// run the main loop
-	void cycle();
+	void Run() override;
 
 	int print_status() override;
 
 private:
-	static struct work_s	_work;
 
 	WindEstimator _wind_estimator;
 	orb_advert_t 	_wind_est_pub{nullptr};			/**< wind estimate topic */
 
-	int _vehicle_attitude_sub{-1};
-	int _vehicle_local_position_sub{-1};
-	int _airspeed_sub{-1};
-	int _param_sub{-1};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
+	uORB::Subscription _param_sub{ORB_ID(parameter_update)};
 
 	perf_counter_t _perf_elapsed{};
 	perf_counter_t _perf_interval{};
@@ -95,15 +94,14 @@ private:
 	int	_instance{-1};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::WEST_W_P_NOISE>) wind_p_noise,
-		(ParamFloat<px4::params::WEST_SC_P_NOISE>) tas_scale_p_noise,
-		(ParamFloat<px4::params::WEST_TAS_NOISE>) tas_noise,
-		(ParamFloat<px4::params::WEST_BETA_NOISE>) beta_noise,
-		(ParamInt<px4::params::WEST_TAS_GATE>) airspeed_gate,
-		(ParamInt<px4::params::WEST_BETA_GATE>) sideslip_gate
+		(ParamFloat<px4::params::WEST_W_P_NOISE>) _param_west_w_p_noise,
+		(ParamFloat<px4::params::WEST_SC_P_NOISE>) _param_west_sc_p_noise,
+		(ParamFloat<px4::params::WEST_TAS_NOISE>) _param_west_tas_noise,
+		(ParamFloat<px4::params::WEST_BETA_NOISE>) _param_west_beta_noise,
+		(ParamInt<px4::params::WEST_TAS_GATE>) _param_west_tas_gate,
+		(ParamInt<px4::params::WEST_BETA_GATE>) _param_west_beta_gate
 	)
 
-	static void	cycle_trampoline(void *arg);
 	int 		start();
 
 	void		update_params();
@@ -111,16 +109,10 @@ private:
 	bool 		subscribe_topics();
 };
 
-work_s	WindEstimatorModule::_work = {};
-
 WindEstimatorModule::WindEstimatorModule():
-	ModuleParams(nullptr)
+	ModuleParams(nullptr),
+	ScheduledWorkItem(px4::wq_configurations::lp_default)
 {
-	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_vehicle_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_airspeed_sub = orb_subscribe(ORB_ID(airspeed));
-	_param_sub = orb_subscribe(ORB_ID(parameter_update));
-
 	// initialise parameters
 	update_params();
 
@@ -130,10 +122,7 @@ WindEstimatorModule::WindEstimatorModule():
 
 WindEstimatorModule::~WindEstimatorModule()
 {
-	orb_unsubscribe(_vehicle_attitude_sub);
-	orb_unsubscribe(_vehicle_local_position_sub);
-	orb_unsubscribe(_airspeed_sub);
-	orb_unsubscribe(_param_sub);
+	ScheduleClear();
 
 	orb_unadvertise(_wind_est_pub);
 
@@ -145,13 +134,18 @@ int
 WindEstimatorModule::task_spawn(int argc, char *argv[])
 {
 	/* schedule a cycle to start things */
-	work_queue(LPWORK, &_work, (worker_t)&WindEstimatorModule::cycle_trampoline, nullptr, 0);
+	WindEstimatorModule *dev = new WindEstimatorModule();
 
-	// wait until task is up & running
-	if (wait_until_running() < 0) {
-		_task_id = -1;
+	// check if the trampoline is called for the first time
+	if (!dev) {
+		PX4_ERR("alloc failed");
+		return PX4_ERROR;
+	}
 
-	} else {
+	_object.store(dev);
+
+	if (dev) {
+		dev->ScheduleOnInterval(SCHEDULE_INTERVAL, 10000);
 		_task_id = task_id_is_work_queue;
 		return PX4_OK;
 	}
@@ -160,57 +154,33 @@ WindEstimatorModule::task_spawn(int argc, char *argv[])
 }
 
 void
-WindEstimatorModule::cycle_trampoline(void *arg)
-{
-	WindEstimatorModule *dev = reinterpret_cast<WindEstimatorModule *>(arg);
-
-	// check if the trampoline is called for the first time
-	if (!dev) {
-		dev = new WindEstimatorModule();
-
-		if (!dev) {
-			PX4_ERR("alloc failed");
-			return;
-		}
-
-		_object.store(dev);
-	}
-
-	if (dev) {
-		dev->cycle();
-	}
-}
-
-void
-WindEstimatorModule::cycle()
+WindEstimatorModule::Run()
 {
 	perf_count(_perf_interval);
 	perf_begin(_perf_elapsed);
 
-	bool param_updated;
-	orb_check(_param_sub, &param_updated);
+	parameter_update_s param{};
 
-	if (param_updated) {
+	if (_param_sub.update(&param)) {
 		update_params();
 	}
 
 	bool lpos_valid = false;
 	bool att_valid = false;
-	bool airspeed_valid = false;
 
 	const hrt_abstime time_now_usec = hrt_absolute_time();
 
 	// validate required conditions for the filter to fuse measurements
 
-	vehicle_attitude_s att = {};
+	vehicle_attitude_s att{};
 
-	if (orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &att) == PX4_OK) {
+	if (_vehicle_attitude_sub.copy(&att)) {
 		att_valid = (time_now_usec - att.timestamp < 1_s) && (att.timestamp > 0);
 	}
 
-	vehicle_local_position_s lpos = {};
+	vehicle_local_position_s lpos{};
 
-	if (orb_copy(ORB_ID(vehicle_local_position), _vehicle_local_position_sub, &lpos) == PX4_OK) {
+	if (_vehicle_local_position_sub.copy(&lpos)) {
 		lpos_valid = (time_now_usec - lpos.timestamp < 1_s) && (lpos.timestamp > 0) && lpos.v_xy_valid;
 	}
 
@@ -226,17 +196,15 @@ WindEstimatorModule::cycle()
 		_wind_estimator.fuse_beta(time_now_usec, vI, q);
 
 		// additionally, for airspeed fusion we need to have recent measurements
-		airspeed_s airspeed = {};
+		airspeed_s airspeed{};
 
-		if (orb_copy(ORB_ID(airspeed), _airspeed_sub, &airspeed) == PX4_OK) {
-			airspeed_valid = (time_now_usec - airspeed.timestamp < 1_s) && (airspeed.timestamp > 0);
-		}
+		if (_airspeed_sub.update(&airspeed)) {
+			if ((time_now_usec - airspeed.timestamp < 1_s) && (airspeed.timestamp > 0)) {
+				const Vector3f vel_var{Dcmf(q) *Vector3f{lpos.evh, lpos.evh, lpos.evv}};
 
-		if (airspeed_valid) {
-			Vector3f vel_var{Dcmf(q) *Vector3f{lpos.evh, lpos.evh, lpos.evv}};
-
-			// airspeed fusion
-			_wind_estimator.fuse_airspeed(time_now_usec, airspeed.indicated_airspeed_m_s, vI, Vector2f{vel_var(0), vel_var(1)});
+				// airspeed fusion
+				_wind_estimator.fuse_airspeed(time_now_usec, airspeed.true_airspeed_m_s, vI, Vector2f{vel_var(0), vel_var(1)});
+			}
 		}
 
 		// if we fused either airspeed or sideslip we publish a wind_estimate message
@@ -264,10 +232,6 @@ WindEstimatorModule::cycle()
 
 	if (should_exit()) {
 		exit_and_cleanup();
-
-	} else {
-		/* schedule next cycle */
-		work_queue(LPWORK, &_work, (worker_t)&WindEstimatorModule::cycle_trampoline, this, USEC2TICK(SCHEDULE_INTERVAL));
 	}
 }
 
@@ -276,12 +240,12 @@ void WindEstimatorModule::update_params()
 	updateParams();
 
 	// update wind & airspeed scale estimator parameters
-	_wind_estimator.set_wind_p_noise(wind_p_noise.get());
-	_wind_estimator.set_tas_scale_p_noise(tas_scale_p_noise.get());
-	_wind_estimator.set_tas_noise(tas_noise.get());
-	_wind_estimator.set_beta_noise(beta_noise.get());
-	_wind_estimator.set_tas_gate(airspeed_gate.get());
-	_wind_estimator.set_beta_gate(sideslip_gate.get());
+	_wind_estimator.set_wind_p_noise(_param_west_w_p_noise.get());
+	_wind_estimator.set_tas_scale_p_noise(_param_west_sc_p_noise.get());
+	_wind_estimator.set_tas_noise(_param_west_tas_noise.get());
+	_wind_estimator.set_beta_noise(_param_west_beta_noise.get());
+	_wind_estimator.set_tas_gate(_param_west_tas_gate.get());
+	_wind_estimator.set_beta_gate(_param_west_beta_gate.get());
 }
 
 int WindEstimatorModule::custom_command(int argc, char *argv[])
@@ -327,7 +291,7 @@ int WindEstimatorModule::print_status()
 	perf_print_counter(_perf_interval);
 
 	if (_instance > -1) {
-		uORB::Subscription<wind_estimate_s> est{ORB_ID(wind_estimate), (unsigned)_instance};
+		uORB::SubscriptionData<wind_estimate_s> est{ORB_ID(wind_estimate), (uint8_t)_instance};
 		est.update();
 
 		print_message(est.get());

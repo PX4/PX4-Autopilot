@@ -41,6 +41,8 @@
 #include <px4_module_params.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -57,6 +59,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/landing_gear.h>
+#include <vtol_att_control/vtol_type.h>
 
 #include <AttitudeControl.hpp>
 
@@ -100,19 +103,10 @@ private:
 	/**
 	 * Check for parameter update and handle it.
 	 */
-	void		battery_status_poll();
 	void		parameter_update_poll();
-	void		sensor_bias_poll();
-	void		vehicle_land_detected_poll();
-	void		sensor_correction_poll();
 	bool		vehicle_attitude_poll();
-	void		vehicle_attitude_setpoint_poll();
-	void		vehicle_control_mode_poll();
-	bool		vehicle_manual_poll();
 	void		vehicle_motor_limits_poll();
-	bool		vehicle_rates_setpoint_poll();
 	void		vehicle_status_poll();
-	void 		landing_gear_state_poll();
 
 	void		publish_actuator_controls();
 	void		publish_rates_setpoint();
@@ -147,36 +141,36 @@ private:
 	 */
 	matrix::Vector3f pid_attenuations(float tpa_breakpoint, float tpa_rate);
 
-	/** lower yawspeed limit in auto modes because we expect yaw steps */
-	void adapt_auto_yaw_rate_limit();
-
 	AttitudeControl _attitude_control; /**< class for attitude control calculations */
 
-	int		_v_att_sub{-1};			/**< vehicle attitude subscription */
-	int		_v_att_sp_sub{-1};		/**< vehicle attitude setpoint subscription */
-	int		_v_rates_sp_sub{-1};		/**< vehicle rates setpoint subscription */
-	int		_v_control_mode_sub{-1};	/**< vehicle control mode subscription */
-	int		_params_sub{-1};		/**< parameter updates subscription */
-	int		_manual_control_sp_sub{-1};	/**< manual control setpoint subscription */
-	int		_vehicle_status_sub{-1};	/**< vehicle status subscription */
-	int		_motor_limits_sub{-1};		/**< motor limits subscription */
-	int		_battery_status_sub{-1};	/**< battery status subscription */
+	uORB::Subscription _v_att_sub{ORB_ID(vehicle_attitude)};			/**< vehicle attitude subscription */
+	uORB::Subscription _v_att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};		/**< vehicle attitude setpoint subscription */
+	uORB::Subscription _v_rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};		/**< vehicle rates setpoint subscription */
+	uORB::Subscription _v_control_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
+	uORB::Subscription _params_sub{ORB_ID(parameter_update)};			/**< parameter updates subscription */
+	uORB::Subscription _manual_control_sp_sub{ORB_ID(manual_control_setpoint)};	/**< manual control setpoint subscription */
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			/**< vehicle status subscription */
+	uORB::Subscription _motor_limits_sub{ORB_ID(multirotor_motor_limits)};		/**< motor limits subscription */
+	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};			/**< battery status subscription */
+	uORB::Subscription _sensor_correction_sub{ORB_ID(sensor_correction)};		/**< sensor thermal correction subscription */
+	uORB::Subscription _sensor_bias_sub{ORB_ID(sensor_bias)};			/**< sensor in-run bias correction subscription */
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
+	uORB::Subscription _landing_gear_sub{ORB_ID(landing_gear)};
+
 	int		_sensor_gyro_sub[MAX_GYRO_COUNT];	/**< gyro data subscription */
-	int		_sensor_correction_sub{-1};	/**< sensor thermal correction subscription */
-	int		_sensor_bias_sub{-1};		/**< sensor in-run bias correction subscription */
-	int		_vehicle_land_detected_sub{-1};	/**< vehicle land detected subscription */
-	int		_landing_gear_sub{-1};
 
 	unsigned _gyro_count{1};
 	int _selected_gyro{0};
 
-	orb_advert_t	_v_rates_sp_pub{nullptr};		/**< rate setpoint publication */
+	uORB::Publication<rate_ctrl_status_s>		_controller_status_pub{ORB_ID(rate_ctrl_status), ORB_PRIO_DEFAULT};	/**< controller status publication */
+	uORB::Publication<landing_gear_s>		_landing_gear_pub{ORB_ID(landing_gear)};
+	uORB::Publication<vehicle_rates_setpoint_s>	_v_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};			/**< rate setpoint publication */
+
 	orb_advert_t	_actuators_0_pub{nullptr};		/**< attitude actuator controls publication */
-	orb_advert_t	_controller_status_pub{nullptr};	/**< controller status publication */
 	orb_advert_t	_vehicle_attitude_setpoint_pub{nullptr};
-	orb_advert_t	_landing_gear_pub{nullptr};
 
 	orb_id_t _actuators_id{nullptr};	/**< pointer to correct actuator controls0 uORB metadata structure */
+	orb_id_t _attitude_sp_id{nullptr};	/**< pointer to correct attitude setpoint uORB metadata structure */
 
 	bool		_actuators_0_circuit_breaker_enabled{false};	/**< circuit breaker to suppress output */
 
@@ -216,69 +210,71 @@ private:
 	bool _gear_state_initialized{false};		/**< true if the gear state has been initialized */
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MC_ROLL_P>) _roll_p,
-		(ParamFloat<px4::params::MC_ROLLRATE_P>) _roll_rate_p,
-		(ParamFloat<px4::params::MC_ROLLRATE_I>) _roll_rate_i,
-		(ParamFloat<px4::params::MC_RR_INT_LIM>) _roll_rate_integ_lim,
-		(ParamFloat<px4::params::MC_ROLLRATE_D>) _roll_rate_d,
-		(ParamFloat<px4::params::MC_ROLLRATE_FF>) _roll_rate_ff,
+		(ParamFloat<px4::params::MC_ROLL_P>) _param_mc_roll_p,
+		(ParamFloat<px4::params::MC_ROLLRATE_P>) _param_mc_rollrate_p,
+		(ParamFloat<px4::params::MC_ROLLRATE_I>) _param_mc_rollrate_i,
+		(ParamFloat<px4::params::MC_RR_INT_LIM>) _param_mc_rr_int_lim,
+		(ParamFloat<px4::params::MC_ROLLRATE_D>) _param_mc_rollrate_d,
+		(ParamFloat<px4::params::MC_ROLLRATE_FF>) _param_mc_rollrate_ff,
 
-		(ParamFloat<px4::params::MC_PITCH_P>) _pitch_p,
-		(ParamFloat<px4::params::MC_PITCHRATE_P>) _pitch_rate_p,
-		(ParamFloat<px4::params::MC_PITCHRATE_I>) _pitch_rate_i,
-		(ParamFloat<px4::params::MC_PR_INT_LIM>) _pitch_rate_integ_lim,
-		(ParamFloat<px4::params::MC_PITCHRATE_D>) _pitch_rate_d,
-		(ParamFloat<px4::params::MC_PITCHRATE_FF>) _pitch_rate_ff,
+		(ParamFloat<px4::params::MC_PITCH_P>) _param_mc_pitch_p,
+		(ParamFloat<px4::params::MC_PITCHRATE_P>) _param_mc_pitchrate_p,
+		(ParamFloat<px4::params::MC_PITCHRATE_I>) _param_mc_pitchrate_i,
+		(ParamFloat<px4::params::MC_PR_INT_LIM>) _param_mc_pr_int_lim,
+		(ParamFloat<px4::params::MC_PITCHRATE_D>) _param_mc_pitchrate_d,
+		(ParamFloat<px4::params::MC_PITCHRATE_FF>) _param_mc_pitchrate_ff,
 
-		(ParamFloat<px4::params::MC_YAW_P>) _yaw_p,
-		(ParamFloat<px4::params::MC_YAWRATE_P>) _yaw_rate_p,
-		(ParamFloat<px4::params::MC_YAWRATE_I>) _yaw_rate_i,
-		(ParamFloat<px4::params::MC_YR_INT_LIM>) _yaw_rate_integ_lim,
-		(ParamFloat<px4::params::MC_YAWRATE_D>) _yaw_rate_d,
-		(ParamFloat<px4::params::MC_YAWRATE_FF>) _yaw_rate_ff,
+		(ParamFloat<px4::params::MC_YAW_P>) _param_mc_yaw_p,
+		(ParamFloat<px4::params::MC_YAWRATE_P>) _param_mc_yawrate_p,
+		(ParamFloat<px4::params::MC_YAWRATE_I>) _param_mc_yawrate_i,
+		(ParamFloat<px4::params::MC_YR_INT_LIM>) _param_mc_yr_int_lim,
+		(ParamFloat<px4::params::MC_YAWRATE_D>) _param_mc_yawrate_d,
+		(ParamFloat<px4::params::MC_YAWRATE_FF>) _param_mc_yawrate_ff,
 
-		(ParamFloat<px4::params::MC_DTERM_CUTOFF>) _d_term_cutoff_freq,			/**< Cutoff frequency for the D-term filter */
+		(ParamFloat<px4::params::MC_DTERM_CUTOFF>) _param_mc_dterm_cutoff,			/**< Cutoff frequency for the D-term filter */
 
-		(ParamFloat<px4::params::MC_TPA_BREAK_P>) _tpa_breakpoint_p,			/**< Throttle PID Attenuation breakpoint */
-		(ParamFloat<px4::params::MC_TPA_BREAK_I>) _tpa_breakpoint_i,			/**< Throttle PID Attenuation breakpoint */
-		(ParamFloat<px4::params::MC_TPA_BREAK_D>) _tpa_breakpoint_d,			/**< Throttle PID Attenuation breakpoint */
-		(ParamFloat<px4::params::MC_TPA_RATE_P>) _tpa_rate_p,				/**< Throttle PID Attenuation slope */
-		(ParamFloat<px4::params::MC_TPA_RATE_I>) _tpa_rate_i,				/**< Throttle PID Attenuation slope */
-		(ParamFloat<px4::params::MC_TPA_RATE_D>) _tpa_rate_d,				/**< Throttle PID Attenuation slope */
+		(ParamFloat<px4::params::MC_TPA_BREAK_P>) _param_mc_tpa_break_p,			/**< Throttle PID Attenuation breakpoint */
+		(ParamFloat<px4::params::MC_TPA_BREAK_I>) _param_mc_tpa_break_i,			/**< Throttle PID Attenuation breakpoint */
+		(ParamFloat<px4::params::MC_TPA_BREAK_D>) _param_mc_tpa_break_d,			/**< Throttle PID Attenuation breakpoint */
+		(ParamFloat<px4::params::MC_TPA_RATE_P>) _param_mc_tpa_rate_p,				/**< Throttle PID Attenuation slope */
+		(ParamFloat<px4::params::MC_TPA_RATE_I>) _param_mc_tpa_rate_i,				/**< Throttle PID Attenuation slope */
+		(ParamFloat<px4::params::MC_TPA_RATE_D>) _param_mc_tpa_rate_d,				/**< Throttle PID Attenuation slope */
 
-		(ParamFloat<px4::params::MC_ROLLRATE_MAX>) _roll_rate_max,
-		(ParamFloat<px4::params::MC_PITCHRATE_MAX>) _pitch_rate_max,
-		(ParamFloat<px4::params::MC_YAWRATE_MAX>) _yaw_rate_max,
-		(ParamFloat<px4::params::MC_YAWRAUTO_MAX>) _yaw_auto_max,
-		(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _yaw_rate_scaling,			/**< scaling factor from stick to yaw rate */
+		(ParamFloat<px4::params::MC_ROLLRATE_MAX>) _param_mc_rollrate_max,
+		(ParamFloat<px4::params::MC_PITCHRATE_MAX>) _param_mc_pitchrate_max,
+		(ParamFloat<px4::params::MC_YAWRATE_MAX>) _param_mc_yawrate_max,
+		(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max,			/**< scaling factor from stick to yaw rate */
 
-		(ParamFloat<px4::params::MC_ACRO_R_MAX>) _acro_roll_max,
-		(ParamFloat<px4::params::MC_ACRO_P_MAX>) _acro_pitch_max,
-		(ParamFloat<px4::params::MC_ACRO_Y_MAX>) _acro_yaw_max,
-		(ParamFloat<px4::params::MC_ACRO_EXPO>) _acro_expo_rp,				/**< expo stick curve shape (roll & pitch) */
-		(ParamFloat<px4::params::MC_ACRO_EXPO_Y>) _acro_expo_y,				/**< expo stick curve shape (yaw) */
-		(ParamFloat<px4::params::MC_ACRO_SUPEXPO>) _acro_superexpo_rp,			/**< superexpo stick curve shape (roll & pitch) */
-		(ParamFloat<px4::params::MC_ACRO_SUPEXPOY>) _acro_superexpo_y,			/**< superexpo stick curve shape (yaw) */
+		(ParamFloat<px4::params::MC_ACRO_R_MAX>) _param_mc_acro_r_max,
+		(ParamFloat<px4::params::MC_ACRO_P_MAX>) _param_mc_acro_p_max,
+		(ParamFloat<px4::params::MC_ACRO_Y_MAX>) _param_mc_acro_y_max,
+		(ParamFloat<px4::params::MC_ACRO_EXPO>) _param_mc_acro_expo,				/**< expo stick curve shape (roll & pitch) */
+		(ParamFloat<px4::params::MC_ACRO_EXPO_Y>) _param_mc_acro_expo_y,				/**< expo stick curve shape (yaw) */
+		(ParamFloat<px4::params::MC_ACRO_SUPEXPO>) _param_mc_acro_supexpo,			/**< superexpo stick curve shape (roll & pitch) */
+		(ParamFloat<px4::params::MC_ACRO_SUPEXPOY>) _param_mc_acro_supexpoy,			/**< superexpo stick curve shape (yaw) */
 
-		(ParamFloat<px4::params::MC_RATT_TH>) _rattitude_thres,
+		(ParamFloat<px4::params::MC_RATT_TH>) _param_mc_ratt_th,
 
-		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _bat_scale_en,
+		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en,
 
-		(ParamInt<px4::params::SENS_BOARD_ROT>) _board_rotation_param,
+		(ParamInt<px4::params::SENS_BOARD_ROT>) _param_sens_board_rot,
 
-		(ParamFloat<px4::params::SENS_BOARD_X_OFF>) _board_offset_x,
-		(ParamFloat<px4::params::SENS_BOARD_Y_OFF>) _board_offset_y,
-		(ParamFloat<px4::params::SENS_BOARD_Z_OFF>) _board_offset_z,
+		(ParamFloat<px4::params::SENS_BOARD_X_OFF>) _param_sens_board_x_off,
+		(ParamFloat<px4::params::SENS_BOARD_Y_OFF>) _param_sens_board_y_off,
+		(ParamFloat<px4::params::SENS_BOARD_Z_OFF>) _param_sens_board_z_off,
 
 		/* Stabilized mode params */
-		(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _man_tilt_max_deg,			/**< maximum tilt allowed for manual flight */
-		(ParamFloat<px4::params::MPC_MANTHR_MIN>) _man_throttle_min,			/**< minimum throttle for stabilized */
-		(ParamFloat<px4::params::MPC_THR_MAX>) _throttle_max,				/**< maximum throttle for stabilized */
-		(ParamFloat<px4::params::MPC_THR_HOVER>) _throttle_hover,			/**< throttle at which vehicle is at hover equilibrium */
-		(ParamInt<px4::params::MPC_THR_CURVE>) _throttle_curve,				/**< throttle curve behavior */
+		(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _param_mpc_man_tilt_max,			/**< maximum tilt allowed for manual flight */
+		(ParamFloat<px4::params::MPC_MANTHR_MIN>) _param_mpc_manthr_min,			/**< minimum throttle for stabilized */
+		(ParamFloat<px4::params::MPC_THR_MAX>) _param_mpc_thr_max,				/**< maximum throttle for stabilized */
+		(ParamFloat<px4::params::MPC_THR_HOVER>)
+		_param_mpc_thr_hover,			/**< throttle at which vehicle is at hover equilibrium */
+		(ParamInt<px4::params::MPC_THR_CURVE>) _param_mpc_thr_curve,				/**< throttle curve behavior */
 
-		(ParamInt<px4::params::MC_AIRMODE>) _airmode
+		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode
 	)
+
+	bool _is_tailsitter{false};
 
 	matrix::Vector3f _rate_p;		/**< P gain for angular rate error */
 	matrix::Vector3f _rate_i;		/**< I gain for angular rate error */

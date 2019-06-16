@@ -41,6 +41,7 @@
 
 #pragma once
 
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -55,7 +56,6 @@ public:
 	VtolLandDetector();
 
 protected:
-	void _initialize_topics() override;
 	void _update_params() override;
 	void _update_topics() override;
 	bool _get_landed_state() override;
@@ -70,8 +70,8 @@ private:
 		float maxAirSpeed;
 	} _params{};
 
-	int _airspeedSub{-1};
-	int _vehicle_status_sub{-1};
+	uORB::Subscription _airspeedSub{ORB_ID(airspeed)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	airspeed_s		_airspeed{};
 	vehicle_status_s	_vehicle_status{};

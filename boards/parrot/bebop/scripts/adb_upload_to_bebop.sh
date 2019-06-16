@@ -1,7 +1,7 @@
 #!/bin/bash
 
 BASEDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-SRC_DIR="$BASEDIR/../"
+SRC_DIR="$BASEDIR/../../../../"
 
 if [ -z ${BEBOP_IP+x} ]; then 
   ip=192.168.42.1
@@ -65,3 +65,7 @@ adb shell sync
 
 echo "Disconnecting from Bebop"
 adb disconnect
+
+echo ""
+echo "To start PX4, run the following command on the Bebop:"
+echo "/data/ftp/internal_000/px4/px4 -s /home/root/px4.config /data/ftp/internal_000/px4/"

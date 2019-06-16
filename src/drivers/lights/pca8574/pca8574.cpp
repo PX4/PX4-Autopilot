@@ -56,7 +56,7 @@
 #include <ctype.h>
 #include <px4_getopt.h>
 
-#include <nuttx/wqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
@@ -71,7 +71,7 @@
 
 #define ADDR			0x20	///< I2C adress of PCA8574 (default, A0-A2 pulled to GND)
 
-class PCA8574 : public device::I2C
+class PCA8574 : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
 	PCA8574(int bus, int pca8574);
@@ -83,8 +83,6 @@ public:
 	bool			is_running() { return _running; }
 
 private:
-	work_s			_work;
-
 	uint8_t			_values_out;
 	uint8_t			_values_in;
 	uint8_t			_blinking;
@@ -97,8 +95,7 @@ private:
 	bool			_update_out;
 	int			_counter;
 
-	static void		led_trampoline(void *arg);
-	void			led();
+	void			Run() override;
 
 	int			send_led_enable(uint8_t arg);
 	int			send_led_values();
@@ -118,6 +115,7 @@ extern "C" __EXPORT int pca8574_main(int argc, char *argv[]);
 
 PCA8574::PCA8574(int bus, int pca8574) :
 	I2C("pca8574", PCA8574_DEVICE_PATH, bus, pca8574, 100000),
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 	_values_out(0),
 	_values_in(0),
 	_blinking(0),
@@ -129,7 +127,6 @@ PCA8574::PCA8574(int bus, int pca8574) :
 	_update_out(false),
 	_counter(0)
 {
-	memset(&_work, 0, sizeof(_work));
 }
 
 int
@@ -227,20 +224,11 @@ PCA8574::ioctl(struct file *filp, int cmd, unsigned long arg)
 	return ret;
 }
 
-
-void
-PCA8574::led_trampoline(void *arg)
-{
-	PCA8574 *rgbl = reinterpret_cast<PCA8574 *>(arg);
-
-	rgbl->led();
-}
-
 /**
  * Main loop function
  */
 void
-PCA8574::led()
+PCA8574::Run()
 {
 	if (_mode == IOX_MODE_TEST_OUT) {
 
@@ -309,7 +297,8 @@ PCA8574::led()
 
 	// re-queue ourselves to run again later
 	_running = true;
-	work_queue(LPWORK, &_work, (worker_t)&PCA8574::led_trampoline, this, _led_interval);
+
+	ScheduleDelayed(_led_interval);
 }
 
 /**
@@ -318,7 +307,6 @@ PCA8574::led()
 int
 PCA8574::send_led_enable(uint8_t arg)
 {
-
 	int ret = transfer(&arg, sizeof(arg), nullptr, 0);
 
 	return ret;
@@ -335,7 +323,7 @@ PCA8574::send_led_values()
 	// if not active, kick it
 	if (!_running) {
 		_running = true;
-		work_queue(LPWORK, &_work, (worker_t)&PCA8574::led_trampoline, this, 1);
+		ScheduleNow();
 	}
 
 	return 0;

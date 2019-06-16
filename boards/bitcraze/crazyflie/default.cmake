@@ -12,7 +12,7 @@ px4_add_board(
 		distance_sensor/vl53lxx
 		gps
 		imu/mpu9250
-		pmw3901
+		optical_flow/pmw3901
 		px4fmu
 		stm32
 
@@ -37,6 +37,7 @@ px4_add_board(
 		mc_pos_control
 		navigator
 		sensors
+		sih
 		#vtol_att_control
 		wind_estimator
 

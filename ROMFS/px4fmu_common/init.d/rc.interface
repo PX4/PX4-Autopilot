@@ -202,7 +202,7 @@ then
 		if fmu mode_${AUX_MODE} $FMU_ARGS
 		then
 			# Append aux mixer to main device.
-			if param compare SYS_HITL 1
+			if param greater SYS_HITL 0
 			then
 				if mixer append ${OUTPUT_DEV} ${MIXER_AUX_FILE}
 				then

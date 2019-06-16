@@ -54,9 +54,9 @@ void BlockLocalPositionEstimator::landCorrect()
 	// use parameter covariance
 	SquareMatrix<float, n_y_land> R;
 	R.setZero();
-	R(Y_land_vx, Y_land_vx) = _land_vxy_stddev.get() * _land_vxy_stddev.get();
-	R(Y_land_vy, Y_land_vy) = _land_vxy_stddev.get() * _land_vxy_stddev.get();
-	R(Y_land_agl, Y_land_agl) = _land_z_stddev.get() * _land_z_stddev.get();
+	R(Y_land_vx, Y_land_vx) = _param_lpe_land_vxy.get() * _param_lpe_land_vxy.get();
+	R(Y_land_vy, Y_land_vy) = _param_lpe_land_vxy.get() * _param_lpe_land_vxy.get();
+	R(Y_land_agl, Y_land_agl) = _param_lpe_land_z.get() * _param_lpe_land_z.get();
 
 	// residual
 	Matrix<float, n_y_land, n_y_land> S_I = inv<float, n_y_land>((C * _P * C.transpose()) + R);

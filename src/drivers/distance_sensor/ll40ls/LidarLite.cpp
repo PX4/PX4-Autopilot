@@ -41,38 +41,6 @@
 
 #include "LidarLite.h"
 
-LidarLite::LidarLite() :
-	_min_distance(LL40LS_MIN_DISTANCE),
-	_max_distance(LL40LS_MAX_DISTANCE_V3),
-	_measure_ticks(0)
-{
-}
-
-void LidarLite::set_minimum_distance(const float min)
-{
-	_min_distance = min;
-}
-
-void LidarLite::set_maximum_distance(const float max)
-{
-	_max_distance = max;
-}
-
-float LidarLite::get_minimum_distance() const
-{
-	return _min_distance;
-}
-
-float LidarLite::get_maximum_distance() const
-{
-	return _max_distance;
-}
-
-uint32_t LidarLite::getMeasureTicks() const
-{
-	return _measure_ticks;
-}
-
 int LidarLite::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
@@ -87,10 +55,10 @@ int LidarLite::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(LL40LS_CONVERSION_INTERVAL);
+					_measure_interval = (LL40LS_CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -103,18 +71,18 @@ int LidarLite::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
+					unsigned interval = (1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(LL40LS_CONVERSION_INTERVAL)) {
+					if (interval < (LL40LS_CONVERSION_INTERVAL)) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					_measure_ticks = ticks;
+					_measure_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {

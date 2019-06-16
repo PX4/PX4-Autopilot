@@ -82,6 +82,7 @@ PARAM_DEFINE_INT32(VT_FW_PERM_STAB, 0);
  * @min 0
  * @max 2
  * @decimal 0
+ * @reboot_required true
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_TYPE, 0);

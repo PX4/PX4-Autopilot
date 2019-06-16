@@ -33,19 +33,20 @@ px4_add_board(
 		lights/rgbled_ncp5623c
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
-		pmw3901
+		optical_flow # all available optical flow drivers
 		pwm_input
 		pwm_out_sim
-		px4flow
 		px4fmu
 		px4io
 		rc_input
 		roboclaw
 		stm32
 		stm32/adc
+		stm32/armv7-m_dcache
 		stm32/tone_alarm
 		tap_esc
 		telemetry # all available telemetry drivers
+		tone_alarm
 		uavcan
 
 	MODULES
@@ -65,6 +66,7 @@ px4_add_board(
 		mc_pos_control
 		navigator
 		sensors
+		sih
 		vmount
 		wind_estimator
 
