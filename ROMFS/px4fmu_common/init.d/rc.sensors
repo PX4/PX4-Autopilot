@@ -75,6 +75,12 @@ then
 	ll40ls start i2c
 fi
 
+# mappydot lidar sensor
+if param compare SENS_EN_MPDT 1
+then
+	mappydot start -a
+fi
+
 # mb12xx sonar sensor
 if param greater SENS_EN_MB12XX 0
 then
@@ -104,12 +110,6 @@ if param greater SENS_EN_TRANGER 0
 then
 	teraranger start -a
 fi
-
-# ICM20948 as external magnetometer on I2C (e.g. Here GPS)
-icm20948 -X -M -R 6 start
-
-# Check for flow sensor, launched as a background task to scan
-px4flow start &
 
 ###############################################################################
 #                            End Optional drivers                             #

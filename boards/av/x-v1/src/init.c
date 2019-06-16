@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,9 +45,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_config.h>
-#include <px4_tasks.h>
-#include <px4_log.h>
+#include "board_config.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -55,6 +53,7 @@
 #include <debug.h>
 #include <errno.h>
 
+#include <nuttx/config.h>
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/i2c/i2c_master.h>
@@ -62,23 +61,17 @@
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
 #include <nuttx/mm/gran.h>
-
 #include <chip.h>
-#include "board_config.h"
-
 #include <stm32_uart.h>
-
 #include <arch/board/board.h>
+#include "up_internal.h"
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
-
 #include <systemlib/px4_macros.h>
-
 #include <px4_init.h>
 #include <px4_i2c.h>
-
-#include "up_internal.h"
+#include <drivers/boards/common/board_dma_alloc.h>
 
 static int configure_switch(void);
 
@@ -150,6 +143,31 @@ __EXPORT void board_on_reset(int status)
 	}
 }
 
+/****************************************************************************
+ * Name: board_app_finalinitialize
+ *
+ * Description:
+ *   Perform application specific initialization.  This function is never
+ *   called directly from application code, but only indirectly via the
+ *   (non-standard) boardctl() interface using the command
+ *   BOARDIOC_FINALINIT.
+ *
+ * Input Parameters:
+ *   arg - The argument has no meaning.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure to indicate the nature of the failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_BOARDCTL_FINALINIT
+int board_app_finalinitialize(uintptr_t arg)
+{
+	board_configure_dcache(1);
+	return 0;
+}
+#endif
 
 /************************************************************************************
  * Name: stm32_boardinitialize
@@ -205,12 +223,15 @@ stm32_boardinitialize(void)
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
+
+	board_configure_dcache(0);
+
 	px4_platform_init();
 
 	/* configure the DMA allocator */
 
 	if (board_dma_alloc_init() < 0) {
-		PX4_ERR("DMA alloc FAILED");
+		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
 
 	/* set up the serial DMA polling */
@@ -232,27 +253,16 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	(void) board_hardfault_init(2, true);
 
-
-#ifdef CONFIG_SPI
-	int ret = stm32_spi_bus_initialize();
-
-	if (ret != OK) {
-		PX4_ERR("SPI init failed");
-		return ret;
-	}
-
-#endif
-
 #ifdef CONFIG_MMCSD
 
-	ret = stm32_sdio_initialize();
+	int ret = stm32_sdio_initialize();
 
 	if (ret != OK) {
-		PX4_ERR("SDIO init failed");
+		syslog(LOG_ERR, "[boot] SDIO init failed\n");
 		return ret;
 	}
 
-#endif
+#endif /* CONFIG_MMCSD */
 
 	configure_switch();
 
@@ -274,7 +284,7 @@ static int configure_switch(void)
 	struct i2c_master_s *i2c = px4_i2cbus_initialize(PX4_I2C_BUS_ONBOARD);
 
 	if (i2c == NULL) {
-		PX4_ERR("I2C device not opened");
+		syslog(LOG_ERR, "[boot] I2C device not opened\n");
 	}
 
 	// ethernet switch enable
@@ -299,7 +309,7 @@ static int configure_switch(void)
 			break;
 
 		} else {
-			PX4_ERR("ETH switch I2C fail: %d, retrying", ret);
+			syslog(LOG_ERR, "[boot] ETH switch I2C fail: %d, retrying\n", ret);
 		}
 
 		/* if we have already retried once, or we are going to give up, then reset the bus */

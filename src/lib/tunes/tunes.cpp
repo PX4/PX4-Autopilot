@@ -94,6 +94,12 @@ int Tunes::set_control(const tune_control_s &tune_control)
 	    tune_control.tune_override ||  // Override interrupts everything
 	    _default_tunes_interruptable[_current_tune_id]) {
 
+		// Check if this exact tune is already being played back
+		if (tune_control.tune_id != static_cast<int>(TuneID::CUSTOM) &&
+		    _tune == _default_tunes[tune_control.tune_id]) {
+			return OK; // Nothing to do
+		}
+
 		// Reset repeat flag. Can jump to true again while tune is being parsed later
 		_repeat = false;
 
@@ -172,7 +178,7 @@ int Tunes::get_next_note(unsigned &frequency, unsigned &duration,
 		duration  = _duration;
 		frequency = _frequency;
 		silence   = _silence;
-		return TUNE_STOP;
+		return TUNE_CONTINUE;
 	}
 
 	// Make sure we still have a tune.

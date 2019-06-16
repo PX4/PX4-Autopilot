@@ -166,6 +166,9 @@ float InputRC::_get_aux_value(const manual_control_setpoint_s &manual_control_se
 	case 5:
 		return manual_control_setpoint.aux5;
 
+	case 6:
+		return manual_control_setpoint.aux6;
+
 	default:
 		return 0.0f;
 	}

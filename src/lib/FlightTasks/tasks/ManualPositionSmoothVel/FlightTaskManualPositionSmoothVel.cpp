@@ -89,27 +89,55 @@ void FlightTaskManualPositionSmoothVel::reset(Axes axes, bool force_z_zero)
 	_position_setpoint_z_locked = NAN;
 }
 
+void FlightTaskManualPositionSmoothVel::_checkEkfResetCounters()
+{
+	// Check if a reset event has happened.
+	if (_sub_vehicle_local_position->get().xy_reset_counter != _reset_counters.xy) {
+		_smoothing[0].setCurrentPosition(_position(0));
+		_smoothing[1].setCurrentPosition(_position(1));
+		_reset_counters.xy = _sub_vehicle_local_position->get().xy_reset_counter;
+	}
+
+	if (_sub_vehicle_local_position->get().vxy_reset_counter != _reset_counters.vxy) {
+		_smoothing[0].setCurrentVelocity(_velocity(0));
+		_smoothing[1].setCurrentVelocity(_velocity(1));
+		_reset_counters.vxy = _sub_vehicle_local_position->get().vxy_reset_counter;
+	}
+
+	if (_sub_vehicle_local_position->get().z_reset_counter != _reset_counters.z) {
+		_smoothing[2].setCurrentPosition(_position(2));
+		_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
+	}
+
+	if (_sub_vehicle_local_position->get().vz_reset_counter != _reset_counters.vz) {
+		_smoothing[2].setCurrentVelocity(_velocity(2));
+		_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
+	}
+}
+
 void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 {
 	/* Get yaw setpont, un-smoothed position setpoints.*/
 	FlightTaskManualPosition::_updateSetpoints();
 
 	/* Update constraints */
-	_smoothing[0].setMaxAccel(MPC_ACC_HOR_MAX.get());
-	_smoothing[1].setMaxAccel(MPC_ACC_HOR_MAX.get());
+	_smoothing[0].setMaxAccel(_param_mpc_acc_hor_max.get());
+	_smoothing[1].setMaxAccel(_param_mpc_acc_hor_max.get());
 	_smoothing[0].setMaxVel(_constraints.speed_xy);
 	_smoothing[1].setMaxVel(_constraints.speed_xy);
 
 	if (_velocity_setpoint(2) < 0.f) { // up
-		_smoothing[2].setMaxAccel(MPC_ACC_UP_MAX.get());
+		_smoothing[2].setMaxAccel(_param_mpc_acc_up_max.get());
 		_smoothing[2].setMaxVel(_constraints.speed_up);
 
 	} else { // down
-		_smoothing[2].setMaxAccel(MPC_ACC_DOWN_MAX.get());
+		_smoothing[2].setMaxAccel(_param_mpc_acc_down_max.get());
 		_smoothing[2].setMaxVel(_constraints.speed_down);
 	}
 
-	float jerk[3] = {_jerk_max.get(), _jerk_max.get(), _jerk_max.get()};
+	float jerk[3] = {_param_mpc_jerk_max.get(), _param_mpc_jerk_max.get(), _param_mpc_jerk_max.get()};
+
+	_checkEkfResetCounters();
 
 	/* Check for position unlock
 	 * During a position lock -> position unlock transition, we have to make sure that the velocity setpoint
@@ -148,11 +176,11 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 		jerk[1] = 1.f;
 
 	} else {
-		jerk[0] = _jerk_max.get();
-		jerk[1] = _jerk_max.get();
+		jerk[0] = _param_mpc_jerk_max.get();
+		jerk[1] = _param_mpc_jerk_max.get();
 	}
 
-	jerk[2] = _position_lock_z_active ? 1.f : _jerk_max.get();
+	jerk[2] = _position_lock_z_active ? 1.f : _param_mpc_jerk_max.get();
 
 	for (int i = 0; i < 3; ++i) {
 		_smoothing[i].setMaxJerk(jerk[i]);
@@ -160,16 +188,6 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 	}
 
 	VelocitySmoothing::timeSynchronization(_smoothing, 2); // Synchronize x and y only
-
-	if (_position_lock_xy_active) {
-		// Check if a reset event has happened.
-		if (_sub_vehicle_local_position->get().xy_reset_counter != _reset_counter) {
-			// Reset the XY axes
-			_smoothing[0].setCurrentPosition(_position(0));
-			_smoothing[1].setCurrentPosition(_position(1));
-			_reset_counter = _sub_vehicle_local_position->get().xy_reset_counter;
-		}
-	}
 
 	if (!_position_lock_xy_active) {
 		_smoothing[0].setCurrentPosition(_position(0));

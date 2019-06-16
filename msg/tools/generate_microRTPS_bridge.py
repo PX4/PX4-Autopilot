@@ -167,7 +167,7 @@ parser.add_argument("-o", "--agent-outdir", dest='agentdir', type=str,
                     help="Agent output dir, by default using relative path 'src/modules/micrortps_bridge/micrortps_agent'", default=default_agent_out)
 parser.add_argument("-u", "--client-outdir", dest='clientdir', type=str,
                     help="Client output dir, by default using relative path 'src/modules/micrortps_bridge/micrortps_client'", default=default_client_out)
-parser.add_argument("-f", "--fastrtpsgen-dir", dest='fastrtpsgen', type=str,
+parser.add_argument("-f", "--fastrtpsgen-dir", dest='fastrtpsgen', type=str, nargs='?',
                     help="fastrtpsgen installation dir, only needed if fastrtpsgen is not in PATH, by default empty", default="")
 parser.add_argument("-g", "--fastrtpsgen-include", dest='fastrtpsgen_include', type=str,
                     help="directory(ies) to add to preprocessor include paths of fastrtpsgen, by default empty", default="")
@@ -195,7 +195,7 @@ px_generate_uorb_topic_files.append_to_include_path(
     {msg_dir}, px_generate_uorb_topic_files.INCL_DEFAULT, package)
 
 # Agent files output path
-agent_out_dir =  os.path.abspath(args.agentdir)
+agent_out_dir = os.path.abspath(args.agentdir)
 
 # Client files output path
 client_out_dir = os.path.abspath(args.clientdir)
@@ -250,30 +250,30 @@ if agent and os.path.isdir(os.path.join(agent_out_dir, "idl")):
     shutil.rmtree(os.path.join(agent_out_dir, "idl"))
 
 # uORB templates path
-uorb_templates_dir = (args.uorb_templates if os.path.isabs(args.uorb_templates) \
+uorb_templates_dir = (args.uorb_templates if os.path.isabs(args.uorb_templates)
     else os.path.join(msg_dir, args.uorb_templates))
 
 # uRTPS templates path
-urtps_templates_dir = (args.urtps_templates if os.path.isabs(args.urtps_templates) \
+urtps_templates_dir = (args.urtps_templates if os.path.isabs(args.urtps_templates)
     else os.path.join(msg_dir, args.urtps_templates))
 
 # parse yaml file into a map of ids
-classifier = (Classifier(os.path.abspath(args.yaml_file), msg_dir) if os.path.isabs(args.yaml_file) \
+classifier = (Classifier(os.path.abspath(args.yaml_file), msg_dir) if os.path.isabs(args.yaml_file)
     else Classifier(os.path.join(msg_dir, args.yaml_file), msg_dir))
 
 # check if there are no ID's repeated
 check_rtps_id_uniqueness(classifier)
 
 
-uRTPS_CLIENT_TEMPL_FILE = 'microRTPS_client.cpp.template'
-uRTPS_AGENT_TOPICS_H_TEMPL_FILE = 'RtpsTopics.h.template'
-uRTPS_AGENT_TOPICS_SRC_TEMPL_FILE = 'RtpsTopics.cpp.template'
-uRTPS_AGENT_TEMPL_FILE = 'microRTPS_agent.cpp.template'
-uRTPS_AGENT_CMAKELISTS_TEMPL_FILE = 'microRTPS_agent_CMakeLists.txt.template'
-uRTPS_PUBLISHER_SRC_TEMPL_FILE = 'Publisher.cpp.template'
-uRTPS_PUBLISHER_H_TEMPL_FILE = 'Publisher.h.template'
-uRTPS_SUBSCRIBER_SRC_TEMPL_FILE = 'Subscriber.cpp.template'
-uRTPS_SUBSCRIBER_H_TEMPL_FILE = 'Subscriber.h.template'
+uRTPS_CLIENT_TEMPL_FILE = 'microRTPS_client.cpp.em'
+uRTPS_AGENT_TOPICS_H_TEMPL_FILE = 'RtpsTopics.h.em'
+uRTPS_AGENT_TOPICS_SRC_TEMPL_FILE = 'RtpsTopics.cpp.em'
+uRTPS_AGENT_TEMPL_FILE = 'microRTPS_agent.cpp.em'
+uRTPS_AGENT_CMAKELISTS_TEMPL_FILE = 'microRTPS_agent_CMakeLists.txt.em'
+uRTPS_PUBLISHER_SRC_TEMPL_FILE = 'Publisher.cpp.em'
+uRTPS_PUBLISHER_H_TEMPL_FILE = 'Publisher.h.em'
+uRTPS_SUBSCRIBER_SRC_TEMPL_FILE = 'Subscriber.cpp.em'
+uRTPS_SUBSCRIBER_H_TEMPL_FILE = 'Subscriber.h.em'
 
 
 def generate_agent(out_dir):
@@ -322,12 +322,17 @@ def generate_agent(out_dir):
     os.chdir(os.path.join(out_dir, "fastrtpsgen"))
     if not glob.glob(os.path.join(idl_dir, "*.idl")):
         raise Exception("No IDL files found in %s" % idl_dir)
-    for idl_file in glob.glob(os.path.join(idl_dir, "*.idl")):
-        ret = subprocess.call(fastrtpsgen_path + " -d " + out_dir +
-                              "/fastrtpsgen -example x64Linux2.6gcc " + fastrtpsgen_include + idl_file, shell=True)
-        if ret:
-            raise Exception(
-                "fastrtpsgen not found. Specify the location of fastrtpsgen with the -f flag")
+    if(os.path.exists(fastrtpsgen_path)):
+        for idl_file in glob.glob(os.path.join(idl_dir, "*.idl")):
+           ret = subprocess.call(fastrtpsgen_path + " -d " + out_dir +
+                                 "/fastrtpsgen -example x64Linux2.6gcc " + fastrtpsgen_include + idl_file, shell=True)
+           if ret:
+               raise Exception(
+                   "fastrtpsgen failed with code error %s" % ret)
+    else:
+        raise Exception(
+            "fastrtpsgen not found. Specify the location of fastrtpsgen with the -f flag")
+
     rm_wildcard(os.path.join(out_dir, "fastrtpsgen/*PubSubMain*"))
     rm_wildcard(os.path.join(out_dir, "fastrtpsgen/makefile*"))
     rm_wildcard(os.path.join(out_dir, "fastrtpsgen/*Publisher*"))

@@ -8,10 +8,10 @@ px4_add_board(
 
 	DRIVERS
 		#barometer # all available barometer drivers
-		batt_smbus
+		#batt_smbus
 		camera_trigger
-		differential_pressure # all available differential pressure drivers
-		distance_sensor # all available distance sensor drivers
+		#differential_pressure # all available differential pressure drivers
+		#distance_sensor # all available distance sensor drivers
 		gps
 		#imu # all available imu drivers
 		#magnetometer # all available magnetometer drivers
@@ -99,4 +99,5 @@ if(REPLAY_FILE)
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 endif()
 
+message("Building without lockstep for test")
 set(ENABLE_LOCKSTEP_SCHEDULER no)

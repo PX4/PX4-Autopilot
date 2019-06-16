@@ -53,7 +53,7 @@ int BlockLocalPositionEstimator::lidarMeasure(Vector<float, n_y_lidar> &y)
 	_time_last_lidar = _timeStamp;
 	y.setZero();
 	matrix::Eulerf euler(matrix::Quatf(_sub_att.get().q));
-	y(0) = (d + _lidar_z_offset.get()) *
+	y(0) = (d + _param_lpe_ldr_off_z.get()) *
 	       cosf(euler.phi()) *
 	       cosf(euler.theta());
 	return OK;
@@ -80,7 +80,7 @@ void BlockLocalPositionEstimator::lidarCorrect()
 	float cov = _sub_lidar->get().variance;
 
 	if (cov < 1.0e-3f) {
-		R(0, 0) = _lidar_z_stddev.get() * _lidar_z_stddev.get();
+		R(0, 0) = _param_lpe_ldr_z.get() * _param_lpe_ldr_z.get();
 
 	} else {
 		R(0, 0) = cov;

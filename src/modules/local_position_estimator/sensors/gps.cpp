@@ -19,8 +19,8 @@ void BlockLocalPositionEstimator::gpsInit()
 
 	if (
 		nSat < 6 ||
-		eph > _gps_eph_max.get() ||
-		epv > _gps_epv_max.get() ||
+		eph > _param_lpe_eph_max.get() ||
+		epv > _param_lpe_epv_max.get() ||
 		fix_type < 3
 	) {
 		_gpsStats.reset();
@@ -57,7 +57,7 @@ void BlockLocalPositionEstimator::gpsInit()
 			// find lat, lon of current origin by subtracting x and y
 			// if not using vision position since vision will
 			// have it's own origin, not necessarily where vehicle starts
-			if (!_map_ref.init_done && !(_fusion.get() & FUSE_VIS_POS)) {
+			if (!_map_ref.init_done && !(_param_lpe_fusion.get() & FUSE_VIS_POS)) {
 				double gpsLatOrigin = 0;
 				double gpsLonOrigin = 0;
 				// reproject at current coordinates
@@ -144,27 +144,27 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	R.setZero();
 
 	// default to parameter, use gps cov if provided
-	float var_xy = _gps_xy_stddev.get() * _gps_xy_stddev.get();
-	float var_z = _gps_z_stddev.get() * _gps_z_stddev.get();
-	float var_vxy = _gps_vxy_stddev.get() * _gps_vxy_stddev.get();
-	float var_vz = _gps_vz_stddev.get() * _gps_vz_stddev.get();
+	float var_xy = _param_lpe_gps_xy.get() * _param_lpe_gps_xy.get();
+	float var_z = _param_lpe_gps_z.get() * _param_lpe_gps_z.get();
+	float var_vxy = _param_lpe_gps_vxy.get() * _param_lpe_gps_vxy.get();
+	float var_vz = _param_lpe_gps_vz.get() * _param_lpe_gps_vz.get();
 
 	// if field is not below minimum, set it to the value provided
-	if (_sub_gps.get().eph > _gps_xy_stddev.get()) {
+	if (_sub_gps.get().eph > _param_lpe_gps_xy.get()) {
 		var_xy = _sub_gps.get().eph * _sub_gps.get().eph;
 	}
 
-	if (_sub_gps.get().epv > _gps_z_stddev.get()) {
+	if (_sub_gps.get().epv > _param_lpe_gps_z.get()) {
 		var_z = _sub_gps.get().epv * _sub_gps.get().epv;
 	}
 
 	float gps_s_stddev =  _sub_gps.get().s_variance_m_s;
 
-	if (gps_s_stddev > _gps_vxy_stddev.get()) {
+	if (gps_s_stddev > _param_lpe_gps_vxy.get()) {
 		var_vxy = gps_s_stddev * gps_s_stddev;
 	}
 
-	if (gps_s_stddev > _gps_vz_stddev.get()) {
+	if (gps_s_stddev > _param_lpe_gps_vz.get()) {
 		var_vz = gps_s_stddev * gps_s_stddev;
 	}
 
@@ -178,7 +178,7 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	// get delayed x
 	uint8_t i_hist = 0;
 
-	if (getDelayPeriods(_gps_delay.get(), &i_hist)  < 0) { return; }
+	if (getDelayPeriods(_param_lpe_gps_delay.get(), &i_hist)  < 0) { return; }
 
 	Vector<float, n_x> x0 = _xDelay.get(i_hist);
 

@@ -73,6 +73,7 @@
 #include <systemlib/px4_macros.h>
 
 #include <px4_init.h>
+#include <drivers/boards/common/board_dma_alloc.h>
 
 /****************************************************************************
  * Pre-Processor Definitions

@@ -50,3 +50,15 @@
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_COL_PREV_D, -1.0f);
+
+/**
+ * Average delay of the range sensor message in seconds
+ *
+ * Only used in Position mode.
+ *
+ * @min 0
+ * @max 1
+ * @unit seconds
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_COL_PREV_DLY, 0.f);

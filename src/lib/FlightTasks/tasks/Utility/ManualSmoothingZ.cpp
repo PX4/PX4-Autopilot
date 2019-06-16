@@ -43,8 +43,8 @@ ManualSmoothingZ::ManualSmoothingZ(ModuleParams *parent, const float &vel, const
 	ModuleParams(parent),
 	_vel(vel), _stick(stick), _vel_sp_prev(vel)
 {
-	_acc_state_dependent = _acc_max_up.get();
-	_max_acceleration = _acc_max_up.get();
+	_acc_state_dependent = _param_mpc_acc_up_max.get();
+	_max_acceleration = _param_mpc_acc_up_max.get();
 }
 
 void
@@ -77,7 +77,7 @@ ManualSmoothingZ::updateAcceleration(float &vel_sp, const float dt)
 	if ((_intention != ManualIntentionZ::brake) && (intention == ManualIntentionZ::brake)) {
 
 		// we start with lowest acceleration
-		_acc_state_dependent = _acc_max_down.get();
+		_acc_state_dependent = _param_mpc_acc_down_max.get();
 
 		// reset slew-rate: this ensures that there
 		// is no delay present when user demands to brake
@@ -89,13 +89,13 @@ ManualSmoothingZ::updateAcceleration(float &vel_sp, const float dt)
 	case ManualIntentionZ::brake: {
 
 			// limit jerk when braking to zero
-			float jerk = (_acc_max_up.get() - _acc_state_dependent) / dt;
+			float jerk = (_param_mpc_acc_up_max.get() - _acc_state_dependent) / dt;
 
-			if (jerk > _jerk_max.get()) {
-				_acc_state_dependent = _jerk_max.get() * dt + _acc_state_dependent;
+			if (jerk > _param_mpc_jerk_max.get()) {
+				_acc_state_dependent = _param_mpc_jerk_max.get() * dt + _acc_state_dependent;
 
 			} else {
-				_acc_state_dependent = _acc_max_up.get();
+				_acc_state_dependent = _param_mpc_acc_up_max.get();
 			}
 
 			break;
@@ -103,8 +103,8 @@ ManualSmoothingZ::updateAcceleration(float &vel_sp, const float dt)
 
 	case ManualIntentionZ::acceleration: {
 
-			_acc_state_dependent = (getMaxAcceleration() - _acc_max_down.get())
-					       * fabsf(_stick) + _acc_max_down.get();
+			_acc_state_dependent = (getMaxAcceleration() - _param_mpc_acc_down_max.get())
+					       * fabsf(_stick) + _param_mpc_acc_down_max.get();
 			break;
 		}
 	}
@@ -117,26 +117,26 @@ ManualSmoothingZ::setMaxAcceleration()
 {
 	if (_stick < -FLT_EPSILON) {
 		// accelerating upward
-		_max_acceleration =  _acc_max_up.get();
+		_max_acceleration =  _param_mpc_acc_up_max.get();
 
 	} else if (_stick > FLT_EPSILON) {
 		// accelerating downward
-		_max_acceleration = _acc_max_down.get();
+		_max_acceleration = _param_mpc_acc_down_max.get();
 
 	} else {
 
 		// want to brake
 		if (fabsf(_vel_sp_prev) < FLT_EPSILON) {
 			// at rest
-			_max_acceleration = _acc_max_up.get();
+			_max_acceleration = _param_mpc_acc_up_max.get();
 
 		} else if (_vel_sp_prev < 0.0f) {
 			// braking downward
-			_max_acceleration = _acc_max_down.get();
+			_max_acceleration = _param_mpc_acc_down_max.get();
 
 		} else {
 			// braking upward
-			_max_acceleration = _acc_max_up.get();
+			_max_acceleration = _param_mpc_acc_up_max.get();
 		}
 	}
 }

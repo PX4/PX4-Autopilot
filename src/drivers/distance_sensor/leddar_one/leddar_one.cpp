@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 #include <px4_config.h>
-#include <px4_workqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_getopt.h>
 #include <px4_defines.h>
 #include <px4_module.h>
@@ -109,20 +109,19 @@ struct __attribute__((__packed__)) reading_msg {
 	uint16_t crc; /* little-endian */
 };
 
-class leddar_one : public cdev::CDev
+class leddar_one : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
 	leddar_one(const char *device_path, const char *serial_port, uint8_t rotation);
 	virtual ~leddar_one();
 
-	virtual int init();
+	virtual int init() override;
 	void start();
 	void stop();
 
 	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
 
 private:
-	work_s _work;
 
 	int _fd = -1;
 	const char *_serial_port;
@@ -151,40 +150,12 @@ private:
 	void _publish(uint16_t distance_cm);
 	int _cycle();
 
-	static void cycle_trampoline(void *arg);
+	void Run() override;
 };
 
 extern "C" __EXPORT int leddar_one_main(int argc, char *argv[]);
 
-static void help()
-{
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Serial bus driver for the LeddarOne LiDAR.
-
-Most boards are configured to enable/start the driver on a specified UART using the SENS_LEDDAR1_CFG parameter.
-
-Setup/usage information: https://docs.px4.io/en/sensor/leddar_one.html
-
-### Examples
-
-Attempt to start driver on a specified serial device.
-$ leddar_one start -d /dev/ttyS1
-Stop driver
-$ leddar_one stop
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("leddar_one", "driver");
-	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
-	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
-	PRINT_MODULE_USAGE_PARAM_INT('r', 25, 1, 25, "Sensor rotation - downward facing by default", true);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
-
-}
+static void help();
 
 int leddar_one_main(int argc, char *argv[])
 {
@@ -269,12 +240,12 @@ int leddar_one_main(int argc, char *argv[])
 
 leddar_one::leddar_one(const char *device_path, const char *serial_port, uint8_t rotation):
 	CDev(device_path),
+	ScheduledWorkItem(px4::wq_configurations::hp_default),
 	_rotation(rotation),
 	_collect_timeout_perf(perf_alloc(PC_COUNT, "leddar_one_collect_timeout")),
 	_comm_error(perf_alloc(PC_COUNT, "leddar_one_comm_errors")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "leddar_one_sample"))
 {
-	memset(&_work, 0, sizeof(_work));
 	_serial_port = strdup(serial_port);
 }
 
@@ -394,7 +365,7 @@ int leddar_one::init()
 void
 leddar_one::stop()
 {
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 }
 
 void leddar_one::start()
@@ -407,23 +378,20 @@ void leddar_one::start()
 	::close(_fd);
 	_fd = -1;
 
-	work_queue(HPWORK, &_work, (worker_t)&leddar_one::cycle_trampoline, this, USEC2TICK(WORK_USEC_INTERVAL));
+	ScheduleDelayed(WORK_USEC_INTERVAL);
 }
 
 void
-leddar_one::cycle_trampoline(void *arg)
+leddar_one::Run()
 {
-	leddar_one *dev = reinterpret_cast<leddar_one * >(arg);
-
-	if (dev->_fd != -1) {
-		dev->_cycle();
+	if (_fd != -1) {
+		_cycle();
 
 	} else {
-		dev->_fd_open();
+		_fd_open();
 	}
 
-	work_queue(HPWORK, &(dev->_work), (worker_t)&leddar_one::cycle_trampoline,
-		   dev, USEC2TICK(WORK_USEC_INTERVAL));
+	ScheduleDelayed(WORK_USEC_INTERVAL);
 }
 
 void leddar_one::_publish(uint16_t distance_mm)
@@ -583,4 +551,34 @@ ssize_t leddar_one::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	return ret ? ret : -EAGAIN;
+}
+
+void help()
+{
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+Serial bus driver for the LeddarOne LiDAR.
+
+Most boards are configured to enable/start the driver on a specified UART using the SENS_LEDDAR1_CFG parameter.
+
+Setup/usage information: https://docs.px4.io/en/sensor/leddar_one.html
+
+### Examples
+
+Attempt to start driver on a specified serial device.
+$ leddar_one start -d /dev/ttyS1
+Stop driver
+$ leddar_one stop
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("leddar_one", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', nullptr, nullptr, "Serial device", false);
+	PRINT_MODULE_USAGE_PARAM_INT('r', 25, 1, 25, "Sensor rotation - downward facing by default", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
+
 }

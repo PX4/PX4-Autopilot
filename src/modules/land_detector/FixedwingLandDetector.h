@@ -43,6 +43,7 @@
 #pragma once
 
 #include <drivers/drv_hrt.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -60,7 +61,6 @@ public:
 	FixedwingLandDetector();
 
 protected:
-	void _initialize_topics() override;
 	void _update_params() override;
 	void _update_topics() override;
 
@@ -87,9 +87,9 @@ private:
 		float maxXYAccel;
 	} _params{};
 
-	int _airspeedSub{-1};
-	int _sensor_bias_sub{-1};
-	int _local_pos_sub{-1};
+	uORB::Subscription _airspeedSub{ORB_ID(airspeed)};
+	uORB::Subscription _sensor_bias_sub{ORB_ID(sensor_bias)};
+	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position});
 
 	airspeed_s _airspeed{};
 	sensor_bias_s _sensors{};

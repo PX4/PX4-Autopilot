@@ -33,7 +33,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 # os tools
-foreach(tool grep genromfs make)
+foreach(tool grep make)
 	string(TOUPPER ${tool} TOOL)
 	find_program(${TOOL} ${tool})
 	if(NOT ${TOOL})

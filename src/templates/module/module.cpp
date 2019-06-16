@@ -41,37 +41,6 @@
 #include <uORB/topics/sensor_combined.h>
 
 
-int Module::print_usage(const char *reason)
-{
-	if (reason) {
-		PX4_WARN("%s\n", reason);
-	}
-
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Section that describes the provided module functionality.
-
-This is a template for a module running as a task in the background with start/stop/status functionality.
-
-### Implementation
-Section describing the high-level implementation of this module.
-
-### Examples
-CLI usage example:
-$ module start -f -p 42
-
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("module", "template");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Optional example flag", true);
-	PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 1000, "Optional example parameter", true);
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
-	return 0;
-}
-
 int Module::print_status()
 {
 	PX4_INFO("Running");
@@ -225,6 +194,36 @@ void Module::parameters_update(int parameter_update_sub, bool force)
 	}
 }
 
+int Module::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Section that describes the provided module functionality.
+
+This is a template for a module running as a task in the background with start/stop/status functionality.
+
+### Implementation
+Section describing the high-level implementation of this module.
+
+### Examples
+CLI usage example:
+$ module start -f -p 42
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("module", "template");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Optional example flag", true);
+	PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 1000, "Optional example parameter", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
 
 int module_main(int argc, char *argv[])
 {

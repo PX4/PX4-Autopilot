@@ -35,5 +35,5 @@ px4_add_library(FlightTaskAuto
 	FlightTaskAuto.cpp
 )
 
-target_link_libraries(FlightTaskAuto PUBLIC FlightTask)
+target_link_libraries(FlightTaskAuto PUBLIC FlightTask FlightTaskUtility)
 target_include_directories(FlightTaskAuto PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

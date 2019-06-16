@@ -23,8 +23,8 @@ px4_add_board(
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		magnetometer/ist8310
+		#optical_flow/px4flow
 		pwm_out_sim
-		#px4flow
 		px4fmu
 		rc_input
 		stm32
@@ -53,6 +53,7 @@ px4_add_board(
 		mc_pos_control
 		navigator
 		sensors
+		sih
 		vmount
 		#vtol_att_control
 		#wind_estimator

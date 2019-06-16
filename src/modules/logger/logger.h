@@ -105,8 +105,15 @@ struct LoggerSubscription {
 class Logger : public ModuleBase<Logger>
 {
 public:
+	enum class LogMode {
+		while_armed = 0,
+		boot_until_disarm,
+		boot_until_shutdown,
+		rc_aux1
+	};
+
 	Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, const char *poll_topic_name,
-	       bool log_on_start, bool log_until_shutdown, bool log_name_timestamp, unsigned int queue_size);
+	       LogMode log_mode, bool log_name_timestamp, unsigned int queue_size);
 
 	~Logger();
 
@@ -160,7 +167,7 @@ public:
 
 	void print_statistics(LogType type);
 
-	void set_arm_override(bool override) { _arm_override = override; }
+	void set_arm_override(bool override) { _manually_logging_override = override; }
 
 private:
 
@@ -261,6 +268,11 @@ private:
 	void write_perf_data(bool preflight);
 
 	/**
+	 * write bootup console output
+	 */
+	void write_console_output();
+
+	/**
 	 * callback to write the performance counters
 	 */
 	static void perf_iterate_callback(perf_counter_t handle, void *user);
@@ -336,12 +348,14 @@ private:
 	void add_vision_and_avoidance_topics();
 
 	/**
-	 * check current arming state and start/stop logging if state changed and according to configured params.
+	 * check current arming state or aux channel and start/stop logging if state changed and according to
+	 * configured params.
 	 * @param vehicle_status_sub
+	 * @param manual_control_sp_sub
 	 * @param mission_log_type
 	 * @return true if log started
 	 */
-	bool check_arming_state(int vehicle_status_sub, MissionLogType mission_log_type);
+	bool start_stop_logging(int vehicle_status_sub, int manual_control_sp_sub, MissionLogType mission_log_type);
 
 	void handle_vehicle_command_update(int vehicle_command_sub, orb_advert_t &vehicle_command_ack_pub);
 	void ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, vehicle_command_s *cmd, uint32_t result);
@@ -369,13 +383,13 @@ private:
 
 	LogFileName					_file_name[(int)LogType::Count];
 
-	bool						_was_armed{false};
-	bool						_arm_override{false};
+	bool						_prev_state{false}; ///< previous state depending on logging mode (arming or aux1 state)
+	bool						_manually_logging_override{false};
 
 	Statistics					_statistics[(int)LogType::Count];
+	hrt_abstime					_last_sync_time{0}; ///< last time a sync msg was sent
 
-	const bool 					_log_on_start;
-	const bool 					_log_until_shutdown;
+	LogMode						_log_mode;
 	const bool					_log_name_timestamp;
 
 	Array<LoggerSubscription, MAX_TOPICS_NUM>	_subscriptions; ///< all subscriptions for full & mission log (in front)
@@ -392,7 +406,7 @@ private:
 											will be stopped after load printing (for the full log) */
 	print_load_s					_load{}; ///< process load data
 	hrt_abstime					_next_load_print{0}; ///< timestamp when to print the process load
-	PrintLoadReason					_print_load_reason;
+	PrintLoadReason					_print_load_reason {PrintLoadReason::Preflight};
 
 	param_t						_sdlog_profile_handle{PARAM_INVALID};
 	param_t						_log_utc_offset{PARAM_INVALID};

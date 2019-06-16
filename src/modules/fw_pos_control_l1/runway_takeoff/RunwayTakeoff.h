@@ -74,8 +74,8 @@ public:
 	RunwayTakeoffState getState() { return _state; }
 	bool isInitialized() { return _initialized; }
 
-	bool runwayTakeoffEnabled() { return _runway_takeoff_enabled.get(); }
-	float getMinAirspeedScaling() { return _min_airspeed_scaling.get(); }
+	bool runwayTakeoffEnabled() { return _param_rwto_tkoff.get(); }
+	float getMinAirspeedScaling() { return _param_rwto_airspd_scl.get(); }
 	float getInitYaw() { return _init_yaw; }
 
 	bool controlYaw();
@@ -102,16 +102,16 @@ private:
 	matrix::Vector2f _start_wp;
 
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::RWTO_TKOFF>) _runway_takeoff_enabled,
-		(ParamInt<px4::params::RWTO_HDG>) _heading_mode,
-		(ParamFloat<px4::params::RWTO_NAV_ALT>) _nav_alt,
-		(ParamFloat<px4::params::RWTO_MAX_THR>) _takeoff_throttle,
-		(ParamFloat<px4::params::RWTO_PSP>) _runway_pitch_sp,
-		(ParamFloat<px4::params::RWTO_MAX_PITCH>) _max_takeoff_pitch,
-		(ParamFloat<px4::params::RWTO_MAX_ROLL>) _max_takeoff_roll,
-		(ParamFloat<px4::params::RWTO_AIRSPD_SCL>) _min_airspeed_scaling,
-		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _airspeed_min,
-		(ParamFloat<px4::params::FW_CLMBOUT_DIFF>) _climbout_diff
+		(ParamBool<px4::params::RWTO_TKOFF>) _param_rwto_tkoff,
+		(ParamInt<px4::params::RWTO_HDG>) _param_rwto_hdg,
+		(ParamFloat<px4::params::RWTO_NAV_ALT>) _param_rwto_nav_alt,
+		(ParamFloat<px4::params::RWTO_MAX_THR>) _param_rwto_max_thr,
+		(ParamFloat<px4::params::RWTO_PSP>) _param_rwto_psp,
+		(ParamFloat<px4::params::RWTO_MAX_PITCH>) _param_rwto_max_pitch,
+		(ParamFloat<px4::params::RWTO_MAX_ROLL>) _param_rwto_max_roll,
+		(ParamFloat<px4::params::RWTO_AIRSPD_SCL>) _param_rwto_airspd_scl,
+		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
+		(ParamFloat<px4::params::FW_CLMBOUT_DIFF>) _param_fw_clmbout_diff
 	)
 
 };
