@@ -49,6 +49,11 @@ uint8 RC_IN_MODE_DEFAULT = 0
 uint8 RC_IN_MODE_OFF = 1
 uint8 RC_IN_MODE_GENERATED = 2
 
+uint8 VEHICLE_TYPE_UNKNOWN = 0
+uint8 VEHICLE_TYPE_ROTARY_WING = 1
+uint8 VEHICLE_TYPE_FIXED_WING = 2
+uint8 VEHICLE_TYPE_ROVER = 3
+
 # state machine / state of vehicle.
 # Encodes the complete system state and is set by the commander app.
 
@@ -61,7 +66,9 @@ uint8 system_type			# system type, contains mavlink MAV_TYPE
 uint8 system_id			# system id, contains MAVLink's system ID field
 uint8 component_id			# subsystem / component id, contains MAVLink's component ID field
 
-bool is_rotary_wing			# True if system is in rotary wing configuration, so for a VTOL this is only true while flying as a multicopter
+uint8 vehicle_type          # Type of vehicle (fixed-wing, rotary wing, ground)
+                            # If the vehicle is a VTOL, then this value will be VEHICLE_TYPE_ROTARY_WING while flying as a multicopter,
+                            # and VEHICLE_TYPE_FIXED_WING when flying as a fixed-wing
 
 bool is_vtol				# True if the system is VTOL capable
 bool vtol_fw_permanent_stab		# True if VTOL should stabilize attitude for fw in manual mode

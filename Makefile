@@ -344,7 +344,6 @@ format:
 .PHONY: rostest python_coverage
 
 tests:
-	$(eval CMAKE_ARGS += -DCMAKE_TESTING=ON)
 	$(eval CMAKE_ARGS += -DCONFIG=px4_sitl_test)
 	$(eval CMAKE_ARGS += -DTESTFILTER=$(TESTFILTER))
 	$(eval ARGS += test_results)

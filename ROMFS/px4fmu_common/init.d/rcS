@@ -259,7 +259,7 @@ else
 	then
 		# Check for the mini using build with px4io fw file
 		# but not a px4IO
-		if ver hwtypecmp V540
+		if ver hwtypecmp V540 V560
 		then
 			param set SYS_USE_IO 0
 		else
@@ -421,7 +421,7 @@ else
 	#
 	# Configure vehicle type specific parameters.
 	# Note: rc.vehicle_setup is the entry point for rc.interface,
-	#       rc.fw_apps, rc.mc_apps, rc.ugv_apps, and rc.vtol_apps.
+	#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
 	#
 	sh /etc/init.d/rc.vehicle_setup
 

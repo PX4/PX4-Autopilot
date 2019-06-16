@@ -702,7 +702,7 @@ MulticopterPositionControl::start_flight_task()
 	int prev_failure_count = _task_failure_count;
 
 	// Do not run any flight task for VTOLs in fixed-wing mode
-	if (!_vehicle_status.is_rotary_wing) {
+	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		_flight_tasks.switchTask(FlightTaskIndex::None);
 		return;
 	}

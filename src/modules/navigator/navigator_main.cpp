@@ -761,7 +761,7 @@ Navigator::get_acceptance_radius()
 float
 Navigator::get_default_altitude_acceptance_radius()
 {
-	if (!get_vstatus()->is_rotary_wing) {
+	if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		return _param_nav_fw_alt_rad.get();
 
 	} else {
@@ -781,7 +781,7 @@ Navigator::get_default_altitude_acceptance_radius()
 float
 Navigator::get_altitude_acceptance_radius()
 {
-	if (!get_vstatus()->is_rotary_wing) {
+	if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		const position_setpoint_s &next_sp = get_position_setpoint_triplet()->next;
 
 		if (next_sp.type == position_setpoint_s::SETPOINT_TYPE_LAND && next_sp.valid) {
@@ -797,7 +797,7 @@ float
 Navigator::get_cruising_speed()
 {
 	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
-	if (_vstatus.is_rotary_wing) {
+	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		if (is_planned_mission() && _mission_cruising_speed_mc > 0.0f) {
 			return _mission_cruising_speed_mc;
 
@@ -818,7 +818,7 @@ Navigator::get_cruising_speed()
 void
 Navigator::set_cruising_speed(float speed)
 {
-	if (_vstatus.is_rotary_wing) {
+	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		_mission_cruising_speed_mc = speed;
 
 	} else {
@@ -1069,7 +1069,7 @@ bool
 Navigator::force_vtol()
 {
 	return _vstatus.is_vtol &&
-	       (!_vstatus.is_rotary_wing || _vstatus.in_transition_to_fw)
+	       (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING || _vstatus.in_transition_to_fw)
 	       && _param_nav_force_vt.get();
 }
 

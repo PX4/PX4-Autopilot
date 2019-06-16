@@ -262,7 +262,8 @@ FixedwingAttitudeControl::vehicle_control_mode_poll()
 	_vcontrol_mode_sub.update(&_vcontrol_mode);
 
 	if (_vehicle_status.is_vtol) {
-		const bool is_hovering = _vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode;
+		const bool is_hovering = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+					 && !_vehicle_status.in_transition_mode;
 		const bool is_tailsitter_transition = _vehicle_status.in_transition_mode && _is_tailsitter;
 
 		if (is_hovering || is_tailsitter_transition) {
@@ -276,10 +277,9 @@ void
 FixedwingAttitudeControl::vehicle_manual_poll()
 {
 	const bool is_tailsitter_transition = _is_tailsitter && _vehicle_status.in_transition_mode;
-	const bool is_fixed_wing = !_vehicle_status.is_rotary_wing;
+	const bool is_fixed_wing = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
 	if (_vcontrol_mode.flag_control_manual_enabled && (!is_tailsitter_transition || is_fixed_wing)) {
-
 		// Always copy the new manual setpoint, even if it wasn't updated, to fill the _actuators with valid values
 		if (_manual_sub.copy(&_manual)) {
 
@@ -428,7 +428,8 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 		// VTOL: if we have no airspeed available and we are in hover mode then assume the lowest airspeed possible
 		// this assumption is good as long as the vehicle is not hovering in a headwind which is much larger
 		// than the minimum airspeed
-		if (_vehicle_status.is_vtol && _vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
+		if (_vehicle_status.is_vtol && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+		    && !_vehicle_status.in_transition_mode) {
 			airspeed = _parameters.airspeed_min;
 		}
 	}
@@ -560,7 +561,8 @@ void FixedwingAttitudeControl::run()
 			_att_sp.fw_control_yaw = _att_sp.fw_control_yaw && _vcontrol_mode.flag_control_auto_enabled;
 
 			/* lock integrator until control is started */
-			bool lock_integrator = !_vcontrol_mode.flag_control_rates_enabled || _vehicle_status.is_rotary_wing;
+			bool lock_integrator = !_vcontrol_mode.flag_control_rates_enabled
+					       || _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 			/* Simple handling of failsafe: deploy parachute if failsafe is on */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
@@ -571,7 +573,7 @@ void FixedwingAttitudeControl::run()
 			}
 
 			/* if we are in rotary wing mode, do nothing */
-			if (_vehicle_status.is_rotary_wing && !_vehicle_status.is_vtol) {
+			if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !_vehicle_status.is_vtol) {
 				continue;
 			}
 
@@ -608,7 +610,8 @@ void FixedwingAttitudeControl::run()
 				 * or a multicopter (but not transitioning VTOL)
 				 */
 				if (_landed
-				    || (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode)) {
+				    || (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+					&& !_vehicle_status.in_transition_mode)) {
 
 					_roll_ctrl.reset_integrator();
 					_pitch_ctrl.reset_integrator();
@@ -637,7 +640,8 @@ void FixedwingAttitudeControl::run()
 
 				/* reset body angular rate limits on mode change */
 				if ((_vcontrol_mode.flag_control_attitude_enabled != _flag_control_attitude_enabled_last) || params_updated) {
-					if (_vcontrol_mode.flag_control_attitude_enabled || _vehicle_status.is_rotary_wing) {
+					if (_vcontrol_mode.flag_control_attitude_enabled
+					    || _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 						_roll_ctrl.set_max_rate(math::radians(_parameters.r_rmax));
 						_pitch_ctrl.set_max_rate_pos(math::radians(_parameters.p_rmax_pos));
 						_pitch_ctrl.set_max_rate_neg(math::radians(_parameters.p_rmax_neg));
