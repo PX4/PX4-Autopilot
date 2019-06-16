@@ -62,10 +62,10 @@ int LandDetector::task_spawn(int argc, char *argv[])
 {
 	if (argc < 2) {
 		print_usage();
-		return -1;
+		return PX4_ERROR;
 	}
 
-	LandDetector *obj;
+	LandDetector *obj = nullptr;
 
 	if (strcmp(argv[1], "fixedwing") == 0) {
 		obj = new FixedwingLandDetector();
@@ -81,28 +81,24 @@ int LandDetector::task_spawn(int argc, char *argv[])
 
 	} else {
 		print_usage("unknown mode");
-		return -1;
+		return PX4_ERROR;
 	}
 
 	if (obj == nullptr) {
 		PX4_ERR("alloc failed");
-		return -1;
-	}
-
-	int ret = obj->start();
-
-	if (ret < 0) {
-		delete obj;
-		return ret;
+		return PX4_ERROR;
 	}
 
 	// Remember current active mode
 	strncpy(_currentMode, argv[1], sizeof(_currentMode) - 1);
 	_currentMode[sizeof(_currentMode) - 1] = '\0';
 
-	wait_until_running(); // this will wait until _object is set from the cycle method
+	_object.store(obj);
 	_task_id = task_id_is_work_queue;
-	return 0;
+
+	obj->start();
+
+	return PX4_OK;
 }
 
 int LandDetector::print_status()

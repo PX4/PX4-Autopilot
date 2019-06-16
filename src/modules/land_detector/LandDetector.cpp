@@ -57,6 +57,14 @@ LandDetector::LandDetector() :
 	ScheduledWorkItem(px4::wq_configurations::hp_default),
 	_cycle_perf(perf_alloc(PC_ELAPSED, "land_detector_cycle"))
 {
+	_landDetected.timestamp = hrt_absolute_time();
+	_landDetected.freefall = false;
+	_landDetected.landed = true;
+	_landDetected.ground_contact = false;
+	_landDetected.maybe_landed = false;
+
+	_p_total_flight_time_high = param_find("LND_FLIGHT_T_HI");
+	_p_total_flight_time_low = param_find("LND_FLIGHT_T_LO");
 }
 
 LandDetector::~LandDetector()
@@ -64,32 +72,14 @@ LandDetector::~LandDetector()
 	perf_free(_cycle_perf);
 }
 
-int LandDetector::start()
+void LandDetector::start()
 {
-	ScheduleOnInterval(LAND_DETECTOR_UPDATE_INTERVAL, 10000);
-
-	return PX4_OK;
+	ScheduleOnInterval(LAND_DETECTOR_UPDATE_INTERVAL);
 }
 
 void LandDetector::Run()
 {
 	perf_begin(_cycle_perf);
-
-	if (_object.load() == nullptr) { // not initialized yet
-		// Advertise the first land detected uORB.
-		_landDetected.timestamp = hrt_absolute_time();
-		_landDetected.freefall = false;
-		_landDetected.landed = true;
-		_landDetected.ground_contact = false;
-		_landDetected.maybe_landed = false;
-
-		_p_total_flight_time_high = param_find("LND_FLIGHT_T_HI");
-		_p_total_flight_time_low = param_find("LND_FLIGHT_T_LO");
-
-		_check_params(true);
-
-		_object.store(this);
-	}
 
 	_check_params(false);
 	_armingSub.update(&_arming);
