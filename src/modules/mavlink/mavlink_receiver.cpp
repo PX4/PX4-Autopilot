@@ -1135,19 +1135,18 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	mavlink_odometry_t odom;
 	mavlink_msg_odometry_decode(msg, &odom);
 
-	struct vehicle_odometry_s odometry = {};
-
-	/* Dcm rotation matrix from body frame to local NED frame */
-	matrix::Dcmf Rbl;
+	vehicle_odometry_s odometry{};
 
 	odometry.timestamp = _mavlink_timesync.sync_stamp(odom.time_usec);
+
 	/* The position is in the local NED frame */
 	odometry.x = odom.x;
 	odometry.y = odom.y;
 	odometry.z = odom.z;
+
 	/* The quaternion of the ODOMETRY msg represents a rotation from NED
 	 * earth/local frame to XYZ body frame */
-	matrix::Quatf q(odom.q);
+	const matrix::Quatf q(odom.q);
 	q.copyTo(odometry.q);
 
 	// TODO:
@@ -1173,9 +1172,9 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 
 	if (odom.child_frame_id == MAV_FRAME_BODY_FRD) { /* WRT to estimated vehicle body-fixed frame */
 		/* get quaternion from the msg quaternion itself and build DCM matrix from it */
-		Rbl = matrix::Dcmf(matrix::Quatf(odometry.q)).I();
+		const matrix::Dcmf Rbl = matrix::Dcmf(matrix::Quatf(odometry.q)).I();
 
-		/* the linear velocities needs to be transformed to the local NED frame */\
+		/* the linear velocities needs to be transformed to the local NED frame */
 		matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
 		odometry.vx = linvel_local(0);
 		odometry.vy = linvel_local(1);
@@ -1190,11 +1189,36 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 			odometry.velocity_covariance[i] = odom.velocity_covariance[i];
 		}
 
+	} else if (odom.child_frame_id == MAV_FRAME_BODY_FLU) { /* WRT to estimated vehicle body-fixed frame */
+		/* get quaternion from the msg quaternion itself and build DCM matrix from it */
+		const matrix::Dcmf Rbl = matrix::Dcmf(matrix::Quatf(odometry.q)).I();
+
+		/* the position needs to be transformed to the local NED frame */
+		matrix::Vector3f pos(Rbl * matrix::Vector3<float>(odom.x, -odom.y, -odom.z));
+		odometry.x = pos(0);
+		odometry.y = pos(1);
+		odometry.z = pos(2);
+
+		/* the linear velocities needs to be transformed to the local NED frame */
+		matrix::Vector3f linvel_local(Rbl * matrix::Vector3<float>(odom.vx, -odom.vy, -odom.vz));
+		odometry.vx = linvel_local(0);
+		odometry.vy = linvel_local(1);
+		odometry.vz = linvel_local(2);
+
+		odometry.rollspeed = odom.rollspeed;
+		odometry.pitchspeed = odom.pitchspeed;
+		odometry.yawspeed = odom.yawspeed;
+
+		//TODO: Apply rotation matrix to transform from body-fixed NED to earth-fixed NED frame
+		for (size_t i = 0; i < VEL_URT_SIZE; i++) {
+			odometry.velocity_covariance[i] = odom.velocity_covariance[i];
+		}
+
 	} else if (odom.child_frame_id == MAV_FRAME_BODY_NED) { /* WRT to vehicle body-NED frame */
-		if (_vehicle_attitude_sub.update(&_att)) {
+		if (_vehicle_attitude_sub.copy(&_att)) {
 
 			/* get quaternion from vehicle_attitude quaternion and build DCM matrix from it */
-			Rbl = matrix::Dcmf(matrix::Quatf(_att.q)).I();
+			const matrix::Dcmf Rbl = matrix::Dcmf(matrix::Quatf(_att.q)).I();
 
 			/* the linear velocities needs to be transformed to the local NED frame */
 			matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
@@ -1216,7 +1240,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	} else if (odom.child_frame_id == MAV_FRAME_VISION_NED || /* WRT to vehicle local NED frame */
 		   odom.child_frame_id == MAV_FRAME_MOCAP_NED) {
 
-		if (_vehicle_attitude_sub.update(&_att)) {
+		if (_vehicle_attitude_sub.copy(&_att)) {
 
 			/* get quaternion from vehicle_attitude quaternion and build DCM matrix from it */
 			matrix::Dcmf Rlb = matrix::Quatf(_att.q);
