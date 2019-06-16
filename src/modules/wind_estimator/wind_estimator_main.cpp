@@ -174,13 +174,13 @@ WindEstimatorModule::Run()
 
 	vehicle_attitude_s att{};
 
-	if (_vehicle_attitude_sub.update(&att)) {
+	if (_vehicle_attitude_sub.copy(&att)) {
 		att_valid = (time_now_usec - att.timestamp < 1_s) && (att.timestamp > 0);
 	}
 
 	vehicle_local_position_s lpos{};
 
-	if (_vehicle_local_position_sub.update(&lpos)) {
+	if (_vehicle_local_position_sub.copy(&lpos)) {
 		lpos_valid = (time_now_usec - lpos.timestamp < 1_s) && (lpos.timestamp > 0) && lpos.v_xy_valid;
 	}
 
