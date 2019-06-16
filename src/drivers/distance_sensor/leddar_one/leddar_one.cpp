@@ -51,7 +51,8 @@
 
 #include <uORB/topics/distance_sensor.h>
 
-#define DEVICE_PATH "/dev/LeddarOne"
+#define DEVICE_PATH                    "/dev/LeddarOne"
+#define LEDDAR_ONE_DEFAULT_SERIAL_PORT "/dev/ttyS3"
 
 #define MAX_DISTANCE         40.0f
 #define MIN_DISTANCE         0.01f
@@ -115,22 +116,37 @@ public:
 	virtual ~LeddarOne();
 
 	virtual int init() override;
-	void start();
-	void stop();
+
+	/**
+	 * Diagnostics - print some basic information about the driver.
+	 */
+	void print_info();
 
 	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
 
+	/**
+	 * Initialise the automatic measurement state machine and start it.
+	 */
+	void start();
+
+	/**
+	 * Stop the automatic measurement state machine.
+	 */
+	void stop();
+
 private:
 
-	int _collect();
+	uint16_t calc_crc16(const uint8_t *buffer, uint8_t len);
 
-	int _cycle();
+	int collect();
 
-	int _fd_open();
+	int cycle();
 
-	void _publish(uint16_t distance_cm);
+	int fd_open();
 
-	bool _request();
+	void publish(uint16_t distance_cm);
+
+	bool request();
 
 	void Run() override;
 
@@ -150,7 +166,7 @@ private:
 	hrt_abstime _timeout_usec{0};
 
 	perf_counter_t _collect_timeout_perf{perf_alloc(PC_COUNT, "leddar_one_collect_timeout")};
-	perf_counter_t _comm_error{perf_alloc(PC_COUNT, "leddar_one_comm_errors")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, "leddar_one_comms_errors")};
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "leddar_one_sample")};
 
 	orb_advert_t _topic{nullptr};
@@ -185,7 +201,7 @@ LeddarOne::~LeddarOne()
 	}
 
 	perf_free(_collect_timeout_perf);
-	perf_free(_comm_error);
+	perf_free(_comms_errors);
 	perf_free(_sample_perf);
 }
 
@@ -215,7 +231,7 @@ LeddarOne::calc_crc16(const uint8_t *buffer, uint8_t len)
  * -1 in case of error
  */
 int
-LeddarOne::_collect()
+LeddarOne::collect()
 {
 	struct reading_msg *msg;
 
@@ -237,19 +253,19 @@ LeddarOne::_collect()
 		return -1;
 	}
 
-	const uint16_t crc16_calc = _calc_crc16(_buffer, _buffer_len - 2);
+	const uint16_t crc16_calc = calc_crc16(_buffer, _buffer_len - 2);
 
 	if (crc16_calc != msg->crc) {
 		return -1;
 	}
 
 	/* NOTE: little-endian support only */
-	_publish(msg->first_dist_high_byte << 8 | msg->first_dist_low_byte);
+	publish(msg->first_dist_high_byte << 8 | msg->first_dist_low_byte);
 	return 1;
 }
 
 int
-LeddarOne::_cycle()
+LeddarOne::cycle()
 {
 	int ret = 0;
 	const hrt_abstime now = hrt_absolute_time();
@@ -257,7 +273,7 @@ LeddarOne::_cycle()
 	switch (_state) {
 	case state_waiting_reading:
 		if (now > _timeout_usec) {
-			if (_request()) {
+			if (request()) {
 				perf_begin(_sample_perf);
 				_buffer_len = 0;
 				_state = state_reading_requested;
@@ -268,7 +284,7 @@ LeddarOne::_cycle()
 		break;
 
 	case state_reading_requested:
-		ret = _collect();
+		ret = collect();
 
 		if (ret == 1) {
 			perf_end(_sample_perf);
@@ -282,7 +298,7 @@ LeddarOne::_cycle()
 			}
 
 			if (ret == -1) {
-				perf_count(_comm_error);
+				perf_count(_comms_errors);
 
 			} else {
 				perf_count(_collect_timeout_perf);
@@ -291,7 +307,7 @@ LeddarOne::_cycle()
 			perf_cancel(_sample_perf);
 			_state = state_waiting_reading;
 			_timeout_usec = 0;
-			return _cycle();
+			return cycle();
 		}
 	}
 
@@ -302,7 +318,7 @@ int
 LeddarOne::init()
 {
 	if (CDev::init()) {
-		PX4_ERR("Unable to initialize device\n");
+		PX4_ERR("Unable to initialize character device\n");
 		return -1;
 	}
 
@@ -313,7 +329,7 @@ LeddarOne::init()
 		return -1;
 	}
 
-	if (_fd_open()) {
+	if (fd_open()) {
 		return PX4_ERROR;
 	}
 
@@ -323,21 +339,36 @@ LeddarOne::init()
 	     now < timeout_usec;
 	     now = hrt_absolute_time()) {
 
-		if (_cycle() > 0) {
-			printf(NAME " found\n");
+		if (cycle() > 0) {
+			;
+			PX4_INFO("LeddarOne initialized");
 			return PX4_OK;
 		}
 
 		px4_usleep(1000);
 	}
 
-	PX4_ERR("No readings from " NAME);
+	/*
+		hrt_abstime time_now = hrt_absolute_time();
+		hrt_abstime timeout_usec = time_now + PROBE_USEC_TIMEOUT;
 
+		for (time_now, timeout_usec; time_now < timeout_usec; time_now = hrt_absolute_time()) {
+
+			if (cycle() > 0) {;
+				PX4_INFO("LeddarOne initialized");
+				return PX4_OK;
+			}
+
+			px4_usleep(1000);
+		}
+	*/
+
+	PX4_ERR("No readings from LeddarOne");
 	return PX4_ERROR;
 }
 
 int
-LeddarOne::_fd_open()
+LeddarOne::fd_open()
 {
 	if (!_serial_port) {
 		return -1;
@@ -391,6 +422,17 @@ error:
 }
 
 void
+LeddarOne::print_info()
+{
+
+	perf_print_counter(_collect_timeout_perf);
+	perf_print_counter(_comms_errors);
+	perf_print_counter(_sample_perf);
+	PX4_INFO("measure interval:  %u msec", static_cast<uint16_t>(WORK_USEC_INTERVAL) / 1000);
+	_reports->print_info("report queue");
+}
+
+void
 LeddarOne::publish(uint16_t distance_mm)
 {
 	struct distance_sensor_s report;
@@ -437,7 +479,7 @@ LeddarOne::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 bool
-LeddarOne::_request()
+LeddarOne::request()
 {
 	/* flush anything in RX buffer */
 	tcflush(_fd, TCIFLUSH);
@@ -450,10 +492,10 @@ void
 LeddarOne::Run()
 {
 	if (_fd != -1) {
-		_cycle();
+		cycle();
 
 	} else {
-		_fd_open();
+		fd_open();
 	}
 }
 
@@ -487,12 +529,102 @@ namespace leddar_one
 
 LeddarOne *g_dev;
 
-int start(const char *port, uint8_t rotation);
+int start(const char *port, const uint8_t rotation);
 int status();
 int stop();
+int test();
 int usage();
 
-void usage()
+int start(const char *port, const uint8_t rotation)
+{
+	if (g_dev != nullptr) {
+		PX4_ERR("already started");
+		return PX4_ERROR;
+	}
+
+	g_dev = new LeddarOne(DEVICE_PATH, port, rotation);
+
+	if (g_dev == nullptr) {
+		delete g_dev;
+		return PX4_ERROR;
+	}
+
+	// Initialize the sensor.
+	if (g_dev->init() != PX4_OK) {
+		delete g_dev;
+		g_dev = nullptr;
+		return PX4_ERROR;
+	}
+
+	// Start the driver.
+	g_dev->start();
+	PX4_INFO("driver started");
+	return PX4_OK;
+}
+
+/**
+ * Print the driver status.
+ */
+int
+status()
+{
+	if (g_dev == nullptr) {
+		PX4_ERR("driver not running");
+		return PX4_ERROR;
+	}
+
+	g_dev->print_info();
+
+	return PX4_OK;
+}
+
+/**
+ * Stop the driver
+ */
+int
+stop()
+{
+	if (g_dev != nullptr) {
+		delete g_dev;
+		g_dev = nullptr;
+
+	}
+
+	PX4_INFO("driver stopped");
+	return PX4_OK;
+}
+
+/**
+ * Perform some basic functional tests on the driver;
+ * make sure we can collect data from the sensor in polled
+ * and automatic modes.
+ */
+int test()
+{
+	int fd = open(DEVICE_PATH, O_RDONLY);
+
+	if (fd < 0) {
+		PX4_ERR("Unable to open %s", DEVICE_PATH);
+		return PX4_ERROR;
+	}
+
+	distance_sensor_s report;
+	ssize_t sz = read(fd, &report, sizeof(report));
+
+	if (sz != sizeof(report)) {
+		PX4_ERR("No sample available in %s", DEVICE_PATH);
+		return PX4_ERROR;
+	}
+
+	print_message(report);
+
+	close(fd);
+
+	PX4_INFO("PASS");
+	return PX4_OK;
+}
+
+int usage()
 {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
@@ -519,24 +651,27 @@ $ leddar_one stop
 	PRINT_MODULE_USAGE_PARAM_INT('r', 25, 1, 25, "Sensor rotation - downward facing by default", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
+	return PX4_OK;
 
 }
 
 } // namespace
 
-extern "C" __EXPORT int leddar_one_main(int argc, char *argv[]);
+extern "C" __EXPORT int leddar_one_main(int argc, char *argv[])
 {
-	int ch;
-	int myoptind = 1;
+
 	const char *myoptarg = nullptr;
-	const char *serial_port = "/dev/ttyS3";
+
+	int ch = 0;
+	int myoptind = 1;
+
+	const char *port = LEDDAR_ONE_DEFAULT_SERIAL_PORT;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	static leddar_one *inst = nullptr;
 
 	while ((ch = px4_getopt(argc, argv, "d:r", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'd':
-			serial_port = myoptarg;
+			port = myoptarg;
 			break;
 
 		case 'r':
@@ -545,62 +680,37 @@ extern "C" __EXPORT int leddar_one_main(int argc, char *argv[]);
 
 		default:
 			PX4_WARN("Unknown option!");
-			help();
-			return PX4_ERROR;
+			return leddar_one::usage();
 		}
 	}
 
 	if (myoptind >= argc) {
-		help();
-		return PX4_ERROR;
+		return leddar_one::usage();
 	}
 
-	const char *verb = argv[myoptind];
+	// Start/load the driver.
+	if (!strcmp(argv[myoptind], "start")) {
+		return leddar_one::start(port, rotation);
 
-	if (!strcmp(verb, "start")) {
-		inst = new leddar_one(DEVICE_PATH, serial_port, rotation);
-
-		if (!inst) {
-			PX4_ERR("No memory to allocate " NAME);
-			return PX4_ERROR;
-		}
-
-		if (inst->init() != PX4_OK) {
-			delete inst;
-			return PX4_ERROR;
-		}
-
-		inst->start();
-
-	} else if (!strcmp(verb, "stop")) {
-		delete inst;
-		inst = nullptr;
-
-	} else if (!strcmp(verb, "test")) {
-		int fd = open(DEVICE_PATH, O_RDONLY);
-		ssize_t sz;
-		struct distance_sensor_s report;
-
-		if (fd < 0) {
-			PX4_ERR("Unable to open %s", DEVICE_PATH);
-			return PX4_ERROR;
-		}
-
-		sz = read(fd, &report, sizeof(report));
-		close(fd);
-
-		if (sz != sizeof(report)) {
-			PX4_ERR("No sample available in %s", DEVICE_PATH);
-			return PX4_ERROR;
-		}
-
-		print_message(report);
-
-	} else {
-		help();
-		PX4_ERR("unrecognized command");
-		return PX4_ERROR;
 	}
 
-	return PX4_OK;
+	// Print the driver status.
+	if (!strcmp(argv[myoptind], "status")) {
+		return leddar_one::status();
+	}
+
+	// Stop the driver.
+	if (!strcmp(argv[myoptind], "stop")) {
+		return leddar_one::stop();
+
+	}
+
+	// Test the driver/device.
+	if (!strcmp(argv[myoptind], "test")) {
+		return leddar_one::test();
+
+	}
+
+	// Print driver usage information.
+	return leddar_one::usage();
 }
