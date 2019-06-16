@@ -1364,6 +1364,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 							break;
 
 						case MAV_TYPE_FIXED_WING:
+							att_sp.thrust_body[0] = set_attitude_target.thrust;
 							break;
 
 						case MAV_TYPE_QUADROTOR:
