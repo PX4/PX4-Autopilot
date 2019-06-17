@@ -10,7 +10,8 @@
             "isBackground": true,
             "args": [
                 "-r",
-                "500"
+                "250",
+                "-l"
             ],
             "options": {
                 "cwd": "${workspaceRoot}"
