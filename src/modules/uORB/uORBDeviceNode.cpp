@@ -37,6 +37,8 @@
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
 
+#include "SubscriptionCallback.hpp"
+
 #ifdef ORB_COMMUNICATOR
 #include "uORBCommunicator.hpp"
 #endif /* ORB_COMMUNICATOR */
@@ -316,6 +318,11 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 	_generation++;
 
 	_published = true;
+
+	// callbacks
+	for (auto item : _callbacks) {
+		item->call();
+	}
 
 	ATOMIC_LEAVE;
 
@@ -672,4 +679,34 @@ int uORB::DeviceNode::update_queue_size(unsigned int queue_size)
 
 	_queue_size = queue_size;
 	return PX4_OK;
+}
+
+bool
+uORB::DeviceNode::register_callback(uORB::SubscriptionCallback *callback_sub)
+{
+	if (callback_sub != nullptr) {
+		ATOMIC_ENTER;
+
+		// prevent duplicate registrations
+		for (auto existing_callbacks : _callbacks) {
+			if (callback_sub == existing_callbacks) {
+				ATOMIC_LEAVE;
+				return true;
+			}
+		}
+
+		_callbacks.add(callback_sub);
+		ATOMIC_LEAVE;
+		return true;
+	}
+
+	return false;
+}
+
+void
+uORB::DeviceNode::unregister_callback(uORB::SubscriptionCallback *callback_sub)
+{
+	ATOMIC_ENTER;
+	_callbacks.remove(callback_sub);
+	ATOMIC_LEAVE;
 }
