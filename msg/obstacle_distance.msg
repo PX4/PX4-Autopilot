@@ -15,3 +15,5 @@ uint16 min_distance # Minimum distance the sensor can measure in centimeters.
 uint16 max_distance # Maximum distance the sensor can measure in centimeters.
 
 float32 angle_offset # Relative angle offset of the 0-index element in the distances array. Value of 0 corresponds to forward. Positive values are offsets to the right.
+
+# TOPICS obstacle_distance obstacle_distance_fused

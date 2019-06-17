@@ -77,6 +77,17 @@ void CollisionPrevention::publishConstrainedSetpoint(const Vector2f &original_se
 	}
 }
 
+void CollisionPrevention::publishObstacleDistance(obstacle_distance_s &obstacle)
+{
+	// publish fused obtacle distance message with data from offboard obstacle_distance and distance sensor
+	if (_obstacle_distance_pub != nullptr) {
+		orb_publish(ORB_ID(obstacle_distance_fused), _obstacle_distance_pub, &obstacle);
+
+	} else {
+		_obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance_fused), &obstacle);
+	}
+}
+
 void CollisionPrevention::updateOffboardObstacleDistance(obstacle_distance_s &obstacle)
 {
 	_sub_obstacle_distance.update();
@@ -171,6 +182,8 @@ void CollisionPrevention::updateDistanceSensor(obstacle_distance_s &obstacle)
 			}
 		}
 	}
+
+	publishObstacleDistance(obstacle);
 }
 
 void CollisionPrevention::calculateConstrainedSetpoint(Vector2f &setpoint,
