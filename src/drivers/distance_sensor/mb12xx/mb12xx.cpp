@@ -66,10 +66,12 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/distance_sensor.h>
 
+using namespace time_literals;
 
 /* Configuration Constants */
-#define MB12XX_BASEADDR                         0x70 // 7-bit address. 8-bit address is 0xE0.
+#define MB12XX_BASEADDR                         0x70   // 7-bit address. 8-bit address is 0xE0.
 #define MB12XX_BUS_DEFAULT                      PX4_I2C_BUS_EXPANSION
+#define MB12XX_BUS_SPEED                        100000 // 100kHz bus speed.
 #define MB12XX_DEVICE_PATH                      "/dev/mb12xx"
 
 /* MB12xx Registers addresses */
@@ -81,8 +83,8 @@
 #define MB12XX_MIN_DISTANCE                     (0.20f)
 #define MB12XX_MAX_DISTANCE                     (7.65f)
 
-#define MB12XX_CONVERSION_INTERVAL              100000 // 60ms for one sonar.
-#define MB12XX_INTERVAL_BETWEEN_SUCCESIVE_FIRES 100000 // 30ms between each sonar measurement (watch out for interference!).
+#define MB12XX_CONVERSION_INTERVAL              100_ms // 60ms minimum for one sonar.
+#define MB12XX_INTERVAL_BETWEEN_SUCCESIVE_FIRES 100_ms // 30ms minimum between each sonar measurement (watch out for interference!).
 
 class MB12XX : public device::I2C, public px4::ScheduledWorkItem
 {
@@ -160,7 +162,7 @@ private:
 
 
 MB12XX::MB12XX(uint8_t rotation, int bus, int address) :
-	I2C("MB12xx", MB12XX_DEVICE_PATH, bus, address, 100000),
+	I2C("MB12xx", MB12XX_DEVICE_PATH, bus, address, MB12XX_BUS_SPEED),
 	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 	_rotation(rotation)
 {
@@ -211,7 +213,7 @@ MB12XX::collect()
 	report.type             = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
 	report.variance         = 0.0f;
 
-	// Publish it, if we are the primary */
+	// Publish it, if we are the primary.
 	if (_distance_sensor_topic != nullptr) {
 		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
 	}
@@ -274,7 +276,7 @@ MB12XX::init()
 		PX4_DEBUG("sonar %d with address %d added", (i + 1), addr_ind[i]);
 	}
 
-	PX4_INFO("Number of sonars connected: %lu", addr_ind.size());
+	PX4_INFO("Number of sonars connected: %i", addr_ind.size());
 
 	// Sensor is ok, but we don't really know if it is within range.
 	_sensor_ok = true;
