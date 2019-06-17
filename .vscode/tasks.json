@@ -63,7 +63,7 @@
                     "GAZEBO_MODEL_PATH": "${workspaceRoot}/Tools/sitl_gazebo/models"
                 }
             },
-            "command": "gzserver --verbose ${workspaceRoot}/Tools/sitl_gazebo/worlds/iris.world",
+            "command": "gzserver --verbose ${workspaceRoot}/Tools/sitl_gazebo/worlds/iris.world & gzclient",
             "isBackground": true,
             "presentation": {
                 "reveal": "always",
@@ -90,7 +90,7 @@
         {
             "label": "gazebo kill",
             "type": "shell",
-            "command": "killall gzserver",
+            "command": "killall gzserver; killall gzclient",
             "problemMatcher": []
         },
         {
