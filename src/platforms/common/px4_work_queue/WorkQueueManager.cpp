@@ -198,19 +198,26 @@ static void WorkQueueManagerRun()
 			}
 
 			// stack size
+#ifndef __PX4_QURT
 			const size_t stacksize = math::max(PTHREAD_STACK_MIN, PX4_STACK_ADJUSTED(wq->stacksize));
+#else
+			const size_t stacksize = math::max(8 * 1024, PX4_STACK_ADJUSTED(wq->stacksize));
+#endif
 			int ret_setstacksize = pthread_attr_setstacksize(&attr, stacksize);
 
 			if (ret_setstacksize != 0) {
 				PX4_ERR("setting stack size for %s failed (%i)", wq->name, ret_setstacksize);
 			}
 
+#ifndef __PX4_QURT
 			// schedule policy FIFO
 			int ret_setschedpolicy = pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
 
 			if (ret_setschedpolicy != 0) {
 				PX4_ERR("failed to set sched policy SCHED_FIFO (%i)", ret_setschedpolicy);
 			}
+
+#endif // ! QuRT
 
 			// priority
 			param.sched_priority = sched_get_priority_max(SCHED_FIFO) + wq->relative_priority;

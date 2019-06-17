@@ -58,10 +58,9 @@ public:
 	const char *get_name() { return _config.name; }
 
 	void Add(WorkItem *item);
+	void Remove(WorkItem *item);
 
-	// TODO: need helpers to handle clean shutdown - remove and clear?
-	//void remove(WorkItem *item);
-	//void clear();
+	void Clear();
 
 	void Run();
 
