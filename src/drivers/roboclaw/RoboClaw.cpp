@@ -57,21 +57,45 @@
 #include <uORB/topics/debug_key_value.h>
 #include <drivers/drv_hrt.h>
 
-uint8_t RoboClaw::checksum_mask = 0x7f;
+// The RoboClaw has a serial communication timeout of 10ms.
+#define TIMEOUT_US 10000
 
-RoboClaw::RoboClaw(const char *deviceName, uint16_t address,
-		   uint16_t pulsesPerRev):
+// The RoboClaw determines the change in the wheel encoder value when it overflows
+#define OVERFLOW_AMOUNT 0x100000000LL
+
+//void printbytes(const char *msg, uint8_t *bytes, int numbytes)
+//{
+//	if (numbytes < 0) {
+//		numbytes = 0;
+//	}
+//
+//	size_t msglen = strlen(msg);
+//	char buff[msglen + (4 * numbytes) + 1];
+//	char *cur = &buff[0];
+//	cur += sprintf(cur, "%s ", msg);
+//
+//	for (int i = 0; i < numbytes; i++) {
+//		cur += sprintf(cur, "0x%02X ", bytes[i]);
+//	}
+//
+//	PX4_INFO("%s", buff);
+//}
+
+RoboClaw::RoboClaw(const char *deviceName, uint16_t address, uint16_t pulsesPerRev):
+	ScheduledWorkItem(px4::wq_configurations::hp_default),
 	_address(address),
 	_pulsesPerRev(pulsesPerRev),
 	_uart(0),
 	_controlPoll(),
 	_actuators(ORB_ID(actuator_controls_0), 20),
-	_motor1Position(0),
-	_motor1Speed(0),
+	_motor1EncoderCounts(0),
+	_motor1Revolutions(0),
 	_motor1Overflow(0),
-	_motor2Position(0),
-	_motor2Speed(0),
-	_motor2Overflow(0)
+	_motor1Speed(0),
+	_motor2EncoderCounts(0),
+	_motor2Revolutions(0),
+	_motor2Overflow(0),
+	_motor2Speed(0)
 {
 	// setup control polling
 	_controlPoll.fd = _actuators.getHandle();
@@ -83,7 +107,7 @@ RoboClaw::RoboClaw(const char *deviceName, uint16_t address,
 	if (_uart < 0) { err(1, "could not open %s", deviceName); }
 
 	int ret = 0;
-	struct termios uart_config;
+	struct termios uart_config {};
 	ret = tcgetattr(_uart, &uart_config);
 
 	if (ret < 0) { err(1, "failed to get attr"); }
@@ -101,7 +125,14 @@ RoboClaw::RoboClaw(const char *deviceName, uint16_t address,
 
 	if (ret < 0) { err(1, "failed to set attr"); }
 
-	// setup default settings, reset encoders
+	FD_ZERO(&_uart_set);
+
+	_uart_timeout.tv_sec = 0;
+	_uart_timeout.tv_usec = TIMEOUT_US;
+
+	pthread_mutex_init(&_uart_mutex, NULL);
+
+// setup default settings, reset encoders
 	resetEncoders();
 }
 
@@ -110,86 +141,79 @@ RoboClaw::~RoboClaw()
 	setMotorDutyCycle(MOTOR_1, 0.0);
 	setMotorDutyCycle(MOTOR_2, 0.0);
 	close(_uart);
+
+	pthread_mutex_destroy(&_uart_mutex);
+}
+
+void RoboClaw::Run()
+{
+	readEncoder(MOTOR_1);
+	readEncoder(MOTOR_2);
+
+	PX4_INFO("Motor1: (%d, %d), Motor2: (%d, %d)", _motor1EncoderCounts, _motor1Revolutions, _motor2EncoderCounts,
+		 _motor2Revolutions);
 }
 
 int RoboClaw::readEncoder(e_motor motor)
 {
-	uint16_t sum = 0;
+	e_command cmd = motor == MOTOR_1 ? CMD_READ_ENCODER_1 : CMD_READ_ENCODER_2;
+	uint8_t rbuf[7];
 
-	if (motor == MOTOR_1) {
-		_sendCommand(CMD_READ_ENCODER_1, nullptr, 0, sum);
+	int nread = _transaction(cmd, nullptr, 0, rbuf, 7, false, true);
 
-	} else if (motor == MOTOR_2) {
-		_sendCommand(CMD_READ_ENCODER_2, nullptr, 0, sum);
-	}
-
-	uint8_t rbuf[50];
-	usleep(5000);
-	int nread = read(_uart, rbuf, 50);
-
-	if (nread < 6) {
-		printf("failed to read\n");
+	if (nread < 7) {
+		PX4_ERR("Error reading RoboClaw encoders: %d", nread);
 		return -1;
 	}
 
-	//printf("received: \n");
-	//for (int i=0;i<nread;i++) {
-	//printf("%d\t", rbuf[i]);
-	//}
-	//printf("\n");
 	uint32_t count = 0;
-	uint8_t *countBytes = (uint8_t *)(&count);
+	auto countBytes = (uint8_t *)(&count);
 	countBytes[3] = rbuf[0];
 	countBytes[2] = rbuf[1];
 	countBytes[1] = rbuf[2];
 	countBytes[0] = rbuf[3];
 	uint8_t status = rbuf[4];
-	uint8_t checksum = rbuf[5];
-	uint8_t checksum_computed = (sum + _sumBytes(rbuf, 5)) &
-				    checksum_mask;
 
-	// check if checksum is valid
-	if (checksum != checksum_computed) {
-		printf("checksum failed: expected %d got %d\n",
-		       checksum, checksum_computed);
-		return -1;
-	}
-
-	int overFlow = 0;
-
-	if (status & STATUS_REVERSE) {
-		//printf("roboclaw: reverse\n");
-	}
+	int overflowFlag = 0;
 
 	if (status & STATUS_UNDERFLOW) {
-		//printf("roboclaw: underflow\n");
-		overFlow = -1;
+		overflowFlag = -1;
+		PX4_INFO("=====UNDERFLOW=====");
 
 	} else if (status & STATUS_OVERFLOW) {
-		//printf("roboclaw: overflow\n");
-		overFlow = +1;
+		PX4_INFO("=====OVERFLOW=====");
+		overflowFlag = +1;
 	}
 
-	static int64_t overflowAmount = 0x100000000LL;
+	int32_t *encoderCount;
+	int32_t *revolutions;
+	int32_t *overflow;
 
 	if (motor == MOTOR_1) {
-		_motor1Overflow += overFlow;
-		_motor1Position = float(int64_t(count) +
-					_motor1Overflow * overflowAmount) / _pulsesPerRev;
+		encoderCount = &_motor1EncoderCounts;
+		revolutions = &_motor1Revolutions;
+		overflow = &_motor1Overflow;
 
-	} else if (motor == MOTOR_2) {
-		_motor2Overflow += overFlow;
-		_motor2Position = float(int64_t(count) +
-					_motor2Overflow * overflowAmount) / _pulsesPerRev;
+	} else {
+		encoderCount = &_motor2EncoderCounts;
+		revolutions = &_motor2Revolutions;
+		overflow = &_motor2Overflow;
 	}
+
+	PX4_INFO("COUNT: %08X STATUS: %02X", count, status);
+
+	*overflow += overflowFlag;
+	int64_t totalCounts = int64_t(count) + (int64_t(*overflow) * OVERFLOW_AMOUNT);
+	PX4_INFO("Total counts: %lld", totalCounts);
+	*encoderCount = int32_t(totalCounts % _pulsesPerRev);
+	*revolutions = int32_t(totalCounts / _pulsesPerRev);
 
 	return 0;
 }
 
 void RoboClaw::printStatus(char *string, size_t n)
 {
-	snprintf(string, n,
-		 "pos1,spd1,pos2,spd2: %10.2f %10.2f %10.2f %10.2f\n",
+	snprintf(string, n, "pos1,spd1,pos2,spd2: %10.2f %10.2f %10.2f %10.2f\n",
 		 double(getMotorPosition(MOTOR_1)),
 		 double(getMotorSpeed(MOTOR_1)),
 		 double(getMotorPosition(MOTOR_2)),
@@ -199,10 +223,10 @@ void RoboClaw::printStatus(char *string, size_t n)
 float RoboClaw::getMotorPosition(e_motor motor)
 {
 	if (motor == MOTOR_1) {
-		return _motor1Position;
+		return _motor1EncoderCounts;
 
 	} else if (motor == MOTOR_2) {
-		return _motor2Position;
+		return _motor2EncoderCounts;
 
 	} else {
 		warnx("Unknown motor value passed to RoboClaw::getMotorPosition");
@@ -226,69 +250,72 @@ float RoboClaw::getMotorSpeed(e_motor motor)
 
 int RoboClaw::setMotorSpeed(e_motor motor, float value)
 {
-	uint16_t sum = 0;
-
-	// bound
-	if (value > 1) { value = 1; }
-
-	if (value < -1) { value = -1; }
-
-	uint8_t speed = fabs(value) * 127;
+	e_command command;
 
 	// send command
 	if (motor == MOTOR_1) {
 		if (value > 0) {
-			return _sendCommand(CMD_DRIVE_FWD_1, &speed, 1, sum);
+			command = CMD_DRIVE_FWD_1;
 
 		} else {
-			return _sendCommand(CMD_DRIVE_REV_1, &speed, 1, sum);
+			command = CMD_DRIVE_REV_1;
 		}
 
 	} else if (motor == MOTOR_2) {
 		if (value > 0) {
-			return _sendCommand(CMD_DRIVE_FWD_2, &speed, 1, sum);
+			command = CMD_DRIVE_FWD_2;
 
 		} else {
-			return _sendCommand(CMD_DRIVE_REV_2, &speed, 1, sum);
+			command = CMD_DRIVE_REV_2;
 		}
+
+	} else {
+		return -1;
 	}
 
-	return -1;
+	return _sendUnsigned7Bit(command, value);
 }
 
 int RoboClaw::setMotorDutyCycle(e_motor motor, float value)
 {
-	uint16_t sum = 0;
 
-	// bound
-	if (value > 1) { value = 1; }
-
-	if (value < -1) { value = -1; }
-
-	int16_t duty = 1500 * value;
+	e_command command;
 
 	// send command
 	if (motor == MOTOR_1) {
-		return _sendCommand(CMD_SIGNED_DUTYCYCLE_1,
-				    (uint8_t *)(&duty), 2, sum);
+		command = CMD_SIGNED_DUTYCYCLE_1;
 
 	} else if (motor == MOTOR_2) {
-		return _sendCommand(CMD_SIGNED_DUTYCYCLE_2,
-				    (uint8_t *)(&duty), 2, sum);
+		command = CMD_SIGNED_DUTYCYCLE_2;
+
+	} else {
+		return -1;
 	}
 
-	return -1;
+	return _sendSigned16Bit(command, value);
+}
+
+int RoboClaw::drive(float value)
+{
+	e_command command = value >= 0 ? CMD_DRIVE_FWD_MIX : CMD_DRIVE_REV_MIX;
+	return _sendUnsigned7Bit(command, value);
+}
+
+int RoboClaw::turn(float value)
+{
+	e_command command = value >= 0 ? CMD_TURN_LEFT : CMD_TURN_RIGHT;
+	return _sendUnsigned7Bit(command, value);
 }
 
 int RoboClaw::resetEncoders()
 {
-	uint16_t sum = 0;
-	return _sendCommand(CMD_RESET_ENCODERS,
-			    nullptr, 0, sum);
+	return _sendNothing(CMD_RESET_ENCODERS);
 }
 
 int RoboClaw::update()
 {
+	//TODO: Also update motor locations and speeds here
+
 	// wait for an actuator publication,
 	// check for exit condition every second
 	// note "::poll" is required to distinguish global
@@ -298,57 +325,166 @@ int RoboClaw::update()
 	// if new data, send to motors
 	if (_actuators.updated()) {
 		_actuators.update();
-		setMotorDutyCycle(MOTOR_1, _actuators.get().control[CH_VOLTAGE_LEFT]);
-		setMotorDutyCycle(MOTOR_2, _actuators.get().control[CH_VOLTAGE_RIGHT]);
+		// setMotorDutyCycle(MOTOR_1, _actuators.get().control[actuator_controls_s::INDEX_]);
+		// setMotorDutyCycle(MOTOR_2, _actuators.get().control[CH_VOLTAGE_RIGHT]);
+		int drive_ret = drive(_actuators.get().control[actuator_controls_s::INDEX_THROTTLE]);
+		int turn_ret = turn(_actuators.get().control[actuator_controls_s::INDEX_YAW]);
+
+		if (drive_ret <= 0 || turn_ret <= 0) {
+			PX4_ERR("Error controlling RoboClaw. Drive err: %d. Turn err: %d", drive_ret, turn_ret);
+		}
 	}
+
+	Run();
 
 	return 0;
 }
 
-uint16_t RoboClaw::_sumBytes(uint8_t *buf, size_t n)
+int RoboClaw::_sendUnsigned7Bit(e_command command, float data)
 {
-	uint16_t sum = 0;
+	data = fabs(data);
 
-	//printf("sum\n");
-	for (size_t i = 0; i < n; i++) {
-		sum += buf[i];
-		//printf("%d\t", buf[i]);
+	if (data > 1.0f) {
+		data = 1.0f;
 	}
 
-	//printf("total sum %d\n", sum);
-	return sum;
+	uint8_t byte = (uint8_t)(data * 127);
+	uint8_t recv_byte;
+	return _transaction(command, &byte, 1, &recv_byte, 1);
 }
 
-int RoboClaw::_sendCommand(e_command cmd, uint8_t *data,
-			   size_t n_data, uint16_t &prev_sum)
+int RoboClaw::_sendSigned16Bit(e_command command, float data)
 {
+	if (data > 1.0f) {
+		data = 1.0f;
+
+	} else if (data < -1.0f) {
+		data = -1.0f;
+	}
+
+	uint16_t buff = (uint16_t)(data * 32767);
+	uint8_t recv_buff;
+	return _transaction(command, (uint8_t *) &buff, 2, &recv_buff, 1);
+}
+
+int RoboClaw::_sendNothing(e_command command)
+{
+	uint8_t recv_buff;
+	return _transaction(command, nullptr, 0, &recv_buff, 1);
+}
+
+uint16_t RoboClaw::_sumBytes(uint8_t *buf, size_t n, uint16_t init)
+{
+	uint16_t crc = init;
+
+	for (size_t byte = 0; byte < n; byte++) {
+		crc = crc ^ (((uint16_t) buf[byte]) << 8);
+
+		for (uint8_t bit = 0; bit < 8; bit++) {
+			if (crc & 0x8000) {
+				crc = (crc << 1) ^ 0x1021;
+
+			} else {
+				crc = crc << 1;
+			}
+		}
+	}
+
+	return crc;
+}
+
+int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
+			   uint8_t *rbuff, size_t rbytes, bool send_checksum, bool recv_checksum)
+{
+	// WRITE
+
+	pthread_mutex_lock(&_uart_mutex);
+
 	tcflush(_uart, TCIOFLUSH); // flush  buffers
-	uint8_t buf[n_data + 3];
+	uint8_t buf[wbytes + 4];
 	buf[0] = _address;
 	buf[1] = cmd;
 
-	for (size_t i = 0; i < n_data; i++) {
-		buf[i + 2] = data[n_data - i - 1]; // MSB
+	if (wbuff) {
+		memcpy(&buf[2], wbuff, wbytes);
 	}
 
-	uint16_t sum = _sumBytes(buf, n_data + 2);
-	prev_sum += sum;
-	buf[n_data + 2] = sum & checksum_mask;
-	//printf("\nmessage:\n");
-	//for (size_t i=0;i<n_data+3;i++) {
-	//printf("%d\t", buf[i]);
-	//}
-	//printf("\n");
-	return write(_uart, buf, n_data + 3);
+	wbytes = wbytes + (send_checksum ? 4 : 2);
+
+	if (send_checksum) {
+		uint16_t sum = _sumBytes(buf, wbytes - 2);
+		buf[wbytes - 2] = (sum >> 8) & 0xFF;
+		buf[wbytes - 1] = sum & 0xFFu;
+	}
+
+	int count = write(_uart, buf, wbytes);
+
+	if (count < (int) wbytes) { // Did not successfully send all bytes.
+		PX4_ERR("Only wrote %d out of %d bytes", count, (int) wbytes);
+		pthread_mutex_unlock(&_uart_mutex);
+		return -1;
+	}
+
+	// READ
+
+	FD_ZERO(&_uart_set);
+	FD_SET(_uart, &_uart_set);
+
+	int rv = select(_uart + 1, &_uart_set, NULL, NULL, &_uart_timeout);
+
+	//TODO: Clean up this mess of IFs and returns
+
+	if (rv > 0) {
+		// select() returns as soon as ANY bytes are available. I need to wait until ALL of the bytes are available.
+		// TODO: Make sure this is not a busy wait.
+		usleep(2000);
+		int bytes_read = read(_uart, rbuff, rbytes);
+
+		if (recv_checksum) {
+			if (bytes_read < 2) {
+				pthread_mutex_unlock(&_uart_mutex);
+				return -1;
+			}
+
+			// The checksum sent back by the roboclaw is calculated based on the address and command bytes as well
+			// as the data returned.
+			uint16_t checksum_calc = _sumBytes(buf, 2);
+			checksum_calc = _sumBytes(rbuff, bytes_read - 2, checksum_calc);
+			uint16_t checksum_recv = (rbuff[bytes_read - 2] << 8) + rbuff[bytes_read - 1];
+
+			if (checksum_calc == checksum_recv) {
+				pthread_mutex_unlock(&_uart_mutex);
+				return bytes_read;
+
+			} else {
+				PX4_ERR("Invalid checksum. Expected 0x%04X, got 0x%04X", checksum_calc, checksum_recv);
+				pthread_mutex_unlock(&_uart_mutex);
+				return -10;
+			}
+
+		} else {
+			if (bytes_read == 1 && rbuff[0] == 0xFF) {
+				pthread_mutex_unlock(&_uart_mutex);
+				return 1;
+
+			} else {
+				pthread_mutex_unlock(&_uart_mutex);
+				return -11;
+			}
+		}
+
+	} else {
+		pthread_mutex_unlock(&_uart_mutex);
+		return rv;
+	}
 }
 
-int roboclawTest(const char *deviceName, uint8_t address,
-		 uint16_t pulsesPerRev)
+int RoboClaw::roboclawTest(int argc, char *argv[])
 {
 	printf("roboclaw test: starting\n");
 
 	// setup
-	RoboClaw roboclaw(deviceName, address, pulsesPerRev);
+	RoboClaw roboclaw("/dev/ttyS3", 128, 1200);
 	roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_1, 0.3);
 	roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_2, 0.3);
 	char buf[200];
@@ -372,8 +508,10 @@ int roboclawTest(const char *deviceName, uint8_t address,
 		printf("%s", buf);
 	}
 
+	roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_1, 0.0);
+	roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_2, 0.0);
+
 	printf("Test complete\n");
+
 	return 0;
 }
-
-// vi:noet:smarttab:autoindent:ts=4:sw=4:tw=78
