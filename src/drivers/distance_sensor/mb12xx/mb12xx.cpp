@@ -72,7 +72,7 @@ using namespace time_literals;
 /* Configuration Constants */
 #define MB12XX_BASE_ADDR                        0x70   // 7-bit address is 0x70 = 112. 8-bit address is 0xE0 = 224.
 #define MB12XX_MIN_ADDR                         0x5A   // 7-bit address is 0x5A = 90.  8-bit address is 0xB4 = 180.
-#define MB12XX_BUS_DEFAULT                      PX4_I2C_BUS_EXPANSION2
+#define MB12XX_BUS_DEFAULT                      PX4_I2C_BUS_EXPANSION
 #define MB12XX_BUS_SPEED                        100000 // 100kHz bus speed.
 #define MB12XX_DEVICE_PATH                      "/dev/mb12xx"
 
