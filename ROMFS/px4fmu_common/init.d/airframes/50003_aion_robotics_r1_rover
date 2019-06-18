@@ -17,6 +17,8 @@
 
 sh /etc/init.d/rc.rover_defaults
 
+roboclaw start /dev/ttyS3 128 1200
+
 if [ $AUTOCNF = yes ]
 then
 	param set BAT_N_CELLS 4

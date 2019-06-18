@@ -107,14 +107,14 @@ int roboclaw_main(int argc, char *argv[])
 		deamon_task = px4_task_spawn_cmd("roboclaw",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_MAX - 10,
-						 2048,
+						 2500,
 						 roboclaw_thread_main,
 						 (char *const *)argv);
 		exit(0);
 
 	} else if (!strcmp(argv[1], "test")) {
 
-		const char *deviceName = "/dev/ttyS2";
+		const char *deviceName = "/dev/ttyS3";
 		uint8_t address = 128;
 		uint16_t pulsesPerRev = 1200;
 
@@ -134,7 +134,9 @@ int roboclaw_main(int argc, char *argv[])
 		printf("device:\t%s\taddress:\t%d\tpulses per rev:\t%ld\n",
 		       deviceName, address, pulsesPerRev);
 
-		roboclawTest(deviceName, address, pulsesPerRev);
+		//RoboClaw::roboclawTest(deviceName, address, pulsesPerRev);
+		px4_task_spawn_cmd("robclwtst", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 10, 2500, RoboClaw::roboclawTest,
+				   (char *const *)argv);
 		thread_should_exit = true;
 		exit(0);
 
@@ -184,10 +186,16 @@ int roboclaw_thread_main(int argc, char *argv[])
 
 	thread_running = true;
 
+	//TODO: Make constants
+	//roboclaw.ScheduleOnInterval(1000000, 1000000);
+
+	// TODO: Move the main loop into the class
 	// loop
 	while (!thread_should_exit) {
 		roboclaw.update();
 	}
+
+	//roboclaw.ScheduleClear();
 
 	// exit
 	printf("[roboclaw] exiting.\n");
