@@ -88,3 +88,25 @@ PARAM_DEFINE_INT32(UAVCAN_BITRATE, 1000000);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_ESC_IDLT, 1);
+
+/**
+ * UAVCAN ESC min RAW value factor
+ * Specifies the minimum RAW value of the UAVCAN ESC message
+ * as a function of the maximum value
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group UAVCAN
+ */
+PARAM_DEFINE_FLOAT(UAVCAN_ESC_MIN, 0.0);
+
+/**
+ * UAVCAN ESC max RAW value factor
+ * Specifies the maximum RAW value of the UAVCAN ESC message
+ * as a function of the maximum value
+ *
+ * @min 0.0
+ * @max 1.0
+ * @group UAVCAN
+ */
+PARAM_DEFINE_FLOAT(UAVCAN_ESC_MAX, 1.0);

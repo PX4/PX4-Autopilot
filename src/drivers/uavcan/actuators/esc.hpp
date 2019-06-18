@@ -67,6 +67,8 @@ public:
 	void arm_single_esc(int num, bool arm);
 
 	void enable_idle_throttle_when_armed(bool value) { _run_at_idle_throttle_when_armed = value; }
+	void set_esc_min_factor(float value) { _raw_value_min_factor = value; }
+	void set_esc_max_factor(float value) { _raw_value_max_factor = value; }
 
 	/**
 	 * Sets the number of rotors
@@ -102,6 +104,8 @@ private:
 
 	bool		_armed{false};
 	bool		_run_at_idle_throttle_when_armed{false};
+	float 		_raw_value_min_factor{0.0};
+	float 		_raw_value_max_factor{1.0};
 
 	esc_status_s	_esc_status{};
 

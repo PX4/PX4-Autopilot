@@ -109,12 +109,14 @@ UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	actuator_outputs_s actuator_outputs{};
 	actuator_outputs.noutputs = num_outputs;
 
-	static const int cmd_max = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max();
-	const float cmd_min = _run_at_idle_throttle_when_armed ? 1.0F : 0.0F;
+	const float max_raw_value = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max();
+	const float cmd_min = _run_at_idle_throttle_when_armed ? _raw_value_min_factor * max_raw_value : 0.0F;
+	const int cmd_max = _raw_value_max_factor * max_raw_value - cmd_min;
 
 	for (unsigned i = 0; i < num_outputs; i++) {
 		if (_armed_mask & MOTOR_BIT(i)) {
-			float scaled = (outputs[i] + 1.0F) * 0.5F * cmd_max;
+			const float delta_cmd = cmd_max - cmd_min;
+			float scaled = (outputs[i] + 1.0F) * 0.5F * delta_cmd + cmd_min;
 
 			// trim negative values back to minimum
 			if (scaled < cmd_min) {

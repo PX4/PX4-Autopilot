@@ -438,6 +438,22 @@ UavcanNode::update_params()
 	if (param_handle != PARAM_INVALID) {
 		param_get(param_handle, &_thr_mdl_factor);
 	}
+
+	param_handle = param_find("UAVCAN_ESC_MIN");
+
+	if (param_handle != PARAM_INVALID) {
+		float _esc_min_factor;
+		param_get(param_handle, &_esc_min_factor);
+		_esc_controller.set_esc_min_factor(_esc_min_factor);
+	}
+
+	param_handle = param_find("UAVCAN_ESC_MAX");
+
+	if (param_handle != PARAM_INVALID) {
+		float _esc_max_factor;
+		param_get(param_find("UAVCAN_ESC_MAX"), &_esc_max_factor);
+		_esc_controller.set_esc_max_factor(_esc_max_factor);
+	}
 }
 
 int
