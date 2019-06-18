@@ -48,13 +48,20 @@
 #include <uORB/SubscriptionPollable.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <drivers/device/i2c.h>
+#include <sys/select.h>
+#include <sys/time.h>
+#include <pthread.h>
+//#include <px4.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 /**
  * This is a driver for the RoboClaw motor controller
  */
-class RoboClaw
+class RoboClaw : public px4::ScheduledWorkItem
 {
 public:
+
+	static int roboclawTest(int argc, char *argv[]);
 
 	/** control channels */
 	enum e_channel {
@@ -101,9 +108,19 @@ public:
 	int setMotorSpeed(e_motor motor, float value);
 
 	/**
-	 * set the duty cycle of a motor, rev/sec
+	 * set the duty cycle of a motor
 	 */
 	int setMotorDutyCycle(e_motor motor, float value);
+
+	/**
+	 * Drive both motors. +1 = full forward, -1 = full backward
+	 */
+	int drive(float value);
+
+	/**
+	 * Turn. +1 = full right, -1 = full left
+	 */
+	int turn(float value);
 
 	/**
 	 * reset the encoders
@@ -127,6 +144,8 @@ public:
 	 */
 	void printStatus(char *string, size_t n);
 
+	void Run();
+
 private:
 
 	// Quadrature status flags
@@ -146,6 +165,11 @@ private:
 		CMD_DRIVE_FWD_2 = 4,
 		CMD_DRIVE_REV_2 = 5,
 
+		CMD_DRIVE_FWD_MIX = 8,
+		CMD_DRIVE_REV_MIX = 9,
+		CMD_TURN_RIGHT = 10,
+		CMD_TURN_LEFT = 11,
+
 		// encoder commands
 		CMD_READ_ENCODER_1 = 16,
 		CMD_READ_ENCODER_2 = 17,
@@ -158,12 +182,14 @@ private:
 		CMD_SIGNED_DUTYCYCLE_2 = 33,
 	};
 
-	static uint8_t checksum_mask;
-
-	uint16_t _address;
+	uint8_t _address;
 	uint16_t _pulsesPerRev;
 
 	int _uart;
+	fd_set _uart_set;
+	struct timeval _uart_timeout;
+
+	pthread_mutex_t _uart_mutex;
 
 	/** poll structure for control packets */
 	struct pollfd _controlPoll;
@@ -172,17 +198,42 @@ private:
 	uORB::SubscriptionPollable<actuator_controls_s> _actuators;
 
 	// private data
-	float _motor1Position;
+	int32_t _motor1EncoderCounts;
+	int32_t _motor1Revolutions;
+	int32_t _motor1Overflow;
 	float _motor1Speed;
-	int16_t _motor1Overflow;
 
-	float _motor2Position;
+	int32_t _motor2EncoderCounts;
+	int32_t _motor2Revolutions;
+	int32_t _motor2Overflow;
 	float _motor2Speed;
-	int16_t _motor2Overflow;
 
 	// private methods
-	uint16_t _sumBytes(uint8_t *buf, size_t n);
-	int _sendCommand(e_command cmd, uint8_t *data, size_t n_data, uint16_t &prev_sum);
+	uint16_t _sumBytes(uint8_t *buf, size_t n, uint16_t init = 0);
+	int _sendUnsigned7Bit(e_command command, float data);
+	int _sendSigned16Bit(e_command command, float data);
+	int _sendNothing(e_command);
+
+	/**
+	 * Perform a round-trip write and read.
+	 * @param cmd Command to send to the Roboclaw
+	 * @param wbuff Write buffer. Must not contain command, address, or checksum. For most commands, this will be
+	 *   one or two bytes. Can be null iff wbytes == 0.
+	 * @param wbytes Number of bytes to write. Can be 0.
+	 * @param rbuff Read buffer. Will be filled with the entire response, including a checksum if the Roboclaw sends
+	 *   a checksum for this command.
+	 * @param rbytes Maximum number of bytes to read.
+	 * @param send_checksum If true, then the checksum will be calculated and sent to the Roboclaw.
+	 *   This is an option because some Roboclaw commands expect no checksum.
+	 * @param recv_checksum If true, then this function will calculate the checksum of the returned data and compare
+	 *   it to the checksum received. If they are not equal, OR if fewer than 2 bytes were received, then an
+	 *   error is returned.
+	 *   If false, then this function will expect to read exactly one byte, 0xFF, and will return an error otherwise.
+	 * @return If successful, then the number of bytes read from the Roboclaw is returned. If there is a timeout
+	 *   reading from the Roboclaw, then 0 is returned. If there is an IO error, then a negative value is returned.
+	 */
+	int _transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
+			 uint8_t *rbuff, size_t rbytes, bool send_checksum = true, bool recv_checksum = false);
 };
 
 // unit testing
