@@ -244,7 +244,7 @@ PARAM_DEFINE_FLOAT(GND_SPEED_THR_SC, 1.0f);
  * @max 40
  * @decimal 1
  * @increment 0.5
- * @group FW TECS
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_SPEED_TRIM, 3.0f);
 
@@ -257,7 +257,7 @@ PARAM_DEFINE_FLOAT(GND_SPEED_TRIM, 3.0f);
  * @max 40
  * @decimal 1
  * @increment 0.5
- * @group FW TECS
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_SPEED_MAX, 10.0f);
 
@@ -269,19 +269,20 @@ PARAM_DEFINE_FLOAT(GND_SPEED_MAX, 10.0f);
  * @min 0.0
  * @decimal 3
  * @increment 0.01
- * @group FW TECS
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_WHEEL_BASE, 2.0f);
 
 /**
- * Maximum turn angle for Ackerman steering
- *
+ * Maximum turn angle for Ackerman steering.
+ * At a control output of 0, the steering wheels are at 0 radians.
+ * At a control output of 1, the steering wheels are at GND_MAX_ANG radians.
  *
  * @unit rad
  * @min 0.0
  * @max 3.14159
  * @decimal 3
  * @increment 0.01
- * @group FW TECS
+ * @group GND POS Control
  */
 PARAM_DEFINE_FLOAT(GND_MAX_ANG, 0.7854f);

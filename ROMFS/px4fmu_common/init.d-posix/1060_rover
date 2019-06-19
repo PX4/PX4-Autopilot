@@ -31,8 +31,8 @@ then
 
 	param set CBRK_AIRSPD_CHK 162128
 
-    param set GND_MAX_ANG 0.6
-    param set GND_WHEEL_BASE 2.0
+	param set GND_MAX_ANG 0.6
+	param set GND_WHEEL_BASE 2.0
 
 fi
 
