@@ -599,16 +599,28 @@ PARAM_DEFINE_FLOAT(COM_ARM_IMU_ACC, 0.7f);
 PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.25f);
 
 /**
- * Maximum magnetic field inconsistency between units that will allow arming
+ * Maximum magnetic field horizontal angle inconsistency between units that will allow arming. Values greater than Pi effectively disable this check.
  *
  * @group Commander
- * @unit Gauss
- * @min 0.05
- * @max 0.5
+ * @unit rad
+ * @min 0.1
+ * @max 4.0
  * @decimal 2
  * @increment 0.05
  */
-PARAM_DEFINE_FLOAT(COM_ARM_MAG, 0.15f);
+PARAM_DEFINE_FLOAT(COM_ARM_MAG_H, 0.5f);
+
+/**
+ * Maximum magnetic field inclination angle inconsistency between units that will allow arming. Values greater than Pi effectively disable this check.
+ *
+ * @group Commander
+ * @unit rad
+ * @min 0.1
+ * @max 4.0
+ * @decimal 2
+ * @increment 0.05
+ */
+PARAM_DEFINE_FLOAT(COM_ARM_MAG_V, 0.7f);
 
 /**
  * Enable RC stick override of auto modes

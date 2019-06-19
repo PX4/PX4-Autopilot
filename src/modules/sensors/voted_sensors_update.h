@@ -260,7 +260,7 @@ private:
 
 	float _accel_diff[3][2];	/**< filtered accel differences between IMU units (m/s/s) */
 	float _gyro_diff[3][2];		/**< filtered gyro differences between IMU uinits (rad/s) */
-	float _mag_diff[3][2];		/**< filtered mag differences between sensor instances (Ga) */
+	float _mag_angle_diff[2][2];	/**< filtered magnetic declination and inclination differences between sensor instances (rad) */
 
 	/* sensor thermal compensation */
 	TemperatureCompensation _temperature_compensation;

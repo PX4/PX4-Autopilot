@@ -220,10 +220,13 @@ static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s 
 
 	// Use the difference between sensors to detect a bad calibration, orientation or magnetic interference.
 	// If a single sensor is fitted, the value being checked will be zero so this check will always pass.
-	float test_limit;
-	param_get(param_find("COM_ARM_MAG"), &test_limit);
+	float test_limit_horiz;
+	param_get(param_find("COM_ARM_MAG_H"), &test_limit_horiz);
 
-	if (sensors.mag_inconsistency_ga > test_limit) {
+	float test_limit_vert;
+	param_get(param_find("COM_ARM_MAG_V"), &test_limit_vert);
+
+	if ((sensors.mag_inconsistency_h > test_limit_horiz) || (sensors.mag_inconsistency_v > test_limit_vert)) {
 		if (report_status) {
 			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compass Sensors inconsistent");
 			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_MAG, false, status);

@@ -60,7 +60,7 @@ VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_en
 	memset(&_last_accel_timestamp, 0, sizeof(_last_accel_timestamp));
 	memset(&_accel_diff, 0, sizeof(_accel_diff));
 	memset(&_gyro_diff, 0, sizeof(_gyro_diff));
-	memset(&_mag_diff, 0, sizeof(_mag_diff));
+	memset(&_mag_angle_diff, 0, sizeof(_mag_angle_diff));
 
 	// initialise the publication variables
 	memset(&_corrections, 0, sizeof(_corrections));
@@ -1209,7 +1209,8 @@ void VotedSensorsUpdate::calc_gyro_inconsistency(sensor_preflight_s &preflt)
 
 void VotedSensorsUpdate::calc_mag_inconsistency(sensor_preflight_s &preflt)
 {
-	float mag_diff_sum_max_sq = 0.0f; // the maximum sum of axis differences squared
+	float mag_h_diff_max = 0.0f; // the maximum horizontal field angle difference (rad)
+	float mag_v_diff_max = 0.0f; // the maximum vertical field angle difference (rad)
 	unsigned check_index = 0; // the number of sensors the primary has been checked against
 
 	// Check each sensor against the primary
@@ -1218,21 +1219,50 @@ void VotedSensorsUpdate::calc_mag_inconsistency(sensor_preflight_s &preflt)
 		// check that the sensor we are checking against is not the same as the primary
 		if ((_mag.priority[sensor_index] > 0) && (sensor_index != _mag.last_best_vote)) {
 
-			float mag_diff_sum_sq = 0.0f; // sum of differences squared for a single sensor comparison against the primary
+			// Get unit gravity vector in body frame (assume platform is not accelerating)
+			matrix::Vector3f gravity_vec(-_last_sensor_data[_accel.last_best_vote].accelerometer_m_s2[0],
+			-_last_sensor_data[_accel.last_best_vote].accelerometer_m_s2[1],
+			-_last_sensor_data[_accel.last_best_vote].accelerometer_m_s2[2]);
+			gravity_vec.normalize();
 
-			// calculate mag_diff_sum_sq for the specified sensor against the primary
-			for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
-				_mag_diff[axis_index][check_index] = 0.95f * _mag_diff[axis_index][check_index] + 0.05f *
-								     (_last_magnetometer[_mag.last_best_vote].magnetometer_ga[axis_index] -
-								      _last_magnetometer[sensor_index].magnetometer_ga[axis_index]);
+			// calculate the cross product for each sensor with assumed gravity vector to produce a horizontal projection
+			// could use estimator body to earth rotation matrix to do this, but that would require subscription to
+			// a new topic and is unnecessary for quasi-static preflight checks.
+			matrix::Vector3f mag_vec_selected(_last_magnetometer[_mag.last_best_vote].magnetometer_ga[0],
+			_last_magnetometer[_mag.last_best_vote].magnetometer_ga[1],
+			_last_magnetometer[_mag.last_best_vote].magnetometer_ga[2]);
 
-				mag_diff_sum_sq += _mag_diff[axis_index][check_index] * _mag_diff[axis_index][check_index];
+			matrix::Vector3f mag_vec_alternate(_last_magnetometer[sensor_index].magnetometer_ga[0],
+			_last_magnetometer[sensor_index].magnetometer_ga[1],
+			_last_magnetometer[sensor_index].magnetometer_ga[2]);
 
-			}
+			matrix::Vector3f mag_hvec_selected = gravity_vec.cross(mag_vec_selected);
+			matrix::Vector3f mag_hvec_alternate = gravity_vec.cross(mag_vec_alternate);
+
+			// calculate the dot product for each sensor with the unit gravity vector to get the vertical component
+			float mag_down_selected = gravity_vec.dot(mag_vec_selected);
+			float mag_down_alternate = gravity_vec.dot(mag_vec_alternate);
+
+			// calculate the vertical angle between the two vectors
+			float mag_vang_selected = atan2f(mag_down_selected, mag_hvec_selected.norm());
+			float mag_vang_alternate = atan2f(mag_down_alternate, mag_hvec_alternate.norm());
+			float ang_v_delta = fabsf(mag_vang_selected - mag_vang_alternate);
+
+			// calculate the horizontal angle between the two vectors to estimate the difference in magnetic heading thee sensors would produce
+			matrix::Quatf q_delta(mag_hvec_selected, mag_hvec_alternate);
+			matrix::Vector3f ang_hvec_delta = q_delta.to_axis_angle();
+			float ang_h_delta = ang_hvec_delta.norm();
+
+			_mag_angle_diff[0][check_index] = 0.95f * _mag_angle_diff[0][check_index] + 0.05f * ang_h_delta;
+			_mag_angle_diff[1][check_index] = 0.95f * _mag_angle_diff[1][check_index] + 0.05f * ang_v_delta;
 
 			// capture the largest sum value
-			if (mag_diff_sum_sq > mag_diff_sum_max_sq) {
-				mag_diff_sum_max_sq = mag_diff_sum_sq;
+			if (fabsf(_mag_angle_diff[0][check_index]) > mag_h_diff_max) {
+				mag_h_diff_max = fabsf(_mag_angle_diff[0][check_index]);
+
+			}
+			if (fabsf(_mag_angle_diff[1][check_index]) > mag_v_diff_max) {
+				mag_v_diff_max = fabsf(_mag_angle_diff[1][check_index]);
 
 			}
 
@@ -1249,10 +1279,12 @@ void VotedSensorsUpdate::calc_mag_inconsistency(sensor_preflight_s &preflt)
 
 	// skip check if less than 2 sensors
 	if (check_index < 1) {
-		preflt.mag_inconsistency_ga = 0.0f;
+		preflt.mag_inconsistency_h = 0.0f;
+		preflt.mag_inconsistency_v = 0.0f;
 
 	} else {
 		// get the vector length of the largest difference and write to the combined sensor struct
-		preflt.mag_inconsistency_ga = sqrtf(mag_diff_sum_max_sq);
+		preflt.mag_inconsistency_h = mag_h_diff_max;
+		preflt.mag_inconsistency_v = mag_v_diff_max;
 	}
 }
