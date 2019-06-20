@@ -1419,7 +1419,27 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					}
 
 					if (!_offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
-						rates_sp.thrust_body[2] = -set_attitude_target.thrust;
+						switch (_mavlink->get_system_type()) {
+						case MAV_TYPE_GENERIC:
+							break;
+
+						case MAV_TYPE_FIXED_WING:
+							rates_sp.thrust_body[0] = set_attitude_target.thrust;
+							break;
+
+						case MAV_TYPE_QUADROTOR:
+						case MAV_TYPE_HEXAROTOR:
+						case MAV_TYPE_OCTOROTOR:
+						case MAV_TYPE_TRICOPTER:
+						case MAV_TYPE_HELICOPTER:
+							rates_sp.thrust_body[2] = -set_attitude_target.thrust;
+							break;
+
+						case MAV_TYPE_GROUND_ROVER:
+							rates_sp.thrust_body[0] = set_attitude_target.thrust;
+							break;
+						}
+
 					}
 
 					if (_rates_sp_pub == nullptr) {
