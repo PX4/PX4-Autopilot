@@ -1419,8 +1419,6 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					}
 
 					if (!_offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
-						// Fill correct field by checking frametype
-						// TODO: add as needed
 						switch (_mavlink->get_system_type()) {
 						case MAV_TYPE_GENERIC:
 							break;
