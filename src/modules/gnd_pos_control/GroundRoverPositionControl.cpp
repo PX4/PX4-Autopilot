@@ -356,6 +356,8 @@ GroundRoverPositionControl::task_main()
 		//_sub_attitude.update();
 		_sub_sensors.update();
 
+		bool manual_mode = _control_mode.flag_control_manual_enabled;
+
 		/* only update parameters if they changed */
 		if (fds[0].revents & POLLIN) {
 			/* read from param to clear updated flag */
@@ -367,20 +369,11 @@ GroundRoverPositionControl::task_main()
 		}
 
 		/* only run controller if position changed */
-		if (fds[1].revents & POLLIN || fds[2].revents & POLLIN) {
+		if ((fds[1].revents & POLLIN) && !manual_mode) {
 			perf_begin(_loop_perf);
 
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
-
-			// handle estimator reset events. we only adjust setpoins for manual modes
-			if (_control_mode.flag_control_manual_enabled) {
-
-				// adjust navigation waypoints in position control mode
-				if (_control_mode.flag_control_altitude_enabled && _control_mode.flag_control_velocity_enabled
-				    && _global_pos.lat_lon_reset_counter != _pos_reset_counter) {
-				}
-			}
 
 			// update the reset counters in any case
 			_pos_reset_counter = _global_pos.lat_lon_reset_counter;
@@ -388,61 +381,53 @@ GroundRoverPositionControl::task_main()
 			matrix::Vector3f ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);
 			matrix::Vector2f current_position((float)_global_pos.lat, (float)_global_pos.lon);
 
-			if (_control_mode.flag_control_rates_enabled && _control_mode.flag_control_attitude_enabled
-			    && _control_mode.flag_control_auto_enabled) {
-				/*
-				* Attempt to control position, on success (= sensors present and not in manual mode),
-				* publish setpoint.
-				*/
-				if (control_position(current_position, ground_speed, _pos_sp_triplet)) {
+			/*
+			* Attempt to control position, on success (= sensors present and not in manual mode),
+			* publish setpoint.
+			*/
+			if (control_position(current_position, ground_speed, _pos_sp_triplet)) {
 
-					if (!_control_mode.flag_control_offboard_enabled ||
-					    _control_mode.flag_control_position_enabled ||
-					    _control_mode.flag_control_velocity_enabled ||
-					    _control_mode.flag_control_acceleration_enabled) {
+				/* XXX check if radius makes sense here */
+				float turn_distance = _parameters.l1_distance; //_gnd_control.switch_distance(100.0f);
 
+				// publish status
+				position_controller_status_s pos_ctrl_status = {};
 
-						/* XXX check if radius makes sense here */
-						float turn_distance = _parameters.l1_distance; //_gnd_control.switch_distance(100.0f);
+				pos_ctrl_status.nav_roll = 0.0f;
+				pos_ctrl_status.nav_pitch = 0.0f;
+				pos_ctrl_status.nav_bearing = _gnd_control.nav_bearing();
 
-						// publish status
-						position_controller_status_s pos_ctrl_status = {};
+				pos_ctrl_status.target_bearing = _gnd_control.target_bearing();
+				pos_ctrl_status.xtrack_error = _gnd_control.crosstrack_error();
 
-						pos_ctrl_status.nav_roll = 0.0f;
-						pos_ctrl_status.nav_pitch = 0.0f;
-						pos_ctrl_status.nav_bearing = _gnd_control.nav_bearing();
+				pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon,
+							  _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
 
-						pos_ctrl_status.target_bearing = _gnd_control.target_bearing();
-						pos_ctrl_status.xtrack_error = _gnd_control.crosstrack_error();
+				pos_ctrl_status.acceptance_radius = turn_distance;
+				pos_ctrl_status.yaw_acceptance = NAN;
 
-						pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon,
-									  _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
+				pos_ctrl_status.timestamp = hrt_absolute_time();
 
-						pos_ctrl_status.acceptance_radius = turn_distance;
-						pos_ctrl_status.yaw_acceptance = NAN;
+				if (_pos_ctrl_status_pub != nullptr) {
+					orb_publish(ORB_ID(position_controller_status), _pos_ctrl_status_pub, &pos_ctrl_status);
 
-						pos_ctrl_status.timestamp = hrt_absolute_time();
-
-						if (_pos_ctrl_status_pub != nullptr) {
-							orb_publish(ORB_ID(position_controller_status), _pos_ctrl_status_pub, &pos_ctrl_status);
-
-						} else {
-							_pos_ctrl_status_pub = orb_advertise(ORB_ID(position_controller_status), &pos_ctrl_status);
-						}
-					}
+				} else {
+					_pos_ctrl_status_pub = orb_advertise(ORB_ID(position_controller_status), &pos_ctrl_status);
 				}
 
-			} else {
-				/* manual/direct control */
-				//PX4_INFO("Manual mode!");
-				_act_controls.control[actuator_controls_s::INDEX_ROLL] = _manual.y;
-				_act_controls.control[actuator_controls_s::INDEX_PITCH] = -_manual.x;
-				_act_controls.control[actuator_controls_s::INDEX_YAW] = _manual.r; //TODO: Readd yaw scale param
-				_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = _manual.z;
 			}
 
 
 			perf_end(_loop_perf);
+		}
+
+		if ((fds[2].revents & POLLIN) && manual_mode) {
+			/* manual/direct control */
+			//PX4_INFO("Manual mode!");
+			_act_controls.control[actuator_controls_s::INDEX_ROLL] = _manual.y;
+			_act_controls.control[actuator_controls_s::INDEX_PITCH] = -_manual.x;
+			_act_controls.control[actuator_controls_s::INDEX_YAW] = _manual.r; //TODO: Readd yaw scale param
+			_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = _manual.z;
 		}
 
 		if (fds[3].revents & POLLIN) {
