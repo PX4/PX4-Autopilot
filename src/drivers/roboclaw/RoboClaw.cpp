@@ -95,7 +95,11 @@ RoboClaw::RoboClaw(const char *deviceName, uint16_t address, uint16_t pulsesPerR
 	_motor2EncoderCounts(0),
 	_motor2Revolutions(0),
 	_motor2Overflow(0),
-	_motor2Speed(0)
+	_motor2Speed(0),
+	_lastEncoderCount{0, 0},
+	_localPosition{0, 0},
+	_revolutions{0, 0}
+
 {
 	// setup control polling
 	_controlPoll.fd = _actuators.getHandle();
@@ -147,68 +151,113 @@ RoboClaw::~RoboClaw()
 
 void RoboClaw::Run()
 {
-	readEncoder(MOTOR_1);
-	readEncoder(MOTOR_2);
+	readEncoder();
+	//readEncoder(MOTOR_2);
 
 	PX4_INFO("Motor1: (%d, %d), Motor2: (%d, %d)", _motor1EncoderCounts, _motor1Revolutions, _motor2EncoderCounts,
 		 _motor2Revolutions);
 }
 
-int RoboClaw::readEncoder(e_motor motor)
+int RoboClaw::readEncoder()
 {
-	e_command cmd = motor == MOTOR_1 ? CMD_READ_ENCODER_1 : CMD_READ_ENCODER_2;
-	uint8_t rbuf[7];
 
-	int nread = _transaction(cmd, nullptr, 0, rbuf, 7, false, true);
+	uint8_t rbuff[10];
+	int nread = _transaction(CMD_READ_BOTH_ENCODERS, nullptr, 0, &rbuff[0], 10, false, true);
 
-	if (nread < 7) {
-		PX4_ERR("Error reading RoboClaw encoders: %d", nread);
+	if (nread < 10) {
+		PX4_ERR("Error reading encoders: %d", nread);
 		return -1;
 	}
 
-	uint32_t count = 0;
-	auto countBytes = (uint8_t *)(&count);
-	countBytes[3] = rbuf[0];
-	countBytes[2] = rbuf[1];
-	countBytes[1] = rbuf[2];
-	countBytes[0] = rbuf[3];
-	uint8_t status = rbuf[4];
+	int32_t count;
+	uint8_t *count_bytes;
 
-	int overflowFlag = 0;
+	for (int motor = 0; motor <= 1; motor++) {
+		count = 0;
+		count_bytes = &rbuff[motor * 4];
 
-	if (status & STATUS_UNDERFLOW) {
-		overflowFlag = -1;
-		PX4_INFO("=====UNDERFLOW=====");
+		// Data from the roboclaw is big-endian. This converts the bytes to an integer, regardless of the
+		// endianness of the system this code is running on.
+		for (int byte = 0; byte < 4; byte++) {
+			count = (count << 8) + count_bytes[byte];
+		}
 
-	} else if (status & STATUS_OVERFLOW) {
-		PX4_INFO("=====OVERFLOW=====");
-		overflowFlag = +1;
+		int overflow = 0;
+
+		if (count - _lastEncoderCount[motor] > OVERFLOW_AMOUNT / 2) {
+			overflow = -1;
+
+		} else if (_lastEncoderCount[motor] - count > OVERFLOW_AMOUNT / 2) {
+			overflow = +1;
+		}
+
+		int64_t adjusted_count = int64_t(count) + (overflow * int64_t(OVERFLOW_AMOUNT));
+		int32_t diff = int32_t(adjusted_count - int64_t(_lastEncoderCount[motor]));
+		_localPosition[motor] += diff;
+		_revolutions[motor] += _localPosition[motor] / _pulsesPerRev;
+		_localPosition[motor] %= _pulsesPerRev;
+		PX4_INFO("Motor %d - LastCount: %7d, Count: %7d, Overflow: %+1d, adjusted count: %+8lld, local: %4d, revs: %2lld",
+			 motor, _lastEncoderCount[motor], count, overflow, adjusted_count, _localPosition[motor], _revolutions[motor]);
+		_lastEncoderCount[motor] = count;
+
+
 	}
 
-	int32_t *encoderCount;
-	int32_t *revolutions;
-	int32_t *overflow;
+	return 1;
 
-	if (motor == MOTOR_1) {
-		encoderCount = &_motor1EncoderCounts;
-		revolutions = &_motor1Revolutions;
-		overflow = &_motor1Overflow;
-
-	} else {
-		encoderCount = &_motor2EncoderCounts;
-		revolutions = &_motor2Revolutions;
-		overflow = &_motor2Overflow;
-	}
-
-	PX4_INFO("COUNT: %08X STATUS: %02X", count, status);
-
-	*overflow += overflowFlag;
-	int64_t totalCounts = int64_t(count) + (int64_t(*overflow) * OVERFLOW_AMOUNT);
-	PX4_INFO("Total counts: %lld", totalCounts);
-	*encoderCount = int32_t(totalCounts % _pulsesPerRev);
-	*revolutions = int32_t(totalCounts / _pulsesPerRev);
-
-	return 0;
+//	e_command cmd = motor == MOTOR_1 ? CMD_READ_ENCODER_1 : CMD_READ_ENCODER_2;
+//	uint8_t rbuf[7];
+//
+//	int nread = _transaction(cmd, nullptr, 0, rbuf, 7, false, true);
+//
+//	if (nread < 7) {
+//		PX4_ERR("Error reading RoboClaw encoders: %d", nread);
+//		return -1;
+//	}
+//
+//	uint32_t count = 0;
+//	auto countBytes = (uint8_t *)(&count);
+//	countBytes[3] = rbuf[0];
+//	countBytes[2] = rbuf[1];
+//	countBytes[1] = rbuf[2];
+//	countBytes[0] = rbuf[3];
+//	uint8_t status = rbuf[4];
+//
+//	int overflowFlag = 0;
+//
+//	if (status & STATUS_UNDERFLOW) {
+//		overflowFlag = -1;
+//		PX4_INFO("=====UNDERFLOW=====");
+//
+//	} else if (status & STATUS_OVERFLOW) {
+//		PX4_INFO("=====OVERFLOW=====");
+//		overflowFlag = +1;
+//	}
+//
+//	int32_t *encoderCount;
+//	int32_t *revolutions;
+//	int32_t *overflow;
+//
+//	if (motor == MOTOR_1) {
+//		encoderCount = &_motor1EncoderCounts;
+//		revolutions = &_motor1Revolutions;
+//		overflow = &_motor1Overflow;
+//
+//	} else {
+//		encoderCount = &_motor2EncoderCounts;
+//		revolutions = &_motor2Revolutions;
+//		overflow = &_motor2Overflow;
+//	}
+//
+//	PX4_INFO("COUNT: %08X STATUS: %02X", count, status);
+//
+//	*overflow += overflowFlag;
+//	int64_t totalCounts = int64_t(count) + (int64_t(*overflow) * OVERFLOW_AMOUNT);
+//	PX4_INFO("Total counts: %lld", totalCounts);
+//	*encoderCount = int32_t(totalCounts % _pulsesPerRev);
+//	*revolutions = int32_t(totalCounts / _pulsesPerRev);
+//
+//	return 0;
 }
 
 void RoboClaw::printStatus(char *string, size_t n)
@@ -491,8 +540,8 @@ int RoboClaw::roboclawTest(int argc, char *argv[])
 
 	for (int i = 0; i < 10; i++) {
 		usleep(100000);
-		roboclaw.readEncoder(RoboClaw::MOTOR_1);
-		roboclaw.readEncoder(RoboClaw::MOTOR_2);
+		roboclaw.readEncoder();
+		//roboclaw.readEncoder(RoboClaw::MOTOR_2);
 		roboclaw.printStatus(buf, 200);
 		printf("%s", buf);
 	}
@@ -502,8 +551,8 @@ int RoboClaw::roboclawTest(int argc, char *argv[])
 
 	for (int i = 0; i < 10; i++) {
 		usleep(100000);
-		roboclaw.readEncoder(RoboClaw::MOTOR_1);
-		roboclaw.readEncoder(RoboClaw::MOTOR_2);
+		roboclaw.readEncoder();
+		//roboclaw.readEncoder(RoboClaw::MOTOR_2);
 		roboclaw.printStatus(buf, 200);
 		printf("%s", buf);
 	}

@@ -137,7 +137,7 @@ public:
 	/**
 	 * read data from serial
 	 */
-	int readEncoder(e_motor motor);
+	int readEncoder();
 
 	/**
 	 * print status
@@ -174,6 +174,7 @@ private:
 		CMD_READ_ENCODER_1 = 16,
 		CMD_READ_ENCODER_2 = 17,
 		CMD_RESET_ENCODERS = 20,
+		CMD_READ_BOTH_ENCODERS = 78,
 
 		// advanced motor control
 		CMD_READ_SPEED_HIRES_1 = 30,
@@ -208,11 +209,18 @@ private:
 	int32_t _motor2Overflow;
 	float _motor2Speed;
 
+	int32_t _lastEncoderCount[2];
+	int32_t _localPosition[2];
+	int64_t _revolutions[2];
+
+
 	// private methods
 	uint16_t _sumBytes(uint8_t *buf, size_t n, uint16_t init = 0);
 	int _sendUnsigned7Bit(e_command command, float data);
 	int _sendSigned16Bit(e_command command, float data);
 	int _sendNothing(e_command);
+
+	int32_t _bytesToInt(uint8_t *bytes);
 
 	/**
 	 * Perform a round-trip write and read.
