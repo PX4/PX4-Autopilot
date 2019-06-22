@@ -48,7 +48,7 @@ struct wq_config_t {
 
 namespace wq_configurations
 {
-static constexpr wq_config_t rate_ctrl{"wq:rate_ctrl", 1500, 0}; // PX4 inner loop highest priority
+static constexpr wq_config_t rate_ctrl{"wq:rate_ctrl", 1600, 0}; // PX4 inner loop highest priority
 
 static constexpr wq_config_t SPI1{"wq:SPI1", 1250, -1};
 static constexpr wq_config_t SPI2{"wq:SPI2", 1250, -2};
@@ -62,8 +62,10 @@ static constexpr wq_config_t I2C2{"wq:I2C2", 1250, -8};
 static constexpr wq_config_t I2C3{"wq:I2C3", 1250, -9};
 static constexpr wq_config_t I2C4{"wq:I2C4", 1250, -10};
 
-static constexpr wq_config_t hp_default{"wq:hp_default", 1250, -11};
-static constexpr wq_config_t lp_default{"wq:lp_default", 1250, -50};
+static constexpr wq_config_t att_pos_ctrl{"wq:att_pos_ctrl", 7000, -11}; // PX4 att/pos controllers, highest priority after sensors
+
+static constexpr wq_config_t hp_default{"wq:hp_default", 1500, -12};
+static constexpr wq_config_t lp_default{"wq:lp_default", 1500, -50};
 
 static constexpr wq_config_t test1{"wq:test1", 800, 0};
 static constexpr wq_config_t test2{"wq:test2", 800, 0};

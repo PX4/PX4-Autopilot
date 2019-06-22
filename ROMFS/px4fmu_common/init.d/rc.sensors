@@ -75,6 +75,12 @@ then
 	ll40ls start i2c
 fi
 
+# mappydot lidar sensor
+if param compare SENS_EN_MPDT 1
+then
+	mappydot start -a
+fi
+
 # mb12xx sonar sensor
 if param greater SENS_EN_MB12XX 0
 then
