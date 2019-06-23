@@ -65,6 +65,7 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_airspeed = _attc->get_airspeed();
 	_tecs_status = _attc->get_tecs_status();
 	_land_detected = _attc->get_land_detected();
+	_pm3901_tof_data = _attc->get_pm3901_with_tof();
 	_params = _attc->get_params();
 	_sensor_acc = _attc->get_sensor_acc();
 

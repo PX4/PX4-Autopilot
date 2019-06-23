@@ -367,6 +367,21 @@ VtolAttitudeControl::land_detected_poll()
 }
 
 /**
+* Check for pw3901 or tof data updates.
+*/
+void
+VtolAttitudeControl::pm3901_with_tof_poll()
+{
+	bool updated;
+
+	orb_check(_pm3901_and_tof_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(pm3901_with_tof), _pm3901_and_tof_sub, &_pm3901_tof_data);
+	}
+}
+
+/**
 * Check received command
 */
 void
@@ -655,6 +670,7 @@ void VtolAttitudeControl::task_main()
 		vehicle_cmd_poll();
 		tecs_status_poll();
 		land_detected_poll();
+		pm3901_with_tof_poll();
 		actuator_controls_fw_poll();
 		actuator_controls_mc_poll();
 

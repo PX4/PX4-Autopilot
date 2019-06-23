@@ -114,6 +114,7 @@ public:
 	struct vehicle_attitude_setpoint_s 		*get_mc_virtual_att_sp() {return &_mc_virtual_att_sp;}
 	struct vehicle_control_mode_s 			*get_control_mode() {return &_v_control_mode;}
 	struct vehicle_land_detected_s			*get_land_detected() {return &_land_detected;}
+	struct pm3901_with_tof_s                *get_pm3901_with_tof() {return &_pm3901_tof_data;}
 	struct vehicle_local_position_s 		*get_local_pos() {return &_local_pos;}
 	struct vehicle_local_position_setpoint_s	*get_local_pos_sp() {return &_local_pos_sp;}
 	struct vtol_vehicle_status_s			*get_vtol_vehicle_status() {return &_vtol_vehicle_status;}
@@ -226,6 +227,7 @@ private:
 	void 		task_main();	//main task
 	static int	task_main_trampoline(int argc, char *argv[]);	//Shim for calling task_main from task_create.
 
+	void        pm3901_with_tof_poll();
 	void		land_detected_poll();
 	void		tecs_status_poll();
 	void		vehicle_attitude_poll();  //Check for attitude updates.

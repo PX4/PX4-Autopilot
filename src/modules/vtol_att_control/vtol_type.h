@@ -194,7 +194,7 @@ protected:
 	struct tecs_status_s				*_tecs_status;
 	struct vehicle_land_detected_s			*_land_detected;
 	struct sensor_accel_s               *_sensor_acc;
-
+	struct pm3901_with_tof_s		*_pm3901_tof_data;
 	struct Params 					*_params;
 
 	bool flag_idle_mc = false;		//false = "idle is set for fixed wing mode"; true = "idle is set for multicopter mode"
