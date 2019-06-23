@@ -85,11 +85,10 @@ typedef enum  flash_flags_t {
 } flash_flags_t;
 
 
-/* File flash_entry_header_t will be sizeof(h_magic_t) aligned
+/* The struct flash_entry_header_t will be sizeof(h_magic_t) aligned
  * The Size will be the actual length of the header plus the data
  * and any padding needed to have the size be an even multiple of
  * sizeof(h_magic_t)
- *  The
  */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wattributes"
@@ -163,9 +162,9 @@ void parameter_flashfs_free(void)
  *
  ****************************************************************************/
 
-static inline int blank_flash(uint32_t *pf)
+static inline int blank_flash(uint8_t *pf)
 {
-	return *pf == BlankSig;
+        return *pf == (uint8_t)BlankSig;
 }
 
 /****************************************************************************
@@ -187,8 +186,8 @@ static bool blank_check(flash_entry_header_t *pf,
 			size_t new_size)
 {
 	bool rv = true;
-	uint32_t *pm = (uint32_t *) pf;
-	new_size /= sizeof(uint32_t);
+        uint8_t *pm = (uint8_t *) pf;
+        new_size /= sizeof(uint8_t);
 
 	while (new_size-- && rv) {
 		if (!blank_flash(pm++)) {
