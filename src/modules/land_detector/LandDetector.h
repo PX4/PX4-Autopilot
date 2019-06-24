@@ -165,13 +165,11 @@ private:
 
 	bool _previous_armed_state{false}; ///< stores the previous actuator_armed.armed state
 
-	uint32_t _measure_interval{LAND_DETECTOR_UPDATE_INTERVAL};
-
 	uint64_t _total_flight_time{0}; ///< in microseconds
 
 	hrt_abstime _takeoff_time{0};
 
-	perf_counter_t _cycle_perf{(perf_alloc(PC_ELAPSED, "land_detector_cycle"))};
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, "land_detector_cycle")};
 
 	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _param_update_sub{ORB_ID(parameter_update)};
