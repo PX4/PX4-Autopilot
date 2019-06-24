@@ -132,7 +132,7 @@ void FlightTaskAutoMapper2::_prepareLandSetpoints()
 	_velocity_setpoint = Vector3f(Vector3f(NAN, NAN, speed_lnd));
 
 	// set constraints
-	_constraints.tilt = _param_mpc_tiltmax_lnd.get();
+	_constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
 	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 }
 
