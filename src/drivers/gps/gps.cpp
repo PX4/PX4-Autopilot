@@ -75,7 +75,7 @@
 #include <matrix/math.hpp>
 #include <systemlib/err.h>
 #include <parameters/param.h>
-#include <uORB/uORB.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
 #include <uORB/topics/gps_inject_data.h>
@@ -198,7 +198,7 @@ private:
 
 	const Instance 			_instance;
 
-	int				_orb_inject_data_fd{-1};
+	uORB::Subscription		_orb_inject_data_sub{ORB_ID(gps_inject_data)};
 	orb_advert_t			_dump_communication_pub{nullptr};		///< if non-null, dump communication
 	gps_dump_s			*_dump_to_device{nullptr};
 	gps_dump_s			*_dump_from_device{nullptr};
@@ -439,18 +439,14 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 
 void GPS::handleInjectDataTopic()
 {
-	if (_orb_inject_data_fd == -1) {
-		return;
-	}
-
 	bool updated = false;
 
 	do {
-		orb_check(_orb_inject_data_fd, &updated);
+		updated = _orb_inject_data_sub.updated();
 
 		if (updated) {
-			struct gps_inject_data_s msg;
-			orb_copy(ORB_ID(gps_inject_data), _orb_inject_data_fd, &msg);
+			gps_inject_data_s msg;
+			_orb_inject_data_sub.copy(&msg);
 
 			/* Write the message to the gps device. Note that the message could be fragmented.
 			 * But as we don't write anywhere else to the device during operation, we don't
@@ -668,8 +664,6 @@ GPS::run()
 		param_get(handle, &gps_ubx_dynmodel);
 	}
 
-	_orb_inject_data_fd = orb_subscribe(ORB_ID(gps_inject_data));
-
 	initializeCommunicationDump();
 
 	uint64_t last_rate_measurement = hrt_absolute_time();
@@ -853,8 +847,6 @@ GPS::run()
 
 	PX4_INFO("exiting");
 
-	orb_unsubscribe(_orb_inject_data_fd);
-
 	if (_dump_communication_pub) {
 		orb_unadvertise(_dump_communication_pub);
 	}
@@ -866,8 +858,6 @@ GPS::run()
 
 	orb_unadvertise(_report_gps_pos_pub);
 }
-
-
 
 int
 GPS::print_status()

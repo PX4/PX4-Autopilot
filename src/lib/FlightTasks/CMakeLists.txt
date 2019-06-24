@@ -93,9 +93,11 @@ add_custom_command(
 	OUTPUT
 		${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.hpp
 		${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.cpp
-	COMMAND ${PYTHON_EXECUTABLE} generate_flight_tasks.py
-		${python_args}
+	COMMAND ${PYTHON_EXECUTABLE} generate_flight_tasks.py ${python_args}
 	COMMENT "Generating Flight Tasks"
+	DEPENDS
+		Templates/FlightTasks_generated.cpp.em
+		Templates/FlightTasks_generated.hpp.em
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM
 )

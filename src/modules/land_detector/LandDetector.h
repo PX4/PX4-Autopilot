@@ -42,20 +42,22 @@
 
 #pragma once
 
-#include <px4_workqueue.h>
 #include <px4_module.h>
 #include <lib/hysteresis/hysteresis.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
-#include <uORB/uORB.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
+
+using namespace time_literals;
 
 namespace land_detector
 {
 
-
-class LandDetector : public ModuleBase<LandDetector>
+class LandDetector : public ModuleBase<LandDetector>, px4::ScheduledWorkItem
 {
 public:
 	enum class LandDetectionState {
@@ -94,13 +96,9 @@ public:
 	/**
 	 * Get the work queue going.
 	 */
-	int start();
+	void start();
 
 protected:
-	/**
-	 * Called once to initialize uORB topics.
-	 */
-	virtual void _initialize_topics() = 0;
 
 	/**
 	 * Update uORB topics.
@@ -142,15 +140,8 @@ protected:
 	 */
 	virtual bool _get_ground_effect_state() { return false; }
 
-	/**
-	 * Convenience function for polling uORB subscriptions.
-	 *
-	 * @return true if there was new data and it was successfully copied
-	 */
-	static bool _orb_update(const struct orb_metadata *meta, int handle, void *buffer);
-
-	/** Run main land detector loop at this rate in Hz. */
-	static constexpr uint32_t LAND_DETECTOR_UPDATE_RATE_HZ = 50;
+	/** Run main land detector loop at this interval. */
+	static constexpr uint32_t LAND_DETECTOR_UPDATE_INTERVAL = 20_ms;
 
 	orb_advert_t _landDetectedPub{nullptr};
 	vehicle_land_detected_s _landDetected{};
@@ -166,9 +157,7 @@ protected:
 	struct actuator_armed_s	_arming {};
 
 private:
-	static void _cycle_trampoline(void *arg);
-
-	void _cycle();
+	void Run() override;
 
 	void _check_params(bool force = false);
 
@@ -179,15 +168,12 @@ private:
 	uint64_t _total_flight_time{0}; ///< in microseconds
 	hrt_abstime _takeoff_time{0};
 
-	struct work_s	_work {};
-
 	perf_counter_t	_cycle_perf;
 
 	bool _previous_arming_state{false}; ///< stores the previous _arming.armed state
 
-	int _parameterSub{ -1};
-	int _armingSub{ -1};
+	uORB::Subscription _parameterSub{ORB_ID(parameter_update)};
+	uORB::Subscription _armingSub{ORB_ID(actuator_armed)};
 };
-
 
 } // namespace land_detector

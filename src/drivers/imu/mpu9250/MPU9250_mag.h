@@ -169,8 +169,6 @@ private:
 
 	bool _mag_reading_data{false};
 
-	perf_counter_t _mag_reads;
-	perf_counter_t _mag_errors;
 	perf_counter_t _mag_overruns;
 	perf_counter_t _mag_overflows;
 	perf_counter_t _mag_duplicates;

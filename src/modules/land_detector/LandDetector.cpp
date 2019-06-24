@@ -46,7 +46,7 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <drivers/drv_hrt.h>
-#include "uORB/topics/parameter_update.h"
+#include <uORB/topics/parameter_update.h>
 
 using namespace time_literals;
 
@@ -54,68 +54,35 @@ namespace land_detector
 {
 
 LandDetector::LandDetector() :
+	ScheduledWorkItem(px4::wq_configurations::hp_default),
 	_cycle_perf(perf_alloc(PC_ELAPSED, "land_detector_cycle"))
 {
+	_landDetected.timestamp = hrt_absolute_time();
+	_landDetected.freefall = false;
+	_landDetected.landed = true;
+	_landDetected.ground_contact = false;
+	_landDetected.maybe_landed = false;
+
+	_p_total_flight_time_high = param_find("LND_FLIGHT_T_HI");
+	_p_total_flight_time_low = param_find("LND_FLIGHT_T_LO");
 }
 
 LandDetector::~LandDetector()
 {
 	perf_free(_cycle_perf);
-
-	if (_armingSub >= 0) {
-		orb_unsubscribe(_armingSub);
-	}
-
-	if (_parameterSub >= 0) {
-		orb_unsubscribe(_parameterSub);
-	}
-
-	if (_landDetectedPub) {
-		orb_unadvertise(_landDetectedPub);
-	}
 }
 
-int LandDetector::start()
+void LandDetector::start()
 {
-	/* schedule a cycle to start things */
-	return work_queue(HPWORK, &_work, (worker_t)&LandDetector::_cycle_trampoline, this, 0);
+	ScheduleOnInterval(LAND_DETECTOR_UPDATE_INTERVAL);
 }
 
-void
-LandDetector::_cycle_trampoline(void *arg)
-{
-	LandDetector *dev = reinterpret_cast<LandDetector *>(arg);
-
-	dev->_cycle();
-}
-
-void LandDetector::_cycle()
+void LandDetector::Run()
 {
 	perf_begin(_cycle_perf);
 
-	if (_object.load() == nullptr) { // not initialized yet
-		// Advertise the first land detected uORB.
-		_landDetected.timestamp = hrt_absolute_time();
-		_landDetected.freefall = false;
-		_landDetected.landed = true;
-		_landDetected.ground_contact = false;
-		_landDetected.maybe_landed = false;
-
-		_p_total_flight_time_high = param_find("LND_FLIGHT_T_HI");
-		_p_total_flight_time_low = param_find("LND_FLIGHT_T_LO");
-
-		// Initialize uORB topics.
-		_armingSub = orb_subscribe(ORB_ID(actuator_armed));
-		_parameterSub = orb_subscribe(ORB_ID(parameter_update));
-		_initialize_topics();
-
-		_check_params(true);
-
-		_object.store(this);
-	}
-
 	_check_params(false);
-	_orb_update(ORB_ID(actuator_armed), _armingSub, &_arming);
+	_armingSub.update(&_arming);
 	_update_topics();
 	_update_state();
 
@@ -172,28 +139,16 @@ void LandDetector::_cycle()
 
 	perf_end(_cycle_perf);
 
-	if (!should_exit()) {
-
-		// Schedule next cycle.
-		work_queue(HPWORK, &_work, (worker_t)&LandDetector::_cycle_trampoline, this,
-			   USEC2TICK(1_s / LAND_DETECTOR_UPDATE_RATE_HZ));
-
-	} else {
+	if (should_exit()) {
+		ScheduleClear();
 		exit_and_cleanup();
 	}
 }
 void LandDetector::_check_params(const bool force)
 {
-	bool updated;
 	parameter_update_s paramUpdate;
 
-	orb_check(_parameterSub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(parameter_update), _parameterSub, &paramUpdate);
-	}
-
-	if (updated || force) {
+	if (_parameterSub.update(&paramUpdate) || force) {
 		_update_params();
 		uint32_t flight_time;
 		param_get(_p_total_flight_time_high, (int32_t *)&flight_time);
@@ -230,26 +185,5 @@ void LandDetector::_update_state()
 		_state = LandDetectionState::FLYING;
 	}
 }
-
-bool LandDetector::_orb_update(const struct orb_metadata *meta, int handle, void *buffer)
-{
-	bool newData = false;
-
-	// check if there is new data to grab
-	if (orb_check(handle, &newData) != OK) {
-		return false;
-	}
-
-	if (!newData) {
-		return false;
-	}
-
-	if (orb_copy(meta, handle, buffer) != OK) {
-		return false;
-	}
-
-	return true;
-}
-
 
 } // namespace land_detector

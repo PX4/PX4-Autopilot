@@ -47,7 +47,9 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_status_flags.h>
 
 // subscriptions
 #include <uORB/Subscription.hpp>
@@ -55,6 +57,7 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/vehicle_command.h>
@@ -127,7 +130,12 @@ private:
 		(ParamInt<px4::params::COM_TAS_FS_T2>) _tas_use_start_delay,
 		(ParamInt<px4::params::COM_ASPD_FS_ACT>) _airspeed_fail_action,
 		(ParamFloat<px4::params::COM_ASPD_STALL>) _airspeed_stall,
-		(ParamInt<px4::params::COM_ASPD_FS_DLY>) _airspeed_rtl_delay
+		(ParamInt<px4::params::COM_ASPD_FS_DLY>) _airspeed_rtl_delay,
+		(ParamInt<px4::params::COM_FLT_PROFILE>) _param_com_flt_profile,
+
+		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,
+		(ParamInt<px4::params::COM_OBL_ACT>) _param_com_obl_act,
+		(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act
 
 	)
 
@@ -169,7 +177,7 @@ private:
 	bool _geofence_violated_prev{false};
 
 	FailureDetector _failure_detector;
-	bool _failure_detector_termination_printed{false};
+	bool _flight_termination_triggered{false};
 
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd, actuator_armed_s *armed,
 			    orb_advert_t *command_ack_pub, bool *changed);
@@ -186,6 +194,8 @@ private:
 	// Set the system main state based on the current RC inputs
 	transition_result_t set_main_state_rc(const vehicle_status_s &status, bool *changed);
 
+	void update_control_mode();
+
 	void check_valid(const hrt_abstime &timestamp, const hrt_abstime &timeout, const bool valid_in, bool *valid_out,
 			 bool *changed);
 
@@ -199,6 +209,8 @@ private:
 
 	void estimator_check(bool *status_changed);
 
+	void offboard_control_update(bool &status_changed);
+
 	void airspeed_use_check();
 
 	void battery_status_check();
@@ -208,7 +220,7 @@ private:
 	 */
 	void		data_link_check(bool &status_changed);
 
-	int		_telemetry_status_sub{-1};
+	uORB::Subscription _telemetry_status_sub{ORB_ID(telemetry_status)};
 
 	hrt_abstime	_datalink_last_heartbeat_gcs{0};
 
@@ -221,12 +233,12 @@ private:
 	bool		_avoidance_system_status_change{false};
 	uint8_t	_datalink_last_status_avoidance_system{telemetry_status_s::MAV_STATE_UNINIT};
 
-	int			_iridiumsbd_status_sub{-1};
+	uORB::Subscription _iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 
 	hrt_abstime	_high_latency_datalink_heartbeat{0};
 	hrt_abstime	_high_latency_datalink_lost{0};
 
-	int _battery_sub{-1};
+	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
 	uint8_t _battery_warning{battery_status_s::BATTERY_WARNING_NONE};
 	float _battery_current{0.0f};
 
@@ -239,14 +251,19 @@ private:
 	uORB::SubscriptionData<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
 	uORB::SubscriptionData<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
 	uORB::SubscriptionData<mission_result_s>		_mission_result_sub{ORB_ID(mission_result)};
+	uORB::SubscriptionData<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
 	uORB::SubscriptionData<sensor_bias_s>			_sensor_bias_sub{ORB_ID(sensor_bias)};
 	uORB::SubscriptionData<vehicle_global_position_s>	_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::SubscriptionData<vehicle_local_position_s>	_local_position_sub{ORB_ID(vehicle_local_position)};
 
 	// Publications
-	uORB::Publication<home_position_s>			_home_pub{ORB_ID(home_position)};
+	uORB::Publication<vehicle_control_mode_s>		_control_mode_pub{ORB_ID(vehicle_control_mode)};
+	uORB::PublicationData<home_position_s>			_home_pub{ORB_ID(home_position)};
+	uORB::Publication<vehicle_status_s>			_status_pub{ORB_ID(vehicle_status)};
+	uORB::Publication<actuator_armed_s>			_armed_pub{ORB_ID(actuator_armed)};
+	uORB::Publication<commander_state_s>			_commander_state_pub{ORB_ID(commander_state)};
+	uORB::Publication<vehicle_status_flags_s>		_vehicle_status_flags_pub{ORB_ID(vehicle_status_flags)};
 
-	orb_advert_t					_status_pub{nullptr};
 };
 
 #endif /* COMMANDER_HPP_ */

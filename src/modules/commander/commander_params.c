@@ -337,7 +337,7 @@ PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 0.0f);
  * @value 1 Hold mode
  * @value 2 Return mode
  *
- * @group Mission
+ * @group Commander
  */
 PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
 
@@ -353,7 +353,7 @@ PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
  * @value 3 Return mode
  * @value 4 Land mode
  * @value 5 Hold mode
- * @group Mission
+ * @group Commander
  */
 PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
 
@@ -907,3 +907,18 @@ PARAM_DEFINE_INT32(COM_ASPD_FS_ACT, 0);
  */
 PARAM_DEFINE_INT32(COM_ASPD_FS_DLY, 0);
 
+/**
+ * User Flight Profile
+ *
+ * Describes the intended use of the vehicle.
+ * Can be used by ground control software or log post processing.
+ * This param does not influence the behavior within the firmware. This means for example the control logic is independent of the setting of this param (but depends on other params).
+ *
+ * @value 0 Default
+ * @value 100 Pro User
+ * @value 200 Flight Tester
+ * @value 300 Developer
+ *
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_FLT_PROFILE, 0);

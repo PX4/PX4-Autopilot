@@ -65,7 +65,9 @@ fi
 
 
 # Use environment variable PX4_ESTIMATOR to choose estimator.
-if [ "$PX4_ESTIMATOR" = "ekf2" ]; then
+if [ "$PX4_ESTIMATOR" = "q" ]; then
+	param set SYS_MC_EST_GROUP 3
+elif [ "$PX4_ESTIMATOR" = "ekf2" ]; then
 	param set SYS_MC_EST_GROUP 2
 elif [ "$PX4_ESTIMATOR" = "lpe" ]; then
 	param set SYS_MC_EST_GROUP 1
@@ -227,7 +229,7 @@ fi
 
 # Configure vehicle type specific parameters.
 # Note: rc.vehicle_setup is the entry point for rc.interface,
-#       rc.fw_apps, rc.mc_apps, rc.ugv_apps, and rc.vtol_apps.
+#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
 #
 sh etc/init.d/rc.vehicle_setup
 

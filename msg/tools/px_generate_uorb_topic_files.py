@@ -77,13 +77,13 @@ __license__ = "BSD"
 __email__ = "thomasgubler@gmail.com"
 
 
-TEMPLATE_FILE = ['msg.h.template', 'msg.cpp.template']
-TOPICS_LIST_TEMPLATE_FILE = 'uORBTopics.cpp.template'
+TEMPLATE_FILE = ['msg.h.em', 'msg.cpp.em']
+TOPICS_LIST_TEMPLATE_FILE = 'uORBTopics.cpp.em'
 OUTPUT_FILE_EXT = ['.h', '.cpp']
 INCL_DEFAULT = ['std_msgs:./msg/std_msgs']
 PACKAGE = 'px4'
 TOPICS_TOKEN = '# TOPICS '
-IDL_TEMPLATE_FILE = 'msg.idl.template'
+IDL_TEMPLATE_FILE = 'msg.idl.em'
 
 
 class MsgScope:
@@ -184,7 +184,7 @@ def generate_idl_file(filename_msg, outputdir, templatedir, package, includepath
 
     template_file = os.path.join(templatedir, IDL_TEMPLATE_FILE)
     output_file = os.path.join(outputdir, IDL_TEMPLATE_FILE.replace(
-        "msg.idl.template", str(spec_short_name + "_.idl")))
+        "msg.idl.em", str(spec_short_name + "_.idl")))
 
     return generate_by_template(output_file, template_file, em_globals)
 
@@ -210,7 +210,7 @@ def generate_uRTPS_general(filename_send_msgs, filename_received_msgs,
 
     template_file = os.path.join(templatedir, template_name)
     output_file = os.path.join(
-        outputdir, template_name.replace(".template", ""))
+        outputdir, template_name.replace(".em", ""))
 
     return generate_by_template(output_file, template_file, merged_em_globals)
 
@@ -229,7 +229,7 @@ def generate_topic_file(filename_msg, outputdir, templatedir, package, includepa
 
     template_file = os.path.join(templatedir, template_name)
     output_file = os.path.join(
-        outputdir, spec_short_name + "_" + template_name.replace(".template", ""))
+        outputdir, spec_short_name + "_" + template_name.replace(".em", ""))
 
     return generate_by_template(output_file, template_file, em_globals)
 
@@ -411,7 +411,7 @@ def generate_topics_list_file(msgdir, outputdir, templatedir):
     tl_globals = {"msgs": msgs, "multi_topics": multi_topics}
     tl_template_file = os.path.join(templatedir, TOPICS_LIST_TEMPLATE_FILE)
     tl_out_file = os.path.join(
-        outputdir, TOPICS_LIST_TEMPLATE_FILE.replace(".template", ""))
+        outputdir, TOPICS_LIST_TEMPLATE_FILE.replace(".em", ""))
     generate_by_template(tl_out_file, tl_template_file, tl_globals)
 
 
@@ -425,7 +425,7 @@ def generate_topics_list_file_from_files(files, outputdir, templatedir):
     tl_globals = {"msgs": filenames, "multi_topics": multi_topics}
     tl_template_file = os.path.join(templatedir, TOPICS_LIST_TEMPLATE_FILE)
     tl_out_file = os.path.join(
-        outputdir, TOPICS_LIST_TEMPLATE_FILE.replace(".template", ""))
+        outputdir, TOPICS_LIST_TEMPLATE_FILE.replace(".em", ""))
     generate_by_template(tl_out_file, tl_template_file, tl_globals)
 
 

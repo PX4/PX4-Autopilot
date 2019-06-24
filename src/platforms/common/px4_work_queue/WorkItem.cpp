@@ -49,8 +49,16 @@ WorkItem::WorkItem(const wq_config_t &config)
 	}
 }
 
+WorkItem::~WorkItem()
+{
+	Deinit();
+}
+
 bool WorkItem::Init(const wq_config_t &config)
 {
+	// clear any existing first
+	Deinit();
+
 	px4::WorkQueue *wq = WorkQueueFindOrCreate(config);
 
 	if (wq == nullptr) {
@@ -62,6 +70,18 @@ bool WorkItem::Init(const wq_config_t &config)
 	}
 
 	return false;
+}
+
+void WorkItem::Deinit()
+{
+	// remove any currently queued work
+	if (_wq != nullptr) {
+		// prevent additional insertions
+		px4::WorkQueue *wq_temp = _wq;
+		_wq = nullptr;
+
+		wq_temp->Remove(this);
+	}
 }
 
 } // namespace px4

@@ -1052,27 +1052,6 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 		break;
 
-	case MIXERIOCADDSIMPLE: {
-			mixer_simple_s *mixinfo = (mixer_simple_s *)arg;
-
-			SimpleMixer *mixer = new SimpleMixer(control_callback,
-							     (uintptr_t)&_controls, mixinfo);
-
-			if (mixer->check()) {
-				delete mixer;
-				ret = -EINVAL;
-
-			} else {
-				if (_mixers == nullptr)
-					_mixers = new MixerGroup(control_callback,
-								 (uintptr_t)&_controls);
-
-				_mixers->add_mixer(mixer);
-			}
-
-			break;
-		}
-
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			unsigned buflen = strnlen(buf, 1024);

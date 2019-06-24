@@ -297,14 +297,10 @@ FixedwingPositionControl::parameters_update()
 void
 FixedwingPositionControl::vehicle_control_mode_poll()
 {
-	bool updated = false;
-
-	orb_check(_control_mode_sub, &updated);
-
-	if (updated) {
+	if (_control_mode_sub.updated()) {
 		const bool was_armed = _control_mode.flag_armed;
 
-		if (orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode) == PX4_OK) {
+		if (_control_mode_sub.copy(&_control_mode)) {
 
 			// reset state when arming
 			if (!was_armed && _control_mode.flag_armed) {
@@ -318,12 +314,8 @@ FixedwingPositionControl::vehicle_control_mode_poll()
 void
 FixedwingPositionControl::vehicle_command_poll()
 {
-	bool updated;
-
-	orb_check(_vehicle_command_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &_vehicle_command);
+	if (_vehicle_command_sub.updated()) {
+		_vehicle_command_sub.copy(&_vehicle_command);
 		handle_command();
 	}
 }
@@ -331,13 +323,7 @@ FixedwingPositionControl::vehicle_command_poll()
 void
 FixedwingPositionControl::vehicle_status_poll()
 {
-	bool updated;
-
-	orb_check(_vehicle_status_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
-
+	if (_vehicle_status_sub.update(&_vehicle_status)) {
 		/* set correct uORB ID, depending on if vehicle is VTOL or not */
 		if (_attitude_setpoint_id == nullptr) {
 			if (_vehicle_status.is_vtol) {
@@ -352,31 +338,6 @@ FixedwingPositionControl::vehicle_status_poll()
 				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
 			}
 		}
-	}
-}
-
-void
-FixedwingPositionControl::vehicle_land_detected_poll()
-{
-	bool updated;
-
-	orb_check(_vehicle_land_detected_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
-	}
-}
-
-void
-FixedwingPositionControl::manual_control_setpoint_poll()
-{
-	bool manual_updated;
-
-	/* Check if manual setpoint has changed */
-	orb_check(_manual_control_sub, &manual_updated);
-
-	if (manual_updated) {
-		orb_copy(ORB_ID(manual_control_setpoint), _manual_control_sub, &_manual);
 	}
 }
 
@@ -419,39 +380,21 @@ FixedwingPositionControl::airspeed_poll()
 void
 FixedwingPositionControl::vehicle_attitude_poll()
 {
-	/* check if there is a new position */
-	bool updated;
-	orb_check(_vehicle_attitude_sub, &updated);
+	if (_vehicle_attitude_sub.update(&_att)) {
+		/* set rotation matrix and euler angles */
+		_R_nb = Quatf(_att.q);
 
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_att);
-	}
+		// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
+		// between multirotor and fixed wing flight
+		if (static_cast<vtol_type>(_parameters.vtol_type) == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
+			Dcmf R_offset = Eulerf(0, M_PI_2_F, 0);
+			_R_nb = _R_nb * R_offset;
+		}
 
-	/* set rotation matrix and euler angles */
-	_R_nb = Quatf(_att.q);
-
-	// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
-	// between multirotor and fixed wing flight
-	if (static_cast<vtol_type>(_parameters.vtol_type) == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
-		Dcmf R_offset = Eulerf(0, M_PI_2_F, 0);
-		_R_nb = _R_nb * R_offset;
-	}
-
-	Eulerf euler_angles(_R_nb);
-	_roll    = euler_angles(0);
-	_pitch   = euler_angles(1);
-	_yaw     = euler_angles(2);
-}
-
-void
-FixedwingPositionControl::position_setpoint_triplet_poll()
-{
-	/* check if there is a new setpoint */
-	bool pos_sp_triplet_updated;
-	orb_check(_pos_sp_triplet_sub, &pos_sp_triplet_updated);
-
-	if (pos_sp_triplet_updated) {
-		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
+		Eulerf euler_angles(_R_nb);
+		_roll    = euler_angles(0);
+		_pitch   = euler_angles(1);
+		_yaw     = euler_angles(2);
 	}
 }
 
@@ -773,7 +716,7 @@ FixedwingPositionControl::update_desired_altitude(float dt)
 	}
 
 	if (_vehicle_status.is_vtol) {
-		if (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode) {
+		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || _vehicle_status.in_transition_mode) {
 			_hold_alt = _global_pos.alt;
 		}
 	}
@@ -821,7 +764,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 	_l1_control.set_dt(dt);
 
 	/* only run position controller in fixed-wing mode and during transitions for VTOL */
-	if (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
+	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !_vehicle_status.in_transition_mode) {
 		_control_mode_current = FW_POSCTRL_MODE_OTHER;
 		return false;
 	}
@@ -1732,20 +1675,7 @@ FixedwingPositionControl::handle_command()
 void
 FixedwingPositionControl::run()
 {
-	/*
-	 * do subscriptions
-	 */
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
-	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	_sensor_baro_sub = orb_subscribe(ORB_ID(sensor_baro));
 
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
@@ -1780,13 +1710,12 @@ FixedwingPositionControl::run()
 		}
 
 		/* only update parameters if they changed */
-		bool params_updated = false;
-		orb_check(_params_sub, &params_updated);
+		bool params_updated = _params_sub.updated();
 
 		if (params_updated) {
 			/* read from param to clear updated flag */
 			parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
+			_params_sub.copy(&update);
 
 			/* update parameters from storage */
 			parameters_update();
@@ -1798,7 +1727,7 @@ FixedwingPositionControl::run()
 
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
-			orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
+			_local_pos_sub.update(&_local_pos);
 
 			// handle estimator reset events. we only adjust setpoins for manual modes
 			if (_control_mode.flag_control_manual_enabled) {
@@ -1823,12 +1752,12 @@ FixedwingPositionControl::run()
 
 			_sub_sensors.update();
 			airspeed_poll();
-			manual_control_setpoint_poll();
-			position_setpoint_triplet_poll();
+			_manual_control_sub.update(&_manual);
+			_pos_sp_triplet_sub.update(&_pos_sp_triplet);
 			vehicle_attitude_poll();
 			vehicle_command_poll();
 			vehicle_control_mode_poll();
-			vehicle_land_detected_poll();
+			_vehicle_land_detected_sub.update(&_vehicle_land_detected);
 			vehicle_status_poll();
 
 			Vector2f curr_pos((float)_global_pos.lat, (float)_global_pos.lon);
@@ -1870,7 +1799,8 @@ FixedwingPositionControl::run()
 					}
 
 					// only publish status in full FW mode
-					if (!_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
+					if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
+					    && !_vehicle_status.in_transition_mode) {
 						status_publish();
 					}
 				}
@@ -1940,7 +1870,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 	// do not run TECS if vehicle is a VTOL and we are in rotary wing mode or in transition
 	// (it should also not run during VTOL blending because airspeed is too low still)
 	if (_vehicle_status.is_vtol) {
-		if (_vehicle_status.is_rotary_wing || _vehicle_status.in_transition_mode) {
+		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || _vehicle_status.in_transition_mode) {
 			run_tecs = false;
 		}
 
@@ -2023,13 +1953,9 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 
 	/* scale throttle cruise by baro pressure */
 	if (_parameters.throttle_alt_scale > FLT_EPSILON) {
+		sensor_baro_s baro{};
 
-		bool baro_updated = false;
-		orb_check(_sensor_baro_sub, &baro_updated);
-
-		sensor_baro_s baro;
-
-		if (orb_copy(ORB_ID(sensor_baro), _sensor_baro_sub, &baro) == PX4_OK) {
+		if (_sensor_baro_sub.update(&baro)) {
 			if (PX4_ISFINITE(baro.pressure) && PX4_ISFINITE(_parameters.throttle_alt_scale)) {
 				// scale throttle as a function of sqrt(p0/p) (~ EAS -> TAS at low speeds and altitudes ignoring temperature)
 				const float eas2tas = sqrtf(CONSTANTS_STD_PRESSURE_MBAR / baro.pressure);

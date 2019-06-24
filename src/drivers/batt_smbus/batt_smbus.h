@@ -48,7 +48,7 @@
 #include <lib/drivers/smbus/SMBus.hpp>
 #include <mathlib/mathlib.h>
 #include <px4_config.h>
-#include <px4_workqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <perf/perf_counter.h>
 #include <platforms/px4_module.h>
 #include <uORB/topics/battery_status.h>
@@ -144,7 +144,7 @@ int serial_number();
 
 
 
-class BATT_SMBUS : public ModuleBase<BATT_SMBUS>
+class BATT_SMBUS : public ModuleBase<BATT_SMBUS>, public px4::ScheduledWorkItem
 {
 public:
 
@@ -280,9 +280,7 @@ public:
 
 private:
 
-	static void cycle_trampoline(void *arg);
-
-	static work_s _work;
+	void Run() override;
 
 	perf_counter_t _cycle;
 
@@ -293,8 +291,6 @@ private:
 	float _min_cell_voltage{0};
 
 	bool _should_suspend{false};
-
-	void cycle();
 
 	/** @param _last_report Last published report, used for test(). */
 	battery_status_s _last_report = battery_status_s{};

@@ -48,6 +48,9 @@
  */
 #include "vtol_att_control_main.h"
 #include <systemlib/mavlink_log.h>
+#include <matrix/matrix/math.hpp>
+
+using namespace matrix;
 
 namespace VTOL_att_control
 {
@@ -141,36 +144,6 @@ VtolAttitudeControl::~VtolAttitudeControl()
 }
 
 /**
-* Check for changes in vehicle control mode.
-*/
-void VtolAttitudeControl::vehicle_control_mode_poll()
-{
-	bool updated;
-
-	/* Check if vehicle control mode has changed */
-	orb_check(_v_control_mode_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_control_mode), _v_control_mode_sub, &_v_control_mode);
-	}
-}
-
-/**
-* Check for changes in manual inputs.
-*/
-void VtolAttitudeControl::vehicle_manual_poll()
-{
-	bool updated;
-
-	/* get pilots inputs */
-	orb_check(_manual_control_sp_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(manual_control_setpoint), _manual_control_sp_sub, &_manual_control_sp);
-	}
-}
-
-/**
 * Check for inputs from mc attitude controller.
 */
 void VtolAttitudeControl::actuator_controls_mc_poll()
@@ -197,154 +170,14 @@ void VtolAttitudeControl::actuator_controls_fw_poll()
 }
 
 /**
-* Check for airspeed updates.
-*/
-void
-VtolAttitudeControl::vehicle_airspeed_poll()
-{
-	bool updated;
-	orb_check(_airspeed_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(airspeed), _airspeed_sub, &_airspeed);
-	}
-}
-
-/**
-* Check for attitude update.
-*/
-void
-VtolAttitudeControl::vehicle_attitude_poll()
-{
-	/* check if there is a new setpoint */
-	bool updated;
-	orb_check(_v_att_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_attitude), _v_att_sub, &_v_att);
-	}
-}
-
-/**
-* Check for sensor updates.
-*/
-void
-VtolAttitudeControl::vehicle_local_pos_poll()
-{
-	bool updated;
-	/* Check if parameters have changed */
-	orb_check(_local_pos_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
-	}
-
-}
-
-/**
-* Check for setpoint updates.
-*/
-void
-VtolAttitudeControl::vehicle_local_pos_sp_poll()
-{
-	bool updated;
-	/* Check if parameters have changed */
-	orb_check(_local_pos_sp_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_sub, &_local_pos_sp);
-	}
-
-}
-
-/**
-* Check for position setpoint updates.
-*/
-void
-VtolAttitudeControl::pos_sp_triplet_poll()
-{
-	bool updated;
-	/* Check if parameters have changed */
-	orb_check(_pos_sp_triplet_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
-	}
-
-}
-
-/**
-* Check for mc virtual attitude setpoint updates.
-*/
-void
-VtolAttitudeControl::mc_virtual_att_sp_poll()
-{
-	bool updated;
-
-	orb_check(_mc_virtual_att_sp_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(mc_virtual_attitude_setpoint), _mc_virtual_att_sp_sub, &_mc_virtual_att_sp);
-	}
-}
-
-/**
-* Check for fw virtual attitude setpoint updates.
-*/
-void
-VtolAttitudeControl::fw_virtual_att_sp_poll()
-{
-	bool updated;
-
-	orb_check(_fw_virtual_att_sp_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(fw_virtual_attitude_setpoint), _fw_virtual_att_sp_sub, &_fw_virtual_att_sp);
-	}
-}
-
-/**
 * Check for command updates.
 */
 void
 VtolAttitudeControl::vehicle_cmd_poll()
 {
-	bool updated;
-	orb_check(_vehicle_cmd_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_command), _vehicle_cmd_sub, &_vehicle_cmd);
+	if (_vehicle_cmd_sub.updated()) {
+		_vehicle_cmd_sub.copy(&_vehicle_cmd);
 		handle_command();
-	}
-}
-
-/**
-* Check for TECS status updates.
-*/
-void
-VtolAttitudeControl::tecs_status_poll()
-{
-	bool updated;
-
-	orb_check(_tecs_status_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(tecs_status), _tecs_status_sub, &_tecs_status);
-	}
-}
-
-/**
-* Check for land detector updates.
-*/
-void
-VtolAttitudeControl::land_detected_poll()
-{
-	bool updated;
-
-	orb_check(_land_detected_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_land_detected), _land_detected_sub, &_land_detected);
 	}
 }
 
@@ -526,23 +359,7 @@ VtolAttitudeControl::task_main_trampoline(int argc, char *argv[])
 
 void VtolAttitudeControl::task_main()
 {
-	fflush(stdout);
-
 	/* do subscriptions */
-	_mc_virtual_att_sp_sub = orb_subscribe(ORB_ID(mc_virtual_attitude_setpoint));
-	_fw_virtual_att_sp_sub = orb_subscribe(ORB_ID(fw_virtual_attitude_setpoint));
-	_v_att_sub             = orb_subscribe(ORB_ID(vehicle_attitude));
-	_v_control_mode_sub    = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_params_sub            = orb_subscribe(ORB_ID(parameter_update));
-	_manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	_local_pos_sub         = orb_subscribe(ORB_ID(vehicle_local_position));
-	_local_pos_sp_sub         = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
-	_pos_sp_triplet_sub    = orb_subscribe(ORB_ID(position_setpoint_triplet));
-	_airspeed_sub          = orb_subscribe(ORB_ID(airspeed));
-	_vehicle_cmd_sub	   = orb_subscribe(ORB_ID(vehicle_command));
-	_tecs_status_sub = orb_subscribe(ORB_ID(tecs_status));
-	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-
 	_actuator_inputs_mc    = orb_subscribe(ORB_ID(actuator_controls_virtual_mc));
 	_actuator_inputs_fw    = orb_subscribe(ORB_ID(actuator_controls_virtual_fw));
 
@@ -557,13 +374,10 @@ void VtolAttitudeControl::task_main()
 
 	while (!_task_should_exit) {
 		/* only update parameters if they changed */
-		bool params_updated = false;
-		orb_check(_params_sub, &params_updated);
-
-		if (params_updated) {
+		if (_params_sub.updated()) {
 			/* read from param to clear updated flag */
 			parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
+			_params_sub.copy(&update);
 
 			/* update parameters from storage */
 			parameters_update();
@@ -598,16 +412,16 @@ void VtolAttitudeControl::task_main()
 			continue;
 		}
 
-		vehicle_control_mode_poll();
-		vehicle_manual_poll();
-		vehicle_attitude_poll();
-		vehicle_local_pos_poll();
-		vehicle_local_pos_sp_poll();
-		pos_sp_triplet_poll();
-		vehicle_airspeed_poll();
+		_v_control_mode_sub.update(&_v_control_mode);
+		_manual_control_sp_sub.update(&_manual_control_sp);
+		_v_att_sub.update(&_v_att);
+		_local_pos_sub.update(&_local_pos);
+		_local_pos_sp_sub.update(&_local_pos_sp);
+		_pos_sp_triplet_sub.update(&_pos_sp_triplet);
+		_airspeed_sub.update(&_airspeed);
+		_tecs_status_sub.update(&_tecs_status);
+		_land_detected_sub.update(&_land_detected);
 		vehicle_cmd_poll();
-		tecs_status_poll();
-		land_detected_poll();
 		actuator_controls_fw_poll();
 		actuator_controls_mc_poll();
 
@@ -633,7 +447,7 @@ void VtolAttitudeControl::task_main()
 		// check in which mode we are in and call mode specific functions
 		if (_vtol_type->get_mode() == mode::ROTARY_WING) {
 
-			mc_virtual_att_sp_poll();
+			_mc_virtual_att_sp_sub.update(&_mc_virtual_att_sp);
 
 			// vehicle is in rotary wing mode
 			_vtol_vehicle_status.vtol_in_rw_mode = true;
@@ -645,7 +459,7 @@ void VtolAttitudeControl::task_main()
 
 		} else if (_vtol_type->get_mode() == mode::FIXED_WING) {
 
-			fw_virtual_att_sp_poll();
+			_fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
 
 			// vehicle is in fw mode
 			_vtol_vehicle_status.vtol_in_rw_mode = false;
@@ -656,8 +470,8 @@ void VtolAttitudeControl::task_main()
 
 		} else if (_vtol_type->get_mode() == mode::TRANSITION_TO_MC || _vtol_type->get_mode() == mode::TRANSITION_TO_FW) {
 
-			mc_virtual_att_sp_poll();
-			fw_virtual_att_sp_poll();
+			_mc_virtual_att_sp_sub.update(&_mc_virtual_att_sp);
+			_fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
 
 			// vehicle is doing a transition
 			_vtol_vehicle_status.vtol_in_trans_mode = true;
@@ -699,6 +513,14 @@ void VtolAttitudeControl::task_main()
 
 			// normal operation
 			_vtol_type->fill_actuator_outputs();
+		}
+
+		// reinitialize the setpoint while not armed to make sure no value from the last mode or flight is still kept
+		if (!_v_control_mode.flag_armed) {
+			Quatf().copyTo(_mc_virtual_att_sp.q_d);
+			Vector3f().copyTo(_mc_virtual_att_sp.thrust_body);
+			Quatf().copyTo(_v_att_sp.q_d);
+			Vector3f().copyTo(_v_att_sp.thrust_body);
 		}
 
 		/* Only publish if the proper mode(s) are enabled */

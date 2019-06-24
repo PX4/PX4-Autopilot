@@ -52,6 +52,7 @@
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <uORB/topics/position_setpoint.h>
 
+#include <lib/hysteresis/hysteresis.h>
 
 #include <matrix/matrix/math.hpp>
 
@@ -120,6 +121,8 @@ private:
 	matrix::Vector3f _curr_wp = {}; /**< current position triplet */
 	matrix::Vector3f _position = {}; /**< current vehicle position */
 	matrix::Vector3f _failsafe_position = {}; /**< vehicle position when entered in failsafe */
+
+	systemlib::Hysteresis _avoidance_point_not_valid_hysteresis{false}; /**< becomes true if the companion doesn't start sending valid setpoints */
 
 	bool _ext_yaw_active = false; /**< true, if external yaw handling is active */
 

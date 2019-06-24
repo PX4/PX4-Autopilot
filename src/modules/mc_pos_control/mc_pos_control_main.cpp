@@ -46,6 +46,8 @@
 #include <lib/hysteresis/hysteresis.h>
 #include <commander/px4_custom_mode.h>
 
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -106,19 +108,22 @@ private:
 	Takeoff _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
 
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
-	orb_advert_t	_traj_sp_pub{nullptr};		/**< trajectory setpoints publication */
-	orb_advert_t	_local_pos_sp_pub{nullptr};		/**< vehicle local position setpoint publication */
 	orb_advert_t _pub_vehicle_command{nullptr};           /**< vehicle command publication */
-	orb_id_t _attitude_setpoint_id{nullptr};
-	orb_advert_t	_landing_gear_pub{nullptr};
 
-	int		_vehicle_status_sub{-1};		/**< vehicle status subscription */
-	int		_vehicle_land_detected_sub{-1};	/**< vehicle land detected subscription */
-	int		_control_mode_sub{-1};		/**< vehicle control mode subscription */
-	int		_params_sub{-1};			/**< notification of parameter updates */
+	orb_id_t _attitude_setpoint_id{nullptr};
+
+	uORB::Publication<landing_gear_s>			_landing_gear_pub{ORB_ID(landing_gear)};
+	uORB::Publication<vehicle_local_position_setpoint_s>	_local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};	/**< vehicle local position setpoint publication */
+	uORB::Publication<vehicle_local_position_setpoint_s>	_traj_sp_pub{ORB_ID(trajectory_setpoint)};			/**< trajectory setpoints publication */
+
 	int		_local_pos_sub{-1};			/**< vehicle local position */
-	int		_att_sub{-1};				/**< vehicle attitude */
-	int		_home_pos_sub{-1}; 			/**< home position */
+
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			/**< vehicle status subscription */
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
+	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
+	uORB::Subscription _params_sub{ORB_ID(parameter_update)};			/**< notification of parameter updates */
+	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};				/**< vehicle attitude */
+	uORB::Subscription _home_pos_sub{ORB_ID(home_position)}; 			/**< home position */
 
 	int _task_failure_count{0};         /**< counter for task failures */
 
@@ -217,18 +222,6 @@ private:
 	void publish_attitude();
 
 	/**
-	 * Publish local position setpoint.
-	 * This is only required for logging.
-	 */
-	void publish_local_pos_sp(const vehicle_local_position_setpoint_s &local_pos_sp);
-
-	/**
-	 * Publish local position setpoint.
-	 * This is only required for logging.
-	 */
-	void publish_trajectory_sp(const vehicle_local_position_setpoint_s &traj);
-
-	/**
 	 * Adjust the setpoint during landing.
 	 * Thrust is adjusted to support the land-detector during detection.
 	 * @param setpoint gets adjusted based on land-detector state
@@ -277,32 +270,6 @@ private:
 	void		task_main();
 };
 
-
-int MulticopterPositionControl::print_usage(const char *reason)
-{
-	if (reason) {
-		PX4_WARN("%s\n", reason);
-	}
-
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-The controller has two loops: a P loop for position error and a PID loop for velocity error.
-Output of the velocity controller is thrust vector that is split to thrust direction
-(i.e. rotation matrix for multicopter orientation) and thrust scalar (i.e. multicopter thrust itself).
-
-The controller doesn't use Euler angles for its work, they are generated only for more human-friendly control and
-logging.
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("mc_pos_control", "controller");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
-	return 0;
-}
-
-
 MulticopterPositionControl::MulticopterPositionControl() :
 	SuperBlock(nullptr, "MPC"),
 	ModuleParams(nullptr),
@@ -338,14 +305,8 @@ MulticopterPositionControl::warn_rate_limited(const char *string)
 int
 MulticopterPositionControl::parameters_update(bool force)
 {
-	bool updated;
-	struct parameter_update_s param_upd;
-
-	orb_check(_params_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(parameter_update), _params_sub, &param_upd);
-	}
+	parameter_update_s param_upd;
+	bool updated = _params_sub.update(&param_upd);
 
 	if (updated || force) {
 		ModuleParams::updateParams();
@@ -376,12 +337,7 @@ MulticopterPositionControl::poll_subscriptions()
 	// This is polled for, so all we need to do is a copy now.
 	orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 
-	bool updated;
-
-	orb_check(_vehicle_status_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
+	if (_vehicle_status_sub.update(&_vehicle_status)) {
 
 		// set correct uORB ID, depending on if vehicle is VTOL or not
 		if (!_attitude_setpoint_id) {
@@ -399,33 +355,17 @@ MulticopterPositionControl::poll_subscriptions()
 		}
 	}
 
-	orb_check(_vehicle_land_detected_sub, &updated);
+	_vehicle_land_detected_sub.update(&_vehicle_land_detected);
+	_control_mode_sub.update(&_control_mode);
+	_home_pos_sub.update(&_home_pos);
 
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &_vehicle_land_detected);
-	}
-
-	orb_check(_control_mode_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_control_mode), _control_mode_sub, &_control_mode);
-	}
-
-	orb_check(_att_sub, &updated);
-
-	if (updated) {
+	if (_att_sub.updated()) {
 		vehicle_attitude_s att;
-		if (orb_copy(ORB_ID(vehicle_attitude), _att_sub, &att) == PX4_OK && PX4_ISFINITE(att.q[0])) {
+
+		if (_att_sub.copy(&att) && PX4_ISFINITE(att.q[0])) {
 			_states.yaw = Eulerf(Quatf(att.q)).psi();
 		}
 	}
-
-	orb_check(_home_pos_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
-	}
-
 }
 
 void
@@ -508,7 +448,6 @@ MulticopterPositionControl::set_vehicle_states(const float &vel_sp_z)
 		_vel_z_deriv.update(0.0f);
 
 	}
-
 }
 
 int
@@ -516,9 +455,11 @@ MulticopterPositionControl::print_status()
 {
 	if (_flight_tasks.isAnyTaskActive()) {
 		PX4_INFO("Running, active flight task: %i", _flight_tasks.getActiveTask());
+
 	} else {
 		PX4_INFO("Running, no flight task active");
 	}
+
 	return 0;
 }
 
@@ -526,14 +467,6 @@ void
 MulticopterPositionControl::run()
 {
 	hrt_abstime time_stamp_last_loop = hrt_absolute_time(); // time stamp of last loop iteration
-
-	// initialize all subscriptions
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
 
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	orb_set_interval(_local_pos_sub, 20); // 50 Hz updates
@@ -550,6 +483,7 @@ MulticopterPositionControl::run()
 	while (!should_exit()) {
 		// poll for new data on the local position state topic (wait for up to 20ms)
 		const int poll_return = px4_poll(&poll_fd, 1, 20);
+
 		// poll_return == 0: go through the loop anyway to copy manual input at 50 Hz
 		// this is undesirable but not much we can do
 		if (poll_return < 0) {
@@ -585,7 +519,8 @@ MulticopterPositionControl::run()
 		}
 
 		// an update is necessary here because otherwise the takeoff state doesn't get skiped with non-altitude-controlled modes
-		_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f, !_control_mode.flag_control_climb_rate_enabled, time_stamp_current);
+		_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f,
+					    !_control_mode.flag_control_climb_rate_enabled, time_stamp_current);
 
 		// takeoff delay for motors to reach idle speed
 		if (_takeoff.getTakeoffState() >= TakeoffState::ready_for_takeoff) {
@@ -629,7 +564,8 @@ MulticopterPositionControl::run()
 				}
 			}
 
-			publish_trajectory_sp(setpoint);
+			// publish trajectory setpoint
+			_traj_sp_pub.publish(setpoint);
 
 			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
 			landing_gear_s gear = _flight_tasks.getGear();
@@ -638,7 +574,8 @@ MulticopterPositionControl::run()
 			set_vehicle_states(setpoint.vz);
 
 			// handle smooth takeoff
-			_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, constraints.want_takeoff, constraints.speed_up, !_control_mode.flag_control_climb_rate_enabled, time_stamp_current);
+			_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, constraints.want_takeoff,
+						    constraints.speed_up, !_control_mode.flag_control_climb_rate_enabled, time_stamp_current);
 			constraints.speed_up = _takeoff.updateRamp(_dt, constraints.speed_up);
 
 			if (_takeoff.getTakeoffState() < TakeoffState::rampup && !PX4_ISFINITE(setpoint.thrust[2])) {
@@ -702,7 +639,7 @@ MulticopterPositionControl::run()
 			// Publish local position setpoint
 			// This message will be used by other modules (such as Landdetector) to determine
 			// vehicle intention.
-			publish_local_pos_sp(local_pos_sp);
+			_local_pos_sp_pub.publish(local_pos_sp);
 
 			// Inform FlightTask about the input and output of the velocity controller
 			// This is used to properly initialize the velocity setpoint when onpening the position loop (position unlock)
@@ -730,17 +667,12 @@ MulticopterPositionControl::run()
 
 			// if there's any change in landing gear setpoint publish it
 			if (gear.landing_gear != _old_landing_gear_position
-				&& gear.landing_gear != landing_gear_s::GEAR_KEEP) {
+			    && gear.landing_gear != landing_gear_s::GEAR_KEEP) {
 
 				_landing_gear.landing_gear = gear.landing_gear;
 				_landing_gear.timestamp = hrt_absolute_time();
 
-				if (_landing_gear_pub != nullptr) {
-					orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear);
-
-				} else {
-					_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear);
-				}
+				_landing_gear_pub.publish(_landing_gear);
 			}
 
 			_old_landing_gear_position = gear.landing_gear;
@@ -759,13 +691,7 @@ MulticopterPositionControl::run()
 		}
 	}
 
-	orb_unsubscribe(_vehicle_status_sub);
-	orb_unsubscribe(_vehicle_land_detected_sub);
-	orb_unsubscribe(_control_mode_sub);
-	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_local_pos_sub);
-	orb_unsubscribe(_att_sub);
-	orb_unsubscribe(_home_pos_sub);
 }
 
 void
@@ -776,7 +702,7 @@ MulticopterPositionControl::start_flight_task()
 	int prev_failure_count = _task_failure_count;
 
 	// Do not run any flight task for VTOLs in fixed-wing mode
-	if (!_vehicle_status.is_rotary_wing) {
+	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		_flight_tasks.switchTask(FlightTaskIndex::None);
 		return;
 	}
@@ -789,6 +715,7 @@ MulticopterPositionControl::start_flight_task()
 			if (prev_failure_count == 0) {
 				PX4_WARN("Transition activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
+
 			task_failure = true;
 			_task_failure_count++;
 
@@ -815,6 +742,7 @@ MulticopterPositionControl::start_flight_task()
 			if (prev_failure_count == 0) {
 				PX4_WARN("Offboard activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
+
 			task_failure = true;
 			_task_failure_count++;
 
@@ -833,6 +761,7 @@ MulticopterPositionControl::start_flight_task()
 			if (prev_failure_count == 0) {
 				PX4_WARN("Follow-Me activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
+
 			task_failure = true;
 			_task_failure_count++;
 
@@ -845,6 +774,7 @@ MulticopterPositionControl::start_flight_task()
 		// Auto related maneuvers
 		should_disable_task = false;
 		int error = 0;
+
 		switch (_param_mpc_auto_mode.get()) {
 		case 1:
 			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLineSmoothVel);
@@ -859,6 +789,7 @@ MulticopterPositionControl::start_flight_task()
 			if (prev_failure_count == 0) {
 				PX4_WARN("Auto activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
+
 			task_failure = true;
 			_task_failure_count++;
 
@@ -895,6 +826,7 @@ MulticopterPositionControl::start_flight_task()
 			if (prev_failure_count == 0) {
 				PX4_WARN("Position-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
+
 			task_failure = true;
 			_task_failure_count++;
 
@@ -927,6 +859,7 @@ MulticopterPositionControl::start_flight_task()
 			if (prev_failure_count == 0) {
 				PX4_WARN("Altitude-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
+
 			task_failure = true;
 			_task_failure_count++;
 
@@ -951,6 +884,7 @@ MulticopterPositionControl::start_flight_task()
 			// No task was activated.
 			_flight_tasks.switchTask(FlightTaskIndex::None);
 		}
+
 	} else if (should_disable_task) {
 		_flight_tasks.switchTask(FlightTaskIndex::None);
 	}
@@ -989,6 +923,7 @@ MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint
 			// descend downwards with landspeed.
 			setpoint.vz = _param_mpc_land_speed.get();
 			setpoint.thrust[0] = setpoint.thrust[1] = 0.0f;
+
 			if (warn) {
 				PX4_WARN("Failsafe: Descend with land-speed.");
 			}
@@ -999,6 +934,7 @@ MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint
 				PX4_WARN("Failsafe: Descend with just attitude control.");
 			}
 		}
+
 		_in_failsafe = true;
 	}
 }
@@ -1023,30 +959,6 @@ MulticopterPositionControl::publish_attitude()
 
 	} else if (_attitude_setpoint_id) {
 		_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
-	}
-}
-
-void
-MulticopterPositionControl::publish_trajectory_sp(const vehicle_local_position_setpoint_s &traj)
-{
-	// publish trajectory
-	if (_traj_sp_pub != nullptr) {
-		orb_publish(ORB_ID(trajectory_setpoint), _traj_sp_pub, &traj);
-
-	} else {
-		_traj_sp_pub = orb_advertise(ORB_ID(trajectory_setpoint), &traj);
-	}
-}
-
-void
-MulticopterPositionControl::publish_local_pos_sp(const vehicle_local_position_setpoint_s &local_pos_sp)
-{
-	// publish local position setpoint
-	if (_local_pos_sp_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &local_pos_sp);
-
-	} else {
-		_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &local_pos_sp);
 	}
 }
 
@@ -1110,11 +1022,11 @@ void MulticopterPositionControl::send_vehicle_cmd_do(uint8_t nav_state)
 int MulticopterPositionControl::task_spawn(int argc, char *argv[])
 {
 	_task_id = px4_task_spawn_cmd("mc_pos_control",
-					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_POSITION_CONTROL,
-					   1900,
-					   (px4_main_t)&run_trampoline,
-					   (char *const *)argv);
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_POSITION_CONTROL,
+				      1900,
+				      (px4_main_t)&run_trampoline,
+				      (char *const *)argv);
 
 	if (_task_id < 0) {
 		_task_id = -1;
@@ -1132,6 +1044,30 @@ MulticopterPositionControl *MulticopterPositionControl::instantiate(int argc, ch
 int MulticopterPositionControl::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");
+}
+
+int MulticopterPositionControl::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+The controller has two loops: a P loop for position error and a PID loop for velocity error.
+Output of the velocity controller is thrust vector that is split to thrust direction
+(i.e. rotation matrix for multicopter orientation) and thrust scalar (i.e. multicopter thrust itself).
+
+The controller doesn't use Euler angles for its work, they are generated only for more human-friendly control and
+logging.
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("mc_pos_control", "controller");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
 }
 
 int mc_pos_control_main(int argc, char *argv[])

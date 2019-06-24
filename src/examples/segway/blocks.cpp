@@ -95,7 +95,7 @@ BlockUorbEnabledAutopilot::BlockUorbEnabledAutopilot(SuperBlock *parent, const c
 	_status(ORB_ID(vehicle_status), 20, 0, &getSubscriptions()),
 
 	// publications
-	_actuators(ORB_ID(actuator_controls_0), -1, &getPublications())
+	_actuators(ORB_ID(actuator_controls_0))
 {
 }
 
