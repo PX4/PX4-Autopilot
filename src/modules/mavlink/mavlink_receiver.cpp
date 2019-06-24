@@ -1713,6 +1713,7 @@ MavlinkReceiver::handle_message_trajectory_representation_waypoints(mavlink_mess
 		trajectory_waypoint.waypoints[i].yaw = trajectory.pos_yaw[i];
 		trajectory_waypoint.waypoints[i].yaw_speed = trajectory.vel_yaw[i];
 
+		trajectory_waypoint.waypoints[i].type = UINT8_MAX;
 	}
 
 	for (int i = 0; i < number_valid_points; ++i) {
