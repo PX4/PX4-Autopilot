@@ -3691,6 +3691,23 @@ protected:
 				msg.pos_yaw[i] = traj_wp_avoidance_desired.waypoints[i].yaw;
 				msg.vel_yaw[i] = traj_wp_avoidance_desired.waypoints[i].yaw_speed;
 
+				switch (traj_wp_avoidance_desired.waypoints[i].type) {
+				case position_setpoint_s::SETPOINT_TYPE_TAKEOFF:
+					msg.command[i] = vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF;
+					break;
+
+				case position_setpoint_s::SETPOINT_TYPE_LOITER:
+					msg.command[i] = vehicle_command_s::VEHICLE_CMD_NAV_LOITER_UNLIM;
+					break;
+
+				case position_setpoint_s::SETPOINT_TYPE_LAND:
+					msg.command[i] = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
+					break;
+
+				default:
+					msg.command[i] = UINT16_MAX;
+				}
+
 				if (traj_wp_avoidance_desired.waypoints[i].point_valid) {
 					number_valid_points++;
 				}
