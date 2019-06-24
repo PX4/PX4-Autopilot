@@ -85,15 +85,18 @@ public:
 	 * @param next_wp, next position triplet
 	 * @param next_yaw, next yaw triplet
 	 * @param next_yawspeed, next yaw speed triplet
+	 * @param wp_type, current triplet type
 	 */
 	void updateAvoidanceDesiredWaypoints(const matrix::Vector3f &curr_wp, const float curr_yaw, const float curr_yawspeed,
-					     const matrix::Vector3f &next_wp, const float next_yaw, const float next_yawspeed, const bool ext_yaw_active);
+					     const matrix::Vector3f &next_wp, const float next_yaw, const float next_yawspeed, const bool ext_yaw_active,
+					     const int wp_type);
 	/**
 	 * Updates the desired setpoints to send to the obstacle avoidance system.
 	 * @param pos_sp, desired position setpoint computed by the active FlightTask
 	 * @param vel_sp, desired velocity setpoint computed by the active FlightTask
+	 * @param type, current triplet type
 	 */
-	void updateAvoidanceDesiredSetpoints(const matrix::Vector3f &pos_sp, const matrix::Vector3f &vel_sp);
+	void updateAvoidanceDesiredSetpoints(const matrix::Vector3f &pos_sp, const matrix::Vector3f &vel_sp, const int type);
 
 	/**
 	 * Checks the vehicle progress between previous and current position waypoint of the triplet.
@@ -101,10 +104,9 @@ public:
 	 * @param prev_wp, previous position triplet
 	 * @param target_acceptance_radius, current position triplet xy acceptance radius
 	 * @param closest_pt, closest point to the vehicle on the line previous-current position triplet
-	 * @param wp_type, current triplet type
 	 */
 	void checkAvoidanceProgress(const matrix::Vector3f &pos, const matrix::Vector3f &prev_wp,
-				    float target_acceptance_radius, const matrix::Vector2f &closest_pt, const int wp_type);
+				    float target_acceptance_radius, const matrix::Vector2f &closest_pt);
 
 private:
 
@@ -128,6 +130,7 @@ private:
 	systemlib::Hysteresis _avoidance_point_not_valid_hysteresis{false}; /**< becomes true if the companion doesn't start sending valid setpoints */
 
 	bool _ext_yaw_active = false; /**< true, if external yaw handling is active */
+	int _curr_wp_type = 0;
 
 	/**
 	 * Publishes vehicle command.

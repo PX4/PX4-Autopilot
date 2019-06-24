@@ -46,11 +46,11 @@ static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500_ms;
 static constexpr uint64_t TIME_BEFORE_FAILSAFE = 500_ms;
 
 const vehicle_trajectory_waypoint_s empty_trajectory_waypoint = {0, 0, {0, 0, 0, 0, 0, 0, 0},
-	{	{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
-		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
-		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
-		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
-		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}}
+	{	{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, UINT8_MAX, false, {0}},
+		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, UINT8_MAX, false, {0}},
+		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, UINT8_MAX, false, {0}},
+		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, UINT8_MAX, false, {0}},
+		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, UINT8_MAX, false, {0}}
 	}
 };
 
@@ -126,13 +126,14 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 }
 
 void ObstacleAvoidance::updateAvoidanceDesiredWaypoints(const Vector3f &curr_wp, const float curr_yaw,
-		const float curr_yawspeed,
-		const Vector3f &next_wp, const float next_yaw, const float next_yawspeed, const bool ext_yaw_active)
+		const float curr_yawspeed, const Vector3f &next_wp, const float next_yaw, const float next_yawspeed,
+		const bool ext_yaw_active, const int wp_type)
 {
 	_desired_waypoint.timestamp = hrt_absolute_time();
 	_desired_waypoint.type = vehicle_trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
 	_curr_wp = curr_wp;
 	_ext_yaw_active = ext_yaw_active;
+	_curr_wp_type = wp_type;
 
 	curr_wp.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].position);
 	Vector3f(NAN, NAN, NAN).copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].velocity);
@@ -141,6 +142,7 @@ void ObstacleAvoidance::updateAvoidanceDesiredWaypoints(const Vector3f &curr_wp,
 	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].yaw = curr_yaw;
 	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].yaw_speed = curr_yawspeed;
 	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].point_valid = true;
+	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].type = _curr_wp_type;
 
 	next_wp.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].position);
 	Vector3f(NAN, NAN, NAN).copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].velocity);
@@ -151,10 +153,11 @@ void ObstacleAvoidance::updateAvoidanceDesiredWaypoints(const Vector3f &curr_wp,
 	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_2].point_valid = true;
 }
 
-void ObstacleAvoidance::updateAvoidanceDesiredSetpoints(const Vector3f &pos_sp, const Vector3f &vel_sp)
+void ObstacleAvoidance::updateAvoidanceDesiredSetpoints(const Vector3f &pos_sp, const Vector3f &vel_sp, const int type)
 {
 	pos_sp.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_0].position);
 	vel_sp.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity);
+	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_0].type = type;
 	_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid = true;
 
 	_pub_traj_wp_avoidance_desired.publish(_desired_waypoint);
@@ -163,7 +166,7 @@ void ObstacleAvoidance::updateAvoidanceDesiredSetpoints(const Vector3f &pos_sp, 
 }
 
 void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector3f &prev_wp,
-		float target_acceptance_radius, const Vector2f &closest_pt, const int wp_type)
+		float target_acceptance_radius, const Vector2f &closest_pt)
 {
 	_position = pos;
 	position_controller_status_s pos_control_status = {};
@@ -187,7 +190,7 @@ void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector
 	const float pos_to_target_z = fabsf(_curr_wp(2) - _position(2));
 
 	if (pos_to_target.length() < target_acceptance_radius && pos_to_target_z > _param_nav_mc_alt_rad.get()
-	    && wp_type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
+	    && _curr_wp_type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 		// vehicle above or below the target waypoint
 		pos_control_status.altitude_acceptance = pos_to_target_z + 0.5f;
 	}
