@@ -76,7 +76,7 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_P, 0.15f);
  * @increment 0.01
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLLRATE_I, 0.05f);
+PARAM_DEFINE_FLOAT(MC_ROLLRATE_I, 0.2f);
 
 /**
  * Roll rate integrator limit
@@ -151,7 +151,7 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_P, 0.15f);
  * @increment 0.01
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCHRATE_I, 0.05f);
+PARAM_DEFINE_FLOAT(MC_PITCHRATE_I, 0.2f);
 
 /**
  * Pitch rate integrator limit
