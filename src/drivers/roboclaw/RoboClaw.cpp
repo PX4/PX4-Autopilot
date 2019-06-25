@@ -56,13 +56,18 @@
 #include <uORB/Publication.hpp>
 #include <uORB/topics/debug_key_value.h>
 #include <drivers/drv_hrt.h>
+#include <math.h>
 
 // The RoboClaw has a serial communication timeout of 10ms.
 #define TIMEOUT_US 10000
 
+// TODO: Make this a parameter
+#define FAILED_TRANSACTION_RETRIES 1
+
 // The RoboClaw determines the change in the wheel encoder value when it overflows
 #define OVERFLOW_AMOUNT 0x100000000LL
 
+// TODO: Delete this
 //void printbytes(const char *msg, uint8_t *bytes, int numbytes)
 //{
 //	if (numbytes < 0) {
@@ -86,19 +91,13 @@ RoboClaw::RoboClaw(const char *deviceName, uint16_t address, uint16_t pulsesPerR
 	_address(address),
 	_pulsesPerRev(pulsesPerRev),
 	_uart(0),
+	_uart_timeout{.tv_sec = 0, .tv_usec = TIMEOUT_US},
+	_uart_mutex(PTHREAD_MUTEX_INITIALIZER),
 	_controlPoll(),
 	_actuators(ORB_ID(actuator_controls_0), 20),
-	_motor1EncoderCounts(0),
-	_motor1Revolutions(0),
-	_motor1Overflow(0),
-	_motor1Speed(0),
-	_motor2EncoderCounts(0),
-	_motor2Revolutions(0),
-	_motor2Overflow(0),
-	_motor2Speed(0),
 	_lastEncoderCount{0, 0},
-	_localPosition{0, 0},
-	_revolutions{0, 0}
+	_encoderCounts{0, 0},
+	_motorSpeeds{0, 0}
 
 {
 	// setup control polling
@@ -131,12 +130,9 @@ RoboClaw::RoboClaw(const char *deviceName, uint16_t address, uint16_t pulsesPerR
 
 	FD_ZERO(&_uart_set);
 
-	_uart_timeout.tv_sec = 0;
-	_uart_timeout.tv_usec = TIMEOUT_US;
+	pthread_mutex_init(&_uart_mutex, nullptr);
 
-	pthread_mutex_init(&_uart_mutex, NULL);
-
-// setup default settings, reset encoders
+	// setup default settings, reset encoders
 	resetEncoders();
 }
 
@@ -154,22 +150,26 @@ void RoboClaw::Run()
 	readEncoder();
 	//readEncoder(MOTOR_2);
 
-	PX4_INFO("Motor1: (%d, %d), Motor2: (%d, %d)", _motor1EncoderCounts, _motor1Revolutions, _motor2EncoderCounts,
-		 _motor2Revolutions);
+	//PX4_INFO("Motor1: (%d, %d), Motor2: (%d, %d)", _motor1EncoderCounts, _motor1Revolutions, _motor2EncoderCounts,
+	//	 _motor2Revolutions);
 }
 
 int RoboClaw::readEncoder()
 {
 
 	uint8_t rbuff[10];
-	int nread = _transaction(CMD_READ_BOTH_ENCODERS, nullptr, 0, &rbuff[0], 10, false, true);
+	int nread = 0;
+
+	for (int retry = 0; retry < FAILED_TRANSACTION_RETRIES && nread == 0; retry++) {
+		nread =  _transaction(CMD_READ_BOTH_ENCODERS, nullptr, 0, &rbuff[0], 10, false, true);
+	}
 
 	if (nread < 10) {
 		PX4_ERR("Error reading encoders: %d", nread);
 		return -1;
 	}
 
-	int32_t count;
+	uint32_t count;
 	uint8_t *count_bytes;
 
 	for (int motor = 0; motor <= 1; motor++) {
@@ -182,82 +182,27 @@ int RoboClaw::readEncoder()
 			count = (count << 8) + count_bytes[byte];
 		}
 
-		int overflow = 0;
-
-		if (count - _lastEncoderCount[motor] > OVERFLOW_AMOUNT / 2) {
-			overflow = -1;
-
-		} else if (_lastEncoderCount[motor] - count > OVERFLOW_AMOUNT / 2) {
-			overflow = +1;
-		}
-
-		int64_t adjusted_count = int64_t(count) + (overflow * int64_t(OVERFLOW_AMOUNT));
-		int32_t diff = int32_t(adjusted_count - int64_t(_lastEncoderCount[motor]));
-		_localPosition[motor] += diff;
-		_revolutions[motor] += _localPosition[motor] / _pulsesPerRev;
-		_localPosition[motor] %= _pulsesPerRev;
-		PX4_INFO("Motor %d - LastCount: %7d, Count: %7d, Overflow: %+1d, adjusted count: %+8lld, local: %4d, revs: %2lld",
-			 motor, _lastEncoderCount[motor], count, overflow, adjusted_count, _localPosition[motor], _revolutions[motor]);
+		// The Roboclaw stores encoder counts as unsigned 32-bit ints. This can overflow, especially when starting
+		// at 0 and moving backward. The Roboclaw has overflow flags for this, but in my testing, they don't seem
+		// to work. This code detects overflow manually.
+		// These diffs are the difference between the count I just read from the Roboclaw and the last
+		// count that was read from the roboclaw for this motor. fwd_diff assumes that the wheel moved forward,
+		// and rev_diff assumes it moved backward. If the motor actually moved forward, then rev_diff will be close
+		// to 2^32 (UINT32_MAX). If the motor actually moved backward, then fwd_diff will be close to 2^32.
+		// To detect and account for overflow, I just assume that the smaller diff is correct.
+		// Strictly speaking, if the wheel rotated more than 2^31 encoder counts since the last time I checked, this
+		// will be wrong. But that's 1.7 million revolutions, so it probably won't come up.
+		uint32_t fwd_diff = count - _lastEncoderCount[motor];
+		uint32_t rev_diff = _lastEncoderCount[motor] - count;
+		// At this point, abs(diff) is always <= 2^31, so this cast from unsigned to signed is safe.
+		int32_t diff = fwd_diff <= rev_diff ? fwd_diff : -int32_t(rev_diff);
+		_encoderCounts[motor] += diff;
+//		PX4_INFO("Motor %d - LastCount: %7u, Count: %7u, Diff1: %8u, Diff2: %8u, diff: %4d, End counts: %4lld",
+//			 motor, _lastEncoderCount[motor], count, fwd_diff, rev_diff, diff, _encoderCounts[motor]);
 		_lastEncoderCount[motor] = count;
-
-
 	}
 
 	return 1;
-
-//	e_command cmd = motor == MOTOR_1 ? CMD_READ_ENCODER_1 : CMD_READ_ENCODER_2;
-//	uint8_t rbuf[7];
-//
-//	int nread = _transaction(cmd, nullptr, 0, rbuf, 7, false, true);
-//
-//	if (nread < 7) {
-//		PX4_ERR("Error reading RoboClaw encoders: %d", nread);
-//		return -1;
-//	}
-//
-//	uint32_t count = 0;
-//	auto countBytes = (uint8_t *)(&count);
-//	countBytes[3] = rbuf[0];
-//	countBytes[2] = rbuf[1];
-//	countBytes[1] = rbuf[2];
-//	countBytes[0] = rbuf[3];
-//	uint8_t status = rbuf[4];
-//
-//	int overflowFlag = 0;
-//
-//	if (status & STATUS_UNDERFLOW) {
-//		overflowFlag = -1;
-//		PX4_INFO("=====UNDERFLOW=====");
-//
-//	} else if (status & STATUS_OVERFLOW) {
-//		PX4_INFO("=====OVERFLOW=====");
-//		overflowFlag = +1;
-//	}
-//
-//	int32_t *encoderCount;
-//	int32_t *revolutions;
-//	int32_t *overflow;
-//
-//	if (motor == MOTOR_1) {
-//		encoderCount = &_motor1EncoderCounts;
-//		revolutions = &_motor1Revolutions;
-//		overflow = &_motor1Overflow;
-//
-//	} else {
-//		encoderCount = &_motor2EncoderCounts;
-//		revolutions = &_motor2Revolutions;
-//		overflow = &_motor2Overflow;
-//	}
-//
-//	PX4_INFO("COUNT: %08X STATUS: %02X", count, status);
-//
-//	*overflow += overflowFlag;
-//	int64_t totalCounts = int64_t(count) + (int64_t(*overflow) * OVERFLOW_AMOUNT);
-//	PX4_INFO("Total counts: %lld", totalCounts);
-//	*encoderCount = int32_t(totalCounts % _pulsesPerRev);
-//	*revolutions = int32_t(totalCounts / _pulsesPerRev);
-//
-//	return 0;
 }
 
 void RoboClaw::printStatus(char *string, size_t n)
@@ -272,10 +217,10 @@ void RoboClaw::printStatus(char *string, size_t n)
 float RoboClaw::getMotorPosition(e_motor motor)
 {
 	if (motor == MOTOR_1) {
-		return _motor1EncoderCounts;
+		return _encoderCounts[0];
 
 	} else if (motor == MOTOR_2) {
-		return _motor2EncoderCounts;
+		return _encoderCounts[1];
 
 	} else {
 		warnx("Unknown motor value passed to RoboClaw::getMotorPosition");
@@ -286,10 +231,10 @@ float RoboClaw::getMotorPosition(e_motor motor)
 float RoboClaw::getMotorSpeed(e_motor motor)
 {
 	if (motor == MOTOR_1) {
-		return _motor1Speed;
+		return _motorSpeeds[0];
 
 	} else if (motor == MOTOR_2) {
-		return _motor2Speed;
+		return _motorSpeeds[1];
 
 	} else {
 		warnx("Unknown motor value passed to RoboClaw::getMotorPosition");
@@ -397,7 +342,7 @@ int RoboClaw::_sendUnsigned7Bit(e_command command, float data)
 		data = 1.0f;
 	}
 
-	uint8_t byte = (uint8_t)(data * 127);
+	auto byte = (uint8_t)(data * 127);
 	uint8_t recv_byte;
 	return _transaction(command, &byte, 1, &recv_byte, 1);
 }
@@ -411,7 +356,7 @@ int RoboClaw::_sendSigned16Bit(e_command command, float data)
 		data = -1.0f;
 	}
 
-	uint16_t buff = (uint16_t)(data * 32767);
+	auto buff = (uint16_t)(data * 32767);
 	uint8_t recv_buff;
 	return _transaction(command, (uint8_t *) &buff, 2, &recv_buff, 1);
 }
@@ -422,7 +367,7 @@ int RoboClaw::_sendNothing(e_command command)
 	return _transaction(command, nullptr, 0, &recv_buff, 1);
 }
 
-uint16_t RoboClaw::_sumBytes(uint8_t *buf, size_t n, uint16_t init)
+uint16_t RoboClaw::_calcCRC(const uint8_t *buf, size_t n, uint16_t init)
 {
 	uint16_t crc = init;
 
@@ -461,7 +406,7 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 	wbytes = wbytes + (send_checksum ? 4 : 2);
 
 	if (send_checksum) {
-		uint16_t sum = _sumBytes(buf, wbytes - 2);
+		uint16_t sum = _calcCRC(buf, wbytes - 2);
 		buf[wbytes - 2] = (sum >> 8) & 0xFF;
 		buf[wbytes - 1] = sum & 0xFFu;
 	}
@@ -479,7 +424,7 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 	FD_ZERO(&_uart_set);
 	FD_SET(_uart, &_uart_set);
 
-	int rv = select(_uart + 1, &_uart_set, NULL, NULL, &_uart_timeout);
+	int rv = select(_uart + 1, &_uart_set, nullptr, nullptr, &_uart_timeout);
 
 	//TODO: Clean up this mess of IFs and returns
 
@@ -497,8 +442,8 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 
 			// The checksum sent back by the roboclaw is calculated based on the address and command bytes as well
 			// as the data returned.
-			uint16_t checksum_calc = _sumBytes(buf, 2);
-			checksum_calc = _sumBytes(rbuff, bytes_read - 2, checksum_calc);
+			uint16_t checksum_calc = _calcCRC(buf, 2);
+			checksum_calc = _calcCRC(rbuff, bytes_read - 2, checksum_calc);
 			uint16_t checksum_recv = (rbuff[bytes_read - 2] << 8) + rbuff[bytes_read - 1];
 
 			if (checksum_calc == checksum_recv) {
@@ -506,7 +451,7 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 				return bytes_read;
 
 			} else {
-				PX4_ERR("Invalid checksum. Expected 0x%04X, got 0x%04X", checksum_calc, checksum_recv);
+				//PX4_ERR("Invalid checksum. Expected 0x%04X, got 0x%04X", checksum_calc, checksum_recv);
 				pthread_mutex_unlock(&_uart_mutex);
 				return -10;
 			}
