@@ -265,9 +265,14 @@ void CollisionPrevention::calculateConstrainedSetpoint(Vector2f &setpoint,
 			}
 		}
 
-	} else if (_last_message + MESSAGE_THROTTLE_US < hrt_absolute_time()) {
-		mavlink_log_critical(&_mavlink_log_pub, "No range data received");
-		_last_message = hrt_absolute_time();
+	} else {
+		// if distance data are stale, switch to Loiter and disable Collision Prevention
+		// such that it is still possible to fly in Position Control Mode
+		_publishVehicleCmdDoLoiter();
+		mavlink_log_critical(&_mavlink_log_pub, "No range data received, loitering.");
+		float col_prev_d = -1.f;
+		param_set(param_find("MPC_COL_PREV_D"), &col_prev_d);
+		mavlink_log_critical(&_mavlink_log_pub, "Collision Prevention disabled.");
 	}
 }
 
@@ -291,4 +296,29 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 	_interfering = currently_interfering;
 	publishConstrainedSetpoint(original_setpoint, new_setpoint);
 	original_setpoint = new_setpoint;
+}
+
+void CollisionPrevention::_publishVehicleCmdDoLoiter()
+{
+	vehicle_command_s command{};
+	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
+	command.param1 = (float)1; // base mode
+	command.param3 = (float)0; // sub mode
+	command.target_system = 1;
+	command.target_component = 1;
+	command.source_system = 1;
+	command.source_component = 1;
+	command.confirmation = false;
+	command.from_external = false;
+	command.param2 = (float)PX4_CUSTOM_MAIN_MODE_AUTO;
+	command.param3 = (float)PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
+
+	// publish the vehicle command
+	if (_pub_vehicle_command == nullptr) {
+		_pub_vehicle_command = orb_advertise_queue(ORB_ID(vehicle_command), &command,
+				       vehicle_command_s::ORB_QUEUE_LENGTH);
+
+	} else {
+		orb_publish(ORB_ID(vehicle_command), _pub_vehicle_command, &command);
+	}
 }
