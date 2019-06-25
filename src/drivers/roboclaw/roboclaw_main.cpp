@@ -56,7 +56,6 @@
 #include <arch/board/board.h>
 #include "RoboClaw.hpp"
 
-static bool thread_should_exit = false;     /**< Deamon exit flag */
 static bool thread_running = false;     /**< Deamon status flag */
 static int deamon_task;             /**< Handle of deamon task / thread */
 
@@ -100,17 +99,17 @@ int roboclaw_main(int argc, char *argv[])
 		if (thread_running) {
 			printf("roboclaw already running\n");
 			/* this is not an error */
-			exit(0);
+			return 0;
 		}
 
-		thread_should_exit = false;
+		RoboClaw::taskShouldExit = false;
 		deamon_task = px4_task_spawn_cmd("roboclaw",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_MAX - 10,
 						 2500,
 						 roboclaw_thread_main,
 						 (char *const *)argv);
-		exit(0);
+		return 0;
 
 	} else if (!strcmp(argv[1], "test")) {
 
@@ -123,7 +122,7 @@ int roboclaw_main(int argc, char *argv[])
 
 		} else if (argc != 4) {
 			printf("usage: roboclaw test device address pulses_per_rev\n");
-			exit(-1);
+			return -1;
 
 		} else {
 			deviceName = argv[2];
@@ -137,13 +136,13 @@ int roboclaw_main(int argc, char *argv[])
 		//RoboClaw::roboclawTest(deviceName, address, pulsesPerRev);
 		px4_task_spawn_cmd("robclwtst", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 10, 2500, RoboClaw::roboclawTest,
 				   (char *const *)argv);
-		thread_should_exit = true;
-		exit(0);
+		RoboClaw::taskShouldExit = true;
+		return 0;
 
 	} else if (!strcmp(argv[1], "stop")) {
 
-		thread_should_exit = true;
-		exit(0);
+		RoboClaw::taskShouldExit = true;
+		return 0;
 
 	} else if (!strcmp(argv[1], "status")) {
 
@@ -154,11 +153,11 @@ int roboclaw_main(int argc, char *argv[])
 			printf("\troboclaw app not started\n");
 		}
 
-		exit(0);
+		return 0;
 	}
 
 	usage();
-	exit(1);
+	return 1;
 }
 
 int roboclaw_thread_main(int argc, char *argv[])
@@ -186,21 +185,10 @@ int roboclaw_thread_main(int argc, char *argv[])
 
 	thread_running = true;
 
-	//TODO: Make constants
-	//roboclaw.ScheduleOnInterval(1000000, 1000000);
-
-	// TODO: Move the main loop into the class
-	// loop
-	while (!thread_should_exit) {
-		roboclaw.update();
-	}
-
-	//roboclaw.ScheduleClear();
+	roboclaw.taskMain();
 
 	// exit
 	printf("[roboclaw] exiting.\n");
 	thread_running = false;
 	return 0;
 }
-
-// vi:noet:smarttab:autoindent:ts=4:sw=4:tw=78

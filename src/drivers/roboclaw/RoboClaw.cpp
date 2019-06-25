@@ -61,11 +61,10 @@
 // The RoboClaw has a serial communication timeout of 10ms.
 #define TIMEOUT_US 10000
 
-// TODO: Make this a parameter
+// TODO: Make these all parameters
 #define FAILED_TRANSACTION_RETRIES 1
-
-// The RoboClaw determines the change in the wheel encoder value when it overflows
-#define OVERFLOW_AMOUNT 0x100000000LL
+#define ENCODER_READ_PERIOD_MS 10
+#define ACTUATOR_WRITE_PERIOD_MS 10
 
 // TODO: Delete this
 //void printbytes(const char *msg, uint8_t *bytes, int numbytes)
@@ -86,24 +85,21 @@
 //	PX4_INFO("%s", buff);
 //}
 
+bool RoboClaw::taskShouldExit = false;
+
 RoboClaw::RoboClaw(const char *deviceName, uint16_t address, uint16_t pulsesPerRev):
-	ScheduledWorkItem(px4::wq_configurations::hp_default),
 	_address(address),
 	_pulsesPerRev(pulsesPerRev),
 	_uart(0),
+	_uart_set(),
 	_uart_timeout{.tv_sec = 0, .tv_usec = TIMEOUT_US},
-	_uart_mutex(PTHREAD_MUTEX_INITIALIZER),
-	_controlPoll(),
-	_actuators(ORB_ID(actuator_controls_0), 20),
+	_actuatorsOrbID(ORB_ID(actuator_controls_0)),
+	_wheelEncodersOrbID(ORB_ID(wheel_encoders)),
 	_lastEncoderCount{0, 0},
 	_encoderCounts{0, 0},
 	_motorSpeeds{0, 0}
 
 {
-	// setup control polling
-	_controlPoll.fd = _actuators.getHandle();
-	_controlPoll.events = POLLIN;
-
 	// start serial port
 	_uart = open(deviceName, O_RDWR | O_NOCTTY);
 
@@ -130,8 +126,6 @@ RoboClaw::RoboClaw(const char *deviceName, uint16_t address, uint16_t pulsesPerR
 
 	FD_ZERO(&_uart_set);
 
-	pthread_mutex_init(&_uart_mutex, nullptr);
-
 	// setup default settings, reset encoders
 	resetEncoders();
 }
@@ -141,17 +135,62 @@ RoboClaw::~RoboClaw()
 	setMotorDutyCycle(MOTOR_1, 0.0);
 	setMotorDutyCycle(MOTOR_2, 0.0);
 	close(_uart);
-
-	pthread_mutex_destroy(&_uart_mutex);
 }
 
-void RoboClaw::Run()
+void RoboClaw::taskMain()
 {
-	readEncoder();
-	//readEncoder(MOTOR_2);
+	uint64_t encoderTaskLastRun = 0;
+	int waitTime = 0;
 
-	//PX4_INFO("Motor1: (%d, %d), Motor2: (%d, %d)", _motor1EncoderCounts, _motor1Revolutions, _motor2EncoderCounts,
-	//	 _motor2Revolutions);
+	_actuatorsSub = orb_subscribe(_actuatorsOrbID);
+	orb_set_interval(_actuatorsSub, ACTUATOR_WRITE_PERIOD_MS);
+	_actuatorsPoll.fd = _actuatorsSub;
+	_actuatorsPoll.events = POLLIN;
+
+	memset((void *) &_wheelEncoderMsg, 0, sizeof(wheel_encoders_s));
+	_wheelEncoderMsg.timestamp = hrt_absolute_time();
+	_wheelEncodersAdv = orb_advertise(_wheelEncodersOrbID, &_wheelEncoderMsg);
+
+	while (!taskShouldExit) {
+
+		int pret = poll(&_actuatorsPoll, 1, waitTime / 1000);
+
+		if (pret > 0 && _actuatorsPoll.revents & POLLIN) {
+			orb_copy(_actuatorsOrbID, _actuatorsSub, &_actuatorControls);
+			int drive_ret = drive(_actuatorControls.control[actuator_controls_s::INDEX_THROTTLE]);
+			int turn_ret = turn(_actuatorControls.control[actuator_controls_s::INDEX_YAW]);
+
+			if (drive_ret <= 0 || turn_ret <= 0) {
+				PX4_ERR("Error controlling RoboClaw. Drive err: %d. Turn err: %d", drive_ret, turn_ret);
+			}
+
+			//PX4_INFO("[%llu] Writing actuators", hrt_absolute_time());
+
+		} else {
+			encoderTaskLastRun = hrt_absolute_time();
+
+			if (readEncoder() > 0) {
+				_wheelEncoderMsg.timestamp = encoderTaskLastRun;
+				_wheelEncoderMsg.encoder_position[0] = _encoderCounts[0];
+				_wheelEncoderMsg.encoder_position[1] = _encoderCounts[1];
+
+				//PX4_INFO("[%llu] PUBLISHING", _wheelEncoderMsg.timestamp);
+				orb_publish(ORB_ID(wheel_encoders), _wheelEncodersAdv, &_wheelEncoderMsg);
+
+				//PX4_INFO("[%llu] Reading encoders", hrt_absolute_time());
+
+			} else {
+				PX4_ERR("Error reading encoders");
+			}
+		}
+
+		waitTime = ENCODER_READ_PERIOD_MS * 1000 - (hrt_absolute_time() - encoderTaskLastRun);
+		waitTime = waitTime < 0 ? 0 : waitTime;
+		//PX4_INFO("ROBOCLAW WAIT TIME: %d", waitTime);
+	}
+
+	orb_unsubscribe(_actuatorsSub);
+	orb_unadvertise(_wheelEncodersAdv);
 }
 
 int RoboClaw::readEncoder()
@@ -306,33 +345,31 @@ int RoboClaw::resetEncoders()
 	return _sendNothing(CMD_RESET_ENCODERS);
 }
 
-int RoboClaw::update()
-{
-	//TODO: Also update motor locations and speeds here
-
-	// wait for an actuator publication,
-	// check for exit condition every second
-	// note "::poll" is required to distinguish global
-	// poll from member function for driver
-	if (::poll(&_controlPoll, 1, 1000) < 0) { return -1; } // poll error
-
-	// if new data, send to motors
-	if (_actuators.updated()) {
-		_actuators.update();
-		// setMotorDutyCycle(MOTOR_1, _actuators.get().control[actuator_controls_s::INDEX_]);
-		// setMotorDutyCycle(MOTOR_2, _actuators.get().control[CH_VOLTAGE_RIGHT]);
-		int drive_ret = drive(_actuators.get().control[actuator_controls_s::INDEX_THROTTLE]);
-		int turn_ret = turn(_actuators.get().control[actuator_controls_s::INDEX_YAW]);
-
-		if (drive_ret <= 0 || turn_ret <= 0) {
-			PX4_ERR("Error controlling RoboClaw. Drive err: %d. Turn err: %d", drive_ret, turn_ret);
-		}
-	}
-
-	Run();
-
-	return 0;
-}
+//int RoboClaw::update()
+//{
+//	//TODO: Also update motor locations and speeds here
+//
+//	// wait for an actuator publication,
+//	// check for exit condition every second
+//	// note "::poll" is required to distinguish global
+//	// poll from member function for driver
+//	if (::poll(&_controlPoll, 1, 1000) < 0) { return -1; } // poll error
+//
+//	// if new data, send to motors
+//	if (_actuators.updated()) {
+//		_actuators.update();
+//		int drive_ret = drive(_actuators.get().control[actuator_controls_s::INDEX_THROTTLE]);
+//		int turn_ret = turn(_actuators.get().control[actuator_controls_s::INDEX_YAW]);
+//
+//		if (drive_ret <= 0 || turn_ret <= 0) {
+//			PX4_ERR("Error controlling RoboClaw. Drive err: %d. Turn err: %d", drive_ret, turn_ret);
+//		}
+//	}
+//
+//	Run();
+//
+//	return 0;
+//}
 
 int RoboClaw::_sendUnsigned7Bit(e_command command, float data)
 {
@@ -390,9 +427,9 @@ uint16_t RoboClaw::_calcCRC(const uint8_t *buf, size_t n, uint16_t init)
 int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 			   uint8_t *rbuff, size_t rbytes, bool send_checksum, bool recv_checksum)
 {
-	// WRITE
+	int err_code = 0;
 
-	pthread_mutex_lock(&_uart_mutex);
+	// WRITE
 
 	tcflush(_uart, TCIOFLUSH); // flush  buffers
 	uint8_t buf[wbytes + 4];
@@ -415,7 +452,6 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 
 	if (count < (int) wbytes) { // Did not successfully send all bytes.
 		PX4_ERR("Only wrote %d out of %d bytes", count, (int) wbytes);
-		pthread_mutex_unlock(&_uart_mutex);
 		return -1;
 	}
 
@@ -424,52 +460,57 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 	FD_ZERO(&_uart_set);
 	FD_SET(_uart, &_uart_set);
 
-	int rv = select(_uart + 1, &_uart_set, nullptr, nullptr, &_uart_timeout);
+	uint8_t *rbuff_curr = rbuff;
+	size_t bytes_read = 0;
+
+	// select(...) returns as soon as even 1 byte is available. read(...) returns immediately, no matter how many
+	// bytes are available. I need to keep reading until I get the number of bytes I expect.
+	while (bytes_read < rbytes) {
+		err_code = select(_uart + 1, &_uart_set, nullptr, nullptr, &_uart_timeout);
+
+		if (err_code < 0) {
+			return err_code;
+		}
+
+		err_code = read(_uart, rbuff_curr, rbytes - bytes_read);
+
+		if (err_code < 0) {
+			return err_code;
+
+		} else {
+			bytes_read += err_code;
+			rbuff_curr += err_code;
+		}
+	}
 
 	//TODO: Clean up this mess of IFs and returns
 
-	if (rv > 0) {
-		// select() returns as soon as ANY bytes are available. I need to wait until ALL of the bytes are available.
-		// TODO: Make sure this is not a busy wait.
-		usleep(2000);
-		int bytes_read = read(_uart, rbuff, rbytes);
+	if (recv_checksum) {
+		if (bytes_read < 2) {
+			return -1;
+		}
 
-		if (recv_checksum) {
-			if (bytes_read < 2) {
-				pthread_mutex_unlock(&_uart_mutex);
-				return -1;
-			}
+		// The checksum sent back by the roboclaw is calculated based on the address and command bytes as well
+		// as the data returned.
+		uint16_t checksum_calc = _calcCRC(buf, 2);
+		checksum_calc = _calcCRC(rbuff, bytes_read - 2, checksum_calc);
+		uint16_t checksum_recv = (rbuff[bytes_read - 2] << 8) + rbuff[bytes_read - 1];
 
-			// The checksum sent back by the roboclaw is calculated based on the address and command bytes as well
-			// as the data returned.
-			uint16_t checksum_calc = _calcCRC(buf, 2);
-			checksum_calc = _calcCRC(rbuff, bytes_read - 2, checksum_calc);
-			uint16_t checksum_recv = (rbuff[bytes_read - 2] << 8) + rbuff[bytes_read - 1];
-
-			if (checksum_calc == checksum_recv) {
-				pthread_mutex_unlock(&_uart_mutex);
-				return bytes_read;
-
-			} else {
-				//PX4_ERR("Invalid checksum. Expected 0x%04X, got 0x%04X", checksum_calc, checksum_recv);
-				pthread_mutex_unlock(&_uart_mutex);
-				return -10;
-			}
+		if (checksum_calc == checksum_recv) {
+			return bytes_read;
 
 		} else {
-			if (bytes_read == 1 && rbuff[0] == 0xFF) {
-				pthread_mutex_unlock(&_uart_mutex);
-				return 1;
-
-			} else {
-				pthread_mutex_unlock(&_uart_mutex);
-				return -11;
-			}
+			//PX4_ERR("Invalid checksum. Expected 0x%04X, got 0x%04X", checksum_calc, checksum_recv);
+			return -10;
 		}
 
 	} else {
-		pthread_mutex_unlock(&_uart_mutex);
-		return rv;
+		if (bytes_read == 1 && rbuff[0] == 0xFF) {
+			return 1;
+
+		} else {
+			return -11;
+		}
 	}
 }
 
