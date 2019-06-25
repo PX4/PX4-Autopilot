@@ -24,4 +24,12 @@ then
 	set LOGGER_ARGS "-f"
 fi
 
-logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
+if param compare SDLOG_MODE 3
+then
+	set LOGGER_ARGS "-x"
+fi
+
+if ! param compare SDLOG_MODE -1
+then
+	logger start -b ${LOGGER_BUF} -t ${LOGGER_ARGS}
+fi

@@ -168,7 +168,7 @@ SDP3X::collect()
 }
 
 void
-SDP3X::cycle()
+SDP3X::Run()
 {
 	int ret = PX4_ERROR;
 
@@ -181,7 +181,7 @@ SDP3X::cycle()
 	}
 
 	// schedule a fresh cycle call when the measurement is done
-	work_queue(HPWORK, &_work, (worker_t)&Airspeed::cycle_trampoline, this, USEC2TICK(CONVERSION_INTERVAL));
+	ScheduleDelayed(CONVERSION_INTERVAL);
 }
 
 bool SDP3X::crc(const uint8_t data[], unsigned size, uint8_t checksum)

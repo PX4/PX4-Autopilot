@@ -42,6 +42,9 @@ then
 	param set VT_TYPE 1
 
 	param set WEST_EN 1
+
+	# Indicate that FW roll direction was fixed in mixer, to be removed in v1.10
+	param set V19_VT_ROLLDIR 0
 fi
 
 set MAV_TYPE 21

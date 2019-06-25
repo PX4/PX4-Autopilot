@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4fmu_init.c
+ * @file init.c
  *
  * PX4FMU-specific early startup code.  This file implements the
  * nsh_archinitialize() function that is called early by nsh during startup.
@@ -70,6 +70,7 @@
 #include <drivers/drv_board_led.h>
 #include <systemlib/px4_macros.h>
 #include <px4_init.h>
+#include <drivers/boards/common/board_dma_alloc.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -210,6 +211,7 @@ __EXPORT void board_on_reset(int status)
 #ifdef CONFIG_BOARDCTL_FINALINIT
 int board_app_finalinitialize(uintptr_t arg)
 {
+	board_configure_dcache(1);
 	return 0;
 }
 #endif
@@ -277,6 +279,8 @@ stm32_boardinitialize(void)
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	/* Power on Interfaces */
+
+	board_configure_dcache(0);
 
 	VDD_3V3_SD_CARD_EN(true);
 	VDD_5V_PERIPH_EN(true);

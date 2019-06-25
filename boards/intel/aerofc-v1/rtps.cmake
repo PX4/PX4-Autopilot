@@ -24,9 +24,10 @@ px4_add_board(
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		magnetometer/ist8310
+		#optical_flow # all available optical flow drivers
+		#optical_flow/px4flow
 		protocol_splitter
 		pwm_out_sim
-		#px4flow
 		px4fmu
 		rc_input
 		stm32
@@ -56,6 +57,7 @@ px4_add_board(
 		micrortps_bridge
 		navigator
 		sensors
+		sih
 		vmount
 		#vtol_att_control
 		#wind_estimator
@@ -90,8 +92,8 @@ px4_add_board(
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		#hwtest # Hardware test
 		#matlab_csv_serial
-		#px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
-		#px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app
+		#px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
+		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		#rover_steering_control # Rover example app
 		#segway
 		#uuv_example_app

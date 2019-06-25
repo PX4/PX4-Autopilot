@@ -68,9 +68,13 @@ private:
 	/** Publish tune control to sound alarm */
 	void play_tune();
 
+	/** Publish tune control to interrupt any sound */
+	void stop_tune();
+
 	struct vehicle_status_s	_vehicle_status = {};
 	bool 		_was_armed = false;
 	bool 		_had_rc = false;  // Don't trigger alarm for systems without RC
+	bool		_alarm_playing = false;
 	orb_advert_t 	_tune_control_pub = nullptr;
 	const events::SubscriberHandler &_subscriber_handler;
 };

@@ -49,6 +49,7 @@
 #include <lib/conversion/rotation.h>
 #include <perf/perf_counter.h>
 #include <ecl/geo/geo.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 #define ADIS16497_GYRO_DEFAULT_RATE			1000
 #define ADIS16497_GYRO_DEFAULT_DRIVER_FILTER_FREQ	80
@@ -94,7 +95,7 @@ static const uint32_t crc32_tab[] = {
 
 class ADIS16497_gyro;
 
-class ADIS16497 : public device::SPI
+class ADIS16497 : public device::SPI, public px4::ScheduledWorkItem
 {
 public:
 	ADIS16497(int bus, const char *path_accel, const char *path_gyro, uint32_t device, enum Rotation rotation);
@@ -116,7 +117,6 @@ protected:
 private:
 	ADIS16497_gyro		*_gyro{nullptr};
 
-	struct hrt_call		_call {};
 	unsigned		_call_interval{1000};
 
 	struct gyro_calibration_s	_gyro_scale {};
@@ -197,15 +197,10 @@ private:
 	int			reset();
 
 	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
+	 * Called by the ScheduledWorkItem at the specified rate if
 	 * automatic polling is enabled.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
 	 */
-	static void		measure_trampoline(void *arg);
+	void			Run() override;
 
 	static int		data_ready_interrupt(int irq, void *context, void *arg);
 

@@ -88,7 +88,6 @@ then
 	param set MC_YAWRATE_D 0
 	param set MC_YAWRATE_FF 0
 	param set MC_YAWRATE_MAX 20
-	param set MC_YAWRAUTO_MAX 20
 	param set MC_AIRMODE 1
 
 	param set MIS_DIST_1WP 100
@@ -111,6 +110,7 @@ then
 	param set MPC_XY_CRUISE 5
 	param set MPC_TILTMAX_AIR 25
 	param set MPC_TILTMAX_LND 25
+	param set MPC_YAWRAUTO_MAX 20
 
 	param set NAV_DLL_ACT 0
 	param set NAV_LOITER_RAD 100
@@ -151,6 +151,8 @@ then
 	param set VT_TRANS_TIMEOUT 22
 	param set VT_F_TRANS_RAMP 4
 
+	# Indicate that FW roll direction was fixed in mixer, to be removed in v1.10
+	param set V19_VT_ROLLDIR 0
 fi
 
 set MAV_TYPE 22

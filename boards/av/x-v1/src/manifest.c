@@ -46,10 +46,11 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_config.h>
+#include <nuttx/config.h>
+#include <board_config.h>
+
 #include <stdbool.h>
 #include "systemlib/px4_macros.h"
-#include "px4_log.h"
 
 /************************************************************************************
  * Name: board_rc_input

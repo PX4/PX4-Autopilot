@@ -149,7 +149,11 @@ if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 
 	target_link_libraries(parameters PRIVATE perf tinybson)
 	target_compile_definitions(parameters PRIVATE -DMODULE_NAME="parameters")
-	target_compile_options(parameters PRIVATE -Wno-sign-compare) # TODO: fix this
+	target_compile_options(parameters
+		PRIVATE
+			-Wno-cast-align		# TODO: fix and enable
+			-Wno-sign-compare	# TODO: fix and enable
+	)
 else()
 	add_library(parameters ${PX4_SOURCE_DIR}/src/platforms/empty.c)
 endif()

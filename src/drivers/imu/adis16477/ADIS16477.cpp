@@ -79,6 +79,7 @@ using namespace time_literals;
 
 ADIS16477::ADIS16477(int bus, const char *path_accel, const char *path_gyro, uint32_t device, enum Rotation rotation) :
 	SPI("ADIS16477", path_accel, bus, device, SPIDEV_MODE3, 1000000),
+	ScheduledWorkItem(px4::device_bus_to_wq(this->get_device_id())),
 	_gyro(new ADIS16477_gyro(this, path_gyro)),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adis16477_read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "adis16477_bad_transfers")),
@@ -358,16 +359,16 @@ ADIS16477::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_call_interval == 0);
 
 					/* convert hz to hrt interval via microseconds */
-					unsigned ticks = 1000000 / arg;
+					unsigned interval = 1000000 / arg;
 
 					/* check against maximum sane rate */
-					if (ticks < 1000) {
+					if (interval < 1000) {
 						return -EINVAL;
 					}
 
 					// adjust filters
 					float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
-					float sample_rate = 1.0e6f / ticks;
+					float sample_rate = 1.0e6f / interval;
 					_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
 					_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
@@ -379,7 +380,7 @@ ADIS16477::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
-					_call.period = _call_interval = ticks;
+					_call_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -478,22 +479,20 @@ ADIS16477::start()
 	_call_interval = last_call_interval;
 
 	/* start polling at the specified rate */
-	hrt_call_every(&_call, 1000, _call_interval, (hrt_callout)&ADIS16477::measure_trampoline, this);
+	ScheduleOnInterval(_call_interval, 10000);
 }
 
 void
 ADIS16477::stop()
 {
-	hrt_cancel(&_call);
+	ScheduleClear();
 }
 
 void
-ADIS16477::measure_trampoline(void *arg)
+ADIS16477::Run()
 {
-	ADIS16477 *dev = reinterpret_cast<ADIS16477 *>(arg);
-
 	/* make another measurement */
-	dev->measure();
+	measure();
 }
 
 int

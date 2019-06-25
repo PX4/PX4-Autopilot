@@ -46,11 +46,12 @@ px4_add_board(
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		#mkblctrl
+		#optical_flow # all available optical flow drivers
+		optical_flow/px4flow
 		#pca9685
 		#protocol_splitter
 		#pwm_input
-		#pwm_out_sim
-		px4flow
+		pwm_out_sim
 		px4fmu
 		px4io
 		#roboclaw
@@ -119,8 +120,8 @@ px4_add_board(
 		#hwtest # Hardware test
 		#matlab_csv_serial
 		#position_estimator_inav
-		#px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
-		#px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app
+		#px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
+		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		#rover_steering_control # Rover example app
 		#segway
 		#uuv_example_app

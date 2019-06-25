@@ -51,10 +51,6 @@
 #include <stdio.h>
 #include <px4_getopt.h>
 
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
-
 #define LL40LS_DEVICE_PATH_PWM  "/dev/ll40ls_pwm"
 
 enum LL40LS_BUS {

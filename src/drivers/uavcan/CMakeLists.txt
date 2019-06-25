@@ -45,6 +45,10 @@ if(CONFIG_ARCH_CHIP)
 	endif()
 endif()
 
+if(NOT DEFINED UAVCAN_PLATFORM)
+	message(FATAL_ERROR "UAVCAN_PLATFORM not set")
+endif()
+
 if(NOT config_uavcan_num_ifaces)
 	message(FATAL_ERROR "config_uavcan_num_ifaces not set")
 endif()
@@ -63,6 +67,7 @@ add_definitions(
 		-DUAVCAN_PLATFORM=${UAVCAN_PLATFORM}
 		)
 
+add_compile_options(-Wno-cast-align) # TODO: fix and enable
 add_subdirectory(libuavcan EXCLUDE_FROM_ALL)
 add_dependencies(uavcan prebuild_targets)
 

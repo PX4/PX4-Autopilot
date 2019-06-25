@@ -146,16 +146,16 @@ __EXPORT const struct io_timers_t led_pwm_timers[MAX_LED_TIMERS] = {
 
 __EXPORT const struct timer_io_channels_t led_pwm_channels[MAX_TIMER_LED_CHANNELS] = {
 	{
-		.gpio_out = LED_TIM3_CH5OUT, // RGB_G
-		.gpio_in  = 0,
-		.timer_index = 0,
-		.timer_channel = 6,
-	},
-	{
 		.gpio_out = LED_TIM3_CH1OUT, // RGB_R
 		.gpio_in  = 0,
 		.timer_index = 0,
 		.timer_channel = 2,
+	},
+	{
+		.gpio_out = LED_TIM3_CH5OUT, // RGB_G
+		.gpio_in  = 0,
+		.timer_index = 0,
+		.timer_channel = 6,
 	},
 	{
 		.gpio_out = LED_TIM3_CH4OUT, // RGB_B

@@ -46,6 +46,7 @@
 #include <systemlib/mavlink_log.h>
 #include <drivers/drv_hrt.h>
 
+
 #include "state_machine_helper.h"
 #include "commander_helper.h"
 #include "PreflightCheck.h"
@@ -225,7 +226,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 	if (ret == TRANSITION_DENIED) {
 		/* print to MAVLink and console if we didn't provide any feedback yet */
 		if (!feedback_provided) {
-			mavlink_log_critical(mavlink_log_pub, "TRANSITION_DENIED: %s to %s",
+			mavlink_log_critical(mavlink_log_pub, "Transition denied: %s to %s",
 					     arming_state_names[status->arming_state], arming_state_names[new_arming_state]);
 		}
 	}
@@ -297,7 +298,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 	case commander_state_s::MAIN_STATE_ORBIT:
 
 		/* Follow and orbit only implemented for multicopter */
-		if (status.is_rotary_wing) {
+		if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 			ret = TRANSITION_CHANGED;
 		}
 
@@ -338,7 +339,7 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 		/* need local and global position, and precision land only implemented for multicopters */
 		if (status_flags.condition_local_position_valid
 		    && status_flags.condition_global_position_valid
-		    && status.is_rotary_wing) {
+		    && status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 
 			ret = TRANSITION_CHANGED;
 		}
@@ -468,7 +469,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 			} else if (is_armed
 				   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, !(posctl_nav_loss_act == 1),
-						   !status->is_rotary_wing)) {
+						   status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
 				// nothing to do - everything done in check_invalid_pos_nav_state
 
 			} else {
@@ -690,7 +691,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 
 				} else if (status_flags.condition_local_altitude_valid) {
-					if (status->is_rotary_wing) {
+					//TODO: Add case for rover
+					if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 						status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
 					} else {
@@ -729,7 +731,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
 				} else if (status_flags.condition_local_altitude_valid) {
-					if (status->is_rotary_wing) {
+					if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 						status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
 					} else {
@@ -746,7 +748,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
 
 				} else if (status_flags.condition_local_altitude_valid) {
-					if (status->is_rotary_wing) {
+					if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 						status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
 					} else {
@@ -787,7 +789,8 @@ bool check_invalid_pos_nav_state(vehicle_status_s *status, bool old_failsafe, or
 	if (fallback_required) {
 		if (use_rc) {
 			// fallback to a mode that gives the operator stick control
-			if (status->is_rotary_wing && status_flags.condition_local_position_valid) {
+			if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+			    && status_flags.condition_local_position_valid) {
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
 
 			} else if (status_flags.condition_local_altitude_valid) {
@@ -803,7 +806,7 @@ bool check_invalid_pos_nav_state(vehicle_status_s *status, bool old_failsafe, or
 				status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 
 			} else  if (status_flags.condition_local_altitude_valid) {
-				if (status->is_rotary_wing) {
+				if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
 
 				} else {
@@ -868,7 +871,7 @@ void set_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
 			return;
 
 		} else {
-			if (status->is_rotary_wing) {
+			if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 				if (status_flags.condition_local_position_valid) {
 					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
 					return;
@@ -915,10 +918,11 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 	bool reportFailures = true;
 	bool prearm_ok = true;
 
+
 	// USB not connected
 	if (!status_flags.circuit_breaker_engaged_usb_check && status_flags.usb_connected) {
 		if (reportFailures) {
-			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: Flying with USB is not safe");
+			mavlink_log_critical(mavlink_log_pub, "Arming denied! Flying with USB is not safe");
 		}
 
 		prearm_ok = false;
@@ -930,7 +934,7 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 		// Fail transition if power is not good
 		if (!status_flags.condition_power_input_valid) {
 			if (reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: Connect power module");
+				mavlink_log_critical(mavlink_log_pub, "Arming denied! Connect power module");
 			}
 
 			prearm_ok = false;
@@ -939,7 +943,7 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 		// main battery level
 		if (!status_flags.condition_battery_healthy) {
 			if (prearm_ok && reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: CHECK BATTERY");
+				mavlink_log_critical(mavlink_log_pub, "Arming denied! Check battery");
 			}
 
 			prearm_ok = false;
@@ -951,7 +955,7 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 
 		if (!status_flags.condition_auto_mission_available) {
 			if (prearm_ok && reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: valid mission required");
+				mavlink_log_critical(mavlink_log_pub, "Arming denied! No valid mission");
 			}
 
 			prearm_ok = false;
@@ -959,7 +963,7 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 
 		if (!status_flags.condition_global_position_valid) {
 			if (prearm_ok && reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: mission requires global position");
+				mavlink_log_critical(mavlink_log_pub, "Arming denied! Missions require a global position");
 			}
 
 			prearm_ok = false;
@@ -971,7 +975,7 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 
 		if (!status_flags.condition_global_position_valid) {
 			if (prearm_ok && reportFailures) {
-				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: global position required");
+				mavlink_log_critical(mavlink_log_pub, "Arming denied! Global position required");
 			}
 
 			prearm_ok = false;
@@ -982,7 +986,7 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 	if (safety.safety_switch_available && !safety.safety_off) {
 		// Fail transition if we need safety switch press
 		if (prearm_ok && reportFailures) {
-			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: Press safety switch first");
+			mavlink_log_critical(mavlink_log_pub, "Arming denied! Press safety switch first");
 		}
 
 		prearm_ok = false;
@@ -995,6 +999,15 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 			// feedback provided in arm_auth_check
 			prearm_ok = false;
 		}
+	}
+
+	if (status_flags.avoidance_system_required && !status_flags.avoidance_system_valid) {
+		if (prearm_ok && reportFailures) {
+			mavlink_log_critical(mavlink_log_pub, "Arming denied! Avoidance system not ready");
+		}
+
+		prearm_ok = false;
+
 	}
 
 	return prearm_ok;
@@ -1010,16 +1023,16 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 		break;
 
 	case battery_status_s::BATTERY_WARNING_LOW:
-		mavlink_log_critical(mavlink_log_pub, "LOW BATTERY, RETURN ADVISED");
+		mavlink_log_critical(mavlink_log_pub, "Low battery level! Return advised");
 		break;
 
 	case battery_status_s::BATTERY_WARNING_CRITICAL:
 
-		static constexpr char battery_critical[] = "CRITICAL BATTERY";
+		static constexpr char battery_critical[] = "Critical battery level!";
 
 		switch (low_battery_action) {
 		case LOW_BAT_ACTION::WARNING:
-			mavlink_log_critical(mavlink_log_pub, "%s, RETURN ADVISED!", battery_critical);
+			mavlink_log_critical(mavlink_log_pub, "%s, Landing advised", battery_critical);
 			break;
 
 		case LOW_BAT_ACTION::RETURN:
@@ -1030,10 +1043,10 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 			// let us send the critical message even if already in RTL
 			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags,
 					internal_state)) {
-				mavlink_log_critical(mavlink_log_pub, "%s, RETURNING", battery_critical);
+				mavlink_log_critical(mavlink_log_pub, "%s, Executing RTL", battery_critical);
 
 			} else {
-				mavlink_log_emergency(mavlink_log_pub, "%s, RETURN FAILED", battery_critical);
+				mavlink_log_emergency(mavlink_log_pub, "%s, Can't execute RTL", battery_critical);
 			}
 
 			break;
@@ -1041,10 +1054,10 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 		case LOW_BAT_ACTION::LAND:
 			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags,
 					internal_state)) {
-				mavlink_log_critical(mavlink_log_pub, "%s, LANDING AT CURRENT POSITION", battery_critical);
+				mavlink_log_critical(mavlink_log_pub, "%s, Landing immediately", battery_critical);
 
 			} else {
-				mavlink_log_emergency(mavlink_log_pub, "%s, LANDING FAILED", battery_critical);
+				mavlink_log_emergency(mavlink_log_pub, "%s, Can't execute landing", battery_critical);
 			}
 
 			break;
@@ -1054,20 +1067,20 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 
 	case battery_status_s::BATTERY_WARNING_EMERGENCY:
 
-		static constexpr char battery_dangerous[] = "DANGEROUS BATTERY LEVEL";
+		static constexpr char battery_dangerous[] = "Dangerous battery level!";
 
 		switch (low_battery_action) {
 		case LOW_BAT_ACTION::WARNING:
-			mavlink_log_emergency(mavlink_log_pub, "%s, LANDING ADVISED!", battery_dangerous);
+			mavlink_log_emergency(mavlink_log_pub, "%s, Please land!", battery_dangerous);
 			break;
 
 		case LOW_BAT_ACTION::RETURN:
 			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags,
 					internal_state)) {
-				mavlink_log_emergency(mavlink_log_pub, "%s, RETURNING", battery_dangerous);
+				mavlink_log_emergency(mavlink_log_pub, "%s, Executing RTL", battery_dangerous);
 
 			} else {
-				mavlink_log_emergency(mavlink_log_pub, "%s, RETURN FAILED", battery_dangerous);
+				mavlink_log_emergency(mavlink_log_pub, "%s, Can't execute RTL", battery_dangerous);
 			}
 
 			break;
@@ -1078,10 +1091,10 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 		case LOW_BAT_ACTION::LAND:
 			if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_LAND, status_flags,
 					internal_state)) {
-				mavlink_log_emergency(mavlink_log_pub, "%s, LANDING IMMEDIATELY", battery_dangerous);
+				mavlink_log_emergency(mavlink_log_pub, "%s, Landing immediately", battery_dangerous);
 
 			} else {
-				mavlink_log_emergency(mavlink_log_pub, "%s, LANDING FAILED", battery_dangerous);
+				mavlink_log_emergency(mavlink_log_pub, "%s, Can't execute landing", battery_dangerous);
 			}
 
 			break;
@@ -1090,7 +1103,7 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 		break;
 
 	case battery_status_s::BATTERY_WARNING_FAILED:
-		mavlink_log_emergency(mavlink_log_pub, "BATTERY FAILED");
+		mavlink_log_emergency(mavlink_log_pub, "Battery failure detected");
 		break;
 	}
 }

@@ -119,8 +119,8 @@ int RcInput::start(char *device, int channels)
 	}
 
 	_isRunning = true;
-	result = work_queue(HPWORK, &_work, (worker_t) & RcInput::cycle_trampoline,
-			    this, 0);
+
+	ScheduleNow();
 
 	if (result == -1) {
 		_isRunning = false;
@@ -134,20 +134,14 @@ void RcInput::stop()
 	close(_device_fd);
 	_shouldExit = true;
 }
+
 //---------------------------------------------------------------------------------------------------------//
-void RcInput::cycle_trampoline(void *arg)
-{
-	RcInput *dev = reinterpret_cast<RcInput *>(arg);
-	dev->_cycle();
-}
-//---------------------------------------------------------------------------------------------------------//
-void RcInput::_cycle()
+void RcInput::Run()
 {
 	_measure();
 
 	if (!_shouldExit) {
-		work_queue(HPWORK, &_work, (worker_t) & RcInput::cycle_trampoline, this,
-			   USEC2TICK(RCINPUT_MEASURE_INTERVAL_US));
+		ScheduleDelayed(RCINPUT_MEASURE_INTERVAL_US);
 	}
 }
 //---------------------------------------------------------------------------------------------------------//

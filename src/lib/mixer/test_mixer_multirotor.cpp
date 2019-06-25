@@ -58,7 +58,6 @@ mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, f
 int main(int argc, char *argv[])
 {
 	FILE *file_in = stdin;
-	FILE *file_out = stdout;
 
 	if (argc > 1) {
 		file_in = fopen(argv[1], "r");
@@ -79,7 +78,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	for (int i = 0; i < rotor_count; ++i) {
+	for (unsigned i = 0; i < rotor_count; ++i) {
 		fscanf(file_in, "%f %f %f %f", &rotors[i].roll_scale, &rotors[i].pitch_scale,
 		       &rotors[i].yaw_scale, &rotors[i].thrust_scale);
 	}
@@ -93,7 +92,7 @@ int main(int argc, char *argv[])
 	while (!feof(file_in)) {
 
 		// read actuator controls
-		int count = 0;
+		unsigned count = 0;
 
 		while (count < 4 && fscanf(file_in, "%f", &actuator_controls[count]) == 1) {
 			++count;
@@ -127,26 +126,26 @@ int main(int argc, char *argv[])
 
 		if (failed) {
 			printf("test %i failed:\n", test_counter + 1);
-			printf("control input  : %.3f %.3f %.3f %.3f\n", actuator_controls[0], actuator_controls[1],
-			       actuator_controls[2], actuator_controls[3]);
+			printf("control input  : %.3f %.3f %.3f %.3f\n", (double)actuator_controls[0], (double)actuator_controls[1],
+			       (double)actuator_controls[2], (double)actuator_controls[3]);
 			printf("mixer output   : ");
 
-			for (int i = 0; i < rotor_count; ++i) {
-				printf("%.3f ", actuator_outputs[i]);
+			for (unsigned i = 0; i < rotor_count; ++i) {
+				printf("%.3f ", (double)actuator_outputs[i]);
 			}
 
 			printf("\n");
 			printf("expected output: ");
 
-			for (int i = 0; i < rotor_count; ++i) {
-				printf("%.3f ", expected_output[i]);
+			for (unsigned i = 0; i < rotor_count; ++i) {
+				printf("%.3f ", (double)expected_output[i]);
 			}
 
 			printf("\n");
 			printf("diff           : ");
 
-			for (int i = 0; i < rotor_count; ++i) {
-				printf("%.3f ", expected_output[i] - actuator_outputs[i]);
+			for (unsigned i = 0; i < rotor_count; ++i) {
+				printf("%.3f ", (double)(expected_output[i] - actuator_outputs[i]));
 			}
 
 			printf("\n");

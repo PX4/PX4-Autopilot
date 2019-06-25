@@ -118,6 +118,10 @@ function(px4_add_module)
 		add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_unity.cpp)
 		target_include_directories(${MODULE} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
+		if(COMPILE_FLAGS)
+			target_compile_options(${MODULE}_original PRIVATE ${COMPILE_FLAGS})
+		endif()
+
 		if(DEPENDS)
 			# using target_link_libraries for dependencies provides linking
 			#  as well as interface include and libraries

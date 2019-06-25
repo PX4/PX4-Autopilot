@@ -64,7 +64,7 @@ void BlockLocalPositionEstimator::baroCorrect()
 
 	Matrix<float, n_y_baro, n_y_baro> R;
 	R.setZero();
-	R(0, 0) = _baro_stddev.get() * _baro_stddev.get();
+	R(0, 0) = _param_lpe_bar_z.get() * _param_lpe_bar_z.get();
 
 	// residual
 	Matrix<float, n_y_baro, n_y_baro> S_I =

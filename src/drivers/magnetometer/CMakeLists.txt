@@ -31,6 +31,7 @@
 #
 ############################################################################
 
+add_subdirectory(ak09916)
 add_subdirectory(bmm150)
 add_subdirectory(hmc5883)
 add_subdirectory(qmc5883)

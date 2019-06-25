@@ -12,13 +12,10 @@ branches:
 # Build worker image (build VM template)
 image: Visual Studio 2017
 
-# build platform, i.e. Win32 (instead of x86), x64, Any CPU. This setting is optional.
-platform:
-- x64
-
-# scripts that are called at very beginning, before repo cloning
-init:
-- ver
+environment:
+  matrix:
+    - PX4_CONFIG: tests # this builds posix in px4_sitl_test folder and runs tests
+    - PX4_CONFIG: px4_fmu-v5_default
 
 install:
 # if the toolchain wasn't restored from build cache download and install it
@@ -38,14 +35,8 @@ build_script:
 - call C:\PX4\toolchain\scripts\setup-environment.bat x
 # safe the repopath for switching to it in cygwin bash
 - for /f %%i in ('cygpath -u %%CD%%') do set repopath=%%i
-# fetch all submodules in parallel
-- call bash --login -c "cd $repopath && git submodule -q update --init --recursive --jobs=10"
-# make SITL
-- call bash --login -c "cd $repopath && make px4_sitl_test"
-# make pixracer to check NuttX build
-- call bash --login -c "cd $repopath && make px4_fmu-v4_default"
-# run tests
-- call bash --login -c "cd $repopath && make tests"
+# build the make target
+- call bash --login -c "cd $repopath && make $PX4_CONFIG"
 
 # Note: using bash --login is important
 # because otherwise certain things (like python; import numpy) do not work

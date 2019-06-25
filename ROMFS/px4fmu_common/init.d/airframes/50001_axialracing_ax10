@@ -17,7 +17,7 @@
 # @board px4_fmu-v2 exclude
 #
 
-sh /etc/init.d/rc.ugv_defaults
+sh /etc/init.d/rc.rover_defaults
 
 #
 # This section can be enabled once tuning parameters for this particular

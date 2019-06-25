@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,6 +33,10 @@
 
 #include "FixedwingAttitudeControl.hpp"
 
+#include <vtol_att_control/vtol_type.h>
+
+using namespace time_literals;
+
 /**
  * Fixedwing attitude control app start / stop handling function
  *
@@ -41,8 +45,6 @@
 extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[]);
 
 FixedwingAttitudeControl::FixedwingAttitudeControl() :
-	_airspeed_sub(ORB_ID(airspeed)),
-
 	/* performance counters */
 	_loop_perf(perf_alloc(PC_ELAPSED, "fwa_dt")),
 	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fwa_nani")),
@@ -118,9 +120,6 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	_parameter_handles.bat_scale_en = param_find("FW_BAT_SCALE_EN");
 	_parameter_handles.airspeed_mode = param_find("FW_ARSP_MODE");
 
-	// initialize to invalid VTOL type
-	_parameters.vtol_type = -1;
-
 	/* fetch initial parameter values */
 	parameters_update();
 
@@ -132,29 +131,11 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 
 	// subscriptions
 	_att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_att_sp_sub = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
-	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_manual_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	_vehicle_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-	_battery_status_sub = orb_subscribe(ORB_ID(battery_status));
-	_rates_sp_sub = orb_subscribe(ORB_ID(vehicle_rates_setpoint));
 }
 
 FixedwingAttitudeControl::~FixedwingAttitudeControl()
 {
 	orb_unsubscribe(_att_sub);
-	orb_unsubscribe(_att_sp_sub);
-	orb_unsubscribe(_vcontrol_mode_sub);
-	orb_unsubscribe(_params_sub);
-	orb_unsubscribe(_manual_sub);
-	orb_unsubscribe(_global_pos_sub);
-	orb_unsubscribe(_vehicle_status_sub);
-	orb_unsubscribe(_vehicle_land_detected_sub);
-	orb_unsubscribe(_battery_status_sub);
-	orb_unsubscribe(_rates_sp_sub);
 
 	perf_free(_loop_perf);
 	perf_free(_nonfinite_input_perf);
@@ -240,10 +221,6 @@ FixedwingAttitudeControl::parameters_update()
 
 	param_get(_parameter_handles.rattitude_thres, &_parameters.rattitude_thres);
 
-	if (_vehicle_status.is_vtol) {
-		param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
-	}
-
 	param_get(_parameter_handles.bat_scale_en, &_parameters.bat_scale_en);
 
 	param_get(_parameter_handles.airspeed_mode, &tmp);
@@ -282,24 +259,29 @@ FixedwingAttitudeControl::parameters_update()
 void
 FixedwingAttitudeControl::vehicle_control_mode_poll()
 {
-	bool updated = false;
+	_vcontrol_mode_sub.update(&_vcontrol_mode);
 
-	/* Check if vehicle control mode has changed */
-	orb_check(_vcontrol_mode_sub, &updated);
+	if (_vehicle_status.is_vtol) {
+		const bool is_hovering = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+					 && !_vehicle_status.in_transition_mode;
+		const bool is_tailsitter_transition = _vehicle_status.in_transition_mode && _is_tailsitter;
 
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &_vcontrol_mode);
+		if (is_hovering || is_tailsitter_transition) {
+			_vcontrol_mode.flag_control_attitude_enabled = false;
+			_vcontrol_mode.flag_control_manual_enabled = false;
+		}
 	}
 }
 
 void
 FixedwingAttitudeControl::vehicle_manual_poll()
 {
+	const bool is_tailsitter_transition = _is_tailsitter && _vehicle_status.in_transition_mode;
+	const bool is_fixed_wing = _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
-	if (_vcontrol_mode.flag_control_manual_enabled && !_vehicle_status.is_rotary_wing) {
-
+	if (_vcontrol_mode.flag_control_manual_enabled && (!is_tailsitter_transition || is_fixed_wing)) {
 		// Always copy the new manual setpoint, even if it wasn't updated, to fill the _actuators with valid values
-		if (orb_copy(ORB_ID(manual_control_setpoint), _manual_sub, &_manual) == PX4_OK) {
+		if (_manual_sub.copy(&_manual)) {
 
 			// Check if we are in rattitude mode and the pilot is above the threshold on pitch
 			if (_vcontrol_mode.flag_control_rattitude_enabled) {
@@ -369,30 +351,18 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 void
 FixedwingAttitudeControl::vehicle_attitude_setpoint_poll()
 {
-	/* check if there is a new setpoint */
-	bool updated = false;
-	orb_check(_att_sp_sub, &updated);
-
-	if (updated) {
-		if (orb_copy(ORB_ID(vehicle_attitude_setpoint), _att_sp_sub, &_att_sp) == PX4_OK) {
-			_rates_sp.thrust_body[0] = _att_sp.thrust_body[0];
-			_rates_sp.thrust_body[1] = _att_sp.thrust_body[1];
-			_rates_sp.thrust_body[2] = _att_sp.thrust_body[2];
-		}
+	if (_att_sp_sub.update(&_att_sp)) {
+		_rates_sp.thrust_body[0] = _att_sp.thrust_body[0];
+		_rates_sp.thrust_body[1] = _att_sp.thrust_body[1];
+		_rates_sp.thrust_body[2] = _att_sp.thrust_body[2];
 	}
 }
 
 void
 FixedwingAttitudeControl::vehicle_rates_setpoint_poll()
 {
-	/* check if there is a new setpoint */
-	bool updated = false;
-	orb_check(_rates_sp_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(vehicle_rates_setpoint), _rates_sp_sub, &_rates_sp);
-
-		if (_parameters.vtol_type == vtol_type::TAILSITTER) {
+	if (_rates_sp_sub.update(&_rates_sp)) {
+		if (_is_tailsitter) {
 			float tmp = _rates_sp.roll;
 			_rates_sp.roll = -_rates_sp.yaw;
 			_rates_sp.yaw = tmp;
@@ -401,46 +371,20 @@ FixedwingAttitudeControl::vehicle_rates_setpoint_poll()
 }
 
 void
-FixedwingAttitudeControl::global_pos_poll()
-{
-	/* check if there is a new global position */
-	bool global_pos_updated;
-	orb_check(_global_pos_sub, &global_pos_updated);
-
-	if (global_pos_updated) {
-		orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
-	}
-}
-
-void
 FixedwingAttitudeControl::vehicle_status_poll()
 {
-	/* check if there is new status information */
-	bool vehicle_status_updated;
-	orb_check(_vehicle_status_sub, &vehicle_status_updated);
-
-	if (vehicle_status_updated) {
-		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
-
-		// if VTOL and not in fixed wing mode we should only control body-rates which are published
-		// by the multicoper attitude controller. Therefore, modify the control mode to achieve rate
-		// control only
-		if (_vehicle_status.is_vtol) {
-			if (_vehicle_status.is_rotary_wing) {
-				_vcontrol_mode.flag_control_attitude_enabled = false;
-				_vcontrol_mode.flag_control_manual_enabled = false;
-			}
-		}
-
+	if (_vehicle_status_sub.update(&_vehicle_status)) {
 		/* set correct uORB ID, depending on if vehicle is VTOL or not */
 		if (!_actuators_id) {
 			if (_vehicle_status.is_vtol) {
 				_actuators_id = ORB_ID(actuator_controls_virtual_fw);
 				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
 
-				_parameter_handles.vtol_type = param_find("VT_TYPE");
+				int32_t vt_type = -1;
 
-				parameters_update();
+				if (param_get(param_find("VT_TYPE"), &vt_type) == PX4_OK) {
+					_is_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
+				}
 
 			} else {
 				_actuators_id = ORB_ID(actuator_controls_0);
@@ -453,42 +397,40 @@ FixedwingAttitudeControl::vehicle_status_poll()
 void
 FixedwingAttitudeControl::vehicle_land_detected_poll()
 {
-	/* check if there is new status information */
-	bool vehicle_land_detected_updated;
-	orb_check(_vehicle_land_detected_sub, &vehicle_land_detected_updated);
-
-	if (vehicle_land_detected_updated) {
+	if (_vehicle_land_detected_sub.updated()) {
 		vehicle_land_detected_s vehicle_land_detected {};
 
-		if (orb_copy(ORB_ID(vehicle_land_detected), _vehicle_land_detected_sub, &vehicle_land_detected) == PX4_OK) {
+		if (_vehicle_land_detected_sub.copy(&vehicle_land_detected)) {
 			_landed = vehicle_land_detected.landed;
 		}
 	}
 }
 
-void FixedwingAttitudeControl::get_airspeed_and_scaling(float &airspeed, float &airspeed_scaling)
+float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 {
+	_airspeed_sub.update();
 	const bool airspeed_valid = PX4_ISFINITE(_airspeed_sub.get().indicated_airspeed_m_s)
-				    && (_airspeed_sub.get().indicated_airspeed_m_s > 0.0f)
-				    && (hrt_elapsed_time(&_airspeed_sub.get().timestamp) < 1e6);
+				    && (hrt_elapsed_time(&_airspeed_sub.get().timestamp) < 1_s)
+				    && !_vehicle_status.aspd_use_inhibit;
+
+	if (!airspeed_valid) {
+		perf_count(_nonfinite_input_perf);
+	}
+
+	// if no airspeed measurement is available out best guess is to use the trim airspeed
+	float airspeed = _parameters.airspeed_trim;
 
 	if (!_parameters.airspeed_disabled && airspeed_valid) {
 		/* prevent numerical drama by requiring 0.5 m/s minimal speed */
 		airspeed = math::max(0.5f, _airspeed_sub.get().indicated_airspeed_m_s);
 
 	} else {
-		// if no airspeed measurement is available out best guess is to use the trim airspeed
-		airspeed = _parameters.airspeed_trim;
-
 		// VTOL: if we have no airspeed available and we are in hover mode then assume the lowest airspeed possible
 		// this assumption is good as long as the vehicle is not hovering in a headwind which is much larger
 		// than the minimum airspeed
-		if (_vehicle_status.is_vtol && _vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode) {
+		if (_vehicle_status.is_vtol && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+		    && !_vehicle_status.in_transition_mode) {
 			airspeed = _parameters.airspeed_min;
-		}
-
-		if (!airspeed_valid) {
-			perf_count(_nonfinite_input_perf);
 		}
 	}
 
@@ -499,7 +441,11 @@ void FixedwingAttitudeControl::get_airspeed_and_scaling(float &airspeed, float &
 	 *
 	 * Forcing the scaling to this value allows reasonable handheld tests.
 	 */
-	airspeed_scaling = _parameters.airspeed_trim / math::max(airspeed, _parameters.airspeed_min);
+	const float airspeed_constrained = math::constrain(airspeed, _parameters.airspeed_min, _parameters.airspeed_max);
+	_airspeed_scaling = _parameters.airspeed_trim / airspeed_constrained;
+
+
+	return airspeed;
 }
 
 void FixedwingAttitudeControl::run()
@@ -514,13 +460,12 @@ void FixedwingAttitudeControl::run()
 	while (!should_exit()) {
 
 		/* only update parameters if they changed */
-		bool params_updated = false;
-		orb_check(_params_sub, &params_updated);
+		bool params_updated = _params_sub.updated();
 
 		if (params_updated) {
 			/* read from param to clear updated flag */
 			parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
+			_params_sub.copy(&update);
 
 			/* update parameters from storage */
 			parameters_update();
@@ -559,7 +504,7 @@ void FixedwingAttitudeControl::run()
 			/* get current rotation matrix and euler angles from control state quaternions */
 			matrix::Dcmf R = matrix::Quatf(_att.q);
 
-			if (_vehicle_status.is_vtol && _parameters.vtol_type == vtol_type::TAILSITTER) {
+			if (_is_tailsitter) {
 				/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
 				 *
 				 * Since the VTOL airframe is initialized as a multicopter we need to
@@ -602,13 +547,12 @@ void FixedwingAttitudeControl::run()
 				_att.yawspeed = helper;
 			}
 
-			matrix::Eulerf euler_angles(R);
+			const matrix::Eulerf euler_angles(R);
 
-			_airspeed_sub.update();
 			vehicle_attitude_setpoint_poll();
 			vehicle_control_mode_poll();
 			vehicle_manual_poll();
-			global_pos_poll();
+			_global_pos_sub.update(&_global_pos);
 			vehicle_status_poll();
 			vehicle_land_detected_poll();
 
@@ -617,7 +561,8 @@ void FixedwingAttitudeControl::run()
 			_att_sp.fw_control_yaw = _att_sp.fw_control_yaw && _vcontrol_mode.flag_control_auto_enabled;
 
 			/* lock integrator until control is started */
-			bool lock_integrator = !(_vcontrol_mode.flag_control_rates_enabled && !_vehicle_status.is_rotary_wing);
+			bool lock_integrator = !_vcontrol_mode.flag_control_rates_enabled
+					       || _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 			/* Simple handling of failsafe: deploy parachute if failsafe is on */
 			if (_vcontrol_mode.flag_control_termination_enabled) {
@@ -628,7 +573,7 @@ void FixedwingAttitudeControl::run()
 			}
 
 			/* if we are in rotary wing mode, do nothing */
-			if (_vehicle_status.is_rotary_wing && !_vehicle_status.is_vtol) {
+			if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !_vehicle_status.is_vtol) {
 				continue;
 			}
 
@@ -637,9 +582,7 @@ void FixedwingAttitudeControl::run()
 			/* decide if in stabilized or full manual control */
 			if (_vcontrol_mode.flag_control_rates_enabled) {
 
-				float airspeed;
-				float airspeed_scaling;
-				get_airspeed_and_scaling(airspeed, airspeed_scaling);
+				const float airspeed = get_airspeed_and_update_scaling();
 
 				/* Use min airspeed to calculate ground speed scaling region.
 				 * Don't scale below gspd_scaling_trim
@@ -667,7 +610,8 @@ void FixedwingAttitudeControl::run()
 				 * or a multicopter (but not transitioning VTOL)
 				 */
 				if (_landed
-				    || (_vehicle_status.is_rotary_wing && !_vehicle_status.in_transition_mode)) {
+				    || (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+					&& !_vehicle_status.in_transition_mode)) {
 
 					_roll_ctrl.reset_integrator();
 					_pitch_ctrl.reset_integrator();
@@ -689,14 +633,15 @@ void FixedwingAttitudeControl::run()
 				control_input.airspeed_min = _parameters.airspeed_min;
 				control_input.airspeed_max = _parameters.airspeed_max;
 				control_input.airspeed = airspeed;
-				control_input.scaler = airspeed_scaling;
+				control_input.scaler = _airspeed_scaling;
 				control_input.lock_integrator = lock_integrator;
 				control_input.groundspeed = groundspeed;
 				control_input.groundspeed_scaler = groundspeed_scaler;
 
 				/* reset body angular rate limits on mode change */
 				if ((_vcontrol_mode.flag_control_attitude_enabled != _flag_control_attitude_enabled_last) || params_updated) {
-					if (_vcontrol_mode.flag_control_attitude_enabled || _vehicle_status.is_rotary_wing) {
+					if (_vcontrol_mode.flag_control_attitude_enabled
+					    || _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 						_roll_ctrl.set_max_rate(math::radians(_parameters.r_rmax));
 						_pitch_ctrl.set_max_rate_pos(math::radians(_parameters.p_rmax_pos));
 						_pitch_ctrl.set_max_rate_neg(math::radians(_parameters.p_rmax_neg));
@@ -798,13 +743,10 @@ void FixedwingAttitudeControl::run()
 						if (_parameters.bat_scale_en &&
 						    _actuators.control[actuator_controls_s::INDEX_THROTTLE] > 0.1f) {
 
-							bool updated = false;
-							orb_check(_battery_status_sub, &updated);
+							if (_battery_status_sub.updated()) {
+								battery_status_s battery_status{};
 
-							if (updated) {
-								battery_status_s battery_status = {};
-
-								if (orb_copy(ORB_ID(battery_status), _battery_status_sub, &battery_status) == PX4_OK) {
+								if (_battery_status_sub.copy(&battery_status)) {
 									if (battery_status.scale > 0.0f) {
 										_battery_scale = battery_status.scale;
 									}

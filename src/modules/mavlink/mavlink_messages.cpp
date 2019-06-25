@@ -153,7 +153,7 @@ void get_mavlink_navigation_mode(const struct vehicle_status_s *const status, ui
 	switch (status->nav_state) {
 	case vehicle_status_s::NAVIGATION_STATE_MANUAL:
 		*mavlink_base_mode	|= MAV_MODE_FLAG_MANUAL_INPUT_ENABLED
-					   | (status->is_rotary_wing ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
+					   | (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING ? MAV_MODE_FLAG_STABILIZE_ENABLED : 0);
 		custom_mode->main_mode = PX4_CUSTOM_MAIN_MODE_MANUAL;
 		break;
 
@@ -569,6 +569,19 @@ protected:
 		const bool updated_battery = _battery_status_sub->update(&_battery_status_timestamp, &battery_status);
 
 		if (updated_status || updated_battery || updated_cpuload) {
+
+			if (!updated_status) {
+				_status_sub->update(&status);
+			}
+
+			if (!updated_battery) {
+				_battery_status_sub->update(&battery_status);
+			}
+
+			if (!updated_cpuload) {
+				_cpuload_sub->update(&cpuload);
+			}
+
 			mavlink_sys_status_t msg = {};
 
 			msg.onboard_control_sensors_present = status.onboard_control_sensors_present;
@@ -3122,7 +3135,7 @@ protected:
 
 		if (control_mode.flag_control_position_enabled) {
 
-			position_setpoint_triplet_s pos_sp_triplet;
+			position_setpoint_triplet_s pos_sp_triplet = {};
 			_pos_sp_triplet_sub->update(&pos_sp_triplet);
 
 			if (pos_sp_triplet.timestamp > 0 && pos_sp_triplet.current.valid
@@ -4170,8 +4183,6 @@ protected:
 
 			msg.time_boot_ms = dist_sensor.timestamp / 1000; /* us to ms */
 
-			/* TODO: use correct ID here */
-			msg.id = 0;
 
 			switch (dist_sensor.type) {
 			case MAV_DISTANCE_SENSOR_ULTRASOUND:
@@ -4191,11 +4202,12 @@ protected:
 				break;
 			}
 
-			msg.orientation = dist_sensor.orientation;
-			msg.min_distance = dist_sensor.min_distance * 100.0f; /* m to cm */
-			msg.max_distance = dist_sensor.max_distance * 100.0f; /* m to cm */
-			msg.current_distance = dist_sensor.current_distance * 100.0f; /* m to cm */
-			msg.covariance = dist_sensor.variance * 1e4f; // m^2 to cm^2
+			msg.current_distance = dist_sensor.current_distance * 1e2f; // m to cm
+			msg.id               = dist_sensor.id;
+			msg.max_distance     = dist_sensor.max_distance * 1e2f;     // m to cm
+			msg.min_distance     = dist_sensor.min_distance * 1e2f;     // m to cm
+			msg.orientation      = dist_sensor.orientation;
+			msg.covariance       = dist_sensor.variance * 1e4f;         // m^2 to cm^2
 
 			mavlink_msg_distance_sensor_send_struct(_mavlink->get_channel(), &msg);
 
@@ -4272,7 +4284,7 @@ protected:
 			updated = true;
 
 			if (status.is_vtol) {
-				if (!status.in_transition_mode && status.is_rotary_wing) {
+				if (!status.in_transition_mode && status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 					_msg.vtol_state = MAV_VTOL_STATE_MC;
 
 				} else if (!status.in_transition_mode) {
@@ -4666,12 +4678,13 @@ protected:
 			msg.yawspeed = att.yawspeed;
 
 			// vehicle_global_position -> hil_state_quaternion
-			msg.lat = gpos.lat;
-			msg.lon = gpos.lon;
-			msg.alt = gpos.alt;
-			msg.vx = gpos.vel_n;
-			msg.vy = gpos.vel_e;
-			msg.vz = gpos.vel_d;
+			// same units as defined in mavlink/common.xml
+			msg.lat = gpos.lat * 1e7;
+			msg.lon = gpos.lon * 1e7;
+			msg.alt = gpos.alt * 1e3f;
+			msg.vx = gpos.vel_n * 1e2f;
+			msg.vy = gpos.vel_e * 1e2f;
+			msg.vz = gpos.vel_d * 1e2f;
 			msg.ind_airspeed = 0;
 			msg.true_airspeed = 0;
 			msg.xacc = 0;

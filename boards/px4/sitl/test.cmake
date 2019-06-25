@@ -8,10 +8,10 @@ px4_add_board(
 
 	DRIVERS
 		#barometer # all available barometer drivers
-		batt_smbus
+		#batt_smbus
 		camera_trigger
-		differential_pressure # all available differential pressure drivers
-		distance_sensor # all available distance sensor drivers
+		#differential_pressure # all available differential pressure drivers
+		#distance_sensor # all available distance sensor drivers
 		gps
 		#imu # all available imu drivers
 		#magnetometer # all available magnetometer drivers
@@ -79,8 +79,8 @@ px4_add_board(
 		hello
 		#hwtest # Hardware test
 		position_estimator_inav
-		px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
-		px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app
+		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
+		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
 		segway
 	)
@@ -99,4 +99,5 @@ if(REPLAY_FILE)
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 endif()
 
+message("Building without lockstep for test")
 set(ENABLE_LOCKSTEP_SCHEDULER no)

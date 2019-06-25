@@ -19,11 +19,11 @@ factors (to reverse the servo movement) and adjust the offset, scaling and
 endpoints to suit.
 
 M: 2
-S: 1 0  10000  10000      0 -10000  10000
+S: 1 0 -10000 -10000      0 -10000  10000
 S: 1 6  10000  10000      0 -10000  10000
 
 M: 2
-S: 1 0  10000  10000      0 -10000  10000
+S: 1 0 -10000 -10000      0 -10000  10000
 S: 1 6 -10000 -10000      0 -10000  10000
 
 

@@ -86,8 +86,12 @@ void RC_Loss_Alarm::process()
 
 	if (_was_armed && _had_rc && _vehicle_status.rc_signal_lost &&
 	    _vehicle_status.arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
-
 		play_tune();
+		_alarm_playing = true;
+
+	} else if (_alarm_playing) {
+		stop_tune();
+		_alarm_playing = false;
 	}
 }
 
@@ -98,6 +102,20 @@ void RC_Loss_Alarm::play_tune()
 	tune_control.tune_id       = static_cast<int>(TuneID::ERROR_TUNE);
 	tune_control.tune_override = 1;
 	tune_control.volume        = tune_control_s::VOLUME_LEVEL_MAX;
+
+	if (_tune_control_pub == nullptr) {
+		_tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+
+	} else	{
+		orb_publish(ORB_ID(tune_control), _tune_control_pub, &tune_control);
+	}
+}
+
+void RC_Loss_Alarm::stop_tune()
+{
+	struct tune_control_s tune_control = {};
+	tune_control.tune_override = true;
+	tune_control.timestamp = hrt_absolute_time();
 
 	if (_tune_control_pub == nullptr) {
 		_tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);

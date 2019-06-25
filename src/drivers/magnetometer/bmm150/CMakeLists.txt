@@ -35,8 +35,7 @@ px4_add_module(
 	MAIN bmm150
 	STACK_MAIN 1200
 	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		bmm150.cpp
-	DEPENDS
 	)
-

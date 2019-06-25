@@ -46,7 +46,7 @@ extern "C" __EXPORT int pga460_main(int argc, char *argv[]);
 PGA460::PGA460(const char *port)
 {
 	// Store port name.
-	strncpy(_port, port, sizeof(_port));
+	strncpy(_port, port, sizeof(_port) - 1);
 	// Enforce null termination.
 	_port[sizeof(_port) - 1] = '\0';
 }

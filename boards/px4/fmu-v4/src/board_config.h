@@ -290,6 +290,8 @@
 #define HRT_PPM_CHANNEL              3  /* use capture/compare channel 3 */
 #define GPIO_PPM_IN                  (GPIO_ALT|GPIO_AF2|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN0)
 
+/* RC Serial port */
+
 #define RC_SERIAL_PORT               "/dev/ttyS4"
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2. */

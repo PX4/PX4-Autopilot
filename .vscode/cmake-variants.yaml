@@ -11,58 +11,53 @@ CONFIG:
       buildType: Debug
       settings:
         CONFIG: px4_sitl_default
-    px4_sitl_rtps:
-      short: px4_sitl_rtps
-      buildType: RelWithDebInfo
+    px4_sitl_default_ASan:
+      short: px4_sitl (Address Sanitizer)
+      buildType: AddressSanitizer
       settings:
-        CONFIG: px4_sitl_rtps
+        CONFIG: px4_sitl_default
     px4_fmu-v2_default:
       short: px4_fmu-v2
-      buildType: MinRelSize
+      buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v2_default
     px4_fmu-v3_default:
       short: px4_fmu-v3
-      buildType: MinRelSize
+      buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v3_default
     px4_fmu-v4_default:
       short: px4_fmu-v4
-      buildType: MinRelSize
+      buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v4_default
     px4_fmu-v4pro_default:
       short: px4_fmu-v4pro
-      buildType: MinRelSize
+      buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v4pro_default
     px4_fmu-v5_default:
       short: px4_fmu-v5
-      buildType: MinRelSize
+      buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v5_default
-    px4_fmu-v5_rtps:
-      short: px4_fmu-v5_rtps
-      buildType: MinRelSize
-      settings:
-        CONFIG: px4_fmu-v5_rtps
     airmind_mindpx-v2_default:
       short: airmind_mindpx-v2
-      buildType: MinRelSize
+      buildType: MinSizeRel
       settings:
         CONFIG: airmind_mindpx-v2_default
     av_x-v1_default:
       short: av-x
-      buildType: MinRelSize
+      buildType: MinSizeRel
       settings:
         CONFIG: av_x-v1_default
     intel_aerofc-v1_default:
       short: intel_aerofc-v1
-      buildType: MinRelSize
+      buildType: MinSizeRel
       settings:
         CONFIG: intel_aerofc-v1_default
     nxp_fmuk66-v3_default:
       short: nxp_fmuk66-v3
-      buildType: MinRelSize
+      buildType: MinSizeRel
       settings:
         CONFIG: nxp_fmuk66-v3_default

@@ -98,6 +98,7 @@ struct Parameters {
 	int32_t rc_map_aux3;
 	int32_t rc_map_aux4;
 	int32_t rc_map_aux5;
+	int32_t rc_map_aux6;
 
 	int32_t rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
 
@@ -190,6 +191,7 @@ struct ParameterHandles {
 	param_t rc_map_aux3;
 	param_t rc_map_aux4;
 	param_t rc_map_aux5;
+	param_t rc_map_aux6;
 
 	param_t rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
 	param_t rc_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< param handles for the parameters which are bound

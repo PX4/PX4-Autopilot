@@ -30,6 +30,9 @@ then
 	param set VT_IDLE_PWM_MC  1080
 	param set VT_TYPE 0
 	param set VT_ELEV_MC_LOCK 1
+
+	# Indicate that FW roll direction was fixed in mixer, to be removed in v1.10
+	param set V19_VT_ROLLDIR 0
 fi
 
 set MAV_TYPE 20

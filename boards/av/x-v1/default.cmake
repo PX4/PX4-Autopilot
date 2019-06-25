@@ -3,6 +3,7 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR av
 	MODEL x-v1
+	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
@@ -19,8 +20,8 @@ px4_add_board(
 	DRIVERS
 		barometer # all available barometer drivers
 		batt_smbus
-		camera_trigger
 		camera_capture
+		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
@@ -31,23 +32,24 @@ px4_add_board(
 		irlock
 		lights/blinkm
 		#lights/oreoled
+		#lights/pca8574
 		#lights/rgbled
+		#lights/rgbled_ncp5623c
 		#lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		#md25
 		mkblctrl
-		#lights/pca8574
+		optical_flow # all available optical flow drivers
 		pca9685
-		#pmw3901
-		protocol_splitter
+		#protocol_splitter
 		#pwm_input
 		pwm_out_sim
-		px4flow
 		px4fmu
 		rc_input
-		roboclaw
+		#roboclaw
 		stm32
 		stm32/adc
+		stm32/armv7-m_dcache
 		#stm32/tone_alarm
 		tap_esc
 		telemetry # all available telemetry drivers
@@ -76,6 +78,7 @@ px4_add_board(
 		mc_pos_control
 		navigator
 		sensors
+		sih
 		vmount
 		vtol_att_control
 		wind_estimator
@@ -83,6 +86,7 @@ px4_add_board(
 	SYSTEMCMDS
 		bl_update
 		config
+		dmesg
 		dumpfile
 		esc_calib
 		hardfault_log
@@ -102,7 +106,6 @@ px4_add_board(
 		top
 		topic_listener
 		tune_control
-		#usb_connected
 		ver
 
 	EXAMPLES
@@ -112,8 +115,8 @@ px4_add_board(
 		hwtest # Hardware test
 		#matlab_csv_serial
 		position_estimator_inav
-		px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
-		px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app
+		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
+		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
 		segway
 		uuv_example_app

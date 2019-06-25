@@ -65,10 +65,10 @@ protected:
 	void _scaleSticks() override;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualAltitude,
-					(ParamFloat<px4::params::MPC_VEL_MANUAL>) MPC_VEL_MANUAL,
-					(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) MPC_ACC_HOR_MAX,
-					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) MPC_HOLD_MAX_XY,
-					(ParamFloat<px4::params::MPC_ACC_HOR_ESTM>) MPC_ACC_HOR_ESTM
+					(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual,
+					(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) _param_mpc_acc_hor_max,
+					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) _param_mpc_hold_max_xy,
+					(ParamFloat<px4::params::MPC_ACC_HOR_ESTM>) _param_mpc_acc_hor_estm
 				       )
 private:
 	float _velocity_scale{0.0f}; //scales the stick input to velocity

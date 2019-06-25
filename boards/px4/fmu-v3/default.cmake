@@ -34,6 +34,7 @@ px4_add_board(
 		imu/lsm303d
 		imu/mpu6000
 		imu/mpu9250
+		imu/icm20948
 		irlock
 		lights/blinkm
 		lights/oreoled
@@ -44,12 +45,12 @@ px4_add_board(
 		#md25
 		mkblctrl
 		lights/pca8574
+		#optical_flow # all available optical flow drivers
+		optical_flow/px4flow
 		pca9685
-		#pmw3901
 		protocol_splitter
 		pwm_input
 		pwm_out_sim
-		px4flow
 		px4fmu
 		px4io
 		roboclaw
@@ -83,6 +84,7 @@ px4_add_board(
 		mc_pos_control
 		navigator
 		sensors
+		sih
 		vmount
 		vtol_att_control
 		wind_estimator
@@ -120,8 +122,8 @@ px4_add_board(
 		hwtest # Hardware test
 		#matlab_csv_serial
 		position_estimator_inav
-		px4_mavlink_debug # Tutorial code from https://px4.io/dev/debug_values
-		px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app
+		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
+		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
 		segway
 		uuv_example_app
