@@ -157,7 +157,7 @@ protected:
 
 private:
 
-	void _check_params();
+	void _check_params(bool force = false);
 
 	void Run() override;
 

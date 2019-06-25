@@ -78,7 +78,7 @@ void LandDetector::Run()
 {
 	perf_begin(_cycle_perf);
 
-	_check_params();
+	_check_params(false);
 	_actuator_armed_sub.update(&_arming);
 	_update_topics();
 	_update_state();
@@ -148,11 +148,11 @@ void LandDetector::Run()
 	}
 }
 
-void LandDetector::_check_params()
+void LandDetector::_check_params(const bool force)
 {
 	parameter_update_s param_update;
 
-	if (_param_update_sub.update(&param_update)) {
+	if (_param_update_sub.update(&param_update) || force) {
 		_update_params();
 		_total_flight_time = static_cast<uint64_t>(_param_total_flight_time_high.get()) << 32;
 		_total_flight_time |= _param_total_flight_time_low.get();
