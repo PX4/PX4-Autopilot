@@ -151,6 +151,8 @@ void VotedSensorsUpdate::parameters_update()
 	/* temperature compensation */
 	_temperature_compensation.parameters_update(_hil_enabled);
 
+	_mag_compensator.update_parameters();
+
 	/* gyro */
 	for (uint8_t topic_instance = 0; topic_instance < _gyro.subscription_count; ++topic_instance) {
 
@@ -769,6 +771,10 @@ void VotedSensorsUpdate::mag_poll(vehicle_magnetometer_s &magnetometer)
 			matrix::Vector3f vect(mag_report.x, mag_report.y, mag_report.z);
 			vect = _mag_rotation[uorb_index] * vect;
 
+			if (_mag_device_id[uorb_index] == _mag_compensator.get_target_mag_id()) {
+				_mag_compensator.calculate_mag_corrected(vect);
+			}
+
 			_last_magnetometer[uorb_index].timestamp = mag_report.timestamp;
 			_last_magnetometer[uorb_index].magnetometer_ga[0] = vect(0);
 			_last_magnetometer[uorb_index].magnetometer_ga[1] = vect(1);
@@ -1255,4 +1261,9 @@ void VotedSensorsUpdate::calc_mag_inconsistency(sensor_preflight_s &preflt)
 		// get the vector length of the largest difference and write to the combined sensor struct
 		preflt.mag_inconsistency_ga = sqrtf(mag_diff_sum_max_sq);
 	}
+}
+
+void VotedSensorsUpdate::update_mag_compensation(float throttle, bool armed)
+{
+	_mag_compensator.update_throttle_and_armed_flag(throttle, armed);
 }

@@ -54,8 +54,7 @@ void MagCompensator::update_throttle_and_armed_flag(float throttle, bool armed)
 void MagCompensator::calculate_mag_corrected(matrix::Vector3f &mag)
 {
 	if (_armed) {
-		matrix::Vector3f d_mag_d_throttle = {_param_d_magX_d_throttle.get(), _param_d_magX_d_throttle.get(), _param_d_magZ_d_throttle.get()};
-		mag = mag + d_mag_d_throttle * _throttle;
-		mag.print();
+		matrix::Vector3f d_mag_d_throttle = {_param_d_magX_d_throttle.get(), _param_d_magY_d_throttle.get(), _param_d_magZ_d_throttle.get()};
+		mag = mag + d_mag_d_throttle * _throttle * _throttle * _throttle;
 	}
 }

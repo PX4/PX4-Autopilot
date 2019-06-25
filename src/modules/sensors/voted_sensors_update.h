@@ -60,6 +60,8 @@
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/subsystem_info.h>
 
+#include <lib/mag_compensation/MagCompensation.hpp>
+
 #include <DevMgr.hpp>
 
 #include "temperature_compensation.h"
@@ -141,6 +143,11 @@ public:
 	 * Calculates the magnitude in Gauss of the largest difference between the primary and any other magnetometers
 	 */
 	void calc_mag_inconsistency(sensor_preflight_s &preflt);
+
+	/**
+	 * Update input data for mag compensation.
+	 */
+	void update_mag_compensation(float throttle, bool armed);
 
 private:
 
@@ -267,6 +274,9 @@ private:
 	struct sensor_correction_s _corrections; /**< struct containing the sensor corrections to be published to the uORB*/
 	orb_advert_t _sensor_correction_pub = nullptr; /**< handle to the sensor correction uORB topic */
 	bool _corrections_changed = false;
+
+	/* Magnetometer interference compensation */
+	MagCompensator _mag_compensator;
 
 	/* sensor selection publication */
 	struct sensor_selection_s _selection = {}; /**< struct containing the sensor selection to be published to the uORB*/

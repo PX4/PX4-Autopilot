@@ -162,6 +162,7 @@ private:
 
 	const bool	_hil_enabled;			/**< if true, HIL is active */
 	bool		_armed{false};				/**< arming status of the vehicle */
+	float 		_throttle{0};
 
 	uORB::Subscription	_actuator_ctrl_0_sub{ORB_ID(actuator_controls_0)};		/**< attitude controls sub */
 	uORB::Subscription	_diff_pres_sub{ORB_ID(differential_pressure)};			/**< raw differential pressure subscription */
@@ -526,13 +527,10 @@ Sensors::adc_poll()
 						connected &= valid_chan[b];
 					}
 
-					actuator_controls_s ctrl{};
-					_actuator_ctrl_0_sub.copy(&ctrl);
-
 					battery_status_s battery_status{};
 					_battery[b].updateBatteryStatus(t, bat_voltage_v[b], bat_current_a[b],
 									connected, selected_source == b, b,
-									ctrl.control[actuator_controls_s::INDEX_THROTTLE],
+									_throttle,
 									_armed, &battery_status);
 					int instance;
 					orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &battery_status, &instance, ORB_PRIO_DEFAULT);
@@ -614,6 +612,14 @@ Sensors::run()
 			_vcontrol_mode_sub.copy(&vcontrol_mode);
 			_armed = vcontrol_mode.flag_armed;
 		}
+
+		if (_actuator_ctrl_0_sub.updated()) {
+			actuator_controls_s controls {};
+			_actuator_ctrl_0_sub.copy(&controls);
+			_throttle = controls.control[actuator_controls_s::INDEX_THROTTLE];
+		}
+
+		_voted_sensors_update.update_mag_compensation(_throttle, _armed);
 
 		/* the timestamp of the raw struct is updated by the gyro_poll() method (this makes the gyro
 		 * a mandatory sensor) */
