@@ -198,32 +198,22 @@ private:
 	/** actuator controls subscription */
 	uORB::SubscriptionPollable<actuator_controls_s> _actuators;
 
-	// private data
-	int32_t _motor1EncoderCounts;
-	int32_t _motor1Revolutions;
-	int32_t _motor1Overflow;
-	float _motor1Speed;
-
-	int32_t _motor2EncoderCounts;
-	int32_t _motor2Revolutions;
-	int32_t _motor2Overflow;
-	float _motor2Speed;
-
-	int32_t _lastEncoderCount[2];
-	int32_t _localPosition[2];
-	int64_t _revolutions[2];
+	uint32_t _lastEncoderCount[2];
+	int64_t _encoderCounts[2];
+	int32_t _motorSpeeds[2];
 
 
-	// private methods
-	uint16_t _sumBytes(uint8_t *buf, size_t n, uint16_t init = 0);
+	static uint16_t _calcCRC(const uint8_t *buf, size_t n, uint16_t init = 0);
 	int _sendUnsigned7Bit(e_command command, float data);
 	int _sendSigned16Bit(e_command command, float data);
 	int _sendNothing(e_command);
 
-	int32_t _bytesToInt(uint8_t *bytes);
-
 	/**
 	 * Perform a round-trip write and read.
+	 *
+	 * NOTE: This function uses a mutex contained in this class. This makes it thread-safe, but also a potential
+	 * source of deadlock.
+	 *
 	 * @param cmd Command to send to the Roboclaw
 	 * @param wbuff Write buffer. Must not contain command, address, or checksum. For most commands, this will be
 	 *   one or two bytes. Can be null iff wbytes == 0.
@@ -247,5 +237,3 @@ private:
 // unit testing
 int roboclawTest(const char *deviceName, uint8_t address,
 		 uint16_t pulsesPerRev);
-
-// vi:noet:smarttab:autoindent:ts=4:sw=4:tw=78
