@@ -71,6 +71,7 @@ LandDetector::~LandDetector()
 
 void LandDetector::start()
 {
+	_check_params(true);
 	ScheduleOnInterval(LAND_DETECTOR_UPDATE_INTERVAL);
 }
 
@@ -154,8 +155,7 @@ void LandDetector::_check_params(const bool force)
 
 	if (_param_update_sub.update(&param_update) || force) {
 		_update_params();
-		_total_flight_time = static_cast<uint64_t>(_param_total_flight_time_high.get()) << 32;
-		_total_flight_time |= _param_total_flight_time_low.get();
+		_update_total_flight_time();
 	}
 }
 
@@ -185,6 +185,12 @@ void LandDetector::_update_state()
 	} else {
 		_state = LandDetectionState::FLYING;
 	}
+}
+
+void LandDetector::_update_total_flight_time()
+{
+	_total_flight_time = static_cast<uint64_t>(_param_total_flight_time_high.get()) << 32;
+	_total_flight_time |= _param_total_flight_time_low.get();
 }
 
 } // namespace land_detector
