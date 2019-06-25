@@ -47,21 +47,22 @@
 #include <stdio.h>
 #include <uORB/SubscriptionPollable.hpp>
 #include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/wheel_encoders.h>
 #include <drivers/device/i2c.h>
 #include <sys/select.h>
 #include <sys/time.h>
 #include <pthread.h>
-//#include <px4.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 /**
  * This is a driver for the RoboClaw motor controller
  */
-class RoboClaw : public px4::ScheduledWorkItem
+class RoboClaw
 {
 public:
 
 	static int roboclawTest(int argc, char *argv[]);
+	void taskMain();
+	static bool taskShouldExit;
 
 	/** control channels */
 	enum e_channel {
@@ -190,18 +191,21 @@ private:
 	fd_set _uart_set;
 	struct timeval _uart_timeout;
 
-	pthread_mutex_t _uart_mutex;
-
 	/** poll structure for control packets */
-	struct pollfd _controlPoll;
+	struct pollfd _actuatorsPoll;
 
 	/** actuator controls subscription */
-	uORB::SubscriptionPollable<actuator_controls_s> _actuators;
+	int _actuatorsSub;
+	const struct orb_metadata *_actuatorsOrbID;
+	actuator_controls_s _actuatorControls;
+
+	orb_advert_t _wheelEncodersAdv;
+	const struct orb_metadata *_wheelEncodersOrbID;
+	wheel_encoders_s _wheelEncoderMsg;
 
 	uint32_t _lastEncoderCount[2];
 	int64_t _encoderCounts[2];
 	int32_t _motorSpeeds[2];
-
 
 	static uint16_t _calcCRC(const uint8_t *buf, size_t n, uint16_t init = 0);
 	int _sendUnsigned7Bit(e_command command, float data);
@@ -211,8 +215,7 @@ private:
 	/**
 	 * Perform a round-trip write and read.
 	 *
-	 * NOTE: This function uses a mutex contained in this class. This makes it thread-safe, but also a potential
-	 * source of deadlock.
+	 * NOTE: This function is not thread-safe.
 	 *
 	 * @param cmd Command to send to the Roboclaw
 	 * @param wbuff Write buffer. Must not contain command, address, or checksum. For most commands, this will be
