@@ -164,7 +164,7 @@ void parameter_flashfs_free(void)
 
 static inline int blank_flash(uint8_t *pf)
 {
-        return *pf == (uint8_t)BlankSig;
+	return *pf == (uint8_t)BlankSig;
 }
 
 /****************************************************************************
@@ -186,8 +186,8 @@ static bool blank_check(flash_entry_header_t *pf,
 			size_t new_size)
 {
 	bool rv = true;
-        uint8_t *pm = (uint8_t *) pf;
-        new_size /= sizeof(uint8_t);
+	uint8_t *pm = (uint8_t *) pf;
+	new_size /= sizeof(uint8_t);
 
 	while (new_size-- && rv) {
 		if (!blank_flash(pm++)) {
