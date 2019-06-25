@@ -55,7 +55,7 @@ CollisionPrevention::~CollisionPrevention()
 	}
 }
 
-void CollisionPrevention::publishConstrainedSetpoint(const Vector2f &original_setpoint,
+void CollisionPrevention::_publishConstrainedSetpoint(const Vector2f &original_setpoint,
 		const Vector2f &adapted_setpoint)
 {
 	collision_constraints_s	constraints{};	/**< collision constraints message */
@@ -77,7 +77,7 @@ void CollisionPrevention::publishConstrainedSetpoint(const Vector2f &original_se
 	}
 }
 
-void CollisionPrevention::publishObstacleDistance(obstacle_distance_s &obstacle)
+void CollisionPrevention::_publishObstacleDistance(obstacle_distance_s &obstacle)
 {
 	// publish fused obtacle distance message with data from offboard obstacle_distance and distance sensor
 	if (_obstacle_distance_pub != nullptr) {
@@ -88,7 +88,7 @@ void CollisionPrevention::publishObstacleDistance(obstacle_distance_s &obstacle)
 	}
 }
 
-void CollisionPrevention::updateOffboardObstacleDistance(obstacle_distance_s &obstacle)
+void CollisionPrevention::_updateOffboardObstacleDistance(obstacle_distance_s &obstacle)
 {
 	_sub_obstacle_distance.update();
 	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance.get();
@@ -99,11 +99,9 @@ void CollisionPrevention::updateOffboardObstacleDistance(obstacle_distance_s &ob
 	}
 }
 
-void CollisionPrevention::updateDistanceSensor(obstacle_distance_s &obstacle)
+void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle)
 {
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-		// _sub_distance_sensor[i].update();
-		// const distance_sensor_s &distance_sensor = _sub_distance_sensor[i].get();
 		distance_sensor_s distance_sensor;
 		_sub_distance_sensor[i].copy(&distance_sensor);
 
@@ -136,7 +134,7 @@ void CollisionPrevention::updateDistanceSensor(obstacle_distance_s &obstacle)
 			if ((distance_sensor.current_distance > distance_sensor.min_distance) &&
 			    (distance_sensor.current_distance < distance_sensor.max_distance)) {
 
-				float sensor_yaw_body_rad = sensorOrientationToYawOffset(distance_sensor, obstacle.angle_offset);
+				float sensor_yaw_body_rad = _sensorOrientationToYawOffset(distance_sensor, obstacle.angle_offset);
 
 				matrix::Quatf attitude = Quatf(_sub_vehicle_attitude.get().q);
 				// convert the sensor orientation from body to local frame in the range [0, 360]
@@ -183,15 +181,15 @@ void CollisionPrevention::updateDistanceSensor(obstacle_distance_s &obstacle)
 		}
 	}
 
-	publishObstacleDistance(obstacle);
+	_publishObstacleDistance(obstacle);
 }
 
-void CollisionPrevention::calculateConstrainedSetpoint(Vector2f &setpoint,
+void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 		const Vector2f &curr_pos, const Vector2f &curr_vel)
 {
 	obstacle_distance_s obstacle = {};
-	updateOffboardObstacleDistance(obstacle);
-	updateDistanceSensor(obstacle);
+	_updateOffboardObstacleDistance(obstacle);
+	_updateDistanceSensor(obstacle);
 
 	//The maximum velocity formula contains a square root, therefore the whole calculation is done with squared norms.
 	//that way the root does not have to be calculated for every range bin but once at the end.
@@ -281,7 +279,7 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 {
 	//calculate movement constraints based on range data
 	Vector2f new_setpoint = original_setpoint;
-	calculateConstrainedSetpoint(new_setpoint, curr_pos, curr_vel);
+	_calculateConstrainedSetpoint(new_setpoint, curr_pos, curr_vel);
 
 	//warn user if collision prevention starts to interfere
 	bool currently_interfering = (new_setpoint(0) < original_setpoint(0) - 0.05f * max_speed
@@ -294,7 +292,7 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 	}
 
 	_interfering = currently_interfering;
-	publishConstrainedSetpoint(original_setpoint, new_setpoint);
+	_publishConstrainedSetpoint(original_setpoint, new_setpoint);
 	original_setpoint = new_setpoint;
 }
 

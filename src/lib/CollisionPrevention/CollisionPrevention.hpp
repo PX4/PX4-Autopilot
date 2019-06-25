@@ -62,9 +62,18 @@ public:
 	CollisionPrevention(ModuleParams *parent);
 
 	~CollisionPrevention();
-
+	/**
+	 * Returs true if Collision Prevention is running
+	 */
 	bool is_active() { return _param_mpc_col_prev_d.get() > 0; }
 
+	/**
+	 * Computes collision free setpoints
+	 * @param original_setpoint, setpoint before collision prevention intervention
+	 * @param max_speed, maximum xy speed
+	 * @param curr_pos, current vehicle position
+	 * @param curr_vel, current vehicle velocity
+	 */
 	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed,
 			    const matrix::Vector2f &curr_pos, const matrix::Vector2f &curr_vel);
 
@@ -89,9 +98,12 @@ private:
 		(ParamFloat<px4::params::MPC_COL_PREV_DLY>) _param_mpc_col_prev_dly /**< delay of the range measurement data*/
 	)
 
-	void update();
-
-	inline float sensorOrientationToYawOffset(const distance_sensor_s &distance_sensor, float angle_offset)
+	/**
+	 * Transforms the sensor orientation into a yaw in the local frame
+	 * @param distance_sensor, distance sensor message
+	 * @param angle_offset, sensor body frame offset
+	 */
+	inline float _sensorOrientationToYawOffset(const distance_sensor_s &distance_sensor, float angle_offset)
 	{
 
 		float offset = angle_offset > 0.f ? math::radians(angle_offset) : 0.0f;
@@ -117,14 +129,38 @@ private:
 		return offset;
 	}
 
-	void calculateConstrainedSetpoint(matrix::Vector2f &setpoint, const matrix::Vector2f &curr_pos,
-					  const matrix::Vector2f &curr_vel);
-
-	void publishConstrainedSetpoint(const matrix::Vector2f &original_setpoint, const matrix::Vector2f &adapted_setpoint);
-	void publishObstacleDistance(obstacle_distance_s &obstacle);
-
-	void updateOffboardObstacleDistance(obstacle_distance_s &obstacle);
-	void updateDistanceSensor(obstacle_distance_s &obstacle);
+	/**
+	 * Computes collision free setpoints
+	 * @param setpoint, setpoint before collision prevention intervention
+	 * @param curr_pos, current vehicle position
+	 * @param curr_vel, current vehicle velocity
+	 */
+	void _calculateConstrainedSetpoint(matrix::Vector2f &setpoint, const matrix::Vector2f &curr_pos,
+					   const matrix::Vector2f &curr_vel);
+	/**
+	 * Publishes collision_constraints message
+	 * @param original_setpoint, setpoint before collision prevention intervention
+	 * @param adapted_setpoint, collision prevention adaped setpoint
+	 */
+	void _publishConstrainedSetpoint(const matrix::Vector2f &original_setpoint, const matrix::Vector2f &adapted_setpoint);
+	/**
+	 * Publishes obstacle_distance message with fused data from offboard and from distance sensors
+	 * @param obstacle, obstacle_distance message to be publsihed
+	 */
+	void _publishObstacleDistance(obstacle_distance_s &obstacle);
+	/**
+	 * Updates obstacle distance message with measurement from offboard
+	 * @param obstacle, obstacle_distance message to be updated
+	 */
+	void _updateOffboardObstacleDistance(obstacle_distance_s &obstacle);
+	/**
+	 * Updates obstacle distance message with measurement from distance sensors
+	 * @param obstacle, obstacle_distance message to be updated
+	 */
+	void _updateDistanceSensor(obstacle_distance_s &obstacle);
+	/**
+	 * Publishes vehicle command.
+	 */
 	void _publishVehicleCmdDoLoiter();
 
 };
