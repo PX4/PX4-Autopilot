@@ -163,6 +163,8 @@ private:
 
 	void _update_state();
 
+	void _update_total_flight_time();
+
 	bool _previous_armed_state{false}; ///< stores the previous actuator_armed.armed state
 
 	uint64_t _total_flight_time{0}; ///< in microseconds
