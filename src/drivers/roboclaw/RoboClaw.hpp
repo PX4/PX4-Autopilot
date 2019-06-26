@@ -48,6 +48,7 @@
 #include <uORB/SubscriptionPollable.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/wheel_encoders.h>
+#include <uORB/topics/actuator_armed.h>
 #include <drivers/device/i2c.h>
 #include <sys/select.h>
 #include <sys/time.h>
@@ -191,16 +192,14 @@ private:
 	fd_set _uart_set;
 	struct timeval _uart_timeout;
 
-	/** poll structure for control packets */
-	struct pollfd _actuatorsPoll;
-
 	/** actuator controls subscription */
 	int _actuatorsSub;
-	const struct orb_metadata *_actuatorsOrbID;
 	actuator_controls_s _actuatorControls;
 
+	int _armedSub;
+	actuator_armed_s _actuatorArmed;
+
 	orb_advert_t _wheelEncodersAdv;
-	const struct orb_metadata *_wheelEncodersOrbID;
 	wheel_encoders_s _wheelEncoderMsg;
 
 	uint32_t _lastEncoderCount[2];
@@ -236,7 +235,3 @@ private:
 	int _transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 			 uint8_t *rbuff, size_t rbytes, bool send_checksum = true, bool recv_checksum = false);
 };
-
-// unit testing
-int roboclawTest(const char *deviceName, uint8_t address,
-		 uint16_t pulsesPerRev);
