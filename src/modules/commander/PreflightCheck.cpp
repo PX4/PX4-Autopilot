@@ -45,6 +45,7 @@
 #include "rc_check.h"
 
 #include <math.h>
+#include <mathlib/mathlib.h>
 
 #include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
@@ -203,6 +204,8 @@ out:
 // return false if the magnetomer measurements are inconsistent
 static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, bool report_status)
 {
+	bool pass = false; // flag for result of checks
+
 	// get the sensor preflight data
 	uORB::SubscriptionData<sensor_preflight_s> sensors_sub{ORB_ID(sensor_preflight)};
 	sensors_sub.update();
@@ -210,25 +213,24 @@ static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s 
 
 	if (sensors.timestamp == 0) {
 		// can happen if not advertised (yet)
-		return true;
+		pass = true;
 	}
 
 	// Use the difference between sensors to detect a bad calibration, orientation or magnetic interference.
 	// If a single sensor is fitted, the value being checked will be zero so this check will always pass.
-	float test_limit;
-	param_get(param_find("COM_ARM_MAG"), &test_limit);
+	int32_t angle_difference_limit_deg;
+	param_get(param_find("COM_ARM_MAG_ANG"), &angle_difference_limit_deg);
 
-	if (sensors.mag_inconsistency_ga > test_limit) {
-		if (report_status) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compass Sensors inconsistent");
-			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_MAG, false, status);
-			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_MAG2, false, status);
-		}
+	pass = pass || angle_difference_limit_deg < 0; // disabled, pass check
+	pass = pass || sensors.mag_inconsistency_angle < math::radians<float>(angle_difference_limit_deg);
 
-		return false;
+	if (!pass && report_status) {
+		mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compass Sensors inconsistent");
+		set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_MAG, false, status);
+		set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_MAG2, false, status);
 	}
 
-	return true;
+	return pass;
 }
 
 static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance,

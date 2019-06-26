@@ -50,6 +50,7 @@
 
 using namespace sensors;
 using namespace DriverFramework;
+using namespace matrix;
 
 VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled)
 	: _parameters(parameters), _hil_enabled(hil_enabled)
@@ -60,7 +61,7 @@ VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_en
 	memset(&_last_accel_timestamp, 0, sizeof(_last_accel_timestamp));
 	memset(&_accel_diff, 0, sizeof(_accel_diff));
 	memset(&_gyro_diff, 0, sizeof(_gyro_diff));
-	memset(&_mag_diff, 0, sizeof(_mag_diff));
+	memset(&_mag_angle_diff, 0, sizeof(_mag_angle_diff));
 
 	// initialise the publication variables
 	memset(&_corrections, 0, sizeof(_corrections));
@@ -1205,34 +1206,25 @@ void VotedSensorsUpdate::calc_gyro_inconsistency(sensor_preflight_s &preflt)
 	}
 }
 
-void VotedSensorsUpdate::calc_mag_inconsistency(sensor_preflight_s &preflt)
+void VotedSensorsUpdate::calcMagInconsistency(sensor_preflight_s &preflt)
 {
-	float mag_diff_sum_max_sq = 0.0f; // the maximum sum of axis differences squared
+	Vector3f primary_mag(_last_magnetometer[_mag.last_best_vote].magnetometer_ga); // primary mag field vector
+	float mag_angle_diff_max = 0.0f; // the maximum angle difference
 	unsigned check_index = 0; // the number of sensors the primary has been checked against
 
 	// Check each sensor against the primary
-	for (int sensor_index = 0; sensor_index < _mag.subscription_count; sensor_index++) {
-
+	for (int i = 0; i < _mag.subscription_count; i++) {
 		// check that the sensor we are checking against is not the same as the primary
-		if ((_mag.priority[sensor_index] > 0) && (sensor_index != _mag.last_best_vote)) {
+		if ((_mag.priority[i] > 0) && (i != _mag.last_best_vote)) {
+			// calculate angle to 3D magnetic field vector of the primary sensor
+			Vector3f current_mag(_last_magnetometer[i].magnetometer_ga);
+			float angle_error = AxisAnglef(Quatf(current_mag, primary_mag)).angle();
 
-			float mag_diff_sum_sq = 0.0f; // sum of differences squared for a single sensor comparison against the primary
+			// complementary filter to not fail/pass on single outliers
+			_mag_angle_diff[check_index] *= 0.95f;
+			_mag_angle_diff[check_index] += 0.05f * angle_error;
 
-			// calculate mag_diff_sum_sq for the specified sensor against the primary
-			for (unsigned axis_index = 0; axis_index < 3; axis_index++) {
-				_mag_diff[axis_index][check_index] = 0.95f * _mag_diff[axis_index][check_index] + 0.05f *
-								     (_last_magnetometer[_mag.last_best_vote].magnetometer_ga[axis_index] -
-								      _last_magnetometer[sensor_index].magnetometer_ga[axis_index]);
-
-				mag_diff_sum_sq += _mag_diff[axis_index][check_index] * _mag_diff[axis_index][check_index];
-
-			}
-
-			// capture the largest sum value
-			if (mag_diff_sum_sq > mag_diff_sum_max_sq) {
-				mag_diff_sum_max_sq = mag_diff_sum_sq;
-
-			}
+			mag_angle_diff_max = math::max(mag_angle_diff_max, _mag_angle_diff[check_index]);
 
 			// increment the check index
 			check_index++;
@@ -1241,16 +1233,10 @@ void VotedSensorsUpdate::calc_mag_inconsistency(sensor_preflight_s &preflt)
 		// check to see if the maximum number of checks has been reached and break
 		if (check_index >= 2) {
 			break;
-
 		}
 	}
 
-	// skip check if less than 2 sensors
-	if (check_index < 1) {
-		preflt.mag_inconsistency_ga = 0.0f;
-
-	} else {
-		// get the vector length of the largest difference and write to the combined sensor struct
-		preflt.mag_inconsistency_ga = sqrtf(mag_diff_sum_max_sq);
-	}
+	// get the vector length of the largest difference and write to the combined sensor struct
+	// will be zero if there is only one magnetometer and hence nothing to compare
+	preflt.mag_inconsistency_angle = mag_angle_diff_max;
 }
