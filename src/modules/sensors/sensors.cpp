@@ -657,7 +657,7 @@ Sensors::run()
 				preflt.timestamp = hrt_absolute_time();
 				_voted_sensors_update.calc_accel_inconsistency(preflt);
 				_voted_sensors_update.calc_gyro_inconsistency(preflt);
-				_voted_sensors_update.calc_mag_inconsistency(preflt);
+				_voted_sensors_update.calcMagInconsistency(preflt);
 				orb_publish(ORB_ID(sensor_preflight), _sensor_preflight, &preflt);
 			}
 		}
