@@ -43,6 +43,7 @@
 
 
 #include "GroundRoverPositionControl.hpp"
+#include <lib/ecl/geo/geo.h>
 
 static int _control_task = -1;			/**< task handle for sensor task */
 
@@ -262,15 +263,37 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 			}
 		}
 
-		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_IDLE ||
-		    pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER ||
-		    pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+		float dist = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon,
+				pos_sp_triplet.current.lat, pos_sp_triplet.current.lon);
 
+		bool should_idle = true;
+
+		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
+			// Because of noise in measurements, if the rover was always trying to reach an exact point, it would
+			// move around when it should be parked. So, I try to get the rover within loiter_radius/2, but then
+			// once I reach that point, I don't move until I'm outside of loiter_radius.
+			// TODO: Find out if there's a better measurement to use than loiter_radius.
+			if (dist > pos_sp_triplet.current.loiter_radius) {
+				_waypoint_reached = false;
+
+			} else if (dist <= pos_sp_triplet.current.loiter_radius / 2) {
+				_waypoint_reached = true;
+			}
+
+			should_idle = _waypoint_reached;
+
+		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||
+			   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF ||
+			   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
+			should_idle = false;
+		}
+
+
+		if (should_idle) {
 			_act_controls.control[actuator_controls_s::INDEX_YAW] = 0.0f;
 			_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
 
-		} else if ((pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION)
-			   || (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF)) {
+		} else {
 
 			/* waypoint is a plain navigation waypoint or the takeoff waypoint, does not matter */
 			_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
@@ -278,8 +301,7 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 			_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = mission_throttle;
 
 			float desired_r = ground_speed_2d.norm_squared() / math::abs_t(_gnd_control.nav_lateral_acceleration_demand());
-			//desired_r = math::constrain(desired_r, 0.0000001f, 9999999999.0f);
-			float desired_theta = (0.5f * (float) M_PI) - (float) std::atan2(desired_r, _parameters.wheel_base);
+			float desired_theta = (0.5f * M_PI_F) - atan2f(desired_r, _parameters.wheel_base);
 			float control_effort = (desired_theta / _parameters.max_turn_angle) * math::sign(
 						       _gnd_control.nav_lateral_acceleration_demand());
 			control_effort = math::constrain(control_effort, -1.0f, 1.0f);
