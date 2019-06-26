@@ -93,8 +93,6 @@ RoboClaw::RoboClaw(const char *deviceName, uint16_t address, uint16_t pulsesPerR
 	_uart(0),
 	_uart_set(),
 	_uart_timeout{.tv_sec = 0, .tv_usec = TIMEOUT_US},
-	_actuatorsOrbID(ORB_ID(actuator_controls_0)),
-	_wheelEncodersOrbID(ORB_ID(wheel_encoders)),
 	_lastEncoderCount{0, 0},
 	_encoderCounts{0, 0},
 	_motorSpeeds{0, 0}
@@ -139,32 +137,63 @@ RoboClaw::~RoboClaw()
 
 void RoboClaw::taskMain()
 {
+
+	// This main loop performs two different tasks, asynchronously:
+	// - Send actuator_controls_0 to the Roboclaw as soon as they are available
+	// - Read the encoder values at a constant rate
+	// To do this, the timeout on the poll() function is used.
+	// waitTime is the amount of time left (int microseconds) until the next time I should read from the encoders.
+	// It is updated at the end of every loop. Sometimes, if the actuator_controls_0 message came in right before
+	// I should have read the encoders, waitTime will be 0. This is fine. When waitTime is 0, poll() will return
+	// immediately with a timeout. (Or possibly with a message, if one happened to be available at that exact moment)
 	uint64_t encoderTaskLastRun = 0;
 	int waitTime = 0;
 
-	_actuatorsSub = orb_subscribe(_actuatorsOrbID);
+	_actuatorsSub = orb_subscribe(ORB_ID(actuator_controls_0));
 	orb_set_interval(_actuatorsSub, ACTUATOR_WRITE_PERIOD_MS);
-	_actuatorsPoll.fd = _actuatorsSub;
-	_actuatorsPoll.events = POLLIN;
+
+	_armedSub = orb_subscribe(ORB_ID(actuator_armed));
+
+	//TODO: Add parameter listening
+	pollfd fds[2];
+	fds[0].fd = _actuatorsSub;
+	fds[0].events = POLLIN;
+	fds[1].fd = _armedSub;
+	fds[1].events = POLLIN;
 
 	memset((void *) &_wheelEncoderMsg, 0, sizeof(wheel_encoders_s));
 	_wheelEncoderMsg.timestamp = hrt_absolute_time();
-	_wheelEncodersAdv = orb_advertise(_wheelEncodersOrbID, &_wheelEncoderMsg);
+	_wheelEncodersAdv = orb_advertise(ORB_ID(wheel_encoders), &_wheelEncoderMsg);
 
 	while (!taskShouldExit) {
 
-		int pret = poll(&_actuatorsPoll, 1, waitTime / 1000);
+		int pret = poll(fds, sizeof(fds) / sizeof(pollfd), waitTime / 1000);
 
-		if (pret > 0 && _actuatorsPoll.revents & POLLIN) {
-			orb_copy(_actuatorsOrbID, _actuatorsSub, &_actuatorControls);
-			int drive_ret = drive(_actuatorControls.control[actuator_controls_s::INDEX_THROTTLE]);
-			int turn_ret = turn(_actuatorControls.control[actuator_controls_s::INDEX_YAW]);
+		// No timeout, update on either the actuator controls or the armed state
+		if (pret > 0 && (fds[0].revents & POLLIN || fds[1].revents & POLLIN)) {
+			orb_copy(ORB_ID(actuator_controls_0), _actuatorsSub, &_actuatorControls);
+			orb_copy(ORB_ID(actuator_armed), _armedSub, &_actuatorArmed);
 
-			if (drive_ret <= 0 || turn_ret <= 0) {
-				PX4_ERR("Error controlling RoboClaw. Drive err: %d. Turn err: %d", drive_ret, turn_ret);
+			int drive_ret = 0, turn_ret = 0;
+
+			// Disarmed
+			if (!_actuatorArmed.armed || _actuatorArmed.lockdown || _actuatorArmed.manual_lockdown
+			    || _actuatorArmed.force_failsafe) {
+				// If disarmed, I want to be certain that the stop command gets through.
+				while ((drive_ret = drive(0.0)) <= 0 || (turn_ret = turn(0.0)) <= 0) {
+					PX4_ERR("Error trying to stop: Drive: %d, Turn: %d", drive_ret, turn_ret);
+				}
+
+			} else {
+				drive_ret = drive(_actuatorControls.control[actuator_controls_s::INDEX_THROTTLE]);
+				turn_ret = turn(_actuatorControls.control[actuator_controls_s::INDEX_YAW]);
+
+				if (drive_ret <= 0 || turn_ret <= 0) {
+					PX4_ERR("Error controlling RoboClaw. Drive err: %d. Turn err: %d", drive_ret, turn_ret);
+				}
 			}
 
-			//PX4_INFO("[%llu] Writing actuators", hrt_absolute_time());
+			// A timeout occurred, which means that it's time to update the encoders
 
 		} else {
 			encoderTaskLastRun = hrt_absolute_time();
@@ -186,10 +215,10 @@ void RoboClaw::taskMain()
 
 		waitTime = ENCODER_READ_PERIOD_MS * 1000 - (hrt_absolute_time() - encoderTaskLastRun);
 		waitTime = waitTime < 0 ? 0 : waitTime;
-		//PX4_INFO("ROBOCLAW WAIT TIME: %d", waitTime);
 	}
 
 	orb_unsubscribe(_actuatorsSub);
+	orb_unsubscribe(_armedSub);
 	orb_unadvertise(_wheelEncodersAdv);
 }
 
@@ -345,32 +374,6 @@ int RoboClaw::resetEncoders()
 	return _sendNothing(CMD_RESET_ENCODERS);
 }
 
-//int RoboClaw::update()
-//{
-//	//TODO: Also update motor locations and speeds here
-//
-//	// wait for an actuator publication,
-//	// check for exit condition every second
-//	// note "::poll" is required to distinguish global
-//	// poll from member function for driver
-//	if (::poll(&_controlPoll, 1, 1000) < 0) { return -1; } // poll error
-//
-//	// if new data, send to motors
-//	if (_actuators.updated()) {
-//		_actuators.update();
-//		int drive_ret = drive(_actuators.get().control[actuator_controls_s::INDEX_THROTTLE]);
-//		int turn_ret = turn(_actuators.get().control[actuator_controls_s::INDEX_YAW]);
-//
-//		if (drive_ret <= 0 || turn_ret <= 0) {
-//			PX4_ERR("Error controlling RoboClaw. Drive err: %d. Turn err: %d", drive_ret, turn_ret);
-//		}
-//	}
-//
-//	Run();
-//
-//	return 0;
-//}
-
 int RoboClaw::_sendUnsigned7Bit(e_command command, float data)
 {
 	data = fabs(data);
@@ -512,41 +515,4 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 			return -11;
 		}
 	}
-}
-
-int RoboClaw::roboclawTest(int argc, char *argv[])
-{
-	printf("roboclaw test: starting\n");
-
-	// setup
-	RoboClaw roboclaw("/dev/ttyS3", 128, 1200);
-	roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_1, 0.3);
-	roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_2, 0.3);
-	char buf[200];
-
-	for (int i = 0; i < 10; i++) {
-		usleep(100000);
-		roboclaw.readEncoder();
-		//roboclaw.readEncoder(RoboClaw::MOTOR_2);
-		roboclaw.printStatus(buf, 200);
-		printf("%s", buf);
-	}
-
-	roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_1, -0.3);
-	roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_2, -0.3);
-
-	for (int i = 0; i < 10; i++) {
-		usleep(100000);
-		roboclaw.readEncoder();
-		//roboclaw.readEncoder(RoboClaw::MOTOR_2);
-		roboclaw.printStatus(buf, 200);
-		printf("%s", buf);
-	}
-
-	roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_1, 0.0);
-	roboclaw.setMotorDutyCycle(RoboClaw::MOTOR_2, 0.0);
-
-	printf("Test complete\n");
-
-	return 0;
 }

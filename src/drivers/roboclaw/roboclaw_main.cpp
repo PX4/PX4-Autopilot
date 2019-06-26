@@ -34,12 +34,12 @@
 
 
 /**
- * @ file roboclaw_main.cpp
+ * @file roboclaw_main.cpp
  *
  * RoboClaw Motor Driver
  *
  * references:
- * http://downloads.orionrobotics.com/downloads/datasheets/motor_controller_robo_claw_R0401.pdf
+ * http://downloads.ionmc.com/docs/roboclaw_user_manual.pdf
  *
  */
 
@@ -109,34 +109,6 @@ int roboclaw_main(int argc, char *argv[])
 						 2500,
 						 roboclaw_thread_main,
 						 (char *const *)argv);
-		return 0;
-
-	} else if (!strcmp(argv[1], "test")) {
-
-		const char *deviceName = "/dev/ttyS3";
-		uint8_t address = 128;
-		uint16_t pulsesPerRev = 1200;
-
-		if (argc == 2) {
-			printf("testing with default settings\n");
-
-		} else if (argc != 4) {
-			printf("usage: roboclaw test device address pulses_per_rev\n");
-			return -1;
-
-		} else {
-			deviceName = argv[2];
-			address = strtoul(argv[3], nullptr, 0);
-			pulsesPerRev = strtoul(argv[4], nullptr, 0);
-		}
-
-		printf("device:\t%s\taddress:\t%d\tpulses per rev:\t%ld\n",
-		       deviceName, address, pulsesPerRev);
-
-		//RoboClaw::roboclawTest(deviceName, address, pulsesPerRev);
-		px4_task_spawn_cmd("robclwtst", SCHED_DEFAULT, SCHED_PRIORITY_MAX - 10, 2500, RoboClaw::roboclawTest,
-				   (char *const *)argv);
-		RoboClaw::taskShouldExit = true;
 		return 0;
 
 	} else if (!strcmp(argv[1], "stop")) {
