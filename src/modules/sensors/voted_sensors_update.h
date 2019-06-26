@@ -141,7 +141,7 @@ public:
 	/**
 	 * Calculates the magnitude in Gauss of the largest difference between the primary and any other magnetometers
 	 */
-	void calc_mag_inconsistency(sensor_preflight_s &preflt);
+	void calcMagInconsistency(sensor_preflight_s &preflt);
 
 private:
 
@@ -261,7 +261,7 @@ private:
 
 	float _accel_diff[3][2];	/**< filtered accel differences between IMU units (m/s/s) */
 	float _gyro_diff[3][2];		/**< filtered gyro differences between IMU uinits (rad/s) */
-	float _mag_diff[3][2];		/**< filtered mag differences between sensor instances (Ga) */
+	float _mag_angle_diff[2];	/**< filtered mag angle differences between sensor instances (Ga) */
 
 	/* sensor thermal compensation */
 	TemperatureCompensation _temperature_compensation;
