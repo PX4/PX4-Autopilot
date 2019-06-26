@@ -966,8 +966,8 @@ void Ekf2::run()
 					const float y_v2 = fminf(vel_body_wind(1) * vel_body_wind(1), max_airspeed_sq);
 					const float z_v2 = fminf(vel_body_wind(2) * vel_body_wind(2), max_airspeed_sq);
 
-					const float pstatic_err = 0.5f * airdata.rho *
-								  (K_pstatic_coef_x * x_v2) + (K_pstatic_coef_y * y_v2) + (_param_ekf2_pcoef_z.get() * z_v2);
+					const float pstatic_err = 0.5f * airdata.rho * (
+									  K_pstatic_coef_x * x_v2 + K_pstatic_coef_y * y_v2 + _param_ekf2_pcoef_z.get() * z_v2);
 
 					// correct baro measurement using pressure error estimate and assuming sea level gravity
 					balt_data_avg += pstatic_err / (airdata.rho * CONSTANTS_ONE_G);
