@@ -133,10 +133,10 @@ void VotedSensorsUpdate::deinit()
 void VotedSensorsUpdate::parameters_update()
 {
 	/* fine tune board offset */
-	matrix::Dcmf board_rotation_offset = matrix::Eulerf(
-			M_DEG_TO_RAD_F * _parameters.board_offset[0],
-			M_DEG_TO_RAD_F * _parameters.board_offset[1],
-			M_DEG_TO_RAD_F * _parameters.board_offset[2]);
+	Dcmf board_rotation_offset = Eulerf(
+					     M_DEG_TO_RAD_F * _parameters.board_offset[0],
+					     M_DEG_TO_RAD_F * _parameters.board_offset[1],
+					     M_DEG_TO_RAD_F * _parameters.board_offset[2]);
 
 	_board_rotation = board_rotation_offset * get_rot_matrix((enum Rotation)_parameters.board_rotation);
 
@@ -557,7 +557,7 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 
 			_accel_device_id[uorb_index] = accel_report.device_id;
 
-			matrix::Vector3f accel_data;
+			Vector3f accel_data;
 
 			if (accel_report.integral_dt != 0) {
 				/*
@@ -569,9 +569,9 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 
 				// convert the delta velocities to an equivalent acceleration before application of corrections
 				float dt_inv = 1.e6f / accel_report.integral_dt;
-				accel_data = matrix::Vector3f(accel_report.x_integral * dt_inv,
-							      accel_report.y_integral * dt_inv,
-							      accel_report.z_integral * dt_inv);
+				accel_data = Vector3f(accel_report.x_integral * dt_inv,
+						      accel_report.y_integral * dt_inv,
+						      accel_report.z_integral * dt_inv);
 
 				_last_sensor_data[uorb_index].accelerometer_integral_dt = accel_report.integral_dt;
 
@@ -580,7 +580,7 @@ void VotedSensorsUpdate::accel_poll(struct sensor_combined_s &raw)
 
 				// Correct each sensor for temperature effects
 				// Filtering and/or downsampling of temperature should be performed in the driver layer
-				accel_data = matrix::Vector3f(accel_report.x, accel_report.y, accel_report.z);
+				accel_data = Vector3f(accel_report.x, accel_report.y, accel_report.z);
 
 				// handle the cse where this is our first output
 				if (_last_accel_timestamp[uorb_index] == 0) {
@@ -664,7 +664,7 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 
 			_gyro_device_id[uorb_index] = gyro_report.device_id;
 
-			matrix::Vector3f gyro_rate;
+			Vector3f gyro_rate;
 
 			if (gyro_report.integral_dt != 0) {
 				/*
@@ -676,9 +676,9 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 
 				// convert the delta angles to an equivalent angular rate before application of corrections
 				float dt_inv = 1.e6f / gyro_report.integral_dt;
-				gyro_rate = matrix::Vector3f(gyro_report.x_integral * dt_inv,
-							     gyro_report.y_integral * dt_inv,
-							     gyro_report.z_integral * dt_inv);
+				gyro_rate = Vector3f(gyro_report.x_integral * dt_inv,
+						     gyro_report.y_integral * dt_inv,
+						     gyro_report.z_integral * dt_inv);
 
 				_last_sensor_data[uorb_index].gyro_integral_dt = gyro_report.integral_dt;
 
@@ -687,7 +687,7 @@ void VotedSensorsUpdate::gyro_poll(struct sensor_combined_s &raw)
 
 				// Correct each sensor for temperature effects
 				// Filtering and/or downsampling of temperature should be performed in the driver layer
-				gyro_rate = matrix::Vector3f(gyro_report.x, gyro_report.y, gyro_report.z);
+				gyro_rate = Vector3f(gyro_report.x, gyro_report.y, gyro_report.z);
 
 				// handle the case where this is our first output
 				if (_last_sensor_data[uorb_index].timestamp == 0) {
@@ -770,7 +770,7 @@ void VotedSensorsUpdate::mag_poll(vehicle_magnetometer_s &magnetometer)
 				parameters_update();
 			}
 
-			matrix::Vector3f vect(mag_report.x, mag_report.y, mag_report.z);
+			Vector3f vect(mag_report.x, mag_report.y, mag_report.z);
 			vect = _mag_rotation[uorb_index] * vect;
 
 			_last_magnetometer[uorb_index].timestamp = mag_report.timestamp;
@@ -834,7 +834,7 @@ void VotedSensorsUpdate::baro_poll(vehicle_air_data_s &airdata)
 			_baro_device_id[uorb_index] = baro_report.device_id;
 
 			got_update = true;
-			matrix::Vector3f vect(baro_report.pressure, baro_report.temperature, 0.f);
+			Vector3f vect(baro_report.pressure, baro_report.temperature, 0.f);
 
 			_last_airdata[uorb_index].timestamp = baro_report.timestamp;
 			_last_airdata[uorb_index].baro_temp_celcius = baro_report.temperature;
