@@ -123,15 +123,15 @@ private:
 		float low_thrust_threshold;
 	} _params{};
 
-	uORB::Subscription _actuatorsSub{ORB_ID(actuator_controls_0)};
-	uORB::Subscription _attitudeSub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _actuator_controls_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
 	uORB::Subscription _sensor_bias_sub{ORB_ID(sensor_bias)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
 
-	actuator_controls_s               _actuators {};
+	actuator_controls_s               _actuator_controls {};
 	battery_status_s                  _battery {};
 	vehicle_control_mode_s            _control_mode {};
 	sensor_bias_s                     _sensor_bias {};
