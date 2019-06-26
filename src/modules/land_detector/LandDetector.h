@@ -143,7 +143,7 @@ protected:
 	static constexpr uint32_t LAND_DETECTOR_UPDATE_INTERVAL = 20_ms;
 
 	orb_advert_t _land_detected_pub{nullptr};
-	vehicle_land_detected_s _landDetected{};
+	vehicle_land_detected_s _land_detected{};
 
 	LandDetectionState _state{LandDetectionState::LANDED};
 
