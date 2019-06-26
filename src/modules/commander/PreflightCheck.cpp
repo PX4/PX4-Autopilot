@@ -225,7 +225,9 @@ static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s 
 	pass = pass || sensors.mag_inconsistency_angle < math::radians<float>(angle_difference_limit_deg);
 
 	if (!pass && report_status) {
-		mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compass Sensors inconsistent");
+		mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compasses %d° inconsistent",
+				     static_cast<int>(math::degrees<float>(sensors.mag_inconsistency_angle)));
+		mavlink_log_critical(mavlink_log_pub, "Please check orientations and recalibrate");
 		set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_MAG, false, status);
 		set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_MAG2, false, status);
 	}
