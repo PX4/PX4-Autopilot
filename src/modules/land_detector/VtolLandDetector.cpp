@@ -55,7 +55,7 @@ void VtolLandDetector::_update_topics()
 {
 	MulticopterLandDetector::_update_topics();
 
-	_airspeedSub.update(&_airspeed);
+	_airspeed_sub.update(&_airspeed);
 	_vehicle_status_sub.update(&_vehicle_status);
 }
 
