@@ -89,11 +89,11 @@ private:
 
 	uORB::Subscription _airspeedSub{ORB_ID(airspeed)};
 	uORB::Subscription _sensor_bias_sub{ORB_ID(sensor_bias)};
-	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position});
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position});
 
 	airspeed_s _airspeed{};
-	sensor_bias_s _sensors{};
-	vehicle_local_position_s _local_pos{};
+	sensor_bias_s _sensor_bias{};
+	vehicle_local_position_s _vehicle_local_position{};
 
 	float _velocity_xy_filtered{0.0f};
 	float _velocity_z_filtered{0.0f};

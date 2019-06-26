@@ -65,8 +65,8 @@ FixedwingLandDetector::FixedwingLandDetector()
 void FixedwingLandDetector::_update_topics()
 {
 	_airspeedSub.update(&_airspeed);
-	_sensor_bias_sub.update(&_sensors);
-	_local_pos_sub.update(&_local_pos);
+	_sensor_bias_sub.update(&_sensor_bias);
+	_vehicle_local_position_sub.update(&_vehicle_local_position);
 }
 
 void FixedwingLandDetector::_update_params()
@@ -82,7 +82,7 @@ float FixedwingLandDetector::_get_max_altitude()
 	// TODO
 	// This means no altitude limit as the limit
 	// is always current position plus 10000 meters
-	return roundf(-_local_pos.z + 10000);
+	return roundf(-_vehicle_local_position.z + 10000);
 }
 
 bool FixedwingLandDetector::_get_landed_state()
@@ -94,18 +94,18 @@ bool FixedwingLandDetector::_get_landed_state()
 
 	bool landDetected = false;
 
-	if (hrt_elapsed_time(&_local_pos.timestamp) < 500 * 1000) {
+	if (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 500 * 1000) {
 
 		// horizontal velocity
-		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_local_pos.vx * _local_pos.vx + _local_pos.vy *
-				_local_pos.vy);
+		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_vehicle_local_position.vx * _vehicle_local_position.vx +
+				_vehicle_local_position.vy * _vehicle_local_position.vy);
 
 		if (PX4_ISFINITE(val)) {
 			_velocity_xy_filtered = val;
 		}
 
 		// vertical velocity
-		val = 0.99f * _velocity_z_filtered + 0.01f * fabsf(_local_pos.vz);
+		val = 0.99f * _velocity_z_filtered + 0.01f * fabsf(_vehicle_local_position.vz);
 
 		if (PX4_ISFINITE(val)) {
 			_velocity_z_filtered = val;
@@ -115,8 +115,8 @@ bool FixedwingLandDetector::_get_landed_state()
 
 		// a leaking lowpass prevents biases from building up, but
 		// gives a mostly correct response for short impulses
-		const float acc_hor = sqrtf(_sensors.accel_x * _sensors.accel_x +
-					    _sensors.accel_y * _sensors.accel_y);
+		const float acc_hor = sqrtf(_sensor_bias.accel_x * _sensor_bias.accel_x +
+					    _sensor_bias.accel_y * _sensor_bias.accel_y);
 		_accel_horz_lp = _accel_horz_lp * 0.8f + acc_hor * 0.18f;
 
 		// crude land detector for fixedwing
