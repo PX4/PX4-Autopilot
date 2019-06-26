@@ -42,7 +42,7 @@ px4_add_board(
 		mkblctrl
 		lights/pca8574
 		pca9685
-		pmw3901
+		# pmw3901
 		#protocol_splitter
 		pwm_input
 		pwm_out_sim
@@ -61,7 +61,7 @@ px4_add_board(
 
 	MODULES
 		attitude_estimator_q
-		camera_feedback
+		# camera_feedback
 		commander
 		dataman
 		rw_uart

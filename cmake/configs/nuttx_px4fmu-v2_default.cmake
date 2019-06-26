@@ -105,7 +105,6 @@ set(config_module_list
 	modules/load_mon
 	modules/mavlink
 	modules/navigator
-	modules/rw_uart
 	#modules/uavcan
 
 	#

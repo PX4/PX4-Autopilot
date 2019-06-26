@@ -102,9 +102,6 @@ Tailsitter::parameters_update()
 	}
 
 	memcpy(_CL_Degree, CL_SYS_ID[iden_num], sizeof(_CL_Degree));
-
-	mavlink_log_critical(&mavlink_log_pub, "sys_ident_cl_point:%.5f inttest:%d", (double)(_CL_Degree[19]), int(16.99f * 1));
-
 }
 
 void Tailsitter::update_vtol_state()
@@ -230,6 +227,8 @@ void Tailsitter::update_vtol_state()
 	}
 }
 
+
+#if 0 //For tailsitter outdoor transition's altitude control
 float Tailsitter::get_CL(float aoa)
 {
 	float aoa_degree = RAD_TO_DEG(aoa);
@@ -271,7 +270,7 @@ float Tailsitter::thr_from_acc_cmd(float vert_acc_cmd, float airspeed, float pit
 
 	/* calculate the aerodynamic lift force */
 	//float CL_temp           = 0.0f;
-	float lift_weight_ratio = 0.0f;
+	//float lift_weight_ratio = 0.0f;
 	float ang_of_attack     = 0.0f;
 	//float dyn_pressure      = 0.5f * 1.237f * airspeed * airspeed;
 
@@ -298,7 +297,7 @@ float Tailsitter::thr_from_acc_cmd(float vert_acc_cmd, float airspeed, float pit
 	}
 	else
 	{
-		lift_weight_ratio = 0.0f;
+		//lift_weight_ratio = 0.0f;
 		thrust_cmd        = -_mc_hover_thrust;
 		bx_acc_err_i      = 0.0f;
 	}
@@ -307,14 +306,6 @@ float Tailsitter::thr_from_acc_cmd(float vert_acc_cmd, float airspeed, float pit
 	_vtol_vehicle_status->bx_acc_cmd = bx_acc_cmd;
 	_vtol_vehicle_status->bx_acc_e   = bx_acc_err;
 	_vtol_vehicle_status->bx_acc_i   = bx_acc_err_i;
-
-	//thrust_cmd = math::constrain(thrust_cmd, 0.1f, 0.9f);
-	static int ii = 0;
-	ii++;
-	if ((ii % 10) == 0) 
-	{
-		mavlink_log_critical(&mavlink_log_pub, "airsp:%.2f lift:%.2f aoa:%.3f", (double)(airspeed), (double)(lift_weight_ratio), (double)(ang_of_attack));
-	}
 
 	return thrust_cmd;
 }
@@ -358,16 +349,12 @@ float Tailsitter::control_altitude(float time_since_trans_start, float alt_cmd)
 	_vtol_vehicle_status->vert_acc_cmd      = vert_acc_cmd;
 	_vtol_vehicle_status->thrust_cmd        = thrust_cmd;
 	_vtol_vehicle_status->ticks_since_trans ++;
-
-	if ((_vtol_vehicle_status->ticks_since_trans % 10) == 5) 
-	{
-		mavlink_log_critical(&mavlink_log_pub, "vert_acc_cmd:%.2f thrust_cmd:%.2f", (double)(vert_acc_cmd), (double)(thrust_cmd));
-	}
 	
 	return (-1.0f * thrust_cmd);
 }
+#endif
 
-float calc_pitch_rot(float time_since_trans_start) {
+float Tailsitter::calc_pitch_rot(float time_since_trans_start) {
 	float angle = 0.0;
 
 	for (int i = 0; i <= (POINT_NUM - 1); i ++) {
@@ -384,22 +371,25 @@ float calc_pitch_rot(float time_since_trans_start) {
 	return angle;
 }
 
+void Tailsitter::calib_tof_distance() {
+	matrix::EulerFromQuatf euler = matrix::Quatf(_v_att->q);
+
+	_vtol_vehicle_status->ticks_since_trans ++;
+	_vtol_vehicle_status->lat_dist       = _pm3901_tof_data->tof_height;
+	_vtol_vehicle_status->lat_dist_calib = cosf(euler.phi()) * _pm3901_tof_data->tof_height;
+
+	if ((_vtol_vehicle_status->ticks_since_trans % 10) == 5) 
+	{
+		mavlink_log_critical(&mavlink_log_pub, "TOF distance:%.2f after calib:%.2f", (double)(_vtol_vehicle_status->lat_dist), (double)(_vtol_vehicle_status->lat_dist_calib));
+	}
+}
+
 void Tailsitter::update_transition_state()
 {
 	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
 	float suck_wall_thr_cmd = 0.0f;
 
-	_vtol_vehicle_status->ticks_since_trans ++;
-
-	if ((_vtol_vehicle_status->ticks_since_trans % 10) == 5) 
-	{
-		mavlink_log_critical(&mavlink_log_pub, "height:%.2f", (double)(_pm3901_tof_data->tof_height));
-	}
-
-#if 0
-	float delt_x;
-	float delt_y;
-#endif
+	calib_tof_distance();
 
 	if (!_flag_was_in_trans_mode) {
 		_flag_was_in_trans_mode = true;
@@ -488,6 +478,8 @@ void Tailsitter::update_transition_state()
 	    	
 			break;
 	    case SIDE_WALL:
+	    	//calib_tof_distance();
+
 	    	break;
 		}
 

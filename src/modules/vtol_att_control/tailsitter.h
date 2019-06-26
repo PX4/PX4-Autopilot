@@ -64,9 +64,13 @@ public:
 	void fill_actuator_outputs() override;
 	void waiting_on_tecs() override;
 
-	virtual float control_altitude(float time_since_trans_start, float alt_cmd);
-	virtual float thr_from_acc_cmd(float vert_acc_cmd, float airspeed, float pitch_ang, float aoa);
-	virtual float get_CL(float aoa);
+	/** For tailsitter outdoor test's altitude control **/
+	// virtual float control_altitude(float time_since_trans_start, float alt_cmd);
+	// virtual float thr_from_acc_cmd(float vert_acc_cmd, float airspeed, float pitch_ang, float aoa);
+	// virtual float get_CL(float aoa);
+
+	virtual float calc_pitch_rot(float time_since_trans_start);
+	virtual void  calib_tof_distance();
 
 private:
 

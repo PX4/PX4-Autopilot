@@ -49,6 +49,6 @@ ist8310 -C -b 5 start
 # Possible pmw3901 optical flow sensor
 pmw3901 start
 
-rw_uart
+# rw_uart
 
 px4flow start &

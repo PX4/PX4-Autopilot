@@ -9,8 +9,8 @@ uint64 timestamp			# time since system start (microseconds)
 
 uint64  ticks_since_trans               # for ILC debug
 float32 ilc_input                      # feed-forward command of thrust
-float32 aoa
-float32 pitch_ang
+# float32 aoa
+# float32 pitch_ang
 float32 vert_acc_cmd
 float32 thrust_cmd
 float32 bx_acc_cmd
@@ -18,6 +18,7 @@ float32 bx_acc_e
 float32 bx_acc_i              # integrator for body-x acc controller
 float32 rollrot
 float32 lat_dist
+float32 lat_dist_calib
 
 bool vtol_in_rw_mode			# true: vtol vehicle is in rotating wing mode
 bool vtol_in_trans_mode
