@@ -108,6 +108,7 @@ protected:
 	int _mission_gear = landing_gear_s::GEAR_KEEP;
 
 	float _yaw_sp_prev = NAN;
+	bool _yaw_sp_aligned{false};
 
 	ObstacleAvoidance _obstacle_avoidance; /**< class adjusting setpoints according to external avoidance module's input */
 

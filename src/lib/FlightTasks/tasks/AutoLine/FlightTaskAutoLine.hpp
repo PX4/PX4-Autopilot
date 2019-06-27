@@ -66,4 +66,5 @@ protected:
 private:
 	void _setSpeedAtTarget(); /**< Sets desiered speed at target */
 	float _speed_at_target = 0.0f;
+	bool _position_locked{false};
 };
