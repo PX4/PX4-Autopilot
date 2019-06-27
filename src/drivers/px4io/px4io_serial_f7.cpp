@@ -42,7 +42,7 @@
 #ifdef PX4IO_INTERFACE_F7
 
 #include "stm32_uart.h"
-#include "cache.h"
+#include <nuttx/cache.h>
 
 /* serial register accessors */
 #define REG(_x)		(*(volatile uint32_t *)(PX4IO_SERIAL_BASE + (_x)))
@@ -288,8 +288,8 @@ PX4IO_serial_f7::_bus_exchange(IOPacket *_packet)
 	stm32_dmastart(_rx_dma, _dma_callback, this, false);
 
 	/* Clean _current_packet, so DMA can see the data */
-	arch_clean_dcache((uintptr_t)_current_packet,
-			  (uintptr_t)_current_packet + ALIGNED_IO_BUFFER_SIZE);
+	up_clean_dcache((uintptr_t)_current_packet,
+			(uintptr_t)_current_packet + ALIGNED_IO_BUFFER_SIZE);
 
 	/* start TX DMA - no callback if we also expect a reply */
 	/* DMA setup time ~3µs */
@@ -458,8 +458,8 @@ PX4IO_serial_f7::_do_interrupt()
 		/* if there is DMA reception going on, this is a short packet */
 		if (_rx_dma_status == _dma_status_waiting) {
 			/* Invalidate _current_packet, so we get fresh data from RAM */
-			arch_invalidate_dcache((uintptr_t)_current_packet,
-					       (uintptr_t)_current_packet + ALIGNED_IO_BUFFER_SIZE);
+			up_invalidate_dcache((uintptr_t)_current_packet,
+					     (uintptr_t)_current_packet + ALIGNED_IO_BUFFER_SIZE);
 
 			/* verify that the received packet is complete */
 			size_t length = sizeof(*_current_packet) - stm32_dmaresidual(_rx_dma);

@@ -46,7 +46,7 @@
 
 #include <parameters/param.h>
 
-#include "cache.h"
+#include <nuttx/cache.h>
 
 #if defined(CONFIG_ARMV7M_DCACHE) && defined(CONFIG_ARMV7M_DCACHE_WRITETHROUGH)
 
