@@ -42,7 +42,7 @@ then
 
 	param set VT_FW_MOT_OFFID 34
 	param set VT_IDLE_PWM_MC 1080
-	param set VT_MOT_COUNT 6
+	param set VT_MOT_COUNT 123456
 	param set VT_TILT_MC 0.08
 	param set VT_TILT_TRANS 0.5
 	param set VT_TILT_FW 0.9

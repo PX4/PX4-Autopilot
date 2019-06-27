@@ -67,7 +67,7 @@ then
 	param set VT_F_TRANS_THR 0.85
 	param set VT_F_TR_OL_TM 7
 	param set VT_IDLE_PWM_MC 1000
-	param set VT_MOT_COUNT 8
+	param set VT_MOT_ID 5678
 	param set VT_PSHER_RMP_DT 2
 	param set VT_TRANS_MIN_TM 6
 	param set VT_TYPE 2
