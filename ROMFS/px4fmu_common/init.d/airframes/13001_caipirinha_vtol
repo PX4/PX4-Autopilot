@@ -35,7 +35,7 @@ then
 
 	param set VT_IDLE_PWM_MC  1080
 	param set VT_ELEV_MC_LOCK 0
-	param set VT_MOT_COUNT 2
+	param set VT_MOT_ID 12
 	param set VT_TYPE 0
 fi
 
