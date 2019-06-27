@@ -132,7 +132,7 @@ private:
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
 
 	actuator_controls_s               _actuator_controls {};
-	battery_status_s                  _battery {};
+	battery_status_s                  _battery_status {};
 	vehicle_control_mode_s            _control_mode {};
 	sensor_bias_s                     _sensor_bias {};
 	vehicle_attitude_s                _vehicle_attitude {};

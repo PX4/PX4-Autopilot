@@ -80,7 +80,7 @@ void LandDetector::Run()
 	perf_begin(_cycle_perf);
 
 	_check_params(false);
-	_actuator_armed_sub.update(&_arming);
+	_actuator_armed_sub.update(&_actuator_armed);
 	_update_topics();
 	_update_state();
 
@@ -124,7 +124,7 @@ void LandDetector::Run()
 
 	// set the flight time when disarming (not necessarily when landed, because all param changes should
 	// happen on the same event and it's better to set/save params while not in armed state)
-	if (_takeoff_time != 0 && !_arming.armed && _previous_armed_state) {
+	if (_takeoff_time != 0 && !_actuator_armed.armed && _previous_armed_state) {
 		_total_flight_time += now - _takeoff_time;
 		_takeoff_time = 0;
 
@@ -139,7 +139,7 @@ void LandDetector::Run()
 		_param_total_flight_time_low.commit_no_notification();
 	}
 
-	_previous_armed_state = _arming.armed;
+	_previous_armed_state = _actuator_armed.armed;
 
 	perf_end(_cycle_perf);
 

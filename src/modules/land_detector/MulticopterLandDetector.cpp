@@ -93,7 +93,7 @@ MulticopterLandDetector::MulticopterLandDetector()
 void MulticopterLandDetector::_update_topics()
 {
 	_actuator_controls_sub.update(&_actuator_controls);
-	_battery_sub.update(&_battery);
+	_battery_sub.update(&_battery_status);
 	_sensor_bias_sub.update(&_sensor_bias);
 	_vehicle_attitude_sub.update(&_vehicle_attitude);
 	_vehicle_control_mode_sub.update(&_control_mode);
@@ -141,7 +141,7 @@ bool MulticopterLandDetector::_get_freefall_state()
 bool MulticopterLandDetector::_get_ground_contact_state()
 {
 	// When not armed, consider to have ground-contact
-	if (!_arming.armed) {
+	if (!_actuator_armed.armed) {
 		return true;
 	}
 
@@ -192,7 +192,7 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	const hrt_abstime now = hrt_absolute_time();
 
 	// When not armed, consider to be maybe-landed
-	if (!_arming.armed) {
+	if (!_actuator_armed.armed) {
 		return true;
 	}
 
@@ -239,7 +239,7 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 bool MulticopterLandDetector::_get_landed_state()
 {
 	// When not armed, consider to be landed
-	if (!_arming.armed) {
+	if (!_actuator_armed.armed) {
 		return true;
 	}
 
@@ -265,15 +265,15 @@ float MulticopterLandDetector::_get_max_altitude()
 	/* ToDo: add a meaningful altitude */
 	float valid_altitude_max = _params.altitude_max;
 
-	if (_battery.warning == battery_status_s::BATTERY_WARNING_LOW) {
+	if (_battery_status.warning == battery_status_s::BATTERY_WARNING_LOW) {
 		valid_altitude_max = _params.altitude_max * 0.75f;
 	}
 
-	if (_battery.warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
+	if (_battery_status.warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
 		valid_altitude_max = _params.altitude_max * 0.5f;
 	}
 
-	if (_battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
+	if (_battery_status.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
 		valid_altitude_max = _params.altitude_max * 0.25f;
 	}
 
