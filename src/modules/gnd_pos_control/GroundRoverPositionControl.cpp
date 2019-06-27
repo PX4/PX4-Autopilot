@@ -391,7 +391,7 @@ GroundRoverPositionControl::task_main()
 		}
 
 		/* only run controller if position changed */
-		if ((fds[1].revents & POLLIN) && !manual_mode) {
+		if (fds[1].revents & POLLIN) {
 			perf_begin(_loop_perf);
 
 			/* load local copies */
@@ -403,11 +403,10 @@ GroundRoverPositionControl::task_main()
 			matrix::Vector3f ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);
 			matrix::Vector2f current_position((float)_global_pos.lat, (float)_global_pos.lon);
 
-			/*
-			* Attempt to control position, on success (= sensors present and not in manual mode),
-			* publish setpoint.
-			*/
-			if (control_position(current_position, ground_speed, _pos_sp_triplet)) {
+			// This if statement depends upon short-circuiting: If !manual_mode, then control_position(...)
+			// should not be called.
+			// It doesn't really matter if it is called, it will just be bad for performance.
+			if (!manual_mode && control_position(current_position, ground_speed, _pos_sp_triplet)) {
 
 				/* XXX check if radius makes sense here */
 				float turn_distance = _parameters.l1_distance; //_gnd_control.switch_distance(100.0f);
@@ -443,13 +442,20 @@ GroundRoverPositionControl::task_main()
 			perf_end(_loop_perf);
 		}
 
-		if ((fds[2].revents & POLLIN) && manual_mode) {
-			/* manual/direct control */
-			//PX4_INFO("Manual mode!");
-			_act_controls.control[actuator_controls_s::INDEX_ROLL] = _manual.y;
-			_act_controls.control[actuator_controls_s::INDEX_PITCH] = -_manual.x;
-			_act_controls.control[actuator_controls_s::INDEX_YAW] = _manual.r; //TODO: Readd yaw scale param
-			_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = _manual.z;
+		if (fds[2].revents & POLLIN) {
+
+			// This should be copied even if not in manual mode. Otherwise, the poll(...) call will keep
+			// returning immediately and this loop will eat up resources.
+			orb_copy(ORB_ID(manual_control_setpoint), _manual_control_sub, &_manual);
+
+			if (manual_mode) {
+				/* manual/direct control */
+				//PX4_INFO("Manual mode!");
+				_act_controls.control[actuator_controls_s::INDEX_ROLL] = _manual.y;
+				_act_controls.control[actuator_controls_s::INDEX_PITCH] = -_manual.x;
+				_act_controls.control[actuator_controls_s::INDEX_YAW] = _manual.r; //TODO: Readd yaw scale param
+				_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = _manual.z;
+			}
 		}
 
 		if (fds[3].revents & POLLIN) {
@@ -477,8 +483,8 @@ GroundRoverPositionControl::task_main()
 	orb_unsubscribe(_pos_sp_triplet_sub);
 	orb_unsubscribe(_vehicle_attitude_sub);
 
-	orb_unadvertise(_actuator_controls_pub);
-	orb_unadvertise(_pos_ctrl_status_pub);
+//	orb_unadvertise(_actuator_controls_pub);
+//	orb_unadvertise(_pos_ctrl_status_pub);
 
 	_task_running = false;
 
