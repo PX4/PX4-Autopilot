@@ -273,7 +273,7 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
  * @unit s
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(COM_DISARM_LAND, -1.0f);
+PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
 
 /**
  * Allow arming without GPS
