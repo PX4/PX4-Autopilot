@@ -25,8 +25,6 @@ then
 	param set BAT_N_CELLS 4
 	param set BAT_R_INTERNAL 0.0025
 
-	param set COM_DISARM_LAND 5
-
 	param set CBRK_AIRSPD_CHK 162128
 	param set CBRK_IO_SAFETY 22027
 
