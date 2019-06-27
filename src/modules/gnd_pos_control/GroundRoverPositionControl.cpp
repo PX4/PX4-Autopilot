@@ -470,6 +470,16 @@ GroundRoverPositionControl::task_main()
 
 	}
 
+	orb_unsubscribe(_control_mode_sub);
+	orb_unsubscribe(_global_pos_sub);
+	orb_unsubscribe(_manual_control_sub);
+	orb_unsubscribe(_params_sub);
+	orb_unsubscribe(_pos_sp_triplet_sub);
+	orb_unsubscribe(_vehicle_attitude_sub);
+
+	orb_unadvertise(_actuator_controls_pub);
+	orb_unadvertise(_pos_ctrl_status_pub);
+
 	_task_running = false;
 
 	warnx("exiting.\n");
