@@ -92,51 +92,51 @@ public:
 	/**
 	 * This tries to find new sensor instances. This is called from init(), then it can be called periodically.
 	 */
-	void initialize_sensors();
+	void initializeSensors();
 
 	/**
 	 * deinitialize the object (we cannot use the destructor because it is called on the wrong thread)
 	 */
 	void deinit();
 
-	void print_status();
+	void printStatus();
 
 	/**
-	 * call this whenever parameters got updated. Make sure to have initialize_sensors() called at least
+	 * call this whenever parameters got updated. Make sure to have initializeSensors() called at least
 	 * once before calling this.
 	 */
-	void parameters_update();
+	void parametersUpdate();
 
 	/**
 	 * read new sensor data
 	 */
-	void sensors_poll(sensor_combined_s &raw, vehicle_air_data_s &airdata, vehicle_magnetometer_s &magnetometer);
+	void sensorsPoll(sensor_combined_s &raw, vehicle_air_data_s &airdata, vehicle_magnetometer_s &magnetometer);
 
 	/**
-	 * set the relative timestamps of each sensor timestamp, based on the last sensors_poll,
+	 * set the relative timestamps of each sensor timestamp, based on the last sensorsPoll,
 	 * so that the data can be published.
 	 */
-	void set_relative_timestamps(sensor_combined_s &raw);
+	void setRelativeTimestamps(sensor_combined_s &raw);
 
 	/**
 	 * check if a failover event occured. if so, report it.
 	 */
-	void check_failover();
+	void checkFailover();
 
-	int num_gyros() const { return _gyro.subscription_count; }
-	int gyro_fd(int idx) const { return _gyro.subscription[idx]; }
+	int numGyros() const { return _gyro.subscription_count; }
+	int gyroFd(int idx) const { return _gyro.subscription[idx]; }
 
-	int best_gyro_fd() const { return _gyro.subscription[_gyro.last_best_vote]; }
+	int bestGyroFd() const { return _gyro.subscription[_gyro.last_best_vote]; }
 
 	/**
 	 * Calculates the magnitude in m/s/s of the largest difference between the primary and any other accel sensor
 	 */
-	void calc_accel_inconsistency(sensor_preflight_s &preflt);
+	void calcAccelInconsistency(sensor_preflight_s &preflt);
 
 	/**
 	 * Calculates the magnitude in rad/s of the largest difference between the primary and any other gyro sensor
 	 */
-	void calc_gyro_inconsistency(sensor_preflight_s &preflt);
+	void calcGyroInconsistency(sensor_preflight_s &preflt);
 
 	/**
 	 * Calculates the magnitude in Gauss of the largest difference between the primary and any other magnetometers
@@ -169,7 +169,7 @@ private:
 		unsigned int last_failover_count;
 	};
 
-	void	init_sensor_class(const struct orb_metadata *meta, SensorData &sensor_data, uint8_t sensor_count_max);
+	void	initSensorClass(const struct orb_metadata *meta, SensorData &sensor_data, uint8_t sensor_count_max);
 
 	/**
 	 * Poll the accelerometer for updated data.
@@ -177,7 +177,7 @@ private:
 	 * @param raw			Combined sensor data structure into which
 	 *				data should be returned.
 	 */
-	void		accel_poll(struct sensor_combined_s &raw);
+	void		accelPoll(struct sensor_combined_s &raw);
 
 	/**
 	 * Poll the gyro for updated data.
@@ -185,7 +185,7 @@ private:
 	 * @param raw			Combined sensor data structure into which
 	 *				data should be returned.
 	 */
-	void		gyro_poll(struct sensor_combined_s &raw);
+	void		gyroPoll(struct sensor_combined_s &raw);
 
 	/**
 	 * Poll the magnetometer for updated data.
@@ -193,7 +193,7 @@ private:
 	 * @param raw			Combined sensor data structure into which
 	 *				data should be returned.
 	 */
-	void		mag_poll(vehicle_magnetometer_s &magnetometer);
+	void		magPoll(vehicle_magnetometer_s &magnetometer);
 
 	/**
 	 * Poll the barometer for updated data.
@@ -201,13 +201,13 @@ private:
 	 * @param raw			Combined sensor data structure into which
 	 *				data should be returned.
 	 */
-	void		baro_poll(vehicle_air_data_s &airdata);
+	void		baroPoll(vehicle_air_data_s &airdata);
 
 	/**
 	 * Check & handle failover of a sensor
 	 * @return true if a switch occured (could be for a non-critical reason)
 	 */
-	bool check_failover(SensorData &sensor, const char *sensor_name, const uint64_t type);
+	bool checkFailover(SensorData &sensor, const char *sensor_name, const uint64_t type);
 
 	/**
 	 * Apply a gyro calibration.
@@ -217,7 +217,7 @@ private:
 	 * @param device: the device id of the sensor.
 	 * @return: true if config is ok
 	 */
-	bool apply_gyro_calibration(DriverFramework::DevHandle &h, const struct gyro_calibration_s *gcal, const int device_id);
+	bool applyGyroCalibration(DriverFramework::DevHandle &h, const struct gyro_calibration_s *gcal, const int device_id);
 
 	/**
 	 * Apply a accel calibration.
@@ -227,8 +227,8 @@ private:
 	 * @param device: the device id of the sensor.
 	 * @return: true if config is ok
 	 */
-	bool apply_accel_calibration(DriverFramework::DevHandle &h, const struct accel_calibration_s *acal,
-				     const int device_id);
+	bool applyAccelCalibration(DriverFramework::DevHandle &h, const struct accel_calibration_s *acal,
+				   const int device_id);
 
 	/**
 	 * Apply a mag calibration.
@@ -238,7 +238,7 @@ private:
 	 * @param device: the device id of the sensor.
 	 * @return: true if config is ok
 	 */
-	bool apply_mag_calibration(DriverFramework::DevHandle &h, const struct mag_calibration_s *mcal, const int device_id);
+	bool applyMagCalibration(DriverFramework::DevHandle &h, const struct mag_calibration_s *mcal, const int device_id);
 
 	SensorData _gyro;
 	SensorData _accel;
