@@ -153,7 +153,7 @@ protected:
 	systemlib::Hysteresis _ground_contact_hysteresis{true};
 	systemlib::Hysteresis _ground_effect_hysteresis{false};
 
-	actuator_armed_s _arming {};
+	actuator_armed_s _actuator_armed {};
 
 private:
 
