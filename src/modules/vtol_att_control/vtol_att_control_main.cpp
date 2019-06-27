@@ -65,10 +65,10 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
 
 	_params.idle_pwm_mc = PWM_DEFAULT_MIN;
-	_params.vtol_motor_count = 0;
+	_params.vtol_motor_id = 0;
 
 	_params_handles.idle_pwm_mc = param_find("VT_IDLE_PWM_MC");
-	_params_handles.vtol_motor_count = param_find("VT_MOT_COUNT");
+	_params_handles.vtol_motor_id = param_find("VT_MOT_ID");
 	_params_handles.vtol_fw_permanent_stab = param_find("VT_FW_PERM_STAB");
 	_params_handles.vtol_type = param_find("VT_TYPE");
 	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
@@ -269,7 +269,7 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.idle_pwm_mc, &_params.idle_pwm_mc);
 
 	/* vtol motor count */
-	param_get(_params_handles.vtol_motor_count, &_params.vtol_motor_count);
+	param_get(_params_handles.vtol_motor_id, &_params.vtol_motor_id);
 
 	/* vtol fw permanent stabilization */
 	param_get(_params_handles.vtol_fw_permanent_stab, &l);
@@ -325,14 +325,6 @@ VtolAttitudeControl::parameters_update()
 
 	param_get(_params_handles.diff_thrust_scale, &v);
 	_params.diff_thrust_scale = math::constrain(v, -1.0f, 1.0f);
-
-	// standard vtol always needs to turn all mc motors off when going into fixed wing mode
-	// normally the parameter fw_motors_off can be used to specify this, however, since historically standard vtol code
-	// did not use the interface of the VtolType class to disable motors we will have users flying  around with a wrong
-	// parameter value. Therefore, explicitly set it here such that all motors will be disabled as expected.
-	if (static_cast<vtol_type>(_params.vtol_type) == vtol_type::STANDARD) {
-		_params.fw_motors_off = 12345678;
-	}
 
 	// make sure parameters are feasible, require at least 1 m/s difference between transition and blend airspeed
 	_params.airspeed_blend = math::min(_params.airspeed_blend, _params.transition_airspeed - 1.0f);
