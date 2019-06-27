@@ -270,7 +270,7 @@ Sensors::parameters_update()
 	}
 
 	_rc_update.update_rc_functions();
-	_voted_sensors_update.parameters_update();
+	_voted_sensors_update.parametersUpdate();
 
 	return ret;
 }
@@ -573,7 +573,7 @@ Sensors::run()
 	parameter_update_poll(true);
 
 	/* get a set of initial values */
-	_voted_sensors_update.sensors_poll(raw, airdata, magnetometer);
+	_voted_sensors_update.sensorsPoll(raw, airdata, magnetometer);
 
 	diff_pres_poll(airdata);
 
@@ -590,7 +590,7 @@ Sensors::run()
 	while (!should_exit()) {
 
 		/* use the best-voted gyro to pace output */
-		poll_fds.fd = _voted_sensors_update.best_gyro_fd();
+		poll_fds.fd = _voted_sensors_update.bestGyroFd();
 
 		/* wait for up to 50ms for data (Note that this implies, we can have a fail-over time of 50ms,
 		 * if a gyro fails) */
@@ -604,8 +604,8 @@ Sensors::run()
 			/* if the polling operation failed because no gyro sensor is available yet,
 			 * then attempt to subscribe once again
 			 */
-			if (_voted_sensors_update.num_gyros() == 0) {
-				_voted_sensors_update.initialize_sensors();
+			if (_voted_sensors_update.numGyros() == 0) {
+				_voted_sensors_update.initializeSensors();
 			}
 
 			px4_usleep(1000);
@@ -621,12 +621,12 @@ Sensors::run()
 			_armed = vcontrol_mode.flag_armed;
 		}
 
-		/* the timestamp of the raw struct is updated by the gyro_poll() method (this makes the gyro
+		/* the timestamp of the raw struct is updated by the gyroPoll() method (this makes the gyro
 		 * a mandatory sensor) */
 		const uint64_t airdata_prev_timestamp = airdata.timestamp;
 		const uint64_t magnetometer_prev_timestamp = magnetometer.timestamp;
 
-		_voted_sensors_update.sensors_poll(raw, airdata, magnetometer);
+		_voted_sensors_update.sensorsPoll(raw, airdata, magnetometer);
 
 		/* check battery voltage */
 		adc_poll();
@@ -635,7 +635,7 @@ Sensors::run()
 
 		if (raw.timestamp > 0) {
 
-			_voted_sensors_update.set_relative_timestamps(raw);
+			_voted_sensors_update.setRelativeTimestamps(raw);
 
 			int instance;
 			orb_publish_auto(ORB_ID(sensor_combined), &_sensor_pub, &raw, &instance, ORB_PRIO_DEFAULT);
@@ -648,15 +648,15 @@ Sensors::run()
 				orb_publish_auto(ORB_ID(vehicle_magnetometer), &_magnetometer_pub, &magnetometer, &instance, ORB_PRIO_DEFAULT);
 			}
 
-			_voted_sensors_update.check_failover();
+			_voted_sensors_update.checkFailover();
 
 			/* If the the vehicle is disarmed calculate the length of the maximum difference between
 			 * IMU units as a consistency metric and publish to the sensor preflight topic
 			*/
 			if (!_armed) {
 				preflt.timestamp = hrt_absolute_time();
-				_voted_sensors_update.calc_accel_inconsistency(preflt);
-				_voted_sensors_update.calc_gyro_inconsistency(preflt);
+				_voted_sensors_update.calcAccelInconsistency(preflt);
+				_voted_sensors_update.calcGyroInconsistency(preflt);
 				_voted_sensors_update.calcMagInconsistency(preflt);
 				orb_publish(ORB_ID(sensor_preflight), _sensor_preflight, &preflt);
 			}
@@ -666,7 +666,7 @@ Sensors::run()
 		 * when not adding sensors poll for param updates
 		 */
 		if (!_armed && hrt_elapsed_time(&last_config_update) > 500_ms) {
-			_voted_sensors_update.initialize_sensors();
+			_voted_sensors_update.initializeSensors();
 			last_config_update = hrt_absolute_time();
 
 		} else {
@@ -719,7 +719,7 @@ int Sensors::task_spawn(int argc, char *argv[])
 
 int Sensors::print_status()
 {
-	_voted_sensors_update.print_status();
+	_voted_sensors_update.printStatus();
 
 	PX4_INFO("Airspeed status:");
 	_airspeed_validator.print();
