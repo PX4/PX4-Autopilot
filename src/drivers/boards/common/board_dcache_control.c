@@ -43,7 +43,7 @@
 #include <stdbool.h>
 
 #include "nvic.h"
-#include "cache.h"
+#include <nuttx/cache.h>
 #include "up_arch.h"
 
 #include <parameters/param.h>
@@ -93,7 +93,7 @@ void board_configure_dcache(int stage)
 	/* On boot we should default to disabled on effected HW */
 
 	if (erratta && stage == 0) {
-		arch_disable_dcache();
+		up_disable_dcache();
 		return;
 	}
 
@@ -106,15 +106,15 @@ void board_configure_dcache(int stage)
 		switch (dcache) {
 		default:
 		case 0:
-			erratta ? arch_disable_dcache() : arch_enable_dcache();
+			erratta ? up_disable_dcache() : up_enable_dcache();
 			break;
 
 		case 1:
-			arch_disable_dcache();
+			up_disable_dcache();
 			break;
 
 		case 2:
-			arch_enable_dcache();
+			up_enable_dcache();
 			break;
 			return;
 		}
@@ -157,11 +157,11 @@ int board_dcache_info(int action, char **pmesg, bool *pstate)
 	}
 
 	if (action == 0) {
-		arch_disable_dcache();
+		up_disable_dcache();
 	}
 
 	if (action == 1) {
-		arch_enable_dcache();
+		up_enable_dcache();
 	}
 
 	if (pmesg) {
