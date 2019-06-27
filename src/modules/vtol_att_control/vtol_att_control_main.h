@@ -175,7 +175,7 @@ private:
 
 	struct {
 		param_t idle_pwm_mc;
-		param_t vtol_motor_count;
+		param_t vtol_motor_id;
 		param_t vtol_fw_permanent_stab;
 		param_t vtol_type;
 		param_t elevons_mc_lock;
