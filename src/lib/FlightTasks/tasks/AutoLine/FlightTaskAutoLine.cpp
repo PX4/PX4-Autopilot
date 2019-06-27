@@ -49,8 +49,19 @@ void FlightTaskAutoLine::_generateSetpoints()
 		_generateHeadingAlongTrack();
 	}
 
-	_generateAltitudeSetpoints();
-	_generateXYsetpoints();
+	if (_param_mpc_yaw_mode.get() == 4 && !_yaw_sp_aligned) {
+		// Wait for the yaw setpoint to be aligned
+		if (!_position_locked) {
+			_velocity_setpoint.setAll(0.f);
+			_position_setpoint = _position;
+			_position_locked = true;
+		}
+
+	} else {
+		_position_locked = false;
+		_generateAltitudeSetpoints();
+		_generateXYsetpoints();
+	}
 }
 
 void FlightTaskAutoLine::_setSpeedAtTarget()

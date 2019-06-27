@@ -118,6 +118,8 @@ void FlightTaskAuto::_limitYawRate()
 {
 	const float yawrate_max = math::radians(_param_mpc_yawrauto_max.get());
 
+	_yaw_sp_aligned = true;
+
 	if (PX4_ISFINITE(_yaw_setpoint) && PX4_ISFINITE(_yaw_sp_prev)) {
 		// Limit the rate of change of the yaw setpoint
 		const float dyaw_desired = matrix::wrap_pi(_yaw_setpoint - _yaw_sp_prev);
@@ -126,10 +128,16 @@ void FlightTaskAuto::_limitYawRate()
 		_yaw_setpoint = _yaw_sp_prev + dyaw;
 		_yaw_setpoint = matrix::wrap_pi(_yaw_setpoint);
 		_yaw_sp_prev = _yaw_setpoint;
+
+		// The yaw setpoint is aligned when its rate is not saturated
+		_yaw_sp_aligned = fabsf(dyaw_desired) < fabsf(dyaw_max);
 	}
 
 	if (PX4_ISFINITE(_yawspeed_setpoint)) {
 		_yawspeed_setpoint = math::constrain(_yawspeed_setpoint, -yawrate_max, yawrate_max);
+
+		// The yaw setpoint is aligned when its rate is not saturated
+		_yaw_sp_aligned = fabsf(_yawspeed_setpoint) < yawrate_max;
 	}
 }
 
@@ -300,6 +308,7 @@ void FlightTaskAuto::_set_heading_from_mode()
 	switch (_param_mpc_yaw_mode.get()) {
 
 	case 0: // Heading points towards the current waypoint.
+	case 4: // Same as 0 but yaw fisrt and then go
 		v = Vector2f(_target) - Vector2f(_position);
 		break;
 
