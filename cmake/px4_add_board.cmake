@@ -111,6 +111,7 @@ include(px4_base)
 #				land_detector
 #				mavlink
 #				mc_att_control
+#				mc_rate_control
 #				mc_pos_control
 #				navigator
 #				sensors
