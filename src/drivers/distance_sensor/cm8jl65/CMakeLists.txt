@@ -33,7 +33,7 @@
 px4_add_module(
 	MODULE drivers__cm8jl65
 	MAIN cm8jl65
-	STACK_MAIN 1400
+	STACK_MAIN 1200
 	SRCS
 		cm8jl65.cpp
   MODULE_CONFIG

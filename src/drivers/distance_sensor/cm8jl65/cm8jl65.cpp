@@ -37,7 +37,7 @@
  *
  * Driver for the Lanbao PSK-CM8JL65-CC5 distance sensor.
  * Make sure to disable MAVLINK messages (MAV_0_CONFIG PARAMETER)
- * on the serial port you connect the sensor,i.e TELEM1.
+ * on the serial port you connect the sensor,i.e TELEM2.
  *
  */
 
@@ -443,7 +443,7 @@ CM8JL65::open_serial_port(const speed_t speed)
 {
 	// File descriptor initialized?
 	if (_file_descriptor > 0) {
-		PX4_INFO("serial port already open");
+		// PX4_INFO("serial port already open");
 		return PX4_OK;
 	}
 
