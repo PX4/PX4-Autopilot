@@ -387,7 +387,6 @@ private:
 
 	// update subscriptions
 	void		params_update();
-	void		vehicle_status_update();
 
 	/**
 	 * Publish a new position setpoint triplet for position controllers
