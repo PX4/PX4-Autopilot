@@ -128,9 +128,11 @@ private:
 	matrix::Vector3f _failsafe_position = {}; /**< vehicle position when entered in failsafe */
 
 	systemlib::Hysteresis _avoidance_point_not_valid_hysteresis{false}; /**< becomes true if the companion doesn't start sending valid setpoints */
+	systemlib::Hysteresis _no_progress_z_hysteresis{false}; /**< becomes true if the vehicle is not making progress towards the z component of the goal */
+
+	float _prev_pos_to_target_z = -1.f; /**< z distance to the goal */
 
 	bool _ext_yaw_active = false; /**< true, if external yaw handling is active */
-	int _curr_wp_type = 0;
 
 	/**
 	 * Publishes vehicle command.
