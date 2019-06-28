@@ -333,21 +333,6 @@ LeddarOne::init()
 		px4_usleep(1000);
 	}
 
-	/*
-		hrt_abstime time_now = hrt_absolute_time();
-		hrt_abstime timeout_usec = time_now + PROBE_USEC_TIMEOUT;
-
-		for (time_now, timeout_usec; time_now < timeout_usec; time_now = hrt_absolute_time()) {
-
-			if (cycle() > 0) {;
-				PX4_INFO("LeddarOne initialized");
-				return PX4_OK;
-			}
-
-			px4_usleep(1000);
-		}
-	*/
-
 	PX4_ERR("No readings from LeddarOne");
 	return PX4_ERROR;
 }
