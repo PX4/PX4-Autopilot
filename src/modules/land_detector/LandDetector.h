@@ -176,7 +176,8 @@ private:
 	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _param_update_sub{ORB_ID(parameter_update)};
 
-	DEFINE_PARAMETERS(
+	DEFINE_PARAMETERS_CUSTOM_PARENT(
+		ModuleParams,
 		(ParamInt<px4::params::LND_FLIGHT_T_HI>) _param_total_flight_time_high,
 		(ParamInt<px4::params::LND_FLIGHT_T_LO>) _param_total_flight_time_low
 	);
