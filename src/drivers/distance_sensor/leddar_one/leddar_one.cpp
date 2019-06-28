@@ -51,20 +51,22 @@
 
 #include <uORB/topics/distance_sensor.h>
 
+using namespace time_literals;
+
 #define DEVICE_PATH                    "/dev/LeddarOne"
 #define LEDDAR_ONE_DEFAULT_SERIAL_PORT "/dev/ttyS3"
 
-#define MAX_DISTANCE         40.0f
-#define MIN_DISTANCE         0.01f
+#define MAX_DISTANCE            40.0f
+#define MIN_DISTANCE            0.01f
 
-#define SENSOR_READING_FREQ  10.0f
-#define READING_USEC_PERIOD  (unsigned long)(1000000.0f / SENSOR_READING_FREQ)
-#define OVERSAMPLE           6
-#define WORK_USEC_INTERVAL   READING_USEC_PERIOD / OVERSAMPLE
-#define COLLECT_USEC_TIMEOUT READING_USEC_PERIOD / (OVERSAMPLE / 2)
+#define SENSOR_READING_FREQ     10.0f
+#define READING_USEC_PERIOD     (unsigned long)(1000000.0f / SENSOR_READING_FREQ)
+#define OVERSAMPLE              6
+#define WORK_USEC_INTERVAL      READING_USEC_PERIOD / OVERSAMPLE
+#define COLLECT_USEC_TIMEOUT    READING_USEC_PERIOD / (OVERSAMPLE / 2)
 
 /* 0.5sec */
-#define PROBE_USEC_TIMEOUT   500000
+#define PROBE_USEC_TIMEOUT      500000_us
 
 #define MODBUS_SLAVE_ADDRESS    0x01
 #define MODBUS_READING_FUNCTION 0x04
@@ -134,13 +136,25 @@ public:
 
 private:
 
-	uint16_t calc_crc16(const uint8_t *buffer, uint8_t len);
+	/**
+	 * Calculates the 16 byte crc value for the data frame.
+	 * @param data_frame The data frame to compute a checksum for.
+	 * @param crc16_length The length of the data frame.
+	 */
+	uint16_t crc16_calc(const unsigned char *data_frame, uint8_t crc16_length);
 
+	/**
+	 * Reads the data measrurement from serial UART.
+	 */
 	int collect();
 
-	int cycle();
+	int measure();
 
-	int fd_open();
+	/**
+	 * Opens and configures the UART serial communications port.
+	 * @param speed The baudrate (speed) to configure the serial UART port.
+	 */
+	int open_serial_port(const speed_t speed = B115200);
 
 	void publish(uint16_t distance_cm);
 
@@ -148,14 +162,11 @@ private:
 
 	void Run() override;
 
-	enum {
-		state_waiting_reading = 0,
-		state_reading_requested
-	} _state{state_waiting_reading};
-
 	const char *_serial_port;
 
-	int _fd{-1};
+	bool _collect_phase{false};
+
+	int _file_descriptor{-1};
 
 	uint8_t _buffer[sizeof(struct reading_msg)];
 	uint8_t _buffer_len{0};
@@ -184,10 +195,6 @@ LeddarOne::~LeddarOne()
 
 	free((char *)_serial_port);
 
-	if (_fd > -1) {
-		::close(_fd);
-	}
-
 	if (_topic) {
 		orb_unadvertise(_topic);
 	}
@@ -198,12 +205,12 @@ LeddarOne::~LeddarOne()
 }
 
 uint16_t
-LeddarOne::calc_crc16(const uint8_t *buffer, uint8_t len)
+LeddarOne::crc16_calc(const unsigned char *data_frame, uint8_t crc16_length)
 {
 	uint16_t crc = 0xFFFF;
 
-	for (uint8_t i = 0; i < len; i++) {
-		crc ^= buffer[i];
+	for (uint8_t i = 0; i < crc16_length; i++) {
+		crc ^= data_frame[i];
 
 		for (uint8_t j = 0; j < 8; j++) {
 			if (crc & 1) {
@@ -218,92 +225,86 @@ LeddarOne::calc_crc16(const uint8_t *buffer, uint8_t len)
 	return crc;
 }
 
-/*
- * returns 0 when still waiting for reading_msg, 1 when frame was read or
- * -1 in case of error
- */
 int
 LeddarOne::collect()
 {
+	if (!_collect_phase) {
+		return measure();
+	}
+
+	perf_end(_sample_perf);
+
+	const hrt_abstime time_now = hrt_absolute_time();
+
 	struct reading_msg *msg;
 
-	int bytes_read = ::read(_fd, _buffer + _buffer_len, sizeof(_buffer) - _buffer_len);
+	int bytes_read = ::read(_file_descriptor, _buffer + _buffer_len, sizeof(_buffer) - _buffer_len);
 
 	if (bytes_read < 1) {
-		return 0;
+		if (time_now > _timeout_usec) {
+			_collect_phase = true;
+			_timeout_usec = 0;
+		}
+
+		perf_count(_collect_timeout_perf);
+		return PX4_ERROR;
 	}
 
 	_buffer_len += bytes_read;
 
 	if (_buffer_len < sizeof(struct reading_msg)) {
-		return 0;
+		perf_count(_comms_errors);
+		return PX4_ERROR;
 	}
 
 	msg = (struct reading_msg *)_buffer;
 
 	if (msg->slave_addr != MODBUS_SLAVE_ADDRESS || msg->function != MODBUS_READING_FUNCTION) {
-		return -1;
+		perf_count(_comms_errors);
+		return PX4_ERROR;
 	}
 
-	const uint16_t crc16_calc = calc_crc16(_buffer, _buffer_len - 2);
+	const uint16_t crc16 = crc16_calc(_buffer, _buffer_len - 2);
 
-	if (crc16_calc != msg->crc) {
-		return -1;
+	if (crc16 != msg->crc) {
+		perf_count(_comms_errors);
+		return PX4_ERROR;
 	}
 
-	/* NOTE: little-endian support only */
+	// NOTE: little-endian support only.
 	publish(msg->first_dist_high_byte << 8 | msg->first_dist_low_byte);
-	return 1;
+
+	_collect_phase = false;
+	_timeout_usec = time_now + READING_USEC_PERIOD;
+
+	perf_end(_sample_perf);
+	return PX4_OK;
 }
 
 int
-LeddarOne::cycle()
+LeddarOne::measure()
 {
-	int ret = 0;
-	const hrt_abstime now = hrt_absolute_time();
+	const hrt_abstime time_now = hrt_absolute_time();
 
-	switch (_state) {
-	case state_waiting_reading:
-		if (now > _timeout_usec) {
-			if (request()) {
-				perf_begin(_sample_perf);
-				_buffer_len = 0;
-				_state = state_reading_requested;
-				_timeout_usec = now + COLLECT_USEC_TIMEOUT;
-			}
-		}
-
-		break;
-
-	case state_reading_requested:
-		ret = collect();
-
-		if (ret == 1) {
-			perf_end(_sample_perf);
-			_state = state_waiting_reading;
-			_timeout_usec = now + READING_USEC_PERIOD;
-
-		} else {
-			if (ret == 0 && now < _timeout_usec) {
-				/* still waiting for reading */
-				break;
-			}
-
-			if (ret == -1) {
-				perf_count(_comms_errors);
-
-			} else {
-				perf_count(_collect_timeout_perf);
-			}
-
-			perf_cancel(_sample_perf);
-			_state = state_waiting_reading;
-			_timeout_usec = 0;
-			return cycle();
+	if (time_now > _timeout_usec) {
+		if (request()) {
+			_buffer_len = 0;
+			_timeout_usec = time_now + COLLECT_USEC_TIMEOUT;
+			_collect_phase = true;
+			return PX4_OK;
 		}
 	}
 
-	return ret;
+	return PX4_ERROR;
+}
+
+void
+LeddarOne::Run()
+{
+	// Ensure the serial port is open.
+	open_serial_port();
+
+	collect();
 }
 
 int
@@ -314,23 +315,21 @@ LeddarOne::init()
 		return -1;
 	}
 
-	if (fd_open()) {
+	if (open_serial_port()) {
 		return PX4_ERROR;
 	}
 
-	hrt_abstime timeout_usec, now;
+	hrt_abstime time_now = hrt_absolute_time();
+	hrt_abstime timeout_usec = time_now + PROBE_USEC_TIMEOUT;
 
-	for (now = hrt_absolute_time(), timeout_usec = now + PROBE_USEC_TIMEOUT;
-	     now < timeout_usec;
-	     now = hrt_absolute_time()) {
-
-		if (cycle() > 0) {
-			;
+	while (time_now < timeout_usec) {
+		if (measure() == PX4_OK) {
 			PX4_INFO("LeddarOne initialized");
 			return PX4_OK;
 		}
 
 		px4_usleep(1000);
+		time_now = hrt_absolute_time();
 	}
 
 	PX4_ERR("No readings from LeddarOne");
@@ -338,57 +337,75 @@ LeddarOne::init()
 }
 
 int
-LeddarOne::fd_open()
+LeddarOne::open_serial_port(const speed_t speed)
 {
-	if (!_serial_port) {
-		return -1;
+	// File descriptor already initialized?
+	if (_file_descriptor > 0) {
+		// PX4_INFO("serial port already open");
+		return PX4_OK;
 	}
 
-	_fd = ::open(_serial_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
+	// Configure port flags for read/write, non-controlling, non-blocking.
+	int flags = (O_RDWR | O_NOCTTY | O_NONBLOCK);
 
-	if (_fd < 0) {
-		return -1;
+	// Open the serial port.
+	_file_descriptor = ::open(_serial_port, flags);
+
+	if (_file_descriptor < 0) {
+		PX4_ERR("open failed (%i)", errno);
+		return PX4_ERROR;
 	}
 
-	struct termios config;
+	termios uart_config = {};
 
-	int r = tcgetattr(_fd, &config);
-
-	if (r) {
+	// Store the current port configuration. attributes.
+	if (tcgetattr(_file_descriptor, &uart_config)) {
 		PX4_ERR("Unable to get termios from %s.", _serial_port);
-		goto error;
+		::close(_file_descriptor);
+		_file_descriptor = -1;
+		return PX4_ERROR;
 	}
 
-	/* clear: data bit size, two stop bits, parity, hardware flow control */
-	config.c_cflag &= ~(CSIZE | CSTOPB | PARENB | CRTSCTS);
-	/* set: 8 data bits, enable receiver, ignore modem status lines */
-	config.c_cflag |= (CS8 | CREAD | CLOCAL);
-	/* turn off output processing */
-	config.c_oflag = 0;
-	/* clear: echo, echo new line, canonical input and extended input */
-	config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
+	// Clear: data bit size, two stop bits, parity, hardware flow control.
+	uart_config.c_cflag &= ~(CSIZE | CSTOPB | PARENB | CRTSCTS);
 
-	r = cfsetispeed(&config, B115200);
-	r |= cfsetospeed(&config, B115200);
+	// Set: 8 data bits, enable receiver, ignore modem status lines.
+	uart_config.c_cflag |= (CS8 | CREAD | CLOCAL);
 
-	if (r) {
-		PX4_ERR("Unable to set baudrate");
-		goto error;
+	// Turn off output processing.
+	uart_config.c_oflag = 0;
+
+	// Clear: echo, echo new line, canonical input and extended input.
+	uart_config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
+
+	// Set the input baud rate in the uart_config struct.
+	int termios_state = cfsetispeed(&uart_config, speed);
+
+	if (termios_state < 0) {
+		PX4_ERR("CFG: %d ISPD", termios_state);
+		::close(_file_descriptor);
+		return PX4_ERROR;
 	}
 
-	r = tcsetattr(_fd, TCSANOW, &config);
+	// Set the output baud rate in the uart_config struct.
+	termios_state = cfsetospeed(&uart_config, speed);
 
-	if (r) {
-		PX4_ERR("Unable to set termios to %s", _serial_port);
-		goto error;
+	if (termios_state < 0) {
+		PX4_ERR("CFG: %d OSPD", termios_state);
+		::close(_file_descriptor);
+		return PX4_ERROR;
+	}
+
+	// Apply the modified port attributes.
+	termios_state = tcsetattr(_file_descriptor, TCSANOW, &uart_config);
+
+	if (termios_state < 0) {
+		PX4_ERR("baud %d ATTR", termios_state);
+		::close(_file_descriptor);
+		return PX4_ERROR;
 	}
 
 	return PX4_OK;
-
-error:
-	::close(_fd);
-	_fd = -1;
-	return PX4_ERROR;
 }
 
 void
@@ -428,21 +445,10 @@ bool
 LeddarOne::request()
 {
 	/* flush anything in RX buffer */
-	tcflush(_fd, TCIFLUSH);
+	tcflush(_file_descriptor, TCIFLUSH);
 
-	int r = ::write(_fd, request_reading_msg, sizeof(request_reading_msg));
+	int r = ::write(_file_descriptor, request_reading_msg, sizeof(request_reading_msg));
 	return r == sizeof(request_reading_msg);
-}
-
-void
-LeddarOne::Run()
-{
-	if (_fd != -1) {
-		cycle();
-
-	} else {
-		fd_open();
-	}
 }
 
 void
@@ -453,8 +459,8 @@ LeddarOne::start()
 	 * so closing here and it will be opened from the High priority kernel
 	 * process
 	 */
-	::close(_fd);
-	_fd = -1;
+	::close(_file_descriptor);
+	_file_descriptor = -1;
 
 	ScheduleOnInterval(WORK_USEC_INTERVAL);
 }
@@ -462,6 +468,10 @@ LeddarOne::start()
 void
 LeddarOne::stop()
 {
+	if (_file_descriptor > -1) {
+		::close(_file_descriptor);
+	}
+
 	ScheduleClear();
 }
 
