@@ -195,6 +195,7 @@ private:
 	void		manual_control_setpoint_poll();
 	void		position_setpoint_triplet_poll();
 	void		vehicle_control_mode_poll();
+	void 		vehicle_attitude_poll();
 
 	/**
 	 * Control position.

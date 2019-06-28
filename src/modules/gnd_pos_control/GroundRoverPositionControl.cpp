@@ -45,6 +45,8 @@
 #include "GroundRoverPositionControl.hpp"
 #include <lib/ecl/geo/geo.h>
 
+#define ACTUATOR_PUBLISH_PERIOD_MS 4
+
 static int _control_task = -1;			/**< task handle for sensor task */
 
 using matrix::Eulerf;
@@ -189,6 +191,17 @@ GroundRoverPositionControl::position_setpoint_triplet_poll()
 
 	if (pos_sp_triplet_updated) {
 		orb_copy(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_sub, &_pos_sp_triplet);
+	}
+}
+
+void
+GroundRoverPositionControl::vehicle_attitude_poll()
+{
+	bool att_updated;
+	orb_check(_vehicle_attitude_sub, &att_updated);
+
+	if (att_updated) {
+		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_vehicle_att);
 	}
 }
 
@@ -341,7 +354,7 @@ GroundRoverPositionControl::task_main()
 	}
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[4];
+	px4_pollfd_struct_t fds[3];
 
 	/* Setup of loop */
 	fds[0].fd = _params_sub;
@@ -350,20 +363,24 @@ GroundRoverPositionControl::task_main()
 	fds[1].events = POLLIN;
 	fds[2].fd = _manual_control_sub;
 	fds[2].events = POLLIN;
-	fds[3].fd = _vehicle_attitude_sub;
-	fds[3].events = POLLIN;
 
 	_task_running = true;
 
+	// Absolute time (in us) at which the actuators were last published
+	long actuators_last_published = 0;
+	// Timeout for poll in ms
+	int timeout = 0;
+
 	while (!_task_should_exit) {
 
-		/* wait for up to 500ms for data */
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+		// The +500 is to round to the nearest millisecond, instead of to the smallest millisecond.
+		timeout = ACTUATOR_PUBLISH_PERIOD_MS - (hrt_absolute_time() - actuators_last_published) / 1000 - 1;
+		timeout = timeout > 0 ? timeout : 0;
 
-		/* timed out - periodic check for _task_should_exit, etc. */
-		if (pret == 0) {
-			continue;
-		}
+		//PX4_INFO("TIMEOUT: %d", timeout);
+
+		/* wait for up to 500ms for data */
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), timeout);
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
@@ -373,9 +390,8 @@ GroundRoverPositionControl::task_main()
 
 		/* check vehicle control mode for changes to publication state */
 		vehicle_control_mode_poll();
-		manual_control_setpoint_poll();
-		position_setpoint_triplet_poll();
-		//_sub_attitude.update();
+		//manual_control_setpoint_poll();
+
 		_sub_sensors.update();
 
 		bool manual_mode = _control_mode.flag_control_manual_enabled;
@@ -383,7 +399,7 @@ GroundRoverPositionControl::task_main()
 		/* only update parameters if they changed */
 		if (fds[0].revents & POLLIN) {
 			/* read from param to clear updated flag */
-			struct parameter_update_s update;
+			parameter_update_s update;
 			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
 
 			/* update parameters from storage */
@@ -396,6 +412,9 @@ GroundRoverPositionControl::task_main()
 
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
+
+			position_setpoint_triplet_poll();
+			vehicle_attitude_poll();
 
 			// update the reset counters in any case
 			_pos_reset_counter = _global_pos.lat_lon_reset_counter;
@@ -458,10 +477,9 @@ GroundRoverPositionControl::task_main()
 			}
 		}
 
-		if (fds[3].revents & POLLIN) {
+		if (pret == 0) {
 
-			orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_vehicle_att);
-
+			//orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_vehicle_att);
 			_act_controls.timestamp = hrt_absolute_time();
 
 			if (_actuator_controls_pub != nullptr) {
@@ -472,6 +490,8 @@ GroundRoverPositionControl::task_main()
 
 				_actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_0), &_act_controls);
 			}
+
+			actuators_last_published = hrt_absolute_time();
 		}
 
 	}
@@ -482,9 +502,6 @@ GroundRoverPositionControl::task_main()
 	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_pos_sp_triplet_sub);
 	orb_unsubscribe(_vehicle_attitude_sub);
-
-//	orb_unadvertise(_actuator_controls_pub);
-//	orb_unadvertise(_pos_ctrl_status_pub);
 
 	_task_running = false;
 
