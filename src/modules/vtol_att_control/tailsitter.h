@@ -70,7 +70,8 @@ public:
 	// virtual float get_CL(float aoa);
 
 	virtual float calc_pitch_rot(float time_since_trans_start);
-	virtual void  calib_tof_distance();
+	virtual float calib_tof_distance();
+	virtual float track_path(float distance_to_wall, float vel_to_wall, float time_from_start);
 
 private:
 
@@ -122,8 +123,11 @@ private:
 	matrix::Quatf _q_trans_sp;
 	matrix::Vector3f _trans_rot_axis;
 	matrix::Vector3f _trans_roll_axis;
+	matrix::EulerFromQuatf _euler;
 
 	float _alt_sp;
+	float _dist_sp;
+	float _vel_sp;
 	float _vert_i_term;
 	float _mc_hover_thrust;
 	float _trans_end_thrust;

@@ -111,11 +111,10 @@ void Tailsitter::update_vtol_state()
 	 * forward speed. After the vehicle has picked up enough and sufficient pitch angle the uav will go into FW mode.
 	 * For the backtransition the pitch is controlled in MC mode again and switches to full MC control reaching the sufficient pitch angle.
 	*/
-
-	Eulerf euler = Quatf(_v_att->q);
+	_euler = matrix::Quatf(_v_att->q);//Eulerf _euler = Quatf(_v_att->q);
 	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
 	float time_since_b_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.b_trans_start_t) * 1e-6f;
-	float pitch = euler.theta();
+	float pitch = _euler.theta();
 
 	if (!_attc->is_fixed_wing_requested()) {
 
@@ -354,7 +353,8 @@ float Tailsitter::control_altitude(float time_since_trans_start, float alt_cmd)
 }
 #endif
 
-float Tailsitter::calc_pitch_rot(float time_since_trans_start) {
+float Tailsitter::calc_pitch_rot(float time_since_trans_start)
+{
 	float angle = 0.0;
 
 	for (int i = 0; i <= (POINT_NUM - 1); i ++) {
@@ -371,26 +371,72 @@ float Tailsitter::calc_pitch_rot(float time_since_trans_start) {
 	return angle;
 }
 
-void Tailsitter::calib_tof_distance() {
-	matrix::EulerFromQuatf euler = matrix::Quatf(_v_att->q);
+float Tailsitter::calib_tof_distance()
+{
+	_vtol_vehicle_status->lat_dist       = _pm3901_tof_data->tof_pos;
+	_vtol_vehicle_status->lat_dist_calib = _pm3901_tof_data->tof_pos_calib;
+	_vtol_vehicle_status->tof_vel        = _pm3901_tof_data->tof_vel;
+	_vtol_vehicle_status->tof_vel_calib  = _pm3901_tof_data->tof_vel_calib;//positive: toward wall
 
-	_vtol_vehicle_status->ticks_since_trans ++;
-	_vtol_vehicle_status->lat_dist       = _pm3901_tof_data->tof_height;
-	_vtol_vehicle_status->lat_dist_calib = cosf(euler.phi()) * _pm3901_tof_data->tof_height;
+	return _vtol_vehicle_status->lat_dist_calib;
+}
 
-	if ((_vtol_vehicle_status->ticks_since_trans % 10) == 5) 
+float Tailsitter::track_path(float distance_to_wall, float vel_to_wall, float time_from_start)
+{
+	static int _integ_pos = 0.0f;
+	static int _integ_vel = 0.0f;
+
+	float min_pos = 0.22f;
+	float T       = 3.0f;// overall time
+	float a       = (_dist_sp - min_pos) / (T * T * T - 1.5f * T * T * T);// 0.132 is the last distance
+	float b       = -1.5f * T * a;
+	float pos_sp  = - a * powf(time_from_start, 3) - b * powf(time_from_start, 2) + _dist_sp;// pos=-a*t^3-b*t^2+c
+	float vel_ff  = - 3.0f * a * powf(time_from_start, 2) - 2.0f * b * time_from_start;
+	float roll_ff = - (- 6.0f * a * time_from_start - 2.0f * b) / 9.8f;
+
+	if ((_vtol_vehicle_status->ticks_since_trans % 50) == 5) 
 	{
-		mavlink_log_critical(&mavlink_log_pub, "TOF distance:%.2f after calib:%.2f", (double)(_vtol_vehicle_status->lat_dist), (double)(_vtol_vehicle_status->lat_dist_calib));
+		mavlink_log_critical(&mavlink_log_pub, "a:%.4f b:%.4f", (double)(a), (double)(b));
 	}
+
+	// pos_sp = math::constrain(pos_sp, min_pos, _dist_sp);
+
+	if (pos_sp <= min_pos)
+	{	
+		pos_sp  = min_pos;
+		vel_ff  = 0.0f;
+		roll_ff = 0.0f;
+	}
+
+	_vtol_vehicle_status->dist_sp = pos_sp;
+
+	float Kp_pos  = 3.0f;
+	float Ki_pos  = 0.1f;
+	float err_pos = distance_to_wall - pos_sp;
+	float vel_sp  = Kp_pos * err_pos + _integ_pos - vel_ff;// positive: toward wall
+
+	_integ_pos   += Ki_pos * err_pos * 0.01f;
+
+	_vtol_vehicle_status->vel_sp = vel_sp;
+
+	float Kp_vel  = 0.15f;
+	float Ki_vel  = 0.015f;
+	float err_vel = - vel_to_wall + vel_sp;
+	float roll_sp = Kp_vel * err_vel + _integ_vel + roll_ff;
+	_integ_vel   += Ki_vel * err_vel * 0.01f;
+
+	roll_sp   = math::constrain(roll_sp, DEG_TO_RAD(-25.0f), DEG_TO_RAD(25.0f));
+
+	return roll_sp;
 }
 
 void Tailsitter::update_transition_state()
 {
 	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
-	float suck_wall_thr_cmd = 0.0f;
-
-	calib_tof_distance();
-
+	_vtol_vehicle_status->ticks_since_trans ++;
+	_euler = matrix::Quatf(_v_att->q);
+	float distance_to_wall = calib_tof_distance();
+	
 	if (!_flag_was_in_trans_mode) {
 		_flag_was_in_trans_mode = true;
 
@@ -419,14 +465,15 @@ void Tailsitter::update_transition_state()
 
 		} else if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P1) {
 			// initial attitude setpoint for the transition should be with wings level
-			_q_trans_start  = Eulerf(0.0f, 0.0f, _mc_virtual_att_sp->yaw_body);
+			_q_trans_start  = Quatf(_v_att->q);//Eulerf(0.0f, _mc_virtual_att_sp->pitch_body, _mc_virtual_att_sp->yaw_body);
 			Vector3f x      = Dcmf(Quatf(_v_att->q)) * Vector3f(1, 0, 0);
 			_trans_rot_axis = -x.cross(Vector3f(0, 0, -1));
-			_trans_roll_axis  = _trans_rot_axis.cross(Vector3f(0, 0, -1));
+			_trans_roll_axis = _trans_rot_axis.cross(Vector3f(0, 0, -1));
 		}
 
 		_q_trans_sp      = _q_trans_start;
 		_alt_sp          = _local_pos->z;
+		_dist_sp         = _pm3901_tof_data->tof_pos_calib;
 
 		_mc_hover_thrust = _v_att_sp->thrust_body[2];
 	}
@@ -437,7 +484,7 @@ void Tailsitter::update_transition_state()
 	float tilt = acosf(_q_trans_sp(0) * _q_trans_sp(0) - _q_trans_sp(1) * _q_trans_sp(1) - _q_trans_sp(2) * _q_trans_sp(
 				   2) + _q_trans_sp(3) * _q_trans_sp(3));
 
-	// calculate the pitch setpoint
+	/*** Excute the movement on the forward transition period ***/
 	if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P1) {
 
 #if 0
@@ -461,6 +508,7 @@ void Tailsitter::update_transition_state()
 		_trans_end_thrust = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
 #endif
 
+		float suck_wall_thr_cmd = 0.0f;
 		switch (_params->vt_sweep_or_suck_type){
 		case NO_SUCK:
 		case TOP_WALL:
@@ -478,12 +526,22 @@ void Tailsitter::update_transition_state()
 	    	
 			break;
 	    case SIDE_WALL:
-	    	//calib_tof_distance();
+	    	float roll_sp = track_path(distance_to_wall, _pm3901_tof_data->tof_vel_calib, time_since_trans_start);
+	    	_q_trans_sp   = Quatf(AxisAnglef(_trans_roll_axis, roll_sp)) * _q_trans_start;
 
+	    	//_vtol_vehicle_status->dist_sp = _dist_sp;
+	    	_vtol_vehicle_status->rollrot = roll_sp;
+	    	if ((_vtol_vehicle_status->ticks_since_trans % 10) == 5)
+			{
+				mavlink_log_critical(&mavlink_log_pub, "Transition Start");
+			}
 	    	break;
 		}
 
-	} else if (_vtol_schedule.flight_mode == TRANSITION_BACK) {
+	}
+	/*** Excute the movement on the backward transition period ***/
+	else if (_vtol_schedule.flight_mode == TRANSITION_BACK)
+	{
 		_target_alt  = _local_pos->z;
 		const float trans_pitch_rate = M_PI_2_F / _params->back_trans_duration;
 		_vert_i_term = 0.0f;
@@ -496,15 +554,14 @@ void Tailsitter::update_transition_state()
 			_trans_pitch_rot = time_since_trans_start * trans_pitch_rate;
 			_q_trans_sp = Quatf(AxisAnglef(_trans_rot_axis, time_since_trans_start * trans_pitch_rate)) * _q_trans_start;
 		}
-	} else {
-		_target_alt  = _local_pos->z;
+	}
+	/*** Reset the target altitude, integrator and pitch setpoint of the transition ***/
+	else
+	{
+		_target_alt  = _local_pos->z; 
 		_vert_i_term = 0.0f;
 		_trans_pitch_rot = 0.0f;
 	}
-
-	_mc_roll_weight = 1.0f;
-	_mc_pitch_weight = 1.0f;
-	_mc_yaw_weight = 1.0f;
 
 	_v_att_sp->timestamp = hrt_absolute_time();
 
@@ -512,8 +569,8 @@ void Tailsitter::update_transition_state()
 	_v_att_sp->roll_body = euler_sp.phi();
 	_v_att_sp->pitch_body = euler_sp.theta();
 	_v_att_sp->yaw_body = euler_sp.psi();
-
 	_q_trans_sp.copyTo(_v_att_sp->q_d);
+
 	_v_att_sp->q_d_valid = true;
 }
 
@@ -559,12 +616,10 @@ void Tailsitter::fill_actuator_outputs()
 
 	switch (_vtol_mode) {
 	case ROTARY_WING:
-		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL];
-		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
-			_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];
-		_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW];
-		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
-			_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
+		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL]     = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL];
+		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH]    = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];
+		_actuators_out_0->control[actuator_controls_s::INDEX_YAW]      = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW];
+		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
 
 		if (_params->elevons_mc_lock) {
 			_actuators_out_1->control[0] = 0;
@@ -572,10 +627,8 @@ void Tailsitter::fill_actuator_outputs()
 
 		} else {
 			// NOTE: There is no mistake in the line below, multicopter yaw axis is controlled by elevon roll actuation!
-			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
-				_actuators_mc_in->control[actuator_controls_s::INDEX_YAW];	//roll elevon
-			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
-				_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];	//pitch elevon
+			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL]  = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW];	//roll elevon
+			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];	//pitch elevon
 		}
 
 		/* just for sweep input signal */
@@ -619,7 +672,6 @@ void Tailsitter::fill_actuator_outputs()
 			_vtol_schedule.sweep_start = hrt_absolute_time();
 		}
 
-
 		break;
 
 	case FIXED_WING:
@@ -636,38 +688,17 @@ void Tailsitter::fill_actuator_outputs()
 		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
 			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE]* smooth_fw_start + _trans_end_thrust * (1.0f - smooth_fw_start);
 
-		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
-			-_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];	// roll elevon
-		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim;	// pitch elevon
-		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_YAW];	// yaw
-		_actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] =
-			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];	// throttle
 		break;
 
 	case TRANSITION_TO_FW:
 	case TRANSITION_TO_MC:
 		// in transition engines are mixed by weight (BACK TRANSITION ONLY)
-		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL]
-				* _mc_roll_weight;
-		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH] =
-			_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;
-		_actuators_out_0->control[actuator_controls_s::INDEX_YAW] = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW] *
-				_mc_yaw_weight;
-		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
-			_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
+		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL]     = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL];
+		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH]    = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];
+		_actuators_out_0->control[actuator_controls_s::INDEX_YAW]      = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW];
+		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
 
 		_vtol_schedule.ctrl_out_trans_end = _actuators_out_0->control[actuator_controls_s::INDEX_PITCH];
-
-		// NOTE: There is no mistake in the line below, multicopter yaw axis is controlled by elevon roll actuation!
-		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = -_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL]
-				* (1 - _mc_yaw_weight);
-		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
-			_actuators_mc_in->control[actuator_controls_s::INDEX_PITCH] * _mc_pitch_weight;
-		// **LATER** + (_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] + _params->fw_pitch_trim) *(1 - _mc_pitch_weight);
-		//_actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] =
-		//	_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
 		break;
 	}
 }

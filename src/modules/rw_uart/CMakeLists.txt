@@ -37,7 +37,7 @@ px4_add_module(
     COMPILE_FLAGS
         -Os
     SRCS
-        rw_uart.c
+        rw_uart.cpp
     DEPENDS
         platforms__common
     )
