@@ -122,8 +122,6 @@ public:
 	 */
 	void print_info();
 
-	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
-
 	/**
 	 * Initialise the automatic measurement state machine and start it.
 	 */
@@ -170,8 +168,6 @@ private:
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "leddar_one_sample")};
 
 	orb_advert_t _topic{nullptr};
-	ringbuffer::RingBuffer *_reports{nullptr};
-
 };
 
 LeddarOne::LeddarOne(const char *device_path, const char *serial_port, uint8_t rotation):
@@ -190,10 +186,6 @@ LeddarOne::~LeddarOne()
 
 	if (_fd > -1) {
 		::close(_fd);
-	}
-
-	if (_reports) {
-		delete _reports;
 	}
 
 	if (_topic) {
@@ -322,13 +314,6 @@ LeddarOne::init()
 		return -1;
 	}
 
-	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
-
-	if (!_reports) {
-		PX4_ERR("No memory to allocate RingBuffer");
-		return -1;
-	}
-
 	if (fd_open()) {
 		return PX4_ERROR;
 	}
@@ -429,7 +414,6 @@ LeddarOne::print_info()
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_sample_perf);
 	PX4_INFO("measure interval:  %u msec", static_cast<uint16_t>(WORK_USEC_INTERVAL) / 1000);
-	_reports->print_info("report queue");
 }
 
 void
@@ -447,35 +431,12 @@ LeddarOne::publish(uint16_t distance_mm)
 	report.signal_quality = -1;
 	report.id = 0;
 
-	_reports->force(&report);
-
 	if (_topic == nullptr) {
 		_topic = orb_advertise(ORB_ID(distance_sensor), &report);
 
 	} else {
 		orb_publish(ORB_ID(distance_sensor), _topic, &report);
 	}
-}
-
-ssize_t
-LeddarOne::read(struct file *filp, char *buffer, size_t buflen)
-{
-	unsigned count = buflen / sizeof(struct distance_sensor_s);
-	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
-	int ret = 0;
-
-	if (count < 1) {
-		return -ENOSPC;
-	}
-
-	while (count--) {
-		if (_reports->get(rbuf)) {
-			ret += sizeof(*rbuf);
-			rbuf++;
-		}
-	}
-
-	return ret ? ret : -EAGAIN;
 }
 
 bool
@@ -609,7 +570,7 @@ int test()
 	}
 
 	distance_sensor_s report;
-	ssize_t sz = read(fd, &report, sizeof(report));
+	ssize_t sz = ::read(fd, &report, sizeof(report));
 
 	if (sz != sizeof(report)) {
 		PX4_ERR("No sample available in %s", DEVICE_PATH);
