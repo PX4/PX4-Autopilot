@@ -71,13 +71,13 @@ using matrix::Dcmf;
 
 using uORB::SubscriptionData;
 
-class GroundRoverPositionControl
+class RoverPositionControl
 {
 public:
-	GroundRoverPositionControl();
-	~GroundRoverPositionControl();
-	GroundRoverPositionControl(const GroundRoverPositionControl &) = delete;
-	GroundRoverPositionControl operator=(const GroundRoverPositionControl &other) = delete;
+	RoverPositionControl();
+	~RoverPositionControl();
+	RoverPositionControl(const RoverPositionControl &) = delete;
+	RoverPositionControl operator=(const RoverPositionControl &other) = delete;
 
 	/**
 	 * Start the sensors task.

@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file gnd_pos_control_params.c
+ * @file rover_pos_control_params.c
  *
  * Parameters defined by the position control task for ground rovers
  *

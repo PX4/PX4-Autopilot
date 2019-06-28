@@ -42,7 +42,7 @@ px4_add_board(
 		dataman
 		ekf2
 		events
-		gnd_pos_control
+		rover_pos_control
 		land_detector
 		load_mon
 		logger

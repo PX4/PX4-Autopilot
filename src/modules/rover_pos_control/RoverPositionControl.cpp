@@ -42,7 +42,7 @@
  */
 
 
-#include "GroundRoverPositionControl.hpp"
+#include "RoverPositionControl.hpp"
 #include <lib/ecl/geo/geo.h>
 
 #define ACTUATOR_PUBLISH_PERIOD_MS 4
@@ -58,15 +58,15 @@ using matrix::Vector3f;
  *
  * @ingroup apps
  */
-extern "C" __EXPORT int gnd_pos_control_main(int argc, char *argv[]);
+extern "C" __EXPORT int rover_pos_control_main(int argc, char *argv[]);
 
 
 namespace gnd_control
 {
-GroundRoverPositionControl	*g_control = nullptr;
+RoverPositionControl	*g_control = nullptr;
 }
 
-GroundRoverPositionControl::GroundRoverPositionControl() :
+RoverPositionControl::RoverPositionControl() :
 	/* performance counters */
 	_sub_sensors(ORB_ID(sensor_bias)),
 	_loop_perf(perf_alloc(PC_ELAPSED, "rover position control")) // TODO : do we even need these perf counters
@@ -96,7 +96,7 @@ GroundRoverPositionControl::GroundRoverPositionControl() :
 	parameters_update();
 }
 
-GroundRoverPositionControl::~GroundRoverPositionControl()
+RoverPositionControl::~RoverPositionControl()
 {
 	if (_control_task != -1) {
 
@@ -122,7 +122,7 @@ GroundRoverPositionControl::~GroundRoverPositionControl()
 }
 
 int
-GroundRoverPositionControl::parameters_update()
+RoverPositionControl::parameters_update()
 {
 	/* L1 control parameters */
 	param_get(_parameter_handles.l1_damping, &(_parameters.l1_damping));
@@ -162,7 +162,7 @@ GroundRoverPositionControl::parameters_update()
 }
 
 void
-GroundRoverPositionControl::vehicle_control_mode_poll()
+RoverPositionControl::vehicle_control_mode_poll()
 {
 	bool updated;
 	orb_check(_control_mode_sub, &updated);
@@ -173,7 +173,7 @@ GroundRoverPositionControl::vehicle_control_mode_poll()
 }
 
 void
-GroundRoverPositionControl::manual_control_setpoint_poll()
+RoverPositionControl::manual_control_setpoint_poll()
 {
 	bool manual_updated;
 	orb_check(_manual_control_sub, &manual_updated);
@@ -184,7 +184,7 @@ GroundRoverPositionControl::manual_control_setpoint_poll()
 }
 
 void
-GroundRoverPositionControl::position_setpoint_triplet_poll()
+RoverPositionControl::position_setpoint_triplet_poll()
 {
 	bool pos_sp_triplet_updated;
 	orb_check(_pos_sp_triplet_sub, &pos_sp_triplet_updated);
@@ -195,7 +195,7 @@ GroundRoverPositionControl::position_setpoint_triplet_poll()
 }
 
 void
-GroundRoverPositionControl::vehicle_attitude_poll()
+RoverPositionControl::vehicle_attitude_poll()
 {
 	bool att_updated;
 	orb_check(_vehicle_attitude_sub, &att_updated);
@@ -206,8 +206,8 @@ GroundRoverPositionControl::vehicle_attitude_poll()
 }
 
 bool
-GroundRoverPositionControl::control_position(const matrix::Vector2f &current_position,
-		const matrix::Vector3f &ground_speed, const position_setpoint_triplet_s &pos_sp_triplet)
+RoverPositionControl::control_position(const matrix::Vector2f &current_position,
+				       const matrix::Vector3f &ground_speed, const position_setpoint_triplet_s &pos_sp_triplet)
 {
 	float dt = 0.01; // Using non zero value to a avoid division by zero
 
@@ -331,7 +331,7 @@ GroundRoverPositionControl::control_position(const matrix::Vector2f &current_pos
 }
 
 void
-GroundRoverPositionControl::task_main()
+RoverPositionControl::task_main()
 {
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
@@ -511,9 +511,9 @@ GroundRoverPositionControl::task_main()
 }
 
 int
-GroundRoverPositionControl::task_main_trampoline(int argc, char *argv[])
+RoverPositionControl::task_main_trampoline(int argc, char *argv[])
 {
-	gnd_control::g_control = new GroundRoverPositionControl();
+	gnd_control::g_control = new RoverPositionControl();
 
 	if (gnd_control::g_control == nullptr) {
 		warnx("OUT OF MEM");
@@ -528,14 +528,14 @@ GroundRoverPositionControl::task_main_trampoline(int argc, char *argv[])
 }
 
 int
-GroundRoverPositionControl::start()
+RoverPositionControl::start()
 {
 	/* start the task */
-	_control_task = px4_task_spawn_cmd("gnd_pos_ctrl",
+	_control_task = px4_task_spawn_cmd("rover_pos_ctrl",
 					   SCHED_DEFAULT,
 					   SCHED_PRIORITY_POSITION_CONTROL,
 					   1700,
-					   (px4_main_t)&GroundRoverPositionControl::task_main_trampoline,
+					   (px4_main_t)&RoverPositionControl::task_main_trampoline,
 					   nullptr);
 
 	if (_control_task < 0) {
@@ -546,10 +546,10 @@ GroundRoverPositionControl::start()
 	return OK;
 }
 
-int gnd_pos_control_main(int argc, char *argv[])
+int rover_pos_control_main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		warnx("usage: gnd_pos_control {start|stop|status}");
+		warnx("usage: rover_pos_control {start|stop|status}");
 		return 1;
 	}
 
@@ -560,7 +560,7 @@ int gnd_pos_control_main(int argc, char *argv[])
 			return 1;
 		}
 
-		if (OK != GroundRoverPositionControl::start()) {
+		if (OK != RoverPositionControl::start()) {
 			warn("start failed");
 			return 1;
 		}
