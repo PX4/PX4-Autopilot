@@ -55,10 +55,8 @@ public:
 	/**
 	 * Constructor
 	 *
-	 * @param meta The uORB metadata (usually from
-	 * 	the ORB_ID() macro) for the topic.
-	 * @param priority The priority for multi pub/sub, 0-based, -1 means
-	 * 	don't publish as multi
+	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
+	 * @param priority The priority for multi pub/sub, 0 means don't publish as multi
 	 */
 	Publication(const orb_metadata *meta, uint8_t priority = 0) : _meta(meta), _priority(priority) {}
 
@@ -120,7 +118,7 @@ public:
 	 * 	the ORB_ID() macro) for the topic.
 	 * @param priority The priority for multi pub, 0-based.
 	 */
-	PublicationData(const orb_metadata *meta, int priority = -1) : Publication<T>(meta, priority) {}
+	PublicationData(const orb_metadata *meta, uint8_t priority = 0) : Publication<T>(meta, priority) {}
 	~PublicationData() = default;
 
 	T	&get() { return _data; }
