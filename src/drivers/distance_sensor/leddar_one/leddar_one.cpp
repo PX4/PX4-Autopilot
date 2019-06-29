@@ -51,25 +51,27 @@
 
 #include <uORB/topics/distance_sensor.h>
 
-#define MIN_DISTANCE 0.01f
-#define MAX_DISTANCE 40.0f
+using namespace time_literals;
 
-#define NAME "leddar_one"
-#define DEVICE_PATH "/dev/" NAME
+#define DEVICE_PATH                    "/dev/LeddarOne"
+#define LEDDAR_ONE_DEFAULT_SERIAL_PORT "/dev/ttyS3"
 
-#define SENSOR_READING_FREQ 10.0f
-#define READING_USEC_PERIOD (unsigned long)(1000000.0f / SENSOR_READING_FREQ)
-#define OVERSAMPLE 6
-#define WORK_USEC_INTERVAL READING_USEC_PERIOD / OVERSAMPLE
-#define COLLECT_USEC_TIMEOUT READING_USEC_PERIOD / (OVERSAMPLE / 2)
+#define MAX_DISTANCE            40.0f
+#define MIN_DISTANCE            0.01f
+
+#define SENSOR_READING_FREQ     10.0f
+#define READING_USEC_PERIOD     (unsigned long)(1000000.0f / SENSOR_READING_FREQ)
+#define OVERSAMPLE              6
+#define WORK_USEC_INTERVAL      READING_USEC_PERIOD / OVERSAMPLE
+#define COLLECT_USEC_TIMEOUT    READING_USEC_PERIOD / (OVERSAMPLE / 2)
 
 /* 0.5sec */
-#define PROBE_USEC_TIMEOUT 500000
+#define PROBE_USEC_TIMEOUT      500000_us
 
-#define MODBUS_SLAVE_ADDRESS 0x01
+#define MODBUS_SLAVE_ADDRESS    0x01
 #define MODBUS_READING_FUNCTION 0x04
-#define READING_START_ADDR 0x14
-#define READING_LEN 0xA
+#define READING_START_ADDR      0x14
+#define READING_LEN             0xA
 
 static const uint8_t request_reading_msg[] = {
 	MODBUS_SLAVE_ADDRESS,
@@ -109,330 +111,106 @@ struct __attribute__((__packed__)) reading_msg {
 	uint16_t crc; /* little-endian */
 };
 
-class leddar_one : public cdev::CDev, public px4::ScheduledWorkItem
+class LeddarOne : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
-	leddar_one(const char *device_path, const char *serial_port, uint8_t rotation);
-	virtual ~leddar_one();
+	LeddarOne(const char *device_path, const char *serial_port, uint8_t rotation);
+	virtual ~LeddarOne();
 
 	virtual int init() override;
-	void start();
-	void stop();
 
-	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
+	/**
+	 * Diagnostics - print some basic information about the driver.
+	 */
+	void print_info();
+
+	/**
+	 * Initialise the automatic measurement state machine and start it.
+	 */
+	void start();
+
+	/**
+	 * Stop the automatic measurement state machine.
+	 */
+	void stop();
 
 private:
 
-	int _fd = -1;
-	const char *_serial_port;
+	/**
+	 * Calculates the 16 byte crc value for the data frame.
+	 * @param data_frame The data frame to compute a checksum for.
+	 * @param crc16_length The length of the data frame.
+	 */
+	uint16_t crc16_calc(const unsigned char *data_frame, uint8_t crc16_length);
 
-	uint8_t _rotation;
+	/**
+	 * Reads the data measrurement from serial UART.
+	 */
+	int collect();
 
-	uint8_t _buffer[sizeof(struct reading_msg)];
-	uint8_t _buffer_len = 0;
+	int measure();
 
-	orb_advert_t _topic = nullptr;
-	ringbuffer::RingBuffer *_reports = nullptr;
+	/**
+	 * Opens and configures the UART serial communications port.
+	 * @param speed The baudrate (speed) to configure the serial UART port.
+	 */
+	int open_serial_port(const speed_t speed = B115200);
 
-	enum {
-		state_waiting_reading = 0,
-		state_reading_requested
-	} _state = state_waiting_reading;
-	hrt_abstime _timeout_usec = 0;
+	void publish(uint16_t distance_cm);
 
-	perf_counter_t _collect_timeout_perf;
-	perf_counter_t _comm_error;
-	perf_counter_t _sample_perf;
-
-	int _fd_open();
-	bool _request();
-	int _collect();
-	void _publish(uint16_t distance_cm);
-	int _cycle();
+	bool request();
 
 	void Run() override;
+
+	const char *_serial_port;
+
+	bool _collect_phase{false};
+
+	int _file_descriptor{-1};
+
+	uint8_t _buffer[sizeof(struct reading_msg)];
+	uint8_t _buffer_len{0};
+	uint8_t _rotation;
+
+	hrt_abstime _timeout_usec{0};
+
+	perf_counter_t _collect_timeout_perf{perf_alloc(PC_COUNT, "leddar_one_collect_timeout")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, "leddar_one_comms_errors")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "leddar_one_sample")};
+
+	orb_advert_t _topic{nullptr};
 };
 
-extern "C" __EXPORT int leddar_one_main(int argc, char *argv[]);
-
-static void help();
-
-int leddar_one_main(int argc, char *argv[])
-{
-	int ch;
-	int myoptind = 1;
-	const char *myoptarg = nullptr;
-	const char *serial_port = "/dev/ttyS3";
-	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	static leddar_one *inst = nullptr;
-
-	while ((ch = px4_getopt(argc, argv, "d:r", &myoptind, &myoptarg)) != EOF) {
-		switch (ch) {
-		case 'd':
-			serial_port = myoptarg;
-			break;
-
-		case 'r':
-			rotation = (uint8_t)atoi(myoptarg);
-			break;
-
-		default:
-			PX4_WARN("Unknown option!");
-			help();
-			return PX4_ERROR;
-		}
-	}
-
-	if (myoptind >= argc) {
-		help();
-		return PX4_ERROR;
-	}
-
-	const char *verb = argv[myoptind];
-
-	if (!strcmp(verb, "start")) {
-		inst = new leddar_one(DEVICE_PATH, serial_port, rotation);
-
-		if (!inst) {
-			PX4_ERR("No memory to allocate " NAME);
-			return PX4_ERROR;
-		}
-
-		if (inst->init() != PX4_OK) {
-			delete inst;
-			return PX4_ERROR;
-		}
-
-		inst->start();
-
-	} else if (!strcmp(verb, "stop")) {
-		delete inst;
-		inst = nullptr;
-
-	} else if (!strcmp(verb, "test")) {
-		int fd = open(DEVICE_PATH, O_RDONLY);
-		ssize_t sz;
-		struct distance_sensor_s report;
-
-		if (fd < 0) {
-			PX4_ERR("Unable to open %s", DEVICE_PATH);
-			return PX4_ERROR;
-		}
-
-		sz = read(fd, &report, sizeof(report));
-		close(fd);
-
-		if (sz != sizeof(report)) {
-			PX4_ERR("No sample available in %s", DEVICE_PATH);
-			return PX4_ERROR;
-		}
-
-		print_message(report);
-
-	} else {
-		help();
-		PX4_ERR("unrecognized command");
-		return PX4_ERROR;
-	}
-
-	return PX4_OK;
-}
-
-leddar_one::leddar_one(const char *device_path, const char *serial_port, uint8_t rotation):
+LeddarOne::LeddarOne(const char *device_path, const char *serial_port, uint8_t rotation):
 	CDev(device_path),
 	ScheduledWorkItem(px4::wq_configurations::hp_default),
-	_rotation(rotation),
-	_collect_timeout_perf(perf_alloc(PC_COUNT, "leddar_one_collect_timeout")),
-	_comm_error(perf_alloc(PC_COUNT, "leddar_one_comm_errors")),
-	_sample_perf(perf_alloc(PC_ELAPSED, "leddar_one_sample"))
+	_rotation(rotation)
 {
 	_serial_port = strdup(serial_port);
 }
 
-leddar_one::~leddar_one()
+LeddarOne::~LeddarOne()
 {
 	stop();
 
 	free((char *)_serial_port);
 
-	if (_fd > -1) {
-		::close(_fd);
-	}
-
-	if (_reports) {
-		delete _reports;
-	}
-
 	if (_topic) {
 		orb_unadvertise(_topic);
 	}
 
-	perf_free(_sample_perf);
 	perf_free(_collect_timeout_perf);
-	perf_free(_comm_error);
+	perf_free(_comms_errors);
+	perf_free(_sample_perf);
 }
 
-int leddar_one::_fd_open()
-{
-	if (!_serial_port) {
-		return -1;
-	}
-
-	_fd = ::open(_serial_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
-
-	if (_fd < 0) {
-		return -1;
-	}
-
-	struct termios config;
-
-	int r = tcgetattr(_fd, &config);
-
-	if (r) {
-		PX4_ERR("Unable to get termios from %s.", _serial_port);
-		goto error;
-	}
-
-	/* clear: data bit size, two stop bits, parity, hardware flow control */
-	config.c_cflag &= ~(CSIZE | CSTOPB | PARENB | CRTSCTS);
-	/* set: 8 data bits, enable receiver, ignore modem status lines */
-	config.c_cflag |= (CS8 | CREAD | CLOCAL);
-	/* turn off output processing */
-	config.c_oflag = 0;
-	/* clear: echo, echo new line, canonical input and extended input */
-	config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
-
-	r = cfsetispeed(&config, B115200);
-	r |= cfsetospeed(&config, B115200);
-
-	if (r) {
-		PX4_ERR("Unable to set baudrate");
-		goto error;
-	}
-
-	r = tcsetattr(_fd, TCSANOW, &config);
-
-	if (r) {
-		PX4_ERR("Unable to set termios to %s", _serial_port);
-		goto error;
-	}
-
-	return PX4_OK;
-
-error:
-	::close(_fd);
-	_fd = -1;
-	return PX4_ERROR;
-}
-
-int leddar_one::init()
-{
-	if (CDev::init()) {
-		PX4_ERR("Unable to initialize device\n");
-		return -1;
-	}
-
-	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
-
-	if (!_reports) {
-		PX4_ERR("No memory to allocate RingBuffer");
-		return -1;
-	}
-
-	if (_fd_open()) {
-		return PX4_ERROR;
-	}
-
-	hrt_abstime timeout_usec, now;
-
-	for (now = hrt_absolute_time(), timeout_usec = now + PROBE_USEC_TIMEOUT;
-	     now < timeout_usec;
-	     now = hrt_absolute_time()) {
-
-		if (_cycle() > 0) {
-			printf(NAME " found\n");
-			return PX4_OK;
-		}
-
-		px4_usleep(1000);
-	}
-
-	PX4_ERR("No readings from " NAME);
-
-	return PX4_ERROR;
-}
-
-void
-leddar_one::stop()
-{
-	ScheduleClear();
-}
-
-void leddar_one::start()
-{
-	/*
-	 * file descriptor can only be accessed by the process that opened it
-	 * so closing here and it will be opened from the High priority kernel
-	 * process
-	 */
-	::close(_fd);
-	_fd = -1;
-
-	ScheduleDelayed(WORK_USEC_INTERVAL);
-}
-
-void
-leddar_one::Run()
-{
-	if (_fd != -1) {
-		_cycle();
-
-	} else {
-		_fd_open();
-	}
-
-	ScheduleDelayed(WORK_USEC_INTERVAL);
-}
-
-void leddar_one::_publish(uint16_t distance_mm)
-{
-	struct distance_sensor_s report;
-
-	report.timestamp = hrt_absolute_time();
-	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
-	report.orientation = _rotation;
-	report.current_distance = ((float)distance_mm / 1000.0f);
-	report.min_distance = MIN_DISTANCE;
-	report.max_distance = MAX_DISTANCE;
-	report.variance = 0.0f;
-	report.signal_quality = -1;
-	report.id = 0;
-
-	_reports->force(&report);
-
-	if (_topic == nullptr) {
-		_topic = orb_advertise(ORB_ID(distance_sensor), &report);
-
-	} else {
-		orb_publish(ORB_ID(distance_sensor), _topic, &report);
-	}
-}
-
-bool leddar_one::_request()
-{
-	/* flush anything in RX buffer */
-	tcflush(_fd, TCIFLUSH);
-
-	int r = ::write(_fd, request_reading_msg, sizeof(request_reading_msg));
-	return r == sizeof(request_reading_msg);
-}
-
-static uint16_t _calc_crc16(const uint8_t *buffer, uint8_t len)
+uint16_t
+LeddarOne::crc16_calc(const unsigned char *data_frame, uint8_t crc16_length)
 {
 	uint16_t crc = 0xFFFF;
 
-	for (uint8_t i = 0; i < len; i++) {
-		crc ^= buffer[i];
+	for (uint8_t i = 0; i < crc16_length; i++) {
+		crc ^= data_frame[i];
 
 		for (uint8_t j = 0; j < 8; j++) {
 			if (crc & 1) {
@@ -447,113 +225,362 @@ static uint16_t _calc_crc16(const uint8_t *buffer, uint8_t len)
 	return crc;
 }
 
-/*
- * returns 0 when still waiting for reading_msg, 1 when frame was read or
- * -1 in case of error
- */
-int leddar_one::_collect()
+int
+LeddarOne::collect()
 {
-	struct reading_msg *msg;
-
-	int r = ::read(_fd, _buffer + _buffer_len, sizeof(_buffer) - _buffer_len);
-
-	if (r < 1) {
-		return 0;
+	if (!_collect_phase) {
+		return measure();
 	}
 
-	_buffer_len += r;
+	perf_end(_sample_perf);
+
+	const hrt_abstime time_now = hrt_absolute_time();
+
+	struct reading_msg *msg;
+
+	int bytes_read = ::read(_file_descriptor, _buffer + _buffer_len, sizeof(_buffer) - _buffer_len);
+
+	if (bytes_read < 1) {
+		if (time_now > _timeout_usec) {
+			_collect_phase = true;
+			_timeout_usec = 0;
+		}
+
+		perf_count(_collect_timeout_perf);
+		return PX4_ERROR;
+	}
+
+	_buffer_len += bytes_read;
 
 	if (_buffer_len < sizeof(struct reading_msg)) {
-		return 0;
+		perf_count(_comms_errors);
+		return PX4_ERROR;
 	}
 
 	msg = (struct reading_msg *)_buffer;
 
 	if (msg->slave_addr != MODBUS_SLAVE_ADDRESS || msg->function != MODBUS_READING_FUNCTION) {
+		perf_count(_comms_errors);
+		return PX4_ERROR;
+	}
+
+	const uint16_t crc16 = crc16_calc(_buffer, _buffer_len - 2);
+
+	if (crc16 != msg->crc) {
+		perf_count(_comms_errors);
+		return PX4_ERROR;
+	}
+
+	// NOTE: little-endian support only.
+	publish(msg->first_dist_high_byte << 8 | msg->first_dist_low_byte);
+
+	_collect_phase = false;
+	_timeout_usec = time_now + READING_USEC_PERIOD;
+
+	perf_end(_sample_perf);
+	return PX4_OK;
+}
+
+int
+LeddarOne::measure()
+{
+	const hrt_abstime time_now = hrt_absolute_time();
+
+	if (time_now > _timeout_usec) {
+		if (request()) {
+			_buffer_len = 0;
+			_timeout_usec = time_now + COLLECT_USEC_TIMEOUT;
+			_collect_phase = true;
+			return PX4_OK;
+		}
+	}
+
+	return PX4_ERROR;
+}
+
+void
+LeddarOne::Run()
+{
+	// Ensure the serial port is open.
+	open_serial_port();
+
+	collect();
+}
+
+int
+LeddarOne::init()
+{
+	if (CDev::init()) {
+		PX4_ERR("Unable to initialize character device\n");
 		return -1;
 	}
 
-	const uint16_t crc16_calc = _calc_crc16(_buffer, _buffer_len - 2);
-
-	if (crc16_calc != msg->crc) {
-		return -1;
+	if (open_serial_port()) {
+		return PX4_ERROR;
 	}
 
-	/* NOTE: little-endian support only */
-	_publish(msg->first_dist_high_byte << 8 | msg->first_dist_low_byte);
-	return 1;
+	hrt_abstime time_now = hrt_absolute_time();
+	hrt_abstime timeout_usec = time_now + PROBE_USEC_TIMEOUT;
+
+	while (time_now < timeout_usec) {
+		if (measure() == PX4_OK) {
+			PX4_INFO("LeddarOne initialized");
+			return PX4_OK;
+		}
+
+		px4_usleep(1000);
+		time_now = hrt_absolute_time();
+	}
+
+	PX4_ERR("No readings from LeddarOne");
+	return PX4_ERROR;
 }
 
-int leddar_one::_cycle()
+int
+LeddarOne::open_serial_port(const speed_t speed)
 {
-	int ret = 0;
-	const hrt_abstime now = hrt_absolute_time();
-
-	switch (_state) {
-	case state_waiting_reading:
-		if (now > _timeout_usec) {
-			if (_request()) {
-				perf_begin(_sample_perf);
-				_buffer_len = 0;
-				_state = state_reading_requested;
-				_timeout_usec = now + COLLECT_USEC_TIMEOUT;
-			}
-		}
-
-		break;
-
-	case state_reading_requested:
-		ret = _collect();
-
-		if (ret == 1) {
-			perf_end(_sample_perf);
-			_state = state_waiting_reading;
-			_timeout_usec = now + READING_USEC_PERIOD;
-
-		} else {
-			if (ret == 0 && now < _timeout_usec) {
-				/* still waiting for reading */
-				break;
-			}
-
-			if (ret == -1) {
-				perf_count(_comm_error);
-
-			} else {
-				perf_count(_collect_timeout_perf);
-			}
-
-			perf_cancel(_sample_perf);
-			_state = state_waiting_reading;
-			_timeout_usec = 0;
-			return _cycle();
-		}
+	// File descriptor already initialized?
+	if (_file_descriptor > 0) {
+		// PX4_INFO("serial port already open");
+		return PX4_OK;
 	}
 
-	return ret;
+	// Configure port flags for read/write, non-controlling, non-blocking.
+	int flags = (O_RDWR | O_NOCTTY | O_NONBLOCK);
+
+	// Open the serial port.
+	_file_descriptor = ::open(_serial_port, flags);
+
+	if (_file_descriptor < 0) {
+		PX4_ERR("open failed (%i)", errno);
+		return PX4_ERROR;
+	}
+
+	termios uart_config = {};
+
+	// Store the current port configuration. attributes.
+	if (tcgetattr(_file_descriptor, &uart_config)) {
+		PX4_ERR("Unable to get termios from %s.", _serial_port);
+		::close(_file_descriptor);
+		_file_descriptor = -1;
+		return PX4_ERROR;
+	}
+
+	// Clear: data bit size, two stop bits, parity, hardware flow control.
+	uart_config.c_cflag &= ~(CSIZE | CSTOPB | PARENB | CRTSCTS);
+
+	// Set: 8 data bits, enable receiver, ignore modem status lines.
+	uart_config.c_cflag |= (CS8 | CREAD | CLOCAL);
+
+	// Turn off output processing.
+	uart_config.c_oflag = 0;
+
+	// Clear: echo, echo new line, canonical input and extended input.
+	uart_config.c_lflag &= (ECHO | ECHONL | ICANON | IEXTEN);
+
+	// Set the input baud rate in the uart_config struct.
+	int termios_state = cfsetispeed(&uart_config, speed);
+
+	if (termios_state < 0) {
+		PX4_ERR("CFG: %d ISPD", termios_state);
+		::close(_file_descriptor);
+		return PX4_ERROR;
+	}
+
+	// Set the output baud rate in the uart_config struct.
+	termios_state = cfsetospeed(&uart_config, speed);
+
+	if (termios_state < 0) {
+		PX4_ERR("CFG: %d OSPD", termios_state);
+		::close(_file_descriptor);
+		return PX4_ERROR;
+	}
+
+	// Apply the modified port attributes.
+	termios_state = tcsetattr(_file_descriptor, TCSANOW, &uart_config);
+
+	if (termios_state < 0) {
+		PX4_ERR("baud %d ATTR", termios_state);
+		::close(_file_descriptor);
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
 }
 
-ssize_t leddar_one::read(struct file *filp, char *buffer, size_t buflen)
+void
+LeddarOne::print_info()
 {
-	unsigned count = buflen / sizeof(struct distance_sensor_s);
-	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
-	int ret = 0;
 
-	if (count < 1) {
-		return -ENOSPC;
-	}
-
-	while (count--) {
-		if (_reports->get(rbuf)) {
-			ret += sizeof(*rbuf);
-			rbuf++;
-		}
-	}
-
-	return ret ? ret : -EAGAIN;
+	perf_print_counter(_collect_timeout_perf);
+	perf_print_counter(_comms_errors);
+	perf_print_counter(_sample_perf);
+	PX4_INFO("measure interval:  %u msec", static_cast<uint16_t>(WORK_USEC_INTERVAL) / 1000);
 }
 
-void help()
+void
+LeddarOne::publish(uint16_t distance_mm)
+{
+	struct distance_sensor_s report;
+
+	report.timestamp = hrt_absolute_time();
+	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
+	report.orientation = _rotation;
+	report.current_distance = ((float)distance_mm / 1000.0f);
+	report.min_distance = MIN_DISTANCE;
+	report.max_distance = MAX_DISTANCE;
+	report.variance = 0.0f;
+	report.signal_quality = -1;
+	report.id = 0;
+
+	if (_topic == nullptr) {
+		_topic = orb_advertise(ORB_ID(distance_sensor), &report);
+
+	} else {
+		orb_publish(ORB_ID(distance_sensor), _topic, &report);
+	}
+}
+
+bool
+LeddarOne::request()
+{
+	/* flush anything in RX buffer */
+	tcflush(_file_descriptor, TCIFLUSH);
+
+	int r = ::write(_file_descriptor, request_reading_msg, sizeof(request_reading_msg));
+	return r == sizeof(request_reading_msg);
+}
+
+void
+LeddarOne::start()
+{
+	/*
+	 * file descriptor can only be accessed by the process that opened it
+	 * so closing here and it will be opened from the High priority kernel
+	 * process
+	 */
+	::close(_file_descriptor);
+	_file_descriptor = -1;
+
+	ScheduleOnInterval(WORK_USEC_INTERVAL);
+}
+
+void
+LeddarOne::stop()
+{
+	if (_file_descriptor > -1) {
+		::close(_file_descriptor);
+	}
+
+	ScheduleClear();
+}
+
+
+
+/**
+ * Local functions in support of the shell command.
+ */
+namespace leddar_one
+{
+
+LeddarOne *g_dev;
+
+int start(const char *port, const uint8_t rotation);
+int status();
+int stop();
+int test();
+int usage();
+
+int start(const char *port, const uint8_t rotation)
+{
+	if (g_dev != nullptr) {
+		PX4_ERR("already started");
+		return PX4_ERROR;
+	}
+
+	g_dev = new LeddarOne(DEVICE_PATH, port, rotation);
+
+	if (g_dev == nullptr) {
+		delete g_dev;
+		return PX4_ERROR;
+	}
+
+	// Initialize the sensor.
+	if (g_dev->init() != PX4_OK) {
+		delete g_dev;
+		g_dev = nullptr;
+		return PX4_ERROR;
+	}
+
+	// Start the driver.
+	g_dev->start();
+	PX4_INFO("driver started");
+	return PX4_OK;
+}
+
+/**
+ * Print the driver status.
+ */
+int
+status()
+{
+	if (g_dev == nullptr) {
+		PX4_ERR("driver not running");
+		return PX4_ERROR;
+	}
+
+	g_dev->print_info();
+
+	return PX4_OK;
+}
+
+/**
+ * Stop the driver
+ */
+int
+stop()
+{
+	if (g_dev != nullptr) {
+		delete g_dev;
+		g_dev = nullptr;
+
+	}
+
+	PX4_INFO("driver stopped");
+	return PX4_OK;
+}
+
+/**
+ * Perform some basic functional tests on the driver;
+ * make sure we can collect data from the sensor in polled
+ * and automatic modes.
+ */
+int test()
+{
+	int fd = open(DEVICE_PATH, O_RDONLY);
+
+	if (fd < 0) {
+		PX4_ERR("Unable to open %s", DEVICE_PATH);
+		return PX4_ERROR;
+	}
+
+	distance_sensor_s report;
+	ssize_t sz = ::read(fd, &report, sizeof(report));
+
+	if (sz != sizeof(report)) {
+		PX4_ERR("No sample available in %s", DEVICE_PATH);
+		return PX4_ERROR;
+	}
+
+	print_message(report);
+
+	close(fd);
+
+	PX4_INFO("PASS");
+	return PX4_OK;
+}
+
+int usage()
 {
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
@@ -580,5 +607,66 @@ $ leddar_one stop
 	PRINT_MODULE_USAGE_PARAM_INT('r', 25, 1, 25, "Sensor rotation - downward facing by default", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
+	return PX4_OK;
 
+}
+
+} // namespace
+
+extern "C" __EXPORT int leddar_one_main(int argc, char *argv[])
+{
+
+	const char *myoptarg = nullptr;
+
+	int ch = 0;
+	int myoptind = 1;
+
+	const char *port = LEDDAR_ONE_DEFAULT_SERIAL_PORT;
+	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+
+	while ((ch = px4_getopt(argc, argv, "d:r", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'd':
+			port = myoptarg;
+			break;
+
+		case 'r':
+			rotation = (uint8_t)atoi(myoptarg);
+			break;
+
+		default:
+			PX4_WARN("Unknown option!");
+			return leddar_one::usage();
+		}
+	}
+
+	if (myoptind >= argc) {
+		return leddar_one::usage();
+	}
+
+	// Start/load the driver.
+	if (!strcmp(argv[myoptind], "start")) {
+		return leddar_one::start(port, rotation);
+
+	}
+
+	// Print the driver status.
+	if (!strcmp(argv[myoptind], "status")) {
+		return leddar_one::status();
+	}
+
+	// Stop the driver.
+	if (!strcmp(argv[myoptind], "stop")) {
+		return leddar_one::stop();
+
+	}
+
+	// Test the driver/device.
+	if (!strcmp(argv[myoptind], "test")) {
+		return leddar_one::test();
+
+	}
+
+	// Print driver usage information.
+	return leddar_one::usage();
 }
