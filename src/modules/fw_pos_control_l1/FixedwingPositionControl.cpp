@@ -120,7 +120,7 @@ FixedwingPositionControl::~FixedwingPositionControl()
 bool
 FixedwingPositionControl::init()
 {
-	if (!_global_pos_sub.register_callback()) {
+	if (!_global_pos_sub.registerCallback()) {
 		PX4_ERR("vehicle global position callback registration failed!");
 		return false;
 	}
@@ -1651,7 +1651,7 @@ void
 FixedwingPositionControl::Run()
 {
 	if (should_exit()) {
-		_global_pos_sub.unregister_callback();
+		_global_pos_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}

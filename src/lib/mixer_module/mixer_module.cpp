@@ -139,7 +139,7 @@ bool MixingOutput::updateSubscriptions(bool allow_wq_switch)
 			if (_groups_required & (1 << i)) {
 				PX4_DEBUG("subscribe to actuator_controls_%d", i);
 
-				if (!_control_subs[i].register_callback()) {
+				if (!_control_subs[i].registerCallback()) {
 					PX4_ERR("actuator_controls_%d register callback failed!", i);
 				}
 			}
@@ -205,7 +205,7 @@ void MixingOutput::setAllDisarmedValues(uint16_t value)
 void MixingOutput::unregister()
 {
 	for (auto &control_sub : _control_subs) {
-		control_sub.unregister_callback();
+		control_sub.unregisterCallback();
 	}
 }
 

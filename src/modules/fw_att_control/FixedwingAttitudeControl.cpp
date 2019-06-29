@@ -138,7 +138,7 @@ FixedwingAttitudeControl::~FixedwingAttitudeControl()
 bool
 FixedwingAttitudeControl::init()
 {
-	if (!_att_sub.register_callback()) {
+	if (!_att_sub.registerCallback()) {
 		PX4_ERR("vehicle attitude callback registration failed!");
 		return false;
 	}
@@ -444,7 +444,7 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 void FixedwingAttitudeControl::Run()
 {
 	if (should_exit()) {
-		_att_sub.unregister_callback();
+		_att_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}

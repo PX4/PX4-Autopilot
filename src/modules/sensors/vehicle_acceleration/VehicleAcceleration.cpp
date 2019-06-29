@@ -69,7 +69,7 @@ VehicleAcceleration::Start()
 	SensorBiasUpdate(true);
 
 	// needed to change the active sensor if the primary stops updating
-	_sensor_selection_sub.register_callback();
+	_sensor_selection_sub.registerCallback();
 
 	return SensorCorrectionsUpdate(true);
 }
@@ -81,10 +81,10 @@ VehicleAcceleration::Stop()
 
 	// clear all registered callbacks
 	for (auto &sub : _sensor_sub) {
-		sub.unregister_callback();
+		sub.unregisterCallback();
 	}
 
-	_sensor_selection_sub.unregister_callback();
+	_sensor_selection_sub.unregisterCallback();
 }
 
 void
@@ -132,12 +132,12 @@ VehicleAcceleration::SensorCorrectionsUpdate(bool force)
 			if (corrections.selected_accel_instance < MAX_SENSOR_COUNT) {
 				// clear all registered callbacks
 				for (auto &sub : _sensor_sub) {
-					sub.unregister_callback();
+					sub.unregisterCallback();
 				}
 
 				const int sensor_new = corrections.selected_accel_instance;
 
-				if (_sensor_sub[sensor_new].register_callback()) {
+				if (_sensor_sub[sensor_new].registerCallback()) {
 					PX4_DEBUG("selected sensor changed %d -> %d", _selected_sensor, sensor_new);
 					_selected_sensor = sensor_new;
 

@@ -69,7 +69,7 @@ VehicleAngularVelocity::Start()
 	SensorBiasUpdate(true);
 
 	// needed to change the active sensor if the primary stops updating
-	_sensor_selection_sub.register_callback();
+	_sensor_selection_sub.registerCallback();
 
 	return SensorCorrectionsUpdate(true);
 }
@@ -81,10 +81,10 @@ VehicleAngularVelocity::Stop()
 
 	// clear all registered callbacks
 	for (auto &sub : _sensor_sub) {
-		sub.unregister_callback();
+		sub.unregisterCallback();
 	}
 
-	_sensor_selection_sub.unregister_callback();
+	_sensor_selection_sub.unregisterCallback();
 }
 
 void
@@ -143,11 +143,11 @@ VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 			if (corrections.selected_gyro_instance < MAX_SENSOR_COUNT) {
 				// clear all registered callbacks
 				for (auto &sub : _sensor_control_sub) {
-					sub.unregister_callback();
+					sub.unregisterCallback();
 				}
 
 				for (auto &sub : _sensor_sub) {
-					sub.unregister_callback();
+					sub.unregisterCallback();
 				}
 
 				const int sensor_new = corrections.selected_gyro_instance;
@@ -159,7 +159,7 @@ VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 					_sensor_control_sub[i].copy(&report);
 
 					if ((report.device_id != 0) && (report.device_id == _selected_sensor_device_id)) {
-						if (_sensor_control_sub[i].register_callback()) {
+						if (_sensor_control_sub[i].registerCallback()) {
 							PX4_DEBUG("selected sensor (control) changed %d -> %d", _selected_sensor, i);
 							_selected_sensor_control = i;
 
@@ -176,7 +176,7 @@ VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 				// otherwise fallback to using sensor_gyro (legacy that will be removed)
 				_sensor_control_available = false;
 
-				if (_sensor_sub[sensor_new].register_callback()) {
+				if (_sensor_sub[sensor_new].registerCallback()) {
 					PX4_DEBUG("selected sensor changed %d -> %d", _selected_sensor, sensor_new);
 					_selected_sensor = sensor_new;
 
