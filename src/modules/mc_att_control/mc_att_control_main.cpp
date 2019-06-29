@@ -90,7 +90,7 @@ MulticopterAttitudeControl::~MulticopterAttitudeControl()
 bool
 MulticopterAttitudeControl::init()
 {
-	if (!_vehicle_angular_velocity_sub.register_callback()) {
+	if (!_vehicle_angular_velocity_sub.registerCallback()) {
 		PX4_ERR("vehicle_angular_velocity callback registration failed!");
 		return false;
 	}
@@ -520,7 +520,7 @@ void
 MulticopterAttitudeControl::Run()
 {
 	if (should_exit()) {
-		_vehicle_angular_velocity_sub.unregister_callback();
+		_vehicle_angular_velocity_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}

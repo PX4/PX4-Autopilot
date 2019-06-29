@@ -114,12 +114,12 @@ VtolAttitudeControl::~VtolAttitudeControl()
 bool
 VtolAttitudeControl::init()
 {
-	if (!_actuator_inputs_mc.register_callback()) {
+	if (!_actuator_inputs_mc.registerCallback()) {
 		PX4_ERR("MC actuator controls callback registration failed!");
 		return false;
 	}
 
-	if (!_actuator_inputs_fw.register_callback()) {
+	if (!_actuator_inputs_fw.registerCallback()) {
 		PX4_ERR("FW actuator controls callback registration failed!");
 		return false;
 	}
@@ -290,8 +290,8 @@ void
 VtolAttitudeControl::Run()
 {
 	if (should_exit()) {
-		_actuator_inputs_fw.unregister_callback();
-		_actuator_inputs_mc.unregister_callback();
+		_actuator_inputs_fw.unregisterCallback();
+		_actuator_inputs_mc.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
