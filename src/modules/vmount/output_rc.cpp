@@ -51,12 +51,6 @@ OutputRC::OutputRC(const OutputConfig &output_config)
 	: OutputBase(output_config)
 {
 }
-OutputRC::~OutputRC()
-{
-	if (_actuator_controls_pub) {
-		orb_unadvertise(_actuator_controls_pub);
-	}
-}
 
 int OutputRC::update(const ControlData *control_data)
 {
@@ -79,9 +73,7 @@ int OutputRC::update(const ControlData *control_data)
 	actuator_controls.control[2] = (_angle_outputs[2] + _config.yaw_offset) * _config.yaw_scale;
 	actuator_controls.control[3] = _retract_gimbal ? _config.gimbal_retracted_mode_value : _config.gimbal_normal_mode_value;
 
-	int instance;
-	orb_publish_auto(ORB_ID(actuator_controls_2), &_actuator_controls_pub, &actuator_controls,
-			 &instance, ORB_PRIO_DEFAULT);
+	_actuator_controls_pub.publish(actuator_controls);
 
 	_last_update = t;
 

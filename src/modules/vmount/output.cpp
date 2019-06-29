@@ -41,10 +41,6 @@
 #include "output.h"
 #include <errno.h>
 
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/mount_orientation.h>
 #include <px4_defines.h>
 #include <lib/ecl/geo/geo.h>
 #include <math.h>
@@ -62,38 +58,9 @@ OutputBase::OutputBase(const OutputConfig &output_config)
 	_last_update = hrt_absolute_time();
 }
 
-OutputBase::~OutputBase()
-{
-	if (_vehicle_attitude_sub >= 0) {
-		orb_unsubscribe(_vehicle_attitude_sub);
-	}
-
-	if (_vehicle_global_position_sub >= 0) {
-		orb_unsubscribe(_vehicle_global_position_sub);
-	}
-
-	if (_mount_orientation_pub) {
-		orb_unadvertise(_mount_orientation_pub);
-	}
-}
-
-int OutputBase::initialize()
-{
-	if ((_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude))) < 0) {
-		return -errno;
-	}
-
-	if ((_vehicle_global_position_sub = orb_subscribe(ORB_ID(vehicle_global_position))) < 0) {
-		return -errno;
-	}
-
-	return 0;
-}
-
 void OutputBase::publish()
 {
-	int instance;
-	mount_orientation_s mount_orientation;
+	mount_orientation_s mount_orientation{};
 
 	for (unsigned i = 0; i < 3; ++i) {
 		mount_orientation.attitude_euler_angle[i] = _angle_outputs[i];
@@ -104,7 +71,8 @@ void OutputBase::publish()
 	//		(double)_angle_outputs[1],
 	//		(double)_angle_outputs[2]);
 
-	orb_publish_auto(ORB_ID(mount_orientation), &_mount_orientation_pub, &mount_orientation, &instance, ORB_PRIO_DEFAULT);
+	mount_orientation.timestamp = hrt_absolute_time();
+	_mount_orientation_pub.publish(mount_orientation);
 }
 
 float OutputBase::_calculate_pitch(double lon, double lat, float altitude,
@@ -167,7 +135,7 @@ void OutputBase::_handle_position_update(bool force_update)
 	}
 
 	if (!force_update) {
-		orb_check(_vehicle_global_position_sub, &need_update);
+		need_update = _vehicle_global_position_sub.updated();
 	}
 
 	if (!need_update) {
@@ -175,7 +143,8 @@ void OutputBase::_handle_position_update(bool force_update)
 	}
 
 	vehicle_global_position_s vehicle_global_position;
-	orb_copy(ORB_ID(vehicle_global_position), _vehicle_global_position_sub, &vehicle_global_position);
+	_vehicle_global_position_sub.copy(&vehicle_global_position);
+
 	const double &vlat = vehicle_global_position.lat;
 	const double &vlon = vehicle_global_position.lon;
 
@@ -217,8 +186,9 @@ void OutputBase::_calculate_output_angles(const hrt_abstime &t)
 	matrix::Eulerf euler;
 
 	if (_stabilize[0] || _stabilize[1] || _stabilize[2]) {
-		orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &vehicle_attitude);
-		euler = matrix::Quatf(vehicle_attitude.q);
+		if (_vehicle_attitude_sub.copy(&vehicle_attitude)) {
+			euler = matrix::Quatf(vehicle_attitude.q);
+		}
 	}
 
 	for (int i = 0; i < 3; ++i) {
