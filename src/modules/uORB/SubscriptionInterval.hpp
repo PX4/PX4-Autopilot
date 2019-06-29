@@ -137,7 +137,7 @@ protected:
 
 	Subscription	_subscription;
 	uint64_t	_last_update{0};	// last update in microseconds
-	uint32_t	_interval_us{0};		// maximum update interval in microseconds
+	uint32_t	_interval_us{0};	// maximum update interval in microseconds
 
 };
 
