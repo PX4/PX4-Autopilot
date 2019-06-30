@@ -145,25 +145,6 @@
             }
         },
         {
-            "name": "Debug nxp_fmuk66-v3 (jlink)",
-            "device": "MK66FN2M0xxx18",
-            //"svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/XXXX.svd",
-            "executable": "${command:cmake.launchTargetPath}",
-            "request": "launch",
-            "type": "cortex-debug",
-            "servertype": "jlink",
-            "interface": "swd",
-            "cwd": "${workspaceRoot}",
-            "internalConsoleOptions": "openOnSessionStart",
-            "preLaunchCommands": [
-                "source ${workspaceRoot}/platforms/nuttx/Debug/PX4",
-                "source ${workspaceRoot}/platforms/nuttx/Debug/NuttX",
-                "source ${workspaceRoot}/platforms/nuttx/Debug/ARMv7M",
-                "set mem inaccessible-by-default off",
-                "set print pretty"
-            ]
-        },
-        {
             "name": "Debug px4_fmu-v2/v3/v4 (jlink)",
             "device": "STM32F427VI",
             "svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/STM32F427.svd",
@@ -180,7 +161,6 @@
                 "source ${workspaceRoot}/platforms/nuttx/Debug/ARMv7M",
                 "set mem inaccessible-by-default off",
                 "set print pretty",
-                "showtasks",
             ]
         },
         {
@@ -201,7 +181,6 @@
                 "source ${workspaceRoot}/platforms/nuttx/Debug/ARMv7M",
                 "set mem inaccessible-by-default off",
                 "set print pretty",
-                "showtasks",
             ]
         },
         {
@@ -220,7 +199,6 @@
                 "source ${workspaceRoot}/platforms/nuttx/Debug/ARMv7M",
                 "set mem inaccessible-by-default off",
                 "set print pretty",
-                "showtasks",
             ]
         },
         {
@@ -239,7 +217,43 @@
                 "source ${workspaceRoot}/platforms/nuttx/Debug/ARMv7M",
                 "set mem inaccessible-by-default off",
                 "set print pretty",
-                "showtasks",
+            ]
+        },
+        {
+            "name": "Debug av_x-v1 (jlink)",
+            "device": "STM32F777NI",
+            "svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/STM32F7x7.svd",
+            "executable": "${command:cmake.launchTargetPath}",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "jlink",
+            "interface": "swd",
+            "internalConsoleOptions": "openOnSessionStart",
+            "preLaunchCommands": [
+                "source ${workspaceRoot}/platforms/nuttx/Debug/PX4",
+                "source ${workspaceRoot}/platforms/nuttx/Debug/NuttX",
+                "source ${workspaceRoot}/platforms/nuttx/Debug/ARMv7M",
+                "set mem inaccessible-by-default off",
+                "set print pretty",
+            ]
+        },
+        {
+            "name": "Debug nxp_fmuk66-v3 (jlink)",
+            "device": "MK66FN2M0xxx18",
+            //"svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/XXXX.svd",
+            "executable": "${command:cmake.launchTargetPath}",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "jlink",
+            "interface": "swd",
+            "cwd": "${workspaceRoot}",
+            "internalConsoleOptions": "openOnSessionStart",
+            "preLaunchCommands": [
+                "source ${workspaceRoot}/platforms/nuttx/Debug/PX4",
+                "source ${workspaceRoot}/platforms/nuttx/Debug/NuttX",
+                "source ${workspaceRoot}/platforms/nuttx/Debug/ARMv7M",
+                "set mem inaccessible-by-default off",
+                "set print pretty"
             ]
         }
     ]
