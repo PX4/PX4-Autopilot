@@ -755,9 +755,11 @@ MS5611::print_info()
 	_reports->print_info("report queue");
 	printf("device:         %s\n", _device_type == MS5611_DEVICE ? "ms5611" : "ms5607");
 
+#ifndef CONSTRAINED_FLASH
 	sensor_baro_s brp = {};
 	_reports->get(&brp);
 	print_message(brp);
+#endif // CONSTRAINED_FLASH
 }
 
 /**

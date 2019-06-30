@@ -85,5 +85,8 @@ void PX4Barometer::print_status()
 {
 	PX4_INFO(BARO_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
 
+#ifndef CONSTRAINED_FLASH
 	print_message(_sensor_baro_pub.get());
+#endif // CONSTRAINED_FLASH
+
 }

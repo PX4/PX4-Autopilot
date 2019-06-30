@@ -145,5 +145,8 @@ void PX4Magnetometer::print_status()
 	PX4_INFO("calibration offset: %.5f %.5f %.5f", (double)_calibration_offset(0), (double)_calibration_offset(1),
 		 (double)_calibration_offset(2));
 
+#ifndef CONSTRAINED_FLASH
 	print_message(_sensor_mag_pub.get());
+#endif // CONSTRAINED_FLASH
+
 }
