@@ -84,6 +84,7 @@ private:
 
 	/* get control mode dependent pilot throttle threshold with which we should quit landed state and take off */
 	float _get_takeoff_throttle();
+
 	bool _has_low_thrust();
 	bool _has_minimal_thrust();
 	bool _has_altitude_lock();
