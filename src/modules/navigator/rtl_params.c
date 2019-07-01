@@ -116,3 +116,16 @@ PARAM_DEFINE_FLOAT(RTL_MIN_DIST, 5.0f);
  * @group Return Mode
  */
 PARAM_DEFINE_INT32(RTL_TYPE, 0);
+
+/**
+ * Half-angle of the RTL cone.
+ *
+ * Defines the half-angle of the cone which defines the vehicle RTL behavior.
+ *
+ * @unit degrees
+ * @min 0
+ * @max 90
+ * @increment 1
+ * @group Return Mode
+ */
+PARAM_DEFINE_INT32(RTL_CONE_ANG, 30);
