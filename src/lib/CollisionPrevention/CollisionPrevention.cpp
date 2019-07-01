@@ -113,7 +113,7 @@ void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle)
 
 			if (obstacle.increment > 0) {
 				// data from companion
-				obstacle.timestamp = math::min(obstacle.timestamp, distance_sensor.timestamp);
+				obstacle.timestamp = math::max(obstacle.timestamp, distance_sensor.timestamp);
 				obstacle.max_distance = math::max((int)obstacle.max_distance,
 								  (int)distance_sensor.max_distance * 100);
 				obstacle.min_distance = math::min((int)obstacle.min_distance,
@@ -264,13 +264,9 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 		}
 
 	} else {
-		// if distance data are stale, switch to Loiter and disable Collision Prevention
-		// such that it is still possible to fly in Position Control Mode
+		// if distance data are stale, switch to Loiter
 		_publishVehicleCmdDoLoiter();
 		mavlink_log_critical(&_mavlink_log_pub, "No range data received, loitering.");
-		float col_prev_d = -1.f;
-		param_set(param_find("MPC_COL_PREV_D"), &col_prev_d);
-		mavlink_log_critical(&_mavlink_log_pub, "Collision Prevention disabled.");
 	}
 }
 
