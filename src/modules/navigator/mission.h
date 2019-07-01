@@ -267,7 +267,6 @@ private:
 
 	float _distance_current_previous{0.0f}; /**< distance from previous to current sp in pos_sp_triplet,
 					    only use if current and previous are valid */
-	float _foh_calculation_start_altitude{0.0}; /**< altitude that is used as the starting point for foh calculation */
 
 	enum work_item_type {
 		WORK_ITEM_TYPE_DEFAULT,		/**< default mission item */

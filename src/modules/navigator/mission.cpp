@@ -1057,8 +1057,6 @@ Mission::set_mission_items()
 		_distance_current_previous = get_distance_to_next_waypoint(
 						     pos_sp_triplet->current.lat, pos_sp_triplet->current.lon,
 						     _navigator->get_global_position()->lat, _navigator->get_global_position()->lon);
-
-		_foh_calculation_start_altitude = _navigator->get_global_position()->alt;
 	}
 
 	_navigator->set_position_setpoint_triplet_updated();
@@ -1310,7 +1308,7 @@ Mission::altitude_sp_foh_update()
 		 * The setpoint is set linearly and such that the system reaches the current altitude at the acceptance
 		 * radius around the current waypoint
 		 **/
-		float delta_alt = (get_absolute_altitude_for_item(_mission_item) - _foh_calculation_start_altitude);
+		float delta_alt = (get_absolute_altitude_for_item(_mission_item) - pos_sp_triplet->previous.alt);
 		// avoiding division by 0
 		float grad = -delta_alt / math::max((_distance_current_previous - acc_rad), 0.1f);
 		float a = _foh_calculation_start_altitude - grad * _distance_current_previous;
