@@ -50,6 +50,7 @@ bool FlightTaskManualAltitudeSmoothVel::activate(vehicle_local_position_setpoint
 
 	_smoothing.reset(state_prev.acc_z, state_prev.vz, state_prev.z);
 
+	_initEkfResetCounters();
 	_resetPositionLock();
 
 	return ret;
@@ -61,6 +62,7 @@ void FlightTaskManualAltitudeSmoothVel::reActivate()
 	// using the generated jerk, reset the z derivatives to zero
 	_smoothing.reset(0.f, 0.f, _position(2));
 
+	_initEkfResetCounters();
 	_resetPositionLock();
 }
 
@@ -69,6 +71,12 @@ void FlightTaskManualAltitudeSmoothVel::_resetPositionLock()
 	// Always start unlocked
 	_position_lock_z_active = false;
 	_position_setpoint_z_locked = NAN;
+}
+
+void FlightTaskManualAltitudeSmoothVel::_initEkfResetCounters()
+{
+	_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
+	_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
 }
 
 void FlightTaskManualAltitudeSmoothVel::_checkEkfResetCounters()
