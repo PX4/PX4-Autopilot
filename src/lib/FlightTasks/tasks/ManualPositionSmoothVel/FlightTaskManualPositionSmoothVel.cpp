@@ -52,6 +52,7 @@ bool FlightTaskManualPositionSmoothVel::activate(vehicle_local_position_setpoint
 		_smoothing[i].reset(accel_prev(i), vel_prev(i), pos_prev(i));
 	}
 
+	_initEkfResetCounters();
 	_resetPositionLock();
 
 	return ret;
@@ -78,6 +79,14 @@ void FlightTaskManualPositionSmoothVel::_resetPositionLock()
 	_position_setpoint_xy_locked(0) = NAN;
 	_position_setpoint_xy_locked(1) = NAN;
 	_position_setpoint_z_locked = NAN;
+}
+
+void FlightTaskManualPositionSmoothVel::_initEkfResetCounters()
+{
+	_reset_counters.xy = _sub_vehicle_local_position->get().xy_reset_counter;
+	_reset_counters.vxy = _sub_vehicle_local_position->get().vxy_reset_counter;
+	_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
+	_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
 }
 
 void FlightTaskManualPositionSmoothVel::_checkEkfResetCounters()

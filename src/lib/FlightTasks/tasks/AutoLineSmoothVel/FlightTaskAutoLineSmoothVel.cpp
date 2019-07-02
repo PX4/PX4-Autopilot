@@ -56,6 +56,7 @@ bool FlightTaskAutoLineSmoothVel::activate(vehicle_local_position_setpoint_s sta
 
 	_yaw_sp_prev = _yaw;
 	_updateTrajConstraints();
+	_initEkfResetCounters();
 
 	return ret;
 }
@@ -68,6 +69,7 @@ void FlightTaskAutoLineSmoothVel::reActivate()
 	}
 
 	_trajectory[2].reset(0.f, 0.7f, _position(2));
+	_initEkfResetCounters();
 }
 
 void FlightTaskAutoLineSmoothVel::_generateSetpoints()
@@ -113,6 +115,14 @@ inline float FlightTaskAutoLineSmoothVel::_constrainOneSide(float val, float con
 	const float max = (constrain > FLT_EPSILON) ? constrain : 0.f;
 
 	return math::constrain(val, min, max);
+}
+
+void FlightTaskAutoLineSmoothVel::_initEkfResetCounters()
+{
+	_reset_counters.xy = _sub_vehicle_local_position->get().xy_reset_counter;
+	_reset_counters.vxy = _sub_vehicle_local_position->get().vxy_reset_counter;
+	_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
+	_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
 }
 
 void FlightTaskAutoLineSmoothVel::_checkEkfResetCounters()
