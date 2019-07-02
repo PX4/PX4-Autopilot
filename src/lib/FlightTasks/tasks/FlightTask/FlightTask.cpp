@@ -22,7 +22,7 @@ bool FlightTask::initializeSubscriptions(SubscriptionArray &subscription_array)
 	return true;
 }
 
-bool FlightTask::activate()
+bool FlightTask::activate(vehicle_local_position_setpoint_s state_prev)
 {
 	_resetSetpoints();
 	_setDefaultConstraints();
@@ -34,7 +34,7 @@ bool FlightTask::activate()
 
 void FlightTask::reActivate()
 {
-	activate();
+	activate(getPositionSetpoint());
 }
 
 bool FlightTask::updateInitialize()
@@ -45,6 +45,47 @@ bool FlightTask::updateInitialize()
 	_time_stamp_last = _time_stamp_current;
 	_evaluateVehicleLocalPosition();
 	return true;
+}
+
+void FlightTask::checkSetpoints(vehicle_local_position_setpoint_s &setpoints)
+{
+	// If the position setpoint is unknown, set to the current postion
+	if (!PX4_ISFINITE(setpoints.x)) { setpoints.x = _position(0); }
+
+	if (!PX4_ISFINITE(setpoints.y)) { setpoints.y = _position(1); }
+
+	if (!PX4_ISFINITE(setpoints.z)) { setpoints.z = _position(2); }
+
+	// If the velocity setpoint is unknown, set to the current velocity
+	if (!PX4_ISFINITE(setpoints.vx)) { setpoints.vx = _velocity(0); }
+
+	if (!PX4_ISFINITE(setpoints.vy)) { setpoints.vy = _velocity(1); }
+
+	if (!PX4_ISFINITE(setpoints.vz)) { setpoints.vz = _velocity(2); }
+
+	// No acceleration estimate available, set to zero if the setpoint is NAN
+	if (!PX4_ISFINITE(setpoints.acc_x)) { setpoints.acc_x = 0.f; }
+
+	if (!PX4_ISFINITE(setpoints.acc_y)) { setpoints.acc_y = 0.f; }
+
+	if (!PX4_ISFINITE(setpoints.acc_z)) { setpoints.acc_z = 0.f; }
+
+	// No jerk estimate available, set to zero if the setpoint is NAN
+	if (!PX4_ISFINITE(setpoints.jerk_x)) { setpoints.jerk_x = 0.f; }
+
+	if (!PX4_ISFINITE(setpoints.jerk_y)) { setpoints.jerk_y = 0.f; }
+
+	if (!PX4_ISFINITE(setpoints.jerk_z)) { setpoints.jerk_z = 0.f; }
+
+	if (!PX4_ISFINITE(setpoints.thrust[0])) { setpoints.thrust[0] = 0.f; }
+
+	if (!PX4_ISFINITE(setpoints.thrust[1])) { setpoints.thrust[1] = 0.f; }
+
+	if (!PX4_ISFINITE(setpoints.thrust[2])) { setpoints.thrust[2] = -0.5f; }
+
+	if (!PX4_ISFINITE(setpoints.yaw)) { setpoints.yaw = _yaw; }
+
+	if (!PX4_ISFINITE(setpoints.yawspeed)) { setpoints.yawspeed = 0.f; }
 }
 
 const vehicle_local_position_setpoint_s FlightTask::getPositionSetpoint()

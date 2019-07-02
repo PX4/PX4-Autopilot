@@ -47,7 +47,7 @@ public:
 
 	virtual ~FlightTaskFailsafe() = default;
 	bool update() override;
-	bool activate() override;
+	bool activate(vehicle_local_position_setpoint_s state_prev) override;
 
 private:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
