@@ -77,9 +77,9 @@ bool FlightTaskAuto::initializeSubscriptions(SubscriptionArray &subscription_arr
 	return true;
 }
 
-bool FlightTaskAuto::activate()
+bool FlightTaskAuto::activate(vehicle_local_position_setpoint_s state_prev)
 {
-	bool ret = FlightTask::activate();
+	bool ret = FlightTask::activate(state_prev);
 	_position_setpoint = _position;
 	_velocity_setpoint = _velocity;
 	_yaw_setpoint = _yaw_sp_prev = _yaw;
