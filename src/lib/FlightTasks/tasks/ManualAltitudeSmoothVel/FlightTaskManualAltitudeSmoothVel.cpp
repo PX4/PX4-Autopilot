@@ -41,11 +41,16 @@
 
 using namespace matrix;
 
-bool FlightTaskManualAltitudeSmoothVel::activate()
+bool FlightTaskManualAltitudeSmoothVel::activate(vehicle_local_position_setpoint_s state_prev)
 {
-	bool ret = FlightTaskManualAltitude::activate();
+	bool ret = FlightTaskManualAltitude::activate(state_prev);
 
-	_reset();
+	// Check if the previous FlightTask provided setpoints
+	checkSetpoints(state_prev);
+
+	_smoothing.reset(state_prev.acc_z, state_prev.vz, state_prev.z);
+
+	_resetPositionLock();
 
 	return ret;
 }
@@ -54,20 +59,13 @@ void FlightTaskManualAltitudeSmoothVel::reActivate()
 {
 	// The task is reacivated while the vehicle is on the ground. To detect takeoff in mc_pos_control_main properly
 	// using the generated jerk, reset the z derivatives to zero
-	_reset(true);
+	_smoothing.reset(0.f, 0.f, _position(2));
+
+	_resetPositionLock();
 }
 
-void FlightTaskManualAltitudeSmoothVel::_reset(bool force_vz_zero)
+void FlightTaskManualAltitudeSmoothVel::_resetPositionLock()
 {
-	// Set the z derivatives to zero
-	if (force_vz_zero) {
-		_smoothing.reset(0.f, 0.f, _position(2));
-
-	} else {
-		// TODO: get current accel
-		_smoothing.reset(0.f, _velocity(2), _position(2));
-	}
-
 	// Always start unlocked
 	_position_lock_z_active = false;
 	_position_setpoint_z_locked = NAN;

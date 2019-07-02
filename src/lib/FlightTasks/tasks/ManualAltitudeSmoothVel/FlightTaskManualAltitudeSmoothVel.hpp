@@ -48,7 +48,7 @@ public:
 	FlightTaskManualAltitudeSmoothVel() = default;
 	virtual ~FlightTaskManualAltitudeSmoothVel() = default;
 
-	bool activate() override;
+	bool activate(vehicle_local_position_setpoint_s state_prev) override;
 	void reActivate() override;
 
 protected:
@@ -63,10 +63,7 @@ protected:
 
 private:
 
-	/**
-	 * Reset the required axes. when force_z_zero is set to true, the z derivatives are set to sero and not to the estimated states
-	 */
-	void _reset(bool force_vz_zero = false);
+	void _resetPositionLock();
 	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
 
 	VelocitySmoothing _smoothing; ///< Smoothing in z direction

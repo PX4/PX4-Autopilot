@@ -49,7 +49,7 @@ public:
 	virtual ~FlightTaskOffboard() = default;
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 	bool update() override;
-	bool activate() override;
+	bool activate(vehicle_local_position_setpoint_s state_prev) override;
 	bool updateInitialize() override;
 
 protected:
