@@ -326,7 +326,13 @@ WindEstimator::run_sanity_checks()
 	}
 
 	// constrain airspeed scale factor, negative values physically do not make sense
-	_state(tas) = math::max(0.0f, _state(tas));
+	if (_scale_estimation_on) {
+		_state(tas) = math::max(0.0f, _state(tas));
+	} else {
+		_state(tas) = 1.0f;
+	}
+
+
 
 	// attain symmetry
 	for (unsigned row = 0; row < 3; row++) {
