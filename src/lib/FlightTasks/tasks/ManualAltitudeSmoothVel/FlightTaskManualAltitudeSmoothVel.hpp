@@ -64,6 +64,7 @@ protected:
 private:
 
 	void _resetPositionLock();
+	void _initEkfResetCounters();
 	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
 
 	VelocitySmoothing _smoothing; ///< Smoothing in z direction

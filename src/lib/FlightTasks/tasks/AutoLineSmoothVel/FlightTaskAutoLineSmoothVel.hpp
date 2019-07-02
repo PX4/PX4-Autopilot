@@ -70,6 +70,7 @@ protected:
 	bool _checkTakeoff() override { return _want_takeoff; };
 
 	inline float _constrainOneSide(float val, float constrain);
+	void _initEkfResetCounters();
 	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
 	void _generateHeading();
 	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
