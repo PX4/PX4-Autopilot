@@ -60,7 +60,7 @@ public:
 
 	void set_sample_rate(unsigned rate);
 
-	void update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z);
+	void update(hrt_abstime timestamp, float x, float y, float z);
 
 	void print_status();
 
