@@ -121,8 +121,8 @@ private:
 
 	static struct work_s	_work;
 
-	int		_vehicle_cmd_sub{-1};
-	int		_adc_sub{-1};
+	uORB::Subscription	_vehicle_cmd_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription	_adc_sub{ORB_ID(adc_report)};
 
 	input_rc_s	_rc_in{};
 

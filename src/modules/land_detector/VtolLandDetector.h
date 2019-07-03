@@ -70,11 +70,11 @@ private:
 		float maxAirSpeed;
 	} _params{};
 
-	uORB::Subscription _airspeedSub{ORB_ID(airspeed)};
+	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
-	airspeed_s		_airspeed{};
-	vehicle_status_s	_vehicle_status{};
+	airspeed_s _airspeed{};
+	vehicle_status_s _vehicle_status{};
 
 	bool _was_in_air{false}; /**< indicates whether the vehicle was in the air in the previous iteration */
 	float _airspeed_filtered{0.0f}; /**< low pass filtered airspeed */

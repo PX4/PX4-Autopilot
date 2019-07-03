@@ -69,7 +69,7 @@ then
 	param set VT_FW_MOT_OFFID 3
 	param set VT_FW_PERM_STAB 0
 	param set VT_IDLE_PWM_MC 1200
-	param set VT_MOT_COUNT 3
+	param set VT_MOT_ID 123
 	param set VT_TILT_FW  1
 	param set VT_TILT_MC  0
 	param set VT_TILT_TRANS   0.45
@@ -77,9 +77,6 @@ then
 	param set VT_TRANS_P2_DUR 1.3
 	param set VT_ELEV_MC_LOCK 0
 	param set VT_TYPE 1
-
-	# Indicate that FW roll direction was fixed in mixer, to be removed in v1.10
-	param set V19_VT_ROLLDIR 0
 fi
 
 set MAV_TYPE 21
