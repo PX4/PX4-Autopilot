@@ -125,7 +125,12 @@ PARAM_DEFINE_INT32(RTL_TYPE, 0);
  * @unit degrees
  * @min 0
  * @max 90
- * @increment 1
+ * @value 0 No cone, always climb to RTL_RETURN_ALT above home.
+ * @value 25 25 degrees half cone angle.
+ * @value 45 45 degrees half cone angle.
+ * @value 65 65 degrees half cone angle.
+ * @value 80 80 degrees half cone angle.
+ * @value 90 Only climb to at least RTL_DESCEND_ALT above home.
  * @group Return Mode
  */
-PARAM_DEFINE_INT32(RTL_CONE_ANG, 30);
+PARAM_DEFINE_INT32(RTL_CONE_ANG, 0);

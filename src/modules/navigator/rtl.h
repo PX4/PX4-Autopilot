@@ -94,7 +94,7 @@ private:
 		RTL_STATE_LANDED,
 	} _rtl_state{RTL_STATE_NONE};
 
-	float _rtl_alt;	// AMSL altitude at which the vehicle should return to the home position
+	float _rtl_alt{0.0f};	// AMSL altitude at which the vehicle should return to the home position
 	bool _rtl_alt_min{false};
 
 	DEFINE_PARAMETERS(
