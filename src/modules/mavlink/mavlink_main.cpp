@@ -49,8 +49,9 @@
 #endif
 
 #include <lib/ecl/geo/geo.h>
-#include <mathlib/mathlib.h>
-#include <version/version.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/version/version.h>
+#include <uORB/PublicationQueued.hpp>
 
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
@@ -2126,7 +2127,7 @@ Mavlink::task_main(int argc, char *argv[])
 	cmd_sub->subscribe_from_beginning(true);
 
 	/* command ack */
-	orb_advert_t command_ack_pub = nullptr;
+	uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	MavlinkOrbSubscription *mavlink_log_sub = add_orb_subscription(ORB_ID(mavlink_log));
 
@@ -2263,7 +2264,7 @@ Mavlink::task_main(int argc, char *argv[])
 				}
 
 				// send positive command ack
-				vehicle_command_ack_s command_ack = {};
+				vehicle_command_ack_s command_ack{};
 				command_ack.timestamp = vehicle_cmd.timestamp;
 				command_ack.command = vehicle_cmd.command;
 				command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
@@ -2271,13 +2272,7 @@ Mavlink::task_main(int argc, char *argv[])
 				command_ack.target_system = vehicle_cmd.source_system;
 				command_ack.target_component = vehicle_cmd.source_component;
 
-				if (command_ack_pub != nullptr) {
-					orb_publish(ORB_ID(vehicle_command_ack), command_ack_pub, &command_ack);
-
-				} else {
-					command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-									      vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-				}
+				command_ack_pub.publish(command_ack);
 			}
 		}
 
@@ -2542,12 +2537,7 @@ void Mavlink::publish_telemetry_status()
 
 	_tstatus.timestamp = hrt_absolute_time();
 
-	if (_telem_status_pub == nullptr) {
-		_telem_status_pub = orb_advertise_queue(ORB_ID(telemetry_status), &_tstatus, 3);
-
-	} else {
-		orb_publish(ORB_ID(telemetry_status), _telem_status_pub, &_tstatus);
-	}
+	_telem_status_pub.publish(_tstatus);
 }
 
 void Mavlink::check_radio_config()

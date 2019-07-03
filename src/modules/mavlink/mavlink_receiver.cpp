@@ -98,20 +98,14 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 void
 MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, uint8_t result)
 {
-	vehicle_command_ack_s command_ack = {};
+	vehicle_command_ack_s command_ack{};
 	command_ack.timestamp = hrt_absolute_time();
 	command_ack.command = command;
 	command_ack.result = result;
 	command_ack.target_system = sysid;
 	command_ack.target_component = compid;
 
-	if (_command_ack_pub == nullptr) {
-		_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-						       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-
-	} else {
-		orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
-	}
+	_cmd_ack_pub.publish(command_ack);
 }
 
 void
@@ -515,12 +509,7 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		}
 
 		if (!send_ack) {
-			if (_cmd_pub == nullptr) {
-				_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vehicle_command, vehicle_command_s::ORB_QUEUE_LENGTH);
-
-			} else {
-				orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vehicle_command);
-			}
+			_cmd_pub.publish(vehicle_command);
 		}
 	}
 
@@ -547,13 +536,7 @@ MavlinkReceiver::handle_message_command_ack(mavlink_message_t *msg)
 	command_ack.target_system = ack.target_system;
 	command_ack.target_component = ack.target_component;
 
-	if (_command_ack_pub == nullptr) {
-		_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-						       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-
-	} else {
-		orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
-	}
+	_cmd_ack_pub.publish(command_ack);
 
 	// TODO: move it to the same place that sent the command
 	if (ack.result != MAV_RESULT_ACCEPTED && ack.result != MAV_RESULT_IN_PROGRESS) {
@@ -687,7 +670,7 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 	union px4_custom_mode custom_mode;
 	custom_mode.data = new_mode.custom_mode;
 
-	vehicle_command_s vcmd = {};
+	vehicle_command_s vcmd{};
 	vcmd.timestamp = hrt_absolute_time();
 
 	/* copy the content of mavlink_command_long_t cmd_mavlink into command_t cmd */
@@ -703,12 +686,7 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 	vcmd.confirmation = true;
 	vcmd.from_external = true;
 
-	if (_cmd_pub == nullptr) {
-		_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-
-	} else {
-		orb_publish(ORB_ID(vehicle_command), _cmd_pub, &vcmd);
-	}
+	_cmd_pub.publish(vcmd);
 }
 
 void
@@ -2274,12 +2252,7 @@ MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 
 	//PX4_INFO("code: %d callsign: %s, vel: %8.4f, tslc: %d", (int)t.ICAO_address, t.callsign, (double)t.hor_velocity, (int)t.tslc);
 
-	if (_transponder_report_pub == nullptr) {
-		_transponder_report_pub = orb_advertise_queue(ORB_ID(transponder_report), &t, transponder_report_s::ORB_QUEUE_LENGTH);
-
-	} else {
-		orb_publish(ORB_ID(transponder_report), _transponder_report_pub, &t);
-	}
+	_transponder_report_pub.publish(t);
 }
 
 void
@@ -2343,13 +2316,7 @@ MavlinkReceiver::handle_message_utm_global_position(mavlink_message_t *msg)
 
 	// Note: t.flags has deliberately NOT set VALID_CALLSIGN or VALID_SQUAWK, because UTM_GLOBAL_POSITION does not
 	// provide these.
-
-	if (_transponder_report_pub == nullptr) {
-		_transponder_report_pub = orb_advertise_queue(ORB_ID(transponder_report), &t, transponder_report_s::ORB_QUEUE_LENGTH);
-
-	} else {
-		orb_publish(ORB_ID(transponder_report), _transponder_report_pub, &t);
-	}
+	_transponder_report_pub.publish(t);
 
 	_last_utm_global_pos_com = t.timestamp;
 }
@@ -2392,16 +2359,7 @@ MavlinkReceiver::handle_message_gps_rtcm_data(mavlink_message_t *msg)
 	memcpy(gps_inject_data_topic.data, gps_rtcm_data_msg.data,
 	       math::min((int)sizeof(gps_inject_data_topic.data), (int)sizeof(uint8_t) * gps_inject_data_topic.len));
 
-	orb_advert_t &pub = _gps_inject_data_pub;
-
-	if (pub == nullptr) {
-		pub = orb_advertise_queue(ORB_ID(gps_inject_data), &gps_inject_data_topic,
-					  _gps_inject_data_queue_size);
-
-	} else {
-		orb_publish(ORB_ID(gps_inject_data), pub, &gps_inject_data_topic);
-	}
-
+	_gps_inject_data_pub.publish(gps_inject_data_topic);
 }
 
 void

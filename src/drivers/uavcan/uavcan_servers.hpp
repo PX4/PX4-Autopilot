@@ -36,7 +36,9 @@
 #include <px4_config.h>
 #include "uavcan_driver.hpp"
 #include <drivers/device/device.h>
-#include <perf/perf_counter.h>
+#include <lib/perf/perf_counter.h>
+#include <uORB/PublicationQueued.hpp>
+#include <uORB/topics/vehicle_command_ack.h>
 
 #include <uavcan/node/sub_node.hpp>
 #include <uavcan/protocol/node_status_monitor.hpp>
@@ -160,7 +162,7 @@ private:
 
 	// uORB topic handle for MAVLink parameter responses
 	orb_advert_t _param_response_pub = nullptr;
-	orb_advert_t _command_ack_pub = nullptr;
+	uORB::PublicationQueued<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	typedef uavcan::MethodBinder<UavcanServers *,
 		void (UavcanServers::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &)> GetSetCallback;
