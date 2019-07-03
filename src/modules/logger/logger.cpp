@@ -2149,7 +2149,7 @@ void Logger::write_version(LogType type)
 	}
 
 	if (git_tag && git_tag[0]) {
-	    write_info(type, "ver_sw_tag", git_tag);
+		write_info(type, "ver_sw_tag", git_tag);
 	}
 
 	write_info(type, "sys_os_ver_release", px4_os_version());
