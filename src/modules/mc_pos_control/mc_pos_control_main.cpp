@@ -979,6 +979,7 @@ void MulticopterPositionControl::check_failure(bool task_failure, uint8_t nav_st
 void MulticopterPositionControl::send_vehicle_cmd_do(uint8_t nav_state)
 {
 	vehicle_command_s command{};
+	command.timestamp = hrt_absolute_time();
 	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
 	command.param1 = (float)1; // base mode
 	command.param3 = (float)0; // sub mode
