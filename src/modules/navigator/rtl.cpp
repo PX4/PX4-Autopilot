@@ -355,17 +355,21 @@ float RTL::calculate_return_alt_from_cone_half_angle(float cone_half_angle_deg)
 	const home_position_s &home = *_navigator->get_home_position();
 	const vehicle_global_position_s &gpos = *_navigator->get_global_position();
 
+	// horizontal distance to home position
+	const float home_dist = get_distance_to_next_waypoint(home.lat, home.lon, gpos.lat, gpos.lon);
+
 	float rtl_altitude;
 
-	if (gpos.alt > home.alt + _param_rtl_return_alt.get() || cone_half_angle_deg >= 90.0f) {
+	if (home_dist <= _param_rtl_min_dist.get()) {
+		rtl_altitude = home.alt + _param_rtl_descend_alt.get();
+
+	} else if (gpos.alt > home.alt + _param_rtl_return_alt.get() || cone_half_angle_deg >= 90.0f) {
 		rtl_altitude = gpos.alt;
 
 	} else if (cone_half_angle_deg <= 0) {
 		rtl_altitude = home.alt + _param_rtl_return_alt.get();
 
 	} else {
-		// horizontal distance to home position
-		const float home_dist = get_distance_to_next_waypoint(home.lat, home.lon, gpos.lat, gpos.lon);
 
 		// constrain cone half angle to meaningful values. All other cases are already handled above.
 		const float cone_half_angle_rad = math::radians(math::constrain(cone_half_angle_deg, 1.0f, 89.0f));
