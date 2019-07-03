@@ -50,13 +50,6 @@ MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) :
 {
 }
 
-MavlinkParametersManager::~MavlinkParametersManager()
-{
-	if (_uavcan_parameter_request_pub) {
-		orb_unadvertise(_uavcan_parameter_request_pub);
-	}
-}
-
 unsigned
 MavlinkParametersManager::get_size()
 {
@@ -91,12 +84,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				req.node_id = req_list.target_component;
 				req.param_index = 0;
 
-				if (_uavcan_parameter_request_pub == nullptr) {
-					_uavcan_parameter_request_pub = orb_advertise(ORB_ID(uavcan_parameter_request), &req);
-
-				} else {
-					orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
-				}
+				_uavcan_parameter_request_pub.publish(req);
 			}
 
 			break;
@@ -163,12 +151,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					req.int_value = val;
 				}
 
-				if (_uavcan_parameter_request_pub == nullptr) {
-					_uavcan_parameter_request_pub = orb_advertise(ORB_ID(uavcan_parameter_request), &req);
-
-				} else {
-					orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
-				}
+				_uavcan_parameter_request_pub.publish(req);
 			}
 
 			break;
@@ -577,12 +560,7 @@ void MavlinkParametersManager::request_next_uavcan_parameter()
 	if (!_uavcan_waiting_for_request_response && _uavcan_open_request_list != nullptr) {
 		uavcan_parameter_request_s req = _uavcan_open_request_list->req;
 
-		if (_uavcan_parameter_request_pub == nullptr) {
-			_uavcan_parameter_request_pub = orb_advertise_queue(ORB_ID(uavcan_parameter_request), &req, 5);
-
-		} else {
-			orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
-		}
+		_uavcan_parameter_request_pub.publish(req);
 
 		_uavcan_waiting_for_request_response = true;
 	}

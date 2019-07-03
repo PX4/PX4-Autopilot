@@ -46,6 +46,8 @@
 #include <commander/px4_custom_mode.h>
 #include <drivers/drv_hrt.h>
 
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
@@ -62,7 +64,7 @@ class ObstacleAvoidance : public ModuleParams
 {
 public:
 	ObstacleAvoidance(ModuleParams *parent);
-	~ObstacleAvoidance();
+	~ObstacleAvoidance() = default;
 
 	bool initializeSubscriptions(SubscriptionArray &subscription_array);
 
@@ -113,10 +115,11 @@ private:
 		(ParamFloat<px4::params::NAV_MC_ALT_RAD>) _param_nav_mc_alt_rad    /**< Acceptance radius for multicopter altitude */
 	);
 
-	vehicle_trajectory_waypoint_s _desired_waypoint = {};  /**< desired vehicle trajectory waypoint to be sent to OA */
-	orb_advert_t _pub_traj_wp_avoidance_desired{nullptr}; /**< trajectory waypoint desired publication */
-	orb_advert_t _pub_pos_control_status{nullptr}; /**< position controller status publication */
-	orb_advert_t _pub_vehicle_command{nullptr}; /**< vehicle command do publication */
+	vehicle_trajectory_waypoint_s _desired_waypoint{};  /**< desired vehicle trajectory waypoint to be sent to OA */
+
+	uORB::Publication<vehicle_trajectory_waypoint_s> _pub_traj_wp_avoidance_desired{ORB_ID(vehicle_trajectory_waypoint_desired)};	/**< trajectory waypoint desired publication */
+	uORB::Publication<position_controller_status_s> _pub_pos_control_status{ORB_ID(position_controller_status)};	/**< position controller status publication */
+	uORB::PublicationQueued<vehicle_command_s> _pub_vehicle_command{ORB_ID(vehicle_command)};	/**< vehicle command do publication */
 
 	matrix::Vector3f _curr_wp = {}; /**< current position triplet */
 	matrix::Vector3f _position = {}; /**< current vehicle position */
@@ -125,11 +128,6 @@ private:
 	systemlib::Hysteresis _avoidance_point_not_valid_hysteresis{false}; /**< becomes true if the companion doesn't start sending valid setpoints */
 
 	bool _ext_yaw_active = false; /**< true, if external yaw handling is active */
-
-	/**
-	 * Publishes vehicle trajectory waypoint desired.
-	 */
-	void _publishAvoidanceDesiredWaypoint();
 
 	/**
 	 * Publishes vehicle command.
