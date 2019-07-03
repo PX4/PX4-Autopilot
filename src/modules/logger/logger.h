@@ -357,8 +357,8 @@ private:
 	 */
 	bool start_stop_logging(int vehicle_status_sub, int manual_control_sp_sub, MissionLogType mission_log_type);
 
-	void handle_vehicle_command_update(int vehicle_command_sub, orb_advert_t &vehicle_command_ack_pub);
-	void ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, vehicle_command_s *cmd, uint32_t result);
+	void handle_vehicle_command_update(int vehicle_command_sub);
+	void ack_vehicle_command(vehicle_command_s *cmd, uint32_t result);
 
 	/**
 	 * initialize the output for the process load, so that ~1 second later it will be written to the log

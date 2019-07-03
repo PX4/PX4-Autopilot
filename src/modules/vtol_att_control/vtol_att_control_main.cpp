@@ -49,6 +49,7 @@
 #include "vtol_att_control_main.h"
 #include <systemlib/mavlink_log.h>
 #include <matrix/matrix/math.hpp>
+#include <uORB/PublicationQueued.hpp>
 
 using namespace matrix;
 
@@ -193,20 +194,15 @@ VtolAttitudeControl::handle_command()
 		// This might not be optimal but is better than no response at all.
 
 		if (_vehicle_cmd.from_external) {
-			vehicle_command_ack_s command_ack = {};
+			vehicle_command_ack_s command_ack{};
 			command_ack.timestamp = hrt_absolute_time();
 			command_ack.command = _vehicle_cmd.command;
 			command_ack.result = (uint8_t)vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
 			command_ack.target_system = _vehicle_cmd.source_system;
 			command_ack.target_component = _vehicle_cmd.source_component;
 
-			if (_v_cmd_ack_pub == nullptr) {
-				_v_cmd_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-								     vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-
-			} else {
-				orb_publish(ORB_ID(vehicle_command_ack), _v_cmd_ack_pub, &command_ack);
-			}
+			uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
+			command_ack_pub.publish(command_ack);
 		}
 	}
 }
