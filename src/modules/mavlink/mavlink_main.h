@@ -258,7 +258,9 @@ public:
 
 	bool			is_connected() { return (hrt_elapsed_time(&_tstatus.heartbeat_time) < 3_s); }
 
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
 	bool			broadcast_enabled() { return _param_mav_broadcast.get() == BROADCAST_MODE_ON; }
+#endif
 
 	/**
 	 * Set the boot complete flag on all instances
@@ -659,7 +661,9 @@ private:
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamBool<px4::params::MAV_USEHILGPS>) _param_mav_usehilgps,
 		(ParamBool<px4::params::MAV_FWDEXTSP>) _param_mav_fwdextsp,
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
 		(ParamInt<px4::params::MAV_BROADCAST>) _param_mav_broadcast,
+#endif
 		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_mav_hash_chk_en,
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
 		(ParamBool<px4::params::MAV_ODOM_LP>) _param_mav_odom_lp,
