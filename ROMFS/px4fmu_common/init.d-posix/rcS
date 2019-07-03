@@ -162,15 +162,15 @@ fi
 
 # Adapt timeout parameters if simulation runs faster or slower than realtime.
 if [ ! -z $PX4_SIM_SPEED_FACTOR ]; then
-	COM_DL_LOSS_T_LONGER=$((PX4_SIM_SPEED_FACTOR * 10))
+	COM_DL_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 10" | bc)
 	echo "COM_DL_LOSS_T set to $COM_DL_LOSS_T_LONGER"
 	param set COM_DL_LOSS_T $COM_DL_LOSS_T_LONGER
 
-	COM_RC_LOSS_T_LONGER=$((PX4_SIM_SPEED_FACTOR * 1))
+	COM_RC_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 1" | bc)
 	echo "COM_RC_LOSS_T set to $COM_RC_LOSS_T_LONGER"
 	param set COM_RC_LOSS_T $COM_RC_LOSS_T_LONGER
 
-	COM_OF_LOSS_T_LONGER=$((PX4_SIM_SPEED_FACTOR * 10))
+	COM_OF_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 10" | bc)
 	echo "COM_OF_LOSS_T set to $COM_OF_LOSS_T_LONGER"
 	param set COM_OF_LOSS_T $COM_OF_LOSS_T_LONGER
 fi
