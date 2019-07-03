@@ -542,11 +542,11 @@ public:
 private:
 	MavlinkOrbSubscription *_status_sub;
 	MavlinkOrbSubscription *_cpuload_sub;
-	MavlinkOrbSubscription *_battery_status_sub;
+	MavlinkOrbSubscription *_battery_status_sub[BOARD_NUMBER_BRICKS];
 
 	uint64_t _status_timestamp{0};
 	uint64_t _cpuload_timestamp{0};
-	uint64_t _battery_status_timestamp{0};
+	uint64_t _battery_status_timestamp[BOARD_NUMBER_BRICKS];
 
 	/* do not allow top copying this class */
 	MavlinkStreamSysStatus(MavlinkStreamSysStatus &) = delete;
@@ -555,28 +555,45 @@ private:
 protected:
 	explicit MavlinkStreamSysStatus(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
-		_cpuload_sub(_mavlink->add_orb_subscription(ORB_ID(cpuload))),
-		_battery_status_sub(_mavlink->add_orb_subscription(ORB_ID(battery_status)))
-	{}
+		_cpuload_sub(_mavlink->add_orb_subscription(ORB_ID(cpuload)))
+	{
+		for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
+			_battery_status_sub[i] = _mavlink->add_orb_subscription(ORB_ID(battery_status), i);
+		}
+	}
 
 	bool send(const hrt_abstime t)
 	{
 		vehicle_status_s status = {};
 		cpuload_s cpuload = {};
-		battery_status_s battery_status = {};
+		battery_status_s battery_status[BOARD_NUMBER_BRICKS] = {};
 
 		const bool updated_status = _status_sub->update(&_status_timestamp, &status);
 		const bool updated_cpuload = _cpuload_sub->update(&_cpuload_timestamp, &cpuload);
-		const bool updated_battery = _battery_status_sub->update(&_battery_status_timestamp, &battery_status);
+		bool updated_any = updated_status || updated_cpuload;
+		bool updated_battery[BOARD_NUMBER_BRICKS];
 
-		if (updated_status || updated_battery || updated_cpuload) {
+		for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
+			updated_battery[i] = _battery_status_sub[i]->update(&_battery_status_timestamp[i], &battery_status[i]);
+			updated_any = updated_any || updated_battery[i];
+		}
+
+		if (updated_any) {
 
 			if (!updated_status) {
 				_status_sub->update(&status);
 			}
 
-			if (!updated_battery) {
-				_battery_status_sub->update(&battery_status);
+			battery_status_s *lowest_battery = &battery_status[0];
+
+			for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
+				if (!updated_battery[i]) {
+					_battery_status_sub[i]->update(&_battery_status_timestamp[i], &battery_status[i]);
+				}
+
+				if (battery_status[i].connected && battery_status[i].remaining < lowest_battery->remaining) {
+					lowest_battery = &battery_status[i];
+				}
 			}
 
 			if (!updated_cpuload) {
@@ -590,10 +607,13 @@ protected:
 			msg.onboard_control_sensors_health = status.onboard_control_sensors_health;
 			msg.load = cpuload.load * 1000.0f;
 			// TODO: Determine what data should be put here when there are multiple batteries.
-			//  Is Battery 0 the primary? Should I average the voltage/current/remaining of all batteries?
-			msg.voltage_battery = (battery_status.connected) ? battery_status.voltage_filtered_v * 1000.0f : UINT16_MAX;
-			msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100.0f : -1;
-			msg.battery_remaining = (battery_status.connected) ? ceilf(battery_status.remaining * 100.0f) : -1;
+			//  Right now, it uses the lowest battery. This is a safety decision, because if a client is only checking
+			//  one battery using this message, it should be the lowest.
+			//  In the future, this should somehow determine the "main" battery, or use the "type" field of BATTERY_STATUS
+			//  to determine which battery is more important at a given time.
+			msg.voltage_battery = (lowest_battery->connected) ? lowest_battery->voltage_filtered_v * 1000.0f : UINT16_MAX;
+			msg.current_battery = (lowest_battery->connected) ? lowest_battery->current_filtered_a * 100.0f : -1;
+			msg.battery_remaining = (lowest_battery->connected) ? ceilf(lowest_battery->remaining * 100.0f) : -1;
 			// TODO: fill in something useful in the fields below
 			msg.drop_rate_comm = 0;
 			msg.errors_comm = 0;
