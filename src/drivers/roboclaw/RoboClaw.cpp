@@ -67,6 +67,9 @@
 #define ENCODER_READ_PERIOD_MS 10
 #define ACTUATOR_WRITE_PERIOD_MS 10
 
+// Number of bytes returned by the Roboclaw when sending command 78, read both encoders
+#define ENCODER_MESSAGE_SIZE 10
+
 // TODO: Delete this
 //void printbytes(const char *msg, uint8_t *bytes, int numbytes)
 //{
@@ -177,9 +180,10 @@ void RoboClaw::taskMain()
 
 			int drive_ret = 0, turn_ret = 0;
 
-			// Disarmed
-			if (!_actuatorArmed.armed || _actuatorArmed.lockdown || _actuatorArmed.manual_lockdown
-			    || _actuatorArmed.force_failsafe) {
+			const bool disarmed = !_actuatorArmed.armed || _actuatorArmed.lockdown || _actuatorArmed.manual_lockdown
+					      || _actuatorArmed.force_failsafe;
+
+			if (disarmed) {
 				// If disarmed, I want to be certain that the stop command gets through.
 				while ((drive_ret = drive(0.0)) <= 0 || (turn_ret = turn(0.0)) <= 0) {
 					PX4_ERR("Error trying to stop: Drive: %d, Turn: %d", drive_ret, turn_ret);
@@ -195,9 +199,8 @@ void RoboClaw::taskMain()
 				}
 			}
 
-			// A timeout occurred, which means that it's time to update the encoders
-
 		} else {
+			// A timeout occurred, which means that it's time to update the encoders
 			encoderTaskLastRun = hrt_absolute_time();
 
 			if (readEncoder() > 0) {
@@ -227,14 +230,14 @@ void RoboClaw::taskMain()
 int RoboClaw::readEncoder()
 {
 
-	uint8_t rbuff[10];
+	uint8_t rbuff[ENCODER_MESSAGE_SIZE];
 	int nread = 0;
 
 	for (int retry = 0; retry < FAILED_TRANSACTION_RETRIES && nread == 0; retry++) {
-		nread =  _transaction(CMD_READ_BOTH_ENCODERS, nullptr, 0, &rbuff[0], 10, false, true);
+		nread =  _transaction(CMD_READ_BOTH_ENCODERS, nullptr, 0, &rbuff[0], ENCODER_MESSAGE_SIZE, false, true);
 	}
 
-	if (nread < 10) {
+	if (nread < ENCODER_MESSAGE_SIZE) {
 		PX4_ERR("Error reading encoders: %d", nread);
 		return -1;
 	}
@@ -384,7 +387,7 @@ int RoboClaw::_sendUnsigned7Bit(e_command command, float data)
 		data = 1.0f;
 	}
 
-	auto byte = (uint8_t)(data * 127);
+	auto byte = (uint8_t)(data * INT8_MAX);
 	uint8_t recv_byte;
 	return _transaction(command, &byte, 1, &recv_byte, 1);
 }
@@ -398,7 +401,7 @@ int RoboClaw::_sendSigned16Bit(e_command command, float data)
 		data = -1.0f;
 	}
 
-	auto buff = (uint16_t)(data * 32767);
+	auto buff = (uint16_t)(data * INT16_MAX);
 	uint8_t recv_buff;
 	return _transaction(command, (uint8_t *) &buff, 2, &recv_buff, 1);
 }
