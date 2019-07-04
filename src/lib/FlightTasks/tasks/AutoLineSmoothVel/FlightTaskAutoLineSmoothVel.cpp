@@ -160,7 +160,14 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 		Vector2f closest_pt = Vector2f(_prev_wp) + u_prev_to_dest * (prev_to_pos * u_prev_to_dest);
 		Vector2f u_pos_traj_to_dest_xy(Vector2f(pos_traj_to_dest).unit_or_zero());
 
-		float speed_sp_track = Vector2f(pos_traj_to_dest).length() * _param_mpc_xy_traj_p.get();
+		// Compute the maximum possible velocity on the track given the remaining distance, the maximum acceleration and the maximum jerk.
+		// We assume a constant acceleration profile with a delay of 2*accel/jerk (time to reach the desired acceleration from opposite max acceleration)
+		// Equation to solve: 0 = vel^2 - 2*acc*(x - vel*2*acc/jerk)
+		// To avoid high gain at low distance due to the sqrt, we take the minimum of this velocity and a slope of "traj_p" m/s per meter
+		float b = 4.f * _param_mpc_acc_hor.get() * _param_mpc_acc_hor.get() / _param_mpc_jerk_auto.get();
+		float c = - 2.f * _param_mpc_acc_hor.get() * pos_traj_to_dest.length();
+		float max_speed = 0.5f * (-b + sqrtf(b * b - 4.f * c));
+		float speed_sp_track = math::min(max_speed, pos_traj_to_dest.length() * _param_mpc_xy_traj_p.get());
 		speed_sp_track = math::constrain(speed_sp_track, 0.0f, _mc_cruise_speed);
 
 		Vector2f vel_sp_xy = u_pos_traj_to_dest_xy * speed_sp_track;
