@@ -59,7 +59,8 @@
 #include <math.h>
 
 // The RoboClaw has a serial communication timeout of 10ms.
-#define TIMEOUT_US 10000
+// Add a little extra to account for timing inaccuracy
+#define TIMEOUT_US 10500
 
 // TODO: Make these all parameters
 #define FAILED_TRANSACTION_RETRIES 1
@@ -182,6 +183,7 @@ void RoboClaw::taskMain()
 				// If disarmed, I want to be certain that the stop command gets through.
 				while ((drive_ret = drive(0.0)) <= 0 || (turn_ret = turn(0.0)) <= 0) {
 					PX4_ERR("Error trying to stop: Drive: %d, Turn: %d", drive_ret, turn_ret);
+					px4_usleep(TIMEOUT_US);
 				}
 
 			} else {
@@ -469,9 +471,13 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 	// select(...) returns as soon as even 1 byte is available. read(...) returns immediately, no matter how many
 	// bytes are available. I need to keep reading until I get the number of bytes I expect.
 	while (bytes_read < rbytes) {
+		// select(...) may change this timeout struct (because it is not const). So I reset it every time.
+		_uart_timeout.tv_sec = 0;
+		_uart_timeout.tv_usec = TIMEOUT_US;
 		err_code = select(_uart + 1, &_uart_set, nullptr, nullptr, &_uart_timeout);
 
-		if (err_code < 0) {
+		// An error code of 0 means that select timed out, which is how the Roboclaw indicates an error.
+		if (err_code <= 0) {
 			return err_code;
 		}
 
