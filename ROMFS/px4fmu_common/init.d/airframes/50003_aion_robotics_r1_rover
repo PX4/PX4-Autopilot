@@ -29,13 +29,9 @@ then
 	param set FW_AIRSPD_TRIM 1
 	param set FW_AIRSPD_MAX 3
 
-	param set GND_WR_P 1
-	param set GND_WR_I 0.9674
-	param set GND_WR_IMAX 0.1
-	param set GND_WR_D 0.1
 	param set GND_SP_CTRL_MODE 1
 	param set GND_L1_DIST 5.0
-	param set GND_L1_PERIOD 7.0
+	param set GND_L1_PERIOD 3.0
 	param set GND_THR_IDLE 0
 	param set GND_THR_CRUISE 0.7
 	param set GND_THR_MAX 0.5
@@ -44,6 +40,7 @@ then
 	# This corresponds to a turn angle of pi radians.
 	# If a special case is made for differential-drive, this will need to change.
 	param set GND_MAX_ANG 3.142
+	param set GND_WHEEL_BASE 0.3
 
 	# TODO: Set to -1.0, to allow reversing. This will require many changes in the codebase
 	# to support negative throttle.
@@ -69,9 +66,6 @@ then
 
 	# Enable Airspeed check circuit breaker because Rovers will have no airspeed sensor
 	param set CBRK_AIRSPD_CHK 162128
-
-	# Differential drive acts like ackermann steering with a maximum turn angle of 180 degrees, or pi radians
-	param set GND_MAX_ANG 3.1415
 fi
 
 # Configure this as rover
