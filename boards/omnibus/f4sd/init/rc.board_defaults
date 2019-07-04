@@ -25,4 +25,3 @@ then
 	param set SYS_HAS_MAG 0
 fi
 
-set MIXER_AUX none
