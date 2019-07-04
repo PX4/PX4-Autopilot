@@ -50,6 +50,9 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/position_setpoint.h>
+
+#include <lib/hysteresis/hysteresis.h>
 
 #include <matrix/matrix/math.hpp>
 
@@ -82,7 +85,7 @@ public:
 	 * @param next_yawspeed, next yaw speed triplet
 	 */
 	void updateAvoidanceDesiredWaypoints(const matrix::Vector3f &curr_wp, const float curr_yaw, const float curr_yawspeed,
-					     const matrix::Vector3f &next_wp, const float next_yaw, const float next_yawspeed);
+					     const matrix::Vector3f &next_wp, const float next_yaw, const float next_yawspeed, const bool ext_yaw_active);
 	/**
 	 * Updates the desired setpoints to send to the obstacle avoidance system.
 	 * @param pos_sp, desired position setpoint computed by the active FlightTask
@@ -96,18 +99,18 @@ public:
 	 * @param prev_wp, previous position triplet
 	 * @param target_acceptance_radius, current position triplet xy acceptance radius
 	 * @param closest_pt, closest point to the vehicle on the line previous-current position triplet
+	 * @param wp_type, current triplet type
 	 */
 	void checkAvoidanceProgress(const matrix::Vector3f &pos, const matrix::Vector3f &prev_wp,
-				    float target_acceptance_radius, const matrix::Vector2f &closest_pt);
+				    float target_acceptance_radius, const matrix::Vector2f &closest_pt, const int wp_type);
 
 private:
 
-	uORB::Subscription<vehicle_trajectory_waypoint_s> *_sub_vehicle_trajectory_waypoint{nullptr}; /**< vehicle trajectory waypoint subscription */
-	uORB::Subscription<vehicle_status_s> *_sub_vehicle_status{nullptr}; /**< vehicle status subscription */
+	uORB::SubscriptionPollable<vehicle_trajectory_waypoint_s> *_sub_vehicle_trajectory_waypoint{nullptr}; /**< vehicle trajectory waypoint subscription */
+	uORB::SubscriptionPollable<vehicle_status_s> *_sub_vehicle_status{nullptr}; /**< vehicle status subscription */
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::COM_OBS_AVOID>) COM_OBS_AVOID,             /**< obstacle avoidance enabled */
-		(ParamFloat<px4::params::NAV_MC_ALT_RAD>) NAV_MC_ALT_RAD          /**< Acceptance radius for multicopter altitude */
+		(ParamFloat<px4::params::NAV_MC_ALT_RAD>) _param_nav_mc_alt_rad    /**< Acceptance radius for multicopter altitude */
 	);
 
 	vehicle_trajectory_waypoint_s _desired_waypoint = {};  /**< desired vehicle trajectory waypoint to be sent to OA */
@@ -116,6 +119,12 @@ private:
 	orb_advert_t _pub_vehicle_command{nullptr}; /**< vehicle command do publication */
 
 	matrix::Vector3f _curr_wp = {}; /**< current position triplet */
+	matrix::Vector3f _position = {}; /**< current vehicle position */
+	matrix::Vector3f _failsafe_position = {}; /**< vehicle position when entered in failsafe */
+
+	systemlib::Hysteresis _avoidance_point_not_valid_hysteresis{false}; /**< becomes true if the companion doesn't start sending valid setpoints */
+
+	bool _ext_yaw_active = false; /**< true, if external yaw handling is active */
 
 	/**
 	 * Publishes vehicle trajectory waypoint desired.

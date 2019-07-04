@@ -72,11 +72,6 @@ PrecLand::PrecLand(Navigator *navigator) :
 void
 PrecLand::on_activation()
 {
-	// We need to subscribe here and not in the constructor because constructor is called before the navigator task is spawned
-	if (_target_pose_sub < 0) {
-		_target_pose_sub = orb_subscribe(ORB_ID(landing_target_pose));
-	}
-
 	_state = PrecLandState::Start;
 	_search_cnt = 0;
 	_last_slewrate_time = 0;
@@ -111,10 +106,9 @@ void
 PrecLand::on_active()
 {
 	// get new target measurement
-	orb_check(_target_pose_sub, &_target_pose_updated);
+	_target_pose_updated = _target_pose_sub.update(&_target_pose);
 
 	if (_target_pose_updated) {
-		orb_copy(ORB_ID(landing_target_pose), _target_pose_sub, &_target_pose);
 		_target_pose_valid = true;
 	}
 

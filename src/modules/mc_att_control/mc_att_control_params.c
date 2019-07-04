@@ -76,7 +76,7 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_P, 0.15f);
  * @increment 0.01
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_ROLLRATE_I, 0.05f);
+PARAM_DEFINE_FLOAT(MC_ROLLRATE_I, 0.2f);
 
 /**
  * Roll rate integrator limit
@@ -151,7 +151,7 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_P, 0.15f);
  * @increment 0.01
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_PITCHRATE_I, 0.05f);
+PARAM_DEFINE_FLOAT(MC_PITCHRATE_I, 0.2f);
 
 /**
  * Pitch rate integrator limit
@@ -312,21 +312,6 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_MAX, 220.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_YAWRATE_MAX, 200.0f);
-
-/**
- * Max yaw rate in auto mode
- *
- * Limit for yaw rate, has effect for large rotations in autonomous mode,
- * to avoid large control output and mixer saturation.
- *
- * @unit deg/s
- * @min 0.0
- * @max 360.0
- * @decimal 1
- * @increment 5
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_YAWRAUTO_MAX, 45.0f);
 
 /**
  * Max acro roll rate
@@ -562,7 +547,7 @@ PARAM_DEFINE_FLOAT(MC_TPA_RATE_D, 0.0f);
  * @increment 10
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_FLOAT(MC_DTERM_CUTOFF, 30.f);
+PARAM_DEFINE_FLOAT(MC_DTERM_CUTOFF, 0.f);
 
 /**
  * Multicopter air-mode

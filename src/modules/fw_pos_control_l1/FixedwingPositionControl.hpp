@@ -99,7 +99,7 @@ using matrix::Vector2f;
 using matrix::Vector3f;
 using matrix::wrap_pi;
 
-using uORB::Subscription;
+using uORB::SubscriptionData;
 
 using namespace launchdetection;
 using namespace runwaytakeoff;
@@ -152,16 +152,17 @@ private:
 	orb_advert_t	_mavlink_log_pub{nullptr};
 
 	int		_global_pos_sub{-1};
-	int		_local_pos_sub{-1};
-	int		_pos_sp_triplet_sub{-1};
-	int		_control_mode_sub{-1};			///< control mode subscription */
-	int		_vehicle_attitude_sub{-1};		///< vehicle attitude subscription */
-	int		_vehicle_command_sub{-1};		///< vehicle command subscription */
-	int		_vehicle_status_sub{-1};		///< vehicle status subscription */
-	int		_vehicle_land_detected_sub{-1};		///< vehicle land detected subscription */
-	int		_params_sub{-1};			///< notification of parameter updates */
-	int		_manual_control_sub{-1};		///< notification of manual control updates */
-	int		_sensor_baro_sub{-1};
+
+	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};		///< control mode subscription */
+	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _manual_control_sub{ORB_ID(manual_control_setpoint)};	///< notification of manual control updates */
+	uORB::Subscription _params_sub{ORB_ID(parameter_update)};			///< notification of parameter updates */
+	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
+	uORB::Subscription _sensor_baro_sub{ORB_ID(sensor_baro)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};		///< vehicle attitude subscription */
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};		///< vehicle command subscription */
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	///< vehicle land detected subscription */
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			///< vehicle status subscription */
 
 	orb_advert_t	_attitude_sp_pub{nullptr};		///< attitude setpoint */
 	orb_advert_t	_pos_ctrl_status_pub{nullptr};		///< navigation capabilities publication */
@@ -172,7 +173,7 @@ private:
 
 	manual_control_setpoint_s	_manual {};			///< r/c channel data */
 	position_setpoint_triplet_s	_pos_sp_triplet {};		///< triplet of mission items */
-	vehicle_attitude_s	_att {};			///< vehicle attitude setpoint */
+	vehicle_attitude_s		_att {};			///< vehicle attitude setpoint */
 	vehicle_attitude_setpoint_s	_att_sp {};			///< vehicle attitude setpoint */
 	vehicle_command_s		_vehicle_command {};		///< vehicle commands */
 	vehicle_control_mode_s		_control_mode {};		///< control mode */
@@ -181,8 +182,8 @@ private:
 	vehicle_land_detected_s		_vehicle_land_detected {};	///< vehicle land detected */
 	vehicle_status_s		_vehicle_status {};		///< vehicle status */
 
-	Subscription<airspeed_s> _sub_airspeed;
-	Subscription<sensor_bias_s> _sub_sensors;
+	SubscriptionData<airspeed_s> _sub_airspeed;
+	SubscriptionData<sensor_bias_s> _sub_sensors;
 
 	perf_counter_t	_loop_perf;				///< loop performance counter */
 
@@ -377,12 +378,9 @@ private:
 	// Update subscriptions
 	void		airspeed_poll();
 	void		control_update();
-	void		manual_control_setpoint_poll();
-	void		position_setpoint_triplet_poll();
 	void		vehicle_attitude_poll();
 	void		vehicle_command_poll();
 	void		vehicle_control_mode_poll();
-	void		vehicle_land_detected_poll();
 	void		vehicle_status_poll();
 
 	void		status_publish();

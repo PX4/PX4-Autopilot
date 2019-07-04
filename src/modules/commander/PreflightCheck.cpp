@@ -100,7 +100,7 @@ static bool check_calibration(const char *param_template, int32_t device_id)
 	return calibration_found;
 }
 
-static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, unsigned instance, bool optional,
+static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance, bool optional,
 			    int32_t &device_id, bool report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(sensor_mag), instance) == PX4_OK);
@@ -109,7 +109,7 @@ static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &sta
 
 	if (exists) {
 
-		uORB::Subscription<sensor_mag_s> magnetometer{ORB_ID(sensor_mag), 0, instance};
+		uORB::SubscriptionData<sensor_mag_s> magnetometer{ORB_ID(sensor_mag), instance};
 
 		mag_valid = (hrt_elapsed_time(&magnetometer.get().timestamp) < 1_s);
 
@@ -236,7 +236,7 @@ static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s 
 	return true;
 }
 
-static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, unsigned instance,
+static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance,
 			       bool optional, bool dynamic, int32_t &device_id, bool report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(sensor_accel), instance) == PX4_OK);
@@ -245,7 +245,7 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 
 	if (exists) {
 
-		uORB::Subscription<sensor_accel_s> accel{ORB_ID(sensor_accel), 0, instance};
+		uORB::SubscriptionData<sensor_accel_s> accel{ORB_ID(sensor_accel), instance};
 
 		accel_valid = (hrt_elapsed_time(&accel.get().timestamp) < 1_s);
 
@@ -300,7 +300,7 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	return success;
 }
 
-static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, unsigned instance, bool optional,
+static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance, bool optional,
 		      int32_t &device_id, bool report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(sensor_gyro), instance) == PX4_OK);
@@ -309,7 +309,7 @@ static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 
 	if (exists) {
 
-		uORB::Subscription<sensor_gyro_s> gyro{ORB_ID(sensor_gyro), 0, instance};
+		uORB::SubscriptionData<sensor_gyro_s> gyro{ORB_ID(sensor_gyro), instance};
 
 		gyro_valid = (hrt_elapsed_time(&gyro.get().timestamp) < 1_s);
 
@@ -345,14 +345,14 @@ static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 	return calibration_valid && gyro_valid;
 }
 
-static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, unsigned instance, bool optional,
+static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance, bool optional,
 		      int32_t &device_id, bool report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(sensor_baro), instance) == PX4_OK);
 	bool baro_valid = false;
 
 	if (exists) {
-		uORB::Subscription<sensor_baro_s> baro{ORB_ID(sensor_baro), 0, instance};
+		uORB::SubscriptionData<sensor_baro_s> baro{ORB_ID(sensor_baro), instance};
 
 		baro_valid = (hrt_elapsed_time(&baro.get().timestamp) < 1_s);
 
@@ -674,6 +674,38 @@ out:
 	return success;
 }
 
+static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, bool report_fail,
+				 bool prearm)
+{
+	bool success = true;
+
+	if (!prearm) {
+		// Ignore failure detector check after arming.
+		return true;
+
+	}
+
+	if (status.failure_detector_status != vehicle_status_s::FAILURE_NONE) {
+		success = false;
+
+		if (report_fail) {
+			if (status.failure_detector_status & vehicle_status_s::FAILURE_ROLL) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Roll failure detected");
+			}
+
+			if (status.failure_detector_status & vehicle_status_s::FAILURE_PITCH) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Pitch failure detected");
+			}
+
+			if (status.failure_detector_status & vehicle_status_s::FAILURE_ALT) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Altitude failure detected");
+			}
+		}
+	}
+
+	return success;
+}
+
 bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 		    vehicle_status_flags_s &status_flags, bool checkGNSS, bool reportFailures, bool prearm,
 		    const hrt_abstime &time_since_boot)
@@ -689,12 +721,14 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 	const bool checkRC = (status.rc_input_mode == vehicle_status_s::RC_IN_MODE_DEFAULT);
 	const bool checkDynamic = !hil_enabled;
 	const bool checkPower = (status_flags.condition_power_input_valid && !status_flags.circuit_breaker_engaged_power_check);
+	const bool checkFailureDetector = true;
 
 	bool checkAirspeed = false;
 
 	/* Perform airspeed check only if circuit breaker is not
 	 * engaged and it's not a rotary wing */
-	if (!status_flags.circuit_breaker_engaged_airspd_check && (!status.is_rotary_wing || status.is_vtol)) {
+	if (!status_flags.circuit_breaker_engaged_airspd_check &&
+	    (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING || status.is_vtol)) {
 		checkAirspeed = true;
 	}
 
@@ -925,14 +959,28 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 
 	/* ---- Navigation EKF ---- */
 	// only check EKF2 data if EKF2 is selected as the estimator and GNSS checking is enabled
-	int32_t estimator_type;
-	param_get(param_find("SYS_MC_EST_GROUP"), &estimator_type);
+	int32_t estimator_type = -1;
+
+	if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !status.is_vtol) {
+		param_get(param_find("SYS_MC_EST_GROUP"), &estimator_type);
+
+	} else {
+		// EKF2 is currently the only supported option for FW & VTOL
+		estimator_type = 2;
+	}
 
 	if (estimator_type == 2) {
 		// don't report ekf failures for the first 10 seconds to allow time for the filter to start
 		bool report_ekf_fail = (time_since_boot > 10_s);
 
 		if (!ekf2Check(mavlink_log_pub, status, false, reportFailures && report_ekf_fail && !failed, checkGNSS)) {
+			failed = true;
+		}
+	}
+
+	/* ---- Failure Detector ---- */
+	if (checkFailureDetector) {
+		if (!failureDetectorCheck(mavlink_log_pub, status, (reportFailures && !failed), prearm)) {
 			failed = true;
 		}
 	}

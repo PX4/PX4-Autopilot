@@ -35,7 +35,7 @@ px4_add_library(drivers_board
 	init.c
 	manifest.c
 	sdio.c
-	spi.c
+	spi.cpp
 	timer_config.c
 )
 target_link_libraries(drivers_board

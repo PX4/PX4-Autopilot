@@ -494,6 +494,8 @@
 #define HRT_PPM_CHANNEL         /* T8C1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
+/* RC Serial port */
+
 #define RC_UXART_BASE                      STM32_USART6_BASE
 #define RC_SERIAL_PORT                     "/dev/ttyS4"
 #define BOARD_HAS_SINGLE_WIRE              1 /* HW is capable of Single Wire */
@@ -670,6 +672,8 @@
 		GPIO_SAFETY_SWITCH_IN,            \
 		GPIO_nARMED_INIT                  \
 	}
+
+#define BOARD_ENABLE_CONSOLE_BUFFER
 
 __BEGIN_DECLS
 

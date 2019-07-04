@@ -91,8 +91,12 @@ bool FlightTaskAutoMapper2::update()
 		break;
 	}
 
-	_obstacle_avoidance.injectAvoidanceSetpoints(_position_setpoint, _velocity_setpoint, _yaw_setpoint,
-			_yawspeed_setpoint);
+	if (_param_com_obs_avoid.get()) {
+		_obstacle_avoidance.updateAvoidanceDesiredSetpoints(_position_setpoint, _velocity_setpoint);
+		_obstacle_avoidance.injectAvoidanceSetpoints(_position_setpoint, _velocity_setpoint, _yaw_setpoint,
+				_yawspeed_setpoint);
+	}
+
 
 	_generateSetpoints();
 
@@ -132,7 +136,7 @@ void FlightTaskAutoMapper2::_prepareLandSetpoints()
 	_velocity_setpoint = Vector3f(Vector3f(NAN, NAN, speed_lnd));
 
 	// set constraints
-	_constraints.tilt = _param_mpc_tiltmax_lnd.get();
+	_constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
 	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 }
 

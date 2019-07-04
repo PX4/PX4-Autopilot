@@ -63,7 +63,7 @@
 #include <math.h>
 #include <px4_getopt.h>
 
-#include <nuttx/wqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <nuttx/clock.h>
 
 #include <perf/perf_counter.h>
@@ -109,7 +109,9 @@
 				     */
 #define PCA9685_SCALE ((PCA9685_PWMMAX - PCA9685_PWMCENTER)/(M_DEG_TO_RAD_F * PCA9685_MAXSERVODEG)) // scales from rad to PWM
 
-class PCA9685 : public device::I2C
+using namespace time_literals;
+
+class PCA9685 : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
 	PCA9685(int bus = PCA9685_BUS, uint8_t address = ADDR);
@@ -123,12 +125,10 @@ public:
 	bool			is_running() { return _running; }
 
 private:
-	work_s			_work;
-
 
 	enum IOX_MODE		_mode;
 	bool			_running;
-	int			_i2cpwm_interval;
+	uint64_t			_i2cpwm_interval;
 	bool			_should_run;
 	perf_counter_t		_comms_errors;
 
@@ -141,8 +141,7 @@ private:
 
 	bool _mode_on_initialized;  /** Set to true after the first call of i2cpwm in mode IOX_MODE_ON */
 
-	static void		i2cpwm_trampoline(void *arg);
-	void			i2cpwm();
+	void			Run() override;
 
 	/**
 	 * Helper function to set the pwm frequency
@@ -185,16 +184,16 @@ extern "C" __EXPORT int pca9685_main(int argc, char *argv[]);
 
 PCA9685::PCA9685(int bus, uint8_t address) :
 	I2C("pca9685", PCA9685_DEVICE_PATH, bus, address, 100000),
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 	_mode(IOX_MODE_OFF),
 	_running(false),
-	_i2cpwm_interval(SEC2TICK(1.0f / 60.0f)),
+	_i2cpwm_interval(1_s / 60.0f),
 	_should_run(false),
 	_comms_errors(perf_alloc(PC_COUNT, "pca9685_com_err")),
 	_actuator_controls_sub(-1),
 	_actuator_controls(),
 	_mode_on_initialized(false)
 {
-	memset(&_work, 0, sizeof(_work));
 	memset(_msg, 0, sizeof(_msg));
 	memset(_current_values, 0, sizeof(_current_values));
 }
@@ -254,7 +253,7 @@ PCA9685::ioctl(struct file *filp, int cmd, unsigned long arg)
 		// if not active, kick it
 		if (!_running) {
 			_running = true;
-			work_queue(LPWORK, &_work, (worker_t)&PCA9685::i2cpwm_trampoline, this, 1);
+			ScheduleNow();
 		}
 
 
@@ -284,19 +283,11 @@ PCA9685::info()
 	return ret;
 }
 
-void
-PCA9685::i2cpwm_trampoline(void *arg)
-{
-	PCA9685 *i2cpwm = reinterpret_cast<PCA9685 *>(arg);
-
-	i2cpwm->i2cpwm();
-}
-
 /**
  * Main loop function
  */
 void
-PCA9685::i2cpwm()
+PCA9685::Run()
 {
 	if (_mode == IOX_MODE_TEST_OUT) {
 		setPin(0, PCA9685_PWMCENTER);
@@ -352,7 +343,7 @@ PCA9685::i2cpwm()
 
 	// re-queue ourselves to run again later
 	_running = true;
-	work_queue(LPWORK, &_work, (worker_t)&PCA9685::i2cpwm_trampoline, this, _i2cpwm_interval);
+	ScheduleDelayed(_i2cpwm_interval);
 }
 
 int

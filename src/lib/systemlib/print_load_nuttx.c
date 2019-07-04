@@ -46,6 +46,10 @@
 #include <systemlib/printload.h>
 #include <drivers/drv_hrt.h>
 
+#if defined(BOARD_DMA_ALLOC_POOL_SIZE)
+#include <drivers/boards/common/board_dma_alloc.h>
+#endif /* BOARD_DMA_ALLOC_POOL_SIZE */
+
 #if defined(CONFIG_SCHED_INSTRUMENTATION)
 
 #if !defined(CONFIG_TASK_NAME_SIZE)
