@@ -59,7 +59,7 @@
 #include "drv_io_timer.h"
 
 #include <chip.h>
-#include "chip/imxrt_flexpwm.h"
+#include "hardware/imxrt_flexpwm.h"
 #include "imxrt_periphclks.h"
 
 #if !defined(BOARD_PWM_FREQ)

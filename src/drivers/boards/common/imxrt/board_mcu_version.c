@@ -41,7 +41,7 @@
 #include <px4_defines.h>
 
 #include <chip.h>
-#include <chip/imxrt_usb_analog.h>
+#include <hardware/imxrt_usb_analog.h>
 #include "up_arch.h"
 
 #define DIGPROG_MINOR_SHIFT           0

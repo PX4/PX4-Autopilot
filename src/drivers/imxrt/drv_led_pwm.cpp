@@ -59,7 +59,7 @@
 #include "drv_io_timer.h"
 
 #include <chip.h>
-#include "chip/imxrt_tmr.h"
+#include "hardware/imxrt_tmr.h"
 
 int led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 {

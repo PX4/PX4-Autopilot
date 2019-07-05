@@ -43,11 +43,11 @@
 #include <stdint.h>
 
 #include <chip.h>
-#include "chip/imxrt_tmr.h"
-#include "chip/imxrt_flexpwm.h"
+#include "hardware/imxrt_tmr.h"
+#include "hardware/imxrt_flexpwm.h"
 #include "imxrt_gpio.h"
 #include "imxrt_iomuxc.h"
-#include "chip/imxrt_pinmux.h"
+#include "hardware/imxrt_pinmux.h"
 #include "imxrt_xbar.h"
 #include "imxrt_periphclks.h"
 #include <drivers/drv_pwm_output.h>

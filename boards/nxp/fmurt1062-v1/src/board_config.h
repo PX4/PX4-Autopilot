@@ -51,7 +51,7 @@
 
 #include "imxrt_gpio.h"
 #include "imxrt_iomuxc.h"
-#include "chip/imxrt_pinmux.h"
+#include "hardware/imxrt_pinmux.h"
 
 #include <arch/board/board.h>
 

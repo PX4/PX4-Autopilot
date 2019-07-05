@@ -61,7 +61,7 @@
 
 #include <nuttx/analog/adc.h>
 #include <chip.h>
-#include <chip/imxrt_adc.h>
+#include <hardware/imxrt_adc.h>
 #include "imxrt_periphclks.h"
 
 #include <perf/perf_counter.h>

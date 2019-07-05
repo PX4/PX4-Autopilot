@@ -38,7 +38,7 @@
 #include <board_config.h>
 
 #include "chip.h"
-#include "chip/imxrt_gpt.h"
+#include "hardware/imxrt_gpt.h"
 #include "imxrt_periphclks.h"
 
 //#include <drivers/device/device.h>

@@ -42,7 +42,7 @@
 #include <stdbool.h>
 
 #include "chip.h"
-#include <chip/imxrt_gpio.h>
+#include <hardware/imxrt_gpio.h>
 #include "board_config.h"
 
 #include <arch/board/board.h>

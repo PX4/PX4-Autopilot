@@ -67,7 +67,7 @@
 #include <chip.h>
 #include "board_config.h"
 
-#include <chip/imxrt_lpuart.h>
+#include <hardware/imxrt_lpuart.h>
 
 #include <arch/board/board.h>
 

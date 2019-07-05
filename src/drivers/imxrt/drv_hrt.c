@@ -67,7 +67,7 @@
 
 
 #include "chip.h"
-#include "chip/imxrt_gpt.h"
+#include "hardware/imxrt_gpt.h"
 #include "imxrt_periphclks.h"
 
 #undef PPM_DEBUG
@@ -724,7 +724,7 @@ hrt_call_enter(struct hrt_call *entry)
 {
 	struct hrt_call	*call, *next;
 
-	call = (struct hrt_call *)sq_peek(&callout_queue);
+	call = (struct hrt_call *)(void *)sq_peek(&callout_queue);
 
 	if ((call == NULL) || (entry->deadline < call->deadline)) {
 		sq_addfirst(&entry->link, &callout_queue);
@@ -734,7 +734,7 @@ hrt_call_enter(struct hrt_call *entry)
 
 	} else {
 		do {
-			next = (struct hrt_call *)sq_next(&call->link);
+			next = (struct hrt_call *)(void *)sq_next(&call->link);
 
 			if ((next == NULL) || (entry->deadline < next->deadline)) {
 				hrtinfo("call enter after head\n");
@@ -757,7 +757,7 @@ hrt_call_invoke(void)
 		/* get the current time */
 		hrt_abstime now = hrt_absolute_time();
 
-		call = (struct hrt_call *)sq_peek(&callout_queue);
+		call = (struct hrt_call *)(void *)sq_peek(&callout_queue);
 
 		if (call == NULL) {
 			break;
@@ -805,7 +805,7 @@ static void
 hrt_call_reschedule()
 {
 	hrt_abstime	now = hrt_absolute_time();
-	struct hrt_call	*next = (struct hrt_call *)sq_peek(&callout_queue);
+	struct hrt_call	*next = (struct hrt_call *)(void *)sq_peek(&callout_queue);
 	hrt_abstime	deadline = now + HRT_INTERVAL_MAX;
 
 	/*

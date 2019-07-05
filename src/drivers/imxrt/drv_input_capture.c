@@ -65,7 +65,7 @@
 #include "drv_input_capture.h"
 
 #include <chip.h>
-#include "chip/imxrt_flexpwm.h"
+#include "hardware/imxrt_flexpwm.h"
 
 #define MAX_CHANNELS_PER_TIMER 2
 

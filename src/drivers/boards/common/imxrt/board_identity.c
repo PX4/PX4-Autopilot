@@ -43,7 +43,7 @@
 #include <string.h>
 
 #include "board_config.h"
-#include <chip/imxrt_ocotp.h>
+#include <hardware/imxrt_ocotp.h>
 #include "up_arch.h"
 
 #define CPU_UUID_BYTE_FORMAT_ORDER          {3, 2, 1, 0, 7, 6, 5, 4}

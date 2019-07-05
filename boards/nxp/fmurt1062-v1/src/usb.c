@@ -53,7 +53,7 @@
 
 #include <up_arch.h>
 #include <chip.h>
-#include <chip/imxrt_usb_analog.h>
+#include <hardware/imxrt_usb_analog.h>
 #include "board_config.h"
 #include "imxrt_periphclks.h"
 
