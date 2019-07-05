@@ -209,13 +209,19 @@ void RoboClaw::taskMain()
 
 			if (readEncoder() > 0) {
 				_wheelEncoderMsg.timestamp = encoderTaskLastRun;
+
 				_wheelEncoderMsg.encoder_position[0] = _encoderCounts[0];
 				_wheelEncoderMsg.encoder_position[1] = _encoderCounts[1];
 
-				//PX4_INFO("[%llu] PUBLISHING", _wheelEncoderMsg.timestamp);
-				orb_publish(ORB_ID(wheel_encoders), _wheelEncodersAdv, &_wheelEncoderMsg);
+				_wheelEncoderMsg.speed[0] = _motorSpeeds[0];
+				_wheelEncoderMsg.speed[1] = _motorSpeeds[1];
 
-				//PX4_INFO("[%llu] Reading encoders", hrt_absolute_time());
+				if (_wheelEncodersAdv == nullptr) {
+					_wheelEncodersAdv = orb_advertise(ORB_ID(wheel_encoders), &_wheelEncoderMsg);
+
+				} else {
+					orb_publish(ORB_ID(wheel_encoders), _wheelEncodersAdv, &_wheelEncoderMsg);
+				}
 
 			} else {
 				PX4_ERR("Error reading encoders");
@@ -229,35 +235,45 @@ void RoboClaw::taskMain()
 	orb_unsubscribe(_actuatorsSub);
 	orb_unsubscribe(_armedSub);
 	orb_unsubscribe(_paramSub);
-	orb_unadvertise(_wheelEncodersAdv);
 }
 
 int RoboClaw::readEncoder()
 {
 
-	uint8_t rbuff[ENCODER_MESSAGE_SIZE];
-	int nread = 0;
+	uint8_t rbuff_pos[ENCODER_MESSAGE_SIZE];
+	uint8_t rbuff_speed[11];
 
-	for (int retry = 0; retry < _parameters.serial_timeout_retries && nread == 0; retry++) {
-		nread =  _transaction(CMD_READ_BOTH_ENCODERS, nullptr, 0, &rbuff[0], ENCODER_MESSAGE_SIZE, false, true);
+	bool success = false;
+
+	for (int retry = 0; retry < _parameters.serial_timeout_retries && !success; retry++) {
+		success = true;
+		success &=  _transaction(CMD_READ_BOTH_ENCODERS, nullptr, 0, &rbuff_pos[0], ENCODER_MESSAGE_SIZE, false,
+					 true) == ENCODER_MESSAGE_SIZE;
+		success &=  _transaction(CMD_READ_SPEED_1, nullptr, 0, &rbuff_speed[0], 7, false, true) == 7;
+		success &=  _transaction(CMD_READ_SPEED_2, nullptr, 0, &rbuff_speed[4], 7, false, true) == 7;
 	}
 
-	if (nread < ENCODER_MESSAGE_SIZE) {
-		PX4_ERR("Error reading encoders: %d", nread);
+	if (!success) {
+		PX4_ERR("Error reading encoders");
 		return -1;
 	}
 
 	uint32_t count;
+	uint32_t speed;
 	uint8_t *count_bytes;
+	uint8_t *speed_bytes;
 
 	for (int motor = 0; motor <= 1; motor++) {
 		count = 0;
-		count_bytes = &rbuff[motor * 4];
+		speed = 0;
+		count_bytes = &rbuff_pos[motor * 4];
+		speed_bytes = &rbuff_speed[motor * 4];
 
 		// Data from the roboclaw is big-endian. This converts the bytes to an integer, regardless of the
 		// endianness of the system this code is running on.
 		for (int byte = 0; byte < 4; byte++) {
 			count = (count << 8) + count_bytes[byte];
+			speed = (speed << 8) + speed_bytes[byte];
 		}
 
 		// The Roboclaw stores encoder counts as unsigned 32-bit ints. This can overflow, especially when starting
@@ -275,9 +291,9 @@ int RoboClaw::readEncoder()
 		// At this point, abs(diff) is always <= 2^31, so this cast from unsigned to signed is safe.
 		int32_t diff = fwd_diff <= rev_diff ? fwd_diff : -int32_t(rev_diff);
 		_encoderCounts[motor] += diff;
-//		PX4_INFO("Motor %d - LastCount: %7u, Count: %7u, Diff1: %8u, Diff2: %8u, diff: %4d, End counts: %4lld",
-//			 motor, _lastEncoderCount[motor], count, fwd_diff, rev_diff, diff, _encoderCounts[motor]);
 		_lastEncoderCount[motor] = count;
+
+		_motorSpeeds[motor] = speed;
 	}
 
 	return 1;
@@ -517,7 +533,6 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 			return bytes_read;
 
 		} else {
-			//PX4_ERR("Invalid checksum. Expected 0x%04X, got 0x%04X", checksum_calc, checksum_recv);
 			return -10;
 		}
 

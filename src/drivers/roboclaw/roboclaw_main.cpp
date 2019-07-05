@@ -45,6 +45,7 @@
 
 #include <px4_config.h>
 #include <px4_log.h>
+#include <px4_module.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,7 +58,7 @@
 #include "RoboClaw.hpp"
 
 static bool thread_running = false;     /**< Deamon status flag */
-static int deamon_task;             /**< Handle of deamon task / thread */
+px4_task_t deamon_task;
 
 /**
  * Deamon management function.
@@ -76,7 +77,48 @@ static void usage();
 
 static void usage()
 {
-	PX4_INFO("usage: roboclaw {start|stop|status|test}");
+	PRINT_MODULE_USAGE_NAME("roboclaw", "driver");
+
+	PRINT_MODULE_DESCRIPTION(R"DESCR_STR(
+### Description
+
+This driver communicates over UART with the [Roboclaw motor driver](http://downloads.ionmc.com/docs/roboclaw_user_manual.pdf).
+It performs two tasks:
+
+ - Control the motors based on the `actuator_controls_0` UOrb topic.
+ - Read the wheel encoders and publish the raw data in the `wheel_encoders` UOrb topic
+
+In order to use this driver, the Roboclaw should be put into Packet Serial mode (see the linked documentation), and
+your flight controller's UART port should be connected to the Roboclaw as shown in the documentation. For Pixhawk 4,
+use the `UART & I2C B` port, which corresponds to `/dev/ttyS3`.
+
+### Implementation
+
+The main loop of this module (Located in `RoboClaw.cpp::task_main()`) performs 2 tasks:
+
+ 1. Write `actuator_controls_0` messages to the Roboclaw as they become available
+ 2. Read encoder data from the Roboclaw at a constant, fixed rate.
+
+Because of the latency of UART, this driver does not write every single `actuator_controls_0` message to the Roboclaw
+immediately. Instead, it is rate limited based on the parameter `RBCLW_WRITE_PER`.
+
+On startup, this driver will attempt to read the status of the Roboclaw to verify that it is connected. If this fails,
+the driver terminates immediately.
+
+### Examples
+
+The command to start this driver is:
+
+ $ roboclaw start <device>
+
+`<device>` is the name of the UART port. On the Pixhawk 4, this is `/dev/ttyS3`.
+
+All available commands are:
+
+ - `$ roboclaw start <device>`
+ - `$ roboclaw status`
+ - `$ roboclaw stop`
+	)DESCR_STR");
 }
 
 /**

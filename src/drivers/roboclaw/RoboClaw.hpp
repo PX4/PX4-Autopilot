@@ -160,8 +160,11 @@ private:
 		// encoder commands
 		CMD_READ_ENCODER_1 = 16,
 		CMD_READ_ENCODER_2 = 17,
+		CMD_READ_SPEED_1 = 18,
+		CMD_READ_SPEED_2 = 19,
 		CMD_RESET_ENCODERS = 20,
 		CMD_READ_BOTH_ENCODERS = 78,
+		CMD_READ_BOTH_SPEEDS = 79,
 
 		// advanced motor control
 		CMD_READ_SPEED_HIRES_1 = 30,
