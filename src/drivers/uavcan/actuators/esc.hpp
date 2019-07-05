@@ -68,6 +68,11 @@ public:
 
 	void enable_idle_throttle_when_armed(bool value) { _run_at_idle_throttle_when_armed = value; }
 
+	/**
+	 * Sets the number of rotors
+	 */
+	void set_rotor_count(uint8_t count) { _rotor_count = count; }
+
 private:
 	/**
 	 * ESC status message reception will be reported via this callback.
@@ -83,6 +88,8 @@ private:
 	 * Checks all the ESCs freshness based on timestamp, if an ESC exceeds the timeout then is flagged offline.
 	 */
 	uint8_t check_escs_status();
+
+
 
 
 	static constexpr unsigned MAX_RATE_HZ = 200;			///< XXX make this configurable
@@ -102,6 +109,7 @@ private:
 	orb_advert_t	_esc_status_pub = nullptr;
 	orb_advert_t _actuator_outputs_pub = nullptr;
 	hrt_abstime _last_received_msg[esc_status_s::CONNECTED_ESC_MAX] {0};
+	uint8_t		_rotor_count = 0;
 
 	/*
 	 * libuavcan related things
