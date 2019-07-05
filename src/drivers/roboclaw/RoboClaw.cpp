@@ -71,6 +71,7 @@ RoboClaw::RoboClaw(const char *deviceName):
 	_uart(0),
 	_uart_set(),
 	_uart_timeout{.tv_sec = 0, .tv_usec = TIMEOUT_US},
+	_actuatorsSub(-1),
 	_lastEncoderCount{0, 0},
 	_encoderCounts{0, 0},
 	_motorSpeeds{0, 0}
@@ -80,7 +81,7 @@ RoboClaw::RoboClaw(const char *deviceName):
 	_param_handles.actuator_write_period_ms = 	param_find("RBCLW_WRITE_PER");
 	_param_handles.encoder_read_period_ms = 	param_find("RBCLW_READ_PER");
 	_param_handles.counts_per_rev = 			param_find("RBCLW_COUNTS_REV");
-	_param_handles.serial_baud_rate = 			param_find("RMCLW_BAUD");
+	_param_handles.serial_baud_rate = 			param_find("RBCLW_BAUD");
 	_param_handles.serial_timeout_retries = 	param_find("RBCLW_RETRIES");
 	_param_handles.stop_retries = 				param_find("RBCLW_STOP_RETRY");
 	_param_handles.address = 					param_find("RBCLW_ADDRESS");
@@ -126,6 +127,14 @@ RoboClaw::~RoboClaw()
 
 void RoboClaw::taskMain()
 {
+	// Make sure the Roboclaw is actually connected, so I don't just spam errors if it's not.
+	uint8_t rbuff[4];
+	int err_code = _transaction(CMD_READ_STATUS, nullptr, 0, &rbuff[0], sizeof(rbuff), false, true);
+
+	if (err_code <= 0) {
+		PX4_ERR("Unable to connect to Roboclaw. Shutting down Roboclaw driver.");
+		return;
+	}
 
 	// This main loop performs two different tasks, asynchronously:
 	// - Send actuator_controls_0 to the Roboclaw as soon as they are available
@@ -142,13 +151,15 @@ void RoboClaw::taskMain()
 	orb_set_interval(_actuatorsSub, _parameters.actuator_write_period_ms);
 
 	_armedSub = orb_subscribe(ORB_ID(actuator_armed));
+	_paramSub = orb_subscribe(ORB_ID(parameter_update));
 
-	//TODO: Add parameter listening
-	pollfd fds[2];
-	fds[0].fd = _actuatorsSub;
+	pollfd fds[3];
+	fds[0].fd = _paramSub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _armedSub;
+	fds[1].fd = _actuatorsSub;
 	fds[1].events = POLLIN;
+	fds[2].fd = _armedSub;
+	fds[2].events = POLLIN;
 
 	memset((void *) &_wheelEncoderMsg, 0, sizeof(wheel_encoders_s));
 	_wheelEncoderMsg.timestamp = hrt_absolute_time();
@@ -158,8 +169,13 @@ void RoboClaw::taskMain()
 
 		int pret = poll(fds, sizeof(fds) / sizeof(pollfd), waitTime / 1000);
 
+		if (fds[0].revents & POLLIN) {
+			orb_copy(ORB_ID(parameter_update), _paramSub, &_paramUpdate);
+			_parameters_update();
+		}
+
 		// No timeout, update on either the actuator controls or the armed state
-		if (pret > 0 && (fds[0].revents & POLLIN || fds[1].revents & POLLIN)) {
+		if (pret > 0 && (fds[1].revents & POLLIN || fds[2].revents & POLLIN)) {
 			orb_copy(ORB_ID(actuator_controls_0), _actuatorsSub, &_actuatorControls);
 			orb_copy(ORB_ID(actuator_armed), _armedSub, &_actuatorArmed);
 
@@ -170,8 +186,11 @@ void RoboClaw::taskMain()
 
 			if (disarmed) {
 				// If disarmed, I want to be certain that the stop command gets through.
-				while ((drive_ret = drive(0.0)) <= 0 || (turn_ret = turn(0.0)) <= 0) {
-					//PX4_ERR("Error trying to stop: Drive: %d, Turn: %d", drive_ret, turn_ret);
+				int tries = 0;
+
+				while (tries < _parameters.stop_retries && ((drive_ret = drive(0.0)) <= 0 || (turn_ret = turn(0.0)) <= 0)) {
+					PX4_ERR("Error trying to stop: Drive: %d, Turn: %d", drive_ret, turn_ret);
+					tries++;
 					px4_usleep(TIMEOUT_US);
 				}
 
@@ -209,6 +228,7 @@ void RoboClaw::taskMain()
 
 	orb_unsubscribe(_actuatorsSub);
 	orb_unsubscribe(_armedSub);
+	orb_unsubscribe(_paramSub);
 	orb_unadvertise(_wheelEncodersAdv);
 }
 
@@ -519,6 +539,10 @@ void RoboClaw::_parameters_update()
 	param_get(_param_handles.encoder_read_period_ms, &_parameters.encoder_read_period_ms);
 	param_get(_param_handles.actuator_write_period_ms, &_parameters.actuator_write_period_ms);
 	param_get(_param_handles.address, &_parameters.address);
+
+	if (_actuatorsSub > 0) {
+		orb_set_interval(_actuatorsSub, _parameters.actuator_write_period_ms);
+	}
 
 	int baudRate;
 	param_get(_param_handles.serial_baud_rate, &baudRate);
