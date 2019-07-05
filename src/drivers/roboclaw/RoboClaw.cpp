@@ -62,38 +62,12 @@
 // Add a little extra to account for timing inaccuracy
 #define TIMEOUT_US 10500
 
-// TODO: Make these all parameters
-#define FAILED_TRANSACTION_RETRIES 1
-#define ENCODER_READ_PERIOD_MS 10
-#define ACTUATOR_WRITE_PERIOD_MS 10
-
 // Number of bytes returned by the Roboclaw when sending command 78, read both encoders
 #define ENCODER_MESSAGE_SIZE 10
 
-// TODO: Delete this
-//void printbytes(const char *msg, uint8_t *bytes, int numbytes)
-//{
-//	if (numbytes < 0) {
-//		numbytes = 0;
-//	}
-//
-//	size_t msglen = strlen(msg);
-//	char buff[msglen + (4 * numbytes) + 1];
-//	char *cur = &buff[0];
-//	cur += sprintf(cur, "%s ", msg);
-//
-//	for (int i = 0; i < numbytes; i++) {
-//		cur += sprintf(cur, "0x%02X ", bytes[i]);
-//	}
-//
-//	PX4_INFO("%s", buff);
-//}
-
 bool RoboClaw::taskShouldExit = false;
 
-RoboClaw::RoboClaw(const char *deviceName, uint16_t address, uint16_t pulsesPerRev):
-	_address(address),
-	_pulsesPerRev(pulsesPerRev),
+RoboClaw::RoboClaw(const char *deviceName):
 	_uart(0),
 	_uart_set(),
 	_uart_timeout{.tv_sec = 0, .tv_usec = TIMEOUT_US},
@@ -102,6 +76,17 @@ RoboClaw::RoboClaw(const char *deviceName, uint16_t address, uint16_t pulsesPerR
 	_motorSpeeds{0, 0}
 
 {
+
+	_param_handles.actuator_write_period_ms = 	param_find("RBCLW_WRITE_PER");
+	_param_handles.encoder_read_period_ms = 	param_find("RBCLW_READ_PER");
+	_param_handles.counts_per_rev = 			param_find("RBCLW_COUNTS_REV");
+	_param_handles.serial_baud_rate = 			param_find("RMCLW_BAUD");
+	_param_handles.serial_timeout_retries = 	param_find("RBCLW_RETRIES");
+	_param_handles.stop_retries = 				param_find("RBCLW_STOP_RETRY");
+	_param_handles.address = 					param_find("RBCLW_ADDRESS");
+
+	_parameters_update();
+
 	// start serial port
 	_uart = open(deviceName, O_RDWR | O_NOCTTY);
 
@@ -114,11 +99,11 @@ RoboClaw::RoboClaw(const char *deviceName, uint16_t address, uint16_t pulsesPerR
 	if (ret < 0) { err(1, "failed to get attr"); }
 
 	uart_config.c_oflag &= ~ONLCR; // no CR for every LF
-	ret = cfsetispeed(&uart_config, B38400);
+	ret = cfsetispeed(&uart_config, _parameters.serial_baud_rate);
 
 	if (ret < 0) { err(1, "failed to set input speed"); }
 
-	ret = cfsetospeed(&uart_config, B38400);
+	ret = cfsetospeed(&uart_config, _parameters.serial_baud_rate);
 
 	if (ret < 0) { err(1, "failed to set output speed"); }
 
@@ -154,7 +139,7 @@ void RoboClaw::taskMain()
 	int waitTime = 0;
 
 	_actuatorsSub = orb_subscribe(ORB_ID(actuator_controls_0));
-	orb_set_interval(_actuatorsSub, ACTUATOR_WRITE_PERIOD_MS);
+	orb_set_interval(_actuatorsSub, _parameters.actuator_write_period_ms);
 
 	_armedSub = orb_subscribe(ORB_ID(actuator_armed));
 
@@ -186,7 +171,7 @@ void RoboClaw::taskMain()
 			if (disarmed) {
 				// If disarmed, I want to be certain that the stop command gets through.
 				while ((drive_ret = drive(0.0)) <= 0 || (turn_ret = turn(0.0)) <= 0) {
-					PX4_ERR("Error trying to stop: Drive: %d, Turn: %d", drive_ret, turn_ret);
+					//PX4_ERR("Error trying to stop: Drive: %d, Turn: %d", drive_ret, turn_ret);
 					px4_usleep(TIMEOUT_US);
 				}
 
@@ -218,7 +203,7 @@ void RoboClaw::taskMain()
 			}
 		}
 
-		waitTime = ENCODER_READ_PERIOD_MS * 1000 - (hrt_absolute_time() - encoderTaskLastRun);
+		waitTime = _parameters.encoder_read_period_ms * 1000 - (hrt_absolute_time() - encoderTaskLastRun);
 		waitTime = waitTime < 0 ? 0 : waitTime;
 	}
 
@@ -233,7 +218,7 @@ int RoboClaw::readEncoder()
 	uint8_t rbuff[ENCODER_MESSAGE_SIZE];
 	int nread = 0;
 
-	for (int retry = 0; retry < FAILED_TRANSACTION_RETRIES && nread == 0; retry++) {
+	for (int retry = 0; retry < _parameters.serial_timeout_retries && nread == 0; retry++) {
 		nread =  _transaction(CMD_READ_BOTH_ENCODERS, nullptr, 0, &rbuff[0], ENCODER_MESSAGE_SIZE, false, true);
 	}
 
@@ -441,7 +426,7 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 
 	tcflush(_uart, TCIOFLUSH); // flush  buffers
 	uint8_t buf[wbytes + 4];
-	buf[0] = _address;
+	buf[0] = (uint8_t) _parameters.address;
 	buf[1] = cmd;
 
 	if (wbuff) {
@@ -523,5 +508,55 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 		} else {
 			return -11;
 		}
+	}
+}
+
+void RoboClaw::_parameters_update()
+{
+	param_get(_param_handles.serial_timeout_retries, &_parameters.serial_timeout_retries);
+	param_get(_param_handles.stop_retries, &_parameters.stop_retries);
+	param_get(_param_handles.counts_per_rev, &_parameters.counts_per_rev);
+	param_get(_param_handles.encoder_read_period_ms, &_parameters.encoder_read_period_ms);
+	param_get(_param_handles.actuator_write_period_ms, &_parameters.actuator_write_period_ms);
+	param_get(_param_handles.address, &_parameters.address);
+
+	int baudRate;
+	param_get(_param_handles.serial_baud_rate, &baudRate);
+
+	switch (baudRate) {
+	case 1:
+		_parameters.serial_baud_rate = B2400;
+		break;
+
+	case 2:
+		_parameters.serial_baud_rate = B9600;
+		break;
+
+	case 3:
+		_parameters.serial_baud_rate = B19200;
+		break;
+
+	case 4:
+		_parameters.serial_baud_rate = B38400;
+		break;
+
+	case 5:
+		_parameters.serial_baud_rate = B57600;
+		break;
+
+	case 6:
+		_parameters.serial_baud_rate = B115200;
+		break;
+
+	case 7:
+		_parameters.serial_baud_rate = B230400;
+		break;
+
+	case 8:
+		_parameters.serial_baud_rate = B460800;
+		break;
+
+	default:
+		_parameters.serial_baud_rate = B9600;
 	}
 }
