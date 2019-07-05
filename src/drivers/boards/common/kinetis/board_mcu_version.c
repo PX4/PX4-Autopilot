@@ -41,7 +41,7 @@
 #include <px4_defines.h>
 
 #include "up_arch.h"
-#include "chip/kinetis_sim.h"
+#include "hardware/kinetis_sim.h"
 
 #define CHIP_TAG     "Kinetis K??"
 #define CHIP_TAG_LEN sizeof(CHIP_TAG)-1

@@ -43,8 +43,8 @@
 #include <stdint.h>
 
 #include <kinetis.h>
-#include "chip/kinetis_sim.h"
-#include "chip/kinetis_ftm.h"
+#include "hardware/kinetis_sim.h"
+#include "hardware/kinetis_ftm.h"
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/kinetis/drv_io_timer.h>

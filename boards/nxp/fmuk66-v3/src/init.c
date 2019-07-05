@@ -62,7 +62,7 @@
 
 #include <kinetis.h>
 #include <kinetis_uart.h>
-#include <chip/kinetis_uart.h>
+#include <hardware/kinetis_uart.h>
 #include "board_config.h"
 
 #include "up_arch.h"
