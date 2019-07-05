@@ -339,8 +339,8 @@
 #define BOARD_HAS_HW_VERSIONING
 
 #define GPIO_HW_VER_REV_DRIVE  /* PG0 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN0)
-#define GPIO_HW_REV_SENSE      /* PF5 */  ADC3_CH(15)
-#define GPIO_HW_VER_SENSE      /* PF4 */  ADC3_CH(14)
+#define GPIO_HW_REV_SENSE      /* PF5 */  ADC3_GPIO(15)
+#define GPIO_HW_VER_SENSE      /* PF4 */  ADC3_GPIO(14)
 #define HW_INFO_INIT           {'V','5','X','x', 'x',0}
 #define HW_INFO_INIT_VER       3 /* Offset in above string of the VER */
 #define HW_INFO_INIT_REV       4 /* Offset in above string of the REV */
