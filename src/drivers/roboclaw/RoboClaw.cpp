@@ -486,7 +486,7 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 
 		err_code = read(_uart, rbuff_curr, rbytes - bytes_read);
 
-		if (err_code < 0) {
+		if (err_code <= 0) {
 			return err_code;
 
 		} else {
