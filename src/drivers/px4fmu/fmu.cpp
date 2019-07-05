@@ -168,9 +168,6 @@ public:
 	int		set_mode(Mode mode);
 	Mode		get_mode() { return _mode; }
 
-	int		set_pwm_alt_rate(unsigned rate);
-	int		set_pwm_alt_channels(uint32_t channels);
-
 	static int	set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
 
 	static void	capture_trampoline(void *context, uint32_t chan_index,
@@ -813,18 +810,6 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 	_pwm_alt_rate = alt_rate;
 
 	return OK;
-}
-
-int
-PX4FMU::set_pwm_alt_rate(unsigned rate)
-{
-	return set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, rate);
-}
-
-int
-PX4FMU::set_pwm_alt_channels(uint32_t channels)
-{
-	return set_pwm_rate(channels, _pwm_default_rate, _pwm_alt_rate);
 }
 
 int
