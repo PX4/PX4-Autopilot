@@ -210,10 +210,8 @@ public:
 	void registerTest(ITestRegistrar *registrar,
 			  const char *casename, const char *testname);
 
-private:
-
 	Case *findCase(const char *casename);
-
+private:
 	TestFactory() = default;
 
 	List<Case *> _cases;
@@ -279,6 +277,17 @@ TestBase *TestRegistrar<TTest>::instantiateTest()
 	} \
 	void CONCATNAME::run_testbody()
 
-#define TEST(CASENAME, TESTNAME) \
-	REGISTER_TEST(CASENAME, TESTNAME, CASENAME##TESTNAME)
+#ifndef REGISTER_MAIN
+#define REGISTER_MAIN(CASENAME) int unit_##CASENAME_main(int argc,  int **argv) { \
+		TestFactory &factory = TestFactory::instance(); \
+		auto kase = factory.findCase(#CASENAME); \
+		for (auto *test : kase->tests) { \
+			test->testbase->run(); \
+		} \
+		return 0; \
+	}
+#endif
 
+#define TEST(CASENAME, TESTNAME) \
+	REGISTER_MAIN(CASENAME) \
+	REGISTER_TEST(CASENAME, TESTNAME, CASENAME##TESTNAME)

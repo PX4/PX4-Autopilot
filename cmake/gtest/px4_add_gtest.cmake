@@ -48,38 +48,38 @@ function(px4_add_gtest)
 		REQUIRED SRC
 		ARGN ${ARGN})
 
-	# infer test name from source filname
+	# infer test name from source filename
 	get_filename_component(TESTNAME ${SRC} NAME_WE)
 	string(REPLACE Test "" TESTNAME ${TESTNAME})
+	set(TESTNAME unit_${TESTNAME})
 
 	if (${PX4_PLATFORM} STREQUAL "nuttx")
-		get_property(sources GLOBAL PROPERTY ntest_test_sources)
-		list(APPEND sources ${CMAKE_CURRENT_SOURCE_DIR}/${SRC})
-		set_property(GLOBAL PROPERTY ntest_test_sources ${sources})
-
-		get_property(dependencies GLOBAL PROPERTY ntest_test_dependencies)
-
-		foreach(dep ${dependencies})
-			list(APPEND dependencies ${dep})
-		endforeach()
-		set_property(GLOBAL PROPERTY ntest_test_dependencies ${dependencies})
-
-		# Note: If the systemcmd ntest is not build, these properties won't be
-		#       taken into account.
-
+		px4_add_module(
+			MODULE ${TESTNAME}
+			MAIN ${TESTNAME}
+			STACK_MAIN 2500
+			COMPILE_FLAGS
+			SRCS ${SRC}
+			DEPENDS ${LINKLIBS}
+			)
 	else()
-		set(TESTNAME unit-${TESTNAME})
 		# build a binary for the unit test
 		add_executable(${TESTNAME} EXCLUDE_FROM_ALL ${SRC})
 
 		# attach it to the unit test target
 		add_dependencies(test_results ${TESTNAME})
 
-		# link the libary to test and gtest
 		target_link_libraries(${TESTNAME} ${LINKLIBS} gtest_main)
+	endif()
 
-		# add the test to the ctest plan
-		add_test(NAME ${TESTNAME} COMMAND ${TESTNAME})
+	# link the libary to test and gtest
 
+	# add the test to the ctest plan
+	add_test(NAME ${TESTNAME} COMMAND ${TESTNAME})
+
+	if (${PX4_PLATFORM} STREQUAL "nuttx")
+		get_property(tests GLOBAL PROPERTY ntest_tests)
+		list(APPEND tests ${TESTNAME})
+		set_property(GLOBAL PROPERTY ntest_tests ${tests})
 	endif()
 endfunction()

@@ -16,3 +16,5 @@ ExternalProject_Add(googletest
     LOG_CONFIGURE ON
     LOG_BUILD ON
 )
+
+message(FATAL_ERROR "getting included")
