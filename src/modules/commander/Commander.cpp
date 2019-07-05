@@ -1594,12 +1594,10 @@ Commander::run()
 			}
 		}
 
-		/* update ESCs status*/
-		orb_check(esc_status_sub, &updated);
 
-		if (updated) {
+		if (esc_status_sub.updated()) {
 			/* ESCs status changed */
-			orb_copy(ORB_ID(esc_status), esc_status_sub, &esc_status);
+			esc_status_sub.copy(&esc_status);
 		}
 
 		estimator_check(&status_changed);
