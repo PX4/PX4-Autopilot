@@ -52,6 +52,7 @@ set PWM_MAX p:PWM_MAX
 set PWM_MIN p:PWM_MIN
 set PWM_OUT none
 set PWM_RATE p:PWM_RATE
+set RC_INPUT_ARGS ""
 set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
 set USE_IO no
 set VEHICLE_TYPE none
@@ -318,11 +319,6 @@ else
 		tune_control play -t 2
 	fi
 
-	if [ $IO_PRESENT = no -o $USE_IO = no ]
-	then
-		rc_input start
-	fi
-
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run).
 	# Commander needs to be this early for in-air-restarts.
@@ -417,6 +413,12 @@ else
 	# Note: rc.serial is auto-generated from Tools/serial/generate_config.py
 	#
 	sh /etc/init.d/rc.serial
+
+	if [ $IO_PRESENT = no -o $USE_IO = no ]
+	then
+		# Must be started after the serial config is read
+		rc_input start $RC_INPUT_ARGS
+	fi
 
 	#
 	# Configure vehicle type specific parameters.
@@ -546,6 +548,7 @@ unset PWM_MAX
 unset PWM_MIN
 unset PWM_OUT
 unset PWM_RATE
+unset RC_INPUT_ARGS
 unset SDCARD_MIXERS_PATH
 unset USE_IO
 unset VEHICLE_TYPE
