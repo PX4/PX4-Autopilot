@@ -202,9 +202,6 @@ void UavcanEscController::arm_single_esc(int num, bool arm)
 void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
 {
 	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {
-		_esc_status.esc_count = uavcan::max<int>(_esc_status.esc_count, msg.esc_index + 1);
-		_esc_status.timestamp = hrt_absolute_time();
-
 		auto &ref = _esc_status.esc[msg.esc_index];
 
 		ref.esc_address = msg.getSrcNodeID().get();
@@ -220,6 +217,8 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 
 void UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent &)
 {
+	_esc_status.timestamp = hrt_absolute_time();
+	_esc_status.esc_count = _rotor_count;
 	_esc_status.counter += 1;
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
 	_esc_status.esc_online_flags = UavcanEscController::check_escs_status();
