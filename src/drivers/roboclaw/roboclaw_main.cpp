@@ -106,7 +106,7 @@ int roboclaw_main(int argc, char *argv[])
 		deamon_task = px4_task_spawn_cmd("roboclaw",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_MAX - 10,
-						 2500,
+						 1500,
 						 roboclaw_thread_main,
 						 (char *const *)argv);
 		return 0;
@@ -140,17 +140,12 @@ int roboclaw_thread_main(int argc, char *argv[])
 	argc -= 2;
 	argv += 2;
 
-	if (argc < 3) {
-		printf("usage: roboclaw start device address\n");
+	if (argc < 2) {
+		printf("usage: roboclaw start <device>\n");
 		return -1;
 	}
 
 	const char *deviceName = argv[1];
-	uint8_t address = strtoul(argv[2], nullptr, 0);
-	uint16_t pulsesPerRev = strtoul(argv[3], nullptr, 0);
-
-	printf("device:\t%s\taddress:\t%d\tpulses per rev:\t%ld\n",
-	       deviceName, address, pulsesPerRev);
 
 	// start
 	RoboClaw roboclaw(deviceName);

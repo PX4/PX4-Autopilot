@@ -50,6 +50,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/wheel_encoders.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/parameter_update.h>
 #include <drivers/device/i2c.h>
 #include <sys/select.h>
 #include <sys/time.h>
@@ -130,12 +131,6 @@ public:
 	int resetEncoders();
 
 	/**
-	 * main update loop that updates RoboClaw motor
-	 * dutycycle based on actuator publication
-	 */
-	int update();
-
-	/**
 	 * read data from serial
 	 */
 	int readEncoder();
@@ -145,16 +140,7 @@ public:
 	 */
 	void printStatus(char *string, size_t n);
 
-	void Run();
-
 private:
-
-	// Quadrature status flags
-	enum e_quadrature_status_flags {
-		STATUS_UNDERFLOW = 1 << 0, /**< encoder went below 0 **/
-		STATUS_REVERSE = 1 << 1, /**< motor doing in reverse dir **/
-		STATUS_OVERFLOW = 1 << 2, /**< encoder went above 2^32 **/
-	};
 
 	// commands
 	// We just list the commands we want from the manual here.
@@ -182,6 +168,8 @@ private:
 		CMD_READ_SPEED_HIRES_2 = 31,
 		CMD_SIGNED_DUTYCYCLE_1 = 32,
 		CMD_SIGNED_DUTYCYCLE_2 = 33,
+
+		CMD_READ_STATUS = 90
 	};
 
 	struct {
@@ -214,6 +202,9 @@ private:
 
 	int _armedSub;
 	actuator_armed_s _actuatorArmed;
+
+	int _paramSub;
+	parameter_update_s _paramUpdate;
 
 	orb_advert_t _wheelEncodersAdv;
 	wheel_encoders_s _wheelEncoderMsg;
