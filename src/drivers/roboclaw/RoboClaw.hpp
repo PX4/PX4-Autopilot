@@ -45,6 +45,7 @@
 
 #include <poll.h>
 #include <stdio.h>
+#include <termios.h>
 #include <uORB/SubscriptionPollable.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/wheel_encoders.h>
@@ -61,7 +62,6 @@ class RoboClaw
 {
 public:
 
-	static int roboclawTest(int argc, char *argv[]);
 	void taskMain();
 	static bool taskShouldExit;
 
@@ -86,8 +86,7 @@ public:
 	 * @param pulsesPerRev # of encoder
 	 *  pulses per revolution of wheel
 	 */
-	RoboClaw(const char *deviceName, uint16_t address,
-		 uint16_t pulsesPerRev);
+	RoboClaw(const char *deviceName);
 
 	/**
 	 * deconstructor
@@ -185,8 +184,25 @@ private:
 		CMD_SIGNED_DUTYCYCLE_2 = 33,
 	};
 
-	uint8_t _address;
-	uint16_t _pulsesPerRev;
+	struct {
+		speed_t serial_baud_rate;
+		int32_t counts_per_rev;
+		int32_t serial_timeout_retries;
+		int32_t stop_retries;
+		int32_t encoder_read_period_ms;
+		int32_t actuator_write_period_ms;
+		int32_t address;
+	} _parameters{};
+
+	struct {
+		param_t serial_baud_rate;
+		param_t counts_per_rev;
+		param_t serial_timeout_retries;
+		param_t stop_retries;
+		param_t encoder_read_period_ms;
+		param_t actuator_write_period_ms;
+		param_t address;
+	} _param_handles{};
 
 	int _uart;
 	fd_set _uart_set;
@@ -205,6 +221,8 @@ private:
 	uint32_t _lastEncoderCount[2];
 	int64_t _encoderCounts[2];
 	int32_t _motorSpeeds[2];
+
+	void _parameters_update();
 
 	static uint16_t _calcCRC(const uint8_t *buf, size_t n, uint16_t init = 0);
 	int _sendUnsigned7Bit(e_command command, float data);

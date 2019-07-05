@@ -153,7 +153,7 @@ int roboclaw_thread_main(int argc, char *argv[])
 	       deviceName, address, pulsesPerRev);
 
 	// start
-	RoboClaw roboclaw(deviceName, address, pulsesPerRev);
+	RoboClaw roboclaw(deviceName);
 
 	thread_running = true;
 
