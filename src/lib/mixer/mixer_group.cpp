@@ -198,6 +198,25 @@ MixerGroup::set_airmode(Airmode airmode)
 	}
 }
 
+unsigned
+MixerGroup::get_multirotor_count()
+{
+	Mixer	*mixer = _first;
+	unsigned rotor_count = 0;
+
+	while (mixer != nullptr) {
+
+		rotor_count = mixer->get_multirotor_count();
+
+		if (rotor_count > 0) {
+			mixer = nullptr;
+
+		} else { mixer = mixer -> _next;}
+	}
+
+	return rotor_count;
+}
+
 uint16_t
 MixerGroup::get_saturation_status()
 {
