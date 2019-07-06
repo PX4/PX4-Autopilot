@@ -14,3 +14,6 @@ ist8310 -C -b 1 -R 4 start
 aerofc_adc start
 
 ll40ls start i2c
+
+# Internal SPI
+ms5611 -s start

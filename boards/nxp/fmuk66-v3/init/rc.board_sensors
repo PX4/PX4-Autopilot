@@ -22,3 +22,6 @@ fxos8701cq start -R 0
 
 # Internal SPI (gyro)
 fxas21002c start
+
+# Internal SPI
+ms5611 -s start

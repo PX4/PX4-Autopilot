@@ -21,3 +21,6 @@ qmc5883 -X start
 
 # RM3100
 rm3100 start
+
+# Internal SPI
+ms5611 -s start
