@@ -83,6 +83,7 @@
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
 
+#define DEFAULT_BAUD_RATE       57600
 #define DEFAULT_REMOTE_PORT_UDP 14550 ///< GCS port per MAVLink spec
 #define DEFAULT_DEVICE_NAME     "/dev/ttyS1"
 #define HASH_PARAM              "_HASH_CHECK"
@@ -675,7 +676,9 @@ private:
 
 	void			mavlink_update_parameters();
 
-	int			mavlink_open_uart(int baudrate, const char *uart_name, bool force_flow_control);
+	int mavlink_open_uart(const int baudrate = DEFAULT_BAUD_RATE,
+			      const char *uart_name = DEFAULT_DEVICE_NAME,
+			      const bool force_flow_control = false);
 
 	static constexpr unsigned RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE = 25;
 	static constexpr unsigned RADIO_BUFFER_LOW_PERCENTAGE = 35;
@@ -730,10 +733,14 @@ private:
 
 	void init_udp();
 
+	void set_channel();
+
+	void set_instance_id();
+
 	/**
 	 * Main mavlink task.
 	 */
-	int		task_main(int argc, char *argv[]);
+	int task_main(int argc, char *argv[]);
 
 	// Disallow copy construction and move assignment.
 	Mavlink(const Mavlink &) = delete;
