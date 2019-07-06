@@ -37,7 +37,7 @@ px4_add_board(
 		imu/l3gd20
 		imu/lsm303d
 		imu/mpu6000
-		imu/mpu9250
+		#imu/mpu9250
 		#iridiumsbd
 		#irlock
 		#lights/blinkm
