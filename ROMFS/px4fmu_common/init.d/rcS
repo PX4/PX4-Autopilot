@@ -54,6 +54,7 @@ set PWM_OUT none
 set PWM_RATE p:PWM_RATE
 set RC_INPUT_ARGS ""
 set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
+set STARTUP_TUNE 1
 set USE_IO no
 set VEHICLE_TYPE none
 
@@ -94,41 +95,27 @@ then
 	if hardfault_log check
 	then
 		# Error tune.
-		tune_control play -t 2
+		set STARTUP_TUNE 2
 		if hardfault_log commit
 		then
 			hardfault_log reset
 		fi
-	else
-		# Play the startup tune.
-		tune_control play -t 1
 	fi
 else
 	# tune SD_INIT
-	tune_control play -t 16
+	set STARTUP_TUNE 16
 	if mkfatfs /dev/mmcsd0
 	then
 		if mount -t vfat /dev/mmcsd0 /fs/microsd
 		then
 			echo "INFO [init] card formatted"
 		else
-			tune_control play -t 17
+			set STARTUP_TUNE 17
 			echo "ERROR [init] format failed"
 			set LOG_FILE /dev/null
 		fi
 	else
 		set LOG_FILE /dev/null
-	fi
-fi
-
-# AEROCORE2 shouldn't have an sd card and CF2 may optionally have an sd card.
-if ! ver hwcmp BITCRAZE_CRAZYFLIE GUMSTIX_AEROCORE2
-then
-	# Run no SD alarm.
-	if [ $LOG_FILE = /dev/null ]
-	then
-		# tune Make FS MBAGP
-		tune_control play -t 2
 	fi
 fi
 
@@ -173,6 +160,15 @@ else
 		else
 			set AUTOCNF no
 		fi
+	fi
+
+	#
+	# Play the startup tune (if not disabled or there is an error)
+	#
+	param compare CBRK_BUZZER 782090
+	if [ $? != 0 -o $STARTUP_TUNE != 1 ]
+	then
+		tune_control play -t $STARTUP_TUNE
 	fi
 
 	#
@@ -550,6 +546,7 @@ unset PWM_OUT
 unset PWM_RATE
 unset RC_INPUT_ARGS
 unset SDCARD_MIXERS_PATH
+unset STARTUP_TUNE
 unset USE_IO
 unset VEHICLE_TYPE
 
