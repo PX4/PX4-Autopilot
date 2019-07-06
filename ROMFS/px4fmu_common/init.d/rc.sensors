@@ -21,9 +21,6 @@ then
 	# Internal SPI (auto detect ms5611 or ms5607)
 	ms5611 -T 0 -s start
 
-	# Blacksheep telemetry
-	bst start
-
 	adc start
 fi
 
