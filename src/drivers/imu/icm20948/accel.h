@@ -33,6 +33,10 @@
 
 #pragma once
 
+#include <drivers/device/device.h>
+#include <drivers/drv_accel.h>
+#include <uORB/uORB.h>
+
 class ICM20948;
 
 /**

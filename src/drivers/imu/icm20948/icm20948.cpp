@@ -36,29 +36,9 @@
  *
  * Driver for the Invensense ICM20948 connected via I2C or SPI.
  *
- *
  * based on the mpu9250 driver
  */
 
-#include <px4_config.h>
-#include <px4_time.h>
-#include <lib/ecl/geo/geo.h>
-#include <lib/perf/perf_counter.h>
-#include <systemlib/conversions.h>
-#include <systemlib/px4_macros.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/device/spi.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/drv_mag.h>
-#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
-#include <lib/conversion/rotation.h>
-
-#include "mag.h"
-#include "accel.h"
-#include "gyro.h"
 #include "icm20948.h"
 
 /*

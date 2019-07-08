@@ -41,17 +41,6 @@
  * based on the mpu6000 driver
  */
 
-#include <px4_config.h>
-#include <px4_time.h>
-#include <lib/ecl/geo/geo.h>
-#include <lib/perf/perf_counter.h>
-#include <systemlib/conversions.h>
-#include <systemlib/px4_macros.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/device/spi.h>
-#include <lib/conversion/rotation.h>
-
-#include "MPU9250_mag.h"
 #include "mpu9250.h"
 
 /*
