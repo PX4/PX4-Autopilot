@@ -64,6 +64,7 @@ protected:
 					(ParamFloat<px4::params::MPC_Z_TRAJ_P>) _param_mpc_z_traj_p
 				       );
 
+	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
 	void _generateSetpoints() override; /**< Generate setpoints along line. */
 
 	/** determines when to trigger a takeoff (ignored in flight) */

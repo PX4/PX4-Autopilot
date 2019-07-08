@@ -62,6 +62,7 @@ protected:
 					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max
 				       )
 private:
+	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
 	void _resetPositionLock();
 	void _initEkfResetCounters();
 	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */

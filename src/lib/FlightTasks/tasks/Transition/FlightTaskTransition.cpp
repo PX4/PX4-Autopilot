@@ -52,6 +52,14 @@ bool FlightTaskTransition::activate(vehicle_local_position_setpoint_s state_prev
 	return FlightTask::activate(state_prev);
 }
 
+void FlightTaskTransition::checkSetpoints(vehicle_local_position_setpoint_s &setpoints)
+{
+	// If the setpoint is unknown, set to the current estimate
+	if (!PX4_ISFINITE(setpoints.z)) { setpoints.z = _position(2); }
+
+	if (!PX4_ISFINITE(setpoints.yaw)) { setpoints.yaw = _yaw; }
+}
+
 void FlightTaskTransition::updateAccelerationEstimate()
 {
 	// Estimate the acceleration by filtering the raw derivative of the velocity estimate
