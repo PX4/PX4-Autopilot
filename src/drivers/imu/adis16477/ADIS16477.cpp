@@ -33,9 +33,6 @@
 
 #include "ADIS16477.hpp"
 
-#include <px4_config.h>
-#include <ecl/geo/geo.h>
-
 #define DIR_READ				0x00
 #define DIR_WRITE				0x80
 

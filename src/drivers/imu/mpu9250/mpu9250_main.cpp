@@ -42,15 +42,6 @@
  * based on the mpu6000 driver
  */
 
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <lib/perf/perf_counter.h>
-#include <lib/systemlib/conversions.h>
-#include <board_config.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/device/spi.h>
-#include <lib/conversion/rotation.h>
-
 #include "mpu9250.h"
 
 #define MPU_DEVICE_PATH			"/dev/mpu9250"
