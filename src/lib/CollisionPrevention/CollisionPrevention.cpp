@@ -156,6 +156,11 @@ void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle)
 					lower_bound  = 0;
 				}
 
+				// rotate vehicle attitude into the sensor body frame
+				matrix::Quatf attitude_sensor_frame = attitude;
+				attitude_sensor_frame.rotate(Vector3f(0.f, 0.f, sensor_yaw_body_rad));
+				float attitude_sensor_frame_pitch = cosf(Eulerf(attitude_sensor_frame).theta());
+
 				for (int bin = lower_bound; bin <= upper_bound; ++bin) {
 					int wrap_bin = bin;
 
@@ -169,13 +174,9 @@ void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle)
 						wrap_bin = bin - distances_array_size;
 					}
 
-					// rotate vehicle attitude into the sensor body frame
-					matrix::Quatf attitude_sensor_frame = attitude;
-					attitude_sensor_frame.rotate(Vector3f(0.f, 0.f, sensor_yaw_body_rad));
-
 					// compensate measurement for vehicle tilt and convert to cm
 					obstacle.distances[wrap_bin] = math::min((int)obstacle.distances[wrap_bin],
-								       (int)(100 * distance_sensor.current_distance * cosf(Eulerf(attitude_sensor_frame).theta())));
+								       (int)(100 * distance_sensor.current_distance * attitude_sensor_frame_pitch));
 				}
 			}
 		}
@@ -187,7 +188,7 @@ void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle)
 void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 		const Vector2f &curr_pos, const Vector2f &curr_vel)
 {
-	obstacle_distance_s obstacle = {};
+	obstacle_distance_s obstacle{};
 	_updateOffboardObstacleDistance(obstacle);
 	_updateDistanceSensor(obstacle);
 
