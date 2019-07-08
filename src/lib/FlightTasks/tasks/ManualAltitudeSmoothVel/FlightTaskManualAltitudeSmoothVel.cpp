@@ -66,6 +66,18 @@ void FlightTaskManualAltitudeSmoothVel::reActivate()
 	_resetPositionLock();
 }
 
+void FlightTaskManualAltitudeSmoothVel::checkSetpoints(vehicle_local_position_setpoint_s &setpoints)
+{
+	// If the position setpoint is unknown, set to the current postion
+	if (!PX4_ISFINITE(setpoints.z)) { setpoints.z = _position(2); }
+
+	// If the velocity setpoint is unknown, set to the current velocity
+	if (!PX4_ISFINITE(setpoints.vz)) { setpoints.vz = _velocity(2); }
+
+	// No acceleration estimate available, set to zero if the setpoint is NAN
+	if (!PX4_ISFINITE(setpoints.acc_z)) { setpoints.acc_z = 0.f; }
+}
+
 void FlightTaskManualAltitudeSmoothVel::_resetPositionLock()
 {
 	// Always start unlocked
