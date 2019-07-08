@@ -463,6 +463,12 @@ else
 	# Check for flow sensor, launched as a background task to scan
 	px4flow start &
 
+	# Blacksheep telemetry
+	if param greater TEL_BST_EN 0
+	then
+		bst start
+	fi
+
 	#
 	# Optional board supplied extras: rc.board_extras
 	#
