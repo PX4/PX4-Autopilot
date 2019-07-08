@@ -120,8 +120,6 @@ public:
 	 */
 	const vehicle_local_position_setpoint_s getPositionSetpoint();
 
-	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
-
 	/**
 	 * Get vehicle constraints.
 	 * The constraints can vary with task.

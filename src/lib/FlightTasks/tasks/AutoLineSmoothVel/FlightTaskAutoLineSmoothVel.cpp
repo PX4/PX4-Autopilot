@@ -54,7 +54,7 @@ bool FlightTaskAutoLineSmoothVel::activate(vehicle_local_position_setpoint_s sta
 		_trajectory[i].reset(accel_prev(i), vel_prev(i), pos_prev(i));
 	}
 
-	_yaw_sp_prev = _yaw;
+	_yaw_sp_prev = state_prev.yaw;
 	_updateTrajConstraints();
 	_initEkfResetCounters();
 
@@ -70,6 +70,32 @@ void FlightTaskAutoLineSmoothVel::reActivate()
 
 	_trajectory[2].reset(0.f, 0.7f, _position(2));
 	_initEkfResetCounters();
+}
+
+void FlightTaskAutoLineSmoothVel::checkSetpoints(vehicle_local_position_setpoint_s &setpoints)
+{
+	// If the position setpoint is unknown, set to the current postion
+	if (!PX4_ISFINITE(setpoints.x)) { setpoints.x = _position(0); }
+
+	if (!PX4_ISFINITE(setpoints.y)) { setpoints.y = _position(1); }
+
+	if (!PX4_ISFINITE(setpoints.z)) { setpoints.z = _position(2); }
+
+	// If the velocity setpoint is unknown, set to the current velocity
+	if (!PX4_ISFINITE(setpoints.vx)) { setpoints.vx = _velocity(0); }
+
+	if (!PX4_ISFINITE(setpoints.vy)) { setpoints.vy = _velocity(1); }
+
+	if (!PX4_ISFINITE(setpoints.vz)) { setpoints.vz = _velocity(2); }
+
+	// No acceleration estimate available, set to zero if the setpoint is NAN
+	if (!PX4_ISFINITE(setpoints.acc_x)) { setpoints.acc_x = 0.f; }
+
+	if (!PX4_ISFINITE(setpoints.acc_y)) { setpoints.acc_y = 0.f; }
+
+	if (!PX4_ISFINITE(setpoints.acc_z)) { setpoints.acc_z = 0.f; }
+
+	if (!PX4_ISFINITE(setpoints.yaw)) { setpoints.yaw = _yaw; }
 }
 
 void FlightTaskAutoLineSmoothVel::_generateSetpoints()
