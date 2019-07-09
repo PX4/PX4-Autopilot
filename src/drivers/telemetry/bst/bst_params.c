@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,49 +31,13 @@
  *
  ****************************************************************************/
 
-#include "ADIS16497_gyro.hpp"
-
-ADIS16497_gyro::ADIS16497_gyro(ADIS16497 *parent, const char *path) :
-	CDev("ADIS16497_gyro", path),
-	_parent(parent),
-	_gyro_topic(nullptr),
-	_gyro_orb_class_instance(-1),
-	_gyro_class_instance(-1)
-{
-}
-
-ADIS16497_gyro::~ADIS16497_gyro()
-{
-	if (_gyro_class_instance != -1) {
-		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _gyro_class_instance);
-	}
-}
-
-int
-ADIS16497_gyro::init()
-{
-	int ret = CDev::init();
-
-	/* if probe/setup failed, bail now */
-	if (ret != OK) {
-		DEVICE_DEBUG("gyro init failed");
-		return ret;
-	}
-
-	_gyro_class_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
-
-	return ret;
-}
-
-int
-ADIS16497_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-	case DEVIOCGDEVICEID:
-		return (int)CDev::ioctl(filp, cmd, arg);
-		break;
-
-	default:
-		return _parent->gyro_ioctl(filp, cmd, arg);
-	}
-}
+/**
+ * Blacksheep telemetry Enable
+ *
+ * If true, the FMU will try to connect to Blacksheep telemetry on start up
+ *
+ * @boolean
+ * @reboot_required true
+ * @group Telemetry
+ */
+PARAM_DEFINE_INT32(TEL_BST_EN, 0);

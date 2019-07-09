@@ -76,6 +76,7 @@ px4_add_board(
 		dumpfile
 		esc_calib
 		hardfault_log
+		i2cdetect
 		led_control
 		mixer
 		motor_ramp

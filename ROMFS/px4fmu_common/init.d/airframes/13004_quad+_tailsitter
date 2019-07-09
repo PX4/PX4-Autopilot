@@ -26,7 +26,7 @@ then
 	param set PWM_MAX 2000
 	param set PWM_RATE 400
 
-	param set VT_MOT_COUNT 4
+	param set VT_MOT_COUNT 1234
 	param set VT_IDLE_PWM_MC  1080
 	param set VT_TYPE 0
 	param set VT_ELEV_MC_LOCK 1

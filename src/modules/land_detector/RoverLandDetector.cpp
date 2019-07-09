@@ -67,7 +67,7 @@ bool RoverLandDetector::_get_maybe_landed_state()
 
 bool RoverLandDetector::_get_landed_state()
 {
-	if (!_arming.armed) {
+	if (!_actuator_armed.armed) {
 		return true;
 	}
 

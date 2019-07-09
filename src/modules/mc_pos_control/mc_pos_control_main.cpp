@@ -109,6 +109,7 @@ private:
 
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
 	orb_advert_t _pub_vehicle_command{nullptr};           /**< vehicle command publication */
+	orb_advert_t _mavlink_log_pub{nullptr};
 
 	orb_id_t _attitude_setpoint_id{nullptr};
 
@@ -147,6 +148,9 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _param_mpc_tko_ramp_t, /**< time constant for smooth takeoff ramp */
+		(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _param_mpc_xy_vel_max,
+		(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual,
+		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
 		(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
@@ -157,7 +161,9 @@ private:
 		(ParamInt<px4::params::MPC_ALT_MODE>) _param_mpc_alt_mode,
 		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) _param_mpc_spoolup_time, /**< time to let motors spool up after arming */
 		(ParamFloat<px4::params::MPC_TILTMAX_LND>) _param_mpc_tiltmax_lnd, /**< maximum tilt for landing and smooth takeoff */
+		(ParamFloat<px4::params::MPC_THR_MIN>)_param_mpc_thr_min,
 		(ParamFloat<px4::params::MPC_THR_HOVER>)_param_mpc_thr_hover,
+		(ParamFloat<px4::params::MPC_THR_MAX>)_param_mpc_thr_max,
 		(ParamFloat<px4::params::MPC_Z_VEL_P>)_param_mpc_z_vel_p
 	);
 
@@ -311,6 +317,27 @@ MulticopterPositionControl::parameters_update(bool force)
 	if (updated || force) {
 		ModuleParams::updateParams();
 		SuperBlock::updateParams();
+
+		// Check that the design parameters are inside the absolute maximum constraints
+		if (_param_mpc_xy_cruise.get() > _param_mpc_xy_vel_max.get()) {
+			_param_mpc_xy_cruise.set(_param_mpc_xy_vel_max.get());
+			_param_mpc_xy_cruise.commit();
+			mavlink_log_critical(&_mavlink_log_pub, "Cruise speed has been constrained by max speed")
+		}
+
+		if (_param_mpc_vel_manual.get() > _param_mpc_xy_vel_max.get()) {
+			_param_mpc_vel_manual.set(_param_mpc_xy_vel_max.get());
+			_param_mpc_vel_manual.commit();
+			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed")
+		}
+
+		if (_param_mpc_thr_hover.get() > _param_mpc_thr_max.get() ||
+		    _param_mpc_thr_hover.get() < _param_mpc_thr_min.get()) {
+			_param_mpc_thr_hover.set(math::constrain(_param_mpc_thr_hover.get(), _param_mpc_thr_min.get(),
+						 _param_mpc_thr_max.get()));
+			_param_mpc_thr_hover.commit();
+			mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max")
+		}
 
 		_flight_tasks.handleParameterUpdate();
 
@@ -979,6 +1006,7 @@ void MulticopterPositionControl::check_failure(bool task_failure, uint8_t nav_st
 void MulticopterPositionControl::send_vehicle_cmd_do(uint8_t nav_state)
 {
 	vehicle_command_s command{};
+	command.timestamp = hrt_absolute_time();
 	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
 	command.param1 = (float)1; // base mode
 	command.param3 = (float)0; // sub mode

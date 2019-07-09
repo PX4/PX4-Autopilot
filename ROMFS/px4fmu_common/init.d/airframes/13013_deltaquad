@@ -133,7 +133,8 @@ then
 	param set SER_TEL2_BAUD 57600
 
 	param set VT_TYPE 2
-	param set VT_MOT_COUNT 4
+	param set VT_MOT_ID 1234
+	param set VT_FW_MOT_OFFID 1234
 	param set VT_F_TRANS_THR 1
 	param set VT_DWN_PITCH_MAX 8
 	param set VT_FW_QC_P 55

@@ -36,32 +36,6 @@
  * Driver for the MS5611 and MS5607 barometric pressure sensor connected via I2C or SPI.
  */
 
-#include <px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-
-#include <board_config.h>
-
-#include <drivers/device/device.h>
-#include <drivers/drv_baro.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/device/ringbuffer.h>
-#include <lib/perf/perf_counter.h>
-#include <systemlib/err.h>
-#include <platforms/px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-
 #include "ms5611.h"
 
 enum MS56XX_DEVICE_TYPES {

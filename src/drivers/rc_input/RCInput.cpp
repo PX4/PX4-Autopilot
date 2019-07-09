@@ -64,9 +64,6 @@ RCInput::~RCInput()
 {
 	orb_unadvertise(_to_input_rc);
 
-	orb_unsubscribe(_adc_sub);
-	orb_unsubscribe(_vehicle_cmd_sub);
-
 #ifdef RC_SERIAL_PORT
 	dsm_deinit();
 #endif
@@ -82,15 +79,13 @@ RCInput::~RCInput()
 int
 RCInput::init()
 {
-	_adc_sub = orb_subscribe(ORB_ID(adc_report));
-
 #ifdef RC_SERIAL_PORT
 
 #  ifdef RF_RADIO_POWER_CONTROL
 	// power radio on
 	RF_RADIO_POWER_CONTROL(true);
 #  endif
-	_vehicle_cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
+
 	// dsm_init sets some file static variables and returns a file descriptor
 	_rcs_fd = dsm_init(RC_SERIAL_PORT);
 	// assume SBUS input and immediately switch it to
@@ -297,13 +292,9 @@ RCInput::cycle()
 
 #if defined(SPEKTRUM_POWER)
 		/* vehicle command */
-		bool vehicle_command_updated = false;
-		orb_check(_vehicle_cmd_sub, &vehicle_command_updated);
+		vehicle_command_s vcmd;
 
-		if (vehicle_command_updated) {
-			vehicle_command_s vcmd = {};
-			orb_copy(ORB_ID(vehicle_command), _vehicle_cmd_sub, &vcmd);
-
+		if (_vehicle_cmd_sub.update(&vcmd)) {
 			// Check for a pairing command
 			if ((unsigned int)vcmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) {
 				if (!_rc_scan_locked /* !_armed.armed */) { // TODO: add armed check?
@@ -336,13 +327,9 @@ RCInput::cycle()
 
 		/* update ADC sampling */
 #ifdef ADC_RC_RSSI_CHANNEL
-		bool adc_updated = false;
-		orb_check(_adc_sub, &adc_updated);
+		adc_report_s adc;
 
-		if (adc_updated) {
-
-			struct adc_report_s adc;
-			orb_copy(ORB_ID(adc_report), _adc_sub, &adc);
+		if (_adc_sub.update(&adc)) {
 			const unsigned adc_chans = sizeof(adc.channel_id) / sizeof(adc.channel_id[0]);
 
 			for (unsigned i = 0; i < adc_chans; i++) {

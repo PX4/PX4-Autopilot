@@ -562,7 +562,7 @@ void FixedwingAttitudeControl::run()
 
 			/* lock integrator until control is started */
 			bool lock_integrator = !_vcontrol_mode.flag_control_rates_enabled
-					       || _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+					       || (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && ! _vehicle_status.in_transition_mode);
 
 			/* Simple handling of failsafe: deploy parachute if failsafe is on */
 			if (_vcontrol_mode.flag_control_termination_enabled) {

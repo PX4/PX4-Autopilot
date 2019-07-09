@@ -74,15 +74,15 @@ This repository contains code supporting these boards:
   * [Intel Aero](https://docs.px4.io/en/flight_controller/intel_aero.html)
   * [Raspberry PI with Navio 2](https://docs.px4.io/en/flight_controller/raspberry_pi_navio2.html)
   * [Parrot Bebop 2](https://dev.px4.io/en/advanced/parrot_bebop.html)
-  * FMUv2.x
+  * FMUv2
     * [Pixhawk](https://docs.px4.io/en/flight_controller/pixhawk.html)
     * [Pixhawk Mini](https://docs.px4.io/en/flight_controller/pixhawk_mini.html)
     * [Pixfalcon](https://docs.px4.io/en/flight_controller/pixfalcon.html)
-  * FMUv3.x [Pixhawk 2](https://docs.px4.io/en/flight_controller/pixhawk-2.html)
-  * FMUv4.x
+  * FMUv3 [Pixhawk 2](https://docs.px4.io/en/flight_controller/pixhawk-2.html)
+  * FMUv4
     * [Pixracer](https://docs.px4.io/en/flight_controller/pixracer.html)
     * [Pixhawk 3 Pro](https://docs.px4.io/en/flight_controller/pixhawk3_pro.html)
-  * FMUv5.x (ARM Cortex M7)
+  * FMUv5 (ARM Cortex M7)
     * [Pixhawk 4](https://docs.px4.io/en/flight_controller/pixhawk4.html)
     * [Pixhawk 4 mini](https://docs.px4.io/en/flight_controller/pixhawk4_mini.html)  
   * [Airmind MindPX V2.8](http://www.mindpx.net/assets/accessories/UserGuide_MindPX.pdf)

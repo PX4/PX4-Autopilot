@@ -7,7 +7,9 @@ px4_add_board(
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
+	BOOTLOADER ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/extras/px4fmuv3_bl.bin
 	IO px4_io-v2_default
+	CONSTRAINED_FLASH
 	#UAVCAN_INTERFACES 2
 
 	SERIAL_PORTS
@@ -63,6 +65,7 @@ px4_add_board(
 		#dumpfile
 		#esc_calib
 		hardfault_log
+		#i2cdetect
 		#led_control
 		mixer
 		#motor_ramp

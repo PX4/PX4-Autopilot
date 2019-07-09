@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,26 +31,21 @@
  *
  ****************************************************************************/
 
-#include "ADIS16477.hpp"
+#include "ADIS16497.hpp"
 
 #include <px4_getopt.h>
 
-#define ADIS16477_DEVICE_PATH_ACCEL		"/dev/adis16477_accel"
-#define ADIS16477_DEVICE_PATH_GYRO		"/dev/adis16477_gyro"
-
-extern "C" { __EXPORT int adis16477_main(int argc, char *argv[]); }
+extern "C" { __EXPORT int adis16497_main(int argc, char *argv[]); }
 
 /**
  * Local functions in support of the shell command.
  */
-namespace adis16477
+namespace adis16497
 {
 
-ADIS16477	*g_dev;
+ADIS16497 *g_dev{nullptr};
 
 void	start(enum Rotation rotation);
-void	test();
-void	reset();
 void	info();
 void	usage();
 /**
@@ -59,8 +54,6 @@ void	usage();
 void
 start(enum Rotation rotation)
 {
-	int fd = -1;
-
 	if (g_dev != nullptr)
 		/* if already started, the still command succeeded */
 	{
@@ -68,9 +61,8 @@ start(enum Rotation rotation)
 	}
 
 	/* create the driver */
-#if defined(PX4_SPIDEV_ADIS16477)
-	g_dev = new ADIS16477(PX4_SPI_BUS_SENSOR1, ADIS16477_DEVICE_PATH_ACCEL, ADIS16477_DEVICE_PATH_GYRO,
-			      PX4_SPIDEV_ADIS16477, rotation);
+#if defined(PX4_SPIDEV_EXTERNAL1_1)
+	g_dev = new ADIS16497(PX4_SPI_BUS_EXTERNAL1, PX4_SPIDEV_EXTERNAL1_1, rotation);
 #else
 	PX4_ERR("External SPI not available");
 	exit(0);
@@ -80,22 +72,10 @@ start(enum Rotation rotation)
 		goto fail;
 	}
 
-	if (OK != (g_dev)->init()) {
+	if (OK != g_dev->init()) {
 		goto fail;
 	}
 
-	/* set the poll rate to default, starts automatic data collection */
-	fd = px4_open(ADIS16477_DEVICE_PATH_ACCEL, O_RDONLY);
-
-	if (fd < 0) {
-		goto fail;
-	}
-
-	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		goto fail;
-	}
-
-	px4_close(fd);
 	exit(0);
 fail:
 
@@ -104,86 +84,7 @@ fail:
 		g_dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
-}
-
-/**
- * Perform some basic functional tests on the driver;
- * make sure we can collect data from the sensor in polled
- * and automatic modes.
- */
-void
-test()
-{
-	sensor_accel_s a_report{};
-	sensor_gyro_s g_report{};
-
-	ssize_t sz;
-
-	/* get the driver */
-	int fd = px4_open(ADIS16477_DEVICE_PATH_ACCEL, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "%s open failed", ADIS16477_DEVICE_PATH_ACCEL);
-	}
-
-	/* get the gyro driver */
-	int fd_gyro = px4_open(ADIS16477_DEVICE_PATH_GYRO, O_RDONLY);
-
-	if (fd_gyro < 0) {
-		err(1, "%s open failed", ADIS16477_DEVICE_PATH_GYRO);
-	}
-
-	/* do a simple demand read */
-	sz = read(fd, &a_report, sizeof(a_report));
-
-	if (sz != sizeof(a_report)) {
-		PX4_ERR("ret: %d, expected: %d", sz, sizeof(a_report));
-		err(1, "immediate acc read failed");
-	}
-
-	print_message(a_report);
-
-	/* do a simple demand read */
-	sz = px4_read(fd_gyro, &g_report, sizeof(g_report));
-
-	if (sz != sizeof(g_report)) {
-		warnx("ret: %d, expected: %d", sz, sizeof(g_report));
-		err(1, "immediate gyro read failed");
-	}
-
-	print_message(g_report);
-
-	px4_close(fd_gyro);
-	px4_close(fd);
-
-	reset();
-	errx(0, "PASS");
-}
-
-/**
- * Reset the driver.
- */
-void
-reset()
-{
-	int fd = px4_open(ADIS16477_DEVICE_PATH_ACCEL, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "open failed");
-	}
-
-	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
-	}
-
-	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
-	}
-
-	px4_close(fd);
-
-	exit(0);
+	PX4_ERR("driver start failed");
 }
 
 /**
@@ -193,19 +94,16 @@ void
 info()
 {
 	if (g_dev == nullptr) {
-		errx(1, "driver not running");
+		PX4_WARN("driver not running");
 	}
 
-	printf("state @ %p\n", g_dev);
 	g_dev->print_info();
-
-	exit(0);
 }
 
 void
 usage()
 {
-	PX4_INFO("missing command: try 'start', 'test', 'info', 'reset'");
+	PX4_INFO("missing command: try 'start', 'info'");
 	PX4_INFO("options:");
 	PX4_INFO("    -R rotation");
 }
@@ -214,12 +112,11 @@ usage()
 // namespace
 
 int
-adis16477_main(int argc, char *argv[])
+adis16497_main(int argc, char *argv[])
 {
 	enum Rotation rotation = ROTATION_NONE;
-
 	int myoptind = 1;
-	int ch;
+	int ch = 0;
 	const char *myoptarg = nullptr;
 
 	/* start options */
@@ -230,14 +127,9 @@ adis16477_main(int argc, char *argv[])
 			break;
 
 		default:
-			adis16477::usage();
+			adis16497::usage();
 			return 0;
 		}
-	}
-
-	if (myoptind >= argc) {
-		adis16477::usage();
-		return -1;
 	}
 
 	const char *verb = argv[myoptind];
@@ -247,30 +139,17 @@ adis16477_main(int argc, char *argv[])
 
 	 */
 	if (!strcmp(verb, "start")) {
-		adis16477::start(rotation);
-	}
-
-	/*
-	 * Test the driver/device.
-	 */
-	if (!strcmp(verb, "test")) {
-		adis16477::test();
-	}
-
-	/*
-	 * Reset the driver.
-	 */
-	if (!strcmp(verb, "reset")) {
-		adis16477::reset();
+		adis16497::start(rotation);
 	}
 
 	/*
 	 * Print driver information.
 	 */
 	if (!strcmp(verb, "info")) {
-		adis16477::info();
+		adis16497::info();
 	}
 
-	adis16477::usage();
-	exit(1);
+	adis16497::usage();
+
+	return 0;
 }
