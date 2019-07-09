@@ -88,6 +88,8 @@ WindEstimator::initialise(const matrix::Vector3f &velI, const matrix::Vector2f &
 	_time_rejected_tas = 0;
 	_time_rejected_beta = 0;
 
+	_wind_estimator_reset = true;
+
 	return true;
 }
 
@@ -97,6 +99,9 @@ WindEstimator::update(uint64_t time_now)
 	if (!_initialised) {
 		return;
 	}
+
+	// set reset state to false (is set to true when initialise fuction is called later)
+	_wind_estimator_reset = false;
 
 	// run covariance prediction at 1Hz
 	if (time_now - _time_last_update < 1000 * 1000 || _time_last_update == 0) {
