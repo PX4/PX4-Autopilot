@@ -161,8 +161,11 @@ bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 			int lowest = -1;
 
 			for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
-				if (_battery_connected[i] && (lowest == -1 ||
-							      (_battery[i].valid() && _battery[i].get_scaled(100.0f) <= _battery[lowest].get_scaled(100.0f)))) {
+				const bool battery_connected = _battery_connected[i] && _battery[i].valid();
+				const bool battery_is_lowest =  lowest < 0 ||
+								_battery[i].get_scaled(100.0f) <= _battery[lowest].get_scaled(100.0f);
+
+				if (battery_connected && (lowest == -1 || battery_is_lowest)) {
 					lowest = i;
 				}
 
@@ -277,11 +280,10 @@ bool MavlinkStreamHighLatency2::write_battery_status(mavlink_high_latency2_t *ms
 	bool updated = false;
 
 	for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
+		if (_battery_sub[i]->update(&_battery_time[i], &battery)) {
+			updated = true;
+			_battery_connected[i] = battery.connected;
 
-		updated = updated || _battery_sub[i]->update(&_battery_time[i], &battery);
-		_battery_connected[i] = battery.connected;
-
-		if (_battery_time[i] > 0) {
 			if (battery.warning > battery_status_s::BATTERY_WARNING_LOW) {
 				msg->failure_flags |= HL_FAILURE_FLAG_BATTERY;
 			}
