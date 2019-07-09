@@ -81,6 +81,7 @@ public:
 		wind_var[0] = _P(0, 0);
 		wind_var[1] = _P(1, 1);
 	}
+	bool get_wind_estimator_reset() { return _wind_estimator_reset; }
 
 	void set_wind_p_noise(float wind_sigma) { _wind_p_var = wind_sigma * wind_sigma; }
 	void set_tas_scale_p_noise(float tas_scale_sigma) { _tas_scale_p_var = tas_scale_sigma * tas_scale_sigma; }
@@ -122,6 +123,8 @@ private:
 	uint64_t _time_rejected_tas =
 		0;		///<timestamp of when true airspeed measurements have consistently started to be rejected
 	bool _scale_estimation_on = false; ///< online scale estimation (IAS-->CAS/EAS) is on
+
+	bool _wind_estimator_reset = false; ///< wind estimator was reset in this cycle
 
 	// initialise state and state covariance matrix
 	bool initialise(const matrix::Vector3f &velI, const matrix::Vector2f &velIvar, const float tas_meas);
