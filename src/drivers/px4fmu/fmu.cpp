@@ -1178,9 +1178,8 @@ PX4FMU::cycle()
 					_mixers->set_max_delta_out_once(delta_out_max);
 				}
 
-				if (_thr_mdl_fac > FLT_EPSILON) {
-					_mixers->set_thrust_factor(_thr_mdl_fac);
-				}
+				_mixers->set_thrust_factor(_thr_mdl_fac);
+				_mixers->set_airmode(_airmode);
 
 				/* do mixing */
 				float outputs[_max_actuators];
@@ -1245,8 +1244,6 @@ PX4FMU::cycle()
 
 					orb_publish_auto(ORB_ID(multirotor_motor_limits), &_to_mixer_status, &motor_limits, &_class_instance, ORB_PRIO_DEFAULT);
 				}
-
-				_mixers->set_airmode(_airmode);
 
 				// use first valid timestamp_sample for latency tracking
 				for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
