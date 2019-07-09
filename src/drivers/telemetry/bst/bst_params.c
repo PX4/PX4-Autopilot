@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,101 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file LPS25H_I2C.cpp
+ * Blacksheep telemetry Enable
  *
- * I2C interface for LPS25H
+ * If true, the FMU will try to connect to Blacksheep telemetry on start up
+ *
+ * @boolean
+ * @reboot_required true
+ * @group Telemetry
  */
-
-#include "lps25h.h"
-
-#define LPS25H_ADDRESS		0x5D
-
-device::Device *LPS25H_I2C_interface(int bus);
-
-class LPS25H_I2C : public device::I2C
-{
-public:
-	LPS25H_I2C(int bus);
-	virtual ~LPS25H_I2C() = default;
-
-	virtual int	read(unsigned address, void *data, unsigned count);
-	virtual int	write(unsigned address, void *data, unsigned count);
-
-	virtual int	ioctl(unsigned operation, unsigned &arg);
-
-protected:
-	virtual int	probe();
-
-};
-
-device::Device *
-LPS25H_I2C_interface(int bus)
-{
-	return new LPS25H_I2C(bus);
-}
-
-LPS25H_I2C::LPS25H_I2C(int bus) :
-	I2C("LPS25H_I2C", nullptr, bus, LPS25H_ADDRESS, 400000)
-{
-}
-
-int
-LPS25H_I2C::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret;
-
-	switch (operation) {
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	default:
-		ret = -EINVAL;
-	}
-
-	return ret;
-}
-
-int
-LPS25H_I2C::probe()
-{
-	uint8_t id;
-
-	_retries = 10;
-
-	if (read(ADDR_WHO_AM_I, &id, 1)) {
-		DEVICE_DEBUG("read_reg fail");
-		return -EIO;
-	}
-
-	_retries = 2;
-
-	if (id != ID_WHO_AM_I) {
-		DEVICE_DEBUG("ID byte mismatch (%02x != %02x)", ID_WHO_AM_I, id);
-		return -EIO;
-	}
-
-	return OK;
-}
-
-int
-LPS25H_I2C::write(unsigned address, void *data, unsigned count)
-{
-	uint8_t buf[32];
-
-	if (sizeof(buf) < (count + 1)) {
-		return -EIO;
-	}
-
-	buf[0] = address;
-	memcpy(&buf[1], data, count);
-
-	return transfer(&buf[0], count + 1, nullptr, 0);
-}
-
-int
-LPS25H_I2C::read(unsigned address, void *data, unsigned count)
-{
-	uint8_t cmd = address;
-	return transfer(&cmd, 1, (uint8_t *)data, count);
-}
+PARAM_DEFINE_INT32(TEL_BST_EN, 0);
