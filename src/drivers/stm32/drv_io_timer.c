@@ -132,7 +132,7 @@
 #define CCER_C1_INIT  GTIM_CCER_CC1E
 #endif
 
-#define CNT_VALUE_SAFE_TO_WRITE 3000 * 1000000/BOARD_ONESHOT_FREQ
+#define CNT_VALUE_SAFE_TO_WRITE ((unsigned int)3000 * 1000000/BOARD_ONESHOT_FREQ)
 
 //												 				  NotUsed   PWMOut  PWMIn Capture OneShot Trigger
 io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT8_MAX,   0,  0,  0, 0, 0 };
@@ -508,7 +508,7 @@ void io_timer_trigger(void)
 			if (validate_timer_index(timer) == 0) {
 				int channels = get_timer_channels(timer);
 
-				if (oneshots & channels & rCNT(timer) > CNT_VALUE_SAFE_TO_WRITE) {
+				if (oneshots & channels & (rCNT(timer) > CNT_VALUE_SAFE_TO_WRITE)) {
 					action_cache[actions++] = io_timers[timer].base;
 				}
 			}
