@@ -41,12 +41,11 @@
 
 #pragma once
 
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_module.h>
-#include <px4_module_params.h>
 #include <px4_config.h>
 #include <px4_getopt.h>
-
+#include <px4_module.h>
+#include <px4_module_params.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>

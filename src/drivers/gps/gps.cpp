@@ -41,52 +41,25 @@
 #include <nuttx/arch.h>
 #endif
 
-
-#include <termios.h>
-
 #ifndef __PX4_QURT
 #include <poll.h>
 #endif
 
+#include <termios.h>
 
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-#include <px4_cli.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_module.h>
-#include <px4_tasks.h>
-#include <px4_time.h>
-#include <arch/board/board.h>
-#include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
-#include <systemlib/err.h>
-#include <parameters/param.h>
+#include <px4_cli.h>
+#include <px4_getopt.h>
+#include <px4_module.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/satellite_info.h>
-#include <uORB/topics/gps_inject_data.h>
 #include <uORB/topics/gps_dump.h>
+#include <uORB/topics/gps_inject_data.h>
 
-#include <board_config.h>
-
-#include "devices/src/ubx.h"
-#include "devices/src/mtk.h"
 #include "devices/src/ashtech.h"
 #include "devices/src/emlid_reach.h"
+#include "devices/src/mtk.h"
+#include "devices/src/ubx.h"
 
 #ifdef __PX4_LINUX
 #include <linux/spi/spidev.h>

@@ -10,7 +10,7 @@ px4_add_board(
 	BOOTLOADER ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/extras/px4fmuv3_bl.bin
 	IO px4_io-v2_default
 	#TESTING
-	#CONSTRAINED_FLASH
+	CONSTRAINED_FLASH
 	#UAVCAN_INTERFACES 2
 
 	SERIAL_PORTS
@@ -37,7 +37,7 @@ px4_add_board(
 		imu/l3gd20
 		imu/lsm303d
 		imu/mpu6000
-		imu/mpu9250
+		#imu/mpu9250
 		#iridiumsbd
 		#irlock
 		#lights/blinkm
@@ -95,6 +95,7 @@ px4_add_board(
 		#dumpfile
 		#esc_calib
 		hardfault_log
+		#i2cdetect
 		#led_control
 		mixer
 		#motor_ramp

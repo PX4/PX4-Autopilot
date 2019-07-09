@@ -42,15 +42,15 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <ecl/geo/geo.h>
-#include <perf/perf_counter.h>
 #include <drivers/device/spi.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-#include <conversion/rotation.h>
+#include <ecl/geo/geo.h>
+#include <lib/conversion/rotation.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <perf/perf_counter.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 using namespace time_literals;
 

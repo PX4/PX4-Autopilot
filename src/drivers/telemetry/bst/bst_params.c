@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,69 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file gyro.cpp
+ * Blacksheep telemetry Enable
  *
- * Driver for the Invensense icm20948 connected via SPI.
+ * If true, the FMU will try to connect to Blacksheep telemetry on start up
  *
- *
- * based on the mpu9250 driver
+ * @boolean
+ * @reboot_required true
+ * @group Telemetry
  */
-
-#include "gyro.h"
-#include "icm20948.h"
-
-ICM20948_gyro::ICM20948_gyro(ICM20948 *parent, const char *path) :
-	CDev("ICM20948_gyro", path),
-	_parent(parent)
-{
-}
-
-ICM20948_gyro::~ICM20948_gyro()
-{
-	if (_gyro_class_instance != -1) {
-		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _gyro_class_instance);
-	}
-}
-
-int
-ICM20948_gyro::init()
-{
-	// do base class init
-	int ret = CDev::init();
-
-	/* if probe/setup failed, bail now */
-	if (ret != OK) {
-		DEVICE_DEBUG("gyro init failed");
-		return ret;
-	}
-
-	_gyro_class_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
-
-	return ret;
-}
-
-void
-ICM20948_gyro::parent_poll_notify()
-{
-	poll_notify(POLLIN);
-}
-
-int
-ICM20948_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-
-	/* these are shared with the accel side */
-	case SENSORIOCSPOLLRATE:
-	case SENSORIOCRESET:
-		return _parent->_accel->ioctl(filp, cmd, arg);
-
-	case GYROIOCSSCALE:
-		/* copy scale in */
-		memcpy(&_parent->_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_parent->_gyro_scale));
-		return OK;
-
-	default:
-		return CDev::ioctl(filp, cmd, arg);
-	}
-}
+PARAM_DEFINE_INT32(TEL_BST_EN, 0);

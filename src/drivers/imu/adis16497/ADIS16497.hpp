@@ -39,12 +39,13 @@
 #pragma once
 
 #include <drivers/device/spi.h>
-#include <lib/conversion/rotation.h>
-#include <perf/perf_counter.h>
 #include <ecl/geo/geo.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <lib/conversion/rotation.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+#include <perf/perf_counter.h>
+#include <px4_getopt.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 // TODO : This is a copy of the NuttX CRC32 table
 static constexpr uint32_t crc32_tab[] = {
