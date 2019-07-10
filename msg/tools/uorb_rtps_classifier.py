@@ -94,7 +94,7 @@ class Classifier():
         """
         try:
             with open(yaml_file, 'r') as f:
-                return yaml.load(f)
+                return yaml.load(f, Loader=yaml.FullLoader)
         except OSError as e:
             if e.errno == errno.ENOENT:
                 raise IOError(errno.ENOENT, os.strerror(

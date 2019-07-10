@@ -40,7 +40,7 @@ verbose = args.verbose
 def load_yaml_file(file_name):
     with open(file_name, 'r') as stream:
         try:
-            return yaml.load(stream)
+            return yaml.safe_load(stream)
         except yaml.YAMLError as exc:
             print(exc)
             raise
