@@ -202,6 +202,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_adsb_vehicle(msg);
 		break;
 
+	case MAVLINK_MSG_ID_UTM_GLOBAL_POSITION:
+		handle_message_utm_global_position(msg);
+		break;
+
 	case MAVLINK_MSG_ID_COLLISION:
 		handle_message_collision(msg);
 		break;
@@ -2270,6 +2274,53 @@ MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 	} else {
 		orb_publish(ORB_ID(transponder_report), _transponder_report_pub, &t);
 	}
+}
+
+void
+MavlinkReceiver::handle_message_utm_global_position(mavlink_message_t *msg)
+{
+	mavlink_utm_global_position_t utm_pos{};
+	transponder_report_s t{};
+
+	mavlink_msg_utm_global_position_decode(msg, &utm_pos);
+
+	// Convert cm/s to m/s
+	float vx = utm_pos.vx / 100.0f;
+	float vy = utm_pos.vy / 100.0f;
+	float vz = utm_pos.vz / 100.0f;
+
+	t.timestamp = hrt_absolute_time();
+	// TODO: ID
+	t.lat = utm_pos.lat * 1e-7;
+	t.lon = utm_pos.lon * 1e-7;
+	t.altitude = utm_pos.alt / 1000.0f;
+	t.altitude_type = ADSB_ALTITUDE_TYPE_GEOMETRIC;
+	t.heading = atan2f(vy, vx);
+	t.hor_velocity = sqrtf(vy * vy + vx * vx);
+	t.ver_velocity = -vz;
+	// TODO: Callsign
+	t.emitter_type = ADSB_EMITTER_TYPE_NO_INFO;  // TODO: Is this correct?
+	t.tslc = _last_utm_global_pos_com == 0 ? 0 : (t.timestamp - _last_utm_global_pos_com) / 1000000;
+
+	t.flags = 0;
+
+	if (utm_pos.flags | UTM_DATA_AVAIL_FLAGS_POSITION_AVAILABLE) {
+		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS;
+	}
+
+	if (utm_pos.flags | UTM_DATA_AVAIL_FLAGS_ALTITUDE_AVAILABLE) {
+		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
+	}
+
+	if (utm_pos.flags | UTM_DATA_AVAIL_FLAGS_HORIZONTAL_VELO_AVAILABLE) {
+		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING;
+		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
+	}
+
+	// Note: t.flags has deliberately NOT set VALID_CALLSIGN or VALID_SQUAWK, because UTM_GLOBAL_POSITION does not
+	// provide these.
+
+	_last_utm_global_pos_com = t.timestamp;
 }
 
 void
