@@ -18,14 +18,14 @@ set(config_module_list
 	#drivers/bst
 	drivers/camera_trigger
 	#drivers/differential_pressure/ets
-	drivers/differential_pressure/ms4525
-	drivers/differential_pressure/ms5525
-	drivers/differential_pressure/sdp3x
-	drivers/distance_sensor/ll40ls
+	#drivers/differential_pressure/ms4525
+	#drivers/differential_pressure/ms5525
+	#drivers/differential_pressure/sdp3x
+	#drivers/distance_sensor/ll40ls
 	#drivers/distance_sensor/mb12xx
-	drivers/distance_sensor/sf0x
-	drivers/distance_sensor/sf1xx
-	drivers/distance_sensor/srf02
+	#drivers/distance_sensor/sf0x
+	#drivers/distance_sensor/sf1xx
+	#drivers/distance_sensor/srf02
 	#drivers/distance_sensor/teraranger
 	#drivers/distance_sensor/tfmini
 	#drivers/distance_sensor/ulanding
@@ -37,10 +37,10 @@ set(config_module_list
 	drivers/imu/l3gd20
 	drivers/imu/lsm303d
 	drivers/imu/mpu6000
-	drivers/imu/mpu9250
+	#drivers/imu/mpu9250
 	#drivers/iridiumsbd
 	#drivers/irlock
-	drivers/magnetometer/hmc5883
+	#drivers/magnetometer/hmc5883
 	drivers/magnetometer/lis3mdl
 	#drivers/mb12xx
 	#drivers/mkblctrl
@@ -54,7 +54,7 @@ set(config_module_list
 	drivers/rgbled
 	drivers/stm32
 	drivers/stm32/adc
-	drivers/stm32/tone_alarm
+	#drivers/stm32/tone_alarm
 	#drivers/tap_esc
 	drivers/vmount
 	modules/sensors

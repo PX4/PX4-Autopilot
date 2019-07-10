@@ -7,8 +7,7 @@
 # NOTE: Normal mode uses baud rate of 57600 (default) and data rate of 1000 bytes/s.
 #
 
-# Serial mavlink
-mavlink start -r 2000 -b 57600 -d /dev/ttyS6
+
 
 ###############################################################################
 #               Begin Setup for board specific configurations.                #
@@ -152,7 +151,7 @@ then
 	#
 	if param compare SYS_COMPANION 57600
 	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m onboard -r 5000 -x -f
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -m onboard -r 1000 -x -f		
 	fi
 	if param compare SYS_COMPANION 157600
 	then
@@ -164,7 +163,9 @@ then
 	fi
 	if param compare SYS_COMPANION 357600
 	then
-		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -r 1000 -f
+		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -r 1000 -x -f
+		# Serial mavlink
+		mavlink start -m custom -w -b 57600 -d /dev/ttyS6
 	fi
 	if param compare SYS_COMPANION 557600
 	then
