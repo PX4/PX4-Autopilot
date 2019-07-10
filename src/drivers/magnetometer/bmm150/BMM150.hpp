@@ -1,45 +1,46 @@
-#ifndef BMM150_HPP_
-#define BMM150_HPP_
+/****************************************************************************
+ *
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+#pragma once
 
 #include <px4_platform_common/px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
 #include <px4_platform_common/log.h>
 
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
+#include <lib/perf/perf_counter.h>
+#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <systemlib/conversions.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/clock.h>
-
-#include <board_config.h>
 #include <drivers/drv_hrt.h>
-
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
 #include <drivers/device/i2c.h>
-#include <drivers/drv_mag.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <lib/conversion/rotation.h>
-
-
-#define BMM150_DEVICE_PATH_MAG              "/dev/bmm150_i2c_int"
-
-#define BMM150_DEVICE_PATH_MAG_EXT          "/dev/bmm150_i2c_ext"
 
 #define BMM150_SLAVE_ADDRESS                 0x10
 
@@ -167,7 +168,6 @@
 #define BMM150_DIG_XY2                      0x70
 #define BMM150_DIG_XY1                      0x71
 
-
 /* Mask definitions for power mode */
 #define BMM150_POWER_MASK                   0x06
 
@@ -183,101 +183,33 @@
 #define BMM150_CONVERSION_INTERVAL          (1000000 / 100) /* microseconds */
 
 
-
 struct bmm150_data {
 	int16_t x;
 	int16_t y;
 	int16_t z;
 };
 
-
 class BMM150 : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
-	BMM150(int bus, const char *path, enum Rotation rotation);
+	BMM150(int bus, enum Rotation rotation);
 	virtual ~BMM150();
 
-	virtual int             init();
-	virtual ssize_t       read(struct file *filp, char *buffer, size_t buflen);
-	virtual int       ioctl(struct file *filp, int cmd, unsigned long arg);
+	int	init() override;
 
-	/**
-	 * Stop automatic measurement.
-	 */
-	void            stop();
-
-	/**
-	  * Diagnostics - print some basic information about the driver.
-	  */
-	void            print_info();
-
-	void        print_registers();
-
-protected:
-	virtual int       probe();
+	void	print_info();
 
 private:
 
-	bool _running;
-
-	/* altitude conversion calibration */
-	unsigned        _call_interval;
-
-
-	sensor_mag_s _report {};
-	ringbuffer::RingBuffer  *_reports;
-
-	bool            _collect_phase;
-
-	struct mag_calibration_s    _scale;
-	float           _range_scale;
-
-	orb_advert_t        _topic;
-	int         _orb_class_instance;
-	int         _class_instance;
-	uint8_t     _power;
-	uint8_t     _output_data_rate;
-	bool        _calibrated;        /**< the calibration is valid */
-
-	int8_t dig_x1;/**< trim x1 data */
-	int8_t dig_y1;/**< trim y1 data */
-
-	int8_t dig_x2;/**< trim x2 data */
-	int8_t dig_y2;/**< trim y2 data */
-
-	uint16_t dig_z1;/**< trim z1 data */
-	int16_t dig_z2;/**< trim z2 data */
-	int16_t dig_z3;/**< trim z3 data */
-	int16_t dig_z4;/**< trim z4 data */
-
-	uint8_t dig_xy1;/**< trim xy1 data */
-	int8_t dig_xy2;/**< trim xy2 data */
-
-	uint16_t dig_xyz1;/**< trim xyz1 data */
-
-	perf_counter_t      _sample_perf;
-	perf_counter_t      _bad_transfers;
-	perf_counter_t      _good_transfers;
-	perf_counter_t      _measure_perf;
-	perf_counter_t      _comms_errors;
-	perf_counter_t      _duplicates;
-
-	enum Rotation       _rotation;
-	bool            _got_duplicate;
-
-	sensor_mag_s   _last_report {};          /**< used for info() */
-
-	int             init_trim_registers(void);
-
-	/**
-	 * Start automatic measurement.
-	 */
-	void            start();
-
-	int     measure(); //start measure
-	int     collect(); //get results and publish
-
 	void	Run() override;
+	void	Start();
+	void	Stop();
+
+	int	probe() override;
+	int	measure(); // start measure
+	int	collect(); // get results and publish
+
+	int	init_trim_registers();
 
 	/**
 	 * Read the specified number of bytes from BMM150.
@@ -293,13 +225,6 @@ private:
 	 * Resets the chip.
 	 */
 	int             reset();
-
-	/**
-	 * Measurement self test
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int             self_test();
 
 	/**
 	 * Read a register from the BMM150
@@ -356,12 +281,37 @@ private:
 	int             set_presetmode(uint8_t presetmode);
 
 
-	/* do not allow to copy this class due to pointer data members */
-	BMM150(const BMM150 &);
-	BMM150 operator=(const BMM150 &);
+	PX4Magnetometer		_px4_mag;
 
+	/* altitude conversion calibration */
+	unsigned        	_call_interval{10000};
+
+	bool            	_collect_phase{false};
+
+	uint8_t     		_power{BMM150_DEFAULT_POWER_MODE};
+	uint8_t     		_output_data_rate{BMM150_DATA_RATE_30HZ};
+	bool        		_calibrated{false};        /**< the calibration is valid */
+
+	int8_t dig_x1{0};	/**< trim x1 data */
+	int8_t dig_y1{0};	/**< trim y1 data */
+
+	int8_t dig_x2{0};	/**< trim x2 data */
+	int8_t dig_y2{0};	/**< trim y2 data */
+
+	uint16_t dig_z1{0};	/**< trim z1 data */
+	int16_t dig_z2{0};	/**< trim z2 data */
+	int16_t dig_z3{0};	/**< trim z3 data */
+	int16_t dig_z4{0};	/**< trim z4 data */
+
+	uint8_t dig_xy1{0};	/**< trim xy1 data */
+	int8_t dig_xy2{0};	/**< trim xy2 data */
+
+	uint16_t dig_xyz1{0};	/**< trim xyz1 data */
+
+	perf_counter_t		_sample_perf;
+	perf_counter_t		_bad_transfers;
+	perf_counter_t		_good_transfers;
+	perf_counter_t		_measure_perf;
+	perf_counter_t		_comms_errors;
+	perf_counter_t		_duplicates;
 };
-
-
-
-#endif /* BMM150_HPP_ */

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,10 +31,10 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__bmm150
+	MODULE drivers__magnetometer__bmm150
 	MAIN bmm150
-	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		bmm150.cpp
+		bmm150_main.cpp
+		BMM150.cpp
+		BMM150.hpp
 	)
