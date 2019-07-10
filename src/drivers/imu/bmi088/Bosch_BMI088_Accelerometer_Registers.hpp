@@ -33,36 +33,60 @@
 
 #pragma once
 
-#include <lib/perf/perf_counter.h>
-#include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-
-#include "BMI088_Accelerometer.hpp"
-#include "BMI088_Gyroscope.hpp"
-
-using Bosch_BMI088_Accelerometer::BMI088_Accelerometer;
-using Bosch_BMI088_Gyroscope::BMI088_Gyroscope;
-
-class BMI088
+namespace Bosch_BMI088_Accelerometer
 {
-public:
 
-	BMI088(int bus, enum Rotation rotation);
-	virtual ~BMI088() = default;
+static constexpr uint8_t ID = 0x1E;
 
-	int init();
+enum class
+Register : uint8_t {
 
-	bool start();
-	bool stop();
+	ACC_CHIP_ID		= 0x00,
 
-	void print_info();
-	void print_registers();
+	FIFO_LENGTH_0		= 0x24,
+	FIFO_LENGTH_1		= 0x25,
 
-private:
+	FIFO_DATA		= 0x26,
 
-	void Run();
+	ACC_CONF		= 0x40,	// TODO: acc_odr
+	ACC_RANGE		= 0x41,	// TODO: acc_range
 
-	BMI088_Accelerometer	_accel;
-	BMI088_Gyroscope	_gyro;
+	FIFO_WTM_0		= 0x46,
+	FIFO_WTM_1		= 0x47,
+	FIFO_CONFIG_0		= 0x48,
+	FIFO_CONFIG_1		= 0x49,
 
+	INT1_IO_CONF		= 0x53,
+	INT2_IO_CONF		= 0x54,
+
+	INT1_INT2_MAP_DATA	= 0x58,
+
+	ACC_PWR_CONF		= 0x7C,
+	ACC_PWR_CTRL		= 0x7D,
+	ACC_SOFTRESET		= 0x7E,
 };
+
+namespace FIFO
+{
+static constexpr size_t SIZE = 1024;
+
+// 1. Acceleration sensor data frame	- Frame length: 7 bytes (1 byte header + 6 bytes payload)
+// Payload: the next bytes contain the sensor data in the same order as defined in the register map (addresses 0x12 – 0x17).
+// 2. Skip Frame				- Frame length: 2 bytes (1 byte header + 1 byte payload)
+// Payload: one byte containing the number of skipped frames. When more than 0xFF frames have been skipped, 0xFF is returned.
+// 3. Sensortime Frame			- Frame length: 4 bytes (1 byte header + 3 bytes payload)
+// Payload: Sensortime (content of registers 0x18 – 0x1A), taken when the last byte of the last frame is read.
+
+struct DATA {
+	uint8_t Header;
+	uint8_t ACC_X_MSB;
+	uint8_t ACC_X_LSB;
+	uint8_t ACC_Y_MSB;
+	uint8_t ACC_Y_LSB;
+	uint8_t ACC_Z_MSB;
+	uint8_t ACC_Z_LSB;
+};
+static_assert(sizeof(DATA) == 7);
+
+} // namespace FIFO
+} // namespace Bosch_BMI088_Accelerometer

@@ -33,36 +33,48 @@
 
 #pragma once
 
-#include <lib/perf/perf_counter.h>
-#include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-
-#include "BMI088_Accelerometer.hpp"
-#include "BMI088_Gyroscope.hpp"
-
-using Bosch_BMI088_Accelerometer::BMI088_Accelerometer;
-using Bosch_BMI088_Gyroscope::BMI088_Gyroscope;
-
-class BMI088
+namespace Bosch_BMI088_Gyroscope
 {
-public:
 
-	BMI088(int bus, enum Rotation rotation);
-	virtual ~BMI088() = default;
+static constexpr uint8_t ID = 0x0F;
 
-	int init();
+enum class
+Register : uint8_t {
 
-	bool start();
-	bool stop();
+	GYRO_CHIP_ID		= 0x00,
 
-	void print_info();
-	void print_registers();
+	FIFO_STATUS		= 0x0E,
+	GYRO_RANGE		= 0x0F,
+	GYRO_BANDWIDTH		= 0x10,
 
-private:
+	GYRO_SOFTRESET		= 0x14,
+	GYRO_INT_CTRL		= 0x15,
 
-	void Run();
+	INT3_INT4_IO_MAP	= 0x18,
 
-	BMI088_Accelerometer	_accel;
-	BMI088_Gyroscope	_gyro;
+	FIFO_WM_ENABLE		= 0x1E,
 
+	FIFO_EXT_INT_S		= 0x34,
+
+	FIFO_CONFIG_0		= 0x3D,
+	FIFO_CONFIG_1		= 0x3E,
+	FIFO_DATA		= 0x3F,
 };
+
+namespace FIFO
+{
+static constexpr size_t SIZE = 1024;
+
+struct DATA {
+	uint8_t Header;
+	uint8_t RATE_X_LSB;
+	uint8_t RATE_X_MSB;
+	uint8_t RATE_Y_LSB;
+	uint8_t RATE_Y_MSB;
+	uint8_t RATE_Z_LSB;
+	uint8_t RATE_Z_MSB;
+};
+static_assert(sizeof(DATA) == 7);
+
+} // namespace FIFO
+} // namespace Bosch_BMI088_Gyroscope
