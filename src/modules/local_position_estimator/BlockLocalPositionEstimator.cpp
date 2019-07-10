@@ -47,14 +47,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_sonar(nullptr),
 	_sub_landing_target_pose(ORB_ID(landing_target_pose), 1000 / 40, 0, &getSubscriptions()),
 	_sub_airdata(ORB_ID(vehicle_air_data), 0, 0, &getSubscriptions()),
-
-	// publications
-	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
-	_pub_gpos(ORB_ID(vehicle_global_position), -1, &getPublications()),
-	_pub_odom(ORB_ID(vehicle_odometry), -1, &getPublications()),
-	_pub_est_status(ORB_ID(estimator_status), -1, &getPublications()),
-	_pub_innov(ORB_ID(ekf2_innovations), -1, &getPublications()),
-
 	// map projection
 	_map_ref(),
 

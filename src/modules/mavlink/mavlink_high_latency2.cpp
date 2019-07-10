@@ -538,7 +538,7 @@ void MavlinkStreamHighLatency2::update_vehicle_status()
 		if (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 			struct actuator_controls_s actuator = {};
 
-			if (status.is_vtol && !status.is_rotary_wing) {
+			if (status.is_vtol && status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 				if (_actuator_sub_1->update(&actuator)) {
 					_throttle.add_value(actuator.control[actuator_controls_s::INDEX_THROTTLE], _update_rate_filtered);
 				}

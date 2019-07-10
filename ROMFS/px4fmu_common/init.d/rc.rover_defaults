@@ -5,7 +5,7 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-set VEHICLE_TYPE ugv
+set VEHICLE_TYPE rover
 
 if [ $AUTOCNF = yes ]
 then

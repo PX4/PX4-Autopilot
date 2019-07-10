@@ -123,21 +123,21 @@ private:
 		float low_thrust_threshold;
 	} _params{};
 
-	uORB::Subscription _vehicleLocalPositionSub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _vehicleLocalPositionSetpointSub{ORB_ID(vehicle_local_position_setpoint)};
-	uORB::Subscription _actuatorsSub{ORB_ID(actuator_controls_0)};
-	uORB::Subscription _attitudeSub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _sensor_bias_sub{ORB_ID(sensor_bias)};
-	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _actuator_controls_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
+	uORB::Subscription _sensor_bias_sub{ORB_ID(sensor_bias)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
 
-	vehicle_local_position_s				_vehicleLocalPosition {};
-	vehicle_local_position_setpoint_s	_vehicleLocalPositionSetpoint {};
-	actuator_controls_s					_actuators {};
-	vehicle_attitude_s					_vehicleAttitude {};
-	sensor_bias_s					_sensors {};
-	vehicle_control_mode_s				_control_mode {};
-	battery_status_s						_battery {};
+	actuator_controls_s               _actuator_controls {};
+	battery_status_s                  _battery_status {};
+	vehicle_control_mode_s            _control_mode {};
+	sensor_bias_s                     _sensor_bias {};
+	vehicle_attitude_s                _vehicle_attitude {};
+	vehicle_local_position_s          _vehicle_local_position {};
+	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint {};
 
 	hrt_abstime _min_trust_start{0};		///< timestamp when minimum trust was applied first
 	hrt_abstime _landed_time{0};

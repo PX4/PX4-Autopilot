@@ -46,6 +46,7 @@
 #include <lib/hysteresis/hysteresis.h>
 #include <commander/px4_custom_mode.h>
 
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/parameter_update.h>
@@ -107,11 +108,14 @@ private:
 	Takeoff _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
 
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
-	orb_advert_t	_traj_sp_pub{nullptr};		/**< trajectory setpoints publication */
-	orb_advert_t	_local_pos_sp_pub{nullptr};		/**< vehicle local position setpoint publication */
 	orb_advert_t _pub_vehicle_command{nullptr};           /**< vehicle command publication */
+	orb_advert_t _mavlink_log_pub{nullptr};
+
 	orb_id_t _attitude_setpoint_id{nullptr};
-	orb_advert_t	_landing_gear_pub{nullptr};
+
+	uORB::Publication<landing_gear_s>			_landing_gear_pub{ORB_ID(landing_gear)};
+	uORB::Publication<vehicle_local_position_setpoint_s>	_local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};	/**< vehicle local position setpoint publication */
+	uORB::Publication<vehicle_local_position_setpoint_s>	_traj_sp_pub{ORB_ID(trajectory_setpoint)};			/**< trajectory setpoints publication */
 
 	int		_local_pos_sub{-1};			/**< vehicle local position */
 
@@ -144,6 +148,9 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_TKO_RAMP_T>) _param_mpc_tko_ramp_t, /**< time constant for smooth takeoff ramp */
+		(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _param_mpc_xy_vel_max,
+		(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual,
+		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
 		(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
@@ -154,7 +161,9 @@ private:
 		(ParamInt<px4::params::MPC_ALT_MODE>) _param_mpc_alt_mode,
 		(ParamFloat<px4::params::MPC_SPOOLUP_TIME>) _param_mpc_spoolup_time, /**< time to let motors spool up after arming */
 		(ParamFloat<px4::params::MPC_TILTMAX_LND>) _param_mpc_tiltmax_lnd, /**< maximum tilt for landing and smooth takeoff */
+		(ParamFloat<px4::params::MPC_THR_MIN>)_param_mpc_thr_min,
 		(ParamFloat<px4::params::MPC_THR_HOVER>)_param_mpc_thr_hover,
+		(ParamFloat<px4::params::MPC_THR_MAX>)_param_mpc_thr_max,
 		(ParamFloat<px4::params::MPC_Z_VEL_P>)_param_mpc_z_vel_p
 	);
 
@@ -217,18 +226,6 @@ private:
 	 * Publish attitude.
 	 */
 	void publish_attitude();
-
-	/**
-	 * Publish local position setpoint.
-	 * This is only required for logging.
-	 */
-	void publish_local_pos_sp(const vehicle_local_position_setpoint_s &local_pos_sp);
-
-	/**
-	 * Publish local position setpoint.
-	 * This is only required for logging.
-	 */
-	void publish_trajectory_sp(const vehicle_local_position_setpoint_s &traj);
 
 	/**
 	 * Adjust the setpoint during landing.
@@ -320,6 +317,27 @@ MulticopterPositionControl::parameters_update(bool force)
 	if (updated || force) {
 		ModuleParams::updateParams();
 		SuperBlock::updateParams();
+
+		// Check that the design parameters are inside the absolute maximum constraints
+		if (_param_mpc_xy_cruise.get() > _param_mpc_xy_vel_max.get()) {
+			_param_mpc_xy_cruise.set(_param_mpc_xy_vel_max.get());
+			_param_mpc_xy_cruise.commit();
+			mavlink_log_critical(&_mavlink_log_pub, "Cruise speed has been constrained by max speed")
+		}
+
+		if (_param_mpc_vel_manual.get() > _param_mpc_xy_vel_max.get()) {
+			_param_mpc_vel_manual.set(_param_mpc_xy_vel_max.get());
+			_param_mpc_vel_manual.commit();
+			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed")
+		}
+
+		if (_param_mpc_thr_hover.get() > _param_mpc_thr_max.get() ||
+		    _param_mpc_thr_hover.get() < _param_mpc_thr_min.get()) {
+			_param_mpc_thr_hover.set(math::constrain(_param_mpc_thr_hover.get(), _param_mpc_thr_min.get(),
+						 _param_mpc_thr_max.get()));
+			_param_mpc_thr_hover.commit();
+			mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max")
+		}
 
 		_flight_tasks.handleParameterUpdate();
 
@@ -573,7 +591,8 @@ MulticopterPositionControl::run()
 				}
 			}
 
-			publish_trajectory_sp(setpoint);
+			// publish trajectory setpoint
+			_traj_sp_pub.publish(setpoint);
 
 			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
 			landing_gear_s gear = _flight_tasks.getGear();
@@ -647,7 +666,7 @@ MulticopterPositionControl::run()
 			// Publish local position setpoint
 			// This message will be used by other modules (such as Landdetector) to determine
 			// vehicle intention.
-			publish_local_pos_sp(local_pos_sp);
+			_local_pos_sp_pub.publish(local_pos_sp);
 
 			// Inform FlightTask about the input and output of the velocity controller
 			// This is used to properly initialize the velocity setpoint when onpening the position loop (position unlock)
@@ -680,12 +699,7 @@ MulticopterPositionControl::run()
 				_landing_gear.landing_gear = gear.landing_gear;
 				_landing_gear.timestamp = hrt_absolute_time();
 
-				if (_landing_gear_pub != nullptr) {
-					orb_publish(ORB_ID(landing_gear), _landing_gear_pub, &_landing_gear);
-
-				} else {
-					_landing_gear_pub = orb_advertise(ORB_ID(landing_gear), &_landing_gear);
-				}
+				_landing_gear_pub.publish(_landing_gear);
 			}
 
 			_old_landing_gear_position = gear.landing_gear;
@@ -715,7 +729,7 @@ MulticopterPositionControl::start_flight_task()
 	int prev_failure_count = _task_failure_count;
 
 	// Do not run any flight task for VTOLs in fixed-wing mode
-	if (!_vehicle_status.is_rotary_wing) {
+	if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		_flight_tasks.switchTask(FlightTaskIndex::None);
 		return;
 	}
@@ -975,30 +989,6 @@ MulticopterPositionControl::publish_attitude()
 	}
 }
 
-void
-MulticopterPositionControl::publish_trajectory_sp(const vehicle_local_position_setpoint_s &traj)
-{
-	// publish trajectory
-	if (_traj_sp_pub != nullptr) {
-		orb_publish(ORB_ID(trajectory_setpoint), _traj_sp_pub, &traj);
-
-	} else {
-		_traj_sp_pub = orb_advertise(ORB_ID(trajectory_setpoint), &traj);
-	}
-}
-
-void
-MulticopterPositionControl::publish_local_pos_sp(const vehicle_local_position_setpoint_s &local_pos_sp)
-{
-	// publish local position setpoint
-	if (_local_pos_sp_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_local_position_setpoint), _local_pos_sp_pub, &local_pos_sp);
-
-	} else {
-		_local_pos_sp_pub = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &local_pos_sp);
-	}
-}
-
 void MulticopterPositionControl::check_failure(bool task_failure, uint8_t nav_state)
 {
 	if (!task_failure) {
@@ -1016,6 +1006,7 @@ void MulticopterPositionControl::check_failure(bool task_failure, uint8_t nav_st
 void MulticopterPositionControl::send_vehicle_cmd_do(uint8_t nav_state)
 {
 	vehicle_command_s command{};
+	command.timestamp = hrt_absolute_time();
 	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
 	command.param1 = (float)1; // base mode
 	command.param3 = (float)0; // sub mode

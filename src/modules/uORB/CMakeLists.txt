@@ -41,7 +41,6 @@ if(NOT "${PX4_BOARD}" MATCHES "px4_io") # TODO: fix this hack (move uORB to plat
 		MAIN uorb
 		STACK_MAIN 2100
 		SRCS
-			Publication.cpp
 			Subscription.cpp
 			SubscriptionPollable.cpp
 			uORB.cpp

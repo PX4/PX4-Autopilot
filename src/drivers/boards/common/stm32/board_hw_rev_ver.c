@@ -46,6 +46,11 @@
 #include <systemlib/px4_macros.h>
 
 #if defined(BOARD_HAS_HW_VERSIONING)
+
+#  if defined(GPIO_HW_VER_REV_DRIVE)
+#    define GPIO_HW_REV_DRIVE GPIO_HW_VER_REV_DRIVE
+#    define GPIO_HW_VER_DRIVE GPIO_HW_VER_REV_DRIVE
+#  endif
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -118,7 +123,7 @@ static int dn_to_ordinal(uint16_t dn)
  *                /
  *                |
  *                |
- *                +--------------- GPIO_HW_xxx_DRIVE
+ *                +--------------- GPIO_HW_xxx_DRIVE or GPIO_HW_VER_REV_DRIVE
  *
  * Input Parameters:
  *   id          - pointer to receive the dn for the id set

@@ -168,9 +168,6 @@ public:
 	int		set_mode(Mode mode);
 	Mode		get_mode() { return _mode; }
 
-	int		set_pwm_alt_rate(unsigned rate);
-	int		set_pwm_alt_channels(uint32_t channels);
-
 	static int	set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
 
 	static void	capture_trampoline(void *context, uint32_t chan_index,
@@ -816,18 +813,6 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 }
 
 int
-PX4FMU::set_pwm_alt_rate(unsigned rate)
-{
-	return set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, rate);
-}
-
-int
-PX4FMU::set_pwm_alt_channels(uint32_t channels)
-{
-	return set_pwm_rate(channels, _pwm_default_rate, _pwm_alt_rate);
-}
-
-int
 PX4FMU::set_i2c_bus_clock(unsigned bus, unsigned clock_hz)
 {
 	return device::I2C::set_bus_clock(bus, clock_hz);
@@ -1193,9 +1178,8 @@ PX4FMU::cycle()
 					_mixers->set_max_delta_out_once(delta_out_max);
 				}
 
-				if (_thr_mdl_fac > FLT_EPSILON) {
-					_mixers->set_thrust_factor(_thr_mdl_fac);
-				}
+				_mixers->set_thrust_factor(_thr_mdl_fac);
+				_mixers->set_airmode(_airmode);
 
 				/* do mixing */
 				float outputs[_max_actuators];
@@ -1260,8 +1244,6 @@ PX4FMU::cycle()
 
 					orb_publish_auto(ORB_ID(multirotor_motor_limits), &_to_mixer_status, &motor_limits, &_class_instance, ORB_PRIO_DEFAULT);
 				}
-
-				_mixers->set_airmode(_airmode);
 
 				// use first valid timestamp_sample for latency tracking
 				for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {

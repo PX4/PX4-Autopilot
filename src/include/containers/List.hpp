@@ -70,7 +70,13 @@ public:
 	{
 		// base case
 		if (removeNode == _head) {
-			_head = nullptr;
+			if (_head->getSibling() != nullptr) {
+				_head = _head->getSibling();
+
+			} else {
+				_head = nullptr;
+			}
+
 			return true;
 		}
 

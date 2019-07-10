@@ -66,6 +66,10 @@ bool FlightTaskAuto::initializeSubscriptions(SubscriptionArray &subscription_arr
 		return false;
 	}
 
+	if (!subscription_array.get(ORB_ID(manual_control_setpoint), _sub_manual_control_setpoint)) {
+		return false;
+	}
+
 	if (!_obstacle_avoidance.initializeSubscriptions(subscription_array)) {
 		return false;
 	}
@@ -274,7 +278,8 @@ bool FlightTaskAuto::_evaluateTriplets()
 		_mission_gear = _sub_triplet_setpoint->get().current.landing_gear;
 	}
 
-	if (_param_com_obs_avoid.get() && _sub_vehicle_status->get().is_rotary_wing) {
+	if (_param_com_obs_avoid.get()
+	    && _sub_vehicle_status->get().vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		_obstacle_avoidance.updateAvoidanceDesiredWaypoints(_triplet_target, _yaw_setpoint, _yawspeed_setpoint,
 				_triplet_next_wp,
 				_sub_triplet_setpoint->get().next.yaw,

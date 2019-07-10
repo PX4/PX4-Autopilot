@@ -189,6 +189,7 @@ public:
 		MAVLINK_MODE_IRIDIUM,
 		MAVLINK_MODE_MINIMAL,
 		MAVLINK_MODE_EXTVISION,
+		MAVLINK_MODE_EXTVISIONMIN,
 
 		MAVLINK_MODE_COUNT
 	};
@@ -235,6 +236,9 @@ public:
 		case MAVLINK_MODE_EXTVISION:
 			return "ExtVision";
 
+		case MAVLINK_MODE_EXTVISIONMIN:
+			return "ExtVisionMin";
+
 		default:
 			return "Unknown";
 		}
@@ -254,7 +258,9 @@ public:
 
 	bool			is_connected() { return (hrt_elapsed_time(&_tstatus.heartbeat_time) < 3_s); }
 
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
 	bool			broadcast_enabled() { return _param_mav_broadcast.get() == BROADCAST_MODE_ON; }
+#endif
 
 	/**
 	 * Set the boot complete flag on all instances
@@ -599,41 +605,41 @@ private:
 
 	FLOW_CONTROL_MODE	_flow_control_mode{Mavlink::FLOW_CONTROL_OFF};
 
-	uint64_t		_last_write_success_time;
-	uint64_t		_last_write_try_time;
-	uint64_t		_mavlink_start_time;
-	int32_t			_protocol_version_switch;
-	int32_t			_protocol_version;
+	uint64_t		_last_write_success_time{0};
+	uint64_t		_last_write_try_time{0};
+	uint64_t		_mavlink_start_time{0};
+	int32_t			_protocol_version_switch{-1};
+	int32_t			_protocol_version{0};
 
-	unsigned		_bytes_tx;
-	unsigned		_bytes_txerr;
-	unsigned		_bytes_rx;
-	uint64_t		_bytes_timestamp;
+	unsigned		_bytes_tx{0};
+	unsigned		_bytes_txerr{0};
+	unsigned		_bytes_rx{0};
+	uint64_t		_bytes_timestamp{0};
 
 #if defined(CONFIG_NET) || defined(__PX4_POSIX)
-	sockaddr_in		_myaddr;
-	sockaddr_in		_src_addr;
-	sockaddr_in		_bcast_addr;
+	sockaddr_in		_myaddr {};
+	sockaddr_in		_src_addr {};
+	sockaddr_in		_bcast_addr {};
 
-	bool			_src_addr_initialized;
-	bool			_broadcast_address_found;
-	bool			_broadcast_address_not_found_warned;
-	bool			_broadcast_failed_warned;
-	uint8_t			_network_buf[MAVLINK_MAX_PACKET_LEN];
-	unsigned		_network_buf_len;
+	bool			_src_addr_initialized{false};
+	bool			_broadcast_address_found{false};
+	bool			_broadcast_address_not_found_warned{false};
+	bool			_broadcast_failed_warned{false};
+	uint8_t			_network_buf[MAVLINK_MAX_PACKET_LEN] {};
+	unsigned		_network_buf_len{0};
 #endif
 
-	const char 		*_interface_name;
+	const char 		*_interface_name{nullptr};
 
-	int			_socket_fd;
-	Protocol		_protocol;
-	unsigned short		_network_port;
-	unsigned short		_remote_port;
+	int			_socket_fd{-1};
+	Protocol		_protocol{SERIAL};
+	unsigned short		_network_port{14556};
+	unsigned short		_remote_port{DEFAULT_REMOTE_PORT_UDP};
 
-	radio_status_s		_rstatus{};
-	telemetry_status_s	_tstatus{};
+	radio_status_s		_rstatus {};
+	telemetry_status_s	_tstatus {};
 
-	ping_statistics_s	_ping_stats{};
+	ping_statistics_s	_ping_stats {};
 
 	struct mavlink_message_buffer {
 		int write_ptr;
@@ -655,15 +661,17 @@ private:
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamBool<px4::params::MAV_USEHILGPS>) _param_mav_usehilgps,
 		(ParamBool<px4::params::MAV_FWDEXTSP>) _param_mav_fwdextsp,
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
 		(ParamInt<px4::params::MAV_BROADCAST>) _param_mav_broadcast,
+#endif
 		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_mav_hash_chk_en,
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
 		(ParamBool<px4::params::MAV_ODOM_LP>) _param_mav_odom_lp,
 		(ParamInt<px4::params::SYS_HITL>) _param_sys_hitl
 	)
 
-	perf_counter_t		_loop_perf;			/**< loop performance counter */
-	perf_counter_t		_loop_interval_perf;		/**< loop interval performance counter */
+	perf_counter_t		_loop_perf{perf_alloc(PC_ELAPSED, "mavlink_el")};		/**< loop performance counter */
+	perf_counter_t		_loop_interval_perf{perf_alloc(PC_INTERVAL, "mavlink_int")};	/**< loop interval performance counter */
 
 	void			mavlink_update_parameters();
 

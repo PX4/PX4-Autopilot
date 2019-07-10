@@ -48,6 +48,8 @@
 namespace uORB
 {
 
+class SubscriptionCallback;
+
 // Base subscription wrapper class
 class Subscription
 {
@@ -106,6 +108,10 @@ public:
 	orb_id_t	get_topic() const { return _meta; }
 
 protected:
+
+	friend class SubscriptionCallback;
+
+	DeviceNode	*get_node() { return _node; }
 
 	bool subscribe();
 	void unsubscribe();

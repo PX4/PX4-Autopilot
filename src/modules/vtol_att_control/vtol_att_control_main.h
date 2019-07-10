@@ -175,7 +175,7 @@ private:
 
 	struct {
 		param_t idle_pwm_mc;
-		param_t vtol_motor_count;
+		param_t vtol_motor_id;
 		param_t vtol_fw_permanent_stab;
 		param_t vtol_type;
 		param_t elevons_mc_lock;
@@ -197,7 +197,6 @@ private:
 		param_t fw_motors_off;
 		param_t diff_thrust;
 		param_t diff_thrust_scale;
-		param_t v19_vt_rolldir;
 	} _params_handles{};
 
 	/* for multicopters it is usual to have a non-zero idle speed of the engines

@@ -68,6 +68,6 @@ fi
 set MAV_TYPE 10
 
 # Set mixer
-set MIXER generic_differential_rover
+set MIXER generic_diff_rover
 
 set PWM_MAIN_REV2 1

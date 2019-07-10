@@ -69,6 +69,7 @@ px4_add_romfs_files(
 	4012_quad_x_can
 	4013_bebop
 	4014_s500
+	4015_holybro_s500
 	4020_hk_micro_pcb
 	4030_3dr_solo
 	4031_3dr_quad

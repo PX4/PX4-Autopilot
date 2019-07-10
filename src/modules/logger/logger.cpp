@@ -80,6 +80,7 @@
 #endif /* defined(DBGPRINT) */
 
 using namespace px4::logger;
+using namespace time_literals;
 
 
 struct timer_callback_data_s {
@@ -1160,6 +1161,27 @@ void Logger::run()
 				}
 			}
 
+			// Add sync magic
+			if (loop_time - _last_sync_time > 500_ms) {
+				uint16_t write_msg_size = static_cast<uint16_t>(sizeof(ulog_message_sync_s) - ULOG_MSG_HEADER_LEN);
+				_msg_buffer[0] = (uint8_t)write_msg_size;
+				_msg_buffer[1] = (uint8_t)(write_msg_size >> 8);
+				_msg_buffer[2] = static_cast<uint8_t>(ULogMessageType::SYNC);
+
+				// sync byte sequence
+				_msg_buffer[3] = 0x2F;
+				_msg_buffer[4] = 0x73;
+				_msg_buffer[5] = 0x13;
+				_msg_buffer[6] = 0x20;
+				_msg_buffer[7] = 0x25;
+				_msg_buffer[8] = 0x0C;
+				_msg_buffer[9] = 0xBB;
+				_msg_buffer[10] = 0x12;
+
+				write_message(LogType::Full, _msg_buffer, write_msg_size + ULOG_MSG_HEADER_LEN);
+				_last_sync_time = loop_time;
+			}
+
 			// update buffer statistics
 			for (int i = 0; i < (int)LogType::Count; ++i) {
 				if (!_statistics[i].dropout_start && _writer.get_buffer_fill_count_file((LogType)i) > _statistics[i].high_water) {
@@ -1867,7 +1889,8 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 		    strcmp(type_name, "uint64_t") != 0 &&
 		    strcmp(type_name, "float") != 0 &&
 		    strcmp(type_name, "double") != 0 &&
-		    strcmp(type_name, "bool") != 0) {
+		    strcmp(type_name, "bool") != 0 &&
+		    strcmp(type_name, "char") != 0) {
 
 			// find orb meta for type
 			const orb_metadata *const *topics = orb_get_topics();

@@ -132,10 +132,12 @@ MavlinkFTP::handle_message(const mavlink_message_t *msg)
 		mavlink_msg_file_transfer_protocol_decode(msg, &ftp_request);
 
 #ifdef MAVLINK_FTP_DEBUG
-		PX4_INFO("FTP: received ftp protocol message target_system: %d", ftp_request.target_system);
+		PX4_INFO("FTP: received ftp protocol message target_system: %d target_component: %d",
+			 ftp_request.target_system, ftp_request.target_component);
 #endif
 
-		if (ftp_request.target_system == _getServerSystemId()) {
+		if ((ftp_request.target_system == _getServerSystemId() || ftp_request.target_system == 0) &&
+		    (ftp_request.target_component == _getServerComponentId() || ftp_request.target_component == 0)) {
 			_process_request(&ftp_request, msg->sysid);
 		}
 	}
