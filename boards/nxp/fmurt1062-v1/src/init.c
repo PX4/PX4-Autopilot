@@ -45,9 +45,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_config.h>
-#include <px4_tasks.h>
-#include <px4_log.h>
+#include "board_config.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -55,6 +53,7 @@
 #include <debug.h>
 #include <errno.h>
 
+#include <nuttx/config.h>
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/i2c/i2c_master.h>
@@ -73,12 +72,9 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
-
 #include <systemlib/px4_macros.h>
-
 #include <px4_init.h>
-
-#include "up_internal.h"
+#include <drivers/boards/common/board_dma_alloc.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
