@@ -1,0 +1,30 @@
+#!/bin/sh
+#
+# @name Hexarotor x with tilted arms
+#
+# @url http://theairlab.org/
+#
+# @type Tilt-Hexarotor
+# @class Copter
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+# @output MAIN5 motor 5
+# @output MAIN6 motor 6
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+#
+# @maintainer Azarakhsh Keipour <keipour@cmu.edu>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+# Set mixer
+set MIXER hexa_tilt
+
+# Need to set all 8 channels
+set PWM_OUT 12345678

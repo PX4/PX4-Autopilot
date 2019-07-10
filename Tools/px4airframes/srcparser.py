@@ -92,6 +92,8 @@ class ParameterGroup(object):
             return "Rover"
         elif (self.name == "Boat"):
             return "Boat"
+        elif (self.name == "Tilt-Hexarotor"):
+            return "HexaRotorX"
         return "AirframeUnknown"
 
     def GetParams(self):
