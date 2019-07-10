@@ -96,7 +96,6 @@ then
 	param set PWM_MIN 950
 
 	param set SENS_BOARD_ROT 4
-	param set SYS_FORCE_F7DC	2
 
 	param set VT_ARSP_BLEND 10
 	param set VT_ARSP_TRANS 21
