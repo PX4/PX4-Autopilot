@@ -119,6 +119,7 @@ private:
 
 	void handle_message(mavlink_message_t *msg);
 	void handle_message_adsb_vehicle(mavlink_message_t *msg);
+	void handle_message_utm_global_position(mavlink_message_t *msg);
 	void handle_message_att_pos_mocap(mavlink_message_t *msg);
 	void handle_message_battery_status(mavlink_message_t *msg);
 	void handle_message_collision(mavlink_message_t *msg);
@@ -272,6 +273,8 @@ private:
 	bool _hil_local_proj_inited{false};
 
 	uORB::Subscription _param_update_sub{ORB_ID(parameter_update)};
+
+	hrt_abstime _last_utm_global_pos_com{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
