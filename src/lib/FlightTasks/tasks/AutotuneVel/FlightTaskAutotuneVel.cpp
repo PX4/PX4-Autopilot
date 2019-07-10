@@ -120,9 +120,9 @@ void FlightTaskAutotuneVel::_updateUltimateGain()
 {
 	// epsilon << alpha
 	float ku_dot = -_param_mpc_atune_gain.get() * fabsf(_thrust - _thrust_sat) + _epsilon;
-	printf("ku = %.3f\n, ku_dot = %.3f\n", (double)_ku, (double)ku_dot);
 	_ku += ku_dot;
 
+	_jerk_setpoint(0) = _ku;
 	if (fabs(ku_dot) < _param_mpc_atune_thr.get() && _ku < 1.4f) {
 		_convergence_counter++;
 
@@ -166,7 +166,6 @@ void FlightTaskAutotuneVel::_measureUltimatePeriod()
 	if (_peak_counter == 11) {
 		// 5 periods
 		_period_u = hrt_elapsed_time(&_start_time) * 2e-7;
-		printf("Period: %.3f seconds\n", (double)_period_u);
 	}
 }
 
@@ -175,8 +174,7 @@ void FlightTaskAutotuneVel::_computeControlGains()
 	// Compute Kp, Ki and Kd using robust Ziegler-Nichols rules
 	float kp = 0.3375f * _ku;
 	float ki = 0.3f * _ku / _period_u;
-	float kd = _ku * _period_u * 0.0375f;
-	printf("Kp = %.3f\tKi =%.3f\tKd = %.3f\n", (double)kp, (double)ki, (double)kd);
+	float kd = 0.0375f * _ku * _period_u;
 
 	if (kp > 0.f && kp < 1.f && ki > 0.f && ki < 4.f && kd > 0.f && kd < 0.1f) {
 		_param_mpc_xy_vel_p.set(kp);
@@ -187,7 +185,7 @@ void FlightTaskAutotuneVel::_computeControlGains()
 		_param_mpc_xy_vel_d.commit();
 
 	} else {
-		printf("Autotuning failed");
+		// Failed
 	}
 }
 
