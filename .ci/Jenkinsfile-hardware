@@ -196,6 +196,8 @@ pipeline {
                 sh 'platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v2_test/px4_fmu-v2_test.elf'
                 sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
                 //sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+                // ensure buzzer is disabled for the next test
+                sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'
               } catch (Exception err) {
                   // always report passed for now
                   currentBuild.result = 'SUCCESS'
@@ -279,6 +281,8 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
             // run tests
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+            // ensure buzzer is disabled for the next test
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'
           }
           options {
             timeout(time: 20, unit: 'MINUTES')
@@ -318,6 +322,8 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
             // run tests
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+            // ensure buzzer is disabled for the next test
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'
           }
           options {
             timeout(time: 20, unit: 'MINUTES')
@@ -357,6 +363,8 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
             // run tests
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+            // ensure buzzer is disabled for the next test
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'
           }
           options {
             timeout(time: 20, unit: 'MINUTES')
@@ -396,6 +404,8 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
             // run tests
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+            // ensure buzzer is disabled for the next test
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'
           }
           options {
             timeout(time: 20, unit: 'MINUTES')
@@ -435,6 +445,8 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
             // run tests
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+            // ensure buzzer is disabled for the next test
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'
           }
           options {
             timeout(time: 20, unit: 'MINUTES')
@@ -474,6 +486,8 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
             // run tests
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+            // ensure buzzer is disabled for the next test
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'
           }
           options {
             timeout(time: 20, unit: 'MINUTES')
@@ -536,6 +550,8 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
             // run tests
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+            // ensure buzzer is disabled for the next test
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'
           }
           options {
             timeout(time: 20, unit: 'MINUTES')
