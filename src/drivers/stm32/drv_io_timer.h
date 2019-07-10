@@ -7,14 +7,14 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *	notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
+ *	notice, this list of conditions and the following disclaimer in
+ *	the documentation and/or other materials provided with the
+ *	distribution.
  * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ *	used to endorse or promote products derived from this software
+ *	without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -33,8 +33,6 @@
 
 /**
  * @file drv_io_timer.h
- *
- * stm32-specific PWM output data.
  */
 #include <px4_config.h>
 #include <nuttx/arch.h>
@@ -60,6 +58,7 @@ typedef enum io_timer_channel_mode_t {
 	IOTimerChanMode_Capture = 3,
 	IOTimerChanMode_OneShot = 4,
 	IOTimerChanMode_Trigger = 5,
+	IOTimerChanMode_Dshot   = 6,
 	IOTimerChanModeSize
 } io_timer_channel_mode_t;
 
@@ -79,9 +78,9 @@ typedef struct io_timers_t {
 	uint32_t	clock_bit;
 	uint32_t	clock_freq;
 	uint32_t	vectorno;
-	uint32_t    first_channel_index;
-	uint32_t    last_channel_index;
-	xcpt_t      handler;
+	uint32_t	first_channel_index;
+	uint32_t	last_channel_index;
+	xcpt_t		handler;
 } io_timers_t;
 
 /* array of channels in logical order */
