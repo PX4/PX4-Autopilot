@@ -158,20 +158,19 @@ bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 				_airspeed_sp.get_scaled(msg.airspeed_sp, 5.0f);
 			}
 
-			int lowest = -1;
+			int lowest = 0;
 
-			for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
+			for (int i = 1; i < BOARD_NUMBER_BRICKS; i++) {
 				const bool battery_connected = _battery_connected[i] && _battery[i].valid();
-				const bool battery_is_lowest =  lowest < 0 ||
-								_battery[i].get_scaled(100.0f) <= _battery[lowest].get_scaled(100.0f);
+				const bool battery_is_lowest = _battery[i].get_scaled(100.0f) <= _battery[lowest].get_scaled(100.0f);
 
-				if (battery_connected && (lowest == -1 || battery_is_lowest)) {
+				if (battery_connected && battery_is_lowest) {
 					lowest = i;
 				}
 
 			}
 
-			if (lowest >= 0) {
+			if (_battery_connected[lowest]) {
 				_battery[lowest].get_scaled(msg.battery, 100.0f);
 
 			} else {
