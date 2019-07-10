@@ -203,7 +203,7 @@ pipeline {
             } // script
           }
           options {
-            timeout(time: 600, unit: 'SECONDS')
+            timeout(time: 20, unit: 'MINUTES')
           }
         }
 
@@ -242,7 +242,7 @@ pipeline {
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
           }
           options {
-            timeout(time: 600, unit: 'SECONDS')
+            timeout(time: 20, unit: 'MINUTES')
           }
         }
 
@@ -281,7 +281,7 @@ pipeline {
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
           }
           options {
-            timeout(time: 600, unit: 'SECONDS')
+            timeout(time: 20, unit: 'MINUTES')
           }
         }
 
@@ -320,7 +320,7 @@ pipeline {
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
           }
           options {
-            timeout(time: 600, unit: 'SECONDS')
+            timeout(time: 20, unit: 'MINUTES')
           }
         }
 
@@ -359,7 +359,7 @@ pipeline {
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
           }
           options {
-            timeout(time: 600, unit: 'SECONDS')
+            timeout(time: 20, unit: 'MINUTES')
           }
         }
 
@@ -398,7 +398,7 @@ pipeline {
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
           }
           options {
-            timeout(time: 600, unit: 'SECONDS')
+            timeout(time: 20, unit: 'MINUTES')
           }
         }
 
@@ -437,7 +437,7 @@ pipeline {
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
           }
           options {
-            timeout(time: 600, unit: 'SECONDS')
+            timeout(time: 20, unit: 'MINUTES')
           }
         }
 
@@ -476,7 +476,7 @@ pipeline {
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
           }
           options {
-            timeout(time: 600, unit: 'SECONDS')
+            timeout(time: 20, unit: 'MINUTES')
           }
         }
 
@@ -500,7 +500,7 @@ pipeline {
             } // script
           }
           options {
-            timeout(time: 600, unit: 'SECONDS')
+            timeout(time: 20, unit: 'MINUTES')
           }
         }
 
@@ -538,7 +538,7 @@ pipeline {
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
           }
           options {
-            timeout(time: 600, unit: 'SECONDS')
+            timeout(time: 20, unit: 'MINUTES')
           }
         }
 
