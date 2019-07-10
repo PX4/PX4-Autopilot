@@ -1160,8 +1160,10 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	}
 
 	if (odom.child_frame_id == MAV_FRAME_BODY_FRD) { /* WRT to estimated vehicle body-fixed frame */
-		/* get quaternion from the msg quaternion itself and build DCM matrix from it */
-		const matrix::Dcmf Rbl = matrix::Dcmf(matrix::Quatf(odometry.q)).I();
+		/* Get quaternion from the msg quaternion itself and build DCM matrix from it 
+		 * Note that the msg quaternion represents the rotation of the msg frame to the msg child frame
+		 * but rotates msg child frame *data* into the msg frame */
+		const matrix::Dcmf Rbl = matrix::Dcmf(matrix::Quatf(odometry.q));
 
 		/* the linear velocities needs to be transformed to the local NED frame */
 		matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
@@ -1179,8 +1181,10 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		}
 
 	} else if (odom.child_frame_id == MAV_FRAME_BODY_FLU) { /* WRT to estimated vehicle body-fixed frame */
-		/* get quaternion from the msg quaternion itself and build DCM matrix from it */
-		const matrix::Dcmf Rbl = matrix::Dcmf(matrix::Quatf(odometry.q)).I();
+		/* Get quaternion from the msg quaternion itself and build DCM matrix from it
+		 * Note that the msg quaternion represents the rotation of the msg frame to the msg child frame
+		 * but rotates msg child frame *data* into the msg frame */
+		const matrix::Dcmf Rbl = matrix::Dcmf(matrix::Quatf(odometry.q));
 
 		/* the position needs to be transformed to the local NED frame */
 		matrix::Vector3f pos(Rbl * matrix::Vector3<float>(odom.x, -odom.y, -odom.z));
@@ -1206,8 +1210,10 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	} else if (odom.child_frame_id == MAV_FRAME_BODY_NED) { /* WRT to vehicle body-NED frame */
 		if (_vehicle_attitude_sub.copy(&_att)) {
 
-			/* get quaternion from vehicle_attitude quaternion and build DCM matrix from it */
-			const matrix::Dcmf Rbl = matrix::Dcmf(matrix::Quatf(_att.q)).I();
+			/* Get quaternion from vehicle_attitude quaternion and build DCM matrix from it
+			 * Note that the msg quaternion represents the rotation of the msg frame to the msg child frame
+			 * but rotates msg child frame *data* into the msg frame */
+			const matrix::Dcmf Rbl = matrix::Dcmf(matrix::Quatf(_att.q));
 
 			/* the linear velocities needs to be transformed to the local NED frame */
 			matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
