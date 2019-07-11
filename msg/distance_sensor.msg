@@ -27,4 +27,4 @@ uint8 ROTATION_CUSTOM          =100 # MAV_SENSOR_ROTATION_CUSTOM
 
 float32 h_fov # Sensor horizontal field of view (rad)
 float32 v_fov # Sensor vertical field of view (rad)
-float32[4] q # Quaterion sensor orientation to specify the orientation ROTATION_CUSTOM
+float32[4] q # Quaterion sensor orientation with respect to the vehicle body frame to specify the orientation ROTATION_CUSTOM
