@@ -54,7 +54,7 @@ parameters:
 
                     If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
                     This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on 
-                    81N-configured links).
+                    8N1-configured links).
 
             type: int32
             min: 0
