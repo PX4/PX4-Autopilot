@@ -615,7 +615,8 @@ int io_timer_set_rate(unsigned timer, unsigned rate)
 
 	/* Check that all channels are either in PWM or Oneshot */
 
-	if ((channels & (channel_allocations[IOTimerChanMode_PWMOut] |
+	if ((channels & (channel_allocations[IOTimerChanMode_Dshot] |
+			 channel_allocations[IOTimerChanMode_PWMOut] |
 			 channel_allocations[IOTimerChanMode_OneShot] |
 			 channel_allocations[IOTimerChanMode_NotUsed])) ==
 		channels) {
@@ -624,7 +625,7 @@ int io_timer_set_rate(unsigned timer, unsigned rate)
 
 		/* Request to use OneShot ?*/
 
-		if (PWM_RATE_ONOESHOT == rate) {
+		if (PWM_RATE_ONESHOT == rate) {
 
 			/* Request to use OneShot
 			 *
