@@ -147,7 +147,7 @@ Radar::Radar(uint8_t rotation, const char *port) :
 
 {
 	/* store port name */
-	strncpy(_port, port, sizeof(_port));
+	strncpy(_port, port, sizeof(_port) - 1);
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
 }

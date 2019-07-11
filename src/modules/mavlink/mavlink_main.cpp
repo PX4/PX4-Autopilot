@@ -161,54 +161,7 @@ static void usage();
 bool Mavlink::_boot_complete = false;
 
 Mavlink::Mavlink() :
-	ModuleParams(nullptr),
-	_task_should_exit(false),
-	_mavlink_log_pub(nullptr),
-	_main_loop_delay(1000),
-	_mavlink_shell(nullptr),
-	_mavlink_ulog(nullptr),
-	_mavlink_ulog_stop_requested(false),
-	_logbuffer(5, sizeof(mavlink_log_s)),
-	_receive_thread{},
-	_forwarding_on(false),
-	_ftp_on(false),
-	_uart_fd(-1),
-	_baudrate(57600),
-	_datarate(1000),
-	_rate_mult(1.0f),
-	_mavlink_param_queue_index(0),
-	mavlink_link_termination_allowed(false),
-	_subscribe_to_stream(nullptr),
-	_subscribe_to_stream_rate(0.0f),
-	_udp_initialised(false),
-	_flow_control_mode(Mavlink::FLOW_CONTROL_OFF),
-	_last_write_success_time(0),
-	_last_write_try_time(0),
-	_mavlink_start_time(0),
-	_protocol_version_switch(-1),
-	_protocol_version(0),
-	_bytes_tx(0),
-	_bytes_txerr(0),
-	_bytes_rx(0),
-	_bytes_timestamp(0),
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
-	_myaddr {},
-	_src_addr{},
-	_bcast_addr{},
-	_src_addr_initialized(false),
-	_broadcast_address_found(false),
-	_broadcast_address_not_found_warned(false),
-	_broadcast_failed_warned(false),
-	_network_buf{},
-	_network_buf_len(0),
-#endif
-	_socket_fd(-1),
-	_protocol(SERIAL),
-	_network_port(14556),
-	_remote_port(DEFAULT_REMOTE_PORT_UDP),
-	/* performance counters */
-	_loop_perf(perf_alloc(PC_ELAPSED, "mavlink_el")),
-	_loop_interval_perf(perf_alloc(PC_INTERVAL, "mavlink_int"))
+	ModuleParams(nullptr)
 {
 	_instance_id = Mavlink::instance_count();
 
@@ -633,35 +586,26 @@ Mavlink::mavlink_open_uart(int baud, const char *uart_name, bool force_flow_cont
 	/* if this is a config link, stay here and wait for it to open */
 	if (_uart_fd < 0 && _mode == MAVLINK_MODE_CONFIG) {
 
-		int armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-		struct actuator_armed_s armed;
+		uORB::SubscriptionData<actuator_armed_s> armed_sub{ORB_ID(actuator_armed)};
 
 		/* get the system arming state and abort on arming */
 		while (_uart_fd < 0) {
 
 			/* abort if an arming topic is published and system is armed */
-			bool updated = false;
-			orb_check(armed_sub, &updated);
+			armed_sub.update();
 
-			if (updated) {
-				/* the system is now providing arming status feedback.
-				 * instead of timing out, we resort to abort bringing
-				 * up the terminal.
-				 */
-				orb_copy(ORB_ID(actuator_armed), armed_sub, &armed);
-
-				if (armed.armed) {
-					/* this is not an error, but we are done */
-					orb_unsubscribe(armed_sub);
-					return -1;
-				}
+			/* the system is now providing arming status feedback.
+			 * instead of timing out, we resort to abort bringing
+			 * up the terminal.
+			 */
+			if (armed_sub.get().armed) {
+				/* this is not an error, but we are done */
+				return -1;
 			}
 
 			px4_usleep(100000);
 			_uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY);
 		}
-
-		orb_unsubscribe(armed_sub);
 	}
 
 	if (_uart_fd < 0) {
@@ -1202,7 +1146,6 @@ void
 Mavlink::send_statustext_critical(const char *string)
 {
 	mavlink_log_critical(&_mavlink_log_pub, "%s", string);
-	PX4_ERR("%s", string);
 }
 
 void
@@ -1724,7 +1667,6 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 10.0f);
 		configure_stream_local("POSITION_TARGET_LOCAL_NED", 10.0f);
 		configure_stream_local("RC_CHANNELS", 20.0f);
-		configure_stream_local("SCALED_IMU", 50.0f);
 		configure_stream_local("SERVO_OUTPUT_RAW_0", 10.0f);
 		configure_stream_local("SYS_STATUS", 5.0f);
 		configure_stream_local("SYSTEM_TIME", 1.0f);
@@ -1736,28 +1678,49 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		break;
 
 	case MAVLINK_MODE_EXTVISION:
-		configure_stream_local("ALTITUDE", 10.0f); // for avoidance
-		configure_stream_local("ATTITUDE", 25.0f);
-		configure_stream_local("ATTITUDE_TARGET", 10.0f);
-		configure_stream_local("CAMERA_TRIGGER", unlimited_rate); // for VIO
-		configure_stream_local("DISTANCE_SENSOR", 10.0f);		// for avoidance
+		configure_stream_local("HIGHRES_IMU", unlimited_rate);		// for VIO
+		configure_stream_local("TIMESYNC", 10.0f);
+
+	// FALLTHROUGH
+	case MAVLINK_MODE_EXTVISIONMIN:
+		configure_stream_local("ADSB_VEHICLE", unlimited_rate);
+		configure_stream_local("ALTITUDE", 10.0f);
+		configure_stream_local("ATTITUDE", 20.0f);
+		configure_stream_local("ATTITUDE_TARGET", 2.0f);
+		configure_stream_local("CAMERA_IMAGE_CAPTURED", unlimited_rate);
+		configure_stream_local("CAMERA_TRIGGER", unlimited_rate);
+		configure_stream_local("COLLISION", unlimited_rate);
+		configure_stream_local("DEBUG", 1.0f);
+		configure_stream_local("DEBUG_FLOAT_ARRAY", 1.0f);
+		configure_stream_local("DEBUG_VECT", 1.0f);
+		configure_stream_local("DISTANCE_SENSOR", 10.0f);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
 		configure_stream_local("EXTENDED_SYS_STATE", 1.0f);
-		configure_stream_local("GLOBAL_POSITION_INT", 10.0f);
+		configure_stream_local("GLOBAL_POSITION_INT", 5.0f);
+		configure_stream_local("GPS2_RAW", 1.0f);
 		configure_stream_local("GPS_RAW_INT", 1.0f);
 		configure_stream_local("HOME_POSITION", 0.5f);
-		configure_stream_local("HIGHRES_IMU", unlimited_rate);		// for VIO
-		configure_stream_local("LOCAL_POSITION_NED", 30.0f); //for VIO and avoidance
+		configure_stream_local("LOCAL_POSITION_NED", 30.0f);
+		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
+		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.5f);
+		configure_stream_local("ODOMETRY", 30.0f);
+		configure_stream_local("OPTICAL_FLOW_RAD", 1.0f);
+		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
+		configure_stream_local("PING", 0.1f);
+		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 1.5f);
+		configure_stream_local("POSITION_TARGET_LOCAL_NED", 1.5f);
+		configure_stream_local("RC_CHANNELS", 5.0f);
+		configure_stream_local("SERVO_OUTPUT_RAW_0", 1.0f);
 		configure_stream_local("SYS_STATUS", 5.0f);
-		configure_stream_local("SYSTEM_TIME", 1.0f);
-		configure_stream_local("TIMESYNC", 10.0f);
-		configure_stream_local("TRAJECTORY_REPRESENTATION_WAYPOINTS", 5.0f); // for avoidance
-		configure_stream_local("VFR_HUD", 25.0f);
-		configure_stream_local("WIND_COV", 2.0f);
+		configure_stream_local("TRAJECTORY_REPRESENTATION_WAYPOINTS", 5.0f);
+		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
+		configure_stream_local("VFR_HUD", 4.0f);
+		configure_stream_local("WIND_COV", 1.0f);
 		break;
 
+
 	case MAVLINK_MODE_OSD:
-		configure_stream_local("ALTITUDE", 1.0f);
+		configure_stream_local("ALTITUDE", 10.0f);
 		configure_stream_local("ATTITUDE", 25.0f);
 		configure_stream_local("ATTITUDE_TARGET", 10.0f);
 		configure_stream_local("ESTIMATOR_STATUS", 1.0f);
@@ -1812,6 +1775,9 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("PING", 1.0f);
 		configure_stream_local("POSITION_TARGET_GLOBAL_INT", 10.0f);
 		configure_stream_local("RC_CHANNELS", 10.0f);
+		configure_stream_local("SCALED_IMU", 25.0f);
+		configure_stream_local("SCALED_IMU2", 25.0f);
+		configure_stream_local("SCALED_IMU3", 25.0f);
 		configure_stream_local("SERVO_OUTPUT_RAW_0", 20.0f);
 		configure_stream_local("SERVO_OUTPUT_RAW_1", 20.0f);
 		configure_stream_local("SYS_STATUS", 1.0f);
@@ -1997,7 +1963,7 @@ Mavlink::task_main(int argc, char *argv[])
 #endif
 
 //		case 'e':
-//			mavlink_link_termination_allowed = true;
+//			_mavlink_link_termination_allowed = true;
 //			break;
 
 		case 'm': {
@@ -2042,6 +2008,9 @@ Mavlink::task_main(int argc, char *argv[])
 
 					} else if (strcmp(myoptarg, "extvision") == 0) {
 						_mode = MAVLINK_MODE_EXTVISION;
+
+					} else if (strcmp(myoptarg, "extvisionmin") == 0) {
+						_mode = MAVLINK_MODE_EXTVISIONMIN;
 
 					} else {
 						PX4_ERR("invalid mode");
@@ -2156,7 +2125,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	MavlinkOrbSubscription *mavlink_log_sub = add_orb_subscription(ORB_ID(mavlink_log));
 
-	struct vehicle_status_s status;
+	vehicle_status_s status{};
 	status_sub->update(&status_time, &status);
 
 	/* Activate sending the data by default (for the IRIDIUM mode it will be disabled after the first round of packages is sent)*/
@@ -2225,7 +2194,9 @@ Mavlink::task_main(int argc, char *argv[])
 
 		update_rate_mult();
 
-		if (param_sub->update(&param_time, nullptr)) {
+		parameter_update_s param_update;
+
+		if (param_sub->update(&param_time, &param_update)) {
 			mavlink_update_parameters();
 
 #if defined(CONFIG_NET)
@@ -2262,7 +2233,7 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 		}
 
-		struct vehicle_command_s vehicle_cmd;
+		vehicle_command_s vehicle_cmd{};
 
 		if (cmd_sub->update_if_changed(&vehicle_cmd)) {
 			if ((vehicle_cmd.command == vehicle_command_s::VEHICLE_CMD_CONTROL_HIGH_LATENCY) &&
@@ -2307,7 +2278,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 		/* send command ACK */
 		uint16_t current_command_ack = 0;
-		struct vehicle_command_ack_s command_ack;
+		vehicle_command_ack_s command_ack{};
 
 		if (ack_sub->update_if_changed(&command_ack)) {
 			if (!command_ack.from_external) {
@@ -2328,7 +2299,7 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 		}
 
-		struct mavlink_log_s mavlink_log;
+		mavlink_log_s mavlink_log{};
 
 		if (mavlink_log_sub->update_if_changed(&mavlink_log)) {
 			_logbuffer.put(&mavlink_log);

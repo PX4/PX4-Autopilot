@@ -41,8 +41,7 @@
 
 #pragma once
 
-#include <perf/perf_counter.h>
-#include <uORB/uORB.h>
+#include <px4_module_params.h>
 
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/actuator_armed.h>
@@ -91,23 +90,14 @@
 
 class Mavlink;
 
-class MavlinkReceiver
+class MavlinkReceiver : public ModuleParams
 {
 public:
 	/**
 	 * Constructor
 	 */
 	MavlinkReceiver(Mavlink *parent);
-
-	/**
-	 * Destructor, also kills the mavlinks task.
-	 */
-	~MavlinkReceiver();
-
-	/**
-	 * Display the mavlink status.
-	 */
-	void print_status();
+	~MavlinkReceiver() = default;
 
 	/**
 	 * Start the receiver thread
@@ -197,11 +187,17 @@ private:
 
 	void send_storage_information(int storage_id);
 
+	/**
+	 * @brief Updates the battery, optical flow, and flight ID subscribed parameters.
+	 */
+	void update_params();
+
 	Mavlink	*_mavlink;
 
 	MavlinkFTP			_mavlink_ftp;
 	MavlinkLogHandler		_mavlink_log_handler;
 	MavlinkTimesync			_mavlink_timesync;
+
 	MavlinkMissionManager		_mission_manager;
 	MavlinkParametersManager	_parameters_manager;
 
@@ -255,32 +251,38 @@ private:
 	orb_advert_t _transponder_report_pub{nullptr};
 	orb_advert_t _visual_odometry_pub{nullptr};
 
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
+	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+
 	static constexpr int _gps_inject_data_queue_size{6};
 
-	int _actuator_armed_sub{orb_subscribe(ORB_ID(actuator_armed))};
-	int _control_mode_sub{orb_subscribe(ORB_ID(vehicle_control_mode))};
-	int _vehicle_attitude_sub{orb_subscribe(ORB_ID(vehicle_attitude))};
+	static constexpr unsigned int MOM_SWITCH_COUNT{8};
 
 	int _orb_class_instance{-1};
 
-	uint64_t _global_ref_timestamp{0};
+	uint8_t _mom_switch_pos[MOM_SWITCH_COUNT] {};
 
-	bool _hil_local_proj_inited{false};
+	uint16_t _mom_switch_state{0};
+
+	uint64_t _global_ref_timestamp{0};
 
 	float _hil_local_alt0{0.0f};
 
-	static constexpr unsigned MOM_SWITCH_COUNT{8};
+	bool _hil_local_proj_inited{false};
 
-	uint8_t _mom_switch_pos[MOM_SWITCH_COUNT] {};
-	uint16_t _mom_switch_state{0};
+	uORB::Subscription _param_update_sub{ORB_ID(parameter_update)};
 
-	param_t _p_bat_emergen_thr{PARAM_INVALID};
-	param_t _p_bat_crit_thr{PARAM_INVALID};
-	param_t _p_bat_low_thr{PARAM_INVALID};
-	param_t _p_flow_rot{PARAM_INVALID};
-	param_t _p_flow_maxr{PARAM_INVALID};
-	param_t _p_flow_minhgt{PARAM_INVALID};
-	param_t _p_flow_maxhgt{PARAM_INVALID};
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
+		(ParamFloat<px4::params::BAT_EMERGEN_THR>)  _param_bat_emergen_thr,
+		(ParamFloat<px4::params::BAT_LOW_THR>)      _param_bat_low_thr,
+		(ParamFloat<px4::params::SENS_FLOW_MAXHGT>) _param_sens_flow_maxhgt,
+		(ParamFloat<px4::params::SENS_FLOW_MAXR>)   _param_sens_flow_maxr,
+		(ParamFloat<px4::params::SENS_FLOW_MINHGT>) _param_sens_flow_minhgt,
+		(ParamInt<px4::params::COM_FLIGHT_UUID>)    _param_com_flight_uuid,
+		(ParamInt<px4::params::SENS_FLOW_ROT>)      _param_sens_flow_rot
+	);
 
 	// Disallow copy construction and move assignment.
 	MavlinkReceiver(const MavlinkReceiver &) = delete;

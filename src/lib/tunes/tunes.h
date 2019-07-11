@@ -108,7 +108,7 @@ public:
 	 * @param  duration  return duration of the note (us)
 	 * @param  silence   return silence duration (us)
 	 * @param  volume    return the volume level of the note (between 0-100)
-	 * @return           -1 for error, 0 for play one tone and 1 for continue a sequence
+	 * @return           -1 for no tune available/error, 0 to not play anything and 1 to play
 	 */
 	int get_next_note(unsigned &frequency, unsigned &duration,
 			  unsigned &silence, uint8_t &volume);

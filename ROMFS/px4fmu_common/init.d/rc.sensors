@@ -21,9 +21,6 @@ then
 	# Internal SPI (auto detect ms5611 or ms5607)
 	ms5611 -T 0 -s start
 
-	# Blacksheep telemetry
-	bst start
-
 	adc start
 fi
 
@@ -73,6 +70,12 @@ fi
 if param compare SENS_EN_LL40LS 2
 then
 	ll40ls start i2c
+fi
+
+# mappydot lidar sensor
+if param compare SENS_EN_MPDT 1
+then
+	mappydot start -a
 fi
 
 # mb12xx sonar sensor

@@ -28,12 +28,13 @@ px4_add_board(
 		imu/mpu9250
 		lights/rgbled
 		magnetometer/hmc5883
-		px4flow
+		optical_flow/px4flow
 		px4fmu
 		px4io
 		stm32
 		stm32/adc
 		stm32/tone_alarm
+		tone_alarm
 
 	MODULES
 		camera_feedback
@@ -57,6 +58,7 @@ px4_add_board(
 		#dumpfile
 		#esc_calib
 		hardfault_log
+		i2cdetect
 		#led_control
 		mixer
 		#motor_ramp

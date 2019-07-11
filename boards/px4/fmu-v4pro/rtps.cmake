@@ -42,12 +42,12 @@ px4_add_board(
 		#md25
 		mkblctrl
 		lights/pca8574
+		#optical_flow # all available optical flow drivers
+		optical_flow/px4flow
 		pca9685
-		#pmw3901
 		protocol_splitter
 		pwm_input
 		pwm_out_sim
-		px4flow
 		px4fmu
 		px4io
 		roboclaw
@@ -93,6 +93,7 @@ px4_add_board(
 		dumpfile
 		esc_calib
 		hardfault_log
+		i2cdetect
 		led_control
 		mixer
 		motor_ramp

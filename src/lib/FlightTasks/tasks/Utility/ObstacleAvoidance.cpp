@@ -42,6 +42,8 @@ using namespace time_literals;
 
 /** Timeout in us for trajectory data to get considered invalid */
 static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500_ms;
+/** If Flighttask fails, keep 0.5 seconds the current setpoint before going into failsafe land */
+static constexpr uint64_t TIME_BEFORE_FAILSAFE = 500_ms;
 
 const vehicle_trajectory_waypoint_s empty_trajectory_waypoint = {0, 0, {0, 0, 0, 0, 0, 0, 0},
 	{	{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
@@ -56,6 +58,9 @@ ObstacleAvoidance::ObstacleAvoidance(ModuleParams *parent) :
 	ModuleParams(parent)
 {
 	_desired_waypoint = empty_trajectory_waypoint;
+	_failsafe_position.setNaN();
+	_avoidance_point_not_valid_hysteresis.set_hysteresis_time_from(false, TIME_BEFORE_FAILSAFE);
+
 }
 
 ObstacleAvoidance::~ObstacleAvoidance()
@@ -88,8 +93,8 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 		float &yaw_speed_sp)
 {
 
-	if (!COM_OBS_AVOID.get() || _sub_vehicle_status->get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
-		// if avoidance disabled or in failsafe nav_state LOITER, don't inject setpoints from avoidance system
+	if (_sub_vehicle_status->get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+		// if in failsafe nav_state LOITER, don't inject setpoints from avoidance system
 		return;
 	}
 
@@ -98,25 +103,49 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 	const bool avoidance_point_valid =
 		_sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true;
 
-	if (avoidance_data_timeout || !avoidance_point_valid) {
+	_avoidance_point_not_valid_hysteresis.set_state_and_update(!avoidance_point_valid, hrt_absolute_time());
+
+	if (avoidance_data_timeout || _avoidance_point_not_valid_hysteresis.get_state()) {
 		PX4_WARN("Obstacle Avoidance system failed, loitering");
 		_publishVehicleCmdDoLoiter();
+
+		if (!PX4_ISFINITE(_failsafe_position(0)) || !PX4_ISFINITE(_failsafe_position(1))
+		    || !PX4_ISFINITE(_failsafe_position(2))) {
+			// save vehicle position when entering failsafe
+			_failsafe_position = _position;
+		}
+
+		pos_sp = _failsafe_position;
+		vel_sp.setNaN();
+		yaw_sp = NAN;
+		yaw_speed_sp = NAN;
 		return;
+
+	} else {
+		_failsafe_position.setNaN();
 	}
 
-	pos_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position;
-	vel_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity;
-	yaw_sp =  _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw;
-	yaw_speed_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed;
+	if (avoidance_point_valid) {
+		pos_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position;
+		vel_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity;
+
+		if (!_ext_yaw_active) {
+			// inject yaw setpoints only if weathervane isn't active
+			yaw_sp =  _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw;
+			yaw_speed_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed;
+		}
+	}
+
 }
 
 void ObstacleAvoidance::updateAvoidanceDesiredWaypoints(const Vector3f &curr_wp, const float curr_yaw,
 		const float curr_yawspeed,
-		const Vector3f &next_wp, const float next_yaw, const float next_yawspeed)
+		const Vector3f &next_wp, const float next_yaw, const float next_yawspeed, const bool ext_yaw_active)
 {
 	_desired_waypoint.timestamp = hrt_absolute_time();
 	_desired_waypoint.type = vehicle_trajectory_waypoint_s::MAV_TRAJECTORY_REPRESENTATION_WAYPOINTS;
 	_curr_wp = curr_wp;
+	_ext_yaw_active = ext_yaw_active;
 
 	curr_wp.copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].position);
 	Vector3f(NAN, NAN, NAN).copyTo(_desired_waypoint.waypoints[vehicle_trajectory_waypoint_s::POINT_1].velocity);
@@ -147,8 +176,9 @@ void ObstacleAvoidance::updateAvoidanceDesiredSetpoints(const Vector3f &pos_sp, 
 }
 
 void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector3f &prev_wp,
-		float target_acceptance_radius, const Vector2f &closest_pt)
+		float target_acceptance_radius, const Vector2f &closest_pt, const int wp_type)
 {
+	_position = pos;
 	position_controller_status_s pos_control_status = {};
 	pos_control_status.timestamp = hrt_absolute_time();
 
@@ -159,7 +189,7 @@ void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector
 	// fraction of the previous-tagerget line that has been flown
 	const float prev_curr_travelled = prev_to_closest_pt.length() / prev_to_target.length();
 
-	Vector2f pos_to_target = Vector2f(_curr_wp - pos);
+	Vector2f pos_to_target = Vector2f(_curr_wp - _position);
 
 	if (prev_curr_travelled > 1.0f) {
 		// if the vehicle projected position on the line previous-target is past the target waypoint,
@@ -167,9 +197,10 @@ void ObstacleAvoidance::checkAvoidanceProgress(const Vector3f &pos, const Vector
 		pos_control_status.acceptance_radius = pos_to_target.length() + 0.5f;
 	}
 
-	const float pos_to_target_z = fabsf(_curr_wp(2) - pos(2));
+	const float pos_to_target_z = fabsf(_curr_wp(2) - _position(2));
 
-	if (pos_to_target.length() < target_acceptance_radius && pos_to_target_z > NAV_MC_ALT_RAD.get()) {
+	if (pos_to_target.length() < target_acceptance_radius && pos_to_target_z > _param_nav_mc_alt_rad.get()
+	    && wp_type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF) {
 		// vehicle above or below the target waypoint
 		pos_control_status.altitude_acceptance = pos_to_target_z + 0.5f;
 	}
@@ -203,6 +234,7 @@ ObstacleAvoidance::_publishAvoidanceDesiredWaypoint()
 void ObstacleAvoidance::_publishVehicleCmdDoLoiter()
 {
 	vehicle_command_s command{};
+	command.timestamp = hrt_absolute_time();
 	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
 	command.param1 = (float)1; // base mode
 	command.param3 = (float)0; // sub mode

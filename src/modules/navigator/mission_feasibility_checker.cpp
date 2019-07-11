@@ -83,7 +83,8 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 	failed = failed || !checkHomePositionAltitude(mission, home_alt, home_alt_valid, warned);
 
 	// VTOL always respects rotary wing feasibility
-	if (_navigator->get_vstatus()->is_rotary_wing || _navigator->get_vstatus()->is_vtol) {
+	if (_navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
+	    || _navigator->get_vstatus()->is_vtol) {
 		failed = failed || !checkRotarywing(mission, home_alt);
 
 	} else {
@@ -450,8 +451,7 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 
 				if (MissionBlock::item_contains_position(missionitem_previous)) {
 
-					uORB::Subscription<position_controller_landing_status_s> landing_status{ORB_ID(position_controller_landing_status)};
-					landing_status.forcedUpdate();
+					uORB::SubscriptionData<position_controller_landing_status_s> landing_status{ORB_ID(position_controller_landing_status)};
 
 					const bool landing_status_valid = (landing_status.get().timestamp > 0);
 					const float wp_distance = get_distance_to_next_waypoint(missionitem_previous.lat, missionitem_previous.lon,

@@ -265,6 +265,9 @@ void PositionControl::_velocityController(const float &dt)
 	float uMax = -_param_mpc_thr_min.get();
 	float uMin = -_param_mpc_thr_max.get();
 
+	// make sure there's always enough thrust vector length to infer the attitude
+	uMax = math::min(uMax, -10e-4f);
+
 	// Apply Anti-Windup in D-direction.
 	bool stop_integral_D = (thrust_desired_D >= uMax && vel_err(2) >= 0.0f) ||
 			       (thrust_desired_D <= uMin && vel_err(2) <= 0.0f);
@@ -328,9 +331,11 @@ void PositionControl::updateConstraints(const vehicle_constraints_s &constraints
 	// For safety check if adjustable constraints are below global constraints. If they are not stricter than global
 	// constraints, then just use global constraints for the limits.
 
+	const float tilt_max_radians = math::radians(math::max(_param_mpc_tiltmax_air.get(), _param_mpc_man_tilt_max.get()));
+
 	if (!PX4_ISFINITE(constraints.tilt)
-	    || !(constraints.tilt < math::max(_param_mpc_tiltmax_air.get(), _param_mpc_man_tilt_max.get()))) {
-		_constraints.tilt = math::max(_param_mpc_tiltmax_air.get(), _param_mpc_man_tilt_max.get());
+	    || !(constraints.tilt < tilt_max_radians)) {
+		_constraints.tilt = tilt_max_radians;
 	}
 
 	if (!PX4_ISFINITE(constraints.speed_up) || !(constraints.speed_up < _param_mpc_z_vel_max_up.get())) {
@@ -349,8 +354,4 @@ void PositionControl::updateConstraints(const vehicle_constraints_s &constraints
 void PositionControl::updateParams()
 {
 	ModuleParams::updateParams();
-
-	// Tilt needs to be in radians
-	_param_mpc_tiltmax_air.set(math::radians(_param_mpc_tiltmax_air.get()));
-	_param_mpc_man_tilt_max.set(math::radians(_param_mpc_man_tilt_max.get()));
 }

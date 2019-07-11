@@ -43,8 +43,8 @@ px4_add_romfs_files(
 	rcS
 	rc.sensors
 	rc.thermal_cal
-	rc.ugv_apps
-	rc.ugv_defaults
+	rc.rover_apps
+	rc.rover_defaults
 	rc.vehicle_setup
 	rc.vtol_apps
 	rc.vtol_defaults

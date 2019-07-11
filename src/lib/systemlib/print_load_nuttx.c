@@ -46,6 +46,10 @@
 #include <systemlib/printload.h>
 #include <drivers/drv_hrt.h>
 
+#if defined(BOARD_DMA_ALLOC_POOL_SIZE)
+#include <drivers/boards/common/board_dma_alloc.h>
+#endif /* BOARD_DMA_ALLOC_POOL_SIZE */
+
 #if defined(CONFIG_SCHED_INSTRUMENTATION)
 
 #if !defined(CONFIG_TASK_NAME_SIZE)
@@ -143,7 +147,7 @@ void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_c
 		print_state->interval_time_ms_inv = 1.f / ((float)((print_state->new_time - print_state->interval_start_time) / 1000));
 
 		/* header for task list */
-		snprintf(buffer, buffer_length, "%4s %*-s %8s %6s %11s %10s %-5s %2s",
+		snprintf(buffer, buffer_length, "%4s %-*s %8s %6s %11s %10s %-5s %2s",
 			 "PID",
 			 CONFIG_TASK_NAME_SIZE, "COMMAND",
 			 "CPU(ms)",
@@ -278,7 +282,7 @@ void print_load_buffer(uint64_t t, char *buffer, int buffer_length, print_load_c
 		}
 
 		// print output
-		int print_len = snprintf(buffer, buffer_length, "%4d %*-s %8d %2d.%03d %5u/%5u %3u (%3u) ",
+		int print_len = snprintf(buffer, buffer_length, "%4d %-*s %8d %2d.%03d %5u/%5u %3u (%3u) ",
 					 tcb_pid,
 					 CONFIG_TASK_NAME_SIZE, tcb_name,
 					 total_runtime[i],

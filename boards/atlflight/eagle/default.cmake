@@ -84,7 +84,7 @@ px4_add_board(
 		mc_pos_control
 		navigator
 		sensors
-		sih
+		#sih
 		simulator
 		vmount
 		vtol_att_control

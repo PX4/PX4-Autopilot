@@ -56,8 +56,11 @@ endif
 # directory build/px4_fmu-v2_default and then call make
 # in that directory with the target upload.
 
-#  explicity set default build target
+# explicity set default build target
 all: px4_sitl_default
+
+# define a space character to be able to explicitly find it in strings
+space := $(subst ,, )
 
 # Parsing
 # --------------------------------------------------------------------
@@ -165,8 +168,8 @@ define cmake-cache-check
 	@$(eval CACHED_CMAKE_OPTIONS = $(shell cd $(BUILD_DIR) 2>/dev/null && cmake -L 2>/dev/null | sed -n 's/\([^[:blank:]]*\):[^[:blank:]]*\(=[^[:blank:]]*\)/\1\2/gp' ))
 	@# transform the options in CMAKE_ARGS into the OPTION=VALUE format without -D
 	@$(eval DESIRED_CMAKE_OPTIONS = $(shell echo $(CMAKE_ARGS) | sed -n 's/-D\([^[:blank:]]*=[^[:blank:]]*\)/\1/gp' ))
-	@# find each currently desired option in the already cached ones
-	@$(eval VERIFIED_CMAKE_OPTIONS = $(foreach option,$(DESIRED_CMAKE_OPTIONS),$(findstring $(option),$(CACHED_CMAKE_OPTIONS))))
+	@# find each currently desired option in the already cached ones making sure the complete configured string value is the same
+	@$(eval VERIFIED_CMAKE_OPTIONS = $(foreach option,$(DESIRED_CMAKE_OPTIONS),$(strip $(findstring $(option)$(space),$(CACHED_CMAKE_OPTIONS)))))
 	@# if the complete list of desired options is found in the list of verified options we don't need to reconfigure and CMAKE_CACHE_CHECK stays empty
 	@$(eval CMAKE_CACHE_CHECK = $(if $(findstring $(DESIRED_CMAKE_OPTIONS),$(VERIFIED_CMAKE_OPTIONS)),,y))
 endef
@@ -245,9 +248,11 @@ px4fmu_firmware: \
 	check_px4_fmu-v4_default \
 	check_px4_fmu-v4pro_default \
 	check_px4_fmu-v5_default \
+	check_px4_fmu-v5x_default \
 	sizes
 
 misc_qgc_extra_firmware: \
+	check_nxp_fmuk66-v3_default \
 	check_intel_aerofc-v1_default \
 	check_auav_x21_default \
 	check_bitcraze_crazyflie_default \
@@ -257,7 +262,6 @@ misc_qgc_extra_firmware: \
 
 # Other NuttX firmware
 alt_firmware: \
-	check_nxp_fmuk66-v3_default \
 	check_px4_cannode-v1_default \
 	check_px4_esc-v1_default \
 	check_auav_esc35-v1_default \
@@ -341,9 +345,12 @@ format:
 .PHONY: rostest python_coverage
 
 tests:
-	@$(MAKE) --no-print-directory px4_sitl_test test_results \
-	ASAN_OPTIONS="color=always:check_initialization_order=1:detect_stack_use_after_return=1" \
-	UBSAN_OPTIONS="color=always"
+	$(eval CMAKE_ARGS += -DCONFIG=px4_sitl_test)
+	$(eval CMAKE_ARGS += -DTESTFILTER=$(TESTFILTER))
+	$(eval ARGS += test_results)
+	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
+	$(eval UBSAN_OPTIONS += color=always)
+	$(call cmake-build,px4_sitl_test)
 
 tests_coverage:
 	@$(MAKE) clean
@@ -464,7 +471,6 @@ distclean: gazeboclean
 		$(error "$@ cannot be the first argument. Use '$(MAKE) help|list_config_targets' to get a list of all possible [configuration] targets."),@#)
 
 # Print a list of non-config targets (based on http://stackoverflow.com/a/26339924/1487069)
-space := $(subst ,, )
 help:
 	@echo "Usage: $(MAKE) <target>"
 	@echo "Where <target> is one of:"

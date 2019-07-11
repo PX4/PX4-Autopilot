@@ -10,16 +10,6 @@
 ###############################################################################
 
 #
-# INAV (deprecated).
-#
-if param compare SYS_MC_EST_GROUP 0
-then
-	echo "ERROR [init] Estimator INAV deprecated. Using EKF2"
-	param set SYS_MC_EST_GROUP 2
-	param save
-fi
-
-#
 # LPE
 #
 if param compare SYS_MC_EST_GROUP 1
@@ -30,21 +20,30 @@ then
 	#
 	if attitude_estimator_q start
 	then
+		echo "WARN [init] Estimator LPE unsupported, EKF2 recommended."
 		local_position_estimator start
 	else
 		echo "ERROR [init] Estimator LPE not available. Using EKF2"
 		param set SYS_MC_EST_GROUP 2
 		param save
+		reboot
+	fi
+else
+	#
+	# Q estimator (attitude estimation only)
+	#
+	if param compare SYS_MC_EST_GROUP 3
+	then
+		attitude_estimator_q start
+	else
+		#
+		# EKF2
+		#
+		param set SYS_MC_EST_GROUP 2
+		ekf2 start
 	fi
 fi
 
-#
-# EKF2
-#
-if param compare SYS_MC_EST_GROUP 2
-then
-	ekf2 start
-fi
 ###############################################################################
 #                        End Estimator Group Selection                        #
 ###############################################################################
