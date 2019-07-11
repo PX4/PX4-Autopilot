@@ -126,7 +126,7 @@ void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle)
 				obstacle.timestamp = distance_sensor.timestamp;
 				obstacle.max_distance = distance_sensor.max_distance * 100; // convert to cm
 				obstacle.min_distance = distance_sensor.min_distance * 100; // convert to cm
-				memset(&obstacle.distances[0], UINT16_MAX, sizeof(obstacle.distances));
+				memset(&obstacle.distances[0], 0xff, sizeof(obstacle.distances));
 				obstacle.increment = math::degrees(distance_sensor.h_fov);
 				obstacle.angle_offset = 0.f;
 			}
