@@ -22,6 +22,5 @@ parameters:
                 0: ROTATION_FORWARD_FACING
                 6: ROTATION_LEFT_FACING
                 2: ROTATION_RIGHT_FACING
-                100: ROTATION_CUSTOM
             reboot_required: true
             default: 25
