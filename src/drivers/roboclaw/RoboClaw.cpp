@@ -62,8 +62,18 @@
 // Add a little extra to account for timing inaccuracy
 #define TIMEOUT_US 10500
 
+// If a timeout occurs during serial communication, it will immediately try again this many times
+#define TIMEOUT_RETRIES 1
+
+// If a timeout occurs while disarmed, it will try again this many times. This should be a higher number,
+// because stopping when disarmed is pretty important.
+#define STOP_RETRIES 10
+
 // Number of bytes returned by the Roboclaw when sending command 78, read both encoders
 #define ENCODER_MESSAGE_SIZE 10
+
+// Number of bytes for commands 18 and 19, read speeds.
+#define ENCODER_SPEED_MESSAGE_SIZE 7
 
 bool RoboClaw::taskShouldExit = false;
 
@@ -82,8 +92,6 @@ RoboClaw::RoboClaw(const char *deviceName):
 	_param_handles.encoder_read_period_ms = 	param_find("RBCLW_READ_PER");
 	_param_handles.counts_per_rev = 			param_find("RBCLW_COUNTS_REV");
 	_param_handles.serial_baud_rate = 			param_find("RBCLW_BAUD");
-	_param_handles.serial_timeout_retries = 	param_find("RBCLW_RETRIES");
-	_param_handles.stop_retries = 				param_find("RBCLW_STOP_RETRY");
 	_param_handles.address = 					param_find("RBCLW_ADDRESS");
 
 	_parameters_update();
@@ -188,7 +196,7 @@ void RoboClaw::taskMain()
 				// If disarmed, I want to be certain that the stop command gets through.
 				int tries = 0;
 
-				while (tries < _parameters.stop_retries && ((drive_ret = drive(0.0)) <= 0 || (turn_ret = turn(0.0)) <= 0)) {
+				while (tries < STOP_RETRIES && ((drive_ret = drive(0.0)) <= 0 || (turn_ret = turn(0.0)) <= 0)) {
 					PX4_ERR("Error trying to stop: Drive: %d, Turn: %d", drive_ret, turn_ret);
 					tries++;
 					px4_usleep(TIMEOUT_US);
@@ -241,16 +249,22 @@ int RoboClaw::readEncoder()
 {
 
 	uint8_t rbuff_pos[ENCODER_MESSAGE_SIZE];
-	uint8_t rbuff_speed[11];
+	// I am saving space by overlapping the two separate motor speeds, so that the final buffer will look like:
+	// [<speed 1> <speed 2> <status 2> <checksum 2>]
+	// And I just ignore all of the statuses and checksums. (The _transaction() function internally handles the
+	// checksum)
+	uint8_t rbuff_speed[ENCODER_SPEED_MESSAGE_SIZE + 4];
 
 	bool success = false;
 
-	for (int retry = 0; retry < _parameters.serial_timeout_retries && !success; retry++) {
+	for (int retry = 0; retry < TIMEOUT_RETRIES && !success; retry++) {
 		success = true;
 		success &=  _transaction(CMD_READ_BOTH_ENCODERS, nullptr, 0, &rbuff_pos[0], ENCODER_MESSAGE_SIZE, false,
 					 true) == ENCODER_MESSAGE_SIZE;
-		success &=  _transaction(CMD_READ_SPEED_1, nullptr, 0, &rbuff_speed[0], 7, false, true) == 7;
-		success &=  _transaction(CMD_READ_SPEED_2, nullptr, 0, &rbuff_speed[4], 7, false, true) == 7;
+		success &=  _transaction(CMD_READ_SPEED_1, nullptr, 0, &rbuff_speed[0], ENCODER_SPEED_MESSAGE_SIZE, false,
+					 true) == ENCODER_SPEED_MESSAGE_SIZE;
+		success &=  _transaction(CMD_READ_SPEED_2, nullptr, 0, &rbuff_speed[4], ENCODER_SPEED_MESSAGE_SIZE, false,
+					 true) == ENCODER_SPEED_MESSAGE_SIZE;
 	}
 
 	if (!success) {
@@ -548,8 +562,6 @@ int RoboClaw::_transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
 
 void RoboClaw::_parameters_update()
 {
-	param_get(_param_handles.serial_timeout_retries, &_parameters.serial_timeout_retries);
-	param_get(_param_handles.stop_retries, &_parameters.stop_retries);
 	param_get(_param_handles.counts_per_rev, &_parameters.counts_per_rev);
 	param_get(_param_handles.encoder_read_period_ms, &_parameters.encoder_read_period_ms);
 	param_get(_param_handles.actuator_write_period_ms, &_parameters.actuator_write_period_ms);
