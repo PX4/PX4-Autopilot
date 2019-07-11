@@ -293,7 +293,7 @@ struct pwm_output_rc_config {
 #define PWM_SERVO_GET_RATEGROUP(_n) _PX4_IOC(_PWM_SERVO_BASE, 0x70 + _n)
 
 /** specific rates for configuring the timer for OneShot, PWM or Dshot */
-#define	PWM_RATE_ONOESHOT			0u
+#define	PWM_RATE_ONESHOT			0u
 #define	PWM_RATE_LOWER_LIMIT		1u
 #define	PWM_RATE_UPPER_LIMIT		10000u
 #define PWM_RATE_DSHOT150			10001u
