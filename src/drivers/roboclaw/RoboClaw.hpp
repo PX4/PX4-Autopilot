@@ -178,8 +178,6 @@ private:
 	struct {
 		speed_t serial_baud_rate;
 		int32_t counts_per_rev;
-		int32_t serial_timeout_retries;
-		int32_t stop_retries;
 		int32_t encoder_read_period_ms;
 		int32_t actuator_write_period_ms;
 		int32_t address;
@@ -188,8 +186,6 @@ private:
 	struct {
 		param_t serial_baud_rate;
 		param_t counts_per_rev;
-		param_t serial_timeout_retries;
-		param_t stop_retries;
 		param_t encoder_read_period_ms;
 		param_t actuator_write_period_ms;
 		param_t address;

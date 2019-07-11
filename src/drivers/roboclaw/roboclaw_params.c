@@ -76,27 +76,6 @@ PARAM_DEFINE_INT32(RBCLW_READ_PER, 10);
 PARAM_DEFINE_INT32(RBCLW_COUNTS_REV, 1200);
 
 /**
- * Communication retries
- *
- * If communication ever fails with the Roboclaw, it will be immediately retried, up to RBCLW_RETRIES times in total.
- * @min 1
- * @max 10
- * @group Roboclaw driver
- */
-PARAM_DEFINE_INT32(RBCLW_RETRIES, 1);
-
-/**
- * Stop retries
- *
- * When disarmed, if communication is interrupted with the Roboclaw, it will continue to try to stop up to
- * this many times.
- * @min 1
- * @max 100
- * @group Roboclaw driver
- */
-PARAM_DEFINE_INT32(RBCLW_STOP_RETRY, 10);
-
-/**
  * Address of the Roboclaw
  *
  * The Roboclaw can be configured to have an address from 0x80 to 0x87, inclusive. It must be configured to match
@@ -132,4 +111,4 @@ PARAM_DEFINE_INT32(RBCLW_ADDRESS, 128);
  * @group Roboclaw driver
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(RBCLW_BAUD, 8);
+PARAM_DEFINE_INT32(RBCLW_BAUD, 1);
