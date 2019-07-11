@@ -398,7 +398,21 @@ Mission::find_mission_land_start()
 		    ((missionitem.nav_cmd == NAV_CMD_VTOL_LAND) && _navigator->get_vstatus()->is_vtol) ||
 		    (missionitem.nav_cmd == NAV_CMD_LAND)) {
 			_land_start_available = true;
+
 			_land_start_index = i;
+
+			if (i > 0 && _navigator->get_vstatus()->is_vtol) {
+
+				if (dm_read(dm_current, i - 1, &missionitem, len) != len) {
+					/* not supposed to happen unless the datamanager can't access the SD card, etc. */
+					PX4_ERR("dataman read failure");
+
+				} else if (missionitem.nav_cmd == NAV_CMD_LOITER_TO_ALT) {
+					_land_start_index = i - 1;
+				}
+			}
+
+
 			return true;
 		}
 	}
