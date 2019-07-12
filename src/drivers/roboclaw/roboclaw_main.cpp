@@ -109,13 +109,14 @@ the driver terminates immediately.
 
 The command to start this driver is:
 
- $ roboclaw start <device>
+ $ roboclaw start <device> <baud>
 
 `<device>` is the name of the UART port. On the Pixhawk 4, this is `/dev/ttyS3`.
+`<baud>` is te baud rate.
 
 All available commands are:
 
- - `$ roboclaw start <device>`
+ - `$ roboclaw start <device> <baud>`
  - `$ roboclaw status`
  - `$ roboclaw stop`
 	)DESCR_STR");
@@ -132,7 +133,7 @@ All available commands are:
 int roboclaw_main(int argc, char *argv[])
 {
 
-	if (argc < 2) {
+	if (argc < 4) {
 		usage();
 	}
 
@@ -148,7 +149,7 @@ int roboclaw_main(int argc, char *argv[])
 		deamon_task = px4_task_spawn_cmd("roboclaw",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_MAX - 10,
-						 1500,
+						 2000,
 						 roboclaw_thread_main,
 						 (char *const *)argv);
 		return 0;
@@ -183,14 +184,15 @@ int roboclaw_thread_main(int argc, char *argv[])
 	argv += 2;
 
 	if (argc < 2) {
-		printf("usage: roboclaw start <device>\n");
+		printf("usage: roboclaw start <device> <baud>\n");
 		return -1;
 	}
 
 	const char *deviceName = argv[1];
+	const char *baudRate = argv[2];
 
 	// start
-	RoboClaw roboclaw(deviceName);
+	RoboClaw roboclaw(deviceName, baudRate);
 
 	thread_running = true;
 

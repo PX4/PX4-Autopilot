@@ -84,10 +84,9 @@ public:
 	 * 	serial port e.g. "/dev/ttyS2"
 	 * @param address the adddress  of the motor
 	 * 	(selectable on roboclaw)
-	 * @param pulsesPerRev # of encoder
-	 *  pulses per revolution of wheel
+	 * @param baudRateParam Name of the parameter that holds the baud rate of this serial port
 	 */
-	RoboClaw(const char *deviceName);
+	RoboClaw(const char *deviceName, const char *baudRateParam);
 
 	/**
 	 * deconstructor
