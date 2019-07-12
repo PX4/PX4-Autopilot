@@ -37,7 +37,7 @@ set(config_module_list
 	drivers/imu/l3gd20
 	drivers/imu/lsm303d
 	drivers/imu/mpu6000
-	#drivers/imu/mpu9250
+	drivers/imu/mpu9250
 	#drivers/iridiumsbd
 	#drivers/irlock
 	#drivers/magnetometer/hmc5883
