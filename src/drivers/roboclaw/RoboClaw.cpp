@@ -77,7 +77,7 @@
 
 bool RoboClaw::taskShouldExit = false;
 
-RoboClaw::RoboClaw(const char *deviceName):
+RoboClaw::RoboClaw(const char *deviceName, const char *baudRateParam):
 	_uart(0),
 	_uart_set(),
 	_uart_timeout{.tv_sec = 0, .tv_usec = TIMEOUT_US},
@@ -87,11 +87,10 @@ RoboClaw::RoboClaw(const char *deviceName):
 	_motorSpeeds{0, 0}
 
 {
-
 	_param_handles.actuator_write_period_ms = 	param_find("RBCLW_WRITE_PER");
 	_param_handles.encoder_read_period_ms = 	param_find("RBCLW_READ_PER");
 	_param_handles.counts_per_rev = 			param_find("RBCLW_COUNTS_REV");
-	_param_handles.serial_baud_rate = 			param_find("RBCLW_BAUD");
+	_param_handles.serial_baud_rate = 			param_find(baudRateParam);
 	_param_handles.address = 					param_find("RBCLW_ADDRESS");
 
 	_parameters_update();
@@ -580,39 +579,39 @@ void RoboClaw::_parameters_update()
 	param_get(_param_handles.serial_baud_rate, &baudRate);
 
 	switch (baudRate) {
-	case 1:
+	case 2400:
 		_parameters.serial_baud_rate = B2400;
 		break;
 
-	case 2:
+	case 9600:
 		_parameters.serial_baud_rate = B9600;
 		break;
 
-	case 3:
+	case 19200:
 		_parameters.serial_baud_rate = B19200;
 		break;
 
-	case 4:
+	case 38400:
 		_parameters.serial_baud_rate = B38400;
 		break;
 
-	case 5:
+	case 57600:
 		_parameters.serial_baud_rate = B57600;
 		break;
 
-	case 6:
+	case 115200:
 		_parameters.serial_baud_rate = B115200;
 		break;
 
-	case 7:
+	case 230400:
 		_parameters.serial_baud_rate = B230400;
 		break;
 
-	case 8:
+	case 460800:
 		_parameters.serial_baud_rate = B460800;
 		break;
 
 	default:
-		_parameters.serial_baud_rate = B9600;
+		_parameters.serial_baud_rate = B2400;
 	}
 }
