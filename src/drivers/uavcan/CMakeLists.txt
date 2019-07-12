@@ -97,6 +97,7 @@ px4_add_module(
 		sensors/gnss.cpp
 		sensors/mag.cpp
 		sensors/baro.cpp
+		sensors/flow.cpp
 
 	DEPENDS
 		mixer
