@@ -44,9 +44,10 @@
  */
 
 /**
- * RTL altitude
+ * Return to home relative altitude.
  *
- * Altitude to fly back in RTL in meters
+ * Relative altitude above home at which the vehicle will return during RTL mode.
+ * This is affected by RTL_MIN_DIST and RTL_CONE_ANG.
  *
  * @unit m
  * @min 0
@@ -59,7 +60,7 @@ PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
 
 
 /**
- * Return mode loiter altitude
+ * Return to home relative loiter altitude.
  *
  * Stay at this altitude above home position after RTL descending.
  * Land (i.e. slowly descend) from this altitude if autolanding allowed.
@@ -89,11 +90,11 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
 PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
 
 /**
- * Minimum distance to trigger rising to a safe altitude
+ * Maximum horizontal distance to home position below which vehicle will use
+ * RTL_DESCEND_ALT as return altitude.
  *
  * If the system is horizontally closer than this distance to home
- * it will land straight on home instead of raising to the return
- * altitude first.
+ * it will only ascend to RTL_DESCEND_ALT before moving horizontally to the home position.
  *
  * @unit m
  * @min 0.5
@@ -120,7 +121,8 @@ PARAM_DEFINE_INT32(RTL_TYPE, 0);
 /**
  * Half-angle of the RTL cone.
  *
- * Defines the half-angle of the cone which defines the vehicle RTL behavior.
+ * Defines the half-angle of a cone centered around the home position which
+ * affects the altitude at which the vehicle returns during RTL.
  *
  * @unit degrees
  * @min 0
