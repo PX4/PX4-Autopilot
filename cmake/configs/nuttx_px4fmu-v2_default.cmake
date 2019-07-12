@@ -54,7 +54,7 @@ set(config_module_list
 	drivers/rgbled
 	drivers/stm32
 	drivers/stm32/adc
-	#drivers/stm32/tone_alarm
+	drivers/stm32/tone_alarm
 	#drivers/tap_esc
 	drivers/vmount
 	modules/sensors
