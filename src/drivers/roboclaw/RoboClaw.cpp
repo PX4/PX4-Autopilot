@@ -155,6 +155,8 @@ void RoboClaw::taskMain()
 	uint64_t encoderTaskLastRun = 0;
 	int waitTime = 0;
 
+	uint64_t actuatorsLastWritten = 0;
+
 	_actuatorsSub = orb_subscribe(ORB_ID(actuator_controls_0));
 	orb_set_interval(_actuatorsSub, _parameters.actuator_write_period_ms);
 
@@ -177,20 +179,22 @@ void RoboClaw::taskMain()
 
 		int pret = poll(fds, sizeof(fds) / sizeof(pollfd), waitTime / 1000);
 
+		bool actuators_timeout = int(hrt_absolute_time() - actuatorsLastWritten) > 2000 * _parameters.actuator_write_period_ms;
+
 		if (fds[0].revents & POLLIN) {
 			orb_copy(ORB_ID(parameter_update), _paramSub, &_paramUpdate);
 			_parameters_update();
 		}
 
 		// No timeout, update on either the actuator controls or the armed state
-		if (pret > 0 && (fds[1].revents & POLLIN || fds[2].revents & POLLIN)) {
+		if (pret > 0 && (fds[1].revents & POLLIN || fds[2].revents & POLLIN || actuators_timeout)) {
 			orb_copy(ORB_ID(actuator_controls_0), _actuatorsSub, &_actuatorControls);
 			orb_copy(ORB_ID(actuator_armed), _armedSub, &_actuatorArmed);
 
 			int drive_ret = 0, turn_ret = 0;
 
 			const bool disarmed = !_actuatorArmed.armed || _actuatorArmed.lockdown || _actuatorArmed.manual_lockdown
-					      || _actuatorArmed.force_failsafe;
+					      || _actuatorArmed.force_failsafe || actuators_timeout;
 
 			if (disarmed) {
 				// If disarmed, I want to be certain that the stop command gets through.
@@ -210,6 +214,8 @@ void RoboClaw::taskMain()
 					PX4_ERR("Error controlling RoboClaw. Drive err: %d. Turn err: %d", drive_ret, turn_ret);
 				}
 			}
+
+			actuatorsLastWritten = hrt_absolute_time();
 
 		} else {
 			// A timeout occurred, which means that it's time to update the encoders
@@ -258,13 +264,12 @@ int RoboClaw::readEncoder()
 	bool success = false;
 
 	for (int retry = 0; retry < TIMEOUT_RETRIES && !success; retry++) {
-		success = true;
-		success &=  _transaction(CMD_READ_BOTH_ENCODERS, nullptr, 0, &rbuff_pos[0], ENCODER_MESSAGE_SIZE, false,
-					 true) == ENCODER_MESSAGE_SIZE;
-		success &=  _transaction(CMD_READ_SPEED_1, nullptr, 0, &rbuff_speed[0], ENCODER_SPEED_MESSAGE_SIZE, false,
-					 true) == ENCODER_SPEED_MESSAGE_SIZE;
-		success &=  _transaction(CMD_READ_SPEED_2, nullptr, 0, &rbuff_speed[4], ENCODER_SPEED_MESSAGE_SIZE, false,
-					 true) == ENCODER_SPEED_MESSAGE_SIZE;
+		success = _transaction(CMD_READ_BOTH_ENCODERS, nullptr, 0, &rbuff_pos[0], ENCODER_MESSAGE_SIZE, false,
+				       true) == ENCODER_MESSAGE_SIZE;
+		success = success && _transaction(CMD_READ_SPEED_1, nullptr, 0, &rbuff_speed[0], ENCODER_SPEED_MESSAGE_SIZE, false,
+						  true) == ENCODER_SPEED_MESSAGE_SIZE;
+		success = success && _transaction(CMD_READ_SPEED_2, nullptr, 0, &rbuff_speed[4], ENCODER_SPEED_MESSAGE_SIZE, false,
+						  true) == ENCODER_SPEED_MESSAGE_SIZE;
 	}
 
 	if (!success) {
