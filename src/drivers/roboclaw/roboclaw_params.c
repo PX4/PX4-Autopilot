@@ -98,17 +98,17 @@ PARAM_DEFINE_INT32(RBCLW_ADDRESS, 128);
  * Roboclaw serial baud rate
  *
  * Baud rate of the serial communication with the Roboclaw. The Roboclaw must be configured to match this rate.
- * @min 1
- * @max 8
- * @value 1 2400 baud
- * @value 2 9600 baud
- * @value 3 19200 baud
- * @value 4 38400 baud
- * @value 5 57600 baud
- * @value 6 115200 baud
- * @value 7 230400 baud
- * @value 8 460800 baud
+ * @min 2400
+ * @max 460800
+ * @value 2400 2400 baud
+ * @value 9600 9600 baud
+ * @value 19200 19200 baud
+ * @value 38400 38400 baud
+ * @value 57600 57600 baud
+ * @value 115200 115200 baud
+ * @value 230400 230400 baud
+ * @value 460800 460800 baud
  * @group Roboclaw driver
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(RBCLW_BAUD, 1);
+PARAM_DEFINE_INT32(RBCLW_BAUD, 2400);
