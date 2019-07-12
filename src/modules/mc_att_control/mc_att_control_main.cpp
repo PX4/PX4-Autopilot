@@ -106,6 +106,10 @@ MulticopterAttitudeControl::parameters_updated()
 	_rate_d = Vector3f(_param_mc_rollrate_d.get(), _param_mc_pitchrate_d.get(), _param_mc_yawrate_d.get());
 	_rate_ff = Vector3f(_param_mc_rollrate_ff.get(), _param_mc_pitchrate_ff.get(), _param_mc_yawrate_ff.get());
 
+	// The controller gain K is used to convert the parallel (P + I/s + sD) form
+	// to the ideal (K * [1 + 1/sTi + sTd]) form
+	_rate_k = Vector3f(_param_mc_rollrate_k.get(), _param_mc_pitchrate_k.get(), _param_mc_yawrate_k.get());
+
 	if (fabsf(_lp_filters_d.get_cutoff_freq() - _param_mc_dterm_cutoff.get()) > 0.01f) {
 		_lp_filters_d.set_cutoff_frequency(_loop_update_rate_hz, _param_mc_dterm_cutoff.get());
 		_lp_filters_d.reset(_rates_prev);
@@ -446,9 +450,9 @@ MulticopterAttitudeControl::control_attitude_rates(float dt)
 	/* apply low-pass filtering to the rates for D-term */
 	Vector3f rates_filtered(_lp_filters_d.apply(rates));
 
-	_att_control = rates_p_scaled.emult(rates_err) +
-		       _rates_int -
-		       rates_d_scaled.emult(rates_filtered - _rates_prev_filtered) / dt +
+	_att_control = _rate_k.emult(rates_p_scaled.emult(rates_err) +
+				     _rates_int -
+				     rates_d_scaled.emult(rates_filtered - _rates_prev_filtered) / dt) +
 		       _rate_ff.emult(_rates_sp);
 
 	_rates_prev = rates;
