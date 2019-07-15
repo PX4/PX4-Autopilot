@@ -38,6 +38,9 @@ pipeline {
             always {
               sh 'rm -rf catkin_ws'
             }
+            failure {
+              archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.xml, .ros/**/*.log')
+            }
           }
           options {
             checkoutToSubdirectory('catkin_ws/src/Firmware')
