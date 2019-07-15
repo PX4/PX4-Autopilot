@@ -78,7 +78,7 @@ public:
 
 	virtual ~FlightTaskAuto() = default;
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
-	bool activate(vehicle_local_position_setpoint_s state_prev) override;
+	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
 	bool updateInitialize() override;
 	bool updateFinalize() override;
 

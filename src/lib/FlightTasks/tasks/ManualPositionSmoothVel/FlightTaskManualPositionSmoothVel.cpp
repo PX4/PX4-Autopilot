@@ -38,9 +38,9 @@
 
 using namespace matrix;
 
-bool FlightTaskManualPositionSmoothVel::activate(vehicle_local_position_setpoint_s state_prev)
+bool FlightTaskManualPositionSmoothVel::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	bool ret = FlightTaskManualPosition::activate(state_prev);
+	bool ret = FlightTaskManualPosition::activate(last_setpoint);
 
 	// Check if the previous FlightTask provided setpoints
 	checkSetpoints(last_setpoint);

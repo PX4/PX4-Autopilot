@@ -47,7 +47,7 @@ public:
 	FlightTaskTransition() = default;
 
 	virtual ~FlightTaskTransition() = default;
-	bool activate(vehicle_local_position_setpoint_s state_prev) override;
+	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
 	bool updateInitialize() override;
 	bool update() override;
 

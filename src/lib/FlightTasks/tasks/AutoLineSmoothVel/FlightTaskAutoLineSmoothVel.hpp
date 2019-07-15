@@ -49,7 +49,7 @@ public:
 	FlightTaskAutoLineSmoothVel() = default;
 	virtual ~FlightTaskAutoLineSmoothVel() = default;
 
-	bool activate(vehicle_local_position_setpoint_s state_prev) override;
+	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
 	void reActivate() override;
 
 protected:

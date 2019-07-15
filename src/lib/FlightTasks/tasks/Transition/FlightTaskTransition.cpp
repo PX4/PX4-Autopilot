@@ -42,14 +42,14 @@ bool FlightTaskTransition::updateInitialize()
 	return FlightTask::updateInitialize();
 }
 
-bool FlightTaskTransition::activate(vehicle_local_position_setpoint_s state_prev)
+bool FlightTaskTransition::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	checkSetpoints(state_prev);
-	_transition_altitude = state_prev.z;
-	_transition_yaw = state_prev.yaw;
+	checkSetpoints(last_setpoint);
+	_transition_altitude = last_setpoint.z;
+	_transition_yaw = last_setpoint.yaw;
 	_acceleration_setpoint.setAll(0.f);
 	_velocity_prev = _velocity;
-	return FlightTask::activate(state_prev);
+	return FlightTask::activate(last_setpoint);
 }
 
 void FlightTaskTransition::checkSetpoints(vehicle_local_position_setpoint_s &setpoints)

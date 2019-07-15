@@ -52,9 +52,9 @@ public:
 
 	virtual ~FlightTaskSport() = default;
 
-	bool activate(vehicle_local_position_setpoint_s state_prev) override
+	bool activate(vehicle_local_position_setpoint_s last_setpoint) override
 	{
-		bool ret = FlightTaskManualPosition::activate(state_prev);
+		bool ret = FlightTaskManualPosition::activate(last_setpoint);
 
 		// default constraints already are the maximum allowed limits
 		_setDefaultConstraints();
