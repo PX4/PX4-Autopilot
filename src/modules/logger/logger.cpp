@@ -708,7 +708,7 @@ void Logger::add_sensor_comparison_topics()
 void Logger::add_vision_and_avoidance_topics()
 {
 	add_topic("collision_constraints");
-	add_topic("obstacle_distance");
+	add_topic("obstacle_distance_fused");
 	add_topic("vehicle_mocap_odometry", 30);
 	add_topic("vehicle_trajectory_waypoint", 200);
 	add_topic("vehicle_trajectory_waypoint_desired", 200);
