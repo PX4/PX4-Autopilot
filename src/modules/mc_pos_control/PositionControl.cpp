@@ -282,7 +282,7 @@ void PositionControl::_velocityController(const float &dt)
 
 		_hover_est += est_gain * p * dt;
 
-		printf("Stima hover %.2f \n", (double) _hover_est);
+		printf("Hover est %.2f \n", (double) _hover_est);
 
 	} else {_hover_est = _param_mpc_thr_hover.get();}
 
