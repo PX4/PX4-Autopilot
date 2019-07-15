@@ -65,10 +65,10 @@ bool FlightTaskManualPosition::updateInitialize()
 	       && PX4_ISFINITE(_velocity(1));
 }
 
-bool FlightTaskManualPosition::activate(vehicle_local_position_setpoint_s state_prev)
+bool FlightTaskManualPosition::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
 	// all requirements from altitude-mode still have to hold
-	bool ret = FlightTaskManualAltitude::activate(state_prev);
+	bool ret = FlightTaskManualAltitude::activate(last_setpoint);
 
 	_constraints.tilt = math::radians(_param_mpc_tiltmax_air.get());
 

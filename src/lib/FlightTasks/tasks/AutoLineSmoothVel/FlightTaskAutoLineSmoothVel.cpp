@@ -41,20 +41,20 @@
 
 using namespace matrix;
 
-bool FlightTaskAutoLineSmoothVel::activate(vehicle_local_position_setpoint_s state_prev)
+bool FlightTaskAutoLineSmoothVel::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	bool ret = FlightTaskAutoMapper2::activate(state_prev);
+	bool ret = FlightTaskAutoMapper2::activate(last_setpoint);
 
-	checkSetpoints(state_prev);
-	const Vector3f accel_prev{state_prev.acc_x, state_prev.acc_y, state_prev.acc_z};
-	const Vector3f vel_prev = Vector3f(state_prev.vx, state_prev.vy, state_prev.vz);
-	const Vector3f pos_prev = Vector3f(state_prev.x, state_prev.y, state_prev.z);
+	checkSetpoints(last_setpoint);
+	const Vector3f accel_prev(last_setpoint.acc_x, last_setpoint.acc_y, last_setpoint.acc_z);
+	const Vector3f vel_prev(last_setpoint.vx, last_setpoint.vy, last_setpoint.vz);
+	const Vector3f pos_prev(last_setpoint.x, last_setpoint.y, last_setpoint.z);
 
 	for (int i = 0; i < 3; ++i) {
 		_trajectory[i].reset(accel_prev(i), vel_prev(i), pos_prev(i));
 	}
 
-	_yaw_sp_prev = state_prev.yaw;
+	_yaw_sp_prev = last_setpoint.yaw;
 	_updateTrajConstraints();
 	_initEkfResetCounters();
 
