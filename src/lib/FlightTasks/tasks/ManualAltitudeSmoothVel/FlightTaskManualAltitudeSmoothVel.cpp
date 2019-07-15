@@ -41,14 +41,14 @@
 
 using namespace matrix;
 
-bool FlightTaskManualAltitudeSmoothVel::activate(vehicle_local_position_setpoint_s state_prev)
+bool FlightTaskManualAltitudeSmoothVel::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	bool ret = FlightTaskManualAltitude::activate(state_prev);
+	bool ret = FlightTaskManualAltitude::activate(last_setpoint);
 
 	// Check if the previous FlightTask provided setpoints
-	checkSetpoints(state_prev);
+	checkSetpoints(last_setpoint);
 
-	_smoothing.reset(state_prev.acc_z, state_prev.vz, state_prev.z);
+	_smoothing.reset(last_setpoint.acc_z, last_setpoint.vz, last_setpoint.z);
 
 	_initEkfResetCounters();
 	_resetPositionLock();

@@ -22,7 +22,7 @@ bool FlightTask::initializeSubscriptions(SubscriptionArray &subscription_array)
 	return true;
 }
 
-bool FlightTask::activate(vehicle_local_position_setpoint_s state_prev)
+bool FlightTask::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
 	_resetSetpoints();
 	_setDefaultConstraints();

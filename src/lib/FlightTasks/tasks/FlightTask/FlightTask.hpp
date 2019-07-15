@@ -79,7 +79,7 @@ public:
 	 * @param state of the previous task
 	 * @return true on success, false on error
 	 */
-	virtual bool activate(vehicle_local_position_setpoint_s state_prev);
+	virtual bool activate(vehicle_local_position_setpoint_s last_setpoint);
 
 	/**
 	 * Call this to reset an active Flight Task
