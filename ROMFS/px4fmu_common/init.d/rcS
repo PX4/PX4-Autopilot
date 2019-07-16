@@ -20,6 +20,7 @@ set +e
 # Do not add intra word spaces
 # it wastes flash
 #
+set AUTOCNF no
 set AUX_MODE pwm
 set DATAMAN_OPT ""
 set FAILSAFE none
