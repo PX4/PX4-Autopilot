@@ -177,6 +177,50 @@ void FlightTaskAutoLineSmoothVel::_checkEkfResetCounters()
 	}
 }
 
+float FlightTaskAutoLineSmoothVel::_getSpeedAtTarget()
+{
+	// Compute the maximum allowed speed at the waypoint assuming that we want to connect the two lines (prev-current and current-next)
+	// with a tangent circle with constant speed and desired centripetal acceleration: a_centripetal = speed^2 / radius
+	// The circle should in theory start and end at the intersection of the lines and the waypoint's acceptance radius. This is not
+	// exactly true in reality since Navigator switches the waypoint so we have to take in account that the real acceptance radius is smaller.
+	// It can be that the next waypoint is the last one or that the drone will have to stop for some other reason so we have to make sure
+	// that the speed at the current waypoint allows to stop at the next waypoint.
+	float speed_at_target = 0.0f;
+
+	const float distance_current_next = Vector2f(&(_target - _next_wp)(0)).length();
+
+	if (distance_current_next > 0.001f &&
+	    (Vector2f(&(_target - _prev_wp)(0)).length() > _target_acceptance_radius) &&
+	    _param_mpc_yaw_mode.get() != 4) {
+		// Max speed between current and next
+		const float max_speed_current_next = _getMaxSpeedFromDistance(distance_current_next);
+		const float alpha = acos(Vector2f(&(_target - _prev_wp)(0)).unit_or_zero() * Vector2f(&(_target - _next_wp)(
+						 0)).unit_or_zero()) / 2.f;
+		const float tan_alpha = tan(alpha);
+		// We choose a maximum centripetal acceleration of MPC_ACC_HOR/2 to take in account that there is a jerk limit (a direct transition from line to circle is not possible)
+		// We assume that the real radius of the acceptance radius is half of the _target_acceptance_radius since Navigator switches for us depending on the current position of
+		// the drone. This allows for some tolerance on tracking error.
+		speed_at_target = math::min(math::min(sqrtf(_param_mpc_acc_hor.get() / 2.f * _target_acceptance_radius / 2.f *
+						      tan_alpha), max_speed_current_next), _mc_cruise_speed);
+	}
+
+	return speed_at_target;
+}
+
+float FlightTaskAutoLineSmoothVel::_getMaxSpeedFromDistance(float braking_distance)
+{
+	// Compute the maximum possible velocity on the track given the remaining distance, the maximum acceleration and the maximum jerk.
+	// We assume a constant acceleration profile with a delay of 2*accel/jerk (time to reach the desired acceleration from opposite max acceleration)
+	// Equation to solve: 0 = vel^2 - 2*acc*(x - vel*2*acc/jerk)
+	// To avoid high gain at low distance due to the sqrt, we take the minimum of this velocity and a slope of "traj_p" m/s per meter
+	float b = 4.f * _param_mpc_acc_hor.get() * _param_mpc_acc_hor.get() / _param_mpc_jerk_auto.get();
+	float c = - 2.f * _param_mpc_acc_hor.get() * braking_distance;
+	float max_speed = 0.5f * (-b + sqrtf(b * b - 4.f * c));
+	max_speed = math::min(max_speed, braking_distance * _param_mpc_xy_traj_p.get());
+
+	return max_speed;
+}
+
 void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 {
 	// Interface: A valid position setpoint generates a velocity target using a P controller. If a velocity is specified
@@ -201,20 +245,12 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 			pos_traj(1) = _trajectory[1].getCurrentPosition();
 			Vector2f pos_sp_xy(_position_setpoint);
 			Vector2f pos_traj_to_dest(pos_sp_xy - pos_traj);
-			Vector2f u_prev_to_dest = Vector2f(pos_sp_xy - Vector2f(_prev_wp)).unit_or_zero();
 			Vector2f prev_to_pos(pos_traj - Vector2f(_prev_wp));
-			Vector2f closest_pt = Vector2f(_prev_wp) + u_prev_to_dest * (prev_to_pos * u_prev_to_dest);
 			Vector2f u_pos_traj_to_dest_xy(Vector2f(pos_traj_to_dest).unit_or_zero());
 
-			// Compute the maximum possible velocity on the track given the remaining distance, the maximum acceleration and the maximum jerk.
-			// We assume a constant acceleration profile with a delay of 2*accel/jerk (time to reach the desired acceleration from opposite max acceleration)
-			// Equation to solve: 0 = vel^2 - 2*acc*(x - vel*2*acc/jerk)
-			// To avoid high gain at low distance due to the sqrt, we take the minimum of this velocity and a slope of "traj_p" m/s per meter
-			float b = 4.f * _param_mpc_acc_hor.get() * _param_mpc_acc_hor.get() / _param_mpc_jerk_auto.get();
-			float c = - 2.f * _param_mpc_acc_hor.get() * pos_traj_to_dest.length();
-			float max_speed = 0.5f * (-b + sqrtf(b * b - 4.f * c));
-			float speed_sp_track = math::min(max_speed, pos_traj_to_dest.length() * _param_mpc_xy_traj_p.get());
-			speed_sp_track = math::constrain(speed_sp_track, 0.0f, _mc_cruise_speed);
+			float speed_sp_track = _getMaxSpeedFromDistance(pos_traj_to_dest.length());
+
+			speed_sp_track = math::constrain(speed_sp_track, _getSpeedAtTarget(), _mc_cruise_speed);
 
 			Vector2f vel_sp_xy = u_pos_traj_to_dest_xy * speed_sp_track;
 
@@ -226,9 +262,6 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 				} else {
 					_velocity_setpoint(i) = vel_sp_xy(i);
 				}
-
-				_velocity_setpoint(i) += (closest_pt(i) - _trajectory[i].getCurrentPosition()) *
-							 _param_mpc_xy_traj_p.get();  // Along-track setpoint + cross-track P controller
 			}
 
 		}
