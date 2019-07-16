@@ -95,9 +95,14 @@ RTL::on_activation()
 void
 RTL::on_active()
 {
-	if (_rtl_state != RTL_STATE_LANDED && is_mission_item_reached()) {
-		advance_rtl();
-		set_rtl_item();
+	if (_rtl_state != RTL_STATE_LANDED) {
+		if (is_mission_item_reached()) {
+			advance_rtl();
+			set_rtl_item();
+		}
+
+	} else {
+		_navigator->get_mission_result()->finished = true;
 	}
 }
 
