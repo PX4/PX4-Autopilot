@@ -132,6 +132,15 @@ public:
 	void		fake_traffic(const char *callsign, float distance, float direction, float traffic_heading, float altitude_diff,
 				     float hor_velocity, float ver_velocity);
 
+
+/***************************************************************************************************************************/
+        /* Tobias Kieser: The check_traffic_conus() function preserves all behaviors like check_traffic() function.
+         * However, the collision are detected by the collision conus approach. Also another behavior has been added,
+         * wich flies an avoidance maneuver until the danger is over. Several parameters can be set (currently hard coded).
+	 */
+	void		check_traffic_conus();	
+/***************************************************************************************************************************/
+
 	/**
 	 * Check nearby traffic for potential collisions
 	 */
@@ -291,6 +300,19 @@ public:
 	bool		force_vtol();
 
 private:
+/*********************************************************************************************************************************************/
+/*Tobias Kieser: Parameters for CCAS:
+        int             f_Vi = 50;
+        int             f_distmin = 150;
+        float           f_turn = 0.1;
+        int             twait = 5;
+        float           f_ds = 0.5;
+        int             treact = 12;
+        int             ds = 50;*/
+
+
+/*********************************************************************************************************************************************/
+
 	int		_global_pos_sub{-1};		/**< global position subscription */
 	int		_gps_pos_sub{-1};		/**< gps position subscription */
 	int		_home_pos_sub{-1};		/**< home position subscription */

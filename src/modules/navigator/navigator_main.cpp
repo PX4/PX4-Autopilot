@@ -76,7 +76,12 @@ extern "C" __EXPORT int navigator_main(int argc, char *argv[]);
 #define GEOFENCE_CHECK_INTERVAL 200000
 
 using namespace time_literals;
+/***************************************************************/
+//Tobias Kieser:
+int count,tt, cyclecounter, collisioncounter, directionR, directionL = 0;
+bool _CAon = false;
 
+/***************************************************************/
 namespace navigator
 {
 Navigator	*g_navigator;
@@ -339,7 +344,7 @@ Navigator::run()
 				rep->previous.yaw = get_global_position()->yaw;
 				rep->previous.lat = get_global_position()->lat;
 				rep->previous.lon = get_global_position()->lon;
-				rep->previous.alt = get_global_position()->alt;
+                rep->previous.alt = get_global_position()->alt;
 
 				rep->current.loiter_radius = get_loiter_radius();
 				rep->current.loiter_direction = 1;
@@ -534,9 +539,16 @@ Navigator::run()
 				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 			}
 		}
+/*********************************************************************************************************************************************/
+                /* Tobias Kieser: The check_traffic_conus() function preserves all behaviors like check_traffic() function.
+                 * However, the collision are detected by the collision conus approach. Also another behavior has been added,
+                 * wich flies an avoidance maneuver until the danger is over. Several parameters can be set (currently hard coded).*/
 
-		/* Check for traffic */
-		check_traffic();
+                /* Check for traffic */
+                //check_traffic();
+                check_traffic_conus();
+
+/*********************************************************************************************************************************************/
 
 		/* Check geofence violation */
 		if (have_geofence_position_data &&
@@ -1042,11 +1054,377 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 	(void)orb_unadvertise(h);
 }
 
+/*********************************************************************************************************************************************/
+/*********************************************************************************************************************************************/
+/* Tobias Kieser: changed check_traffic() ffunction. detection base on collision conus approach*/
+
+void Navigator::check_traffic_conus()
+{
+    bool changed;
+    orb_check(_traffic_sub, &changed);
+    // while (changed) {
+
+    /******************************************** Parameters ********************************************/
+        //old:
+        float horizontal_separation = 500;
+        float vertical_separation = 500;
+        //TK: my new Parameters:
+        int             f_Vi = 50;
+        int             f_distmin = 150;
+        double           f_turn = 0.1; /*proportional Factor*/
+        int             twait = 5; /*[s] waiting time after finish the CCAS till change back to mission*/ //may arent used here...in avoidance part?
+        double           f_ds = 0.5;
+        int             treact = 12;
+        int             dss = 50;
+        int             dss_manned_aircraft = 300;
+        int             directionmin = 3;		/*min counts for keeping direction*/
+
+        //frage wie diese resetet werden sollen....//reset nur wenn cas vorbei
+      //  int cyclecounter, collisioncounter, directionR, directionL = 0; //
+
+
+    /******************************************** Positions and Veloceties ********************************************/
+        //U global position: (v U global/local funktioniert in simulation jmav)
+        double lat = get_global_position()->lat;
+        double lon = get_global_position()->lon;
+        float alt = get_global_position()->alt;
+        float vel_n = get_global_position()->vel_n; //Vu_x
+        float vel_e = get_global_position()->vel_e; //Vu_y
+       // float vel_d = get_global_position()->vel_d; // keine Ahnung was das ist
+       // vehicle_global_position_s *U_global = get_global_position();
+
+
+        //U set as ref point: (in simulation der ref punkt ist der Homepoint)
+       // map_projection_reference_s U_ref;
+        //U_ref.lat_rad = math::radians(lat);
+        //U_ref.lon_rad = math::radians(lon);
+
+        //U local position and velocity: (U local funktioniert soweit in simulator...ned bezogen auf homeposition!)
+        vehicle_local_position_s *U_ned = get_local_position();
+        matrix::Vector2<double> U({U_ned->x, U_ned->y});
+        matrix::Vector2<double> Vu({U_ned->vx, U_ned->vy});
+
+        // Intruders, I, FLARM,Transponder:
+        /* damit bekomme ich ein struct tr mit den erhaltenen Transponder /FLARM daten (old)*/
+        transponder_report_s tr;
+        orb_copy(ORB_ID(transponder_report), _traffic_sub, &tr);
+
+        uint16_t required_flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
+                                  transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
+                                  transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY | transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
+
+        /*aus meiner sicht, erstellt er hier eine FLAG-Maske und prueft ob sie stimmen, falls icht,nochmals change abfaregen*/
+        if ((tr.flags & required_flags) != required_flags) {
+                orb_check(_traffic_sub, &changed);
+            //    continue;
+        }
+
+        // I global position:
+        // (tr beinhaltet I_global_das meiste jedenfalls)
+
+        //I local position and velocty:
+        vehicle_local_position_s I_ned;
+        globallocalconverter_tolocal(tr.lat, tr.lon,tr.altitude, &I_ned.x, &I_ned.y, &I_ned.z);
+        //map_projection_project(&U_ref, tr.lat, tr.lon, &I_ned.x, &I_ned.y);
+        I_ned.vx =(float)cos(math::radians(tr.heading / 100))*tr.hor_velocity;
+        I_ned.vy = (float)sin(math::radians(tr.heading / 100))*tr.hor_velocity;
+        matrix::Vector2<double> I({I_ned.x, I_ned.y});
+        matrix::Vector2<double> Vi({I_ned.vx, I_ned.vy});
+
+        int I_type = 1; //verbesserung notwendig! aus dem transponder erkennen!
+
+
+    /******************************************** Calculations ********************************************/
+        //Init Variables:
+        double turning_yaw_angle = 0;
+
+
+
+        // d-Vektor/Distanz:
+        matrix::Vector2<double> Vd=I-U;
+        double distance_horizontal = Vd.norm();
+        //old: Hierb bekomme ich Horzontale und vertikale Distanz:
+        float d_hor, d_vert;
+        get_distance_to_point_global_wgs84(lat, lon, alt, tr.lat, tr.lon, tr.altitude, &d_hor, &d_vert);
+        double w_d = atan2f(Vd(2),Vd(1));
+
+        // Vrel:
+        matrix::Vector2<double> Vrel = Vu-Vi;
+        double LVrel = Vrel.norm();
+        double w_Vrel = atan2f(Vrel(2),Vrel(1));
+
+        // Vu:
+        //double LVu = Vu.norm();
+        double w_Vu = atan2f(Vu(2),Vu(1));
+
+        // Vi/I:
+        double LVi = Vi.norm();
+        double w_Vi = atan2f(Vi(2),Vi(1));
+
+        // Zwischenwinkel:
+        double beta_los_rel = w_Vrel-w_d;          // Zwischenwinkel Vd nach Vrel
+        double beta_v = w_Vi-w_Vu;         // Zwischenwinkel Vu nach Vi
+
+        // ds bestimmen:
+        if(I_type > 0){ //0 = drone / 1= manned aircraft
+            dss = dss_manned_aircraft;
+        }
+        double ds = dss+(LVi*f_ds);           //
+
+        //Poportional Faktor:
+        double NN = 1;
+        if(distance_horizontal<f_distmin || LVi>f_Vi){
+            NN = f_turn*LVrel;
+        }
+
+        // drg - Erkennungsradius: (drg so belassen? erändert sich ständig)
+        double drg = (treact*LVrel)+ds;
+        if(drg < 500){
+            drg = 500; // drg auf mindesten Radius setzten
+        }
+
+        /*// dalarm - Alarmradius: (Distanz bis 8sec bis crash ->abtauchen?)
+        dalarm = (talarm*LVrel)+ds;
+        */
+
+    /******************************************** Collision Conus (detect) ********************************************/
+
+        // Condition 1: I vorbei (CA off)
+        double ca_complete = distance_horizontal*LVrel*(double)cos(beta_los_rel)/LVrel;
+        if(ca_complete<0){
+            tt=tt+1;
+            if(tt>=twait){
+                mavlink_and_console_log_info(&_mavlink_log_pub, "Condition 1 - succesful avoidance %f",ca_complete);
+                _CAon = false;
+                //break;
+            }
+        }
+        // Condition 2: Innerhalb des Erkennungsradius?
+        // (Falls I ausserhalb des Erkennungsradiusses ist, nicht reagieren)
+        if(distance_horizontal <= drg){
+
+            //Condition 3: innerhab der Schutzradius? (ds)
+            if(distance_horizontal<ds){
+                mavlink_log_emergency(&_mavlink_log_pub, "Condition3 - Care crash! Diving!");
+                /*make warning! and dive!
+                 *
+                 * dive manoeuver!!!
+                 *
+                 * break
+                */
+            }
+
+            // Condition 4: Vrel im Conus?
+            // Conus erstellen und Vrel ueberpruefen
+
+            //Tangenten Winkeln:
+            double gammaP = asin(ds/distance_horizontal); // winkel von tangente zu d
+            double gammaN = -gammaP;
+            double wl = w_d+gammaP; // winkel zu linke tangente
+            double wr = w_d+gammaN; // winkel zu rechte tangente
+
+            if(w_Vrel >= wl || w_Vrel <= wr){ // Ausserhalb des Konusses -> keine collision:
+                // Kurs beibehalten keine Drehung
+                mavlink_and_console_log_info(&_mavlink_log_pub, "Condition 4a - no collision - ausserhalb Conus");
+                turning_yaw_angle = 0;
+
+            }else{ // Innerhalb des Konusses ---> Collision:
+                // Collision:
+                // ----------
+                //Dive-Check: ()
+                /*
+                if(distance_horizontal<dalarm){
+                * may there should come a dive manover
+                * befor you are in ds?
+                *
+                }*/
+
+                // CA is on
+                mavlink_log_critical(&_mavlink_log_pub, "Condition 4b - Conflict! - CA is on!");
+                if(!_CAon){
+                    //lastPos = ; // save last mission point to keep going after ca
+                collisioncounter=0;
+                directionR=0;
+                directionL = 0; //
+                }
+                _CAon = true;
+                collisioncounter = collisioncounter+1;
+
+                // Ausweichrichtung und Winkel bestimmen:
+                double sig_l = abs(gammaP-beta_los_rel);
+                double sig_r = abs(gammaN-beta_los_rel);
+
+                if(sig_r<=sig_l){ //min-Funktion
+                    turning_yaw_angle = -sig_r*NN;
+                    mavlink_and_console_log_info(&_mavlink_log_pub, "turn right");
+                }else{
+                    turning_yaw_angle = sig_l*NN;
+                    mavlink_and_console_log_info(&_mavlink_log_pub, "turn left");
+                }
+
+                // Falls Flugzeug von Hintenkommt L-R umkehren:
+                double w_ninety = (90/180)*M_PI_F;
+                if((w_d>=(w_Vu+w_ninety)  || w_d<=(w_Vu-w_ninety)) && (beta_v < w_ninety && beta_v > (-w_ninety))){
+                        turning_yaw_angle = -1*turning_yaw_angle ; // umkehren
+                        mavlink_and_console_log_info(&_mavlink_log_pub, "turn switched!!");
+                }
+
+                // Richtungszähler:
+                if(turning_yaw_angle <= 0){directionR = directionR+1;}
+                else{directionL = directionL+1;}
+
+                // Richtung beibehalten, nicht sschwanken:
+                if(directionR > directionmin){turning_yaw_angle = -1*abs(turning_yaw_angle );}
+                else if(directionL > directionmin){turning_yaw_angle = abs(turning_yaw_angle );}
+                else{turning_yaw_angle = turning_yaw_angle ;}
+
+            } // end condition 4 (collision)
+
+        }else{ // condition 2 (wenn ausserhalb von drg)
+            mavlink_and_console_log_info(&_mavlink_log_pub, "Condition 2 - out of recognige range");
+            // do nothing
+
+        } // end condition2 Erkennungsradius d<=drg
+
+
+        // Returnwerte des CC:
+        //matrix::Matrix<double,2,2>
+        double _R_soll[2][2] = {{cosf(turning_yaw_angle), -sinf(turning_yaw_angle)},
+                              {sinf(turning_yaw_angle), cosf(turning_yaw_angle)}}; // rotation matrix
+
+        // I berechnen/I virtuell updaten:
+        /*
+        I = (I+Vi*dt); % nötig für Algorithmus
+        */
+
+
+    /******************************************** Avoidance ********************************************/
+    /* calculation and set points for avoindance */
+
+        Vu(0) = _R_soll[0][0]*Vu(0)+_R_soll[1][0]*Vu(0);
+        Vu(1) = _R_soll[0][1]*Vu(1)+_R_soll[1][1]*Vu(1);
+
+
+        ++count;
+        if(count==200){
+            if(lat<1||lon<1){
+                mavlink_log_critical(&_mavlink_log_pub, "U global: error!! %f %f",lat,lon);
+            }
+             PX4_WARN("U gl: %f %f, Vel:%f %f",lat,lon,(double)vel_n,(double)vel_e);
+             PX4_WARN("U loc: %f %f, %f %f",U(0),U(1),(double)Vu(0),(double)Vu(1));
+             mavlink_log_critical(&_mavlink_log_pub, "U global: %f %f, Vel:v%f %f",lat,lon,(double)vel_n,(double)vel_e);
+             mavlink_log_critical(&_mavlink_log_pub, "U local: %f %f, Vel: %f %f",U(0),U(1),(double)Vu(0),(double)Vu(1));
+             mavlink_log_critical(&_mavlink_log_pub, "I global: %f %f, Vel: %f",tr.lat,tr.lon,(double)tr.hor_velocity);
+             mavlink_log_critical(&_mavlink_log_pub, "I local: %f %f, Vel: %f %f",I(0),I(1),(double)Vi(0),(double)Vi(1));
+
+             mavlink_log_critical(&_mavlink_log_pub, "Vd: %f %f" ,(double)Vd(0),(double)Vd(1));
+
+             count=0;
+        }
+
+
+
+        // predict final altitude (positive is up) in prediction time frame
+        float end_alt = tr.altitude + (d_vert / tr.hor_velocity) * tr.ver_velocity;
+
+        // Predict until the vehicle would have passed this system at its current speed
+        float prediction_distance = d_hor + 1000.0f;
+
+        // If the altitude is not getting close to us, do not calculate
+        // the horizontal separation.
+        // Since commercial flights do most of the time keep flight levels
+        // check for the current and for the predicted flight level.
+        // we also make the implicit assumption that this system is on the lowest
+        // flight level close to ground in the
+        // (end_alt - horizontal_separation < alt) condition. If this system should
+        // ever be used in normal airspace this implementation would anyway be
+        // inappropriate as it should be replaced with a TCAS compliant solution.
+
+        /******************************************** decisions ********************************************/
+
+
+        if ((fabsf(alt - tr.altitude) < vertical_separation) || ((end_alt - horizontal_separation) < alt)) {
+
+                double end_lat, end_lon;
+                waypoint_from_heading_and_distance(tr.lat, tr.lon, tr.heading, prediction_distance, &end_lat, &end_lon);
+
+                struct crosstrack_error_s cr;
+
+                if (!get_distance_to_line(&cr, lat, lon, tr.lat, tr.lon, end_lat, end_lon)) {
+
+                        if (!cr.past_end && (fabsf(cr.distance) < horizontal_separation)) {
+
+                                // direction of traffic in human-readable 0..360 degree in earth frame
+                                int traffic_direction = math::degrees(tr.heading) + 180;
+
+                                switch (_param_traffic_avoidance_mode.get()) {
+
+                                case 0: {
+                                                /* ignore */
+                                                PX4_WARN("TRAFFIC %s, hdg: %d", tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign :
+                                                         "unknown",
+                                                         traffic_direction);
+                                                break;
+                                        }
+
+                                case 1: {
+                                                mavlink_log_critical(&_mavlink_log_pub, "WARNING TRAFFIC %s at heading %d, land immediately",
+                                                                     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
+                                                                     traffic_direction);
+                                                break;
+                                        }
+
+                                case 2: {
+                                                mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, returning home",
+                                                                     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
+                                                                     traffic_direction);
+
+                                                // set the return altitude to minimum
+                                                _rtl.set_return_alt_min(true);
+
+                                                // ask the commander to execute an RTL
+                                                vehicle_command_s vcmd = {};
+                                                vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_RETURN_TO_LAUNCH;
+                                                publish_vehicle_cmd(&vcmd);
+                                                break;
+                                        }
+
+                                case 4: { /*NEW Behavior for collision avoidance:*/
+
+
+
+                                             /* mavlink_log_critical(&_mavlink_log_pub, "FLARM AVOIDING TRAFFIC %s heading %d, Attetion!",
+                                                        tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
+                                                        traffic_direction);
+
+                                                // set the return altitude to minimum
+                                                _conus_avoidance(true);
+
+                                                // ask the commander to execute an Conus avoidance:
+                                                vehicle_command_s vcmd = {};
+                                                vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_CONUS_CA;
+                                                publish_vehicle_cmd(&vcmd);*/
+                                                break;
+                                        }
+                                }
+                        }
+                }
+        //}
+
+        orb_check(_traffic_sub, &changed);
+    }
+}
+/* end of check_traffic_conus() */
+/*********************************************************************************************************************************************/
+/*********************************************************************************************************************************************/
+
+
 void Navigator::check_traffic()
 {
 	double lat = get_global_position()->lat;
 	double lon = get_global_position()->lon;
 	float alt = get_global_position()->alt;
+
 
 	// TODO for non-multirotors predicting the future
 	// position as accurately as possible will become relevant

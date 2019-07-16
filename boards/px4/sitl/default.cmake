@@ -72,6 +72,8 @@ px4_add_board(
 		tune_control
 		ver
 
+
+
 	EXAMPLES
 		bottle_drop # OBC challenge
 		dyn_hello # dynamically loading modules example
@@ -83,6 +85,7 @@ px4_add_board(
 		px4_simple_app # Tutorial code from https://px4.io/dev/px4_simple_app
 		rover_steering_control # Rover example app
 		segway
+		
 	)
 
 set(config_sitl_viewer jmavsim CACHE STRING "viewer for sitl")
@@ -100,3 +103,4 @@ if(REPLAY_FILE)
 endif()
 
 set(ENABLE_LOCKSTEP_SCHEDULER yes)
+
