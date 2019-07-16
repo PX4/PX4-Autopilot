@@ -20,11 +20,7 @@ set +e
 # Do not add intra word spaces
 # it wastes flash
 #
-set AUTOCNF no
 set AUX_MODE pwm
-set BOARD_RC_DEFAULTS /etc/init.d/rc.board_defaults
-set BOARD_RC_EXTRAS /etc/init.d/rc.board_extras
-set BOARD_RC_SENSORS /etc/init.d/rc.board_sensors
 set DATAMAN_OPT ""
 set FAILSAFE none
 set FAILSAFE_AUX none
@@ -178,11 +174,13 @@ else
 	#
 	# Optional board defaults: rc.board_defaults
 	#
+	set BOARD_RC_DEFAULTS /etc/init.d/rc.board_defaults
 	if [ -f $BOARD_RC_DEFAULTS ]
 	then
 		echo "Board defaults: ${BOARD_RC_DEFAULTS}"
 		sh $BOARD_RC_DEFAULTS
 	fi
+	unset BOARD_RC_DEFAULTS
 
 	#
 	# Waypoint storage.
@@ -344,11 +342,13 @@ else
 		#
 		# board sensors: rc.sensors
 		#
+		set BOARD_RC_SENSORS /etc/init.d/rc.board_sensors
 		if [ -f $BOARD_RC_SENSORS ]
 		then
 			echo "Board sensors: ${BOARD_RC_SENSORS}"
 			sh $BOARD_RC_SENSORS
 		fi
+		unset BOARD_RC_SENSORS
 
 
 		sh /etc/init.d/rc.sensors
@@ -469,11 +469,13 @@ else
 	#
 	# Optional board supplied extras: rc.board_extras
 	#
+	set BOARD_RC_EXTRAS /etc/init.d/rc.board_extras
 	if [ -f $BOARD_RC_EXTRAS ]
 	then
 		echo "Board extras: ${BOARD_RC_EXTRAS}"
 		sh $BOARD_RC_EXTRAS
 	fi
+	unset BOARD_RC_EXTRAS
 
 	#
 	# Start any custom addons from the sdcard.
@@ -488,6 +490,7 @@ else
 	# Start the logger.
 	#
 	sh /etc/init.d/rc.logging
+
 
 	if ! param compare SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
 	then
@@ -508,9 +511,6 @@ fi
 #
 unset AUTOCNF
 unset AUX_MODE
-unset BOARD_RC_DEFAULTS
-unset BOARD_RC_EXTRAS
-unset BOARD_RC_SENSORS
 unset DATAMAN_OPT
 unset FAILSAFE
 unset FAILSAFE_AUX
