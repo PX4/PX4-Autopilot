@@ -20,6 +20,7 @@ set +e
 # Do not add intra word spaces
 # it wastes flash
 #
+set AUTOCNF no
 set AUX_MODE pwm
 set DATAMAN_OPT ""
 set FAILSAFE none
@@ -148,18 +149,15 @@ else
 	#
 	# Set AUTOCNF flag to use it in AUTOSTART scripts.
 	#
-	if param compare SYS_AUTOCONFIG 1
+	if param greater SYS_AUTOCONFIG 0
 	then
-		# Wipe out params except RC*, flight modes, total flight time, accel cal, gyro cal
-		param reset_nostart RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO*
-		set AUTOCNF yes
-	else
-		if param compare SYS_AUTOCONFIG 2
+		if param compare SYS_AUTOCONFIG 1
 		then
-			set AUTOCNF yes
-		else
-			set AUTOCNF no
+			# Wipe out params except RC*, flight modes, total flight time, accel cal, gyro cal
+			param reset_nostart RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO*
 		fi
+
+		set AUTOCNF yes
 	fi
 
 	#
