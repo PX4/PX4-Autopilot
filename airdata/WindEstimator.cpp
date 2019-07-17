@@ -330,14 +330,14 @@ WindEstimator::run_sanity_checks()
 		return;
 	}
 
-	// constrain airspeed scale factor, negative values physically do not make sense
-	if (_scale_estimation_on) {
+	// check if we should inhibit learning of airspeed scale factor and rather use a pre-set value.
+	// airspeed scale factor errors arise from sensor installation which does not change and only needs
+	// to be computed once for a perticular installation.
+	if (_enforced_airspeed_scale < 0) {
 		_state(tas) = math::max(0.0f, _state(tas));
 	} else {
-		_state(tas) = 1.0f;
+		_state(tas) = _enforced_airspeed_scale;
 	}
-
-
 
 	// attain symmetry
 	for (unsigned row = 0; row < 3; row++) {
