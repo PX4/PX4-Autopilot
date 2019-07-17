@@ -129,7 +129,7 @@ private:
 
 	ECL_L1_Pos_Controller				_gnd_control;
 
-	bool _waypoint_reached;
+	bool _waypoint_reached{false};
 
 	enum UGV_POSCTRL_MODE {
 		UGV_POSCTRL_MODE_AUTO,
