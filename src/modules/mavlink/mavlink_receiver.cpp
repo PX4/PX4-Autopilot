@@ -2322,15 +2322,15 @@ MavlinkReceiver::handle_message_utm_global_position(mavlink_message_t *msg)
 
 	t.flags = 0;
 
-	if (utm_pos.flags | UTM_DATA_AVAIL_FLAGS_POSITION_AVAILABLE) {
+	if (utm_pos.flags & UTM_DATA_AVAIL_FLAGS_POSITION_AVAILABLE) {
 		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS;
 	}
 
-	if (utm_pos.flags | UTM_DATA_AVAIL_FLAGS_ALTITUDE_AVAILABLE) {
+	if (utm_pos.flags & UTM_DATA_AVAIL_FLAGS_ALTITUDE_AVAILABLE) {
 		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
 	}
 
-	if (utm_pos.flags | UTM_DATA_AVAIL_FLAGS_HORIZONTAL_VELO_AVAILABLE) {
+	if (utm_pos.flags & UTM_DATA_AVAIL_FLAGS_HORIZONTAL_VELO_AVAILABLE) {
 		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING;
 		t.flags |= transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY;
 	}
