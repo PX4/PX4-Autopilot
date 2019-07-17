@@ -132,6 +132,7 @@ px4_add_romfs_files(
 	13010_claire
 	13012_convergence
 	13013_deltaquad
+	13200_generic_vtol_tailsitter
 
 	# [14000, 14999] Tri Y
 	14001_tri_y_yaw+
