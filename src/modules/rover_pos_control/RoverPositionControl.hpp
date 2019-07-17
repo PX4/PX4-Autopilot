@@ -93,11 +93,13 @@ public:
 	 */
 	bool		task_running() { return _task_running; }
 
+	bool		_task_should_exit{false};		/**< if true, sensor task should exit */
+
 private:
 	orb_advert_t	_pos_ctrl_status_pub{nullptr};		/**< navigation capabilities publication */
 	orb_advert_t    _actuator_controls_pub{nullptr};	/**< actuator controls publication */
 
-	bool		_task_should_exit{false};		/**< if true, sensor task should exit */
+
 	bool		_task_running{false};			/**< if true, task is running in its mainloop */
 
 	int		_control_mode_sub{-1};		/**< control mode subscription */

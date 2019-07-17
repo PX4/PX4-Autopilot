@@ -583,8 +583,14 @@ int rover_pos_control_main(int argc, char *argv[])
 			return 1;
 		}
 
-		delete gnd_control::g_control;
-		gnd_control::g_control = nullptr;
+		gnd_control::g_control->_task_should_exit = true;
+
+		while (gnd_control::g_control != nullptr) {
+			px4_usleep(100000);
+		}
+
+		PX4_INFO("Rover pos control stopped.");
+
 		return 0;
 	}
 
