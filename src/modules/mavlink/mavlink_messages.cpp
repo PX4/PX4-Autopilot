@@ -589,7 +589,7 @@ protected:
 
 			for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
 				if (!updated_battery[i]) {
-					_battery_status_sub[i]->update(&_battery_status_timestamp[i], &battery_status[i]);
+					_battery_status_sub[i]->update(&battery_status[i]);
 				}
 
 				if (battery_status[i].connected && battery_status[i].remaining < lowest_battery->remaining) {
@@ -692,7 +692,7 @@ protected:
 				continue;
 			}
 
-			battery_status_s battery_status{};
+			battery_status_s battery_status;
 
 			if (_battery_status_sub[i]->update(&_battery_status_timestamp[i], &battery_status)) {
 				/* battery status message with higher resolution */

@@ -102,8 +102,7 @@ MavlinkStreamHighLatency2::MavlinkStreamHighLatency2(Mavlink *mavlink) : Mavlink
 {
 
 	for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
-		_battery_sub[i] = _mavlink->add_orb_subscription(ORB_ID(battery_status), i);
-		_battery_time[i] = 0;
+		_batteries[i].subscription = _mavlink->add_orb_subscription(ORB_ID(battery_status), i);
 	}
 
 	reset_last_sent();
@@ -121,7 +120,7 @@ bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 		updated |= _airspeed_sp.valid();
 
 		for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
-			updated |= _battery[i].valid();
+			updated |= _batteries[i].analyzer.valid();
 		}
 
 		updated |= _climb_rate.valid();
@@ -161,8 +160,9 @@ bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 			int lowest = 0;
 
 			for (int i = 1; i < BOARD_NUMBER_BRICKS; i++) {
-				const bool battery_connected = _battery_connected[i] && _battery[i].valid();
-				const bool battery_is_lowest = _battery[i].get_scaled(100.0f) <= _battery[lowest].get_scaled(100.0f);
+				const bool battery_connected = _batteries[i].connected && _batteries[i].analyzer.valid();
+				const bool battery_is_lowest = _batteries[i].analyzer.get_scaled(100.0f) <= _batteries[lowest].analyzer.get_scaled(
+								       100.0f);
 
 				if (battery_connected && battery_is_lowest) {
 					lowest = i;
@@ -170,8 +170,8 @@ bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 
 			}
 
-			if (_battery_connected[lowest]) {
-				_battery[lowest].get_scaled(msg.battery, 100.0f);
+			if (_batteries[lowest].connected) {
+				_batteries[lowest].analyzer.get_scaled(msg.battery, 100.0f);
 
 			} else {
 				msg.battery = -1;
@@ -231,7 +231,7 @@ void MavlinkStreamHighLatency2::reset_analysers(const hrt_abstime t)
 	_airspeed_sp.reset();
 
 	for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
-		_battery[i].reset();
+		_batteries[i].analyzer.reset();
 	}
 
 	_climb_rate.reset();
@@ -279,9 +279,9 @@ bool MavlinkStreamHighLatency2::write_battery_status(mavlink_high_latency2_t *ms
 	bool updated = false;
 
 	for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
-		if (_battery_sub[i]->update(&_battery_time[i], &battery)) {
+		if (_batteries[i].subscription->update(&_batteries[i].timestamp, &battery)) {
 			updated = true;
-			_battery_connected[i] = battery.connected;
+			_batteries[i].connected = battery.connected;
 
 			if (battery.warning > battery_status_s::BATTERY_WARNING_LOW) {
 				msg->failure_flags |= HL_FAILURE_FLAG_BATTERY;
@@ -536,9 +536,9 @@ void MavlinkStreamHighLatency2::update_battery_status()
 	battery_status_s battery;
 
 	for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
-		if (_battery_sub[i]->update(&battery)) {
-			_battery_connected[i] = battery.connected;
-			_battery[i].add_value(battery.remaining, _update_rate_filtered);
+		if (_batteries[i].subscription->update(&battery)) {
+			_batteries[i].connected = battery.connected;
+			_batteries[i].analyzer.add_value(battery.remaining, _update_rate_filtered);
 		}
 	}
 }

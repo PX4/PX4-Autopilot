@@ -44,12 +44,6 @@
 #include "mavlink_simple_analyzer.h"
 #include "mavlink_stream.h"
 
-class SimplerAnalyzer : public SimpleAnalyzer
-{
-public:
-	SimplerAnalyzer() : SimpleAnalyzer(SimpleAnalyzer::AVERAGE) {}
-};
-
 class MavlinkStreamHighLatency2 : public MavlinkStream
 {
 public:
@@ -89,6 +83,15 @@ public:
 	}
 
 private:
+
+	struct PerBatteryData {
+		PerBatteryData() {}
+		MavlinkOrbSubscription *subscription;
+		SimpleAnalyzer analyzer{SimpleAnalyzer::AVERAGE};
+		uint64_t timestamp{0};
+		bool connected{false};
+	};
+
 	MavlinkOrbSubscription *_actuator_sub_0;
 	uint64_t _actuator_time_0;
 
@@ -100,9 +103,6 @@ private:
 
 	MavlinkOrbSubscription *_attitude_sp_sub;
 	uint64_t _attitude_sp_time;
-
-	MavlinkOrbSubscription *_battery_sub[BOARD_NUMBER_BRICKS];
-	uint64_t _battery_time[BOARD_NUMBER_BRICKS];
 
 	MavlinkOrbSubscription *_estimator_status_sub;
 	uint64_t _estimator_status_time;
@@ -136,8 +136,6 @@ private:
 
 	SimpleAnalyzer _airspeed;
 	SimpleAnalyzer _airspeed_sp;
-	// Use the SimplerAnalyzer because C++ needs this data type to have a default constructor
-	SimplerAnalyzer _battery[BOARD_NUMBER_BRICKS];
 	SimpleAnalyzer _climb_rate;
 	SimpleAnalyzer _eph;
 	SimpleAnalyzer _epv;
@@ -150,7 +148,7 @@ private:
 	hrt_abstime _last_update_time = 0;
 	float _update_rate_filtered = 0.0f;
 
-	bool _battery_connected[BOARD_NUMBER_BRICKS];
+	PerBatteryData _batteries[BOARD_NUMBER_BRICKS];
 
 	/* do not allow top copying this class */
 	MavlinkStreamHighLatency2(MavlinkStreamHighLatency2 &);
