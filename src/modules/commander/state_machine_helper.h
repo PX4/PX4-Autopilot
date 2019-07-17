@@ -147,4 +147,7 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 		      const vehicle_status_flags_s &status_flags, commander_state_s *internal_state, const uint8_t battery_warning,
 		      const low_battery_action_t low_bat_action);
 
+extern main_state_t last_non_auto_state;
+bool is_auto_state(main_state_t state);
+
 #endif /* STATE_MACHINE_HELPER_H_ */

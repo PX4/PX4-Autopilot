@@ -1843,12 +1843,9 @@ Commander::run()
 				}
 
 				// TODO Transition into the last state, not just directly to Manual
-				const bool in_right_state = internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL ||
-							    internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
-							    internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION;
-
-				if (in_right_state && mission_result.finished && land_detector.landed && !armed.armed) {
-					main_state_transition(status, commander_state_s::MAIN_STATE_MANUAL, status_flags, &internal_state);
+				if (is_auto_state(internal_state.main_state) && mission_result.finished && land_detector.landed && !armed.armed
+				    && last_non_auto_state != commander_state_s::MAIN_STATE_MAX) {
+					main_state_transition(status, last_non_auto_state, status_flags, &internal_state);
 				}
 			}
 		}

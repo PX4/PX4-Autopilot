@@ -87,6 +87,8 @@ const char *const arming_state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 
 static hrt_abstime last_preflight_check = 0;	///< initialize so it gets checked immediately
 
+main_state_t last_non_auto_state = commander_state_s::MAIN_STATE_MAX;
+
 void set_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
 			     const vehicle_status_flags_s &status_flags, commander_state_s *internal_state, const link_loss_actions_t link_loss_act,
 			     uint8_t auto_recovery_nav_state);
@@ -375,6 +377,11 @@ main_state_transition(const vehicle_status_s &status, const main_state_t new_mai
 
 	if (ret == TRANSITION_CHANGED) {
 		if (internal_state->main_state != new_main_state) {
+			// If transitioning from non-auto to auto state, save the last non-auto state
+			if (!is_auto_state(internal_state->main_state)) {
+				last_non_auto_state = internal_state->main_state;
+			}
+
 			internal_state->main_state = new_main_state;
 			internal_state->timestamp = hrt_absolute_time();
 
@@ -1211,4 +1218,15 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 		mavlink_log_emergency(mavlink_log_pub, "Battery failure detected");
 		break;
 	}
+}
+
+bool is_auto_state(main_state_t state)
+{
+	return state == commander_state_s::MAIN_STATE_AUTO_RTL
+	       || state == commander_state_s::MAIN_STATE_AUTO_LAND
+	       || state == commander_state_s::MAIN_STATE_AUTO_MISSION
+	       || state == commander_state_s::MAIN_STATE_AUTO_TAKEOFF
+	       || state == commander_state_s::MAIN_STATE_AUTO_FOLLOW_TARGET
+	       || state == commander_state_s::MAIN_STATE_AUTO_LOITER
+	       || state == commander_state_s::MAIN_STATE_AUTO_PRECLAND;
 }
