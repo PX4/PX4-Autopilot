@@ -89,7 +89,10 @@ public:
 	void set_beta_noise(float beta_var) { _beta_var = beta_var * beta_var; }
 	void set_tas_gate(uint8_t gate_size) {_tas_gate = gate_size; }
 	void set_beta_gate(uint8_t gate_size) {_beta_gate = gate_size; }
-	void set_scale_estimation_on(bool scale_estimation_on) {_scale_estimation_on = scale_estimation_on; }
+
+	// Inhibit learning of the airspeed scale factor and force the estimator to use _enforced_airspeed_scale as scale factor.
+	// Negative input values enable learning of the airspeed scale factor.
+	void enforce_airspeed_scale(float scale) {_enforced_airspeed_scale = scale; }
 
 private:
 	enum {
@@ -122,9 +125,9 @@ private:
 	uint64_t _time_rejected_beta = 0;		///< timestamp of when sideslip measurements have consistently started to be rejected
 	uint64_t _time_rejected_tas =
 		0;		///<timestamp of when true airspeed measurements have consistently started to be rejected
-	bool _scale_estimation_on = false; ///< online scale estimation (IAS-->CAS/EAS) is on
 
 	bool _wind_estimator_reset = false; ///< wind estimator was reset in this cycle
+	float _enforced_airspeed_scale{-1.0f}; ///< by default we want to estimate the true airspeed scale factor (see enforce_airspeed_scale(...) )
 
 	// initialise state and state covariance matrix
 	bool initialise(const matrix::Vector3f &velI, const matrix::Vector2f &velIvar, const float tas_meas);
