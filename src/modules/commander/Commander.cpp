@@ -1190,6 +1190,7 @@ Commander::run()
 	param_t _param_arm_mission_required = param_find("COM_ARM_MIS_REQ");
 	param_t _param_flight_uuid = param_find("COM_FLIGHT_UUID");
 	param_t _param_takeoff_finished_action = param_find("COM_TAKEOFF_ACT");
+	param_t _param_launch_detection_on = param_find("LAUN_ALL_ON");
 
 	param_t _param_fmode_1 = param_find("COM_FLTMODE1");
 	param_t _param_fmode_2 = param_find("COM_FLTMODE2");
@@ -1244,6 +1245,8 @@ Commander::run()
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
 	mission_init();
 
+	_position_controller_sub = orb_subscribe(ORB_ID(position_controller_status));
+
 	/* Start monitoring loop */
 	unsigned counter = 0;
 	int stick_off_counter = 0;
@@ -1265,6 +1268,8 @@ Commander::run()
 	uORB::Subscription subsys_sub{ORB_ID(subsystem_info)};
 	uORB::Subscription system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
+
+
 
 	geofence_result_s geofence_result {};
 
@@ -1331,6 +1336,10 @@ Commander::run()
 	int32_t flight_uuid = 0;
 	int32_t airmode = 0;
 	int32_t rc_map_arm_switch = 0;
+
+	/* Catapault Launch Enabled */
+	int32_t launch_detection_enabled = 0;
+	param_get(_param_launch_detection_on, &launch_detection_enabled);
 
 	/* RC override auto modes */
 	int32_t rc_override = 0;
@@ -1608,9 +1617,11 @@ Commander::run()
 			land_detector_sub.copy(&land_detector);
 
 			// Only take actions if armed
-			if (armed.armed) {
+			if (armed.armed && !launch_detection_running()) {
+
 				if (was_landed != land_detector.landed) {
-					if (land_detector.landed) {
+
+					if (land_detector.landed && launch_detection_enabled != 1) {
 						mavlink_and_console_log_info(&mavlink_log_pub, "Landing detected");
 
 					} else {
@@ -3832,6 +3843,27 @@ void Commander::data_link_check(bool &status_changed)
 		}
 	}
 }
+
+
+bool Commander::launch_detection_running()
+{
+	bool updated;
+	position_controller_status_s _controller_status{};
+
+	orb_check(_position_controller_sub, &updated);
+
+	if (updated) {
+
+		orb_copy(ORB_ID(position_controller_status), _position_controller_sub, &_controller_status);
+
+
+	}
+
+	return _controller_status.launch_detection_running;
+
+}
+
+
 
 void Commander::battery_status_check()
 {
