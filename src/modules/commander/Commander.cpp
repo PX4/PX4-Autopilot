@@ -1842,7 +1842,11 @@ Commander::run()
 					}
 				}
 
-				if (is_auto_state(internal_state.main_state) && mission_result.finished && land_detector.landed && !armed.armed
+				// TODO: Determine what to do with `was_armed`. It updates one loop iteration before this code
+				// is reached, so it's not correct here.
+				// One possible solution: Keep track of time of last arm-disarm transition, and see if it's
+				// less than 1 second ago (or less than 0.1 seconds, or whatever time works)
+				if (is_auto_state(internal_state.main_state) && mission_result.finished && !armed.armed // && was_armed
 				    && last_non_auto_state != commander_state_s::MAIN_STATE_MAX) {
 					main_state_transition(status, last_non_auto_state, status_flags, &internal_state);
 				}
