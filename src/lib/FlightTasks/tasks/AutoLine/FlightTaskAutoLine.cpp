@@ -93,7 +93,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 {
 	_setSpeedAtTarget();
 	Vector2f pos_sp_to_dest(_target - _position_setpoint);
-	const bool has_reached_altitude = fabsf(_target(2) - _position(2)) < _target_acceptance_radius;
+	const bool has_reached_altitude = fabsf(_target(2) - _position(2)) < _param_nav_mc_alt_rad.get();
 
 	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < _target_acceptance_radius) ||
 	    (!has_reached_altitude && pos_sp_to_dest.length() < _target_acceptance_radius)) {
