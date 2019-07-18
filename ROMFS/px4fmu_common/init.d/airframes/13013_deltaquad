@@ -152,6 +152,7 @@ then
 	param set VT_TRANS_TIMEOUT 22
 	param set VT_F_TRANS_RAMP 4
 
+	param set COM_RC_OVERRIDE 0
 fi
 
 set MAV_TYPE 22

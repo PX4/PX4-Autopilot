@@ -621,7 +621,7 @@ PARAM_DEFINE_FLOAT(COM_ARM_MAG, 0.15f);
  * @boolean
  * @group Commander
  */
-PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 0);
+PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
 
 /**
  * Require valid mission to arm
