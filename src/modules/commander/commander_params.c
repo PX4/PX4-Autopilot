@@ -613,6 +613,11 @@ PARAM_DEFINE_FLOAT(COM_ARM_MAG, 0.15f);
 /**
  * Enable RC stick override of auto modes
  *
+ * When an auto mode is active (except a critical battery reaction) moving the RC sticks
+ * gives control back to the pilot in manual position mode immediately.
+ *
+ * Only has an effect on multicopters and VTOLS in multicopter mode.
+ *
  * @boolean
  * @group Commander
  */
