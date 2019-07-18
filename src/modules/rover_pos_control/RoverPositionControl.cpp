@@ -508,7 +508,7 @@ $ rover_pos_control stop
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME("rover_pos_control", "module");
+	PRINT_MODULE_USAGE_NAME("rover_pos_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start")
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
