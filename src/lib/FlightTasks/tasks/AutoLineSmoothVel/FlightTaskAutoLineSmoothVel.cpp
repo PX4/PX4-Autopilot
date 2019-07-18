@@ -247,10 +247,17 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 			Vector2f pos_traj_to_dest(pos_sp_xy - pos_traj);
 			Vector2f prev_to_pos(pos_traj - Vector2f(_prev_wp));
 			Vector2f u_pos_traj_to_dest_xy(Vector2f(pos_traj_to_dest).unit_or_zero());
+			const bool has_reached_altitude = fabsf(_position_setpoint(2) - _position(2)) < _param_nav_mc_alt_rad.get();
 
 			float speed_sp_track = _getMaxSpeedFromDistance(pos_traj_to_dest.length());
 
-			speed_sp_track = math::constrain(speed_sp_track, _getSpeedAtTarget(), _mc_cruise_speed);
+			if (has_reached_altitude) {
+				speed_sp_track = math::constrain(speed_sp_track, _getSpeedAtTarget(), _mc_cruise_speed);
+
+			} else {
+				speed_sp_track = math::constrain(speed_sp_track, 0.0f, _mc_cruise_speed);
+
+			}
 
 			Vector2f vel_sp_xy = u_pos_traj_to_dest_xy * speed_sp_track;
 
