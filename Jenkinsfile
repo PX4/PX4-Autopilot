@@ -1,3 +1,5 @@
+#!/usr/bin/env groovy
+
 pipeline {
   agent none
   stages {
@@ -6,76 +8,76 @@ pipeline {
 
       parallel {
 
-        // stage('Catkin build on ROS workspace') {
-        //   agent {
-        //     docker {
-        //       image 'px4io/px4-dev-ros:2019-02-09'
-        //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
-        //     }
-        //   }
-        //   steps {
-        //     sh 'ls -l'
-        //     sh '''#!/bin/bash -l
-        //       echo $0;
-        //       mkdir -p catkin_ws/src;
-        //       cd catkin_ws;
-        //       git -C ${WORKSPACE}/catkin_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
-        //       git clone --recursive ${WORKSPACE}/catkin_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
-        //       source /opt/ros/melodic/setup.bash;
-        //       catkin init;
-        //       catkin build -j$(nproc) -l$(nproc);
-        //     '''
-        //     // test if the binary was correctly installed and runs using 'mavros_posix_silt.launch'
-        //     sh '''#!/bin/bash -l
-        //       echo $0;
-        //       source catkin_ws/devel/setup.bash;
-        //       rostest px4 pub_test.launch;
-        //     '''
-        //   }
-        //   post {
-        //     always {
-        //       sh 'rm -rf catkin_ws'
-        //     }
-        //   }
-        //   options {
-        //     checkoutToSubdirectory('catkin_ws/src/Firmware')
-        //   }
-        // }
+        stage('Catkin build on ROS workspace') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ros-melodic:2019-03-08'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+            }
+          }
+          steps {
+            sh 'ls -l'
+            sh '''#!/bin/bash -l
+              echo $0;
+              mkdir -p catkin_ws/src;
+              cd catkin_ws;
+              git -C ${WORKSPACE}/catkin_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
+              git clone --recursive ${WORKSPACE}/catkin_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
+              source /opt/ros/melodic/setup.bash;
+              catkin init;
+              catkin build -j$(nproc) -l$(nproc);
+            '''
+            // test if the binary was correctly installed and runs using 'mavros_posix_silt.launch'
+            sh '''#!/bin/bash -l
+              echo $0;
+              source catkin_ws/devel/setup.bash;
+              rostest px4 pub_test.launch;
+            '''
+          }
+          post {
+            always {
+              sh 'rm -rf catkin_ws'
+            }
+          }
+          options {
+            checkoutToSubdirectory('catkin_ws/src/Firmware')
+          }
+        }
 
-        // stage('Colcon build on ROS2 workspace') {
-        //   agent {
-        //     docker {
-        //       image 'px4io/px4-dev-ros2-bouncy:2019-02-09'
-        //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
-        //     }
-        //   }
-        //   steps {
-        //     sh 'ls -l'
-        //     sh '''#!/bin/bash -l
-        //       echo $0;
-        //       unset ROS_DISTRO;
-        //       mkdir -p colcon_ws/src;
-        //       cd colcon_ws;
-        //       git -C ${WORKSPACE}/colcon_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
-        //       git clone --recursive ${WORKSPACE}/colcon_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
-        //       source /opt/ros/bouncy/setup.sh;
-        //       source /opt/ros/melodic/setup.sh;
-        //       colcon build --event-handlers console_direct+ --symlink-install;
-        //     '''
-        //   }
-        //   post {
-        //     always {
-        //       sh 'rm -rf colcon_ws'
-        //     }
-        //   }
-        //   options {
-        //     checkoutToSubdirectory('colcon_ws/src/Firmware')
-        //   }
-        // }
+        stage('Colcon build on ROS2 workspace') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ros2-bouncy:2019-03-08'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+            }
+          }
+          steps {
+            sh 'ls -l'
+            sh '''#!/bin/bash -l
+              echo $0;
+              unset ROS_DISTRO;
+              mkdir -p colcon_ws/src;
+              cd colcon_ws;
+              git -C ${WORKSPACE}/colcon_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
+              git clone --recursive ${WORKSPACE}/colcon_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
+              source /opt/ros/bouncy/setup.sh;
+              source /opt/ros/melodic/setup.sh;
+              colcon build --event-handlers console_direct+ --symlink-install;
+            '''
+          }
+          post {
+            always {
+              sh 'rm -rf colcon_ws'
+            }
+          }
+          options {
+            checkoutToSubdirectory('colcon_ws/src/Firmware')
+          }
+        }
 
         stage('Style check') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-02-09' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-03-08' }
           }
           steps {
             sh 'make check_format'
@@ -90,7 +92,7 @@ pipeline {
         stage('Bloaty px4_fmu-v2') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-02-09'
+              image 'px4io/px4-dev-nuttx:2019-03-08'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -118,7 +120,7 @@ pipeline {
         stage('Bloaty px4_fmu-v5') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-02-09'
+              image 'px4io/px4-dev-nuttx:2019-03-08'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -143,10 +145,76 @@ pipeline {
           }
         }
 
+        stage('No-ninja px4_fmu-v2') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2019-03-08'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'NO_NINJA_BUILD=1 make px4_fmu-v2_default'
+            sh 'ccache -s'
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
+
+        stage('No-ninja px4_fmu-v5') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2019-03-08'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'NO_NINJA_BUILD=1 make px4_fmu-v5_default'
+            sh 'ccache -s'
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
+
+        stage('No-ninja SITL build') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base-bionic:2019-03-08'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'NO_NINJA_BUILD=1 make px4_sitl_default'
+            sh 'ccache -s'
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
+
         stage('SITL unit tests') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-02-09'
+              image 'px4io/px4-dev-base-bionic:2019-03-08'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -168,7 +236,7 @@ pipeline {
         stage('Clang analyzer') {
           agent {
             docker {
-              image 'px4io/px4-dev-clang:2019-02-09'
+              image 'px4io/px4-dev-clang:2019-03-08'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -205,7 +273,7 @@ pipeline {
         // stage('Clang tidy') {
         //   agent {
         //     docker {
-        //       image 'px4io/px4-dev-clang:2019-02-09'
+        //       image 'px4io/px4-dev-clang:2019-03-08'
         //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
         //     }
         //   }
@@ -226,7 +294,7 @@ pipeline {
         stage('Cppcheck') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-02-09'
+              image 'px4io/px4-dev-base-bionic:2019-03-08'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -263,7 +331,7 @@ pipeline {
         stage('Check stack') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-02-09'
+              image 'px4io/px4-dev-nuttx:2019-03-08'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -282,7 +350,7 @@ pipeline {
         stage('ShellCheck') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-02-09'
+              image 'px4io/px4-dev-nuttx:2019-03-08'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -301,7 +369,7 @@ pipeline {
         stage('Module config validation') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-02-09'
+              image 'px4io/px4-dev-base-bionic:2019-03-08'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -326,7 +394,7 @@ pipeline {
 
         stage('Airframe') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-02-09' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-03-08' }
           }
           steps {
             sh 'make distclean'
@@ -345,7 +413,7 @@ pipeline {
 
         stage('Parameter') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-02-09' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-03-08' }
           }
           steps {
             sh 'make distclean'
@@ -364,7 +432,7 @@ pipeline {
 
         stage('Module') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-02-09' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-03-08' }
           }
           steps {
             sh 'make distclean'
@@ -384,7 +452,7 @@ pipeline {
         stage('uORB graphs') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-02-09'
+              image 'px4io/px4-dev-nuttx:2019-03-08'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -413,7 +481,7 @@ pipeline {
 
         stage('Devguide') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-02-09' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-03-08' }
           }
           steps {
             sh('export')
@@ -443,7 +511,7 @@ pipeline {
 
         stage('Userguide') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-02-09' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-03-08' }
           }
           steps {
             sh('export')
@@ -471,7 +539,7 @@ pipeline {
 
         stage('QGroundControl') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-02-09' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-03-08' }
           }
           steps {
             sh('export')
@@ -499,7 +567,7 @@ pipeline {
 
         stage('PX4 ROS msgs') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-02-09' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-03-08' }
           }
           steps {
             sh('export')
@@ -528,7 +596,7 @@ pipeline {
 
         stage('PX4 ROS2 bridge') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-02-09' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-03-08' }
           }
           steps {
             sh('export')
@@ -559,7 +627,7 @@ pipeline {
 
         stage('S3') {
           agent {
-            docker { image 'px4io/px4-dev-base:2019-02-09' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-03-08' }
           }
           steps {
             sh('export')
@@ -596,7 +664,7 @@ pipeline {
     GIT_COMMITTER_NAME = "PX4BuildBot"
   }
   options {
-    buildDiscarder(logRotator(numToKeepStr: '10', artifactDaysToKeepStr: '30'))
+    buildDiscarder(logRotator(numToKeepStr: '20', artifactDaysToKeepStr: '30'))
     timeout(time: 60, unit: 'MINUTES')
   }
 }

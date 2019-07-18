@@ -148,6 +148,7 @@
 #include <systemlib/mavlink_log.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/sensor_correction.h>
+#include <uORB/Subscription.hpp>
 
 static const char *sensor_name = "accel";
 
@@ -334,11 +335,9 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 		if (tc_enabled_int == 1) {
 			/* Get struct containing sensor thermal compensation data */
-			struct sensor_correction_s sensor_correction; /**< sensor thermal corrections */
-			memset(&sensor_correction, 0, sizeof(sensor_correction));
-			int sensor_correction_sub = orb_subscribe(ORB_ID(sensor_correction));
-			orb_copy(ORB_ID(sensor_correction), sensor_correction_sub, &sensor_correction);
-			orb_unsubscribe(sensor_correction_sub);
+			sensor_correction_s sensor_correction{}; /**< sensor thermal corrections */
+			uORB::Subscription sensor_correction_sub{ORB_ID(sensor_correction)};
+			sensor_correction_sub.copy(&sensor_correction);
 
 			/* don't allow a parameter instance to be calibrated more than once by another uORB instance */
 			if (!tc_locked[sensor_correction.accel_mapping[uorb_index]]) {

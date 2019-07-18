@@ -45,10 +45,10 @@
 #include "LandDetector.h"
 
 #include <parameters/param.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
@@ -68,7 +68,6 @@ public:
 	MulticopterLandDetector();
 
 protected:
-	void _initialize_topics() override;
 	void _update_params() override;
 	void _update_topics() override;
 
@@ -76,6 +75,7 @@ protected:
 	bool _get_ground_contact_state() override;
 	bool _get_maybe_landed_state() override;
 	bool _get_freefall_state() override;
+	bool _get_ground_effect_state() override;
 
 	float _get_max_altitude() override;
 private:
@@ -106,6 +106,7 @@ private:
 		param_t freefall_trigger_time;
 		param_t altitude_max;
 		param_t landSpeed;
+		param_t low_thrust_threshold;
 	} _paramHandle{};
 
 	struct {
@@ -119,26 +120,30 @@ private:
 		float freefall_trigger_time;
 		float altitude_max;
 		float landSpeed;
+		float low_thrust_threshold;
 	} _params{};
 
-	int _vehicleLocalPositionSub{-1};
-	int _vehicleLocalPositionSetpointSub{-1};
-	int _actuatorsSub{-1};
-	int _attitudeSub{-1};
-	int _sensor_bias_sub{-1};
-	int _vehicle_control_mode_sub{-1};
-	int _battery_sub{-1};
+	uORB::Subscription _actuator_controls_sub{ORB_ID(actuator_controls_0)};
+	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
+	uORB::Subscription _sensor_bias_sub{ORB_ID(sensor_bias)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
 
-	vehicle_local_position_s				_vehicleLocalPosition {};
-	vehicle_local_position_setpoint_s	_vehicleLocalPositionSetpoint {};
-	actuator_controls_s					_actuators {};
-	vehicle_attitude_s					_vehicleAttitude {};
-	sensor_bias_s					_sensors {};
-	vehicle_control_mode_s				_control_mode {};
-	battery_status_s						_battery {};
+	actuator_controls_s               _actuator_controls {};
+	battery_status_s                  _battery_status {};
+	vehicle_control_mode_s            _control_mode {};
+	sensor_bias_s                     _sensor_bias {};
+	vehicle_attitude_s                _vehicle_attitude {};
+	vehicle_local_position_s          _vehicle_local_position {};
+	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint {};
 
 	hrt_abstime _min_trust_start{0};		///< timestamp when minimum trust was applied first
 	hrt_abstime _landed_time{0};
+
+	bool _in_descend{false};	///< vehicle is desending
+	bool _horizontal_movement{false};	///< vehicle is moving horizontally
 
 	/* get control mode dependent pilot throttle threshold with which we should quit landed state and take off */
 	float _get_takeoff_throttle();

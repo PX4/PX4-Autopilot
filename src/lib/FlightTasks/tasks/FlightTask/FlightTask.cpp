@@ -6,16 +6,8 @@ constexpr uint64_t FlightTask::_timeout;
 // First index of empty_setpoint corresponds to time-stamp and requires a finite number.
 const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {NAN, NAN, NAN}};
 
-const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {}};
+const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, false, {}};
 const landing_gear_s FlightTask::empty_landing_gear_default_keep = {0, landing_gear_s::GEAR_KEEP, {}};
-const vehicle_trajectory_waypoint_s FlightTask::empty_trajectory_waypoint = {0, 0, {0, 0, 0, 0, 0, 0, 0},
-	{	{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
-		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
-		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
-		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}},
-		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, {0, 0, 0}}
-	}
-};
 
 bool FlightTask::initializeSubscriptions(SubscriptionArray &subscription_array)
 {
@@ -30,7 +22,7 @@ bool FlightTask::initializeSubscriptions(SubscriptionArray &subscription_array)
 	return true;
 }
 
-bool FlightTask::activate()
+bool FlightTask::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
 	_resetSetpoints();
 	_setDefaultConstraints();
@@ -42,7 +34,7 @@ bool FlightTask::activate()
 
 void FlightTask::reActivate()
 {
-	activate();
+	activate(getPositionSetpoint());
 }
 
 bool FlightTask::updateInitialize()
@@ -92,7 +84,6 @@ void FlightTask::_resetSetpoints()
 	_jerk_setpoint.setAll(NAN);
 	_thrust_setpoint.setAll(NAN);
 	_yaw_setpoint = _yawspeed_setpoint = NAN;
-	_desired_waypoint = FlightTask::empty_trajectory_waypoint;
 }
 
 void FlightTask::_evaluateVehicleLocalPosition()
@@ -146,10 +137,38 @@ void FlightTask::_evaluateVehicleLocalPosition()
 
 void FlightTask::_setDefaultConstraints()
 {
-	_constraints.speed_xy = MPC_XY_VEL_MAX.get();
-	_constraints.speed_up = MPC_Z_VEL_MAX_UP.get();
-	_constraints.speed_down = MPC_Z_VEL_MAX_DN.get();
-	_constraints.tilt = math::radians(MPC_TILTMAX_AIR.get());
+	_constraints.speed_xy = _param_mpc_xy_vel_max.get();
+	_constraints.speed_up = _param_mpc_z_vel_max_up.get();
+	_constraints.speed_down = _param_mpc_z_vel_max_dn.get();
+	_constraints.tilt = math::radians(_param_mpc_tiltmax_air.get());
 	_constraints.min_distance_to_ground = NAN;
 	_constraints.max_distance_to_ground = NAN;
+	_constraints.want_takeoff = false;
+}
+
+bool FlightTask::_checkTakeoff()
+{
+	// position setpoint above the minimum altitude
+	bool position_triggered_takeoff = false;
+
+	if (PX4_ISFINITE(_position_setpoint(2))) {
+		// minimal altitude either 20cm or what is necessary for correct estimation e.g. optical flow
+		float min_altitude = 0.2f;
+		const float min_distance_to_ground = _sub_vehicle_local_position->get().hagl_min;
+
+		if (PX4_ISFINITE(min_distance_to_ground)) {
+			min_altitude = min_distance_to_ground + 0.05f;
+		}
+
+		position_triggered_takeoff = _position_setpoint(2) < (_position(2) - min_altitude);
+	}
+
+	// upwards velocity setpoint
+	bool velocity_triggered_takeoff = false;
+
+	if (PX4_ISFINITE(_velocity_setpoint(2))) {
+		velocity_triggered_takeoff = _velocity_setpoint(2) < -0.3f;
+	}
+
+	return position_triggered_takeoff || velocity_triggered_takeoff;
 }

@@ -35,8 +35,6 @@
 
 #include <cstdio>
 #include <float.h>
-#include <math.h>
-#include <px4_defines.h>
 
 #include <mathlib/mathlib.h>
 
@@ -112,13 +110,18 @@ float VelocitySmoothing::computeT1(float T123, float accel_prev, float vel_prev,
 	float delta = T123 * T123 * max_jerk * max_jerk + 2.f * T123 * accel_prev * max_jerk - accel_prev * accel_prev
 		      + 4.f * max_jerk * (vel_prev - vel_setpoint);
 
+	if (delta < 0.f) {
+		// Solution is not real
+		return 0.f;
+	}
+
 	float sqrt_delta = sqrtf(delta);
 	float denominator_inv = 1.f / (2.f * a);
 	float T1_plus = math::max((-b + sqrt_delta) * denominator_inv, 0.f);
 	float T1_minus = math::max((-b - sqrt_delta) * denominator_inv, 0.f);
 
-	float T3_plus = computeT3(T1_plus, accel_prev, max_jerk);
-	float T3_minus = computeT3(T1_minus, accel_prev, max_jerk);
+	float T3_plus = accel_prev / max_jerk + T1_plus;
+	float T3_minus = accel_prev / max_jerk + T1_minus;
 
 	float T13_plus = T1_plus + T3_plus;
 	float T13_minus = T1_minus + T3_minus;
@@ -147,7 +150,13 @@ float VelocitySmoothing::computeT2(float T1, float T3, float accel_prev, float v
 {
 	float f = accel_prev * T1 + max_jerk * T1 * T1 * 0.5f + vel_prev + accel_prev * T3 + max_jerk * T1 * T3
 		  - max_jerk * T3 * T3 * 0.5f;
-	float T2 = (vel_setpoint - f) / (accel_prev + max_jerk * T1);
+	float T2 = 0.f;
+
+	float den = accel_prev + max_jerk * T1;
+
+	if (math::abs_t(den) > FLT_EPSILON) {
+		T2 = (vel_setpoint - f) / den;
+	}
 
 	if (T2 < _dt) {
 		T2 = 0.f;
@@ -199,22 +208,22 @@ void VelocitySmoothing::updateDurations(float T123)
 	_max_jerk_T1 = (_vel_sp - _vel > 0.f) ? _max_jerk : -_max_jerk;
 
 	// compute increasing acceleration time
-	if (PX4_ISFINITE(T123)) {
-		T1 = computeT1(T123, _accel, _vel, _vel_sp, _max_jerk_T1);
+	if (T123 < 0.f) {
+		T1 = computeT1(_accel, _vel, _vel_sp, _max_jerk_T1);
 
 	} else {
-		T1 = computeT1(_accel, _vel, _vel_sp, _max_jerk_T1);
+		T1 = computeT1(T123, _accel, _vel, _vel_sp, _max_jerk_T1);
 	}
 
 	// compute decreasing acceleration time
 	T3 = computeT3(T1, _accel, _max_jerk_T1);
 
 	// compute constant acceleration time
-	if (PX4_ISFINITE(T123)) {
-		T2 = computeT2(T123, T1, T3);
+	if (T123 < 0.f) {
+		T2 = computeT2(T1, T3, _accel, _vel, _vel_sp, _max_jerk_T1);
 
 	} else {
-		T2 = computeT2(T1, T3, _accel, _vel, _vel_sp, _max_jerk_T1);
+		T2 = computeT2(T123, T1, T3);
 	}
 
 	_T1 = T1;

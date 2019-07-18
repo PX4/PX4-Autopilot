@@ -96,13 +96,13 @@ private:
 
 	// parameters for default values
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_ACC_HOR_MAX>)  MPC_ACC_HOR_MAX,   /**< maximum horizontal acceleration */
-		(ParamFloat<px4::params::MPC_ACC_UP_MAX>)   MPC_ACC_UP_MAX,    /**< maximum vertical acceleration upwards */
-		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) MPC_ACC_DOWN_MAX,  /**< maximum vertical acceleration downwards*/
-		(ParamFloat<px4::params::MPC_XY_VEL_MAX>)   MPC_XY_VEL_MAX,    /**< maximum horizontal velocity */
-		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) MPC_Z_VEL_MAX_UP,  /**< maximum vertical velocity upwards */
-		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) MPC_Z_VEL_MAX_DN,  /**< maximum vertical velocity downwards */
-		(ParamFloat<px4::params::NAV_ACC_RAD>) NAV_ACC_RAD             /**< acceptance radius if a waypoint is reached */
+		(ParamFloat<px4::params::MPC_ACC_HOR_MAX>)  _param_mpc_acc_hor_max,   /**< maximum horizontal acceleration */
+		(ParamFloat<px4::params::MPC_ACC_UP_MAX>)   _param_mpc_acc_up_max,    /**< maximum vertical acceleration upwards */
+		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max,  /**< maximum vertical acceleration downwards*/
+		(ParamFloat<px4::params::MPC_XY_VEL_MAX>)   _param_mpc_xy_vel_max,    /**< maximum horizontal velocity */
+		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,  /**< maximum vertical velocity upwards */
+		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,  /**< maximum vertical velocity downwards */
+		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad             /**< acceptance radius if a waypoint is reached */
 	)
 
 };

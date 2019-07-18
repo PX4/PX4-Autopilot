@@ -148,13 +148,7 @@ UavcanNode::~UavcanNode()
 	(void)orb_unsubscribe(_actuator_direct_sub);
 
 	// Removing the sensor bridges
-	auto br = _sensor_bridges.getHead();
-
-	while (br != nullptr) {
-		auto next = br->getSibling();
-		delete br;
-		br = next;
-	}
+	_sensor_bridges.clear();
 
 	_instance = nullptr;
 
@@ -431,6 +425,12 @@ void UavcanNode::update_params()
 	if (param_handle != PARAM_INVALID) {
 		param_get(param_handle, &_airmode);
 	}
+
+	param_handle = param_find("THR_MDL_FAC");
+
+	if (param_handle != PARAM_INVALID) {
+		param_get(param_handle, &_thr_mdl_factor);
+	}
 }
 
 int UavcanNode::start_fw_server()
@@ -651,9 +651,8 @@ int UavcanNode::init(uavcan::NodeID node_id)
 
 	// Sensor bridges
 	IUavcanSensorBridge::make_all(_node, _sensor_bridges);
-	auto br = _sensor_bridges.getHead();
 
-	while (br != nullptr) {
+	for (const auto &br : _sensor_bridges) {
 		ret = br->init();
 
 		if (ret < 0) {
@@ -662,12 +661,9 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		}
 
 		PX4_INFO("sensor bridge '%s' init ok", br->get_name());
-		br = br->getSibling();
 	}
 
-
 	/*  Start the Node   */
-
 	return _node.start();
 }
 
@@ -915,6 +911,7 @@ int UavcanNode::run()
 				// but this driver could well serve multiple groups.
 				unsigned num_outputs_max = 8;
 
+				_mixers->set_thrust_factor(_thr_mdl_factor);
 				_mixers->set_airmode(_airmode);
 
 				// Do mixing
@@ -1228,13 +1225,10 @@ UavcanNode::print_info()
 	}
 
 	// Sensor bridges
-	auto br = _sensor_bridges.getHead();
-
-	while (br != nullptr) {
+	for (const auto &br : _sensor_bridges) {
 		printf("Sensor '%s':\n", br->get_name());
 		br->print_status();
 		printf("\n");
-		br = br->getSibling();
 	}
 
 	// Printing all nodes that are online

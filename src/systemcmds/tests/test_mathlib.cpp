@@ -78,6 +78,7 @@ private:
 	bool testQuaternionfrom_dcm();
 	bool testQuaternionfrom_euler();
 	bool testQuaternionRotate();
+	bool testFinite();
 };
 
 #define TEST_OP(_title, _op) { unsigned int n = 30000; hrt_abstime t0, t1; t0 = hrt_absolute_time(); for (unsigned int j = 0; j < n; j++) { _op; }; t1 = hrt_absolute_time(); PX4_INFO(_title ": %.6fus", (double)(t1 - t0) / n); }
@@ -371,6 +372,24 @@ bool MathlibTest::testQuaternionRotate()
 	return true;
 }
 
+bool MathlibTest::testFinite()
+{
+	ut_assert("PX4_ISFINITE(0.0f)", PX4_ISFINITE(0.0f) == true);
+	ut_assert("PX4_ISFINITE(-0.0f)", PX4_ISFINITE(-0.0f) == true);
+	ut_assert("PX4_ISFINITE(1.0f)", PX4_ISFINITE(1.0f) == true);
+	ut_assert("PX4_ISFINITE(-1.0f)", PX4_ISFINITE(-1.0f) == true);
+
+	ut_assert("PX4_ISFINITE(NAN)", PX4_ISFINITE(NAN) == false);
+	ut_assert("PX4_ISFINITE(1/0)", PX4_ISFINITE(1.0f / 0.0f) == false);
+	ut_assert("PX4_ISFINITE(0/0)", PX4_ISFINITE(0.0f / 0.0f) == false);
+	ut_assert("PX4_ISFINITE(INFINITY)", PX4_ISFINITE(INFINITY) == false);
+	ut_assert("PX4_ISFINITE(NAN * INFINITY)", PX4_ISFINITE(NAN * INFINITY) == false);
+	ut_assert("PX4_ISFINITE(NAN * 1.0f)", PX4_ISFINITE(NAN * 1.0f) == false);
+	ut_assert("PX4_ISFINITE(INFINITY * 2.0f)", PX4_ISFINITE(INFINITY * 2.0f) == false);
+
+	return true;
+}
+
 bool MathlibTest::run_tests()
 {
 	ut_run_test(testVector2);
@@ -381,6 +400,7 @@ bool MathlibTest::run_tests()
 	ut_run_test(testQuaternionfrom_dcm);
 	ut_run_test(testQuaternionfrom_euler);
 	ut_run_test(testQuaternionRotate);
+	ut_run_test(testFinite);
 
 	return (_tests_failed == 0);
 }

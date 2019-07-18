@@ -39,7 +39,9 @@
 #include <unit_test.h>
 
 #include <px4_config.h>
+
 #include <float.h>
+#include <math.h>
 
 typedef union {
 	float f;

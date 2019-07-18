@@ -9,12 +9,12 @@ pipeline {
       steps {
         script {
           def missions = [
-            // [
-            //   name: "FW",
-            //   test: "mavros_posix_test_mission.test",
-            //   mission: "FW_mission_1",
-            //   vehicle: "plane"
-            // ],
+            [
+              name: "FW",
+              test: "mavros_posix_test_mission.test",
+              mission: "FW_mission_1",
+              vehicle: "plane"
+            ],
 
             [
               name: "MC_box",
@@ -35,6 +35,13 @@ pipeline {
               vehicle: "iris"
             ],
 
+            //[
+            //  name: "Rover 1",
+            //  test: "mavros_posix_test_mission.test",
+            //  mission: "rover_mission_1",
+            //  vehicle: "rover"
+            //],
+
             [
               name: "VTOL_standard",
               test: "mavros_posix_test_mission.test",
@@ -47,12 +54,12 @@ pipeline {
               mission: "VTOL_mission_1",
               vehicle: "tailsitter"
             ],
-            [
-              name: "VTOL_tiltrotor",
-              test: "mavros_posix_test_mission.test",
-              mission: "VTOL_mission_1",
-              vehicle: "tiltrotor"
-            ],
+            // [
+            //   name: "VTOL_tiltrotor",
+            //   test: "mavros_posix_test_mission.test",
+            //   mission: "VTOL_mission_1",
+            //   vehicle: "tiltrotor"
+            // ],
 
           ]
 
@@ -72,7 +79,7 @@ pipeline {
         stage('code coverage (python)') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-02-09'
+              image 'px4io/px4-dev-base-bionic:2019-03-08'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -91,7 +98,7 @@ pipeline {
         stage('unit tests') {
           agent {
             docker {
-              image 'px4io/px4-dev-base:2019-02-09'
+              image 'px4io/px4-dev-base-bionic:2019-03-08'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -119,7 +126,7 @@ pipeline {
   }
 
   options {
-    buildDiscarder(logRotator(numToKeepStr: '5', artifactDaysToKeepStr: '14'))
+    buildDiscarder(logRotator(numToKeepStr: '10', artifactDaysToKeepStr: '30'))
     timeout(time: 60, unit: 'MINUTES')
   }
 } // pipeline
@@ -128,7 +135,7 @@ def createTestNode(Map test_def) {
   return {
     node {
       cleanWs()
-      docker.image("px4io/px4-dev-ros-kinetic:2019-02-09").inside('-e HOME=${WORKSPACE}') {
+      docker.image("px4io/px4-dev-ros-kinetic:2019-03-08").inside('-e HOME=${WORKSPACE}') {
         stage(test_def.name) {
           def test_ok = true
           sh('export')
@@ -155,7 +162,8 @@ def createTestNode(Map test_def) {
 
             // process log data (with python code coverage)
             try {
-              sh('coverage run -p Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
+              //sh('coverage run -p Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
+              sh('Tools/ecl_ekf/process_logdata_ekf.py .ros/log/*/*.ulg')
             } catch (exc) {
               // save log analysis artifacts for debugging
               archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.pdf, .ros/**/*.csv')

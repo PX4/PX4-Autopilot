@@ -63,6 +63,7 @@ static constexpr uint8_t LSM303AGR_WHO_AM_I_M = 0x40;
 
 LSM303AGR::LSM303AGR(int bus, const char *path, uint32_t device, enum Rotation rotation) :
 	SPI("LSM303AGR", path, bus, device, SPIDEV_MODE3, 8 * 1000 * 1000),
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, "LSM303AGR_mag_read")),
 	_bad_registers(perf_alloc(PC_COUNT, "LSM303AGR_bad_reg")),
 	_bad_values(perf_alloc(PC_COUNT, "LSM303AGR_bad_val")),
@@ -252,10 +253,10 @@ LSM303AGR::ioctl(struct file *filp, int cmd, unsigned long arg)
 			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(CONVERSION_INTERVAL);
+					_measure_interval = (CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -268,18 +269,18 @@ LSM303AGR::ioctl(struct file *filp, int cmd, unsigned long arg)
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
+					unsigned interval = (1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(CONVERSION_INTERVAL)) {
+					if (interval < CONVERSION_INTERVAL) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					_measure_ticks = ticks;
+					_measure_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -345,31 +346,23 @@ LSM303AGR::start()
 	_collect_phase = false;
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&LSM303AGR::cycle_trampoline, this, 1);
+	ScheduleNow();
 }
 
 void
 LSM303AGR::stop()
 {
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 		/* ensure no new items are queued while we cancel this one */
-		_measure_ticks = 0;
-		work_cancel(HPWORK, &_work);
+		_measure_interval = 0;
+		ScheduleClear();
 	}
 }
 
 void
-LSM303AGR::cycle_trampoline(void *arg)
+LSM303AGR::Run()
 {
-	LSM303AGR *dev = (LSM303AGR *)arg;
-
-	dev->cycle();
-}
-
-void
-LSM303AGR::cycle()
-{
-	if (_measure_ticks == 0) {
+	if (_measure_interval == 0) {
 		return;
 	}
 
@@ -390,14 +383,10 @@ LSM303AGR::cycle()
 		/*
 		 * Is there a collect->measure gap?
 		 */
-		if (_measure_ticks > USEC2TICK(CONVERSION_INTERVAL)) {
+		if (_measure_interval > CONVERSION_INTERVAL) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&LSM303AGR::cycle_trampoline,
-				   this,
-				   _measure_ticks - USEC2TICK(CONVERSION_INTERVAL));
+			ScheduleDelayed(_measure_interval - CONVERSION_INTERVAL);
 
 			return;
 		}
@@ -409,9 +398,9 @@ LSM303AGR::cycle()
 	/* next phase is collection */
 	_collect_phase = true;
 
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 		/* schedule a fresh cycle call when the measurement is done */
-		work_queue(HPWORK,  &_work, (worker_t)&LSM303AGR::cycle_trampoline, this, USEC2TICK(CONVERSION_INTERVAL));
+		ScheduleDelayed(CONVERSION_INTERVAL);
 	}
 }
 

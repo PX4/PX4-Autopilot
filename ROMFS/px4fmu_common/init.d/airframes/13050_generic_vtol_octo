@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# @name Generic Octoplane VTOL
+#
+# @type VTOL Octoplane
+# @class VTOL
+#
+# @maintainer
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+# @output MAIN5 motor 5
+# @output MAIN6 motor 6
+# @output MAIN7 motor 7
+# @output MAIN8 motor 8
+# @output AUX1 Aileron 1
+# @output AUX2 Aileron 2
+# @output AUX3 Elevator
+# @output AUX4 Rudder
+# @output AUX5 Throttle
+#
+
+sh /etc/init.d/rc.vtol_defaults
+
+if [ $AUTOCNF = yes ]
+then
+	param set PWM_AUX_DIS5 950
+	param set PWM_RATE 400
+
+	param set VT_TYPE 2
+	param set VT_MOT_ID 12345678
+	param set VT_FW_MOT_OFFID 12345678
+fi
+
+set MAV_TYPE 22
+
+set MIXER octo_cox
+set MIXER_AUX vtol_AAERT
+
+set PWM_OUT 12345678

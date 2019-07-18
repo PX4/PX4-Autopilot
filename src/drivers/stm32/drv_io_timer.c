@@ -461,12 +461,9 @@ static int allocate_channel(unsigned channel, io_timer_channel_mode_t mode)
 
 static int timer_set_rate(unsigned timer, unsigned rate)
 {
-
 	/* configure the timer to update at the desired rate */
-	rARR(timer) = (BOARD_PWM_FREQ / rate) - 1;
 
-	/* generate an update event; reloads the counter and all registers */
-	rEGR(timer) = GTIM_EGR_UG;
+	rARR(timer) = (BOARD_PWM_FREQ / rate) - 1;
 
 	return 0;
 }

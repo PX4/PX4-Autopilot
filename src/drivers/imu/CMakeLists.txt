@@ -33,6 +33,7 @@
 
 add_subdirectory(adis16448)
 add_subdirectory(adis16477)
+add_subdirectory(adis16497)
 add_subdirectory(bma180)
 add_subdirectory(bmi055)
 add_subdirectory(bmi160)

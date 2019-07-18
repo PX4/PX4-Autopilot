@@ -138,10 +138,10 @@ private:
 	/** @note Declare local parameters using defined parameters. */
 	DEFINE_PARAMETERS(
 		/** @var _param_status_display Parameter to enable/disable the LED status display. */
-		(ParamBool<px4::params::EV_TSK_STAT_DIS>) _param_status_display,
+		(ParamBool<px4::params::EV_TSK_STAT_DIS>) _param_ev_tsk_stat_dis,
 
 		/** @var _param_rc_loss The RC comms loss status flag. */
-		(ParamBool<px4::params::EV_TSK_RC_LOSS>) _param_rc_loss
+		(ParamBool<px4::params::EV_TSK_RC_LOSS>) _param_ev_tsk_rc_loss
 	)
 };
 

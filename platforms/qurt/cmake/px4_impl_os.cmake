@@ -133,6 +133,7 @@ function(px4_os_add_flags)
 		-fmath-errno
 
 		-Wno-unknown-warning-option
+		-Wno-cast-align
 	)
 
 	# Clear -rdynamic flag which fails for hexagon

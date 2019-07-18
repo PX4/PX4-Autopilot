@@ -66,9 +66,6 @@ function(px4_os_add_flags)
 		${PX4_BINARY_DIR}/NuttX/apps/include
 		)
 
-	# NuttX's disables inline below C99 (comiler.h), but __STDC_VERSION__ isn't set for C++
-	add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-D__STDC_VERSION__=199901L>)
-
 	# prevent using the toolchain's std c++ library
 	add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-nostdinc++>)
 
@@ -115,8 +112,8 @@ function(px4_os_prebuild_targets)
 			REQUIRED OUT
 			ARGN ${ARGN})
 
-	if(PX4_BOARD_LABEL MATCHES "stackcheck")
-		set(NUTTX_CONFIG "stackcheck" CACHE INTERNAL "NuttX config" FORCE)
+	if(EXISTS ${PX4_BOARD_DIR}/nuttx-config/${PX4_BOARD_LABEL})
+		set(NUTTX_CONFIG "${PX4_BOARD_LABEL}" CACHE INTERNAL "NuttX config" FORCE)
 	else()
 		set(NUTTX_CONFIG "nsh" CACHE INTERNAL "NuttX config" FORCE)
 	endif()

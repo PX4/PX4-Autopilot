@@ -34,6 +34,8 @@
 #include "send_event.h"
 #include "temperature_calibration/temperature_calibration.h"
 
+#include <math.h>
+
 #include <px4_getopt.h>
 #include <px4_log.h>
 #include <drivers/drv_hrt.h>
@@ -68,11 +70,11 @@ int SendEvent::task_spawn(int argc, char *argv[])
 
 SendEvent::SendEvent() : ModuleParams(nullptr)
 {
-	if (_param_status_display.get()) {
+	if (_param_ev_tsk_stat_dis.get()) {
 		_status_display = new status::StatusDisplay(_subscriber_handler);
 	}
 
-	if (_param_rc_loss.get()) {
+	if (_param_ev_tsk_rc_loss.get()) {
 		_rc_loss_alarm = new rc_loss::RC_Loss_Alarm(_subscriber_handler);
 	}
 }

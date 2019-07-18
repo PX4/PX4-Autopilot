@@ -43,13 +43,10 @@
 
 #include "batt_smbus.h"
 
-#include <stdlib.h>
-
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 
-struct work_s BATT_SMBUS::_work = {};
-
 BATT_SMBUS::BATT_SMBUS(SMBus *interface, const char *path) :
+	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_cycle(perf_alloc(PC_ELAPSED, "batt_smbus_cycle")),
 	_batt_topic(nullptr),
@@ -100,9 +97,12 @@ BATT_SMBUS::~BATT_SMBUS()
 int BATT_SMBUS::task_spawn(int argc, char *argv[])
 {
 	enum BATT_SMBUS_BUS busid = BATT_SMBUS_BUS_ALL;
-	int ch;
 
-	while ((ch = getopt(argc, argv, "XTRIA:")) != EOF) {
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+
+	while ((ch = px4_getopt(argc, argv, "XTRIA:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			busid = BATT_SMBUS_BUS_I2C_EXTERNAL;
@@ -147,8 +147,7 @@ int BATT_SMBUS::task_spawn(int argc, char *argv[])
 				return PX4_ERROR;
 			}
 
-			// Throw it into the work queue.
-			work_queue(HPWORK, &_work, (worker_t)&BATT_SMBUS::cycle_trampoline, dev, 0);
+			dev->ScheduleNow();
 
 			return PX4_OK;
 
@@ -159,13 +158,7 @@ int BATT_SMBUS::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-void BATT_SMBUS::cycle_trampoline(void *arg)
-{
-	BATT_SMBUS *dev = (BATT_SMBUS *)arg;
-	dev->cycle();
-}
-
-void BATT_SMBUS::cycle()
+void BATT_SMBUS::Run()
 {
 	// Get the current time.
 	uint64_t now = hrt_absolute_time();
@@ -275,8 +268,7 @@ void BATT_SMBUS::cycle()
 		}
 
 		// Schedule a fresh cycle call when the measurement is done.
-		work_queue(HPWORK, &_work, (worker_t)&BATT_SMBUS::cycle_trampoline, this,
-			   USEC2TICK(BATT_SMBUS_MEASUREMENT_INTERVAL_US));
+		ScheduleDelayed(BATT_SMBUS_MEASUREMENT_INTERVAL_US);
 	}
 }
 

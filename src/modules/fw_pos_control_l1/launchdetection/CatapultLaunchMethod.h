@@ -68,10 +68,10 @@ private:
 	LaunchDetectionResult state{LAUNCHDETECTION_RES_NONE};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::LAUN_CAT_A>) _thresholdAccel,
-		(ParamFloat<px4::params::LAUN_CAT_T>) _thresholdTime,
-		(ParamFloat<px4::params::LAUN_CAT_MDEL>) _motorDelay,
-		(ParamFloat<px4::params::LAUN_CAT_PMAX>) _pitchMaxPreThrottle /**< Upper pitch limit before throttle is turned on.
+		(ParamFloat<px4::params::LAUN_CAT_A>) _param_laun_cat_a,
+		(ParamFloat<px4::params::LAUN_CAT_T>) _param_laun_cat_t,
+		(ParamFloat<px4::params::LAUN_CAT_MDEL>) _param_laun_cat_mdel,
+		(ParamFloat<px4::params::LAUN_CAT_PMAX>) _param_laun_cat_pmax /**< Upper pitch limit before throttle is turned on.
 						       Can be used to make sure that the AC does not climb
 						       too much while attached to a bungee */
 	)

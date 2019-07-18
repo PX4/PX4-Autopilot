@@ -36,42 +36,19 @@
  * Driver for the ST LSM303D MEMS accelerometer / magnetometer connected via SPI.
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <ecl/geo/geo.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-#include <getopt.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/clock.h>
-
-#include <drivers/drv_hrt.h>
+#include <drivers/device/integrator.h>
+#include <drivers/device/ringbuffer.h>
 #include <drivers/device/spi.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_mag.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
-
-#include <board_config.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <ecl/geo/geo.h>
 #include <lib/conversion/rotation.h>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <perf/perf_counter.h>
+#include <px4_getopt.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <systemlib/err.h>
+
 
 /* SPI protocol address bits */
 #define DIR_READ				(1<<7)
@@ -220,7 +197,7 @@ extern "C" { __EXPORT int lsm303d_main(int argc, char *argv[]); }
 
 class LSM303D_mag;
 
-class LSM303D : public device::SPI
+class LSM303D : public device::SPI, public px4::ScheduledWorkItem
 {
 public:
 	LSM303D(int bus, const char *path, uint32_t device, enum Rotation rotation);
@@ -256,10 +233,9 @@ protected:
 
 private:
 
-	LSM303D_mag		*_mag;
+	void Run() override;
 
-	struct hrt_call		_accel_call;
-	struct hrt_call		_mag_call;
+	LSM303D_mag		*_mag;
 
 	unsigned		_call_accel_interval;
 	unsigned		_call_mag_interval;
@@ -308,6 +284,8 @@ private:
 	// last temperature value
 	float			_last_temperature;
 
+	hrt_abstime		_mag_last_measure{0};
+
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
@@ -337,24 +315,6 @@ private:
 	 * disable I2C on the chip
 	 */
 	void			disable_i2c();
-
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		measure_trampoline(void *arg);
-
-	/**
-	 * Static trampoline for the mag because it runs at a lower rate
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		mag_measure_trampoline(void *arg);
 
 	/**
 	 * check key registers for correct values
@@ -508,8 +468,6 @@ private:
 
 	void				measure();
 
-	void				measure_trampoline(void *arg);
-
 	/* this class does not allow copying due to ptr data members */
 	LSM303D_mag(const LSM303D_mag &);
 	LSM303D_mag operator=(const LSM303D_mag &);
@@ -519,9 +477,8 @@ private:
 LSM303D::LSM303D(int bus, const char *path, uint32_t device, enum Rotation rotation) :
 	SPI("LSM303D", path, bus, device, SPIDEV_MODE3,
 	    11 * 1000 * 1000 /* will be rounded to 10.4 MHz, within safety margins for LSM303D */),
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 	_mag(new LSM303D_mag(this)),
-	_accel_call{},
-	_mag_call{},
 	_call_accel_interval(0),
 	_call_mag_interval(0),
 	_accel_reports(nullptr),
@@ -830,10 +787,10 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_call_accel_interval == 0);
 
 					/* convert hz to hrt interval via microseconds */
-					unsigned ticks = 1000000 / arg;
+					unsigned interval = 1000000 / arg;
 
 					/* check against maximum sane rate */
-					if (ticks < 500) {
+					if (interval < 500) {
 						return -EINVAL;
 					}
 
@@ -842,9 +799,7 @@ LSM303D::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
-					_call_accel_interval = ticks;
-
-					_accel_call.period = _call_accel_interval - LSM303D_TIMER_REDUCTION;
+					_call_accel_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -903,16 +858,16 @@ LSM303D::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_call_mag_interval == 0);
 
 					/* convert hz to hrt interval via microseconds */
-					unsigned ticks = 1000000 / arg;
+					unsigned interval = 1000000 / arg;
 
 					/* check against maximum sane rate */
-					if (ticks < 1000) {
+					if (interval < 1000) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
-					_mag_call.period = _call_mag_interval = ticks;
+					_call_mag_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -1214,18 +1169,13 @@ LSM303D::start()
 	_mag_reports->flush();
 
 	/* start polling at the specified rate */
-	hrt_call_every(&_accel_call,
-		       1000,
-		       _call_accel_interval - LSM303D_TIMER_REDUCTION,
-		       (hrt_callout)&LSM303D::measure_trampoline, this);
-	hrt_call_every(&_mag_call, 1000, _call_mag_interval, (hrt_callout)&LSM303D::mag_measure_trampoline, this);
+	ScheduleOnInterval(_call_accel_interval - LSM303D_TIMER_REDUCTION, 10000);
 }
 
 void
 LSM303D::stop()
 {
-	hrt_cancel(&_accel_call);
-	hrt_cancel(&_mag_call);
+	ScheduleClear();
 
 	/* reset internal states */
 	memset(_last_accel, 0, sizeof(_last_accel));
@@ -1236,21 +1186,14 @@ LSM303D::stop()
 }
 
 void
-LSM303D::measure_trampoline(void *arg)
+LSM303D::Run()
 {
-	LSM303D *dev = (LSM303D *)arg;
-
 	/* make another measurement */
-	dev->measure();
-}
+	measure();
 
-void
-LSM303D::mag_measure_trampoline(void *arg)
-{
-	LSM303D *dev = (LSM303D *)arg;
-
-	/* make another measurement */
-	dev->mag_measure();
+	if (hrt_elapsed_time(&_mag_last_measure) >= _call_mag_interval) {
+		mag_measure();
+	}
 }
 
 void
@@ -1473,6 +1416,9 @@ LSM303D::mag_measure()
 	 */
 
 	mag_report.timestamp = hrt_absolute_time();
+
+	_mag_last_measure = mag_report.timestamp;
+
 	mag_report.is_external = external();
 
 	mag_report.x_raw = raw_mag_report.x;
@@ -1670,12 +1616,6 @@ void
 LSM303D_mag::measure()
 {
 	_parent->mag_measure();
-}
-
-void
-LSM303D_mag::measure_trampoline(void *arg)
-{
-	_parent->mag_measure_trampoline(arg);
 }
 
 /**
@@ -1932,23 +1872,26 @@ int
 lsm303d_main(int argc, char *argv[])
 {
 	bool external_bus = false;
-	int ch;
 	enum Rotation rotation = ROTATION_NONE;
 	int accel_range = 8;
 
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XR:a:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XR:a:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			external_bus = true;
 			break;
 
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		case 'a':
-			accel_range = atoi(optarg);
+			accel_range = atoi(myoptarg);
 			break;
 
 		default:
@@ -1957,7 +1900,12 @@ lsm303d_main(int argc, char *argv[])
 		}
 	}
 
-	const char *verb = argv[optind];
+	if (myoptind >= argc) {
+		lsm303d::usage();
+		exit(0);
+	}
+
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.

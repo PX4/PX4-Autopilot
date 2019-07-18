@@ -128,6 +128,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <lib/mathlib/mathlib.h>
 
 /** simple channel scaler */
 struct mixer_scaler_s {
@@ -707,7 +708,10 @@ public:
 	 *
 	 * @param[in]  val   The value
 	 */
-	void			set_thrust_factor(float val) override { _thrust_factor = val; }
+	void			set_thrust_factor(float val) override
+	{
+		_thrust_factor = math::constrain(val, 0.0f, 1.0f);
+	}
 
 	void 			set_airmode(Airmode airmode) override;
 
@@ -773,7 +777,8 @@ private:
 	 * Mix roll, pitch, yaw, thrust and set the outputs vector.
 	 *
 	 * Desaturation behavior: full airmode for roll/pitch/yaw:
-	 * thrust is increased/decreased as much as required to meet demanded the roll/pitch/yaw.
+	 * thrust is increased/decreased as much as required to meet demanded the roll/pitch/yaw,
+	 * while giving priority to roll and pitch over yaw.
 	 */
 	inline void mix_airmode_rpy(float roll, float pitch, float yaw, float thrust, float *outputs);
 
@@ -799,7 +804,7 @@ private:
 	 */
 	inline void mix_yaw(float yaw, float *outputs);
 
-	void update_saturation_status(unsigned index, bool clipping_high, bool clipping_low);
+	void update_saturation_status(unsigned index, bool clipping_high, bool clipping_low_roll_pitch, bool clipping_low_yaw);
 
 	float				_roll_scale;
 	float				_pitch_scale;

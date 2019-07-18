@@ -49,11 +49,7 @@
 #include <cstdlib>
 #include <string.h>
 #include <stdio.h>
-#include <platforms/px4_getopt.h>
-
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
+#include <px4_getopt.h>
 
 #define LL40LS_DEVICE_PATH_PWM  "/dev/ll40ls_pwm"
 

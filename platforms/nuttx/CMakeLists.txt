@@ -94,7 +94,7 @@ target_link_libraries(px4 PRIVATE
 	-fno-exceptions
 	-fno-rtti
 
-	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx-config/scripts/ld.script
+	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx-config/scripts/script.ld
 	-Wl,-Map=${PX4_CONFIG}.map
 	-Wl,--warn-common
 	-Wl,--gc-sections
@@ -349,27 +349,24 @@ if(black_magic_probe_path)
 endif()
 
 add_custom_target(jlink_upload
-	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink.sh
-	COMMAND ${GDB} --nx --batch
-		-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
-		-ex 'target remote localhost:2331'
-		-ex 'monitor reset'
-		-ex 'load'
-		-ex 'kill'
-		$<TARGET_FILE:px4>
-	DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_start.sh
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_upload.sh $<TARGET_FILE:px4>
+	DEPENDS px4
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	USES_TERMINAL
 	)
 
 add_custom_target(jlink_debug
-	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink.sh
-	COMMAND ${GDB} --nh
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_start.sh
+	COMMAND ${GDB} -nh
 		-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
 		-ex 'target remote localhost:2331'
-		-ex 'monitor reset'
+		-ex 'monitor reset 0'
 		-ex 'load'
-		-ex 'monitor reset'
+		-ex 'compare-sections'
+		-ex 'monitor reset 0'
+		-ex 'monitor sleep 1000'
+		-ex 'monitor go'
 		-ex 'continue'
 		$<TARGET_FILE:px4>
 	DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit

@@ -57,8 +57,7 @@ vehicle_attitude_setpoint_s thrustToAttitude(const Vector3f &thr_sp, const float
 
 	} else {
 		// no thrust, set Z axis to safe value
-		body_z.zero();
-		body_z(2) = 1.0f;
+		body_z = Vector3f(0.f, 0.f, 1.f);
 	}
 
 	// vector of desired yaw direction in XY plane, rotated by PI/2

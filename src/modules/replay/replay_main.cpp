@@ -773,6 +773,7 @@ void Replay::run()
 		//to be in chronological order, so we need to check all subscriptions
 		uint64_t next_file_time = 0;
 		int next_msg_id = -1;
+		bool first_time = true;
 
 		for (size_t i = 0; i < _subscriptions.size(); ++i) {
 			const Subscription *subscription = _subscriptions[i];
@@ -782,7 +783,8 @@ void Replay::run()
 			}
 
 			if (subscription->orb_meta && !subscription->ignored) {
-				if (next_file_time == 0 || subscription->next_timestamp < next_file_time) {
+				if (first_time || subscription->next_timestamp < next_file_time) {
+					first_time = false;
 					next_msg_id = (int)i;
 					next_file_time = subscription->next_timestamp;
 				}

@@ -104,21 +104,6 @@ PARAM_DEFINE_FLOAT(TRIM_YAW, 0.0f);
 PARAM_DEFINE_INT32(COM_DL_LOSS_T, 10);
 
 /**
- * Datalink regain time threshold
- *
- * After a data link loss: after this this amount of seconds with a healthy datalink the 'datalink loss'
- * flag is set back to false
- *
- * @group Commander
- * @unit s
- * @min 0
- * @max 3
- * @decimal 1
- * @increment 0.5
- */
-PARAM_DEFINE_INT32(COM_DL_REG_T, 0);
-
-/**
  * High Latency Datalink loss time threshold
  *
  * After this amount of seconds without datalink the data link lost mode triggers
@@ -288,7 +273,7 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
  * @unit s
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(COM_DISARM_LAND, -1.0f);
+PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
 
 /**
  * Allow arming without GPS
@@ -352,7 +337,7 @@ PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 0.0f);
  * @value 1 Hold mode
  * @value 2 Return mode
  *
- * @group Mission
+ * @group Commander
  */
 PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
 
@@ -368,7 +353,7 @@ PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
  * @value 3 Return mode
  * @value 4 Land mode
  * @value 5 Hold mode
- * @group Mission
+ * @group Commander
  */
 PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
 
@@ -652,7 +637,7 @@ PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
  * @value 0 Assume use of remote control after fallback. Switch to Altitude mode if a height estimate is available, else switch to MANUAL.
  * @value 1 Assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
  *
- * @group Mission
+ * @group Commander
  */
 PARAM_DEFINE_INT32(COM_POSCTL_NAVL, 0);
 
@@ -718,7 +703,7 @@ PARAM_DEFINE_INT32(COM_POS_FS_GAIN, 10);
 /**
  * Horizontal position error threshold.
  *
- * This is the horizontal position error (EPV) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
+ * This is the horizontal position error (EPH) threshold that will trigger a failsafe. The default is appropriate for a multicopter. Can be increased for a fixed-wing.
  *
  * @unit m
  * @group Commander
@@ -769,3 +754,171 @@ PARAM_DEFINE_INT32(COM_FLIGHT_UUID, 0);
  * @group Mission
  */
 PARAM_DEFINE_INT32(COM_TAKEOFF_ACT, 0);
+
+/**
+ * Set data link loss failsafe mode
+ *
+ * The data link loss failsafe will only be entered after a timeout,
+ * set by COM_DL_LOSS_T in seconds. Once the timeout occurs the selected
+ * action will be executed. Setting this parameter to 4 will enable CASA
+ * Outback Challenge rules, which are only recommended to participants
+ * of that competition.
+ *
+ * @value 0 Disabled
+ * @value 1 Hold mode
+ * @value 2 Return mode
+ * @value 3 Land mode
+ * @value 4 Data Link Auto Recovery (CASA Outback Challenge rules)
+ * @value 5 Terminate
+ * @value 6 Lockdown
+ *
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(NAV_DLL_ACT, 0);
+
+/**
+ * Set RC loss failsafe mode
+ *
+ * The RC loss failsafe will only be entered after a timeout,
+ * set by COM_RC_LOSS_T in seconds. If RC input checks have been disabled
+ * by setting the COM_RC_IN_MODE param it will not be triggered.
+ * Setting this parameter to 4 will enable CASA Outback Challenge rules,
+ * which are only recommended to participants of that competition.
+ *
+ * @value 0 Disabled
+ * @value 1 Hold mode
+ * @value 2 Return mode
+ * @value 3 Land mode
+ * @value 4 RC Auto Recovery (CASA Outback Challenge rules)
+ * @value 5 Terminate
+ * @value 6 Lockdown
+ *
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(NAV_RCL_ACT, 2);
+
+/**
+ * Flag to enable obstacle avoidance.
+ *
+ * @boolean
+ * @group Mission
+ */
+PARAM_DEFINE_INT32(COM_OBS_AVOID, 0);
+
+/**
+ * Set avoidance system bootup timeout.
+ *
+ * The avoidance system running on the companion computer is expected to boot
+ * within this time and start providing trajectory points.
+ * If no avoidance system is detected a MAVLink warning message is sent.
+ * @group Commander
+ * @unit s
+ * @min 0
+ * @max 200
+ */
+PARAM_DEFINE_INT32(COM_OA_BOOT_T, 100);
+
+/**
+ * Airspeed failsafe consistency threshold (Experimental)
+ *
+ * This specifies the minimum airspeed test ratio as logged in estimator_status.tas_test_ratio required to trigger a failsafe. Larger values make the check less sensitive, smaller values make it more sensitive. Start with a value of 1.0 when tuning. When estimator_status.tas_test_ratio is > 1.0 it indicates the inconsistency between predicted and measured airspeed is large enough to cause the navigation EKF to reject airspeed measurements. The time required to detect a fault when the threshold is exceeded depends on the size of the exceedance and is controlled by the COM_TAS_FS_INTEG parameter. The subsequent failsafe response is controlled by the COM_ASPD_FS_ACT parameter.
+*
+ * @min 0.5
+ * @max 3.0
+ * @group Commander
+ * @category Developer
+ */
+PARAM_DEFINE_FLOAT(COM_TAS_FS_INNOV, 1.0f);
+
+/**
+ * Airspeed failsafe consistency delay (Experimental)
+ *
+ * This sets the time integral of airspeed test ratio exceedance above COM_TAS_FS_INNOV required to trigger a failsafe. For example if COM_TAS_FS_INNOV is 100 and estimator_status.tas_test_ratio is 2.0, then the exceedance is 1.0 and the integral will rise at a rate of 1.0/second. A negative value disables the check. Larger positive values make the check less sensitive, smaller positive values make it more sensitive. The failsafe response is controlled by the COM_ASPD_FS_ACT parameter.
+ *
+ * @unit s
+ * @max 30.0
+ * @group Commander
+ * @category Developer
+ */
+PARAM_DEFINE_FLOAT(COM_TAS_FS_INTEG, -1.0f);
+
+/**
+ * Airspeed failsafe stop delay (Experimental)
+ *
+ * Delay before stopping use of airspeed sensor if checks indicate sensor is bad. The failsafe response is controlled by the COM_ASPD_FS_ACT parameter.
+ *
+ * @unit s
+ * @group Commander
+ * @category Developer
+ * @min 1
+ * @max 10
+ */
+PARAM_DEFINE_INT32(COM_TAS_FS_T1, 3);
+
+/**
+ * Airspeed failsafe start delay (Experimental)
+ *
+ * Delay before switching back to using airspeed sensor if checks indicate sensor is good. The failsafe response is controlled by the COM_ASPD_FS_ACT parameter.
+ *
+ * @unit s
+ * @group Commander
+ * @category Developer
+ * @min 10
+ * @max 1000
+ */
+PARAM_DEFINE_INT32(COM_TAS_FS_T2, 100);
+
+/**
+ * Airspeed fault detection stall airspeed. (Experimental)
+ *
+ * This is the minimum indicated airspeed at which the wing can produce 1g of lift. It is used by the airspeed sensor fault detection and failsafe calculation to detect a significant airspeed low measurement error condition and should be set based on flight test for reliable operation. The failsafe response is controlled by the COM_ASPD_FS_ACT parameter.
+ *
+ * @group Commander
+ * @category Developer
+ * @unit m/s
+ */
+PARAM_DEFINE_FLOAT(COM_ASPD_STALL, 10.0f);
+
+/**
+ * Airspeed fault detection (Experimental)
+ *
+ * Failsafe action when bad airspeed measurements are detected. Ensure the COM_ASPD_STALL parameter is set correctly before use.
+ *
+ * @value 0 disabled
+ * @value 1 log a message
+ * @value 2 log a message, warn the user
+ * @value 3 log a message, warn the user, switch to non-airspeed TECS mode
+ * @value 4 log a message, warn the user, switch to non-airspeed TECS mode, switch to Return mode after COM_ASPD_FS_DLY seconds
+ * @group Commander
+ * @category Developer
+ */
+PARAM_DEFINE_INT32(COM_ASPD_FS_ACT, 0);
+
+/**
+ * Airspeed fault detection delay before RTL (Experimental)
+ *
+ * RTL delay after bad airspeed measurements are detected if COM_ASPD_FS_ACT is set to 4. Ensure the COM_ASPD_STALL parameter is set correctly before use. The failsafe start and stop delays are controlled by the COM_TAS_FS_T1 and COM_TAS_FS_T2 parameters. Additional protection against persistent airspeed sensor errors can be enabled using the COM_TAS_FS_INNOV parameter, but these addtional checks are more prone to false positives in windy conditions.
+ *
+ * @min 0
+ * @max 300
+ * @unit s
+ * @group Commander
+ * @category Developer
+ */
+PARAM_DEFINE_INT32(COM_ASPD_FS_DLY, 0);
+
+/**
+ * User Flight Profile
+ *
+ * Describes the intended use of the vehicle.
+ * Can be used by ground control software or log post processing.
+ * This param does not influence the behavior within the firmware. This means for example the control logic is independent of the setting of this param (but depends on other params).
+ *
+ * @value 0 Default
+ * @value 100 Pro User
+ * @value 200 Flight Tester
+ * @value 300 Developer
+ *
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_FLT_PROFILE, 0);

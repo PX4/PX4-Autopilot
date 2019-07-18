@@ -56,7 +56,7 @@ int test_tone(int argc, char *argv[])
 
 	if (argc == 1) {
 		PX4_INFO("Volume silenced for testing predefined tunes 0-20.");
-		tune_control.strength = 0;
+		tune_control.volume = tune_control_s::VOLUME_LEVEL_MIN;
 
 		for (size_t i = 0; i <= 20; i++) {
 			tune_control.tune_id = i;
@@ -80,13 +80,13 @@ int test_tone(int argc, char *argv[])
 	}
 
 	if (argc == 3) {
-		int volume = 40;
+		int volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
 		Tunes tunes{};
 		tunes.set_string(argv[2], volume);
 		PX4_INFO("Custom tune.");
 	}
 
-	tune_control.strength = 40;
+	tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
 	result = orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
 
 	orb_unadvertise(tune_control_pub);

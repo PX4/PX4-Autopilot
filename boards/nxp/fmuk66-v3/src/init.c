@@ -74,6 +74,7 @@
 #include <systemlib/px4_macros.h>
 
 #include <px4_init.h>
+#include <drivers/boards/common/board_dma_alloc.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -137,41 +138,6 @@ void board_on_reset(int status)
 int board_read_VBUS_state(void)
 {
 	return BOARD_ADC_USB_CONNECTED ? 0 : 1;
-}
-
-/************************************************************************************
- * Name: board_rc_input
- *
- * Description:
- *   All boards my optionally provide this API to invert the Serial RC input.
- *   This is needed on SoCs that support the notion RXINV or TXINV as opposed to
- *   and external XOR controlled by a GPIO
- *
- ************************************************************************************/
-
-__EXPORT void board_rc_input(bool invert_on, uint32_t uxart_base)
-{
-
-	irqstate_t irqstate = px4_enter_critical_section();
-
-	uint8_t s2 =  getreg8(KINETIS_UART_S2_OFFSET + uxart_base);
-	uint8_t c3 =  getreg8(KINETIS_UART_C3_OFFSET + uxart_base);
-
-	/* {R|T}XINV bit fields can written any time */
-
-	if (invert_on) {
-		s2 |= (UART_S2_RXINV);
-		c3 |= (UART_C3_TXINV);
-
-	} else {
-		s2 &= ~(UART_S2_RXINV);
-		c3 &= ~(UART_C3_TXINV);
-	}
-
-	putreg8(s2, KINETIS_UART_S2_OFFSET + uxart_base);
-	putreg8(c3, KINETIS_UART_C3_OFFSET + uxart_base);
-
-	leave_critical_section(irqstate);
 }
 
 /************************************************************************************

@@ -38,31 +38,22 @@
 
 #pragma once
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <fcntl.h>
-#include <stdbool.h>
-#include <poll.h>
-#include <mathlib/mathlib.h>
-#include <systemlib/err.h>
-#include <parameters/param.h>
+#include <string.h>
 
-#include <px4_config.h>
+#include <parameters/param.h>
 #include <px4_defines.h>
-#include <px4_module.h>
-#include <px4_tasks.h>
 #include <px4_workqueue.h>
 
+#include <drivers/device/ringbuffer.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
 #include <drivers/drv_input_capture.h>
-#include <drivers/device/ringbuffer.h>
 
-#include <uORB/uORB.h>
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/uORB.h>
 
 #define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
 

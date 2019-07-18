@@ -74,6 +74,7 @@
 #include <systemlib/px4_macros.h>
 
 #include <px4_init.h>
+#include <drivers/boards/common/board_dma_alloc.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -206,7 +207,6 @@ stm32_boardinitialize(void)
 
 	// Safety - led on in led driver.
 	stm32_configgpio(GPIO_BTN_SAFETY);
-	stm32_configgpio(GPIO_RSSI_IN);
 	stm32_configgpio(GPIO_PPM_IN);
 
 	int spi_init_mask = SPI_BUS_INIT_MASK;

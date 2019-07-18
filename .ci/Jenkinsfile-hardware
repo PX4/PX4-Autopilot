@@ -1,3 +1,5 @@
+#!/usr/bin/env groovy
+
 pipeline {
   agent none
   stages {
@@ -6,10 +8,58 @@ pipeline {
 
       parallel {
 
+        stage('px4_fmu-v2_test') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2019-03-08'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'make px4_fmu-v2_test'
+            sh 'make sizes'
+            sh 'ccache -s'
+            stash includes: 'build/px4_fmu-v2_test/px4_fmu-v2_test.elf', name: 'px4_fmu-v2_test'
+          }
+          post {
+            always {
+                sh 'make distclean'
+            }
+          }
+        }
+
+        stage('px4_fmu-v3_default') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2019-03-08'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'make px4_fmu-v3_default'
+            sh 'make sizes'
+            sh 'ccache -s'
+            stash includes: 'build/px4_fmu-v3_default/px4_fmu-v3_default.elf', name: 'px4_fmu-v3_default'
+          }
+          post {
+            always {
+                sh 'make distclean'
+            }
+          }
+        }
+
         stage('px4_fmu-v4_default') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-02-09'
+              image 'px4io/px4-dev-nuttx:2019-03-08'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -22,7 +72,102 @@ pipeline {
             sh 'make sizes'
             sh 'ccache -s'
             stash includes: 'build/px4_fmu-v4_default/px4_fmu-v4_default.elf', name: 'px4_fmu-v4_default'
-            stash includes: 'Tools/HIL/monitor_firmware_upload.py, Tools/HIL/run_tests.py', name: 'scripts-px4_fmu-v4_default'
+          }
+          post {
+            always {
+                sh 'make distclean'
+            }
+          }
+        }
+
+        stage('px4_fmu-v4pro_default') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2019-03-08'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'make px4_fmu-v4pro_default'
+            sh 'make sizes'
+            sh 'ccache -s'
+            stash includes: 'build/px4_fmu-v4pro_default/px4_fmu-v4pro_default.elf', name: 'px4_fmu-v4pro_default'
+          }
+          post {
+            always {
+                sh 'make distclean'
+            }
+          }
+        }
+
+        stage('px4_fmu-v5_default') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2019-03-08'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'make px4_fmu-v5_default'
+            sh 'make sizes'
+            sh 'ccache -s'
+            stash includes: 'build/px4_fmu-v5_default/px4_fmu-v5_default.elf', name: 'px4_fmu-v5_default'
+          }
+          post {
+            always {
+                sh 'make distclean'
+            }
+          }
+        }
+
+        stage('px4_fmu-v5_stackcheck') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2019-03-08'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'make px4_fmu-v5_stackcheck'
+            sh 'make sizes'
+            sh 'ccache -s'
+            stash includes: 'build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf', name: 'px4_fmu-v5_stackcheck'
+          }
+          post {
+            always {
+                sh 'make distclean'
+            }
+          }
+        }
+
+        stage('nxp_fmuk66-v3_default') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2019-03-08'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'make nxp_fmuk66-v3_default'
+            sh 'make sizes'
+            sh 'ccache -s'
+            stash includes: 'build/nxp_fmuk66-v3_default/nxp_fmuk66-v3_default.elf', name: 'nxp_fmuk66-v3_default'
           }
           post {
             always {
@@ -38,31 +183,21 @@ pipeline {
 
       parallel {
 
-        stage('px4fmu-v4_default') {
+        stage('px4_fmu-v2_test') {
           agent {
-            label 'px4fmu-v4'
+            label 'px4_fmu-v2'
           }
           steps {
             script {
               try {
                 sh 'export'
                 sh 'find /dev/serial'
-                unstash 'scripts-px4_fmu-v4_default'
-                unstash 'px4_fmu-v4_default'
-                sh ''' JLinkGDBServerCLExe -device STM32F427VI -endian little -if SWD -speed auto -noir -LocalhostOnly -silent & \
-                      gdb-multiarch -nx --batch \
-                      -ex "target remote localhost:2331" \
-                      -ex "monitor reset 0" \
-                      -ex "load" \
-                      -ex "compare-sections" \
-                      -ex "monitor reset 0" \
-                      -ex "monitor sleep 1000" \
-                      -ex "monitor go" \
-                      -ex "kill" \
-                      build/px4_fmu-v4_default/px4_fmu-v4_default.elf
-                '''
-                sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*` --baudrate 57600'
-                sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_TTL232R-3V3_*`'
+                unstash 'px4_fmu-v2_test'
+                sh 'platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v2_test/px4_fmu-v2_test.elf'
+                sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
+                //sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+                // ensure buzzer is disabled for the next test
+                sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'
               } catch (Exception err) {
                   // always report passed for now
                   currentBuild.result = 'SUCCESS'
@@ -70,7 +205,356 @@ pipeline {
             } // script
           }
           options {
-            timeout(time: 600, unit: 'SECONDS')
+            timeout(time: 20, unit: 'MINUTES')
+          }
+        }
+
+        stage('px4_fmu-v3_default') {
+          agent {
+            label 'px4_fmu-v3'
+          }
+          steps {
+            sh 'export'
+            sh 'find /dev/serial'
+            unstash 'px4_fmu-v3_default'
+            // flash board and watch bootup
+            sh './platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v3_default/px4_fmu-v3_default.elf'
+            sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
+            // status commands
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dmesg"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "free"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /dev"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /obj"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mavlink status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mtd status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param show"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf latency"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ps"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "pwm info"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sensors status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "top once"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
+            // run tests
+            sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+          }
+          options {
+            timeout(time: 20, unit: 'MINUTES')
+          }
+        }
+
+        stage('px4_fmu-v4_default') {
+          agent {
+            label 'px4_fmu-v4'
+          }
+          steps {
+            sh 'export'
+            sh 'find /dev/serial'
+            unstash 'px4_fmu-v4_default'
+            // flash board and watch bootup
+            sh 'platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v4_default/px4_fmu-v4_default.elf'
+            sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
+            // status commands
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dmesg"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "free"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /dev"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /obj"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mavlink status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mtd status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param show"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf latency"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ps"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "pwm info"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sensors status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "top once"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
+            // run tests
+            sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+            // ensure buzzer is disabled for the next test
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'
+          }
+          options {
+            timeout(time: 20, unit: 'MINUTES')
+          }
+        }
+
+        stage('px4_fmu-v4pro_default') {
+          agent {
+            label 'px4_fmu-v4pro'
+          }
+          steps {
+            sh 'export'
+            sh 'find /dev/serial'
+            unstash 'px4_fmu-v4pro_default'
+            // flash board and watch bootup
+            sh 'platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v4pro_default/px4_fmu-v4pro_default.elf'
+            sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
+            // status commands
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dmesg"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "free"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /dev"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /obj"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mavlink status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mtd status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param show"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf latency"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ps"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "pwm info"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sensors status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "top once"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
+            // run tests
+            sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+            // ensure buzzer is disabled for the next test
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'
+          }
+          options {
+            timeout(time: 20, unit: 'MINUTES')
+          }
+        }
+
+        stage('px4_fmu-v5_default (pixhawk 4)') {
+          agent {
+            label 'pixhawk_4'
+          }
+          steps {
+            sh 'export'
+            sh 'find /dev/serial'
+            unstash 'px4_fmu-v5_default'
+            // flash board and watch bootup
+            sh './platforms/nuttx/Debug/jlink_gdb_upload.sh  build/px4_fmu-v5_default/px4_fmu-v5_default.elf'
+            sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
+            // status commands
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dmesg"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "free"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /dev"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /obj"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mavlink status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mtd status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param show"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf latency"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ps"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "pwm info"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sensors status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "top once"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
+            // run tests
+            sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+            // ensure buzzer is disabled for the next test
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'
+          }
+          options {
+            timeout(time: 20, unit: 'MINUTES')
+          }
+        }
+
+        stage('px4_fmu-v5_default (pixhawk 4 mini)') {
+          agent {
+            label 'pixhawk_4_mini'
+          }
+          steps {
+            sh 'export'
+            sh 'find /dev/serial'
+            unstash 'px4_fmu-v5_default'
+            // flash board and watch bootup
+            sh './platforms/nuttx/Debug/jlink_gdb_upload.sh  build/px4_fmu-v5_default/px4_fmu-v5_default.elf'
+            sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
+            // status commands
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dmesg"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "free"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /dev"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /obj"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mavlink status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mtd status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param show"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf latency"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ps"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "pwm info"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sensors status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "top once"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
+            // run tests
+            sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+            // ensure buzzer is disabled for the next test
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'
+          }
+          options {
+            timeout(time: 20, unit: 'MINUTES')
+          }
+        }
+
+        stage('px4_fmu-v5_default (CUAV V5 Nano)') {
+          agent {
+            label 'cuav_v5_nano'
+          }
+          steps {
+            sh 'export'
+            sh 'find /dev/serial'
+            unstash 'px4_fmu-v5_default'
+            // flash board and watch bootup
+            sh './platforms/nuttx/Debug/jlink_gdb_upload.sh  build/px4_fmu-v5_default/px4_fmu-v5_default.elf'
+            sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
+            // status commands
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dmesg"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "free"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /dev"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /obj"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mavlink status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mtd status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param show"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf latency"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ps"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "pwm info"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sensors status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "top once"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
+            // run tests
+            sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+            // ensure buzzer is disabled for the next test
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'
+          }
+          options {
+            timeout(time: 20, unit: 'MINUTES')
+          }
+        }
+
+        stage('px4_fmu-v5_default (CUAV V5+)') {
+          agent {
+            label 'cuav_v5_plus'
+          }
+          steps {
+            sh 'export'
+            sh 'find /dev/serial'
+            unstash 'px4_fmu-v5_default'
+            // flash board and watch bootup
+            sh './platforms/nuttx/Debug/jlink_gdb_upload.sh  build/px4_fmu-v5_default/px4_fmu-v5_default.elf'
+            sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
+            // status commands
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dmesg"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "free"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /dev"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /obj"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mavlink status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mtd status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param show"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf latency"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ps"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "pwm info"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sensors status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "top once"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
+            // run tests
+            sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+            // ensure buzzer is disabled for the next test
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'
+          }
+          options {
+            timeout(time: 20, unit: 'MINUTES')
+          }
+        }
+
+        stage('px4_fmu-v5_stackcheck') {
+          agent {
+            label 'px4_fmu-v5'
+          }
+          steps {
+            script {
+              try {
+                sh 'export'
+                sh 'find /dev/serial'
+                unstash 'px4_fmu-v5_stackcheck'
+                sh './platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v5_stackcheck/px4_fmu-v5_stackcheck.elf'
+                sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
+                // sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`' // TODO: currently unusably slow
+              } catch (Exception err) {
+                  // always report passed for now
+                  currentBuild.result = 'SUCCESS'
+              }
+            } // script
+          }
+          options {
+            timeout(time: 20, unit: 'MINUTES')
+          }
+        }
+
+        stage('nxp_fmuk66-v3_default') {
+          agent {
+            label 'nxp_fmuk66-v3'
+          }
+          steps {
+            sh 'export'
+            sh 'find /dev/serial'
+            unstash 'nxp_fmuk66-v3_default'
+            // flash board and watch bootup
+            sh './platforms/nuttx/Debug/jlink_gdb_upload.sh build/nxp_fmuk66-v3_default/nxp_fmuk66-v3_default.elf'
+            sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
+            // status commands
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dataman status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "dmesg"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "fmu status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "free"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /dev"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ls /obj"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mavlink status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "mtd status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param show"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf latency"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "perf"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ps"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "pwm info"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sensors status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "top once"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
+            // run tests
+            sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
+            // ensure buzzer is disabled for the next test
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'
+          }
+          options {
+            timeout(time: 20, unit: 'MINUTES')
           }
         }
 
@@ -83,7 +567,7 @@ pipeline {
     CI = true
   }
   options {
-    buildDiscarder(logRotator(numToKeepStr: '5', artifactDaysToKeepStr: '30'))
+    buildDiscarder(logRotator(numToKeepStr: '20', artifactDaysToKeepStr: '30'))
     timeout(time: 60, unit: 'MINUTES')
   }
 }

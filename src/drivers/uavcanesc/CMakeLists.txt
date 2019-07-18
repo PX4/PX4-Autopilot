@@ -52,6 +52,7 @@ add_definitions(
 		-DUAVCAN_USE_EXTERNAL_SNPRINT
 		)
 
+add_compile_options(-Wno-cast-align) # TODO: fix and enable
 add_subdirectory(${LIBUAVCAN_DIR} uavcanesc_libuavcan)
 add_dependencies(uavcan prebuild_targets)
 

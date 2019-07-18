@@ -97,11 +97,11 @@ public:
 	 *  Overwrite methods:
 	 *  Needed if different parameter values than default required.
 	 */
-	void overwriteHoverAcceleration(float acc) { _acc_hover.set(acc); }
-	void overwriteMaxAcceleration(float acc) { _acc_xy_max.set(acc); }
-	void overwriteDecelerationMin(float dec) { _dec_xy_min.set(dec); }
-	void overwriteJerkMax(float jerk) { _jerk_max.set(jerk); }
-	void overwriteJerkMin(float jerk) { _jerk_min.set(jerk); }
+	void overwriteHoverAcceleration(float acc) { _param_mpc_acc_hor_max.set(acc); }
+	void overwriteMaxAcceleration(float acc) { _param_mpc_acc_hor.set(acc); }
+	void overwriteDecelerationMin(float dec) { _param_mpc_dec_hor_slow.set(dec); }
+	void overwriteJerkMax(float jerk) { _param_mpc_jerk_max.set(jerk); }
+	void overwriteJerkMin(float jerk) { _param_mpc_jerk_min.set(jerk); }
 
 private:
 	/**
@@ -165,11 +165,11 @@ private:
 	matrix::Vector2f _vel_sp_prev; /**< previous velocity setpoint */
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) _acc_hover, /**< acceleration in hover */
-		(ParamFloat<px4::params::MPC_ACC_HOR>) _acc_xy_max, /**< acceleration in flight */
-		(ParamFloat<px4::params::MPC_DEC_HOR_SLOW>) _dec_xy_min, /**< deceleration in flight */
-		(ParamFloat<px4::params::MPC_JERK_MIN>) _jerk_min, /**< jerk min during brake */
-		(ParamFloat<px4::params::MPC_JERK_MAX>) _jerk_max, /**< jerk max during brake */
-		(ParamFloat<px4::params::MPC_VEL_MANUAL>) _vel_manual /**< maximum velocity in manual controlled mode */
+		(ParamFloat<px4::params::MPC_ACC_HOR_MAX>) _param_mpc_acc_hor_max, /**< acceleration in hover */
+		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, /**< acceleration in flight */
+		(ParamFloat<px4::params::MPC_DEC_HOR_SLOW>) _param_mpc_dec_hor_slow, /**< deceleration in flight */
+		(ParamFloat<px4::params::MPC_JERK_MIN>) _param_mpc_jerk_min, /**< jerk min during brake */
+		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max, /**< jerk max during brake */
+		(ParamFloat<px4::params::MPC_VEL_MANUAL>) _param_mpc_vel_manual /**< maximum velocity in manual controlled mode */
 	)
 };

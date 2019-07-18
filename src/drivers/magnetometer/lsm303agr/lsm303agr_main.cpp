@@ -35,6 +35,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_getopt.h>
 
 #define LSM303AGR_DEVICE_PATH_MAG	"/dev/lsm303agr_mag"
 
@@ -135,14 +136,17 @@ usage()
 int
 lsm303agr_main(int argc, char *argv[])
 {
+	int myoptind = 1;
 	int ch;
+	const char *myoptarg = nullptr;
+
 	enum Rotation rotation = ROTATION_NONE;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "XR:a:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XR:a:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
-			rotation = (enum Rotation)atoi(optarg);
+			rotation = (enum Rotation)atoi(myoptarg);
 			break;
 
 		default:
@@ -151,7 +155,12 @@ lsm303agr_main(int argc, char *argv[])
 		}
 	}
 
-	const char *verb = argv[optind];
+	if (myoptind >= argc) {
+		lsm303agr::usage();
+		exit(0);
+	}
+
+	const char *verb = argv[myoptind];
 
 	/*
 	 * Start/load the driver.
