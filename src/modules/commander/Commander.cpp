@@ -1825,6 +1825,7 @@ Commander::run()
 		// abort auto mode or geofence reaction if sticks are moved significantly
 		// but only if not in a low battery handling action
 		const bool not_in_low_battery_reaction = _battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL;
+		const bool is_rotary_wing = status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 		const bool manual_mode_before_geofence =
 			main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
 			main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
@@ -1837,7 +1838,7 @@ Commander::run()
 			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
 			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER;
 
-		if (rc_override != 0 && not_in_low_battery_reaction
+		if (rc_override != 0 && is_rotary_wing && not_in_low_battery_reaction
 		    && (in_auto_mode || (_geofence_warning_action_on && manual_mode_before_geofence))) {
 			// transition to previous state if sticks are touched
 			if ((_last_sp_man.timestamp != sp_man.timestamp) &&
