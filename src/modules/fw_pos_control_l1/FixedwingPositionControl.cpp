@@ -2047,6 +2047,7 @@ bool FixedwingPositionControl::_get_launchdetection_status(const position_setpoi
 {
 
  bool launch_detection_running;
+
  if(pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
             _launchDetector.launchDetectionEnabled() &&
             _control_mode.flag_armed &&
@@ -2056,8 +2057,10 @@ bool FixedwingPositionControl::_get_launchdetection_status(const position_setpoi
 
     }
     else{
+
         launch_detection_running = false;
     }
+
 
 
   return launch_detection_running;

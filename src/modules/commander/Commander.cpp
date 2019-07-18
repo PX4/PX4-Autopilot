@@ -1617,11 +1617,11 @@ Commander::run()
 			land_detector_sub.copy(&land_detector);
 
 			// Only take actions if armed
-			if (armed.armed && !launch_detection_running()) {
+			if (armed.armed) {
 
 				if (was_landed != land_detector.landed) {
 
-					if (land_detector.landed && launch_detection_enabled != 1) {
+					if (land_detector.landed) {
 						mavlink_and_console_log_info(&mavlink_log_pub, "Landing detected");
 
 					} else {
@@ -1649,14 +1649,14 @@ Commander::run()
 		}
 
 
-		// Auto disarm when landed or kill switch engaged
-		if (armed.armed) {
+		// Auto disarm when landed or kill switch engaged or when launch detection is not running
+		if (armed.armed && !launch_detection_running()) {
 
 			// Check for auto-disarm on landing
 			if (_param_com_disarm_land.get() > 0) {
 
-				if (!have_taken_off_since_arming) {
-					// pilot has ten seconds time to take off
+				if (!have_taken_off_since_arming  && launch_detection_enabled != 1) {
+					// pilot has ten seconds time to take or until launch is detected
 					_auto_disarm_landed.set_hysteresis_time_from(false, 10_s);
 
 				} else {
@@ -3848,6 +3848,7 @@ void Commander::data_link_check(bool &status_changed)
 bool Commander::launch_detection_running()
 {
 	bool updated;
+
 	position_controller_status_s _controller_status{};
 
 	orb_check(_position_controller_sub, &updated);
@@ -3858,6 +3859,8 @@ bool Commander::launch_detection_running()
 
 
 	}
+
+
 
 	return _controller_status.launch_detection_running;
 
