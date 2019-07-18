@@ -240,17 +240,23 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 			// Use position setpoints to generate velocity setpoints
 
 			// Get various path specific vectors. */
-			Vector2f pos_traj;
+			Vector3f pos_traj;
 			pos_traj(0) = _trajectory[0].getCurrentPosition();
 			pos_traj(1) = _trajectory[1].getCurrentPosition();
-			Vector2f pos_sp_xy(_position_setpoint);
-			Vector2f pos_traj_to_dest(pos_sp_xy - pos_traj);
-			Vector2f prev_to_pos(pos_traj - Vector2f(_prev_wp));
-			Vector2f u_pos_traj_to_dest_xy(Vector2f(pos_traj_to_dest).unit_or_zero());
+			pos_traj(2) = _trajectory[2].getCurrentPosition();
+			Vector2f pos_traj_to_dest_xy(_position_setpoint - pos_traj);
+			Vector2f u_pos_traj_to_dest_xy(pos_traj_to_dest_xy.unit_or_zero());
+			const bool has_reached_altitude = fabsf(_position_setpoint(2) - pos_traj(2)) < _param_nav_mc_alt_rad.get();
 
-			float speed_sp_track = _getMaxSpeedFromDistance(pos_traj_to_dest.length());
+			float speed_sp_track = _getMaxSpeedFromDistance(pos_traj_to_dest_xy.length());
 
-			speed_sp_track = math::constrain(speed_sp_track, _getSpeedAtTarget(), _mc_cruise_speed);
+			if (has_reached_altitude) {
+				speed_sp_track = math::constrain(speed_sp_track, _getSpeedAtTarget(), _mc_cruise_speed);
+
+			} else {
+				speed_sp_track = math::constrain(speed_sp_track, 0.0f, _mc_cruise_speed);
+
+			}
 
 			Vector2f vel_sp_xy = u_pos_traj_to_dest_xy * speed_sp_track;
 
