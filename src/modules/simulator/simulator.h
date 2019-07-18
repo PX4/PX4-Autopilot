@@ -43,13 +43,13 @@
 #pragma once
 
 #include <battery/battery.h>
-#include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/ecl/geo/geo.h>
+#include <lib/tunes/tunes.h>
 #include <perf/perf_counter.h>
 #include <px4_module_params.h>
 #include <px4_posix.h>
@@ -62,6 +62,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/tune_control.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -228,6 +229,8 @@ private:
 
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
+	uint64_t _tone_timer{0};
+
 	unsigned int _port{14560};
 
 	InternetProtocol _ip{InternetProtocol::UDP};
@@ -240,6 +243,8 @@ private:
 	// Lib used to do the battery calculations.
 	Battery _battery {};
 	battery_status_s _battery_status{};
+
+	Tunes _tunes;
 
 #ifndef __PX4_QURT
 
@@ -264,6 +269,7 @@ private:
 	void send_controls();
 	void send_heartbeat();
 	void send_mavlink_message(const mavlink_message_t &aMsg);
+	void send_sim_tone();
 	void update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &imu);
 	void update_gps(const mavlink_hil_gps_t *gps_sim);
 
@@ -278,6 +284,7 @@ private:
 
 	// uORB subscription handlers
 	int _actuator_outputs_sub{-1};
+	int _tune_control_sub{-1};
 	int _vehicle_status_sub{-1};
 
 	// hil map_ref data
@@ -293,6 +300,7 @@ private:
 	// uORB data containers
 	input_rc_s _rc_input {};
 	manual_control_setpoint_s _manual {};
+	tune_control_s _tune_control {};
 	vehicle_attitude_s _attitude {};
 	vehicle_status_s _vehicle_status {};
 

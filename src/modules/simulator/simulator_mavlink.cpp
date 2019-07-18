@@ -33,23 +33,17 @@
  *
  ****************************************************************************/
 
-#include <termios.h>
-#include <px4_log.h>
-#include <px4_time.h>
-#include <px4_tasks.h>
-#include "simulator.h"
-#include <simulator_config.h>
-#include "errno.h"
-#include <lib/ecl/geo/geo.h>
+/**
+ * @file simulator_mavlink.cpp
+ */
+
 #include <drivers/drv_pwm_output.h>
-#include <sys/socket.h>
+#include <errno.h>
+#include <limits>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <pthread.h>
-#include <conversion/rotation.h>
-#include <mathlib/mathlib.h>
 
-#include <limits>
+#include "simulator.h"
 
 #ifdef ENABLE_UART_RC_INPUT
 #ifndef B460800
@@ -581,12 +575,51 @@ void Simulator::poll_topics()
 	if (updated) {
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
 	}
+
+	orb_check(_tune_control_sub, &updated);
+
+	if (updated) {
+		orb_copy(ORB_ID(tune_control), _tune_control_sub, &_tune_control);
+		_tunes.set_control(_tune_control);
+	}
 }
 
 void *Simulator::sending_trampoline(void * /*unused*/)
 {
 	_instance->send();
 	return nullptr;
+}
+
+void Simulator::send_sim_tone()
+{
+	hrt_abstime time_now = hrt_absolute_time();
+
+	// Don't grab the next tone until the current one is scheduled to be done.
+	if (_tone_timer < time_now) {
+
+		struct {
+			unsigned int frequency = 0;
+			unsigned int duration = 0;
+			unsigned int silence = 0;
+			uint8_t volume = 0;
+		} tone_info = {};
+
+		if (_tunes.get_next_note(tone_info.frequency, tone_info.duration, tone_info.silence, tone_info.volume) > 0) {
+
+			_tone_timer = time_now + tone_info.duration + tone_info.silence;
+
+			if (tone_info.frequency > 0 &&
+			    tone_info.duration > 0 &&
+			    tone_info.volume > 0) {
+				mavlink_play_tune_t tune_msg {};
+				mavlink_message_t message {};
+
+				memcpy(tune_msg.tune, &tone_info, sizeof(tone_info));
+				mavlink_msg_play_tune_encode(0, 50, &message, &tune_msg);
+				send_mavlink_message(message);
+			}
+		}
+	}
 }
 
 void Simulator::send()
@@ -769,6 +802,7 @@ void Simulator::poll_for_MAVLink_messages()
 	// Subscribe to topics.
 	// Only subscribe to the first actuator_outputs to fill a single HIL_ACTUATOR_CONTROLS.
 	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);
+	_tune_control_sub = orb_subscribe(ORB_ID(tune_control));
 	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	// got data from simulator, now activate the sending thread
@@ -833,6 +867,7 @@ void Simulator::poll_for_MAVLink_messages()
 	}
 
 	orb_unsubscribe(_actuator_outputs_sub);
+	orb_unsubscribe(_tune_control_sub);
 	orb_unsubscribe(_vehicle_status_sub);
 }
 
