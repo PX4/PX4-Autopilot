@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,37 +31,23 @@
  *
  ****************************************************************************/
 
-/**
- * @file manifest.c
- *
- * This module supplies the interface to the manifest of hardware that is
- * optional and dependent on the HW REV and HW VER IDs
- *
- * The manifest allows the system to know whether a hardware option
- * say for example the PX4IO is an no-pop option vs it is broken.
- *
- */
-
-/****************************************************************************
- * Included Files
- ****************************************************************************/
-
-#include <nuttx/config.h>
+#include <lib/drivers/tone_alarm/ToneAlarmInterface.h>
+#include <px4_defines.h>
 #include <board_config.h>
 
-#include <stdbool.h>
-#include "systemlib/px4_macros.h"
-
-/************************************************************************************
- * Name: board_rc_input
- *
- * Description:
- *   All boards my optionally provide this API to invert the Serial RC input.
- *   This is needed on SoCs that support the notion RXINV or TXINV as opposed to
- *   and external XOR controlled by a GPIO
- *
- ************************************************************************************/
-__EXPORT bool board_supports_single_wire(uint32_t uxart_base)
+void ToneAlarmInterface::init()
 {
-	return uxart_base == RC_UXART_BASE;
+	// Configure the GPIO to the idle state.
+	px4_arch_configgpio(GPIO_TONE_ALARM_IDLE);
+}
+
+void ToneAlarmInterface::start_note(unsigned frequency)
+{
+	px4_arch_gpiowrite(GPIO_TONE_ALARM_GPIO, 1);
+}
+
+void ToneAlarmInterface::stop_note()
+{
+	// Stop the current note.
+	px4_arch_gpiowrite(GPIO_TONE_ALARM_GPIO, 0);
 }

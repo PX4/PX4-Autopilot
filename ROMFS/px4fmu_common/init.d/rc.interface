@@ -25,11 +25,7 @@ then
         fi
 fi
 
-if ver hwcmp INTEL_AEROFC_V1 AV_X_V1 BITCRAZE_CRAZYFLIE AIRMIND_MINDPX_V2 NXP_FMUK66_V3 PX4_FMU_V4 OMNIBUS_F4SD PX4_SITL
-then
-	set MIXER_AUX none
-fi
-
+# USE_IO is set to 'no' for all boards w/o px4io driver or SYS_USE_IO disabled
 if [ $USE_IO = no ]
 then
 	set MIXER_AUX none

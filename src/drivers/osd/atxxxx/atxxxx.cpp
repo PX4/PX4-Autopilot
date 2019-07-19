@@ -50,7 +50,7 @@ struct work_s OSDatxxxx::_work = {};
 
 
 OSDatxxxx::OSDatxxxx(int bus) :
-	SPI("OSD", OSD_DEVICE_PATH, bus, OSD_SPIDEV, SPIDEV_MODE0, OSD_SPI_BUS_SPEED),
+	SPI("OSD", OSD_DEVICE_PATH, bus, PX4_MK_SPI_SEL(bus, OSD_SPIDEV), SPIDEV_MODE0, OSD_SPI_BUS_SPEED),
 	ModuleParams(nullptr)
 {
 	_battery_sub = orb_subscribe(ORB_ID(battery_status));

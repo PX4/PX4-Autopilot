@@ -351,6 +351,18 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
 PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.7f);
 
 /**
+ * Enable user assisted descent speed for autonomous land routine.
+ * When enabled, descent speed will be equal to MPC_LAND_SPEED at half throttle,
+ * MPC_Z_VEL_MAX_DN at zero throttle, and 0.5 * MPC_LAND_SPEED at full throttle.
+ *
+ * @min 0
+ * @max 1
+ * @value 0 Fixed descent speed of MPC_LAND_SPEED
+ * @value 1 User assisted descent speed
+ */
+PARAM_DEFINE_INT32(MPC_LAND_RC_HELP, 0);
+
+/**
  * Takeoff climb rate
  *
  * @unit m/s
@@ -750,11 +762,12 @@ PARAM_DEFINE_FLOAT(MPC_SPOOLUP_TIME, 1.0f);
  * Specifies the heading in Auto.
  *
  * @min 0
- * @max 3
+ * @max 4
  * @value 0 towards waypoint
  * @value 1 towards home
  * @value 2 away from home
  * @value 3 along trajectory
+ * @value 4 towards waypoint (yaw first)
  * @group Mission
  */
 PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);

@@ -708,7 +708,7 @@ void Logger::add_sensor_comparison_topics()
 void Logger::add_vision_and_avoidance_topics()
 {
 	add_topic("collision_constraints");
-	add_topic("obstacle_distance");
+	add_topic("obstacle_distance_fused");
 	add_topic("vehicle_mocap_odometry", 30);
 	add_topic("vehicle_trajectory_waypoint", 200);
 	add_topic("vehicle_trajectory_waypoint_desired", 200);
@@ -2011,7 +2011,7 @@ void Logger::write_info(LogType type, const char *name, const char *value)
 
 	/* construct format key (type and name) */
 	size_t vlen = strlen(value);
-	msg.key_len = snprintf(msg.key, sizeof(msg.key), "char[%zu] %s", vlen, name);
+	msg.key_len = snprintf(msg.key, sizeof(msg.key), "char[%i] %s", (int)vlen, name);
 	size_t msg_size = sizeof(msg) - sizeof(msg.key) + msg.key_len;
 
 	/* copy string value directly to buffer */
@@ -2037,7 +2037,7 @@ void Logger::write_info_multiple(LogType type, const char *name, const char *val
 
 	/* construct format key (type and name) */
 	size_t vlen = strlen(value);
-	msg.key_len = snprintf(msg.key, sizeof(msg.key), "char[%zu] %s", vlen, name);
+	msg.key_len = snprintf(msg.key, sizeof(msg.key), "char[%i] %s", (int)vlen, name);
 	size_t msg_size = sizeof(msg) - sizeof(msg.key) + msg.key_len;
 
 	/* copy string value directly to buffer */

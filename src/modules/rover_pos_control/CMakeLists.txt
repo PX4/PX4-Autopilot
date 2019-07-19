@@ -31,10 +31,12 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE modules__gnd_att_control
-	MAIN gnd_att_control
-	STACK_MAIN 1200
-	COMPILE_FLAGS
+	MODULE modules__rover_pos_control
+	MAIN rover_pos_control
 	SRCS
-		GroundRoverAttitudeControl.cpp
+		RoverPositionControl.cpp
+	DEPENDS
+		git_ecl
+		ecl_l1
+		pid
 	)
