@@ -361,8 +361,8 @@ LIS3MDL::collect()
 	ret = _interface->read(ADDR_OUT_X_L, (uint8_t *)&lis_report, sizeof(lis_report));
 
 	/**
-	 * Weird behavior: the X axis will be read instead of the temperature registers if you use a pointer to a packed struct...not sure why.
-	 * This works now, but further investigation to determine why this happens would be good (I am guessing a type error somewhere)
+	 * Silicon Bug: the X axis will be read instead of the temperature registers if you do a sequential read through XYZ.
+	 * The temperature registers must be addressed directly.
 	 */
 	ret = _interface->read(ADDR_OUT_T_L, (uint8_t *)&buf_rx, sizeof(buf_rx));
 
