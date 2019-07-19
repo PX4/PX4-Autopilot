@@ -310,3 +310,4 @@ void Tailsitter::fill_actuator_outputs()
 			_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH];
 	}
 }
+
