@@ -47,8 +47,6 @@
 
 #define ACTUATOR_PUBLISH_PERIOD_MS 4
 
-static int _control_task = -1;			/**< task handle for sensor task */
-
 using matrix::Eulerf;
 using matrix::Quatf;
 using matrix::Vector3f;
@@ -60,12 +58,6 @@ using matrix::Vector3f;
  */
 extern "C" __EXPORT int rover_pos_control_main(int argc, char *argv[]);
 
-
-namespace gnd_control
-{
-RoverPositionControl	*g_control = nullptr;
-}
-
 RoverPositionControl::RoverPositionControl() :
 	ModuleParams(nullptr),
 	/* performance counters */
@@ -73,6 +65,11 @@ RoverPositionControl::RoverPositionControl() :
 	_loop_perf(perf_alloc(PC_ELAPSED, "rover position control")) // TODO : do we even need these perf counters
 {
 
+}
+
+RoverPositionControl::~RoverPositionControl()
+{
+	perf_free(_loop_perf);
 }
 
 void RoverPositionControl::parameters_update(int parameter_update_sub, bool force)
@@ -185,7 +182,7 @@ RoverPositionControl::control_position(const matrix::Vector2f &current_position,
 		float mission_throttle = _param_throttle_cruise.get();
 
 		/* Just control the throttle */
-		if (_param_speed_control_mode .get() == 1) {
+		if (_param_speed_control_mode.get() == 1) {
 			/* control the speed in closed loop */
 
 			float mission_target_speed = _param_gndspeed_trim.get();
@@ -300,8 +297,6 @@ RoverPositionControl::run()
 	fds[1].events = POLLIN;
 	fds[2].fd = _manual_control_sub;
 	fds[2].events = POLLIN;
-
-	_task_running = true;
 
 	// Absolute time (in us) at which the actuators were last published
 	long actuators_last_published = 0;
@@ -433,11 +428,7 @@ RoverPositionControl::run()
 	orb_unsubscribe(_pos_sp_triplet_sub);
 	orb_unsubscribe(_vehicle_attitude_sub);
 
-	_task_running = false;
-
 	warnx("exiting.\n");
-
-	_control_task = -1;
 }
 
 int RoverPositionControl::task_spawn(int argc, char *argv[])
@@ -512,13 +503,6 @@ $ rover_pos_control stop
 	PRINT_MODULE_USAGE_COMMAND("start")
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
-	return 0;
-}
-
-int
-RoverPositionControl::print_status()
-{
-	PX4_INFO("Running");
 	return 0;
 }
 

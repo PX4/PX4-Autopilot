@@ -77,7 +77,7 @@ class RoverPositionControl : public ModuleBase<RoverPositionControl>, public Mod
 {
 public:
 	RoverPositionControl();
-	~RoverPositionControl() = default;
+	~RoverPositionControl();
 	RoverPositionControl(const RoverPositionControl &) = delete;
 	RoverPositionControl operator=(const RoverPositionControl &other) = delete;
 
@@ -95,15 +95,9 @@ public:
 	/** @see ModuleBase::run() */
 	void run() override;
 
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
-
 private:
 	orb_advert_t	_pos_ctrl_status_pub{nullptr};		/**< navigation capabilities publication */
 	orb_advert_t    _actuator_controls_pub{nullptr};	/**< actuator controls publication */
-
-
-	bool		_task_running{false};			/**< if true, task is running in its mainloop */
 
 	int		_control_mode_sub{-1};		/**< control mode subscription */
 	int		_global_pos_sub{-1};
