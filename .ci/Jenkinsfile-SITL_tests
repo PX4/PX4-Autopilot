@@ -61,12 +61,12 @@ pipeline {
               vehicle: "iris"
             ],
 
-            //[
-            //  name: "Rover 1",
-            //  test: "mavros_posix_test_mission.test",
-            //  mission: "rover_mission_1",
-            //  vehicle: "rover"
-            //],
+            [
+              name: "Rover 1",
+              test: "mavros_posix_test_mission.test",
+              mission: "rover_mission_1",
+              vehicle: "rover"
+            ],
 
             [
               name: "VTOL_standard",
