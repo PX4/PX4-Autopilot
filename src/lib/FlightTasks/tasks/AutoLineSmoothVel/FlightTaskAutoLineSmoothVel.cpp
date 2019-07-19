@@ -196,14 +196,14 @@ float FlightTaskAutoLineSmoothVel::_getSpeedAtTarget()
 	    yaw_align_check_pass) {
 		// Max speed between current and next
 		const float max_speed_current_next = _getMaxSpeedFromDistance(distance_current_next);
-		const float alpha = acos(Vector2f(&(_target - _prev_wp)(0)).unit_or_zero() * Vector2f(&(_target - _next_wp)(
-						 0)).unit_or_zero()) / 2.f;
+		const float alpha = acos(Vector2f(&(_target - _prev_wp)(0)).unit_or_zero() *
+					 Vector2f(&(_target - _next_wp)(0)).unit_or_zero()) / 2.f;
 		const float tan_alpha = tan(alpha);
-		// We choose a maximum centripetal acceleration of MPC_ACC_HOR/2 to take in account that there is a jerk limit (a direct transition from line to circle is not possible)
-		// We assume that the real radius of the acceptance radius is half of the _target_acceptance_radius since Navigator switches for us depending on the current position of
-		// the drone. This allows for some tolerance on tracking error.
-		speed_at_target = math::min(math::min(sqrtf(_param_mpc_acc_hor.get() / 2.f * _target_acceptance_radius / 2.f *
-						      tan_alpha), max_speed_current_next), _mc_cruise_speed);
+		// We choose a maximum centripetal acceleration of MPC_ACC_HOR * MPC_XY_TRAJ_P to take in account that there is a jerk limit (a direct transition from line to circle is not possible)
+		// MPC_XY_TRAJ_P should be between 0 and 1.
+		const float max_speed_in_turn = sqrtf(_param_mpc_xy_traj_p.get() * _param_mpc_acc_hor.get() * _target_acceptance_radius
+						      * tan_alpha);
+		speed_at_target = math::min(math::min(max_speed_in_turn, max_speed_current_next), _mc_cruise_speed);
 	}
 
 	return speed_at_target;
