@@ -45,6 +45,7 @@
 #include <battery/battery.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
+#include <drivers/tone_alarm/ToneAlarm.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
@@ -304,6 +305,7 @@ private:
 	tune_control_s _tune_control {};
 
 	Tunes _tunes;
+	int _cbrk{CBRK_UNINIT};     		///< If true, no audio output.
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval

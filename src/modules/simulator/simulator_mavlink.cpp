@@ -571,11 +571,13 @@ void Simulator::poll_topics()
 		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
 	}
 
+	// send tune control message if available
+
 	orb_check(_tune_control_sub, &updated);
 
 	if (updated) {
 
-		orb_copy(ORB_ID(tune_control), _tune_control_sub, &_tune_control);
+		orb_copy(ORB_ID(_control), _control_sub, &_tune_control);
 
 		_tunes.set_control(_tune_control);
 
@@ -588,11 +590,18 @@ void Simulator::poll_topics()
 			unsigned int silence;
 		} tune_info = {};
 
-		_tunes.get_next_tune(tune_info.frequency, tune_info.duration, tune_info.silence);
+		_tunes.get_next_note(tune_info.frequency, tune_info.duration, tune_info.silence);
 
-		memcpy(tune_msg.tune, &tune_info, sizeof(tune_msg.tune));
-		mavlink_msg_play_tune_encode(0, 50, &message, &tune_msg);
-		send_mavlink_message(message);
+		// Check if circuit breaker is enabled.
+		if (_cbrk == CBRK_UNINIT) {
+			_cbrk = circuit_breaker_enabled("CBRK_BUZZER", CBRK_BUZZER_KEY);
+		}
+
+		if (_cbrk == CBRK_OFF) {
+			memcpy(tune_msg.tune, &tune_info, sizeof(tune_msg.tune));
+			mavlink_msg_play_tune_encode(0, 50, &message, &tune_msg);
+			send_mavlink_message(message);
+		}
 	}
 }
 
