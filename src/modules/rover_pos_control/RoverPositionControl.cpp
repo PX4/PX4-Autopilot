@@ -278,6 +278,7 @@ RoverPositionControl::run()
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
 
 	/* rate limit control mode updates to 5Hz */
 	orb_set_interval(_control_mode_sub, 200);
@@ -291,28 +292,17 @@ RoverPositionControl::run()
 	px4_pollfd_struct_t fds[3];
 
 	/* Setup of loop */
-	fds[0].fd = _params_sub;
+	fds[0].fd = _global_pos_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = _global_pos_sub;
+	fds[1].fd = _manual_control_sub;
 	fds[1].events = POLLIN;
-	fds[2].fd = _manual_control_sub;
+	fds[2].fd = _sensor_combined_sub;
 	fds[2].events = POLLIN;
-
-	// Absolute time (in us) at which the actuators were last published
-	long actuators_last_published = 0;
-	// Timeout for poll in ms
-	int timeout = 0;
 
 	while (!should_exit()) {
 
-		// The +500 is to round to the nearest millisecond, instead of to the smallest millisecond.
-		timeout = ACTUATOR_PUBLISH_PERIOD_MS - (hrt_absolute_time() - actuators_last_published) / 1000 - 1;
-		timeout = timeout > 0 ? timeout : 0;
-
-		//PX4_INFO("TIMEOUT: %d", timeout);
-
 		/* wait for up to 500ms for data */
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), timeout);
+		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 500);
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
@@ -332,7 +322,7 @@ RoverPositionControl::run()
 		bool manual_mode = _control_mode.flag_control_manual_enabled;
 
 		/* only run controller if position changed */
-		if (fds[1].revents & POLLIN) {
+		if (fds[0].revents & POLLIN) {
 			perf_begin(_loop_perf);
 
 			/* load local copies */
@@ -386,7 +376,7 @@ RoverPositionControl::run()
 			perf_end(_loop_perf);
 		}
 
-		if (fds[2].revents & POLLIN) {
+		if (fds[1].revents & POLLIN) {
 
 			// This should be copied even if not in manual mode. Otherwise, the poll(...) call will keep
 			// returning immediately and this loop will eat up resources.
@@ -402,7 +392,9 @@ RoverPositionControl::run()
 			}
 		}
 
-		if (pret == 0) {
+		if (fds[2].revents & POLLIN) {
+
+			orb_copy(ORB_ID(sensor_combined), _sensor_combined_sub, &_sensor_combined);
 
 			//orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_vehicle_att);
 			_act_controls.timestamp = hrt_absolute_time();
@@ -415,8 +407,6 @@ RoverPositionControl::run()
 
 				_actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_0), &_act_controls);
 			}
-
-			actuators_last_published = hrt_absolute_time();
 		}
 
 	}
@@ -427,6 +417,7 @@ RoverPositionControl::run()
 	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_pos_sp_triplet_sub);
 	orb_unsubscribe(_vehicle_attitude_sub);
+	orb_unsubscribe(_sensor_combined_sub);
 
 	warnx("exiting.\n");
 }

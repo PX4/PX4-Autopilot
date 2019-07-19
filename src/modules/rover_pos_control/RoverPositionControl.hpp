@@ -59,6 +59,7 @@
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_bias.h>
+#include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -105,6 +106,7 @@ private:
 	int		_params_sub{-1};			/**< notification of parameter updates */
 	int		_pos_sp_triplet_sub{-1};
 	int     _vehicle_attitude_sub{-1};
+	int		_sensor_combined_sub{-1};
 
 	manual_control_setpoint_s		_manual{};			    /**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
@@ -112,6 +114,7 @@ private:
 	vehicle_global_position_s		_global_pos{};			/**< global vehicle position */
 	actuator_controls_s			    _act_controls{};		/**< direct control of actuators */
 	vehicle_attitude_s              _vehicle_att{};
+	sensor_combined_s				_sensor_combined{};
 
 	SubscriptionData<sensor_bias_s>	_sub_sensors;
 
