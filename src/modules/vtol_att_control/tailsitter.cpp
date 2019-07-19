@@ -296,7 +296,7 @@ void Tailsitter::fill_actuator_outputs()
 			_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
 
 		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] =
-				 _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL] * _mc_roll_weight;
+			_actuators_mc_in->control[actuator_controls_s::INDEX_ROLL] * _mc_roll_weight;
 	}
 
 	if (_params->elevons_mc_lock && _vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
