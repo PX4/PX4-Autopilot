@@ -103,6 +103,7 @@ RTL::on_active()
 
 	} else {
 		_navigator->get_mission_result()->finished = true;
+		_navigator->set_mission_result_updated();
 	}
 }
 

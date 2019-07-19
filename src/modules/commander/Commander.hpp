@@ -251,6 +251,9 @@ private:
 
 	uORB::Subscription _telemetry_status_sub{ORB_ID(telemetry_status)};
 
+	// Time of the last received `mission_result` message where finished == True
+	hrt_abstime _last_mission_result_finished{0};
+
 	hrt_abstime	_datalink_last_heartbeat_gcs{0};
 
 	hrt_abstime	_datalink_last_heartbeat_onboard_controller{0};

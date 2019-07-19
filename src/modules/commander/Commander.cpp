@@ -118,6 +118,7 @@ static constexpr uint64_t OFFBOARD_TIMEOUT = 500_ms;
 static constexpr uint64_t HOTPLUG_SENS_TIMEOUT = 8_s;	/**< wait for hotplug sensors to come online for upto 8 seconds */
 static constexpr uint64_t PRINT_MODE_REJECT_INTERVAL = 500_ms;
 static constexpr uint64_t INAIR_RESTART_HOLDOFF_INTERVAL = 500_ms;
+static constexpr uint64_t MISSION_FINISH_DISARM_TIMEOUT = 500_ms;
 
 /* Mavlink log uORB handle */
 static orb_advert_t mavlink_log_pub = nullptr;
@@ -1842,15 +1843,24 @@ Commander::run()
 					}
 				}
 
-				// TODO: Determine what to do with `was_armed`. It updates one loop iteration before this code
-				// is reached, so it's not correct here.
-				// One possible solution: Keep track of time of last arm-disarm transition, and see if it's
-				// less than 1 second ago (or less than 0.1 seconds, or whatever time works)
-				if (is_auto_state(internal_state.main_state) && mission_result.finished && !armed.armed // && was_armed
-				    && last_non_auto_state != commander_state_s::MAIN_STATE_MAX) {
-					main_state_transition(status, last_non_auto_state, status_flags, &internal_state);
+				if (mission_result.finished) {
+					_last_mission_result_finished = mission_result.timestamp;
 				}
 			}
+		}
+
+		// When auto mission/rtl/land is finished, transition back to the most recently-used manual mode.
+		// This check is done using time because we cannot guarantee that the disarm will happen first or
+		// the mission_result message will come in first.
+		const bool disarmed_and_mission_finished = !armed.armed
+				&& hrt_elapsed_time(&last_disarmed_timestamp) < MISSION_FINISH_DISARM_TIMEOUT
+				&& hrt_elapsed_time(&_last_mission_result_finished) < MISSION_FINISH_DISARM_TIMEOUT;
+
+		if (disarmed_and_mission_finished && is_auto_state(internal_state.main_state)
+		    && last_non_auto_state != commander_state_s::MAIN_STATE_MAX) {
+			// This branch will only happen once per mission finish because, after transitioning to the non-auto
+			// state, is_auto_state(internal_state.main_state) will be false.
+			main_state_transition(status, last_non_auto_state, status_flags, &internal_state);
 		}
 
 		/* start geofence result check */
