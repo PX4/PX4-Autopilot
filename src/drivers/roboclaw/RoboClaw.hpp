@@ -195,21 +195,21 @@ private:
 	struct timeval _uart_timeout;
 
 	/** actuator controls subscription */
-	int _actuatorsSub;
+	int _actuatorsSub{-1};
 	actuator_controls_s _actuatorControls;
 
-	int _armedSub;
+	int _armedSub{-1};
 	actuator_armed_s _actuatorArmed;
 
-	int _paramSub;
+	int _paramSub{-1};
 	parameter_update_s _paramUpdate;
 
-	orb_advert_t _wheelEncodersAdv;
-	wheel_encoders_s _wheelEncoderMsg;
+	orb_advert_t _wheelEncodersAdv[2] {nullptr, nullptr};
+	wheel_encoders_s _wheelEncoderMsg[2];
 
-	uint32_t _lastEncoderCount[2];
-	int64_t _encoderCounts[2];
-	int32_t _motorSpeeds[2];
+	uint32_t _lastEncoderCount[2] {0, 0};
+	int64_t _encoderCounts[2] {0, 0};
+	int32_t _motorSpeeds[2] {0, 0};
 
 	void _parameters_update();
 

@@ -170,9 +170,9 @@ void RoboClaw::taskMain()
 	fds[2].fd = _armedSub;
 	fds[2].events = POLLIN;
 
-	memset((void *) &_wheelEncoderMsg, 0, sizeof(wheel_encoders_s));
-	_wheelEncoderMsg.timestamp = hrt_absolute_time();
-	_wheelEncodersAdv = orb_advertise(ORB_ID(wheel_encoders), &_wheelEncoderMsg);
+	memset((void *) &_wheelEncoderMsg[0], 0, sizeof(_wheelEncoderMsg));
+	_wheelEncoderMsg[0].pulses_per_rev = _parameters.counts_per_rev;
+	_wheelEncoderMsg[1].pulses_per_rev = _parameters.counts_per_rev;
 
 	while (!taskShouldExit) {
 
@@ -221,19 +221,21 @@ void RoboClaw::taskMain()
 			encoderTaskLastRun = hrt_absolute_time();
 
 			if (readEncoder() > 0) {
-				_wheelEncoderMsg.timestamp = encoderTaskLastRun;
 
-				_wheelEncoderMsg.encoder_position[0] = _encoderCounts[0];
-				_wheelEncoderMsg.encoder_position[1] = _encoderCounts[1];
+				for (int i = 0; i < 2; i++) {
+					_wheelEncoderMsg[i].timestamp = encoderTaskLastRun;
 
-				_wheelEncoderMsg.speed[0] = _motorSpeeds[0];
-				_wheelEncoderMsg.speed[1] = _motorSpeeds[1];
+					_wheelEncoderMsg[i].encoder_position = _encoderCounts[i];
+					_wheelEncoderMsg[i].speed = _motorSpeeds[i];
 
-				if (_wheelEncodersAdv == nullptr) {
-					_wheelEncodersAdv = orb_advertise(ORB_ID(wheel_encoders), &_wheelEncoderMsg);
+					if (_wheelEncodersAdv[i] == nullptr) {
+						int instance;
+						_wheelEncodersAdv[i] = orb_advertise_multi(ORB_ID(wheel_encoders), &_wheelEncoderMsg[i],
+								       &instance, ORB_PRIO_DEFAULT);
 
-				} else {
-					orb_publish(ORB_ID(wheel_encoders), _wheelEncodersAdv, &_wheelEncoderMsg);
+					} else {
+						orb_publish(ORB_ID(wheel_encoders), _wheelEncodersAdv[i], &_wheelEncoderMsg[i]);
+					}
 				}
 
 			} else {
