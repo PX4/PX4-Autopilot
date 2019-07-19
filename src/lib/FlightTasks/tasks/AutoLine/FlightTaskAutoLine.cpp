@@ -175,14 +175,8 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 			// Vehicle is still far from destination. Accelerate or keep maximum target speed.
 			float acc_track = (speed_sp_track - speed_sp_prev_track) / _deltatime;
 
-			float yaw_diff = 0.0f;
-
-			if (PX4_ISFINITE(_yaw_setpoint)) {
-				yaw_diff = wrap_pi(_yaw_setpoint - _yaw);
-			}
-
 			// If yaw offset is large, only accelerate with 0.5 m/s^2.
-			float acc_max = (fabsf(yaw_diff) > math::radians(_param_mis_yaw_err.get())) ? 0.5f : _param_mpc_acc_hor.get();
+			float acc_max = (_yaw_sp_aligned) ? _param_mpc_acc_hor.get() : 0.5f;
 
 			if (acc_track > acc_max) {
 				// accelerate towards target
