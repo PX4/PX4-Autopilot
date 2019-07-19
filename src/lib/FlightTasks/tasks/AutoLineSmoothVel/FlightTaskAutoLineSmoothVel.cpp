@@ -191,10 +191,12 @@ float FlightTaskAutoLineSmoothVel::_getSpeedAtTarget()
 	float speed_at_target = 0.0f;
 
 	const float distance_current_next = Vector2f(&(_target - _next_wp)(0)).length();
+	const bool waypoint_overlap = Vector2f(&(_target - _prev_wp)(0)).length() < _target_acceptance_radius;
+	const bool yaw_align_check_pass = (_param_mpc_yaw_mode.get() != 4) || _yaw_sp_aligned;
 
 	if (distance_current_next > 0.001f &&
-	    (Vector2f(&(_target - _prev_wp)(0)).length() > _target_acceptance_radius) &&
-	    _param_mpc_yaw_mode.get() != 4) {
+	    !waypoint_overlap &&
+	    yaw_align_check_pass) {
 		// Max speed between current and next
 		const float max_speed_current_next = _getMaxSpeedFromDistance(distance_current_next);
 		const float alpha = acos(Vector2f(&(_target - _prev_wp)(0)).unit_or_zero() * Vector2f(&(_target - _next_wp)(
