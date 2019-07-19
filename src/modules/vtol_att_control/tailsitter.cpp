@@ -261,12 +261,6 @@ void Tailsitter::waiting_on_tecs()
 void Tailsitter::update_fw_state()
 {
 	VtolType::update_fw_state();
-
-	// allow fw yawrate control via multirotor roll actuation. this is useful for vehicles
-	// which don't have a rudder to coordinate turns
-	if (_params->diff_thrust == 1) {
-		_mc_roll_weight = 1.0f;
-	}
 }
 
 /**
@@ -291,9 +285,18 @@ void Tailsitter::fill_actuator_outputs()
 		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
 			_actuators_fw_in->control[actuator_controls_s::INDEX_THROTTLE];
 
+		/* allow differential thrust if enabled */
+		if (_params->diff_thrust == 1) {
+			_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] =
+				_actuators_fw_in->control[actuator_controls_s::INDEX_YAW] * _params->diff_thrust_scale;
+		}
+
 	} else {
 		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] =
 			_actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
+
+		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL] =
+				 _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL] * _mc_roll_weight;
 	}
 
 	if (_params->elevons_mc_lock && _vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
