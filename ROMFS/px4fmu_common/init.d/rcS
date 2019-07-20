@@ -490,6 +490,13 @@ else
 	#
 	sh /etc/init.d/rc.logging
 
+	#
+	# Set additional parameters and env variables for selected AUTOSTART.
+	#
+	if ! param compare SYS_AUTOSTART 0
+	then
+		sh /etc/init.d/rc.autostart.post
+	fi
 
 	if ! param compare SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
 	then

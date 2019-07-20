@@ -83,6 +83,7 @@ add_custom_command(
 		${romfs_gen_root_dir}/init.d/rcS
 		${romfs_gen_root_dir}/init.d/rc.serial
 		${romfs_gen_root_dir}/init.d/rc.autostart
+		${romfs_gen_root_dir}/init.d/rc.autostart.post
 		romfs_copy.stamp
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}
 	# TODO: we should only copy the files in ${romfs_copy_files}
