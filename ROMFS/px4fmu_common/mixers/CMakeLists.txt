@@ -53,6 +53,7 @@ px4_add_romfs_files(
 	generic_diff_rover.main.mix
 	hexa_cox.main.mix
 	hexa_+.main.mix
+        hexa_tilt.main.mix
 	hexa_x.main.mix
 	IO_pass.main.mix
 	mount.aux.mix
