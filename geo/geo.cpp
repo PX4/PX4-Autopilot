@@ -212,7 +212,7 @@ int globallocalconverter_init(double lat_0, double lon_0, float alt_0, uint64_t 
 {
 	gl_ref.alt = alt_0;
 
-	if (map_projection_global_init(lat_0, lon_0, timestamp) != 0) {
+	if (!map_projection_global_init(lat_0, lon_0, timestamp)) {
 		gl_ref.init_done = true;
 		return 0;
 	}
