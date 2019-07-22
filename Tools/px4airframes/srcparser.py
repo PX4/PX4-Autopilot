@@ -140,24 +140,45 @@ class Parameter(object):
         self.maintainer = maintainer
 
     def GetPath(self):
+        """
+        Get path to airframe startup script
+        """
         return self.path
 
     def GetPostPath(self):
+        """
+        Get path to airframe post startup script
+        """
         return self.post_path
 
     def GetName(self):
+        """
+        Get airframe name
+        """
         return self.name
 
     def GetType(self):
+        """
+        Get airframe type
+        """
         return self.type
 
     def GetClass(self):
+        """
+        Get airframe class
+        """
         return self.af_class
 
     def GetId(self):
+        """
+        Get airframe id
+        """
         return self.id
 
     def GetMaintainer(self):
+        """
+        Get airframe maintainer
+        """
         return self.maintainer
 
     def SetField(self, code, value):
