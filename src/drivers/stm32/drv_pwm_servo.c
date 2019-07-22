@@ -101,7 +101,7 @@ int up_pwm_servo_init(uint32_t channel_mask)
 				io_timer_free_channel(channel);
 			}
 
-			/* OneShot is set later, with the set_rate_group_update call. Init to PWM mode for now */
+			/* OneShot and Dshot are set later, with the set_rate_group_update call. Init to PWM mode for now */
 
 			io_timer_channel_init(channel, IOTimerChanMode_PWMOut, NULL, NULL);
 			channel_mask &= ~(1 << channel);
