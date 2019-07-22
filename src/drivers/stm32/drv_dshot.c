@@ -41,13 +41,15 @@
 #include "drv_dshot.h"
 #include "drv_io_timer.h"
 
-#define _REG32(_reg)	(*(volatile uint32_t *)(_reg))
+#define DSHOT_DMA_BASE	STM32_DMA2_BASE
+
+#define REG(_reg)	(*(volatile uint32_t *)(DSHOT_DMA_BASE + _reg))
 
 /* DMA registers */
-#define rS5CR			_REG32(STM32_DMA2_S5CR)
-#define rS5FCR			_REG32(STM32_DMA2_S5FCR)
-#define rS5M0AR			_REG32(STM32_DMA2_S5M0AR)
-#define rS5PAR			_REG32(STM32_DMA2_S5PAR)
+#define rS5CR			REG(STM32_DMA_S5CR_OFFSET)
+#define rS5FCR			REG(STM32_DMA_S5FCR_OFFSET)
+#define rS5M0AR			REG(STM32_DMA_S5M0AR_OFFSET)
+#define rS5PAR			REG(STM32_DMA_S5PAR_OFFSET)
 
 #define MOTOR_PWM_BIT_1			14u
 #define MOTOR_PWM_BIT_0			7u
@@ -57,13 +59,14 @@
 
 uint32_t dshotBurstBuffer[ALL_MOTORS_BUF_SIZE] = {0};
 
+static int dshot_dma_isr(int irq, void *context, void *arg);
+
 void dshot_dma_init(void)
 {
-	/* allocate DMA */
-	DMA_HANDLE _dshot_dma = stm32_dmachannel(DMAMAP_TIM1_UP);
-	if(NULL == _dshot_dma) {
-
-	}
+	/* claim our interrupt vector */
+	irq_attach(STM32_IRQ_DMA2S5, dshot_dma_isr, NULL);
+	/* enable interrupts */
+	up_enable_irq(STM32_IRQ_DMA2S5);
 
 	/* DMA setup stream 5*/
 	rS5CR |= DMA_SCR_CHSEL(0x6); /* Channel 6 */
@@ -77,6 +80,11 @@ void dshot_dma_init(void)
 
 	rS5M0AR = (uint32_t)dshotBurstBuffer;
 	rS5PAR  = STM32_TIM1_DMAR;
+}
+static int
+dshot_dma_isr(int irq, void *context, void *arg)
+{
+	return OK;
 }
 
 /**
