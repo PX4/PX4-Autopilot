@@ -24,7 +24,7 @@
 sh /etc/init.d/rc.mc_defaults
 
 # Set mixer
-set MIXER hexa_tilt
+set MIXER hexa_tilt_x
 
 # Need to set all 8 channels
 set PWM_OUT 12345678
