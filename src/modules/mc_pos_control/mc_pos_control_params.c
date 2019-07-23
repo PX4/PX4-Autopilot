@@ -618,7 +618,7 @@ PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_MAN_EXPO, 0.0f);
+PARAM_DEFINE_FLOAT(MPC_XY_MAN_EXPO, 0.6f);
 
 /**
  * Manual control stick vertical exponential curve
@@ -634,7 +634,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_MAN_EXPO, 0.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_MAN_EXPO, 0.0f);
+PARAM_DEFINE_FLOAT(MPC_Z_MAN_EXPO, 0.6f);
 
 /**
  * Manual control stick yaw rotation exponential curve
@@ -650,7 +650,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_MAN_EXPO, 0.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_YAW_EXPO, 0.0f);
+PARAM_DEFINE_FLOAT(MPC_YAW_EXPO, 0.6f);
 
 /**
  * Max yaw rate in auto mode
