@@ -154,7 +154,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_P, 0.2f);
  * @decimal 3
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_I, 0.02f);
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_I, 0.1f);
 
 /**
  * Differential gain for vertical velocity error
