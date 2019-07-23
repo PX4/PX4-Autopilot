@@ -47,8 +47,6 @@
 
 #define ACTUATOR_PUBLISH_PERIOD_MS 4
 
-static int _control_task = -1;			/**< task handle for sensor task */
-
 using matrix::Eulerf;
 using matrix::Quatf;
 using matrix::Vector3f;
@@ -60,105 +58,46 @@ using matrix::Vector3f;
  */
 extern "C" __EXPORT int rover_pos_control_main(int argc, char *argv[]);
 
-
-namespace gnd_control
-{
-RoverPositionControl	*g_control = nullptr;
-}
-
 RoverPositionControl::RoverPositionControl() :
+	ModuleParams(nullptr),
 	/* performance counters */
 	_sub_sensors(ORB_ID(sensor_bias)),
 	_loop_perf(perf_alloc(PC_ELAPSED, "rover position control")) // TODO : do we even need these perf counters
 {
-	_parameter_handles.l1_period = param_find("GND_L1_PERIOD");
-	_parameter_handles.l1_damping = param_find("GND_L1_DAMPING");
-	_parameter_handles.l1_distance = param_find("GND_L1_DIST");
 
-	_parameter_handles.gndspeed_trim = param_find("GND_SPEED_TRIM");
-	_parameter_handles.gndspeed_max = param_find("GND_SPEED_MAX");
-
-	_parameter_handles.speed_control_mode = param_find("GND_SP_CTRL_MODE");
-	_parameter_handles.speed_p = param_find("GND_SPEED_P");
-	_parameter_handles.speed_i = param_find("GND_SPEED_I");
-	_parameter_handles.speed_d = param_find("GND_SPEED_D");
-	_parameter_handles.speed_imax = param_find("GND_SPEED_IMAX");
-	_parameter_handles.throttle_speed_scaler = param_find("GND_SPEED_THR_SC");
-
-	_parameter_handles.throttle_min = param_find("GND_THR_MIN");
-	_parameter_handles.throttle_max = param_find("GND_THR_MAX");
-	_parameter_handles.throttle_cruise = param_find("GND_THR_CRUISE");
-
-	_parameter_handles.wheel_base = param_find("GND_WHEEL_BASE");
-	_parameter_handles.max_turn_angle = param_find("GND_MAX_ANG");
-
-	/* fetch initial parameter values */
-	parameters_update();
 }
 
 RoverPositionControl::~RoverPositionControl()
 {
-	if (_control_task != -1) {
-
-		/* task wakes up every 100ms or so at the longest */
-		_task_should_exit = true;
-
-		/* wait for a second for the task to quit at our request */
-		unsigned i = 0;
-
-		do {
-			/* wait 20ms */
-			px4_usleep(20000);
-
-			/* if we have given up, kill it */
-			if (++i > 50) {
-				px4_task_delete(_control_task);
-				break;
-			}
-		} while (_control_task != -1);
-	}
-
-	gnd_control::g_control = nullptr;
+	perf_free(_loop_perf);
 }
 
-int
-RoverPositionControl::parameters_update()
+void RoverPositionControl::parameters_update(int parameter_update_sub, bool force)
 {
-	/* L1 control parameters */
-	param_get(_parameter_handles.l1_damping, &(_parameters.l1_damping));
-	param_get(_parameter_handles.l1_period, &(_parameters.l1_period));
-	param_get(_parameter_handles.l1_distance, &(_parameters.l1_distance));
+	bool updated;
+	struct parameter_update_s param_upd;
 
-	param_get(_parameter_handles.gndspeed_trim, &(_parameters.gndspeed_trim));
-	param_get(_parameter_handles.gndspeed_max, &(_parameters.gndspeed_max));
+	orb_check(parameter_update_sub, &updated);
 
-	param_get(_parameter_handles.speed_control_mode, &(_parameters.speed_control_mode));
-	param_get(_parameter_handles.speed_p, &(_parameters.speed_p));
-	param_get(_parameter_handles.speed_i, &(_parameters.speed_i));
-	param_get(_parameter_handles.speed_d, &(_parameters.speed_d));
-	param_get(_parameter_handles.speed_imax, &(_parameters.speed_imax));
-	param_get(_parameter_handles.throttle_speed_scaler, &(_parameters.throttle_speed_scaler));
+	if (updated) {
+		orb_copy(ORB_ID(parameter_update), parameter_update_sub, &param_upd);
+	}
 
-	param_get(_parameter_handles.throttle_min, &(_parameters.throttle_min));
-	param_get(_parameter_handles.throttle_max, &(_parameters.throttle_max));
-	param_get(_parameter_handles.throttle_cruise, &(_parameters.throttle_cruise));
+	if (force || updated) {
+		updateParams();
 
-	param_get(_parameter_handles.wheel_base, &(_parameters.wheel_base));
-	param_get(_parameter_handles.max_turn_angle, &(_parameters.max_turn_angle));
+		_gnd_control.set_l1_damping(_param_l1_damping.get());
+		_gnd_control.set_l1_period(_param_l1_period.get());
+		_gnd_control.set_l1_roll_limit(math::radians(0.0f));
 
-	_gnd_control.set_l1_damping(_parameters.l1_damping);
-	_gnd_control.set_l1_period(_parameters.l1_period);
-	_gnd_control.set_l1_roll_limit(math::radians(0.0f));
-
-	pid_init(&_speed_ctrl, PID_MODE_DERIVATIV_CALC, 0.01f);
-	pid_set_parameters(&_speed_ctrl,
-			   _parameters.speed_p,
-			   _parameters.speed_d,
-			   _parameters.speed_i,
-			   _parameters.speed_imax,
-			   _parameters.gndspeed_max);
-
-	return OK;
+		pid_init(&_speed_ctrl, PID_MODE_DERIVATIV_CALC, 0.01f);
+		pid_set_parameters(&_speed_ctrl,
+				   _param_speed_p.get(),
+				   _param_speed_d.get(),
+				   _param_speed_i.get(),
+				   _param_speed_imax.get(),
+				   _param_gndspeed_max.get());
+	}
 }
 
 void
@@ -240,13 +179,13 @@ RoverPositionControl::control_position(const matrix::Vector2f &current_position,
 
 		matrix::Vector2f ground_speed_2d(ground_speed);
 
-		float mission_throttle = _parameters.throttle_cruise;
+		float mission_throttle = _param_throttle_cruise.get();
 
 		/* Just control the throttle */
-		if (_parameters.speed_control_mode == 1) {
+		if (_param_speed_control_mode.get() == 1) {
 			/* control the speed in closed loop */
 
-			float mission_target_speed = _parameters.gndspeed_trim;
+			float mission_target_speed = _param_gndspeed_trim.get();
 
 			if (PX4_ISFINITE(_pos_sp_triplet.current.cruising_speed) &&
 			    _pos_sp_triplet.current.cruising_speed > 0.1f) {
@@ -261,11 +200,11 @@ RoverPositionControl::control_position(const matrix::Vector2f &current_position,
 			const float x_acc = _sub_sensors.get().accel_x;
 
 			// Compute airspeed control out and just scale it as a constant
-			mission_throttle = _parameters.throttle_speed_scaler
+			mission_throttle = _param_throttle_speed_scaler.get()
 					   * pid_calculate(&_speed_ctrl, mission_target_speed, x_vel, x_acc, dt);
 
 			// Constrain throttle between min and max
-			mission_throttle = math::constrain(mission_throttle, _parameters.throttle_min, _parameters.throttle_max);
+			mission_throttle = math::constrain(mission_throttle, _param_throttle_min.get(), _param_throttle_max.get());
 
 		} else {
 			/* Just control throttle in open loop */
@@ -314,8 +253,8 @@ RoverPositionControl::control_position(const matrix::Vector2f &current_position,
 			_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = mission_throttle;
 
 			float desired_r = ground_speed_2d.norm_squared() / math::abs_t(_gnd_control.nav_lateral_acceleration_demand());
-			float desired_theta = (0.5f * M_PI_F) - atan2f(desired_r, _parameters.wheel_base);
-			float control_effort = (desired_theta / _parameters.max_turn_angle) * math::sign(
+			float desired_theta = (0.5f * M_PI_F) - atan2f(desired_r, _param_wheel_base.get());
+			float control_effort = (desired_theta / _param_max_turn_angle.get()) * math::sign(
 						       _gnd_control.nav_lateral_acceleration_demand());
 			control_effort = math::constrain(control_effort, -1.0f, 1.0f);
 			_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
@@ -331,7 +270,7 @@ RoverPositionControl::control_position(const matrix::Vector2f &current_position,
 }
 
 void
-RoverPositionControl::task_main()
+RoverPositionControl::run()
 {
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
@@ -346,12 +285,7 @@ RoverPositionControl::task_main()
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
 
-	/* abort on a nonzero return value from the parameter init */
-	if (parameters_update()) {
-		/* parameter setup went wrong, abort */
-		warnx("aborting startup due to errors.");
-		_task_should_exit = true;
-	}
+	parameters_update(_params_sub, true);
 
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[3];
@@ -364,14 +298,12 @@ RoverPositionControl::task_main()
 	fds[2].fd = _manual_control_sub;
 	fds[2].events = POLLIN;
 
-	_task_running = true;
-
 	// Absolute time (in us) at which the actuators were last published
 	long actuators_last_published = 0;
 	// Timeout for poll in ms
 	int timeout = 0;
 
-	while (!_task_should_exit) {
+	while (!should_exit()) {
 
 		// The +500 is to round to the nearest millisecond, instead of to the smallest millisecond.
 		timeout = ACTUATOR_PUBLISH_PERIOD_MS - (hrt_absolute_time() - actuators_last_published) / 1000 - 1;
@@ -394,17 +326,10 @@ RoverPositionControl::task_main()
 
 		_sub_sensors.update();
 
+		/* update parameters from storage */
+		parameters_update(_params_sub);
+
 		bool manual_mode = _control_mode.flag_control_manual_enabled;
-
-		/* only update parameters if they changed */
-		if (fds[0].revents & POLLIN) {
-			/* read from param to clear updated flag */
-			parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), _params_sub, &update);
-
-			/* update parameters from storage */
-			parameters_update();
-		}
 
 		/* only run controller if position changed */
 		if (fds[1].revents & POLLIN) {
@@ -428,7 +353,7 @@ RoverPositionControl::task_main()
 			if (!manual_mode && control_position(current_position, ground_speed, _pos_sp_triplet)) {
 
 				/* XXX check if radius makes sense here */
-				float turn_distance = _parameters.l1_distance; //_gnd_control.switch_distance(100.0f);
+				float turn_distance = _param_l1_distance.get(); //_gnd_control.switch_distance(100.0f);
 
 				// publish status
 				position_controller_status_s pos_ctrl_status = {};
@@ -503,42 +428,20 @@ RoverPositionControl::task_main()
 	orb_unsubscribe(_pos_sp_triplet_sub);
 	orb_unsubscribe(_vehicle_attitude_sub);
 
-	_task_running = false;
-
 	warnx("exiting.\n");
-
-	_control_task = -1;
 }
 
-int
-RoverPositionControl::task_main_trampoline(int argc, char *argv[])
-{
-	gnd_control::g_control = new RoverPositionControl();
-
-	if (gnd_control::g_control == nullptr) {
-		warnx("OUT OF MEM");
-		return -1;
-	}
-
-	/* only returns on exit */
-	gnd_control::g_control->task_main();
-	delete gnd_control::g_control;
-	gnd_control::g_control = nullptr;
-	return 0;
-}
-
-int
-RoverPositionControl::start()
+int RoverPositionControl::task_spawn(int argc, char *argv[])
 {
 	/* start the task */
-	_control_task = px4_task_spawn_cmd("rover_pos_ctrl",
-					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_POSITION_CONTROL,
-					   1700,
-					   (px4_main_t)&RoverPositionControl::task_main_trampoline,
-					   nullptr);
+	_task_id = px4_task_spawn_cmd("rover_pos_ctrl",
+				      SCHED_DEFAULT,
+				      SCHED_PRIORITY_POSITION_CONTROL,
+				      1700,
+				      (px4_main_t)&RoverPositionControl::run_trampoline,
+				      nullptr);
 
-	if (_control_task < 0) {
+	if (_task_id < 0) {
 		warn("task start failed");
 		return -errno;
 	}
@@ -546,59 +449,64 @@ RoverPositionControl::start()
 	return OK;
 }
 
+RoverPositionControl *RoverPositionControl::instantiate(int argc, char *argv[])
+{
+
+	if (argc > 0) {
+		PX4_WARN("Command 'start' takes no arguments.");
+		return nullptr;
+	}
+
+	RoverPositionControl *instance = new RoverPositionControl();
+
+	if (instance == nullptr) {
+		PX4_ERR("Failed to instantiate RoverPositionControl object");
+	}
+
+	return instance;
+}
+
+int RoverPositionControl::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
+}
+
+int RoverPositionControl::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Controls the position of a ground rover using an L1 controller.
+
+Publishes `actuator_controls_0` messages at a constant 250Hz.
+
+### Implementation
+Currently, this implementation supports only a few modes:
+
+ * Full manual: Throttle and yaw controls are passed directly through to the actuators
+ * Auto mission: The rover runs missions
+ * Loiter: The rover will navigate to within the loiter radius, then stop the motors
+
+### Examples
+CLI usage example:
+$ rover_pos_control start
+$ rover_pos_control status
+$ rover_pos_control stop
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("rover_pos_control", "controller");
+	PRINT_MODULE_USAGE_COMMAND("start")
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
 int rover_pos_control_main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		warnx("usage: rover_pos_control {start|stop|status}");
-		return 1;
-	}
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (gnd_control::g_control != nullptr) {
-			warnx("already running");
-			return 1;
-		}
-
-		if (OK != RoverPositionControl::start()) {
-			warn("start failed");
-			return 1;
-		}
-
-		/* avoid memory fragmentation by not exiting start handler until the task has fully started */
-		while (gnd_control::g_control == nullptr || !gnd_control::g_control->task_running()) {
-			px4_usleep(50000);
-			printf(".");
-			fflush(stdout);
-		}
-
-		printf("\n");
-
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		if (gnd_control::g_control == nullptr) {
-			warnx("not running");
-			return 1;
-		}
-
-		delete gnd_control::g_control;
-		gnd_control::g_control = nullptr;
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (gnd_control::g_control) {
-			warnx("running");
-			return 0;
-
-		} else {
-			warnx("not running");
-			return 1;
-		}
-	}
-
-	warnx("unrecognized command");
-	return 1;
+	return RoverPositionControl::main(argc, argv);
 }
