@@ -110,7 +110,7 @@
 #define GTIM_SR_CCIF (GTIM_SR_CC4IF|GTIM_SR_CC3IF|GTIM_SR_CC2IF|GTIM_SR_CC1IF)
 #define GTIM_SR_CCOF (GTIM_SR_CC4OF|GTIM_SR_CC3OF|GTIM_SR_CC2OF|GTIM_SR_CC1OF)
 
-#define CCMR_C1_RESET 		0x00ff
+#define CCMR_C1_RESET 			0x00ff
 #define CCMR_C1_NUM_BITS 		8
 #define CCER_C1_NUM_BITS 		4
 
@@ -127,6 +127,11 @@
 #else
 #define CCER_C1_INIT  GTIM_CCER_CC1E
 #endif
+
+/* TIM_DMA_Base_address TIM DMA Base Address */
+#define TIM_DMABASE_CCR1				0x0000000DU
+/* The transfer is done to 4 registers starting trom TIMx_CR1 + TIMx_DCR.DBA  */
+#define TIM_DMABURSTLENGTH_4TRANSFERS	0x00000300U
 
 //												 				  NotUsed   PWMOut  PWMIn Capture OneShot Trigger Dshot
 io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT8_MAX,   0,  0,  0, 0, 0, 0 };
@@ -496,14 +501,16 @@ static inline void io_timer_set_dshot_mode(unsigned timer, unsigned dshot_pwm_ra
 		prescaler = ((int)(io_timers[timer].clock_freq / DSHOT_1200_PWM_FREQ)/DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
 	}
 
+	dshot_dma_init();
+
 	rARR(timer)  = DSHOT_MOTOR_PWM_BIT_WIDTH;
 	rPSC(timer)  = prescaler;
 	rEGR(timer)  = ATIM_EGR_UG;
-	rBDTR(timer) = ATIM_BDTR_OSSR | ATIM_BDTR_BKP;
+	rBDTR(timer) = ATIM_BDTR_MOE | ATIM_BDTR_OSSR | ATIM_BDTR_BKP;
 	rCCER(timer) = ATIM_CCER_CC1E | ATIM_CCER_CC2E | ATIM_CCER_CC3E | ATIM_CCER_CC4E;
+	rCR1(timer)  = ATIM_CR1_CEN;
+	rDCR(timer)  = (TIM_DMABASE_CCR1 | TIM_DMABURSTLENGTH_4TRANSFERS);
 	rDIER(timer) = ATIM_DIER_UDE;
-
-	dshot_dma_init();
 }
 
 static inline void io_timer_set_PWM_mode(unsigned timer)
