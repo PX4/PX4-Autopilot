@@ -254,6 +254,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_debug_float_array(msg);
 		break;
 
+	case MAVLINK_MSG_ID_STATUSTEXT:
+		handle_message_statustext(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -777,6 +781,51 @@ MavlinkReceiver::handle_message_att_pos_mocap(mavlink_message_t *msg)
 	int instance_id = 0;
 
 	orb_publish_auto(ORB_ID(vehicle_mocap_odometry), &_mocap_odometry_pub, &mocap_odom, &instance_id, ORB_PRIO_HIGH);
+}
+
+void
+MavlinkReceiver::handle_message_statustext(mavlink_message_t *msg)
+{
+	mavlink_statustext_t statustext;
+	mavlink_msg_statustext_decode(msg, &statustext);
+
+	switch (statustext.severity) {
+
+	case MAV_SEVERITY_EMERGENCY:
+		_mavlink->send_statustext_emergency(statustext.text);
+		break;
+
+	case MAV_SEVERITY_ALERT:
+		_mavlink->send_statustext_critical(statustext.text);
+		break;
+
+	case MAV_SEVERITY_CRITICAL:
+		_mavlink->send_statustext_critical(statustext.text);
+		break;
+
+	case MAV_SEVERITY_ERROR:
+		_mavlink->send_statustext_critical(statustext.text);
+		break;
+
+	case MAV_SEVERITY_WARNING:
+		_mavlink->send_statustext_critical(statustext.text);
+		break;
+
+	case MAV_SEVERITY_NOTICE:
+		_mavlink->send_statustext_info(statustext.text);
+		break;
+
+	case MAV_SEVERITY_INFO:
+		_mavlink->send_statustext_info(statustext.text);
+		break;
+
+	case MAV_SEVERITY_DEBUG:
+		_mavlink->send_statustext_info(statustext.text);
+		break;
+
+	default:
+		break;
+	}
 }
 
 void
