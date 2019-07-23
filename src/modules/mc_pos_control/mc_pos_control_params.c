@@ -729,7 +729,7 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 3.0f);
  * @value 3 Smooth position control (Velocity)
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_INT32(MPC_POS_MODE, 1);
+PARAM_DEFINE_INT32(MPC_POS_MODE, 3);
 
 /**
  * Auto sub-mode
