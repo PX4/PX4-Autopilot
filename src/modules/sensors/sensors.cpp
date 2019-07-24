@@ -91,6 +91,10 @@
 #include "parameters.h"
 #include "rc_update.h"
 #include "voted_sensors_update.h"
+#include "power.h"
+
+#undef BOARD_NUMBER_BRICKS
+#define BOARD_NUMBER_BRICKS 2
 
 using namespace DriverFramework;
 using namespace sensors;
@@ -172,16 +176,6 @@ private:
 	orb_advert_t	_airdata_pub{nullptr};			/**< combined sensor data topic */
 	orb_advert_t	_magnetometer_pub{nullptr};			/**< combined sensor data topic */
 
-#if BOARD_NUMBER_BRICKS > 0
-	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] {};			/**< battery status */
-
-	Battery		_battery[BOARD_NUMBER_BRICKS];			/**< Helper lib to publish battery_status topic. */
-#endif /* BOARD_NUMBER_BRICKS > 0 */
-
-#if BOARD_NUMBER_BRICKS > 1
-	int 			_battery_pub_intance0ndx {0}; /**< track the index of instance 0 */
-#endif /* BOARD_NUMBER_BRICKS > 1 */
-
 	orb_advert_t	_airspeed_pub{nullptr};			/**< airspeed */
 	orb_advert_t	_sensor_preflight{nullptr};		/**< sensor preflight topic */
 
@@ -200,6 +194,8 @@ private:
 
 	RCUpdate		_rc_update;
 	VotedSensorsUpdate _voted_sensors_update;
+
+	Power _power{&_parameters};
 
 
 	/**
@@ -245,14 +241,6 @@ Sensors::Sensors(bool hil_enabled) :
 
 	_airspeed_validator.set_timeout(300000);
 	_airspeed_validator.set_equal_value_threshold(100);
-
-#if BOARD_NUMBER_BRICKS > 0
-
-	for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
-		_battery[b].setParent(this);
-	}
-
-#endif /* BOARD_NUMBER_BRICKS > 0 */
 }
 
 int
@@ -396,44 +384,9 @@ Sensors::adc_poll()
 		/* read all channels available */
 		int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
 
-#if BOARD_NUMBER_BRICKS > 0
-		//todo:abosorb into new class Power
+		if (ret >= (int) sizeof(buf_adc[0])) {
 
-		/* For legacy support we publish the battery_status for the Battery that is
-		 * associated with the Brick that is the selected source for VDD_5V_IN
-		 * Selection is done in HW ala a LTC4417 or similar, or may be hard coded
-		 * Like in the FMUv4
-		 */
-#if !defined(BOARD_NUMBER_DIGITAL_BRICKS)
-		/* The ADC channels that  are associated with each brick, in power controller
-		 * priority order highest to lowest, as defined by the board config.
-		 */
-		int   bat_voltage_v_chan[BOARD_NUMBER_BRICKS] = BOARD_BATT_V_LIST;
-		int   bat_voltage_i_chan[BOARD_NUMBER_BRICKS] = BOARD_BATT_I_LIST;
-
-		if (_parameters.battery_adc_channel >= 0) {  // overwrite default
-			bat_voltage_v_chan[0] = _parameters.battery_adc_channel;
-		}
-
-#endif
-
-		/* The valid signals (HW dependent) are associated with each brick */
-		bool  valid_chan[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
-
-		/* Per Brick readings with default unread channels at 0 */
-		float bat_current_a[BOARD_NUMBER_BRICKS] = {0.0f};
-		float bat_voltage_v[BOARD_NUMBER_BRICKS] = {0.0f};
-
-		/* Based on the valid_chan, used to indicate the selected the lowest index
-		 * (highest priority) supply that is the source for the VDD_5V_IN
-		 * When < 0 none selected
-		 */
-
-		int selected_source = -1;
-
-#endif /* BOARD_NUMBER_BRICKS > 0 */
-
-		if (ret >= (int)sizeof(buf_adc[0])) {
+			_power.update(buf_adc, ret);
 
 			/* Read add channels we got */
 			for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {
@@ -449,9 +402,9 @@ Sensors::adc_poll()
 					 * a valid voltage from a connected sensor. Also assume a non-
 					 * zero offset from the sensor if its connected.
 					 */
-					if (voltage > 0.4f && (_parameters.diff_pres_analog_scale > 0.0f)) {
+					if (voltage > 0.4f && (_parameters->diff_pres_analog_scale > 0.0f)) {
 
-						const float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
+						const float diff_pres_pa_raw = voltage * _parameters->diff_pres_analog_scale - _parameters->diff_pres_offset_pa;
 
 						_diff_pres.timestamp = t;
 						_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
@@ -466,89 +419,13 @@ Sensors::adc_poll()
 				} else
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 				{
+					// Add other ADC devices here
 
-#if BOARD_NUMBER_BRICKS > 0
-
-					for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
-
-						/* Once we have subscriptions, Do this once for the lowest (highest priority
-						 * supply on power controller) that is valid.
-						 */
-						if (_battery_pub[b] != nullptr && selected_source < 0 && valid_chan[b]) {
-							/* Indicate the lowest brick (highest priority supply on power controller)
-							 * that is valid as the one that is the selected source for the
-							 * VDD_5V_IN
-							 */
-							selected_source = b;
-
-#  if BOARD_NUMBER_BRICKS > 1
-
-							/* Move the selected_source to instance 0 */
-							if (_battery_pub_intance0ndx != selected_source) {
-
-								orb_advert_t tmp_h = _battery_pub[_battery_pub_intance0ndx];
-								_battery_pub[_battery_pub_intance0ndx] = _battery_pub[selected_source];
-								_battery_pub[selected_source] = tmp_h;
-								_battery_pub_intance0ndx = selected_source;
-							}
-
-#  endif /* BOARD_NUMBER_BRICKS > 1 */
-						}
-
-#  if  !defined(BOARD_NUMBER_DIGITAL_BRICKS)
-
-						// todo:per brick scaling
-						/* look for specific channels and process the raw voltage to measurement data */
-						if (bat_voltage_v_chan[b] == buf_adc[i].am_channel) {
-							/* Voltage in volts */
-							bat_voltage_v[b] = (buf_adc[i].am_data * _parameters.battery_voltage_scaling) * _parameters.battery_v_div;
-
-						} else if (bat_voltage_i_chan[b] == buf_adc[i].am_channel) {
-							bat_current_a[b] = ((buf_adc[i].am_data * _parameters.battery_current_scaling)
-									    - _parameters.battery_current_offset) * _parameters.battery_a_per_v;
-						}
-
-#  endif /* !defined(BOARD_NUMBER_DIGITAL_BRICKS) */
-					}
-
-#endif /* BOARD_NUMBER_BRICKS > 0 */
 				}
 			}
-
-#if BOARD_NUMBER_BRICKS > 0
-
-			if (_parameters.battery_source == 0) {
-
-				for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
-
-					/* Consider the brick connected if there is a voltage */
-					bool connected = bat_voltage_v[b] > BOARD_ADC_OPEN_CIRCUIT_V;
-
-					/* In the case where the BOARD_ADC_OPEN_CIRCUIT_V is
-					 * greater than the BOARD_VALID_UV let the HW qualify that it
-					 * is connected.
-					 */
-					if (BOARD_ADC_OPEN_CIRCUIT_V > BOARD_VALID_UV) {
-						connected &= valid_chan[b];
-					}
-
-					actuator_controls_s ctrl{};
-					_actuator_ctrl_0_sub.copy(&ctrl);
-
-					battery_status_s battery_status{};
-					_battery[b].updateBatteryStatus(t, bat_voltage_v[b], bat_current_a[b],
-									connected, selected_source == b, b,
-									ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-									_armed, &battery_status);
-					int instance;
-					orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &battery_status, &instance, ORB_PRIO_DEFAULT);
-				}
-			}
-
-#endif /* BOARD_NUMBER_BRICKS > 0 */
-
-			_last_adc = t;
 		}
+
+		_last_adc = t;
 	}
 }
 

@@ -44,32 +44,35 @@
 #include <cstring>
 #include <px4_defines.h>
 
-Battery::Battery() :
-	ModuleParams(nullptr),
+BatteryBase::BatteryBase() :
 	_warning(battery_status_s::BATTERY_WARNING_NONE),
 	_last_timestamp(0)
 {
 }
 
 void
-Battery::reset(battery_status_s *battery_status)
+BatteryBase::reset(battery_status_s *battery_status)
 {
 	memset(battery_status, 0, sizeof(*battery_status));
 	battery_status->current_a = -1.f;
 	battery_status->remaining = 1.f;
 	battery_status->scale = 1.f;
-	battery_status->cell_count = _param_bat_n_cells.get();
+	battery_status->cell_count = _get_bat_n_cells();
 	// TODO: check if it is sane to reset warning to NONE
 	battery_status->warning = battery_status_s::BATTERY_WARNING_NONE;
 	battery_status->connected = false;
 }
 
 void
-Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a,
-			     bool connected, bool selected_source, int priority,
-			     float throttle_normalized,
-			     bool armed, battery_status_s *battery_status)
+BatteryBase::updateBatteryStatus(int32_t voltage_raw, int32_t current_raw, hrt_abstime timestamp,
+				 bool valid_channel, bool selected_source, int priority,
+				 float throttle_normalized,
+				 bool armed, battery_status_s *battery_status)
 {
+	float voltage_v = (voltage_raw * _get_cnt_v_volt()) * _get_v_div();
+	float current_a = ((current_raw * _get_cnt_v_curr()) - _get_v_offs_cur()) * _get_a_per_v();
+	bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V && valid_channel;
+
 	reset(battery_status);
 	battery_status->timestamp = timestamp;
 	filterVoltage(voltage_v);
@@ -100,7 +103,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 }
 
 void
-Battery::filterVoltage(float voltage_v)
+BatteryBase::filterVoltage(float voltage_v)
 {
 	if (!_battery_initialized) {
 		_voltage_filtered_v = voltage_v;
@@ -115,7 +118,7 @@ Battery::filterVoltage(float voltage_v)
 }
 
 void
-Battery::filterCurrent(float current_a)
+BatteryBase::filterCurrent(float current_a)
 {
 	if (!_battery_initialized) {
 		_current_filtered_a = current_a;
@@ -129,7 +132,7 @@ Battery::filterCurrent(float current_a)
 	}
 }
 
-void Battery::filterThrottle(float throttle)
+void BatteryBase::filterThrottle(float throttle)
 {
 	if (!_battery_initialized) {
 		_throttle_filtered = throttle;
@@ -143,7 +146,7 @@ void Battery::filterThrottle(float throttle)
 }
 
 void
-Battery::sumDischarged(hrt_abstime timestamp, float current_a)
+BatteryBase::sumDischarged(hrt_abstime timestamp, float current_a)
 {
 	// Not a valid measurement
 	if (current_a < 0.f) {
@@ -165,24 +168,24 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 }
 
 void
-Battery::estimateRemaining(float voltage_v, float current_a, float throttle, bool armed)
+BatteryBase::estimateRemaining(float voltage_v, float current_a, float throttle, bool armed)
 {
 	// remaining battery capacity based on voltage
-	float cell_voltage = voltage_v / _param_bat_n_cells.get();
+	float cell_voltage = voltage_v / _get_bat_n_cells();
 
 	// correct battery voltage locally for load drop to avoid estimation fluctuations
-	if (_param_bat_r_internal.get() >= 0.f) {
-		cell_voltage += _param_bat_r_internal.get() * current_a;
+	if (_get_bat_r_internal() >= 0.f) {
+		cell_voltage += _get_bat_r_internal() * current_a;
 
 	} else {
 		// assume linear relation between throttle and voltage drop
-		cell_voltage += throttle * _param_bat_v_load_drop.get();
+		cell_voltage += throttle * _get_bat_v_load_drop();
 	}
 
-	_remaining_voltage = math::gradual(cell_voltage, _param_bat_v_empty.get(), _param_bat_v_charged.get(), 0.f, 1.f);
+	_remaining_voltage = math::gradual(cell_voltage, _get_bat_v_empty(), _get_bat_v_charged(), 0.f, 1.f);
 
 	// choose which quantity we're using for final reporting
-	if (_param_bat_capacity.get() > 0.f) {
+	if (_get_bat_capacity() > 0.f) {
 		// if battery capacity is known, fuse voltage measurement with used capacity
 		if (!_battery_initialized) {
 			// initialization of the estimation state
@@ -193,7 +196,7 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle, boo
 			const float weight_v = 3e-4f * (1 - _remaining_voltage);
 			_remaining = (1 - weight_v) * _remaining + weight_v * _remaining_voltage;
 			// directly apply current capacity slope calculated using current
-			_remaining -= _discharged_mah_loop / _param_bat_capacity.get();
+			_remaining -= _discharged_mah_loop / _get_bat_capacity();
 			_remaining = math::max(_remaining, 0.f);
 		}
 
@@ -204,31 +207,31 @@ Battery::estimateRemaining(float voltage_v, float current_a, float throttle, boo
 }
 
 void
-Battery::determineWarning(bool connected)
+BatteryBase::determineWarning(bool connected)
 {
 	if (connected) {
 		// propagate warning state only if the state is higher, otherwise remain in current warning state
-		if (_remaining < _param_bat_emergen_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_EMERGENCY)) {
+		if (_remaining < _get_bat_emergen_thr() || (_warning == battery_status_s::BATTERY_WARNING_EMERGENCY)) {
 			_warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
 
-		} else if (_remaining < _param_bat_crit_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
+		} else if (_remaining < _get_bat_crit_thr() || (_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
 			_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
 
-		} else if (_remaining < _param_bat_low_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_LOW)) {
+		} else if (_remaining < _get_bat_low_thr() || (_warning == battery_status_s::BATTERY_WARNING_LOW)) {
 			_warning = battery_status_s::BATTERY_WARNING_LOW;
 		}
 	}
 }
 
 void
-Battery::computeScale()
+BatteryBase::computeScale()
 {
-	const float voltage_range = (_param_bat_v_charged.get() - _param_bat_v_empty.get());
+	const float voltage_range = (_get_bat_v_charged() - _get_bat_v_empty());
 
 	// reusing capacity calculation to get single cell voltage before drop
-	const float bat_v = _param_bat_v_empty.get() + (voltage_range * _remaining_voltage);
+	const float bat_v = _get_bat_v_empty() + (voltage_range * _remaining_voltage);
 
-	_scale = _param_bat_v_charged.get() / bat_v;
+	_scale = _get_bat_v_charged() / bat_v;
 
 	if (_scale > 1.3f) { // Allow at most 30% compensation
 		_scale = 1.3f;
