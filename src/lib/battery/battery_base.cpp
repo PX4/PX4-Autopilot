@@ -39,12 +39,13 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include "battery.h"
+#include "battery_base.h"
 #include <mathlib/mathlib.h>
 #include <cstring>
 #include <px4_defines.h>
 
 BatteryBase::BatteryBase() :
+	ModuleParams(nullptr),
 	_warning(battery_status_s::BATTERY_WARNING_NONE),
 	_last_timestamp(0)
 {
@@ -69,6 +70,8 @@ BatteryBase::updateBatteryStatus(int32_t voltage_raw, int32_t current_raw, hrt_a
 				 float throttle_normalized,
 				 bool armed)
 {
+	updateParams();
+
 	float voltage_v = (voltage_raw * _get_cnt_v_volt()) * _get_v_div();
 	float current_a = ((current_raw * _get_cnt_v_curr()) - _get_v_offs_cur()) * _get_a_per_v();
 

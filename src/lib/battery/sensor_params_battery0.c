@@ -31,87 +31,79 @@
  *
  ****************************************************************************/
 
-/**
- * Scaling from ADC counts to volt on the ADC input (battery voltage)
- *
- * This is not the battery voltage, but the intermediate ADC voltage.
- * A value of -1 signifies that the board defaults are used, which is
- * highly recommended.
- *
- * @group Battery Calibration
- * @decimal 8
- */
-PARAM_DEFINE_FLOAT(BAT_CNT_V_VOLT, -1.0f);
 
 /**
- * Scaling from ADC counts to volt on the ADC input (battery current)
+ * Voltage drop per cell on full throttle
  *
- * This is not the battery current, but the intermediate ADC voltage.
- * A value of -1 signifies that the board defaults are used, which is
- * highly recommended.
+ * This implicitely defines the internal resistance
+ * to maximum current ratio and assumes linearity.
+ * A good value to use is the difference between the
+ * 5C and 20-25C load. Not used if BAT_R_INTERNAL is
+ * set.
  *
  * @group Battery Calibration
- * @decimal 8
+ * @unit V
+ * @min 0.07
+ * @max 0.5
+ * @decimal 2
+ * @increment 0.01
+ * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT_CNT_V_CURR, -1.0);
+PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.3f);
 
 /**
- * Offset in volt as seen by the ADC input of the current sensor.
+ * Explicitly defines the per cell internal resistance
  *
- * This offset will be subtracted before calculating the battery
- * current based on the voltage.
+ * If non-negative, then this will be used in place of
+ * BAT_V_LOAD_DROP for all calculations.
  *
  * @group Battery Calibration
- * @decimal 8
+ * @unit Ohms
+ * @min -1.0
+ * @max 0.2
+ * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT_V_OFFS_CURR, 0.0);
+PARAM_DEFINE_FLOAT(BAT_R_INTERNAL, -1.0f);
+
 
 /**
- * Battery voltage divider (V divider)
+ * Number of cells.
  *
- * This is the divider from battery voltage to 3.3V ADC voltage.
- * If using e.g. Mauch power modules the value from the datasheet
- * can be applied straight here. A value of -1 means to use
- * the board default.
+ * Defines the number of cells the attached battery consists of.
  *
  * @group Battery Calibration
- * @decimal 8
+ * @unit S
+ * @value 0 Unconfigured
+ * @value 2 2S Battery
+ * @value 3 3S Battery
+ * @value 4 4S Battery
+ * @value 5 5S Battery
+ * @value 6 6S Battery
+ * @value 7 7S Battery
+ * @value 8 8S Battery
+ * @value 9 9S Battery
+ * @value 10 10S Battery
+ * @value 11 11S Battery
+ * @value 12 12S Battery
+ * @value 13 13S Battery
+ * @value 14 14S Battery
+ * @value 15 15S Battery
+ * @value 16 16S Battery
+ * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT_V_DIV, -1.0);
+PARAM_DEFINE_INT32(BAT_N_CELLS, 0);
 
 /**
- * Battery current per volt (A/V)
+ * Battery capacity.
  *
- * The voltage seen by the 3.3V ADC multiplied by this factor
- * will determine the battery current. A value of -1 means to use
- * the board default.
+ * Defines the capacity of the attached battery.
  *
  * @group Battery Calibration
- * @decimal 8
+ * @unit mAh
+ * @decimal 0
+ * @min -1.0
+ * @max 100000
+ * @increment 50
+ * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
-
-/**
- * Battery monitoring source.
- *
- * This parameter controls the source of battery data. The value 'Power Module'
- * means that measurements are expected to come from a power module. If the value is set to
- * 'External' then the system expects to receive mavlink battery status messages.
- *
- * @min 0
- * @max 1
- * @value 0 Power Module
- * @value 1 External
- * @group Battery Calibration
- */
-PARAM_DEFINE_INT32(BAT_SOURCE, 0);
-
-/**
- * Battery ADC Channel
- *
- * This parameter specifies the ADC channel used to monitor voltage of main power battery.
- * A value of -1 means to use the board default.
- *
- * @group Battery Calibration
- */
-PARAM_DEFINE_INT32(BAT_ADC_CHANNEL, -1);
+PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
