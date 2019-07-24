@@ -48,7 +48,6 @@
 #include <ltc2946/LTC2946.hpp>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/battery_status.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/vehicle_control_mode.h>
 
@@ -70,9 +69,7 @@ public:
 private:
 	int _publish(const struct ltc2946_sensor_data &data);
 
-	orb_advert_t	_battery_pub{nullptr};
-	battery_status_s _battery_status{};
-	Battery _battery{};
+	Battery1 _battery{};
 
 	int _actuator_ctrl_0_sub{-1};
 	int _vcontrol_mode_sub{-1};
@@ -82,7 +79,7 @@ private:
 DfLtc2946Wrapper::DfLtc2946Wrapper() :
 	LTC2946(LTC2946_DEVICE_PATH)
 {
-	_battery.reset(&_battery_status);
+	_battery.reset();
 
 	// subscriptions
 	_actuator_ctrl_0_sub = orb_subscribe(ORB_ID(actuator_controls_0));
@@ -134,21 +131,16 @@ int DfLtc2946Wrapper::stop()
 int DfLtc2946Wrapper::_publish(const struct ltc2946_sensor_data &data)
 {
 	hrt_abstime t = hrt_absolute_time();
-	bool connected = data.battery_voltage_V > BOARD_ADC_OPEN_CIRCUIT_V;
 
 	actuator_controls_s ctrl;
 	orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
 	vehicle_control_mode_s vcontrol_mode;
 	orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &vcontrol_mode);
 
-	_battery.updateBatteryStatus(t, data.battery_voltage_V, data.battery_current_A,
-				     connected, true, 1,
+	_battery.updateBatteryStatus(data.battery_voltage_V, data.battery_current_A, t,
+				     true, 1,
 				     ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-				     vcontrol_mode.flag_armed,  &_battery_status);
-
-	int instance;
-	orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &_battery_status, &instance, ORB_PRIO_DEFAULT);
-
+				     vcontrol_mode.flag_armed);
 	return 0;
 }
 

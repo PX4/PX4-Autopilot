@@ -31,4 +31,4 @@
 #
 ############################################################################
 
-px4_add_library(battery battery.cpp)
+px4_add_library(battery battery_base.cpp)
