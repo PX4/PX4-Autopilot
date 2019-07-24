@@ -101,7 +101,7 @@ private:
 	orb_advert_t _battery_topic;
 	orb_advert_t _esc_topic;
 
-	Battery _battery;
+	Battery1 _battery;
 	bool _armed;
 	float _last_throttle;
 
@@ -201,13 +201,7 @@ int DfBebopBusWrapper::set_esc_speeds(const float speed_scaled[4])
 int DfBebopBusWrapper::_publish(struct bebop_state_data &data)
 {
 
-	battery_status_s battery_report;
 	const hrt_abstime timestamp = hrt_absolute_time();
-
-	// TODO Check if this is the right way for the Bebop
-	// We don't have current measurements
-	_battery.updateBatteryStatus(timestamp, data.battery_voltage_v, 0.0, true, true, 0, _last_throttle, _armed,
-				     &battery_report);
 
 	esc_status_s esc_status = {};
 
@@ -224,13 +218,9 @@ int DfBebopBusWrapper::_publish(struct bebop_state_data &data)
 	// TODO: when is this ever blocked?
 	if (!(m_pub_blocked)) {
 
-		if (_battery_topic == nullptr) {
-			_battery_topic = orb_advertise_multi(ORB_ID(battery_status), &battery_report,
-							     &_battery_orb_class_instance, ORB_PRIO_LOW);
-
-		} else {
-			orb_publish(ORB_ID(battery_status), _battery_topic, &battery_report);
-		}
+		// TODO Check if this is the right way for the Bebop
+		// We don't have current measurements
+		_battery.updateBatteryStatus(data.battery_voltage_v, 0.0, timestamp, true, 0, _last_throttle, _armed);
 
 		if (_esc_topic == nullptr) {
 			_esc_topic = orb_advertise(ORB_ID(esc_status), &esc_status);

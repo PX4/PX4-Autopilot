@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016, 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,69 +31,52 @@
  *
  ****************************************************************************/
 
-/**
- * @file battery.h
- *
- * Library calls for battery functionality.
- *
- * @author Julian Oes <julian@oes.ch>
- */
-
 #pragma once
 
-#include <uORB/topics/battery_status.h>
-#include <drivers/drv_hrt.h>
-#include <px4_platform_common/module_params.h>
+/**
+ * @file battery.h
+ * Implementations of BatteryBase
+ *
+ * The multiple batteries all share the same logic for calibration. The only difference is which parameters are used
+ * (Battery 1 uses `BAT_*`, while Battery 2 uses `BAT2_*`). To avoid code duplication, inheritance is being used.
+ * The problem is that the `ModuleParams` class depends on a macro which defines member variables. You can't override
+ * member variables in C++, so we have to declare virtual getter functions in BatteryBase, and implement them here.
+ *
+ * The alternative would be to avoid ModuleParams entirely, and build parameter names dynamically, like so:
+ * ```
+ * char param_name[17]; //16 max length of parameter name, + null terminator
+ * int battery_index = 1; // Or 2 or 3 or whatever
+ * snprintf(param_name, 17, "BAT%d_N_CELLS", battery_index);
+ * // A real implementation would have to handle the case where battery_index == 1 and there is no number in the param name.
+ * param_find(param_name); // etc
+ * ```
+ *
+ * This was decided against because the newer ModuleParams API provides more type safety and avoids code duplication.
+ *
+ * To add a new battery, just create a new implementation of BatteryBase and implement all of the _get_* methods,
+ * then add all of the new parameters necessary for calibration.
+ */
 
+#include "battery_base.h"
 
-class Battery : public ModuleParams
+class Battery1 : public BatteryBase
 {
 public:
-	Battery();
+	Battery1() : BatteryBase()
+	{
+		// Can't do this in the constructor because virtual functions
+		if (_get_adc_channel() >= 0) {
+			vChannel = _get_adc_channel();
 
-	/**
-	 * Reset all battery stats and report invalid/nothing.
-	 */
-	void reset(battery_status_s *battery_status);
+		} else {
+			vChannel = DEFAULT_V_CHANNEL[0];
+		}
 
-	/**
-	 * Get the battery cell count
-	 */
-	int cell_count() { return _param_bat_n_cells.get(); }
-
-	/**
-	 * Get the empty voltage per cell
-	 */
-	float empty_cell_voltage() { return _param_bat_v_empty.get(); }
-
-	/**
-	 * Get the full voltage per cell
-	 */
-	float full_cell_voltage() { return _param_bat_v_charged.get(); }
-
-	/**
-	 * Update current battery status message.
-	 *
-	 * @param voltage_v: current voltage in V
-	 * @param current_a: current current in A
-	 * @param connected: Battery is connected
-	 * @param selected_source: This battery is on the brick that the selected source for selected_source
-	 * @param priority: The brick number -1. The term priority refers to the Vn connection on the LTC4417
-	 * @param throttle_normalized: throttle from 0 to 1
-	 */
-	void updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a,
-				 bool connected, bool selected_source, int priority,
-				 float throttle_normalized,
-				 bool armed, battery_status_s *status);
+		// TODO: Add parameter, like with V
+		iChannel = DEFAULT_I_CHANNEL[0];
+	}
 
 private:
-	void filterVoltage(float voltage_v);
-	void filterThrottle(float throttle);
-	void filterCurrent(float current_a);
-	void sumDischarged(hrt_abstime timestamp, float current_a);
-	void estimateRemaining(float voltage_v, float current_a, float throttle, bool armed);
-	void determineWarning(bool connected);
-	void computeScale();
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_V_EMPTY>) _param_bat_v_empty,
@@ -102,20 +85,94 @@ private:
 		(ParamFloat<px4::params::BAT_CAPACITY>) _param_bat_capacity,
 		(ParamFloat<px4::params::BAT_V_LOAD_DROP>) _param_bat_v_load_drop,
 		(ParamFloat<px4::params::BAT_R_INTERNAL>) _param_bat_r_internal,
+		(ParamFloat<px4::params::BAT_V_DIV>) _param_v_div,
+		(ParamFloat<px4::params::BAT_A_PER_V>) _param_a_per_v,
+		(ParamInt<px4::params::BAT_ADC_CHANNEL>) _param_adc_channel,
+
 		(ParamFloat<px4::params::BAT_LOW_THR>) _param_bat_low_thr,
 		(ParamFloat<px4::params::BAT_CRIT_THR>) _param_bat_crit_thr,
-		(ParamFloat<px4::params::BAT_EMERGEN_THR>) _param_bat_emergen_thr
+		(ParamFloat<px4::params::BAT_EMERGEN_THR>) _param_bat_emergen_thr,
+		(ParamFloat<px4::params::BAT_CNT_V_VOLT>) _param_cnt_v_volt,
+		(ParamFloat<px4::params::BAT_CNT_V_CURR>) _param_cnt_v_curr,
+		(ParamFloat<px4::params::BAT_V_OFFS_CURR>) _param_v_offs_cur,
+		(ParamInt<px4::params::BAT_SOURCE>) _param_source
 	)
 
-	bool _battery_initialized = false;
-	float _voltage_filtered_v = -1.f;
-	float _throttle_filtered = -1.f;
-	float _current_filtered_a = -1.f;
-	float _discharged_mah = 0.f;
-	float _discharged_mah_loop = 0.f;
-	float _remaining_voltage = -1.f;		///< normalized battery charge level remaining based on voltage
-	float _remaining = -1.f;			///< normalized battery charge level, selected based on config param
-	float _scale = 1.f;
-	uint8_t _warning;
-	hrt_abstime _last_timestamp;
+	float _get_bat_v_empty() override {return _param_bat_v_empty.get(); }
+	float _get_bat_v_charged() override {return _param_bat_v_charged.get(); }
+	int _get_bat_n_cells() override {return _param_bat_n_cells.get(); }
+	float _get_bat_capacity() override {return _param_bat_capacity.get(); }
+	float _get_bat_v_load_drop() override {return _param_bat_v_load_drop.get(); }
+	float _get_bat_r_internal() override {return _param_bat_r_internal.get(); }
+	float _get_bat_low_thr() override {return _param_bat_low_thr.get(); }
+	float _get_bat_crit_thr() override {return _param_bat_crit_thr.get(); }
+	float _get_bat_emergen_thr() override {return _param_bat_emergen_thr.get(); }
+	float _get_cnt_v_volt_raw() override {return _param_cnt_v_volt.get(); }
+	float _get_cnt_v_curr_raw() override {return _param_cnt_v_curr.get(); }
+	float _get_v_offs_cur() override {return _param_v_offs_cur.get(); }
+	float _get_v_div_raw() override {return _param_v_div.get(); }
+	float _get_a_per_v_raw() override {return _param_a_per_v.get(); }
+	int _get_source() override {return _param_source.get(); }
+	int _get_adc_channel() override {return _param_adc_channel.get(); }
+
+	int _get_brick_index() override {return 0; }
+};
+
+class Battery2 : public BatteryBase
+{
+public:
+	Battery2() : BatteryBase()
+	{
+		// Can't do this in the constructor because virtual functions
+		if (_get_adc_channel() >= 0) {
+			vChannel = _get_adc_channel();
+
+		} else {
+			vChannel = DEFAULT_V_CHANNEL[1];
+		}
+
+		// TODO: Add parameter, like with V
+		iChannel = DEFAULT_I_CHANNEL[1];
+	}
+
+private:
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::BAT2_V_EMPTY>) _param_bat_v_empty,
+		(ParamFloat<px4::params::BAT2_V_CHARGED>) _param_bat_v_charged,
+		(ParamInt<px4::params::BAT2_N_CELLS>) _param_bat_n_cells,
+		(ParamFloat<px4::params::BAT2_CAPACITY>) _param_bat_capacity,
+		(ParamFloat<px4::params::BAT2_V_LOAD_DROP>) _param_bat_v_load_drop,
+		(ParamFloat<px4::params::BAT2_R_INTERNAL>) _param_bat_r_internal,
+		(ParamFloat<px4::params::BAT2_V_DIV>) _param_v_div,
+		(ParamFloat<px4::params::BAT2_A_PER_V>) _param_a_per_v,
+		(ParamInt<px4::params::BAT2_ADC_CHANNEL>) _param_adc_channel,
+
+		(ParamFloat<px4::params::BAT_LOW_THR>) _param_bat_low_thr,
+		(ParamFloat<px4::params::BAT_CRIT_THR>) _param_bat_crit_thr,
+		(ParamFloat<px4::params::BAT_EMERGEN_THR>) _param_bat_emergen_thr,
+		(ParamFloat<px4::params::BAT_CNT_V_VOLT>) _param_cnt_v_volt,
+		(ParamFloat<px4::params::BAT_CNT_V_CURR>) _param_cnt_v_curr,
+		(ParamFloat<px4::params::BAT_V_OFFS_CURR>) _param_v_offs_cur,
+		(ParamInt<px4::params::BAT_SOURCE>) _param_source
+	)
+
+	float _get_bat_v_empty() override {return _param_bat_v_empty.get(); }
+	float _get_bat_v_charged() override {return _param_bat_v_charged.get(); }
+	int _get_bat_n_cells() override {return _param_bat_n_cells.get(); }
+	float _get_bat_capacity() override {return _param_bat_capacity.get(); }
+	float _get_bat_v_load_drop() override {return _param_bat_v_load_drop.get(); }
+	float _get_bat_r_internal() override {return _param_bat_r_internal.get(); }
+	float _get_bat_low_thr() override {return _param_bat_low_thr.get(); }
+	float _get_bat_crit_thr() override {return _param_bat_crit_thr.get(); }
+	float _get_bat_emergen_thr() override {return _param_bat_emergen_thr.get(); }
+	float _get_cnt_v_volt_raw() override {return _param_cnt_v_volt.get(); }
+	float _get_cnt_v_curr_raw() override {return _param_cnt_v_curr.get(); }
+	float _get_v_offs_cur() override {return _param_v_offs_cur.get(); }
+	float _get_v_div_raw() override {return _param_v_div.get(); }
+	float _get_a_per_v_raw() override {return _param_a_per_v.get(); }
+	int _get_source() override {return _param_source.get(); }
+	int _get_adc_channel() override {return _param_adc_channel.get(); }
+
+	int _get_brick_index() override {return 1; }
 };

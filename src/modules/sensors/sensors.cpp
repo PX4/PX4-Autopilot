@@ -142,7 +142,6 @@ private:
 
 	VotedSensorsUpdate _voted_sensors_update;
 
-
 	VehicleAcceleration	_vehicle_acceleration;
 	VehicleAngularVelocity	_vehicle_angular_velocity;
 
