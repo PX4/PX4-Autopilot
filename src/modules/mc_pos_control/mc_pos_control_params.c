@@ -249,16 +249,18 @@ PARAM_DEFINE_INT32(MPC_XY_ATUNE, 0);
  *
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_ATUNE_P, 0.05f);
+PARAM_DEFINE_FLOAT(MPC_XY_ATUNE_P, 0.03f);
 
 /**
  * Velocity PID auto-tuner convergence criteria hysteresis width
  *
- * @boolean
+ * @min 1
+ * @max 1000
+ * @increment 1
  *
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_INT32(MPC_XY_ATUNE_CNT, 500);
+PARAM_DEFINE_INT32(MPC_XY_ATUNE_CNT, 200);
 
 /**
  * Velocity PID auto-tuner convergence criteria

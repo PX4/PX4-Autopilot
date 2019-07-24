@@ -63,7 +63,7 @@ bool FlightTaskAutotuneVel::updateInitialize()
 bool FlightTaskAutotuneVel::activate()
 {
 	bool ret = FlightTaskManual::activate();
-	_yaw_setpoint = NAN;
+	_yaw_setpoint = 0.f; // Align North
 	_yawspeed_setpoint = 0.0f;
 	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, NAN);
 	_current_position_xy = matrix::Vector2f(_position);
@@ -119,16 +119,18 @@ void FlightTaskAutotuneVel::_updateSetpoints()
 void FlightTaskAutotuneVel::_updateUltimateGain()
 {
 	// epsilon << alpha
-	float ku_dot = -_param_mpc_atune_gain.get() * fabsf(_thrust - _thrust_sat) + _epsilon;
+	float ku_dot = -_param_mpc_atune_p.get() * fabsf(_thrust - _thrust_sat) + _epsilon;
 	_ku += ku_dot;
 
 	_jerk_setpoint(0) = _ku;
+	_jerk_setpoint(1) = ku_dot;
 	if (fabs(ku_dot) < _param_mpc_atune_thr.get() && _ku < 1.4f) {
 		_convergence_counter++;
 
 	} else {
 		_convergence_counter = 0;
 	}
+	_jerk_setpoint(2) = _convergence_counter;
 }
 
 void FlightTaskAutotuneVel::_measureUltimatePeriod()

@@ -59,7 +59,7 @@ protected:
 					(ParamFloat<px4::params::MPC_XY_VEL_I>) _param_mpc_xy_vel_i,
 					(ParamFloat<px4::params::MPC_XY_VEL_D>) _param_mpc_xy_vel_d,
 					(ParamBool<px4::params::MPC_XY_ATUNE>) _param_mpc_xy_atune,
-					(ParamFloat<px4::params::MPC_XY_ATUNE_P>) _param_mpc_atune_gain,
+					(ParamFloat<px4::params::MPC_XY_ATUNE_P>) _param_mpc_atune_p,
 					(ParamInt<px4::params::MPC_XY_ATUNE_CNT>) _param_mpc_atune_cnt,
 					(ParamFloat<px4::params::MPC_XY_ATUNE_THR>) _param_mpc_atune_thr
 				       )
@@ -72,10 +72,10 @@ private:
 
 	float _thrust{};
 	float _thrust_sat{};
-	float _thrust_max{0.1f}; /**< maximum allowed thrust amplitude **/
+	float _thrust_max{0.3f}; /**< maximum allowed thrust amplitude **/
 	float _ku{}; /**< ultimate gain of the controller */
 	float _period_u{}; /**< ultimate period is seconds **/
-	float _epsilon{0.0001};
+	float _epsilon{0.00001};
 	bool _done{false};
 
 	matrix::Vector2f _current_position_xy{};
