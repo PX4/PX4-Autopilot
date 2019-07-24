@@ -51,30 +51,30 @@ BatteryBase::BatteryBase() :
 }
 
 void
-BatteryBase::reset(battery_status_s *battery_status)
+BatteryBase::reset()
 {
-	memset(battery_status, 0, sizeof(*battery_status));
-	battery_status->current_a = -1.f;
-	battery_status->remaining = 1.f;
-	battery_status->scale = 1.f;
-	battery_status->cell_count = _get_bat_n_cells();
+	memset(&_battery_status, 0, sizeof(_battery_status));
+	_battery_status.current_a = -1.f;
+	_battery_status.remaining = 1.f;
+	_battery_status.scale = 1.f;
+	_battery_status.cell_count = _get_bat_n_cells();
 	// TODO: check if it is sane to reset warning to NONE
-	battery_status->warning = battery_status_s::BATTERY_WARNING_NONE;
-	battery_status->connected = false;
+	_battery_status.warning = battery_status_s::BATTERY_WARNING_NONE;
+	_battery_status.connected = false;
 }
 
 void
 BatteryBase::updateBatteryStatus(int32_t voltage_raw, int32_t current_raw, hrt_abstime timestamp,
 				 bool valid_channel, bool selected_source, int priority,
 				 float throttle_normalized,
-				 bool armed, battery_status_s *battery_status)
+				 bool armed)
 {
 	float voltage_v = (voltage_raw * _get_cnt_v_volt()) * _get_v_div();
 	float current_a = ((current_raw * _get_cnt_v_curr()) - _get_v_offs_cur()) * _get_a_per_v();
-	bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V && valid_channel;
+	bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V && channelValid;
 
-	reset(battery_status);
-	battery_status->timestamp = timestamp;
+	reset();
+	_battery_status.timestamp = timestamp;
 	filterVoltage(voltage_v);
 	filterThrottle(throttle_normalized);
 	filterCurrent(current_a);
@@ -88,17 +88,21 @@ BatteryBase::updateBatteryStatus(int32_t voltage_raw, int32_t current_raw, hrt_a
 
 	if (_voltage_filtered_v > 2.1f) {
 		_battery_initialized = true;
-		battery_status->voltage_v = voltage_v;
-		battery_status->voltage_filtered_v = _voltage_filtered_v;
-		battery_status->scale = _scale;
-		battery_status->current_a = current_a;
-		battery_status->current_filtered_a = _current_filtered_a;
-		battery_status->discharged_mah = _discharged_mah;
-		battery_status->warning = _warning;
-		battery_status->remaining = _remaining;
-		battery_status->connected = connected;
-		battery_status->system_source = selected_source;
-		battery_status->priority = priority;
+		_battery_status.voltage_v = voltage_v;
+		_battery_status.voltage_filtered_v = _voltage_filtered_v;
+		_battery_status.scale = _scale;
+		_battery_status.current_a = current_a;
+		_battery_status.current_filtered_a = _current_filtered_a;
+		_battery_status.discharged_mah = _discharged_mah;
+		_battery_status.warning = _warning;
+		_battery_status.remaining = _remaining;
+		_battery_status.connected = connected;
+		_battery_status.system_source = selected_source;
+		_battery_status.priority = priority;
+	}
+
+	if (_get_source() == 0) {
+		orb_publish_auto(ORB_ID(battery_status), &_orbAdvert, &_battery_status, &_orbInstance, ORB_PRIO_DEFAULT);
 	}
 }
 

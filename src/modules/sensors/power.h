@@ -107,18 +107,10 @@ private:
 #endif
 #if BOARD_NUMBER_BRICKS > 1
 	// TODO: Change to Battery1
-	Battery0 _battery1;
+	Battery1 _battery1;
 #endif
 
-	BatteryBase *batteries[TOTAL_BRICKS] {
-#ifdef BOARD_NUMBER_DIGITAL_BRICKS
-#if BOARD_NUMBER_DIGITAL_BRICKS > 0
-		//TODO: Add digital battery 0
-#endif
-#if BOARD_NUMBER_DIGITAL_BRICKS > 1
-		// TODO: Add digital battery 1
-#endif
-#endif // #ifdef BOARD_NUMBER_DIGITAL_BRICKS
+	BatteryBase *_analogBatteries[BOARD_NUMBER_BRICKS] {
 #if BOARD_NUMBER_BRICKS > 0
 		&_battery0,
 #endif
