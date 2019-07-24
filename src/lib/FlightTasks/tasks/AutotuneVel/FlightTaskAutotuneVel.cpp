@@ -60,9 +60,9 @@ bool FlightTaskAutotuneVel::updateInitialize()
 	       && PX4_ISFINITE(_velocity(1));
 }
 
-bool FlightTaskAutotuneVel::activate()
+bool FlightTaskAutotuneVel::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	bool ret = FlightTaskManual::activate();
+	bool ret = FlightTaskManual::activate(last_setpoint);
 	_yaw_setpoint = 0.f; // Align North
 	_yawspeed_setpoint = 0.0f;
 	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, NAN);
