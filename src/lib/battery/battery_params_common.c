@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,6 +32,68 @@
  ****************************************************************************/
 
 /**
+ * @file battery_params.c
+ *
+ * Parameters defined by the battery lib, shared between all batteries.
+ *
+ * @author Julian Oes <julian@oes.ch>
+ */
+
+#include <px4_config.h>
+#include <parameters/param.h>
+
+
+/**
+ * Low threshold
+ *
+ * Sets the threshold when the battery will be reported as low.
+ * This has to be higher than the critical threshold.
+ *
+ * @group Battery Calibration
+ * @unit norm
+ * @min 0.12
+ * @max 0.4
+ * @decimal 2
+ * @increment 0.01
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(BAT_LOW_THR, 0.15f);
+
+/**
+ * Critical threshold
+ *
+ * Sets the threshold when the battery will be reported as critically low.
+ * This has to be lower than the low threshold. This threshold commonly
+ * will trigger RTL.
+ *
+ * @group Battery Calibration
+ * @unit norm
+ * @min 0.05
+ * @max 0.1
+ * @decimal 2
+ * @increment 0.01
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.07f);
+
+/**
+ * Emergency threshold
+ *
+ * Sets the threshold when the battery will be reported as dangerously low.
+ * This has to be lower than the critical threshold. This threshold commonly
+ * will trigger landing.
+ *
+ * @group Battery Calibration
+ * @unit norm
+ * @min 0.03
+ * @max 0.07
+ * @decimal 2
+ * @increment 0.01
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(BAT_EMERGEN_THR, 0.05f);
+
+/**
  * Scaling from ADC counts to volt on the ADC input (battery voltage)
  *
  * This is not the battery voltage, but the intermediate ADC voltage.
@@ -41,7 +103,7 @@
  * @group Battery Calibration
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(BAT1_CNT_V_VOLT, -1.0f);
+PARAM_DEFINE_FLOAT(BAT_CNT_V_VOLT, -1.0f);
 
 /**
  * Scaling from ADC counts to volt on the ADC input (battery current)
@@ -53,7 +115,7 @@ PARAM_DEFINE_FLOAT(BAT1_CNT_V_VOLT, -1.0f);
  * @group Battery Calibration
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(BAT1_CNT_V_CURR, -1.0);
+PARAM_DEFINE_FLOAT(BAT_CNT_V_CURR, -1.0);
 
 /**
  * Offset in volt as seen by the ADC input of the current sensor.
@@ -64,32 +126,7 @@ PARAM_DEFINE_FLOAT(BAT1_CNT_V_CURR, -1.0);
  * @group Battery Calibration
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(BAT1_V_OFFS_CURR, 0.0);
-
-/**
- * Battery voltage divider (V divider)
- *
- * This is the divider from battery voltage to 3.3V ADC voltage.
- * If using e.g. Mauch power modules the value from the datasheet
- * can be applied straight here. A value of -1 means to use
- * the board default.
- *
- * @group Battery Calibration
- * @decimal 8
- */
-PARAM_DEFINE_FLOAT(BAT1_V_DIV, -1.0);
-
-/**
- * Battery current per volt (A/V)
- *
- * The voltage seen by the 3.3V ADC multiplied by this factor
- * will determine the battery current. A value of -1 means to use
- * the board default.
- *
- * @group Battery Calibration
- * @decimal 8
- */
-PARAM_DEFINE_FLOAT(BAT1_A_PER_V, -1.0);
+PARAM_DEFINE_FLOAT(BAT_V_OFFS_CURR, 0.0);
 
 /**
  * Battery monitoring source.
@@ -104,14 +141,4 @@ PARAM_DEFINE_FLOAT(BAT1_A_PER_V, -1.0);
  * @value 1 External
  * @group Battery Calibration
  */
-PARAM_DEFINE_INT32(BAT1_SOURCE, 0);
-
-/**
- * Battery ADC Channel
- *
- * This parameter specifies the ADC channel used to monitor voltage of main power battery.
- * A value of -1 means to use the board default.
- *
- * @group Battery Calibration
- */
-PARAM_DEFINE_INT32(BAT1_ADC_CHANNEL, -1);
+PARAM_DEFINE_INT32(BAT_SOURCE, 0);

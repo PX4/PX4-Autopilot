@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,20 +32,16 @@
  ****************************************************************************/
 
 /**
- * @file battery_params.c
+ * @file battery_params_2.c
+ * @author Timothy Scott <timothy@auterion.com>
  *
- * Parameters defined by the battery lib.
- *
- * @author Julian Oes <julian@oes.ch>
+ * Defines parameters for Battery 2.
  */
-
-#include <px4_config.h>
-#include <parameters/param.h>
 
 /**
  * Empty cell voltage (5C load)
  *
- * Defines the voltage where a single cell of the battery is considered empty.
+ * Defines the voltage where a single cell of battery 2 is considered empty.
  * The voltage should be chosen before the steep dropoff to 2.8V. A typical
  * lithium battery can only be discharged down to 10% before it drops off
  * to a voltage level damaging the cells.
@@ -56,12 +52,12 @@
  * @increment 0.01
  * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.5f);
+PARAM_DEFINE_FLOAT(BAT2_V_EMPTY, 3.5f);
 
 /**
  * Full cell voltage (5C load)
  *
- * Defines the voltage where a single cell of the battery is considered full
+ * Defines the voltage where a single cell of battery 2 is considered full
  * under a mild load. This will never be the nominal voltage of 4.2V
  *
  * @group Battery Calibration
@@ -70,65 +66,15 @@ PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.5f);
  * @increment 0.01
  * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.05f);
-
-/**
- * Low threshold
- *
- * Sets the threshold when the battery will be reported as low.
- * This has to be higher than the critical threshold.
- *
- * @group Battery Calibration
- * @unit norm
- * @min 0.12
- * @max 0.4
- * @decimal 2
- * @increment 0.01
- * @reboot_required true
- */
-PARAM_DEFINE_FLOAT(BAT_LOW_THR, 0.15f);
-
-/**
- * Critical threshold
- *
- * Sets the threshold when the battery will be reported as critically low.
- * This has to be lower than the low threshold. This threshold commonly
- * will trigger RTL.
- *
- * @group Battery Calibration
- * @unit norm
- * @min 0.05
- * @max 0.1
- * @decimal 2
- * @increment 0.01
- * @reboot_required true
- */
-PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.07f);
-
-/**
- * Emergency threshold
- *
- * Sets the threshold when the battery will be reported as dangerously low.
- * This has to be lower than the critical threshold. This threshold commonly
- * will trigger landing.
- *
- * @group Battery Calibration
- * @unit norm
- * @min 0.03
- * @max 0.07
- * @decimal 2
- * @increment 0.01
- * @reboot_required true
- */
-PARAM_DEFINE_FLOAT(BAT_EMERGEN_THR, 0.05f);
+PARAM_DEFINE_FLOAT(BAT2_V_CHARGED, 4.05f);
 
 /**
  * Voltage drop per cell on full throttle
  *
  * This implicitely defines the internal resistance
- * to maximum current ratio and assumes linearity.
+ * to maximum current ratio for battery 2 and assumes linearity.
  * A good value to use is the difference between the
- * 5C and 20-25C load. Not used if BAT_R_INTERNAL is
+ * 5C and 20-25C load. Not used if BAT2_R_INTERNAL is
  * set.
  *
  * @group Battery Calibration
@@ -139,13 +85,13 @@ PARAM_DEFINE_FLOAT(BAT_EMERGEN_THR, 0.05f);
  * @increment 0.01
  * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.3f);
+PARAM_DEFINE_FLOAT(BAT2_V_LOAD_DROP, 0.3f);
 
 /**
- * Explicitly defines the per cell internal resistance
+ * Explicitly defines the per cell internal resistance for battery 2
  *
  * If non-negative, then this will be used in place of
- * BAT_V_LOAD_DROP for all calculations.
+ * BAT2_V_LOAD_DROP for all calculations.
  *
  * @group Battery Calibration
  * @unit Ohms
@@ -153,10 +99,11 @@ PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.3f);
  * @max 0.2
  * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT_R_INTERNAL, -1.0f);
+PARAM_DEFINE_FLOAT(BAT2_R_INTERNAL, -1.0f);
+
 
 /**
- * Number of cells.
+ * Number of cells for battery 2.
  *
  * Defines the number of cells the attached battery consists of.
  *
@@ -180,12 +127,12 @@ PARAM_DEFINE_FLOAT(BAT_R_INTERNAL, -1.0f);
  * @value 16 16S Battery
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(BAT_N_CELLS, 0);
+PARAM_DEFINE_INT32(BAT2_N_CELLS, 0);
 
 /**
- * Battery capacity.
+ * Battery 2 capacity.
  *
- * Defines the capacity of the attached battery.
+ * Defines the capacity of battery 2.
  *
  * @group Battery Calibration
  * @unit mAh
@@ -195,4 +142,39 @@ PARAM_DEFINE_INT32(BAT_N_CELLS, 0);
  * @increment 50
  * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
+PARAM_DEFINE_FLOAT(BAT2_CAPACITY, -1.0f);
+
+/**
+ * Battery 2 voltage divider (V divider)
+ *
+ * This is the divider from battery 2 voltage to 3.3V ADC voltage.
+ * If using e.g. Mauch power modules the value from the datasheet
+ * can be applied straight here. A value of -1 means to use
+ * the board default.
+ *
+ * @group Battery Calibration
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(BAT2_V_DIV, -1.0);
+
+/**
+ * Battery 2 current per volt (A/V)
+ *
+ * The voltage seen by the 3.3V ADC multiplied by this factor
+ * will determine the battery current. A value of -1 means to use
+ * the board default.
+ *
+ * @group Battery Calibration
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(BAT2_A_PER_V, -1.0);
+
+/**
+ * Battery 2 ADC Channel
+ *
+ * This parameter specifies the ADC channel used to monitor voltage of main power battery.
+ * A value of -1 means to use the board default.
+ *
+ * @group Battery Calibration
+ */
+PARAM_DEFINE_INT32(BAT2_ADC_CHANNEL, -1);

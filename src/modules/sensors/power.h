@@ -31,61 +31,16 @@
  *
  ****************************************************************************/
 
-#ifndef PX4_POWER_H
-#define PX4_POWER_H
+/**
+ * @file power.h
+ *
+ * @author Timothy Scott <timothy@auterion.com>
+ */
 
-// TODO: Clean out
+#pragma once
 
 #include <board_config.h>
-
-#include <px4_config.h>
-#include <px4_module.h>
-#include <px4_module_params.h>
-#include <px4_getopt.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
-#include <px4_time.h>
-
-#include <fcntl.h>
-#include <poll.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <errno.h>
-#include <math.h>
-#include <mathlib/mathlib.h>
-
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_rc_input.h>
-#include <drivers/drv_adc.h>
-#include <drivers/drv_airspeed.h>
-
-#include <airspeed/airspeed.h>
-#include <parameters/param.h>
-#include <systemlib/err.h>
-#include <perf/perf_counter.h>
 #include <battery/battery.h>
-
-#include <conversion/rotation.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/differential_pressure.h>
-#include <uORB/topics/airspeed.h>
-#include <uORB/topics/sensor_preflight.h>
-#include <uORB/topics/vehicle_air_data.h>
-#include <uORB/topics/vehicle_magnetometer.h>
-
-#include <DevMgr.hpp>
-
-#include "parameters.h"
-#include "rc_update.h"
-#include "voted_sensors_update.h"
 
 #ifdef BOARD_NUMBER_DIGITAL_BRICKS
 #define TOTAL_BRICKS (BOARD_NUMBER_BRICKS + BOARD_NUMBER_DIGITAL_BRICKS)
@@ -93,21 +48,54 @@
 #define TOTAL_BRICKS BOARD_NUMBER_BRICKS
 #endif
 
+/**
+ * Measures voltage, current, etc. of all batteries connected to the vehicle, both
+ * analog and digital.
+ */
 class Power
 {
 public:
-	Power(sensors::Parameters *parameters);
+	Power();
 
-	void update(px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS], int nchannels);
+	/**
+	 * Updates the measurements of each battery.
+	 *
+	 * If the parameter `BAT_SOURCE` == 0, this function will also publish an instance of the uORB topic
+	 * `battery_status` for each battery. For reasons of backwards compability, instance 0 will always be the
+	 * primary battery. However, this may change in the future! In the future, please use orb_priority() to find
+	 * the primary battery.
+	 * @param buf_adc Buffer of ADC readings
+	 * @param nchannels Number of valid ADC readings in `buf_adc`
+	 * @param throttle Normalized throttle (between 0 and 1, or maybe between -1 and 1 in the future)
+	 * @param armed True if the vehicle is armed
+	 */
+	void update(px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS], int nchannels, float throttle, bool armed);
 
 private:
 
+	/*
+	 * All of these #if's are doing one thing: Building an array of `BatteryBase` objects, one
+	 * for each possible connected battery. A `BatteryBase` object does not mean that a battery IS connected,
+	 * it just means that one CAN be connected.
+	 *
+	 * For an example of what this looks like after preprocessing, assume that BOARD_NUMBER_BRICKS = 2:
+	 * ```
+	 * Battery1 _battery0;
+	 * Battery2 _battery1;
+	 *
+	 * BatteryBase *_analogBatteries[2] {
+	 *     &_battery0,
+	 *     &_battery1,
+	 * }
+	 */
+
+	// TODO: Add digital batteries
+
 #if BOARD_NUMBER_BRICKS > 0
-	Battery0 _battery0;
+	Battery1 _battery0;
 #endif
 #if BOARD_NUMBER_BRICKS > 1
-	// TODO: Change to Battery1
-	Battery1 _battery1;
+	Battery2 _battery1;
 #endif
 
 	BatteryBase *_analogBatteries[BOARD_NUMBER_BRICKS] {
@@ -117,21 +105,6 @@ private:
 #if BOARD_NUMBER_BRICKS > 1
 		&_battery1,
 #endif
-	};
-
-#if BOARD_NUMBER_BRICKS > 0
-	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] {};			/**< battery status */
-
-	Battery0		_battery[BOARD_NUMBER_BRICKS];			/**< Helper lib to publish battery_status topic. */
-#endif /* BOARD_NUMBER_BRICKS > 0 */
-
-#if BOARD_NUMBER_BRICKS > 1
-	int 			_battery_pub_intance0ndx {0}; /**< track the index of instance 0 */
-#endif /* BOARD_NUMBER_BRICKS > 1 */
-
-	sensors::Parameters *_parameters;
+	}; // End _analogBatteries
 
 };
-
-
-#endif //PX4_POWER_H

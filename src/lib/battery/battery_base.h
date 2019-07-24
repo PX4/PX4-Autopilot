@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016, 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,11 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file battery.h
+ * @file battery_base.h
  *
  * Library calls for battery functionality.
  *
  * @author Julian Oes <julian@oes.ch>
+ * @author Timothy Scott <timothy@auterion.com>
  */
 
 #pragma once
@@ -48,6 +49,11 @@
 #include <drivers/drv_adc.h>
 #include <board_config.h>
 
+/**
+ * BatteryBase is a base class for any type of battery.
+ *
+ * See battery.h for example implementation, and for explanation of why this is designed like it is.
+ */
 class BatteryBase : ModuleParams
 {
 public:
@@ -76,25 +82,43 @@ public:
 	/**
 	 * Update current battery status message.
 	 *
-	 * @param voltage_v: current voltage in V
-	 * @param current_a: current current in A
-	 * @param connected: Battery is connected
-	 * @param selected_source: This battery is on the brick that the selected source for selected_source
+	 * @param voltage_raw Battery voltage read from ADC, in raw ADC counts
+	 * @param current_raw Voltage of current sense resistor, in raw ADC counts
+	 * @param timestamp Time at which the ADC was read (use hrt_absolute_time())
+	 * @param selected_source This battery is on the brick that the selected source for selected_source
 	 * @param priority: The brick number -1. The term priority refers to the Vn connection on the LTC4417
-	 * @param throttle_normalized: throttle from 0 to 1
+	 * @param throttle_normalized Throttle of the vehicle, between 0 and 1
+	 * @param armed Arming state of the vehicle
 	 */
 	void updateBatteryStatus(int32_t voltage_raw, int32_t current_raw, hrt_abstime timestamp,
-				 bool selected_source, int priority,
-				 float throttle_normalized,
-				 bool armed);
+				 bool selected_source, int priority, float throttle_normalized, bool armed);
 
+	/**
+	 * Which ADC channel is used for voltage reading of this battery
+	 */
 	int vChannel{-1};
+	/**
+	 * Which ADC channel is used for current reading of this battery
+	 */
 	int iChannel{-1};
 
+	/**
+	 * Whether the ADC channel for the voltage of this battery is valid.
+	 * Corresponds to BOARD_BRICK_VALID_LIST
+	 */
+	bool is_valid()
+	{
+		bool valid[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
+		return valid[_get_brick_index()];
+	}
+
 protected:
+	// Defaults to use if the parameters are not set
 	static constexpr int   DEFAULT_V_CHANNEL[BOARD_NUMBER_BRICKS] = BOARD_BATT_V_LIST;
 	static constexpr int   DEFAULT_I_CHANNEL[BOARD_NUMBER_BRICKS] = BOARD_BATT_I_LIST;
 
+	// The following are all of the parameters needed for the batteries.
+	// See battery.h for example implementation.
 	virtual float _get_bat_v_empty() = 0;
 	virtual float _get_bat_v_charged() = 0;
 	virtual int _get_bat_n_cells() = 0;
@@ -104,20 +128,20 @@ protected:
 	virtual float _get_bat_low_thr() = 0;
 	virtual float _get_bat_crit_thr() = 0;
 	virtual float _get_bat_emergen_thr() = 0;
-	virtual float _get_cnt_v_volt() = 0;
-	virtual float _get_cnt_v_curr() = 0;
+	virtual float _get_cnt_v_volt_raw() = 0;
+	virtual float _get_cnt_v_curr_raw() = 0;
 	virtual float _get_v_offs_cur() = 0;
-	virtual float _get_v_div() = 0;
-	virtual float _get_a_per_v() = 0;
+	virtual float _get_v_div_raw() = 0;
+	virtual float _get_a_per_v_raw() = 0;
 	virtual int _get_source() = 0;
 	virtual int _get_adc_channel() = 0;
 
 	virtual int _get_brick_index() = 0;
-	virtual bool _is_valid()
-	{
-		bool valid[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
-		return valid[_get_brick_index()];
-	}
+
+	float _get_cnt_v_volt();
+	float _get_cnt_v_curr();
+	float _get_v_div();
+	float _get_a_per_v();
 
 private:
 	void filterVoltage(float voltage_v);

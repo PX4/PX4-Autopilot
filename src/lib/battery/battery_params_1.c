@@ -31,12 +31,49 @@
  *
  ****************************************************************************/
 
+/**
+ * @file battery_params_1.c
+ * @author Timothy Scott <timothy@auterion.com>
+ *
+ * Defines parameters for Battery 1. For backwards compatibility, the
+ * parameter names do not have a "1" in them.
+ */
+
+/**
+ * Empty cell voltage (5C load)
+ *
+ * Defines the voltage where a single cell of battery 1 is considered empty.
+ * The voltage should be chosen before the steep dropoff to 2.8V. A typical
+ * lithium battery can only be discharged down to 10% before it drops off
+ * to a voltage level damaging the cells.
+ *
+ * @group Battery Calibration
+ * @unit V
+ * @decimal 2
+ * @increment 0.01
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.5f);
+
+/**
+ * Full cell voltage (5C load)
+ *
+ * Defines the voltage where a single cell of battery 1 is considered full
+ * under a mild load. This will never be the nominal voltage of 4.2V
+ *
+ * @group Battery Calibration
+ * @unit V
+ * @decimal 2
+ * @increment 0.01
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.05f);
 
 /**
  * Voltage drop per cell on full throttle
  *
  * This implicitely defines the internal resistance
- * to maximum current ratio and assumes linearity.
+ * to maximum current ratio for battery 1 and assumes linearity.
  * A good value to use is the difference between the
  * 5C and 20-25C load. Not used if BAT_R_INTERNAL is
  * set.
@@ -52,7 +89,7 @@
 PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.3f);
 
 /**
- * Explicitly defines the per cell internal resistance
+ * Explicitly defines the per cell internal resistance for battery 1
  *
  * If non-negative, then this will be used in place of
  * BAT_V_LOAD_DROP for all calculations.
@@ -67,7 +104,7 @@ PARAM_DEFINE_FLOAT(BAT_R_INTERNAL, -1.0f);
 
 
 /**
- * Number of cells.
+ * Number of cells for battery 1.
  *
  * Defines the number of cells the attached battery consists of.
  *
@@ -94,9 +131,9 @@ PARAM_DEFINE_FLOAT(BAT_R_INTERNAL, -1.0f);
 PARAM_DEFINE_INT32(BAT_N_CELLS, 0);
 
 /**
- * Battery capacity.
+ * Battery 1 capacity.
  *
- * Defines the capacity of the attached battery.
+ * Defines the capacity of battery 1.
  *
  * @group Battery Calibration
  * @unit mAh
@@ -107,3 +144,38 @@ PARAM_DEFINE_INT32(BAT_N_CELLS, 0);
  * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
+
+/**
+ * Battery 1 voltage divider (V divider)
+ *
+ * This is the divider from battery 1 voltage to 3.3V ADC voltage.
+ * If using e.g. Mauch power modules the value from the datasheet
+ * can be applied straight here. A value of -1 means to use
+ * the board default.
+ *
+ * @group Battery Calibration
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(BAT_V_DIV, -1.0);
+
+/**
+ * Battery 1 current per volt (A/V)
+ *
+ * The voltage seen by the 3.3V ADC multiplied by this factor
+ * will determine the battery current. A value of -1 means to use
+ * the board default.
+ *
+ * @group Battery Calibration
+ * @decimal 8
+ */
+PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
+
+/**
+ * Battery 1 ADC Channel
+ *
+ * This parameter specifies the ADC channel used to monitor voltage of main power battery.
+ * A value of -1 means to use the board default.
+ *
+ * @group Battery Calibration
+ */
+PARAM_DEFINE_INT32(BAT_ADC_CHANNEL, -1);

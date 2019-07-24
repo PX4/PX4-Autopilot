@@ -195,8 +195,7 @@ private:
 	RCUpdate		_rc_update;
 	VotedSensorsUpdate _voted_sensors_update;
 
-	Power _power{&_parameters};
-
+	Power _power{};
 
 	/**
 	 * Update our local parameter cache.
@@ -386,7 +385,11 @@ Sensors::adc_poll()
 
 		if (ret >= (int) sizeof(buf_adc[0])) {
 
-			_power.update(buf_adc, ret);
+			actuator_controls_s actuators;
+			_actuator_ctrl_0_sub.copy(&actuators);
+
+			_power.update(buf_adc, ret / sizeof(buf_adc[0]),
+				      actuators.control[actuator_controls_s::INDEX_THROTTLE], _armed);
 
 			/* Read add channels we got */
 			for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {

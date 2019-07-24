@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,11 +32,12 @@
  ****************************************************************************/
 
 /**
- * @file battery.cpp
+ * @file battery_base.cpp
  *
  * Library calls for battery functionality.
  *
  * @author Julian Oes <julian@oes.ch>
+ * @author Timothy Scott <timothy@auterion.com>
  */
 
 #include "battery_base.h"
@@ -76,7 +77,7 @@ BatteryBase::updateBatteryStatus(int32_t voltage_raw, int32_t current_raw, hrt_a
 	float current_a = ((current_raw * _get_cnt_v_curr()) - _get_v_offs_cur()) * _get_a_per_v();
 
 	bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V &&
-			 (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || _is_valid());
+			 (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || is_valid());
 
 	reset();
 	_battery_status.timestamp = timestamp;
@@ -105,6 +106,8 @@ BatteryBase::updateBatteryStatus(int32_t voltage_raw, int32_t current_raw, hrt_a
 		_battery_status.system_source = selected_source;
 		_battery_status.priority = priority;
 	}
+
+	_battery_status.timestamp = timestamp;
 
 	if (_get_source() == 0) {
 		orb_publish_auto(ORB_ID(battery_status), &_orbAdvert, &_battery_status, &_orbInstance, ORB_PRIO_DEFAULT);
@@ -247,5 +250,57 @@ BatteryBase::computeScale()
 
 	} else if (!PX4_ISFINITE(_scale) || _scale < 1.f) { // Shouldn't ever be more than the power at full battery
 		_scale = 1.f;
+	}
+}
+
+float
+BatteryBase::_get_cnt_v_volt()
+{
+	float val = _get_cnt_v_volt_raw();
+
+	if (val < 0.0f) {
+		return 3.3f / 4096.0f;
+
+	} else {
+		return val;
+	}
+}
+
+float
+BatteryBase::_get_cnt_v_curr()
+{
+	float val = _get_cnt_v_curr_raw();
+
+	if (val < 0.0f) {
+		return 3.3f / 4096.0f;
+
+	} else {
+		return val;
+	}
+}
+
+float
+BatteryBase::_get_v_div()
+{
+	float val = _get_v_div_raw();
+
+	if (val <= 0.0f) {
+		return BOARD_BATTERY1_V_DIV;
+
+	} else {
+		return val;
+	}
+}
+
+float
+BatteryBase::_get_a_per_v()
+{
+	float val = _get_a_per_v_raw();
+
+	if (val <= 0.0f) {
+		return BOARD_BATTERY1_A_PER_V;
+
+	} else {
+		return val;
 	}
 }
