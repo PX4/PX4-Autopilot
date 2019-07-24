@@ -48,7 +48,6 @@
 #include <drivers/drv_adc.h>
 #include <board_config.h>
 
-
 class BatteryBase
 {
 public:
@@ -85,13 +84,12 @@ public:
 	 * @param throttle_normalized: throttle from 0 to 1
 	 */
 	void updateBatteryStatus(int32_t voltage_raw, int32_t current_raw, hrt_abstime timestamp,
-				 bool valid_channel, bool selected_source, int priority,
+				 bool selected_source, int priority,
 				 float throttle_normalized,
 				 bool armed);
 
 	int vChannel{-1};
 	int iChannel{-1};
-	bool channelValid{false};
 
 protected:
 	static constexpr int   DEFAULT_V_CHANNEL[BOARD_NUMBER_BRICKS] = BOARD_BATT_V_LIST;
@@ -115,6 +113,11 @@ protected:
 	virtual int _get_adc_channel() = 0;
 
 	virtual int _get_brick_index() = 0;
+	virtual bool _is_valid()
+	{
+		bool valid[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
+		return valid[_get_brick_index()];
+	}
 
 private:
 	void filterVoltage(float voltage_v);
@@ -157,12 +160,6 @@ public:
 
 		// TODO: Add parameter, like with V
 		iChannel = DEFAULT_I_CHANNEL[0];
-
-#ifdef BOARD_ADC_BRICK_VALID
-		channelValid = BOARD_ADC_BRICK_VALID;
-#else
-		channelValid = BOARD_ADC_BRICK1_VALID;
-#endif
 	}
 
 private:
@@ -221,8 +218,6 @@ public:
 
 		// TODO: Add parameter, like with V
 		iChannel = DEFAULT_I_CHANNEL[1];
-
-		channelValid = BOARD_ADC_BRICK2_VALID;
 	}
 
 private:

@@ -50,7 +50,7 @@ void Power::update(px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS], int nchannels)
 
 		// TODO: Fill in the rest of these params
 		_analogBatteries[b]->updateBatteryStatus(bat_voltage_cnt[b], bat_current_cnt[b], hrt_absolute_time(),
-				_analogBatteries[b]->channelValid, selected_source == b, b, 0.0f, false);
+				selected_source == b, b, 0.0f, false);
 	}
 
 #endif /* BOARD_NUMBER_BRICKS > 0 */

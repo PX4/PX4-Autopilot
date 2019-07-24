@@ -65,13 +65,15 @@ BatteryBase::reset()
 
 void
 BatteryBase::updateBatteryStatus(int32_t voltage_raw, int32_t current_raw, hrt_abstime timestamp,
-				 bool valid_channel, bool selected_source, int priority,
+				 bool selected_source, int priority,
 				 float throttle_normalized,
 				 bool armed)
 {
 	float voltage_v = (voltage_raw * _get_cnt_v_volt()) * _get_v_div();
 	float current_a = ((current_raw * _get_cnt_v_curr()) - _get_v_offs_cur()) * _get_a_per_v();
-	bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V && channelValid;
+
+	bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V &&
+			 (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || _is_valid());
 
 	reset();
 	_battery_status.timestamp = timestamp;
