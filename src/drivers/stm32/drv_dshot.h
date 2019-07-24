@@ -44,4 +44,6 @@
 #define DSHOT_150_PWM_FREQ				150000u		//Hz
 
 void dshot_dma_init(void);
+void dshot_dma_send(void);
+void dshot_data_prepare(uint32_t motorNumber, uint16_t throttle);
 

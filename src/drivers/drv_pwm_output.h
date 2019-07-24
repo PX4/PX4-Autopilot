@@ -379,6 +379,15 @@ __EXPORT extern void up_pwm_update(void);
 __EXPORT extern int	up_pwm_servo_set(unsigned channel, servo_position_t value);
 
 /**
+ * Set the current dshot output value for a channel.
+ *
+ * @param channel	The channel to set.
+ * @param throttle	The output dshot throttle value.
+ */
+
+__EXPORT extern void	up_pwm_servo_dshot_set(unsigned channel, uint16_t throttle);
+
+/**
  * Get the current output value for a channel.
  *
  * @param channel	The channel to read.
