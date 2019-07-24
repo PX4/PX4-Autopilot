@@ -141,14 +141,10 @@ int DfLtc2946Wrapper::_publish(const struct ltc2946_sensor_data &data)
 	vehicle_control_mode_s vcontrol_mode;
 	orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &vcontrol_mode);
 
-	_battery.updateBatteryStatus(t, data.battery_voltage_V, data.battery_current_A,
-				     connected, true, 1,
+	_battery.updateBatteryStatus(data.battery_voltage_V, data.battery_current_A, t,
+				     true, 1,
 				     ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-				     vcontrol_mode.flag_armed,  &_battery_status);
-
-	int instance;
-	orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &_battery_status, &instance, ORB_PRIO_DEFAULT);
-
+				     vcontrol_mode.flag_armed);
 	return 0;
 }
 

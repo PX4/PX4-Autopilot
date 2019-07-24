@@ -241,7 +241,7 @@ private:
 	hrt_abstime _last_sitl_timestamp{0};
 
 	// Lib used to do the battery calculations.
-	Battery _battery {};
+	Battery1 _battery {};
 	battery_status_s _battery_status{};
 
 #ifndef __PX4_QURT

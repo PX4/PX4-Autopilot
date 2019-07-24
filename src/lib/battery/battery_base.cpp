@@ -66,15 +66,25 @@ BatteryBase::reset()
 }
 
 void
-BatteryBase::updateBatteryStatus(int32_t voltage_raw, int32_t current_raw, hrt_abstime timestamp,
+BatteryBase::updateBatteryStatusRawADC(int32_t voltage_raw, int32_t current_raw, hrt_abstime timestamp,
+				       bool selected_source, int priority,
+				       float throttle_normalized,
+				       bool armed)
+{
+
+	float voltage_v = (voltage_raw * _get_cnt_v_volt()) * _get_v_div();
+	float current_a = ((current_raw * _get_cnt_v_curr()) - _get_v_offs_cur()) * _get_a_per_v();
+
+	updateBatteryStatus(voltage_v, current_a, timestamp, selected_source, priority, throttle_normalized, armed);
+}
+
+void
+BatteryBase::updateBatteryStatus(float voltage_v, float current_a, hrt_abstime timestamp,
 				 bool selected_source, int priority,
 				 float throttle_normalized,
 				 bool armed)
 {
 	updateParams();
-
-	float voltage_v = (voltage_raw * _get_cnt_v_volt()) * _get_v_div();
-	float current_a = ((current_raw * _get_cnt_v_curr()) - _get_v_offs_cur()) * _get_a_per_v();
 
 	bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V &&
 			 (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || is_valid());

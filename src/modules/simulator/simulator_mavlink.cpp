@@ -388,16 +388,12 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 		float battery_percentage = 1.0f - (now_us - batt_sim_start) / discharge_interval_us;
 
 		battery_percentage = math::max(battery_percentage, _battery_min_percentage.get() / 100.f);
+
 		float vbatt = math::gradual(battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(), _battery.full_cell_voltage());
 		vbatt *= _battery.cell_count();
 
 		const float throttle = 0.0f; // simulate no throttle compensation to make the estimate predictable
-		_battery.updateBatteryStatus(now_us, vbatt, ibatt, true, true, 0, throttle, armed, &_battery_status);
-
-
-		// publish the battery voltage
-		int batt_multi;
-		orb_publish_auto(ORB_ID(battery_status), &_battery_pub, &_battery_status, &batt_multi, ORB_PRIO_HIGH);
+		_battery.updateBatteryStatus(vbatt, ibatt, now_us, true, 0, throttle, armed);
 	}
 }
 

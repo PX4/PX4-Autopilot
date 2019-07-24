@@ -87,24 +87,26 @@ private:
 	 *     &_battery0,
 	 *     &_battery1,
 	 * }
+	 * ```
+	 *
+	 * The #if BOARD_NUMBER_BRICKS > 0 wraps the entire declaration because otherwise, an empty array is declared
+	 * which then is unused. In some configurations, an unused variable throws a compile error.
 	 */
 
 	// TODO: Add digital batteries
 
 #if BOARD_NUMBER_BRICKS > 0
 	Battery1 _battery0;
-#endif
+
 #if BOARD_NUMBER_BRICKS > 1
 	Battery2 _battery1;
 #endif
 
 	BatteryBase *_analogBatteries[BOARD_NUMBER_BRICKS] {
-#if BOARD_NUMBER_BRICKS > 0
 		&_battery0,
-#endif
 #if BOARD_NUMBER_BRICKS > 1
 		&_battery1,
 #endif
 	}; // End _analogBatteries
-
+#endif // End #if BOARD_NUMBER_BRICKS > 0
 };

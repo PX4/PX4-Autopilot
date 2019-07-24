@@ -90,7 +90,21 @@ public:
 	 * @param throttle_normalized Throttle of the vehicle, between 0 and 1
 	 * @param armed Arming state of the vehicle
 	 */
-	void updateBatteryStatus(int32_t voltage_raw, int32_t current_raw, hrt_abstime timestamp,
+	void updateBatteryStatusRawADC(int32_t voltage_raw, int32_t current_raw, hrt_abstime timestamp,
+				       bool selected_source, int priority, float throttle_normalized, bool armed);
+
+	/**
+	 * Update current battery status message.
+	 *
+	 * @param voltage_raw Battery voltage read from ADC, in Volts
+	 * @param current_raw Voltage of current sense resistor, in Amps
+	 * @param timestamp Time at which the ADC was read (use hrt_absolute_time())
+	 * @param selected_source This battery is on the brick that the selected source for selected_source
+	 * @param priority: The brick number -1. The term priority refers to the Vn connection on the LTC4417
+	 * @param throttle_normalized Throttle of the vehicle, between 0 and 1
+	 * @param armed Arming state of the vehicle
+	 */
+	void updateBatteryStatus(float voltage_v, float current_a, hrt_abstime timestamp,
 				 bool selected_source, int priority, float throttle_normalized, bool armed);
 
 	/**
@@ -108,14 +122,23 @@ public:
 	 */
 	bool is_valid()
 	{
+#ifdef BOARD_BRICK_VALID_LIST
 		bool valid[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
 		return valid[_get_brick_index()];
+#else
+		return true;
+#endif
 	}
 
 protected:
 	// Defaults to use if the parameters are not set
+#if BOARD_NUMBER_BRICKS > 0
 	static constexpr int   DEFAULT_V_CHANNEL[BOARD_NUMBER_BRICKS] = BOARD_BATT_V_LIST;
 	static constexpr int   DEFAULT_I_CHANNEL[BOARD_NUMBER_BRICKS] = BOARD_BATT_I_LIST;
+#else
+	static constexpr int DEFAULT_V_CHANNEL[0] = {};
+	static constexpr int DEFAULT_I_CHANNEL[0] = {};
+#endif
 
 	// The following are all of the parameters needed for the batteries.
 	// See battery.h for example implementation.
