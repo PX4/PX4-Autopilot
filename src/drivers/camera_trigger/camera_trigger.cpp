@@ -329,7 +329,9 @@ CameraTrigger::CameraTrigger() :
 
 CameraTrigger::~CameraTrigger()
 {
-	delete (_camera_interface);
+	if (_camera_interface != nullptr) {
+		delete (_camera_interface);
+	}
 
 	camera_trigger::g_camera_trigger = nullptr;
 }
@@ -433,6 +435,8 @@ CameraTrigger::start()
 	if (_camera_interface == nullptr) {
 		if (camera_trigger::g_camera_trigger != nullptr) {
 			delete (camera_trigger::g_camera_trigger);
+			camera_trigger::g_camera_trigger = nullptr;
+
 		}
 
 		return false;
@@ -482,6 +486,7 @@ CameraTrigger::stop()
 
 	if (camera_trigger::g_camera_trigger != nullptr) {
 		delete (camera_trigger::g_camera_trigger);
+		camera_trigger::g_camera_trigger = nullptr;
 	}
 }
 
