@@ -501,16 +501,15 @@ static inline void io_timer_set_dshot_mode(unsigned timer, unsigned dshot_pwm_ra
 		prescaler = ((int)(io_timers[timer].clock_freq / DSHOT_1200_PWM_FREQ)/DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
 	}
 
-	dshot_dma_init();
-
 	rARR(timer)  = DSHOT_MOTOR_PWM_BIT_WIDTH;
 	rPSC(timer)  = prescaler;
 	rEGR(timer)  = ATIM_EGR_UG;
 	rBDTR(timer) = ATIM_BDTR_MOE | ATIM_BDTR_OSSR | ATIM_BDTR_BKP;
 	rCCER(timer) = ATIM_CCER_CC1E | ATIM_CCER_CC2E | ATIM_CCER_CC3E | ATIM_CCER_CC4E;
-	rCR1(timer)  = ATIM_CR1_CEN;
 	rDCR(timer)  = (TIM_DMABASE_CCR1 | TIM_DMABURSTLENGTH_4TRANSFERS);
 	rDIER(timer) = ATIM_DIER_UDE;
+
+	dshot_dma_init();
 }
 
 static inline void io_timer_set_PWM_mode(unsigned timer)
@@ -813,6 +812,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 
 	uint32_t dier_bit = state ? GTIM_DIER_CC1IE : 0;
 	uint32_t ccer_bit =  state ? CCER_C1_INIT : 0;
+	uint32_t cr1_bit  = 0;
 
 	switch (mode) {
 	case IOTimerChanMode_NotUsed:
@@ -820,6 +820,12 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 	case IOTimerChanMode_PWMOut:
 	case IOTimerChanMode_Trigger:
 		dier_bit = 0;
+		cr1_bit  = GTIM_CR1_CEN | GTIM_CR1_ARPE;
+		break;
+
+	case IOTimerChanMode_Dshot:
+		dier_bit = 0;
+		cr1_bit  = GTIM_CR1_CEN;
 		break;
 
 	case IOTimerChanMode_PWMIn:
@@ -864,6 +870,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 			if ((state &&
 			     (mode == IOTimerChanMode_PWMOut ||
 			      mode == IOTimerChanMode_OneShot ||
+				  mode == IOTimerChanMode_Dshot ||
 			      mode == IOTimerChanMode_Trigger))) {
 				action_cache[timer].gpio[shifts] = timer_io_channels[chan_index].gpio_out;
 			}
@@ -901,7 +908,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 				}
 
 				/* arm requires the timer be enabled */
-				rCR1(actions) |= GTIM_CR1_CEN | GTIM_CR1_ARPE;
+				rCR1(actions) |= cr1_bit;
 
 			} else 	{
 
@@ -923,6 +930,7 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 	if (rv == 0) {
 		if ((mode != IOTimerChanMode_PWMOut) &&
 		    (mode != IOTimerChanMode_OneShot) &&
+			(mode != IOTimerChanMode_Dshot) &&
 		    (mode != IOTimerChanMode_Trigger)) {
 
 			rv = -EIO;
@@ -932,6 +940,7 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 			/* configure the channel */
 
 			REG(channels_timer(channel), timer_io_channels[channel].ccr_offset) = value;
+
 		}
 	}
 

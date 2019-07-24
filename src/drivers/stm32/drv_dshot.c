@@ -45,6 +45,7 @@
 #define REG(_reg)	(*(volatile uint32_t *)(DSHOT_DMA_BASE + _reg))
 
 /* DMA registers */
+#define rHIFCR			REG(STM32_DMA_HIFCR_OFFSET)
 #define rS5CR			REG(STM32_DMA_S5CR_OFFSET)
 #define rS5NDTR			REG(STM32_DMA_S5NDTR_OFFSET)
 #define rS5PAR			REG(STM32_DMA_S5PAR_OFFSET)
@@ -57,8 +58,10 @@
 #define ONE_MOTOR_BUFF_SIZE		18u
 #define ALL_MOTORS_BUF_SIZE		(MOTORS_NUMBER * ONE_MOTOR_BUFF_SIZE)
 
-
+uint32_t motorBuffer[MOTORS_NUMBER][ONE_MOTOR_BUFF_SIZE] = {0};
 uint32_t dshotBurstBuffer[ALL_MOTORS_BUF_SIZE] = {0};
+
+void dshot_dmar_data_prepare(void);
 
 void dshot_dma_init(void)
 {
@@ -69,8 +72,7 @@ void dshot_dma_init(void)
 	rS5CR |= DMA_SCR_PSIZE_32BITS;
 	rS5CR |= DMA_SCR_MINC;
 	rS5CR |= DMA_SCR_DIR_M2P;
-
-	rS5NDTR = ALL_MOTORS_BUF_SIZE;
+	rS5CR |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
 
 	rS5PAR  = STM32_TIM1_DMAR;
 	rS5M0AR = (uint32_t)dshotBurstBuffer;
@@ -78,12 +80,20 @@ void dshot_dma_init(void)
 	rS5FCR &= 0x0;  /* Disable FIFO */
 }
 
+void dshot_dma_send(void)
+{
+	dshot_dmar_data_prepare();
+	rHIFCR |= 0x3F << 6; //clear DMA stream 5 interrupt flags
+	rS5NDTR = ALL_MOTORS_BUF_SIZE;
+	rS5CR |= DMA_SCR_EN;
+}
+
 /**
 * bits 	1-11	- throttle value (0-47 are reserved, 48-2047 give 2000 steps of throttle resolution)
 * bit 	12		- dshot telemetry enable/disable
 * bits 	13-16	- XOR checksum
 **/
-void dshot_data_prepare(uint16_t throttle, uint32_t* dmaBuffer)
+void dshot_data_prepare(uint32_t motorNumber, uint16_t throttle)
 {
 	uint16_t packet = 0;
 	uint16_t telemetry = 0;
@@ -104,21 +114,21 @@ void dshot_data_prepare(uint16_t throttle, uint32_t* dmaBuffer)
 	packet |= (checksum & 0x0F);
 
 	for(i = 0; i < 16; i++) {
-		dmaBuffer[i] = (packet & 0x8000) ? MOTOR_PWM_BIT_1 : MOTOR_PWM_BIT_0;  // MSB first
+		motorBuffer[motorNumber][i] = (packet & 0x8000) ? MOTOR_PWM_BIT_1 : MOTOR_PWM_BIT_0;  // MSB first
 		packet <<= 1;
 	}
 
-	dmaBuffer[16] = 0;
-	dmaBuffer[17] = 0;
+	motorBuffer[motorNumber][16] = 0;
+	motorBuffer[motorNumber][17] = 0;
 }
 
-void dshot_dmar_data_prepare(uint32_t bufferIn[MOTORS_NUMBER][ONE_MOTOR_BUFF_SIZE], uint32_t* bufferOut)
+void dshot_dmar_data_prepare(void)
 {
     for(uint32_t i = 0; i < ONE_MOTOR_BUFF_SIZE ; i++)
     {
         for(uint32_t j = 0; j < MOTORS_NUMBER; j++)
         {
-            bufferOut[i*MOTORS_NUMBER+j] = bufferIn[j][i];
+        	dshotBurstBuffer[i*MOTORS_NUMBER+j] = motorBuffer[j][i];
         }
     }
 }
