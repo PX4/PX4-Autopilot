@@ -488,28 +488,15 @@ static inline void io_timer_set_oneshot_mode(unsigned timer)
 	rEGR(timer) = GTIM_EGR_UG;
 }
 
-static inline void io_timer_set_dshot_mode(unsigned timer, unsigned dshot_pwm_rate)
+void io_timer_set_dshot_mode(unsigned timer, unsigned dshot_pwm_rate)
 {
-	uint32_t prescaler = 0;
-	if(dshot_pwm_rate == PWM_RATE_DSHOT150) {
-		prescaler = ((int)(io_timers[timer].clock_freq / DSHOT_150_PWM_FREQ)/DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
-	} else if (dshot_pwm_rate == PWM_RATE_DSHOT300) {
-		prescaler = ((int)(io_timers[timer].clock_freq / DSHOT_300_PWM_FREQ)/DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
-	} else if (dshot_pwm_rate == PWM_RATE_DSHOT600) {
-		prescaler = ((int)(io_timers[timer].clock_freq / DSHOT_600_PWM_FREQ)/DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
-	} else if (dshot_pwm_rate == PWM_RATE_DSHOT1200) {
-		prescaler = ((int)(io_timers[timer].clock_freq / DSHOT_1200_PWM_FREQ)/DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
-	}
-
 	rARR(timer)  = DSHOT_MOTOR_PWM_BIT_WIDTH;
-	rPSC(timer)  = prescaler;
+	rPSC(timer)  = ((int)(io_timers[timer].clock_freq / dshot_pwm_rate)/DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;;
 	rEGR(timer)  = ATIM_EGR_UG;
 	rBDTR(timer) = ATIM_BDTR_MOE | ATIM_BDTR_OSSR | ATIM_BDTR_BKP;
 	rCCER(timer) = ATIM_CCER_CC1E | ATIM_CCER_CC2E | ATIM_CCER_CC3E | ATIM_CCER_CC4E;
 	rDCR(timer)  = (TIM_DMABASE_CCR1 | TIM_DMABURSTLENGTH_4TRANSFERS);
 	rDIER(timer) = ATIM_DIER_UDE;
-
-	dshot_dma_init();
 }
 
 static inline void io_timer_set_PWM_mode(unsigned timer)
@@ -620,7 +607,7 @@ int io_timer_set_rate(unsigned timer, unsigned rate)
 
 	uint32_t channels = get_timer_channels(timer);
 
-	/* Check that all channels are either in PWM or Oneshot */
+	/* Check that all channels are either in PWM, Oneshot or Dshot*/
 
 	if ((channels & (channel_allocations[IOTimerChanMode_Dshot] |
 			 channel_allocations[IOTimerChanMode_PWMOut] |
@@ -647,18 +634,6 @@ int io_timer_set_rate(unsigned timer, unsigned rate)
 			if (changedChannels) {
 				io_timer_set_oneshot_mode(timer);
 			}
-
-		} else if ((rate >= PWM_RATE_DSHOT150) && (rate <= PWM_RATE_DSHOT1200)) {
-
-			int changePWMOut = reallocate_channel_resources(channels, IOTimerChanMode_PWMOut, IOTimerChanMode_Dshot);
-			int changeOneShot = reallocate_channel_resources(channels, IOTimerChanMode_OneShot, IOTimerChanMode_Dshot);
-			int changedChannels = changePWMOut | changeOneShot;
-			/* Did the allocation change */
-			if (changedChannels) {
-				/*The rate for dshot represents PWM frequency. It will be set inside io_timer_set_dshot_mode function. */
-				io_timer_set_dshot_mode(timer, rate);
-			}
-
 		} else {
 
 			/* Request to use PWM

@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012, 2017 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ * Author: Igor Mišić <igy1000mb@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,13 +38,6 @@
 
 #pragma once
 
+#include <drivers/drv_pwm_output.h>
+
 #define DSHOT_MOTOR_PWM_BIT_WIDTH		20u
-#define DSHOT_1200_PWM_FREQ				1200000u	//Hz
-#define DSHOT_600_PWM_FREQ				600000u		//Hz
-#define DSHOT_300_PWM_FREQ				300000u		//Hz
-#define DSHOT_150_PWM_FREQ				150000u		//Hz
-
-void dshot_dma_init(void);
-void dshot_dma_send(void);
-void dshot_data_prepare(uint32_t motorNumber, uint16_t throttle);
-

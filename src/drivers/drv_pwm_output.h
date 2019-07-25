@@ -292,14 +292,16 @@ struct pwm_output_rc_config {
  */
 #define PWM_SERVO_GET_RATEGROUP(_n) _PX4_IOC(_PWM_SERVO_BASE, 0x70 + _n)
 
-/** specific rates for configuring the timer for OneShot, PWM or Dshot */
+/** specific rates for configuring the timer for OneShot or PWM */
 #define	PWM_RATE_ONESHOT			0u
 #define	PWM_RATE_LOWER_LIMIT		1u
 #define	PWM_RATE_UPPER_LIMIT		10000u
-#define PWM_RATE_DSHOT150			10001u
-#define PWM_RATE_DSHOT300			10002u
-#define PWM_RATE_DSHOT600			10003u
-#define PWM_RATE_DSHOT1200			10004u
+
+/** Dshot PWM frequency */
+#define DSHOT_1200_PWM_FREQ				1200000u	//Hz
+#define DSHOT_600_PWM_FREQ				600000u		//Hz
+#define DSHOT_300_PWM_FREQ				300000u		//Hz
+#define DSHOT_150_PWM_FREQ				150000u		//Hz
 
 /*
  * Low-level PWM output interface.
@@ -379,15 +381,6 @@ __EXPORT extern void up_pwm_update(void);
 __EXPORT extern int	up_pwm_servo_set(unsigned channel, servo_position_t value);
 
 /**
- * Set the current dshot output value for a channel.
- *
- * @param channel	The channel to set.
- * @param throttle	The output dshot throttle value.
- */
-
-__EXPORT extern void	up_pwm_servo_dshot_set(unsigned channel, uint16_t throttle);
-
-/**
  * Get the current output value for a channel.
  *
  * @param channel	The channel to read.
@@ -395,5 +388,38 @@ __EXPORT extern void	up_pwm_servo_dshot_set(unsigned channel, uint16_t throttle)
  *			outputs are not armed or not configured.
  */
 __EXPORT extern servo_position_t up_pwm_servo_get(unsigned channel);
+
+/**
+ * Intialise the Dshot outputs using the specified configuration.
+ *
+ * @param channel_mask	Bitmask of channels (LSB = channel 0) to enable.
+ *			This allows some of the channels to remain configured
+ *			as GPIOs or as another function.
+ * @return		OK on success.
+ */
+__EXPORT extern void up_dshot_init(uint32_t channel_mask, unsigned timer, unsigned dshot_pwm_rate);
+
+/**
+ * Set the current dshot throttle value for a channel (motor).
+ *
+ * @param channel	The channel to set.
+ * @param throttle	The output dshot throttle value.
+ */
+__EXPORT extern void up_dshot_motor_data_prepare(unsigned channel, uint16_t throttle);
+
+/**
+ * Trigger dshot data transfer.
+ */
+__EXPORT extern void up_dshot_trigger(void);
+
+/**
+ * Arm or disarm dshot outputs.
+ *
+ * When disarmed, dshot output no pulse.
+ *
+ * @param armed		If true, outputs are armed; if false they
+ *			are disarmed.
+ */
+__EXPORT extern void up_dshot_arm(bool armed);
 
 __END_DECLS

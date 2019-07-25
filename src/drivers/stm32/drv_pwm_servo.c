@@ -69,16 +69,6 @@ int up_pwm_servo_set(unsigned channel, servo_position_t value)
 	return io_timer_set_ccr(channel, value);
 }
 
-void up_pwm_servo_dshot_set(unsigned channel, uint16_t throttle)
-{
-	//TODO: this is just for the test it needs to be done in a proper way.
-	dshot_data_prepare(0, 0);
-	dshot_data_prepare(1, 2047);
-	dshot_data_prepare(2, 127);
-	dshot_data_prepare(3, 1023);
-	dshot_dma_send();
-}
-
 servo_position_t up_pwm_servo_get(unsigned channel)
 {
 	return io_channel_get_ccr(channel);
@@ -136,11 +126,7 @@ int up_pwm_servo_set_rate_group_update(unsigned group, unsigned rate)
 
 	/* Allow a rate of 0 to enter oneshot mode */
 
-	if ((rate != PWM_RATE_ONESHOT)	&&
-			(rate != PWM_RATE_DSHOT150) &&
-			(rate != PWM_RATE_DSHOT300) &&
-			(rate != PWM_RATE_DSHOT600) &&
-			(rate != PWM_RATE_DSHOT1200)) {
+	if (rate != PWM_RATE_ONESHOT) {
 
 		/* limit update rate to 1..10000Hz; somewhat arbitrary but safe */
 
@@ -178,6 +164,5 @@ void
 up_pwm_servo_arm(bool armed)
 {
 	io_timer_set_enable(armed, IOTimerChanMode_OneShot, IO_TIMER_ALL_MODES_CHANNELS);
-	io_timer_set_enable(armed, IOTimerChanMode_Dshot, IO_TIMER_ALL_MODES_CHANNELS);
 	io_timer_set_enable(armed, IOTimerChanMode_PWMOut, IO_TIMER_ALL_MODES_CHANNELS);
 }

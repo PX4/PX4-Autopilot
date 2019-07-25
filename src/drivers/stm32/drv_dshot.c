@@ -1,6 +1,7 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012, 2019 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ * Author: Igor Mišić <igy1000mb@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,9 +41,10 @@
 #include <stm32_tim.h>
 #include "drv_dshot.h"
 #include "drv_io_timer.h"
+#include <drivers/drv_pwm_output.h>
 
 #define DSHOT_DMA_BASE		STM32_DMA2_BASE
-#define REG(_reg)	(*(volatile uint32_t *)(DSHOT_DMA_BASE + _reg))
+#define REG(_reg)			(*(volatile uint32_t *)(DSHOT_DMA_BASE + _reg))
 
 /* DMA registers */
 #define rHIFCR			REG(STM32_DMA_HIFCR_OFFSET)
@@ -52,19 +54,42 @@
 #define rS5M0AR			REG(STM32_DMA_S5M0AR_OFFSET)
 #define rS5FCR			REG(STM32_DMA_S5FCR_OFFSET)
 
-#define MOTOR_PWM_BIT_1			14u
-#define MOTOR_PWM_BIT_0			7u
-#define MOTORS_NUMBER			4u
-#define ONE_MOTOR_BUFF_SIZE		18u
-#define ALL_MOTORS_BUF_SIZE		(MOTORS_NUMBER * ONE_MOTOR_BUFF_SIZE)
+#define MOTOR_PWM_BIT_1				14u
+#define MOTOR_PWM_BIT_0				7u
+#define MOTORS_NUMBER				4u
+#define ONE_MOTOR_DATA_SIZE			16u
+#define ONE_MOTOR_BUFF_SIZE			18u
+#define ALL_MOTORS_BUF_SIZE			(MOTORS_NUMBER * ONE_MOTOR_BUFF_SIZE)
+#define DSHOT_THROTTLE_POSITION		5u
+#define DSHOT_TELEMETRY_POSITION	4u
+#define NIBBLES_SIZE 				4u
+#define DSHOT_NUMBER_OF_NIBBLES		3u
+#define ARMING_REPETITION			500u
 
 uint32_t motorBuffer[MOTORS_NUMBER][ONE_MOTOR_BUFF_SIZE] = {0};
 uint32_t dshotBurstBuffer[ALL_MOTORS_BUF_SIZE] = {0};
 
 void dshot_dmar_data_prepare(void);
 
-void dshot_dma_init(void)
+void up_dshot_init(uint32_t channel_mask, unsigned timer, unsigned dshot_pwm_rate)
 {
+	/* Init channels */
+	for (unsigned channel = 0; channel_mask != 0 &&  channel < MAX_TIMER_IO_CHANNELS; channel++) {
+		if (channel_mask & (1 << channel)) {
+
+			// First free any that were not dshot mode before
+			if (-EBUSY == io_timer_is_channel_free(channel)) {
+				io_timer_free_channel(channel);
+			}
+
+			io_timer_channel_init(channel, IOTimerChanMode_Dshot, NULL, NULL);
+			channel_mask &= ~(1 << channel);
+		}
+	}
+
+	io_timer_set_dshot_mode(timer, DSHOT_1200_PWM_FREQ);
+
+
 	/* DMA setup stream 5*/
 	rS5CR |= DMA_SCR_CHSEL(0x6); /* Channel 6 */
 	rS5CR |= DMA_SCR_PRIHI;
@@ -78,9 +103,11 @@ void dshot_dma_init(void)
 	rS5M0AR = (uint32_t)dshotBurstBuffer;
 
 	rS5FCR &= 0x0;  /* Disable FIFO */
+
+	io_timer_set_enable(true, IOTimerChanMode_Dshot, IO_TIMER_ALL_MODES_CHANNELS);
 }
 
-void dshot_dma_send(void)
+void up_dshot_trigger(void)
 {
 	dshot_dmar_data_prepare();
 	rHIFCR |= 0x3F << 6; //clear DMA stream 5 interrupt flags
@@ -93,27 +120,28 @@ void dshot_dma_send(void)
 * bit 	12		- dshot telemetry enable/disable
 * bits 	13-16	- XOR checksum
 **/
-void dshot_data_prepare(uint32_t motorNumber, uint16_t throttle)
+void up_dshot_motor_data_prepare(uint32_t motorNumber, uint16_t throttle)
 {
 	uint16_t packet = 0;
 	uint16_t telemetry = 0;
 	uint16_t checksum = 0;
 
-	packet |= throttle << 5;
-	packet |= telemetry << 4;
+	packet |= throttle << DSHOT_THROTTLE_POSITION;
+	packet |= telemetry << DSHOT_TELEMETRY_POSITION;
 
 	uint32_t i;
 	uint16_t csum_data = packet;
 
-	csum_data >>= 4;
-	for (i = 0; i < 3; i++) {
-		checksum ^= (csum_data & 0x0F); // xor data by nibbles
-		csum_data >>= 4;
+	/* XOR checksum calculation */
+	csum_data >>= NIBBLES_SIZE;
+	for (i = 0; i < DSHOT_NUMBER_OF_NIBBLES; i++) {
+		checksum ^= (csum_data & 0x0F); // XOR data by nibbles
+		csum_data >>= NIBBLES_SIZE;
 	}
 
 	packet |= (checksum & 0x0F);
 
-	for(i = 0; i < 16; i++) {
+	for(i = 0; i < ONE_MOTOR_DATA_SIZE; i++) {
 		motorBuffer[motorNumber][i] = (packet & 0x8000) ? MOTOR_PWM_BIT_1 : MOTOR_PWM_BIT_0;  // MSB first
 		packet <<= 1;
 	}
@@ -131,5 +159,24 @@ void dshot_dmar_data_prepare(void)
         	dshotBurstBuffer[i*MOTORS_NUMBER+j] = motorBuffer[j][i];
         }
     }
+}
+
+void up_dshot_arm(bool armed)
+{
+	for(uint32_t motorNumber = 0; motorNumber < MOTORS_NUMBER; motorNumber++) {
+		up_dshot_motor_data_prepare(motorNumber, 0);
+	}
+
+	if (true == armed) {
+
+		for(uint32_t i = 0; i < ARMING_REPETITION; i++) {
+			up_dshot_trigger();
+		}
+	}
+	else {
+		for(uint32_t i = 0; i < ARMING_REPETITION; i++) {
+			up_dshot_trigger();
+		}
+	}
 }
 
