@@ -245,6 +245,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
+            sh 'git fetch --tags'
             sh 'make scan-build'
             // publish html
             publishHTML target: [
@@ -303,6 +304,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
+            sh 'git fetch --tags'
             sh 'make cppcheck'
             // publish html
             publishHTML target: [
