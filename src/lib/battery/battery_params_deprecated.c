@@ -32,16 +32,17 @@
  ****************************************************************************/
 
 /**
- * @file battery_params_2.c
+ * @file battery_params_1.c
  * @author Timothy Scott <timothy@auterion.com>
  *
- * Defines parameters for Battery 2.
+ * Defines parameters for Battery 1. For backwards compatibility, the
+ * parameter names do not have a "1" in them.
  */
 
 /**
- * Empty cell voltage (5C load)
+ * This parameter is deprecated. Please use BAT1_V_EMPTY instead.
  *
- * Defines the voltage where a single cell of battery 2 is considered empty.
+ * Defines the voltage where a single cell of battery 1 is considered empty.
  * The voltage should be chosen before the steep dropoff to 2.8V. A typical
  * lithium battery can only be discharged down to 10% before it drops off
  * to a voltage level damaging the cells.
@@ -52,12 +53,12 @@
  * @increment 0.01
  * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT2_V_EMPTY, 3.5f);
+PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.5f);
 
 /**
- * Full cell voltage (5C load)
+ * This parameter is deprecated. Please use BAT1_V_CHARGED instead.
  *
- * Defines the voltage where a single cell of battery 2 is considered full
+ * Defines the voltage where a single cell of battery 1 is considered full
  * under a mild load. This will never be the nominal voltage of 4.2V
  *
  * @group Battery Calibration
@@ -66,15 +67,15 @@ PARAM_DEFINE_FLOAT(BAT2_V_EMPTY, 3.5f);
  * @increment 0.01
  * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT2_V_CHARGED, 4.05f);
+PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.05f);
 
 /**
- * Voltage drop per cell on full throttle
+ * This parameter is deprecated. Please use BAT1_V_LOAD_DROP instead.
  *
  * This implicitely defines the internal resistance
- * to maximum current ratio for battery 2 and assumes linearity.
+ * to maximum current ratio for battery 1 and assumes linearity.
  * A good value to use is the difference between the
- * 5C and 20-25C load. Not used if BAT2_R_INTERNAL is
+ * 5C and 20-25C load. Not used if BAT_R_INTERNAL is
  * set.
  *
  * @group Battery Calibration
@@ -85,13 +86,13 @@ PARAM_DEFINE_FLOAT(BAT2_V_CHARGED, 4.05f);
  * @increment 0.01
  * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT2_V_LOAD_DROP, 0.3f);
+PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.3f);
 
 /**
- * Explicitly defines the per cell internal resistance for battery 2
+ * This parameter is deprecated. Please use BAT1_R_INTERNAL instead.
  *
  * If non-negative, then this will be used in place of
- * BAT2_V_LOAD_DROP for all calculations.
+ * BAT_V_LOAD_DROP for all calculations.
  *
  * @group Battery Calibration
  * @unit Ohms
@@ -99,11 +100,11 @@ PARAM_DEFINE_FLOAT(BAT2_V_LOAD_DROP, 0.3f);
  * @max 0.2
  * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT2_R_INTERNAL, -1.0f);
+PARAM_DEFINE_FLOAT(BAT_R_INTERNAL, -1.0f);
 
 
 /**
- * Number of cells for battery 2.
+ * This parameter is deprecated. Please use BAT1_N_CELLS instead.
  *
  * Defines the number of cells the attached battery consists of.
  *
@@ -127,12 +128,12 @@ PARAM_DEFINE_FLOAT(BAT2_R_INTERNAL, -1.0f);
  * @value 16 16S Battery
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(BAT2_N_CELLS, 0);
+PARAM_DEFINE_INT32(BAT_N_CELLS, 0);
 
 /**
- * Battery 2 capacity.
+ * This parameter is deprecated. Please use BAT1_CAPACITY instead.
  *
- * Defines the capacity of battery 2.
+ * Defines the capacity of battery 1.
  *
  * @group Battery Calibration
  * @unit mAh
@@ -142,12 +143,12 @@ PARAM_DEFINE_INT32(BAT2_N_CELLS, 0);
  * @increment 50
  * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT2_CAPACITY, -1.0f);
+PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
 
 /**
- * Battery 2 voltage divider (V divider)
+ * This parameter is deprecated. Please use BAT1_V_DIV instead.
  *
- * This is the divider from battery 2 voltage to 3.3V ADC voltage.
+ * This is the divider from battery 1 voltage to 3.3V ADC voltage.
  * If using e.g. Mauch power modules the value from the datasheet
  * can be applied straight here. A value of -1 means to use
  * the board default.
@@ -155,10 +156,10 @@ PARAM_DEFINE_FLOAT(BAT2_CAPACITY, -1.0f);
  * @group Battery Calibration
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(BAT2_V_DIV, -1.0);
+PARAM_DEFINE_FLOAT(BAT_V_DIV, -1.0);
 
 /**
- * Battery 2 current per volt (A/V)
+ * This parameter is deprecated. Please use BAT1_A_PER_V instead.
  *
  * The voltage seen by the 3.3V ADC multiplied by this factor
  * will determine the battery current. A value of -1 means to use
@@ -167,14 +168,14 @@ PARAM_DEFINE_FLOAT(BAT2_V_DIV, -1.0);
  * @group Battery Calibration
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(BAT2_A_PER_V, -1.0);
+PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
 
 /**
- * Battery 2 ADC Channel
+ * This parameter is deprecated. Please use BAT1_ADC_CHANNEL instead.
  *
  * This parameter specifies the ADC channel used to monitor voltage of main power battery.
  * A value of -1 means to use the board default.
  *
  * @group Battery Calibration
  */
-PARAM_DEFINE_INT32(BAT2_ADC_CHANNEL, -1);
+PARAM_DEFINE_INT32(BAT_ADC_CHANNEL, -1);
