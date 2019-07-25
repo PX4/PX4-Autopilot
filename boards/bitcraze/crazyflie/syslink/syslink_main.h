@@ -138,7 +138,7 @@ private:
 
 	struct battery_status_s _battery_status;
 
-	Battery _battery;
+	Battery1 _battery;
 
 	int32_t _rssi;
 	battery_state _bstate;

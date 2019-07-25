@@ -48,6 +48,7 @@
 #include <px4_module_params.h>
 #include <drivers/drv_adc.h>
 #include <board_config.h>
+#include <drivers/boards/common/board_common.h>
 
 /**
  * BatteryBase is a base class for any type of battery.
@@ -133,8 +134,13 @@ public:
 protected:
 	// Defaults to use if the parameters are not set
 #if BOARD_NUMBER_BRICKS > 0
+#if defined(BOARD_BATT_V_LIST) && defined(BOARD_BATT_I_LIST)
 	static constexpr int   DEFAULT_V_CHANNEL[BOARD_NUMBER_BRICKS] = BOARD_BATT_V_LIST;
 	static constexpr int   DEFAULT_I_CHANNEL[BOARD_NUMBER_BRICKS] = BOARD_BATT_I_LIST;
+#else
+	static constexpr int   DEFAULT_V_CHANNEL[BOARD_NUMBER_BRICKS] = {0};
+	static constexpr int   DEFAULT_I_CHANNEL[BOARD_NUMBER_BRICKS] = {0};
+#endif
 #else
 	static constexpr int DEFAULT_V_CHANNEL[0] = {};
 	static constexpr int DEFAULT_I_CHANNEL[0] = {};

@@ -101,7 +101,7 @@ private:
 	orb_advert_t _battery_topic;
 	orb_advert_t _esc_topic;
 
-	Battery _battery;
+	Battery1 _battery;
 	bool _armed;
 	float _last_throttle;
 
@@ -201,7 +201,6 @@ int DfBebopBusWrapper::set_esc_speeds(const float speed_scaled[4])
 int DfBebopBusWrapper::_publish(struct bebop_state_data &data)
 {
 
-	battery_status_s battery_report;
 	const hrt_abstime timestamp = hrt_absolute_time();
 
 	esc_status_s esc_status = {};

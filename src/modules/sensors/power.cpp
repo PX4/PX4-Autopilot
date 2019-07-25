@@ -51,8 +51,8 @@ void Power::update(px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS], int nchannels, f
 	 */
 
 	/* Per Brick readings with default unread channels at 0 */
-	int32_t bat_current_cnt[BOARD_NUMBER_BRICKS];
-	int32_t bat_voltage_cnt[BOARD_NUMBER_BRICKS];
+	int32_t bat_current_cnt[BOARD_NUMBER_BRICKS] = {0};
+	int32_t bat_voltage_cnt[BOARD_NUMBER_BRICKS] = {0};
 
 	// The channel readings are not necessarily in a nice order, so we iterate through
 	// to find every relevant channel.

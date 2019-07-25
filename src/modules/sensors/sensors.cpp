@@ -405,9 +405,9 @@ Sensors::adc_poll()
 					 * a valid voltage from a connected sensor. Also assume a non-
 					 * zero offset from the sensor if its connected.
 					 */
-					if (voltage > 0.4f && (_parameters->diff_pres_analog_scale > 0.0f)) {
+					if (voltage > 0.4f && (_parameters.diff_pres_analog_scale > 0.0f)) {
 
-						const float diff_pres_pa_raw = voltage * _parameters->diff_pres_analog_scale - _parameters->diff_pres_offset_pa;
+						const float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
 
 						_diff_pres.timestamp = t;
 						_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
