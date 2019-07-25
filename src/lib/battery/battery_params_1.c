@@ -56,7 +56,7 @@
  * @increment 0.01
  * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.5f);
+PARAM_DEFINE_FLOAT(BAT1_V_EMPTY, 3.5f);
 
 /**
  * Full cell voltage (5C load)
@@ -70,7 +70,7 @@ PARAM_DEFINE_FLOAT(BAT_V_EMPTY, 3.5f);
  * @increment 0.01
  * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.05f);
+PARAM_DEFINE_FLOAT(BAT1_V_CHARGED, 4.05f);
 
 /**
  * Voltage drop per cell on full throttle
@@ -78,7 +78,7 @@ PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.05f);
  * This implicitely defines the internal resistance
  * to maximum current ratio for battery 1 and assumes linearity.
  * A good value to use is the difference between the
- * 5C and 20-25C load. Not used if BAT_R_INTERNAL is
+ * 5C and 20-25C load. Not used if BAT1_R_INTERNAL is
  * set.
  *
  * @group Battery Calibration
@@ -89,13 +89,13 @@ PARAM_DEFINE_FLOAT(BAT_V_CHARGED, 4.05f);
  * @increment 0.01
  * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.3f);
+PARAM_DEFINE_FLOAT(BAT1_V_LOAD_DROP, 0.3f);
 
 /**
  * Explicitly defines the per cell internal resistance for battery 1
  *
  * If non-negative, then this will be used in place of
- * BAT_V_LOAD_DROP for all calculations.
+ * BAT1_V_LOAD_DROP for all calculations.
  *
  * @group Battery Calibration
  * @unit Ohms
@@ -103,7 +103,7 @@ PARAM_DEFINE_FLOAT(BAT_V_LOAD_DROP, 0.3f);
  * @max 0.2
  * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT_R_INTERNAL, -1.0f);
+PARAM_DEFINE_FLOAT(BAT1_R_INTERNAL, -1.0f);
 
 
 /**
@@ -131,7 +131,7 @@ PARAM_DEFINE_FLOAT(BAT_R_INTERNAL, -1.0f);
  * @value 16 16S Battery
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(BAT_N_CELLS, 0);
+PARAM_DEFINE_INT32(BAT1_N_CELLS, 0);
 
 /**
  * Battery 1 capacity.
@@ -146,7 +146,7 @@ PARAM_DEFINE_INT32(BAT_N_CELLS, 0);
  * @increment 50
  * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
+PARAM_DEFINE_FLOAT(BAT1_CAPACITY, -1.0f);
 
 /**
  * Battery 1 voltage divider (V divider)
@@ -159,7 +159,7 @@ PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
  * @group Battery Calibration
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(BAT_V_DIV, -1.0);
+PARAM_DEFINE_FLOAT(BAT1_V_DIV, -1.0);
 
 /**
  * Battery 1 current per volt (A/V)
@@ -171,7 +171,7 @@ PARAM_DEFINE_FLOAT(BAT_V_DIV, -1.0);
  * @group Battery Calibration
  * @decimal 8
  */
-PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
+PARAM_DEFINE_FLOAT(BAT1_A_PER_V, -1.0);
 
 /**
  * Battery 1 ADC Channel
@@ -181,4 +181,4 @@ PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
  *
  * @group Battery Calibration
  */
-PARAM_DEFINE_INT32(BAT_ADC_CHANNEL, -1);
+PARAM_DEFINE_INT32(BAT1_ADC_CHANNEL, -1);

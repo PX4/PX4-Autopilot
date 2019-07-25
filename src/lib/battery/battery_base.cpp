@@ -63,32 +63,13 @@ BatteryBase::reset()
 	// TODO: check if it is sane to reset warning to NONE
 	_battery_status.warning = battery_status_s::BATTERY_WARNING_NONE;
 	_battery_status.connected = false;
+	_battery_status.capacity = _get_bat_capacity();
 }
 
 void
-BatteryBase::updateBatteryStatusRawADC(int32_t voltage_raw, int32_t current_raw, hrt_abstime timestamp,
-				       bool selected_source, int priority,
-				       float throttle_normalized,
-				       bool armed)
+BatteryBase::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a, bool connected,
+				 bool selected_source, int priority, float throttle_normalized, bool armed, bool should_publish)
 {
-
-	float voltage_v = (voltage_raw * _get_cnt_v_volt()) * _get_v_div();
-	float current_a = ((current_raw * _get_cnt_v_curr()) - _get_v_offs_cur()) * _get_a_per_v();
-
-	updateBatteryStatus(voltage_v, current_a, timestamp, selected_source, priority, throttle_normalized, armed);
-}
-
-void
-BatteryBase::updateBatteryStatus(float voltage_v, float current_a, hrt_abstime timestamp,
-				 bool selected_source, int priority,
-				 float throttle_normalized,
-				 bool armed)
-{
-	updateParams();
-
-	bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V &&
-			 (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || is_valid());
-
 	reset();
 	_battery_status.timestamp = timestamp;
 	filterVoltage(voltage_v);
@@ -119,11 +100,17 @@ BatteryBase::updateBatteryStatus(float voltage_v, float current_a, hrt_abstime t
 
 	_battery_status.timestamp = timestamp;
 
-	if (_get_source() == 0) {
-		orb_publish_auto(ORB_ID(battery_status), &_orbAdvert, &_battery_status, &_orbInstance, ORB_PRIO_DEFAULT);
+	if (should_publish) {
+		publish();
 	}
 
-	battery_status->temperature = NAN;
+	_battery_status.temperature = NAN;
+}
+
+void
+BatteryBase::publish()
+{
+	orb_publish_auto(ORB_ID(battery_status), &_orbAdvert, &_battery_status, &_orbInstance, ORB_PRIO_DEFAULT);
 }
 
 void
@@ -265,57 +252,5 @@ BatteryBase::computeScale()
 
 	} else if (!PX4_ISFINITE(_scale) || _scale < 1.f) { // Shouldn't ever be more than the power at full battery
 		_scale = 1.f;
-	}
-}
-
-float
-BatteryBase::_get_cnt_v_volt()
-{
-	float val = _get_cnt_v_volt_raw();
-
-	if (val < 0.0f) {
-		return 3.3f / 4096.0f;
-
-	} else {
-		return val;
-	}
-}
-
-float
-BatteryBase::_get_cnt_v_curr()
-{
-	float val = _get_cnt_v_curr_raw();
-
-	if (val < 0.0f) {
-		return 3.3f / 4096.0f;
-
-	} else {
-		return val;
-	}
-}
-
-float
-BatteryBase::_get_v_div()
-{
-	float val = _get_v_div_raw();
-
-	if (val <= 0.0f) {
-		return BOARD_BATTERY1_V_DIV;
-
-	} else {
-		return val;
-	}
-}
-
-float
-BatteryBase::_get_a_per_v()
-{
-	float val = _get_a_per_v_raw();
-
-	if (val <= 0.0f) {
-		return BOARD_BATTERY1_A_PER_V;
-
-	} else {
-		return val;
 	}
 }
