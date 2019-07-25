@@ -765,6 +765,21 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 				bool cmd_arms = (static_cast<int>(cmd.param1 + 0.5f) == 1);
 
+				// Arm/disarm is enforced only when param2 is set to a magic number.
+				const bool enforce_in_air = (static_cast<int>(std::round(cmd.param2)) == 21196);
+
+				if (!enforce_in_air && !land_detector.landed) {
+					if (cmd_arms) {
+						mavlink_log_critical(&mavlink_log_pub, "Arming denied! Not landed");
+
+					} else {
+						mavlink_log_critical(&mavlink_log_pub, "Disarming denied! Not landed");
+					}
+
+					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+					break;
+				}
+
 				// Flick to inair restore first if this comes from an onboard system
 				if (cmd.source_system == status_local->system_id && cmd.source_component == status_local->component_id) {
 					status.arming_state = vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE;
