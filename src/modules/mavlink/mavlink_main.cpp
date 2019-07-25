@@ -441,12 +441,12 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 			// might be nullptr if message is unknown
 			if (meta) {
 				// Extract target system and target component if set
-				if (meta->target_system_ofs != 0) {
-					target_system_id = ((uint8_t *)msg)[meta->target_system_ofs];
+				if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_SYSTEM) {
+					target_system_id = (_MAV_PAYLOAD(msg))[meta->target_system_ofs];
 				}
 
-				if (meta->target_component_ofs != 0) {
-					target_component_id = ((uint8_t *)msg)[meta->target_component_ofs];
+				if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
+					target_component_id = (_MAV_PAYLOAD(msg))[meta->target_component_ofs];
 				}
 			}
 
