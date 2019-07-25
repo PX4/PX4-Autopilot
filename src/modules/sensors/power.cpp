@@ -59,11 +59,11 @@ void Power::update(px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS], int nchannels, f
 	for (int i = 0; i < nchannels; i++) {
 		for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 			/* look for specific channels and process the raw voltage to measurement data */
-			if (_analogBatteries[b]->vChannel == buf_adc[i].am_channel) {
+			if (_analogBatteries[b]->getVoltageChannel() == buf_adc[i].am_channel) {
 				/* Voltage in ADC counts */
 				bat_voltage_cnt[b] = buf_adc[i].am_data;
 
-			} else if (_analogBatteries[b]->iChannel == buf_adc[i].am_channel) {
+			} else if (_analogBatteries[b]->getCurrentChannel() == buf_adc[i].am_channel) {
 				/* Voltage at current sense resistor in ADC counts */
 				bat_current_cnt[b] = buf_adc[i].am_data;
 			}

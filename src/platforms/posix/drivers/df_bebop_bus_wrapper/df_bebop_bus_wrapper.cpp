@@ -101,7 +101,7 @@ private:
 	orb_advert_t _battery_topic;
 	orb_advert_t _esc_topic;
 
-	Battery1 _battery;
+	Battery _battery;
 	bool _armed;
 	float _last_throttle;
 
@@ -221,7 +221,7 @@ int DfBebopBusWrapper::_publish(struct bebop_state_data &data)
 
 		// TODO Check if this is the right way for the Bebop
 		// We don't have current measurements
-		_battery.updateBatteryStatus(data.battery_voltage_v, 0.0, timestamp, true, 0, _last_throttle, _armed);
+		_battery.updateBatteryStatus(data.battery_voltage_v, 0.0, timestamp, true, 0, _last_throttle, _armed, true);
 
 		if (_esc_topic == nullptr) {
 			_esc_topic = orb_advertise(ORB_ID(esc_status), &esc_status);

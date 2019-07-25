@@ -42,7 +42,7 @@
 
 #pragma once
 
-#include <battery/battery.h>
+#include <battery/battery_base.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
@@ -182,8 +182,6 @@ private:
 
 		_param_sub = orb_subscribe(ORB_ID(parameter_update));
 
-		_battery_status.timestamp = hrt_absolute_time();
-
 		_px4_accel.set_sample_rate(250);
 		_px4_gyro.set_sample_rate(250);
 	}
@@ -239,10 +237,24 @@ private:
 
 	hrt_abstime _last_sim_timestamp{0};
 	hrt_abstime _last_sitl_timestamp{0};
+	hrt_abstime _last_battery_timestamp{0};
 
-	// Lib used to do the battery calculations.
-	Battery1 _battery {};
-	battery_status_s _battery_status{};
+	// Because the simulator doesn't actually care about the real values of these, just stick
+	// in some good defaults.
+	// This is an anonymous class, because BatteryBase is abstract and can't directly be instantiated.
+	class : public BatteryBase
+	{
+		float _get_bat_v_empty() override { return 3.5; }
+		float _get_bat_v_charged() override { return 4.05; }
+		int _get_bat_n_cells() override { return 4; }
+		float _get_bat_capacity() override { return 10.0; }
+		float _get_bat_v_load_drop() override { return 0; }
+		float _get_bat_r_internal() override { return 0; }
+		float _get_bat_low_thr() override { return 0.15; }
+		float _get_bat_crit_thr() override { return 0.07; }
+		float _get_bat_emergen_thr() override { return 0.05; }
+		int _get_source() override { return 0; }
+	} _battery {};
 
 #ifndef __PX4_QURT
 

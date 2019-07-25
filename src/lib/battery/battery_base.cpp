@@ -46,7 +46,6 @@
 #include <px4_defines.h>
 
 BatteryBase::BatteryBase() :
-	ModuleParams(nullptr),
 	_warning(battery_status_s::BATTERY_WARNING_NONE),
 	_last_timestamp(0)
 {
@@ -66,29 +65,11 @@ BatteryBase::reset()
 }
 
 void
-BatteryBase::updateBatteryStatusRawADC(int32_t voltage_raw, int32_t current_raw, hrt_abstime timestamp,
-				       bool selected_source, int priority,
-				       float throttle_normalized,
-				       bool armed)
-{
-
-	float voltage_v = (voltage_raw * _get_cnt_v_volt()) * _get_v_div();
-	float current_a = ((current_raw * _get_cnt_v_curr()) - _get_v_offs_cur()) * _get_a_per_v();
-
-	updateBatteryStatus(voltage_v, current_a, timestamp, selected_source, priority, throttle_normalized, armed);
-}
-
-void
 BatteryBase::updateBatteryStatus(float voltage_v, float current_a, hrt_abstime timestamp,
 				 bool selected_source, int priority,
 				 float throttle_normalized,
-				 bool armed)
+				 bool armed, bool connected)
 {
-	updateParams();
-
-	bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V &&
-			 (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || is_valid());
-
 	reset();
 	_battery_status.timestamp = timestamp;
 	filterVoltage(voltage_v);
@@ -260,57 +241,5 @@ BatteryBase::computeScale()
 
 	} else if (!PX4_ISFINITE(_scale) || _scale < 1.f) { // Shouldn't ever be more than the power at full battery
 		_scale = 1.f;
-	}
-}
-
-float
-BatteryBase::_get_cnt_v_volt()
-{
-	float val = _get_cnt_v_volt_raw();
-
-	if (val < 0.0f) {
-		return 3.3f / 4096.0f;
-
-	} else {
-		return val;
-	}
-}
-
-float
-BatteryBase::_get_cnt_v_curr()
-{
-	float val = _get_cnt_v_curr_raw();
-
-	if (val < 0.0f) {
-		return 3.3f / 4096.0f;
-
-	} else {
-		return val;
-	}
-}
-
-float
-BatteryBase::_get_v_div()
-{
-	float val = _get_v_div_raw();
-
-	if (val <= 0.0f) {
-		return BOARD_BATTERY1_V_DIV;
-
-	} else {
-		return val;
-	}
-}
-
-float
-BatteryBase::_get_a_per_v()
-{
-	float val = _get_a_per_v_raw();
-
-	if (val <= 0.0f) {
-		return BOARD_BATTERY1_A_PER_V;
-
-	} else {
-		return val;
 	}
 }

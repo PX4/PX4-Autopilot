@@ -43,6 +43,7 @@ px4_add_module(
 		parameters.cpp
 		temperature_compensation.cpp
 		power.cpp
+		analog_battery.cpp
 
 	DEPENDS
 		airspeed

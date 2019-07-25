@@ -69,7 +69,7 @@ public:
 private:
 	int _publish(const struct ltc2946_sensor_data &data);
 
-	Battery1 _battery{};
+	Battery _battery{};
 
 	int _actuator_ctrl_0_sub{-1};
 	int _vcontrol_mode_sub{-1};
@@ -140,7 +140,7 @@ int DfLtc2946Wrapper::_publish(const struct ltc2946_sensor_data &data)
 	_battery.updateBatteryStatus(data.battery_voltage_V, data.battery_current_A, t,
 				     true, 1,
 				     ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-				     vcontrol_mode.flag_armed);
+				     vcontrol_mode.flag_armed, true);
 	return 0;
 }
 

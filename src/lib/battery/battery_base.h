@@ -53,9 +53,17 @@
 /**
  * BatteryBase is a base class for any type of battery.
  *
- * See battery.h for example implementation, and for explanation of why this is designed like it is.
+ * Each of the virtual _get_*() functions corresponds to a parameter used for calibration. However, depending
+ * on the type of battery, these values may not come from parameters.
+ *
+ * Most implementations of BatteryBase will also inherit ModuleParams, and most of the virtual function
+ * implementations will look something like:
+ * 		float _get_bat_v_empty() override {return _param_bat_v_empty().get();}
+ *
+ * For a full implementation, see src/modules/sensors/analog_battery.{cpp, h}
+ * For a minimal implementation, see src/modules/simulator/simulator.h
  */
-class BatteryBase : ModuleParams
+class BatteryBase
 {
 public:
 	BatteryBase();
@@ -83,20 +91,6 @@ public:
 	/**
 	 * Update current battery status message.
 	 *
-	 * @param voltage_raw Battery voltage read from ADC, in raw ADC counts
-	 * @param current_raw Voltage of current sense resistor, in raw ADC counts
-	 * @param timestamp Time at which the ADC was read (use hrt_absolute_time())
-	 * @param selected_source This battery is on the brick that the selected source for selected_source
-	 * @param priority: The brick number -1. The term priority refers to the Vn connection on the LTC4417
-	 * @param throttle_normalized Throttle of the vehicle, between 0 and 1
-	 * @param armed Arming state of the vehicle
-	 */
-	void updateBatteryStatusRawADC(int32_t voltage_raw, int32_t current_raw, hrt_abstime timestamp,
-				       bool selected_source, int priority, float throttle_normalized, bool armed);
-
-	/**
-	 * Update current battery status message.
-	 *
 	 * @param voltage_raw Battery voltage read from ADC, in Volts
 	 * @param current_raw Voltage of current sense resistor, in Amps
 	 * @param timestamp Time at which the ADC was read (use hrt_absolute_time())
@@ -106,71 +100,52 @@ public:
 	 * @param armed Arming state of the vehicle
 	 */
 	void updateBatteryStatus(float voltage_v, float current_a, hrt_abstime timestamp,
-				 bool selected_source, int priority, float throttle_normalized, bool armed);
-
-	/**
-	 * Which ADC channel is used for voltage reading of this battery
-	 */
-	int vChannel{-1};
-	/**
-	 * Which ADC channel is used for current reading of this battery
-	 */
-	int iChannel{-1};
-
-	/**
-	 * Whether the ADC channel for the voltage of this battery is valid.
-	 * Corresponds to BOARD_BRICK_VALID_LIST
-	 */
-	bool is_valid()
-	{
-#ifdef BOARD_BRICK_VALID_LIST
-		bool valid[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
-		return valid[_get_brick_index()];
-#else
-		return true;
-#endif
-	}
+				 bool selected_source, int priority, float throttle_normalized, bool armed, bool connected);
 
 protected:
-	// Defaults to use if the parameters are not set
-#if BOARD_NUMBER_BRICKS > 0
-#if defined(BOARD_BATT_V_LIST) && defined(BOARD_BATT_I_LIST)
-	static constexpr int   DEFAULT_V_CHANNEL[BOARD_NUMBER_BRICKS] = BOARD_BATT_V_LIST;
-	static constexpr int   DEFAULT_I_CHANNEL[BOARD_NUMBER_BRICKS] = BOARD_BATT_I_LIST;
-#else
-	static constexpr int   DEFAULT_V_CHANNEL[BOARD_NUMBER_BRICKS] = {0};
-	static constexpr int   DEFAULT_I_CHANNEL[BOARD_NUMBER_BRICKS] = {0};
-#endif
-#else
-	static constexpr int DEFAULT_V_CHANNEL[0] = {};
-	static constexpr int DEFAULT_I_CHANNEL[0] = {};
-#endif
-
-	// The following are all of the parameters needed for the batteries.
-	// See battery.h for example implementation.
+	/**
+	 * @return Value, in volts, at which a single cell of the battery would be considered empty.
+	 */
 	virtual float _get_bat_v_empty() = 0;
+	/**
+	 * @return Value, in volts, at which a single cell of the battery would be considered full.
+	 */
 	virtual float _get_bat_v_charged() = 0;
+	/**
+	 * @return Number of cells in series in the battery.
+	 */
 	virtual int _get_bat_n_cells() = 0;
+	/**
+	 * @return Total capacity of the battery, in mAh
+	 */
 	virtual float _get_bat_capacity() = 0;
+	/**
+	 * @return Voltage drop per cell at full throttle. This implicitly defines the internal resistance of the
+	 *     battery. If _get_bat_r_internal() >= to 0, then _get_bat_v_load_drop() is ignored.
+	 */
 	virtual float _get_bat_v_load_drop() = 0;
+	/**
+	 * @return Internal resistance of the battery, in Ohms. If non-negative, then this is used instead of
+	 *     _get_bat_v_load_drop().
+	 */
 	virtual float _get_bat_r_internal() = 0;
+	/**
+	 * @return Low battery threshold, as fraction between 0 and 1.
+	 */
 	virtual float _get_bat_low_thr() = 0;
+	/**
+	 * @return Critical battery threshold, as fraction between 0 and 1.
+	 */
 	virtual float _get_bat_crit_thr() = 0;
+	/**
+	 * @return Emergency battery threshold, as fraction between 0 and 1.
+	 */
 	virtual float _get_bat_emergen_thr() = 0;
-	virtual float _get_cnt_v_volt_raw() = 0;
-	virtual float _get_cnt_v_curr_raw() = 0;
-	virtual float _get_v_offs_cur() = 0;
-	virtual float _get_v_div_raw() = 0;
-	virtual float _get_a_per_v_raw() = 0;
+	/**
+	 * @return Source of battery data. 0 = internal power module. 1 = external, via Mavlink
+	 */
 	virtual int _get_source() = 0;
-	virtual int _get_adc_channel() = 0;
 
-	virtual int _get_brick_index() = 0;
-
-	float _get_cnt_v_volt();
-	float _get_cnt_v_curr();
-	float _get_v_div();
-	float _get_a_per_v();
 
 private:
 	void filterVoltage(float voltage_v);
