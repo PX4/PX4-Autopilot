@@ -40,13 +40,7 @@
 #pragma once
 
 #include <board_config.h>
-#include <battery/battery.h>
-
-#ifdef BOARD_NUMBER_DIGITAL_BRICKS
-#define TOTAL_BRICKS (BOARD_NUMBER_BRICKS + BOARD_NUMBER_DIGITAL_BRICKS)
-#else
-#define TOTAL_BRICKS BOARD_NUMBER_BRICKS
-#endif
+#include "analog_battery.h"
 
 /**
  * Measures voltage, current, etc. of all batteries connected to the vehicle, both
@@ -80,8 +74,8 @@ private:
 	 *
 	 * For an example of what this looks like after preprocessing, assume that BOARD_NUMBER_BRICKS = 2:
 	 * ```
-	 * Battery1 _battery0;
-	 * Battery2 _battery1;
+	 * AnalogBattery1 _battery0;
+	 * AnalogBattery2 _battery1;
 	 *
 	 * BatteryBase *_analogBatteries[2] {
 	 *     &_battery0,
@@ -92,17 +86,14 @@ private:
 	 * The #if BOARD_NUMBER_BRICKS > 0 wraps the entire declaration because otherwise, an empty array is declared
 	 * which then is unused. In some configurations, an unused variable throws a compile error.
 	 */
-
-	// TODO: Add digital batteries
-
 #if BOARD_NUMBER_BRICKS > 0
-	Battery1 _battery0;
+	AnalogBattery1 _battery0;
 
 #if BOARD_NUMBER_BRICKS > 1
-	Battery2 _battery1;
+	AnalogBattery2 _battery1;
 #endif
 
-	BatteryBase *_analogBatteries[BOARD_NUMBER_BRICKS] {
+	AnalogBattery *_analogBatteries[BOARD_NUMBER_BRICKS] {
 		&_battery0,
 #if BOARD_NUMBER_BRICKS > 1
 		&_battery1,
