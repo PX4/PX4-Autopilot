@@ -59,7 +59,6 @@
 #include <drivers/drv_pwm_output.h>
 
 #include "drv_io_timer.h"
-#include "drv_dshot.h"
 #include "drv_pwm_servo.h"
 
 #include <stm32_tim.h>
@@ -78,8 +77,7 @@ int up_pwm_servo_init(uint32_t channel_mask)
 {
 	/* Init channels */
 	uint32_t current = io_timer_get_mode_channels(IOTimerChanMode_PWMOut) |
-				io_timer_get_mode_channels(IOTimerChanMode_OneShot) |
-				io_timer_get_mode_channels(IOTimerChanMode_Dshot);
+				io_timer_get_mode_channels(IOTimerChanMode_OneShot);
 
 	/* First free the current set of PWMs */
 
@@ -102,7 +100,7 @@ int up_pwm_servo_init(uint32_t channel_mask)
 				io_timer_free_channel(channel);
 			}
 
-			/* OneShot and Dshot are set later, with the set_rate_group_update call. Init to PWM mode for now */
+			/* OneShot is set later, with the set_rate_group_update call. Init to PWM mode for now */
 
 			io_timer_channel_init(channel, IOTimerChanMode_PWMOut, NULL, NULL);
 			channel_mask &= ~(1 << channel);
