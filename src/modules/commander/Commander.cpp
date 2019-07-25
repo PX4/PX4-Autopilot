@@ -768,7 +768,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 				// Arm/disarm is enforced only when param2 is set to a magic number.
 				const bool enforce_in_air = (static_cast<int>(std::round(cmd.param2)) == 21196);
 
-				if (!enforce_in_air && !land_detector.landed) {
+				if (!enforce_in_air && !land_detector.landed && !is_ground_rover(&status)) {
 					if (cmd_arms) {
 						mavlink_log_critical(&mavlink_log_pub, "Arming denied! Not landed");
 
