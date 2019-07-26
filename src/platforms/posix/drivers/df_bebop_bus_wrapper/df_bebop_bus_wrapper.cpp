@@ -101,7 +101,7 @@ private:
 	orb_advert_t _battery_topic;
 	orb_advert_t _esc_topic;
 
-	Battery _battery;
+	Battery1 _battery;
 	bool _armed;
 	float _last_throttle;
 

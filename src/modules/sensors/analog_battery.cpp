@@ -15,7 +15,6 @@ static constexpr int DEFAULT_I_CHANNEL[1] = {0};
 #endif
 
 AnalogBattery::AnalogBattery() :
-	BatteryBase(),
 	ModuleParams(nullptr)
 {}
 
@@ -24,6 +23,8 @@ AnalogBattery::updateBatteryStatusRawADC(hrt_abstime timestamp, int32_t voltage_
 		bool selected_source, int priority, float throttle_normalized,
 		bool armed)
 {
+	// TODO: Check that there was actually a parameter update
+	_get_battery_base().updateParams();
 	updateParams();
 
 	float voltage_v = (voltage_raw * _get_cnt_v_volt()) * _get_v_div();
@@ -32,8 +33,8 @@ AnalogBattery::updateBatteryStatusRawADC(hrt_abstime timestamp, int32_t voltage_
 	bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V &&
 			 (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || is_valid());
 
-	updateBatteryStatus(timestamp, voltage_v, current_a, connected, selected_source, priority, throttle_normalized,
-			    armed);
+	_get_battery_base().updateBatteryStatus(timestamp, voltage_v, current_a, connected,
+						selected_source, priority, throttle_normalized, armed);
 }
 
 /**
@@ -122,3 +123,12 @@ AnalogBattery::_get_a_per_v()
 		return val;
 	}
 }
+
+#if BOARD_NUMBER_BRICKS > 0
+AnalogBattery1::AnalogBattery1()
+{
+	Battery1::migrateParam(_param_old_a_per_v, _param_a_per_v, "A_PER_V", -1.0f);
+	Battery1::migrateParam(_param_old_adc_channel, _param_adc_channel, "ADC_CHANNEL", -1);
+	Battery1::migrateParam(_param_old_v_div, _param_v_div, "V_DIV", -1.0f);
+}
+#endif

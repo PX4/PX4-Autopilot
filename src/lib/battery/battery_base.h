@@ -63,7 +63,7 @@
  * For a full implementation, see src/modules/sensors/analog_battery.{cpp, h}
  * For a minimal implementation, see src/modules/simulator/simulator.h
  */
-class BatteryBase
+class BatteryBase : ModuleParams
 {
 public:
 	BatteryBase();
@@ -101,6 +101,9 @@ public:
 	 */
 	void updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a, bool connected,
 				 bool selected_source, int priority, float throttle_normalized, bool armed);
+
+	// TODO: Check that there was actually a parameter update
+	void updateParams() {ModuleParams::updateParams();}
 
 protected:
 	/**

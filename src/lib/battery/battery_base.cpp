@@ -46,6 +46,7 @@
 #include <px4_defines.h>
 
 BatteryBase::BatteryBase() :
+	ModuleParams(nullptr),
 	_warning(battery_status_s::BATTERY_WARNING_NONE),
 	_last_timestamp(0)
 {
