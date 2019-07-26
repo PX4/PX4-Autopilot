@@ -89,7 +89,7 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
 {
     switch (topic_ID)
     {
-@[for idx, topic in enumerate(send_topics)]@
+@[for topic in send_topics]@
         case @(rtps_message_id(ids, topic)): // @(topic)
         {
             @(topic)_ st;
