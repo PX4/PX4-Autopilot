@@ -172,7 +172,7 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 			}
 		}
 
-		if (item->num_sent_per_channel[channel] < max_sent) {
+		if (item->num_sent_per_channel[channel] < max_sent && item->num_sent_per_channel[channel] != -1) {
 			// We are behind and need to do a retransmission.
 			mavlink_msg_command_long_send_struct(channel, &item->command);
 			item->num_sent_per_channel[channel]++;
