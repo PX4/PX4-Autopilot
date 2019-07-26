@@ -108,7 +108,6 @@ private:
 	esc_status_s	_esc_status = {};
 	orb_advert_t	_esc_status_pub = nullptr;
 	orb_advert_t _actuator_outputs_pub = nullptr;
-	hrt_abstime _last_received_msg[esc_status_s::CONNECTED_ESC_MAX] {0};
 	uint8_t		_rotor_count = 0;
 
 	/*

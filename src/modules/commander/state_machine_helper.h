@@ -51,7 +51,6 @@
 #include <uORB/topics/safety.h>
 #include <uORB/topics/commander_state.h>
 #include <uORB/topics/vehicle_status_flags.h>
-#include <uORB/topics/esc_status.h>
 
 typedef enum {
 	TRANSITION_DENIED = -1,
