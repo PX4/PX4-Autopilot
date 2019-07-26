@@ -374,7 +374,7 @@ int commander_main(int argc, char *argv[])
 		bool preflight_check_res = Commander::preflight_check(true);
 		PX4_INFO("Preflight check: %s", preflight_check_res ? "OK" : "FAILED");
 
-		bool prearm_check_res = prearm_check(&mavlink_log_pub, status_flags, safety, arm_requirements, esc_status);
+		bool prearm_check_res = prearm_check(&mavlink_log_pub, status_flags, safety, arm_requirements);
 		PX4_INFO("Prearm check: %s", prearm_check_res ? "OK" : "FAILED");
 
 		return 0;
@@ -536,7 +536,7 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 					     mavlink_log_pub_local,
 					     &status_flags,
 					     arm_requirements,
-					     hrt_elapsed_time(&commander_boot_timestamp), esc_status);
+					     hrt_elapsed_time(&commander_boot_timestamp));
 
 	if (arming_res == TRANSITION_CHANGED) {
 		mavlink_log_info(mavlink_log_pub_local, "%s by %s", arm ? "ARMED" : "DISARMED", armedBy);
@@ -1191,12 +1191,7 @@ Commander::run()
 	/* failsafe response to loss of navigation accuracy */
 	param_t _param_posctl_nav_loss_act = param_find("COM_POSCTL_NAVL");
 
-	param_t com_act_count_handle = param_find("COM_ACT_COUNT");
-	int8_t  com_act_count = -1;
-	param_get(com_act_count_handle, &com_act_count);
-
 	status_flags.avoidance_system_required = _param_com_obs_avoid.get();
-	status_flags.number_of_actuators = com_act_count;
 
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
@@ -1528,7 +1523,7 @@ Commander::run()
 
 					if (TRANSITION_CHANGED == arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY,
 							&armed, true /* fRunPreArmChecks */, &mavlink_log_pub,
-							&status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp), esc_status)
+							&status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp))
 					   ) {
 						status_changed = true;
 					}
@@ -1598,6 +1593,7 @@ Commander::run()
 		if (esc_status_sub.updated()) {
 			/* ESCs status changed */
 			esc_status_sub.copy(&esc_status);
+			esc_status_check();
 		}
 
 		estimator_check(&status_changed);
@@ -1704,7 +1700,7 @@ Commander::run()
 
 			arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
 							     true /* fRunPreArmChecks */, &mavlink_log_pub, &status_flags,
-							     arm_requirements, hrt_elapsed_time(&commander_boot_timestamp), esc_status);
+							     arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 
 			if (arming_ret == TRANSITION_DENIED) {
 				/* do not complain if not allowed into standby */
@@ -1954,7 +1950,7 @@ Commander::run()
 				} else if ((stick_off_counter == rc_arm_hyst && stick_on_counter < rc_arm_hyst) || arm_switch_to_disarm_transition) {
 					arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
 									     true /* fRunPreArmChecks */,
-									     &mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp), esc_status);
+									     &mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 				}
 
 				stick_off_counter++;
@@ -2004,7 +2000,7 @@ Commander::run()
 					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
 						arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_ARMED, &armed,
 										     !in_arming_grace_period /* fRunPreArmChecks */,
-										     &mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp), esc_status);
+										     &mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 
 						if (arming_ret != TRANSITION_CHANGED) {
 							px4_usleep(100000);
@@ -3401,7 +3397,7 @@ void *commander_low_prio_loop(void *arg)
 					/* try to go to INIT/PREFLIGHT arming state */
 					if (TRANSITION_DENIED == arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_INIT, &armed,
 							false /* fRunPreArmChecks */, &mavlink_log_pub, &status_flags,
-							arm_requirements, hrt_elapsed_time(&commander_boot_timestamp), esc_status)) {
+							arm_requirements, hrt_elapsed_time(&commander_boot_timestamp))) {
 
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
 						break;
@@ -3489,7 +3485,7 @@ void *commander_low_prio_loop(void *arg)
 
 						arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
 									false /* fRunPreArmChecks */,
-									&mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp), esc_status);
+									&mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
 
 					} else {
 						tune_negative(true);
@@ -4353,4 +4349,42 @@ Commander::offboard_control_update(bool &status_changed)
 		}
 	}
 
+}
+
+void Commander::esc_status_check()
+{
+	char esc_fail_msg[50];
+	esc_fail_msg[0] = '\0';
+
+	int online_bitmask = (1 << (esc_status.esc_count)) - 1;
+
+	// Check if ALL the ESCs are online
+	if (online_bitmask == esc_status.esc_online_flags) {
+		if (_last_esc_online_flags != esc_status.esc_online_flags) {
+			mavlink_log_info(&mavlink_log_pub, "All ESCs are ready");
+		}
+
+		status_flags.condition_escs_valid = true;
+		_last_esc_online_flags = esc_status.esc_online_flags;
+	}
+
+	// Avoid checking the status if the flags are the same or if the mixer has not yet been loaded from uavcan_main
+	else if (_last_esc_online_flags == esc_status.esc_online_flags || esc_status.esc_count == 0)  {
+		status_flags.condition_escs_valid = false;
+	}
+
+	// Only warn the user when an ESC goes from ONLINE to OFFLINE. This is done to prevent showing  Offline ESCs warning messages at boot
+	else if (esc_status.esc_online_flags < _last_esc_online_flags) {
+
+		for (int index = 0; index < esc_status.esc_count; index++) {
+			if ((bool)!(esc_status.esc_online_flags & (1 << index))) {
+				snprintf(esc_fail_msg + strlen(esc_fail_msg), sizeof(esc_fail_msg) - strlen(esc_fail_msg), "ESC%d ", index + 1);
+			}
+		}
+
+		mavlink_log_critical(&mavlink_log_pub, "%soffline", esc_fail_msg);
+
+		_last_esc_online_flags = esc_status.esc_online_flags;
+		status_flags.condition_escs_valid = false;
+	}
 }

@@ -215,6 +215,8 @@ private:
 
 	void battery_status_check();
 
+	void esc_status_check();
+
 	/**
 	 * Checks the status of all available data links and handles switching between different system telemetry states.
 	 */
@@ -237,6 +239,8 @@ private:
 
 	hrt_abstime	_high_latency_datalink_heartbeat{0};
 	hrt_abstime	_high_latency_datalink_lost{0};
+
+	int  _last_esc_online_flags{-1};
 
 	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
 	uint8_t _battery_warning{battery_status_s::BATTERY_WARNING_NONE};

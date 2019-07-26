@@ -280,7 +280,6 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 	struct vehicle_status_flags_s status_flags = {};
 	struct safety_s         safety = {};
 	struct actuator_armed_s armed = {};
-	struct esc_status_s     esc_status = {};
 
 	size_t cArmingTransitionTests = sizeof(rgArmingTransitionTests) / sizeof(rgArmingTransitionTests[0]);
 
@@ -306,8 +305,7 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 					     nullptr /* no mavlink_log_pub */,
 					     &status_flags,
 					     (check_gps ? ARM_REQ_GPS_BIT : 0),
-					     2e6 /* 2 seconds after boot, everything should be checked */,
-					     esc_status
+					     2e6 /* 2 seconds after boot, everything should be checked */
 								    );
 
 		// Validate result of transition

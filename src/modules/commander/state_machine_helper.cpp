@@ -96,7 +96,7 @@ void reset_link_loss_globals(actuator_armed_s *armed, const bool old_failsafe, c
 transition_result_t arming_state_transition(vehicle_status_s *status, const safety_s &safety,
 		const arming_state_t new_arming_state, actuator_armed_s *armed, const bool fRunPreArmChecks,
 		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s *status_flags, const uint8_t arm_requirements,
-		const hrt_abstime &time_since_boot, const esc_status_s &esc_status)
+		const hrt_abstime &time_since_boot)
 {
 	// Double check that our static arrays are still valid
 	static_assert(vehicle_status_s::ARMING_STATE_INIT == 0, "ARMING_STATE_INIT == 0");
@@ -167,7 +167,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 
 					if (preflight_check_ret) {
 						// only bother running prearm if preflight was successful
-						prearm_check_ret = prearm_check(mavlink_log_pub, *status_flags, safety, arm_requirements, esc_status);
+						prearm_check_ret = prearm_check(mavlink_log_pub, *status_flags, safety, arm_requirements);
 					}
 
 					if (!(preflight_check_ret && prearm_check_ret)) {
@@ -913,7 +913,7 @@ void reset_link_loss_globals(actuator_armed_s *armed, const bool old_failsafe, c
 }
 
 bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags, const safety_s &safety,
-		  const uint8_t arm_requirements, const esc_status_s &esc_status)
+		  const uint8_t arm_requirements)
 {
 	bool reportFailures = true;
 	bool prearm_ok = true;
@@ -1010,20 +1010,11 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 
 	}
 
-	if (status_flags.number_of_actuators > 0) {
-		char fail_msg[50];
-		int cx = 0;
+	if (!status_flags.condition_escs_valid) {
 
-		for (int index = 0; index < status_flags.number_of_actuators; index++) {
-			if ((bool)!(esc_status.esc_online_flags & (1 << index))) {
-				cx = snprintf(fail_msg + cx, 50 - cx, "ESC%d ", index + 1);
-			}
-		}
+		mavlink_log_critical(mavlink_log_pub, "Arming denied! One or more ESCs are offline");
+		prearm_ok = false;
 
-		if (cx) {
-			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: Actuators offline - %s", fail_msg);
-			prearm_ok = false;
-		}
 	}
 
 	return prearm_ok;
