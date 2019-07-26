@@ -65,7 +65,7 @@
 #ifdef PX4_SPIDEV_OSD
 #define OSD_SPIDEV PX4_SPIDEV_OSD
 #else
-#error "add the required spi bus from board_config.h here"
+#error "add the required spi device from board_config.h here"
 #endif
 
 #define OSD_SPI_BUS_SPEED (2000000L) /*  2 MHz  */

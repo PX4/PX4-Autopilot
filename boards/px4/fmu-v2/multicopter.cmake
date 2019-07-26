@@ -20,7 +20,7 @@ px4_add_board(
 
 	DRIVERS
 		barometer/ms5611
-		batt_smbus
+		#batt_smbus
 		camera_capture
 		camera_trigger
 		distance_sensor # all available distance sensor drivers

@@ -46,6 +46,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 /************************************************************************************
  * Definitions
  ************************************************************************************/
@@ -453,32 +454,78 @@ typedef uint8_t px4_guid_t[PX4_GUID_BYTE_LENGTH];
  ************************************************************************************/
 __BEGIN_DECLS
 
-/* Provide an interface for determining if a board supports single wire */
 
 /************************************************************************************
- * Name: board_supports_single_wire
+ * Name: board_rc_singlewire
  *
  * Description:
- *   A board may provide serial ports that supports single wire.
- *   This interface will call into the board support code to determine
- *   if the interface is available at runtime, on this version of the
- *   hardware.
+ *   A board may define RC_SERIAL_SINGLEWIRE, so that RC_SERIAL_PORT is configured
+ *   as singlewire UART.
  *
  * Input Parameters:
- *   uxart_base - the base address of the UxART.
+ *   device: serial device, e.g. "/dev/ttyS0"
  *
  * Returned Value:
- *   true the hardware supports this interface.
+ *   true singlewire should be enabled.
  *   false if not.
  *
  ************************************************************************************/
 
-#if !defined(BOARD_HAS_SINGLE_WIRE)
-#  define board_supports_single_wire(_uxart_base) false
+#if defined(RC_SERIAL_SINGLEWIRE)
+static inline bool board_rc_singlewire(const char *device) { return strcmp(device, RC_SERIAL_PORT) == 0; }
 #else
-__EXPORT bool board_supports_single_wire(uint32_t uxart_base);
+static inline bool board_rc_singlewire(const char *device) { return false; }
 #endif
 
+/************************************************************************************
+ * Name: board_rc_swap_rxtx
+ *
+ * Description:
+ *   A board may define RC_SERIAL_SWAP_RXTX, so that RC_SERIAL_PORT is configured
+ *   as UART with RX/TX swapped.
+ *
+ * Input Parameters:
+ *   device: serial device, e.g. "/dev/ttyS0"
+ *
+ * Returned Value:
+ *   true RX/RX should be swapped.
+ *   false if not.
+ *
+ ************************************************************************************/
+
+#if defined(RC_SERIAL_SWAP_RXTX)
+static inline bool board_rc_swap_rxtx(const char *device) { return strcmp(device, RC_SERIAL_PORT) == 0; }
+#else
+static inline bool board_rc_swap_rxtx(const char *device) { return false; }
+#endif
+
+/************************************************************************************
+ * Name: board_rc_invert_input
+ *
+ * Description:
+ *   All boards may optionally define RC_INVERT_INPUT(bool invert) that is
+ *   used to invert the RC_SERIAL_PORT RC port (e.g. to toggle an external XOR via
+ *   GPIO).
+ *
+ * Input Parameters:
+ *   invert_on - A positive logic value, that when true (on) will set the HW in
+ *               inverted NRZ mode where a MARK will be 0 and SPACE will be a 1.
+ *
+ * Returned Value:
+ *   true the UART inversion got set.
+ *
+ ************************************************************************************/
+
+#ifdef RC_INVERT_INPUT
+static inline bool board_rc_invert_input(const char *device, bool invert)
+{
+	if (strcmp(device, RC_SERIAL_PORT) == 0) { RC_INVERT_INPUT(invert); return true; }
+
+	return false;
+}
+#else
+static inline bool board_rc_invert_input(const char *device, bool invert) { return false; }
+#endif
 
 /* Provide an interface for reading the connected state of VBUS */
 
@@ -502,52 +549,6 @@ __EXPORT bool board_supports_single_wire(uint32_t uxart_base);
 #  define board_read_VBUS_state() (px4_arch_gpioread(GPIO_OTGFS_VBUS) ? 0 : 1)
 #else
 int board_read_VBUS_state(void);
-#endif
-
-/************************************************************************************
- * Name: board_rc_input
- *
- * Description:
- *   All boards my optionally provide this API to invert the Serial RC input.
- *   This is needed on SoCs that support the notion RXINV or TXINV as opposed to
- *   and external XOR controlled by a GPIO
- *
- * Input Parameters:
- *   invert_on - A positive logic value, that when true (on) will set the HW in
- *               inverted NRZ mode where a MARK will be 0 and SPACE will be a 1.
- *
- * Returned Value:
- *   None
- *
- ************************************************************************************/
-
-/* Provide an interface for Inversion of serial data
- *
- * Case 1:Board does provide UxART based inversion
- *    Use it, and it will define RC_UXART_BASE
- *
- * Case 1:Board does provide GPIO inversion
- *    Use it and let board determine active state
- *    Define RC_UXART_BASE as empty
- *
- * Case 3:Board does not provide any inversions
- *    Default to nop
- *    Define RC_UXART_BASE as empty
- */
-
-#if defined(RC_UXART_BASE)
-__EXPORT void board_rc_input(bool invert_on, uint32_t uxart_base);
-#  define INVERT_RC_INPUT(_invert_true, _rc_uxart) board_rc_input((_invert_true), (_rc_uxart));
-#endif
-
-#if defined(BOARD_INVERT_RC_INPUT)
-#  define INVERT_RC_INPUT BOARD_INVERT_RC_INPUT
-#  define RC_UXART_BASE 0
-#endif
-
-#if !defined(INVERT_RC_INPUT)
-#  define INVERT_RC_INPUT(_invert_true, _na) while(0)
-#  define RC_UXART_BASE 0
 #endif
 
 /************************************************************************************

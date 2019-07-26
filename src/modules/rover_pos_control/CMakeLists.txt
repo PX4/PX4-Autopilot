@@ -31,10 +31,10 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE modules__gnd_pos_control
-	MAIN gnd_pos_control
+	MODULE modules__rover_pos_control
+	MAIN rover_pos_control
 	SRCS
-		GroundRoverPositionControl.cpp
+		RoverPositionControl.cpp
 	DEPENDS
 		git_ecl
 		ecl_l1

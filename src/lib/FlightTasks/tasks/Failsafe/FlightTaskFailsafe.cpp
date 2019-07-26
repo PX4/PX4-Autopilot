@@ -36,9 +36,9 @@
 
 #include "FlightTaskFailsafe.hpp"
 
-bool FlightTaskFailsafe::activate()
+bool FlightTaskFailsafe::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	bool ret = FlightTask::activate();
+	bool ret = FlightTask::activate(last_setpoint);
 	_position_setpoint = _position;
 	_velocity_setpoint.zero();
 	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, -_param_mpc_thr_hover.get() * 0.6f);

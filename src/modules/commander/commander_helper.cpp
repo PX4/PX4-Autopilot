@@ -145,7 +145,7 @@ int buzzer_init()
 	tune_durations[TONE_BATTERY_WARNING_FAST_TUNE] = 800000;
 	tune_durations[TONE_BATTERY_WARNING_SLOW_TUNE] = 800000;
 	tune_durations[TONE_SINGLE_BEEP_TUNE] = 300000;
-	tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+	tune_control_pub = orb_advertise_queue(ORB_ID(tune_control), &tune_control, tune_control_s::ORB_QUEUE_LENGTH);
 	return PX4_OK;
 }
 

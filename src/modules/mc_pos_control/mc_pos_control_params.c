@@ -762,11 +762,12 @@ PARAM_DEFINE_FLOAT(MPC_SPOOLUP_TIME, 1.0f);
  * Specifies the heading in Auto.
  *
  * @min 0
- * @max 3
+ * @max 4
  * @value 0 towards waypoint
  * @value 1 towards home
  * @value 2 away from home
  * @value 3 along trajectory
+ * @value 4 towards waypoint (yaw first)
  * @group Mission
  */
 PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);

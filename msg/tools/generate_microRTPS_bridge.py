@@ -3,7 +3,7 @@
 ################################################################################
 #
 # Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
-#           2018 PX4 Pro Development Team. All rights reserved.
+#           2018-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -62,61 +62,66 @@ def check_rtps_id_uniqueness(classifier):
 
     repeated_ids = dict()
 
+    full_send_list = dict(list(msg for msg in classifier.msgs_to_send.items()) + list(msg[0].items()[0] for msg in classifier.alias_msgs_to_send))
+    full_receive_list = dict(list(msg for msg in classifier.msgs_to_receive.items()) + list(msg[0].items()[0] for msg in classifier.alias_msgs_to_receive))
+    full_ignore_list = dict(list(msg for msg in classifier.msgs_to_ignore.items()) + list(msg[0].items()[0] for msg in classifier.alias_msgs_to_ignore))
+
     # check if there are repeated ID's on the messages to send
-    for key, value in classifier.msgs_to_send.items():
+    for key, value in full_send_list.items():
         if sys.version_info[0] < 3:
-            if classifier.msgs_to_send.values().count(value) > 1:
+            if full_send_list.values().count(value) > 1:
                 repeated_ids.update({key: value})
         else:
-            if list(classifier.msgs_to_send.values()).count(value) > 1:
+            if list(full_send_list.values()).count(value) > 1:
                 repeated_ids.update({key: value})
 
     # check if there are repeated ID's on the messages to receive
-    for key, value in classifier.msgs_to_receive.items():
+    for key, value in full_receive_list.items():
         if sys.version_info[0] < 3:
-            if classifier.msgs_to_receive.values().count(value) > 1:
+            if full_receive_list.values().count(value) > 1:
                 repeated_ids.update({key: value})
         else:
-            if list(classifier.msgs_to_receive.values()).count(value) > 1:
+            if list(full_receive_list.values()).count(value) > 1:
                 repeated_ids.update({key: value})
 
     # check if there are repeated ID's on the messages to ignore
-    for key, value in classifier.msgs_to_ignore.items():
+    for key, value in full_ignore_list.items():
         if sys.version_info[0] < 3:
-            if classifier.msgs_to_ignore.values().count(value) > 1:
+            if full_ignore_list.values().count(value) > 1:
                 repeated_ids.update({key: value})
         else:
-            if list(classifier.msgs_to_ignore.values()).count(value) > 1:
+            if list(full_ignore_list.values()).count(value) > 1:
                 repeated_ids.update({key: value})
 
     # check if there are repeated IDs between classified and unclassified msgs
     # check send and ignore lists
-    send_ignore_common_ids = list(set(classifier.msgs_to_ignore.values(
-    )).intersection(classifier.msgs_to_send.values()))
-    for item in zip(classifier.msgs_to_send.items(), classifier.msgs_to_ignore.items()):
+    send_ignore_common_ids = list(set(full_ignore_list.values(
+    )).intersection(full_send_list.values()))
+    for item in full_send_list.items():
         for repeated in send_ignore_common_ids:
             if item[1] == repeated:
                 repeated_ids.update({item[0]: item[1]})
-    for item in classifier.msgs_to_ignore.items():
+    for item in full_ignore_list.items():
         for repeated in send_ignore_common_ids:
             if item[1] == repeated:
                 repeated_ids.update({item[0]: item[1]})
 
     # check receive and ignore lists
-    receive_ignore_common_ids = list(set(classifier.msgs_to_ignore.values(
-    )).intersection(classifier.msgs_to_receive.values()))
-    for item in classifier.msgs_to_receive.items():
+    receive_ignore_common_ids = list(set(full_ignore_list.values(
+    )).intersection(full_receive_list.values()))
+    for item in full_receive_list.items():
         for repeated in receive_ignore_common_ids:
             if item[1] == repeated:
                 repeated_ids.update({item[0]: item[1]})
-    for item in classifier.msgs_to_ignore.items():
+    for item in full_ignore_list.items():
         for repeated in receive_ignore_common_ids:
             if item[1] == repeated:
                 repeated_ids.update({item[0]: item[1]})
 
-    all_msgs = classifier.msgs_to_send
-    all_msgs.update(classifier.msgs_to_receive)
-    all_msgs.update(classifier.msgs_to_ignore)
+    all_msgs = {}
+    all_msgs.update(full_send_list)
+    all_msgs.update(full_receive_list)
+    all_msgs.update(full_ignore_list)
     all_ids = list()
     if sys.version_info[0] < 3:
         all_ids = all_msgs.values()
@@ -277,44 +282,75 @@ uRTPS_SUBSCRIBER_H_TEMPL_FILE = 'Subscriber.h.em'
 
 
 def generate_agent(out_dir):
-
-    if classifier.msg_files_send:
-        for msg_file in classifier.msg_files_send:
+    if classifier.msgs_to_send:
+        for msg_file in classifier.msgs_to_send:
             if gen_idl:
                 if out_dir != agent_out_dir:
-                    px_generate_uorb_topic_files.generate_idl_file(msg_file, os.path.join(out_dir, "/idl"), urtps_templates_dir,
+                    px_generate_uorb_topic_files.generate_idl_file(msg_file, msg_dir, "", os.path.join(out_dir, "/idl"), urtps_templates_dir,
                                                                    package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map)
                 else:
-                    px_generate_uorb_topic_files.generate_idl_file(msg_file, idl_dir, urtps_templates_dir,
+                    px_generate_uorb_topic_files.generate_idl_file(msg_file, msg_dir, "", idl_dir, urtps_templates_dir,
                                                                    package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map)
-            px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
+            px_generate_uorb_topic_files.generate_topic_file(msg_file, msg_dir, "", out_dir, urtps_templates_dir,
                                                              package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, uRTPS_PUBLISHER_SRC_TEMPL_FILE)
-            px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
+            px_generate_uorb_topic_files.generate_topic_file(msg_file, msg_dir, "", out_dir, urtps_templates_dir,
                                                              package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, uRTPS_PUBLISHER_H_TEMPL_FILE)
 
-    if classifier.msg_files_receive:
-        for msg_file in classifier.msg_files_receive:
+    if classifier.alias_msgs_to_send:
+        for msg_file in classifier.alias_msgs_to_send:
+            msg_alias = msg_file[0].keys()[0]
+            msg_name = msg_file[1]
             if gen_idl:
                 if out_dir != agent_out_dir:
-                    px_generate_uorb_topic_files.generate_idl_file(msg_file, os.path.join(out_dir, "/idl"), urtps_templates_dir,
+                    px_generate_uorb_topic_files.generate_idl_file(msg_name, msg_dir, msg_alias, os.path.join(out_dir, "/idl"), urtps_templates_dir,
                                                                    package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map)
                 else:
-                    px_generate_uorb_topic_files.generate_idl_file(msg_file, idl_dir, urtps_templates_dir,
+                    px_generate_uorb_topic_files.generate_idl_file(msg_name, msg_dir, msg_alias, idl_dir, urtps_templates_dir,
                                                                    package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map)
-            px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
+            px_generate_uorb_topic_files.generate_topic_file(msg_name, msg_dir, msg_alias, out_dir, urtps_templates_dir,
+                                                             package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, uRTPS_PUBLISHER_SRC_TEMPL_FILE)
+            px_generate_uorb_topic_files.generate_topic_file(msg_name, msg_dir, msg_alias, out_dir, urtps_templates_dir,
+                                                             package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, uRTPS_PUBLISHER_H_TEMPL_FILE)
+
+    if classifier.msgs_to_receive:
+        for msg_file in classifier.msgs_to_receive:
+            if gen_idl:
+                if out_dir != agent_out_dir:
+                    px_generate_uorb_topic_files.generate_idl_file(msg_file, msg_dir, "", os.path.join(out_dir, "/idl"), urtps_templates_dir,
+                                                                   package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map)
+                else:
+                    px_generate_uorb_topic_files.generate_idl_file(msg_file, msg_dir, "", idl_dir, urtps_templates_dir,
+                                                                   package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map)
+            px_generate_uorb_topic_files.generate_topic_file(msg_file, msg_dir, "", out_dir, urtps_templates_dir,
                                                              package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, uRTPS_SUBSCRIBER_SRC_TEMPL_FILE)
-            px_generate_uorb_topic_files.generate_topic_file(msg_file, out_dir, urtps_templates_dir,
+            px_generate_uorb_topic_files.generate_topic_file(msg_file, msg_dir, "", out_dir, urtps_templates_dir,
                                                              package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, uRTPS_SUBSCRIBER_H_TEMPL_FILE)
 
-    px_generate_uorb_topic_files.generate_uRTPS_general(classifier.msg_files_send, classifier.msg_files_receive, out_dir, urtps_templates_dir,
-                                                        package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, uRTPS_AGENT_TEMPL_FILE)
-    px_generate_uorb_topic_files.generate_uRTPS_general(classifier.msg_files_send, classifier.msg_files_receive, out_dir, urtps_templates_dir,
-                                                        package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, uRTPS_AGENT_TOPICS_H_TEMPL_FILE)
-    px_generate_uorb_topic_files.generate_uRTPS_general(classifier.msg_files_send, classifier.msg_files_receive, out_dir, urtps_templates_dir,
-                                                        package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, uRTPS_AGENT_TOPICS_SRC_TEMPL_FILE)
+    if classifier.alias_msgs_to_receive:
+        for msg_file in classifier.alias_msgs_to_receive:
+            msg_alias = msg_file[0].keys()[0]
+            msg_name = msg_file[1]
+            if gen_idl:
+                if out_dir != agent_out_dir:
+                    px_generate_uorb_topic_files.generate_idl_file(msg_name, msg_dir, msg_alias, os.path.join(out_dir, "/idl"), urtps_templates_dir,
+                                                                   package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map)
+                else:
+                    px_generate_uorb_topic_files.generate_idl_file(msg_name, msg_dir, msg_alias, idl_dir, urtps_templates_dir,
+                                                                   package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map)
+            px_generate_uorb_topic_files.generate_topic_file(msg_name, msg_dir, msg_alias, out_dir, urtps_templates_dir,
+                                                             package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, uRTPS_SUBSCRIBER_SRC_TEMPL_FILE)
+            px_generate_uorb_topic_files.generate_topic_file(msg_name, msg_dir, msg_alias, out_dir, urtps_templates_dir,
+                                                             package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, uRTPS_SUBSCRIBER_H_TEMPL_FILE)
+
+    px_generate_uorb_topic_files.generate_uRTPS_general(classifier.msgs_to_send, classifier.alias_msgs_to_send, classifier.msgs_to_receive, classifier.alias_msgs_to_receive, msg_dir, out_dir,
+                                                        urtps_templates_dir, package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, uRTPS_AGENT_TEMPL_FILE)
+    px_generate_uorb_topic_files.generate_uRTPS_general(classifier.msgs_to_send, classifier.alias_msgs_to_send, classifier.msgs_to_receive, classifier.alias_msgs_to_receive, msg_dir, out_dir,
+                                                        urtps_templates_dir, package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, uRTPS_AGENT_TOPICS_H_TEMPL_FILE)
+    px_generate_uorb_topic_files.generate_uRTPS_general(classifier.msgs_to_send, classifier.alias_msgs_to_send, classifier.msgs_to_receive, classifier.alias_msgs_to_receive, msg_dir, out_dir,
+                                                        urtps_templates_dir, package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, uRTPS_AGENT_TOPICS_SRC_TEMPL_FILE)
     if cmakelists:
-        px_generate_uorb_topic_files.generate_uRTPS_general(classifier.msg_files_send, classifier.msg_files_receive, out_dir, urtps_templates_dir,
-                                                            package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, uRTPS_AGENT_CMAKELISTS_TEMPL_FILE)
+        px_generate_uorb_topic_files.generate_uRTPS_general(classifier.msgs_to_send, classifier.alias_msgs_to_send, classifier.msgs_to_receive, classifier.alias_msgs_to_receive, msg_dir, out_dir,
+                                                            urtps_templates_dir, package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, uRTPS_AGENT_CMAKELISTS_TEMPL_FILE)
 
     # Final steps to install agent
     mkdir_p(os.path.join(out_dir, "fastrtpsgen"))
@@ -387,8 +423,8 @@ def generate_client(out_dir):
         if os.path.isfile(def_file):
             os.rename(def_file, def_file.replace(".h", ".h_"))
 
-    px_generate_uorb_topic_files.generate_uRTPS_general(classifier.msg_files_send, classifier.msg_files_receive, out_dir, uorb_templates_dir,
-                                                        package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, uRTPS_CLIENT_TEMPL_FILE)
+    px_generate_uorb_topic_files.generate_uRTPS_general(classifier.msgs_to_send, classifier.alias_msgs_to_send, classifier.msgs_to_receive, classifier.alias_msgs_to_receive, msg_dir,
+                                                        out_dir, uorb_templates_dir, package, px_generate_uorb_topic_files.INCL_DEFAULT, classifier.msg_id_map, uRTPS_CLIENT_TEMPL_FILE)
 
     # Final steps to install client
     cp_wildcard(os.path.join(urtps_templates_dir,

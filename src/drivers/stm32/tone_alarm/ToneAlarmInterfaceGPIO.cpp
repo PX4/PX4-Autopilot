@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,19 +31,23 @@
  *
  ****************************************************************************/
 
-/**
- * Force F7 D cache on and disregard errata 1259864 data corruption in
- * a sequence of write-through stores and loads on ARM M7 silicon
- * Fault Status: Present in r0p1, r0p2, r1p0 and r1p1. Fixed in r1p2
- *
- *
- * @min 0
- * @max 2
- * @value 0 if Eratta exits turn dcache off else leave it on
- * @value 1 Force it off
- * @value 2 Force it on
- * @group Chip
- * @category Developer
+#include <lib/drivers/tone_alarm/ToneAlarmInterface.h>
+#include <px4_defines.h>
+#include <board_config.h>
 
- */
-PARAM_DEFINE_INT32(SYS_FORCE_F7DC, 0);
+void ToneAlarmInterface::init()
+{
+	// Configure the GPIO to the idle state.
+	px4_arch_configgpio(GPIO_TONE_ALARM_IDLE);
+}
+
+void ToneAlarmInterface::start_note(unsigned frequency)
+{
+	px4_arch_gpiowrite(GPIO_TONE_ALARM_GPIO, 1);
+}
+
+void ToneAlarmInterface::stop_note()
+{
+	// Stop the current note.
+	px4_arch_gpiowrite(GPIO_TONE_ALARM_GPIO, 0);
+}
