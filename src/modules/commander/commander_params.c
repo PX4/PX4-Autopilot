@@ -907,7 +907,6 @@ PARAM_DEFINE_INT32(COM_ASPD_FS_ACT, 0);
  */
 PARAM_DEFINE_INT32(COM_ASPD_FS_DLY, 0);
 
-
 /**
  * User Flight Profile
  *
@@ -923,15 +922,3 @@ PARAM_DEFINE_INT32(COM_ASPD_FS_DLY, 0);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLT_PROFILE, 0);
-
-/**
- * Number of motors on the vehicle
- * This parameter allows to specify the number of motors present on a vehicle.
- * Setting this parameter will enable a prearm check on the ESCs status.
- * This check requires ESCs with esc_status reporting enabled (i.e UAVCAN).
- * Only if all the ESCs are online then the prearm check succeeds.
- * @min -1
- * @max 8
- * @reboot_required true
- */
-PARAM_DEFINE_INT32(COM_ACT_COUNT, -1);
