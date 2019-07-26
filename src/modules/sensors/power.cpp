@@ -82,7 +82,7 @@ void Power::update(px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS], int nchannels, f
 			selected_source = b;
 		}
 
-		_analogBatteries[b]->updateBatteryStatusRawADC(bat_voltage_cnt[b], bat_current_cnt[b], hrt_absolute_time(),
+		_analogBatteries[b]->updateBatteryStatusRawADC(hrt_absolute_time(), bat_voltage_cnt[b], bat_current_cnt[b],
 				selected_source == b, b, throttle, armed);
 	}
 

@@ -65,10 +65,8 @@ BatteryBase::reset()
 }
 
 void
-BatteryBase::updateBatteryStatus(float voltage_v, float current_a, hrt_abstime timestamp,
-				 bool selected_source, int priority,
-				 float throttle_normalized,
-				 bool armed, bool connected)
+BatteryBase::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a, bool connected,
+				 bool selected_source, int priority, float throttle_normalized, bool armed)
 {
 	reset();
 	_battery_status.timestamp = timestamp;

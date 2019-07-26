@@ -393,7 +393,7 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 		vbatt *= _battery.cell_count();
 
 		const float throttle = 0.0f; // simulate no throttle compensation to make the estimate predictable
-		_battery.updateBatteryStatus(vbatt, ibatt, now_us, true, 0, throttle, armed, true);
+		_battery.updateBatteryStatus(now_us, vbatt, ibatt, true, true, 0, throttle, armed);
 
 		_last_battery_timestamp = now_us;
 	}

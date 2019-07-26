@@ -131,16 +131,17 @@ int DfLtc2946Wrapper::stop()
 int DfLtc2946Wrapper::_publish(const struct ltc2946_sensor_data &data)
 {
 	hrt_abstime t = hrt_absolute_time();
+	bool connected = data.battery_voltage_V > BOARD_ADC_OPEN_CIRCUIT_V;
 
 	actuator_controls_s ctrl;
 	orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
 	vehicle_control_mode_s vcontrol_mode;
 	orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &vcontrol_mode);
 
-	_battery.updateBatteryStatus(data.battery_voltage_V, data.battery_current_A, t,
-				     true, 1,
+	_battery.updateBatteryStatus(t, data.battery_voltage_V, data.battery_current_A,
+				     connected, true, 1,
 				     ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-				     vcontrol_mode.flag_armed, true);
+				     vcontrol_mode.flag_armed);
 	return 0;
 }
 

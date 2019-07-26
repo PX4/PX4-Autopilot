@@ -99,8 +99,8 @@ public:
 	 * @param throttle_normalized Throttle of the vehicle, between 0 and 1
 	 * @param armed Arming state of the vehicle
 	 */
-	void updateBatteryStatus(float voltage_v, float current_a, hrt_abstime timestamp,
-				 bool selected_source, int priority, float throttle_normalized, bool armed, bool connected);
+	void updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a, bool connected,
+				 bool selected_source, int priority, float throttle_normalized, bool armed);
 
 protected:
 	/**

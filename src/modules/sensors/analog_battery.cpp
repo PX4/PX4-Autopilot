@@ -20,9 +20,8 @@ AnalogBattery::AnalogBattery() :
 {}
 
 void
-AnalogBattery::updateBatteryStatusRawADC(int32_t voltage_raw, int32_t current_raw, hrt_abstime timestamp,
-		bool selected_source, int priority,
-		float throttle_normalized,
+AnalogBattery::updateBatteryStatusRawADC(hrt_abstime timestamp, int32_t voltage_raw, int32_t current_raw,
+		bool selected_source, int priority, float throttle_normalized,
 		bool armed)
 {
 	updateParams();
@@ -33,7 +32,8 @@ AnalogBattery::updateBatteryStatusRawADC(int32_t voltage_raw, int32_t current_ra
 	bool connected = voltage_v > BOARD_ADC_OPEN_CIRCUIT_V &&
 			 (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || is_valid());
 
-	updateBatteryStatus(voltage_v, current_a, timestamp, selected_source, priority, throttle_normalized, armed, connected);
+	updateBatteryStatus(timestamp, voltage_v, current_a, connected, selected_source, priority, throttle_normalized,
+			    armed);
 }
 
 /**

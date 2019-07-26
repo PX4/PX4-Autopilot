@@ -52,8 +52,9 @@ public:
 	 * @param throttle_normalized Throttle of the vehicle, between 0 and 1
 	 * @param armed Arming state of the vehicle
 	 */
-	void updateBatteryStatusRawADC(int32_t voltage_raw, int32_t current_raw, hrt_abstime timestamp,
-				       bool selected_source, int priority, float throttle_normalized, bool armed);
+	void updateBatteryStatusRawADC(hrt_abstime timestamp, int32_t voltage_raw, int32_t current_raw,
+				       bool selected_source, int priority, float throttle_normalized,
+				       bool armed);
 
 	/**
 	 * Whether the ADC channel for the voltage of this battery is valid.
