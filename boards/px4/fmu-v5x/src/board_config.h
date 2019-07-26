@@ -560,8 +560,8 @@
 #define SPEKTRUM_RX_AS_UART()          /* Can be left as uart */
 #define SPEKTRUM_OUT(_one_true)        px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
-#define SDIO_SLOTNO                    1  /* Only one slot */
-#define SDIO_MINOR                     1
+#define SDIO_SLOTNO                    0  /* Only one slot */
+#define SDIO_MINOR                     0
 
 /* SD card bringup does not work if performed on the IDLE thread because it
  * will cause waiting.  Use either:
