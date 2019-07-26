@@ -311,6 +311,42 @@ Mission::set_closest_item_as_current()
 {
 	_current_mission_index = index_closest_mission_item();
 }
+/*****************************************************************************************************************/
+void
+Mission::avoid(vehicle_command_s *vcmd){
+    //int vu_scaling = 2; //Scaling Factor für Vu bei neu punkt berechnung
+    //bool _CAon = vcmd->param2;
+    float dyaw = (float)vcmd->param1;
+    PX4_WARN("is doing avoidance [rad] %f",(double)dyaw);
+
+  /*  // rotation matrix:
+    double _R_soll[2][2] = {{cosf(dyaw), -sinf(dyaw)},
+                          {sinf(dyaw), cosf(dyaw)}};
+
+    //calculation for avoindance:
+    matrix::Vector2<double> Vu;
+    Vu(0) = vu_scaling*(_R_soll[0][0]*Vu(0)+_R_soll[1][0]*Vu(0));
+    Vu(1) = vu_scaling*(_R_soll[0][1]*Vu(1)+_R_soll[1][1]*Vu(1));
+
+    vehicle_local_position_s *U_ned = Navigator::get_local_position();
+    matrix::Vector2<double> U({U_ned->x, U_ned->y});
+    matrix::Vector2<double> U_goal_local(U+Vu);
+
+    //transformiert die lokalen koordinaten in globale, dieser soll als setpoint weitergegeben werden.
+    matrix::Vector2<double> U_goal_global;
+    globallocalconverter_toglobal(U(0),U(1),U_ned->z,&U_goal_global(0),&U_goal_global(1),~);*/
+
+    // update position setpoint triplet
+    position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
+    pos_sp_triplet->previous.valid = false;
+    pos_sp_triplet->next.valid = false;
+    // anscheinend generiert diese funktion gleich die setpoins
+    generate_waypoint_from_heading(&pos_sp_triplet->current, (dyaw+pos_sp_triplet->current.yaw));;
+
+    _navigator->set_position_setpoint_triplet_updated();
+
+}// end avoid function
+/*****************************************************************************************************************/
 
 void
 Mission::set_execution_mode(const uint8_t mode)

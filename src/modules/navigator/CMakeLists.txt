@@ -53,7 +53,7 @@ px4_add_module(
 		enginefailure.cpp
 		gpsfailure.cpp
 		follow_target.cpp
-		conusavoidance.cpp # Tobias Kieser
+		#conusavoidance.cpp # Tobias Kieser
 	DEPENDS
 		git_ecl
 		ecl_geo

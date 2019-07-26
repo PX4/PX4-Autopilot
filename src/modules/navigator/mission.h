@@ -75,7 +75,7 @@ public:
 	void on_activation() override;
 	void on_active() override;
 
-	enum mission_altitude_mode {
+    enum mission_altitude_mode {
 		MISSION_ALTMODE_ZOH = 0,
 		MISSION_ALTMODE_FOH = 1
 	};
@@ -93,6 +93,9 @@ public:
 
 	void set_closest_item_as_current();
 
+    /***************************************************************************************************/
+    void avoid( vehicle_command_s *vcmd);
+    /***************************************************************************************************/
 	/**
 	 * Set a new mission mode and handle the switching between the different modes
 	 *

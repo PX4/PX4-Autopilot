@@ -41,7 +41,7 @@
 
 #pragma once
 /*********************************************************************************************************************************************/
-#include "conusavoidance.h"  // Tobias Kieser
+//#include "conusavoidance.h"  // Tobias Kieser
 /*********************************************************************************************************************************************/
 #include "datalinkloss.h"
 #include "enginefailure.h"
@@ -303,15 +303,17 @@ public:
 
 private:
 /*********************************************************************************************************************************************/
-/*Tobias Kieser: Parameters for CCAS:
-        int             f_Vi = 50;
+// Tobias Kieser: Parameters for CCAS:
+        /*int             f_Vi = 50;
         int             f_distmin = 150;
-        float           f_turn = 0.1;
         int             twait = 5;
-        float           f_ds = 0.5;
         int             treact = 12;
-        int             ds = 50;*/
-
+        int             ds = 50;
+        float           f_turn = 0.1;
+        float           f_ds = 0.5;*/
+        // diese Variablen brauchen eine längere Lebenszeit:
+        int             count,t_after_ca, cyclecounter, collisioncounter, directionR, directionL = 0;
+        bool            cas_on = false;
 
 /*********************************************************************************************************************************************/
 
@@ -379,7 +381,7 @@ private:
 	FollowTarget	_follow_target;
 
 /*********************************************************************************************************************************************/
-        ConusAvoidance  _conusavoidance;                 /** Tobias Kieser: class for handling avoidance commands */
+        //ConusAvoidance  _conusavoidance;                 /** Tobias Kieser: class for handling avoidance commands */
 /*********************************************************************************************************************************************/
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
