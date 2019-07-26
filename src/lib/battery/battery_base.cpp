@@ -67,7 +67,7 @@ BatteryBase::reset()
 
 void
 BatteryBase::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a, bool connected,
-				 bool selected_source, int priority, float throttle_normalized, bool armed)
+				 bool selected_source, int priority, float throttle_normalized, bool armed, bool shouldPublish)
 {
 	reset();
 	_battery_status.timestamp = timestamp;
@@ -99,9 +99,15 @@ BatteryBase::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float c
 
 	_battery_status.timestamp = timestamp;
 
-	if (_get_source() == 0) {
-		orb_publish_auto(ORB_ID(battery_status), &_orbAdvert, &_battery_status, &_orbInstance, ORB_PRIO_DEFAULT);
+	if (shouldPublish) {
+		publish();
 	}
+}
+
+void
+BatteryBase::publish()
+{
+	orb_publish_auto(ORB_ID(battery_status), &_orbAdvert, &_battery_status, &_orbInstance, ORB_PRIO_DEFAULT);
 }
 
 void

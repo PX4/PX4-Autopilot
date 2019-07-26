@@ -79,6 +79,7 @@ protected:
 	virtual float _get_v_div_raw() = 0;
 	virtual float _get_a_per_v_raw() = 0;
 	virtual int _get_adc_channel() = 0;
+	virtual int _get_source() = 0;
 
 	virtual int _get_brick_index() = 0;
 
@@ -110,7 +111,8 @@ protected:
 
 		(ParamFloat<px4::params::BAT_CNT_V_VOLT>) _param_cnt_v_volt,
 		(ParamFloat<px4::params::BAT_CNT_V_CURR>) _param_cnt_v_curr,
-		(ParamFloat<px4::params::BAT_V_OFFS_CURR>) _param_v_offs_cur
+		(ParamFloat<px4::params::BAT_V_OFFS_CURR>) _param_v_offs_cur,
+		(ParamInt<px4::params::BAT_SOURCE>) _param_source
 	)
 
 	float _get_v_div_raw() override {return _param_v_div.get(); }
@@ -119,6 +121,7 @@ protected:
 	float _get_cnt_v_volt_raw() override {return _param_cnt_v_volt.get(); }
 	float _get_cnt_v_curr_raw() override {return _param_cnt_v_curr.get(); }
 	float _get_v_offs_cur() override {return _param_v_offs_cur.get(); }
+	int _get_source() override {return _param_source.get();}
 
 	int _get_brick_index() override {return 0; }
 
@@ -140,7 +143,8 @@ protected:
 
 		(ParamFloat<px4::params::BAT_CNT_V_VOLT>) _param_cnt_v_volt,
 		(ParamFloat<px4::params::BAT_CNT_V_CURR>) _param_cnt_v_curr,
-		(ParamFloat<px4::params::BAT_V_OFFS_CURR>) _param_v_offs_cur
+		(ParamFloat<px4::params::BAT_V_OFFS_CURR>) _param_v_offs_cur,
+		(ParamInt<px4::params::BAT_SOURCE>) _param_source
 	)
 
 
@@ -150,6 +154,7 @@ protected:
 	float _get_cnt_v_volt_raw() override {return _param_cnt_v_volt.get(); }
 	float _get_cnt_v_curr_raw() override {return _param_cnt_v_curr.get(); }
 	float _get_v_offs_cur() override {return _param_v_offs_cur.get(); }
+	int _get_source() override {return _param_source.get();}
 
 	int _get_brick_index() override {return 1; }
 

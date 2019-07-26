@@ -44,7 +44,7 @@
  * by BAT2_* parameters.
  *
  * The multiple batteries all share the same logic for calibration. The only difference is which parameters are used
- * (Battery 1 uses `BAT_*`, while Battery 2 uses `BAT2_*`). To avoid code duplication, inheritance is being used.
+ * (Battery 1 uses `BAT1_*`, while Battery 2 uses `BAT2_*`). To avoid code duplication, inheritance is being used.
  * The problem is that the `ModuleParams` class depends on a macro which defines member variables. You can't override
  * member variables in C++, so we have to declare virtual getter functions in BatteryBase, and implement them here.
  *
@@ -53,14 +53,17 @@
  * char param_name[17]; //16 max length of parameter name, + null terminator
  * int battery_index = 1; // Or 2 or 3 or whatever
  * snprintf(param_name, 17, "BAT%d_N_CELLS", battery_index);
- * // A real implementation would have to handle the case where battery_index == 1 and there is no number in the param name.
  * param_find(param_name); // etc
  * ```
  *
  * This was decided against because the newer ModuleParams API provides more type safety and avoids code duplication.
  *
- * To add a new battery, just create a new implementation of BatteryBase and implement all of the _get_* methods,
- * then add all of the new parameters necessary for calibration.
+ * To add a third battery, follow these steps:
+ *  - Copy/Paste all of Battery2 to make Battery3
+ *  - Change all "BAT2_*" parameters to "BAT3_*" in Battery3
+ *  - Copy the file "battery_params_2.c" to "battery_params_3.c"
+ *  - Change all of the "BAT2_*" params in "battery_params_3.c" to "BAT3_*"
+ * This is not done now because there is not yet any demand for a third battery, and adding parameters uses up space.
  */
 
 /**

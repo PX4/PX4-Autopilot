@@ -34,7 +34,13 @@ AnalogBattery::updateBatteryStatusRawADC(hrt_abstime timestamp, int32_t voltage_
 			 (BOARD_ADC_OPEN_CIRCUIT_V <= BOARD_VALID_UV || is_valid());
 
 	_get_battery_base().updateBatteryStatus(timestamp, voltage_v, current_a, connected,
-						selected_source, priority, throttle_normalized, armed);
+						selected_source, priority, throttle_normalized, armed, false);
+
+	// Before refactoring and adding the BatteryBase and AnalogBattery classes, the only place that checked the
+	// value of the BAT_SOURCE parameter was in the ADC polling in sensors.cpp. So I keep that logic here for now.
+	if (_get_source() == 0) {
+		_get_battery_base().publish();
+	}
 }
 
 /**
