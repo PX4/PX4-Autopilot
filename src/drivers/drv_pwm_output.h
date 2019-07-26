@@ -420,6 +420,6 @@ __EXPORT extern void up_dshot_trigger(void);
  * @param armed		If true, outputs are armed; if false they
  *			are disarmed.
  */
-__EXPORT extern void up_dshot_arm(bool armed);
+__EXPORT extern int up_dshot_arm(bool armed);
 
 __END_DECLS

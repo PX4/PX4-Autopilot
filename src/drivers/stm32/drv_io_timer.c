@@ -800,7 +800,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 
 	case IOTimerChanMode_Dshot:
 		dier_bit = 0;
-		cr1_bit  = GTIM_CR1_CEN;
+		cr1_bit  = state ? ATIM_CR1_CEN : 0;
 		break;
 
 	case IOTimerChanMode_PWMIn:
