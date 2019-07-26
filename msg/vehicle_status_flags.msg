@@ -14,6 +14,7 @@ bool condition_local_velocity_valid		# set to true by the commander app if the q
 bool condition_local_altitude_valid
 bool condition_power_input_valid                # set if input power is valid
 bool condition_battery_healthy                # set if battery is available and not low
+bool condition_escs_valid		      # Specific for UAVCAN escs: set if all the escs are online
 
 bool circuit_breaker_engaged_power_check
 bool circuit_breaker_engaged_airspd_check
@@ -36,5 +37,3 @@ bool usb_connected                                # status of the USB power supp
 
 bool avoidance_system_required					  # Set to true if avoidance system is enabled via COM_OBS_AVOID parameter
 bool avoidance_system_valid                       # Status of the obstacle avoidance system
-
-uint8 number_of_actuators       # Number of active actuators
