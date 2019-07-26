@@ -252,6 +252,7 @@ AK09916::measure()
 		}
 
 		_px4_mag.set_error_count(perf_event_count(_mag_errors));
+		_px4_mag.set_external(external());
 		_px4_mag.update(timestamp_sample, raw_data.x, raw_data.y, raw_data.z);
 	}
 }

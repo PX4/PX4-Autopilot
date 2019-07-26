@@ -31,30 +31,26 @@
  *
  ****************************************************************************/
 
-#include <stdint.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/conversions.h>
-
 #include <board_config.h>
 #include <drivers/drv_hrt.h>
-
 #include <drivers/device/ringbuffer.h>
 #include <drivers/device/integrator.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/drv_mag.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
-#include <systemlib/err.h>
+#include <lib/ecl/geo/geo.h>
+#include <lib/perf/perf_counter.h>
+#include <px4_config.h>
+#include <px4_getopt.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
-
+#include <sys/types.h>
+#include <systemlib/conversions.h>
+#include <systemlib/err.h>
+#include <systemlib/px4_macros.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/debug_key_value.h>
 
-#include "mag.h"
 #include "accel.h"
 #include "gyro.h"
+#include "mag.h"
 
 
 #if defined(PX4_I2C_OBDEV_MPU9250) || defined(PX4_I2C_BUS_EXPANSION)

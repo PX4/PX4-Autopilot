@@ -49,7 +49,6 @@ px4_add_board(
 		roboclaw
 		stm32
 		stm32/adc
-		stm32/armv7-m_dcache
 		stm32/tone_alarm
 		tap_esc
 		telemetry # all available telemetry drivers

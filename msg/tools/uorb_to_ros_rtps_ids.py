@@ -74,7 +74,7 @@ def load_yaml_file(file):
         with open(file, 'r') as f:
             if verbose:
                 print("--\t[Step 1] %s yaml file loaded!" % file)
-            return yaml.load(f)
+            return yaml.safe_load(f)
     except OSError as e:
         if e.errno == errno.ENOENT:
             raise IOError(errno.ENOENT, os.strerror(errno.ENOENT), file)

@@ -41,16 +41,22 @@
 
 using namespace matrix;
 
-bool FlightTaskAutoLineSmoothVel::activate()
+bool FlightTaskAutoLineSmoothVel::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	bool ret = FlightTaskAutoMapper2::activate();
+	bool ret = FlightTaskAutoMapper2::activate(last_setpoint);
+
+	checkSetpoints(last_setpoint);
+	const Vector3f accel_prev(last_setpoint.acc_x, last_setpoint.acc_y, last_setpoint.acc_z);
+	const Vector3f vel_prev(last_setpoint.vx, last_setpoint.vy, last_setpoint.vz);
+	const Vector3f pos_prev(last_setpoint.x, last_setpoint.y, last_setpoint.z);
 
 	for (int i = 0; i < 3; ++i) {
-		_trajectory[i].reset(0.f, _velocity(i), _position(i));
+		_trajectory[i].reset(accel_prev(i), vel_prev(i), pos_prev(i));
 	}
 
-	_yaw_sp_prev = _yaw;
+	_yaw_sp_prev = last_setpoint.yaw;
 	_updateTrajConstraints();
+	_initEkfResetCounters();
 
 	return ret;
 }
@@ -63,6 +69,33 @@ void FlightTaskAutoLineSmoothVel::reActivate()
 	}
 
 	_trajectory[2].reset(0.f, 0.7f, _position(2));
+	_initEkfResetCounters();
+}
+
+void FlightTaskAutoLineSmoothVel::checkSetpoints(vehicle_local_position_setpoint_s &setpoints)
+{
+	// If the position setpoint is unknown, set to the current postion
+	if (!PX4_ISFINITE(setpoints.x)) { setpoints.x = _position(0); }
+
+	if (!PX4_ISFINITE(setpoints.y)) { setpoints.y = _position(1); }
+
+	if (!PX4_ISFINITE(setpoints.z)) { setpoints.z = _position(2); }
+
+	// If the velocity setpoint is unknown, set to the current velocity
+	if (!PX4_ISFINITE(setpoints.vx)) { setpoints.vx = _velocity(0); }
+
+	if (!PX4_ISFINITE(setpoints.vy)) { setpoints.vy = _velocity(1); }
+
+	if (!PX4_ISFINITE(setpoints.vz)) { setpoints.vz = _velocity(2); }
+
+	// No acceleration estimate available, set to zero if the setpoint is NAN
+	if (!PX4_ISFINITE(setpoints.acc_x)) { setpoints.acc_x = 0.f; }
+
+	if (!PX4_ISFINITE(setpoints.acc_y)) { setpoints.acc_y = 0.f; }
+
+	if (!PX4_ISFINITE(setpoints.acc_z)) { setpoints.acc_z = 0.f; }
+
+	if (!PX4_ISFINITE(setpoints.yaw)) { setpoints.yaw = _yaw; }
 }
 
 void FlightTaskAutoLineSmoothVel::_generateSetpoints()
@@ -110,6 +143,14 @@ inline float FlightTaskAutoLineSmoothVel::_constrainOneSide(float val, float con
 	return math::constrain(val, min, max);
 }
 
+void FlightTaskAutoLineSmoothVel::_initEkfResetCounters()
+{
+	_reset_counters.xy = _sub_vehicle_local_position->get().xy_reset_counter;
+	_reset_counters.vxy = _sub_vehicle_local_position->get().vxy_reset_counter;
+	_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
+	_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
+}
+
 void FlightTaskAutoLineSmoothVel::_checkEkfResetCounters()
 {
 	// Check if a reset event has happened.
@@ -145,54 +186,67 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 	_checkEkfResetCounters();
 	_want_takeoff = false;
 
-	if (PX4_ISFINITE(_position_setpoint(0)) &&
-	    PX4_ISFINITE(_position_setpoint(1))) {
-		// Use position setpoints to generate velocity setpoints
+	if (_param_mpc_yaw_mode.get() == 4 && !_yaw_sp_aligned) {
+		// Wait for the yaw setpoint to be aligned
+		_velocity_setpoint.setAll(0.f);
 
-		// Get various path specific vectors. */
-		Vector2f pos_traj;
-		pos_traj(0) = _trajectory[0].getCurrentPosition();
-		pos_traj(1) = _trajectory[1].getCurrentPosition();
-		Vector2f pos_sp_xy(_position_setpoint);
-		Vector2f pos_traj_to_dest(pos_sp_xy - pos_traj);
-		Vector2f u_prev_to_dest = Vector2f(pos_sp_xy - Vector2f(_prev_wp)).unit_or_zero();
-		Vector2f prev_to_pos(pos_traj - Vector2f(_prev_wp));
-		Vector2f closest_pt = Vector2f(_prev_wp) + u_prev_to_dest * (prev_to_pos * u_prev_to_dest);
-		Vector2f u_pos_traj_to_dest_xy(Vector2f(pos_traj_to_dest).unit_or_zero());
+	} else {
+		if (PX4_ISFINITE(_position_setpoint(0)) &&
+		    PX4_ISFINITE(_position_setpoint(1))) {
+			// Use position setpoints to generate velocity setpoints
 
-		float speed_sp_track = Vector2f(pos_traj_to_dest).length() * _param_mpc_xy_traj_p.get();
-		speed_sp_track = math::constrain(speed_sp_track, 0.0f, _mc_cruise_speed);
+			// Get various path specific vectors. */
+			Vector2f pos_traj;
+			pos_traj(0) = _trajectory[0].getCurrentPosition();
+			pos_traj(1) = _trajectory[1].getCurrentPosition();
+			Vector2f pos_sp_xy(_position_setpoint);
+			Vector2f pos_traj_to_dest(pos_sp_xy - pos_traj);
+			Vector2f u_prev_to_dest = Vector2f(pos_sp_xy - Vector2f(_prev_wp)).unit_or_zero();
+			Vector2f prev_to_pos(pos_traj - Vector2f(_prev_wp));
+			Vector2f closest_pt = Vector2f(_prev_wp) + u_prev_to_dest * (prev_to_pos * u_prev_to_dest);
+			Vector2f u_pos_traj_to_dest_xy(Vector2f(pos_traj_to_dest).unit_or_zero());
 
-		Vector2f vel_sp_xy = u_pos_traj_to_dest_xy * speed_sp_track;
+			// Compute the maximum possible velocity on the track given the remaining distance, the maximum acceleration and the maximum jerk.
+			// We assume a constant acceleration profile with a delay of 2*accel/jerk (time to reach the desired acceleration from opposite max acceleration)
+			// Equation to solve: 0 = vel^2 - 2*acc*(x - vel*2*acc/jerk)
+			// To avoid high gain at low distance due to the sqrt, we take the minimum of this velocity and a slope of "traj_p" m/s per meter
+			float b = 4.f * _param_mpc_acc_hor.get() * _param_mpc_acc_hor.get() / _param_mpc_jerk_auto.get();
+			float c = - 2.f * _param_mpc_acc_hor.get() * pos_traj_to_dest.length();
+			float max_speed = 0.5f * (-b + sqrtf(b * b - 4.f * c));
+			float speed_sp_track = math::min(max_speed, pos_traj_to_dest.length() * _param_mpc_xy_traj_p.get());
+			speed_sp_track = math::constrain(speed_sp_track, 0.0f, _mc_cruise_speed);
 
-		for (int i = 0; i < 2; i++) {
-			// If available, constrain the velocity using _velocity_setpoint(.)
-			if (PX4_ISFINITE(_velocity_setpoint(i))) {
-				_velocity_setpoint(i) = _constrainOneSide(vel_sp_xy(i), _velocity_setpoint(i));
+			Vector2f vel_sp_xy = u_pos_traj_to_dest_xy * speed_sp_track;
 
-			} else {
-				_velocity_setpoint(i) = vel_sp_xy(i);
+			for (int i = 0; i < 2; i++) {
+				// If available, constrain the velocity using _velocity_setpoint(.)
+				if (PX4_ISFINITE(_velocity_setpoint(i))) {
+					_velocity_setpoint(i) = _constrainOneSide(vel_sp_xy(i), _velocity_setpoint(i));
+
+				} else {
+					_velocity_setpoint(i) = vel_sp_xy(i);
+				}
+
+				_velocity_setpoint(i) += (closest_pt(i) - _trajectory[i].getCurrentPosition()) *
+							 _param_mpc_xy_traj_p.get();  // Along-track setpoint + cross-track P controller
 			}
 
-			_velocity_setpoint(i) += (closest_pt(i) - _trajectory[i].getCurrentPosition()) *
-						 _param_mpc_xy_traj_p.get();  // Along-track setpoint + cross-track P controller
 		}
 
-	}
+		if (PX4_ISFINITE(_position_setpoint(2))) {
+			const float vel_sp_z = (_position_setpoint(2) - _trajectory[2].getCurrentPosition()) *
+					       _param_mpc_z_traj_p.get(); // Generate a velocity target for the trajectory using a simple P loop
 
-	if (PX4_ISFINITE(_position_setpoint(2))) {
-		const float vel_sp_z = (_position_setpoint(2) - _trajectory[2].getCurrentPosition()) *
-				       _param_mpc_z_traj_p.get(); // Generate a velocity target for the trajectory using a simple P loop
+			// If available, constrain the velocity using _velocity_setpoint(.)
+			if (PX4_ISFINITE(_velocity_setpoint(2))) {
+				_velocity_setpoint(2) = _constrainOneSide(vel_sp_z, _velocity_setpoint(2));
 
-		// If available, constrain the velocity using _velocity_setpoint(.)
-		if (PX4_ISFINITE(_velocity_setpoint(2))) {
-			_velocity_setpoint(2) = _constrainOneSide(vel_sp_z, _velocity_setpoint(2));
+			} else {
+				_velocity_setpoint(2) = vel_sp_z;
+			}
 
-		} else {
-			_velocity_setpoint(2) = vel_sp_z;
+			_want_takeoff = _velocity_setpoint(2) < -0.3f;
 		}
-
-		_want_takeoff = _velocity_setpoint(2) < -0.3f;
 	}
 }
 

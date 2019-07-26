@@ -93,38 +93,20 @@
  *
  */
 
-#include <strings.h>
-
-#include <px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
 #include <ctype.h>
-#include <poll.h>
-
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-
-#include <board_config.h>
+#include <string.h>
+#include <strings.h>
 
 #include <drivers/device/i2c.h>
 #include <drivers/drv_blinkm.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/vehicle_control_mode.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <systemlib/err.h>
 #include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/battery_status.h>
 #include <uORB/topics/safety.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_status.h>
 
 static const int LED_ONTIME = 120;
 static const int LED_OFFTIME = 120;

@@ -41,7 +41,7 @@
         <include file="$(find mavros)/launch/px4.launch">
             <arg name="fcu_url" value="$(arg fcu_url)"/>
             <arg name="gcs_url" value=""/>
-            <arg name="tgt_system" value="$(eval 0 + arg('ID'))"/>
+            <arg name="tgt_system" value="$(eval 1 + arg('ID'))"/>
             <arg name="tgt_component" value="1"/>
         </include>
     </group>
