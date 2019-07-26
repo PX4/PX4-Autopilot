@@ -460,6 +460,34 @@
 #define GPIO_SDMMC2_D2   GPIO_SDMMC2_D2_2
 #define GPIO_SDMMC2_D3   GPIO_SDMMC2_D3_2
 
+/* The STM32 F7 connects to a SMSC LAN8742A PHY using these pins:
+ *
+ *   STM32 F7 BOARD        LAN8742A
+ *   GPIO     SIGNAL       PIN NAME
+ *   -------- ------------ -------------
+ *   PG11     RMII_TX_EN   TXEN
+ *   PG13     RMII_TXD0    TXD0
+ *   PG14     RMII_TXD1    TXD1
+ *   PC4      RMII_RXD0    RXD0/MODE0
+ *   PC5      RMII_RXD1    RXD1/MODE1
+ *   PD5      RMII_RXER    RXER/PHYAD0
+ *   PA7      RMII_CRS_DV  CRS_DV/MODE2
+ *   PC1      RMII_MDC     MDC
+ *   PA2      RMII_MDIO    MDIO
+ *   N/A      NRST         nRST
+ *   PA1      RMII_REF_CLK nINT/REFCLK0
+ *   N/A      OSC_25M      XTAL1/CLKIN
+ *
+ * The PHY address is 0, since RMII_RXER/PHYAD0 features a pull down.
+ * After reset, RMII_RXER/PHYAD0 switches to the RXER function,
+ * receive errors can be detected using GPIO pin PD5
+ */
+
+#define GPIO_ETH_RMII_TX_EN	GPIO_ETH_RMII_TX_EN_2
+#define GPIO_ETH_RMII_TXD0	GPIO_ETH_RMII_TXD0_2
+#define GPIO_ETH_RMII_TXD1	GPIO_ETH_RMII_TXD1_2
+
+
 /* USB
  *
  *      OTG_FS_DM                           PA11
