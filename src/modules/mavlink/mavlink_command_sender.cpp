@@ -112,7 +112,7 @@ int MavlinkCommandSender::handle_vehicle_command(const struct vehicle_command_s 
 }
 
 void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_t &ack,
-		uint8_t from_sysid, uint8_t from_compid)
+		uint8_t from_sysid, uint8_t from_compid, uint8_t channel)
 {
 	CMD_DEBUG("handling result %d for command %d (from %d:%d)",
 		  ack.result, ack.command, from_sysid, from_compid);
@@ -124,7 +124,8 @@ void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_
 		// Check if the incoming ack matches any of the commands that we have sent.
 		if (item->command.command == ack.command &&
 		    from_sysid == item->command.target_system &&
-		    from_compid == item->command.target_component) {
+		    from_compid == item->command.target_component &&
+		    item->num_sent_per_channel[channel] != -1) {
 			// Drop it anyway because the command seems to have arrived at the destination, even if we
 			// receive IN_PROGRESS because we trust that it will be handled after that.
 			_commands.drop_current();
