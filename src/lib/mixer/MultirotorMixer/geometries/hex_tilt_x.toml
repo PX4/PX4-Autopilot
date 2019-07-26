@@ -5,42 +5,53 @@ key = "6tx"
 description = "Hexacopter with tilted arms"
 
 [rotor_default]
-#axis      = [0.0, 0.0, -1.0]
 Ct        = 1.0
 Cm        = 0.05
 
 [[rotors]]
-name      = "mid_right"
-axis      = [0.5, 0.0, -0.866025]
-position  = [0.0, 1.0, 0.0]
+name      = "front_right_top"
+position  = [0.707107, 0.707107, -0.1]
+axis      = [-0.35355, 0.35355, -0.866025]
+direction = "CCW"
+
+[[rotors]]
+name     = "front_left_top"
+position = [0.707107, -0.707107, -0.1]
+axis      = [-0.35355, -0.35355, -0.866025]
 direction = "CW"
 
 [[rotors]]
-name      = "mid_left"
-axis      = [0.5, 0.0, -0.866025]
-position  = [0.0, -1.0, 0.0]
+name      = "rear_left_top"
+position  = [-0.707107, -0.707107, -0.1]
+axis      = [0.35355, -0.35355, -0.866025]
 direction = "CCW"
 
 [[rotors]]
-name      = "front_left"
-axis      = [-0.25, -0.4330125, -0.866025]
-position  = [0.866025, -0.5, 0.0]
+name     = "rear_right_top"
+position = [-0.707107, 0.707107, -0.1]
+axis      = [0.35355, 0.35355, -0.866025]
 direction = "CW"
 
 [[rotors]]
-name      = "rear_right"
-axis      = [-0.25, -0.4330125, -0.866025]
-position  = [-0.866025, 0.5, 0.0]
+name     = "front_left_bottom"
+position = [0.707107, -0.707107, 0.1]
+axis      = [0.35355, 0.35355, -0.866025]
 direction = "CCW"
 
 [[rotors]]
-name      = "front_right"
-axis      = [-0.25, 0.4330125, -0.866025]
-position  = [0.866025, 0.5, 0.0]
+name      = "front_right_bottom"
+position  = [0.707107, 0.707107, 0.1]
+axis      = [0.35355, -0.35355, -0.866025]
+direction = "CW"
+
+[[rotors]]
+name     = "rear_right_bottom"
+position = [-0.707107, 0.707107, 0.1]
+axis      = [-0.35355, -0.35355, -0.866025]
 direction = "CCW"
 
 [[rotors]]
-name      = "rear_left"
-axis      = [-0.25, 0.4330125, -0.866025]
-position  = [-0.866025, -0.5, 0.0]
+name      = "rear_left_bottom"
+position  = [-0.707107, -0.707107, 0.1]
+axis      = [-0.35355, 0.35355, -0.866025]
 direction = "CW"
