@@ -174,10 +174,6 @@ def generate_idl_file(filename_msg, msg_dir, alias, outputdir, templatedir, pack
     """
     Generates an .idl from .msg file
     """
-    # Make sure input msg directory exists:
-    if not os.path.isdir(msg_dir):
-        os.makedirs(msg_dir)
-
     msg = os.path.join(msg_dir, filename_msg + ".msg")
 
     if (alias != ""):
@@ -205,10 +201,6 @@ def generate_uRTPS_general(filename_send_msgs, filename_alias_send_msgs, filenam
     """
     Generates source file by msg content
     """
-    # Make sure input msg directory exists:
-    if not os.path.isdir(msg_dir):
-        os.makedirs(msg_dir)
-
     send_msgs = list(os.path.join(msg_dir, msg + ".msg") for msg in filename_send_msgs)
     alias_send_msgs = list([os.path.join(msg_dir, msg[1] + ".msg"), msg[0].keys()[0]] for msg in filename_alias_send_msgs)
     receive_msgs = list(os.path.join(msg_dir, msg + ".msg") for msg in filename_receive_msgs)
@@ -248,10 +240,6 @@ def generate_topic_file(filename_msg, msg_dir, alias, outputdir, templatedir, pa
     """
     Generates a sources and headers from .msg file
     """
-    # Make sure input msg directory exists:
-    if not os.path.isdir(msg_dir):
-        os.makedirs(msg_dir)
-
     msg = os.path.join(msg_dir, filename_msg + ".msg")
 
     if (alias):
