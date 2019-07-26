@@ -81,7 +81,8 @@ public:
 	 * Handle mavlink command_ack.
 	 * thread-safe
 	 */
-	void handle_mavlink_command_ack(const mavlink_command_ack_t &ack, uint8_t from_sysid, uint8_t from_compid);
+	void handle_mavlink_command_ack(const mavlink_command_ack_t &ack, uint8_t from_sysid, uint8_t from_compid,
+					uint8_t channel);
 
 private:
 	MavlinkCommandSender() = default;
