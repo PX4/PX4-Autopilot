@@ -253,7 +253,7 @@
  *   DMAMAP_SDMMC2_2 = Channel 11, Stream 5 <- Free for other devices
  */
 
-#define DMAMAP_SDMMC2  DMAMAP_SDMMC1_1
+#define DMAMAP_SDMMC2  DMAMAP_SDMMC2_1
 
 
 /* FLASH wait states
