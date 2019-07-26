@@ -64,7 +64,7 @@
 #define DSHOT_TELEMETRY_POSITION	4u
 #define NIBBLES_SIZE 				4u
 #define DSHOT_NUMBER_OF_NIBBLES		3u
-#define ARMING_REPETITION			500u
+#define ARMING_REPETITION			1000u
 
 uint32_t motorBuffer[MOTORS_NUMBER][ONE_MOTOR_BUFF_SIZE] = {0};
 uint32_t dshotBurstBuffer[ALL_MOTORS_BUF_SIZE] = {0};
@@ -103,8 +103,6 @@ void up_dshot_init(uint32_t channel_mask, unsigned timer, unsigned dshot_pwm_rat
 	rS5M0AR = (uint32_t)dshotBurstBuffer;
 
 	rS5FCR &= 0x0;  /* Disable FIFO */
-
-	io_timer_set_enable(true, IOTimerChanMode_Dshot, IO_TIMER_ALL_MODES_CHANNELS);
 }
 
 void up_dshot_trigger(void)
@@ -161,22 +159,35 @@ void dshot_dmar_data_prepare(void)
     }
 }
 
-void up_dshot_arm(bool armed)
+int up_dshot_arm(bool armed)
 {
-	for(uint32_t motorNumber = 0; motorNumber < MOTORS_NUMBER; motorNumber++) {
-		up_dshot_motor_data_prepare(motorNumber, 0);
-	}
+	int retVal = ERROR;
 
 	if (true == armed) {
 
-		for(uint32_t i = 0; i < ARMING_REPETITION; i++) {
-			up_dshot_trigger();
+		int success = io_timer_set_enable(true, IOTimerChanMode_Dshot, IO_TIMER_ALL_MODES_CHANNELS);
+
+		if(OK == success) {
+			// Arming for dshot is repeating any throttle value less than 47.
+			for(uint32_t motorNumber = 0; motorNumber < MOTORS_NUMBER; motorNumber++) {
+				up_dshot_motor_data_prepare(motorNumber, 0);
+			}
+
+			for(uint32_t i = 0; i < ARMING_REPETITION; i++) {
+				up_dshot_trigger();
+				usleep(1000);
+			}
+			retVal = OK;
+		}
+	} else {
+		//disarm by disabling timer
+		int success = io_timer_set_enable(false, IOTimerChanMode_Dshot, IO_TIMER_ALL_MODES_CHANNELS);
+
+		if(OK == success) {
+			retVal = OK;
 		}
 	}
-	else {
-		for(uint32_t i = 0; i < ARMING_REPETITION; i++) {
-			up_dshot_trigger();
-		}
-	}
+
+	return retVal;
 }
 
