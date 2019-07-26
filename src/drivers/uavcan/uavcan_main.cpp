@@ -919,7 +919,6 @@ int UavcanNode::run()
 
 				new_output = true;
 			}
-
 		}
 
 		if (new_output) {
@@ -994,7 +993,6 @@ int UavcanNode::run()
 				_esc_controller.enable_idle_throttle_when_armed(_idle_throttle_when_armed > 0);
 			}
 		}
-
 	}
 
 	orb_unsubscribe(params_sub);
@@ -1125,11 +1123,11 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 				} else {
 
 					_mixers->groups_required(_groups_required);
-					printf("Groups required %d \n", _groups_required);
+					PX4_INFO("Groups required %d", _groups_required);
 
 					_rotor_count = _mixers->get_multirotor_count();
 					_esc_controller.set_rotor_count(_rotor_count);
-					printf("Number of rotors %d \n", _rotor_count);
+					PX4_INFO("Number of rotors %d", _rotor_count);
 				}
 			}
 		}
