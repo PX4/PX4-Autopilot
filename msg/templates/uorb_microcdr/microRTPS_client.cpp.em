@@ -18,7 +18,7 @@ import gencpp
 from px_generate_uorb_topic_helper import * # this is in Tools/
 from px_generate_uorb_topic_files import MsgScope # this is in Tools/
 
-topic_names = [s.short_name for idx, s in enumerate(spec)]
+topic_names = [s.short_name for s in spec]
 send_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
 send_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] == MsgScope.SEND]
 recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
