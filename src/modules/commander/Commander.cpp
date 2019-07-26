@@ -1634,7 +1634,6 @@ Commander::run()
 			status_flags.condition_escs_error = false;
 		}
 
-
 		estimator_check(&status_changed);
 		airspeed_use_check();
 
