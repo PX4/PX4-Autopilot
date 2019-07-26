@@ -71,9 +71,11 @@ uint32_t dshotBurstBuffer[ALL_MOTORS_BUF_SIZE] = {0};
 
 void dshot_dmar_data_prepare(void);
 
-void up_dshot_init(uint32_t channel_mask, unsigned timer, unsigned dshot_pwm_rate)
+int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 {
+	int retVal = ERROR;
 	/* Init channels */
+	unsigned used_channel;
 	for (unsigned channel = 0; channel_mask != 0 &&  channel < MAX_TIMER_IO_CHANNELS; channel++) {
 		if (channel_mask & (1 << channel)) {
 
@@ -84,25 +86,33 @@ void up_dshot_init(uint32_t channel_mask, unsigned timer, unsigned dshot_pwm_rat
 
 			io_timer_channel_init(channel, IOTimerChanMode_Dshot, NULL, NULL);
 			channel_mask &= ~(1 << channel);
+			used_channel = channel;
+			retVal = OK;
 		}
 	}
 
-	io_timer_set_dshot_mode(timer, DSHOT_1200_PWM_FREQ);
+	if (OK == retVal) {
+		//Pass one channel to get a timer. In this iteration, only one timer can work as Dshot.
+		//TODO: add support for multiple timer Dshot capabilities.
+		io_timer_set_dshot_mode(used_channel, dshot_pwm_freq);
 
 
-	/* DMA setup stream 5*/
-	rS5CR |= DMA_SCR_CHSEL(0x6); /* Channel 6 */
-	rS5CR |= DMA_SCR_PRIHI;
-	rS5CR |= DMA_SCR_MSIZE_32BITS;
-	rS5CR |= DMA_SCR_PSIZE_32BITS;
-	rS5CR |= DMA_SCR_MINC;
-	rS5CR |= DMA_SCR_DIR_M2P;
-	rS5CR |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
+		/* DMA setup stream 5*/
+		rS5CR |= DMA_SCR_CHSEL(0x6); /* Channel 6 */
+		rS5CR |= DMA_SCR_PRIHI;
+		rS5CR |= DMA_SCR_MSIZE_32BITS;
+		rS5CR |= DMA_SCR_PSIZE_32BITS;
+		rS5CR |= DMA_SCR_MINC;
+		rS5CR |= DMA_SCR_DIR_M2P;
+		rS5CR |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
 
-	rS5PAR  = STM32_TIM1_DMAR;
-	rS5M0AR = (uint32_t)dshotBurstBuffer;
+		rS5PAR  = STM32_TIM1_DMAR;
+		rS5M0AR = (uint32_t)dshotBurstBuffer;
 
-	rS5FCR &= 0x0;  /* Disable FIFO */
+		rS5FCR &= 0x0;  /* Disable FIFO */
+	}
+
+	return retVal;
 }
 
 void up_dshot_trigger(void)
