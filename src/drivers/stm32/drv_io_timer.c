@@ -488,10 +488,12 @@ static inline void io_timer_set_oneshot_mode(unsigned timer)
 	rEGR(timer) = GTIM_EGR_UG;
 }
 
-void io_timer_set_dshot_mode(unsigned timer, unsigned dshot_pwm_rate)
+void io_timer_set_dshot_mode(unsigned channel, unsigned dshot_pwm_freq)
 {
+	unsigned timer = channels_timer(channel);
+
 	rARR(timer)  = DSHOT_MOTOR_PWM_BIT_WIDTH;
-	rPSC(timer)  = ((int)(io_timers[timer].clock_freq / dshot_pwm_rate)/DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;;
+	rPSC(timer)  = ((int)(io_timers[timer].clock_freq / dshot_pwm_freq)/DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;;
 	rEGR(timer)  = ATIM_EGR_UG;
 	rBDTR(timer) = ATIM_BDTR_MOE | ATIM_BDTR_OSSR | ATIM_BDTR_BKP;
 	rCCER(timer) = ATIM_CCER_CC1E | ATIM_CCER_CC2E | ATIM_CCER_CC3E | ATIM_CCER_CC4E;

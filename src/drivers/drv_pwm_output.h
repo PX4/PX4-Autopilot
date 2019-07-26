@@ -298,10 +298,10 @@ struct pwm_output_rc_config {
 #define	PWM_RATE_UPPER_LIMIT		10000u
 
 /** Dshot PWM frequency */
-#define DSHOT_1200_PWM_FREQ				1200000u	//Hz
-#define DSHOT_600_PWM_FREQ				600000u		//Hz
-#define DSHOT_300_PWM_FREQ				300000u		//Hz
-#define DSHOT_150_PWM_FREQ				150000u		//Hz
+#define DSHOT1200					1200000u	//Hz
+#define DSHOT600					600000u		//Hz
+#define DSHOT300					300000u		//Hz
+#define DSHOT150					150000u		//Hz
 
 /*
  * Low-level PWM output interface.
@@ -392,12 +392,13 @@ __EXPORT extern servo_position_t up_pwm_servo_get(unsigned channel);
 /**
  * Intialise the Dshot outputs using the specified configuration.
  *
- * @param channel_mask	Bitmask of channels (LSB = channel 0) to enable.
+ * @param	channel_mask	Bitmask of channels (LSB = channel 0) to enable.
  *			This allows some of the channels to remain configured
  *			as GPIOs or as another function.
- * @return		OK on success.
+ * @param	dshot_pwm_freq is frequency of DSHOT signal. Usually DSHOT1200, DSHOT600, DSHOT300 or DSHOT150
+ * @return	OK on success.
  */
-__EXPORT extern void up_dshot_init(uint32_t channel_mask, unsigned timer, unsigned dshot_pwm_rate);
+__EXPORT extern int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq);
 
 /**
  * Set the current dshot throttle value for a channel (motor).
@@ -413,7 +414,7 @@ __EXPORT extern void up_dshot_motor_data_prepare(unsigned channel, uint16_t thro
 __EXPORT extern void up_dshot_trigger(void);
 
 /**
- * Arm or disarm dshot outputs.
+ * Arm or disarm dshot outputs (This will enable/disable complete timer for safety purpose.).
  *
  * When disarmed, dshot output no pulse.
  *
