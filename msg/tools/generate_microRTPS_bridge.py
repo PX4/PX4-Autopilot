@@ -282,7 +282,6 @@ uRTPS_SUBSCRIBER_H_TEMPL_FILE = 'Subscriber.h.em'
 
 
 def generate_agent(out_dir):
-    # raise Exception(classifier.msgs_to_receive)
     if classifier.msgs_to_send:
         for msg_file in classifier.msgs_to_send:
             if gen_idl:
