@@ -38,4 +38,7 @@ px4_add_module(
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		lsm303d.cpp
+	DEPENDS
+		drivers_accelerometer
+		drivers_magnetometer
 	)
