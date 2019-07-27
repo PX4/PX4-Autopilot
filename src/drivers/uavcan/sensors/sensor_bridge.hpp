@@ -51,7 +51,7 @@ class IUavcanSensorBridge : uavcan::Noncopyable, public ListNode<IUavcanSensorBr
 public:
 	static constexpr unsigned MAX_NAME_LEN = 20;
 
-	virtual ~IUavcanSensorBridge() { }
+	virtual ~IUavcanSensorBridge() = default;
 
 	/**
 	 * Returns ASCII name of the bridge.
@@ -101,7 +101,7 @@ class UavcanCDevSensorBridgeBase : public IUavcanSensorBridge, public device::CD
 	bool _out_of_channels = false;
 
 protected:
-	static constexpr unsigned DEFAULT_MAX_CHANNELS = 5; // 640 KB ought to be enough for anybody
+	static constexpr unsigned DEFAULT_MAX_CHANNELS = 5;
 
 	UavcanCDevSensorBridgeBase(const char *name, const char *devname, const char *class_devname,
 				   const orb_id_t orb_topic_sensor,

@@ -66,10 +66,9 @@ UavcanCDevSensorBridgeBase::~UavcanCDevSensorBridgeBase()
 	delete [] _channels;
 }
 
-void UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
+void
+UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 {
-	assert(report != nullptr);
-
 	Channel *channel = nullptr;
 
 	// Checking if such channel already exists
@@ -137,7 +136,8 @@ void UavcanCDevSensorBridgeBase::publish(const int node_id, const void *report)
 	(void)orb_publish(_orb_topic, channel->orb_advert, report);
 }
 
-unsigned UavcanCDevSensorBridgeBase::get_num_redundant_channels() const
+unsigned
+UavcanCDevSensorBridgeBase::get_num_redundant_channels() const
 {
 	unsigned out = 0;
 
@@ -150,7 +150,8 @@ unsigned UavcanCDevSensorBridgeBase::get_num_redundant_channels() const
 	return out;
 }
 
-void UavcanCDevSensorBridgeBase::print_status() const
+void
+UavcanCDevSensorBridgeBase::print_status() const
 {
 	printf("devname: %s\n", _class_devname);
 

@@ -45,6 +45,12 @@
 #include <px4_config.h>
 
 #include "uavcan_driver.hpp"
+#include "uavcan_servers.hpp"
+#include "allocator.hpp"
+#include "actuators/esc.hpp"
+#include "actuators/hardpoint.hpp"
+#include "sensors/sensor_bridge.hpp"
+
 #include <uavcan/helpers/heap_based_pool_allocator.hpp>
 #include <uavcan/protocol/global_time_sync_master.hpp>
 #include <uavcan/protocol/global_time_sync_slave.hpp>
@@ -53,21 +59,16 @@
 #include <uavcan/protocol/param/ExecuteOpcode.hpp>
 #include <uavcan/protocol/RestartNode.hpp>
 
-#include <drivers/device/device.h>
-#include <perf/perf_counter.h>
+#include <lib/drivers/device/device.h>
+#include <lib/perf/perf_counter.h>
 
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_outputs.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/test_motor.h>
+#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_direct.h>
-
-#include "actuators/esc.hpp"
-#include "actuators/hardpoint.hpp"
-#include "sensors/sensor_bridge.hpp"
-
-#include "uavcan_servers.hpp"
-#include "allocator.hpp"
+#include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/test_motor.h>
 
 #define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	4
 
@@ -131,10 +132,10 @@ public:
 
 	void		hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command);
 
-	static UavcanNode *instance() { return _instance; }
+	static UavcanNode	*instance() { return _instance; }
 	static int		 getHardwareVersion(uavcan::protocol::HardwareVersion &hwver);
 	int			 fw_server(eServerAction action);
-	void			attachITxQueueInjector(ITxQueueInjector *injector) {_tx_injector = injector;}
+	void			 attachITxQueueInjector(ITxQueueInjector *injector) {_tx_injector = injector;}
 	int			 list_params(int remote_node_id);
 	int			 save_params(int remote_node_id);
 	int			 set_param(int remote_node_id, const char *name, char *value);
@@ -146,42 +147,38 @@ private:
 	int		init(uavcan::NodeID node_id);
 	void		node_spin_once();
 	int		run();
+
 	int		add_poll_fd(int fd);			///< add a fd to poll list, returning index into _poll_fds[]
+
 	int		start_fw_server();
 	int		stop_fw_server();
 	int		request_fw_check();
+
 	int		print_params(uavcan::protocol::param::GetSet::Response &resp);
 	int		get_set_param(int nodeid, const char *name, uavcan::protocol::param::GetSet::Request &req);
 	void 		update_params();
-	void		set_setget_response(uavcan::protocol::param::GetSet::Response *resp)
-	{
-		_setget_response = resp;
-	}
-	void		free_setget_response(void)
-	{
-		_setget_response = nullptr;
-	}
 
-	int			_task = -1;			///< handle to the OS task
-	bool			_task_should_exit = false;	///< flag to indicate to tear down the CAN driver
-	volatile eServerAction	_fw_server_action;
-	int			 _fw_server_status;
-	int			_armed_sub = -1;		///< uORB subscription of the arming status
-	actuator_armed_s	_armed = {};			///< the arming request of the system
-	bool			_is_armed = false;		///< the arming status of the actuators on the bus
+	void		set_setget_response(uavcan::protocol::param::GetSet::Response *resp) { _setget_response = resp; }
+	void		free_setget_response(void) { _setget_response = nullptr; }
 
-	int			_test_motor_sub = -1;   ///< uORB subscription of the test_motor status
-	test_motor_s		_test_motor = {};
-	bool			_test_in_progress = false;
+	int			_task{-1};			///< handle to the OS task
+	bool			_task_should_exit{false};	///< flag to indicate to tear down the CAN driver
+	volatile eServerAction	_fw_server_action{None};
+	int			 _fw_server_status{-1};
 
-	unsigned		_output_count = 0;		///< number of actuators currently available
+	bool			_is_armed{false};		///< the arming status of the actuators on the bus
+
+	test_motor_s		_test_motor{};
+	bool			_test_in_progress{false};
+
+	unsigned		_output_count{0};		///< number of actuators currently available
 
 	static UavcanNode	*_instance;			///< singleton pointer
 
 	uavcan_node::Allocator	 _pool_allocator;
 
 	uavcan::Node<>			_node;				///< library instance
-	pthread_mutex_t			_node_mutex;
+	pthread_mutex_t			_node_mutex{};
 	px4_sem_t			_server_command_sem;
 	UavcanEscController		_esc_controller;
 	UavcanHardpointController	_hardpoint_controller;
@@ -191,44 +188,52 @@ private:
 
 	List<IUavcanSensorBridge *>	_sensor_bridges;		///< List of active sensor bridges
 
-	MixerGroup			*_mixers = nullptr;
-	ITxQueueInjector		*_tx_injector;
-	uint32_t			_groups_required = 0;
-	uint32_t			_groups_subscribed = 0;
-	int				_control_subs[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
-	actuator_controls_s		_controls[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
-	orb_id_t			_control_topics[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] = {};
-	pollfd				_poll_fds[UAVCAN_NUM_POLL_FDS] = {};
-	unsigned			_poll_fds_num = 0;
-	int32_t 			_idle_throttle_when_armed = 0;
+	MixerGroup			*_mixers{nullptr};
+	ITxQueueInjector		*_tx_injector{nullptr};
 
-	int				_actuator_direct_sub = -1;   ///< uORB subscription of the actuator_direct topic
-	uint8_t				_actuator_direct_poll_fd_num = 0;
-	actuator_direct_s		_actuator_direct = {};
+	uint32_t			_groups_required{0};
+	uint32_t			_groups_subscribed{0};
+	int				_control_subs[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] {};
+	actuator_controls_s		_controls[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] {};
+	orb_id_t			_control_topics[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] {};
+	pollfd				_poll_fds[UAVCAN_NUM_POLL_FDS] {};
+	unsigned			_poll_fds_num{0};
+	int32_t 			_idle_throttle_when_armed{0};
 
-	actuator_outputs_s		_outputs = {};
+	uORB::Subscription		_armed_sub{ORB_ID(actuator_armed)};
+	uORB::Subscription		_parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription		_test_motor_sub{ORB_ID(test_motor)};
 
-	perf_counter_t			_perf_control_latency;
+	int				_actuator_direct_sub{-1};   ///< uORB subscription of the actuator_direct topic
+	uint8_t				_actuator_direct_poll_fd_num{0};
 
-	Mixer::Airmode 			_airmode = Mixer::Airmode::disabled;
-	float 					_thr_mdl_factor = 0.0f;
+
+	perf_counter_t			_cycle_perf;
+	perf_counter_t			_interval_perf;
+	perf_counter_t			_control_latency_perf;
+
+	Mixer::Airmode 			_airmode{Mixer::Airmode::disabled};
+	float 				_thr_mdl_factor{0.0f};
 
 	// index into _poll_fds for each _control_subs handle
-	uint8_t				_poll_ids[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];
+	uint8_t				_poll_ids[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] {};
 
 	void handle_time_sync(const uavcan::TimerEvent &);
 
 	typedef uavcan::MethodBinder<UavcanNode *, void (UavcanNode::*)(const uavcan::TimerEvent &)> TimerCallback;
 	uavcan::TimerEventForwarder<TimerCallback> _master_timer;
 
-	bool _callback_success;
-	uavcan::protocol::param::GetSet::Response *_setget_response;
+	bool				_callback_success{false};
+
+	uavcan::protocol::param::GetSet::Response *_setget_response{nullptr};
+
 	typedef uavcan::MethodBinder<UavcanNode *,
 		void (UavcanNode::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &)> GetSetCallback;
 	typedef uavcan::MethodBinder<UavcanNode *,
 		void (UavcanNode::*)(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &)> ExecuteOpcodeCallback;
 	typedef uavcan::MethodBinder<UavcanNode *,
 		void (UavcanNode::*)(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &)> RestartNodeCallback;
+
 	void cb_setget(const uavcan::ServiceCallResult<uavcan::protocol::param::GetSet> &result);
 	void cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result);
 	void cb_restart(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &result);
