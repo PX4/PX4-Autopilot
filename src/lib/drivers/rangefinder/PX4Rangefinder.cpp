@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,15 +31,62 @@
  *
  ****************************************************************************/
 
-/**
- * Lidar-Lite (LL40LS)
- *
- * @reboot_required true
- * @min 0
- * @max 2
- * @group Sensors
- * @value 0 Disabled
- * @value 1 PWM
- * @value 2 I2C
- */
-PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
+#include "PX4Rangefinder.hpp"
+
+#include <lib/drivers/device/Device.hpp>
+
+PX4Rangefinder::PX4Rangefinder(uint32_t device_id, uint8_t priority, uint8_t rotation) :
+	CDev(nullptr),
+	_distance_sensor_pub{ORB_ID(distance_sensor), priority},
+	_rotation{rotation}
+{
+	_class_device_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
+
+	// TODO: range finders should have device ids
+	//_distance_sensor_pub.get().device_id = device_id;
+
+	_distance_sensor_pub.get().orientation = rotation;
+}
+
+PX4Rangefinder::~PX4Rangefinder()
+{
+	if (_class_device_instance != -1) {
+		unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_device_instance);
+	}
+}
+
+void
+PX4Rangefinder::set_device_type(uint8_t devtype)
+{
+	// TODO: range finders should have device ids
+
+	// // current DeviceStructure
+	// union device::Device::DeviceId device_id;
+	// device_id.devid = _distance_sensor_pub.get().device_id;
+
+	// // update to new device type
+	// device_id.devid_s.devtype = devtype;
+
+	// // copy back to report
+	// _distance_sensor_pub.get().device_id = device_id.devid;
+}
+
+void
+PX4Rangefinder::update(hrt_abstime timestamp, float distance, int8_t quality)
+{
+	distance_sensor_s &report = _distance_sensor_pub.get();
+
+	report.timestamp = timestamp;
+	report.current_distance = distance;
+	report.signal_quality = quality;
+
+	_distance_sensor_pub.update();
+}
+
+void
+PX4Rangefinder::print_status()
+{
+	PX4_INFO(RANGE_FINDER_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
+
+	print_message(_distance_sensor_pub.get());
+}
