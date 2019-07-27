@@ -153,7 +153,7 @@ private:
 
 protected:
 
-	bool	external() { return px4_spi_bus_external(get_device_bus()); }
+	virtual bool	external() const override { return px4_spi_bus_external(get_device_bus()); }
 
 };
 
