@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# @name Hexarotor x with tilted arms
+#
+# @url http://theairlab.org/
+#
+# @type Tilt-Hexarotor
+# @class Copter
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+#
+# @maintainer Azarakhsh Keipour <keipour@cmu.edu>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+if [ $AUTOCNF = yes ]
+then
+	param set MC_PITCHRATE_P 0.2
+	param set MC_ROLLRATE_P 0.2
+	param set MPC_Z_VEL_I 0.15
+	param set MPC_Z_VEL_P 0.6
+
+	param set RTL_DESCEND_ALT 5.0
+	param set RTL_LAND_DELAY 5
+fi
+
+set MAV_TYPE 13
+
+# Set mixer
+set MIXER hexa_tilt_x

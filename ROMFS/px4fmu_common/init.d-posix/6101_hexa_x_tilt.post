@@ -1,0 +1,1 @@
+mavlink stream -r 250 -s HIGHRES_IMU -u 14556
