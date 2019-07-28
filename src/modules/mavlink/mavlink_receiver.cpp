@@ -2569,9 +2569,15 @@ MavlinkReceiver::Run()
 	hrt_abstime last_send_update = 0;
 
 	while (!_mavlink->_task_should_exit) {
-		// Check for updated parameters.
-		if (_param_update_sub.updated()) {
-			update_params();
+
+		// check for parameter updates
+		if (_parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			_parameter_update_sub.copy(&pupdate);
+
+			// update parameters from storage
+			updateParams();
 		}
 
 		if (poll(&fds[0], 1, timeout) > 0) {
@@ -2717,12 +2723,4 @@ MavlinkReceiver::receive_start(pthread_t *thread, Mavlink *parent)
 	pthread_create(thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void *)parent);
 
 	pthread_attr_destroy(&receiveloop_attr);
-}
-
-void
-MavlinkReceiver::update_params()
-{
-	parameter_update_s param_update;
-	_param_update_sub.update(&param_update);
-	updateParams();
 }
