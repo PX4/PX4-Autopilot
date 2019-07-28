@@ -105,10 +105,11 @@ private:
 	int		_global_pos_sub{-1};
 	int		_local_pos_sub{-1};
 	int		_manual_control_sub{-1};		/**< notification of manual control updates */
-	int		_params_sub{-1};			/**< notification of parameter updates */
 	int		_pos_sp_triplet_sub{-1};
 	int     _vehicle_attitude_sub{-1};
 	int		_sensor_combined_sub{-1};
+
+	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
 	manual_control_setpoint_s		_manual{};			    /**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
@@ -167,7 +168,7 @@ private:
 	/**
 	 * Update our local parameter cache.
 	 */
-	void parameters_update(int parameter_update_sub, bool force = false);
+	void parameters_update(bool force = false);
 
 	void		manual_control_setpoint_poll();
 	void		position_setpoint_triplet_poll();

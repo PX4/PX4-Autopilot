@@ -168,7 +168,7 @@ private:
 
 	uORB::Subscription	_actuator_ctrl_0_sub{ORB_ID(actuator_controls_0)};		/**< attitude controls sub */
 	uORB::Subscription	_diff_pres_sub{ORB_ID(differential_pressure)};			/**< raw differential pressure subscription */
-	uORB::Subscription	_params_sub{ORB_ID(parameter_update)};				/**< notification of parameter updates */
+	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};				/**< notification of parameter updates */
 	uORB::Subscription	_vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
 
 	uORB::Publication<airspeed_s>			_airspeed_pub{ORB_ID(airspeed)};			/**< airspeed */
@@ -364,12 +364,13 @@ Sensors::diff_pres_poll(const vehicle_air_data_s &raw)
 void
 Sensors::parameter_update_poll(bool forced)
 {
-	/* Check if any parameter has changed */
-	parameter_update_s update;
+	// check for parameter updates
+	if (_parameter_update_sub.updated() || forced) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
-	if (_params_sub.update(&update) || forced) {
-		/* read from param to clear updated flag */
-
+		// update parameters from storage
 		parameters_update();
 		updateParams();
 

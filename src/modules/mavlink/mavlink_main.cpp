@@ -2141,9 +2141,9 @@ Mavlink::task_main(int argc, char *argv[])
 		pthread_mutex_init(&_message_buffer_mutex, nullptr);
 	}
 
+	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
+
 	MavlinkOrbSubscription *cmd_sub = add_orb_subscription(ORB_ID(vehicle_command), 0, true);
-	MavlinkOrbSubscription *param_sub = add_orb_subscription(ORB_ID(parameter_update));
-	uint64_t param_time = 0;
 	MavlinkOrbSubscription *status_sub = add_orb_subscription(ORB_ID(vehicle_status));
 	uint64_t status_time = 0;
 	MavlinkOrbSubscription *ack_sub = add_orb_subscription(ORB_ID(vehicle_command_ack), 0, true);
@@ -2239,9 +2239,13 @@ Mavlink::task_main(int argc, char *argv[])
 
 		update_rate_mult();
 
-		parameter_update_s param_update;
+		// check for parameter updates
+		if (parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			parameter_update_sub.copy(&pupdate);
 
-		if (param_sub->update(&param_time, &param_update)) {
+			// update parameters from storage
 			mavlink_update_parameters();
 
 #if defined(CONFIG_NET)
@@ -2250,7 +2254,7 @@ Mavlink::task_main(int argc, char *argv[])
 				_src_addr_initialized = false;
 			}
 
-#endif
+#endif // CONFIG_NET
 		}
 
 		check_radio_config();

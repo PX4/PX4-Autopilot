@@ -145,8 +145,7 @@ void Module::run()
 	fds[0].events = POLLIN;
 
 	// initialize parameters
-	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
-	parameters_update(parameter_update_sub, true);
+	parameters_update(true);
 
 	while (!should_exit()) {
 
@@ -170,26 +169,21 @@ void Module::run()
 
 		}
 
-
-		parameters_update(parameter_update_sub);
+		parameters_update();
 	}
 
 	orb_unsubscribe(sensor_combined_sub);
-	orb_unsubscribe(parameter_update_sub);
 }
 
-void Module::parameters_update(int parameter_update_sub, bool force)
+void Module::parameters_update(bool force)
 {
-	bool updated;
-	struct parameter_update_s param_upd;
+	// check for parameter updates
+	if (_parameter_update_sub.updated() || force) {
+		// clear update
+		parameter_update_s update;
+		_parameter_update_sub.copy(&update);
 
-	orb_check(parameter_update_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(parameter_update), parameter_update_sub, &param_upd);
-	}
-
-	if (force || updated) {
+		// update parameters from storage
 		updateParams();
 	}
 }

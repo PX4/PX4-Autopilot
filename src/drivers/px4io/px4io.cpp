@@ -256,7 +256,7 @@ private:
 	uORB::Subscription	_t_actuator_controls_3{ORB_ID(actuator_controls_3)};;	///< actuator controls group 3 topic
 	uORB::Subscription	_t_actuator_armed{ORB_ID(actuator_armed)};		///< system armed control topic
 	uORB::Subscription 	_t_vehicle_control_mode{ORB_ID(vehicle_control_mode)};	///< vehicle control mode topic
-	uORB::Subscription	_t_param{ORB_ID(parameter_update)};			///< parameter update topic
+	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};	///< parameter update topic
 	uORB::Subscription	_t_vehicle_command{ORB_ID(vehicle_command)};		///< vehicle command topic
 
 	bool			_param_update_force;	///< force a parameter update
@@ -997,10 +997,14 @@ PX4IO::task_main()
 			 *
 			 * XXX this may be a bit spammy
 			 */
-			if (_t_param.updated() || _param_update_force) {
-				_param_update_force = false;
+
+			// check for parameter updates
+			if (_parameter_update_sub.updated() || _param_update_force) {
+				// clear update
 				parameter_update_s pupdate;
-				_t_param.copy(&pupdate);
+				_parameter_update_sub.copy(&pupdate);
+
+				_param_update_force = false;
 
 				if (!_rc_handling_disabled) {
 					/* re-upload RC input config as it may have changed */

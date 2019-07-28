@@ -333,13 +333,13 @@ VtolAttitudeControl::Run()
 	}
 
 	if (should_run) {
-		/* only update parameters if they changed */
-		if (_params_sub.updated()) {
-			/* read from param to clear updated flag */
-			parameter_update_s update;
-			_params_sub.copy(&update);
+		// check for parameter updates
+		if (_parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			_parameter_update_sub.copy(&pupdate);
 
-			/* update parameters from storage */
+			// update parameters from storage
 			parameters_update();
 		}
 

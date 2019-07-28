@@ -36,6 +36,8 @@
 #include <px4_time.h>
 #include <mathlib/mathlib.h>
 
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/multirotor_motor_limits.h>
 
 PWMSim::PWMSim() :
@@ -162,7 +164,7 @@ PWMSim::run()
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
 	update_params();
-	int params_sub = orb_subscribe(ORB_ID(parameter_update));
+	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
 
 	/* loop until killed */
 	while (!should_exit()) {
@@ -323,13 +325,13 @@ PWMSim::run()
 			}
 		}
 
-		/* check for parameter updates */
-		bool param_updated = false;
-		orb_check(params_sub, &param_updated);
+		// check for parameter updates
+		if (parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			parameter_update_sub.copy(&pupdate);
 
-		if (param_updated) {
-			struct parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), params_sub, &update);
+			// update parameters from storage
 			update_params();
 		}
 	}
@@ -341,7 +343,6 @@ PWMSim::run()
 	}
 
 	orb_unsubscribe(_armed_sub);
-	orb_unsubscribe(params_sub);
 }
 
 int
