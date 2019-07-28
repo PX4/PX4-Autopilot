@@ -151,10 +151,15 @@ void LandDetector::Run()
 
 void LandDetector::_check_params(const bool force)
 {
-	parameter_update_s param_update;
+	// check for parameter updates
+	if (_parameter_update_sub.updated() || force) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
-	if (_param_update_sub.update(&param_update) || force) {
+		// update parameters from storage
 		_update_params();
+
 		_update_total_flight_time();
 	}
 }

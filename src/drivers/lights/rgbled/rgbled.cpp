@@ -80,7 +80,8 @@ private:
 	volatile bool		_running{false};
 	volatile bool		_should_run{true};
 	bool			_leds_enabled{true};
-	uORB::Subscription	_param_sub{ORB_ID(parameter_update)};
+
+	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
 	LedController		_led_controller;
 
@@ -202,11 +203,13 @@ RGBLED::Run()
 		return;
 	}
 
-	if (_param_sub.updated()) {
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
 		// clear update
 		parameter_update_s pupdate;
-		_param_sub.copy(&pupdate);
+		_parameter_update_sub.copy(&pupdate);
 
+		// update parameters from storage
 		update_params();
 
 		// Immediately update to change brightness

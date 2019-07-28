@@ -177,7 +177,7 @@ private:
 
 	unsigned	_current_update_rate{0};
 
-	uORB::Subscription _param_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
 
 	unsigned	_num_outputs{0};
@@ -767,7 +767,13 @@ PX4FMU::Run()
 		update_pwm_out_state(pwm_on);
 	}
 
-	if (_param_sub.updated()) {
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
+		// update parameters from storage
 		update_params();
 	}
 
@@ -783,15 +789,11 @@ PX4FMU::Run()
 
 void PX4FMU::update_params()
 {
-	parameter_update_s pupdate;
-	_param_sub.update(&pupdate);
-
 	update_pwm_rev_mask();
 	update_pwm_trims();
 
 	updateParams();
 }
-
 
 int
 PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
