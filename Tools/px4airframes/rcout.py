@@ -29,9 +29,10 @@ class RCOutput():
                     "# 13000 ..  13999       VTOL\n"
                     "# 14000 ..  14999       Tri Y\n"
                     "\n")
-        result += "\n"
-        result += "set SYS_AUTOSTART_VALUE none\n"
-        result += "\n"
+        if not post_start:
+            result += "\n"
+            result += "set AIRFRAME none\n"
+            result += "\n"
         for group in groups:
             result += "# GROUP: %s\n\n" % group.GetName()
             for param in group.GetParams():
@@ -62,8 +63,10 @@ class RCOutput():
                 result +=   "# %s\n" % param.GetName()
                 result +=   "if param compare SYS_AUTOSTART %s\n" % id_val
                 result +=   "then\n"
-                result +=   "\tsh /etc/init.d/airframes/%s\n" % path
-                result +=   "\tset SYS_AUTOSTART_VALUE %s\n" % id_val
+                if post_start:
+                    result +=   "\tsh /etc/init.d/airframes/%s\n" % path
+                else:
+                    result +=   "\tset AIRFRAME %s\n" % path
                 result +=   "fi\n"
 
                 #if long_desc is not None:
@@ -72,14 +75,17 @@ class RCOutput():
 
             result += "\n"
         result += "\n"
-        result += "if [ $SYS_AUTOSTART_VALUE = none ]\n"
-        result += "then\n"
-        result += "\techo \"ERROR  [init] No file matches SYS_AUTOSTART value found in : /etc/init.d/airframes\"\n"
-        result += "\techo \"ERROR  [init] No file matches SYS_AUTOSTART value found in : /etc/init.d/airframes\" >> $LOG_FILE\n"
-        result += "\ttone_alarm ${TUNE_ERR}\n"
-        result += "fi\n"
-        result += "unset SYS_AUTOSTART_VALUE"
-        self.output = result;
+        if not post_start:
+            result += "if [ ${AIRFRAME} = none ]\n"
+            result += "then\n"
+            result += "\techo \"ERROR  [init] No file matches SYS_AUTOSTART value found in : /etc/init.d/airframes\"\n"
+            result += "\techo \"ERROR  [init] No file matches SYS_AUTOSTART value found in : /etc/init.d/airframes\" >> $LOG_FILE\n"
+            result += "\ttone_alarm ${TUNE_ERR}\n"
+            result += "else\n"
+            result += "\tsh /etc/init.d/airframes/${AIRFRAME}\n"
+            result += "fi\n"
+            result += "unset AIRFRAME"
+        self.output = result
 
     def Save(self, filename):
         with codecs.open(filename, 'w', 'utf-8') as f:
