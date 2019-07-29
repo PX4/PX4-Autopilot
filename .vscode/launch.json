@@ -202,7 +202,7 @@
             ]
         },
         {
-            "name": "Debug px4_fmu-v5 (jlink)",
+            "name": "Debug px4_fmu-v5/v5x (jlink)",
             "device": "STM32F765VI",
             "svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/STM32F7x5.svd",
             "executable": "${command:cmake.launchTargetPath}",

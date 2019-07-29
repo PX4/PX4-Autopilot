@@ -41,4 +41,8 @@ px4_add_module(
 		sih.cpp
 	DEPENDS
 		mathlib
+		drivers_accelerometer
+		drivers_barometer
+		drivers_gyroscope
+		drivers_magnetometer
 	)

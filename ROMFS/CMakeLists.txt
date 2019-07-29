@@ -108,6 +108,11 @@ add_custom_command(
 		${romfs_cmake_files}
 		${romfs_copy_files}
 		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/markdownout.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/rcout.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/srcparser.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/srcscanner.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/xmlout.py
 		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 	COMMENT "ROMFS: copying, generating airframes"
 	)
