@@ -31,7 +31,11 @@
 #
 ############################################################################
 
-add_subdirectory(paw3902)
-add_subdirectory(pmw3901)
-add_subdirectory(px4flow)
-
+px4_add_module(
+	MODULE drivers__optical_flow__paw3902
+	MAIN paw3902
+	STACK_MAIN 1500
+	SRCS
+		paw3902_main.cpp
+		PAW3902.cpp
+	)
