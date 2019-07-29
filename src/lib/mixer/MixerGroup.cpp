@@ -200,6 +200,10 @@ MixerGroup::load_from_buf(Mixer::ControlCallback control_cb, uintptr_t cb_handle
 			m = MultirotorMixer::from_text(control_cb, cb_handle, p, resid);
 			break;
 
+		case 'S':
+			m = MultirotorMixer6dof::from_text(control_cb, cb_handle, p, resid);
+			break;
+
 		case 'H':
 			m = HelicopterMixer::from_text(control_cb, cb_handle, p, resid);
 			break;

@@ -92,10 +92,12 @@ add_custom_target(mixer_gen_6dof DEPENDS mixer_multirotor_6dof.generated.h ${CMA
 add_library(MultirotorMixer
 	MultirotorMixer.cpp
 	MultirotorMixer.hpp
+	MultirotorMixer6dof.cpp
 
 	${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor.generated.h
 	${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_normalized.generated.h
 	${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_6dof.generated.h
+	${CMAKE_CURRENT_BINARY_DIR}/mixer_multirotor_6dof_normalized.generated.h
 )
 target_link_libraries(MultirotorMixer PRIVATE Mixer)
 target_include_directories(MultirotorMixer PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
