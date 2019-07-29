@@ -278,7 +278,6 @@ public:
 		float	x_scale;	/**< scales x thrust for this rotor */
 		float	y_scale;	/**< scales y thrust for this rotor */
 		float	z_scale;	/**< scales z thrust for this rotor */
-		float	thrust_scale;	/**< TODO: Remove later after fixing the Airmod */
 	};
 
 	/**
@@ -387,12 +386,12 @@ public:
 			uint16_t pitch_neg	: 1; // 6 - true when a negative pitch demand change will increase saturation
 			uint16_t yaw_pos	: 1; // 7 - true when a positive yaw demand change will increase saturation
 			uint16_t yaw_neg	: 1; // 8 - true when a negative yaw demand change will increase saturation
-			uint16_t x_thrust_pos	: 1; // 9 - true when a positive x thrust demand change will increase saturation
-			uint16_t x_thrust_neg	: 1; //10 - true when a negative x thrust demand change will increase saturation
-			uint16_t y_thrust_pos	: 1; //11 - true when a positive y thrust demand change will increase saturation
-			uint16_t y_thrust_neg	: 1; //12 - true when a negative y thrust demand change will increase saturation
-			uint16_t z_thrust_pos	: 1; //13 - true when a positive z thrust demand change will increase saturation
-			uint16_t z_thrust_neg	: 1; //14 - true when a negative z thrust demand change will increase saturation
+			uint16_t x_pos		: 1; // 9 - true when a positive x thrust demand change will increase saturation
+			uint16_t x_neg		: 1; //10 - true when a negative x thrust demand change will increase saturation
+			uint16_t y_pos		: 1; //11 - true when a positive y thrust demand change will increase saturation
+			uint16_t y_neg		: 1; //12 - true when a negative y thrust demand change will increase saturation
+			uint16_t z_pos		: 1; //13 - true when a positive z thrust demand change will increase saturation
+			uint16_t z_neg		: 1; //14 - true when a negative z thrust demand change will increase saturation
 		} flags;
 		uint16_t value;
 	};
@@ -412,14 +411,14 @@ private:
 	 * Minimize the saturation of the actuators by adding or substracting a fraction of desaturation_vector.
 	 * desaturation_vector is the vector that added to the output outputs, modifies the thrust or angular
 	 * acceleration on a specific axis.
-	 * For example, if desaturation_vector is given to slide along the vertical thrust axis (thrust_scale), the
+	 * For example, if desaturation_vector is given to slide along the vertical thrust axis (z_scale), the
 	 * saturation will be minimized by shifting the vertical thrust setpoint, without changing the
 	 * roll/pitch/yaw accelerations.
 	 *
 	 * Note that as we only slide along the given axis, in extreme cases outputs can still contain values
 	 * outside of [min_output, max_output].
 	 *
-	 * @param desaturation_vector vector that is added to the outputs, e.g. thrust_scale
+	 * @param desaturation_vector vector that is added to the outputs, e.g. z_scale
 	 * @param outputs output vector that is modified
 	 * @param sat_status saturation status output
 	 * @param min_output minimum desired value in outputs
@@ -436,7 +435,7 @@ private:
 	 * thrust is increased/decreased as much as required to meet the demanded roll/pitch.
 	 * Yaw is not allowed to increase the thrust, @see mix_yaw() for the exact behavior.
 	 */
-	inline void mix_airmode_rp(float roll, float pitch, float yaw, float thrust, float *outputs);
+	inline void mix_airmode_rp(float roll, float pitch, float yaw, float x_thrust, float y_thrust, float z_thrust, float *outputs);
 
 	/**
 	 * Mix roll, pitch, yaw, thrust and set the outputs vector.
@@ -445,7 +444,7 @@ private:
 	 * thrust is increased/decreased as much as required to meet demanded the roll/pitch/yaw,
 	 * while giving priority to roll and pitch over yaw.
 	 */
-	inline void mix_airmode_rpy(float roll, float pitch, float yaw, float thrust, float *outputs);
+	inline void mix_airmode_rpy(float roll, float pitch, float yaw, float x_thrust, float y_thrust, float z_thrust, float *outputs);
 
 	/**
 	 * Mix roll, pitch, yaw, thrust and set the outputs vector.
@@ -455,7 +454,7 @@ private:
 	 * Thrust can be reduced to unsaturate the upper side.
 	 * @see mix_yaw() for the exact yaw behavior.
 	 */
-	inline void mix_airmode_disabled(float roll, float pitch, float yaw, float thrust, float *outputs);
+	inline void mix_airmode_disabled(float roll, float pitch, float yaw, float x_thrust, float y_thrust, float z_thrust, float *outputs);
 
 	/**
 	 * Mix yaw by updating an existing output vector (that already contains roll/pitch/thrust).
