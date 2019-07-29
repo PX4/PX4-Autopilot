@@ -212,21 +212,22 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 						angle += math::radians(obstacle.angle_offset);
 					}
 
+					//check if the bin must be considered regarding the given stick input
 					Vector2f bin_direction = {cos(angle), sin(angle)};
-					float curr_vel_parallel = math::max(0.f, curr_vel.dot(bin_direction));
 
-					//calculate max allowed velocity with a P-controller (same gain as in the position controller)
-					float delay_distance = curr_vel_parallel * _param_mpc_col_prev_dly.get();
-					float vel_max_posctrl = math::max(0.f,
-									  _param_mpc_xy_p.get() * (distance - _param_mpc_col_prev_d.get() - delay_distance));
-					Vector2f  vel_max_vec = bin_direction * vel_max_posctrl;
-					float vel_max_bin = vel_max_vec.dot(setpoint_dir);
-					float vel_setpoint_bin = setpoint.dot(bin_direction);
+					if (setpoint_dir.dot(bin_direction) > 0 && setpoint_dir.dot(bin_direction) > cosf(_param_mpc_col_prev_ang.get())) {
+						//calculate max allowed velocity with a P-controller (same gain as in the position controller)
+						float curr_vel_parallel = math::max(0.f, curr_vel.dot(bin_direction));
+						float delay_distance = curr_vel_parallel * _param_mpc_col_prev_dly.get();
+						float vel_max_posctrl = math::max(0.f,
+										  _param_mpc_xy_p.get() * (distance - _param_mpc_col_prev_d.get() - delay_distance));
+						Vector2f  vel_max_vec = bin_direction * vel_max_posctrl;
+						float vel_max_bin = vel_max_vec.dot(setpoint_dir);
 
-					//limit the velocity
-					//do not react to obstacles more than 45 degree off the given stick input cos(45deg) = 0.71
-					if (vel_setpoint_bin > 0.71f * setpoint_length && vel_max_bin >= 0) {
-						vel_max = math::min(vel_max, vel_max_bin);
+						//constrain the velocity
+						if (vel_max_bin >= 0) {
+							vel_max = math::min(vel_max, vel_max_bin);
+						}
 					}
 				}
 			}
