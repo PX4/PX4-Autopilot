@@ -62,3 +62,15 @@ PARAM_DEFINE_FLOAT(MPC_COL_PREV_D, -1.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_COL_PREV_DLY, 0.f);
+
+/**
+ * Angle at which the vehicle can fly away from obstacles
+ *
+ * Only used in Position mode.
+ *
+ * @min 0
+ * @max 1.570796
+ * @unit [ ]
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_COL_PREV_ANG, 0.785f);
