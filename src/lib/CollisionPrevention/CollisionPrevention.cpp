@@ -224,8 +224,8 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 					float vel_setpoint_bin = setpoint.dot(bin_direction);
 
 					//limit the velocity
-					//do not react to obstacles more than 70 degree off the given stick input
-					if (vel_setpoint_bin > 0.94f * setpoint_length && vel_max_bin >= 0) {
+					//do not react to obstacles more than 45 degree off the given stick input cos(45deg) = 0.71
+					if (vel_setpoint_bin > 0.71f * setpoint_length && vel_max_bin >= 0) {
 						vel_max = math::min(vel_max, vel_max_bin);
 					}
 				}
