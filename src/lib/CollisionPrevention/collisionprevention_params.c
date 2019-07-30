@@ -70,7 +70,7 @@ PARAM_DEFINE_FLOAT(MPC_COL_PREV_DLY, 0.f);
  *
  * @min 0
  * @max 1.570796
- * @unit [ ]
+ * @unit [rad]
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_COL_PREV_ANG, 0.785f);
