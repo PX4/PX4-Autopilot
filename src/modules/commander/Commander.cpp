@@ -162,6 +162,8 @@ static uint8_t arm_requirements = ARM_REQ_NONE;
 static bool _last_condition_local_altitude_valid = false;
 static bool _last_condition_global_position_valid = false;
 
+static struct position_controller_status_s position_status = {};
+
 static struct vehicle_land_detected_s land_detector = {};
 
 static float _eph_threshold_adj =
@@ -1190,7 +1192,7 @@ Commander::run()
 	param_t _param_arm_mission_required = param_find("COM_ARM_MIS_REQ");
 	param_t _param_flight_uuid = param_find("COM_FLIGHT_UUID");
 	param_t _param_takeoff_finished_action = param_find("COM_TAKEOFF_ACT");
-	param_t _param_launch_detection_on = param_find("LAUN_ALL_ON");
+
 
 	param_t _param_fmode_1 = param_find("COM_FLTMODE1");
 	param_t _param_fmode_2 = param_find("COM_FLTMODE2");
@@ -1245,7 +1247,7 @@ Commander::run()
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
 	mission_init();
 
-	_position_controller_sub = orb_subscribe(ORB_ID(position_controller_status));
+	//_position_controller_sub = orb_subscribe(ORB_ID(position_controller_status));
 
 	/* Start monitoring loop */
 	unsigned counter = 0;
@@ -1337,9 +1339,6 @@ Commander::run()
 	int32_t airmode = 0;
 	int32_t rc_map_arm_switch = 0;
 
-	/* Catapault Launch Enabled */
-	int32_t launch_detection_enabled = 0;
-	param_get(_param_launch_detection_on, &launch_detection_enabled);
 
 	/* RC override auto modes */
 	int32_t rc_override = 0;
@@ -1649,14 +1648,22 @@ Commander::run()
 		}
 
 
+		//Update Position Controller status
+
+		if (_controller_status_sub.updated()) {
+			_controller_status_sub.copy(&position_status);
+		}
+
 		// Auto disarm when landed or kill switch engaged or when launch detection is not running
-		if (armed.armed && !launch_detection_running()) {
+
+		if (armed.armed && !position_status.launch_detection_running) {
 
 			// Check for auto-disarm on landing
 			if (_param_com_disarm_land.get() > 0) {
 
-				if (!have_taken_off_since_arming  && launch_detection_enabled != 1) {
-					// pilot has ten seconds time to take or until launch is detected
+				if (!have_taken_off_since_arming) {
+					// pilot has ten seconds time to take off
+					// this logic is ignored if launch detection is running
 					_auto_disarm_landed.set_hysteresis_time_from(false, 10_s);
 
 				} else {
@@ -3843,29 +3850,6 @@ void Commander::data_link_check(bool &status_changed)
 		}
 	}
 }
-
-
-bool Commander::launch_detection_running()
-{
-	bool updated;
-
-	position_controller_status_s _controller_status{};
-
-	orb_check(_position_controller_sub, &updated);
-
-	if (updated) {
-
-		orb_copy(ORB_ID(position_controller_status), _position_controller_sub, &_controller_status);
-
-
-	}
-
-
-
-	return _controller_status.launch_detection_running;
-
-}
-
 
 
 void Commander::battery_status_check()

@@ -383,7 +383,7 @@ private:
 	void		vehicle_control_mode_poll();
 	void		vehicle_status_poll();
 
-	void		status_publish(const position_setpoint_s &pos_sp_curr);
+	void		status_publish();
 	void		landing_status_publish();
 	void		tecs_status_publish();
 
@@ -456,10 +456,7 @@ private:
 					float throttle_min, float throttle_max, float throttle_cruise,
 					bool climbout_mode, float climbout_pitch_min_rad,
 					uint8_t mode = tecs_status_s::TECS_MODE_NORMAL);
-	/*
-	 * Determine if launch detection is running and publish it if updated
-	 */
-	bool _get_launchdetection_status(const position_setpoint_s &pos_sp_curr);
+
 
 };
 

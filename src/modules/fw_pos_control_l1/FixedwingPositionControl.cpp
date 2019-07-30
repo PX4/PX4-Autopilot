@@ -548,7 +548,7 @@ FixedwingPositionControl::tecs_status_publish()
 }
 
 void
-FixedwingPositionControl::status_publish(const position_setpoint_s &pos_sp_curr)
+FixedwingPositionControl::status_publish()
 {
 	position_controller_status_s pos_ctrl_status = {};
 
@@ -564,7 +564,7 @@ FixedwingPositionControl::status_publish(const position_setpoint_s &pos_sp_curr)
 
 	pos_ctrl_status.acceptance_radius = _l1_control.switch_distance(500.0f);
 
-	pos_ctrl_status.launch_detection_running = _get_launchdetection_status(pos_sp_curr);
+	pos_ctrl_status.launch_detection_running = !_launchDetector.getLaunchDetected();
 
 	pos_ctrl_status.yaw_acceptance = NAN;
 
@@ -1807,7 +1807,7 @@ FixedwingPositionControl::run()
 					// only publish status in full FW mode
 					if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
 					    && !_vehicle_status.in_transition_mode) {
-						status_publish(_pos_sp_triplet.current);
+						status_publish();
 					}
 				}
 			}
@@ -2041,27 +2041,4 @@ int FixedwingPositionControl::print_status()
 int fw_pos_control_l1_main(int argc, char *argv[])
 {
 	return FixedwingPositionControl::main(argc, argv);
-}
-
-bool FixedwingPositionControl::_get_launchdetection_status(const position_setpoint_s &pos_sp_curr)
-{
-
- bool launch_detection_running;
-
- if(pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF &&
-            _launchDetector.launchDetectionEnabled() &&
-            _control_mode.flag_armed &&
-            _launch_detection_state != LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS)
-    {
-            launch_detection_running = true;
-
-    }
-    else{
-
-        launch_detection_running = false;
-    }
-
-
-
-  return launch_detection_running;
 }
