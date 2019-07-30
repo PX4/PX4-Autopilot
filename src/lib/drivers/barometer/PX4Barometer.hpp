@@ -45,7 +45,7 @@ class PX4Barometer : public cdev::CDev
 {
 
 public:
-	PX4Barometer(uint32_t device_id, uint8_t priority);
+	PX4Barometer(uint32_t device_id, uint8_t priority = ORB_PRIO_DEFAULT);
 	~PX4Barometer() override;
 
 	void set_device_type(uint8_t devtype);
