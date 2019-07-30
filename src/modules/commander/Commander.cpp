@@ -1978,14 +1978,14 @@ Commander::run()
 			    (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING || land_detector.landed) &&
 			    (stick_in_lower_left || arm_button_pressed || arm_switch_to_disarm_transition)) {
 
-				if (internal_state.main_state != commander_state_s::MAIN_STATE_MANUAL &&
-				    internal_state.main_state != commander_state_s::MAIN_STATE_ACRO &&
-				    internal_state.main_state != commander_state_s::MAIN_STATE_STAB &&
-				    internal_state.main_state != commander_state_s::MAIN_STATE_RATTITUDE &&
-				    !land_detector.landed) {
-					print_reject_arm("Not disarming! Not yet in manual mode or landed");
+				const bool manual_thrust_mode = internal_state.main_state == commander_state_s::MAIN_STATE_MANUAL
+								|| internal_state.main_state == commander_state_s::MAIN_STATE_ACRO
+								|| internal_state.main_state == commander_state_s::MAIN_STATE_STAB
+								|| internal_state.main_state == commander_state_s::MAIN_STATE_RATTITUDE;
+				const bool rc_wants_disarm = (stick_off_counter == rc_arm_hyst && stick_on_counter < rc_arm_hyst)
+							     || arm_switch_to_disarm_transition;
 
-				} else if ((stick_off_counter == rc_arm_hyst && stick_on_counter < rc_arm_hyst) || arm_switch_to_disarm_transition) {
+				if (rc_wants_disarm && (land_detector.landed || manual_thrust_mode)) {
 					arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
 									     true /* fRunPreArmChecks */,
 									     &mavlink_log_pub, &status_flags, arm_requirements, hrt_elapsed_time(&commander_boot_timestamp));
