@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,9 +31,18 @@
 #
 ############################################################################
 
-add_subdirectory(bmp280)
-add_subdirectory(bmp388)
-add_subdirectory(lps22hb)
-#add_subdirectory(lps25h) # not ready for general inclusion
-#add_subdirectory(mpl3115a2) # not ready for general inclusion
-add_subdirectory(ms5611)
+px4_add_module(
+	MODULE drivers__barometer__bmp388
+	MAIN bmp388
+	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
+	STACK_MAIN
+		1200
+	SRCS
+		bmp388_spi.cpp
+		bmp388_i2c.cpp
+		bmp388.cpp
+	DEPENDS
+		drivers_barometer
+		px4_work_queue
+	)
