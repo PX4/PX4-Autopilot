@@ -1247,8 +1247,6 @@ Commander::run()
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
 	mission_init();
 
-	//_position_controller_sub = orb_subscribe(ORB_ID(position_controller_status));
-
 	/* Start monitoring loop */
 	unsigned counter = 0;
 	int stick_off_counter = 0;
@@ -1270,8 +1268,6 @@ Commander::run()
 	uORB::Subscription subsys_sub{ORB_ID(subsystem_info)};
 	uORB::Subscription system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
-
-
 
 	geofence_result_s geofence_result {};
 
@@ -1646,7 +1642,6 @@ Commander::run()
 			was_landed = land_detector.landed;
 			was_falling = land_detector.freefall;
 		}
-
 
 		//Update Position Controller status
 
