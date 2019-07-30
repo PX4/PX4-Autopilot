@@ -112,6 +112,10 @@ int px4_platform_init(void)
 		close(fd_buf);
 	}
 
+#ifdef 	CONFIG_SPI_DRIVER
+	board_spi_register();
+#endif
+
 	hrt_init();
 
 	param_init();

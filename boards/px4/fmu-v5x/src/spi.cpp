@@ -447,3 +447,22 @@ __EXPORT void board_spi_reset(int mask_ms)
 #endif
 	}
 }
+
+#ifdef CONFIG_SPI_DRIVER
+int board_spi_register()
+{
+	int rv = 0;
+
+	for (int bus = PX4_SPI_BUS_SENSORS1; bus <= PX4_SPI_BUS_EXTERNAL1; bus++) {
+		FAR struct spi_dev_s *spi = stm32_spibus_initialize(bus);
+
+		if (spi != NULL) {
+			if (spi_register(spi, bus) >= 0) {
+				rv |= 1 << bus;;
+			}
+		}
+	}
+
+	return rv;
+}
+#endif

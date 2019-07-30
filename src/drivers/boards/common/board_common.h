@@ -1037,6 +1037,16 @@ __EXPORT bool px4_spi_bus_external(int bus);
 #endif /* BOARD_HAS_SIMPLE_HW_VERSIONING */
 
 /************************************************************************************
+ * Name: board_spi_register
+ *
+ *
+ *
+ ************************************************************************************/
+#ifdef CONFIG_SPI_DRIVER
+int spi_register(FAR struct spi_dev_s *spi, int bus);
+__EXPORT int board_spi_register(void);
+#endif
+/************************************************************************************
  * Name: board_has_bus
  *
  ************************************************************************************/
