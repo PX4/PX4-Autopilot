@@ -140,7 +140,9 @@
 #define PX4_SPI_BUS_SENSORS1   1
 #define PX4_SPI_BUS_SENSORS2   2
 #define PX4_SPI_BUS_SENSORS3   3
-#define PX4_SPI_BUS_MAG        4
+#define PX4_SPI_BUS_SENSORS4   4
+
+#define PX4_SPI_BUS_MAG        PX4_SPI_BUS_SENSORS4
 #define PX4_SPI_BUS_MEMORY     5
 #define PX4_SPI_BUS_EXTERNAL1  6
 
