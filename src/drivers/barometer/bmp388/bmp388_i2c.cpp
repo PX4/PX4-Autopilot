@@ -51,6 +51,7 @@ public:
 	int init();
 
 	uint8_t get_reg(uint8_t addr);
+	int get_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len);
 	int set_reg(uint8_t value, uint8_t addr);
 	bmp388::data_s *get_data(uint8_t addr);
 	bmp388::calibration_s *get_calibration(uint8_t addr);
@@ -92,6 +93,12 @@ uint8_t BMP388_I2C::get_reg(uint8_t addr)
 	return cmd[1];
 }
 
+int BMP388_I2C::get_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len)
+{
+	const uint8_t cmd = (uint8_t)(addr);
+	return transfer(&cmd, sizeof(cmd), buf, len);
+}
+
 int BMP388_I2C::set_reg(uint8_t value, uint8_t addr)
 {
 	uint8_t cmd[2] = { (uint8_t)(addr), value};
@@ -112,7 +119,7 @@ bmp388::data_s *BMP388_I2C::get_data(uint8_t addr)
 
 bmp388::calibration_s *BMP388_I2C::get_calibration(uint8_t addr)
 {
-	const uint8_t cmd = (uint8_t)(addr) ;
+	const uint8_t cmd = (uint8_t)(addr);
 
 	if (transfer(&cmd, sizeof(cmd), (uint8_t *)&_cal, sizeof(struct bmp388::calibration_s)) == OK) {
 		return &(_cal);

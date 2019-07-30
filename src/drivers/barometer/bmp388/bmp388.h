@@ -53,68 +53,44 @@
 #include <px4_work_queue/ScheduledWorkItem.hpp>
 
 #include "board_config.h"
+#include "bmp3_defs.h"
 
-#define BMP388_ADDR_CAL		0x88	/* address of 12x 2 bytes calibration data */
-#define BMP388_ADDR_DATA	0xF7	/* address of 2x 3 bytes p-t data */
+// From https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/self-test/bmp3_selftest.c
+#define BMP3_POST_SLEEP_WAIT_TIME         5000
+#define BMP3_POST_RESET_WAIT_TIME         2000
+#define BMP3_POST_INIT_WAIT_TIME          40000
+#define BMP3_TRIM_CRC_DATA_ADDR           0x30
+#define BPM3_CMD_SOFT_RESET               0xB6
 
-#define BMP388_ADDR_CONFIG	0xF5	/* configuration */
-#define BMP388_ADDR_CTRL	0xF4	/* controll */
-#define BMP388_ADDR_STATUS	0xF3	/* state */
-#define BMP388_ADDR_RESET	0xE0	/* reset */
-#define BMP388_ADDR_ID		0xD0	/* id */
-
-#define BMP388_VALUE_ID		0x50	/* chip id */
-#define BMP388_VALUE_RESET	0xB6	/* reset */
-
-#define BMP388_STATUS_MEASURING	(1<<3)	/* if in process of measure */
-#define BMP388_STATUS_COPING	(1<<0)	/* if in process of data copy */
-
-#define BMP388_CTRL_P0		(0x0<<2)		/* no p measure */
-#define BMP388_CTRL_P1		(0x1<<2)
-#define BMP388_CTRL_P2		(0x2<<2)
-#define BMP388_CTRL_P4		(0x3<<2)
-#define BMP388_CTRL_P8		(0x4<<2)
-#define BMP388_CTRL_P16		(0x5<<2)
-
-#define BMP388_CTRL_T0		(0x0<<5)		/* no t measure */
-#define BMP388_CTRL_T1		(0x1<<5)
-#define BMP388_CTRL_T2		(0x2<<5)
-#define BMP388_CTRL_T4		(0x3<<5)
-#define BMP388_CTRL_T8		(0x4<<5)
-#define BMP388_CTRL_T16		(0x5<<5)
-
-#define BMP388_CONFIG_F0		(0x0<<2)		/* no filter */
-#define BMP388_CONFIG_F2		(0x1<<2)
-#define BMP388_CONFIG_F4		(0x2<<2)
-#define BMP388_CONFIG_F8		(0x3<<2)
-#define BMP388_CONFIG_F16		(0x4<<2)
-
-
-#define BMP388_CTRL_MODE_SLEEP	0x0
-#define BMP388_CTRL_MODE_FORCE	0x1		/* on demand, goes to sleep after */
-#define BMP388_CTRL_MODE_NORMAL	0x3
-
-#define BMP388_MT_INIT		6400	/* max measure time of initial p + t in us */
-#define BMP388_MT			2300	/* max measure time of p or t in us */
+// https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3.c
+/*! Power control settings */
+#define POWER_CNTL            (0x0006)
+/*! Odr and filter settings */
+#define ODR_FILTER            (0x00F0)
+/*! Interrupt control settings */
+#define INT_CTRL              (0x0708)
+/*! Advance settings */
+#define ADV_SETT              (0x1800)
 
 namespace bmp388
 {
 
 #pragma pack(push,1)
 struct calibration_s {
-	uint16_t t1;
-	int16_t t2;
-	int16_t t3;
-
-	uint16_t p1;
-	int16_t p2;
-	int16_t p3;
-	int16_t p4;
-	int16_t p5;
-	int16_t p6;
-	int16_t p7;
-	int16_t p8;
-	int16_t p9;
+	uint16_t par_t1;
+	uint16_t par_t2;
+	int8_t   par_t3;
+	int16_t  par_p1;
+	int16_t  par_p2;
+	int8_t   par_p3;
+	int8_t   par_p4;
+	uint16_t par_p5;
+	uint16_t par_p6;
+	int8_t   par_p7;
+	int8_t   par_p8;
+	int16_t  par_p9;
+	int8_t   par_p10;
+	int8_t   par_p11;
 }; //calibration data
 
 struct data_s {
@@ -154,6 +130,9 @@ public:
 
 	// read reg value
 	virtual uint8_t get_reg(uint8_t addr) = 0;
+
+	// bulk read reg value
+	virtual int get_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len) = 0;
 
 	// write reg value
 	virtual int set_reg(uint8_t value, uint8_t addr) = 0;
