@@ -279,8 +279,6 @@ void VotedSensorsUpdate::parameters_update()
 				} else {
 					/* apply new scaling and offsets */
 					/* show mscale values */
-					printf("MAG ID %d parameters update\n", device_id);
-					printf("Xoff:%d, Yoff:%d, Zoff:%d\nXscale:%8.4f, Yscale:%8.4f, Zscale:%8.4f\n", (double)mscale.x_offset, (double)mscale.y_offset, (double)mscale.z_offset, (double)mscale.x_scale, (double)mscale.y_scale, (double)mscale.z_scale);
 					config_ok = apply_gyro_calibration(h, &gscale, device_id);
 
 					if (!config_ok) {
