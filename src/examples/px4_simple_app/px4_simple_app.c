@@ -53,21 +53,54 @@
 
 #include <uORB/topics/transponder_report.h>
 
-
-
-
-
+#include <drivers/drv_hrt.h>
 
 
 __EXPORT int px4_simple_app_main(int argc, char *argv[]);
 
+/*void fake_traffic(const char *callsign, float distance, float direction, float traffic_heading,
+                 float altitude_diff, float hor_velocity, float ver_velocity)
+{
+    double lat, lon;
+    waypoint_from_heading_and_distance(get_global_position()->lat, get_global_position()->lon, direction, distance, &lat,
+                       &lon);
+    float alt = get_global_position()->alt + altitude_diff;
+
+    // float vel_n = get_global_position()->vel_n;
+    // float vel_e = get_global_position()->vel_e;
+    // float vel_d = get_global_position()->vel_d;
+
+    transponder_report_s tr = {};
+    tr.timestamp = hrt_absolute_time();
+    tr.icao_address = 1234;
+    tr.lat = lat; // Latitude, expressed as degrees
+    tr.lon = lon; // Longitude, expressed as degrees
+    tr.altitude_type = 0;
+    tr.altitude = alt;
+    tr.heading = traffic_heading; //-atan2(vel_e, vel_n); // Course over ground in radians
+    tr.hor_velocity	= hor_velocity; //sqrtf(vel_e * vel_e + vel_n * vel_n); // The horizontal velocity in m/s
+    tr.ver_velocity = ver_velocity; //-vel_d; // The vertical velocity in m/s, positive is up
+    strncpy(&tr.callsign[0], callsign, sizeof(tr.callsign) - 1);
+    tr.callsign[sizeof(tr.callsign) - 1] = 0;
+    tr.emitter_type = 0; // Type from ADSB_EMITTER_TYPE enum
+    tr.tslc = 2; // Time since last communication in seconds
+    tr.flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS | transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
+           transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY |
+           transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
+           transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN; // Flags to indicate various statuses including valid data fields
+    tr.squawk = 6667;
+
+    orb_advert_t h = orb_advertise_queue(ORB_ID(transponder_report), &tr, transponder_report_s::ORB_QUEUE_LENGTH);
+    (void)orb_unadvertise(h);
+}*/
+
 int px4_simple_app_main(int argc, char *argv[])
 {
    	 PX4_INFO("Hello Sky!");
-   	 PX4_WARN("Hello Sky!");
+     PX4_WARN("This is the px4_simple_app!");
 
   	 /* subscribe to topic */
-  	  int _traffic_sub = orb_subscribe(ORB_ID(transponder_report));
+    int _traffic_sub = orb_subscribe(ORB_ID(transponder_report));
    	struct transponder_report_s tr;
 	orb_copy(ORB_ID(transponder_report), _traffic_sub, &tr);
 
@@ -76,12 +109,41 @@ int px4_simple_app_main(int argc, char *argv[])
 	PX4_WARN("flags: %d %d %u %u", tr.flags, tr.squawk, tr.altitude_type, tr.emitter_type);
 	PX4_WARN("tslc:  %u", tr.tslc);
 
-    /* advertise attitude topic */
-   
-    memset(&tr, 0, sizeof(tr));
-    orb_advert_t tratt_pub = orb_advertise(ORB_ID(transponder_report), &tr);
 
-orb_publish(ORB_ID(transponder_report), tratt_pub, &tr);
+    /*
+    //Navigator::fake_traffic("LX007", 100, 1.0f, -1.0f, 100.0f, 90.0f, 0.001f);//500
+    PX4_INFO("own new Faketraffic:");
+    struct transponder_report_s trnew = {};
+    trnew.timestamp = hrt_absolute_time();
+    trnew.icao_address = 1234;
+    trnew.lat = 47.0; // Latitude, expressed as degrees
+    trnew.lon = 8.0; // Longitude, expressed as degrees
+    trnew.altitude_type = 0;
+    trnew.altitude = 51.0f;
+    trnew.heading = 0.2f; //-atan2(vel_e, vel_n); // Course over ground in radians
+    trnew.hor_velocity	= 10.0f; //sqrtf(vel_e * vel_e + vel_n * vel_n); // The horizontal velocity in m/s
+    trnew.ver_velocity = 0.2f; //-vel_d; // The vertical velocity in m/s, positive is up
+    //strncpy(&trnew.callsign[0], callsign, sizeof(trnew.callsign) - 1);
+    //trnew.callsign[sizeof(trnew.callsign) - 1] = 0;
+    trnew.emitter_type = 0; // Type from ADSB_EMITTER_TYPE enum
+    trnew.tslc = 2; // Time since last communication in seconds
+    trnew.flags = 271;
+    trnew.squawk = 6667;
+
+    //advertise attitude topic
+    memset(&trnew, 0, sizeof(trnew));
+    //orb_advert_t h = orb_advertise_queue(ORB_ID(transponder_report), &trnew, transponder_report_s::ORB_QUEUE_LENGTH);
+    //(void)orb_unadvertise(h);
+
+    orb_advert_t h = orb_advertise(ORB_ID(transponder_report), &trnew);
+    orb_publish(ORB_ID(transponder_report), h, &trnew);*/
+
+
+
+
+
+
+
 
 
 	    /* advertise attitude topic */

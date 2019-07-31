@@ -338,10 +338,11 @@ Navigator::run()
 				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 /**********************************************************************************************************/
             } else if (cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_CONUS_AVOIDANCE){
+                mavlink_log_critical(&_mavlink_log_pub, "SP before: %f %f",get_position_setpoint_triplet()->current.lat,get_position_setpoint_triplet()->current.lon);
                 _mission.avoid(&cmd);
+                mavlink_log_critical(&_mavlink_log_pub, "SP new: %f %f",get_position_setpoint_triplet()->current.lat,get_position_setpoint_triplet()->current.lon);
 
                 publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
-
 /**********************************************************************************************************/
             } else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_REPOSITION) {
 
@@ -1071,7 +1072,7 @@ void Navigator::check_traffic_conus()
     bool changed;
     orb_check(_traffic_sub, &changed);
     while (changed) {
-
+    //if(true){
     /******************************************** Parameters ********************************************/
         //old:
         float horizontal_separation = 500;
@@ -1083,8 +1084,8 @@ void Navigator::check_traffic_conus()
         int             twait = 5; /*[s] waiting time after finish the CCAS till change back to mission*/ //may arent used here...in avoidance part?
         double           f_ds = 0.5;
         int             treact = 12;
-        int             dss = 100;
-        int             dss_drone = 50;
+        int             dss = 5;//100
+        int             dss_drone = 2;//50
         int             directionmin = 3;		/*min counts for keeping direction*/
 
     /******************************************** Sense (Positions and Veloceties) ********************************************/
@@ -1134,23 +1135,23 @@ void Navigator::check_traffic_conus()
         matrix::Vector2<double> I({I_ned.x, I_ned.y});
         matrix::Vector2<double> Vi({I_ned.vx, I_ned.vy});
 
-        // valid Positions?
+        /*// valid Positions?
         if(lat<1||lon<1||tr.lat<1||tr.lon<1){ //Ungültige U/I Werte
-            mavlink_and_console_log_info(&_mavlink_log_pub, "unvalid U or I values ");
+            mavlink_log_critical(&_mavlink_log_pub, "unvalid U or I values ");
             continue;
-        }
+        }*/
 
     /******************************************** Calculations ********************************************/
         //Init Variables:
-        double avoiding_yaw_angle= 0;
+        avoiding_yaw_angle = 0;
 
         // d-Vektor/Distanz:
         matrix::Vector2<double> Vd=I-U;
         double distance_horizontal = Vd.norm(); //distance_horizontal and d_hor same?
+        double w_d = atan2(Vd(2),Vd(1));
         //old: Hierb bekomme ich Horzontale und vertikale Distanz:
         float d_hor, d_vert;
         get_distance_to_point_global_wgs84(lat, lon, alt, tr.lat, tr.lon, tr.altitude, &d_hor, &d_vert);
-        double w_d = atan2(Vd(2),Vd(1));
 
         // Vrel:
         matrix::Vector2<double> Vrel = Vu-Vi;
@@ -1191,98 +1192,6 @@ void Navigator::check_traffic_conus()
         dalarm = (talarm*LVrel)+ds;
         */
 
-    /******************************************** Collision Detection (horrizontal) ********************************************/
-
-        // Condition 1: I vorbei (CA off)
-        double ca_complete = distance_horizontal*LVrel*cos(beta_los_rel)/LVrel;
-        if(ca_complete<0){
-            t_after_ca=t_after_ca+1;
-            if(t_after_ca>=twait){
-                mavlink_and_console_log_info(&_mavlink_log_pub, "Condition 1 - succesful avoidance %f",ca_complete);
-                cas_on = false;
-                break;
-            }
-        }
-        // Condition 2: Innerhalb des Erkennungsradius?
-        // (Falls I ausserhalb des Erkennungsradiusses ist, nicht reagieren)
-        if(distance_horizontal <= drg){
-
-            //Condition 3: innerhab der Schutzradius? (ds)
-            if(distance_horizontal<ds){
-                mavlink_log_emergency(&_mavlink_log_pub, "Condition3 - You are in ds! Diving!");
-                /*make warning! and dive!
-                 *
-                 * dive manoeuver!!! land or rtl manoeuver?
-                 *
-                */
-                break;
-            }
-
-            // Condition 4: Vrel im Conus?
-            // Conus erstellen und Vrel ueberpruefen
-
-            //Tangenten Winkeln:
-            double gammaP = asin(ds/distance_horizontal); // winkel von tangente zu los
-            double gammaN = -gammaP;
-            double wl = w_d+gammaP; // winkel zu linke tangente
-            double wr = w_d+gammaN; // winkel zu rechte tangente
-
-            if(w_Vrel >= wl || w_Vrel <= wr){ // Ausserhalb des Konusses -> keine collision:
-                // Kurs beibehalten keine Drehung
-
-                mavlink_and_console_log_info(&_mavlink_log_pub, "Condition 4a - no collision - ausserhalb Conus");
-                avoiding_yaw_angle= 0;
-
-            }else{ // Innerhalb des Konusses ---> Collision:
-                // CA is on
-                mavlink_log_critical(&_mavlink_log_pub, "Condition 4b - Conflict! - CA is on!");
-
-                if(!cas_on){//init/reset counters
-                    //lastPos = ; // save last mission point to keep going after ca
-                    collisioncounter = 0;
-                    directionR = 0;
-                    directionL = 0;
-                }
-                cas_on = true;
-                collisioncounter = collisioncounter+1;
-
-                // Ausweichrichtung und Winkel bestimmen:
-                double sig_l = fabs(gammaP-beta_los_rel);
-                double sig_r = fabs(gammaN-beta_los_rel);
-
-                if(sig_r<=sig_l){ //min-Funktion
-                    avoiding_yaw_angle= -sig_r*NN;
-                    mavlink_and_console_log_info(&_mavlink_log_pub, "turn right");
-                }else{
-                    avoiding_yaw_angle= sig_l*NN;
-                    mavlink_and_console_log_info(&_mavlink_log_pub, "turn left");
-                }
-
-                // Falls Flugzeug von Hintenkommt L-R umkehren:
-                double w_ninety = (90/180)*M_PI_F;
-                if((w_d>=(w_Vu+w_ninety)  || w_d<=(w_Vu-w_ninety)) && (beta_v < w_ninety && beta_v > (-w_ninety))){
-                        avoiding_yaw_angle= -1*avoiding_yaw_angle; // umkehren
-                        mavlink_and_console_log_info(&_mavlink_log_pub, "turn switched!!");
-                }
-
-                // Richtungszähler:
-                if(avoiding_yaw_angle<= 0){directionR = directionR+1;}
-                else{directionL = directionL+1;}
-
-                // Richtung beibehalten, nicht sschwanken:
-                if(directionR > directionmin){avoiding_yaw_angle= -1*fabs(avoiding_yaw_angle);}
-                else if(directionL > directionmin){avoiding_yaw_angle= fabs(avoiding_yaw_angle);}
-                //else{avoiding_yaw_angle= avoiding_yaw_angle;}
-
-            } // end condition 4 (collision)
-
-        }else{ // condition 2 (wenn ausserhalb von drg)
-            mavlink_and_console_log_info(&_mavlink_log_pub, "Condition 2 - out of recognigen range");
-            // do nothing
-
-        } // end condition2 Erkennungsradius d<=drg
-
-
         ++count;
         if(count==100){
             if(lat<1||lon<1){
@@ -1294,10 +1203,105 @@ void Navigator::check_traffic_conus()
              mavlink_log_critical(&_mavlink_log_pub, "I global: %f4 %f4, Vel: %f",tr.lat,tr.lon,(double)tr.hor_velocity);
              mavlink_log_critical(&_mavlink_log_pub, "I local: %f4 %f4, Vel: %f %f",I(0),I(1),(double)Vi(0),(double)Vi(1));
              mavlink_log_critical(&_mavlink_log_pub, "Vd: %f %f" ,Vd(0),Vd(1));
-             //mavlink_log_critical(&_mavlink_log_pub, "new setpoint: %f %f" ,U_goal_local(0),U_goal_local(1));
+
 
              count=0;
         }
+
+    /******************************************** Collision Detection (horrizontal) ********************************************/
+
+        // Condition 1: I vorbei (CA off)
+        double ca_complete = distance_horizontal*LVrel*cos(beta_los_rel)/LVrel;
+        if(ca_complete<0){
+            t_after_ca=t_after_ca+1;
+            if(t_after_ca>=twait){
+                mavlink_and_console_log_info(&_mavlink_log_pub, "Condition 1 - succesful avoidance %f",ca_complete);
+                cas_on = false;
+                continue;
+            }
+        }
+        // Condition 2: Innerhalb des Erkennungsradius?
+        // (Falls I ausserhalb des Erkennungsradiusses ist, nicht reagieren)
+        if(distance_horizontal > drg){
+            mavlink_and_console_log_info(&_mavlink_log_pub, "Condition 2 - out of recognigen range");
+            // do nothing
+
+        }else{ // (if distance <=drg) innerhalb regognigen range
+
+            //Condition 3: innerhab der Schutzradius? (ds)
+            if(distance_horizontal<(ds-5)){
+                mavlink_log_emergency(&_mavlink_log_pub, "Condition3 - You are in ds! Diving!");
+                /*make warning! and dive!
+                 *
+                 * dive manoeuver!!! land or rtl manoeuver?
+                 *
+                */
+                continue;
+            }else{
+
+                // Condition 4: Vrel im Conus?
+                // Conus erstellen und Vrel ueberpruefen
+
+                //Tangenten Winkeln:
+                double gammaP = asin(ds/distance_horizontal); // winkel von tangente zu los
+                double gammaN = -gammaP;
+                double wl = w_d+gammaP; // winkel zu linke tangente
+                double wr = w_d+gammaN; // winkel zu rechte tangente
+
+                if(w_Vrel >= wl || w_Vrel <= wr){ // Ausserhalb des Konusses -> keine collision:
+                    // Kurs beibehalten keine Drehung
+
+                    mavlink_and_console_log_info(&_mavlink_log_pub, "Condition 4a - no collision - ausserhalb Conus");
+                    avoiding_yaw_angle= 0;
+
+                }else{ // Innerhalb des Konusses -> Collision:
+                    // CA is on
+                    mavlink_log_critical(&_mavlink_log_pub, "Condition 4b - Conflict! - CA is on!");
+
+                    if(!cas_on){//init/reset counters
+                        //lastPos = ; // save last mission point to keep going after ca
+                        collisioncounter = 0;
+                        directionR = 0;
+                        directionL = 0;
+                    }
+                    cas_on = true;
+                    collisioncounter = collisioncounter+1;
+
+                    // Ausweichrichtung und Winkel bestimmen:
+                    double sig_l = fabs(gammaP-beta_los_rel);
+                    double sig_r = fabs(gammaN-beta_los_rel);
+
+                    if(sig_r<=sig_l){ //min-Funktion
+                        avoiding_yaw_angle= -sig_r*NN;
+                        mavlink_and_console_log_info(&_mavlink_log_pub, "turn right");
+                    }else{
+                        avoiding_yaw_angle= sig_l*NN;
+                        mavlink_and_console_log_info(&_mavlink_log_pub, "turn left");
+                    }
+
+                    // Falls Flugzeug von Hintenkommt L-R umkehren:
+                    double w_ninety = (90/180)*M_PI_F;
+                    if((w_d>=(w_Vu+w_ninety)  || w_d<=(w_Vu-w_ninety)) && (beta_v < w_ninety && beta_v > (-w_ninety))){
+                            avoiding_yaw_angle= -1*avoiding_yaw_angle; // umkehren
+                            mavlink_and_console_log_info(&_mavlink_log_pub, "turn switched!!");
+                    }
+
+                    // Richtungszähler:
+                    if(avoiding_yaw_angle<= 0){directionR = directionR+1;}
+                    else{directionL = directionL+1;}
+
+                    // Richtung beibehalten, nicht sschwanken:
+                    if(directionR > directionmin){avoiding_yaw_angle= -1*fabs(avoiding_yaw_angle);}
+                    else if(directionL > directionmin){avoiding_yaw_angle= fabs(avoiding_yaw_angle);}
+                    //else{avoiding_yaw_angle= avoiding_yaw_angle;}
+
+                } // end condition 4 (collision)
+            }//end cond 3
+
+        } // end condition2 Erkennungsradius d<=drg
+
+
+
 
     /******************************************** Collision Detection (vertical)(old) ********************************************/
 
@@ -1350,6 +1354,7 @@ void Navigator::check_traffic_conus()
                         vcmd.param1 = avoiding_yaw_angle;
                         vcmd.param2 = cas_on;
                         publish_vehicle_cmd(&vcmd);
+
                         break;
                     }
 

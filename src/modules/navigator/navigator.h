@@ -79,7 +79,7 @@
 /**
  * Number of navigation modes that need on_active/on_inactive calls
  */
-#define NAVIGATOR_MODE_ARRAY_SIZE 12//11 TK: changed from 11 to 12
+#define NAVIGATOR_MODE_ARRAY_SIZE 11//12 für avoid mode TK: changed from 11 to 12
 
 
 class Navigator : public ModuleBase<Navigator>, public ModuleParams
@@ -314,6 +314,7 @@ private:
         // diese Variablen brauchen eine längere Lebenszeit:
         int             count,t_after_ca, cyclecounter, collisioncounter, directionR, directionL = 0;
         bool            cas_on = false;
+        double          avoiding_yaw_angle{};
 
 /*********************************************************************************************************************************************/
 

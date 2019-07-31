@@ -313,7 +313,7 @@ Mission::set_closest_item_as_current()
 }
 /*****************************************************************************************************************/
 void
-Mission::avoid(vehicle_command_s *vcmd){
+Mission::avoid(struct vehicle_command_s *vcmd){
     //int vu_scaling = 2; //Scaling Factor für Vu bei neu punkt berechnung
     //bool _CAon = vcmd->param2;
     float dyaw = (float)vcmd->param1;
@@ -344,6 +344,7 @@ Mission::avoid(vehicle_command_s *vcmd){
     generate_waypoint_from_heading(&pos_sp_triplet->current, (dyaw+pos_sp_triplet->current.yaw));;
 
     _navigator->set_position_setpoint_triplet_updated();
+
 
 }// end avoid function
 /*****************************************************************************************************************/
