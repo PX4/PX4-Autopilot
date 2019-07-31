@@ -1898,6 +1898,7 @@ Commander::run()
 			main_state_before_rtl == commander_state_s::MAIN_STATE_STAB;
 		const bool in_auto_mode =
 			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
+			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL ||
 			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
 			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER;
 
