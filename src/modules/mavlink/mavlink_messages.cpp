@@ -52,6 +52,7 @@
 #include <lib/matrix/matrix/math.hpp>
 #include <px4_time.h>
 #include <systemlib/mavlink_log.h>
+#include <math.h>
 
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
@@ -704,7 +705,19 @@ protected:
 				bat_msg.energy_consumed = -1;
 				bat_msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100 : -1;
 				bat_msg.battery_remaining = (battery_status.connected) ? ceilf(battery_status.remaining * 100.0f) : -1;
-				bat_msg.temperature = (battery_status.connected) ? (int16_t)battery_status.temperature : INT16_MAX;
+
+				// isnan(...) seems to be undefined in some environments. So, only use it if it is available.
+#ifdef isnan
+				const bool temp_is_nan = isnan(battery_status.temperature);
+#else
+				// All comparisons with NaN return false. The normal way to use this to find NaNs would be:
+				//  bool isnan(float a){ return a != a;}
+				// However, with the -Werror=float-equal compiler flag, I can't compare floats directly.
+				// So, change it to >=.
+				const bool temp_is_nan = !(battery_status.temperature >= battery_status.temperature);
+#endif
+				bool temperature_valid = battery_status.connected && !temp_is_nan;
+				bat_msg.temperature = temperature_valid ? (int16_t)(battery_status.temperature * 100.0f) : INT16_MAX;
 				//bat_msg.average_current_battery = (battery_status.connected) ? battery_status.average_current_a * 100.0f : -1;
 				//bat_msg.serial_number = (battery_status.connected) ? battery_status.serial_number : 0;
 				//bat_msg.capacity = (battery_status.connected) ? battery_status.capacity : 0;
