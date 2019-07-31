@@ -278,7 +278,6 @@ void VotedSensorsUpdate::parameters_update()
 
 				} else {
 					/* apply new scaling and offsets */
-					/* show mscale values */
 					config_ok = apply_gyro_calibration(h, &gscale, device_id);
 
 					if (!config_ok) {
