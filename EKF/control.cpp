@@ -1384,7 +1384,7 @@ void Ekf::controlMagFusion()
 
 	// check for new magnetometer data that has fallen behind the fusion time horizon
 	// If we are using external vision data for heading then no magnetometer fusion is used
-	if (!_control_status.flags.ev_yaw && _mag_data_ready) {
+	if (!_control_status.flags.ev_yaw && !_control_status.flags.gps_yaw && _mag_data_ready) {
 
 		// We need to reset the yaw angle after climbing away from the ground to enable
 		// recovery from ground level magnetic interference.
