@@ -189,8 +189,8 @@ int LidarLiteI2C::probe()
 			  check for unit id. It would be better if
 			  we had a proper WHOAMI register
 			 */
-			if (read_reg(LL40LS_UNIT_ID_HIGH, id_high) == OK && id_high > 0 &&
-			    read_reg(LL40LS_UNIT_ID_LOW, id_low) == OK && id_low > 0) {
+			if (read_reg(LL40LS_UNIT_ID_HIGH, id_high) == OK &&
+			    read_reg(LL40LS_UNIT_ID_LOW, id_low) == OK) {
 				_unit_id = (uint16_t)((id_high << 8) | id_low) & 0xFFFF;
 				goto ok;
 			}
