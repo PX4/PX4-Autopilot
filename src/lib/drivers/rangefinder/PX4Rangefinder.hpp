@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,15 +31,43 @@
  *
  ****************************************************************************/
 
-/**
- * Lidar-Lite (LL40LS)
- *
- * @reboot_required true
- * @min 0
- * @max 2
- * @group Sensors
- * @value 0 Disabled
- * @value 1 PWM
- * @value 2 I2C
- */
-PARAM_DEFINE_INT32(SENS_EN_LL40LS, 0);
+#pragma once
+
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_range_finder.h>
+#include <lib/cdev/CDev.hpp>
+#include <lib/conversion/rotation.h>
+#include <uORB/uORB.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/distance_sensor.h>
+
+class PX4Rangefinder : public cdev::CDev
+{
+
+public:
+	PX4Rangefinder(uint32_t device_id, uint8_t priority, uint8_t rotation);
+	~PX4Rangefinder() override;
+
+	void set_device_type(uint8_t devtype);
+	//void set_error_count(uint64_t error_count) { _distance_sensor_pub.get().error_count = error_count; }
+
+	void set_min_distance(float distance) { _distance_sensor_pub.get().min_distance = distance; }
+	void set_max_distance(float distance) { _distance_sensor_pub.get().max_distance = distance; }
+
+	void set_hfov(float fov) { _distance_sensor_pub.get().h_fov = fov; }
+	void set_vfov(float fov) { _distance_sensor_pub.get().v_fov = fov; }
+	void set_fov(float fov) { set_hfov(fov); set_vfov(fov); }
+
+	void update(hrt_abstime timestamp, float distance, int8_t quality = -1);
+
+	void print_status();
+
+private:
+
+	uORB::PublicationData<distance_sensor_s>	_distance_sensor_pub;
+
+	const uint8_t			_rotation;
+
+	int			_class_device_instance{-1};
+
+};
