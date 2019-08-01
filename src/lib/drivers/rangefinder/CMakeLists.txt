@@ -31,18 +31,4 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE modules__sih
-	MAIN sih
-	STACK_MAIN 1200
-	STACK_MAX 1024
-	COMPILE_FLAGS
-	SRCS
-		sih.cpp
-	DEPENDS
-		mathlib
-		drivers_accelerometer
-		drivers_barometer
-		drivers_gyroscope
-		drivers_magnetometer
-	)
+px4_add_library(drivers_rangefinder PX4Rangefinder.cpp)

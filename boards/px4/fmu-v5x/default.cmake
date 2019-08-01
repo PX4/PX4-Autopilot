@@ -12,7 +12,7 @@ px4_add_board(
 	UAVCAN_INTERFACES 2
 
 	SERIAL_PORTS
-		GPS1:/dev/ttyS1
+		GPS1:/dev/ttyS0
 		TEL1:/dev/ttyS6
 		TEL2:/dev/ttyS4
 		TEL3:/dev/ttyS2

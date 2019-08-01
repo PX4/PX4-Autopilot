@@ -314,6 +314,9 @@ INA226::init()
 
 	if (!_mode_trigged) {
 		ret = write(INA226_REG_CONFIGURATION, _config);
+
+	} else {
+		ret = OK;
 	}
 
 	set_device_address(INA226_BASEADDR);	/* set I2c Address */

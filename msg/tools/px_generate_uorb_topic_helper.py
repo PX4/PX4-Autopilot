@@ -303,6 +303,8 @@ def print_field(field):
         print("char device_id_buffer[80];")
         print("device::Device::device_id_print_buffer(device_id_buffer, sizeof(device_id_buffer), message.device_id);")
         print("PX4_INFO_RAW(\"\\tdevice_id: %d (%s) \\n\", message.device_id, device_id_buffer);")
+    elif is_array and 'char' in field.type:
+        print("PX4_INFO_RAW(\"\\t" + field.name + ": \\\"%." + str(array_length) + "s\\\" \\n\", message." + field.name + ");")
     else:
         print("PX4_INFO_RAW(\"\\t" + field.name + ": " +
               c_type + "\\n\", " + field_name + ");")
