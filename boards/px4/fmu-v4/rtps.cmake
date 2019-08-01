@@ -32,11 +32,12 @@ px4_add_board(
 		lights/rgbled_ncp5623c
 		magnetometer # all available magnetometer drivers
 		mkblctrl
+		#optical_flow # all available optical flow drivers
+		optical_flow/px4flow
 		pca9685
 		protocol_splitter
 		pwm_input
 		pwm_out_sim
-		px4flow
 		px4fmu
 		rc_input
 		stm32
@@ -57,8 +58,7 @@ px4_add_board(
 		events
 		fw_att_control
 		fw_pos_control_l1
-		gnd_att_control
-		gnd_pos_control
+		rover_pos_control
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -70,6 +70,7 @@ px4_add_board(
 		micrortps_bridge
 		navigator
 		sensors
+		sih
 		vmount
 		vtol_att_control
 		wind_estimator
@@ -80,6 +81,7 @@ px4_add_board(
 		dumpfile
 		esc_calib
 		hardfault_log
+		i2cdetect
 		led_control
 		mixer
 		motor_ramp

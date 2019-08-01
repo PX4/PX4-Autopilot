@@ -1,10 +1,10 @@
-Please use [PX4 Discuss](http://discuss.px4.io/) or [Slack](http://slack.px4.io/) to align on pull requests if necessary.
-
-**Test data / coverage**
-Logs uploaded to http://logs.px4.io or screenshots.
+Please use [PX4 Discuss](http://discuss.px4.io/) or [Slack](http://slack.px4.io/) to align on pull requests if necessary. You can then open draft pull requests to get early feedback.
 
 **Describe problem solved by the proposed pull request**
-A clear and concise description of the problem, if any, this feature will solve. E.g. I'm always frustrated when ...
+A clear and concise description of the problem this proposed change will solve. E.g. For this use case I ran into...
+
+**Test data / coverage**
+How was it tested? What cases were covered? Logs uploaded to https://review.px4.io/ and screenshots of the important plot parts.
 
 **Describe your preferred solution**
 A clear and concise description of what you have implemented.
@@ -13,4 +13,4 @@ A clear and concise description of what you have implemented.
 A clear and concise description of alternative solutions or features you've considered.
 
 **Additional context**
-Add any other context or screenshots for the feature request here.
+Add any other related context or media.

@@ -40,6 +40,7 @@ px4_add_board(
 		stm32/adc
 		stm32/tone_alarm
 		telemetry # all available telemetry drivers
+		tone_alarm
 		uavcan
 
 	MODULES
@@ -65,6 +66,7 @@ px4_add_board(
 		dumpfile
 		esc_calib
 		hardfault_log
+		i2cdetect
 		led_control
 		mixer
 		motor_ramp

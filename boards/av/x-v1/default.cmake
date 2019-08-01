@@ -3,6 +3,7 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR av
 	MODEL x-v1
+	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
@@ -19,8 +20,8 @@ px4_add_board(
 	DRIVERS
 		barometer # all available barometer drivers
 		batt_smbus
-		camera_trigger
 		camera_capture
+		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
@@ -31,21 +32,21 @@ px4_add_board(
 		irlock
 		lights/blinkm
 		#lights/oreoled
+		#lights/pca8574
 		#lights/rgbled
+		#lights/rgbled_ncp5623c
 		#lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		#md25
 		mkblctrl
-		#lights/pca8574
+		optical_flow # all available optical flow drivers
 		pca9685
-		#pmw3901
-		protocol_splitter
+		#protocol_splitter
 		#pwm_input
 		pwm_out_sim
-		px4flow
 		px4fmu
 		rc_input
-		roboclaw
+		#roboclaw
 		stm32
 		stm32/adc
 		#stm32/tone_alarm
@@ -64,8 +65,7 @@ px4_add_board(
 		events
 		fw_att_control
 		fw_pos_control_l1
-		gnd_att_control
-		gnd_pos_control
+		rover_pos_control
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -76,16 +76,19 @@ px4_add_board(
 		mc_pos_control
 		navigator
 		sensors
+		sih
 		vmount
 		vtol_att_control
 		wind_estimator
 
 	SYSTEMCMDS
-		bl_update
+		#bl_update
 		config
+		dmesg
 		dumpfile
 		esc_calib
 		hardfault_log
+		i2cdetect
 		led_control
 		mixer
 		motor_ramp
@@ -102,7 +105,6 @@ px4_add_board(
 		top
 		topic_listener
 		tune_control
-		#usb_connected
 		ver
 
 	EXAMPLES

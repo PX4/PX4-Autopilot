@@ -46,9 +46,10 @@
 #include <px4_defines.h>
 #include <matrix/math.hpp>
 
+
 VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_attc(att_controller),
-	_vtol_mode(ROTARY_WING)
+	_vtol_mode(mode::ROTARY_WING)
 {
 	_v_att = _attc->get_att();
 	_v_att_sp = _attc->get_att_sp();
@@ -95,6 +96,13 @@ bool VtolType::init()
 		return false;
 	}
 
+	ret = px4_ioctl(fd, PWM_SERVO_GET_MIN_PWM, (long unsigned int)&_min_mc_pwm_values);
+
+	if (ret != PX4_OK) {
+		PX4_ERR("failed getting min values");
+		px4_close(fd);
+		return false;
+	}
 
 	ret = px4_ioctl(fd, PWM_SERVO_GET_DISARMED_PWM, (long unsigned int)&_disarmed_pwm_values);
 
@@ -103,6 +111,8 @@ bool VtolType::init()
 		px4_close(fd);
 		return false;
 	}
+
+	px4_close(fd);
 
 	return true;
 
@@ -114,8 +124,8 @@ void VtolType::update_mc_state()
 		flag_idle_mc = set_idle_mc();
 	}
 
-	if (_motor_state != ENABLED) {
-		_motor_state = VtolType::set_motor_state(_motor_state, ENABLED);
+	if (_motor_state != motor_state::ENABLED) {
+		_motor_state = VtolType::set_motor_state(_motor_state, motor_state::ENABLED);
 	}
 
 	// copy virtual attitude setpoint to real attitude setpoint
@@ -133,8 +143,8 @@ void VtolType::update_fw_state()
 		flag_idle_mc = !set_idle_fw();
 	}
 
-	if (_motor_state != DISABLED) {
-		_motor_state = VtolType::set_motor_state(_motor_state, DISABLED);
+	if (_motor_state != motor_state::DISABLED) {
+		_motor_state = VtolType::set_motor_state(_motor_state, motor_state::DISABLED);
 	}
 
 	// copy virtual attitude setpoint to real attitude setpoint
@@ -239,8 +249,14 @@ bool VtolType::set_idle_mc()
 	struct pwm_output_values pwm_values;
 	memset(&pwm_values, 0, sizeof(pwm_values));
 
-	for (int i = 0; i < _params->vtol_motor_count; i++) {
-		pwm_values.values[i] = pwm_value;
+	for (int i = 0; i < num_outputs_max; i++) {
+		if (is_channel_set(i, _params->vtol_motor_id)) {
+			pwm_values.values[i] = pwm_value;
+
+		} else {
+			pwm_values.values[i] = _min_mc_pwm_values.values[i];
+		}
+
 		pwm_values.channel_count++;
 	}
 
@@ -253,8 +269,14 @@ bool VtolType::set_idle_fw()
 
 	memset(&pwm_values, 0, sizeof(pwm_values));
 
-	for (int i = 0; i < _params->vtol_motor_count; i++) {
-		pwm_values.values[i] = PWM_MOTOR_OFF;
+	for (int i = 0; i < num_outputs_max; i++) {
+		if (is_channel_set(i, _params->vtol_motor_id)) {
+			pwm_values.values[i] = PWM_MOTOR_OFF;
+
+		} else {
+			pwm_values.values[i] = _min_mc_pwm_values.values[i];
+		}
+
 		pwm_values.channel_count++;
 	}
 
@@ -294,39 +316,39 @@ bool VtolType::apply_pwm_limits(struct pwm_output_values &pwm_values, pwm_limit_
 motor_state VtolType::set_motor_state(const motor_state current_state, const motor_state next_state, const int value)
 {
 	struct pwm_output_values pwm_values = {};
-	pwm_values.channel_count = _params->vtol_motor_count;
+	pwm_values.channel_count = num_outputs_max;
 
 	// per default all motors are running
-	for (int i = 0; i < _params->vtol_motor_count; i++) {
+	for (int i = 0; i < num_outputs_max; i++) {
 		pwm_values.values[i] = _max_mc_pwm_values.values[i];
 	}
 
 	switch (next_state) {
-	case ENABLED:
+	case motor_state::ENABLED:
 		break;
 
-	case DISABLED:
-		for (int i = 0; i < _params->vtol_motor_count; i++) {
-			if (is_motor_off_channel(i)) {
+	case motor_state::DISABLED:
+		for (int i = 0; i < num_outputs_max; i++) {
+			if (is_channel_set(i, _params->fw_motors_off)) {
 				pwm_values.values[i] = _disarmed_pwm_values.values[i];
 			}
 		}
 
 		break;
 
-	case IDLE:
+	case motor_state::IDLE:
 
-		for (int i = 0; i < _params->vtol_motor_count; i++) {
-			if (is_motor_off_channel(i)) {
+		for (int i = 0; i < num_outputs_max; i++) {
+			if (is_channel_set(i, _params->vtol_motor_id)) {
 				pwm_values.values[i] = _params->idle_pwm_mc;
 			}
 		}
 
 		break;
 
-	case VALUE:
-		for (int i = 0; i < _params->vtol_motor_count; i++) {
-			if (is_motor_off_channel(i)) {
+	case motor_state::VALUE:
+		for (int i = 0; i < num_outputs_max; i++) {
+			if (is_channel_set(i, _params->fw_motors_off)) {
 				pwm_values.values[i] = value;
 			}
 		}
@@ -342,14 +364,15 @@ motor_state VtolType::set_motor_state(const motor_state current_state, const mot
 	}
 }
 
-bool VtolType::is_motor_off_channel(const int channel)
+bool VtolType::is_channel_set(const int channel, const int target)
 {
 	int channel_bitmap = 0;
 
 	int tmp;
-	int channels = _params->fw_motors_off;
+	int channels = target;
 
-	for (int i = 0; i < _params->vtol_motor_count; ++i) {
+
+	for (int i = 0; i < num_outputs_max; ++i) {
 		tmp = channels % 10;
 
 		if (tmp == 0) {

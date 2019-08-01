@@ -50,7 +50,7 @@ OUTPUT_ARCH(arm)
 ENTRY(__start)		/* treat __start as the anchor for dead code stripping */
 EXTERN(_vectors)	/* force the vectors to be included in the output */
 
-/* 
+/*
  * Ensure that abort() is present in the final object.  The exception handling
  * code pulled in by libgcc.a requires it (and that code cannot be easily avoided).
  */
@@ -61,10 +61,10 @@ SECTIONS
 	.text : {
 		_stext = ABSOLUTE(.);
 		*(.vectors)
-		*(.text .text.*)        
+		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
-		*(.rodata .rodata.*)        
+		*(.rodata .rodata.*)
 		*(.gnu.linkonce.t.*)
 		*(.glue_7)
 		*(.glue_7t)
@@ -72,7 +72,7 @@ SECTIONS
 		*(.gcc_except_table)
 		*(.gnu.linkonce.r.*)
 		_etext = ABSOLUTE(.);
-		/* 
+		/*
 		 * This is a hack to make the newlib libm __errno() call
 		 * use the NuttX get_errno_ptr() function.
 		 */

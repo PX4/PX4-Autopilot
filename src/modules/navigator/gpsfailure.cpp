@@ -85,26 +85,19 @@ GpsFailure::on_active()
 			 * navigator has to publish an attitude setpoint */
 			vehicle_attitude_setpoint_s att_sp = {};
 			att_sp.timestamp = hrt_absolute_time();
-			att_sp.roll_body = math::radians(_param_openlooploiter_roll.get());
-			att_sp.pitch_body = math::radians(_param_openlooploiter_pitch.get());
-			att_sp.thrust_body[0] = _param_openlooploiter_thrust.get();
+			att_sp.roll_body = math::radians(_param_nav_gpsf_r.get());
+			att_sp.pitch_body = math::radians(_param_nav_gpsf_p.get());
+			att_sp.thrust_body[0] = _param_nav_gpsf_tr.get();
 
 			Quatf q(Eulerf(att_sp.roll_body, att_sp.pitch_body, 0.0f));
 			q.copyTo(att_sp.q_d);
 			att_sp.q_d_valid = true;
 
-			if (_att_sp_pub != nullptr) {
-				/* publish att sp*/
-				orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &att_sp);
-
-			} else {
-				/* advertise and publish */
-				_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
-			}
+			_att_sp_pub.publish(att_sp);
 
 			/* Measure time */
-			if ((_param_loitertime.get() > FLT_EPSILON) &&
-			    (hrt_elapsed_time(&_timestamp_activation) > _param_loitertime.get() * 1e6f)) {
+			if ((_param_nav_gpsf_lt.get() > FLT_EPSILON) &&
+			    (hrt_elapsed_time(&_timestamp_activation) > _param_nav_gpsf_lt.get() * 1e6f)) {
 				/* no recovery, advance the state machine */
 				PX4_WARN("GPS not recovered, switching to next failure state");
 				advance_gpsf();

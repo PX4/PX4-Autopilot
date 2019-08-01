@@ -40,22 +40,8 @@
 
 #include <float.h>
 
-#include <px4_config.h>
-
-#include <drivers/device/i2c.h>
-
-#include <systemlib/err.h>
-#include <parameters/param.h>
-#include <perf/perf_counter.h>
-#include <px4_getopt.h>
-
-#include <drivers/drv_airspeed.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/device/ringbuffer.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/differential_pressure.h>
 #include <drivers/airspeed/airspeed.h>
+#include <px4_getopt.h>
 
 /* I2C bus address */
 #define I2C_ADDRESS	0x75	/* 7-bit address. 8-bit address is 0xEA */
@@ -84,9 +70,9 @@ protected:
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
 	*/
-	virtual void	cycle();
-	virtual int	measure();
-	virtual int	collect();
+	void	Run() override;
+	int	measure() override;
+	int	collect() override;
 
 };
 
@@ -174,7 +160,7 @@ ETSAirspeed::collect()
 }
 
 void
-ETSAirspeed::cycle()
+ETSAirspeed::Run()
 {
 	int ret;
 
@@ -198,14 +184,10 @@ ETSAirspeed::cycle()
 		/*
 		 * Is there a collect->measure gap?
 		 */
-		if (_measure_ticks > USEC2TICK(CONVERSION_INTERVAL)) {
+		if (_measure_interval > CONVERSION_INTERVAL) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&Airspeed::cycle_trampoline,
-				   this,
-				   _measure_ticks - USEC2TICK(CONVERSION_INTERVAL));
+			ScheduleDelayed(_measure_interval - CONVERSION_INTERVAL);
 
 			return;
 		}
@@ -224,11 +206,7 @@ ETSAirspeed::cycle()
 	_collect_phase = true;
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&Airspeed::cycle_trampoline,
-		   this,
-		   USEC2TICK(CONVERSION_INTERVAL));
+	ScheduleDelayed(CONVERSION_INTERVAL);
 }
 
 /**

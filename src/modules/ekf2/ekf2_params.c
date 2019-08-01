@@ -607,7 +607,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * Set bits in the following positions to enable:
  * 0 : Set to true to use GPS data if available
  * 1 : Set to true to use optical flow data if available
- * 2 : Set to true to inhibit IMU bias estimation
+ * 2 : Set to true to inhibit IMU delta velocity bias estimation
  * 3 : Set to true to enable vision position fusion
  * 4 : Set to true to enable vision yaw fusion. Cannot be used if bit position 7 is true.
  * 5 : Set to true to enable multi-rotor drag specific force fusion
@@ -1129,6 +1129,7 @@ PARAM_DEFINE_INT32(EKF2_RNG_AID, 0);
  * @group EKF2
  * @min 0.1
  * @max 2
+ * @unit m/s
  */
 PARAM_DEFINE_FLOAT(EKF2_RNG_A_VMAX, 1.0f);
 
@@ -1141,6 +1142,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_A_VMAX, 1.0f);
  * @group EKF2
  * @min 1.0
  * @max 10.0
+ * @unit m
  */
 PARAM_DEFINE_FLOAT(EKF2_RNG_A_HMAX, 5.0f);
 
@@ -1355,3 +1357,17 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_TAU, 10.0f);
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_MOVE_TEST, 1.0f);
+
+/**
+ * Required GPS health time on startup
+ *
+ * Minimum continuous period without GPS failure required to mark a healthy GPS status.
+ * It can be reduced to speed up initialization, but it's recommended to keep this unchanged for a vehicle.
+ *
+ * @group EKF2
+ * @min 0.1
+ * @decimal 1
+ * @unit s
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(EKF2_REQ_GPS_H, 10.0f);

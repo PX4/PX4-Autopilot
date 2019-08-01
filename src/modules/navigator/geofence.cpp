@@ -224,8 +224,8 @@ bool Geofence::checkAll(double lat, double lon, float altitude)
 
 	if (isHomeRequired() && _navigator->home_position_valid()) {
 
-		const float max_horizontal_distance = _param_max_hor_distance.get();
-		const float max_vertical_distance = _param_max_ver_distance.get();
+		const float max_horizontal_distance = _param_gf_max_hor_dist.get();
+		const float max_vertical_distance = _param_gf_max_ver_dist.get();
 
 		const double home_lat = _navigator->get_home_position()->lat;
 		const double home_lon = _navigator->get_home_position()->lon;
@@ -268,7 +268,7 @@ bool Geofence::checkAll(double lat, double lon, float altitude)
 	} else {
 		_outside_counter++;
 
-		if (_outside_counter > _param_counter_threshold.get()) {
+		if (_outside_counter > _param_gf_count.get()) {
 			return inside_fence;
 
 		} else {
@@ -568,8 +568,8 @@ int Geofence::clearDm()
 
 bool Geofence::isHomeRequired()
 {
-	bool max_horizontal_enabled = (_param_max_hor_distance.get() > FLT_EPSILON);
-	bool max_vertical_enabled = (_param_max_ver_distance.get() > FLT_EPSILON);
+	bool max_horizontal_enabled = (_param_gf_max_hor_dist.get() > FLT_EPSILON);
+	bool max_vertical_enabled = (_param_gf_max_ver_dist.get() > FLT_EPSILON);
 	bool geofence_action_rtl = (getGeofenceAction() == geofence_result_s::GF_ACTION_RTL);
 
 	return max_horizontal_enabled || max_vertical_enabled || geofence_action_rtl;

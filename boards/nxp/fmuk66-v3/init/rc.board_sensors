@@ -4,20 +4,21 @@
 #------------------------------------------------------------------------------
 
 
-# External I2C bus
-hmc5883 -C -X start
-
 # Possible external compasses
-ist8310 -C -b 2 start
-
-# External I2C bus
+hmc5883 -C -X start
 lis3mdl -X start
+ist8310 -C -b 1 start
+qmc5883 -X start
 
-# Onboard I2C (baro) but an external bus on V3 RC15
-mpl3115a2 -X start
+# Internal Mag I2C bus roll 180, yaw 90
+bmm150 -R 10 start
+
+# Onboard I2C baros
+bmp280 -I start
+mpl3115a2 -I start
 
 # Internal SPI (accel + mag)
 fxos8701cq start -R 0
 
 # Internal SPI (gyro)
-fxas21002c start -R 0
+fxas21002c start

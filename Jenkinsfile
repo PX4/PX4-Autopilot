@@ -23,6 +23,7 @@ pipeline {
               cd catkin_ws;
               git -C ${WORKSPACE}/catkin_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
               git clone --recursive ${WORKSPACE}/catkin_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
+              git -C ${WORKSPACE}/catkin_ws/src/Firmware fetch --tags;
               source /opt/ros/melodic/setup.bash;
               catkin init;
               catkin build -j$(nproc) -l$(nproc);
@@ -37,6 +38,9 @@ pipeline {
           post {
             always {
               sh 'rm -rf catkin_ws'
+            }
+            failure {
+              archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.xml, .ros/**/*.log')
             }
           }
           options {
@@ -60,6 +64,7 @@ pipeline {
               cd colcon_ws;
               git -C ${WORKSPACE}/colcon_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
               git clone --recursive ${WORKSPACE}/colcon_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
+              git -C ${WORKSPACE}/colcon_ws/src/Firmware fetch --tags;
               source /opt/ros/bouncy/setup.sh;
               source /opt/ros/melodic/setup.sh;
               colcon build --event-handlers console_direct+ --symlink-install;
@@ -145,6 +150,72 @@ pipeline {
           }
         }
 
+        stage('No-ninja px4_fmu-v2') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2019-03-08'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'NO_NINJA_BUILD=1 make px4_fmu-v2_default'
+            sh 'ccache -s'
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
+
+        stage('No-ninja px4_fmu-v5') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-nuttx:2019-03-08'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'NO_NINJA_BUILD=1 make px4_fmu-v5_default'
+            sh 'ccache -s'
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
+
+        stage('No-ninja SITL build') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base-bionic:2019-03-08'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'NO_NINJA_BUILD=1 make px4_sitl_default'
+            sh 'ccache -s'
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
+
         stage('SITL unit tests') {
           agent {
             docker {
@@ -177,6 +248,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
+            sh 'git fetch --tags'
             sh 'make scan-build'
             // publish html
             publishHTML target: [
@@ -235,6 +307,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
+            sh 'git fetch --tags'
             sh 'make cppcheck'
             // publish html
             publishHTML target: [
@@ -272,6 +345,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
+            sh 'git fetch --tags'
             sh 'make px4_fmu-v2_default stack_check'
           }
           post {

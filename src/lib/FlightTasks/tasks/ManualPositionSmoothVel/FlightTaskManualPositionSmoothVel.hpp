@@ -49,7 +49,7 @@ public:
 
 	virtual ~FlightTaskManualPositionSmoothVel() = default;
 
-	bool activate() override;
+	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
 	void reActivate() override;
 
 protected:
@@ -57,19 +57,14 @@ protected:
 	virtual void _updateSetpoints() override;
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualPosition,
-					(ParamFloat<px4::params::MPC_JERK_MIN>) _jerk_min, /**< Minimum jerk (velocity-based if > 0) */
-					(ParamFloat<px4::params::MPC_JERK_MAX>) _jerk_max,
-					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) MPC_ACC_UP_MAX,
-					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) MPC_ACC_DOWN_MAX
+					(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
+					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
+					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max
 				       )
 private:
-
-	enum class Axes {XY, XYZ};
-
-	/**
-	 * Reset the required axes. when force_z_zero is set to true, the z derivatives are set to sero and not to the estimated states
-	 */
-	void reset(Axes axes, bool force_z_zero = false);
+	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
+	void _resetPositionLock();
+	void _initEkfResetCounters();
 	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
 
 	VelocitySmoothing _smoothing[3]; ///< Smoothing in x, y and z directions

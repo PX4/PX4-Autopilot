@@ -31,31 +31,26 @@
  *
  ****************************************************************************/
 
-#include <stdint.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/conversions.h>
-
-#include <nuttx/wqueue.h>
-
 #include <board_config.h>
 #include <drivers/drv_hrt.h>
-
 #include <drivers/device/ringbuffer.h>
 #include <drivers/device/integrator.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/drv_mag.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
+#include <lib/ecl/geo/geo.h>
+#include <lib/perf/perf_counter.h>
+#include <px4_config.h>
+#include <px4_getopt.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <sys/types.h>
+#include <systemlib/conversions.h>
 #include <systemlib/err.h>
-
+#include <systemlib/px4_macros.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/debug_key_value.h>
 
-#include "mag.h"
 #include "accel.h"
 #include "gyro.h"
+#include "mag.h"
 
 
 #if defined(PX4_I2C_OBDEV_MPU9250) || defined(PX4_I2C_BUS_EXPANSION)
@@ -374,7 +369,7 @@ class ICM20948_mag;
 class ICM20948_accel;
 class ICM20948_gyro;
 
-class ICM20948
+class ICM20948 : public px4::ScheduledWorkItem
 {
 public:
 	ICM20948(device::Device *interface, device::Device *mag_interface, const char *path_accel, const char *path_gyro,
@@ -402,6 +397,8 @@ protected:
 	friend class ICM20948_mag;
 	friend class ICM20948_gyro;
 
+	void Run() override;
+
 private:
 	ICM20948_accel   *_accel;
 	ICM20948_gyro	*_gyro;
@@ -410,16 +407,6 @@ private:
 	bool
 	_magnetometer_only;     /* To disable accel and gyro reporting if only magnetometer is used (e.g. as external magnetometer) */
 
-#if defined(USE_I2C)
-	/*
-	 * SPI bus based device use hrt
-	 * I2C bus needs to use work queue
-	 */
-	work_s			_work{};
-#endif
-	bool 			_use_hrt;
-
-	struct hrt_call		_call {};
 	unsigned		_call_interval;
 
 	ringbuffer::RingBuffer	*_accel_reports;
@@ -514,52 +501,6 @@ private:
 	 * Resets the main chip (excluding the magnetometer if any).
 	 */
 	int			reset_mpu();
-
-
-#if defined(USE_I2C)
-	/**
-	 * When the I2C interfase is on
-	 * Perform a poll cycle; collect from the previous measurement
-	 * and start a new one.
-	 *
-	 * This is the heart of the measurement state machine.  This function
-	 * alternately starts a measurement, or collects the data from the
-		 * previous measurement.
-		 *
-		 * When the interval between measurements is greater than the minimum
-		 * measurement interval, a gap is inserted between collection
-		 * and measurement to provide the most recent measurement possible
-		 * at the next interval.
-		 */
-	void			cycle();
-
-	/**
-	 * Static trampoline from the workq context; because we don't have a
-	 * generic workq wrapper yet.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		cycle_trampoline(void *arg);
-
-	void use_i2c(bool on_true) { _use_hrt = !on_true; }
-
-#endif
-
-	bool is_i2c(void) { return !_use_hrt; }
-
-
-
-
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		measure_trampoline(void *arg);
 
 	/**
 	 * Fetch measurements from the sensor and update the report buffers.

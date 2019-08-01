@@ -54,7 +54,6 @@
 #include <px4_tasks.h>
 #include <px4_posix.h>
 
-#include <arch/board/board.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
 #include <lib/ecl/geo/geo.h>
@@ -62,6 +61,7 @@
 #include <matrix/math.hpp>
 #include <parameters/param.h>
 
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/manual_control_setpoint.h>
@@ -123,21 +123,22 @@ private:
 	int	_control_task{-1};		//task handle for VTOL attitude controller
 
 	/* handlers for subscriptions */
-	int	_actuator_inputs_fw{-1};	//topic on which the fw_att_controller publishes actuator inputs
-	int	_actuator_inputs_mc{-1};	//topic on which the mc_att_controller publishes actuator inputs
-	int	_airspeed_sub{-1};			// airspeed subscription
-	int	_fw_virtual_att_sp_sub{-1};
-	int	_land_detected_sub{-1};
-	int	_local_pos_sp_sub{-1};			// setpoint subscription
-	int	_local_pos_sub{-1};			// sensor subscription
-	int	_manual_control_sp_sub{-1};	//manual control setpoint subscription
-	int	_mc_virtual_att_sp_sub{-1};
-	int	_params_sub{-1};			//parameter updates subscription
-	int	_pos_sp_triplet_sub{-1};			// local position setpoint subscription
-	int	_tecs_status_sub{-1};
-	int	_v_att_sub{-1};				//vehicle attitude subscription
-	int	_v_control_mode_sub{-1};	//vehicle control mode subscription
-	int	_vehicle_cmd_sub{-1};
+	int _actuator_inputs_fw{-1};	//topic on which the fw_att_controller publishes actuator inputs
+	int _actuator_inputs_mc{-1};	//topic on which the mc_att_controller publishes actuator inputs
+
+	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};			// airspeed subscription
+	uORB::Subscription _fw_virtual_att_sp_sub{ORB_ID(fw_virtual_attitude_setpoint)};
+	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _local_pos_sp_sub{ORB_ID(vehicle_local_position_setpoint)};			// setpoint subscription
+	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};			// sensor subscription
+	uORB::Subscription _manual_control_sp_sub{ORB_ID(manual_control_setpoint)};	//manual control setpoint subscription
+	uORB::Subscription _mc_virtual_att_sp_sub{ORB_ID(mc_virtual_attitude_setpoint)};
+	uORB::Subscription _params_sub{ORB_ID(parameter_update)};			//parameter updates subscription
+	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};			// local position setpoint subscription
+	uORB::Subscription _tecs_status_sub{ORB_ID(tecs_status)};
+	uORB::Subscription _v_att_sub{ORB_ID(vehicle_attitude)};		//vehicle attitude subscription
+	uORB::Subscription _v_control_mode_sub{ORB_ID(vehicle_control_mode)};	//vehicle control mode subscription
+	uORB::Subscription _vehicle_cmd_sub{ORB_ID(vehicle_command)};
 
 	//handlers for publishers
 	orb_advert_t	_actuators_0_pub{nullptr};		//input for the mixer (roll,pitch,yaw,thrust)
@@ -174,7 +175,7 @@ private:
 
 	struct {
 		param_t idle_pwm_mc;
-		param_t vtol_motor_count;
+		param_t vtol_motor_id;
 		param_t vtol_fw_permanent_stab;
 		param_t vtol_type;
 		param_t elevons_mc_lock;
@@ -196,7 +197,6 @@ private:
 		param_t fw_motors_off;
 		param_t diff_thrust;
 		param_t diff_thrust_scale;
-		param_t v19_vt_rolldir;
 	} _params_handles{};
 
 	/* for multicopters it is usual to have a non-zero idle speed of the engines
@@ -212,20 +212,9 @@ private:
 	void 		task_main();	//main task
 	static int	task_main_trampoline(int argc, char *argv[]);	//Shim for calling task_main from task_create.
 
-	void		land_detected_poll();
-	void		tecs_status_poll();
-	void		vehicle_attitude_poll();  //Check for attitude updates.
 	void		vehicle_cmd_poll();
-	void		vehicle_control_mode_poll();	//Check for changes in vehicle control mode.
-	void		vehicle_manual_poll();			//Check for changes in manual inputs.
 	void 		actuator_controls_fw_poll();	//Check for changes in fw_attitude_control output
 	void 		actuator_controls_mc_poll();	//Check for changes in mc_attitude_control output
-	void 		fw_virtual_att_sp_poll();
-	void 		mc_virtual_att_sp_poll();
-	void 		pos_sp_triplet_poll();		// Check for changes in position setpoint values
-	void 		vehicle_airspeed_poll();		// Check for changes in airspeed
-	void 		vehicle_local_pos_poll();		// Check for changes in sensor values
-	void 		vehicle_local_pos_sp_poll();		// Check for changes in setpoint values
 
 	int 		parameters_update();			//Update local parameter cache
 

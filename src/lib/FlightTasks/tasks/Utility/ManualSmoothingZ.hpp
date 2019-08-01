@@ -82,9 +82,9 @@ public:
 	 * Overwrite methods:
 	 * Needed if different parameter values than default required.
 	 */
-	void overwriteAccelerationUp(float acc_max_up) { _acc_max_up.set(acc_max_up); }
-	void overwriteAccelerationDown(float acc_max_down)  {_acc_max_down.set(acc_max_down); }
-	void overwriteJerkMax(float jerk_max)  {_jerk_max.set(jerk_max); }
+	void overwriteAccelerationUp(float acc_max_up) { _param_mpc_acc_up_max.set(acc_max_up); }
+	void overwriteAccelerationDown(float acc_max_down)  {_param_mpc_acc_down_max.set(acc_max_down); }
+	void overwriteJerkMax(float jerk_max)  {_param_mpc_jerk_max.set(jerk_max); }
 
 private:
 	/**
@@ -126,8 +126,8 @@ private:
 	float _vel_sp_prev; /**< previous velocity setpoint */
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _acc_max_up,
-		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _acc_max_down,
-		(ParamFloat<px4::params::MPC_JERK_MAX>) _jerk_max
+		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
+		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max,
+		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max
 	)
 };

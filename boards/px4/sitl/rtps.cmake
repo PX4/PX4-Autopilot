@@ -8,10 +8,10 @@ px4_add_board(
 
 	DRIVERS
 		#barometer # all available barometer drivers
-		batt_smbus
+		#batt_smbus
 		camera_trigger
-		differential_pressure # all available differential pressure drivers
-		distance_sensor # all available distance sensor drivers
+		#differential_pressure # all available differential pressure drivers
+		#distance_sensor # all available distance sensor drivers
 		gps
 		#imu # all available imu drivers
 		#magnetometer # all available magnetometer drivers
@@ -30,8 +30,7 @@ px4_add_board(
 		events
 		fw_att_control
 		fw_pos_control_l1
-		gnd_att_control
-		gnd_pos_control
+		rover_pos_control
 		land_detector
 		landing_target_estimator
 		load_mon

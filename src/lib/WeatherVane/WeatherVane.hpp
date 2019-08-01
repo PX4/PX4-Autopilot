@@ -58,7 +58,7 @@ public:
 
 	bool is_active() {return _is_active;}
 
-	bool weathervane_enabled() { return _wv_enabled.get(); }
+	bool weathervane_enabled() { return _param_wv_en.get(); }
 
 	void update(const matrix::Quatf &q_sp_prev, float yaw);
 
@@ -73,10 +73,10 @@ private:
 	bool _is_active = true;
 
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::WV_EN>) _wv_enabled,
-		(ParamFloat<px4::params::WV_ROLL_MIN>) _wv_min_roll,
-		(ParamFloat<px4::params::WV_GAIN>) _wv_gain,
-		(ParamFloat<px4::params::WV_YRATE_MAX>) _wv_max_yaw_rate
+		(ParamBool<px4::params::WV_EN>) _param_wv_en,
+		(ParamFloat<px4::params::WV_ROLL_MIN>) _param_wv_roll_min,
+		(ParamFloat<px4::params::WV_GAIN>) _param_wv_gain,
+		(ParamFloat<px4::params::WV_YRATE_MAX>) _param_wv_yrate_max
 	)
 
 };

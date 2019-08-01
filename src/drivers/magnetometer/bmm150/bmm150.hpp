@@ -20,7 +20,7 @@
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
-#include <nuttx/wqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/conversions.h>
 
 #include <nuttx/arch.h>
@@ -191,7 +191,7 @@ struct bmm150_data {
 };
 
 
-class BMM150 : public device::I2C
+class BMM150 : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
 	BMM150(int bus, const char *path, enum Rotation rotation);
@@ -217,7 +217,6 @@ protected:
 	virtual int       probe();
 
 private:
-	work_s            _work{};
 
 	bool _running;
 
@@ -278,8 +277,7 @@ private:
 	int     measure(); //start measure
 	int     collect(); //get results and publish
 
-	static void     cycle_trampoline(void *arg);
-	void            cycle(); //main execution
+	void	Run() override;
 
 	/**
 	 * Read the specified number of bytes from BMM150.
