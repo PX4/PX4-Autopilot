@@ -39,8 +39,6 @@
 
 #include "LPS22HB.hpp"
 
-#include <cstring>
-
 /* Max measurement rate is 25Hz */
 #define LPS22HB_CONVERSION_INTERVAL	(1000000 / 25)	/* microseconds */
 

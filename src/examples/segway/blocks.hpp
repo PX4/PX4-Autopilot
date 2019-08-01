@@ -102,7 +102,8 @@ protected:
 	uORB::SubscriptionPollable<vehicle_status_s> _status;
 
 	// publications
-	uORB::Publication<actuator_controls_s> _actuators;
+	uORB::PublicationData<actuator_controls_s> _actuators{ORB_ID(actuator_controls_0)};
+
 public:
 	BlockUorbEnabledAutopilot(SuperBlock *parent, const char *name);
 	virtual ~BlockUorbEnabledAutopilot() = default;

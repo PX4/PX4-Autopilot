@@ -26,11 +26,11 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		gps
 		#heater
-		imu/adis16448
+		#imu/adis16448
 		#imu # all available imu drivers
-		imu/bmi055
+		#imu/bmi055
 		imu/mpu6000
-		imu/mpu9250
+		#imu/mpu9250
 		#irlock
 		#lights/blinkm
 		#lights/oreoled
@@ -52,7 +52,6 @@ px4_add_board(
 		roboclaw
 		stm32
 		stm32/adc
-		stm32/armv7-m_dcache
 		stm32/tone_alarm
 		tap_esc
 		telemetry # all available telemetry drivers
@@ -69,8 +68,7 @@ px4_add_board(
 		events
 		fw_att_control
 		fw_pos_control_l1
-		gnd_att_control
-		gnd_pos_control
+		rover_pos_control
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -90,9 +88,11 @@ px4_add_board(
 	SYSTEMCMDS
 		bl_update
 		config
+		dmesg
 		dumpfile
 		esc_calib
 		hardfault_log
+		i2cdetect
 		led_control
 		mixer
 		motor_ramp

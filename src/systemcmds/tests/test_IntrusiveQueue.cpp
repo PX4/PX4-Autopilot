@@ -50,6 +50,7 @@ public:
 	bool test_push();
 	bool test_pop();
 	bool test_push_duplicate();
+	bool test_remove();
 
 };
 
@@ -58,6 +59,7 @@ bool IntrusiveQueueTest::run_tests()
 	ut_run_test(test_push);
 	ut_run_test(test_pop);
 	ut_run_test(test_push_duplicate);
+	ut_run_test(test_remove);
 
 	return (_tests_failed == 0);
 }
@@ -207,6 +209,66 @@ bool IntrusiveQueueTest::test_push_duplicate()
 	// verify list has been cleared
 	ut_compare("size 0", q1.size(), 0);
 	ut_assert_true(q1.empty());
+
+	return true;
+}
+
+bool IntrusiveQueueTest::test_remove()
+{
+	IntrusiveQueue<testContainer *> q1;
+
+	// size should be 0 initially
+	ut_compare("size initially 0", q1.size(), 0);
+	ut_assert_true(q1.empty());
+
+	// insert 100
+	for (int i = 0; i < 100; i++) {
+		testContainer *t = new testContainer();
+		t->i = i;
+		q1.push(t);
+
+		ut_compare("size increasing with i", q1.size(), i + 1);
+		ut_assert_true(!q1.empty());
+	}
+
+	// verify full size (100)
+	ut_assert_true(q1.size() == 100);
+
+	// test removing elements
+	for (int remove_i = 0; remove_i < 100; remove_i++) {
+
+		// find node with i == remove_i
+		testContainer *removed = nullptr;
+
+		for (auto t : q1) {
+			if (t->i == remove_i) {
+				ut_assert_true(q1.remove(t));
+				t = removed;
+			}
+		}
+
+		delete removed;
+
+		// iterate list again to verify removal
+		for (auto t : q1) {
+			ut_assert_true(t->i != remove_i);
+		}
+
+		ut_assert_true(q1.size() == 100 - remove_i - 1);
+	}
+
+	// list should now be empty
+	ut_assert_true(q1.empty());
+	ut_compare("size 0", q1.size(), 0);
+
+	// delete all elements (should be safe on empty list)
+	while (!q1.empty()) {
+		q1.pop();
+	}
+
+	// verify list has been cleared
+	ut_assert_true(q1.empty());
+	ut_compare("size 0", q1.size(), 0);
 
 	return true;
 }

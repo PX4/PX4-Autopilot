@@ -266,7 +266,7 @@ set(package-contact "px4users@googlegroups.com")
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -415,6 +415,9 @@ endif()
 
 # optionally enable cmake testing (supported only on posix)
 option(CMAKE_TESTING "Configure test targets" OFF)
+if (${PX4_CONFIG} STREQUAL "px4_sitl_test")
+	set(CMAKE_TESTING ON)
+endif()
 if(CMAKE_TESTING)
 	include(CTest) # sets BUILD_TESTING variable
 endif()

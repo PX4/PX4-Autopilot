@@ -39,34 +39,16 @@
  *
  */
 
-#include <px4_config.h>
+#include <string.h>
+#include <sys/stat.h>
 
 #include <drivers/device/i2c.h>
-#include <drivers/drv_hrt.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <sys/stat.h>
-#include <px4_getopt.h>
-
-#include <nuttx/arch.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-#include <nuttx/clock.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-
-#include <board_config.h>
-
-#include <drivers/drv_oreoled.h>
 #include <drivers/device/ringbuffer.h>
+#include <drivers/drv_oreoled.h>
+#include <perf/perf_counter.h>
+#include <px4_getopt.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <systemlib/err.h>
 
 #define OREOLED_NUM_LEDS		4			///< maximum number of LEDs the oreo led driver can support
 #define OREOLED_BASE_I2C_ADDR	0x68		///< base i2c address (7-bit)

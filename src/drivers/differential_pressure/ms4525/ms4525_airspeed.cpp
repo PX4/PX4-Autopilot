@@ -49,22 +49,8 @@
  *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
  */
 
-#include <px4_config.h>
-#include <px4_getopt.h>
-
-#include <drivers/device/i2c.h>
-
-#include <systemlib/err.h>
-#include <parameters/param.h>
-#include <perf/perf_counter.h>
-
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
-
-#include <drivers/drv_airspeed.h>
-#include <drivers/drv_hrt.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/differential_pressure.h>
+#include <px4_getopt.h>
 #include <uORB/topics/system_power.h>
 
 #include <drivers/airspeed/airspeed.h>

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -68,6 +68,7 @@
 
 #include <rc/dsm.h>
 
+#include <lib/mathlib/mathlib.h>
 #include <lib/mixer/mixer.h>
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
@@ -75,6 +76,7 @@
 #include <circuit_breaker/circuit_breaker.h>
 #include <systemlib/mavlink_log.h>
 
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
@@ -101,7 +103,9 @@
 #define PX4IO_REBOOT_BOOTLOADER		_IOC(0xff00, 2)
 #define PX4IO_CHECK_CRC			_IOC(0xff00, 3)
 
-#define UPDATE_INTERVAL_MIN		2			// 2 ms	-> 500 Hz
+static constexpr unsigned UPDATE_INTERVAL_MIN{2};	// 2 ms	-> 500 Hz
+static constexpr unsigned UPDATE_INTERVAL_MAX{100};	// 100 ms -> 10 Hz
+
 #define ORB_CHECK_INTERVAL		200000		// 200 ms -> 5 Hz
 #define IO_POLL_INTERVAL		20000		// 20 ms -> 50 Hz
 
@@ -245,14 +249,16 @@ private:
 
 	/* subscribed topics */
 	int			_t_actuator_controls_0;	///< actuator controls group 0 topic
-	int			_t_actuator_controls_1;	///< actuator controls group 1 topic
-	int			_t_actuator_controls_2;	///< actuator controls group 2 topic
-	int			_t_actuator_controls_3;	///< actuator controls group 3 topic
-	int			_t_actuator_armed;	///< system armed control topic
-	int 			_t_vehicle_control_mode;///< vehicle control mode topic
-	int			_t_param;		///< parameter update topic
+
+	uORB::Subscription	_t_actuator_controls_1{ORB_ID(actuator_controls_1)};	///< actuator controls group 1 topic
+	uORB::Subscription	_t_actuator_controls_2{ORB_ID(actuator_controls_2)};;	///< actuator controls group 2 topic
+	uORB::Subscription	_t_actuator_controls_3{ORB_ID(actuator_controls_3)};;	///< actuator controls group 3 topic
+	uORB::Subscription	_t_actuator_armed{ORB_ID(actuator_armed)};		///< system armed control topic
+	uORB::Subscription 	_t_vehicle_control_mode{ORB_ID(vehicle_control_mode)};	///< vehicle control mode topic
+	uORB::Subscription	_t_param{ORB_ID(parameter_update)};			///< parameter update topic
+	uORB::Subscription	_t_vehicle_command{ORB_ID(vehicle_command)};		///< vehicle command topic
+
 	bool			_param_update_force;	///< force a parameter update
-	int			_t_vehicle_command;	///< vehicle command topic
 
 	/* advertised topics */
 	orb_advert_t 		_to_input_rc;		///< rc inputs from io
@@ -466,14 +472,7 @@ PX4IO::PX4IO(device::Device *interface) :
 	_last_written_arming_s(0),
 	_last_written_arming_c(0),
 	_t_actuator_controls_0(-1),
-	_t_actuator_controls_1(-1),
-	_t_actuator_controls_2(-1),
-	_t_actuator_controls_3(-1),
-	_t_actuator_armed(-1),
-	_t_vehicle_control_mode(-1),
-	_t_param(-1),
 	_param_update_force(false),
-	_t_vehicle_command(-1),
 	_to_input_rc(nullptr),
 	_to_outputs(nullptr),
 	_to_servorail(nullptr),
@@ -683,20 +682,17 @@ PX4IO::init()
 		 * remains untouched (so manual override is still available).
 		 */
 
-		int safety_sub = orb_subscribe(ORB_ID(actuator_armed));
+		uORB::Subscription actuator_armed_sub{ORB_ID(actuator_armed)};
+
 		/* fill with initial values, clear updated flag */
-		struct actuator_armed_s safety;
+		actuator_armed_s actuator_armed{};
 		uint64_t try_start_time = hrt_absolute_time();
-		bool updated = false;
 
 		/* keep checking for an update, ensure we got a arming information,
 		   not something that was published a long time ago. */
 		do {
-			orb_check(safety_sub, &updated);
-
-			if (updated) {
-				/* got data, copy and exit loop */
-				orb_copy(ORB_ID(actuator_armed), safety_sub, &safety);
+			if (actuator_armed_sub.update(&actuator_armed)) {
+				// updated data, exit loop
 				break;
 			}
 
@@ -746,11 +742,7 @@ PX4IO::init()
 
 			/* spin here until IO's state has propagated into the system */
 			do {
-				orb_check(safety_sub, &updated);
-
-				if (updated) {
-					orb_copy(ORB_ID(actuator_armed), safety_sub, &safety);
-				}
+				actuator_armed_sub.update(&actuator_armed);
 
 				/* wait 50 ms */
 				px4_usleep(50000);
@@ -762,13 +754,13 @@ PX4IO::init()
 				}
 
 				/* re-send if necessary */
-				if (!safety.force_failsafe) {
+				if (!actuator_armed.force_failsafe) {
 					orb_publish(ORB_ID(vehicle_command), pub, &vcmd);
 					PX4_WARN("re-sending flight termination cmd");
 				}
 
 				/* keep waiting for state change for 2 s */
-			} while (!safety.force_failsafe);
+			} while (!actuator_armed.force_failsafe);
 		}
 
 		/* send command to arm system via command API */
@@ -781,11 +773,7 @@ PX4IO::init()
 
 		/* spin here until IO's state has propagated into the system */
 		do {
-			orb_check(safety_sub, &updated);
-
-			if (updated) {
-				orb_copy(ORB_ID(actuator_armed), safety_sub, &safety);
-			}
+			actuator_armed_sub.update(&actuator_armed);
 
 			/* wait 50 ms */
 			px4_usleep(50000);
@@ -797,13 +785,13 @@ PX4IO::init()
 			}
 
 			/* re-send if necessary */
-			if (!safety.armed) {
+			if (!actuator_armed.armed) {
 				orb_publish(ORB_ID(vehicle_command), pub, &vcmd);
 				PX4_WARN("re-sending arm cmd");
 			}
 
 			/* keep waiting for state change for 2 s */
-		} while (!safety.armed);
+		} while (!actuator_armed.armed);
 
 		/* Indicate restart type is in-flight */
 		sys_restart_val = DM_INIT_REASON_IN_FLIGHT;
@@ -902,23 +890,9 @@ PX4IO::task_main()
 	 */
 	_t_actuator_controls_0 = orb_subscribe(ORB_ID(actuator_controls_0));
 	orb_set_interval(_t_actuator_controls_0, 20);		/* default to 50Hz */
-	_t_actuator_controls_1 = orb_subscribe(ORB_ID(actuator_controls_1));
-	orb_set_interval(_t_actuator_controls_1, 33);		/* default to 30Hz */
-	_t_actuator_controls_2 = orb_subscribe(ORB_ID(actuator_controls_2));
-	orb_set_interval(_t_actuator_controls_2, 33);		/* default to 30Hz */
-	_t_actuator_controls_3 = orb_subscribe(ORB_ID(actuator_controls_3));
-	orb_set_interval(_t_actuator_controls_3, 33);		/* default to 30Hz */
-	_t_actuator_armed = orb_subscribe(ORB_ID(actuator_armed));
-	_t_vehicle_control_mode = orb_subscribe(ORB_ID(vehicle_control_mode));
-	_t_param = orb_subscribe(ORB_ID(parameter_update));
-	_t_vehicle_command = orb_subscribe(ORB_ID(vehicle_command));
 
-	if ((_t_actuator_controls_0 < 0) ||
-	    (_t_actuator_armed < 0) ||
-	    (_t_vehicle_control_mode < 0) ||
-	    (_t_param < 0) ||
-	    (_t_vehicle_command < 0)) {
-		warnx("subscription(s) failed");
+	if (_t_actuator_controls_0 < 0) {
+		PX4_ERR("actuator subscription failed");
 		goto out;
 	}
 
@@ -940,13 +914,7 @@ PX4IO::task_main()
 
 		/* adjust update interval */
 		if (_update_interval != 0) {
-			if (_update_interval < UPDATE_INTERVAL_MIN) {
-				_update_interval = UPDATE_INTERVAL_MIN;
-			}
-
-			if (_update_interval > 100) {
-				_update_interval = 100;
-			}
+			_update_interval = math::constrain(_update_interval, UPDATE_INTERVAL_MIN, UPDATE_INTERVAL_MAX);
 
 			orb_set_interval(_t_actuator_controls_0, _update_interval);
 			/*
@@ -995,10 +963,10 @@ PX4IO::task_main()
 			bool updated = false;
 
 			/* arming state */
-			orb_check(_t_actuator_armed, &updated);
+			updated = _t_actuator_armed.updated();
 
 			if (!updated) {
-				orb_check(_t_vehicle_control_mode, &updated);
+				updated = _t_vehicle_control_mode.updated();
 			}
 
 			if (updated) {
@@ -1010,15 +978,10 @@ PX4IO::task_main()
 			/* run at 5Hz */
 			orb_check_last = now;
 
-			/* check updates on uORB topics and handle it */
-			bool updated = false;
-
 			/* vehicle command */
-			orb_check(_t_vehicle_command, &updated);
-
-			if (updated) {
-				struct vehicle_command_s cmd;
-				orb_copy(ORB_ID(vehicle_command), _t_vehicle_command, &cmd);
+			if (_t_vehicle_command.updated()) {
+				vehicle_command_s cmd{};
+				_t_vehicle_command.copy(&cmd);
 
 				// Check for a DSM pairing command
 				if (((unsigned int)cmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) && ((int)cmd.param1 == 0)) {
@@ -1031,12 +994,10 @@ PX4IO::task_main()
 			 *
 			 * XXX this may be a bit spammy
 			 */
-			orb_check(_t_param, &updated);
-
-			if (updated || _param_update_force) {
+			if (_t_param.updated() || _param_update_force) {
 				_param_update_force = false;
 				parameter_update_s pupdate;
-				orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
+				_t_param.copy(&pupdate);
 
 				if (!_rc_handling_disabled) {
 					/* re-upload RC input config as it may have changed */
@@ -1295,8 +1256,7 @@ PX4IO::io_set_control_groups()
 int
 PX4IO::io_set_control_state(unsigned group)
 {
-	actuator_controls_s	controls;	///< actuator outputs
-	uint16_t 		regs[_max_actuators];
+	actuator_controls_s	controls{};	///< actuator outputs
 
 	/* get controls */
 	bool changed = false;
@@ -1312,31 +1272,16 @@ PX4IO::io_set_control_state(unsigned group)
 		}
 		break;
 
-	case 1: {
-			orb_check(_t_actuator_controls_1, &changed);
-
-			if (changed) {
-				orb_copy(ORB_ID(actuator_controls_1), _t_actuator_controls_1, &controls);
-			}
-		}
+	case 1:
+		changed = _t_actuator_controls_1.update(&controls);
 		break;
 
-	case 2: {
-			orb_check(_t_actuator_controls_2, &changed);
-
-			if (changed) {
-				orb_copy(ORB_ID(actuator_controls_2), _t_actuator_controls_2, &controls);
-			}
-		}
+	case 2:
+		changed = _t_actuator_controls_2.update(&controls);
 		break;
 
-	case 3: {
-			orb_check(_t_actuator_controls_3, &changed);
-
-			if (changed) {
-				orb_copy(ORB_ID(actuator_controls_3), _t_actuator_controls_3, &controls);
-			}
-		}
+	case 3:
+		changed = _t_actuator_controls_3.update(&controls);
 		break;
 	}
 
@@ -1351,17 +1296,11 @@ PX4IO::io_set_control_state(unsigned group)
 		controls.control[3] = 1.0f;
 	}
 
+	uint16_t regs[_max_actuators];
+
 	for (unsigned i = 0; i < _max_controls; i++) {
-
 		/* ensure FLOAT_TO_REG does not produce an integer overflow */
-		float ctrl = controls.control[i];
-
-		if (ctrl < -1.0f) {
-			ctrl = -1.0f;
-
-		} else if (ctrl > 1.0f) {
-			ctrl = 1.0f;
-		}
+		const float ctrl = math::constrain(controls.control[i], -1.0f, 1.0f);
 
 		regs[i] = FLOAT_TO_REG(ctrl);
 	}
@@ -1375,21 +1314,15 @@ PX4IO::io_set_control_state(unsigned group)
 	}
 }
 
-
 int
 PX4IO::io_set_arming_state()
 {
-	actuator_armed_s	armed;		///< system armed state
-	vehicle_control_mode_s	control_mode;	///< vehicle_control_mode
-
-	int have_armed = orb_copy(ORB_ID(actuator_armed), _t_actuator_armed, &armed);
-	int have_control_mode = orb_copy(ORB_ID(vehicle_control_mode), _t_vehicle_control_mode, &control_mode);
-	_in_esc_calibration_mode = armed.in_esc_calibration_mode;
-
 	uint16_t set = 0;
 	uint16_t clear = 0;
 
-	if (have_armed == OK) {
+	actuator_armed_s armed;
+
+	if (_t_actuator_armed.copy(&armed)) {
 		_in_esc_calibration_mode = armed.in_esc_calibration_mode;
 
 		if (armed.armed || _in_esc_calibration_mode) {
@@ -1433,7 +1366,9 @@ PX4IO::io_set_arming_state()
 		}
 	}
 
-	if (have_control_mode == OK) {
+	vehicle_control_mode_s control_mode;
+
+	if (_t_vehicle_control_mode.copy(&control_mode)) {
 		if (control_mode.flag_external_manual_override_ok) {
 			set |= PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK;
 			_override_available = true;
@@ -2913,19 +2848,10 @@ PX4IO::write(file * /*filp*/, const char *buffer, size_t len)
 int
 PX4IO::set_update_rate(int rate)
 {
-	int interval_ms = 1000 / rate;
+	unsigned interval_ms = 1000 / rate;
 
-	if (interval_ms < UPDATE_INTERVAL_MIN) {
-		interval_ms = UPDATE_INTERVAL_MIN;
-		warnx("update rate too high, limiting interval to %d ms (%d Hz).", interval_ms, 1000 / interval_ms);
-	}
+	_update_interval = math::constrain(interval_ms, UPDATE_INTERVAL_MIN, UPDATE_INTERVAL_MAX);
 
-	if (interval_ms > 100) {
-		interval_ms = 100;
-		warnx("update rate too low, limiting to %d ms (%d Hz).", interval_ms, 1000 / interval_ms);
-	}
-
-	_update_interval = interval_ms;
 	return 0;
 }
 

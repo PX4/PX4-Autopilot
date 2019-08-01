@@ -51,7 +51,7 @@ public:
 	explicit WorkItem(const wq_config_t &config);
 	WorkItem() = delete;
 
-	virtual ~WorkItem() = default;
+	virtual ~WorkItem();
 
 	inline void ScheduleNow() { if (_wq != nullptr) _wq->Add(this); }
 
@@ -60,6 +60,7 @@ public:
 protected:
 
 	bool Init(const wq_config_t &config);
+	void Deinit();
 
 private:
 

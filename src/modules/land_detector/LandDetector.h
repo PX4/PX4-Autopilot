@@ -43,6 +43,7 @@
 #pragma once
 
 #include <px4_module.h>
+#include <px4_module_params.h>
 #include <lib/hysteresis/hysteresis.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
@@ -57,7 +58,7 @@ using namespace time_literals;
 namespace land_detector
 {
 
-class LandDetector : public ModuleBase<LandDetector>, px4::ScheduledWorkItem
+class LandDetector : public ModuleBase<LandDetector>, ModuleParams, px4::ScheduledWorkItem
 {
 public:
 	enum class LandDetectionState {
@@ -71,7 +72,6 @@ public:
 	LandDetector();
 	virtual ~LandDetector();
 
-	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[])
@@ -88,27 +88,26 @@ public:
 	/**
 	 * @return current state.
 	 */
-	LandDetectionState get_state() const
-	{
-		return _state;
-	}
+	LandDetectionState get_state() const { return _state; }
 
 	/**
 	 * Get the work queue going.
 	 */
-	int start();
+	void start();
+
+	static int task_spawn(int argc, char *argv[]);
 
 protected:
-
-	/**
-	 * Update uORB topics.
-	 */
-	virtual void _update_topics() = 0;
 
 	/**
 	 * Update parameters.
 	 */
 	virtual void _update_params() = 0;
+
+	/**
+	 * Update uORB topics.
+	 */
+	virtual void _update_topics() = 0;
 
 	/**
 	 * @return true if UAV is in a landed state.
@@ -143,8 +142,8 @@ protected:
 	/** Run main land detector loop at this interval. */
 	static constexpr uint32_t LAND_DETECTOR_UPDATE_INTERVAL = 20_ms;
 
-	orb_advert_t _landDetectedPub{nullptr};
-	vehicle_land_detected_s _landDetected{};
+	orb_advert_t _land_detected_pub{nullptr};
+	vehicle_land_detected_s _land_detected{};
 
 	LandDetectionState _state{LandDetectionState::LANDED};
 
@@ -154,26 +153,34 @@ protected:
 	systemlib::Hysteresis _ground_contact_hysteresis{true};
 	systemlib::Hysteresis _ground_effect_hysteresis{false};
 
-	struct actuator_armed_s	_arming {};
+	actuator_armed_s _actuator_armed {};
 
 private:
-	void Run() override;
 
 	void _check_params(bool force = false);
 
+	void Run() override;
+
 	void _update_state();
 
-	param_t _p_total_flight_time_high{PARAM_INVALID};
-	param_t _p_total_flight_time_low{PARAM_INVALID};
+	void _update_total_flight_time();
+
+	bool _previous_armed_state{false}; ///< stores the previous actuator_armed.armed state
+
 	uint64_t _total_flight_time{0}; ///< in microseconds
+
 	hrt_abstime _takeoff_time{0};
 
-	perf_counter_t	_cycle_perf;
+	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, "land_detector_cycle")};
 
-	bool _previous_arming_state{false}; ///< stores the previous _arming.armed state
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
+	uORB::Subscription _param_update_sub{ORB_ID(parameter_update)};
 
-	uORB::Subscription _parameterSub{ORB_ID(parameter_update)};
-	uORB::Subscription _armingSub{ORB_ID(actuator_armed)};
+	DEFINE_PARAMETERS_CUSTOM_PARENT(
+		ModuleParams,
+		(ParamInt<px4::params::LND_FLIGHT_T_HI>) _param_total_flight_time_high,
+		(ParamInt<px4::params::LND_FLIGHT_T_LO>) _param_total_flight_time_low
+	);
 };
 
 } // namespace land_detector

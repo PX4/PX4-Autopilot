@@ -48,6 +48,9 @@
  */
 #include "vtol_att_control_main.h"
 #include <systemlib/mavlink_log.h>
+#include <matrix/matrix/math.hpp>
+
+using namespace matrix;
 
 namespace VTOL_att_control
 {
@@ -62,10 +65,10 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
 
 	_params.idle_pwm_mc = PWM_DEFAULT_MIN;
-	_params.vtol_motor_count = 0;
+	_params.vtol_motor_id = 0;
 
 	_params_handles.idle_pwm_mc = param_find("VT_IDLE_PWM_MC");
-	_params_handles.vtol_motor_count = param_find("VT_MOT_COUNT");
+	_params_handles.vtol_motor_id = param_find("VT_MOT_ID");
 	_params_handles.vtol_fw_permanent_stab = param_find("VT_FW_PERM_STAB");
 	_params_handles.vtol_type = param_find("VT_TYPE");
 	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
@@ -88,8 +91,6 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
 	_params_handles.diff_thrust = param_find("VT_FW_DIFTHR_EN");
 	_params_handles.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
-
-	_params_handles.v19_vt_rolldir = param_find("V19_VT_ROLLDIR");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -268,7 +269,7 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.idle_pwm_mc, &_params.idle_pwm_mc);
 
 	/* vtol motor count */
-	param_get(_params_handles.vtol_motor_count, &_params.vtol_motor_count);
+	param_get(_params_handles.vtol_motor_id, &_params.vtol_motor_id);
 
 	/* vtol fw permanent stabilization */
 	param_get(_params_handles.vtol_fw_permanent_stab, &l);
@@ -325,19 +326,8 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.diff_thrust_scale, &v);
 	_params.diff_thrust_scale = math::constrain(v, -1.0f, 1.0f);
 
-	// standard vtol always needs to turn all mc motors off when going into fixed wing mode
-	// normally the parameter fw_motors_off can be used to specify this, however, since historically standard vtol code
-	// did not use the interface of the VtolType class to disable motors we will have users flying  around with a wrong
-	// parameter value. Therefore, explicitly set it here such that all motors will be disabled as expected.
-	if (static_cast<vtol_type>(_params.vtol_type) == vtol_type::STANDARD) {
-		_params.fw_motors_off = 12345678;
-	}
-
 	// make sure parameters are feasible, require at least 1 m/s difference between transition and blend airspeed
 	_params.airspeed_blend = math::min(_params.airspeed_blend, _params.transition_airspeed - 1.0f);
-
-	// Bugfix for v1.9, should be removed in 1.10
-	param_get(_params_handles.v19_vt_rolldir, &_params.v19_vt_rolldir);
 
 	// update the parameters of the instances of base VtolType
 	if (_vtol_type != nullptr) {
@@ -478,38 +468,14 @@ void VtolAttitudeControl::task_main()
 			_vtol_type->update_transition_state();
 		}
 
-		// Fill actuator output
-		if (_params.v19_vt_rolldir) {
+		_vtol_type->fill_actuator_outputs();
 
-			// The mixer may not have been adapted to the roll inversion in v1.9
-			// Display error message and do not fill actuator outputs
-			// TODO: remove the parameter and this error message in v1.10
-			const int v19_rolldir_warning_throttling = 5000;
-			static int v19_rolldir_warning_counter = 0;
-			v19_rolldir_warning_counter += 1;
-
-			if ((v19_rolldir_warning_counter % v19_rolldir_warning_throttling) == 0) {
-				mavlink_log_critical(&_mavlink_log_pub,
-						     "The VTOL roll commands were inverted in v1.9!");
-				mavlink_log_critical(&_mavlink_log_pub,
-						     "Check roll mixing, then set V19_VT_ROLLDIR to 0");
-			}
-
-			// Do not fill actuator output
-			_actuators_out_0.timestamp = hrt_absolute_time();
-			_actuators_out_0.timestamp_sample = _actuators_mc_in.timestamp_sample;
-			_actuators_out_1.timestamp = hrt_absolute_time();
-			_actuators_out_1.timestamp_sample = _actuators_fw_in.timestamp_sample;
-
-			for (size_t i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROLS; i++) {
-				_actuators_out_0.control[i] = 0.0f;
-				_actuators_out_1.control[i] = 0.0f;
-			}
-
-		} else {
-
-			// normal operation
-			_vtol_type->fill_actuator_outputs();
+		// reinitialize the setpoint while not armed to make sure no value from the last mode or flight is still kept
+		if (!_v_control_mode.flag_armed) {
+			Quatf().copyTo(_mc_virtual_att_sp.q_d);
+			Vector3f().copyTo(_mc_virtual_att_sp.thrust_body);
+			Quatf().copyTo(_v_att_sp.q_d);
+			Vector3f().copyTo(_v_att_sp.thrust_body);
 		}
 
 		/* Only publish if the proper mode(s) are enabled */

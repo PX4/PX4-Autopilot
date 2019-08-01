@@ -63,7 +63,7 @@ public:
 
 private:
 
-	uORB::Publication<sensor_mag_s>	_sensor_mag_pub;
+	uORB::PublicationData<sensor_mag_s>	_sensor_mag_pub;
 
 	const enum Rotation	_rotation;
 

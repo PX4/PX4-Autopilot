@@ -230,35 +230,6 @@ int Heater::print_status()
 	return PX4_OK;
 }
 
-int Heater::print_usage(const char *reason)
-{
-	if (reason) {
-		printf("%s\n\n", reason);
-	}
-
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Background process running periodically on the LP work queue to regulate IMU temperature at a setpoint.
-
-This task can be started at boot from the startup scripts by setting SENS_EN_THERMAL or via CLI.
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("heater", "system");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("controller_period", "Reports the heater driver cycle period value, (us), and sets it if supplied an argument.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("integrator", "Sets the integrator gain value if supplied an argument and reports the current value.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("proportional", "Sets the proportional gain value if supplied an argument and reports the current value.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("sensor_id", "Reports the current IMU the heater is temperature controlling.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("setpoint", "Reports the current IMU temperature.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Starts the IMU heater driver as a background task");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Reports the current IMU temperature, temperature setpoint, and heater on/off status.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stops the IMU heater driver.");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("temp", "Reports the current IMU temperature.");
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
-	return 0;
-}
-
 float Heater::proportional(char *argv[])
 {
 	if (argv[1]) {
@@ -322,9 +293,39 @@ float Heater::temperature_setpoint(char *argv[])
 void Heater::update_params(const bool force)
 {
 	parameter_update_s param_update;
+
 	if (_params_sub.update(&param_update) || force) {
 		ModuleParams::updateParams();
 	}
+}
+
+int Heater::print_usage(const char *reason)
+{
+	if (reason) {
+		printf("%s\n\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Background process running periodically on the LP work queue to regulate IMU temperature at a setpoint.
+
+This task can be started at boot from the startup scripts by setting SENS_EN_THERMAL or via CLI.
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("heater", "system");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("controller_period", "Reports the heater driver cycle period value, (us), and sets it if supplied an argument.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("integrator", "Sets the integrator gain value if supplied an argument and reports the current value.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("proportional", "Sets the proportional gain value if supplied an argument and reports the current value.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("sensor_id", "Reports the current IMU the heater is temperature controlling.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("setpoint", "Reports the current IMU temperature.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Starts the IMU heater driver as a background task");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Reports the current IMU temperature, temperature setpoint, and heater on/off status.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stops the IMU heater driver.");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("temp", "Reports the current IMU temperature.");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
 }
 
 /**

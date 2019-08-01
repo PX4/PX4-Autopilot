@@ -39,32 +39,14 @@
  * @author CUAVcaijie <caijie@cuav.net>
  */
 
-#include <px4_config.h>
-#include <px4_getopt.h>
+#include <string.h>
 
 #include <drivers/device/i2c.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <ctype.h>
-
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-
-#include <board_config.h>
-
-#include <drivers/drv_led.h>
 #include <lib/led/led.h>
-
+#include <px4_getopt.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include "uORB/topics/parameter_update.h"
+
 
 #define ADDR			0x39	/**< I2C adress of NCP5623C */
 
