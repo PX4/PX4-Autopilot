@@ -126,9 +126,7 @@ void MavlinkCommandSender::handle_mavlink_command_ack(const mavlink_command_ack_
 		    from_sysid == item->command.target_system &&
 		    from_compid == item->command.target_component &&
 		    item->num_sent_per_channel[channel] != -1) {
-			// Drop it anyway because the command seems to have arrived at the destination, even if we
-			// receive IN_PROGRESS because we trust that it will be handled after that.
-			_commands.drop_current();
+			item->num_sent_per_channel[channel] = -2;	// mark this as acknowledged
 			break;
 		}
 	}
@@ -145,6 +143,23 @@ void MavlinkCommandSender::check_timeout(mavlink_channel_t channel)
 	while (command_item_t *item = _commands.get_next()) {
 		if (hrt_elapsed_time(&item->last_time_sent_us) <= TIMEOUT_US) {
 			// We keep waiting for the timeout.
+			continue;
+		}
+
+		// Loop through num_sent_per_channel and check if any channel has receives an ack for this command
+		// (indicated by the value -2). We avoid removing the command at the time of receiving the ack
+		// as some channels might be lagging behind and will end up putting the same command into the buffer.
+		bool dropped_command = false;
+
+		for (unsigned i = 0; i < MAX_MAVLINK_CHANNEL; ++i) {
+			if (item->num_sent_per_channel[i] == -2) {
+				_commands.drop_current();
+				dropped_command = true;
+				break;
+			}
+		}
+
+		if (dropped_command) {
 			continue;
 		}
 
