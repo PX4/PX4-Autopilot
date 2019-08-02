@@ -109,7 +109,7 @@ private:
 		mavlink_command_long_t command = {};
 		hrt_abstime timestamp_us = 0;
 		hrt_abstime last_time_sent_us = 0;
-		int8_t num_sent_per_channel[MAX_MAVLINK_CHANNEL] = {-1, -1, -1, -1};
+		int8_t num_sent_per_channel[MAX_MAVLINK_CHANNEL] = {-1, -1, -1, -1}; // -1: channel did not request this command to be sent, -2: channel got an ack for this command
 	} command_item_t;
 
 	TimestampedList<command_item_t> _commands{3};
