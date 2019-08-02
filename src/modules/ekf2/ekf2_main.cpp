@@ -1754,13 +1754,6 @@ bool Ekf2::publish_attitude(const sensor_combined_s &sensors, const hrt_abstime 
 
 		_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);
 
-		// In-run bias estimates
-		float gyro_bias[3];
-		_ekf.get_gyro_bias(gyro_bias);
-		att.rollspeed = sensors.gyro_rad[0] - gyro_bias[0];
-		att.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
-		att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
-
 		_att_pub.publish(att);
 
 		return true;

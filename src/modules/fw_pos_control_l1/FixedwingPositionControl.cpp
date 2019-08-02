@@ -1016,7 +1016,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 		    fabsf(_manual.r) < HDG_HOLD_MAN_INPUT_THRESH) {
 
 			/* heading / roll is zero, lock onto current heading */
-			if (fabsf(_att.yawspeed) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
+			if (fabsf(_vehicle_rates_sub.get().xyz[2]) < HDG_HOLD_YAWRATE_THRESH && !_yaw_lock_engaged) {
 				// little yaw movement, lock to current heading
 				_yaw_lock_engaged = true;
 
@@ -1759,6 +1759,7 @@ FixedwingPositionControl::run()
 			vehicle_control_mode_poll();
 			_vehicle_land_detected_sub.update(&_vehicle_land_detected);
 			vehicle_status_poll();
+			_vehicle_rates_sub.update();
 
 			Vector2f curr_pos((float)_global_pos.lat, (float)_global_pos.lon);
 			Vector2f ground_speed(_global_pos.vel_n, _global_pos.vel_e);

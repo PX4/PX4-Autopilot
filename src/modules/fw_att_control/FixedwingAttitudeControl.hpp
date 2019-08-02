@@ -53,6 +53,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rate_ctrl_status.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -103,6 +104,7 @@ private:
 	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle status subscription */
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			/**< vehicle status subscription */
+	uORB::Subscription _vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
 
 	uORB::SubscriptionData<airspeed_s> _airspeed_sub{ORB_ID(airspeed)};
 

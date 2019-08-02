@@ -198,6 +198,8 @@ rtps:
     id: 85
   - msg: vehicle_air_data
     id: 86
+  - msg: vehicle_angular_velocity
+    id: 134
   - msg: vehicle_attitude
     id: 87
     send: true
@@ -277,6 +279,9 @@ rtps:
   - msg: fw_virtual_attitude_setpoint
     id: 127
     alias: vehicle_attitude_setpoint
+  - msg: vehicle_angular_velocity_groundtruth
+    id: 135
+    alias: vehicle_angular_velocity
   - msg: vehicle_attitude_groundtruth
     id: 128
     alias: vehicle_attitude

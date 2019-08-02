@@ -2431,10 +2431,6 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 		matrix::Quatf q(hil_state.attitude_quaternion);
 		q.copyTo(hil_attitude.q);
 
-		hil_attitude.rollspeed = hil_state.rollspeed;
-		hil_attitude.pitchspeed = hil_state.pitchspeed;
-		hil_attitude.yawspeed = hil_state.yawspeed;
-
 		if (_attitude_pub == nullptr) {
 			_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &hil_attitude);
 
@@ -2546,6 +2542,27 @@ MavlinkReceiver::handle_message_hil_state_quaternion(mavlink_message_t *msg)
 
 		} else {
 			orb_publish(ORB_ID(sensor_accel), _accel_pub, &accel);
+		}
+	}
+
+	/* gyroscope */
+	{
+		sensor_gyro_s gyro = {};
+
+		gyro.timestamp = timestamp;
+		gyro.x_raw = hil_state.rollspeed * 1e3f;
+		gyro.y_raw = hil_state.pitchspeed * 1e3f;
+		gyro.z_raw = hil_state.yawspeed * 1e3f;
+		gyro.x = hil_state.rollspeed;
+		gyro.y = hil_state.pitchspeed;
+		gyro.z = hil_state.yawspeed;
+		gyro.temperature = 25.0f;
+
+		if (_gyro_pub == nullptr) {
+			_gyro_pub = orb_advertise(ORB_ID(sensor_gyro), &gyro);
+
+		} else {
+			orb_publish(ORB_ID(sensor_gyro), _gyro_pub, &gyro);
 		}
 	}
 

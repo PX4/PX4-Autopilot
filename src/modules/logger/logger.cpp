@@ -610,15 +610,16 @@ void Logger::add_default_topics()
 	add_topic("optical_flow", 50);
 	add_topic("position_setpoint_triplet", 200);
 	//add_topic("radio_status");
-	add_topic("rate_ctrl_status", 30);
+	add_topic("rate_ctrl_status", 200);
 	add_topic("sensor_combined", 100);
 	add_topic("sensor_preflight", 200);
 	add_topic("system_power", 500);
 	add_topic("tecs_status", 200);
-	add_topic("trajectory_setpoint", 200);
 	add_topic("telemetry_status");
+	add_topic("trajectory_setpoint", 200);
 	add_topic("vehicle_air_data", 200);
-	add_topic("vehicle_attitude", 30);
+	add_topic("vehicle_angular_velocity", 20);
+	add_topic("vehicle_attitude", 50);
 	add_topic("vehicle_attitude_setpoint", 100);
 	add_topic("vehicle_command");
 	add_topic("vehicle_global_position", 200);
@@ -627,7 +628,7 @@ void Logger::add_default_topics()
 	add_topic("vehicle_local_position", 100);
 	add_topic("vehicle_local_position_setpoint", 100);
 	add_topic("vehicle_magnetometer", 200);
-	add_topic("vehicle_rates_setpoint", 30);
+	add_topic("vehicle_rates_setpoint", 20);
 	add_topic("vehicle_status", 200);
 	add_topic("vehicle_status_flags");
 	add_topic("vtol_vehicle_status", 200);
@@ -639,9 +640,10 @@ void Logger::add_default_topics()
 	add_topic("fw_virtual_attitude_setpoint");
 	add_topic("mc_virtual_attitude_setpoint");
 	add_topic("multirotor_motor_limits");
-	add_topic("position_controller_status");
 	add_topic("offboard_control_mode");
+	add_topic("position_controller_status");
 	add_topic("time_offset");
+	add_topic("vehicle_angular_velocity", 10);
 	add_topic("vehicle_attitude_groundtruth", 10);
 	add_topic("vehicle_global_position_groundtruth", 100);
 	add_topic("vehicle_local_position_groundtruth", 100);
@@ -657,6 +659,7 @@ void Logger::add_high_rate_topics()
 	add_topic("manual_control_setpoint");
 	add_topic("rate_ctrl_status");
 	add_topic("sensor_combined");
+	add_topic("vehicle_angular_velocity");
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_rates_setpoint");
@@ -664,10 +667,10 @@ void Logger::add_high_rate_topics()
 
 void Logger::add_debug_topics()
 {
+	add_topic("debug_array");
 	add_topic("debug_key_value");
 	add_topic("debug_value");
 	add_topic("debug_vect");
-	add_topic("debug_array");
 }
 
 void Logger::add_estimator_replay_topics()
