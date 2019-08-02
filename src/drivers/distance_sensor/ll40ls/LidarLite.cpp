@@ -42,12 +42,7 @@
 #include "LidarLite.h"
 
 LidarLite::LidarLite(uint8_t rotation) :
-	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, rotation),
-	_sample_perf(perf_alloc(PC_ELAPSED, "ll40ls: read")),
-	_sample_interval_perf(perf_alloc(PC_ELAPSED, "ll40ls: interval")),
-	_comms_errors(perf_alloc(PC_COUNT, "ll40ls: comms errors")),
-	_sensor_resets(perf_alloc(PC_COUNT, "ll40ls: resets")),
-	_sensor_zero_resets(perf_alloc(PC_COUNT, "ll40ls: zero resets"))
+	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, rotation)
 {
 	_px4_rangefinder.set_min_distance(LL40LS_MIN_DISTANCE);
 	_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE_V3);
