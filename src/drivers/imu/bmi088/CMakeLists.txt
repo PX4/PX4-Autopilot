@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,8 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-add_subdirectory(paw3902)
-add_subdirectory(pmw3901)
-add_subdirectory(px4flow)
-
+px4_add_module(
+	MODULE drivers__bmi88
+	MAIN bmi088
+	STACK_MAIN 1500
+	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
+	SRCS		
+		BMI088_accel.cpp
+		BMI088_gyro.cpp
+		bmi088_main.cpp
+	)

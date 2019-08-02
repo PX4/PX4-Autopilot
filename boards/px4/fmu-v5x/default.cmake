@@ -30,7 +30,7 @@ px4_add_board(
 		imu/adis16448
 		imu/adis16497
 		#imu # all available imu drivers
-# TBD		imu/bmi088 - needs bus selection
+		imu/bmi088
 # TBD		imu/ism330dlc - needs bus selection
 		imu/mpu6000
 		irlock
