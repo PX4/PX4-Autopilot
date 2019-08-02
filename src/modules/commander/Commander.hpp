@@ -123,6 +123,7 @@ private:
 
 		(ParamInt<px4::params::COM_LOW_BAT_ACT>) _param_com_low_bat_act,
 		(ParamFloat<px4::params::COM_DISARM_LAND>) _param_com_disarm_land,
+		(ParamFloat<px4::params::COM_DISARM_PRFLT>) _param_com_disarm_preflight,
 
 		(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid,
 		(ParamInt<px4::params::COM_OA_BOOT_T>) _param_com_oa_boot_t,

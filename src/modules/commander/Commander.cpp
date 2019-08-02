@@ -561,7 +561,7 @@ Commander::Commander() :
 	ModuleParams(nullptr),
 	_failure_detector(this)
 {
-	_auto_disarm_landed.set_hysteresis_time_from(false, 10_s);
+	_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_preflight.get() * 1_s);
 	_auto_disarm_killed.set_hysteresis_time_from(false, 5_s);
 
 	// We want to accept RC inputs as default
@@ -1670,24 +1670,22 @@ Commander::run()
 		// Auto disarm when landed or kill switch engaged
 		if (armed.armed) {
 
-			// Check for auto-disarm on landing
-			if (_param_com_disarm_land.get() > 0) {
+			// Check for auto-disarm on landing or pre-flight
+			if (_param_com_disarm_land.get() > 0 || _param_com_disarm_preflight.get() > 0) {
 
-				if (!have_taken_off_since_arming) {
-					// pilot has ten seconds time to take off
-					_auto_disarm_landed.set_hysteresis_time_from(false, 10_s);
-
-				} else {
+				if (_param_com_disarm_land.get() > 0 && have_taken_off_since_arming) {
 					_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_land.get() * 1_s);
-				}
+					_auto_disarm_landed.set_state_and_update(land_detector.landed, hrt_absolute_time());
 
-				_auto_disarm_landed.set_state_and_update(land_detector.landed, hrt_absolute_time());
+				} else if (_param_com_disarm_preflight.get() > 0 && !have_taken_off_since_arming) {
+					_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_preflight.get() * 1_s);
+					_auto_disarm_landed.set_state_and_update(true, hrt_absolute_time());
+				}
 
 				if (_auto_disarm_landed.get_state()) {
-					arm_disarm(false, &mavlink_log_pub, "Auto disarm on land");
+					arm_disarm(false, &mavlink_log_pub, "Auto disarm initiated");
 				}
 			}
-
 
 			// Auto disarm after 5 seconds if kill switch is engaged
 			_auto_disarm_killed.set_state_and_update(armed.manual_lockdown, hrt_absolute_time());
