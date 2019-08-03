@@ -66,8 +66,6 @@ private:
 
 	uORB::PublicationData<distance_sensor_s>	_distance_sensor_pub;
 
-	const uint8_t			_rotation;
-
 	int			_class_device_instance{-1};
 
 };
