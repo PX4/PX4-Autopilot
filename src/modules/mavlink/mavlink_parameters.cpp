@@ -383,19 +383,20 @@ bool
 MavlinkParametersManager::send_uavcan()
 {
 	/* Send parameter values received from the UAVCAN topic */
-	if (_uavcan_parameter_value_sub.updated()) {
-		uavcan_parameter_value_s value;
-		_uavcan_parameter_value_sub.update(&value);
+	uavcan_parameter_value_s value{};
+
+	if (_uavcan_parameter_value_sub.update(&value)) {
 
 		// Check if we received a matching parameter, drop it from the list and request the next
-		if (_uavcan_open_request_list != nullptr
-		    && value.param_index == _uavcan_open_request_list->req.param_index
-		    && value.node_id == _uavcan_open_request_list->req.node_id) {
+		if ((_uavcan_open_request_list != nullptr)
+		    && (value.param_index == _uavcan_open_request_list->req.param_index)
+		    && (value.node_id == _uavcan_open_request_list->req.node_id)) {
+
 			dequeue_uavcan_request();
 			request_next_uavcan_parameter();
 		}
 
-		mavlink_param_value_t msg;
+		mavlink_param_value_t msg{};
 		msg.param_count = value.param_count;
 		msg.param_index = value.param_index;
 #if defined(__GNUC__) && __GNUC__ >= 8
@@ -424,7 +425,7 @@ MavlinkParametersManager::send_uavcan()
 		}
 
 		// Re-pack the message with the UAVCAN node ID
-		mavlink_message_t mavlink_packet;
+		mavlink_message_t mavlink_packet{};
 		mavlink_msg_param_value_encode_chan(mavlink_system.sysid, value.node_id, _mavlink->get_channel(), &mavlink_packet,
 						    &msg);
 		_mavlink_resend_uart(_mavlink->get_channel(), &mavlink_packet);
