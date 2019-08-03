@@ -132,10 +132,12 @@ MavlinkFTP::handle_message(const mavlink_message_t *msg)
 		mavlink_msg_file_transfer_protocol_decode(msg, &ftp_request);
 
 #ifdef MAVLINK_FTP_DEBUG
-		PX4_INFO("FTP: received ftp protocol message target_system: %d", ftp_request.target_system);
+		PX4_INFO("FTP: received ftp protocol message target_system: %d target_component: %d",
+			 ftp_request.target_system, ftp_request.target_component);
 #endif
 
-		if (ftp_request.target_system == _getServerSystemId()) {
+		if ((ftp_request.target_system == _getServerSystemId() || ftp_request.target_system == 0) &&
+		    (ftp_request.target_component == _getServerComponentId() || ftp_request.target_component == 0)) {
 			_process_request(&ftp_request, msg->sysid);
 		}
 	}
@@ -273,7 +275,6 @@ out:
 
 		payload->data[0] = errorCode;
 
-
 		if (errorCode == kErrFailErrno) {
 			payload->size = 2;
 			payload->data[1] = r_errno;
@@ -351,14 +352,10 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool list_hidden)
 	DIR *dp = opendir(_work_buffer1);
 
 	if (dp == nullptr) {
-#ifdef MAVLINK_FTP_UNIT_TEST
 		PX4_WARN("File open failed %s", _work_buffer1);
-#else
-		_mavlink->send_statustext_critical("FTP: can't open path (file system corrupted?)");
-		_mavlink->send_statustext_critical(_work_buffer1);
-#endif
-		// this is not an FTP error, abort directory by simulating eof
-		return kErrEOF;
+		// this is not an FTP error, abort directory by setting errno to ENOENT "No such file or directory"
+		errno = ENOENT;
+		return kErrFailErrno;
 	}
 
 #ifdef MAVLINK_FTP_DEBUG
@@ -379,13 +376,7 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool list_hidden)
 		// read the directory entry
 		if (result == nullptr) {
 			if (errno) {
-#ifdef MAVLINK_FTP_UNIT_TEST
 				PX4_WARN("readdir failed");
-#else
-				_mavlink->send_statustext_critical("FTP: list readdir failure");
-				_mavlink->send_statustext_critical(_work_buffer1);
-#endif
-
 				payload->data[offset++] = kDirentSkip;
 				*((char *)&payload->data[offset]) = '\0';
 				offset++;

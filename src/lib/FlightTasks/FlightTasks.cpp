@@ -64,6 +64,9 @@ int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 		return 0;
 	}
 
+	// Save current setpoints for the nex FlightTask
+	vehicle_local_position_setpoint_s last_setpoint = getPositionSetpoint();
+
 	if (_initTask(new_task_index)) {
 		// invalid task
 		return -1;
@@ -85,7 +88,7 @@ int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 	_subscription_array.forcedUpdate(); // make sure data is available for all new subscriptions
 
 	// activation failed
-	if (!_current_task.task->updateInitialize() || !_current_task.task->activate()) {
+	if (!_current_task.task->updateInitialize() || !_current_task.task->activate(last_setpoint)) {
 		_current_task.task->~FlightTask();
 		_current_task.task = nullptr;
 		_current_task.index = FlightTaskIndex::None;

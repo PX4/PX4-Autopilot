@@ -7,7 +7,7 @@ float32 average_current_a		# Battery current average in amperes, -1 if unknown
 float32 discharged_mah		# Discharged amount in mAh, -1 if unknown
 float32 remaining		# From 1 to 0, -1 if unknown
 float32 scale		# Power scaling factor, >= 1, or -1 if unknown
-float32 temperature         # temperature of the battery
+float32 temperature         # temperature of the battery. NaN if unknown
 int32 cell_count		# Number of cells
 bool connected			# Whether or not a battery is connected, based on a voltage threshold
 bool system_source		# Whether or not a this battery is the active power source for VDD_5V_IN

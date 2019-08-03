@@ -40,13 +40,11 @@
 #pragma once
 
 #include <drivers/device/spi.h>
-#include <drivers/drv_hrt.h>
-#include <lib/conversion/rotation.h>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_getopt.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
+
 
 class FXAS21002C : public device::SPI, public px4::ScheduledWorkItem
 {

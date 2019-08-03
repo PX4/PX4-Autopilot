@@ -23,6 +23,7 @@ pipeline {
               cd catkin_ws;
               git -C ${WORKSPACE}/catkin_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
               git clone --recursive ${WORKSPACE}/catkin_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
+              git -C ${WORKSPACE}/catkin_ws/src/Firmware fetch --tags;
               source /opt/ros/melodic/setup.bash;
               catkin init;
               catkin build -j$(nproc) -l$(nproc);
@@ -37,6 +38,9 @@ pipeline {
           post {
             always {
               sh 'rm -rf catkin_ws'
+            }
+            failure {
+              archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.xml, .ros/**/*.log')
             }
           }
           options {
@@ -60,6 +64,7 @@ pipeline {
               cd colcon_ws;
               git -C ${WORKSPACE}/colcon_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
               git clone --recursive ${WORKSPACE}/colcon_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
+              git -C ${WORKSPACE}/colcon_ws/src/Firmware fetch --tags;
               source /opt/ros/bouncy/setup.sh;
               source /opt/ros/melodic/setup.sh;
               colcon build --event-handlers console_direct+ --symlink-install;
@@ -243,6 +248,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
+            sh 'git fetch --tags'
             sh 'make scan-build'
             // publish html
             publishHTML target: [
@@ -301,6 +307,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
+            sh 'git fetch --tags'
             sh 'make cppcheck'
             // publish html
             publishHTML target: [
@@ -338,6 +345,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
+            sh 'git fetch --tags'
             sh 'make px4_fmu-v2_default stack_check'
           }
           post {

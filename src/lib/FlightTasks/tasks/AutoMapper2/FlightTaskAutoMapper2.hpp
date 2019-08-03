@@ -47,7 +47,7 @@ class FlightTaskAutoMapper2 : public FlightTaskAuto
 public:
 	FlightTaskAutoMapper2() = default;
 	virtual ~FlightTaskAutoMapper2() = default;
-	bool activate() override;
+	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
 	bool update() override;
 
 protected:
@@ -57,6 +57,7 @@ protected:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAuto,
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
 					(ParamFloat<px4::params::MPC_TILTMAX_LND>) _param_mpc_tiltmax_lnd,
+					(ParamInt<px4::params::MPC_LAND_RC_HELP>) _param_mpc_land_rc_help,
 					(ParamFloat<px4::params::MPC_LAND_ALT1>)
 					_param_mpc_land_alt1, // altitude at which speed limit downwards reaches maximum speed
 					(ParamFloat<px4::params::MPC_LAND_ALT2>)
@@ -80,4 +81,5 @@ private:
 	void _reset(); /**< Resets member variables to current vehicle state */
 	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
 	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
+	float _getLandSpeed(); /**< Returns landing descent speed. */
 };

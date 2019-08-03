@@ -753,6 +753,9 @@ Navigator::get_default_altitude_acceptance_radius()
 	if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		return _param_nav_fw_alt_rad.get();
 
+	} else if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+		return INFINITY;
+
 	} else {
 		float alt_acceptance_radius = _param_nav_mc_alt_rad.get();
 

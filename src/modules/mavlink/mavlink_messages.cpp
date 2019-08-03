@@ -52,6 +52,7 @@
 #include <lib/matrix/matrix/math.hpp>
 #include <px4_time.h>
 #include <systemlib/mavlink_log.h>
+#include <math.h>
 
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
@@ -74,6 +75,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/orbit_status.h>
 #include <uORB/topics/position_controller_status.h>
@@ -541,11 +543,11 @@ public:
 private:
 	MavlinkOrbSubscription *_status_sub;
 	MavlinkOrbSubscription *_cpuload_sub;
-	MavlinkOrbSubscription *_battery_status_sub;
+	MavlinkOrbSubscription *_battery_status_sub[BOARD_NUMBER_BRICKS];
 
 	uint64_t _status_timestamp{0};
 	uint64_t _cpuload_timestamp{0};
-	uint64_t _battery_status_timestamp{0};
+	uint64_t _battery_status_timestamp[BOARD_NUMBER_BRICKS];
 
 	/* do not allow top copying this class */
 	MavlinkStreamSysStatus(MavlinkStreamSysStatus &) = delete;
@@ -554,28 +556,46 @@ private:
 protected:
 	explicit MavlinkStreamSysStatus(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status))),
-		_cpuload_sub(_mavlink->add_orb_subscription(ORB_ID(cpuload))),
-		_battery_status_sub(_mavlink->add_orb_subscription(ORB_ID(battery_status)))
-	{}
+		_cpuload_sub(_mavlink->add_orb_subscription(ORB_ID(cpuload)))
+	{
+		for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
+			_battery_status_sub[i] = _mavlink->add_orb_subscription(ORB_ID(battery_status), i);
+			_battery_status_timestamp[i] = 0;
+		}
+	}
 
 	bool send(const hrt_abstime t)
 	{
 		vehicle_status_s status = {};
 		cpuload_s cpuload = {};
-		battery_status_s battery_status = {};
+		battery_status_s battery_status[BOARD_NUMBER_BRICKS] = {};
 
 		const bool updated_status = _status_sub->update(&_status_timestamp, &status);
 		const bool updated_cpuload = _cpuload_sub->update(&_cpuload_timestamp, &cpuload);
-		const bool updated_battery = _battery_status_sub->update(&_battery_status_timestamp, &battery_status);
+		bool updated_any = updated_status || updated_cpuload;
+		bool updated_battery[BOARD_NUMBER_BRICKS];
 
-		if (updated_status || updated_battery || updated_cpuload) {
+		for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
+			updated_battery[i] = _battery_status_sub[i]->update(&_battery_status_timestamp[i], &battery_status[i]);
+			updated_any = updated_any || updated_battery[i];
+		}
+
+		if (updated_any) {
 
 			if (!updated_status) {
 				_status_sub->update(&status);
 			}
 
-			if (!updated_battery) {
-				_battery_status_sub->update(&battery_status);
+			battery_status_s *lowest_battery = &battery_status[0];
+
+			for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
+				if (!updated_battery[i]) {
+					_battery_status_sub[i]->update(&battery_status[i]);
+				}
+
+				if (battery_status[i].connected && battery_status[i].remaining < lowest_battery->remaining) {
+					lowest_battery = &battery_status[i];
+				}
 			}
 
 			if (!updated_cpuload) {
@@ -588,9 +608,14 @@ protected:
 			msg.onboard_control_sensors_enabled = status.onboard_control_sensors_enabled;
 			msg.onboard_control_sensors_health = status.onboard_control_sensors_health;
 			msg.load = cpuload.load * 1000.0f;
-			msg.voltage_battery = (battery_status.connected) ? battery_status.voltage_filtered_v * 1000.0f : UINT16_MAX;
-			msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100.0f : -1;
-			msg.battery_remaining = (battery_status.connected) ? ceilf(battery_status.remaining * 100.0f) : -1;
+			// TODO: Determine what data should be put here when there are multiple batteries.
+			//  Right now, it uses the lowest battery. This is a safety decision, because if a client is only checking
+			//  one battery using this message, it should be the lowest.
+			//  In the future, this should somehow determine the "main" battery, or use the "type" field of BATTERY_STATUS
+			//  to determine which battery is more important at a given time.
+			msg.voltage_battery = (lowest_battery->connected) ? lowest_battery->voltage_filtered_v * 1000.0f : UINT16_MAX;
+			msg.current_battery = (lowest_battery->connected) ? lowest_battery->current_filtered_a * 100.0f : -1;
+			msg.battery_remaining = (lowest_battery->connected) ? ceilf(lowest_battery->remaining * 100.0f) : -1;
 			// TODO: fill in something useful in the fields below
 			msg.drop_rate_comm = 0;
 			msg.errors_comm = 0;
@@ -601,34 +626,6 @@ protected:
 
 			mavlink_msg_sys_status_send_struct(_mavlink->get_channel(), &msg);
 
-			/* battery status message with higher resolution */
-			mavlink_battery_status_t bat_msg = {};
-			bat_msg.id = 0;
-			bat_msg.battery_function = MAV_BATTERY_FUNCTION_ALL;
-			bat_msg.type = MAV_BATTERY_TYPE_LIPO;
-			bat_msg.current_consumed = (battery_status.connected) ? battery_status.discharged_mah : -1;
-			bat_msg.energy_consumed = -1;
-			bat_msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100 : -1;
-			bat_msg.battery_remaining = (battery_status.connected) ? ceilf(battery_status.remaining * 100.0f) : -1;
-			bat_msg.temperature = (battery_status.connected) ? (int16_t)battery_status.temperature : INT16_MAX;
-			//bat_msg.average_current_battery = (battery_status.connected) ? battery_status.average_current_a * 100.0f : -1;
-			//bat_msg.serial_number = (battery_status.connected) ? battery_status.serial_number : 0;
-			//bat_msg.capacity = (battery_status.connected) ? battery_status.capacity : 0;
-			//bat_msg.cycle_count = (battery_status.connected) ? battery_status.cycle_count : UINT16_MAX;
-			//bat_msg.run_time_to_empty = (battery_status.connected) ? battery_status.run_time_to_empty * 60 : 0;
-			//bat_msg.average_time_to_empty = (battery_status.connected) ? battery_status.average_time_to_empty * 60 : 0;
-
-			for (unsigned int i = 0; i < (sizeof(bat_msg.voltages) / sizeof(bat_msg.voltages[0])); i++) {
-				if ((int)i < battery_status.cell_count && battery_status.connected) {
-					bat_msg.voltages[i] = (battery_status.voltage_v / battery_status.cell_count) * 1000.0f;
-
-				} else {
-					bat_msg.voltages[i] = UINT16_MAX;
-				}
-			}
-
-			mavlink_msg_battery_status_send_struct(_mavlink->get_channel(), &bat_msg);
-
 			return true;
 		}
 
@@ -636,6 +633,108 @@ protected:
 	}
 };
 
+class MavlinkStreamBatteryStatus : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamBatteryStatus::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "BATTERY_STATUS";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_BATTERY_STATUS;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamBatteryStatus(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_BATTERY_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_battery_status_sub[BOARD_NUMBER_BRICKS] {};
+
+	uint64_t _battery_status_timestamp[BOARD_NUMBER_BRICKS] {};
+
+	/* do not allow top copying this class */
+	MavlinkStreamBatteryStatus(MavlinkStreamSysStatus &) = delete;
+	MavlinkStreamBatteryStatus &operator = (const MavlinkStreamSysStatus &) = delete;
+
+protected:
+	explicit MavlinkStreamBatteryStatus(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{
+		for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
+			_battery_status_sub[i] = _mavlink->add_orb_subscription(ORB_ID(battery_status), i);
+		}
+	}
+
+	bool send(const hrt_abstime t)
+	{
+		bool updated = false;
+
+		for (int i = 0; i < BOARD_NUMBER_BRICKS; i++) {
+
+			if (!_battery_status_sub[i]) {
+				continue;
+			}
+
+			battery_status_s battery_status;
+
+			if (_battery_status_sub[i]->update(&_battery_status_timestamp[i], &battery_status)) {
+				/* battery status message with higher resolution */
+				mavlink_battery_status_t bat_msg{};
+				bat_msg.id = i;
+				bat_msg.battery_function = MAV_BATTERY_FUNCTION_ALL;
+				bat_msg.type = MAV_BATTERY_TYPE_LIPO;
+				bat_msg.current_consumed = (battery_status.connected) ? battery_status.discharged_mah : -1;
+				bat_msg.energy_consumed = -1;
+				bat_msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100 : -1;
+				bat_msg.battery_remaining = (battery_status.connected) ? ceilf(battery_status.remaining * 100.0f) : -1;
+
+
+				bool temperature_valid = battery_status.connected && PX4_ISFINITE(battery_status.temperature);
+				bat_msg.temperature = temperature_valid ? (int16_t)(battery_status.temperature * 100.0f) : INT16_MAX;
+				//bat_msg.average_current_battery = (battery_status.connected) ? battery_status.average_current_a * 100.0f : -1;
+				//bat_msg.serial_number = (battery_status.connected) ? battery_status.serial_number : 0;
+				//bat_msg.capacity = (battery_status.connected) ? battery_status.capacity : 0;
+				//bat_msg.cycle_count = (battery_status.connected) ? battery_status.cycle_count : UINT16_MAX;
+				//bat_msg.run_time_to_empty = (battery_status.connected) ? battery_status.run_time_to_empty * 60 : 0;
+				//bat_msg.average_time_to_empty = (battery_status.connected) ? battery_status.average_time_to_empty * 60 : 0;
+
+				for (unsigned cell = 0; cell < (sizeof(bat_msg.voltages) / sizeof(bat_msg.voltages[0])); cell++) {
+					if ((int32_t)cell < battery_status.cell_count && battery_status.connected) {
+						bat_msg.voltages[cell] = (battery_status.voltage_v / battery_status.cell_count) * 1000.0f;
+
+					} else {
+						bat_msg.voltages[cell] = UINT16_MAX;
+					}
+				}
+
+				mavlink_msg_battery_status_send_struct(_mavlink->get_channel(), &bat_msg);
+
+				updated = true;
+			}
+
+		}
+
+		return updated;
+	}
+};
 
 class MavlinkStreamHighresIMU : public MavlinkStream
 {
@@ -4834,11 +4933,86 @@ protected:
 	}
 };
 
+class MavlinkStreamObstacleDistance : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamObstacleDistance::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "OBSTACLE_DISTANCE";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_OBSTACLE_DISTANCE;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamObstacleDistance(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return _obstacle_distance_fused_sub->is_published() ? (MAVLINK_MSG_ID_OBSTACLE_DISTANCE_LEN +
+				MAVLINK_NUM_NON_PAYLOAD_BYTES) :
+		       0;
+	}
+
+private:
+	MavlinkOrbSubscription *_obstacle_distance_fused_sub;
+	uint64_t _obstacle_distance_time;
+
+	/* do not allow top copying this class */
+	MavlinkStreamObstacleDistance(MavlinkStreamObstacleDistance &) = delete;
+	MavlinkStreamObstacleDistance &operator = (const MavlinkStreamObstacleDistance &) = delete;
+
+protected:
+	explicit MavlinkStreamObstacleDistance(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_obstacle_distance_fused_sub(_mavlink->add_orb_subscription(ORB_ID(obstacle_distance_fused))),
+		_obstacle_distance_time(0)
+	{}
+
+	bool send(const hrt_abstime t)
+	{
+		obstacle_distance_s obstacke_distance;
+
+		if (_obstacle_distance_fused_sub->update(&_obstacle_distance_time, &obstacke_distance)) {
+			mavlink_obstacle_distance_t msg = {};
+
+			msg.time_usec = obstacke_distance.timestamp;
+			msg.sensor_type = obstacke_distance.sensor_type;
+			memcpy(msg.distances, obstacke_distance.distances, sizeof(msg.distances));
+			msg.increment = 0;
+			msg.min_distance = obstacke_distance.min_distance;
+			msg.max_distance = obstacke_distance.max_distance;
+			msg.angle_offset = obstacke_distance.angle_offset;
+			msg.increment_f = obstacke_distance.increment;
+
+			mavlink_msg_obstacle_distance_send_struct(_mavlink->get_channel(), &msg);
+
+			return true;
+		}
+
+		return false;
+	}
+};
+
 static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static, &MavlinkStreamHeartbeat::get_id_static),
 	StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static, &MavlinkStreamStatustext::get_id_static),
 	StreamListItem(&MavlinkStreamCommandLong::new_instance, &MavlinkStreamCommandLong::get_name_static, &MavlinkStreamCommandLong::get_id_static),
 	StreamListItem(&MavlinkStreamSysStatus::new_instance, &MavlinkStreamSysStatus::get_name_static, &MavlinkStreamSysStatus::get_id_static),
+	StreamListItem(&MavlinkStreamBatteryStatus::new_instance, &MavlinkStreamBatteryStatus::get_name_static, &MavlinkStreamBatteryStatus::get_id_static),
 	StreamListItem(&MavlinkStreamHighresIMU::new_instance, &MavlinkStreamHighresIMU::get_name_static, &MavlinkStreamHighresIMU::get_id_static),
 	StreamListItem(&MavlinkStreamScaledIMU::new_instance, &MavlinkStreamScaledIMU::get_name_static, &MavlinkStreamScaledIMU::get_id_static),
 	StreamListItem(&MavlinkStreamScaledIMU2::new_instance, &MavlinkStreamScaledIMU2::get_name_static, &MavlinkStreamScaledIMU2::get_id_static),
@@ -4891,7 +5065,8 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamHighLatency2::new_instance, &MavlinkStreamHighLatency2::get_name_static, &MavlinkStreamHighLatency2::get_id_static),
 	StreamListItem(&MavlinkStreamGroundTruth::new_instance, &MavlinkStreamGroundTruth::get_name_static, &MavlinkStreamGroundTruth::get_id_static),
 	StreamListItem(&MavlinkStreamPing::new_instance, &MavlinkStreamPing::get_name_static, &MavlinkStreamPing::get_id_static),
-	StreamListItem(&MavlinkStreamOrbitStatus::new_instance, &MavlinkStreamOrbitStatus::get_name_static, &MavlinkStreamOrbitStatus::get_id_static)
+	StreamListItem(&MavlinkStreamOrbitStatus::new_instance, &MavlinkStreamOrbitStatus::get_name_static, &MavlinkStreamOrbitStatus::get_id_static),
+	StreamListItem(&MavlinkStreamObstacleDistance::new_instance, &MavlinkStreamObstacleDistance::get_name_static, &MavlinkStreamObstacleDistance::get_id_static)
 };
 
 const char *get_stream_name(const uint16_t msg_id)

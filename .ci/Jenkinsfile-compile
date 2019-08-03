@@ -38,7 +38,7 @@ pipeline {
                      "px4_fmu-v5_default", "px4_fmu-v5_fixedwing", "px4_fmu-v5_multicopter", "px4_fmu-v5_rover", "px4_fmu-v5_rtps", "px4_fmu-v5_stackcheck",
                      "px4_fmu-v5x_default", "px4_fmu-v5x_fixedwing", "px4_fmu-v5x_multicopter", "px4_fmu-v5x_rover", "px4_fmu-v5x_rtps", "px4_fmu-v5x_stackcheck",
                      "intel_aerofc-v1_default", "auav_x21_default", "av_x-v1_default", "bitcraze_crazyflie_default", "airmind_mindpx-v2_default",
-                     "nxp_fmuk66-v3_default", "omnibus_f4sd_default"],
+                     "nxp_fmuk66-v3_default", "omnibus_f4sd_default", "holybro_kakutef7"],
             image: docker_images.nuttx,
             archive: true
           ]

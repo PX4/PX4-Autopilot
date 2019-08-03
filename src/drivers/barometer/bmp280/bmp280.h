@@ -38,6 +38,23 @@
  */
 #pragma once
 
+#include <math.h>
+#include <string.h>
+
+#include <drivers/drv_baro.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/device/i2c.h>
+#include <drivers/device/ringbuffer.h>
+#include <drivers/device/spi.h>
+#include <lib/cdev/CDev.hpp>
+#include <perf/perf_counter.h>
+#include <px4_config.h>
+#include <px4_getopt.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
+
+#include "board_config.h"
+
+
 #define BMP280_ADDR_CAL		0x88	/* address of 12x 2 bytes calibration data */
 #define BMP280_ADDR_DATA	0xF7	/* address of 2x 3 bytes p-t data */
 
