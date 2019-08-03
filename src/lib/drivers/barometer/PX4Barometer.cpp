@@ -43,10 +43,6 @@ PX4Barometer::PX4Barometer(uint32_t device_id, uint8_t priority) :
 	_class_device_instance = register_class_devname(BARO_BASE_DEVICE_PATH);
 
 	_sensor_baro_pub.get().device_id = device_id;
-
-	// force initial publish to allocate uORB buffer
-	// TODO: can be removed once all drivers are in threads
-	_sensor_baro_pub.update();
 }
 
 PX4Barometer::~PX4Barometer()
@@ -56,7 +52,8 @@ PX4Barometer::~PX4Barometer()
 	}
 }
 
-void PX4Barometer::set_device_type(uint8_t devtype)
+void
+PX4Barometer::set_device_type(uint8_t devtype)
 {
 	// current DeviceStructure
 	union device::Device::DeviceId device_id;
@@ -69,7 +66,8 @@ void PX4Barometer::set_device_type(uint8_t devtype)
 	_sensor_baro_pub.get().device_id = device_id.devid;
 }
 
-void PX4Barometer::update(hrt_abstime timestamp, float pressure)
+void
+PX4Barometer::update(hrt_abstime timestamp, float pressure)
 {
 	sensor_baro_s &report = _sensor_baro_pub.get();
 
@@ -81,7 +79,8 @@ void PX4Barometer::update(hrt_abstime timestamp, float pressure)
 	_sensor_baro_pub.update();
 }
 
-void PX4Barometer::print_status()
+void
+PX4Barometer::print_status()
 {
 	PX4_INFO(BARO_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
 
