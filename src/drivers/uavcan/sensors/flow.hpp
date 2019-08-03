@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,8 +42,6 @@
 #include <stdint.h>
 #include <sys/ioctl.h>
 
-#define FLOW_BASE_DEVICE_PATH	"/dev/flow"
-
 #include <uORB/topics/optical_flow.h>
 
 #include <com/hex/equipment/flow/Measurement.hpp>
@@ -60,8 +58,6 @@ public:
 	int init() override;
 
 private:
-	ssize_t	read(struct file *filp, char *buffer, size_t buflen);
-	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
 
 	void flow_sub_cb(const uavcan::ReceivedDataStructure<com::hex::equipment::flow::Measurement> &msg);
 
@@ -71,5 +67,5 @@ private:
 		FlowCbBinder;
 
 	uavcan::Subscriber<com::hex::equipment::flow::Measurement, FlowCbBinder> _sub_flow;
-	optical_flow_s _report =  {};
+
 };
