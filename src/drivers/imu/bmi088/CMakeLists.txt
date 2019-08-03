@@ -30,18 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
 px4_add_module(
-	MODULE modules__position_estimator_inav
-	MAIN position_estimator_inav
-	STACK_MAIN 1200
-	STACK_MAX 4000
+	MODULE drivers__bmi88
+	MAIN bmi088
+	STACK_MAIN 1500
 	COMPILE_FLAGS
-	SRCS
-		position_estimator_inav_main.cpp
-		inertial_filter.cpp
-	DEPENDS
-		terrain_estimation
-		git_ecl
-		ecl_geo
+		-Wno-cast-align # TODO: fix and enable
+	SRCS		
+		BMI088_accel.cpp
+		BMI088_gyro.cpp
+		bmi088_main.cpp
 	)
