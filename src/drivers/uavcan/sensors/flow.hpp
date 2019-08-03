@@ -31,10 +31,6 @@
  *
  ****************************************************************************/
 
-/**
- * @author Pavel Kirienko <pavel.kirienko@gmail.com>
- */
-
 #pragma once
 
 #include "sensor_bridge.hpp"
