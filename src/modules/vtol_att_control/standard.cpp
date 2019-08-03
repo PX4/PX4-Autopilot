@@ -60,7 +60,7 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_mc_yaw_weight = 1.0f;
 	_mc_throttle_weight = 1.0f;
 
-	_params_handles_standard.pusher_ramp_dt = param_find("VT_PSHER_RMP_DT");
+	_params_handles_standard.pusher_ramp_dt = param_find("VT_PUSHER_RMP_DT");
 	_params_handles_standard.back_trans_ramp = param_find("VT_B_TRANS_RAMP");
 	_params_handles_standard.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
 	_params_handles_standard.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
