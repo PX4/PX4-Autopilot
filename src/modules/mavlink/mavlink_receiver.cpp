@@ -1160,7 +1160,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	}
 
 	if (odom.child_frame_id == MAV_FRAME_BODY_FRD) { /* WRT to estimated vehicle body-fixed frame */
-		/* Get quaternion from the msg quaternion itself and build DCM matrix from it 
+		/* Get quaternion from the msg quaternion itself and build DCM matrix from it
 		 * Note that the msg quaternion represents the rotation of the msg frame to the msg child frame
 		 * but rotates msg child frame *data* into the msg frame */
 		const matrix::Dcmf Rbl = matrix::Dcmf(matrix::Quatf(odometry.q));
