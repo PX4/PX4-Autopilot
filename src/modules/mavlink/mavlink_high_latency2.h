@@ -148,7 +148,7 @@ private:
 	hrt_abstime _last_update_time = 0;
 	float _update_rate_filtered = 0.0f;
 
-	PerBatteryData _batteries[BOARD_NUMBER_BRICKS];
+	PerBatteryData _batteries[ORB_MULTI_MAX_INSTANCES];
 
 	/* do not allow top copying this class */
 	MavlinkStreamHighLatency2(MavlinkStreamHighLatency2 &);
