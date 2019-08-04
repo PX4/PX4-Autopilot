@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file PublicationQueued.hpp
+ * @file Publication.hpp
  *
  */
 
@@ -46,10 +46,10 @@ namespace uORB
 {
 
 /**
- * Queued publication with queue length set as a message constant (ORB_QUEUE_LENGTH)
+ * Base publication multi wrapper class
  */
 template<typename T>
-class PublicationQueued
+class PublicationMulti
 {
 public:
 
@@ -57,9 +57,14 @@ public:
 	 * Constructor
 	 *
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
+	 * @param priority The priority for multi pub/sub, 0 means don't publish as multi
 	 */
-	PublicationQueued(const orb_metadata *meta) : _meta(meta) {}
-	~PublicationQueued() { orb_unadvertise(_handle); }
+	PublicationMulti(const orb_metadata *meta, uint8_t priority = ORB_PRIO_DEFAULT) :
+		_meta(meta),
+		_priority(priority)
+	{}
+
+	~PublicationMulti() { orb_unadvertise(_handle); }
 
 	/**
 	 * Publish the struct
@@ -71,7 +76,8 @@ public:
 			return (orb_publish(_meta, _handle, &data) == PX4_OK);
 
 		} else {
-			orb_advert_t handle = orb_advertise_queue(_meta, &data, T::ORB_QUEUE_LENGTH);
+			int instance = 0;
+			orb_advert_t handle = orb_advertise_multi(_meta, &data, &instance, _priority);
 
 			if (handle != nullptr) {
 				_handle = handle;
@@ -86,6 +92,42 @@ protected:
 	const orb_metadata *_meta;
 
 	orb_advert_t _handle{nullptr};
+
+	const uint8_t _priority;
+};
+
+/**
+ * The publication multi class with data embedded.
+ */
+template<typename T>
+class PublicationMultiData : public PublicationMulti<T>
+{
+public:
+	/**
+	 * Constructor
+	 *
+	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
+	 * @param priority The priority for multi pub
+	 */
+	PublicationMultiData(const orb_metadata *meta, uint8_t priority = ORB_PRIO_DEFAULT) :
+		PublicationMulti<T>(meta, priority)
+	{}
+
+	~PublicationMultiData() = default;
+
+	T	&get() { return _data; }
+	void	set(const T &data) { _data = data; }
+
+	// Publishes the embedded struct.
+	bool	update() { return PublicationMulti<T>::publish(_data); }
+	bool	update(const T &data)
+	{
+		_data = data;
+		return PublicationMulti<T>::publish(_data);
+	}
+
+private:
+	T _data{};
 };
 
 } // namespace uORB
