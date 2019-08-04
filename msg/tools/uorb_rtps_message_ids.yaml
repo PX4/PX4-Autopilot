@@ -297,3 +297,15 @@ rtps:
   - msg: vehicle_trajectory_waypoint_desired
     id: 133
     alias: vehicle_trajectory_waypoint
+  - msg: obstacle_distance_fused
+    id: 134
+    alias: obstacle_distance
+  - msg: vehicle_vision_attitude
+    id: 135
+    alias: vehicle_attitude
+  - msg: trajectory_setpoint
+    id: 136
+    alias: vehicle_local_position_setpoint
+  - msg: camera_trigger_secondary
+    id: 137
+    alias: camera_trigger
