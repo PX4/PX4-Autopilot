@@ -38,7 +38,7 @@
 #include <lib/cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
 #include <uORB/uORB.h>
-#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/distance_sensor.h>
 
 class PX4Rangefinder : public cdev::CDev
@@ -64,7 +64,7 @@ public:
 
 private:
 
-	uORB::PublicationData<distance_sensor_s>	_distance_sensor_pub;
+	uORB::PublicationMultiData<distance_sensor_s>	_distance_sensor_pub;
 
 	int			_class_device_instance{-1};
 
