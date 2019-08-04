@@ -50,6 +50,7 @@
 #include <px4_module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationQueued.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -237,16 +238,16 @@ private:
 	uORB::Publication<vehicle_trajectory_waypoint_s>	_trajectory_waypoint_pub{ORB_ID(vehicle_trajectory_waypoint)};
 
 	// ORB publications (multi)
-	uORB::Publication<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor), ORB_PRIO_LOW};
-	uORB::Publication<distance_sensor_s>		_flow_distance_sensor_pub{ORB_ID(distance_sensor), ORB_PRIO_LOW};
-	uORB::Publication<input_rc_s>			_rc_pub{ORB_ID(input_rc), ORB_PRIO_LOW};
-	uORB::Publication<manual_control_setpoint_s>	_manual_pub{ORB_ID(manual_control_setpoint), ORB_PRIO_LOW};
-	uORB::Publication<ping_s>			_ping_pub{ORB_ID(ping), ORB_PRIO_LOW};
-	uORB::Publication<radio_status_s>		_radio_status_pub{ORB_ID(radio_status), ORB_PRIO_LOW};
-	uORB::Publication<sensor_accel_s>		_accel_pub{ORB_ID(sensor_accel), ORB_PRIO_LOW};
-	uORB::Publication<sensor_baro_s>		_baro_pub{ORB_ID(sensor_baro), ORB_PRIO_LOW};
-	uORB::Publication<sensor_gyro_s>		_gyro_pub{ORB_ID(sensor_gyro), ORB_PRIO_LOW};
-	uORB::Publication<sensor_mag_s>			_mag_pub{ORB_ID(sensor_mag), ORB_PRIO_LOW};
+	uORB::PublicationMulti<distance_sensor_s>		_distance_sensor_pub{ORB_ID(distance_sensor), ORB_PRIO_LOW};
+	uORB::PublicationMulti<distance_sensor_s>		_flow_distance_sensor_pub{ORB_ID(distance_sensor), ORB_PRIO_LOW};
+	uORB::PublicationMulti<input_rc_s>			_rc_pub{ORB_ID(input_rc), ORB_PRIO_LOW};
+	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_pub{ORB_ID(manual_control_setpoint), ORB_PRIO_LOW};
+	uORB::PublicationMulti<ping_s>				_ping_pub{ORB_ID(ping), ORB_PRIO_LOW};
+	uORB::PublicationMulti<radio_status_s>			_radio_status_pub{ORB_ID(radio_status), ORB_PRIO_LOW};
+	uORB::PublicationMulti<sensor_accel_s>			_accel_pub{ORB_ID(sensor_accel), ORB_PRIO_LOW};
+	uORB::PublicationMulti<sensor_baro_s>			_baro_pub{ORB_ID(sensor_baro), ORB_PRIO_LOW};
+	uORB::PublicationMulti<sensor_gyro_s>			_gyro_pub{ORB_ID(sensor_gyro), ORB_PRIO_LOW};
+	uORB::PublicationMulti<sensor_mag_s>			_mag_pub{ORB_ID(sensor_mag), ORB_PRIO_LOW};
 
 	// ORB publications (queue length > 1)
 	uORB::PublicationQueued<gps_inject_data_s>	_gps_inject_data_pub{ORB_ID(gps_inject_data)};
