@@ -14,8 +14,7 @@ bool condition_local_velocity_valid		# set to true by the commander app if the q
 bool condition_local_altitude_valid
 bool condition_power_input_valid                # set if input power is valid
 bool condition_battery_healthy                # set if battery is available and not low
-int8 condition_escs_valid		      # set to -1 if disabled (only works with ESCs providing status), 0 if enabled but one or more ESCs are offline, 1 if all ESCs are online
-
+bool condition_escs_error		      # set to true in case of standard ESCs that do not provide status OR if all the ESCs are online
 bool circuit_breaker_engaged_power_check
 bool circuit_breaker_engaged_airspd_check
 bool circuit_breaker_engaged_enginefailure_check

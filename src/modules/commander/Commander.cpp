@@ -1598,7 +1598,7 @@ Commander::run()
 			}
 
 		} else {
-			status_flags.condition_escs_valid = -1;
+			status_flags.condition_escs_error = false;
 		}
 
 
@@ -4367,13 +4367,13 @@ void Commander::esc_status_check()
 
 	// Check if ALL the ESCs are online
 	if (online_bitmask == esc_status.esc_online_flags) {
-		status_flags.condition_escs_valid = 1;
+		status_flags.condition_escs_error = false;
 		_last_esc_online_flags = esc_status.esc_online_flags;
 	}
 
 	// Avoid checking the status if the flags are the same or if the mixer has not yet been loaded from uavcan_main
 	else if (_last_esc_online_flags == esc_status.esc_online_flags || esc_status.esc_count == 0)  {
-		status_flags.condition_escs_valid = 0;
+		status_flags.condition_escs_error = true;
 	}
 
 	// Only warn the user when an ESC goes from ONLINE to OFFLINE. This is done to prevent showing  Offline ESCs warning messages at boot
@@ -4388,6 +4388,6 @@ void Commander::esc_status_check()
 		mavlink_log_critical(&mavlink_log_pub, "%soffline", esc_fail_msg);
 
 		_last_esc_online_flags = esc_status.esc_online_flags;
-		status_flags.condition_escs_valid = 0;
+		status_flags.condition_escs_error = true;
 	}
 }
