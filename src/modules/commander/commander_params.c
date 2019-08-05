@@ -269,13 +269,13 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
  * @decimal 2
  */
 
-PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 5.0f);
+PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
 
 /**
- * Time-out for auto disarm before the first take off
+ * Time-out for auto disarm if too slow to takeoff
  *
- * A non-zero, positive value specifies the time-out period in seconds after which the vehicle will be
- * automatically disarmed when the vehicle has never taken off.
+ * A non-zero, positive value specifies the time after arming, in seconds, within which the
+ * vehicle must take off (after which it will automatically disarm).
  *
  * A negative value means that automatic disarming triggered by a pre-takeoff timeout is disabled.
  *
@@ -283,7 +283,7 @@ PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 5.0f);
  * @unit s
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT,  2.0f);
+PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT,  10.0f);
 
 
 /**
