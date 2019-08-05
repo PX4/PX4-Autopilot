@@ -33,6 +33,13 @@
 
 #pragma once
 
+struct Trajectory {
+	float j; //< jerk
+	float a; //< acceleration
+	float v; //< velocity
+	float x; //< position
+};
+
 /**
  * @class VelocitySmoothing
  *
@@ -67,11 +74,11 @@ public:
 
 	/**
 	 * Compute T1, T2, T3 depending on the current state and velocity setpoint. This should be called on every cycle
-	 * and before integrate().
-	 * @param dt delta time between last updateDurations() call and now [s]
+	 * and before evaluateTraj().
 	 * @param vel_setpoint velocity setpoint input
+	 * @param t current time
 	 */
-	void updateDurations(float dt, float vel_setpoint);
+	void updateDurations(float t_now, float vel_setpoint);
 
 	/**
 	 * Generate the trajectory (acceleration, velocity and position) by integrating the current jerk
@@ -81,13 +88,13 @@ public:
 	 * @param vel_setpoint_smooth returned smoothed velocity setpoint
 	 * @param pos_setpoint_smooth returned smoothed position setpoint
 	 */
-	void integrate(float &accel_setpoint_smooth, float &vel_setpoint_smooth, float &pos_setpoint_smooth);
-	void integrate(float dt, float integration_scale_factor, float &accel_setpoint_smooth, float &vel_setpoint_smooth,
-		       float &pos_setpoint_smooth);
+	void updateTraj(float t_now, float &accel_setpoint_smooth, float &vel_setpoint_smooth, float &pos_setpoint_smooth);
 
 	/* Get / Set constraints (constraints can be updated at any time) */
 	float getMaxJerk() const { return _max_jerk; }
 	void setMaxJerk(float max_jerk) { _max_jerk = max_jerk; }
+
+
 
 	float getMaxAccel() const { return _max_accel; }
 	void setMaxAccel(float max_accel) { _max_accel = max_accel; }
@@ -95,13 +102,13 @@ public:
 	float getMaxVel() const { return _max_vel; }
 	void setMaxVel(float max_vel) { _max_vel = max_vel; }
 
-	float getCurrentJerk() const { return _jerk; }
-	void setCurrentAcceleration(const float accel) { _accel = accel; }
-	float getCurrentAcceleration() const { return _accel; }
-	void setCurrentVelocity(const float vel) { _vel = vel; }
-	float getCurrentVelocity() const { return _vel; }
-	void setCurrentPosition(const float pos) { _pos = pos; }
-	float getCurrentPosition() const { return _pos; }
+	float getCurrentJerk() const { return _state.j; }
+	void setCurrentAcceleration(const float accel) { _state.a = accel; }
+	float getCurrentAcceleration() const { return _state.a; }
+	void setCurrentVelocity(const float vel) { _state.v = vel; }
+	float getCurrentVelocity() const { return _state.v; }
+	void setCurrentPosition(const float pos) { _state.x = pos; }
+	float getCurrentPosition() const { return _state.x; }
 
 	/**
 	 * Synchronize several trajectories to have the same total time. This is required to generate
@@ -129,16 +136,16 @@ private:
 	/**
 	 * Compute increasing acceleration time
 	 */
-	inline float computeT1(float accel_prev, float vel_prev, float vel_setpoint, float max_jerk);
+	inline float computeT1(float a0, float v3, float j_max, float a_max);
 	/**
 	 * Compute increasing acceleration time using total time constraint
 	 */
-	inline float computeT1(float T123, float accel_prev, float vel_prev, float vel_setpoint, float max_jerk);
-	inline float saturateT1ForAccel(float accel_prev, float max_jerk, float T1);
+	inline float computeT1(float T123, float a0, float v3, float j_max, float a_max);
+	inline float saturateT1ForAccel(float a0, float j_max, float T1, float a_max);
 	/**
 	 * Compute constant acceleration time
 	 */
-	inline float computeT2(float T1, float T3, float accel_prev, float vel_prev, float vel_setpoint, float max_jerk);
+	inline float computeT2(float T1, float T3, float a0, float v3, float j_max);
 	/**
 	 * Compute constant acceleration time using total time constraint
 	 */
@@ -146,17 +153,22 @@ private:
 	/**
 	 * Compute decreasing acceleration time
 	 */
-	inline float computeT3(float T1, float accel_prev, float max_jerk);
+	inline float computeT3(float T1, float a0, float j_max);
 
 	/**
-	 * Integrate the jerk, acceleration and velocity to get the new setpoints and states.
+	 * Compute the jerk, acceleration, velocity and position
+	 * of a jerk-driven polynomial trajectory at a given time t
+	 * @param j jerk
+	 * @param a0 initial acceleration at t = 0
+	 * @param v0 initial velocity
+	 * @param x0 initial postion
+	 * @param t current time
+	 * @param d direction
 	 */
-	inline void integrateT(float dt, float jerk, float accel_prev, float vel_prev, float pos_prev,
-			       float &accel_out, float &vel_out, float &pos_out);
+	inline Trajectory evaluatePoly(float j, float a0, float v0, float x0, float t, int d);
 
-	/* Inputs */
+	/* Input */
 	float _vel_sp{0.0f};
-	float _dt = 1.f;
 
 	/* Constraints */
 	float _max_jerk = 22.f;
@@ -164,17 +176,16 @@ private:
 	float _max_vel = 6.f;
 
 	/* State (previous setpoints) */
-	float _jerk = 0.f;
-	float _accel = 0.f;
-	float _vel = 0.f;
-	float _pos = 0.f;
+	Trajectory _state{};
+	int _direction{0};
 
-	float _max_jerk_T1 = 0.f; ///< jerk during phase T1 (with correct sign)
+	/* Initial conditions */
+	Trajectory _state_init{};
 
 	/* Duration of each phase */
 	float _T1 = 0.f; ///< Increasing acceleration [s]
 	float _T2 = 0.f; ///< Constant acceleration [s]
 	float _T3 = 0.f; ///< Decreasing acceleration [s]
 
-	static constexpr float max_pos_err = 1.f; ///< maximum position error (if above, the position setpoint is locked)
+	float _t0 = 0.f; ///< Starting time
 };

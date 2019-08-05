@@ -43,8 +43,8 @@ int main(int argc, char *argv[])
 {
 	VelocitySmoothing trajectory[3];
 
-	float a0[3] = {0.22, 0.f, 0.22f};
-	float v0[3] = {2.47f, -5.59e-6f, 2.47f};
+	float a0[3] = {0.f, 0.f, 0.f};
+	float v0[3] = {0.f, 0.f, 0.f};
 	float x0[3] = {0.f, 0.f, 0.f};
 
 	float j_max = 55.2f;
@@ -59,18 +59,20 @@ int main(int argc, char *argv[])
 		trajectory[i].setCurrentVelocity(v0[i]);
 	}
 
-	float dt = 0.01f;
+	float t = 0.f;
+	const float dt = 0.01f;
 
-	float velocity_setpoint[3] = {0.f, 1.f, 0.f};
+	float velocity_setpoint[3] = {0.f, -1.f, 0.f};
 
 	for (int i = 0; i < 3; i++) {
-		trajectory[i].updateDurations(dt, velocity_setpoint[i]);
+		trajectory[i].updateDurations(velocity_setpoint[i], t);
 	}
 
-	VelocitySmoothing::timeSynchronization(trajectory, 2);
+	//VelocitySmoothing::timeSynchronization(trajectory, 2);
 
+	t += dt;
 	for (int i = 0; i < 3; i++) {
-		trajectory[i].integrate(a0[i], v0[i], x0[i]);
+		trajectory[i].updateTraj(t, a0[i], v0[i], x0[i]);
 	}
 
 	for (int i = 0; i < 3; i++) {
