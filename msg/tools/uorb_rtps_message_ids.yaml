@@ -252,6 +252,8 @@ rtps:
     id: 109
   - msg: landing_gear
     id: 110
+  - msg: wheel_encoders
+    id: 111
   # multi topics
   - msg: actuator_controls_0
     id: 120
