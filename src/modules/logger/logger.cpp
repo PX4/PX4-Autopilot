@@ -44,7 +44,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include <uORB/uORB.h>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/uORBTopics.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/log_message.h>
@@ -708,7 +708,7 @@ void Logger::add_sensor_comparison_topics()
 void Logger::add_vision_and_avoidance_topics()
 {
 	add_topic("collision_constraints");
-	add_topic("obstacle_distance");
+	add_topic("obstacle_distance_fused");
 	add_topic("vehicle_mocap_odometry", 30);
 	add_topic("vehicle_trajectory_waypoint", 200);
 	add_topic("vehicle_trajectory_waypoint_desired", 200);
@@ -935,7 +935,6 @@ void Logger::run()
 	}
 
 	int vehicle_command_sub = -1;
-	orb_advert_t vehicle_command_ack_pub = nullptr;
 
 	if (_writer.backend() & LogWriter::BackendMavlink) {
 		vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
@@ -1042,7 +1041,7 @@ void Logger::run()
 
 		/* check for logging command from MAVLink (start/stop streaming) */
 		if (vehicle_command_sub >= 0) {
-			handle_vehicle_command_update(vehicle_command_sub, vehicle_command_ack_pub);
+			handle_vehicle_command_update(vehicle_command_sub);
 		}
 
 
@@ -1293,10 +1292,6 @@ void Logger::run()
 		_mavlink_log_pub = nullptr;
 	}
 
-	if (vehicle_command_ack_pub) {
-		orb_unadvertise(vehicle_command_ack_pub);
-	}
-
 	if (vehicle_command_sub != -1) {
 		orb_unsubscribe(vehicle_command_sub);
 	}
@@ -1402,7 +1397,7 @@ bool Logger::start_stop_logging(int vehicle_status_sub, int manual_control_sp_su
 	return bret;
 }
 
-void Logger::handle_vehicle_command_update(int vehicle_command_sub, orb_advert_t &vehicle_command_ack_pub)
+void Logger::handle_vehicle_command_update(int vehicle_command_sub)
 {
 	bool command_updated = false;
 	int ret = orb_check(vehicle_command_sub, &command_updated);
@@ -1413,23 +1408,19 @@ void Logger::handle_vehicle_command_update(int vehicle_command_sub, orb_advert_t
 
 		if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
 			if ((int)(command.param1 + 0.5f) != 0) {
-				ack_vehicle_command(vehicle_command_ack_pub, &command,
-						    vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
+				ack_vehicle_command(&command, vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
 
 			} else if (can_start_mavlink_log()) {
-				ack_vehicle_command(vehicle_command_ack_pub, &command,
-						    vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+				ack_vehicle_command(&command, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 				start_log_mavlink();
 
 			} else {
-				ack_vehicle_command(vehicle_command_ack_pub, &command,
-						    vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
+				ack_vehicle_command(&command, vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED);
 			}
 
 		} else if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_STOP) {
 			stop_log_mavlink();
-			ack_vehicle_command(vehicle_command_ack_pub, &command,
-					    vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
+			ack_vehicle_command(&command, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 		}
 	}
 }
@@ -1889,7 +1880,8 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 		    strcmp(type_name, "uint64_t") != 0 &&
 		    strcmp(type_name, "float") != 0 &&
 		    strcmp(type_name, "double") != 0 &&
-		    strcmp(type_name, "bool") != 0) {
+		    strcmp(type_name, "bool") != 0 &&
+		    strcmp(type_name, "char") != 0) {
 
 			// find orb meta for type
 			const orb_metadata *const *topics = orb_get_topics();
@@ -2338,7 +2330,7 @@ void Logger::write_changed_parameters(LogType type)
 	_writer.notify();
 }
 
-void Logger::ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, vehicle_command_s *cmd, uint32_t result)
+void Logger::ack_vehicle_command(vehicle_command_s *cmd, uint32_t result)
 {
 	vehicle_command_ack_s vehicle_command_ack = {};
 	vehicle_command_ack.timestamp = hrt_absolute_time();
@@ -2347,13 +2339,8 @@ void Logger::ack_vehicle_command(orb_advert_t &vehicle_command_ack_pub, vehicle_
 	vehicle_command_ack.target_system = cmd->source_system;
 	vehicle_command_ack.target_component = cmd->source_component;
 
-	if (vehicle_command_ack_pub == nullptr) {
-		vehicle_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &vehicle_command_ack,
-					  vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-
-	} else {
-		orb_publish(ORB_ID(vehicle_command_ack), vehicle_command_ack_pub, &vehicle_command_ack);
-	}
+	uORB::PublicationQueued<vehicle_command_ack_s> cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+	cmd_ack_pub.publish(vehicle_command_ack);
 }
 
 int Logger::print_usage(const char *reason)

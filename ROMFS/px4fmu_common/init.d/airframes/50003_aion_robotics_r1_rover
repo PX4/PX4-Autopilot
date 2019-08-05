@@ -15,7 +15,7 @@
 # @board px4_fmu-v2 exclude
 #
 
-sh /etc/init.d/rc.ugv_defaults
+sh /etc/init.d/rc.rover_defaults
 
 if [ $AUTOCNF = yes ]
 then
@@ -29,15 +29,19 @@ then
 	param set FW_AIRSPD_TRIM 1
 	param set FW_AIRSPD_MAX 3
 
-	param set GND_WR_P 1
-	param set GND_WR_I 0.9674
-	param set GND_WR_IMAX 0.1
-	param set GND_WR_D 0.1
 	param set GND_SP_CTRL_MODE 1
-	param set GND_L1_DIST 10
+	param set GND_L1_DIST 5.0
+	param set GND_L1_PERIOD 3.0
 	param set GND_THR_IDLE 0
-	param set GND_THR_CRUISE 0
+	param set GND_THR_CRUISE 0.7
 	param set GND_THR_MAX 0.5
+
+	# Because this is differential drive, it can make a turn with radius 0.
+	# This corresponds to a turn angle of pi radians.
+	# If a special case is made for differential-drive, this will need to change.
+	param set GND_MAX_ANG 3.142
+	param set GND_WHEEL_BASE 0.3
+
 	# TODO: Set to -1.0, to allow reversing. This will require many changes in the codebase
 	# to support negative throttle.
 	param set GND_THR_MIN 0.0
@@ -62,12 +66,25 @@ then
 
 	# Enable Airspeed check circuit breaker because Rovers will have no airspeed sensor
 	param set CBRK_AIRSPD_CHK 162128
+
+	# Differential drive acts like ackermann steering with a maximum turn angle of 180 degrees, or pi radians
+	param set GND_MAX_ANG 3.1415
+
+	param set RBCLW_BAUD 8
+	param set RBCLW_COUNTS_REV 1200
+	param set RBCLW_ADDRESS 128
+	# param set SER_TEL4_BAUD 115200
+	# 104 corresponds to Telem 4
+	param set RBCLW_SER_CFG 104
 fi
 
-# Configure this as ugv
+# Start this driver after setting parameters, because the driver uses some of those parameters.
+# roboclaw start /dev/ttyS3
+
+# Configure this as rover
 set MAV_TYPE 10
 
 # Set mixer
-set MIXER generic_differential_rover
+set MIXER generic_diff_rover
 
 set PWM_MAIN_REV2 1

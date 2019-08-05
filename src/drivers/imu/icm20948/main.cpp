@@ -39,33 +39,6 @@
  * based on the mpu9250 driver
  */
 
-#include <px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <stdio.h>
-#include <px4_getopt.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-#include <systemlib/conversions.h>
-
-#include <board_config.h>
-#include <drivers/drv_hrt.h>
-
-#include <drivers/device/spi.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/drv_mag.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <lib/conversion/rotation.h>
-
 #include "icm20948.h"
 
 #define ICM_DEVICE_PATH_ACCEL_EXT  "/dev/icm20948_accel_ext"

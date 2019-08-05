@@ -49,7 +49,7 @@ public:
 	FlightTaskAutoLineSmoothVel() = default;
 	virtual ~FlightTaskAutoLineSmoothVel() = default;
 
-	bool activate() override;
+	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
 	void reActivate() override;
 
 protected:
@@ -64,12 +64,14 @@ protected:
 					(ParamFloat<px4::params::MPC_Z_TRAJ_P>) _param_mpc_z_traj_p
 				       );
 
+	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
 	void _generateSetpoints() override; /**< Generate setpoints along line. */
 
 	/** determines when to trigger a takeoff (ignored in flight) */
 	bool _checkTakeoff() override { return _want_takeoff; };
 
 	inline float _constrainOneSide(float val, float constrain);
+	void _initEkfResetCounters();
 	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
 	void _generateHeading();
 	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */

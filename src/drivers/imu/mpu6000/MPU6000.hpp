@@ -55,20 +55,18 @@
  * @author David Sidrane
  */
 
-#include <drivers/drv_hrt.h>
-#include <lib/cdev/CDev.hpp>
+#include <lib/conversion/rotation.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/device/i2c.h>
 #include <lib/drivers/device/spi.h>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/ecl/geo/geo.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_config.h>
 #include <px4_getopt.h>
-#include <px4_time.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/conversions.h>
 #include <systemlib/px4_macros.h>
+
 
 /*
   we set the timer interrupt to run a bit faster than the desired
