@@ -1589,12 +1589,18 @@ Commander::run()
 			}
 		}
 
+		if (orb_exists(ORB_ID(esc_status), 0) == PX4_OK) {
 
-		if (esc_status_sub.updated()) {
-			/* ESCs status changed */
-			esc_status_sub.copy(&esc_status);
-			esc_status_check();
+			if (esc_status_sub.updated()) {
+				/* ESCs status changed */
+				esc_status_sub.copy(&esc_status);
+				esc_status_check();
+			}
+
+		} else {
+			status_flags.condition_escs_valid = -1;
 		}
+
 
 		estimator_check(&status_changed);
 		airspeed_use_check();
@@ -2424,6 +2430,7 @@ get_circuit_breaker_params()
 	status_flags.circuit_breaker_flight_termination_disabled = circuit_breaker_enabled("CBRK_FLIGHTTERM",
 			CBRK_FLIGHTTERM_KEY);
 	status_flags.circuit_breaker_engaged_posfailure_check = circuit_breaker_enabled("CBRK_VELPOSERR", CBRK_VELPOSERR_KEY);
+	status_flags.circuit_breaker_engaged_escs_check = circuit_breaker_enabled("CBRK_ESCS_CHK", CBRK_ESCS_CHK_KEY);
 }
 
 void
@@ -4360,17 +4367,13 @@ void Commander::esc_status_check()
 
 	// Check if ALL the ESCs are online
 	if (online_bitmask == esc_status.esc_online_flags) {
-		if (_last_esc_online_flags != esc_status.esc_online_flags) {
-			mavlink_log_info(&mavlink_log_pub, "All ESCs are ready");
-		}
-
-		status_flags.condition_escs_valid = true;
+		status_flags.condition_escs_valid = 1;
 		_last_esc_online_flags = esc_status.esc_online_flags;
 	}
 
 	// Avoid checking the status if the flags are the same or if the mixer has not yet been loaded from uavcan_main
 	else if (_last_esc_online_flags == esc_status.esc_online_flags || esc_status.esc_count == 0)  {
-		status_flags.condition_escs_valid = false;
+		status_flags.condition_escs_valid = 0;
 	}
 
 	// Only warn the user when an ESC goes from ONLINE to OFFLINE. This is done to prevent showing  Offline ESCs warning messages at boot
@@ -4385,6 +4388,6 @@ void Commander::esc_status_check()
 		mavlink_log_critical(&mavlink_log_pub, "%soffline", esc_fail_msg);
 
 		_last_esc_online_flags = esc_status.esc_online_flags;
-		status_flags.condition_escs_valid = false;
+		status_flags.condition_escs_valid = 0;
 	}
 }

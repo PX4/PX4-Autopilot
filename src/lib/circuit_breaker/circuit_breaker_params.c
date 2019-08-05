@@ -193,3 +193,17 @@ PARAM_DEFINE_INT32(CBRK_USB_CHK, 0);
  * @group Circuit Breaker
  */
 PARAM_DEFINE_INT32(CBRK_VELPOSERR, 0);
+
+/**
+ * Circuit breaker for ESCs status check
+ *
+ * Setting this parameter to 271828 will disable offline ESCs detection.
+ * If this check is enabled, then the ESCs check will fail is not all the ESCs are reporting their status.
+ *
+ * @reboot_required true
+ * @min 0
+ * @max 271828
+ * @category Developer
+ * @group Circuit Breaker
+ */
+PARAM_DEFINE_INT32(CBRK_ESCS_CHK, 0);

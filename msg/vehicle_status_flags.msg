@@ -14,7 +14,7 @@ bool condition_local_velocity_valid		# set to true by the commander app if the q
 bool condition_local_altitude_valid
 bool condition_power_input_valid                # set if input power is valid
 bool condition_battery_healthy                # set if battery is available and not low
-bool condition_escs_valid		      # Specific for UAVCAN escs: set if all the escs are online
+int8 condition_escs_valid		      # set to -1 if disabled (only works with ESCs providing status), 0 if enabled but one or more ESCs are offline, 1 if all ESCs are online
 
 bool circuit_breaker_engaged_power_check
 bool circuit_breaker_engaged_airspd_check
@@ -23,6 +23,7 @@ bool circuit_breaker_engaged_gpsfailure_check
 bool circuit_breaker_flight_termination_disabled
 bool circuit_breaker_engaged_usb_check
 bool circuit_breaker_engaged_posfailure_check	# set to true when the position valid checks have been disabled
+bool circuit_breaker_engaged_escs_check
 
 bool offboard_control_signal_found_once
 bool offboard_control_signal_lost
