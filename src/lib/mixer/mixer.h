@@ -715,7 +715,7 @@ public:
 
 	void 			set_airmode(Airmode airmode) override;
 
-	unsigned get_multirotor_count() {return _rotor_count;}
+	unsigned get_multirotor_count() override {return _rotor_count;}
 
 	union saturation_status {
 		struct {
