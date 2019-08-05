@@ -155,7 +155,8 @@ void FlightTaskManualAltitudeSmoothVel::_updateSetpoints()
 
 	float pos_sp_smooth;
 
-	_smoothing.integrate(_acceleration_setpoint(2), _vel_sp_smooth, pos_sp_smooth);
+	// TODO: move before updateDurations
+	_smoothing.updateTraj(_time_stamp_current, _acceleration_setpoint(2), _vel_sp_smooth, pos_sp_smooth);
 	_velocity_setpoint(2) = _vel_sp_smooth; // Feedforward
 	_jerk_setpoint(2) = _smoothing.getCurrentJerk();
 
