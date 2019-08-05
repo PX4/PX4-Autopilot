@@ -48,7 +48,7 @@ class VelocitySmoothingTest : public ::testing::Test
 public:
 	void setConstraints(float j_max, float a_max, float v_max);
 	void setInitialConditions(Vector3f acc, Vector3f vel, Vector3f pos);
-	void updateTrajectories(Vector3f velocity_setpoints, float dt);
+	void updateTrajectories(Vector3f velocity_setpoints, float t);
 
 	VelocitySmoothing _trajectories[3];
 };
@@ -71,19 +71,19 @@ void VelocitySmoothingTest::setInitialConditions(Vector3f a0, Vector3f v0, Vecto
 	}
 }
 
-void VelocitySmoothingTest::updateTrajectories(Vector3f velocity_setpoints, float dt)
+void VelocitySmoothingTest::updateTrajectories(Vector3f velocity_setpoints, float t)
 {
-	for (int i = 0; i < 3; i++) {
-		_trajectories[i].updateDurations(dt, velocity_setpoints(i));
-	}
-
-	VelocitySmoothing::timeSynchronization(_trajectories, 2);
-
 	float dummy; // We don't care about the immediate result
 
 	for (int i = 0; i < 3; i++) {
-		_trajectories[i].integrate(dummy, dummy, dummy);
+		_trajectories[i].updateTraj(t, dummy, dummy, dummy);
 	}
+
+	for (int i = 0; i < 3; i++) {
+		_trajectories[i].updateDurations(t, velocity_setpoints(i));
+	}
+
+	VelocitySmoothing::timeSynchronization(_trajectories, 2);
 }
 
 TEST_F(VelocitySmoothingTest, testTimeSynchronization)
@@ -96,16 +96,16 @@ TEST_F(VelocitySmoothingTest, testTimeSynchronization)
 	setConstraints(j_max, a_max, v_max);
 
 	// AND: A set of initial conditions
-	Vector3f a0(0.f, 0.f, 0.f);
-	Vector3f v0(0.f, 0.f, 0.f);
+	Vector3f a0(0.22f, 0.f, 0.22f);
+	Vector3f v0(2.47f, -5.59e-6f, 2.47f);
 	Vector3f x0(0.f, 0.f, 0.f);
 
 	setInitialConditions(a0, v0, x0);
 
 	// WHEN: We generate trajectories (time synchronized in XY) with constant setpoints and dt
-	Vector3f velocity_setpoints(0.f, 1.f, 0.f);
-	float dt = 0.01f;
-	updateTrajectories(velocity_setpoints, dt);
+	Vector3f velocity_setpoints(-3.f, 1.f, 0.f);
+	updateTrajectories(velocity_setpoints, 0.f);
+
 
 	// THEN: The X and Y trajectories should have the same total time (= time sunchronized)
 	EXPECT_LE(fabsf(_trajectories[0].getTotalTime() - _trajectories[1].getTotalTime()), 0.0001);
@@ -114,27 +114,29 @@ TEST_F(VelocitySmoothingTest, testTimeSynchronization)
 TEST_F(VelocitySmoothingTest, testConstantSetpoint)
 {
 	// GIVEN: A set of initial conditions (same constraints as before)
-	Vector3f a0(0.22f, 0.f, 0.22f);
-	Vector3f v0(2.47f, -5.59e-6f, 2.47f);
+	Vector3f a0(0.f, 0.f, 0.f);
+	Vector3f v0(0.f, 0.f, 0.f);
 	Vector3f x0(0.f, 0.f, 0.f);
 
 	setInitialConditions(a0, v0, x0);
 
 	// WHEN: We generate trajectories with constant setpoints and dt
-	Vector3f velocity_setpoints(0.f, 1.f, 0.f);
-	float dt = 0.01f;
+	Vector3f velocity_setpoints(-3.f, 0.f, -1.f);
 
 	// Compute the number of steps required to reach desired value
 	// because of known numerical issues, the actual trajectory takes a
 	// bit more time than the predicted one, this is why we have to add 14 steps
 	// to the theoretical value.
 	// The updateTrajectories is fist called once to compute the total time
-	updateTrajectories(velocity_setpoints, dt);
+	float t = 0.f;
+	const float dt = 0.01;
+	updateTrajectories(velocity_setpoints, t);
 	float t123 = _trajectories[0].getTotalTime();
-	int nb_steps = ceil(t123 / dt) + 14;
+	int nb_steps = ceil(t123 / dt);
 
 	for (int i = 0; i < nb_steps; i++) {
-		updateTrajectories(velocity_setpoints, dt);
+		t += dt;
+		updateTrajectories(velocity_setpoints, t);
 	}
 
 	// THEN: All the trajectories should have reach their
@@ -156,11 +158,13 @@ TEST_F(VelocitySmoothingTest, testZeroSetpoint)
 
 	// AND: Null setpoints
 	Vector3f velocity_setpoints(0.f, 0.f, 0.f);
-	float dt = 0.01f;
+	float t = 0.f;
+	const float dt = 0.01f;
 
 	// WHEN: We run a few times the algorithm
 	for (int i = 0; i < 60; i++) {
-		updateTrajectories(velocity_setpoints, dt);
+		updateTrajectories(velocity_setpoints, t);
+		t += dt;
 	}
 
 	// THEN: All the trajectories should still be null
