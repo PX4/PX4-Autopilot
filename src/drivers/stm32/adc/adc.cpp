@@ -452,9 +452,17 @@ ADC::update_system_power(hrt_abstime now)
 
 	system_power.servo_valid   = BOARD_ADC_SERVO_VALID;
 
+#ifdef BOARD_ADC_PERIPH_5V_OC
 	// OC pins are active low
 	system_power.periph_5v_oc  = BOARD_ADC_PERIPH_5V_OC;
+#else
+	system_power.periph_5v_oc  = 0;
+#endif
+#ifdef BOARD_ADC_HIPOWER_5V_OC
 	system_power.hipower_5v_oc = BOARD_ADC_HIPOWER_5V_OC;
+#else
+	system_power.hipower_5v_oc  = 0;
+#endif
 
 	/* lazily publish */
 	if (_to_system_power != nullptr) {

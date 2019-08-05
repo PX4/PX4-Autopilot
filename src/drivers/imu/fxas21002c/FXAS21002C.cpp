@@ -33,12 +33,6 @@
 
 #include "FXAS21002C.hpp"
 
-#include <drivers/drv_hrt.h>
-#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-
 /* SPI protocol address bits */
 #define DIR_READ(a)                     ((a) | (1 << 7))
 #define DIR_WRITE(a)                    ((a) & 0x7f)

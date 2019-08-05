@@ -41,33 +41,9 @@
  * based on the mpu6000 driver
  */
 
-#include <px4_config.h>
-#include <ecl/geo/geo.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <stdio.h>
-
-#include <perf/perf_counter.h>
-
-#include <board_config.h>
-#include <drivers/drv_hrt.h>
-
 #include <drivers/device/spi.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/drv_mag.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <lib/conversion/rotation.h>
 
-#include "mag.h"
-#include "gyro.h"
+#include "accel.h"
 #include "icm20948.h"
 
 ICM20948_accel::ICM20948_accel(ICM20948 *parent, const char *path) :

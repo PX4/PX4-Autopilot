@@ -39,32 +39,12 @@
  *
  */
 
-#include <nuttx/config.h>
-
-//#include <drivers/device/i2c.h>
-
-#include <sys/types.h>
-#include <stdint.h>
 #include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <px4_getopt.h>
 
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-#include <drivers/drv_hrt.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-
-#include <board_config.h>
-
-#include <drivers/drv_led.h>
-#include <lib/led/led.h>
 #include <drivers/device/device.h>
+#include <lib/led/led.h>
+#include <px4_getopt.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
 
 #define RGBLED_ONTIME 120

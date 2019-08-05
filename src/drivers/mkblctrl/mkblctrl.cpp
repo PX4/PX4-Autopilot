@@ -495,7 +495,7 @@ MK::task_main()
 	 * advertise the tune_control.
 	 */
 	tune_control_s tune = {};
-	_tune_control_sub = orb_advertise(ORB_ID(tune_control), &tune);
+	_tune_control_sub = orb_advertise_queue(ORB_ID(tune_control), &tune, tune_control_s::ORB_QUEUE_LENGTH);
 
 	pollfd fds[2];
 	fds[0].fd = _t_actuators;

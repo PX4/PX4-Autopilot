@@ -93,7 +93,6 @@
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/telemetry_status.h>
-#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/esc_status.h>
@@ -140,7 +139,7 @@ static float min_stick_change = 0.25f;
 static struct vehicle_status_s status = {};
 static struct actuator_armed_s armed = {};
 static struct safety_s safety = {};
-static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_MAX];
+static int32_t _flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_NUM];
 static struct commander_state_s internal_state = {};
 
 static uint8_t main_state_before_rtl = commander_state_s::MAIN_STATE_MAX;
@@ -200,6 +199,8 @@ void print_reject_arm(const char *msg);
 
 void print_status();
 
+bool shutdown_if_allowed();
+
 transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub, const char *armedBy);
 
 /**
@@ -207,7 +208,8 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub, const ch
  */
 void *commander_low_prio_loop(void *arg);
 
-static void answer_command(const vehicle_command_s &cmd, unsigned result, orb_advert_t &command_ack_pub);
+static void answer_command(const vehicle_command_s &cmd, unsigned result,
+			   uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub);
 
 static int power_button_state_notification_cb(board_power_button_state_notification_e request)
 {
@@ -251,7 +253,8 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 
 static bool send_vehicle_command(uint16_t cmd, float param1 = NAN, float param2 = NAN)
 {
-	vehicle_command_s vcmd = {};
+	vehicle_command_s vcmd{};
+
 	vcmd.timestamp = hrt_absolute_time();
 	vcmd.param1 = param1;
 	vcmd.param2 = param2;
@@ -264,9 +267,9 @@ static bool send_vehicle_command(uint16_t cmd, float param1 = NAN, float param2 
 	vcmd.target_system = status.system_id;
 	vcmd.target_component = status.component_id;
 
-	orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+	uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
 
-	return (h != nullptr);
+	return vcmd_pub.publish(vcmd);
 }
 
 int commander_main(int argc, char *argv[])
@@ -522,6 +525,13 @@ void print_status()
 	PX4_INFO("arming: %s", arming_state_names[status.arming_state]);
 }
 
+bool shutdown_if_allowed()
+{
+	return TRANSITION_DENIED != arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_SHUTDOWN,
+			&armed, false /* fRunPreArmChecks */, &mavlink_log_pub, &status_flags, arm_requirements,
+			hrt_elapsed_time(&commander_boot_timestamp));
+}
+
 transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, const char *armedBy)
 {
 	transition_result_t arming_res = TRANSITION_NOT_CHANGED;
@@ -579,7 +589,7 @@ Commander::~Commander()
 
 bool
 Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_s &cmd, actuator_armed_s *armed_local,
-			  orb_advert_t *command_ack_pub, bool *changed)
+			  uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub, bool *changed)
 {
 	/* only handle commands that are meant to be handled by this system and component */
 	if (cmd.target_system != status_local->system_id || ((cmd.target_component != status_local->component_id)
@@ -766,6 +776,21 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 			} else {
 
 				bool cmd_arms = (static_cast<int>(cmd.param1 + 0.5f) == 1);
+
+				// Arm/disarm is enforced only when param2 is set to a magic number.
+				const bool enforce_in_air = (static_cast<int>(std::round(cmd.param2)) == 21196);
+
+				if (!enforce_in_air && !land_detector.landed && !is_ground_rover(&status)) {
+					if (cmd_arms) {
+						mavlink_log_critical(&mavlink_log_pub, "Arming denied! Not landed");
+
+					} else {
+						mavlink_log_critical(&mavlink_log_pub, "Disarming denied! Not landed");
+					}
+
+					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+					break;
+				}
 
 				// Flick to inair restore first if this comes from an onboard system
 				if (cmd.source_system == status_local->system_id && cmd.source_component == status_local->component_id) {
@@ -1065,13 +1090,13 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 	default:
 		/* Warn about unsupported commands, this makes sense because only commands
 		 * to this component ID (or all) are passed by mavlink. */
-		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED, *command_ack_pub);
+		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED, command_ack_pub);
 		break;
 	}
 
 	if (cmd_result != vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED) {
 		/* already warned about unsupported commands in "default" case */
-		answer_command(cmd, cmd_result, *command_ack_pub);
+		answer_command(cmd, cmd_result, command_ack_pub);
 	}
 
 	return true;
@@ -1227,7 +1252,7 @@ Commander::run()
 	hrt_abstime last_disarmed_timestamp = 0;
 
 	/* command ack */
-	orb_advert_t command_ack_pub = nullptr;
+	uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
 	mission_init();
@@ -1499,7 +1524,7 @@ Commander::run()
 				}
 
 				/* if the USB hardware connection went away, reboot */
-				if (status_flags.usb_connected && !system_power.usb_connected) {
+				if (status_flags.usb_connected && !system_power.usb_connected && shutdown_if_allowed()) {
 					/*
 					 * apparently the USB cable went away but we are still powered,
 					 * so lets reset to a classic non-usb state.
@@ -1839,17 +1864,24 @@ Commander::run()
 			_geofence_violated_prev = false;
 		}
 
-		// revert geofence failsafe transition if sticks are moved and we were previously in a manual mode
+		// abort auto mode or geofence reaction if sticks are moved significantly
 		// but only if not in a low battery handling action
-		if (rc_override != 0 && (_battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL)
-		    && (_geofence_warning_action_on
-			&& (main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
-			    main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
-			    main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||
-			    main_state_before_rtl == commander_state_s::MAIN_STATE_ACRO ||
-			    main_state_before_rtl == commander_state_s::MAIN_STATE_RATTITUDE ||
-			    main_state_before_rtl == commander_state_s::MAIN_STATE_STAB))) {
+		const bool not_in_low_battery_reaction = _battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL;
+		const bool is_rotary_wing = status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
+		const bool manual_mode_before_geofence =
+			main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
+			main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
+			main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||
+			main_state_before_rtl == commander_state_s::MAIN_STATE_ACRO ||
+			main_state_before_rtl == commander_state_s::MAIN_STATE_RATTITUDE ||
+			main_state_before_rtl == commander_state_s::MAIN_STATE_STAB;
+		const bool in_auto_mode =
+			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
+			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
+			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER;
 
+		if (rc_override != 0 && is_rotary_wing && not_in_low_battery_reaction
+		    && (in_auto_mode || (_geofence_warning_action_on && manual_mode_before_geofence))) {
 			// transition to previous state if sticks are touched
 			if ((_last_sp_man.timestamp != sp_man.timestamp) &&
 			    ((fabsf(sp_man.x - _last_sp_man.x) > min_stick_change) ||
@@ -1862,27 +1894,6 @@ Commander::run()
 				mavlink_log_critical(&mavlink_log_pub, "Autopilot off! Returning control to pilot");
 			}
 		}
-
-		// abort landing or auto or loiter if sticks are moved significantly
-		// but only if not in a low battery handling action
-		if (rc_override != 0 && (_battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL) &&
-		    (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
-		     internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
-		     internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER)) {
-			// transition to previous state if sticks are touched
-
-			if ((_last_sp_man.timestamp != sp_man.timestamp) &&
-			    ((fabsf(sp_man.x - _last_sp_man.x) > min_stick_change) ||
-			     (fabsf(sp_man.y - _last_sp_man.y) > min_stick_change) ||
-			     (fabsf(sp_man.z - _last_sp_man.z) > min_stick_change) ||
-			     (fabsf(sp_man.r - _last_sp_man.r) > min_stick_change))) {
-
-				// revert to position control in any case
-				main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &internal_state);
-				mavlink_log_critical(&mavlink_log_pub, "Autopilot off! Returning control to pilot");
-			}
-		}
-
 
 		/* Check for mission flight termination */
 		if (armed.armed && _mission_result_sub.get().flight_termination &&
@@ -2168,7 +2179,7 @@ Commander::run()
 			cmd_sub.copy(&cmd);
 
 			/* handle it */
-			if (handle_command(&status, cmd, &armed, &command_ack_pub, &status_changed)) {
+			if (handle_command(&status, cmd, &armed, command_ack_pub, &status_changed)) {
 				status_changed = true;
 			}
 		}
@@ -2713,12 +2724,12 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 	/* we know something has changed - check if we are in mode slot operation */
 	if (sp_man.mode_slot != manual_control_setpoint_s::MODE_SLOT_NONE) {
 
-		if (sp_man.mode_slot >= (int)(sizeof(_flight_mode_slots) / sizeof(_flight_mode_slots[0]))) {
+		if (sp_man.mode_slot > manual_control_setpoint_s::MODE_SLOT_NUM) {
 			warnx("m slot overflow");
 			return TRANSITION_DENIED;
 		}
 
-		int new_mode = _flight_mode_slots[sp_man.mode_slot];
+		int new_mode = _flight_mode_slots[sp_man.mode_slot - 1];
 
 		if (new_mode < 0) {
 			/* slot is unused */
@@ -3277,7 +3288,8 @@ print_reject_arm(const char *msg)
 	}
 }
 
-void answer_command(const vehicle_command_s &cmd, unsigned result, orb_advert_t &command_ack_pub)
+void answer_command(const vehicle_command_s &cmd, unsigned result,
+		    uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub)
 {
 	switch (result) {
 	case vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED:
@@ -3305,20 +3317,16 @@ void answer_command(const vehicle_command_s &cmd, unsigned result, orb_advert_t 
 	}
 
 	/* publish ACK */
-	vehicle_command_ack_s command_ack = {};
+	vehicle_command_ack_s command_ack{};
+
 	command_ack.timestamp = hrt_absolute_time();
 	command_ack.command = cmd.command;
 	command_ack.result = (uint8_t)result;
 	command_ack.target_system = cmd.source_system;
 	command_ack.target_component = cmd.source_component;
 
-	if (command_ack_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_command_ack), command_ack_pub, &command_ack);
 
-	} else {
-		command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-						      vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-	}
+	command_ack_pub.publish(command_ack);
 }
 
 void *commander_low_prio_loop(void *arg)
@@ -3330,7 +3338,7 @@ void *commander_low_prio_loop(void *arg)
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 
 	/* command ack */
-	orb_advert_t command_ack_pub = nullptr;
+	uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[1];
@@ -3877,9 +3885,9 @@ void Commander::battery_status_check()
 			}
 
 			// Handle shutdown request from emergency battery action
-			if (!armed.armed && (battery.warning != _battery_warning)) {
+			if (battery.warning != _battery_warning) {
 
-				if (battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
+				if ((battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) && shutdown_if_allowed()) {
 					mavlink_log_critical(&mavlink_log_pub, "Dangerously low battery! Shutting system down");
 					px4_usleep(200000);
 

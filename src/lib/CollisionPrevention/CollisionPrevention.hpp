@@ -44,13 +44,17 @@
 #include <px4_module_params.h>
 #include <float.h>
 #include <matrix/matrix/math.hpp>
+#include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/collision_constraints.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_command.h>
 #include <mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 #include <systemlib/mavlink_log.h>
+#include <commander/px4_custom_mode.h>
 
 class CollisionPrevention : public ModuleParams
 {
@@ -58,9 +62,18 @@ public:
 	CollisionPrevention(ModuleParams *parent);
 
 	~CollisionPrevention();
-
+	/**
+	 * Returs true if Collision Prevention is running
+	 */
 	bool is_active() { return _param_mpc_col_prev_d.get() > 0; }
 
+	/**
+	 * Computes collision free setpoints
+	 * @param original_setpoint, setpoint before collision prevention intervention
+	 * @param max_speed, maximum xy speed
+	 * @param curr_pos, current vehicle position
+	 * @param curr_vel, current vehicle velocity
+	 */
 	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed,
 			    const matrix::Vector2f &curr_pos, const matrix::Vector2f &curr_vel);
 
@@ -70,13 +83,14 @@ private:
 
 	orb_advert_t _constraints_pub{nullptr};  	/**< constraints publication */
 	orb_advert_t _mavlink_log_pub{nullptr};	 	/**< Mavlink log uORB handle */
+	orb_advert_t _obstacle_distance_pub{nullptr}; /**< obstacle_distance publication */
+	orb_advert_t _pub_vehicle_command{nullptr}; /**< vehicle command do publication */
 
 	uORB::SubscriptionData<obstacle_distance_s> _sub_obstacle_distance{ORB_ID(obstacle_distance)}; /**< obstacle distances received form a range sensor */
+	uORB::Subscription _sub_distance_sensor[ORB_MULTI_MAX_INSTANCES] {{ORB_ID(distance_sensor), 0}, {ORB_ID(distance_sensor), 1}, {ORB_ID(distance_sensor), 2}, {ORB_ID(distance_sensor), 3}}; /**< distance data received from onboard rangefinders */
+	uORB::SubscriptionData<vehicle_attitude_s> _sub_vehicle_attitude{ORB_ID(vehicle_attitude)};
 
 	static constexpr uint64_t RANGE_STREAM_TIMEOUT_US{500000};
-	static constexpr uint64_t MESSAGE_THROTTLE_US{5000000};
-
-	hrt_abstime _last_message{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_COL_PREV_D>) _param_mpc_col_prev_d, /**< collision prevention keep minimum distance */
@@ -84,11 +98,69 @@ private:
 		(ParamFloat<px4::params::MPC_COL_PREV_DLY>) _param_mpc_col_prev_dly /**< delay of the range measurement data*/
 	)
 
-	void update();
+	/**
+	 * Transforms the sensor orientation into a yaw in the local frame
+	 * @param distance_sensor, distance sensor message
+	 * @param angle_offset, sensor body frame offset
+	 */
+	inline float _sensorOrientationToYawOffset(const distance_sensor_s &distance_sensor, float angle_offset)
+	{
 
-	void calculateConstrainedSetpoint(matrix::Vector2f &setpoint, const matrix::Vector2f &curr_pos,
-					  const matrix::Vector2f &curr_vel);
+		float offset = angle_offset > 0.f ? math::radians(angle_offset) : 0.0f;
 
-	void publishConstrainedSetpoint(const matrix::Vector2f &original_setpoint, const matrix::Vector2f &adapted_setpoint);
+		switch (distance_sensor.orientation) {
+		case distance_sensor_s::ROTATION_RIGHT_FACING:
+			offset = M_PI_F / 2.0f;
+			break;
+
+		case distance_sensor_s::ROTATION_LEFT_FACING:
+			offset = -M_PI_F / 2.0f;
+			break;
+
+		case distance_sensor_s::ROTATION_BACKWARD_FACING:
+			offset = M_PI_F;
+			break;
+
+		case distance_sensor_s::ROTATION_CUSTOM:
+			offset = matrix::Eulerf(matrix::Quatf(distance_sensor.q)).psi();
+			break;
+		}
+
+		return offset;
+	}
+
+	/**
+	 * Computes collision free setpoints
+	 * @param setpoint, setpoint before collision prevention intervention
+	 * @param curr_pos, current vehicle position
+	 * @param curr_vel, current vehicle velocity
+	 */
+	void _calculateConstrainedSetpoint(matrix::Vector2f &setpoint, const matrix::Vector2f &curr_pos,
+					   const matrix::Vector2f &curr_vel);
+	/**
+	 * Publishes collision_constraints message
+	 * @param original_setpoint, setpoint before collision prevention intervention
+	 * @param adapted_setpoint, collision prevention adaped setpoint
+	 */
+	void _publishConstrainedSetpoint(const matrix::Vector2f &original_setpoint, const matrix::Vector2f &adapted_setpoint);
+	/**
+	 * Publishes obstacle_distance message with fused data from offboard and from distance sensors
+	 * @param obstacle, obstacle_distance message to be publsihed
+	 */
+	void _publishObstacleDistance(obstacle_distance_s &obstacle);
+	/**
+	 * Updates obstacle distance message with measurement from offboard
+	 * @param obstacle, obstacle_distance message to be updated
+	 */
+	void _updateOffboardObstacleDistance(obstacle_distance_s &obstacle);
+	/**
+	 * Updates obstacle distance message with measurement from distance sensors
+	 * @param obstacle, obstacle_distance message to be updated
+	 */
+	void _updateDistanceSensor(obstacle_distance_s &obstacle);
+	/**
+	 * Publishes vehicle command.
+	 */
+	void _publishVehicleCmdDoLoiter();
 
 };

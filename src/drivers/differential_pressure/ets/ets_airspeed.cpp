@@ -40,22 +40,8 @@
 
 #include <float.h>
 
-#include <px4_config.h>
-
-#include <drivers/device/i2c.h>
-
-#include <systemlib/err.h>
-#include <parameters/param.h>
-#include <perf/perf_counter.h>
-#include <px4_getopt.h>
-
-#include <drivers/drv_airspeed.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/device/ringbuffer.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/differential_pressure.h>
 #include <drivers/airspeed/airspeed.h>
+#include <px4_getopt.h>
 
 /* I2C bus address */
 #define I2C_ADDRESS	0x75	/* 7-bit address. 8-bit address is 0xEA */

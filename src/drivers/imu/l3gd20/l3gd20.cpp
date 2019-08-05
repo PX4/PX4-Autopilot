@@ -39,14 +39,12 @@
  *       also supported by this driver.
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
-#include <perf/perf_counter.h>
 #include <drivers/device/spi.h>
 #include <lib/conversion/rotation.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+#include <perf/perf_counter.h>
+#include <px4_getopt.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 #define L3GD20_DEVICE_PATH "/dev/l3gd20"
 

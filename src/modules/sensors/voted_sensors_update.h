@@ -52,6 +52,7 @@
 #include <lib/ecl/validation/data_validator.h>
 #include <lib/ecl/validation/data_validator_group.h>
 
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_preflight.h>
 #include <uORB/topics/sensor_correction.h>
@@ -274,8 +275,8 @@ private:
 	bool _selection_changed = false; /**< true when a sensor selection has changed and not been published */
 
 	/* subsystem info publication */
-	struct subsystem_info_s _info;
-	orb_advert_t _info_pub = nullptr;
+	subsystem_info_s _info{};
+	uORB::PublicationQueued<subsystem_info_s> _info_pub{ORB_ID(subsystem_info)};
 
 	uint32_t _accel_device_id[SENSOR_COUNT_MAX] = {}; /**< accel driver device id for each uorb instance */
 	uint32_t _baro_device_id[SENSOR_COUNT_MAX] = {};

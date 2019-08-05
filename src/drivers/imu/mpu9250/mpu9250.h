@@ -31,18 +31,16 @@
  *
  ****************************************************************************/
 
-#include <stdint.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/conversions.h>
-#include <drivers/drv_hrt.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-#include <lib/conversion/rotation.h>
+#include <lib/ecl/geo/geo.h>
+#include <px4_getopt.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/uORB.h>
+#include <systemlib/conversions.h>
+#include <systemlib/px4_macros.h>
 
 #include "MPU9250_mag.h"
+
 
 #if defined(PX4_I2C_OBDEV_MPU9250) || defined(PX4_I2C_BUS_EXPANSION)
 #  define USE_I2C
