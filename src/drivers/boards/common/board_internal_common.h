@@ -52,14 +52,14 @@
  *   boards may provide this function to allow complex version-ing.
  *
  * Input Parameters:
- *   None.
+ *   base_address - base address of the ADC
  *
  * Returned Value:
  *
  *      OK, or -1 if the function failed.
  */
 
-__EXPORT int board_adc_init(void);
+__EXPORT int board_adc_init(uint32_t base_address);
 
 /************************************************************************************
  * Name: board_adc_sample
@@ -68,14 +68,15 @@ __EXPORT int board_adc_init(void);
  *   boards provide this function to allow complex version-ing.
  *
  * Input Parameters:
- *   channel  - The number of the adc channel to read.
+ *   base_address - base address of the ADC
+ *   channel      - The number of the adc channel to read.
  *
  * Returned Value:
  *    The ADC DN read for the channel or 0xffff if there
  *    is an error reading the channel.
  */
 
-__EXPORT uint16_t board_adc_sample(unsigned channel);
+__EXPORT uint16_t board_adc_sample(uint32_t base_address, unsigned channel);
 
 
 /************************************************************************************
