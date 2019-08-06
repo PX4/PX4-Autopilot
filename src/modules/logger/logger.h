@@ -39,17 +39,21 @@
 #include "util.h"
 #include <px4_defines.h>
 #include <drivers/drv_hrt.h>
-#include <uORB/Subscription.hpp>
 #include <version/version.h>
 #include <parameters/param.h>
 #include <systemlib/printload.h>
 #include <px4_module.h>
 
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionInterval.hpp>
+#include <uORB/topics/log_message.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_status.h>
 
 extern "C" __EXPORT int logger_main(int argc, char *argv[]);
 
-#define TRY_SUBSCRIBE_INTERVAL 1000*1000	// interval in microseconds at which we try to subscribe to a topic
+static constexpr hrt_abstime TRY_SUBSCRIBE_INTERVAL{1000 * 1000};	// interval in microseconds at which we try to subscribe to a topic
 // if we haven't succeeded before
 
 namespace px4
@@ -355,9 +359,9 @@ private:
 	 * @param mission_log_type
 	 * @return true if log started
 	 */
-	bool start_stop_logging(int vehicle_status_sub, int manual_control_sp_sub, MissionLogType mission_log_type);
+	bool start_stop_logging(MissionLogType mission_log_type);
 
-	void handle_vehicle_command_update(int vehicle_command_sub);
+	void handle_vehicle_command_update();
 	void ack_vehicle_command(vehicle_command_s *cmd, uint32_t result);
 
 	/**
@@ -407,6 +411,11 @@ private:
 	print_load_s					_load{}; ///< process load data
 	hrt_abstime					_next_load_print{0}; ///< timestamp when to print the process load
 	PrintLoadReason					_print_load_reason {PrintLoadReason::Preflight};
+
+	uORB::Subscription				_manual_control_sp_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription				_vehicle_command_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription				_vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::SubscriptionInterval			_log_message_sub{ORB_ID(log_message), 20};
 
 	param_t						_sdlog_profile_handle{PARAM_INVALID};
 	param_t						_log_utc_offset{PARAM_INVALID};
