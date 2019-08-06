@@ -365,9 +365,8 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			manual.z = math::constrain(_filter_throttle.apply(manual.z), 0.f, 1.f);
 
 			if (_parameters.rc_map_flightmode > 0) {
-
-				/* the number of valid slots equals the index of the max marker minus one */
-				const int num_slots = manual_control_setpoint_s::MODE_SLOT_MAX;
+				/* number of valid slots */
+				const int num_slots = manual_control_setpoint_s::MODE_SLOT_NUM;
 
 				/* the half width of the range of a slot is the total range
 				 * divided by the number of slots, again divided by two
@@ -384,10 +383,10 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 				 * will take us to the correct final index.
 				 */
 				manual.mode_slot = (((((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * num_slots) + slot_width_half) /
-						     (slot_max - slot_min)) + (1.0f / num_slots));
+						     (slot_max - slot_min)) + (1.0f / num_slots)) + 1;
 
-				if (manual.mode_slot >= num_slots) {
-					manual.mode_slot = num_slots - 1;
+				if (manual.mode_slot > num_slots) {
+					manual.mode_slot = num_slots;
 				}
 			}
 

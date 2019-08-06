@@ -50,13 +50,6 @@ MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) :
 {
 }
 
-MavlinkParametersManager::~MavlinkParametersManager()
-{
-	if (_uavcan_parameter_request_pub) {
-		orb_unadvertise(_uavcan_parameter_request_pub);
-	}
-}
-
 unsigned
 MavlinkParametersManager::get_size()
 {
@@ -91,12 +84,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				req.node_id = req_list.target_component;
 				req.param_index = 0;
 
-				if (_uavcan_parameter_request_pub == nullptr) {
-					_uavcan_parameter_request_pub = orb_advertise(ORB_ID(uavcan_parameter_request), &req);
-
-				} else {
-					orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
-				}
+				_uavcan_parameter_request_pub.publish(req);
 			}
 
 			break;
@@ -163,12 +151,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					req.int_value = val;
 				}
 
-				if (_uavcan_parameter_request_pub == nullptr) {
-					_uavcan_parameter_request_pub = orb_advertise(ORB_ID(uavcan_parameter_request), &req);
-
-				} else {
-					orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
-				}
+				_uavcan_parameter_request_pub.publish(req);
 			}
 
 			break;
@@ -383,19 +366,20 @@ bool
 MavlinkParametersManager::send_uavcan()
 {
 	/* Send parameter values received from the UAVCAN topic */
-	if (_uavcan_parameter_value_sub.updated()) {
-		uavcan_parameter_value_s value;
-		_uavcan_parameter_value_sub.update(&value);
+	uavcan_parameter_value_s value{};
+
+	if (_uavcan_parameter_value_sub.update(&value)) {
 
 		// Check if we received a matching parameter, drop it from the list and request the next
-		if (_uavcan_open_request_list != nullptr
-		    && value.param_index == _uavcan_open_request_list->req.param_index
-		    && value.node_id == _uavcan_open_request_list->req.node_id) {
+		if ((_uavcan_open_request_list != nullptr)
+		    && (value.param_index == _uavcan_open_request_list->req.param_index)
+		    && (value.node_id == _uavcan_open_request_list->req.node_id)) {
+
 			dequeue_uavcan_request();
 			request_next_uavcan_parameter();
 		}
 
-		mavlink_param_value_t msg;
+		mavlink_param_value_t msg{};
 		msg.param_count = value.param_count;
 		msg.param_index = value.param_index;
 #if defined(__GNUC__) && __GNUC__ >= 8
@@ -424,7 +408,7 @@ MavlinkParametersManager::send_uavcan()
 		}
 
 		// Re-pack the message with the UAVCAN node ID
-		mavlink_message_t mavlink_packet;
+		mavlink_message_t mavlink_packet{};
 		mavlink_msg_param_value_encode_chan(mavlink_system.sysid, value.node_id, _mavlink->get_channel(), &mavlink_packet,
 						    &msg);
 		_mavlink_resend_uart(_mavlink->get_channel(), &mavlink_packet);
@@ -576,12 +560,7 @@ void MavlinkParametersManager::request_next_uavcan_parameter()
 	if (!_uavcan_waiting_for_request_response && _uavcan_open_request_list != nullptr) {
 		uavcan_parameter_request_s req = _uavcan_open_request_list->req;
 
-		if (_uavcan_parameter_request_pub == nullptr) {
-			_uavcan_parameter_request_pub = orb_advertise_queue(ORB_ID(uavcan_parameter_request), &req, 5);
-
-		} else {
-			orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
-		}
+		_uavcan_parameter_request_pub.publish(req);
 
 		_uavcan_waiting_for_request_response = true;
 	}

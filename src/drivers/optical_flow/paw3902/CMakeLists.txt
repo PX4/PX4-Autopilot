@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,16 +32,10 @@
 ############################################################################
 
 px4_add_module(
-	MODULE modules__position_estimator_inav
-	MAIN position_estimator_inav
-	STACK_MAIN 1200
-	STACK_MAX 4000
-	COMPILE_FLAGS
+	MODULE drivers__optical_flow__paw3902
+	MAIN paw3902
+	STACK_MAIN 1500
 	SRCS
-		position_estimator_inav_main.cpp
-		inertial_filter.cpp
-	DEPENDS
-		terrain_estimation
-		git_ecl
-		ecl_geo
+		paw3902_main.cpp
+		PAW3902.cpp
 	)

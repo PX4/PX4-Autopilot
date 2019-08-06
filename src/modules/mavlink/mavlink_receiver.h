@@ -43,6 +43,7 @@
 
 #include <px4_module_params.h>
 
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
@@ -71,6 +72,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -212,6 +214,11 @@ private:
 	vehicle_land_detected_s _hil_land_detector {};
 	vehicle_control_mode_s _control_mode {};
 
+	uORB::PublicationQueued<gps_inject_data_s> _gps_inject_data_pub{ORB_ID(gps_inject_data)};
+	uORB::PublicationQueued<transponder_report_s> _transponder_report_pub{ORB_ID(transponder_report)};
+	uORB::PublicationQueued<vehicle_command_s> _cmd_pub{ORB_ID(vehicle_command)};
+	uORB::PublicationQueued<vehicle_command_ack_s> _cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+
 	orb_advert_t _accel_pub{nullptr};
 	orb_advert_t _actuator_controls_pubs[4] {nullptr, nullptr, nullptr, nullptr};
 	orb_advert_t _airspeed_pub{nullptr};
@@ -219,9 +226,7 @@ private:
 	orb_advert_t _attitude_pub{nullptr};
 	orb_advert_t _baro_pub{nullptr};
 	orb_advert_t _battery_pub{nullptr};
-	orb_advert_t _cmd_pub{nullptr};
 	orb_advert_t _collision_report_pub{nullptr};
-	orb_advert_t _command_ack_pub{nullptr};
 	orb_advert_t _debug_array_pub{nullptr};
 	orb_advert_t _debug_key_value_pub{nullptr};
 	orb_advert_t _debug_value_pub{nullptr};
@@ -231,7 +236,6 @@ private:
 	orb_advert_t _flow_pub{nullptr};
 	orb_advert_t _follow_target_pub{nullptr};
 	orb_advert_t _global_pos_pub{nullptr};
-	orb_advert_t _gps_inject_data_pub{nullptr};
 	orb_advert_t _gps_pub{nullptr};
 	orb_advert_t _gyro_pub{nullptr};
 	orb_advert_t _hil_distance_sensor_pub{nullptr};
@@ -249,14 +253,11 @@ private:
 	orb_advert_t _rates_sp_pub{nullptr};
 	orb_advert_t _rc_pub{nullptr};
 	orb_advert_t _trajectory_waypoint_pub{nullptr};
-	orb_advert_t _transponder_report_pub{nullptr};
 	orb_advert_t _visual_odometry_pub{nullptr};
 
 	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
-
-	static constexpr int _gps_inject_data_queue_size{6};
 
 	static constexpr unsigned int MOM_SWITCH_COUNT{8};
 

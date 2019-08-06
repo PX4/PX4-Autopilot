@@ -951,12 +951,7 @@ bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_n
 					_info.enabled = true;
 					_info.ok = false;
 
-					if (_info_pub == nullptr) {
-						_info_pub = orb_advertise_queue(ORB_ID(subsystem_info), &_info, subsystem_info_s::ORB_QUEUE_LENGTH);
-
-					} else {
-						orb_publish(ORB_ID(subsystem_info), _info_pub, &_info);
-					}
+					_info_pub.publish(_info);
 				}
 			}
 		}
