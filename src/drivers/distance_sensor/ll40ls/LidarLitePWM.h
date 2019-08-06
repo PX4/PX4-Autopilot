@@ -45,13 +45,19 @@
 
 #include "LidarLite.h"
 
+#include <stdio.h>
+#include <string.h>
+
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_input.h>
+#include <px4_defines.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/topics/pwm_input.h>
 
 class LidarLitePWM : public LidarLite, public px4::ScheduledWorkItem
 {
 public:
-	LidarLitePWM(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	LidarLitePWM(const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	virtual ~LidarLitePWM();
 
 	int init() override;
@@ -62,12 +68,12 @@ public:
 
 protected:
 
-	int measure() override;
 	int collect() override;
+	int measure() override;
 
 private:
 
 	int _pwmSub{-1};
-	pwm_input_s _pwm{};
 
+	pwm_input_s _pwm{};
 };
