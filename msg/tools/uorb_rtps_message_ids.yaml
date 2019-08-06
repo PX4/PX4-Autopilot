@@ -198,8 +198,6 @@ rtps:
     id: 85
   - msg: vehicle_air_data
     id: 86
-  - msg: vehicle_angular_velocity
-    id: 134
   - msg: vehicle_attitude
     id: 87
     send: true
@@ -256,6 +254,8 @@ rtps:
     id: 110
   - msg: wheel_encoders
     id: 111
+  - msg: vehicle_angular_velocity
+    id: 112
   # multi topics
   - msg: actuator_controls_0
     id: 120
@@ -281,9 +281,6 @@ rtps:
   - msg: fw_virtual_attitude_setpoint
     id: 127
     alias: vehicle_attitude_setpoint
-  - msg: vehicle_angular_velocity_groundtruth
-    id: 135
-    alias: vehicle_angular_velocity
   - msg: vehicle_attitude_groundtruth
     id: 128
     alias: vehicle_attitude
@@ -316,3 +313,6 @@ rtps:
   - msg: camera_trigger_secondary
     id: 137
     alias: camera_trigger
+  - msg: vehicle_angular_velocity_groundtruth
+    id: 138
+    alias: vehicle_angular_velocity
