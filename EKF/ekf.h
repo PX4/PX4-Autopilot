@@ -359,7 +359,6 @@ private:
 	bool _mag_use_inhibit_prev{false};	///< true when magnetometer use was being inhibited the previous frame
 	bool _mag_inhibit_yaw_reset_req{false};	///< true when magnetometer inhibit has been active for long enough to require a yaw reset when conditions improve.
 	float _last_static_yaw{0.0f};		///< last yaw angle recorded when on ground motion checks were passing (rad)
-	bool _vehicle_at_rest_prev{false};	///< true when the vehicle was at rest the previous time the status was checked
 	bool _mag_yaw_reset_req{false};		///< true when a reset of the yaw using the magnetometer data has been requested
 	bool _mag_decl_cov_reset{false};	///< true after the fuseDeclination() function has been used to modify the earth field covariances after a magnetic field reset event.
 	bool _synthetic_mag_z_active{false};	///< true if we are generating synthetic magnetometer Z measurements

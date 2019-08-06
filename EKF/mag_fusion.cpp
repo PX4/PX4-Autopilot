@@ -511,9 +511,15 @@ void Ekf::fuseHeading()
 			float Tbn_0_0 = sq(_ev_sample_delayed.quat(0))+sq(_ev_sample_delayed.quat(1))-sq(_ev_sample_delayed.quat(2))-sq(_ev_sample_delayed.quat(3));
 			measured_hdg = atan2f(Tbn_1_0,Tbn_0_0);
 
+		} else if (_mag_use_inhibit) {
+			// Special case where we either use the current or last known stationary value
+			// so set to current value as a safe default
+			measured_hdg = predicted_hdg;
+
 		} else {
-			// there is no yaw observation
+			// Should not be doing yaw fusion
 			return;
+
 		}
 
 	} else {
@@ -604,8 +610,13 @@ void Ekf::fuseHeading()
 			float Tbn_1_1 = sq(_ev_sample_delayed.quat(0))-sq(_ev_sample_delayed.quat(1))+sq(_ev_sample_delayed.quat(2))-sq(_ev_sample_delayed.quat(3));
 			measured_hdg = atan2f(Tbn_0_1_neg,Tbn_1_1);
 
+		} else if (_mag_use_inhibit) {
+			// Special case where we either use the current or last known stationary value
+			// so set to current value as a safe default
+			measured_hdg = predicted_hdg;
+
 		} else {
-			// there is no yaw observation
+			// Should not be doing yaw fusion
 			return;
 
 		}
@@ -621,8 +632,8 @@ void Ekf::fuseHeading()
 		R_YAW = sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f));
 
 	} else {
-		// there is no yaw observation
-		return;
+		// default value
+		R_YAW = 0.01f;
 	}
 
 	// wrap the heading to the interval between +-pi
@@ -637,22 +648,20 @@ void Ekf::fuseHeading()
 			// Vehicle is not at rest so fuse a zero innovation and record the
 			// predicted heading to use as an observation when movement ceases.
 			_heading_innov = 0.0f;
-			_vehicle_at_rest_prev = false;
+			_last_static_yaw = predicted_hdg;
+
 		} else {
 			// Vehicle is at rest so use the last moving prediction as an observation
 			// to prevent the heading from drifting and to enable yaw gyro bias learning
 			// before takeoff.
-			if (!_vehicle_at_rest_prev || !_mag_use_inhibit_prev) {
-				_last_static_yaw = predicted_hdg;
-				_vehicle_at_rest_prev = true;
-			}
 			_heading_innov = predicted_hdg - _last_static_yaw;
-			R_YAW = 0.01f;
 			innov_gate = 5.0f;
+
 		}
 	} else {
 		_heading_innov = predicted_hdg - measured_hdg;
 		_last_static_yaw = predicted_hdg;
+
 	}
 	_mag_use_inhibit_prev = _mag_use_inhibit;
 
