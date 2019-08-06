@@ -524,7 +524,7 @@ MavlinkReceiver::handle_message_command_ack(mavlink_message_t *msg)
 	mavlink_command_ack_t ack;
 	mavlink_msg_command_ack_decode(msg, &ack);
 
-	MavlinkCommandSender::instance().handle_mavlink_command_ack(ack, msg->sysid, msg->compid);
+	MavlinkCommandSender::instance().handle_mavlink_command_ack(ack, msg->sysid, msg->compid, _mavlink->get_channel());
 
 	vehicle_command_ack_s command_ack = {};
 	command_ack.timestamp = hrt_absolute_time();
@@ -1713,6 +1713,7 @@ MavlinkReceiver::handle_message_trajectory_representation_waypoints(mavlink_mess
 		trajectory_waypoint.waypoints[i].yaw = trajectory.pos_yaw[i];
 		trajectory_waypoint.waypoints[i].yaw_speed = trajectory.vel_yaw[i];
 
+		trajectory_waypoint.waypoints[i].type = UINT8_MAX;
 	}
 
 	for (int i = 0; i < number_valid_points; ++i) {
