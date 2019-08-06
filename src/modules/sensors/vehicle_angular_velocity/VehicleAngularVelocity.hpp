@@ -50,6 +50,7 @@
 #include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/sensor_correction.h>
 #include <uORB/topics/sensor_gyro.h>
+#include <uORB/topics/sensor_selection.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 
 #define MAX_GYRO_COUNT 3
@@ -85,11 +86,12 @@ private:
 
 	uORB::Publication<vehicle_angular_velocity_s>	_vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
 
-	uORB::Subscription			_params_sub{ORB_ID(parameter_update)};		/**< parameter updates subscription */
-	uORB::Subscription			_sensor_bias_sub{ORB_ID(sensor_bias)};		/**< sensor in-run bias correction subscription */
+	uORB::Subscription			_params_sub{ORB_ID(parameter_update)};			/**< parameter updates subscription */
+	uORB::Subscription			_sensor_bias_sub{ORB_ID(sensor_bias)};			/**< sensor in-run bias correction subscription */
+	uORB::Subscription			_sensor_correction_sub{ORB_ID(sensor_correction)};	/**< sensor thermal correction subscription */
 
-	uORB::SubscriptionCallbackWorkItem	_sensor_correction_sub{this, ORB_ID(sensor_correction)};	/**< sensor thermal correction subscription */
-	uORB::SubscriptionCallbackWorkItem	_sensor_gyro_sub[MAX_GYRO_COUNT] {				/**< gyro data subscription */
+	uORB::SubscriptionCallbackWorkItem	_sensor_selection_sub{this, ORB_ID(sensor_selection)};	/**< selected primary sensor subscription */
+	uORB::SubscriptionCallbackWorkItem	_sensor_gyro_sub[MAX_GYRO_COUNT] {			/**< gyro data subscription */
 		{this, ORB_ID(sensor_gyro), 0},
 		{this, ORB_ID(sensor_gyro), 1},
 		{this, ORB_ID(sensor_gyro), 2}
