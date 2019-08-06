@@ -63,13 +63,16 @@ public:
 	 */
 	Subscription(const orb_metadata *meta, uint8_t instance = 0) : _meta(meta), _instance(instance)
 	{
-		init();
+		subscribe();
 	}
 
-	~Subscription() { unsubscribe(); }
+	~Subscription()
+	{
+		unsubscribe();
+	}
 
-	bool init();
-	bool forceInit();
+	bool subscribe();
+	void unsubscribe();
 
 	bool valid() const { return _node != nullptr; }
 	bool published() { return valid() ? _node->is_published() : init(); }
@@ -102,8 +105,6 @@ public:
 	 */
 	bool copy(void *dst) { return published() ? _node->copy(dst, _last_generation) : false; }
 
-	hrt_abstime	last_update() { return published() ? _node->last_update() : 0; }
-
 	uint8_t		get_instance() const { return _instance; }
 	orb_id_t	get_topic() const { return _meta; }
 
@@ -111,10 +112,9 @@ protected:
 
 	friend class SubscriptionCallback;
 
-	DeviceNode	*get_node() { return _node; }
+	DeviceNode		*get_node() { return _node; }
 
-	bool subscribe();
-	void unsubscribe();
+	bool			init();
 
 	DeviceNode		*_node{nullptr};
 	const orb_metadata	*_meta{nullptr};

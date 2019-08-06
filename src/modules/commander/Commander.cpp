@@ -4290,7 +4290,7 @@ Commander::offboard_control_update(bool &status_changed)
 
 	if (commander_state_s::MAIN_STATE_OFFBOARD) {
 		if (offboard_control_mode.timestamp == 0) {
-			_offboard_control_mode_sub.forceInit();
+			_offboard_control_mode_sub.subscribe();
 			force_update = true;
 		}
 	}
