@@ -128,14 +128,13 @@ void up_dshot_trigger(void)
 * bit 	12		- dshot telemetry enable/disable
 * bits 	13-16	- XOR checksum
 **/
-void up_dshot_motor_data_prepare(uint32_t motorNumber, uint16_t throttle)
+void up_dshot_motor_data_prepare(uint32_t motorNumber, uint16_t throttle, bool telemetry)
 {
 	uint16_t packet = 0;
-	uint16_t telemetry = 0;
 	uint16_t checksum = 0;
 
 	packet |= throttle << DSHOT_THROTTLE_POSITION;
-	packet |= telemetry << DSHOT_TELEMETRY_POSITION;
+	packet |= ((uint16_t)telemetry & 0x01) << DSHOT_TELEMETRY_POSITION;
 
 	uint32_t i;
 	uint16_t csum_data = packet;
@@ -180,7 +179,7 @@ int up_dshot_arm(bool armed)
 		if(OK == success) {
 			// Arming for dshot is repeating any throttle value less than 47.
 			for(uint32_t motorNumber = 0; motorNumber < MOTORS_NUMBER; motorNumber++) {
-				up_dshot_motor_data_prepare(motorNumber, 0);
+				up_dshot_motor_data_prepare(motorNumber, 0, false);
 			}
 
 			for(uint32_t i = 0; i < ARMING_REPETITION; i++) {
