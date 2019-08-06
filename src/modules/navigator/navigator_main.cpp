@@ -903,7 +903,7 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 	// float vel_e = get_global_position()->vel_e;
 	// float vel_d = get_global_position()->vel_d;
 
-	transponder_report_s tr = {};
+	transponder_report_s tr{};
 	tr.timestamp = hrt_absolute_time();
 	tr.icao_address = 1234;
 	tr.lat = lat; // Latitude, expressed as degrees
@@ -923,8 +923,8 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 		   transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN; // Flags to indicate various statuses including valid data fields
 	tr.squawk = 6667;
 
-	orb_advert_t h = orb_advertise_queue(ORB_ID(transponder_report), &tr, transponder_report_s::ORB_QUEUE_LENGTH);
-	(void)orb_unadvertise(h);
+	uORB::PublicationQueued<transponder_report_s> tr_pub{ORB_ID(transponder_report)};
+	tr_pub.publish(tr);
 }
 
 void Navigator::check_traffic()
@@ -1142,12 +1142,7 @@ Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 		break;
 	}
 
-	if (_vehicle_cmd_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, vcmd);
-
-	} else {
-		_vehicle_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-	}
+	_vehicle_cmd_pub.publish(*vcmd);
 }
 
 void
@@ -1165,13 +1160,7 @@ Navigator::publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t res
 	command_ack.result_param1 = 0;
 	command_ack.result_param2 = 0;
 
-	if (_vehicle_cmd_ack_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_command_ack), _vehicle_cmd_ack_pub, &command_ack);
-
-	} else {
-		_vehicle_cmd_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-				       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-	}
+	_vehicle_cmd_ack_pub.publish(command_ack);
 }
 
 int Navigator::print_usage(const char *reason)

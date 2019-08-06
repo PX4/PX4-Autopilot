@@ -71,11 +71,11 @@
 #include <px4_posix.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/uthash/utlist.h>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/radio_status.h>
 #include <uORB/topics/telemetry_status.h>
-#include <uORB/uORB.h>
 
 #include "mavlink_command_sender.h"
 #include "mavlink_messages.h"
@@ -83,6 +83,7 @@
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
 
+#define DEFAULT_BAUD_RATE       57600
 #define DEFAULT_REMOTE_PORT_UDP 14550 ///< GCS port per MAVLink spec
 #define DEFAULT_DEVICE_NAME     "/dev/ttyS1"
 #define HASH_PARAM              "_HASH_CHECK"
@@ -540,7 +541,8 @@ private:
 	bool			_first_heartbeat_sent{false};
 
 	orb_advert_t		_mavlink_log_pub{nullptr};
-	orb_advert_t		_telem_status_pub{nullptr};
+
+	uORB::PublicationQueued<telemetry_status_s>	_telem_status_pub{ORB_ID(telemetry_status)};
 
 	bool			_task_running{false};
 	static bool		_boot_complete;
@@ -675,7 +677,9 @@ private:
 
 	void			mavlink_update_parameters();
 
-	int			mavlink_open_uart(int baudrate, const char *uart_name, bool force_flow_control);
+	int mavlink_open_uart(const int baudrate = DEFAULT_BAUD_RATE,
+			      const char *uart_name = DEFAULT_DEVICE_NAME,
+			      const bool force_flow_control = false);
 
 	static constexpr unsigned RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE = 25;
 	static constexpr unsigned RADIO_BUFFER_LOW_PERCENTAGE = 35;
@@ -730,10 +734,14 @@ private:
 
 	void init_udp();
 
+	void set_channel();
+
+	void set_instance_id();
+
 	/**
 	 * Main mavlink task.
 	 */
-	int		task_main(int argc, char *argv[]);
+	int task_main(int argc, char *argv[]);
 
 	// Disallow copy construction and move assignment.
 	Mavlink(const Mavlink &) = delete;

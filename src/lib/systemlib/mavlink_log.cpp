@@ -48,9 +48,6 @@
 #include <uORB/topics/mavlink_log.h>
 #include "mavlink_log.h"
 
-#define MAVLINK_LOG_QUEUE_SIZE 5
-
-
 __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, const char *fmt, ...)
 {
 	// TODO: add compile check for maxlen
@@ -59,31 +56,23 @@ __EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, con
 		return;
 	}
 
-	if (mavlink_log_pub == NULL) {
+	if (mavlink_log_pub == nullptr) {
 		return;
 	}
 
-	struct mavlink_log_s log_msg;
-
+	mavlink_log_s log_msg;
 	log_msg.severity = severity;
-
 	log_msg.timestamp = hrt_absolute_time();
 
 	va_list ap;
-
 	va_start(ap, fmt);
-
 	vsnprintf((char *)log_msg.text, sizeof(log_msg.text), fmt, ap);
-
 	va_end(ap);
 
-	if (*mavlink_log_pub != NULL) {
+	if (*mavlink_log_pub != nullptr) {
 		orb_publish(ORB_ID(mavlink_log), *mavlink_log_pub, &log_msg);
 
 	} else {
-		*mavlink_log_pub = orb_advertise_queue(ORB_ID(mavlink_log),
-						       &log_msg,
-						       MAVLINK_LOG_QUEUE_SIZE);
+		*mavlink_log_pub = orb_advertise_queue(ORB_ID(mavlink_log), &log_msg, mavlink_log_s::ORB_QUEUE_LENGTH);
 	}
 }
-

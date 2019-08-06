@@ -162,6 +162,8 @@ then
 	param set SENS_DPRES_OFF 0.001
 	param set SYS_RESTART_TYPE 2
 
+	param set TRIG_INTERFACE 3
+
 	param set WEST_EN 0
 fi
 

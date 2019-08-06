@@ -764,6 +764,9 @@ void VotedSensorsUpdate::mag_poll(vehicle_magnetometer_s &magnetometer)
 				int32_t priority = 0;
 				orb_priority(_mag.subscription[uorb_index], &priority);
 				_mag.priority[uorb_index] = (uint8_t)priority;
+
+				/* force a scale and offset update the first time we get data */
+				parameters_update();
 			}
 
 			matrix::Vector3f vect(mag_report.x, mag_report.y, mag_report.z);
@@ -948,12 +951,7 @@ bool VotedSensorsUpdate::check_failover(SensorData &sensor, const char *sensor_n
 					_info.enabled = true;
 					_info.ok = false;
 
-					if (_info_pub == nullptr) {
-						_info_pub = orb_advertise_queue(ORB_ID(subsystem_info), &_info, subsystem_info_s::ORB_QUEUE_LENGTH);
-
-					} else {
-						orb_publish(ORB_ID(subsystem_info), _info_pub, &_info);
-					}
+					_info_pub.publish(_info);
 				}
 			}
 		}

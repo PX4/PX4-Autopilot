@@ -32,7 +32,7 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__pmw3901
+	MODULE drivers__optical_flow__pmw3901
 	MAIN pmw3901
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable

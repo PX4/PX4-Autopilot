@@ -45,6 +45,10 @@
 #include "SubscriptionArray.hpp"
 #include "FlightTasks_generated.hpp"
 #include <lib/WeatherVane/WeatherVane.hpp>
+#include <uORB/PublicationQueued.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/vehicle_command.h>
 
 #include <new>
 
@@ -180,8 +184,10 @@ private:
 	 */
 	void _updateCommand();
 	FlightTaskIndex switchVehicleCommand(const int command);
-	int _sub_vehicle_command = -1; /**< topic handle on which commands are received */
-	orb_advert_t _pub_vehicle_command_ack = nullptr; /**< topic handle to which commands get acknowledged */
+
+	uORB::Subscription _sub_vehicle_command{ORB_ID(vehicle_command)}; /**< topic handle on which commands are received */
+
+	uORB::PublicationQueued<vehicle_command_ack_s>	_pub_vehicle_command_ack{ORB_ID(vehicle_command_ack)};
 
 	int _initTask(FlightTaskIndex task_index);
 };

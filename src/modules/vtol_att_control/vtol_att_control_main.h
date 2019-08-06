@@ -144,7 +144,6 @@ private:
 	orb_advert_t	_actuators_0_pub{nullptr};		//input for the mixer (roll,pitch,yaw,thrust)
 	orb_advert_t	_mavlink_log_pub{nullptr};	// mavlink log uORB handle
 	orb_advert_t	_v_att_sp_pub{nullptr};
-	orb_advert_t	_v_cmd_ack_pub{nullptr};
 	orb_advert_t	_vtol_vehicle_status_pub{nullptr};
 	orb_advert_t 	_actuators_1_pub{nullptr};
 
