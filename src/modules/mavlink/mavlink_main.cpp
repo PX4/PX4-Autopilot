@@ -419,13 +419,13 @@ Mavlink::get_status_all_instances(bool show_streams_status)
 }
 
 bool
-Mavlink::instance_exists(const char *device_name, Mavlink *self)
+Mavlink::serial_instance_exists(const char *device_name, Mavlink *self)
 {
 	Mavlink *inst = ::_mavlink_instances;
 
 	while (inst != nullptr) {
 
-		/* don't compare with itself */
+		/* don't compare with itself and with non serial instances*/
 		if ((inst != self) && (inst->get_protocol() == SERIAL) && !strcmp(device_name, inst->_device_name)) {
 			return true;
 		}
@@ -2074,7 +2074,7 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	if (get_protocol() == SERIAL) {
-		if (Mavlink::instance_exists(_device_name, this)) {
+		if (Mavlink::serial_instance_exists(_device_name, this)) {
 			PX4_ERR("%s already running", _device_name);
 			return PX4_ERROR;
 		}
