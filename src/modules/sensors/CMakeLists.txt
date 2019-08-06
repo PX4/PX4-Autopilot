@@ -31,6 +31,8 @@
 #
 ############################################################################
 
+add_subdirectory(vehicle_angular_velocity)
+
 px4_add_module(
 	MODULE modules__sensors
 	MAIN sensors
@@ -51,4 +53,5 @@ px4_add_module(
 		git_ecl
 		ecl_validation
 		mathlib
+		sensors__vehicle_angular_velocity
 	)
