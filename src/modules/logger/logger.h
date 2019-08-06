@@ -117,7 +117,7 @@ public:
 	};
 
 	Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, const char *poll_topic_name,
-	       LogMode log_mode, bool log_name_timestamp, unsigned int queue_size);
+	       LogMode log_mode, bool log_name_timestamp);
 
 	~Logger();
 
