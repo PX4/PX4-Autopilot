@@ -426,7 +426,7 @@ Mavlink::instance_exists(const char *device_name, Mavlink *self)
 	while (inst != nullptr) {
 
 		/* don't compare with itself */
-		if (inst != self && !strcmp(device_name, inst->_device_name)) {
+		if ((inst != self) && (inst->get_protocol() == SERIAL) && !strcmp(device_name, inst->_device_name)) {
 			return true;
 		}
 
