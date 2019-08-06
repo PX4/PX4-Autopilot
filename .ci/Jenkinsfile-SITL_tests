@@ -8,7 +8,7 @@ pipeline {
     stage('Build') {
       agent {
         docker {
-          image 'px4io/px4-dev-ros-kinetic:2019-03-08'
+          image 'px4io/px4-dev-ros-kinetic:2019-07-29'
           args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
         }
       }
@@ -61,12 +61,12 @@ pipeline {
               vehicle: "iris"
             ],
 
-            //[
-            //  name: "Rover 1",
-            //  test: "mavros_posix_test_mission.test",
-            //  mission: "rover_mission_1",
-            //  vehicle: "rover"
-            //],
+            [
+              name: "Rover 1",
+              test: "mavros_posix_test_mission.test",
+              mission: "rover_mission_1",
+              vehicle: "rover"
+            ],
 
             [
               name: "VTOL_standard",
@@ -90,6 +90,13 @@ pipeline {
               name: "MC_avoidance",
               test: "mavros_posix_test_avoidance.test",
               mission: "avoidance",
+              vehicle: "iris_obs_avoid",
+              run_script: "rostest_avoidance_run.sh"
+            ],
+            [
+              name: "MC_safe_landing",
+              test: "mavros_posix_test_safe_landing.test",
+              mission: "MC_safe_landing",
               vehicle: "iris_obs_avoid",
               run_script: "rostest_avoidance_run.sh"
             ],
@@ -123,7 +130,7 @@ def createTestNode(Map test_def) {
   return {
     node {
       cleanWs()
-      docker.image("px4io/px4-dev-ros-kinetic:2019-03-08").inside('-e HOME=${WORKSPACE}') {
+      docker.image("px4io/px4-dev-ros-kinetic:2019-07-29").inside('-e HOME=${WORKSPACE}') {
         stage(test_def.name) {
           def run_script = test_def.get('run_script', 'rostest_px4_run.sh')
           def test_ok = true

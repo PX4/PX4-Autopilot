@@ -598,3 +598,4 @@ else()
 endif()
 
 include(CPack)
+include(bloaty)

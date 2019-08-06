@@ -140,7 +140,9 @@
 #define PX4_SPI_BUS_SENSORS1   1
 #define PX4_SPI_BUS_SENSORS2   2
 #define PX4_SPI_BUS_SENSORS3   3
-#define PX4_SPI_BUS_MAG        4
+#define PX4_SPI_BUS_SENSORS4   4
+
+#define PX4_SPI_BUS_MAG        PX4_SPI_BUS_SENSORS4
 #define PX4_SPI_BUS_MEMORY     5
 #define PX4_SPI_BUS_EXTERNAL1  6
 
@@ -251,8 +253,8 @@
 #define PX4_SPIDEV_ISM330           PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS2,0)
 #define PX4_SENSORS2_BUS_CS_GPIO    {GPIO_SPI2_nCS1_ISM330}
 
-#define PX4_SPIDEV_BMI055_GYR       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS3,0)
-#define PX4_SPIDEV_BMI055_ACC       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS3,1)
+#define PX4_SPIDEV_BMI088_GYR       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS3,0)
+#define PX4_SPIDEV_BMI088_ACC       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS3,1)
 #define PX4_SENSORS3_BUS_CS_GPIO    {GPIO_SPI3_nCS2_BMI088_GYRO, GPIO_SPI3_nCS1_BMI088_ACCEL}
 
 #define PX4_SPIDEV_BMM150           PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS4,0)
@@ -512,12 +514,10 @@
 #define HRT_PPM_CHANNEL         /* T8C1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
-#define RC_UXART_BASE                      STM32_USART6_BASE
+/* RC Serial port */
+
 #define RC_SERIAL_PORT                     "/dev/ttyS5"
-#define BOARD_HAS_SINGLE_WIRE              1 /* HW is capable of Single Wire */
-#define BOARD_HAS_SINGLE_WIRE_ON_TX        0 /* HW default is wired as Single Wire On RX pin */
-#define BOARD_HAS_RX_TX_SWAP               1 /* HW Can swap TX and RX */
-#define RC_SERIAL_PORT_IS_SWAPED           1 /* Board wired with RC's TX is on cpu RX */
+#define RC_SERIAL_SINGLEWIRE
 
 /* Input Capture Channels. */
 #define INPUT_CAP1_TIMER                  5
@@ -560,8 +560,8 @@
 #define SPEKTRUM_RX_AS_UART()          /* Can be left as uart */
 #define SPEKTRUM_OUT(_one_true)        px4_arch_gpiowrite(GPIO_PPM_IN_AS_OUT, (_one_true))
 
-#define SDIO_SLOTNO                    1  /* Only one slot */
-#define SDIO_MINOR                     1
+#define SDIO_SLOTNO                    0  /* Only one slot */
+#define SDIO_MINOR                     0
 
 /* SD card bringup does not work if performed on the IDLE thread because it
  * will cause waiting.  Use either:
