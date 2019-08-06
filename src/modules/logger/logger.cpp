@@ -46,12 +46,8 @@
 
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/uORBTopics.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/log_message.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_command_ack.h>
-#include <uORB/topics/manual_control_setpoint.h>
 
 #include <drivers/drv_hrt.h>
 #include <mathlib/math/Limits.hpp>
@@ -898,10 +894,7 @@ void Logger::run()
 		}
 	}
 
-	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
-	uORB::SubscriptionData<parameter_update_s> parameter_update_sub(ORB_ID(parameter_update));
-	int log_message_sub = orb_subscribe(ORB_ID(log_message));
-	orb_set_interval(log_message_sub, 20);
+	uORB::Subscription parameter_update_sub(ORB_ID(parameter_update));
 
 	// mission log topics if enabled (must be added first)
 	int32_t mission_log_mode = 0;
@@ -919,12 +912,6 @@ void Logger::run()
 		}
 	}
 
-	int manual_control_sp_sub = -1;
-
-	if (_log_mode == LogMode::rc_aux1) {
-		manual_control_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	}
-
 	int ntopics = add_topics_from_file(PX4_STORAGEDIR "/etc/logging/logger_topics.txt");
 
 	if (ntopics > 0) {
@@ -934,15 +921,8 @@ void Logger::run()
 		initialize_configured_topics();
 	}
 
-	int vehicle_command_sub = -1;
-
-	if (_writer.backend() & LogWriter::BackendMavlink) {
-		vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
-	}
-
 	//all topics added. Get required message buffer size
 	int max_msg_size = 0;
-	int ret = 0;
 
 	for (const auto &subscription : _subscriptions) {
 		//use o_size, because that's what orb_copy will use
@@ -1029,8 +1009,7 @@ void Logger::run()
 	while (!should_exit()) {
 
 		// Start/stop logging (depending on logging mode, by default when arming/disarming)
-		const bool logging_started = start_stop_logging(vehicle_status_sub, manual_control_sp_sub,
-					     (MissionLogType)mission_log_mode);
+		const bool logging_started = start_stop_logging((MissionLogType)mission_log_mode);
 
 		if (logging_started) {
 #ifdef DBGPRINT
@@ -1040,10 +1019,7 @@ void Logger::run()
 		}
 
 		/* check for logging command from MAVLink (start/stop streaming) */
-		if (vehicle_command_sub >= 0) {
-			handle_vehicle_command_update(vehicle_command_sub);
-		}
-
+		handle_vehicle_command_update();
 
 		if (timer_callback_data.watchdog_triggered) {
 			timer_callback_data.watchdog_triggered = false;
@@ -1071,7 +1047,9 @@ void Logger::run()
 
 			/* Check if parameters have changed */
 			if (!_should_stop_file_log) { // do not record param changes after disarming
-				if (parameter_update_sub.update()) {
+				parameter_update_s param_update;
+
+				if (parameter_update_sub.update(&param_update)) {
 					write_changed_parameters(LogType::Full);
 				}
 			}
@@ -1136,13 +1114,10 @@ void Logger::run()
 				++sub_idx;
 			}
 
-			//check for new logging message(s)
-			bool log_message_updated = false;
-			ret = orb_check(log_message_sub, &log_message_updated);
+			// check for new logging message(s)
+			log_message_s log_message;
 
-			if (ret == 0 && log_message_updated) {
-				log_message_s log_message;
-				orb_copy(ORB_ID(log_message), log_message_sub, &log_message);
+			if (_log_message_sub.update(&log_message)) {
 				const char *message = (const char *)log_message.text;
 				int message_len = strlen(message);
 
@@ -1183,7 +1158,7 @@ void Logger::run()
 
 			// update buffer statistics
 			for (int i = 0; i < (int)LogType::Count; ++i) {
-				if (!_statistics[i].dropout_start && _writer.get_buffer_fill_count_file((LogType)i) > _statistics[i].high_water) {
+				if (!_statistics[i].dropout_start && (_writer.get_buffer_fill_count_file((LogType)i) > _statistics[i].high_water)) {
 					_statistics[i].high_water = _writer.get_buffer_fill_count_file((LogType)i);
 				}
 			}
@@ -1279,10 +1254,6 @@ void Logger::run()
 		}
 	}
 
-	if (manual_control_sp_sub != -1) {
-		orb_unsubscribe(manual_control_sp_sub);
-	}
-
 	if (polling_topic_sub >= 0) {
 		orb_unsubscribe(polling_topic_sub);
 	}
@@ -1290,10 +1261,6 @@ void Logger::run()
 	if (_mavlink_log_pub) {
 		orb_unadvertise(_mavlink_log_pub);
 		_mavlink_log_pub = nullptr;
-	}
-
-	if (vehicle_command_sub != -1) {
-		orb_unsubscribe(vehicle_command_sub);
 	}
 
 	px4_unregister_shutdown_hook(&Logger::request_stop_static);
@@ -1320,21 +1287,20 @@ void Logger::debug_print_buffer(uint32_t &total_bytes, hrt_abstime &timer_start)
 #endif /* DBGPRINT */
 }
 
-bool Logger::start_stop_logging(int vehicle_status_sub, int manual_control_sp_sub, MissionLogType mission_log_type)
+bool Logger::start_stop_logging(MissionLogType mission_log_type)
 {
 	bool bret = false;
 	bool want_start = false;
 	bool want_stop = false;
 
 	if (_log_mode == LogMode::rc_aux1) {
-		//aux1-based logging
-		bool manual_control_setpoint_updated;
-		int ret = orb_check(manual_control_sp_sub, &manual_control_setpoint_updated);
 
-		if (ret == 0 && manual_control_setpoint_updated) {
-			manual_control_setpoint_s manual_sp;
-			orb_copy(ORB_ID(manual_control_setpoint), manual_control_sp_sub, &manual_sp);
-			bool should_start = manual_sp.aux1 > 0.3f || _manually_logging_override;
+		// aux1-based logging
+		manual_control_setpoint_s manual_sp;
+
+		if (_manual_control_sp_sub.update(&manual_sp)) {
+
+			bool should_start = ((manual_sp.aux1 > 0.3f) || _manually_logging_override);
 
 			if (_prev_state != should_start) {
 				_prev_state = should_start;
@@ -1350,12 +1316,10 @@ bool Logger::start_stop_logging(int vehicle_status_sub, int manual_control_sp_su
 
 	} else {
 		// arming-based logging
-		bool vehicle_status_updated;
-		int ret = orb_check(vehicle_status_sub, &vehicle_status_updated);
+		vehicle_status_s vehicle_status;
 
-		if (ret == 0 && vehicle_status_updated) {
-			vehicle_status_s vehicle_status;
-			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub, &vehicle_status);
+		if (_vehicle_status_sub.update(&vehicle_status)) {
+
 			bool armed = (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) || _manually_logging_override;
 
 			if (_prev_state != armed && _log_mode != LogMode::boot_until_shutdown) {
@@ -1397,16 +1361,14 @@ bool Logger::start_stop_logging(int vehicle_status_sub, int manual_control_sp_su
 	return bret;
 }
 
-void Logger::handle_vehicle_command_update(int vehicle_command_sub)
+void Logger::handle_vehicle_command_update()
 {
-	bool command_updated = false;
-	int ret = orb_check(vehicle_command_sub, &command_updated);
+	vehicle_command_s command;
 
-	if (ret == 0 && command_updated) {
-		vehicle_command_s command;
-		orb_copy(ORB_ID(vehicle_command), vehicle_command_sub, &command);
+	if (_vehicle_command_sub.update(&command)) {
 
 		if (command.command == vehicle_command_s::VEHICLE_CMD_LOGGING_START) {
+
 			if ((int)(command.param1 + 0.5f) != 0) {
 				ack_vehicle_command(&command, vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED);
 
