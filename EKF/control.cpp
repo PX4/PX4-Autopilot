@@ -1582,7 +1582,7 @@ void Ekf::controlMagFusion()
 				save_mag_cov_data();
 			}
 
-		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_HEADING) {
+		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_HEADING || _params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR) {
 			// always use heading fusion
 			_control_status.flags.mag_hdg = true;
 
