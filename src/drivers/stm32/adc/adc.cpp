@@ -522,7 +522,7 @@ extern "C" __EXPORT int adc_main(int argc, char *argv[]);
 
 namespace
 {
-ADC	*g_adc;
+ADC	*g_adc{nullptr};
 
 int
 test(void)
