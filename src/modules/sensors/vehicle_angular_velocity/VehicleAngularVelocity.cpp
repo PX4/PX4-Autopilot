@@ -68,7 +68,8 @@ VehicleAngularVelocity::Start()
 	ParametersUpdate(true);
 	SensorBiasUpdate(true);
 
-	_sensor_correction_sub.register_callback();
+	// needed to change the active sensor if the primary stops updating
+	_sensor_selection_sub.register_callback();
 
 	return SensorCorrectionsUpdate(true);
 }
@@ -83,7 +84,7 @@ VehicleAngularVelocity::Stop()
 		sub.unregister_callback();
 	}
 
-	_sensor_correction_sub.unregister_callback();
+	_sensor_selection_sub.unregister_callback();
 }
 
 void
