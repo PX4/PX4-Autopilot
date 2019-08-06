@@ -406,7 +406,7 @@ __EXPORT extern int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq
  * @param channel	The channel to set.
  * @param throttle	The output dshot throttle value.
  */
-__EXPORT extern void up_dshot_motor_data_prepare(unsigned channel, uint16_t throttle);
+__EXPORT extern void up_dshot_motor_data_prepare(unsigned channel, uint16_t throttle, bool telemetry);
 
 /**
  * Trigger dshot data transfer.
