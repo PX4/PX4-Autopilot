@@ -318,6 +318,7 @@
 #define ADC_ADC1_6V6_CHANNEL                    /* PC0 */  ADC1_CH(10)
 #define ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL     /* PC2 */  ADC1_CH(12)
 #define ADC_ADC1_3V3_CHANNEL                    /* PC3 */  ADC1_CH(13)
+
 #define ADC_HW_VER_SENSE_CHANNEL                /* PF4 */  ADC3_CH(14)
 #define ADC_HW_REV_SENSE_CHANNEL                /* PF5 */  ADC3_CH(15)
 
@@ -328,11 +329,15 @@
 	 (1 << ADC_SCALED_V5_CHANNEL)               | \
 	 (1 << ADC_ADC1_6V6_CHANNEL)                | \
 	 (1 << ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL) | \
-	 (1 << ADC_ADC1_3V3_CHANNEL)                | \
-	 (1 << ADC_HW_VER_SENSE_CHANNEL)            | \
-	 (1 << ADC_HW_REV_SENSE_CHANNEL))
+	 (1 << ADC_ADC1_3V3_CHANNEL))
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
+
+#define HW_REV_VER_ADC_BASE STM32_ADC3_BASE
+
+#define SYSTEM_ADC_BASE STM32_ADC1_BASE
+
+
 
 #define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
 
