@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+# Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,14 +30,59 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__roboclaw
-	MAIN roboclaw
-	COMPILE_FLAGS
-	SRCS
-		roboclaw_main.cpp
-		RoboClaw.cpp
-	MODULE_CONFIG
-		module.yaml
-	)
 
+find_program(BLOATY_PROGRAM bloaty)
+if (BLOATY_PROGRAM)
+	# bloaty symbols
+	set(BLOATY_OPTS --demangle=short --domain=vm -s vm -n 100 -w)
+	add_custom_target(bloaty_symbols
+		COMMAND ${BLOATY_PROGRAM} -d symbols ${BLOATY_OPTS} $<TARGET_FILE:px4>
+		DEPENDS px4
+		USES_TERMINAL
+		)
+
+	# bloaty compilation units
+	add_custom_target(bloaty_compileunits
+		COMMAND ${BLOATY_PROGRAM} -d compileunits ${BLOATY_OPTS} $<TARGET_FILE:px4>
+		DEPENDS px4
+		USES_TERMINAL
+		)
+
+	# bloaty sections
+	add_custom_target(bloaty_sections
+		COMMAND ${BLOATY_PROGRAM} -d sections ${BLOATY_OPTS} $<TARGET_FILE:px4>
+		DEPENDS px4
+		USES_TERMINAL
+		)
+
+	# bloaty segments
+	add_custom_target(bloaty_segments
+		COMMAND ${BLOATY_PROGRAM} -d segments ${BLOATY_OPTS} $<TARGET_FILE:px4>
+		DEPENDS px4
+		USES_TERMINAL
+		)
+
+	# bloaty templates
+	add_custom_target(bloaty_templates
+		COMMAND ${BLOATY_PROGRAM} -d shortsymbols,fullsymbols ${BLOATY_OPTS} $<TARGET_FILE:px4>
+		DEPENDS px4
+		USES_TERMINAL
+		)
+
+	# bloaty inlines
+	add_custom_target(bloaty_inlines
+		COMMAND ${BLOATY_PROGRAM} -d inlines ${BLOATY_OPTS} $<TARGET_FILE:px4>
+		DEPENDS px4
+		USES_TERMINAL
+		)
+
+	# bloaty compare with last master build
+	add_custom_target(bloaty_compare_master
+		COMMAND wget -c -N --no-verbose https://s3.amazonaws.com/px4-travis/Firmware/master/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf -O master.elf
+		COMMAND ${BLOATY_PROGRAM} ${BLOATY_OPTS} $<TARGET_FILE:px4> -- master.elf
+		DEPENDS px4
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+		VERBATIM
+		USES_TERMINAL
+		)
+endif()
