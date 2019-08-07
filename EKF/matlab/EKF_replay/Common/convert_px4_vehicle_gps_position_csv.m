@@ -1,3 +1,4 @@
+%% convert GPS data
 clear gps_data;
 gps_data.time_us = timestamp + timestamp_time_relative;
 gps_data.pos_error = eph;
@@ -24,6 +25,8 @@ for index = 1:length(timestamp)
     end
 end
 
-clearvars -except baro_data imu_data mag_data gps_data;
 
-save gps_data.mat;
+%% save data
+% DO NOT clear the workspace (yet)
+
+save gps_data.mat gps_data;
