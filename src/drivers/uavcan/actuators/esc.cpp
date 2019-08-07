@@ -233,14 +233,13 @@ void UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent &)
 
 uint8_t UavcanEscController::check_escs_status()
 {
-	int esc_status_flags = 255;
+	int esc_status_flags = 0;
+
 
 	for (int index = 0; index < esc_status_s::CONNECTED_ESC_MAX; index++) {
-		if (_esc_status.esc[index].timestamp == 0) {
-			esc_status_flags &= ~(1 << index);
 
-		} else if (hrt_elapsed_time(&_esc_status.esc[index].timestamp) > 800000.0f) {
-			esc_status_flags &= ~(1 << index);
+		if (_esc_status.esc[index].timestamp > 0 && hrt_elapsed_time(&_esc_status.esc[index].timestamp) < 800000.0f) {
+			esc_status_flags |= (1 << index);
 		}
 
 	}
