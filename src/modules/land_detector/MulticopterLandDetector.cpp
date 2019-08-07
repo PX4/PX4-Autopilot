@@ -63,6 +63,7 @@
 
 #include <cmath>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 
 #include "MulticopterLandDetector.h"
 
@@ -94,7 +95,7 @@ void MulticopterLandDetector::_update_topics()
 {
 	_actuator_controls_sub.update(&_actuator_controls);
 	_battery_sub.update(&_battery_status);
-	_sensor_bias_sub.update(&_sensor_bias);
+	_vehicle_acceleration_sub.update(&_vehicle_acceleration);
 	_vehicle_angular_velocity_sub.update(&_vehicle_angular_velocity);
 	_vehicle_attitude_sub.update(&_vehicle_attitude);
 	_vehicle_control_mode_sub.update(&_control_mode);
@@ -126,17 +127,15 @@ bool MulticopterLandDetector::_get_freefall_state()
 		return false;
 	}
 
-	if (_sensor_bias.timestamp == 0) {
+	if (_vehicle_acceleration.timestamp == 0) {
 		// _sensors is not valid yet, we have to assume we're not falling.
 		return false;
 	}
 
-	float acc_norm = _sensor_bias.accel_x * _sensor_bias.accel_x
-			 + _sensor_bias.accel_y * _sensor_bias.accel_y
-			 + _sensor_bias.accel_z * _sensor_bias.accel_z;
-	acc_norm = sqrtf(acc_norm);	//norm of specific force. Should be close to 9.8 m/s^2 when landed.
+	// norm of specific force. Should be close to 9.8 m/s^2 when landed.
+	const matrix::Vector3f accel{_vehicle_acceleration.xyz};
 
-	return (acc_norm < _params.freefall_acc_threshold);	//true if we are currently falling
+	return (accel.norm() < _params.freefall_acc_threshold);	// true if we are currently falling
 }
 
 bool MulticopterLandDetector::_get_ground_contact_state()
@@ -216,7 +215,7 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	// Next look if all rotation angles are not moving.
 	float maxRotationScaled = _params.maxRotation_rad_s * landThresholdFactor;
 
-	bool rotating = (fabsf(_vehicle_angular_velocity.xyz[0])  > maxRotationScaled) ||
+	bool rotating = (fabsf(_vehicle_angular_velocity.xyz[0]) > maxRotationScaled) ||
 			(fabsf(_vehicle_angular_velocity.xyz[1]) > maxRotationScaled) ||
 			(fabsf(_vehicle_angular_velocity.xyz[2]) > maxRotationScaled);
 

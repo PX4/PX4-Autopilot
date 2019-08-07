@@ -92,6 +92,7 @@
 #include "rc_update.h"
 #include "voted_sensors_update.h"
 
+#include "vehicle_acceleration/VehicleAcceleration.hpp"
 #include "vehicle_angular_velocity/VehicleAngularVelocity.hpp"
 
 using namespace DriverFramework;
@@ -204,7 +205,8 @@ private:
 	VotedSensorsUpdate _voted_sensors_update;
 
 
-	VehicleAngularVelocity	_angular_velocity;
+	VehicleAcceleration	_vehicle_acceleration;
+	VehicleAngularVelocity	_vehicle_angular_velocity;
 
 
 	/**
@@ -259,12 +261,14 @@ Sensors::Sensors(bool hil_enabled) :
 
 #endif /* BOARD_NUMBER_BRICKS > 0 */
 
-	_angular_velocity.Start();
+	_vehicle_acceleration.Start();
+	_vehicle_angular_velocity.Start();
 }
 
 Sensors::~Sensors()
 {
-	_angular_velocity.Stop();
+	_vehicle_acceleration.Stop();
+	_vehicle_angular_velocity.Stop();
 }
 
 int
@@ -736,7 +740,8 @@ int Sensors::print_status()
 	PX4_INFO("Airspeed status:");
 	_airspeed_validator.print();
 
-	_angular_velocity.PrintStatus();
+	_vehicle_acceleration.PrintStatus();
+	_vehicle_angular_velocity.PrintStatus();
 
 	return 0;
 }

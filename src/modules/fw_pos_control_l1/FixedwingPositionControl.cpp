@@ -37,8 +37,6 @@ extern "C" __EXPORT int fw_pos_control_l1_main(int argc, char *argv[]);
 
 FixedwingPositionControl::FixedwingPositionControl() :
 	ModuleParams(nullptr),
-	_sub_airspeed(ORB_ID(airspeed)),
-	_sub_sensors(ORB_ID(sensor_bias)),
 	_loop_perf(perf_alloc(PC_ELAPSED, "fw_l1_control")),
 	_launchDetector(this),
 	_runway_takeoff(this)
@@ -346,9 +344,9 @@ FixedwingPositionControl::airspeed_poll()
 {
 	bool airspeed_valid = _airspeed_valid;
 
-	if (!_parameters.airspeed_disabled && _sub_airspeed.update()) {
+	if (!_parameters.airspeed_disabled && _airspeed_sub.update()) {
 
-		const airspeed_s &as = _sub_airspeed.get();
+		const airspeed_s &as = _airspeed_sub.get();
 
 		if (PX4_ISFINITE(as.indicated_airspeed_m_s)
 		    && PX4_ISFINITE(as.true_airspeed_m_s)
@@ -1292,7 +1290,7 @@ FixedwingPositionControl::control_takeoff(const Vector2f &curr_pos, const Vector
 				}
 
 				/* Detect launch using body X (forward) acceleration */
-				_launchDetector.update(_sub_sensors.get().accel_x);
+				_launchDetector.update(_vehicle_acceleration_sub.get().xyz[0]);
 
 				/* update our copy of the launch detection state */
 				_launch_detection_state = _launchDetector.getLaunchDetected();
@@ -1750,7 +1748,6 @@ FixedwingPositionControl::run()
 			_alt_reset_counter = _global_pos.alt_reset_counter;
 			_pos_reset_counter = _global_pos.lat_lon_reset_counter;
 
-			_sub_sensors.update();
 			airspeed_poll();
 			_manual_control_sub.update(&_manual);
 			_pos_sp_triplet_sub.update(&_pos_sp_triplet);
@@ -1759,6 +1756,7 @@ FixedwingPositionControl::run()
 			vehicle_control_mode_poll();
 			_vehicle_land_detected_sub.update(&_vehicle_land_detected);
 			vehicle_status_poll();
+			_vehicle_acceleration_sub.update();
 			_vehicle_rates_sub.update();
 
 			Vector2f curr_pos((float)_global_pos.lat, (float)_global_pos.lon);
@@ -1931,7 +1929,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 	float pitch_for_tecs = _pitch - _parameters.pitchsp_offset_rad;
 
 	/* filter speed and altitude for controller */
-	Vector3f accel_body(_sub_sensors.get().accel_x, _sub_sensors.get().accel_y, _sub_sensors.get().accel_z);
+	Vector3f accel_body(_vehicle_acceleration_sub.get().xyz);
 
 	// tailsitters use the multicopter frame as reference, in fixed wing
 	// we need to use the fixed wing frame
