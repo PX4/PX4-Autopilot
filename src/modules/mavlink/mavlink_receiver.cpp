@@ -1887,8 +1887,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	{
 		airspeed_s airspeed{};
 
-		float ias = calc_indicated_airspeed(imu.diff_pressure * 1e2f);
-		float tas = calc_true_airspeed_from_indicated(ias, imu.abs_pressure * 100, imu.temperature);
+		float ias = calc_IAS(imu.diff_pressure * 1e2f);
+		float scale = 1.0f; //assume no instrument or pitot placement errors
+		float eas = calc_EAS_from_IAS(ias, scale);
+		float tas = calc_TAS_from_EAS(eas, imu.abs_pressure * 100, imu.temperature);
 
 		airspeed.timestamp = timestamp;
 		airspeed.indicated_airspeed_m_s = ias;
