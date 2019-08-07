@@ -436,14 +436,6 @@ else
 	navigator start
 
 	#
-	# Start the standalone wind estimator.
-	#
-	if param compare WEST_EN 1
-	then
-		wind_estimator start
-	fi
-
-	#
 	# Start a thermal calibration if required.
 	#
 	sh /etc/init.d/rc.thermal_cal
