@@ -52,6 +52,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -96,6 +97,7 @@ protected:
 	uORB::SubscriptionPollable<parameter_update_s> _param_update;
 	uORB::SubscriptionPollable<position_setpoint_triplet_s> _missionCmd;
 	uORB::SubscriptionPollable<vehicle_attitude_s> _att;
+	uORB::SubscriptionPollable<vehicle_angular_velocity_s> _angular_velocity;
 	uORB::SubscriptionPollable<vehicle_attitude_setpoint_s> _attCmd;
 	uORB::SubscriptionPollable<vehicle_global_position_s> _pos;
 	uORB::SubscriptionPollable<vehicle_rates_setpoint_s> _ratesCmd;

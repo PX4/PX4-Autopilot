@@ -40,98 +40,39 @@
  *
  */
 
-#include "mag.h"
-#include "icm20948.h"
+#include <px4_config.h>
+#include <px4_log.h>
+#include <px4_time.h>
+#include <lib/perf/perf_counter.h>
+#include <drivers/drv_hrt.h>
 
+#include "ICM20948_mag.h"
+#include "icm20948.h"
 
 // If interface is non-null, then it will used for interacting with the device.
 // Otherwise, it will passthrough the parent ICM20948
-ICM20948_mag::ICM20948_mag(ICM20948 *parent, device::Device *interface, const char *path) :
-	CDev("ICM20948_mag", path),
+ICM20948_mag::ICM20948_mag(ICM20948 *parent, device::Device *interface, enum Rotation rotation) :
 	_interface(interface),
+	_px4_mag(parent->_interface->get_device_id(), (parent->_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH),
+		 rotation),
 	_parent(parent),
-	_mag_topic(nullptr),
-	_mag_orb_class_instance(-1),
-	_mag_class_instance(-1),
-	_mag_reading_data(false),
-	_mag_reports(nullptr),
-	_mag_scale{},
-	_mag_range_scale(),
-	_mag_reads(perf_alloc(PC_COUNT, "mpu9250_mag_reads")),
-	_mag_errors(perf_alloc(PC_COUNT, "mpu9250_mag_errors")),
-	_mag_overruns(perf_alloc(PC_COUNT, "mpu9250_mag_overruns")),
-	_mag_overflows(perf_alloc(PC_COUNT, "mpu9250_mag_overflows")),
-	_mag_duplicates(perf_alloc(PC_COUNT, "mpu9250_mag_duplicates")),
-	_mag_asa_x(1.0),
-	_mag_asa_y(1.0),
-	_mag_asa_z(1.0),
-	_last_mag_data{}
+	_mag_reads(perf_alloc(PC_COUNT, "icm20948: mag_reads")),
+	_mag_errors(perf_alloc(PC_COUNT, "icm20948: mag_errors")),
+	_mag_overruns(perf_alloc(PC_COUNT, "icm20948: mag_overruns")),
+	_mag_overflows(perf_alloc(PC_COUNT, "icm20948: mag_overflows")),
+	_mag_duplicates(perf_alloc(PC_COUNT, "icm20948: mag_duplicates"))
 {
-	// default mag scale factors
-	_mag_scale.x_offset = 0;
-	_mag_scale.x_scale  = 1.0f;
-	_mag_scale.y_offset = 0;
-	_mag_scale.y_scale  = 1.0f;
-	_mag_scale.z_offset = 0;
-	_mag_scale.z_scale  = 1.0f;
-
-	_mag_range_scale = MPU9250_MAG_RANGE_GA;
+	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_AK09916);
+	_px4_mag.set_scale(MPU9250_MAG_RANGE_GA);
 }
 
 ICM20948_mag::~ICM20948_mag()
 {
-	if (_mag_class_instance != -1) {
-		unregister_class_devname(MAG_BASE_DEVICE_PATH, _mag_class_instance);
-	}
-
-	if (_mag_reports != nullptr) {
-		delete _mag_reports;
-	}
-
-	orb_unadvertise(_mag_topic);
-
 	perf_free(_mag_reads);
 	perf_free(_mag_errors);
 	perf_free(_mag_overruns);
 	perf_free(_mag_overflows);
 	perf_free(_mag_duplicates);
-}
-
-int
-ICM20948_mag::init()
-{
-	int ret = CDev::init();
-
-	/* if cdev init failed, bail now */
-	if (ret != OK) {
-		DEVICE_DEBUG("ICM20948 mag init failed");
-
-		return ret;
-	}
-
-	_mag_reports = new ringbuffer::RingBuffer(2, sizeof(mag_report));
-
-	if (_mag_reports == nullptr) {
-		return -ENOMEM;
-	}
-
-	_mag_class_instance = register_class_devname(MAG_BASE_DEVICE_PATH);
-
-
-	/* advertise sensor topic, measure manually to initialize valid report */
-	struct mag_report mrp;
-	_mag_reports->get(&mrp);
-
-	_mag_topic = orb_advertise_multi(ORB_ID(sensor_mag), &mrp,
-					 &_mag_orb_class_instance, (_parent->is_external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
-//    &_mag_orb_class_instance, ORB_PRIO_LOW);
-
-	if (_mag_topic == nullptr) {
-		PX4_ERR("ADVERT FAIL");
-		return -ENOMEM;
-	}
-
-	return OK;
 }
 
 bool ICM20948_mag::check_duplicate(uint8_t *mag_data)
@@ -149,27 +90,25 @@ bool ICM20948_mag::check_duplicate(uint8_t *mag_data)
 void
 ICM20948_mag::measure()
 {
-	uint8_t ret;
 	union raw_data_t {
 		struct ak8963_regs ak8963_data;
 		struct ak09916_regs ak09916_data;
 	} raw_data;
 
 
-	ret = _interface->read(AK09916REG_ST1, &raw_data, sizeof(struct ak09916_regs));
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
+	int ret = _interface->read(AK09916REG_ST1, &raw_data, sizeof(struct ak09916_regs));
 
 	if (ret == OK) {
 		raw_data.ak8963_data.st2 = raw_data.ak09916_data.st2;
 
-		_measure(raw_data.ak8963_data);
+		_measure(timestamp_sample, raw_data.ak8963_data);
 	}
 }
 
 void
-ICM20948_mag::_measure(struct ak8963_regs data)
+ICM20948_mag::_measure(hrt_abstime timestamp_sample, ak8963_regs data)
 {
-	bool mag_notify = true;
-
 	if (check_duplicate((uint8_t *)&data.x) && !(data.st1 & 0x02)) {
 		perf_count(_mag_duplicates);
 		return;
@@ -188,119 +127,14 @@ ICM20948_mag::_measure(struct ak8963_regs data)
 		perf_count(_mag_overflows);
 	}
 
-	mag_report	mrb;
-	mrb.timestamp = hrt_absolute_time();
-//	mrb.is_external = false;
-
-	// need a better check here. Using _parent->is_external() for mpu9250 also sets the
-	// internal magnetometers connected to the "external" spi bus as external, at least
-	// on Pixhawk 2.1. For now assuming the ICM20948 is only used on Here GPS, hence external.
-	if (_parent->_whoami == ICM_WHOAMI_20948) {
-		mrb.is_external = _parent->is_external();
-
-	} else {
-		mrb.is_external = false;
-	}
+	_px4_mag.set_external(_parent->is_external());
+	_px4_mag.set_temperature(_parent->_last_temperature);
+	_px4_mag.set_error_count(perf_event_count(_mag_errors));
 
 	/*
-	 * Align axes - note the accel & gryo are also re-aligned so this
-	 *              doesn't look obvious with the datasheet
+	 * Align axes - Keeping consistent with the accel and gyro axes of the ICM20948 here, just aligning the magnetometer to them.
 	 */
-	float xraw_f, yraw_f, zraw_f;
-
-	if (_parent->_whoami == ICM_WHOAMI_20948) {
-		/*
-		 * Keeping consistent with the accel and gyro axes of the ICM20948 here, just aligning the magnetometer to them.
-		 */
-		mrb.x_raw = data.y;
-		mrb.y_raw = data.x;
-		mrb.z_raw = -data.z;
-
-		xraw_f = data.y;
-		yraw_f = data.x;
-		zraw_f = -data.z;
-
-	} else {
-		mrb.x_raw =  data.x;
-		mrb.y_raw = -data.y;
-		mrb.z_raw = -data.z;
-
-		xraw_f =  data.x;
-		yraw_f = -data.y;
-		zraw_f = -data.z;
-	}
-
-	/* apply user specified rotation */
-	rotate_3f(_parent->_rotation, xraw_f, yraw_f, zraw_f);
-
-	if (_parent->_whoami == ICM_WHOAMI_20948) {
-		rotate_3f(ROTATION_YAW_270, xraw_f, yraw_f, zraw_f); //offset between accel/gyro and mag on icm20948
-	}
-
-	mrb.x = ((xraw_f * _mag_range_scale * _mag_asa_x) - _mag_scale.x_offset) * _mag_scale.x_scale;
-	mrb.y = ((yraw_f * _mag_range_scale * _mag_asa_y) - _mag_scale.y_offset) * _mag_scale.y_scale;
-	mrb.z = ((zraw_f * _mag_range_scale * _mag_asa_z) - _mag_scale.z_offset) * _mag_scale.z_scale;
-	mrb.scaling = _mag_range_scale;
-	mrb.temperature = _parent->_last_temperature;
-	mrb.device_id = _parent->_mag->_device_id.devid;
-
-	mrb.error_count = perf_event_count(_mag_errors);
-
-	_mag_reports->force(&mrb);
-
-	/* notify anyone waiting for data */
-	if (mag_notify) {
-		poll_notify(POLLIN);
-	}
-
-	if (mag_notify && !(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_mag), _mag_topic, &mrb);
-	}
-}
-
-int
-ICM20948_mag::ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-	/*
-	 * Repeated in ICM20948_accel::ioctl
-	 * Both accel and mag CDev could be unused in case of magnetometer only mode or MPU6500
-	 */
-
-	switch (cmd) {
-
-	case SENSORIOCRESET:
-		return ak8963_reset();
-
-	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
-
-			/* zero would be bad */
-			case 0:
-				return -EINVAL;
-
-			case SENSOR_POLLRATE_DEFAULT:
-				return ioctl(filp, SENSORIOCSPOLLRATE, MPU9250_ACCEL_DEFAULT_RATE);
-
-			/* adjust to a legal polling interval in Hz */
-			default:
-				return _parent->_set_pollrate(arg);
-			}
-		}
-
-	case MAGIOCSSCALE:
-		/* copy scale in */
-		memcpy(&_mag_scale, (struct mag_scale *) arg, sizeof(_mag_scale));
-		return OK;
-
-	case MAGIOCGSCALE:
-		/* copy scale out */
-		memcpy((struct mag_scale *) arg, &_mag_scale, sizeof(_mag_scale));
-		return OK;
-
-	default:
-		return (int)CDev::ioctl(filp, cmd, arg);
-	}
+	_px4_mag.update(timestamp_sample, data.y, data.x, -data.z);
 }
 
 void
@@ -341,7 +175,7 @@ ICM20948_mag::passthrough_read(uint8_t reg, uint8_t *buf, uint8_t size)
 uint8_t
 ICM20948_mag::read_reg(unsigned int reg)
 {
-	uint8_t buf;
+	uint8_t buf{};
 
 	if (_interface == nullptr) {
 		passthrough_read(reg, &buf, 0x01);
@@ -428,9 +262,7 @@ ICM20948_mag::ak8963_read_adjustments(void)
 		}
 	}
 
-	_mag_asa_x = ak8963_ASA[0];
-	_mag_asa_y = ak8963_ASA[1];
-	_mag_asa_z = ak8963_ASA[2];
+	_px4_mag.set_sensitivity(ak8963_ASA[0], ak8963_ASA[1], ak8963_ASA[2]);
 
 	return true;
 }

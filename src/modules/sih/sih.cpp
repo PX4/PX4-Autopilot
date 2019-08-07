@@ -408,19 +408,19 @@ void Sih::send_gps()
 
 void Sih::publish_sih()
 {
-	_gpos_gt.timestamp = hrt_absolute_time();
-	_gpos_gt.lat = _gps_lat_noiseless;
-	_gpos_gt.lon = _gps_lon_noiseless;
-	_gpos_gt.alt = _gps_alt_noiseless;
-	_gpos_gt.vel_n = _v_I(0);
-	_gpos_gt.vel_e = _v_I(1);
-	_gpos_gt.vel_d = _v_I(2);
+	// publish angular velocity groundtruth
+	_vehicle_angular_velocity_gt.timestamp = hrt_absolute_time();
+	_vehicle_angular_velocity_gt.xyz[0] = _w_B(0); // rollspeed;
+	_vehicle_angular_velocity_gt.xyz[1] = _w_B(1); // pitchspeed;
+	_vehicle_angular_velocity_gt.xyz[2] = _w_B(2); // yawspeed;
 
-	if (_gpos_gt_sub != nullptr) {
-		orb_publish(ORB_ID(vehicle_global_position_groundtruth), _gpos_gt_sub, &_gpos_gt);
+	if (_vehicle_angular_velocity_gt_pub != nullptr) {
+		orb_publish(ORB_ID(vehicle_angular_velocity_groundtruth), _vehicle_angular_velocity_gt_pub,
+			    &_vehicle_angular_velocity_gt);
 
 	} else {
-		_gpos_gt_sub = orb_advertise(ORB_ID(vehicle_global_position_groundtruth), &_gpos_gt);
+		_vehicle_angular_velocity_gt_pub = orb_advertise(ORB_ID(vehicle_angular_velocity_groundtruth),
+						   &_vehicle_angular_velocity_gt);
 	}
 
 	// publish attitude groundtruth
@@ -429,15 +429,27 @@ void Sih::publish_sih()
 	_att_gt.q[1] = _q(1);
 	_att_gt.q[2] = _q(2);
 	_att_gt.q[3] = _q(3);
-	_att_gt.rollspeed = _w_B(0);
-	_att_gt.pitchspeed = _w_B(1);
-	_att_gt.yawspeed = _w_B(2);
 
-	if (_att_gt_sub != nullptr) {
-		orb_publish(ORB_ID(vehicle_attitude_groundtruth), _att_gt_sub, &_att_gt);
+	if (_att_gt_pub != nullptr) {
+		orb_publish(ORB_ID(vehicle_attitude_groundtruth), _att_gt_pub, &_att_gt);
 
 	} else {
-		_att_gt_sub = orb_advertise(ORB_ID(vehicle_attitude_groundtruth), &_att_gt);
+		_att_gt_pub = orb_advertise(ORB_ID(vehicle_attitude_groundtruth), &_att_gt);
+	}
+
+	_gpos_gt.timestamp = hrt_absolute_time();
+	_gpos_gt.lat = _gps_lat_noiseless;
+	_gpos_gt.lon = _gps_lon_noiseless;
+	_gpos_gt.alt = _gps_alt_noiseless;
+	_gpos_gt.vel_n = _v_I(0);
+	_gpos_gt.vel_e = _v_I(1);
+	_gpos_gt.vel_d = _v_I(2);
+
+	if (_gpos_gt_pub != nullptr) {
+		orb_publish(ORB_ID(vehicle_global_position_groundtruth), _gpos_gt_pub, &_gpos_gt);
+
+	} else {
+		_gpos_gt_pub = orb_advertise(ORB_ID(vehicle_global_position_groundtruth), &_gpos_gt);
 	}
 }
 

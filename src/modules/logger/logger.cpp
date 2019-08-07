@@ -409,7 +409,7 @@ bool Logger::request_stop_static()
 	return true;
 }
 
-LoggerSubscription *Logger::add_topic(const orb_metadata *topic)
+LoggerSubscription *Logger::add_topic(const orb_metadata *topic, uint32_t interval_ms, uint8_t instance)
 {
 	LoggerSubscription *subscription = nullptr;
 	size_t fields_len = strlen(topic->o_fields) + strlen(topic->o_name) + 1; //1 for ':'
@@ -421,38 +421,23 @@ LoggerSubscription *Logger::add_topic(const orb_metadata *topic)
 		return nullptr;
 	}
 
-	int fd = -1;
-
-	// Only subscribe to the topic now if it's published. If published later on, we'll dynamically
-	// add the subscription then
-	if (orb_exists(topic, 0) == 0) {
-		fd = orb_subscribe(topic);
-
-		if (fd < 0) {
-			PX4_WARN("logger: %s subscribe failed (%i)", topic->o_name, errno);
-			return nullptr;
-		}
-
-	} else {
-		PX4_DEBUG("Topic %s does not exist. Not subscribing (yet)", topic->o_name);
-	}
-
-	if (_subscriptions.push_back(LoggerSubscription(fd, topic))) {
+	if (_subscriptions.push_back(LoggerSubscription{topic, interval_ms, instance})) {
 		subscription = &_subscriptions[_subscriptions.size() - 1];
 
 	} else {
-		PX4_WARN("logger: failed to add topic. Too many subscriptions");
-
-		if (fd >= 0) {
-			orb_unsubscribe(fd);
-		}
+		PX4_WARN("Too many subscriptions, failed to add: %s %d", topic->o_name, instance);
 	}
 
 	return subscription;
 }
 
-bool Logger::add_topic(const char *name, unsigned interval)
+bool Logger::add_topic(const char *name, uint32_t interval_ms, uint8_t instance)
 {
+	// if we poll on a topic, we don't use the interval and let the polled topic define the maximum interval
+	if (_polling_topic_meta) {
+		interval_ms = 0;
+	}
+
 	const orb_metadata *const *topics = orb_get_topics();
 	LoggerSubscription *subscription = nullptr;
 
@@ -462,9 +447,13 @@ bool Logger::add_topic(const char *name, unsigned interval)
 
 			// check if already added: if so, only update the interval
 			for (size_t j = 0; j < _subscriptions.size(); ++j) {
-				if (_subscriptions[j].metadata == topics[i]) {
-					PX4_DEBUG("logging topic %s, interval: %i, already added, only setting interval",
-						  topics[i]->o_name, interval);
+				if ((_subscriptions[j].get_topic() == topics[i]) && (_subscriptions[j].get_instance() == instance)) {
+
+					PX4_DEBUG("logging topic %s(%d), interval: %i, already added, only setting interval",
+						  topics[i]->o_name, instance, interval_ms);
+
+					_subscriptions[j].set_interval_ms(interval_ms);
+
 					subscription = &_subscriptions[j];
 					already_added = true;
 					break;
@@ -472,164 +461,118 @@ bool Logger::add_topic(const char *name, unsigned interval)
 			}
 
 			if (!already_added) {
-				subscription = add_topic(topics[i]);
-				PX4_DEBUG("logging topic: %s, interval: %i", topics[i]->o_name, interval);
+				subscription = add_topic(topics[i], interval_ms, instance);
+				PX4_DEBUG("logging topic: %s(%d), interval: %i", topics[i]->o_name, instance, interval_ms);
 				break;
 			}
 		}
 	}
 
-	// if we poll on a topic, we don't use the interval and let the polled topic define the maximum interval
-	if (_polling_topic_meta) {
-		interval = 0;
-	}
-
-	if (subscription) {
-		if (subscription->fd[0] >= 0) {
-			orb_set_interval(subscription->fd[0], interval);
-
-		} else {
-			// store the interval: use a value < 0 to know it's not a valid fd
-			subscription->fd[0] = -interval - 1;
-		}
-	}
-
-	return subscription;
+	return (subscription != nullptr);
 }
 
-bool Logger::copy_if_updated_multi(int sub_idx, int multi_instance, void *buffer, bool try_to_subscribe)
+bool Logger::add_topic_multi(const char *name, uint32_t interval_ms)
 {
-	bool updated = false;
+	// add all possible instances
+	for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
+		add_topic(name, interval_ms, instance);
+	}
+
+	return true;
+}
+
+bool Logger::copy_if_updated(int sub_idx, void *buffer, bool try_to_subscribe)
+{
 	LoggerSubscription &sub = _subscriptions[sub_idx];
-	int &handle = sub.fd[multi_instance];
 
-	if (handle < 0 && try_to_subscribe) {
+	bool updated = false;
 
-		if (try_to_subscribe_topic(sub, multi_instance)) {
+	if (sub.valid()) {
+		updated = sub.update(buffer);
 
-			write_add_logged_msg(LogType::Full, sub, multi_instance);
+	} else if (try_to_subscribe) {
+		if (sub.subscribe()) {
+			write_add_logged_msg(LogType::Full, sub);
 
 			if (sub_idx < _num_mission_subs) {
-				write_add_logged_msg(LogType::Mission, sub, multi_instance);
+				write_add_logged_msg(LogType::Mission, sub);
 			}
 
-			/* copy first data */
-			if (orb_copy(sub.metadata, handle, buffer) == PX4_OK) {
-				updated = true;
-			}
-		}
-
-	} else if (handle >= 0) {
-		orb_check(handle, &updated);
-
-		if (updated) {
-			orb_copy(sub.metadata, handle, buffer);
+			// copy first data
+			updated = sub.copy(buffer);
 		}
 	}
 
 	return updated;
 }
 
-bool Logger::try_to_subscribe_topic(LoggerSubscription &sub, int multi_instance)
-{
-	bool ret = false;
-
-	if (OK == orb_exists(sub.metadata, multi_instance)) {
-
-		unsigned int interval;
-
-		if (multi_instance == 0) {
-			// the first instance and no subscription yet: this means we stored the negative interval as fd
-			interval = (unsigned int)(-(sub.fd[0] + 1));
-
-		} else {
-			// set to the same interval as the first instance
-			if (orb_get_interval(sub.fd[0], &interval) != 0) {
-				interval = 0;
-			}
-		}
-
-		int &handle = sub.fd[multi_instance];
-		handle = orb_subscribe_multi(sub.metadata, multi_instance);
-
-		if (handle >= 0) {
-			PX4_DEBUG("subscribed to instance %d of topic %s", multi_instance, sub.metadata->o_name);
-
-			if (interval > 0) {
-				orb_set_interval(handle, interval);
-			}
-
-			ret = true;
-
-		} else {
-			PX4_ERR("orb_subscribe_multi %s failed (%i)", sub.metadata->o_name, errno);
-		}
-	}
-
-	return ret;
-}
-
 void Logger::add_default_topics()
 {
-	// Note: try to avoid setting the interval where possible, as it increases RAM usage
 	add_topic("actuator_controls_0", 100);
 	add_topic("actuator_controls_1", 100);
-	add_topic("actuator_outputs", 100);
 	add_topic("airspeed", 200);
-	add_topic("battery_status", 500);
 	add_topic("camera_capture");
 	add_topic("camera_trigger");
 	add_topic("camera_trigger_secondary");
 	add_topic("cpuload");
-	add_topic("distance_sensor", 100);
 	add_topic("ekf2_innovations", 200);
-	//add_topic("ekf_gps_drift");
+	add_topic("ekf_gps_drift");
 	add_topic("esc_status", 250);
 	add_topic("estimator_status", 200);
 	add_topic("home_position");
 	add_topic("input_rc", 200);
 	add_topic("manual_control_setpoint", 200);
-	//add_topic("mission");
-	//add_topic("mission_result");
+	add_topic("mission");
+	add_topic("mission_result");
 	add_topic("optical_flow", 50);
+	add_topic("position_controller_status", 500);
 	add_topic("position_setpoint_triplet", 200);
-	//add_topic("radio_status");
-	add_topic("rate_ctrl_status", 30);
+	add_topic("radio_status");
+	add_topic("rate_ctrl_status", 200);
 	add_topic("sensor_combined", 100);
 	add_topic("sensor_preflight", 200);
 	add_topic("system_power", 500);
 	add_topic("tecs_status", 200);
 	add_topic("trajectory_setpoint", 200);
-	add_topic("telemetry_status");
 	add_topic("vehicle_air_data", 200);
-	add_topic("vehicle_attitude", 30);
+	add_topic("vehicle_angular_velocity", 20);
+	add_topic("vehicle_attitude", 50);
 	add_topic("vehicle_attitude_setpoint", 100);
 	add_topic("vehicle_command");
 	add_topic("vehicle_global_position", 200);
-	add_topic("vehicle_gps_position");
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_local_position", 100);
 	add_topic("vehicle_local_position_setpoint", 100);
 	add_topic("vehicle_magnetometer", 200);
-	add_topic("vehicle_rates_setpoint", 30);
+	add_topic("vehicle_rates_setpoint", 20);
 	add_topic("vehicle_status", 200);
 	add_topic("vehicle_status_flags");
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("wind_estimate", 200);
 
+	add_topic_multi("actuator_outputs", 100);
+	add_topic_multi("battery_status", 500);
+	add_topic_multi("distance_sensor", 100);
+	add_topic_multi("telemetry_status");
+	add_topic_multi("vehicle_gps_position");
+
 #ifdef CONFIG_ARCH_BOARD_PX4_SITL
+
 	add_topic("actuator_controls_virtual_fw");
 	add_topic("actuator_controls_virtual_mc");
 	add_topic("fw_virtual_attitude_setpoint");
 	add_topic("mc_virtual_attitude_setpoint");
-	add_topic("multirotor_motor_limits");
-	add_topic("position_controller_status");
 	add_topic("offboard_control_mode");
+	add_topic("position_controller_status");
 	add_topic("time_offset");
+	add_topic("vehicle_angular_velocity", 10);
 	add_topic("vehicle_attitude_groundtruth", 10);
 	add_topic("vehicle_global_position_groundtruth", 100);
 	add_topic("vehicle_local_position_groundtruth", 100);
 	add_topic("vehicle_roi");
+
+	add_topic_multi("multirotor_motor_limits");
+
 #endif /* CONFIG_ARCH_BOARD_PX4_SITL */
 }
 
@@ -641,6 +584,7 @@ void Logger::add_high_rate_topics()
 	add_topic("manual_control_setpoint");
 	add_topic("rate_ctrl_status");
 	add_topic("sensor_combined");
+	add_topic("vehicle_angular_velocity");
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_rates_setpoint");
@@ -648,10 +592,10 @@ void Logger::add_high_rate_topics()
 
 void Logger::add_debug_topics()
 {
+	add_topic("debug_array");
 	add_topic("debug_key_value");
 	add_topic("debug_value");
 	add_topic("debug_vect");
-	add_topic("debug_array");
 }
 
 void Logger::add_estimator_replay_topics()
@@ -662,31 +606,32 @@ void Logger::add_estimator_replay_topics()
 
 	// current EKF2 subscriptions
 	add_topic("airspeed");
-	add_topic("distance_sensor");
 	add_topic("optical_flow");
 	add_topic("sensor_combined");
 	add_topic("sensor_selection");
 	add_topic("vehicle_air_data");
-	add_topic("vehicle_gps_position");
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
 	add_topic("vehicle_visual_odometry");
+
+	add_topic_multi("distance_sensor");
+	add_topic_multi("vehicle_gps_position");
 }
 
 void Logger::add_thermal_calibration_topics()
 {
-	add_topic("sensor_accel", 100);
-	add_topic("sensor_baro", 100);
-	add_topic("sensor_gyro", 100);
+	add_topic_multi("sensor_accel", 100);
+	add_topic_multi("sensor_baro", 100);
+	add_topic_multi("sensor_gyro", 100);
 }
 
 void Logger::add_sensor_comparison_topics()
 {
-	add_topic("sensor_accel", 100);
-	add_topic("sensor_baro", 100);
-	add_topic("sensor_gyro", 100);
-	add_topic("sensor_mag", 100);
+	add_topic_multi("sensor_accel", 100);
+	add_topic_multi("sensor_baro", 100);
+	add_topic_multi("sensor_gyro", 100);
+	add_topic_multi("sensor_mag", 100);
 }
 
 void Logger::add_vision_and_avoidance_topics()
@@ -709,14 +654,10 @@ void Logger::add_system_identification_topics()
 
 int Logger::add_topics_from_file(const char *fname)
 {
-	FILE		*fp;
-	char		line[80];
-	char		topic_name[80];
-	unsigned	interval;
-	int			ntopics = 0;
+	int ntopics = 0;
 
 	/* open the topic list file */
-	fp = fopen(fname, "r");
+	FILE *fp = fopen(fname, "r");
 
 	if (fp == nullptr) {
 		return -1;
@@ -724,8 +665,8 @@ int Logger::add_topics_from_file(const char *fname)
 
 	/* call add_topic for each topic line in the file */
 	for (;;) {
-
 		/* get a line, bail on error/EOF */
+		char line[80];
 		line[0] = '\0';
 
 		if (fgets(line, sizeof(line), fp) == nullptr) {
@@ -738,8 +679,9 @@ int Logger::add_topics_from_file(const char *fname)
 		}
 
 		// read line with format: <topic_name>[, <interval>]
-		interval = 0;
-		int nfields = sscanf(line, "%s %u", topic_name, &interval);
+		char topic_name[80];
+		uint32_t interval_ms = 0;
+		int nfields = sscanf(line, "%s %u", topic_name, &interval_ms);
 
 		if (nfields > 0) {
 			int name_len = strlen(topic_name);
@@ -748,8 +690,8 @@ int Logger::add_topics_from_file(const char *fname)
 				topic_name[name_len - 1] = '\0';
 			}
 
-			/* add topic with specified interval */
-			if (add_topic(topic_name, interval)) {
+			/* add topic with specified interval_ms */
+			if (add_topic(topic_name, interval_ms)) {
 				ntopics++;
 
 			} else {
@@ -838,15 +780,15 @@ void Logger::initialize_configured_topics()
 }
 
 
-void Logger::add_mission_topic(const char *name, unsigned interval)
+void Logger::add_mission_topic(const char *name, uint32_t interval_ms)
 {
 	if (_num_mission_subs >= MAX_MISSION_TOPICS_NUM) {
 		PX4_ERR("Max num mission topics exceeded");
 		return;
 	}
 
-	if (add_topic(name, interval)) {
-		_mission_subscriptions[_num_mission_subs].min_delta_ms = interval;
+	if (add_topic(name, interval_ms)) {
+		_mission_subscriptions[_num_mission_subs].min_delta_ms = interval_ms;
 		_mission_subscriptions[_num_mission_subs].next_write_time = 0;
 		++_num_mission_subs;
 	}
@@ -914,8 +856,8 @@ void Logger::run()
 
 	for (const auto &subscription : _subscriptions) {
 		//use o_size, because that's what orb_copy will use
-		if (subscription.metadata->o_size > max_msg_size) {
-			max_msg_size = subscription.metadata->o_size;
+		if (subscription.get_topic()->o_size > max_msg_size) {
+			max_msg_size = subscription.get_topic()->o_size;
 		}
 	}
 
@@ -1048,51 +990,48 @@ void Logger::run()
 			int sub_idx = 0;
 
 			for (LoggerSubscription &sub : _subscriptions) {
-				/* each message consists of a header followed by an orb data object
-				 */
-				size_t msg_size = sizeof(ulog_message_data_header_s) + sub.metadata->o_size_no_padding;
-
 				/* if this topic has been updated, copy the new data into the message buffer
 				 * and write a message to the log
 				 */
-				for (int instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
-					if (copy_if_updated_multi(sub_idx, instance, _msg_buffer + sizeof(ulog_message_data_header_s),
-								  sub_idx == next_subscribe_topic_index)) {
+				const bool try_to_subscribe = (sub_idx == next_subscribe_topic_index);
 
-						uint16_t write_msg_size = static_cast<uint16_t>(msg_size - ULOG_MSG_HEADER_LEN);
-						//write one byte after another (necessary because of alignment)
-						_msg_buffer[0] = (uint8_t)write_msg_size;
-						_msg_buffer[1] = (uint8_t)(write_msg_size >> 8);
-						_msg_buffer[2] = static_cast<uint8_t>(ULogMessageType::DATA);
-						uint16_t write_msg_id = sub.msg_ids[instance];
-						_msg_buffer[3] = (uint8_t)write_msg_id;
-						_msg_buffer[4] = (uint8_t)(write_msg_id >> 8);
+				if (copy_if_updated(sub_idx, _msg_buffer + sizeof(ulog_message_data_header_s), try_to_subscribe)) {
+					// each message consists of a header followed by an orb data object
+					const size_t msg_size = sizeof(ulog_message_data_header_s) + sub.get_topic()->o_size_no_padding;
+					const uint16_t write_msg_size = static_cast<uint16_t>(msg_size - ULOG_MSG_HEADER_LEN);
+					const uint16_t write_msg_id = sub.msg_id;
 
-						//PX4_INFO("topic: %s, size = %zu, out_size = %zu", sub.metadata->o_name, sub.metadata->o_size, msg_size);
+					//write one byte after another (necessary because of alignment)
+					_msg_buffer[0] = (uint8_t)write_msg_size;
+					_msg_buffer[1] = (uint8_t)(write_msg_size >> 8);
+					_msg_buffer[2] = static_cast<uint8_t>(ULogMessageType::DATA);
+					_msg_buffer[3] = (uint8_t)write_msg_id;
+					_msg_buffer[4] = (uint8_t)(write_msg_id >> 8);
 
-						// full log
-						if (write_message(LogType::Full, _msg_buffer, msg_size)) {
+					// PX4_INFO("topic: %s, size = %zu, out_size = %zu", sub.get_topic()->o_name, sub.get_topic()->o_size, msg_size);
+
+					// full log
+					if (write_message(LogType::Full, _msg_buffer, msg_size)) {
 
 #ifdef DBGPRINT
-							total_bytes += msg_size;
+						total_bytes += msg_size;
 #endif /* DBGPRINT */
 
-							data_written = true;
-						}
+						data_written = true;
+					}
 
-						// mission log
-						if (sub_idx < _num_mission_subs) {
-							if (_writer.is_started(LogType::Mission)) {
-								if (_mission_subscriptions[sub_idx].next_write_time < (loop_time / 100000)) {
-									unsigned delta_time = _mission_subscriptions[sub_idx].min_delta_ms;
+					// mission log
+					if (sub_idx < _num_mission_subs) {
+						if (_writer.is_started(LogType::Mission)) {
+							if (_mission_subscriptions[sub_idx].next_write_time < (loop_time / 100000)) {
+								unsigned delta_time = _mission_subscriptions[sub_idx].min_delta_ms;
 
-									if (delta_time > 0) {
-										_mission_subscriptions[sub_idx].next_write_time = (loop_time / 100000) + delta_time / 100;
-									}
+								if (delta_time > 0) {
+									_mission_subscriptions[sub_idx].next_write_time = (loop_time / 100000) + delta_time / 100;
+								}
 
-									if (write_message(LogType::Mission, _msg_buffer, msg_size)) {
-										data_written = true;
-									}
+								if (write_message(LogType::Mission, _msg_buffer, msg_size)) {
+									data_written = true;
 								}
 							}
 						}
@@ -1178,10 +1117,8 @@ void Logger::run()
 			// - we avoid subscribing to many topics at once, when logging starts
 			// - we'll get the data immediately once we start logging (no need to wait for the next subscribe timeout)
 			if (next_subscribe_topic_index != -1) {
-				for (int instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
-					if (_subscriptions[next_subscribe_topic_index].fd[instance] < 0) {
-						try_to_subscribe_topic(_subscriptions[next_subscribe_topic_index], instance);
-					}
+				if (!_subscriptions[next_subscribe_topic_index].valid()) {
+					_subscriptions[next_subscribe_topic_index].subscribe();
 				}
 
 				if (++next_subscribe_topic_index >= (int)_subscriptions.size()) {
@@ -1231,16 +1168,6 @@ void Logger::run()
 
 	// stop the writer thread
 	_writer.thread_stop();
-
-	//unsubscribe
-	for (LoggerSubscription &sub : _subscriptions) {
-		for (int instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
-			if (sub.fd[instance] >= 0) {
-				orb_unsubscribe(sub.fd[instance]);
-				sub.fd[instance] = -1;
-			}
-		}
-	}
 
 	if (polling_topic_sub >= 0) {
 		orb_unsubscribe(polling_topic_sub);
@@ -1884,7 +1811,7 @@ void Logger::write_formats(LogType type)
 
 	for (size_t i = 0; i < sub_count; ++i) {
 		const LoggerSubscription &sub = _subscriptions[i];
-		write_format(type, *sub.metadata, written_formats, msg);
+		write_format(type, *sub.get_topic(), written_formats, msg);
 	}
 
 	_writer.unlock();
@@ -1903,36 +1830,34 @@ void Logger::write_all_add_logged_msg(LogType type)
 	for (size_t i = 0; i < sub_count; ++i) {
 		LoggerSubscription &sub = _subscriptions[i];
 
-		for (int instance = 0; instance < ORB_MULTI_MAX_INSTANCES; ++instance) {
-			if (sub.fd[instance] >= 0) {
-				write_add_logged_msg(type, sub, instance);
-			}
+		if (sub.valid()) {
+			write_add_logged_msg(type, sub);
 		}
 	}
 
 	_writer.unlock();
 }
 
-void Logger::write_add_logged_msg(LogType type, LoggerSubscription &subscription, int instance)
+void Logger::write_add_logged_msg(LogType type, LoggerSubscription &subscription)
 {
 	ulog_message_add_logged_s msg;
 
-	if (subscription.msg_ids[instance] == (uint8_t) - 1) {
-		if (_next_topic_id == (uint8_t) - 1) {
+	if (subscription.msg_id == MSG_ID_INVALID) {
+		if (_next_topic_id == MSG_ID_INVALID) {
 			// if we land here an uint8 is too small -> switch to uint16
 			PX4_ERR("limit for _next_topic_id reached");
 			return;
 		}
 
-		subscription.msg_ids[instance] = _next_topic_id++;
+		subscription.msg_id = _next_topic_id++;
 	}
 
-	msg.msg_id = subscription.msg_ids[instance];
-	msg.multi_id = instance;
+	msg.msg_id = subscription.msg_id;
+	msg.multi_id = subscription.get_instance();
 
-	int message_name_len = strlen(subscription.metadata->o_name);
+	int message_name_len = strlen(subscription.get_topic()->o_name);
 
-	memcpy(msg.message_name, subscription.metadata->o_name, message_name_len);
+	memcpy(msg.message_name, subscription.get_topic()->o_name, message_name_len);
 
 	size_t msg_size = sizeof(msg) - sizeof(msg.message_name) + message_name_len;
 	msg.msg_size = msg_size - ULOG_MSG_HEADER_LEN;

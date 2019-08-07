@@ -92,6 +92,9 @@
 #include "rc_update.h"
 #include "voted_sensors_update.h"
 
+#include "vehicle_acceleration/VehicleAcceleration.hpp"
+#include "vehicle_angular_velocity/VehicleAngularVelocity.hpp"
+
 using namespace DriverFramework;
 using namespace sensors;
 using namespace time_literals;
@@ -135,7 +138,7 @@ class Sensors : public ModuleBase<Sensors>, public ModuleParams
 {
 public:
 	Sensors(bool hil_enabled);
-	~Sensors() = default;
+	~Sensors() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -202,6 +205,10 @@ private:
 	VotedSensorsUpdate _voted_sensors_update;
 
 
+	VehicleAcceleration	_vehicle_acceleration;
+	VehicleAngularVelocity	_vehicle_angular_velocity;
+
+
 	/**
 	 * Update our local parameter cache.
 	 */
@@ -253,6 +260,15 @@ Sensors::Sensors(bool hil_enabled) :
 	}
 
 #endif /* BOARD_NUMBER_BRICKS > 0 */
+
+	_vehicle_acceleration.Start();
+	_vehicle_angular_velocity.Start();
+}
+
+Sensors::~Sensors()
+{
+	_vehicle_acceleration.Stop();
+	_vehicle_angular_velocity.Stop();
 }
 
 int
@@ -723,6 +739,9 @@ int Sensors::print_status()
 
 	PX4_INFO("Airspeed status:");
 	_airspeed_validator.print();
+
+	_vehicle_acceleration.PrintStatus();
+	_vehicle_angular_velocity.PrintStatus();
 
 	return 0;
 }

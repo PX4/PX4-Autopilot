@@ -61,6 +61,7 @@
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/optical_flow.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -273,6 +274,7 @@ private:
 	static void *sending_trampoline(void *);
 
 	// uORB publisher handlers
+	orb_advert_t _vehicle_angular_velocity_pub{nullptr};
 	orb_advert_t _attitude_pub{nullptr};
 	orb_advert_t _gpos_pub{nullptr};
 	orb_advert_t _lpos_pub{nullptr};
