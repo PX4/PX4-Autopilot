@@ -58,7 +58,7 @@ px4_add_board(
 		navigator
 		sensors
 		vmount
-		wind_estimator
+		airspeed_selector
 
 	SYSTEMCMDS
 		bl_update
