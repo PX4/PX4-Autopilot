@@ -5,16 +5,14 @@
 # Draco-R
 if param compare SYS_AUTOSTART 6002
 then
-   # Barometer
-   # Internal SPI
    ms5611 -T 0 -s start
-
-   # PX4flow
    px4flow start
    ist8310 start
-   mpu6000 -R 2 -T 20608 start
-   mpu9250 -R 2 start
-   lis3mdl -R 2 -X start
+   lis3mdl -X start
+
+   # are those two have same alignment?
+   mpu6000 -R 4 -T 20608 start
+   mpu9250 -R 4 start
 fi
 
 # Draco
