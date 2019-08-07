@@ -679,7 +679,7 @@ int Logger::add_topics_from_file(const char *fname)
 		}
 
 		// read line with format: <topic_name>[, <interval>]
-		char topic_name[80] {};
+		char topic_name[80];
 		uint32_t interval_ms = 0;
 		int nfields = sscanf(line, "%s %u", topic_name, &interval_ms);
 
