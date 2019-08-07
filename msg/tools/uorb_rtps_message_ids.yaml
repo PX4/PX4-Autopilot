@@ -254,6 +254,8 @@ rtps:
     id: 110
   - msg: wheel_encoders
     id: 111
+  - msg: vehicle_angular_velocity
+    id: 112
   # multi topics
   - msg: actuator_controls_0
     id: 120
@@ -311,3 +313,6 @@ rtps:
   - msg: camera_trigger_secondary
     id: 137
     alias: camera_trigger
+  - msg: vehicle_angular_velocity_groundtruth
+    id: 138
+    alias: vehicle_angular_velocity

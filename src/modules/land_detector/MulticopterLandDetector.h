@@ -53,6 +53,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_bias.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -126,6 +127,7 @@ private:
 	uORB::Subscription _actuator_controls_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
 	uORB::Subscription _sensor_bias_sub{ORB_ID(sensor_bias)};
+	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
@@ -136,6 +138,7 @@ private:
 	vehicle_control_mode_s            _control_mode {};
 	sensor_bias_s                     _sensor_bias {};
 	vehicle_attitude_s                _vehicle_attitude {};
+	vehicle_angular_velocity_s        _vehicle_angular_velocity{};
 	vehicle_local_position_s          _vehicle_local_position {};
 	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint {};
 

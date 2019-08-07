@@ -95,6 +95,7 @@ void MulticopterLandDetector::_update_topics()
 	_actuator_controls_sub.update(&_actuator_controls);
 	_battery_sub.update(&_battery_status);
 	_sensor_bias_sub.update(&_sensor_bias);
+	_vehicle_angular_velocity_sub.update(&_vehicle_angular_velocity);
 	_vehicle_attitude_sub.update(&_vehicle_attitude);
 	_vehicle_control_mode_sub.update(&_control_mode);
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
@@ -215,9 +216,9 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	// Next look if all rotation angles are not moving.
 	float maxRotationScaled = _params.maxRotation_rad_s * landThresholdFactor;
 
-	bool rotating = (fabsf(_vehicle_attitude.rollspeed)  > maxRotationScaled) ||
-			(fabsf(_vehicle_attitude.pitchspeed) > maxRotationScaled) ||
-			(fabsf(_vehicle_attitude.yawspeed) > maxRotationScaled);
+	bool rotating = (fabsf(_vehicle_angular_velocity.xyz[0])  > maxRotationScaled) ||
+			(fabsf(_vehicle_angular_velocity.xyz[1]) > maxRotationScaled) ||
+			(fabsf(_vehicle_angular_velocity.xyz[2]) > maxRotationScaled);
 
 	// Return status based on armed state and throttle if no position lock is available.
 	if (!_has_altitude_lock() && !rotating) {
