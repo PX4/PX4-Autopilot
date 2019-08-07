@@ -1622,16 +1622,10 @@ Commander::run()
 			}
 		}
 
-		if (orb_exists(ORB_ID(esc_status), 0) == PX4_OK) {
-
-			if (esc_status_sub.updated()) {
-				/* ESCs status changed */
-				esc_status_sub.copy(&esc_status);
-				esc_status_check();
-			}
-
-		} else {
-			status_flags.condition_escs_error = false;
+		if (esc_status_sub.updated()) {
+			/* ESCs status changed */
+			esc_status_sub.copy(&esc_status);
+			esc_status_check();
 		}
 
 		estimator_check(&status_changed);
@@ -4377,25 +4371,27 @@ void Commander::esc_status_check()
 	char esc_fail_msg[50];
 	esc_fail_msg[0] = '\0';
 
-	int online_bitmask = (1 << (esc_status.esc_count)) - 1;
+	int online_bitmask = (1 << esc_status.esc_count) - 1;
 
 	// Check if ALL the ESCs are online
 	if (online_bitmask == esc_status.esc_online_flags) {
 		status_flags.condition_escs_error = false;
 		_last_esc_online_flags = esc_status.esc_online_flags;
-	}
 
-	// Avoid checking the status if the flags are the same or if the mixer has not yet been loaded from uavcan_main
-	else if (_last_esc_online_flags == esc_status.esc_online_flags || esc_status.esc_count == 0)  {
+	} else if (_last_esc_online_flags == esc_status.esc_online_flags || esc_status.esc_count == 0)  {
+
+		// Avoid checking the status if the flags are the same or if the mixer has not yet been loaded in the ESC driver
+
 		status_flags.condition_escs_error = true;
-	}
 
-	// Only warn the user when an ESC goes from ONLINE to OFFLINE. This is done to prevent showing  Offline ESCs warning messages at boot
-	else if (esc_status.esc_online_flags < _last_esc_online_flags) {
+	} else if (esc_status.esc_online_flags < _last_esc_online_flags) {
+
+		// Only warn the user when an ESC goes from ONLINE to OFFLINE. This is done to prevent showing Offline ESCs warnings at boot
 
 		for (int index = 0; index < esc_status.esc_count; index++) {
-			if ((bool)!(esc_status.esc_online_flags & (1 << index))) {
+			if ((esc_status.esc_online_flags & (1 << index)) == 0) {
 				snprintf(esc_fail_msg + strlen(esc_fail_msg), sizeof(esc_fail_msg) - strlen(esc_fail_msg), "ESC%d ", index + 1);
+				esc_fail_msg[sizeof(esc_fail_msg) - 1] = '\0';
 			}
 		}
 
