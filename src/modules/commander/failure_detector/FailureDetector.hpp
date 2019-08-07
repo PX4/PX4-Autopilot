@@ -85,11 +85,15 @@ private:
 	// Subscriptions
 	SubscriptionData<vehicle_attitude_s> _sub_vehicle_attitude_setpoint;
 	SubscriptionData<vehicle_attitude_s> _sub_vehicule_attitude;
+	SubscriptionData<vehicle_status_s> _sub_vehicle_status;
 
 	uint8_t _status{FAILURE_NONE};
+	bool _attitude_is_stabilized{false};
 
 	systemlib::Hysteresis _roll_failure_hysteresis{false};
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
 
+	bool resetStatus();
+	bool isAttitudeStabilized();
 	bool updateAttitudeStatus();
 };

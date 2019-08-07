@@ -43,8 +43,17 @@
 FailureDetector::FailureDetector(ModuleParams *parent) :
 	ModuleParams(parent),
 	_sub_vehicle_attitude_setpoint(ORB_ID(vehicle_attitude_setpoint)),
-	_sub_vehicule_attitude(ORB_ID(vehicle_attitude))
+	_sub_vehicule_attitude(ORB_ID(vehicle_attitude)),
+	_sub_vehicle_status(ORB_ID(vehicle_status))
 {
+}
+
+bool FailureDetector::resetStatus()
+{
+	bool status_changed = _status != FAILURE_NONE;
+	_status = FAILURE_NONE;
+
+	return status_changed;
 }
 
 bool
@@ -52,9 +61,37 @@ FailureDetector::update()
 {
 	bool updated(false);
 
-	updated = updateAttitudeStatus();
+	if (isAttitudeStabilized()) {
+		updated = updateAttitudeStatus();
+
+	} else {
+		updated = resetStatus();
+	}
 
 	return updated;
+}
+
+bool
+FailureDetector::isAttitudeStabilized()
+{
+	if (_sub_vehicle_status.update()) {
+		const vehicle_status_s &vehicle_status = _sub_vehicle_status.get();
+		const uint8_t vehicle_type = vehicle_status.vehicle_type;
+		const uint8_t nav_state = vehicle_status.nav_state;
+
+		if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			_attitude_is_stabilized =  nav_state != vehicle_status_s::NAVIGATION_STATE_ACRO &&
+						   nav_state != vehicle_status_s::NAVIGATION_STATE_RATTITUDE;
+
+		} else if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+			_attitude_is_stabilized =  nav_state != vehicle_status_s::NAVIGATION_STATE_MANUAL &&
+						   nav_state != vehicle_status_s::NAVIGATION_STATE_ACRO &&
+						   nav_state != vehicle_status_s::NAVIGATION_STATE_RATTITUDE;
+		}
+	}
+
+	// Note that if we do not have an update from the vehicle_status topic, the previous value is sent
+	return _attitude_is_stabilized;
 }
 
 bool
