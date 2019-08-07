@@ -1723,10 +1723,6 @@ FixedwingPositionControl::run()
 			parameters_update();
 		}
 
-		//Place the function here
-
-
-
 		/* only run controller if position changed */
 		if ((fds[0].revents & POLLIN) != 0) {
 			perf_begin(_loop_perf);
