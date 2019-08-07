@@ -216,7 +216,8 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 					//check if the bin must be considered regarding the given stick input
 					Vector2f bin_direction = {cos(angle), sin(angle)};
 
-					if (setpoint_dir.dot(bin_direction) > 0 && setpoint_dir.dot(bin_direction) > cosf(_param_mpc_col_prev_ang.get())) {
+					if (setpoint_dir.dot(bin_direction) > 0
+					    && setpoint_dir.dot(bin_direction) > cosf(math::radians(_param_mpc_col_prev_ang.get()))) {
 						//calculate max allowed velocity with a P-controller (same gain as in the position controller)
 						float curr_vel_parallel = math::max(0.f, curr_vel.dot(bin_direction));
 						float delay_distance = curr_vel_parallel * _param_mpc_col_prev_dly.get();
