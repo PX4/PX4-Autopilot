@@ -208,10 +208,9 @@ MixerGroup::get_multirotor_count()
 
 		rotor_count = mixer->get_multirotor_count();
 
-		if (rotor_count > 0) {
-			break;
+		if (rotor_count > 0) { break; }
 
-		} else { mixer = mixer -> _next;}
+		mixer = mixer -> _next;
 	}
 
 	return rotor_count;
