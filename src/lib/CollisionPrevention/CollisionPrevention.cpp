@@ -103,81 +103,80 @@ void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle)
 {
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		distance_sensor_s distance_sensor;
+		_sub_distance_sensor[i].copy(&distance_sensor);
 
-		if (_sub_distance_sensor[i].update(&distance_sensor)) {
+		// consider only instaces with updated, valid data and orientations useful for collision prevention
+		if ((hrt_elapsed_time(&distance_sensor.timestamp) < RANGE_STREAM_TIMEOUT_US) &&
+		    (distance_sensor.orientation != distance_sensor_s::ROTATION_DOWNWARD_FACING) &&
+		    (distance_sensor.orientation != distance_sensor_s::ROTATION_UPWARD_FACING)) {
 
-			// consider only instaces with updated, valid data and orientations useful for collision prevention
-			if ((hrt_elapsed_time(&distance_sensor.timestamp) < RANGE_STREAM_TIMEOUT_US) &&
-			    (distance_sensor.orientation != distance_sensor_s::ROTATION_DOWNWARD_FACING) &&
-			    (distance_sensor.orientation != distance_sensor_s::ROTATION_UPWARD_FACING)) {
 
-				if (obstacle.increment > 0) {
-					// data from companion
-					obstacle.timestamp = math::max(obstacle.timestamp, distance_sensor.timestamp);
-					obstacle.max_distance = math::max((int)obstacle.max_distance,
-									  (int)distance_sensor.max_distance * 100);
-					obstacle.min_distance = math::min((int)obstacle.min_distance,
-									  (int)distance_sensor.min_distance * 100);
-					// since the data from the companion are already in the distances data structure,
-					// keep the increment that is sent
-					obstacle.angle_offset = 0.f; //companion not sending this field (needs mavros update)
+			if (obstacle.increment > 0) {
+				// data from companion
+				obstacle.timestamp = math::max(obstacle.timestamp, distance_sensor.timestamp);
+				obstacle.max_distance = math::max((int)obstacle.max_distance,
+								  (int)distance_sensor.max_distance * 100);
+				obstacle.min_distance = math::min((int)obstacle.min_distance,
+								  (int)distance_sensor.min_distance * 100);
+				// since the data from the companion are already in the distances data structure,
+				// keep the increment that is sent
+				obstacle.angle_offset = 0.f; //companion not sending this field (needs mavros update)
 
-				} else {
-					obstacle.timestamp = distance_sensor.timestamp;
-					obstacle.max_distance = distance_sensor.max_distance * 100; // convert to cm
-					obstacle.min_distance = distance_sensor.min_distance * 100; // convert to cm
-					memset(&obstacle.distances[0], 0xff, sizeof(obstacle.distances));
-					obstacle.increment = math::degrees(distance_sensor.h_fov);
-					obstacle.angle_offset = 0.f;
+			} else {
+				obstacle.timestamp = distance_sensor.timestamp;
+				obstacle.max_distance = distance_sensor.max_distance * 100; // convert to cm
+				obstacle.min_distance = distance_sensor.min_distance * 100; // convert to cm
+				memset(&obstacle.distances[0], 0xff, sizeof(obstacle.distances));
+				obstacle.increment = math::degrees(distance_sensor.h_fov);
+				obstacle.angle_offset = 0.f;
+			}
+
+			if ((distance_sensor.current_distance > distance_sensor.min_distance) &&
+			    (distance_sensor.current_distance < distance_sensor.max_distance)) {
+
+				float sensor_yaw_body_rad = _sensorOrientationToYawOffset(distance_sensor, obstacle.angle_offset);
+
+				matrix::Quatf attitude = Quatf(_sub_vehicle_attitude.get().q);
+				// convert the sensor orientation from body to local frame in the range [0, 360]
+				float sensor_yaw_local_deg  = math::degrees(wrap_2pi(Eulerf(attitude).psi() + sensor_yaw_body_rad));
+
+				// calculate the field of view boundary bin indices
+				int lower_bound = (int)floor((sensor_yaw_local_deg  - math::degrees(distance_sensor.h_fov / 2.0f)) /
+							     obstacle.increment);
+				int upper_bound = (int)floor((sensor_yaw_local_deg  + math::degrees(distance_sensor.h_fov / 2.0f)) /
+							     obstacle.increment);
+
+				// if increment is lower than 5deg, use an offset
+				const int distances_array_size = sizeof(obstacle.distances) / sizeof(obstacle.distances[0]);
+
+				if (((lower_bound < 0 || upper_bound < 0) || (lower_bound >= distances_array_size
+						|| upper_bound >= distances_array_size)) && obstacle.increment < 5.f) {
+					obstacle.angle_offset = sensor_yaw_local_deg ;
+					upper_bound  = abs(upper_bound - lower_bound);
+					lower_bound  = 0;
 				}
 
-				if ((distance_sensor.current_distance > distance_sensor.min_distance) &&
-				    (distance_sensor.current_distance < distance_sensor.max_distance)) {
+				// rotate vehicle attitude into the sensor body frame
+				matrix::Quatf attitude_sensor_frame = attitude;
+				attitude_sensor_frame.rotate(Vector3f(0.f, 0.f, sensor_yaw_body_rad));
+				float attitude_sensor_frame_pitch = cosf(Eulerf(attitude_sensor_frame).theta());
 
-					float sensor_yaw_body_rad = _sensorOrientationToYawOffset(distance_sensor, obstacle.angle_offset);
+				for (int bin = lower_bound; bin <= upper_bound; ++bin) {
+					int wrap_bin = bin;
 
-					matrix::Quatf attitude = Quatf(_sub_vehicle_attitude.get().q);
-					// convert the sensor orientation from body to local frame in the range [0, 360]
-					float sensor_yaw_local_deg  = math::degrees(wrap_2pi(Eulerf(attitude).psi() + sensor_yaw_body_rad));
-
-					// calculate the field of view boundary bin indices
-					int lower_bound = (int)floor((sensor_yaw_local_deg  - math::degrees(distance_sensor.h_fov / 2.0f)) /
-								     obstacle.increment);
-					int upper_bound = (int)floor((sensor_yaw_local_deg  + math::degrees(distance_sensor.h_fov / 2.0f)) /
-								     obstacle.increment);
-
-					// if increment is lower than 5deg, use an offset
-					const int distances_array_size = sizeof(obstacle.distances) / sizeof(obstacle.distances[0]);
-
-					if (((lower_bound < 0 || upper_bound < 0) || (lower_bound >= distances_array_size
-							|| upper_bound >= distances_array_size)) && obstacle.increment < 5.f) {
-						obstacle.angle_offset = sensor_yaw_local_deg ;
-						upper_bound  = abs(upper_bound - lower_bound);
-						lower_bound  = 0;
+					if (wrap_bin < 0) {
+						// wrap bin index around the array
+						wrap_bin = (int)floor(360.f / obstacle.increment) + bin;
 					}
 
-					// rotate vehicle attitude into the sensor body frame
-					matrix::Quatf attitude_sensor_frame = attitude;
-					attitude_sensor_frame.rotate(Vector3f(0.f, 0.f, sensor_yaw_body_rad));
-					float attitude_sensor_frame_pitch = cosf(Eulerf(attitude_sensor_frame).theta());
-
-					for (int bin = lower_bound; bin <= upper_bound; ++bin) {
-						int wrap_bin = bin;
-
-						if (wrap_bin < 0) {
-							// wrap bin index around the array
-							wrap_bin = (int)floor(360.f / obstacle.increment) + bin;
-						}
-
-						if (wrap_bin >= distances_array_size) {
-							// wrap bin index around the array
-							wrap_bin = bin - distances_array_size;
-						}
-
-						// compensate measurement for vehicle tilt and convert to cm
-						obstacle.distances[wrap_bin] = math::min((int)obstacle.distances[wrap_bin],
-									       (int)(100 * distance_sensor.current_distance * attitude_sensor_frame_pitch));
+					if (wrap_bin >= distances_array_size) {
+						// wrap bin index around the array
+						wrap_bin = bin - distances_array_size;
 					}
+
+					// compensate measurement for vehicle tilt and convert to cm
+					obstacle.distances[wrap_bin] = math::min((int)obstacle.distances[wrap_bin],
+								       (int)(100 * distance_sensor.current_distance * attitude_sensor_frame_pitch));
 				}
 			}
 		}
