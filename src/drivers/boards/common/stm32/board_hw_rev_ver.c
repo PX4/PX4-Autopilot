@@ -199,11 +199,11 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 
 		/* Yes - Fire up the ADC (it has once control) */
 
-		if (board_adc_init() == OK) {
+		if (board_adc_init(HW_REV_VER_ADC_BASE) == OK) {
 
 			/* Read the value */
 			for (unsigned av = 0; av < samples; av++) {
-				dn = board_adc_sample(adc_channel);
+				dn = board_adc_sample(HW_REV_VER_ADC_BASE, adc_channel);
 
 				if (dn == 0xffff) {
 					break;

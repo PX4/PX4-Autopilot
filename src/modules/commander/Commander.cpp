@@ -3901,8 +3901,8 @@ void Commander::airspeed_use_check()
 	_airspeed_sub.update();
 	const airspeed_s &airspeed = _airspeed_sub.get();
 
-	_sensor_bias_sub.update();
-	const sensor_bias_s &sensors = _sensor_bias_sub.get();
+	vehicle_acceleration_s accel{};
+	_vehicle_acceleration_sub.copy(&accel);
 
 	bool is_fixed_wing = status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
@@ -3988,7 +3988,7 @@ void Commander::airspeed_use_check()
 			float max_lift_ratio = fmaxf(airspeed.indicated_airspeed_m_s, 0.7f) / fmaxf(_airspeed_stall.get(), 1.0f);
 			max_lift_ratio *= max_lift_ratio;
 
-			_load_factor_ratio = 0.95f * _load_factor_ratio + 0.05f * (fabsf(sensors.accel_z) / CONSTANTS_ONE_G) / max_lift_ratio;
+			_load_factor_ratio = 0.95f * _load_factor_ratio + 0.05f * (fabsf(accel.xyz[2]) / CONSTANTS_ONE_G) / max_lift_ratio;
 			_load_factor_ratio = math::constrain(_load_factor_ratio, 0.25f, 2.0f);
 			load_factor_ratio_fail = (_load_factor_ratio > 1.1f);
 			status.load_factor_ratio = _load_factor_ratio;
@@ -4290,7 +4290,7 @@ Commander::offboard_control_update(bool &status_changed)
 
 	if (commander_state_s::MAIN_STATE_OFFBOARD) {
 		if (offboard_control_mode.timestamp == 0) {
-			_offboard_control_mode_sub.forceInit();
+			_offboard_control_mode_sub.subscribe();
 			force_update = true;
 		}
 	}

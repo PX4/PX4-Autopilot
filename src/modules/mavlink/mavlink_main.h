@@ -156,7 +156,7 @@ public:
 
 	static int		get_status_all_instances(bool show_streams_status);
 
-	static bool		instance_exists(const char *device_name, Mavlink *self);
+	static bool		serial_instance_exists(const char *device_name, Mavlink *self);
 
 	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
 
