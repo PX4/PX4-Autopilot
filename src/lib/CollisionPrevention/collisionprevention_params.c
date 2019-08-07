@@ -64,13 +64,13 @@ PARAM_DEFINE_FLOAT(MPC_COL_PREV_D, -1.0f);
 PARAM_DEFINE_FLOAT(MPC_COL_PREV_DLY, 0.f);
 
 /**
- * Angle at which the vehicle can fly away from obstacles
+ * Angle left/right from the commanded setpoint in which the range data is used to calculate speed limitations. All data further from the commanded direction is not considered.
  *
  * Only used in Position mode.
  *
  * @min 0
- * @max 1.570796
- * @unit [rad]
+ * @max 90
+ * @unit [deg]
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_COL_PREV_ANG, 0.785f);
+PARAM_DEFINE_FLOAT(MPC_COL_PREV_ANG, 45.f);
