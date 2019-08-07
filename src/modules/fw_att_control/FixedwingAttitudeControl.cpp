@@ -504,6 +504,12 @@ void FixedwingAttitudeControl::run()
 			/* get current rotation matrix and euler angles from control state quaternions */
 			matrix::Dcmf R = matrix::Quatf(_att.q);
 
+			vehicle_angular_velocity_s angular_velocity{};
+			_vehicle_rates_sub.copy(&angular_velocity);
+			float rollspeed = angular_velocity.xyz[0];
+			float pitchspeed = angular_velocity.xyz[1];
+			float yawspeed = angular_velocity.xyz[2];
+
 			if (_is_tailsitter) {
 				/* vehicle is a tailsitter, we need to modify the estimated attitude for fw mode
 				 *
@@ -542,9 +548,9 @@ void FixedwingAttitudeControl::run()
 				R = R_adapted;
 
 				/* lastly, roll- and yawspeed have to be swaped */
-				float helper = _att.rollspeed;
-				_att.rollspeed = -_att.yawspeed;
-				_att.yawspeed = helper;
+				float helper = rollspeed;
+				rollspeed = -yawspeed;
+				yawspeed = helper;
 			}
 
 			const matrix::Eulerf euler_angles(R);
@@ -624,9 +630,9 @@ void FixedwingAttitudeControl::run()
 				control_input.roll = euler_angles.phi();
 				control_input.pitch = euler_angles.theta();
 				control_input.yaw = euler_angles.psi();
-				control_input.body_x_rate = _att.rollspeed;
-				control_input.body_y_rate = _att.pitchspeed;
-				control_input.body_z_rate = _att.yawspeed;
+				control_input.body_x_rate = rollspeed;
+				control_input.body_y_rate = pitchspeed;
+				control_input.body_z_rate = yawspeed;
 				control_input.roll_setpoint = _att_sp.roll_body;
 				control_input.pitch_setpoint = _att_sp.pitch_body;
 				control_input.yaw_setpoint = _att_sp.yaw_body;
@@ -801,9 +807,6 @@ void FixedwingAttitudeControl::run()
 
 				rate_ctrl_status_s rate_ctrl_status;
 				rate_ctrl_status.timestamp = hrt_absolute_time();
-				rate_ctrl_status.rollspeed = _att.rollspeed;
-				rate_ctrl_status.pitchspeed = _att.pitchspeed;
-				rate_ctrl_status.yawspeed = _att.yawspeed;
 				rate_ctrl_status.rollspeed_integ = _roll_ctrl.get_integrator();
 				rate_ctrl_status.pitchspeed_integ = _pitch_ctrl.get_integrator();
 				rate_ctrl_status.yawspeed_integ = _yaw_ctrl.get_integrator();
