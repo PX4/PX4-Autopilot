@@ -2,8 +2,8 @@
 clear baro_data;
 last_time = 0;
 output_index = 1;
-for source_index = 1:length(timestamp)
-    baro_timestamp = timestamp(source_index) + baro_timestamp_relative(source_index);
+for source_index = 1:length(timestamp_baro)
+    baro_timestamp = timestamp_baro(source_index);
     if (baro_timestamp ~= last_time)
         baro_data.time_us(output_index,1) = baro_timestamp;
         baro_data.height(output_index) = baro_alt_meter(source_index);
@@ -29,8 +29,8 @@ imu_data.del_vel = [accelerometer_m_s20.*imu_data.accel_dt, accelerometer_m_s21.
 clear mag_data;
 last_time = 0;
 output_index = 1;
-for source_index = 1:length(timestamp)
-    mag_timestamp = timestamp(source_index) + magnetometer_timestamp_relative(source_index);
+for source_index = 1:length(timestamp_mag)
+    mag_timestamp = timestamp_mag(source_index);
     if (mag_timestamp ~= last_time)
         mag_data.time_us(output_index,1) = mag_timestamp;
         mag_data.field_ga(output_index,:) = [magnetometer_ga0(source_index),magnetometer_ga1(source_index),magnetometer_ga2(source_index)];
@@ -39,8 +39,8 @@ for source_index = 1:length(timestamp)
     end
 end
 
-%% save data and clear workspace
-clearvars -except baro_data imu_data mag_data gps_data;
+%% save data
+% DO NOT clear the workspace (yet)
 
 save baro_data.mat baro_data;
 save imu_data.mat imu_data;
