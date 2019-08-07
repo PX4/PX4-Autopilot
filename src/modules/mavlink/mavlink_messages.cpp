@@ -85,6 +85,7 @@
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/transponder_report.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
@@ -847,15 +848,15 @@ protected:
 			mavlink_highres_imu_t msg = {};
 
 			msg.time_usec = sensor.timestamp;
-			msg.xacc = sensor.accelerometer_m_s2[0] - bias.accel_x_bias;
-			msg.yacc = sensor.accelerometer_m_s2[1] - bias.accel_y_bias;
-			msg.zacc = sensor.accelerometer_m_s2[2] - bias.accel_z_bias;
-			msg.xgyro = sensor.gyro_rad[0] - bias.gyro_x_bias;
-			msg.ygyro = sensor.gyro_rad[1] - bias.gyro_y_bias;
-			msg.zgyro = sensor.gyro_rad[2] - bias.gyro_z_bias;
-			msg.xmag = magnetometer.magnetometer_ga[0] - bias.mag_x_bias;
-			msg.ymag = magnetometer.magnetometer_ga[1] - bias.mag_y_bias;
-			msg.zmag = magnetometer.magnetometer_ga[2] - bias.mag_z_bias;
+			msg.xacc = sensor.accelerometer_m_s2[0] - bias.accel_bias[0];
+			msg.yacc = sensor.accelerometer_m_s2[1] - bias.accel_bias[1];
+			msg.zacc = sensor.accelerometer_m_s2[2] - bias.accel_bias[2];
+			msg.xgyro = sensor.gyro_rad[0] - bias.gyro_bias[0];
+			msg.ygyro = sensor.gyro_rad[1] - bias.gyro_bias[1];
+			msg.zgyro = sensor.gyro_rad[2] - bias.gyro_bias[2];
+			msg.xmag = magnetometer.magnetometer_ga[0] - bias.mag_bias[0];
+			msg.ymag = magnetometer.magnetometer_ga[1] - bias.mag_bias[1];
+			msg.zmag = magnetometer.magnetometer_ga[2] - bias.mag_bias[2];
 			msg.abs_pressure = air_data.baro_pressure_pa;
 			msg.diff_pressure = differential_pressure.differential_pressure_raw_pa;
 			msg.pressure_alt = air_data.baro_alt_meter;
@@ -1182,7 +1183,9 @@ public:
 
 private:
 	MavlinkOrbSubscription *_att_sub;
-	uint64_t _att_time;
+	MavlinkOrbSubscription *_angular_velocity_sub;
+	uint64_t _att_time{0};
+	uint64_t _angular_velocity_time{0};
 
 	/* do not allow top copying this class */
 	MavlinkStreamAttitude(MavlinkStreamAttitude &) = delete;
@@ -1192,23 +1195,30 @@ private:
 protected:
 	explicit MavlinkStreamAttitude(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
-		_att_time(0)
+		_angular_velocity_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_angular_velocity)))
 	{}
 
 	bool send(const hrt_abstime t)
 	{
-		vehicle_attitude_s att;
+		bool updated = false;
 
-		if (_att_sub->update(&_att_time, &att)) {
-			mavlink_attitude_t msg = {};
-			matrix::Eulerf euler = matrix::Quatf(att.q);
-			msg.time_boot_ms = att.timestamp / 1000;
+		vehicle_attitude_s att{};
+		vehicle_angular_velocity_s angular_velocity{};
+		updated |= _att_sub->update(&_att_time, &att);
+		updated |= _angular_velocity_sub->update(&_angular_velocity_time, &angular_velocity);
+
+		if (updated) {
+			mavlink_attitude_t msg{};
+
+			const matrix::Eulerf euler = matrix::Quatf(att.q);
+			msg.time_boot_ms = math::max(angular_velocity.timestamp, att.timestamp) / 1000;
 			msg.roll = euler.phi();
 			msg.pitch = euler.theta();
 			msg.yaw = euler.psi();
-			msg.rollspeed = att.rollspeed;
-			msg.pitchspeed = att.pitchspeed;
-			msg.yawspeed = att.yawspeed;
+
+			msg.rollspeed = angular_velocity.xyz[0];
+			msg.pitchspeed = angular_velocity.xyz[1];
+			msg.yawspeed = angular_velocity.xyz[2];
 
 			mavlink_msg_attitude_send_struct(_mavlink->get_channel(), &msg);
 
@@ -1255,7 +1265,9 @@ public:
 
 private:
 	MavlinkOrbSubscription *_att_sub;
-	uint64_t _att_time;
+	MavlinkOrbSubscription *_angular_velocity_sub;
+	uint64_t _att_time{0};
+	uint64_t _angular_velocity_time{0};
 
 	/* do not allow top copying this class */
 	MavlinkStreamAttitudeQuaternion(MavlinkStreamAttitudeQuaternion &) = delete;
@@ -1264,24 +1276,29 @@ private:
 protected:
 	explicit MavlinkStreamAttitudeQuaternion(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
-		_att_time(0)
+		_angular_velocity_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_angular_velocity)))
 	{}
 
 	bool send(const hrt_abstime t)
 	{
-		vehicle_attitude_s att;
+		bool updated = false;
 
-		if (_att_sub->update(&_att_time, &att)) {
-			mavlink_attitude_quaternion_t msg = {};
+		vehicle_attitude_s att{};
+		vehicle_angular_velocity_s angular_velocity{};
+		updated |= _att_sub->update(&_att_time, &att);
+		updated |= _angular_velocity_sub->update(&_angular_velocity_time, &angular_velocity);
 
-			msg.time_boot_ms = att.timestamp / 1000;
+		if (updated) {
+			mavlink_attitude_quaternion_t msg{};
+
+			msg.time_boot_ms = math::max(angular_velocity.timestamp, att.timestamp) / 1000;
 			msg.q1 = att.q[0];
 			msg.q2 = att.q[1];
 			msg.q3 = att.q[2];
 			msg.q4 = att.q[3];
-			msg.rollspeed = att.rollspeed;
-			msg.pitchspeed = att.pitchspeed;
-			msg.yawspeed = att.yawspeed;
+			msg.rollspeed = angular_velocity.xyz[0];
+			msg.pitchspeed = angular_velocity.xyz[1];
+			msg.yawspeed = angular_velocity.xyz[2];
 
 			mavlink_msg_attitude_quaternion_send_struct(_mavlink->get_channel(), &msg);
 
@@ -1291,7 +1308,6 @@ protected:
 		return false;
 	}
 };
-
 
 class MavlinkStreamVFRHUD : public MavlinkStream
 {
@@ -4749,10 +4765,15 @@ public:
 	}
 
 private:
+	MavlinkOrbSubscription *_angular_velocity_sub;
 	MavlinkOrbSubscription *_att_sub;
 	MavlinkOrbSubscription *_gpos_sub;
-	uint64_t _att_time;
-	uint64_t _gpos_time;
+	MavlinkOrbSubscription *_lpos_sub;
+
+	uint64_t _angular_velocity_time{0};
+	uint64_t _att_time{0};
+	uint64_t _gpos_time{0};
+	uint64_t _lpos_time{0};
 
 	/* do not allow top copying this class */
 	MavlinkStreamGroundTruth(MavlinkStreamGroundTruth &) = delete;
@@ -4760,20 +4781,27 @@ private:
 
 protected:
 	explicit MavlinkStreamGroundTruth(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_angular_velocity_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_angular_velocity_groundtruth))),
 		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude_groundtruth))),
 		_gpos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position_groundtruth))),
-		_att_time(0),
-		_gpos_time(0)
+		_lpos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position_groundtruth)))
 	{}
 
 	bool send(const hrt_abstime t)
 	{
-		vehicle_attitude_s att = {};
-		vehicle_global_position_s gpos = {};
-		bool att_updated = _att_sub->update(&_att_time, &att);
-		bool gpos_updated = _gpos_sub->update(&_gpos_time, &gpos);
+		bool updated = false;
 
-		if (att_updated || gpos_updated) {
+		vehicle_angular_velocity_s angular_velocity{};
+		vehicle_attitude_s att{};
+		vehicle_global_position_s gpos{};
+		vehicle_local_position_s lpos{};
+
+		updated |= _angular_velocity_sub->update(&_angular_velocity_time, &angular_velocity);
+		updated |= _att_sub->update(&_att_time, &att);
+		updated |= _gpos_sub->update(&_gpos_time, &gpos);
+		updated |= _lpos_sub->update(&_lpos_time, &lpos);
+
+		if (updated) {
 			mavlink_hil_state_quaternion_t msg = {};
 
 			// vehicle_attitude -> hil_state_quaternion
@@ -4781,23 +4809,23 @@ protected:
 			msg.attitude_quaternion[1] = att.q[1];
 			msg.attitude_quaternion[2] = att.q[2];
 			msg.attitude_quaternion[3] = att.q[3];
-			msg.rollspeed = att.rollspeed;
-			msg.pitchspeed = att.pitchspeed;
-			msg.yawspeed = att.yawspeed;
+			msg.rollspeed = angular_velocity.xyz[0];
+			msg.pitchspeed = angular_velocity.xyz[1];
+			msg.yawspeed = angular_velocity.xyz[2];
 
 			// vehicle_global_position -> hil_state_quaternion
 			// same units as defined in mavlink/common.xml
 			msg.lat = gpos.lat * 1e7;
 			msg.lon = gpos.lon * 1e7;
 			msg.alt = gpos.alt * 1e3f;
-			msg.vx = gpos.vel_n * 1e2f;
-			msg.vy = gpos.vel_e * 1e2f;
-			msg.vz = gpos.vel_d * 1e2f;
+			msg.vx = lpos.vx * 1e2f;
+			msg.vy = lpos.vy * 1e2f;
+			msg.vz = lpos.vz * 1e2f;
 			msg.ind_airspeed = 0;
 			msg.true_airspeed = 0;
-			msg.xacc = 0;
-			msg.yacc = 0;
-			msg.zacc = 0;
+			msg.xacc = lpos.ax;
+			msg.yacc = lpos.ay;
+			msg.zacc = lpos.az;
 
 			mavlink_msg_hil_state_quaternion_send_struct(_mavlink->get_channel(), &msg);
 

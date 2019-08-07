@@ -1482,31 +1482,17 @@ void Ekf2::run()
 
 			{
 				// publish all corrected sensor readings and bias estimates after mag calibration is updated above
-				sensor_bias_s bias;
+				sensor_bias_s bias{};
 
 				bias.timestamp = now;
 
 				// In-run bias estimates
-				float gyro_bias[3];
-				_ekf.get_gyro_bias(gyro_bias);
-				bias.gyro_x_bias = gyro_bias[0];
-				bias.gyro_y_bias = gyro_bias[1];
-				bias.gyro_z_bias = gyro_bias[2];
+				_ekf.get_gyro_bias(bias.gyro_bias);
+				_ekf.get_accel_bias(bias.accel_bias);
 
-				float accel_bias[3];
-				_ekf.get_accel_bias(accel_bias);
-				bias.accel_x_bias = accel_bias[0];
-				bias.accel_y_bias = accel_bias[1];
-				bias.accel_z_bias = accel_bias[2];
-
-				bias.mag_x_bias = _last_valid_mag_cal[0];
-				bias.mag_y_bias = _last_valid_mag_cal[1];
-				bias.mag_z_bias = _last_valid_mag_cal[2];
-
-				// TODO: remove from sensor_bias?
-				bias.accel_x = sensors.accelerometer_m_s2[0] - accel_bias[0];
-				bias.accel_y = sensors.accelerometer_m_s2[1] - accel_bias[1];
-				bias.accel_z = sensors.accelerometer_m_s2[2] - accel_bias[2];
+				bias.mag_bias[0] = _last_valid_mag_cal[0];
+				bias.mag_bias[1] = _last_valid_mag_cal[1];
+				bias.mag_bias[2] = _last_valid_mag_cal[2];
 
 				_sensor_bias_pub.publish(bias);
 			}
@@ -1753,13 +1739,6 @@ bool Ekf2::publish_attitude(const sensor_combined_s &sensors, const hrt_abstime 
 		q.copyTo(att.q);
 
 		_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);
-
-		// In-run bias estimates
-		float gyro_bias[3];
-		_ekf.get_gyro_bias(gyro_bias);
-		att.rollspeed = sensors.gyro_rad[0] - gyro_bias[0];
-		att.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
-		att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
 
 		_att_pub.publish(att);
 

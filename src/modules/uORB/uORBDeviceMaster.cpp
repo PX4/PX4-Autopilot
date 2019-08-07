@@ -430,6 +430,10 @@ uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
 
 uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const struct orb_metadata *meta, const uint8_t instance)
 {
+	if (meta == nullptr) {
+		return nullptr;
+	}
+
 	lock();
 	uORB::DeviceNode *node = getDeviceNodeLocked(meta, instance);
 	unlock();

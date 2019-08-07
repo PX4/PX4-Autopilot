@@ -122,9 +122,12 @@ bool FlightTaskAutoLineSmoothVel::_generateHeadingAlongTraj()
 {
 	bool res = false;
 	Vector2f vel_sp_xy(_velocity_setpoint);
+	Vector2f traj_to_target = Vector2f(_target) - Vector2f(_position);
 
-	if (vel_sp_xy.length() > .1f) {
+	if ((vel_sp_xy.length() > .1f) &&
+	    (traj_to_target.length() > _target_acceptance_radius)) {
 		// Generate heading from velocity vector, only if it is long enough
+		// and if the drone is far enough from the target
 		_compute_heading_from_2D_vector(_yaw_setpoint, vel_sp_xy);
 		res = true;
 	}
