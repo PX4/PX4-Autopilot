@@ -460,32 +460,28 @@
 #define GPIO_SDMMC2_D2   GPIO_SDMMC2_D2_2
 #define GPIO_SDMMC2_D3   GPIO_SDMMC2_D3_2
 
-/* The STM32 F7 connects to a SMSC LAN8742A PHY using these pins:
+/* The STM32 F7 connects to a TI DP83848TSQ/NOPB
+ * using RMII
  *
- *   STM32 F7 BOARD        LAN8742A
+ *   STM32 F7 BOARD        DP83848TSQ/NOPB
  *   GPIO     SIGNAL       PIN NAME
  *   -------- ------------ -------------
- *   PG11     RMII_TX_EN   TXEN
- *   PG13     RMII_TXD0    TXD0
- *   PG14     RMII_TXD1    TXD1
- *   PC4      RMII_RXD0    RXD0/MODE0
- *   PC5      RMII_RXD1    RXD1/MODE1
- *   PD5      RMII_RXER    RXER/PHYAD0
- *   PA7      RMII_CRS_DV  CRS_DV/MODE2
- *   PC1      RMII_MDC     MDC
- *   PA2      RMII_MDIO    MDIO
- *   N/A      NRST         nRST
- *   PA1      RMII_REF_CLK nINT/REFCLK0
- *   N/A      OSC_25M      XTAL1/CLKIN
+ *   PA7     ETH_CRS_DV    CRS_DV
+ *   PC1     ETH_MDC       MDC
+ *   PA2     ETH_MDIO      MDIO
+ *   PA1     ETH_REF_CL    X1
+ *   PC4     ETH_RXD0      RX_D0
+ *   PC5     ETH_RXD1      RX_D1
+ *   PB11    ETH_TX_EN     TX_EN
+ *   PG13    ETH_TXD0      TX_D0
+ *   PB13    ETH_TXD1      TX_D1
  *
- * The PHY address is 0, since RMII_RXER/PHYAD0 features a pull down.
- * After reset, RMII_RXER/PHYAD0 switches to the RXER function,
- * receive errors can be detected using GPIO pin PD5
+ * The PHY address is 1, since COL/PHYAD0 features a pull up.
  */
 
-#define GPIO_ETH_RMII_TX_EN	GPIO_ETH_RMII_TX_EN_2
+#define GPIO_ETH_RMII_TX_EN	GPIO_ETH_RMII_TX_EN_1
 #define GPIO_ETH_RMII_TXD0	GPIO_ETH_RMII_TXD0_2
-#define GPIO_ETH_RMII_TXD1	GPIO_ETH_RMII_TXD1_2
+#define GPIO_ETH_RMII_TXD1	GPIO_ETH_RMII_TXD1_1
 
 
 /* USB
