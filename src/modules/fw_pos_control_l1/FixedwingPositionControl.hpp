@@ -75,8 +75,8 @@
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_baro.h>
-#include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/tecs_status.h>
+#include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -182,8 +182,8 @@ private:
 	vehicle_land_detected_s		_vehicle_land_detected {};	///< vehicle land detected */
 	vehicle_status_s		_vehicle_status {};		///< vehicle status */
 
-	SubscriptionData<airspeed_s> _sub_airspeed;
-	SubscriptionData<sensor_bias_s> _sub_sensors;
+	SubscriptionData<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
+	SubscriptionData<vehicle_acceleration_s>	_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
 	perf_counter_t	_loop_perf;				///< loop performance counter */
 
@@ -371,6 +371,9 @@ private:
 		param_t vtol_type;
 	} _parameter_handles {};				///< handles for interesting parameters */
 
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _groundspeed_min
+	)
 
 	// Update our local parameter cache.
 	int		parameters_update();
@@ -436,9 +439,7 @@ private:
 	float		get_tecs_thrust();
 
 	float		get_demanded_airspeed();
-	float		calculate_target_airspeed(float airspeed_demand);
-	void		calculate_gndspeed_undershoot(const Vector2f &curr_pos, const Vector2f &ground_speed,
-			const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	float		calculate_target_airspeed(float airspeed_demand, const Vector2f &ground_speed);
 
 	/**
 	 * Handle incoming vehicle commands

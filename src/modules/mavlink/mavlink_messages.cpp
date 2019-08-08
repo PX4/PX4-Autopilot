@@ -848,15 +848,15 @@ protected:
 			mavlink_highres_imu_t msg = {};
 
 			msg.time_usec = sensor.timestamp;
-			msg.xacc = sensor.accelerometer_m_s2[0] - bias.accel_x_bias;
-			msg.yacc = sensor.accelerometer_m_s2[1] - bias.accel_y_bias;
-			msg.zacc = sensor.accelerometer_m_s2[2] - bias.accel_z_bias;
-			msg.xgyro = sensor.gyro_rad[0] - bias.gyro_x_bias;
-			msg.ygyro = sensor.gyro_rad[1] - bias.gyro_y_bias;
-			msg.zgyro = sensor.gyro_rad[2] - bias.gyro_z_bias;
-			msg.xmag = magnetometer.magnetometer_ga[0] - bias.mag_x_bias;
-			msg.ymag = magnetometer.magnetometer_ga[1] - bias.mag_y_bias;
-			msg.zmag = magnetometer.magnetometer_ga[2] - bias.mag_z_bias;
+			msg.xacc = sensor.accelerometer_m_s2[0] - bias.accel_bias[0];
+			msg.yacc = sensor.accelerometer_m_s2[1] - bias.accel_bias[1];
+			msg.zacc = sensor.accelerometer_m_s2[2] - bias.accel_bias[2];
+			msg.xgyro = sensor.gyro_rad[0] - bias.gyro_bias[0];
+			msg.ygyro = sensor.gyro_rad[1] - bias.gyro_bias[1];
+			msg.zgyro = sensor.gyro_rad[2] - bias.gyro_bias[2];
+			msg.xmag = magnetometer.magnetometer_ga[0] - bias.mag_bias[0];
+			msg.ymag = magnetometer.magnetometer_ga[1] - bias.mag_bias[1];
+			msg.zmag = magnetometer.magnetometer_ga[2] - bias.mag_bias[2];
 			msg.abs_pressure = air_data.baro_pressure_pa;
 			msg.diff_pressure = differential_pressure.differential_pressure_raw_pa;
 			msg.pressure_alt = air_data.baro_alt_meter;

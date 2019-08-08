@@ -49,15 +49,15 @@
 #include <uORB/topics/sensor_correction.h>
 #include <uORB/topics/sensor_selection.h>
 
-#include <uORB/topics/sensor_gyro.h>
-#include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/vehicle_acceleration.h>
 
-class VehicleAngularVelocity : public ModuleParams, public px4::WorkItem
+class VehicleAcceleration : public ModuleParams, public px4::WorkItem
 {
 public:
 
-	VehicleAngularVelocity();
-	virtual ~VehicleAngularVelocity();
+	VehicleAcceleration();
+	virtual ~VehicleAcceleration();
 
 	void	Run() override;
 
@@ -82,7 +82,7 @@ private:
 		(ParamFloat<px4::params::SENS_BOARD_Z_OFF>) _param_sens_board_z_off
 	)
 
-	uORB::Publication<vehicle_angular_velocity_s>	_vehicle_angular_velocity_pub{ORB_ID(vehicle_angular_velocity)};
+	uORB::Publication<vehicle_acceleration_s>	_vehicle_acceleration_pub{ORB_ID(vehicle_acceleration)};
 
 	uORB::Subscription			_params_sub{ORB_ID(parameter_update)};			/**< parameter updates subscription */
 	uORB::Subscription			_sensor_bias_sub{ORB_ID(sensor_bias)};			/**< sensor in-run bias correction subscription */
@@ -90,9 +90,9 @@ private:
 
 	uORB::SubscriptionCallbackWorkItem	_sensor_selection_sub{this, ORB_ID(sensor_selection)};	/**< selected primary sensor subscription */
 	uORB::SubscriptionCallbackWorkItem	_sensor_sub[MAX_SENSOR_COUNT] {				/**< sensor data subscription */
-		{this, ORB_ID(sensor_gyro), 0},
-		{this, ORB_ID(sensor_gyro), 1},
-		{this, ORB_ID(sensor_gyro), 2}
+		{this, ORB_ID(sensor_accel), 0},
+		{this, ORB_ID(sensor_accel), 1},
+		{this, ORB_ID(sensor_accel), 2}
 	};
 
 	matrix::Dcmf				_board_rotation;				/**< rotation matrix for the orientation that the board is mounted */
