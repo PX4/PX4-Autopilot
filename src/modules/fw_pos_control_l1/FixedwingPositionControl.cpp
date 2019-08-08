@@ -38,7 +38,8 @@ extern "C" __EXPORT int fw_pos_control_l1_main(int argc, char *argv[]);
 FixedwingPositionControl::FixedwingPositionControl() :
 	ModuleParams(nullptr),
 	WorkItem(px4::wq_configurations::att_pos_ctrl),
-	_loop_perf(perf_alloc(PC_ELAPSED, "fw_l1_control")),
+	_loop_perf(perf_alloc(PC_ELAPSED, "fw_pos_control_l1: cycle")),
+	_loop_interval_perf(perf_alloc(PC_INTERVAL, "fw_pos_control_l1: interval")),
 	_launchDetector(this),
 	_runway_takeoff(this)
 {
@@ -113,6 +114,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 FixedwingPositionControl::~FixedwingPositionControl()
 {
 	perf_free(_loop_perf);
+	perf_free(_loop_interval_perf);
 }
 
 bool
@@ -1669,6 +1671,10 @@ FixedwingPositionControl::Run()
 		return;
 	}
 
+	perf_begin(_loop_perf);
+	perf_count(_loop_interval_perf);
+
+	/* only run controller if position changed */
 	if (_global_pos_sub.update(&_global_pos)) {
 
 		/* only update parameters if they changed */
@@ -1682,9 +1688,6 @@ FixedwingPositionControl::Run()
 			/* update parameters from storage */
 			parameters_update();
 		}
-
-		/* only run controller if position changed */
-		perf_begin(_loop_perf);
 
 		_local_pos_sub.update(&_local_pos);
 
@@ -1988,6 +1991,9 @@ fw_pos_control_l1 is the fixed wing position controller.
 int FixedwingPositionControl::print_status()
 {
 	PX4_INFO("Running");
+
+	perf_print_counter(_loop_perf);
+	perf_print_counter(_loop_interval_perf);
 
 	return 0;
 }
