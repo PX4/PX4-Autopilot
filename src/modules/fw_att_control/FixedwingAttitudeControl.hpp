@@ -128,8 +128,7 @@ private:
 	vehicle_status_s			_vehicle_status {};	/**< vehicle status */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
-	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
-	perf_counter_t	_nonfinite_output_perf;		/**< performance counter for non finite output */
+	perf_counter_t	_loop_interval_perf;		/**< loop interval performance counter */
 
 	float _flaps_applied{0.0f};
 	float _flaperons_applied{0.0f};

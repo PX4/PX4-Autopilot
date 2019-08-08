@@ -46,9 +46,8 @@ extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[]);
 
 FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	WorkItem(px4::wq_configurations::att_pos_ctrl),
-	_loop_perf(perf_alloc(PC_ELAPSED, "fwa_dt")),
-	_nonfinite_input_perf(perf_alloc(PC_COUNT, "fwa_nani")),
-	_nonfinite_output_perf(perf_alloc(PC_COUNT, "fwa_nano"))
+	_loop_perf(perf_alloc(PC_ELAPSED, "fw_att_control: cycle")),
+	_loop_interval_perf(perf_alloc(PC_INTERVAL, "fw_att_control: interval"))
 {
 	// check if VTOL first
 	vehicle_status_poll();
@@ -133,8 +132,7 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 FixedwingAttitudeControl::~FixedwingAttitudeControl()
 {
 	perf_free(_loop_perf);
-	perf_free(_nonfinite_input_perf);
-	perf_free(_nonfinite_output_perf);
+	perf_free(_loop_interval_perf);
 }
 
 bool
@@ -420,10 +418,6 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 				    && (hrt_elapsed_time(&_airspeed_sub.get().timestamp) < 1_s)
 				    && !_vehicle_status.aspd_use_inhibit;
 
-	if (!airspeed_valid) {
-		perf_count(_nonfinite_input_perf);
-	}
-
 	// if no airspeed measurement is available out best guess is to use the trim airspeed
 	float airspeed = _parameters.airspeed_trim;
 
@@ -462,6 +456,9 @@ void FixedwingAttitudeControl::Run()
 		return;
 	}
 
+	perf_begin(_loop_perf);
+	perf_count(_loop_interval_perf);
+
 	if (_att_sub.update(&_att)) {
 
 		/* only update parameters if they changed */
@@ -475,8 +472,6 @@ void FixedwingAttitudeControl::Run()
 			/* update parameters from storage */
 			parameters_update();
 		}
-
-		perf_begin(_loop_perf);
 
 		/* only run controller if attitude changed */
 		static uint64_t last_run = 0;
@@ -562,6 +557,7 @@ void FixedwingAttitudeControl::Run()
 
 		/* if we are in rotary wing mode, do nothing */
 		if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !_vehicle_status.is_vtol) {
+			perf_end(_loop_perf);
 			return;
 		}
 
@@ -690,7 +686,6 @@ void FixedwingAttitudeControl::Run()
 
 					if (!PX4_ISFINITE(roll_u)) {
 						_roll_ctrl.reset_integrator();
-						perf_count(_nonfinite_output_perf);
 					}
 
 					float pitch_u = _pitch_ctrl.control_euler_rate(control_input);
@@ -698,7 +693,6 @@ void FixedwingAttitudeControl::Run()
 
 					if (!PX4_ISFINITE(pitch_u)) {
 						_pitch_ctrl.reset_integrator();
-						perf_count(_nonfinite_output_perf);
 					}
 
 					float yaw_u = 0.0f;
@@ -720,7 +714,6 @@ void FixedwingAttitudeControl::Run()
 					if (!PX4_ISFINITE(yaw_u)) {
 						_yaw_ctrl.reset_integrator();
 						_wheel_ctrl.reset_integrator();
-						perf_count(_nonfinite_output_perf);
 					}
 
 					/* throttle passed through if it is finite and if no engine failure was detected */
@@ -743,9 +736,6 @@ void FixedwingAttitudeControl::Run()
 
 						_actuators.control[actuator_controls_s::INDEX_THROTTLE] *= _battery_scale;
 					}
-
-				} else {
-					perf_count(_nonfinite_input_perf);
 				}
 
 				/*
@@ -953,8 +943,7 @@ int FixedwingAttitudeControl::print_status()
 	PX4_INFO("Running");
 
 	perf_print_counter(_loop_perf);
-	perf_print_counter(_nonfinite_input_perf);
-	perf_print_counter(_nonfinite_output_perf);
+	perf_print_counter(_loop_interval_perf);
 
 	return 0;
 }
