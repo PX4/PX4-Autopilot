@@ -192,17 +192,13 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 	_updateOffboardObstacleDistance(obstacle);
 	_updateDistanceSensor(obstacle);
 
-	//The maximum velocity formula contains a square root, therefore the whole calculation is done with squared norms.
-	//that way the root does not have to be calculated for every range bin but once at the end.
 	float setpoint_length = setpoint.norm();
-	Vector2f setpoint_sqrd = setpoint * setpoint_length;
-
-	//Limit the deviation of the adapted setpoint from the originally given joystick input (slightly less than 90 degrees)
-	float max_slide_angle_rad = 0.5f;
 
 	if (hrt_elapsed_time(&obstacle.timestamp) < RANGE_STREAM_TIMEOUT_US) {
 		if (setpoint_length > 0.001f) {
 
+			Vector2f setpoint_dir = setpoint / setpoint_length;
+			float vel_max = setpoint_length;
 			int distances_array_size = sizeof(obstacle.distances) / sizeof(obstacle.distances[0]);
 
 			for (int i = 0; i < distances_array_size; i++) {
@@ -216,52 +212,28 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 						angle += math::radians(obstacle.angle_offset);
 					}
 
-					//split current setpoint into parallel and orthogonal components with respect to the current bin direction
+					//check if the bin must be considered regarding the given stick input
 					Vector2f bin_direction = {cos(angle), sin(angle)};
-					Vector2f orth_direction = {-bin_direction(1), bin_direction(0)};
-					float sp_parallel = setpoint_sqrd.dot(bin_direction);
-					float sp_orth = setpoint_sqrd.dot(orth_direction);
-					float curr_vel_parallel = math::max(0.f, curr_vel.dot(bin_direction));
 
-					//calculate max allowed velocity with a P-controller (same gain as in the position controller)
-					float delay_distance = curr_vel_parallel * _param_mpc_col_prev_dly.get();
-					float vel_max_posctrl = math::max(0.f,
-									  _param_mpc_xy_p.get() * (distance - _param_mpc_col_prev_d.get() - delay_distance));
-					float vel_max_sqrd = vel_max_posctrl * vel_max_posctrl;
+					if (setpoint_dir.dot(bin_direction) > 0
+					    && setpoint_dir.dot(bin_direction) > cosf(math::radians(_param_mpc_col_prev_ang.get()))) {
+						//calculate max allowed velocity with a P-controller (same gain as in the position controller)
+						float curr_vel_parallel = math::max(0.f, curr_vel.dot(bin_direction));
+						float delay_distance = curr_vel_parallel * _param_mpc_col_prev_dly.get();
+						float vel_max_posctrl = math::max(0.f,
+										  _param_mpc_xy_p.get() * (distance - _param_mpc_col_prev_d.get() - delay_distance));
+						Vector2f  vel_max_vec = bin_direction * vel_max_posctrl;
+						float vel_max_bin = vel_max_vec.dot(setpoint_dir);
 
-					//limit the setpoint to respect vel_max by subtracting from the parallel component
-					if (sp_parallel > vel_max_sqrd) {
-						Vector2f setpoint_temp = setpoint_sqrd - (sp_parallel - vel_max_sqrd) * bin_direction;
-						float setpoint_temp_length = setpoint_temp.norm();
-
-						//limit sliding angle
-						float angle_diff_temp_orig = acos(setpoint_temp.dot(setpoint) / (setpoint_temp_length * setpoint_length));
-						float angle_diff_temp_bin = acos(setpoint_temp.dot(bin_direction) / setpoint_temp_length);
-
-						if (angle_diff_temp_orig > max_slide_angle_rad && setpoint_temp_length > 0.001f) {
-							float angle_temp_bin_cropped = angle_diff_temp_bin - (angle_diff_temp_orig - max_slide_angle_rad);
-							float orth_len = vel_max_sqrd * tan(angle_temp_bin_cropped);
-
-							if (sp_orth > 0) {
-								setpoint_temp = vel_max_sqrd * bin_direction + orth_len * orth_direction;
-
-							} else {
-								setpoint_temp = vel_max_sqrd * bin_direction - orth_len * orth_direction;
-							}
+						//constrain the velocity
+						if (vel_max_bin >= 0) {
+							vel_max = math::min(vel_max, vel_max_bin);
 						}
-
-						setpoint_sqrd = setpoint_temp;
 					}
 				}
 			}
 
-			//take the squared root
-			if (setpoint_sqrd.norm() > 0.001f) {
-				setpoint = setpoint_sqrd / std::sqrt(setpoint_sqrd.norm());
-
-			} else {
-				setpoint.zero();
-			}
+			setpoint = setpoint_dir * vel_max;
 		}
 
 	} else {

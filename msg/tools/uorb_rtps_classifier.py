@@ -124,7 +124,7 @@ class Classifier():
         none_listed_msgs = []
         for msg in self.all_msgs_list:
             result = not any(
-                dict.values()[0] == msg for dict in self.msg_id_map['rtps'])
+                dict['msg'] == msg for dict in self.msg_id_map['rtps'])
             if result:
                 none_listed_msgs.append(msg)
 
@@ -136,7 +136,7 @@ class Classifier():
 
             raise AssertionError(
                 "\n%s %s: " % (error_msg, yaml_file) + ", ".join('%s' % msg for msg in none_listed_msgs) +
-                "\n\nPlease add them to the yaml file with the respective ID and, if applicable, mark them" +
+                "\n\nPlease add them to the yaml file with the respective ID and, if applicable, mark them " +
                 "to be sent or received by the micro-RTPS bridge.\n"
                 "NOTE: If the message has multi-topics (#TOPICS), these should be added as well.\n")
 
@@ -210,9 +210,14 @@ if __name__ == "__main__":
                                               for msg_file in classifier.msgs_files_send) + '\n')
         else:
             if args.alias:
-                print (', '.join(str(msg)
-                                 for msg in classifier.msgs_to_send.keys()) + (' alias ' + ', '.join(str(msg[0].keys()[0])
-                                                                                                     for msg in classifier.alias_msgs_to_send) if len(classifier.alias_msgs_to_send) > 0 else '') + '\n')
+                if sys.version_info[0] < 3:
+                    print (', '.join(str(msg)
+                                     for msg in classifier.msgs_to_send.keys()) + (' alias ' + ', '.join(str(msg[0].keys()[0])
+                                                                                                         for msg in classifier.alias_msgs_to_send) if len(classifier.alias_msgs_to_send) > 0 else '') + '\n')
+                else:
+                    print (', '.join(str(msg)
+                                     for msg in classifier.msgs_to_send.keys()) + (' alias ' + ', '.join(str(list(msg[0].keys())[0])
+                                                                                                         for msg in classifier.alias_msgs_to_send) if len(classifier.alias_msgs_to_send) > 0 else '') + '\n')
             else:
                 print (', '.join(str(msg)
                                  for msg in classifier.msgs_to_send.keys()))
@@ -222,9 +227,14 @@ if __name__ == "__main__":
                                                  for msg_file in classifier.msgs_files_receive) + '\n')
         else:
             if args.alias:
-                print (', '.join(str(msg)
-                                 for msg in classifier.msgs_to_receive.keys()) + (' alias ' + ', '.join(str(msg[0].keys()[0])
-                                                                                                        for msg in classifier.alias_msgs_to_receive) if len(classifier.alias_msgs_to_receive) > 0 else '') + '\n')
+                if sys.version_info[0] < 3:
+                    print (', '.join(str(msg)
+                                     for msg in classifier.msgs_to_receive.keys()) + (' alias ' + ', '.join(str(msg[0].keys()[0])
+                                                                                                            for msg in classifier.alias_msgs_to_receive) if len(classifier.alias_msgs_to_receive) > 0 else '') + '\n')
+                else:
+                    print (', '.join(str(msg)
+                                     for msg in classifier.msgs_to_receive.keys()) + (' alias ' + ', '.join(str(list(msg[0].keys())[0])
+                                                                                                            for msg in classifier.alias_msgs_to_receive) if len(classifier.alias_msgs_to_receive) > 0 else '') + '\n')
             else:
                 print (', '.join(str(msg)
                                  for msg in classifier.msgs_to_receive.keys()))
@@ -234,9 +244,14 @@ if __name__ == "__main__":
                                                 for msg_file in classifier.msgs_files_ignore) + '\n')
         else:
             if args.alias:
-                print (', '.join(str(msg)
-                                 for msg in classifier.msgs_to_ignore.keys()) + (' alias ' + ', '.join(str(msg[0].keys()[0])
-                                                                                                       for msg in classifier.alias_msgs_to_ignore) if len(classifier.alias_msgs_to_ignore) > 0 else '') + '\n')
+                if sys.version_info[0] < 3:
+                    print (', '.join(str(msg)
+                                     for msg in classifier.msgs_to_ignore.keys()) + (' alias ' + ', '.join(str(msg[0].keys()[0])
+                                                                                                           for msg in classifier.alias_msgs_to_ignore) if len(classifier.alias_msgs_to_ignore) > 0 else '') + '\n')
+                else:
+                    print (', '.join(str(msg)
+                                     for msg in classifier.msgs_to_ignore.keys()) + (' alias ' + ', '.join(str(list(msg[0].keys())[0])
+                                                                                                           for msg in classifier.alias_msgs_to_ignore) if len(classifier.alias_msgs_to_ignore) > 0 else '') + '\n')
             else:
                 print (', '.join(str(msg)
                                  for msg in classifier.msgs_to_ignore.keys()))

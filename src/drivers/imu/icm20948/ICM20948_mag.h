@@ -33,16 +33,12 @@
 
 #pragma once
 
-#include <drivers/device/i2c.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/drv_device.h>
-#include <drivers/drv_mag.h>
-#include <lib/perf/perf_counter.h>
-#include <uORB/uORB.h>
+#include <perf/perf_counter.h>
+#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
+#include <drivers/device/Device.hpp>
 
 /* in 16-bit sampling mode the mag resolution is 1.5 milli Gauss per bit */
-
-#define MPU9250_MAG_RANGE_GA        1.5e-3f;
+static constexpr float MPU9250_MAG_RANGE_GA{1.5e-3f};
 
 /* we are using the continuous fixed sampling rate of 100Hz */
 
@@ -132,14 +128,11 @@ typedef device::Device *(*ICM20948_mag_constructor)(int, bool);
 /**
  * Helper class implementing the magnetometer driver node.
  */
-class ICM20948_mag : public device::CDev
+class ICM20948_mag
 {
 public:
-	ICM20948_mag(ICM20948 *parent, device::Device *interface, const char *path);
+	ICM20948_mag(ICM20948 *parent, device::Device *interface, enum Rotation rotation);
 	~ICM20948_mag();
-
-	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
-	virtual int init();
 
 	void set_passthrough(uint8_t reg, uint8_t size, uint8_t *out = NULL);
 	void passthrough_read(uint8_t reg, uint8_t *buf, uint8_t size);
@@ -152,8 +145,10 @@ public:
 	bool ak8963_check_id(uint8_t &id);
 	bool ak8963_read_adjustments(void);
 
+	void print_status() { _px4_mag.print_status(); }
+
 protected:
-	Device			*_interface;
+	device::Device			*_interface;
 
 	friend class ICM20948;
 
@@ -161,7 +156,7 @@ protected:
 	void measure();
 
 	/* Update the state with prefetched data (internally called by the regular measure() )*/
-	void _measure(struct ak8963_regs data);
+	void _measure(hrt_abstime timestamp, struct ak8963_regs data);
 
 	uint8_t read_reg(unsigned reg);
 	void write_reg(unsigned reg, uint8_t value);
@@ -169,27 +164,23 @@ protected:
 	bool is_passthrough() { return _interface == nullptr; }
 
 private:
+
+	PX4Magnetometer		_px4_mag;
+
 	ICM20948 *_parent;
-	orb_advert_t _mag_topic;
-	int _mag_orb_class_instance;
-	int _mag_class_instance;
-	bool _mag_reading_data;
-	ringbuffer::RingBuffer *_mag_reports;
-	struct mag_calibration_s _mag_scale;
-	float _mag_range_scale;
+
+	bool _mag_reading_data{false};
+
 	perf_counter_t _mag_reads;
 	perf_counter_t _mag_errors;
 	perf_counter_t _mag_overruns;
 	perf_counter_t _mag_overflows;
 	perf_counter_t _mag_duplicates;
-	float _mag_asa_x;
-	float _mag_asa_y;
-	float _mag_asa_z;
 
 	bool check_duplicate(uint8_t *mag_data);
 
 	// keep last mag reading for duplicate detection
-	uint8_t			_last_mag_data[6];
+	uint8_t			_last_mag_data[6] {};
 
 	/* do not allow to copy this class due to pointer data members */
 	ICM20948_mag(const ICM20948_mag &);

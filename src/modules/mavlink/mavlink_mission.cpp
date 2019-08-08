@@ -270,7 +270,6 @@ MavlinkMissionManager::send_mission_ack(uint8_t sysid, uint8_t compid, uint8_t t
 	PX4_DEBUG("WPM: Send MISSION_ACK type %u to ID %u", wpa.type, wpa.target_system);
 }
 
-
 void
 MavlinkMissionManager::send_mission_current(uint16_t seq)
 {
