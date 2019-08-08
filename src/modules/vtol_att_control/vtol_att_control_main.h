@@ -54,6 +54,7 @@
 #include <lib/ecl/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
+#include <lib/perf/perf_counter.h>
 #include <matrix/math.hpp>
 #include <px4_config.h>
 #include <px4_defines.h>
@@ -90,7 +91,7 @@ class VtolAttitudeControl : public ModuleBase<VtolAttitudeControl>, public px4::
 public:
 
 	VtolAttitudeControl();
-	~VtolAttitudeControl() = default;
+	~VtolAttitudeControl();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -214,6 +215,9 @@ private:
 	VtolType	*_vtol_type{nullptr};	// base class for different vtol types
 
 	bool		_initialized{false};
+
+	perf_counter_t	_loop_perf;			/**< loop performance counter */
+	perf_counter_t	_loop_interval_perf;		/**< loop interval performance counter */
 
 	void		vehicle_cmd_poll();
 
