@@ -39,12 +39,12 @@ include(px4_base)
 #
 #	Adds a googletest unit test to the test_results target.
 #
-function(px4_add_gtest)
+function(px4_add_unit_gtest)
 	# skip if unit testing is not configured
 	if(BUILD_TESTING)
 		# parse source file and library dependencies from arguments
 		px4_parse_function_args(
-			NAME px4_add_gtest
+			NAME px4_add_unit_gtest
 			ONE_VALUE SRC
 			MULTI_VALUE LINKLIBS
 			REQUIRED SRC
