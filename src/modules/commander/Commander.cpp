@@ -150,6 +150,7 @@ static uint8_t _last_sp_man_arm_switch = 0;
 
 static struct vtol_vehicle_status_s vtol_status = {};
 static struct cpuload_s cpuload = {};
+static struct battery_status_s battery {};
 
 static bool last_overload = false;
 
@@ -1279,6 +1280,7 @@ Commander::run()
 	uORB::Subscription system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 	uORB::Subscription esc_status_sub{ORB_ID(esc_status)};
+	uORB::Subscription battery_sub{ORB_ID(battery_status)};
 
 	geofence_result_s geofence_result {};
 
@@ -1621,6 +1623,13 @@ Commander::run()
 			}
 		}
 
+		/* update battery status */
+		if (battery_sub.updated()) {
+
+			battery_sub.copy(&battery) ;
+			battery_status_check();
+		}
+
 		if (esc_status_sub.updated()) {
 			/* ESCs status changed */
 			esc_status_s esc_status = {};
@@ -1715,8 +1724,6 @@ Commander::run()
 		}
 
 		cpuload_sub.update(&cpuload);
-
-		battery_status_check();
 
 		/* update subsystem info which arrives from outside of commander*/
 		do {
@@ -3861,53 +3868,45 @@ void Commander::data_link_check(bool &status_changed)
 
 void Commander::battery_status_check()
 {
-	/* update battery status */
-	if (_battery_sub.updated()) {
-		battery_status_s battery{};
+	if ((hrt_elapsed_time(&battery.timestamp) < 5_s)
+	    && battery.connected
+	    && (_battery_warning == battery_status_s::BATTERY_WARNING_NONE)) {
 
-		if (_battery_sub.copy(&battery)) {
+		status_flags.condition_battery_healthy = true;
 
-			if ((hrt_elapsed_time(&battery.timestamp) < 5_s)
-			    && battery.connected
-			    && (_battery_warning == battery_status_s::BATTERY_WARNING_NONE)) {
+	} else {
+		status_flags.condition_battery_healthy = false;
+	}
 
-				status_flags.condition_battery_healthy = true;
-
-			} else {
-				status_flags.condition_battery_healthy = false;
-			}
-
-			// execute battery failsafe if the state has gotten worse
-			if (armed.armed) {
-				if (battery.warning > _battery_warning) {
-					battery_failsafe(&mavlink_log_pub, status, status_flags, &internal_state, battery.warning,
-							 (low_battery_action_t)_param_com_low_bat_act.get());
-				}
-			}
-
-			// Handle shutdown request from emergency battery action
-			if (battery.warning != _battery_warning) {
-
-				if ((battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) && shutdown_if_allowed()) {
-					mavlink_log_critical(&mavlink_log_pub, "Dangerously low battery! Shutting system down");
-					px4_usleep(200000);
-
-					int ret_val = px4_shutdown_request(false, false);
-
-					if (ret_val) {
-						mavlink_log_critical(&mavlink_log_pub, "System does not support shutdown");
-
-					} else {
-						while (1) { px4_usleep(1); }
-					}
-				}
-			}
-
-			// save last value
-			_battery_warning = battery.warning;
-			_battery_current = battery.current_filtered_a;
+	// execute battery failsafe if the state has gotten worse
+	if (armed.armed) {
+		if (battery.warning > _battery_warning) {
+			battery_failsafe(&mavlink_log_pub, status, status_flags, &internal_state, battery.warning,
+					 (low_battery_action_t)_param_com_low_bat_act.get());
 		}
 	}
+
+	// Handle shutdown request from emergency battery action
+	if (battery.warning != _battery_warning) {
+
+		if ((battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) && shutdown_if_allowed()) {
+			mavlink_log_critical(&mavlink_log_pub, "Dangerously low battery! Shutting system down");
+			px4_usleep(200000);
+
+			int ret_val = px4_shutdown_request(false, false);
+
+			if (ret_val) {
+				mavlink_log_critical(&mavlink_log_pub, "System does not support shutdown");
+
+			} else {
+				while (1) { px4_usleep(1); }
+			}
+		}
+	}
+
+	// save last value
+	_battery_warning = battery.warning;
+	_battery_current = battery.current_filtered_a;
 }
 
 void Commander::airspeed_use_check()
@@ -4371,13 +4370,46 @@ void Commander::esc_status_check(const esc_status_s &esc_status)
 {
 	char esc_fail_msg[50];
 	esc_fail_msg[0] = '\0';
-
+	int esc_inconsistency_flags = 0;
 	int online_bitmask = (1 << esc_status.esc_count) - 1;
 
 	// Check if ALL the ESCs are online
 	if (online_bitmask == esc_status.esc_online_flags) {
 		status_flags.condition_escs_error = false;
 		_last_esc_online_flags = esc_status.esc_online_flags;
+
+		for (int index = 0; index < esc_status.esc_count; index++) {
+
+			auto &ref = esc_status.esc[index];
+
+			if (fabsf(battery.voltage_filtered_v - ref.esc_voltage) > 0.5f) {
+
+				if ((_esc_last_excedeed_time[index] > 0) && (hrt_elapsed_time(&_esc_last_excedeed_time[index]) > 2_s)) {
+					esc_inconsistency_flags |= (1 << index);
+					_esc_last_excedeed_time[index] = hrt_abstime();
+
+				} else if (_esc_last_excedeed_time[index] == 0) {
+					_esc_last_excedeed_time[index] = ref.timestamp;
+				}
+
+			} else {
+				_esc_last_excedeed_time[index] = 0;
+			}
+		}
+
+		if (esc_inconsistency_flags > 0 && !(_last_esc_inconsistency_flags == esc_inconsistency_flags)) {
+
+			for (int index = 0; index < esc_status.esc_count; index++) {
+				if ((esc_inconsistency_flags & (1 << index))) {
+					snprintf(esc_fail_msg + strlen(esc_fail_msg), sizeof(esc_fail_msg) - strlen(esc_fail_msg), "ESC%d ", index + 1);
+					esc_fail_msg[sizeof(esc_fail_msg) - 1] = '\0';
+				}
+			}
+
+			mavlink_log_critical(&mavlink_log_pub, "%svoltage inconsistency", esc_fail_msg);
+		}
+
+		_last_esc_inconsistency_flags = esc_inconsistency_flags;
 
 	} else if (_last_esc_online_flags == esc_status.esc_online_flags || esc_status.esc_count == 0)  {
 

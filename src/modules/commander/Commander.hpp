@@ -244,6 +244,8 @@ private:
 	hrt_abstime	_high_latency_datalink_lost{0};
 
 	int  _last_esc_online_flags{-1};
+	uint64_t _esc_last_excedeed_time[esc_status_s::CONNECTED_ESC_MAX];
+	uint8_t  _last_esc_inconsistency_flags{0};
 
 	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
 	uint8_t _battery_warning{battery_status_s::BATTERY_WARNING_NONE};
