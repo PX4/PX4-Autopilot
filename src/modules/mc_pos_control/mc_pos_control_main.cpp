@@ -47,6 +47,7 @@
 #include <commander/px4_custom_mode.h>
 
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/parameter_update.h>
@@ -108,7 +109,7 @@ private:
 	Takeoff _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
 
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
-	orb_advert_t _pub_vehicle_command{nullptr};           /**< vehicle command publication */
+	uORB::PublicationQueued<vehicle_command_s> _pub_vehicle_command{ORB_ID(vehicle_command)};	 /**< vehicle command publication */
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	orb_id_t _attitude_setpoint_id{nullptr};
@@ -1038,13 +1039,7 @@ void MulticopterPositionControl::send_vehicle_cmd_do(uint8_t nav_state)
 	}
 
 	// publish the vehicle command
-	if (_pub_vehicle_command == nullptr) {
-		_pub_vehicle_command = orb_advertise_queue(ORB_ID(vehicle_command), &command,
-				       vehicle_command_s::ORB_QUEUE_LENGTH);
-
-	} else {
-		orb_publish(ORB_ID(vehicle_command), _pub_vehicle_command, &command);
-	}
+	_pub_vehicle_command.publish(command);
 }
 
 int MulticopterPositionControl::task_spawn(int argc, char *argv[])

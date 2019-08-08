@@ -38,48 +38,30 @@
  * Tool for drive testing
  */
 
+#include <drivers/drv_hrt.h>
 #include <px4_config.h>
 #include <px4_getopt.h>
 #include <px4_log.h>
 #include <px4_module.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <arch/board/board.h>
-#include <drivers/drv_hrt.h>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/test_motor.h>
 
-
-
-
-__EXPORT int motor_test_main(int argc, char *argv[]);
+extern "C" __EXPORT int motor_test_main(int argc, char *argv[]);
 
 static void motor_test(unsigned channel, float value);
 static void usage(const char *reason);
 
-static orb_advert_t _test_motor_pub = NULL;
-
 void motor_test(unsigned channel, float value)
 {
-	struct test_motor_s _test_motor;
+	test_motor_s test_motor{};
+	test_motor.timestamp = hrt_absolute_time();
+	test_motor.motor_number = channel;
+	test_motor.value = value;
 
-	_test_motor.motor_number = channel;
-	_test_motor.timestamp = hrt_absolute_time();
-	_test_motor.value = value;
+	uORB::PublicationQueued<test_motor_s> test_motor_pub{ORB_ID(test_motor)};
+	test_motor_pub.publish(test_motor);
 
-	if (_test_motor_pub != NULL) {
-		/* publish test state */
-		orb_publish(ORB_ID(test_motor), _test_motor_pub, &_test_motor);
-
-	} else {
-		/* advertise and publish */
-		_test_motor_pub = orb_advertise_queue(ORB_ID(test_motor), &_test_motor, 4);
-	}
-
-	printf("motor %d set to %.2f\n", channel, (double)value);
+	PX4_INFO("motor %d set to %.2f", channel, (double)value);
 }
 
 static void usage(const char *reason)

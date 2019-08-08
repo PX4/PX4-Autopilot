@@ -41,13 +41,11 @@
 
 #include "output.h"
 
-#include <uORB/uORB.h>
-
+#include <uORB/PublicationQueued.hpp>
+#include <uORB/topics/vehicle_command.h>
 
 namespace vmount
 {
-
-
 /**
  ** class OutputMavlink
  *  Output via vehicle_command topic
@@ -56,14 +54,15 @@ class OutputMavlink : public OutputBase
 {
 public:
 	OutputMavlink(const OutputConfig &output_config);
-	virtual ~OutputMavlink();
+	virtual ~OutputMavlink() = default;
 
 	virtual int update(const ControlData *control_data);
 
 	virtual void print_status();
 
 private:
-	orb_advert_t _vehicle_command_pub = nullptr;
+
+	uORB::PublicationQueued<vehicle_command_s> _vehicle_command_pub{ORB_ID(vehicle_command)};
 };
 
 

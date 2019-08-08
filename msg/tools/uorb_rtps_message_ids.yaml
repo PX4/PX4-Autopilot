@@ -252,6 +252,12 @@ rtps:
     id: 109
   - msg: landing_gear
     id: 110
+  - msg: wheel_encoders
+    id: 111
+  - msg: vehicle_angular_velocity
+    id: 112
+  - msg: vehicle_acceleration
+    id: 113
   # multi topics
   - msg: actuator_controls_0
     id: 120
@@ -297,3 +303,18 @@ rtps:
   - msg: vehicle_trajectory_waypoint_desired
     id: 133
     alias: vehicle_trajectory_waypoint
+  - msg: obstacle_distance_fused
+    id: 134
+    alias: obstacle_distance
+  - msg: vehicle_vision_attitude
+    id: 135
+    alias: vehicle_attitude
+  - msg: trajectory_setpoint
+    id: 136
+    alias: vehicle_local_position_setpoint
+  - msg: camera_trigger_secondary
+    id: 137
+    alias: camera_trigger
+  - msg: vehicle_angular_velocity_groundtruth
+    id: 138
+    alias: vehicle_angular_velocity

@@ -37,8 +37,7 @@
 
 PX4Rangefinder::PX4Rangefinder(uint32_t device_id, uint8_t priority, uint8_t rotation) :
 	CDev(nullptr),
-	_distance_sensor_pub{ORB_ID(distance_sensor), priority},
-	_rotation{rotation}
+	_distance_sensor_pub{ORB_ID(distance_sensor), priority}
 {
 	_class_device_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
 

@@ -76,6 +76,7 @@
 #include <circuit_breaker/circuit_breaker.h>
 #include <systemlib/mavlink_log.h>
 
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -738,7 +739,8 @@ PX4IO::init()
 			vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION;
 
 			/* send command once */
-			orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+			uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+			vcmd_pub.publish(vcmd);
 
 			/* spin here until IO's state has propagated into the system */
 			do {
@@ -755,7 +757,7 @@ PX4IO::init()
 
 				/* re-send if necessary */
 				if (!actuator_armed.force_failsafe) {
-					orb_publish(ORB_ID(vehicle_command), pub, &vcmd);
+					vcmd_pub.publish(vcmd);
 					PX4_WARN("re-sending flight termination cmd");
 				}
 
@@ -769,7 +771,8 @@ PX4IO::init()
 		vcmd.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
 
 		/* send command once */
-		orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+		vcmd_pub.publish(vcmd);
 
 		/* spin here until IO's state has propagated into the system */
 		do {
@@ -786,7 +789,7 @@ PX4IO::init()
 
 			/* re-send if necessary */
 			if (!actuator_armed.armed) {
-				orb_publish(ORB_ID(vehicle_command), pub, &vcmd);
+				vcmd_pub.publish(vcmd);
 				PX4_WARN("re-sending arm cmd");
 			}
 

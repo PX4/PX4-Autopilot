@@ -93,7 +93,6 @@
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/system_power.h>
 #include <uORB/topics/telemetry_status.h>
-#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
@@ -198,6 +197,8 @@ void print_reject_arm(const char *msg);
 
 void print_status();
 
+bool shutdown_if_allowed();
+
 transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub, const char *armedBy);
 
 /**
@@ -205,7 +206,8 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub, const ch
  */
 void *commander_low_prio_loop(void *arg);
 
-static void answer_command(const vehicle_command_s &cmd, unsigned result, orb_advert_t &command_ack_pub);
+static void answer_command(const vehicle_command_s &cmd, unsigned result,
+			   uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub);
 
 static int power_button_state_notification_cb(board_power_button_state_notification_e request)
 {
@@ -249,7 +251,8 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 
 static bool send_vehicle_command(uint16_t cmd, float param1 = NAN, float param2 = NAN)
 {
-	vehicle_command_s vcmd = {};
+	vehicle_command_s vcmd{};
+
 	vcmd.timestamp = hrt_absolute_time();
 	vcmd.param1 = param1;
 	vcmd.param2 = param2;
@@ -262,9 +265,9 @@ static bool send_vehicle_command(uint16_t cmd, float param1 = NAN, float param2 
 	vcmd.target_system = status.system_id;
 	vcmd.target_component = status.component_id;
 
-	orb_advert_t h = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+	uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
 
-	return (h != nullptr);
+	return vcmd_pub.publish(vcmd);
 }
 
 int commander_main(int argc, char *argv[])
@@ -520,6 +523,13 @@ void print_status()
 	PX4_INFO("arming: %s", arming_state_names[status.arming_state]);
 }
 
+bool shutdown_if_allowed()
+{
+	return TRANSITION_DENIED != arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_SHUTDOWN,
+			&armed, false /* fRunPreArmChecks */, &mavlink_log_pub, &status_flags, arm_requirements,
+			hrt_elapsed_time(&commander_boot_timestamp));
+}
+
 transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, const char *armedBy)
 {
 	transition_result_t arming_res = TRANSITION_NOT_CHANGED;
@@ -577,7 +587,7 @@ Commander::~Commander()
 
 bool
 Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_s &cmd, actuator_armed_s *armed_local,
-			  orb_advert_t *command_ack_pub, bool *changed)
+			  uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub, bool *changed)
 {
 	/* only handle commands that are meant to be handled by this system and component */
 	if (cmd.target_system != status_local->system_id || ((cmd.target_component != status_local->component_id)
@@ -1078,13 +1088,13 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 	default:
 		/* Warn about unsupported commands, this makes sense because only commands
 		 * to this component ID (or all) are passed by mavlink. */
-		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED, *command_ack_pub);
+		answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED, command_ack_pub);
 		break;
 	}
 
 	if (cmd_result != vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED) {
 		/* already warned about unsupported commands in "default" case */
-		answer_command(cmd, cmd_result, *command_ack_pub);
+		answer_command(cmd, cmd_result, command_ack_pub);
 	}
 
 	return true;
@@ -1239,7 +1249,7 @@ Commander::run()
 	hrt_abstime last_disarmed_timestamp = 0;
 
 	/* command ack */
-	orb_advert_t command_ack_pub = nullptr;
+	uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	/* init mission state, do it here to allow navigator to use stored mission even if mavlink failed to start */
 	mission_init();
@@ -1510,7 +1520,7 @@ Commander::run()
 				}
 
 				/* if the USB hardware connection went away, reboot */
-				if (status_flags.usb_connected && !system_power.usb_connected) {
+				if (status_flags.usb_connected && !system_power.usb_connected && shutdown_if_allowed()) {
 					/*
 					 * apparently the USB cable went away but we are still powered,
 					 * so lets reset to a classic non-usb state.
@@ -2152,7 +2162,7 @@ Commander::run()
 			cmd_sub.copy(&cmd);
 
 			/* handle it */
-			if (handle_command(&status, cmd, &armed, &command_ack_pub, &status_changed)) {
+			if (handle_command(&status, cmd, &armed, command_ack_pub, &status_changed)) {
 				status_changed = true;
 			}
 		}
@@ -3260,7 +3270,8 @@ print_reject_arm(const char *msg)
 	}
 }
 
-void answer_command(const vehicle_command_s &cmd, unsigned result, orb_advert_t &command_ack_pub)
+void answer_command(const vehicle_command_s &cmd, unsigned result,
+		    uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub)
 {
 	switch (result) {
 	case vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED:
@@ -3288,20 +3299,16 @@ void answer_command(const vehicle_command_s &cmd, unsigned result, orb_advert_t 
 	}
 
 	/* publish ACK */
-	vehicle_command_ack_s command_ack = {};
+	vehicle_command_ack_s command_ack{};
+
 	command_ack.timestamp = hrt_absolute_time();
 	command_ack.command = cmd.command;
 	command_ack.result = (uint8_t)result;
 	command_ack.target_system = cmd.source_system;
 	command_ack.target_component = cmd.source_component;
 
-	if (command_ack_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_command_ack), command_ack_pub, &command_ack);
 
-	} else {
-		command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-						      vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-	}
+	command_ack_pub.publish(command_ack);
 }
 
 void *commander_low_prio_loop(void *arg)
@@ -3313,7 +3320,7 @@ void *commander_low_prio_loop(void *arg)
 	int cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 
 	/* command ack */
-	orb_advert_t command_ack_pub = nullptr;
+	uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[1];
@@ -3860,9 +3867,9 @@ void Commander::battery_status_check()
 			}
 
 			// Handle shutdown request from emergency battery action
-			if (!armed.armed && (battery.warning != _battery_warning)) {
+			if (battery.warning != _battery_warning) {
 
-				if (battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
+				if ((battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) && shutdown_if_allowed()) {
 					mavlink_log_critical(&mavlink_log_pub, "Dangerously low battery! Shutting system down");
 					px4_usleep(200000);
 
@@ -3894,8 +3901,8 @@ void Commander::airspeed_use_check()
 	_airspeed_sub.update();
 	const airspeed_s &airspeed = _airspeed_sub.get();
 
-	_sensor_bias_sub.update();
-	const sensor_bias_s &sensors = _sensor_bias_sub.get();
+	vehicle_acceleration_s accel{};
+	_vehicle_acceleration_sub.copy(&accel);
 
 	bool is_fixed_wing = status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 
@@ -3981,7 +3988,7 @@ void Commander::airspeed_use_check()
 			float max_lift_ratio = fmaxf(airspeed.indicated_airspeed_m_s, 0.7f) / fmaxf(_airspeed_stall.get(), 1.0f);
 			max_lift_ratio *= max_lift_ratio;
 
-			_load_factor_ratio = 0.95f * _load_factor_ratio + 0.05f * (fabsf(sensors.accel_z) / CONSTANTS_ONE_G) / max_lift_ratio;
+			_load_factor_ratio = 0.95f * _load_factor_ratio + 0.05f * (fabsf(accel.xyz[2]) / CONSTANTS_ONE_G) / max_lift_ratio;
 			_load_factor_ratio = math::constrain(_load_factor_ratio, 0.25f, 2.0f);
 			load_factor_ratio_fail = (_load_factor_ratio > 1.1f);
 			status.load_factor_ratio = _load_factor_ratio;
@@ -4283,7 +4290,7 @@ Commander::offboard_control_update(bool &status_changed)
 
 	if (commander_state_s::MAIN_STATE_OFFBOARD) {
 		if (offboard_control_mode.timestamp == 0) {
-			_offboard_control_mode_sub.forceInit();
+			_offboard_control_mode_sub.subscribe();
 			force_update = true;
 		}
 	}

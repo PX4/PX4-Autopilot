@@ -45,8 +45,7 @@ namespace uORB
 {
 
 /**
- * Base publication wrapper class, used in list traversal
- * of various publications.
+ * Base publication wrapper class
  */
 template<typename T>
 class Publication
@@ -61,7 +60,7 @@ public:
 	 * @param priority The priority for multi pub/sub, 0-based, -1 means
 	 * 	don't publish as multi
 	 */
-	Publication(const orb_metadata *meta, int priority = -1) : _meta(meta), _priority(priority) {}
+	Publication(const orb_metadata *meta, uint8_t priority = 0) : _meta(meta), _priority(priority) {}
 
 	~Publication() { orb_unadvertise(_handle); }
 
@@ -74,12 +73,7 @@ public:
 		bool updated = false;
 
 		if (_handle != nullptr) {
-			if (orb_publish(_meta, _handle, &data) != PX4_OK) {
-				PX4_ERR("%s publish fail", _meta->o_name);
-
-			} else {
-				updated = true;
-			}
+			updated = (orb_publish(_meta, _handle, &data) == PX4_OK);
 
 		} else {
 			orb_advert_t handle = nullptr;
@@ -106,13 +100,14 @@ public:
 
 protected:
 	const orb_metadata *_meta;
-	const int _priority;
 
 	orb_advert_t _handle{nullptr};
+
+	const uint8_t _priority;
 };
 
 /**
- * The publication base class as a list node.
+ * The publication class with data.
  */
 template<typename T>
 class PublicationData : public Publication<T>

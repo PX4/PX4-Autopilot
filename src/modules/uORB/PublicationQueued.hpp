@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,36 +31,67 @@
  *
  ****************************************************************************/
 
+/**
+ * @file PublicationQueued.hpp
+ *
+ */
+
 #pragma once
 
-#include <drivers/device/device.h>
-#include <drivers/drv_gyro.h>
 #include <uORB/uORB.h>
+#include <px4_defines.h>
 
-class ICM20948;
+namespace uORB
+{
 
 /**
- * Helper class implementing the gyro driver node.
+ * Queued publication with queue length set as a message constant (ORB_QUEUE_LENGTH)
  */
-class ICM20948_gyro : public device::CDev
+template<typename T>
+class PublicationQueued
 {
 public:
-	ICM20948_gyro(ICM20948 *parent, const char *path);
-	~ICM20948_gyro();
 
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+	/**
+	 * Constructor
+	 *
+	 * @param meta The uORB metadata (usually from
+	 * 	the ORB_ID() macro) for the topic.
+	 */
+	PublicationQueued(const orb_metadata *meta) : _meta(meta) {}
 
-	virtual int		init();
+	~PublicationQueued() { orb_unadvertise(_handle); }
+
+	/**
+	 * Publish the struct
+	 * @param data The uORB message struct we are updating.
+	 */
+	bool publish(const T &data)
+	{
+		bool updated = false;
+
+		if (_handle != nullptr) {
+			updated = (orb_publish(_meta, _handle, &data) == PX4_OK);
+
+		} else {
+			orb_advert_t handle = orb_advertise_queue(_meta, &data, T::ORB_QUEUE_LENGTH);
+
+			if (handle != nullptr) {
+				_handle = handle;
+				updated = true;
+
+			} else {
+				PX4_ERR("%s advertise failed", _meta->o_name);
+			}
+		}
+
+		return updated;
+	}
 
 protected:
-	friend class ICM20948;
+	const orb_metadata *_meta;
 
-	void			parent_poll_notify();
-
-private:
-	ICM20948			*_parent;
-
-	orb_advert_t		_gyro_topic{nullptr};
-	int			_gyro_orb_class_instance{-1};
-	int			_gyro_class_instance{-1};
+	orb_advert_t _handle{nullptr};
 };
+
+} // namespace uORB

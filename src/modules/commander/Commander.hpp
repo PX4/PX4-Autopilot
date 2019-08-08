@@ -45,8 +45,10 @@
 
 // publications
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
@@ -58,8 +60,8 @@
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
-#include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
@@ -180,7 +182,7 @@ private:
 	bool _flight_termination_triggered{false};
 
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd, actuator_armed_s *armed,
-			    orb_advert_t *command_ack_pub, bool *changed);
+			    uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub, bool *changed);
 
 	bool set_home_position();
 	bool set_home_position_alt_only();
@@ -248,21 +250,23 @@ private:
 	bool _print_avoidance_msg_once{false};
 
 	// Subscriptions
+	uORB::Subscription					_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
+
 	uORB::SubscriptionData<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
 	uORB::SubscriptionData<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
 	uORB::SubscriptionData<mission_result_s>		_mission_result_sub{ORB_ID(mission_result)};
 	uORB::SubscriptionData<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
-	uORB::SubscriptionData<sensor_bias_s>			_sensor_bias_sub{ORB_ID(sensor_bias)};
 	uORB::SubscriptionData<vehicle_global_position_s>	_global_position_sub{ORB_ID(vehicle_global_position)};
 	uORB::SubscriptionData<vehicle_local_position_s>	_local_position_sub{ORB_ID(vehicle_local_position)};
 
 	// Publications
 	uORB::Publication<vehicle_control_mode_s>		_control_mode_pub{ORB_ID(vehicle_control_mode)};
-	uORB::PublicationData<home_position_s>			_home_pub{ORB_ID(home_position)};
 	uORB::Publication<vehicle_status_s>			_status_pub{ORB_ID(vehicle_status)};
 	uORB::Publication<actuator_armed_s>			_armed_pub{ORB_ID(actuator_armed)};
 	uORB::Publication<commander_state_s>			_commander_state_pub{ORB_ID(commander_state)};
 	uORB::Publication<vehicle_status_flags_s>		_vehicle_status_flags_pub{ORB_ID(vehicle_status_flags)};
+
+	uORB::PublicationData<home_position_s>			_home_pub{ORB_ID(home_position)};
 
 };
 
