@@ -262,7 +262,7 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
  * A non-zero, positive value specifies the time-out period in seconds after which the vehicle will be
  * automatically disarmed in case a landing situation has been detected during this period.
  *
- * A negative value means that automatic disarming triggered by landing detection is disabled.
+ * A zero or negative value means that automatic disarming triggered by landing detection is disabled.
  *
  * @group Commander
  * @unit s
@@ -277,7 +277,7 @@ PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
  * A non-zero, positive value specifies the time after arming, in seconds, within which the
  * vehicle must take off (after which it will automatically disarm).
  *
- * A negative value means that automatic disarming triggered by a pre-takeoff timeout is disabled.
+ * A zero or negative value means that automatic disarming triggered by a pre-takeoff timeout is disabled.
  *
  * @group Commander
  * @unit s
