@@ -256,6 +256,8 @@ rtps:
     id: 111
   - msg: vehicle_angular_velocity
     id: 112
+  - msg: vehicle_acceleration
+    id: 113
   # multi topics
   - msg: actuator_controls_0
     id: 120

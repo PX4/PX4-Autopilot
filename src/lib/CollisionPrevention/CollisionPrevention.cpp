@@ -103,81 +103,80 @@ void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle)
 {
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
 		distance_sensor_s distance_sensor;
+		_sub_distance_sensor[i].copy(&distance_sensor);
 
-		if (_sub_distance_sensor[i].update(&distance_sensor)) {
+		// consider only instaces with updated, valid data and orientations useful for collision prevention
+		if ((hrt_elapsed_time(&distance_sensor.timestamp) < RANGE_STREAM_TIMEOUT_US) &&
+		    (distance_sensor.orientation != distance_sensor_s::ROTATION_DOWNWARD_FACING) &&
+		    (distance_sensor.orientation != distance_sensor_s::ROTATION_UPWARD_FACING)) {
 
-			// consider only instaces with updated, valid data and orientations useful for collision prevention
-			if ((hrt_elapsed_time(&distance_sensor.timestamp) < RANGE_STREAM_TIMEOUT_US) &&
-			    (distance_sensor.orientation != distance_sensor_s::ROTATION_DOWNWARD_FACING) &&
-			    (distance_sensor.orientation != distance_sensor_s::ROTATION_UPWARD_FACING)) {
 
-				if (obstacle.increment > 0) {
-					// data from companion
-					obstacle.timestamp = math::max(obstacle.timestamp, distance_sensor.timestamp);
-					obstacle.max_distance = math::max((int)obstacle.max_distance,
-									  (int)distance_sensor.max_distance * 100);
-					obstacle.min_distance = math::min((int)obstacle.min_distance,
-									  (int)distance_sensor.min_distance * 100);
-					// since the data from the companion are already in the distances data structure,
-					// keep the increment that is sent
-					obstacle.angle_offset = 0.f; //companion not sending this field (needs mavros update)
+			if (obstacle.increment > 0) {
+				// data from companion
+				obstacle.timestamp = math::max(obstacle.timestamp, distance_sensor.timestamp);
+				obstacle.max_distance = math::max((int)obstacle.max_distance,
+								  (int)distance_sensor.max_distance * 100);
+				obstacle.min_distance = math::min((int)obstacle.min_distance,
+								  (int)distance_sensor.min_distance * 100);
+				// since the data from the companion are already in the distances data structure,
+				// keep the increment that is sent
+				obstacle.angle_offset = 0.f; //companion not sending this field (needs mavros update)
 
-				} else {
-					obstacle.timestamp = distance_sensor.timestamp;
-					obstacle.max_distance = distance_sensor.max_distance * 100; // convert to cm
-					obstacle.min_distance = distance_sensor.min_distance * 100; // convert to cm
-					memset(&obstacle.distances[0], 0xff, sizeof(obstacle.distances));
-					obstacle.increment = math::degrees(distance_sensor.h_fov);
-					obstacle.angle_offset = 0.f;
+			} else {
+				obstacle.timestamp = distance_sensor.timestamp;
+				obstacle.max_distance = distance_sensor.max_distance * 100; // convert to cm
+				obstacle.min_distance = distance_sensor.min_distance * 100; // convert to cm
+				memset(&obstacle.distances[0], 0xff, sizeof(obstacle.distances));
+				obstacle.increment = math::degrees(distance_sensor.h_fov);
+				obstacle.angle_offset = 0.f;
+			}
+
+			if ((distance_sensor.current_distance > distance_sensor.min_distance) &&
+			    (distance_sensor.current_distance < distance_sensor.max_distance)) {
+
+				float sensor_yaw_body_rad = _sensorOrientationToYawOffset(distance_sensor, obstacle.angle_offset);
+
+				matrix::Quatf attitude = Quatf(_sub_vehicle_attitude.get().q);
+				// convert the sensor orientation from body to local frame in the range [0, 360]
+				float sensor_yaw_local_deg  = math::degrees(wrap_2pi(Eulerf(attitude).psi() + sensor_yaw_body_rad));
+
+				// calculate the field of view boundary bin indices
+				int lower_bound = (int)floor((sensor_yaw_local_deg  - math::degrees(distance_sensor.h_fov / 2.0f)) /
+							     obstacle.increment);
+				int upper_bound = (int)floor((sensor_yaw_local_deg  + math::degrees(distance_sensor.h_fov / 2.0f)) /
+							     obstacle.increment);
+
+				// if increment is lower than 5deg, use an offset
+				const int distances_array_size = sizeof(obstacle.distances) / sizeof(obstacle.distances[0]);
+
+				if (((lower_bound < 0 || upper_bound < 0) || (lower_bound >= distances_array_size
+						|| upper_bound >= distances_array_size)) && obstacle.increment < 5.f) {
+					obstacle.angle_offset = sensor_yaw_local_deg ;
+					upper_bound  = abs(upper_bound - lower_bound);
+					lower_bound  = 0;
 				}
 
-				if ((distance_sensor.current_distance > distance_sensor.min_distance) &&
-				    (distance_sensor.current_distance < distance_sensor.max_distance)) {
+				// rotate vehicle attitude into the sensor body frame
+				matrix::Quatf attitude_sensor_frame = attitude;
+				attitude_sensor_frame.rotate(Vector3f(0.f, 0.f, sensor_yaw_body_rad));
+				float attitude_sensor_frame_pitch = cosf(Eulerf(attitude_sensor_frame).theta());
 
-					float sensor_yaw_body_rad = _sensorOrientationToYawOffset(distance_sensor, obstacle.angle_offset);
+				for (int bin = lower_bound; bin <= upper_bound; ++bin) {
+					int wrap_bin = bin;
 
-					matrix::Quatf attitude = Quatf(_sub_vehicle_attitude.get().q);
-					// convert the sensor orientation from body to local frame in the range [0, 360]
-					float sensor_yaw_local_deg  = math::degrees(wrap_2pi(Eulerf(attitude).psi() + sensor_yaw_body_rad));
-
-					// calculate the field of view boundary bin indices
-					int lower_bound = (int)floor((sensor_yaw_local_deg  - math::degrees(distance_sensor.h_fov / 2.0f)) /
-								     obstacle.increment);
-					int upper_bound = (int)floor((sensor_yaw_local_deg  + math::degrees(distance_sensor.h_fov / 2.0f)) /
-								     obstacle.increment);
-
-					// if increment is lower than 5deg, use an offset
-					const int distances_array_size = sizeof(obstacle.distances) / sizeof(obstacle.distances[0]);
-
-					if (((lower_bound < 0 || upper_bound < 0) || (lower_bound >= distances_array_size
-							|| upper_bound >= distances_array_size)) && obstacle.increment < 5.f) {
-						obstacle.angle_offset = sensor_yaw_local_deg ;
-						upper_bound  = abs(upper_bound - lower_bound);
-						lower_bound  = 0;
+					if (wrap_bin < 0) {
+						// wrap bin index around the array
+						wrap_bin = (int)floor(360.f / obstacle.increment) + bin;
 					}
 
-					// rotate vehicle attitude into the sensor body frame
-					matrix::Quatf attitude_sensor_frame = attitude;
-					attitude_sensor_frame.rotate(Vector3f(0.f, 0.f, sensor_yaw_body_rad));
-					float attitude_sensor_frame_pitch = cosf(Eulerf(attitude_sensor_frame).theta());
-
-					for (int bin = lower_bound; bin <= upper_bound; ++bin) {
-						int wrap_bin = bin;
-
-						if (wrap_bin < 0) {
-							// wrap bin index around the array
-							wrap_bin = (int)floor(360.f / obstacle.increment) + bin;
-						}
-
-						if (wrap_bin >= distances_array_size) {
-							// wrap bin index around the array
-							wrap_bin = bin - distances_array_size;
-						}
-
-						// compensate measurement for vehicle tilt and convert to cm
-						obstacle.distances[wrap_bin] = math::min((int)obstacle.distances[wrap_bin],
-									       (int)(100 * distance_sensor.current_distance * attitude_sensor_frame_pitch));
+					if (wrap_bin >= distances_array_size) {
+						// wrap bin index around the array
+						wrap_bin = bin - distances_array_size;
 					}
+
+					// compensate measurement for vehicle tilt and convert to cm
+					obstacle.distances[wrap_bin] = math::min((int)obstacle.distances[wrap_bin],
+								       (int)(100 * distance_sensor.current_distance * attitude_sensor_frame_pitch));
 				}
 			}
 		}
@@ -193,17 +192,13 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 	_updateOffboardObstacleDistance(obstacle);
 	_updateDistanceSensor(obstacle);
 
-	//The maximum velocity formula contains a square root, therefore the whole calculation is done with squared norms.
-	//that way the root does not have to be calculated for every range bin but once at the end.
 	float setpoint_length = setpoint.norm();
-	Vector2f setpoint_sqrd = setpoint * setpoint_length;
-
-	//Limit the deviation of the adapted setpoint from the originally given joystick input (slightly less than 90 degrees)
-	float max_slide_angle_rad = 0.5f;
 
 	if (hrt_elapsed_time(&obstacle.timestamp) < RANGE_STREAM_TIMEOUT_US) {
 		if (setpoint_length > 0.001f) {
 
+			Vector2f setpoint_dir = setpoint / setpoint_length;
+			float vel_max = setpoint_length;
 			int distances_array_size = sizeof(obstacle.distances) / sizeof(obstacle.distances[0]);
 
 			for (int i = 0; i < distances_array_size; i++) {
@@ -217,52 +212,28 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 						angle += math::radians(obstacle.angle_offset);
 					}
 
-					//split current setpoint into parallel and orthogonal components with respect to the current bin direction
+					//check if the bin must be considered regarding the given stick input
 					Vector2f bin_direction = {cos(angle), sin(angle)};
-					Vector2f orth_direction = {-bin_direction(1), bin_direction(0)};
-					float sp_parallel = setpoint_sqrd.dot(bin_direction);
-					float sp_orth = setpoint_sqrd.dot(orth_direction);
-					float curr_vel_parallel = math::max(0.f, curr_vel.dot(bin_direction));
 
-					//calculate max allowed velocity with a P-controller (same gain as in the position controller)
-					float delay_distance = curr_vel_parallel * _param_mpc_col_prev_dly.get();
-					float vel_max_posctrl = math::max(0.f,
-									  _param_mpc_xy_p.get() * (distance - _param_mpc_col_prev_d.get() - delay_distance));
-					float vel_max_sqrd = vel_max_posctrl * vel_max_posctrl;
+					if (setpoint_dir.dot(bin_direction) > 0
+					    && setpoint_dir.dot(bin_direction) > cosf(math::radians(_param_mpc_col_prev_ang.get()))) {
+						//calculate max allowed velocity with a P-controller (same gain as in the position controller)
+						float curr_vel_parallel = math::max(0.f, curr_vel.dot(bin_direction));
+						float delay_distance = curr_vel_parallel * _param_mpc_col_prev_dly.get();
+						float vel_max_posctrl = math::max(0.f,
+										  _param_mpc_xy_p.get() * (distance - _param_mpc_col_prev_d.get() - delay_distance));
+						Vector2f  vel_max_vec = bin_direction * vel_max_posctrl;
+						float vel_max_bin = vel_max_vec.dot(setpoint_dir);
 
-					//limit the setpoint to respect vel_max by subtracting from the parallel component
-					if (sp_parallel > vel_max_sqrd) {
-						Vector2f setpoint_temp = setpoint_sqrd - (sp_parallel - vel_max_sqrd) * bin_direction;
-						float setpoint_temp_length = setpoint_temp.norm();
-
-						//limit sliding angle
-						float angle_diff_temp_orig = acos(setpoint_temp.dot(setpoint) / (setpoint_temp_length * setpoint_length));
-						float angle_diff_temp_bin = acos(setpoint_temp.dot(bin_direction) / setpoint_temp_length);
-
-						if (angle_diff_temp_orig > max_slide_angle_rad && setpoint_temp_length > 0.001f) {
-							float angle_temp_bin_cropped = angle_diff_temp_bin - (angle_diff_temp_orig - max_slide_angle_rad);
-							float orth_len = vel_max_sqrd * tan(angle_temp_bin_cropped);
-
-							if (sp_orth > 0) {
-								setpoint_temp = vel_max_sqrd * bin_direction + orth_len * orth_direction;
-
-							} else {
-								setpoint_temp = vel_max_sqrd * bin_direction - orth_len * orth_direction;
-							}
+						//constrain the velocity
+						if (vel_max_bin >= 0) {
+							vel_max = math::min(vel_max, vel_max_bin);
 						}
-
-						setpoint_sqrd = setpoint_temp;
 					}
 				}
 			}
 
-			//take the squared root
-			if (setpoint_sqrd.norm() > 0.001f) {
-				setpoint = setpoint_sqrd / std::sqrt(setpoint_sqrd.norm());
-
-			} else {
-				setpoint.zero();
-			}
+			setpoint = setpoint_dir * vel_max;
 		}
 
 	} else {
