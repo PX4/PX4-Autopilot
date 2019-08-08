@@ -37,12 +37,8 @@
  * SPI interface for BMP280
  */
 
-#include <px4_config.h>
-
 #include "bmp280.h"
-#include <drivers/device/spi.h>
 
-#include "board_config.h"
 
 /* SPI protocol address bits */
 #define DIR_READ			(1<<7)  //for set
@@ -75,6 +71,8 @@ public:
 	int set_reg(uint8_t value, uint8_t addr);
 	bmp280::data_s *get_data(uint8_t addr);
 	bmp280::calibration_s *get_calibration(uint8_t addr);
+
+	uint32_t get_device_id() const override { return device::SPI::get_device_id(); }
 
 private:
 	spi_calibration_s _cal;

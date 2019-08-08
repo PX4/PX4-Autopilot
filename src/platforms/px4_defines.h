@@ -159,7 +159,7 @@ __END_DECLS
 #  if defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR)
 #    define PX4_ROOTFSDIR "/home/linaro"
 #  elif defined(__PX4_POSIX_BEBOP)
-#    define PX4_ROOTFSDIR "/data/ftp/internal_000"
+#    define PX4_ROOTFSDIR "/data/ftp/internal_000/px4"
 #  else
 #    define PX4_ROOTFSDIR "."
 #  endif

@@ -44,7 +44,6 @@ set(srcs
 	test_float.cpp
 	test_hott_telemetry.c
 	test_hrt.cpp
-	test_hysteresis.cpp
 	test_int.cpp
 	test_IntrusiveQueue.cpp
 	test_jig_voltages.c

@@ -128,8 +128,8 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 		{
 			"transition: init to reboot",
 			{ vehicle_status_s::ARMING_STATE_INIT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
-			vehicle_status_s::ARMING_STATE_REBOOT,
-			{ vehicle_status_s::ARMING_STATE_REBOOT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
+			vehicle_status_s::ARMING_STATE_SHUTDOWN,
+			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
 		},
 
 		{
@@ -149,8 +149,8 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 		{
 			"transition: standby to reboot",
 			{ vehicle_status_s::ARMING_STATE_STANDBY, ATT_DISARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
-			vehicle_status_s::ARMING_STATE_REBOOT,
-			{ vehicle_status_s::ARMING_STATE_REBOOT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
+			vehicle_status_s::ARMING_STATE_SHUTDOWN,
+			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
 		},
 
 		{
@@ -163,8 +163,8 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 		{
 			"transition: standby error to reboot",
 			{ vehicle_status_s::ARMING_STATE_STANDBY_ERROR, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
-			vehicle_status_s::ARMING_STATE_REBOOT,
-			{ vehicle_status_s::ARMING_STATE_REBOOT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
+			vehicle_status_s::ARMING_STATE_SHUTDOWN,
+			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
 		},
 
 		{
@@ -177,8 +177,8 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 		{
 			"transition: in air restore to reboot",
 			{ vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE, ATT_DISARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
-			vehicle_status_s::ARMING_STATE_REBOOT,
-			{ vehicle_status_s::ARMING_STATE_REBOOT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
+			vehicle_status_s::ARMING_STATE_SHUTDOWN,
+			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_CHANGED
 		},
 
 		// hil on tests, standby error to standby not normally allowed
@@ -227,7 +227,7 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 		{
 			"no transition: armed to reboot",
 			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED, ATT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
-			vehicle_status_s::ARMING_STATE_REBOOT,
+			vehicle_status_s::ARMING_STATE_SHUTDOWN,
 			{ vehicle_status_s::ARMING_STATE_ARMED, ATT_ARMED, ATT_READY_TO_ARM }, TRANSITION_DENIED
 		},
 
@@ -247,9 +247,9 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 
 		{
 			"no transition: reboot to armed",
-			{ vehicle_status_s::ARMING_STATE_REBOOT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
+			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, vehicle_status_s::HIL_STATE_OFF, ATT_SENSORS_INITIALIZED, ATT_SAFETY_AVAILABLE, ATT_SAFETY_ON,
 			vehicle_status_s::ARMING_STATE_ARMED,
-			{ vehicle_status_s::ARMING_STATE_REBOOT, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_DENIED
+			{ vehicle_status_s::ARMING_STATE_SHUTDOWN, ATT_DISARMED, ATT_NOT_READY_TO_ARM }, TRANSITION_DENIED
 		},
 
 		{
@@ -507,7 +507,8 @@ bool StateMachineHelperTest::mainStateTransitionTest()
 		struct vehicle_status_flags_s current_status_flags = {};
 
 		current_commander_state.main_state = test->from_state;
-		current_vehicle_status.is_rotary_wing = test->condition_bits & MTT_ROTARY_WING;
+		current_vehicle_status.vehicle_type = (test->condition_bits & MTT_ROTARY_WING) ?
+						      vehicle_status_s::VEHICLE_TYPE_ROTARY_WING : vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 		current_status_flags.condition_local_altitude_valid = test->condition_bits & MTT_LOC_ALT_VALID;
 		current_status_flags.condition_local_position_valid = test->condition_bits & MTT_LOC_POS_VALID;
 		current_status_flags.condition_home_position_valid = test->condition_bits & MTT_HOME_POS_VALID;

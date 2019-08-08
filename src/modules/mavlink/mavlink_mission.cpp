@@ -73,15 +73,11 @@ uint16_t MavlinkMissionManager::_safepoint_update_counter = 0;
 MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) :
 	_mavlink(mavlink)
 {
-	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
-	_mission_result_sub = orb_subscribe(ORB_ID(mission_result));
-
 	init_offboard_mission();
 }
 
 MavlinkMissionManager::~MavlinkMissionManager()
 {
-	orb_unsubscribe(_mission_result_sub);
 	orb_unadvertise(_offboard_mission_pub);
 }
 
@@ -273,7 +269,6 @@ MavlinkMissionManager::send_mission_ack(uint8_t sysid, uint8_t compid, uint8_t t
 
 	PX4_DEBUG("WPM: Send MISSION_ACK type %u to ID %u", wpa.type, wpa.target_system);
 }
-
 
 void
 MavlinkMissionManager::send_mission_current(uint16_t seq)
@@ -489,12 +484,9 @@ MavlinkMissionManager::send(const hrt_abstime now)
 		return;
 	}
 
-	bool updated = false;
-	orb_check(_mission_result_sub, &updated);
+	mission_result_s mission_result{};
 
-	if (updated) {
-		mission_result_s mission_result;
-		orb_copy(ORB_ID(mission_result), _mission_result_sub, &mission_result);
+	if (_mission_result_sub.update(&mission_result)) {
 
 		if (_current_seq != mission_result.seq_current) {
 			_current_seq = mission_result.seq_current;

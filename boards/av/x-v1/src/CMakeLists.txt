@@ -31,13 +31,13 @@
 #
 ############################################################################
 
-px4_add_library(drivers_board
+add_library(drivers_board
 	init.c
-	manifest.c
 	sdio.c
-	spi.c
+	spi.cpp
 	timer_config.c
 )
+
 target_link_libraries(drivers_board
 	PRIVATE
 		drivers__led # drv_led_start

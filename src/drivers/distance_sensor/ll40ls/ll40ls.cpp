@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,12 +51,6 @@
 #include <stdio.h>
 #include <px4_getopt.h>
 
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
-
-#define LL40LS_DEVICE_PATH_PWM  "/dev/ll40ls_pwm"
-
 enum LL40LS_BUS {
 	LL40LS_BUS_I2C_ALL = 0,
 	LL40LS_BUS_I2C_INTERNAL,
@@ -66,20 +60,19 @@ enum LL40LS_BUS {
 
 static constexpr struct ll40ls_bus_option {
 	enum LL40LS_BUS busid;
-	const char *devname;
 	uint8_t busnum;
 } bus_options[] = {
 #ifdef PX4_I2C_BUS_EXPANSION
-	{ LL40LS_BUS_I2C_EXTERNAL, "/dev/ll40ls_ext", PX4_I2C_BUS_EXPANSION },
+	{ LL40LS_BUS_I2C_EXTERNAL, PX4_I2C_BUS_EXPANSION },
 #endif
 #ifdef PX4_I2C_BUS_EXPANSION1
-	{ LL40LS_BUS_I2C_EXTERNAL, "/dev/ll40ls_ext1", PX4_I2C_BUS_EXPANSION1 },
+	{ LL40LS_BUS_I2C_EXTERNAL, PX4_I2C_BUS_EXPANSION1 },
 #endif
 #ifdef PX4_I2C_BUS_EXPANSION2
-	{ LL40LS_BUS_I2C_EXTERNAL, "/dev/ll40ls_ext2", PX4_I2C_BUS_EXPANSION2 },
+	{ LL40LS_BUS_I2C_EXTERNAL, PX4_I2C_BUS_EXPANSION2 },
 #endif
 #ifdef PX4_I2C_BUS_ONBOARD
-	{ LL40LS_BUS_I2C_INTERNAL, "/dev/ll40ls_int", PX4_I2C_BUS_ONBOARD },
+	{ LL40LS_BUS_I2C_INTERNAL, PX4_I2C_BUS_ONBOARD },
 #endif
 };
 
@@ -99,8 +92,6 @@ LidarLite *instance = nullptr;
 
 void    start(enum LL40LS_BUS busid, uint8_t rotation);
 void    stop();
-void    test();
-void    reset();
 void    info();
 void    regdump();
 void    usage();
@@ -110,15 +101,13 @@ void    usage();
  */
 void start(enum LL40LS_BUS busid, uint8_t rotation)
 {
-	int fd, ret;
-
 	if (instance) {
 		PX4_INFO("driver already started");
 		return;
 	}
 
 	if (busid == LL40LS_BUS_PWM) {
-		instance = new LidarLitePWM(LL40LS_DEVICE_PATH_PWM, rotation);
+		instance = new LidarLitePWM(rotation);
 
 		if (!instance) {
 			PX4_ERR("Failed to instantiate LidarLitePWM");
@@ -137,7 +126,7 @@ void start(enum LL40LS_BUS busid, uint8_t rotation)
 				continue;
 			}
 
-			instance = new LidarLiteI2C(bus_options[i].busnum, bus_options[i].devname, rotation);
+			instance = new LidarLiteI2C(bus_options[i].busnum, rotation);
 
 			if (!instance) {
 				PX4_ERR("Failed to instantiate LidarLiteI2C");
@@ -157,23 +146,6 @@ void start(enum LL40LS_BUS busid, uint8_t rotation)
 		PX4_WARN("No LidarLite found");
 		return;
 	}
-
-	fd = px4_open(instance->get_dev_name(), O_RDONLY);
-
-	if (fd == -1) {
-		PX4_ERR("Error opening fd");
-		stop();
-		return;
-	}
-
-	ret = px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT);
-	px4_close(fd);
-
-	if (ret < 0) {
-		PX4_ERR("pollrate fail");
-		stop();
-		return;
-	}
 }
 
 /**
@@ -183,110 +155,6 @@ void stop()
 {
 	delete instance;
 	instance = nullptr;
-}
-
-/**
- * @brief Performs some basic functional tests on the driver;
- *        make sure we can collect data from the sensor in polled
- *        and automatic modes.
- */
-void
-test()
-{
-	struct distance_sensor_s report;
-	ssize_t sz;
-	int ret;
-
-	if (!instance) {
-		PX4_ERR("No ll40ls driver running");
-		return;
-	}
-
-	int fd = px4_open(instance->get_dev_name(), O_RDONLY);
-
-	if (fd < 0) {
-		PX4_ERR("Error opening fd");
-		return;
-	}
-
-	/* Do a simple demand read. */
-	sz = px4_read(fd, &report, sizeof(report));
-
-	if (sz != sizeof(report)) {
-		PX4_ERR("immediate read failed");
-		return;
-	}
-
-	print_message(report);
-
-	/* Start the sensor polling at 2Hz. */
-	if (PX4_OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		PX4_ERR("failed to set 2Hz poll rate");
-		return;
-	}
-
-	/* Read the sensor 5 times and report each value. */
-	for (unsigned i = 0; i < 5; i++) {
-		px4_pollfd_struct_t fds;
-
-		/* Wait for data to be ready. */
-		fds.fd = fd;
-		fds.events = POLLIN;
-		ret = px4_poll(&fds, 1, 2000);
-
-		if (ret != 1) {
-			PX4_WARN("timed out waiting for sensor data");
-			return;
-		}
-
-		/* Now go get it. */
-		sz = px4_read(fd, &report, sizeof(report));
-
-		if (sz != sizeof(report)) {
-			PX4_WARN("periodic read failed");
-			return;
-		}
-
-		print_message(report);
-	}
-
-	/* Reset the sensor polling to default rate. */
-	if (PX4_OK != px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		PX4_WARN("failed to set default poll rate");
-	}
-
-	px4_close(fd);
-}
-
-/**
- * @brief Resets the driver.
- */
-void
-reset()
-{
-	if (!instance) {
-		PX4_WARN("No ll40ls driver running");
-		return;
-	}
-
-	int fd = px4_open(instance->get_dev_name(), O_RDONLY);
-
-	if (fd < 0) {
-		PX4_ERR("Error opening fd");
-		return;
-	}
-
-	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		PX4_ERR("driver reset failed");
-		px4_close(fd);
-		return;
-	}
-
-	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		PX4_ERR("driver poll restart failed");
-		px4_close(fd);
-		return;
-	}
 }
 
 /**
@@ -325,7 +193,7 @@ regdump()
 void
 usage()
 {
-	PX4_INFO("missing command: try 'start', 'stop', 'info', 'test', 'reset', 'info' or 'regdump' [i2c|pwm]");
+	PX4_INFO("missing command: try 'start', 'stop', 'info', 'info' or 'regdump' [i2c|pwm]");
 	PX4_INFO("options for I2C:");
 	PX4_INFO("    -X only external bus");
 #ifdef PX4_I2C_BUS_ONBOARD
@@ -396,12 +264,6 @@ ll40ls_main(int argc, char *argv[])
 		} else if (!strcmp(verb, "stop")) {
 			ll40ls::stop();
 
-		} else if (!strcmp(verb, "test")) {
-			ll40ls::test();
-
-		} else if (!strcmp(verb, "reset")) {
-			ll40ls::reset();
-
 		} else if (!strcmp(verb, "regdump")) {
 			ll40ls::regdump();
 
@@ -415,7 +277,7 @@ ll40ls_main(int argc, char *argv[])
 		return 0;
 	}
 
-	warnx("unrecognized command, try 'start', 'test', 'reset', 'info' or 'regdump'");
+	warnx("unrecognized command, try 'start', 'info' or 'regdump'");
 	ll40ls::usage();
 	return 0;
 }

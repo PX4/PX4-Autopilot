@@ -52,7 +52,8 @@ int test_tone(int argc, char *argv[])
 	tune_control_s tune_control = {};
 	tune_control.tune_id = static_cast<int>(TuneID::NOTIFY_NEGATIVE);
 
-	orb_advert_t tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+	orb_advert_t tune_control_pub = orb_advertise_queue(ORB_ID(tune_control), &tune_control,
+					tune_control_s::ORB_QUEUE_LENGTH);
 
 	if (argc == 1) {
 		PX4_INFO("Volume silenced for testing predefined tunes 0-20.");

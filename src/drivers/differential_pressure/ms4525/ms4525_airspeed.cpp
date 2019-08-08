@@ -49,22 +49,8 @@
  *    - Interfacing to MEAS Digital Pressure Modules (http://www.meas-spec.com/downloads/Interfacing_to_MEAS_Digital_Pressure_Modules.pdf)
  */
 
-#include <px4_config.h>
-#include <px4_getopt.h>
-
-#include <drivers/device/i2c.h>
-
-#include <systemlib/err.h>
-#include <parameters/param.h>
-#include <perf/perf_counter.h>
-
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
-
-#include <drivers/drv_airspeed.h>
-#include <drivers/drv_hrt.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/differential_pressure.h>
+#include <px4_getopt.h>
 #include <uORB/topics/system_power.h>
 
 #include <drivers/airspeed/airspeed.h>
@@ -99,9 +85,9 @@ protected:
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
 	*/
-	virtual void	cycle();
-	virtual int	measure();
-	virtual int	collect();
+	void	Run() override;
+	int	measure() override;
+	int	collect() override;
 
 	math::LowPassFilter2p	_filter{MEAS_RATE, MEAS_DRIVER_FILTER_FREQ};
 
@@ -238,7 +224,7 @@ MEASAirspeed::collect()
 }
 
 void
-MEASAirspeed::cycle()
+MEASAirspeed::Run()
 {
 	int ret;
 
@@ -261,14 +247,10 @@ MEASAirspeed::cycle()
 		/*
 		 * Is there a collect->measure gap?
 		 */
-		if (_measure_ticks > USEC2TICK(CONVERSION_INTERVAL)) {
+		if (_measure_interval > CONVERSION_INTERVAL) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&Airspeed::cycle_trampoline,
-				   this,
-				   _measure_ticks - USEC2TICK(CONVERSION_INTERVAL));
+			ScheduleDelayed(_measure_interval - CONVERSION_INTERVAL);
 
 			return;
 		}
@@ -287,11 +269,7 @@ MEASAirspeed::cycle()
 	_collect_phase = true;
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&Airspeed::cycle_trampoline,
-		   this,
-		   USEC2TICK(CONVERSION_INTERVAL));
+	ScheduleDelayed(CONVERSION_INTERVAL);
 }
 
 /**

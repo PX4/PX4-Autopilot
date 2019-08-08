@@ -95,7 +95,6 @@ void init_once();
 
 static void sig_int_handler(int sig_num);
 static void sig_fpe_handler(int sig_num);
-static void sig_segv_handler(int sig_num);
 
 static void register_sig_handler();
 static void set_cpu_scaling();
@@ -110,6 +109,7 @@ static bool dir_exists(const std::string &path);
 static bool file_exists(const std::string &name);
 static std::string file_basename(std::string const &pathname);
 static std::string pwd();
+static int change_directory(const std::string &directory);
 
 
 #ifdef __PX4_SITL_MAIN_OVERRIDE
@@ -182,13 +182,14 @@ int main(int argc, char **argv)
 		std::string data_path;
 		std::string commands_file = "etc/init.d/rcS";
 		std::string test_data_path;
+		std::string working_directory;
 		int instance = 0;
 
 		int myoptind = 1;
 		int ch;
 		const char *myoptarg = nullptr;
 
-		while ((ch = px4_getopt(argc, argv, "hdt:s:i:", &myoptind, &myoptarg)) != EOF) {
+		while ((ch = px4_getopt(argc, argv, "hdt:s:i:w:", &myoptind, &myoptarg)) != EOF) {
 			switch (ch) {
 			case 'h':
 				print_usage();
@@ -210,6 +211,10 @@ int main(int argc, char **argv)
 				instance = strtoul(myoptarg, nullptr, 10);
 				break;
 
+			case 'w':
+				working_directory = myoptarg;
+				break;
+
 			default:
 				PX4_ERR("unrecognized flag");
 				print_usage();
@@ -218,6 +223,15 @@ int main(int argc, char **argv)
 		}
 
 		PX4_DEBUG("instance: %i", instance);
+
+		// change the CWD befre setting up links and other directories
+		if (!working_directory.empty()) {
+			int ret = change_directory(working_directory);
+
+			if (ret != PX4_OK) {
+				return ret;
+			}
+		}
 
 		if (myoptind < argc) {
 			std::string optional_arg = argv[myoptind];
@@ -232,7 +246,6 @@ int main(int argc, char **argv)
 			PX4_INFO("PX4 daemon already running for instance %i (%s)", instance, strerror(errno));
 			return -1;
 		}
-
 
 		int ret = create_symlinks_if_needed(data_path);
 
@@ -384,7 +397,6 @@ int create_dirs()
 	return PX4_OK;
 }
 
-
 void register_sig_handler()
 {
 	// SIGINT
@@ -402,11 +414,6 @@ void register_sig_handler()
 	struct sigaction sig_pipe {};
 	sig_pipe.sa_handler = SIG_IGN;
 
-	// SIGSEGV
-	struct sigaction sig_segv {};
-	sig_segv.sa_handler = sig_segv_handler;
-	sig_segv.sa_flags = SA_RESTART | SA_SIGINFO;
-
 #ifdef __PX4_CYGWIN
 	// Do not catch SIGINT on Cygwin such that the process gets killed
 	// TODO: All threads should exit gracefully see https://github.com/PX4/Firmware/issues/11027
@@ -418,7 +425,6 @@ void register_sig_handler()
 	//sigaction(SIGTERM, &sig_int, nullptr);
 	sigaction(SIGFPE, &sig_fpe, nullptr);
 	sigaction(SIGPIPE, &sig_pipe, nullptr);
-	sigaction(SIGSEGV, &sig_segv, nullptr);
 }
 
 void sig_int_handler(int sig_num)
@@ -434,18 +440,9 @@ void sig_fpe_handler(int sig_num)
 {
 	fflush(stdout);
 	printf("\nfloating point exception\n");
-	PX4_BACKTRACE();
 	fflush(stdout);
 	px4_daemon::Pxh::stop();
 	_exit_requested = true;
-}
-
-void sig_segv_handler(int sig_num)
-{
-	fflush(stdout);
-	printf("\nSegmentation Fault\n");
-	PX4_BACKTRACE();
-	fflush(stdout);
 }
 
 void set_cpu_scaling()
@@ -560,14 +557,15 @@ void print_usage()
 {
 	printf("Usage for Server/daemon process: \n");
 	printf("\n");
-	printf("    px4 [-h|-d] [-s <startup_file>] [-t <test_data_directory>] [<rootfs_directory>] [-i <instance>]\n");
+	printf("    px4 [-h|-d] [-s <startup_file>] [-t <test_data_directory>] [<rootfs_directory>] [-i <instance>] [-w <working_directory>]\n");
 	printf("\n");
-	printf("    -s <startup_file>  shell script to be used as startup (default=etc/init.d/rcS)\n");
-	printf("    <rootfs_directory> directory where startup files and mixers are located,\n");
-	printf("                       (if not given, CWD is used)\n");
-	printf("    -i <instance>      px4 instance id to run multiple instances [0...N], default=0\n");
-	printf("    -h                 help/usage information\n");
-	printf("    -d                 daemon mode, don't start pxh shell\n");
+	printf("    -s <startup_file>      shell script to be used as startup (default=etc/init.d/rcS)\n");
+	printf("    <rootfs_directory>     directory where startup files and mixers are located,\n");
+	printf("                           (if not given, CWD is used)\n");
+	printf("    -i <instance>          px4 instance id to run multiple instances [0...N], default=0\n");
+	printf("    -w <working_directory> directory to change to\n");
+	printf("    -h                     help/usage information\n");
+	printf("    -d                     daemon mode, don't start pxh shell\n");
 	printf("\n");
 	printf("Usage for client: \n");
 	printf("\n");
@@ -641,4 +639,27 @@ std::string pwd()
 {
 	char temp[PATH_MAX];
 	return (getcwd(temp, PATH_MAX) ? std::string(temp) : std::string(""));
+}
+
+int change_directory(const std::string &directory)
+{
+	// create directory
+	if (!dir_exists(directory)) {
+		int ret = mkdir(directory.c_str(), S_IRWXU | S_IRWXG | S_IRWXO);
+
+		if (ret == -1) {
+			PX4_ERR("Error creating directory: %s (%s)", directory.c_str(), strerror(errno));
+			return -1;
+		}
+	}
+
+	// change directory
+	int ret = chdir(directory.c_str());
+
+	if (ret == -1) {
+		PX4_ERR("Error changing current path to: %s (%s)", directory.c_str(), strerror(errno));
+		return -1;
+	}
+
+	return PX4_OK;
 }

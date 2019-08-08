@@ -6,7 +6,7 @@ uint8 ARMING_STATE_INIT = 0
 uint8 ARMING_STATE_STANDBY = 1
 uint8 ARMING_STATE_ARMED = 2
 uint8 ARMING_STATE_STANDBY_ERROR = 3
-uint8 ARMING_STATE_REBOOT = 4
+uint8 ARMING_STATE_SHUTDOWN = 4
 uint8 ARMING_STATE_IN_AIR_RESTORE = 5
 uint8 ARMING_STATE_MAX = 6
 
@@ -49,6 +49,11 @@ uint8 RC_IN_MODE_DEFAULT = 0
 uint8 RC_IN_MODE_OFF = 1
 uint8 RC_IN_MODE_GENERATED = 2
 
+uint8 VEHICLE_TYPE_UNKNOWN = 0
+uint8 VEHICLE_TYPE_ROTARY_WING = 1
+uint8 VEHICLE_TYPE_FIXED_WING = 2
+uint8 VEHICLE_TYPE_ROVER = 3
+
 # state machine / state of vehicle.
 # Encodes the complete system state and is set by the commander app.
 
@@ -61,7 +66,9 @@ uint8 system_type			# system type, contains mavlink MAV_TYPE
 uint8 system_id			# system id, contains MAVLink's system ID field
 uint8 component_id			# subsystem / component id, contains MAVLink's component ID field
 
-bool is_rotary_wing			# True if system is in rotary wing configuration, so for a VTOL this is only true while flying as a multicopter
+uint8 vehicle_type          # Type of vehicle (fixed-wing, rotary wing, ground)
+                            # If the vehicle is a VTOL, then this value will be VEHICLE_TYPE_ROTARY_WING while flying as a multicopter,
+                            # and VEHICLE_TYPE_FIXED_WING when flying as a fixed-wing
 
 bool is_vtol				# True if the system is VTOL capable
 bool vtol_fw_permanent_stab		# True if VTOL should stabilize attitude for fw in manual mode
@@ -85,3 +92,11 @@ uint8 failure_detector_status			# Bitmask containing FailureDetector status [0, 
 uint32 onboard_control_sensors_present
 uint32 onboard_control_sensors_enabled
 uint32 onboard_control_sensors_health
+
+# airspeed fault and airspeed use status
+float32 arspd_check_level	# integrated airspeed inconsistency as checked against the COM_TAS_FS_INTEG parameter
+bool aspd_check_failing		# true when airspeed consistency checks are failing
+bool aspd_fault_declared	# true when an airspeed fault has been declared
+bool aspd_use_inhibit		# true if switching to a non-airspeed control mode has been requested
+bool aspd_fail_rtl		# true if airspeed failure invoked RTL has been requested
+float32 load_factor_ratio	# ratio of measured to aerodynamic load factor limit. Greater than 1 indicates airspeed low error condition.

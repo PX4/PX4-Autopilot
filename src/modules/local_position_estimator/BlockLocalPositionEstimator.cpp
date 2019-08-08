@@ -25,6 +25,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_armed(ORB_ID(actuator_armed), 1000 / 2, 0, &getSubscriptions()),
 	_sub_land(ORB_ID(vehicle_land_detected), 1000 / 2, 0, &getSubscriptions()),
 	_sub_att(ORB_ID(vehicle_attitude), 1000 / 100, 0, &getSubscriptions()),
+	_sub_angular_velocity(ORB_ID(vehicle_angular_velocity), 1000 / 100, 0, &getSubscriptions()),
 	// set flow max update rate higher than expected to we don't lose packets
 	_sub_flow(ORB_ID(optical_flow), 1000 / 100, 0, &getSubscriptions()),
 	// main prediction loop, 100 hz
@@ -47,14 +48,6 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_sonar(nullptr),
 	_sub_landing_target_pose(ORB_ID(landing_target_pose), 1000 / 40, 0, &getSubscriptions()),
 	_sub_airdata(ORB_ID(vehicle_air_data), 0, 0, &getSubscriptions()),
-
-	// publications
-	_pub_lpos(ORB_ID(vehicle_local_position), -1, &getPublications()),
-	_pub_gpos(ORB_ID(vehicle_global_position), -1, &getPublications()),
-	_pub_odom(ORB_ID(vehicle_odometry), -1, &getPublications()),
-	_pub_est_status(ORB_ID(estimator_status), -1, &getPublications()),
-	_pub_innov(ORB_ID(ekf2_innovations), -1, &getPublications()),
-
 	// map projection
 	_map_ref(),
 
@@ -210,7 +203,7 @@ void BlockLocalPositionEstimator::update()
 	if (!armedState && (_sub_lidar == nullptr || _sub_sonar == nullptr)) {
 		// detect distance sensors
 		for (size_t i = 0; i < N_DIST_SUBS; i++) {
-			uORB::Subscription<distance_sensor_s> *s = _dist_subs[i];
+			uORB::SubscriptionPollable<distance_sensor_s> *s = _dist_subs[i];
 
 			if (s == _sub_lidar || s == _sub_sonar) { continue; }
 
@@ -671,9 +664,9 @@ void BlockLocalPositionEstimator::publishOdom()
 		_pub_odom.get().vz = xLP(X_vz);		// vel down
 
 		// angular velocity
-		_pub_odom.get().rollspeed = _sub_att.get().rollspeed;	// roll rate
-		_pub_odom.get().pitchspeed = _sub_att.get().pitchspeed;	// pitch rate
-		_pub_odom.get().yawspeed = _sub_att.get().yawspeed;	// yaw rate
+		_pub_odom.get().rollspeed = _sub_angular_velocity.get().xyz[0]; // roll rate
+		_pub_odom.get().pitchspeed = _sub_angular_velocity.get().xyz[1]; // pitch rate
+		_pub_odom.get().yawspeed = _sub_angular_velocity.get().xyz[2]; // yaw rate
 
 		// get the covariance matrix size
 		const size_t POS_URT_SIZE = sizeof(_pub_odom.get().pose_covariance) / sizeof(_pub_odom.get().pose_covariance[0]);

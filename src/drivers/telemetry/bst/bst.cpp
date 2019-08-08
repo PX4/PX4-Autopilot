@@ -41,7 +41,7 @@
 
 #include <px4_config.h>
 #include <px4_getopt.h>
-#include <px4_workqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <drivers/device/i2c.h>
 #include <systemlib/err.h>
 #include <string.h>
@@ -111,7 +111,7 @@ struct BSTBattery {
 
 #pragma pack(pop)
 
-class BST : public device::I2C
+class BST : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
 	BST(int bus);
@@ -126,14 +126,12 @@ public:
 
 	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg) { return 0; }
 
-	work_s *work_ptr() { return &_work; }
-
 	void stop();
 
 	static void		start_trampoline(void *arg);
 
 private:
-	work_s			_work = {};
+
 	bool			_should_run = false;
 	unsigned		_interval = 100;
 	int				_gps_sub;
@@ -142,7 +140,7 @@ private:
 
 	void			start();
 
-	static void		cycle_trampoline(void *arg);
+	void			Run() override;
 
 	void			cycle();
 
@@ -196,19 +194,16 @@ private:
 static BST *g_bst = nullptr;
 
 BST::BST(int bus) :
-	I2C("bst", BST_DEVICE_PATH, bus, BST_ADDR
-#ifdef __PX4_NUTTX
-	    , 100000 /* maximum speed supported */
-#endif
-	   )
+	I2C("bst", BST_DEVICE_PATH, bus, BST_ADDR, 100000),
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id()))
 {
 }
 
 BST::~BST()
 {
-	_should_run = false;
+	ScheduleClear();
 
-	work_cancel(LPWORK, &_work);
+	_should_run = false;
 }
 
 int BST::probe()
@@ -248,39 +243,30 @@ int BST::probe()
 
 int BST::init()
 {
-	int ret;
-	ret = I2C::init();
+	int ret = I2C::init();
 
 	if (ret != OK) {
 		return ret;
 	}
 
-	work_queue(LPWORK, &_work, BST::start_trampoline, g_bst, 0);
+	ScheduleNow();
 
 	return OK;
 }
 
-void BST::start_trampoline(void *arg)
+void BST::Run()
 {
-	reinterpret_cast<BST *>(arg)->start();
-}
+	if (!_should_run) {
+		_should_run = true;
 
-void BST::start()
-{
-	_should_run = true;
+		_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
+		_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+		_battery_sub = orb_subscribe(ORB_ID(battery_status));
 
-	_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	_battery_sub = orb_subscribe(ORB_ID(battery_status));
+		set_device_address(0x00); // General call address
+	}
 
-	set_device_address(0x00);	// General call address
-
-	work_queue(LPWORK, &_work, BST::cycle_trampoline, this, 0);
-}
-
-void BST::cycle_trampoline(void *arg)
-{
-	reinterpret_cast<BST *>(arg)->cycle();
+	cycle();
 }
 
 void BST::cycle()
@@ -340,7 +326,7 @@ void BST::cycle()
 			}
 		}
 
-		work_queue(LPWORK, &_work, BST::cycle_trampoline, this, _interval);
+		ScheduleDelayed(_interval);
 	}
 }
 

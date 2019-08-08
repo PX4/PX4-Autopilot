@@ -1129,6 +1129,7 @@ PARAM_DEFINE_INT32(EKF2_RNG_AID, 0);
  * @group EKF2
  * @min 0.1
  * @max 2
+ * @unit m/s
  */
 PARAM_DEFINE_FLOAT(EKF2_RNG_A_VMAX, 1.0f);
 
@@ -1141,6 +1142,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_A_VMAX, 1.0f);
  * @group EKF2
  * @min 1.0
  * @max 10.0
+ * @unit m
  */
 PARAM_DEFINE_FLOAT(EKF2_RNG_A_HMAX, 5.0f);
 
@@ -1355,3 +1357,17 @@ PARAM_DEFINE_FLOAT(EKF2_GPS_TAU, 10.0f);
  * @decimal 1
  */
 PARAM_DEFINE_FLOAT(EKF2_MOVE_TEST, 1.0f);
+
+/**
+ * Required GPS health time on startup
+ *
+ * Minimum continuous period without GPS failure required to mark a healthy GPS status.
+ * It can be reduced to speed up initialization, but it's recommended to keep this unchanged for a vehicle.
+ *
+ * @group EKF2
+ * @min 0.1
+ * @decimal 1
+ * @unit s
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(EKF2_REQ_GPS_H, 10.0f);

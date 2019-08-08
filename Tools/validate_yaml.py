@@ -40,7 +40,7 @@ verbose = args.verbose
 def load_yaml_file(file_name):
     with open(file_name, 'r') as stream:
         try:
-            return yaml.load(stream)
+            return yaml.safe_load(stream)
         except yaml.YAMLError as exc:
             print(exc)
             raise
@@ -54,7 +54,7 @@ for yaml_file in yaml_files:
     if verbose: print("Validating {:}".format(yaml_file))
     document = load_yaml_file(yaml_file)
     # ignore top-level entries prefixed with __
-    for key in document.keys():
+    for key in list(document.keys()):
         if key.startswith('__'): del document[key]
 
     if not validator.validate(document):

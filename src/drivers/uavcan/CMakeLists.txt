@@ -45,6 +45,10 @@ if(CONFIG_ARCH_CHIP)
 	endif()
 endif()
 
+if(NOT DEFINED UAVCAN_PLATFORM)
+	message(FATAL_ERROR "UAVCAN_PLATFORM not set")
+endif()
+
 if(NOT config_uavcan_num_ifaces)
 	message(FATAL_ERROR "config_uavcan_num_ifaces not set")
 endif()

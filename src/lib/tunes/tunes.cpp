@@ -178,7 +178,7 @@ int Tunes::get_next_note(unsigned &frequency, unsigned &duration,
 		duration  = _duration;
 		frequency = _frequency;
 		silence   = _silence;
-		return TUNE_STOP;
+		return TUNE_CONTINUE;
 	}
 
 	// Make sure we still have a tune.

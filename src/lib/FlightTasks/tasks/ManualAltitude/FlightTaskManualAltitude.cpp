@@ -61,9 +61,9 @@ bool FlightTaskManualAltitude::updateInitialize()
 	return ret && PX4_ISFINITE(_position(2)) && PX4_ISFINITE(_velocity(2)) && PX4_ISFINITE(_yaw);
 }
 
-bool FlightTaskManualAltitude::activate()
+bool FlightTaskManualAltitude::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	bool ret = FlightTaskManual::activate();
+	bool ret = FlightTaskManual::activate(last_setpoint);
 	_yaw_setpoint = NAN;
 	_yawspeed_setpoint = 0.0f;
 	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, NAN); // altitude is controlled from position/velocity
@@ -345,10 +345,17 @@ void FlightTaskManualAltitude::_updateSetpoints()
 	_respectGroundSlowdown();
 }
 
+bool FlightTaskManualAltitude::_checkTakeoff()
+{
+	// stick is deflected above 65% throttle (_sticks(2) is in the range [-1,1])
+	return _sticks(2) < -0.3f;
+}
+
 bool FlightTaskManualAltitude::update()
 {
 	_scaleSticks();
 	_updateSetpoints();
+	_constraints.want_takeoff = _checkTakeoff();
 
 	return true;
 }

@@ -35,9 +35,12 @@ px4_add_module(
 	MAIN adis16497
 	STACK_MAIN 1200
 	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable	
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		ADIS16497.cpp
-		ADIS16497_gyro.cpp
-		ADIS16497_main.cpp
+		ADIS16497.hpp
+		adis16497_main.cpp
+	DEPENDS
+		drivers_accelerometer
+		drivers_gyroscope
 	)

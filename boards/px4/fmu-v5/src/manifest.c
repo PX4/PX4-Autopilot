@@ -90,23 +90,11 @@ static const px4_hw_mft_item_t hw_mft_list_v0540[] = {
 static px4_hw_mft_list_entry_t mft_lists[] = {
 	{0x0000, hw_mft_list_v0500, arraySize(hw_mft_list_v0500)},
 	{0x0105, hw_mft_list_v0500, arraySize(hw_mft_list_v0500)}, // Alias for CUAV V5 R:5 V:1
+	{0x0500, hw_mft_list_v0500, arraySize(hw_mft_list_v0500)}, // Alias for CUAV V5+ R:0 V:5
 	{0x0400, hw_mft_list_v0540, arraySize(hw_mft_list_v0540)},
+	{0x0600, hw_mft_list_v0540, arraySize(hw_mft_list_v0540)}, // Alias for CUAV V5nano R:0 V:6
 };
 
-
-/************************************************************************************
- * Name: board_rc_input
- *
- * Description:
- *   All boards my optionally provide this API to invert the Serial RC input.
- *   This is needed on SoCs that support the notion RXINV or TXINV as opposed to
- *   and external XOR controlled by a GPIO
- *
- ************************************************************************************/
-__EXPORT bool board_supports_single_wire(uint32_t uxart_base)
-{
-	return uxart_base == RC_UXART_BASE;
-}
 
 /************************************************************************************
  * Name: board_query_manifest
