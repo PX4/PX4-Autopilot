@@ -132,7 +132,7 @@ private:
 	actuator_controls_s               _actuator_controls {};
 	battery_status_s                  _battery_status {};
 	vehicle_control_mode_s            _control_mode {};
-	vehicle_acceleration_s           _vehicle_acceleration{};
+	vehicle_acceleration_s            _vehicle_acceleration{};
 	vehicle_attitude_s                _vehicle_attitude {};
 	vehicle_angular_velocity_s        _vehicle_angular_velocity{};
 	vehicle_local_position_s          _vehicle_local_position {};

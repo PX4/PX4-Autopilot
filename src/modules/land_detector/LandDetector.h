@@ -155,8 +155,6 @@ protected:
 
 	actuator_armed_s _actuator_armed {};
 
-	uORB::Subscription _param_update_sub{ORB_ID(parameter_update)};
-
 private:
 
 	void _check_params(bool force = false);
@@ -176,6 +174,7 @@ private:
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, "land_detector_cycle")};
 
 	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
+	uORB::Subscription _param_update_sub{ORB_ID(parameter_update)};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		ModuleParams,

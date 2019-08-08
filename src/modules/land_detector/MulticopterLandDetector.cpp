@@ -98,12 +98,7 @@ void MulticopterLandDetector::_update_topics()
 
 void MulticopterLandDetector::_update_params()
 {
-	parameter_update_s param_update;
-
-	if (_param_update_sub.update(&param_update)) {
-		_update_params();
-		_freefall_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _param_lndmc_ffall_ttri.get()));
-	}
+	_freefall_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _param_lndmc_ffall_ttri.get()));
 
 	param_get(_paramHandle.minThrottle, &_params.minThrottle);
 	param_get(_paramHandle.hoverThrottle, &_params.hoverThrottle);
