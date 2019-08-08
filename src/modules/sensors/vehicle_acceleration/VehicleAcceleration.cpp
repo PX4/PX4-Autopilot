@@ -80,7 +80,7 @@ VehicleAcceleration::Stop()
 	Deinit();
 
 	// clear all registered callbacks
-	for (auto sub : _sensor_sub) {
+	for (auto &sub : _sensor_sub) {
 		sub.unregister_callback();
 	}
 
@@ -131,7 +131,7 @@ VehicleAcceleration::SensorCorrectionsUpdate(bool force)
 		if ((_selected_sensor != corrections.selected_accel_instance) || force) {
 			if (corrections.selected_accel_instance < MAX_SENSOR_COUNT) {
 				// clear all registered callbacks
-				for (auto sub : _sensor_sub) {
+				for (auto &sub : _sensor_sub) {
 					sub.unregister_callback();
 				}
 
