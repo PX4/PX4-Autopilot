@@ -5044,6 +5044,76 @@ protected:
 	}
 };
 
+class MavlinkStreamGPSGlobalOrigin : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamGPSGlobalOrigin::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "GPS_GLOBAL_ORIGIN";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamGPSGlobalOrigin(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_GPS_GLOBAL_ORIGIN_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_local_pos_sub;
+
+	/* do not allow top copying this class */
+	MavlinkStreamGPSGlobalOrigin(MavlinkStreamGPSGlobalOrigin &) = delete;
+	MavlinkStreamGPSGlobalOrigin &operator = (const MavlinkStreamGPSGlobalOrigin &) = delete;
+
+protected:
+	explicit MavlinkStreamGPSGlobalOrigin(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_local_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position)))
+	{}
+
+	bool send(const hrt_abstime t)
+	{
+		vehicle_local_position_s pos = {};
+
+		if (_local_pos_sub->update(&pos)) {
+			if (pos.xy_global && pos.z_global) {
+				mavlink_gps_global_origin_t msg;
+
+				msg.latitude = pos.ref_lat * 1e7;
+				msg.longitude = pos.ref_lon * 1e7;
+				msg.altitude = pos.ref_alt * 1e3f;
+
+				msg.time_usec = pos.ref_timestamp;
+
+				mavlink_msg_gps_global_origin_send_struct(_mavlink->get_channel(), &msg);
+
+				return true;
+			}
+		}
+		
+
+		return false;
+	}
+};
+
 static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static, &MavlinkStreamHeartbeat::get_id_static),
 	StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static, &MavlinkStreamStatustext::get_id_static),
@@ -5103,7 +5173,8 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamGroundTruth::new_instance, &MavlinkStreamGroundTruth::get_name_static, &MavlinkStreamGroundTruth::get_id_static),
 	StreamListItem(&MavlinkStreamPing::new_instance, &MavlinkStreamPing::get_name_static, &MavlinkStreamPing::get_id_static),
 	StreamListItem(&MavlinkStreamOrbitStatus::new_instance, &MavlinkStreamOrbitStatus::get_name_static, &MavlinkStreamOrbitStatus::get_id_static),
-	StreamListItem(&MavlinkStreamObstacleDistance::new_instance, &MavlinkStreamObstacleDistance::get_name_static, &MavlinkStreamObstacleDistance::get_id_static)
+	StreamListItem(&MavlinkStreamObstacleDistance::new_instance, &MavlinkStreamObstacleDistance::get_name_static, &MavlinkStreamObstacleDistance::get_id_static),
+	StreamListItem(&MavlinkStreamGPSGlobalOrigin::new_instance, &MavlinkStreamGPSGlobalOrigin::get_name_static, &MavlinkStreamGPSGlobalOrigin::get_id_static)
 };
 
 const char *get_stream_name(const uint16_t msg_id)
