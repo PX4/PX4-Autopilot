@@ -43,6 +43,8 @@
 
 #define MOTOR_BIT(x) (1<<(x))
 
+using namespace time_literals;
+
 UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_node(node),
 	_uavcan_pub_raw_cmd(node),
@@ -234,11 +236,11 @@ void UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent &)
 uint8_t UavcanEscController::check_escs_status()
 {
 	int esc_status_flags = 0;
-
+	hrt_abstime now = hrt_absolute_time();
 
 	for (int index = 0; index < esc_status_s::CONNECTED_ESC_MAX; index++) {
 
-		if (_esc_status.esc[index].timestamp > 0 && hrt_elapsed_time(&_esc_status.esc[index].timestamp) < 800000.0f) {
+		if (_esc_status.esc[index].timestamp > 0 && now - _esc_status.esc[index].timestamp < 800_ms) {
 			esc_status_flags |= (1 << index);
 		}
 
