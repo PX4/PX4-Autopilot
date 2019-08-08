@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,7 +42,7 @@
 
 using namespace matrix;
 
-FlightTaskOrbit::FlightTaskOrbit()
+FlightTaskOrbit::FlightTaskOrbit() : _circle_approach_line(_position)
 {
 	_sticks_data_required = false;
 }
@@ -178,17 +178,20 @@ bool FlightTaskOrbit::update()
 	setRadius(r);
 	setVelocity(v);
 
-	// xy velocity to go around in a circle
 	Vector2f center_to_position = Vector2f(_position) - _center;
-	Vector2f velocity_xy(-center_to_position(1), center_to_position(0));
-	velocity_xy = velocity_xy.unit_or_zero();
-	velocity_xy *= _v;
+	const float distance_to_center = center_to_position.norm();
 
-	// xy velocity adjustment to stay on the radius distance
-	velocity_xy += (_r - center_to_position.norm()) * center_to_position.unit_or_zero();
+	// perpendicularly approach the orbit circle if further away than 3 meters
+	if (!_in_circle_approach && !math::isInRange(distance_to_center, _r - 3.f, _r + 3.f)) {
+		_in_circle_approach = true;
+	}
 
-	_velocity_setpoint(0) = velocity_xy(0);
-	_velocity_setpoint(1) = velocity_xy(1);
+	if (_in_circle_approach) {
+		generate_circle_approach_setpoints();
+
+	} else {
+		generate_circle_setpoints(center_to_position);
+	}
 
 	// make vehicle front always point towards the center
 	_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
@@ -199,4 +202,36 @@ bool FlightTaskOrbit::update()
 	sendTelemetry();
 
 	return true;
+}
+
+void FlightTaskOrbit::generate_circle_approach_setpoints()
+{
+	if (_circle_approach_line.isEndReached()) {
+		// calculate target point on circle and plan a line trajectory
+		Vector2f start_to_center = _center - Vector2f(_position);
+		Vector2f start_to_circle = (start_to_center.norm() - _r) * start_to_center.unit_or_zero();
+		Vector2f closest_circle_point = Vector2f(_position) + start_to_circle;
+		Vector3f target = Vector3f(closest_circle_point(0), closest_circle_point(1), _position(2));
+		_circle_approach_line.setLineFromTo(_position, target);
+		_circle_approach_line.setSpeed(_param_mpc_xy_cruise.get());
+	}
+
+	// follow the planned line and switch to orbiting once the circle is reached
+	_circle_approach_line.generateSetpoints(_position_setpoint, _velocity_setpoint);
+	_in_circle_approach = !_circle_approach_line.isEndReached();
+}
+
+void FlightTaskOrbit::generate_circle_setpoints(Vector2f center_to_position)
+{
+	// xy velocity to go around in a circle
+	Vector2f velocity_xy(-center_to_position(1), center_to_position(0));
+	velocity_xy = velocity_xy.unit_or_zero();
+	velocity_xy *= _v;
+
+	// xy velocity adjustment to stay on the radius distance
+	velocity_xy += (_r - center_to_position.norm()) * center_to_position.unit_or_zero();
+
+	_velocity_setpoint(0) = velocity_xy(0);
+	_velocity_setpoint(1) = velocity_xy(1);
+	_position_setpoint(0) = _position_setpoint(1) = NAN;
 }
