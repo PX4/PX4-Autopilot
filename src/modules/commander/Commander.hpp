@@ -65,6 +65,7 @@
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/esc_status.h>
 
 using math::constrain;
 
@@ -217,7 +218,7 @@ private:
 
 	void battery_status_check();
 
-	void esc_status_check();
+	void esc_status_check(const esc_status_s &esc_status);
 
 	/**
 	 * Checks the status of all available data links and handles switching between different system telemetry states.
