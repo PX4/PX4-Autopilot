@@ -150,7 +150,6 @@ static uint8_t _last_sp_man_arm_switch = 0;
 
 static struct vtol_vehicle_status_s vtol_status = {};
 static struct cpuload_s cpuload = {};
-static struct esc_status_s esc_status = {};
 
 static bool last_overload = false;
 
@@ -1624,8 +1623,10 @@ Commander::run()
 
 		if (esc_status_sub.updated()) {
 			/* ESCs status changed */
+			esc_status_s esc_status = {};
+
 			esc_status_sub.copy(&esc_status);
-			esc_status_check();
+			esc_status_check(esc_status);
 		}
 
 		estimator_check(&status_changed);
@@ -4366,7 +4367,7 @@ Commander::offboard_control_update(bool &status_changed)
 
 }
 
-void Commander::esc_status_check()
+void Commander::esc_status_check(const esc_status_s &esc_status)
 {
 	char esc_fail_msg[50];
 	esc_fail_msg[0] = '\0';
