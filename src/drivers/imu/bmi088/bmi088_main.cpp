@@ -185,6 +185,12 @@ bmi088_main(int argc, char *argv[])
 		}
 	}
 
+	if (myoptind >= argc) {
+		bmi088::usage();
+		exit(0);
+	}
+
+
 	const char *verb = argv[myoptind];
 
 	/*
