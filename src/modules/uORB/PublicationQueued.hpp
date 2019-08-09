@@ -59,7 +59,8 @@ public:
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
 	 */
 	PublicationQueued(const orb_metadata *meta) : _meta(meta) {}
-	~PublicationQueued() {
+	~PublicationQueued()
+	{
 		//orb_unadvertise(_handle);
 	}
 
