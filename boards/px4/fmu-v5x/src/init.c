@@ -182,6 +182,8 @@ stm32_boardinitialize(void)
 
 	stm32_usbinitialize();
 
+	VDD_3V3_ETH_POWER_EN(true);
+
 }
 
 /****************************************************************************
