@@ -55,6 +55,7 @@ public:
 	void            print_info();
 
 	void            print_registers();
+	void    Run() override;
 
 protected:
 
@@ -77,7 +78,6 @@ private:
 	 */
 	void		measure();
 
-	void		Run() override;
 
 	/**
 	 * Set the BMI088_gyro measurement range.

@@ -58,9 +58,10 @@ public:
 	void print_info();
 	void print_registers();
 
+	void Run(bool a);
+
 private:
 
-	void Run();
 
 	BMI088_Accelerometer	_accel;
 	BMI088_Gyroscope	_gyro;

@@ -140,10 +140,16 @@ BMI088_Gyroscope::reset()
 	px4_usleep(5000);
 
 #define BMI088_GYR_DRDY_INT_EN      (1<<7)
-#define BMI088_GYR_DRDY_INT1        (1<<0)
+#define BMI088_GYR_FIFO_INT_EN      (1<<6)
 
-	registerWrite(Register::GYRO_INT_CTRL, BMI088_GYR_DRDY_INT_EN);		// Enable DRDY interrupt
-	registerWrite(Register::INT3_INT4_IO_MAP, BMI088_GYR_DRDY_INT1);	// Map DRDY interrupt on pin INT1
+#define BMI088_GYR_FIFO_INT3        (1<<2)
+#define BMI088_GYR_DRDY_INT3        (1<<0)
+
+	registerWrite(Register::INT3_INT4_IO_MAP,
+		      BMI088_GYR_DRDY_INT3 | BMI088_GYR_FIFO_INT3);	// Map DRDY interrupt on pin INT3
+	registerWrite(Register::INT3_INT4_IO_CONF, 0);    // Push Pull Active Low
+	registerWrite(Register::GYRO_INT_CTRL, BMI088_GYR_DRDY_INT_EN | BMI088_GYR_FIFO_INT_EN);    // Enable DRDY interrupt
+
 
 	// TODO: flight test
 	//set_gyro_range(BMI088_GYRO_DEFAULT_RANGE_DPS);	// set Gyro range
@@ -329,6 +335,10 @@ BMI088_Gyroscope::check_registers()
 void
 BMI088_Gyroscope::Run()
 {
+	// Assuming sig is inactive
+	registerWrite(Register::INT3_INT4_IO_CONF, 0);    // Push Pull Active Low -> Set is hi
+	registerWrite(Register::INT3_INT4_IO_CONF, 1);    // Push Pull Active High -> Set is lo
+	registerWrite(Register::INT3_INT4_IO_CONF, 0);    // Push Pull Active Low -> Set is hi
 
 }
 

@@ -148,20 +148,26 @@ BMI088_Accelerometer::registerClearBits(Register reg, uint8_t clearbits)
 int
 BMI088_Accelerometer::reset()
 {
-	registerWrite(Register::ACC_SOFTRESET, 0xB6);	// Soft-reset
+
+	registerWrite(Register::ACC_SOFTRESET, 0xB6); // Soft-reset
+	px4_usleep(1000);
+
+	registerWrite(Register::ACC_PWR_CONF, 0x0); // low power disabled
 	px4_usleep(5000);
+
+	registerWrite(Register::ACC_PWR_CTRL, 0x04);
+	px4_usleep(5000);
+
 
 	registerWrite(Register::ACC_RANGE, 0x03);	// full 24G range
 
-	registerWrite(Register::ACC_PWR_CONF, 0x0);	// low power disabled
-	registerWrite(Register::ACC_PWR_CTRL, 0x04);
 
 	// configure FIFO
-	registerWrite(Register::FIFO_CONFIG_0, 0x00);
-	registerWrite(Register::FIFO_CONFIG_0, 0x50);
+	registerWrite(Register::FIFO_CONFIG_0, 1 << 1 | 1 << 0);
+	registerWrite(Register::FIFO_CONFIG_1, 1 << 6 | 1 << 4 |  1 << 2 | 0 << 1 | 0 << 0);
 
-	registerWrite(Register::INT1_IO_CONF, 0x8);		// Enable DRDY interrupt
-	registerWrite(Register::INT1_INT2_MAP_DATA, 0x1);	// Map DRDY interrupt on pin INT1
+	registerWrite(Register::INT1_INT2_MAP_DATA, 1 << 2);	// Map DRDY interrupt to pin INT1
+	registerWrite(Register::INT1_IO_CONF, 1 << 3);        // Enable DRDY interrupt Active Low
 
 	// TODO: flight test first
 	//set_accel_range(BMI088_ACCEL_DEFAULT_RANGE_G);	// set accel range
@@ -327,6 +333,9 @@ BMI088_Accelerometer::check_registers()
 void
 BMI088_Accelerometer::Run()
 {
+	registerWrite(Register::INT1_IO_CONF, 1 << 3 | 0 << 1);    // Enable DRDY interrupt Active Low ->  Set is hi
+	registerWrite(Register::INT1_IO_CONF, 1 << 3 | 1 << 1);    // Enable DRDY interrupt Active High ->  Set is Lo
+	registerWrite(Register::INT1_IO_CONF, 1 << 3 | 0 << 1);    // Enable DRDY interrupt Active Low ->  Set is hi
 
 }
 

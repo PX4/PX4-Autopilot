@@ -57,13 +57,17 @@ BMI088::init()
 	return PX4_OK;
 }
 
-static int data_ready_interrupt(int irq, void *context, void *arg)
+static int acc_data_ready_interrupt(int irq, void *context, void *arg)
 {
-	//BMI088 *dev = reinterpret_cast<BMI088 *>(arg);
+	static volatile int acc_count = 0;
+	acc_count++;
+	return PX4_OK;
+}
 
-	// make another measurement
-	//dev->ScheduleNow();
-
+static int gyro_data_ready_interrupt(int irq, void *context, void *arg)
+{
+	static volatile int gyro_count = 0;
+	gyro_count++;
 	return PX4_OK;
 }
 
@@ -71,21 +75,24 @@ bool
 BMI088::start()
 {
 
-#ifdef GPIO_SPI3_DRDY1_BMI088_INT1_ACCEL
-	// Setup data ready on rising edge
-	px4_arch_gpiosetevent(GPIO_SPI3_DRDY1_BMI088_INT1_ACCEL, true, false, true, &data_ready_interrupt, this);
-#endif // GPIO_SPI3_DRDY1_BMI088_INT1_ACCEL
-
-#ifdef GPIO_SPI3_DRDY2_BMI088_INT3_GYRO
-	// Setup data ready on rising edge
-	px4_arch_gpiosetevent(GPIO_SPI3_DRDY2_BMI088_INT3_GYRO, true, false, true, &data_ready_interrupt, this);
-#endif // GPIO_SPI3_DRDY2_BMI088_INT3_GYRO
-
 	// make sure we are stopped first
 	stop();
 
+#ifdef GPIO_SPI3_DRDY1_BMI088_INT1_ACCEL
+	// Setup data ready Interrupt on Falling edge for better noise immunity
+	px4_arch_gpiosetevent(GPIO_SPI3_DRDY1_BMI088_INT1_ACCEL, false, true, false, &acc_data_ready_interrupt, this);
+#endif // GPIO_SPI3_DRDY1_BMI088_INT1_ACCEL
+
+#ifdef GPIO_SPI3_DRDY2_BMI088_INT3_GYRO
+	// Setup data ready Interrupt on Falling edge for better noise immunity
+	px4_arch_gpiosetevent(GPIO_SPI3_DRDY2_BMI088_INT3_GYRO, false, true, false, &gyro_data_ready_interrupt, this);
+#endif // GPIO_SPI3_DRDY2_BMI088_INT3_GYRO
+
 	// start polling at the specified rate
 	//ScheduleOnInterval(BMI088_GYRO_DEFAULT_RATE - BMI088_TIMER_REDUCTION, 1000);
+	// make another measurement
+	Run(false);
+	Run(true);
 
 	return true;
 }
@@ -124,9 +131,11 @@ BMI088::print_registers()
 }
 
 void
-BMI088::Run()
+BMI088::Run(bool a)
 {
 
+
+	a ? _accel.Run() :   _gyro.Run();
 
 	// grab temperature from accel and set in gyro
 
