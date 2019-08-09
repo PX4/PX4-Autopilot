@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,8 +38,9 @@
 
 #pragma once
 
-#include <uORB/uORB.h>
+#include <px4_defines.h>
 #include <systemlib/err.h>
+#include <uORB/uORB.h>
 
 namespace uORB
 {
@@ -55,13 +56,9 @@ public:
 	/**
 	 * Constructor
 	 *
-	 * @param meta The uORB metadata (usually from
-	 * 	the ORB_ID() macro) for the topic.
-	 * @param priority The priority for multi pub/sub, 0-based, -1 means
-	 * 	don't publish as multi
+	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
 	 */
-	Publication(const orb_metadata *meta, uint8_t priority = 0) : _meta(meta), _priority(priority) {}
-
+	Publication(const orb_metadata *meta) : _meta(meta) {}
 	~Publication() { orb_unadvertise(_handle); }
 
 	/**
@@ -70,44 +67,29 @@ public:
 	 */
 	bool publish(const T &data)
 	{
-		bool updated = false;
-
 		if (_handle != nullptr) {
-			updated = (orb_publish(_meta, _handle, &data) == PX4_OK);
+			return (orb_publish(_meta, _handle, &data) == PX4_OK);
 
 		} else {
-			orb_advert_t handle = nullptr;
-
-			if (_priority > 0) {
-				int instance;
-				handle = orb_advertise_multi(_meta, &data, &instance, _priority);
-
-			} else {
-				handle = orb_advertise(_meta, &data);
-			}
+			orb_advert_t handle = orb_advertise(_meta, &data);
 
 			if (handle != nullptr) {
 				_handle = handle;
-				updated = true;
-
-			} else {
-				PX4_ERR("%s advert fail", _meta->o_name);
+				return true;
 			}
 		}
 
-		return updated;
+		return false;
 	}
 
 protected:
 	const orb_metadata *_meta;
 
 	orb_advert_t _handle{nullptr};
-
-	const uint8_t _priority;
 };
 
 /**
- * The publication class with data.
+ * The publication class with data embedded.
  */
 template<typename T>
 class PublicationData : public Publication<T>
@@ -116,11 +98,9 @@ public:
 	/**
 	 * Constructor
 	 *
-	 * @param meta The uORB metadata (usually from
-	 * 	the ORB_ID() macro) for the topic.
-	 * @param priority The priority for multi pub, 0-based.
+	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
 	 */
-	PublicationData(const orb_metadata *meta, int priority = -1) : Publication<T>(meta, priority) {}
+	PublicationData(const orb_metadata *meta) : Publication<T>(meta) {}
 	~PublicationData() = default;
 
 	T	&get() { return _data; }
