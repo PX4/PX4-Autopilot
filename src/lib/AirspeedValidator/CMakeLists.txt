@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,14 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE modules__wind_estimator
-	MAIN wind_estimator
-	INCLUDES
-		${PX4_SOURCE_DIR}/src/lib/ecl
-	SRCS
-		wind_estimator_main.cpp
-	DEPENDS
-		git_ecl
-		ecl_airdata
+
+px4_add_library(AirspeedValidator AirspeedValidator.cpp)
+
+target_include_directories(AirspeedValidator
+	PUBLIC
+	${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+target_link_libraries(AirspeedValidator PUBLIC ecl_airdata)

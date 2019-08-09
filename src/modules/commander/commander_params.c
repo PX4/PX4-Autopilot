@@ -926,3 +926,13 @@ PARAM_DEFINE_INT32(COM_ASPD_FS_DLY, 0);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLT_PROFILE, 0);
+
+/**
+ * Require all the ESCs to be detected to arm.
+ *
+ * This param is specific for ESCs reporting status. Normal ESCs configurations are not affected by the change of this param.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_ARM_CHK_ESCS, 1);

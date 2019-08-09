@@ -51,7 +51,7 @@
 #include <lib/parameters/param.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
-#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/optical_flow.h>
 
 /* Configuration Constants */
@@ -117,7 +117,7 @@ private:
 
 	bool changeMode(Mode newMode);
 
-	uORB::Publication<optical_flow_s> _optical_flow_pub{ORB_ID(optical_flow)};
+	uORB::PublicationMulti<optical_flow_s> _optical_flow_pub{ORB_ID(optical_flow)};
 
 	perf_counter_t	_sample_perf;
 	perf_counter_t	_interval_perf;

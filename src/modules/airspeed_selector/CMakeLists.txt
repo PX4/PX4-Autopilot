@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,47 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-if(NOT "${PX4_BOARD}" MATCHES "px4_io") # TODO: fix this hack (move uORB to platform layer)
-
-	# this includes the generated topics directory
-	include_directories(${CMAKE_CURRENT_BINARY_DIR})
-
-	px4_add_module(
-		MODULE modules__uORB
-		MAIN uorb
-		STACK_MAIN 2100
-		SRCS
-			ORBSet.hpp
-			Publication.hpp
-			PublicationMulti.hpp
-			PublicationQueued.hpp
-			Subscription.cpp
-			Subscription.hpp
-			SubscriptionCallback.hpp
-			SubscriptionInterval.hpp
-			SubscriptionPollable.cpp
-			SubscriptionPollable.hpp
-			uORB.cpp
-			uORB.h
-			uORBCommon.hpp
-			uORBCommunicator.hpp
-			uORBDeviceMaster.cpp
-			uORBDeviceMaster.hpp
-			uORBDeviceNode.cpp
-			uORBDeviceNode.hpp
-			uORBMain.cpp
-			uORBManager.cpp
-			uORBManager.hpp
-			uORBTopics.h
-			uORBUtils.cpp
-			uORBUtils.hpp
-		DEPENDS
-			cdev
-			uorb_msgs
-		)
-
-	if(PX4_TESTING)
-		add_subdirectory(uORB_tests)
-	endif()
-endif()
+px4_add_module(
+	MODULE modules__airspeed_selector
+	MAIN airspeed_selector
+	SRCS
+		airspeed_selector_main.cpp
+	DEPENDS
+		git_ecl
+		ecl_airdata
+		AirspeedValidator
+)
