@@ -323,13 +323,13 @@ MulticopterPositionControl::parameters_update(bool force)
 		if (_param_mpc_xy_cruise.get() > _param_mpc_xy_vel_max.get()) {
 			_param_mpc_xy_cruise.set(_param_mpc_xy_vel_max.get());
 			_param_mpc_xy_cruise.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Cruise speed has been constrained by max speed")
+			mavlink_log_critical(&_mavlink_log_pub, "Cruise speed has been constrained by max speed");
 		}
 
 		if (_param_mpc_vel_manual.get() > _param_mpc_xy_vel_max.get()) {
 			_param_mpc_vel_manual.set(_param_mpc_xy_vel_max.get());
 			_param_mpc_vel_manual.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed")
+			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed");
 		}
 
 		if (_param_mpc_thr_hover.get() > _param_mpc_thr_max.get() ||
@@ -337,7 +337,7 @@ MulticopterPositionControl::parameters_update(bool force)
 			_param_mpc_thr_hover.set(math::constrain(_param_mpc_thr_hover.get(), _param_mpc_thr_min.get(),
 						 _param_mpc_thr_max.get()));
 			_param_mpc_thr_hover.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max")
+			mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max");
 		}
 
 		_flight_tasks.handleParameterUpdate();
