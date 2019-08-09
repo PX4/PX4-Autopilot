@@ -34,8 +34,8 @@
 #include "BMI088.hpp"
 
 BMI088::BMI088(int bus, enum Rotation rotation) :
-	_accel{bus, PX4_SPIDEV_BMI088_GYR, rotation},
-	_gyro{bus, PX4_SPIDEV_BMI088_ACC, rotation}
+	_accel{bus, PX4_SPIDEV_BMI088_ACC, rotation},
+	_gyro{bus, PX4_SPIDEV_BMI088_GYR, rotation}
 {
 }
 

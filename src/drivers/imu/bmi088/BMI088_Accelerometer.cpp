@@ -96,12 +96,20 @@ BMI088_Accelerometer::init()
 uint8_t
 BMI088_Accelerometer::registerRead(Register reg)
 {
-	uint8_t cmd[2] {};
+
+	/* 6.1.2 SPI interface of accelerometer part
+	 *
+	 * In case of read operations of the accelerometer part, the requested data
+	 * is not sent immediately, but instead first a dummy byte is sent, and
+	 * after this dummy byte the actual requested register content is transmitted.
+	 */
+
+	uint8_t cmd[3] {};
 	cmd[0] = static_cast<uint8_t>(reg) | DIR_READ;
 
 	transfer(cmd, cmd, sizeof(cmd));
 
-	return cmd[1];
+	return cmd[2];
 }
 
 void
@@ -185,6 +193,20 @@ BMI088_Accelerometer::reset()
 int
 BMI088_Accelerometer::probe()
 {
+	/* 6.1 Serial Peripheral Interface (SPI)
+	 * ... the accelerometer part starts always in I2C mode
+	 * (regardless of the level of the PS pin) and needs to be changed to SPI
+	 *  mode actively by sending a rising edge on the CSB1 pin
+	 *  (chip select of the accelerometer), on which the accelerometer part
+	 *  switches to SPI mode and stays in this mode until the next power-up-reset.
+	 *
+	 *  To change the sensor to SPI mode in the initialization phase, the user
+	 *  could perfom a dummy SPI read operation, e.g. of register ACC_CHIP_ID
+	 *  (the obtained value will be invalid).In case of read operations,
+	 */
+
+	(void) registerRead(Register::ACC_CHIP_ID);
+
 	// look for device ID
 	uint8_t whoami = registerRead(Register::ACC_CHIP_ID);
 

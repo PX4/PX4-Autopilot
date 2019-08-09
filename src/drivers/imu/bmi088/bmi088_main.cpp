@@ -153,8 +153,6 @@ usage()
 	warnx("options:");
 	warnx("    -X    (external bus)");
 	warnx("    -R    rotation");
-	warnx("    -A    (Enable Accelerometer)");
-	warnx("    -G    (Enable Gyroscope)");
 }
 
 } // namespace bmi088
@@ -169,7 +167,7 @@ bmi088_main(int argc, char *argv[])
 	const char *myoptarg = NULL;
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = px4_getopt(argc, argv, "XR:AG", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "XR:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
 			external_bus = true;
