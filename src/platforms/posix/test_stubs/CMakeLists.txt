@@ -31,8 +31,11 @@
 #
 ############################################################################
 
-add_subdirectory(common)
+set(SRCS
+    stub_daemon.cpp
+    stub_devmgr.cpp
+    stub_parameter.cpp
+   )
 
-if (${PX4_PLATFORM} STREQUAL "posix" AND BUILD_TESTING)
-	add_subdirectory(posix/test_stubs)
-endif()
+px4_add_library(test_stubs ${SRCS})
+message("-- ADDING TEST STUBS")
