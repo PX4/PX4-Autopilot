@@ -45,6 +45,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <matrix/math.hpp>
 
 namespace land_detector
 {
@@ -59,7 +60,7 @@ FixedwingLandDetector::FixedwingLandDetector()
 void FixedwingLandDetector::_update_topics()
 {
 	_airspeed_sub.update(&_airspeed);
-	_sensor_bias_sub.update(&_sensor_bias);
+	_vehicle_acceleration_sub.update(&_vehicle_acceleration);
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
 }
 
@@ -110,8 +111,8 @@ bool FixedwingLandDetector::_get_landed_state()
 
 		// A leaking lowpass prevents biases from building up, but
 		// gives a mostly correct response for short impulses.
-		const float acc_hor = sqrtf(_sensor_bias.accel_x * _sensor_bias.accel_x +
-					    _sensor_bias.accel_y * _sensor_bias.accel_y);
+		const matrix::Vector3f accel{_vehicle_acceleration.xyz};
+		const float acc_hor = sqrtf(accel(0) * accel(0) + accel(1) * accel(1));
 
 		_accel_horz_lp = _accel_horz_lp * 0.8f + acc_hor * 0.18f;
 
