@@ -803,7 +803,7 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 		_tecs.reset_state();
 	}
 
-	if (_control_mode.flag_control_auto_enabled && pos_sp_curr.valid) {
+	if ((_control_mode.flag_control_auto_enabled || _control_mode.flag_control_offboard_enabled) && pos_sp_curr.valid) {
 		/* AUTONOMOUS FLIGHT */
 
 		_control_mode_current = FW_POSCTRL_MODE_AUTO;
@@ -1726,6 +1726,18 @@ FixedwingPositionControl::Run()
 		Vector2f curr_pos((float)_global_pos.lat, (float)_global_pos.lon);
 		Vector2f ground_speed(_global_pos.vel_n, _global_pos.vel_e);
 
+		//Convert Local setpoints to global setpoints
+		if (_control_mode.flag_control_offboard_enabled) {
+			if (!globallocalconverter_initialized()) {
+				globallocalconverter_init(_local_pos.ref_lat, _local_pos.ref_lon,
+							  _local_pos.ref_alt, _local_pos.ref_timestamp);
+
+			} else {
+				globallocalconverter_toglobal(_pos_sp_triplet.current.x, _pos_sp_triplet.current.y, _pos_sp_triplet.current.z,
+							      &_pos_sp_triplet.current.lat, &_pos_sp_triplet.current.lon, &_pos_sp_triplet.current.alt);
+			}
+		}
+
 		/*
 		 * Attempt to control position, on success (= sensors present and not in manual mode),
 		 * publish setpoint.
@@ -1746,7 +1758,7 @@ FixedwingPositionControl::Run()
 			q.copyTo(_att_sp.q_d);
 			_att_sp.q_d_valid = true;
 
-			if (!_control_mode.flag_control_offboard_enabled ||
+			if (_control_mode.flag_control_offboard_enabled ||
 			    _control_mode.flag_control_position_enabled ||
 			    _control_mode.flag_control_velocity_enabled ||
 			    _control_mode.flag_control_acceleration_enabled) {
@@ -1905,6 +1917,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 	/* tell TECS to update its state, but let it know when it cannot actually control the plane */
 	bool in_air_alt_control = (!_vehicle_land_detected.landed &&
 				   (_control_mode.flag_control_auto_enabled ||
+				    _control_mode.flag_control_offboard_enabled ||
 				    _control_mode.flag_control_velocity_enabled ||
 				    _control_mode.flag_control_altitude_enabled));
 
