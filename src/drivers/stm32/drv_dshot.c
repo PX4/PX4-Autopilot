@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  * Copyright (C) 2019 PX4 Development Team. All rights reserved.
- * Author: Igor Mišić <igy1000mb@gmail.com>
+ * Author: Igor Misic <igy1000mb@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,23 +40,66 @@
 #include <stm32_dma.h>
 #include <stm32_tim.h>
 #include "drv_dshot.h"
-#include "drv_io_timer.h"
 #include <drivers/drv_pwm_output.h>
 
-#define DSHOT_DMA_BASE		STM32_DMA2_BASE
-#define REG(_reg)			(*(volatile uint32_t *)(DSHOT_DMA_BASE + _reg))
+#define REG(_tmr, _reg)			(*(volatile uint32_t *)(dshot_config[_tmr].dma_base + _reg))
 
 /* DMA registers */
-#define rHIFCR			REG(STM32_DMA_HIFCR_OFFSET)
-#define rS5CR			REG(STM32_DMA_S5CR_OFFSET)
-#define rS5NDTR			REG(STM32_DMA_S5NDTR_OFFSET)
-#define rS5PAR			REG(STM32_DMA_S5PAR_OFFSET)
-#define rS5M0AR			REG(STM32_DMA_S5M0AR_OFFSET)
-#define rS5FCR			REG(STM32_DMA_S5FCR_OFFSET)
+#define rLIFCR(_tmr)		REG(_tmr, STM32_DMA_LIFCR_OFFSET)
+#define rHIFCR(_tmr)		REG(_tmr, STM32_DMA_HIFCR_OFFSET)
+
+#define rS0CR(_tmr)			REG(_tmr, STM32_DMA_S0CR_OFFSET)
+#define rS0NDTR(_tmr)		REG(_tmr, STM32_DMA_S0NDTR_OFFSET)
+#define rS0PAR(_tmr)		REG(_tmr, STM32_DMA_S0PAR_OFFSET)
+#define rS0M0AR(_tmr)		REG(_tmr, STM32_DMA_S0M0AR_OFFSET)
+#define rS0FCR(_tmr)		REG(_tmr, STM32_DMA_S0FCR_OFFSET)
+
+#define rS1CR(_tmr)			REG(_tmr, STM32_DMA_S1CR_OFFSET)
+#define rS1NDTR(_tmr)		REG(_tmr, STM32_DMA_S1NDTR_OFFSET)
+#define rS1PAR(_tmr)		REG(_tmr, STM32_DMA_S1PAR_OFFSET)
+#define rS1M0AR(_tmr)		REG(_tmr, STM32_DMA_S1M0AR_OFFSET)
+#define rS1FCR(_tmr)		REG(_tmr, STM32_DMA_S1FCR_OFFSET)
+
+#define rS2CR(_tmr)			REG(_tmr, STM32_DMA_S2CR_OFFSET)
+#define rS2NDTR(_tmr)		REG(_tmr, STM32_DMA_S2NDTR_OFFSET)
+#define rS2PAR(_tmr)		REG(_tmr, STM32_DMA_S2PAR_OFFSET)
+#define rS2M0AR(_tmr)		REG(_tmr, STM32_DMA_S2M0AR_OFFSET)
+#define rS2FCR(_tmr)		REG(_tmr, STM32_DMA_S2FCR_OFFSET)
+
+#define rS3CR(_tmr)			REG(_tmr, STM32_DMA_S3CR_OFFSET)
+#define rS3NDTR(_tmr)		REG(_tmr, STM32_DMA_S3NDTR_OFFSET)
+#define rS3PAR(_tmr)		REG(_tmr, STM32_DMA_S3PAR_OFFSET)
+#define rS3M0AR(_tmr)		REG(_tmr, STM32_DMA_S3M0AR_OFFSET)
+#define rS3FCR(_tmr)		REG(_tmr, STM32_DMA_S3FCR_OFFSET)
+
+#define rS4CR(_tmr)			REG(_tmr, STM32_DMA_S4CR_OFFSET)
+#define rS4NDTR(_tmr)		REG(_tmr, STM32_DMA_S4NDTR_OFFSET)
+#define rS4PAR(_tmr)		REG(_tmr, STM32_DMA_S4PAR_OFFSET)
+#define rS4M0AR(_tmr)		REG(_tmr, STM32_DMA_S4M0AR_OFFSET)
+#define rS4FCR(_tmr)		REG(_tmr, STM32_DMA_S4FCR_OFFSET)
+
+#define rS5CR(_tmr)			REG(_tmr, STM32_DMA_S5CR_OFFSET)
+#define rS5NDTR(_tmr)		REG(_tmr, STM32_DMA_S5NDTR_OFFSET)
+#define rS5PAR(_tmr)		REG(_tmr, STM32_DMA_S5PAR_OFFSET)
+#define rS5M0AR(_tmr)		REG(_tmr, STM32_DMA_S5M0AR_OFFSET)
+#define rS5FCR(_tmr)		REG(_tmr, STM32_DMA_S5FCR_OFFSET)
+
+#define rS6CR(_tmr)			REG(_tmr, STM32_DMA_S6CR_OFFSET)
+#define rS6NDTR(_tmr)		REG(_tmr, STM32_DMA_S6NDTR_OFFSET)
+#define rS6PAR(_tmr)		REG(_tmr, STM32_DMA_S6PAR_OFFSET)
+#define rS6M0AR(_tmr)		REG(_tmr, STM32_DMA_S6M0AR_OFFSET)
+#define rS6FCR(_tmr)		REG(_tmr, STM32_DMA_S6FCR_OFFSET)
+
+#define rS7CR(_tmr)			REG(_tmr, STM32_DMA_S7CR_OFFSET)
+#define rS7NDTR(_tmr)		REG(_tmr, STM32_DMA_S7NDTR_OFFSET)
+#define rS7PAR(_tmr)		REG(_tmr, STM32_DMA_S7PAR_OFFSET)
+#define rS7M0AR(_tmr)		REG(_tmr, STM32_DMA_S7M0AR_OFFSET)
+#define rS7FCR(_tmr)		REG(_tmr, STM32_DMA_S7FCR_OFFSET)
 
 #define MOTOR_PWM_BIT_1				14u
 #define MOTOR_PWM_BIT_0				7u
-#define MOTORS_NUMBER				4u
+#define DSHOT_TIMERS				MAX_IO_TIMERS
+#define MOTORS_NUMBER				MAX_TIMER_IO_CHANNELS
 #define ONE_MOTOR_DATA_SIZE			16u
 #define ONE_MOTOR_BUFF_SIZE			18u
 #define ALL_MOTORS_BUF_SIZE			(MOTORS_NUMBER * ONE_MOTOR_BUFF_SIZE)
@@ -66,61 +109,209 @@
 #define DSHOT_NUMBER_OF_NIBBLES		3u
 #define ARMING_REPETITION			1000u
 
-uint32_t motorBuffer[MOTORS_NUMBER][ONE_MOTOR_BUFF_SIZE] = {0};
-uint32_t dshotBurstBuffer[ALL_MOTORS_BUF_SIZE] = {0};
+typedef struct dshot_handler_t {
+	bool			init;
+	uint8_t			motors_number;
+}dshot_handler_t;
 
-void dshot_dmar_data_prepare(void);
+dshot_handler_t dshot_handler[DSHOT_TIMERS] = {0};
+uint32_t motor_buffer[MOTORS_NUMBER][ONE_MOTOR_BUFF_SIZE] = {0};
+uint32_t dshot_burst_buffer[DSHOT_TIMERS][ALL_MOTORS_BUF_SIZE] = {0};
+
+void dshot_dmar_data_prepare(uint8_t timer, uint8_t first_motor, uint8_t motors_number);
+int dshot_setup_stream_registers(uint32_t timer);
 
 int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 {
-	int retVal = ERROR;
+	int ret_val = OK;
+
+	uint8_t timer;
+
 	/* Init channels */
-	unsigned used_channel;
-	for (unsigned channel = 0; channel_mask != 0 &&  channel < MAX_TIMER_IO_CHANNELS; channel++) {
+	for (unsigned channel = 0; (channel_mask != 0) &&  (channel < MAX_TIMER_IO_CHANNELS) && (OK == ret_val); channel++) {
 		if (channel_mask & (1 << channel)) {
 
-			// First free any that were not dshot mode before
+			// First free any that were not DShot mode before
 			if (-EBUSY == io_timer_is_channel_free(channel)) {
 				io_timer_free_channel(channel);
 			}
 
-			io_timer_channel_init(channel, IOTimerChanMode_Dshot, NULL, NULL);
-			channel_mask &= ~(1 << channel);
-			used_channel = channel;
-			retVal = OK;
+			int success = io_timer_channel_init(channel, IOTimerChanMode_Dshot, NULL, NULL);
+
+			if (OK == success ){
+				channel_mask &= ~(1 << channel);
+				timer = timer_io_channels[channel].timer_index;
+				dshot_handler[timer].init = true;
+				(dshot_handler[timer].motors_number)++;
+			} else {
+				ret_val = ERROR;
+			}
 		}
 	}
 
-	if (OK == retVal) {
-		//Pass one channel to get a timer. In this iteration, only one timer can work as Dshot.
-		//TODO: add support for multiple timer Dshot capabilities.
-		io_timer_set_dshot_mode(used_channel, dshot_pwm_freq);
+	for (uint8_t timer_index = 0; (timer_index < DSHOT_TIMERS) && (OK == ret_val); timer_index++) {
 
+		if (true == dshot_handler[timer_index].init) {
+			io_timer_set_dshot_mode(timer_index, dshot_pwm_freq, dshot_handler[timer_index].motors_number);
+			ret_val = dshot_setup_stream_registers(timer_index);
+		}
+	}
+	return ret_val;
+}
 
-		/* DMA setup stream 5*/
-		rS5CR |= DMA_SCR_CHSEL(0x6); /* Channel 6 */
-		rS5CR |= DMA_SCR_PRIHI;
-		rS5CR |= DMA_SCR_MSIZE_32BITS;
-		rS5CR |= DMA_SCR_PSIZE_32BITS;
-		rS5CR |= DMA_SCR_MINC;
-		rS5CR |= DMA_SCR_DIR_M2P;
-		rS5CR |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
+int dshot_setup_stream_registers(uint32_t timer)
+{
+	int ret_val = OK;
 
-		rS5PAR  = STM32_TIM1_DMAR;
-		rS5M0AR = (uint32_t)dshotBurstBuffer;
+	switch (dshot_config[timer].stream) {
+		case DShot_Stream0:
+			rS0CR(timer) |= DMA_SCR_CHSEL(dshot_config[timer].channel);
+			rS0CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
+			rS0CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
+			rS0PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
+			rS0M0AR(timer) = (uint32_t)&(dshot_burst_buffer[timer]);
+			rS0FCR(timer) &= 0x0;  /* Disable FIFO */
+			break;
 
-		rS5FCR &= 0x0;  /* Disable FIFO */
+		case DShot_Stream1:
+			rS1CR(timer) |= DMA_SCR_CHSEL(dshot_config[timer].channel);
+			rS1CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
+			rS1CR(timer) |= DMA_SCR_DIR_M2P;
+			rS1CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
+			rS1PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
+			rS1M0AR(timer) = (uint32_t)&(dshot_burst_buffer[timer]);
+			rS1FCR(timer) &= 0x0;  /* Disable FIFO */
+			break;
+
+		case DShot_Stream2:
+			rS2CR(timer) |= DMA_SCR_CHSEL(dshot_config[timer].channel);
+			rS2CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
+			rS2CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
+			rS2PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
+			rS2M0AR(timer) = (uint32_t)&(dshot_burst_buffer[timer]);
+			rS2FCR(timer) &= 0x0;  /* Disable FIFO */
+			break;
+
+		case DShot_Stream3:
+			rS3CR(timer) |= DMA_SCR_CHSEL(dshot_config[timer].channel);
+			rS3CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
+			rS3CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
+			rS3PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
+			rS3M0AR(timer) = (uint32_t)&(dshot_burst_buffer[timer]);
+			rS3FCR(timer) &= 0x0;  /* Disable FIFO */
+			break;
+
+		case DShot_Stream4:
+			rS4CR(timer) |= DMA_SCR_CHSEL(dshot_config[timer].channel);
+			rS4CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
+			rS4CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
+			rS4PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
+			rS4M0AR(timer) = (uint32_t)&(dshot_burst_buffer[timer]);
+			rS4FCR(timer) &= 0x0;  /* Disable FIFO */
+			break;
+
+		case DShot_Stream5:
+			rS5CR(timer) |= DMA_SCR_CHSEL(dshot_config[timer].channel);
+			rS5CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
+			rS5CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
+			rS5PAR(timer)  =  io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
+			rS5M0AR(timer) = (uint32_t)&(dshot_burst_buffer[timer]);
+			rS5FCR(timer) &= 0x0;  /* Disable FIFO */
+			break;
+
+		case DShot_Stream6:
+			rS6CR(timer) |= DMA_SCR_CHSEL(dshot_config[timer].channel);
+			rS6CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
+			rS6CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
+			rS6PAR(timer)  =  io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
+			rS6M0AR(timer) = (uint32_t)&(dshot_burst_buffer[timer]);
+			rS6FCR(timer) &= 0x0;  /* Disable FIFO */
+			break;
+
+		case DShot_Stream7:
+			rS7CR(timer) |= DMA_SCR_CHSEL(dshot_config[timer].channel);
+			rS7CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
+			rS7CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
+			rS7PAR(timer)  =  io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
+			rS7M0AR(timer) = (uint32_t)&(dshot_burst_buffer[timer]);
+			rS7FCR(timer) &= 0x0;  /* Disable FIFO */
+			break;
+
+		default:
+			ret_val = ERROR;
+			break;
 	}
 
-	return retVal;
+	return ret_val;
 }
 
 void up_dshot_trigger(void)
 {
-	dshot_dmar_data_prepare();
-	rHIFCR |= 0x3F << 6; //clear DMA stream 5 interrupt flags
-	rS5NDTR = ALL_MOTORS_BUF_SIZE;
-	rS5CR |= DMA_SCR_EN;
+	uint8_t first_motor = 0;
+	for (uint8_t timer = 0; (timer < DSHOT_TIMERS); timer++) {
+
+		if (true == dshot_handler[timer].init) {
+
+			dshot_dmar_data_prepare(timer, first_motor, dshot_handler[timer].motors_number);
+
+			first_motor += dshot_handler[timer].motors_number;
+
+			uint32_t dshot_data_size = dshot_handler[timer].motors_number * ONE_MOTOR_BUFF_SIZE;
+
+			switch (dshot_config[timer].stream) {
+			case DShot_Stream0:
+				rLIFCR(timer) |= DMA_INT_STREAM0_MASK; //clear flags
+				rS0NDTR(timer) = dshot_data_size;
+				rS0CR(timer) |= DMA_SCR_EN;
+				break;
+
+			case DShot_Stream1:
+				rLIFCR(timer) |= DMA_INT_STREAM1_MASK; //clear flags
+				rS1NDTR(timer) = dshot_data_size;
+				rS1CR(timer) |= DMA_SCR_EN;
+				break;
+
+			case DShot_Stream2:
+				rLIFCR(timer) |= DMA_INT_STREAM2_MASK; //clear flags
+				rS2NDTR(timer) = dshot_data_size;
+				rS2CR(timer) |= DMA_SCR_EN;
+				break;
+
+			case DShot_Stream3:
+				rLIFCR(timer) |= DMA_INT_STREAM3_MASK; //clear flags
+				rS3NDTR(timer) = dshot_data_size;
+				rS3CR(timer) |= DMA_SCR_EN;
+				break;
+
+			case DShot_Stream4:
+				rHIFCR(timer) |= DMA_INT_STREAM4_MASK; //clear flags
+				rS4NDTR(timer) = dshot_data_size;
+				rS4CR(timer) |= DMA_SCR_EN;
+				break;
+
+			case DShot_Stream5:
+				rHIFCR(timer) |= DMA_INT_STREAM5_MASK; //clear flags
+				rS5NDTR(timer) = dshot_data_size;
+				rS5CR(timer) |= DMA_SCR_EN;
+				break;
+
+			case DShot_Stream6:
+				rHIFCR(timer) |= DMA_INT_STREAM6_MASK; //clear flags
+				rS6NDTR(timer) = dshot_data_size;
+				rS6CR(timer) |= DMA_SCR_EN;
+				break;
+
+			case DShot_Stream7:
+				rHIFCR(timer) |= DMA_INT_STREAM7_MASK; //clear flags
+				rS7NDTR(timer) = dshot_data_size;
+				rS7CR(timer) |= DMA_SCR_EN;
+				break;
+
+			default:
+				break;
+			}
+		}
+	}
 }
 
 /**
@@ -128,7 +319,7 @@ void up_dshot_trigger(void)
 * bit 	12		- dshot telemetry enable/disable
 * bits 	13-16	- XOR checksum
 **/
-void up_dshot_motor_data_prepare(uint32_t motorNumber, uint16_t throttle, bool telemetry)
+void up_dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool telemetry)
 {
 	uint16_t packet = 0;
 	uint16_t checksum = 0;
@@ -149,23 +340,23 @@ void up_dshot_motor_data_prepare(uint32_t motorNumber, uint16_t throttle, bool t
 	packet |= (checksum & 0x0F);
 
 	for(i = 0; i < ONE_MOTOR_DATA_SIZE; i++) {
-		motorBuffer[motorNumber][i] = (packet & 0x8000) ? MOTOR_PWM_BIT_1 : MOTOR_PWM_BIT_0;  // MSB first
+		motor_buffer[motor_number][i] = (packet & 0x8000) ? MOTOR_PWM_BIT_1 : MOTOR_PWM_BIT_0;  // MSB first
 		packet <<= 1;
 	}
 
-	motorBuffer[motorNumber][16] = 0;
-	motorBuffer[motorNumber][17] = 0;
+	motor_buffer[motor_number][16] = 0;
+	motor_buffer[motor_number][17] = 0;
 }
 
-void dshot_dmar_data_prepare(void)
+void dshot_dmar_data_prepare(uint8_t timer, uint8_t first_motor, uint8_t motors_number)
 {
-    for(uint32_t i = 0; i < ONE_MOTOR_BUFF_SIZE ; i++)
-    {
-        for(uint32_t j = 0; j < MOTORS_NUMBER; j++)
-        {
-        	dshotBurstBuffer[i*MOTORS_NUMBER+j] = motorBuffer[j][i];
-        }
-    }
+	for(uint32_t motor_data_index = 0; motor_data_index < ONE_MOTOR_BUFF_SIZE ; motor_data_index++)
+	{
+		for(uint32_t motor_index = 0; motor_index < motors_number; motor_index++)
+		{
+			dshot_burst_buffer[timer][motor_data_index*motors_number+motor_index] = motor_buffer[motor_index+first_motor][motor_data_index];
+		}
+	}
 }
 
 int up_dshot_arm(bool armed)
@@ -177,9 +368,11 @@ int up_dshot_arm(bool armed)
 		int success = io_timer_set_enable(true, IOTimerChanMode_Dshot, IO_TIMER_ALL_MODES_CHANNELS);
 
 		if(OK == success) {
+
 			// Arming for dshot is repeating any throttle value less than 47.
 			for(uint32_t motorNumber = 0; motorNumber < MOTORS_NUMBER; motorNumber++) {
-				up_dshot_motor_data_prepare(motorNumber, 0, false);
+				uint16_t throttle = 0;
+				up_dshot_motor_data_set(motorNumber, throttle, false);
 			}
 
 			for(uint32_t i = 0; i < ARMING_REPETITION; i++) {
@@ -187,6 +380,7 @@ int up_dshot_arm(bool armed)
 				usleep(1000);
 			}
 			retVal = OK;
+
 		}
 	} else {
 		//disarm by disabling timer

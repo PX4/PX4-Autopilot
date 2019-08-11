@@ -47,6 +47,7 @@
 
 #include <drivers/drv_pwm_output.h>
 #include <drivers/stm32/drv_io_timer.h>
+#include <drivers/stm32/drv_dshot.h>
 
 #include "board_config.h"
 
@@ -123,4 +124,21 @@ __EXPORT const timer_io_channels_t timer_io_channels[MAX_TIMER_IO_CHANNELS] = {
 		.ccr_offset = STM32_GTIM_CCR3_OFFSET,
 		.masks  = GTIM_SR_CC3IF | GTIM_SR_CC3OF
 	}
+};
+
+__EXPORT const drv_dshot_config_t dshot_config[MAX_IO_TIMERS] = {
+		{
+				.dma_base = DSHOT_DMA2_BASE,
+				.channel = DShot_Channel6,
+				.stream = DShot_Stream5,
+				.start_ccr_register = TIM_DMABASE_CCR1,
+				.channels_number = 4u /* CCR1, CCR2, CCR3 and CCR4 */
+		},
+		{
+				.dma_base = DSHOT_DMA1_BASE,
+				.channel = DShot_Channel2,
+				.stream = DShot_Stream6,
+				.start_ccr_register = TIM_DMABASE_CCR2,
+				.channels_number = 2u /* CCR2 and CCR3 */
+		}
 };
