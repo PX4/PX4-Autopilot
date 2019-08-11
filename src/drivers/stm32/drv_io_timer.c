@@ -128,9 +128,13 @@
 #define CCER_C1_INIT  GTIM_CCER_CC1E
 #endif
 
-/* TIM_DMA_Base_address TIM DMA Base Address */
-#define TIM_DMABASE_CCR1				0x0000000DU
-/* The transfer is done to 4 registers starting trom TIMx_CR1 + TIMx_DCR.DBA  */
+/* The transfer is done to 1 register starting from TIMx_CR1 + TIMx_DCR.DBA   */
+#define TIM_DMABURSTLENGTH_1TRANSFER	0x00000000U
+/* The transfer is done to 2 registers starting from TIMx_CR1 + TIMx_DCR.DBA  */
+#define TIM_DMABURSTLENGTH_2TRANSFERS	0x00000100U
+/* The transfer is done to 3 registers starting from TIMx_CR1 + TIMx_DCR.DBA  */
+#define TIM_DMABURSTLENGTH_3TRANSFERS	0x00000200U
+/* The transfer is done to 4 registers starting from TIMx_CR1 + TIMx_DCR.DBA  */
 #define TIM_DMABURSTLENGTH_4TRANSFERS	0x00000300U
 
 //												 				  NotUsed   PWMOut  PWMIn Capture OneShot Trigger Dshot
@@ -488,17 +492,33 @@ static inline void io_timer_set_oneshot_mode(unsigned timer)
 	rEGR(timer) = GTIM_EGR_UG;
 }
 
-void io_timer_set_dshot_mode(unsigned channel, unsigned dshot_pwm_freq)
+int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_t dma_burst_length)
 {
-	unsigned timer = channels_timer(channel);
+	int ret_val = OK;
+	uint32_t tim_dma_burst_length;
 
-	rARR(timer)  = DSHOT_MOTOR_PWM_BIT_WIDTH;
-	rPSC(timer)  = ((int)(io_timers[timer].clock_freq / dshot_pwm_freq)/DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
-	rEGR(timer)  = ATIM_EGR_UG;
-	rBDTR(timer) = ATIM_BDTR_MOE | ATIM_BDTR_OSSR | ATIM_BDTR_BKP;
-	rCCER(timer) = ATIM_CCER_CC1E | ATIM_CCER_CC2E | ATIM_CCER_CC3E | ATIM_CCER_CC4E;
-	rDCR(timer)  = (TIM_DMABASE_CCR1 | TIM_DMABURSTLENGTH_4TRANSFERS);
-	rDIER(timer) = ATIM_DIER_UDE;
+	if(1u == dma_burst_length) {
+		tim_dma_burst_length = TIM_DMABURSTLENGTH_1TRANSFER;
+	} else if(2u == dma_burst_length) {
+		tim_dma_burst_length = TIM_DMABURSTLENGTH_2TRANSFERS;
+	} else if(3u == dma_burst_length) {
+		tim_dma_burst_length = TIM_DMABURSTLENGTH_3TRANSFERS;
+	} else if(4u == dma_burst_length) {
+		tim_dma_burst_length = TIM_DMABURSTLENGTH_4TRANSFERS;
+	} else {
+		ret_val = ERROR;
+	}
+
+	if(OK == ret_val) {
+		rARR(timer)  = DSHOT_MOTOR_PWM_BIT_WIDTH;
+		rPSC(timer)  = ((int)(io_timers[timer].clock_freq / dshot_pwm_freq)/DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
+		rEGR(timer)  = ATIM_EGR_UG;
+		//rBDTR(timer) = ATIM_BDTR_MOE | ATIM_BDTR_OSSR | ATIM_BDTR_BKP;
+		rDCR(timer)  = (dshot_config[timer].start_ccr_register | tim_dma_burst_length);
+		rDIER(timer) = ATIM_DIER_UDE;
+	}
+
+	return ret_val;
 }
 
 static inline void io_timer_set_PWM_mode(unsigned timer)
@@ -802,7 +822,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 
 	case IOTimerChanMode_Dshot:
 		dier_bit = 0;
-		cr1_bit  = state ? ATIM_CR1_CEN : 0;
+		cr1_bit  = state ? GTIM_CR1_CEN : 0;
 		break;
 
 	case IOTimerChanMode_PWMIn:
@@ -859,6 +879,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 
 	for (unsigned actions = 0; actions < arraySize(action_cache); actions++) {
 		if (action_cache[actions].base != 0) {
+
 			uint32_t rvalue = _REG32(action_cache[actions].base, STM32_GTIM_CCER_OFFSET);
 			rvalue &= ~action_cache[actions].ccer_clearbits;
 			rvalue |= action_cache[actions].ccer_setbits;

@@ -51,6 +51,12 @@ __BEGIN_DECLS
 
 #define IO_TIMER_ALL_MODES_CHANNELS 0
 
+/* TIM_DMA_Base_address TIM DMA Base Address */
+#define TIM_DMABASE_CCR1		0x0000000DU
+#define TIM_DMABASE_CCR2		0x0000000EU
+#define TIM_DMABASE_CCR3		0x0000000FU
+#define TIM_DMABASE_CCR4		0x00000010U
+
 typedef enum io_timer_channel_mode_t {
 	IOTimerChanMode_NotUsed = 0,
 	IOTimerChanMode_PWMOut  = 1,
@@ -132,6 +138,6 @@ __EXPORT int io_timer_get_channel_mode(unsigned channel);
 __EXPORT int io_timer_get_mode_channels(io_timer_channel_mode_t mode);
 __EXPORT extern void io_timer_trigger(void);
 
-__EXPORT extern void io_timer_set_dshot_mode(unsigned timer, unsigned dshot_pwm_rate);
+__EXPORT extern int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_rate, uint8_t dma_burst_length);
 
 __END_DECLS

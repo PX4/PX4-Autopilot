@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  * Copyright (C) 2019 PX4 Development Team. All rights reserved.
- * Author: Igor Mišić <igy1000mb@gmail.com>
+ * Author: Igor Misic <igy1000mb@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,5 +39,56 @@
 #pragma once
 
 #include <drivers/drv_pwm_output.h>
+#include "drv_io_timer.h"
 
 #define DSHOT_MOTOR_PWM_BIT_WIDTH		20u
+
+/* Configuration for each timer to setup DShot. Some timers have only one while others have two choices for the stream.
+ *
+ * TIM1UP - DMA2, Channel6, Stream5
+ * TIM2UP - DMA1, Channel3, Stream1 or Stream7
+ * TIM3UP - DMA1, Channel5, Stream2
+ * TIM4UP - DMA1, Channel2, Stream6
+ * TIM5UP - DMA1, Channel6, Stream0 or Stream6
+ * TIM6UP - DMA1, Channel7, Stream1
+ * TIM7UP - DMA1, Channel1, Stream2 or Stream4
+ * TIM8UP - DMA2, Channel7, Stream1
+ */
+
+#define DSHOT_DMA1_BASE		STM32_DMA1_BASE
+#define DSHOT_DMA2_BASE		STM32_DMA2_BASE
+
+typedef enum dshot_dma_channel_t {
+	DShot_Channel0	= 0u,
+	DShot_Channel1	= 1u,
+	DShot_Channel2	= 2u,
+	DShot_Channel3	= 3u,
+	DShot_Channel4	= 4u,
+	DShot_Channel5	= 5u,
+	DShot_Channel6	= 6u,
+	DShot_Channel7	= 7u
+}dshot_dma_channel_t;
+
+typedef enum dshot_dma_stream_t {
+	DShot_Stream0	= 0u,
+	DShot_Stream1	= 1u,
+	DShot_Stream2	= 2u,
+	DShot_Stream3	= 3u,
+	DShot_Stream4	= 4u,
+	DShot_Stream5	= 5u,
+	DShot_Stream6	= 6u,
+	DShot_Stream7	= 7u
+}dshot_dma_stream_t;
+
+/* array of channels in logical order */
+typedef struct drv_dshot_config_t {
+	uint32_t			dma_base;
+	dshot_dma_channel_t	channel;
+	dshot_dma_stream_t	stream;
+	uint32_t			start_ccr_register;
+	uint8_t				channels_number;
+} drv_dshot_config_t;
+
+
+__EXPORT extern const drv_dshot_config_t dshot_config[MAX_IO_TIMERS];
+__EXPORT extern const io_timers_t io_timers[MAX_IO_TIMERS];
