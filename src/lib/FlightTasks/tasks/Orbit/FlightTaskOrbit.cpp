@@ -183,6 +183,8 @@ bool FlightTaskOrbit::update()
 
 	Vector2f center_to_position = Vector2f(_position) - _center;
 
+	// make vehicle front always point towards the center
+	_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
 
 	if (_in_circle_approach) {
 		generate_circle_approach_setpoints();
@@ -191,12 +193,7 @@ bool FlightTaskOrbit::update()
 		generate_circle_setpoints(center_to_position);
 	}
 
-	// make vehicle front always point towards the center
-	_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
-	// yawspeed feed-forward because we know the necessary angular rate
-	_yawspeed_setpoint = _v / _r;
-
-	// publish telemetry
+	// publish information to UI
 	sendTelemetry();
 
 	return true;
@@ -217,6 +214,9 @@ void FlightTaskOrbit::generate_circle_approach_setpoints()
 	// follow the planned line and switch to orbiting once the circle is reached
 	_circle_approach_line.generateSetpoints(_position_setpoint, _velocity_setpoint);
 	_in_circle_approach = !_circle_approach_line.isEndReached();
+
+	// yaw stays constant
+	_yawspeed_setpoint = NAN;
 }
 
 void FlightTaskOrbit::generate_circle_setpoints(Vector2f center_to_position)
@@ -232,4 +232,7 @@ void FlightTaskOrbit::generate_circle_setpoints(Vector2f center_to_position)
 	_velocity_setpoint(0) = velocity_xy(0);
 	_velocity_setpoint(1) = velocity_xy(1);
 	_position_setpoint(0) = _position_setpoint(1) = NAN;
+
+	// yawspeed feed-forward because we know the necessary angular rate
+	_yawspeed_setpoint = _v / _r;
 }
