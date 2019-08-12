@@ -40,9 +40,9 @@
 
 using namespace matrix;
 
-bool FlightTaskAutoMapper2::activate()
+bool FlightTaskAutoMapper2::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	bool ret = FlightTaskAuto::activate();
+	bool ret = FlightTaskAuto::activate(last_setpoint);
 	_reset();
 	return ret;
 }
@@ -92,7 +92,7 @@ bool FlightTaskAutoMapper2::update()
 	}
 
 	if (_param_com_obs_avoid.get()) {
-		_obstacle_avoidance.updateAvoidanceDesiredSetpoints(_position_setpoint, _velocity_setpoint);
+		_obstacle_avoidance.updateAvoidanceDesiredSetpoints(_position_setpoint, _velocity_setpoint, (int)_type);
 		_obstacle_avoidance.injectAvoidanceSetpoints(_position_setpoint, _velocity_setpoint, _yaw_setpoint,
 				_yawspeed_setpoint);
 	}

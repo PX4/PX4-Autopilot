@@ -108,6 +108,13 @@ serial_ports = {
         "default_baudrate": 0,
         },
 
+    # RC Port
+    "RC": {
+        "label": "Radio Controller",
+        "index": 300,
+        "default_baudrate": 0,
+        },
+
     }
 
 parser = argparse.ArgumentParser(description='Generate Serial params & startup script')
@@ -280,6 +287,15 @@ for serial_command in serial_commands:
     for i in range(num_instances):
         port_config = serial_command['port_config_param']
         port_param_name = port_config['name'].replace('${i}', str(i))
+
+        # check if a port dependency is specified
+        if 'depends_on_port' in port_config:
+            depends_on_port = port_config['depends_on_port']
+            if not any(p['tag'] == depends_on_port for p in serial_devices):
+                if verbose:
+                    print("Skipping {:} (missing dependent port)".format(port_param_name))
+                continue
+
         default_port = 0 # disabled
         if 'default' in port_config:
             if type(port_config['default']) == list:
@@ -299,7 +315,8 @@ for serial_command in serial_commands:
             'multi_instance': num_instances > 1,
             'port_param_name': port_param_name,
             'default_port': default_port,
-            'param_group': port_config['group']
+            'param_group': port_config['group'],
+            'description_extended': port_config.get('description_extended', '')
             })
 
 if verbose:

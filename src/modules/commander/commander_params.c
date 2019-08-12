@@ -273,7 +273,7 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
  * @unit s
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(COM_DISARM_LAND, -1.0f);
+PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
 
 /**
  * Allow arming without GPS
@@ -600,23 +600,27 @@ PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.25f);
 
 /**
  * Maximum magnetic field inconsistency between units that will allow arming
+ * Set -1 to disable the check.
  *
  * @group Commander
- * @unit Gauss
- * @min 0.05
- * @max 0.5
- * @decimal 2
- * @increment 0.05
+ * @unit deg
+ * @min 3
+ * @max 180
  */
-PARAM_DEFINE_FLOAT(COM_ARM_MAG, 0.15f);
+PARAM_DEFINE_INT32(COM_ARM_MAG_ANG, 30);
 
 /**
  * Enable RC stick override of auto modes
  *
+ * When an auto mode is active (except a critical battery reaction) moving the RC sticks
+ * gives control back to the pilot in manual position mode immediately.
+ *
+ * Only has an effect on multicopters and VTOLS in multicopter mode.
+ *
  * @boolean
  * @group Commander
  */
-PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 0);
+PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
 
 /**
  * Require valid mission to arm
@@ -922,3 +926,13 @@ PARAM_DEFINE_INT32(COM_ASPD_FS_DLY, 0);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLT_PROFILE, 0);
+
+/**
+ * Require all the ESCs to be detected to arm.
+ *
+ * This param is specific for ESCs reporting status. Normal ESCs configurations are not affected by the change of this param.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_ARM_CHK_ESCS, 1);

@@ -54,6 +54,15 @@ serial_config:
                               minlength: 1
                               schema:
                                   type: string
+                    depends_on_port:
+                        # Optional serial tag dependency (e.g. GPS1). If a board
+                        # does not specify this serial port, the parameter will
+                        # not be included in the build (i.e. it's not
+                        # configurable)
+                        type: string
+                    description_extended:
+                        # Optional extended description
+                        type: string
             label:
                 # Optional command label (e.g. used in the autostart script).
                 # If omitted, module_name is used.

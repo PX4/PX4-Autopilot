@@ -55,3 +55,5 @@ float32 rate_rx
 
 float32 rate_tx
 float32 rate_txerr
+
+uint8 ORB_QUEUE_LENGTH = 3

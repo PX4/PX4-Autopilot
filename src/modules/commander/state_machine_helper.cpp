@@ -66,13 +66,13 @@ static constexpr const char reason_no_datalink[] = "no datalink";
 // code for those checks.
 static constexpr const bool arming_transitions[vehicle_status_s::ARMING_STATE_MAX][vehicle_status_s::ARMING_STATE_MAX]
 = {
-	//                                                    INIT,  STANDBY, ARMED, STANDBY_ERROR, REBOOT, IN_AIR_RESTORE
-	{ /* vehicle_status_s::ARMING_STATE_INIT */           true,  true,    false, true,          false,  false },
-	{ /* vehicle_status_s::ARMING_STATE_STANDBY */        true,  true,    true,  false,         false,  false },
-	{ /* vehicle_status_s::ARMING_STATE_ARMED */          false, true,    true,  false,         false,  true },
-	{ /* vehicle_status_s::ARMING_STATE_STANDBY_ERROR */  true,  true,    true,  true,          false,  false },
-	{ /* vehicle_status_s::ARMING_STATE_REBOOT */         true,  true,    false, true,          true,   true },
-	{ /* vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE */ false, false,   false, false,         false,  false }, // NYI
+	//                                                    INIT,  STANDBY, ARMED, STANDBY_ERROR, SHUTDOWN, IN_AIR_RESTORE
+	{ /* vehicle_status_s::ARMING_STATE_INIT */           true,  true,    false, true,          false,    false },
+	{ /* vehicle_status_s::ARMING_STATE_STANDBY */        true,  true,    true,  false,         false,    false },
+	{ /* vehicle_status_s::ARMING_STATE_ARMED */          false, true,    true,  false,         false,    true },
+	{ /* vehicle_status_s::ARMING_STATE_STANDBY_ERROR */  true,  true,    true,  true,          false,    false },
+	{ /* vehicle_status_s::ARMING_STATE_SHUTDOWN */       true,  true,    false, true,          true,     true },
+	{ /* vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE */ false, false,   false, false,         false,    false }, // NYI
 };
 
 // You can index into the array with an arming_state_t in order to get its textual representation
@@ -81,7 +81,7 @@ const char *const arming_state_names[vehicle_status_s::ARMING_STATE_MAX] = {
 	"STANDBY",
 	"ARMED",
 	"STANDBY_ERROR",
-	"REBOOT",
+	"SHUTDOWN",
 	"IN_AIR_RESTORE",
 };
 
@@ -1009,6 +1009,14 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 		prearm_ok = false;
 
 	}
+
+	if (status_flags.condition_escs_error && (arm_requirements & ARM_REQ_ESCS_CHECK_BIT)) {
+		if (prearm_ok && reportFailures) {
+			mavlink_log_critical(mavlink_log_pub, "Arming denied! One or more ESCs are offline");
+			prearm_ok = false;
+		}
+	}
+
 
 	return prearm_ok;
 }

@@ -422,6 +422,7 @@ BMP280::collect()
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
+	report.device_id = _interface->get_device_id();
 
 	bmp280::data_s *data = _interface->get_data(BMP280_ADDR_DATA);
 
