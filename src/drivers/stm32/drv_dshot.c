@@ -142,7 +142,6 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 				channel_mask &= ~(1 << channel);
 				timer = timer_io_channels[channel].timer_index;
 				dshot_handler[timer].init = true;
-				(dshot_handler[timer].motors_number)++;
 			} else {
 				ret_val = ERROR;
 			}
@@ -152,6 +151,7 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 	for (uint8_t timer_index = 0; (timer_index < DSHOT_TIMERS) && (OK == ret_val); timer_index++) {
 
 		if (true == dshot_handler[timer_index].init) {
+			dshot_handler[timer_index].motors_number = dshot_config[timer_index].channels_number;
 			io_timer_set_dshot_mode(timer_index, dshot_pwm_freq, dshot_handler[timer_index].motors_number);
 			ret_val = dshot_setup_stream_registers(timer_index);
 		}
