@@ -128,35 +128,42 @@ LidarLiteI2C::probe()
 
 		set_device_address(addresses[i]);
 
-		if (addresses[i] == LL40LS_BASEADDR) {
+		/*
+		The probing is divided in two cases. One to detect v1, v2 and v3 and one to
+		detect v3HP. The reason for this is that registers are not consistent
+		between different versions. The v3HP doesn't have the HW and SW VERSION
+		registers while v1, v2 and some v3 don't have the unit id register.
+		It would be better if we had a proper WHOAMI register.
+		*/
 
-			/*
-			  check for unit id. It would be better if
-			  we had a proper WHOAMI register
-			 */
-			if (read_reg(LL40LS_UNIT_ID_HIGH, id_high) == OK &&
-			    read_reg(LL40LS_UNIT_ID_LOW, id_low) == OK) {
-				_unit_id = (uint16_t)((id_high << 8) | id_low) & 0xFFFF;
-				_retries = 3;
-				return reset_sensor();
-			}
 
-			PX4_DEBUG("probe failed unit_id=0x%02x", (unsigned)_unit_id);
-
-		} else {
-			/*
-			  check for hw and sw versions. It would be better if
-			  we had a proper WHOAMI register
-			 */
-			if (read_reg(LL40LS_HW_VERSION, _hw_version) == OK && _hw_version > 0 &&
-			    read_reg(LL40LS_SW_VERSION, _sw_version) == OK && _sw_version > 0) {
-				_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE_V1);
-				_retries = 3;
-				return reset_sensor();
-			}
-
-			PX4_DEBUG("probe failed hw_version=0x%02x sw_version=0x%02x", (unsigned)_hw_version, (unsigned)_sw_version);
+		/*
+		  check for hw and sw versions for v1, v2 and v3
+		 */
+		if ((read_reg(LL40LS_HW_VERSION, _hw_version) == OK && _hw_version) > 0 &&
+		    (read_reg(LL40LS_SW_VERSION, _sw_version) == OK && _sw_version > 0)) {
+			_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE_V1);
+			printf("probe success - hw: %u, sw:%u\n", _hw_version, _sw_version);
+			_retries = 3;
+			return reset_sensor();
 		}
+
+		/*
+		  check for unit id for v3HP
+		 */
+		if (read_reg(LL40LS_UNIT_ID_HIGH, id_high) == OK &&
+		    read_reg(LL40LS_UNIT_ID_LOW, id_low) == OK) {
+			_unit_id = (uint16_t)((id_high << 8) | id_low) & 0xFFFF;
+			printf("probe success - id: %u\n", _unit_id);
+			_retries = 3;
+			return reset_sensor();
+		}
+
+		PX4_DEBUG("probe failed unit_id=0x%02x hw_version=0x%02x sw_version=0x%02x\n",
+			  (unsigned)_unit_id,
+			  (unsigned)_hw_version,
+			  (unsigned)_sw_version);
+
 	}
 
 	// not found on any address
