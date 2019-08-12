@@ -216,6 +216,8 @@ private:
 
 	bool		_initialized{false};
 
+	bool _previous_transition_switch_to_fw{false}; // true if transition switch was at the position for FW previously
+
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 	perf_counter_t	_loop_interval_perf;		/**< loop interval performance counter */
 

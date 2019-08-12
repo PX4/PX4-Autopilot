@@ -174,15 +174,31 @@ bool
 VtolAttitudeControl::is_fixed_wing_requested()
 {
 	bool to_fw = false;
+	bool transition_switch_to_fw = (_manual_control_sp.transition_switch == manual_control_setpoint_s::SWITCH_POS_ON);
 
 	if (_manual_control_sp.transition_switch != manual_control_setpoint_s::SWITCH_POS_NONE &&
 	    _v_control_mode.flag_control_manual_enabled) {
-		to_fw = (_manual_control_sp.transition_switch == manual_control_setpoint_s::SWITCH_POS_ON);
+		if (transition_switch_to_fw != _previous_transition_switch_to_fw) {
+			// transition switch position changed, change request
+			to_fw = transition_switch_to_fw;
+
+		} else {
+			// transition switch not changed, don't change request (keep current vtol status)
+			if (_vtol_vehicle_status.vtol_in_rw_mode || (_vtol_vehicle_status.vtol_in_trans_mode
+					&& !_vtol_vehicle_status.in_transition_to_fw)) {
+				to_fw = false;
+
+			} else {
+				to_fw = true;
+			}
+		}
 
 	} else {
 		// listen to transition commands if not in manual or mode switch is not mapped
 		to_fw = (_transition_command == vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW);
 	}
+
+	_previous_transition_switch_to_fw = transition_switch_to_fw;
 
 	// handle abort request
 	if (_abort_front_transition) {
