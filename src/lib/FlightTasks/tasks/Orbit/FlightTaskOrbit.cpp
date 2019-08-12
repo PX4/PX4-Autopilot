@@ -92,6 +92,9 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 		}
 	}
 
+	// perpendicularly approach the orbit circle again when new parameters get commanded
+	_in_circle_approach = true;
+
 	return ret;
 }
 
@@ -179,12 +182,7 @@ bool FlightTaskOrbit::update()
 	setVelocity(v);
 
 	Vector2f center_to_position = Vector2f(_position) - _center;
-	const float distance_to_center = center_to_position.norm();
 
-	// perpendicularly approach the orbit circle if further away than 3 meters
-	if (!_in_circle_approach && !math::isInRange(distance_to_center, _r - 3.f, _r + 3.f)) {
-		_in_circle_approach = true;
-	}
 
 	if (_in_circle_approach) {
 		generate_circle_approach_setpoints();
