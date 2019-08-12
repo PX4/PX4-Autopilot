@@ -60,6 +60,12 @@ pipeline {
               mission: "",
               vehicle: "iris"
             ],
+            [
+              name: "MC_optical_flow",
+              test: "mavros_posix_tests_iris_opt_flow.test",
+              mission: "",
+              vehicle: ""
+            ],
 
             [
               name: "Rover 1",

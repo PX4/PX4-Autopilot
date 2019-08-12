@@ -224,11 +224,16 @@ class MavrosTestCommon(unittest.TestCase):
             "failed to set mode | new mode: {0}, old mode: {1} | timeout(seconds): {2}".
             format(mode, old_mode, timeout)))
 
-    def wait_for_topics(self, timeout):
+    def wait_for_topics(self, timeout, ignore_gps=False):
         """wait for simulation to be ready, make sure we're getting topic info
         from all topics by checking dictionary of flag values set in callbacks,
         timeout(int): seconds"""
         rospy.loginfo("waiting for subscribed topics to be ready")
+
+        if ignore_gps:
+            self.sub_topics_ready.pop('global_pos', None)
+            self.sub_topics_ready.pop('home_pos', None)
+
         loop_freq = 1  # Hz
         rate = rospy.Rate(loop_freq)
         simulation_ready = False

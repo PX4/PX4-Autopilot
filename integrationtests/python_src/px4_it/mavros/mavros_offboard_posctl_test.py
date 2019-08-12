@@ -156,9 +156,11 @@ class MavrosOffboardPosctlTest(MavrosTestCommon):
     #
     def test_posctl(self):
         """Test offboard position control"""
+        positions = ((0, 0, 0), (50, 50, 20), (50, -50, 20), (-50, -50, 20),
+                     (0, 0, 20))
 
         # make sure the simulation is ready to start the mission
-        self.wait_for_topics(60)
+        self.wait_for_topics(60, ignore_gps=True)
         self.wait_for_landed_state(mavutil.mavlink.MAV_LANDED_STATE_ON_GROUND,
                                    10, -1)
 
@@ -167,9 +169,6 @@ class MavrosOffboardPosctlTest(MavrosTestCommon):
         self.set_arm(True, 5)
 
         rospy.loginfo("run mission")
-        positions = ((0, 0, 0), (50, 50, 20), (50, -50, 20), (-50, -50, 20),
-                     (0, 0, 20))
-
         for i in xrange(len(positions)):
             self.reach_position(positions[i][0], positions[i][1],
                                 positions[i][2], 30)

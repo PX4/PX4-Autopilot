@@ -108,7 +108,7 @@ class MavrosOffboardAttctlTest(MavrosTestCommon):
         boundary_z = 20
 
         # make sure the simulation is ready to start the mission
-        self.wait_for_topics(60)
+        self.wait_for_topics(60, ignore_gps=True)
         self.wait_for_landed_state(mavutil.mavlink.MAV_LANDED_STATE_ON_GROUND,
                                    10, -1)
 
