@@ -48,7 +48,7 @@ fi
 
 if param compare -s SENS_EN_BATT 1
 then
-	batt_smbus start -X
+	batt_smbus start -R
 fi
 
 # Sensors on the PWM interface bank

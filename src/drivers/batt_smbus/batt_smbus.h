@@ -73,7 +73,8 @@
 #define BATT_SMBUS_FULL_CHARGE_CAPACITY                 0x10            ///< capacity when fully charged
 #define BATT_SMBUS_RUN_TIME_TO_EMPTY                    0x11            ///< predicted remaining battery capacity based on the present rate of discharge in min
 #define BATT_SMBUS_AVERAGE_TIME_TO_EMPTY                0x12            ///< predicted remaining battery capacity based on the present rate of discharge in min
-#define BATT_SMBUS_REMAINING_CAPACITY                   0x0F            ///< predicted remaining battery capacity as a percentage
+#define BATT_SMBUS_REMAINING_CAPACITY                   0x0F            ///< predicted remaining battery capacity as mAh
+#define BATT_SMBUS_RELATIVE_SOC				0x0D		///< predicted remaining battery capacity as a percentage
 #define BATT_SMBUS_CYCLE_COUNT                          0x17            ///< number of cycles the battery has experienced
 #define BATT_SMBUS_DESIGN_CAPACITY                      0x18            ///< design capacity register
 #define BATT_SMBUS_DESIGN_VOLTAGE                       0x19            ///< design voltage register
@@ -90,6 +91,20 @@
 #define BATT_SMBUS_CELL_2_VOLTAGE                       0x3E
 #define BATT_SMBUS_CELL_3_VOLTAGE                       0x3D
 #define BATT_SMBUS_CELL_4_VOLTAGE                       0x3C
+#define BATT_SMBUS_CELL_5_VOLTAGE                       0x3B
+#define BATT_SMBUS_CELL_6_VOLTAGE                       0x3A
+#define BATT_SMBUS_CELL_7_VOLTAGE                       0x39
+#define BATT_SMBUS_CELL_8_VOLTAGE                       0x38
+#define BATT_SMBUS_CELL_9_VOLTAGE                       0x37
+#define BATT_SMBUS_CELL_10_VOLTAGE                      0x36
+
+#define BATT_SMBUS_CELL_COUNT                           0x40            // < This is not a default register in the BQ40Z50 chip, but one that is really needed
+#define BATT_SMBUS_SAFETY_ALERT                         0x50            ///32 alert bits, threshold exceeded (used for burst current check)
+#define BATT_SMBUS_SAFETY_STATUS                        0x51            ///32 status bits, threshold exceeded for certain duration
+#define BATT_SMBUS_PF_ALERT                             0x52            ///32 permanent fail bits, issue warranting permanent shutoff occurred (used for cell voltage imbalance check)
+
+#define SMART_BATTERY_ROTOYE_BATMON 1
+#define SMART_BATTERY_BQ40Zx50 2
 #define BATT_SMBUS_LIFETIME_FLUSH                       0x002E
 #define BATT_SMBUS_LIFETIME_BLOCK_ONE                   0x0060
 #define BATT_SMBUS_ENABLED_PROTECTIONS_A_ADDRESS        0x4938
@@ -100,6 +115,80 @@
 
 class BATT_SMBUS : public I2CSPIDriver<BATT_SMBUS>
 {
+
+struct BATT_SMBUS_Safety_Status
+{
+	uint8_t len = 4;
+	union
+	{
+		struct
+		{
+			uint8_t _rsvd_31:1;
+			uint8_t _rsvd_30:1;
+			uint8_t FLAG_DISCHARGE_OVERCURRENT:1;
+			uint8_t FLAG_CELL_OVERVOLTAGE_LATCH:1;
+			uint8_t FLAG_DISCHARGE_UNDERTEMP:1;
+			uint8_t FLAG_CHARGE_UNDERTEMP:1;
+			uint8_t FLAG_OVERPRECHARGE_CURRENT:1;
+			uint8_t FLAG_OVERCHARGE_VOLTAGE:1;
+			uint8_t FLAG_OVERCHARGE_CURRENT:1;
+			uint8_t FLAG_OVERCHARGE:1;
+			uint8_t _rsvd_21:1;
+			uint8_t FLAG_CHARGE_TIMEOUT:1;
+			uint8_t _rsvd_19:1;
+			uint8_t FLAG_PRECHARGE_TIMEOUT:1;
+			uint8_t _rsvd_17:1;
+			uint8_t FLAG_FET_OVERTEMP:1;
+			uint8_t _rsvd_15:1;
+			uint8_t FLAG_CELL_UNDERVOLTAGE_COMPENSATED:1;
+			uint8_t FLAG_DISCHARGE_OVERTEMP:1;
+			uint8_t FLAG_CHARGE_OVERTEMP:1;
+			uint8_t FLAG_DISHCARGE_LATCH_SHORT_CIRCUIT:1;
+			uint8_t FLAG_DISCHARGE_SHORT_CIRCUIT:1;
+			uint8_t FLAG_CHARGE_LATCH_SHORT_CIRCUIT:1;
+			uint8_t FLAG_CHARGE_SHORT_CIRCUIT:1;
+			uint8_t FLAG_DISCHARGE_LATCH_OVERLOAD:1;
+			uint8_t FLAG_DISCHARGE_OVERLOAD:1;
+			uint8_t FLAG_DISCHARGE_OVERCURRENT_2:1;
+			uint8_t FLAG_DISCHARGE_OVERCURRENT_1:1;
+			uint8_t FLAG_CHARGE_OVERCURRENT_2:1;
+			uint8_t FLAG_CHARGE_OVERCURRENT_1:1;
+			uint8_t FLAG_CELL_OVERVOLTAGE:1;
+			uint8_t FLAG_CELL_UNDERVOLTAGE:1;
+		}flags;
+		uint32_t data;
+	}flag;
+	uint8_t crc;
+};
+
+/*
+#define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
+
+enum BATT_SMBUS_BUS {
+	BATT_SMBUS_BUS_ALL = 0,
+	BATT_SMBUS_BUS_I2C_INTERNAL,
+	BATT_SMBUS_BUS_I2C_EXTERNAL,
+	BATT_SMBUS_BUS_I2C_EXTERNAL1,
+	BATT_SMBUS_BUS_I2C_EXTERNAL2
+};
+
+struct batt_smbus_bus_option {
+	enum BATT_SMBUS_BUS busid;
+	const char *devpath;
+	uint8_t busnum;
+} bus_options[] = {
+	{ BATT_SMBUS_BUS_I2C_EXTERNAL, "/dev/batt_smbus_ext", PX4_I2C_BUS_EXPANSION},
+#ifdef PX4_I2C_BUS_EXPANSION1
+	{ BATT_SMBUS_BUS_I2C_EXTERNAL1, "/dev/batt_smbus_ext1", PX4_I2C_BUS_EXPANSION1},
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION2
+	{ BATT_SMBUS_BUS_I2C_EXTERNAL2, "/dev/batt_smbus_ext2", PX4_I2C_BUS_EXPANSION2},
+#endif
+#ifdef PX4_I2C_BUS_ONBOARD
+	{ BATT_SMBUS_BUS_I2C_INTERNAL, "/dev/batt_smbus_int", PX4_I2C_BUS_ONBOARD},
+#endif
+};*/
+
 public:
 	BATT_SMBUS(I2CSPIBusOption bus_option, const int bus, SMBus *interface);
 
@@ -222,7 +311,7 @@ private:
 
 	perf_counter_t _cycle{perf_alloc(PC_ELAPSED, "batt_smbus_cycle")};
 
-	float _cell_voltages[4] {};
+	float _cell_voltages[MAX_CELL_COUNT] = {};
 
 	float _max_cell_voltage_delta{0};
 
@@ -235,7 +324,7 @@ private:
 	orb_advert_t _batt_topic{nullptr};
 
 	/** @param _cell_count Number of series cell. */
-	uint8_t _cell_count{4};
+	uint16_t _cell_count;
 
 	/** @param _batt_capacity Battery design capacity in mAh (0 means unknown). */
 	uint16_t _batt_capacity{0};
@@ -264,6 +353,7 @@ private:
 	/** @param _manufacturer_name Name of the battery manufacturer. */
 	char *_manufacturer_name{nullptr};
 
+	uint8_t _smart_battery_type;
 	/** @param _lifetime_max_delta_cell_voltage Max lifetime delta of the battery cells */
 	float _lifetime_max_delta_cell_voltage{0.f};
 
