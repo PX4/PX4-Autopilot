@@ -28,7 +28,7 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/mission.h>
+#include <uORB/topics/mission_result.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
@@ -164,6 +164,21 @@ typedef struct {
 }YFPA_param;
 
 typedef struct {
+char head[5];
+uint8_t empty;
+uint16_t waypoint_num;
+int32_t lat;
+int32_t lon;
+int32_t alt;
+uint16_t loiter_time;
+uint8_t cruise_speed;
+uint8_t photo_set;
+uint8_t photo_dis;
+uint8_t turn_mode;
+uint8_t sum_check;
+}SETD;
+
+typedef struct {
    STP stp;
 }MSG_send;
 
@@ -202,7 +217,7 @@ typedef struct {
     struct actuator_armed_s arm_data;
     struct vehicle_gps_position_s gps_data;
     struct vehicle_command_s command_data;
-    struct mission_s mission_data;
+    struct mission_result_s mission_data;
     struct manual_control_setpoint_s manual_data;
     struct vehicle_status_s status_data;
     struct vehicle_local_position_setpoint_s local_position_sp_data;

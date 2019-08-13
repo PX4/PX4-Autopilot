@@ -78,8 +78,8 @@ void stp_pack (STP *stp, MSG_orb_data stp_data){
     stp->gps_wp_latitude = (stp_data.command_data.command == 16 /*VEHICLE_CMD_NAV_WAYPOINT*/ ) ? (float_t)stp_data.command_data.param5 : NAN;
     stp->gps_wp_longitude = (stp_data.command_data.command == 16 /*VEHICLE_CMD_NAV_WAYPOINT*/ ) ? (float_t)stp_data.command_data.param6 : NAN;
 
-    stp->wp_num = (uint8_t)stp_data.mission_data.count;
-    stp->mission_num = (uint8_t)stp_data.mission_data.current_seq;
+    stp->wp_num = (uint8_t)stp_data.mission_data.seq_total;
+    stp->mission_num = (uint8_t)stp_data.mission_data.seq_current;
 
     stp->rc_yaw = (uint8_t)(stp_data.manual_data.r * 50.0 + 150.0);
     stp->rc_y = (uint8_t)(stp_data.manual_data.y * 50.0 +150.0 );
