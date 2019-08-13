@@ -513,8 +513,7 @@ int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_t dma_
 		rARR(timer)  = DSHOT_MOTOR_PWM_BIT_WIDTH;
 		rPSC(timer)  = ((int)(io_timers[timer].clock_freq / dshot_pwm_freq)/DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
 		rEGR(timer)  = ATIM_EGR_UG;
-		//rBDTR(timer) = ATIM_BDTR_MOE | ATIM_BDTR_OSSR | ATIM_BDTR_BKP;
-		rDCR(timer)  = (dshot_config[timer].start_ccr_register | tim_dma_burst_length);
+		rDCR(timer)  = (io_timers[timer].dshot.start_ccr_register | tim_dma_burst_length);
 		rDIER(timer) = ATIM_DIER_UDE;
 	}
 
@@ -645,8 +644,8 @@ int io_timer_set_rate(unsigned timer, unsigned rate)
 
 			/* Request to use OneShot
 			 *
-			 * We are here because ALL these channels were either PWM, Oneshot or Dshot
-			 * Now they need to be Oneshot or Dshot
+			 * We are here because ALL these channels were either PWM or Dshot
+			 * Now they need to be Oneshot
 			 */
 
 			int changePWMOut = reallocate_channel_resources(channels, IOTimerChanMode_PWMOut, IOTimerChanMode_OneShot);
@@ -660,7 +659,7 @@ int io_timer_set_rate(unsigned timer, unsigned rate)
 
 			/* Request to use PWM
 			 *
-			 * We are here because  ALL these channels were either PWM or Oneshot
+			 * We are here because  ALL these channels were either Oneshot or Dshot
 			 * Now they need to be PWM
 			 */
 
