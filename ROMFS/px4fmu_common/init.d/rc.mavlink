@@ -86,7 +86,7 @@ fi
 if param compare SYS_COMPANION 3115200
 then
 	param set MAV_1_CONFIG 102
-	param set MAV_1_RATE 1000
+	param set MAV_1_RATE 2000
 	param set SER_TEL2_BAUD 115200
 	param set SYS_COMPANION 0
 fi

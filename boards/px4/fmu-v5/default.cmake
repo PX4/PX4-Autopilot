@@ -23,7 +23,7 @@ px4_add_board(
 		camera_capture
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
-		distance_sensor # all available distance sensor drivers
+		distance_sensor
 		gps
 		#heater
 		imu/adis16448
@@ -88,6 +88,7 @@ px4_add_board(
 		vmount
 		vtol_att_control
 		wind_estimator
+		rw_uart
 
 	SYSTEMCMDS
 		bl_update
