@@ -34,8 +34,10 @@
 /**
  * @file bmp388_spi.cpp
  *
- * SPI interface for BMP388
+ * SPI interface for BMP388 (NOTE: untested!)
  */
+
+#include <drivers/device/spi.h>
 
 #include "bmp388.h"
 

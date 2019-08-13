@@ -42,6 +42,7 @@ px4_add_module(
 		bmp388_spi.cpp
 		bmp388_i2c.cpp
 		bmp388.cpp
+		bmp388_main.cpp
 	DEPENDS
 		drivers_barometer
 		px4_work_queue
