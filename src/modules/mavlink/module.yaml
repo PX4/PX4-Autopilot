@@ -1,4 +1,4 @@
-__max_num_config_instances: &max_num_config_instances 3
+__max_num_config_instances: &max_num_config_instances 1
 
 module_name: MAVLink
 serial_config:
@@ -16,7 +16,7 @@ serial_config:
         # 0: Telem1 Port (Telemetry Link)
         # 1: Telem2 Port (Companion Link). Disabled by default to reduce RAM usage
         # 2: Board-specific / no fixed function or port
-        default: [TEL1, "", ""]
+        default: TEL2
       num_instances: *max_num_config_instances
 
 parameters:
@@ -42,7 +42,7 @@ parameters:
                 8: External Vision
             reboot_required: true
             num_instances: *max_num_config_instances
-            default: [0, 2, 0]
+            default: 0
 
         MAV_${i}_RATE:
             description:
@@ -61,7 +61,7 @@ parameters:
             unit: B/s
             reboot_required: true
             num_instances: *max_num_config_instances
-            default: [1200, 0, 0]
+            default: 1200
 
         MAV_${i}_FORWARD:
             description:
@@ -76,5 +76,5 @@ parameters:
             type: boolean
             reboot_required: true
             num_instances: *max_num_config_instances
-            default: [true, false, false]
+            default: true
 

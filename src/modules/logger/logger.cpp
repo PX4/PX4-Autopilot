@@ -1739,6 +1739,7 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 
 		// ignore built-in types
 		if (strcmp(type_name, "int8_t") != 0 &&
+<<<<<<< HEAD
 		    strcmp(type_name, "uint8_t") != 0 &&
 		    strcmp(type_name, "int16_t") != 0 &&
 		    strcmp(type_name, "uint16_t") != 0 &&
@@ -1752,6 +1753,21 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 		    strcmp(type_name, "double") != 0 &&
 		    strcmp(type_name, "bool") != 0 &&
 		    strcmp(type_name, "char") != 0) {
+=======
+				strcmp(type_name, "uint8_t") != 0 &&
+				strcmp(type_name, "int16_t") != 0 &&
+				strcmp(type_name, "uint16_t") != 0 &&
+				strcmp(type_name, "int16_t") != 0 &&
+				strcmp(type_name, "uint16_t") != 0 &&
+				strcmp(type_name, "int32_t") != 0 &&
+				strcmp(type_name, "uint32_t") != 0 &&
+				strcmp(type_name, "int64_t") != 0 &&
+				strcmp(type_name, "uint64_t") != 0 &&
+				strcmp(type_name, "float") != 0 &&
+				strcmp(type_name, "double") != 0 &&
+				strcmp(type_name, "bool") != 0 &&
+				strcmp(type_name, "char") != 0) {
+>>>>>>> DGXY
 
 			// find orb meta for type
 			const orb_metadata *const *topics = orb_get_topics();
