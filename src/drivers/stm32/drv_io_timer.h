@@ -39,6 +39,7 @@
 #include <nuttx/irq.h>
 
 #include <drivers/drv_hrt.h>
+#include "drv_dshot.h"
 
 #pragma once
 __BEGIN_DECLS
@@ -79,14 +80,15 @@ typedef uint8_t io_timer_channel_allocation_t; /* big enough to hold MAX_TIMER_I
  *** the resulting PSC will be one and the timer will count at it's clock frequency.
  */
 typedef struct io_timers_t {
-	uint32_t	base;
-	uint32_t	clock_register;
-	uint32_t	clock_bit;
-	uint32_t	clock_freq;
-	uint32_t	vectorno;
-	uint32_t	first_channel_index;
-	uint32_t	last_channel_index;
-	xcpt_t		handler;
+	uint32_t		base;
+	uint32_t		clock_register;
+	uint32_t		clock_bit;
+	uint32_t		clock_freq;
+	uint32_t		vectorno;
+	uint32_t		first_channel_index;
+	uint32_t		last_channel_index;
+	xcpt_t			handler;
+	dshot_conf_t	dshot;
 } io_timers_t;
 
 /* array of channels in logical order */

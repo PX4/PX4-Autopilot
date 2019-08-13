@@ -39,7 +39,6 @@
 #pragma once
 
 #include <drivers/drv_pwm_output.h>
-#include "drv_io_timer.h"
 
 #define DSHOT_MOTOR_PWM_BIT_WIDTH		20u
 
@@ -80,15 +79,12 @@ typedef enum dshot_dma_stream_t {
 	DShot_Stream7	= 7u
 }dshot_dma_stream_t;
 
-/* array of channels in logical order */
-typedef struct drv_dshot_config_t {
+/* The structure which contains configuration for DShot
+ */
+typedef struct dshot_conf_t {
 	uint32_t			dma_base;
 	dshot_dma_channel_t	channel;
 	dshot_dma_stream_t	stream;
 	uint32_t			start_ccr_register;
 	uint8_t				channels_number;
-} drv_dshot_config_t;
-
-
-__EXPORT extern const drv_dshot_config_t dshot_config[MAX_IO_TIMERS];
-__EXPORT extern const io_timers_t io_timers[MAX_IO_TIMERS];
+} dshot_conf_t;
