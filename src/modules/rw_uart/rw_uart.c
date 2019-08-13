@@ -109,7 +109,7 @@ void msg_orb_sub (MSG_orb_sub *msg_fd)
     msg_fd->arm_fd = orb_subscribe(ORB_ID(actuator_armed));
     msg_fd->gps_fd = orb_subscribe(ORB_ID(vehicle_gps_position));
     msg_fd->command_fd = orb_subscribe(ORB_ID(vehicle_command));
-    msg_fd->mission_fd = orb_subscribe(ORB_ID(mission));
+    msg_fd->mission_fd = orb_subscribe(ORB_ID(mission_result));
     msg_fd->manual_fd = orb_subscribe(ORB_ID(manual_control_setpoint));
     msg_fd->status_fd = orb_subscribe(ORB_ID(vehicle_status));
     msg_fd->local_position_sp_fd = orb_subscribe(ORB_ID(vehicle_local_position_setpoint));
@@ -127,7 +127,7 @@ void msg_orb_data(MSG_orb_data *msg_data, MSG_orb_sub msg_fd)
    orb_copy(ORB_ID(actuator_armed), msg_fd.arm_fd,&msg_data->arm_data);
    orb_copy(ORB_ID(vehicle_gps_position), msg_fd.gps_fd,&msg_data->gps_data);
    orb_copy(ORB_ID(vehicle_command), msg_fd.command_fd,&msg_data->command_data);
-   orb_copy(ORB_ID(mission), msg_fd.mission_fd, &msg_data->mission_data);
+   orb_copy(ORB_ID(mission_result), msg_fd.mission_fd, &msg_data->mission_data);
    orb_copy(ORB_ID(manual_control_setpoint), msg_fd.manual_fd, &msg_data->manual_data);
    orb_copy(ORB_ID(vehicle_status), msg_fd.status_fd, &msg_data->status_data);
    orb_copy(ORB_ID(vehicle_local_position_setpoint), msg_fd.local_position_sp_fd, &msg_data->local_position_sp_data);
