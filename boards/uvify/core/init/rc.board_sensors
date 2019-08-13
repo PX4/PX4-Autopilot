@@ -6,7 +6,6 @@
 if param compare SYS_AUTOSTART 6002
 then
    ms5611 -T 0 -s start
-   px4flow start
    ist8310 start
    lis3mdl -X start
 
