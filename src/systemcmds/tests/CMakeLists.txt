@@ -64,7 +64,6 @@ set(srcs
 	test_ppm_loopback.c
 	test_rc.c
 	test_search_min.cpp
-	test_sensors.c
 	test_servo.c
 	test_sleep.c
 	test_smooth_z.cpp

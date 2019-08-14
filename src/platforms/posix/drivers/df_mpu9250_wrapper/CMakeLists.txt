@@ -42,4 +42,7 @@ px4_add_module(
 		git_driverframework
 		df_driver_framework
 		df_mpu9250
+		drivers_accelerometer
+		drivers_gyroscope
+		drivers_magnetometer
 	)
