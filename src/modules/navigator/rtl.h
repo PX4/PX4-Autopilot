@@ -46,6 +46,8 @@
 #include "navigator_mode.h"
 #include "mission_block.h"
 
+#include <uORB/topics/home_position.h>
+
 class Navigator;
 
 class RTL : public MissionBlock, public ModuleParams
@@ -93,6 +95,25 @@ private:
 		RTL_STATE_LAND,
 		RTL_STATE_LANDED,
 	} _rtl_state{RTL_STATE_NONE};
+
+	struct RTLPosition {
+		double lat;
+		double lon;
+		float alt;
+		float yaw;
+		uint8_t safe_point_index; ///< 0 = home position
+
+		void set(const home_position_s &home_position)
+		{
+			lat = home_position.lat;
+			lon = home_position.lon;
+			alt = home_position.alt;
+			yaw = home_position.yaw;
+			safe_point_index = 0;
+		}
+	};
+
+	RTLPosition _destination; ///< the RTL position to fly to (typically the home position or a safe point)
 
 	float _rtl_alt{0.0f};	// AMSL altitude at which the vehicle should return to the home position
 	bool _rtl_alt_min{false};
