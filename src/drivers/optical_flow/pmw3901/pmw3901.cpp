@@ -42,41 +42,13 @@
 #include <px4_defines.h>
 #include <px4_getopt.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-
 #include <drivers/device/spi.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-#include <float.h>
-
 #include <conversion/rotation.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-#include <parameters/param.h>
-
+#include <lib/perf/perf_counter.h>
+#include <lib/parameters/param.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_range_finder.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/subsystem_info.h>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/optical_flow.h>
-#include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/sensor_gyro.h>
-
-#include <board_config.h>
 
 /* Configuration Constants */
 
@@ -109,7 +81,7 @@
 
 /* PMW3901 Registers addresses */
 #define PMW3901_US 1000 /*   1 ms */
-#define PMW3901_SAMPLE_RATE 10000 /*  10 ms */
+#define PMW3901_SAMPLE_INTERVAL 10000 /*  10 ms */
 
 
 class PMW3901 : public device::SPI, public px4::ScheduledWorkItem
@@ -121,10 +93,6 @@ public:
 
 	virtual int init();
 
-	virtual ssize_t read(device::file_t *filp, char *buffer, size_t buflen);
-
-	virtual int ioctl(device::file_t *filp, int cmd, unsigned long arg);
-
 	/**
 	* Diagnostics - print some basic information about the driver.
 	*/
@@ -134,27 +102,21 @@ protected:
 	virtual int probe();
 
 private:
-	ringbuffer::RingBuffer *_reports;
-	bool _sensor_ok;
-	int _measure_interval;
-	int _class_instance;
-	int _orb_class_instance;
 
-	const uint64_t _collect_time = 15000; // usecs, optical flow data publish rate
+	const uint64_t _collect_time{15000}; // usecs, optical flow data publish rate
 
-	orb_advert_t _optical_flow_pub;
-	orb_advert_t _subsystem_pub;
+	uORB::PublicationMulti<optical_flow_s> _optical_flow_pub{ORB_ID(optical_flow)};
 
 	perf_counter_t _sample_perf;
 	perf_counter_t _comms_errors;
 
-	uint64_t _previous_collect_timestamp;
+	uint64_t _previous_collect_timestamp{0};
 
 	enum Rotation _yaw_rotation;
-	int _flow_sum_x = 0;
-	int _flow_sum_y = 0;
-	uint64_t _flow_dt_sum_usec = 0;
 
+	int _flow_sum_x{0};
+	int _flow_sum_y{0};
+	uint64_t _flow_dt_sum_usec{0};
 
 	/**
 	* Initialise the automatic measurement state machine and start it.
@@ -175,8 +137,6 @@ private:
 	*/
 	void Run() override;
 
-	int	collect();
-
 	int readRegister(unsigned reg, uint8_t *data, unsigned count);
 	int writeRegister(unsigned reg, uint8_t data);
 
@@ -192,40 +152,26 @@ extern "C" __EXPORT int pmw3901_main(int argc, char *argv[]);
 PMW3901::PMW3901(int bus, enum Rotation yaw_rotation) :
 	SPI("PMW3901", PMW3901_DEVICE_PATH, bus, PMW3901_SPIDEV, SPIDEV_MODE0, PMW3901_SPI_BUS_SPEED),
 	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
-	_reports(nullptr),
-	_sensor_ok(false),
-	_measure_interval(0),
-	_class_instance(-1),
-	_orb_class_instance(-1),
-	_optical_flow_pub(nullptr),
-	_subsystem_pub(nullptr),
-	_sample_perf(perf_alloc(PC_ELAPSED, "pmw3901_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "pmw3901_com_err")),
-	_previous_collect_timestamp(0),
+	_sample_perf(perf_alloc(PC_ELAPSED, "pmw3901: read")),
+	_comms_errors(perf_alloc(PC_COUNT, "pmw3901: com err")),
 	_yaw_rotation(yaw_rotation)
 {
 }
 
 PMW3901::~PMW3901()
 {
-	/* make sure we are truly inactive */
+	// make sure we are truly inactive
 	stop();
-
-	/* free any existing reports */
-	if (_reports != nullptr) {
-		delete _reports;
-	}
 
 	// free perf counters
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
 
-
 int
 PMW3901::sensorInit()
 {
-	uint8_t data[5];
+	uint8_t data[5] {};
 
 	// Power on reset
 	writeRegister(0x3A, 0x5A);
@@ -241,6 +187,59 @@ PMW3901::sensorInit()
 	usleep(1000);
 
 	// set performance optimization registers
+	unsigned char v = 0;
+	unsigned char c1 = 0;
+	unsigned char c2 = 0;
+
+	writeRegister(0x7F, 0x00);
+	writeRegister(0x55, 0x01);
+	writeRegister(0x50, 0x07);
+	writeRegister(0x7f, 0x0e);
+	writeRegister(0x43, 0x10);
+
+	readRegister(0x67, &v, 1);
+
+	// if bit7 is set
+	if (v & (1 << 7)) {
+		writeRegister(0x48, 0x04);
+
+	} else {
+		writeRegister(0x48, 0x02);
+	}
+
+	writeRegister(0x7F, 0x00);
+	writeRegister(0x51, 0x7b);
+	writeRegister(0x50, 0x00);
+	writeRegister(0x55, 0x00);
+
+	writeRegister(0x7F, 0x0e);
+	readRegister(0x73, &v, 1);
+
+	if (v == 0) {
+		readRegister(0x70, &c1, 1);
+
+		if (c1 <= 28) {
+			c1 = c1 + 14;
+
+		} else {
+			c1 = c1 + 11;
+		}
+
+		if (c1 > 0x3F) {
+			c1 = 0x3F;
+		}
+
+		readRegister(0x71, &c2, 1);
+		c2 = ((unsigned short)c2 * 45) / 100;
+
+		writeRegister(0x7f, 0x00);
+		writeRegister(0x61, 0xAD);
+		writeRegister(0x51, 0x70);
+		writeRegister(0x7f, 0x0e);
+		writeRegister(0x70, c1);
+		writeRegister(0x71, c2);
+	}
+
 	writeRegister(0x7F, 0x00);
 	writeRegister(0x61, 0xAD);
 	writeRegister(0x7F, 0x03);
@@ -274,7 +273,7 @@ PMW3901::sensorInit()
 	writeRegister(0x7F, 0x00);
 	writeRegister(0x4D, 0x11);
 	writeRegister(0x55, 0x80);
-	writeRegister(0x74, 0x1F);
+	writeRegister(0x74, 0x21);
 	writeRegister(0x75, 0x1F);
 	writeRegister(0x4A, 0x78);
 	writeRegister(0x4B, 0x78);
@@ -283,11 +282,11 @@ PMW3901::sensorInit()
 	writeRegister(0x64, 0xFF);
 	writeRegister(0x65, 0x1F);
 	writeRegister(0x7F, 0x14);
-	writeRegister(0x65, 0x60);
+	writeRegister(0x65, 0x67);
 	writeRegister(0x66, 0x08);
-	writeRegister(0x63, 0x78);
+	writeRegister(0x63, 0x70);
 	writeRegister(0x7F, 0x15);
-	writeRegister(0x48, 0x58);
+	writeRegister(0x48, 0x48);
 	writeRegister(0x7F, 0x07);
 	writeRegister(0x41, 0x0D);
 	writeRegister(0x43, 0x14);
@@ -301,36 +300,29 @@ PMW3901::sensorInit()
 	writeRegister(0x40, 0x41);
 	writeRegister(0x70, 0x00);
 
-	usleep(10000);
+	px4_usleep(10000); // delay 10ms
 
 	writeRegister(0x32, 0x44);
 	writeRegister(0x7F, 0x07);
 	writeRegister(0x40, 0x40);
 	writeRegister(0x7F, 0x06);
-	writeRegister(0x62, 0xf0);
+	writeRegister(0x62, 0xF0);
 	writeRegister(0x63, 0x00);
 	writeRegister(0x7F, 0x0D);
 	writeRegister(0x48, 0xC0);
-	writeRegister(0x6F, 0xd5);
+	writeRegister(0x6F, 0xD5);
 	writeRegister(0x7F, 0x00);
-	writeRegister(0x5B, 0xa0);
+	writeRegister(0x5B, 0xA0);
 	writeRegister(0x4E, 0xA8);
 	writeRegister(0x5A, 0x50);
 	writeRegister(0x40, 0x80);
 
-	writeRegister(0x7F, 0x00);
-	writeRegister(0x5A, 0x10);
-	writeRegister(0x54, 0x00);
-
-	return OK;
-
+	return PX4_OK;
 }
 
 int
 PMW3901::init()
 {
-	int ret = PX4_ERROR;
-
 	// get yaw rotation from sensor frame to body frame
 	param_t rot = param_find("SENS_FLOW_ROT");
 
@@ -341,34 +333,27 @@ PMW3901::init()
 		_yaw_rotation = (enum Rotation)val;
 	}
 
+	/* For devices competing with NuttX SPI drivers on a bus (Crazyflie SD Card expansion board) */
+	SPI::set_lockmode(LOCK_THREADS);
+
 	/* do SPI init (and probe) first */
 	if (SPI::init() != OK) {
-		goto out;
+		return PX4_ERROR;
 	}
 
 	sensorInit();
 
-	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(optical_flow_s));
-
-	if (_reports == nullptr) {
-		goto out;
-	}
-
-	ret = OK;
-	_sensor_ok = true;
 	_previous_collect_timestamp = hrt_absolute_time();
 
-out:
-	return ret;
+	start();
 
+	return PX4_OK;
 }
-
 
 int
 PMW3901::probe()
 {
-	uint8_t data[2] = { 0, 0 };
+	uint8_t data[2] {};
 
 	readRegister(0x00, &data[0], 1); // chip id
 
@@ -381,127 +366,14 @@ PMW3901::probe()
 	return -EIO;
 }
 
-
-int
-PMW3901::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-
-	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
-
-			case 0:
-				return -EINVAL;
-
-			case SENSOR_POLLRATE_DEFAULT: {
-
-					/* do we need to start internal polling? */
-					bool want_start = (_measure_interval == 0);
-
-					/* set interval for next measurement to minimum legal value */
-					_measure_interval = (PMW3901_SAMPLE_RATE);
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-					}
-
-					return OK;
-				}
-
-			/* adjust to a legal polling interval in Hz */
-			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_measure_interval == 0);
-
-					/* convert hz to tick interval via microseconds */
-					unsigned interval = (1000000 / arg);
-
-					/* check against maximum rate */
-					if (interval < (PMW3901_SAMPLE_RATE)) {
-						return -EINVAL;
-					}
-
-					/* update interval for next measurement */
-					_measure_interval = interval;
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-					}
-
-					return OK;
-				}
-			}
-		}
-
-	default:
-		/* give it to the superclass */
-		return SPI::ioctl(filp, cmd, arg);
-	}
-}
-
-ssize_t
-PMW3901::read(device::file_t *filp, char *buffer, size_t buflen)
-{
-	unsigned count = buflen / sizeof(struct optical_flow_s);
-	struct optical_flow_s *rbuf = reinterpret_cast<struct optical_flow_s *>(buffer);
-	int ret = 0;
-
-	/* buffer must be large enough */
-	if (count < 1) {
-		return -ENOSPC;
-	}
-
-	/* if automatic measurement is enabled */
-	if (_measure_interval > 0) {
-
-		/*
-		 * While there is space in the caller's buffer, and reports, copy them.
-		 * Note that we may be pre-empted by the workq thread while we are doing this;
-		 * we are careful to avoid racing with them.
-		 */
-		while (count--) {
-			if (_reports->get(rbuf)) {
-				ret += sizeof(*rbuf);
-				rbuf++;
-			}
-		}
-
-		/* if there was no data, warn the caller */
-		return ret ? ret : -EAGAIN;
-	}
-
-	/* manual measurement - run one conversion */
-	do {
-		_reports->flush();
-
-		/* trigger a measurement */
-		if (OK != collect()) {
-			ret = -EIO;
-			break;
-		}
-
-		/* state machine will have generated a report, copy it out */
-		if (_reports->get(rbuf)) {
-			ret = sizeof(*rbuf);
-		}
-
-	} while (0);
-
-	return ret;
-}
-
-
 int
 PMW3901::readRegister(unsigned reg, uint8_t *data, unsigned count)
 {
-	uint8_t cmd[5]; 					// read up to 4 bytes
-	int ret;
+	uint8_t cmd[5];	// read up to 4 bytes
 
 	cmd[0] = DIR_READ(reg);
 
-	ret = transfer(&cmd[0], &cmd[0], count + 1);
+	int ret = transfer(&cmd[0], &cmd[0], count + 1);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -512,9 +384,7 @@ PMW3901::readRegister(unsigned reg, uint8_t *data, unsigned count)
 	memcpy(&data[0], &cmd[1], count);
 
 	return ret;
-
 }
-
 
 int
 PMW3901::writeRegister(unsigned reg, uint8_t data)
@@ -534,18 +404,17 @@ PMW3901::writeRegister(unsigned reg, uint8_t data)
 	}
 
 	return ret;
-
 }
 
-
-int
-PMW3901::collect()
+void
+PMW3901::Run()
 {
-	int ret = OK;
-	int16_t delta_x_raw, delta_y_raw;
-	float delta_x, delta_y;
-
 	perf_begin(_sample_perf);
+
+	int16_t delta_x_raw = 0;
+	int16_t delta_y_raw = 0;
+	float delta_x = 0.0f;
+	float delta_y = 0.0f;
 
 	uint64_t timestamp = hrt_absolute_time();
 	uint64_t dt_flow = timestamp - _previous_collect_timestamp;
@@ -560,15 +429,13 @@ PMW3901::collect()
 
 	// returns if the collect time has not been reached
 	if (_flow_dt_sum_usec < _collect_time) {
-
-		return ret;
+		return;
 	}
 
 	delta_x = (float)_flow_sum_x / 500.0f;		// proportional factor + convert from pixels to radians
 	delta_y = (float)_flow_sum_y / 500.0f;		// proportional factor + convert from pixels to radians
 
-	struct optical_flow_s report;
-
+	optical_flow_s report{};
 	report.timestamp = timestamp;
 
 	report.pixel_flow_x_integral = static_cast<float>(delta_x);
@@ -579,8 +446,8 @@ PMW3901::collect()
 	rotate_3f(_yaw_rotation, report.pixel_flow_x_integral, report.pixel_flow_y_integral, zeroval);
 	rotate_3f(_yaw_rotation, report.gyro_x_rate_integral, report.gyro_y_rate_integral, report.gyro_z_rate_integral);
 
-	report.frame_count_since_last_readout = 4;				//microseconds
-	report.integration_timespan = _flow_dt_sum_usec; 		//microseconds
+	report.frame_count_since_last_readout = 4;		// microseconds
+	report.integration_timespan = _flow_dt_sum_usec; 	// microseconds
 
 	report.sensor_id = 0;
 
@@ -607,38 +474,19 @@ PMW3901::collect()
 	_flow_sum_x = 0;
 	_flow_sum_y = 0;
 
-	if (_optical_flow_pub == nullptr) {
-
-		_optical_flow_pub = orb_advertise(ORB_ID(optical_flow), &report);
-
-	} else {
-
-		orb_publish(ORB_ID(optical_flow), _optical_flow_pub, &report);
-	}
-
-	/* post a report to the ring */
-	_reports->force(&report);
-
-	/* notify anyone waiting for data */
-	poll_notify(POLLIN);
+	_optical_flow_pub.publish(report);
 
 	perf_end(_sample_perf);
-
-	return ret;
-
 }
-
 
 int
 PMW3901::readMotionCount(int16_t &deltaX, int16_t &deltaY)
 {
-	int ret;
-
 	uint8_t data[10] = { DIR_READ(0x02), 0, DIR_READ(0x03), 0, DIR_READ(0x04), 0,
 			     DIR_READ(0x05), 0, DIR_READ(0x06), 0
 			   };
 
-	ret = transfer(&data[0], &data[0], 10);
+	int ret = transfer(&data[0], &data[0], 10);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -652,34 +500,13 @@ PMW3901::readMotionCount(int16_t &deltaX, int16_t &deltaY)
 	ret = OK;
 
 	return ret;
-
 }
-
 
 void
 PMW3901::start()
 {
-	/* reset the report ring and state machine */
-	_reports->flush();
-
-	/* schedule a cycle to start things */
-	ScheduleDelayed(PMW3901_US);
-
-	/* notify about state change */
-	struct subsystem_info_s info = {};
-
-	info.timestamp = hrt_absolute_time();
-	info.present = true;
-	info.enabled = true;
-	info.ok = true;
-	info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_OPTICALFLOW;
-
-	if (_subsystem_pub != nullptr) {
-		orb_publish(ORB_ID(subsystem_info), _subsystem_pub, &info);
-
-	} else {
-		_subsystem_pub = orb_advertise(ORB_ID(subsystem_info), &info);
-	}
+	// schedule a cycle to start things
+	ScheduleOnInterval(PMW3901_SAMPLE_INTERVAL, PMW3901_US);
 }
 
 void
@@ -689,21 +516,11 @@ PMW3901::stop()
 }
 
 void
-PMW3901::Run()
-{
-	collect();
-
-	/* schedule a fresh cycle call when the measurement is done */
-	ScheduleDelayed(PMW3901_SAMPLE_RATE);
-}
-
-void
 PMW3901::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
 	printf("poll interval:  %u\n", _measure_interval);
-	_reports->print_info("report queue");
 }
 
 /**
@@ -721,15 +538,12 @@ void	reset();
 void	info();
 void	usage();
 
-
 /**
  * Start the driver.
  */
 void
 start(int spi_bus)
 {
-	int fd;
-
 	if (g_dev != nullptr) {
 		errx(1, "already started");
 	}
@@ -742,17 +556,6 @@ start(int spi_bus)
 	}
 
 	if (OK != g_dev->init()) {
-		goto fail;
-	}
-
-	/* set the poll rate to default, starts automatic data collection */
-	fd = open(PMW3901_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		goto fail;
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		goto fail;
 	}
 
@@ -783,39 +586,6 @@ void stop()
 
 	exit(0);
 }
-
-
-/**
- * Perform some basic functional tests on the driver;
- * make sure we can collect data from the sensor in polled
- * and automatic modes.
- */
-void
-test()
-{
-
-	struct optical_flow_s report;
-	ssize_t sz;
-
-	int fd = open(PMW3901_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "%s open failed (try 'pmw3901 start' if the driver is not running)", PMW3901_DEVICE_PATH);
-	}
-
-	/* do a simple demand read */
-	sz = read(fd, &report, sizeof(report));
-
-	if (sz != sizeof(report)) {
-		PX4_ERR("ret: %d, expected: %d", sz, sizeof(report));
-		err(1, "immediate acc read failed");
-	}
-
-	print_message(report);
-
-	errx(0, "PASS");
-}
-
 
 /**
  * Print a little info about the driver.
@@ -891,13 +661,6 @@ pmw3901_main(int argc, char *argv[])
 	 */
 	if (!strcmp(argv[myoptind], "stop")) {
 		pmw3901::stop();
-	}
-
-	/*
-	 * Test the driver/device.
-	 */
-	if (!strcmp(argv[myoptind], "test")) {
-		pmw3901::test();
 	}
 
 	/*
