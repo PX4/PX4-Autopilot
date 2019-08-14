@@ -18,7 +18,7 @@ bmi088 -A -R 10 start
 bmi088 -G -R 10 start
 
 # Interal DPS310 (barometer)
-dps310 start
+dps310 -s start
 
 # Possible external compasses
 ist8310 -C -b 1 start
