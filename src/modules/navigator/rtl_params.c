@@ -97,7 +97,7 @@ PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
  *
  * @unit m
  * @min 0.5
- * @max 20
+ * @max 100
  * @decimal 1
  * @increment 0.5
  * @group Return Mode
