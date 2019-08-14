@@ -53,7 +53,7 @@ private:
 
     Callback callback_;
 
-    virtual void handleReceivedDataStruct(ReceivedDataStructure<DataType_>& msg)
+    virtual void handleReceivedDataStruct(ReceivedDataStructure<DataType_>& msg) override
     {
         if (coerceOrFallback<bool>(callback_, true))
         {

@@ -58,7 +58,7 @@ class UAVCAN_EXPORT DynamicNodeIDClient : private TimerBase
 
     void restartTimer(const Mode mode);
 
-    virtual void handleTimerEvent(const TimerEvent&);
+    virtual void handleTimerEvent(const TimerEvent&) override;
 
     void handleAllocation(const ReceivedDataStructure<protocol::dynamic_node_id::Allocation>& msg);
 

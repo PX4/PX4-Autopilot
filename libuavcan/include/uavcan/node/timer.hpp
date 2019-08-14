@@ -47,7 +47,7 @@ class UAVCAN_EXPORT TimerBase : private DeadlineHandler
 {
     MonotonicDuration period_;
 
-    virtual void handleDeadline(MonotonicTime current);
+    virtual void handleDeadline(MonotonicTime current) override;
 
 public:
     using DeadlineHandler::stop;

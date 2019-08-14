@@ -64,7 +64,7 @@ class UAVCAN_EXPORT Node : public INode
     }
 
 protected:
-    virtual void registerInternalFailure(const char* msg)
+    virtual void registerInternalFailure(const char* msg) override
     {
         internal_failure_cnt_++;
         UAVCAN_TRACE("Node", "Internal failure: %s", msg);
@@ -112,10 +112,10 @@ public:
         commonInit();
     }
 
-    virtual typename RemoveReference<Allocator>::Type& getAllocator() { return pool_allocator_; }
+    virtual typename RemoveReference<Allocator>::Type& getAllocator() override { return pool_allocator_; }
 
-    virtual Scheduler& getScheduler() { return scheduler_; }
-    virtual const Scheduler& getScheduler() const { return scheduler_; }
+    virtual Scheduler& getScheduler() override { return scheduler_; }
+    virtual const Scheduler& getScheduler() const override { return scheduler_; }
 
     int spin(MonotonicTime deadline)
     {

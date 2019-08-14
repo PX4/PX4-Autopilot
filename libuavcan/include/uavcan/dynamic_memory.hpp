@@ -74,10 +74,10 @@ public:
 
     PoolAllocator();
 
-    virtual void* allocate(std::size_t size);
-    virtual void deallocate(const void* ptr);
+    virtual void* allocate(std::size_t size) override;
+    virtual void deallocate(const void* ptr) override;
 
-    virtual uint16_t getBlockCapacity() const { return NumBlocks; }
+    virtual uint16_t getBlockCapacity() const override { return NumBlocks; }
 
     /**
      * Return the number of blocks that are currently allocated/unallocated.
@@ -124,10 +124,10 @@ public:
         UAVCAN_ASSERT(max_blocks_ > 0);
     }
 
-    virtual void* allocate(std::size_t size);
-    virtual void deallocate(const void* ptr);
+    virtual void* allocate(std::size_t size) override;
+    virtual void deallocate(const void* ptr) override;
 
-    virtual uint16_t getBlockCapacity() const;
+    virtual uint16_t getBlockCapacity() const override;
 };
 
 // ----------------------------------------------------------------------------

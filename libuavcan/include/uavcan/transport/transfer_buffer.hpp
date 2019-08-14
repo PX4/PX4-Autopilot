@@ -32,8 +32,8 @@ public:
         max_write_pos_(0)
     { }
 
-    virtual int read(unsigned offset, uint8_t* data, unsigned len) const;
-    virtual int write(unsigned offset, const uint8_t* data, unsigned len);
+    virtual int read(unsigned offset, uint8_t* data, unsigned len) const override;
+    virtual int write(unsigned offset, const uint8_t* data, unsigned len) override;
 
     void reset();
 
@@ -138,8 +138,8 @@ public:
     static TransferBufferManagerEntry* instantiate(IPoolAllocator& allocator, uint16_t max_size);
     static void destroy(TransferBufferManagerEntry*& obj, IPoolAllocator& allocator);
 
-    virtual int read(unsigned offset, uint8_t* data, unsigned len) const;
-    virtual int write(unsigned offset, const uint8_t* data, unsigned len);
+    virtual int read(unsigned offset, uint8_t* data, unsigned len) const override;
+    virtual int write(unsigned offset, const uint8_t* data, unsigned len) override;
 
     void reset(const TransferBufferManagerKey& key = TransferBufferManagerKey());
 

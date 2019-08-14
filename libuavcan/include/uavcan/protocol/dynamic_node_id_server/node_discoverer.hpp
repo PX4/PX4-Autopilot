@@ -233,7 +233,7 @@ class NodeDiscoverer : TimerBase
         }
     }
 
-    void handleTimerEvent(const TimerEvent&)
+    void handleTimerEvent(const TimerEvent&) override
     {
         if (get_node_info_client_.hasPendingCalls())
         {
