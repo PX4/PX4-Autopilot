@@ -42,7 +42,6 @@
 
 #pragma once
 
-#include <drivers/drv_hrt.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_acceleration.h>
@@ -82,10 +81,10 @@ private:
 	vehicle_acceleration_s _vehicle_acceleration{};
 	vehicle_local_position_s _vehicle_local_position{};
 
-	float _accel_horz_lp{0.0f};
 	float _airspeed_filtered{0.0f};
 	float _velocity_xy_filtered{0.0f};
 	float _velocity_z_filtered{0.0f};
+	float _xy_accel_filtered{0.0f};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		LandDetector,
