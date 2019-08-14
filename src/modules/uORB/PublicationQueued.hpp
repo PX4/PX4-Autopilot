@@ -38,8 +38,9 @@
 
 #pragma once
 
-#include <uORB/uORB.h>
 #include <px4_defines.h>
+#include <systemlib/err.h>
+#include <uORB/uORB.h>
 
 namespace uORB
 {
@@ -55,12 +56,13 @@ public:
 	/**
 	 * Constructor
 	 *
-	 * @param meta The uORB metadata (usually from
-	 * 	the ORB_ID() macro) for the topic.
+	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
 	 */
 	PublicationQueued(const orb_metadata *meta) : _meta(meta) {}
-
-	~PublicationQueued() { orb_unadvertise(_handle); }
+	~PublicationQueued()
+	{
+		//orb_unadvertise(_handle);
+	}
 
 	/**
 	 * Publish the struct
@@ -68,24 +70,19 @@ public:
 	 */
 	bool publish(const T &data)
 	{
-		bool updated = false;
-
 		if (_handle != nullptr) {
-			updated = (orb_publish(_meta, _handle, &data) == PX4_OK);
+			return (orb_publish(_meta, _handle, &data) == PX4_OK);
 
 		} else {
 			orb_advert_t handle = orb_advertise_queue(_meta, &data, T::ORB_QUEUE_LENGTH);
 
 			if (handle != nullptr) {
 				_handle = handle;
-				updated = true;
-
-			} else {
-				PX4_ERR("%s advertise failed", _meta->o_name);
+				return true;
 			}
 		}
 
-		return updated;
+		return false;
 	}
 
 protected:

@@ -80,7 +80,7 @@ VehicleAngularVelocity::Stop()
 	Deinit();
 
 	// clear all registered callbacks
-	for (auto sub : _sensor_sub) {
+	for (auto &sub : _sensor_sub) {
 		sub.unregister_callback();
 	}
 
@@ -131,7 +131,7 @@ VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 		if ((_selected_sensor != corrections.selected_gyro_instance) || force) {
 			if (corrections.selected_gyro_instance < MAX_SENSOR_COUNT) {
 				// clear all registered callbacks
-				for (auto sub : _sensor_sub) {
+				for (auto &sub : _sensor_sub) {
 					sub.unregister_callback();
 				}
 

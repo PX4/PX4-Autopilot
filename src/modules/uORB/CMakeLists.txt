@@ -41,14 +41,30 @@ if(NOT "${PX4_BOARD}" MATCHES "px4_io") # TODO: fix this hack (move uORB to plat
 		MAIN uorb
 		STACK_MAIN 2100
 		SRCS
+			ORBSet.hpp
+			Publication.hpp
+			PublicationMulti.hpp
+			PublicationQueued.hpp
 			Subscription.cpp
+			Subscription.hpp
+			SubscriptionCallback.hpp
+			SubscriptionInterval.hpp
 			SubscriptionPollable.cpp
+			SubscriptionPollable.hpp
 			uORB.cpp
+			uORB.h
+			uORBCommon.hpp
+			uORBCommunicator.hpp
 			uORBDeviceMaster.cpp
+			uORBDeviceMaster.hpp
 			uORBDeviceNode.cpp
+			uORBDeviceNode.hpp
 			uORBMain.cpp
 			uORBManager.cpp
+			uORBManager.hpp
+			uORBTopics.h
 			uORBUtils.cpp
+			uORBUtils.hpp
 		DEPENDS
 			cdev
 			uorb_msgs

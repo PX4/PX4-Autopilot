@@ -164,7 +164,6 @@ then
 
 	param set TRIG_INTERFACE 3
 
-	param set WEST_EN 0
 fi
 
 # Adapt timeout parameters if simulation runs faster or slower than realtime.
@@ -213,10 +212,6 @@ sensors start
 commander start
 navigator start
 
-if param compare WEST_EN 1
-then
-	wind_estimator start
-fi
 
 if ! param compare MNT_MODE_IN -1
 then
