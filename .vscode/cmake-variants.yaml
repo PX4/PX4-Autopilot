@@ -61,6 +61,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: intel_aerofc-v1_default
+    mro_ctrl-zero-f7_default:
+      short: mro_ctrl-zero-f7
+      buildType: MinSizeRel
+      settings:
+        CONFIG: mro_ctrl-zero-f7_default
     nxp_fmuk66-v3_default:
       short: nxp_fmuk66-v3
       buildType: MinSizeRel
