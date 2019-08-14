@@ -1,0 +1,7 @@
+uint32 device_id	# unique device ID for the sensor that does not change between power cycles
+
+uint64 timestamp	# time since system start (microseconds)
+
+uint64 timestamp_sample	# time the raw data was sampled (microseconds)
+
+float32[3] xyz		# filtered angular velocity in the NED X board axis in rad/s
