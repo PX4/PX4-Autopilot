@@ -184,6 +184,7 @@ typedef struct {
 
 typedef struct {
     YFPA_param yfpa_param;
+    SETD setd;
 }MSG_response;
 
 #pragma  pack()
