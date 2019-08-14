@@ -33,37 +33,61 @@
 
 #pragma once
 
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/perf/perf_counter.h>
-#include <px4_getopt.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <lib/drivers/device/spi.h>
 
-#include "BMI088_Accelerometer.hpp"
-#include "BMI088_Gyroscope.hpp"
+#include "Bosch_BMI088_Gyroscope_Registers.hpp"
 
-using Bosch_BMI088_Accelerometer::BMI088_Accelerometer;
-using Bosch_BMI088_Gyroscope::BMI088_Gyroscope;
+namespace Bosch_BMI088_Gyroscope
+{
 
-class BMI088 : public px4::ScheduledWorkItem
+class BMI088_Gyroscope : public device::SPI, public px4::ScheduledWorkItem
 {
 public:
+	BMI088_Gyroscope(int bus, uint32_t device, enum Rotation rotation);
+	virtual ~BMI088_Gyroscope();
 
-	BMI088(int bus, enum Rotation rotation);
-	virtual ~BMI088() = default;
+	virtual int     init();
 
-	int init();
+	void    	Run() override;
 
-	bool start();
-	bool stop();
+	bool		Start();
+	bool		Stop();
 
-	void print_info();
-	void print_registers();
+	void            print_info();
+	void            print_registers();
 
+	void		data_ready_perf() { _timestamp_drdy = hrt_absolute_time(); perf_count(_drdy_interval_perf); }
+
+protected:
+
+	virtual int     probe();
 
 private:
 
-	void Run() override;
+	uint8_t		registerRead(Register reg);
+	void		registerWrite(Register reg, uint8_t value);
+	bool		registerWriteVerified(Register reg, uint8_t value);
+	bool		registerSetBits(Register reg, uint8_t setbits);
+	bool		registerClearBits(Register reg, uint8_t clearbits);
 
-	BMI088_Accelerometer	_accel;
-	BMI088_Gyroscope	_gyro;
+	bool		resetFIFO();
+
+	int         	reset();
+
+	PX4Gyroscope		_px4_gyro;
+
+	hrt_abstime		_timestamp_drdy{0};
+
+	perf_counter_t		_sample_perf;
+	perf_counter_t		_measure_interval;
+	perf_counter_t		_drdy_interval_perf;
+	perf_counter_t		_fifo_reset_perf;
+	perf_counter_t		_bad_transfers;
+	perf_counter_t		_bad_registers;
 
 };
+
+} // namespace Bosch_BMI088_Gyroscope

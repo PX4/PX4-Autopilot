@@ -39,13 +39,13 @@
 PX4Accelerometer::PX4Accelerometer(uint32_t device_id, uint8_t priority, enum Rotation rotation) :
 	CDev(nullptr),
 	ModuleParams(nullptr),
-	_sensor_accel_pub{ORB_ID(sensor_accel), priority},
+	_sensor_pub{ORB_ID(sensor_accel), priority},
 	_rotation{rotation}
 {
 	_class_device_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 
-	_sensor_accel_pub.get().device_id = device_id;
-	_sensor_accel_pub.get().scaling = 1.0f;
+	_sensor_pub.get().device_id = device_id;
+	_sensor_pub.get().scaling = 1.0f;
 
 	// set software low pass filter for controllers
 	updateParams();
@@ -75,7 +75,7 @@ PX4Accelerometer::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 		return PX4_OK;
 
 	case DEVIOCGDEVICEID:
-		return _sensor_accel_pub.get().device_id;
+		return _sensor_pub.get().device_id;
 
 	default:
 		return -ENOTTY;
@@ -87,13 +87,19 @@ PX4Accelerometer::set_device_type(uint8_t devtype)
 {
 	// current DeviceStructure
 	union device::Device::DeviceId device_id;
-	device_id.devid = _sensor_accel_pub.get().device_id;
+	device_id.devid = _sensor_pub.get().device_id;
 
 	// update to new device type
 	device_id.devid_s.devtype = devtype;
 
 	// copy back to report
-	_sensor_accel_pub.get().device_id = device_id.devid;
+	_sensor_pub.get().device_id = device_id.devid;
+}
+
+void
+PX4Accelerometer::set_integrator_reset_interval(unsigned interval)
+{
+	_integrator.set_autoreset_interval(interval);
 }
 
 void
@@ -106,7 +112,7 @@ PX4Accelerometer::set_sample_rate(unsigned rate)
 void
 PX4Accelerometer::update(hrt_abstime timestamp, float x, float y, float z)
 {
-	sensor_accel_s &report = _sensor_accel_pub.get();
+	sensor_accel_s &report = _sensor_pub.get();
 	report.timestamp = timestamp;
 
 	// Apply rotation (before scaling)
@@ -141,7 +147,7 @@ PX4Accelerometer::update(hrt_abstime timestamp, float x, float y, float z)
 		report.z_integral = integrated_value(2);
 
 		poll_notify(POLLIN);
-		_sensor_accel_pub.update();
+		_sensor_pub.update();
 	}
 }
 
@@ -157,5 +163,5 @@ PX4Accelerometer::print_status()
 	PX4_INFO("calibration offset: %.5f %.5f %.5f", (double)_calibration_offset(0), (double)_calibration_offset(1),
 		 (double)_calibration_offset(2));
 
-	print_message(_sensor_accel_pub.get());
+	print_message(_sensor_pub.get());
 }

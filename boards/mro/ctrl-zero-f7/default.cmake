@@ -29,7 +29,7 @@ px4_add_board(
 		gps
 		#heater
 		#imu # all available imu drivers
-		#imu/bmi088
+		imu/bmi088
 		imu/mpu6000
 		imu/icm20948
 		irlock

@@ -54,10 +54,11 @@ public:
 	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
 
 	void set_device_type(uint8_t devtype);
-	void set_error_count(uint64_t error_count) { _sensor_accel_pub.get().error_count = error_count; }
-	void set_scale(float scale) { _sensor_accel_pub.get().scaling = scale; }
-	void set_temperature(float temperature) { _sensor_accel_pub.get().temperature = temperature; }
+	void set_error_count(uint64_t error_count) { _sensor_pub.get().error_count = error_count; }
+	void set_scale(float scale) { _sensor_pub.get().scaling = scale; }
+	void set_temperature(float temperature) { _sensor_pub.get().temperature = temperature; }
 
+	void set_integrator_reset_interval(unsigned interval);
 	void set_sample_rate(unsigned rate);
 
 	void update(hrt_abstime timestamp, float x, float y, float z);
@@ -68,7 +69,7 @@ private:
 
 	void configure_filter(float cutoff_freq) { _filter.set_cutoff_frequency(_sample_rate, cutoff_freq); }
 
-	uORB::PublicationMultiData<sensor_accel_s>	_sensor_accel_pub;
+	uORB::PublicationMultiData<sensor_accel_s>	_sensor_pub;
 
 	math::LowPassFilter2pVector3f _filter{1000, 100};
 	Integrator _integrator{4000, false};

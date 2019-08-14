@@ -31,39 +31,73 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include "BMI088.hpp"
 
-#include <lib/perf/perf_counter.h>
-#include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-
-#include "BMI088_Accelerometer.hpp"
-#include "BMI088_Gyroscope.hpp"
-
-using Bosch_BMI088_Accelerometer::BMI088_Accelerometer;
-using Bosch_BMI088_Gyroscope::BMI088_Gyroscope;
-
-class BMI088 : public px4::ScheduledWorkItem
+BMI088::BMI088(int bus, enum Rotation rotation) :
+#ifdef PX4_SPI_BUS_SENSORS3
+	ScheduledWorkItem(px4::wq_configurations::SPI3),
+#endif
+#ifdef PX4_SPI_BUS_5
+	ScheduledWorkItem(px4::wq_configurations::SPI5),
+#endif
+	_accel {bus, PX4_SPIDEV_BMI088_ACC, rotation},
+	_gyro{bus, PX4_SPIDEV_BMI088_GYR, rotation}
 {
-public:
+}
 
-	BMI088(int bus, enum Rotation rotation);
-	virtual ~BMI088() = default;
+int
+BMI088::init()
+{
+	// accel
+	int ret_accel = _accel.init();
 
-	int init();
+	if (ret_accel != PX4_OK) {
+		return ret_accel;
+	}
 
-	bool start();
-	bool stop();
+	// gyro
+	int ret_gyro = _gyro.init();
 
-	void print_info();
-	void print_registers();
+	if (ret_gyro != PX4_OK) {
+		return ret_gyro;
+	}
 
+	if (start()) {
+		return PX4_OK;
+	}
 
-private:
+	return PX4_ERROR;
+}
 
-	void Run() override;
+bool
+BMI088::start()
+{
+	return true;
+}
 
-	BMI088_Accelerometer	_accel;
-	BMI088_Gyroscope	_gyro;
+bool
+BMI088::stop()
+{
+	return true;
+}
 
-};
+void
+BMI088::print_info()
+{
+	_accel.print_info();
+	_gyro.print_info();
+}
+
+void
+BMI088::print_registers()
+{
+	_accel.print_registers();
+	_gyro.print_registers();
+}
+
+void
+BMI088::Run()
+{
+	PX4_DEBUG("Run");
+
+}
