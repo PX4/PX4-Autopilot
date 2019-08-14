@@ -176,7 +176,7 @@ int motor_ramp_main(int argc, char *argv[])
 
 			case 'd':
 				if(!strcmp(myoptarg, "/dev/pwm_output0") || !strcmp(myoptarg, "/dev/pwm_output1")){
-					_pwm_output_dev = const_cast<char*>(myoptarg);
+					_pwm_output_dev = myoptarg;
 				} else {
 					usage("pwm output device not found");
 					error_flag = true;
@@ -244,7 +244,7 @@ int motor_ramp_main(int argc, char *argv[])
 		error_flag = true;
 	}
 
-	_mode_c = const_cast<char*>(myoptarg);
+	_mode_c = myoptarg;
 
 	if(error_flag){
 		return 1;
@@ -379,7 +379,9 @@ int motor_ramp_thread_main(int argc, char *argv[])
 	/* get the number of servo channels */
 	if (px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count) < 0) {
 			PX4_ERR("PWM_SERVO_GET_COUNT");
+			px4_close(fd);
 			return 1;
+
 	}
 
 	/* get current servo values */
@@ -387,6 +389,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 
 		if (px4_ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&last_spos.values[i]) < 0) {
 			PX4_ERR("PWM_SERVO_GET(%d)", i);
+			px4_close(fd);
 			return 1;
 		}
 	}
@@ -394,11 +397,13 @@ int motor_ramp_thread_main(int argc, char *argv[])
 	/* get current pwm min */
 	if (px4_ioctl(fd, PWM_SERVO_GET_MIN_PWM, (long unsigned int)&last_min) < 0) {
 		PX4_ERR("failed getting pwm min values");
+		px4_close(fd);
 		return 1;
 	}
 
 	if (px4_ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_ENTER_TEST_MODE) < 0) {
 		PX4_ERR("Failed to Enter pwm test mode");
+		px4_close(fd);
 		return 1;
 	}
 
@@ -492,6 +497,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 		/* get current pwm min */
 		if (px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&last_min) < 0) {
 			PX4_ERR("failed getting pwm min values");
+			px4_close(fd);
 			return 1;
 		}
 
@@ -500,12 +506,14 @@ int motor_ramp_thread_main(int argc, char *argv[])
 
 			if (px4_ioctl(fd, PWM_SERVO_SET(i), (unsigned long)last_spos.values[i]) < 0) {
 				PX4_ERR("PWM_SERVO_SET(%d)", i);
+				px4_close(fd);
 				return 1;
 			}
 		}
 
 		if (px4_ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_EXIT_TEST_MODE) < 0) {
 			PX4_ERR("Failed to Exit pwm test mode");
+			px4_close(fd);
 			return 1;
 		}
 
