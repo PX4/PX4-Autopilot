@@ -50,12 +50,12 @@ class Server : public AbstractServer
     /*
      * Methods of IAllocationRequestHandler
      */
-    virtual bool canPublishFollowupAllocationResponse() const
+    virtual bool canPublishFollowupAllocationResponse() const override
     {
         return true;    // Because there's only one Centralized server in the system
     }
 
-    virtual void handleAllocationRequest(const UniqueID& unique_id, const NodeID preferred_node_id)
+    virtual void handleAllocationRequest(const UniqueID& unique_id, const NodeID preferred_node_id) override
     {
         const NodeID existing_node_id = storage_.getNodeIDForUniqueID(unique_id);
         if (existing_node_id.isValid())
@@ -90,17 +90,17 @@ class Server : public AbstractServer
     /*
      * Methods of INodeDiscoveryHandler
      */
-    virtual bool canDiscoverNewNodes() const
+    virtual bool canDiscoverNewNodes() const override
     {
         return true;    // Because there's only one Centralized server in the system
     }
 
-    virtual NodeAwareness checkNodeAwareness(NodeID node_id) const
+    virtual NodeAwareness checkNodeAwareness(NodeID node_id) const override
     {
         return storage_.isNodeIDOccupied(node_id) ? NodeAwarenessKnownAndCommitted : NodeAwarenessUnknown;
     }
 
-    virtual void handleNewNodeDiscovery(const UniqueID* unique_id_or_null, NodeID node_id)
+    virtual void handleNewNodeDiscovery(const UniqueID* unique_id_or_null, NodeID node_id) override
     {
         if (storage_.isNodeIDOccupied(node_id))
         {

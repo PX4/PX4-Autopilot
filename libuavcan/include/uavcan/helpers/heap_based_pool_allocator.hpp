@@ -97,7 +97,7 @@ public:
      * Takes a block from the reserve, unless it's empty.
      * In the latter case, allocates a new block in the heap.
      */
-    virtual void* allocate(std::size_t size)
+    virtual void* allocate(std::size_t size) override
     {
         if (size > BlockSize)
         {
@@ -140,7 +140,7 @@ public:
      * Puts the block back to reserve.
      * The block will not be free()d automatically; see @ref shrink().
      */
-    virtual void deallocate(const void* ptr)
+    virtual void deallocate(const void* ptr) override
     {
         if (ptr != UAVCAN_NULLPTR)
         {
@@ -158,7 +158,7 @@ public:
     /**
      * The soft limit.
      */
-    virtual uint16_t getBlockCapacity() const { return capacity_soft_limit_; }
+    virtual uint16_t getBlockCapacity() const override { return capacity_soft_limit_; }
 
     /**
      * The hard limit.

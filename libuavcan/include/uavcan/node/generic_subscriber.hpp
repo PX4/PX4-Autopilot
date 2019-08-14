@@ -134,7 +134,7 @@ class UAVCAN_EXPORT GenericSubscriber : public GenericSubscriberBase
     {
         SelfType& obj_;
 
-        void handleIncomingTransfer(IncomingTransfer& transfer)
+        void handleIncomingTransfer(IncomingTransfer& transfer) override
         {
             obj_.handleIncomingTransfer(transfer);
         }

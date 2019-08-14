@@ -32,7 +32,7 @@ class UAVCAN_EXPORT IncomingTransfer : public ITransferBuffer
     uint8_t iface_index_;
 
     /// That's a no-op, asserts in debug builds
-    virtual int write(unsigned offset, const uint8_t* data, unsigned len);
+    virtual int write(unsigned offset, const uint8_t* data, unsigned len) override;
 
 protected:
     IncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc, TransferPriority transfer_priority,
@@ -76,8 +76,8 @@ class UAVCAN_EXPORT SingleFrameIncomingTransfer : public IncomingTransfer
     const uint8_t payload_len_;
 public:
     explicit SingleFrameIncomingTransfer(const RxFrame& frm);
-    virtual int read(unsigned offset, uint8_t* data, unsigned len) const;
-    virtual bool isAnonymousTransfer() const;
+    virtual int read(unsigned offset, uint8_t* data, unsigned len) const override;
+    virtual bool isAnonymousTransfer() const override;
 };
 
 /**
@@ -89,8 +89,8 @@ class UAVCAN_EXPORT MultiFrameIncomingTransfer : public IncomingTransfer, Noncop
 public:
     MultiFrameIncomingTransfer(MonotonicTime ts_mono, UtcTime ts_utc, const RxFrame& last_frame,
                                TransferBufferAccessor& tba);
-    virtual int read(unsigned offset, uint8_t* data, unsigned len) const;
-    virtual void release() { buf_acc_.remove(); }
+    virtual int read(unsigned offset, uint8_t* data, unsigned len) const override;
+    virtual void release() override { buf_acc_.remove(); }
 };
 
 /**
@@ -174,7 +174,7 @@ class UAVCAN_EXPORT TransferListenerWithFilter : public TransferListener
 {
     const ITransferAcceptanceFilter* filter_;
 
-    virtual void handleFrame(const RxFrame& frame);
+    virtual void handleFrame(const RxFrame& frame) override;
 
 public:
     TransferListenerWithFilter(TransferPerfCounter& perf, const DataTypeDescriptor& data_type,

@@ -69,7 +69,7 @@ class UAVCAN_EXPORT NodeStatusProvider : private TimerBase
 
     int publish();
 
-    virtual void handleTimerEvent(const TimerEvent&);
+    virtual void handleTimerEvent(const TimerEvent&) override;
     void handleGetNodeInfoRequest(const protocol::GetNodeInfo::Request&, protocol::GetNodeInfo::Response& rsp);
 
 public:
