@@ -226,7 +226,7 @@ int motor_ramp_main(int argc, char *argv[])
 
 	if(!set_pwm_min){
 		PX4_WARN("pwm_min not set. use -a flag");
-		error_flag = 1;
+		error_flag = true;
 	}
 
 
@@ -374,12 +374,15 @@ int motor_ramp_thread_main(int argc, char *argv[])
 
 	if (fd < 0) {
 		PX4_ERR("can't open %s", _pwm_output_dev);
+		_thread_running = false;
+		return 1;
 	}
 
 	/* get the number of servo channels */
 	if (px4_ioctl(fd, PWM_SERVO_GET_COUNT, (unsigned long)&servo_count) < 0) {
 			PX4_ERR("PWM_SERVO_GET_COUNT");
 			px4_close(fd);
+			_thread_running = false;
 			return 1;
 
 	}
@@ -390,6 +393,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 		if (px4_ioctl(fd, PWM_SERVO_GET(i), (unsigned long)&last_spos.values[i]) < 0) {
 			PX4_ERR("PWM_SERVO_GET(%d)", i);
 			px4_close(fd);
+			_thread_running = false;
 			return 1;
 		}
 	}
@@ -398,12 +402,14 @@ int motor_ramp_thread_main(int argc, char *argv[])
 	if (px4_ioctl(fd, PWM_SERVO_GET_MIN_PWM, (long unsigned int)&last_min) < 0) {
 		PX4_ERR("failed getting pwm min values");
 		px4_close(fd);
+		_thread_running = false;
 		return 1;
 	}
 
 	if (px4_ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_ENTER_TEST_MODE) < 0) {
 		PX4_ERR("Failed to Enter pwm test mode");
 		px4_close(fd);
+		_thread_running = false;
 		return 1;
 	}
 
@@ -494,10 +500,11 @@ int motor_ramp_thread_main(int argc, char *argv[])
 	}
 
 	if (fd >= 0) {
-		/* get current pwm min */
+		/* set current pwm min */
 		if (px4_ioctl(fd, PWM_SERVO_SET_MIN_PWM, (long unsigned int)&last_min) < 0) {
-			PX4_ERR("failed getting pwm min values");
+			PX4_ERR("failed setting pwm min values");
 			px4_close(fd);
+			_thread_running = false;
 			return 1;
 		}
 
@@ -507,6 +514,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 			if (px4_ioctl(fd, PWM_SERVO_SET(i), (unsigned long)last_spos.values[i]) < 0) {
 				PX4_ERR("PWM_SERVO_SET(%d)", i);
 				px4_close(fd);
+				_thread_running = false;
 				return 1;
 			}
 		}
@@ -514,6 +522,7 @@ int motor_ramp_thread_main(int argc, char *argv[])
 		if (px4_ioctl(fd, PWM_SERVO_SET_MODE, PWM_SERVO_EXIT_TEST_MODE) < 0) {
 			PX4_ERR("Failed to Exit pwm test mode");
 			px4_close(fd);
+			_thread_running = false;
 			return 1;
 		}
 
