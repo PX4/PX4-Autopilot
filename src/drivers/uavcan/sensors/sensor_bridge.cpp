@@ -41,6 +41,7 @@
 #include "gnss.hpp"
 #include "mag.hpp"
 #include "baro.hpp"
+#include "flow.hpp"
 
 /*
  * IUavcanSensorBridge
@@ -50,6 +51,7 @@ void IUavcanSensorBridge::make_all(uavcan::INode &node, List<IUavcanSensorBridge
 	list.add(new UavcanBarometerBridge(node));
 	list.add(new UavcanMagnetometerBridge(node));
 	list.add(new UavcanGnssBridge(node));
+	list.add(new UavcanFlowBridge(node));
 }
 
 /*
