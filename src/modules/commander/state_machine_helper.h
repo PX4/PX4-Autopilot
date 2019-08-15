@@ -68,6 +68,27 @@ enum class link_loss_actions_t {
 	LOCKDOWN = 6,		// Kill the motors, same result as kill switch
 };
 
+enum class offboard_loss_actions_t {
+	DISABLED = -1,
+	AUTO_LAND = 0,		// Land mode
+	AUTO_LOITER = 1,	// Hold mode
+	AUTO_RTL = 2,		// Return mode
+	TERMINATE = 3,		// Turn off all controllers and set PWM outputs to failsafe value
+	LOCKDOWN = 4,		// Kill the motors, same result as kill switch
+};
+
+enum class offboard_loss_rc_actions_t {
+	DISABLED = -1, 		// Disabled
+	MANUAL_POSITION = 0, 	// Position mode
+	MANUAL_ALTITUDE = 1, 	// Altitude mode
+	MANUAL_ATTITUDE = 2, 	// Manual
+	AUTO_RTL = 3, 		// Return mode
+	AUTO_LAND = 4, 		// Land mode
+	AUTO_LOITER = 5, 	// Hold mode
+	TERMINATE = 6, 		// Turn off all controllers and set PWM outputs to failsafe value
+	LOCKDOWN = 7, 		// Kill the motors, same result as kill switch
+};
+
 enum class position_nav_loss_actions_t {
 	ALTITUDE_MANUAL = 0,	// Altitude/Manual. Assume use of remote control after fallback. Switch to Altitude mode if a height estimate is available, else switch to MANUAL.
 	LAND_TERMINATE = 1,	// Land/Terminate.  Assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
@@ -99,7 +120,8 @@ void enable_failsafe(vehicle_status_s *status, bool old_failsafe, orb_advert_t *
 bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_state_s *internal_state,
 		   orb_advert_t *mavlink_log_pub, const link_loss_actions_t data_link_loss_act, const bool mission_finished,
 		   const bool stay_in_failsafe, const vehicle_status_flags_s &status_flags, bool landed,
-		   const link_loss_actions_t rc_loss_act, const int offb_loss_act, const int offb_loss_rc_act,
+		   const link_loss_actions_t rc_loss_act, const offboard_loss_actions_t offb_loss_act,
+		   const offboard_loss_rc_actions_t offb_loss_rc_act,
 		   const position_nav_loss_actions_t posctl_nav_loss_act);
 
 /*

@@ -344,9 +344,12 @@ PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 0.0f);
  * The offboard loss failsafe will only be entered after a timeout,
  * set by COM_OF_LOSS_T in seconds.
  *
- * @value 0 Land mode
- * @value 1 Hold mode
- * @value 2 Return mode
+ * @value -1 Disabled
+ * @value  0 Land mode
+ * @value  1 Hold mode
+ * @value  2 Return mode
+ * @value  3 Terminate
+ * @value  4 Lockdown
  *
  * @group Commander
  */
@@ -358,12 +361,15 @@ PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
  * The offboard loss failsafe will only be entered after a timeout,
  * set by COM_OF_LOSS_T in seconds.
  *
- * @value 0 Position mode
- * @value 1 Altitude mode
- * @value 2 Manual
- * @value 3 Return mode
- * @value 4 Land mode
- * @value 5 Hold mode
+ * @value -1 Disabled
+ * @value  0 Position mode
+ * @value  1 Altitude mode
+ * @value  2 Manual
+ * @value  3 Return mode
+ * @value  4 Land mode
+ * @value  5 Hold mode
+ * @value  6 Terminate
+ * @value  7 Lockdown
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
