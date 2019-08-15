@@ -136,9 +136,9 @@ public:
 
 
 /***************************************************************************************************************************/
-        /* Tobias Kieser: The check_traffic_conus() function preserves all behaviors like check_traffic() function.
+        /* Tobias Kieser: The check_traffic_conus() Methode preserves all behaviors like check_traffic() function.
          * However, the collision are detected by the collision conus approach. Also another behavior has been added,
-         * wich flies an avoidance maneuver until the danger is over. Several parameters can be set (currently hard coded).
+         * which flies an avoidance maneuver until the danger is over. Several parameters can be set (currently hard coded).
 	 */
 	void		check_traffic_conus();	
 /***************************************************************************************************************************/
@@ -312,9 +312,10 @@ private:
         float           f_turn = 0.1;
         float           f_ds = 0.5;*/
         // diese Variablen brauchen eine längere Lebenszeit:
-        int             count,t_after_ca, cyclecounter, collisioncounter, directionR, directionL = 0;
+        int             count,t_after_ca,directionR, directionL = 0;
         bool            cas_on = false;
-        double          avoiding_yaw_angle{};
+        double          avoiding_yaw{};
+       // double          avoiding_pitch{};
 
 /*********************************************************************************************************************************************/
 
@@ -380,10 +381,6 @@ private:
 	EngineFailure	_engineFailure;			/**< class that handles the engine failure mode (FW only!) */
 	GpsFailure	_gpsFailure;			/**< class that handles the OBC gpsfailure loss mode */
 	FollowTarget	_follow_target;
-
-/*********************************************************************************************************************************************/
-        //ConusAvoidance  _conusavoidance;                 /** Tobias Kieser: class for handling avoidance commands */
-/*********************************************************************************************************************************************/
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 

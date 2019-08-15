@@ -52,6 +52,12 @@
 #include <uORB/topics/vehicle_attitude.h>
 
 #include <uORB/topics/transponder_report.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/vehicle_local_position.h>
+
+#include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_command.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -99,15 +105,38 @@ int px4_simple_app_main(int argc, char *argv[])
    	 PX4_INFO("Hello Sky!");
      PX4_WARN("This is the px4_simple_app!");
 
-  	 /* subscribe to topic */
+    /* subscribe to topic */
     int _traffic_sub = orb_subscribe(ORB_ID(transponder_report));
    	struct transponder_report_s tr;
 	orb_copy(ORB_ID(transponder_report), _traffic_sub, &tr);
 
-    PX4_WARN("pos,icao:  %f %f %u", tr.lat, tr.lon, tr.icao_address);
-	//PX4_WARN("Alt: %f %f %f %f", tr.altitude, tr.heading, tr.hor_velocity, tr.ver_velocity);
+    PX4_INFO("Transponder report:");
+    PX4_WARN("Lat, Lon,ICAO Add: %f5 %f5 %u", tr.lat, tr.lon, tr.icao_address);
+    PX4_WARN("Alt: %f %f %f %f", (double)tr.altitude, (double)tr.heading, (double)tr.hor_velocity, (double)tr.ver_velocity);
 	PX4_WARN("flags: %d %d %u %u", tr.flags, tr.squawk, tr.altitude_type, tr.emitter_type);
 	PX4_WARN("tslc:  %u", tr.tslc);
+
+    /* subscribe to topic */
+    int _global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+    struct vehicle_global_position_s gl;
+    orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &gl);
+
+    PX4_INFO("vehicl_global_position:");
+    PX4_WARN("pos:  %f5 %f5", gl.lat, gl.lon);
+
+    /* subscribe to topic */
+    int _gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
+    struct vehicle_gps_position_s gps;
+    orb_copy(ORB_ID(vehicle_gps_position), _gps_pos_sub, &gps);
+
+    PX4_INFO("vehicl_gps_position:");
+    PX4_WARN("pos:  %i %i", gps.lat, gps.lon);
+
+    //_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+
+
+
+
 
 
     /*

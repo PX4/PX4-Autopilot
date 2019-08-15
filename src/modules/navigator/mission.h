@@ -95,6 +95,7 @@ public:
 
     /***************************************************************************************************/
     void avoid( vehicle_command_s *vcmd);
+    int32_t get_current_mission_index() const {return _current_mission_index;}
     /***************************************************************************************************/
 	/**
 	 * Set a new mission mode and handle the switching between the different modes

@@ -313,13 +313,16 @@ Mission::set_closest_item_as_current()
 }
 /*****************************************************************************************************************/
 void
-Mission::avoid(struct vehicle_command_s *vcmd){
-    //int vu_scaling = 2; //Scaling Factor für Vu bei neu punkt berechnung
-    //bool _CAon = vcmd->param2;
-    float dyaw = (float)vcmd->param1;
+Mission::avoid(struct vehicle_command_s *vvcmd){
+    float dyaw = (float)vvcmd->param1; //ist bereits in grad
     PX4_WARN("is doing avoidance [rad] %f",(double)dyaw);
 
-  /*  // rotation matrix:
+    //bool _CAon = vcmd->param2;
+//------------------------------------------------------------------------
+
+    int vu_scaling = 2; //Scaling Factor für Vu bei neu punkt berechnung
+
+    // rotation matrix:
     double _R_soll[2][2] = {{cosf(dyaw), -sinf(dyaw)},
                           {sinf(dyaw), cosf(dyaw)}};
 
@@ -328,22 +331,95 @@ Mission::avoid(struct vehicle_command_s *vcmd){
     Vu(0) = vu_scaling*(_R_soll[0][0]*Vu(0)+_R_soll[1][0]*Vu(0));
     Vu(1) = vu_scaling*(_R_soll[0][1]*Vu(1)+_R_soll[1][1]*Vu(1));
 
-    vehicle_local_position_s *U_ned = Navigator::get_local_position();
+    vehicle_local_position_s *U_ned = _navigator->get_local_position();
     matrix::Vector2<double> U({U_ned->x, U_ned->y});
     matrix::Vector2<double> U_goal_local(U+Vu);
 
     //transformiert die lokalen koordinaten in globale, dieser soll als setpoint weitergegeben werden.
     matrix::Vector2<double> U_goal_global;
-    globallocalconverter_toglobal(U(0),U(1),U_ned->z,&U_goal_global(0),&U_goal_global(1),~);*/
+    float alt_sp = _mission_item.altitude;
+    globallocalconverter_toglobal( U_goal_local(0), U_goal_local(1),U_ned->z,&U_goal_global(0),&U_goal_global(1),&alt_sp);
 
+    // send reposition cmd to get out of mission
+    /*
+    vehicle_command_s vcmd = {};
+    vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_REPOSITION;
+    vcmd.param1 = -1;
+    vcmd.param2 = 1;
+    vcmd.param5 = 47.3996130;//U_goal_global(0);
+    vcmd.param6 = 8.5449900;//U_goal_global(1);
+    vcmd.param7 = alt_sp;
+
+    _navigator->publish_vehicle_cmd(&vcmd);
+*/
+//------------------------------------------------------------------------
+
+    /*
     // update position setpoint triplet
     position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
     pos_sp_triplet->previous.valid = false;
+    pos_sp_triplet->current.valid = true;
     pos_sp_triplet->next.valid = false;
     // anscheinend generiert diese funktion gleich die setpoins
-    generate_waypoint_from_heading(&pos_sp_triplet->current, (dyaw+pos_sp_triplet->current.yaw));;
+
+    float newyaw = (dyaw+pos_sp_triplet->current.yaw);
+    if(newyaw>=360){newyaw -= 360;}
+
+    generate_waypoint_from_heading(&pos_sp_triplet->current,newyaw );
 
     _navigator->set_position_setpoint_triplet_updated();
+*/
+//------------------------------------------------------------------------
+
+    position_setpoint_triplet_s *rep = _navigator->get_reposition_triplet();
+    //position_setpoint_triplet_s *curr = get_position_setpoint_triplet();
+
+    // store current position as previous position and goal as next
+    rep->previous.yaw = _navigator->get_global_position()->yaw;
+    rep->previous.lat = _navigator->get_global_position()->lat;
+    rep->previous.lon = _navigator->get_global_position()->lon;
+    rep->previous.alt = _navigator->get_global_position()->alt;
+
+    rep->current.loiter_radius = _navigator->get_loiter_radius();
+    rep->current.loiter_direction = 1;
+    rep->current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+    rep->current.cruising_speed = _navigator->get_cruising_speed();
+    rep->current.cruising_throttle = _navigator->get_cruising_throttle();
+    rep->current.acceptance_radius = _navigator->get_acceptance_radius();
+
+    // Go on and check which changes had been requested
+    float newyaw = (dyaw+_navigator->get_global_position()->yaw);
+    if(newyaw>=360){newyaw -= 360;}
+
+    if (PX4_ISFINITE(newyaw)) {
+        rep->current.yaw = newyaw;
+        rep->current.yaw_valid = true;
+
+    } else {
+        rep->current.yaw = NAN;
+        rep->current.yaw_valid = false;
+    }
+
+    if (PX4_ISFINITE(U_goal_global(0)) && PX4_ISFINITE(U_goal_global(1))) {
+
+        // Position change with optional altitude change
+        rep->current.lat = U_goal_global(0);
+        rep->current.lon = U_goal_global(1);
+        rep->current.alt = _navigator->get_global_position()->alt;
+
+    } else {
+        // All three set to NaN - hold in current position
+        rep->current.lat = _navigator->get_global_position()->lat;
+        rep->current.lon = _navigator->get_global_position()->lon;
+        rep->current.alt = _navigator->get_global_position()->alt;
+    }
+
+    rep->previous.valid = true;
+    rep->current.valid = true;
+    rep->next.valid = false;
+
+    _navigator->set_position_setpoint_triplet_updated();
+
 
 
 }// end avoid function
@@ -1732,10 +1808,9 @@ Mission::need_to_reset_mission(bool active)
 void
 Mission::generate_waypoint_from_heading(struct position_setpoint_s *setpoint, float yaw)
 {
-	waypoint_from_heading_and_distance(
-		_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
-		yaw, 1000000.0f,
-		&(setpoint->lat), &(setpoint->lon));
+    waypoint_from_heading_and_distance(_navigator->get_global_position()->lat, _navigator->get_global_position()->lon,
+                                       yaw, 1000000.0f, &(setpoint->lat), &(setpoint->lon));
+
 	setpoint->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
 	setpoint->yaw = yaw;
 }
