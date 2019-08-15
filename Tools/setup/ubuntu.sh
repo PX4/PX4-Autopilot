@@ -73,6 +73,8 @@ sudo apt-get -yy --quiet --no-install-recommends install \
 	python3-pip \
 	python3-pygments \
 	python3-setuptools \
+	python-pip \
+	python-dev \
 	rsync \
 	shellcheck \
 	unzip \
@@ -87,6 +89,14 @@ echo
 echo "Installing PX4 Python3 dependencies"
 sudo python3 -m pip install --upgrade pip setuptools wheel
 sudo python3 -m pip install -r ${DIR}/requirements.txt
+
+
+# Python2 dependencies
+echo
+echo "Installing PX4 Python2 dependencies"
+sudo python2 -m pip install --upgrade pip setuptools wheel
+sudo python2 -m pip install -r ${DIR}/requirements.txt
+
 
 # NuttX toolchain (arm-none-eabi-gcc)
 if [[ $INSTALL_NUTTX == "true" ]]; then
