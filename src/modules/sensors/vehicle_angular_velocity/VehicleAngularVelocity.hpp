@@ -116,5 +116,6 @@ private:
 	uint32_t				_selected_sensor_device_id{0};
 	uint8_t					_selected_sensor{0};
 	uint8_t					_selected_sensor_control{0};
+	bool					_sensor_control_available{false};
 
 };

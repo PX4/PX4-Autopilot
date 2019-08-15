@@ -153,6 +153,7 @@ VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 				const int sensor_new = corrections.selected_gyro_instance;
 
 				// subscribe to sensor_gyro_control if avialable
+				//  currently not all drivers (eg df_*) provide sensor_gyro_control
 				for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
 					sensor_gyro_control_s report{};
 					_sensor_control_sub[i].copy(&report);
@@ -161,6 +162,10 @@ VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 						if (_sensor_control_sub[i].register_callback()) {
 							PX4_DEBUG("selected sensor (control) changed %d -> %d", _selected_sensor, i);
 							_selected_sensor_control = i;
+
+							_sensor_control_available = true;
+
+							// record selected sensor (sensor_gyro orb index)
 							_selected_sensor = sensor_new;
 
 							return true;
@@ -168,7 +173,8 @@ VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 					}
 				}
 
-				// otherwise use sensor_gyro
+				// otherwise fallback to using sensor_gyro (legacy that will be removed)
+				_sensor_control_available = false;
 				_selected_sensor_device_id = 0;
 
 				if (_sensor_sub[sensor_new].register_callback()) {
@@ -217,20 +223,18 @@ VehicleAngularVelocity::Run()
 	// update corrections first to set _selected_sensor
 	SensorCorrectionsUpdate();
 
-	if (_selected_sensor_device_id == 0) {
-		sensor_gyro_s sensor_data;
+	if (_sensor_control_available) {
+		//  using sensor_gyro_control is preferred, but currently not all drivers (eg df_*) provide sensor_gyro_control
+		sensor_gyro_control_s sensor_data;
 
-		if (_sensor_sub[_selected_sensor].update(&sensor_data)) {
+		if (_sensor_control_sub[_selected_sensor].update(&sensor_data)) {
 			perf_set_elapsed(_sensor_latency_perf, hrt_elapsed_time(&sensor_data.timestamp));
 
 			ParametersUpdate();
 			SensorBiasUpdate();
 
-			// get the sensor data and correct for thermal errors
-			const Vector3f val{sensor_data.x, sensor_data.y, sensor_data.z};
-
-			// apply offsets and scale
-			Vector3f rates{(val - _offset).emult(_scale)};
+			// get the sensor data and correct for thermal errors (apply offsets and scale)
+			Vector3f rates{(Vector3f{sensor_data.xyz} - _offset).emult(_scale)};
 
 			// rotate corrected measurements from sensor to body frame
 			rates = _board_rotation * rates;
@@ -247,17 +251,20 @@ VehicleAngularVelocity::Run()
 		}
 
 	} else {
+		// otherwise fallback to using sensor_gyro (legacy that will be removed)
+		sensor_gyro_s sensor_data;
 
-		sensor_gyro_control_s sensor_data;
-
-		if (_sensor_control_sub[_selected_sensor].update(&sensor_data)) {
+		if (_sensor_sub[_selected_sensor].update(&sensor_data)) {
 			perf_set_elapsed(_sensor_latency_perf, hrt_elapsed_time(&sensor_data.timestamp));
 
 			ParametersUpdate();
 			SensorBiasUpdate();
 
-			// get the sensor data and correct for thermal errors (apply offsets and scale)
-			Vector3f rates{(Vector3f{sensor_data.xyz} - _offset).emult(_scale)};
+			// get the sensor data and correct for thermal errors
+			const Vector3f val{sensor_data.x, sensor_data.y, sensor_data.z};
+
+			// apply offsets and scale
+			Vector3f rates{(val - _offset).emult(_scale)};
 
 			// rotate corrected measurements from sensor to body frame
 			rates = _board_rotation * rates;
