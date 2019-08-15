@@ -10,15 +10,15 @@
 # @output MAIN2 motor 2
 # @output MAIN3 motor 3
 # @output MAIN4 motor 4
-# @output MAIN5 unassigned
-# @output MAIN6 unassigned
-# @output MAIN7 unassigned
+# @output MAIN5 Servo 1
+# @output MAIN6 Servo 2
+# @output MAIN7 Servo 3
 # @output AUX1 Aileron 1
 # @output AUX2 Aileron 2
 # @output AUX3 Elevator
 # @output AUX4 Rudder
 # @output AUX5 Throttle
-# @output AUX6 unassigned
+# @output AUX6 Choke
 #
 
 sh /etc/init.d/rc.vtol_defaults
