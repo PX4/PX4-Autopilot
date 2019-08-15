@@ -112,9 +112,9 @@ add_custom_target(nuttx_copy_and_apps_target
 if(EXISTS ${NUTTX_CONFIG_DIR}/Kconfig)
 	add_custom_command(
 		OUTPUT
-			${NUTTX_DIR}/configs/dummy/Kconfig
+			${NUTTX_DIR}/boards/dummy/Kconfig
 			${CMAKE_CURRENT_BINARY_DIR}/nuttx_config_kconfig.stamp
-		COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/Kconfig ${NUTTX_DIR}/configs/dummy/Kconfig
+		COMMAND ${CMAKE_COMMAND} -E copy ${NUTTX_CONFIG_DIR}/Kconfig ${NUTTX_DIR}/boards/dummy/Kconfig
 		COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/nuttx_config_kconfig.stamp
 		DEPENDS
 			nuttx_copy_and_apps_target
@@ -122,9 +122,9 @@ if(EXISTS ${NUTTX_CONFIG_DIR}/Kconfig)
 else()
 	add_custom_command(
 		OUTPUT
-			${NUTTX_DIR}/configs/dummy/Kconfig
+			${NUTTX_DIR}/boards/dummy/Kconfig
 			${CMAKE_CURRENT_BINARY_DIR}/nuttx_config_kconfig.stamp
-		COMMAND ${CMAKE_COMMAND} -E touch ${NUTTX_DIR}/configs/dummy/Kconfig
+		COMMAND ${CMAKE_COMMAND} -E touch ${NUTTX_DIR}/boards/dummy/Kconfig
 		COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/nuttx_config_kconfig.stamp
 		DEPENDS
 			nuttx_copy_and_apps_target
@@ -133,7 +133,7 @@ endif()
 
 add_custom_target(nuttx_config_kconfig_target
 	DEPENDS
-		${NUTTX_DIR}/configs/dummy/Kconfig
+		${NUTTX_DIR}/boards/dummy/Kconfig
 		${CMAKE_CURRENT_BINARY_DIR}/nuttx_config_kconfig.stamp
 )
 
@@ -357,7 +357,7 @@ endfunction()
 # add_nuttx_dir(NAME DIRECTORY KERNEL EXTRA)
 add_nuttx_dir(arch arch/arm/src y -D__KERNEL__)
 add_nuttx_dir(binfmt binfmt y -D__KERNEL__)
-add_nuttx_dir(configs configs y -D__KERNEL__)
+add_nuttx_dir(boards boards y -D__KERNEL__)
 add_nuttx_dir(drivers drivers y -D__KERNEL__)
 add_nuttx_dir(fs fs y -D__KERNEL__)
 add_nuttx_dir(sched sched y -D__KERNEL__)
