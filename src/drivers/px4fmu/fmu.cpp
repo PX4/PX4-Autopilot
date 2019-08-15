@@ -1882,6 +1882,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+	/* FALLTHROUGH */
 	case PWM_SERVO_GET(4):
 		if (_mode < MODE_5PWM1CAP) {
 			ret = -EINVAL;
