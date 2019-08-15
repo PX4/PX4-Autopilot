@@ -68,6 +68,11 @@ enum class link_loss_actions_t {
 	LOCKDOWN = 6,		// Kill the motors, same result as kill switch
 };
 
+enum class position_nav_loss_actions_t {
+	ALTITUDE_MANUAL = 0,	// Altitude/Manual. Assume use of remote control after fallback. Switch to Altitude mode if a height estimate is available, else switch to MANUAL.
+	LAND_TERMINATE = 1,	// Land/Terminate.  Assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
+};
+
 typedef enum {
 	ARM_REQ_NONE = 0,
 	ARM_REQ_MISSION_BIT = (1 << 0),
@@ -95,7 +100,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		   orb_advert_t *mavlink_log_pub, const link_loss_actions_t data_link_loss_act, const bool mission_finished,
 		   const bool stay_in_failsafe, const vehicle_status_flags_s &status_flags, bool landed,
 		   const link_loss_actions_t rc_loss_act, const int offb_loss_act, const int offb_loss_rc_act,
-		   const int posctl_nav_loss_act);
+		   const position_nav_loss_actions_t posctl_nav_loss_act);
 
 /*
  * Checks the validty of position data aaainst the requirements of the current navigation
