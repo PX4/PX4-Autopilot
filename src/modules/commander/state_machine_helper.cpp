@@ -93,6 +93,18 @@ void set_link_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
 
 void reset_link_loss_globals(actuator_armed_s *armed, const bool old_failsafe, const link_loss_actions_t link_loss_act);
 
+void set_offboard_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
+				 const vehicle_status_flags_s &status_flags,
+				 const offboard_loss_actions_t offboard_loss_act);
+
+void set_offboard_loss_rc_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
+				    const vehicle_status_flags_s &status_flags,
+				    const offboard_loss_rc_actions_t offboard_loss_rc_act);
+
+void reset_offboard_loss_globals(actuator_armed_s *armed, const bool old_failsafe,
+				 const offboard_loss_actions_t offboard_loss_act,
+				 const offboard_loss_rc_actions_t offboard_loss_rc_act);
+
 transition_result_t arming_state_transition(vehicle_status_s *status, const safety_s &safety,
 		const arming_state_t new_arming_state, actuator_armed_s *armed, const bool fRunPreArmChecks,
 		orb_advert_t *mavlink_log_pub, vehicle_status_flags_s *status_flags, const uint8_t arm_requirements,
@@ -392,7 +404,8 @@ void enable_failsafe(vehicle_status_s *status, bool old_failsafe, orb_advert_t *
 bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_state_s *internal_state,
 		   orb_advert_t *mavlink_log_pub, const link_loss_actions_t data_link_loss_act, const bool mission_finished,
 		   const bool stay_in_failsafe, const vehicle_status_flags_s &status_flags, bool landed,
-		   const link_loss_actions_t rc_loss_act, const int offb_loss_act, const int offb_loss_rc_act,
+		   const link_loss_actions_t rc_loss_act, const offboard_loss_actions_t offb_loss_act,
+		   const offboard_loss_rc_actions_t offb_loss_rc_act,
 		   const position_nav_loss_actions_t posctl_nav_loss_act)
 {
 	navigation_state_t nav_state_old = status->nav_state;
@@ -408,6 +421,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 	// Safe to do reset flags here, as if loss state persists flags will be restored in the code below
 	reset_link_loss_globals(armed, old_failsafe, rc_loss_act);
 	reset_link_loss_globals(armed, old_failsafe, data_link_loss_act);
+	reset_offboard_loss_globals(armed, old_failsafe, offb_loss_act, offb_loss_rc_act);
 
 	/* evaluate main state to decide in normal (non-failsafe) mode */
 	switch (internal_state->main_state) {
@@ -668,98 +682,16 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 	case commander_state_s::MAIN_STATE_OFFBOARD:
 
 		/* require offboard control, otherwise stay where you are */
-		if (status_flags.offboard_control_signal_lost && !status->rc_signal_lost) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_offboard);
-
-			if (status_flags.offboard_control_loss_timeout && offb_loss_rc_act < 6 && offb_loss_rc_act >= 0) {
-				if (offb_loss_rc_act == 3 && status_flags.condition_global_position_valid
-				    && status_flags.condition_home_position_valid) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
-
-				} else if (offb_loss_rc_act == 0 && status_flags.condition_global_position_valid) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
-
-				} else if (offb_loss_rc_act == 1 && status_flags.condition_local_altitude_valid) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
-
-				} else if (offb_loss_rc_act == 2) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
-
-				} else if (offb_loss_rc_act == 4 && status_flags.condition_global_position_valid) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
-
-				} else if (offb_loss_rc_act == 5 && status_flags.condition_global_position_valid) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
-
-				} else if (status_flags.condition_local_altitude_valid) {
-					//TODO: Add case for rover
-					if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-						status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-
-					} else {
-						// TODO: FW position controller doesn't run without condition_global_position_valid
-						status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
-					}
-
-				} else {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
-				}
+		if (status_flags.offboard_control_signal_lost && status_flags.offboard_control_loss_timeout) {
+			if (status->rc_signal_lost) {
+				// Offboard and RC are lost
+				enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc_and_no_offboard);
+				set_offboard_loss_nav_state(status, armed, status_flags, offb_loss_act);
 
 			} else {
-				if (status_flags.condition_global_position_valid) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
-
-				} else if (status_flags.condition_local_altitude_valid) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
-
-				} else {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
-				}
-			}
-
-		} else if (status_flags.offboard_control_signal_lost && status->rc_signal_lost) {
-			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc_and_no_offboard);
-
-			if (status_flags.offboard_control_loss_timeout && offb_loss_act < 3 && offb_loss_act >= 0) {
-				if (offb_loss_act == 2 && status_flags.condition_global_position_valid
-				    && status_flags.condition_home_position_valid) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
-
-				} else if (offb_loss_act == 1 && status_flags.condition_global_position_valid) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
-
-				} else if (offb_loss_act == 0 && status_flags.condition_global_position_valid) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
-
-				} else if (status_flags.condition_local_altitude_valid) {
-					if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-						status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-
-					} else {
-						// TODO: FW position controller doesn't run without condition_global_position_valid
-						status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
-					}
-
-				} else {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
-				}
-
-			} else {
-				if (status_flags.condition_global_position_valid) {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
-
-				} else if (status_flags.condition_local_altitude_valid) {
-					if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-						status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
-
-					} else {
-						// TODO: FW position controller doesn't run without condition_global_position_valid
-						status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
-					}
-
-				} else {
-					status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
-				}
+				// Offboard is lost, RC is ok
+				enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_offboard);
+				set_offboard_loss_rc_nav_state(status, armed, status_flags, offb_loss_rc_act);
 			}
 
 		} else {
@@ -908,6 +840,153 @@ void reset_link_loss_globals(actuator_armed_s *armed, const bool old_failsafe, c
 			armed->force_failsafe = false;
 
 		} else if (link_loss_act == link_loss_actions_t::LOCKDOWN) {
+			armed->lockdown = false;
+		}
+	}
+}
+
+void set_offboard_loss_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
+				 const vehicle_status_flags_s &status_flags,
+				 const offboard_loss_actions_t offboard_loss_act)
+{
+	switch (offboard_loss_act) {
+	case offboard_loss_actions_t::DISABLED:
+		// If offboard loss failsafe is disabled then no action must be taken.
+		return;
+
+	case offboard_loss_actions_t::TERMINATE:
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+		armed->force_failsafe = true;
+		return;
+
+	case offboard_loss_actions_t::LOCKDOWN:
+		armed->lockdown = true;
+		return;
+
+	case offboard_loss_actions_t::AUTO_RTL:
+		if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+			return;
+		}
+
+	// FALLTHROUGH
+	case offboard_loss_actions_t::AUTO_LOITER:
+		if (status_flags.condition_global_position_valid) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+			return;
+		}
+
+	// FALLTHROUGH
+	case offboard_loss_actions_t::AUTO_LAND:
+		if (status_flags.condition_global_position_valid) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+			return;
+		}
+
+	}
+
+	// If none of the above worked, try to mitigate
+	if (status_flags.condition_local_altitude_valid) {
+		if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
+		} else {
+			// TODO: FW position controller doesn't run without condition_global_position_valid
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
+		}
+
+	} else {
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+	}
+}
+
+void set_offboard_loss_rc_nav_state(vehicle_status_s *status, actuator_armed_s *armed,
+				    const vehicle_status_flags_s &status_flags,
+				    const offboard_loss_rc_actions_t offboard_loss_rc_act)
+{
+	switch (offboard_loss_rc_act) {
+	case offboard_loss_rc_actions_t::DISABLED:
+		// If offboard loss failsafe is disabled then no action must be taken.
+		return;
+
+	case offboard_loss_rc_actions_t::TERMINATE:
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+		armed->force_failsafe = true;
+		return;
+
+	case offboard_loss_rc_actions_t::LOCKDOWN:
+		armed->lockdown = true;
+		return;
+
+	case offboard_loss_rc_actions_t::MANUAL_POSITION:
+		if (status_flags.condition_global_position_valid) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_POSCTL;
+			return;
+		}
+
+	// FALLTHROUGH
+	case offboard_loss_rc_actions_t::MANUAL_ALTITUDE:
+		if (status_flags.condition_local_altitude_valid) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_ALTCTL;
+			return;
+		}
+
+	// FALLTHROUGH
+	case offboard_loss_rc_actions_t::MANUAL_ATTITUDE:
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
+		return;
+
+	case offboard_loss_rc_actions_t::AUTO_RTL:
+		if (status_flags.condition_global_position_valid && status_flags.condition_home_position_valid) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
+			return;
+		}
+
+	// FALLTHROUGH
+	case offboard_loss_rc_actions_t::AUTO_LOITER:
+		if (status_flags.condition_global_position_valid) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER;
+			return;
+		}
+
+	// FALLTHROUGH
+	case offboard_loss_rc_actions_t::AUTO_LAND:
+		if (status_flags.condition_global_position_valid) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LAND;
+			return;
+		}
+
+	}
+
+	// If none of the above worked, try to mitigate
+	if (status_flags.condition_local_altitude_valid) {
+		//TODO: Add case for rover
+		if (status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_DESCEND;
+
+		} else {
+			// TODO: FW position controller doesn't run without condition_global_position_valid
+			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL;
+		}
+
+	} else {
+		status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+	}
+}
+
+void reset_offboard_loss_globals(actuator_armed_s *armed, const bool old_failsafe,
+				 const offboard_loss_actions_t offboard_loss_act,
+				 const offboard_loss_rc_actions_t offboard_loss_rc_act)
+{
+	if (old_failsafe) {
+		if (offboard_loss_act == offboard_loss_actions_t::TERMINATE
+		    || offboard_loss_rc_act == offboard_loss_rc_actions_t::TERMINATE) {
+			armed->force_failsafe = false;
+
+		}
+
+		if (offboard_loss_act == offboard_loss_actions_t::LOCKDOWN
+		    || offboard_loss_rc_act == offboard_loss_rc_actions_t::LOCKDOWN) {
 			armed->lockdown = false;
 		}
 	}
