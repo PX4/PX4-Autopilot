@@ -13,7 +13,6 @@
 # @output MAIN5 unassigned
 # @output MAIN6 unassigned
 # @output MAIN7 unassigned
-# @output MAIN8 unassigned
 # @output AUX1 Aileron 1
 # @output AUX2 Aileron 2
 # @output AUX3 Elevator
@@ -71,4 +70,4 @@ set MAV_TYPE 22
 set MIXER mugin_vtol.main.mix
 set MIXER mugin_vtol.aux.mix
 
-set PWM_OUT 12345678
+set PWM_OUT 1234567
