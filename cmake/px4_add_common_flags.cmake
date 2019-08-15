@@ -87,7 +87,6 @@ function(px4_add_common_flags)
 		-Wunused-variable
 
 		# disabled warnings
-		-Wno-implicit-fallthrough # set appropriate level and update
 		-Wno-missing-field-initializers
 		-Wno-missing-include-dirs # TODO: fix and enable
 		-Wno-unused-parameter
