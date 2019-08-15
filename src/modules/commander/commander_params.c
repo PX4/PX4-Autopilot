@@ -947,3 +947,14 @@ PARAM_DEFINE_INT32(COM_FLT_PROFILE, 0);
  * @boolean
  */
 PARAM_DEFINE_INT32(COM_ARM_CHK_ESCS, 1);
+
+/**
+ * Lock actuator outputs in pre-armed state
+ *
+ * Setting this parameter will lock all outputs to disarmed position when prearmed, until armed.
+ * Use together with CBRK_IO_SAFETY to prevent all actuator movement when the safety switch is disabled.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_PREARM_LOCK, 0);

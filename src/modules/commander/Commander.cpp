@@ -2324,6 +2324,16 @@ Commander::run()
 				armed.prearmed = (hrt_elapsed_time(&commander_boot_timestamp) > 5_s);
 			}
 
+			/* Lock all actuator output until armed if the circuit breaker is set */
+			if (_param_com_prearm_lock.get()) {
+				if (armed.prearmed && !armed.armed) {
+					armed.lockdown = true;
+
+				} else {
+					armed.lockdown = false;
+				}
+			}
+
 			armed.timestamp = hrt_absolute_time();
 			_armed_pub.publish(armed);
 

@@ -139,7 +139,9 @@ private:
 
 		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,
 		(ParamInt<px4::params::COM_OBL_ACT>) _param_com_obl_act,
-		(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act
+		(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
+
+		(ParamInt<px4::params::COM_PREARM_LOCK>) _param_com_prearm_lock
 
 	)
 
