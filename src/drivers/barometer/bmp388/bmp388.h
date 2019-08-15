@@ -39,18 +39,12 @@
 #pragma once
 
 #include <math.h>
-#include <string.h>
-
 #include <drivers/drv_baro.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/device/i2c.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/spi.h>
 #include <lib/cdev/CDev.hpp>
 #include <perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
 
 #include "board_config.h"
 #include "bmp3_defs.h"
@@ -61,6 +55,7 @@
 #define BMP3_POST_INIT_WAIT_TIME          40000
 #define BMP3_TRIM_CRC_DATA_ADDR           0x30
 #define BPM3_CMD_SOFT_RESET               0xB6
+#define BMP3_ODR_ADDR                     0x1D
 
 // https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3.c
 /*! Power control settings */
@@ -71,9 +66,6 @@
 #define INT_CTRL              (0x0708)
 /*! Advance settings */
 #define ADV_SETT              (0x1800)
-
-namespace bmp388
-{
 
 #pragma pack(push,1)
 struct calibration_s {
@@ -122,6 +114,11 @@ struct fcalibration_s {
 	float p9;
 };
 
+/*
+ * BMP388 internal constants and data structures.
+ */
+
+
 class IBMP388
 {
 public:
@@ -140,19 +137,63 @@ public:
 	virtual int set_reg(uint8_t value, uint8_t addr) = 0;
 
 	// bulk read of data into buffer, return same pointer
-	virtual bmp388::data_s *get_data(uint8_t addr) = 0;
+	virtual data_s *get_data(uint8_t addr) = 0;
 
 	// bulk read of calibration data into buffer, return same pointer
-	virtual bmp388::calibration_s *get_calibration(uint8_t addr) = 0;
+	virtual calibration_s *get_calibration(uint8_t addr) = 0;
 
 	virtual uint32_t get_device_id() const = 0;
 
 };
 
-} /* namespace */
+class BMP388 : public cdev::CDev, public px4::ScheduledWorkItem
+{
+public:
+	BMP388(IBMP388 *interface, const char *path);
+	virtual ~BMP388();
+
+	virtual int		init();
+
+	/**
+	 * Diagnostics - print some basic information about the driver.
+	 */
+	void			print_info();
+
+private:
+	unsigned 		_call_interval{1000};
+
+	PX4Barometer		_px4_baro;
+	IBMP388			*_interface;
+
+	unsigned		_measure_interval{0}; // interval in microseconds needed to measure
+	uint8_t                 _osr_t; // oversampling rate, temperature
+	uint8_t                 _osr_p; // oversampling rate, pressure
+
+	perf_counter_t		_sample_perf;
+	perf_counter_t		_measure_perf;
+	perf_counter_t		_comms_errors;
+
+	struct calibration_s 	*_cal; // stored calibration constants
+
+	void 			Run() override;
+	void 			start();
+	void 			stop();
+	int 			measure();
+	int			collect(); //get results and publish
+	uint32_t		get_measurement_time(uint8_t osr_t, uint8_t osr_p);
+
+	bool			soft_reset();
+	bool			get_calib_data();
+	bool			validate_trimming_param();
+	bool 			set_sensor_settings();
+	bool			set_op_mode(uint8_t op_mode);
+
+	bool 			get_sensor_data(uint8_t sensor_comp, struct bmp3_data *comp_data);
+	bool			compensate_data(uint8_t sensor_comp, const struct bmp3_uncomp_data *uncomp_data, struct bmp3_data *comp_data);
+};
 
 
 /* interface factories */
-extern bmp388::IBMP388 *bmp388_spi_interface(uint8_t busnum, uint32_t device, bool external);
-extern bmp388::IBMP388 *bmp388_i2c_interface(uint8_t busnum, uint32_t device, bool external);
-typedef bmp388::IBMP388 *(*BMP388_constructor)(uint8_t, uint32_t, bool);
+extern IBMP388 *bmp388_spi_interface(uint8_t busnum, uint32_t device, bool external);
+extern IBMP388 *bmp388_i2c_interface(uint8_t busnum, uint32_t device, bool external);
+typedef IBMP388 *(*BMP388_constructor)(uint8_t, uint32_t, bool);

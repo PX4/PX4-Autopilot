@@ -32,16 +32,18 @@
  ****************************************************************************/
 
 /**
- * @file bmp388_spi.cpp
+ * @file bmp388_i2c.cpp
  *
- * SPI interface for BMP388
+ * I2C interface for BMP388
  */
+
+#include <drivers/device/i2c.h>
 
 #include "bmp388.h"
 
 #if defined(PX4_I2C_OBDEV_BMP388) || defined(PX4_I2C_EXT_OBDEV_BMP388)
 
-class BMP388_I2C: public device::I2C, public bmp388::IBMP388
+class BMP388_I2C: public device::I2C, public IBMP388
 {
 public:
 	BMP388_I2C(uint8_t bus, uint32_t device, bool external);
@@ -53,18 +55,18 @@ public:
 	uint8_t get_reg(uint8_t addr);
 	int get_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len);
 	int set_reg(uint8_t value, uint8_t addr);
-	bmp388::data_s *get_data(uint8_t addr);
-	bmp388::calibration_s *get_calibration(uint8_t addr);
+	data_s *get_data(uint8_t addr);
+	calibration_s *get_calibration(uint8_t addr);
 
 	uint32_t get_device_id() const override { return device::I2C::get_device_id(); }
 
 private:
-	struct bmp388::calibration_s _cal;
-	struct bmp388::data_s _data;
+	struct calibration_s _cal;
+	struct data_s _data;
 	bool _external;
 };
 
-bmp388::IBMP388 *bmp388_i2c_interface(uint8_t busnum, uint32_t device, bool external)
+IBMP388 *bmp388_i2c_interface(uint8_t busnum, uint32_t device, bool external)
 {
 	return new BMP388_I2C(busnum, device, external);
 }
@@ -105,11 +107,11 @@ int BMP388_I2C::set_reg(uint8_t value, uint8_t addr)
 	return transfer(cmd, sizeof(cmd), nullptr, 0);
 }
 
-bmp388::data_s *BMP388_I2C::get_data(uint8_t addr)
+data_s *BMP388_I2C::get_data(uint8_t addr)
 {
 	const uint8_t cmd = (uint8_t)(addr);
 
-	if (transfer(&cmd, sizeof(cmd), (uint8_t *)&_data, sizeof(struct bmp388::data_s)) == OK) {
+	if (transfer(&cmd, sizeof(cmd), (uint8_t *)&_data, sizeof(struct data_s)) == OK) {
 		return (&_data);
 
 	} else {
@@ -117,11 +119,11 @@ bmp388::data_s *BMP388_I2C::get_data(uint8_t addr)
 	}
 }
 
-bmp388::calibration_s *BMP388_I2C::get_calibration(uint8_t addr)
+calibration_s *BMP388_I2C::get_calibration(uint8_t addr)
 {
 	const uint8_t cmd = (uint8_t)(addr);
 
-	if (transfer(&cmd, sizeof(cmd), (uint8_t *)&_cal, sizeof(struct bmp388::calibration_s)) == OK) {
+	if (transfer(&cmd, sizeof(cmd), (uint8_t *)&_cal, sizeof(struct calibration_s)) == OK) {
 		return &(_cal);
 
 	} else {
