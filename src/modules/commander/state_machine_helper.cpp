@@ -598,7 +598,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 			internal_state->main_state = commander_state_s::MAIN_STATE_POSCTL;
 
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
-			// failsafe: necessary position estimate lost; witching is done in check_invalid_pos_nav_state
+			// failsafe: necessary position estimate lost; switching is done in check_invalid_pos_nav_state
 
 			// Orbit can only be started via vehicle_command (mavlink). Consequently, recovery from failsafe into orbit
 			// is not possible and therefore the internal_state needs to be adjusted.
