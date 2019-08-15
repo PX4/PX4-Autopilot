@@ -129,6 +129,7 @@ protected:
 
 	bool _waypoint_position_reached{false};
 	bool _waypoint_yaw_reached{false};
+	bool _waypoint_position_reached_previously{false};
 
 	hrt_abstime _time_first_inside_orbit{0};
 	hrt_abstime _action_start{0};
