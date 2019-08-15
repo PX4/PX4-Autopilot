@@ -34,8 +34,10 @@
 /**
  * @file bmp388_spi.cpp
  *
- * SPI interface for BMP388
+ * SPI interface for BMP388 (NOTE: untested!)
  */
+
+#include <drivers/device/spi.h>
 
 #include "bmp388.h"
 
@@ -49,16 +51,16 @@
 #pragma pack(push,1)
 struct spi_data_s {
 	uint8_t addr;
-	struct bmp388::data_s data;
+	struct data_s data;
 };
 
 struct spi_calibration_s {
 	uint8_t addr;
-	struct bmp388::calibration_s cal;
+	struct calibration_s cal;
 };
 #pragma pack(pop)
 
-class BMP388_SPI: public device::SPI, public bmp388::IBMP388
+class BMP388_SPI: public device::SPI, public IBMP388
 {
 public:
 	BMP388_SPI(uint8_t bus, uint32_t device, bool is_external_device);
@@ -68,9 +70,10 @@ public:
 	int init();
 
 	uint8_t get_reg(uint8_t addr);
+	int get_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len);
 	int set_reg(uint8_t value, uint8_t addr);
-	bmp388::data_s *get_data(uint8_t addr);
-	bmp388::calibration_s *get_calibration(uint8_t addr);
+	data_s *get_data(uint8_t addr);
+	calibration_s *get_calibration(uint8_t addr);
 
 	uint32_t get_device_id() const override { return device::SPI::get_device_id(); }
 
@@ -80,7 +83,7 @@ private:
 	bool _external;
 };
 
-bmp388::IBMP388 *bmp388_spi_interface(uint8_t busnum, uint32_t device, bool external)
+IBMP388 *bmp388_spi_interface(uint8_t busnum, uint32_t device, bool external)
 {
 	return new BMP388_SPI(busnum, device, external);
 }
@@ -109,13 +112,19 @@ uint8_t BMP388_SPI::get_reg(uint8_t addr)
 	return cmd[1];
 }
 
+int BMP388_SPI::get_reg_buf(uint8_t addr, uint8_t *buf, uint8_t len)
+{
+	uint8_t cmd[1] = {(uint8_t)(addr | DIR_READ)};
+	return transfer(&cmd[0], buf, len);
+}
+
 int BMP388_SPI::set_reg(uint8_t value, uint8_t addr)
 {
 	uint8_t cmd[2] = { (uint8_t)(addr & DIR_WRITE), value}; //clear MSB bit
 	return transfer(&cmd[0], nullptr, 2);
 }
 
-bmp388::data_s *BMP388_SPI::get_data(uint8_t addr)
+data_s *BMP388_SPI::get_data(uint8_t addr)
 {
 	_data.addr = (uint8_t)(addr | DIR_READ); //set MSB bit
 
@@ -127,7 +136,7 @@ bmp388::data_s *BMP388_SPI::get_data(uint8_t addr)
 	}
 }
 
-bmp388::calibration_s *BMP388_SPI::get_calibration(uint8_t addr)
+calibration_s *BMP388_SPI::get_calibration(uint8_t addr)
 {
 	_cal.addr = addr | DIR_READ;
 
