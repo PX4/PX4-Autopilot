@@ -97,9 +97,7 @@ Navigator::Navigator() :
 	_engineFailure(this),
 	_gpsFailure(this),
     _follow_target(this)
-/***************************************************************/
-    //_conusavoidance(this)
-/***************************************************************/
+
 {
 	/* Create a list of our possible navigation types */
 	_navigation_mode_array[0] = &_mission;
@@ -113,10 +111,6 @@ Navigator::Navigator() :
 	_navigation_mode_array[8] = &_land;
 	_navigation_mode_array[9] = &_precland;
 	_navigation_mode_array[10] = &_follow_target;
-/*****************************************************************************/
-  // Tobias Kieser:
-    //_navigation_mode_array[11] = &_conusavoidance;
-/*****************************************************************************/
 
 	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
 	_handle_reverse_delay = param_find("VT_B_REV_DEL");
@@ -341,7 +335,24 @@ Navigator::run()
 /**********************************************************************************************************/
                 mavlink_log_critical(&_mavlink_log_pub, "SP before: %f %f %f",get_position_setpoint_triplet()->current.lat,
                                      get_position_setpoint_triplet()->current.lon,(double)get_position_setpoint_triplet()->current.yaw);
-                _mission.avoid(&cmd);
+
+                // update position setpoint triplet
+                position_setpoint_triplet_s *pos_sp_triplet = get_position_setpoint_triplet();
+                pos_sp_triplet->previous.valid = false;
+                pos_sp_triplet->current.valid = true;
+                pos_sp_triplet->next.valid = false;
+                struct position_setpoint_s *curr =&pos_sp_triplet->current;
+
+                float newyaw = ((float)avoiding_yaw + pos_sp_triplet->current.yaw);
+                if(newyaw>=360){newyaw -= 360;}
+
+                waypoint_from_heading_and_distance(get_global_position()->lat,get_global_position()->lon,
+                                                   newyaw, 1000000.0f, &curr->lat, &curr->lon);
+                curr->type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+                curr->yaw = newyaw;
+
+                set_position_setpoint_triplet_updated();
+
                 mavlink_log_critical(&_mavlink_log_pub, "SP new: %f %f %f",get_position_setpoint_triplet()->current.lat,
                                      get_position_setpoint_triplet()->current.lon,(double)get_position_setpoint_triplet()->current.yaw);
 
@@ -1073,26 +1084,27 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 
 void Navigator::check_traffic_conus()
 {
+    /******************************************** Parameters ******************************************
+    *
+    */
+    //old:
+    float           horizontal_separation = 500;
+    float           vertical_separation = 500;
+
+    //TK: my new Parameters:
+    double          f_turn = 0.1;
+    int             twait = 5; //[s] waiting time after finish the CA till change back to mission
+    int             trg = 12;
+    int             dss = 165;
+    int             dss_drone = 50;
+    int             dmin = 500;
+    int             directionmin = 1;//min counts for direction block
+    double          w_back = (90/180)*M_PI_F;
+
     bool changed;
     orb_check(_traffic_sub, &changed);
     while (changed){
     //if(changed){
-
-    /******************************************** Parameters ******************************************
-    *
-    */
-        //old:
-        float horizontal_separation = 500;
-        float vertical_separation = 500;
-        //TK: my new Parameters:
-        double          f_turn = 0.1;
-        int             twait = 5; //[s] waiting time after finish the CA till change back to mission
-        int             trg = 12;
-        int             dss = 165;
-        int             dss_drone = 50;
-        int             dmin = 500;
-        int             directionmin = 1;//min counts for direction block
-        double          w_back = (90/180)*M_PI_F;
 
     /******************************************** Transformation ******************************************
     * transform the global to local NED coordinates. Vectors are used for intuitiv handling
@@ -1578,9 +1590,13 @@ int Navigator::custom_command(int argc, char *argv[])
 		return 0;
 
 	} else if (!strcmp(argv[0], "fake_traffic")) {
-  /********************************************************************************************************/
-        get_instance()->fake_traffic("TK004", 500, 0.0f, 170.0f, 5.0f, 90.0f, 0.001f);//TK
-  /********************************************************************************************************/
+  /********************************************************************************************************************************************************/
+        //TK:
+        //does not work with several transponder_reports
+        get_instance()->fake_traffic("TK001", 500, 0.0f, 170.0f, 5.0f, 90.0f, 0.001f);
+        //get_instance()->fake_traffic("TK002", 1500, 1.0f, 1.0f, 100.0f, 90.0f, 0.001f);
+  /********************************************************************************************************************************************************/
+        //old:
         //get_instance()->fake_traffic("LX007", 500, 1.0f, 1.0f, 100.0f, 90.0f, 0.001f);
         //get_instance()->fake_traffic("LX55", 1000, 0, 0, 100.0f, 90.0f, 0.001f);
         //get_instance()->fake_traffic("LX20", 15000, 1.0f, -1.0f, 280.0f, 90.0f, 0.001f);

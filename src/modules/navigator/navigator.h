@@ -40,9 +40,7 @@
  */
 
 #pragma once
-/*********************************************************************************************************************************************/
-//#include "conusavoidance.h"  // Tobias Kieser
-/*********************************************************************************************************************************************/
+
 #include "datalinkloss.h"
 #include "enginefailure.h"
 #include "follow_target.h"
@@ -303,19 +301,12 @@ public:
 
 private:
 /*********************************************************************************************************************************************/
-// Tobias Kieser: Parameters for CCAS:
-        /*int             f_Vi = 50;
-        int             f_distmin = 150;
-        int             twait = 5;
-        int             treact = 12;
-        int             ds = 50;
-        float           f_turn = 0.1;
-        float           f_ds = 0.5;*/
-        // diese Variablen brauchen eine längere Lebenszeit:
+// Tobias Kieser: Parameters for CAS:
+
         int             count,t_after_ca,directionR, directionL = 0;
         bool            cas_on = false;
         double          avoiding_yaw{};
-       // double          avoiding_pitch{};
+
 
 /*********************************************************************************************************************************************/
 
