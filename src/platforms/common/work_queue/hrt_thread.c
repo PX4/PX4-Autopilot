@@ -42,6 +42,7 @@
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
+#include <px4_time.h>
 #include <stdint.h>
 #include <signal.h>
 #include <stdio.h>
@@ -50,6 +51,8 @@
 #include <px4_workqueue.h>
 #include <drivers/drv_hrt.h>
 #include "hrt_work.h"
+
+#include <string.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -174,7 +177,6 @@ static void hrt_work_process()
 
 			if (!worker) {
 				PX4_ERR("MESSED UP: worker = 0");
-				PX4_BACKTRACE();
 
 			} else {
 				worker(arg);
@@ -217,7 +219,7 @@ static void hrt_work_process()
 
 	/* might sleep less if a signal received and new item was queued */
 	//PX4_INFO("Sleeping for %u usec", next);
-	usleep(next);
+	px4_usleep(next);
 }
 
 /****************************************************************************

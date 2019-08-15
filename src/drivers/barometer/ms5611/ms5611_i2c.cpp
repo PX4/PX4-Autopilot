@@ -37,24 +37,7 @@
  * I2C interface for MS5611
  */
 
-/* XXX trim includes */
-#include <px4_config.h>
-#include <px4_defines.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <assert.h>
-#include <errno.h>
-#include <unistd.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/device/i2c.h>
-
 #include "ms5611.h"
-
-#include "board_config.h"
 
 #define MS5611_ADDRESS_1		0x76	/* address select pins pulled high (PX4FMU series v1.6+) */
 #define MS5611_ADDRESS_2		0x77    /* address select pins pulled low (PX4FMU prototypes) */
@@ -67,9 +50,8 @@ class MS5611_I2C : public device::I2C
 {
 public:
 	MS5611_I2C(uint8_t bus, ms5611::prom_u &prom_buf);
-	virtual ~MS5611_I2C();
+	virtual ~MS5611_I2C() = default;
 
-	virtual int	init();
 	virtual int	read(unsigned offset, void *data, unsigned count);
 	virtual int	ioctl(unsigned operation, unsigned &arg);
 
@@ -114,17 +96,6 @@ MS5611_I2C::MS5611_I2C(uint8_t bus, ms5611::prom_u &prom) :
 	I2C("MS5611_I2C", nullptr, bus, 0, 400000),
 	_prom(prom)
 {
-}
-
-MS5611_I2C::~MS5611_I2C()
-{
-}
-
-int
-MS5611_I2C::init()
-{
-	/* this will call probe(), and thereby _probe_address */
-	return I2C::init();
 }
 
 int
@@ -250,7 +221,7 @@ MS5611_I2C::_read_prom()
 	 * Wait for PROM contents to be in the device (2.8 ms) in the case we are
 	 * called immediately after reset.
 	 */
-	usleep(3000);
+	px4_usleep(3000);
 
 	uint8_t last_val = 0;
 	bool bits_stuck = true;

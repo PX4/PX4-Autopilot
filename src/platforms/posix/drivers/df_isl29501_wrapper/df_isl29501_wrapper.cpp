@@ -167,7 +167,9 @@ int DfISL29501Wrapper::_publish(struct range_sensor_data &data)
 
 	d.id = 0; // TODO set proper ID
 
-	d.covariance = 0.0f;
+	d.variance = 0.0f;
+
+	d.signal_quality = -1;
 
 	if (_range_topic == nullptr) {
 		_range_topic = orb_advertise_multi(ORB_ID(distance_sensor), &d,

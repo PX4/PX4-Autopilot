@@ -55,8 +55,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <perf/perf_counter.h>
-#include <systemlib/pwm_limit/pwm_limit.h>
-#include <systemlib/systemlib.h>
+#include <pwm_limit/pwm_limit.h>
 
 #include <stm32_uart.h>
 
@@ -267,8 +266,8 @@ user_start(int argc, char *argv[])
 
 	up_cxxinitialize();
 
-#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
-#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
+#	if defined(CONFIG_SYSTEM_NSH_CXXINITIALIZE)
+#  		error CONFIG_SYSTEM_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
 #	endif
 
 #else

@@ -109,7 +109,7 @@ PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
  * @increment 0.005
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_I, 0.02f);
+PARAM_DEFINE_FLOAT(FW_PR_I, 0.1f);
 
 /**
  * Maximum positive / up pitch rate.
@@ -183,7 +183,7 @@ PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
  * @increment 0.005
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_RR_I, 0.01f);
+PARAM_DEFINE_FLOAT(FW_RR_I, 0.1f);
 
 /**
  * Roll integrator anti-windup
@@ -241,7 +241,7 @@ PARAM_DEFINE_FLOAT(FW_YR_P, 0.05f);
  * @increment 0.5
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_YR_I, 0.01f);
+PARAM_DEFINE_FLOAT(FW_YR_I, 0.1f);
 
 /**
  * Yaw rate integrator limit
@@ -486,6 +486,34 @@ PARAM_DEFINE_FLOAT(FW_MAN_P_MAX, 45.0f);
 PARAM_DEFINE_FLOAT(FW_FLAPS_SCL, 1.0f);
 
 /**
+ * Flaps setting during take-off
+ *
+ * Sets a fraction of full flaps (FW_FLAPS_SCL) during take-off
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_FLAPS_TO_SCL, 0.0f);
+
+/**
+ * Flaps setting during landing
+ *
+ * Sets a fraction of full flaps (FW_FLAPS_SCL) during landing
+ *
+ * @unit norm
+ * @min 0.0
+ * @max 1.0
+ * @decimal 2
+ * @increment 0.01
+ * @group FW Attitude Control
+ */
+PARAM_DEFINE_FLOAT(FW_FLAPS_LND_SCL, 1.0f);
+
+/**
  * Scale factor for flaperons
  *
  * @unit norm
@@ -661,7 +689,7 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_Y_VMIN, 0.0f);
 /**
 * Roll trim increment at maximum airspeed
 *
-* This increment is added to TRIM_ROLL when airspeed is FW_AIRSP_MAX.
+* This increment is added to TRIM_ROLL when airspeed is FW_AIRSPD_MAX.
  *
  * @group FW Attitude Control
  * @min -0.25
@@ -674,7 +702,7 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_R_VMAX, 0.0f);
 /**
 * Pitch trim increment at maximum airspeed
 *
-* This increment is added to TRIM_PITCH when airspeed is FW_AIRSP_MAX.
+* This increment is added to TRIM_PITCH when airspeed is FW_AIRSPD_MAX.
  *
  * @group FW Attitude Control
  * @min -0.25
@@ -687,7 +715,7 @@ PARAM_DEFINE_FLOAT(FW_DTRIM_P_VMAX, 0.0f);
 /**
 * Yaw trim increment at maximum airspeed
 *
-* This increment is added to TRIM_YAW when airspeed is FW_AIRSP_MAX.
+* This increment is added to TRIM_YAW when airspeed is FW_AIRSPD_MAX.
  *
  * @group FW Attitude Control
  * @min -0.25

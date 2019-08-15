@@ -39,67 +39,27 @@
 #include <px4_module.h>
 #include <px4_log.h>
 
+#include <stdlib.h>
 #include <unistd.h>
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_led.h>
 
-static void	usage();
+#include <uORB/PublicationQueued.hpp>
+#include <uORB/topics/led_control.h>
 
-static orb_advert_t led_control_pub = nullptr;
+static void	usage();
 
 extern "C" {
 	__EXPORT int led_control_main(int argc, char *argv[]);
-}
-
-static void
-usage()
-{
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Command-line tool to control & test the (external) LED's.
-
-To use it make sure there's a driver running, which handles the led_control uorb topic.
-
-There are different priorities, such that for example one module can set a color with low priority, and another
-module can blink N times with high priority, and the LED's automatically return to the lower priority state
-after the blinking. The `reset` command can also be used to return to a lower priority.
-
-### Examples
-Blink the first LED 5 times in blue:
-$ led_control blink -c blue -l 0 -n 5
-
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("led_control", "command");
-
-	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Run a test pattern");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("on", "Turn LED on");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("off", "Turn LED off");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset LED priority");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("blink", "Blink LED N times");
-	PRINT_MODULE_USAGE_PARAM_INT('n', 3, 1, 20, "Number of blinks", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('s', "normal", "fast|normal|slow", "Set blinking speed", true);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("breathe", "Continuously fade LED in & out");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("flash", "Two fast blinks and then off with frequency of 1Hz");
-
-	PRINT_MODULE_USAGE_PARAM_COMMENT("The following arguments apply to all of the above commands except for 'test':");
-	PRINT_MODULE_USAGE_PARAM_STRING('c', "white", "red|blue|green|yellow|purple|amber|cyan|white", "color", true);
-	PRINT_MODULE_USAGE_PARAM_INT('l', -1, 0, 100, "Which LED to control: 0, 1, 2, ... (default=all)", true);
-	PRINT_MODULE_USAGE_PARAM_INT('p', 2, 0, 2, "Priority", true);
 }
 
 static void publish_led_control(led_control_s &led_control)
 {
 	led_control.timestamp = hrt_absolute_time();
 
-	if (led_control_pub == nullptr) {
-		led_control_pub = orb_advertise_queue(ORB_ID(led_control), &led_control, LED_UORB_QUEUE_LENGTH);
-
-	} else {
-		orb_publish(ORB_ID(led_control), led_control_pub, &led_control);
-	}
+	uORB::PublicationQueued<led_control_s> led_control_pub{ORB_ID(led_control)};
+	led_control_pub.publish(led_control);
 }
 
 static void run_led_test1()
@@ -112,7 +72,7 @@ static void run_led_test1()
 	led_control.priority = led_control_s::MAX_PRIORITY;
 	publish_led_control(led_control);
 
-	usleep(200 * 1000);
+	px4_usleep(200 * 1000);
 
 	// generate some pattern
 	for (int round = led_control_s::COLOR_RED; round <= led_control_s::COLOR_WHITE; ++round) {
@@ -121,25 +81,25 @@ static void run_led_test1()
 			led_control.mode = led_control_s::MODE_ON;
 			led_control.color = round;
 			publish_led_control(led_control);
-			usleep(80 * 1000);
+			px4_usleep(80 * 1000);
 		}
 
-		usleep(100 * 1000);
+		px4_usleep(100 * 1000);
 		led_control.led_mask = 0xff;
 
 		for (int i = 0; i < 3; ++i) {
 			led_control.mode = led_control_s::MODE_ON;
 			publish_led_control(led_control);
-			usleep(100 * 1000);
+			px4_usleep(100 * 1000);
 			led_control.mode = led_control_s::MODE_OFF;
 			publish_led_control(led_control);
-			usleep(100 * 1000);
+			px4_usleep(100 * 1000);
 		}
 
-		usleep(200 * 1000);
+		px4_usleep(200 * 1000);
 	}
 
-	usleep(500 * 1000);
+	px4_usleep(500 * 1000);
 
 	// reset
 	led_control.led_mask = 0xff;
@@ -273,4 +233,42 @@ led_control_main(int argc, char *argv[])
 	}
 
 	return 0;
+}
+
+static void
+usage()
+{
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Command-line tool to control & test the (external) LED's.
+
+To use it make sure there's a driver running, which handles the led_control uorb topic.
+
+There are different priorities, such that for example one module can set a color with low priority, and another
+module can blink N times with high priority, and the LED's automatically return to the lower priority state
+after the blinking. The `reset` command can also be used to return to a lower priority.
+
+### Examples
+Blink the first LED 5 times in blue:
+$ led_control blink -c blue -l 0 -n 5
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("led_control", "command");
+
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Run a test pattern");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("on", "Turn LED on");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("off", "Turn LED off");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reset", "Reset LED priority");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("blink", "Blink LED N times");
+	PRINT_MODULE_USAGE_PARAM_INT('n', 3, 1, 20, "Number of blinks", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('s', "normal", "fast|normal|slow", "Set blinking speed", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("breathe", "Continuously fade LED in & out");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("flash", "Two fast blinks and then off with frequency of 1Hz");
+
+	PRINT_MODULE_USAGE_PARAM_COMMENT("The following arguments apply to all of the above commands except for 'test':");
+	PRINT_MODULE_USAGE_PARAM_STRING('c', "white", "red|blue|green|yellow|purple|amber|cyan|white", "color", true);
+	PRINT_MODULE_USAGE_PARAM_INT('l', -1, 0, 100, "Which LED to control: 0, 1, 2, ... (default=all)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('p', 2, 0, 2, "Priority", true);
 }

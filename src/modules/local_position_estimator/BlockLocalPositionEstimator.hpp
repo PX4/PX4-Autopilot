@@ -1,6 +1,7 @@
 #pragma once
 
 #include <px4_posix.h>
+#include <drivers/drv_hrt.h>
 #include <px4_module_params.h>
 #include <controllib/blocks.hpp>
 #include <mathlib/mathlib.h>
@@ -8,9 +9,10 @@
 #include <matrix/Matrix.hpp>
 
 // uORB Subscriptions
-#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionPollable.hpp>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -21,9 +23,9 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/att_pos_mocap.h>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/vehicle_odometry.h>
 
 // uORB Publications
 #include <uORB/Publication.hpp>
@@ -238,106 +240,109 @@ private:
 	// publications
 	void publishLocalPos();
 	void publishGlobalPos();
+	void publishOdom();
 	void publishEstimatorStatus();
 
 	// attributes
 	// ----------------------------
 
 	// subscriptions
-	uORB::Subscription<actuator_armed_s> _sub_armed;
-	uORB::Subscription<vehicle_land_detected_s> _sub_land;
-	uORB::Subscription<vehicle_attitude_s> _sub_att;
-	uORB::Subscription<optical_flow_s> _sub_flow;
-	uORB::Subscription<sensor_combined_s> _sub_sensor;
-	uORB::Subscription<parameter_update_s> _sub_param_update;
-	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
-	uORB::Subscription<vehicle_local_position_s> _sub_vision_pos;
-	uORB::Subscription<att_pos_mocap_s> _sub_mocap;
-	uORB::Subscription<distance_sensor_s> _sub_dist0;
-	uORB::Subscription<distance_sensor_s> _sub_dist1;
-	uORB::Subscription<distance_sensor_s> _sub_dist2;
-	uORB::Subscription<distance_sensor_s> _sub_dist3;
-	uORB::Subscription<distance_sensor_s> *_dist_subs[N_DIST_SUBS];
-	uORB::Subscription<distance_sensor_s> *_sub_lidar;
-	uORB::Subscription<distance_sensor_s> *_sub_sonar;
-	uORB::Subscription<landing_target_pose_s> _sub_landing_target_pose;
-	uORB::Subscription<vehicle_air_data_s> _sub_airdata;
+	uORB::SubscriptionPollable<actuator_armed_s> _sub_armed;
+	uORB::SubscriptionPollable<vehicle_land_detected_s> _sub_land;
+	uORB::SubscriptionPollable<vehicle_attitude_s> _sub_att;
+	uORB::SubscriptionPollable<vehicle_angular_velocity_s> _sub_angular_velocity;
+	uORB::SubscriptionPollable<optical_flow_s> _sub_flow;
+	uORB::SubscriptionPollable<sensor_combined_s> _sub_sensor;
+	uORB::SubscriptionPollable<parameter_update_s> _sub_param_update;
+	uORB::SubscriptionPollable<vehicle_gps_position_s> _sub_gps;
+	uORB::SubscriptionPollable<vehicle_odometry_s> _sub_visual_odom;
+	uORB::SubscriptionPollable<vehicle_odometry_s> _sub_mocap_odom;
+	uORB::SubscriptionPollable<distance_sensor_s> _sub_dist0;
+	uORB::SubscriptionPollable<distance_sensor_s> _sub_dist1;
+	uORB::SubscriptionPollable<distance_sensor_s> _sub_dist2;
+	uORB::SubscriptionPollable<distance_sensor_s> _sub_dist3;
+	uORB::SubscriptionPollable<distance_sensor_s> *_dist_subs[N_DIST_SUBS];
+	uORB::SubscriptionPollable<distance_sensor_s> *_sub_lidar;
+	uORB::SubscriptionPollable<distance_sensor_s> *_sub_sonar;
+	uORB::SubscriptionPollable<landing_target_pose_s> _sub_landing_target_pose;
+	uORB::SubscriptionPollable<vehicle_air_data_s> _sub_airdata;
 
 	// publications
-	uORB::Publication<vehicle_local_position_s> _pub_lpos;
-	uORB::Publication<vehicle_global_position_s> _pub_gpos;
-	uORB::Publication<estimator_status_s> _pub_est_status;
-	uORB::Publication<ekf2_innovations_s> _pub_innov;
+	uORB::PublicationData<vehicle_local_position_s> _pub_lpos{ORB_ID(vehicle_local_position)};
+	uORB::PublicationData<vehicle_global_position_s> _pub_gpos{ORB_ID(vehicle_global_position)};
+	uORB::PublicationData<vehicle_odometry_s> _pub_odom{ORB_ID(vehicle_odometry)};
+	uORB::PublicationData<estimator_status_s> _pub_est_status{ORB_ID(estimator_status)};
+	uORB::PublicationData<ekf2_innovations_s> _pub_innov{ORB_ID(ekf2_innovations)};
 
 	// map projection
 	struct map_projection_reference_s _map_ref;
 
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::SYS_AUTOSTART>) _sys_autostart,   /**< example parameter */
+		(ParamInt<px4::params::SYS_AUTOSTART>) _param_sys_autostart,   /**< example parameter */
 
 		// general parameters
-		(ParamInt<px4::params::LPE_FUSION>) _fusion,
-		(ParamFloat<px4::params::LPE_VXY_PUB>) _vxy_pub_thresh,
-		(ParamFloat<px4::params::LPE_Z_PUB>) _z_pub_thresh,
+		(ParamInt<px4::params::LPE_FUSION>) _param_lpe_fusion,
+		(ParamFloat<px4::params::LPE_VXY_PUB>) _param_lpe_vxy_pub,
+		(ParamFloat<px4::params::LPE_Z_PUB>) _param_lpe_z_pub,
 
 		// sonar parameters
-		(ParamFloat<px4::params::LPE_SNR_Z>) _sonar_z_stddev,
-		(ParamFloat<px4::params::LPE_SNR_OFF_Z>) _sonar_z_offset,
+		(ParamFloat<px4::params::LPE_SNR_Z>) _param_lpe_snr_z,
+		(ParamFloat<px4::params::LPE_SNR_OFF_Z>) _param_lpe_snr_off_z,
 
 		// lidar parameters
-		(ParamFloat<px4::params::LPE_LDR_Z>) _lidar_z_stddev,
-		(ParamFloat<px4::params::LPE_LDR_OFF_Z>) _lidar_z_offset,
+		(ParamFloat<px4::params::LPE_LDR_Z>) _param_lpe_ldr_z,
+		(ParamFloat<px4::params::LPE_LDR_OFF_Z>) _param_lpe_ldr_off_z,
 
 		// accel parameters
-		(ParamFloat<px4::params::LPE_ACC_XY>) _accel_xy_stddev,
-		(ParamFloat<px4::params::LPE_ACC_Z>) _accel_z_stddev,
+		(ParamFloat<px4::params::LPE_ACC_XY>) _param_lpe_acc_xy,
+		(ParamFloat<px4::params::LPE_ACC_Z>) _param_lpe_acc_z,
 
 		// baro parameters
-		(ParamFloat<px4::params::LPE_BAR_Z>) _baro_stddev,
+		(ParamFloat<px4::params::LPE_BAR_Z>) _param_lpe_bar_z,
 
 		// gps parameters
-		(ParamFloat<px4::params::LPE_GPS_DELAY>) _gps_delay,
-		(ParamFloat<px4::params::LPE_GPS_XY>) _gps_xy_stddev,
-		(ParamFloat<px4::params::LPE_GPS_Z>) _gps_z_stddev,
-		(ParamFloat<px4::params::LPE_GPS_VXY>) _gps_vxy_stddev,
-		(ParamFloat<px4::params::LPE_GPS_VZ>) _gps_vz_stddev,
-		(ParamFloat<px4::params::LPE_EPH_MAX>) _gps_eph_max,
-		(ParamFloat<px4::params::LPE_EPV_MAX>) _gps_epv_max,
+		(ParamFloat<px4::params::LPE_GPS_DELAY>) _param_lpe_gps_delay,
+		(ParamFloat<px4::params::LPE_GPS_XY>) _param_lpe_gps_xy,
+		(ParamFloat<px4::params::LPE_GPS_Z>) _param_lpe_gps_z,
+		(ParamFloat<px4::params::LPE_GPS_VXY>) _param_lpe_gps_vxy,
+		(ParamFloat<px4::params::LPE_GPS_VZ>) _param_lpe_gps_vz,
+		(ParamFloat<px4::params::LPE_EPH_MAX>) _param_lpe_eph_max,
+		(ParamFloat<px4::params::LPE_EPV_MAX>) _param_lpe_epv_max,
 
 		// vision parameters
-		(ParamFloat<px4::params::LPE_VIS_XY>) _vision_xy_stddev,
-		(ParamFloat<px4::params::LPE_VIS_Z>) _vision_z_stddev,
-		(ParamFloat<px4::params::LPE_VIS_DELAY>) _vision_delay,
+		(ParamFloat<px4::params::LPE_VIS_XY>) _param_lpe_vis_xy,
+		(ParamFloat<px4::params::LPE_VIS_Z>) _param_lpe_vis_z,
+		(ParamFloat<px4::params::LPE_VIS_DELAY>) _param_lpe_vis_delay,
 
 		// mocap parameters
-		(ParamFloat<px4::params::LPE_VIC_P>) _mocap_p_stddev,
+		(ParamFloat<px4::params::LPE_VIC_P>) _param_lpe_vic_p,
 
 		// flow parameters
-		(ParamFloat<px4::params::LPE_FLW_OFF_Z>) _flow_z_offset,
-		(ParamFloat<px4::params::LPE_FLW_SCALE>) _flow_scale,
-		(ParamInt<px4::params::LPE_FLW_QMIN>) _flow_min_q,
-		(ParamFloat<px4::params::LPE_FLW_R>) _flow_r,
-		(ParamFloat<px4::params::LPE_FLW_RR>) _flow_rr,
+		(ParamFloat<px4::params::LPE_FLW_OFF_Z>) _param_lpe_flw_off_z,
+		(ParamFloat<px4::params::LPE_FLW_SCALE>) _param_lpe_flw_scale,
+		(ParamInt<px4::params::LPE_FLW_QMIN>) _param_lpe_flw_qmin,
+		(ParamFloat<px4::params::LPE_FLW_R>) _param_lpe_flw_r,
+		(ParamFloat<px4::params::LPE_FLW_RR>) _param_lpe_flw_rr,
 
 		// land parameters
-		(ParamFloat<px4::params::LPE_LAND_Z>) _land_z_stddev,
-		(ParamFloat<px4::params::LPE_LAND_VXY>) _land_vxy_stddev,
+		(ParamFloat<px4::params::LPE_LAND_Z>) _param_lpe_land_z,
+		(ParamFloat<px4::params::LPE_LAND_VXY>) _param_lpe_land_vxy,
 
 		// process noise
-		(ParamFloat<px4::params::LPE_PN_P>) _pn_p_noise_density,
-		(ParamFloat<px4::params::LPE_PN_V>) _pn_v_noise_density,
-		(ParamFloat<px4::params::LPE_PN_B>) _pn_b_noise_density,
-		(ParamFloat<px4::params::LPE_PN_T>) _pn_t_noise_density,
-		(ParamFloat<px4::params::LPE_T_MAX_GRADE>) _t_max_grade,
+		(ParamFloat<px4::params::LPE_PN_P>) _param_lpe_pn_p,
+		(ParamFloat<px4::params::LPE_PN_V>) _param_lpe_pn_v,
+		(ParamFloat<px4::params::LPE_PN_B>) _param_lpe_pn_b,
+		(ParamFloat<px4::params::LPE_PN_T>) _param_lpe_pn_t,
+		(ParamFloat<px4::params::LPE_T_MAX_GRADE>) _param_lpe_t_max_grade,
 
-		(ParamFloat<px4::params::LPE_LT_COV>) _target_min_cov,
-		(ParamInt<px4::params::LTEST_MODE>) _target_mode,
+		(ParamFloat<px4::params::LPE_LT_COV>) _param_lpe_lt_cov,
+		(ParamInt<px4::params::LTEST_MODE>) _param_ltest_mode,
 
 		// init origin
-		(ParamInt<px4::params::LPE_FAKE_ORIGIN>) _fake_origin,
-		(ParamFloat<px4::params::LPE_LAT>) _init_origin_lat,
-		(ParamFloat<px4::params::LPE_LON>) _init_origin_lon
+		(ParamInt<px4::params::LPE_FAKE_ORIGIN>) _param_lpe_fake_origin,
+		(ParamFloat<px4::params::LPE_LAT>) _param_lpe_lat,
+		(ParamFloat<px4::params::LPE_LON>) _param_lpe_lon
 	)
 
 	// target mode paramters from landing_target_estimator module
@@ -411,13 +416,31 @@ private:
 	bool _landUpdated;
 	bool _baroUpdated;
 
+	// sensor validation flags
+	bool _vision_xy_valid;
+	bool _vision_z_valid;
+	bool _mocap_xy_valid;
+	bool _mocap_z_valid;
+
+	// sensor std deviations
+	float _vision_eph;
+	float _vision_epv;
+	float _mocap_eph;
+	float _mocap_epv;
+
+	// local to global coversion related variables
+	bool _is_global_cov_init;
+	uint64_t _global_ref_timestamp;
+	double _ref_lat;
+	double _ref_lon;
+	float _ref_alt;
+
 	// state space
 	Vector<float, n_x>  _x;	// state vector
 	Vector<float, n_u>  _u;	// input vector
 	Matrix<float, n_x, n_x>  _P;	// state covariance matrix
 
 	matrix::Dcm<float> _R_att;
-	Vector3f _eul;
 
 	Matrix<float, n_x, n_x>  _A;	// dynamics matrix
 	Matrix<float, n_x, n_u>  _B;	// input matrix

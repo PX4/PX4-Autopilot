@@ -45,9 +45,7 @@ namespace px4
 namespace logger
 {
 
-
-LogWriterMavlink::LogWriterMavlink(unsigned int queue_size) :
-	_queue_size(queue_size)
+LogWriterMavlink::LogWriterMavlink()
 {
 	_ulog_stream_data.length = 0;
 }
@@ -62,21 +60,10 @@ LogWriterMavlink::~LogWriterMavlink()
 	if (_ulog_stream_ack_sub >= 0) {
 		orb_unsubscribe(_ulog_stream_ack_sub);
 	}
-
-	if (_ulog_stream_pub) {
-		orb_unadvertise(_ulog_stream_pub);
-	}
 }
 
 void LogWriterMavlink::start_log()
 {
-	if (_ulog_stream_pub == nullptr) {
-		memset(&_ulog_stream_data, 0, sizeof(_ulog_stream_data));
-		// advertise before we subscribe: this is a trick to reduce the number of needed file descriptors
-		// (the advertise temporarily opens a file descriptor)
-		_ulog_stream_pub = orb_advertise_queue(ORB_ID(ulog_stream), &_ulog_stream_data, _queue_size);
-	}
-
 	if (_ulog_stream_ack_sub == -1) {
 		_ulog_stream_ack_sub = orb_subscribe(ORB_ID(ulog_stream_ack));
 	}
@@ -84,9 +71,11 @@ void LogWriterMavlink::start_log()
 	// make sure we don't get any stale ack's by doing an orb_copy
 	ulog_stream_ack_s ack;
 	orb_copy(ORB_ID(ulog_stream_ack), _ulog_stream_ack_sub, &ack);
+
 	_ulog_stream_data.sequence = 0;
 	_ulog_stream_data.length = 0;
 	_ulog_stream_data.first_message_offset = 0;
+
 	_is_started = true;
 }
 
@@ -147,12 +136,7 @@ int LogWriterMavlink::publish_message()
 		_ulog_stream_data.flags = _ulog_stream_data.FLAGS_NEED_ACK;
 	}
 
-	if (_ulog_stream_pub == nullptr) {
-		_ulog_stream_pub = orb_advertise_queue(ORB_ID(ulog_stream), &_ulog_stream_data, _queue_size);
-
-	} else {
-		orb_publish(ORB_ID(ulog_stream), _ulog_stream_pub, &_ulog_stream_data);
-	}
+	_ulog_stream_pub.publish(_ulog_stream_data);
 
 	if (_need_reliable_transfer) {
 		// we need to wait for an ack. Note that this blocks the main logger thread, so if a file logging

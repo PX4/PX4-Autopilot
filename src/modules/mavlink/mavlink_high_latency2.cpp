@@ -39,16 +39,16 @@
 
 #include "mavlink_high_latency2.h"
 
-#include <mathlib/mathlib.h>
-#include <lib/ecl/geo/geo.h>
 #include <commander/px4_custom_mode.h>
-
+#include <lib/ecl/geo/geo.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/matrix/matrix/math.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/estimator_status.h>
-#include <uORB/topics/fw_pos_ctrl_status.h>
 #include <uORB/topics/geofence_result.h>
+#include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -59,6 +59,8 @@
 #include <uORB/topics/wind_estimate.h>
 #include <uORB/uORB.h>
 
+using matrix::wrap_2pi;
+
 MavlinkStreamHighLatency2::MavlinkStreamHighLatency2(Mavlink *mavlink) : MavlinkStream(mavlink),
 	_actuator_sub_0(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_0))),
 	_actuator_time_0(0),
@@ -68,12 +70,10 @@ MavlinkStreamHighLatency2::MavlinkStreamHighLatency2(Mavlink *mavlink) : Mavlink
 	_airspeed_time(0),
 	_attitude_sp_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude_setpoint))),
 	_attitude_sp_time(0),
-	_battery_sub(_mavlink->add_orb_subscription(ORB_ID(battery_status))),
-	_battery_time(0),
 	_estimator_status_sub(_mavlink->add_orb_subscription(ORB_ID(estimator_status))),
 	_estimator_status_time(0),
-	_fw_pos_ctrl_status_sub(_mavlink->add_orb_subscription(ORB_ID(fw_pos_ctrl_status))),
-	_fw_pos_ctrl_status_time(0),
+	_pos_ctrl_status_sub(_mavlink->add_orb_subscription(ORB_ID(position_controller_status))),
+	_pos_ctrl_status_time(0),
 	_geofence_sub(_mavlink->add_orb_subscription(ORB_ID(geofence_result))),
 	_geofence_time(0),
 	_global_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position))),
@@ -92,7 +92,6 @@ MavlinkStreamHighLatency2::MavlinkStreamHighLatency2(Mavlink *mavlink) : Mavlink
 	_wind_time(0),
 	_airspeed(SimpleAnalyzer::AVERAGE),
 	_airspeed_sp(SimpleAnalyzer::AVERAGE),
-	_battery(SimpleAnalyzer::AVERAGE),
 	_climb_rate(SimpleAnalyzer::MAX),
 	_eph(SimpleAnalyzer::MAX),
 	_epv(SimpleAnalyzer::MAX),
@@ -100,7 +99,14 @@ MavlinkStreamHighLatency2::MavlinkStreamHighLatency2(Mavlink *mavlink) : Mavlink
 	_temperature(SimpleAnalyzer::AVERAGE),
 	_throttle(SimpleAnalyzer::AVERAGE),
 	_windspeed(SimpleAnalyzer::AVERAGE)
-{}
+{
+
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		_batteries[i].subscription = _mavlink->add_orb_subscription(ORB_ID(battery_status), i);
+	}
+
+	reset_last_sent();
+}
 
 bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 {
@@ -112,7 +118,11 @@ bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 
 		bool updated = _airspeed.valid();
 		updated |= _airspeed_sp.valid();
-		updated |= _battery.valid();
+
+		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			updated |= _batteries[i].analyzer.valid();
+		}
+
 		updated |= _climb_rate.valid();
 		updated |= _eph.valid();
 		updated |= _epv.valid();
@@ -134,9 +144,7 @@ bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 		updated |= write_wind_estimate(&msg);
 
 		if (updated) {
-			uint32_t timestamp;
-			convert_limit_safe(t / 1000, timestamp);
-			msg.timestamp = timestamp;
+			msg.timestamp = t / 1000;
 
 			msg.type = _mavlink->get_system_type();
 			msg.autopilot = MAV_AUTOPILOT_PX4;
@@ -149,9 +157,26 @@ bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 				_airspeed_sp.get_scaled(msg.airspeed_sp, 5.0f);
 			}
 
-			if (_battery.valid()) {
-				_battery.get_scaled(msg.battery, 100.0f);
+			int lowest = 0;
+
+			for (int i = 1; i < ORB_MULTI_MAX_INSTANCES; i++) {
+				const bool battery_connected = _batteries[i].connected && _batteries[i].analyzer.valid();
+				const bool battery_is_lowest = _batteries[i].analyzer.get_scaled(100.0f) <= _batteries[lowest].analyzer.get_scaled(
+								       100.0f);
+
+				if (battery_connected && battery_is_lowest) {
+					lowest = i;
+				}
+
 			}
+
+			if (_batteries[lowest].connected) {
+				_batteries[lowest].analyzer.get_scaled(msg.battery, 100.0f);
+
+			} else {
+				msg.battery = -1;
+			}
+
 
 			if (_climb_rate.valid()) {
 				_climb_rate.get_scaled(msg.climb_rate, 10.0f);
@@ -204,7 +229,11 @@ void MavlinkStreamHighLatency2::reset_analysers(const hrt_abstime t)
 	// reset the analyzers
 	_airspeed.reset();
 	_airspeed_sp.reset();
-	_battery.reset();
+
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		_batteries[i].analyzer.reset();
+	}
+
 	_climb_rate.reset();
 	_eph.reset();
 	_epv.reset();
@@ -238,7 +267,7 @@ bool MavlinkStreamHighLatency2::write_attitude_sp(mavlink_high_latency2_t *msg)
 	const bool updated = _attitude_sp_sub->update(&_attitude_sp_time, &attitude_sp);
 
 	if (_attitude_sp_time > 0) {
-		msg->target_heading = static_cast<uint8_t>(math::degrees(_wrap_2pi(attitude_sp.yaw_body)) * 0.5f);
+		msg->target_heading = static_cast<uint8_t>(math::degrees(wrap_2pi(attitude_sp.yaw_body)) * 0.5f);
 	}
 
 	return updated;
@@ -247,12 +276,16 @@ bool MavlinkStreamHighLatency2::write_attitude_sp(mavlink_high_latency2_t *msg)
 bool MavlinkStreamHighLatency2::write_battery_status(mavlink_high_latency2_t *msg)
 {
 	struct battery_status_s battery;
+	bool updated = false;
 
-	const bool updated = _battery_sub->update(&_battery_time, &battery);
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		if (_batteries[i].subscription->update(&_batteries[i].timestamp, &battery)) {
+			updated = true;
+			_batteries[i].connected = battery.connected;
 
-	if (_battery_time > 0) {
-		if (battery.warning > battery_status_s::BATTERY_WARNING_LOW) {
-			msg->failure_flags |= HL_FAILURE_FLAG_BATTERY;
+			if (battery.warning > battery_status_s::BATTERY_WARNING_LOW) {
+				msg->failure_flags |= HL_FAILURE_FLAG_BATTERY;
+			}
 		}
 	}
 
@@ -278,13 +311,13 @@ bool MavlinkStreamHighLatency2::write_estimator_status(mavlink_high_latency2_t *
 
 bool MavlinkStreamHighLatency2::write_fw_ctrl_status(mavlink_high_latency2_t *msg)
 {
-	struct fw_pos_ctrl_status_s fw_pos_ctrl_status;
+	position_controller_status_s pos_ctrl_status = {};
 
-	const bool updated = _fw_pos_ctrl_status_sub->update(&_fw_pos_ctrl_status_time, &fw_pos_ctrl_status);
+	const bool updated = _pos_ctrl_status_sub->update(&_pos_ctrl_status_time, &pos_ctrl_status);
 
-	if (_fw_pos_ctrl_status_time > 0) {
+	if (_pos_ctrl_status_time > 0) {
 		uint16_t target_distance;
-		convert_limit_safe(fw_pos_ctrl_status.wp_dist * 0.1f, target_distance);
+		convert_limit_safe(pos_ctrl_status.wp_dist * 0.1f, target_distance);
 		msg->target_distance = target_distance;
 	}
 
@@ -313,13 +346,10 @@ bool MavlinkStreamHighLatency2::write_global_position(mavlink_high_latency2_t *m
 	const bool updated = _global_pos_sub->update(&_global_pos_time, &global_pos);
 
 	if (_global_pos_time > 0) {
-		int32_t latitude, longitude;
-		convert_limit_safe(global_pos.lat * 1e7, latitude);
-		convert_limit_safe(global_pos.lon * 1e7, longitude);
-		msg->latitude = latitude;
-		msg->longitude = longitude;
+		msg->latitude = global_pos.lat * 1e7;
+		msg->longitude = global_pos.lon * 1e7;
 
-		int16_t altitude;
+		int16_t altitude = 0;
 
 		if (global_pos.alt > 0) {
 			convert_limit_safe(global_pos.alt + 0.5f, altitude);
@@ -330,7 +360,7 @@ bool MavlinkStreamHighLatency2::write_global_position(mavlink_high_latency2_t *m
 
 		msg->altitude = altitude;
 
-		msg->heading = static_cast<uint8_t>(math::degrees(_wrap_2pi(global_pos.yaw)) * 0.5f);
+		msg->heading = static_cast<uint8_t>(math::degrees(wrap_2pi(global_pos.yaw)) * 0.5f);
 	}
 
 	return updated;
@@ -357,7 +387,7 @@ bool MavlinkStreamHighLatency2::write_tecs_status(mavlink_high_latency2_t *msg)
 
 	if (_tecs_time > 0) {
 		int16_t target_altitude;
-		convert_limit_safe(tecs_status.altitudeSp, target_altitude);
+		convert_limit_safe(tecs_status.altitude_sp, target_altitude);
 		msg->target_altitude = target_altitude;
 	}
 
@@ -451,7 +481,7 @@ bool MavlinkStreamHighLatency2::write_wind_estimate(mavlink_high_latency2_t *msg
 
 	if (_wind_time > 0) {
 		msg->wind_heading = static_cast<uint8_t>(
-					    math::degrees(_wrap_2pi(atan2f(wind.windspeed_east, wind.windspeed_north))) * 0.5f);
+					    math::degrees(wrap_2pi(atan2f(wind.windspeed_east, wind.windspeed_north))) * 0.5f);
 	}
 
 	return updated;
@@ -497,7 +527,7 @@ void MavlinkStreamHighLatency2::update_tecs_status()
 	tecs_status_s tecs_status;
 
 	if (_tecs_status_sub->update(&tecs_status)) {
-		_airspeed_sp.add_value(tecs_status.airspeedSp, _update_rate_filtered);
+		_airspeed_sp.add_value(tecs_status.airspeed_sp, _update_rate_filtered);
 	}
 }
 
@@ -505,8 +535,11 @@ void MavlinkStreamHighLatency2::update_battery_status()
 {
 	battery_status_s battery;
 
-	if (_battery_sub->update(&battery)) {
-		_battery.add_value(battery.remaining, _update_rate_filtered);
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		if (_batteries[i].subscription->update(&battery)) {
+			_batteries[i].connected = battery.connected;
+			_batteries[i].analyzer.add_value(battery.remaining, _update_rate_filtered);
+		}
 	}
 }
 
@@ -539,7 +572,7 @@ void MavlinkStreamHighLatency2::update_vehicle_status()
 		if (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 			struct actuator_controls_s actuator = {};
 
-			if (status.is_vtol && !status.is_rotary_wing) {
+			if (status.is_vtol && status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 				if (_actuator_sub_1->update(&actuator)) {
 					_throttle.add_value(actuator.control[actuator_controls_s::INDEX_THROTTLE], _update_rate_filtered);
 				}

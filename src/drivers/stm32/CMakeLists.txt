@@ -41,3 +41,4 @@ add_library(drivers_arch
 )
 add_dependencies(drivers_arch prebuild_targets)
 target_link_libraries(drivers_arch PRIVATE drivers_board)
+target_compile_options(drivers_arch PRIVATE -Wno-cast-align) # TODO: fix and enable

@@ -33,7 +33,7 @@
 #include "microRTPS_transport.h"
 #include "microRTPS_client.h"
 
-#include <cinttypes>
+#include <inttypes.h>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
@@ -41,6 +41,7 @@
 
 #include <px4_config.h>
 #include <px4_getopt.h>
+#include <px4_cli.h>
 #include <px4_module.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
@@ -74,8 +75,8 @@ static void usage(const char *name)
 
 	PRINT_MODULE_USAGE_PARAM_STRING('t', "UART", "UART|UDP", "Transport protocol", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyACM0", "<file:dev>", "Select Serial Device", true);
-	PRINT_MODULE_USAGE_PARAM_INT('b', 460800, 9600, 3000000, "Baudrate", true);
-	PRINT_MODULE_USAGE_PARAM_INT('p', 1, 1, 1000, "Poll timeout for UART in ms", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 460800, 9600, 3000000, "Baudrate (can also be p:<param_name>)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 1, 1000, "Poll timeout for UART in ms", true);
 	PRINT_MODULE_USAGE_PARAM_INT('u', 0, 0, 10000,
 				     "Interval in ms to limit the update rate of all sent topics (0=unlimited)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('l', 10000, -1, 100000, "Limit number of iterations until the program exits (-1=infinite)",
@@ -90,10 +91,12 @@ static void usage(const char *name)
 
 baudtype getbaudrate(const char *valstr)
 {
-	uint32_t baudval = strtoul(valstr, nullptr, 10);
+	int baudval;
 
-	for (unsigned int i = 1; i < sizeof(baudlist) / sizeof(baudtype); i++) {
-		if (baudlist[i].val == baudval) { return baudlist[i]; }
+	if (px4_get_parameter_value(valstr, baudval) == 0) {
+		for (unsigned int i = 1; i < sizeof(baudlist) / sizeof(baudtype); i++) {
+			if (baudlist[i].val == (unsigned)baudval) { return baudlist[i]; }
+		}
 	}
 
 	return baudlist[0];
@@ -149,7 +152,7 @@ static int parse_options(int argc, char *argv[])
 static int micrortps_start(int argc, char *argv[])
 {
 	if (0 > parse_options(argc, argv)) {
-		printf("EXITING...\n");
+		PX4_INFO("EXITING...");
 		_rtps_task = -1;
 		return -1;
 	}
@@ -157,26 +160,26 @@ static int micrortps_start(int argc, char *argv[])
 	switch (_options.transport) {
 	case options::eTransports::UART: {
 			transport_node = new UART_node(_options.device, _options.baudrate.code, _options.poll_ms);
-			printf("\nUART transport: device: %s; baudrate: %d; sleep: %dms; poll: %dms\n\n",
-			       _options.device, _options.baudrate.val, _options.sleep_ms, _options.poll_ms);
+			PX4_INFO("UART transport: device: %s; baudrate: %d; sleep: %dms; poll: %dms",
+				 _options.device, _options.baudrate.val, _options.sleep_ms, _options.poll_ms);
 		}
 		break;
 
 	case options::eTransports::UDP: {
 			transport_node = new UDP_node(_options.recv_port, _options.send_port);
-			printf("\nUDP transport: recv port: %u; send port: %u; sleep: %dms\n\n",
-			       _options.recv_port, _options.send_port, _options.sleep_ms);
+			PX4_INFO("UDP transport: recv port: %u; send port: %u; sleep: %dms",
+				 _options.recv_port, _options.send_port, _options.sleep_ms);
 		}
 		break;
 
 	default:
 		_rtps_task = -1;
-		printf("EXITING...\n");
+		PX4_INFO("EXITING...");
 		return -1;
 	}
 
 	if (0 > transport_node->init()) {
-		printf("EXITING...\n");
+		PX4_INFO("EXITING...");
 		_rtps_task = -1;
 		return -1;
 	}
@@ -196,14 +199,14 @@ static int micrortps_start(int argc, char *argv[])
 
 	double elapsed_secs = double(end.tv_sec - begin.tv_sec) + double(end.tv_nsec - begin.tv_nsec) / double(1000000000);
 
-	printf("RECEIVED: %lu messages in %d LOOPS, %d bytes in %.03f seconds - %.02fKB/s\n\n",
-	       (unsigned long)received, loop, total_read, elapsed_secs, (double)total_read / (1000 * elapsed_secs));
+	PX4_INFO("RECEIVED: %lu messages in %d LOOPS, %d bytes in %.03f seconds - %.02fKB/s",
+		 (unsigned long)received, loop, total_read, elapsed_secs, (double)total_read / (1000 * elapsed_secs));
 
 	delete transport_node;
 
 	transport_node = nullptr;
 
-	PX4_INFO("exiting");
+	PX4_INFO("Stopped!");
 
 	fflush(stdout);
 

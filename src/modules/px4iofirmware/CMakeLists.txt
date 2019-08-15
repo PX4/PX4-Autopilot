@@ -33,7 +33,6 @@
 
 add_library(px4iofirmware
 	hx_stream.c
-	../systemlib/pwm_limit/pwm_limit.c
 	adc.c
 	controls.c
 	mixer.cpp
@@ -52,4 +51,5 @@ target_link_libraries(px4iofirmware
 		mixer
 		rc
 		perf
+		pwm_limit
 )

@@ -40,7 +40,7 @@
  *    /dev/rtps
  */
 
-#include <drivers/device/device.h>
+#include <lib/cdev/CDev.hpp>
 #include <px4_sem.hpp>
 #include <px4_log.h>
 
@@ -116,10 +116,10 @@ void ReadBuffer::move(void *dest, size_t pos, size_t n)
 	buf_size -= n;
 }
 
-class DevCommon : public device::CDev
+class DevCommon : public cdev::CDev
 {
 public:
-	DevCommon(const char *device_name, const char *device_path);
+	DevCommon(const char *device_path);
 	virtual ~DevCommon();
 
 	virtual int	ioctl(struct file *filp, int cmd, unsigned long arg);
@@ -166,8 +166,8 @@ protected:
 private:
 };
 
-DevCommon::DevCommon(const char *device_name, const char *device_path)
-	: CDev(device_name, device_path)
+DevCommon::DevCommon(const char *device_path)
+	: CDev(device_path)
 {
 }
 
@@ -243,7 +243,7 @@ protected:
 };
 
 Mavlink2Dev::Mavlink2Dev(ReadBuffer *read_buffer)
-	: DevCommon("Mavlink2", "/dev/mavlink")
+	: DevCommon("/dev/mavlink")
 	, _read_buffer{read_buffer}
 {
 }
@@ -423,7 +423,7 @@ protected:
 };
 
 RtpsDev::RtpsDev(ReadBuffer *read_buffer)
-	: DevCommon("Rtps", "/dev/rtps")
+	: DevCommon("/dev/rtps")
 	, _read_buffer{read_buffer}
 {
 }

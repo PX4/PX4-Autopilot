@@ -37,19 +37,15 @@
  * SPI interface for BMP280
  */
 
-#include <px4_config.h>
 
 #include "bmp280.h"
-#include <drivers/device/i2c.h>
-
-#include "board_config.h"
 
 #if defined(PX4_I2C_OBDEV_BMP280) || defined(PX4_I2C_EXT_OBDEV_BMP280)
 
 class BMP280_I2C: public device::I2C, public bmp280::IBMP280
 {
 public:
-	BMP280_I2C(uint8_t bus, uint8_t device, bool external);
+	BMP280_I2C(uint8_t bus, uint32_t device, bool external);
 	virtual ~BMP280_I2C() = default;
 
 	bool is_external();
@@ -60,18 +56,20 @@ public:
 	bmp280::data_s *get_data(uint8_t addr);
 	bmp280::calibration_s *get_calibration(uint8_t addr);
 
+	uint32_t get_device_id() const override { return device::I2C::get_device_id(); }
+
 private:
 	struct bmp280::calibration_s _cal;
 	struct bmp280::data_s _data;
 	bool _external;
 };
 
-bmp280::IBMP280 *bmp280_i2c_interface(uint8_t busnum, uint8_t device, bool external)
+bmp280::IBMP280 *bmp280_i2c_interface(uint8_t busnum, uint32_t device, bool external)
 {
 	return new BMP280_I2C(busnum, device, external);
 }
 
-BMP280_I2C::BMP280_I2C(uint8_t bus, uint8_t device, bool external) :
+BMP280_I2C::BMP280_I2C(uint8_t bus, uint32_t device, bool external) :
 	I2C("BMP280_I2C", nullptr, bus, device, 100 * 1000)
 {
 	_external = external;

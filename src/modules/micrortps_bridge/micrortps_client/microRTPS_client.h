@@ -34,13 +34,13 @@
 
 #include "microRTPS_transport.h"
 
-#include <cinttypes>
+#include <inttypes.h>
 #include <cstdio>
 #include <ctime>
 #include <pthread.h>
 #include <termios.h>
 
-#include <microcdr/microCdr.h>
+#include <ucdr/microcdr.h>
 #include <px4_config.h>
 #include <px4_getopt.h>
 #include <px4_posix.h>
@@ -54,6 +54,12 @@
 #define SLEEP_MS 1
 #define BAUDRATE B460800
 #define BAUDRATE_VAL 460800
+#ifndef B460800
+#define B460800 460800
+#endif
+#ifndef B921600
+#define B921600 921600
+#endif
 #define DEVICE "/dev/ttyACM0"
 #define POLL_MS 1
 #define DEFAULT_RECV_PORT 2019
@@ -86,4 +92,3 @@ struct options {
 extern struct options _options;
 extern bool _should_exit_task;
 extern Transport_node *transport_node;
-

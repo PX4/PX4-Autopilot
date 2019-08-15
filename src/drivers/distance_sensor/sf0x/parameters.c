@@ -32,17 +32,14 @@
  ****************************************************************************/
 
 /**
- * Lightware laser rangefinder (serial)
+ * Lightware Laser Rangefinder hardware model
  *
  * @reboot_required true
- * @min 0
- * @max 4
  * @group Sensors
- * @value 0 Disabled
  * @value 1 SF02
  * @value 2 SF10/a
  * @value 3 SF10/b
  * @value 4 SF10/c
  * @value 5 SF11/c
  */
-PARAM_DEFINE_INT32(SENS_EN_SF0X, 0);
+PARAM_DEFINE_INT32(SENS_EN_SF0X, 1);

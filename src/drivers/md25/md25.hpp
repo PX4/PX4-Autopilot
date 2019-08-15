@@ -120,7 +120,7 @@ public:
 	/**
 	 * deconstructor
 	 */
-	virtual ~MD25();
+	virtual ~MD25() = default;
 
 	/**
 	 * @return software version
@@ -270,7 +270,7 @@ private:
 	struct pollfd _controlPoll;
 
 	/** actuator controls subscription */
-	uORB::Subscription<actuator_controls_s> _actuators;
+	uORB::SubscriptionData<actuator_controls_s> _actuators;
 
 	// local copy of data from i2c device
 	uint8_t _version;

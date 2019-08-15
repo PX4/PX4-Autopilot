@@ -1,0 +1,90 @@
+{
+        "astyle.astylerc": "${workspaceFolder}/Tools/astyle/astylerc",
+        "astyle.c.enable": true,
+        "astyle.cpp.enable": true,
+        "breadcrumbs.enabled": true,
+        "cmake.autoRestartBuild": true,
+        "cmake.buildDirectory": "${workspaceFolder}/build/${variant:CONFIG}",
+        "cmake.buildBeforeRun": true,
+        "cmake.configureOnOpen": true,
+        "cmake.copyCompileCommands": "${workspaceFolder}/.vscode/compile_commands.json",
+        "cmake.debugConfig": {
+                "name": "SITL shell (gdb)",
+                "type": "cppdbg",
+                "request": "launch",
+                "program": "${command:cmake.launchTargetPath}",
+                "args": [
+                        "${workspaceFolder}/ROMFS/px4fmu_common",
+                        "-s",
+                        "etc/init.d-posix/rcS",
+                        "-t",
+                        "${workspaceFolder}/test_data"
+                ],
+                "stopAtEntry": false,
+                "cwd": "${workspaceFolder}/build/px4_sitl_default/tmp",
+                "environment": [
+                        {
+                                "name": "PX4_SIM_MODEL",
+                                "value": "shell"
+                        }
+                ],
+                "externalConsole": false,
+                "linux": {
+                        "MIMode": "gdb",
+                        "setupCommands": [
+                                {
+                                        "description": "Enable pretty-printing for gdb",
+                                        "text": "-enable-pretty-printing",
+                                        "ignoreFailures": true
+                                },
+                                {
+                                        "description": "PX4 ignore wq signals",
+                                        "text": "handle SIGCONT nostop noprint nopass",
+                                        "ignoreFailures": true
+                                }
+                        ]
+                },
+                "osx": {
+                        "MIMode": "lldb",
+                        "setupCommands": [
+                                {
+                                        "text": "pro hand -p true -s false -n false SIGCONT",
+                                }
+                        ]
+                }
+        },
+        "C_Cpp.clang_format_fallbackStyle": "none",
+        "C_Cpp.configurationWarnings": "Disabled",
+        "C_Cpp.default.cppStandard": "c++11",
+        "C_Cpp.default.cStandard": "c99",
+        "C_Cpp.default.intelliSenseMode": "gcc-x64",
+        "C_Cpp.errorSquiggles": "Disabled",
+        "C_Cpp.formatting": "Disabled",
+        "C_Cpp.intelliSenseEngine": "Default",
+        "C_Cpp.intelliSenseEngineFallback": "Disabled",
+        "debug.toolBarLocation": "docked",
+        "editor.insertSpaces": false,
+        "editor.minimap.maxColumn": 120,
+        "editor.minimap.renderCharacters": false,
+        "editor.minimap.showSlider": "always",
+        "editor.smoothScrolling": true,
+        "editor.suggest.localityBonus": true,
+        "editor.tabSize": 8,
+        "editor.wordWrapColumn": 120,
+        "explorer.openEditors.visible": 0,
+        "files.insertFinalNewline": true,
+        "files.trimTrailingWhitespace": true,
+        "git.detectSubmodulesLimit": 20,
+        "files.associations": {
+                "*.jinja": "jinja"
+        },
+        "search.exclude": {
+                "build/**": true
+        },
+        "search.showLineNumbers": true,
+        "window.title": "${dirty} ${activeEditorMedium}${separator}${rootName}",
+        "workbench.editor.highlightModifiedTabs": true,
+        "workbench.settings.enableNaturalLanguageSearch": false,
+        "workbench.statusBar.feedback.visible": false,
+        "git.ignoreLimitWarning": true
+}

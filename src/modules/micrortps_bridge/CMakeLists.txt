@@ -40,20 +40,39 @@ if(NOT FASTRTPSGEN)
 	message(FATAL_ERROR "Unable to find fastrtpsgen")
 endif()
 
-set(config_rtps_send_topics
-	sensor_combined
-	sensor_baro
-	sensor_selection
-	vehicle_gps_position
-	airspeed
-	vehicle_land_detected
-	vehicle_status
-   )
+if (EXISTS "${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_message_ids.yaml")
+	set(config_rtps_send_topics)
+	execute_process(
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_classifier.py -sa
+		OUTPUT_VARIABLE config_rtps_send_topics
+	)
+	set(config_rtps_send_alias_topics "")
+	string(FIND ${config_rtps_send_topics} "alias" found_send_alias)
+	if (NOT ${found_send_alias} EQUAL "-1")
+		STRING(REGEX REPLACE ".*alias " "" config_rtps_send_alias_topics "${config_rtps_send_topics}")
+		STRING(REPLACE ", " ";" config_rtps_send_alias_topics "${config_rtps_send_alias_topics}")
+		STRING(REPLACE "\n" "" config_rtps_send_alias_topics "${config_rtps_send_alias_topics}")
+		STRING(REGEX REPLACE " alias.*" "" config_rtps_send_topics "${config_rtps_send_topics}")
+	endif()
+	STRING(REGEX REPLACE ", " ";" config_rtps_send_topics "${config_rtps_send_topics}")
+	STRING(REGEX REPLACE "\n" "" config_rtps_send_topics "${config_rtps_send_topics}")
 
-set(config_rtps_receive_topics
-   sensor_baro
-   optical_flow
-   )
+	set(config_rtps_receive_topics)
+	execute_process(
+		COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_classifier.py -ra
+		OUTPUT_VARIABLE config_rtps_receive_topics
+	)
+	set(config_rtps_receive_alias_topics "")
+	string(FIND ${config_rtps_receive_topics} "alias" found_receive_alias)
+	if (NOT ${found_receive_alias} EQUAL "-1")
+		STRING(REGEX REPLACE ".*alias " "" config_rtps_receive_alias_topics "${config_rtps_receive_topics}")
+		STRING(REPLACE ", " ";" config_rtps_receive_alias_topics "${config_rtps_receive_alias_topics}")
+		STRING(REPLACE "\n" "" config_rtps_receive_alias_topics "${config_rtps_receive_alias_topics}")
+		STRING(REGEX REPLACE " alias.*" "" config_rtps_receive_topics "${config_rtps_receive_topics}")
+	endif()
+	STRING(REPLACE ", " ";" config_rtps_receive_topics "${config_rtps_receive_topics}")
+	STRING(REPLACE "\n" "" config_rtps_receive_topics "${config_rtps_receive_topics}")
+endif()
 
 if (FASTRTPSGEN AND (config_rtps_send_topics OR config_rtps_receive_topics))
 	option(GENERATE_RTPS_BRIDGE "enable RTPS and microCDR" ON)
@@ -61,12 +80,15 @@ endif()
 
 if (GENERATE_RTPS_BRIDGE)
 
+	# temporarily set to OFF
+	option(CHECK_ENDIANNESS OFF)
+
 	add_subdirectory(micrortps_client)
 
 	###############################################################################
 	# micro-cdr serialization
 	###############################################################################
-	include(common/px4_git)
+	include(px4_git)
 	px4_add_git_submodule(TARGET git_micro_cdr PATH micro-CDR)
 	add_subdirectory(micro-CDR)
 
@@ -77,7 +99,8 @@ if (GENERATE_RTPS_BRIDGE)
 	set(uorb_sources_microcdr)
 
 	# send topic files
-	message(STATUS "RTPS send: ${config_rtps_send_topics}")
+	STRING(REGEX REPLACE ";" ", " send_list "${config_rtps_send_topics};${config_rtps_send_alias_topics}")
+	message(STATUS "RTPS send: ${send_list}")
 	set(send_topic_files)
 	foreach(topic ${config_rtps_send_topics})
 		list(APPEND send_topic_files ${PX4_SOURCE_DIR}/msg/${topic}.msg)
@@ -86,6 +109,8 @@ if (GENERATE_RTPS_BRIDGE)
 	endforeach()
 
 	# receive topic files
+	STRING(REGEX REPLACE ";" ", " rcv_list "${config_rtps_receive_topics};${config_rtps_receive_alias_topics}")
+	message(STATUS "RTPS receive: ${rcv_list}")
 	set(receive_topic_files)
 	foreach(topic ${config_rtps_receive_topics})
 		list(APPEND receive_topic_files ${PX4_SOURCE_DIR}/msg/${topic}.msg)
@@ -132,15 +157,17 @@ if (GENERATE_RTPS_BRIDGE)
 	add_dependencies(uorb_msgs_microcdr
 		uorb_headers_microcdr_gen
 		git_micro_cdr
-		lib__micro-CDR
+		microcdr
 	)
-
-	target_link_libraries(uorb_msgs_microcdr PRIVATE lib__micro-CDR)
+	add_dependencies(microcdr prebuild_targets)
 
 	# microCDR
 	target_include_directories(uorb_msgs_microcdr
 		PUBLIC
 			${CMAKE_CURRENT_SOURCE_DIR}/micro-CDR/include
+			${CMAKE_CURRENT_BINARY_DIR}/micro-CDR/include
 			${CMAKE_CURRENT_BINARY_DIR}/micro-CDR/include/microcdr
 	)
+
+	target_link_libraries(uorb_msgs_microcdr PRIVATE microcdr)
 endif()

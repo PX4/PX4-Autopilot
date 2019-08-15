@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (C) 2017 PX4 Development Team. All rights reserved.
+ * Copyright (C) 2017-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,13 +31,18 @@
  *
  ****************************************************************************/
 
-#include <px4_log.h>
-
+#include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#if defined(__PX4_POSIX) && !defined(__PX4_CYGWIN)
-#include <execinfo.h>
+#ifndef MODULE_NAME
+#define MODULE_NAME "log"
+#endif
+
+#include <px4_log.h>
+#if defined(__PX4_POSIX)
+#include <px4_daemon/server_io.h>
 #endif
 
 #include <uORB/uORB.h>
@@ -46,14 +51,14 @@
 
 static orb_advert_t orb_log_message_pub = NULL;
 
-__EXPORT const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1] = { "INFO", "DEBUG", "WARN", "ERROR", "PANIC" };
+__EXPORT const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1] = { "DEBUG", "INFO", "WARN", "ERROR", "PANIC" };
 __EXPORT const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1] =
-{ PX4_ANSI_COLOR_RESET, PX4_ANSI_COLOR_GREEN, PX4_ANSI_COLOR_YELLOW, PX4_ANSI_COLOR_RED, PX4_ANSI_COLOR_RED };
+{ PX4_ANSI_COLOR_GREEN, PX4_ANSI_COLOR_RESET, PX4_ANSI_COLOR_YELLOW, PX4_ANSI_COLOR_RED, PX4_ANSI_COLOR_RED };
 
 
 void px4_log_initialize(void)
 {
-	ASSERT(orb_log_message_pub == NULL);
+	assert(orb_log_message_pub == NULL);
 
 	/* we need to advertise with a valid message */
 	struct log_message_s log_message;
@@ -70,51 +75,51 @@ void px4_log_initialize(void)
 	}
 }
 
-void px4_backtrace()
-{
-#if defined(__PX4_POSIX) && !defined(__PX4_CYGWIN)
-	void *buffer[10];
-	char **callstack;
-	int bt_size;
-	int idx;
-
-	bt_size = backtrace(buffer, 10);
-	callstack = backtrace_symbols(buffer, bt_size);
-
-	PX4_INFO("Backtrace: %d", bt_size);
-
-	for (idx = 0; idx < bt_size; idx++) {
-		PX4_INFO("%s", callstack[idx]);
-	}
-
-	free(callstack);
-#endif
-}
 
 __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...)
 {
-	PX4_LOG_COLOR_START
-	printf(__px4__log_level_fmt __px4__log_level_arg(level));
-	PX4_LOG_COLOR_MODULE
-	printf(__px4__log_modulename_pfmt, moduleName);
-	PX4_LOG_COLOR_MESSAGE
-	va_list argptr;
-	va_start(argptr, fmt);
-	vprintf(fmt, argptr);
-	va_end(argptr);
-	PX4_LOG_COLOR_END
-	printf("\n");
+	FILE *out = stdout;
+	bool use_color = true;
+
+#ifdef __PX4_POSIX
+	out = get_stdout(&use_color);
+#endif
+
+#ifndef PX4_LOG_COLORIZED_OUTPUT
+	use_color = false;
+#endif
+
+	if (level >= _PX4_LOG_LEVEL_INFO) {
+		if (use_color) { fputs(__px4_log_level_color[level], out); }
+
+		fprintf(out, __px4__log_level_fmt __px4__log_level_arg(level));
+
+		if (use_color) { fputs(PX4_ANSI_COLOR_GRAY, out); }
+
+		fprintf(out, __px4__log_modulename_pfmt, moduleName);
+
+		if (use_color) { fputs(__px4_log_level_color[level], out); }
+
+		va_list argptr;
+		va_start(argptr, fmt);
+		vfprintf(out, fmt, argptr);
+		va_end(argptr);
+
+		if (use_color) { fputs(PX4_ANSI_COLOR_RESET, out); }
+
+		fputc('\n', out);
+	}
 
 	/* publish an orb log message */
 	if (level >= _PX4_LOG_LEVEL_WARN && orb_log_message_pub) { //only publish important messages
 
 		struct log_message_s log_message;
-		const unsigned max_length = sizeof(log_message.text);
+		const unsigned max_length_pub = sizeof(log_message.text);
 		log_message.timestamp = hrt_absolute_time();
 
 		const uint8_t log_level_table[] = {
-			6, /* _PX4_LOG_LEVEL_ALWAYS */
 			7, /* _PX4_LOG_LEVEL_DEBUG */
+			6, /* _PX4_LOG_LEVEL_INFO */
 			4, /* _PX4_LOG_LEVEL_WARN */
 			3, /* _PX4_LOG_LEVEL_ERROR */
 			0  /* _PX4_LOG_LEVEL_PANIC */
@@ -123,14 +128,41 @@ __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *
 
 		unsigned pos = 0;
 
-		pos += snprintf((char *)log_message.text + pos, max_length - pos, __px4__log_modulename_pfmt, moduleName);
+		va_list argptr;
+
+		pos += snprintf((char *)log_message.text + pos, max_length_pub - pos, __px4__log_modulename_pfmt, moduleName);
 		va_start(argptr, fmt);
-		pos += vsnprintf((char *)log_message.text + pos, max_length - pos, fmt, argptr);
+		pos += vsnprintf((char *)log_message.text + pos, max_length_pub - pos, fmt, argptr);
 		va_end(argptr);
-		log_message.text[max_length - 1] = 0; //ensure 0-termination
+		log_message.text[max_length_pub - 1] = 0; //ensure 0-termination
 
 #if !defined(PARAM_NO_ORB)
 		orb_publish(ORB_ID(log_message), orb_log_message_pub, &log_message);
 #endif /* !PARAM_NO_ORB */
+	}
+}
+
+__EXPORT void px4_log_raw(int level, const char *fmt, ...)
+{
+	FILE *out = stdout;
+	bool use_color = true;
+
+#ifdef __PX4_POSIX
+	out = get_stdout(&use_color);
+#endif
+
+#ifndef PX4_LOG_COLORIZED_OUTPUT
+	use_color = false;
+#endif
+
+	if (level >= _PX4_LOG_LEVEL_INFO) {
+		if (use_color) { fputs(__px4_log_level_color[level], out); }
+
+		va_list argptr;
+		va_start(argptr, fmt);
+		vfprintf(out, fmt, argptr);
+		va_end(argptr);
+
+		if (use_color) { fputs(PX4_ANSI_COLOR_RESET, out); }
 	}
 }

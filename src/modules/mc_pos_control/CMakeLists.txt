@@ -30,18 +30,24 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+add_subdirectory(Takeoff)
+
 px4_add_module(
 	MODULE modules__mc_pos_control
 	MAIN mc_pos_control
 	COMPILE_FLAGS
-	STACK_MAIN 1200
+	STACK_MAIN 1500
 	SRCS
 		mc_pos_control_main.cpp
 		PositionControl.cpp
 		Utility/ControlMath.cpp
 	DEPENDS
 		controllib
-		flight_tasks
+		FlightTasks
 		git_ecl
 		ecl_geo
+		WeatherVane
+		CollisionPrevention
+		Takeoff
 	)

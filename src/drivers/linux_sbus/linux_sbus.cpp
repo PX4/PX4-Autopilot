@@ -33,7 +33,12 @@
  *
  ****************************************************************************/
 #include "linux_sbus.h"
+
+#include <stdlib.h>
+#include <string.h>
+
 using namespace linux_sbus;
+
 //---------------------------------------------------------------------------------------------------------//
 int RcInput::init()
 {
@@ -104,7 +109,7 @@ int RcInput::start(char *device, int channels)
 {
 	int result = 0;
 	strcpy(_device, device);
-	PX4_WARN("Device %s , channels: %d \n", device, channels);
+	PX4_INFO("Device %s , channels: %d \n", device, channels);
 	_channels = channels;
 	result = init();
 
@@ -114,8 +119,8 @@ int RcInput::start(char *device, int channels)
 	}
 
 	_isRunning = true;
-	result = work_queue(HPWORK, &_work, (worker_t) & RcInput::cycle_trampoline,
-			    this, 0);
+
+	ScheduleNow();
 
 	if (result == -1) {
 		_isRunning = false;
@@ -129,20 +134,14 @@ void RcInput::stop()
 	close(_device_fd);
 	_shouldExit = true;
 }
+
 //---------------------------------------------------------------------------------------------------------//
-void RcInput::cycle_trampoline(void *arg)
-{
-	RcInput *dev = reinterpret_cast<RcInput *>(arg);
-	dev->_cycle();
-}
-//---------------------------------------------------------------------------------------------------------//
-void RcInput::_cycle()
+void RcInput::Run()
 {
 	_measure();
 
 	if (!_shouldExit) {
-		work_queue(HPWORK, &_work, (worker_t) & RcInput::cycle_trampoline, this,
-			   USEC2TICK(RCINPUT_MEASURE_INTERVAL_US));
+		ScheduleDelayed(RCINPUT_MEASURE_INTERVAL_US);
 	}
 }
 //---------------------------------------------------------------------------------------------------------//
@@ -231,6 +230,7 @@ void RcInput::_measure(void)
 	_data.rc_failsafe = (_sbusData[23] & (1 << 3)) ? true : false;
 	_data.rc_lost = (_sbusData[23] & (1 << 2)) ? true : false;
 	_data.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SBUS;
+
 	orb_publish(ORB_ID(input_rc), _rcinput_pub, &_data);
 }
 //---------------------------------------------------------------------------------------------------------//

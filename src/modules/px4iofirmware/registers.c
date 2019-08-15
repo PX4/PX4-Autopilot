@@ -47,7 +47,6 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
-#include <systemlib/systemlib.h>
 #include <stm32_pwr.h>
 #include <rc/dsm.h>
 #include <rc/sbus.h>
@@ -59,6 +58,8 @@ static int	registers_set_one(uint8_t page, uint8_t offset, uint16_t value);
 static void	pwm_configure_rates(uint16_t map, uint16_t defaultrate, uint16_t altrate);
 
 bool update_mc_thrust_param;
+bool update_trims;
+
 /**
  * PAGE 0
  *
@@ -180,7 +181,8 @@ volatile uint16_t	r_page_setup[] = {
 	[PX4IO_P_SETUP_MOTOR_SLEW_MAX] = 0,
 	[PX4IO_P_SETUP_AIRMODE] = 0,
 	[PX4IO_P_SETUP_THR_MDL_FAC] = 0,
-	[PX4IO_P_SETUP_THERMAL] = PX4IO_THERMAL_IGNORE
+	[PX4IO_P_SETUP_THERMAL] = PX4IO_THERMAL_IGNORE,
+	[PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION] = 0
 };
 
 #define PX4IO_P_SETUP_FEATURES_VALID	(PX4IO_P_SETUP_FEATURES_SBUS1_OUT | \
@@ -405,6 +407,8 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 			num_values--;
 			values++;
 		}
+
+		update_trims = true;
 
 		break;
 
@@ -689,24 +693,9 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 
 			break;
 
-		case PX4IO_P_SETUP_PWM_REVERSE:
-			r_page_setup[PX4IO_P_SETUP_PWM_REVERSE] = value;
-			break;
-
-		case PX4IO_P_SETUP_TRIM_ROLL:
-		case PX4IO_P_SETUP_TRIM_PITCH:
-		case PX4IO_P_SETUP_TRIM_YAW:
-		case PX4IO_P_SETUP_SCALE_ROLL:
-		case PX4IO_P_SETUP_SCALE_PITCH:
-		case PX4IO_P_SETUP_SCALE_YAW:
-		case PX4IO_P_SETUP_MOTOR_SLEW_MAX:
 		case PX4IO_P_SETUP_SBUS_RATE:
 			r_page_setup[offset] = value;
 			sbus1_set_output_rate_hz(value);
-			break;
-
-		case PX4IO_P_SETUP_AIRMODE:
-			r_page_setup[PX4IO_P_SETUP_AIRMODE] = value;
 			break;
 
 		case PX4IO_P_SETUP_THR_MDL_FAC:
@@ -714,8 +703,18 @@ registers_set_one(uint8_t page, uint8_t offset, uint16_t value)
 			r_page_setup[offset] = value;
 			break;
 
+		case PX4IO_P_SETUP_PWM_REVERSE:
+		case PX4IO_P_SETUP_TRIM_ROLL:
+		case PX4IO_P_SETUP_TRIM_PITCH:
+		case PX4IO_P_SETUP_TRIM_YAW:
+		case PX4IO_P_SETUP_SCALE_ROLL:
+		case PX4IO_P_SETUP_SCALE_PITCH:
+		case PX4IO_P_SETUP_SCALE_YAW:
+		case PX4IO_P_SETUP_MOTOR_SLEW_MAX:
+		case PX4IO_P_SETUP_AIRMODE:
 		case PX4IO_P_SETUP_THERMAL:
-			r_page_setup[PX4IO_P_SETUP_THERMAL] = value;
+		case PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION:
+			r_page_setup[offset] = value;
 			break;
 
 		default:

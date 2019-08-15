@@ -42,6 +42,8 @@
 #include <nuttx/board.h>
 
 
+
+
 int board_set_bootload_mode(board_reset_e mode)
 {
 	uint32_t regvalue = 0;
@@ -59,8 +61,7 @@ int board_set_bootload_mode(board_reset_e mode)
 		return -EINVAL;
 	}
 
-// todo: Add a way to enter bootloader
-	UNUSED(regvalue);
+	*((uint32_t *) KINETIS_VBATR_BASE) = regvalue;
 	return OK;
 }
 

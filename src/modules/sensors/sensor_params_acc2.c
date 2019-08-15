@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -43,7 +43,7 @@ PARAM_DEFINE_INT32(CAL_ACC2_ID, 0);
  * Accelerometer 2 enabled
  *
  * @boolean
- * @category developer
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_ACC2_EN, 1);

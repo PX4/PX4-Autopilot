@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -38,7 +38,6 @@
  * These functions are specific for controls.
  */
 
-
 #pragma once
 
 #include <matrix/matrix/math.hpp>
@@ -46,5 +45,38 @@
 
 namespace ControlMath
 {
+/**
+ * Converts thrust vector and yaw set-point to a desired attitude.
+ * @param thr_sp a 3D vector
+ * @param yaw_sp the desired yaw
+ * @return vehicle_attitude_setpoints_s structure
+ */
 vehicle_attitude_setpoint_s thrustToAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp);
+
+/**
+ * Outputs the sum of two vectors but respecting the limits and priority.
+ * The sum of two vectors are constraint such that v0 has priority over v1.
+ * This means that if the length of (v0+v1) exceeds max, then it is constraint such
+ * that v0 has priority.
+ *
+ * @param v0 a 2D vector that has priority given the maximum available magnitude.
+ * @param v1 a 2D vector that less priority given the maximum available magnitude.
+ * @return 2D vector
+ */
+matrix::Vector2f constrainXY(const matrix::Vector2f &v0, const matrix::Vector2f &v1, const float &max);
+
+/**
+ * This method was used for smoothing the corners along two lines.
+ *
+ * @param sphere_c
+ * @param sphere_r
+ * @param line_a
+ * @param line_b
+ * @param res
+ * return boolean
+ *
+ * Note: this method is not used anywhere and first requires review before usage.
+ */
+bool cross_sphere_line(const matrix::Vector3f &sphere_c, const float sphere_r, const matrix::Vector3f &line_a,
+		       const matrix::Vector3f &line_b, matrix::Vector3f &res);
 }

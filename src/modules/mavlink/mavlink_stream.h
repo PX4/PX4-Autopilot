@@ -42,14 +42,15 @@
 #define MAVLINK_STREAM_H_
 
 #include <drivers/drv_hrt.h>
+#include <px4_module_params.h>
+#include <containers/List.hpp>
 
 class Mavlink;
 
-class MavlinkStream
+class MavlinkStream : public ListNode<MavlinkStream *>
 {
 
 public:
-	MavlinkStream *next{nullptr};
 
 	MavlinkStream(Mavlink *mavlink);
 	virtual ~MavlinkStream() = default;
@@ -101,6 +102,17 @@ public:
 	 */
 	virtual unsigned get_size_avg() { return get_size(); }
 
+	/**
+	 * @return true if the first message of this stream has been sent
+	 */
+	bool first_message_sent() const { return _first_message_sent; }
+
+	/**
+	 * Reset the time of last sent to 0. Can be used if a message over this
+	 * stream needs to be sent immediately.
+	 */
+	void reset_last_sent() { _last_sent = 0; }
+
 protected:
 	Mavlink      *const _mavlink;
 	int _interval{1000000};		///< if set to negative value = unlimited rate
@@ -117,6 +129,7 @@ protected:
 
 private:
 	hrt_abstime _last_sent{0};
+	bool _first_message_sent{false};
 };
 
 

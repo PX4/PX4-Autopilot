@@ -37,24 +37,7 @@
  * I2C interface for MPL3115A2
  */
 
-/* XXX trim includes */
-#include <px4_config.h>
-#include <px4_defines.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <assert.h>
-#include <errno.h>
-#include <unistd.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/device/i2c.h>
-
 #include "mpl3115a2.h"
-
-#include "board_config.h"
 
 #define MPL3115A2_ADDRESS        0x60
 
@@ -64,7 +47,7 @@ class MPL3115A2_I2C : public device::I2C
 {
 public:
 	MPL3115A2_I2C(uint8_t bus);
-	virtual ~MPL3115A2_I2C();
+	virtual ~MPL3115A2_I2C() = default;
 
 	virtual int	init();
 	virtual int	read(unsigned offset, void *data, unsigned count);
@@ -96,10 +79,6 @@ MPL3115A2_i2c_interface(uint8_t busnum)
 
 MPL3115A2_I2C::MPL3115A2_I2C(uint8_t bus) :
 	I2C("MPL3115A2_I2C", nullptr, bus, 0, 400000)
-{
-}
-
-MPL3115A2_I2C::~MPL3115A2_I2C()
 {
 }
 

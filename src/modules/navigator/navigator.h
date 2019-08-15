@@ -55,22 +55,29 @@
 #include "rtl.h"
 #include "takeoff.h"
 
-#include <navigator/navigation.h>
-#include <px4_module_params.h>
+#include "navigation.h"
+
+#include <lib/perf/perf_counter.h>
 #include <px4_module.h>
-#include <perf/perf_counter.h>
-#include <uORB/topics/fw_pos_ctrl_status.h>
+#include <px4_module_params.h>
+#include <uORB/PublicationQueued.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/geofence_result.h>
+#include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/position_controller_landing_status.h>
+#include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
+#include <uORB/topics/transponder_report.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
 
 /**
@@ -83,7 +90,8 @@ class Navigator : public ModuleBase<Navigator>, public ModuleParams
 {
 public:
 	Navigator();
-	virtual ~Navigator() = default;
+	~Navigator() override;
+
 	Navigator(const Navigator &) = delete;
 	Navigator operator=(const Navigator &) = delete;
 
@@ -109,11 +117,6 @@ public:
 	 * Load fence from file
 	 */
 	void		load_fence_from_file(const char *filename);
-
-	/**
-	 * Publish the geofence result
-	 */
-	void		publish_geofence_result();
 
 	void		publish_vehicle_cmd(vehicle_command_s *vcmd);
 
@@ -145,7 +148,6 @@ public:
 	/**
 	 * Getters
 	 */
-	struct fw_pos_ctrl_status_s *get_fw_pos_ctrl_status() { return &_fw_pos_ctrl_status; }
 	struct home_position_s *get_home_position() { return &_home_pos; }
 	struct mission_result_s *get_mission_result() { return &_mission_result; }
 	struct position_setpoint_triplet_s *get_position_setpoint_triplet() { return &_pos_sp_triplet; }
@@ -158,16 +160,15 @@ public:
 	PrecLand *get_precland() { return &_precland; } /**< allow others, e.g. Mission, to use the precision land block */
 
 	const vehicle_roi_s &get_vroi() { return _vroi; }
+	void reset_vroi() { _vroi = {}; }
 
 	bool home_alt_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt); }
 	bool home_position_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt && _home_pos.valid_hpos); }
 
-	int		get_offboard_mission_sub() { return _offboard_mission_sub; }
-
 	Geofence	&get_geofence() { return _geofence; }
 
 	bool		get_can_loiter_at_sp() { return _can_loiter_at_sp; }
-	float		get_loiter_radius() { return _param_loiter_radius.get(); }
+	float		get_loiter_radius() { return _param_nav_loiter_rad.get(); }
 
 	/**
 	 * Returns the default acceptance radius defined by the parameter
@@ -180,6 +181,13 @@ public:
 	 * @return the distance at which the next waypoint should be used
 	 */
 	float		get_acceptance_radius();
+
+	/**
+	 * Get the default altitude acceptance radius (i.e. from parameters)
+	 *
+	 * @return the distance from the target altitude before considering the waypoint reached
+	 */
+	float		get_default_altitude_acceptance_radius();
 
 	/**
 	 * Get the altitude acceptance radius
@@ -240,6 +248,16 @@ public:
 	 */
 	float		get_acceptance_radius(float mission_item_radius);
 
+	/**
+	 * Get the yaw acceptance given the current mission item
+	 *
+	 * @param mission_item_yaw the yaw to use in case the controller-derived radius is finite
+	 *
+	 * @return the yaw at which the next waypoint should be used or NaN if the yaw at a waypoint
+	 * should be ignored
+	 */
+	float 		get_yaw_acceptance(float mission_item_yaw);
+
 	orb_advert_t	*get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
 	void		increment_mission_instance_count() { _mission_result.instance_count++; }
@@ -260,39 +278,64 @@ public:
 	bool		abort_landing();
 
 	// Param access
-	float		get_loiter_min_alt() const { return _param_loiter_min_alt.get(); }
-	float		get_takeoff_min_alt() const { return _param_takeoff_min_alt.get(); }
-	float		get_yaw_timeout() const { return _param_yaw_timeout.get(); }
-	float		get_yaw_threshold() const { return _param_yaw_err.get(); }
+	float		get_loiter_min_alt() const { return _param_mis_ltrmin_alt.get(); }
+	float		get_takeoff_min_alt() const { return _param_mis_takeoff_alt.get(); }
+	bool		get_takeoff_required() const { return _param_mis_takeoff_req.get(); }
+	float		get_yaw_timeout() const { return _param_mis_yaw_tmt.get(); }
+	float		get_yaw_threshold() const { return _param_mis_yaw_err.get(); }
 
-	float		get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss.get(); }
-	float		get_vtol_reverse_delay() const { return _param_reverse_delay.get(); }
+	float		get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss; }
+	float		get_vtol_reverse_delay() const { return _param_reverse_delay; }
 
 	bool		force_vtol();
 
 private:
-	int		_fw_pos_ctrl_status_sub{-1};	/**< notification of vehicle capabilities updates */
-	int		_global_pos_sub{-1};		/**< global position subscription */
-	int		_gps_pos_sub{-1};		/**< gps position subscription */
-	int		_home_pos_sub{-1};		/**< home position subscription */
-	int		_land_detected_sub{-1};		/**< vehicle land detected subscription */
-	int		_local_pos_sub{-1};		/**< local position subscription */
-	int		_offboard_mission_sub{-1};	/**< offboard mission subscription */
-	int		_param_update_sub{-1};		/**< param update subscription */
-	int		_traffic_sub{-1};		/**< traffic subscription */
-	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
-	int		_vstatus_sub{-1};		/**< vehicle status subscription */
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_nav_loiter_rad,	/**< loiter radius for fixedwing */
+		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad,	/**< acceptance for takeoff */
+		(ParamFloat<px4::params::NAV_FW_ALT_RAD>)
+		_param_nav_fw_alt_rad,	/**< acceptance radius for fixedwing altitude */
+		(ParamFloat<px4::params::NAV_FW_ALTL_RAD>)
+		_param_nav_fw_altl_rad,	/**< acceptance radius for fixedwing altitude before landing*/
+		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
+		_param_nav_mc_alt_rad,	/**< acceptance radius for multicopter altitude */
+		(ParamInt<px4::params::NAV_FORCE_VT>) _param_nav_force_vt,	/**< acceptance radius for multicopter altitude */
+		(ParamInt<px4::params::NAV_TRAFF_AVOID>) _param_nav_traff_avoid,	/**< avoiding other aircraft is enabled */
 
-	orb_advert_t	_geofence_result_pub{nullptr};
+		// non-navigator parameters
+		// Mission (MIS_*)
+		(ParamFloat<px4::params::MIS_LTRMIN_ALT>) _param_mis_ltrmin_alt,
+		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>) _param_mis_takeoff_alt,
+		(ParamBool<px4::params::MIS_TAKEOFF_REQ>) _param_mis_takeoff_req,
+		(ParamFloat<px4::params::MIS_YAW_TMT>) _param_mis_yaw_tmt,
+		(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err
+	)
+
+	int		_local_pos_sub{-1};		/**< local position subscription */
+
+	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};	/**< global position subscription */
+	uORB::Subscription _gps_pos_sub{ORB_ID(vehicle_gps_position)};		/**< gps position subscription */
+	uORB::Subscription _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
+	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
+	uORB::Subscription _param_update_sub{ORB_ID(parameter_update)};		/**< param update subscription */
+	uORB::Subscription _pos_ctrl_landing_status_sub{ORB_ID(position_controller_landing_status)};	/**< position controller landing status subscription */
+	uORB::Subscription _traffic_sub{ORB_ID(transponder_report)};		/**< traffic subscription */
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */
+	uORB::Subscription _vstatus_sub{ORB_ID(vehicle_status)};		/**< vehicle status subscription */
+
+	uORB::SubscriptionData<position_controller_status_s>	_position_controller_status_sub{ORB_ID(position_controller_status)};
+
+	uORB::Publication<geofence_result_s>		_geofence_result_pub{ORB_ID(geofence_result)};
+	uORB::Publication<mission_result_s>		_mission_result_pub{ORB_ID(mission_result)};
+	uORB::Publication<position_setpoint_triplet_s>	_pos_sp_triplet_pub{ORB_ID(position_setpoint_triplet)};
+	uORB::Publication<vehicle_roi_s>		_vehicle_roi_pub{ORB_ID(vehicle_roi)};
+
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
-	orb_advert_t	_mission_result_pub{nullptr};
-	orb_advert_t	_pos_sp_triplet_pub{nullptr};
-	orb_advert_t	_vehicle_cmd_ack_pub{nullptr};
-	orb_advert_t	_vehicle_cmd_pub{nullptr};
-	orb_advert_t	_vehicle_roi_pub{nullptr};
+
+	uORB::PublicationQueued<vehicle_command_ack_s>	_vehicle_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::PublicationQueued<vehicle_command_s>	_vehicle_cmd_pub{ORB_ID(vehicle_command)};
 
 	// Subscriptions
-	fw_pos_ctrl_status_s				_fw_pos_ctrl_status{};	/**< fixed wing navigation capabilities */
 	home_position_s					_home_pos{};		/**< home position for RTL */
 	mission_result_s				_mission_result{};
 	vehicle_global_position_s			_global_pos{};		/**< global vehicle position */
@@ -300,7 +343,9 @@ private:
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
-	uint8_t					_previous_nav_state{}; /**< nav_state of the previous iteration*/
+
+	uint8_t						_previous_nav_state{}; /**< nav_state of the previous iteration*/
+
 	// Publications
 	geofence_result_s				_geofence_result{};
 	position_setpoint_triplet_s			_pos_sp_triplet{};	/**< triplet of position setpoints */
@@ -333,41 +378,17 @@ private:
 
 	NavigatorMode *_navigation_mode_array[NAVIGATOR_MODE_ARRAY_SIZE];	/**< array of navigation modes */
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_LOITER_RAD>) _param_loiter_radius,	/**< loiter radius for fixedwing */
-		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_acceptance_radius,	/**< acceptance for takeoff */
-		(ParamFloat<px4::params::NAV_FW_ALT_RAD>)
-		_param_fw_alt_acceptance_radius,	/**< acceptance radius for fixedwing altitude */
-		(ParamFloat<px4::params::NAV_MC_ALT_RAD>)
-		_param_mc_alt_acceptance_radius,	/**< acceptance radius for multicopter altitude */
-		(ParamInt<px4::params::NAV_FORCE_VT>) _param_force_vtol,	/**< acceptance radius for multicopter altitude */
-		(ParamInt<px4::params::NAV_TRAFF_AVOID>) _param_traffic_avoidance_mode,	/**< avoiding other aircraft is enabled */
-
-		// non-navigator parameters
-		// Mission (MIS_*)
-		(ParamFloat<px4::params::MIS_LTRMIN_ALT>) _param_loiter_min_alt,
-		(ParamFloat<px4::params::MIS_TAKEOFF_ALT>) _param_takeoff_min_alt,
-		(ParamFloat<px4::params::MIS_YAW_TMT>) _param_yaw_timeout,
-		(ParamFloat<px4::params::MIS_YAW_ERR>) _param_yaw_err,
-
-		// VTOL parameters TODO: get these out of navigator
-		(ParamFloat<px4::params::VT_B_DEC_MSS>) _param_back_trans_dec_mss,
-		(ParamFloat<px4::params::VT_B_REV_DEL>) _param_reverse_delay
-	)
+	param_t _handle_back_trans_dec_mss{PARAM_INVALID};
+	param_t _handle_reverse_delay{PARAM_INVALID};
+	float _param_back_trans_dec_mss{0.f};
+	float _param_reverse_delay{0.f};
 
 	float _mission_cruising_speed_mc{-1.0f};
 	float _mission_cruising_speed_fw{-1.0f};
 	float _mission_throttle{-1.0f};
 
 	// update subscriptions
-	void		fw_pos_ctrl_status_update(bool force = false);
-	void		global_position_update();
-	void		gps_position_update();
-	void		home_position_update(bool force = false);
-	void		local_position_update();
 	void		params_update();
-	void		vehicle_land_detected_update();
-	void		vehicle_status_update();
 
 	/**
 	 * Publish a new position setpoint triplet for position controllers

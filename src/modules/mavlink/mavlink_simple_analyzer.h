@@ -39,7 +39,8 @@
 
 #pragma once
 
-#include <limits>
+#include <float.h>
+#include <stdint.h>
 
 /**
  * SimpleAnalyzer
@@ -115,14 +116,22 @@ public:
 	 * @param[out] ret: The scaled and rounded value of the current analyzer result.
 	 * @parma[in] scalingfactor: The factor which is used to scale the result.
 	 */
-	template <typename T>
-	void get_scaled(T &ret, float scalingfactor) const
+	void get_scaled(uint8_t &ret, float scalingfactor) const
 	{
 		float avg = get_scaled(scalingfactor);
 		int_round(avg);
-		check_limits(avg, std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
+		check_limits(avg, 0, UINT8_MAX);
 
-		ret = static_cast<T>(avg);
+		ret = static_cast<uint8_t>(avg);
+	}
+
+	void get_scaled(int8_t &ret, float scalingfactor) const
+	{
+		float avg = get_scaled(scalingfactor);
+		int_round(avg);
+		check_limits(avg, INT8_MIN, INT8_MAX);
+
+		ret = static_cast<int8_t>(avg);
 	}
 
 private:
@@ -135,16 +144,5 @@ private:
 	void int_round(float &x) const;
 };
 
-template<typename Tin, typename Tout>
-void convert_limit_safe(Tin in, Tout &out)
-{
-	if (in > std::numeric_limits<Tout>::max()) {
-		out = std::numeric_limits<Tout>::max();
-
-	} else if (in < std::numeric_limits<Tout>::min()) {
-		out = std::numeric_limits<Tout>::min();
-
-	} else {
-		out = static_cast<Tout>(in);
-	}
-}
+void convert_limit_safe(float in, uint16_t &out);
+void convert_limit_safe(float in, int16_t &out);

@@ -35,11 +35,9 @@ px4_add_module(
 	MAIN lps25h
 	STACK_MAIN 1200
 	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		lps25h.cpp
 		lps25h_i2c.cpp
 		lps25h_spi.cpp
-
-	DEPENDS
 	)
-

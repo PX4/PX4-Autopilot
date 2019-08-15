@@ -1,3 +1,4 @@
+uint64 timestamp				# time since system start (microseconds)
 uint8 MISSION_EXECUTION_MODE_NORMAL = 0	# Execute the mission according to the planned items
 uint8 MISSION_EXECUTION_MODE_REVERSE = 1	# Execute the mission in reverse order, ignoring commands and converting all waypoints to normal ones
 uint8 MISSION_EXECUTION_MODE_FAST_FORWARD = 2	# Execute the mission as fast as possible, for example converting loiter waypoints to normal ones

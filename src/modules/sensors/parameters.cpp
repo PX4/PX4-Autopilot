@@ -101,6 +101,7 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.rc_map_aux3 = param_find("RC_MAP_AUX3");
 	parameter_handles.rc_map_aux4 = param_find("RC_MAP_AUX4");
 	parameter_handles.rc_map_aux5 = param_find("RC_MAP_AUX5");
+	parameter_handles.rc_map_aux6 = param_find("RC_MAP_AUX6");
 
 	/* RC to parameter mapping for changing parameters with RC */
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
@@ -145,6 +146,7 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.battery_v_div = param_find("BAT_V_DIV");
 	parameter_handles.battery_a_per_v = param_find("BAT_A_PER_V");
 	parameter_handles.battery_source = param_find("BAT_SOURCE");
+	parameter_handles.battery_adc_channel = param_find("BAT_ADC_CHANNEL");
 
 	/* rotations */
 	parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
@@ -313,6 +315,7 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	param_get(parameter_handles.rc_map_aux3, &(parameters.rc_map_aux3));
 	param_get(parameter_handles.rc_map_aux4, &(parameters.rc_map_aux4));
 	param_get(parameter_handles.rc_map_aux5, &(parameters.rc_map_aux5));
+	param_get(parameter_handles.rc_map_aux6, &(parameters.rc_map_aux6));
 
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		param_get(parameter_handles.rc_map_param[i], &(parameters.rc_map_param[i]));
@@ -423,7 +426,8 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 		param_set_no_notification(parameter_handles.battery_a_per_v, &parameters.battery_a_per_v);
 	}
 
-	param_get(parameter_handles.battery_source, &(parameters.battery_source));
+	param_get(parameter_handles.battery_source,      &(parameters.battery_source));
+	param_get(parameter_handles.battery_adc_channel, &(parameters.battery_adc_channel));
 
 	param_get(parameter_handles.board_rotation, &(parameters.board_rotation));
 

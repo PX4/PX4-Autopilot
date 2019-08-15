@@ -1,14 +1,12 @@
+uint64 timestamp		# time since system start (microseconds)
 float32[24] states		# Internal filter states
-float32 n_states		# Number of states effectively used
+uint8 n_states		# Number of states effectively used
 
 float32[3] vibe			# IMU vibration metrics in the following array locations
 # 0 : Gyro delta angle coning metric = filtered length of (delta_angle x prev_delta_angle)
 # 1 : Gyro high frequency vibe = filtered length of (delta_angle - prev_delta_angle)
 # 2 : Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
 
-uint8 nan_flags			# Bitmask to indicate NaN states
-uint8 health_flags		# Bitmask to indicate sensor health states (vel, pos, hgt)
-uint8 timeout_flags		# Bitmask to indicate timeout flags (vel, pos, hgt)
 float32[24] covariances	# Diagonal Elements of Covariance Matrix
 
 uint16 gps_check_fail_flags     # Bitmask to indicate status of GPS checks - see definition below
@@ -47,6 +45,8 @@ uint8 CS_MAG_FAULT = 18		# 18 - true when the magnetomer has been declared fault
 uint8 CS_ASPD = 19		# 19 - true when airspeed measurements are being fused
 uint8 CS_GND_EFFECT = 20	# 20 - true when when protection from ground effect induced static pressure rise is active
 uint8 CS_RNG_STUCK = 21		# 21 - true when a stuck range finder sensor has been detected
+uint8 CS_GPS_YAW = 22		# 22 - true when yaw (not ground course) data from a GPS receiver is being fused
+uint8 CS_MAG_ALIGNED = 23	# 23 - true when the in-flight mag field alignment has been completed
 
 uint16 filter_fault_flags	# Bitmask to indicate EKF internal faults
 # 0 - true if the fusion of the magnetometer X-axis has encountered a numerical error
@@ -107,3 +107,8 @@ uint16 solution_status_flags # Bitmask indicating which filter kinematic state o
 float32 time_slip # cumulative amount of time in seconds that the EKF inertial calculation has slipped relative to system time
 
 bool pre_flt_fail # true when estimator has failed pre-flight checks and the vehicle should not be flown regardless of flight mode
+
+
+# legacy local position estimator (LPE) flags
+uint8 health_flags		# Bitmask to indicate sensor health states (vel, pos, hgt)
+uint8 timeout_flags		# Bitmask to indicate timeout flags (vel, pos, hgt)

@@ -34,10 +34,10 @@ px4_add_module(
 	MODULE drivers__tfmini
 	MAIN tfmini
 	COMPILE_FLAGS
-		-Wno-sign-compare
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		tfmini.cpp
 		tfmini_parser.cpp
-	DEPENDS
+	MODULE_CONFIG
+		module.yaml
 	)
-

@@ -20,12 +20,13 @@ public:
 	CameraInterfacePWM();
 	virtual ~CameraInterfacePWM();
 
-	void trigger(bool enable);
+	void trigger(bool trigger_on_true);
 
 	void info();
 
 private:
-
+	int32_t _pwm_camera_shoot = 0;
+	int32_t _pwm_camera_neutral = 0;
 	void setup();
 
 };

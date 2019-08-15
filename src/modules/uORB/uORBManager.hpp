@@ -35,8 +35,10 @@
 #define _uORBManager_hpp_
 
 #include "uORBCommon.hpp"
-#include "uORBDevices.hpp"
+#include "uORBDeviceMaster.hpp"
+
 #include <stdint.h>
+
 #ifdef __PX4_NUTTX
 #include "ORBSet.hpp"
 #else
@@ -45,7 +47,9 @@
 #define ORBSet std::set<std::string>
 #endif
 
+#ifdef ORB_COMMUNICATOR
 #include "uORBCommunicator.hpp"
+#endif /* ORB_COMMUNICATOR */
 
 namespace uORB
 {
@@ -57,7 +61,10 @@ class Manager;
  * uORB nodes for each uORB topics and also implements the behavor of the
  * uORB Api's.
  */
-class uORB::Manager  : public uORBCommunicator::IChannelRxHandler
+class uORB::Manager
+#ifdef ORB_COMMUNICATOR
+	: public uORBCommunicator::IChannelRxHandler
+#endif /* ORB_COMMUNICATOR */
 {
 public:
 	// public interfaces for this class.
@@ -69,14 +76,17 @@ public:
 	static bool initialize();
 
 	/**
+	 * Terminate the singleton. Call this after everything else.
+	 * @return true on success
+	 */
+	static bool terminate();
+
+	/**
 	 * Method to get the singleton instance for the uORB::Manager.
 	 * Make sure initialize() is called first.
 	 * @return uORB::Manager*
 	 */
-	static uORB::Manager *get_instance()
-	{
-		return _Instance;
-	}
+	static uORB::Manager *get_instance() { return _Instance; }
 
 	/**
 	 * Get the DeviceMaster. If it does not exist,
@@ -154,7 +164,6 @@ public:
 	orb_advert_t orb_advertise_multi(const struct orb_metadata *meta, const void *data, int *instance,
 					 int priority, unsigned int queue_size = 1);
 
-
 	/**
 	 * Unadvertise a topic.
 	 *
@@ -185,6 +194,9 @@ public:
 	 * in order to wait for updates to a topic, as well as topic_read,
 	 * orb_check and orb_stat.
 	 *
+	 * If there were any publications of the topic prior to the subscription,
+	 * an orb_check right after orb_subscribe will return true.
+	 *
 	 * Subscription will succeed even if the topic has not been advertised;
 	 * in this case the topic will have a timestamp of zero, it will never
 	 * signal a poll() event, checking will always return false and it cannot
@@ -211,6 +223,9 @@ public:
 	 * The returned value is a file descriptor that can be passed to poll()
 	 * in order to wait for updates to a topic, as well as topic_read,
 	 * orb_check and orb_stat.
+	 *
+	 * If there were any publications of the topic prior to the subscription,
+	 * an orb_check right after orb_subscribe_multi will return true.
 	 *
 	 * Subscription will succeed even if the topic has not been advertised;
 	 * in this case the topic will have a timestamp of zero, it will never
@@ -350,6 +365,7 @@ public:
 	 */
 	int	orb_get_interval(int handle, unsigned *interval);
 
+#ifdef ORB_COMMUNICATOR
 	/**
 	 * Method to set the uORBCommunicator::IChannel instance.
 	 * @param comm_channel
@@ -370,6 +386,7 @@ public:
 	 * for a given topic
 	 */
 	bool is_remote_subscriber_present(const char *messageName);
+#endif /* ORB_COMMUNICATOR */
 
 private: // class methods
 	/**
@@ -379,13 +396,7 @@ private: // class methods
 	 * @todo verify that the existing node is the same as the one
 	 *       we tried to advertise.
 	 */
-	int
-	node_advertise
-	(
-		const struct orb_metadata *meta,
-		int *instance = nullptr,
-		int priority = ORB_PRIO_DEFAULT
-	);
+	int node_advertise(const struct orb_metadata *meta, int *instance = nullptr, int priority = ORB_PRIO_DEFAULT);
 
 	/**
 	 * Common implementation for orb_advertise and orb_subscribe.
@@ -393,23 +404,27 @@ private: // class methods
 	 * Handles creation of the object and the initial publication for
 	 * advertisers.
 	 */
-	int node_open(const struct orb_metadata *meta, const void *data, bool advertiser, int *instance = nullptr,
+	int node_open(const struct orb_metadata *meta, bool advertiser, int *instance = nullptr,
 		      int priority = ORB_PRIO_DEFAULT);
 
 private: // data members
 	static Manager *_Instance;
+
+#ifdef ORB_COMMUNICATOR
 	// the communicator channel instance.
-	uORBCommunicator::IChannel *_comm_channel;
+	uORBCommunicator::IChannel *_comm_channel{nullptr};
 
 	ORBSet _remote_subscriber_topics;
 	ORBSet _remote_topics;
+#endif /* ORB_COMMUNICATOR */
 
 	DeviceMaster *_device_master{nullptr};
 
 private: //class methods
 	Manager();
-	~Manager();
+	virtual ~Manager();
 
+#ifdef ORB_COMMUNICATOR
 	/**
 	 * Interface to process a received topic from remote.
 	 * @param topic_name
@@ -436,8 +451,7 @@ private: //class methods
 	   *    handler.
 	   *  otherwise = failure.
 	   */
-	virtual int16_t process_add_subscription(const char *messageName,
-			int32_t msgRateInHz);
+	virtual int16_t process_add_subscription(const char *messageName, int32_t msgRateInHz);
 
 	/**
 	 * Interface to process a received control msg to remove subscription
@@ -465,9 +479,8 @@ private: //class methods
 	 *    handler.
 	 *  otherwise = failure.
 	 */
-	virtual int16_t process_received_message(const char *messageName,
-			int32_t length, uint8_t *data);
-
+	virtual int16_t process_received_message(const char *messageName, int32_t length, uint8_t *data);
+#endif /* ORB_COMMUNICATOR */
 
 #ifdef ORB_USE_PUBLISHER_RULES
 

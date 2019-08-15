@@ -46,6 +46,7 @@
 #include <px4_module.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
+#include <px4_getopt.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -56,7 +57,6 @@
 #include <string.h>
 #include <semaphore.h>
 #include <unistd.h>
-#include <platforms/px4_getopt.h>
 #include <drivers/drv_hrt.h>
 
 #include "dataman.h"
@@ -246,11 +246,7 @@ static px4_sem_t g_sys_state_mutex_mission;
 static px4_sem_t g_sys_state_mutex_fence;
 
 /* The data manager store file handle and file name */
-#if defined(__PX4_POSIX_EAGLE) || defined(__PX4_POSIX_EXCELSIOR)
-static const char *default_device_path = PX4_ROOTFSDIR"/dataman";
-#else
-static const char *default_device_path = PX4_ROOTFSDIR"/fs/microsd/dataman";
-#endif
+static const char *default_device_path = PX4_STORAGEDIR "/dataman";
 static char *k_data_manager_device_path = nullptr;
 
 #if defined(FLASH_BASED_DATAMAN)
@@ -499,11 +495,9 @@ static ssize_t
 _file_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf, size_t count)
 {
 	unsigned char buffer[g_per_item_size[item]];
-	size_t len;
-	int offset;
 
 	/* Get the offset for this item */
-	offset = calculate_offset(item, index);
+	const int offset = calculate_offset(item, index);
 
 	/* If item type or index out of range, return error */
 	if (offset < 0) {
@@ -527,19 +521,16 @@ _file_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const v
 
 	count += DM_SECTOR_HDR_SIZE;
 
-	len = -1;
-
-	/* Seek to the right spot in the data manager file and write the data item */
-	if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) == offset) {
-		if ((len = write(dm_operations_data.file.fd, buffer, count)) == count) {
-			fsync(dm_operations_data.file.fd);        /* Make sure data is written to physical media */
-		}
-	}
-
-	/* Make sure the write succeeded */
-	if (len != count) {
+	if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) != offset) {
 		return -1;
 	}
+
+	if ((write(dm_operations_data.file.fd, buffer, count)) != (ssize_t)count) {
+		return -1;
+	}
+
+	/* Make sure data is written to physical media */
+	fsync(dm_operations_data.file.fd);
 
 	/* All is well... return the number of user data written */
 	return count - DM_SECTOR_HDR_SIZE;
@@ -808,7 +799,7 @@ static int  _ram_restart(dm_reset_reason reason)
 static int
 _file_restart(dm_reset_reason reason)
 {
-	unsigned offset = 0;
+	int offset = 0;
 	int result = 0;
 	/* We need to scan the entire file and invalidate and data that should not persist after the last reset */
 
@@ -1024,14 +1015,14 @@ _ram_flash_flush()
 	dm_operations_data.ram_flash.flush_timeout_usec = 0;
 
 	ssize_t ret = up_progmem_getpage(k_dataman_flash_sector->address);
-	ret = up_progmem_erasepage(ret);
+	ret = up_progmem_eraseblock(ret);
 
 	if (ret < 0) {
 		PX4_WARN("Error erasing flash sector %u", k_dataman_flash_sector->page);
 		return;
 	}
 
-	const size_t len = (dm_operations_data.ram_flash.data_end - dm_operations_data.ram_flash.data) + 1;
+	const ssize_t len = (dm_operations_data.ram_flash.data_end - dm_operations_data.ram_flash.data) + 1;
 	ret = up_progmem_write(k_dataman_flash_sector->address, dm_operations_data.ram_flash.data, len);
 
 	if (ret < len) {
@@ -1068,6 +1059,7 @@ _ram_flash_wait(px4_sem_t *sem)
 	const uint64_t diff = dm_operations_data.ram_flash.flush_timeout_usec - now;
 	struct timespec abstime;
 	abstime.tv_sec = diff / USEC_PER_SEC;
+	// FIXME: this could be made more performant.
 	abstime.tv_nsec = (diff % USEC_PER_SEC) * NSEC_PER_USEC;
 
 	px4_sem_timedwait(sem, &abstime);

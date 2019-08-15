@@ -54,8 +54,6 @@
 #include <asm/socket.h>
 #endif
 
-MavlinkShell::MavlinkShell() = default;
-
 MavlinkShell::~MavlinkShell()
 {
 	//closing the pipes will stop the thread as well

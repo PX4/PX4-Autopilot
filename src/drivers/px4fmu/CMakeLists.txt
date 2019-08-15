@@ -38,5 +38,7 @@ px4_add_module(
 	SRCS
 		fmu.cpp
 	DEPENDS
-		rc
+		circuit_breaker
+		mixer
+		pwm_limit
 	)

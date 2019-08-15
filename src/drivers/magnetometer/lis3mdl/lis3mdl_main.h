@@ -69,11 +69,6 @@ struct lis3mdl_bus_option {
 };
 
 /**
- * @brief Finds a bus structure for a bus_id
- */
-lis3mdl_bus_option &find_bus(LIS3MDL_BUS bus_id);
-
-/**
  * @brief Calibrate and self test. Self test feature cannot be used to calculate scale.
  *
  * SELF TEST OPERATION
@@ -85,45 +80,45 @@ lis3mdl_bus_option &find_bus(LIS3MDL_BUS bus_id);
  *       field. According to ST datasheet, those values must stay between thresholds in order
  *       to pass the self test.
  */
-int calibrate(LIS3MDL_BUS bus_id);
+int calibrate(struct lis3mdl_bus_option &bus);
 
 /**
  * @brief Prints info about the driver.
  */
-int info(LIS3MDL_BUS bus_id);
+int info(struct lis3mdl_bus_option &bus);
 
 /**
  * @brief Initializes the driver -- sets defaults and starts a cycle
  */
-bool init(LIS3MDL_BUS bus_id);
+int init(struct lis3mdl_bus_option &bus);
 
 /**
  * @brief Resets the driver.
  */
-bool reset(LIS3MDL_BUS bus_id);
+int reset(struct lis3mdl_bus_option &bus);
 
 /**
  * @brief Starts the driver for a specific bus option
  */
-bool start_bus(struct lis3mdl_bus_option &bus, Rotation rotation);
+int start_bus(struct lis3mdl_bus_option &bus, Rotation rotation);
 
 /**
  * @brief Starts the driver. This function call only returns once the driver
  *        is either successfully up and running or failed to start.
  */
-int start(LIS3MDL_BUS bus_id, Rotation rotation);
+int start(struct lis3mdl_bus_option &bus, Rotation rotation);
 
 /**
  * @brief Stop the driver.
  */
-int stop();
+int stop(struct lis3mdl_bus_option &bus);
 
 /**
  * @brief Perform some basic functional tests on the driver;
  * 	  make sure we can collect data from the sensor in polled
  * 	  and automatic modes.
  */
-bool test(LIS3MDL_BUS bus_id);
+int test(struct lis3mdl_bus_option &bus);
 
 /**
  * @brief Prints info about the driver argument usage.

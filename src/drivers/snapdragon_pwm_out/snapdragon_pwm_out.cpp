@@ -38,7 +38,7 @@
 #include <px4_posix.h>
 #include <errno.h>
 #include <cmath>	// NAN
-
+#include <string.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
@@ -48,12 +48,12 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
-#include <lib/mixer/mixer.h>
-#include <lib/mixer/mixer_load.h>
-#include <lib/mixer/mixer_multirotor_normalized.generated.h>
+#include <mixer/mixer.h>
+#include <mixer/mixer_load.h>
+#include <mixer/mixer_multirotor_normalized.generated.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
-#include <systemlib/pwm_limit/pwm_limit.h>
+#include <pwm_limit/pwm_limit.h>
 #include <dev_fs_lib_pwm.h>
 
 /*
@@ -138,7 +138,7 @@ static void subscribe();
 
 static void task_main(int argc, char *argv[]);
 
-static void update_params(bool &airmode);
+static void update_params(Mixer::Airmode &airmode);
 
 int initialize_mixer(const char *mixer_filename);
 
@@ -162,15 +162,13 @@ int mixer_control_callback(uintptr_t handle,
 	return 0;
 }
 
-void update_params(bool &airmode)
+void update_params(Mixer::Airmode &airmode)
 {
 	// multicopter air-mode
 	param_t param_handle = param_find("MC_AIRMODE");
 
 	if (param_handle != PARAM_INVALID) {
-		int32_t val;
-		param_get(param_handle, &val);
-		airmode = val > 0;
+		param_get(param_handle, &airmode);
 	}
 }
 
@@ -357,7 +355,7 @@ void task_main(int argc, char *argv[])
 	// subscribe and set up polling
 	subscribe();
 
-	bool airmode = false;
+	Mixer::Airmode airmode = Mixer::Airmode::disabled;
 	update_params(airmode);
 	int params_sub = orb_subscribe(ORB_ID(parameter_update));
 
@@ -507,8 +505,6 @@ void task_main_trampoline(int argc, char *argv[])
 
 void start()
 {
-	ASSERT(_task_handle == -1);
-
 	_task_should_exit = false;
 
 	/* start the task */
@@ -520,7 +516,7 @@ void start()
 					  nullptr);
 
 	if (_task_handle < 0) {
-		warn("task start failed");
+		PX4_ERR("task start failed");
 		return;
 	}
 

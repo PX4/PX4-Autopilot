@@ -39,6 +39,9 @@
 
 #include "blocks.hpp"
 #include <lib/ecl/geo/geo.h>
+#include <matrix/math.hpp>
+
+using matrix::wrap_2pi;
 
 namespace control
 {
@@ -50,8 +53,6 @@ BlockWaypointGuidance::BlockWaypointGuidance(SuperBlock *parent, const char *nam
 	_psiCmd(0)
 {
 }
-
-BlockWaypointGuidance::~BlockWaypointGuidance() = default;;
 
 void BlockWaypointGuidance::update(
 	const vehicle_global_position_s &pos,
@@ -77,8 +78,8 @@ void BlockWaypointGuidance::update(
 			     missionCmd.lat,
 			     missionCmd.lon);
 
-	_psiCmd = _wrap_2pi(psiTrack -
-			    _xtYawLimit.update(_xt2Yaw.update(xtrackError.distance)));
+	_psiCmd = wrap_2pi(psiTrack -
+			   _xtYawLimit.update(_xt2Yaw.update(xtrackError.distance)));
 }
 
 BlockUorbEnabledAutopilot::BlockUorbEnabledAutopilot(SuperBlock *parent, const char *name) :
@@ -88,13 +89,14 @@ BlockUorbEnabledAutopilot::BlockUorbEnabledAutopilot(SuperBlock *parent, const c
 	_param_update(ORB_ID(parameter_update), 1000, 0, &getSubscriptions()), // limit to 1 Hz
 	_missionCmd(ORB_ID(position_setpoint_triplet), 20, 0, &getSubscriptions()),
 	_att(ORB_ID(vehicle_attitude), 20, 0, &getSubscriptions()),
+	_angular_velocity(ORB_ID(vehicle_angular_velocity), 20, 0, &getSubscriptions()),
 	_attCmd(ORB_ID(vehicle_attitude_setpoint), 20, 0, &getSubscriptions()),
 	_pos(ORB_ID(vehicle_global_position), 20, 0, &getSubscriptions()),
 	_ratesCmd(ORB_ID(vehicle_rates_setpoint), 20, 0, &getSubscriptions()),
 	_status(ORB_ID(vehicle_status), 20, 0, &getSubscriptions()),
 
 	// publications
-	_actuators(ORB_ID(actuator_controls_0), -1, &getPublications())
+	_actuators(ORB_ID(actuator_controls_0))
 {
 }
 

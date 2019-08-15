@@ -36,10 +36,11 @@ px4_add_git_submodule(TARGET git_mavlink_v2 PATH "${PX4_SOURCE_DIR}/mavlink/incl
 px4_add_module(
 	MODULE modules__mavlink
 	MAIN mavlink
-	STACK_MAIN 1200
-	STACK_MAX 1500
+	STACK_MAIN 1600
+	STACK_MAX 1600
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
+		-Wno-cast-align # TODO: fix and enable
+		-Wno-address-of-packed-member # TODO: fix in c_library_v2
 	INCLUDES
 		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS
@@ -60,9 +61,18 @@ px4_add_module(
 		mavlink_stream.cpp
 		mavlink_ulog.cpp
 		mavlink_timesync.cpp
+	MODULE_CONFIG
+		module.yaml
 	DEPENDS
+		airspeed
 		git_mavlink_v2
 		conversion
 		git_ecl
 		ecl_geo
+		version
+	UNITY_BUILD
 	)
+
+if(PX4_TESTING)
+	add_subdirectory(mavlink_tests)
+endif()

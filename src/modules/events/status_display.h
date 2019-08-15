@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,7 +33,7 @@
 
 /**
  * @file status_display.h
- * Status Display decouple the LED and tune form the original commander
+ * Status Display decouples LED and tunes from commander
  *
  * @author Simone Guscetti <simone@px4.io>
  */
@@ -44,13 +44,15 @@
 
 #include <drivers/drv_hrt.h>
 
-#include <uORB/uORB.h>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/led_control.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
 
+namespace events
+{
 namespace status
 {
 
@@ -66,7 +68,7 @@ public:
 protected:
 	/**
 	 * check for topic updates
-	 * @return true if one or more topic got updated
+	 * @return true if one or more topics got updated
 	 */
 	bool check_for_updates();
 
@@ -78,7 +80,7 @@ protected:
 	/** publish LED control */
 	void publish();
 
-	// TODO: review if there is a better variant that allocate this in the memory
+	// TODO: review if there is a better variant that allocates this in the memory
 	struct battery_status_s _battery_status = {};
 	struct cpuload_s _cpu_load = {};
 	struct vehicle_status_s _vehicle_status = {};
@@ -94,8 +96,11 @@ private:
 	bool _critical_battery = false;
 	int _old_nav_state = -1;
 	int _old_battery_status_warning = -1;
-	orb_advert_t _led_control_pub = nullptr;
+
+	uORB::PublicationQueued<led_control_s> _led_control_pub{ORB_ID(led_control)};
+
 	const events::SubscriberHandler &_subscriber_handler;
 };
 
-} /* status */
+} /* namespace status */
+} /* namespace events */

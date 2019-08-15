@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+# Thermal Calibration startup script.
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
+
+set TEMP_CALIB_ARGS ""
+
+#
+# Determine if a thermal calibration should be started.
+#
+
+if param compare SYS_CAL_ACCEL 1
+then
+	set TEMP_CALIB_ARGS "${TEMP_CALIB_ARGS} -a"
+	param set SYS_CAL_ACCEL 0
+fi
+
+if param compare SYS_CAL_GYRO 1
+then
+	set TEMP_CALIB_ARGS "${TEMP_CALIB_ARGS} -g"
+	param set SYS_CAL_GYRO 0
+fi
+
+if param compare SYS_CAL_BARO 1
+then
+	set TEMP_CALIB_ARGS "${TEMP_CALIB_ARGS} -b"
+	param set SYS_CAL_BARO 0
+fi
+
+#
+# Start the thermal calibration cycle.
+#
+if [ "x$TEMP_CALIB_ARGS" != "x" ]
+then
+	send_event temperature_calibration ${TEMP_CALIB_ARGS}
+fi
+
+unset TEMP_CALIB_ARGS

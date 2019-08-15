@@ -35,4 +35,6 @@ px4_add_module(
 	MAIN pwm_out_sim
 	SRCS
 		PWMSim.cpp
+	DEPENDS
+		mixer
 	)

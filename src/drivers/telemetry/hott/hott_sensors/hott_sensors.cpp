@@ -52,7 +52,6 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <systemlib/err.h>
-#include <systemlib/systemlib.h>
 
 #include "../comms.h"
 #include "../messages.h"

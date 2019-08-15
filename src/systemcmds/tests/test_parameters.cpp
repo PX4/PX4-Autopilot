@@ -1,7 +1,49 @@
+/****************************************************************************
+ *
+ *  Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name PX4 nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
+
+/**
+ * @file test_parameters.cpp
+ * Tests related to the parameter system.
+ */
+
 #include <unit_test.h>
 
 #include <px4_defines.h>
+
+#include <errno.h>
 #include <fcntl.h>
+#include <unistd.h>
+#include <math.h>
 
 class ParameterTest : public UnitTest
 {
@@ -312,7 +354,7 @@ bool ParameterTest::exportImportAll()
 	static constexpr float MAGIC_FLOAT_VAL = 0.217828f;
 
 	// backup current parameters
-	const char *param_file_name = PX4_ROOTFSDIR "/fs/microsd/param_backup";
+	const char *param_file_name = PX4_STORAGEDIR "/param_backup";
 	int fd = open(param_file_name, O_WRONLY | O_CREAT, PX4_O_MODE_666);
 
 	if (fd < 0) {
@@ -478,6 +520,12 @@ bool ParameterTest::exportImportAll()
 
 	if (result < 0) {
 		PX4_ERR("importing from '%s' failed (%i)", param_file_name, result);
+		return false;
+	}
+
+	// save
+	if (param_save_default() != PX4_OK) {
+		PX4_ERR("param_save_default failed");
 		return false;
 	}
 

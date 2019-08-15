@@ -1,55 +1,26 @@
-# Build and autotest script for PX4 Firmware
-# http://travis-ci.org
-
-sudo: required
-
-services:
-  - docker
-
 language: cpp
 
 git:
-  depth: 2000
+  depth: 100
   submodules: false
-
-env:
-  global:
-    # COVERITY_SCAN_TOKEN
-    - secure: "Q4IAcmo1r5cr/UvhcixQa6QN5e5eTcP7FeidzEbX2+BA38yo2BH5O9YQCvZe2AI1Na8ZCjVx3H2luGgDwOKgzAIAjXjZ2KbmXYc6Ns/j/BXScY05dCCzYEhXKD98NZxIKH9lLN9pYDGRA8pChGRJnVlFOr1JHHHnB801+osHy7M="
-    # AWS KEY: $PX4_AWS_KEY
-    - secure: "XknnZHWBbpHbN4f3fuAVwUztdLIu8ej4keC3aQSDofo3uw8AFEzojfsQsN9u77ShWSIV4iYJWh9C9ALkCx7TocJ+xYjiboo10YhM9lH/8u+EXjYWG6GHS8ua0wkir+cViSxoLNaMtmcb/rPTicJecAGANxLsIHyBAgTL3fkbLSA="
-    # AWS SECRET: $PX4_AWS_SECRET
-    - secure: "h6oajlW68dWIr+wZhO58Dv6e68dZHrBLVA6lPXZmheFQBW6Xam1HuLGA0LOW6cL9TnrAsOZ8g4goB58eMQnMEijFZKi3mhRwZhd/Xjq/ZGJOWBUrLoQHZUw2dQk5ja5vmUlKEoQnFZjDuMjx8KfX5ZMNy8A3yssWZtJYHD8c+bk="
 
 matrix:
   fast_finish: true
   include:
-    - env: BUILD_TARGET=coverity_scan
-      dist: trusty
+    - os: linux
+      dist: xenial
       if: branch = coverity_scan
-  allow_failures:
-    - env: BUILD_TARGET=tests_coverage
-
-cache:
-  ccache: true
 
 before_install:
-  # install dependencies for the coverity build (target and branch), otherwise exit early
-  - if [[ "${TRAVIS_BRANCH}" = "coverity_scan" ]]; then
-      sudo pip install empy jinja2 numpy toml;
-      echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-;
-    fi
-  # use git:// to fetch instead of https://
-  - git config --global url."git://".insteadOf https://
+    - echo -n | openssl s_client -connect scan.coverity.com:443 | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' | sudo tee -a /etc/ssl/certs/ca-
+
+install:
+    - export PATH=$HOME/.local/bin:$PATH
+    - pip install --user --upgrade pip
+    - pip install --user -r Tools/setup/requirements.txt
 
 script:
-  - ./Tools/docker_run.sh make ${BUILD_TARGET}
-
-after_success:
-  # upload code coverage
-  - if [ "${TRAVIS_PULL_REQUEST}" = "false" ]; then
-      [ "${BUILD_TARGET}" = "tests_coverage" ] && bash <(curl -s https://codecov.io/bash) -F unittests;
-    fi
+    - make
 
 addons:
   coverity_scan:
@@ -58,5 +29,5 @@ addons:
       description: "Build submitted via Travis CI"
     notification_email: ci@px4.io
     build_command_prepend: "make distclean"
-    build_command: "make posix_sitl_default"
+    build_command: "make px4_sitl_default"
     branch_pattern: coverity_scan

@@ -92,6 +92,7 @@ print("""
 #include <px4_middleware.h>
 #include <px4_app.h>
 #include <px4_config.h>
+#include <px4_log.h>
 #include <uORB/uORB.h>
 #include <string.h>
 #include <stdint.h>
@@ -99,78 +100,33 @@ print("""
 #include <stdlib.h>
 #include <inttypes.h>
 
-#ifndef PRIu64
-#define PRIu64 "llu"
-#endif
-
-#ifndef PRId64
-#define PRId64 "lld"
-#endif
+#include <topic_listener.hpp>
+#include <topic_listener_generated.hpp>
 
 """)
 for m in set(messages):
 	print("#include <uORB/topics/%s.h>" % m)
 
-print("""
-extern "C" __EXPORT int listener_main(int argc, char *argv[]);
-
-static bool check_timeout(const hrt_abstime& time) {
-    if (hrt_elapsed_time(&time) > 2*1000*1000) {
-		printf("Waited for 2 seconds without a message. Giving up.\\n");
-        return true;
-    }
-    return false;
-}
+print ("""
+\nvoid listener_generated(char * topic_name, int topic_instance, int topic_rate, int num_msgs) {
 """)
 
-for index, (m, t) in enumerate(zip(messages, topics)):
-	print("void listen_%s(unsigned num_msgs, unsigned topic_instance);" % t)
-
-print ("""
-\nint listener_main(int argc, char *argv[]) {
-	if(argc < 2) {
-		printf("need at least two arguments: topic name. [optional number of messages to print] [optional instance]\\n");
-		return 1;
+print("""
+	unsigned topic_interval = 0;
+	if (topic_rate != 0) {
+		topic_interval = 1000 / topic_rate;
 	}
 """)
-print("\tunsigned num_msgs = (argc > 2) ? atoi(argv[2]) : 1;")
-print("\tunsigned topic_instance = (argc > 3) ? atoi(argv[3]) : 0;\n")
+
 for index, (m, t) in enumerate(zip(messages, topics)):
 	if index == 0:
-		print("\tif (strncmp(argv[1],\"%s\",50) == 0) {" % t)
+		print("\tif (strncmp(topic_name,\"%s\", %d) == 0) {" % (t, len(t)))
 	else:
-		print("\t} else if (strncmp(argv[1],\"%s\",50) == 0) {" % t)
-	print("\t\tlisten_%s(num_msgs, topic_instance);" % t)
+		print("\t} else if (strcmp(topic_name,\"%s\") == 0) {" % (t))
+	print("\t\tlistener(listener_print_topic<%s_s>, ORB_ID(%s), num_msgs, topic_instance, topic_interval);" % (m, t))
 
 print("\t} else {")
-print("\t\t printf(\" Topic did not match any known topics\\n\");")
+print("\t\t PX4_INFO_RAW(\" Topic did not match any known topics\\n\");")
 print("\t}")
-print("\t return 0;")
-print("}\n")
 
-for index, (m, t) in enumerate(zip(messages, topics)):
-	print("void listen_%s(unsigned num_msgs, unsigned topic_instance) {" % t)
-	print("\torb_id_t ID = ORB_ID(%s);" % t)
-	print("\tif (orb_exists(ID, topic_instance) != 0) { printf(\"never published\\n\"); return; }")
-	print("\tint sub = orb_subscribe_multi(ORB_ID(%s), topic_instance);" % t)
-	print("\tbool updated = false;")
-	print("\tunsigned i = 0;")
-	print("\thrt_abstime start_time = hrt_absolute_time();")
-	print("\twhile(i < num_msgs) {")
-	print("\t\torb_check(sub, &updated);")
-	print("\t\tif (i == 0) { updated = true; } else { usleep(500); }")
-	print("\t\tif (updated) {")
-	print("\t\t\tstart_time = hrt_absolute_time();")
-	print("\t\t\ti++;")
-	print("\t\tprintf(\"\\nTOPIC: %s instance %%d #%%d\\n\", topic_instance, i);" % t)
-	print("\t\t%s_s container = {};" % m)
-	print("\t\torb_copy(ID, sub, &container);")
-	print("\t\tprint_message(container);")
-	print("\t\t} else {")
-	print("\t\t\tif (check_timeout(start_time)) {")
-	print("\t\t\t\tbreak;")
-	print("\t\t\t}")
-	print("\t\t}")
-	print("\t}")
-	print("\torb_unsubscribe(sub);")
-	print("}\n")
+print("}\n")

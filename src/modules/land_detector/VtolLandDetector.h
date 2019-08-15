@@ -41,6 +41,7 @@
 
 #pragma once
 
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -55,30 +56,25 @@ public:
 	VtolLandDetector();
 
 protected:
-	void _initialize_topics() override;
-	void _update_params() override;
 	void _update_topics() override;
 	bool _get_landed_state() override;
 	bool _get_maybe_landed_state() override;
 
 private:
-	struct {
-		param_t maxAirSpeed;
-	} _paramHandle{};
 
-	struct {
-		float maxAirSpeed;
-	} _params{};
+	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
-	int _airspeedSub{-1};
-	int _vehicle_status_sub{-1};
-
-	airspeed_s		_airspeed{};
-	vehicle_status_s	_vehicle_status{};
+	airspeed_s _airspeed{};
+	vehicle_status_s _vehicle_status{};
 
 	bool _was_in_air{false}; /**< indicates whether the vehicle was in the air in the previous iteration */
 	float _airspeed_filtered{0.0f}; /**< low pass filtered airspeed */
-};
 
+	DEFINE_PARAMETERS_CUSTOM_PARENT(
+		MulticopterLandDetector,
+		(ParamFloat<px4::params::LNDFW_AIRSPD_MAX>) _param_lndfw_airspd_max
+	);
+};
 
 } // namespace land_detector

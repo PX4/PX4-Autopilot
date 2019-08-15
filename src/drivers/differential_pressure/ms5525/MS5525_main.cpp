@@ -33,8 +33,6 @@
 
 #include "MS5525.hpp"
 
-#include <px4_getopt.h>
-
 // Driver 'main' command.
 extern "C" __EXPORT int ms5525_airspeed_main(int argc, char *argv[]);
 
@@ -43,15 +41,39 @@ namespace ms5525_airspeed
 {
 MS5525 *g_dev = nullptr;
 
-int start(uint8_t i2c_bus);
+int start();
+int start_bus(uint8_t i2c_bus);
 int stop();
 int reset();
 
-// Start the driver.
-// This function call only returns once the driver is up and running
-// or failed to detect the sensor.
+/**
+* Attempt to start driver on all available I2C busses.
+*
+* This function will return as soon as the first sensor
+* is detected on one of the available busses or if no
+* sensors are detected.
+*
+*/
 int
-start(uint8_t i2c_bus)
+start()
+{
+	for (unsigned i = 0; i < NUM_I2C_BUS_OPTIONS; i++) {
+		if (start_bus(i2c_bus_options[i]) == PX4_OK) {
+			return PX4_OK;
+		}
+	}
+
+	return PX4_ERROR;
+}
+
+/**
+ * Start the driver on a specific bus.
+ *
+ * This function call only returns once the driver is up and running
+ * or failed to detect the sensor.
+ */
+int
+start_bus(uint8_t i2c_bus)
 {
 	int fd = -1;
 
@@ -91,8 +113,6 @@ fail:
 		delete g_dev;
 		g_dev = nullptr;
 	}
-
-	PX4_WARN("not started on bus %d", i2c_bus);
 
 	return PX4_ERROR;
 }
@@ -141,11 +161,12 @@ int reset()
 static void
 ms5525_airspeed_usage()
 {
-	PX4_WARN("usage: ms5525_airspeed command [options]");
-	PX4_WARN("options:");
-	PX4_WARN("\t-b --bus i2cbus (%d)", PX4_I2C_BUS_DEFAULT);
-	PX4_WARN("command:");
-	PX4_WARN("\tstart|stop|reset");
+	PX4_INFO("usage: ms5525_airspeed command [options]");
+	PX4_INFO("options:");
+	PX4_INFO("\t-b --bus i2cbus (%d)", PX4_I2C_BUS_DEFAULT);
+	PX4_INFO("\t-a --all");
+	PX4_INFO("command:");
+	PX4_INFO("\tstart|stop|reset");
 }
 
 int
@@ -156,11 +177,16 @@ ms5525_airspeed_main(int argc, char *argv[])
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
+	bool start_all = false;
 
-	while ((ch = px4_getopt(argc, argv, "b:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "ab:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'b':
 			i2c_bus = atoi(myoptarg);
+			break;
+
+		case 'a':
+			start_all = true;
 			break;
 
 		default:
@@ -178,7 +204,12 @@ ms5525_airspeed_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		return ms5525_airspeed::start(i2c_bus);
+		if (start_all) {
+			return ms5525_airspeed::start();
+
+		} else {
+			return ms5525_airspeed::start_bus(i2c_bus);
+		}
 	}
 
 	/*

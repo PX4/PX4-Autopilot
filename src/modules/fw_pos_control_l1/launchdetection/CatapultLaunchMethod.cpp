@@ -61,14 +61,14 @@ void CatapultLaunchMethod::update(float accel_x)
 	case LAUNCHDETECTION_RES_NONE:
 
 		/* Detect a acceleration that is longer and stronger as the minimum given by the params */
-		if (accel_x > _thresholdAccel.get()) {
+		if (accel_x > _param_laun_cat_a.get()) {
 			_integrator += dt;
 
-			if (_integrator > _thresholdTime.get()) {
-				if (_motorDelay.get() > 0.0f) {
+			if (_integrator > _param_laun_cat_t.get()) {
+				if (_param_laun_cat_mdel.get() > 0.0f) {
 					state = LAUNCHDETECTION_RES_DETECTED_ENABLECONTROL;
 					PX4_WARN("Launch detected: enablecontrol, waiting %8.4fs until full throttle",
-						 double(_motorDelay.get()));
+						 double(_param_laun_cat_mdel.get()));
 
 				} else {
 					/* No motor delay set: go directly to enablemotors state */
@@ -88,7 +88,7 @@ void CatapultLaunchMethod::update(float accel_x)
 		 * over to allow full throttle */
 		_motorDelayCounter += dt;
 
-		if (_motorDelayCounter > _motorDelay.get()) {
+		if (_motorDelayCounter > _param_laun_cat_mdel.get()) {
 			PX4_INFO("Launch detected: state enablemotors");
 			state = LAUNCHDETECTION_RES_DETECTED_ENABLEMOTORS;
 		}
@@ -120,7 +120,7 @@ float CatapultLaunchMethod::getPitchMax(float pitchMaxDefault)
 		return pitchMaxDefault;
 
 	} else {
-		return _pitchMaxPreThrottle.get();
+		return _param_laun_cat_pmax.get();
 	}
 }
 

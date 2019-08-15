@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# EKF2 replay script
+
+publisher_rules_file="orb_publisher.rules"
+cat <<EOF > "$publisher_rules_file"
+restrict_topics: sensor_combined, vehicle_gps_position, vehicle_land_detected
+module: replay
+ignore_others: false
+EOF
+
+uorb start
+param set SDLOG_DIRS_MAX 7
+
+ekf2 start -r
+logger start -f -t -b 1000 -p vehicle_attitude
+sleep 0.2
+replay start

@@ -39,55 +39,70 @@
 
 #pragma once
 
-#include <platforms/px4_defines.h>
+#include <float.h>
+#include <math.h>
+#include <stdint.h>
 
-//this should be defined in stdint.h, but seems to be missing in the ARM toolchain (5.2.0)
-#ifndef UINT64_C
-# if __WORDSIZE == 64
-#  define UINT64_C(c)	c ## UL
-# else
-#  define UINT64_C(c)	c ## ULL
-# endif
+#ifndef MATH_PI
+#define MATH_PI		3.141592653589793238462643383280
 #endif
-
 
 namespace math
 {
 
 template<typename _Tp>
-constexpr const _Tp &min(const _Tp &a, const _Tp &b)
+constexpr _Tp min(_Tp a, _Tp b)
 {
 	return (a < b) ? a : b;
 }
 
 template<typename _Tp>
-constexpr const _Tp &max(const _Tp &a, const _Tp &b)
+constexpr _Tp max(_Tp a, _Tp b)
 {
 	return (a > b) ? a : b;
 }
 
 template<typename _Tp>
-constexpr const _Tp &constrain(const _Tp &val, const _Tp &min_val, const _Tp &max_val)
+constexpr _Tp constrain(_Tp val, _Tp min_val, _Tp max_val)
 {
 	return (val < min_val) ? min_val : ((val > max_val) ? max_val : val);
 }
 
+/** Constrain float values to valid values for int16_t.
+ * Invalid values are just clipped to be in the range for int16_t. */
+constexpr int16_t constrainFloatToInt16(float value)
+{
+	return (int16_t)math::constrain(value, (float)INT16_MIN, (float)INT16_MAX);
+}
+
 template<typename _Tp>
-inline constexpr bool isInRange(const _Tp &val, const _Tp &min_val, const _Tp &max_val)
+constexpr bool isInRange(_Tp val, _Tp min_val, _Tp max_val)
 {
 	return (min_val <= val) && (val <= max_val);
 }
 
 template<typename T>
-constexpr T radians(const T degrees)
+constexpr T radians(T degrees)
 {
-	return degrees * (static_cast<T>(M_PI) / static_cast<T>(180));
+	return degrees * (static_cast<T>(MATH_PI) / static_cast<T>(180));
 }
 
 template<typename T>
-constexpr T degrees(const T radians)
+constexpr T degrees(T radians)
 {
-	return radians * (static_cast<T>(180) / static_cast<T>(M_PI));
+	return radians * (static_cast<T>(180) / static_cast<T>(MATH_PI));
+}
+
+/** Safe way to check if float is zero */
+inline bool isZero(float val)
+{
+	return fabsf(val - 0.0f) < FLT_EPSILON;
+}
+
+/** Safe way to check if double is zero */
+inline bool isZero(double val)
+{
+	return fabs(val - 0.0) < DBL_EPSILON;
 }
 
 }

@@ -34,6 +34,7 @@
 /**
  * Primary gyro ID
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_GYRO_PRIME, 0);

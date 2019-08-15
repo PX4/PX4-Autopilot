@@ -33,16 +33,18 @@
 px4_add_module(
 	MODULE drivers__mpu9250
 	MAIN mpu9250
-	STACK_MAIN 1200
+	STACK_MAIN 1500
 	COMPILE_FLAGS
 	SRCS
+		AK8963_I2C.cpp
 		mpu9250.cpp
 		mpu9250_i2c.cpp
+		MPU9250_mag.cpp
+		mpu9250_main.cpp
 		mpu9250_spi.cpp
-		main.cpp
-		gyro.cpp
-		mag.cpp
-		mag_i2c.cpp
 	DEPENDS
+		px4_work_queue
+		drivers_accelerometer
+		drivers_gyroscope
+		drivers_magnetometer
 	)
-

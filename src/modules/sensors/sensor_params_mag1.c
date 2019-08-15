@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,6 +34,7 @@
 /**
  * ID of Magnetometer the calibration is for.
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_MAG1_ID, 0);
@@ -42,6 +43,7 @@ PARAM_DEFINE_INT32(CAL_MAG1_ID, 0);
  * Mag 1 enabled
  *
  * @boolean
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_MAG1_EN, 1);
@@ -84,6 +86,7 @@ PARAM_DEFINE_INT32(CAL_MAG1_EN, 1);
  * @min -1
  * @max 30
  * @reboot_required true
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_MAG1_ROT, -1);
@@ -91,6 +94,7 @@ PARAM_DEFINE_INT32(CAL_MAG1_ROT, -1);
 /**
  * Magnetometer X-axis offset
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_MAG1_XOFF, 0.0f);
@@ -98,6 +102,7 @@ PARAM_DEFINE_FLOAT(CAL_MAG1_XOFF, 0.0f);
 /**
  * Magnetometer Y-axis offset
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_MAG1_YOFF, 0.0f);
@@ -105,6 +110,7 @@ PARAM_DEFINE_FLOAT(CAL_MAG1_YOFF, 0.0f);
 /**
  * Magnetometer Z-axis offset
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_MAG1_ZOFF, 0.0f);
@@ -112,6 +118,7 @@ PARAM_DEFINE_FLOAT(CAL_MAG1_ZOFF, 0.0f);
 /**
  * Magnetometer X-axis scaling factor
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_MAG1_XSCALE, 1.0f);
@@ -119,6 +126,7 @@ PARAM_DEFINE_FLOAT(CAL_MAG1_XSCALE, 1.0f);
 /**
  * Magnetometer Y-axis scaling factor
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_MAG1_YSCALE, 1.0f);
@@ -126,6 +134,7 @@ PARAM_DEFINE_FLOAT(CAL_MAG1_YSCALE, 1.0f);
 /**
  * Magnetometer Z-axis scaling factor
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_MAG1_ZSCALE, 1.0f);

@@ -42,5 +42,6 @@ px4_add_module(
 		tailsitter.cpp
 		standard.cpp
 	DEPENDS
+		pwm_limit
 	)
 

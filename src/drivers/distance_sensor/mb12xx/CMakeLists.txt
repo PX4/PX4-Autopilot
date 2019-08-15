@@ -33,10 +33,9 @@
 px4_add_module(
 	MODULE drivers__mb12xx
 	MAIN mb12xx
+	STACK_MAIN 1400
 	COMPILE_FLAGS
-		-Wno-sign-compare
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		mb12xx.cpp
-	DEPENDS
 	)
-
