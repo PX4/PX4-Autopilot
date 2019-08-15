@@ -119,7 +119,6 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 		 * Get sensing state if necessary
 		 */
 		bool preflight_check_ret = true;
-		bool prearm_check_ret = true;
 
 		const bool checkGNSS = (arm_requirements & ARM_REQ_GPS_BIT);
 
@@ -162,15 +161,16 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 
 				//      Do not perform pre-arm checks if coming from in air restore
 				//      Allow if vehicle_status_s::HIL_STATE_ON
-				if (status->arming_state != vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE &&
-				    !hil_enabled) {
+				if (status->arming_state != vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE && !hil_enabled) {
 
-					if (preflight_check_ret) {
+					bool prearm_check_ret = true;
+
+					if (fRunPreArmChecks && preflight_check_ret) {
 						// only bother running prearm if preflight was successful
 						prearm_check_ret = prearm_check(mavlink_log_pub, *status_flags, safety, arm_requirements);
 					}
 
-					if (!(preflight_check_ret && prearm_check_ret)) {
+					if (!preflight_check_ret || !prearm_check_ret) {
 						// the prearm and preflight checks already print the rejection reason
 						feedback_provided = true;
 						valid_transition = false;
