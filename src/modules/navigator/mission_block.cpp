@@ -319,7 +319,7 @@ MissionBlock::is_mission_item_reached()
 			}
 		}
 
-		if (_waypoint_position_reached) {
+		if (_waypoint_position_reached && !_waypoint_position_reached_previously) {
 			// reached just now
 			_time_wp_reached = now;
 		}
@@ -408,6 +408,7 @@ MissionBlock::is_mission_item_reached()
 	}
 
 	// all acceptance criteria must be met in the same iteration
+	_waypoint_position_reached_previously = _waypoint_position_reached;
 	_waypoint_position_reached = false;
 	_waypoint_yaw_reached = false;
 	return false;
