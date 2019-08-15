@@ -673,6 +673,9 @@ Mission::set_mission_items()
 
 				position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
+				// allow weather vane in mission
+				pos_sp_triplet->current.allow_weather_vane = true;
+
 				/* do takeoff before going to setpoint if needed and not already in takeoff */
 				/* in fixed-wing this whole block will be ignored and a takeoff item is always propagated */
 				if (do_need_vertical_takeoff() &&
@@ -752,6 +755,9 @@ Mission::set_mission_items()
 				    _work_item_type == WORK_ITEM_TYPE_TAKEOFF &&
 				    new_work_item_type == WORK_ITEM_TYPE_DEFAULT &&
 				    _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING &&
+				    !_navigator->get_land_detected()->landed) {
+
+					/* disable weathervane before front transition for allowing yaw to align */
 				    !_navigator->get_land_detected()->landed) {
 
 					/* check if the vtol_takeoff waypoint is on top of us */
@@ -933,6 +939,9 @@ Mission::set_mission_items()
 				    && _navigator->get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING
 				    && !_navigator->get_land_detected()->landed
 				    && has_next_position_item) {
+
+					/* disable weathervane before front transition for allowing yaw to align */
+					pos_sp_triplet->current.allow_weather_vane = false;
 
 					new_work_item_type = WORK_ITEM_TYPE_ALIGN;
 

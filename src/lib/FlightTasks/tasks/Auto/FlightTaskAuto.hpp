@@ -120,7 +120,8 @@ protected:
 					(ParamInt<px4::params::MPC_YAW_MODE>) _param_mpc_yaw_mode, // defines how heading is executed,
 					(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid, // obstacle avoidance active
 					(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max,
-					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err // yaw-error threshold
+					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err, // yaw-error threshold
+					(ParamBool<px4::params::WV_EN>) _param_wv_en // enable/disable weather vane (VTOL)
 				       );
 
 private:
