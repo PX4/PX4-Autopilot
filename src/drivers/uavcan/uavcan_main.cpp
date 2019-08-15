@@ -1123,6 +1123,11 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 				} else {
 
 					_mixers->groups_required(_groups_required);
+					PX4_INFO("Groups required %d", _groups_required);
+
+					int rotor_count = _mixers->get_multirotor_count();
+					_esc_controller.set_rotor_count(rotor_count);
+					PX4_INFO("Number of rotors %d", rotor_count);
 				}
 			}
 		}

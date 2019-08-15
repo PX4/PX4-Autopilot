@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,58 +32,11 @@
  ****************************************************************************/
 
 /**
- * @file mavlink_log.c
- * MAVLink text logging.
+ * PX4 Flow Optical Flow
  *
- * @author Lorenz Meier <lorenz@px4.io>
+ * @reboot_required true
+ *
+ * @boolean
+ * @group Sensors
  */
-
-#include <drivers/drv_hrt.h>
-#include <px4_posix.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdarg.h>
-
-#include <uORB/topics/mavlink_log.h>
-#include "mavlink_log.h"
-
-#define MAVLINK_LOG_QUEUE_SIZE 5
-
-
-__EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, const char *fmt, ...)
-{
-	// TODO: add compile check for maxlen
-
-	if (!fmt) {
-		return;
-	}
-
-	if (mavlink_log_pub == NULL) {
-		return;
-	}
-
-	struct mavlink_log_s log_msg;
-
-	log_msg.severity = severity;
-
-	log_msg.timestamp = hrt_absolute_time();
-
-	va_list ap;
-
-	va_start(ap, fmt);
-
-	vsnprintf((char *)log_msg.text, sizeof(log_msg.text), fmt, ap);
-
-	va_end(ap);
-
-	if (*mavlink_log_pub != NULL) {
-		orb_publish(ORB_ID(mavlink_log), *mavlink_log_pub, &log_msg);
-
-	} else {
-		*mavlink_log_pub = orb_advertise_queue(ORB_ID(mavlink_log),
-						       &log_msg,
-						       MAVLINK_LOG_QUEUE_SIZE);
-	}
-}
-
+PARAM_DEFINE_INT32(SENS_EN_PX4FLOW, 0);

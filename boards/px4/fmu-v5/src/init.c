@@ -215,6 +215,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	VDD_5V_RC_EN(true);
 	VDD_5V_WIFI_EN(true);
 
+	/* Need hrt running before using the ADC */
+
+	px4_platform_init();
+
 
 	if (OK == board_determine_hw_info()) {
 		syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
@@ -223,8 +227,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	} else {
 		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
 	}
-
-	px4_platform_init();
 
 	/* configure the DMA allocator */
 

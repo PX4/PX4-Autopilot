@@ -436,14 +436,6 @@ else
 	navigator start
 
 	#
-	# Start the standalone wind estimator.
-	#
-	if param compare WEST_EN 1
-	then
-		wind_estimator start
-	fi
-
-	#
 	# Start a thermal calibration if required.
 	#
 	sh /etc/init.d/rc.thermal_cal
@@ -457,7 +449,10 @@ else
 	fi
 
 	# Check for flow sensor, launched as a background task to scan
-	px4flow start &
+	if param compare SENS_EN_PX4FLOW 1
+	then
+		px4flow start &
+	fi
 
 	# Blacksheep telemetry
 	if param greater TEL_BST_EN 0

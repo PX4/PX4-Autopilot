@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,36 +31,59 @@
  *
  ****************************************************************************/
 
+/**
+ * @file TrajMath.hpp
+ *
+ * collection of functions used in trajectory generators
+ */
+
 #pragma once
 
-#include <drivers/device/device.h>
-#include <drivers/drv_gyro.h>
-#include <uORB/uORB.h>
-
-class ICM20948;
-
-/**
- * Helper class implementing the gyro driver node.
- */
-class ICM20948_gyro : public device::CDev
+namespace trajmath
 {
-public:
-	ICM20948_gyro(ICM20948 *parent, const char *path);
-	~ICM20948_gyro();
 
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+/* Compute the maximum possible speed on the track given the remaining distance,
+ * the maximum acceleration and the maximum jerk.
+ * We assume a constant acceleration profile with a delay of 2*accel/jerk
+ * (time to reach the desired acceleration from opposite max acceleration)
+ * Equation to solve: 0 = vel^2 - 2*accel*(x - vel*2*accel/jerk)
+ *
+ * @param jerk maximum jerk
+ * @param accel maximum acceleration
+ * @param braking_distance distance to the desired stopping point
+ *
+ * @return maximum speed
+ */
+template<typename T>
+const T computeMaxSpeedFromBrakingDistance(T jerk, T accel, T braking_distance)
+{
+	T b = (T) 4 * accel * accel / jerk;
+	T c = - (T) 2 * accel * braking_distance;
+	T max_speed = (T) 0.5 * (-b + sqrtf(b * b - (T) 4 * c));
 
-	virtual int		init();
+	return max_speed;
+}
 
-protected:
-	friend class ICM20948;
+/* Compute the maximum tangential speed in a circle defined by two line segments of length "d"
+ * forming a V shape, opened by an angle "alpha". The circle is tangent to the end of the
+ * two segments as shown below:
+ *      \\
+ *      | \ d
+ *      /  \
+ *  __='___a\
+ *      d
+ *  @param alpha angle between the two line segments
+ *  @param accel maximum lateral acceleration
+ *  @param d length of the two line segments
+ *
+ *  @return maximum tangential speed
+ */
+template<typename T>
+const T computeMaxSpeedInWaypoint(T alpha, T accel, T d)
+{
+	T tan_alpha = tan(alpha / (T) 2);
+	T max_speed_in_turn = sqrtf(accel * d * tan_alpha);
 
-	void			parent_poll_notify();
-
-private:
-	ICM20948			*_parent;
-
-	orb_advert_t		_gyro_topic{nullptr};
-	int			_gyro_orb_class_instance{-1};
-	int			_gyro_class_instance{-1};
-};
+	return max_speed_in_turn;
+}
+} /* namespace trajmath */

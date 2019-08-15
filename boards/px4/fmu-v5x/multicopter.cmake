@@ -74,7 +74,7 @@ px4_add_board(
 		sensors
 		sih
 		vmount
-		wind_estimator
+		airspeed_selector
 
 	SYSTEMCMDS
 		bl_update

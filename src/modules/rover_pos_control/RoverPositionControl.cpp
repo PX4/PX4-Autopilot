@@ -61,10 +61,8 @@ extern "C" __EXPORT int rover_pos_control_main(int argc, char *argv[]);
 RoverPositionControl::RoverPositionControl() :
 	ModuleParams(nullptr),
 	/* performance counters */
-	_sub_sensors(ORB_ID(sensor_bias)),
 	_loop_perf(perf_alloc(PC_ELAPSED, "rover position control")) // TODO : do we even need these perf counters
 {
-
 }
 
 RoverPositionControl::~RoverPositionControl()
@@ -197,7 +195,7 @@ RoverPositionControl::control_position(const matrix::Vector2f &current_position,
 			const Vector3f vel = R_to_body * Vector3f(ground_speed(0), ground_speed(1), ground_speed(2));
 
 			const float x_vel = vel(0);
-			const float x_acc = _sub_sensors.get().accel_x;
+			const float x_acc = _vehicle_acceleration_sub.get().xyz[0];
 
 			// Compute airspeed control out and just scale it as a constant
 			mission_throttle = _param_throttle_speed_scaler.get()
@@ -314,7 +312,7 @@ RoverPositionControl::run()
 		vehicle_control_mode_poll();
 		//manual_control_setpoint_poll();
 
-		_sub_sensors.update();
+		_vehicle_acceleration_sub.update();
 
 		/* update parameters from storage */
 		parameters_update(_params_sub);

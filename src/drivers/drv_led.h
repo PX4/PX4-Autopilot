@@ -49,13 +49,11 @@
 #define BOARD_MAX_LEDS 4
 #endif
 
+static_assert(led_control_s::ORB_QUEUE_LENGTH >= BOARD_MAX_LEDS, "led_control_s::ORB_QUEUE_LENGTH too small");
+
 #if BOARD_MAX_LEDS > 8 // because led_mask is uint8_t
 #error "BOARD_MAX_LEDS too large. You need to change the led_mask type in the led_control uorb topic (and where it's used)"
 #endif
-
-
-// set the queue size to the number of LED's, so that each led can be controlled individually
-static const int LED_UORB_QUEUE_LENGTH = BOARD_MAX_LEDS;
 
 // Legacy paths - 2 are need to allow both pwm and i2c drviers to co-exist
 #define RGBLED0_DEVICE_PATH "/dev/rgbled0"         // Primary RGB LED on i2c

@@ -39,4 +39,4 @@ target_include_directories(AttitudeControl
 	${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-px4_add_gtest(SRC AttitudeControlTest.cpp LINKLIBS AttitudeControl)
+px4_add_unit_gtest(SRC AttitudeControlTest.cpp LINKLIBS AttitudeControl)

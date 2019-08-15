@@ -41,7 +41,7 @@
 #include <mathlib/math/filter/LowPassFilter2pVector3f.hpp>
 #include <px4_module_params.h>
 #include <uORB/uORB.h>
-#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_gyro.h>
 
 class PX4Gyroscope : public cdev::CDev, public ModuleParams
@@ -68,7 +68,7 @@ private:
 
 	void configure_filter(float cutoff_freq) { _filter.set_cutoff_frequency(_sample_rate, cutoff_freq); }
 
-	uORB::PublicationData<sensor_gyro_s>	_sensor_gyro_pub;
+	uORB::PublicationMultiData<sensor_gyro_s>	_sensor_gyro_pub;
 
 	math::LowPassFilter2pVector3f _filter{1000, 100};
 	Integrator _integrator{4000, true};

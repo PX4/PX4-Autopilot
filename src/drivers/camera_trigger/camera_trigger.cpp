@@ -55,6 +55,7 @@
 #include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
 
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/camera_capture.h>
@@ -132,7 +133,7 @@ public:
 	/**
 	 * Start the task.
 	 */
-	void		start();
+	bool		start();
 
 	/**
 	 * Stop the task.
@@ -174,7 +175,8 @@ private:
 	uORB::Subscription	_lpos_sub{ORB_ID(vehicle_local_position)};
 
 	orb_advert_t		_trigger_pub;
-	orb_advert_t		_cmd_ack_pub;
+
+	uORB::PublicationQueued<vehicle_command_ack_s>	_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	param_t			_p_mode;
 	param_t			_p_activation_time;
@@ -192,7 +194,7 @@ private:
 	/**
 	 * Vehicle command handler
 	 */
-	void		Run();
+	void		Run() override;
 
 	/**
 	 * Fires trigger
@@ -250,7 +252,6 @@ CameraTrigger::CameraTrigger() :
 	_last_shoot_position(0.0f, 0.0f),
 	_valid_position(false),
 	_trigger_pub(nullptr),
-	_cmd_ack_pub(nullptr),
 	_trigger_mode(TRIGGER_MODE_NONE),
 	_cam_cap_fback(0),
 	_camera_interface_mode(CAMERA_INTERFACE_MODE_GPIO),
@@ -328,7 +329,9 @@ CameraTrigger::CameraTrigger() :
 
 CameraTrigger::~CameraTrigger()
 {
-	delete (_camera_interface);
+	if (_camera_interface != nullptr) {
+		delete (_camera_interface);
+	}
 
 	camera_trigger::g_camera_trigger = nullptr;
 }
@@ -426,9 +429,19 @@ CameraTrigger::shoot_once()
 	}
 }
 
-void
+bool
 CameraTrigger::start()
 {
+	if (_camera_interface == nullptr) {
+		if (camera_trigger::g_camera_trigger != nullptr) {
+			delete (camera_trigger::g_camera_trigger);
+			camera_trigger::g_camera_trigger = nullptr;
+
+		}
+
+		return false;
+	}
+
 	if ((_trigger_mode == TRIGGER_MODE_INTERVAL_ALWAYS_ON ||
 	     _trigger_mode == TRIGGER_MODE_DISTANCE_ALWAYS_ON) &&
 	    _camera_interface->has_power_control() &&
@@ -455,6 +468,8 @@ CameraTrigger::start()
 
 	// start to monitor at high rate for trigger enable command
 	ScheduleNow();
+
+	return true;
 }
 
 void
@@ -471,18 +486,20 @@ CameraTrigger::stop()
 
 	if (camera_trigger::g_camera_trigger != nullptr) {
 		delete (camera_trigger::g_camera_trigger);
+		camera_trigger::g_camera_trigger = nullptr;
 	}
 }
 
 void
 CameraTrigger::test()
 {
-	vehicle_command_s vcmd = {};
+	vehicle_command_s vcmd{};
 	vcmd.timestamp = hrt_absolute_time();
 	vcmd.param5 = 1.0;
 	vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL;
 
-	orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+	uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+	vcmd_pub.publish(vcmd);
 }
 
 void
@@ -682,20 +699,15 @@ CameraTrigger::Run()
 
 	// Command ACK handling
 	if (updated && need_ack) {
-		vehicle_command_ack_s command_ack = {};
+		vehicle_command_ack_s command_ack{};
+
 		command_ack.timestamp = hrt_absolute_time();
 		command_ack.command = cmd.command;
 		command_ack.result = (uint8_t)cmd_result;
 		command_ack.target_system = cmd.source_system;
 		command_ack.target_component = cmd.source_component;
 
-		if (_cmd_ack_pub == nullptr) {
-			_cmd_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-							   vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-
-		} else {
-			orb_publish(ORB_ID(vehicle_command_ack), _cmd_ack_pub, &command_ack);
-		}
+		_cmd_ack_pub.publish(command_ack);
 	}
 
 	ScheduleDelayed(poll_interval_usec);
@@ -830,7 +842,11 @@ int camera_trigger_main(int argc, char *argv[])
 			return 1;
 		}
 
-		camera_trigger::g_camera_trigger->start();
+		if (!camera_trigger::g_camera_trigger->start()) {
+			PX4_WARN("failed to start camera trigger");
+			return 1;
+		}
+
 		return 0;
 	}
 

@@ -32,69 +32,47 @@
  ****************************************************************************/
 
 /**
- * @file gyro.cpp
+ * @file mavlink_log.c
+ * MAVLink text logging.
  *
- * Driver for the Invensense icm20948 connected via SPI.
- *
- *
- * based on the mpu9250 driver
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include "gyro.h"
-#include "icm20948.h"
+#include <drivers/drv_hrt.h>
+#include <px4_posix.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdarg.h>
 
-ICM20948_gyro::ICM20948_gyro(ICM20948 *parent, const char *path) :
-	CDev("ICM20948_gyro", path),
-	_parent(parent)
+#include <uORB/topics/mavlink_log.h>
+#include "mavlink_log.h"
+
+__EXPORT void mavlink_vasprintf(int severity, orb_advert_t *mavlink_log_pub, const char *fmt, ...)
 {
-}
+	// TODO: add compile check for maxlen
 
-ICM20948_gyro::~ICM20948_gyro()
-{
-	if (_gyro_class_instance != -1) {
-		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _gyro_class_instance);
-	}
-}
-
-int
-ICM20948_gyro::init()
-{
-	// do base class init
-	int ret = CDev::init();
-
-	/* if probe/setup failed, bail now */
-	if (ret != OK) {
-		DEVICE_DEBUG("gyro init failed");
-		return ret;
+	if (!fmt) {
+		return;
 	}
 
-	_gyro_class_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
+	if (mavlink_log_pub == nullptr) {
+		return;
+	}
 
-	return ret;
-}
+	mavlink_log_s log_msg;
+	log_msg.severity = severity;
+	log_msg.timestamp = hrt_absolute_time();
 
-void
-ICM20948_gyro::parent_poll_notify()
-{
-	poll_notify(POLLIN);
-}
+	va_list ap;
+	va_start(ap, fmt);
+	vsnprintf((char *)log_msg.text, sizeof(log_msg.text), fmt, ap);
+	va_end(ap);
 
-int
-ICM20948_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
+	if (*mavlink_log_pub != nullptr) {
+		orb_publish(ORB_ID(mavlink_log), *mavlink_log_pub, &log_msg);
 
-	/* these are shared with the accel side */
-	case SENSORIOCSPOLLRATE:
-	case SENSORIOCRESET:
-		return _parent->_accel->ioctl(filp, cmd, arg);
-
-	case GYROIOCSSCALE:
-		/* copy scale in */
-		memcpy(&_parent->_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_parent->_gyro_scale));
-		return OK;
-
-	default:
-		return CDev::ioctl(filp, cmd, arg);
+	} else {
+		*mavlink_log_pub = orb_advertise_queue(ORB_ID(mavlink_log), &log_msg, mavlink_log_s::ORB_QUEUE_LENGTH);
 	}
 }

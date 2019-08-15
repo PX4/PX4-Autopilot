@@ -62,9 +62,20 @@ def check_rtps_id_uniqueness(classifier):
 
     repeated_ids = dict()
 
-    full_send_list = dict(list(msg for msg in classifier.msgs_to_send.items()) + list(msg[0].items()[0] for msg in classifier.alias_msgs_to_send))
-    full_receive_list = dict(list(msg for msg in classifier.msgs_to_receive.items()) + list(msg[0].items()[0] for msg in classifier.alias_msgs_to_receive))
-    full_ignore_list = dict(list(msg for msg in classifier.msgs_to_ignore.items()) + list(msg[0].items()[0] for msg in classifier.alias_msgs_to_ignore))
+    if sys.version_info[0] < 3:
+        full_send_list = dict(list(msg for msg in classifier.msgs_to_send.items(
+        )) + list(msg[0].items()[0] for msg in classifier.alias_msgs_to_send))
+        full_receive_list = dict(list(msg for msg in classifier.msgs_to_receive.items(
+        )) + list(msg[0].items()[0] for msg in classifier.alias_msgs_to_receive))
+        full_ignore_list = dict(list(msg for msg in classifier.msgs_to_ignore.items(
+        )) + list(msg[0].items()[0] for msg in classifier.alias_msgs_to_ignore))
+    else:
+        full_send_list = dict(list(msg for msg in classifier.msgs_to_send.items(
+        )) + list(list(msg[0].items())[0] for msg in classifier.alias_msgs_to_send))
+        full_receive_list = dict(list(msg for msg in classifier.msgs_to_receive.items(
+        )) + list(list(msg[0].items())[0] for msg in classifier.alias_msgs_to_receive))
+        full_ignore_list = dict(list(msg for msg in classifier.msgs_to_ignore.items(
+        )) + list(list(msg[0].items())[0] for msg in classifier.alias_msgs_to_ignore))
 
     # check if there are repeated ID's on the messages to send
     for key, value in full_send_list.items():
@@ -256,15 +267,15 @@ if agent and os.path.isdir(os.path.join(agent_out_dir, "idl")):
 
 # uORB templates path
 uorb_templates_dir = (args.uorb_templates if os.path.isabs(args.uorb_templates)
-    else os.path.join(msg_dir, args.uorb_templates))
+                      else os.path.join(msg_dir, args.uorb_templates))
 
 # uRTPS templates path
 urtps_templates_dir = (args.urtps_templates if os.path.isabs(args.urtps_templates)
-    else os.path.join(msg_dir, args.urtps_templates))
+                       else os.path.join(msg_dir, args.urtps_templates))
 
 # parse yaml file into a map of ids
 classifier = (Classifier(os.path.abspath(args.yaml_file), msg_dir) if os.path.isabs(args.yaml_file)
-    else Classifier(os.path.join(msg_dir, args.yaml_file), msg_dir))
+              else Classifier(os.path.join(msg_dir, args.yaml_file), msg_dir))
 
 # check if there are no ID's repeated
 check_rtps_id_uniqueness(classifier)
@@ -298,7 +309,10 @@ def generate_agent(out_dir):
 
     if classifier.alias_msgs_to_send:
         for msg_file in classifier.alias_msgs_to_send:
-            msg_alias = msg_file[0].keys()[0]
+            if sys.version_info[0] < 3:
+                msg_alias = msg_file[0].keys()[0]
+            else:
+                msg_alias = list(msg_file[0].keys())[0]
             msg_name = msg_file[1]
             if gen_idl:
                 if out_dir != agent_out_dir:
@@ -328,7 +342,10 @@ def generate_agent(out_dir):
 
     if classifier.alias_msgs_to_receive:
         for msg_file in classifier.alias_msgs_to_receive:
-            msg_alias = msg_file[0].keys()[0]
+            if sys.version_info[0] < 3:
+                msg_alias = msg_file[0].keys()[0]
+            else:
+                msg_alias = list(msg_file[0].keys())[0]
             msg_name = msg_file[1]
             if gen_idl:
                 if out_dir != agent_out_dir:
@@ -360,11 +377,11 @@ def generate_agent(out_dir):
         raise Exception("No IDL files found in %s" % idl_dir)
     if(os.path.exists(fastrtpsgen_path)):
         for idl_file in glob.glob(os.path.join(idl_dir, "*.idl")):
-           ret = subprocess.call(fastrtpsgen_path + " -d " + out_dir +
-                                 "/fastrtpsgen -example x64Linux2.6gcc " + fastrtpsgen_include + idl_file, shell=True)
-           if ret:
-               raise Exception(
-                   "fastrtpsgen failed with code error %s" % ret)
+            ret = subprocess.call(fastrtpsgen_path + " -d " + out_dir +
+                                  "/fastrtpsgen -example x64Linux2.6gcc " + fastrtpsgen_include + idl_file, shell=True)
+            if ret:
+                raise Exception(
+                    "fastrtpsgen failed with code error %s" % ret)
     else:
         raise Exception(
             "fastrtpsgen not found. Specify the location of fastrtpsgen with the -f flag")

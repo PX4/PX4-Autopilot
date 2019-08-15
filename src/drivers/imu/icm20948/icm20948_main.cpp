@@ -39,11 +39,18 @@
  * based on the mpu9250 driver
  */
 
+#include <px4_config.h>
+#include <px4_getopt.h>
+#include <lib/perf/perf_counter.h>
+#include <lib/systemlib/conversions.h>
+#include <board_config.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/device/spi.h>
+#include <lib/conversion/rotation.h>
+
 #include "icm20948.h"
 
-#define ICM_DEVICE_PATH_ACCEL_EXT  "/dev/icm20948_accel_ext"
-#define ICM_DEVICE_PATH_GYRO_EXT   "/dev/icm20948_gyro_ext"
-#define ICM_DEVICE_PATH_MAG_EXT    "/dev/icm20948_mag_ext"
+#define ICM_DEVICE_PATH_EXT  "/dev/icm20948_ext"
 
 /** driver 'main' command */
 extern "C" { __EXPORT int icm20948_main(int argc, char *argv[]); }
@@ -52,7 +59,7 @@ enum ICM20948_BUS {
 	ICM20948_BUS_ALL = 0,
 	ICM20948_BUS_I2C_INTERNAL,
 	ICM20948_BUS_I2C_EXTERNAL,
-//	ICM20948_BUS_SPI_INTERNAL,
+	ICM20948_BUS_SPI_INTERNAL,
 //	ICM20948_BUS_SPI_INTERNAL2,
 	ICM20948_BUS_SPI_EXTERNAL
 };
@@ -69,20 +76,23 @@ namespace icm20948
 
 struct icm20948_bus_option {
 	enum ICM20948_BUS busid;
-	const char *accelpath;
-	const char *gyropath;
-	const char *magpath;
+	const char *path;
 	ICM20948_constructor interface_constructor;
 	bool magpassthrough;
 	uint8_t busnum;
 	uint32_t address;
-	ICM20948	*dev;
+	ICM20948 *dev;
 } bus_options[] = {
+
+#if defined(PX4_SPIDEV_ICM_20948) && defined(PX4_SPI_BUS_1)
+	{ ICM20948_BUS_SPI_INTERNAL, ICM_DEVICE_PATH_EXT, &ICM20948_SPI_interface, true, PX4_SPI_BUS_1, PX4_SPIDEV_ICM_20948, nullptr },
+#endif
+
 #if defined (USE_I2C)
 
 #  if defined(PX4_I2C_BUS_EXPANSION)
-	{ ICM20948_BUS_I2C_EXTERNAL, ICM_DEVICE_PATH_ACCEL_EXT, ICM_DEVICE_PATH_GYRO_EXT, ICM_DEVICE_PATH_MAG_EXT, &ICM20948_I2C_interface, false, PX4_I2C_BUS_EXPANSION, PX4_I2C_EXT_ICM20948_1, nullptr },
-#endif
+	{ ICM20948_BUS_I2C_EXTERNAL, ICM_DEVICE_PATH_EXT, &ICM20948_I2C_interface, false, PX4_I2C_BUS_EXPANSION, PX4_I2C_EXT_ICM20948_1, nullptr },
+#  endif
 
 #endif
 
@@ -95,7 +105,6 @@ void	start(enum ICM20948_BUS busid, enum Rotation rotation, bool external_bus, b
 bool	start_bus(struct icm20948_bus_option &bus, enum Rotation rotation, bool external_bus, bool magnetometer_only);
 struct icm20948_bus_option &find_bus(enum ICM20948_BUS busid);
 void	stop(enum ICM20948_BUS busid);
-void	reset(enum ICM20948_BUS busid);
 void	info(enum ICM20948_BUS busid);
 void	usage();
 
@@ -120,8 +129,6 @@ struct icm20948_bus_option &find_bus(enum ICM20948_BUS busid)
 bool
 start_bus(struct icm20948_bus_option &bus, enum Rotation rotation, bool external, bool magnetometer_only)
 {
-	int fd = -1;
-
 	PX4_INFO("Bus probed: %d", bus.busid);
 
 	if (bus.dev != nullptr) {
@@ -154,8 +161,7 @@ start_bus(struct icm20948_bus_option &bus, enum Rotation rotation, bool external
 
 #endif
 
-	bus.dev = new ICM20948(interface, mag_interface, bus.accelpath, bus.gyropath, bus.magpath, rotation,
-			       magnetometer_only);
+	bus.dev = new ICM20948(interface, mag_interface, bus.path, rotation, magnetometer_only);
 
 	if (bus.dev == nullptr) {
 		delete interface;
@@ -171,32 +177,9 @@ start_bus(struct icm20948_bus_option &bus, enum Rotation rotation, bool external
 		goto fail;
 	}
 
-	/*
-	 * Set the poll rate to default, starts automatic data collection.
-	 * Doing this through the mag device for the time being - it's always there, even in magnetometer only mode.
-	 * Using accel device for MPU6500.
-	 */
-	fd = open(bus.magpath, O_RDONLY);
-
-	if (fd < 0) {
-		PX4_INFO("ioctl failed");
-		goto fail;
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		goto fail;
-	}
-
-
-	close(fd);
-
 	return true;
 
 fail:
-
-	if (fd >= 0) {
-		close(fd);
-	}
 
 	if (bus.dev != nullptr) {
 		delete (bus.dev);
@@ -257,32 +240,6 @@ stop(enum ICM20948_BUS busid)
 }
 
 /**
- * Reset the driver.
- */
-void
-reset(enum ICM20948_BUS busid)
-{
-	struct icm20948_bus_option &bus = find_bus(busid);
-	int fd = open(bus.accelpath, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "failed ");
-	}
-
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
-	}
-
-	close(fd);
-
-	exit(0);
-}
-
-/**
  * Print a little info about the driver.
  */
 void
@@ -304,7 +261,7 @@ info(enum ICM20948_BUS busid)
 void
 usage()
 {
-	PX4_INFO("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump', 'testerror'");
+	PX4_INFO("missing command: try 'start', 'info', 'stop',\n 'regdump', 'testerror'");
 	PX4_INFO("options:");
 	PX4_INFO("    -X    (i2c external bus)");
 	PX4_INFO("    -I    (i2c internal bus)");
@@ -381,13 +338,6 @@ icm20948_main(int argc, char *argv[])
 
 	if (!strcmp(verb, "stop")) {
 		icm20948::stop(busid);
-	}
-
-	/*
-	 * Reset the driver.
-	 */
-	if (!strcmp(verb, "reset")) {
-		icm20948::reset(busid);
 	}
 
 	/*
