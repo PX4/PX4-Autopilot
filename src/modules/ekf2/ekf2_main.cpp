@@ -1764,12 +1764,13 @@ bool Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
 		_ekf.get_wind_velocity_var(wind_var);
 
 		// Publish wind estimate
-		wind_estimate_s wind_estimate;
+		wind_estimate_s wind_estimate{};
 		wind_estimate.timestamp = timestamp;
 		wind_estimate.windspeed_north = velNE_wind[0];
 		wind_estimate.windspeed_east = velNE_wind[1];
 		wind_estimate.variance_north = wind_var[0];
 		wind_estimate.variance_east = wind_var[1];
+		wind_estimate.tas_scale = 1.0f; //fix to 1 as scale not estimated in ekf
 
 		_wind_pub.publish(wind_estimate);
 

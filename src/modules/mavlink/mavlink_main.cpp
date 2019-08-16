@@ -450,12 +450,12 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 			// might be nullptr if message is unknown
 			if (meta) {
 				// Extract target system and target component if set
-				if (meta->target_system_ofs != 0) {
-					target_system_id = ((uint8_t *)msg)[meta->target_system_ofs];
+				if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_SYSTEM) {
+					target_system_id = (_MAV_PAYLOAD(msg))[meta->target_system_ofs];
 				}
 
-				if (meta->target_component_ofs != 0) {
-					target_component_id = ((uint8_t *)msg)[meta->target_component_ofs];
+				if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
+					target_component_id = (_MAV_PAYLOAD(msg))[meta->target_component_ofs];
 				}
 			}
 
@@ -1631,6 +1631,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("LOCAL_POSITION_NED", 1.0f);
 		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.5f);
+		configure_stream_local("OBSTACLE_DISTANCE", 5.0f);
 		configure_stream_local("ODOMETRY", 3.0f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 1.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);

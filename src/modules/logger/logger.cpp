@@ -511,6 +511,7 @@ void Logger::add_default_topics()
 	add_topic("actuator_controls_0", 100);
 	add_topic("actuator_controls_1", 100);
 	add_topic("airspeed", 200);
+	add_topic("airspeed_validated", 200);
 	add_topic("camera_capture");
 	add_topic("camera_trigger");
 	add_topic("camera_trigger_secondary");
@@ -973,8 +974,6 @@ void Logger::run()
 				}
 			}
 
-			bool data_written = false;
-
 			/* Check if parameters have changed */
 			if (!_should_stop_file_log) { // do not record param changes after disarming
 				parameter_update_s param_update;
@@ -1016,8 +1015,6 @@ void Logger::run()
 #ifdef DBGPRINT
 						total_bytes += msg_size;
 #endif /* DBGPRINT */
-
-						data_written = true;
 					}
 
 					// mission log
@@ -1030,9 +1027,7 @@ void Logger::run()
 									_mission_subscriptions[sub_idx].next_write_time = (loop_time / 100000) + delta_time / 100;
 								}
 
-								if (write_message(LogType::Mission, _msg_buffer, msg_size)) {
-									data_written = true;
-								}
+								write_message(LogType::Mission, _msg_buffer, msg_size);
 							}
 						}
 					}
@@ -1093,10 +1088,8 @@ void Logger::run()
 			/* release the log buffer */
 			_writer.unlock();
 
-			/* notify the writer thread if data is available */
-			if (data_written) {
-				_writer.notify();
-			}
+			/* notify the writer thread */
+			_writer.notify();
 
 			/* subscription update */
 			if (next_subscribe_topic_index != -1) {
