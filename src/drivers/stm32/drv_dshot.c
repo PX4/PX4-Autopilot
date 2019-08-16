@@ -36,12 +36,16 @@
  * @file drv_dshot.c
 */
 
+
+#ifndef HAVE_IP_DMA_V1 // support only MCUs with DMA_v2
+
 #include <px4_config.h>
 #include <stm32_dma.h>
 #include <stm32_tim.h>
 #include "drv_dshot.h"
 #include "drv_io_timer.h"
 #include <drivers/drv_pwm_output.h>
+
 
 #define REG(_tmr, _reg)			(*(volatile uint32_t *)(io_timers[_tmr].dshot.dma_base + _reg))
 
@@ -395,3 +399,5 @@ int up_dshot_arm(bool armed)
 	return retVal;
 }
 
+
+#endif
