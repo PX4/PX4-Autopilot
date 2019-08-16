@@ -175,7 +175,6 @@ VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 
 				// otherwise fallback to using sensor_gyro (legacy that will be removed)
 				_sensor_control_available = false;
-				_selected_sensor_device_id = 0;
 
 				if (_sensor_sub[sensor_new].register_callback()) {
 					PX4_DEBUG("selected sensor changed %d -> %d", _selected_sensor, sensor_new);
