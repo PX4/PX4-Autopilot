@@ -292,7 +292,7 @@ VehicleAngularVelocity::PrintStatus()
 		PX4_INFO("using sensor_gyro_control: %d (%d)", _selected_sensor_device_id, _selected_sensor_control);
 
 	} else {
-		PX4_WARN("sensor_gyro_control unavailable for selected sensor: %d", _selected_sensor);
+		PX4_WARN("sensor_gyro_control unavailable for selected sensor: %d (%d)", _selected_sensor_device_id,  _selected_sensor);
 	}
 
 	perf_print_counter(_cycle_perf);
