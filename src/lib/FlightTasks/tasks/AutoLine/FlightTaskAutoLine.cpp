@@ -115,7 +115,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 		Vector2f closest_to_dest(_target - _position);
 		Vector2f prev_to_dest(_target - _prev_wp);
 		float speed_sp_track = _mc_cruise_speed;
-		float speed_sp_prev_track = math::max(Vector2f(_velocity_setpoint) * u_prev_to_dest, 0.0f);
+		float speed_sp_prev_track = math::max(fabsf(Vector2f(_velocity_setpoint) * u_prev_to_dest), 0.0f);
 
 		// Distance to target when brake should occur. The assumption is made that
 		// 1.5 * cruising speed is enough to break.
