@@ -223,6 +223,16 @@ bmi088_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(verb, "testsync")) {
+#ifdef GPIO_SYNC
+		PX4_INFO("GPIO_SYNC: 1");
+		px4_arch_gpiowrite(GPIO_SYNC, 1);
+
+		up_udelay(200);
+
+		PX4_INFO("GPIO_SYNC: 1");
+		px4_arch_gpiowrite(GPIO_SYNC, 0);
+#endif // GPIO_SYNC
+
 #ifdef GPIO_DRDY_BMI088_INT2_ACCEL
 		PX4_INFO("GPIO_DRDY_BMI088_INT2_ACCEL: 0");
 		px4_arch_gpiowrite(GPIO_DRDY_BMI088_INT2_ACCEL, 0);
