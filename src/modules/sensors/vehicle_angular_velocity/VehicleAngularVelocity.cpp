@@ -152,7 +152,7 @@ VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 
 				const int sensor_new = corrections.selected_gyro_instance;
 
-				// subscribe to sensor_gyro_control if avialable
+				// subscribe to sensor_gyro_control if available
 				//  currently not all drivers (eg df_*) provide sensor_gyro_control
 				for (int i = 0; i < MAX_SENSOR_COUNT; i++) {
 					sensor_gyro_control_s report{};
