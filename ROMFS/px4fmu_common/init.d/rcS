@@ -321,7 +321,7 @@ else
 	then
 		set OUTPUT_MODE hil
 		sensors start -h
-		commander start --hil
+		commander start -h
 		# disable GPS
 		param set GPS_1_CONFIG 0
 
