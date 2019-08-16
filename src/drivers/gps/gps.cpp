@@ -416,6 +416,10 @@ void GPS::handleInjectDataTopic()
 {
 	bool updated = false;
 
+	// Limit maximum number of GPS injections to 6 since usually
+	// GPS injections should consist of 1-4 packets (GPS, Glonass, Baidu, Galileo).
+	// Looking at 6 packets thus guarantees, that at least a full injection
+	// data set is evaluated.
 	const size_t max_num_injections = 6;
 	size_t num_injections = 0;
 	do {
