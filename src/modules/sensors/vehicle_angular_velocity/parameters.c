@@ -34,14 +34,13 @@
 /**
 * Driver level cutoff frequency for gyro
 *
-* The cutoff frequency for the 2nd order butterworth filter on the gyro driver. This features
-* is currently supported by the mpu6000 and mpu9250. This only affects the signal sent to the
-* controllers, not the estimators. 0 disables the filter.
+* The cutoff frequency for the 2nd order butterworth filter on the gyro driver.
+* This only affects the signal sent to the controllers, not the estimators.
+* 0 disables the filter.
 *
 * @min 0
 * @max 1000
 * @unit Hz
-* @reboot_required true
 * @group Sensors
 */
 PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
