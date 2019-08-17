@@ -79,6 +79,39 @@ typedef enum dshot_dma_stream_t {
 	DShot_Stream7	= 7u
 }dshot_dma_stream_t;
 
+typedef enum {
+    DShot_cmd_motor_stop = 0,
+    DShot_cmd_beacon1,
+    DShot_cmd_beacon2,
+    DShot_cmd_beacon3,
+    DShot_cmd_beacon4,
+    DShot_cmd_beacon5,
+    DShot_cmd_esc_info, // V2 includes settings
+    DShot_cmd_spin_direction_1,
+    DShot_cmd_spin_direction_2,
+    DShot_cmd_3d_mode_off,
+    DShot_cmd_3d_mode_on,
+    DShot_cmd_settings_request, // Currently not implemented
+    DShot_cmd_save_settings,
+    DShot_cmd_spin_direction_normal = 20,
+    DShot_cmd_spin_direction_reversed = 21,
+    DShot_cmd_led0_on, // BLHeli32 only
+    DShot_cmd_led1_on, // BLHeli32 only
+    DShot_cmd_led2_on, // BLHeli32 only
+    DShot_cmd_led3_on, // BLHeli32 only
+    DShot_cmd_led0_off, // BLHeli32 only
+    DShot_cmd_led1_off, // BLHeli32 only
+    DShot_cmd_led2_off, // BLHeli32 only
+    DShot_cmd_led4_off, // BLHeli32 only
+    DShot_cmd_audio_stream_mode_on_off = 30, // KISS audio Stream mode on/off
+    DShot_cmd_silent_mode_on_off = 31, // KISS silent Mode on/off
+    DShot_cmd_signal_line_telemeetry_disable = 32,
+    DShot_cmd_signal_line_continuous_erpm_telemetry = 33,
+    DShot_cmd_MAX = 47
+	// >47 are throttle values
+} dshot_command_t;
+
+
 /* The structure which contains configuration for DShot
  */
 typedef struct dshot_conf_t {

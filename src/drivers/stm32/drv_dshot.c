@@ -333,7 +333,7 @@ void up_dshot_trigger(void)
 * bit 	12		- dshot telemetry enable/disable
 * bits 	13-16	- XOR checksum
 **/
-void up_dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool telemetry)
+static void dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool telemetry)
 {
 	uint16_t packet = 0;
 	uint16_t checksum = 0;
@@ -342,7 +342,7 @@ void up_dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool tele
 	motor_number = motor_assignment[motor_number];
 #endif /* BOARD_DSHOT_MOTOR_ASSIGNMENT */
 
-	packet |= (throttle+48) << DSHOT_THROTTLE_POSITION;
+	packet |= throttle << DSHOT_THROTTLE_POSITION;
 	packet |= ((uint16_t)telemetry & 0x01) << DSHOT_TELEMETRY_POSITION;
 
 	uint32_t i;
@@ -366,6 +366,17 @@ void up_dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool tele
 	motor_buffer[motor_number][17] = 0;
 }
 
+void up_dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool telemetry)
+{
+	dshot_motor_data_set(motor_number, throttle + 48, telemetry);
+}
+
+void up_dshot_motor_command(unsigned channel, uint16_t command)
+{
+	// FIXME: need to set telemetry to true -> why?
+	dshot_motor_data_set(channel, command, true);
+}
+
 void dshot_dmar_data_prepare(uint8_t timer, uint8_t first_motor, uint8_t motors_number)
 {
 	for(uint32_t motor_data_index = 0; motor_data_index < ONE_MOTOR_BUFF_SIZE ; motor_data_index++)
@@ -387,10 +398,8 @@ int up_dshot_arm(bool armed)
 
 		if(OK == success) {
 
-			// Arming for dshot is repeating any throttle value less than 47.
 			for(uint32_t motorNumber = 0; motorNumber < MOTORS_NUMBER; motorNumber++) {
-				uint16_t throttle = 0;
-				up_dshot_motor_data_set(motorNumber, throttle, false);
+				up_dshot_motor_command(motorNumber, DShot_cmd_motor_stop);
 			}
 
 			for(uint32_t i = 0; i < ARMING_REPETITION; i++) {
