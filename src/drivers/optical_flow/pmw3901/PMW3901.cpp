@@ -33,6 +33,8 @@
 
 #include "PMW3901.hpp"
 
+static constexpr uint32_t TIME_us_TSWW = 11; //  - actually 10.5us
+
 PMW3901::PMW3901(int bus, enum Rotation yaw_rotation) :
 	SPI("PMW3901", PMW3901_DEVICE_PATH, bus, PMW3901_SPIDEV, SPIDEV_MODE0, PMW3901_SPI_BUS_SPEED),
 	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
@@ -71,6 +73,7 @@ PMW3901::sensorInit()
 	usleep(1000);
 
 	// set performance optimization registers
+	// from PixArt PMW3901MB Optical Motion Tracking chip demo kit V3.20 (21 Aug 2018)
 	unsigned char v = 0;
 	unsigned char c1 = 0;
 	unsigned char c2 = 0;
@@ -286,6 +289,8 @@ PMW3901::writeRegister(unsigned reg, uint8_t data)
 		DEVICE_LOG("spi::transfer returned %d", ret);
 		return ret;
 	}
+
+	px4_usleep(TIME_us_TSWW);
 
 	return ret;
 }
