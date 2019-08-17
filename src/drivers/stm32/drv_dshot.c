@@ -119,9 +119,13 @@ typedef struct dshot_handler_t {
 	uint8_t			motors_number;
 }dshot_handler_t;
 
-dshot_handler_t dshot_handler[DSHOT_TIMERS] = {0};
-uint32_t motor_buffer[MOTORS_NUMBER][ONE_MOTOR_BUFF_SIZE] = {0};
-uint32_t dshot_burst_buffer[DSHOT_TIMERS][ALL_MOTORS_BUF_SIZE] = {0};
+static dshot_handler_t dshot_handler[DSHOT_TIMERS] = {0};
+static uint32_t motor_buffer[MOTORS_NUMBER][ONE_MOTOR_BUFF_SIZE] = {0};
+static uint32_t dshot_burst_buffer[DSHOT_TIMERS][ALL_MOTORS_BUF_SIZE] = {0};
+
+#ifdef BOARD_DSHOT_MOTOR_ASSIGNMENT
+static const uint8_t motor_assignment[MOTORS_NUMBER] = BOARD_DSHOT_MOTOR_ASSIGNMENT;
+#endif /* BOARD_DSHOT_MOTOR_ASSIGNMENT */
 
 void dshot_dmar_data_prepare(uint8_t timer, uint8_t first_motor, uint8_t motors_number);
 int dshot_setup_stream_registers(uint32_t timer);
@@ -146,7 +150,12 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 			if (OK == success ){
 				channel_mask &= ~(1 << channel);
 				timer = timer_io_channels[channel].timer_index;
-				dshot_handler[timer].init = true;
+				if (io_timers[timer].dshot.dma_base == 0) { // board does not configure dshot
+					io_timer_free_channel(channel);
+					ret_val = ERROR;
+				} else {
+					dshot_handler[timer].init = true;
+				}
 			} else {
 				ret_val = ERROR;
 			}
@@ -329,7 +338,11 @@ void up_dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool tele
 	uint16_t packet = 0;
 	uint16_t checksum = 0;
 
-	packet |= throttle << DSHOT_THROTTLE_POSITION;
+#ifdef BOARD_DSHOT_MOTOR_ASSIGNMENT
+	motor_number = motor_assignment[motor_number];
+#endif /* BOARD_DSHOT_MOTOR_ASSIGNMENT */
+
+	packet |= (throttle+48) << DSHOT_THROTTLE_POSITION;
 	packet |= ((uint16_t)telemetry & 0x01) << DSHOT_TELEMETRY_POSITION;
 
 	uint32_t i;
