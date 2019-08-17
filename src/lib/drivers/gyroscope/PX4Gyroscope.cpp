@@ -38,7 +38,6 @@
 
 PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation rotation) :
 	CDev(nullptr),
-	ModuleParams(nullptr),
 	_sensor_gyro_pub{ORB_ID(sensor_gyro), priority},
 	_sensor_gyro_control_pub{ORB_ID(sensor_gyro_control), priority},
 	_rotation{rotation}
@@ -48,10 +47,6 @@ PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation r
 	_sensor_gyro_pub.get().device_id = device_id;
 	_sensor_gyro_pub.get().scaling = 1.0f;
 	_sensor_gyro_control_pub.get().device_id = device_id;
-
-	// set software low pass filter for controllers
-	updateParams();
-	configure_filter(_param_imu_gyro_cutoff.get());
 }
 
 PX4Gyroscope::~PX4Gyroscope()
@@ -100,13 +95,6 @@ PX4Gyroscope::set_device_type(uint8_t devtype)
 }
 
 void
-PX4Gyroscope::set_sample_rate(unsigned rate)
-{
-	_sample_rate = rate;
-	_filter.set_cutoff_frequency(_sample_rate, _filter.get_cutoff_freq());
-}
-
-void
 PX4Gyroscope::update(hrt_abstime timestamp, float x, float y, float z)
 {
 	sensor_gyro_s &report = _sensor_gyro_pub.get();
@@ -120,13 +108,10 @@ PX4Gyroscope::update(hrt_abstime timestamp, float x, float y, float z)
 	// Apply range scale and the calibrating offset/scale
 	const matrix::Vector3f val_calibrated{(((raw * report.scaling) - _calibration_offset).emult(_calibration_scale))};
 
-	// Filtered values
-	const matrix::Vector3f val_filtered{_filter.apply(val_calibrated)};
-
-	// publish control data (filtered gyro) immediately
+	// publish control data immediately
 	sensor_gyro_control_s &control = _sensor_gyro_control_pub.get();
 	control.timestamp_sample = timestamp;
-	val_filtered.copyTo(control.xyz);
+	val_calibrated.copyTo(control.xyz);
 	control.timestamp = hrt_absolute_time();
 	_sensor_gyro_control_pub.update();	// publish
 
@@ -141,9 +126,9 @@ PX4Gyroscope::update(hrt_abstime timestamp, float x, float y, float z)
 		report.y_raw = y;
 		report.z_raw = z;
 
-		report.x = val_filtered(0);
-		report.y = val_filtered(1);
-		report.z = val_filtered(2);
+		report.x = val_calibrated(0);
+		report.y = val_calibrated(1);
+		report.z = val_calibrated(2);
 
 		report.integral_dt = integral_dt;
 		report.x_integral = integrated_value(0);
@@ -159,8 +144,6 @@ void
 PX4Gyroscope::print_status()
 {
 	PX4_INFO(GYRO_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
-	PX4_INFO("sample rate: %d Hz", _sample_rate);
-	PX4_INFO("filter cutoff: %.3f Hz", (double)_filter.get_cutoff_freq());
 
 	PX4_INFO("calibration scale: %.5f %.5f %.5f", (double)_calibration_scale(0), (double)_calibration_scale(1),
 		 (double)_calibration_scale(2));

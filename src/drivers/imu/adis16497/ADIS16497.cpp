@@ -85,7 +85,6 @@ ADIS16497::ADIS16497(int bus, uint32_t device, enum Rotation rotation) :
 	_px4_accel.set_scale(1.25f * CONSTANTS_ONE_G / 1000.0f); // accel 1.25 mg/LSB
 
 	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_ADIS16497);
-	_px4_gyro.set_sample_rate(ADIS16497_DEFAULT_RATE);
 	_px4_gyro.set_scale(math::radians(0.025f)); // gyro 0.025 °/sec/LSB
 }
 

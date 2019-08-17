@@ -571,6 +571,31 @@ perf_event_count(perf_counter_t handle)
 	return 0;
 }
 
+float
+perf_mean(perf_counter_t handle)
+{
+	if (handle == nullptr) {
+		return 0;
+	}
+
+	switch (handle->type) {
+	case PC_ELAPSED: {
+			struct perf_ctr_elapsed *pce = (struct perf_ctr_elapsed *)handle;
+			return pce->mean;
+		}
+
+	case PC_INTERVAL: {
+			struct perf_ctr_interval *pci = (struct perf_ctr_interval *)handle;
+			return pci->mean;
+		}
+
+	default:
+		break;
+	}
+
+	return 0.0f;
+}
+
 void
 perf_iterate_all(perf_callback cb, void *user)
 {

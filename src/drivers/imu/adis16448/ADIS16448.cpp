@@ -260,7 +260,6 @@ ADIS16448::set_sample_rate(uint16_t desired_sample_rate_hz)
 	}
 
 	_px4_accel.set_sample_rate(desired_sample_rate_hz);
-	_px4_gyro.set_sample_rate(desired_sample_rate_hz);
 
 	return true;
 }

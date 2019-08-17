@@ -37,6 +37,7 @@
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/perf/perf_counter.h>
+#include <lib/mathlib/math/filter/LowPassFilter2pVector3f.hpp>
 #include <px4_config.h>
 #include <px4_log.h>
 #include <px4_module_params.h>
@@ -69,6 +70,7 @@ public:
 
 private:
 
+	void	CheckFilter();
 	void	ParametersUpdate(bool force = false);
 	void	SensorBiasUpdate(bool force = false);
 	bool	SensorCorrectionsUpdate(bool force = false);
@@ -76,6 +78,8 @@ private:
 	static constexpr int MAX_SENSOR_COUNT = 3;
 
 	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::IMU_GYRO_CUTOFF>) _param_imu_gyro_cutoff,
+
 		(ParamInt<px4::params::SENS_BOARD_ROT>) _param_sens_board_rot,
 
 		(ParamFloat<px4::params::SENS_BOARD_X_OFF>) _param_sens_board_x_off,
@@ -103,11 +107,17 @@ private:
 		{this, ORB_ID(sensor_gyro_control), 2}
 	};
 
-	matrix::Dcmf				_board_rotation;				/**< rotation matrix for the orientation that the board is mounted */
+	matrix::Dcmf				_board_rotation;					/**< rotation matrix for the orientation that the board is mounted */
 
 	matrix::Vector3f			_offset;
 	matrix::Vector3f			_scale;
 	matrix::Vector3f			_bias;
+
+	static constexpr const float		kINITIAL_RATE_HZ{1000.0f};				/**< sensor update rate used for initialization */
+	float					_update_rate_hz{kINITIAL_RATE_HZ};			/**< current rate-controller loop update rate in [Hz] */
+	math::LowPassFilter2pVector3f		_filter{kINITIAL_RATE_HZ, 30};
+	float					_filter_sample_rate{kINITIAL_RATE_HZ};
+	int					_sample_rate_incorrect_count{0};
 
 	perf_counter_t				_cycle_perf;
 	perf_counter_t				_interval_perf;

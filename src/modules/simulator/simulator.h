@@ -186,7 +186,6 @@ private:
 		_battery_status.timestamp = hrt_absolute_time();
 
 		_px4_accel.set_sample_rate(250);
-		_px4_gyro.set_sample_rate(250);
 	}
 
 	~Simulator()

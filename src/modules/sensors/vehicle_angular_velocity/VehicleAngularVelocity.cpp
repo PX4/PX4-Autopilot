@@ -88,6 +88,30 @@ VehicleAngularVelocity::Stop()
 }
 
 void
+VehicleAngularVelocity::CheckFilter()
+{
+	// calculate sensor update rate
+	const float update_rate_hz = 1.0f / perf_mean(_interval_perf);
+
+	if ((fabsf(update_rate_hz) > 0.0f) && PX4_ISFINITE(update_rate_hz)) {
+		_update_rate_hz = update_rate_hz;
+	}
+
+	if (_sample_rate_incorrect_count > 3000) {
+		PX4_INFO("updating filter, sample rate: %.3f Hz -> %.3f Hz", (double)_filter_sample_rate, (double)_update_rate_hz);
+		_filter_sample_rate = _update_rate_hz;
+		_filter.set_cutoff_frequency(_filter_sample_rate, _param_imu_gyro_cutoff.get());
+
+		// reset state
+		_sample_rate_incorrect_count = 0;
+	}
+
+	if (fabsf(_update_rate_hz - _filter_sample_rate) > 5.0f) {
+		++_sample_rate_incorrect_count;
+	}
+}
+
+void
 VehicleAngularVelocity::SensorBiasUpdate(bool force)
 {
 	if (_sensor_bias_sub.updated() || force) {
@@ -200,6 +224,11 @@ VehicleAngularVelocity::ParametersUpdate(bool force)
 
 		updateParams();
 
+		if (fabsf(_filter.get_cutoff_freq() - _param_imu_gyro_cutoff.get()) > 0.01f) {
+			_filter_sample_rate = _update_rate_hz;
+			_filter.set_cutoff_frequency(_filter_sample_rate, _param_imu_gyro_cutoff.get());
+		}
+
 		// get transformation matrix from sensor/board to body frame
 		const matrix::Dcmf board_rotation = get_rot_matrix((enum Rotation)_param_sens_board_rot.get());
 
@@ -227,10 +256,12 @@ VehicleAngularVelocity::Run()
 		sensor_gyro_control_s sensor_data;
 
 		if (_sensor_control_sub[_selected_sensor].update(&sensor_data)) {
-			perf_set_elapsed(_sensor_latency_perf, hrt_elapsed_time(&sensor_data.timestamp));
+			perf_set_elapsed(_sensor_latency_perf, hrt_elapsed_time(&sensor_data.timestamp_sample));
 
 			ParametersUpdate();
 			SensorBiasUpdate();
+
+			CheckFilter();
 
 			// get the sensor data and correct for thermal errors (apply offsets and scale)
 			Vector3f rates{(Vector3f{sensor_data.xyz} - _offset).emult(_scale)};
@@ -241,9 +272,12 @@ VehicleAngularVelocity::Run()
 			// correct for in-run bias errors
 			rates -= _bias;
 
+			// Filtered values
+			const matrix::Vector3f rates_filtered = _filter.apply(rates);
+
 			vehicle_angular_velocity_s angular_velocity;
-			angular_velocity.timestamp_sample = sensor_data.timestamp;
-			rates.copyTo(angular_velocity.xyz);
+			angular_velocity.timestamp_sample = sensor_data.timestamp_sample;
+			rates_filtered.copyTo(angular_velocity.xyz);
 			angular_velocity.timestamp = hrt_absolute_time();
 
 			_vehicle_angular_velocity_pub.publish(angular_velocity);
@@ -294,6 +328,9 @@ VehicleAngularVelocity::PrintStatus()
 	} else {
 		PX4_WARN("sensor_gyro_control unavailable for selected sensor: %d (%d)", _selected_sensor_device_id,  _selected_sensor);
 	}
+
+	PX4_INFO("sample rate: %.3f Hz", (double)_update_rate_hz);
+	PX4_INFO("filter sample rate: %.3f Hz cutoff: %.3f Hz", (double)_filter_sample_rate, (double)_filter.get_cutoff_freq());
 
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_interval_perf);

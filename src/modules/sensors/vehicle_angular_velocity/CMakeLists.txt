@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(sensors__vehicle_angular_velocity
+px4_add_library(vehicle_angular_velocity
 	VehicleAngularVelocity.cpp
 )
-target_link_libraries(sensors__vehicle_angular_velocity PRIVATE px4_work_queue)
+target_link_libraries(vehicle_angular_velocity PRIVATE px4_work_queue)

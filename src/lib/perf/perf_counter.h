@@ -228,6 +228,14 @@ __EXPORT extern void		perf_reset_all(void);
  */
 __EXPORT extern uint64_t	perf_event_count(perf_counter_t handle);
 
+/**
+ * Return current mean
+ *
+ * @param handle		The handle returned from perf_alloc.
+ * @param return		mean
+ */
+__EXPORT extern float		perf_mean(perf_counter_t handle);
+
 __END_DECLS
 
 #endif
