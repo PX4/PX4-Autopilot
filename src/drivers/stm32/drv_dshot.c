@@ -37,7 +37,9 @@
 */
 
 
-#ifndef HAVE_IP_DMA_V1 // support only MCUs with DMA_v2
+#if (CONFIG_STM32_HAVE_IP_DMA_V1)
+	//Do nothing. IP DMA V1 MCUs are not supported.
+#else
 
 #include <px4_config.h>
 #include <stm32_dma.h>
