@@ -79,6 +79,7 @@
                 "**/build/*": true
         },
         "git.detectSubmodulesLimit": 20,
+        "git.ignoreLimitWarning": true,
         "files.associations": {
                 "*.jinja": "jinja"
         },
@@ -89,6 +90,5 @@
         "window.title": "${dirty} ${activeEditorMedium}${separator}${rootName}",
         "workbench.editor.highlightModifiedTabs": true,
         "workbench.settings.enableNaturalLanguageSearch": false,
-        "workbench.statusBar.feedback.visible": false,
-        "git.ignoreLimitWarning": true
+        "workbench.statusBar.feedback.visible": false
 }
