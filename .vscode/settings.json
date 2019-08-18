@@ -65,6 +65,7 @@
         "C_Cpp.intelliSenseEngineFallback": "Disabled",
         "debug.toolBarLocation": "docked",
         "editor.defaultFormatter": "chiehyu.vscode-astyle",
+        "editor.dragAndDrop": false,
         "editor.insertSpaces": false,
         "editor.minimap.maxColumn": 120,
         "editor.minimap.renderCharacters": false,
