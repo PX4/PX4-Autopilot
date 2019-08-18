@@ -81,6 +81,7 @@
         },
         "git.detectSubmodulesLimit": 20,
         "git.ignoreLimitWarning": true,
+        "githubPullRequests.defaultMergeMethod": "squash",
         "githubPullRequests.telemetry.enabled": false,
         "gitlens.advanced.telemetry.enabled": false,
         "files.associations": {
