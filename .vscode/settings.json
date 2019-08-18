@@ -53,6 +53,7 @@
                         ]
                 }
         },
+        "cortex-debug.enableTelemetry": false,
         "C_Cpp.clang_format_fallbackStyle": "none",
         "C_Cpp.configurationWarnings": "Disabled",
         "C_Cpp.default.cppStandard": "c++11",
@@ -80,6 +81,8 @@
         },
         "git.detectSubmodulesLimit": 20,
         "git.ignoreLimitWarning": true,
+        "githubPullRequests.telemetry.enabled": false,
+        "gitlens.advanced.telemetry.enabled": false,
         "files.associations": {
                 "*.jinja": "jinja"
         },
@@ -87,8 +90,10 @@
                 "build/**": true
         },
         "search.showLineNumbers": true,
+        "telemetry.enableTelemetry": false,
         "window.title": "${dirty} ${activeEditorMedium}${separator}${rootName}",
         "workbench.editor.highlightModifiedTabs": true,
+        "workbench.enableExperiments": false,
         "workbench.settings.enableNaturalLanguageSearch": false,
         "workbench.statusBar.feedback.visible": false
 }
