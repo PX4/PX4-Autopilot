@@ -156,7 +156,8 @@ RoverPositionControl::control_position(const matrix::Vector2f &current_position,
 
 	bool setpoint = true;
 
-	if (_control_mode.flag_control_auto_enabled && pos_sp_triplet.current.valid) {
+	if ((_control_mode.flag_control_auto_enabled ||
+		_control_mode.flag_control_offboard_enabled) && pos_sp_triplet.current.valid) {
 		/* AUTONOMOUS FLIGHT */
 
 		_control_mode_current = UGV_POSCTRL_MODE_AUTO;
@@ -328,6 +329,18 @@ RoverPositionControl::run()
 
 			position_setpoint_triplet_poll();
 			vehicle_attitude_poll();
+
+			//Convert Local setpoints to global setpoints
+			if (_control_mode.flag_control_offboard_enabled) {
+				if (!globallocalconverter_initialized()) {
+					globallocalconverter_init(_local_pos.ref_lat, _local_pos.ref_lon,
+								  _local_pos.ref_alt, _local_pos.ref_timestamp);
+
+				} else {
+					globallocalconverter_toglobal(_pos_sp_triplet.current.x, _pos_sp_triplet.current.y, _pos_sp_triplet.current.z,
+								      &_pos_sp_triplet.current.lat, &_pos_sp_triplet.current.lon, &_pos_sp_triplet.current.alt);
+				}
+			}
 
 			// update the reset counters in any case
 			_pos_reset_counter = _global_pos.lat_lon_reset_counter;
