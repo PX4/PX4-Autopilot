@@ -75,6 +75,9 @@
         "explorer.openEditors.visible": 0,
         "files.insertFinalNewline": true,
         "files.trimTrailingWhitespace": true,
+        "files.watcherExclude": {
+                "**/build/*": true
+        },
         "git.detectSubmodulesLimit": 20,
         "files.associations": {
                 "*.jinja": "jinja"
