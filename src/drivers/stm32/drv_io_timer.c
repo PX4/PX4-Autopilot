@@ -497,21 +497,25 @@ int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_t dma_
 	int ret_val = OK;
 	uint32_t tim_dma_burst_length;
 
-	if(1u == dma_burst_length) {
+	if (1u == dma_burst_length) {
 		tim_dma_burst_length = TIM_DMABURSTLENGTH_1TRANSFER;
-	} else if(2u == dma_burst_length) {
+
+	} else if (2u == dma_burst_length) {
 		tim_dma_burst_length = TIM_DMABURSTLENGTH_2TRANSFERS;
-	} else if(3u == dma_burst_length) {
+
+	} else if (3u == dma_burst_length) {
 		tim_dma_burst_length = TIM_DMABURSTLENGTH_3TRANSFERS;
-	} else if(4u == dma_burst_length) {
+
+	} else if (4u == dma_burst_length) {
 		tim_dma_burst_length = TIM_DMABURSTLENGTH_4TRANSFERS;
+
 	} else {
 		ret_val = ERROR;
 	}
 
-	if(OK == ret_val) {
+	if (OK == ret_val) {
 		rARR(timer)  = DSHOT_MOTOR_PWM_BIT_WIDTH;
-		rPSC(timer)  = ((int)(io_timers[timer].clock_freq / dshot_pwm_freq)/DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
+		rPSC(timer)  = ((int)(io_timers[timer].clock_freq / dshot_pwm_freq) / DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
 		rEGR(timer)  = ATIM_EGR_UG;
 		rDCR(timer)  = (io_timers[timer].dshot.start_ccr_register | tim_dma_burst_length);
 		rDIER(timer) = ATIM_DIER_UDE;
@@ -634,7 +638,7 @@ int io_timer_set_rate(unsigned timer, unsigned rate)
 			 channel_allocations[IOTimerChanMode_PWMOut] |
 			 channel_allocations[IOTimerChanMode_OneShot] |
 			 channel_allocations[IOTimerChanMode_NotUsed])) ==
-		channels) {
+	    channels) {
 
 		/* Change only a timer that is owned by pwm or one shot */
 
@@ -651,10 +655,12 @@ int io_timer_set_rate(unsigned timer, unsigned rate)
 			int changePWMOut = reallocate_channel_resources(channels, IOTimerChanMode_PWMOut, IOTimerChanMode_OneShot);
 			int changeDshot = reallocate_channel_resources(channels, IOTimerChanMode_Dshot, IOTimerChanMode_OneShot);
 			int changedChannels = changePWMOut | changeDshot;
+
 			/* Did the allocation change */
 			if (changedChannels) {
 				io_timer_set_oneshot_mode(timer);
 			}
+
 		} else {
 
 			/* Request to use PWM
@@ -866,7 +872,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 			if ((state &&
 			     (mode == IOTimerChanMode_PWMOut ||
 			      mode == IOTimerChanMode_OneShot ||
-				  mode == IOTimerChanMode_Dshot ||
+			      mode == IOTimerChanMode_Dshot ||
 			      mode == IOTimerChanMode_Trigger))) {
 				action_cache[timer].gpio[shifts] = timer_io_channels[chan_index].gpio_out;
 			}
@@ -927,7 +933,7 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 	if (rv == 0) {
 		if ((mode != IOTimerChanMode_PWMOut) &&
 		    (mode != IOTimerChanMode_OneShot) &&
-			(mode != IOTimerChanMode_Dshot) &&
+		    (mode != IOTimerChanMode_Dshot) &&
 		    (mode != IOTimerChanMode_Trigger)) {
 
 			rv = -EIO;

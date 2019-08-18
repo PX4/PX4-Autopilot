@@ -77,7 +77,7 @@ int up_pwm_servo_init(uint32_t channel_mask)
 {
 	/* Init channels */
 	uint32_t current = io_timer_get_mode_channels(IOTimerChanMode_PWMOut) |
-				io_timer_get_mode_channels(IOTimerChanMode_OneShot);
+			   io_timer_get_mode_channels(IOTimerChanMode_OneShot);
 
 	/* First free the current set of PWMs */
 

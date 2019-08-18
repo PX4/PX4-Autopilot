@@ -38,7 +38,7 @@
 
 
 #if (CONFIG_STM32_HAVE_IP_DMA_V1)
-	//Do nothing. IP DMA V1 MCUs are not supported.
+//Do nothing. IP DMA V1 MCUs are not supported.
 #else
 
 #include <px4_config.h>
@@ -119,7 +119,7 @@
 typedef struct dshot_handler_t {
 	bool			init;
 	uint8_t			motors_number;
-}dshot_handler_t;
+} dshot_handler_t;
 
 static dshot_handler_t dshot_handler[DSHOT_TIMERS] = {0};
 static uint32_t motor_buffer[MOTORS_NUMBER][ONE_MOTOR_BUFF_SIZE] = {0};
@@ -139,7 +139,7 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 	uint8_t timer;
 
 	/* Init channels */
-	for (unsigned channel = 0; (channel_mask != 0) &&  (channel < MAX_TIMER_IO_CHANNELS) && (OK == ret_val); channel++) {
+	for (unsigned channel = 0; (channel_mask != 0) && (channel < MAX_TIMER_IO_CHANNELS) && (OK == ret_val); channel++) {
 		if (channel_mask & (1 << channel)) {
 
 			// First free any that were not DShot mode before
@@ -149,15 +149,18 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 
 			int success = io_timer_channel_init(channel, IOTimerChanMode_Dshot, NULL, NULL);
 
-			if (OK == success ){
+			if (OK == success) {
 				channel_mask &= ~(1 << channel);
 				timer = timer_io_channels[channel].timer_index;
+
 				if (io_timers[timer].dshot.dma_base == 0) { // board does not configure dshot
 					io_timer_free_channel(channel);
 					ret_val = ERROR;
+
 				} else {
 					dshot_handler[timer].init = true;
 				}
+
 			} else {
 				ret_val = ERROR;
 			}
@@ -172,6 +175,7 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 			ret_val = dshot_setup_stream_registers(timer_index);
 		}
 	}
+
 	return ret_val;
 }
 
@@ -180,82 +184,82 @@ int dshot_setup_stream_registers(uint32_t timer)
 	int ret_val = OK;
 
 	switch (io_timers[timer].dshot.stream) {
-		case DShot_Stream0:
-			rS0CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
-			rS0CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
-			rS0CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
-			rS0PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
-			rS0M0AR(timer) = (uint32_t)&(dshot_burst_buffer[timer]);
-			rS0FCR(timer) &= 0x0;  /* Disable FIFO */
-			break;
+	case DShot_Stream0:
+		rS0CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
+		rS0CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
+		rS0CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
+		rS0PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
+		rS0M0AR(timer) = (uint32_t)(&(dshot_burst_buffer[timer]));
+		rS0FCR(timer) &= 0x0;  /* Disable FIFO */
+		break;
 
-		case DShot_Stream1:
-			rS1CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
-			rS1CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
-			rS1CR(timer) |= DMA_SCR_DIR_M2P;
-			rS1CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
-			rS1PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
-			rS1M0AR(timer) = (uint32_t)&(dshot_burst_buffer[timer]);
-			rS1FCR(timer) &= 0x0;  /* Disable FIFO */
-			break;
+	case DShot_Stream1:
+		rS1CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
+		rS1CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
+		rS1CR(timer) |= DMA_SCR_DIR_M2P;
+		rS1CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
+		rS1PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
+		rS1M0AR(timer) = (uint32_t)(&(dshot_burst_buffer[timer]));
+		rS1FCR(timer) &= 0x0;  /* Disable FIFO */
+		break;
 
-		case DShot_Stream2:
-			rS2CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
-			rS2CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
-			rS2CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
-			rS2PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
-			rS2M0AR(timer) = (uint32_t)&(dshot_burst_buffer[timer]);
-			rS2FCR(timer) &= 0x0;  /* Disable FIFO */
-			break;
+	case DShot_Stream2:
+		rS2CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
+		rS2CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
+		rS2CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
+		rS2PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
+		rS2M0AR(timer) = (uint32_t)(&(dshot_burst_buffer[timer]));
+		rS2FCR(timer) &= 0x0;  /* Disable FIFO */
+		break;
 
-		case DShot_Stream3:
-			rS3CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
-			rS3CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
-			rS3CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
-			rS3PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
-			rS3M0AR(timer) = (uint32_t)&(dshot_burst_buffer[timer]);
-			rS3FCR(timer) &= 0x0;  /* Disable FIFO */
-			break;
+	case DShot_Stream3:
+		rS3CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
+		rS3CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
+		rS3CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
+		rS3PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
+		rS3M0AR(timer) = (uint32_t)(&(dshot_burst_buffer[timer]));
+		rS3FCR(timer) &= 0x0;  /* Disable FIFO */
+		break;
 
-		case DShot_Stream4:
-			rS4CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
-			rS4CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
-			rS4CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
-			rS4PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
-			rS4M0AR(timer) = (uint32_t)&(dshot_burst_buffer[timer]);
-			rS4FCR(timer) &= 0x0;  /* Disable FIFO */
-			break;
+	case DShot_Stream4:
+		rS4CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
+		rS4CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
+		rS4CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
+		rS4PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
+		rS4M0AR(timer) = (uint32_t)(&(dshot_burst_buffer[timer]));
+		rS4FCR(timer) &= 0x0;  /* Disable FIFO */
+		break;
 
-		case DShot_Stream5:
-			rS5CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
-			rS5CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
-			rS5CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
-			rS5PAR(timer)  =  io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
-			rS5M0AR(timer) = (uint32_t)&(dshot_burst_buffer[timer]);
-			rS5FCR(timer) &= 0x0;  /* Disable FIFO */
-			break;
+	case DShot_Stream5:
+		rS5CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
+		rS5CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
+		rS5CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
+		rS5PAR(timer)  =  io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
+		rS5M0AR(timer) = (uint32_t)(&(dshot_burst_buffer[timer]));
+		rS5FCR(timer) &= 0x0;  /* Disable FIFO */
+		break;
 
-		case DShot_Stream6:
-			rS6CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
-			rS6CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
-			rS6CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
-			rS6PAR(timer)  =  io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
-			rS6M0AR(timer) = (uint32_t)&(dshot_burst_buffer[timer]);
-			rS6FCR(timer) &= 0x0;  /* Disable FIFO */
-			break;
+	case DShot_Stream6:
+		rS6CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
+		rS6CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
+		rS6CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
+		rS6PAR(timer)  =  io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
+		rS6M0AR(timer) = (uint32_t)(&(dshot_burst_buffer[timer]));
+		rS6FCR(timer) &= 0x0;  /* Disable FIFO */
+		break;
 
-		case DShot_Stream7:
-			rS7CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
-			rS7CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
-			rS7CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
-			rS7PAR(timer)  =  io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
-			rS7M0AR(timer) = (uint32_t)&(dshot_burst_buffer[timer]);
-			rS7FCR(timer) &= 0x0;  /* Disable FIFO */
-			break;
+	case DShot_Stream7:
+		rS7CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
+		rS7CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
+		rS7CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
+		rS7PAR(timer)  =  io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
+		rS7M0AR(timer) = (uint32_t)(&(dshot_burst_buffer[timer]));
+		rS7FCR(timer) &= 0x0;  /* Disable FIFO */
+		break;
 
-		default:
-			ret_val = ERROR;
-			break;
+	default:
+		ret_val = ERROR;
+		break;
 	}
 
 	return ret_val;
@@ -264,6 +268,7 @@ int dshot_setup_stream_registers(uint32_t timer)
 void up_dshot_trigger(void)
 {
 	uint8_t first_motor = 0;
+
 	for (uint8_t timer = 0; (timer < DSHOT_TIMERS); timer++) {
 
 		if (true == dshot_handler[timer].init) {
@@ -352,6 +357,7 @@ static void dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool 
 
 	/* XOR checksum calculation */
 	csum_data >>= NIBBLES_SIZE;
+
 	for (i = 0; i < DSHOT_NUMBER_OF_NIBBLES; i++) {
 		checksum ^= (csum_data & 0x0F); // XOR data by nibbles
 		csum_data >>= NIBBLES_SIZE;
@@ -359,7 +365,7 @@ static void dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool 
 
 	packet |= (checksum & 0x0F);
 
-	for(i = 0; i < ONE_MOTOR_DATA_SIZE; i++) {
+	for (i = 0; i < ONE_MOTOR_DATA_SIZE; i++) {
 		motor_buffer[motor_number][i] = (packet & 0x8000) ? MOTOR_PWM_BIT_1 : MOTOR_PWM_BIT_0;  // MSB first
 		packet <<= 1;
 	}
@@ -370,7 +376,7 @@ static void dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool 
 
 void up_dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool telemetry)
 {
-	dshot_motor_data_set(motor_number, throttle + 48, telemetry);
+	dshot_motor_data_set(motor_number, throttle + DShot_cmd_MIN_throttle, telemetry);
 }
 
 void up_dshot_motor_command(unsigned channel, uint16_t command)
@@ -381,11 +387,10 @@ void up_dshot_motor_command(unsigned channel, uint16_t command)
 
 void dshot_dmar_data_prepare(uint8_t timer, uint8_t first_motor, uint8_t motors_number)
 {
-	for(uint32_t motor_data_index = 0; motor_data_index < ONE_MOTOR_BUFF_SIZE ; motor_data_index++)
-	{
-		for(uint32_t motor_index = 0; motor_index < motors_number; motor_index++)
-		{
-			dshot_burst_buffer[timer][motor_data_index*motors_number+motor_index] = motor_buffer[motor_index+first_motor][motor_data_index];
+	for (uint32_t motor_data_index = 0; motor_data_index < ONE_MOTOR_BUFF_SIZE ; motor_data_index++) {
+		for (uint32_t motor_index = 0; motor_index < motors_number; motor_index++) {
+			dshot_burst_buffer[timer][motor_data_index * motors_number + motor_index] = motor_buffer[motor_index +
+					first_motor][motor_data_index];
 		}
 	}
 }
@@ -398,24 +403,26 @@ int up_dshot_arm(bool armed)
 
 		int success = io_timer_set_enable(true, IOTimerChanMode_Dshot, IO_TIMER_ALL_MODES_CHANNELS);
 
-		if(OK == success) {
+		if (OK == success) {
 
-			for(uint32_t motorNumber = 0; motorNumber < MOTORS_NUMBER; motorNumber++) {
+			for (uint32_t motorNumber = 0; motorNumber < MOTORS_NUMBER; motorNumber++) {
 				up_dshot_motor_command(motorNumber, DShot_cmd_motor_stop);
 			}
 
-			for(uint32_t i = 0; i < ARMING_REPETITION; i++) {
+			for (uint32_t i = 0; i < ARMING_REPETITION; i++) {
 				up_dshot_trigger();
 				usleep(1000);
 			}
+
 			retVal = OK;
 
 		}
+
 	} else {
 		//disarm by disabling timer
 		int success = io_timer_set_enable(false, IOTimerChanMode_Dshot, IO_TIMER_ALL_MODES_CHANNELS);
 
-		if(OK == success) {
+		if (OK == success) {
 			retVal = OK;
 		}
 	}
