@@ -119,7 +119,6 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 		 * Get sensing state if necessary
 		 */
 		bool preflight_check_ret = true;
-		bool prearm_check_ret = true;
 
 		const bool checkGNSS = (arm_requirements & ARM_REQ_GPS_BIT);
 
@@ -162,15 +161,16 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 
 				//      Do not perform pre-arm checks if coming from in air restore
 				//      Allow if vehicle_status_s::HIL_STATE_ON
-				if (status->arming_state != vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE &&
-				    !hil_enabled) {
+				if (status->arming_state != vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE && !hil_enabled) {
 
-					if (preflight_check_ret) {
+					bool prearm_check_ret = true;
+
+					if (fRunPreArmChecks && preflight_check_ret) {
 						// only bother running prearm if preflight was successful
 						prearm_check_ret = prearm_check(mavlink_log_pub, *status_flags, safety, arm_requirements);
 					}
 
-					if (!(preflight_check_ret && prearm_check_ret)) {
+					if (!preflight_check_ret || !prearm_check_ret) {
 						// the prearm and preflight checks already print the rejection reason
 						feedback_provided = true;
 						valid_transition = false;
@@ -593,8 +593,17 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 			// failsafe: on engine failure
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
+			// Orbit can only be started via vehicle_command (mavlink). Recovery from failsafe into orbit
+			// is not possible and therefore the internal_state needs to be adjusted.
+			internal_state->main_state = commander_state_s::MAIN_STATE_POSCTL;
+
 		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
-			// failsafe: necessary position estimate lost (nothing to do - everything done in check_invalid_pos_nav_state)
+			// failsafe: necessary position estimate lost; switching is done in check_invalid_pos_nav_state
+
+			// Orbit can only be started via vehicle_command (mavlink). Consequently, recovery from failsafe into orbit
+			// is not possible and therefore the internal_state needs to be adjusted.
+			internal_state->main_state = commander_state_s::MAIN_STATE_POSCTL;
+
 		} else if (status->data_link_lost && data_link_loss_act_configured && !landed && is_armed) {
 			// failsafe: just datalink is lost and we're in air
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, data_link_loss_act,
@@ -602,12 +611,20 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_datalink);
 
+			// Orbit can only be started via vehicle_command (mavlink). Consequently, recovery from failsafe into orbit
+			// is not possible and therefore the internal_state needs to be adjusted.
+			internal_state->main_state = commander_state_s::MAIN_STATE_POSCTL;
+
 		} else if (rc_lost && !data_link_loss_act_configured && is_armed) {
 			// failsafe: RC is lost, datalink loss is not set up and rc loss is not disabled
 			enable_failsafe(status, old_failsafe, mavlink_log_pub, reason_no_rc);
 
 			set_link_loss_nav_state(status, armed, status_flags, internal_state, rc_loss_act,
 						vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER);
+
+			// Orbit can only be started via vehicle_command (mavlink). Consequently, recovery from failsafe into orbit
+			// is not possible and therefore the internal_state needs to be adjusted.
+			internal_state->main_state = commander_state_s::MAIN_STATE_POSCTL;
 
 		} else {
 			// no failsafe, RC is not mandatory for orbit
