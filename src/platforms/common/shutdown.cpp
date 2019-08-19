@@ -191,11 +191,7 @@ void shutdown_worker(void *arg)
 
 		} else {
 			PX4_WARN("Shutdown NOW. Good Bye.");
-#if defined __PX4_POSIX
-			px4_systemreset(shutdown_args & SHUTDOWN_ARG_TO_BOOTLOADER);
-#else
 			board_shutdown();
-#endif
 		}
 
 		pthread_mutex_unlock(&shutdown_mutex); // must NEVER come here
@@ -209,7 +205,6 @@ void shutdown_worker(void *arg)
 int px4_shutdown_request(bool reboot, bool to_bootloader)
 {
 	// fail immediately if the board does not support the requested method
-#ifndef __PX4_POSIX
 #if defined BOARD_HAS_NO_RESET
 
 	if (reboot) {
@@ -223,7 +218,6 @@ int px4_shutdown_request(bool reboot, bool to_bootloader)
 		return -EINVAL;
 	}
 
-#endif
 #endif
 
 	if (shutdown_args & SHUTDOWN_ARG_IN_PROGRESS) {
