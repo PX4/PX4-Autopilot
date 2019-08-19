@@ -1305,13 +1305,13 @@ PX4IO::io_set_control_state(unsigned group)
 		/* ensure FLOAT_TO_REG does not produce an integer overflow */
 		const float ctrl = math::constrain(controls.control[i], -1.0f, 1.0f);
 
-		if (!isfinite(ctrl)) {
+		if (isnan(ctrl)) {
+			//Encode NAN as INT16_MAX for disarm passthrough
 			regs[i] = INT16_MAX;
 
 		} else {
 			regs[i] = FLOAT_TO_REG(ctrl);
 		}
-
 
 	}
 
