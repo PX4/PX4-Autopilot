@@ -131,8 +131,7 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithAnObstacle)
 	orb_unadvertise(obstacle_distance_pub);
 
 	// THEN: it should be cut down to zero
-	EXPECT_EQ(0.f, modified_setpoint.x());
-	EXPECT_EQ(0.f, modified_setpoint.y());
+	EXPECT_FLOAT_EQ(0.f, modified_setpoint.norm());
 }
 
 TEST_F(CollisionPreventionTest, noBias)
@@ -171,5 +170,6 @@ TEST_F(CollisionPreventionTest, noBias)
 	orb_unadvertise(obstacle_distance_pub);
 
 	// THEN: setpoint should go into the same direction as the stick input
-	EXPECT_EQ(original_setpoint.normalized(), modified_setpoint.normalized());
+	EXPECT_FLOAT_EQ(original_setpoint.normalized()(0), modified_setpoint.normalized()(0));
+	EXPECT_FLOAT_EQ(original_setpoint.normalized()(1), modified_setpoint.normalized()(1));
 }
