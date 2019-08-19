@@ -23,8 +23,8 @@
 #define WIFI_COMM_MAG_CALI (uint8_t)105
 #define WIFI_COMM_HIGHT_CHAGE (uint8_t)106
 #define WIFI_COMM_RC_POS (uint8_t)117
-#define WIFI_COMM_ZTW_CALI_ON (uint8_t)120
-#define WIFI_COMM_ZTW_CALI_QUIT (uint8_t)121
+#define WIFI_COMM_ESC_CALI_ON (uint8_t)120
+#define WIFI_COMM_ESC_CALI_QUIT (uint8_t)121
 #define WIFI_COMM_AUTO_FLIGHT_ON (uint8_t)122
 #define WIFI_COMM_AUTO_FLIGHT_OFF (uint8_t)123
 #define WIFI_COMM_DISARMED (uint8_t)124

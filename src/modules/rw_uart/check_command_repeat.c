@@ -20,7 +20,32 @@ bool check_command_repeat(const uint8_t *buffer, MSG_type msg_type)
             break;
         case WIFI_COMM_AUTO_LAND:
         case WIFI_COMM_AUTO_TAKEOFF:
+        case WIFI_COMM_WP_DOWNLOAD:
+        case WIFI_COMM_RECEIVER_ON:
+        case WIFI_COMM_RECEIVER_OFF:
+        case WIFI_COMM_GYRO_CLEAR:
+        case WIFI_COMM_GET_MID:
+        case WIFI_COMM_PARAM_GET:
+        case WIFI_COMM_RC_POS:
+        case WIFI_COMM_ESC_CALI_ON:
+        case WIFI_COMM_AUTO_FLIGHT_ON:
+        case WIFI_COMM_AUTO_FLIGHT_OFF:
+        case WIFI_COMM_DISARMED:
+        case WIFI_COMM_ARMED:
             check_ok = (buffer[5] == buffer[6] && buffer[5] == buffer [7]);
+            break;
+        case WIFI_COMM_WP_UPLOAD:
+            check_ok = true;
+            break;
+        case WIFI_COMM_WP_UPLOAD_NUM:
+            check_ok = (buffer[5] == buffer[10] && compare_buffer_n((buffer+6), (buffer+8), 2));
+            break;
+        case WIFI_COMM_WP_CHAGE:
+        case WIFI_COMM_MAG_CALI:
+            check_ok = (buffer[5] == buffer[6]);
+            break;
+        case WIFI_COMM_HIGHT_CHAGE:
+            check_ok = (buffer[5] == buffer[6] && compare_buffer_n((buffer+7), (buffer+11), 2));
             break;
         default:
             break;
@@ -35,6 +60,9 @@ bool check_command_repeat(const uint8_t *buffer, MSG_type msg_type)
 //            break;
 //        }
         check_ok = (buffer[6] == buffer [7]);
+        break;
+    case MSG_NAME_IWFI:
+        check_ok = compare_buffer_n((buffer+5), (buffer+13), 8);
         break;
     default:
         break;
