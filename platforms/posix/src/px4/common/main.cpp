@@ -556,10 +556,9 @@ void print_usage()
 {
 	printf("Usage for Server/daemon process: \n");
 	printf("\n");
-	printf("    px4 [-h|-d] [-s <startup_file>] [-t <test_data_directory>] [<rootfs_directory>] [-i <instance>] [-w <working_directory>]\n");
+	printf("    px4 [-h|-d] [-s <startup_file>] [-t <test_data_directory>] [-i <instance>] [-w <working_directory>]\n");
 	printf("\n");
 	printf("    -s <startup_file>      shell script to be used as startup (default=etc/init.d-posix/rcS)\n");
-	printf("    <rootfs_directory>     directory where startup files and mixers are located,\n");
 	printf("                           (if not given, CWD is used)\n");
 	printf("    -i <instance>          px4 instance id to run multiple instances [0...N], default=0\n");
 	printf("    -w <working_directory> directory to change to\n");
