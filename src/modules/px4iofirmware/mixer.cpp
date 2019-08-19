@@ -412,13 +412,14 @@ mixer_callback(uintptr_t handle,
 	switch (source) {
 	case MIX_FMU:
 		if (control_index < PX4IO_CONTROL_CHANNELS && control_group < PX4IO_CONTROL_GROUPS) {
-			if(r_page_controls[CONTROL_PAGE_INDEX(control_group, control_index)] == INT16_MAX){
+			if (r_page_controls[CONTROL_PAGE_INDEX(control_group, control_index)] == INT16_MAX) {
 				//catch NAN values encoded as INT16 max for disarmed outputs
 				control = NAN;
-			}
-			else{
+
+			} else {
 				control = REG_TO_FLOAT(r_page_controls[CONTROL_PAGE_INDEX(control_group, control_index)]);
 			}
+
 			break;
 		}
 

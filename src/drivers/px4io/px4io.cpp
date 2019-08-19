@@ -1304,11 +1304,11 @@ PX4IO::io_set_control_state(unsigned group)
 	for (unsigned i = 0; i < _max_controls; i++) {
 		/* ensure FLOAT_TO_REG does not produce an integer overflow */
 		const float ctrl = math::constrain(controls.control[i], -1.0f, 1.0f);
-		if(!isfinite(ctrl)){
+
+		if (!isfinite(ctrl)) {
 			regs[i] = INT16_MAX;
-		}
-		else
-		{
+
+		} else {
 			regs[i] = FLOAT_TO_REG(ctrl);
 		}
 
