@@ -167,6 +167,7 @@ static struct vehicle_land_detected_s land_detector = {};
 static float _eph_threshold_adj =
 	INFINITY;	///< maximum allowable horizontal position uncertainty after adjustment for flight condition
 static bool _skip_pos_accuracy_check = false;
+static bool _position_lock_gained = false;
 
 /**
  * The daemon app only briefly exists to start
@@ -2250,6 +2251,7 @@ Commander::run()
 
 					/* update home position on arming if at least 500 ms from commander start spent to avoid setting home on in-air restart */
 					set_home_position();
+					_position_lock_gained = false;
 				}
 
 			} else {
@@ -2266,6 +2268,7 @@ Commander::run()
 
 							/* update when disarmed, landed and moved away from current home position */
 							set_home_position();
+							_position_lock_gained = true;
 						}
 					}
 
@@ -2278,6 +2281,7 @@ Commander::run()
 					 * use has commenced after takeoff. */
 					if (!status_flags.condition_home_position_valid) {
 						set_home_position_alt_only();
+						_position_lock_gained = true;
 					}
 				}
 			}
@@ -2292,6 +2296,7 @@ Commander::run()
 				// no need for param notification: the only user is mavlink which reads the param upon request
 				param_set_no_notification(_param_flight_uuid, &flight_uuid);
 				last_disarmed_timestamp = hrt_absolute_time();
+				_position_lock_gained = false;
 			}
 		}
 
@@ -2675,7 +2680,8 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 		|| (_last_sp_man.loiter_switch != sp_man.loiter_switch)
 		|| (_last_sp_man.mode_slot != sp_man.mode_slot)
 		|| (_last_sp_man.stab_switch != sp_man.stab_switch)
-		|| (_last_sp_man.man_switch != sp_man.man_switch);
+		|| (_last_sp_man.man_switch != sp_man.man_switch)
+		|| _position_lock_gained;
 
 	// only switch mode based on RC switch if necessary to also allow mode switching via MAVLink
 	const bool should_evaluate_rc_mode_switch = first_time_rc
