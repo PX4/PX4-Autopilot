@@ -158,9 +158,9 @@ void yfpa_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd){
     yfpa_param->head[2]='F';
     yfpa_param->head[3]='P';
     yfpa_param->head[4]='A';
-    yfpa_param->buflen = 54;
-    yfpa_param->commad =116;
-    yfpa_param->commad_re = 116;
+    yfpa_param->buflen = 54; // 不连帧头，命令编号及buflen的数据长度，自8字节始。
+    yfpa_param->command =116;
+    yfpa_param->command_re = 116;
     float_t paramf;
     int paramd;
     param_get(msg_hd.roll_p_hd, &paramf);
@@ -207,4 +207,20 @@ void yfpa_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd){
     yfpa_param->rc_lost_act = (uint8_t)(paramd);
     param_get(msg_hd.dn_vel_max_hd, &paramf);
     yfpa_param->dn_vel_max = (uint8_t)(paramf  * 63.75);
+}
+
+void setd_pack (SETD *setd){
+     memcpy(setd, wp_data.push, sizeof(SETD));
+}
+
+void docap_pack (DOCAP *docap, MSG_param_hd msg_hd){
+    float paramf;
+    docap->head[0] = '$';
+    docap->head[1] = 'D';
+    docap->head[2] = 'O';
+    docap->head[3] = 'C';
+    docap->head[4] = 'A';
+    docap->head[5] = 'P';
+    param_get(msg_hd.hover_thrust, &paramf);
+    docap->hover_throttle = (uint8_t)(paramf * 100.0);
 }

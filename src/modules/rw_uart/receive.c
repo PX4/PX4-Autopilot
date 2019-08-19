@@ -2,17 +2,16 @@
 #include "rw_uart_define.h"
 
 void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type){
-    int32_t *data;
+    //void *data;
     switch (msg_type.command) {
     case WIFI_COMM_WAYPOINT:
         msg_data->command_data.command = 16; //VEHICLE_CMD_NAV_WAYPOINT
         //data = ((int32_t) buffer[6]) + ((int32_t) buffer[7]<<8) +((int32_t) buffer[8]<<16) + ((int32_t)buffer[9]<<24);
-        data = (int32_t*)((uint32_t)buffer + 6);
-        msg_data->command_data.param5 = ((float_t)*data)/10000000.0;
-        printf("lat: %d\n", *data);
-        data = (int32_t*)((uint32_t)buffer + 10);
-        msg_data->command_data.param6 = ((float_t)*data)/10000000.0;
-        printf("lon: %d\n", *data);
+        //data =(void *)((uint32_t)buffer + 6);
+        msg_data->command_data.param5 = ((float_t)*(int32_t*)((uint32_t)buffer + 6))/10000000.0;
+        printf("lat: %d\n", *(int32_t*)((uint32_t)buffer + 6));
+        msg_data->command_data.param6 = ((float_t)(*(int32_t*)((uint32_t)buffer + 10)))/10000000.0;
+        printf("lon: %d\n", *(int32_t*)((uint32_t)buffer + 10));
         msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0;
         printf("Passing waypoint\n");
         msg_data->command_data.param1 = 0.0;
@@ -36,6 +35,100 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
         msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)/10000000.0;
         msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0 +10.0;
         printf("Passing takeoff\n");
+        break;
+    case WIFI_COMM_WP_UPLOAD:
+        if (wp_data.push == wp_data.pop && wp_data.num !=0) printf("Too many waypoints\n");
+        (*wp_data.push).waypoint_num = *(uint16_t*)((uint32_t)buffer + 6);
+        (*wp_data.push).lat = *(int32_t*)((uint32_t)buffer + 8);
+        (*wp_data.push).lon = *(int32_t*)((uint32_t)buffer + 12);
+        (*wp_data.push).alt = *(int32_t*)((uint32_t)buffer + 16);
+        (*wp_data.push).loiter_time = * (uint16_t*)((uint32_t)buffer + 20);
+        (*wp_data.push).cruise_speed = buffer[22];
+        (*wp_data.push).photo_set = buffer[23];
+        (*wp_data.push).photo_dis = buffer[24];
+        (*wp_data.push).turn_mode = buffer[25];
+        if (wp_data.push == &wp_data.setd[19]) wp_data.push = wp_data.setd;
+        else wp_data.push ++;
+        wp_data.num ++;
+        break;
+    case WIFI_COMM_WP_UPLOAD_NUM:
+        wp_data.num = *(uint16_t*)((uint32_t)buffer + 6);
+        break;
+    case WIFI_COMM_GYRO_CLEAR:
+        msg_data->command_data.command = 241; //CMD_PREFLIGHT_CALIBRATION
+        msg_data->command_data.param1 = 1;
+        msg_data->command_data.param2 = 0;
+        msg_data->command_data.param3 = 0;
+        msg_data->command_data.param4 = 0;
+        msg_data->command_data.param5 = 0;
+        msg_data->command_data.param6 = 0;
+        msg_data->command_data.param7 = 0;
+        break;
+    case WIFI_COMM_WP_CHAGE:
+        msg_data->command_data.command = 177; //CMD_DO_JUMP
+        msg_data->command_data.param1 = (uint16_t)buffer[7] + ((uint16_t) buffer[8]<<8);
+        msg_data->command_data.param2 = 0;
+        break;
+    case WIFI_COMM_MAG_CALI:
+        msg_data->command_data.command = 241; //CMD_PREFLIGHT_CALIBRATION
+        msg_data->command_data.param1 = 0;
+        msg_data->command_data.param2 = 1;
+        msg_data->command_data.param3 = 0;
+        msg_data->command_data.param4 = 0;
+        msg_data->command_data.param5 = 0;
+        msg_data->command_data.param6 = 0;
+        msg_data->command_data.param7 = 0;
+        break;
+    case WIFI_COMM_HIGHT_CHAGE:
+        msg_data->command_data.command = 16; //VEHICLE_CMD_NAV_WAYPOINT
+        msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)/10000000.0;
+        msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)/10000000.0;
+        msg_data->command_data.param7 = ((float_t)*(int16_t*)((uint32_t)buffer + 7))/10.0;
+        msg_data->command_data.param1 = 0.0;
+        msg_data->command_data.param2 = 0.0;
+        msg_data->command_data.param3 = 0.0;
+        msg_data->command_data.param4 = 0.0;
+        break;
+    case WIFI_COMM_RC_POS:
+        msg_data->command_data.command = 241; //CMD_PREFLIGHT_CALIBRATION
+        msg_data->command_data.param1 = 0;
+        msg_data->command_data.param2 = 0;
+        msg_data->command_data.param3 = 0;
+        msg_data->command_data.param4 = 1;
+        msg_data->command_data.param5 = 0;
+        msg_data->command_data.param6 = 0;
+        msg_data->command_data.param7 = 0;
+        break;
+    case WIFI_COMM_ESC_CALI_ON:
+        msg_data->command_data.command = 241; //CMD_PREFLIGHT_CALIBRATION
+        msg_data->command_data.param1 = 0;
+        msg_data->command_data.param2 = 0;
+        msg_data->command_data.param3 = 0;
+        msg_data->command_data.param4 = 0;
+        msg_data->command_data.param5 = 0;
+        msg_data->command_data.param6 = 0;
+        msg_data->command_data.param7 = 1;
+        break;
+    case WIFI_COMM_AUTO_FLIGHT_ON:
+        msg_data->command_data.command = 300; //CMD_MISSION_START
+        msg_data->command_data.param1 = wp_data.pop->waypoint_num;
+        msg_data->command_data.param2 = wp_data.push->waypoint_num;;
+        break;
+    case WIFI_COMM_AUTO_FLIGHT_OFF:
+        msg_data->command_data.command = 17; //CMD_NAV_LOITER_UNLIM
+        msg_data->command_data.param3 = 0;
+        msg_data->command_data.param4 = 0;
+        msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)/10000000.0;
+        msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)/10000000.0;
+        msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0;
+        break;
+    case WIFI_COMM_DISARMED:
+        msg_data->arm_data.lockdown = true;
+        msg_data->arm_data.armed = false;
+        break;
+    case WIFI_COMM_ARMED:
+        msg_data->arm_data.lockdown = false;
+        msg_data->arm_data.armed = true;
         break;
     default:
         break;
@@ -136,7 +229,7 @@ bool change_param (MSG_param_hd msg_hd, uint8_t data, int i){
     return changed;
 }
 
-bool yfwi_param_set(const uint8_t *buffer, MSG_param_hd msg_hd, uint8_t *param_saved){
+bool yfwi_param_set(const uint8_t *buffer, MSG_param_hd msg_hd){
     bool changed = false;
     uint16_t  dist_max, dist_max_saved;
 
@@ -162,8 +255,15 @@ bool yfwi_param_set(const uint8_t *buffer, MSG_param_hd msg_hd, uint8_t *param_s
         if (buffer[i] != param_saved[i])
         {
             changed |= change_param(msg_hd, buffer[i], i);
-            //printf("Passing change, changed is %d\n", changed);
+            printf("Passing change, changed is %d\n", changed);
         }
     }
     return changed;
+}
+
+void iwfi_pack(const uint8_t *buffer, MSG_orb_data *msg_data){
+    msg_data->manual_data.r = ((float_t)(((uint16_t) buffer[5]<<8) + buffer [6])/65535.0 - 0.5)*2.0;
+    msg_data->manual_data.y = ((float_t)(((uint16_t) buffer[7]<<8) + buffer [8])/65535.0 - 0.5)*2.0;
+    msg_data->manual_data.x = ((float_t)(((uint16_t) buffer[9]<<8) + buffer [10])/65535.0 - 0.5)*2.0;
+    msg_data->manual_data.z = (float_t)(((uint16_t) buffer[11]<<8) + buffer [12])/65535.0;
 }

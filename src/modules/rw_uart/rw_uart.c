@@ -9,7 +9,8 @@ __EXPORT int rw_uart_main(int argc, char *argv[]);
 
 static bool rw_thread_should_exit = false;		/**< px4_uart exit flag */
 static bool rw_uart_thread_running = false;		/**< px4_uart status flag */
-static uint8_t param_saved[62];
+uint8_t param_saved[62];
+Waypoint_saved wp_data;
 
 static int rw_uart_task;				/**< Handle of px4_uart task / thread */
 static int rw_uart_init(void);
@@ -180,6 +181,8 @@ void msg_param_hd_cache (MSG_param_hd *msg_hd)
     msg_hd->battery_fail_hd = param_find("COM_LOW_BAT_ACT");
     msg_hd->rc_lost_act_hd = param_find("NAV_RCL_ACT");
     msg_hd->dn_vel_max_hd = param_find("MPC_Z_VEL_MAX_DN");
+    msg_hd->rc_on_off_hd = param_find("COM_RC_IN_MODE");
+    msg_hd->hover_thrust = param_find("MPC_THR_HOVER");
 }
 
 int rw_uart_main(int argc, char *argv[])
@@ -266,7 +269,7 @@ int rw_uart_thread_main(int argc, char *argv[])
         int error_counter = 0;
 
         memset(param_saved, 0, sizeof(param_saved));
-        msg_param_saved_get(msg_hd, uart_read, param_saved);
+        msg_param_saved_get(msg_hd, uart_read);
 
         rw_uart_thread_running = true;
 
@@ -314,7 +317,7 @@ int rw_uart_thread_main(int argc, char *argv[])
                            }
                        }
                        printf("data=%s\n", buffer);
-                       find_r_type(buffer, &msg_data, &msg_pd, msg_hd, uart_read, param_saved);
+                       find_r_type(buffer, &msg_data, &msg_pd, msg_hd, uart_read);
                }
             }
 

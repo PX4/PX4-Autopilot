@@ -108,8 +108,8 @@ typedef struct {
 typedef struct {
     char head[5]; //$YFPA
     uint8_t buflen;
-    uint8_t commad;
-    uint8_t commad_re;
+    uint8_t command;
+    uint8_t command_re;
     uint8_t roll_p;
     uint8_t roll_i; // not used
     uint8_t roll_d; // not used
@@ -164,19 +164,114 @@ typedef struct {
 }YFPA_param;
 
 typedef struct {
-char head[5];
-uint8_t empty;
-uint16_t waypoint_num;
-int32_t lat;
-int32_t lon;
-int32_t alt;
-uint16_t loiter_time;
-uint8_t cruise_speed;
-uint8_t photo_set;
-uint8_t photo_dis;
-uint8_t turn_mode;
-uint8_t sum_check;
+    char head[5];
+    uint8_t command;
+    uint16_t waypoint_num;
+    int32_t lat;  // 10^-7 m
+    int32_t lon; // 10^-7 m
+    int32_t alt; //0.1 m
+    uint16_t loiter_time;
+    uint8_t cruise_speed; //0.1m
+    uint8_t photo_set;
+    uint8_t photo_dis;
+    uint8_t turn_mode;
+    uint8_t sum_check;
 }SETD;
+
+typedef struct {
+    char head[6];
+    uint8_t hover_throttle;
+    uint8_t sum_check;
+}DOCAP;
+
+typedef struct {
+    char head[5];
+    uint16_t buflen;
+    uint8_t command;
+    uint8_t command_re;
+    uint8_t channel_id;
+    uint8_t channel_fun;
+    uint8_t SBUS_map;
+    uint8_t channel_onoff;
+    uint8_t channel_fun_onoff;
+    uint16_t PWM_width_impluse;
+    uint16_t PWM_width_default;
+    uint16_t PWM_time_impluse;
+    uint16_t CRC_test;
+}EXYF_PWM;
+
+typedef struct {
+    char head[5];
+    uint16_t buflen;
+    uint8_t command;
+    uint8_t command_re;
+    uint16_t idle_speed;
+    uint16_t CRC_test;
+}EXYF_IDLE_SPEED;
+
+typedef struct {
+    char head[5];
+    uint16_t buflen;
+    uint8_t command;
+    uint8_t command_re;
+    uint8_t channel_fun;
+    uint8_t channel_num;
+    uint16_t CRC_test;
+}EXYF_RC_INPUT;
+
+typedef struct {
+    char head[5];
+    uint16_t buflen;
+    uint8_t command;
+    uint8_t command_re;
+    uint8_t roll;
+    uint8_t pitch;
+    uint8_t throttle;
+    uint8_t yaw;
+    uint8_t flight_mode;
+    uint8_t rtl_mission;
+    uint8_t landin_gear;
+    uint8_t chute;
+    uint8_t shutter;
+    uint8_t PWM9;
+    uint8_t PWM10;
+    uint8_t PWM11;
+    uint8_t PWM12;
+    uint8_t RC_used;
+    uint16_t CRC_test;
+}EXYF_RC_SET;
+
+typedef struct {
+    char head[5];
+    uint16_t buflen;
+    uint8_t command;
+    uint8_t command_re;
+    uint16_t roll;
+    uint16_t pitch;
+    uint16_t throttle;
+    uint16_t yaw;
+    uint16_t flight_mode;
+    uint16_t rtl_mission;
+    uint16_t landin_gear;
+    uint16_t chute;
+    uint16_t shutter;
+    uint16_t PWM9;
+    uint16_t PWM10;
+    uint16_t PWM11;
+    uint16_t PWM12;
+    uint16_t RC_used;
+    uint16_t CRC_test;
+}EXYF_RC_VALUE;
+
+typedef struct {
+    char head[5];
+    uint16_t buflen;
+    uint8_t command;
+    uint8_t command_re; //65535 - - 255
+    uint8_t plane_type;
+    uint8_t quadrotor_8motor;
+    uint16_t CRC_test;
+}EXYF_PLANE_TYPE;
 
 typedef struct {
    STP stp;
@@ -185,7 +280,21 @@ typedef struct {
 typedef struct {
     YFPA_param yfpa_param;
     SETD setd;
+    DOCAP docap;
+    EXYF_PWM exyf_pwm;
+    EXYF_IDLE_SPEED exyf_idle_speed;
+    EXYF_RC_INPUT exyf_rc_input;
+    EXYF_RC_SET exyf_rc_set;
+    EXYF_RC_VALUE exyf_rc_value;
+    EXYF_PLANE_TYPE exyf_plane_type;
 }MSG_response;
+
+typedef struct {
+   uint16_t num;
+   SETD *push;
+   SETD *pop;
+   SETD setd[20];
+}Waypoint_saved;
 
 #pragma  pack()
 
@@ -212,6 +321,8 @@ typedef struct {
 
 typedef struct {
     orb_advert_t command_pd;
+    orb_advert_t arm_pd;
+    orb_advert_t  manual_pd;
 }MSG_orb_pub;
 
 typedef struct {
@@ -276,8 +387,13 @@ typedef struct {
     //param_t CH11_set_hd;
     //param_t CH12_set_hd;
     param_t dn_vel_max_hd;
+    param_t rc_on_off_hd;
+    param_t hover_thrust;
 }MSG_param_hd;
 
+extern uint8_t param_saved[62];
+
+extern Waypoint_saved wp_data;
 
 extern void stp_pack (STP *stp, MSG_orb_data stp_data);
 
@@ -287,25 +403,25 @@ extern bool check_command_repeat(const uint8_t *buffer, MSG_type msg_type);
 
 extern bool compare_buffer_n(const uint8_t *buffer1, const uint8_t *buffer2, int n);
 
-extern bool yfwi_param_set(const uint8_t *buffer, MSG_param_hd msg_hd, uint8_t *param_saved);
+extern bool yfwi_param_set(const uint8_t *buffer, MSG_param_hd msg_hd);
 
 extern void yfpa_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd);
 
 extern uint8_t calculate_sum_check (const uint8_t *send_message);
 
-extern uint16_t crc16_ccitt(uint8_t data, uint16_t crc);
-
 extern uint16_t check_crc(const uint8_t *buffer, uint8_t buflen, uint8_t offset);
 
 extern void msg_pack_send(MSG_orb_data msg_data, int uart_read);
 
-extern void msg_pack_response(MSG_param_hd msg_hd, MSG_type msg_type, int uart_read, uint8_t *param_saved);
-
 extern void find_r_type(uint8_t *buffer, MSG_orb_data *msg_data, MSG_orb_pub *msg_pd,
-                        MSG_param_hd msg_hd, int uart_read, uint8_t *param_saved);
+                        MSG_param_hd msg_hd, int uart_read);
 
-extern void msg_orb_pub(MSG_orb_pub *msg_pd, MSG_orb_data *msg_data, MSG_type msg_type);
+extern void msg_param_saved_get(MSG_param_hd msg_hd, int uart_read);
 
-extern void msg_param_saved_get(MSG_param_hd msg_hd, int uart_read, uint8_t *param_saved);
+extern void setd_pack (SETD *setd);
+
+extern void iwfi_pack(const uint8_t *buffer, MSG_orb_data *msg_data);
+
+extern void docap_pack (DOCAP *docap, MSG_param_hd msg_hd);
 
 #endif // RW_UART_H
