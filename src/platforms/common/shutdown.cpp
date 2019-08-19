@@ -206,7 +206,6 @@ int px4_shutdown_request(bool reboot, bool to_bootloader)
 {
 	// fail immediately if the board does not support the requested method
 #if defined BOARD_HAS_NO_RESET
-
 	if (reboot) {
 		return -EINVAL;
 	}
