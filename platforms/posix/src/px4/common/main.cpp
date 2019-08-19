@@ -100,7 +100,6 @@ static void sig_int_handler(int sig_num);
 
 static void register_sig_handler();
 static void set_cpu_scaling();
-static int create_symlinks_if_needed(std::string &data_path);
 static int create_dirs();
 static int run_startup_script(const std::string &commands_file, const std::string &absolute_binary_path, int instance);
 static std::string get_absolute_binary_path(const std::string &argv0);
@@ -258,22 +257,8 @@ int main(int argc, char **argv)
 			return -1;
 		}
 
-		int ret = create_symlinks_if_needed(data_path);
-
-		if (ret != PX4_OK) {
-			return ret;
-		}
-
 		if (test_data_path != "") {
 			const std::string required_test_data_path = "./test_data";
-
-			if (!dir_exists(required_test_data_path)) {
-				ret = symlink(test_data_path.c_str(), required_test_data_path.c_str());
-
-				if (ret != PX4_OK) {
-					return ret;
-				}
-			}
 		}
 
 		if (!file_exists(commands_file)) {
@@ -287,7 +272,7 @@ int main(int argc, char **argv)
 		px4_daemon::Server server(instance);
 		server.start();
 
-		ret = create_dirs();
+		int ret = create_dirs();
 
 		if (ret != PX4_OK) {
 			return ret;
@@ -328,58 +313,6 @@ int main(int argc, char **argv)
 	return PX4_OK;
 }
 
-int create_symlinks_if_needed(std::string &data_path)
-{
-	std::string current_path = pwd();
-
-	if (data_path.empty()) {
-		// No data path given, we'll just try to use the current working dir.
-		data_path = current_path;
-		PX4_INFO("assuming working directory is rootfs, no symlinks needed.");
-		return PX4_OK;
-	}
-
-	if (data_path == current_path) {
-		// We are already running in the data path, so no need to symlink
-		PX4_INFO("working directory seems to be rootfs, no symlinks needed");
-		return PX4_OK;
-	}
-
-	const std::string path_sym_link = "etc";
-
-	PX4_DEBUG("path sym link: %s", path_sym_link.c_str());
-
-	std::string src_path = data_path;
-	std::string dest_path = current_path + "/" + path_sym_link;
-
-	struct stat info;
-
-	if (lstat(dest_path.c_str(), &info) == 0) {
-		if (S_ISLNK(info.st_mode)) {
-			// recreate the symlink, as it might point to some other location than what we want now
-			unlink(dest_path.c_str());
-
-		} else if (S_ISDIR(info.st_mode)) {
-			return PX4_OK;
-		}
-
-	}
-
-	PX4_INFO("Creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
-
-	// create sym-link
-	int ret = symlink(src_path.c_str(), dest_path.c_str());
-
-	if (ret != 0) {
-		PX4_ERR("Error creating symlink %s -> %s", src_path.c_str(), dest_path.c_str());
-		return ret;
-
-	} else {
-		PX4_DEBUG("Successfully created symlink %s -> %s", src_path.c_str(), dest_path.c_str());
-	}
-
-	return PX4_OK;
-}
 
 int create_dirs()
 {
