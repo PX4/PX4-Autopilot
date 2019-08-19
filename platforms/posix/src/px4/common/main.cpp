@@ -191,7 +191,7 @@ int main(int argc, char **argv)
 		/* Server/daemon apps need to parse the command line arguments. */
 
 		std::string data_path{};
-		std::string commands_file = "etc/init.d/rcS";
+		std::string commands_file = "etc/init.d-posix/rcS";
 		std::string test_data_path{};
 		std::string working_directory{};
 		int instance = 0;
@@ -558,7 +558,7 @@ void print_usage()
 	printf("\n");
 	printf("    px4 [-h|-d] [-s <startup_file>] [-t <test_data_directory>] [<rootfs_directory>] [-i <instance>] [-w <working_directory>]\n");
 	printf("\n");
-	printf("    -s <startup_file>      shell script to be used as startup (default=etc/init.d/rcS)\n");
+	printf("    -s <startup_file>      shell script to be used as startup (default=etc/init.d-posix/rcS)\n");
 	printf("    <rootfs_directory>     directory where startup files and mixers are located,\n");
 	printf("                           (if not given, CWD is used)\n");
 	printf("    -i <instance>          px4 instance id to run multiple instances [0...N], default=0\n");
