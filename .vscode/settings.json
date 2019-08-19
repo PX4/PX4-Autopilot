@@ -53,6 +53,7 @@
                         ]
                 }
         },
+        "cortex-debug.enableTelemetry": false,
         "C_Cpp.clang_format_fallbackStyle": "none",
         "C_Cpp.configurationWarnings": "Disabled",
         "C_Cpp.default.cppStandard": "c++11",
@@ -63,6 +64,8 @@
         "C_Cpp.intelliSenseEngine": "Default",
         "C_Cpp.intelliSenseEngineFallback": "Disabled",
         "debug.toolBarLocation": "docked",
+        "editor.defaultFormatter": "chiehyu.vscode-astyle",
+        "editor.dragAndDrop": false,
         "editor.insertSpaces": false,
         "editor.minimap.maxColumn": 120,
         "editor.minimap.renderCharacters": false,
@@ -74,7 +77,14 @@
         "explorer.openEditors.visible": 0,
         "files.insertFinalNewline": true,
         "files.trimTrailingWhitespace": true,
+        "files.watcherExclude": {
+                "**/build/*": true
+        },
         "git.detectSubmodulesLimit": 20,
+        "git.ignoreLimitWarning": true,
+        "githubPullRequests.defaultMergeMethod": "squash",
+        "githubPullRequests.telemetry.enabled": false,
+        "gitlens.advanced.telemetry.enabled": false,
         "files.associations": {
                 "*.jinja": "jinja"
         },
@@ -82,9 +92,10 @@
                 "build/**": true
         },
         "search.showLineNumbers": true,
+        "telemetry.enableTelemetry": false,
         "window.title": "${dirty} ${activeEditorMedium}${separator}${rootName}",
         "workbench.editor.highlightModifiedTabs": true,
+        "workbench.enableExperiments": false,
         "workbench.settings.enableNaturalLanguageSearch": false,
-        "workbench.statusBar.feedback.visible": false,
-        "git.ignoreLimitWarning": true
+        "workbench.statusBar.feedback.visible": false
 }
