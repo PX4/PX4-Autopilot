@@ -130,6 +130,46 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithAnObstacle)
 	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
 	orb_unadvertise(obstacle_distance_pub);
 
-	// THEN: it should be cut down a lot
-	EXPECT_GT(original_setpoint.norm() * 0.5f, modified_setpoint.norm()); //FIXME: this should actually be constrained to 0
+	// THEN: it should be cut down to zero
+	EXPECT_EQ(0.f, modified_setpoint.x());
+	EXPECT_EQ(0.f, modified_setpoint.y());
+}
+
+TEST_F(CollisionPreventionTest, noBias)
+{
+	// GIVEN: a simple setup condition
+	CollisionPrevention cp(nullptr);
+	matrix::Vector2f original_setpoint(10, 0);
+	float max_speed = 3;
+	matrix::Vector2f curr_pos(0, 0);
+	matrix::Vector2f curr_vel(2, 0);
+
+	// AND: a parameter handle
+	param_t param = param_handle(px4::params::MPC_COL_PREV_D);
+	float value = 5; // try to keep 5m distance
+	param_set(param, &value);
+
+	// AND: an obstacle message
+	obstacle_distance_s message;
+	memset(&message, 0xDEAD, sizeof(message));
+	message.min_distance = 100;
+	message.max_distance = 2000;
+	message.timestamp = hrt_absolute_time();
+	int distances_array_size = sizeof(message.distances) / sizeof(message.distances[0]);
+	message.increment = 360 / distances_array_size;
+
+	for (int i = 0; i < distances_array_size; i++) {
+		message.distances[i] = 700;
+	}
+
+	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
+
+
+	// WHEN: we publish the message and set the parameter and then run the setpoint modification
+	matrix::Vector2f modified_setpoint = original_setpoint;
+	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	orb_unadvertise(obstacle_distance_pub);
+
+	// THEN: setpoint should go into the same direction as the stick input
+	EXPECT_EQ(original_setpoint.normalized(), modified_setpoint.normalized());
 }

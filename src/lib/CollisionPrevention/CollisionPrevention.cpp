@@ -212,37 +212,55 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 			Vector2f setpoint_dir = setpoint / setpoint_length;
 			float vel_max = setpoint_length;
 			int distances_array_size = sizeof(obstacle.distances) / sizeof(obstacle.distances[0]);
+			float min_dist_to_keep = math::max(obstacle.min_distance / 100.0f, _param_mpc_col_prev_d.get());
+
 
 			for (int i = 0; i < distances_array_size; i++) {
 
-				if (obstacle.distances[i] < obstacle.max_distance &&
-				    obstacle.distances[i] > obstacle.min_distance && (float)i * obstacle.increment < 360.f) {
-					float distance = obstacle.distances[i] / 100.0f; //convert to meters
-					float angle = math::radians((float)i * obstacle.increment);
+				if ((float)i * obstacle.increment < 360.f) { //disregard unused bins at the end of the message
 
-					if (obstacle.angle_offset > 0.f) {
-						angle += math::radians(obstacle.angle_offset);
-					}
+					float angle = math::radians((float)i * obstacle.increment);
+					float distance = obstacle.distances[i] / 100.0f; //convert to meters
 
 					//check if the bin must be considered regarding the given stick input
 					Vector2f bin_direction = {cos(angle), sin(angle)};
 
-					if (setpoint_dir.dot(bin_direction) > 0
-					    && setpoint_dir.dot(bin_direction) > cosf(math::radians(_param_mpc_col_prev_ang.get()))) {
-						//calculate max allowed velocity with a P-controller (same gain as in the position controller)
-						float curr_vel_parallel = math::max(0.f, curr_vel.dot(bin_direction));
-						float delay_distance = curr_vel_parallel * _param_mpc_col_prev_dly.get();
-						float vel_max_posctrl = math::max(0.f,
-										  _param_mpc_xy_p.get() * (distance - _param_mpc_col_prev_d.get() - delay_distance));
-						Vector2f  vel_max_vec = bin_direction * vel_max_posctrl;
-						float vel_max_bin = vel_max_vec.dot(setpoint_dir);
+					if (obstacle.distances[i] < obstacle.max_distance &&
+					    obstacle.distances[i] > obstacle.min_distance && (float)i * obstacle.increment < 360.f) {
 
-						//constrain the velocity
-						if (vel_max_bin >= 0) {
-							vel_max = math::min(vel_max, vel_max_bin);
+						if (obstacle.angle_offset > 0.f) {
+							angle += math::radians(obstacle.angle_offset);
 						}
+
+						if (setpoint_dir.dot(bin_direction) > 0
+						    && setpoint_dir.dot(bin_direction) > cosf(math::radians(_param_mpc_col_prev_ang.get()))) {
+							//calculate max allowed velocity with a P-controller (same gain as in the position controller)
+							float curr_vel_parallel = math::max(0.f, curr_vel.dot(bin_direction));
+							float delay_distance = curr_vel_parallel * _param_mpc_col_prev_dly.get();
+							float vel_max_posctrl = math::max(0.f,
+											  _param_mpc_xy_p.get() * (distance - min_dist_to_keep - delay_distance));
+							Vector2f  vel_max_vec = bin_direction * vel_max_posctrl;
+							float vel_max_bin = vel_max_vec.dot(setpoint_dir);
+
+							//constrain the velocity
+							if (vel_max_bin >= 0) {
+								vel_max = math::min(vel_max, vel_max_bin);
+							}
+						}
+
+					} else if (obstacle.distances[i] == UINT16_MAX) {
+						float sp_bin = setpoint_dir.dot(bin_direction);
+						float ang_half_bin = abs(cosf(obstacle.increment / 2.f));
+
+						//if the setpoint lies outside the FOV set velocity to zero
+						if (sp_bin > 0 && sp_bin > ang_half_bin) {
+							vel_max = 0.f;
+						}
+
 					}
 				}
+
+
 			}
 
 			setpoint = setpoint_dir * vel_max;
