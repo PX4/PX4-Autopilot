@@ -64,8 +64,8 @@ enum class link_loss_actions_t {
 	AUTO_RTL = 2,		// Return mode
 	AUTO_LAND = 3,		// Land mode
 	AUTO_RECOVER = 4,	// Data Link Auto Recovery (CASA Outback Challenge rules)
-	TERMINATE = 5,		// Turn off all controllers and set PWM outputs to failsafe value
-	LOCKDOWN = 6,		// Kill the motors, same result as kill switch
+	TERMINATE = 5,		// Terminate flight (set actuator outputs to failsafe values, and stop controllers)
+	LOCKDOWN = 6,		// Lock actuators (set actuator outputs to disarmed values)
 };
 
 enum class offboard_loss_actions_t {
@@ -73,8 +73,8 @@ enum class offboard_loss_actions_t {
 	AUTO_LAND = 0,		// Land mode
 	AUTO_LOITER = 1,	// Hold mode
 	AUTO_RTL = 2,		// Return mode
-	TERMINATE = 3,		// Turn off all controllers and set PWM outputs to failsafe value
-	LOCKDOWN = 4,		// Kill the motors, same result as kill switch
+	TERMINATE = 3,		// Terminate flight (set actuator outputs to failsafe values, and stop controllers)
+	LOCKDOWN = 4,		// Lock actuators (set actuator outputs to disarmed values)
 };
 
 enum class offboard_loss_rc_actions_t {
@@ -85,8 +85,8 @@ enum class offboard_loss_rc_actions_t {
 	AUTO_RTL = 3, 		// Return mode
 	AUTO_LAND = 4, 		// Land mode
 	AUTO_LOITER = 5, 	// Hold mode
-	TERMINATE = 6, 		// Turn off all controllers and set PWM outputs to failsafe value
-	LOCKDOWN = 7, 		// Kill the motors, same result as kill switch
+	TERMINATE = 6, 		// Terminate flight (set actuator outputs to failsafe values, and stop controllers)
+	LOCKDOWN = 7, 		// Lock actuators (set actuator outputs to disarmed values)
 };
 
 enum class position_nav_loss_actions_t {
