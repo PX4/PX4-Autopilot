@@ -255,7 +255,7 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 						float ang_half_bin = cosf(math::radians(obstacle.increment) / 2.f);
 
 						//if the setpoint lies outside the FOV set velocity to zero
-						if (sp_bin > 0 && sp_bin > ang_half_bin) {
+						if (sp_bin > ang_half_bin) {
 							vel_max = 0.f;
 						}
 
