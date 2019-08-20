@@ -130,7 +130,7 @@ void FlightTaskManualAltitudeSmoothVel::_updateSetpoints()
 	 * is used to set current velocity of the trajectory.
 	 */
 
-	if (fabsf(_sticks_expo(2)) > FLT_EPSILON) {
+	if (fabsf(_velocity_setpoint(2)) > FLT_EPSILON) {
 		if (_position_lock_z_active) {
 			_smoothing.setCurrentVelocity(_velocity_setpoint_feedback(
 							      2)); // Start the trajectory at the current velocity setpoint
@@ -159,7 +159,7 @@ void FlightTaskManualAltitudeSmoothVel::_updateSetpoints()
 
 	if (fabsf(_vel_sp_smooth) < 0.1f &&
 	    fabsf(_acceleration_setpoint(2)) < .2f &&
-	    fabsf(_sticks_expo(2)) <= FLT_EPSILON) {
+	    fabsf(_velocity_setpoint(2)) <= FLT_EPSILON) {
 		_position_lock_z_active = true;
 	}
 
