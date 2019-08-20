@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,10 +46,8 @@
 #include <lib/led/led.h>
 #include <px4_getopt.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
-#include "uORB/topics/parameter_update.h"
-
-#define RGBLED_ONTIME 120
-#define RGBLED_OFFTIME 120
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/parameter_update.h>
 
 #define ADDR			0x55	/**< I2C adress of TCA62724FMG */
 #define SUB_ADDR_START		0x01	/**< write everything (with auto-increment) */
@@ -61,29 +59,28 @@
 #define SETTING_NOT_POWERSAVE	0x01	/**< power-save mode not off */
 #define SETTING_ENABLE   	0x02	/**< on */
 
-
 class RGBLED : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
 	RGBLED(int bus, int rgbled);
 	virtual ~RGBLED();
 
-
 	virtual int		init();
 	virtual int		probe();
-	int		status();
+	int			status();
 
 private:
-	float			_brightness;
-	float			_max_brightness;
 
-	uint8_t			_r;
-	uint8_t			_g;
-	uint8_t			_b;
-	volatile bool		_running;
-	volatile bool		_should_run;
-	bool			_leds_enabled;
-	int			_param_sub;
+	float			_brightness{1.0f};
+	float			_max_brightness{1.0f};
+
+	uint8_t			_r{0};
+	uint8_t			_g{0};
+	uint8_t			_b{0};
+	volatile bool		_running{false};
+	volatile bool		_should_run{true};
+	bool			_leds_enabled{true};
+	uORB::Subscription	_param_sub{ORB_ID(parameter_update)};
 
 	LedController		_led_controller;
 
@@ -92,7 +89,7 @@ private:
 	int			send_led_enable(bool enable);
 	int			send_led_rgb();
 	int			get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b);
-	void		update_params();
+	void			update_params();
 };
 
 /* for now, we only support one RGBLED */
@@ -107,16 +104,7 @@ extern "C" __EXPORT int rgbled_main(int argc, char *argv[]);
 
 RGBLED::RGBLED(int bus, int rgbled) :
 	I2C("rgbled", RGBLED0_DEVICE_PATH, bus, rgbled, 100000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
-	_brightness(1.0f),
-	_max_brightness(1.0f),
-	_r(0),
-	_g(0),
-	_b(0),
-	_running(false),
-	_should_run(true),
-	_leds_enabled(true),
-	_param_sub(-1)
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id()))
 {
 }
 
@@ -133,8 +121,7 @@ RGBLED::~RGBLED()
 int
 RGBLED::init()
 {
-	int ret;
-	ret = I2C::init();
+	int ret = I2C::init();
 
 	if (ret != OK) {
 		return ret;
@@ -187,11 +174,10 @@ RGBLED::probe()
 int
 RGBLED::status()
 {
-	int ret;
 	bool on, powersave;
 	uint8_t r, g, b;
 
-	ret = get(on, powersave, r, g, b);
+	int ret = get(on, powersave, r, g, b);
 
 	if (ret == OK) {
 		/* we don't care about power-save mode */
@@ -212,40 +198,19 @@ void
 RGBLED::Run()
 {
 	if (!_should_run) {
-		if (_param_sub >= 0) {
-			orb_unsubscribe(_param_sub);
-		}
-
-		int led_control_sub = _led_controller.led_control_subscription();
-
-		if (led_control_sub >= 0) {
-			orb_unsubscribe(led_control_sub);
-		}
-
 		_running = false;
 		return;
 	}
 
-	if (_param_sub < 0) {
-		_param_sub = orb_subscribe(ORB_ID(parameter_update));
-	}
+	if (_param_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_param_sub.copy(&pupdate);
 
-	if (!_led_controller.is_init()) {
-		int led_control_sub = orb_subscribe(ORB_ID(led_control));
-		_led_controller.init(led_control_sub);
-	}
+		update_params();
 
-	if (_param_sub >= 0) {
-		bool updated = false;
-		orb_check(_param_sub, &updated);
-
-		if (updated) {
-			parameter_update_s pupdate;
-			orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
-			update_params();
-			// Immediately update to change brightness
-			send_led_rgb();
-		}
+		// Immediately update to change brightness
+		send_led_rgb();
 	}
 
 	LedControlData led_control_data;
