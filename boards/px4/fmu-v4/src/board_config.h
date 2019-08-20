@@ -105,8 +105,12 @@
 #define GPIO_SPI2_CS_MS5611          (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN7)
 #define GPIO_SPI2_CS_FRAM            (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTD|GPIO_PIN10)
 
-/* There are no DRDY on SPI 2. */
+/* Define the Chip Selects for SPI4. */
 
+#ifdef CONFIG_STM32_SPI4
+#  define BOARD_HAS_BUS_MANIFEST 1 // We support a bus manifest because spi 4 is optional
+#  define GPIO_SPI4_CS_1         (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTA|GPIO_PIN8)  //ESP_RTS_PIN
+#endif /* CONFIG_STM32_SPI4 */
 /**
  * Define the ability to shut off off the sensor signals
  * by changing the signals to inputs.
@@ -128,13 +132,33 @@
 #define GPIO_DRDY_OFF_PORTC_PIN14    _PIN_OFF(GPIO_DRDY_PORTC_PIN14)
 #define GPIO_DRDY_OFF_PORTE_PIN12    _PIN_OFF(GPIO_DRDY_PORTE_PIN12)
 
+/* SPI 4 bus off. */
+#ifdef CONFIG_STM32_SPI4
+#  define GPIO_SPI4_SCK_OFF          _PIN_OFF(GPIO_SPI4_SCK)
+#  define GPIO_SPI4_MISO_OFF         _PIN_OFF(GPIO_SPI4_MISO)
+#  define GPIO_SPI4_MOSI_OFF         _PIN_OFF(GPIO_SPI4_MOSI)
+#endif /* CONFIG_STM32_SPI4 */
+
 /**
  * N.B we do not have control over the SPI 2 buss powered devices
  * so the the ms5611 is not resetable.
+ *
  */
+
 #define PX4_SPI_BUS_SENSORS          1
 #define PX4_SPI_BUS_RAMTRON          2
 #define PX4_SPI_BUS_BARO             PX4_SPI_BUS_RAMTRON
+
+#ifdef CONFIG_STM32_SPI4
+#  define PX4_SPI_BUS_EXTERNAL       4
+/* The mask passes to init the SPI bus pins
+ * N.B This works ONLY with buss numbers that are powers of 2
+ * Adding SPI3 would break this!
+ */
+#  define   SPI_BUS_INIT_MASK_EXT     PX4_SPI_BUS_EXTERNAL
+#endif /* CONFIG_STM32_SPI4 */
+
+#define SPI_BUS_INIT_MASK        (PX4_SPI_BUS_RAMTRON | PX4_SPI_BUS_SENSORS)
 
 /* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
 #define PX4_SPIDEV_GYRO              PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
@@ -157,6 +181,10 @@
  * PX4_MK_SPI_SEL  differentiate by adding in PX4_SPI_DEVICE_ID.
  */
 #define PX4_SPIDEV_BARO             PX4_MK_SPI_SEL(PX4_SPI_BUS_BARO, 3)
+
+#ifdef CONFIG_STM32_SPI4
+#  define PX4_SPIDEV_EXTERNAL       PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL, 1)
+#endif /* CONFIG_STM32_SPI4 */
 
 /* I2C busses. */
 #define PX4_I2C_BUS_EXPANSION        1
@@ -262,6 +290,8 @@
 #define HRT_PPM_CHANNEL              3  /* use capture/compare channel 3 */
 #define GPIO_PPM_IN                  (GPIO_ALT|GPIO_AF2|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN0)
 
+/* RC Serial port */
+
 #define RC_SERIAL_PORT               "/dev/ttyS4"
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2. */
@@ -276,11 +306,12 @@
 
 /* For R12, this signal is active high. */
 #define GPIO_SBUS_INV                (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
-#define BOARD_INVERT_RC_INPUT(_invert_true, _na) px4_arch_gpiowrite(GPIO_SBUS_INV, _invert_true)
+#define RC_INVERT_INPUT(_invert_true) px4_arch_gpiowrite(GPIO_SBUS_INV, _invert_true)
 
 #define GPIO_SPEKTRUM_PWR_EN         (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN4)
 
 #define GPIO_8266_GPIO0              (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN2)
+#define GPIO_8266_GPIO2              (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN4)
 #define GPIO_8266_PD                 (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN5)
 #define GPIO_8266_RST                (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN6)
 

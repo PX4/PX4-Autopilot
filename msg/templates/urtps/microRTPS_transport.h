@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+ * Copyright (C) 2018-2019 PX4 Pro Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -35,6 +36,7 @@
 #include <cstring>
 #include <arpa/inet.h>
 #include <poll.h>
+#include <termios.h>
 
 class Transport_node
 {
@@ -99,6 +101,7 @@ protected:
 	ssize_t node_read(void *buffer, size_t len);
 	ssize_t node_write(void *buffer, size_t len);
 	bool fds_OK();
+	bool baudrate_to_speed(uint32_t bauds, speed_t *speed);
 
 	int uart_fd;
 	char uart_name[64] = {};

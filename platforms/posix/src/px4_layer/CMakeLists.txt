@@ -48,17 +48,18 @@ add_library(px4_layer
 	px4_posix_impl.cpp
 	px4_posix_tasks.cpp
 	px4_sem.cpp
+	px4_init.cpp
 	lib_crc32.c
 	drv_hrt.cpp
 	${SHMEM_SRCS}
 )
 target_compile_definitions(px4_layer PRIVATE MODULE_NAME="px4")
-target_link_libraries(px4_layer PRIVATE work_queue)
+target_compile_options(px4_layer PRIVATE -Wno-cast-align) # TODO: fix and enable
+target_link_libraries(px4_layer PRIVATE work_queue px4_work_queue)
 target_link_libraries(px4_layer PRIVATE px4_daemon)
 
 if(ENABLE_LOCKSTEP_SCHEDULER)
 	target_link_libraries(px4_layer PRIVATE lockstep_scheduler)
-	include_directories(${PX4_SOURCE_DIR}/platforms/posix/src/lockstep_scheduler/include)
 endif()
 
 

@@ -68,7 +68,6 @@
  * Public Functions
  ****************************************************************************/
 void board_button_initialize(void);
-xcpt_t board_button_irq(int id, xcpt_t irqhandler);
 /****************************************************************************
  * Button support.
  *
@@ -137,17 +136,17 @@ uint32_t board_buttons(void)
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_IRQBUTTONS
-xcpt_t board_button_irq(int id, xcpt_t irqhandler)
+int board_button_irq(int id, xcpt_t irqhandler, FAR void *arg)
 {
-	xcpt_t oldhandler = NULL;
+	int ret = -EINVAL;
 
 	/* The following should be atomic */
 
 	if (id == IRQBUTTON) {
-		oldhandler = stm32_gpiosetevent(BUTTON_BOOT0n, true, true, true, irqhandler);
+		ret = stm32_gpiosetevent(BUTTON_BOOT0n, true, true, true, irqhandler, arg);
 	}
 
-	return oldhandler;
+	return ret;
 }
 #endif
 #endif /* CONFIG_ARCH_BUTTONS */

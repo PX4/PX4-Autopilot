@@ -37,7 +37,4 @@ px4_add_module(
 	COMPILE_FLAGS
 	SRCS
 		heater.cpp
-	DEPENDS
-		platforms__common
-		modules__uORB
 	)

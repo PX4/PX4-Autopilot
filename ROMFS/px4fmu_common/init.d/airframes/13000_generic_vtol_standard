@@ -26,7 +26,8 @@ then
 	param set PWM_RATE 400
 
 	param set VT_TYPE 2
-	param set VT_MOT_COUNT 4
+	param set VT_MOT_ID 1234
+	param set VT_FW_MOT_OFFID 1234
 fi
 
 set MAV_TYPE 22

@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <poll.h>
+#include <math.h>
 #include <lib/cdev/CDev.hpp>
 
 ORB_DEFINE(orb_test, struct orb_test, sizeof(orb_test), "ORB_TEST:int val;hrt_abstime time;");
@@ -121,7 +122,7 @@ int uORBTest::UnitTest::pubsublatency_main()
 		num_missed += t.val - current_value - 1;
 		current_value = t.val;
 
-		unsigned elt = (unsigned)hrt_elapsed_time(&t.time);
+		unsigned elt = (unsigned)hrt_elapsed_time_atomic(&t.time);
 		latency_integral += elt;
 		timings[i] = elt;
 

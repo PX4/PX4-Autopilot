@@ -54,7 +54,6 @@
 #include <debug.h>
 #include <errno.h>
 
-#include "platform/cxxinitialize.h"
 #include <nuttx/board.h>
 #include <nuttx/analog/adc.h>
 #include <nuttx/spi/spi.h>
@@ -68,31 +67,11 @@
 #include <drivers/drv_board_led.h>
 
 #include <systemlib/px4_macros.h>
-#include <systemlib/cpuload.h>
-#include <systemlib/err.h>
-#include <parameters/param.h>
+#include <px4_init.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
-
-/* Configuration ************************************************************/
-
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) syslog(__VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message syslog
-#  else
-#    define message printf
-#  endif
-#endif
 
 /*
  * Ideally we'd be able to get these from up_internal.h,
@@ -149,29 +128,7 @@ stm32_boardinitialize(void)
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-
-	/* run C++ ctors before we go any further */
-
-	up_cxxinitialize();
-
-#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
-#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
-#	endif
-
-#else
-#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
-#endif
-
-	/* configure the high-resolution time/callout interface */
-	hrt_init();
-
-	param_init();
-
-	/* configure CPU load estimation */
-#ifdef CONFIG_SCHED_INSTRUMENTATION
-	cpuload_initialize_once();
-#endif
+	px4_platform_init();
 
 	/* set up the serial DMA polling */
 	static struct hrt_call serial_dma_call;

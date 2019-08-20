@@ -49,8 +49,19 @@ void FlightTaskAutoLine::_generateSetpoints()
 		_generateHeadingAlongTrack();
 	}
 
-	_generateAltitudeSetpoints();
-	_generateXYsetpoints();
+	if (_param_mpc_yaw_mode.get() == 4 && !_yaw_sp_aligned) {
+		// Wait for the yaw setpoint to be aligned
+		if (!_position_locked) {
+			_velocity_setpoint.setAll(0.f);
+			_position_setpoint = _position;
+			_position_locked = true;
+		}
+
+	} else {
+		_position_locked = false;
+		_generateAltitudeSetpoints();
+		_generateXYsetpoints();
+	}
 }
 
 void FlightTaskAutoLine::_setSpeedAtTarget()
@@ -66,7 +77,7 @@ void FlightTaskAutoLine::_setSpeedAtTarget()
 			Vector2f(&(_target - _prev_wp)(0)).unit_or_zero()
 			* Vector2f(&(_target - _next_wp)(0)).unit_or_zero()
 			+ 1.0f;
-		_speed_at_target = math::expontialFromLimits(angle, 0.0f, MPC_CRUISE_90.get(), _mc_cruise_speed);
+		_speed_at_target = math::expontialFromLimits(angle, 0.0f, _param_mpc_cruise_90.get(), _mc_cruise_speed);
 	}
 }
 
@@ -82,7 +93,7 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 {
 	_setSpeedAtTarget();
 	Vector2f pos_sp_to_dest(_target - _position_setpoint);
-	const bool has_reached_altitude = fabsf(_target(2) - _position(2)) < _target_acceptance_radius;
+	const bool has_reached_altitude = fabsf(_target(2) - _position(2)) < _param_nav_mc_alt_rad.get();
 
 	if ((_speed_at_target < 0.001f && pos_sp_to_dest.length() < _target_acceptance_radius) ||
 	    (!has_reached_altitude && pos_sp_to_dest.length() < _target_acceptance_radius)) {
@@ -164,14 +175,8 @@ void FlightTaskAutoLine::_generateXYsetpoints()
 			// Vehicle is still far from destination. Accelerate or keep maximum target speed.
 			float acc_track = (speed_sp_track - speed_sp_prev_track) / _deltatime;
 
-			float yaw_diff = 0.0f;
-
-			if (PX4_ISFINITE(_yaw_setpoint)) {
-				yaw_diff = wrap_pi(_yaw_setpoint - _yaw);
-			}
-
 			// If yaw offset is large, only accelerate with 0.5 m/s^2.
-			float acc_max = (fabsf(yaw_diff) > math::radians(MIS_YAW_ERR.get())) ? 0.5f : MPC_ACC_HOR.get();
+			float acc_max = (_yaw_sp_aligned) ? _param_mpc_acc_hor.get() : 0.5f;
 
 			if (acc_track > acc_max) {
 				// accelerate towards target
@@ -210,8 +215,8 @@ void FlightTaskAutoLine::_generateAltitudeSetpoints()
 		// limit vertical downwards speed (positive z) close to ground
 		// for now we use the altitude above home and assume that we want to land at same height as we took off
 		float vel_limit = math::gradual(_alt_above_ground,
-						MPC_LAND_ALT2.get(), MPC_LAND_ALT1.get(),
-						MPC_LAND_SPEED.get(), _constraints.speed_down);
+						_param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
+						_param_mpc_land_speed.get(), _constraints.speed_down);
 
 		// Speed at threshold is by default maximum speed. Threshold defines
 		// the point in z at which vehicle slows down to reach target altitude.
@@ -244,7 +249,7 @@ void FlightTaskAutoLine::_generateAltitudeSetpoints()
 			// we want to accelerate
 
 			const float acc = (speed_sp - fabsf(_velocity_setpoint(2))) / _deltatime;
-			const float acc_max = (flying_upward) ? (MPC_ACC_UP_MAX.get() * 0.5f) : (MPC_ACC_DOWN_MAX.get() * 0.5f);
+			const float acc_max = (flying_upward) ? (_param_mpc_acc_up_max.get() * 0.5f) : (_param_mpc_acc_down_max.get() * 0.5f);
 
 			if (acc > acc_max) {
 				speed_sp = acc_max * _deltatime + fabsf(_velocity_setpoint(2));

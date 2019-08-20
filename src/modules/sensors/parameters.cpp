@@ -101,6 +101,7 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.rc_map_aux3 = param_find("RC_MAP_AUX3");
 	parameter_handles.rc_map_aux4 = param_find("RC_MAP_AUX4");
 	parameter_handles.rc_map_aux5 = param_find("RC_MAP_AUX5");
+	parameter_handles.rc_map_aux6 = param_find("RC_MAP_AUX6");
 
 	/* RC to parameter mapping for changing parameters with RC */
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
@@ -314,6 +315,7 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	param_get(parameter_handles.rc_map_aux3, &(parameters.rc_map_aux3));
 	param_get(parameter_handles.rc_map_aux4, &(parameters.rc_map_aux4));
 	param_get(parameter_handles.rc_map_aux5, &(parameters.rc_map_aux5));
+	param_get(parameter_handles.rc_map_aux6, &(parameters.rc_map_aux6));
 
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		param_get(parameter_handles.rc_map_param[i], &(parameters.rc_map_param[i]));

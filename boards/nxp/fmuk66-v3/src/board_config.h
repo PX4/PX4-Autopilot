@@ -69,8 +69,8 @@ __BEGIN_DECLS
 #define GPIO_LED_B             (GPIO_HIGHDRIVE | GPIO_OUTPUT_ONE | PIN_PORTC | PIN8)
 
 
-#define GPIO_LED_1             (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTD | PIN13)
-#define GPIO_LED_2             (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTD | PIN14)
+#define GPIO_LED_1             (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTD | PIN13)
+#define GPIO_LED_2             (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTD | PIN14)
 
 #define BOARD_HAS_CONTROL_STATUS_LEDS 1 // Use D9 and D10
 #define BOARD_OVERLOAD_LED     LED_AMBER
@@ -83,11 +83,11 @@ __BEGIN_DECLS
 /* UART tty Mapping
  * Device   tty        alt           Connector Name
  * ------- ---------- -------------- --------- -------------------------
- * LPUART0 /dev/tty0  /dev/console    P16      DCD-Mini
- * UART0   /dev/tty1      ---         P7       IR transmitter & receiver
- * UART1   /dev/tty2      ---         P14,P15  SERIAL4/FrSky, RC_IN
- * UART2   /dev/tty3      ---         P3       GPS connector
- * UART4   /dev/tty4      ---         P10      UART (Bluetooth)
+ * LPUART0 /dev/tty0  /dev/console    J16      DCD-Mini
+ * UART0   /dev/tty1      ---         J7       SERIAL 2 / TELEMETRY 2 / IRDA
+ * UART1   /dev/tty2      ---         J15      SERIAL4/FrSky, RC_IN
+ * UART2   /dev/tty3      ---         J3       GPS connector
+ * UART4   /dev/tty4      ---         J10      SERIAL 1 / TELEMETRY 1
  */
 
 /* High-resolution timer */
@@ -130,7 +130,6 @@ __BEGIN_DECLS
 
 /* RC input */
 
-#define RC_UXART_BASE           KINETIS_UART1_BASE
 #define RC_SERIAL_PORT          "/dev/ttyS2"      /* UART1 */
 #define GPIO_RSSI_IN            PIN_ADC1_SE13
 
@@ -141,25 +140,25 @@ __BEGIN_DECLS
  */
 
 #define nGPIO_ETHERNET_P_EN     (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN3)
-#define GPIO_ENET_RST           (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTA | PIN28)
-#define GPIO_ENET_EN            (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTA | PIN29)
-#define GPIO_ENET_INH           (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTA | PIN8)
-#define GPIO_ENET_CONFIG0       (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTA | PIN24)
-#define GPIO_ENET_CONFIG1       (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTB | PIN2)
+#define GPIO_ENET_RST           (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN28)
+#define GPIO_ENET_EN            (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN29)
+#define GPIO_ENET_INH           (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN8)
+#define GPIO_ENET_CONFIG0       (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN24)
+#define GPIO_ENET_CONFIG1       (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTB | PIN2)
 
 /* CAN Control
  * Control pin S allows two operating modes to be selected:
  * high-speed mode (Low) or silent mode (high)
  */
 
-#define GPIO_CAN0_STB           (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTC | PIN19)
-#define GPIO_CAN1_STB           (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTC | PIN18)
+#define GPIO_CAN0_STB           (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO  | PIN_PORTC | PIN19)
+#define GPIO_CAN1_STB           (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO  | PIN_PORTC | PIN18)
 
 
 /* Safety Switch
  * TBD
  */
-#define GPIO_LED_SAFETY         (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTC | PIN0)
+#define GPIO_LED_SAFETY         (GPIO_HIGHDRIVE | GPIO_OUTPUT_ZERO  | PIN_PORTC | PIN0)
 #define GPIO_BTN_SAFETY         (GPIO_PULLUP | PIN_PORTE | PIN28)
 
 /* NXP FMUK66-V3 GPIOs ****************************************************************/
@@ -211,6 +210,7 @@ __BEGIN_DECLS
 #define GPIO_SPI_CS_MEMORY                  (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTC | PIN2)
 #define GPIO_SPI_CS_FXAS21002CQ_GYRO        (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN9)
 #define GPIO_SPI_CS_FXOS8700CQ_ACCEL_MAG    (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN10)
+#define GPIO_SPI1_CS_CALMEM                 (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTA | PIN19)
 #define GPIO_SPI2_CS                        (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTB | PIN20)
 #define GPIO_SPI2_EXT                       (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTD | PIN15)
 
@@ -219,7 +219,7 @@ __BEGIN_DECLS
  */
 
 /* Init in reset */
-#define GPIO_GM_nRST                        (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0  | PIN_PORTD | PIN12)
+#define GPIO_GM_nRST                        (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO  | PIN_PORTD | PIN12)
 #define GPIO_A_RST                          (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE   | PIN_PORTA | PIN25)
 
 /* Sensor interrupts */
@@ -240,9 +240,10 @@ __BEGIN_DECLS
 
 #define PX4_SPIDEV_ACCEL_MAG                PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,0)
 #define PX4_SPIDEV_GYRO                     PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,1)
-#define PX4_SENSOR_BUS_CS_GPIO              {GPIO_SPI_CS_FXOS8700CQ_ACCEL_MAG, GPIO_SPI_CS_FXAS21002CQ_GYRO}
+#define PX4_SPIDEV_CALMEM                   PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS,2)
+#define PX4_SENSOR_BUS_CS_GPIO              {GPIO_SPI_CS_FXOS8700CQ_ACCEL_MAG, GPIO_SPI_CS_FXAS21002CQ_GYRO, GPIO_SPI1_CS_CALMEM}
 #define PX4_SENSOR_BUS_FIRST_CS             PX4_SPIDEV_ACCEL_MAG
-#define PX4_SENSOR_BUS_LAST_CS              PX4_SPIDEV_GYRO
+#define PX4_SENSOR_BUS_LAST_CS              PX4_SPIDEV_CALMEM
 
 #define PX4_SPIDEV_EXTERNAL1                PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL,0)
 #define PX4_SPIDEV_EXTERNAL2                PX4_MK_SPI_SEL(PX4_SPI_BUS_EXTERNAL,1)
@@ -258,10 +259,13 @@ __BEGIN_DECLS
 
 /* I2C busses */
 
+#define PX4_I2C_BUS_ONBOARD                 PX4_BUS_NUMBER_TO_PX4(1)
 #define PX4_I2C_BUS_EXPANSION               PX4_BUS_NUMBER_TO_PX4(0)
-#define PX4_I2C_BUS_EXPANSION1              PX4_BUS_NUMBER_TO_PX4(1) // V3 RC15 has mpl3115a2 on onboard but this goes to a connector
-// So it is treated as external.
-#define PX4_I2C_BUS_LED                     PX4_I2C_BUS_EXPANSION1
+
+
+#define PX4_I2C_BUS_LED                     PX4_I2C_BUS_EXPANSION
+
+#define PX4_I2C_OBDEV_BMP280                0x76
 
 /*
  * ADC channels
@@ -375,7 +379,7 @@ __BEGIN_DECLS
  */
 #define TONE_ALARM_TIMER     2   /* timer */
 #define TONE_ALARM_CHANNEL   1   /* channel  */
-#define GPIO_TONE_ALARM_IDLE (GPIO_LOWDRIVE | GPIO_OUTPUT_ZER0 | PIN_PORTA | PIN11)
+#define GPIO_TONE_ALARM_IDLE (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN11)
 #define GPIO_TONE_ALARM      (PIN_TPM2_CH1_1)
 
 /* USB

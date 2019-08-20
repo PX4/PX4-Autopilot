@@ -41,11 +41,7 @@
  * @author David sidrane
  */
 
-#include <px4_config.h>
 #include <drivers/device/spi.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_device.h>
-
 #include "mpu9250.h"
 
 #define DIR_READ			0x80
@@ -120,7 +116,7 @@ MPU9250_SPI::set_bus_frequency(unsigned &reg_speed)
 int
 MPU9250_SPI::write(unsigned reg_speed, void *data, unsigned count)
 {
-	uint8_t cmd[MPU_MAX_WRITE_BUFFER_SIZE];
+	uint8_t cmd[MPU_MAX_WRITE_BUFFER_SIZE] {};
 
 	if (sizeof(cmd) < (count + 1)) {
 		return -EIO;
@@ -144,7 +140,7 @@ MPU9250_SPI::read(unsigned reg_speed, void *data, unsigned count)
 	 * and we need to provied the buffer large enough for the callers data
 	 * and our command.
 	 */
-	uint8_t cmd[3] = {0, 0, 0};
+	uint8_t cmd[3] {};
 
 	uint8_t *pbuff  =  count < sizeof(MPUReport) ? cmd : (uint8_t *) data ;
 

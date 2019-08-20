@@ -32,3 +32,6 @@
 ############################################################################
 
 px4_add_library(CollisionPrevention CollisionPrevention.cpp)
+target_compile_options(CollisionPrevention PRIVATE -Wno-cast-align) # TODO: fix and enable
+
+px4_add_functional_gtest(SRC CollisionPreventionTest.cpp LINKLIBS CollisionPrevention )

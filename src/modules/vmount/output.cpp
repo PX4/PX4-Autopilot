@@ -51,6 +51,8 @@
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 
+using matrix::wrap_pi;
+
 namespace vmount
 {
 
@@ -174,26 +176,31 @@ void OutputBase::_handle_position_update(bool force_update)
 
 	vehicle_global_position_s vehicle_global_position;
 	orb_copy(ORB_ID(vehicle_global_position), _vehicle_global_position_sub, &vehicle_global_position);
+	const double &vlat = vehicle_global_position.lat;
+	const double &vlon = vehicle_global_position.lon;
 
-	float pitch;
-	const double &lon = _cur_control_data->type_data.lonlat.lon;
 	const double &lat = _cur_control_data->type_data.lonlat.lat;
+	const double &lon = _cur_control_data->type_data.lonlat.lon;
 	const float &alt = _cur_control_data->type_data.lonlat.altitude;
 
+	_angle_setpoints[0] = _cur_control_data->type_data.lonlat.roll_angle;
+
+	// interface: use fixed pitch value > -pi otherwise consider ROI altitude
 	if (_cur_control_data->type_data.lonlat.pitch_fixed_angle >= -M_PI_F) {
-		pitch = _cur_control_data->type_data.lonlat.pitch_fixed_angle;
+		_angle_setpoints[1] = _cur_control_data->type_data.lonlat.pitch_fixed_angle;
 
 	} else {
-		pitch = _calculate_pitch(lon, lat, alt, vehicle_global_position);
+		_angle_setpoints[1] = _calculate_pitch(lon, lat, alt, vehicle_global_position);
 	}
 
-	float roll = _cur_control_data->type_data.lonlat.roll_angle;
-	float yaw = get_bearing_to_next_waypoint(vehicle_global_position.lat, vehicle_global_position.lon, lat, lon)
-		    - vehicle_global_position.yaw;
+	_angle_setpoints[2] = get_bearing_to_next_waypoint(vlat, vlon, lat, lon) - vehicle_global_position.yaw;
 
-	_angle_setpoints[0] = roll;
-	_angle_setpoints[1] = pitch + _cur_control_data->type_data.lonlat.pitch_angle_offset;
-	_angle_setpoints[2] = yaw + _cur_control_data->type_data.lonlat.yaw_angle_offset;
+	// add offsets from VEHICLE_CMD_DO_SET_ROI_WPNEXT_OFFSET
+	_angle_setpoints[1] += _cur_control_data->type_data.lonlat.pitch_angle_offset;
+	_angle_setpoints[2] += _cur_control_data->type_data.lonlat.yaw_angle_offset;
+
+	// make sure yaw is wrapped correctly for the output
+	_angle_setpoints[2] = wrap_pi(_angle_setpoints[2]);
 }
 
 void OutputBase::_calculate_output_angles(const hrt_abstime &t)

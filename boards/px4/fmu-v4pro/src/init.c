@@ -54,7 +54,6 @@
 #include <debug.h>
 #include <errno.h>
 
-#include "platform/cxxinitialize.h"
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/i2c/i2c_master.h>
@@ -73,33 +72,13 @@
 #include <drivers/drv_board_led.h>
 
 #include <systemlib/px4_macros.h>
-#include <systemlib/cpuload.h>
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
 
-#include <parameters/param.h>
+#include <px4_init.h>
+#include <drivers/boards/common/board_dma_alloc.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
-
-/* Configuration ************************************************************/
-
-/* Debug ********************************************************************/
-
-#ifdef CONFIG_CPP_HAVE_VARARGS
-#  ifdef CONFIG_DEBUG
-#    define message(...) syslog(__VA_ARGS__)
-#  else
-#    define message(...) printf(__VA_ARGS__)
-#  endif
-#else
-#  ifdef CONFIG_DEBUG
-#    define message syslog
-#  else
-#    define message printf
-#  endif
-#endif
 
 /*
  * Ideally we'd be able to get these from up_internal.h,
@@ -141,7 +120,7 @@ __EXPORT void board_peripheral_reset(int ms)
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
-	warnx("reset done, %d ms", ms);
+	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
 
 	/* re-enable power */
 
@@ -295,21 +274,6 @@ static struct sdio_dev_s *sdio;
 
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
-
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
-
-	/* run C++ ctors before we go any further */
-
-	up_cxxinitialize();
-
-#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
-#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
-#	endif
-
-#else
-#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
-#endif
-
 	/* Bring up the Sensor power */
 
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, 1);
@@ -319,21 +283,13 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	stm32_spiinitialize();
 
-	/* configure the high-resolution time/callout interface */
-	hrt_init();
-
-	param_init();
+	px4_platform_init();
 
 	/* configure the DMA allocator */
 
 	if (board_dma_alloc_init() < 0) {
-		message("DMA alloc FAILED");
+		syslog(LOG_ERR, "DMA alloc FAILED\n");
 	}
-
-	/* configure CPU load estimation */
-#ifdef CONFIG_SCHED_INSTRUMENTATION
-	cpuload_initialize_once();
-#endif
 
 	/* set up the serial DMA polling */
 	static struct hrt_call serial_dma_call;
@@ -367,7 +323,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	spi1 = stm32_spibus_initialize(PX4_SPI_BUS_SENSORS);
 
 	if (!spi1) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_SENSORS);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_SENSORS);
 		led_on(LED_RED);
 		return -ENODEV;
 	}
@@ -388,7 +344,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	spi2 = stm32_spibus_initialize(PX4_SPI_BUS_RAMTRON);
 
 	if (!spi2) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_RAMTRON);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_RAMTRON);
 		led_on(LED_RED);
 		return -ENODEV;
 	}
@@ -407,7 +363,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	spi5 = stm32_spibus_initialize(PX4_SPI_BUS_EXT0);
 
 	if (!spi5) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXT0);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXT0);
 		led_on(LED_RED);
 		return -ENODEV;
 	}
@@ -423,7 +379,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	spi6 = stm32_spibus_initialize(PX4_SPI_BUS_EXT1);
 
 	if (!spi6) {
-		message("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXT1);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXT1);
 		led_on(LED_RED);
 		return -ENODEV;
 	}
@@ -441,8 +397,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (!sdio) {
 		led_on(LED_RED);
-		message("[boot] Failed to initialize SDIO slot %d\n",
-			CONFIG_NSH_MMCSDSLOTNO);
+		syslog(LOG_ERR, "[boot] Failed to initialize SDIO slot %d\n",
+		       CONFIG_NSH_MMCSDSLOTNO);
 		return -ENODEV;
 	}
 
@@ -451,7 +407,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	if (ret != OK) {
 		led_on(LED_RED);
-		message("[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
+		syslog(LOG_ERR, "[boot] Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
 		return ret;
 	}
 

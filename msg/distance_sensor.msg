@@ -5,7 +5,7 @@ uint64 timestamp		# time since system start (microseconds)
 float32 min_distance		# Minimum distance the sensor can measure (in m)
 float32 max_distance		# Maximum distance the sensor can measure (in m)
 float32 current_distance	# Current distance reading (in m)
-float32 covariance		# Measurement covariance (in m), 0 for unknown / invalid readings
+float32 variance		# Measurement variance (in m^2), 0 for unknown / invalid readings
 int8 signal_quality		# Signal quality in percent (0...100%), where 0 = invalid signal, 100 = perfect signal, and -1 = unknown signal quality.
 
 uint8 type			# Type from MAV_DISTANCE_SENSOR enum
@@ -23,3 +23,8 @@ uint8 ROTATION_BACKWARD_FACING = 12 # MAV_SENSOR_ROTATION_PITCH_180
 uint8 ROTATION_FORWARD_FACING  = 0  # MAV_SENSOR_ROTATION_NONE
 uint8 ROTATION_LEFT_FACING     = 6  # MAV_SENSOR_ROTATION_YAW_270
 uint8 ROTATION_RIGHT_FACING    = 2  # MAV_SENSOR_ROTATION_YAW_90
+uint8 ROTATION_CUSTOM          =100 # MAV_SENSOR_ROTATION_CUSTOM
+
+float32 h_fov # Sensor horizontal field of view (rad)
+float32 v_fov # Sensor vertical field of view (rad)
+float32[4] q # Quaterion sensor orientation with respect to the vehicle body frame to specify the orientation ROTATION_CUSTOM

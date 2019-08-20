@@ -37,10 +37,7 @@
  * I2C interface for MPU6000 /MPU6050
  */
 
-#include <px4_config.h>
 #include <drivers/device/i2c.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_device.h>
 
 #include "MPU6000.hpp"
 

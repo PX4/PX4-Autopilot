@@ -43,14 +43,14 @@
 
 #include <drivers/drv_hrt.h>
 #include <px4_module_params.h>
+#include <containers/List.hpp>
 
 class Mavlink;
 
-class MavlinkStream : public ModuleParams
+class MavlinkStream : public ListNode<MavlinkStream *>
 {
 
 public:
-	MavlinkStream *next{nullptr};
 
 	MavlinkStream(Mavlink *mavlink);
 	virtual ~MavlinkStream() = default;

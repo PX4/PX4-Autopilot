@@ -208,7 +208,7 @@ int fmuk66_sdhc_initialize(void)
 		return ret;
 	}
 
-	syslog(LOG_INFO, "Successfully bound SDHC to the MMC/SD driver\n");
+	syslog(LOG_ERR, "Successfully bound SDHC to the MMC/SD driver\n");
 
 	/* Handle the initial card state */
 

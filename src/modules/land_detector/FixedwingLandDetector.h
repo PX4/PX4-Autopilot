@@ -42,9 +42,9 @@
 
 #pragma once
 
-#include <drivers/drv_hrt.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
-#include <uORB/topics/sensor_bias.h>
+#include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_local_position.h>
 
 #include "LandDetector.h"
@@ -60,7 +60,6 @@ public:
 	FixedwingLandDetector();
 
 protected:
-	void _initialize_topics() override;
 	void _update_params() override;
 	void _update_topics() override;
 
@@ -73,32 +72,28 @@ private:
 	static constexpr hrt_abstime LANDED_TRIGGER_TIME_US = 2_s;
 	static constexpr hrt_abstime FLYING_TRIGGER_TIME_US = 0_us;
 
-	struct {
-		param_t maxVelocity;
-		param_t maxClimbRate;
-		param_t maxAirSpeed;
-		param_t maxXYAccel;
-	} _paramHandle{};
-
-	struct {
-		float maxVelocity;
-		float maxClimbRate;
-		float maxAirSpeed;
-		float maxXYAccel;
-	} _params{};
-
-	int _airspeedSub{-1};
-	int _sensor_bias_sub{-1};
-	int _local_pos_sub{-1};
+	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
+	uORB::Subscription _param_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 
 	airspeed_s _airspeed{};
-	sensor_bias_s _sensors{};
-	vehicle_local_position_s _local_pos{};
+	vehicle_acceleration_s _vehicle_acceleration{};
+	vehicle_local_position_s _vehicle_local_position{};
 
+	float _airspeed_filtered{0.0f};
 	float _velocity_xy_filtered{0.0f};
 	float _velocity_z_filtered{0.0f};
-	float _airspeed_filtered{0.0f};
-	float _accel_horz_lp{0.0f};
+	float _xy_accel_filtered{0.0f};
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(
+		LandDetector,
+		(ParamFloat<px4::params::LNDFW_XYACC_MAX>)  _param_lndfw_xyaccel_max,
+		(ParamFloat<px4::params::LNDFW_AIRSPD_MAX>) _param_lndfw_airspd,
+		(ParamFloat<px4::params::LNDFW_VEL_XY_MAX>) _param_lndfw_vel_xy_max,
+		(ParamFloat<px4::params::LNDFW_VEL_Z_MAX>)  _param_lndfw_vel_z_max
+	);
+
 };
 
 } // namespace land_detector

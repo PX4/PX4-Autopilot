@@ -34,6 +34,8 @@
 #include <px4_posix.h>
 #include <drivers/drv_led.h>
 
+#include <string.h>
+
 #include "navio_rgbled.h"
 
 #define RGBLED_BASE_DEVICE_PATH "/dev/rgbled"

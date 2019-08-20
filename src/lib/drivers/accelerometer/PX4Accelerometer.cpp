@@ -40,7 +40,7 @@ PX4Accelerometer::PX4Accelerometer(uint32_t device_id, uint8_t priority, enum Ro
 	CDev(nullptr),
 	ModuleParams(nullptr),
 	_sensor_accel_pub{ORB_ID(sensor_accel), priority},
-	_rotation{get_rot_matrix(rotation)}
+	_rotation{rotation}
 {
 	_class_device_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 
@@ -49,11 +49,7 @@ PX4Accelerometer::PX4Accelerometer(uint32_t device_id, uint8_t priority, enum Ro
 
 	// set software low pass filter for controllers
 	updateParams();
-	configure_filter(_filter_cutoff.get());
-
-	// force initial publish to allocate uORB buffer
-	// TODO: can be removed once all drivers are in threads
-	_sensor_accel_pub.update();
+	configure_filter(_param_imu_accel_cutoff.get());
 }
 
 PX4Accelerometer::~PX4Accelerometer()
@@ -63,7 +59,8 @@ PX4Accelerometer::~PX4Accelerometer()
 	}
 }
 
-int PX4Accelerometer::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
+int
+PX4Accelerometer::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 	case ACCELIOCSSCALE: {
@@ -85,7 +82,8 @@ int PX4Accelerometer::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 	}
 }
 
-void PX4Accelerometer::set_device_type(uint8_t devtype)
+void
+PX4Accelerometer::set_device_type(uint8_t devtype)
 {
 	// current DeviceStructure
 	union device::Device::DeviceId device_id;
@@ -98,14 +96,26 @@ void PX4Accelerometer::set_device_type(uint8_t devtype)
 	_sensor_accel_pub.get().device_id = device_id.devid;
 }
 
-void PX4Accelerometer::update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z)
+void
+PX4Accelerometer::set_sample_rate(unsigned rate)
+{
+	_sample_rate = rate;
+	_filter.set_cutoff_frequency(_sample_rate, _filter.get_cutoff_freq());
+}
+
+void
+PX4Accelerometer::update(hrt_abstime timestamp, float x, float y, float z)
 {
 	sensor_accel_s &report = _sensor_accel_pub.get();
 	report.timestamp = timestamp;
 
-	// Apply rotation, range scale, and the calibrating offset/scale
-	const matrix::Vector3f val_raw{(float)x, (float)y, (float)z};
-	const matrix::Vector3f val_calibrated{ _rotation *(((val_raw * report.scaling) - _calibration_offset).emult(_calibration_scale))};
+	// Apply rotation (before scaling)
+	rotate_3f(_rotation, x, y, z);
+
+	const matrix::Vector3f raw{x, y, z};
+
+	// Apply range scale and the calibrating offset/scale
+	const matrix::Vector3f val_calibrated{(((raw * report.scaling) - _calibration_offset).emult(_calibration_scale))};
 
 	// Filtered values
 	const matrix::Vector3f val_filtered{_filter.apply(val_calibrated)};
@@ -135,7 +145,8 @@ void PX4Accelerometer::update(hrt_abstime timestamp, int16_t x, int16_t y, int16
 	}
 }
 
-void PX4Accelerometer::print_status()
+void
+PX4Accelerometer::print_status()
 {
 	PX4_INFO(ACCEL_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
 	PX4_INFO("sample rate: %d Hz", _sample_rate);

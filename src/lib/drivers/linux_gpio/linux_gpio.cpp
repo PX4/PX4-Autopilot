@@ -33,10 +33,14 @@
 
 #include "linux_gpio.h"
 
-#include <px4_posix.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <string.h>
+#include <stdlib.h>
+
+#include <px4_posix.h>
 
 #define PIN_INDEX_BUFFER_MAX (16)
 #define PIN_DIRECTION_BUFFER_MAX (30 + PIN_INDEX_BUFFER_MAX)

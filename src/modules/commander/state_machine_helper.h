@@ -60,12 +60,12 @@ typedef enum {
 
 enum class link_loss_actions_t {
 	DISABLED = 0,
-	AUTO_LOITER = 1,
-	AUTO_RTL = 2,
-	AUTO_LAND = 3,
-	AUTO_RECOVER = 4,
-	TERMINATE = 5,
-	LOCKDOWN = 6,
+	AUTO_LOITER = 1,	// Hold mode
+	AUTO_RTL = 2,		// Return mode
+	AUTO_LAND = 3,		// Land mode
+	AUTO_RECOVER = 4,	// Data Link Auto Recovery (CASA Outback Challenge rules)
+	TERMINATE = 5,		// Turn off all controllers and set PWM outputs to failsafe value
+	LOCKDOWN = 6,		// Kill the motors, same result as kill switch
 };
 
 typedef enum {
@@ -73,6 +73,7 @@ typedef enum {
 	ARM_REQ_MISSION_BIT = (1 << 0),
 	ARM_REQ_ARM_AUTH_BIT = (1 << 1),
 	ARM_REQ_GPS_BIT = (1 << 2),
+	ARM_REQ_ESCS_CHECK_BIT = (1 << 3)
 } arm_requirements_t;
 
 extern const char *const arming_state_names[];

@@ -1,4 +1,4 @@
-#include "lockstep_scheduler/lockstep_scheduler.h"
+#include <lockstep_scheduler/lockstep_scheduler.h>
 
 LockstepScheduler::~LockstepScheduler()
 {

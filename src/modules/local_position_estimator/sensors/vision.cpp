@@ -127,20 +127,20 @@ void BlockLocalPositionEstimator::visionCorrect()
 	R.setZero();
 
 	// use std dev from vision data if available
-	if (_vision_eph > _vision_xy_stddev.get()) {
+	if (_vision_eph > _param_lpe_vis_xy.get()) {
 		R(Y_vision_x, Y_vision_x) = _vision_eph * _vision_eph;
 		R(Y_vision_y, Y_vision_y) = _vision_eph * _vision_eph;
 
 	} else {
-		R(Y_vision_x, Y_vision_x) = _vision_xy_stddev.get() * _vision_xy_stddev.get();
-		R(Y_vision_y, Y_vision_y) = _vision_xy_stddev.get() * _vision_xy_stddev.get();
+		R(Y_vision_x, Y_vision_x) = _param_lpe_vis_xy.get() * _param_lpe_vis_xy.get();
+		R(Y_vision_y, Y_vision_y) = _param_lpe_vis_xy.get() * _param_lpe_vis_xy.get();
 	}
 
-	if (_vision_epv > _vision_z_stddev.get()) {
+	if (_vision_epv > _param_lpe_vis_z.get()) {
 		R(Y_vision_z, Y_vision_z) = _vision_epv * _vision_epv;
 
 	} else {
-		R(Y_vision_z, Y_vision_z) = _vision_z_stddev.get() * _vision_z_stddev.get();
+		R(Y_vision_z, Y_vision_z) = _param_lpe_vis_z.get() * _param_lpe_vis_z.get();
 	}
 
 	// vision delayed x
@@ -151,7 +151,7 @@ void BlockLocalPositionEstimator::visionCorrect()
 	if (vision_delay < 0.0f) { vision_delay = 0.0f; }
 
 	// use auto-calculated delay from measurement if parameter is set to zero
-	if (getDelayPeriods(_vision_delay.get() > 0.0f ? _vision_delay.get() : vision_delay, &i_hist) < 0) { return; }
+	if (getDelayPeriods(_param_lpe_vis_delay.get() > 0.0f ? _param_lpe_vis_delay.get() : vision_delay, &i_hist) < 0) { return; }
 
 	Vector<float, n_x> x0 = _xDelay.get(i_hist);
 

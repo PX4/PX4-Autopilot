@@ -48,10 +48,11 @@
 #include <controllib/blocks.hpp>
 #include <drivers/drv_hrt.h>
 
-#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionPollable.hpp>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -92,17 +93,19 @@ class __EXPORT BlockUorbEnabledAutopilot : public SuperBlock
 {
 protected:
 	// subscriptions
-	uORB::Subscription<manual_control_setpoint_s> _manual;
-	uORB::Subscription<parameter_update_s> _param_update;
-	uORB::Subscription<position_setpoint_triplet_s> _missionCmd;
-	uORB::Subscription<vehicle_attitude_s> _att;
-	uORB::Subscription<vehicle_attitude_setpoint_s> _attCmd;
-	uORB::Subscription<vehicle_global_position_s> _pos;
-	uORB::Subscription<vehicle_rates_setpoint_s> _ratesCmd;
-	uORB::Subscription<vehicle_status_s> _status;
+	uORB::SubscriptionPollable<manual_control_setpoint_s> _manual;
+	uORB::SubscriptionPollable<parameter_update_s> _param_update;
+	uORB::SubscriptionPollable<position_setpoint_triplet_s> _missionCmd;
+	uORB::SubscriptionPollable<vehicle_attitude_s> _att;
+	uORB::SubscriptionPollable<vehicle_angular_velocity_s> _angular_velocity;
+	uORB::SubscriptionPollable<vehicle_attitude_setpoint_s> _attCmd;
+	uORB::SubscriptionPollable<vehicle_global_position_s> _pos;
+	uORB::SubscriptionPollable<vehicle_rates_setpoint_s> _ratesCmd;
+	uORB::SubscriptionPollable<vehicle_status_s> _status;
 
 	// publications
-	uORB::Publication<actuator_controls_s> _actuators;
+	uORB::PublicationData<actuator_controls_s> _actuators{ORB_ID(actuator_controls_0)};
+
 public:
 	BlockUorbEnabledAutopilot(SuperBlock *parent, const char *name);
 	virtual ~BlockUorbEnabledAutopilot() = default;

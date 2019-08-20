@@ -35,6 +35,7 @@ px4_add_module(
 	MAIN teraranger
 	STACK_MAIN 1200
 	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		teraranger.cpp
 	DEPENDS

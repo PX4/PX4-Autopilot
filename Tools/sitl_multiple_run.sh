@@ -2,9 +2,9 @@
 # run multiple instances of the 'px4' binary, but w/o starting the simulator.
 # It assumes px4 is already built, with 'make px4_sitl_default'
 
-# The simulator is expected to send to UDP port 14560+i for i in [0, N-1]
+# The simulator is expected to send to TCP port 4560+i for i in [0, N-1]
 # For example jmavsim can be run like this:
-#./Tools/jmavsim_run.sh -p 14561
+#./Tools/jmavsim_run.sh -p 4561 -l
 
 sitl_num=2
 [ -n "$1" ] && sitl_num="$1"

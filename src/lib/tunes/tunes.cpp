@@ -40,30 +40,27 @@
 #include <px4_log.h>
 #include <math.h>
 #include <ctype.h>
+#include <errno.h>
 
-#define TUNE_ERROR -1
-#define TUNE_STOP 0
 #define TUNE_CONTINUE 1
+#define TUNE_ERROR   -1
+#define TUNE_STOP     0
 
 #define BEAT_TIME_CONVERSION_MS (60 * 1000 * 4)
 #define BEAT_TIME_CONVERSION_US BEAT_TIME_CONVERSION_MS * 1000
-#define BEAT_TIME_CONVERSION BEAT_TIME_CONVERSION_US
+#define BEAT_TIME_CONVERSION    BEAT_TIME_CONVERSION_US
 
 // semitone offsets from C for the characters 'A'-'G'
 const uint8_t Tunes::_note_tab[] = {9, 11, 0, 2, 4, 5, 7};
 
-Tunes::Tunes(unsigned default_tempo, unsigned default_octave, unsigned default_note_length,
-	     NoteMode default_mode):
-	_default_tempo(default_tempo),
+Tunes::Tunes(unsigned default_note_length, NoteMode default_note_mode,
+	     unsigned default_octave, unsigned default_tempo):
 	_default_note_length(default_note_length),
-	_default_mode(default_mode),
-	_default_octave(default_octave)
+	_default_note_mode(default_note_mode),
+	_default_octave(default_octave),
+	_default_tempo(default_tempo)
 {
 	reset(false);
-}
-
-Tunes::Tunes(): Tunes(TUNE_DEFAULT_TEMPO, TUNE_DEFAULT_OCTAVE, TUNE_DEFAULT_NOTE_LENGTH, NoteMode::NORMAL)
-{
 }
 
 void Tunes::reset(bool repeat_flag)
@@ -71,18 +68,18 @@ void Tunes::reset(bool repeat_flag)
 	// reset pointer
 	if (!repeat_flag)	{
 		_tune = nullptr;
-		_next = nullptr;
+		_next_tune = nullptr;
 
 	} else {
 		_tune = _tune_start_ptr;
-		_next = _tune;
+		_next_tune = _tune;
 	}
 
 	// reset music parameter
-	_tempo = _default_tempo;
 	_note_length = _default_note_length;
-	_note_mode = _default_mode;
-	_octave = _default_octave;
+	_note_mode   = _default_note_mode;
+	_octave      = _default_octave;
+	_tempo       = _default_tempo;
 }
 
 int Tunes::set_control(const tune_control_s &tune_control)
@@ -92,10 +89,16 @@ int Tunes::set_control(const tune_control_s &tune_control)
 		return -EINVAL;
 	}
 
-	// Accept new tune or a stop ?
+	// Accept new tune or a stop?
 	if (_tune == nullptr ||  	   // No tune is currently being played
 	    tune_control.tune_override ||  // Override interrupts everything
 	    _default_tunes_interruptable[_current_tune_id]) {
+
+		// Check if this exact tune is already being played back
+		if (tune_control.tune_id != static_cast<int>(TuneID::CUSTOM) &&
+		    _tune == _default_tunes[tune_control.tune_id]) {
+			return OK; // Nothing to do
+		}
 
 		// Reset repeat flag. Can jump to true again while tune is being parsed later
 		_repeat = false;
@@ -103,27 +106,27 @@ int Tunes::set_control(const tune_control_s &tune_control)
 		// Reset octave, tempo etc.
 		reset(_repeat);
 
-		// Strength will remain valid for the entire tune, unless interrupted.
-		if ((unsigned)tune_control.strength <= TUNE_MAX_STRENGTH) {
-			_strength = (unsigned)tune_control.strength;
+		// Volume will remain valid for the entire tune, unless interrupted.
+		if (tune_control.volume <= tune_control_s::VOLUME_LEVEL_MAX) {
+			_volume = tune_control.volume;
 
 		} else {
-			_strength = TUNE_MAX_STRENGTH;
+			_volume = tune_control_s::VOLUME_LEVEL_MAX;
 		}
 
 
 		// Special treatment for custom tunes
 		if (tune_control.tune_id == static_cast<int>(TuneID::CUSTOM)) {
 			_using_custom_msg = true;
-			_frequency = (unsigned)tune_control.frequency;
-			_duration = (unsigned)tune_control.duration;
-			_silence = (unsigned)tune_control.silence;
+			_frequency        = (unsigned)tune_control.frequency;
+			_duration         = (unsigned)tune_control.duration;
+			_silence          = (unsigned)tune_control.silence;
 
 		} else {
 			_using_custom_msg = false;
-			_tune = _default_tunes[tune_control.tune_id];
-			_tune_start_ptr = _tune;
-			_next = _tune;
+			_tune             = _default_tunes[tune_control.tune_id];
+			_tune_start_ptr   = _tune;
+			_next_tune        = _tune;
 		}
 
 		_current_tune_id = tune_control.tune_id;
@@ -132,83 +135,83 @@ int Tunes::set_control(const tune_control_s &tune_control)
 	return OK;
 }
 
-void Tunes::set_string(const char *const string, uint8_t strength)
+void Tunes::set_string(const char *const string, uint8_t volume)
 {
-	// Only play new tune if nothing is being played currently
+	// Only play new tune if nothing is being played currently.
 	if (_tune == nullptr) {
-		// set tune string the first time
-		_tune = string;
+		// Set tune string the first time.
+		_tune           = string;
 		_tune_start_ptr = string;
-		_next = _tune;
+		_next_tune      = _tune;
 
-		if (strength <= TUNE_MAX_STRENGTH) {
-			_strength = strength;
+		if (volume <= tune_control_s::VOLUME_LEVEL_MAX) {
+			_volume = volume;
 
 		} else {
-			_strength = TUNE_MAX_STRENGTH;
+			_volume = tune_control_s::VOLUME_LEVEL_MAX;
 		}
 	}
 }
 
-int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
-			 unsigned &silence, uint8_t &strength)
+int Tunes::get_next_note(unsigned &frequency, unsigned &duration,
+			 unsigned &silence, uint8_t &volume)
 {
-	int ret = get_next_tune(frequency, duration, silence);
+	int ret = get_next_note(frequency, duration, silence);
 
-	// Check if note should not be heard -> adjust strength to 0 to be safe
+	// Check if note should not be heard -> adjust volume to 0 to be safe.
 	if (frequency == 0 || duration == 0) {
-		strength = 0;
+		volume = 0;
 
 	} else {
-		strength = _strength;
+		volume = _volume;
 	}
 
 	return ret;
 }
 
-int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
+int Tunes::get_next_note(unsigned &frequency, unsigned &duration,
 			 unsigned &silence)
 {
-	// Return the values for frequency and duration if the custom msg was received
+	// Return the values for frequency and duration if the custom msg was received.
 	if (_using_custom_msg) {
 		_using_custom_msg = false;
+		duration  = _duration;
 		frequency = _frequency;
-		duration = _duration;
-		silence = _silence;
-		return TUNE_STOP;
+		silence   = _silence;
+		return TUNE_CONTINUE;
 	}
 
-	// make sure we still have a tune
-	if ((_next == nullptr) || (_tune == nullptr)) {
-		return TUNE_ERROR;
+	// Make sure we still have a tune.
+	if ((_next_tune == nullptr) || (_tune == nullptr)) {
+		return tune_error();
 	}
 
-	// parse characters out of the string until we have resolved a note
+	// Parse characters out of the string until we have resolved a note.
 	unsigned note = 0;
 	unsigned note_length = _note_length;
 
 	while (note == 0) {
-		// we always need at least one character from the string
+		// we always need at least one character from the string.
 		int c = next_char();
 
 		if (c == 0) {
 			silence = 0;
-			goto tune_end;
+			return tune_end();
 		}
 
-		_next++;
+		_next_tune++;
 
 		switch (c) {
-		case 'L':	// select note length
+		case 'L':	// Select note length.
 			_note_length = next_number();
 
 			if (_note_length < 1) {
-				goto tune_error;
+				return tune_error();
 			}
 
 			break;
 
-		case 'O':	// select octave
+		case 'O':	// Select octave.
 			_octave = next_number();
 
 			if (_octave > 6) {
@@ -217,28 +220,28 @@ int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
 
 			break;
 
-		case '<':	// decrease octave
+		case '<':	// Decrease octave.
 			if (_octave > 0) {
 				_octave--;
 			}
 
 			break;
 
-		case '>':	// increase octave
+		case '>':	// Increase octave.
 			if (_octave < 6) {
 				_octave++;
 			}
 
 			break;
 
-		case 'M':	// select inter-note gap
+		case 'M':	// Select inter-note gap.
 			c = next_char();
 
 			if (c == 0) {
-				goto tune_error;
+				return tune_error();
 			}
 
-			_next++;
+			_next_tune++;
 
 			switch (c) {
 			case 'N':
@@ -262,73 +265,73 @@ int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
 				break;
 
 			default:
-				goto tune_error;
+				return tune_error();
 			}
 
 			break;
 
-		case 'P':	// pause for a note length
+		case 'P':	// Pause for a note length.
 			frequency = 0;
 			duration = 0;
 			silence = rest_duration(next_number(), next_dots());
 			return TUNE_CONTINUE;
 
-		case 'T': {	// change tempo
+		case 'T': {	// Change tempo.
 				unsigned nt = next_number();
 
 				if ((nt >= 32) && (nt <= 255)) {
 					_tempo = nt;
 
 				} else {
-					goto tune_error;
+					return tune_error();
 				}
 
 				break;
 			}
 
-		case 'N':	// play an arbitrary note
+		case 'N':	// Play an arbitrary note.
 			note = next_number();
 
 			if (note > 84) {
-				goto tune_error;
+				return tune_error();
 			}
 
 			if (note == 0) {
-				// this is a rest - pause for the current note length
+				// This is a rest - pause for the current note length.
 				silence = rest_duration(_note_length, next_dots());
 				return TUNE_CONTINUE;
 			}
 
 			break;
 
-		case 'A'...'G':	// play a note in the current octave
+		case 'A'...'G':	// Play a note in the current octave.
 			note = _note_tab[c - 'A'] + (_octave * 12) + 1;
 			c = next_char();
 
 			switch (c) {
-			case '#':	// up a semitone
+			case '#':	// Up a semitone.
 			case '+':
 				if (note < 84) {
 					note++;
 				}
 
-				_next++;
+				_next_tune++;
 				break;
 
-			case '-':	// down a semitone
+			case '-':	// Down a semitone.
 				if (note > 1) {
 					note--;
 				}
 
-				_next++;
+				_next_tune++;
 				break;
 
 			default:
-				// 0 / no next char here is OK
+				// 0 / No next char here is OK.
 				break;
 			}
 
-			// shorthand length notation
+			// Shorthand length notation.
 			note_length = next_number();
 
 			if (note_length == 0) {
@@ -338,28 +341,24 @@ int Tunes::get_next_tune(unsigned &frequency, unsigned &duration,
 			break;
 
 		default:
-			goto tune_error;
+			return tune_error();
 		}
 	}
 
-	// compute the duration of the note and the following silence (if any)
+	// Compute the duration of the note and the following silence (if any).
 	duration = note_duration(silence, note_length, next_dots());
 
-	// compute the note frequency
+	// Compute the note frequency.
 	frequency = note_to_frequency(note);
 	return TUNE_CONTINUE;
+}
 
-	// tune looks bad (unexpected EOF, bad character, etc.)
-tune_error:
-	// syslog(LOG_ERR, "tune error\n");
-	_repeat = false;		// don't loop on error
-	reset(_repeat);
-	return TUNE_ERROR;
-	// stop (and potentially restart) the tune
-tune_end:
-	// restore intial parameter
+int Tunes::tune_end()
+{
+	// Restore intial parameters.
 	reset(_repeat);
 
+	// Stop or restart the tune.
 	if (_repeat) {
 		return TUNE_CONTINUE;
 
@@ -368,9 +367,17 @@ tune_end:
 	}
 }
 
+int Tunes::tune_error()
+{
+	// The tune appears to be bad (unexpected EOF, bad character, etc.).
+	_repeat = false;	// Don't loop on error.
+	reset(_repeat);
+	return TUNE_ERROR;
+}
+
 uint32_t Tunes::note_to_frequency(unsigned note) const
 {
-	// compute the frequency (Hz)
+	// Compute the frequency (Hz).
 	return (unsigned)(880.0f * powf(2.0f, ((int)note - 46) / 12.0f));
 }
 
@@ -433,27 +440,27 @@ unsigned Tunes::rest_duration(unsigned rest_length, unsigned dots) const
 
 int Tunes::next_char()
 {
-	while (isspace(*_next)) {
-		_next++;
+	while (isspace(*_next_tune)) {
+		_next_tune++;
 	}
 
-	return toupper(*_next);
+	return toupper(*_next_tune);
 }
 
 unsigned Tunes::next_number()
 {
 	unsigned number = 0;
-	int c;
+	int next_character;
 
 	for (;;) {
-		c = next_char();
+		next_character = next_char();
 
-		if (!isdigit(c)) {
+		if (!isdigit(next_character)) {
 			return number;
 		}
 
-		_next++;
-		number = (number * 10) + (c - '0');
+		_next_tune++;
+		number = (number * 10) + (next_character - '0');
 	}
 }
 
@@ -462,7 +469,7 @@ unsigned Tunes::next_dots()
 	unsigned dots = 0;
 
 	while (next_char() == '.') {
-		_next++;
+		_next_tune++;
 		dots++;
 	}
 

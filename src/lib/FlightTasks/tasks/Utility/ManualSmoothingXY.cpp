@@ -46,8 +46,8 @@ ManualSmoothingXY::ManualSmoothingXY(ModuleParams *parent, const Vector2f &vel) 
 	ModuleParams(parent), 	_vel_sp_prev(vel)
 
 {
-	_acc_state_dependent = _acc_xy_max.get();
-	_jerk_state_dependent = _jerk_max.get();
+	_acc_state_dependent = _param_mpc_acc_hor.get();
+	_jerk_state_dependent = _param_mpc_jerk_max.get();
 }
 
 void
@@ -134,17 +134,17 @@ ManualSmoothingXY::_setStateAcceleration(const Vector2f &vel_sp, const Vector2f 
 			} else if (intention != _intention) {
 				// start the brake with lowest acceleration which
 				// makes stopping smoother
-				_acc_state_dependent = _dec_xy_min.get();
+				_acc_state_dependent = _param_mpc_dec_hor_slow.get();
 
 				// Adjust jerk based on current velocity. This ensures
 				// that the vehicle will stop much quicker at large speed but
 				// very slow at low speed.
 				_jerk_state_dependent = 1e6f; // default
 
-				if (_jerk_max.get() > _jerk_min.get() && _jerk_min.get() > FLT_EPSILON) {
+				if (_param_mpc_jerk_max.get() > _param_mpc_jerk_min.get() && _param_mpc_jerk_min.get() > FLT_EPSILON) {
 
-					_jerk_state_dependent = math::min((_jerk_max.get() - _jerk_min.get())
-									  / _vel_max * vel.length() + _jerk_min.get(), _jerk_max.get());
+					_jerk_state_dependent = math::min((_param_mpc_jerk_max.get() - _param_mpc_jerk_min.get())
+									  / _vel_max * vel.length() + _param_mpc_jerk_min.get(), _param_mpc_jerk_max.get());
 				}
 
 				// User wants to brake smoothly but does NOT want the vehicle to
@@ -154,14 +154,14 @@ ManualSmoothingXY::_setStateAcceleration(const Vector2f &vel_sp, const Vector2f 
 			}
 
 			/* limit jerk when braking to zero */
-			float jerk = (_acc_hover.get() - _acc_state_dependent) / dt;
+			float jerk = (_param_mpc_acc_hor_max.get() - _acc_state_dependent) / dt;
 
 			if (jerk > _jerk_state_dependent) {
 				_acc_state_dependent = _jerk_state_dependent * dt
 						       + _acc_state_dependent;
 
 			} else {
-				_acc_state_dependent = _acc_hover.get();
+				_acc_state_dependent = _param_mpc_acc_hor_max.get();
 			}
 
 			break;
@@ -174,19 +174,19 @@ ManualSmoothingXY::_setStateAcceleration(const Vector2f &vel_sp, const Vector2f 
 			// Because previous setpoint is equal to current setpoint,
 			// slewrate will have no effect. Nonetheless, just set
 			// acceleration to maximum.
-			_acc_state_dependent = _acc_hover.get();
+			_acc_state_dependent = _param_mpc_acc_hor_max.get();
 			break;
 		}
 
 	case Intention::acceleration: {
 			// Limit acceleration linearly based on velocity setpoint.
-			_acc_state_dependent = (_acc_xy_max.get() - _dec_xy_min.get())
-					       / _vel_max * vel_sp.length() + _dec_xy_min.get();
+			_acc_state_dependent = (_param_mpc_acc_hor.get() - _param_mpc_dec_hor_slow.get())
+					       / _vel_max * vel_sp.length() + _param_mpc_dec_hor_slow.get();
 			break;
 		}
 
 	case Intention::deceleration: {
-			_acc_state_dependent = _dec_xy_min.get();
+			_acc_state_dependent = _param_mpc_dec_hor_slow.get();
 			break;
 		}
 	}

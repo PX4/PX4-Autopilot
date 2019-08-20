@@ -39,33 +39,16 @@
  *
  */
 
-#include <px4_config.h>
-
-#include <drivers/device/i2c.h>
-#include <drivers/drv_hrt.h>
-
-#include <sys/types.h>
-#include <stdint.h>
 #include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <ctype.h>
 #include <sys/stat.h>
 
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-
-#include <board_config.h>
-
-#include <drivers/drv_oreoled.h>
+#include <drivers/device/i2c.h>
 #include <drivers/device/ringbuffer.h>
+#include <drivers/drv_oreoled.h>
+#include <perf/perf_counter.h>
+#include <px4_getopt.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <systemlib/err.h>
 
 #define OREOLED_NUM_LEDS		4			///< maximum number of LEDs the oreo led driver can support
 #define OREOLED_BASE_I2C_ADDR	0x68		///< base i2c address (7-bit)
@@ -79,7 +62,7 @@
 
 #define OREOLED_CMD_QUEUE_SIZE	10		///< up to 10 messages can be queued up to send to the LEDs
 
-class OREOLED : public device::I2C
+class OREOLED : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
 	OREOLED(int bus, int i2c_addr, bool autoupdate, bool alwaysupdate);
@@ -112,14 +95,9 @@ private:
 	void			stop();
 
 	/**
-	 * static function that is called by worker queue
-	 */
-	static void		cycle_trampoline(void *arg);
-
-	/**
 	 * update the colours displayed by the LEDs
 	 */
-	void			cycle();
+	void			Run() override;
 
 	int				bootloader_app_reset(int led_num);
 	int				bootloader_app_ping(int led_num);
@@ -135,7 +113,6 @@ private:
 	int				bootloader_coerce_healthy(void);
 
 	/* internal variables */
-	work_s			_work;							///< work queue for scheduling reads
 	bool			_healthy[OREOLED_NUM_LEDS];		///< health of each LED
 	bool			_in_boot[OREOLED_NUM_LEDS];		///< true for each LED that is in bootloader mode
 	uint8_t			_num_healthy;					///< number of healthy LEDs
@@ -170,7 +147,7 @@ extern "C" __EXPORT int oreoled_main(int argc, char *argv[]);
 /* constructor */
 OREOLED::OREOLED(int bus, int i2c_addr, bool autoupdate, bool alwaysupdate) :
 	I2C("oreoled", OREOLED0_DEVICE_PATH, bus, i2c_addr, 100000),
-	_work{},
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 	_num_healthy(0),
 	_num_inboot(0),
 	_cmd_queue(nullptr),
@@ -278,28 +255,17 @@ void
 OREOLED::start()
 {
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&OREOLED::cycle_trampoline, this, 1);
+	ScheduleNow();
 }
 
 void
 OREOLED::stop()
 {
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 }
 
 void
-OREOLED::cycle_trampoline(void *arg)
-{
-	OREOLED *dev = (OREOLED *)arg;
-
-	/* check global oreoled and cycle */
-	if (g_oreoled != nullptr) {
-		dev->cycle();
-	}
-}
-
-void
-OREOLED::cycle()
+OREOLED::Run()
 {
 	/* check time since startup */
 	uint64_t now = hrt_absolute_time();
@@ -368,8 +334,8 @@ OREOLED::cycle()
 		}
 
 		/* schedule another attempt in 0.1 sec */
-		work_queue(HPWORK, &_work, (worker_t)&OREOLED::cycle_trampoline, this,
-			   USEC2TICK(OREOLED_STARTUP_INTERVAL_US));
+		ScheduleDelayed(OREOLED_STARTUP_INTERVAL_US);
+
 		return;
 
 	} else if (_alwaysupdate) {
@@ -405,8 +371,7 @@ OREOLED::cycle()
 		_alwaysupdate = false;
 
 		/* schedule a fresh cycle call when the measurement is done */
-		work_queue(HPWORK, &_work, (worker_t)&OREOLED::cycle_trampoline, this,
-			   USEC2TICK(OREOLED_UPDATE_INTERVAL_US));
+		ScheduleDelayed(OREOLED_UPDATE_INTERVAL_US);
 		return;
 
 	} else if (_autoupdate) {
@@ -460,8 +425,7 @@ OREOLED::cycle()
 		_autoupdate = false;
 
 		/* schedule a fresh cycle call when the measurement is done */
-		work_queue(HPWORK, &_work, (worker_t)&OREOLED::cycle_trampoline, this,
-			   USEC2TICK(OREOLED_UPDATE_INTERVAL_US));
+		ScheduleDelayed(OREOLED_UPDATE_INTERVAL_US);
 		return;
 
 	} else if (_num_inboot > 0) {
@@ -479,8 +443,7 @@ OREOLED::cycle()
 		_num_inboot = 0;
 
 		/* schedule a fresh cycle call when the measurement is done */
-		work_queue(HPWORK, &_work, (worker_t)&OREOLED::cycle_trampoline, this,
-			   USEC2TICK(OREOLED_UPDATE_INTERVAL_US));
+		ScheduleDelayed(OREOLED_UPDATE_INTERVAL_US);
 		return;
 
 	} else if (!_is_ready) {
@@ -538,8 +501,7 @@ OREOLED::cycle()
 	}
 
 	/* schedule a fresh cycle call when the command is sent */
-	work_queue(HPWORK, &_work, (worker_t)&OREOLED::cycle_trampoline, this,
-		   USEC2TICK(OREOLED_UPDATE_INTERVAL_US));
+	ScheduleDelayed(OREOLED_UPDATE_INTERVAL_US);
 }
 
 int
@@ -1611,17 +1573,20 @@ oreoled_main(int argc, char *argv[])
 	int i2cdevice = -1;
 	int i2c_addr = OREOLED_BASE_I2C_ADDR; /* 7bit */
 
+	int myoptind = 1;
 	int ch;
+	const char *myoptarg = nullptr;
+
 
 	/* jump over start/off/etc and look at options first */
-	while ((ch = getopt(argc, argv, "a:b:")) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'a':
-			i2c_addr = (int)strtol(optarg, NULL, 0);
+			i2c_addr = (int)strtol(myoptarg, NULL, 0);
 			break;
 
 		case 'b':
-			i2cdevice = (int)strtol(optarg, NULL, 0);
+			i2cdevice = (int)strtol(myoptarg, NULL, 0);
 			break;
 
 		default:
@@ -1630,12 +1595,12 @@ oreoled_main(int argc, char *argv[])
 		}
 	}
 
-	if (optind >= argc) {
+	if (myoptind >= argc) {
 		oreoled_usage();
 		exit(1);
 	}
 
-	const char *verb = argv[optind];
+	const char *verb = argv[myoptind];
 
 	int ret;
 
@@ -2008,18 +1973,18 @@ oreoled_main(int argc, char *argv[])
 		}
 
 		/* check led num */
-		sendb.led_num = (uint8_t)strtol(argv[optind + 1], NULL, 0);
+		sendb.led_num = (uint8_t)strtol(argv[myoptind + 1], NULL, 0);
 
 		if (sendb.led_num > 3) {
 			errx(1, "led number must be between 0 ~ 3");
 		}
 
 		/* get bytes */
-		sendb.num_bytes = argc - (optind + 2);
+		sendb.num_bytes = argc - (myoptind + 2);
 		uint8_t byte_count;
 
 		for (byte_count = 0; byte_count < sendb.num_bytes; byte_count++) {
-			sendb.buff[byte_count] = (uint8_t)strtol(argv[byte_count + optind + 2], NULL, 0);
+			sendb.buff[byte_count] = (uint8_t)strtol(argv[byte_count + myoptind + 2], NULL, 0);
 		}
 
 		/* send bytes */

@@ -141,7 +141,7 @@ private:
 	EscPacket 	_packet = {};
 
 	DEFINE_PARAMETERS(
-		(ParamInt<px4::params::MC_AIRMODE>) _airmode   ///< multicopter air-mode
+		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode   ///< multicopter air-mode
 	)
 
 	void subscribe();
@@ -420,7 +420,7 @@ void TAP_ESC::cycle()
 	}
 
 	if (_mixers) {
-		_mixers->set_airmode((Mixer::Airmode)_airmode.get());
+		_mixers->set_airmode((Mixer::Airmode)_param_mc_airmode.get());
 	}
 
 	/* check if anything updated */
