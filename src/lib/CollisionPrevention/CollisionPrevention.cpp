@@ -222,18 +222,18 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 
 				if ((float)i * obstacle.increment < 360.f) { //disregard unused bins at the end of the message
 
-					float angle = math::radians((float)i * obstacle.increment);
 					float distance = obstacle.distances[i] / 100.0f; //convert to meters
+					float angle = math::radians((float)i * obstacle.increment);
 
-					//check if the bin must be considered regarding the given stick input
+					if (obstacle.angle_offset > 0.f) {
+						angle += math::radians(obstacle.angle_offset);
+					}
+
+					//get direction of current bin
 					Vector2f bin_direction = {cos(angle), sin(angle)};
 
 					if (obstacle.distances[i] < obstacle.max_distance &&
 					    obstacle.distances[i] > obstacle.min_distance && (float)i * obstacle.increment < 360.f) {
-
-						if (obstacle.angle_offset > 0.f) {
-							angle += math::radians(obstacle.angle_offset);
-						}
 
 						if (setpoint_dir.dot(bin_direction) > 0
 						    && setpoint_dir.dot(bin_direction) > cosf(col_prev_ang_rad)) {
@@ -261,8 +261,6 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 
 					}
 				}
-
-
 			}
 
 			setpoint = setpoint_dir * vel_max;
