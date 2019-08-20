@@ -731,7 +731,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update
 	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
 
 	// reset the rotation from the EV to EKF frame of reference if it is being used
-	if ((_params.fusion_mode & MASK_ROTATE_EV) && (_params.fusion_mode & MASK_USE_EVPOS) && !_control_status.flags.ev_yaw) {
+	if ((_params.fusion_mode & MASK_ROTATE_EV) && !_control_status.flags.ev_yaw) {
 		resetExtVisRotMat();
 	}
 
