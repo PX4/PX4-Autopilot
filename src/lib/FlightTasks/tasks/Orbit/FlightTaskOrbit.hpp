@@ -55,6 +55,7 @@ public:
 	bool applyCommandParameters(const vehicle_command_s &command) override;
 	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
 	bool update() override;
+	void handleParameterUpdate() override;
 
 	/**
 	 * Check the feasibility of orbit parameters with respect to
@@ -98,15 +99,15 @@ private:
 	bool _in_circle_approach = false;
 	StraightLine _circle_approach_line;
 
-	// TODO: create/use parameters for limits
-	const float _radius_min = 1.f;
-	const float _radius_max = 100.f;
-	const float _velocity_max = 10.f;
-	const float _acceleration_max = 2.f;
-
 	uORB::Publication<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
+	orb_advert_t _mavlink_log_pub = nullptr;
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise /**< cruise speed for circle approach */
-	)
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualAltitudeSmooth,
+					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise, /**< cruise speed for circle approach */
+					(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _param_mpc_xy_vel_max,
+					(ParamFloat<px4::params::FLT_ORB_A_MAX>)_param_flt_orb_a_max,
+					(ParamFloat<px4::params::FLT_ORB_R_MIN>)_param_flt_orb_r_min,
+					(ParamFloat<px4::params::FLT_ORB_R_MAX>)_param_flt_orb_r_max,
+					(ParamFloat<px4::params::FLT_ORB_V_MAX>)_param_flt_orb_v_max
+				       )
 };

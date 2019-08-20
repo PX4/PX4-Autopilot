@@ -39,12 +39,30 @@
 
 #include <mathlib/mathlib.h>
 #include <lib/ecl/geo/geo.h>
+#include <systemlib/mavlink_log.h>
 
 using namespace matrix;
 
 FlightTaskOrbit::FlightTaskOrbit() : _circle_approach_line(_position)
 {
 	_sticks_data_required = false;
+}
+
+void FlightTaskOrbit::handleParameterUpdate()
+{
+	updateParams();
+
+	if (_param_flt_orb_v_max.get() > _param_mpc_xy_vel_max.get()) {
+		_param_flt_orb_v_max.set(_param_mpc_xy_vel_max.get());
+		_param_flt_orb_v_max.commit();
+		mavlink_log_critical(&_mavlink_log_pub, "Orbit speed has been constrained by max speed")
+	}
+
+	if (_param_flt_orb_r_min.get() > _param_flt_orb_r_max.get()) {
+		_param_flt_orb_r_min.set(_param_flt_orb_r_max.get());
+		_param_flt_orb_r_min.commit();
+		mavlink_log_critical(&_mavlink_log_pub, "Orbit minimum radius has been constrained by maximum radius")
+	}
 }
 
 bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
@@ -113,11 +131,11 @@ bool FlightTaskOrbit::sendTelemetry()
 bool FlightTaskOrbit::setRadius(float r)
 {
 	// clip the radius to be within range
-	r = math::constrain(r, _radius_min, _radius_max);
+	r = math::constrain(r, _param_flt_orb_r_min.get(), _param_flt_orb_r_max.get());
 
 	// small radius is more important than high velocity for safety
-	if (!checkAcceleration(r, _v, _acceleration_max)) {
-		_v = math::sign(_v) * sqrtf(_acceleration_max * r);
+	if (!checkAcceleration(r, _v, _param_flt_orb_a_max.get())) {
+		_v = math::sign(_v) * sqrtf(_param_flt_orb_a_max.get() * r);
 	}
 
 	_r = r;
@@ -126,8 +144,8 @@ bool FlightTaskOrbit::setRadius(float r)
 
 bool FlightTaskOrbit::setVelocity(const float v)
 {
-	if (fabs(v) < _velocity_max &&
-	    checkAcceleration(_r, v, _acceleration_max)) {
+	if (fabs(v) < _param_flt_orb_v_max.get() &&
+	    checkAcceleration(_r, v, _param_flt_orb_a_max.get())) {
 		_v = v;
 		return true;
 	}
@@ -143,7 +161,7 @@ bool FlightTaskOrbit::checkAcceleration(float r, float v, float a)
 bool FlightTaskOrbit::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
 	bool ret = FlightTaskManualAltitudeSmooth::activate(last_setpoint);
-	_r = _radius_min;
+	_r = _param_flt_orb_r_min.get();
 	_v =  1.f;
 	_center = Vector2f(_position);
 	_center(0) -= _r;
@@ -165,8 +183,8 @@ bool FlightTaskOrbit::update()
 	FlightTaskManualAltitudeSmooth::update();
 
 	// stick input adjusts parameters within a fixed time frame
-	const float r = _r - _sticks_expo(0) * _deltatime * (_radius_max / 8.f);
-	const float v = _v - _sticks_expo(1) * _deltatime * (_velocity_max / 4.f);
+	const float r = _r - _sticks_expo(0) * _deltatime * (_param_flt_orb_r_max.get() / 8.f);
+	const float v = _v - _sticks_expo(1) * _deltatime * (_param_flt_orb_v_max.get() / 4.f);
 
 	setRadius(r);
 	setVelocity(v);
