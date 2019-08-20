@@ -311,10 +311,28 @@ VtolAttitudeControl::Run()
 	perf_begin(_loop_perf);
 	perf_count(_loop_interval_perf);
 
-	bool updated_fw_in = _actuator_inputs_fw.update(&_actuators_fw_in);
-	bool updated_mc_in = _actuator_inputs_mc.update(&_actuators_mc_in);
+	const bool updated_fw_in = _actuator_inputs_fw.update(&_actuators_fw_in);
+	const bool updated_mc_in = _actuator_inputs_mc.update(&_actuators_mc_in);
 
-	if (updated_fw_in || updated_mc_in) {
+	// run on actuator publications corresponding to VTOL mode
+	bool should_run = false;
+
+	switch (_vtol_type->get_mode()) {
+	case mode::TRANSITION_TO_FW:
+	case mode::TRANSITION_TO_MC:
+		should_run = updated_fw_in || updated_mc_in;
+		break;
+
+	case mode::ROTARY_WING:
+		should_run = updated_mc_in;
+		break;
+
+	case mode::FIXED_WING:
+		should_run = updated_fw_in;
+		break;
+	}
+
+	if (should_run) {
 		/* only update parameters if they changed */
 		if (_params_sub.updated()) {
 			/* read from param to clear updated flag */
