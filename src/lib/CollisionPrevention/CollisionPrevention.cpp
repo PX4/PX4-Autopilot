@@ -218,7 +218,6 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 			int distances_array_size = sizeof(obstacle.distances) / sizeof(obstacle.distances[0]);
 			float min_dist_to_keep = math::max(obstacle.min_distance / 100.0f, col_prev_d);
 
-
 			for (int i = 0; i < distances_array_size; i++) {
 
 				if ((float)i * obstacle.increment < 360.f) { //disregard unused bins at the end of the message
@@ -253,7 +252,7 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 
 					} else if (obstacle.distances[i] == UINT16_MAX) {
 						float sp_bin = setpoint_dir.dot(bin_direction);
-						float ang_half_bin = abs(cosf(obstacle.increment / 2.f));
+						float ang_half_bin = cosf(math::radians(obstacle.increment) / 2.f);
 
 						//if the setpoint lies outside the FOV set velocity to zero
 						if (sp_bin > 0 && sp_bin > ang_half_bin) {
