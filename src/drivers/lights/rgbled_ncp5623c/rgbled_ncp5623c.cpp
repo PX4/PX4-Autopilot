@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,7 +45,8 @@
 #include <lib/led/led.h>
 #include <px4_getopt.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
-#include "uORB/topics/parameter_update.h"
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/parameter_update.h>
 
 
 #define ADDR			0x39	/**< I2C adress of NCP5623C */
@@ -65,21 +66,21 @@ public:
 	RGBLED_NPC5623C(int bus, int rgbled);
 	virtual ~RGBLED_NPC5623C();
 
-
 	virtual int		init();
 	virtual int		probe();
+
 private:
 
-	float			_brightness;
-	float			_max_brightness;
+	float			_brightness{1.0f};
+	float			_max_brightness{1.0f};
 
-	uint8_t			_r;
-	uint8_t			_g;
-	uint8_t			_b;
-	volatile bool		_running;
-	volatile bool		_should_run;
-	bool			_leds_enabled;
-	int			_param_sub;
+	uint8_t			_r{0};
+	uint8_t			_g{0};
+	uint8_t			_b{0};
+	volatile bool		_running{false};
+	volatile bool		_should_run{true};
+	bool			_leds_enabled{true};
+	uORB::Subscription	_param_sub{ORB_ID(parameter_update)};
 
 	LedController		_led_controller;
 
@@ -103,16 +104,7 @@ extern "C" __EXPORT int rgbled_ncp5623c_main(int argc, char *argv[]);
 
 RGBLED_NPC5623C::RGBLED_NPC5623C(int bus, int rgbled) :
 	I2C("rgbled1", RGBLED1_DEVICE_PATH, bus, rgbled, 100000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
-	_brightness(1.0f),
-	_max_brightness(1.0f),
-	_r(0),
-	_g(0),
-	_b(0),
-	_running(false),
-	_should_run(true),
-	_leds_enabled(true),
-	_param_sub(-1)
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id()))
 {
 }
 
@@ -122,7 +114,7 @@ RGBLED_NPC5623C::~RGBLED_NPC5623C()
 	int counter = 0;
 
 	while (_running && ++counter < 10) {
-		usleep(100000);
+		px4_usleep(100000);
 	}
 }
 
@@ -140,8 +132,7 @@ RGBLED_NPC5623C::write(uint8_t reg, uint8_t data)
 int
 RGBLED_NPC5623C::init()
 {
-	int ret;
-	ret = I2C::init();
+	int ret = I2C::init();
 
 	if (ret != OK) {
 		return ret;
@@ -171,40 +162,19 @@ void
 RGBLED_NPC5623C::Run()
 {
 	if (!_should_run) {
-		if (_param_sub >= 0) {
-			orb_unsubscribe(_param_sub);
-		}
-
-		int led_control_sub = _led_controller.led_control_subscription();
-
-		if (led_control_sub >= 0) {
-			orb_unsubscribe(led_control_sub);
-		}
-
 		_running = false;
 		return;
 	}
 
-	if (_param_sub < 0) {
-		_param_sub = orb_subscribe(ORB_ID(parameter_update));
-	}
+	if (_param_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_param_sub.copy(&pupdate);
 
-	if (!_led_controller.is_init()) {
-		int led_control_sub = orb_subscribe(ORB_ID(led_control));
-		_led_controller.init(led_control_sub);
-	}
+		update_params();
 
-	if (_param_sub >= 0) {
-		bool updated = false;
-		orb_check(_param_sub, &updated);
-
-		if (updated) {
-			parameter_update_s pupdate;
-			orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
-			update_params();
-			// Immediately update to change brightness
-			send_led_rgb();
-		}
+		// Immediately update to change brightness
+		send_led_rgb();
 	}
 
 	LedControlData led_control_data;
