@@ -49,6 +49,7 @@
 /* Configuration Constants */
 static constexpr uint8_t LL40LS_BASEADDR	= 0x62;	/* 7-bit address */
 static constexpr uint8_t LL40LS_BASEADDR_OLD	= 0x42;	/* previous 7-bit address */
+static constexpr uint8_t LL40LS_SIG_COUNT_VAL_DEFAULT = 0x80; /* Default maximum acquisition count */
 
 /* LL40LS Registers addresses */
 static constexpr uint8_t LL40LS_MEASURE_REG	= 0x00;	/* Measure range register */
