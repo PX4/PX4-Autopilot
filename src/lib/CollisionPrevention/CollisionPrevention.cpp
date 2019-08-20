@@ -205,6 +205,10 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 	_updateDistanceSensor(obstacle);
 
 	float setpoint_length = setpoint.norm();
+	float col_prev_d = _param_mpc_col_prev_d.get();
+	float col_prev_dly = _param_mpc_col_prev_dly.get();
+	float col_prev_ang_rad = math::radians(_param_mpc_col_prev_ang.get());
+	float xy_p = _param_mpc_xy_p.get();
 
 	if (hrt_elapsed_time(&obstacle.timestamp) < RANGE_STREAM_TIMEOUT_US) {
 		if (setpoint_length > 0.001f) {
@@ -212,7 +216,7 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 			Vector2f setpoint_dir = setpoint / setpoint_length;
 			float vel_max = setpoint_length;
 			int distances_array_size = sizeof(obstacle.distances) / sizeof(obstacle.distances[0]);
-			float min_dist_to_keep = math::max(obstacle.min_distance / 100.0f, _param_mpc_col_prev_d.get());
+			float min_dist_to_keep = math::max(obstacle.min_distance / 100.0f, col_prev_d);
 
 
 			for (int i = 0; i < distances_array_size; i++) {
@@ -233,12 +237,11 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 						}
 
 						if (setpoint_dir.dot(bin_direction) > 0
-						    && setpoint_dir.dot(bin_direction) > cosf(math::radians(_param_mpc_col_prev_ang.get()))) {
+						    && setpoint_dir.dot(bin_direction) > cosf(col_prev_ang_rad)) {
 							//calculate max allowed velocity with a P-controller (same gain as in the position controller)
 							float curr_vel_parallel = math::max(0.f, curr_vel.dot(bin_direction));
-							float delay_distance = curr_vel_parallel * _param_mpc_col_prev_dly.get();
-							float vel_max_posctrl = math::max(0.f,
-											  _param_mpc_xy_p.get() * (distance - min_dist_to_keep - delay_distance));
+							float delay_distance = curr_vel_parallel * col_prev_dly;
+							float vel_max_posctrl = math::max(0.f, xy_p * (distance - min_dist_to_keep - delay_distance));
 							Vector2f  vel_max_vec = bin_direction * vel_max_posctrl;
 							float vel_max_bin = vel_max_vec.dot(setpoint_dir);
 

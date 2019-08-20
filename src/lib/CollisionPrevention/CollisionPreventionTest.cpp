@@ -52,12 +52,19 @@ public:
 	}
 };
 
+class TestCollisionPrevention : public CollisionPrevention
+{
+public:
+	TestCollisionPrevention() : CollisionPrevention(nullptr) {}
+	void paramsChanged() {CollisionPrevention::updateParamsImpl();}
+};
+
 TEST_F(CollisionPreventionTest, instantiation) { CollisionPrevention cp(nullptr); }
 
 TEST_F(CollisionPreventionTest, behaviorOff)
 {
 	// GIVEN: a simple setup condition
-	CollisionPrevention cp(nullptr);
+	TestCollisionPrevention cp;
 	matrix::Vector2f original_setpoint(10, 0);
 	float max_speed = 3.f;
 	matrix::Vector2f curr_pos(0, 0);
@@ -74,7 +81,7 @@ TEST_F(CollisionPreventionTest, behaviorOff)
 TEST_F(CollisionPreventionTest, withoutObstacleMessageNothing)
 {
 	// GIVEN: a simple setup condition
-	CollisionPrevention cp(nullptr);
+	TestCollisionPrevention cp;
 	matrix::Vector2f original_setpoint(10, 0);
 	float max_speed = 3.f;
 	matrix::Vector2f curr_pos(0, 0);
@@ -87,6 +94,7 @@ TEST_F(CollisionPreventionTest, withoutObstacleMessageNothing)
 	// WHEN: we set the parameter check then apply the setpoint modification
 	float value = 10; // try to keep 10m away from obstacles
 	param_set(param, &value);
+	cp.paramsChanged();
 
 	matrix::Vector2f modified_setpoint = original_setpoint;
 	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
@@ -98,7 +106,7 @@ TEST_F(CollisionPreventionTest, withoutObstacleMessageNothing)
 TEST_F(CollisionPreventionTest, testBehaviorOnWithAnObstacle)
 {
 	// GIVEN: a simple setup condition
-	CollisionPrevention cp(nullptr);
+	TestCollisionPrevention cp;
 	matrix::Vector2f original_setpoint(10, 0);
 	float max_speed = 3;
 	matrix::Vector2f curr_pos(0, 0);
@@ -108,6 +116,7 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithAnObstacle)
 	param_t param = param_handle(px4::params::MPC_COL_PREV_D);
 	float value = 10; // try to keep 10m distance
 	param_set(param, &value);
+	cp.paramsChanged();
 
 	// AND: an obstacle message
 	obstacle_distance_s message;
@@ -131,13 +140,13 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithAnObstacle)
 	orb_unadvertise(obstacle_distance_pub);
 
 	// THEN: it should be cut down to zero
-	EXPECT_FLOAT_EQ(0.f, modified_setpoint.norm());
+	EXPECT_FLOAT_EQ(0.f, modified_setpoint.norm()) << modified_setpoint(0) << "," << modified_setpoint(1);
 }
 
 TEST_F(CollisionPreventionTest, noBias)
 {
 	// GIVEN: a simple setup condition
-	CollisionPrevention cp(nullptr);
+	TestCollisionPrevention cp;
 	matrix::Vector2f original_setpoint(10, 0);
 	float max_speed = 3;
 	matrix::Vector2f curr_pos(0, 0);
@@ -147,6 +156,7 @@ TEST_F(CollisionPreventionTest, noBias)
 	param_t param = param_handle(px4::params::MPC_COL_PREV_D);
 	float value = 5; // try to keep 5m distance
 	param_set(param, &value);
+	cp.paramsChanged();
 
 	// AND: an obstacle message
 	obstacle_distance_s message;
@@ -162,7 +172,6 @@ TEST_F(CollisionPreventionTest, noBias)
 	}
 
 	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
-
 
 	// WHEN: we publish the message and set the parameter and then run the setpoint modification
 	matrix::Vector2f modified_setpoint = original_setpoint;
