@@ -38,14 +38,15 @@
  */
 
 #include <px4_tasks.h>
-#include <drivers/boards/common/board_common.h>
+#include <board_config.h>
 
-__BEGIN_DECLS
-extern int board_shutdown(void) noreturn_function;
-static inline int board_register_power_state_notification_cb(power_button_state_notification_t cb) { return 0; }
-__END_DECLS
+int board_register_power_state_notification_cb(power_button_state_notification_t cb)
+{
+	return 0;
+}
 
-__EXPORT int board_shutdown()
+int board_shutdown()
 {
 	px4_systemreset(false);
+	return 0;
 }
