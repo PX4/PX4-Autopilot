@@ -212,10 +212,31 @@ LidarLiteI2C::measure()
 int
 LidarLiteI2C::reset_sensor()
 {
-	int ret = write_reg(LL40LS_MEASURE_REG, LL40LS_MSRREG_RESET);
+	int ret;
+
+	px4_usleep(15000);
+
+	ret = write_reg(LL40LS_SIG_COUNT_VAL_REG, LL40LS_SIG_COUNT_VAL_MAX);
 
 	if (ret != OK) {
 		return ret;
+	}
+
+	px4_usleep(15000);
+	ret = write_reg(LL40LS_MEASURE_REG, LL40LS_MSRREG_RESET);
+
+
+	if (ret != OK) {
+		uint8_t sig_cnt;
+
+		px4_usleep(15000);
+		ret = read_reg(LL40LS_SIG_COUNT_VAL_REG, sig_cnt);
+
+		if ((ret != OK) || (sig_cnt != LL40LS_SIG_COUNT_VAL_DEFAULT)) {
+			printf("Error: ll40ls reset failure. Exiting!\n");
+			return ret;
+
+		}
 	}
 
 	// wait for sensor reset to complete
