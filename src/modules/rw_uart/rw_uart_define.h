@@ -7,6 +7,7 @@
 #define MSG_NAME_IWFI (uint8_t)1
 #define MSG_NAME_HFMR (uint8_t)2
 #define MSG_NAME_YFWI (uint8_t)3
+#define MSG_NAME_EXYF (uint8_t)4
 
 #define WIFI_COMM_WAYPOINT (uint8_t)81
 #define WIFI_COMM_WP_DOWNLOAD (uint8_t)82
@@ -37,5 +38,17 @@
 //#define WIFI_COMM_TOUCH_CONTROL (uint8_t)255
 
 #define YFWI_COMM_CHANGE_PARAM (uint8_t)116
+#define YFWI_COMM_YAW_FORCE (uint8_t)118
+
+#define EXYF_COMM_LOITER_YAW (uint8_t)4
+#define EXYF_COMM_LOITER_MOVE (uint8_t)5
+#define EXYF_COMM_PWM_SET (uint8_t)6 //not used
+#define EXYF_COMM_PWM_GET (uint8_t)7 //not used
+#define EXYF_COMM_IDLE_SPEED_SET (uint8_t)9
+#define EXYF_COMM_IDLE_SPEED_GET (uint8_t)10
+#define EXYF_COMM_RC_SET (uint8_t)13  //not used
+#define EXYF_COMM_RC_GET (uint8_t)14 // not used
+#define EXYF_COMM_PLANE_SET (uint8_t)18 //MAV_TYPE
+#define EXYF_COMM_PLANE_GET (uint8_t)19 //MAV_TYPE
 
 #endif // RW_UART_DEFINE_H

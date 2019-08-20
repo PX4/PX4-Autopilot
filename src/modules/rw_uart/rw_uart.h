@@ -138,7 +138,7 @@ typedef struct {
     uint16_t dist_max;
     uint8_t contol_style; // not set
     uint8_t calibration; // not set
-    uint8_t mav_type;
+    uint8_t mav_type; //MAV_TYPE
     uint8_t battery_num;
     uint8_t battery_warn; // adjust  12% ----40%
     uint8_t slope_climb; //not set
@@ -241,27 +241,27 @@ typedef struct {
     uint16_t CRC_test;
 }EXYF_RC_SET;
 
-typedef struct {
-    char head[5];
-    uint16_t buflen;
-    uint8_t command;
-    uint8_t command_re;
-    uint16_t roll;
-    uint16_t pitch;
-    uint16_t throttle;
-    uint16_t yaw;
-    uint16_t flight_mode;
-    uint16_t rtl_mission;
-    uint16_t landin_gear;
-    uint16_t chute;
-    uint16_t shutter;
-    uint16_t PWM9;
-    uint16_t PWM10;
-    uint16_t PWM11;
-    uint16_t PWM12;
-    uint16_t RC_used;
-    uint16_t CRC_test;
-}EXYF_RC_VALUE;
+//typedef struct {
+//    char head[5];
+//    uint16_t buflen;
+//    uint8_t command;
+//    uint8_t command_re;
+//    uint16_t roll;
+//    uint16_t pitch;
+//    uint16_t throttle;
+//    uint16_t yaw;
+//    uint16_t flight_mode;
+//    uint16_t rtl_mission;
+//    uint16_t landin_gear;
+//    uint16_t chute;
+//    uint16_t shutter;
+//    uint16_t PWM9;
+//    uint16_t PWM10;
+//    uint16_t PWM11;
+//    uint16_t PWM12;
+//    uint16_t RC_used;
+//    uint16_t CRC_test;
+//}EXYF_RC_VALUE;
 
 typedef struct {
     char head[5];
@@ -285,7 +285,7 @@ typedef struct {
     EXYF_IDLE_SPEED exyf_idle_speed;
     EXYF_RC_INPUT exyf_rc_input;
     EXYF_RC_SET exyf_rc_set;
-    EXYF_RC_VALUE exyf_rc_value;
+//    EXYF_RC_VALUE exyf_rc_value;
     EXYF_PLANE_TYPE exyf_plane_type;
 }MSG_response;
 
@@ -323,6 +323,7 @@ typedef struct {
     orb_advert_t command_pd;
     orb_advert_t arm_pd;
     orb_advert_t  manual_pd;
+    orb_advert_t  local_position_sp_pd;
 }MSG_orb_pub;
 
 typedef struct {
@@ -388,7 +389,9 @@ typedef struct {
     //param_t CH12_set_hd;
     param_t dn_vel_max_hd;
     param_t rc_on_off_hd;
-    param_t hover_thrust;
+    param_t hover_thrust_hd;
+    param_t yaw_force_hd;
+    param_t pwm_min_hd;
 }MSG_param_hd;
 
 extern uint8_t param_saved[62];
@@ -423,5 +426,11 @@ extern void setd_pack (SETD *setd);
 extern void iwfi_pack(const uint8_t *buffer, MSG_orb_data *msg_data);
 
 extern void docap_pack (DOCAP *docap, MSG_param_hd msg_hd);
+
+extern void yfwi_pack(const uint8_t *buffer, MSG_type msg_type, MSG_param_hd msg_hd);
+
+extern void exyf_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type, MSG_param_hd msg_hd);
+
+extern void exyf_response_pack(uint8_t *send_message, MSG_type msg_type, MSG_param_hd msg_hd);
 
 #endif // RW_UART_H

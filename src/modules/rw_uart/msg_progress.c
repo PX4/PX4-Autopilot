@@ -89,6 +89,10 @@ void msg_pack_response(MSG_orb_data msg_data, MSG_param_hd msg_hd, MSG_type msg_
             break;
         }
         break;
+    case MSG_NAME_EXYF:
+        exyf_response_pack(send_message, msg_type, msg_hd);
+        write(uart_read, send_message, sizeof(send_message));
+        break;
     default:
         break;
     }
@@ -112,13 +116,11 @@ void msg_orb_param_pro(MSG_orb_pub *msg_pd, MSG_orb_data *msg_data, MSG_type msg
         case WIFI_COMM_ESC_CALI_ON:
         case WIFI_COMM_AUTO_FLIGHT_ON:
         case WIFI_COMM_AUTO_FLIGHT_OFF:
-            if (msg_pd->command_pd != NULL)
-            {
+            if (msg_pd->command_pd != NULL){
                     orb_publish(ORB_ID(vehicle_command), msg_pd->command_pd, &msg_data->command_data);
                     printf("Passing 2_1\n");
             }
-            else
-            {
+            else{
                     msg_pd->command_pd = orb_advertise(ORB_ID(vehicle_command), &msg_data->command_data);
                     printf("Passing 2_2\n");
             }
@@ -133,16 +135,14 @@ void msg_orb_param_pro(MSG_orb_pub *msg_pd, MSG_orb_data *msg_data, MSG_type msg
             break;
         case WIFI_COMM_GET_MID:
             paramf = msg_data->manual_data.z;
-            param_set(msg_hd.hover_thrust, &paramf);
+            param_set(msg_hd.hover_thrust_hd, &paramf);
         case WIFI_COMM_DISARMED:
         case WIFI_COMM_ARMED:
-            if (msg_pd->arm_pd != NULL)
-            {
+            if (msg_pd->arm_pd != NULL){
                     orb_publish(ORB_ID(actuator_armed), msg_pd->arm_pd, &msg_data->arm_data);
                     printf("Passing 2_1\n");
             }
-            else
-            {
+            else{
                     msg_pd->arm_pd = orb_advertise(ORB_ID(actuator_armed), &msg_data->arm_data);
                     printf("Passing 2_2\n");
             }
@@ -152,15 +152,39 @@ void msg_orb_param_pro(MSG_orb_pub *msg_pd, MSG_orb_data *msg_data, MSG_type msg
         }
         break;
     case MSG_NAME_IWFI:
-        if (msg_pd->manual_pd != NULL)
-        {
+        if (msg_pd->manual_pd != NULL){
                 orb_publish(ORB_ID(manual_control_setpoint), msg_pd->manual_pd, &msg_data->manual_data);
                 printf("Passing 2_1\n");
         }
-        else
-        {
+        else{
                 msg_pd->manual_pd = orb_advertise(ORB_ID(manual_control_setpoint), &msg_data->manual_data);
                 printf("Passing 2_2\n");
+        }
+        break;
+    case MSG_NAME_EXYF:
+        switch (msg_type.command) {
+        case EXYF_COMM_LOITER_YAW:
+            if (msg_pd->command_pd != NULL){
+                    orb_publish(ORB_ID(vehicle_command), msg_pd->command_pd, &msg_data->command_data);
+                    printf("Passing 2_1\n");
+            }
+            else {
+                    msg_pd->command_pd = orb_advertise(ORB_ID(vehicle_command), &msg_data->command_data);
+                    printf("Passing 2_2\n");
+            }
+            break;
+        case EXYF_COMM_LOITER_MOVE:
+            if (msg_pd->local_position_sp_pd != NULL){
+                    orb_publish(ORB_ID(vehicle_local_position_setpoint), msg_pd->local_position_sp_pd, &msg_data->local_position_sp_data);
+                    printf("Passing 2_1\n");
+            }
+            else {
+                    msg_pd->local_position_sp_pd = orb_advertise(ORB_ID(vehicle_local_position_setpoint), &msg_data->local_position_sp_data);
+                    printf("Passing 2_2\n");
+            }
+            break;
+        default:
+            break;
         }
         break;
     default:
@@ -212,9 +236,9 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
         }
         msg_type.name =MSG_NAME_YFWI;
         msg_type.command = buffer[6];
-        //uint16_t  crc_receive = (uint16_t)buffer[buflen + 8 -1] + ((uint16_t)buffer[buflen + 8] << 8);
-       // if (check_command_repeat(buffer, *msg_type) && crc_receive == check_crc(buffer, buflen, 8))
-        if (check_command_repeat(buffer, msg_type) && buffer[61] == 0x3f)
+        //uint16_t  crc_receive = (uint16_t)buffer[buflen + 7 -1] + ((uint16_t)buffer[buflen + 7] << 8);
+       // if (check_command_repeat(buffer, msg_type) && crc_receive == check_crc(buffer, buflen, 8))
+        if (check_command_repeat(buffer, msg_type) && buffer[buflen + 7] == 0x3f)
         {
             printf("Passing check\n");
             if (msg_type.command == YFWI_COMM_CHANGE_PARAM) {
@@ -222,6 +246,9 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
                     msg_pack_response(*msg_data, msg_hd, msg_type, uart_read);
                     printf("Response Sended\n");
                 }
+            }
+            else {
+                yfwi_pack(buffer,msg_type, msg_hd);
             }
         }
         return;
@@ -265,6 +292,34 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
          if (buffer[29] == 0x3f)
          {
             param_reset_all();
+         }
+         return;
+    }
+
+    name = "$EXYF";
+    if (compare_buffer_n(buffer, (uint8_t*)name, 5))
+    {
+        printf("Passing EXYF\n");
+        uint8_t buflen;
+        read(uart_read,&data,1);
+        buffer[5] = data;
+        read(uart_read,&data,1);
+        buffer[6] = data;
+        buflen = (uint16_t)buffer[5] + ((uint16_t)buffer[6]<<8);
+        for(int i = 7; i  < buflen + 9; i++)
+        {
+            read(uart_read,&data,1);
+            buffer[i] = data;
+        }
+        msg_type.name =MSG_NAME_EXYF;
+        msg_type.command = buffer[7];
+        //uint16_t  crc_receive = (uint16_t)buffer[buflen + 8-1] + ((uint16_t)buffer[buflen + 8] << 8);
+       // if (check_command_repeat(buffer, msg_type) && crc_receive == check_crc(buffer, buflen, 9))
+        if (check_command_repeat(buffer, msg_type) && buffer[buflen + 8] == 0x3f)
+         {
+            exyf_pack(buffer, msg_data, msg_type, msg_hd);
+            msg_orb_param_pro(msg_pd, msg_data, msg_type, msg_hd);
+            msg_pack_response(*msg_data, msg_hd, msg_type, uart_read);
          }
          return;
     }

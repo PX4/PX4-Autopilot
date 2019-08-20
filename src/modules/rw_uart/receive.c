@@ -10,7 +10,7 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
         //data =(void *)((uint32_t)buffer + 6);
         msg_data->command_data.param5 = ((float_t)*(int32_t*)((uint32_t)buffer + 6))/10000000.0;
         printf("lat: %d\n", *(int32_t*)((uint32_t)buffer + 6));
-        msg_data->command_data.param6 = ((float_t)(*(int32_t*)((uint32_t)buffer + 10)))/10000000.0;
+        msg_data->command_data.param6 = ((float_t)*(int32_t*)((uint32_t)buffer + 10))/10000000.0;
         printf("lon: %d\n", *(int32_t*)((uint32_t)buffer + 10));
         msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0;
         printf("Passing waypoint\n");
@@ -266,4 +266,77 @@ void iwfi_pack(const uint8_t *buffer, MSG_orb_data *msg_data){
     msg_data->manual_data.y = ((float_t)(((uint16_t) buffer[7]<<8) + buffer [8])/65535.0 - 0.5)*2.0;
     msg_data->manual_data.x = ((float_t)(((uint16_t) buffer[9]<<8) + buffer [10])/65535.0 - 0.5)*2.0;
     msg_data->manual_data.z = (float_t)(((uint16_t) buffer[11]<<8) + buffer [12])/65535.0;
+}
+
+void yfwi_pack(const uint8_t *buffer, MSG_type msg_type, MSG_param_hd msg_hd){
+    int paramd;
+    switch (msg_type.command) {
+    case YFWI_COMM_YAW_FORCE:
+        if (buffer[8] == 1) {
+            paramd = 1;
+            param_set(msg_hd.yaw_force_hd, &paramd);
+        }
+        else {
+            paramd= 0;
+            param_set(msg_hd.yaw_force_hd, &paramd);
+        }
+        break;
+    default:
+        break;
+    }
+}
+
+void exyf_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type, MSG_param_hd msg_hd){
+    int paramd;
+    switch (msg_type.command) {
+    case EXYF_COMM_LOITER_YAW:
+        if (msg_data->status_data.nav_state == 4){ //NAVIGATION_STATE_AUTO_LOITER
+        msg_data->command_data.command = 17; //CMD_NAV_LOITER_UNLIM
+        msg_data->command_data.param3 = 0;
+        msg_data->command_data.param4 = (float_t)*(int32_t*)((uint32_t)buffer + 9);
+        msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)/10000000.0;
+        msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)/10000000.0;
+        msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0;
+        }
+        break;
+    case EXYF_COMM_LOITER_MOVE:
+        if (msg_data->status_data.nav_state == 4){ //NAVIGATION_STATE_AUTO_LOITER
+            if (buffer[11] & 0xf0){
+                //double lat, lon;
+                float x, y;
+                if (buffer[11] & 0x30){
+                    y = msg_data->local_position_sp_data.y +  (buffer[11] & 0x10 ? -1:1)*((float_t)*(uint16_t*)((uint32_t)buffer + 9)/10.0);
+                    x = msg_data->local_position_sp_data.x;
+                }
+                else {
+                    x = msg_data->local_position_sp_data.x+  (buffer[11] & 0x40 ? -1:1)*((float_t)*(uint16_t*)((uint32_t)buffer + 9)/10.0);
+                    y = msg_data->local_position_sp_data.y;
+                }
+
+                //if (! map_projection_global_reproject(x, y, &lat, &lon)){
+//                    msg_data->command_data.command = 16; //VEHICLE_CMD_NAV_WAYPOINT
+//                    msg_data->command_data.param5 = (float_t)lat;
+//                    msg_data->command_data.param6 = (float_t)lon;;
+//                    msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0;
+//                    msg_data->command_data.param1 = 0.0;
+//                    msg_data->command_data.param2 = 0.0;
+//                    msg_data->command_data.param3 = 0.0;
+//                    msg_data->command_data.param4 = 0.0;
+                //}
+               msg_data->local_position_sp_data.x = x;
+               msg_data->local_position_sp_data.y = y;
+            }
+        }
+        break;
+    case EXYF_COMM_IDLE_SPEED_SET:
+        paramd = (int)*(uint16_t*)((uint32_t)buffer + 9);
+        param_set(msg_hd.pwm_min_hd, &paramd);
+        break;
+    case EXYF_COMM_PLANE_SET:
+        paramd = (int)buffer[9];
+        param_set(msg_hd.mav_type_hd, &paramd);
+        break;
+    default:
+        break;
+    }
 }

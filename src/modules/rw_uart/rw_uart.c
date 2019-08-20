@@ -182,7 +182,9 @@ void msg_param_hd_cache (MSG_param_hd *msg_hd)
     msg_hd->rc_lost_act_hd = param_find("NAV_RCL_ACT");
     msg_hd->dn_vel_max_hd = param_find("MPC_Z_VEL_MAX_DN");
     msg_hd->rc_on_off_hd = param_find("COM_RC_IN_MODE");
-    msg_hd->hover_thrust = param_find("MPC_THR_HOVER");
+    msg_hd->hover_thrust_hd = param_find("MPC_THR_HOVER");
+    msg_hd->yaw_force_hd = param_find("MPC_YAW_MODE");
+    msg_hd->pwm_min_hd = param_find("PWM_MIN");
 }
 
 int rw_uart_main(int argc, char *argv[])

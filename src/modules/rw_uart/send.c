@@ -1,6 +1,6 @@
 
 #include"rw_uart.h"
-
+#include"rw_uart_define.h"
 
 uint8_t get_control_status(uint16_t command,uint8_t nav_state);
 
@@ -158,7 +158,7 @@ void yfpa_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd){
     yfpa_param->head[2]='F';
     yfpa_param->head[3]='P';
     yfpa_param->head[4]='A';
-    yfpa_param->buflen = 54; // 不连帧头，命令编号及buflen的数据长度，自8字节始。
+    yfpa_param->buflen = 54; // 不连帧头，命令编号及buflen位的数据长度，自8字节始。
     yfpa_param->command =116;
     yfpa_param->command_re = 116;
     float_t paramf;
@@ -221,6 +221,43 @@ void docap_pack (DOCAP *docap, MSG_param_hd msg_hd){
     docap->head[3] = 'C';
     docap->head[4] = 'A';
     docap->head[5] = 'P';
-    param_get(msg_hd.hover_thrust, &paramf);
+    param_get(msg_hd.hover_thrust_hd, &paramf);
     docap->hover_throttle = (uint8_t)(paramf * 100.0);
+}
+
+void exyf_response_pack(uint8_t *send_message, MSG_type msg_type, MSG_param_hd msg_hd){
+    send_message[0] = '$';
+    send_message[1] = 'E';
+    send_message[2] = 'X';
+    send_message[3] = 'Y';
+    send_message[4] = 'F';
+    int paramd;
+    uint16_t crc;
+    switch (msg_type.command) {
+    case EXYF_COMM_IDLE_SPEED_GET:
+        send_message[5] = 4;
+        send_message[6] = 0;
+        send_message[7] = 10;
+        send_message[8] = 10;
+        param_get(msg_hd.pwm_min_hd, &paramd);
+        send_message[9] = (uint8_t)(paramd % 256);
+        send_message[10] = (uint8_t)(paramd / 256);
+        crc = check_crc(send_message, 4, 9);
+        send_message[11] = (uint8_t)(crc & 0x00ff);
+        send_message[12] = (uint8_t)((crc & 0xff00)>>8);
+        break;
+    case EXYF_COMM_PLANE_GET:
+        send_message[5] = 3;
+        send_message[6] = 0;
+        send_message[7] = 19;
+        send_message[8] = 19;
+        param_get(msg_hd.mav_type_hd, &paramd);
+        send_message[9] = (uint8_t)(paramd);
+        crc = check_crc(send_message, 3, 9);
+        send_message[10] = (uint8_t)(crc & 0x00ff);
+        send_message[11] = (uint8_t)((crc & 0xff00)>>8);
+        break;
+    default:
+        break;
+    }
 }

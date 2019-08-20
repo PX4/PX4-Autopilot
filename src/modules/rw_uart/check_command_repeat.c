@@ -64,6 +64,9 @@ bool check_command_repeat(const uint8_t *buffer, MSG_type msg_type)
     case MSG_NAME_IWFI:
         check_ok = compare_buffer_n((buffer+5), (buffer+13), 8);
         break;
+    case MSG_NAME_EXYF:
+         check_ok = (buffer[7] == buffer [8]);
+        break;
     default:
         break;
     }
