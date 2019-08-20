@@ -29,7 +29,7 @@ class ParameterGroup(object):
         Get parameter group vehicle type.
         """
         return self.af_class
-        
+
     def GetImageName(self):
         """
         Get parameter group image base name (w/o extension)
@@ -74,6 +74,8 @@ class ParameterGroup(object):
             return "VTOLQuadRotorTailSitter"
         elif (self.name == "VTOL Tiltrotor"):
             return "VTOLTiltRotor"
+        elif (self.name == "VTOL Octoplane"):
+            return "VTOLPlaneOcto"
         elif (self.name == "Coaxial Helicopter"):
             return "HelicopterCoaxial"
         elif (self.name == "Helicopter"):
@@ -125,11 +127,12 @@ class Parameter(object):
         # all others == 0 (sorted alphabetically)
     }
 
-    def __init__(self, path, name, airframe_type, airframe_class, airframe_id, maintainer):
+    def __init__(self, path, post_path, name, airframe_type, airframe_class, airframe_id, maintainer):
         self.fields = {}
         self.outputs = {}
         self.archs = {}
         self.path = path
+        self.post_path = post_path
         self.name = name
         self.type = airframe_type
         self.af_class = airframe_class
@@ -137,21 +140,45 @@ class Parameter(object):
         self.maintainer = maintainer
 
     def GetPath(self):
+        """
+        Get path to airframe startup script
+        """
         return self.path
 
+    def GetPostPath(self):
+        """
+        Get path to airframe post startup script
+        """
+        return self.post_path
+
     def GetName(self):
+        """
+        Get airframe name
+        """
         return self.name
 
     def GetType(self):
+        """
+        Get airframe type
+        """
         return self.type
 
     def GetClass(self):
+        """
+        Get airframe class
+        """
         return self.af_class
 
     def GetId(self):
+        """
+        Get airframe id
+        """
         return self.id
 
     def GetMaintainer(self):
+        """
+        Get airframe maintainer
+        """
         return self.maintainer
 
     def SetField(self, code, value):
@@ -382,8 +409,14 @@ class SourceParser(object):
             sys.stderr.write("Aborting due to missing @name tag in file: '%s'\n" % path)
             return False
 
+        # Check if a .post script exists
+        if os.path.isfile(path + '.post'):
+            post_path = path + '.post'
+        else:
+            post_path = None
+
         # We already know this is an airframe config, so add it
-        param = Parameter(path, airframe_name, airframe_type, airframe_class, airframe_id, maintainer)
+        param = Parameter(path, post_path, airframe_name, airframe_type, airframe_class, airframe_id, maintainer)
 
         # Done with file, store
         for tag in tags:
@@ -405,13 +438,10 @@ class SourceParser(object):
         # Store outputs
         for arch in archs:
             param.SetArch(arch, archs[arch])
-            
-
-        
 
         # Store the parameter
-        
-        #Create a class-specific airframe group. This is needed to catch cases where an airframe type might cross classes (e.g. simulation)
+
+        # Create a class-specific airframe group. This is needed to catch cases where an airframe type might cross classes (e.g. simulation)
         class_group_identifier=airframe_type+airframe_class
         if class_group_identifier not in self.param_groups:
             #self.param_groups[airframe_type] = ParameterGroup(airframe_type)  #HW TEST REMOVE
@@ -456,7 +486,7 @@ class SourceParser(object):
         groups = sorted(groups, key=lambda x: x.GetName())
         groups = sorted(groups, key=lambda x: x.GetClass())
         groups = sorted(groups, key=lambda x: self.priority.get(x.GetName(), 0), reverse=True)
-        
+
         #Rename duplicate groups to include the class (creating unique headings in page TOC)
         duplicate_test=set()
         duplicate_set=set()
@@ -469,5 +499,4 @@ class SourceParser(object):
             if group.GetName() in duplicate_set:
                 group.name=group.GetName()+' (%s)' % group.GetClass()
 
-        
         return groups

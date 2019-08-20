@@ -17,6 +17,7 @@ lis3mdl -R 0 start
 
 # Possible external compasses
 hmc5883 -C -T -X start
+qmc5883 -X start
 
 # RM3100
 rm3100 start

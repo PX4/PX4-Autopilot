@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4fmu_init.c
+ * @file init.c
  *
  * PX4FMU-specific early startup code.  This file implements the
  * nsh_archinitialize() function that is called early by nsh during startup.
@@ -45,9 +45,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_config.h>
-#include <px4_tasks.h>
-#include <px4_log.h>
+#include "board_config.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -55,33 +53,24 @@
 #include <debug.h>
 #include <errno.h>
 
-#include "platform/cxxinitialize.h"
+#include <nuttx/config.h>
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
-#include <nuttx/i2c/i2c_master.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
 #include <nuttx/mm/gran.h>
-
 #include <chip.h>
-#include "board_config.h"
-
 #include <stm32_uart.h>
-
 #include <arch/board/board.h>
+#include "up_internal.h"
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
-
 #include <systemlib/px4_macros.h>
-#include <systemlib/cpuload.h>
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
+#include <px4_init.h>
+#include <drivers/boards/common/board_dma_alloc.h>
 
-#include <parameters/param.h>
-
-#include "up_internal.h"
 /****************************************************************************
  * Pre-Processor Definitions
  ****************************************************************************/
@@ -103,51 +92,6 @@ __END_DECLS
 
 
 /************************************************************************************
- * Name: board_rc_input
- *
- * Description:
- *   All boards my optionally provide this API to invert the Serial RC input.
- *   This is needed on SoCs that support the notion RXINV or TXINV as apposed to
- *   and external XOR controlled by a GPIO
- *
- ************************************************************************************/
-
-__EXPORT void board_rc_input(bool invert_on, uint32_t uxart_base)
-{
-
-	irqstate_t irqstate = px4_enter_critical_section();
-
-	uint32_t cr1 =	getreg32(STM32_USART_CR1_OFFSET + uxart_base);
-	uint32_t cr2 =	getreg32(STM32_USART_CR2_OFFSET + uxart_base);
-	uint32_t regval = cr1;
-
-	/* {R|T}XINV bit fields can only be written when the USART is disabled (UE=0). */
-
-	regval &= ~USART_CR1_UE;
-
-	putreg32(regval, STM32_USART_CR1_OFFSET + uxart_base);
-
-	if (invert_on) {
-#if defined(BOARD_HAS_RX_TX_SWAP) &&	RC_SERIAL_PORT_IS_SWAPED == 1
-
-		/* This is only ever turned on */
-
-		cr2 |= (USART_CR2_RXINV | USART_CR2_TXINV | USART_CR2_SWAP);
-#else
-		cr2 |= (USART_CR2_RXINV | USART_CR2_TXINV);
-#endif
-
-	} else {
-		cr2 &= ~(USART_CR2_RXINV | USART_CR2_TXINV);
-	}
-
-	putreg32(cr2, STM32_USART_CR2_OFFSET + uxart_base);
-	putreg32(cr1, STM32_USART_CR1_OFFSET + uxart_base);
-
-	leave_critical_section(irqstate);
-}
-
-/************************************************************************************
  * Name: board_peripheral_reset
  *
  * Description:
@@ -166,7 +110,7 @@ __EXPORT void board_peripheral_reset(int ms)
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
-	warnx("reset done, %d ms", ms);
+	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
 
 	/* re-enable power */
 
@@ -199,7 +143,6 @@ __EXPORT void board_on_reset(int status)
 		up_mdelay(6);
 	}
 }
-
 
 /************************************************************************************
  * Name: stm32_boardinitialize
@@ -264,7 +207,6 @@ stm32_boardinitialize(void)
 __EXPORT int board_app_initialize(uintptr_t arg)
 {
 	/* Power on Interfaces */
-
 	VDD_3V3_SD_CARD_EN(true);
 	VDD_5V_PERIPH_EN(true);
 	VDD_5V_HIPOWER_EN(true);
@@ -273,42 +215,24 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	VDD_5V_RC_EN(true);
 	VDD_5V_WIFI_EN(true);
 
-#if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
+	/* Need hrt running before using the ADC */
 
-	/* run C++ ctors before we go any further */
+	px4_platform_init();
 
-	up_cxxinitialize();
-
-#	if defined(CONFIG_EXAMPLES_NSH_CXXINITIALIZE)
-#  		error CONFIG_EXAMPLES_NSH_CXXINITIALIZE Must not be defined! Use CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE.
-#	endif
-
-#else
-#  error platform is dependent on c++ both CONFIG_HAVE_CXX and CONFIG_HAVE_CXXINITIALIZE must be defined.
-#endif
-
-	/* configure the high-resolution time/callout interface */
-	hrt_init();
 
 	if (OK == board_determine_hw_info()) {
-		PX4_INFO("Rev 0x%1x : Ver 0x%1x %s", board_get_hw_revision(), board_get_hw_version(), board_get_hw_type_name());
+		syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
+		       board_get_hw_type_name());
 
 	} else {
-		PX4_ERR("Failed to read HW revision and version");
+		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
 	}
-
-	param_init();
 
 	/* configure the DMA allocator */
 
 	if (board_dma_alloc_init() < 0) {
-		PX4_ERR("DMA alloc FAILED");
+		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
-
-	/* configure CPU load estimation */
-#ifdef CONFIG_SCHED_INSTRUMENTATION
-	cpuload_initialize_once();
-#endif
 
 	/* set up the serial DMA polling */
 	static struct hrt_call serial_dma_call;
@@ -338,26 +262,15 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		led_on(LED_RED);
 	}
 
-#ifdef CONFIG_SPI
-	int ret = stm32_spi_bus_initialize();
-
-	if (ret != OK) {
-		led_on(LED_RED);
-		return ret;
-	}
-
-#endif
-
 #ifdef CONFIG_MMCSD
-
-	ret = stm32_sdio_initialize();
+	int ret = stm32_sdio_initialize();
 
 	if (ret != OK) {
 		led_on(LED_RED);
 		return ret;
 	}
 
-#endif
+#endif /* CONFIG_MMCSD */
 
 	return OK;
 }

@@ -58,7 +58,7 @@ public:
 
 private:
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_RCL_LT>) _param_loitertime
+		(ParamFloat<px4::params::NAV_RCL_LT>) _param_nav_gpsf_lt
 	)
 
 	enum RCLState {

@@ -31,20 +31,17 @@ fi
 
 if [ "$model" != none ]; then
 	jmavsim_pid=`ps aux | grep java | grep "\-jar jmavsim_run.jar" | awk '{ print $2 }'`
-	if [ -n "$jmavsim_pid" ]
-	then
+	if [ -n "$jmavsim_pid" ]; then
 		kill $jmavsim_pid
 	fi
 fi
 
-if [ "$model" == "" ] || [ "$model" == "none" ]
-then
+if [ "$model" == "" ] || [ "$model" == "none" ]; then
 	echo "empty model, setting iris as default"
 	model="iris"
 fi
 
-if [ "$#" -lt 6 ]
-then
+if [ "$#" -lt 6 ]; then
 	echo usage: sitl_run.sh sitl_bin debugger program model src_path build_path
 	echo ""
 	exit 1
@@ -66,25 +63,13 @@ done
 
 SIM_PID=0
 
-# Allow speed factor to bet set from environment.
-if [[ -n "$PX4_SIM_SPEED_FACTOR" ]];
-then
-    speed_factor=$PX4_SIM_SPEED_FACTOR
-else
-    speed_factor=1
-fi
-
-if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]
-then
+if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]; then
 	# Start Java simulator
-	"$src_path"/Tools/jmavsim_run.sh -r 250 -f $speed_factor &
+	"$src_path"/Tools/jmavsim_run.sh -r 250 -l &
 	SIM_PID=`echo $!`
-elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]
-then
-	if [ -x "$(command -v gazebo)" ]
-	then
-		if  [[ -z "$DONT_RUN" ]]
-		then
+elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
+	if [ -x "$(command -v gazebo)" ]; then
+		if  [[ -z "$DONT_RUN" ]]; then
 			# Set the plugin path so Gazebo finds our model and sim
 			source "$src_path/Tools/setup_gazebo.bash" "${src_path}" "${build_path}"
 
@@ -123,26 +108,19 @@ echo SITL COMMAND: $sitl_command
 export PX4_SIM_MODEL=${model}
 
 
-if [[ -n "$DONT_RUN" ]]
-then
-    echo "Not running simulation (\$DONT_RUN is set)."
-elif [ "$debugger" == "lldb" ]
-then
+if [[ -n "$DONT_RUN" ]]; then
+	echo "Not running simulation (\$DONT_RUN is set)."
+elif [ "$debugger" == "lldb" ]; then
 	eval lldb -- $sitl_command
-elif [ "$debugger" == "gdb" ]
-then
+elif [ "$debugger" == "gdb" ]; then
 	eval gdb --args $sitl_command
-elif [ "$debugger" == "ddd" ]
-then
+elif [ "$debugger" == "ddd" ]; then
 	eval ddd --debugger gdb --args $sitl_command
-elif [ "$debugger" == "valgrind" ]
-then
+elif [ "$debugger" == "valgrind" ]; then
 	eval valgrind --track-origins=yes --leak-check=full -v $sitl_command
-elif [ "$debugger" == "callgrind" ]
-then
+elif [ "$debugger" == "callgrind" ]; then
 	eval valgrind --tool=callgrind -v $sitl_command
-elif [ "$debugger" == "ide" ]
-then
+elif [ "$debugger" == "ide" ]; then
 	echo "######################################################################"
 	echo
 	echo "PX4 simulator not started, use your IDE to start PX4_${model} target."
@@ -156,14 +134,11 @@ fi
 
 popd >/dev/null
 
-if [[ -z "$DONT_RUN" ]]
-then
-	if [ "$program" == "jmavsim" ]
-	then
+if [[ -z "$DONT_RUN" ]]; then
+	if [ "$program" == "jmavsim" ]; then
 		pkill -9 -P $SIM_PID
 		kill -9 $SIM_PID
-	elif [ "$program" == "gazebo" ]
-	then
+	elif [ "$program" == "gazebo" ]; then
 		kill -9 $SIM_PID
 		if [[ ! -n "$HEADLESS" ]]; then
 			kill -9 $GUI_PID

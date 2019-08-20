@@ -33,6 +33,9 @@
 
 include(cygwin_cygpath)
 
+set(NUTTX_DIR ${PX4_BINARY_DIR}/NuttX/nuttx)
+set(NUTTX_APPS_DIR ${PX4_BINARY_DIR}/NuttX/apps)
+
 add_subdirectory(src)
 
 add_executable(px4 ${PX4_SOURCE_DIR}/src/platforms/empty.c)
@@ -52,7 +55,7 @@ list(APPEND nuttx_libs
 	nuttx_binfmt
 	nuttx_c
 	nuttx_configs
-	nuttx_cxx
+	nuttx_xx
 	nuttx_drivers
 	nuttx_fs
 	nuttx_mm
@@ -79,24 +82,26 @@ target_link_libraries(nuttx_arch
 )
 
 target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
-target_link_libraries(nuttx_cxx INTERFACE nuttx_c)
+target_link_libraries(nuttx_xx INTERFACE nuttx_c)
 
 target_link_libraries(px4 PRIVATE
 
 	-nostartfiles
 	-nodefaultlibs
 	-nostdlib
+	-nostdinc++
 
 	-fno-exceptions
 	-fno-rtti
 
-	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx/configs/${PX4_BOARD}/scripts/ld.script
+	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx-config/scripts/script.ld
 	-Wl,-Map=${PX4_CONFIG}.map
 	-Wl,--warn-common
 	-Wl,--gc-sections
 
 	-Wl,--start-group
-	${nuttx_libs}
+		drivers_boards_common_arch
+		${nuttx_libs}
 	-Wl,--end-group
 
 	m
@@ -104,7 +109,6 @@ target_link_libraries(px4 PRIVATE
 	)
 
 target_link_libraries(px4 PRIVATE ${module_libraries})
-target_link_libraries(px4 PRIVATE modules__uORB)
 
 if (config_romfs_root)
 	add_subdirectory(${PX4_SOURCE_DIR}/ROMFS ${PX4_BINARY_DIR}/ROMFS)
@@ -119,9 +123,10 @@ add_custom_command(OUTPUT ${PX4_BINARY_DIR_REL}/${PX4_BOARD}.bin
 # create .px4 with parameter and airframe metadata
 if (TARGET parameters_xml AND TARGET airframes_xml)
 
-	string(REPLACE ".elf" ".px4" fw_package ${FW_NAME})
+	string(REPLACE ".elf" ".px4" fw_package ${PX4_BINARY_DIR}/${FW_NAME})
 
-	add_custom_command(OUTPUT ${fw_package}
+	add_custom_command(
+		OUTPUT ${fw_package}
 		COMMAND
 			${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_mkfw.py
 				--prototype ${PX4_SOURCE_DIR}/boards/${PX4_BOARD_VENDOR}/${PX4_BOARD_MODEL}/firmware.prototype
@@ -240,48 +245,6 @@ add_custom_target(stack_check
 	VERBATIM
 	)
 
-find_program(BLOATY_PROGRAM bloaty)
-if (BLOATY_PROGRAM)
-	# bloaty symbols
-	add_custom_target(bloaty_symbols
-		COMMAND ${BLOATY_PROGRAM} -d symbols -C full -n 50 -s vm $<TARGET_FILE:px4>
-		DEPENDS px4
-		USES_TERMINAL
-		)
-
-	# bloaty compilation units
-	add_custom_target(bloaty_compileunits
-		COMMAND ${BLOATY_PROGRAM} -d compileunits -C full -n 50 -s vm $<TARGET_FILE:px4>
-		DEPENDS px4
-		USES_TERMINAL
-		)
-
-	# bloaty templates
-	add_custom_target(bloaty_templates
-		COMMAND ${BLOATY_PROGRAM} -d shortsymbols,fullsymbols -n 50 $<TARGET_FILE:px4>
-		DEPENDS px4
-		USES_TERMINAL
-		)
-
-	# bloaty inlines
-	add_custom_target(bloaty_inlines
-		COMMAND ${BLOATY_PROGRAM} -d inlines -C full -n 50 $<TARGET_FILE:px4>
-		DEPENDS px4
-		USES_TERMINAL
-		)
-
-	# bloaty compare with last master build
-	add_custom_target(bloaty_compare_master
-		#COMMAND wget --no-verbose https://s3.amazonaws.com/px4-travis/Firmware/master/${FW_NAME} -O master_${FW_NAME}
-		COMMAND wget --no-verbose https://s3.amazonaws.com/px4-travis/Firmware/master/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf -O master_${FW_NAME}
-		COMMAND ${BLOATY_PROGRAM} -d symbols -n 50 -C full -s vm $<TARGET_FILE:px4> -- master_${FW_NAME}
-		DEPENDS px4
-		WORKING_DIRECTORY ${PX4_BINARY_DIR}
-		VERBATIM
-		USES_TERMINAL
-		)
-endif()
-
 # debugger helpers
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/gdbinit.in ${PX4_BINARY_DIR}/.gdbinit)
@@ -344,27 +307,24 @@ if(black_magic_probe_path)
 endif()
 
 add_custom_target(jlink_upload
-	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink.sh
-	COMMAND ${GDB} --nx --batch
-		-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
-		-ex 'target remote localhost:2331'
-		-ex 'monitor reset'
-		-ex 'load'
-		-ex 'kill'
-		$<TARGET_FILE:px4>
-	DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_start.sh
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_upload.sh $<TARGET_FILE:px4>
+	DEPENDS px4
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	USES_TERMINAL
 	)
 
 add_custom_target(jlink_debug
-	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink.sh
-	COMMAND ${GDB} --nh
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_start.sh
+	COMMAND ${GDB} -nh
 		-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
 		-ex 'target remote localhost:2331'
-		-ex 'monitor reset'
+		-ex 'monitor reset 0'
 		-ex 'load'
-		-ex 'monitor reset'
+		-ex 'compare-sections'
+		-ex 'monitor reset 0'
+		-ex 'monitor sleep 1000'
+		-ex 'monitor go'
 		-ex 'continue'
 		$<TARGET_FILE:px4>
 	DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit

@@ -31,14 +31,17 @@
  *
  ****************************************************************************/
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifndef MODULE_NAME
+#define MODULE_NAME "log"
+#endif
+
 #include <px4_log.h>
 #if defined(__PX4_POSIX)
-#if !defined(__PX4_CYGWIN)
-#include <execinfo.h>
-#endif
 #include <px4_daemon/server_io.h>
 #endif
 
@@ -55,7 +58,7 @@ __EXPORT const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1] =
 
 void px4_log_initialize(void)
 {
-	ASSERT(orb_log_message_pub == NULL);
+	assert(orb_log_message_pub == NULL);
 
 	/* we need to advertise with a valid message */
 	struct log_message_s log_message;
@@ -70,27 +73,6 @@ void px4_log_initialize(void)
 	if (!orb_log_message_pub) {
 		PX4_ERR("failed to advertise log_message");
 	}
-}
-
-void px4_backtrace()
-{
-#if defined(__PX4_POSIX) && !defined(__PX4_CYGWIN)
-	void *buffer[10];
-	char **callstack;
-	int bt_size;
-	int idx;
-
-	bt_size = backtrace(buffer, 10);
-	callstack = backtrace_symbols(buffer, bt_size);
-
-	PX4_INFO("Backtrace: %d", bt_size);
-
-	for (idx = 0; idx < bt_size; idx++) {
-		PX4_INFO("%s", callstack[idx]);
-	}
-
-	free(callstack);
-#endif
 }
 
 

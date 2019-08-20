@@ -1,5 +1,5 @@
 #include <lockstep_scheduler/lockstep_scheduler.h>
-#include <cassert>
+#include <gtest/gtest.h>
 #include <thread>
 #include <atomic>
 #include <random>
@@ -48,7 +48,7 @@ void test_absolute_time()
 {
 	LockstepScheduler ls;
 	ls.set_absolute_time(some_time_us);
-	assert(ls.get_absolute_time() == some_time_us);
+	EXPECT_EQ(ls.get_absolute_time(),  some_time_us);
 }
 
 void test_condition_timing_out()
@@ -70,10 +70,10 @@ void test_condition_timing_out()
 	// Use a thread to wait for condition while we already have the lock.
 	// This ensures the synchronization happens in the right order.
 	TestThread thread([&ls, &cond, &lock, &should_have_timed_out]() {
-		assert(ls.cond_timedwait(&cond, &lock, some_time_us + 1000) == ETIMEDOUT);
-		assert(should_have_timed_out);
+		EXPECT_EQ(ls.cond_timedwait(&cond, &lock, some_time_us + 1000), ETIMEDOUT);
+		EXPECT_TRUE(should_have_timed_out);
 		// It should be re-locked afterwards, so we should be able to unlock it.
-		assert(pthread_mutex_unlock(&lock) == 0);
+		EXPECT_EQ(pthread_mutex_unlock(&lock), 0);
 	});
 
 	ls.set_absolute_time(some_time_us + 500);
@@ -106,9 +106,9 @@ void test_locked_semaphore_getting_unlocked()
 	TestThread thread([&ls, &cond, &lock]() {
 
 		ls.set_absolute_time(some_time_us + 500);
-		assert(ls.cond_timedwait(&cond, &lock, some_time_us + 1000) == 0);
+		EXPECT_EQ(ls.cond_timedwait(&cond, &lock, some_time_us + 1000), 0);
 		// It should be re-locked afterwards, so we should be able to unlock it.
-		assert(pthread_mutex_unlock(&lock) == 0);
+		EXPECT_EQ(pthread_mutex_unlock(&lock), 0);
 	});
 
 	pthread_mutex_lock(&lock);
@@ -135,7 +135,7 @@ public:
 
 	~TestCase()
 	{
-		assert(_is_done);
+		EXPECT_TRUE(_is_done);
 		pthread_mutex_destroy(&_lock);
 		pthread_cond_destroy(&_cond);
 	}
@@ -168,13 +168,13 @@ public:
 			_is_done = true;
 			// We can be sure that this triggers.
 			_thread->join(_ls);
-			assert(_result == 0);
+			EXPECT_EQ(_result, 0);
 		}
 
 		else if (timeout_reached) {
 			_is_done = true;
 			_thread->join(_ls);
-			assert(_result == ETIMEDOUT);
+			EXPECT_EQ(_result, ETIMEDOUT);
 		}
 	}
 private:
@@ -302,21 +302,19 @@ void test_usleep()
 
 	step = Step::BeforeUsleep;
 
-	assert(ls.usleep_until(some_time_us + 1000) == 0);
-	assert(step == Step::UsleepTriggered);
+	EXPECT_EQ(ls.usleep_until(some_time_us + 1000), 0);
+	EXPECT_EQ(step, Step::UsleepTriggered);
 	thread.join(ls);
 }
 
-int main(int /*argc*/, char ** /*argv*/)
+TEST(LockstepScheduler, All)
 {
-	for (unsigned iteration = 1; iteration <= 10000; ++iteration) {
-		std::cout << "Test iteration: " << iteration << "\n";
+	for (unsigned iteration = 1; iteration <= 100; ++iteration) {
+		//std::cout << "Test iteration: " << iteration << "\n";
 		test_absolute_time();
 		test_condition_timing_out();
 		test_locked_semaphore_getting_unlocked();
 		test_usleep();
 		test_multiple_semaphores_waiting();
 	}
-
-	return 0;
 }

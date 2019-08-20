@@ -148,7 +148,7 @@ int px4_sem_timedwait(px4_sem_t *s, const struct timespec *abstime)
 		const unsigned NAMELEN = 32;
 		char thread_name[NAMELEN] = {};
 		(void)pthread_getname_np(pthread_self(), thread_name, NAMELEN);
-		PX4_WARN("%s: px4_sem_timedwait failure: ret: %d, %s", thread_name, ret, strerror(ret));
+		PX4_WARN("%s: px4_sem_timedwait failure: ret: %d", thread_name, ret);
 	}
 
 	int mret = pthread_mutex_unlock(&(s->lock));

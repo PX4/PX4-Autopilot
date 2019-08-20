@@ -40,6 +40,7 @@
 #include <px4_workqueue.h>
 #include <px4_module.h>
 #include <px4_module_params.h>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
@@ -132,16 +133,13 @@ private:
 	/** @var _rc_loss_alarm Pointer to the RC loss alarm object. */
 	rc_loss::RC_Loss_Alarm *_rc_loss_alarm = nullptr;
 
-	/** @var _command_ack_pub The command ackowledgement topic. */
-	orb_advert_t _command_ack_pub = nullptr;
-
 	/** @note Declare local parameters using defined parameters. */
 	DEFINE_PARAMETERS(
 		/** @var _param_status_display Parameter to enable/disable the LED status display. */
-		(ParamBool<px4::params::EV_TSK_STAT_DIS>) _param_status_display,
+		(ParamBool<px4::params::EV_TSK_STAT_DIS>) _param_ev_tsk_stat_dis,
 
 		/** @var _param_rc_loss The RC comms loss status flag. */
-		(ParamBool<px4::params::EV_TSK_RC_LOSS>) _param_rc_loss
+		(ParamBool<px4::params::EV_TSK_RC_LOSS>) _param_ev_tsk_rc_loss
 	)
 };
 

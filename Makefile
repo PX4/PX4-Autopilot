@@ -1,6 +1,6 @@
 ############################################################################
 #
-# Copyright (c) 2015 - 2017 PX4 Development Team. All rights reserved.
+# Copyright (c) 2015 - 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -56,8 +56,11 @@ endif
 # directory build/px4_fmu-v2_default and then call make
 # in that directory with the target upload.
 
-#  explicity set default build target
+# explicity set default build target
 all: px4_sitl_default
+
+# define a space character to be able to explicitly find it in strings
+space := $(subst ,, )
 
 # Parsing
 # --------------------------------------------------------------------
@@ -142,11 +145,33 @@ endif
 # --------------------------------------------------------------------
 # describe how to build a cmake config
 define cmake-build
-+@$(eval PX4_CONFIG = $(1))
-+@$(eval BUILD_DIR = "$(SRC_DIR)"/build/$(PX4_CONFIG)$(BUILD_DIR_SUFFIX))
-+@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
-+@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake "$(SRC_DIR)" -G"$(PX4_CMAKE_GENERATOR)" $(CMAKE_ARGS) -DCONFIG=$(PX4_CONFIG) || (rm -rf $(BUILD_DIR)); fi
-+@$(PX4_MAKE) -C $(BUILD_DIR) $(PX4_MAKE_ARGS) $(ARGS)
+	@$(eval BUILD_DIR = "$(SRC_DIR)/build/$(1)")
+	@# check if the desired cmake configuration matches the cache then CMAKE_CACHE_CHECK stays empty
+	@$(call cmake-cache-check)
+	@# make sure to start from scratch when switching from GNU Make to Ninja
+	@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
+	@# only excplicitly configure the first build, if cache file already exists the makefile will rerun cmake automatically if necessary
+	@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ] || [ $(CMAKE_CACHE_CHECK) ]; then \
+		mkdir -p $(BUILD_DIR) \
+		&& cd $(BUILD_DIR) \
+		&& cmake "$(SRC_DIR)" -G"$(PX4_CMAKE_GENERATOR)" $(CMAKE_ARGS) \
+		|| (rm -rf $(BUILD_DIR)); \
+	fi
+	@# run the build for the specified target
+	@cmake --build $(BUILD_DIR) -- $(PX4_MAKE_ARGS) $(ARGS)
+endef
+
+# check if the options we want to build with in CMAKE_ARGS match the ones which are already configured in the cache inside BUILD_DIR
+define cmake-cache-check
+	@# change to build folder which fails if it doesn't exist and CACHED_CMAKE_OPTIONS stays empty
+	@# fetch all previously configured and cached options from the build folder and transform them into the OPTION=VALUE format without type (e.g. :BOOL)
+	@$(eval CACHED_CMAKE_OPTIONS = $(shell cd $(BUILD_DIR) 2>/dev/null && cmake -L 2>/dev/null | sed -n 's/\([^[:blank:]]*\):[^[:blank:]]*\(=[^[:blank:]]*\)/\1\2/gp' ))
+	@# transform the options in CMAKE_ARGS into the OPTION=VALUE format without -D
+	@$(eval DESIRED_CMAKE_OPTIONS = $(shell echo $(CMAKE_ARGS) | sed -n 's/-D\([^[:blank:]]*=[^[:blank:]]*\)/\1/gp' ))
+	@# find each currently desired option in the already cached ones making sure the complete configured string value is the same
+	@$(eval VERIFIED_CMAKE_OPTIONS = $(foreach option,$(DESIRED_CMAKE_OPTIONS),$(strip $(findstring $(option)$(space),$(CACHED_CMAKE_OPTIONS)))))
+	@# if the complete list of desired options is found in the list of verified options we don't need to reconfigure and CMAKE_CACHE_CHECK stays empty
+	@$(eval CMAKE_CACHE_CHECK = $(if $(findstring $(DESIRED_CMAKE_OPTIONS),$(VERIFIED_CMAKE_OPTIONS)),,y))
 endef
 
 COLOR_BLUE = \033[0;94m
@@ -159,28 +184,24 @@ endef
 # Get a list of all config targets boards/*/*.cmake
 ALL_CONFIG_TARGETS := $(shell find boards -maxdepth 3 -mindepth 3 ! -name '*common*' ! -name '*sdflight*' -name '*.cmake' -print | sed -e 's/boards\///' | sed -e 's/\.cmake//' | sed -e 's/\//_/g' | sort)
 
-# Strip off default
-CONFIG_TARGETS_DEFAULT := $(patsubst %_default,%,$(filter %_default,$(ALL_CONFIG_TARGETS)))
-
 # ADD CONFIGS HERE
 # --------------------------------------------------------------------
 #  Do not put any spaces between function arguments.
 
 # All targets.
 $(ALL_CONFIG_TARGETS):
-	$(call cmake-build,$@)
+	@$(eval PX4_CONFIG = $@)
+	@$(eval CMAKE_ARGS += -DCONFIG=$(PX4_CONFIG))
+	@$(call cmake-build,$(PX4_CONFIG)$(BUILD_DIR_SUFFIX))
 
-# Abbreviated config targets.
-
-# nuttx_ is left off by default; provide a rule to allow that.
-$(NUTTX_CONFIG_TARGETS):
-	$(call cmake-build,nuttx_$@)
-
-all_nuttx_targets: $(NUTTX_CONFIG_TARGETS)
-
+# Filter for only default targets to allow omiting the "_default" postfix
+CONFIG_TARGETS_DEFAULT := $(patsubst %_default,%,$(filter %_default,$(ALL_CONFIG_TARGETS)))
 $(CONFIG_TARGETS_DEFAULT):
-	$(call cmake-build,$@_default)
+	@$(eval PX4_CONFIG = $@_default)
+	@$(eval CMAKE_ARGS += -DCONFIG=$(PX4_CONFIG))
+	@$(call cmake-build,$(PX4_CONFIG)$(BUILD_DIR_SUFFIX))
 
+all_config_targets: $(ALL_CONFIG_TARGETS)
 all_default_targets: $(CONFIG_TARGETS_DEFAULT)
 
 posix: px4_sitl_default
@@ -199,7 +220,7 @@ posix_sitl_default:
 	$(MAKE) px4_sitl_default
 
 # All targets with just dependencies but no recipe must either be marked as phony (or have the special @: as recipe).
-.PHONY: all posix px4_sitl_default all_nuttx_targets all_default_targets
+.PHONY: all posix px4_sitl_default all_config_targets all_default_targets
 
 # Multi- config targets.
 eagle_default: atlflight_eagle_default atlflight_eagle_qurt-default
@@ -227,10 +248,11 @@ px4fmu_firmware: \
 	check_px4_fmu-v4_default \
 	check_px4_fmu-v4pro_default \
 	check_px4_fmu-v5_default \
+	check_px4_fmu-v5x_default \
 	sizes
 
 misc_qgc_extra_firmware: \
-	check_gumstix_aerocore2_default \
+	check_nxp_fmuk66-v3_default \
 	check_intel_aerofc-v1_default \
 	check_auav_x21_default \
 	check_bitcraze_crazyflie_default \
@@ -240,12 +262,9 @@ misc_qgc_extra_firmware: \
 
 # Other NuttX firmware
 alt_firmware: \
-	check_nxp_fmuk66-v3_default \
-	check_atmel_same70xplained_default \
-	check_stm_32f4discovery_default \
 	check_px4_cannode-v1_default \
 	check_px4_esc-v1_default \
-	check_stm_nucleo-F767ZI_default \
+	check_auav_esc35-v1_default \
 	check_thiemar_s2740vc-v1_default \
 	sizes
 
@@ -266,7 +285,7 @@ sizes:
 check: check_px4_sitl_default px4fmu_firmware misc_qgc_extra_firmware alt_firmware tests check_format
 
 # quick_check builds a single nuttx and posix target, runs testing, and checks the style
-quick_check: check_px4_sitl_default check_px4_fmu-v5_default tests check_format
+quick_check: check_px4_sitl_test check_px4_fmu-v5_default tests check_format
 
 check_%:
 	@echo
@@ -322,16 +341,16 @@ format:
 
 # Testing
 # --------------------------------------------------------------------
-.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard
-.PHONY: rostest python_coverage test_mixer_multirotor
+.PHONY: tests tests_coverage tests_mission tests_mission_coverage tests_offboard tests_avoidance
+.PHONY: rostest python_coverage
 
-test_mixer_multirotor:
-	@$(MAKE) -C "$(SRC_DIR)"/src/lib/mixer --no-print-directory tests
-
-tests: test_mixer_multirotor
-	@$(MAKE) --no-print-directory px4_sitl_test test_results \
-	ASAN_OPTIONS="color=always:check_initialization_order=1:detect_stack_use_after_return=1" \
-	UBSAN_OPTIONS="color=always"
+tests:
+	$(eval CMAKE_ARGS += -DCONFIG=px4_sitl_test)
+	$(eval CMAKE_ARGS += -DTESTFILTER=$(TESTFILTER))
+	$(eval ARGS += test_results)
+	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
+	$(eval UBSAN_OPTIONS += color=always)
+	$(call cmake-build,px4_sitl_test)
 
 tests_coverage:
 	@$(MAKE) clean
@@ -344,6 +363,10 @@ rostest: px4_sitl_default
 tests_mission: rostest
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_missions.test
 
+rostest_run: px4_sitl_default
+	@$(MAKE) --no-print-directory px4_sitl_default sitl_gazebo
+	@"$(SRC_DIR)"/test/rostest_px4_run.sh $(TEST_FILE) mission:=$(TEST_MISSION) vehicle:=$(TEST_VEHICLE)
+
 tests_mission_coverage:
 	@$(MAKE) clean
 	@$(MAKE) --no-print-directory px4_sitl_default PX4_CMAKE_BUILD_TYPE=Coverage
@@ -355,6 +378,10 @@ tests_offboard: rostest
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_offboard_attctl.test
 	@"$(SRC_DIR)"/test/rostest_px4_run.sh mavros_posix_tests_offboard_posctl.test
 
+tests_avoidance: rostest
+	@"$(SRC_DIR)"/test/rostest_avoidance_run.sh mavros_posix_test_avoidance.test
+	@"$(SRC_DIR)"/test/rostest_avoidance_run.sh mavros_posix_test_safe_landing.test
+
 python_coverage:
 	@mkdir -p "$(SRC_DIR)"/build/python_coverage
 	@cd "$(SRC_DIR)"/build/python_coverage && cmake "$(SRC_DIR)" $(CMAKE_ARGS) -G"$(PX4_CMAKE_GENERATOR)" -DCONFIG=px4_sitl_default -DPYTHON_COVERAGE=ON
@@ -364,6 +391,7 @@ python_coverage:
 	#@$(PX4_MAKE) -C "$(SRC_DIR)"/build/python_coverage module_documentation # TODO: fix within coverage.py
 	@coverage combine `find . -name .coverage\*`
 	@coverage report -m
+
 
 # static analyzers (scan-build, clang-tidy, cppcheck)
 # --------------------------------------------------------------------
@@ -435,6 +463,7 @@ distclean: gazeboclean
 	@git submodule deinit -f .
 	@git clean -ff -x -d -e ".project" -e ".cproject" -e ".idea" -e ".settings" -e ".vscode"
 
+# Help / Error
 # --------------------------------------------------------------------
 
 # All other targets are handled by PX4_MAKE. Add a rule here to avoid printing an error.
@@ -442,22 +471,13 @@ distclean: gazeboclean
 	$(if $(filter $(FIRST_ARG),$@), \
 		$(error "$@ cannot be the first argument. Use '$(MAKE) help|list_config_targets' to get a list of all possible [configuration] targets."),@#)
 
-#help:
-#	@echo
-#	@echo "Type 'make ' and hit the tab key twice to see a list of the available"
-#	@echo "build configurations."
-#	@echo
-
-empty :=
-space := $(empty) $(empty)
-
 # Print a list of non-config targets (based on http://stackoverflow.com/a/26339924/1487069)
 help:
 	@echo "Usage: $(MAKE) <target>"
 	@echo "Where <target> is one of:"
 	@$(MAKE) -pRrq -f $(lastword $(MAKEFILE_LIST)) : 2>/dev/null | \
 		awk -v RS= -F: '/^# File/,/^# Finished Make data base/ {if ($$1 !~ "^[#.]") {print $$1}}' | sort | \
-		egrep -v -e '^[^[:alnum:]]' -e '^($(subst $(space),|,$(ALL_CONFIG_TARGETS) $(NUTTX_CONFIG_TARGETS)))$$' -e '_default$$' -e '^(posix|eagle|Makefile)'
+		egrep -v -e '^[^[:alnum:]]' -e '^($(subst $(space),|,$(ALL_CONFIG_TARGETS)))$$' -e '_default$$' -e '^(posix|eagle|Makefile)'
 	@echo
 	@echo "Or, $(MAKE) <config_target> [<make_target(s)>]"
 	@echo "Use '$(MAKE) list_config_targets' for a list of configuration targets."

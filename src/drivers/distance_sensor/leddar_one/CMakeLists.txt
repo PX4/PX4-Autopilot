@@ -34,9 +34,10 @@ px4_add_module(
 	MODULE drivers__leddar_one
 	MAIN leddar_one
 	STACK_MAIN 1200
+	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		leddar_one.cpp
 	MODULE_CONFIG
 		module.yaml
-	DEPENDS
 	)

@@ -101,7 +101,7 @@ PX4_DEFINE_TUNE(12, EKF_WARNING,           "MFT255L8ddd#d#eeff",                
 PX4_DEFINE_TUNE(13, BARO_WARNING,          "MFT255L4gf#fed#d",                              false /*  baro warning */)
 PX4_DEFINE_TUNE(14, SINGLE_BEEP,           "MFT100a8",                                      false /*  single beep */)
 PX4_DEFINE_TUNE(15, HOME_SET,              "MFT100L4>G#6A#6B#4",                            false /*  home set tune */)
-PX4_DEFINE_TUNE(16, SD_INIT,               "MBAGP",                                         false /*  Make FS */)
+PX4_DEFINE_TUNE(16, SD_INIT,               "MFAGPAG",                                       false /*  Make FS */)
 PX4_DEFINE_TUNE(17, SD_ERROR,              "MNBG",                                          false /*  format failed */)
 PX4_DEFINE_TUNE(18, PROG_PX4IO,            "MLL32CP8MB",                                    false /*  Program PX4IO */)
 PX4_DEFINE_TUNE(19, PROG_PX4IO_OK,         "MLL8CDE",                                       false /*  Program PX4IO success */)

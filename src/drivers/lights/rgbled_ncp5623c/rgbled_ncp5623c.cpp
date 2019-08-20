@@ -39,32 +39,14 @@
  * @author CUAVcaijie <caijie@cuav.net>
  */
 
-#include <px4_config.h>
-#include <px4_getopt.h>
+#include <string.h>
 
 #include <drivers/device/i2c.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <ctype.h>
-
-#include <px4_workqueue.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-
-#include <board_config.h>
-
-#include <drivers/drv_led.h>
 #include <lib/led/led.h>
-
+#include <px4_getopt.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include "uORB/topics/parameter_update.h"
+
 
 #define ADDR			0x39	/**< I2C adress of NCP5623C */
 
@@ -77,7 +59,7 @@
 #define NCP5623_LED_OFF		0x00	/**< off */
 
 
-class RGBLED_NPC5623C : public device::I2C
+class RGBLED_NPC5623C : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
 	RGBLED_NPC5623C(int bus, int rgbled);
@@ -87,7 +69,6 @@ public:
 	virtual int		init();
 	virtual int		probe();
 private:
-	work_s			_work;
 
 	float			_brightness;
 	float			_max_brightness;
@@ -102,8 +83,7 @@ private:
 
 	LedController		_led_controller;
 
-	static void		led_trampoline(void *arg);
-	void			led();
+	void			Run() override;
 
 	int			send_led_rgb();
 	void			update_params();
@@ -122,12 +102,8 @@ void rgbled_ncp5623c_usage();
 extern "C" __EXPORT int rgbled_ncp5623c_main(int argc, char *argv[]);
 
 RGBLED_NPC5623C::RGBLED_NPC5623C(int bus, int rgbled) :
-	I2C("rgbled1", RGBLED1_DEVICE_PATH, bus, rgbled
-#ifdef __PX4_NUTTX
-	    , 100000 /* maximum speed supported */
-#endif
-	   ),
-	_work{},
+	I2C("rgbled1", RGBLED1_DEVICE_PATH, bus, rgbled, 100000),
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 	_brightness(1.0f),
 	_max_brightness(1.0f),
 	_r(0),
@@ -174,7 +150,8 @@ RGBLED_NPC5623C::init()
 	update_params();
 
 	_running = true;
-	work_queue(LPWORK, &_work, (worker_t)&RGBLED_NPC5623C::led_trampoline, this, 0);
+
+	ScheduleNow();
 
 	return OK;
 }
@@ -187,19 +164,11 @@ RGBLED_NPC5623C::probe()
 	return write(NCP5623_LED_CURRENT, 0x00);
 }
 
-void
-RGBLED_NPC5623C::led_trampoline(void *arg)
-{
-	RGBLED_NPC5623C *rgbl = reinterpret_cast<RGBLED_NPC5623C *>(arg);
-
-	rgbl->led();
-}
-
 /**
  * Main loop function
  */
 void
-RGBLED_NPC5623C::led()
+RGBLED_NPC5623C::Run()
 {
 	if (!_should_run) {
 		if (_param_sub >= 0) {
@@ -282,8 +251,7 @@ RGBLED_NPC5623C::led()
 	}
 
 	/* re-queue ourselves to run again later */
-	work_queue(LPWORK, &_work, (worker_t)&RGBLED_NPC5623C::led_trampoline, this,
-		   USEC2TICK(_led_controller.maximum_update_interval()));
+	ScheduleDelayed(_led_controller.maximum_update_interval());
 }
 
 /**

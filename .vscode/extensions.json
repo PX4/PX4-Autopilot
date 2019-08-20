@@ -2,11 +2,18 @@
     // See http://go.microsoft.com/fwlink/?LinkId=827846
     // for the documentation about the extensions.json format
     "recommendations": [
-        "ms-vscode.cpptools",
-        "github.vscode-pull-request-github",
         "chiehyu.vscode-astyle",
+        "dan-c-underwood.arm",
+        "github.vscode-pull-request-github",
         "marus25.cortex-debug",
+        "ms-azuretools.vscode-docker",
+        "ms-iot.vscode-ros",
         "ms-python.python",
-        "vector-of-bool.cmake-tools"
+        "ms-vscode.cpptools",
+        "twxs.cmake",
+        "uavcan.dsdl",
+        "vector-of-bool.cmake-tools",
+        "wholroyd.jinja",
+        "zixuanwang.linkerscript"
     ]
 }

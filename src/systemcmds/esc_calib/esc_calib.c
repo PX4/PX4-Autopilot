@@ -84,7 +84,7 @@ usage(const char *reason)
 	PRINT_MODULE_USAGE_PARAM_INT('h', 2000, 0, 3000, "High PWM value in us", true);
 	PRINT_MODULE_USAGE_PARAM_STRING('c', NULL, NULL, "select channels in the form: 1234 (1 digit per channel, 1=first)",
 					true);
-	PRINT_MODULE_USAGE_PARAM_INT('m', 0, 0, 4096, "Select channels via bitmask (eg. 0xF, 3)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 4096, "Select channels via bitmask (eg. 0xF, 3)", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Select all channels", true);
 }
 

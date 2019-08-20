@@ -595,10 +595,10 @@ abstime_to_ts(struct timespec *ts, hrt_abstime abstime)
 }
 
 /**
- * Compare a time value with the current time.
+ * Compare a time value with the current time as atomic operation.
  */
 hrt_abstime
-hrt_elapsed_time(const volatile hrt_abstime *then)
+hrt_elapsed_time_atomic(const volatile hrt_abstime *then)
 {
 	irqstate_t flags = px4_enter_critical_section();
 

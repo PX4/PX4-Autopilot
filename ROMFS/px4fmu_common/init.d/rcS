@@ -20,6 +20,7 @@ set +e
 # Do not add intra word spaces
 # it wastes flash
 #
+set AUTOCNF no
 set AUX_MODE pwm
 set DATAMAN_OPT ""
 set FAILSAFE none
@@ -29,7 +30,6 @@ set FEXTRAS /fs/microsd/etc/extras.txt
 set FMU_ARGS ""
 set FMU_MODE pwm
 set FRC /fs/microsd/etc/rc.txt
-set IO_PRESENT no
 set IOFW "/etc/extras/px4_io-v2_default.bin"
 set IO_PRESENT no
 set LOG_FILE /fs/microsd/bootlog.txt
@@ -53,9 +53,17 @@ set PWM_MAX p:PWM_MAX
 set PWM_MIN p:PWM_MIN
 set PWM_OUT none
 set PWM_RATE p:PWM_RATE
+set RC_INPUT_ARGS ""
 set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
+set STARTUP_TUNE 1
 set USE_IO no
 set VEHICLE_TYPE none
+
+# Airframe parameter versioning: airframe maintainers can set this in the
+# airframe startup script, and then increase it by one whenever an airframe
+# parameter is updated - it will ensure that these parameters will be updated
+# when the firmware is flashed.
+set PARAM_DEFAULTS_VER 1
 
 #
 # Mount the procfs.
@@ -88,41 +96,27 @@ then
 	if hardfault_log check
 	then
 		# Error tune.
-		tune_control play -t 2
+		set STARTUP_TUNE 2
 		if hardfault_log commit
 		then
 			hardfault_log reset
 		fi
-	else
-		# Play the startup tune.
-		tune_control play -t 1
 	fi
 else
 	# tune SD_INIT
-	tune_control play -t 16
+	set STARTUP_TUNE 16
 	if mkfatfs /dev/mmcsd0
 	then
 		if mount -t vfat /dev/mmcsd0 /fs/microsd
 		then
 			echo "INFO [init] card formatted"
 		else
-			tune_control play -t 17
+			set STARTUP_TUNE 17
 			echo "ERROR [init] format failed"
 			set LOG_FILE /dev/null
 		fi
 	else
 		set LOG_FILE /dev/null
-	fi
-fi
-
-# AEROCORE2 shouldn't have an sd card and CF2 may optionally have an sd card.
-if ! ver hwcmp BITCRAZE_CRAZYFLIE GUMSTIX_AEROCORE2
-then
-	# Run no SD alarm.
-	if [ $LOG_FILE = /dev/null ]
-	then
-		# tune Make FS MBAGP
-		tune_control play -t 2
 	fi
 fi
 
@@ -155,13 +149,24 @@ else
 	#
 	# Set AUTOCNF flag to use it in AUTOSTART scripts.
 	#
-	if param compare SYS_AUTOCONFIG 1
+	if param greater SYS_AUTOCONFIG 0
 	then
-		# Wipe out params except RC*, flight modes, total flight time, accel cal, gyro cal
-		param reset_nostart RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO*
+		if param compare SYS_AUTOCONFIG 1
+		then
+			# Wipe out params except RC*, flight modes, total flight time, accel cal, gyro cal
+			param reset_nostart RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO*
+		fi
+
 		set AUTOCNF yes
-	else
-		set AUTOCNF no
+	fi
+
+	#
+	# Play the startup tune (if not disabled or there is an error)
+	#
+	param compare CBRK_BUZZER 782090
+	if [ $? != 0 -o $STARTUP_TUNE != 1 ]
+	then
+		tune_control play -t $STARTUP_TUNE
 	fi
 
 	#
@@ -194,20 +199,13 @@ else
 	#
 	# Start system state indicator.
 	#
-	if ! rgbled start
+	rgbled start
+	rgbled_ncp5623c start
+	rgbled_pwm start
+
+	if blinkm start
 	then
-
-		rgbled_ncp5623c start
-
-		#
-		# FMUv5 may have both PWM I2C RGB LED support.
-		#
-		rgbled_pwm start
-
-		if blinkm start
-		then
-			blinkm systemstate
-		fi
+		blinkm systemstate
 	fi
 
 	#
@@ -256,7 +254,7 @@ else
 	then
 		# Check for the mini using build with px4io fw file
 		# but not a px4IO
-		if ver hwtypecmp V540
+		if ver hwtypecmp V540 V560
 		then
 			param set SYS_USE_IO 0
 		else
@@ -315,23 +313,23 @@ else
 		tune_control play -t 2
 	fi
 
-	if [ $IO_PRESENT = no -o $USE_IO = no ]
-	then
-		rc_input start
-	fi
-
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run).
 	# Commander needs to be this early for in-air-restarts.
 	#
-	if param compare SYS_HITL 1
+	if param greater SYS_HITL 0
 	then
 		set OUTPUT_MODE hil
 		sensors start -h
-		commander start --hil
-
+		commander start -h
 		# disable GPS
 		param set GPS_1_CONFIG 0
+
+		# start the simulator in hardware if needed
+		if param compare SYS_HITL 2
+		then
+			sih start
+		fi
 
 	else
 		#
@@ -372,7 +370,6 @@ else
 		fi
 
 		camera_trigger start
-		param set CAM_FBACK_MODE 1
 		camera_feedback start
 	fi
 
@@ -411,25 +408,32 @@ else
 	#
 	sh /etc/init.d/rc.serial
 
+	if [ $IO_PRESENT = no -o $USE_IO = no ]
+	then
+		# Must be started after the serial config is read
+		rc_input start $RC_INPUT_ARGS
+	fi
+
 	#
 	# Configure vehicle type specific parameters.
 	# Note: rc.vehicle_setup is the entry point for rc.interface,
-	#       rc.fw_apps, rc.mc_apps, rc.ugv_apps, and rc.vtol_apps.
+	#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
 	#
 	sh /etc/init.d/rc.vehicle_setup
+
+	# Camera capture driver
+	if param greater CAM_CAP_FBACK 0
+	then
+		if camera_capture start
+		then
+			camera_capture on
+		fi
+	fi
 
 	#
 	# Start the navigator.
 	#
 	navigator start
-
-	#
-	# Start the standalone wind estimator.
-	#
-	if param compare WEST_EN 1
-	then
-		wind_estimator start
-	fi
 
 	#
 	# Start a thermal calibration if required.
@@ -442,6 +446,18 @@ else
 	if ! param compare MNT_MODE_IN -1
 	then
 		vmount start
+	fi
+
+	# Check for flow sensor, launched as a background task to scan
+	if param compare SENS_EN_PX4FLOW 1
+	then
+		px4flow start &
+	fi
+
+	# Blacksheep telemetry
+	if param greater TEL_BST_EN 0
+	then
+		bst start
 	fi
 
 	#
@@ -468,6 +484,23 @@ else
 	# Start the logger.
 	#
 	sh /etc/init.d/rc.logging
+
+	#
+	# Set additional parameters and env variables for selected AUTOSTART.
+	#
+	if ! param compare SYS_AUTOSTART 0
+	then
+		sh /etc/init.d/rc.autostart.post
+	fi
+
+	if ! param compare SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
+	then
+		echo "Switched to different parameter version. Resetting parameters."
+		param set SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
+		param set SYS_AUTOCONFIG 2
+		param save
+		reboot
+	fi
 
 #
 # End of autostart.
@@ -499,6 +532,7 @@ unset MIXER_FILE
 unset MK_MODE
 unset MKBLCTRL_ARG
 unset OUTPUT_MODE
+unset PARAM_DEFAULTS_VER
 unset PARAM_FILE
 unset PWM_AUX_DISARMED
 unset PWM_AUX_MAX
@@ -510,7 +544,9 @@ unset PWM_MAX
 unset PWM_MIN
 unset PWM_OUT
 unset PWM_RATE
+unset RC_INPUT_ARGS
 unset SDCARD_MIXERS_PATH
+unset STARTUP_TUNE
 unset USE_IO
 unset VEHICLE_TYPE
 

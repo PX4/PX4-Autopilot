@@ -40,20 +40,18 @@ PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation r
 	CDev(nullptr),
 	ModuleParams(nullptr),
 	_sensor_gyro_pub{ORB_ID(sensor_gyro), priority},
-	_rotation{get_rot_matrix(rotation)}
+	_sensor_gyro_control_pub{ORB_ID(sensor_gyro_control), priority},
+	_rotation{rotation}
 {
 	_class_device_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
 
 	_sensor_gyro_pub.get().device_id = device_id;
 	_sensor_gyro_pub.get().scaling = 1.0f;
+	_sensor_gyro_control_pub.get().device_id = device_id;
 
 	// set software low pass filter for controllers
 	updateParams();
-	configure_filter(_filter_cutoff.get());
-
-	// force initial publish to allocate uORB buffer
-	// TODO: can be removed once all drivers are in threads
-	_sensor_gyro_pub.update();
+	configure_filter(_param_imu_gyro_cutoff.get());
 }
 
 PX4Gyroscope::~PX4Gyroscope()
@@ -63,7 +61,8 @@ PX4Gyroscope::~PX4Gyroscope()
 	}
 }
 
-int PX4Gyroscope::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
+int
+PX4Gyroscope::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 	case GYROIOCSSCALE: {
@@ -85,7 +84,8 @@ int PX4Gyroscope::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 	}
 }
 
-void PX4Gyroscope::set_device_type(uint8_t devtype)
+void
+PX4Gyroscope::set_device_type(uint8_t devtype)
 {
 	// current DeviceStructure
 	union device::Device::DeviceId device_id;
@@ -96,19 +96,39 @@ void PX4Gyroscope::set_device_type(uint8_t devtype)
 
 	// copy back to report
 	_sensor_gyro_pub.get().device_id = device_id.devid;
+	_sensor_gyro_control_pub.get().device_id = device_id.devid;
 }
 
-void PX4Gyroscope::update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z)
+void
+PX4Gyroscope::set_sample_rate(unsigned rate)
+{
+	_sample_rate = rate;
+	_filter.set_cutoff_frequency(_sample_rate, _filter.get_cutoff_freq());
+}
+
+void
+PX4Gyroscope::update(hrt_abstime timestamp, float x, float y, float z)
 {
 	sensor_gyro_s &report = _sensor_gyro_pub.get();
 	report.timestamp = timestamp;
 
-	// Apply rotation, range scale, and the calibrating offset/scale
-	const matrix::Vector3f val_raw{(float)x, (float)y, (float)z};
-	const matrix::Vector3f val_calibrated{ _rotation *(((val_raw * report.scaling) - _calibration_offset).emult(_calibration_scale))};
+	// Apply rotation (before scaling)
+	rotate_3f(_rotation, x, y, z);
+
+	const matrix::Vector3f raw{x, y, z};
+
+	// Apply range scale and the calibrating offset/scale
+	const matrix::Vector3f val_calibrated{(((raw * report.scaling) - _calibration_offset).emult(_calibration_scale))};
 
 	// Filtered values
 	const matrix::Vector3f val_filtered{_filter.apply(val_calibrated)};
+
+	// publish control data (filtered gyro) immediately
+	sensor_gyro_control_s &control = _sensor_gyro_control_pub.get();
+	control.timestamp_sample = timestamp;
+	val_filtered.copyTo(control.xyz);
+	control.timestamp = hrt_absolute_time();
+	_sensor_gyro_control_pub.update();	// publish
 
 	// Integrated values
 	matrix::Vector3f integrated_value;
@@ -131,11 +151,12 @@ void PX4Gyroscope::update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z
 		report.z_integral = integrated_value(2);
 
 		poll_notify(POLLIN);
-		_sensor_gyro_pub.update();
+		_sensor_gyro_pub.update();	// publish
 	}
 }
 
-void PX4Gyroscope::print_status()
+void
+PX4Gyroscope::print_status()
 {
 	PX4_INFO(GYRO_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
 	PX4_INFO("sample rate: %d Hz", _sample_rate);
@@ -147,4 +168,5 @@ void PX4Gyroscope::print_status()
 		 (double)_calibration_offset(2));
 
 	print_message(_sensor_gyro_pub.get());
+	print_message(_sensor_gyro_control_pub.get());
 }

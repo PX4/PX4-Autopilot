@@ -39,14 +39,8 @@
 
 #include "rc_update.h"
 
-#include <string.h>
-#include <float.h>
-#include <errno.h>
-
-#include <uORB/uORB.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/input_rc.h>
 
 using namespace sensors;
 
@@ -57,32 +51,6 @@ RCUpdate::RCUpdate(const Parameters &parameters)
 	  _filter_yaw(50.0f, 10.f),
 	  _filter_throttle(50.0f, 10.f)
 {
-	memset(&_rc, 0, sizeof(_rc));
-	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
-	memset(&_param_rc_values, 0, sizeof(_param_rc_values));
-}
-
-int RCUpdate::init()
-{
-	_rc_sub = orb_subscribe(ORB_ID(input_rc));
-
-	if (_rc_sub < 0) {
-		return -errno;
-	}
-
-	_rc_parameter_map_sub = orb_subscribe(ORB_ID(rc_parameter_map));
-
-	if (_rc_parameter_map_sub < 0) {
-		return -errno;
-	}
-
-	return 0;
-}
-
-void RCUpdate::deinit()
-{
-	orb_unsubscribe(_rc_sub);
-	orb_unsubscribe(_rc_parameter_map_sub);
 }
 
 void RCUpdate::update_rc_functions()
@@ -114,6 +82,7 @@ void RCUpdate::update_rc_functions()
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_3] = _parameters.rc_map_aux3 - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4] = _parameters.rc_map_aux4 - 1;
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5] = _parameters.rc_map_aux5 - 1;
+	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_AUX_6] = _parameters.rc_map_aux6 - 1;
 
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] = _parameters.rc_map_param[i] - 1;
@@ -133,11 +102,8 @@ void RCUpdate::update_rc_functions()
 void
 RCUpdate::rc_parameter_map_poll(ParameterHandles &parameter_handles, bool forced)
 {
-	bool map_updated;
-	orb_check(_rc_parameter_map_sub, &map_updated);
-
-	if (map_updated) {
-		orb_copy(ORB_ID(rc_parameter_map), _rc_parameter_map_sub, &_rc_parameter_map);
+	if (_rc_parameter_map_sub.updated()) {
+		_rc_parameter_map_sub.copy(&_rc_parameter_map);
 
 		/* update parameter handles to which the RC channels are mapped */
 		for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
@@ -252,14 +218,10 @@ RCUpdate::set_params_from_rc(const ParameterHandles &parameter_handles)
 void
 RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 {
-	bool rc_updated;
-	orb_check(_rc_sub, &rc_updated);
-
-	if (rc_updated) {
+	if (_rc_sub.updated()) {
 		/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
-		struct input_rc_s rc_input;
-
-		orb_copy(ORB_ID(input_rc), _rc_sub, &rc_input);
+		input_rc_s rc_input{};
+		_rc_sub.copy(&rc_input);
 
 		/* detect RC signal loss */
 		bool signal_lost;
@@ -379,6 +341,7 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			manual.aux3 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_3, -1.0, 1.0);
 			manual.aux4 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4, -1.0, 1.0);
 			manual.aux5 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5, -1.0, 1.0);
+			manual.aux6 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_6, -1.0, 1.0);
 
 			/* filter controls */
 			manual.y = math::constrain(_filter_roll.apply(manual.y), -1.f, 1.f);
@@ -387,9 +350,8 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			manual.z = math::constrain(_filter_throttle.apply(manual.z), 0.f, 1.f);
 
 			if (_parameters.rc_map_flightmode > 0) {
-
-				/* the number of valid slots equals the index of the max marker minus one */
-				const int num_slots = manual_control_setpoint_s::MODE_SLOT_MAX;
+				/* number of valid slots */
+				const int num_slots = manual_control_setpoint_s::MODE_SLOT_NUM;
 
 				/* the half width of the range of a slot is the total range
 				 * divided by the number of slots, again divided by two
@@ -406,10 +368,10 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 				 * will take us to the correct final index.
 				 */
 				manual.mode_slot = (((((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * num_slots) + slot_width_half) /
-						     (slot_max - slot_min)) + (1.0f / num_slots));
+						     (slot_max - slot_min)) + (1.0f / num_slots)) + 1;
 
-				if (manual.mode_slot >= num_slots) {
-					manual.mode_slot = num_slots - 1;
+				if (manual.mode_slot > num_slots) {
+					manual.mode_slot = num_slots;
 				}
 			}
 

@@ -118,6 +118,10 @@ function(px4_add_module)
 		add_library(${MODULE} STATIC EXCLUDE_FROM_ALL ${CMAKE_CURRENT_BINARY_DIR}/${MODULE}_unity.cpp)
 		target_include_directories(${MODULE} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
+		if(COMPILE_FLAGS)
+			target_compile_options(${MODULE}_original PRIVATE ${COMPILE_FLAGS})
+		endif()
+
 		if(DEPENDS)
 			# using target_link_libraries for dependencies provides linking
 			#  as well as interface include and libraries
@@ -152,7 +156,7 @@ function(px4_add_module)
 	add_dependencies(${MODULE} uorb_headers)
 
 	if(NOT DYNAMIC)
-		target_link_libraries(${MODULE} PRIVATE prebuild_targets parameters_interface platforms__common px4_layer systemlib)
+		target_link_libraries(${MODULE} PRIVATE prebuild_targets parameters_interface px4_layer px4_platform systemlib)
 		set_property(GLOBAL APPEND PROPERTY PX4_MODULE_LIBRARIES ${MODULE})
 		set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
 	endif()

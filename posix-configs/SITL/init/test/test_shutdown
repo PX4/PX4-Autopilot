@@ -14,13 +14,9 @@ param set SYS_RESTART_TYPE 0
 
 dataman start
 
-simulator start -t
+simulator start
 tone_alarm start
-gyrosim start
-accelsim start
-barosim start
 gpssim start
-measairspeedsim start
 pwm_out_sim start
 
 sensors start
@@ -33,7 +29,7 @@ mc_pos_control start
 mc_att_control start
 fw_pos_control_l1 start
 fw_att_control start
-wind_estimator start
+airspeed_selector start
 
 #mixer load /dev/pwm_output0 ROMFS/sitl/mixers/standard_vtol_sitl.main.mix
 
@@ -60,7 +56,7 @@ mc_pos_control status
 mc_att_control status
 fw_pos_control_l1 status
 fw_att_control status
-wind_estimator status
+airspeed_selector status
 dataman status
 uorb status
 
@@ -76,18 +72,14 @@ navigator stop
 commander stop
 land_detector stop
 ekf2 stop
-wind_estimator stop
+airspeed_selector stop
 sensors stop
 
 sleep 2
 
 simulator stop
 tone_alarm stop
-gyrosim stop
-#accelsim stop
-#barosim stop
 gpssim stop
-measairspeedsim stop
 
 dataman stop
 #uorb stop

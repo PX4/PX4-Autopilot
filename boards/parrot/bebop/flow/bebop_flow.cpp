@@ -38,7 +38,9 @@
  * an optical flow computation.
  */
 
+#include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <px4_tasks.h>
 #include <px4_getopt.h>

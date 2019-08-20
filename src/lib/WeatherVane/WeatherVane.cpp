@@ -67,7 +67,7 @@ float WeatherVane::get_weathervane_yawrate()
 	float roll_sp = -asinf(body_z_sp(1));
 
 	float roll_exceeding_treshold = 0.0f;
-	float min_roll_rad = math::radians(_wv_min_roll.get());
+	float min_roll_rad = math::radians(_param_wv_roll_min.get());
 
 	if (roll_sp > min_roll_rad) {
 		roll_exceeding_treshold = roll_sp - min_roll_rad;
@@ -77,6 +77,6 @@ float WeatherVane::get_weathervane_yawrate()
 
 	}
 
-	return math::constrain(roll_exceeding_treshold * _wv_gain.get(), -math::radians(_wv_max_yaw_rate.get()),
-			       math::radians(_wv_max_yaw_rate.get()));
+	return math::constrain(roll_exceeding_treshold * _param_wv_gain.get(), -math::radians(_param_wv_yrate_max.get()),
+			       math::radians(_param_wv_yrate_max.get()));
 }

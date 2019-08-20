@@ -3,7 +3,6 @@
  ************************************************************************************/
 
 #include <px4_config.h>
-#include <px4_log.h>
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -19,7 +18,6 @@
 #include <chip.h>
 #include <stm32_gpio.h>
 #include "board_config.h"
-#include <systemlib/err.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -70,7 +68,7 @@ __EXPORT int stm32_spi_bus_initialize(void)
 	spi_expansion = stm32_spibus_initialize(PX4_SPI_BUS_EXPANSION);
 
 	if (!spi_expansion) {
-		PX4_ERR("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXPANSION);
+		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXPANSION);
 		return -ENODEV;
 	}
 
@@ -78,7 +76,7 @@ __EXPORT int stm32_spi_bus_initialize(void)
 	int ret = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi_expansion);
 
 	if (ret != OK) {
-		PX4_ERR("[boot] FAILED to bind SPI port 1 to the MMCSD driver\n");
+		syslog(LOG_ERR, "[boot] FAILED to bind SPI port 1 to the MMCSD driver\n");
 		return -ENODEV;
 	}
 
@@ -147,7 +145,7 @@ __EXPORT void board_spi_reset(int ms)
 
 	/* wait for the sensor rail to reach GND */
 	usleep(ms * 1000);
-	warnx("reset done, %d ms", ms);
+	syslog(LOG_DEBUG, "reset done, %d ms\n", ms);
 
 	/* wait a bit before starting SPI, different times didn't influence results */
 	usleep(100);
