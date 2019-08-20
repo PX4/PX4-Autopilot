@@ -131,10 +131,9 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithAnObstacle)
 		message.distances[i] = 101;
 	}
 
-	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
-
-
 	// WHEN: we publish the message and set the parameter and then run the setpoint modification
+	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
+	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
 	matrix::Vector2f modified_setpoint = original_setpoint;
 	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
 	orb_unadvertise(obstacle_distance_pub);
@@ -171,9 +170,9 @@ TEST_F(CollisionPreventionTest, noBias)
 		message.distances[i] = 700;
 	}
 
-	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
-
 	// WHEN: we publish the message and set the parameter and then run the setpoint modification
+	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
+	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
 	matrix::Vector2f modified_setpoint = original_setpoint;
 	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
 	orb_unadvertise(obstacle_distance_pub);
