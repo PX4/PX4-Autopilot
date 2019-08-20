@@ -233,7 +233,7 @@ TEST_F(CollisionPreventionTest, outsideFOV)
 
 		} else {
 			// THEN: outside the FOV the setpoint should be clamped to zero
-			EXPECT_EQ(modified_setpoint.norm(), 0.f);
+			EXPECT_FLOAT_EQ(modified_setpoint.norm(), 0.f);
 		}
 
 	}
