@@ -54,3 +54,5 @@ float32 acceptance_radius   # navigation acceptance_radius if we're doing waypoi
 
 float32 cruising_speed		# the generally desired cruising speed (not a hard constraint)
 float32 cruising_throttle	# the generally desired cruising throttle (not a hard constraint)
+
+bool allow_weather_vane   # VTOL: allow (in mission mode) the weather vane feature that turns the nose into the wind
