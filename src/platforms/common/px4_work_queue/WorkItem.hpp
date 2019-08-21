@@ -59,6 +59,14 @@ public:
 
 protected:
 
+	/**
+	 * Initialize WorkItem given a WorkQueue config. This call
+	 * can also be used to switch to a different WorkQueue.
+	 * NOTE: Caller is responsible for synchronization.
+	 *
+	 * @param config The WorkQueue configuration (see WorkQueueManager.hpp).
+	 * @return true if initialization was successful
+	 */
 	bool Init(const wq_config_t &config);
 	void Deinit();
 
