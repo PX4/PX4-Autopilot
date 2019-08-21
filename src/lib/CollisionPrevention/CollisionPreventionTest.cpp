@@ -39,16 +39,9 @@
 class CollisionPreventionTest : public ::testing::Test
 {
 public:
-	void SetUp() override
-	{
-		uORB::Manager::initialize();
-		param_init();
-	}
-
 	void TearDown() override
 	{
 		param_reset_all();
-		uORB::Manager::terminate();
 	}
 };
 
