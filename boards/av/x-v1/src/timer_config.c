@@ -74,7 +74,7 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 	{
 		.base = STM32_TIM8_BASE,
 		.clock_register = STM32_RCC_APB2ENR,
-		.clock_bit = RCC_APB2ENR_TIM10EN,
+		.clock_bit = RCC_APB2ENR_TIM8EN,
 		.clock_freq = STM32_APB2_TIM8_CLKIN,
 		.first_channel_index = 5,
 		.last_channel_index = 5,

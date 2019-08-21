@@ -48,13 +48,11 @@ namespace land_detector
 
 VtolLandDetector::VtolLandDetector()
 {
-	_paramHandle.maxAirSpeed = param_find("LNDFW_AIRSPD_MAX");
 }
 
 void VtolLandDetector::_update_topics()
 {
 	MulticopterLandDetector::_update_topics();
-
 	_airspeed_sub.update(&_airspeed);
 	_vehicle_status_sub.update(&_vehicle_status);
 }
@@ -92,20 +90,13 @@ bool VtolLandDetector::_get_landed_state()
 
 	// only consider airspeed if we have been in air before to avoid false
 	// detections in the case of wind on the ground
-	if (_was_in_air && (_airspeed_filtered > _params.maxAirSpeed)) {
+	if (_was_in_air && (_airspeed_filtered > _param_lndfw_airspd_max.get())) {
 		landed = false;
 	}
 
 	_was_in_air = !landed;
 
 	return landed;
-}
-
-void VtolLandDetector::_update_params()
-{
-	MulticopterLandDetector::_update_params();
-
-	param_get(_paramHandle.maxAirSpeed, &_params.maxAirSpeed);
 }
 
 } // namespace land_detector

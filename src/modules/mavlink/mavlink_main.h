@@ -71,11 +71,11 @@
 #include <px4_posix.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/uthash/utlist.h>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/radio_status.h>
 #include <uORB/topics/telemetry_status.h>
-#include <uORB/uORB.h>
 
 #include "mavlink_command_sender.h"
 #include "mavlink_messages.h"
@@ -83,6 +83,7 @@
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
 
+#define DEFAULT_BAUD_RATE       57600
 #define DEFAULT_REMOTE_PORT_UDP 14550 ///< GCS port per MAVLink spec
 #define DEFAULT_DEVICE_NAME     "/dev/ttyS1"
 #define HASH_PARAM              "_HASH_CHECK"
@@ -155,7 +156,7 @@ public:
 
 	static int		get_status_all_instances(bool show_streams_status);
 
-	static bool		instance_exists(const char *device_name, Mavlink *self);
+	static bool		serial_instance_exists(const char *device_name, Mavlink *self);
 
 	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
 
@@ -258,7 +259,9 @@ public:
 
 	bool			is_connected() { return (hrt_elapsed_time(&_tstatus.heartbeat_time) < 3_s); }
 
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
 	bool			broadcast_enabled() { return _param_mav_broadcast.get() == BROADCAST_MODE_ON; }
+#endif
 
 	/**
 	 * Set the boot complete flag on all instances
@@ -538,7 +541,8 @@ private:
 	bool			_first_heartbeat_sent{false};
 
 	orb_advert_t		_mavlink_log_pub{nullptr};
-	orb_advert_t		_telem_status_pub{nullptr};
+
+	uORB::PublicationQueued<telemetry_status_s>	_telem_status_pub{ORB_ID(telemetry_status)};
 
 	bool			_task_running{false};
 	static bool		_boot_complete;
@@ -659,7 +663,9 @@ private:
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamBool<px4::params::MAV_USEHILGPS>) _param_mav_usehilgps,
 		(ParamBool<px4::params::MAV_FWDEXTSP>) _param_mav_fwdextsp,
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
 		(ParamInt<px4::params::MAV_BROADCAST>) _param_mav_broadcast,
+#endif
 		(ParamBool<px4::params::MAV_HASH_CHK_EN>) _param_mav_hash_chk_en,
 		(ParamBool<px4::params::MAV_HB_FORW_EN>) _param_mav_hb_forw_en,
 		(ParamBool<px4::params::MAV_ODOM_LP>) _param_mav_odom_lp,
@@ -671,7 +677,9 @@ private:
 
 	void			mavlink_update_parameters();
 
-	int			mavlink_open_uart(int baudrate, const char *uart_name, bool force_flow_control);
+	int mavlink_open_uart(const int baudrate = DEFAULT_BAUD_RATE,
+			      const char *uart_name = DEFAULT_DEVICE_NAME,
+			      const bool force_flow_control = false);
 
 	static constexpr unsigned RADIO_BUFFER_CRITICAL_LOW_PERCENTAGE = 25;
 	static constexpr unsigned RADIO_BUFFER_LOW_PERCENTAGE = 35;
@@ -726,10 +734,14 @@ private:
 
 	void init_udp();
 
+	void set_channel();
+
+	void set_instance_id();
+
 	/**
 	 * Main mavlink task.
 	 */
-	int		task_main(int argc, char *argv[]);
+	int task_main(int argc, char *argv[]);
 
 	// Disallow copy construction and move assignment.
 	Mavlink(const Mavlink &) = delete;

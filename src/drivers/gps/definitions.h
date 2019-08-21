@@ -39,19 +39,16 @@
 
 #pragma once
 
+#include <drivers/drv_hrt.h>
 #include <px4_defines.h>
-#include <px4_time.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/satellite_info.h>
 
 #define GPS_INFO(...) PX4_INFO(__VA_ARGS__)
 #define GPS_WARN(...) PX4_WARN(__VA_ARGS__)
 #define GPS_ERR(...) PX4_ERR(__VA_ARGS__)
 
-#include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/satellite_info.h>
-
 #define gps_usleep px4_usleep
-
-#include <drivers/drv_hrt.h>
 
 /**
  * Get the current time in us. Function signature:

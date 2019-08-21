@@ -383,12 +383,11 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 		}
 
 		float ibatt = -1.0f; // no current sensor in simulation
-		const float minimum_percentage = 0.499f; // change this value if you want to simulate low battery reaction
 
 		/* Simulate the voltage of a linearly draining battery but stop at the minimum percentage */
 		float battery_percentage = 1.0f - (now_us - batt_sim_start) / discharge_interval_us;
 
-		battery_percentage = math::max(battery_percentage, minimum_percentage);
+		battery_percentage = math::max(battery_percentage, _battery_min_percentage.get() / 100.f);
 		float vbatt = math::gradual(battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(), _battery.full_cell_voltage());
 		vbatt *= _battery.cell_count();
 
@@ -409,17 +408,28 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 
 	uint64_t timestamp = hrt_absolute_time();
 
+	/* angular velocity */
+	vehicle_angular_velocity_s hil_angular_velocity{};
+	{
+		hil_angular_velocity.timestamp = timestamp;
+
+		hil_angular_velocity.xyz[0] = hil_state.rollspeed;
+		hil_angular_velocity.xyz[1] = hil_state.pitchspeed;
+		hil_angular_velocity.xyz[2] = hil_state.yawspeed;
+
+		// always publish ground truth attitude message
+		int hilstate_multi;
+		orb_publish_auto(ORB_ID(vehicle_angular_velocity_groundtruth), &_vehicle_angular_velocity_pub, &hil_angular_velocity,
+				 &hilstate_multi, ORB_PRIO_HIGH);
+	}
+
 	/* attitude */
-	struct vehicle_attitude_s hil_attitude = {};
+	vehicle_attitude_s hil_attitude{};
 	{
 		hil_attitude.timestamp = timestamp;
 
 		matrix::Quatf q(hil_state.attitude_quaternion);
 		q.copyTo(hil_attitude.q);
-
-		hil_attitude.rollspeed = hil_state.rollspeed;
-		hil_attitude.pitchspeed = hil_state.pitchspeed;
-		hil_attitude.yawspeed = hil_state.yawspeed;
 
 		// always publish ground truth attitude message
 		int hilstate_multi;
@@ -427,7 +437,7 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 	}
 
 	/* global position */
-	struct vehicle_global_position_s hil_gpos = {};
+	vehicle_global_position_s hil_gpos{};
 	{
 		hil_gpos.timestamp = timestamp;
 
@@ -1090,6 +1100,13 @@ int Simulator::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavl
 	dist.orientation = dist_mavlink->orientation;
 	dist.variance = dist_mavlink->covariance * 1e-4f; // cm^2 to m^2
 	dist.signal_quality = -1;
+
+	dist.h_fov = dist_mavlink->horizontal_fov;
+	dist.v_fov = dist_mavlink->vertical_fov;
+	dist.q[0] = dist_mavlink->quaternion[0];
+	dist.q[1] = dist_mavlink->quaternion[1];
+	dist.q[2] = dist_mavlink->quaternion[2];
+	dist.q[3] = dist_mavlink->quaternion[3];
 
 	int dist_multi;
 	orb_publish_auto(ORB_ID(distance_sensor), &_dist_pub, &dist, &dist_multi, ORB_PRIO_HIGH);

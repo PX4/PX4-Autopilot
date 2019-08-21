@@ -41,11 +41,17 @@
 
 using namespace matrix;
 
-bool FlightTaskManualAltitudeSmoothVel::activate()
+bool FlightTaskManualAltitudeSmoothVel::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	bool ret = FlightTaskManualAltitude::activate();
+	bool ret = FlightTaskManualAltitude::activate(last_setpoint);
 
-	_reset();
+	// Check if the previous FlightTask provided setpoints
+	checkSetpoints(last_setpoint);
+
+	_smoothing.reset(last_setpoint.acc_z, last_setpoint.vz, last_setpoint.z);
+
+	_initEkfResetCounters();
+	_resetPositionLock();
 
 	return ret;
 }
@@ -54,23 +60,35 @@ void FlightTaskManualAltitudeSmoothVel::reActivate()
 {
 	// The task is reacivated while the vehicle is on the ground. To detect takeoff in mc_pos_control_main properly
 	// using the generated jerk, reset the z derivatives to zero
-	_reset(true);
+	_smoothing.reset(0.f, 0.f, _position(2));
+
+	_initEkfResetCounters();
+	_resetPositionLock();
 }
 
-void FlightTaskManualAltitudeSmoothVel::_reset(bool force_vz_zero)
+void FlightTaskManualAltitudeSmoothVel::checkSetpoints(vehicle_local_position_setpoint_s &setpoints)
 {
-	// Set the z derivatives to zero
-	if (force_vz_zero) {
-		_smoothing.reset(0.f, 0.f, _position(2));
+	// If the position setpoint is unknown, set to the current postion
+	if (!PX4_ISFINITE(setpoints.z)) { setpoints.z = _position(2); }
 
-	} else {
-		// TODO: get current accel
-		_smoothing.reset(0.f, _velocity(2), _position(2));
-	}
+	// If the velocity setpoint is unknown, set to the current velocity
+	if (!PX4_ISFINITE(setpoints.vz)) { setpoints.vz = _velocity(2); }
 
+	// No acceleration estimate available, set to zero if the setpoint is NAN
+	if (!PX4_ISFINITE(setpoints.acc_z)) { setpoints.acc_z = 0.f; }
+}
+
+void FlightTaskManualAltitudeSmoothVel::_resetPositionLock()
+{
 	// Always start unlocked
 	_position_lock_z_active = false;
 	_position_setpoint_z_locked = NAN;
+}
+
+void FlightTaskManualAltitudeSmoothVel::_initEkfResetCounters()
+{
+	_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
+	_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
 }
 
 void FlightTaskManualAltitudeSmoothVel::_checkEkfResetCounters()
@@ -112,7 +130,7 @@ void FlightTaskManualAltitudeSmoothVel::_updateSetpoints()
 	 * is used to set current velocity of the trajectory.
 	 */
 
-	if (fabsf(_sticks_expo(2)) > FLT_EPSILON) {
+	if (fabsf(_velocity_setpoint(2)) > FLT_EPSILON) {
 		if (_position_lock_z_active) {
 			_smoothing.setCurrentVelocity(_velocity_setpoint_feedback(
 							      2)); // Start the trajectory at the current velocity setpoint
@@ -141,7 +159,7 @@ void FlightTaskManualAltitudeSmoothVel::_updateSetpoints()
 
 	if (fabsf(_vel_sp_smooth) < 0.1f &&
 	    fabsf(_acceleration_setpoint(2)) < .2f &&
-	    fabsf(_sticks_expo(2)) <= FLT_EPSILON) {
+	    fabsf(_velocity_setpoint(2)) <= FLT_EPSILON) {
 		_position_lock_z_active = true;
 	}
 

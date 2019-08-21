@@ -37,48 +37,21 @@
  * magnetometer connected via SPI.
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <ecl/geo/geo.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-
-
-#include <px4_log.h>
-
-#include <perf/perf_counter.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/clock.h>
-
-#include <drivers/drv_hrt.h>
+#include <drivers/device/integrator.h>
+#include <drivers/device/ringbuffer.h>
 #include <drivers/device/spi.h>
 #include <drivers/drv_accel.h>
+#include <ecl/geo/geo.h>
+#include <lib/conversion/rotation.h>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <perf/perf_counter.h>
+#include <px4_getopt.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <systemlib/err.h>
+
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 #  include <drivers/drv_mag.h>
 #endif
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
-
-#include <board_config.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <lib/conversion/rotation.h>
-#include <px4_getopt.h>
-#include <systemlib/err.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 /* SPI protocol address bits */
 #define DIR_READ(a)                     ((a) & 0x7f)

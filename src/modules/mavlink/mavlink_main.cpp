@@ -49,8 +49,9 @@
 #endif
 
 #include <lib/ecl/geo/geo.h>
-#include <mathlib/mathlib.h>
-#include <version/version.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/version/version.h>
+#include <uORB/PublicationQueued.hpp>
 
 #include "mavlink_receiver.h"
 #include "mavlink_main.h"
@@ -163,50 +164,6 @@ bool Mavlink::_boot_complete = false;
 Mavlink::Mavlink() :
 	ModuleParams(nullptr)
 {
-	_instance_id = Mavlink::instance_count();
-
-	/* set channel according to instance id */
-	switch (_instance_id) {
-	case 0:
-		_channel = MAVLINK_COMM_0;
-		break;
-
-	case 1:
-		_channel = MAVLINK_COMM_1;
-		break;
-
-	case 2:
-		_channel = MAVLINK_COMM_2;
-		break;
-
-	case 3:
-		_channel = MAVLINK_COMM_3;
-		break;
-#ifdef MAVLINK_COMM_4
-
-	case 4:
-		_channel = MAVLINK_COMM_4;
-		break;
-#endif
-#ifdef MAVLINK_COMM_5
-
-	case 5:
-		_channel = MAVLINK_COMM_5;
-		break;
-#endif
-#ifdef MAVLINK_COMM_6
-
-	case 6:
-		_channel = MAVLINK_COMM_6;
-		break;
-#endif
-
-	default:
-		PX4_WARN("instance ID is out of range");
-		px4_task_exit(1);
-		break;
-	}
-
 	// initialise parameter cache
 	mavlink_update_parameters();
 
@@ -267,6 +224,58 @@ Mavlink::mavlink_update_parameters()
 		_param_mav_type.commit_no_notification();
 		PX4_ERR("MAV_TYPE parameter invalid, resetting to 0.");
 	}
+}
+
+void
+Mavlink::set_channel()
+{
+	/* set channel according to instance id */
+	switch (_instance_id) {
+	case 0:
+		_channel = MAVLINK_COMM_0;
+		break;
+
+	case 1:
+		_channel = MAVLINK_COMM_1;
+		break;
+
+	case 2:
+		_channel = MAVLINK_COMM_2;
+		break;
+
+	case 3:
+		_channel = MAVLINK_COMM_3;
+		break;
+#ifdef MAVLINK_COMM_4
+
+	case 4:
+		_channel = MAVLINK_COMM_4;
+		break;
+#endif
+#ifdef MAVLINK_COMM_5
+
+	case 5:
+		_channel = MAVLINK_COMM_5;
+		break;
+#endif
+#ifdef MAVLINK_COMM_6
+
+	case 6:
+		_channel = MAVLINK_COMM_6;
+		break;
+#endif
+
+	default:
+		PX4_WARN("instance ID is out of range");
+		px4_task_exit(1);
+		break;
+	}
+}
+
+void
+Mavlink::set_instance_id()
+{
+	_instance_id = Mavlink::instance_count();
 }
 
 void
@@ -410,14 +419,14 @@ Mavlink::get_status_all_instances(bool show_streams_status)
 }
 
 bool
-Mavlink::instance_exists(const char *device_name, Mavlink *self)
+Mavlink::serial_instance_exists(const char *device_name, Mavlink *self)
 {
 	Mavlink *inst = ::_mavlink_instances;
 
 	while (inst != nullptr) {
 
-		/* don't compare with itself */
-		if (inst != self && !strcmp(device_name, inst->_device_name)) {
+		/* don't compare with itself and with non serial instances*/
+		if ((inst != self) && (inst->get_protocol() == SERIAL) && !strcmp(device_name, inst->_device_name)) {
 			return true;
 		}
 
@@ -441,12 +450,12 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 			// might be nullptr if message is unknown
 			if (meta) {
 				// Extract target system and target component if set
-				if (meta->target_system_ofs != 0) {
-					target_system_id = ((uint8_t *)msg)[meta->target_system_ofs];
+				if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_SYSTEM) {
+					target_system_id = (_MAV_PAYLOAD(msg))[meta->target_system_ofs];
 				}
 
-				if (meta->target_component_ofs != 0) {
-					target_component_id = ((uint8_t *)msg)[meta->target_component_ofs];
+				if (meta->flags & MAV_MSG_ENTRY_FLAG_HAVE_TARGET_COMPONENT) {
+					target_component_id = (_MAV_PAYLOAD(msg))[meta->target_component_ofs];
 				}
 			}
 
@@ -485,7 +494,7 @@ Mavlink::get_uart_fd(unsigned index)
 }
 
 int
-Mavlink::mavlink_open_uart(int baud, const char *uart_name, bool force_flow_control)
+Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const bool force_flow_control)
 {
 #ifndef B460800
 #define B460800 460800
@@ -603,7 +612,9 @@ Mavlink::mavlink_open_uart(int baud, const char *uart_name, bool force_flow_cont
 				return -1;
 			}
 
-			px4_usleep(100000);
+			int errcode = errno;
+			/* ENOTCONN means that the USB device is not yet connected */
+			px4_usleep(errcode == ENOTCONN ? 1000000 :  100000);
 			_uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY);
 		}
 	}
@@ -1620,6 +1631,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("LOCAL_POSITION_NED", 1.0f);
 		configure_stream_local("NAMED_VALUE_FLOAT", 1.0f);
 		configure_stream_local("NAV_CONTROLLER_OUTPUT", 1.5f);
+		configure_stream_local("OBSTACLE_DISTANCE", 5.0f);
 		configure_stream_local("ODOMETRY", 3.0f);
 		configure_stream_local("OPTICAL_FLOW_RAD", 1.0f);
 		configure_stream_local("ORBIT_EXECUTION_STATUS", 5.0f);
@@ -1633,6 +1645,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
 		configure_stream_local("VFR_HUD", 4.0f);
 		configure_stream_local("WIND_COV", 1.0f);
+		configure_stream_local("BATTERY_STATUS", 0.5f);
 		break;
 
 	case MAVLINK_MODE_ONBOARD:
@@ -1675,6 +1688,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
 		configure_stream_local("VFR_HUD", 10.0f);
 		configure_stream_local("WIND_COV", 10.0f);
+		configure_stream_local("BATTERY_STATUS", 0.5f);
 		break;
 
 	case MAVLINK_MODE_EXTVISION:
@@ -1716,6 +1730,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
 		configure_stream_local("VFR_HUD", 4.0f);
 		configure_stream_local("WIND_COV", 1.0f);
+		configure_stream_local("BATTERY_STATUS", 0.5f);
 		break;
 
 
@@ -1734,6 +1749,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("SYSTEM_TIME", 1.0f);
 		configure_stream_local("VFR_HUD", 25.0f);
 		configure_stream_local("WIND_COV", 2.0f);
+		configure_stream_local("BATTERY_STATUS", 0.5f);
 		break;
 
 	case MAVLINK_MODE_MAGIC:
@@ -1786,6 +1802,7 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("UTM_GLOBAL_POSITION", 1.0f);
 		configure_stream_local("VFR_HUD", 20.0f);
 		configure_stream_local("WIND_COV", 10.0f);
+		configure_stream_local("BATTERY_STATUS", 0.5f);
 		break;
 
 	case MAVLINK_MODE_IRIDIUM:
@@ -2058,7 +2075,7 @@ Mavlink::task_main(int argc, char *argv[])
 	}
 
 	if (get_protocol() == SERIAL) {
-		if (Mavlink::instance_exists(_device_name, this)) {
+		if (Mavlink::serial_instance_exists(_device_name, this)) {
 			PX4_ERR("%s already running", _device_name);
 			return PX4_ERROR;
 		}
@@ -2121,7 +2138,7 @@ Mavlink::task_main(int argc, char *argv[])
 	cmd_sub->subscribe_from_beginning(true);
 
 	/* command ack */
-	orb_advert_t command_ack_pub = nullptr;
+	uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 	MavlinkOrbSubscription *mavlink_log_sub = add_orb_subscription(ORB_ID(mavlink_log));
 
@@ -2166,6 +2183,10 @@ Mavlink::task_main(int argc, char *argv[])
 	if (_main_loop_delay > MAVLINK_MAX_INTERVAL) {
 		_main_loop_delay = MAVLINK_MAX_INTERVAL;
 	}
+
+	set_instance_id();
+
+	set_channel();
 
 	/* now the instance is fully initialized and we can bump the instance count */
 	LL_APPEND(_mavlink_instances, this);
@@ -2258,7 +2279,7 @@ Mavlink::task_main(int argc, char *argv[])
 				}
 
 				// send positive command ack
-				vehicle_command_ack_s command_ack = {};
+				vehicle_command_ack_s command_ack{};
 				command_ack.timestamp = vehicle_cmd.timestamp;
 				command_ack.command = vehicle_cmd.command;
 				command_ack.result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
@@ -2266,13 +2287,7 @@ Mavlink::task_main(int argc, char *argv[])
 				command_ack.target_system = vehicle_cmd.source_system;
 				command_ack.target_component = vehicle_cmd.source_component;
 
-				if (command_ack_pub != nullptr) {
-					orb_publish(ORB_ID(vehicle_command_ack), command_ack_pub, &command_ack);
-
-				} else {
-					command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-									      vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-				}
+				command_ack_pub.publish(command_ack);
 			}
 		}
 
@@ -2537,12 +2552,7 @@ void Mavlink::publish_telemetry_status()
 
 	_tstatus.timestamp = hrt_absolute_time();
 
-	if (_telem_status_pub == nullptr) {
-		_telem_status_pub = orb_advertise_queue(ORB_ID(telemetry_status), &_tstatus, 3);
-
-	} else {
-		orb_publish(ORB_ID(telemetry_status), _telem_status_pub, &_tstatus);
-	}
+	_telem_status_pub.publish(_tstatus);
 }
 
 void Mavlink::check_radio_config()

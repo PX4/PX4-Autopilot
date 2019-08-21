@@ -116,3 +116,21 @@ PARAM_DEFINE_FLOAT(RTL_MIN_DIST, 5.0f);
  * @group Return Mode
  */
 PARAM_DEFINE_INT32(RTL_TYPE, 0);
+
+/**
+ * Half-angle of the RTL cone.
+ *
+ * Defines the half-angle of the cone which defines the vehicle RTL behavior.
+ *
+ * @unit degrees
+ * @min 0
+ * @max 90
+ * @value 0 No cone, always climb to RTL_RETURN_ALT above home.
+ * @value 25 25 degrees half cone angle.
+ * @value 45 45 degrees half cone angle.
+ * @value 65 65 degrees half cone angle.
+ * @value 80 80 degrees half cone angle.
+ * @value 90 Only climb to at least RTL_DESCEND_ALT above home.
+ * @group Return Mode
+ */
+PARAM_DEFINE_INT32(RTL_CONE_ANG, 0);
