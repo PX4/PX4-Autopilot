@@ -2333,18 +2333,35 @@ Commander::run()
 			status.timestamp = hrt_absolute_time();
 			_status_pub.publish(status);
 
-			/* set prearmed state if safety is off, or safety is not present and 5 seconds passed */
-			if (safety.safety_switch_available) {
+			switch ((PrearmedMode)_param_com_prearm_mode.get()) {
+			case PrearmedMode::DISABLED:
+				/* skip prearmed state  */
+				armed.prearmed = false;
+				break;
 
-				/* safety is off, go into prearmed */
-				armed.prearmed = safety.safety_off;
-
-			} else {
+			case PrearmedMode::ALWAYS:
 				/* safety is not present, go into prearmed
-				 * (all output drivers should be started / unlocked last in the boot process
-				 * when the rest of the system is fully initialized)
-				 */
+				* (all output drivers should be started / unlocked last in the boot process
+				* when the rest of the system is fully initialized)
+				*/
 				armed.prearmed = (hrt_elapsed_time(&commander_boot_timestamp) > 5_s);
+				break;
+
+			case PrearmedMode::SAFETY_BUTTON:
+				if (safety.safety_switch_available) {
+
+					/* safety is off, go into prearmed */
+					armed.prearmed = safety.safety_off;
+
+				} else {
+					/* safety is not present, do not go into prearmed */
+					armed.prearmed = false;
+				}
+				break;
+
+			default:
+				armed.prearmed = false;
+				break;
 			}
 
 			armed.timestamp = hrt_absolute_time();
