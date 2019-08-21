@@ -242,7 +242,7 @@ VehicleAngularVelocity::Run()
 			rates -= _bias;
 
 			vehicle_angular_velocity_s angular_velocity;
-			angular_velocity.timestamp_sample = sensor_data.timestamp;
+			angular_velocity.timestamp_sample = sensor_data.timestamp_sample;
 			rates.copyTo(angular_velocity.xyz);
 			angular_velocity.timestamp = hrt_absolute_time();
 

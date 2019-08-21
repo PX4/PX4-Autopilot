@@ -215,11 +215,6 @@ else
 	#
 	tone_alarm start
 
-	if param compare SYS_FMU_TASK 1
-	then
-		set FMU_ARGS "-t"
-	fi
-
 	#
 	# Set parameters and env variables for selected AUTOSTART.
 	#
