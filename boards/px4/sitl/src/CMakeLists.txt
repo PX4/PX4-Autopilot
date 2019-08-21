@@ -36,3 +36,5 @@ add_library(drivers_board
 	sitl_led.c
 	sitl_board_shutdown.c
 )
+
+add_dependencies(drivers_board prebuild_targets)
