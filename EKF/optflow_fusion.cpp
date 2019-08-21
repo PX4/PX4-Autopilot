@@ -68,8 +68,7 @@ void Ekf::fuseOptFlow()
 	float Kfusion[24][2] = {}; // Optical flow Kalman gains
 
 	// get rotation matrix from earth to body
-	Dcmf earth_to_body(_state.quat_nominal);
-	earth_to_body = earth_to_body.transpose();
+	Dcmf earth_to_body = quat_to_invrotmat(_state.quat_nominal);
 
 	// calculate the sensor position relative to the IMU
 	Vector3f pos_offset_body = _params.flow_pos_body - _params.imu_pos_body;

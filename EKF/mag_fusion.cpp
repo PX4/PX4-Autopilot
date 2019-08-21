@@ -73,8 +73,7 @@ void Ekf::fuseMag()
 	SH_MAG[8] = 2.0f*magE*q3;
 
 	// rotate magnetometer earth field state into body frame
-	Dcmf R_to_body(_state.quat_nominal);
-	R_to_body = R_to_body.transpose();
+	Dcmf R_to_body = quat_to_invrotmat(_state.quat_nominal);
 
 	Vector3f mag_I_rot = R_to_body * _state.mag_I;
 

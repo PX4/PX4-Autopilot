@@ -82,8 +82,7 @@ void Ekf::fuseDrag()
 	rel_wind(0) = vn - vwn;
 	rel_wind(1) = ve - vwe;
 	rel_wind(2) = vd;
-	Dcmf earth_to_body(_state.quat_nominal);
-	earth_to_body = earth_to_body.transpose();
+	Dcmf earth_to_body = quat_to_invrotmat(_state.quat_nominal);
 	rel_wind = earth_to_body * rel_wind;
 
 	// perform sequential fusion of XY specific forces
