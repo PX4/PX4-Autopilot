@@ -82,6 +82,7 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_node_mutex(),
 	_esc_controller(_node),
 	_hardpoint_controller(_node),
+	_servo_controller(_node),
 	_time_sync_master(_node),
 	_time_sync_slave(_node),
 	_node_status_monitor(_node),
@@ -649,6 +650,8 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		return ret;
 	}
 
+	ret = _servo_controller.init();
+
 	// Sensor bridges
 	IUavcanSensorBridge::make_all(_node, _sensor_bridges);
 
@@ -917,6 +920,7 @@ int UavcanNode::run()
 				// Do mixing
 				_outputs.noutputs = _mixers->mix(&_outputs.output[0], num_outputs_max);
 
+				//PX4_INFO("(controls_updated && (_mixers != nullptr");
 				new_output = true;
 			}
 		}
@@ -946,8 +950,26 @@ int UavcanNode::run()
 			}
 
 			// Output to the bus
+			// TODO figure out how to disable esc controller commands correctly
 			_esc_controller.update_outputs(_outputs.output, _outputs.noutputs);
 			_outputs.timestamp = hrt_absolute_time();
+			        if (_actuator_direct.nvalues >= 8)
+				{
+					for (uint8_t i = 0; i < 4; i++)
+					{
+						_servo_controller.update_outputs(i,_actuator_direct.values[i+4]);
+					}
+				}
+
+
+				if (_outputs.noutputs >= 8)
+				{
+					for (uint8_t i = 0; i < 4; i++)
+					{
+						_servo_controller.update_outputs(i,_outputs.output[i+4]);
+										//PX4_INFO("Servo Actuator output %d", _outputs.output[i]);
+					}
+				}
 
 			// use first valid timestamp_sample for latency tracking
 			for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
@@ -1033,6 +1055,7 @@ UavcanNode::arm_actuators(bool arm)
 {
 	_is_armed = arm;
 	_esc_controller.arm_all_escs(arm);
+	_servo_controller.arm_all_servos(arm);
 	return OK;
 }
 
