@@ -215,11 +215,6 @@ else
 	#
 	tone_alarm start
 
-	if param compare SYS_FMU_TASK 1
-	then
-		set FMU_ARGS "-t"
-	fi
-
 	#
 	# Set parameters and env variables for selected AUTOSTART.
 	#
@@ -321,7 +316,7 @@ else
 	then
 		set OUTPUT_MODE hil
 		sensors start -h
-		commander start --hil
+		commander start -h
 		# disable GPS
 		param set GPS_1_CONFIG 0
 
@@ -436,14 +431,6 @@ else
 	navigator start
 
 	#
-	# Start the standalone wind estimator.
-	#
-	if param compare WEST_EN 1
-	then
-		wind_estimator start
-	fi
-
-	#
 	# Start a thermal calibration if required.
 	#
 	sh /etc/init.d/rc.thermal_cal
@@ -457,7 +444,10 @@ else
 	fi
 
 	# Check for flow sensor, launched as a background task to scan
-	px4flow start &
+	if param compare SENS_EN_PX4FLOW 1
+	then
+		px4flow start &
+	fi
 
 	# Blacksheep telemetry
 	if param greater TEL_BST_EN 0
@@ -490,6 +480,13 @@ else
 	#
 	sh /etc/init.d/rc.logging
 
+	#
+	# Set additional parameters and env variables for selected AUTOSTART.
+	#
+	if ! param compare SYS_AUTOSTART 0
+	then
+		sh /etc/init.d/rc.autostart.post
+	fi
 
 	if ! param compare SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
 	then

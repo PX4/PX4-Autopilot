@@ -39,12 +39,9 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
+#include <matrix/math.hpp>
+
 #include "FixedwingLandDetector.h"
-
-#include <cmath>
-
-#include <px4_config.h>
-#include <px4_defines.h>
 
 namespace land_detector
 {
@@ -59,7 +56,7 @@ FixedwingLandDetector::FixedwingLandDetector()
 void FixedwingLandDetector::_update_topics()
 {
 	_airspeed_sub.update(&_airspeed);
-	_sensor_bias_sub.update(&_sensor_bias);
+	_vehicle_acceleration_sub.update(&_vehicle_acceleration);
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
 }
 
@@ -89,7 +86,7 @@ bool FixedwingLandDetector::_get_landed_state()
 
 	bool landDetected = false;
 
-	if (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 500 * 1000) {
+	if (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 500_ms) {
 
 		// Horizontal velocity complimentary filter.
 		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_vehicle_local_position.vx * _vehicle_local_position.vx +
@@ -110,13 +107,13 @@ bool FixedwingLandDetector::_get_landed_state()
 
 		// A leaking lowpass prevents biases from building up, but
 		// gives a mostly correct response for short impulses.
-		const float acc_hor = sqrtf(_sensor_bias.accel_x * _sensor_bias.accel_x +
-					    _sensor_bias.accel_y * _sensor_bias.accel_y);
+		const matrix::Vector3f accel{_vehicle_acceleration.xyz};
+		const float acc_hor = sqrtf(accel(0) * accel(0) + accel(1) * accel(1));
 
-		_accel_horz_lp = _accel_horz_lp * 0.8f + acc_hor * 0.18f;
+		_xy_accel_filtered = _xy_accel_filtered * 0.8f + acc_hor * 0.18f;
 
 		// crude land detector for fixedwing
-		landDetected = _accel_horz_lp           < _param_lndfw_xyaccel_max.get()
+		landDetected = _xy_accel_filtered       < _param_lndfw_xyaccel_max.get()
 			       && _airspeed_filtered    < _param_lndfw_airspd.get()
 			       && _velocity_xy_filtered < _param_lndfw_vel_xy_max.get()
 			       && _velocity_z_filtered  < _param_lndfw_vel_z_max.get();

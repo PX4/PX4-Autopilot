@@ -58,7 +58,8 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
-#include <uORB/topics/sensor_bias.h>
+#include <uORB/topics/sensor_combined.h>
+#include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -66,12 +67,14 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/uORB.h>
+#include <platforms/px4_module.h>
+#include <platforms/px4_module_params.h>
 
 using matrix::Dcmf;
 
 using uORB::SubscriptionData;
 
-class RoverPositionControl
+class RoverPositionControl : public ModuleBase<RoverPositionControl>, public ModuleParams
 {
 public:
 	RoverPositionControl();
@@ -79,26 +82,23 @@ public:
 	RoverPositionControl(const RoverPositionControl &) = delete;
 	RoverPositionControl operator=(const RoverPositionControl &other) = delete;
 
-	/**
-	 * Start the sensors task.
-	 *
-	 * @return	OK on success.
-	 */
-	static int	start();
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	/**
-	 * Task status
-	 *
-	 * @return	true if the mainloop is running
-	 */
-	bool		task_running() { return _task_running; }
+	/** @see ModuleBase */
+	static RoverPositionControl *instantiate(int argc, char *argv[]);
+
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::run() */
+	void run() override;
 
 private:
 	orb_advert_t	_pos_ctrl_status_pub{nullptr};		/**< navigation capabilities publication */
 	orb_advert_t    _actuator_controls_pub{nullptr};	/**< actuator controls publication */
-
-	bool		_task_should_exit{false};		/**< if true, sensor task should exit */
-	bool		_task_running{false};			/**< if true, task is running in its mainloop */
 
 	int		_control_mode_sub{-1};		/**< control mode subscription */
 	int		_global_pos_sub{-1};
@@ -106,6 +106,7 @@ private:
 	int		_params_sub{-1};			/**< notification of parameter updates */
 	int		_pos_sp_triplet_sub{-1};
 	int     _vehicle_attitude_sub{-1};
+	int		_sensor_combined_sub{-1};
 
 	manual_control_setpoint_s		_manual{};			    /**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
@@ -113,8 +114,9 @@ private:
 	vehicle_global_position_s		_global_pos{};			/**< global vehicle position */
 	actuator_controls_s			    _act_controls{};		/**< direct control of actuators */
 	vehicle_attitude_s              _vehicle_att{};
+	sensor_combined_s				_sensor_combined{};
 
-	SubscriptionData<sensor_bias_s>	_sub_sensors;
+	SubscriptionData<vehicle_acceleration_s>		_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
@@ -136,61 +138,33 @@ private:
 		UGV_POSCTRL_MODE_OTHER
 	} _control_mode_current{UGV_POSCTRL_MODE_OTHER};			///< used to check the mode in the last control loop iteration. Use to check if the last iteration was in the same mode.
 
-	struct {
-		float l1_period;
-		float l1_damping;
-		float l1_distance;
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::GND_L1_PERIOD>) _param_l1_period,
+		(ParamFloat<px4::params::GND_L1_DAMPING>) _param_l1_damping,
+		(ParamFloat<px4::params::GND_L1_DIST>) _param_l1_distance,
 
-		float gndspeed_trim;
-		float gndspeed_max;
+		(ParamFloat<px4::params::GND_SPEED_TRIM>) _param_gndspeed_trim,
+		(ParamFloat<px4::params::GND_SPEED_MAX>) _param_gndspeed_max,
 
-		int32_t speed_control_mode;
-		float speed_p;
-		float speed_i;
-		float speed_d;
-		float speed_imax;
-		float throttle_speed_scaler;
+		(ParamInt<px4::params::GND_SP_CTRL_MODE>) _param_speed_control_mode,
+		(ParamFloat<px4::params::GND_SPEED_P>) _param_speed_p,
+		(ParamFloat<px4::params::GND_SPEED_I>) _param_speed_i,
+		(ParamFloat<px4::params::GND_SPEED_D>) _param_speed_d,
+		(ParamFloat<px4::params::GND_SPEED_IMAX>) _param_speed_imax,
+		(ParamFloat<px4::params::GND_SPEED_THR_SC>) _param_throttle_speed_scaler,
 
-		float throttle_min;
-		float throttle_max;
-		float throttle_cruise;
-		float throttle_slew_max;
+		(ParamFloat<px4::params::GND_THR_MIN>) _param_throttle_min,
+		(ParamFloat<px4::params::GND_THR_MAX>) _param_throttle_max,
+		(ParamFloat<px4::params::GND_THR_CRUISE>) _param_throttle_cruise,
 
-		float wheel_base;
-		float max_turn_angle;
-
-	} _parameters{};			/**< local copies of interesting parameters */
-
-	struct {
-		param_t l1_period;
-		param_t l1_damping;
-		param_t l1_distance;
-
-		param_t gndspeed_trim;
-		param_t gndspeed_max;
-
-		param_t speed_control_mode;
-
-		param_t speed_p;
-		param_t speed_i;
-		param_t speed_d;
-		param_t speed_imax;
-		param_t throttle_speed_scaler;
-
-		param_t throttle_min;
-		param_t throttle_max;
-		param_t throttle_cruise;
-		param_t throttle_slew_max;
-
-		param_t wheel_base;
-		param_t max_turn_angle;
-	} _parameter_handles{};		/**< handles for interesting parameters */
-
+		(ParamFloat<px4::params::GND_WHEEL_BASE>) _param_wheel_base,
+		(ParamFloat<px4::params::GND_MAX_ANG>) _param_max_turn_angle
+	)
 
 	/**
 	 * Update our local parameter cache.
 	 */
-	int		parameters_update();
+	void parameters_update(int parameter_update_sub, bool force = false);
 
 	void		manual_control_setpoint_poll();
 	void		position_setpoint_triplet_poll();
@@ -202,15 +176,5 @@ private:
 	 */
 	bool		control_position(const matrix::Vector2f &global_pos, const matrix::Vector3f &ground_speed,
 					 const position_setpoint_triplet_s &_pos_sp_triplet);
-
-	/**
-	 * Shim for calling task_main from task_create.
-	 */
-	static int	task_main_trampoline(int argc, char *argv[]);
-
-	/**
-	 * Main sensor collection task.
-	 */
-	void		task_main();
 
 };

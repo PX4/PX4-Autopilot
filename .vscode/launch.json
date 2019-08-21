@@ -202,7 +202,7 @@
             ]
         },
         {
-            "name": "Debug px4_fmu-v5 (jlink)",
+            "name": "Debug px4_fmu-v5/v5x (jlink)",
             "device": "STM32F765VI",
             "svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/STM32F7x5.svd",
             "executable": "${command:cmake.launchTargetPath}",
@@ -220,7 +220,7 @@
             ]
         },
         {
-            "name": "Debug av_x-v1 (jlink)",
+            "name": "Debug av_x-v1/mro_ctrl-zero-f7 (jlink)",
             "device": "STM32F777NI",
             "svdFile": "${workspaceRoot}/../cmsis-svd/data/STMicro/STM32F7x7.svd",
             "executable": "${command:cmake.launchTargetPath}",

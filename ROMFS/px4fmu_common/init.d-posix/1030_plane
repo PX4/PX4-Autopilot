@@ -37,7 +37,6 @@ then
 
 	param set RWTO_TKOFF 1
 
-	param set WEST_EN 1
 fi
 
 set MIXER_FILE etc/mixers-sitl/plane_sitl.main.mix

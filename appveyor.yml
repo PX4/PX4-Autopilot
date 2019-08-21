@@ -1,7 +1,6 @@
 # Build version
 version: "{build}"
-# shallow clone the main repo
-clone_depth: 1
+# do not shallow clone because we want to infer the version from the last tag
 
 branches:
   only:

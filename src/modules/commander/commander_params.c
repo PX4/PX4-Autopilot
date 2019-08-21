@@ -262,18 +262,29 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
  * A non-zero, positive value specifies the time-out period in seconds after which the vehicle will be
  * automatically disarmed in case a landing situation has been detected during this period.
  *
- * The vehicle will also auto-disarm right after arming if it has not even flown, however the time
- * will always be 10 seconds such that the pilot has enough time to take off.
- *
- * A negative value means that automatic disarming triggered by landing detection is disabled.
+ * A zero or negative value means that automatic disarming triggered by landing detection is disabled.
  *
  * @group Commander
- * @min -1
- * @max 20
  * @unit s
  * @decimal 2
  */
+
 PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
+
+/**
+ * Time-out for auto disarm if too slow to takeoff
+ *
+ * A non-zero, positive value specifies the time after arming, in seconds, within which the
+ * vehicle must take off (after which it will automatically disarm).
+ *
+ * A zero or negative value means that automatic disarming triggered by a pre-takeoff timeout is disabled.
+ *
+ * @group Commander
+ * @unit s
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT,  10.0f);
+
 
 /**
  * Allow arming without GPS
@@ -600,23 +611,27 @@ PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.25f);
 
 /**
  * Maximum magnetic field inconsistency between units that will allow arming
+ * Set -1 to disable the check.
  *
  * @group Commander
- * @unit Gauss
- * @min 0.05
- * @max 0.5
- * @decimal 2
- * @increment 0.05
+ * @unit deg
+ * @min 3
+ * @max 180
  */
-PARAM_DEFINE_FLOAT(COM_ARM_MAG, 0.15f);
+PARAM_DEFINE_INT32(COM_ARM_MAG_ANG, 30);
 
 /**
  * Enable RC stick override of auto modes
  *
+ * When an auto mode is active (except a critical battery reaction) moving the RC sticks
+ * gives control back to the pilot in manual position mode immediately.
+ *
+ * Only has an effect on multicopters and VTOLS in multicopter mode.
+ *
  * @boolean
  * @group Commander
  */
-PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 0);
+PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
 
 /**
  * Require valid mission to arm
@@ -922,3 +937,13 @@ PARAM_DEFINE_INT32(COM_ASPD_FS_DLY, 0);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLT_PROFILE, 0);
+
+/**
+ * Require all the ESCs to be detected to arm.
+ *
+ * This param is specific for ESCs reporting status. Normal ESCs configurations are not affected by the change of this param.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_ARM_CHK_ESCS, 1);

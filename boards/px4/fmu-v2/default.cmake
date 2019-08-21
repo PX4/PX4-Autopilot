@@ -86,7 +86,7 @@ px4_add_board(
 		sensors
 		vmount
 		vtol_att_control
-		#wind_estimator
+		#airspeed_selector
 
 	SYSTEMCMDS
 		bl_update
@@ -119,7 +119,6 @@ px4_add_board(
 		#hello
 		#hwtest # Hardware test
 		#matlab_csv_serial
-		#position_estimator_inav
 		#px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		#rover_steering_control # Rover example app

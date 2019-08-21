@@ -83,6 +83,7 @@ add_custom_command(
 		${romfs_gen_root_dir}/init.d/rcS
 		${romfs_gen_root_dir}/init.d/rc.serial
 		${romfs_gen_root_dir}/init.d/rc.autostart
+		${romfs_gen_root_dir}/init.d/rc.autostart.post
 		romfs_copy.stamp
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}
 	# TODO: we should only copy the files in ${romfs_copy_files}
@@ -107,6 +108,11 @@ add_custom_command(
 		${romfs_cmake_files}
 		${romfs_copy_files}
 		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/markdownout.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/rcout.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/srcparser.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/srcscanner.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/xmlout.py
 		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 	COMMENT "ROMFS: copying, generating airframes"
 	)

@@ -39,7 +39,7 @@
  */
 
 #include "input_mavlink.h"
-#include <uORB/uORB.h>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/vehicle_roi.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/position_setpoint_triplet.h>
@@ -333,7 +333,7 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 
 void InputMavlinkCmdMount::_ack_vehicle_command(vehicle_command_s *cmd)
 {
-	vehicle_command_ack_s vehicle_command_ack = {};
+	vehicle_command_ack_s vehicle_command_ack{};
 
 	vehicle_command_ack.timestamp = hrt_absolute_time();
 	vehicle_command_ack.command = cmd->command;
@@ -341,13 +341,8 @@ void InputMavlinkCmdMount::_ack_vehicle_command(vehicle_command_s *cmd)
 	vehicle_command_ack.target_system = cmd->source_system;
 	vehicle_command_ack.target_component = cmd->source_component;
 
-	if (_vehicle_command_ack_pub == nullptr) {
-		_vehicle_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &vehicle_command_ack,
-					   vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-
-	} else {
-		orb_publish(ORB_ID(vehicle_command_ack), _vehicle_command_ack_pub, &vehicle_command_ack);
-	}
+	uORB::PublicationQueued<vehicle_command_ack_s> cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+	cmd_ack_pub.publish(vehicle_command_ack);
 }
 
 void InputMavlinkCmdMount::print_status()
