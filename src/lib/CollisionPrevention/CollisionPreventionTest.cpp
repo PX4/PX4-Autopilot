@@ -39,7 +39,7 @@
 class CollisionPreventionTest : public ::testing::Test
 {
 public:
-	void TearDown() override
+	void SetUp() override
 	{
 		param_reset_all();
 	}
