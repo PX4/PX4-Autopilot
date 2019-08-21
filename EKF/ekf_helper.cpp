@@ -454,7 +454,7 @@ bool Ekf::realignYawGPS()
 			Quatf quat_before_reset = _state.quat_nominal;
 
 			// update transformation matrix from body to world frame using the current state estimate
-			_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
+			_R_to_earth = Dcmf(_state.quat_nominal);
 
 			// get quaternion from existing filter states and calculate roll, pitch and yaw angles
 			Eulerf euler321(_state.quat_nominal);
@@ -486,7 +486,7 @@ bool Ekf::realignYawGPS()
 			_velpos_reset_request = badMagYaw;
 
 			// update transformation matrix from body to world frame using the current state estimate
-			_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
+			_R_to_earth = Dcmf(_state.quat_nominal);
 
 			// Use the last magnetometer measurements to reset the field states
 			_state.mag_B.zero();
@@ -594,7 +594,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update
 	Quatf quat_after_reset = _state.quat_nominal;
 
 	// update transformation matrix from body to world frame using the current estimate
-	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
+	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	// calculate the initial quaternion
 	// determine if a 321 or 312 Euler sequence is best
@@ -707,8 +707,8 @@ bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update
 	}
 
 	// set the earth magnetic field states using the updated rotation
-	Dcmf _R_to_earth_after = quat_to_invrotmat(quat_after_reset);
-	_state.mag_I = _R_to_earth_after * mag_init;
+	Dcmf R_to_earth_after(quat_after_reset);
+	_state.mag_I = R_to_earth_after * mag_init;
 
 	// reset the corresponding rows and columns in the covariance matrix and set the variances on the magnetic field states to the measurement variance
 	zeroRows(P, 16, 21);
@@ -739,7 +739,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update
 	_state_reset_status.quat_change = q_error;
 
 	// update transformation matrix from body to world frame using the current estimate
-	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
+	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	// reset the rotation from the EV to EKF frame of reference if it is being used
 	if ((_params.fusion_mode & MASK_ROTATE_EV) && !_control_status.flags.ev_yaw) {
@@ -1638,7 +1638,7 @@ void Ekf::calcExtVisRotMat()
 
 	// convert filtered vector to a quaternion and then to a rotation matrix
 	q_error.from_axis_angle(_ev_rot_vec_filt);
-	_ev_rot_mat = quat_to_invrotmat(q_error); // rotation from EV reference to EKF reference
+	_ev_rot_mat = Dcmf(q_error); // rotation from EV reference to EKF reference
 
 }
 
@@ -1663,7 +1663,7 @@ void Ekf::resetExtVisRotMat()
 	}
 
 	// reset the rotation matrix
-	_ev_rot_mat = quat_to_invrotmat(q_error); // rotation from EV reference to EKF reference
+	_ev_rot_mat = Dcmf(q_error); // rotation from EV reference to EKF reference
 }
 
 // return the quaternions for the rotation from External Vision system reference frame to the EKF reference frame

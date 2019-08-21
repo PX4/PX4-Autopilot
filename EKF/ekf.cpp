@@ -251,7 +251,7 @@ bool Ekf::initialiseFilter()
 		_state.quat_nominal = Quatf(euler_init);
 
 		// update transformation matrix from body to world frame
-		_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
+		_R_to_earth = Dcmf(_state.quat_nominal);
 
 		// calculate the initial magnetic field and yaw alignment
 		_control_status.flags.yaw_align = resetMagHeading(_mag_filt_state, false, false);
@@ -331,7 +331,7 @@ void Ekf::predictState()
 	Vector3f vel_last = _state.vel;
 
 	// update transformation matrix from body to world frame
-	_R_to_earth = quat_to_invrotmat(_state.quat_nominal);
+	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	// Calculate an earth frame delta velocity
 	Vector3f corrected_delta_vel_ef = _R_to_earth * corrected_delta_vel;
@@ -474,7 +474,7 @@ void Ekf::calculateOutputStates()
 	_output_new.quat_nominal.normalize();
 
 	// calculate the rotation matrix from body to earth frame
-	_R_to_earth_now = quat_to_invrotmat(_output_new.quat_nominal);
+	_R_to_earth_now = Dcmf(_output_new.quat_nominal);
 
 	// correct delta velocity for bias offsets
 	const Vector3f delta_vel{imu.delta_vel - _state.accel_bias * dt_scale_correction};
