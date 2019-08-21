@@ -484,7 +484,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 			} else if (is_armed
 				   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags,
 						   !(posctl_nav_loss_act == position_nav_loss_actions_t::LAND_TERMINATE),
-						   status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
+						   status->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING, armed)) {
 				// nothing to do - everything done in check_invalid_pos_nav_state
 
 			} else {
@@ -501,7 +501,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		 * - if we have vtol transition failure
 		 * - depending on datalink, RC and if the mission is finished */
 
-		if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+		if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true, armed)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 		} else if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
@@ -543,7 +543,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+		} else if (is_armed
+			   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true, armed)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 		} else if (status->data_link_lost && data_link_loss_act_configured && !landed && is_armed) {
 			/* also go into failsafe if just datalink is lost, and we're actually in air */
@@ -579,7 +580,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+		} else if (is_armed
+			   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true, armed)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 		} else {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
@@ -594,7 +596,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+		} else if (is_armed
+			   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true, armed)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else {
@@ -608,7 +611,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 			// failsafe: on engine failure
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true)) {
+		} else if (is_armed
+			   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, true, armed)) {
 			// failsafe: necessary position estimate lost (nothing to do - everything done in check_invalid_pos_nav_state)
 		} else if (status->data_link_lost && data_link_loss_act_configured && !landed && is_armed) {
 			// failsafe: just datalink is lost and we're in air
@@ -638,7 +642,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false)) {
+		} else if (is_armed
+			   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false, armed)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else {
@@ -654,7 +659,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false)) {
+		} else if (is_armed
+			   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false, armed)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else {
@@ -670,7 +676,8 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		if (status->engine_failure) {
 			status->nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL;
 
-		} else if (is_armed && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false)) {
+		} else if (is_armed
+			   && check_invalid_pos_nav_state(status, old_failsafe, mavlink_log_pub, status_flags, false, false, armed)) {
 			// nothing to do - everything done in check_invalid_pos_nav_state
 
 		} else {
@@ -706,7 +713,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 }
 
 bool check_invalid_pos_nav_state(vehicle_status_s *status, bool old_failsafe, orb_advert_t *mavlink_log_pub,
-				 const vehicle_status_flags_s &status_flags, const bool use_rc, const bool using_global_pos)
+				 const vehicle_status_flags_s &status_flags, const bool use_rc, const bool using_global_pos, actuator_armed_s *armed)
 {
 	bool fallback_required = false;
 
@@ -897,6 +904,7 @@ void set_offboard_loss_nav_state(vehicle_status_s *status, actuator_armed_s *arm
 
 	} else {
 		status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+		armed->force_failsafe = true;
 	}
 }
 
@@ -971,6 +979,7 @@ void set_offboard_loss_rc_nav_state(vehicle_status_s *status, actuator_armed_s *
 
 	} else {
 		status->nav_state = vehicle_status_s::NAVIGATION_STATE_TERMINATION;
+		armed->force_failsafe = true;
 	}
 }
 
