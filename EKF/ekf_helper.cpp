@@ -1382,6 +1382,7 @@ Vector3f EstimatorInterface::cross_product(const Vector3f &vecIn1, const Vector3
 }
 
 // calculate the inverse rotation matrix from a quaternion rotation
+// this produces the inverse rotation to that produced by the math library quaternion to Dcmf operator
 Matrix3f EstimatorInterface::quat_to_invrotmat(const Quatf &quat)
 {
 	float q00 = quat(0) * quat(0);
@@ -1399,12 +1400,12 @@ Matrix3f EstimatorInterface::quat_to_invrotmat(const Quatf &quat)
 	dcm(0, 0) = q00 + q11 - q22 - q33;
 	dcm(1, 1) = q00 - q11 + q22 - q33;
 	dcm(2, 2) = q00 - q11 - q22 + q33;
-	dcm(0, 1) = 2.0f * (q12 - q03);
-	dcm(0, 2) = 2.0f * (q13 + q02);
-	dcm(1, 0) = 2.0f * (q12 + q03);
-	dcm(1, 2) = 2.0f * (q23 - q01);
-	dcm(2, 0) = 2.0f * (q13 - q02);
-	dcm(2, 1) = 2.0f * (q23 + q01);
+	dcm(1, 0) = 2.0f * (q12 - q03);
+	dcm(2, 0) = 2.0f * (q13 + q02);
+	dcm(0, 1) = 2.0f * (q12 + q03);
+	dcm(2, 1) = 2.0f * (q23 - q01);
+	dcm(0, 2) = 2.0f * (q13 - q02);
+	dcm(1, 2) = 2.0f * (q23 + q01);
 
 	return dcm;
 }
