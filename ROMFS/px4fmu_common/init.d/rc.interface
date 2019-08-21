@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # Script to configure control interfaces.
 #
@@ -11,6 +11,7 @@
 
 set MIXER_AUX_FILE none
 set OUTPUT_AUX_DEV /dev/pwm_output1
+set OUTPUT_DEV none
 
 #
 # If mount (gimbal) control is enabled and output mode is AUX, set the aux
@@ -24,12 +25,8 @@ then
         fi
 fi
 
-if ver hwcmp AEROFC_V1 AV_X_V1 CRAZYFLIE MINDPX_V2 NXPHLITE_V3 PX4FMU_V4 OMNIBUS_F4SD SITL
-then
-	set MIXER_AUX none
-fi
-
-if [ $USE_IO == no ]
+# USE_IO is set to 'no' for all boards w/o px4io driver or SYS_USE_IO disabled
+if [ $USE_IO = no ]
 then
 	set MIXER_AUX none
 fi
@@ -37,12 +34,12 @@ fi
 #
 # Set the default output mode if none was set.
 #
-if [ $OUTPUT_MODE == none ]
+if [ $OUTPUT_MODE = none ]
 then
-	if [ $USE_IO == yes ]
+	if [ $USE_IO = yes ]
 	then
 		# Enable IO output only if IO is present.
-		if [ $IO_PRESENT == yes ]
+		if [ $IO_PRESENT = yes ]
 		then
 			set OUTPUT_MODE io
 		fi
@@ -52,17 +49,17 @@ then
 fi
 
 #
-# If OUTPUT_MODE == none then something is wrong with setup and we shouldn't try to enable output.
+# If OUTPUT_MODE = none then something is wrong with setup and we shouldn't try to enable output.
 #
 if [ $OUTPUT_MODE != none ]
 then
-	if [ $OUTPUT_MODE == mkblctrl ]
+	if [ $OUTPUT_MODE = mkblctrl ]
 	then
-		if [ $MKBLCTRL_MODE == x ]
+		if [ $MKBLCTRL_MODE = x ]
 		then
 			set MKBLCTRL_ARG "-mkmode x"
 		fi
-		if [ $MKBLCTRL_MODE == + ]
+		if [ $MKBLCTRL_MODE = + ]
 		then
 			set MKBLCTRL_ARG "-mkmode +"
 		fi
@@ -74,7 +71,7 @@ then
 		fi
 	fi
 
-	if [ $OUTPUT_MODE == hil -o $OUTPUT_MODE == sim ]
+	if [ $OUTPUT_MODE = hil -o $OUTPUT_MODE = sim ]
 	then
 		if ! pwm_out_sim start
 		then
@@ -83,7 +80,7 @@ then
 		fi
 	fi
 
-	if [ $OUTPUT_MODE == fmu ]
+	if [ $OUTPUT_MODE = fmu ]
 	then
 		if ! fmu mode_$FMU_MODE $FMU_ARGS
 		then
@@ -93,7 +90,7 @@ then
 		fi
 	fi
 
-	if [ $OUTPUT_MODE == uavcan_esc ]
+	if [ $OUTPUT_MODE = uavcan_esc ]
 	then
 		if param compare UAVCAN_ENABLE 0
 		then
@@ -101,7 +98,7 @@ then
 		fi
 	fi
 
-	if [ $OUTPUT_MODE == io -o $OUTPUT_MODE == uavcan_esc ]
+	if [ $OUTPUT_MODE = io -o $OUTPUT_MODE = uavcan_esc ]
 	then
 		sh /etc/init.d/rc.io
 	fi
@@ -109,7 +106,7 @@ then
 	#
 	# Start IO for RC input if needed.
 	#
-	if [ $IO_PRESENT == yes ]
+	if [ $IO_PRESENT = yes ]
 	then
 		if [ $OUTPUT_MODE != io ]
 		then
@@ -123,12 +120,12 @@ then
 	#
 	# Load main mixer.
 	#
-	if [ $MIXER_AUX == none -a $USE_IO == yes ]
+	if [ $MIXER_AUX = none -a $USE_IO = yes ]
 	then
 		set MIXER_AUX ${MIXER}
 	fi
 
-	if [ "$MIXER_FILE" == none ]
+	if [ "$MIXER_FILE" = none ]
 	then
 		if [ -f ${SDCARD_MIXERS_PATH}/${MIXER}.main.mix ]
 		then
@@ -145,19 +142,19 @@ then
 		fi
 	fi
 
-	if [ $OUTPUT_MODE == mkblctrl ]
+	if [ $OUTPUT_MODE = mkblctrl ]
 	then
 		set OUTPUT_DEV /dev/mkblctrl0
 	else
 		set OUTPUT_DEV /dev/pwm_output0
 	fi
 
-	if [ $OUTPUT_MODE == uavcan_esc ]
+	if [ $OUTPUT_MODE = uavcan_esc ]
 	then
 		set OUTPUT_DEV /dev/uavcan/esc
 	fi
 
-	if [ $OUTPUT_MODE == tap_esc ]
+	if [ $OUTPUT_MODE = tap_esc ]
 	then
 		set OUTPUT_DEV /dev/tap_esc
 	fi
@@ -201,7 +198,7 @@ then
 		if fmu mode_${AUX_MODE} $FMU_ARGS
 		then
 			# Append aux mixer to main device.
-			if param compare SYS_HITL 1
+			if param greater SYS_HITL 0
 			then
 				if mixer append ${OUTPUT_DEV} ${MIXER_AUX_FILE}
 				then
@@ -310,7 +307,7 @@ then
 	fi
 fi
 
-if [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == io ]
+if [ $OUTPUT_MODE = fmu -o $OUTPUT_MODE = io ]
 then
 	if [ $PWM_OUT != none ]
 	then
@@ -391,3 +388,4 @@ fi
 
 unset MIXER_AUX_FILE
 unset OUTPUT_AUX_DEV
+unset OUTPUT_DEV

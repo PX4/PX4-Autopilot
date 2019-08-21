@@ -32,13 +32,21 @@
 ############################################################################
 
 # skip for px4_layer support on an IO board
-if (NOT ${BOARD} MATCHES "px4io")
+if (NOT ${PX4_BOARD} MATCHES "px4_io")
 
 	add_library(px4_layer
+		console_buffer.cpp
 		px4_nuttx_tasks.c
 		px4_nuttx_impl.cpp
+		px4_init.cpp
 	)
-	target_link_libraries(px4_layer PRIVATE nuttx_sched drivers_boards_common_arch)
+	target_link_libraries(px4_layer
+		PRIVATE
+			nuttx_apps # up_cxxinitialize
+			nuttx_sched
+			drivers_boards_common_arch
+			px4_work_queue
+		)
 else()
 	add_library(px4_layer ${PX4_SOURCE_DIR}/src/platforms/empty.c)
 endif()

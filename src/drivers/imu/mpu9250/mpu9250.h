@@ -31,30 +31,18 @@
  *
  ****************************************************************************/
 
-#include <stdint.h>
-
-#include <perf/perf_counter.h>
+#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+#include <lib/ecl/geo/geo.h>
+#include <px4_getopt.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/conversions.h>
+#include <systemlib/px4_macros.h>
 
-#include <nuttx/wqueue.h>
-
-#include <board_config.h>
-#include <drivers/drv_hrt.h>
-
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/drv_mag.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <lib/conversion/rotation.h>
-
-#include "mag.h"
-#include "gyro.h"
+#include "MPU9250_mag.h"
 
 
-
-#if defined(PX4_I2C_OBDEV_MPU9250)
+#if defined(PX4_I2C_OBDEV_MPU9250) || defined(PX4_I2C_BUS_EXPANSION)
 #  define USE_I2C
 #endif
 
@@ -177,8 +165,8 @@
 #define BIT_I2C_SLV2_DLY_EN         0x04
 #define BIT_I2C_SLV3_DLY_EN         0x08
 
-#define MPU_WHOAMI_9250			0x71
-#define MPU_WHOAMI_6500			0x70
+#define MPU_WHOAMI_9250             0x71
+#define MPU_WHOAMI_6500             0x70
 
 #define MPU9250_ACCEL_DEFAULT_RATE	1000
 #define MPU9250_ACCEL_MAX_OUTPUT_RATE			280
@@ -190,8 +178,15 @@
 
 #define MPU9250_DEFAULT_ONCHIP_FILTER_FREQ	92
 
-#define MPUIOCGIS_I2C	(unsigned)(DEVIOCGDEVICEID+100)
 
+#define BANK0	0x0000
+#define BANK1	0x0100
+#define BANK2	0x0200
+#define BANK3	0x0300
+
+#define BANK_REG_MASK	0x0300
+#define REG_BANK(r) 			(((r) & BANK_REG_MASK)>>4)
+#define REG_ADDRESS(r)			((r) & ~BANK_REG_MASK)
 
 #pragma pack(push, 1)
 /**
@@ -224,132 +219,96 @@ struct MPUReport {
  */
 #define MPU9250_LOW_BUS_SPEED				0
 #define MPU9250_HIGH_BUS_SPEED				0x8000
+#define MPU9250_REG_MASK					0x00FF
 #  define MPU9250_IS_HIGH_SPEED(r) 			((r) & MPU9250_HIGH_BUS_SPEED)
-#  define MPU9250_REG(r) 					((r) &~MPU9250_HIGH_BUS_SPEED)
+#  define MPU9250_REG(r) 					((r) & MPU9250_REG_MASK)
 #  define MPU9250_SET_SPEED(r, s) 			((r)|(s))
 #  define MPU9250_HIGH_SPEED_OP(r) 			MPU9250_SET_SPEED((r), MPU9250_HIGH_BUS_SPEED)
-#  define MPU9250_LOW_SPEED_OP(r)			MPU9250_REG((r))
+#  define MPU9250_LOW_SPEED_OP(r)			((r) &~MPU9250_HIGH_BUS_SPEED)
 
 /* interface factories */
 extern device::Device *MPU9250_SPI_interface(int bus, uint32_t cs, bool external_bus);
 extern device::Device *MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus);
-extern int MPU9250_probe(device::Device *dev, int device_type);
+extern int MPU9250_probe(device::Device *dev);
 
 typedef device::Device *(*MPU9250_constructor)(int, uint32_t, bool);
 
 class MPU9250_mag;
-class MPU9250_gyro;
 
-class MPU9250 : public device::CDev
+class MPU9250 : public px4::ScheduledWorkItem
 {
 public:
-	MPU9250(device::Device *interface, device::Device *mag_interface, const char *path_accel, const char *path_gyro,
-		const char *path_mag,
-		enum Rotation rotation);
+	MPU9250(device::Device *interface, device::Device *mag_interface, const char *path, enum Rotation rotation,
+		bool magnetometer_only);
+
 	virtual ~MPU9250();
 
 	virtual int		init();
-
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+	uint8_t			get_whoami() { return _whoami; }
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
 	void			print_info();
 
-	void			print_registers();
-
-	// deliberately cause a sensor error
-	void 			test_error();
-
 protected:
-	Device			*_interface;
+	device::Device *_interface;
+	uint8_t			_whoami{0};	/** whoami result */
 
 	virtual int		probe();
 
 	friend class MPU9250_mag;
-	friend class MPU9250_gyro;
 
-	virtual ssize_t		gyro_read(struct file *filp, char *buffer, size_t buflen);
-	virtual int		gyro_ioctl(struct file *filp, int cmd, unsigned long arg);
+	void Run() override;
 
 private:
-	MPU9250_gyro	*_gyro;
-	MPU9250_mag     *_mag;
-	uint8_t			_whoami;	/** whoami result */
 
-#if defined(USE_I2C)
-	/*
-	 * SPI bus based device use hrt
-	 * I2C bus needs to use work queue
-	 */
-	work_s			_work;
-#endif
-	bool 			_use_hrt;
+	PX4Accelerometer	_px4_accel;
+	PX4Gyroscope		_px4_gyro;
 
-	struct hrt_call		_call;
-	unsigned		_call_interval;
+	MPU9250_mag		_mag;
+	uint8_t 		_selected_bank;			/* Remember selected memory bank to avoid polling / setting on each read/write */
+	bool
+	_magnetometer_only;     /* To disable accel and gyro reporting if only magnetometer is used (e.g. as external magnetometer) */
 
-	ringbuffer::RingBuffer	*_accel_reports;
-
-	struct accel_calibration_s	_accel_scale;
-	float			_accel_range_scale;
-	float			_accel_range_m_s2;
-	orb_advert_t		_accel_topic;
-	int			_accel_orb_class_instance;
-	int			_accel_class_instance;
-
-	ringbuffer::RingBuffer	*_gyro_reports;
-
-	struct gyro_calibration_s	_gyro_scale;
-	float			_gyro_range_scale;
-	float			_gyro_range_rad_s;
+	unsigned		_call_interval{1000};
 
 	unsigned		_dlpf_freq;
 
-	unsigned		_sample_rate;
-	perf_counter_t		_accel_reads;
-	perf_counter_t		_gyro_reads;
+	unsigned		_sample_rate{1000};
+
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_bad_transfers;
 	perf_counter_t		_bad_registers;
 	perf_counter_t		_good_transfers;
-	perf_counter_t		_reset_retries;
 	perf_counter_t		_duplicates;
 
-	uint8_t			_register_wait;
-	uint64_t		_reset_wait;
-
-	math::LowPassFilter2p	_accel_filter_x;
-	math::LowPassFilter2p	_accel_filter_y;
-	math::LowPassFilter2p	_accel_filter_z;
-	math::LowPassFilter2p	_gyro_filter_x;
-	math::LowPassFilter2p	_gyro_filter_y;
-	math::LowPassFilter2p	_gyro_filter_z;
-
-	Integrator		_accel_int;
-	Integrator		_gyro_int;
-
-	enum Rotation		_rotation;
+	uint8_t			_register_wait{0};
+	uint64_t		_reset_wait{0};
 
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
-#define MPU9250_NUM_CHECKED_REGISTERS 11
-	static const uint8_t	_checked_registers[MPU9250_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_values[MPU9250_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_bad[MPU9250_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_next;
+
+	static constexpr int MPU9250_NUM_CHECKED_REGISTERS{11};
+	static const uint16_t	_mpu9250_checked_registers[MPU9250_NUM_CHECKED_REGISTERS];
+
+	const uint16_t			*_checked_registers{nullptr};
+
+	uint8_t					_checked_values[MPU9250_NUM_CHECKED_REGISTERS] {};
+	uint8_t					_checked_bad[MPU9250_NUM_CHECKED_REGISTERS] {};
+	unsigned				_checked_next{0};
+	unsigned				_num_checked_registers{0};
+
 
 	// last temperature reading for print_info()
-	float			_last_temperature;
+	float			_last_temperature{0.0f};
 
-	bool check_null_data(uint32_t *data, uint8_t size);
+	bool check_null_data(uint16_t *data, uint8_t size);
 	bool check_duplicate(uint8_t *accel_data);
 	// keep last accel reading for duplicate detection
-	uint8_t			_last_accel_data[6];
-	bool			_got_duplicate;
+	uint8_t			_last_accel_data[6] {};
+	bool			_got_duplicate{false};
 
 	/**
 	 * Start automatic measurement.
@@ -374,52 +333,6 @@ private:
 	 */
 	int			reset_mpu();
 
-
-#if defined(USE_I2C)
-	/**
-	 * When the I2C interfase is on
-	 * Perform a poll cycle; collect from the previous measurement
-	 * and start a new one.
-	 *
-	 * This is the heart of the measurement state machine.  This function
-	 * alternately starts a measurement, or collects the data from the
-		 * previous measurement.
-		 *
-		 * When the interval between measurements is greater than the minimum
-		 * measurement interval, a gap is inserted between collection
-		 * and measurement to provide the most recent measurement possible
-		 * at the next interval.
-		 */
-	void			cycle();
-
-	/**
-	 * Static trampoline from the workq context; because we don't have a
-	 * generic workq wrapper yet.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		cycle_trampoline(void *arg);
-
-	void use_i2c(bool on_true) { _use_hrt = !on_true; }
-
-#endif
-
-	bool is_i2c(void) { return !_use_hrt; }
-
-
-
-
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		measure_trampoline(void *arg);
-
 	/**
 	 * Fetch measurements from the sensor and update the report buffers.
 	 */
@@ -429,10 +342,23 @@ private:
 	 * Read a register from the mpu
 	 *
 	 * @param		The register to read.
+	* @param       The bus speed to read with.
 	 * @return		The value that was read.
 	 */
 	uint8_t			read_reg(unsigned reg, uint32_t speed = MPU9250_LOW_BUS_SPEED);
 	uint16_t		read_reg16(unsigned reg);
+
+
+	/**
+	 * Read a register range from the mpu
+	 *
+	 * @param       The start address to read from.
+	 * @param       The bus speed to read with.
+	 * @param       The address of the target data buffer.
+	 * @param       The count of bytes to be read.
+	 * @return      The value that was read.
+	 */
+	uint8_t read_reg_range(unsigned start_reg, uint32_t speed, uint8_t *buf, uint16_t count);
 
 	/**
 	 * Write a register in the mpu
@@ -490,18 +416,7 @@ private:
 	 *
 	 * @return true if the sensor is not on the main MCU board
 	 */
-	bool			is_external()
-	{
-		unsigned dummy;
-		return _interface->ioctl(ACCELIOCGEXTERNAL, dummy);
-	}
-
-	/**
-	 * Measurement self test
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int 			self_test();
+	bool			is_external() { return _interface->external(); }
 
 	/*
 	  set low pass filter frequency

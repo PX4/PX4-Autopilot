@@ -155,6 +155,13 @@ public:
 	 */
 	virtual int	poll(file_t *filep, px4_pollfd_struct_t *fds, bool setup);
 
+	/**
+	 * Get the device name.
+	 *
+	 * @return the file system string of the device handle
+	 */
+	const char	*get_devname() const { return _devname; }
+
 protected:
 	/**
 	 * Pointer to the default cdev file operations table; useful for
@@ -240,13 +247,6 @@ protected:
 	virtual int unregister_class_devname(const char *class_devname, unsigned class_instance);
 
 	/**
-	 * Get the device name.
-	 *
-	 * @return the file system string of the device handle
-	 */
-	const char	*get_devname() { return _devname; }
-
-	/**
 	 * Take the driver lock.
 	 *
 	 * Each driver instance has its own lock/semaphore.
@@ -263,6 +263,17 @@ protected:
 	void		unlock() { px4_sem_post(&_lock); }
 
 	px4_sem_t	_lock; /**< lock to protect access to all class members (also for derived classes) */
+
+
+	/**
+	* First, unregisters the driver. Next, free the memory for the devname,
+	* in case it was expected to have ownership. Sets devname to nullptr.
+	*
+	* This is only needed if the ownership of the devname was passed to the CDev, otherwise ~CDev handles it.
+	*
+	* @return  PX4_OK on success, -ENODEV if the devname is already nullptr
+	*/
+	int unregister_driver_and_memory();
 
 private:
 	const char	*_devname{nullptr};		/**< device node name */

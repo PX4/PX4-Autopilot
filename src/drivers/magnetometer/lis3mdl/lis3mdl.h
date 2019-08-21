@@ -47,13 +47,11 @@
 #include <drivers/drv_mag.h>
 
 #include <lib/conversion/rotation.h>
+#include <systemlib/err.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 #include <perf/perf_counter.h>
 #include <px4_defines.h>
-
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
 
 /**
  * LIS3MDL internal constants and data structures.
@@ -62,7 +60,7 @@
 /* Max measurement rate is 80Hz */
 #define LIS3MDL_CONVERSION_INTERVAL     (1000000 / 80)  /* 12,500 microseconds */
 
-#define NUM_BUS_OPTIONS                 (sizeof(bus_options)/sizeof(bus_options[0]))
+#define NUM_BUS_OPTIONS                 (sizeof(lis3mdl::bus_options)/sizeof(lis3mdl::bus_options[0]))
 
 #define ADDR_WHO_AM_I                   0x0f
 #define ID_WHO_AM_I                     0x3d
@@ -110,7 +108,7 @@ enum OPERATING_MODE {
 };
 
 
-class LIS3MDL : public device::CDev
+class LIS3MDL : public device::CDev, public px4::ScheduledWorkItem
 {
 public:
 	LIS3MDL(device::Device *interface, const char *path, enum Rotation rotation);
@@ -142,7 +140,6 @@ protected:
 	Device *_interface;
 
 private:
-	work_s _work;
 
 	ringbuffer::RingBuffer *_reports;
 
@@ -164,7 +161,7 @@ private:
 	enum OPERATING_MODE _mode;
 	enum Rotation _rotation;
 
-	unsigned int _measure_ticks;
+	unsigned int _measure_interval;
 
 	int _class_instance;
 	int _orb_class_instance;
@@ -226,15 +223,7 @@ private:
 	 * and measurement to provide the most recent measurement possible
 	 * at the next interval.
 	 */
-	void cycle();
-
-	/**
-	 * @brief Static trampoline from the workq context; because we don't have a
-	 *         generic workq wrapper yet.
-	 *
-	 * @param arg Instance pointer for the driver that is polling.
-	 */
-	static void cycle_trampoline(void *arg);
+	void Run() override;
 
 	/**
 	 * Issue a measurement command.

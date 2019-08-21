@@ -1,8 +1,8 @@
-#!nsh
+#!/bin/sh
 #
 # PX4IO interface init script.
 #
-if [ $USE_IO == yes -a $IO_PRESENT == yes ]
+if [ $USE_IO = yes -a $IO_PRESENT = yes ]
 then
 	if px4io start
 	then

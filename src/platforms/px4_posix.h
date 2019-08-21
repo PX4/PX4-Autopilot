@@ -83,6 +83,12 @@ typedef struct pollfd px4_pollfd_struct_t;
 
 #define	 PX4_STACK_OVERHEAD	8192
 
+/**
+ * Terminates the calling process immediately.
+ * @return 0 on success, 1 on error
+ */
+#define px4_exit(status) ({return status;})
+
 __BEGIN_DECLS
 
 typedef short pollevent_t;
@@ -107,11 +113,6 @@ __EXPORT int		px4_poll(px4_pollfd_struct_t *fds, nfds_t nfds, int timeout);
 __EXPORT int		px4_fsync(int fd);
 __EXPORT int		px4_access(const char *pathname, int mode);
 __EXPORT px4_task_t	px4_getpid(void);
-
-__EXPORT void		px4_enable_sim_lockstep(void);
-__EXPORT void		px4_sim_start_delay(void);
-__EXPORT void		px4_sim_stop_delay(void);
-__EXPORT bool		px4_sim_delay_enabled(void);
 
 __END_DECLS
 #else
@@ -140,8 +141,6 @@ __EXPORT const char 	*px4_get_topic_names(unsigned int *handle);
  * The UNIX epoch system time following the system clock
  */
 __EXPORT uint64_t	hrt_system_time(void);
-
-__EXPORT bool		px4_exit_requested(void);
 
 
 #endif

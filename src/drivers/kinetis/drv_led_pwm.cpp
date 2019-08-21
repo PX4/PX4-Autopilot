@@ -62,7 +62,7 @@
 #include "chip/kinetis_sim.h"
 #include "chip/kinetis_ftm.h"
 
-#if defined(BOARD_HAS_LED_PWM)
+#if defined(BOARD_HAS_LED_PWM) || defined(BOARD_HAS_UI_LED_PWM)
 
 #define FTM_SRC_CLOCK_FREQ 16000000
 #define LED_PWM_FREQ        1000000
@@ -342,4 +342,4 @@ led_pwm_servo_arm(bool armed)
 	}
 }
 
-#endif // BOARD_HAS_LED_PWM
+#endif // BOARD_HAS_LED_PWM || BOARD_HAS_UI_LED_PWM

@@ -96,8 +96,8 @@ static int _accel_orb_class_instance;        /**< instance handle for accel devi
 static orb_advert_t _mag_pub = nullptr;		/**< compass data publication */
 static int _mag_orb_class_instance;        /**< instance handle for mag devices */
 static int _params_sub;										/**< parameter update subscription */
-static struct gyro_report _gyro;					/**< gyro report */
-static struct accel_report _accel;				/**< accel report */
+static sensor_gyro_s _gyro;					/**< gyro report */
+static sensor_accel_s _accel;				/**< accel report */
 static struct mag_report _mag;						/**< mag report */
 static struct gyro_calibration_s _gyro_sc;				/**< gyro scale */
 static struct accel_calibration_s _accel_sc;			/**< accel scale */
@@ -367,8 +367,8 @@ void parameters_init()
 bool create_pubs()
 {
 	// initialize the reports
-	memset(&_gyro, 0, sizeof(struct gyro_report));
-	memset(&_accel, 0, sizeof(struct accel_report));
+	memset(&_gyro, 0, sizeof(sensor_gyro_s));
+	memset(&_accel, 0, sizeof(sensor_accel_s));
 	memset(&_mag, 0, sizeof(struct mag_report));
 
 	_gyro_pub = orb_advertise_multi(ORB_ID(sensor_gyro), &_gyro,

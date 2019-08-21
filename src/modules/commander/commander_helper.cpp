@@ -67,9 +67,11 @@
 
 using namespace DriverFramework;
 
+#define VEHICLE_TYPE_FIXED_WING 1
 #define VEHICLE_TYPE_QUADROTOR 2
 #define VEHICLE_TYPE_COAXIAL 3
 #define VEHICLE_TYPE_HELICOPTER 4
+#define VEHICLE_TYPE_GROUND_ROVER 10
 #define VEHICLE_TYPE_HEXAROTOR 13
 #define VEHICLE_TYPE_OCTOROTOR 14
 #define VEHICLE_TYPE_TRICOPTER 15
@@ -94,10 +96,11 @@ bool is_multirotor(const struct vehicle_status_s *current_status)
 bool is_rotary_wing(const struct vehicle_status_s *current_status)
 {
 	return is_multirotor(current_status) || (current_status->system_type == VEHICLE_TYPE_HELICOPTER)
-		   || (current_status->system_type == VEHICLE_TYPE_COAXIAL);
+	       || (current_status->system_type == VEHICLE_TYPE_COAXIAL);
 }
 
-bool is_vtol(const struct vehicle_status_s * current_status) {
+bool is_vtol(const struct vehicle_status_s *current_status)
+{
 	return (current_status->system_type == VEHICLE_TYPE_VTOL_DUOROTOR ||
 		current_status->system_type == VEHICLE_TYPE_VTOL_QUADROTOR ||
 		current_status->system_type == VEHICLE_TYPE_VTOL_TILTROTOR ||
@@ -105,6 +108,16 @@ bool is_vtol(const struct vehicle_status_s * current_status) {
 		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED3 ||
 		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED4 ||
 		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED5);
+}
+
+bool is_fixed_wing(const struct vehicle_status_s *current_status)
+{
+	return current_status->system_type == VEHICLE_TYPE_FIXED_WING;
+}
+
+bool is_ground_rover(const struct vehicle_status_s *current_status)
+{
+	return current_status->system_type == VEHICLE_TYPE_GROUND_ROVER;
 }
 
 static hrt_abstime blink_msg_end = 0;	// end time for currently blinking LED message, 0 if no blink message
@@ -132,7 +145,7 @@ int buzzer_init()
 	tune_durations[TONE_BATTERY_WARNING_FAST_TUNE] = 800000;
 	tune_durations[TONE_BATTERY_WARNING_SLOW_TUNE] = 800000;
 	tune_durations[TONE_SINGLE_BEEP_TUNE] = 300000;
-	tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+	tune_control_pub = orb_advertise_queue(ORB_ID(tune_control), &tune_control, tune_control_s::ORB_QUEUE_LENGTH);
 	return PX4_OK;
 }
 
@@ -144,7 +157,7 @@ void buzzer_deinit()
 void set_tune_override(int tune)
 {
 	tune_control.tune_id = tune;
-	tune_control.strength = tune_control_s::STRENGTH_NORMAL;
+	tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
 	tune_control.tune_override = 1;
 	tune_control.timestamp = hrt_absolute_time();
 	orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
@@ -159,7 +172,7 @@ void set_tune(int tune)
 		/* allow interrupting current non-repeating tune by the same tune */
 		if (tune != tune_current || new_tune_duration != 0) {
 			tune_control.tune_id = tune;
-			tune_control.strength = tune_control_s::STRENGTH_NORMAL;
+			tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
 			tune_control.tune_override = 0;
 			tune_control.timestamp = hrt_absolute_time();
 			orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
@@ -277,9 +290,8 @@ int led_init()
 	led_control.mode = led_control_s::MODE_OFF;
 	led_control.priority = 0;
 	led_control.timestamp = hrt_absolute_time();
-	led_control_pub = orb_advertise_queue(ORB_ID(led_control), &led_control, LED_UORB_QUEUE_LENGTH);
+	led_control_pub = orb_advertise_queue(ORB_ID(led_control), &led_control, led_control_s::ORB_QUEUE_LENGTH);
 
-#if !defined(CONFIG_ARCH_BOARD_RPI) && !defined(CONFIG_ARCH_BOARD_BBBLUE)
 	/* first open normal LEDs */
 	DevMgr::getHandle(LED0_DEVICE_PATH, h_leds);
 
@@ -305,7 +317,6 @@ int led_init()
 
 	/* switch amber off */
 	led_off(LED_AMBER);
-#endif
 
 	return 0;
 }
@@ -313,9 +324,7 @@ int led_init()
 void led_deinit()
 {
 	orb_unadvertise(led_control_pub);
-#if !defined(CONFIG_ARCH_BOARD_RPI) && !defined(CONFIG_ARCH_BOARD_BBBLUE)
 	DevMgr::releaseHandle(h_leds);
-#endif
 }
 
 int led_toggle(int led)

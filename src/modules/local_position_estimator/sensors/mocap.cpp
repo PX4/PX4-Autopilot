@@ -122,20 +122,20 @@ void BlockLocalPositionEstimator::mocapCorrect()
 	R.setZero();
 
 	// use std dev from mocap data if available
-	if (_mocap_eph > _mocap_p_stddev.get()) {
+	if (_mocap_eph > _param_lpe_vic_p.get()) {
 		R(Y_mocap_x, Y_mocap_x) = _mocap_eph * _mocap_eph;
 		R(Y_mocap_y, Y_mocap_y) = _mocap_eph * _mocap_eph;
 
 	} else {
-		R(Y_mocap_x, Y_mocap_x) = _mocap_p_stddev.get() * _mocap_p_stddev.get();
-		R(Y_mocap_y, Y_mocap_y) = _mocap_p_stddev.get() * _mocap_p_stddev.get();
+		R(Y_mocap_x, Y_mocap_x) = _param_lpe_vic_p.get() * _param_lpe_vic_p.get();
+		R(Y_mocap_y, Y_mocap_y) = _param_lpe_vic_p.get() * _param_lpe_vic_p.get();
 	}
 
-	if (_mocap_epv > _mocap_p_stddev.get()) {
+	if (_mocap_epv > _param_lpe_vic_p.get()) {
 		R(Y_mocap_z, Y_mocap_z) = _mocap_epv * _mocap_epv;
 
 	} else {
-		R(Y_mocap_z, Y_mocap_z) = _mocap_p_stddev.get() * _mocap_p_stddev.get();
+		R(Y_mocap_z, Y_mocap_z) = _param_lpe_vic_p.get() * _param_lpe_vic_p.get();
 	}
 
 	// residual

@@ -7,7 +7,7 @@ float32 average_current_a		# Battery current average in amperes, -1 if unknown
 float32 discharged_mah		# Discharged amount in mAh, -1 if unknown
 float32 remaining		# From 1 to 0, -1 if unknown
 float32 scale		# Power scaling factor, >= 1, or -1 if unknown
-float32 temperature         # temperature of the battery
+float32 temperature         # temperature of the battery. NaN if unknown
 int32 cell_count		# Number of cells
 bool connected			# Whether or not a battery is connected, based on a voltage threshold
 bool system_source		# Whether or not a this battery is the active power source for VDD_5V_IN
@@ -18,6 +18,8 @@ uint16 run_time_to_empty   # predicted remaining battery capacity based on the p
 uint16 average_time_to_empty   # predicted remaining battery capacity based on the average rate of discharge in min
 uint16 serial_number       # serial number of the battery pack
 
+float32[4] voltage_cell_v   # Battery individual cell voltages
+float32 max_cell_voltage_delta   # Max difference between individual cell voltages
 
 bool is_powering_off		# Power off event imminent indication, false if unknown
 

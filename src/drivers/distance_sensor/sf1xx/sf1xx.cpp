@@ -44,7 +44,8 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_getopt.h>
-#include <px4_workqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_module.h>
 
 #include <drivers/device/i2c.h>
 
@@ -59,7 +60,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <vector>
 
 #include <perf/perf_counter.h>
 
@@ -73,62 +73,41 @@
 #include <board_config.h>
 
 /* Configuration Constants */
-#define SF1XX_BUS_DEFAULT 		PX4_I2C_BUS_EXPANSION
-#define SF1XX_BASEADDR 	0x66
+#define SF1XX_BUS_DEFAULT	PX4_I2C_BUS_EXPANSION
+#define SF1XX_BASEADDR		0x66
 #define SF1XX_DEVICE_PATH	"/dev/sf1xx"
 
 
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
-
-class SF1XX : public device::I2C
+class SF1XX : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
 	SF1XX(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING, int bus = SF1XX_BUS_DEFAULT,
 	      int address = SF1XX_BASEADDR);
-	virtual ~SF1XX();
 
-	virtual int 		init();
+	virtual ~SF1XX() override;
 
-	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen);
-	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	int init() override;
+
+	ssize_t read(device::file_t *filp, char *buffer, size_t buflen) override;
+	int ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
 	/**
 	* Diagnostics - print some basic information about the driver.
 	*/
-	void				print_info();
+	void print_info();
 
 protected:
-	virtual int			probe();
+	int probe() override;
 
 private:
-	uint8_t _rotation;
-	float				_min_distance;
-	float				_max_distance;
-	int                             _conversion_interval;
-	work_s				_work{};
-	ringbuffer::RingBuffer  *_reports;
-	bool				_sensor_ok;
-	int				_measure_ticks;
-	int				_class_instance;
-	int				_orb_class_instance;
-
-	orb_advert_t		_distance_sensor_topic;
-
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
-
-
-
 	/**
 	* Test whether the device supported by the driver is present at a
 	* specific address.
 	*
-	* @param address	The I2C bus address to probe.
-	* @return			True if the device is present.
+	* @param address The I2C bus address to probe.
+	* @return True if the device is present.
 	*/
-	int					probe_address(uint8_t address);
+	int probe_address(uint8_t address);
 
 	/**
 	* Initialise the automatic measurement state machine and start it.
@@ -136,39 +115,49 @@ private:
 	* @note This function is called at open and error time.  It might make sense
 	*       to make it more aggressive about resetting the bus in case of errors.
 	*/
-	void				start();
+	void start();
 
 	/**
 	* Stop the automatic measurement state machine.
 	*/
-	void				stop();
+	void stop();
 
 	/**
 	* Set the min and max distance thresholds if you want the end points of the sensors
 	* range to be brought in at all, otherwise it will use the defaults SF1XX_MIN_DISTANCE
 	* and SF1XX_MAX_DISTANCE
 	*/
-	void				set_minimum_distance(float min);
-	void				set_maximum_distance(float max);
-	float				get_minimum_distance();
-	float				get_maximum_distance();
+	void set_minimum_distance(float min);
+	void set_maximum_distance(float max);
+	float get_minimum_distance();
+	float get_maximum_distance();
 
 	/**
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
 	*/
-	void				cycle();
-	int					measure();
-	int					collect();
-	/**
-	* Static trampoline from the workq context; because we don't have a
-	* generic workq wrapper yet.
-	*
-	* @param arg		Instance pointer for the driver that is polling.
-	*/
-	static void			cycle_trampoline(void *arg);
+	void Run() override;
+	int measure();
+	int collect();
 
+	bool _sensor_ok{false};
 
+	int _class_instance{-1};
+	int _conversion_interval{-1};
+	int _measure_interval{0};
+	int _orb_class_instance{-1};
+
+	float _max_distance{-1.0f};
+	float _min_distance{-1.0f};
+
+	uint8_t _rotation{0};
+
+	ringbuffer::RingBuffer  *_reports{nullptr};
+
+	orb_advert_t _distance_sensor_topic{nullptr};
+
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "sf1xx_read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, "sf1xx_com_err")};
 };
 
 /*
@@ -178,19 +167,8 @@ extern "C" __EXPORT int sf1xx_main(int argc, char *argv[]);
 
 SF1XX::SF1XX(uint8_t rotation, int bus, int address) :
 	I2C("SF1XX", SF1XX_DEVICE_PATH, bus, address, 400000),
-	_rotation(rotation),
-	_min_distance(-1.0f),
-	_max_distance(-1.0f),
-	_conversion_interval(-1),
-	_reports(nullptr),
-	_sensor_ok(false),
-	_measure_ticks(0),
-	_class_instance(-1),
-	_orb_class_instance(-1),
-	_distance_sensor_topic(nullptr),
-	_sample_perf(perf_alloc(PC_ELAPSED, "sf1xx_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "sf1xx_com_err"))
-
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	_rotation(rotation)
 {
 }
 
@@ -343,27 +321,17 @@ SF1XX::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(_conversion_interval);
+					_measure_interval = (_conversion_interval);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -377,18 +345,18 @@ SF1XX::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* convert hz to tick interval via microseconds */
-					int ticks = USEC2TICK(1000000 / arg);
+					int interval = (1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(_conversion_interval)) {
+					if (interval < _conversion_interval) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					_measure_ticks = ticks;
+					_measure_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -399,35 +367,6 @@ SF1XX::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				}
 			}
 		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (1000 / _measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			ATOMIC_ENTER;
-
-			if (!_reports->resize(arg)) {
-				ATOMIC_LEAVE;
-				return -ENOMEM;
-			}
-
-			ATOMIC_LEAVE;
-
-			return OK;
-		}
-
-	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
 
 	default:
 		/* give it to the superclass */
@@ -448,7 +387,7 @@ SF1XX::read(device::file_t *filp, char *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is enabled */
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
@@ -477,7 +416,7 @@ SF1XX::read(device::file_t *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(_conversion_interval);
+		px4_usleep(_conversion_interval);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -546,7 +485,7 @@ SF1XX::collect()
 	report.current_distance = distance_m;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
-	report.covariance = 0.0f;
+	report.variance = 0.0f;
 	report.signal_quality = -1;
 	/* TODO: set proper ID */
 	report.id = 0;
@@ -577,25 +516,17 @@ SF1XX::start()
 	measure();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&SF1XX::cycle_trampoline, this, USEC2TICK(_conversion_interval));
+	ScheduleDelayed(_conversion_interval);
 }
 
 void
 SF1XX::stop()
 {
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 }
 
 void
-SF1XX::cycle_trampoline(void *arg)
-{
-	SF1XX *dev = (SF1XX *)arg;
-
-	dev->cycle();
-}
-
-void
-SF1XX::cycle()
+SF1XX::Run()
 {
 	/* Collect results */
 	if (OK != collect()) {
@@ -606,12 +537,7 @@ SF1XX::cycle()
 	}
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&SF1XX::cycle_trampoline,
-		   this,
-		   USEC2TICK(_conversion_interval));
-
+	ScheduleDelayed(_conversion_interval);
 }
 
 void
@@ -619,7 +545,7 @@ SF1XX::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u ticks\n", _measure_ticks);
+	printf("poll interval:  %u\n", _measure_interval);
 	_reports->print_info("report queue");
 }
 
@@ -857,13 +783,33 @@ info()
 static void
 sf1xx_usage()
 {
-	PX4_INFO("usage: sf1xx command [options]");
-	PX4_INFO("options:");
-	PX4_INFO("\t-b --bus i2cbus (%d)", SF1XX_BUS_DEFAULT);
-	PX4_INFO("\t-a --all");
-	PX4_INFO("\t-R --rotation (%d)", distance_sensor_s::ROTATION_DOWNWARD_FACING);
-	PX4_INFO("command:");
-	PX4_INFO("\tstart|stop|test|reset|info");
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+I2C bus driver for Lightware SFxx series LIDAR rangefinders: SF10/a, SF10/b, SF10/c, SF11/c, SF/LW20.
+
+Setup/usage information: https://docs.px4.io/en/sensor/sfxx_lidar.html
+
+### Examples
+
+Attempt to start driver on any bus (start on bus where first sensor found).
+$ sf1xx start -a
+Stop driver
+$ sf1xx stop
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("sf1xx", "driver");
+	PRINT_MODULE_USAGE_SUBCATEGORY("distance_sensor");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start","Start driver");
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "Attempt to start driver on all I2C buses", true);
+	PRINT_MODULE_USAGE_PARAM_INT('b', 1, 1, 2000, "Start driver on specific I2C bus", true);
+	PRINT_MODULE_USAGE_PARAM_INT('R', 25, 1, 25, "Sensor rotation - downward facing by default", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reset","Reset driver");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("info","Print driver information");
+
 }
 
 int

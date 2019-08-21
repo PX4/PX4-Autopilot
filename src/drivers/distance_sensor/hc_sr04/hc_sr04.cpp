@@ -41,6 +41,7 @@
 #include <px4_workqueue.h>
 #include <drivers/device/device.h>
 #include <px4_defines.h>
+#include <containers/Array.hpp>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -54,7 +55,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <vector>
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
@@ -79,14 +79,10 @@
 #define SR04_CONVERSION_INTERVAL 	100000 /* 100ms for one sonar */
 
 
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
-
 class HC_SR04 : public cdev::CDev
 {
 public:
-	HC_SR04(unsigned sonars = 6);
+	HC_SR04();
 	virtual ~HC_SR04();
 
 	virtual int 		init();
@@ -106,10 +102,9 @@ protected:
 private:
 	float				_min_distance;
 	float				_max_distance;
-	work_s				_work{};
 	ringbuffer::RingBuffer	*_reports;
 	bool				_sensor_ok;
-	int					_measure_ticks;
+	int					_measure_interval;
 	bool				_collect_phase;
 	int					_class_instance;
 	int					_orb_class_instance;
@@ -123,9 +118,9 @@ private:
 	int					_cycling_rate;	/* */
 	uint8_t				_index_counter;	/* temporary sonar i2c address */
 
-	std::vector<float>
+	px4::Array<float, 6>
 	_latest_sonar_measurements; /* vector to store latest sonar measurements in before writing to report */
-	unsigned 		_sonars;
+	unsigned 		_sonars{6};
 	struct GPIOConfig {
 		uint32_t        trig_port;
 		uint32_t        echo_port;
@@ -171,17 +166,9 @@ private:
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
 	*/
-	void				cycle();
+	void				Run() override;
 	int					measure();
 	int					collect();
-	/**
-	* Static trampoline from the workq context; because we don't have a
-	* generic workq wrapper yet.
-	*
-	* @param arg		Instance pointer for the driver that is polling.
-	*/
-	static void			cycle_trampoline(void *arg);
-
 
 };
 
@@ -200,13 +187,13 @@ const HC_SR04::GPIOConfig HC_SR04::_gpio_tab[] = {
 extern "C"  __EXPORT int hc_sr04_main(int argc, char *argv[]);
 static int sonar_isr(int irq, void *context);
 
-HC_SR04::HC_SR04(unsigned sonars) :
+HC_SR04::HC_SR04() :
 	CDev(SR04_DEVICE_PATH, 0),
 	_min_distance(SR04_MIN_DISTANCE),
 	_max_distance(SR04_MAX_DISTANCE),
 	_reports(nullptr),
 	_sensor_ok(false),
-	_measure_ticks(0),
+	_measure_interval(0),
 	_collect_phase(false),
 	_class_instance(-1),
 	_orb_class_instance(-1),
@@ -348,27 +335,17 @@ HC_SR04::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(_cycling_rate);
+					_measure_interval = _cycling_rate;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -382,18 +359,18 @@ HC_SR04::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* convert hz to tick interval via microseconds */
-					int ticks = USEC2TICK(1000000 / arg);
+					int interval = (1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(_cycling_rate)) {
+					if (interval < _cycling_rate) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					_measure_ticks = ticks;
+					_measure_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -404,35 +381,6 @@ HC_SR04::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				}
 			}
 		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (1000 / _measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			ATOMIC_ENTER;
-
-			if (!_reports->resize(arg)) {
-				ATOMIC_LEAVE;
-				return -ENOMEM;
-			}
-
-			ATOMIC_LEAVE;
-
-			return OK;
-		}
-
-	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
 
 	default:
 		/* give it to the superclass */
@@ -454,7 +402,7 @@ HC_SR04::read(device::file_t *filp, char *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is enabled */
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
 		 * Note that we may be pre-empted by the workq thread while we are doing this;
@@ -603,7 +551,6 @@ HC_SR04::collect()
 void
 HC_SR04::start()
 {
-
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_reports->flush();
@@ -611,31 +558,17 @@ HC_SR04::start()
 	measure();  /* begin measure */
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&HC_SR04::cycle_trampoline,
-		   this,
-		   USEC2TICK(_cycling_rate));
+	ScheduleDelayed(_cycling_rate);
 }
 
 void
 HC_SR04::stop()
 {
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 }
 
 void
-HC_SR04::cycle_trampoline(void *arg)
-{
-
-	HC_SR04 *dev = (HC_SR04 *)arg;
-
-	dev->cycle();
-
-}
-
-void
-HC_SR04::cycle()
+HC_SR04::Run()
 {
 	/*_circle_count 计录当前sonar　*/
 	/* perform collection */
@@ -655,13 +588,7 @@ HC_SR04::cycle()
 		PX4_DEBUG("measure error sonar adress %d", _cycle_counter);
 	}
 
-
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&HC_SR04::cycle_trampoline,
-		   this,
-		   USEC2TICK(_cycling_rate));
-
+	ScheduleDelayed(_cycling_rate);
 }
 
 void
@@ -669,7 +596,7 @@ HC_SR04::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u ticks\n", _measure_ticks);
+	printf("poll interval:  %u \n", _measure_interval);
 	_reports->print_info("report queue");
 }
 

@@ -54,10 +54,8 @@
 #include "px4muorb.h"
 
 //#define SHMEM_DEBUG
-void update_to_shmem(param_t param, union param_value_u value);
-int update_from_shmem(param_t param, union param_value_u *value);
-void update_index_from_shmem(void);
-uint64_t update_from_shmem_prev_time = 0, update_from_shmem_current_time = 0;
+
+static uint64_t update_from_shmem_prev_time = 0, update_from_shmem_current_time = 0;
 extern unsigned char *adsp_changed_index;
 
 struct param_wbuf_s {

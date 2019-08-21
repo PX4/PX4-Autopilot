@@ -1,4 +1,4 @@
-# @board px4fmu-v2 exclude
+# @board px4_fmu-v2 exclude
 
 M: 4
 S: 0 0  -10000  -10000     0 -10000  10000

@@ -178,17 +178,7 @@ do_gyro(int argc, char *argv[])
 
 		int ret;
 
-		if (argc == 3 && !strcmp(argv[0], "sampling")) {
-
-			/* set the gyro internal sampling rate up to at least i Hz */
-			ret = ioctl(fd, GYROIOCSSAMPLERATE, strtoul(argv[2], NULL, 0));
-
-			if (ret) {
-				PX4_ERR("sampling rate could not be set");
-				return 1;
-			}
-
-		} else if (argc == 3 && !strcmp(argv[0], "rate")) {
+		if (argc == 3 && !strcmp(argv[0], "rate")) {
 
 			/* set the driver to poll at i Hz */
 			ret = ioctl(fd, SENSORIOCSPOLLRATE, strtoul(argv[2], NULL, 0));
@@ -198,31 +188,18 @@ do_gyro(int argc, char *argv[])
 				return 1;
 			}
 
-		} else if (argc == 3 && !strcmp(argv[0], "range")) {
-
-			/* set the range to i dps */
-			ret = ioctl(fd, GYROIOCSRANGE, strtoul(argv[2], NULL, 0));
-
-			if (ret) {
-				PX4_ERR("range could not be set");
-				return 1;
-			}
-
 		} else {
 			print_usage();
 			return 1;
 		}
 
-		int srate = ioctl(fd, GYROIOCGSAMPLERATE, 0);
-		int prate = ioctl(fd, SENSORIOCGPOLLRATE, 0);
-		int range = ioctl(fd, GYROIOCGRANGE, 0);
 		int id = ioctl(fd, DEVIOCGDEVICEID, 0);
 		int32_t calibration_id = 0;
 
 		param_get(param_find("CAL_GYRO0_ID"), &(calibration_id));
 
-		PX4_INFO("gyro: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d dps",
-			 id, calibration_id, srate, prate, range);
+		PX4_INFO("gyro: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)",
+			 id, calibration_id);
 
 		close(fd);
 	}
@@ -245,17 +222,7 @@ do_mag(int argc, char *argv[])
 
 		int ret;
 
-		if (argc == 3 && !strcmp(argv[0], "sampling")) {
-
-			/* set the mag internal sampling rate up to at least i Hz */
-			ret = ioctl(fd, MAGIOCSSAMPLERATE, strtoul(argv[2], NULL, 0));
-
-			if (ret) {
-				PX4_ERR("sampling rate could not be set");
-				return 1;
-			}
-
-		} else if (argc == 3 && !strcmp(argv[0], "rate")) {
+		if (argc == 3 && !strcmp(argv[0], "rate")) {
 
 			/* set the driver to poll at i Hz */
 			ret = ioctl(fd, SENSORIOCSPOLLRATE, strtoul(argv[2], NULL, 0));
@@ -280,16 +247,13 @@ do_mag(int argc, char *argv[])
 			return 1;
 		}
 
-		int srate = ioctl(fd, MAGIOCGSAMPLERATE, 0);
-		int prate = ioctl(fd, SENSORIOCGPOLLRATE, 0);
-		int range = ioctl(fd, MAGIOCGRANGE, 0);
 		int id = ioctl(fd, DEVIOCGDEVICEID, 0);
 		int32_t calibration_id = 0;
 
 		param_get(param_find("CAL_MAG0_ID"), &(calibration_id));
 
-		PX4_INFO("mag: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d Ga",
-			 id, calibration_id, srate, prate, range);
+		PX4_INFO("mag: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)",
+			 id, calibration_id);
 
 		close(fd);
 	}
@@ -312,17 +276,7 @@ do_accel(int argc, char *argv[])
 
 		int ret;
 
-		if (argc == 3 && !strcmp(argv[0], "sampling")) {
-
-			/* set the accel internal sampling rate up to at least i Hz */
-			ret = ioctl(fd, ACCELIOCSSAMPLERATE, strtoul(argv[2], NULL, 0));
-
-			if (ret) {
-				PX4_ERR("sampling rate could not be set");
-				return 1;
-			}
-
-		} else if (argc == 3 && !strcmp(argv[0], "rate")) {
+		if (argc == 3 && !strcmp(argv[0], "rate")) {
 
 			/* set the driver to poll at i Hz */
 			ret = ioctl(fd, SENSORIOCSPOLLRATE, strtoul(argv[2], NULL, 0));
@@ -332,31 +286,18 @@ do_accel(int argc, char *argv[])
 				return 1;
 			}
 
-		} else if (argc == 3 && !strcmp(argv[0], "range")) {
-
-			/* set the range to i G */
-			ret = ioctl(fd, ACCELIOCSRANGE, strtoul(argv[2], NULL, 0));
-
-			if (ret) {
-				PX4_ERR("range could not be set");
-				return 1;
-			}
-
 		} else {
 			print_usage();
 			return 1;
 		}
 
-		int srate = ioctl(fd, ACCELIOCGSAMPLERATE, 0);
-		int prate = ioctl(fd, SENSORIOCGPOLLRATE, 0);
-		int range = ioctl(fd, ACCELIOCGRANGE, 0);
 		int id = ioctl(fd, DEVIOCGDEVICEID, 0);
 		int32_t calibration_id = 0;
 
 		param_get(param_find("CAL_ACC0_ID"), &(calibration_id));
 
-		PX4_INFO("accel: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)\n\tsample rate:\t%d Hz\n\tread rate:\t%d Hz\n\trange:\t%d G",
-			 id, calibration_id, srate, prate, range);
+		PX4_INFO("accel: \n\tdevice id:\t0x%X\t(calibration is for device id 0x%X)",
+			 id, calibration_id);
 
 		close(fd);
 	}

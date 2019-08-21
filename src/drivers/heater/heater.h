@@ -41,19 +41,12 @@
 
 #pragma once
 
-#include <string.h>
-#include <getopt.h>
-#include <parameters/param.h>
-
-#include <px4_workqueue.h>
+#include <px4_config.h>
+#include <px4_getopt.h>
 #include <px4_module.h>
 #include <px4_module_params.h>
-
-#include <px4_config.h>
-#include <px4_log.h>
-#include <px4_getopt.h>
-
-#include <uORB/uORB.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
 
@@ -68,7 +61,7 @@
 extern "C" __EXPORT int heater_main(int argc, char *argv[]);
 
 
-class Heater : public ModuleBase<Heater>, public ModuleParams
+class Heater : public ModuleBase<Heater>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	Heater();
@@ -109,19 +102,6 @@ public:
 	int controller_period(char *argv[]);
 
 	/**
-	 * @brief Reports the average heater on duty cycle as a percent.
-	 * @return Returns the average heater on cycle duty cycle as a percent.
-	 */
-	float duty_cycle();
-
-	/**
-	 * @brief Sets and/or reports the heater controller feed fordward value.
-	 * @param argv Pointer to the input argument array.
-	 * @return Returns the heater feed forward value iff successful, 0.0f otherwise.
-	 */
-	float feed_forward(char *argv[]);
-
-	/**
 	 * @brief Sets and/or reports the heater controller integrator gain value.
 	 * @param argv Pointer to the input argument array.
 	 * @return Returns the heater integrator gain value iff successful, 0.0f otherwise.
@@ -155,12 +135,6 @@ public:
 	int print_status();
 
 	/**
-	 * @brief Reports the current heater temperature.
-	 * @return Returns the current heater temperature value iff successful, -1.0f otherwise.
-	 */
-	float sensor_temperature();
-
-	/**
 	 * @brief Sets and/or reports the heater target temperature.
 	 * @param argv Pointer to the input argument array.
 	 * @return Returns the heater target temperature value iff successful, -1.0f otherwise.
@@ -174,41 +148,14 @@ protected:
 	 */
 	void initialize_topics();
 
-	/**
-	 * @see ModuleBase::initialize_trampoline().
-	 * @brief Trampoline initialization.
-	 * @param argv Pointer to the task startup arguments.
-	 */
-	static void initialize_trampoline(void *argv);
-
 private:
-
-	/**
-	 * @brief Checks for new commands and processes them.
-	 */
-	void process_commands();
-
-	/**
-	 * @brief Trampoline for the work queue.
-	 * @param argv Pointer to the task startup arguments.
-	 */
-	static void cycle_trampoline(void *argv);
 
 	/**
 	 * @brief Calculates the heater element on/off time, carries out
 	 *        closed loop feedback and feedforward temperature control,
 	 *        and schedules the next cycle.
 	 */
-	void cycle();
-
-	/**
-	 * @brief Updates the uORB topics for local subscribers.
-	 * @param meta The uORB metadata to copy.
-	 * @param handle The uORB handle to obtain data from.
-	 * @param buffer The data buffer to copy data into.
-	 * @return Returns true iff update was successful.
-	 */
-	int orb_update(const struct orb_metadata *meta, int handle, void *buffer);
+	void Run() override;
 
 	/**
 	 * @brief Updates and checks for updated uORB parameters.
@@ -221,28 +168,26 @@ private:
 
 	int _controller_period_usec = CONTROLLER_PERIOD_DEFAULT;
 
-	float _duty_cycle = 0.0f;
+	int _controller_time_on_usec = 0;
 
 	bool _heater_on = false;
 
 	float _integrator_value = 0.0f;
 
-	int _params_sub = 0;
+	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
 
 	float _proportional_value = 0.0f;
 
-	struct sensor_accel_s _sensor_accel = {};
-
-	int _sensor_accel_sub = -1;
+	uORB::Subscription _sensor_accel_sub{ORB_ID(sensor_accel)};
+	sensor_accel_s _sensor_accel{};
 
 	float _sensor_temperature = 0.0f;
 
 	/** @note Declare local parameters using defined parameters. */
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::SENS_IMU_TEMP_FF>)  _p_feed_forward_value,
-		(ParamFloat<px4::params::SENS_IMU_TEMP_I>)  _p_integrator_gain,
-		(ParamFloat<px4::params::SENS_IMU_TEMP_P>)  _p_proportional_gain,
-		(ParamInt<px4::params::SENS_TEMP_ID>) _p_sensor_id,
-		(ParamFloat<px4::params::SENS_IMU_TEMP>) _p_temperature_setpoint
+		(ParamFloat<px4::params::SENS_IMU_TEMP_I>)  _param_sens_imu_temp_i,
+		(ParamFloat<px4::params::SENS_IMU_TEMP_P>)  _param_sens_imu_temp_p,
+		(ParamInt<px4::params::SENS_TEMP_ID>) _param_sens_temp_id,
+		(ParamFloat<px4::params::SENS_IMU_TEMP>) _param_sens_imu_temp
 	)
 };

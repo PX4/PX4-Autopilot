@@ -39,6 +39,7 @@
  * @author Beat Küng <beat-kueng@gmx.net>
  */
 
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/sensor_gyro.h>
 #include <mathlib/mathlib.h>
 #include <px4_log.h>
@@ -92,7 +93,7 @@ public:
 private:
 	void publish_led_control(led_control_s &led_control);
 
-	orb_advert_t _led_control_pub = nullptr;
+	uORB::PublicationQueued<led_control_s> _led_control_pub{ORB_ID(led_control)};
 
 	bool	_force_task_exit = false;
 	int	_control_task = -1;		// task handle for task
@@ -181,7 +182,7 @@ void TemperatureCalibration::task_main()
 	// make sure the system updates the changed parameters
 	param_notify_changes();
 
-	usleep(300000); // wait a bit for the system to apply the parameters
+	px4_usleep(300000); // wait a bit for the system to apply the parameters
 
 	hrt_abstime next_progress_output = hrt_absolute_time() + 1e6;
 
@@ -205,7 +206,7 @@ void TemperatureCalibration::task_main()
 
 		if (ret < 0) {
 			// Poll error, sleep and try again
-			usleep(10000);
+			px4_usleep(10000);
 			continue;
 
 		} else if (ret == 0) {
@@ -349,13 +350,7 @@ int TemperatureCalibration::start()
 void TemperatureCalibration::publish_led_control(led_control_s &led_control)
 {
 	led_control.timestamp = hrt_absolute_time();
-
-	if (_led_control_pub == nullptr) {
-		_led_control_pub = orb_advertise_queue(ORB_ID(led_control), &led_control, LED_UORB_QUEUE_LENGTH);
-
-	} else {
-		orb_publish(ORB_ID(led_control), _led_control_pub, &led_control);
-	}
+	_led_control_pub.publish(led_control);
 }
 
 int run_temperature_calibration(bool accel, bool baro, bool gyro)

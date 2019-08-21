@@ -40,9 +40,9 @@
 
 using namespace matrix;
 
-bool FlightTaskAutoMapper::activate()
+bool FlightTaskAutoMapper::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	bool ret = FlightTaskAuto::activate();
+	bool ret = FlightTaskAuto::activate(last_setpoint);
 	_reset();
 	return ret;
 }
@@ -86,10 +86,16 @@ bool FlightTaskAutoMapper::update()
 		_generateVelocitySetpoints();
 	}
 
+	if (_param_com_obs_avoid.get()) {
+		_obstacle_avoidance.updateAvoidanceDesiredSetpoints(_position_setpoint, _velocity_setpoint, (int)_type);
+		_obstacle_avoidance.injectAvoidanceSetpoints(_position_setpoint, _velocity_setpoint, _yaw_setpoint,
+				_yawspeed_setpoint);
+	}
+
 	// during mission and reposition, raise the landing gears but only
 	// if altitude is high enough
 	if (_highEnoughForLandingGear()) {
-		_constraints.landing_gear = vehicle_constraints_s::GEAR_UP;
+		_gear.landing_gear = _mission_gear;
 	}
 
 	// update previous type
@@ -103,7 +109,6 @@ void FlightTaskAutoMapper::_reset()
 	// Set setpoints equal current state.
 	_velocity_setpoint = _velocity;
 	_position_setpoint = _position;
-	_speed_at_target = 0.0f;
 }
 
 void FlightTaskAutoMapper::_generateIdleSetpoints()
@@ -118,11 +123,11 @@ void FlightTaskAutoMapper::_generateLandSetpoints()
 {
 	// Keep xy-position and go down with landspeed
 	_position_setpoint = Vector3f(_target(0), _target(1), NAN);
-	_velocity_setpoint = Vector3f(Vector3f(NAN, NAN, MPC_LAND_SPEED.get()));
+	_velocity_setpoint = Vector3f(Vector3f(NAN, NAN, _param_mpc_land_speed.get()));
 	// set constraints
-	_constraints.tilt = MPC_TILTMAX_LND.get();
-	_constraints.speed_down = MPC_LAND_SPEED.get();
-	_constraints.landing_gear = vehicle_constraints_s::GEAR_DOWN;
+	_constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
+	_constraints.speed_down = _param_mpc_land_speed.get();
+	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 }
 
 void FlightTaskAutoMapper::_generateTakeoffSetpoints()
@@ -132,10 +137,10 @@ void FlightTaskAutoMapper::_generateTakeoffSetpoints()
 	_velocity_setpoint = Vector3f(NAN, NAN, NAN);
 
 	// limit vertical speed during takeoff
-	_constraints.speed_up = math::gradual(_alt_above_ground, MPC_LAND_ALT2.get(),
-					      MPC_LAND_ALT1.get(), MPC_TKO_SPEED.get(), _constraints.speed_up);
+	_constraints.speed_up = math::gradual(_alt_above_ground, _param_mpc_land_alt2.get(),
+					      _param_mpc_land_alt1.get(), _param_mpc_tko_speed.get(), _constraints.speed_up);
 
-	_constraints.landing_gear = vehicle_constraints_s::GEAR_DOWN;
+	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 }
 
 void FlightTaskAutoMapper::_generateVelocitySetpoints()
@@ -143,7 +148,7 @@ void FlightTaskAutoMapper::_generateVelocitySetpoints()
 	// TODO: Remove velocity force logic from navigator, since
 	// navigator should only send out waypoints.
 	_position_setpoint = Vector3f(NAN, NAN, _position(2));
-	Vector2f vel_sp_xy = Vector2f(&_velocity(0)).unit_or_zero() * _mc_cruise_speed;
+	Vector2f vel_sp_xy = Vector2f(_velocity).unit_or_zero() * _mc_cruise_speed;
 	_velocity_setpoint = Vector3f(vel_sp_xy(0), vel_sp_xy(1), NAN);
 }
 
@@ -167,7 +172,7 @@ void FlightTaskAutoMapper::updateParams()
 	FlightTaskAuto::updateParams();
 
 	// make sure that alt1 is above alt2
-	MPC_LAND_ALT1.set(math::max(MPC_LAND_ALT1.get(), MPC_LAND_ALT2.get()));
+	_param_mpc_land_alt1.set(math::max(_param_mpc_land_alt1.get(), _param_mpc_land_alt2.get()));
 }
 
 bool FlightTaskAutoMapper::_highEnoughForLandingGear()

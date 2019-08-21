@@ -53,7 +53,7 @@
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 
-using matrix::wrap_pi;
+using matrix::wrap_2pi;
 
 dm_item_t MavlinkMissionManager::_dataman_id = DM_KEY_WAYPOINTS_OFFBOARD_0;
 bool MavlinkMissionManager::_dataman_init = false;
@@ -62,6 +62,8 @@ int32_t MavlinkMissionManager::_current_seq = 0;
 bool MavlinkMissionManager::_transfer_in_progress = false;
 constexpr uint16_t MavlinkMissionManager::MAX_COUNT[];
 uint16_t MavlinkMissionManager::_geofence_update_counter = 0;
+uint16_t MavlinkMissionManager::_safepoint_update_counter = 0;
+
 
 #define CHECK_SYSID_COMPID_MISSION(_msg)		(_msg.target_system == mavlink_system.sysid && \
 		((_msg.target_component == mavlink_system.compid) || \
@@ -71,15 +73,11 @@ uint16_t MavlinkMissionManager::_geofence_update_counter = 0;
 MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) :
 	_mavlink(mavlink)
 {
-	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
-	_mission_result_sub = orb_subscribe(ORB_ID(mission_result));
-
 	init_offboard_mission();
 }
 
 MavlinkMissionManager::~MavlinkMissionManager()
 {
-	orb_unsubscribe(_mission_result_sub);
 	orb_unadvertise(_offboard_mission_pub);
 }
 
@@ -156,7 +154,8 @@ MavlinkMissionManager::load_safepoint_stats()
 int
 MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq)
 {
-	mission_s mission;
+	// We want to make sure the whole struct is initialized including padding before getting written by dataman.
+	mission_s mission {};
 	mission.timestamp = hrt_absolute_time();
 	mission.dataman_id = dataman_id;
 	mission.count = count;
@@ -236,6 +235,7 @@ MavlinkMissionManager::update_safepoint_count(unsigned count)
 {
 	mission_stats_entry_s stats;
 	stats.num_items = count;
+	stats.update_counter = ++_safepoint_update_counter;
 
 	/* update stats in dataman */
 	int res = dm_write(DM_KEY_SAFE_POINTS, 0, DM_PERSIST_POWER_ON_RESET, &stats, sizeof(mission_stats_entry_s));
@@ -269,7 +269,6 @@ MavlinkMissionManager::send_mission_ack(uint8_t sysid, uint8_t compid, uint8_t t
 
 	PX4_DEBUG("WPM: Send MISSION_ACK type %u to ID %u", wpa.type, wpa.target_system);
 }
-
 
 void
 MavlinkMissionManager::send_mission_current(uint16_t seq)
@@ -368,7 +367,7 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 		_time_last_sent = hrt_absolute_time();
 
 		if (_int_mode) {
-			mavlink_mission_item_int_t wp;
+			mavlink_mission_item_int_t wp = {};
 			format_mavlink_mission_item(&mission_item, reinterpret_cast<mavlink_mission_item_t *>(&wp));
 
 			wp.target_system = sysid;
@@ -381,7 +380,7 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 			PX4_DEBUG("WPM: Send MISSION_ITEM_INT seq %u to ID %u", wp.seq, wp.target_system);
 
 		} else {
-			mavlink_mission_item_t wp;
+			mavlink_mission_item_t wp = {};
 			format_mavlink_mission_item(&mission_item, &wp);
 
 			wp.target_system = sysid;
@@ -485,12 +484,9 @@ MavlinkMissionManager::send(const hrt_abstime now)
 		return;
 	}
 
-	bool updated = false;
-	orb_check(_mission_result_sub, &updated);
+	mission_result_s mission_result{};
 
-	if (updated) {
-		mission_result_s mission_result;
-		orb_copy(ORB_ID(mission_result), _mission_result_sub, &mission_result);
+	if (_mission_result_sub.update(&mission_result)) {
 
 		if (_current_seq != mission_result.seq_current) {
 			_current_seq = mission_result.seq_current;
@@ -1321,13 +1317,13 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->nav_cmd = NAV_CMD_WAYPOINT;
 			mission_item->time_inside = mavlink_mission_item->param1;
 			mission_item->acceptance_radius = mavlink_mission_item->param2;
-			mission_item->yaw = wrap_pi(math::radians(mavlink_mission_item->param4));
+			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
 			break;
 
 		case MAV_CMD_NAV_LOITER_UNLIM:
 			mission_item->nav_cmd = NAV_CMD_LOITER_UNLIMITED;
 			mission_item->loiter_radius = mavlink_mission_item->param3;
-			mission_item->yaw = wrap_pi(math::radians(mavlink_mission_item->param4));
+			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
 			break;
 
 		case MAV_CMD_NAV_LOITER_TIME:
@@ -1335,19 +1331,22 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			mission_item->time_inside = mavlink_mission_item->param1;
 			mission_item->loiter_radius = mavlink_mission_item->param3;
 			mission_item->loiter_exit_xtrack = (mavlink_mission_item->param4 > 0);
+			// Yaw is only valid for multicopter but we set it always because
+			// it's just ignored for fixedwing.
+			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
 			break;
 
 		case MAV_CMD_NAV_LAND:
 			mission_item->nav_cmd = NAV_CMD_LAND;
 			// TODO: abort alt param1
-			mission_item->yaw = wrap_pi(math::radians(mavlink_mission_item->param4));
+			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
 			mission_item->land_precision = mavlink_mission_item->param2;
 			break;
 
 		case MAV_CMD_NAV_TAKEOFF:
 			mission_item->nav_cmd = NAV_CMD_TAKEOFF;
 			mission_item->pitch_min = mavlink_mission_item->param1;
-			mission_item->yaw = wrap_pi(math::radians(mavlink_mission_item->param4));
+			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
 			break;
 
 		case MAV_CMD_NAV_LOITER_TO_ALT:
@@ -1383,7 +1382,7 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 		case MAV_CMD_NAV_VTOL_TAKEOFF:
 		case MAV_CMD_NAV_VTOL_LAND:
 			mission_item->nav_cmd = (NAV_CMD)mavlink_mission_item->command;
-			mission_item->yaw = wrap_pi(math::radians(mavlink_mission_item->param4));
+			mission_item->yaw = wrap_2pi(math::radians(mavlink_mission_item->param4));
 			break;
 
 		case MAV_CMD_NAV_FENCE_RETURN_POINT:
@@ -1557,8 +1556,8 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 			mavlink_mission_item_int_t *item_int =
 				reinterpret_cast<mavlink_mission_item_int_t *>(mavlink_mission_item);
 
-			item_int->x = (int32_t)(mission_item->lat * 1e7);
-			item_int->y = (int32_t)(mission_item->lon * 1e7);
+			item_int->x = std::round(mission_item->lat * 1e7);
+			item_int->y = std::round(mission_item->lon * 1e7);
 
 		} else {
 			mavlink_mission_item->x = (float)mission_item->lat;
@@ -1621,7 +1620,7 @@ MavlinkMissionManager::format_mavlink_mission_item(const struct mission_item_s *
 
 		case MAV_CMD_NAV_VTOL_TAKEOFF:
 		case MAV_CMD_NAV_VTOL_LAND:
-			mavlink_mission_item->param4 = mission_item->yaw * M_RAD_TO_DEG_F;
+			mavlink_mission_item->param4 = math::degrees(mission_item->yaw);
 			break;
 
 		case MAV_CMD_NAV_FENCE_RETURN_POINT:

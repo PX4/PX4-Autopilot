@@ -37,46 +37,21 @@
  * magnetometer connected via SPI.
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <ecl/geo/geo.h>
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-
-
-#include <px4_log.h>
-
-#include <perf/perf_counter.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/clock.h>
-
-#include <drivers/drv_hrt.h>
+#include <drivers/device/integrator.h>
+#include <drivers/device/ringbuffer.h>
 #include <drivers/device/spi.h>
 #include <drivers/drv_accel.h>
+#include <ecl/geo/geo.h>
+#include <lib/conversion/rotation.h>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <perf/perf_counter.h>
+#include <px4_getopt.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <systemlib/err.h>
+
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 #  include <drivers/drv_mag.h>
 #endif
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
-
-#include <board_config.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <lib/conversion/rotation.h>
-#include <platforms/px4_getopt.h>
 
 /* SPI protocol address bits */
 #define DIR_READ(a)                     ((a) & 0x7f)
@@ -158,7 +133,7 @@ extern "C" { __EXPORT int fxos8701cq_main(int argc, char *argv[]); }
 class FXOS8701CQ_mag;
 #endif
 
-class FXOS8701CQ : public device::SPI
+class FXOS8701CQ : public device::SPI, public px4::ScheduledWorkItem
 {
 public:
 	FXOS8701CQ(int bus, const char *path, uint32_t device, enum Rotation rotation);
@@ -196,9 +171,10 @@ protected:
 
 private:
 
+	void Run() override;
+
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	FXOS8701CQ_mag		*_mag;
-	struct hrt_call   _mag_call;
 	unsigned    _call_mag_interval;
 	ringbuffer::RingBuffer    *_mag_reports;
 
@@ -211,9 +187,9 @@ private:
 	int16_t     _last_raw_mag_x;
 	int16_t     _last_raw_mag_y;
 	int16_t     _last_raw_mag_z;
-#endif
 
-	struct hrt_call		_accel_call;
+	hrt_abstime		_mag_last_measure{0};
+#endif
 
 	unsigned		_call_accel_interval;
 
@@ -283,24 +259,6 @@ private:
 	 * disable I2C on the chip
 	 */
 	void			disable_i2c();
-
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		measure_trampoline(void *arg);
-
-	/**
-	 * Static trampoline for the mag because it runs at a lower rate
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		mag_measure_trampoline(void *arg);
 
 	/**
 	 * check key registers for correct values
@@ -455,8 +413,6 @@ private:
 
 	void				measure();
 
-	void				measure_trampoline(void *arg);
-
 	/* this class does not allow copying due to ptr data members */
 	FXOS8701CQ_mag(const FXOS8701CQ_mag &);
 	FXOS8701CQ_mag operator=(const FXOS8701CQ_mag &);
@@ -466,9 +422,9 @@ private:
 FXOS8701CQ::FXOS8701CQ(int bus, const char *path, uint32_t device, enum Rotation rotation) :
 	SPI("FXOS8701CQ", path, bus, device, SPIDEV_MODE0,
 	    1 * 1000 * 1000),
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	_mag(new FXOS8701CQ_mag(this)),
-	_mag_call{},
 	_call_mag_interval(0),
 	_mag_reports(nullptr),
 	_mag_scale{},
@@ -481,7 +437,6 @@ FXOS8701CQ::FXOS8701CQ(int bus, const char *path, uint32_t device, enum Rotation
 	_last_raw_mag_y(0),
 	_last_raw_mag_z(0),
 #endif
-	_accel_call {},
 	_call_accel_interval(0),
 	_accel_reports(nullptr),
 	_accel_scale{},
@@ -582,7 +537,7 @@ FXOS8701CQ::init()
 	}
 
 	/* allocate basic report buffers */
-	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(accel_report));
+	_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
 
 	if (_accel_reports == nullptr) {
 		return ret;
@@ -643,7 +598,7 @@ FXOS8701CQ::init()
 	_accel_class_instance = register_class_devname(ACCEL_BASE_DEVICE_PATH);
 
 	/* advertise sensor topic, measure manually to initialize valid report */
-	struct accel_report arp;
+	sensor_accel_s arp;
 	_accel_reports->get(&arp);
 
 	/* measurement will have generated a report, publish */
@@ -717,8 +672,8 @@ FXOS8701CQ::probe()
 ssize_t
 FXOS8701CQ::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct accel_report);
-	accel_report *arb = reinterpret_cast<accel_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_accel_s);
+	sensor_accel_s *arb = reinterpret_cast<sensor_accel_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -804,23 +759,11 @@ FXOS8701CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_call_accel_interval = 0;
-				return OK;
-
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
-				return ioctl(filp, SENSORIOCSPOLLRATE, 1600);
-
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				return ioctl(filp, SENSORIOCSPOLLRATE, FXOS8701C_ACCEL_DEFAULT_RATE);
 
@@ -830,10 +773,10 @@ FXOS8701CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_call_accel_interval == 0);
 
 					/* convert hz to hrt interval via microseconds */
-					unsigned ticks = 1000000 / arg;
+					unsigned interval = 1000000 / arg;
 
 					/* check against maximum sane rate */
-					if (ticks < 500) {
+					if (interval < 500) {
 						return -EINVAL;
 					}
 
@@ -842,9 +785,7 @@ FXOS8701CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
-					_call_accel_interval = ticks;
-
-					_accel_call.period = _call_accel_interval - FXOS8701C_TIMER_REDUCTION;
+					_call_accel_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -856,40 +797,9 @@ FXOS8701CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCGPOLLRATE:
-		if (_call_accel_interval == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return 1000000 / _call_accel_interval;
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_accel_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
 	case SENSORIOCRESET:
 		reset();
 		return OK;
-
-	case ACCELIOCSSAMPLERATE:
-		return accel_set_samplerate(arg);
-
-	case ACCELIOCGSAMPLERATE:
-		return _accel_samplerate;
 
 	case ACCELIOCSSCALE: {
 			/* copy scale, but only if off by a few percent */
@@ -904,19 +814,6 @@ FXOS8701CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 				return -EINVAL;
 			}
 		}
-
-	case ACCELIOCSRANGE:
-		/* arg needs to be in G */
-		return accel_set_range(arg);
-
-	case ACCELIOCGRANGE:
-		/* convert to m/s^2 and return rounded in G */
-		return (unsigned long)((_accel_range_m_s2) / CONSTANTS_ONE_G + 0.5f);
-
-	case ACCELIOCGSCALE:
-		/* copy scale out */
-		memcpy((struct accel_calibration_s *) arg, &_accel_scale, sizeof(_accel_scale));
-		return OK;
 
 	default:
 		/* give it to the superclass */
@@ -933,21 +830,11 @@ FXOS8701CQ::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_call_mag_interval = 0;
-				return OK;
-
-			/* external signalling not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT:
 				/* 100 Hz is max for mag */
 				return mag_ioctl(filp, SENSORIOCSPOLLRATE, 100);
@@ -958,16 +845,16 @@ FXOS8701CQ::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_call_mag_interval == 0);
 
 					/* convert hz to hrt interval via microseconds */
-					unsigned ticks = 1000000 / arg;
+					unsigned interval = 1000000 / arg;
 
 					/* check against maximum sane rate */
-					if (ticks < 1000) {
+					if (interval < 1000) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
-					_mag_call.period = _call_mag_interval = ticks;
+					_call_mag_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -979,40 +866,9 @@ FXOS8701CQ::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 		}
 
-	case SENSORIOCGPOLLRATE:
-		if (_call_mag_interval == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return 1000000 / _call_mag_interval;
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_mag_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
 	case SENSORIOCRESET:
 		reset();
 		return OK;
-
-	case MAGIOCSSAMPLERATE:
-		return mag_set_samplerate(arg);
-
-	case MAGIOCGSAMPLERATE:
-		return _mag_samplerate;
 
 	case MAGIOCSSCALE:
 		/* copy scale in */
@@ -1159,7 +1015,7 @@ FXOS8701CQ::accel_set_samplerate(unsigned frequency)
 
 	uint8_t  active      = read_reg(FXOS8701CQ_CTRL_REG1) & CTRL_REG1_ACTIVE;
 
-	if (frequency == 0 || frequency == ACCEL_SAMPLERATE_DEFAULT) {
+	if (frequency == 0) {
 		frequency = FXOS8701C_ACCEL_DEFAULT_RATE;
 	}
 
@@ -1237,22 +1093,14 @@ FXOS8701CQ::start()
 #endif
 
 	/* start polling at the specified rate */
-	hrt_call_every(&_accel_call,
-		       1000,
-		       _call_accel_interval - FXOS8701C_TIMER_REDUCTION,
-		       (hrt_callout)&FXOS8701CQ::measure_trampoline, this);
-#if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
-	hrt_call_every(&_mag_call, 1000, _call_mag_interval, (hrt_callout)&FXOS8701CQ::mag_measure_trampoline, this);
-#endif
+	ScheduleOnInterval(_call_accel_interval - FXOS8701C_TIMER_REDUCTION, 10000);
 }
 
 void
 FXOS8701CQ::stop()
 {
-	hrt_cancel(&_accel_call);
-#if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
-	hrt_cancel(&_mag_call);
-#endif
+	ScheduleClear();
+
 	/* reset internal states */
 	memset(_last_accel, 0, sizeof(_last_accel));
 
@@ -1264,21 +1112,18 @@ FXOS8701CQ::stop()
 }
 
 void
-FXOS8701CQ::measure_trampoline(void *arg)
+FXOS8701CQ::Run()
 {
-	FXOS8701CQ *dev = (FXOS8701CQ *)arg;
-
 	/* make another measurement */
-	dev->measure();
-}
+	measure();
 
-void
-FXOS8701CQ::mag_measure_trampoline(void *arg)
-{
-	FXOS8701CQ *dev = (FXOS8701CQ *)arg;
+#if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 
-	/* make another measurement */
-	dev->mag_measure();
+	if (hrt_elapsed_time(&_mag_last_measure) >= _call_mag_interval) {
+		mag_measure();
+	}
+
+#endif
 }
 
 void
@@ -1330,7 +1175,7 @@ FXOS8701CQ::measure()
 	} raw_accel_mag_report;
 #pragma pack(pop)
 
-	accel_report accel_report;
+	sensor_accel_s accel_report;
 
 	/* start the performance counter */
 	perf_begin(_accel_sample_perf);
@@ -1509,6 +1354,9 @@ FXOS8701CQ::mag_measure()
 	 */
 
 	mag_report.timestamp = hrt_absolute_time();
+
+	_mag_last_measure = mag_report.timestamp;
+
 	mag_report.is_external = external();
 
 	mag_report.x_raw = _last_raw_mag_x;
@@ -1676,11 +1524,6 @@ FXOS8701CQ_mag::measure()
 	_parent->mag_measure();
 }
 
-void
-FXOS8701CQ_mag::measure_trampoline(void *arg)
-{
-	_parent->mag_measure_trampoline(arg);
-}
 #endif
 
 /**
@@ -1691,7 +1534,7 @@ namespace fxos8701cq
 
 FXOS8701CQ	*g_dev;
 
-void	start(bool external_bus, enum Rotation rotation, unsigned range);
+void	start(bool external_bus, enum Rotation rotation);
 void	test();
 void	reset();
 void	info();
@@ -1707,7 +1550,7 @@ void	test_error();
  * up and running or failed to detect the sensor.
  */
 void
-start(bool external_bus, enum Rotation rotation, unsigned range)
+start(bool external_bus, enum Rotation rotation)
 {
 	int fd;
 
@@ -1749,10 +1592,6 @@ start(bool external_bus, enum Rotation rotation, unsigned range)
 		goto fail;
 	}
 
-	if (ioctl(fd, ACCELIOCSRANGE, range) < 0) {
-		goto fail;
-	}
-
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	int fd_mag;
 	fd_mag = open(FXOS8701C_DEVICE_PATH_MAG, O_RDONLY);
@@ -1790,7 +1629,7 @@ test()
 {
 	int rv = 1;
 	int fd_accel = -1;
-	struct accel_report accel_report;
+	sensor_accel_s accel_report;
 	ssize_t sz;
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	int fd_mag = -1;
@@ -1807,9 +1646,9 @@ test()
 	}
 
 	/* do a simple demand read */
-	sz = read(fd_accel, &accel_report, sizeof(accel_report));
+	sz = read(fd_accel, &accel_report, sizeof(sensor_accel_s));
 
-	if (sz != sizeof(accel_report)) {
+	if (sz != sizeof(sensor_accel_s)) {
 		PX4_ERR("immediate read failed");
 		goto exit_with_accel;
 	}
@@ -2001,7 +1840,6 @@ usage()
 	PX4_INFO("options:");
 	PX4_INFO("    -X    (external bus)");
 	PX4_INFO("    -R rotation");
-	PX4_INFO("    -a range in ga 2,4,8");
 }
 
 } // namespace
@@ -2012,7 +1850,6 @@ fxos8701cq_main(int argc, char *argv[])
 	bool external_bus = false;
 	int ch;
 	enum Rotation rotation = ROTATION_NONE;
-	int accel_range = 8;
 
 	int myoptind = 1;
 	const char *myoptarg = NULL;
@@ -2025,10 +1862,6 @@ fxos8701cq_main(int argc, char *argv[])
 
 		case 'R':
 			rotation = (enum Rotation)atoi(myoptarg);
-			break;
-
-		case 'a':
-			accel_range = atoi(myoptarg);
 			break;
 
 		default:
@@ -2044,7 +1877,7 @@ fxos8701cq_main(int argc, char *argv[])
 
 	 */
 	if (!strcmp(verb, "start")) {
-		fxos8701cq::start(external_bus, rotation, accel_range);
+		fxos8701cq::start(external_bus, rotation);
 	}
 
 	/*

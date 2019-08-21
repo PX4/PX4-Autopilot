@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2016, 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,21 +33,22 @@
 /**
  * @file client.h
  *
- * The client can write a command to the pipe that is supplied by the server.
- * It will then open another pipe with its own UUID encoded and listen for
- * stdout of the process that it started and the return value.
+ * The client can connect and write a command to the socket that is supplied by
+ * the server. It will then close its half of the connection, and read back the
+ * stdout stream of the process that it started, followed by its return value.
  *
- * It the client receives a signal (e.g. Ctrl+C) it will catch it and send it
- * as a message to the server in order to terminate the thread.
+ * It the client dies, the connection gets closed automatically and the corresponding
+ * thread in the server gets cancelled.
  *
  * @author Julian Oes <julian@oes.ch>
  * @author Beat Küng <beat-kueng@gmx.net>
+ * @author Mara Bos <m-ou.se@m-ou.se>
  */
 #pragma once
 
 #include <stdint.h>
 
-#include "pipe_protocol.h"
+#include "sock_protocol.h"
 
 namespace px4_daemon
 {
@@ -57,19 +58,14 @@ class Client
 {
 public:
 	Client(int instance_id = 0);
+
 	~Client();
 
-	/**
-	 * Initialize the unique ID of the client.
-	 *
-	 * @return 0 on success.
-	 */
-	int generate_uuid();
-
-	/**
-	 * Make sure to catch signals in order to forward them to the server.
-	 */
-	void register_sig_handler();
+	Client(Client &&other) : _fd(other._fd), _instance_id(other._instance_id)
+	{
+		// Steal the fd from the moved-from client.
+		other._fd = -1;
+	}
 
 	/**
 	 * Process the supplied command line arguments and send them to server.
@@ -81,22 +77,10 @@ public:
 	int process_args(const int argc, const char **argv);
 
 private:
-	int _prepare_recv_pipe();
 	int _send_cmds(const int argc, const char **argv);
 	int _listen();
 
-	int _parse_client_recv_packet(const client_recv_packet_s &packet, int &retval, bool &should_exit);
-
-	int _retval_cmd_packet(const client_recv_packet_s &packet, int &retval);
-	int _stdout_msg_packet(const client_recv_packet_s &packet);
-
-
-	static void _static_sig_handler(int sig_num);
-	void _sig_handler(int sig_num);
-
-	uint64_t _uuid;
-	int _client_send_pipe_fd;
-	char _recv_pipe_path[RECV_PIPE_PATH_LEN];
+	int _fd;
 	int _instance_id; ///< instance ID for running multiple instances of the px4 server
 };
 

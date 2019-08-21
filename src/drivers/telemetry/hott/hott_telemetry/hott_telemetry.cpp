@@ -166,8 +166,6 @@ send_data(int uart, uint8_t *buffer, size_t size)
 int
 hott_telemetry_thread_main(int argc, char *argv[])
 {
-	warnx("starting");
-
 	connect_count = perf_alloc(PC_COUNT,	"reconnects       ");
 	recon_port = perf_alloc(PC_COUNT,		"reopen port      ");
 	reqs_count = perf_alloc(PC_COUNT,		"requests        ");

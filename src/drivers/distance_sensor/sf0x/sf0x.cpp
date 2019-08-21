@@ -41,7 +41,7 @@
 
 #include <px4_config.h>
 #include <px4_getopt.h>
-#include <px4_workqueue.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -71,33 +71,26 @@
 
 /* Configuration Constants */
 
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
-
 #define SF0X_TAKE_RANGE_REG		'd'
 
 // designated SERIAL4/5 on Pixhawk
 #define SF0X_DEFAULT_PORT		"/dev/ttyS6"
 
-class SF0X : public cdev::CDev
+class SF0X : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
 	SF0X(const char *port = SF0X_DEFAULT_PORT, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	virtual ~SF0X();
 
-	virtual int 			init();
+	virtual int 			init() override;
 
-	virtual ssize_t			read(device::file_t *filp, char *buffer, size_t buflen);
-	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
+	virtual ssize_t			read(device::file_t *filp, char *buffer, size_t buflen) override;
+	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
 
 	/**
 	* Diagnostics - print some basic information about the driver.
 	*/
 	void				print_info();
-
-protected:
-	virtual int			probe();
 
 private:
 	char 				_port[20];
@@ -105,9 +98,8 @@ private:
 	float				_min_distance;
 	float				_max_distance;
 	int         		        _conversion_interval;
-	work_s				_work{};
 	ringbuffer::RingBuffer		*_reports;
-	int				_measure_ticks;
+	int				_measure_interval;
 	bool				_collect_phase;
 	int				_fd;
 	char				_linebuf[10];
@@ -152,17 +144,9 @@ private:
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
 	*/
-	void				cycle();
+	void				Run() override;
 	int				measure();
 	int				collect();
-	/**
-	* Static trampoline from the workq context; because we don't have a
-	* generic workq wrapper yet.
-	*
-	* @param arg		Instance pointer for the driver that is polling.
-	*/
-	static void			cycle_trampoline(void *arg);
-
 
 };
 
@@ -173,12 +157,13 @@ extern "C" __EXPORT int sf0x_main(int argc, char *argv[]);
 
 SF0X::SF0X(const char *port, uint8_t rotation) :
 	CDev(RANGE_FINDER0_DEVICE_PATH),
+	ScheduledWorkItem(px4::wq_configurations::hp_default),
 	_rotation(rotation),
 	_min_distance(0.30f),
 	_max_distance(40.0f),
 	_conversion_interval(83334),
 	_reports(nullptr),
-	_measure_ticks(0),
+	_measure_interval(0),
 	_collect_phase(false),
 	_fd(-1),
 	_linebuf_index(0),
@@ -192,44 +177,11 @@ SF0X::SF0X(const char *port, uint8_t rotation) :
 	_comms_errors(perf_alloc(PC_COUNT, "sf0x_com_err"))
 {
 	/* store port name */
-	strncpy(_port, port, sizeof(_port));
+	strncpy(_port, port, sizeof(_port) - 1);
+
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
 
-	/* open fd */
-	_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
-
-	if (_fd < 0) {
-		PX4_ERR("open failed (%i)", errno);
-	}
-
-	struct termios uart_config;
-
-	int termios_state;
-
-	/* fill the struct for the new configuration */
-	tcgetattr(_fd, &uart_config);
-
-	/* clear ONLCR flag (which appends a CR for every LF) */
-	uart_config.c_oflag &= ~ONLCR;
-
-	/* no parity, one stop bit */
-	uart_config.c_cflag &= ~(CSTOPB | PARENB);
-
-	unsigned speed = B9600;
-
-	/* set baud rate */
-	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
-		PX4_ERR("CFG: %d ISPD", termios_state);
-	}
-
-	if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
-		PX4_ERR("CFG: %d OSPD", termios_state);
-	}
-
-	if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
-		PX4_ERR("baud %d ATTR", termios_state);
-	}
 }
 
 SF0X::~SF0X()
@@ -257,9 +209,6 @@ SF0X::init()
 	param_get(param_find("SENS_EN_SF0X"), &hw_model);
 
 	switch (hw_model) {
-	case 0:
-		PX4_WARN("disabled.");
-		return 0;
 
 	case 1: /* SF02 (40m, 12 Hz)*/
 		_min_distance = 0.3f;
@@ -330,17 +279,7 @@ SF0X::init()
 
 	} while (0);
 
-	/* close the fd */
-	::close(_fd);
-	_fd = -1;
-
-	return OK;
-}
-
-int
-SF0X::probe()
-{
-	return measure();
+	return ret;
 }
 
 void
@@ -375,27 +314,17 @@ SF0X::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 	case SENSORIOCSPOLLRATE: {
 			switch (arg) {
 
-			/* switching to manual polling */
-			case SENSOR_POLLRATE_MANUAL:
-				stop();
-				_measure_ticks = 0;
-				return OK;
-
-			/* external signalling (DRDY) not supported */
-			case SENSOR_POLLRATE_EXTERNAL:
-
 			/* zero would be bad */
 			case 0:
 				return -EINVAL;
 
-			/* set default/max polling rate */
-			case SENSOR_POLLRATE_MAX:
+			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(_conversion_interval);
+					_measure_interval = (_conversion_interval);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -409,18 +338,18 @@ SF0X::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 			default: {
 
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
+					bool want_start = (_measure_interval == 0);
 
 					/* convert hz to tick interval via microseconds */
-					int ticks = USEC2TICK(1000000 / arg);
+					int interval = (1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(_conversion_interval)) {
+					if (interval < (_conversion_interval)) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					_measure_ticks = ticks;
+					_measure_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -431,35 +360,6 @@ SF0X::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 				}
 			}
 		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_measure_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (1000 / _measure_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			ATOMIC_ENTER;
-
-			if (!_reports->resize(arg)) {
-				ATOMIC_LEAVE;
-				return -ENOMEM;
-			}
-
-			ATOMIC_LEAVE;
-
-			return OK;
-		}
-
-	case SENSORIOCRESET:
-		/* XXX implement this */
-		return -EINVAL;
 
 	default:
 		/* give it to the superclass */
@@ -480,7 +380,7 @@ SF0X::read(device::file_t *filp, char *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is enabled */
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
@@ -509,7 +409,7 @@ SF0X::read(device::file_t *filp, char *buffer, size_t buflen)
 		}
 
 		/* wait for it to complete */
-		usleep(_conversion_interval);
+		px4_usleep(_conversion_interval);
 
 		/* run the collection phase */
 		if (OK != collect()) {
@@ -552,8 +452,6 @@ SF0X::measure()
 int
 SF0X::collect()
 {
-	int	ret;
-
 	perf_begin(_sample_perf);
 
 	/* clear buffer if last read was too long ago */
@@ -564,7 +462,7 @@ SF0X::collect()
 	unsigned readlen = sizeof(readbuf) - 1;
 
 	/* read from the sensor (uart buffer) */
-	ret = ::read(_fd, &readbuf[0], readlen);
+	int ret = ::read(_fd, &readbuf[0], readlen);
 
 	if (ret < 0) {
 		PX4_DEBUG("read err: %d", ret);
@@ -608,7 +506,7 @@ SF0X::collect()
 	report.current_distance = distance_m;
 	report.min_distance = get_minimum_distance();
 	report.max_distance = get_maximum_distance();
-	report.covariance = 0.0f;
+	report.variance = 0.0f;
 	report.signal_quality = -1;
 	/* TODO: set proper ID */
 	report.id = 0;
@@ -635,31 +533,67 @@ SF0X::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&SF0X::cycle_trampoline, this, 1);
-
+	ScheduleNow();
 }
 
 void
 SF0X::stop()
 {
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 }
 
 void
-SF0X::cycle_trampoline(void *arg)
-{
-	SF0X *dev = static_cast<SF0X *>(arg);
-
-	dev->cycle();
-}
-
-void
-SF0X::cycle()
+SF0X::Run()
 {
 	/* fds initialized? */
 	if (_fd < 0) {
 		/* open fd */
 		_fd = ::open(_port, O_RDWR | O_NOCTTY | O_NONBLOCK);
+
+		if (_fd < 0) {
+			PX4_ERR("open failed (%i)", errno);
+			return;
+		}
+
+		struct termios uart_config;
+
+		int termios_state;
+
+		/* fill the struct for the new configuration */
+		tcgetattr(_fd, &uart_config);
+
+		/* clear ONLCR flag (which appends a CR for every LF) */
+		uart_config.c_oflag &= ~ONLCR;
+
+		/* no parity, one stop bit */
+		uart_config.c_cflag &= ~(CSTOPB | PARENB);
+
+		/* if distance sensor model is SF11/C, then set baudrate 115200, else 9600 */
+		int hw_model;
+
+		param_get(param_find("SENS_EN_SF0X"), &hw_model);
+
+		unsigned speed;
+
+		if (hw_model == 5) {
+			speed = B115200;
+
+		} else {
+			speed = B9600;
+		}
+
+		/* set baud rate */
+		if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
+			PX4_ERR("CFG: %d ISPD", termios_state);
+		}
+
+		if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
+			PX4_ERR("CFG: %d OSPD", termios_state);
+		}
+
+		if ((termios_state = tcsetattr(_fd, TCSANOW, &uart_config)) < 0) {
+			PX4_ERR("baud %d ATTR", termios_state);
+		}
 	}
 
 	/* collection phase? */
@@ -670,11 +604,8 @@ SF0X::cycle()
 
 		if (collect_ret == -EAGAIN) {
 			/* reschedule to grab the missing bits, time to transmit 8 bytes @ 9600 bps */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&SF0X::cycle_trampoline,
-				   this,
-				   USEC2TICK(1042 * 8));
+			ScheduleDelayed(1042 * 8);
+
 			return;
 		}
 
@@ -702,14 +633,10 @@ SF0X::cycle()
 		/*
 		 * Is there a collect->measure gap?
 		 */
-		if (_measure_ticks > USEC2TICK(_conversion_interval)) {
+		if (_measure_interval > (_conversion_interval)) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&SF0X::cycle_trampoline,
-				   this,
-				   _measure_ticks - USEC2TICK(_conversion_interval));
+			ScheduleDelayed(_measure_interval - _conversion_interval);
 
 			return;
 		}
@@ -724,11 +651,7 @@ SF0X::cycle()
 	_collect_phase = true;
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&SF0X::cycle_trampoline,
-		   this,
-		   USEC2TICK(_conversion_interval));
+	ScheduleDelayed(_conversion_interval);
 }
 
 void
@@ -736,7 +659,7 @@ SF0X::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %d ticks\n", _measure_ticks);
+	printf("poll interval:  %d\n", _measure_interval);
 	_reports->print_info("report queue");
 }
 
@@ -870,7 +793,7 @@ test()
 		sz = read(fd, &report, sizeof(report));
 
 		if (sz != sizeof(report)) {
-			PX4_ERR("read failed: got %d vs exp. %d", sz, sizeof(report));
+			PX4_ERR("read failed: got %zi vs exp. %zu", sz, sizeof(report));
 			break;
 		}
 
@@ -934,15 +857,20 @@ info()
 int
 sf0x_main(int argc, char *argv[])
 {
-	int ch;
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	const char *device_path = SF0X_DEFAULT_PORT;
+	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "R:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "R:d:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'R':
 			rotation = (uint8_t)atoi(myoptarg);
+			break;
+
+		case 'd':
+			device_path = myoptarg;
 			break;
 
 		default:
@@ -959,12 +887,7 @@ sf0x_main(int argc, char *argv[])
 	 * Start/load the driver.
 	 */
 	if (!strcmp(argv[myoptind], "start")) {
-		if (argc > myoptind + 1) {
-			return sf0x::start(argv[myoptind + 1], rotation);
-
-		} else {
-			return sf0x::start(SF0X_DEFAULT_PORT, rotation);
-		}
+		return sf0x::start(device_path, rotation);
 	}
 
 	/*

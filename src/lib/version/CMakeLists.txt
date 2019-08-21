@@ -53,7 +53,7 @@ endif()
 
 set(px4_git_ver_header ${CMAKE_CURRENT_BINARY_DIR}/build_git_version.h)
 add_custom_command(OUTPUT ${px4_git_ver_header}
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_update_git_header.py ${px4_git_ver_header} > ${CMAKE_CURRENT_BINARY_DIR}/git_header.log
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/px_update_git_header.py ${px4_git_ver_header} --validate
 	DEPENDS
 		${CMAKE_CURRENT_SOURCE_DIR}/px_update_git_header.py
 		${git_dir_path}/HEAD
@@ -75,6 +75,14 @@ if (DEFINED ENV{BUILD_URI})
 endif()
 
 add_library(version version.c)
-target_compile_definitions(version PRIVATE BUILD_URI=${BUILD_URI})
+
+target_compile_definitions(version
+	PUBLIC
+		PX4_BOARD_NAME="${PX4_BOARD_NAME}"
+	PRIVATE
+		BUILD_URI=${BUILD_URI}
+	)
+
 target_link_libraries(version PRIVATE git_ver)
+target_link_libraries(version PRIVATE drivers_board)
 add_dependencies(version prebuild_targets)

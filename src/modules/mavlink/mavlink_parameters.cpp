@@ -42,36 +42,12 @@
 
 #include <stdio.h>
 
-#include <uORB/topics/uavcan_parameter_request.h>
-#include <uORB/topics/uavcan_parameter_value.h>
-
 #include "mavlink_parameters.h"
 #include "mavlink_main.h"
 
 MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) :
-	_send_all_index(-1),
-	_uavcan_open_request_list(nullptr),
-	_uavcan_waiting_for_request_response(false),
-	_uavcan_queued_request_items(0),
-	_rc_param_map_pub(nullptr),
-	_rc_param_map(),
-	_uavcan_parameter_request_pub(nullptr),
-	_uavcan_parameter_value_sub(-1),
-	_mavlink_parameter_sub(-1),
-	_param_update_time(0),
-	_param_update_index(0),
 	_mavlink(mavlink)
 {
-}
-MavlinkParametersManager::~MavlinkParametersManager()
-{
-	if (_uavcan_parameter_value_sub >= 0) {
-		orb_unsubscribe(_uavcan_parameter_value_sub);
-	}
-
-	if (_uavcan_parameter_request_pub) {
-		orb_unadvertise(_uavcan_parameter_request_pub);
-	}
 }
 
 unsigned
@@ -108,12 +84,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				req.node_id = req_list.target_component;
 				req.param_index = 0;
 
-				if (_uavcan_parameter_request_pub == nullptr) {
-					_uavcan_parameter_request_pub = orb_advertise(ORB_ID(uavcan_parameter_request), &req);
-
-				} else {
-					orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
-				}
+				_uavcan_parameter_request_pub.publish(req);
 			}
 
 			break;
@@ -134,8 +105,12 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				name[MAVLINK_MSG_PARAM_VALUE_FIELD_PARAM_ID_LEN] = '\0';
 
 				/* Whatever the value is, we're being told to stop sending */
-				if (strncmp(name, "_HASH_CHECK", sizeof(name)) == 0 && _mavlink->hash_check_enabled()) {
-					_send_all_index = -1;
+				if (strncmp(name, "_HASH_CHECK", sizeof(name)) == 0) {
+
+					if (_mavlink->hash_check_enabled()) {
+						_send_all_index = -1;
+					}
+
 					/* No other action taken, return */
 					return;
 				}
@@ -149,15 +124,9 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					_mavlink->send_statustext_info(buf);
 
 				} else {
-					// Load current value before setting it
-					float curr_val;
-					param_get(param, &curr_val);
+					// According to the mavlink spec we should always acknowledge a write operation.
 					param_set(param, &(set.param_value));
-
-					// Check if the parameter changed. If it didn't change, send current value back
-					if (!(fabsf(curr_val - set.param_value) > 0.0f)) {
-						send_param(param);
-					}
+					send_param(param);
 				}
 			}
 
@@ -182,12 +151,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					req.int_value = val;
 				}
 
-				if (_uavcan_parameter_request_pub == nullptr) {
-					_uavcan_parameter_request_pub = orb_advertise(ORB_ID(uavcan_parameter_request), &req);
-
-				} else {
-					orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
-				}
+				_uavcan_parameter_request_pub.publish(req);
 			}
 
 			break;
@@ -351,18 +315,10 @@ MavlinkParametersManager::send_untransmitted()
 {
 	bool sent_one = false;
 
-	// Check for untransmitted system parameters
-	if (_mavlink_parameter_sub < 0) {
-		_mavlink_parameter_sub = orb_subscribe(ORB_ID(parameter_update));
-	}
-
-	bool param_ready;
-	orb_check(_mavlink_parameter_sub, &param_ready);
-
-	if (param_ready) {
+	if (_mavlink_parameter_sub.updated()) {
 		// Clear the ready flag
-		struct parameter_update_s value;
-		orb_copy(ORB_ID(parameter_update), _mavlink_parameter_sub, &value);
+		parameter_update_s value;
+		_mavlink_parameter_sub.update(&value);
 
 		// Schedule an update if not already the case
 		if (_param_update_time == 0) {
@@ -410,26 +366,20 @@ bool
 MavlinkParametersManager::send_uavcan()
 {
 	/* Send parameter values received from the UAVCAN topic */
-	if (_uavcan_parameter_value_sub < 0) {
-		_uavcan_parameter_value_sub = orb_subscribe(ORB_ID(uavcan_parameter_value));
-	}
+	uavcan_parameter_value_s value{};
 
-	bool param_value_ready;
-	orb_check(_uavcan_parameter_value_sub, &param_value_ready);
-
-	if (param_value_ready) {
-		struct uavcan_parameter_value_s value;
-		orb_copy(ORB_ID(uavcan_parameter_value), _uavcan_parameter_value_sub, &value);
+	if (_uavcan_parameter_value_sub.update(&value)) {
 
 		// Check if we received a matching parameter, drop it from the list and request the next
-		if (_uavcan_open_request_list != nullptr
-		    && value.param_index == _uavcan_open_request_list->req.param_index
-		    && value.node_id == _uavcan_open_request_list->req.node_id) {
+		if ((_uavcan_open_request_list != nullptr)
+		    && (value.param_index == _uavcan_open_request_list->req.param_index)
+		    && (value.node_id == _uavcan_open_request_list->req.node_id)) {
+
 			dequeue_uavcan_request();
 			request_next_uavcan_parameter();
 		}
 
-		mavlink_param_value_t msg;
+		mavlink_param_value_t msg{};
 		msg.param_count = value.param_count;
 		msg.param_index = value.param_index;
 #if defined(__GNUC__) && __GNUC__ >= 8
@@ -452,14 +402,13 @@ MavlinkParametersManager::send_uavcan()
 			msg.param_value = value.real_value;
 
 		} else {
-			int32_t val;
-			val = (int32_t)value.int_value;
+			int32_t val = (int32_t)value.int_value;
 			memcpy(&msg.param_value, &val, sizeof(int32_t));
 			msg.param_type = MAVLINK_TYPE_INT32_T;
 		}
 
 		// Re-pack the message with the UAVCAN node ID
-		mavlink_message_t mavlink_packet;
+		mavlink_message_t mavlink_packet{};
 		mavlink_msg_param_value_encode_chan(mavlink_system.sysid, value.node_id, _mavlink->get_channel(), &mavlink_packet,
 						    &msg);
 		_mavlink_resend_uart(_mavlink->get_channel(), &mavlink_packet);
@@ -547,14 +496,19 @@ MavlinkParametersManager::send_param(param_t param, int component_id)
 	 * get param value, since MAVLink encodes float and int params in the same
 	 * space during transmission, copy param onto float val_buf
 	 */
-	if (param_get(param, &msg.param_value) != OK) {
+	float param_value{};
+
+	if (param_get(param, &param_value) != OK) {
 		return 2;
 	}
+
+	msg.param_value = param_value;
 
 	msg.param_count = param_count_used();
 	msg.param_index = param_get_used_index(param);
 
 #if defined(__GNUC__) && __GNUC__ >= 8
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstringop-truncation"
 #endif
 	/*
@@ -606,12 +560,7 @@ void MavlinkParametersManager::request_next_uavcan_parameter()
 	if (!_uavcan_waiting_for_request_response && _uavcan_open_request_list != nullptr) {
 		uavcan_parameter_request_s req = _uavcan_open_request_list->req;
 
-		if (_uavcan_parameter_request_pub == nullptr) {
-			_uavcan_parameter_request_pub = orb_advertise_queue(ORB_ID(uavcan_parameter_request), &req, 5);
-
-		} else {
-			orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
-		}
+		_uavcan_parameter_request_pub.publish(req);
 
 		_uavcan_waiting_for_request_response = true;
 	}

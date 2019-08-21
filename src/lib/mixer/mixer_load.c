@@ -37,11 +37,9 @@
  * Programmable multi-channel mixer library.
  */
 
-#include <px4_config.h>
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <systemlib/err.h>
 
 #include "mixer_load.h"
 
@@ -54,7 +52,7 @@ int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 	fp = fopen(fname, "r");
 
 	if (fp == NULL) {
-		warnx("file not found");
+		printf("file not found\n");
 		return -1;
 	}
 
@@ -100,7 +98,7 @@ int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 
 		/* if the line is too long to fit in the buffer, bail */
 		if ((strlen(line) + strlen(buf) + 1) >= maxlen) {
-			warnx("line too long");
+			printf("line too long\n");
 			fclose(fp);
 			return -1;
 		}

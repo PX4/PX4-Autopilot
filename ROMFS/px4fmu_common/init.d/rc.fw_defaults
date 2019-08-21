@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # Fixed wing default parameters
 #
@@ -7,22 +7,28 @@
 
 set VEHICLE_TYPE fw
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	#
 	# Default parameters for fixed wing UAVs.
 	#
 	param set COM_POS_FS_DELAY 5
-	param set COM_POS_FS_EPH 25
-	param set COM_POS_FS_EPV 50
+	param set COM_POS_FS_EPH 15
+	param set COM_POS_FS_EPV 30
 	param set COM_POS_FS_GAIN 0
 	param set COM_POS_FS_PROB 1
 	param set COM_VEL_FS_EVH 5
 
-	param set EKF2_ARSP_THR 8.0
+	param set EKF2_ARSP_THR 8
 	param set EKF2_FUSE_BETA 1
+	param set EKF2_GPS_CHECK 21
 	param set EKF2_MAG_ACCLIM 0
 	param set EKF2_MAG_YAWLIM 0
+	param set EKF2_REQ_EPH 10
+	param set EKF2_REQ_EPV 10
+	param set EKF2_REQ_HDRIFT 0.5
+	param set EKF2_REQ_SACC 1
+	param set EKF2_REQ_VDRIFT 1.0
 
 	param set RTL_RETURN_ALT 100
 	param set RTL_DESCEND_ALT 100

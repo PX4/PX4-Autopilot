@@ -773,6 +773,7 @@ void Replay::run()
 		//to be in chronological order, so we need to check all subscriptions
 		uint64_t next_file_time = 0;
 		int next_msg_id = -1;
+		bool first_time = true;
 
 		for (size_t i = 0; i < _subscriptions.size(); ++i) {
 			const Subscription *subscription = _subscriptions[i];
@@ -782,7 +783,8 @@ void Replay::run()
 			}
 
 			if (subscription->orb_meta && !subscription->ignored) {
-				if (next_file_time == 0 || subscription->next_timestamp < next_file_time) {
+				if (first_time || subscription->next_timestamp < next_file_time) {
+					first_time = false;
 					next_msg_id = (int)i;
 					next_file_time = subscription->next_timestamp;
 				}
@@ -875,7 +877,7 @@ uint64_t Replay::handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_of
 
 	// if some topics have a timestamp smaller than the log file start, publish them immediately
 	if (cur_time < publish_timestamp && next_file_time > _file_start_time) {
-		usleep(publish_timestamp - cur_time);
+		px4_usleep(publish_timestamp - cur_time);
 	}
 
 	return publish_timestamp;
@@ -948,7 +950,7 @@ bool ReplayEkf2::handleTopicUpdate(Subscription &sub, void *data, std::ifstream 
 
 		// introduce some breaks to make sure the logger can keep up
 		if (++_topic_counter == 50) {
-			usleep(1000);
+			px4_usleep(1000);
 			_topic_counter = 0;
 		}
 

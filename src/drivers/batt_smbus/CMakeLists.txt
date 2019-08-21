@@ -36,8 +36,8 @@ px4_add_module(
 	STACK_MAIN 1100
 	COMPILE_FLAGS
 	SRCS
-		batt_smbus_main.cpp
 		batt_smbus.cpp
-		batt_smbus_i2c.cpp
+
 	DEPENDS
+		drivers__smbus
 	)

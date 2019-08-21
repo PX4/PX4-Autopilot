@@ -5,7 +5,7 @@
 # shellcheck disable=SC1091
 . px4-alias.sh
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
 
 #
 # Main SITL startup script
@@ -32,6 +32,7 @@ set PWM_OUT                     none
 set SDCARD_MIXERS_PATH          etc/mixers
 set USE_IO                      no
 set VEHICLE_TYPE                none
+set LOGGER_BUF			1000
 
 set RUN_MINIMAL_SHELL           no
 
@@ -45,7 +46,7 @@ else
 	REQUESTED_AUTOSTART=$(ls "$SCRIPT_DIR" | sed -n 's/^\([0-9][0-9]*\)_'${PX4_SIM_MODEL}'$/\1/p')
 	if [ -z "$REQUESTED_AUTOSTART" ]; then
 		echo "Error: Unknown model '$PX4_SIM_MODEL'"
-		exit -1
+		exit 1
 	fi
 fi
 
@@ -64,7 +65,9 @@ fi
 
 
 # Use environment variable PX4_ESTIMATOR to choose estimator.
-if [ "$PX4_ESTIMATOR" = "ekf2" ]; then
+if [ "$PX4_ESTIMATOR" = "q" ]; then
+	param set SYS_MC_EST_GROUP 3
+elif [ "$PX4_ESTIMATOR" = "ekf2" ]; then
 	param set SYS_MC_EST_GROUP 2
 elif [ "$PX4_ESTIMATOR" = "lpe" ]; then
 	param set SYS_MC_EST_GROUP 1
@@ -82,7 +85,7 @@ fi
 # multi-instance setup
 # shellcheck disable=SC2154
 param set MAV_SYS_ID $((px4_instance+1))
-simulator_udp_port=$((14560+px4_instance))
+simulator_tcp_port=$((4560+px4_instance))
 udp_offboard_port_local=$((14580+px4_instance))
 udp_offboard_port_remote=$((14540+px4_instance))
 udp_gcs_port_local=$((14570+px4_instance))
@@ -93,15 +96,16 @@ then
 
 	param set BAT_N_CELLS 3
 
-	param set CAL_ACC0_ID 1376264
-	param set CAL_ACC1_ID 1310728
-	param set CAL_ACC_PRIME 1376264
+	param set CAL_ACC0_ID 1311244
+	param set CAL_ACC_PRIME 1311244
 
-	param set CAL_GYRO0_ID 2293768
-	param set CAL_GYRO_PRIME 2293768
+	param set CAL_GYRO0_ID 2294028
+	param set CAL_GYRO_PRIME 2294028
 
-	param set CAL_MAG0_ID 196616
-	param set CAL_MAG_PRIME 196616
+	param set CAL_MAG0_ID 197388
+	param set CAL_MAG_PRIME 197388
+
+	param set CAL_BARO_PRIME 6620172
 
 	param set CBRK_AIRSPD_CHK 0
 
@@ -115,7 +119,8 @@ then
 	param set EKF2_ANGERR_INIT 0.01
 	param set EKF2_HGT_MODE 0
 	param set EKF2_GBIAS_INIT 0.01
-	param set EKF2_MAG_TYPE 1
+	# Speedup SITL startup
+	param set EKF2_REQ_GPS_H 0.5
 
 	# LPE: GPS only mode
 	param set LPE_FUSION 145
@@ -128,34 +133,71 @@ then
 	param set MC_ROLLRATE_P 0.2
 
 	param set MPC_ALT_MODE 0
-	param set MPC_HOLD_MAX_Z 2.0
+	param set MPC_HOLD_MAX_Z 2
 	param set MPC_Z_VEL_I 0.15
 	param set MPC_Z_VEL_P 0.6
+	param set MPC_XY_P 0.8
+	param set MPC_XY_VEL_P 0.2
+	param set MPC_XY_VEL_I 0.02
+	param set MPC_XY_VEL_D 0.016
 
-	param set NAV_ACC_RAD 2.0
+	param set MPC_JERK_MIN 10
+	param set MPC_JERK_MAX 20
+	param set MPC_ACC_HOR_MAX 3
+
+	param set NAV_ACC_RAD 2
 	param set NAV_DLL_ACT 2
 
-	param set RTL_DESCEND_ALT 5.0
+	param set RTL_DESCEND_ALT 5
 	param set RTL_LAND_DELAY 5
-	param set RTL_RETURN_ALT 30.0
+	param set RTL_RETURN_ALT 30
 
+	# By default log from boot until first disarm.
+	param set SDLOG_MODE 1
+	# enable default, estimator replay and vision/avoidance logging profiles
+	param set SDLOG_PROFILE 131
 	param set SDLOG_DIRS_MAX 7
 	param set SENS_BOARD_ROT 0
 	param set SENS_BOARD_X_OFF 0.000001
 	param set SENS_DPRES_OFF 0.001
 	param set SYS_RESTART_TYPE 2
 
-	param set WEST_EN 0
+	param set TRIG_INTERFACE 3
+
+fi
+
+# Adapt timeout parameters if simulation runs faster or slower than realtime.
+if [ ! -z $PX4_SIM_SPEED_FACTOR ]; then
+	COM_DL_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 10" | bc)
+	echo "COM_DL_LOSS_T set to $COM_DL_LOSS_T_LONGER"
+	param set COM_DL_LOSS_T $COM_DL_LOSS_T_LONGER
+
+	COM_RC_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 1" | bc)
+	echo "COM_RC_LOSS_T set to $COM_RC_LOSS_T_LONGER"
+	param set COM_RC_LOSS_T $COM_RC_LOSS_T_LONGER
+
+	COM_OF_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 10" | bc)
+	echo "COM_OF_LOSS_T set to $COM_OF_LOSS_T_LONGER"
+	param set COM_OF_LOSS_T $COM_OF_LOSS_T_LONGER
 fi
 
 # Autostart ID
-autostart_file_match="etc/init.d-posix/$(param show -q SYS_AUTOSTART)_*"
-# shellcheck disable=SC2206
-autostart_files=( $autostart_file_match )
-autostart_file="${autostart_files[0]}" # use first match, but there should really only be one
+autostart_file=''
+for f in etc/init.d-posix/"$(param show -q SYS_AUTOSTART)"_*
+do
+	filename=$(basename "$f")
+	case "$filename" in
+		*\.*)
+			# ignore files that contain a dot (e.g. <vehicle>.post)
+			;;
+		*)
+			autostart_file="$f"
+			;;
+	esac
+done
 if [ ! -e "$autostart_file" ]; then
-	echo "Error: no autostart file found"
-	exit -1
+	echo "Error: no autostart file found ($autostart_file)"
+	exit 1
 fi
 
 sh "$autostart_file"
@@ -163,20 +205,13 @@ sh "$autostart_file"
 
 dataman start
 replay tryapplyparams
-simulator start -s -u $simulator_udp_port
+simulator start -c $simulator_tcp_port
 tone_alarm start
-gyrosim start
-accelsim start
-barosim start
 gpssim start
 sensors start
 commander start
 navigator start
 
-if param compare WEST_EN 1
-then
-	wind_estimator start
-fi
 
 if ! param compare MNT_MODE_IN -1
 then
@@ -186,22 +221,12 @@ fi
 if param greater TRIG_MODE 0
 then
 	camera_trigger start
-	param set CAM_FBACK_MODE 1
 	camera_feedback start
-fi
-
-
-if [ ${VEHICLE_TYPE} = fw -o ${VEHICLE_TYPE} = vtol ]
-then
-	if param compare CBRK_AIRSPD_CHK 0
-	then
-		measairspeedsim start
-	fi
 fi
 
 # Configure vehicle type specific parameters.
 # Note: rc.vehicle_setup is the entry point for rc.interface,
-#       rc.fw_apps, rc.mc_apps, rc.ugv_apps, and rc.vtol_apps.
+#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
 #
 sh etc/init.d/rc.vehicle_setup
 
@@ -223,8 +248,8 @@ mavlink start -x -u $udp_offboard_port_local -r 4000000 -m onboard -o $udp_offbo
 # execute autostart post script if any
 [ -e "$autostart_file".post ] && sh "$autostart_file".post
 
-
-logger start -e -t -b 1000
+# Run script to start logging
+sh etc/init.d/rc.logging
 
 mavlink boot_complete
 replay trystart

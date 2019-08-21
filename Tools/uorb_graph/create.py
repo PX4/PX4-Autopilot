@@ -55,7 +55,7 @@ def get_N_colors(N, s=0.8, v=0.9):
     return hex_out
 
 
-class PubSub:
+class PubSub(object):
     """ Collects either publication or subscription information for nodes
     (modules and topics) & edges """
 
@@ -184,7 +184,7 @@ class PubSub:
         return self._module_pubsubs
 
 
-class Graph:
+class Graph(object):
     """ Collects Node and Edge information by parsing the source tree """
     def __init__(self, module_whitelist=[], topic_blacklist=[]):
         self._current_module = [] # stack with current module (they can be nested)
@@ -220,7 +220,7 @@ class Graph:
     #   (the expectation is that the previous matching ORB_ID() will be passed
     #   to this, so that we can ignore it)
         special_cases_sub = [
-    ('sensors', r'voted_sensors_update\.cpp$', r'\binit_sensor_class\b\(([^,)]+)', r'^meta$'),
+    ('sensors', r'voted_sensors_update\.cpp$', r'\binitSensorClass\b\(([^,)]+)', r'^meta$'),
     ('mavlink', r'.*', r'\badd_orb_subscription\b\(([^,)]+)', r'^_topic$'),
     ('listener', r'.*', None, r'^(id)$'),
     ('logger', r'.*', None, r'^(topic|sub\.metadata|_polling_topic_meta)$'),
@@ -229,7 +229,6 @@ class Graph:
     ('tap_esc', r'.*', r'\b_control_topics\[[0-9]\]=([^,)]+)', r'^_control_topics\[i\]$'),
     ('pwm_out_sim', r'.*', r'\b_control_topics\[[0-9]\]=([^,)]+)', r'^_control_topics\[i\]$'),
     ('snapdragon_pwm_out', r'.*', r'\b_controls_topics\[[0-9]\]=([^,)]+)', r'^_controls_topics\[i\]$'),
-    ('fmu', r'.*', r'\b_control_topics\[[0-9]\]=([^,)]+)', r'^_control_topics\[i\]$'),
     ('linux_pwm_out', r'.*', r'\b_controls_topics\[[0-9]\]=([^,)]+)', r'^_controls_topics\[i\]$'),
     ]
         special_cases_sub = [(a, re.compile(b), re.compile(c) if c is not None else None, re.compile(d))
@@ -243,18 +242,16 @@ class Graph:
         special_cases_pub = [
     ('replay', r'replay_main\.cpp$', None, r'^sub\.orb_meta$'),
     ('fw_pos_control_l1', r'FixedwingPositionControl\.cpp$', r'\b_attitude_setpoint_id=([^,)]+)', r'^_attitude_setpoint_id$'),
-    
+
     ('mc_pos_control', r'mc_pos_control_main\.cpp$', r'\b_attitude_setpoint_id=([^,)]+)', r'^_attitude_setpoint_id$'),
 
-    ('mc_att_control', r'mc_att_control_main\.cpp$', r'\b_rates_sp_id=([^,)]+)', r'^_rates_sp_id$'),
     ('mc_att_control', r'mc_att_control_main\.cpp$', r'\b_actuators_id=([^,)]+)', r'^_actuators_id$'),
+    ('mc_att_control', r'mc_att_control_main\.cpp$', r'\_attitude_sp_id=([^,)]+)', r'^_attitude_sp_id$'),
 
-    ('fw_att_control', r'FixedwingAttitudeControl\.cpp$', r'\b_rates_sp_id=([^,)]+)', r'^_rates_sp_id$'),
     ('fw_att_control', r'FixedwingAttitudeControl\.cpp$', r'\b_actuators_id=([^,)]+)', r'^_actuators_id$'),
     ('fw_att_control', r'FixedwingAttitudeControl\.cpp$', r'\b_attitude_setpoint_id=([^,)]+)', r'^_attitude_setpoint_id$'),
 
     ('uavcan', r'sensors/.*\.cpp$', r'\bUavcanCDevSensorBridgeBase\([^{]*DEVICE_PATH,([^,)]+)', r'^_orb_topic$'),
-    ('batt_smbus', r'batt_smbus\.cpp$', r'\b_batt_orb_id=([^,)]+)', r'^_batt_orb_id$'),
     ]
         special_cases_pub = [(a, re.compile(b), re.compile(c) if c is not None else None, re.compile(d))
                                    for a,b,c,d in special_cases_pub]
@@ -462,7 +459,7 @@ class Graph:
 
 
 
-class OutputGraphviz:
+class OutputGraphviz(object):
     """ write graph using Graphviz """
 
     def __init__(self, graph):
@@ -524,7 +521,7 @@ class OutputGraphviz:
 	graph.render(file_name, view=False)
 
 
-class OutputJSON:
+class OutputJSON(object):
     """ write graph to a JSON file (that can be used with D3.js) """
 
     def __init__(self, graph):

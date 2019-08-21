@@ -43,6 +43,7 @@
 #include <matrix/math.hpp>
 #include <lib/ecl/geo/geo.h>
 #include <px4_module_params.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/landing_target_pose.h>
 
 #include "navigator_mode.h"
@@ -77,6 +78,9 @@ public:
 	PrecLandMode get_mode() { return _mode; };
 
 private:
+
+	void updateParams() override;
+
 	// run the control loop for each state
 	void run_state_start();
 	void run_state_horizontal_approach();
@@ -100,7 +104,7 @@ private:
 
 	landing_target_pose_s _target_pose{}; /**< precision landing target position */
 
-	int _target_pose_sub{-1};
+	uORB::Subscription _target_pose_sub{ORB_ID(landing_target_pose)};
 	bool _target_pose_valid{false}; /**< whether we have received a landing target position message */
 	bool _target_pose_updated{false}; /**< wether the landing target position message is updated */
 
@@ -122,14 +126,18 @@ private:
 	PrecLandMode _mode{PrecLandMode::Opportunistic};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::PLD_BTOUT>) _param_timeout,
-		(ParamFloat<px4::params::PLD_HACC_RAD>) _param_hacc_rad,
-		(ParamFloat<px4::params::PLD_FAPPR_ALT>) _param_final_approach_alt,
-		(ParamFloat<px4::params::PLD_SRCH_ALT>) _param_search_alt,
-		(ParamFloat<px4::params::PLD_SRCH_TOUT>) _param_search_timeout,
-		(ParamInt<px4::params::PLD_MAX_SRCH>) _param_max_searches,
-		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_acceleration_hor,
-		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_xy_vel_cruise
+		(ParamFloat<px4::params::PLD_BTOUT>) _param_pld_btout,
+		(ParamFloat<px4::params::PLD_HACC_RAD>) _param_pld_hacc_rad,
+		(ParamFloat<px4::params::PLD_FAPPR_ALT>) _param_pld_fappr_alt,
+		(ParamFloat<px4::params::PLD_SRCH_ALT>) _param_pld_srch_alt,
+		(ParamFloat<px4::params::PLD_SRCH_TOUT>) _param_pld_srch_tout,
+		(ParamInt<px4::params::PLD_MAX_SRCH>) _param_pld_max_srch
 	)
+
+	// non-navigator parameters
+	param_t	_handle_param_acceleration_hor{PARAM_INVALID};
+	param_t	_handle_param_xy_vel_cruise{PARAM_INVALID};
+	float	_param_acceleration_hor{0.0f};
+	float	_param_xy_vel_cruise{0.0f};
 
 };

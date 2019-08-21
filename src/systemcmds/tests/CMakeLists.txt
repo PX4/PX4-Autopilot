@@ -42,13 +42,13 @@ set(srcs
 	test_file.c
 	test_file2.c
 	test_float.cpp
-	test_gpio.c
 	test_hott_telemetry.c
 	test_hrt.cpp
-	test_hysteresis.cpp
 	test_int.cpp
+	test_IntrusiveQueue.cpp
 	test_jig_voltages.c
 	test_led.c
+	test_List.cpp
 	test_mathlib.cpp
 	test_matrix.cpp
 	test_microbench_hrt.cpp
@@ -60,6 +60,7 @@ set(srcs
 	test_param.c
 	test_parameters.cpp
 	test_perf.c
+	test_ppm.cpp
 	test_ppm_loopback.c
 	test_rc.c
 	test_search_min.cpp
@@ -67,6 +68,7 @@ set(srcs
 	test_servo.c
 	test_sleep.c
 	test_smooth_z.cpp
+	test_tone.cpp
 	test_uart_baudchange.c
 	test_uart_console.c
 	test_uart_loopback.c
@@ -75,7 +77,7 @@ set(srcs
 	tests_main.c
 	)
 
-if(${OS} STREQUAL "nuttx")
+if(${PX4_PLATFORM} STREQUAL "nuttx")
 	list(APPEND srcs
 		test_time.c
 		test_uart_break.c
@@ -101,4 +103,7 @@ px4_add_module(
 		git_ecl
 		ecl_geo_lookup # TODO: move this
 		pwm_limit
+		version
 	)
+
+add_subdirectory(hrt_test)

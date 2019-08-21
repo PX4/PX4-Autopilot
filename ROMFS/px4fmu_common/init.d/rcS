@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 # Un comment and use set +e to ignore and set -e to enable 'exit on error control'
 set +e
 # Un comment the line below to help debug scripts by printing a trace of the script commands
@@ -14,66 +14,27 @@ set +e
 # NOTE: COMMENT LINES ARE REMOVED BEFORE STORED IN ROMFS.
 #
 #------------------------------------------------------------------------------
-#
-# UART mapping on FMUv2/3/4:
-#
-# UART1         /dev/ttyS0      IO debug (except v4, there ttyS0 is the wifi)
-# USART2        /dev/ttyS1      TELEM1 (flow control)
-# USART3        /dev/ttyS2      TELEM2 (flow control)
-# UART4
-# UART7                         CONSOLE
-# UART8                         SERIAL4
-#
-#------------------------------------------------------------------------------
-#
-# UART mapping on FMUv5:
-#
-# UART1         /dev/ttyS0      GPS
-# USART2        /dev/ttyS1      TELEM1 (flow control)
-# USART3        /dev/ttyS2      TELEM2 (flow control)
-# UART4         /dev/ttyS3      TELEM4
-# USART6        /dev/ttyS4      TELEM3 (flow control)
-# UART7         /dev/ttyS5
-# UART8         /dev/ttyS6      CONSOLE
-#
-#------------------------------------------------------------------------------
-#
-# UART mapping on OMNIBUSF4SD:
-#
-# USART1        /dev/ttyS0      SerialRX
-# USART4        /dev/ttyS1      TELEM1
-# USART6        /dev/ttyS2      GPS
-#
-
-#------------------------------------------------------------------------------
-#
-# UART mapping on NXPhlitev3:
-#
-# LPUART0		/dev/ttyS0		P16 CONSOLE
-# UART0			/dev/ttyS1		P7  IR
-# UART1			/dev/ttyS2		P14-3, P15-2 RC input
-# UART2			/dev/ttyS3		P3 GPS
-# UART4			/dev/ttyS3		P10 TELEM1 (flow control)
 
 #
 # Set default paramter values.
 # Do not add intra word spaces
 # it wastes flash
 #
+set AUTOCNF no
 set AUX_MODE pwm
 set DATAMAN_OPT ""
 set FAILSAFE none
 set FAILSAFE_AUX none
 set FCONFIG /fs/microsd/etc/config.txt
 set FEXTRAS /fs/microsd/etc/extras.txt
-set FRC /fs/microsd/etc/rc.txt
 set FMU_ARGS ""
 set FMU_MODE pwm
-set IOFW "/etc/extras/px4io-v2.bin"
+set FRC /fs/microsd/etc/rc.txt
+set IOFW "/etc/extras/px4_io-v2_default.bin"
 set IO_PRESENT no
 set LOG_FILE /fs/microsd/bootlog.txt
-set MAVLINK_F default
-set MAVLINK_COMPANION_DEVICE /dev/ttyS2
+set LOGGER_ARGS ""
+set LOGGER_BUF  14
 set MAV_TYPE none
 set MIXER none
 set MIXER_AUX none
@@ -92,9 +53,17 @@ set PWM_MAX p:PWM_MAX
 set PWM_MIN p:PWM_MIN
 set PWM_OUT none
 set PWM_RATE p:PWM_RATE
+set RC_INPUT_ARGS ""
 set SDCARD_MIXERS_PATH /fs/microsd/etc/mixers
+set STARTUP_TUNE 1
 set USE_IO no
 set VEHICLE_TYPE none
+
+# Airframe parameter versioning: airframe maintainers can set this in the
+# airframe startup script, and then increase it by one whenever an airframe
+# parameter is updated - it will ensure that these parameters will be updated
+# when the firmware is flashed.
+set PARAM_DEFAULTS_VER 1
 
 #
 # Mount the procfs.
@@ -119,11 +88,6 @@ ver all
 uorb start
 
 #
-# Start the tone_alarm driver.
-#
-tone_alarm start
-
-#
 # Try to mount the microSD card.
 #
 # REBOOTWORK this needs to start after the flight control loop.
@@ -132,41 +96,27 @@ then
 	if hardfault_log check
 	then
 		# Error tune.
-		tune_control play -t 2
+		set STARTUP_TUNE 2
 		if hardfault_log commit
 		then
 			hardfault_log reset
 		fi
-	else
-		# Play the startup tune.
-		tune_control play -t 1
 	fi
 else
 	# tune SD_INIT
-	tune_control play -t 16
+	set STARTUP_TUNE 16
 	if mkfatfs /dev/mmcsd0
 	then
 		if mount -t vfat /dev/mmcsd0 /fs/microsd
 		then
 			echo "INFO [init] card formatted"
 		else
-			tune_control play -t 17
+			set STARTUP_TUNE 17
 			echo "ERROR [init] format failed"
 			set LOG_FILE /dev/null
 		fi
 	else
 		set LOG_FILE /dev/null
-	fi
-fi
-
-# AEROCORE2 shouldn't have an sd card and CF2 may optionally have an sd card.
-if ! ver hwcmp CRAZYFLIE AEROCORE2
-then
-	# Run no SD alarm.
-	if [ $LOG_FILE == /dev/null ]
-	then
-		# tune Make FS MBAGP
-		tune_control play -t 2
 	fi
 fi
 
@@ -178,21 +128,6 @@ if [ -f $FRC ]
 then
 	sh $FRC
 else
-	#
-	# Waypoint storage.
-	# REBOOTWORK this needs to start in parallel.
-	#
-	dataman start $DATAMAN_OPT
-
-	#
-	# Start the socket communication send_event handler.
-	#
-	send_event start
-
-	#
-	# Start the resource load monitor.
-	#
-	load_mon start
 
 	#
 	# Set the parameter file if mtd starts successfully.
@@ -212,108 +147,73 @@ else
 	fi
 
 	#
-	# Bootloader upgrade
+	# Set AUTOCNF flag to use it in AUTOSTART scripts.
 	#
-	if ver hwcmp PX4FMU_V2
+	if param greater SYS_AUTOCONFIG 0
 	then
-		set BL_FILE /etc/extras/px4fmuv3_bl.bin
-		if [ -f $BL_FILE ]
+		if param compare SYS_AUTOCONFIG 1
 		then
-			if param compare SYS_BL_UPDATE 1
-			then
-				param set SYS_BL_UPDATE 0
-				param save
-				echo "BL update..." >> $LOG_FILE
-				bl_update $BL_FILE
-				echo "BL update done" >> $LOG_FILE
-				reboot
-			fi
+			# Wipe out params except RC*, flight modes, total flight time, accel cal, gyro cal
+			param reset_nostart RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO*
 		fi
-		unset BL_FILE
+
+		set AUTOCNF yes
 	fi
+
+	#
+	# Play the startup tune (if not disabled or there is an error)
+	#
+	param compare CBRK_BUZZER 782090
+	if [ $? != 0 -o $STARTUP_TUNE != 1 ]
+	then
+		tune_control play -t $STARTUP_TUNE
+	fi
+
+	#
+	# Optional board defaults: rc.board_defaults
+	#
+	set BOARD_RC_DEFAULTS /etc/init.d/rc.board_defaults
+	if [ -f $BOARD_RC_DEFAULTS ]
+	then
+		echo "Board defaults: ${BOARD_RC_DEFAULTS}"
+		sh $BOARD_RC_DEFAULTS
+	fi
+	unset BOARD_RC_DEFAULTS
+
+	#
+	# Waypoint storage.
+	# REBOOTWORK this needs to start in parallel.
+	#
+	dataman start $DATAMAN_OPT
+
+	#
+	# Start the socket communication send_event handler.
+	#
+	send_event start
+
+	#
+	# Start the resource load monitor.
+	#
+	load_mon start
 
 	#
 	# Start system state indicator.
 	#
-	if ! rgbled start
-	then
-		if blinkm start
-		then
-			blinkm systemstate
-		fi
-	fi
-
-	#
-	# FMUv5 may have both PWM I2C RGB LED support.
-	#
+	rgbled start
+	rgbled_ncp5623c start
 	rgbled_pwm start
 
+	if blinkm start
+	then
+		blinkm systemstate
+	fi
+
 	#
-	# Set AUTOCNF flag to use it in AUTOSTART scripts.
+	# Start the tone_alarm driver.
+	# Needs to be started after the parameters are loaded (for CBRK_BUZZER).
+	# Note that this will still play the already published startup tone.
 	#
-	if param compare SYS_AUTOCONFIG 1
-	then
-		# Wipe out params except RC*, flight modes and total flight time.
-		param reset_nostart RC* COM_FLTMODE* LND_FLIGHT_T_* TC_* CAL_ACC* CAL_GYRO*
-		set AUTOCNF yes
-	else
-		set AUTOCNF no
-
-		#
-		# Release 1.4.0 transitional support: set to old default if unconfigured,
-		# this preserves the previous behaviour.
-		#
-		if param compare BAT_N_CELLS 0
-		then
-			param set BAT_N_CELLS 3
-		fi
-	fi
-
-	###############################################################################
-	#               Begin setup for board specific configurations.                #
-	###############################################################################
-
-	if ver hwcmp AEROCORE2
-	then
-		set DATAMAN_OPT "-f /fs/mtd_dataman"
-	fi
-
-	if ver hwcmp AEROFC_V1
-	then
-		if param compare SYS_AUTOSTART 0
-		then
-			set AUTOCNF yes
-		fi
-
-		# We don't allow changing AUTOSTART as it doesn't work in
-		# other configurations.
-		param set SYS_AUTOSTART 4070
-
-		set DATAMAN_OPT -i
-	fi
-
-	if ver hwcmp CRAZYFLIE
-	then
-		if param compare SYS_AUTOSTART 0
-		then
-			param set SYS_AUTOSTART 4900
-			set AUTOCNF yes
-		fi
-	fi
-
-	if ver hwcmp NXPHLITE_V3
-	then
-		param set SYS_FMU_TASK 1
-	fi
-
-	###############################################################################
-	#                 End Setup for board specific configurations.                #
-	###############################################################################
-
-	if param compare SYS_FMU_TASK 1
-	then
-		set FMU_ARGS "-t"
-	fi
+	tone_alarm start
 
 	#
 	# Set parameters and env variables for selected AUTOSTART.
@@ -335,45 +235,24 @@ else
 	#
 	# If autoconfig parameter was set, reset it and save parameters.
 	#
-	if [ $AUTOCNF == yes ]
+	if [ $AUTOCNF = yes ]
 	then
-		# Run FMU as task on Pixracer and on boards with enough RAM.
-		if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO PX4FMU_V5
-		then
-			param set SYS_FMU_TASK 1
-		fi
-
-		# Disable safety switch by default on Pixracer and OmnibusF4SD.
-		if ver hwcmp PX4FMU_V4 OMNIBUS_F4SD
-		then
-			param set CBRK_IO_SAFETY 22027
-		fi
-
-		if ver hwcmp OMNIBUS_F4SD
-		then
-			param set SYS_FMU_TASK 1
-			param set SYS_HAS_MAG 0
-			# use the Q attitude estimator, it works w/o mag or GPS.
-			param set SYS_MC_EST_GROUP 1
-			param set ATT_ACC_COMP 0
-			param set ATT_W_ACC 0.4000
-			param set ATT_W_GYRO_BIAS 0.0000
-		fi
-
 		param set SYS_AUTOCONFIG 0
 	fi
 
 	#
 	# Check if PX4IO present and update firmware if needed.
-	# Assumption IOFW set to firware file and IO_PRESENT = no
+	# Assumption IOFW set to firmware file and IO_PRESENT = no
 	#
 
 	if [ -f $IOFW ]
 	then
 		# Check for the mini using build with px4io fw file
 		# but not a px4IO
-		if ! ver hwtypecmp V540
+		if ver hwtypecmp V540 V560
 		then
+			param set SYS_USE_IO 0
+		else
 			if px4io checkcrc ${IOFW}
 			then
 				set IO_PRESENT yes
@@ -404,7 +283,7 @@ else
 					fi
 				fi
 
-				if [ $IO_PRESENT == no ]
+				if [ $IO_PRESENT = no ]
 				then
 					echo "PX4IO update failed" >> $LOG_FILE
 					# Error tune.
@@ -422,34 +301,44 @@ else
 		set USE_IO yes
 	fi
 
-	if [ $USE_IO == yes -a $IO_PRESENT == no ]
+	if [ $USE_IO = yes -a $IO_PRESENT = no ]
 	then
 		echo "PX4IO not found" >> $LOG_FILE
 		# Error tune.
 		tune_control play -t 2
 	fi
 
-	if [ $IO_PRESENT == no -o $USE_IO == no ]
-	then
-		rc_input start
-	fi
-
 	#
 	# Sensors System (start before Commander so Preflight checks are properly run).
 	# Commander needs to be this early for in-air-restarts.
 	#
-	if param compare SYS_HITL 1
+	if param greater SYS_HITL 0
 	then
 		set OUTPUT_MODE hil
 		sensors start -h
-		commander start --hil
-	else
-		if ver hwcmp PX4_SAME70XPLAINED_V1
+		commander start -h
+		# disable GPS
+		param set GPS_1_CONFIG 0
+
+		# start the simulator in hardware if needed
+		if param compare SYS_HITL 2
 		then
-			gps start -d /dev/ttyS2
-		else
-			gps start
+			sih start
 		fi
+
+	else
+		#
+		# board sensors: rc.sensors
+		#
+		set BOARD_RC_SENSORS /etc/init.d/rc.board_sensors
+		if [ -f $BOARD_RC_SENSORS ]
+		then
+			echo "Board sensors: ${BOARD_RC_SENSORS}"
+			sh $BOARD_RC_SENSORS
+		fi
+		unset BOARD_RC_SENSORS
+
+
 		sh /etc/init.d/rc.sensors
 		commander start
 	fi
@@ -476,7 +365,6 @@ else
 		fi
 
 		camera_trigger start
-		param set CAM_FBACK_MODE 1
 		camera_feedback start
 	fi
 
@@ -505,16 +393,37 @@ else
 	fi
 
 	#
-	# Start mavlink streams.
+	# Start mavlink streams that are not configurable (e.g. on USB).
 	#
 	sh /etc/init.d/rc.mavlink
 
 	#
+	# Start UART/Serial device drivers.
+	# Note: rc.serial is auto-generated from Tools/serial/generate_config.py
+	#
+	sh /etc/init.d/rc.serial
+
+	if [ $IO_PRESENT = no -o $USE_IO = no ]
+	then
+		# Must be started after the serial config is read
+		rc_input start $RC_INPUT_ARGS
+	fi
+
+	#
 	# Configure vehicle type specific parameters.
 	# Note: rc.vehicle_setup is the entry point for rc.interface,
-	#       rc.fw_apps, rc.mc_apps, rc.ugv_apps, and rc.vtol_apps.
+	#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
 	#
 	sh /etc/init.d/rc.vehicle_setup
+
+	# Camera capture driver
+	if param greater CAM_CAP_FBACK 0
+	then
+		if camera_capture start
+		then
+			camera_capture on
+		fi
+	fi
 
 	#
 	# Start the navigator.
@@ -522,22 +431,9 @@ else
 	navigator start
 
 	#
-	# Start the standalone wind estimator.
-	#
-	if param compare WEST_EN 1
-	then
-		wind_estimator start
-	fi
-
-	#
 	# Start a thermal calibration if required.
 	#
 	sh /etc/init.d/rc.thermal_cal
-
-	#
-	# Start the logger.
-	#
-	sh /etc/init.d/rc.logging
 
 	#
 	# Start vmount to control mounts such as gimbals, disabled by default.
@@ -547,22 +443,60 @@ else
 		vmount start
 	fi
 
-	#
-	# Launch the flow sensor as a background task.
-	#
-	if ver hwcmp PX4FMU_V2 PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2 PX4FMU_V5 OMNIBUS_F4SD
+	# Check for flow sensor, launched as a background task to scan
+	if param compare SENS_EN_PX4FLOW 1
 	then
 		px4flow start &
 	fi
 
+	# Blacksheep telemetry
+	if param greater TEL_BST_EN 0
+	then
+		bst start
+	fi
+
 	#
-	# Start any custom addons.
+	# Optional board supplied extras: rc.board_extras
+	#
+	set BOARD_RC_EXTRAS /etc/init.d/rc.board_extras
+	if [ -f $BOARD_RC_EXTRAS ]
+	then
+		echo "Board extras: ${BOARD_RC_EXTRAS}"
+		sh $BOARD_RC_EXTRAS
+	fi
+	unset BOARD_RC_EXTRAS
+
+	#
+	# Start any custom addons from the sdcard.
 	#
 	if [ -f $FEXTRAS ]
 	then
 		echo "Addons script: ${FEXTRAS}"
 		sh $FEXTRAS
 	fi
+
+	#
+	# Start the logger.
+	#
+	sh /etc/init.d/rc.logging
+
+	#
+	# Set additional parameters and env variables for selected AUTOSTART.
+	#
+	if ! param compare SYS_AUTOSTART 0
+	then
+		sh /etc/init.d/rc.autostart.post
+	fi
+
+	if ! param compare SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
+	then
+		echo "Switched to different parameter version. Resetting parameters."
+		param set SYS_PARAM_VER ${PARAM_DEFAULTS_VER}
+		param set SYS_AUTOCONFIG 2
+		param save
+		reboot
+	fi
+
 #
 # End of autostart.
 #
@@ -571,40 +505,43 @@ fi
 #
 # Unset all script parameters to free RAM.
 #
+unset AUTOCNF
 unset AUX_MODE
 unset DATAMAN_OPT
 unset FAILSAFE
 unset FAILSAFE_AUX
 unset FCONFIG
 unset FEXTRAS
-unset FRC
 unset FMU_ARGS
 unset FMU_MODE
-unset IOFW
+unset FRC
 unset IO_PRESENT
+unset IOFW
 unset LOG_FILE
-unset MAVLINK_F
-unset MAVLINK_COMPANION_DEVICE
+unset LOGGER_ARGS
+unset LOGGER_BUF
 unset MAV_TYPE
 unset MIXER
 unset MIXER_AUX
 unset MIXER_FILE
 unset MK_MODE
 unset MKBLCTRL_ARG
-unset OUTPUT_DEV
 unset OUTPUT_MODE
+unset PARAM_DEFAULTS_VER
 unset PARAM_FILE
 unset PWM_AUX_DISARMED
 unset PWM_AUX_MAX
 unset PWM_AUX_MIN
 unset PWM_AUX_OUT
 unset PWM_AUX_RATE
-unset PWM_OUT
-unset PWM_RATE
 unset PWM_DISARMED
 unset PWM_MAX
 unset PWM_MIN
+unset PWM_OUT
+unset PWM_RATE
+unset RC_INPUT_ARGS
 unset SDCARD_MIXERS_PATH
+unset STARTUP_TUNE
 unset USE_IO
 unset VEHICLE_TYPE
 

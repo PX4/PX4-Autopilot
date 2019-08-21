@@ -37,24 +37,7 @@
  * I2C interface for MS5611
  */
 
-/* XXX trim includes */
-#include <px4_config.h>
-#include <px4_defines.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <assert.h>
-#include <errno.h>
-#include <unistd.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/device/i2c.h>
-
 #include "ms5611.h"
-
-#include "board_config.h"
 
 #define MS5611_ADDRESS_1		0x76	/* address select pins pulled high (PX4FMU series v1.6+) */
 #define MS5611_ADDRESS_2		0x77    /* address select pins pulled low (PX4FMU prototypes) */
@@ -238,7 +221,7 @@ MS5611_I2C::_read_prom()
 	 * Wait for PROM contents to be in the device (2.8 ms) in the case we are
 	 * called immediately after reset.
 	 */
-	usleep(3000);
+	px4_usleep(3000);
 
 	uint8_t last_val = 0;
 	bool bits_stuck = true;

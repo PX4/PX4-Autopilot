@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,19 +50,3 @@
  * @group PWM Outputs
  */
 PARAM_DEFINE_INT32(MOT_ORDERING, 0);
-
-/**
- * Run the FMU as a task to reduce latency
- *
- * If true, the FMU will run in a separate task instead of on the work queue.
- * Set this if low latency is required, for example for racing.
- *
- * This is a trade-off between RAM usage and latency: running as a task, it
- * requires a separate stack and directly polls on the control topics, whereas
- * running on the work queue, it runs at a fixed update rate.
- *
- * @boolean
- * @reboot_required true
- * @group System
- */
-PARAM_DEFINE_INT32(SYS_FMU_TASK, 1);

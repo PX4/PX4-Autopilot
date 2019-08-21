@@ -39,5 +39,7 @@ px4_add_module(
 		frsky_data.cpp
 		sPort_data.cpp
 		frsky_telemetry.cpp
+	MODULE_CONFIG
+		module.yaml
 	)
 

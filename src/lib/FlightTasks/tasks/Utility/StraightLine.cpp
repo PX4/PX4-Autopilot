@@ -38,6 +38,7 @@
 #include "StraightLine.hpp"
 #include <mathlib/mathlib.h>
 #include <float.h>
+#include <px4_defines.h>
 
 #define VEL_ZERO_THRESHOLD 0.001f // Threshold to compare if the target velocity is zero
 #define DECELERATION_MAX 8.0f     // The vehicles maximum deceleration TODO check to create param
@@ -55,7 +56,7 @@ void StraightLine::generateSetpoints(matrix::Vector3f &position_setpoint, matrix
 {
 	// Check if target position has been reached
 	if (_desired_speed_at_target < VEL_ZERO_THRESHOLD &&
-	    (_pos - _target).length() < NAV_ACC_RAD.get()) {
+	    (_pos - _target).length() < _param_nav_acc_rad.get()) {
 		// Vehicle has reached target. Lock position
 		position_setpoint = _target;
 		velocity_setpoint = Vector3f(0.0f, 0.0f, 0.0f);
@@ -106,15 +107,15 @@ float StraightLine::getMaxAcc()
 {
 	// check if origin and target are different points
 	if ((_target - _origin).length() < FLT_EPSILON) {
-		return MPC_ACC_HOR_MAX.get();
+		return _param_mpc_acc_hor_max.get();
 	}
 
 	// unit vector in the direction of the straight line
 	Vector3f u_orig_to_target = (_target - _origin).unit_or_zero();
 
 	// calculate the maximal horizontal acceleration
-	float divider = Vector2f(u_orig_to_target(0), u_orig_to_target(1)).length();
-	float max_acc_hor = MPC_ACC_HOR_MAX.get();
+	float divider = Vector2f(u_orig_to_target).length();
+	float max_acc_hor = _param_mpc_acc_hor_max.get();
 
 	if (divider > FLT_EPSILON) {
 		max_acc_hor /= divider;
@@ -124,7 +125,7 @@ float StraightLine::getMaxAcc()
 	}
 
 	// calculate the maximal vertical acceleration
-	float max_acc_vert_original = u_orig_to_target(2) < 0 ? MPC_ACC_UP_MAX.get() : MPC_ACC_DOWN_MAX.get();
+	float max_acc_vert_original = u_orig_to_target(2) < 0 ? _param_mpc_acc_up_max.get() : _param_mpc_acc_down_max.get();
 	float max_acc_vert = max_acc_vert_original;
 
 	if (fabs(u_orig_to_target(2)) > FLT_EPSILON) {
@@ -141,15 +142,15 @@ float StraightLine::getMaxVel()
 {
 	// check if origin and target are different points
 	if ((_target - _origin).length() < FLT_EPSILON) {
-		return MPC_XY_VEL_MAX.get();
+		return _param_mpc_xy_vel_max.get();
 	}
 
 	// unit vector in the direction of the straight line
 	Vector3f u_orig_to_target = (_target - _origin).unit_or_zero();
 
 	// calculate the maximal horizontal velocity
-	float divider = Vector2f(u_orig_to_target.data()).length();
-	float max_vel_hor = MPC_XY_VEL_MAX.get();
+	float divider = Vector2f(u_orig_to_target).length();
+	float max_vel_hor = _param_mpc_xy_vel_max.get();
 
 	if (divider > FLT_EPSILON) {
 		max_vel_hor /= divider;
@@ -159,7 +160,8 @@ float StraightLine::getMaxVel()
 	}
 
 	// calculate the maximal vertical velocity
-	float max_vel_vert_directional = u_orig_to_target(2) < 0 ? MPC_Z_VEL_MAX_UP.get() : MPC_Z_VEL_MAX_DN.get();
+	float max_vel_vert_directional = u_orig_to_target(2) < 0 ? _param_mpc_z_vel_max_up.get() :
+					 _param_mpc_z_vel_max_dn.get();
 	float max_vel_vert = max_vel_vert_directional;
 
 	if (fabs(u_orig_to_target(2)) > FLT_EPSILON) {

@@ -31,14 +31,14 @@
  *
  ****************************************************************************/
 
-#include "SDP3X.hpp"
-
 /**
  * @file SDP3X.hpp
  *
  * Driver for Sensirion SDP3X Differential Pressure Sensor
  *
  */
+
+#include "SDP3X.hpp"
 
 int
 SDP3X::probe()
@@ -70,7 +70,7 @@ SDP3X::init_sdp3x()
 	}
 
 	// wait until sensor is ready
-	usleep(20000);
+	px4_usleep(20000);
 
 	// step 2 - configure
 	ret = write_command(SDP3X_CONT_MEAS_AVG_MODE);
@@ -81,7 +81,7 @@ SDP3X::init_sdp3x()
 		return false;
 	}
 
-	usleep(10000);
+	px4_usleep(10000);
 
 	// step 3 - get scale
 	uint8_t val[9];
@@ -168,7 +168,7 @@ SDP3X::collect()
 }
 
 void
-SDP3X::cycle()
+SDP3X::Run()
 {
 	int ret = PX4_ERROR;
 
@@ -181,7 +181,7 @@ SDP3X::cycle()
 	}
 
 	// schedule a fresh cycle call when the measurement is done
-	work_queue(HPWORK, &_work, (worker_t)&Airspeed::cycle_trampoline, this, USEC2TICK(CONVERSION_INTERVAL));
+	ScheduleDelayed(CONVERSION_INTERVAL);
 }
 
 bool SDP3X::crc(const uint8_t data[], unsigned size, uint8_t checksum)

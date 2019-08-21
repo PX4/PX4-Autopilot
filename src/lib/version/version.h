@@ -47,15 +47,6 @@
 #include <systemlib/px4_macros.h>
 #include <stdint.h>
 
-/* The preferred method for publishing a board name is to
- * define it in board_config.h as BOARD_NAME
- */
-
-#ifndef BOARD_NAME
-#  error "board_config.h must define BOARD_NAME"
-#endif
-
-
 __BEGIN_DECLS
 
 /**
@@ -63,7 +54,7 @@ __BEGIN_DECLS
  */
 static inline const char *px4_board_name(void)
 {
-	return BOARD_NAME;
+	return PX4_BOARD_NAME;
 }
 
 /**

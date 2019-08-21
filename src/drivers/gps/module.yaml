@@ -1,0 +1,16 @@
+module_name: GPS
+serial_config:
+    # secondary gps must be first
+    - command: set DUAL_GPS_ARGS "-e ${SERIAL_DEV} -g p:${BAUD_PARAM}"
+      port_config_param:
+        name: GPS_2_CONFIG
+        group: GPS
+      label: Secondary GPS
+
+    - command: gps start -d ${SERIAL_DEV} -b p:${BAUD_PARAM} ${DUAL_GPS_ARGS}
+      port_config_param:
+        name: GPS_1_CONFIG
+        group: GPS
+        default: GPS1
+      label: Main GPS
+

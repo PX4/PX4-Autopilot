@@ -36,39 +36,7 @@
  * Driver for the BMP280 barometric pressure sensor connected via I2C TODO or SPI.
  */
 
-#include <px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-#include <px4_getopt.h>
-#include <px4_log.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/clock.h>
-
-#include <arch/board/board.h>
-#include <board_config.h>
 #include "bmp280.h"
-
-#include <lib/cdev/CDev.hpp>
-#include <drivers/drv_baro.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/device/ringbuffer.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-
 
 enum BMP280_BUS {
 	BMP280_BUS_ALL = 0,
@@ -78,15 +46,11 @@ enum BMP280_BUS {
 	BMP280_BUS_SPI_EXTERNAL
 };
 
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
-
 /*
  * BMP280 internal constants and data structures.
  */
 
-class BMP280 : public cdev::CDev
+class BMP280 : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
 	BMP280(bmp280::IBMP280 *interface, const char *path);
@@ -109,9 +73,8 @@ private:
 
 	uint8_t				_curr_ctrl;
 
-	struct work_s		_work;
-	unsigned			_report_ticks; // 0 - no cycling, otherwise period of sending a report
-	unsigned			_max_mesure_ticks; //ticks needed to measure
+	unsigned			_report_interval; // 0 - no cycling, otherwise period of sending a report
+	unsigned			_max_measure_interval; // interval in microseconds needed to measure
 
 	ringbuffer::RingBuffer	*_reports;
 
@@ -135,8 +98,8 @@ private:
 	/* periodic execution helpers */
 	void			start_cycle();
 	void			stop_cycle();
-	void			cycle(); //main execution
-	static void		cycle_trampoline(void *arg);
+
+	void			Run() override;
 
 	int		measure(); //start measure
 	int		collect(); //get results and publish
@@ -149,9 +112,10 @@ extern "C" __EXPORT int bmp280_main(int argc, char *argv[]);
 
 BMP280::BMP280(bmp280::IBMP280 *interface, const char *path) :
 	CDev(path),
+	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_running(false),
-	_report_ticks(0),
+	_report_interval(0),
 	_reports(nullptr),
 	_collect_phase(false),
 	_baro_topic(nullptr),
@@ -161,8 +125,6 @@ BMP280::BMP280(bmp280::IBMP280 *interface, const char *path) :
 	_measure_perf(perf_alloc(PC_ELAPSED, "bmp280_measure")),
 	_comms_errors(perf_alloc(PC_COUNT, "bmp280_comms_errors"))
 {
-	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
 }
 
 BMP280::~BMP280()
@@ -202,7 +164,7 @@ BMP280::init()
 	}
 
 	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(baro_report));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_baro_s));
 
 	if (_reports == nullptr) {
 		PX4_ERR("can't get memory for reports");
@@ -214,23 +176,23 @@ BMP280::init()
 	_class_instance = register_class_devname(BARO_BASE_DEVICE_PATH);
 
 	/* reset sensor */
-	_interface->set_reg(BPM280_VALUE_RESET, BPM280_ADDR_RESET);
+	_interface->set_reg(BMP280_VALUE_RESET, BMP280_ADDR_RESET);
 	usleep(10000);
 
 	/* check  id*/
-	if (_interface->get_reg(BPM280_ADDR_ID) != BPM280_VALUE_ID) {
-		PX4_WARN("id of your baro is not: 0x%02x", BPM280_VALUE_ID);
+	if (_interface->get_reg(BMP280_ADDR_ID) != BMP280_VALUE_ID) {
+		PX4_WARN("id of your baro is not: 0x%02x", BMP280_VALUE_ID);
 		return -EIO;
 	}
 
 	/* set config, recommended settings */
-	_curr_ctrl = BPM280_CTRL_P16 | BPM280_CTRL_T2;
-	_interface->set_reg(_curr_ctrl, BPM280_ADDR_CTRL);
-	_max_mesure_ticks = USEC2TICK(BPM280_MT_INIT + BPM280_MT * (16 - 1 + 2 - 1));
-	_interface->set_reg(BPM280_CONFIG_F16, BPM280_ADDR_CONFIG);
+	_curr_ctrl = BMP280_CTRL_P16 | BMP280_CTRL_T2;
+	_interface->set_reg(_curr_ctrl, BMP280_ADDR_CTRL);
+	_max_measure_interval = (BMP280_MT_INIT + BMP280_MT * (16 - 1 + 2 - 1));
+	_interface->set_reg(BMP280_CONFIG_F16, BMP280_ADDR_CONFIG);
 
 	/* get calibration and pre process them*/
-	_cal = _interface->get_calibration(BPM280_ADDR_CAL);
+	_cal = _interface->get_calibration(BMP280_ADDR_CAL);
 
 	_fcal.t1 =  _cal->t1 * powf(2,  4);
 	_fcal.t2 =  _cal->t2 * powf(2, -14);
@@ -249,14 +211,14 @@ BMP280::init()
 	_fcal.p9 = _cal->p9 * powf(2, -35);
 
 	/* do a first measurement cycle to populate reports with valid data */
-	struct baro_report brp;
+	sensor_baro_s brp;
 	_reports->flush();
 
 	if (measure()) {
 		return -EIO;
 	}
 
-	usleep(TICK2USEC(_max_mesure_ticks));
+	usleep(_max_measure_interval);
 
 	if (collect()) {
 		return -EIO;
@@ -279,8 +241,8 @@ BMP280::init()
 ssize_t
 BMP280::read(struct file *filp, char *buffer, size_t buflen)
 {
-	unsigned count = buflen / sizeof(struct baro_report);
-	struct baro_report *brp = reinterpret_cast<struct baro_report *>(buffer);
+	unsigned count = buflen / sizeof(sensor_baro_s);
+	sensor_baro_s *brp = reinterpret_cast<sensor_baro_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -289,7 +251,7 @@ BMP280::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is enabled */
-	if (_report_ticks > 0) {
+	if (_report_interval > 0) {
 
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
@@ -315,7 +277,7 @@ BMP280::read(struct file *filp, char *buffer, size_t buflen)
 		return -EIO;
 	}
 
-	usleep(TICK2USEC(_max_mesure_ticks));
+	usleep(_max_measure_interval);
 
 	if (collect()) {
 		return -EIO;
@@ -335,40 +297,31 @@ BMP280::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 	case SENSORIOCSPOLLRATE: {
 
-			unsigned ticks = 0;
+			unsigned interval = 0;
 
 			switch (arg) {
 
-			case SENSOR_POLLRATE_MANUAL:
-				stop_cycle();
-				_report_ticks = 0;
-				return OK;
-
-			case SENSOR_POLLRATE_EXTERNAL:
 			case 0:
 				return -EINVAL;
 
-			case SENSOR_POLLRATE_MAX:
-
-			/* FALLTHROUGH */
 			case SENSOR_POLLRATE_DEFAULT:
-				ticks = _max_mesure_ticks;
+				interval = _max_measure_interval;
 
 			/* FALLTHROUGH */
 			default: {
-					if (ticks == 0) {
-						ticks = USEC2TICK(USEC_PER_SEC / arg);
+					if (interval == 0) {
+						interval = (USEC_PER_SEC / arg);
 					}
 
 					/* do we need to start internal polling? */
-					bool want_start = (_report_ticks == 0);
+					bool want_start = (_report_interval == 0);
 
 					/* check against maximum rate */
-					if (ticks < _max_mesure_ticks) {
+					if (interval < _max_measure_interval) {
 						return -EINVAL;
 					}
 
-					_report_ticks = ticks;
+					_report_interval = interval;
 
 					if (want_start) {
 						start_cycle();
@@ -379,30 +332,6 @@ BMP280::ioctl(struct file *filp, int cmd, unsigned long arg)
 			}
 
 			break;
-		}
-
-	case SENSORIOCGPOLLRATE:
-		if (_report_ticks == 0) {
-			return SENSOR_POLLRATE_MANUAL;
-		}
-
-		return (USEC_PER_SEC / USEC_PER_TICK / _report_ticks);
-
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 100)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-			return OK;
 		}
 
 	case SENSORIOCRESET:
@@ -422,41 +351,33 @@ BMP280::ioctl(struct file *filp, int cmd, unsigned long arg)
 void
 BMP280::start_cycle()
 {
-
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_running = true;
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&BMP280::cycle_trampoline, this, 1);
+	ScheduleNow();
 }
 
 void
 BMP280::stop_cycle()
 {
 	_running = false;
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 }
 
 void
-BMP280::cycle_trampoline(void *arg)
-{
-	BMP280 *dev = reinterpret_cast<BMP280 *>(arg);
-
-	dev->cycle();
-}
-
-void
-BMP280::cycle()
+BMP280::Run()
 {
 	if (_collect_phase) {
 		collect();
-		unsigned wait_gap = _report_ticks - _max_mesure_ticks;
+		unsigned wait_gap = _report_interval - _max_measure_interval;
 
 		if ((wait_gap != 0) && (_running)) {
-			work_queue(HPWORK, &_work, (worker_t)&BMP280::cycle_trampoline, this,
-				   wait_gap); //need to wait some time before new measurement
+			//need to wait some time before new measurement
+			ScheduleDelayed(wait_gap);
+
 			return;
 		}
 
@@ -465,9 +386,8 @@ BMP280::cycle()
 	measure();
 
 	if (_running) {
-		work_queue(HPWORK, &_work, (worker_t)&BMP280::cycle_trampoline, this, _max_mesure_ticks);
+		ScheduleDelayed(_max_measure_interval);
 	}
-
 }
 
 int
@@ -478,7 +398,7 @@ BMP280::measure()
 	perf_begin(_measure_perf);
 
 	/* start measure */
-	int ret = _interface->set_reg(_curr_ctrl | BPM280_CTRL_MODE_FORCE, BPM280_ADDR_CTRL);
+	int ret = _interface->set_reg(_curr_ctrl | BMP280_CTRL_MODE_FORCE, BMP280_ADDR_CTRL);
 
 	if (ret != OK) {
 		perf_count(_comms_errors);
@@ -498,12 +418,13 @@ BMP280::collect()
 
 	perf_begin(_sample_perf);
 
-	struct baro_report report;
+	sensor_baro_s report;
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
+	report.device_id = _interface->get_device_id();
 
-	bmp280::data_s *data = _interface->get_data(BPM280_ADDR_DATA);
+	bmp280::data_s *data = _interface->get_data(BMP280_ADDR_DATA);
 
 	if (data == nullptr) {
 		perf_count(_comms_errors);
@@ -550,7 +471,7 @@ BMP280::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u us \n", _report_ticks * USEC_PER_TICK);
+	printf("poll interval:  %u us \n", _report_interval);
 	_reports->print_info("report queue");
 
 	sensor_baro_s brp = {};
@@ -586,11 +507,11 @@ struct bmp280_bus_option {
 	{ BMP280_BUS_SPI_INTERNAL, "/dev/bmp280_spi_int", &bmp280_spi_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_BARO, false, NULL },
 #  endif
 #endif
-#ifdef PX4_I2C_OBDEV_BMP280
-	{ BMP280_BUS_I2C_INTERNAL, "/dev/bmp280_i2c_int", &bmp280_i2c_interface, PX4_I2C_BUS_EXPANSION, PX4_I2C_OBDEV_BMP280, false, NULL },
+#if defined(PX4_I2C_BUS_ONBOARD) && defined(PX4_I2C_OBDEV_BMP280)
+	{ BMP280_BUS_I2C_INTERNAL, "/dev/bmp280_i2c_int", &bmp280_i2c_interface, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_BMP280, false, NULL },
 #endif
-#if defined(PX4_I2C_BUS_EXPANSION) && defined(PX4_I2C_EXT_OBDEV_BMP280)
-	{ BMP280_BUS_I2C_EXTERNAL, "/dev/bmp280_i2c_ext", &bmp280_i2c_interface, PX4_I2C_BUS_EXPANSION, PX4_I2C_EXT_OBDEV_BMP280, true, NULL },
+#if defined(PX4_I2C_BUS_EXPANSION) && defined(PX4_I2C_OBDEV_BMP280)
+	{ BMP280_BUS_I2C_EXTERNAL, "/dev/bmp280_i2c_ext", &bmp280_i2c_interface, PX4_I2C_BUS_EXPANSION, PX4_I2C_OBDEV_BMP280, true, NULL },
 #endif
 };
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
@@ -716,7 +637,7 @@ void
 test(enum BMP280_BUS busid)
 {
 	struct bmp280_bus_option &bus = find_bus(busid);
-	struct baro_report report;
+	sensor_baro_s report;
 	ssize_t sz;
 	int ret;
 
@@ -738,18 +659,6 @@ test(enum BMP280_BUS busid)
 	}
 
 	print_message(report);
-
-	/* set the queue depth to 10 */
-	if (OK != ioctl(fd, SENSORIOCSQUEUEDEPTH, 10)) {
-		PX4_ERR("failed to set queue depth");
-		exit(1);
-	}
-
-	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		PX4_ERR("failed to set 2Hz poll rate");
-		exit(1);
-	}
 
 	/* read the sensor 5x and report each value */
 	for (unsigned i = 0; i < 5; i++) {

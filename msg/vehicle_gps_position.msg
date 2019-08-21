@@ -32,4 +32,5 @@ uint64 time_utc_usec		# Timestamp (microseconds, UTC), this is the timestamp whi
 
 uint8 satellites_used		# Number of satellites used
 
-float32 heading		# heading in NED. Set to NaN if not set (used for dual antenna GPS), (rad, [-PI, PI])
+float32 heading			# heading angle of XYZ body frame rel to NED. Set to NaN if not available and updated (used for dual antenna GPS), (rad, [-PI, PI])
+float32 heading_offset		# heading offset of dual antenna array in body frame. Set to NaN if not applicable. (rad, [-PI, PI])

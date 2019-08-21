@@ -32,7 +32,7 @@
 ############################################################################
 
 set(SRCS_PLATFORM)
-if (${OS} STREQUAL "nuttx")
+if (${PX4_PLATFORM} STREQUAL "nuttx")
 	if ("${CONFIG_I2C}" STREQUAL "y")
 		list(APPEND SRCS_PLATFORM nuttx/I2C.cpp)
 	endif()
@@ -40,9 +40,11 @@ if (${OS} STREQUAL "nuttx")
 	if ("${CONFIG_SPI}" STREQUAL "y")
 		list(APPEND SRCS_PLATFORM nuttx/SPI.cpp)
 	endif()
-else()
+elseif(UNIX AND NOT APPLE AND NOT (${PX4_PLATFORM} MATCHES "qurt")) #TODO: add linux PX4 platform type
+	# Linux I2Cdev and SPIdev
 	list(APPEND SRCS_PLATFORM
 		posix/I2C.cpp
+		posix/SPI.cpp
 	)
 endif()
 
@@ -53,7 +55,7 @@ px4_add_library(drivers__device
 	${SRCS_PLATFORM}
 	)
 
-if (${OS} STREQUAL "nuttx")
+if (${PX4_PLATFORM} STREQUAL "nuttx")
 	target_link_libraries(drivers__device PRIVATE nuttx_arch)
 endif()
 

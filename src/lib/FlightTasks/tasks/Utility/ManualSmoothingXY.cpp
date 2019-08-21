@@ -36,20 +36,22 @@
  */
 
 #include "ManualSmoothingXY.hpp"
-#include "uORB/topics/parameter_update.h"
 #include <mathlib/mathlib.h>
 #include <float.h>
+#include <px4_defines.h>
 
-ManualSmoothingXY::ManualSmoothingXY(ModuleParams *parent, const matrix::Vector2f &vel) :
+using namespace matrix;
+
+ManualSmoothingXY::ManualSmoothingXY(ModuleParams *parent, const Vector2f &vel) :
 	ModuleParams(parent), 	_vel_sp_prev(vel)
 
 {
-	_acc_state_dependent = _acc_xy_max.get();
-	_jerk_state_dependent = _jerk_max.get();
+	_acc_state_dependent = _param_mpc_acc_hor.get();
+	_jerk_state_dependent = _param_mpc_jerk_max.get();
 }
 
 void
-ManualSmoothingXY::smoothVelocity(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float &yaw,
+ManualSmoothingXY::smoothVelocity(Vector2f &vel_sp, const Vector2f &vel, const float &yaw,
 				  const float &yawrate_sp, const float dt)
 {
 	_updateAcceleration(vel_sp, vel, yaw, yawrate_sp, dt);
@@ -58,7 +60,7 @@ ManualSmoothingXY::smoothVelocity(matrix::Vector2f &vel_sp, const matrix::Vector
 }
 
 void
-ManualSmoothingXY::_updateAcceleration(matrix::Vector2f &vel_sp, const matrix::Vector2f &vel,  const float &yaw,
+ManualSmoothingXY::_updateAcceleration(Vector2f &vel_sp, const Vector2f &vel,  const float &yaw,
 				       const float &yawrate_sp, const float dt)
 {
 	Intention intention = _getIntention(vel_sp, vel, yaw, yawrate_sp);
@@ -69,7 +71,7 @@ ManualSmoothingXY::_updateAcceleration(matrix::Vector2f &vel_sp, const matrix::V
 }
 
 ManualSmoothingXY::Intention
-ManualSmoothingXY::_getIntention(const matrix::Vector2f &vel_sp, const matrix::Vector2f &vel, const float &yaw,
+ManualSmoothingXY::_getIntention(const Vector2f &vel_sp, const Vector2f &vel, const float &yaw,
 				 const float &yawrate_sp)
 {
 
@@ -81,8 +83,8 @@ ManualSmoothingXY::_getIntention(const matrix::Vector2f &vel_sp, const matrix::V
 		// that the user demanded a direction change.
 		// The detection is done in body frame.
 		// Rotate velocity setpoint into body frame
-		matrix::Vector2f vel_sp_heading = _getWorldToHeadingFrame(vel_sp, yaw);
-		matrix::Vector2f vel_heading = _getWorldToHeadingFrame(vel, yaw);
+		Vector2f vel_sp_heading = _getWorldToHeadingFrame(vel_sp, yaw);
+		Vector2f vel_heading = _getWorldToHeadingFrame(vel, yaw);
 
 		if (vel_sp_heading.length() > FLT_EPSILON) {
 			vel_sp_heading.normalize();
@@ -117,7 +119,7 @@ ManualSmoothingXY::_getIntention(const matrix::Vector2f &vel_sp, const matrix::V
 }
 
 void
-ManualSmoothingXY::_setStateAcceleration(const matrix::Vector2f &vel_sp, const matrix::Vector2f &vel,
+ManualSmoothingXY::_setStateAcceleration(const Vector2f &vel_sp, const Vector2f &vel,
 		const Intention &intention, const float dt)
 {
 	switch (intention) {
@@ -132,17 +134,17 @@ ManualSmoothingXY::_setStateAcceleration(const matrix::Vector2f &vel_sp, const m
 			} else if (intention != _intention) {
 				// start the brake with lowest acceleration which
 				// makes stopping smoother
-				_acc_state_dependent = _dec_xy_min.get();
+				_acc_state_dependent = _param_mpc_dec_hor_slow.get();
 
 				// Adjust jerk based on current velocity. This ensures
 				// that the vehicle will stop much quicker at large speed but
 				// very slow at low speed.
 				_jerk_state_dependent = 1e6f; // default
 
-				if (_jerk_max.get() > _jerk_min.get()) {
+				if (_param_mpc_jerk_max.get() > _param_mpc_jerk_min.get() && _param_mpc_jerk_min.get() > FLT_EPSILON) {
 
-					_jerk_state_dependent = math::min((_jerk_max.get() - _jerk_min.get())
-									  / _vel_max * vel.length() + _jerk_min.get(), _jerk_max.get());
+					_jerk_state_dependent = math::min((_param_mpc_jerk_max.get() - _param_mpc_jerk_min.get())
+									  / _vel_max * vel.length() + _param_mpc_jerk_min.get(), _param_mpc_jerk_max.get());
 				}
 
 				// User wants to brake smoothly but does NOT want the vehicle to
@@ -152,14 +154,14 @@ ManualSmoothingXY::_setStateAcceleration(const matrix::Vector2f &vel_sp, const m
 			}
 
 			/* limit jerk when braking to zero */
-			float jerk = (_acc_hover.get() - _acc_state_dependent) / dt;
+			float jerk = (_param_mpc_acc_hor_max.get() - _acc_state_dependent) / dt;
 
 			if (jerk > _jerk_state_dependent) {
 				_acc_state_dependent = _jerk_state_dependent * dt
 						       + _acc_state_dependent;
 
 			} else {
-				_acc_state_dependent = _acc_hover.get();
+				_acc_state_dependent = _param_mpc_acc_hor_max.get();
 			}
 
 			break;
@@ -172,19 +174,19 @@ ManualSmoothingXY::_setStateAcceleration(const matrix::Vector2f &vel_sp, const m
 			// Because previous setpoint is equal to current setpoint,
 			// slewrate will have no effect. Nonetheless, just set
 			// acceleration to maximum.
-			_acc_state_dependent = _acc_hover.get();
+			_acc_state_dependent = _param_mpc_acc_hor_max.get();
 			break;
 		}
 
 	case Intention::acceleration: {
 			// Limit acceleration linearly based on velocity setpoint.
-			_acc_state_dependent = (_acc_xy_max.get() - _dec_xy_min.get())
-					       / _vel_max * vel_sp.length() + _dec_xy_min.get();
+			_acc_state_dependent = (_param_mpc_acc_hor.get() - _param_mpc_dec_hor_slow.get())
+					       / _vel_max * vel_sp.length() + _param_mpc_dec_hor_slow.get();
 			break;
 		}
 
 	case Intention::deceleration: {
-			_acc_state_dependent = _dec_xy_min.get();
+			_acc_state_dependent = _param_mpc_dec_hor_slow.get();
 			break;
 		}
 	}
@@ -194,10 +196,10 @@ ManualSmoothingXY::_setStateAcceleration(const matrix::Vector2f &vel_sp, const m
 }
 
 void
-ManualSmoothingXY::_velocitySlewRate(matrix::Vector2f &vel_sp, const float dt)
+ManualSmoothingXY::_velocitySlewRate(Vector2f &vel_sp, const float dt)
 {
 	// Adjust velocity setpoint if demand exceeds acceleration. /
-	matrix::Vector2f acc{};
+	Vector2f acc{};
 
 	if (dt > FLT_EPSILON) {
 		acc = (vel_sp - _vel_sp_prev) / dt;
@@ -208,18 +210,18 @@ ManualSmoothingXY::_velocitySlewRate(matrix::Vector2f &vel_sp, const float dt)
 	}
 }
 
-matrix::Vector2f
-ManualSmoothingXY::_getWorldToHeadingFrame(const matrix::Vector2f &vec, const float &yaw)
+Vector2f
+ManualSmoothingXY::_getWorldToHeadingFrame(const Vector2f &vec, const float &yaw)
 {
-	matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), yaw);
-	matrix::Vector3f vec_heading = q_yaw.conjugate_inversed(matrix::Vector3f(vec(0), vec(1), 0.0f));
-	return matrix::Vector2f(&vec_heading(0));
+	Quatf q_yaw = AxisAnglef(Vector3f(0.0f, 0.0f, 1.0f), yaw);
+	Vector3f vec_heading = q_yaw.conjugate_inversed(Vector3f(vec(0), vec(1), 0.0f));
+	return Vector2f(vec_heading);
 }
 
-matrix::Vector2f
-ManualSmoothingXY::_getHeadingToWorldFrame(const matrix::Vector2f &vec, const float &yaw)
+Vector2f
+ManualSmoothingXY::_getHeadingToWorldFrame(const Vector2f &vec, const float &yaw)
 {
-	matrix::Quatf q_yaw = matrix::AxisAnglef(matrix::Vector3f(0.0f, 0.0f, 1.0f), yaw);
-	matrix::Vector3f vec_world = q_yaw.conjugate(matrix::Vector3f(vec(0), vec(1), 0.0f));
-	return matrix::Vector2f(&vec_world(0));
+	Quatf q_yaw = AxisAnglef(Vector3f(0.0f, 0.0f, 1.0f), yaw);
+	Vector3f vec_world = q_yaw.conjugate(Vector3f(vec(0), vec(1), 0.0f));
+	return Vector2f(vec_world);
 }

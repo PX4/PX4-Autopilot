@@ -37,27 +37,9 @@
  * I2C interface for MPU9250
  */
 
-/* XXX trim includes */
-#include <px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <string.h>
-#include <assert.h>
-#include <debug.h>
-#include <errno.h>
-#include <unistd.h>
-
-#include <arch/board/board.h>
-
 #include <drivers/device/i2c.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_device.h>
 
 #include "mpu9250.h"
-
-#include "board_config.h"
 
 #ifdef USE_I2C
 
@@ -67,15 +49,15 @@ class MPU9250_I2C : public device::I2C
 {
 public:
 	MPU9250_I2C(int bus, uint32_t address);
-	virtual ~MPU9250_I2C() = default;
+	~MPU9250_I2C() override = default;
 
-	virtual int	read(unsigned address, void *data, unsigned count);
-	virtual int	write(unsigned address, void *data, unsigned count);
-
-	virtual int	ioctl(unsigned operation, unsigned &arg);
+	int	read(unsigned address, void *data, unsigned count) override;
+	int	write(unsigned address, void *data, unsigned count) override;
 
 protected:
 	virtual int	probe();
+
+private:
 
 };
 
@@ -88,36 +70,13 @@ MPU9250_I2C_interface(int bus, uint32_t address, bool external_bus)
 MPU9250_I2C::MPU9250_I2C(int bus, uint32_t address) :
 	I2C("MPU9250_I2C", nullptr, bus, address, 400000)
 {
-	_device_id.devid_s.devtype =  DRV_ACC_DEVTYPE_MPU9250;
-}
-
-int
-MPU9250_I2C::ioctl(unsigned operation, unsigned &arg)
-{
-	int ret = PX4_ERROR;
-
-	switch (operation) {
-
-	case ACCELIOCGEXTERNAL:
-		return external();
-
-	case DEVIOCGDEVICEID:
-		return CDev::ioctl(nullptr, operation, arg);
-
-	case MPUIOCGIS_I2C:
-		return 1;
-
-	default:
-		ret = -EINVAL;
-	}
-
-	return ret;
+	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU9250;
 }
 
 int
 MPU9250_I2C::write(unsigned reg_speed, void *data, unsigned count)
 {
-	uint8_t cmd[MPU_MAX_WRITE_BUFFER_SIZE];
+	uint8_t cmd[MPU_MAX_WRITE_BUFFER_SIZE] {};
 
 	if (sizeof(cmd) < (count + 1)) {
 		return -EIO;
@@ -146,8 +105,15 @@ int
 MPU9250_I2C::probe()
 {
 	uint8_t whoami = 0;
-	uint8_t expected = MPU_WHOAMI_9250;
-	return (read(MPUREG_WHOAMI, &whoami, 1) == OK && (whoami == expected)) ? 0 : -EIO;
+
+	// Try first for mpu9250/6500
+	read(MPUREG_WHOAMI, &whoami, 1);
+
+	if (whoami == MPU_WHOAMI_9250 || whoami == MPU_WHOAMI_6500) {
+		return PX4_OK;
+	}
+
+	return -ENODEV;
 }
 
 #endif /* USE_I2C */

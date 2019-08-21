@@ -60,7 +60,7 @@ public:
 
 	void update(float accel_x);
 	LaunchDetectionResult getLaunchDetected();
-	bool launchDetectionEnabled() { return _launchdetection_on.get(); }
+	bool launchDetectionEnabled() { return _param_laun_all_on.get(); }
 
 	/* Returns a maximum pitch in deg. Different launch methods may impose upper pitch limits during launch */
 	float getPitchMax(float pitchMaxDefault);
@@ -77,7 +77,7 @@ private:
 	LaunchMethod *_launchMethods[1];
 
 	DEFINE_PARAMETERS(
-		(ParamBool<px4::params::LAUN_ALL_ON>) _launchdetection_on
+		(ParamBool<px4::params::LAUN_ALL_ON>) _param_laun_all_on
 	)
 };
 

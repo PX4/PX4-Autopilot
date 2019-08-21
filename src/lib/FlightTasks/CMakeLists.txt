@@ -51,16 +51,19 @@ endif()
 
 # add core flight tasks to list
 list(APPEND flight_tasks_all
-	ManualStabilized
 	ManualAltitude
 	ManualAltitudeSmooth
+	ManualAltitudeSmoothVel
 	ManualPosition
 	ManualPositionSmooth
+	ManualPositionSmoothVel
 	Sport
 	AutoLine
+	AutoLineSmoothVel
 	AutoFollowMe
 	Offboard
 	Failsafe
+	Transition
 	${flight_tasks_to_add}
 )
 
@@ -90,9 +93,11 @@ add_custom_command(
 	OUTPUT
 		${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.hpp
 		${CMAKE_CURRENT_BINARY_DIR}/FlightTasks_generated.cpp
-	COMMAND ${PYTHON_EXECUTABLE} generate_flight_tasks.py
-		${python_args}
+	COMMAND ${PYTHON_EXECUTABLE} generate_flight_tasks.py ${python_args}
 	COMMENT "Generating Flight Tasks"
+	DEPENDS
+		Templates/FlightTasks_generated.cpp.em
+		Templates/FlightTasks_generated.hpp.em
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 	VERBATIM
 )
@@ -100,6 +105,10 @@ add_custom_command(
 ###########################################
 # Create Flight Tasks Library
 ###########################################
+
+add_compile_options(
+	-Wno-cast-align
+	) # TODO: fix and enable
 
 px4_add_library(FlightTasks
 	FlightTasks.cpp

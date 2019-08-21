@@ -1,1 +1,1 @@
-__all__ = ["srcscanner", "srcparser", "xmlout", "scope"]
+__all__ = ["srcscanner", "srcparser", "xmlout"]

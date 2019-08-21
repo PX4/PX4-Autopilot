@@ -47,11 +47,11 @@
 #include <systemlib/err.h>
 #include <parameters/param.h>
 
-#include "drivers/drv_iridiumsbd.h"
-
 static constexpr const char *satcom_state_string[4] = {"STANDBY", "SIGNAL CHECK", "SBD SESSION", "TEST"};
 
 #define VERBOSE_INFO(...) if (_verbose) { PX4_INFO(__VA_ARGS__); }
+
+#define IRIDIUMSBD_DEVICE_PATH	"/dev/iridium"
 
 IridiumSBD *IridiumSBD::instance;
 int IridiumSBD::task_handle;
@@ -1111,14 +1111,8 @@ void IridiumSBD::publish_iridium_status()
 
 	// publish the status if it changed
 	if (need_to_publish) {
-		if (_iridiumsbd_status_pub == nullptr) {
-			_iridiumsbd_status_pub = orb_advertise(ORB_ID(iridiumsbd_status), &_status);
-
-		} else {
-			orb_publish(ORB_ID(iridiumsbd_status), _iridiumsbd_status_pub, &_status);
-		}
+		_iridiumsbd_status_pub.publish(_status);
 	}
-
 }
 
 void IridiumSBD::publish_subsystem_status()
@@ -1134,12 +1128,7 @@ void IridiumSBD::publish_subsystem_status()
 		_info.enabled = enabled;
 		_info.ok = ok;
 
-		if (_subsystem_pub == nullptr) {
-			_subsystem_pub = orb_advertise_queue(ORB_ID(subsystem_info), &_info, subsystem_info_s::ORB_QUEUE_LENGTH);
-
-		} else {
-			orb_publish(ORB_ID(subsystem_info), _subsystem_pub, &_info);
-		}
+		_subsystem_pub.publish(_info);
 	}
 }
 

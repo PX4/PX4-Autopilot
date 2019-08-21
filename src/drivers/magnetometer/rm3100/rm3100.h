@@ -50,16 +50,16 @@
 
 #include <perf/perf_counter.h>
 #include <px4_defines.h>
+#include <systemlib/err.h>
 
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 /**
  * RM3100 internal constants and data structures.
  */
 
-#define RM3100_CONVERSION_INTERVAL	6850	// Microseconds, corresponds to 146 Hz (cycle count 200 on 3 axis)
+/* At 146 Hz we encounter errors, 100 Hz is safer */
+#define RM3100_CONVERSION_INTERVAL	10000	// Microseconds, corresponds to 100 Hz (cycle count 200 on 3 axis)
 #define UTESLA_TO_GAUSS			100.0f
 #define RM3100_SENSITIVITY		75.0f
 
@@ -115,7 +115,7 @@ enum OPERATING_MODE {
 };
 
 
-class RM3100 : public device::CDev
+class RM3100 : public device::CDev, public px4::ScheduledWorkItem
 {
 public:
 	RM3100(device::Device *interface, const char *path, enum Rotation rotation);
@@ -147,7 +147,6 @@ protected:
 	Device *_interface;
 
 private:
-	work_s _work;
 
 	ringbuffer::RingBuffer *_reports;
 
@@ -169,7 +168,7 @@ private:
 	enum OPERATING_MODE _mode;
 	enum Rotation _rotation;
 
-	unsigned int _measure_ticks;
+	unsigned int _measure_interval;
 
 	int _class_instance;
 	int _orb_class_instance;
@@ -215,15 +214,7 @@ private:
 	 * and measurement to provide the most recent measurement possible
 	 * at the next interval.
 	 */
-	void cycle();
-
-	/**
-	 * @brief Static trampoline from the workq context; because we don't have a
-	 *         generic workq wrapper yet.
-	 *
-	 * @param arg Instance pointer for the driver that is polling.
-	 */
-	static void cycle_trampoline(void *arg);
+	void Run() override;
 
 	/**
 	 * Issue a measurement command.

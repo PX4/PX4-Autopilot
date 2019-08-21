@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file spi.h
+ * @file SPI.hpp
  *
  * Base class for devices connected via SPI.
  */
@@ -41,8 +41,6 @@
 #define _DEVICE_SPI_H
 
 #include "../CDev.hpp"
-
-#include <px4_spi.h>
 
 namespace device __EXPORT
 {
@@ -63,12 +61,7 @@ protected:
 	 * @param mode		SPI clock/data mode
 	 * @param frequency	SPI clock frequency
 	 */
-	SPI(const char *name,
-	    const char *devname,
-	    int bus,
-	    uint32_t device,
-	    enum spi_mode_e mode,
-	    uint32_t frequency);
+	SPI(const char *name, const char *devname, int bus, uint32_t device, enum spi_mode_e mode, uint32_t frequency);
 	virtual ~SPI();
 
 	/**
@@ -139,6 +132,7 @@ protected:
 	 * @param frequency	Frequency to set (Hz)
 	 */
 	void		set_frequency(uint32_t frequency) { _frequency = frequency; }
+	uint32_t	get_frequency() { return _frequency; }
 
 	/**
 	 * Set the SPI bus locking mode
@@ -148,15 +142,15 @@ protected:
 	 *
 	 * @param mode	Locking mode
 	 */
-	void		set_lockmode(enum LockMode mode) { locking_mode = mode; }
-
-	LockMode	locking_mode;	/**< selected locking mode */
+	void		set_lockmode(enum LockMode mode) { _locking_mode = mode; }
 
 private:
-	uint32_t			_device;
+	uint32_t		_device;
 	enum spi_mode_e		_mode;
 	uint32_t		_frequency;
 	struct spi_dev_s	*_dev;
+
+	LockMode		_locking_mode{LOCK_THREADS};	/**< selected locking mode */
 
 	/* this class does not allow copying */
 	SPI(const SPI &);

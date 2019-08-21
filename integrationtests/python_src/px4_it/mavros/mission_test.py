@@ -286,7 +286,7 @@ class MavrosMissionTest(MavrosTestCommon):
             if (waypoint.command == mavutil.mavlink.MAV_CMD_NAV_VTOL_LAND or
                     waypoint.command == mavutil.mavlink.MAV_CMD_NAV_LAND):
                 self.wait_for_landed_state(
-                    mavutil.mavlink.MAV_LANDED_STATE_ON_GROUND, 60, index)
+                    mavutil.mavlink.MAV_LANDED_STATE_ON_GROUND, 120, index)
 
         self.set_arm(False, 5)
         self.clear_wps(5)

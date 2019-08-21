@@ -45,6 +45,8 @@
 
 #include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vehicle_command.h>
@@ -115,22 +117,23 @@ protected:
 	/**
 	 * General function used to adjust the mission item based on vehicle specific limitations
 	 */
-	void	mission_apply_limitation(mission_item_s &item);
+	void mission_apply_limitation(mission_item_s &item);
 
 	void issue_command(const mission_item_s &item);
 
-	float get_time_inside(const struct mission_item_s &item);
+	float get_time_inside(const mission_item_s &item) const ;
 
-	float get_absolute_altitude_for_item(struct mission_item_s &mission_item) const;
+	float get_absolute_altitude_for_item(const mission_item_s &mission_item) const;
 
 	mission_item_s _mission_item{};
 
 	bool _waypoint_position_reached{false};
 	bool _waypoint_yaw_reached{false};
+	bool _waypoint_position_reached_previously{false};
 
 	hrt_abstime _time_first_inside_orbit{0};
 	hrt_abstime _action_start{0};
 	hrt_abstime _time_wp_reached{0};
 
-	orb_advert_t    _actuator_pub{nullptr};
+	uORB::Publication<actuator_controls_s>	_actuator_pub{ORB_ID(actuator_controls_2)};
 };

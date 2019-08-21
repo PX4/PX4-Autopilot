@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,10 +31,17 @@
  *
  ****************************************************************************/
 
+/**
+ * @file test_microbench_math.cpp
+ * Tests for the microbench math library.
+ */
+
 #include <unit_test.h>
 
 #include <time.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <math.h>
 
 #include <drivers/drv_hrt.h>
 #include <perf/perf_counter.h>
@@ -64,7 +71,7 @@ void unlock()
 }
 
 #define PERF(name, op, count) do { \
-		usleep(1000); \
+		px4_usleep(1000); \
 		reset(); \
 		perf_counter_t p = perf_alloc(PC_ELAPSED, name); \
 		for (int i = 0; i < count; i++) { \
