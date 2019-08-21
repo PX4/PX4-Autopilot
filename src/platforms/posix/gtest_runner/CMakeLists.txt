@@ -31,9 +31,9 @@
 #
 ############################################################################
 
-add_subdirectory(common)
+set(SRCS
+    gtest_functional_main.cpp
+   )
 
-if (${PX4_PLATFORM} STREQUAL "posix" AND BUILD_TESTING)
-	add_subdirectory(posix/test_stubs)
-	add_subdirectory(posix/gtest_runner)
-endif()
+px4_add_library(gtest_functional_main ${SRCS})
+target_link_libraries(gtest_functional_main PUBLIC gtest)
