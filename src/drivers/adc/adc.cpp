@@ -37,7 +37,7 @@
  * Driver for an ADC.
  *
  */
-
+#include <stdint.h>
 #include <drivers/drv_adc.h>
 #include <drivers/drv_hrt.h>
 #include <lib/cdev/CDev.hpp>
@@ -82,9 +82,9 @@ private:
 	 * Sample a single channel and return the measured value.
 	 *
 	 * @param channel		The channel to sample.
-	 * @return			The sampled value, or 0xffff if sampling failed.
+	 * @return			The sampled value, or UINT32_MAX if sampling failed.
 	 */
-	uint16_t		sample(unsigned channel);
+	uint32_t		sample(unsigned channel);
 
 	void			update_adc_report(hrt_abstime now);
 	void			update_system_power(hrt_abstime now);
@@ -233,7 +233,8 @@ ADC::update_adc_report(hrt_abstime now)
 
 	for (unsigned i = 0; i < max_num; i++) {
 		adc.channel_id[i] = _samples[i].am_channel;
-		adc.channel_value[i] = _samples[i].am_data * 3.3f / 4096.0f;
+		adc.channel_value[i] = _samples[i].am_data * 3.3f / px4_arch_adc_dn_fullcount();
+		;
 	}
 
 	_to_adc_report.publish(adc);
@@ -258,7 +259,7 @@ ADC::update_system_power(hrt_abstime now)
 
 		if (_samples[i].am_channel == ADC_SCALED_V5_SENSE) {
 			// it is 2:1 scaled
-			system_power.voltage5v_v = _samples[i].am_data * (ADC_V5_V_FULL_SCALE / 4096.0f);
+			system_power.voltage5v_v = _samples[i].am_data * (ADC_V5_V_FULL_SCALE / px4_arch_adc_dn_fullcount());
 			cnt--;
 
 		} else
@@ -267,7 +268,7 @@ ADC::update_system_power(hrt_abstime now)
 		{
 			if (_samples[i].am_channel == ADC_SCALED_V3V3_SENSORS_SENSE) {
 				// it is 2:1 scaled
-				system_power.voltage3v3_v = _samples[i].am_data * (ADC_3V3_SCALE * (3.3f / 4096.0f));
+				system_power.voltage3v3_v = _samples[i].am_data * (ADC_3V3_SCALE * (3.3f / px4_arch_adc_dn_fullcount()));
 				system_power.v3v3_valid = 1;
 				cnt--;
 			}
@@ -323,13 +324,13 @@ ADC::update_system_power(hrt_abstime now)
 #endif // BOARD_ADC_USB_CONNECTED
 }
 
-uint16_t
+uint32_t
 ADC::sample(unsigned channel)
 {
 	perf_begin(_sample_perf);
-	uint16_t result = px4_arch_adc_sample(_base_address, channel);
+	uint32_t result = px4_arch_adc_sample(_base_address, channel);
 
-	if (result == 0xffff) {
+	if (result == UINT32_MAX) {
 		PX4_ERR("sample timeout");
 	}
 

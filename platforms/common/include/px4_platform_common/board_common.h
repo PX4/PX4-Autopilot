@@ -373,6 +373,8 @@ typedef enum PX4_SOC_ARCH_ID_t {
 	PX4_SOC_ARCH_ID_KINETISK66     =  0x0003,
 	PX4_SOC_ARCH_ID_SAMV7          =  0x0004,
 
+	PX4_SOC_ARCH_ID_STM32H7        =  0x0006,
+
 	PX4_SOC_ARCH_ID_EAGLE          =  0x1001,
 	PX4_SOC_ARCH_ID_QURT           =  0x1002,
 	PX4_SOC_ARCH_ID_OCPOC          =  0x1003,

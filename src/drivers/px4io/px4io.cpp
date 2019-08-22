@@ -2822,6 +2822,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		}
 
 		/* reboot into bootloader - arg must be PX4IO_REBOOT_BL_MAGIC */
+		usleep(1);
 		io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_REBOOT_BL, arg);
 		// we don't expect a reply from this operation
 		ret = OK;

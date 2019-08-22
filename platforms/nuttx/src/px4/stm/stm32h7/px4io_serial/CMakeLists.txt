@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,13 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__blinkm
-	MAIN blinkm
-	STACK_MAIN 1240
-	COMPILE_FLAGS
-	SRCS
-		blinkm.cpp
-	DEPENDS
-	)
 
+px4_add_library(arch_px4io_serial
+	px4io_serial.cpp
+)
