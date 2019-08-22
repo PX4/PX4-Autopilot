@@ -110,15 +110,28 @@ TEST_F(VelocitySmoothingTest, testConstantSetpoint)
 	// Generate the trajectories with constant setpoints and dt
 	Vector3f velocity_setpoints(0.f, 1.f, 0.f);
 	float dt = 0.01f;
+	updateTrajectories(velocity_setpoints, dt);
 
-	for (int i = 0; i < 60; i++) {
+	// Check that time synchronization actually works
+	ASSERT_LE(fabsf(_trajectories[0].getTotalTime() - _trajectories[1].getTotalTime()), 0.0001);
+
+	// Compute the number of steps required to reach desired value
+	// because of known numerical issues, the actual trajectory takes a
+	// bit more time than the predicted one, this is why we have to add 14 steps
+	// to the theoretical value
+	float t123 = _trajectories[0].getTotalTime();
+	float nb_steps = ceilf(t123 / dt) + 14;
+
+	for (int i = 0; i < nb_steps; i++) {
 		updateTrajectories(velocity_setpoints, dt);
 	}
 
 	// Check that all the trajectories reached their desired value
-	EXPECT_LE(fabsf(_trajectories[0].getCurrentVelocity() - velocity_setpoints(0)), 0.01f);
-	EXPECT_LE(fabsf(_trajectories[1].getCurrentVelocity() - velocity_setpoints(1)), 0.01f);
-	EXPECT_LE(fabsf(_trajectories[2].getCurrentVelocity() - velocity_setpoints(2)), 0.01f);
+	// and that the acceleration is now zero
+	for (int i = 0; i < 3; i++) {
+		EXPECT_LE(fabsf(_trajectories[i].getCurrentVelocity() - velocity_setpoints(i)), 0.01f);
+		EXPECT_LE(fabsf(_trajectories[i].getCurrentAcceleration()), 0.0001f);
+	}
 }
 
 TEST_F(VelocitySmoothingTest, testZeroSetpoint)
