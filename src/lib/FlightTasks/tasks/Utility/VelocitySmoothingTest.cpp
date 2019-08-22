@@ -120,3 +120,32 @@ TEST_F(VelocitySmoothingTest, testConstantSetpoint)
 	EXPECT_LE(fabsf(_trajectories[1].getCurrentVelocity() - velocity_setpoints(1)), 0.01f);
 	EXPECT_LE(fabsf(_trajectories[2].getCurrentVelocity() - velocity_setpoints(2)), 0.01f);
 }
+
+TEST_F(VelocitySmoothingTest, testZeroSetpoint)
+{
+	// Set the initial conditions to zero
+	Vector3f a0(0.f, 0.f, 0.f);
+	Vector3f v0(0.f, 0.f, 0.f);
+	Vector3f x0(0.f, 0.f, 0.f);
+
+	setInitialConditions(a0, v0, x0);
+
+	// Generate the trajectories with zero setpoints
+	Vector3f velocity_setpoints(0.f, 0.f, 0.f);
+	float dt = 0.01f;
+
+	// Run a few times the algorithm
+	updateTrajectories(velocity_setpoints, dt);
+
+	for (int i = 0; i < 60; i++) {
+		updateTrajectories(velocity_setpoints, dt);
+	}
+
+	// Check that all the trajectories are still at zero
+	for (int i = 0; i < 3; i++) {
+		EXPECT_EQ(_trajectories[i].getCurrentJerk(), 0.f);
+		EXPECT_EQ(_trajectories[i].getCurrentAcceleration(), 0.f);
+		EXPECT_EQ(_trajectories[i].getCurrentVelocity(), 0.f);
+		EXPECT_EQ(_trajectories[i].getCurrentPosition(), 0.f);
+	}
+}
