@@ -218,7 +218,6 @@ private:
 	uint16_t	_min_pwm[MAX_ACTUATORS] {};
 	uint16_t	_max_pwm[MAX_ACTUATORS] {};
 	uint16_t	_reverse_pwm_mask{0};
-	unsigned	_num_failsafe_set{0};
 	unsigned	_num_disarmed_set{0};
 
 	float _mot_t_max{0.0f};					///< maximum rise time for motor (slew rate limiting)
@@ -1194,18 +1193,6 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 				else {
 					_failsafe_pwm[i] = pwm->values[i];
-				}
-			}
-
-			/*
-			 * update the counter
-			 * this is needed to decide if disarmed PWM output should be turned on or not
-			 */
-			_num_failsafe_set = 0;
-
-			for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
-				if (_failsafe_pwm[i] > 0) {
-					_num_failsafe_set++;
 				}
 			}
 
