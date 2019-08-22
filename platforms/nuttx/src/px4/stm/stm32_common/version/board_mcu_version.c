@@ -47,7 +47,9 @@ enum MCU_REV {
 	MCU_REV_STM32F4_REV_Z = 0x1001,
 	MCU_REV_STM32F4_REV_Y = 0x1003,
 	MCU_REV_STM32F4_REV_1 = 0x1007,
-	MCU_REV_STM32F4_REV_3 = 0x2001
+	MCU_REV_STM32F4_REV_3 = 0x2001,
+	MCU_REV_STM32F7_REV_X = MCU_REV_STM32F4_REV_3,
+	MCU_REV_STM32F7_REV_V = 0x2003
 };
 
 /* Define any issues with the Silicon as lines separated by \n
@@ -60,6 +62,7 @@ enum MCU_REV {
 # define REVID_MASK    0xFFFF0000
 # define DEVID_MASK    0xFFF
 
+# define STM32H74xx_75xx    0x450
 # define STM32F74xxx_75xxx  0x449
 # define STM32F76xxx_77xxx  0x451
 # define STM32F40x_41x      0x413
@@ -80,6 +83,10 @@ int board_mcu_version(char *rev, const char **revstr, const char **errata)
 	const char *chip_errata = NULL;
 
 	switch (chip_version) {
+
+	case STM32H74xx_75xx:
+		*revstr = "STM32H74xxx";
+		break;
 
 	case STM32F74xxx_75xxx:
 		*revstr = "STM32F74xxx";
@@ -139,7 +146,12 @@ int board_mcu_version(char *rev, const char **revstr, const char **errata)
 		break;
 
 	case MCU_REV_STM32F4_REV_3:
-		*rev = '3';
+		*rev = chip_version == STM32H74xx_75xx ? 'X' : '3' ;
+		chip_errata = NULL;
+		break;
+
+	case MCU_REV_STM32F7_REV_V:
+		*rev = 'V';
 		chip_errata = NULL;
 		break;
 

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,13 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__blinkm
-	MAIN blinkm
-	STACK_MAIN 1240
-	COMPILE_FLAGS
-	SRCS
-		blinkm.cpp
-	DEPENDS
-	)
+
+
+add_subdirectory(adc)
+add_subdirectory(../stm32_common/board_critmon board_critmon)
+add_subdirectory(../stm32_common/board_hw_info board_hw_info)
+add_subdirectory(../stm32_common/board_reset board_reset)
+add_subdirectory(../stm32_common/dshot dshot)
+add_subdirectory(../stm32_common/hrt hrt)
+add_subdirectory(../stm32_common/io_pins io_pins)
+add_subdirectory(../stm32_common/tone_alarm tone_alarm)
+add_subdirectory(../stm32_common/version version)
+
+add_subdirectory(px4io_serial)
 
