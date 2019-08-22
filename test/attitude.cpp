@@ -258,6 +258,17 @@ int main()
     TEST(fabs(q_check(2) + q(2)) < eps);
     TEST(fabs(q_check(3) + q(3)) < eps);
 
+    // quaternion canonical
+    Quatf q_non_canonical(-0.7f,0.4f, 0.3f, -0.3f);
+    Quatf q_canonical(0.7f,-0.4f, -0.3f, 0.3f);
+    Quatf q_canonical_ref(0.7f,-0.4f, -0.3f, 0.3f);
+    TEST(isEqual(q_non_canonical.canonical(),q_canonical_ref));
+    TEST(isEqual(q_canonical.canonical(),q_canonical_ref));
+    q_non_canonical.canonicalize();
+    q_canonical.canonicalize();
+    TEST(isEqual(q_non_canonical,q_canonical_ref));
+    TEST(isEqual(q_canonical,q_canonical_ref));
+
     // non-unit quaternion invese
     Quatf qI(1.0f, 0.0f, 0.0f, 0.0f);
     Quatf q_nonunit(0.1f, 0.2f, 0.3f, 0.4f);
