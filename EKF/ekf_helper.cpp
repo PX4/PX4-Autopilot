@@ -1653,14 +1653,14 @@ void Ekf::resetExtVisRotMat()
 	_ev_rot_mat = Dcmf(q_error); // rotation from EV reference to EKF reference
 }
 
-// return the quaternions for the rotation from the EKF to the External Vision system frame of reference
-void Ekf::get_ekf2ev_quaternion(float *quat)
+// return the quaternions for the rotation from External Vision system reference frame to the EKF reference frame
+void Ekf::get_ev2ekf_quaternion(float *quat)
 {
-	Quatf quat_ekf2ev;
-	quat_ekf2ev.from_axis_angle(_ev_rot_vec_filt);
+	Quatf quat_ev2ekf;
+	quat_ev2ekf.from_axis_angle(_ev_rot_vec_filt);
 
 	for (unsigned i = 0; i < 4; i++) {
-		quat[i] = quat_ekf2ev(i);
+		quat[i] = quat_ev2ekf(i);
 	}
 }
 

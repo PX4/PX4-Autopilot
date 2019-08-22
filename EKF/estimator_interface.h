@@ -287,7 +287,7 @@ public:
 	const matrix::Quatf &get_quaternion() const { return _output_new.quat_nominal; }
 
 	// return the quaternion defining the rotation from the EKF to the External Vision reference frame
-	virtual void get_ekf2ev_quaternion(float *quat) = 0;
+	virtual void get_ev2ekf_quaternion(float *quat) = 0;
 
 	// get the velocity of the body frame origin in local NED earth frame
 	void get_velocity(float *vel)

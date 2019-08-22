@@ -256,7 +256,7 @@ public:
 	void get_ekf_soln_status(uint16_t *status);
 
 	// return the quaternion defining the rotation from the EKF to the External Vision reference frame
-	void get_ekf2ev_quaternion(float *quat);
+	void get_ev2ekf_quaternion(float *quat);
 
 	// use the latest IMU data at the current time horizon.
 	Quatf calculate_quaternion() const;
