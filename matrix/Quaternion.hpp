@@ -353,6 +353,30 @@ public:
     }
 
     /**
+     * Bring quaternion to canonical form
+     */
+    void canonicalize()
+    {
+        *this = this->canonical();
+    }
+
+
+    /**
+     * Return canonical form of the quaternion
+     *
+     * @return quaternion in canonical from
+     */
+    Quaternion canonical() const
+    {
+        const Quaternion &q = *this;
+        if(q(0)<Type(0)) {
+            return Quaternion(-q(0),-q(1),-q(2),-q(3));
+        } else {
+            return Quaternion(q(0),q(1),q(2),q(3));
+        }
+    }
+
+    /**
      * Rotate quaternion from rotation vector
      *
      * @param vec rotation vector
