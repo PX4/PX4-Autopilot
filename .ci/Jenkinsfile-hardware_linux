@@ -13,9 +13,9 @@ pipeline {
         sh 'make distclean'
         sh 'ccache -z'
         sh 'git fetch --tags'
-        sh 'make emlid_navio2_native'
+        sh 'CCACHE_BASEDIR=${WORKSPACE} make emlid_navio2_native'
         sh 'ccache -s'
-	sh 'cd build/emlid_navio2_native/ && ./bin/px4 -s ../../posix-configs/rpi/px4_test.config'
+        sh 'cd build/emlid_navio2_native/ && ./bin/px4 -s ../../posix-configs/rpi/px4_test.config'
       }
       options {
         timeout(time: 30, unit: 'MINUTES')
