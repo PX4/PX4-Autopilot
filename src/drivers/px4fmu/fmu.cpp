@@ -1461,14 +1461,14 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		}
 
 	case MIXERIOCRESET:
-		_mixing_output.resetMixer();
+		_mixing_output.resetMixerThreadSafe();
 
 		break;
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			unsigned buflen = strnlen(buf, 1024);
-			ret = _mixing_output.loadMixer(buf, buflen);
+			ret = _mixing_output.loadMixerThreadSafe(buf, buflen);
 			update_pwm_trims();
 
 			break;
