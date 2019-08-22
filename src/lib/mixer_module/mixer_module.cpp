@@ -210,6 +210,7 @@ void MixingOutput::unregister()
 bool MixingOutput::update()
 {
 	if (!_mixers) {
+		handleCommands();
 		// do nothing until we have a valid mixer
 		return false;
 	}
@@ -338,6 +339,8 @@ bool MixingOutput::update()
 		}
 	}
 
+	handleCommands();
+
 	return true;
 }
 
@@ -410,24 +413,15 @@ int MixingOutput::controlCallback(uintptr_t handle, uint8_t control_group, uint8
 
 void MixingOutput::resetMixer()
 {
-	// TODO: thread-safe
-
-	lock();
-
 	if (_mixers != nullptr) {
 		delete _mixers;
 		_mixers = nullptr;
 		_groups_required = 0;
 	}
-
-	_interface.ScheduleNow();
-	unlock();
 }
 
 int MixingOutput::loadMixer(const char *buf, unsigned len)
 {
-	// TODO: thread-safe
-
 	if (_mixers == nullptr) {
 		_mixers = new MixerGroup(controlCallback, (uintptr_t)this);
 	}
@@ -451,13 +445,81 @@ int MixingOutput::loadMixer(const char *buf, unsigned len)
 	PX4_DEBUG("loaded mixers \n%s\n", buf);
 
 	updateParams();
+	return ret;
+}
+
+void MixingOutput::handleCommands()
+{
+	if (_command.command.load() == Command::Type::None) {
+		return;
+	}
+
+	switch (_command.command.load()) {
+	case Command::Type::loadMixer:
+		_command.result = loadMixer(_command.mixer_buf, _command.mixer_buf_length);
+		break;
+
+	case Command::Type::resetMixer:
+		resetMixer();
+		_command.result = 0;
+		break;
+
+	default:
+		break;
+	}
+
+	// mark as done
+	_command.command.store(Command::Type::None);
+}
+
+void MixingOutput::resetMixerThreadSafe()
+{
+	if (_command.command.load() != Command::Type::None) {
+		// Cannot happen, because we expect only one other thread to call this.
+		// But as a safety precaution we return here.
+		PX4_ERR("Command not None");
+		return;
+	}
 
 	lock();
+
+	_command.command.store(Command::Type::resetMixer);
 
 	_interface.ScheduleNow();
 
 	unlock();
 
-	return ret;
+	// wait until processed
+	while (_command.command.load() != Command::Type::None) {
+		usleep(1000);
+	}
+
+}
+
+int MixingOutput::loadMixerThreadSafe(const char *buf, unsigned len)
+{
+	if (_command.command.load() != Command::Type::None) {
+		// Cannot happen, because we expect only one other thread to call this.
+		// But as a safety precaution we return here.
+		PX4_ERR("Command not None");
+		return -1;
+	}
+
+	lock();
+
+	_command.mixer_buf = buf;
+	_command.mixer_buf_length = len;
+	_command.command.store(Command::Type::loadMixer);
+
+	_interface.ScheduleNow();
+
+	unlock();
+
+	// wait until processed
+	while (_command.command.load() != Command::Type::None) {
+		usleep(1000);
+	}
+
+	return _command.result;
 }
 
