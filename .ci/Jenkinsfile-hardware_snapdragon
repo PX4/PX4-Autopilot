@@ -13,11 +13,18 @@ pipeline {
         sh 'make distclean'
         sh 'ccache -z'
         sh 'git fetch --tags'
-        sh 'make eagle_default'
+        sh 'CCACHE_BASEDIR=${WORKSPACE} make eagle_default'
         sh 'ccache -s'
         // sanity check
         sh 'adb devices'
         sh 'make eagle_default sanity'
+      }
+      post {
+        always {
+          sh 'cat boards/atlflight/eagle/scripts/px4.log'
+          sh 'cat boards/atlflight/eagle/scripts/minidm.log'
+          sh 'make distclean'
+        }
       }
       options {
         timeout(time: 30, unit: 'MINUTES')
