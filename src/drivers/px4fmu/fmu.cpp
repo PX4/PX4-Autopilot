@@ -50,7 +50,7 @@
 #include <lib/cdev/CDev.hpp>
 #include <lib/circuit_breaker/circuit_breaker.h>
 #include <lib/mathlib/mathlib.h>
-#include <lib/mixer/mixer.h>
+#include <lib/mixer_module/mixer_module.hpp>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/pwm_limit/pwm_limit.h>
@@ -97,7 +97,8 @@ enum PortMode {
 
 #define PX4FMU_DEVICE_PATH	"/dev/px4fmu"
 
-class PX4FMU : public cdev::CDev, public ModuleBase<PX4FMU>, public px4::ScheduledWorkItem
+
+class PX4FMU : public cdev::CDev, public ModuleBase<PX4FMU>, public OutputModuleInterface
 {
 public:
 	enum Mode {
@@ -161,14 +162,11 @@ public:
 
 	void update_pwm_trims();
 
+	void updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+
 private:
-
-	enum class MotorOrdering : int32_t {
-		PX4 = 0,
-		Betaflight = 1
-	};
-
-	hrt_abstime _time_last_mix = 0;
+	MixingOutput _mixing_output{*this, true};
 
 	static constexpr uint8_t MAX_ACTUATORS = DIRECT_PWM_OUTPUT_CHANNELS;
 
@@ -180,67 +178,25 @@ private:
 
 	unsigned	_current_update_rate{0};
 
-	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _param_sub{ORB_ID(parameter_update)};
 
-	uORB::PublicationMulti<actuator_outputs_s>		_outputs_pub{ORB_ID(actuator_outputs), ORB_PRIO_DEFAULT};
-	uORB::PublicationMulti<multirotor_motor_limits_s>	_to_mixer_status{ORB_ID(multirotor_motor_limits), ORB_PRIO_DEFAULT}; 	///< mixer status flags
 
 	unsigned	_num_outputs{0};
 	int		_class_instance{-1};
 
-	bool		_throttle_armed{false};
 	bool		_pwm_on{false};
 	uint32_t	_pwm_mask{0};
 	bool		_pwm_initialized{false};
 	bool		_test_mode{false};
 
-	MixerGroup	*_mixers{nullptr};
-
-	uint32_t	_groups_required{0};
-	uint32_t	_groups_subscribed{0};
-
-	bool		_wq_hpdefault{true};
-
-	uORB::SubscriptionCallbackWorkItem _control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {
-		{this, ORB_ID(actuator_controls_0)},
-		{this, ORB_ID(actuator_controls_1)},
-		{this, ORB_ID(actuator_controls_2)},
-		{this, ORB_ID(actuator_controls_3)}
-	};
-	actuator_controls_s _controls[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {};
-
-	static pwm_limit_t	_pwm_limit;
-	static actuator_armed_s	_armed;
-
-	uint16_t	_failsafe_pwm[MAX_ACTUATORS] {};
-	uint16_t	_disarmed_pwm[MAX_ACTUATORS] {};
-	uint16_t	_min_pwm[MAX_ACTUATORS] {};
-	uint16_t	_max_pwm[MAX_ACTUATORS] {};
-	uint16_t	_reverse_pwm_mask{0};
 	unsigned	_num_disarmed_set{0};
-
-	float _mot_t_max{0.0f};					///< maximum rise time for motor (slew rate limiting)
-	float _thr_mdl_fac{0.0f};				///< thrust to pwm modelling factor
-	Mixer::Airmode _airmode{Mixer::Airmode::disabled};	///< multicopter air-mode
-	MotorOrdering _motor_ordering{MotorOrdering::PX4};
 
 	perf_counter_t	_cycle_perf;
 	perf_counter_t	_cycle_interval_perf;
-	perf_counter_t	_control_latency_perf;
 
-	static bool	arm_nothrottle()
-	{
-		return ((_armed.prearmed && !_armed.armed) || _armed.in_esc_calibration_mode);
-	}
-
-	static int	control_callback(uintptr_t handle,
-					 uint8_t control_group,
-					 uint8_t control_index,
-					 float &input);
 	void		capture_callback(uint32_t chan_index,
 					 hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
-	void		subscribe();
+	void		update_current_rate();
 	int			set_pwm_rate(unsigned rate_map, unsigned default_rate, unsigned alt_rate);
 	int			pwm_ioctl(file *filp, int cmd, unsigned long arg);
 	void		update_pwm_rev_mask();
@@ -256,35 +212,17 @@ private:
 	PX4FMU(const PX4FMU &) = delete;
 	PX4FMU operator=(const PX4FMU &) = delete;
 
-	/**
-	 * Reorder PWM outputs according to _motor_ordering
-	 * @param values PWM values to reorder
-	 */
-	inline void reorder_outputs(uint16_t values[MAX_ACTUATORS]);
 };
-
-pwm_limit_t		PX4FMU::_pwm_limit;
-actuator_armed_s	PX4FMU::_armed = {};
 
 PX4FMU::PX4FMU() :
 	CDev(PX4FMU_DEVICE_PATH),
-	ScheduledWorkItem(px4::wq_configurations::hp_default),
+	OutputModuleInterface(px4::wq_configurations::hp_default),
 	_cycle_perf(perf_alloc(PC_ELAPSED, "px4fmu: cycle")),
-	_cycle_interval_perf(perf_alloc(PC_INTERVAL, "px4fmu: cycle interval")),
-	_control_latency_perf(perf_alloc(PC_ELAPSED, "px4fmu: control latency"))
+	_cycle_interval_perf(perf_alloc(PC_INTERVAL, "px4fmu: cycle interval"))
 {
-	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
-		_min_pwm[i] = PWM_DEFAULT_MIN;
-		_max_pwm[i] = PWM_DEFAULT_MAX;
-	}
+	_mixing_output.setAllMinValues(PWM_DEFAULT_MIN);
+	_mixing_output.setAllMaxValues(PWM_DEFAULT_MAX);
 
-	// Safely initialize armed flags.
-	_armed.armed = false;
-	_armed.prearmed = false;
-	_armed.ready_to_arm = false;
-	_armed.lockdown = false;
-	_armed.force_failsafe = false;
-	_armed.in_esc_calibration_mode = false;
 }
 
 PX4FMU::~PX4FMU()
@@ -297,7 +235,6 @@ PX4FMU::~PX4FMU()
 
 	perf_free(_cycle_perf);
 	perf_free(_cycle_interval_perf);
-	perf_free(_control_latency_perf);
 }
 
 int
@@ -323,9 +260,6 @@ PX4FMU::init()
 
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
-
-	/* initialize PWM limit lib */
-	pwm_limit_init(&_pwm_limit);
 
 	// Getting initial parameter values
 	update_params();
@@ -634,32 +568,8 @@ PX4FMU::set_i2c_bus_clock(unsigned bus, unsigned clock_hz)
 }
 
 void
-PX4FMU::subscribe()
+PX4FMU::update_current_rate()
 {
-	// must be locked to potentially change WorkQueue
-	lock();
-
-	// first clear everything
-	ScheduleClear();
-
-	for (auto &control_sub : _control_subs) {
-		control_sub.unregister_callback();
-	}
-
-	// if subscribed to control group 0 or 1 then move to the rate_ctrl WQ
-	const bool sub_group_0 = (_groups_required & (1 << 0));
-	const bool sub_group_1 = (_groups_required & (1 << 1));
-
-	if (_wq_hpdefault && (sub_group_0 || sub_group_1)) {
-		if (WorkItem::Init(px4::wq_configurations::rate_ctrl)) {
-			// let the new WQ handle the subscribe update
-			_wq_hpdefault = false;
-			ScheduleNow();
-			unlock();
-			return;
-		}
-	}
-
 	/*
 	* Adjust actuator topic update rate to keep up with
 	* the highest servo update rate configured.
@@ -675,33 +585,16 @@ PX4FMU::subscribe()
 
 	// max interval 0.5 - 100 ms (10 - 2000Hz)
 	const int update_interval_in_us = math::constrain(1000000 / max_rate, 500, 100000);
+
 	_current_update_rate = max_rate;
-	_groups_subscribed = _groups_required;
-
-	// subscribe to all required actuator control groups with max interval set
-	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (_groups_required & (1 << i)) {
-			PX4_DEBUG("subscribe to actuator_controls_%d", i);
-
-			if (!_control_subs[i].register_callback()) {
-				PX4_ERR("actuator_controls_%d register callback failed!", i);
-			}
-
-			// limit subscription interval
-			_control_subs[i].set_interval_us(update_interval_in_us);
-		}
-	}
-
-	PX4_DEBUG("_groups_required 0x%08x", _groups_required);
-	PX4_DEBUG("_groups_subscribed 0x%08x", _groups_subscribed);
-
-	unlock();
+	_mixing_output.setMaxTopicUpdateRate(update_interval_in_us);
 }
 
 void
 PX4FMU::update_pwm_rev_mask()
 {
-	_reverse_pwm_mask = 0;
+	uint16_t &reverse_pwm_mask = _mixing_output.reverseOutputMask();
+	reverse_pwm_mask = 0;
 
 	const char *pname_format;
 
@@ -726,7 +619,7 @@ PX4FMU::update_pwm_rev_mask()
 		if (param_h != PARAM_INVALID) {
 			int32_t ival = 0;
 			param_get(param_h, &ival);
-			_reverse_pwm_mask |= ((int16_t)(ival != 0)) << i;
+			reverse_pwm_mask |= ((int16_t)(ival != 0)) << i;
 		}
 	}
 }
@@ -736,42 +629,43 @@ PX4FMU::update_pwm_trims()
 {
 	PX4_DEBUG("update_pwm_trims");
 
-	if (_mixers != nullptr) {
-
-		int16_t values[MAX_ACTUATORS] = {};
-
-		const char *pname_format;
-
-		if (_class_instance == CLASS_DEVICE_PRIMARY) {
-			pname_format = "PWM_MAIN_TRIM%d";
-
-		} else if (_class_instance == CLASS_DEVICE_SECONDARY) {
-			pname_format = "PWM_AUX_TRIM%d";
-
-		} else {
-			PX4_ERR("PWM TRIM only for MAIN and AUX");
-			return;
-		}
-
-		for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
-			char pname[16];
-
-			/* fill the struct from parameters */
-			sprintf(pname, pname_format, i + 1);
-			param_t param_h = param_find(pname);
-
-			if (param_h != PARAM_INVALID) {
-				float pval = 0.0f;
-				param_get(param_h, &pval);
-				values[i] = (int16_t)(10000 * pval);
-				PX4_DEBUG("%s: %d", pname, values[i]);
-			}
-		}
-
-		/* copy the trim values to the mixer offsets */
-		unsigned n_out = _mixers->set_trims(values, MAX_ACTUATORS);
-		PX4_DEBUG("set %d trims", n_out);
+	if (!_mixing_output.mixers()) {
+		return;
 	}
+
+	int16_t values[MAX_ACTUATORS] = {};
+
+	const char *pname_format;
+
+	if (_class_instance == CLASS_DEVICE_PRIMARY) {
+		pname_format = "PWM_MAIN_TRIM%d";
+
+	} else if (_class_instance == CLASS_DEVICE_SECONDARY) {
+		pname_format = "PWM_AUX_TRIM%d";
+
+	} else {
+		PX4_ERR("PWM TRIM only for MAIN and AUX");
+		return;
+	}
+
+	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+		char pname[16];
+
+		/* fill the struct from parameters */
+		sprintf(pname, pname_format, i + 1);
+		param_t param_h = param_find(pname);
+
+		if (param_h != PARAM_INVALID) {
+			float pval = 0.0f;
+			param_get(param_h, &pval);
+			values[i] = (int16_t)(10000 * pval);
+			PX4_DEBUG("%s: %d", pname, values[i]);
+		}
+	}
+
+	/* copy the trim values to the mixer offsets */
+	unsigned n_out = _mixing_output.mixers()->set_trims(values, MAX_ACTUATORS);
+	PX4_DEBUG("set %d trims", n_out);
 }
 
 int
@@ -825,15 +719,35 @@ PX4FMU::update_pwm_out_state(bool on)
 	up_pwm_servo_arm(on);
 }
 
+
+void PX4FMU::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+			   unsigned num_outputs, unsigned num_control_groups_updated)
+{
+	if (_test_mode) {
+		return;
+	}
+
+	/* output to the servos */
+	if (_pwm_initialized) {
+		for (size_t i = 0; i < num_outputs; i++) {
+			up_pwm_servo_set(i, outputs[i]);
+		}
+	}
+
+	/* Trigger all timer's channels in Oneshot mode to fire
+	 * the oneshots with updated values.
+	 */
+	if (num_control_groups_updated > 0) {
+		up_pwm_update();
+	}
+}
+
 void
 PX4FMU::Run()
 {
 	if (should_exit()) {
 		ScheduleClear();
-
-		for (auto &control_sub : _control_subs) {
-			control_sub.unregister_callback();
-		}
+		_mixing_output.unregister();
 
 		exit_and_cleanup();
 		return;
@@ -842,133 +756,10 @@ PX4FMU::Run()
 	perf_begin(_cycle_perf);
 	perf_count(_cycle_interval_perf);
 
-	// check arming state
-	if (_armed_sub.update(&_armed)) {
-		/* Update the armed status and check that we're not locked down.
-		 * We also need to arm throttle for the ESC calibration. */
-		_throttle_armed = (_armed.armed && !_armed.lockdown) || _armed.in_esc_calibration_mode;
-	}
-
-	unsigned n_updates = 0;
-
-	if (_mixers != nullptr) {
-		/* get controls for required topics */
-		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-			if (_groups_subscribed & (1 << i)) {
-				if (_control_subs[i].copy(&_controls[i])) {
-					n_updates++;
-				}
-
-				/* During ESC calibration, we overwrite the throttle value. */
-				if (i == 0 && _armed.in_esc_calibration_mode) {
-
-					/* Set all controls to 0 */
-					memset(&_controls[i], 0, sizeof(_controls[i]));
-
-					/* except thrust to maximum. */
-					_controls[i].control[actuator_controls_s::INDEX_THROTTLE] = 1.0f;
-
-					/* Switch off the PWM limit ramp for the calibration. */
-					_pwm_limit.state = PWM_LIMIT_STATE_ON;
-				}
-			}
-		}
-
-		if (_mot_t_max > FLT_EPSILON) {
-			const hrt_abstime now = hrt_absolute_time();
-			const float dt = math::constrain((now - _time_last_mix) / 1e6f, 0.0001f, 0.02f);
-			_time_last_mix = now;
-
-			// maximum value the outputs of the multirotor mixer are allowed to change in this cycle
-			// factor 2 is needed because actuator outputs are in the range [-1,1]
-			const float delta_out_max = 2.0f * 1000.0f * dt / (_max_pwm[0] - _min_pwm[0]) / _mot_t_max;
-			_mixers->set_max_delta_out_once(delta_out_max);
-		}
-
-		if (_thr_mdl_fac > FLT_EPSILON) {
-			_mixers->set_thrust_factor(_thr_mdl_fac);
-		}
-
-		/* do mixing */
-		float outputs[MAX_ACTUATORS] {};
-		const unsigned mixed_num_outputs = _mixers->mix(outputs, _num_outputs);
-
-		/* the PWM limit call takes care of out of band errors, NaN and constrains */
-		uint16_t pwm_limited[MAX_ACTUATORS] {};
-
-		pwm_limit_calc(_throttle_armed, arm_nothrottle(), mixed_num_outputs, _reverse_pwm_mask,
-			       _disarmed_pwm, _min_pwm, _max_pwm, outputs, pwm_limited, &_pwm_limit);
-
-		/* overwrite outputs in case of force_failsafe with _failsafe_pwm PWM values */
-		if (_armed.force_failsafe) {
-			for (size_t i = 0; i < mixed_num_outputs; i++) {
-				pwm_limited[i] = _failsafe_pwm[i];
-			}
-		}
-
-		/* overwrite outputs in case of lockdown or parachute triggering with disarmed PWM values */
-		if (_armed.lockdown || _armed.manual_lockdown) {
-			for (size_t i = 0; i < mixed_num_outputs; i++) {
-				pwm_limited[i] = _disarmed_pwm[i];
-			}
-		}
-
-		/* apply _motor_ordering */
-		reorder_outputs(pwm_limited);
-
-		/* output to the servos */
-		if (_pwm_initialized && !_test_mode) {
-			for (size_t i = 0; i < mixed_num_outputs; i++) {
-				up_pwm_servo_set(i, pwm_limited[i]);
-			}
-		}
-
-		/* Trigger all timer's channels in Oneshot mode to fire
-		* the oneshots with updated values.
-		*/
-		if (n_updates > 0 && !_test_mode) {
-			up_pwm_update();
-		}
-
-		actuator_outputs_s actuator_outputs{};
-		actuator_outputs.noutputs = mixed_num_outputs;
-
-		// zero unused outputs
-		for (size_t i = 0; i < mixed_num_outputs; ++i) {
-			actuator_outputs.output[i] = pwm_limited[i];
-		}
-
-		actuator_outputs.timestamp = hrt_absolute_time();
-		_outputs_pub.publish(actuator_outputs);
-
-		/* publish mixer status */
-		MultirotorMixer::saturation_status saturation_status;
-		saturation_status.value = _mixers->get_saturation_status();
-
-		if (saturation_status.flags.valid) {
-			multirotor_motor_limits_s motor_limits{};
-			motor_limits.timestamp = hrt_absolute_time();
-			motor_limits.saturation_status = saturation_status.value;
-
-			_to_mixer_status.publish(motor_limits);
-		}
-
-		_mixers->set_airmode(_airmode);
-
-		// use first valid timestamp_sample for latency tracking
-		for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-			const bool required = _groups_required & (1 << i);
-			const hrt_abstime &timestamp_sample = _controls[i].timestamp_sample;
-
-			if (required && (timestamp_sample > 0)) {
-				perf_set_elapsed(_control_latency_perf, actuator_outputs.timestamp - timestamp_sample);
-				break;
-			}
-		}
-	}
+	_mixing_output.update();
 
 	/* update PWM status if armed or if disarmed PWM values are set */
-	bool pwm_on = _armed.armed || (_num_disarmed_set > 0) || _armed.in_esc_calibration_mode;
+	bool pwm_on = _mixing_output.armed().armed || (_num_disarmed_set > 0) || _mixing_output.armed().in_esc_calibration_mode;
 
 	if (_pwm_on != pwm_on) {
 		_pwm_on = pwm_on;
@@ -979,10 +770,12 @@ PX4FMU::Run()
 		update_params();
 	}
 
-	// check at end of cycle (subscribe() can potentially change to a different WorkQueue thread)
-	if ((_groups_subscribed != _groups_required) || (_current_update_rate == 0)) {
-		subscribe();
+	if (_current_update_rate == 0) {
+		update_current_rate();
 	}
+
+	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
+	_mixing_output.updateSubscriptions(true);
 
 	perf_end(_cycle_perf);
 }
@@ -995,77 +788,9 @@ void PX4FMU::update_params()
 	update_pwm_rev_mask();
 	update_pwm_trims();
 
-	param_t param_handle;
-
-	// maximum motor slew rate parameter
-	param_handle = param_find("MOT_SLEW_MAX");
-
-	if (param_handle != PARAM_INVALID) {
-		param_get(param_handle, &_mot_t_max);
-	}
-
-	// thrust to pwm modelling factor
-	param_handle = param_find("THR_MDL_FAC");
-
-	if (param_handle != PARAM_INVALID) {
-		param_get(param_handle, &_thr_mdl_fac);
-	}
-
-	// multicopter air-mode
-	param_handle = param_find("MC_AIRMODE");
-
-	if (param_handle != PARAM_INVALID) {
-		param_get(param_handle, &_airmode);
-	}
-
-	// motor ordering
-	param_handle = param_find("MOT_ORDERING");
-
-	if (param_handle != PARAM_INVALID) {
-		param_get(param_handle, (int32_t *)&_motor_ordering);
-	}
+	updateParams();
 }
 
-
-int
-PX4FMU::control_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input)
-{
-	const actuator_controls_s *controls = (actuator_controls_s *)handle;
-
-	input = controls[control_group].control[control_index];
-
-	/* limit control input */
-	if (input > 1.0f) {
-		input = 1.0f;
-
-	} else if (input < -1.0f) {
-		input = -1.0f;
-	}
-
-	/* motor spinup phase - lock throttle to zero */
-	if (_pwm_limit.state == PWM_LIMIT_STATE_RAMP) {
-		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
-		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
-		    control_index == actuator_controls_s::INDEX_THROTTLE) {
-			/* limit the throttle output to zero during motor spinup,
-			 * as the motors cannot follow any demand yet
-			 */
-			input = 0.0f;
-		}
-	}
-
-	/* throttle not arming - mark throttle input as invalid */
-	if (arm_nothrottle() && !_armed.in_esc_calibration_mode) {
-		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
-		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
-		    control_index == actuator_controls_s::INDEX_THROTTLE) {
-			/* set the throttle to an invalid value */
-			input = NAN;
-		}
-	}
-
-	return 0;
-}
 
 int
 PX4FMU::ioctl(file *filp, int cmd, unsigned long arg)
@@ -1178,21 +903,21 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				if (pwm->values[i] == 0) {
 					/* ignore 0 */
 				} else if (pwm->values[i] > PWM_HIGHEST_MAX) {
-					_failsafe_pwm[i] = PWM_HIGHEST_MAX;
+					_mixing_output.failsafeValue(i) = PWM_HIGHEST_MAX;
 
 				}
 
 #if PWM_LOWEST_MIN > 0
 
 				else if (pwm->values[i] < PWM_LOWEST_MIN) {
-					_failsafe_pwm[i] = PWM_LOWEST_MIN;
+					_mixing_output.failsafeValue(i) = PWM_LOWEST_MIN;
 
 				}
 
 #endif
 
 				else {
-					_failsafe_pwm[i] = pwm->values[i];
+					_mixing_output.failsafeValue(i) = pwm->values[i];
 				}
 			}
 
@@ -1203,7 +928,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
-				pwm->values[i] = _failsafe_pwm[i];
+				pwm->values[i] = _mixing_output.failsafeValue(i);
 			}
 
 			pwm->channel_count = MAX_ACTUATORS;
@@ -1223,19 +948,19 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				if (pwm->values[i] == 0) {
 					/* ignore 0 */
 				} else if (pwm->values[i] > PWM_HIGHEST_MAX) {
-					_disarmed_pwm[i] = PWM_HIGHEST_MAX;
+					_mixing_output.disarmedValue(i) = PWM_HIGHEST_MAX;
 				}
 
 #if PWM_LOWEST_MIN > 0
 
 				else if (pwm->values[i] < PWM_LOWEST_MIN) {
-					_disarmed_pwm[i] = PWM_LOWEST_MIN;
+					_mixing_output.disarmedValue(i) = PWM_LOWEST_MIN;
 				}
 
 #endif
 
 				else {
-					_disarmed_pwm[i] = pwm->values[i];
+					_mixing_output.disarmedValue(i) = pwm->values[i];
 				}
 			}
 
@@ -1246,7 +971,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			_num_disarmed_set = 0;
 
 			for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
-				if (_disarmed_pwm[i] > 0) {
+				if (_mixing_output.disarmedValue(i) > 0) {
 					_num_disarmed_set++;
 				}
 			}
@@ -1258,7 +983,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
-				pwm->values[i] = _disarmed_pwm[i];
+				pwm->values[i] = _mixing_output.disarmedValue(i);
 			}
 
 			pwm->channel_count = MAX_ACTUATORS;
@@ -1278,20 +1003,20 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				if (pwm->values[i] == 0) {
 					/* ignore 0 */
 				} else if (pwm->values[i] > PWM_HIGHEST_MIN) {
-					_min_pwm[i] = PWM_HIGHEST_MIN;
+					_mixing_output.minValue(i) = PWM_HIGHEST_MIN;
 
 				}
 
 #if PWM_LOWEST_MIN > 0
 
 				else if (pwm->values[i] < PWM_LOWEST_MIN) {
-					_min_pwm[i] = PWM_LOWEST_MIN;
+					_mixing_output.minValue(i) = PWM_LOWEST_MIN;
 				}
 
 #endif
 
 				else {
-					_min_pwm[i] = pwm->values[i];
+					_mixing_output.minValue(i) = pwm->values[i];
 				}
 			}
 
@@ -1302,7 +1027,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
-				pwm->values[i] = _min_pwm[i];
+				pwm->values[i] = _mixing_output.minValue(i);
 			}
 
 			pwm->channel_count = MAX_ACTUATORS;
@@ -1323,13 +1048,13 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				if (pwm->values[i] == 0) {
 					/* ignore 0 */
 				} else if (pwm->values[i] < PWM_LOWEST_MAX) {
-					_max_pwm[i] = PWM_LOWEST_MAX;
+					_mixing_output.maxValue(i) = PWM_LOWEST_MAX;
 
 				} else if (pwm->values[i] > PWM_HIGHEST_MAX) {
-					_max_pwm[i] = PWM_HIGHEST_MAX;
+					_mixing_output.maxValue(i) = PWM_HIGHEST_MAX;
 
 				} else {
-					_max_pwm[i] = pwm->values[i];
+					_mixing_output.maxValue(i) = pwm->values[i];
 				}
 			}
 
@@ -1340,7 +1065,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
-				pwm->values[i] = _max_pwm[i];
+				pwm->values[i] = _mixing_output.maxValue(i);
 			}
 
 			pwm->channel_count = MAX_ACTUATORS;
@@ -1358,14 +1083,14 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 				break;
 			}
 
-			if (_mixers == nullptr) {
+			if (_mixing_output.mixers() == nullptr) {
 				PX4_ERR("error: no mixer loaded");
 				ret = -EIO;
 				break;
 			}
 
 			/* copy the trim values to the mixer offsets */
-			_mixers->set_trims((int16_t *)pwm->values, pwm->channel_count);
+			_mixing_output.mixers()->set_trims((int16_t *)pwm->values, pwm->channel_count);
 			PX4_DEBUG("set_trims: %d, %d, %d, %d", pwm->values[0], pwm->values[1], pwm->values[2], pwm->values[3]);
 
 			break;
@@ -1374,13 +1099,13 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_TRIM_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
-			if (_mixers == nullptr) {
+			if (_mixing_output.mixers() == nullptr) {
 				memset(pwm, 0, sizeof(pwm_output_values));
 				PX4_WARN("warning: trim values not valid - no mixer loaded");
 
 			} else {
 
-				pwm->channel_count = _mixers->get_trims((int16_t *)pwm->values);
+				pwm->channel_count = _mixing_output.mixers()->get_trims((int16_t *)pwm->values);
 			}
 
 			break;
@@ -1736,47 +1461,15 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		}
 
 	case MIXERIOCRESET:
-		if (_mixers != nullptr) {
-			delete _mixers;
-			_mixers = nullptr;
-			_groups_required = 0;
-			ScheduleNow();	// run to clear schedule and callbacks
-		}
+		_mixing_output.resetMixer();
 
 		break;
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
 			unsigned buflen = strnlen(buf, 1024);
-
-			if (_mixers == nullptr) {
-				_mixers = new MixerGroup(control_callback, (uintptr_t)_controls);
-			}
-
-			if (_mixers == nullptr) {
-				_groups_required = 0;
-				ret = -ENOMEM;
-
-			} else {
-
-				ret = _mixers->load_from_buf(buf, buflen);
-
-				if (ret != 0) {
-					PX4_ERR("mixer load failed with %d", ret);
-					delete _mixers;
-					_mixers = nullptr;
-					_groups_required = 0;
-					ret = -EINVAL;
-
-				} else {
-
-					_mixers->groups_required(_groups_required);
-					PX4_DEBUG("loaded mixers \n%s\n", buf);
-					update_pwm_trims();
-				}
-			}
-
-			ScheduleNow();	// run to clear schedule and callbacks
+			ret = _mixing_output.loadMixer(buf, buflen);
+			update_pwm_trims();
 
 			break;
 		}
@@ -1789,35 +1482,6 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	unlock();
 
 	return ret;
-}
-
-
-void
-PX4FMU::reorder_outputs(uint16_t values[MAX_ACTUATORS])
-{
-	if (MAX_ACTUATORS < 4) {
-		return;
-	}
-
-	if (_motor_ordering == MotorOrdering::Betaflight) {
-		/*
-		 * Betaflight default motor ordering:
-		 * 4     2
-		 *    ^
-		 * 3     1
-		 */
-		const uint16_t pwm_tmp[4] = {values[0], values[1], values[2], values[3] };
-		values[0] = pwm_tmp[3];
-		values[1] = pwm_tmp[0];
-		values[2] = pwm_tmp[1];
-		values[3] = pwm_tmp[2];
-	}
-
-	/* else: PX4, no need to reorder
-	 * 3     1
-	 *    ^
-	 * 2     4
-	 */
 }
 
 void
@@ -2639,7 +2303,7 @@ int PX4FMU::print_status()
 
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_cycle_interval_perf);
-	perf_print_counter(_control_latency_perf);
+	_mixing_output.printStatus();
 
 	return 0;
 }
