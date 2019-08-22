@@ -41,5 +41,6 @@ px4_add_module(
 		arch_io_pins
 		circuit_breaker
 		mixer
+		mixer_module
 		pwm_limit
 	)
