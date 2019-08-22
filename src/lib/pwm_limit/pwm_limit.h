@@ -67,6 +67,7 @@ enum pwm_limit_state {
 typedef struct {
 	enum pwm_limit_state state;
 	uint64_t time_armed;
+	bool ramp_up; ///< if true, motors will ramp up from disarmed to min_pwm after arming
 } pwm_limit_t;
 
 __EXPORT void pwm_limit_init(pwm_limit_t *limit);

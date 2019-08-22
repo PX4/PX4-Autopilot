@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,16 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-px4_add_module(
-	MODULE drivers__px4fmu
-	MAIN fmu
-	COMPILE_FLAGS
-	SRCS
-		fmu.cpp
-	DEPENDS
-		arch_io_pins
-		circuit_breaker
-		mixer
-		mixer_module
-		pwm_limit
-	)
+
+px4_add_library(mixer_module mixer_module.cpp)
+

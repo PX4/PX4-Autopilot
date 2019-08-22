@@ -57,6 +57,15 @@ public:
 
 	virtual void Run() = 0;
 
+	/**
+	 * Switch to a different WorkQueue.
+	 * NOTE: Caller is responsible for synchronization.
+	 *
+	 * @param config The WorkQueue configuration (see WorkQueueManager.hpp).
+	 * @return true if initialization was successful
+	 */
+	bool ChangeWorkQeue(const wq_config_t &config) { return Init(config); }
+
 protected:
 
 	/**
