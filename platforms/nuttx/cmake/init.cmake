@@ -92,6 +92,11 @@ execute_process(COMMAND ${cp_cmd} ${cp_opts} ${CP_SRC} ${CP_DST} WORKING_DIRECTO
 
 set(NUTTX_DEFCONFIG ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig CACHE FILEPATH "path to defconfig" FORCE)
 
+###############################################################################
+# Create a temporary Toplevel Make.defs for the oldconfig step
+###############################################################################
+configure_file(${NUTTX_SRC_DIR}/Make.defs.in ${NUTTX_DIR}/Make.defs)
+
 # If the board provides a Kconfig Use it or create an empty one
 if(EXISTS ${NUTTX_CONFIG_DIR}/Kconfig)
 	execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_CONFIG_DIR}/Kconfig ${NUTTX_DIR}/boards/dummy/Kconfig)
@@ -120,7 +125,17 @@ if (NOT config_expanded)
 		WORKING_DIRECTORY ${NUTTX_DIR}
 		OUTPUT_FILE nuttx_olddefconfig.log
 		ERROR_FILE nuttx_olddefconfig.log
+		RESULT_VARIABLE ret
 	)
+	if(NOT ret EQUAL "0")
+		# Show the log here as it will be deleted due to the incomplete configure step
+		file(READ ${NUTTX_DIR}/nuttx_olddefconfig.log DEFCONFIG_LOG)
+		message( STATUS "${DEFCONFIG_LOG}")
+		message( FATAL_ERROR "NuttX olddefconfig target failed. \
+Possible cause: the board (${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}) has the wrong directory structure (i.e. missing files).")
+	endif()
+	# remove Toplevel Make.defs
+	file(REMOVE ${NUTTX_DIR}/Make.defs)
 endif()
 
 ###############################################################################
