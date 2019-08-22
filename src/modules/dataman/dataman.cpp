@@ -72,6 +72,8 @@ __BEGIN_DECLS
 __EXPORT int dataman_main(int argc, char *argv[]);
 __END_DECLS
 
+static constexpr int TASK_STACK_SIZE = 1220;
+
 /* Private File based Operations */
 static ssize_t _file_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf,
 			   size_t count);
@@ -1446,7 +1448,8 @@ start()
 	px4_sem_setprotocol(&g_init_sema, SEM_PRIO_NONE);
 
 	/* start the worker thread with low priority for disk IO */
-	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10, 1200, task_main, nullptr)) < 0) {
+	if ((task = px4_task_spawn_cmd("dataman", SCHED_DEFAULT, SCHED_PRIORITY_DEFAULT - 10, TASK_STACK_SIZE, task_main,
+				       nullptr)) < 0) {
 		px4_sem_destroy(&g_init_sema);
 		PX4_ERR("task start failed");
 		return -1;

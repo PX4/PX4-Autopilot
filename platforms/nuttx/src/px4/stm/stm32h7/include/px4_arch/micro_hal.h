@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012, 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,67 +30,27 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
-/**
- * @file drv_adc.h
- *
- * ADC driver interface.
- *
- */
-
 #pragma once
 
-#include <stdint.h>
-#include <sys/ioctl.h>
 
-/* Define the PX4 low level format ADC and the maximum
- * number of channels that can be returned by a lowlevel
- * ADC driver. Drivers may return less than PX4_MAX_ADC_CHANNELS
- * but no more than PX4_MAX_ADC_CHANNELS.
- *
- */
-#define PX4_MAX_ADC_CHANNELS 12
-typedef struct __attribute__((packed)) px4_adc_msg_t {
-	uint8_t      am_channel;               /* The 8-bit ADC Channel */
-	int32_t      am_data;                  /* ADC convert result (4 bytes) */
-} px4_adc_msg_t;
-
-
-#define ADC0_DEVICE_PATH	"/dev/adc0"
-
+#include "../../../stm32_common/include/px4_arch/micro_hal.h"
 
 __BEGIN_DECLS
 
-/**
- * Initialize ADC hardware
- * @param base_address architecture-specific address to specify the ADC
- * @return 0 on success, <0 error otherwise
- */
-int px4_arch_adc_init(uint32_t base_address);
+#define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32H7
+#include <chip.h>
+#include <hardware/stm32_flash.h>
+#include <up_internal.h> //include up_systemreset() which is included on stm32.h
+#include <stm32_bbsram.h>
+#define PX4_BBSRAM_SIZE STM32H7_BBSRAM_SIZE
+#define PX4_BBSRAM_GETDESC_IOCTL STM32H7_BBSRAM_GETDESC_IOCTL
+#define PX4_FLASH_BASE  0x08000000
+#define PX4_NUMBER_I2C_BUSES STM32H7_NI2C
 
-/**
- * Uninitialize ADC hardware
- * @param base_address architecture-specific address to specify the ADC
- */
-void px4_arch_adc_uninit(uint32_t base_address);
-
-/**
- * Read a sample from the ADC
- * @param base_address architecture-specific address to specify the ADC
- * @param channel specify the channel
- * @return sample, 0xffffffff on error
- */
-uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel);
-
-/**
- * Get the temperature sensor channel bitmask
- */
-uint32_t px4_arch_adc_temp_sensor_mask(void);
-
-/**
- * Get the adc digital number full count
- */
-uint32_t px4_arch_adc_dn_fullcount(void);
+int stm32h7_flash_lock(size_t addr);
+int stm32h7_flash_unlock(size_t addr);
+int stm32h7_flash_writeprotect(size_t block, bool enabled);
+#define  stm32_flash_lock() stm32h7_flash_lock(PX4_FLASH_BASE)
 
 __END_DECLS
 
