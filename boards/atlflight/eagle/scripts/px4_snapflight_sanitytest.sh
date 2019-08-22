@@ -37,12 +37,12 @@ readonly EXIT_ERROR=3
 
 # List of expected strings from the apps proc
 declare -a appsproc_strings_present=(
-   "on udp port 14556 remote port 14550" 
+   "on udp port 14556 remote port 14550"
    )
 
 # List of unexpected strings from the apps proc
 declare -a appsproc_strings_absent=(
-   "ERROR" 
+   "ERROR"
    "Getting Bulk data from fastRPC link"
    "Segmentation fault"
    )
@@ -65,8 +65,9 @@ result=$RESULT_PASS
 
 # Default mini-dm path (needs to be installed in this location or overriden through cmd line
 minidmPath=~/Qualcomm/Hexagon_SDK/3.0/tools/debug/mini-dm/Linux_Debug
+
 # Default workspace path (parent directory of the script location)
-workspace=`pwd`/..
+workspace=`pwd`/../../../..
 
 
 verifypx4test() {
@@ -78,7 +79,7 @@ verifypx4test() {
    fi
 
    echo -e "Verifying test results..."
-   
+
    # verify the presence of expected stings in the apps proc console log
    for lineString in "${appsproc_strings_present[@]}"
    do
@@ -126,14 +127,14 @@ verifypx4test() {
          result=$RESULT_FAIL
       fi
    done
-   
+
    echo -e "Verification complete."
-   
+
    if [ $result -eq $RESULT_FAIL ]; then
       echo -e "PX4 test result: FAIL"
    else
       echo -e "PX4 test result: PASS"
-   fi    
+   fi
 }
 
 installpx4() {
@@ -150,32 +151,17 @@ installpx4() {
    # Wait a bit longer after bootup, before copying binaries to the target.
    sleep 30
    adb devices
-   
+
    echo -e "Now installing PX4 binaries..."
    # Copy binaries to the target
    if [ $mode == 0 ]; then
       # copy default binaries
       echo -e "Copying the PX4 binaries from the eagle_default build tree..."
-      adb push $workspace/build/qurt_eagle_default/src/firmware/qurt/libpx4.so /usr/share/data/adsp
-      adb push $workspace/build/qurt_eagle_default/src/firmware/qurt/libpx4muorb_skel.so /usr/share/data/adsp
-      adb push $workspace/build/posix_eagle_default/src/firmware/posix/px4 /home/linaro
+      adb push $workspace/build/atlflight_eagle_qurt-default/platforms/qurt/libpx4.so /usr/share/data/adsp
+      adb push $workspace/build/atlflight_eagle_qurt-default/platforms/qurt/libpx4muorb_skel.so /usr/share/data/adsp
+      adb push $workspace/build/atlflight_eagle_default/bin/px4 /home/linaro
       adb push $workspace/posix-configs/eagle/flight/px4.config /usr/share/data/adsp
       adb push $workspace/posix-configs/eagle/flight/mainapp.config /home/linaro
-   elif [ $mode == 1 ]; then
-      # copy legacy binaries
-      echo -e "Copying the PX4 binaries from the eagle_legacy build tree..."
-      adb push $workspace/build/qurt_eagle_legacy/src/firmware/qurt/libpx4.so /usr/share/data/adsp
-      adb push $workspace/build/qurt_eagle_legacy/src/firmware/qurt/libpx4muorb_skel.so /usr/share/data/adsp
-      adb push $workspace/build/posix_eagle_legacy/src/firmware/posix/px4 /home/linaro
-      adb push $workspace/posix-configs/eagle/200qx/px4.config /usr/share/data/adsp
-      adb push $workspace/posix-configs/eagle/200qx/mainapp.config /home/linaro
-   else
-      echo -e "Copying the PX4 binaries from the excelsior_legacy build tree..."
-      adb push $workspace/build/qurt_excelsior_legacy/src/firmware/qurt/libpx4.so /usr/lib/rfsa/adsp
-      adb push $workspace/build/qurt_excelsior_legacy/src/firmware/qurt/libpx4muorb_skel.so /usr/lib/rfsa/adsp
-      adb push $workspace/build/posix_excelsior_legacy/src/firmware/posix/px4 /home/root
-      adb push $workspace/posix-configs/excelsior/px4.config /usr/lib/rfsa/adsp
-      adb push $workspace/posix-configs/excelsior/mainapp.config /home/root
    fi
 
    echo -e "Installation complete."
@@ -188,13 +174,13 @@ testpx4() {
       echo -e "SKIPPING test"
       return 0;
    fi
-   
+
    echo -e "Starting PX4 test..."
-   
+
    # Remove previous instances of the file
    rm px4.log | true
    rm minidm.log | true
-   
+
    # Start mini-dm
    echo -e "Starting mini-dm..."
    ${minidmPath}/mini-dm > minidm.log &
@@ -207,7 +193,7 @@ testpx4() {
       exit $EXIT_ERROR
    fi
 
-   
+
    # Start PX4
    echo -e "Starting PX4..."
    if [ $mode == 2 ]; then
@@ -224,19 +210,19 @@ testpx4() {
       echo "[ERROR] PX4 is not running on target!"
       exit $EXIT_ERROR
    fi
-   
+
    # Stop the PX4 process on target
    adb shell "ps -eaf | grep px4 | grep -v grep | awk '{print $2}' | tr -s ' ' | cut -d' ' -f2 | xargs kill"
    sleep 5
-   
+
    # Stop the mini-dm
    killall mini-dm
-   
+
    echo -e "PX4 test complete."
-   
+
    # Verify the results
    verifypx4test
-   
+
    echo -e "For more information, see px4.log and minidm.log."
 }
 
@@ -281,7 +267,7 @@ while getopts "m:l:ith" opt;
             usage
             exit 0
             ;;
-         :) 
+         :)
             echo "Option -$OPTARG requires an argument" >&2
             exit 1;;
          ?)
