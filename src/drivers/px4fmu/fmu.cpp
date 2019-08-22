@@ -147,7 +147,6 @@ public:
 	static int fake(int argc, char *argv[]);
 
 	virtual int	ioctl(file *filp, int cmd, unsigned long arg);
-	virtual ssize_t	write(file *filp, const char *buffer, size_t len);
 
 	virtual int	init();
 
@@ -1805,46 +1804,6 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	return ret;
 }
 
-/*
-  this implements PWM output via a write() method, for compatibility
-  with px4io
- */
-ssize_t
-PX4FMU::write(file *filp, const char *buffer, size_t len)
-{
-	unsigned count = len / 2;
-	uint16_t values[MAX_ACTUATORS];
-
-#if BOARD_HAS_PWM == 0
-	return 0;
-#endif
-
-	if (count > BOARD_HAS_PWM) {
-		// we have at most BOARD_HAS_PWM outputs
-		count = BOARD_HAS_PWM;
-	}
-
-	if (count > MAX_ACTUATORS) {
-		count = MAX_ACTUATORS;
-	}
-
-	// allow for misaligned values
-	memcpy(values, buffer, count * 2);
-
-	for (unsigned i = count; i < _num_outputs; ++i) {
-		values[i] = PWM_IGNORE_THIS_CHANNEL;
-	}
-
-	reorder_outputs(values);
-
-	for (unsigned i = 0; i < _num_outputs; i++) {
-		if (values[i] != PWM_IGNORE_THIS_CHANNEL) {
-			up_pwm_servo_set(i, values[i]);
-		}
-	}
-
-	return count * 2;
-}
 
 void
 PX4FMU::reorder_outputs(uint16_t values[MAX_ACTUATORS])
@@ -2274,21 +2233,9 @@ PX4FMU::test()
 			servos[i] = pwm_value;
 		}
 
-		if (direction == 1) {
-			// use ioctl interface for one direction
-			for (unsigned i = 0; i < servo_count;	i++) {
-				if (::ioctl(fd, PWM_SERVO_SET(i), servos[i]) < 0) {
-					PX4_ERR("servo %u set failed", i);
-					goto err_out;
-				}
-			}
-
-		} else {
-			// and use write interface for the other direction
-			ret = ::write(fd, servos, sizeof(servos));
-
-			if (ret != (int)sizeof(servos)) {
-				PX4_ERR("error writing PWM servo data, wrote %u got %d", sizeof(servos), ret);
+		for (unsigned i = 0; i < servo_count;	i++) {
+			if (::ioctl(fd, PWM_SERVO_SET(i), servos[i]) < 0) {
+				PX4_ERR("servo %u set failed", i);
 				goto err_out;
 			}
 		}
