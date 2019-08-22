@@ -82,6 +82,8 @@ struct GPS_Sat_Info {
 	struct satellite_info_s 	_data;
 };
 
+static constexpr int TASK_STACK_SIZE = 1620;
+
 
 class GPS : public ModuleBase<GPS>
 {
@@ -1068,7 +1070,7 @@ int GPS::task_spawn(int argc, char *argv[], Instance instance)
 	}
 
 	int task_id = px4_task_spawn_cmd("gps", SCHED_DEFAULT,
-				   SCHED_PRIORITY_SLOW_DRIVER, 1700,
+				   SCHED_PRIORITY_SLOW_DRIVER, TASK_STACK_SIZE,
 				   entry_point, (char *const *)argv);
 
 	if (task_id < 0) {
