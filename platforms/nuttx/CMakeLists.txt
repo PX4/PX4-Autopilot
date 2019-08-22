@@ -172,7 +172,7 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 				/dev/serial/by-id/usb-Bitcraze*
 				/dev/serial/by-id/pci-Bitcraze*
 				/dev/serial/by-id/usb-Gumstix*
-
+				/dev/serial/by-id/usb-Hex_ProfiCNC*
 				)
 
 		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
