@@ -34,7 +34,7 @@
 /**
  * @file can.c
  *
- * UVify Core specific CAN functions.
+ * Board-specific CAN functions.
  */
 
 /************************************************************************************

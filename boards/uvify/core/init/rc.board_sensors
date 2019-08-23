@@ -2,6 +2,7 @@
 #
 # UVify UVF4 specific board sensors init
 #------------------------------------------------------------------------------
+
 # Draco-R
 if param compare SYS_AUTOSTART 6002
 then

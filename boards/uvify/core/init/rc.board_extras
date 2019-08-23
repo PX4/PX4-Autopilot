@@ -2,6 +2,8 @@
 #
 # UVify UVF4 specific board extras init
 #------------------------------------------------------------------------------
+
+
 # IFO
 if param compare SYS_AUTOSTART 4071
 then
@@ -14,4 +16,3 @@ then
 	sleep 4
 	ms5611 -T 0 -X start
 fi
-
