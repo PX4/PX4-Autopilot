@@ -102,7 +102,8 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithAnObstacle)
 {
 	// GIVEN: a simple setup condition
 	TestCollisionPrevention cp;
-	matrix::Vector2f original_setpoint(10, 0);
+	matrix::Vector2f original_setpoint1(10, 0);
+	matrix::Vector2f original_setpoint2(-10, 0);
 	float max_speed = 3;
 	matrix::Vector2f curr_pos(0, 0);
 	matrix::Vector2f curr_vel(2, 0);
@@ -117,31 +118,37 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithAnObstacle)
 	obstacle_distance_s message;
 	memset(&message, 0xDEAD, sizeof(message));
 	message.min_distance = 100;
-	message.max_distance = 1000;
+	message.max_distance = 10000;
+	message.angle_offset = 0;
 	message.timestamp = hrt_absolute_time();
 	int distances_array_size = sizeof(message.distances) / sizeof(message.distances[0]);
 	message.increment = 360 / distances_array_size;
 
 	for (int i = 0; i < distances_array_size; i++) {
-		message.distances[i] = 101;
+		if (i < 10) {
+			message.distances[i] = 101;
+
+		} else {
+			message.distances[i] = 10001;
+		}
+
 	}
 
 	// WHEN: we publish the message and set the parameter and then run the setpoint modification
 	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
 	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
-	matrix::Vector2f modified_setpoint = original_setpoint;
-	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	matrix::Vector2f modified_setpoint1 = original_setpoint1;
+	matrix::Vector2f modified_setpoint2 = original_setpoint2;
+	cp.modifySetpoint(modified_setpoint1, max_speed, curr_pos, curr_vel);
+	cp.modifySetpoint(modified_setpoint2, max_speed, curr_pos, curr_vel);
 	orb_unadvertise(obstacle_distance_pub);
 
 	// THEN: the internal map should know the obstacle and velocity should be cut down to zero
 	EXPECT_FLOAT_EQ(cp.getObstacleMap().min_distance, 100);
-	EXPECT_FLOAT_EQ(cp.getObstacleMap().max_distance, 1000);
+	EXPECT_FLOAT_EQ(cp.getObstacleMap().max_distance, 10000);
 
-	for (int i = 0; i < floor(360.f / cp.getObstacleMap().increment); i++) {
-		EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], 101);
-	}
-
-	EXPECT_FLOAT_EQ(0.f, modified_setpoint.norm()) << modified_setpoint(0) << "," << modified_setpoint(1);
+	EXPECT_FLOAT_EQ(0.f, modified_setpoint1.norm()) << modified_setpoint1(0) << "," << modified_setpoint1(1);
+	EXPECT_EQ(original_setpoint2, modified_setpoint2);
 }
 
 TEST_F(CollisionPreventionTest, noBias)
@@ -392,6 +399,8 @@ TEST_F(CollisionPreventionTest, addObstacleSensorData_attitude)
 	matrix::Quaternion<float> vehicle_attitude4(attitude4_euler); // 180 deg yaw
 
 	//obstacle at 10-30 deg world frame, distance 5 meters
+	memset(&obstacle_msg.distances[0], UINT16_MAX, sizeof(obstacle_msg.distances));
+
 	for (int i = 2; i < 6 ; i++) {
 		obstacle_msg.distances[i] = 500;
 	}
@@ -485,6 +494,8 @@ TEST_F(CollisionPreventionTest, addObstacleSensorData_resolution_offset)
 	matrix::Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
 
 	//obstacle at 0-30 deg world frame, distance 5 meters
+	memset(&obstacle_msg.distances[0], UINT16_MAX, sizeof(obstacle_msg.distances));
+
 	for (int i = 0; i < 5 ; i++) {
 		obstacle_msg.distances[i] = 500;
 	}
