@@ -37,7 +37,6 @@ px4_add_board(
 		px4io
 		stm32
 		stm32/adc
-		stm32/tone_alarm
 		tone_alarm
 
 	MODULES
