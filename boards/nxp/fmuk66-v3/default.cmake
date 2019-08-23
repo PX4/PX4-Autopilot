@@ -32,7 +32,6 @@ px4_add_board(
 		irlock
 		kinetis
 		kinetis/adc
-		kinetis/tone_alarm
 		lights/blinkm
 		lights/oreoled
 		lights/rgbled
