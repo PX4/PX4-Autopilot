@@ -42,7 +42,6 @@ px4_add_board(
 		rc_input
 		stm32
 		stm32/adc
-		stm32/tone_alarm
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm
