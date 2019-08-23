@@ -10,7 +10,8 @@
 # @board px4_fmu-v4 exclude
 # @board px4_fmu-v4pro exclude
 # @board px4_fmu-v5 exclude
-# @board aerofc-v1 exclude
+# @board px4_fmu-v5x exclude
+# @board intel_aerofc-v1 exclude
 #
 # @maintainer Thomas Gubler <thomas@px4.io>
 #

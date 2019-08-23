@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@
 /**
  * @file init.c
  *
- * PX4FMU-specific early startup code.  This file implements the
+ * UVify Core specific early startup code.  This file implements the
  * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
@@ -202,8 +202,8 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_SBUS_INV);
 	stm32_configgpio(GPIO_SPEKTRUM_PWR_EN);
 
-	stm32_configgpio(GPIO_8266_GPIO2);
-	stm32_configgpio(GPIO_8266_GPIO0);
+	stm32_configgpio(GPIO_PB4);
+	stm32_configgpio(GPIO_PE2);
 
 	// Safety - led on in led driver.
 	stm32_configgpio(GPIO_BTN_SAFETY);
@@ -213,15 +213,15 @@ stm32_boardinitialize(void)
 
 #if defined(CONFIG_STM32_SPI4)
 
-	/* We have SPI4 is GPIO_8266_GPIO2 PB4 pin 3 Low */
-	if (stm32_gpioread(GPIO_8266_GPIO2) == 0) {
+	/* We have SPI4 is GPIO_PB4 pin 3 Low */
+	if (stm32_gpioread(GPIO_PB4) == 0) {
 		spi_init_mask |= SPI_BUS_INIT_MASK_EXT;
 
 	} else {
 #endif /* CONFIG_STM32_SPI4 */
 
-		stm32_configgpio(GPIO_8266_PD);
-		stm32_configgpio(GPIO_8266_RST);
+		stm32_configgpio(GPIO_PE5);
+		stm32_configgpio(GPIO_PE6);
 
 #if defined(CONFIG_STM32_SPI4)
 	}
@@ -352,8 +352,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 #if defined(CONFIG_STM32_SPI4)
 
-	if (stm32_gpioread(GPIO_8266_GPIO2) == 0) {
-		syslog(LOG_INFO, "[boot] 8266_GPIO2 - Low Initialize SPI port 4 \n");
+	if (stm32_gpioread(GPIO_PB4) == 0) {
+		syslog(LOG_INFO, "[boot] GPIO_PB4 - Low Initialize SPI port 4 \n");
 
 		// Configure SPI-based devices.
 		spi4 = stm32_spibus_initialize(4);
