@@ -109,5 +109,14 @@ then
 
 	# enable to use high-rate logging for better rate tracking analysis
 	# param set SDLOG_PROFILE 19
-fi
 
+	# TELEM1 ttyS1 - Wifi module
+	param set MAV_0_CONFIG 101
+	param set MAV_0_MODE 2	# onboard
+	param set SER_TEL1_BAUD 921600
+
+	# TELEM2 ttyS2 - Sub 1-Ghz
+	param set MAV_1_CONFIG 102
+	param set MAV_1_MODE 0	# normal
+	param set SER_TEL2_BAUD 57600
+fi

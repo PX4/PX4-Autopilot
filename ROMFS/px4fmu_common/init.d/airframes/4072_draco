@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # @name UVify Draco
 #
@@ -19,15 +19,8 @@
 #
 
 set VEHICLE_TYPE mc
-set MIXER quad_x_draco
+set MIXER quad_x
 set PWM_OUT 1234
-set DRACO_SMBUS yes
-
-#param set SYS_COMPANION 157600
-#set MAVLINK_COMPANION_DEVICE /dev/ttyS6
-
-#mavlink start -d /dev/ttyS6 -b 57600 -m osd -r 1000
-#set MAVLINK_F "-d /dev/ttyS1 -r 2000 -b 57600"
 
 if [ $AUTOCNF == yes ]
 then
@@ -114,5 +107,15 @@ then
 
 	# enable to use high-rate logging for better rate tracking analysis
 	# param set SDLOG_PROFILE 19
+
+	# TELEM1 ttyS1
+	param set MAV_0_CONFIG 101
+	param set MAV_0_MODE 2  # onboard
+        param set MAV_0_RATE 20000
+	param set SER_TEL1_BAUD 921600
+
+	# TELEM2 ttyS2
+	param set MAV_1_CONFIG 0
+
 fi
 

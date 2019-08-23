@@ -35,4 +35,3 @@ then
 	mpu9250 -R 2 start
 	lis3mdl -R 2 -X start
 fi
-

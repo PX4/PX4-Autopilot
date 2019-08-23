@@ -136,6 +136,20 @@ then
 	param set BAT_SOURCE 0
 	param set BAT_N_CELLS 4
 	param set BAT_V_DIV 10.133
+
+	# TELEM1 ttyS1
+	param set MAV_0_CONFIG 101
+	param set MAV_0_MODE 1	# onboard
+	param set MAV_0_FORWARD 1
+	param set SER_TEL1_BAUD 57600
+
+	# TELEM2 ttyS2
+	param set MAV_1_CONFIG 102
+	param set MAV_1_MODE 2
+	param set MAV_1_RATE 800000
+	param set MAV_1_FORWARD 1
+	param set SER_TEL2_BAUD 921600
+
 fi
 
 #set PWM_OUT 12345678
@@ -146,17 +160,6 @@ fi
 #set OUTPUT_AUX_DEV /dev/pwm_output0
 #set OUTPUT_AUX_TO_MAIN yes
 #set MIXER_APPEND yes
-#set MAVLINK_F "-d /dev/ttyS1 -b 57600"
-#set MAVLINK_F "-d /dev/ttyS1 -r 20000 -b 921600 -m onboard"
-#set MAVLINK_COMPANION_DEVICE /dev/ttyS6
-
-# GPS, Suyong
-# external i2c mag, YAW 90.
-#lis3mdl start
-# external i2c mag, ROLL180 is orientation.
-#bmm150 start -X
-# external i2c, ms5611
-#ms5611 start -X
 
 #if mixer append /dev/pwm_output0 /etc/mixers/mount_2axes.aux.mix
 #then
@@ -171,3 +174,4 @@ fi
 #else
 #	echo "INFO [6002] PWM RATE CHANGE FAILED"
 #fi
+
