@@ -75,7 +75,6 @@ private:
 
 	hrt_abstime _timestamp_activation{0}; //*< timestamp when this mode was activated */
 
-        //uORB::Publication<vehicle_attitude_setpoint_s>	_att_sp_pub{nullptr};
         orb_advert_t _att_sp_pub{nullptr};
         orb_id_t _att_setpoint_id{nullptr};
 	/**
