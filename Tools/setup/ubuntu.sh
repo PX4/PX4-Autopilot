@@ -158,8 +158,8 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	# java (jmavsim or fastrtps)
 	sudo apt-get -yy --quiet --no-install-recommends install \
 		ant \
-		default-jre-headless \
-		default-jdk-headless \
+		openjdk-8-jre \
+		openjdk-8-jdk \
 		;
 
 	# Gazebo
