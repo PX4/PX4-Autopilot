@@ -361,7 +361,7 @@ struct parameters {
 };
 
 struct stateSample {
-	Quatf  quat_nominal;	///< quaternion defining the rotation from earth to body frame
+	Quatf  quat_nominal;	///< quaternion defining the rotation from body to earth frame
 	Vector3f    vel;	///< NED velocity in earth frame in m/s
 	Vector3f    pos;	///< NED position in earth frame in m
 	Vector3f    gyro_bias;	///< delta angle bias estimate in rad
