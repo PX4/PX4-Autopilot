@@ -69,6 +69,7 @@
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/safety.h>
+#include <uORB/topics/vehicle_command.h>
 
 using namespace time_literals;
 
@@ -205,6 +206,7 @@ private:
 	uORB::Publication<safety_s>				_to_safety{ORB_ID(safety)};
 	uORB::PublicationMulti<actuator_outputs_s>		_outputs_pub{ORB_ID(actuator_outputs), ORB_PRIO_DEFAULT};
 	uORB::PublicationMulti<multirotor_motor_limits_s>	_to_mixer_status{ORB_ID(multirotor_motor_limits), ORB_PRIO_DEFAULT}; 	///< mixer status flags
+	uORB::Publication<vehicle_command_s>			_to_command{ORB_ID(vehicle_command)};
 
 	unsigned	_num_outputs{0};
 	int		_class_instance{-1};
@@ -281,7 +283,7 @@ private:
 	PX4FMU(const PX4FMU &) = delete;
 	PX4FMU operator=(const PX4FMU &) = delete;
 
-	void safety_check_button(void);
+	bool safety_check_button(void);
 	void flash_safety_button(void);
 
 	/**
@@ -376,9 +378,10 @@ PX4FMU::init()
 	return 0;
 }
 
-void
+bool
 PX4FMU::safety_check_button(void)
 {
+	bool safety_button_pressed = false;
 #ifdef GPIO_BTN_SAFETY
 
 	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
@@ -388,7 +391,7 @@ PX4FMU::safety_check_button(void)
 		 * Debounce the safety button, change state if it has been held for long enough.
 		 *
 		 */
-		bool safety_button_pressed = px4_arch_gpioread(GPIO_BTN_SAFETY);
+		safety_button_pressed = px4_arch_gpioread(GPIO_BTN_SAFETY);
 
 		/*
 		 * Keep pressed for a while to arm.
@@ -404,8 +407,11 @@ PX4FMU::safety_check_button(void)
 				counter++;
 
 			} else if (counter == CYCLE_COUNT) {
-				/* switch to armed state */
-				_safety_btn_off = true;
+				if (!_safety_disabled) {
+					/* switch to armed state */
+					_safety_btn_off = true;
+				}
+
 				counter++;
 			}
 
@@ -415,8 +421,11 @@ PX4FMU::safety_check_button(void)
 				counter++;
 
 			} else if (counter == CYCLE_COUNT) {
-				/* change to disarmed state and notify the FMU */
-				_safety_btn_off = false;
+				if (!_safety_disabled) {
+					/* change to disarmed state and notify the FMU */
+					_safety_btn_off = false;
+				}
+
 				counter++;
 			}
 
@@ -426,6 +435,7 @@ PX4FMU::safety_check_button(void)
 	}
 
 #endif
+	return safety_button_pressed;
 }
 
 void
@@ -1110,20 +1120,27 @@ PX4FMU::Run()
 
 #ifdef GPIO_BTN_SAFETY
 
-	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
+	if (_cycle_timestamp - _last_safety_check >= (unsigned int)1e5) {
+		_last_safety_check = _cycle_timestamp;
 
-		if (_cycle_timestamp - _last_safety_check >= (unsigned int)1e5) {
-			_last_safety_check = _cycle_timestamp;
+		/* read safety switch input at 10Hz */
+		bool safety_pressed = safety_check_button();
 
+		if (safety_pressed) {
+			/* lazily publish the vehicle command */
+			struct vehicle_command_s cmd = {};
+			cmd.timestamp = hrt_absolute_time();
+			cmd.command = vehicle_command_s::VEHICLE_CMD_START_RX_PAIR;
+			cmd.from_external = false;
+
+			_to_command.publish(cmd);
+		}
+
+		if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
 			/**
 			 * Get and handle the safety status at 10Hz
 			 */
 			struct safety_s safety = {};
-
-			if (!_safety_disabled) {
-				/* read safety switch input and control safety switch LED at 10Hz */
-				safety_check_button();
-			}
 
 			/* Make the safety button flash anyway, no matter if it's used or not. */
 			flash_safety_button();
@@ -1134,6 +1151,7 @@ PX4FMU::Run()
 
 			/* lazily publish the safety status */
 			_to_safety.publish(safety);
+
 		}
 	}
 
