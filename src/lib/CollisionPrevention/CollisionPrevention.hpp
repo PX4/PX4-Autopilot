@@ -83,6 +83,7 @@ public:
 protected:
 
 	obstacle_distance_s _obstacle_map_body_frame {};
+	uint64_t _data_timestamps[72];
 
 	void _addDistanceSensorData(distance_sensor_s &distance_sensor, const matrix::Quatf &attitude);
 
