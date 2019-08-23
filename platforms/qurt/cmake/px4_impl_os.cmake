@@ -45,6 +45,7 @@
 # 	Required OS Inteface Functions
 #
 # 		* px4_os_add_flags
+# 		* px4_os_determine_build_chip
 #		* px4_os_prebuild_targets
 #
 
@@ -141,6 +142,23 @@ function(px4_os_add_flags)
 	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
 
 	set(DF_TARGET "qurt" CACHE STRING "DriverFramework target" FORCE)
+
+endfunction()
+
+#=============================================================================
+#
+#	px4_os_determine_build_chip
+#
+#	Sets PX4_CHIP and PX4_CHIP_MANUFACTURER.
+#
+#	Usage:
+#		px4_os_determine_build_chip()
+#
+function(px4_os_determine_build_chip)
+
+	# always use generic chip and chip manufacturer
+	set(PX4_CHIP "generic" CACHE STRING "PX4 Chip" FORCE)
+	set(PX4_CHIP_MANUFACTURER "generic" CACHE STRING "PX4 Chip Manufacturer" FORCE)
 
 endfunction()
 

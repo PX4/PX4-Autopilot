@@ -38,11 +38,10 @@ px4_add_module(
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		px4io.cpp
-		px4io_uploader.cpp
 		px4io_serial.cpp
-		px4io_serial_f4.cpp
-		px4io_serial_f7.cpp
+		px4io_uploader.cpp
 	DEPENDS
+		arch_px4io_serial
 		circuit_breaker
 		mixer
 	)
