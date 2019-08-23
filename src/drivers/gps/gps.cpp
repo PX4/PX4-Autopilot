@@ -422,6 +422,7 @@ void GPS::handleInjectDataTopic()
 	// data set is evaluated.
 	const size_t max_num_injections = 6;
 	size_t num_injections = 0;
+
 	do {
 		num_injections++;
 		updated = _orb_inject_data_sub.updated();
