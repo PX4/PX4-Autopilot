@@ -72,6 +72,14 @@ GpsFailure::on_activation()
 {
 	_gpsf_state = GPSF_STATE_NONE;
 	_timestamp_activation = hrt_absolute_time();
+    if(!_att_setpoint_id) {
+        if (_navigator->get_vstatus()->is_vtol) {
+            _att_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
+        }
+        else {
+            _att_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
+        }
+    }
 	advance_gpsf();
 	set_gpsf_item();
 }
@@ -93,11 +101,11 @@ GpsFailure::on_active()
 			q.copyTo(att_sp.q_d);
 			att_sp.q_d_valid = true;
 
-            if (_navigator->get_vstatus()->is_vtol) {
-                _virt_att_sp_pub.publish(att_sp);
-            }
-            else {
-                _att_sp_pub.publish(att_sp);
+            if (_att_sp_pub != nullptr){
+                orb_publish(_att_setpoint_id, _att_sp_pub, &att_sp);
+            } else if (_att_setpoint_id) {
+                _att_sp_pub = orb_advertise(_att_setpoint_id, &att_sp);
+
             }
 
 			/* Measure time */
