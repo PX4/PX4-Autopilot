@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * PX4FMUv4 internal definitions
+ * UVify Core internal definitions
  */
 
 #pragma once
@@ -68,30 +68,17 @@
 #define BOARD_ARMED_STATE_LED  LED_GREEN
 
 /**
- *  Define the Chip Selects for SPI1
- *  CS           Devices                                 DRDY
- *  ---- ----------------------------------------------- -----
- *  PC2  MPU9250                    BMI160               PD15
- *  PC15 ICM, ICM_20602, ICM_20608  BMI055_ACCEL         PC14
- *  PE15 HMC5983                    BMI055_GYRO          PE12
- *  ---- ----------------------------------------------- -----
- */
-
-/**
- * The BMI160 sensor replaces the MPU9250 on some boards. Only one is actually present and connected
- * to the second GPIO pin on port C. The wrong driver will fail during start because of an incorrect WHO_AM_I register.
+ * The MPU9250 is default. The wrong driver will fail during start because of an incorrect WHO_AM_I register.
  */
 #define GPIO_SPI1_CS_PORTC_PIN2      (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN2)
 
 /**
- * The BMI055 acceleration sensor replaces the ICM20608G on some boards. Only one is actually present and connected
- * to the second GPIO pin on port C. The wrong driver will fail during start because of an incorrect WHO_AM_I register.
+ * The ICM20608G is default. The wrong driver will fail during start because of an incorrect WHO_AM_I register.
  */
 #define GPIO_SPI1_CS_PORTC_PIN15     (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN15)
 
 /**
- * The BMI055 gyroscope sensor replaces the LIS3MDL, HMC5983 on some boards. Only one is actually present and connected
- * to the second GPIO pin on port E. The wrong driver will fail during start because of an incorrect WHO_AM_I register.
+ * Reserved. The wrong driver will fail during start because of an incorrect WHO_AM_I register.
  */
 #define GPIO_SPI1_CS_PORTE_PIN15     (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN15)
 
@@ -209,8 +196,8 @@
 #define ADC_RC_RSSI_CHANNEL          11
 
 /* Define Battery 1 Voltage Divider and A per V. */
-#define BOARD_BATTERY1_V_DIV         (13.653333333f)
-#define BOARD_BATTERY1_A_PER_V       (36.367515152f)
+#define BOARD_BATTERY1_V_DIV         (10.14f)
+#define BOARD_BATTERY1_A_PER_V       (18.18f)
 
 
 /**
@@ -304,18 +291,19 @@
 #define GPIO_BTN_SAFETY              (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN4)
 #define GPIO_PERIPH_3V3_EN           (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN5)
 
-/* For R12, this signal is active high. */
+/* For,this signal is active high. */
 #define GPIO_SBUS_INV                (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
 #define RC_INVERT_INPUT(_invert_true) px4_arch_gpiowrite(GPIO_SBUS_INV, _invert_true)
 
 #define GPIO_SPEKTRUM_PWR_EN         (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN4)
 
-#define GPIO_8266_GPIO0              (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN2)
-#define GPIO_8266_GPIO2              (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN4)
-#define GPIO_8266_PD                 (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN5)
-#define GPIO_8266_RST                (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN6)
+/* GPIOs */
+#define GPIO_PE2	             (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN2)
+#define GPIO_PB4                     (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN4)
+#define GPIO_PE5                     (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN5)
+#define GPIO_PE6                     (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN6)
 
-/* Heater pins */
+/* Heater pins (reserved) */
 #define GPIO_HEATER_INPUT            (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTC|GPIO_PIN6)
 #define GPIO_HEATER_OUTPUT           (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTC|GPIO_PIN6)
 
@@ -324,7 +312,7 @@
 #define SPEKTRUM_POWER(_on_true)     px4_arch_gpiowrite(GPIO_SPEKTRUM_PWR_EN, (!_on_true))
 
 /**
- * FMUv4 has separate RC_IN
+ * UVify Core has separate RC_IN
  *
  * GPIO PPM_IN on PB0 T3C3
  * SPEKTRUM_RX (it's TX or RX in Bind) on UART6 PC7
@@ -355,6 +343,10 @@
 #define BOARD_DMA_ALLOC_POOL_SIZE    5120
 
 #define BOARD_HAS_ON_RESET 1
+
+#define BOARD_ENABLE_CONSOLE_BUFFER
+#define BOARD_CONSOLE_BUFFER_SIZE (1024*3)
+
 __BEGIN_DECLS
 
 /****************************************************************************************************

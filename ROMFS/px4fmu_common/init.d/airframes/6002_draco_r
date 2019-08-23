@@ -1,0 +1,177 @@
+#!/bin/sh
+#
+# @name UVify Draco-R
+#
+# @type Hexarotor x
+# @class Copter
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+# @output MAIN5 motor 5
+# @output MAIN6 motor 6
+#
+# @board px4_fmu-v2 exclude
+# @board px4_fmu-v3 exclude
+# @board px4_fmu-v4pro exclude
+# @board px4_fmu-v5 exclude
+# @board px4_fmu-v5x exclude
+# @board intel_aerofc-v1 exclude
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+#
+# @maintainer Hyon Lim <lim@uvify.com>
+#
+
+set VEHICLE_TYPE mc
+set MIXER hexa_x
+set PWM_OUT 123456
+
+if [ $AUTOCNF = yes ]
+then
+	# Attitude & rate gains
+	param set MC_ROLL_P 6.50000
+	param set MC_ROLLRATE_P 0.15000
+	param set MC_ROLLRATE_I 0.05000
+	param set MC_ROLLRATE_D 0.00130
+
+	param set MC_PITCH_P 6.50000
+	param set MC_PITCHRATE_P 0.15000
+	param set MC_PITCHRATE_I 0.05000
+	param set MC_PITCHRATE_D 0.00160
+
+	param set MC_YAW_P 2.80000
+	param set MC_YAWRATE_P 0.20000
+	param set MC_YAWRATE_I 0.10000
+	param set MC_YAWRATE_D 0.00000
+	param set MC_YAW_FF 0.00000
+
+	#param set MC_ROLL_TC 0.19
+	#param set MC_PITCH_TC 0.16
+
+	# Manual mode settings: Unleash Draco R's power :)
+	param set MPC_MAN_TILT_MAX 70.00000
+	param set MPC_MANTHR_MAX 0.90000
+	param set MPC_MANTHR_MIN 0.08000
+	param set MPC_MAN_TILT_MAX 35.0000
+	param set MPC_TILTMAX_AIR 45.0000
+	param set MPC_POS_MODE 2
+	param set MPC_AUTO_MODE 1
+	param set MPC_ACC_HOR 8.0000
+
+	param set MC_PITCHRATE_MAX 800.00000
+	param set MC_ROLLRATE_MAX 800.00000
+	param set MC_YAWRATE_MAX 700.00000
+
+	# Disable RC filtering
+	param set RC_FLT_CUTOFF 0.00000
+
+	# Filter settings
+	param set MC_DTERM_CUTOFF 90.00000
+	param set IMU_GYRO_CUTOFF 100.00000
+
+	# Thrust curve (avoids the need for TPA)
+	param set THR_MDL_FAC 0.25
+
+	# System
+	param set PWM_MAX 1950
+	param set PWM_MIN 1100
+	param set PWM_MAIN_DIS5 980
+	param set PWM_MAIN_DIS6 980
+
+	param set SYS_FMU_TASK 1
+	param set SENS_BOARD_ROT 2
+
+	param set COM_ARM_MAG 0.2000
+
+	# Sensors
+	param set SENS_EN_LL40LS 2
+	param set SENS_FLOW_ROT 2
+
+	# Position control
+	param set MPC_Z_P 1.00000
+	param set MPC_Z_VEL_P 0.20000
+	param set MPC_Z_VEL_I 0.02000
+	param set MPC_Z_VEL_D 0.00000
+
+	param set MPC_THR_MIN 0.06000
+	param set MPC_THR_MAX 0.40000
+	param set MPC_THR_HOVER 0.3000
+
+	param set MIS_TAKEOFF_ALT 1.1000
+
+	param set MPC_XY_P 0.9500
+	param set MPC_XY_VEL_P 0.0900
+	param set MPC_XY_VEL_I 0.0200
+	param set MPC_XY_VEL_D 0.0100
+
+	param set MPC_TKO_RAMP_T 0.4000
+	param set MPC_TKO_SPEED 1.5000
+	param set MPC_VEL_MANUAL 10.0000
+
+	# EKF
+	# Set baro first
+	param set EKF2_HGT_MODE 1
+	# Enable optical flow and GPS
+	param set EKF2_AID_MASK 1
+	param set EKF2_RNG_AID 0
+	param set EKF2_MAG_TYPE 1
+	param set EKF2_OF_QMIN 80.0000
+
+	#
+	param set CBRK_IO_SAFETY 22027
+	param set SYS_COMPANION 921600
+	param set COM_DISARM_LAND 3
+
+	#PWM
+	# ONESHOT
+	param set PWM_RATE 0
+
+	# gimbal
+	#param set MNT_DO_STAB 1
+	#param set MNT_MAN_PITCH 1
+	#param set MNT_MAN_ROLL 2
+	#param set MNT_MODE_IN 1
+	param set BAT_SOURCE 0
+	param set BAT_N_CELLS 4
+	param set BAT_V_DIV 10.133
+
+	# TELEM1 ttyS1
+	param set MAV_0_CONFIG 101
+	param set MAV_0_MODE 1	# onboard
+	param set MAV_0_FORWARD 1
+	param set SER_TEL1_BAUD 57600
+
+	# TELEM2 ttyS2
+	param set MAV_1_CONFIG 102
+	param set MAV_1_MODE 2
+	param set MAV_1_RATE 800000
+	param set MAV_1_FORWARD 1
+	param set SER_TEL2_BAUD 921600
+fi
+
+#set PWM_OUT 12345678
+
+#set MIXER_AUX mount_2axes
+#set PWM_AUX_OUT 78
+#set PWM_AUX_RATE 50
+#set OUTPUT_AUX_DEV /dev/pwm_output0
+#set OUTPUT_AUX_TO_MAIN yes
+#set MIXER_APPEND yes
+
+#if mixer append /dev/pwm_output0 /etc/mixers/mount_2axes.aux.mix
+#then
+#	echo "INFO [6002] Mixer append success"
+#else
+#	echo "ERROR [6002] Mixer append failed"
+#fi
+
+#if pwm rate -c 78 -r 50 -d /dev/pwm_output0
+#then
+#	echo "INFO [6002] PWM RATE CHANGE SUCCESS"
+#else
+#	echo "INFO [6002] PWM RATE CHANGE FAILED"
+#fi
+
