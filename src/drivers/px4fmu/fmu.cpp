@@ -384,54 +384,51 @@ PX4FMU::safety_check_button(void)
 	bool safety_button_pressed = false;
 #ifdef GPIO_BTN_SAFETY
 
-	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
+	static int counter = 0;
+	/*
+	 * Debounce the safety button, change state if it has been held for long enough.
+	 *
+	 */
+	safety_button_pressed = px4_arch_gpioread(GPIO_BTN_SAFETY);
 
-		static int counter = 0;
-		/*
-		 * Debounce the safety button, change state if it has been held for long enough.
-		 *
-		 */
-		safety_button_pressed = px4_arch_gpioread(GPIO_BTN_SAFETY);
+	/*
+	 * Keep pressed for a while to arm.
+	 *
+	 * Note that the counting sequence has to be same length
+	 * for arming / disarming in order to end up as proper
+	 * state machine, keep ARM_COUNTER_THRESHOLD the same
+	 * length in all cases of the if/else struct below.
+	 */
+	if (safety_button_pressed && !_safety_btn_off) {
 
-		/*
-		 * Keep pressed for a while to arm.
-		 *
-		 * Note that the counting sequence has to be same length
-		 * for arming / disarming in order to end up as proper
-		 * state machine, keep ARM_COUNTER_THRESHOLD the same
-		 * length in all cases of the if/else struct below.
-		 */
-		if (safety_button_pressed && !_safety_btn_off) {
+		if (counter < CYCLE_COUNT) {
+			counter++;
 
-			if (counter < CYCLE_COUNT) {
-				counter++;
-
-			} else if (counter == CYCLE_COUNT) {
-				if (!_safety_disabled) {
-					/* switch to armed state */
-					_safety_btn_off = true;
-				}
-
-				counter++;
+		} else if (counter == CYCLE_COUNT) {
+			if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO) && !_safety_disabled) {
+				/* switch to armed state */
+				_safety_btn_off = true;
 			}
 
-		} else if (safety_button_pressed && _safety_btn_off) {
-
-			if (counter < CYCLE_COUNT) {
-				counter++;
-
-			} else if (counter == CYCLE_COUNT) {
-				if (!_safety_disabled) {
-					/* change to disarmed state and notify the FMU */
-					_safety_btn_off = false;
-				}
-
-				counter++;
-			}
-
-		} else {
-			counter = 0;
+			counter++;
 		}
+
+	} else if (safety_button_pressed && _safety_btn_off) {
+
+		if (counter < CYCLE_COUNT) {
+			counter++;
+
+		} else if (counter == CYCLE_COUNT) {
+			if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO) && !_safety_disabled) {
+				/* change to disarmed state and notify the FMU */
+				_safety_btn_off = false;
+			}
+
+			counter++;
+		}
+
+	} else {
+		counter = 0;
 	}
 
 #endif
