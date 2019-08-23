@@ -39,14 +39,14 @@
 
 #include "px4io_driver.h"
 
-#include "px4io_serial.h"
+#include <px4io_serial/arch_px4io_serial.h>
 
 static PX4IO_serial *g_interface;
 
 device::Device
 *PX4IO_serial_interface()
 {
-	return new PX4IO_INTERFACE_CLASS();
+	return new ArchPX4IOSerial();
 }
 
 PX4IO_serial::PX4IO_serial() :

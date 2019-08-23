@@ -32,31 +32,17 @@
  ****************************************************************************/
 
 /**
- * @file px4io_driver.h
+ * @file arch_px4io_serial.h
  *
- * Interface for PX4IO
+ * Serial Interface definition for PX4IO
  */
 
 #pragma once
 
-/* XXX trim includes */
-#include <px4_config.h>
-#include <px4_posix.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <assert.h>
-#include <debug.h>
-#include <time.h>
-#include <errno.h>
-#include <string.h>
-#include <stdio.h>
-
-#include <arch/board/board.h>
-#include <perf/perf_counter.h>
-
 #include <board_config.h>
+#include <px4_config.h>
+
+#include <perf/perf_counter.h>
 
 #include <drivers/device/device.h>
 #include <modules/px4iofirmware/protocol.h>
@@ -117,87 +103,17 @@ private:
 	PX4IO_serial &operator = (const PX4IO_serial &);
 };
 
-#if defined(CONFIG_STM32_STM32F10XX) || defined(CONFIG_STM32_STM32F4XXX)
-/** XXX use F4 implementation for F1 as well. **/
-
-#define PX4IO_INTERFACE_CLASS PX4IO_serial_f4
-#define PX4IO_INTERFACE_F4
-
-class PX4IO_serial_f4 : public PX4IO_serial
-{
-public:
-	PX4IO_serial_f4();
-	~PX4IO_serial_f4();
-
-	virtual int	init();
-	virtual int	ioctl(unsigned operation, unsigned &arg);
-
-protected:
-	/**
-	 * Start the transaction with IO and wait for it to complete.
-	 */
-	int		_bus_exchange(IOPacket *_packet);
-
-private:
-	DMA_HANDLE		_tx_dma;
-	DMA_HANDLE		_rx_dma;
-
-	IOPacket *_current_packet;
-
-	/** saved DMA status */
-	static const unsigned	_dma_status_inactive = 0x80000000;	// low bits overlap DMA_STATUS_* values
-	static const unsigned	_dma_status_waiting  = 0x00000000;
-	volatile unsigned	_rx_dma_status;
-
-	/** client-waiting lock/signal */
-	px4_sem_t			_completion_semaphore;
-
-	/**
-	 * DMA completion handler.
-	 */
-	static void		_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg);
-	void			_do_rx_dma_callback(unsigned status);
-
-	/**
-	 * Serial interrupt handler.
-	 */
-	static int		_interrupt(int vector, void *context, void *arg);
-	void			_do_interrupt();
-
-	/**
-	 * Cancel any DMA in progress with an error.
-	 */
-	void			_abort_dma();
-
-	/**
-	 * Performance counters.
-	 */
-	perf_counter_t		_pc_dmasetup;
-	perf_counter_t		_pc_dmaerrs;
-
-	/* do not allow top copying this class */
-	PX4IO_serial_f4(PX4IO_serial_f4 &);
-	PX4IO_serial_f4 &operator = (const PX4IO_serial_f4 &);
-
-	/**
-	 * IO Buffer storage
-	 */
-	static IOPacket		_io_buffer_storage;		// XXX static to ensure DMA-able memory
-};
-
-#elif defined(CONFIG_ARCH_CHIP_STM32F7)
-
-#define PX4IO_INTERFACE_CLASS PX4IO_serial_f7
-#define PX4IO_INTERFACE_F7
 
 #include <stm32_dma.h>
 
 
-class PX4IO_serial_f7 : public PX4IO_serial
+class ArchPX4IOSerial : public PX4IO_serial
 {
 public:
-	PX4IO_serial_f7();
-	~PX4IO_serial_f7();
+	ArchPX4IOSerial();
+	ArchPX4IOSerial(ArchPX4IOSerial &) = delete;
+	ArchPX4IOSerial &operator = (const ArchPX4IOSerial &) = delete;
+	~ArchPX4IOSerial();
 
 	virtual int	init();
 	virtual int	ioctl(unsigned operation, unsigned &arg);
@@ -245,16 +161,9 @@ private:
 	perf_counter_t		_pc_dmasetup;
 	perf_counter_t		_pc_dmaerrs;
 
-	/* do not allow top copying this class */
-	PX4IO_serial_f7(PX4IO_serial_f7 &);
-	PX4IO_serial_f7 &operator = (const PX4IO_serial_f7 &);
-
 	/**
 	 * IO Buffer storage
 	 */
-	static uint8_t _io_buffer_storage[] __attribute__((aligned(ARMV7M_DCACHE_LINESIZE)));
+	static uint8_t _io_buffer_storage[] __attribute__((aligned(PX4IO_SERIAL_BUF_ALIGN)));
 };
 
-#else
-#error "Interface not implemented for this chip"
-#endif

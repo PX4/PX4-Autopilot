@@ -47,6 +47,8 @@ include(px4_base)
 #			[ LABEL <string> ]
 #			[ TOOLCHAIN <string> ]
 #			[ ARCHITECTURE <string> ]
+#			[ CHIP_MANUFACTURER <string> ]
+#			[ CHIP <string> ]
 #			[ ROMFSROOT <string> ]
 #			[ IO <string> ]
 #			[ BOOTLOADER <string> ]
@@ -68,6 +70,7 @@ include(px4_base)
 #		LABEL			: optional label, set to default if not specified
 #		TOOLCHAIN		: cmake toolchain
 #		ARCHITECTURE		: name of the CPU CMake is building for (used by the toolchain)
+# TODO
 #		ROMFSROOT		: relative path to the ROMFS root directory (currently NuttX only)
 #		IO			: name of IO board to be built and included in the ROMFS (requires a valid ROMFSROOT)
 #		BOOTLOADER		: bootloader file to include for flashing via bl_update (currently NuttX only)
@@ -138,6 +141,8 @@ function(px4_add_board)
 			LABEL
 			TOOLCHAIN
 			ARCHITECTURE
+			CHIP_MANUFACTURER
+			CHIP
 			ROMFSROOT
 			IO
 			BOOTLOADER
@@ -163,6 +168,13 @@ function(px4_add_board)
 
 	set(PX4_BOARD ${VENDOR}_${MODEL} CACHE STRING "PX4 board" FORCE)
 
+	if (CHIP)
+		set(PX4_CHIP ${CHIP} CACHE STRING "PX4 Chip" FORCE)
+	endif()
+	if (CHIP_MANUFACTURER)
+		set(PX4_CHIP_MANUFACTURER ${CHIP_MANUFACTURER} CACHE STRING "PX4 Chip Manufacturer" FORCE)
+	endif()
+
 	# board name is uppercase with no underscores when used as a define
 	string(TOUPPER ${PX4_BOARD} PX4_BOARD_NAME)
 	string(REPLACE "-" "_" PX4_BOARD_NAME ${PX4_BOARD_NAME})
@@ -182,6 +194,9 @@ function(px4_add_board)
 	# set OS, and append specific platform module path
 	set(PX4_PLATFORM ${PLATFORM} CACHE STRING "PX4 board OS" FORCE)
 	list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake)
+
+	# architecture-specific include path
+	include_directories(${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/${PX4_CHIP_MANUFACTURER}/${PX4_CHIP})
 
 	if(ARCHITECTURE)
 		set(CMAKE_SYSTEM_PROCESSOR ${ARCHITECTURE} CACHE INTERNAL "system processor" FORCE)

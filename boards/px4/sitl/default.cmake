@@ -3,6 +3,8 @@ px4_add_board(
 	PLATFORM posix
 	VENDOR px4
 	MODEL sitl
+	CHIP_MANUFACTURER px4
+	CHIP sitl
 	LABEL default
 	TESTING
 
@@ -17,7 +19,6 @@ px4_add_board(
 		#magnetometer # all available magnetometer drivers
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
-		sim/tone_alarm
 		tone_alarm
 		#uavcan
 

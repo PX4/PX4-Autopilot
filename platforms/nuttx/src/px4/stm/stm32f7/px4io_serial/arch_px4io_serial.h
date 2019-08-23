@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,12 +30,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 #pragma once
 
-/*
- * This file is a shim to bridge to the many SoC architecture supported by PX4
- */
-
-// include arch-specific header
-#include <px4_arch_micro_hal.h>
+#define PX4IO_SERIAL_BUF_ALIGN ARMV7M_DCACHE_LINESIZE
+#include "../stm32_common/px4io_serial/arch_px4io_serial.h"
 

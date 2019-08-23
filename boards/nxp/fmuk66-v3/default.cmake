@@ -5,6 +5,8 @@ px4_add_board(
 	MODEL fmuk66-v3
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	CHIP_MANUFACTURER nxp
+	CHIP kinetis
 	ROMFSROOT px4fmu_common
 	TESTING
 	UAVCAN_INTERFACES 2
@@ -32,7 +34,6 @@ px4_add_board(
 		irlock
 		kinetis
 		kinetis/adc
-		kinetis/tone_alarm
 		lights/blinkm
 		lights/oreoled
 		lights/rgbled

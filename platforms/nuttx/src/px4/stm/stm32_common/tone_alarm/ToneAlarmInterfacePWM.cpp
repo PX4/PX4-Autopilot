@@ -219,7 +219,10 @@
 # define rSR            REG(STM32_GTIM_SR_OFFSET)
 #endif
 
-void ToneAlarmInterface::init()
+namespace ToneAlarmInterface
+{
+
+void init()
 {
 #ifdef GPIO_TONE_ALARM_NEG
 	px4_arch_configgpio(GPIO_TONE_ALARM_NEG);
@@ -251,7 +254,7 @@ void ToneAlarmInterface::init()
 	rCR1 = GTIM_CR1_CEN;	// Ensure the timer is running.
 }
 
-void ToneAlarmInterface::start_note(unsigned frequency)
+void start_note(unsigned frequency)
 {
 	// Calculate the signal switching period.
 	// (Signal switching period is one half of the frequency period).
@@ -276,7 +279,7 @@ void ToneAlarmInterface::start_note(unsigned frequency)
 	px4_arch_configgpio(GPIO_TONE_ALARM);
 }
 
-void ToneAlarmInterface::stop_note()
+void stop_note()
 {
 	// Stop the current note.
 	rCCER &= ~TONE_CCER;
@@ -284,3 +287,5 @@ void ToneAlarmInterface::stop_note()
 	// Ensure the GPIO is not driving the speaker.
 	px4_arch_configgpio(GPIO_TONE_ALARM_IDLE);
 }
+
+} /* namespace ToneAlarmInterface */

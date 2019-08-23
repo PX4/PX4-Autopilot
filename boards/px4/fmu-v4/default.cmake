@@ -6,6 +6,8 @@ px4_add_board(
 	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
+	CHIP_MANUFACTURER stm
+	CHIP stm32f4
 	ROMFSROOT px4fmu_common
 	TESTING
 	UAVCAN_INTERFACES 1
@@ -40,7 +42,6 @@ px4_add_board(
 		rc_input
 		stm32
 		stm32/adc
-		stm32/tone_alarm
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm

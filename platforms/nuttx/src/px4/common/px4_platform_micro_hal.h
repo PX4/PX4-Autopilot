@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,10 +32,25 @@
  ****************************************************************************/
 #pragma once
 
-/*
- * This file is a shim to bridge to the many SoC architecture supported by PX4
+
+__BEGIN_DECLS
+#include <nuttx/spi/spi.h>
+#include <nuttx/i2c/i2c_master.h>
+
+/* For historical reasons (NuttX STM32 numbering) PX4 bus numbering is 1 based
+ * All PX4 code, including, board code is written to assuming 1 based numbering.
+ * The following macros are used to allow the board config to define the bus
+ * numbers in terms of the NuttX driver numbering. 1,2,3 for one based numbering
+ * schemes or 0,1,2 for zero based schemes.
  */
 
-// include arch-specific header
-#include <px4_arch_micro_hal.h>
+#define PX4_BUS_NUMBER_TO_PX4(x)        ((x)+PX4_BUS_OFFSET)  /* Use to define Zero based to match Nuttx Driver but provide 1 based to PX4 */
+#define PX4_BUS_NUMBER_FROM_PX4(x)      ((x)-PX4_BUS_OFFSET)  /* Use to map PX4 1 based to NuttX driver 0 based */
+
+#define px4_enter_critical_section()       enter_critical_section()
+#define px4_leave_critical_section(flags)  leave_critical_section(flags)
+
+#include <arch/board/board.h>
+
+__END_DECLS
 

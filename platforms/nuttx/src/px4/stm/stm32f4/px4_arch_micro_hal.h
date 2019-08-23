@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,24 +30,22 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#pragma once
 
-#include <lib/drivers/tone_alarm/ToneAlarmInterface.h>
-#include <px4_defines.h>
-#include <board_config.h>
 
-void ToneAlarmInterface::init()
-{
-	// Configure the GPIO to the idle state.
-	px4_arch_configgpio(GPIO_TONE_ALARM_IDLE);
-}
+#include "../stm32_common/px4_arch_micro_hal.h"
 
-void ToneAlarmInterface::start_note(unsigned frequency)
-{
-	px4_arch_gpiowrite(GPIO_TONE_ALARM_GPIO, 1);
-}
+__BEGIN_DECLS
 
-void ToneAlarmInterface::stop_note()
-{
-	// Stop the current note.
-	px4_arch_gpiowrite(GPIO_TONE_ALARM_GPIO, 0);
-}
+#include <stm32.h>
+#define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32F4
+#define PX4_FLASH_BASE  STM32_FLASH_BASE
+#if defined(CONFIG_STM32_STM32F4XXX)
+# include <stm32_bbsram.h>
+# define PX4_BBSRAM_SIZE STM32_BBSRAM_SIZE
+# define PX4_BBSRAM_GETDESC_IOCTL STM32_BBSRAM_GETDESC_IOCTL
+#endif
+#define PX4_NUMBER_I2C_BUSES STM32_NI2C
+
+__END_DECLS
+

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,12 +30,29 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#pragma once
 
-/*
- * This file is a shim to bridge to the many SoC architecture supported by PX4
- */
+#include <lib/drivers/tone_alarm/ToneAlarmInterface.h>
+#include <px4_defines.h>
+#include <board_config.h>
 
-// include arch-specific header
-#include <px4_arch_micro_hal.h>
+namespace ToneAlarmInterface
+{
 
+void init()
+{
+	// Configure the GPIO to the idle state.
+	px4_arch_configgpio(GPIO_TONE_ALARM_IDLE);
+}
+
+void start_note(unsigned frequency)
+{
+	px4_arch_gpiowrite(GPIO_TONE_ALARM_GPIO, 1);
+}
+
+void stop_note()
+{
+	// Stop the current note.
+	px4_arch_gpiowrite(GPIO_TONE_ALARM_GPIO, 0);
+}
+
+} /* namespace ToneAlarmInterface */

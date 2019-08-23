@@ -32,28 +32,35 @@
  ****************************************************************************/
 
 /**
- * @file px4io_serial_f4.cpp
+ * @file px4io_serial.cpp
  *
- * Serial interface for PX4IO on STM32F4
+ * Serial interface for PX4IO on STM32F7
  */
 
-#include "px4io_serial.h"
+#include "arch_px4io_serial.h"
 
-#ifdef PX4IO_INTERFACE_F4
+#include "stm32_uart.h"
+#include <nuttx/cache.h>
 
 /* serial register accessors */
-#define REG(_x)		(*(volatile uint32_t *)(PX4IO_SERIAL_BASE + _x))
-#define rSR		REG(STM32_USART_SR_OFFSET)
-#define rDR		REG(STM32_USART_DR_OFFSET)
+#define REG(_x)		(*(volatile uint32_t *)(PX4IO_SERIAL_BASE + (_x)))
+#define rISR		REG(STM32_USART_ISR_OFFSET)
+#define rISR_ERR_FLAGS_MASK (0x1f)
+#define rICR		REG(STM32_USART_ICR_OFFSET)
+#define rRDR		REG(STM32_USART_RDR_OFFSET)
+#define rTDR		REG(STM32_USART_TDR_OFFSET)
 #define rBRR		REG(STM32_USART_BRR_OFFSET)
 #define rCR1		REG(STM32_USART_CR1_OFFSET)
 #define rCR2		REG(STM32_USART_CR2_OFFSET)
 #define rCR3		REG(STM32_USART_CR3_OFFSET)
 #define rGTPR		REG(STM32_USART_GTPR_OFFSET)
 
-IOPacket PX4IO_serial_f4::_io_buffer_storage;
+#define DMA_BUFFER_MASK    (ARMV7M_DCACHE_LINESIZE - 1)
+#define DMA_ALIGN_UP(n)    (((n) + DMA_BUFFER_MASK) & ~DMA_BUFFER_MASK)
 
-PX4IO_serial_f4::PX4IO_serial_f4() :
+uint8_t ArchPX4IOSerial::_io_buffer_storage[DMA_ALIGN_UP(sizeof(IOPacket))];
+
+ArchPX4IOSerial::ArchPX4IOSerial() :
 	_tx_dma(nullptr),
 	_rx_dma(nullptr),
 	_current_packet(nullptr),
@@ -69,7 +76,7 @@ PX4IO_serial_f4::PX4IO_serial_f4() :
 {
 }
 
-PX4IO_serial_f4::~PX4IO_serial_f4()
+ArchPX4IOSerial::~ArchPX4IOSerial()
 {
 	if (_tx_dma != nullptr) {
 		stm32_dmastop(_tx_dma);
@@ -105,12 +112,12 @@ PX4IO_serial_f4::~PX4IO_serial_f4()
 }
 
 int
-PX4IO_serial_f4::init()
+ArchPX4IOSerial::init()
 {
 	/* initialize base implementation */
-	int r;
+	int r = PX4IO_serial::init((IOPacket *)&_io_buffer_storage[0]);
 
-	if ((r = PX4IO_serial::init(&_io_buffer_storage)) != 0) {
+	if (r != 0) {
 		return r;
 	}
 
@@ -134,16 +141,16 @@ PX4IO_serial_f4::init()
 	rCR2 = 0;
 	rCR3 = 0;
 
-	/* eat any existing interrupt status */
-	(void)rSR;
-	(void)rDR;
+	/* clear data that may be in the RDR and clear overrun error: */
+	if (rISR & USART_ISR_RXNE) {
+		(void)rRDR;
+	}
 
+	rICR = rISR & rISR_ERR_FLAGS_MASK;	/* clear the flags */
 
 	/* configure line speed */
-	uint32_t usartdiv32 = PX4IO_SERIAL_CLOCK / (PX4IO_SERIAL_BITRATE / 2);
-	uint32_t mantissa = usartdiv32 >> 5;
-	uint32_t fraction = (usartdiv32 - (mantissa << 5) + 1) >> 1;
-	rBRR = (mantissa << USART_BRR_MANT_SHIFT) | (fraction << USART_BRR_FRAC_SHIFT);
+	uint32_t usartdiv32 = (PX4IO_SERIAL_CLOCK + (PX4IO_SERIAL_BITRATE) / 2) / (PX4IO_SERIAL_BITRATE);
+	rBRR = usartdiv32;
 
 	/* attach serial interrupt handler */
 	irq_attach(PX4IO_SERIAL_VECTOR, _interrupt, this);
@@ -151,8 +158,10 @@ PX4IO_serial_f4::init()
 
 	/* enable UART in DMA mode, enable error and line idle interrupts */
 	rCR3 = USART_CR3_EIE;
+	/* TODO: maybe use DDRE */
 
 	rCR1 = USART_CR1_RE | USART_CR1_TE | USART_CR1_UE | USART_CR1_IDLEIE;
+	/* TODO: maybe we need to adhere to the procedure as described in the reference manual page 1251 (34.5.2) */
 
 	/* create semaphores */
 	px4_sem_init(&_completion_semaphore, 0, 0);
@@ -167,7 +176,7 @@ PX4IO_serial_f4::init()
 }
 
 int
-PX4IO_serial_f4::ioctl(unsigned operation, unsigned &arg)
+ArchPX4IOSerial::ioctl(unsigned operation, unsigned &arg)
 {
 	switch (operation) {
 
@@ -182,10 +191,10 @@ PX4IO_serial_f4::ioctl(unsigned operation, unsigned &arg)
 			rCR3 &= ~(USART_CR3_DMAR | USART_CR3_DMAT);
 
 			for (;;) {
-				while (!(rSR & USART_SR_TXE))
+				while (!(rISR & USART_ISR_TXE))
 					;
 
-				rDR = 0x55;
+				rTDR = 0x55;
 			}
 
 			return 0;
@@ -232,13 +241,16 @@ PX4IO_serial_f4::ioctl(unsigned operation, unsigned &arg)
 }
 
 int
-PX4IO_serial_f4::_bus_exchange(IOPacket *_packet)
+ArchPX4IOSerial::_bus_exchange(IOPacket *_packet)
 {
 	_current_packet = _packet;
 
-	/* clear any lingering error status */
-	(void)rSR;
-	(void)rDR;
+	/* clear data that may be in the RDR and clear overrun error: */
+	if (rISR & USART_ISR_RXNE) {
+		(void)rRDR;
+	}
+
+	rICR = rISR & rISR_ERR_FLAGS_MASK;	/* clear the flags */
 
 	/* start RX DMA */
 	perf_begin(_pc_txns);
@@ -258,7 +270,7 @@ PX4IO_serial_f4::_bus_exchange(IOPacket *_packet)
 	 */
 	stm32_dmasetup(
 		_rx_dma,
-		PX4IO_SERIAL_BASE + STM32_USART_DR_OFFSET,
+		PX4IO_SERIAL_BASE + STM32_USART_RDR_OFFSET,
 		reinterpret_cast<uint32_t>(_current_packet),
 		sizeof(*_current_packet),
 		DMA_SCR_CIRC		|	/* XXX see note above */
@@ -268,14 +280,18 @@ PX4IO_serial_f4::_bus_exchange(IOPacket *_packet)
 		DMA_SCR_MSIZE_8BITS	|
 		DMA_SCR_PBURST_SINGLE	|
 		DMA_SCR_MBURST_SINGLE);
-	stm32_dmastart(_rx_dma, _dma_callback, this, false);
 	rCR3 |= USART_CR3_DMAR;
+	stm32_dmastart(_rx_dma, _dma_callback, this, false);
+
+	/* Clean _current_packet, so DMA can see the data */
+	up_clean_dcache((uintptr_t)_current_packet,
+			(uintptr_t)_current_packet + DMA_ALIGN_UP(sizeof(IOPacket)));
 
 	/* start TX DMA - no callback if we also expect a reply */
 	/* DMA setup time ~3µs */
 	stm32_dmasetup(
 		_tx_dma,
-		PX4IO_SERIAL_BASE + STM32_USART_DR_OFFSET,
+		PX4IO_SERIAL_BASE + STM32_USART_TDR_OFFSET,
 		reinterpret_cast<uint32_t>(_current_packet),
 		PKT_SIZE(*_current_packet),
 		DMA_SCR_DIR_M2P		|
@@ -284,10 +300,10 @@ PX4IO_serial_f4::_bus_exchange(IOPacket *_packet)
 		DMA_SCR_MSIZE_8BITS	|
 		DMA_SCR_PBURST_SINGLE	|
 		DMA_SCR_MBURST_SINGLE);
+	rCR3 |= USART_CR3_DMAT;
 	stm32_dmastart(_tx_dma, nullptr, nullptr, false);
 	//rCR1 &= ~USART_CR1_TE;
 	//rCR1 |= USART_CR1_TE;
-	rCR3 |= USART_CR3_DMAT;
 
 	perf_end(_pc_dmasetup);
 
@@ -351,26 +367,27 @@ PX4IO_serial_f4::_bus_exchange(IOPacket *_packet)
 }
 
 void
-PX4IO_serial_f4::_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
+ArchPX4IOSerial::_dma_callback(DMA_HANDLE handle, uint8_t status, void *arg)
 {
 	if (arg != nullptr) {
-		PX4IO_serial_f4 *ps = reinterpret_cast<PX4IO_serial_f4 *>(arg);
+		ArchPX4IOSerial *ps = reinterpret_cast<ArchPX4IOSerial *>(arg);
 
 		ps->_do_rx_dma_callback(status);
 	}
 }
 
 void
-PX4IO_serial_f4::_do_rx_dma_callback(unsigned status)
+ArchPX4IOSerial::_do_rx_dma_callback(unsigned status)
 {
 	/* on completion of a reply, wake the waiter */
 	if (_rx_dma_status == _dma_status_waiting) {
 
 		/* check for packet overrun - this will occur after DMA completes */
-		uint32_t sr = rSR;
+		uint32_t sr = rISR;
 
-		if (sr & (USART_SR_ORE | USART_SR_RXNE)) {
-			(void)rDR;
+		if (sr & (USART_ISR_ORE | USART_ISR_RXNE)) {
+			(void)rRDR;
+			rICR = sr & (USART_ISR_ORE | USART_ISR_RXNE);
 			status = DMA_STATUS_TEIF;
 		}
 
@@ -386,10 +403,10 @@ PX4IO_serial_f4::_do_rx_dma_callback(unsigned status)
 }
 
 int
-PX4IO_serial_f4::_interrupt(int irq, void *context, void *arg)
+ArchPX4IOSerial::_interrupt(int irq, void *context, void *arg)
 {
 	if (arg != nullptr) {
-		PX4IO_serial_f4 *instance = reinterpret_cast<PX4IO_serial_f4 *>(arg);
+		ArchPX4IOSerial *instance = reinterpret_cast<ArchPX4IOSerial *>(arg);
 
 		instance->_do_interrupt();
 	}
@@ -398,14 +415,19 @@ PX4IO_serial_f4::_interrupt(int irq, void *context, void *arg)
 }
 
 void
-PX4IO_serial_f4::_do_interrupt()
+ArchPX4IOSerial::_do_interrupt()
 {
-	uint32_t sr = rSR;	/* get UART status register */
-	(void)rDR;		/* read DR to clear status */
+	uint32_t sr = rISR;	/* get UART status register */
 
-	if (sr & (USART_SR_ORE |	/* overrun error - packet was too big for DMA or DMA was too slow */
-		  USART_SR_NE |		/* noise error - we have lost a byte due to noise */
-		  USART_SR_FE)) {		/* framing error - start/stop bit lost or line break */
+	if (sr & USART_ISR_RXNE) {
+		(void)rRDR;	/* read DR to clear RXNE */
+	}
+
+	rICR = sr & rISR_ERR_FLAGS_MASK;	/* clear flags */
+
+	if (sr & (USART_ISR_ORE |		/* overrun error - packet was too big for DMA or DMA was too slow */
+		  USART_ISR_NF |		/* noise error - we have lost a byte due to noise */
+		  USART_ISR_FE)) {		/* framing error - start/stop bit lost or line break */
 
 		/*
 		 * If we are in the process of listening for something, these are all fatal;
@@ -427,10 +449,13 @@ PX4IO_serial_f4::_do_interrupt()
 		return;
 	}
 
-	if (sr & USART_SR_IDLE) {
+	if (sr & USART_ISR_IDLE) {
 
 		/* if there is DMA reception going on, this is a short packet */
 		if (_rx_dma_status == _dma_status_waiting) {
+			/* Invalidate _current_packet, so we get fresh data from RAM */
+			up_invalidate_dcache((uintptr_t)_current_packet,
+					     (uintptr_t)_current_packet + DMA_ALIGN_UP(sizeof(IOPacket)));
 
 			/* verify that the received packet is complete */
 			size_t length = sizeof(*_current_packet) - stm32_dmaresidual(_rx_dma);
@@ -458,17 +483,20 @@ PX4IO_serial_f4::_do_interrupt()
 }
 
 void
-PX4IO_serial_f4::_abort_dma()
+ArchPX4IOSerial::_abort_dma()
 {
-	/* disable UART DMA */
-	rCR3 &= ~(USART_CR3_DMAT | USART_CR3_DMAR);
-	(void)rSR;
-	(void)rDR;
-	(void)rDR;
-
 	/* stop DMA */
 	stm32_dmastop(_tx_dma);
 	stm32_dmastop(_rx_dma);
+
+	/* disable UART DMA */
+	rCR3 &= ~(USART_CR3_DMAT | USART_CR3_DMAR);
+
+	/* clear data that may be in the RDR and clear overrun error: */
+	if (rISR & USART_ISR_RXNE) {
+		(void)rRDR;
+	}
+
+	rICR = rISR & rISR_ERR_FLAGS_MASK;	/* clear the flags */
 }
 
-#endif /* PX4IO_INTERFACE_F4 */

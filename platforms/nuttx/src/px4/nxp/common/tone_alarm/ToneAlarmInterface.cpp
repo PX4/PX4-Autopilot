@@ -115,7 +115,9 @@
 # define rCNSC          CAT3(rC, TONE_ALARM_CHANNEL, SC)           /* Channel Status and Control Register used by Tone alarm */
 # define STATUS         CAT3(TPM_STATUS_CH, TONE_ALARM_CHANNEL, F) /* Capture and Compare Status Register used by Tone alarm */
 
-void ToneAlarmInterface::init()
+namespace ToneAlarmInterface
+{
+void init()
 {
 #ifdef GPIO_TONE_ALARM_NEG
 	px4_arch_configgpio(GPIO_TONE_ALARM_NEG);
@@ -157,7 +159,7 @@ void ToneAlarmInterface::init()
 	rMOD      = 0;  // Default the timer to a modulo value of 1; playing notes will change this.
 }
 
-void ToneAlarmInterface::start_note(unsigned frequency)
+void start_note(unsigned frequency)
 {
 	// Calculate the signal switching period.
 	// (Signal switching period is one half of the frequency period).
@@ -174,7 +176,7 @@ void ToneAlarmInterface::start_note(unsigned frequency)
 	px4_arch_configgpio(GPIO_TONE_ALARM);
 }
 
-void ToneAlarmInterface::stop_note()
+void stop_note()
 {
 	// Stop the current note.
 	rSC &= ~TPM_SC_CMOD_MASK;
@@ -182,3 +184,5 @@ void ToneAlarmInterface::stop_note()
 	// Ensure the GPIO is not driving the speaker.
 	px4_arch_configgpio(GPIO_TONE_ALARM_IDLE);
 }
+
+} /* namespace ToneAlarmInterface */

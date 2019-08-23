@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,10 +32,24 @@
  ****************************************************************************/
 #pragma once
 
-/*
- * This file is a shim to bridge to the many SoC architecture supported by PX4
- */
 
-// include arch-specific header
-#include <px4_arch_micro_hal.h>
+#include "../stm32_common/px4_arch_micro_hal.h"
+
+__BEGIN_DECLS
+
+#define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32F7
+#include <chip.h>
+#include <chip/stm32_flash.h>
+#include <up_internal.h> //include up_systemreset() which is included on stm32.h
+#include <stm32_bbsram.h>
+#define PX4_BBSRAM_SIZE STM32F7_BBSRAM_SIZE
+#define PX4_BBSRAM_GETDESC_IOCTL STM32F7_BBSRAM_GETDESC_IOCTL
+#define PX4_FLASH_BASE  0x08000000
+#define PX4_NUMBER_I2C_BUSES STM32F7_NI2C
+
+void stm32_flash_lock(void);
+void stm32_flash_unlock(void);
+int stm32_flash_writeprotect(size_t page, bool enabled);
+
+__END_DECLS
 
