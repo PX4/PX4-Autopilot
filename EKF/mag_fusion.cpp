@@ -537,7 +537,7 @@ void Ekf::fuseHeading()
 		H_YAW[2] = t8*t14*(-q1*t3+q1*t4+q1*t5+q1*t6-q0*q2*q3*2.0f)*2.0f;
 		H_YAW[3] = t8*t14*(q0*t3-q0*t4+q0*t5+q0*t6-q1*q2*q3*2.0f)*2.0f;
 
-		/* Calculate the 312 sequence euler angles that rotate from earth to body frame
+		/* Calculate the 312 sequence euler angles that rotate from body to earth frame
 		 * Derived from https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw312.m
 		 * Body to nav frame transformation using a yaw-roll-pitch rotation sequence is given by:
 		 *
