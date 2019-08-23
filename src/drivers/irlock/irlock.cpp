@@ -40,22 +40,12 @@
  * Created on: Nov 12, 2014
  **/
 
-#include <fcntl.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 
-#include <board_config.h>
 #include <drivers/device/i2c.h>
 #include <drivers/device/ringbuffer.h>
-#include <drivers/drv_hrt.h>
 
 #include <px4_getopt.h>
-
-#include <nuttx/clock.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
 

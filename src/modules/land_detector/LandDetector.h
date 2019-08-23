@@ -143,7 +143,7 @@ protected:
 	static constexpr uint32_t LAND_DETECTOR_UPDATE_INTERVAL = 20_ms;
 
 	orb_advert_t _land_detected_pub{nullptr};
-	vehicle_land_detected_s _landDetected{};
+	vehicle_land_detected_s _land_detected{};
 
 	LandDetectionState _state{LandDetectionState::LANDED};
 
@@ -153,7 +153,7 @@ protected:
 	systemlib::Hysteresis _ground_contact_hysteresis{true};
 	systemlib::Hysteresis _ground_effect_hysteresis{false};
 
-	actuator_armed_s _arming {};
+	actuator_armed_s _actuator_armed {};
 
 private:
 
@@ -176,7 +176,8 @@ private:
 	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _param_update_sub{ORB_ID(parameter_update)};
 
-	DEFINE_PARAMETERS(
+	DEFINE_PARAMETERS_CUSTOM_PARENT(
+		ModuleParams,
 		(ParamInt<px4::params::LND_FLIGHT_T_HI>) _param_total_flight_time_high,
 		(ParamInt<px4::params::LND_FLIGHT_T_LO>) _param_total_flight_time_low
 	);

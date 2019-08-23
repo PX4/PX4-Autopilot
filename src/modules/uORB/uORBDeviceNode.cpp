@@ -33,7 +33,6 @@
 
 #include "uORBDeviceNode.hpp"
 
-#include "uORBDeviceNode.hpp"
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
 
@@ -70,6 +69,8 @@ uORB::DeviceNode::~DeviceNode()
 	if (_data != nullptr) {
 		delete[] _data;
 	}
+
+	CDev::unregister_driver_and_memory();
 }
 
 int
@@ -214,18 +215,6 @@ uORB::DeviceNode::copy_and_get_timestamp(void *dst, unsigned &generation)
 
 	const hrt_abstime update_time = _last_update;
 	copy_locked(dst, generation);
-
-	ATOMIC_LEAVE;
-
-	return update_time;
-}
-
-hrt_abstime
-uORB::DeviceNode::last_update()
-{
-	ATOMIC_ENTER;
-
-	const hrt_abstime update_time = _last_update;
 
 	ATOMIC_LEAVE;
 

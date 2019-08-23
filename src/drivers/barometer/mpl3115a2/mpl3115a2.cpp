@@ -37,43 +37,7 @@
  * Driver for the MPL3115A2 barometric pressure sensor connected via I2C.
  */
 
-#include <lib/cdev/CDev.hpp>
-#include <drivers/device/Device.hpp>
-#include <px4_config.h>
-#include <px4_log.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-#include <px4_getopt.h>
-
-#include <nuttx/arch.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-#include <nuttx/clock.h>
-
-#include <arch/board/board.h>
-#include <board_config.h>
-
-#include <drivers/device/device.h>
-#include <drivers/drv_baro.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/device/ringbuffer.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-
 #include "mpl3115a2.h"
-
-
 
 enum MPL3115A2_BUS {
 	MPL3115A2_BUS_ALL = 0,

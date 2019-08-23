@@ -129,13 +129,13 @@
 #define USER_DATA18     0x0     //reg addr      0x11
 #define USER_DATA19     0x0     //reg addr      0x12
 #define USER_DATA20     0x0     //reg addr      0x13
-#define TVGAIN0 0x9D            //reg addr      0x14
-#define TVGAIN1 0xBD            //reg addr      0x15
-#define TVGAIN2 0xEF            //reg addr      0x16
-#define TVGAIN3 0x31            //reg addr      0x17
-#define TVGAIN4 0x48            //reg addr      0x18
-#define TVGAIN5 0x67            //reg addr      0x19
-#define TVGAIN6 0xAC            //reg addr      0x1A
+#define TVGAIN0         0x9D    //reg addr      0x14
+#define TVGAIN1         0xBD    //reg addr      0x15
+#define TVGAIN2         0xEF    //reg addr      0x16
+#define TVGAIN3         0x31    //reg addr      0x17
+#define TVGAIN4         0x48    //reg addr      0x18
+#define TVGAIN5         0x67    //reg addr      0x19
+#define TVGAIN6         0xAC    //reg addr      0x1A
 #define INIT_GAIN       0x40    //reg addr      0x1B
 #define FREQUENCY   (uint8_t)(5*(_resonant_frequency - 30.0f))       //reg addr      0x1C
 #define DEADTIME        0xF0    //reg addr      0x1D
@@ -152,7 +152,7 @@
 #define TEMP_TRIM       0x0     //reg addr      0x28
 #define P1_GAIN_CTRL    0x0     //reg addr      0x29
 #define P2_GAIN_CTRL    0x8     //reg addr      0x2A
-#define EE_CRC  0x29            //reg addr      0x2B
+#define EE_CRC          0x29    //reg addr      0x2B
 
 // Register-based -- volatile
 #define EE_CNTRL        0x0     //reg addr      0x40
@@ -385,28 +385,28 @@ private:
 	void uORB_publish_results(const float dist);
 
 	/** @orb_advert_t orb_advert_t uORB advertisement topic. */
-	orb_advert_t _distance_sensor_topic = nullptr;
+	orb_advert_t _distance_sensor_topic{nullptr};
 
 	/** @param _fd Returns the file descriptor from px4_open(). */
-	int _fd = -1;
+	int _fd{-1};
 
 	/** @param _port Stores the port name. */
-	char _port[20];
+	char _port[20] {};
 
 	/** @param _previous_report_distance The previous reported sensor distance. */
-	float _previous_report_distance = 0;
+	float _previous_report_distance{0};
 
 	/** @param _previous_valid_report_distance The previous valid reported sensor distance. */
-	float _previous_valid_report_distance = 0;
+	float _previous_valid_report_distance{0};
 
 	/** @param _resonant_frequency The sensor resonant (transmit) frequency. */
-	float _resonant_frequency = 41.0f;
+	float _resonant_frequency{41.0f};
 
 	/** @param _mode_long_range Flag for long range mode. If false, sensor is in short range mode. */
-	uint8_t _ranging_mode = MODE_SHORT_RANGE;
+	uint8_t _ranging_mode{MODE_SHORT_RANGE};
 
 	/** @param _start_loop The starting value for the loop time of the main loop. */
-	uint64_t _start_loop = 0;
+	uint64_t _start_loop{0};
 };
 
 #endif

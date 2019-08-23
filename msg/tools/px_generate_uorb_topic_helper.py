@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #############################################################################
 #
-#   Copyright (C) 2013-2018 PX4 Pro Development Team. All rights reserved.
+#   Copyright (C) 2013-2019 PX4 Pro Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -303,6 +303,8 @@ def print_field(field):
         print("char device_id_buffer[80];")
         print("device::Device::device_id_print_buffer(device_id_buffer, sizeof(device_id_buffer), message.device_id);")
         print("PX4_INFO_RAW(\"\\tdevice_id: %d (%s) \\n\", message.device_id, device_id_buffer);")
+    elif is_array and 'char' in field.type:
+        print("PX4_INFO_RAW(\"\\t" + field.name + ": \\\"%." + str(array_length) + "s\\\" \\n\", message." + field.name + ");")
     else:
         print("PX4_INFO_RAW(\"\\t" + field.name + ": " +
               c_type + "\\n\", " + field_name + ");")

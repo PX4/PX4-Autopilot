@@ -31,7 +31,12 @@
 #
 ############################################################################
 
-px4_add_library(drivers_board
+add_library(drivers_board
 	init.c
 	timer_config.c
+)
+
+target_link_libraries(drivers_board
+	PRIVATE
+		nuttx_arch
 )

@@ -49,7 +49,7 @@
 
 struct Params {
 	int32_t idle_pwm_mc;			// pwm value for idle in mc mode
-	int32_t vtol_motor_count;		// number of motors
+	int32_t vtol_motor_id;
 	int32_t vtol_type;
 	bool elevons_mc_lock;		// lock elevons in multicopter mode
 	float fw_min_alt;			// minimum relative altitude for FW mode (QuadChute)
@@ -173,6 +173,8 @@ protected:
 	VtolAttitudeControl *_attc;
 	mode _vtol_mode;
 
+	static constexpr const int num_outputs_max = 8;
+
 	struct vehicle_attitude_s		*_v_att;				//vehicle attitude
 	struct vehicle_attitude_setpoint_s	*_v_att_sp;			//vehicle attitude setpoint
 	struct vehicle_attitude_setpoint_s *_mc_virtual_att_sp;	// virtual mc attitude setpoint
@@ -266,13 +268,14 @@ private:
 	bool apply_pwm_limits(struct pwm_output_values &pwm_values, pwm_limit_type type);
 
 	/**
-	 * @brief      Determines if this channel is one selected by VT_FW_MOT_OFFID
+	 * @brief      Determines if channel is set in target.
 	 *
 	 * @param[in]  channel  The channel
+	 * @param[in]  target  	The target to check on.
 	 *
 	 * @return     True if motor off channel, False otherwise.
 	 */
-	bool is_motor_off_channel(const int channel);
+	bool is_channel_set(const int channel, const int target);
 
 };
 

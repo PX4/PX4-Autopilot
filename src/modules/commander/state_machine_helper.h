@@ -64,8 +64,34 @@ enum class link_loss_actions_t {
 	AUTO_RTL = 2,		// Return mode
 	AUTO_LAND = 3,		// Land mode
 	AUTO_RECOVER = 4,	// Data Link Auto Recovery (CASA Outback Challenge rules)
-	TERMINATE = 5,		// Turn off all controllers and set PWM outputs to failsafe value
-	LOCKDOWN = 6,		// Kill the motors, same result as kill switch
+	TERMINATE = 5,		// Terminate flight (set actuator outputs to failsafe values, and stop controllers)
+	LOCKDOWN = 6,		// Lock actuators (set actuator outputs to disarmed values)
+};
+
+enum class offboard_loss_actions_t {
+	DISABLED = -1,
+	AUTO_LAND = 0,		// Land mode
+	AUTO_LOITER = 1,	// Hold mode
+	AUTO_RTL = 2,		// Return mode
+	TERMINATE = 3,		// Terminate flight (set actuator outputs to failsafe values, and stop controllers)
+	LOCKDOWN = 4,		// Lock actuators (set actuator outputs to disarmed values)
+};
+
+enum class offboard_loss_rc_actions_t {
+	DISABLED = -1, 		// Disabled
+	MANUAL_POSITION = 0, 	// Position mode
+	MANUAL_ALTITUDE = 1, 	// Altitude mode
+	MANUAL_ATTITUDE = 2, 	// Manual
+	AUTO_RTL = 3, 		// Return mode
+	AUTO_LAND = 4, 		// Land mode
+	AUTO_LOITER = 5, 	// Hold mode
+	TERMINATE = 6, 		// Terminate flight (set actuator outputs to failsafe values, and stop controllers)
+	LOCKDOWN = 7, 		// Lock actuators (set actuator outputs to disarmed values)
+};
+
+enum class position_nav_loss_actions_t {
+	ALTITUDE_MANUAL = 0,	// Altitude/Manual. Assume use of remote control after fallback. Switch to Altitude mode if a height estimate is available, else switch to MANUAL.
+	LAND_TERMINATE = 1,	// Land/Terminate.  Assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
 };
 
 typedef enum {
@@ -73,6 +99,7 @@ typedef enum {
 	ARM_REQ_MISSION_BIT = (1 << 0),
 	ARM_REQ_ARM_AUTH_BIT = (1 << 1),
 	ARM_REQ_GPS_BIT = (1 << 2),
+	ARM_REQ_ESCS_CHECK_BIT = (1 << 3)
 } arm_requirements_t;
 
 extern const char *const arming_state_names[];
@@ -93,8 +120,9 @@ void enable_failsafe(vehicle_status_s *status, bool old_failsafe, orb_advert_t *
 bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_state_s *internal_state,
 		   orb_advert_t *mavlink_log_pub, const link_loss_actions_t data_link_loss_act, const bool mission_finished,
 		   const bool stay_in_failsafe, const vehicle_status_flags_s &status_flags, bool landed,
-		   const link_loss_actions_t rc_loss_act, const int offb_loss_act, const int offb_loss_rc_act,
-		   const int posctl_nav_loss_act);
+		   const link_loss_actions_t rc_loss_act, const offboard_loss_actions_t offb_loss_act,
+		   const offboard_loss_rc_actions_t offb_loss_rc_act,
+		   const position_nav_loss_actions_t posctl_nav_loss_act);
 
 /*
  * Checks the validty of position data aaainst the requirements of the current navigation

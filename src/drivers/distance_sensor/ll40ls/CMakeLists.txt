@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -35,9 +35,13 @@ px4_add_module(
 	MAIN ll40ls
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
+	STACK_MAIN
+		1500
 	SRCS
 		ll40ls.cpp
 		LidarLite.cpp
 		LidarLiteI2C.cpp
 		LidarLitePWM.cpp
+	DEPENDS
+		drivers_rangefinder
 	)

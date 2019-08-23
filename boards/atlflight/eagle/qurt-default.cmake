@@ -66,8 +66,7 @@ px4_add_board(
 		ekf2
 		fw_att_control
 		fw_pos_control_l1
-		gnd_att_control
-		gnd_pos_control
+		rover_pos_control
 		land_detector
 		landing_target_estimator
 		local_position_estimator
@@ -77,7 +76,7 @@ px4_add_board(
 		#sih
 		vmount
 		vtol_att_control
-		wind_estimator
+		airspeed_selector
 
 	SYSTEMCMDS
 		param

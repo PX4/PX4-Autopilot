@@ -43,6 +43,8 @@
 
 #define MOTOR_BIT(x) (1<<(x))
 
+using namespace time_literals;
+
 UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_node(node),
 	_uavcan_pub_raw_cmd(node),
@@ -202,13 +204,10 @@ void UavcanEscController::arm_single_esc(int num, bool arm)
 void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
 {
 	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {
-		_esc_status.esc_count = uavcan::max<int>(_esc_status.esc_count, msg.esc_index + 1);
-		_esc_status.timestamp = hrt_absolute_time();
-
 		auto &ref = _esc_status.esc[msg.esc_index];
 
 		ref.esc_address = msg.getSrcNodeID().get();
-
+		ref.timestamp       = hrt_absolute_time();
 		ref.esc_voltage     = msg.voltage;
 		ref.esc_current     = msg.current;
 		ref.esc_temperature = msg.temperature;
@@ -220,8 +219,11 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 
 void UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent &)
 {
+	_esc_status.timestamp = hrt_absolute_time();
+	_esc_status.esc_count = _rotor_count;
 	_esc_status.counter += 1;
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
+	_esc_status.esc_online_flags = UavcanEscController::check_escs_status();
 
 	if (_esc_status_pub != nullptr) {
 		(void)orb_publish(ORB_ID(esc_status), _esc_status_pub, &_esc_status);
@@ -229,4 +231,20 @@ void UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent &)
 	} else {
 		_esc_status_pub = orb_advertise(ORB_ID(esc_status), &_esc_status);
 	}
+}
+
+uint8_t UavcanEscController::check_escs_status()
+{
+	int esc_status_flags = 0;
+	hrt_abstime now = hrt_absolute_time();
+
+	for (int index = 0; index < esc_status_s::CONNECTED_ESC_MAX; index++) {
+
+		if (_esc_status.esc[index].timestamp > 0 && now - _esc_status.esc[index].timestamp < 1200_ms) {
+			esc_status_flags |= (1 << index);
+		}
+
+	}
+
+	return esc_status_flags;
 }

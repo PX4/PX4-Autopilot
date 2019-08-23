@@ -33,7 +33,7 @@
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
 
-px4_add_library(drivers_board
+add_library(drivers_board
 	init.c
 	${PX4_SOURCE_DIR}/src/drivers/boards/common/board_identity.c # TODO: this is horrible and should be fixed
 )

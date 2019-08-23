@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 - 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -49,26 +49,22 @@
 #include "vtol_att_control_main.h"
 #include <systemlib/mavlink_log.h>
 #include <matrix/matrix/math.hpp>
+#include <uORB/PublicationQueued.hpp>
 
 using namespace matrix;
 
-namespace VTOL_att_control
-{
-VtolAttitudeControl *g_control;
-}
-
-/**
-* Constructor
-*/
-VtolAttitudeControl::VtolAttitudeControl()
+VtolAttitudeControl::VtolAttitudeControl() :
+	WorkItem(px4::wq_configurations::rate_ctrl),
+	_loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control: cycle")),
+	_loop_interval_perf(perf_alloc(PC_INTERVAL, "vtol_att_control: interval"))
 {
 	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
 
 	_params.idle_pwm_mc = PWM_DEFAULT_MIN;
-	_params.vtol_motor_count = 0;
+	_params.vtol_motor_id = 0;
 
 	_params_handles.idle_pwm_mc = param_find("VT_IDLE_PWM_MC");
-	_params_handles.vtol_motor_count = param_find("VT_MOT_COUNT");
+	_params_handles.vtol_motor_id = param_find("VT_MOT_ID");
 	_params_handles.vtol_fw_permanent_stab = param_find("VT_FW_PERM_STAB");
 	_params_handles.vtol_type = param_find("VT_TYPE");
 	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
@@ -105,66 +101,30 @@ VtolAttitudeControl::VtolAttitudeControl()
 		_vtol_type = new Standard(this);
 
 	} else {
-		_task_should_exit = true;
+		exit_and_cleanup();
 	}
 }
 
-/**
-* Destructor
-*/
 VtolAttitudeControl::~VtolAttitudeControl()
 {
-	if (_control_task != -1) {
-		/* task wakes up every 100ms or so at the longest */
-		_task_should_exit = true;
-
-		/* wait for a second for the task to quit at our request */
-		unsigned i = 0;
-
-		do {
-			/* wait 20ms */
-			px4_usleep(20000);
-
-			/* if we have given up, kill it */
-			if (++i > 50) {
-				px4_task_delete(_control_task);
-				break;
-			}
-		} while (_control_task != -1);
-	}
-
-	// free memory used by instances of base class VtolType
-	if (_vtol_type != nullptr) {
-		delete _vtol_type;
-	}
-
-	VTOL_att_control::g_control = nullptr;
+	perf_free(_loop_perf);
+	perf_free(_loop_interval_perf);
 }
 
-/**
-* Check for inputs from mc attitude controller.
-*/
-void VtolAttitudeControl::actuator_controls_mc_poll()
+bool
+VtolAttitudeControl::init()
 {
-	bool updated;
-	orb_check(_actuator_inputs_mc, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(actuator_controls_virtual_mc), _actuator_inputs_mc, &_actuators_mc_in);
+	if (!_actuator_inputs_mc.register_callback()) {
+		PX4_ERR("MC actuator controls callback registration failed!");
+		return false;
 	}
-}
 
-/**
-* Check for inputs from fw attitude controller.
-*/
-void VtolAttitudeControl::actuator_controls_fw_poll()
-{
-	bool updated;
-	orb_check(_actuator_inputs_fw, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(actuator_controls_virtual_fw), _actuator_inputs_fw, &_actuators_fw_in);
+	if (!_actuator_inputs_fw.register_callback()) {
+		PX4_ERR("FW actuator controls callback registration failed!");
+		return false;
 	}
+
+	return true;
 }
 
 /**
@@ -193,20 +153,15 @@ VtolAttitudeControl::handle_command()
 		// This might not be optimal but is better than no response at all.
 
 		if (_vehicle_cmd.from_external) {
-			vehicle_command_ack_s command_ack = {};
+			vehicle_command_ack_s command_ack{};
 			command_ack.timestamp = hrt_absolute_time();
 			command_ack.command = _vehicle_cmd.command;
 			command_ack.result = (uint8_t)vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
 			command_ack.target_system = _vehicle_cmd.source_system;
 			command_ack.target_component = _vehicle_cmd.source_component;
 
-			if (_v_cmd_ack_pub == nullptr) {
-				_v_cmd_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-								     vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-
-			} else {
-				orb_publish(ORB_ID(vehicle_command_ack), _v_cmd_ack_pub, &command_ack);
-			}
+			uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
+			command_ack_pub.publish(command_ack);
 		}
 	}
 }
@@ -244,9 +199,6 @@ VtolAttitudeControl::is_fixed_wing_requested()
 	return to_fw;
 }
 
-/*
- * Abort front transition
- */
 void
 VtolAttitudeControl::abort_front_transition(const char *reason)
 {
@@ -257,9 +209,6 @@ VtolAttitudeControl::abort_front_transition(const char *reason)
 	}
 }
 
-/**
-* Update parameters.
-*/
 int
 VtolAttitudeControl::parameters_update()
 {
@@ -269,7 +218,7 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.idle_pwm_mc, &_params.idle_pwm_mc);
 
 	/* vtol motor count */
-	param_get(_params_handles.vtol_motor_count, &_params.vtol_motor_count);
+	param_get(_params_handles.vtol_motor_id, &_params.vtol_motor_id);
 
 	/* vtol fw permanent stabilization */
 	param_get(_params_handles.vtol_fw_permanent_stab, &l);
@@ -326,14 +275,6 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.diff_thrust_scale, &v);
 	_params.diff_thrust_scale = math::constrain(v, -1.0f, 1.0f);
 
-	// standard vtol always needs to turn all mc motors off when going into fixed wing mode
-	// normally the parameter fw_motors_off can be used to specify this, however, since historically standard vtol code
-	// did not use the interface of the VtolType class to disable motors we will have users flying  around with a wrong
-	// parameter value. Therefore, explicitly set it here such that all motors will be disabled as expected.
-	if (static_cast<vtol_type>(_params.vtol_type) == vtol_type::STANDARD) {
-		_params.fw_motors_off = 12345678;
-	}
-
 	// make sure parameters are feasible, require at least 1 m/s difference between transition and blend airspeed
 	_params.airspeed_blend = math::min(_params.airspeed_blend, _params.transition_airspeed - 1.0f);
 
@@ -345,29 +286,53 @@ VtolAttitudeControl::parameters_update()
 	return OK;
 }
 
-int
-VtolAttitudeControl::task_main_trampoline(int argc, char *argv[])
+void
+VtolAttitudeControl::Run()
 {
-	VTOL_att_control::g_control->task_main();
-	return 0;
-}
+	if (should_exit()) {
+		_actuator_inputs_fw.unregister_callback();
+		_actuator_inputs_mc.unregister_callback();
+		exit_and_cleanup();
+		return;
+	}
 
-void VtolAttitudeControl::task_main()
-{
-	/* do subscriptions */
-	_actuator_inputs_mc    = orb_subscribe(ORB_ID(actuator_controls_virtual_mc));
-	_actuator_inputs_fw    = orb_subscribe(ORB_ID(actuator_controls_virtual_fw));
+	if (!_initialized) {
+		parameters_update();  // initialize parameter cache
 
-	parameters_update();  // initialize parameter cache
+		if (_vtol_type->init()) {
+			_initialized = true;
 
-	_task_should_exit = !_vtol_type->init();
+		} else {
+			exit_and_cleanup();
+			return;
+		}
+	}
 
-	/* wakeup source*/
-	px4_pollfd_struct_t fds[1] = {};
-	fds[0].fd     = _actuator_inputs_mc;
-	fds[0].events = POLLIN;
+	perf_begin(_loop_perf);
+	perf_count(_loop_interval_perf);
 
-	while (!_task_should_exit) {
+	const bool updated_fw_in = _actuator_inputs_fw.update(&_actuators_fw_in);
+	const bool updated_mc_in = _actuator_inputs_mc.update(&_actuators_mc_in);
+
+	// run on actuator publications corresponding to VTOL mode
+	bool should_run = false;
+
+	switch (_vtol_type->get_mode()) {
+	case mode::TRANSITION_TO_FW:
+	case mode::TRANSITION_TO_MC:
+		should_run = updated_fw_in || updated_mc_in;
+		break;
+
+	case mode::ROTARY_WING:
+		should_run = updated_mc_in;
+		break;
+
+	case mode::FIXED_WING:
+		should_run = updated_fw_in;
+		break;
+	}
+
+	if (should_run) {
 		/* only update parameters if they changed */
 		if (_params_sub.updated()) {
 			/* read from param to clear updated flag */
@@ -376,35 +341,6 @@ void VtolAttitudeControl::task_main()
 
 			/* update parameters from storage */
 			parameters_update();
-		}
-
-		// run vtol_att on MC actuator publications, unless in full FW mode
-		switch (_vtol_type->get_mode()) {
-		case mode::TRANSITION_TO_FW:
-		case mode::TRANSITION_TO_MC:
-		case mode::ROTARY_WING:
-			fds[0].fd = _actuator_inputs_mc;
-			break;
-
-		case mode::FIXED_WING:
-			fds[0].fd = _actuator_inputs_fw;
-			break;
-		}
-
-		/* wait for up to 100ms for data */
-		int pret = px4_poll(&fds[0], sizeof(fds) / sizeof(fds[0]), 100);
-
-		/* timed out - periodic check for _task_should_exit */
-		if (pret == 0) {
-			continue;
-		}
-
-		/* this is undesirable but not much we can do - might want to flag unhappy status */
-		if (pret < 0) {
-			PX4_ERR("poll error %d, %d", pret, errno);
-			/* sleep a bit before next try */
-			px4_usleep(100000);
-			continue;
 		}
 
 		_v_control_mode_sub.update(&_v_control_mode);
@@ -417,8 +353,6 @@ void VtolAttitudeControl::task_main()
 		_tecs_status_sub.update(&_tecs_status);
 		_land_detected_sub.update(&_land_detected);
 		vehicle_cmd_poll();
-		actuator_controls_fw_poll();
-		actuator_controls_mc_poll();
 
 		// update the vtol state machine which decides which mode we are in
 		_vtol_type->update_vtol_state();
@@ -491,118 +425,89 @@ void VtolAttitudeControl::task_main()
 		    _v_control_mode.flag_control_rates_enabled ||
 		    _v_control_mode.flag_control_manual_enabled) {
 
-			if (_v_att_sp_pub != nullptr) {
-				/* publish the attitude setpoint */
-				orb_publish(ORB_ID(vehicle_attitude_setpoint), _v_att_sp_pub, &_v_att_sp);
+			_v_att_sp_pub.publish(_v_att_sp);
 
-			} else {
-				/* advertise and publish */
-				_v_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &_v_att_sp);
+			if (updated_mc_in) {
+				_actuators_0_pub.publish(_actuators_out_0);
 			}
 
-			if (_actuators_0_pub != nullptr) {
-				orb_publish(ORB_ID(actuator_controls_0), _actuators_0_pub, &_actuators_out_0);
-
-			} else {
-				_actuators_0_pub = orb_advertise(ORB_ID(actuator_controls_0), &_actuators_out_0);
-			}
-
-			if (_actuators_1_pub != nullptr) {
-				orb_publish(ORB_ID(actuator_controls_1), _actuators_1_pub, &_actuators_out_1);
-
-			} else {
-				_actuators_1_pub = orb_advertise(ORB_ID(actuator_controls_1), &_actuators_out_1);
+			if (updated_fw_in) {
+				_actuators_1_pub.publish(_actuators_out_1);
 			}
 		}
 
-		/*Advertise/Publish vtol vehicle status*/
+		// Advertise/Publish vtol vehicle status
 		_vtol_vehicle_status.timestamp = hrt_absolute_time();
-
-		if (_vtol_vehicle_status_pub != nullptr) {
-			orb_publish(ORB_ID(vtol_vehicle_status), _vtol_vehicle_status_pub, &_vtol_vehicle_status);
-
-		} else {
-			_vtol_vehicle_status_pub = orb_advertise(ORB_ID(vtol_vehicle_status), &_vtol_vehicle_status);
-		}
+		_vtol_vehicle_status_pub.publish(_vtol_vehicle_status);
 	}
 
-	PX4_WARN("exit");
-	_control_task = -1;
+	perf_end(_loop_perf);
 }
 
 int
-VtolAttitudeControl::start()
+VtolAttitudeControl::task_spawn(int argc, char *argv[])
 {
-	/* start the task */
-	_control_task = px4_task_spawn_cmd("vtol_att_control",
-					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_ATTITUDE_CONTROL + 1,
-					   1320,
-					   (px4_main_t)&VtolAttitudeControl::task_main_trampoline,
-					   nullptr);
+	VtolAttitudeControl *instance = new VtolAttitudeControl();
 
-	if (_control_task < 0) {
-		PX4_WARN("task start failed");
-		return -errno;
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
 	}
 
-	return OK;
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
 }
 
+int
+VtolAttitudeControl::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
+}
+
+int
+VtolAttitudeControl::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+fw_att_control is the fixed wing attitude controller.
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_COMMAND("start");
+
+	PRINT_MODULE_USAGE_NAME("vtol_att_control", "controller");
+
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
+int
+VtolAttitudeControl::print_status()
+{
+	PX4_INFO("Running");
+
+	perf_print_counter(_loop_perf);
+	perf_print_counter(_loop_interval_perf);
+
+	return PX4_OK;
+}
 
 int vtol_att_control_main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		PX4_WARN("usage: vtol_att_control {start|stop|status}");
-		return 1;
-	}
-
-	if (!strcmp(argv[1], "start")) {
-
-		if (VTOL_att_control::g_control != nullptr) {
-			PX4_WARN("already running");
-			return 0;
-		}
-
-		VTOL_att_control::g_control = new VtolAttitudeControl;
-
-		if (VTOL_att_control::g_control == nullptr) {
-			PX4_WARN("alloc failed");
-			return 1;
-		}
-
-		if (OK != VTOL_att_control::g_control->start()) {
-			delete VTOL_att_control::g_control;
-			VTOL_att_control::g_control = nullptr;
-			PX4_WARN("start failed");
-			return 1;
-		}
-
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "stop")) {
-		if (VTOL_att_control::g_control == nullptr) {
-			PX4_WARN("not running");
-			return 0;
-		}
-
-		delete VTOL_att_control::g_control;
-		VTOL_att_control::g_control = nullptr;
-		return 0;
-	}
-
-	if (!strcmp(argv[1], "status")) {
-		if (VTOL_att_control::g_control) {
-			PX4_WARN("running");
-
-		} else {
-			PX4_WARN("not running");
-		}
-
-		return 0;
-	}
-
-	PX4_WARN("unrecognized command");
-	return 1;
+	return VtolAttitudeControl::main(argc, argv);
 }

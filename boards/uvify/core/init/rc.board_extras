@@ -3,7 +3,7 @@
 # UVify UVF4 specific board extras init
 #------------------------------------------------------------------------------
 # IFO
-if param compare SYS_AUTOSTART 4053
+if param compare SYS_AUTOSTART 4071
 then
    # Wifi module : 1st telemetry
    mavlink start -d /dev/ttyS1 -b 921600 -m onboard
@@ -21,7 +21,7 @@ then
 fi
 
 # Draco
-if param compare SYS_AUTOSTART 4054
+if param compare SYS_AUTOSTART 4072
 then
    # mavlink
    mavlink start -d /dev/ttyS1 -r 20000 -b 921600 -m onboard

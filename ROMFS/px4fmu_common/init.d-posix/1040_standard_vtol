@@ -38,7 +38,6 @@ then
 	param set VT_MOT_COUNT 4
 	param set VT_TYPE 2
 
-	param set WEST_EN 1
 fi
 
 set MAV_TYPE 22

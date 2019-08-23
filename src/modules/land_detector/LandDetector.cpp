@@ -57,11 +57,11 @@ LandDetector::LandDetector() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(px4::wq_configurations::hp_default)
 {
-	_landDetected.timestamp = hrt_absolute_time();
-	_landDetected.freefall = false;
-	_landDetected.landed = true;
-	_landDetected.ground_contact = false;
-	_landDetected.maybe_landed = false;
+	_land_detected.timestamp = hrt_absolute_time();
+	_land_detected.freefall = false;
+	_land_detected.landed = true;
+	_land_detected.ground_contact = false;
+	_land_detected.maybe_landed = false;
 }
 
 LandDetector::~LandDetector()
@@ -80,7 +80,7 @@ void LandDetector::Run()
 	perf_begin(_cycle_perf);
 
 	_check_params(false);
-	_actuator_armed_sub.update(&_arming);
+	_actuator_armed_sub.update(&_actuator_armed);
 	_update_topics();
 	_update_state();
 
@@ -95,36 +95,36 @@ void LandDetector::Run()
 	const hrt_abstime now = hrt_absolute_time();
 
 	// publish at 1 Hz, very first time, or when the result has changed
-	if ((hrt_elapsed_time(&_landDetected.timestamp) >= 1_s) ||
+	if ((hrt_elapsed_time(&_land_detected.timestamp) >= 1_s) ||
 	    (_land_detected_pub == nullptr) ||
-	    (_landDetected.landed != landDetected) ||
-	    (_landDetected.freefall != freefallDetected) ||
-	    (_landDetected.maybe_landed != maybe_landedDetected) ||
-	    (_landDetected.ground_contact != ground_contactDetected) ||
-	    (_landDetected.in_ground_effect != in_ground_effect) ||
-	    (fabsf(_landDetected.alt_max - alt_max) > FLT_EPSILON)) {
+	    (_land_detected.landed != landDetected) ||
+	    (_land_detected.freefall != freefallDetected) ||
+	    (_land_detected.maybe_landed != maybe_landedDetected) ||
+	    (_land_detected.ground_contact != ground_contactDetected) ||
+	    (_land_detected.in_ground_effect != in_ground_effect) ||
+	    (fabsf(_land_detected.alt_max - alt_max) > FLT_EPSILON)) {
 
-		if (!landDetected && _landDetected.landed) {
+		if (!landDetected && _land_detected.landed) {
 			// We did take off
 			_takeoff_time = now;
 		}
 
-		_landDetected.timestamp = hrt_absolute_time();
-		_landDetected.landed = landDetected;
-		_landDetected.freefall = freefallDetected;
-		_landDetected.maybe_landed = maybe_landedDetected;
-		_landDetected.ground_contact = ground_contactDetected;
-		_landDetected.alt_max = alt_max;
-		_landDetected.in_ground_effect = in_ground_effect;
+		_land_detected.timestamp = hrt_absolute_time();
+		_land_detected.landed = landDetected;
+		_land_detected.freefall = freefallDetected;
+		_land_detected.maybe_landed = maybe_landedDetected;
+		_land_detected.ground_contact = ground_contactDetected;
+		_land_detected.alt_max = alt_max;
+		_land_detected.in_ground_effect = in_ground_effect;
 
 		int instance;
-		orb_publish_auto(ORB_ID(vehicle_land_detected), &_land_detected_pub, &_landDetected,
+		orb_publish_auto(ORB_ID(vehicle_land_detected), &_land_detected_pub, &_land_detected,
 				 &instance, ORB_PRIO_DEFAULT);
 	}
 
 	// set the flight time when disarming (not necessarily when landed, because all param changes should
 	// happen on the same event and it's better to set/save params while not in armed state)
-	if (_takeoff_time != 0 && !_arming.armed && _previous_armed_state) {
+	if (_takeoff_time != 0 && !_actuator_armed.armed && _previous_armed_state) {
 		_total_flight_time += now - _takeoff_time;
 		_takeoff_time = 0;
 
@@ -139,7 +139,7 @@ void LandDetector::Run()
 		_param_total_flight_time_low.commit_no_notification();
 	}
 
-	_previous_armed_state = _arming.armed;
+	_previous_armed_state = _actuator_armed.armed;
 
 	perf_end(_cycle_perf);
 
@@ -190,7 +190,7 @@ void LandDetector::_update_state()
 void LandDetector::_update_total_flight_time()
 {
 	_total_flight_time = static_cast<uint64_t>(_param_total_flight_time_high.get()) << 32;
-	_total_flight_time |= _param_total_flight_time_low.get();
+	_total_flight_time |= static_cast<uint32_t>(_param_total_flight_time_low.get());
 }
 
 } // namespace land_detector
