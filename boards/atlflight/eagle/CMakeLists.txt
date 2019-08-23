@@ -62,4 +62,12 @@ else()
 		USES_TERMINAL
 		)
 
+	add_custom_target(sanity
+		COMMAND ./px4_snapflight_sanitytest.sh -i -t
+		DEPENDS px4
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/scripts
+		COMMENT "uploading px4"
+		USES_TERMINAL
+	)
+
 endif()

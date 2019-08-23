@@ -1693,6 +1693,13 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 		return;
 	}
 
+	// check if we already wrote the format
+	for (const auto &written_format : written_formats) {
+		if (written_format == &meta) {
+			return;
+		}
+	}
+
 	// Write the current format (we don't need to check if we already added it to written_formats)
 	int format_len = snprintf(msg.format, sizeof(msg.format), "%s:%s", meta.o_name, meta.o_fields);
 	size_t msg_size = sizeof(msg) - sizeof(msg.format) + format_len;
@@ -1764,17 +1771,8 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 			}
 
 			if (found_topic) {
-				// check if we already wrote the format
-				for (const auto &written_format : written_formats) {
-					if (written_format == found_topic) {
-						found_topic = nullptr;
-						break;
-					}
-				}
 
-				if (found_topic) {
-					write_format(type, *found_topic, written_formats, msg, level + 1);
-				}
+				write_format(type, *found_topic, written_formats, msg, level + 1);
 
 			} else {
 				PX4_ERR("No definition for topic %s found", fmt);

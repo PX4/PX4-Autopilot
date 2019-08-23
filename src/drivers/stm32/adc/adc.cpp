@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,34 +40,25 @@
  * and so forth. It avoids the gross complexity of the NuttX ADC driver.
  */
 
-#include <px4_config.h>
-#include <board_config.h>
-#include <drivers/device/device.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <stdio.h>
-#include <unistd.h>
-
-#include <arch/board/board.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_adc.h>
-
 #include <stm32_adc.h>
 #include <stm32_gpio.h>
 
-#include <systemlib/err.h>
-#include <perf/perf_counter.h>
-
-#include <uORB/topics/system_power.h>
+#include <drivers/drv_adc.h>
+#include <drivers/drv_hrt.h>
+#include <lib/cdev/CDev.hpp>
+#include <lib/perf/perf_counter.h>
+#include <px4_config.h>
+#include <px4_log.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/adc_report.h>
+#include <uORB/topics/system_power.h>
+
+using namespace time_literals;
 
 #if defined(ADC_CHANNELS)
+
+#define ADC_TOTAL_CHANNELS 		32
 
 /*
  * Register accessors.
@@ -118,7 +109,7 @@
 #  endif
 #endif
 
-class ADC : public cdev::CDev
+class ADC : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
 	ADC(uint32_t base_address, uint32_t channels);
@@ -134,22 +125,7 @@ protected:
 	virtual int		close_last(struct file *filp);
 
 private:
-	static const hrt_abstime _tickrate = 10000;	/**< 100Hz base rate */
-
-	hrt_call		_call;
-	perf_counter_t		_sample_perf;
-
-	unsigned		_channel_count;
-	uint32_t _base_address;
-	px4_adc_msg_t		*_samples;		/**< sample buffer */
-	orb_advert_t		_to_system_power;
-	orb_advert_t		_to_adc_report;
-
-	/** work trampoline */
-	static void		_tick_trampoline(void *arg);
-
-	/** worker function */
-	void			_tick();
+	void			Run() override;
 
 	/**
 	 * Sample a single channel and return the measured value.
@@ -158,28 +134,35 @@ private:
 	 * @return			The sampled value, or 0xffff if
 	 *				sampling failed.
 	 */
-	uint16_t		_sample(unsigned channel);
+	uint16_t		sample(unsigned channel);
 
-	// update system_power ORB topic, only on FMUv2
-	void update_system_power(hrt_abstime now);
+	void			update_adc_report(hrt_abstime now);
+	void			update_system_power(hrt_abstime now);
 
-	void update_adc_report(hrt_abstime now);
+
+	static const hrt_abstime	kINTERVAL{10_ms};	/**< 100Hz base rate */
+
+	perf_counter_t			_sample_perf;
+
+	unsigned			_channel_count{0};
+	const uint32_t			_base_address;
+	px4_adc_msg_t			*_samples{nullptr};	/**< sample buffer */
+
+	uORB::Publication<adc_report_s>		_to_adc_report{ORB_ID(adc_report)};
+	uORB::Publication<system_power_s>	_to_system_power{ORB_ID(system_power)};
 };
 
 ADC::ADC(uint32_t base_address, uint32_t channels) :
 	CDev(ADC0_DEVICE_PATH),
+	ScheduledWorkItem(px4::wq_configurations::hp_default),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
-	_channel_count(0),
-	_base_address(base_address),
-	_samples(nullptr),
-	_to_system_power(nullptr),
-	_to_adc_report(nullptr)
+	_base_address(base_address)
 {
 	/* always enable the temperature sensor */
 	channels |= 1 << 16;
 
 	/* allocate the sample array */
-	for (unsigned i = 0; i < 32; i++) {
+	for (unsigned i = 0; i < ADC_TOTAL_CHANNELS; i++) {
 		if (channels & (1 << i)) {
 			_channel_count++;
 		}
@@ -195,7 +178,7 @@ ADC::ADC(uint32_t base_address, uint32_t channels) :
 	if (_samples != nullptr) {
 		unsigned index = 0;
 
-		for (unsigned i = 0; i < 32; i++) {
+		for (unsigned i = 0; i < ADC_TOTAL_CHANNELS; i++) {
 			if (channels & (1 << i)) {
 				_samples[index].am_channel = i;
 				_samples[index].am_data = 0;
@@ -210,6 +193,8 @@ ADC::~ADC()
 	if (_samples != nullptr) {
 		delete _samples;
 	}
+
+	perf_free(_sample_perf);
 }
 
 int board_adc_init(uint32_t base_address)
@@ -349,10 +334,10 @@ int
 ADC::open_first(struct file *filp)
 {
 	/* get fresh data */
-	_tick();
+	Run();
 
 	/* and schedule regular updates */
-	hrt_call_every(&_call, _tickrate, _tickrate, _tick_trampoline, this);
+	ScheduleOnInterval(kINTERVAL, kINTERVAL);
 
 	return 0;
 }
@@ -360,24 +345,19 @@ ADC::open_first(struct file *filp)
 int
 ADC::close_last(struct file *filp)
 {
-	hrt_cancel(&_call);
+	ScheduleClear();
+
 	return 0;
 }
 
 void
-ADC::_tick_trampoline(void *arg)
-{
-	(reinterpret_cast<ADC *>(arg))->_tick();
-}
-
-void
-ADC::_tick()
+ADC::Run()
 {
 	hrt_abstime now = hrt_absolute_time();
 
 	/* scan the channel set and sample each */
 	for (unsigned i = 0; i < _channel_count; i++) {
-		_samples[i].am_data = _sample(_samples[i].am_channel);
+		_samples[i].am_data = sample(_samples[i].am_channel);
 	}
 
 	update_adc_report(now);
@@ -401,20 +381,15 @@ ADC::update_adc_report(hrt_abstime now)
 		adc.channel_value[i] = _samples[i].am_data * 3.3f / 4096.0f;
 	}
 
-	int instance;
-	orb_publish_auto(ORB_ID(adc_report), &_to_adc_report, &adc, &instance, ORB_PRIO_HIGH);
+	_to_adc_report.publish(adc);
 }
 
 void
 ADC::update_system_power(hrt_abstime now)
 {
 #if defined (BOARD_ADC_USB_CONNECTED)
-	system_power_s system_power = {};
+	system_power_s system_power {};
 	system_power.timestamp = now;
-
-	system_power.voltage5v_v = 0;
-	system_power.voltage3v3_v = 0;
-	system_power.v3v3_valid = 0;
 
 	/* Assume HW provides only ADC_SCALED_V5_SENSE */
 	int cnt = 1;
@@ -481,30 +456,23 @@ ADC::update_system_power(hrt_abstime now)
 #ifdef BOARD_ADC_PERIPH_5V_OC
 	// OC pins are active low
 	system_power.periph_5v_oc  = BOARD_ADC_PERIPH_5V_OC;
-#else
-	system_power.periph_5v_oc  = 0;
 #endif
+
 #ifdef BOARD_ADC_HIPOWER_5V_OC
 	system_power.hipower_5v_oc = BOARD_ADC_HIPOWER_5V_OC;
-#else
-	system_power.hipower_5v_oc  = 0;
 #endif
 
 	/* lazily publish */
-	if (_to_system_power != nullptr) {
-		orb_publish(ORB_ID(system_power), _to_system_power, &system_power);
-
-	} else {
-		_to_system_power = orb_advertise(ORB_ID(system_power), &system_power);
-	}
+	_to_system_power.publish(system_power);
 
 #endif // BOARD_ADC_USB_CONNECTED
 }
 
 uint16_t board_adc_sample(uint32_t base_address, unsigned channel)
 {
-	/* clear any previous EOC */
+	irqstate_t flags = px4_enter_critical_section();
 
+	/* clear any previous EOC */
 	if (rSR(base_address) & ADC_SR_EOC) {
 		rSR(base_address) &= ~ADC_SR_EOC;
 	}
@@ -514,23 +482,27 @@ uint16_t board_adc_sample(uint32_t base_address, unsigned channel)
 	rCR2(base_address) |= ADC_CR2_SWSTART;
 
 	/* wait for the conversion to complete */
-	hrt_abstime now = hrt_absolute_time();
+	const hrt_abstime now = hrt_absolute_time();
 
 	while (!(rSR(base_address) & ADC_SR_EOC)) {
 
 		/* don't wait for more than 50us, since that means something broke - should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 50) {
+			px4_leave_critical_section(flags);
 			return 0xffff;
 		}
 	}
 
 	/* read the result and clear EOC */
 	uint16_t result = rDR(base_address);
+
+	px4_leave_critical_section(flags);
+
 	return result;
 }
 
 uint16_t
-ADC::_sample(unsigned channel)
+ADC::sample(unsigned channel)
 {
 	perf_begin(_sample_perf);
 	uint16_t result = board_adc_sample(_base_address, channel);
@@ -550,24 +522,26 @@ extern "C" __EXPORT int adc_main(int argc, char *argv[]);
 
 namespace
 {
-ADC	*g_adc;
+ADC	*g_adc{nullptr};
 
-void
+int
 test(void)
 {
 
 	int fd = open(ADC0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "can't open ADC device");
+		PX4_ERR("can't open ADC device %d", errno);
+		return 1;
 	}
 
 	for (unsigned i = 0; i < 50; i++) {
-		px4_adc_msg_t data[PX4_MAX_ADC_CHANNELS];
+		px4_adc_msg_t data[ADC_TOTAL_CHANNELS];
 		ssize_t count = read(fd, data, sizeof(data));
 
 		if (count < 0) {
-			errx(1, "read error");
+			PX4_ERR("read error");
+			return 1;
 		}
 
 		unsigned channels = count / sizeof(data[0]);
@@ -580,7 +554,7 @@ test(void)
 		px4_usleep(500000);
 	}
 
-	exit(0);
+	return 0;
 }
 }
 
@@ -592,21 +566,23 @@ adc_main(int argc, char *argv[])
 		g_adc = new ADC(SYSTEM_ADC_BASE, ADC_CHANNELS);
 
 		if (g_adc == nullptr) {
-			errx(1, "couldn't allocate the ADC driver");
+			PX4_ERR("couldn't allocate the ADC driver");
+			return 1;
 		}
 
 		if (g_adc->init() != OK) {
 			delete g_adc;
-			errx(1, "ADC init failed");
+			PX4_ERR("ADC init failed");
+			return 1;
 		}
 	}
 
 	if (argc > 1) {
 		if (!strcmp(argv[1], "test")) {
-			test();
+			return test();
 		}
 	}
 
-	exit(0);
+	return 0;
 }
 #endif

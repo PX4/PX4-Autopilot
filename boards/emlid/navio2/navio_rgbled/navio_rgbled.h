@@ -41,7 +41,7 @@ class RGBLED : public DriverFramework::DevObj
 {
 public:
 	RGBLED(const char *name);
-	virtual ~RGBLED();
+	virtual ~RGBLED() = default;
 
 	int start();
 	int stop();
