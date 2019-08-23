@@ -29,7 +29,7 @@ set VEHICLE_TYPE mc
 set MIXER hexa_x
 set PWM_OUT 123456
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	# Attitude & rate gains
 	param set MC_ROLL_P 6.50000
@@ -60,7 +60,6 @@ then
 	param set MPC_POS_MODE 2
 	param set MPC_AUTO_MODE 1
 	param set MPC_ACC_HOR 8.0000
-
 
 	param set MC_PITCHRATE_MAX 800.00000
 	param set MC_ROLLRATE_MAX 800.00000

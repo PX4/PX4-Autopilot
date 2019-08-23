@@ -24,7 +24,7 @@ set VEHICLE_TYPE mc
 set MIXER quad_x
 set PWM_OUT 1234
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	# Attitude & rate gains
 	#param set MC_ROLL_P 7.00000
@@ -92,7 +92,6 @@ then
 	param set MPC_TKO_RAMP_T 1.0000
 	param set MPC_TKO_SPEED 1.1000
 	param set MPC_VEL_MANUAL 3.0000
-
 
 	param set BAT_SOURCE 0
 	param set BAT_N_CELLS 4

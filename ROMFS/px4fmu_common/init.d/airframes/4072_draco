@@ -24,7 +24,7 @@ set VEHICLE_TYPE mc
 set MIXER quad_x
 set PWM_OUT 1234
 
-if [ $AUTOCNF == yes ]
+if [ $AUTOCNF = yes ]
 then
 	# Attitude & rate gains
 	param set MC_ROLL_P 7.00000
@@ -93,7 +93,6 @@ then
 	param set MPC_TKO_SPEED 1.1000
 	param set MPC_VEL_MANUAL 3.0000
 
-
 	param set BAT_SOURCE 0
 	param set CBRK_IO_SAFETY 22027
 	param set COM_ARM_EKF_AB 0.00500
@@ -117,5 +116,4 @@ then
 
 	# TELEM2 ttyS2
 	param set MAV_1_CONFIG 0
-
 fi
