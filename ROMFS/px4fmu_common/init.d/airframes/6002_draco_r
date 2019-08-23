@@ -12,6 +12,11 @@
 # @output MAIN5 motor 5
 # @output MAIN6 motor 6
 #
+# @board px4fmu-v2 exclude
+# @board px4fmu-v3 exclude
+# @board px4fmu-v4pro exclude
+# @board px4fmu-v5 exclude
+#
 # @output AUX1 feed-through of RC AUX1 channel
 # @output AUX2 feed-through of RC AUX2 channel
 #
@@ -133,7 +138,6 @@ then
 	param set BAT_V_DIV 10.133
 fi
 
-#set DRACO_SMBUS yes
 #set PWM_OUT 12345678
 
 #set MIXER_AUX mount_2axes

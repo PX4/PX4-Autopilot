@@ -5,32 +5,32 @@
 # IFO
 if param compare SYS_AUTOSTART 4071
 then
-   # Wifi module : 1st telemetry
-   mavlink start -d /dev/ttyS1 -b 921600 -m onboard
-   # Sub 1-Ghz : 2nd telemetry
-   mavlink start -d /dev/ttyS2 -b 57600 -m onboard
+	# Wifi module : 1st telemetry
+	mavlink start -d /dev/ttyS1 -b 921600 -m onboard
+	# Sub 1-Ghz : 2nd telemetry
+	mavlink start -d /dev/ttyS2 -b 57600 -m onboard
 
-   # Change rate to 400 Khz for fast barometer
-   fmu i2c 1 400000
-   
-   # IFO has only external i2c barometer.
-   # It does not start EKF2 in the beginning which is strange behaviour. but 3 seconds hack.
-   # We intentionally put this initialization to here for delayed initialization.
-   sleep 4
-   ms5611 -T 0 -X start
+	# Change rate to 400 Khz for fast barometer
+	fmu i2c 1 400000
+
+	# IFO has only external i2c barometer.
+	# It does not start EKF2 in the beginning which is strange behaviour. but 3 seconds hack.
+	# We intentionally put this initialization to here for delayed initialization.
+	sleep 4
+	ms5611 -T 0 -X start
 fi
 
 # Draco
 if param compare SYS_AUTOSTART 4072
 then
-   # mavlink
-   mavlink start -d /dev/ttyS1 -r 20000 -b 921600 -m onboard
+	# mavlink
+	mavlink start -d /dev/ttyS1 -r 20000 -b 921600 -m onboard
 fi
 
 # Draco-R
 if param compare SYS_AUTOSTART 6002
 then
-   # mavlink
-   mavlink start -d /dev/ttyS1 -b 57600 -m onboard
-   mavlink start -d /dev/ttyS2 -b 921600 -m onboard
+	# mavlink
+	mavlink start -d /dev/ttyS1 -b 57600 -m onboard
+	mavlink start -d /dev/ttyS2 -b 921600 -m onboard
 fi

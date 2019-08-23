@@ -33,10 +33,14 @@ px4_add_board(
 		#lights/oreoled
 		#lights/rgbled
 		lights/rgbled_ncp5623c
-		magnetometer # all available magnetometer drivers
+		#magnetometer # all available magnetometer drivers
+		magnetometer/bmm150
+		magnetometer/lis3mdl
+		magnetometer/ist8310
 		#mkblctrl
-		optical_flow # all available optical flow drivers
-		#pca9685
+		#optical_flow # all available optical flow drivers
+		optical_flow/px4flow
+		pca9685
 		pwm_input
 		pwm_out_sim
 		px4fmu
