@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
- *   Author: Anton Babushkin <anton.babushkin@me.com>
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -90,8 +89,9 @@ const char *px4_build_uri(void);
  * Convert a version tag string to a number
  * @param tag version tag in one of the following forms:
  *            - vendor: v1.4.0-0.2.0
- *            - dev: v1.4.0rc3-7-g7e282f57
- *            - rc: v1.4.0rc4
+ *            - dev: v1.4.0-rc3-7-g7e282f57
+ *            - rc: v1.4.0-rc4
+ *            - beta: v1.4.0-beta1
  *            - release: v1.4.0
  *            - linux: 7.9.3
  * @return version in the form 0xAABBCCTT (AA: Major, BB: Minor, CC: Patch, TT Type @see FIRMWARE_TYPE)
@@ -108,8 +108,9 @@ __EXPORT uint32_t px4_firmware_version(void);
  * Convert a version tag string to a vendor version number
  * @param tag version tag in one of the following forms:
  *            - vendor: v1.4.0-0.2.0
- *            - dev: v1.4.0rc3-7-g7e282f57
- *            - rc: v1.4.0rc4
+ *            - dev: v1.4.0-rc3-7-g7e282f57
+ *            - rc: v1.4.0-rc4
+ *            - beta: v1.4.0-beta1
  *            - release: v1.4.0
  *            - linux: 7.9.3
  * @return version in the form 0xAABBCCTT (AA: Major, BB: Minor, CC: Patch, TT Type @see FIRMWARE_TYPE)
