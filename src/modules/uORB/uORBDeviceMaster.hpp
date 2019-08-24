@@ -50,7 +50,7 @@ class Manager;
 #include <string.h>
 #include <stdlib.h>
 
-#include <containers/List.hpp>
+#include <containers/IntrusiveSortedList.hpp>
 #include <px4_platform_common/atomic_bitset.h>
 
 using px4::AtomicBitset;
@@ -86,7 +86,7 @@ public:
 	 * Continuously print statistics, like the unix top command for processes.
 	 * Exited when the user presses the enter key.
 	 * @param topic_filter list of topic filters: if set, each string can be a substring for topics to match.
-	 *        Or it can be '-a', which means to print all topics instead of only currently publishing ones.
+	 *        Or it can be '-a', which means to print all topics instead of only ones currently publishing with subscribers.
 	 * @param num_filters
 	 */
 	void showTop(char **topic_filter, int num_filters);
@@ -117,7 +117,7 @@ private:
 	 */
 	uORB::DeviceNode *getDeviceNodeLocked(const struct orb_metadata *meta, const uint8_t instance);
 
-	List<uORB::DeviceNode *> _node_list;
+	IntrusiveSortedList<uORB::DeviceNode *> _node_list;
 	AtomicBitset<ORB_TOPICS_COUNT> _node_exists[ORB_MULTI_MAX_INSTANCES];
 
 	hrt_abstime       _last_statistics_output;
