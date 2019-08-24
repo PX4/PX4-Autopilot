@@ -138,11 +138,10 @@ if(config_bl_file)
 		)
 endif()
 
-set(OPTIONAL_BOARD_RC)
-list(APPEND OPTIONAL_BOARD_RC
-	rc.board_defaults
-	rc.board_sensors
-	rc.board_extras
+# optional board RC files
+file(GLOB_RECURSE OPTIONAL_BOARD_RC
+	RELATIVE ${PX4_BOARD_DIR}/init/
+	${PX4_BOARD_DIR}/init/*
 )
 
 foreach(board_rc_file ${OPTIONAL_BOARD_RC})

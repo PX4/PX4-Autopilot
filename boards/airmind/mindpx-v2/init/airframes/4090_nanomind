@@ -5,13 +5,6 @@
 # @type Quadrotor x
 # @class Copter
 #
-# @board px4_fmu-v2 exclude
-# @board px4_fmu-v3 exclude
-# @board px4_fmu-v4pro exclude
-# @board px4_fmu-v5 exclude
-# @board px4_fmu-v5x exclude
-# @board intel_aerofc-v1 exclude
-#
 # @maintainer Henry Zhang <zhanghui629@gmail.com>
 #
 
