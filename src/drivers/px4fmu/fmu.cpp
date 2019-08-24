@@ -68,21 +68,8 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/safety.h>
-#include <uORB/topics/vehicle_command.h>
 
 using namespace time_literals;
-
-static constexpr uint8_t CYCLE_COUNT = 10; /* safety switch must be held for 1 second to activate */
-
-/*
- * Define the various LED flash sequences for each system state.
- */
-#define LED_PATTERN_FMU_OK_TO_ARM 		0x0003		/**< slow blinking			*/
-#define LED_PATTERN_FMU_REFUSE_TO_ARM 		0x5555		/**< fast blinking			*/
-#define LED_PATTERN_IO_ARMED 			0x5050		/**< long off, then double blink 	*/
-#define LED_PATTERN_FMU_ARMED 			0x5500		/**< long off, then quad blink 		*/
-#define LED_PATTERN_IO_FMU_ARMED 		0xffff		/**< constantly on			*/
 
 /** Mode given via CLI */
 enum PortMode {
@@ -185,8 +172,6 @@ private:
 		Betaflight = 1
 	};
 
-	hrt_abstime _cycle_timestamp = 0;
-	hrt_abstime _last_safety_check = 0;
 	hrt_abstime _time_last_mix = 0;
 
 	static constexpr uint8_t MAX_ACTUATORS = DIRECT_PWM_OUTPUT_CHANNELS;
@@ -201,12 +186,9 @@ private:
 
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _param_sub{ORB_ID(parameter_update)};
-	uORB::Subscription _safety_sub{ORB_ID(safety)};
 
-	uORB::Publication<safety_s>				_to_safety{ORB_ID(safety)};
 	uORB::PublicationMulti<actuator_outputs_s>		_outputs_pub{ORB_ID(actuator_outputs), ORB_PRIO_DEFAULT};
 	uORB::PublicationMulti<multirotor_motor_limits_s>	_to_mixer_status{ORB_ID(multirotor_motor_limits), ORB_PRIO_DEFAULT}; 	///< mixer status flags
-	uORB::Publication<vehicle_command_s>			_to_command{ORB_ID(vehicle_command)};
 
 	unsigned	_num_outputs{0};
 	int		_class_instance{-1};
@@ -242,10 +224,6 @@ private:
 	uint16_t	_reverse_pwm_mask{0};
 	unsigned	_num_failsafe_set{0};
 	unsigned	_num_disarmed_set{0};
-
-	bool		_safety_off{false};			///< State of the safety button from the subscribed safety topic
-	bool		_safety_btn_off{false};			///< State of the safety button read from the HW button
-	bool		_safety_disabled{false};
 
 	float _mot_t_max{0.0f};					///< maximum rise time for motor (slew rate limiting)
 	float _thr_mdl_fac{0.0f};				///< thrust to pwm modelling factor
@@ -283,9 +261,6 @@ private:
 	PX4FMU(const PX4FMU &) = delete;
 	PX4FMU operator=(const PX4FMU &) = delete;
 
-	bool safety_check_button(void);
-	void flash_safety_button(void);
-
 	/**
 	 * Reorder PWM outputs according to _motor_ordering
 	 * @param values PWM values to reorder
@@ -315,12 +290,6 @@ PX4FMU::PX4FMU() :
 	_armed.lockdown = false;
 	_armed.force_failsafe = false;
 	_armed.in_esc_calibration_mode = false;
-
-	// If there is no safety button, disable it on boot.
-#ifndef GPIO_BTN_SAFETY
-	_safety_off = true;
-	_safety_btn_off = true;
-#endif
 }
 
 PX4FMU::~PX4FMU()
@@ -357,13 +326,6 @@ PX4FMU::init()
 		PX4_ERR("FAILED registering class device");
 	}
 
-	_safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
-
-	if (_safety_disabled) {
-		_safety_off = true;
-		_safety_btn_off = true;
-	}
-
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
 
@@ -373,105 +335,7 @@ PX4FMU::init()
 	// Getting initial parameter values
 	update_params();
 
-	ScheduleOnInterval(100_ms); // run at 10 Hz until mixers loaded
-
 	return 0;
-}
-
-bool
-PX4FMU::safety_check_button(void)
-{
-	bool safety_button_pressed = false;
-#ifdef GPIO_BTN_SAFETY
-
-	static int counter = 0;
-	/*
-	 * Debounce the safety button, change state if it has been held for long enough.
-	 *
-	 */
-	safety_button_pressed = px4_arch_gpioread(GPIO_BTN_SAFETY);
-
-	/*
-	 * Keep pressed for a while to arm.
-	 *
-	 * Note that the counting sequence has to be same length
-	 * for arming / disarming in order to end up as proper
-	 * state machine, keep ARM_COUNTER_THRESHOLD the same
-	 * length in all cases of the if/else struct below.
-	 */
-	if (safety_button_pressed && !_safety_btn_off) {
-
-		if (counter < CYCLE_COUNT) {
-			counter++;
-
-		} else if (counter == CYCLE_COUNT) {
-			if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO) && !_safety_disabled) {
-				/* switch to armed state */
-				_safety_btn_off = true;
-			}
-
-			counter++;
-		}
-
-	} else if (safety_button_pressed && _safety_btn_off) {
-
-		if (counter < CYCLE_COUNT) {
-			counter++;
-
-		} else if (counter == CYCLE_COUNT) {
-			if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO) && !_safety_disabled) {
-				/* change to disarmed state and notify the FMU */
-				_safety_btn_off = false;
-			}
-
-			counter++;
-		}
-
-	} else {
-		counter = 0;
-	}
-
-#endif
-	return safety_button_pressed;
-}
-
-void
-PX4FMU::flash_safety_button()
-{
-#if defined(GPIO_BTN_SAFETY) &&  defined(GPIO_LED_SAFETY)
-
-	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
-		/* Select the appropriate LED flash pattern depending on the current arm state */
-		uint16_t pattern = LED_PATTERN_FMU_REFUSE_TO_ARM;
-
-		/* cycle the blink state machine at 10Hz */
-		static int blink_counter = 0;
-
-		if (_safety_btn_off) {
-			if (_armed.armed) {
-				pattern = LED_PATTERN_IO_FMU_ARMED;
-
-			} else {
-				pattern = LED_PATTERN_IO_ARMED;
-			}
-
-		} else if (_armed.armed) {
-			pattern = LED_PATTERN_FMU_ARMED;
-
-		} else {
-			pattern = LED_PATTERN_FMU_OK_TO_ARM;
-
-		}
-
-		/* Turn the LED on if we have a 1 at the current bit position */
-		px4_arch_gpiowrite(GPIO_LED_SAFETY, !(pattern & (1 << blink_counter++)));
-
-		if (blink_counter > 15) {
-			blink_counter = 0;
-		}
-	}
-
-#endif
 }
 
 int
@@ -833,11 +697,6 @@ PX4FMU::subscribe()
 		}
 	}
 
-	// if nothing required keep periodic schedule for safety button
-	if (_groups_required == 0) {
-		ScheduleOnInterval(100_ms);
-	}
-
 	PX4_DEBUG("_groups_required 0x%08x", _groups_required);
 	PX4_DEBUG("_groups_subscribed 0x%08x", _groups_subscribed);
 
@@ -992,7 +851,7 @@ PX4FMU::Run()
 	if (_armed_sub.update(&_armed)) {
 		/* Update the armed status and check that we're not locked down.
 		 * We also need to arm throttle for the ESC calibration. */
-		_throttle_armed = (_safety_off && _armed.armed && !_armed.lockdown) || (_safety_off && _armed.in_esc_calibration_mode);
+		_throttle_armed = (_armed.armed && !_armed.lockdown) || _armed.in_esc_calibration_mode;
 	}
 
 	unsigned n_updates = 0;
@@ -1110,56 +969,6 @@ PX4FMU::Run()
 				perf_set_elapsed(_control_latency_perf, actuator_outputs.timestamp - timestamp_sample);
 				break;
 			}
-		}
-	}
-
-	_cycle_timestamp = hrt_absolute_time();
-
-#ifdef GPIO_BTN_SAFETY
-
-	if (_cycle_timestamp - _last_safety_check >= (unsigned int)1e5) {
-		_last_safety_check = _cycle_timestamp;
-
-		/* read safety switch input at 10Hz */
-		bool safety_pressed = safety_check_button();
-
-		if (safety_pressed) {
-			/* lazily publish the vehicle command */
-			struct vehicle_command_s cmd = {};
-			cmd.timestamp = hrt_absolute_time();
-			cmd.command = vehicle_command_s::VEHICLE_CMD_START_RX_PAIR;
-			cmd.from_external = false;
-
-			_to_command.publish(cmd);
-		}
-
-		if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
-			/**
-			 * Get and handle the safety status at 10Hz
-			 */
-			struct safety_s safety = {};
-
-			/* Make the safety button flash anyway, no matter if it's used or not. */
-			flash_safety_button();
-
-			safety.timestamp = hrt_absolute_time();
-			safety.safety_switch_available = true;
-			safety.safety_off = _safety_btn_off;
-
-			/* lazily publish the safety status */
-			_to_safety.publish(safety);
-
-		}
-	}
-
-#endif
-
-	// check safety button state
-	if (_safety_sub.updated()) {
-		safety_s safety;
-
-		if (_safety_sub.copy(&safety)) {
-			_safety_off = !safety.safety_switch_available || safety.safety_off;
 		}
 	}
 
@@ -1328,16 +1137,8 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case PWM_SERVO_SET_ARM_OK:
 	case PWM_SERVO_CLEAR_ARM_OK:
-		break;
-
 	case PWM_SERVO_SET_FORCE_SAFETY_OFF:
-		/* force safety switch off */
-		_safety_btn_off = true;
-		break;
-
 	case PWM_SERVO_SET_FORCE_SAFETY_ON:
-		/* force safety switch on */
-		_safety_btn_off = false;
 		break;
 
 	case PWM_SERVO_DISARM:
@@ -2865,12 +2666,6 @@ mixer files.
 int PX4FMU::print_status()
 {
 	PX4_INFO("Max update rate: %i Hz", _current_update_rate);
-
-#ifdef GPIO_BTN_SAFETY
-	if (!PX4_MFT_HW_SUPPORTED(PX4_MFT_PX4IO)) {
-		PX4_INFO("Safety State (from button): %s", _safety_btn_off ? "off" : "on");
-	}
-#endif
 
 	const char *mode_str = nullptr;
 
