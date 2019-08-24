@@ -37,12 +37,8 @@
  * SPI interface for BMP280
  */
 
-#include <px4_config.h>
 
 #include "bmp280.h"
-#include <drivers/device/i2c.h>
-
-#include "board_config.h"
 
 #if defined(PX4_I2C_OBDEV_BMP280) || defined(PX4_I2C_EXT_OBDEV_BMP280)
 

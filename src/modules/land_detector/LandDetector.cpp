@@ -190,7 +190,7 @@ void LandDetector::_update_state()
 void LandDetector::_update_total_flight_time()
 {
 	_total_flight_time = static_cast<uint64_t>(_param_total_flight_time_high.get()) << 32;
-	_total_flight_time |= _param_total_flight_time_low.get();
+	_total_flight_time |= static_cast<uint32_t>(_param_total_flight_time_low.get());
 }
 
 } // namespace land_detector

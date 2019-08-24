@@ -247,12 +247,14 @@ void LoadMon::_stack_usage()
 
 		task_stack_info_s task_stack_info = {};
 
-		if (system_load.tasks[task_index].valid && system_load.tasks[task_index].tcb->pid > 0) {
+		if (system_load.tasks[task_index].valid && (system_load.tasks[task_index].tcb->pid > 0)) {
 
 			stack_free = up_check_tcbstack_remain(system_load.tasks[task_index].tcb);
 
-			strncpy((char *)task_stack_info.task_name, system_load.tasks[task_index].tcb->name,
-				task_stack_info_s::MAX_REPORT_TASK_NAME_LEN);
+			static_assert(sizeof(task_stack_info.task_name) == CONFIG_TASK_NAME_SIZE,
+				      "task_stack_info.task_name must match NuttX CONFIG_TASK_NAME_SIZE");
+			strncpy((char *)task_stack_info.task_name, system_load.tasks[task_index].tcb->name, CONFIG_TASK_NAME_SIZE - 1);
+			task_stack_info.task_name[CONFIG_TASK_NAME_SIZE - 1] = '\0';
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
 			FAR struct task_group_s *group = system_load.tasks[task_index].tcb->group;
@@ -269,7 +271,7 @@ void LoadMon::_stack_usage()
 				fds_free = CONFIG_NFILE_DESCRIPTORS - tcb_num_used_fds;
 			}
 
-#endif
+#endif // CONFIG_NFILE_DESCRIPTORS
 
 			checked_task = true;
 		}

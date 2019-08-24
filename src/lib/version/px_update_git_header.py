@@ -1,12 +1,25 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
+import argparse
 import os
 import sys
 import subprocess
 import re
 
-filename = sys.argv[1]
+parser = argparse.ArgumentParser(description="""Extract version info from git and
+generate a version header file. The working directory is expected to be
+the root of Firmware.""")
+parser.add_argument('filename', metavar='version.h', help='Header output file')
+parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
+                    help='Verbose output', default=False)
+parser.add_argument('--validate', dest='validate', action='store_true',
+                    help='Validate the tag format', default=False)
+
+args = parser.parse_args()
+filename = args.filename
+verbose = args.verbose
+validate = args.validate
 
 try:
     fp_header = open(filename, 'r')
@@ -26,6 +39,41 @@ header = """
 # PX4
 git_tag = subprocess.check_output('git describe --always --tags --dirty'.split(),
                                   stderr=subprocess.STDOUT).decode('utf-8').strip()
+if validate:
+    if verbose:
+        print("testing git tag: "+git_tag)
+    # remove optional '-dirty' at the end
+    git_tag_test = re.sub(r'-dirty$', '', git_tag)
+    # remove optional -<num_commits>-g<commit_hash> at the end (in case we are not on a tagged commit)
+    git_tag_test = re.sub(r'-[0-9]+-g[0-9a-fA-F]+$', '', git_tag_test)
+    # now check the version format
+    m = re.match(r'v([0-9]+)\.([0-9]+)\.[0-9]+([-]?rc[0-9]+)?(-beta[0-9]+)?(-[0-9]+\.[0-9]+\.[0-9]+)?$', git_tag_test)
+    if m:
+        # format matches, check the major and minor numbers
+        major = int(m.group(1))
+        minor = int(m.group(2))
+        if major < 1 or (major == 1 and minor < 9):
+            print("")
+            print("Error: PX4 version too low, expected at least v1.9.0")
+            print("Check the git tag (current tag: '{:}')".format(git_tag_test))
+            print("")
+            sys.exit(1)
+    else:
+        print("")
+        print("Error: the git tag '{:}' does not match the expected format.".format(git_tag_test))
+        print("")
+        print("The expected format is 'v<PX4 version>[-<custom version>]'")
+        print("  <PX4 version>: v<major>.<minor>.<patch>[-rc<rc>|-beta<beta>]")
+        print("  <custom version>: <major>.<minor>.<patch>")
+        print("Examples:")
+        print("  v1.9.0rc3 (deprecated)")
+        print("  v1.9.0-rc3 (preferred)")
+        print("  v1.9.0-beta1")
+        print("  v1.9.0-1.0.0")
+        print("See also https://dev.px4.io/master/en/setup/building_px4.html#firmware_version")
+        print("")
+        sys.exit(1)
+
 git_version = subprocess.check_output('git rev-parse --verify HEAD'.split(),
                                       stderr=subprocess.STDOUT).decode('utf-8').strip()
 try:
@@ -94,6 +142,7 @@ if (os.path.exists('platforms/nuttx/NuttX/nuttx/.git')):
 
 
 if old_header != header:
-    print('Updating header {}'.format(sys.argv[1]))
+    if verbose:
+        print('Updating header {}'.format(filename))
     fp_header = open(filename, 'w')
     fp_header.write(header)

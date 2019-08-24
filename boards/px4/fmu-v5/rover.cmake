@@ -42,7 +42,6 @@ px4_add_board(
 		roboclaw
 		stm32
 		stm32/adc
-		stm32/armv7-m_dcache
 		stm32/tone_alarm
 		telemetry # all available telemetry drivers
 		tone_alarm
@@ -54,8 +53,7 @@ px4_add_board(
 		dataman
 		ekf2
 		events
-		gnd_att_control
-		gnd_pos_control
+		rover_pos_control
 		land_detector
 		load_mon
 		logger
@@ -70,6 +68,7 @@ px4_add_board(
 		dumpfile
 		esc_calib
 		hardfault_log
+		i2cdetect
 		led_control
 		mixer
 		motor_ramp

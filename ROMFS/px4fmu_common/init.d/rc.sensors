@@ -16,9 +16,6 @@ then
 	fi
 
 
-	# Blacksheep telemetry
-	bst start
-
 	adc start
 fi
 

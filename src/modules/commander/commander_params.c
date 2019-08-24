@@ -262,18 +262,29 @@ PARAM_DEFINE_INT32(COM_RC_ARM_HYST, 1000);
  * A non-zero, positive value specifies the time-out period in seconds after which the vehicle will be
  * automatically disarmed in case a landing situation has been detected during this period.
  *
- * The vehicle will also auto-disarm right after arming if it has not even flown, however the time
- * will always be 10 seconds such that the pilot has enough time to take off.
- *
- * A negative value means that automatic disarming triggered by landing detection is disabled.
+ * A zero or negative value means that automatic disarming triggered by landing detection is disabled.
  *
  * @group Commander
- * @min -1
- * @max 20
  * @unit s
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(COM_DISARM_LAND, -1.0f);
+
+PARAM_DEFINE_FLOAT(COM_DISARM_LAND, 2.0f);
+
+/**
+ * Time-out for auto disarm if too slow to takeoff
+ *
+ * A non-zero, positive value specifies the time after arming, in seconds, within which the
+ * vehicle must take off (after which it will automatically disarm).
+ *
+ * A zero or negative value means that automatic disarming triggered by a pre-takeoff timeout is disabled.
+ *
+ * @group Commander
+ * @unit s
+ * @decimal 2
+ */
+PARAM_DEFINE_FLOAT(COM_DISARM_PRFLT,  10.0f);
+
 
 /**
  * Allow arming without GPS
@@ -333,9 +344,12 @@ PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 0.0f);
  * The offboard loss failsafe will only be entered after a timeout,
  * set by COM_OF_LOSS_T in seconds.
  *
- * @value 0 Land mode
- * @value 1 Hold mode
- * @value 2 Return mode
+ * @value -1 Disabled
+ * @value  0 Land mode
+ * @value  1 Hold mode
+ * @value  2 Return mode
+ * @value  3 Terminate
+ * @value  4 Lockdown
  *
  * @group Commander
  */
@@ -347,12 +361,15 @@ PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
  * The offboard loss failsafe will only be entered after a timeout,
  * set by COM_OF_LOSS_T in seconds.
  *
- * @value 0 Position mode
- * @value 1 Altitude mode
- * @value 2 Manual
- * @value 3 Return mode
- * @value 4 Land mode
- * @value 5 Hold mode
+ * @value -1 Disabled
+ * @value  0 Position mode
+ * @value  1 Altitude mode
+ * @value  2 Manual
+ * @value  3 Return mode
+ * @value  4 Land mode
+ * @value  5 Hold mode
+ * @value  6 Terminate
+ * @value  7 Lockdown
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
@@ -600,23 +617,27 @@ PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.25f);
 
 /**
  * Maximum magnetic field inconsistency between units that will allow arming
+ * Set -1 to disable the check.
  *
  * @group Commander
- * @unit Gauss
- * @min 0.05
- * @max 0.5
- * @decimal 2
- * @increment 0.05
+ * @unit deg
+ * @min 3
+ * @max 180
  */
-PARAM_DEFINE_FLOAT(COM_ARM_MAG, 0.15f);
+PARAM_DEFINE_INT32(COM_ARM_MAG_ANG, 30);
 
 /**
  * Enable RC stick override of auto modes
  *
+ * When an auto mode is active (except a critical battery reaction) moving the RC sticks
+ * gives control back to the pilot in manual position mode immediately.
+ *
+ * Only has an effect on multicopters and VTOLS in multicopter mode.
+ *
  * @boolean
  * @group Commander
  */
-PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 0);
+PARAM_DEFINE_INT32(COM_RC_OVERRIDE, 1);
 
 /**
  * Require valid mission to arm
@@ -634,8 +655,8 @@ PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
  * This sets the flight mode that will be used if navigation accuracy is no longer adequate for position control.
  * Navigation accuracy checks can be disabled using the CBRK_VELPOSERR parameter, but doing so will remove protection for all flight modes.
  *
- * @value 0 Assume use of remote control after fallback. Switch to Altitude mode if a height estimate is available, else switch to MANUAL.
- * @value 1 Assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
+ * @value 0 Altitude/Manual. Assume use of remote control after fallback. Switch to Altitude mode if a height estimate is available, else switch to MANUAL.
+ * @value 1 Land/Terminate.  Assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
  *
  * @group Commander
  */
@@ -922,3 +943,13 @@ PARAM_DEFINE_INT32(COM_ASPD_FS_DLY, 0);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_FLT_PROFILE, 0);
+
+/**
+ * Require all the ESCs to be detected to arm.
+ *
+ * This param is specific for ESCs reporting status. Normal ESCs configurations are not affected by the change of this param.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_ARM_CHK_ESCS, 1);

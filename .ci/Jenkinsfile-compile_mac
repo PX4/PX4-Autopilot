@@ -18,6 +18,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
+            sh 'git fetch --tags'
             sh 'ccache -z'
             sh 'make px4_sitl_default'
             sh 'ccache -s'
@@ -39,6 +40,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
+            sh 'git fetch --tags'
             sh 'ccache -z'
             sh 'make px4_fmu-v5_default'
             sh 'ccache -s'
@@ -60,6 +62,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
+            sh 'git fetch --tags'
             sh 'ccache -z'
             sh 'make tests'
             sh 'ccache -s'

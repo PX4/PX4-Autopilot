@@ -154,7 +154,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_VEL_P, 0.2f);
  * @decimal 3
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_VEL_I, 0.02f);
+PARAM_DEFINE_FLOAT(MPC_Z_VEL_I, 0.1f);
 
 /**
  * Differential gain for vertical velocity error
@@ -253,17 +253,17 @@ PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
  * Proportional gain for horizontal trajectory position error
  *
  * @min 0.1
- * @max 5.0
+ * @max 1.0
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.3f);
+PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.5f);
 
 /**
  * Proportional gain for vertical trajectory position error
  *
  * @min 0.1
- * @max 5.0
+ * @max 1.0
  * @decimal 1
  * @group Multicopter Position Control
  */
@@ -351,6 +351,18 @@ PARAM_DEFINE_FLOAT(MPC_TILTMAX_LND, 12.0f);
 PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.7f);
 
 /**
+ * Enable user assisted descent speed for autonomous land routine.
+ * When enabled, descent speed will be equal to MPC_LAND_SPEED at half throttle,
+ * MPC_Z_VEL_MAX_DN at zero throttle, and 0.5 * MPC_LAND_SPEED at full throttle.
+ *
+ * @min 0
+ * @max 1
+ * @value 0 Fixed descent speed of MPC_LAND_SPEED
+ * @value 1 User assisted descent speed
+ */
+PARAM_DEFINE_INT32(MPC_LAND_RC_HELP, 0);
+
+/**
  * Takeoff climb rate
  *
  * @unit m/s
@@ -381,7 +393,7 @@ PARAM_DEFINE_FLOAT(MPC_MAN_TILT_MAX, 35.0f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 200.0f);
+PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 150.0f);
 
 /**
  * Deadzone of sticks where position hold is enabled
@@ -439,7 +451,7 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 10.0f);
+PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
 
 /**
  * Acceleration for auto and for manual
@@ -454,7 +466,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 10.0f);
  * @group Multicopter Position Control
  */
 
-PARAM_DEFINE_FLOAT(MPC_ACC_HOR, 5.0f);
+PARAM_DEFINE_FLOAT(MPC_ACC_HOR, 3.0f);
 
 /**
  * Slow horizontal manual deceleration for manual mode
@@ -495,7 +507,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_ESTM, 0.5f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_ACC_UP_MAX, 10.0f);
+PARAM_DEFINE_FLOAT(MPC_ACC_UP_MAX, 4.0f);
 
 /**
  * Maximum vertical acceleration in velocity controlled modes down
@@ -507,7 +519,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_UP_MAX, 10.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 10.0f);
+PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 3.0f);
 
 /**
  * Maximum jerk limit
@@ -606,7 +618,7 @@ PARAM_DEFINE_INT32(MPC_ALT_MODE, 0);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_XY_MAN_EXPO, 0.0f);
+PARAM_DEFINE_FLOAT(MPC_XY_MAN_EXPO, 0.6f);
 
 /**
  * Manual control stick vertical exponential curve
@@ -622,7 +634,7 @@ PARAM_DEFINE_FLOAT(MPC_XY_MAN_EXPO, 0.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_Z_MAN_EXPO, 0.0f);
+PARAM_DEFINE_FLOAT(MPC_Z_MAN_EXPO, 0.6f);
 
 /**
  * Manual control stick yaw rotation exponential curve
@@ -638,7 +650,7 @@ PARAM_DEFINE_FLOAT(MPC_Z_MAN_EXPO, 0.0f);
  * @decimal 2
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_YAW_EXPO, 0.0f);
+PARAM_DEFINE_FLOAT(MPC_YAW_EXPO, 0.6f);
 
 /**
  * Max yaw rate in auto mode
@@ -717,7 +729,7 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 3.0f);
  * @value 3 Smooth position control (Velocity)
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_INT32(MPC_POS_MODE, 1);
+PARAM_DEFINE_INT32(MPC_POS_MODE, 3);
 
 /**
  * Auto sub-mode
@@ -750,11 +762,12 @@ PARAM_DEFINE_FLOAT(MPC_SPOOLUP_TIME, 1.0f);
  * Specifies the heading in Auto.
  *
  * @min 0
- * @max 3
+ * @max 4
  * @value 0 towards waypoint
  * @value 1 towards home
  * @value 2 away from home
  * @value 3 along trajectory
+ * @value 4 towards waypoint (yaw first)
  * @group Mission
  */
 PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);

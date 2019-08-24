@@ -78,8 +78,11 @@ px4_add_romfs_files(
 	4050_generic_250
 	4051_s250aq
 	4052_holybro_qav250
+	4053_holybro_kopis2
 	4060_dji_matrice_100
 	4070_aerofc
+	4071_ifo
+	4072_draco
 	4080_zmr250
 	4090_nanomind
 	4100_tiltquadrotor
@@ -91,6 +94,7 @@ px4_add_romfs_files(
 
 	# [6000, 6999] Hexarotor x"
 	6001_hexa_x
+	6002_draco_r
 
 	# [7000, 7999] Hexarotor +"
 	7001_hexa_+

@@ -38,6 +38,7 @@ set(msg_files
 	actuator_outputs.msg
 	adc_report.msg
 	airspeed.msg
+	airspeed_validated.msg
 	battery_status.msg
 	camera_capture.msg
 	camera_trigger.msg
@@ -104,6 +105,7 @@ set(msg_files
 	sensor_combined.msg
 	sensor_correction.msg
 	sensor_gyro.msg
+	sensor_gyro_control.msg
 	sensor_mag.msg
 	sensor_preflight.msg
 	sensor_selection.msg
@@ -122,7 +124,9 @@ set(msg_files
 	uavcan_parameter_value.msg
 	ulog_stream.msg
 	ulog_stream_ack.msg
+	vehicle_acceleration.msg
 	vehicle_air_data.msg
+	vehicle_angular_velocity.msg
 	vehicle_attitude.msg
 	vehicle_attitude_setpoint.msg
 	vehicle_command.msg
@@ -142,6 +146,7 @@ set(msg_files
 	vehicle_status_flags.msg
 	vehicle_trajectory_waypoint.msg
 	vtol_vehicle_status.msg
+	wheel_encoders.msg
 	wind_estimate.msg
 	)
 
