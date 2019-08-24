@@ -166,6 +166,20 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
 	wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
 	sudo apt-get update -yy --quiet
-	sudo apt-get -yy --quiet --no-install-recommends install gazebo9
+	sudo apt-get -yy --quiet --no-install-recommends install \
+		gazebo9 \
+		gstreamer1.0-plugins-bad \
+		gstreamer1.0-plugins-base \
+		gstreamer1.0-plugins-good \
+		gstreamer1.0-plugins-ugly \
+		libeigen3-dev \
+		libgazebo9-dev \
+		libgstreamer-plugins-base1.0-dev \
+		libimage-exiftool-perl \
+		libopencv-dev \
+		libxml2-utils \
+		pkg-config \
+		protobuf-compiler \
+		;
 
 fi
