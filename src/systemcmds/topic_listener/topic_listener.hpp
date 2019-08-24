@@ -67,5 +67,5 @@ int listener_print_topic(const orb_id_t &orb_id, int subscription)
 	return ret;
 }
 
-void listener(listener_print_topic_cb cb, const orb_id_t &id, unsigned num_msgs, unsigned topic_instance,
+void listener(listener_print_topic_cb cb, const orb_id_t &id, unsigned num_msgs, int topic_instance,
 	      unsigned topic_interval);
