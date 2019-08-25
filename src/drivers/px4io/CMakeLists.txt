@@ -59,6 +59,7 @@ ExternalProject_Add(px4io_firmware
 	INSTALL_COMMAND ""
 	USES_TERMINAL_BUILD true
 	DEPENDS git_nuttx git_nuttx_apps
+	BUILD_ALWAYS 1
 )
 
 ExternalProject_Get_Property(px4io_firmware BINARY_DIR)
