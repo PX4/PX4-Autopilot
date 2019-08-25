@@ -49,10 +49,12 @@ class Classifier():
         self.msg_folder = msg_folder
         self.all_msgs_list = self.set_all_msgs()
         self.msg_id_map = self.parse_yaml_msg_id_file(yaml_file)
+        self.alias_space_init_id = 150
 
         # Checkers
         self.check_if_listed(yaml_file)
         self.check_base_type()
+        self.check_id_space()
 
         self.msgs_to_send, self.alias_msgs_to_send = self.set_msgs_to_send()
         self.msgs_to_receive, self.alias_msgs_to_receive = self.set_msgs_to_receive()
@@ -162,7 +164,27 @@ class Classifier():
 
         if len(base_types_suggestion) > 0:
             raise AssertionError(
-                ('\n' + '\n'.join('\t- The multi-topic message base type {} does not exist.{}'.format(k, (' Did you mean \'' + v[0] + '\'?' if v else '')) for k, v in base_types_suggestion.items())))
+                ('\n' + '\n'.join('\t- The multi-topic message base type \'{}\' does not exist.{}'.format(k, (' Did you mean \'' + v[0] + '\'?' if v else '')) for k, v in base_types_suggestion.items())))
+
+    def check_id_space(self):
+        """
+        Check if msg ID is in the correct ID space
+        """
+        incorrect_base_ids = {}
+        incorrect_alias_ids = {}
+        for dict in self.msg_id_map['rtps']:
+            if 'alias' not in dict.keys() and dict['id'] >= self.alias_space_init_id:
+                incorrect_base_ids.update({dict['msg']: dict['id']})
+            elif 'alias' in dict.keys() and dict['id'] < self.alias_space_init_id:
+                incorrect_alias_ids.update({dict['msg']: dict['id']})
+
+        if len(incorrect_base_ids) > 0:
+            raise AssertionError(
+                ('\n' + '\n'.join('\t- The message \'{} with ID \'{}\' is in the wrong ID space. Please use any of the available IDs from 0 to 149'.format(k, v) for k, v in incorrect_base_ids.items())))
+
+        if len(incorrect_alias_ids) > 0:
+            raise AssertionError(
+                ('\n' + '\n'.join('\t- The alias message \'{}\' with ID \'{}\' is in the wrong ID space. Please use any of the available IDs from 149 to 255'.format(k, v) for k, v in incorrect_alias_ids.items())))
 
     @staticmethod
     def parse_yaml_msg_id_file(yaml_file):
