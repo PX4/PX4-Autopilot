@@ -1344,6 +1344,13 @@ PX4IO::io_set_arming_state()
 
 		_armed = armed.armed;
 
+		if (armed.prearmed) {
+			set |= PX4IO_P_SETUP_ARMING_FMU_PREARMED;
+
+		} else {
+			clear |= PX4IO_P_SETUP_ARMING_FMU_PREARMED;
+		}
+
 		if ((armed.lockdown || armed.manual_lockdown) && !_lockdown_override) {
 			set |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
 			_lockdown_override = true;
@@ -2284,6 +2291,7 @@ PX4IO::print_status(bool extended_status)
 	printf("arming 0x%04hx%s%s%s%s%s%s%s%s%s%s\n",
 	       arming,
 	       ((arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)		? " FMU_ARMED" : " FMU_DISARMED"),
+	       ((arming & PX4IO_P_SETUP_ARMING_FMU_PREARMED)		? " FMU_PREARMED" : " FMU_NOT_PREARMED"),
 	       ((arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)		? " IO_ARM_OK" : " IO_ARM_DENIED"),
 	       ((arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK)	? " MANUAL_OVERRIDE_OK" : ""),
 	       ((arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM)		? " FAILSAFE_CUSTOM" : ""),
