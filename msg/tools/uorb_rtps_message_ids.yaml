@@ -311,7 +311,7 @@ rtps:
     id: 164
     alias: obstacle_distance
   - msg: vehicle_vision_attitude
-    id: 145
+    id: 165
     alias: vehicle_attitude
   - msg: trajectory_setpoint
     id: 166
