@@ -144,19 +144,25 @@ class Classifier():
         """
         Check if alias message has correct base type
         """
-        rtps_registered_msgs = list(
+        registered_alias_msgs = list(
             dict['alias'] for dict in self.msg_id_map['rtps'] if 'alias' in dict.keys())
-        uorb_msg = list(msg for msg in self.all_msgs_list)
-        incorrect_base_types = list(set(rtps_registered_msgs) - set(uorb_msg))
 
-        base_types = {}
+        base_types = []
+        for dict in self.msg_id_map['rtps']:
+            if 'alias' not in dict.keys():
+                base_types.append(dict['msg'])
+
+        incorrect_base_types = list(
+            set(registered_alias_msgs) - set(base_types))
+
+        base_types_suggestion = {}
         for incorrect in incorrect_base_types:
-            base_types.update({incorrect: difflib.get_close_matches(
-                incorrect, uorb_msg, n=1, cutoff=0.6)})
+            base_types_suggestion.update({incorrect: difflib.get_close_matches(
+                incorrect, base_types, n=1, cutoff=0.6)})
 
-        if len(base_types) > 0:
+        if len(base_types_suggestion) > 0:
             raise AssertionError(
-                ('\n' + '\n'.join('\t- The multi-topic message base type {} does not exist. Did you mean \'{}\'?'.format(k, v[0]) for k, v in base_types.items())))
+                ('\n' + '\n'.join('\t- The multi-topic message base type {} does not exist.{}'.format(k, (' Did you mean \'' + v[0] + '\'?' if v else '')) for k, v in base_types_suggestion.items())))
 
     @staticmethod
     def parse_yaml_msg_id_file(yaml_file):
