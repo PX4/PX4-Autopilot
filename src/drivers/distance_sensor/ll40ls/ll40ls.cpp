@@ -51,29 +51,16 @@
 #include <stdio.h>
 #include <px4_getopt.h>
 
+#define LL40LS_DEVICE_PATH		"/dev/ll40ls"
+#define LL40LS_DEVICE_PATH_EXT		"/dev/ll40ls_ext"
+#define LL40LS_DEVICE_PATH_EXT_1	"/dev/ll40ls_ext_1"
+#define LL40LS_DEVICE_PATH_EXT_2	"/dev/ll40ls_ext_2"
+
 enum LL40LS_BUS {
 	LL40LS_BUS_I2C_ALL = 0,
 	LL40LS_BUS_I2C_INTERNAL,
 	LL40LS_BUS_I2C_EXTERNAL,
 	LL40LS_BUS_PWM
-};
-
-static constexpr struct ll40ls_bus_option {
-	enum LL40LS_BUS busid;
-	uint8_t busnum;
-} bus_options[] = {
-#ifdef PX4_I2C_BUS_EXPANSION
-	{ LL40LS_BUS_I2C_EXTERNAL, PX4_I2C_BUS_EXPANSION },
-#endif
-#ifdef PX4_I2C_BUS_EXPANSION1
-	{ LL40LS_BUS_I2C_EXTERNAL, PX4_I2C_BUS_EXPANSION1 },
-#endif
-#ifdef PX4_I2C_BUS_EXPANSION2
-	{ LL40LS_BUS_I2C_EXTERNAL, PX4_I2C_BUS_EXPANSION2 },
-#endif
-#ifdef PX4_I2C_BUS_ONBOARD
-	{ LL40LS_BUS_I2C_INTERNAL, PX4_I2C_BUS_ONBOARD },
-#endif
 };
 
 /**
@@ -88,65 +75,140 @@ extern "C" __EXPORT int ll40ls_main(int argc, char *argv[]);
 namespace ll40ls
 {
 
+/*
+  list of supported bus configurations
+ */
+struct ll40ls_bus_option {
+	enum LL40LS_BUS busid;
+	const char *path;
+	uint8_t busnum;
+	LidarLite *dev;
+} bus_options[] = {
+#ifdef PX4_I2C_BUS_EXPANSION
+	{ LL40LS_BUS_I2C_EXTERNAL, LL40LS_DEVICE_PATH, PX4_I2C_BUS_EXPANSION, nullptr },
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION1
+	{ LL40LS_BUS_I2C_EXTERNAL, LL40LS_DEVICE_PATH_EXT, PX4_I2C_BUS_EXPANSION1, nullptr },
+#endif
+#ifdef PX4_I2C_BUS_EXPANSION2
+	{ LL40LS_BUS_I2C_EXTERNAL, LL40LS_DEVICE_PATH_EXT_1, PX4_I2C_BUS_EXPANSION2, nullptr },
+#endif
+#ifdef PX4_I2C_BUS_ONBOARD
+	{ LL40LS_BUS_I2C_INTERNAL, LL40LS_DEVICE_PATH_EXT_2, PX4_I2C_BUS_ONBOARD, nullptr },
+#endif
+};
+
+#define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
+
 LidarLite *instance = nullptr;
 
 void    start(enum LL40LS_BUS busid, uint8_t rotation);
+bool	start_bus(struct ll40ls_bus_option &bus, enum Rotation rotation);
+struct ll40ls_bus_option &find_bus(enum LL40LS_BUS busid);
 void    stop();
 void    info();
 void    regdump();
 void    usage();
 
 /**
- * @brief Starts the driver.
+ * find a bus structure for a busid
  */
-void start(enum LL40LS_BUS busid, uint8_t rotation)
+struct ll40ls_bus_option &find_bus(enum LL40LS_BUS busid)
 {
-	if (instance) {
-		PX4_INFO("driver already started");
-		return;
+	for (uint8_t i = 0; i < NUM_BUS_OPTIONS; i++) {
+		if ((busid == LL40LS_BUS_I2C_ALL ||
+		     busid == bus_options[i].busid) && bus_options[i].dev != nullptr) {
+			return bus_options[i];
+		}
 	}
 
-	if (busid == LL40LS_BUS_PWM) {
-		instance = new LidarLitePWM(rotation);
+	errx(1, "bus %u not started", (unsigned)busid);
+}
 
-		if (!instance) {
-			PX4_ERR("Failed to instantiate LidarLitePWM");
-			return;
+
+ /**
+ * Start the driver.
+ *
+ * This function only returns if the driver is up and running
+ * or failed to detect the sensor.
+ */
+void
+start(enum LL40LS_BUS busid, enum Rotation rotation)
+{
+
+	bool started = false;
+
+	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
+		if (bus_options[i].dev != nullptr) {
+			// this device is already started
+			continue;
 		}
 
-		if (instance->init() != PX4_OK) {
-			PX4_ERR("failed to initialize LidarLitePWM");
-			stop();
-			return;
+		if (busid != LL40LS_BUS_I2C_ALL && bus_options[i].busid != busid) {
+			// not the one that is asked for
+			continue;
 		}
+
+		started |= start_bus(bus_options[i], rotation);
+
+		if (started) { break; }
+	}
+
+	exit(started ? 0 : 1);
+
+}
+
+
+/**
+ * start driver for a specific bus option
+ */
+bool
+start_bus(struct ll40ls_bus_option &bus, enum Rotation rotation)
+{
+	if (bus.busid == LL40LS_BUS_PWM) {
+		// bus.dev = new LidarLitePWM(rotation);
+
+		// if (!bus.dev) {
+		// 	PX4_ERR("Failed to instantiate LidarLitePWM");
+		// 	return false;
+		// }
+
+		// if (bus.dev->init() != PX4_OK) {
+		// 	// PX4_ERR("failed to initialize LidarLitePWM");
+		// 	// stop();
+		// 	// return false;
+		// 	goto fail;
+		// }
 
 	} else {
-		for (uint8_t i = 0; i < (sizeof(bus_options) / sizeof(bus_options[0])); i++) {
-			if (busid != LL40LS_BUS_I2C_ALL && busid != bus_options[i].busid) {
-				continue;
-			}
+		bus.dev = new LidarLiteI2C(bus.busnum, rotation);
 
-			instance = new LidarLiteI2C(bus_options[i].busnum, rotation);
-
-			if (!instance) {
-				PX4_ERR("Failed to instantiate LidarLiteI2C");
-				return;
-			}
-
-			if (instance->init() == PX4_OK) {
-				break;
-			}
-
-			PX4_ERR("failed to initialize LidarLiteI2C on busnum=%u", bus_options[i].busnum);
-			stop();
+		if (!bus.dev) {
+			PX4_ERR("Failed to instantiate LidarLiteI2C");
+			return false;
 		}
+
+		if (bus.dev->init() == PX4_OK) {
+			goto fail;
+		}
+
+		// PX4_ERR("failed to initialize LidarLiteI2C on busnum=%u", bus_options[i].busnum);
+		// stop();
 	}
 
-	if (!instance) {
-		PX4_WARN("No LidarLite found");
-		return;
+	return true;
+
+fail:
+
+	if (bus.dev != nullptr) {
+		delete (bus.dev);
+		bus.dev = nullptr;
 	}
+
+	errx(1, "driver start failed");
+
 }
+
 
 /**
  * @brief Stops the driver
