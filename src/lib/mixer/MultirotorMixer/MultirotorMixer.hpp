@@ -161,8 +161,12 @@ public:
 			uint16_t pitch_neg	: 1; // 6 - true when a negative pitch demand change will increase saturation
 			uint16_t yaw_pos	: 1; // 7 - true when a positive yaw demand change will increase saturation
 			uint16_t yaw_neg	: 1; // 8 - true when a negative yaw demand change will increase saturation
-			uint16_t thrust_pos	: 1; // 9 - true when a positive thrust demand change will increase saturation
-			uint16_t thrust_neg	: 1; //10 - true when a negative thrust demand change will increase saturation
+			uint16_t x_thrust_pos	: 1; // 9 - true when a positive x thrust demand change will increase saturation
+			uint16_t x_thrust_neg	: 1; //10 - true when a negative x thrust demand change will increase saturation
+			uint16_t y_thrust_pos	: 1; //11 - true when a positive y thrust demand change will increase saturation
+			uint16_t y_thrust_neg	: 1; //12 - true when a negative y thrust demand change will increase saturation
+			uint16_t z_thrust_pos	: 1; //13 - true when a positive z thrust demand change will increase saturation
+			uint16_t z_thrust_neg	: 1; //14 - true when a negative z thrust demand change will increase saturation
 		} flags;
 		uint16_t value;
 	};
@@ -386,12 +390,12 @@ public:
 			uint16_t pitch_neg	: 1; // 6 - true when a negative pitch demand change will increase saturation
 			uint16_t yaw_pos	: 1; // 7 - true when a positive yaw demand change will increase saturation
 			uint16_t yaw_neg	: 1; // 8 - true when a negative yaw demand change will increase saturation
-			uint16_t x_pos		: 1; // 9 - true when a positive x thrust demand change will increase saturation
-			uint16_t x_neg		: 1; //10 - true when a negative x thrust demand change will increase saturation
-			uint16_t y_pos		: 1; //11 - true when a positive y thrust demand change will increase saturation
-			uint16_t y_neg		: 1; //12 - true when a negative y thrust demand change will increase saturation
-			uint16_t z_pos		: 1; //13 - true when a positive z thrust demand change will increase saturation
-			uint16_t z_neg		: 1; //14 - true when a negative z thrust demand change will increase saturation
+			uint16_t x_thrust_pos	: 1; // 9 - true when a positive x thrust demand change will increase saturation
+			uint16_t x_thrust_neg	: 1; //10 - true when a negative x thrust demand change will increase saturation
+			uint16_t y_thrust_pos	: 1; //11 - true when a positive y thrust demand change will increase saturation
+			uint16_t y_thrust_neg	: 1; //12 - true when a negative y thrust demand change will increase saturation
+			uint16_t z_thrust_pos	: 1; //13 - true when a positive z thrust demand change will increase saturation
+			uint16_t z_thrust_neg	: 1; //14 - true when a negative z thrust demand change will increase saturation
 		} flags;
 		uint16_t value;
 	};

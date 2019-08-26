@@ -467,31 +467,31 @@ MultirotorMixer6dof::update_saturation_status(unsigned index, bool clipping_high
 		// check if the x input is saturating
 		if (_rotors[index].x_scale > 0.0f) {
 			// A positive change in x will increase saturation
-			_saturation_status.flags.x_pos = true;
+			_saturation_status.flags.x_thrust_pos = true;
 
 		} else if (_rotors[index].x_scale < 0.0f) {
 			// A negative change in x will increase saturation
-			_saturation_status.flags.x_neg = true;
+			_saturation_status.flags.x_thrust_neg = true;
 		}
 
 		// check if the y input is saturating
 		if (_rotors[index].y_scale > 0.0f) {
 			// A positive change in y will increase saturation
-			_saturation_status.flags.y_pos = true;
+			_saturation_status.flags.y_thrust_pos = true;
 
 		} else if (_rotors[index].y_scale < 0.0f) {
 			// A negative change in y will increase saturation
-			_saturation_status.flags.y_neg = true;
+			_saturation_status.flags.y_thrust_neg = true;
 		}
 
 		// check if the z input is saturating
 		if (_rotors[index].z_scale > 0.0f) {
 			// A positive change in z will increase saturation
-			_saturation_status.flags.z_pos = true;
+			_saturation_status.flags.z_thrust_pos = true;
 
 		} else if (_rotors[index].z_scale < 0.0f) {
 			// A negative change in z will increase saturation
-			_saturation_status.flags.z_neg = true;
+			_saturation_status.flags.z_thrust_neg = true;
 		}
 	}
 
@@ -521,31 +521,31 @@ MultirotorMixer6dof::update_saturation_status(unsigned index, bool clipping_high
 		// check if the x input is saturating
 		if (_rotors[index].x_scale > 0.0f) {
 			// A negative change in x will increase saturation
-			_saturation_status.flags.x_neg = true;
+			_saturation_status.flags.x_thrust_neg = true;
 
 		} else if (_rotors[index].x_scale < 0.0f) {
 			// A positive change in x will increase saturation
-			_saturation_status.flags.x_pos = true;
+			_saturation_status.flags.x_thrust_pos = true;
 		}
 
 		// check if the y input is saturating
 		if (_rotors[index].y_scale > 0.0f) {
 			// A negative change in y will increase saturation
-			_saturation_status.flags.y_neg = true;
+			_saturation_status.flags.y_thrust_neg = true;
 
 		} else if (_rotors[index].y_scale < 0.0f) {
 			// A positive change in y will increase saturation
-			_saturation_status.flags.y_pos = true;
+			_saturation_status.flags.y_thrust_pos = true;
 		}
 
 		// check if the z input is saturating
 		if (_rotors[index].z_scale > 0.0f) {
 			// A negative change in z will increase saturation
-			_saturation_status.flags.z_neg = true;
+			_saturation_status.flags.z_thrust_neg = true;
 
 		} else if (_rotors[index].z_scale < 0.0f) {
 			// A positive change in z will increase saturation
-			_saturation_status.flags.z_pos = true;
+			_saturation_status.flags.z_thrust_pos = true;
 		}
 	}
 
