@@ -40,7 +40,3 @@ add_library(drivers_board
 	init.c
 )
 
-target_link_libraries(drivers_board
-	PRIVATE
-		drivers_arch
-)

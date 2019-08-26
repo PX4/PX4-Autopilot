@@ -4,7 +4,7 @@ px4_add_board(
 	VENDOR px4
 	MODEL sitl
 	CHIP_MANUFACTURER px4
-	CHIP sitl
+	CHIP generic
 	LABEL default
 	TESTING
 

@@ -38,6 +38,7 @@ px4_add_module(
 	SRCS
 		fmu.cpp
 	DEPENDS
+		arch_io_pins
 		circuit_breaker
 		mixer
 		pwm_limit

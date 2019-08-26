@@ -6,7 +6,7 @@ px4_add_board(
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	CHIP_MANUFACTURER nxp
-	CHIP kinetis
+	CHIP k66
 	ROMFSROOT px4fmu_common
 	TESTING
 	UAVCAN_INTERFACES 2
@@ -33,7 +33,6 @@ px4_add_board(
 		imu/mpu6000
 		imu/mpu9250
 		irlock
-		kinetis
 		lights/blinkm
 		lights/oreoled
 		lights/rgbled

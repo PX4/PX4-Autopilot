@@ -196,7 +196,8 @@ function(px4_add_board)
 	list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake)
 
 	# architecture-specific include path
-	include_directories(${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/${PX4_CHIP_MANUFACTURER}/${PX4_CHIP})
+	include_directories(${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/${PX4_CHIP_MANUFACTURER}/${PX4_CHIP}/include)
+	include_directories(${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/common/include)
 
 	if(ARCHITECTURE)
 		set(CMAKE_SYSTEM_PROCESSOR ${ARCHITECTURE} CACHE INTERNAL "system processor" FORCE)
