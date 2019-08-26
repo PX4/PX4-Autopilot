@@ -76,13 +76,18 @@ public:
 
 	// Singleton pattern
 	static uORBTest::UnitTest &instance();
-	~UnitTest() {}
+
+	~UnitTest() = default;
+
 	int test();
-	template<typename S> int latency_test(orb_id_t T, bool print);
+
+	template<typename S>
+	int latency_test(orb_id_t T, bool print);
+
 	int info();
 
 private:
-	UnitTest() : pubsubtest_passed(false), pubsubtest_print(false) {}
+	UnitTest() = default;
 
 	// Disallow copy
 	UnitTest(const uORBTest::UnitTest & /*unused*/) = delete;
@@ -95,11 +100,11 @@ private:
 
 	volatile bool _thread_should_exit;
 
-	bool pubsubtest_passed;
-	bool pubsubtest_print;
-	int pubsubtest_res = OK;
+	bool pubsubtest_passed{false};
+	bool pubsubtest_print{false};
+	int pubsubtest_res{PX4_OK};
 
-	orb_advert_t _pfd[4]; ///< used for test_multi and test_multi_reversed
+	orb_advert_t _pfd[4] {}; ///< used for test_multi and test_multi_reversed
 
 	int test_single();
 
@@ -115,24 +120,24 @@ private:
 	static int pub_test_queue_entry(int argc, char *argv[]);
 	int pub_test_queue_main();
 	int test_queue_poll_notify();
+
 	volatile int _num_messages_sent = 0;
 
-	int test_fail(const char *fmt, ...);
-	int test_note(const char *fmt, ...);
 };
 
 template<typename S>
 int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
 {
-	test_note("---------------- LATENCY TEST ------------------");
-	S t;
+	PX4_INFO("---------------- LATENCY TEST ------------------");
+	S t{};
 	t.val = 308;
 	t.time = hrt_absolute_time();
 
 	orb_advert_t pfd0 = orb_advertise(T, &t);
 
 	if (pfd0 == nullptr) {
-		return test_fail("orb_advertise failed (%i)", errno);
+		PX4_ERR("orb_advertise failed (%i)", errno);
+		return PX4_ERROR;
 	}
 
 	char *const args[1] = { nullptr };
@@ -158,7 +163,8 @@ int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
 		t.time = hrt_absolute_time();
 
 		if (PX4_OK != orb_publish(T, pfd0, &t)) {
-			return test_fail("mult. pub0 timing fail");
+			PX4_ERR("mult. pub0 timing fail");
+			return PX4_ERROR;
 		}
 
 		/* simulate >800 Hz system operation */
@@ -166,7 +172,8 @@ int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
 	}
 
 	if (pubsub_task < 0) {
-		return test_fail("failed launching task");
+		PX4_ERR("failed launching task");
+		return PX4_ERROR;
 	}
 
 	orb_unadvertise(pfd0);
