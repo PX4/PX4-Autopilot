@@ -137,6 +137,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_set_position_target_local_ned(msg);
 		break;
 
+	case MAVLINK_MSG_ID_SET_POSITION_TARGET_GLOBAL_INT:
+		handle_message_set_position_target_global_ned(msg);
+		break;
+
 	case MAVLINK_MSG_ID_SET_ATTITUDE_TARGET:
 		handle_message_set_attitude_target(msg);
 		break;
@@ -883,6 +887,11 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 			}
 		}
 	}
+}
+
+void
+MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t *msg)
+{
 }
 
 void
