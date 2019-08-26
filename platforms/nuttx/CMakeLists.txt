@@ -81,6 +81,7 @@ target_link_libraries(nuttx_arch
 		drivers_arch
 		drivers_boards_common
 		drivers_boards_common_arch
+		arch_hrt
 )
 
 target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
