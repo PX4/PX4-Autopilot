@@ -2349,12 +2349,11 @@ Commander::run()
 
 			case PrearmedMode::SAFETY_BUTTON:
 				if (safety.safety_switch_available) {
-
-					/* safety is off, go into prearmed */
+					/* safety switch is present, go into prearmed if safety is off */
 					armed.prearmed = safety.safety_off;
 
 				} else {
-					/* safety is not present, do not go into prearmed */
+					/* safety switch is not present, do not go into prearmed */
 					armed.prearmed = false;
 				}
 				break;
