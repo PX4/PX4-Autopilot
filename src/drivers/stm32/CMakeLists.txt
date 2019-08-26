@@ -32,7 +32,6 @@
 ############################################################################
 
 add_library(drivers_arch
-	drv_hrt.c
 	drv_io_timer.c
 	drv_pwm_servo.c
 	drv_pwm_trigger.c
