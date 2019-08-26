@@ -266,7 +266,7 @@ endif()
 
 # python
 include(px4_find_python_module)
-find_package(PythonInterp REQUIRED)
+find_package(PythonInterp 3 REQUIRED)
 
 option(PYTHON_COVERAGE "Python code coverage" OFF)
 if(PYTHON_COVERAGE)

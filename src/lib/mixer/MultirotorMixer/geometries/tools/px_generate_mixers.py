@@ -44,10 +44,10 @@ try:
 except ImportError as e:
     print("python import error: ", e)
     print('''
-Required python packages not installed.
+Required python3 packages not installed.
 
 On a GNU/Linux or MacOS system please run:
-  sudo pip install numpy toml
+  sudo pip3 install numpy toml
 
 On Windows please run:
   easy_install numpy toml

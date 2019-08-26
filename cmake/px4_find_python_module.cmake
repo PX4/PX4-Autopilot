@@ -65,12 +65,12 @@ function(px4_find_python_module module)
 		endif()
 	endif()
 	find_package_handle_standard_args(PY_${module}
-		"couldn't find python module ${module}:
+		"couldn't find python3 module ${module}:
 		\nfor debian systems try: \
-		\n\tsudo apt-get install python-${module} \
+		\n\tsudo apt-get install python3-${module} \
 		\nor for all other OSs/debian: \
-		\n\tsudo -H pip install ${module}\n" PY_${module_upper})
+		\n\tsudo -H pip3 install ${module}\n" PY_${module_upper})
 	#if (NOT PY_${module}_FOUND)
-		#message(FATAL_ERROR "python module not found, exiting")
+		#message(FATAL_ERROR "python3 module not found, exiting")
 	#endif()
 endfunction(px4_find_python_module)
