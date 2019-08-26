@@ -32,6 +32,7 @@
 ############################################################################
 
 
+add_subdirectory(../common/adc adc)
 add_subdirectory(../common/tone_alarm tone_alarm)
 
 

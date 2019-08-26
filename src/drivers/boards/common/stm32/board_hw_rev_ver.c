@@ -37,6 +37,8 @@
  * Implementation of STM32 based Board Hardware Revision and Version ID API
  */
 
+#include <drivers/drv_adc.h>
+#include <px4_arch_adc.h>
 #include <px4_config.h>
 #include <stdio.h>
 #include "board_config.h"
@@ -199,11 +201,11 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 
 		/* Yes - Fire up the ADC (it has once control) */
 
-		if (board_adc_init(HW_REV_VER_ADC_BASE) == OK) {
+		if (px4_arch_adc_init(HW_REV_VER_ADC_BASE) == OK) {
 
 			/* Read the value */
 			for (unsigned av = 0; av < samples; av++) {
-				dn = board_adc_sample(HW_REV_VER_ADC_BASE, adc_channel);
+				dn = px4_arch_adc_sample(HW_REV_VER_ADC_BASE, adc_channel);
 
 				if (dn == 0xffff) {
 					break;

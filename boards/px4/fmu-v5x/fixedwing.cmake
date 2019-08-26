@@ -18,6 +18,7 @@ px4_add_board(
 		GPS2:/dev/ttyS0
 
 	DRIVERS
+		adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -48,7 +49,6 @@ px4_add_board(
 		rc_input
 		safety_button
 		stm32
-		stm32/adc
 		telemetry # all available telemetry drivers
 		tone_alarm
 		uavcan

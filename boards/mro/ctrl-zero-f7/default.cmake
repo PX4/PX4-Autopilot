@@ -19,6 +19,7 @@ px4_add_board(
 		#FRSKY:/dev/ttyS5
 
 	DRIVERS
+		adc
 		#barometer # all available barometer drivers
 		#barometer/dps310
 		batt_smbus
@@ -50,7 +51,6 @@ px4_add_board(
 		roboclaw
 		safety_button
 		stm32
-		stm32/adc
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm
