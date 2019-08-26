@@ -35,4 +35,5 @@ add_subdirectory(common)
 
 if (${PX4_PLATFORM} STREQUAL "posix" AND BUILD_TESTING)
 	add_subdirectory(posix/test_stubs)
+	add_subdirectory(posix/gtest_runner)
 endif()

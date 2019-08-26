@@ -36,6 +36,7 @@ px4_add_board(
 		px4fmu
 		px4io
 		rc_input
+		safety_button
 		stm32
 		stm32/adc
 		stm32/tone_alarm
