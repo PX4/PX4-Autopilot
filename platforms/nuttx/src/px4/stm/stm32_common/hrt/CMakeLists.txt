@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,10 +31,8 @@
 #
 ############################################################################
 
-
-add_subdirectory(../stm32_common/adc adc)
-add_subdirectory(../stm32_common/hrt hrt)
-add_subdirectory(../stm32_common/tone_alarm tone_alarm)
-
-add_subdirectory(px4io_serial)
+px4_add_library(arch_hrt
+	hrt.c
+)
+target_compile_options(arch_hrt PRIVATE -Wno-cast-align) # TODO: fix and enable
 
