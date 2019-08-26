@@ -507,6 +507,17 @@ public:
         return min_val;
     }
 
+    bool isAllNan() const {
+        const Matrix<float, M, N> &self = *this;
+        bool result = true;
+        for (size_t i = 0; i < M; i++) {
+            for (size_t j = 0; j < N; j++) {
+                result = result && isnan(self(i, j));
+            }
+        }
+        return result;
+    }
+
 };
 
 template<typename Type, size_t M, size_t N>
