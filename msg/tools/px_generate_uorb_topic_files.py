@@ -55,11 +55,11 @@ Required python packages not installed.
 
 On a Debian/Ubuntu system please run:
 
-  sudo apt-get install python-empy
-  sudo pip install catkin_pkg
+  sudo apt-get install python3-empy
+  sudo pip3 install catkin_pkg
 
 On MacOS please run:
-  sudo pip install empy catkin_pkg
+  sudo pip3 install empy catkin_pkg
 
 On Windows please run:
   easy_install empy catkin_pkg
