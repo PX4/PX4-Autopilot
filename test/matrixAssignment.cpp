@@ -30,6 +30,7 @@ int main()
     for(int i=0; i<9; i++) {
         TEST(isnan(m_nan.data()[i]));
     }
+    TEST(m_nan.isAllNan());
 
     float data2d[3][3] = {
         {1, 2, 3},
@@ -40,6 +41,7 @@ int main()
     for(int i=0; i<9; i++) {
         TEST(fabs(data[i] - m2.data()[i]) < FLT_EPSILON);
     }
+    TEST(!m2.isAllNan());
 
     float data_times_2[9] = {2, 4, 6, 8, 10, 12, 14, 16, 18};
     Matrix3f m3(data_times_2);
