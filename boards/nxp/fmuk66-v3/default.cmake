@@ -15,6 +15,7 @@ px4_add_board(
 		TEL2:/dev/ttyS1
 
 	DRIVERS
+		adc
 		barometer # all available barometer drivers
 		barometer/mpl3115a2
 		batt_smbus
@@ -31,7 +32,6 @@ px4_add_board(
 		imu/mpu9250
 		irlock
 		kinetis
-		kinetis/adc
 		lights/blinkm
 		lights/oreoled
 		lights/rgbled
