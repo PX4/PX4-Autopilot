@@ -66,11 +66,28 @@ uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t inst
 
 uORB::DeviceNode::~DeviceNode()
 {
-	if (_data != nullptr) {
-		delete[] _data;
-	}
+	delete[] _data;
 
 	CDev::unregister_driver_and_memory();
+}
+
+int
+uORB::DeviceNode::init()
+{
+	int ret = CDev::init();
+
+	if (ret != PX4_OK) {
+		return ret;
+	}
+
+	_data = new uint8_t[_meta->o_size * _queue_size];
+
+	// failed to allocate
+	if (nullptr == _data) {
+		return -ENOMEM;
+	}
+
+	return PX4_OK;
 }
 
 int
@@ -169,7 +186,7 @@ uORB::DeviceNode::copy_locked(void *dst, unsigned &generation)
 {
 	bool updated = false;
 
-	if ((dst != nullptr) && (_data != nullptr)) {
+	if (dst != nullptr) {
 
 		if (_generation > generation + _queue_size) {
 			// Reader is too far behind: some messages are lost
@@ -224,11 +241,6 @@ uORB::DeviceNode::copy_and_get_timestamp(void *dst, unsigned &generation)
 ssize_t
 uORB::DeviceNode::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
-	/* if the object has not been written yet, return zero */
-	if (_data == nullptr) {
-		return 0;
-	}
-
 	/* if the caller's buffer is the wrong size, that's an error */
 	if (buflen != _meta->o_size) {
 		return -EIO;
@@ -256,42 +268,6 @@ uORB::DeviceNode::read(cdev::file_t *filp, char *buffer, size_t buflen)
 ssize_t
 uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 {
-	/*
-	 * Writes are legal from interrupt context as long as the
-	 * object has already been initialised from thread context.
-	 *
-	 * Writes outside interrupt context will allocate the object
-	 * if it has not yet been allocated.
-	 *
-	 * Note that filp will usually be NULL.
-	 */
-	if (nullptr == _data) {
-
-#ifdef __PX4_NUTTX
-
-		if (!up_interrupt_context()) {
-#endif /* __PX4_NUTTX */
-
-			lock();
-
-			/* re-check size */
-			if (nullptr == _data) {
-				_data = new uint8_t[_meta->o_size * _queue_size];
-			}
-
-			unlock();
-
-#ifdef __PX4_NUTTX
-		}
-
-#endif /* __PX4_NUTTX */
-
-		/* failed or could not allocate */
-		if (nullptr == _data) {
-			return -ENOMEM;
-		}
-	}
-
 	/* If write size does not match, that is an error */
 	if (_meta->o_size != buflen) {
 		return -EIO;
@@ -379,10 +355,12 @@ uORB::DeviceNode::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 		*(int *)arg = get_priority();
 		return PX4_OK;
 
-	case ORBIOCSETQUEUESIZE:
-		//no need for locking here, since this is used only during the advertisement call,
-		//and only one advertiser is allowed to open the DeviceNode at the same time.
-		return update_queue_size(arg);
+	case ORBIOCSETQUEUESIZE: {
+			ATOMIC_ENTER;
+			int ret = update_queue_size(arg);
+			ATOMIC_LEAVE;
+			return ret;
+		}
 
 	case ORBIOCGETINTERVAL:
 		if (sd->update_interval) {
@@ -393,6 +371,7 @@ uORB::DeviceNode::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 		}
 
 		return OK;
+
 
 	case ORBIOCISPUBLISHED:
 		*(unsigned long *)arg = _published;
@@ -534,11 +513,6 @@ uORB::DeviceNode::poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events)
 bool
 uORB::DeviceNode::appears_updated(SubscriberData *sd)
 {
-	// check if this topic has been published yet, if not bail out
-	if (_data == nullptr) {
-		return false;
-	}
-
 	// if subscriber has interval check time since last update
 	if (sd->update_interval != nullptr) {
 		if (hrt_elapsed_time(&sd->update_interval->last_update) < sd->update_interval->interval) {
@@ -618,7 +592,7 @@ int16_t uORB::DeviceNode::process_add_subscription(int32_t rateInHz)
 	// send the data to the remote entity.
 	uORBCommunicator::IChannel *ch = uORB::Manager::get_instance()->get_uorb_communicator();
 
-	if (_data != nullptr && ch != nullptr) { // _data will not be null if there is a publisher.
+	if (ch != nullptr) {
 		ch->send_message(_meta->o_name, _meta->o_size, _data);
 	}
 
@@ -661,12 +635,23 @@ int uORB::DeviceNode::update_queue_size(unsigned int queue_size)
 		return PX4_OK;
 	}
 
-	//queue size is limited to 255 for the single reason that we use uint8 to store it
-	if (_data || _queue_size > queue_size || queue_size > 255) {
+	if (_queue_size > queue_size || queue_size > 255) {
+		// queue size is limited to 255 for the single reason that we use uint8 to store it
 		return PX4_ERROR;
 	}
 
+	uint8_t *data = new uint8_t[_meta->o_size * queue_size];
+
+	if (data == nullptr) {
+		return PX4_ERROR;
+	}
+
+	// switch to new data
+	memcpy(data, _data, _meta->o_size * _queue_size);
+	delete[] _data;
+	_data = data;
 	_queue_size = queue_size;
+
 	return PX4_OK;
 }
 

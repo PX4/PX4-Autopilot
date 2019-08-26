@@ -64,6 +64,8 @@ public:
 	DeviceNode(DeviceNode &&) = delete;
 	DeviceNode &operator=(DeviceNode &&) = delete;
 
+	int init() override;
+
 	/**
 	 * Method to create a subscriber instance and return the struct
 	 * pointing to the subscriber as a file pointer.
@@ -267,7 +269,7 @@ private:
 	const uint8_t _instance; /**< orb multi instance identifier */
 	uint8_t     *_data{nullptr};   /**< allocated object buffer */
 	hrt_abstime   _last_update{0}; /**< time the object was last updated */
-	volatile unsigned   _generation{0};  /**< object generation count */
+	unsigned   _generation{0};  /**< object generation count */
 	List<uORB::SubscriptionCallback *>	_callbacks;
 	uint8_t   _priority;  /**< priority of the topic */
 	bool _published{false};  /**< has ever data been published */
