@@ -48,6 +48,6 @@ if (NOT ${PX4_BOARD} MATCHES "px4_io")
 			px4_work_queue
 		)
 else()
-	add_library(px4_layer ${PX4_SOURCE_DIR}/src/platforms/empty.c)
+	add_library(px4_layer ${PX4_SOURCE_DIR}/platforms/common/empty.c)
 endif()
 add_dependencies(px4_layer prebuild_targets)
