@@ -170,9 +170,7 @@ function(px4_add_common_flags)
 
 	include_directories(
 		${PX4_BINARY_DIR}
-		${PX4_BINARY_DIR}/src
 		${PX4_BINARY_DIR}/src/lib
-		${PX4_BINARY_DIR}/src/modules
 
 		${PX4_SOURCE_DIR}/platforms/common/include
 		${PX4_SOURCE_DIR}/src
@@ -181,8 +179,6 @@ function(px4_add_common_flags)
 		${PX4_SOURCE_DIR}/src/lib/DriverFramework/framework/include
 		${PX4_SOURCE_DIR}/src/lib/matrix
 		${PX4_SOURCE_DIR}/src/modules
-		${PX4_SOURCE_DIR}/src/platforms
-		${PX4_SOURCE_DIR}/src/platforms/common
 		)
 
 	add_definitions(
