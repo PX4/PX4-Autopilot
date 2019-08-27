@@ -37,4 +37,3 @@ add_library(drivers_board
 	sitl_board_shutdown.c
 )
 
-add_dependencies(drivers_board prebuild_targets)
