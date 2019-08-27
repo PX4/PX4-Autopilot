@@ -57,7 +57,7 @@
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <nuttx/arch.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <nuttx/clock.h>
 
 #include <drivers/drv_hrt.h>
@@ -66,7 +66,7 @@
 #include <drivers/device/spi.h>
 #include <drivers/drv_accel.h>
 #include <drivers/device/ringbuffer.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 #define ACCEL_DEVICE_PATH	"/dev/bma180"
 

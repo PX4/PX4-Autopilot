@@ -49,7 +49,7 @@
 #include <unistd.h>
 
 #include <px4_config.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_defines.h>
 
 #include <drivers/drv_hrt.h>

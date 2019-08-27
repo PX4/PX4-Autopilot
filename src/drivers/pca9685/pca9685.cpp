@@ -63,7 +63,7 @@
 #include <math.h>
 #include <px4_getopt.h>
 
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <nuttx/clock.h>
 
 #include <perf/perf_counter.h>

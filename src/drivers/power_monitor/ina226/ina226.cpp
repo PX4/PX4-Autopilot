@@ -48,7 +48,7 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/power_monitor.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 /* Configuration Constants */
 #define INA226_BUS_DEFAULT		                PX4_I2C_BUS_EXPANSION
