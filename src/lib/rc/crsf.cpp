@@ -43,7 +43,7 @@
 #define CRSF_VERBOSE(...)
 #endif
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <termios.h>
 #include <string.h>
 #include <unistd.h>

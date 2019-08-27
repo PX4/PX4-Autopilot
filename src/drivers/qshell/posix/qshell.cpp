@@ -44,7 +44,7 @@
 #include <string.h>
 #include <string>
 #include <stdlib.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <uORB/topics/qshell_retval.h>
 
 #include "qshell.h"

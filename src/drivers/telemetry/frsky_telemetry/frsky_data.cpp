@@ -58,7 +58,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_status.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #define frac(f) (f - (int)f)
 

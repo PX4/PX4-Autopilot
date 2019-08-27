@@ -38,7 +38,7 @@
  * Tool for drive testing
  */
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <px4_platform_common/config.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>

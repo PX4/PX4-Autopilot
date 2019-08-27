@@ -34,7 +34,7 @@
 #include "uORBKraitFastRpcChannel.hpp"
 #include "px4_log.h"
 #include "px4_tasks.h"
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <cstdio>
 #include <pthread.h>
 #include <string.h>

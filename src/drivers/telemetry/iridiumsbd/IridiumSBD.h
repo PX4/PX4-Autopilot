@@ -37,7 +37,7 @@
 #include <stdbool.h>
 
 #include <lib/cdev/CDev.hpp>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationQueued.hpp>

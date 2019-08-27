@@ -40,7 +40,7 @@
  * @author Beat Kueng
 */
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>

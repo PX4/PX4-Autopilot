@@ -43,7 +43,7 @@
 
 #include <px4_platform_common/defines.h>
 #include <mathlib/mathlib.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 LidarLiteI2C::LidarLiteI2C(int bus, uint8_t rotation, int address) :
 	LidarLite(rotation),

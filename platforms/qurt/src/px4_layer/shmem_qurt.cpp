@@ -44,7 +44,7 @@
 #include <parameters/param.h>
 
 #include <shmem.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 //#define SHMEM_DEBUG
 //#define PARAM_LOCK_DEBUG

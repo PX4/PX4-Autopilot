@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file drv_hrt.h
+ * @file hrt.h
  *
  * High-resolution timer with callouts and timekeeping.
  */

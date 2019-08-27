@@ -38,7 +38,7 @@
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 namespace events
 {

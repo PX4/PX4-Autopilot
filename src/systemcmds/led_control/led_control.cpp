@@ -42,7 +42,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_led.h>
 
 #include <uORB/PublicationQueued.hpp>

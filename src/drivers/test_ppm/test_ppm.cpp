@@ -61,7 +61,7 @@
 #include <nuttx/clock.h>
 
 #include <board_config.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #define TEST_PPM_PIN      (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN15)
 

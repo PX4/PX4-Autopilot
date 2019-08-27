@@ -46,7 +46,7 @@
 #include <string.h>
 
 #include <controllib/blocks.hpp>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include <uORB/SubscriptionPollable.hpp>
 #include <uORB/topics/manual_control_setpoint.h>

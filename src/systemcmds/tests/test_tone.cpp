@@ -38,7 +38,7 @@
 
 #include <stdlib.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include <lib/tunes/tunes.h>
 #include <px4_platform_common/posix.h>

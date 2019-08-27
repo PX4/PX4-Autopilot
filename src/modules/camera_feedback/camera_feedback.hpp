@@ -52,7 +52,7 @@
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/posix.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/camera_trigger.h>

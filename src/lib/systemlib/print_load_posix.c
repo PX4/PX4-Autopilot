@@ -48,7 +48,7 @@
 
 #include <systemlib/cpuload.h>
 #include <systemlib/printload.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #ifdef __PX4_DARWIN
 #include <mach/mach.h>

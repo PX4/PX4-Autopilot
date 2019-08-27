@@ -60,7 +60,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include "ubx_sim.h"
 #include <simulator/simulator.h>

@@ -51,7 +51,7 @@
 #include <float.h>
 
 #include <dataman/dataman.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>

@@ -59,7 +59,7 @@
 #include <drivers/device/i2c.h>
 #include <drivers/device/ringbuffer.h>
 #include <drivers/drv_baro.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <lib/cdev/CDev.hpp>
 #include <nuttx/arch.h>
 #include <nuttx/clock.h>

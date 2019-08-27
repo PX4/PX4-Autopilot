@@ -43,7 +43,7 @@
 #include "px4_workqueue.h"
 #include "px4_time.h"
 #include "hrt_work.h"
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -51,7 +51,7 @@
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_gps_position.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 /* The board is very roughly 5 deg warmer than the surrounding air */
 #define BOARD_TEMP_OFFSET_DEG 5

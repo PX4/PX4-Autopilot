@@ -53,7 +53,7 @@
 
 #include <math.h>
 #include <float.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 
 static hrt_abstime

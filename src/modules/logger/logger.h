@@ -38,7 +38,7 @@
 #include <containers/Array.hpp>
 #include "util.h"
 #include <px4_platform_common/defines.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <version/version.h>
 #include <parameters/param.h>
 #include <systemlib/printload.h>

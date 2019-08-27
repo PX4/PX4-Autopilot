@@ -49,7 +49,7 @@
 #include "navigator.h"
 
 #include <string.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <dataman/dataman.h>
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>

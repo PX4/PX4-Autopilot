@@ -51,7 +51,7 @@
 #include "dsm.h"
 #include "spektrum_rssi.h"
 #include "common_rc.h"
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #if defined(__PX4_NUTTX)
 #include <nuttx/arch.h>

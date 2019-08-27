@@ -36,7 +36,7 @@
 #include <float.h>
 
 #include <board_config.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_rc_input.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/rc/crsf.h>

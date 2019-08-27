@@ -35,7 +35,7 @@
  * @author Pavel Kirienko <pavel.kirienko@gmail.com>
  */
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include "baro.hpp"
 #include <cmath>
 

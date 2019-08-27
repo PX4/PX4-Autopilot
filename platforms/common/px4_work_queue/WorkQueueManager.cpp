@@ -35,7 +35,7 @@
 
 #include <px4_platform_common/px4_work_queue/WorkQueue.hpp>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/time.h>

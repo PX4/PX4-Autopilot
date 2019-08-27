@@ -53,7 +53,7 @@
 #include <poll.h>
 
 #include <arch/board/board.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_pwm_output.h>
 #include <px4_platform_common/defines.h>
 

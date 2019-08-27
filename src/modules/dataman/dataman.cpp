@@ -57,7 +57,7 @@
 #include <string.h>
 #include <semaphore.h>
 #include <unistd.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include "dataman.h"
 #include <parameters/param.h>

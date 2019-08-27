@@ -37,7 +37,7 @@
 #include "FlightTaskManual.hpp"
 #include <mathlib/mathlib.h>
 #include <float.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 using namespace matrix;
 using namespace time_literals;

@@ -45,7 +45,7 @@
 
 #include <drivers/device/device.h>
 #include <drivers/device/ringbuffer.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include <perf/perf_counter.h>
 

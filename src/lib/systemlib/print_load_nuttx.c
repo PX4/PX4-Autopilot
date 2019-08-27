@@ -44,7 +44,7 @@
 
 #include <systemlib/cpuload.h>
 #include <systemlib/printload.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #if defined(BOARD_DMA_ALLOC_POOL_SIZE)
 #include <drivers/boards/common/board_dma_alloc.h>

@@ -39,7 +39,7 @@
  * @author Johan Jansen <jnsn.johan@gmail.com>
  */
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_status_flags.h>
 

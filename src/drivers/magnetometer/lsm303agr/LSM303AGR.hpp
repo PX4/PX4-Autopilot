@@ -34,7 +34,7 @@
 #ifndef DRIVERS_IMU_LSM303AGR_LSM303AGR_HPP_
 #define DRIVERS_IMU_LSM303AGR_LSM303AGR_HPP_
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/device/spi.h>
 #include <drivers/drv_mag.h>
 #include <drivers/device/ringbuffer.h>

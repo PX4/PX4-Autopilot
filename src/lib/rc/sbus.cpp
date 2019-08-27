@@ -50,7 +50,7 @@
 
 #include "sbus.h"
 #include "common_rc.h"
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 using namespace time_literals;
 

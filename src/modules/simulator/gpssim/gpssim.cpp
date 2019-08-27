@@ -55,7 +55,7 @@
 #include <fcntl.h>
 #include <px4_platform_common/config.h>
 #include <px4_platform_common/tasks.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/device/device.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>

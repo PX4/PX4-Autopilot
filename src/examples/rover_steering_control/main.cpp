@@ -50,7 +50,7 @@
 #include <math.h>
 #include <poll.h>
 #include <time.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/position_setpoint_triplet.h>

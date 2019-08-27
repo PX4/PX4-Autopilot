@@ -48,7 +48,7 @@
 #include <unistd.h>
 #include <parameters/param.h>
 #include "hrt_work.h"
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <pthread.h>
 #include <px4_platform_common/init.h>
 

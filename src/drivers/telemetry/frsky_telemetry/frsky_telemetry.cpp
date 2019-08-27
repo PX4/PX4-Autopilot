@@ -62,7 +62,7 @@
 #include <px4_platform_common/getopt.h>
 #include <systemlib/err.h>
 #include <termios.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <math.h>	// NAN
 

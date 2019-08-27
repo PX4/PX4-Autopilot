@@ -42,7 +42,7 @@
 #pragma once
 
 #include <px4_platform_common/module_params.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <matrix/matrix/math.hpp>
 #include <uORB/SubscriptionPollable.hpp>
 #include <uORB/topics/landing_gear.h>

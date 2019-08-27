@@ -1,7 +1,7 @@
 #pragma once
 
 #include <px4_platform_common/posix.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <px4_platform_common/module_params.h>
 #include <controllib/blocks.hpp>
 #include <mathlib/mathlib.h>

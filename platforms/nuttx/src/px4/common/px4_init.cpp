@@ -35,7 +35,7 @@
 #include <px4_platform_common/config.h>
 #include <px4_platform_common/console_buffer.h>
 #include <px4_platform_common/defines.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <lib/parameters/param.h>
 #include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 #include <systemlib/cpuload.h>

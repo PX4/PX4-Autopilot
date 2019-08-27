@@ -38,7 +38,7 @@
 
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/time.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 namespace px4
 {

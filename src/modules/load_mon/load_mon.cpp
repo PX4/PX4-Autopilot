@@ -39,7 +39,7 @@
  * @author Andreas Antener <andreas@uaventure.com>
  */
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/config.h>
 #include <px4_platform_common/defines.h>

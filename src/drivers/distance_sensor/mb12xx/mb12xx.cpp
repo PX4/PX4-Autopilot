@@ -57,7 +57,7 @@
 #include <drivers/device/device.h>
 #include <drivers/device/i2c.h>
 #include <drivers/device/ringbuffer.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_range_finder.h>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/config.h>

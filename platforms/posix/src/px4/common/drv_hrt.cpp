@@ -42,7 +42,7 @@
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/workqueue.h>
 #include <px4_platform_common/tasks.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <semaphore.h>
 #include <time.h>
 #include <string.h>

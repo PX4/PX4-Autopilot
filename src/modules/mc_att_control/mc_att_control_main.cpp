@@ -46,7 +46,7 @@
 #include "mc_att_control.hpp"
 
 #include <conversion/rotation.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <circuit_breaker/circuit_breaker.h>
 #include <mathlib/math/Limits.hpp>

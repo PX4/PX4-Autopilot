@@ -43,7 +43,7 @@
 #include <px4_platform_common/config.h>
 #include <systemlib/err.h>
 #include <battery/battery.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include <ltc2946/LTC2946.hpp>
 

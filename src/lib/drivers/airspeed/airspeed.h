@@ -36,7 +36,7 @@
 #include <string.h>
 #include <drivers/device/i2c.h>
 #include <drivers/drv_airspeed.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <px4_platform_common/config.h>
 #include <px4_platform_common/defines.h>
 #include <perf/perf_counter.h>

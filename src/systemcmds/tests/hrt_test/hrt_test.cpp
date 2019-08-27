@@ -41,7 +41,7 @@
 
 #include "hrt_test.h"
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
 

@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_led.h>
 
 #include <uORB/Subscription.hpp>

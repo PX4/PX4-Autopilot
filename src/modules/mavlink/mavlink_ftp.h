@@ -41,7 +41,7 @@
 
 #include <px4_platform_common/defines.h>
 #include <systemlib/err.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include "mavlink_bridge_header.h"
 

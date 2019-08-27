@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 #include <px4_platform_common/tasks.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include <nuttx/config.h>
 

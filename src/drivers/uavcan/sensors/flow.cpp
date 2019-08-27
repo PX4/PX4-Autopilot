@@ -33,7 +33,7 @@
 
 #include "flow.hpp"
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 const char *const UavcanFlowBridge::NAME = "flow";
 

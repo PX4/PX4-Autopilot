@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 #include <px4_platform_common/module.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <ecl/attitude_fw/ecl_pitch_controller.h>
 #include <ecl/attitude_fw/ecl_roll_controller.h>
 #include <ecl/attitude_fw/ecl_wheel_controller.h>

@@ -47,7 +47,7 @@
 
 #include <lib/rc/dsm.h>
 #include <drivers/drv_rc_input.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/input_rc.h>

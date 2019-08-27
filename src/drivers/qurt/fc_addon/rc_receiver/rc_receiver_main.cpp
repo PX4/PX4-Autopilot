@@ -35,7 +35,7 @@
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/log.h>
 #include <string.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_rc_input.h>

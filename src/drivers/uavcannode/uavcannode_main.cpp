@@ -53,7 +53,7 @@ __BEGIN_DECLS
 #include <arch/chip/chip.h>
 __END_DECLS
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_pwm_output.h>
 
 #include "uavcannode_main.hpp"

@@ -43,7 +43,7 @@
 #include "accel.h"
 #include <uORB/topics/sensor_accel.h>
 #include <mathlib/mathlib.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 TemperatureCalibrationAccel::TemperatureCalibrationAccel(float min_temperature_rise, float min_start_temperature,
 		float max_start_temperature)

@@ -44,7 +44,7 @@
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
 #include <lib/perf/perf_counter.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include "ICM20948_mag.h"
 #include "icm20948.h"

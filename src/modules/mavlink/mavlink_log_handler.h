@@ -42,7 +42,7 @@
 #include <stdio.h>
 #include <cstdbool>
 #include <v2.0/mavlink_types.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 class Mavlink;
 

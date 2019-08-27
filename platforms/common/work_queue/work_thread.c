@@ -48,7 +48,7 @@
 #include <unistd.h>
 #include <queue.h>
 #include <pthread.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include "work_lock.h"
 
 #ifdef CONFIG_SCHED_WORKQUEUE

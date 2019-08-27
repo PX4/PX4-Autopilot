@@ -57,7 +57,7 @@
 #include <stdlib.h>
 
 #include <uORB/topics/qshell_retval.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include "DriverFramework.hpp"
 
 #define MAX_ARGS 8 // max number of whitespace separated args after app name

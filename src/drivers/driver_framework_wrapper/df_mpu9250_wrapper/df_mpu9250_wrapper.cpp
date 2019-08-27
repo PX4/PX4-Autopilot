@@ -55,7 +55,7 @@
 #include <perf/perf_counter.h>
 #include <systemlib/mavlink_log.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_gyro.h>
 #include <drivers/drv_mag.h>

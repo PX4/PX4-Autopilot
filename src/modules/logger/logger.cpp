@@ -49,7 +49,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <mathlib/math/Limits.hpp>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>

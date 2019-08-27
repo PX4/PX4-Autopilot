@@ -46,7 +46,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <px4_platform_common/defines.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_pwm_input.h>
 
 LidarLitePWM::LidarLitePWM(uint8_t rotation) :

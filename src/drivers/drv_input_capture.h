@@ -41,10 +41,9 @@
 #pragma once
 
 #include <px4_platform_common/defines.h>
+#include <px4_platform_common/hrt.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
-
-#include "drv_hrt.h"
 
 __BEGIN_DECLS
 

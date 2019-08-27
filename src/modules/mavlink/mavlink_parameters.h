@@ -51,7 +51,7 @@
 #include <uORB/topics/uavcan_parameter_request.h>
 #include <uORB/topics/uavcan_parameter_value.h>
 #include <uORB/topics/parameter_update.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 class Mavlink;
 

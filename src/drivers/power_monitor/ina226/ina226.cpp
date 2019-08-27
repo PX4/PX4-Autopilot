@@ -45,7 +45,7 @@
 #include <px4_platform_common/getopt.h>
 #include <drivers/device/i2c.h>
 #include <lib/perf/perf_counter.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/power_monitor.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>

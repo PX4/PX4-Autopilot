@@ -40,7 +40,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #pragma once
 __BEGIN_DECLS

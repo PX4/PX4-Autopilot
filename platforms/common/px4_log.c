@@ -47,7 +47,7 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/log_message.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 static orb_advert_t orb_log_message_pub = NULL;
 

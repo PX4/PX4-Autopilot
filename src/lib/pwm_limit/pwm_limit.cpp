@@ -45,7 +45,7 @@
 #include <px4_platform_common/defines.h>
 #include <math.h>
 #include <stdbool.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <stdio.h>
 
 #define PROGRESS_INT_SCALING	10000

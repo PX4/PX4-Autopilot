@@ -57,7 +57,7 @@
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_mixer.h>
 #include <mixer/mixer.h>
 #include <pwm_limit/pwm_limit.h>

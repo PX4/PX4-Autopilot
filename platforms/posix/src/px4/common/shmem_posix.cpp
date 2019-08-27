@@ -44,7 +44,7 @@
 
 #include <sys/stat.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 

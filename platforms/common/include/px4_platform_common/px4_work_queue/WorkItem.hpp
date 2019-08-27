@@ -39,7 +39,7 @@
 
 #include <containers/IntrusiveQueue.hpp>
 #include <px4_platform_common/defines.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 namespace px4
 {

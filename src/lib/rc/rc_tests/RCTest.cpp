@@ -6,7 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #define DSM_DEBUG
 #include <lib/rc/sbus.h>

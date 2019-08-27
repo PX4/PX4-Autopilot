@@ -42,7 +42,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/config.h>
 #include <px4_platform_common/micro_hal.h>

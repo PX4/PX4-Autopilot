@@ -43,7 +43,7 @@
 #include <arch/stm32/chip.h>
 #include <stm32.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <perf/perf_counter.h>
 
 #define DEBUG

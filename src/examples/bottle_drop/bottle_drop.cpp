@@ -53,7 +53,7 @@
 #include <time.h>
 #include <sys/ioctl.h>
 #include <drivers/device/device.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <arch/board/board.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_command.h>

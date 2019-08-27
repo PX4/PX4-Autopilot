@@ -50,7 +50,7 @@
 #include <float.h>
 #include <nuttx/sched.h>
 #include <sys/prctl.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <termios.h>
 #include <errno.h>
 #include <limits.h>

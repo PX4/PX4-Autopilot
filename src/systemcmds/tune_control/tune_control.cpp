@@ -51,7 +51,7 @@
 #include <lib/tunes/tunes.h>
 #include <uORB/topics/tune_control.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #define MAX_NOTE_ITERATION 50
 

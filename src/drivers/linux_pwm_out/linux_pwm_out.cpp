@@ -49,7 +49,7 @@
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/parameter_update.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_mixer.h>
 #include <lib/mixer/mixer.h>
 #include <lib/mixer/mixer_load.h>

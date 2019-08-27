@@ -37,7 +37,7 @@
 #include <px4_platform_common/config.h>
 #include <lib/perf/perf_counter.h>
 #include <systemlib/conversions.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/device/i2c.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>

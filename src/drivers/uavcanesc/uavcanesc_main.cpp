@@ -48,7 +48,7 @@
 #include <arch/board/board.h>
 #include <arch/chip/chip.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_pwm_output.h>
 
 #include "uavcanesc_main.hpp"

@@ -46,7 +46,7 @@
 #include <lib/perf/perf_counter.h>
 #include <systemlib/conversions.h>
 #include <systemlib/px4_macros.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/device/spi.h>
 #include <lib/conversion/rotation.h>
 

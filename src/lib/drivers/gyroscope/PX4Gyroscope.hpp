@@ -35,7 +35,7 @@
 
 #include <drivers/device/integrator.h>
 #include <drivers/drv_gyro.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <lib/cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
 #include <mathlib/math/filter/LowPassFilter2pVector3f.hpp>

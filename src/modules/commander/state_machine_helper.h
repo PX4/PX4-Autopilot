@@ -42,7 +42,7 @@
 #ifndef STATE_MACHINE_HELPER_H_
 #define STATE_MACHINE_HELPER_H_
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>

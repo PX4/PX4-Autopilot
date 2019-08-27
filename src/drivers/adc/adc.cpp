@@ -39,7 +39,7 @@
  */
 
 #include <drivers/drv_adc.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <lib/cdev/CDev.hpp>
 #include <lib/perf/perf_counter.h>
 #include <px4_arch/adc.h>

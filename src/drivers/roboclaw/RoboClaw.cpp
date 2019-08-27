@@ -55,7 +55,7 @@
 
 #include <uORB/Publication.hpp>
 #include <uORB/topics/debug_key_value.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <math.h>
 
 // The RoboClaw has a serial communication timeout of 10ms.

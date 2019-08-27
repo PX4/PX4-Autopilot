@@ -41,7 +41,7 @@
 #ifndef MAVLINK_RATE_LIMITER_H_
 #define MAVLINK_RATE_LIMITER_H_
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 
 class MavlinkRateLimiter

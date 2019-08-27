@@ -41,7 +41,7 @@
 
 #include "parameters.h"
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <uORB/Subscription.hpp>

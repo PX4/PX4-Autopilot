@@ -68,7 +68,7 @@
 
 #include <arch/board/board.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_board_led.h>
 
 #include <px4_platform_common/init.h>

@@ -55,7 +55,7 @@
 #include <systemlib/err.h>
 
 #include <drivers/drv_mag.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include <uORB/topics/parameter_update.h>
 

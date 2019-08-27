@@ -52,7 +52,7 @@
 #include <syslog.h>
 
 #include <drivers/drv_pwm_output.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include <perf/perf_counter.h>
 #include <pwm_limit/pwm_limit.h>

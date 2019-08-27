@@ -42,7 +42,7 @@
 #include <string.h>
 
 #include <drivers/drv_baro.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/device/i2c.h>
 #include <drivers/device/ringbuffer.h>
 #include <drivers/device/spi.h>

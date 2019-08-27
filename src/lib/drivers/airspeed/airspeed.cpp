@@ -48,7 +48,7 @@
 #include <perf/perf_counter.h>
 
 #include <drivers/drv_airspeed.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/device/ringbuffer.h>
 
 #include <uORB/uORB.h>

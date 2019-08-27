@@ -50,7 +50,7 @@
 #include <perf/perf_counter.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/actuator_outputs.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 
 class UavcanEscController

@@ -49,7 +49,7 @@
 #include <math.h>
 
 #include <drivers/drv_pwm_output.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include <mixer/mixer.h>
 #include <pwm_limit/pwm_limit.h>

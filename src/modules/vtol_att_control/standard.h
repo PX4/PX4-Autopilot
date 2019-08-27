@@ -47,7 +47,7 @@
 #define STANDARD_H
 #include "vtol_type.h"
 #include <parameters/param.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 class Standard : public VtolType
 {

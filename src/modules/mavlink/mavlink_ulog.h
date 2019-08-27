@@ -44,7 +44,7 @@
 #include <stdint.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/sem.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/ulog_stream.h>

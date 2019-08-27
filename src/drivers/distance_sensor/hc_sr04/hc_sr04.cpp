@@ -59,7 +59,7 @@
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_range_finder.h>
 #include <drivers/device/ringbuffer.h>
 

@@ -45,7 +45,7 @@
 #include <termios.h>
 
 #include <drivers/device/device.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include <uORB/topics/distance_sensor.h>
 

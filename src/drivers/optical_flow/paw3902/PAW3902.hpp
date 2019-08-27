@@ -49,7 +49,7 @@
 #include <conversion/rotation.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/parameters/param.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_range_finder.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/optical_flow.h>

@@ -37,7 +37,7 @@
 #include <drivers/drv_orb_dev.h>
 #include <systemlib/err.h>
 #include "uORB.h"
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 
 namespace uORB

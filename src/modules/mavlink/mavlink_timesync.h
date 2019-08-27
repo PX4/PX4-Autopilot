@@ -45,7 +45,7 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/timesync_status.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include <math.h>
 #include <float.h>

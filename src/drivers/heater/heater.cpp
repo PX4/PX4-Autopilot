@@ -43,7 +43,7 @@
 
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/log.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #ifndef GPIO_HEATER_INPUT
 #error "To use the heater driver, the board_config.h must define and initialize GPIO_HEATER_INPUT and GPIO_HEATER_OUTPUT"

@@ -50,7 +50,7 @@
 #include <px4_platform_common/config.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_platform_common/defines.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/input_rc.h>
 /* The interval between each frame is 4700us, do not change it. */

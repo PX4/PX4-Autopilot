@@ -46,7 +46,7 @@
 
 #include <poll.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <matrix/math.hpp>
 #include <px4_platform_common/config.h>

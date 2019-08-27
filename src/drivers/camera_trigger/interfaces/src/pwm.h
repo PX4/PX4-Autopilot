@@ -8,7 +8,7 @@
 
 #ifdef __PX4_NUTTX
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <parameters/param.h>
 #include <px4_platform_common/log.h>
 

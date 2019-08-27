@@ -88,7 +88,7 @@ print("""
  * Tool for listening to topics when running flight stack on linux.
  */
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <px4_platform_common/app.h>
 #include <px4_platform_common/config.h>
 #include <px4_platform_common/log.h>

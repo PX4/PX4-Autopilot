@@ -49,7 +49,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <systemlib/err.h>
 
 #include "LandingTargetEstimator.h"

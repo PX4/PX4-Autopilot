@@ -43,7 +43,7 @@
 #include "calibration_messages.h"
 #include "calibration_routines.h"
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_pwm_output.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>

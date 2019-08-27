@@ -42,7 +42,7 @@
 #include <px4_platform_common/config.h>
 #include <stdbool.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_rc_input.h>
 #include <perf/perf_counter.h>
 #include <systemlib/ppm_decode.h>

@@ -43,7 +43,7 @@
 
 #include <cstdint>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <systemlib/err.h>
 #include <mathlib/mathlib.h>
 

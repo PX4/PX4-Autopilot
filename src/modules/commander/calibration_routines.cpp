@@ -46,7 +46,7 @@
 #include <math.h>
 #include <float.h>
 #include <poll.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <systemlib/mavlink_log.h>
 #include <lib/ecl/geo/geo.h>
 #include <string.h>

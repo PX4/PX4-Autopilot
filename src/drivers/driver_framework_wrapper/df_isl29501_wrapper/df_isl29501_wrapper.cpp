@@ -57,7 +57,7 @@
 #include <systemlib/err.h>
 
 #include <drivers/drv_range_finder.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/distance_sensor.h>

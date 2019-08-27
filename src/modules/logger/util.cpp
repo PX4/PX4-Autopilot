@@ -42,7 +42,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_gps_position.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/time.h>
 #include <systemlib/mavlink_log.h>

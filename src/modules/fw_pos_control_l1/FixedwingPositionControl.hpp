@@ -53,7 +53,7 @@
 
 #include <float.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/ecl/l1/ecl_l1_pos_controller.h>
 #include <lib/ecl/tecs/tecs.h>

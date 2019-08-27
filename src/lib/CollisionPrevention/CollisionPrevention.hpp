@@ -50,7 +50,7 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
 #include <mathlib/mathlib.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 #include <systemlib/mavlink_log.h>

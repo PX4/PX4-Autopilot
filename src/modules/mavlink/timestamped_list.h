@@ -44,7 +44,7 @@
 
 #pragma once
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 /**
  * @class TimestampedList

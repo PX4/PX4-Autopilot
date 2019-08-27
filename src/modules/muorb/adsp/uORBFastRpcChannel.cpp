@@ -34,7 +34,7 @@
 #include "px4_log.h"
 #include <algorithm>
 #include <string.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 // static initialization.
 uORB::FastRpcChannel uORB::FastRpcChannel::_Instance;

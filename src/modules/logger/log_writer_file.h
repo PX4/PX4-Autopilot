@@ -36,7 +36,7 @@
 #include <px4_platform_common/defines.h>
 #include <stdint.h>
 #include <pthread.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <perf/perf_counter.h>
 
 namespace px4

@@ -42,7 +42,7 @@
 
 #include <stdbool.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include "px4io.h"
 

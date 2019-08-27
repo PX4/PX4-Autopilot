@@ -42,7 +42,7 @@
 
 #include "subscriber_handler.h"
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/battery_status.h>

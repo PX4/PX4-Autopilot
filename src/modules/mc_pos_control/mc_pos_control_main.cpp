@@ -42,7 +42,7 @@
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/posix.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <lib/hysteresis/hysteresis.h>
 #include <commander/px4_custom_mode.h>
 

@@ -41,7 +41,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/queue.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <math.h>
 #include <pthread.h>
 #include <systemlib/err.h>

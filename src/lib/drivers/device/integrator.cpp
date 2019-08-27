@@ -42,7 +42,7 @@
 
 #include "integrator.h"
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 Integrator::Integrator(uint32_t auto_reset_interval, bool coning_compensation) :
 	_coning_comp_on(coning_compensation)

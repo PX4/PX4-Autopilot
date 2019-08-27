@@ -60,7 +60,7 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <nuttx/clock.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <board_config.h>
 
 #include <drivers/device/spi.h>

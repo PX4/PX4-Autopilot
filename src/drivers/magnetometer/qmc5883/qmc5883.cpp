@@ -65,7 +65,7 @@
 #include <systemlib/err.h>
 
 #include <drivers/drv_mag.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/device/ringbuffer.h>
 #include <drivers/drv_device.h>
 

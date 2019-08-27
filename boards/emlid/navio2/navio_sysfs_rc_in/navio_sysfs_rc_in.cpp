@@ -45,7 +45,7 @@
 #include <px4_platform_common/workqueue.h>
 #include <px4_platform_common/defines.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/input_rc.h>

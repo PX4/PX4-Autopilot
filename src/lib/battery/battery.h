@@ -42,7 +42,7 @@
 #pragma once
 
 #include <uORB/topics/battery_status.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <px4_platform_common/module_params.h>
 
 

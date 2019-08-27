@@ -49,7 +49,7 @@
 
 #include <systemlib/cpuload.h>
 #include <systemlib/printload.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <px4_platform_common/module.h>
 
 /**

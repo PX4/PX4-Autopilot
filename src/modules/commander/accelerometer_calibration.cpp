@@ -139,7 +139,7 @@
 #include <float.h>
 #include <mathlib/mathlib.h>
 #include <string.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_accel.h>
 #include <lib/ecl/geo/geo.h>
 #include <conversion/rotation.h>

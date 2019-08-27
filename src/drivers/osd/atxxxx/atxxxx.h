@@ -40,7 +40,7 @@
  * Driver for the ATXXXX chip on the omnibus fcu connected via SPI.
  */
 #include <drivers/device/spi.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <parameters/param.h>
 #include <px4_platform_common/config.h>
 #include <px4_platform_common/getopt.h>

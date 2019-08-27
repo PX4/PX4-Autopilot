@@ -65,7 +65,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 #include "interfaces/src/camera_interface.h"
 #include "interfaces/src/gpio.h"

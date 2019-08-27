@@ -34,7 +34,7 @@
 #include "log_writer_mavlink.h"
 #include "messages.h"
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <mathlib/mathlib.h>
 #include <px4_platform_common/log.h>
 #include <px4_platform_common/posix.h>

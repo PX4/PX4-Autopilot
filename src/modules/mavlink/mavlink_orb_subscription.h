@@ -41,7 +41,7 @@
 #ifndef MAVLINK_ORB_SUBSCRIPTION_H_
 #define MAVLINK_ORB_SUBSCRIPTION_H_
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <containers/List.hpp>
 #include <uORB/Subscription.hpp>
 

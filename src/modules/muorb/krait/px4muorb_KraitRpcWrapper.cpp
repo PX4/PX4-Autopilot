@@ -39,7 +39,7 @@
 #include <px4muorb.h>
 #include "px4_log.h"
 #include <shmem.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <string.h>
 
 using namespace px4muorb;

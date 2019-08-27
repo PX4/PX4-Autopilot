@@ -49,7 +49,7 @@
 #include <float.h>
 #include <math.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <px4_platform_common/config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>

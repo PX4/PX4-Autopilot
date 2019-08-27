@@ -58,7 +58,7 @@
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/parameter_update.h>
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_pwm_output.h>
 

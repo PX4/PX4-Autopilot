@@ -49,7 +49,7 @@
 #include "px4_middleware.h"
 #include "px4_defines.h"
 #include <stdlib.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 
 px4::AppState MuorbTestExample::appState;
 

@@ -44,7 +44,7 @@
 #include <ctype.h>
 
 #include <dataman/dataman.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <systemlib/mavlink_log.h>
 

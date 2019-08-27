@@ -49,7 +49,7 @@
 #include <unistd.h>
 #include <queue.h>
 #include <px4_platform_common/workqueue.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include "hrt_work.h"
 
 #include <string.h>

@@ -52,7 +52,7 @@
 #include <poll.h>
 #include <cmath>
 #include <string.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_correction.h>
 #include <drivers/drv_gyro.h>

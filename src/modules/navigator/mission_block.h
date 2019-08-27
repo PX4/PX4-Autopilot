@@ -43,7 +43,7 @@
 #include "navigator_mode.h"
 #include "navigation.h"
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_controls.h>

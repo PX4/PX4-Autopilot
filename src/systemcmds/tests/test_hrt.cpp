@@ -36,7 +36,7 @@
  * Tests the high resolution timer.
  */
 
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <px4_platform_common/posix.h>
 #include <sys/time.h>
 

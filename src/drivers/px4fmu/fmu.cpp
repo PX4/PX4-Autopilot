@@ -43,7 +43,7 @@
 #include <board_config.h>
 #include <drivers/device/device.h>
 #include <drivers/device/i2c.h>
-#include <drivers/drv_hrt.h>
+#include <px4_platform_common/hrt.h>
 #include <drivers/drv_input_capture.h>
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_pwm_output.h>
