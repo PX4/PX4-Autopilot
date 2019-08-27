@@ -116,6 +116,7 @@ private:
 		(ParamFloat<px4::params::COM_POS_FS_EPH>) _param_com_pos_fs_eph,
 		(ParamFloat<px4::params::COM_POS_FS_EPV>) _param_com_pos_fs_epv,
 		(ParamFloat<px4::params::COM_VEL_FS_EVH>) _param_com_vel_fs_evh,
+		(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl,	/* failsafe response to loss of navigation accuracy */
 
 		(ParamInt<px4::params::COM_POS_FS_DELAY>) _param_com_pos_fs_delay,
 		(ParamInt<px4::params::COM_POS_FS_PROB>) _param_com_pos_fs_prob,

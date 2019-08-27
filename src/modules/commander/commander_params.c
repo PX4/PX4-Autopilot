@@ -344,9 +344,12 @@ PARAM_DEFINE_FLOAT(COM_OF_LOSS_T, 0.0f);
  * The offboard loss failsafe will only be entered after a timeout,
  * set by COM_OF_LOSS_T in seconds.
  *
- * @value 0 Land mode
- * @value 1 Hold mode
- * @value 2 Return mode
+ * @value -1 Disabled
+ * @value  0 Land mode
+ * @value  1 Hold mode
+ * @value  2 Return mode
+ * @value  3 Terminate
+ * @value  4 Lockdown
  *
  * @group Commander
  */
@@ -358,12 +361,15 @@ PARAM_DEFINE_INT32(COM_OBL_ACT, 0);
  * The offboard loss failsafe will only be entered after a timeout,
  * set by COM_OF_LOSS_T in seconds.
  *
- * @value 0 Position mode
- * @value 1 Altitude mode
- * @value 2 Manual
- * @value 3 Return mode
- * @value 4 Land mode
- * @value 5 Hold mode
+ * @value -1 Disabled
+ * @value  0 Position mode
+ * @value  1 Altitude mode
+ * @value  2 Manual
+ * @value  3 Return mode
+ * @value  4 Land mode
+ * @value  5 Hold mode
+ * @value  6 Terminate
+ * @value  7 Lockdown
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_OBL_RC_ACT, 0);
@@ -649,8 +655,8 @@ PARAM_DEFINE_INT32(COM_ARM_MIS_REQ, 0);
  * This sets the flight mode that will be used if navigation accuracy is no longer adequate for position control.
  * Navigation accuracy checks can be disabled using the CBRK_VELPOSERR parameter, but doing so will remove protection for all flight modes.
  *
- * @value 0 Assume use of remote control after fallback. Switch to Altitude mode if a height estimate is available, else switch to MANUAL.
- * @value 1 Assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
+ * @value 0 Altitude/Manual. Assume use of remote control after fallback. Switch to Altitude mode if a height estimate is available, else switch to MANUAL.
+ * @value 1 Land/Terminate.  Assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
  *
  * @group Commander
  */

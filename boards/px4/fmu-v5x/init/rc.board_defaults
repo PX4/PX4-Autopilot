@@ -10,3 +10,5 @@ then
 fi
 
 set LOGGER_BUF 64
+
+safety_button start

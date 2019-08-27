@@ -156,7 +156,8 @@ RoverPositionControl::control_position(const matrix::Vector2f &current_position,
 
 	bool setpoint = true;
 
-	if (_control_mode.flag_control_auto_enabled && pos_sp_triplet.current.valid) {
+	if ((_control_mode.flag_control_auto_enabled ||
+	     _control_mode.flag_control_offboard_enabled) && pos_sp_triplet.current.valid) {
 		/* AUTONOMOUS FLIGHT */
 
 		_control_mode_current = UGV_POSCTRL_MODE_AUTO;
@@ -272,6 +273,7 @@ RoverPositionControl::run()
 {
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
+	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
@@ -283,6 +285,7 @@ RoverPositionControl::run()
 
 	/* rate limit position updates to 50 Hz */
 	orb_set_interval(_global_pos_sub, 20);
+	orb_set_interval(_local_pos_sub, 20);
 
 	parameters_update(_params_sub, true);
 
@@ -325,9 +328,23 @@ RoverPositionControl::run()
 
 			/* load local copies */
 			orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
+			orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 
 			position_setpoint_triplet_poll();
 			vehicle_attitude_poll();
+
+			//Convert Local setpoints to global setpoints
+			if (_control_mode.flag_control_offboard_enabled) {
+				if (!globallocalconverter_initialized()) {
+					globallocalconverter_init(_local_pos.ref_lat, _local_pos.ref_lon,
+								  _local_pos.ref_alt, _local_pos.ref_timestamp);
+
+				} else {
+					globallocalconverter_toglobal(_pos_sp_triplet.current.x, _pos_sp_triplet.current.y, _pos_sp_triplet.current.z,
+								      &_pos_sp_triplet.current.lat, &_pos_sp_triplet.current.lon, &_pos_sp_triplet.current.alt);
+
+				}
+			}
 
 			// update the reset counters in any case
 			_pos_reset_counter = _global_pos.lat_lon_reset_counter;
@@ -411,6 +428,7 @@ RoverPositionControl::run()
 
 	orb_unsubscribe(_control_mode_sub);
 	orb_unsubscribe(_global_pos_sub);
+	orb_unsubscribe(_local_pos_sub);
 	orb_unsubscribe(_manual_control_sub);
 	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_pos_sp_triplet_sub);
