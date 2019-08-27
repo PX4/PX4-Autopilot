@@ -31,15 +31,15 @@
 #
 ############################################################################
 
-include_directories(../../../../lib/DriverFramework/drivers)
+include_directories(../../../lib/DriverFramework/drivers)
 
 px4_add_module(
-	MODULE platforms__posix__drivers__df_lsm9ds1_wrapper
-	MAIN df_lsm9ds1_wrapper
+	MODULE platforms__posix__drivers__df_isl29501_wrapper
+	MAIN df_isl29501_wrapper
 	SRCS
-		df_lsm9ds1_wrapper.cpp
+		df_isl29501_wrapper.cpp
 	DEPENDS
 		git_driverframework
 		df_driver_framework
-		df_lsm9ds1
+		df_isl29501
 	)

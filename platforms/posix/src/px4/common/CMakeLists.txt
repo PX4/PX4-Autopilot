@@ -70,3 +70,10 @@ endif()
 if (EXTRA_DEPENDS)
 	add_dependencies(px4_layer ${EXTRA_DEPENDS})
 endif()
+
+
+if (BUILD_TESTING)
+	add_subdirectory(test_stubs)
+	add_subdirectory(gtest_runner)
+endif()
+
