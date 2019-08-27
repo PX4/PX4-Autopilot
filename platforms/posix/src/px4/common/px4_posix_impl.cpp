@@ -38,7 +38,6 @@
  */
 
 #include <px4_defines.h>
-#include <px4_middleware.h>
 #include <px4_workqueue.h>
 #include <px4_defines.h>
 #include <stdint.h>
@@ -96,11 +95,6 @@ void init(int argc, char *argv[], const char *app_name)
 #else
 	(void)pthread_setname_np(pthread_self(), app_name);
 #endif
-}
-
-uint64_t get_time_micros()
-{
-	return hrt_absolute_time();
 }
 
 }
