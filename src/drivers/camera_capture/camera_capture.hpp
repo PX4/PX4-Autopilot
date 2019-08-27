@@ -48,7 +48,7 @@
 #include <px4_module.h>
 #include <px4_tasks.h>
 #include <px4_workqueue.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>

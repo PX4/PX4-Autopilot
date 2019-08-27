@@ -46,7 +46,7 @@
 #include <px4_tasks.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
-#include <px4_work_queue/WorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
