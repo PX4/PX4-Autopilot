@@ -35,7 +35,7 @@
  * @file ToneAlarmInterface.cpp
  */
 
-#include <lib/drivers/tone_alarm/ToneAlarmInterface.h>
+#include <drivers/drv_tone_alarm.h>
 #include <px4_defines.h>
 
 namespace ToneAlarmInterface

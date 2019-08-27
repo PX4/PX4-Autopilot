@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 #include <drivers/device/device.h>
-#include <lib/drivers/tone_alarm/ToneAlarmInterface.h>
+#include <drivers/drv_tone_alarm.h>
 #include <px4_defines.h>
 #include <cmath>
 
