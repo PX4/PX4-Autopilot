@@ -72,7 +72,7 @@ public:
  * @class MixingOutput
  * This handles the mixing, arming/disarming and all subscriptions required for that.
  *
- * It also drives the scheduling of the OutputModuleInterface (via uORB callbacks
+ * It can also drive the scheduling of the OutputModuleInterface (via uORB callbacks
  * to reduce output latency).
  */
 class MixingOutput : public ModuleParams
@@ -80,13 +80,20 @@ class MixingOutput : public ModuleParams
 public:
 	static constexpr int MAX_ACTUATORS = OutputModuleInterface::MAX_ACTUATORS;
 
+	enum class SchedulingPolicy {
+		Disabled, ///< Do not drive scheduling (the module needs to call ScheduleOnInterval() for example)
+		Auto ///< Drive scheduling based on subscribed actuator controls topics (via uORB callbacks)
+	};
+
 	/**
 	 * Contructor
 	 * @param interface Parent module for scheduling, parameter updates and callbacks
+	 * @param scheduling_policy
 	 * @param support_esc_calibration true if the output module supports ESC calibration via max, then min setting
 	 * @param ramp_up true if motor ramp up from disarmed to min upon arming is wanted
 	 */
-	MixingOutput(OutputModuleInterface &interface, bool support_esc_calibration, bool ramp_up = true);
+	MixingOutput(OutputModuleInterface &interface, SchedulingPolicy scheduling_policy,
+		     bool support_esc_calibration, bool ramp_up = true);
 
 	~MixingOutput();
 
@@ -212,8 +219,9 @@ private:
 
 	MixerGroup *_mixers{nullptr};
 	uint32_t _groups_required{0};
-	uint32_t _groups_subscribed{0};
+	uint32_t _groups_subscribed{1u << 31}; ///< initialize to a different value than _groups_required and outside of (1 << NUM_ACTUATOR_CONTROL_GROUPS)
 
+	const SchedulingPolicy _scheduling_policy;
 	const bool _support_esc_calibration;
 
 	bool _wq_switched{false};

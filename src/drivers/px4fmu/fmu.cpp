@@ -165,7 +165,7 @@ public:
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:
-	MixingOutput _mixing_output{*this, true};
+	MixingOutput _mixing_output{*this, MixingOutput::SchedulingPolicy::Auto, true};
 
 	static constexpr uint8_t MAX_ACTUATORS = DIRECT_PWM_OUTPUT_CHANNELS;
 
@@ -262,6 +262,8 @@ PX4FMU::init()
 
 	// Getting initial parameter values
 	update_params();
+
+	ScheduleNow();
 
 	return 0;
 }
