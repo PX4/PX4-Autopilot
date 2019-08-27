@@ -39,7 +39,6 @@
 
 #include <px4_defines.h>
 #include <px4_tasks.h>
-#include <px4_middleware.h>
 #include <px4_workqueue.h>
 #include <dataman/dataman.h>
 #include <stdint.h>

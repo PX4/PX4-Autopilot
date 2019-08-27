@@ -39,6 +39,7 @@
 #include "muorb_test_example.h"
 #include <px4_log.h>
 #include <px4_app.h>
+#include <px4_init.h>
 #include <px4_tasks.h>
 #include <stdio.h>
 #include <string.h>

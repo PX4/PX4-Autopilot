@@ -43,7 +43,6 @@
 #include <px4_log.h>
 #include <px4_time.h>
 #include <px4_posix.h>
-#include <px4_middleware.h>
 #include <px4_defines.h>
 #include <dspal_platform.h>
 

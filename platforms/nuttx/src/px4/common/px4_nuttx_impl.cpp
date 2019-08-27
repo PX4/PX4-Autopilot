@@ -38,7 +38,6 @@
  */
 
 #include <px4_defines.h>
-#include <px4_middleware.h>
 #include <drivers/drv_hrt.h>
 
 namespace px4
@@ -47,11 +46,6 @@ namespace px4
 void init(int argc, char *argv[], const char *process_name)
 {
 	printf("process: %s\n", process_name);
-}
-
-uint64_t get_time_micros()
-{
-	return hrt_absolute_time();
 }
 
 }

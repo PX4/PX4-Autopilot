@@ -38,7 +38,6 @@
  */
 
 #include <px4_defines.h>
-#include <px4_middleware.h>
 #include <px4_workqueue.h>
 #include <px4_time.h>
 #include <stdint.h>

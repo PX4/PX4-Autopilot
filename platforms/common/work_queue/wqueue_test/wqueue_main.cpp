@@ -40,7 +40,6 @@
 #include "wqueue_test.h"
 
 #include <px4_log.h>
-#include <px4_middleware.h>
 #include <px4_app.h>
 #include <stdio.h>
 

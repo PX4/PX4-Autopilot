@@ -41,7 +41,6 @@
 #include <drivers/drv_pwm_output.h>
 #include <lib/mixer/mixer.h>
 #include <perf/perf_counter.h>
-#include <px4_common.h>
 #include <px4_config.h>
 #include <px4_module.h>
 #include <px4_tasks.h>

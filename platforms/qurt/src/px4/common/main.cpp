@@ -38,10 +38,10 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <px4_middleware.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
 #include <px4_posix.h>
+#include <px4_init.h>
 #include <px4_defines.h>
 #include <dspal_platform.h>
 #include <vector>
