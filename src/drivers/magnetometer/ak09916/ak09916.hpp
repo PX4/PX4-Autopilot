@@ -39,7 +39,7 @@
 #include <systemlib/conversions.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/i2c.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 
 #define AK09916_DEVICE_PATH_MAG              "/dev/ak09916_i2c_int"

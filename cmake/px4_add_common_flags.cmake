@@ -174,6 +174,7 @@ function(px4_add_common_flags)
 		${PX4_BINARY_DIR}/src/lib
 		${PX4_BINARY_DIR}/src/modules
 
+		${PX4_SOURCE_DIR}/platforms/common/include
 		${PX4_SOURCE_DIR}/src
 		${PX4_SOURCE_DIR}/src/include
 		${PX4_SOURCE_DIR}/src/lib

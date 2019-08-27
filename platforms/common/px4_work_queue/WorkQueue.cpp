@@ -31,26 +31,100 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include <px4_platform_common/px4_work_queue/WorkQueue.hpp>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 
-#include <px4_app.h>
-#include <px4_work_queue/WorkItem.hpp>
 #include <string.h>
 
-using namespace px4;
+#include <px4_tasks.h>
+#include <px4_time.h>
+#include <drivers/drv_hrt.h>
 
-class WQueueTest : public px4::WorkItem
+namespace px4
 {
-public:
-	WQueueTest() : px4::WorkItem(px4::wq_configurations::test1) {}
-	~WQueueTest() = default;
 
-	int main();
+WorkQueue::WorkQueue(const wq_config_t &config) :
+	_config(config)
+{
+	// set the threads name
+#ifdef __PX4_DARWIN
+	pthread_setname_np(_config.name);
+#elif !defined(__PX4_QURT)
+	pthread_setname_np(pthread_self(), _config.name);
+#endif
 
-	void Run() override;
+#ifndef __PX4_NUTTX
+	px4_sem_init(&_qlock, 0, 1);
+#endif /* __PX4_NUTTX */
 
-	static px4::AppState appState; /* track requests to terminate app */
+	px4_sem_init(&_process_lock, 0, 0);
+	px4_sem_setprotocol(&_process_lock, SEM_PRIO_NONE);
+}
 
-private:
-	int _iter{0};
-};
+WorkQueue::~WorkQueue()
+{
+	work_lock();
+	px4_sem_destroy(&_process_lock);
+	work_unlock();
+
+#ifndef __PX4_NUTTX
+	px4_sem_destroy(&_qlock);
+#endif /* __PX4_NUTTX */
+}
+
+void WorkQueue::Add(WorkItem *item)
+{
+	// TODO: prevent additions when shutting down
+
+	work_lock();
+	_q.push(item);
+	work_unlock();
+
+	// Wake up the worker thread
+	px4_sem_post(&_process_lock);
+}
+
+void WorkQueue::Remove(WorkItem *item)
+{
+	work_lock();
+	_q.remove(item);
+	work_unlock();
+}
+
+void WorkQueue::Clear()
+{
+	work_lock();
+
+	while (!_q.empty()) {
+		_q.pop();
+	}
+
+	work_unlock();
+}
+
+void WorkQueue::Run()
+{
+	while (!should_exit()) {
+		px4_sem_wait(&_process_lock);
+
+		work_lock();
+
+		// process queued work
+		while (!_q.empty()) {
+			WorkItem *work = _q.pop();
+
+			work_unlock(); // unlock work queue to run (item may requeue itself)
+			work->Run();
+			work_lock(); // re-lock
+		}
+
+		work_unlock();
+	}
+}
+
+void WorkQueue::print_status()
+{
+	PX4_INFO("WorkQueue: %s running", get_name());
+}
+
+} // namespace px4

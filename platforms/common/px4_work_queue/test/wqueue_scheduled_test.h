@@ -34,7 +34,7 @@
 #pragma once
 
 #include <px4_app.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <string.h>
 
 using namespace px4;

@@ -38,7 +38,7 @@
 #include <perf/perf_counter.h>
 #include <px4_module.h>
 #include <px4_module_params.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/airspeed/airspeed.h>
 #include <AirspeedValidator.hpp>
 #include <systemlib/mavlink_log.h>
