@@ -1,4 +1,4 @@
-__max_num_config_instances: &max_num_config_instances 1
+__max_num_config_instances: &max_num_config_instances 3
 
 module_name: MAVLink
 serial_config:
@@ -16,9 +16,8 @@ serial_config:
         # 0: Telem1 Port (Telemetry Link)
         # 1: Telem2 Port (Companion Link). Disabled by default to reduce RAM usage
         # 2: Board-specific / no fixed function or port
-        default: TEL2
+        default: [TEL1, "", ""]
       num_instances: *max_num_config_instances
-
 parameters:
     - group: MAVLink
       definitions:
@@ -28,7 +27,6 @@ parameters:
                 long: |
                     The MAVLink Mode defines the set of streamed messages (for example the
                     vehicle's attitude) and their sending rates.
-
             type: enum
             values:
                 0: Normal
@@ -42,7 +40,7 @@ parameters:
                 8: External Vision
             reboot_required: true
             num_instances: *max_num_config_instances
-            default: 0
+            default: [0, 2, 0]
 
         MAV_${i}_RATE:
             description:
@@ -51,16 +49,15 @@ parameters:
                     Configure the maximum sending rate for the MAVLink streams in Bytes/sec.
                     If the configured streams exceed the maximum rate, the sending rate of
                     each stream is automatically decreased.
-
-                    If this is set to 0, a value of <baudrate>/20 is used, which corresponds to
-                    half of the theoretical maximum bandwidth.
-
+                    If this is set to 0 a value of half of the theoretical maximum bandwidth is used.
+                    This corresponds to baudrate/20 Bytes/s (baudrate/10 = maximum data rate on 
+                    8N1-configured links).
             type: int32
             min: 0
             unit: B/s
             reboot_required: true
             num_instances: *max_num_config_instances
-            default: 1200
+            default: [1200, 0, 0]
 
         MAV_${i}_FORWARD:
             description:
@@ -68,12 +65,9 @@ parameters:
                 long: |
                     If enabled, forward incoming MAVLink messages to other MAVLink ports if the
                     message is either broadcast or the target is not the autopilot.
-
                     This allows for example a GCS to talk to a camera that is connected to the
                     autopilot via MAVLink (on a different link than the GCS).
-
             type: boolean
             reboot_required: true
             num_instances: *max_num_config_instances
-            default: true
-
+            default: [true, false, false]

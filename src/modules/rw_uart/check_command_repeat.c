@@ -28,6 +28,7 @@ bool check_command_repeat(const uint8_t *buffer, MSG_type msg_type)
         case WIFI_COMM_PARAM_GET:
         case WIFI_COMM_RC_POS:
         case WIFI_COMM_ESC_CALI_ON:
+        case WIFI_COMM_CALI_QUIT:
         case WIFI_COMM_AUTO_FLIGHT_ON:
         case WIFI_COMM_AUTO_FLIGHT_OFF:
         case WIFI_COMM_DISARMED:
@@ -44,7 +45,7 @@ bool check_command_repeat(const uint8_t *buffer, MSG_type msg_type)
         case WIFI_COMM_MAG_CALI:
             check_ok = (buffer[5] == buffer[6]);
             break;
-        case WIFI_COMM_HIGHT_CHAGE:
+        case WIFI_COMM_HIGHT_CHANGE:
             check_ok = (buffer[5] == buffer[6] && compare_buffer_n((buffer+7), (buffer+11), 2));
             break;
         default:
@@ -65,6 +66,7 @@ bool check_command_repeat(const uint8_t *buffer, MSG_type msg_type)
         check_ok = compare_buffer_n((buffer+5), (buffer+13), 8);
         break;
     case MSG_NAME_EXYF:
+    case MSG_NAME_EXEX:
          check_ok = (buffer[7] == buffer [8]);
         break;
     default:

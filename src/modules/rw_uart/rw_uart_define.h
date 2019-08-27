@@ -8,6 +8,7 @@
 #define MSG_NAME_HFMR (uint8_t)2
 #define MSG_NAME_YFWI (uint8_t)3
 #define MSG_NAME_EXYF (uint8_t)4
+#define MSG_NAME_EXEX (uint8_t) 5
 
 #define WIFI_COMM_WAYPOINT (uint8_t)81
 #define WIFI_COMM_WP_DOWNLOAD (uint8_t)82
@@ -22,10 +23,10 @@
 #define WIFI_COMM_WP_CHAGE (uint8_t)103
 #define WIFI_COMM_PARAM_GET (uint8_t)104
 #define WIFI_COMM_MAG_CALI (uint8_t)105
-#define WIFI_COMM_HIGHT_CHAGE (uint8_t)106
+#define WIFI_COMM_HIGHT_CHANGE (uint8_t)106
 #define WIFI_COMM_RC_POS (uint8_t)117
 #define WIFI_COMM_ESC_CALI_ON (uint8_t)120
-#define WIFI_COMM_ESC_CALI_QUIT (uint8_t)121
+#define WIFI_COMM_CALI_QUIT (uint8_t)121
 #define WIFI_COMM_AUTO_FLIGHT_ON (uint8_t)122
 #define WIFI_COMM_AUTO_FLIGHT_OFF (uint8_t)123
 #define WIFI_COMM_DISARMED (uint8_t)124
@@ -50,5 +51,7 @@
 #define EXYF_COMM_RC_GET (uint8_t)14 // not used
 #define EXYF_COMM_PLANE_SET (uint8_t)18 //MAV_TYPE
 #define EXYF_COMM_PLANE_GET (uint8_t)19 //MAV_TYPE
+
+#define EXEX_COMM_HIGHT_CHANGE (uint8_t)1
 
 #endif // RW_UART_DEFINE_H

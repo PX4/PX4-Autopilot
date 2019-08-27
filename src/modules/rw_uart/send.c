@@ -245,6 +245,7 @@ void exyf_response_pack(uint8_t *send_message, MSG_type msg_type, MSG_param_hd m
         crc = check_crc(send_message, 4, 9);
         send_message[11] = (uint8_t)(crc & 0x00ff);
         send_message[12] = (uint8_t)((crc & 0xff00)>>8);
+        send_message[12] = 0xba;
         break;
     case EXYF_COMM_PLANE_GET:
         send_message[5] = 3;
@@ -256,6 +257,7 @@ void exyf_response_pack(uint8_t *send_message, MSG_type msg_type, MSG_param_hd m
         crc = check_crc(send_message, 3, 9);
         send_message[10] = (uint8_t)(crc & 0x00ff);
         send_message[11] = (uint8_t)((crc & 0xff00)>>8);
+        send_message[12] = 0xbb;
         break;
     default:
         break;

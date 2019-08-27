@@ -37,7 +37,8 @@
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/geofence_result.h>
-#include <uORB/topics/cpuload.h>
+//#include <uORB/topics/cpuload.h>
+#include <uORB/topics/vehicle_control_mode.h>
 
 #pragma  pack(1)
 
@@ -317,13 +318,16 @@ typedef struct {
     int battery_fd;
     int geofence_fd;
     //int cpu_fd;
+    int control_mode_fd;
 }MSG_orb_sub;
 
 typedef struct {
     orb_advert_t command_pd;
     orb_advert_t arm_pd;
-    orb_advert_t  manual_pd;
-    orb_advert_t  local_position_sp_pd;
+    orb_advert_t manual_pd;
+    orb_advert_t local_position_sp_pd;
+    orb_advert_t status_pd;
+    orb_advert_t control_mode_pd;
 }MSG_orb_pub;
 
 typedef struct {
@@ -339,6 +343,7 @@ typedef struct {
     struct vehicle_attitude_setpoint_s attitude_data;
     struct battery_status_s battery_data;
     struct geofence_result_s geofence_data;
+    struct vehicle_control_mode_s control_mode_data;
     //struct cpuload_s cpu_data;
 }MSG_orb_data;
 
@@ -432,5 +437,7 @@ extern void yfwi_pack(const uint8_t *buffer, MSG_type msg_type, MSG_param_hd msg
 extern void exyf_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type, MSG_param_hd msg_hd);
 
 extern void exyf_response_pack(uint8_t *send_message, MSG_type msg_type, MSG_param_hd msg_hd);
+
+extern void exex_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type, MSG_param_hd msg_hd);
 
 #endif // RW_UART_H

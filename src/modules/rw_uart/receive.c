@@ -33,7 +33,7 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
         msg_data->command_data.param4 = 0.0;
         msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)/10000000.0;
         msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)/10000000.0;
-        msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0 +10.0;
+        msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0 +1000.0;
         printf("Passing takeoff\n");
         break;
     case WIFI_COMM_WP_UPLOAD:
@@ -50,9 +50,11 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
         if (wp_data.push == &wp_data.setd[19]) wp_data.push = wp_data.setd;
         else wp_data.push ++;
         wp_data.num ++;
+        printf("Passing wy_upload\n");
         break;
     case WIFI_COMM_WP_UPLOAD_NUM:
         wp_data.num = *(uint16_t*)((uint32_t)buffer + 6);
+        printf("Passing wp_upload_num\n");
         break;
     case WIFI_COMM_GYRO_CLEAR:
         msg_data->command_data.command = 241; //CMD_PREFLIGHT_CALIBRATION
@@ -63,11 +65,13 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
         msg_data->command_data.param5 = 0;
         msg_data->command_data.param6 = 0;
         msg_data->command_data.param7 = 0;
+        printf("Passing gyro_calibration\n");
         break;
     case WIFI_COMM_WP_CHAGE:
         msg_data->command_data.command = 177; //CMD_DO_JUMP
         msg_data->command_data.param1 = (uint16_t)buffer[7] + ((uint16_t) buffer[8]<<8);
         msg_data->command_data.param2 = 0;
+        printf("Passing wp_chage\n");
         break;
     case WIFI_COMM_MAG_CALI:
         msg_data->command_data.command = 241; //CMD_PREFLIGHT_CALIBRATION
@@ -78,8 +82,9 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
         msg_data->command_data.param5 = 0;
         msg_data->command_data.param6 = 0;
         msg_data->command_data.param7 = 0;
+        printf("Passing mag_calibration\n");
         break;
-    case WIFI_COMM_HIGHT_CHAGE:
+    case WIFI_COMM_HIGHT_CHANGE:
         msg_data->command_data.command = 16; //VEHICLE_CMD_NAV_WAYPOINT
         msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)/10000000.0;
         msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)/10000000.0;
@@ -88,6 +93,7 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
         msg_data->command_data.param2 = 0.0;
         msg_data->command_data.param3 = 0.0;
         msg_data->command_data.param4 = 0.0;
+        printf("Passing hight_change\n");
         break;
     case WIFI_COMM_RC_POS:
         msg_data->command_data.command = 241; //CMD_PREFLIGHT_CALIBRATION
@@ -98,6 +104,7 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
         msg_data->command_data.param5 = 0;
         msg_data->command_data.param6 = 0;
         msg_data->command_data.param7 = 0;
+        printf("Passing rc_cali\n");
         break;
     case WIFI_COMM_ESC_CALI_ON:
         msg_data->command_data.command = 241; //CMD_PREFLIGHT_CALIBRATION
@@ -108,11 +115,24 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
         msg_data->command_data.param5 = 0;
         msg_data->command_data.param6 = 0;
         msg_data->command_data.param7 = 1;
+        printf("Passing esc_cali\n");
+        break;
+    case WIFI_COMM_CALI_QUIT:
+        msg_data->command_data.command = 241; //CMD_PREFLIGHT_CALIBRATION
+        msg_data->command_data.param1 = 0;
+        msg_data->command_data.param2 = 0;
+        msg_data->command_data.param3 = 0;
+        msg_data->command_data.param4 = 0;
+        msg_data->command_data.param5 = 0;
+        msg_data->command_data.param6 = 0;
+        msg_data->command_data.param7 = 0;
+        printf("Passing cali_off\n");
         break;
     case WIFI_COMM_AUTO_FLIGHT_ON:
         msg_data->command_data.command = 300; //CMD_MISSION_START
         msg_data->command_data.param1 = wp_data.pop->waypoint_num;
-        msg_data->command_data.param2 = wp_data.push->waypoint_num;;
+        msg_data->command_data.param2 = wp_data.push->waypoint_num;
+        printf("Passing atuo_on\n");
         break;
     case WIFI_COMM_AUTO_FLIGHT_OFF:
         msg_data->command_data.command = 17; //CMD_NAV_LOITER_UNLIM
@@ -121,14 +141,23 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
         msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)/10000000.0;
         msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)/10000000.0;
         msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0;
+        printf("Passing auto_off\n");
         break;
     case WIFI_COMM_DISARMED:
         msg_data->arm_data.lockdown = true;
         msg_data->arm_data.armed = false;
+        msg_data->status_data.arming_state = 0; //ARMING_STATE_INIT
+        msg_data->control_mode_data.flag_armed = false;
+        printf("Passing disarm\n");
         break;
     case WIFI_COMM_ARMED:
+        //msg_data->command_data.command = 400; //CMD_COMPONENT_ARM_DISARM
+        //msg_data->command_data.param1 = 1;
         msg_data->arm_data.lockdown = false;
         msg_data->arm_data.armed = true;
+        msg_data->status_data.arming_state = 2; //ARMING_STATE_ARMED
+        msg_data->control_mode_data.flag_armed = true;
+        printf("Passing arm\n");
         break;
     default:
         break;
@@ -247,7 +276,7 @@ bool yfwi_param_set(const uint8_t *buffer, MSG_param_hd msg_hd){
         float_t paramf = (float_t)dist_max / 6.5535;
         param_set(msg_hd.dist_max_hd, &paramf);
         changed = true;
-        printf("higt_max changed\n");
+        printf("dist_max changed\n");
     }
 
     for (int i = 8; i < 60; i++) {
@@ -266,6 +295,7 @@ void iwfi_pack(const uint8_t *buffer, MSG_orb_data *msg_data){
     msg_data->manual_data.y = ((float_t)(((uint16_t) buffer[7]<<8) + buffer [8])/65535.0 - 0.5)*2.0;
     msg_data->manual_data.x = ((float_t)(((uint16_t) buffer[9]<<8) + buffer [10])/65535.0 - 0.5)*2.0;
     msg_data->manual_data.z = (float_t)(((uint16_t) buffer[11]<<8) + buffer [12])/65535.0;
+    printf("Passing iwfi_pack\n");
 }
 
 void yfwi_pack(const uint8_t *buffer, MSG_type msg_type, MSG_param_hd msg_hd){
@@ -280,6 +310,7 @@ void yfwi_pack(const uint8_t *buffer, MSG_type msg_type, MSG_param_hd msg_hd){
             paramd= 0;
             param_set(msg_hd.yaw_force_hd, &paramd);
         }
+        printf("Passing yfwi_pack\n");
         break;
     default:
         break;
@@ -298,6 +329,7 @@ void exyf_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type,
         msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)/10000000.0;
         msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0;
         }
+        printf("Passing loiter_yaw\n");
         break;
     case EXYF_COMM_LOITER_MOVE:
         if (msg_data->status_data.nav_state == 4){ //NAVIGATION_STATE_AUTO_LOITER
@@ -327,14 +359,37 @@ void exyf_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type,
                msg_data->local_position_sp_data.y = y;
             }
         }
+         printf("Passing loiter_move\n");
         break;
     case EXYF_COMM_IDLE_SPEED_SET:
         paramd = (int)*(uint16_t*)((uint32_t)buffer + 9);
         param_set(msg_hd.pwm_min_hd, &paramd);
+         printf("Passing idle_speed_set\n");
         break;
     case EXYF_COMM_PLANE_SET:
         paramd = (int)buffer[9];
         param_set(msg_hd.mav_type_hd, &paramd);
+        printf("Passing plane_set\n");
+        break;
+    default:
+        break;
+    }
+}
+
+void exex_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type, MSG_param_hd msg_hd){
+    float paramf;
+    switch (msg_type.command) {
+    case EXEX_COMM_HIGHT_CHANGE:
+        paramf = (float)*(uint16_t*)((uint32_t)buffer + 9);
+        msg_data->command_data.command = 17; //CMD_NAV_LOITER_UNLIM
+        msg_data->command_data.param3 = 0;
+        msg_data->command_data.param4 = 0;
+        msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)/10000000.0;
+        msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)/10000000.0;
+        msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0 + paramf /10.0;
+        paramf = *(float_t*)((uint32_t)buffer + 11);
+        param_set(msg_hd.up_vel_max_hd, &paramf);
+        param_set(msg_hd.dn_vel_max_hd, &paramf);
         break;
     default:
         break;

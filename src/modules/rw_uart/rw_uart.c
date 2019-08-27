@@ -119,6 +119,7 @@ void msg_orb_sub (MSG_orb_sub *msg_fd)
     msg_fd->attitude_fd = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
     msg_fd->battery_fd = orb_subscribe(ORB_ID(battery_status));
     msg_fd->geofence_fd = orb_subscribe(ORB_ID(geofence_result));
+    msg_fd->control_mode_fd = orb_subscribe(ORB_ID(vehicle_control_mode));
     //msg_fd->cpu_fd = orb_subscribe(ORB_ID(cpuload));
 }
 
@@ -137,6 +138,7 @@ void msg_orb_data(MSG_orb_data *msg_data, MSG_orb_sub msg_fd)
    orb_copy(ORB_ID(vehicle_attitude_setpoint), msg_fd.attitude_fd, &msg_data->attitude_data);
    orb_copy(ORB_ID(battery_status), msg_fd.battery_fd, &msg_data->battery_data);
    orb_copy(ORB_ID(geofence_result), msg_fd.geofence_fd, &msg_data->geofence_data);
+   orb_copy(ORB_ID(vehicle_control_mode), msg_fd.control_mode_fd, &msg_data->control_mode_data);
    //orb_copy(ORB_ID(cpuload), msg_fd.cpu_fd, &msg_data->cpu_data);
 }
 
@@ -205,8 +207,8 @@ int rw_uart_main(int argc, char *argv[])
                 rw_thread_should_exit = false;//定义一个守护进程
                 rw_uart_task = px4_task_spawn_cmd("rw_uart",
                         SCHED_DEFAULT,
-                        SCHED_PRIORITY_DEFAULT,//调度优先级
-                        4000,//堆栈分配大小
+                        SCHED_PRIORITY_DEFAULT + 50,//调度优先级
+                        6000,//堆栈分配大小
                         rw_uart_thread_main,
                         (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
                 return 0;
@@ -272,6 +274,8 @@ int rw_uart_thread_main(int argc, char *argv[])
 
         memset(param_saved, 0, sizeof(param_saved));
         msg_param_saved_get(msg_hd, uart_read);
+
+        memset(&wp_data, 0, sizeof(wp_data));
 
         rw_uart_thread_running = true;
 
