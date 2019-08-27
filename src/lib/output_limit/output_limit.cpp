@@ -31,16 +31,7 @@
  *
  ****************************************************************************/
 
-/**
- * @file pwm_limit.c
- *
- * Library for PWM output limiting
- *
- * @author Julian Oes <julian@px4.io>
- * @author Lorenz Meier <lorenz@px4.io>
- */
-
-#include "pwm_limit.h"
+#include "output_limit.h"
 
 #include <px4_defines.h>
 #include <math.h>
@@ -50,21 +41,21 @@
 
 #define PROGRESS_INT_SCALING	10000
 
-void pwm_limit_init(pwm_limit_t *limit)
+void output_limit_init(output_limit_t *limit)
 {
-	limit->state = PWM_LIMIT_STATE_INIT;
+	limit->state = OUTPUT_LIMIT_STATE_INIT;
 	limit->time_armed = 0;
 	limit->ramp_up = true;
 }
 
-void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_channels, const uint16_t reverse_mask,
-		    const uint16_t *disarmed_pwm, const uint16_t *min_pwm, const uint16_t *max_pwm,
-		    const float *output, uint16_t *effective_pwm, pwm_limit_t *limit)
+void output_limit_calc(const bool armed, const bool pre_armed, const unsigned num_channels, const uint16_t reverse_mask,
+		       const uint16_t *disarmed_output, const uint16_t *min_output, const uint16_t *max_output,
+		       const float *output, uint16_t *effective_output, output_limit_t *limit)
 {
 
 	/* first evaluate state changes */
 	switch (limit->state) {
-	case PWM_LIMIT_STATE_INIT:
+	case OUTPUT_LIMIT_STATE_INIT:
 
 		if (armed) {
 
@@ -74,19 +65,19 @@ void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_c
 			}
 
 			if (hrt_elapsed_time(&limit->time_armed) >= INIT_TIME_US) {
-				limit->state = PWM_LIMIT_STATE_OFF;
+				limit->state = OUTPUT_LIMIT_STATE_OFF;
 			}
 		}
 
 		break;
 
-	case PWM_LIMIT_STATE_OFF:
+	case OUTPUT_LIMIT_STATE_OFF:
 		if (armed) {
 			if (limit->ramp_up) {
-				limit->state = PWM_LIMIT_STATE_RAMP;
+				limit->state = OUTPUT_LIMIT_STATE_RAMP;
 
 			} else {
-				limit->state = PWM_LIMIT_STATE_ON;
+				limit->state = OUTPUT_LIMIT_STATE_ON;
 			}
 
 			/* reset arming time, used for ramp timing */
@@ -95,19 +86,19 @@ void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_c
 
 		break;
 
-	case PWM_LIMIT_STATE_RAMP:
+	case OUTPUT_LIMIT_STATE_RAMP:
 		if (!armed) {
-			limit->state = PWM_LIMIT_STATE_OFF;
+			limit->state = OUTPUT_LIMIT_STATE_OFF;
 
 		} else if (hrt_elapsed_time(&limit->time_armed) >= RAMP_TIME_US) {
-			limit->state = PWM_LIMIT_STATE_ON;
+			limit->state = OUTPUT_LIMIT_STATE_ON;
 		}
 
 		break;
 
-	case PWM_LIMIT_STATE_ON:
+	case OUTPUT_LIMIT_STATE_ON:
 		if (!armed) {
-			limit->state = PWM_LIMIT_STATE_OFF;
+			limit->state = OUTPUT_LIMIT_STATE_OFF;
 		}
 
 		break;
@@ -126,22 +117,22 @@ void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_c
 	unsigned local_limit_state = limit->state;
 
 	if (pre_armed) {
-		local_limit_state = PWM_LIMIT_STATE_ON;
+		local_limit_state = OUTPUT_LIMIT_STATE_ON;
 	}
 
 	unsigned progress;
 
-	/* then set effective_pwm based on state */
+	/* then set effective_output based on state */
 	switch (local_limit_state) {
-	case PWM_LIMIT_STATE_OFF:
-	case PWM_LIMIT_STATE_INIT:
+	case OUTPUT_LIMIT_STATE_OFF:
+	case OUTPUT_LIMIT_STATE_INIT:
 		for (unsigned i = 0; i < num_channels; i++) {
-			effective_pwm[i] = disarmed_pwm[i];
+			effective_output[i] = disarmed_output[i];
 		}
 
 		break;
 
-	case PWM_LIMIT_STATE_RAMP: {
+	case OUTPUT_LIMIT_STATE_RAMP: {
 			hrt_abstime diff = hrt_elapsed_time(&limit->time_armed);
 
 			progress = diff * PROGRESS_INT_SCALING / RAMP_TIME_US;
@@ -156,49 +147,49 @@ void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_c
 
 				/* check for invalid / disabled channels */
 				if (!PX4_ISFINITE(control_value)) {
-					effective_pwm[i] = disarmed_pwm[i];
+					effective_output[i] = disarmed_output[i];
 					continue;
 				}
 
-				uint16_t ramp_min_pwm;
+				uint16_t ramp_min_output;
 
-				/* if a disarmed pwm value was set, blend between disarmed and min */
-				if (disarmed_pwm[i] > 0) {
+				/* if a disarmed output value was set, blend between disarmed and min */
+				if (disarmed_output[i] > 0) {
 
 					/* safeguard against overflows */
-					unsigned disarmed = disarmed_pwm[i];
+					unsigned disarmed = disarmed_output[i];
 
-					if (disarmed > min_pwm[i]) {
-						disarmed = min_pwm[i];
+					if (disarmed > min_output[i]) {
+						disarmed = min_output[i];
 					}
 
-					unsigned disarmed_min_diff = min_pwm[i] - disarmed;
-					ramp_min_pwm = disarmed + (disarmed_min_diff * progress) / PROGRESS_INT_SCALING;
+					unsigned disarmed_min_diff = min_output[i] - disarmed;
+					ramp_min_output = disarmed + (disarmed_min_diff * progress) / PROGRESS_INT_SCALING;
 
 				} else {
 
-					/* no disarmed pwm value set, choose min pwm */
-					ramp_min_pwm = min_pwm[i];
+					/* no disarmed output value set, choose min output */
+					ramp_min_output = min_output[i];
 				}
 
 				if (reverse_mask & (1 << i)) {
 					control_value = -1.0f * control_value;
 				}
 
-				effective_pwm[i] = control_value * (max_pwm[i] - ramp_min_pwm) / 2 + (max_pwm[i] + ramp_min_pwm) / 2;
+				effective_output[i] = control_value * (max_output[i] - ramp_min_output) / 2 + (max_output[i] + ramp_min_output) / 2;
 
 				/* last line of defense against invalid inputs */
-				if (effective_pwm[i] < ramp_min_pwm) {
-					effective_pwm[i] = ramp_min_pwm;
+				if (effective_output[i] < ramp_min_output) {
+					effective_output[i] = ramp_min_output;
 
-				} else if (effective_pwm[i] > max_pwm[i]) {
-					effective_pwm[i] = max_pwm[i];
+				} else if (effective_output[i] > max_output[i]) {
+					effective_output[i] = max_output[i];
 				}
 			}
 		}
 		break;
 
-	case PWM_LIMIT_STATE_ON:
+	case OUTPUT_LIMIT_STATE_ON:
 
 		for (unsigned i = 0; i < num_channels; i++) {
 
@@ -206,7 +197,7 @@ void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_c
 
 			/* check for invalid / disabled channels */
 			if (!PX4_ISFINITE(control_value)) {
-				effective_pwm[i] = disarmed_pwm[i];
+				effective_output[i] = disarmed_output[i];
 				continue;
 			}
 
@@ -214,14 +205,14 @@ void pwm_limit_calc(const bool armed, const bool pre_armed, const unsigned num_c
 				control_value = -1.0f * control_value;
 			}
 
-			effective_pwm[i] = control_value * (max_pwm[i] - min_pwm[i]) / 2 + (max_pwm[i] + min_pwm[i]) / 2;
+			effective_output[i] = control_value * (max_output[i] - min_output[i]) / 2 + (max_output[i] + min_output[i]) / 2;
 
 			/* last line of defense against invalid inputs */
-			if (effective_pwm[i] < min_pwm[i]) {
-				effective_pwm[i] = min_pwm[i];
+			if (effective_output[i] < min_output[i]) {
+				effective_output[i] = min_output[i];
 
-			} else if (effective_pwm[i] > max_pwm[i]) {
-				effective_pwm[i] = max_pwm[i];
+			} else if (effective_output[i] > max_output[i]) {
+				effective_output[i] = max_output[i];
 			}
 
 		}

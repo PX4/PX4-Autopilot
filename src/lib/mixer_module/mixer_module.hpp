@@ -36,7 +36,7 @@
 #include <board_config.h>
 #include <lib/mixer/mixer.h>
 #include <lib/perf/perf_counter.h>
-#include <lib/pwm_limit/pwm_limit.h>
+#include <lib/output_limit/output_limit.h>
 #include <px4_atomic.h>
 #include <px4_module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -177,8 +177,8 @@ private:
 	Command _command; ///< incoming commands (from another thread)
 
 	/**
-	 * Reorder PWM outputs according to _param_mot_ordering
-	 * @param values PWM values to reorder
+	 * Reorder outputs according to _param_mot_ordering
+	 * @param values values to reorder
 	 */
 	inline void reorderOutputs(uint16_t values[MAX_ACTUATORS]);
 
@@ -192,7 +192,7 @@ private:
 	uint16_t _min_value[MAX_ACTUATORS] {};
 	uint16_t _max_value[MAX_ACTUATORS] {};
 	uint16_t _reverse_output_mask{0}; ///< reverses the interval [min, max] -> [max, min], NOT motor direction
-	pwm_limit_t _pwm_limit;
+	output_limit_t _output_limit;
 
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _safety_sub{ORB_ID(safety)};
