@@ -31,15 +31,16 @@
 #
 ############################################################################
 
-include_directories(../../../../lib/DriverFramework/drivers)
+include_directories(../../../lib/DriverFramework/drivers)
 
 px4_add_module(
-	MODULE platforms__posix__drivers__df_mpu9250_wrapper
-	MAIN df_mpu9250_wrapper
+	MODULE platforms__posix__drivers__df_ms5611_wrapper
+	MAIN df_ms5611_wrapper
 	SRCS
-		df_mpu9250_wrapper.cpp
+		df_ms5611_wrapper.cpp
 	DEPENDS
 		git_driverframework
 		df_driver_framework
-		df_mpu9250
+		df_ms5611
 	)
+
