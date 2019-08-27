@@ -36,9 +36,9 @@
  * Tests for led functionality.
  */
 
-#include <px4_time.h>
-#include <px4_config.h>
-#include <px4_posix.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/posix.h>
 
 #include <sys/types.h>
 

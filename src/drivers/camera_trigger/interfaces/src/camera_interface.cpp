@@ -1,5 +1,5 @@
 #include "camera_interface.h"
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 /**
  * @file camera_interface.cpp

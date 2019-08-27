@@ -63,7 +63,7 @@
 #include <sys/types.h>
 #include <string>
 
-#include <px4_tasks.h>
+#include <px4_platform_common/tasks.h>
 #include <systemlib/err.h>
 
 #define MAX_CMD_LEN 100

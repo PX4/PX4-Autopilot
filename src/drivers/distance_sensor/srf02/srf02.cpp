@@ -37,9 +37,9 @@
  * Driver for the SRF02 sonar range finder adapted from the Maxbotix sonar range finder driver (srf02).
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <containers/Array.hpp>
 

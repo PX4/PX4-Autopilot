@@ -33,7 +33,7 @@
 
 #include "VehicleAngularVelocity.hpp"
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 using namespace matrix;
 using namespace time_literals;

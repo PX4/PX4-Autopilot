@@ -38,7 +38,7 @@
 
 #include <unit_test.h>
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 
 #include <float.h>
 #include <math.h>

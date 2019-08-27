@@ -36,10 +36,10 @@
 #include <unistd.h>
 #include <signal.h>
 
-#include <px4_tasks.h>
+#include <px4_platform_common/tasks.h>
 
-#include <px4_log.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/getopt.h>
 
 // TODO-JYW:
 // Include references to the driver framework.  This will produce a duplicate definition

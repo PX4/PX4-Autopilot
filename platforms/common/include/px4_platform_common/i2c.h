@@ -47,7 +47,7 @@ __BEGIN_DECLS
 /*
  * Building for NuttX
  */
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <sys/ioctl.h>
 #include <nuttx/arch.h>
 #include <nuttx/wqueue.h>

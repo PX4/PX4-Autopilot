@@ -43,7 +43,7 @@
 #include <math.h>
 
 #include <uORB/topics/vehicle_command.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 
 namespace vmount

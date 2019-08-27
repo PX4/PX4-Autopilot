@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include "px4_sem.h"
+#include "sem.h"
 
 
 /**

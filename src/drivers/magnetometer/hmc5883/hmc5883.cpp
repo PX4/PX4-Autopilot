@@ -37,9 +37,9 @@
  * Driver for the HMC5883 / HMC5983 magnetometer connected via I2C or SPI.
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_time.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/time.h>
 
 #include <drivers/device/i2c.h>
 
@@ -73,7 +73,7 @@
 #include <uORB/uORB.h>
 
 #include <float.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 #include <lib/conversion/rotation.h>
 
 #include "hmc5883.h"

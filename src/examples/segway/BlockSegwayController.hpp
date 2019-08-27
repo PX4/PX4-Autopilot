@@ -1,6 +1,6 @@
 #pragma once
 
-#include <px4_posix.h>
+#include <px4_platform_common/posix.h>
 #include <controllib/blocks.hpp>
 #include "blocks.hpp"
 

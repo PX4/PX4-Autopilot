@@ -37,7 +37,7 @@
  * Implementation of Non Arch specific Board identity API
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <stdio.h>
 #include <string.h>
 #if defined(BOARD_OVERRIDE_UUID) || defined(BOARD_OVERRIDE_MFGUID) || defined(BOARD_OVERRIDE_PX4_GUID)

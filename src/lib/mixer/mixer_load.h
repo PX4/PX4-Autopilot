@@ -40,7 +40,7 @@
 #ifndef _SYSTEMLIB_MIXER_LOAD_H
 #define _SYSTEMLIB_MIXER_LOAD_H value
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 
 __BEGIN_DECLS
 

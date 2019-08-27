@@ -43,7 +43,7 @@
  *
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <board_config.h>
 #include <stdio.h>
 #include <math.h>

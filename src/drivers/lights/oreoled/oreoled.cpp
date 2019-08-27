@@ -46,7 +46,7 @@
 #include <drivers/device/ringbuffer.h>
 #include <drivers/drv_oreoled.h>
 #include <perf/perf_counter.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
 

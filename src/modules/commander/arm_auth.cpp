@@ -35,8 +35,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <px4_defines.h>
-#include <px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/config.h>
 
 #include <systemlib/mavlink_log.h>
 #include <uORB/PublicationQueued.hpp>

@@ -37,7 +37,7 @@
  */
 
 #include <drivers/drv_hrt.h>
-#include <px4_posix.h>
+#include <px4_platform_common/posix.h>
 #include <sys/time.h>
 
 #include "tests_main.h"

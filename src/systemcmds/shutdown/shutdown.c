@@ -36,7 +36,7 @@
  * Tool similar to UNIX shutdown command.
  */
 
-#include <px4_tasks.h>
+#include <px4_platform_common/tasks.h>
 //#include <systemlib/systemlib.h>
 
 

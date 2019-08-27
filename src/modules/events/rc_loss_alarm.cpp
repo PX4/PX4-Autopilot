@@ -38,7 +38,7 @@
 
 #include "rc_loss_alarm.h"
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 #include <drivers/drv_hrt.h>
 #include <stdint.h>

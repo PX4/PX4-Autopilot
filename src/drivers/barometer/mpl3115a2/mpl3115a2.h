@@ -64,10 +64,10 @@
 #include <nuttx/arch.h>
 #include <nuttx/clock.h>
 #include <perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
-#include <px4_log.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
 

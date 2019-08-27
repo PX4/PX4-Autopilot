@@ -52,8 +52,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <systemlib/err.h>
-#include <px4_defines.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/tasks.h>
 
 #include "input_mavlink.h"
 #include "input_rc.h"
@@ -64,8 +64,8 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
 
-#include <px4_config.h>
-#include <px4_module.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/module.h>
 
 using namespace vmount;
 

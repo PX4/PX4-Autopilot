@@ -37,9 +37,9 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <px4_config.h>
-#include <px4_log.h>
-#include <px4_module.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>

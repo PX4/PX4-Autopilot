@@ -33,9 +33,9 @@
 
 #include "wqueue_test.h"
 
-#include <px4_app.h>
-#include <px4_log.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/app.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/tasks.h>
 #include <stdio.h>
 #include <string.h>
 #include <sched.h>

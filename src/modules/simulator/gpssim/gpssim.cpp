@@ -37,8 +37,8 @@
  */
 
 #include <sys/types.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -53,8 +53,8 @@
 #include <math.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <px4_config.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/tasks.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/device.h>
 #include <uORB/uORB.h>

@@ -42,9 +42,9 @@
  */
 
 #include <poll.h>
-#include <px4_cli.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/cli.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <stdbool.h>
 #include <stdint.h>
@@ -60,9 +60,9 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
 #include <perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_workqueue.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/workqueue.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/distance_sensor.h>
 

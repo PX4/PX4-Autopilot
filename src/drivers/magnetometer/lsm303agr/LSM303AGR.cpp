@@ -39,8 +39,8 @@
 
 #include "LSM303AGR.hpp"
 
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/defines.h>
 #include <ecl/geo/geo.h>
 
 /* SPI protocol address bits */

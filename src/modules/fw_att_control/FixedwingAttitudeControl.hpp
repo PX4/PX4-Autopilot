@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include <px4_module.h>
+#include <px4_platform_common/module.h>
 #include <drivers/drv_hrt.h>
 #include <ecl/attitude_fw/ecl_pitch_controller.h>
 #include <ecl/attitude_fw/ecl_roll_controller.h>
@@ -40,10 +40,10 @@
 #include <lib/ecl/geo/geo.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>

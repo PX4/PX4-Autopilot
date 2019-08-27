@@ -39,7 +39,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdbool.h>
@@ -50,7 +50,7 @@
 #include <systemlib/cpuload.h>
 #include <systemlib/printload.h>
 #include <drivers/drv_hrt.h>
-#include <px4_module.h>
+#include <px4_platform_common/module.h>
 
 /**
  * Start the top application.

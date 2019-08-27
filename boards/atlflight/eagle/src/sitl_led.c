@@ -37,8 +37,8 @@
  * sitl LED backend.
  */
 
-#include <px4_config.h>
-#include <px4_log.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/log.h>
 #include <stdbool.h>
 #include <systemlib/px4_macros.h>
 

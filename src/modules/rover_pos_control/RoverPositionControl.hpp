@@ -49,10 +49,10 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/pid/pid.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
@@ -68,8 +68,8 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/uORB.h>
-#include <platforms/px4_module.h>
-#include <platforms/px4_module_params.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 
 using matrix::Dcmf;
 

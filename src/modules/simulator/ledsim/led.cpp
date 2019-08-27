@@ -37,7 +37,7 @@
  * LED driver.
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <drivers/drv_board_led.h>
 #include <stdio.h>
 

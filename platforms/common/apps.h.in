@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "px4_tasks.h"	// px4_main_t
+#include <px4_platform_common/tasks.h>	// px4_main_t
 #include <map>
 #include <string>
 

@@ -37,8 +37,8 @@
  * Driver for the QMC5883 magnetometer connected via I2C or SPI.
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/defines.h>
 
 #include <drivers/device/i2c.h>
 

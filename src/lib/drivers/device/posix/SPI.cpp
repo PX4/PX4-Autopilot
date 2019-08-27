@@ -48,7 +48,7 @@
 #include <linux/types.h>
 #include <linux/spi/spidev.h>
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 
 namespace device
 {

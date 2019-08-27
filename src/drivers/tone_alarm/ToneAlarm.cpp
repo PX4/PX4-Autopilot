@@ -37,7 +37,7 @@
 
 #include "ToneAlarm.h"
 
-#include <px4_time.h>
+#include <px4_platform_common/time.h>
 
 ToneAlarm::ToneAlarm() :
 	CDev(TONE_ALARM0_DEVICE_PATH),

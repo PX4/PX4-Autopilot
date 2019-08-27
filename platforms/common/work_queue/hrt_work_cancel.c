@@ -37,9 +37,9 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_workqueue.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/workqueue.h>
 
 #include "hrt_work.h"
 

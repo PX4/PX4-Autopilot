@@ -37,7 +37,7 @@
  * Vector rotation library
  */
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include "math.h"
 #include "rotation.h"
 

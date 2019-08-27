@@ -42,7 +42,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_constraints.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 #pragma once
 
 struct PositionControlStates {

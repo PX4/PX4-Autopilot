@@ -69,8 +69,8 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
 #include <systemlib/px4_macros.h>
-#include <px4_init.h>
-#include <px4_i2c.h>
+#include <px4_platform_common/init.h>
+#include <px4_platform_common/i2c.h>
 #include <drivers/boards/common/board_dma_alloc.h>
 
 static int configure_switch(void);

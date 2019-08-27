@@ -36,7 +36,7 @@
  *
  * Simple ADC support for PX4IO on STM32.
  */
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <stdint.h>
 
 #include <nuttx/arch.h>

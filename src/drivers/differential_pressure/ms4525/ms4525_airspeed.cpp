@@ -50,7 +50,7 @@
  */
 
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 #include <uORB/topics/system_power.h>
 
 #include <drivers/airspeed/airspeed.h>

@@ -39,9 +39,9 @@
  * config tool. Takes the device name as the first parameter.
  */
 
-#include <px4_config.h>
-#include <px4_log.h>
-#include <px4_module.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
 
 #include <stdio.h>
 #include <stdlib.h>

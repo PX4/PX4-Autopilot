@@ -38,7 +38,7 @@
  *
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <drivers/device/device.h>
 
 #include <drivers/device/i2c.h>

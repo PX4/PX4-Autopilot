@@ -50,9 +50,9 @@
 #include <errno.h>
 #include <stdbool.h>
 
-#include <px4_config.h>
-#include <px4_log.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/tasks.h>
 
 void
 px4_systemreset(bool to_bootloader)

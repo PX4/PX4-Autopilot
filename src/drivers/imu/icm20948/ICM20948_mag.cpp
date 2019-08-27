@@ -40,9 +40,9 @@
  *
  */
 
-#include <px4_config.h>
-#include <px4_log.h>
-#include <px4_time.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/time.h>
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
 

@@ -33,8 +33,8 @@
 
 #include "uORBTest_UnitTest.hpp"
 #include "../uORBCommon.hpp"
-#include <px4_config.h>
-#include <px4_time.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/time.h>
 #include <stdio.h>
 #include <errno.h>
 #include <poll.h>

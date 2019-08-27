@@ -37,8 +37,8 @@
  * Implementation of Kinetis based SoC version API
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/defines.h>
 
 #include "up_arch.h"
 #include "chip/kinetis_sim.h"

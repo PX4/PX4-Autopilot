@@ -37,10 +37,10 @@
  * Driver for the hc_sr04 sonar range finders .
  */
 
-#include <px4_config.h>
-#include <px4_workqueue.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/workqueue.h>
 #include <drivers/device/device.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <containers/Array.hpp>
 
 #include <sys/types.h>

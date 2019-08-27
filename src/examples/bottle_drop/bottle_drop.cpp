@@ -40,8 +40,8 @@
  * @author Julian Oes <joes@student.ethz.ch>
  */
 
-#include <px4_config.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/tasks.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

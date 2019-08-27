@@ -42,8 +42,8 @@
 #include <termios.h>
 
 #include <systemlib/px4_macros.h> // arraySize
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/defines.h>
 
 #ifndef B250000
 #define B250000 250000

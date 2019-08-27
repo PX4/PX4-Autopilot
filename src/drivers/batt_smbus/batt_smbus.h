@@ -47,8 +47,8 @@
 #include <lib/drivers/smbus/SMBus.hpp>
 #include <mathlib/mathlib.h>
 #include <perf/perf_counter.h>
-#include <platforms/px4_module.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/topics/battery_status.h>
 

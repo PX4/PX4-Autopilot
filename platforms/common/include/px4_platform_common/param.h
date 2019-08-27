@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include "px4_param_macros.h"
+#include "param_macros.h"
 
 #include <parameters/px4_parameters_public.h>
 

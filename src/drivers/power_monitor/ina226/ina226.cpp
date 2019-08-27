@@ -41,8 +41,8 @@
 
 #include <string.h>
 
-#include <px4_config.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/getopt.h>
 #include <drivers/device/i2c.h>
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>

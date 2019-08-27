@@ -36,11 +36,11 @@
  * @file esc_calib.c
  */
 
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_module.h>
-#include <px4_defines.h>
-#include <px4_log.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
 
 #include <stdio.h>
 #include <stdlib.h>

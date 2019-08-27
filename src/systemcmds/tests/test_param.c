@@ -36,7 +36,7 @@
  * Tests related to the parameter system.
  */
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <stdio.h>
 #include "systemlib/err.h"
 #include <parameters/param.h>

@@ -38,7 +38,7 @@
  * @author Dominik Juchli <juchlid@ethz.ch>
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <parameters/param.h>
 
 /**

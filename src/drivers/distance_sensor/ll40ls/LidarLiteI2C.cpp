@@ -41,7 +41,7 @@
 
 #include "LidarLiteI2C.h"
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
 

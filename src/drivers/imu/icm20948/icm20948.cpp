@@ -40,8 +40,8 @@
  * based on the mpu9250 driver
  */
 
-#include <px4_config.h>
-#include <px4_time.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/time.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/perf/perf_counter.h>
 #include <systemlib/conversions.h>

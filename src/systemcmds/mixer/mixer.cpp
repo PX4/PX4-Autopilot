@@ -37,9 +37,9 @@
  * Mixer utility.
  */
 
-#include <px4_config.h>
-#include <px4_module.h>
-#include <px4_posix.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/posix.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>

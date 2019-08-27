@@ -40,8 +40,8 @@
 #ifndef _CDEV_HPP
 #define _CDEV_HPP
 
-#include <px4_config.h>
-#include <px4_posix.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/posix.h>
 
 #ifdef __PX4_NUTTX
 #include "nuttx/cdev_platform.hpp"

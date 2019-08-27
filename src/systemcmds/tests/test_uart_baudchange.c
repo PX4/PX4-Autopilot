@@ -36,8 +36,8 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/defines.h>
 
 #include <sys/types.h>
 

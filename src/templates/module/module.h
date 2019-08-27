@@ -33,8 +33,8 @@
 
 #pragma once
 
-#include <px4_module.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 
 extern "C" __EXPORT int module_main(int argc, char *argv[]);
 

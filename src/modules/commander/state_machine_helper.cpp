@@ -39,7 +39,7 @@
  * @author Julian Oes		<julian@oes.ch>
  * @author Sander Smeets	<sander@droneslab.com>
  */
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_status.h>

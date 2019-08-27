@@ -42,7 +42,7 @@
 #define LAUNCHDETECTOR_H
 
 #include "LaunchMethod.h"
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 
 namespace launchdetection
 {

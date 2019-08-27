@@ -47,9 +47,9 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <matrix/math.hpp>
-#include <px4_config.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>

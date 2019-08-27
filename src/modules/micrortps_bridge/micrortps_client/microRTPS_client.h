@@ -41,11 +41,11 @@
 #include <termios.h>
 
 #include <ucdr/microcdr.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
-#include <px4_time.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
 #include <uORB/uORB.h>
 
 #define BUFFER_SIZE 1024

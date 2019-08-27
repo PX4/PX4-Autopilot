@@ -41,7 +41,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 #include "test.hpp"
 

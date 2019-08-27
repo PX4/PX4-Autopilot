@@ -37,8 +37,8 @@
  *
  * @author Mark Charlebois <charlebm@gmail.com>
  */
-#include <px4_log.h>
-#include <px4_app.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/app.h>
 #include "muorb_test_example.h"
 
 extern "C" __EXPORT int muorb_test_entry(int argc, char **argv);

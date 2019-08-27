@@ -36,8 +36,8 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_config.h>
-#include <px4_module.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/module.h>
 #include <nuttx/compiler.h>
 #include <nuttx/arch.h>
 

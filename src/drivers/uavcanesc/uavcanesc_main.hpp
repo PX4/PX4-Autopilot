@@ -35,7 +35,7 @@
 
 #pragma once
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <uavcan_stm32/uavcan_stm32.hpp>
 #include <drivers/device/device.h>
 #include <uavcan/protocol/file/BeginFirmwareUpdate.hpp>

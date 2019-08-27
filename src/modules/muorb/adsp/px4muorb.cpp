@@ -35,8 +35,8 @@
 #include "uORBFastRpcChannel.hpp"
 #include "uORBManager.hpp"
 
-#include <px4_tasks.h>
-#include <px4_posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/posix.h>
 #include <dspal_platform.h>
 #include "px4_log.h"
 #include "uORB/topics/sensor_combined.h"

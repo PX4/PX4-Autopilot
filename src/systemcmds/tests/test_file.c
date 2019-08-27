@@ -37,8 +37,8 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <px4_config.h>
-#include <px4_posix.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/posix.h>
 
 #include <sys/stat.h>
 #include <poll.h>

@@ -41,7 +41,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_tone_alarm.h>
 #include <lib/tunes/tunes.h>
-#include <px4_posix.h>
+#include <px4_platform_common/posix.h>
 #include <uORB/topics/tune_control.h>
 
 #include "tests_main.h"

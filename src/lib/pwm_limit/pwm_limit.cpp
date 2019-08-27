@@ -42,7 +42,7 @@
 
 #include "pwm_limit.h"
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <math.h>
 #include <stdbool.h>
 #include <drivers/drv_hrt.h>

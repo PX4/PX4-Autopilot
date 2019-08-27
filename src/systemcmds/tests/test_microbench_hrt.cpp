@@ -44,8 +44,8 @@
 
 #include <drivers/drv_hrt.h>
 #include <perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_micro_hal.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/micro_hal.h>
 
 namespace MicroBenchHRT
 {

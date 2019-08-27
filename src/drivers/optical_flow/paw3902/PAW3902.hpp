@@ -41,9 +41,9 @@
 
 #include "PixArt_PAW3902JF_Registers.hpp"
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <drivers/device/spi.h>
 #include <conversion/rotation.h>

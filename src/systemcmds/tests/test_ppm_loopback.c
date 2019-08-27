@@ -36,8 +36,8 @@
  * Tests the PWM outputs and PPM input
  */
 
-#include <px4_time.h>
-#include <px4_config.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/config.h>
 
 #include <sys/types.h>
 

@@ -42,14 +42,14 @@
 #include <fcntl.h>
 #include <float.h>
 #include <math.h>
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

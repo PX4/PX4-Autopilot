@@ -49,7 +49,7 @@
 #include <cstdlib>
 #include <string.h>
 #include <stdio.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
 enum LL40LS_BUS {
 	LL40LS_BUS_I2C_ALL = 0,

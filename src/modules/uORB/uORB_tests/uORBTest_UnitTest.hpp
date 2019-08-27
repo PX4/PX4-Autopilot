@@ -35,8 +35,8 @@
 #define _uORBTest_UnitTest_hpp_
 #include "../uORBCommon.hpp"
 #include "../uORB.h"
-#include <px4_time.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/tasks.h>
 #include <unistd.h>
 
 struct orb_test {

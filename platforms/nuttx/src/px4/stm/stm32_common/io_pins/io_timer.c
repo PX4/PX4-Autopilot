@@ -40,7 +40,7 @@
  * have output pins, does not require an interrupt.
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 

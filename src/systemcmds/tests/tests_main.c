@@ -40,7 +40,7 @@
 
 #include "tests_main.h"
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 
 #include <stdio.h>
 #include <string.h>

@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 #include <uORB/topics/vehicle_status.h>
 
 void set_health_flags(uint64_t subsystem_type, bool present, bool enabled, bool ok, vehicle_status_s &status);

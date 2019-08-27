@@ -37,7 +37,7 @@
  * Included Files
  ************************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 
 #if defined(CONFIG_FS_AUTOMOUNTER_DEBUG) && !defined(CONFIG_DEBUG_FS)
 #  define CONFIG_DEBUG_FS 1

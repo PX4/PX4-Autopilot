@@ -37,7 +37,7 @@
  */
 
 #include "bmm150.hpp"
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
 /** driver 'main' command */
 extern "C" { __EXPORT int bmm150_main(int argc, char *argv[]); }

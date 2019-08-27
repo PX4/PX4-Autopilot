@@ -51,7 +51,7 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 #include <perf/perf_counter.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 /**
  * LIS3MDL internal constants and data structures.

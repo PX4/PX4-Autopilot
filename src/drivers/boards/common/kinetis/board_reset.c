@@ -37,7 +37,7 @@
  * Implementation of kinetis based Board RESET API
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <errno.h>
 #include <nuttx/board.h>
 

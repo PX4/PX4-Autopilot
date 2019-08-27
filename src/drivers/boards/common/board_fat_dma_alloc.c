@@ -37,7 +37,7 @@
  * Provide the board dma allocator interface.
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include "board_config.h"
 
 #include "board_dma_alloc.h"

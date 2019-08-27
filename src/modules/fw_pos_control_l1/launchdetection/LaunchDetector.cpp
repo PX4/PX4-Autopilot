@@ -40,7 +40,7 @@
 #include "CatapultLaunchMethod.h"
 #include "LaunchDetector.h"
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 namespace launchdetection
 {

@@ -50,7 +50,7 @@
 #include <lib/ecl/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
-#include <px4_time.h>
+#include <px4_platform_common/time.h>
 #include <systemlib/mavlink_log.h>
 #include <math.h>
 

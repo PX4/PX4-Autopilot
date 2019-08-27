@@ -40,7 +40,7 @@
 
 #pragma once
 
-#include <px4_app.h>
+#include <px4_platform_common/app.h>
 #include "uORB/topics/qshell_req.h"
 #include <vector>
 #include <string>

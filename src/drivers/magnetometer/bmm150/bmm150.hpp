@@ -1,7 +1,7 @@
 #ifndef BMM150_HPP_
 #define BMM150_HPP_
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -16,7 +16,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>

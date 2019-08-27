@@ -36,8 +36,8 @@
  * Tests related to the performance counter.
  */
 
-#include <px4_config.h>
-#include <px4_posix.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/posix.h>
 
 #include <perf/perf_counter.h>
 

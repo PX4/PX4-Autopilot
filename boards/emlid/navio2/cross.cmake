@@ -5,6 +5,8 @@ px4_add_board(
 	LABEL cross
 	PLATFORM posix
 	ARCHITECTURE cortex-a53
+	CHIP_MANUFACTURER px4
+	CHIP generic
 	TOOLCHAIN arm-linux-gnueabihf
 	TESTING
 

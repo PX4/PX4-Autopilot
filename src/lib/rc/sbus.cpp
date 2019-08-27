@@ -37,7 +37,7 @@
  * Serial protocol decoder for the Futaba S.bus protocol.
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 
 #include <fcntl.h>
 #include <unistd.h>

@@ -38,8 +38,8 @@
  * @author Nicolas de Palezieux <ndepal@gmail.com>
  */
 
-#include <px4_log.h>
-#include <px4_app.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/app.h>
 #include "qshell.h"
 
 extern "C" __EXPORT int qshell_entry(int argc, char **argv);

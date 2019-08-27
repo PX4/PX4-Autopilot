@@ -46,7 +46,7 @@
 #include <lib/ecl/geo/geo.h>
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 #include <navigator/navigation.h>

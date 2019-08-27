@@ -37,9 +37,9 @@
 #include "status_display.h"
 #include "rc_loss_alarm.h"
 
-#include <px4_workqueue.h>
-#include <px4_module.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/workqueue.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>

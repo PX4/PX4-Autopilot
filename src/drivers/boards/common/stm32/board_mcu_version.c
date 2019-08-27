@@ -37,8 +37,8 @@
  * Implementation of STM32 based SoC version API
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/defines.h>
 
 /* magic numbers from reference manual */
 

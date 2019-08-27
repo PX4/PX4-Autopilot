@@ -43,7 +43,7 @@
 
 #include <drivers/device/device.h>
 #include <lib/led/led.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 class RGBLED_PWM : public device::CDev, public px4::ScheduledWorkItem

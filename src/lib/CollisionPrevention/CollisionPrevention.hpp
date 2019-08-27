@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 #include <float.h>
 #include <matrix/matrix/math.hpp>
 #include <uORB/topics/distance_sensor.h>

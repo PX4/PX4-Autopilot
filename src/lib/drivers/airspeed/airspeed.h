@@ -37,8 +37,8 @@
 #include <drivers/device/i2c.h>
 #include <drivers/drv_airspeed.h>
 #include <drivers/drv_hrt.h>
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/defines.h>
 #include <perf/perf_counter.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/uORB.h>

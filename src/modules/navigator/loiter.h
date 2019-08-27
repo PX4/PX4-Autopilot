@@ -43,7 +43,7 @@
 #include "navigator_mode.h"
 #include "mission_block.h"
 
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 
 class Loiter : public MissionBlock, public ModuleParams
 {

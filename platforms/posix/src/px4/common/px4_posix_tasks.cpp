@@ -37,8 +37,8 @@
  * Implementation of existing task API for Linux
  */
 
-#include <px4_log.h>
-#include <px4_defines.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/defines.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,8 +56,8 @@
 #include <sys/types.h>
 #include <string>
 
-#include <px4_tasks.h>
-#include <px4_posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/posix.h>
 #include <systemlib/err.h>
 
 #define MAX_CMD_LEN 100

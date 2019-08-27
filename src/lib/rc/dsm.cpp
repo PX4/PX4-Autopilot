@@ -39,9 +39,9 @@
  * Decodes into the global PPM buffer and updates accordingly.
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <board_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 #include <fcntl.h>
 #include <unistd.h>

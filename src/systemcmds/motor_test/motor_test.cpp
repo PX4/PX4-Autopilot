@@ -39,10 +39,10 @@
  */
 
 #include <drivers/drv_hrt.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_log.h>
-#include <px4_module.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/test_motor.h>
 

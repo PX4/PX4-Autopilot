@@ -37,15 +37,15 @@
  * Gyroscope calibration routine
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include "gyro_calibration.h"
 #include "calibration_messages.h"
 #include "calibration_routines.h"
 #include "commander_helper.h"
 
-#include <px4_posix.h>
-#include <px4_defines.h>
-#include <px4_time.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/time.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>

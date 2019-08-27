@@ -41,7 +41,7 @@
 #include <poll.h>
 #include <math.h>
 #include <fcntl.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/sensor_combined.h>
 #include <drivers/drv_baro.h>

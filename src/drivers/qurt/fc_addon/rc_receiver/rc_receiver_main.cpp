@@ -31,9 +31,9 @@
  *
  ****************************************************************************/
 
-#include <px4_getopt.h>
-#include <px4_tasks.h>
-#include <px4_log.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/log.h>
 #include <string.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/input_rc.h>

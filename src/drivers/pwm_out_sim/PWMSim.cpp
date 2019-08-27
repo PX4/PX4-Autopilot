@@ -33,7 +33,7 @@
 
 #include "PWMSim.hpp"
 
-#include <px4_time.h>
+#include <px4_platform_common/time.h>
 #include <mathlib/mathlib.h>
 
 #include <uORB/topics/multirotor_motor_limits.h>

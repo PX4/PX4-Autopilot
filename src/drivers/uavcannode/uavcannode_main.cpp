@@ -30,15 +30,15 @@
  *
  ****************************************************************************/
 
-#include <px4_config.h>
-#include <px4_log.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/tasks.h>
 
 #ifdef __PX4_NUTTX
 #include <nuttx/clock.h>
 #
 #else
-#include <px4_workqueue.h>
+#include <px4_platform_common/workqueue.h>
 #endif
 
 #include <cstdlib>

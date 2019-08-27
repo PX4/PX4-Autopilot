@@ -49,9 +49,9 @@
 
 #include <uORB/topics/distance_sensor.h>
 
-#include <px4_module.h>
-#include <px4_module_params.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/tasks.h>
 
 
 #define PGA460_DEFAULT_PORT "/dev/ttyS6"

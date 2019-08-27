@@ -31,10 +31,10 @@
  *
  ****************************************************************************/
 
-#include <px4_config.h>
-#include <px4_console_buffer.h>
-#include <px4_module.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/console_buffer.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/getopt.h>
 
 #ifndef BOARD_ENABLE_CONSOLE_BUFFER
 #error "This module can only be used on boards that enable BOARD_ENABLE_CONSOLE_BUFFER"

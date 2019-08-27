@@ -45,7 +45,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -67,7 +67,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
 
-#include <px4_init.h>
+#include <px4_platform_common/init.h>
 
 #if defined(CONFIG_HAVE_CXX) && defined(CONFIG_HAVE_CXXINITIALIZE)
 #endif

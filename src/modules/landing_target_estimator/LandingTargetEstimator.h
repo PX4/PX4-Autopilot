@@ -42,7 +42,7 @@
 
 #pragma once
 
-#include <px4_workqueue.h>
+#include <px4_platform_common/workqueue.h>
 #include <drivers/drv_hrt.h>
 #include <parameters/param.h>
 #include <uORB/Publication.hpp>

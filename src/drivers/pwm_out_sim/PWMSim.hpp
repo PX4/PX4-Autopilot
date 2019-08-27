@@ -41,10 +41,10 @@
 #include <drivers/drv_pwm_output.h>
 #include <lib/mixer/mixer.h>
 #include <perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_module.h>
-#include <px4_tasks.h>
-#include <px4_time.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>

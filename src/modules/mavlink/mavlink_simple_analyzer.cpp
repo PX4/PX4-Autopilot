@@ -41,8 +41,8 @@
 
 #include <float.h>
 
-#include <px4_log.h>
-#include <px4_defines.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/defines.h>
 
 SimpleAnalyzer::SimpleAnalyzer(Mode mode, float window) :
 	_window(window),

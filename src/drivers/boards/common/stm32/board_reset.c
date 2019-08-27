@@ -37,7 +37,7 @@
  * Implementation of STM32 based Board RESET API
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <errno.h>
 #include <stm32_pwr.h>
 #include <stm32_rtc.h>

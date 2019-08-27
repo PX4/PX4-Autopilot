@@ -41,7 +41,7 @@
 
 #include <containers/List.hpp>
 
-#include "px4_param.h"
+#include "param.h"
 
 class ModuleParams : public ListNode<ModuleParams *>
 {

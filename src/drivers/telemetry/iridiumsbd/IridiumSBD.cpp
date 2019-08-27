@@ -33,7 +33,7 @@
 
 #include "IridiumSBD.h"
 
-#include <px4_tasks.h>
+#include <px4_platform_common/tasks.h>
 
 #include <errno.h>
 #include <fcntl.h>

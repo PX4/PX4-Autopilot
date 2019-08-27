@@ -38,15 +38,15 @@
  * To use it make sure there's a driver running, which handles the tune_control uorb topic.
  */
 
-#include <px4_getopt.h>
-#include <px4_log.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
 
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
 
-#include <px4_module.h>
+#include <px4_platform_common/module.h>
 
 #include <lib/tunes/tunes.h>
 #include <uORB/topics/tune_control.h>

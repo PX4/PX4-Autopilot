@@ -36,8 +36,8 @@
  * Driver for the Bosch BMA 180 MEMS accelerometer connected via SPI.
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/defines.h>
 #include <ecl/geo/geo.h>
 
 #include <sys/types.h>

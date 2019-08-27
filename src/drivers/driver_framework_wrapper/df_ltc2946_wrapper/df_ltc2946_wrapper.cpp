@@ -40,7 +40,7 @@
 
 
 #include <string>
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <systemlib/err.h>
 #include <battery/battery.h>
 #include <drivers/drv_hrt.h>

@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 
 #include "mission_block.h"
 

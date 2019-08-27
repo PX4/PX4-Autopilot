@@ -32,13 +32,13 @@
  ****************************************************************************/
 
 #include <parameters/param.h>
-#include <px4_cli.h>
+#include <px4_platform_common/cli.h>
 
 #ifndef MODULE_NAME
 #define MODULE_NAME "cli"
 #endif
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 #include <cstring>
 #include <errno.h>

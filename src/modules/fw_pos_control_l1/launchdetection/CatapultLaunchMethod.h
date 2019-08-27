@@ -44,7 +44,7 @@
 #include "LaunchMethod.h"
 
 #include <drivers/drv_hrt.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 
 namespace launchdetection
 {

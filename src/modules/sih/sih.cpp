@@ -42,8 +42,8 @@
 
 #include "sih.hpp"
 
-#include <px4_getopt.h>
-#include <px4_log.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
 
 #include <drivers/drv_pwm_output.h>         // to get PWM flags
 #include <uORB/topics/actuator_outputs.h>

@@ -31,8 +31,8 @@
  *
  ****************************************************************************/
 
-#include <px4_defines.h>
-#include <px4_posix.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>

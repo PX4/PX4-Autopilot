@@ -40,7 +40,7 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>

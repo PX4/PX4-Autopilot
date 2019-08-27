@@ -39,7 +39,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  * @author Petri Tanskanen <petri.tanskanen@inf.ethz.ch>
  */
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 
 #include <sys/types.h>
 #include <stdint.h>

@@ -35,11 +35,11 @@
 #include <mathlib/math/filter/LowPassFilter2pVector3f.hpp>
 #include <matrix/matrix/math.hpp>
 #include <perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_module.h>
-#include <px4_module_params.h>
-#include <px4_posix.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>

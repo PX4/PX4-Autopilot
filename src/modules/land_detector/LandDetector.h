@@ -42,8 +42,8 @@
 
 #pragma once
 
-#include <px4_module.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 #include <lib/hysteresis/hysteresis.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>

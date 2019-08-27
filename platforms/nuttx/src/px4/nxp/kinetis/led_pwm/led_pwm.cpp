@@ -37,7 +37,7 @@
 *
 */
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <systemlib/px4_macros.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>

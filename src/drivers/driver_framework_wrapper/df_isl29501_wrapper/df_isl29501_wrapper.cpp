@@ -39,7 +39,7 @@
  * @author Siddharth B Purohit <sid@3drobotics.com>
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -49,7 +49,7 @@
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 #include <errno.h>
 #include <string>
 

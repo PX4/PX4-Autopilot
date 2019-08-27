@@ -47,7 +47,7 @@
 #include "mavlink_parameters.h"
 #include "mavlink_timesync.h"
 
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/PublicationMulti.hpp>

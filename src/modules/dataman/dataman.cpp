@@ -41,12 +41,12 @@
  * @author David Sidrane
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_module.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/getopt.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>

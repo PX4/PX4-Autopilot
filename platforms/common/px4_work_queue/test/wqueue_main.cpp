@@ -34,9 +34,9 @@
 #include "wqueue_test.h"
 #include "wqueue_scheduled_test.h"
 
-#include <px4_log.h>
-#include <px4_app.h>
-#include <px4_init.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/app.h>
+#include <px4_platform_common/init.h>
 #include <stdio.h>
 
 int PX4_MAIN(int argc, char **argv)

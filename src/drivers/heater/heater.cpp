@@ -41,8 +41,8 @@
 
 #include "heater.h"
 
-#include <px4_getopt.h>
-#include <px4_log.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
 #include <drivers/drv_hrt.h>
 
 #ifndef GPIO_HEATER_INPUT

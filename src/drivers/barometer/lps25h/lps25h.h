@@ -48,7 +48,7 @@
 #include <drivers/drv_baro.h>
 #include <lib/cdev/CDev.hpp>
 #include <perf/perf_counter.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
 #include <uORB/uORB.h>

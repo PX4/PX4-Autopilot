@@ -43,7 +43,7 @@
 
 #pragma once
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <systemlib/px4_macros.h>
 #include <stdint.h>
 

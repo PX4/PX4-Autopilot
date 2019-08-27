@@ -43,11 +43,11 @@
 #include <drivers/drv_input_capture.h>
 #include <drivers/drv_pwm_output.h>
 #include <lib/parameters/param.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_module.h>
-#include <px4_tasks.h>
-#include <px4_workqueue.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/workqueue.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationQueued.hpp>

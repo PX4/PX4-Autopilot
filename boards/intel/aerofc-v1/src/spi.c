@@ -42,7 +42,7 @@
  * Included Files
  ************************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 
 #include <stdint.h>
 #include <stdbool.h>

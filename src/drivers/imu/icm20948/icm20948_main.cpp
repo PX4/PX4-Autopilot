@@ -39,8 +39,8 @@
  * based on the mpu9250 driver
  */
 
-#include <px4_config.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/getopt.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/systemlib/conversions.h>
 #include <board_config.h>

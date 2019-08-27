@@ -43,8 +43,8 @@
 /*
  * Includes here should only cover the needs of the framework definitions.
  */
-#include <px4_config.h>
-#include <px4_posix.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/posix.h>
 
 #include <drivers/drv_device.h>
 

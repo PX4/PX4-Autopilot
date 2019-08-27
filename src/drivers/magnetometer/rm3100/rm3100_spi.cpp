@@ -37,7 +37,7 @@
  * SPI interface for RM3100
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 
 #include <assert.h>
 #include <debug.h>

@@ -43,8 +43,8 @@
 #include "Device.hpp"
 #include <lib/cdev/CDev.hpp>
 
-#include <px4_config.h>
-#include <px4_posix.h>
+#include <px4_platform_common/config.h>
+#include <px4_platform_common/posix.h>
 
 /**
  * Namespace encapsulating all device framework classes, functions and data.

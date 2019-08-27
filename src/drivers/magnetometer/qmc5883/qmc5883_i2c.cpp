@@ -38,7 +38,7 @@
  */
 
 /* XXX trim includes */
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 
 #include <sys/types.h>
 #include <stdint.h>

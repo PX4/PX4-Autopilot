@@ -39,7 +39,7 @@
  * Based on the hmc5883 driver.
  */
 
-#include <px4_time.h>
+#include <px4_platform_common/time.h>
 #include "lis3mdl.h"
 
 LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rotation) :

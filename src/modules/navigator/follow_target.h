@@ -46,7 +46,7 @@
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/follow_target.h>
 

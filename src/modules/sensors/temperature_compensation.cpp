@@ -41,8 +41,8 @@
 
 #include "temperature_compensation.h"
 #include <parameters/param.h>
-#include <px4_defines.h>
-#include <px4_log.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
 
 namespace sensors
 {

@@ -41,10 +41,10 @@
 #include <unistd.h>
 #include <stdbool.h>
 
-#include <px4_atomic.h>
-#include <px4_time.h>
-#include <px4_log.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/tasks.h>
 #include <systemlib/px4_macros.h>
 
 #ifdef __cplusplus

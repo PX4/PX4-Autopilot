@@ -34,7 +34,7 @@
 
 #include <fcntl.h>
 #include <errno.h>
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 #include <robotcontrol.h>
 #include <board_config.h>

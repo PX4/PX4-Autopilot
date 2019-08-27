@@ -42,7 +42,7 @@
 #include <string.h>
 
 #include <drivers/drv_hrt.h>
-#include <px4_config.h>
+#include <px4_platform_common/config.h>
 #include <systemlib/err.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
