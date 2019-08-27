@@ -43,7 +43,6 @@
 #include <circuit_breaker/circuit_breaker.h>
 #include <drivers/device/device.h>
 #include <drivers/drv_tone_alarm.h>
-#include <lib/drivers/tone_alarm/ToneAlarmInterface.h>
 #include <lib/tunes/tunes.h>
 #include <px4_defines.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
