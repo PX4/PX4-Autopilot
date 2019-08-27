@@ -39,7 +39,8 @@
 using namespace time_literals;
 
 
-MixingOutput::MixingOutput(OutputModuleInterface &interface, bool support_esc_calibration, bool ramp_up)
+MixingOutput::MixingOutput(OutputModuleInterface &interface, SchedulingPolicy scheduling_policy,
+			   bool support_esc_calibration, bool ramp_up)
 	: ModuleParams(&interface),
 	  _control_subs{
 	{&interface, ORB_ID(actuator_controls_0)},
@@ -47,6 +48,7 @@ MixingOutput::MixingOutput(OutputModuleInterface &interface, bool support_esc_ca
 	{&interface, ORB_ID(actuator_controls_2)},
 	{&interface, ORB_ID(actuator_controls_3)}
 },
+_scheduling_policy(scheduling_policy),
 _support_esc_calibration(support_esc_calibration),
 _interface(interface),
 _control_latency_perf(perf_alloc(PC_ELAPSED, "control latency"))
@@ -113,44 +115,45 @@ bool MixingOutput::updateSubscriptions(bool allow_wq_switch)
 	// must be locked to potentially change WorkQueue
 	lock();
 
-	// first clear everything
-	_interface.ScheduleClear();
-	unregister();
+	if (_scheduling_policy == SchedulingPolicy::Auto) {
+		// first clear everything
+		_interface.ScheduleClear();
+		unregister();
 
-	// if subscribed to control group 0 or 1 then move to the rate_ctrl WQ
-	const bool sub_group_0 = (_groups_required & (1 << 0));
-	const bool sub_group_1 = (_groups_required & (1 << 1));
+		// if subscribed to control group 0 or 1 then move to the rate_ctrl WQ
+		const bool sub_group_0 = (_groups_required & (1 << 0));
+		const bool sub_group_1 = (_groups_required & (1 << 1));
 
-	if (allow_wq_switch && !_wq_switched && (sub_group_0 || sub_group_1)) {
-		if (_interface.ChangeWorkQeue(px4::wq_configurations::rate_ctrl)) {
-			// let the new WQ handle the subscribe update
-			_wq_switched = true;
-			_interface.ScheduleNow();
-			unlock();
-			return false;
+		if (allow_wq_switch && !_wq_switched && (sub_group_0 || sub_group_1)) {
+			if (_interface.ChangeWorkQeue(px4::wq_configurations::rate_ctrl)) {
+				// let the new WQ handle the subscribe update
+				_wq_switched = true;
+				_interface.ScheduleNow();
+				unlock();
+				return false;
+			}
+		}
+
+		// register callback to all required actuator control groups
+		for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
+			if (_groups_required & (1 << i)) {
+				PX4_DEBUG("subscribe to actuator_controls_%d", i);
+
+				if (!_control_subs[i].register_callback()) {
+					PX4_ERR("actuator_controls_%d register callback failed!", i);
+				}
+			}
+		}
+
+		// if nothing required keep periodic schedule (so the module can update other things)
+		if (_groups_required == 0) {
+			// TODO: this might need to be configurable depending on the module
+			_interface.ScheduleOnInterval(100_ms);
 		}
 	}
 
 	_groups_subscribed = _groups_required;
-
-	// subscribe to all required actuator control groups
-	for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
-		if (_groups_required & (1 << i)) {
-			PX4_DEBUG("subscribe to actuator_controls_%d", i);
-
-			if (!_control_subs[i].register_callback()) {
-				PX4_ERR("actuator_controls_%d register callback failed!", i);
-			}
-		}
-	}
-
 	setMaxTopicUpdateRate(_max_topic_update_interval_us);
-
-	// if nothing required keep periodic schedule (so the module can update other things)
-	if (_groups_required == 0) {
-		// TODO: this might need to be configurable depending on the module
-		_interface.ScheduleOnInterval(100_ms);
-	}
 
 	PX4_DEBUG("_groups_required 0x%08x", _groups_required);
 	PX4_DEBUG("_groups_subscribed 0x%08x", _groups_subscribed);
