@@ -101,6 +101,10 @@ SECTIONS
 		_bootdelay_signature = ABSOLUTE(.);
 		FILL(0xffecc2925d7d05c5)
 		. += 8;
+		_application_signature = ABSOLUTE(.);
+		FILL(0xba)
+		. += 64;
+
 		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
