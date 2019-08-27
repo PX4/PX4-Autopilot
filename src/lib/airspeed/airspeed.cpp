@@ -200,7 +200,7 @@ float calc_IAS(float differential_pressure)
 		return sqrtf((2.0f * differential_pressure) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
 
 	} else {
-		return -sqrtf((2.0f * fabsf(differential_pressure)) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
+		return sqrtf((2.0f * fabsf(differential_pressure)) / CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C);
 	}
 
 }
@@ -260,7 +260,7 @@ float calc_TAS(float total_pressure, float static_pressure, float temperature_ce
 		return sqrtf((2.0f * (pressure_difference)) / density);
 
 	} else {
-		return -sqrtf((2.0f * fabsf(pressure_difference)) / density);
+		return sqrtf((2.0f * fabsf(pressure_difference)) / density);
 	}
 }
 
