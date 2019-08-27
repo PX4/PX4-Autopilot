@@ -91,7 +91,7 @@ function(px4_add_functional_gtest)
 		add_executable(${TESTNAME} EXCLUDE_FROM_ALL ${SRC})
 
 		# link the libary to test and gtest
-		target_link_libraries(${TESTNAME} ${LINKLIBS} gtest_main
+		target_link_libraries(${TESTNAME} ${LINKLIBS} gtest_functional_main
 		                                              px4_daemon
 		                                              px4_platform
 		                                              modules__uORB
@@ -111,8 +111,7 @@ function(px4_add_functional_gtest)
 		add_test(NAME ${TESTNAME}
 		         # functional tests need to run in a new process for each test,
 		         # since they set up and tear down system components
-		         COMMAND ${PX4_SOURCE_DIR}/Tools/run-gtest-isolated.py ${TESTNAME}
-		         WORKING_DIRECTORY ${PX4_BINARY_DIR})
+		         COMMAND ${PX4_BINARY_DIR}/${TESTNAME})
 
 		# attach it to the unit test target
 		add_dependencies(test_results ${TESTNAME})

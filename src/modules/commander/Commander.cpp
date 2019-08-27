@@ -1243,9 +1243,6 @@ Commander::run()
 	param_t _param_airmode = param_find("MC_AIRMODE");
 	param_t _param_rc_map_arm_switch = param_find("RC_MAP_ARM_SW");
 
-	/* failsafe response to loss of navigation accuracy */
-	param_t _param_posctl_nav_loss_act = param_find("COM_POSCTL_NAVL");
-
 	status_flags.avoidance_system_required = _param_com_obs_avoid.get();
 
 	/* pthread for slow low prio thread */
@@ -1374,7 +1371,6 @@ Commander::run()
 	param_get(_param_rc_arm_hyst, &rc_arm_hyst);
 	rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
 
-	int32_t posctl_nav_loss_act = 0;
 	int32_t geofence_action = 0;
 	int32_t flight_uuid = 0;
 	int32_t airmode = 0;
@@ -1507,9 +1503,6 @@ Commander::run()
 			param_get(_param_fmode_4, &_flight_mode_slots[3]);
 			param_get(_param_fmode_5, &_flight_mode_slots[4]);
 			param_get(_param_fmode_6, &_flight_mode_slots[5]);
-
-			/* failsafe response to loss of navigation accuracy */
-			param_get(_param_posctl_nav_loss_act, &posctl_nav_loss_act);
 
 			param_get(_param_takeoff_finished_action, &takeoff_complete_act);
 
@@ -2315,9 +2308,9 @@ Commander::run()
 						       status_flags,
 						       land_detector.landed,
 						       (link_loss_actions_t)_param_nav_rcl_act.get(),
-						       _param_com_obl_act.get(),
-						       _param_com_obl_rc_act.get(),
-						       posctl_nav_loss_act);
+						       (offboard_loss_actions_t)_param_com_obl_act.get(),
+						       (offboard_loss_rc_actions_t)_param_com_obl_rc_act.get(),
+						       (position_nav_loss_actions_t)_param_com_posctl_navl.get());
 
 		if (status.failsafe != failsafe_old) {
 			status_changed = true;

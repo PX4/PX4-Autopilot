@@ -53,7 +53,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The PX4FMUV2 uses a 24MHz crystal connected to the HSE.
+/* The PX4FMUV4 uses a 24MHz crystal connected to the HSE.
  *
  * This is the "standard" configuration as set up by arch/arm/src/stm32f40xx_rcc.c:
  *   System Clock source           : PLL (HSE)
