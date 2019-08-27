@@ -31,15 +31,15 @@
 #
 ############################################################################
 
-include_directories(../../../../lib/DriverFramework/drivers)
+include_directories(../../../lib/DriverFramework/drivers)
 
 px4_add_module(
-	MODULE platforms__posix__drivers__df_ltc2946_wrapper
-	MAIN df_ltc2946_wrapper
+	MODULE platforms__posix__drivers__df_hmc5883_wrapper
+	MAIN df_hmc5883_wrapper
 	SRCS
-		df_ltc2946_wrapper.cpp
+		df_hmc5883_wrapper.cpp
 	DEPENDS
 		git_driverframework
 		df_driver_framework
-		df_ltc2946
+		df_hmc5883
 	)

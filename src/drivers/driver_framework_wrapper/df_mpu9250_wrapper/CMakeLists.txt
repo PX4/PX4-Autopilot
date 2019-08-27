@@ -31,15 +31,15 @@
 #
 ############################################################################
 
-include_directories(../../../../lib/DriverFramework/drivers)
+include_directories(../../../lib/DriverFramework/drivers)
 
 px4_add_module(
-	MODULE platforms__posix__drivers__df_bmp280_wrapper
-	MAIN df_bmp280_wrapper
+	MODULE platforms__posix__drivers__df_mpu9250_wrapper
+	MAIN df_mpu9250_wrapper
 	SRCS
-		df_bmp280_wrapper.cpp
+		df_mpu9250_wrapper.cpp
 	DEPENDS
 		git_driverframework
 		df_driver_framework
-		df_bmp280
+		df_mpu9250
 	)
