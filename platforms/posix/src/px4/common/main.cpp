@@ -64,14 +64,13 @@
 
 #include <px4_time.h>
 #include <px4_log.h>
+#include <px4_init.h>
 #include <px4_getopt.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
 
 #include "apps.h"
-#include "px4_middleware.h"
 #include "DriverFramework.hpp"
-#include "px4_middleware.h"
 #include "px4_daemon/client.h"
 #include "px4_daemon/server.h"
 #include "px4_daemon/pxh.h"
