@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-include_directories(../../../../lib/DriverFramework/drivers)
+include_directories(../../../lib/DriverFramework/drivers)
 
 px4_add_module(
 	MODULE platforms__posix__drivers__df_bebop_rangefinder_wrapper

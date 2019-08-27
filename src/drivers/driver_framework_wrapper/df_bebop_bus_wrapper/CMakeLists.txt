@@ -31,15 +31,15 @@
 #
 ############################################################################
 
-include_directories(../../../../lib/DriverFramework/drivers)
+include_directories(../../../lib/DriverFramework/drivers)
 
 px4_add_module(
-	MODULE platforms__posix__drivers__df_ms5607_wrapper
-	MAIN df_ms5607_wrapper
+	MODULE platforms__posix__drivers__df_bebop_bus_wrapper
+	MAIN df_bebop_bus_wrapper
 	SRCS
-		df_ms5607_wrapper.cpp
+		df_bebop_bus_wrapper.cpp
 	DEPENDS
 		git_driverframework
 		df_driver_framework
-		df_ms5607
+		df_bebop_bus
 	)
