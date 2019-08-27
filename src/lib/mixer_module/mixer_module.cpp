@@ -51,9 +51,8 @@ _support_esc_calibration(support_esc_calibration),
 _interface(interface),
 _control_latency_perf(perf_alloc(PC_ELAPSED, "control latency"))
 {
-	/* initialize PWM limit lib */
-	pwm_limit_init(&_pwm_limit);
-	_pwm_limit.ramp_up = ramp_up;
+	output_limit_init(&_output_limit);
+	_output_limit.ramp_up = ramp_up;
 
 	/* Safely initialize armed flags */
 	_armed.armed = false;
@@ -252,8 +251,8 @@ bool MixingOutput::update()
 				/* except thrust to maximum. */
 				_controls[i].control[actuator_controls_s::INDEX_THROTTLE] = 1.0f;
 
-				/* Switch off the PWM limit ramp for the calibration. */
-				_pwm_limit.state = PWM_LIMIT_STATE_ON;
+				/* Switch off the output limit ramp for the calibration. */
+				_output_limit.state = OUTPUT_LIMIT_STATE_ON;
 			}
 		}
 	}
@@ -262,11 +261,11 @@ bool MixingOutput::update()
 	float outputs[MAX_ACTUATORS] {};
 	const unsigned mixed_num_outputs = _mixers->mix(outputs, MAX_ACTUATORS);
 
-	/* the PWM limit call takes care of out of band errors, NaN and constrains */
+	/* the output limit call takes care of out of band errors, NaN and constrains */
 	uint16_t output_limited[MAX_ACTUATORS] {};
 
-	pwm_limit_calc(_throttle_armed, armNoThrottle(), mixed_num_outputs, _reverse_output_mask,
-		       _disarmed_value, _min_value, _max_value, outputs, output_limited, &_pwm_limit);
+	output_limit_calc(_throttle_armed, armNoThrottle(), mixed_num_outputs, _reverse_output_mask,
+			  _disarmed_value, _min_value, _max_value, outputs, output_limited, &_output_limit);
 
 	/* overwrite outputs in case of force_failsafe with _failsafe_value values */
 	if (_armed.force_failsafe) {
@@ -387,7 +386,7 @@ int MixingOutput::controlCallback(uintptr_t handle, uint8_t control_group, uint8
 	}
 
 	/* motor spinup phase - lock throttle to zero */
-	if (output->_pwm_limit.state == PWM_LIMIT_STATE_RAMP) {
+	if (output->_output_limit.state == OUTPUT_LIMIT_STATE_RAMP) {
 		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
 		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
 		    control_index == actuator_controls_s::INDEX_THROTTLE) {

@@ -53,7 +53,6 @@
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
-#include <lib/pwm_limit/pwm_limit.h>
 #include <px4_config.h>
 #include <px4_getopt.h>
 #include <px4_log.h>

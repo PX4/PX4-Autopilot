@@ -60,7 +60,6 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 #include <mixer/mixer.h>
-#include <pwm_limit/pwm_limit.h>
 
 #include "tap_esc_common.h"
 
