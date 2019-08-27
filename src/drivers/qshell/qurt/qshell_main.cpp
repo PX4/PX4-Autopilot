@@ -38,7 +38,6 @@
  * @author Nicolas de Palezieux <ndepal@gmail.com>
  */
 
-#include <px4_middleware.h>
 #include <px4_log.h>
 #include <px4_app.h>
 #include "qshell.h"

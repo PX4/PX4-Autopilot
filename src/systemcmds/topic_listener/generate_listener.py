@@ -89,7 +89,6 @@ print("""
  */
 
 #include <drivers/drv_hrt.h>
-#include <px4_middleware.h>
 #include <px4_app.h>
 #include <px4_config.h>
 #include <px4_log.h>
