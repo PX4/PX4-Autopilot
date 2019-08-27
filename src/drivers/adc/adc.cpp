@@ -45,7 +45,7 @@
 #include <px4_arch/adc.h>
 #include <px4_config.h>
 #include <px4_log.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/adc_report.h>
 #include <uORB/topics/system_power.h>

@@ -50,7 +50,7 @@
 #include <poll.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <systemlib/mavlink_log.h>

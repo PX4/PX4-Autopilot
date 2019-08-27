@@ -41,7 +41,7 @@
 
 #include <px4_config.h>
 #include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <drivers/device/i2c.h>
 #include <systemlib/err.h>
 #include <string.h>

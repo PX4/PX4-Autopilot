@@ -46,7 +46,7 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <perf/perf_counter.h>
 #include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
 
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)

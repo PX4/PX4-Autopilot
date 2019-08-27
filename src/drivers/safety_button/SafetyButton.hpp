@@ -41,7 +41,7 @@
 #include <px4_getopt.h>
 #include <px4_log.h>
 #include <px4_module.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_armed.h>

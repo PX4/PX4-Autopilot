@@ -42,7 +42,7 @@
 #include <perf/perf_counter.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/uORB.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 /* Default I2C bus */
 static constexpr uint8_t PX4_I2C_BUS_DEFAULT = PX4_I2C_BUS_EXPANSION;

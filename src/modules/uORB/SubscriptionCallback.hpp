@@ -40,7 +40,7 @@
 
 #include <uORB/SubscriptionInterval.hpp>
 #include <containers/List.hpp>
-#include <px4_work_queue/WorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 
 namespace uORB
 {

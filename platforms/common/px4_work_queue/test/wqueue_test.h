@@ -31,57 +31,26 @@
  *
  ****************************************************************************/
 
-#include "WorkItem.hpp"
+#pragma once
 
-#include "WorkQueue.hpp"
-#include "WorkQueueManager.hpp"
+#include <px4_app.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <string.h>
 
-#include <px4_log.h>
-#include <drivers/drv_hrt.h>
+using namespace px4;
 
-namespace px4
+class WQueueTest : public px4::WorkItem
 {
+public:
+	WQueueTest() : px4::WorkItem(px4::wq_configurations::test1) {}
+	~WQueueTest() = default;
 
-WorkItem::WorkItem(const wq_config_t &config)
-{
-	if (!Init(config)) {
-		PX4_ERR("init failed");
-	}
-}
+	int main();
 
-WorkItem::~WorkItem()
-{
-	Deinit();
-}
+	void Run() override;
 
-bool WorkItem::Init(const wq_config_t &config)
-{
-	// clear any existing first
-	Deinit();
+	static px4::AppState appState; /* track requests to terminate app */
 
-	px4::WorkQueue *wq = WorkQueueFindOrCreate(config);
-
-	if (wq == nullptr) {
-		PX4_ERR("%s not available", config.name);
-
-	} else {
-		_wq = wq;
-		return true;
-	}
-
-	return false;
-}
-
-void WorkItem::Deinit()
-{
-	// remove any currently queued work
-	if (_wq != nullptr) {
-		// prevent additional insertions
-		px4::WorkQueue *wq_temp = _wq;
-		_wq = nullptr;
-
-		wq_temp->Remove(this);
-	}
-}
-
-} // namespace px4
+private:
+	int _iter{0};
+};
