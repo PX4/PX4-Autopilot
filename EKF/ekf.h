@@ -255,7 +255,7 @@ public:
 	// return a bitmask integer that describes which state estimates can be used for flight control
 	void get_ekf_soln_status(uint16_t *status);
 
-	// return the quaternion defining the rotation from the EKF to the External Vision reference frame
+	// return the quaternion defining the rotation from the External Vision to the EKF reference frame
 	void get_ev2ekf_quaternion(float *quat);
 
 	// use the latest IMU data at the current time horizon.
