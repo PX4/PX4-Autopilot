@@ -88,3 +88,18 @@ PARAM_DEFINE_INT32(UAVCAN_BITRATE, 1000000);
  * @group UAVCAN
  */
 PARAM_DEFINE_INT32(UAVCAN_ESC_IDLT, 1);
+
+/**
+ * AUX Mixer Select Output Device
+ *
+ *  0 - AUX Mixer uses PWM device /dev/pwm_output1 (default)
+ *  1 - AUX Mixer uses UAVCAN device /dev/uavcan_esc
+ *
+ * @min 0
+ * @max 1
+ * @value 0 AUX Mixer use /dev/pwm_output1
+ * @value 1 AUX Mixer use /dev/uavcan_esc
+ * @reboot_required true
+ * @group UAVCAN
+ */
+PARAM_DEFINE_INT32(UAVCAN_AUX_MIX, 0);
