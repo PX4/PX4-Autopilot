@@ -110,6 +110,12 @@ else
 	BUILD_DIR_SUFFIX :=
 endif
 
+# To prevent "// fallthrough" comments from being stripped by the preprocessor
+# before ccache looks at the cache.
+ifndef CCACHE_CPP2
+	export CCACHE_CPP2 = yes
+endif
+
 # additional config parameters passed to cmake
 ifdef EXTERNAL_MODULES_LOCATION
 	CMAKE_ARGS += -DEXTERNAL_MODULES_LOCATION:STRING=$(EXTERNAL_MODULES_LOCATION)
