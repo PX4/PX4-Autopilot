@@ -78,7 +78,6 @@ endif()
 target_link_libraries(nuttx_arch
 	INTERFACE
 		drivers_board
-		drivers_arch
 		drivers_boards_common
 		drivers_boards_common_arch
 		arch_hrt

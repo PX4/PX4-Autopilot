@@ -31,7 +31,6 @@ px4_add_board(
 		imu/mpu6000
 		imu/mpu9250
 		irlock
-		kinetis
 		lights/blinkm
 		lights/oreoled
 		lights/rgbled

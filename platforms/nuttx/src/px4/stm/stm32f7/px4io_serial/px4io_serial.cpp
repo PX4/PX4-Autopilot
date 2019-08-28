@@ -37,7 +37,7 @@
  * Serial interface for PX4IO on STM32F7
  */
 
-#include "arch_px4io_serial.h"
+#include <px4_arch/px4io_serial.h>
 
 #include "stm32_uart.h"
 #include <nuttx/cache.h>

@@ -48,7 +48,7 @@
 #include "board_config.h"
 
 #include <drivers/drv_pwm_output.h>
-#include <drivers/stm32/drv_io_timer.h>
+#include <px4_arch/io_timer.h>
 
 
 /* IO Timers normally free-run at 1MHz

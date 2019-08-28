@@ -54,7 +54,6 @@ px4_add_board(
 		rc_input
 		roboclaw
 		safety_button
-		stm32
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm

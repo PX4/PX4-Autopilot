@@ -38,7 +38,6 @@ px4_add_board(
 		px4io
 		rc_input
 		safety_button
-		stm32
 		telemetry # all available telemetry drivers
 		tone_alarm
 		uavcan

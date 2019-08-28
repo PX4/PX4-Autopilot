@@ -55,7 +55,6 @@ px4_add_board(
 		px4fmu
 		px4io
 		roboclaw
-		stm32
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm

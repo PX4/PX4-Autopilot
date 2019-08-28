@@ -36,7 +36,6 @@ px4_add_board(
 		magnetometer/hmc5883
 		px4fmu
 		px4io
-		stm32
 		#telemetry # all available telemetry drivers
 		telemetry/iridiumsbd
 		tone_alarm

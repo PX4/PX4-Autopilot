@@ -52,7 +52,6 @@ px4_add_board(
 		rc_input
 		roboclaw
 		safety_button
-		stm32
 		telemetry # all available telemetry drivers
 		tone_alarm
 		uavcan

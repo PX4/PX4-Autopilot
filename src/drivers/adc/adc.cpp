@@ -42,6 +42,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/cdev/CDev.hpp>
 #include <lib/perf/perf_counter.h>
+#include <px4_arch/adc.h>
 #include <px4_config.h>
 #include <px4_log.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>

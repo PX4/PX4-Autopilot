@@ -52,7 +52,6 @@ px4_add_board(
 		#pwm_out_sim
 		px4fmu
 		px4io
-		stm32
 		#tap_esc
 		#telemetry # all available telemetry drivers
 		#test_ppm

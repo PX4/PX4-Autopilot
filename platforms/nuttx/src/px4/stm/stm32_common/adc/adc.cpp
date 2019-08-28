@@ -34,6 +34,7 @@
 #include <board_config.h>
 #include <drivers/drv_adc.h>
 #include <drivers/drv_hrt.h>
+#include <px4_arch/adc.h>
 
 #include <stm32_adc.h>
 #include <stm32_gpio.h>
