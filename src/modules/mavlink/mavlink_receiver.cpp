@@ -1030,7 +1030,7 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 						pos_sp_triplet.current.acceleration_valid = false;
 					}
 
-					/* set the yaw sp value */
+					/* set the yaw setpoint */
 					if (!offboard_control_mode.ignore_attitude) {
 						pos_sp_triplet.current.yaw_valid = true;
 						pos_sp_triplet.current.yaw = set_position_target_global_int.yaw;
