@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,31 +31,56 @@
  *
  ****************************************************************************/
 
-/**
- * @file board_config.h
- *
- * SITL internal definitions
- */
-
 #pragma once
 
-#define BOARD_OVERRIDE_UUID "SIMULATIONID0000" // must be of length 16
-#define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_SITL
+#include <float.h>
 
-#define BOARD_BATTERY1_V_DIV   (10.177939394f)
-#define BOARD_BATTERY1_A_PER_V (15.391030303f)
-#define BOARD_HAS_POWER_CONTROL
-#define BOARD_HAS_NO_BOOTLOADER
+#include <circuit_breaker/circuit_breaker.h>
+#include <drivers/drv_hrt.h>
+#include <px4_config.h>
+#include <px4_getopt.h>
+#include <px4_log.h>
+#include <px4_module.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/safety.h>
 
-#define PX4_I2C_BUS_EXPANSION	1
-#define PX4_I2C_BUS_ONBOARD		2
-#define PX4_NUMBER_I2C_BUSES 1
+class SafetyButton : public ModuleBase<SafetyButton>, public px4::ScheduledWorkItem
+{
+public:
+	SafetyButton() : ScheduledWorkItem(px4::wq_configurations::hp_default) {}
+	virtual ~SafetyButton();
 
-#define BOARD_NUMBER_BRICKS     0
-#define BOARD_HAS_CONTROL_STATUS_LEDS 1
-#define BOARD_OVERLOAD_LED     LED_RED
-#define BOARD_ARMED_LED        LED_BLUE
-#define BOARD_ARMED_STATE_LED  LED_GREEN
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-#include <system_config.h>
-#include <drivers/boards/common/board_common.h>
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
+
+	void Run() override;
+
+	int Start();
+
+private:
+
+	void CheckButton();
+	void FlashButton();
+
+
+	uORB::Subscription		_armed_sub{ORB_ID(actuator_armed)};
+	uORB::Publication<safety_s>	_to_safety{ORB_ID(safety)};
+
+	uint8_t				_button_counter{0};
+	uint8_t				_blink_counter{0};
+	bool				_safety_off{false};		///< State of the safety button from the subscribed safety topic
+	bool				_safety_btn_off{false};		///< State of the safety button read from the HW button
+
+};
