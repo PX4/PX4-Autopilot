@@ -46,11 +46,6 @@ using namespace matrix;
 class VelocitySmoothingTest : public ::testing::Test
 {
 	public:
-		void SetUp() override
-		{
-			return;
-		}
-
 		void setConstraints(float j_max, float a_max, float v_max);
 		void setInitialConditions(Vector3f acc, Vector3f vel, Vector3f pos);
 		void updateTrajectories(Vector3f velocity_setpoints, float dt);
@@ -120,7 +115,7 @@ TEST_F(VelocitySmoothingTest, testConstantSetpoint)
 	// bit more time than the predicted one, this is why we have to add 14 steps
 	// to the theoretical value
 	float t123 = _trajectories[0].getTotalTime();
-	float nb_steps = ceilf(t123 / dt) + 14;
+	int nb_steps = ceil(t123 / dt) + 14;
 
 	for (int i = 0; i < nb_steps; i++) {
 		updateTrajectories(velocity_setpoints, dt);
@@ -148,8 +143,6 @@ TEST_F(VelocitySmoothingTest, testZeroSetpoint)
 	float dt = 0.01f;
 
 	// Run a few times the algorithm
-	updateTrajectories(velocity_setpoints, dt);
-
 	for (int i = 0; i < 60; i++) {
 		updateTrajectories(velocity_setpoints, dt);
 	}
