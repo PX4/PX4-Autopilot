@@ -96,7 +96,9 @@ private:
 		(ParamFloat<px4::params::MPC_COL_PREV_D>) _param_mpc_col_prev_d, /**< collision prevention keep minimum distance */
 		(ParamFloat<px4::params::MPC_COL_PREV_ANG>) _param_mpc_col_prev_ang, /**< collision prevention detection angle */
 		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p, /**< p gain from position controller*/
-		(ParamFloat<px4::params::MPC_COL_PREV_DLY>) _param_mpc_col_prev_dly /**< delay of the range measurement data*/
+		(ParamFloat<px4::params::MPC_COL_PREV_DLY>) _param_mpc_col_prev_dly, /**< delay of the range measurement data*/
+		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
+		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor
 	)
 
 	/**
