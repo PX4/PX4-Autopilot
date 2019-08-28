@@ -11,7 +11,7 @@
 #elif UAVCAN_STM32_NUTTX
 # include <nuttx/arch.h>
 # include <arch/board/board.h>
-# include <chip/stm32_tim.h>
+#include <stm32_tim.h>
 # include <syslog.h>
 #elif UAVCAN_STM32_BAREMETAL
 #include <chip.h>	// See http://uavcan.org/Implementations/Libuavcan/Platforms/STM32/
