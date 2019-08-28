@@ -995,7 +995,7 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 						pos_sp_triplet.current.position_valid = false;
 					}
 
-					/* set the local vel values */
+					/* set the local velocity values */
 					if (!offboard_control_mode.ignore_velocity) {
 
 						pos_sp_triplet.current.velocity_valid = true;
