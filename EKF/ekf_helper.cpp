@@ -1593,10 +1593,9 @@ void Ekf::setControlEVHeight()
 // and calculate a rotation matrix which rotates EV measurements into the EKF's navigation frame
 void Ekf::calcExtVisRotMat()
 {
-	// calculate the quaternion delta between the EV and EKF reference frames at the EKF fusion time horizon
+	// Calculate the quaternion delta that rotates from the EV to the EKF reference frame at the EKF fusion time horizon.
 	Quatf q_error = _state.quat_nominal * _ev_sample_delayed.quat.inversed();
 	q_error.normalize();
-	q_error.canonicalize();
 
 	// convert to a delta angle and apply a spike and low pass filter
 	Vector3f rot_vec = q_error.to_axis_angle();
@@ -1623,9 +1622,7 @@ void Ekf::calcExtVisRotMat()
 
 	// convert filtered vector to a quaternion and then to a rotation matrix
 	q_error.from_axis_angle(_ev_rot_vec_filt);
-	q_error.normalize();
-	q_error.canonicalize();
-	_ev_rot_mat = Dcmf(q_error); // rotation from EV reference to EKF reference
+	_ev_rot_mat = quat_to_invrotmat(q_error); // rotation from EV reference to EKF reference
 
 }
 
@@ -1633,7 +1630,7 @@ void Ekf::calcExtVisRotMat()
 // and update the rotation matrix which rotates EV measurements into the EKF's navigation frame
 void Ekf::resetExtVisRotMat()
 {
-	// calculate the quaternion delta between the EV and EKF reference frames at the EKF fusion time horizon
+	// Calculate the quaternion delta that rotates from the EV to the EKF reference frame at the EKF fusion time horizon.
 	Quatf q_error = _state.quat_nominal * _ev_sample_delayed.quat.inversed();
 	q_error.normalize();
 
@@ -1650,7 +1647,7 @@ void Ekf::resetExtVisRotMat()
 	}
 
 	// reset the rotation matrix
-	_ev_rot_mat = Dcmf(q_error); // rotation from EV reference to EKF reference
+	_ev_rot_mat = quat_to_invrotmat(q_error); // rotation from EV reference to EKF reference
 }
 
 // return the quaternions for the rotation from External Vision system reference frame to the EKF reference frame
