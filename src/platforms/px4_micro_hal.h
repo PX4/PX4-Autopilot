@@ -37,5 +37,5 @@
  */
 
 // include arch-specific header
-#include <px4_arch_micro_hal.h>
+#include <px4_arch/micro_hal.h>
 

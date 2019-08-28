@@ -32,7 +32,6 @@ px4_add_board(
 		optical_flow/px4flow
 		px4fmu
 		px4io
-		stm32
 		tone_alarm
 
 	MODULES

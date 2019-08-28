@@ -38,7 +38,7 @@
  */
 
 #include <drivers/drv_adc.h>
-#include <px4_arch_adc.h>
+#include <px4_arch/adc.h>
 #include <px4_config.h>
 #include <stdio.h>
 #include "board_config.h"

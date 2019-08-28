@@ -40,5 +40,6 @@ px4_add_module(
 		rgbled_pwm.cpp
 	DEPENDS
 		led
+		arch_io_pins
 		arch_led_pwm
 	)
