@@ -985,8 +985,8 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 							pos_sp_triplet.current.position_valid = false;
 
 						} else {
-							globallocalconverter_tolocal(set_position_target_global_int.lat_int / 10000000.0f,
-										     set_position_target_global_int.lon_int / 10000000.0f, set_position_target_global_int.alt,
+							globallocalconverter_tolocal(set_position_target_global_int.lat_int / 1e7,
+										     set_position_target_global_int.lon_int / 1e7, set_position_target_global_int.alt,
 										     &pos_sp_triplet.current.x, &pos_sp_triplet.current.y, &pos_sp_triplet.current.z);
 							pos_sp_triplet.current.position_valid = true;
 						}
@@ -1051,7 +1051,6 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 						pos_sp_triplet.current.yawspeed_valid = false;
 					}
 
-					//XXX handle global pos setpoints (different MAV frames)
 					_pos_sp_triplet_pub.publish(pos_sp_triplet);
 				}
 			}
