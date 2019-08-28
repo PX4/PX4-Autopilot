@@ -915,16 +915,29 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 		offboard_control_mode_s offboard_control_mode{};
 
 		/* convert mavlink type (local, NED) to uORB offboard control struct */
-		offboard_control_mode.ignore_position = (bool)(set_position_target_global_int.type_mask & 0x7);
+		offboard_control_mode.ignore_position = (bool)(set_position_target_global_int.type_mask &
+							(POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_X_IGNORE
+									| POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_Y_IGNORE
+									| POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_Z_IGNORE));
 		offboard_control_mode.ignore_alt_hold = (bool)(set_position_target_global_int.type_mask & 0x4);
-		offboard_control_mode.ignore_velocity = (bool)(set_position_target_global_int.type_mask & 0x38);
-		offboard_control_mode.ignore_acceleration_force = (bool)(set_position_target_global_int.type_mask & 0x1C0);
-		offboard_control_mode.ignore_attitude = (bool)(set_position_target_global_int.type_mask & 0x400);
-		offboard_control_mode.ignore_bodyrate_x = (bool)(set_position_target_global_int.type_mask & 0x800);
-		offboard_control_mode.ignore_bodyrate_y = (bool)(set_position_target_global_int.type_mask & 0x800);
-		offboard_control_mode.ignore_bodyrate_z = (bool)(set_position_target_global_int.type_mask & 0x800);
-
+		offboard_control_mode.ignore_velocity = (bool)(set_position_target_global_int.type_mask &
+							(POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_VX_IGNORE
+									| POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_VY_IGNORE
+									| POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_VZ_IGNORE));
+		offboard_control_mode.ignore_acceleration_force = (bool)(set_position_target_global_int.type_mask &
+				(POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_AX_IGNORE
+				 | POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_AY_IGNORE
+				 | POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_AZ_IGNORE));
 		/* yaw ignore flag mapps to ignore_attitude */
+		offboard_control_mode.ignore_attitude = (bool)(set_position_target_global_int.type_mask &
+							POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_YAW_IGNORE);
+		offboard_control_mode.ignore_bodyrate_x = (bool)(set_position_target_global_int.type_mask &
+				POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE);
+		offboard_control_mode.ignore_bodyrate_y = (bool)(set_position_target_global_int.type_mask &
+				POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE);
+		offboard_control_mode.ignore_bodyrate_z = (bool)(set_position_target_global_int.type_mask &
+				POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE);
+
 		bool is_force_sp = (bool)(set_position_target_global_int.type_mask & (1 << 9));
 
 		bool is_takeoff_sp = (bool)(set_position_target_global_int.type_mask & 0x1000);
