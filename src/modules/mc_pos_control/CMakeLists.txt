@@ -37,6 +37,7 @@ px4_add_module(
 	MODULE modules__mc_pos_control
 	MAIN mc_pos_control
 	COMPILE_FLAGS
+		-Wno-implicit-fallthrough # TODO: fix and remove
 	STACK_MAIN 1500
 	SRCS
 		mc_pos_control_main.cpp
