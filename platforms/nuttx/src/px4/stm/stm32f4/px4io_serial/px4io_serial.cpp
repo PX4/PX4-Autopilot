@@ -37,7 +37,7 @@
  * Serial interface for PX4IO on STM32F4
  */
 
-#include "arch_px4io_serial.h"
+#include <px4_arch/px4io_serial.h>
 
 /* serial register accessors */
 #define REG(_x)		(*(volatile uint32_t *)(PX4IO_SERIAL_BASE + _x))
