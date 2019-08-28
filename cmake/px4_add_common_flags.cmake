@@ -85,6 +85,7 @@ function(px4_add_common_flags)
 		-Wuninitialized
 		-Wunknown-pragmas
 		-Wunused-variable
+		-Wimplicit-fallthrough=0
 
 		# disabled warnings
 		-Wno-missing-field-initializers
