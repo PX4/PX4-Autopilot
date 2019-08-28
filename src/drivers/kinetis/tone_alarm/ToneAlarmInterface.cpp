@@ -35,8 +35,8 @@
  * @file ToneAlarmInterface.cpp
  */
 
-#include "chip/kinetis_sim.h"
-#include "kinetis_tpm.h"
+#include <hardware/kinetis_sim.h>
+#include <kinetis_tpm.h>
 
 #include <drivers/device/device.h>
 #include <lib/drivers/tone_alarm/ToneAlarmInterface.h>

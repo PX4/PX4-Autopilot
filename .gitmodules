@@ -5,7 +5,7 @@
 [submodule "src/drivers/uavcan/libuavcan"]
 	path = src/drivers/uavcan/libuavcan
 	url = https://github.com/PX4/uavcan.git
-	branch = px4
+	branch = pr-nuttx_update_7.31+
 [submodule "msg/tools/genmsg"]
 	path = msg/tools/genmsg
 	url = https://github.com/PX4/genmsg.git
@@ -49,11 +49,11 @@
 [submodule "platforms/nuttx/NuttX/nuttx"]
 	path = platforms/nuttx/NuttX/nuttx
 	url = https://github.com/PX4/NuttX.git
-	branch = px4_firmware_nuttx-7.29+
+	branch = px4_firmware_nuttx-7.31+
 [submodule "platforms/nuttx/NuttX/apps"]
 	path = platforms/nuttx/NuttX/apps
 	url = https://github.com/PX4/NuttX-apps.git
-	branch = px4_firmware_nuttx-7.29+
+	branch = px4_firmware_nuttx-7.31+
 [submodule "cmake/configs/uavcan_board_ident"]
 	path = cmake/configs/uavcan_board_ident
 	url = https://github.com/PX4/uavcan_board_ident.git

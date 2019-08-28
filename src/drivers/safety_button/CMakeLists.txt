@@ -34,6 +34,7 @@
 px4_add_module(
 	MODULE drivers__safety_button
 	MAIN safety_button
+	STACK_MAIN 1200
 	SRCS
 		SafetyButton.cpp
 	DEPENDS

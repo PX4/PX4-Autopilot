@@ -104,7 +104,8 @@ CFLAGS = $(ARCHINCLUDES) \
 	-Wno-nonnull-compare \
 	-Wno-old-style-declaration \
 	-Wno-sign-compare \
-	-Wno-type-limits
+	-Wno-type-limits \
+	-Wno-error=unused-but-set-variable
 
 CXXFLAGS = $(ARCHXXINCLUDES) \
 	-std=gnu++11 \

@@ -77,8 +77,8 @@
 #include "drv_input_capture.h"
 
 #include <kinetis.h>
-#include "chip/kinetis_sim.h"
-#include "chip/kinetis_ftm.h"
+#include "hardware/kinetis_sim.h"
+#include "hardware/kinetis_ftm.h"
 
 
 #define _REG(_addr)	(*(volatile uint32_t *)(_addr))

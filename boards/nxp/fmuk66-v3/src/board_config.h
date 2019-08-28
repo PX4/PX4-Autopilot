@@ -50,7 +50,7 @@ __BEGIN_DECLS
 
 /* these headers are not C++ safe */
 #include <kinetis.h>
-#include <chip/kinetis_pinmux.h>
+#include <hardware/kinetis_pinmux.h>
 #include <arch/board/board.h>
 
 /* FMUK66 GPIOs ***********************************************************************************/

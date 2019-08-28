@@ -30,16 +30,19 @@ private:
 
 	bool _trigger_invert;
 
-	static constexpr uint32_t _gpios[6] = {
+	static constexpr uint32_t _gpios[] = {
 		GPIO_GPIO0_OUTPUT,
 		GPIO_GPIO1_OUTPUT,
 		GPIO_GPIO2_OUTPUT,
 		GPIO_GPIO3_OUTPUT,
 		GPIO_GPIO4_OUTPUT,
+#if defined(GPIO_GPIO5_OUTPUT)
 		GPIO_GPIO5_OUTPUT
+#endif
 	};
+	static constexpr int ngpios = sizeof(_gpios) / sizeof(_gpios[0]);
 
-	uint32_t _triggers[arraySize(_gpios)];
+	uint32_t _triggers[ngpios];
 };
 
 #endif /* ifdef __PX4_NUTTX */

@@ -45,8 +45,8 @@
 
 #include <nuttx/analog/adc.h>
 #include <kinetis.h>
-#include <chip/kinetis_sim.h>
-#include <chip/kinetis_adc.h>
+#include <hardware/kinetis_sim.h>
+#include <hardware/kinetis_adc.h>
 
 #include <drivers/drv_adc.h>
 #include <drivers/drv_hrt.h>

@@ -54,7 +54,7 @@ list(APPEND nuttx_libs
 	nuttx_arch
 	nuttx_binfmt
 	nuttx_c
-	nuttx_configs
+	nuttx_boards
 	nuttx_xx
 	nuttx_drivers
 	nuttx_fs

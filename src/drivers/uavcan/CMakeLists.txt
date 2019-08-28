@@ -130,3 +130,6 @@ px4_add_module(
 		uavcan
 		uavcan_${UAVCAN_PLATFORM}_driver
 	)
+
+add_dependencies(uavcan prebuild_targets)
+add_dependencies(uavcan_${UAVCAN_PLATFORM}_driver prebuild_targets)

@@ -70,7 +70,7 @@ __BEGIN_DECLS
 #    if defined(CONFIG_ARCH_CHIP_STM32F7)
 #      define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32F7
 #      include <chip.h>
-#      include <chip/stm32_flash.h>
+#      include <hardware/stm32_flash.h>
 void stm32_flash_lock(void);
 void stm32_flash_unlock(void);
 int stm32_flash_writeprotect(size_t page, bool enabled);

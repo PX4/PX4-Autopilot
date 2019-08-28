@@ -253,7 +253,7 @@ int WorkQueueManagerStart()
 	int task_id = px4_task_spawn_cmd("wq:manager",
 					 SCHED_DEFAULT,
 					 PX4_WQ_HP_BASE,
-					 1200,
+					 1300,
 					 (px4_main_t)&WorkQueueManagerRun,
 					 nullptr);
 

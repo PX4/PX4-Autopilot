@@ -41,6 +41,8 @@
 #include <stdio.h>
 #include "board_config.h"
 
+#include <hardware/stm32_adc.h>
+
 #include "../board_internal_common.h"
 
 #include <systemlib/px4_macros.h>

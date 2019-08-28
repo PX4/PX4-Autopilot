@@ -20,15 +20,14 @@ px4_add_board(
 
 	DRIVERS
 		barometer # all available barometer drivers
-		batt_smbus
+		#batt_smbus
 		camera_capture
 		camera_trigger
-		differential_pressure # all available differential pressure drivers
+		#differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
 		#heater
-		imu/adis16448
-		imu/adis16497
+		#imu/adis16448
 		#imu # all available imu drivers
 # TBD		imu/bmi088 - needs bus selection
 # TBD		imu/ism330dlc - needs bus selection
@@ -36,29 +35,30 @@ px4_add_board(
 		#irlock
 		#lights/blinkm
 		#lights/oreoled
-		lights/pca8574
+		#lights/pca8574
 		lights/rgbled
 		#lights/rgbled_ncp5623c
+		#lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		#md25
-		mkblctrl
-		optical_flow # all available optical flow drivers
+		#mkblctrl
+		#optical_flow # all available optical flow drivers
 		pca9685
 		power_monitor/ina226
 		#protocol_splitter
-		pwm_input
+		#pwm_input
 		pwm_out_sim
 		px4fmu
 		px4io
 		rc_input
-		roboclaw
+		#roboclaw
 		safety_button
 		stm32
 		stm32/adc
 		stm32/tone_alarm
-		tap_esc
+		#tap_esc
 		telemetry # all available telemetry drivers
-		test_ppm
+		#test_ppm
 		tone_alarm
 		#uavcan
 
