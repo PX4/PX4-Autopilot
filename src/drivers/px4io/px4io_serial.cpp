@@ -39,7 +39,7 @@
 
 #include "px4io_driver.h"
 
-#include <px4io_serial/arch_px4io_serial.h>
+#include <px4_arch/px4io_serial.h>
 
 static PX4IO_serial *g_interface;
 

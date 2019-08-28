@@ -26,7 +26,6 @@ px4_add_board(
 		pwm_out_sim
 		px4fmu
 		rc_input
-		stm32
 		telemetry
 		tone_alarm
 		osd

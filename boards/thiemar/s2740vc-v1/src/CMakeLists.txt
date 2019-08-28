@@ -41,6 +41,6 @@ add_library(drivers_board
 )
 
 target_link_libraries(drivers_board
-	PRIVATE
-		drivers_arch
+    PRIVATE
+		px4_layer
 )

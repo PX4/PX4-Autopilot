@@ -39,7 +39,5 @@ add_library(drivers_boards_common_arch
 	board_critmon.c
 )
 add_dependencies(drivers_boards_common_arch prebuild_targets)
-add_dependencies(drivers_boards_common_arch arch_adc)
 target_compile_options(drivers_boards_common_arch PRIVATE -Wno-cast-align) # TODO: fix and enable
 target_link_libraries(drivers_boards_common_arch PRIVATE nuttx_arch)
-target_link_libraries(drivers_boards_common_arch PRIVATE arch_adc)
