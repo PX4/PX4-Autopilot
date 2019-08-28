@@ -233,3 +233,53 @@ TEST_F(CollisionPreventionTest, outsideFOV)
 
 	orb_unadvertise(obstacle_distance_pub);
 }
+
+
+TEST_F(CollisionPreventionTest, jerkLimit)
+{
+	// GIVEN: a simple setup condition
+	TestCollisionPrevention cp;
+	matrix::Vector2f original_setpoint(10, 0);
+	float max_speed = 3;
+	matrix::Vector2f curr_pos(0, 0);
+	matrix::Vector2f curr_vel(2, 0);
+
+	// AND: distance set to 5m
+	param_t param = param_handle(px4::params::MPC_COL_PREV_D);
+	float value = 5; // try to keep 5m distance
+	param_set(param, &value);
+	cp.paramsChanged();
+
+	// AND: an obstacle message
+	obstacle_distance_s message;
+	memset(&message, 0xDEAD, sizeof(message));
+	message.min_distance = 100;
+	message.max_distance = 2000;
+	message.timestamp = hrt_absolute_time();
+	int distances_array_size = sizeof(message.distances) / sizeof(message.distances[0]);
+	message.increment = 360 / distances_array_size;
+
+	for (int i = 0; i < distances_array_size; i++) {
+		message.distances[i] = 700;
+	}
+
+	// AND: we publish the message and set the parameter and then run the setpoint modification
+	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
+	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
+	matrix::Vector2f modified_setpoint_default_jerk = original_setpoint;
+	cp.modifySetpoint(modified_setpoint_default_jerk, max_speed, curr_pos, curr_vel);
+	orb_unadvertise(obstacle_distance_pub);
+
+	// AND: we now set max jerk to 0.1
+	param = param_handle(px4::params::MPC_JERK_MAX);
+	value = 0.1; // 0.1 maximum jerk
+	param_set(param, &value);
+	cp.paramsChanged();
+
+	// WHEN: we run the setpoint modification again
+	matrix::Vector2f modified_setpoint_limited_jerk = original_setpoint;
+	cp.modifySetpoint(modified_setpoint_limited_jerk, max_speed, curr_pos, curr_vel);
+
+	// THEN: the new setpoint should be much slower than the one with default jerk
+	EXPECT_LT(modified_setpoint_limited_jerk.norm() * 10, modified_setpoint_default_jerk.norm());
+}
