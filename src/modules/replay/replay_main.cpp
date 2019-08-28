@@ -45,6 +45,7 @@
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
+#include <px4_shutdown.h>
 
 #include <cstring>
 #include <float.h>
@@ -847,7 +848,9 @@ void Replay::run()
 		PX4_INFO("Replay done (published %u msgs, %.3lf s)", nr_published_messages,
 			 (double)hrt_elapsed_time(&_replay_start_time) / 1.e6);
 
-		//TODO: should we close the log file & exit (optionally, by adding a parameter -q) ?
+		//TODO: add parameter -q?
+		replay_file.close();
+		px4_shutdown_request(false, false);
 	}
 
 	onExitMainLoop();

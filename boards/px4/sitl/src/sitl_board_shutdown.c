@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,30 +32,21 @@
  ****************************************************************************/
 
 /**
- * @file board_config.h
+ * @file sitl_board_shutdown.c
  *
- * SITL internal definitions
+ * sitl board shutdown backend.
  */
 
-#pragma once
+#include <px4_tasks.h>
+#include <board_config.h>
 
-#define BOARD_OVERRIDE_UUID "SIMULATIONID0000" // must be of length 16
-#define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_SITL
+int board_register_power_state_notification_cb(power_button_state_notification_t cb)
+{
+	return 0;
+}
 
-#define BOARD_BATTERY1_V_DIV   (10.177939394f)
-#define BOARD_BATTERY1_A_PER_V (15.391030303f)
-#define BOARD_HAS_POWER_CONTROL
-#define BOARD_HAS_NO_BOOTLOADER
-
-#define PX4_I2C_BUS_EXPANSION	1
-#define PX4_I2C_BUS_ONBOARD		2
-#define PX4_NUMBER_I2C_BUSES 1
-
-#define BOARD_NUMBER_BRICKS     0
-#define BOARD_HAS_CONTROL_STATUS_LEDS 1
-#define BOARD_OVERLOAD_LED     LED_RED
-#define BOARD_ARMED_LED        LED_BLUE
-#define BOARD_ARMED_STATE_LED  LED_GREEN
-
-#include <system_config.h>
-#include <drivers/boards/common/board_common.h>
+int board_shutdown()
+{
+	px4_systemreset(false);
+	return 0;
+}
