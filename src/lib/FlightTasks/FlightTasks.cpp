@@ -169,7 +169,7 @@ void FlightTasks::_updateCommand()
 			cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
 
 			// if we just switched and parameters are not accepted, go to failsafe
-			if (switch_result == FlightTaskError::InvalidTask) {
+			if (switch_result >= FlightTaskError::NoError) {
 				switchTask(FlightTaskIndex::ManualPosition);
 				cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 			}
