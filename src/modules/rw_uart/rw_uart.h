@@ -23,6 +23,9 @@
 #include <px4_tasks.h>
 #include <px4_posix.h>
 #include <parameters/param.h>
+#include <dataman/dataman.h>
+#include <navigator/navigation.h>
+//#include <matrix/math.hpp>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_armed.h>
@@ -39,6 +42,8 @@
 #include <uORB/topics/geofence_result.h>
 //#include <uORB/topics/cpuload.h>
 #include <uORB/topics/vehicle_control_mode.h>
+
+#define WP_DATA_NUM_MAX (uint16_t) 20
 
 #pragma  pack(1)
 
@@ -167,7 +172,7 @@ typedef struct {
 typedef struct {
     char head[5];
     uint8_t command;
-    uint16_t waypoint_num;
+    uint16_t waypoint_seq;
     int32_t lat;  // 10^-7 m
     int32_t lon; // 10^-7 m
     int32_t alt; //0.1 m
@@ -293,8 +298,8 @@ typedef struct {
 typedef struct {
    uint16_t num;
    SETD *push;
-   SETD *pop;
-   SETD setd[20];
+   //SETD *pop;
+   SETD setd[WP_DATA_NUM_MAX];
 }Waypoint_saved;
 
 #pragma  pack()

@@ -48,14 +48,17 @@ void msg_pack_response(MSG_orb_data msg_data, MSG_param_hd msg_hd, MSG_type msg_
             write(uart_read, send_message, sizeof(msg_response.setd));
             break;
         case WIFI_COMM_WP_DOWNLOAD:
-            p = wp_data.pop;
+            p = wp_data.setd;
             for (int i = 0; i < wp_data.num; i++) {
                 msg_response.setd = *p;
                 memcpy(send_message, &msg_response.setd, sizeof(msg_response.setd));
                 send_message[26] = calculate_sum_check(send_message);
                 send_message[26] = 0xae;
                 write(uart_read, send_message, sizeof(msg_response.setd));
-                if(p == &wp_data.setd[19]) p = wp_data.setd;
+                if (p == &wp_data.setd[WP_DATA_NUM_MAX]) {
+                    printf("Too many waypoints\n");
+                    wp_data.num =WP_DATA_NUM_MAX;
+                }
                 else p++;
             }
             break;

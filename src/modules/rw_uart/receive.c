@@ -1,6 +1,21 @@
 #include "rw_uart.h"
 #include "rw_uart_define.h"
 
+void wp_save(void){
+    struct mission_item_s mission_item;
+    mission_item.lat = ((double)wp_data.push->lat) * 1e-7;
+    mission_item.lon = ((double)wp_data.push->lon) * 1e-7;
+    mission_item.altitude = ((float_t)wp_data.push->alt) / 10.0;
+    mission_item.altitude_is_relative = false;
+    mission_item.nav_cmd = NAV_CMD_WAYPOINT;
+    mission_item.time_inside = ((float_t)wp_data.push->loiter_time);
+    mission_item.acceptance_radius = (wp_data.push->turn_mode == 0) ? ((float_t)wp_data.push->photo_dis) : 0;
+    //mission_item.yaw = wrap_2pi(math::radians( wp_data.push->yaw));
+    bool write_failed = dm_write(DM_KEY_WAYPOINTS_OFFBOARD_1, wp_data.push->waypoint_seq, DM_PERSIST_POWER_ON_RESET,
+                                          &mission_item, sizeof(struct mission_item_s)) != sizeof(struct mission_item_s);
+    if (write_failed) printf("Waypoint saving failed\n");
+}
+
 void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type){
     //void *data;
     switch (msg_type.command) {
@@ -8,9 +23,9 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
         msg_data->command_data.command = 16; //VEHICLE_CMD_NAV_WAYPOINT
         //data = ((int32_t) buffer[6]) + ((int32_t) buffer[7]<<8) +((int32_t) buffer[8]<<16) + ((int32_t)buffer[9]<<24);
         //data =(void *)((uint32_t)buffer + 6);
-        msg_data->command_data.param5 = ((float_t)*(int32_t*)((uint32_t)buffer + 6))/10000000.0;
+        msg_data->command_data.param5 = ((float_t)*(int32_t*)((uint32_t)buffer + 6)) * 1e-7;
         printf("lat: %d\n", *(int32_t*)((uint32_t)buffer + 6));
-        msg_data->command_data.param6 = ((float_t)*(int32_t*)((uint32_t)buffer + 10))/10000000.0;
+        msg_data->command_data.param6 = ((float_t)*(int32_t*)((uint32_t)buffer + 10))* 1e-7;
         printf("lon: %d\n", *(int32_t*)((uint32_t)buffer + 10));
         msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0;
         printf("Passing waypoint\n");
@@ -22,8 +37,8 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
     case WIFI_COMM_AUTO_LAND:
         msg_data->command_data.command = 21; //VEHICLE_CMD_NAV_LAND
         msg_data->command_data.param4 = 0.0;
-        msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)/10000000.0;
-        msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)/10000000.0;
+        msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)* 1e-7;
+        msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)* 1e-7;
         msg_data->command_data.param7 = 0.0;
         printf("Passing land\n");
         break;
@@ -31,26 +46,37 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
         msg_data->command_data.command = 22; //VEHICLE_CMD_NAV_TAKEOFF
         msg_data->command_data.param1 = 0.0;
         msg_data->command_data.param4 = 0.0;
-        msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)/10000000.0;
-        msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)/10000000.0;
-        msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0 +1000.0;
+        msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)* 1e-7;
+        msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)* 1e-7;
+        msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0 +100.0;
         printf("Passing takeoff\n");
         break;
     case WIFI_COMM_WP_UPLOAD:
-        if (wp_data.push == wp_data.pop && wp_data.num !=0) printf("Too many waypoints\n");
-        (*wp_data.push).waypoint_num = *(uint16_t*)((uint32_t)buffer + 6);
-        (*wp_data.push).lat = *(int32_t*)((uint32_t)buffer + 8);
-        (*wp_data.push).lon = *(int32_t*)((uint32_t)buffer + 12);
-        (*wp_data.push).alt = *(int32_t*)((uint32_t)buffer + 16);
-        (*wp_data.push).loiter_time = * (uint16_t*)((uint32_t)buffer + 20);
-        (*wp_data.push).cruise_speed = buffer[22];
-        (*wp_data.push).photo_set = buffer[23];
-        (*wp_data.push).photo_dis = buffer[24];
-        (*wp_data.push).turn_mode = buffer[25];
-        if (wp_data.push == &wp_data.setd[19]) wp_data.push = wp_data.setd;
-        else wp_data.push ++;
-        wp_data.num ++;
-        printf("Passing wy_upload\n");
+        if (wp_data.num == WP_DATA_NUM_MAX) {
+            printf("Too many waypoints\n");
+        }else if (*(uint16_t*)((uint32_t)buffer + 6) > WP_DATA_NUM_MAX){
+            printf("Wrong waypoints sequece\n");
+        }else {
+            uint8_t new;
+            if (wp_data.num >= *(uint16_t*)((uint32_t)buffer + 6)){
+                wp_data.push = &wp_data.setd[*(uint16_t*)((uint32_t)buffer + 6) -1];
+                new = 0;
+            } else new =1;
+            wp_data.push->waypoint_seq = *(uint16_t*)((uint32_t)buffer + 6);
+            wp_data.push->lat = *(int32_t*)((uint32_t)buffer + 8);
+            wp_data.push->lon = *(int32_t*)((uint32_t)buffer + 12);
+            wp_data.push->alt = *(int32_t*)((uint32_t)buffer + 16);
+            wp_data.push->loiter_time = * (uint16_t*)((uint32_t)buffer + 20);
+            wp_data.push->cruise_speed = buffer[22];
+            wp_data.push->photo_set = buffer[23];
+            wp_data.push->photo_dis = buffer[24];
+            wp_data.push->turn_mode = buffer[25];
+            wp_data.num += new;
+            wp_save();
+            if (wp_data.num == WP_DATA_NUM_MAX) printf("Waypoints num is max\n");
+            else wp_data.push = &wp_data.setd[wp_data.num];
+            printf("Passing wy_upload\n");
+        }
         break;
     case WIFI_COMM_WP_UPLOAD_NUM:
         wp_data.num = *(uint16_t*)((uint32_t)buffer + 6);
@@ -86,8 +112,8 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
         break;
     case WIFI_COMM_HIGHT_CHANGE:
         msg_data->command_data.command = 16; //VEHICLE_CMD_NAV_WAYPOINT
-        msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)/10000000.0;
-        msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)/10000000.0;
+        msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)* 1e-7;
+        msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)* 1e-7;
         msg_data->command_data.param7 = ((float_t)*(int16_t*)((uint32_t)buffer + 7))/10.0;
         msg_data->command_data.param1 = 0.0;
         msg_data->command_data.param2 = 0.0;
@@ -130,16 +156,16 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
         break;
     case WIFI_COMM_AUTO_FLIGHT_ON:
         msg_data->command_data.command = 300; //CMD_MISSION_START
-        msg_data->command_data.param1 = wp_data.pop->waypoint_num;
-        msg_data->command_data.param2 = wp_data.push->waypoint_num;
+        msg_data->command_data.param1 = wp_data.setd[0].waypoint_seq;
+        msg_data->command_data.param2 = wp_data.push->waypoint_seq;
         printf("Passing atuo_on\n");
         break;
     case WIFI_COMM_AUTO_FLIGHT_OFF:
         msg_data->command_data.command = 17; //CMD_NAV_LOITER_UNLIM
         msg_data->command_data.param3 = 0;
         msg_data->command_data.param4 = 0;
-        msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)/10000000.0;
-        msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)/10000000.0;
+        msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)* 1e-7;
+        msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)* 1e-7;
         msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0;
         printf("Passing auto_off\n");
         break;
@@ -325,8 +351,8 @@ void exyf_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type,
         msg_data->command_data.command = 17; //CMD_NAV_LOITER_UNLIM
         msg_data->command_data.param3 = 0;
         msg_data->command_data.param4 = (float_t)*(int32_t*)((uint32_t)buffer + 9);
-        msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)/10000000.0;
-        msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)/10000000.0;
+        msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)* 1e-7;
+        msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)* 1e-7;
         msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0;
         }
         printf("Passing loiter_yaw\n");
@@ -384,8 +410,8 @@ void exex_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type,
         msg_data->command_data.command = 17; //CMD_NAV_LOITER_UNLIM
         msg_data->command_data.param3 = 0;
         msg_data->command_data.param4 = 0;
-        msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)/10000000.0;
-        msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)/10000000.0;
+        msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)* 1e-7;
+        msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)* 1e-7;
         msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0 + paramf /10.0;
         paramf = *(float_t*)((uint32_t)buffer + 11);
         param_set(msg_hd.up_vel_max_hd, &paramf);
