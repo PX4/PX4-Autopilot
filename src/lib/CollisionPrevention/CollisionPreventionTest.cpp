@@ -107,6 +107,12 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithObstacleMessage)
 	float max_speed = 3;
 	matrix::Vector2f curr_pos(0, 0);
 	matrix::Vector2f curr_vel(2, 0);
+	vehicle_attitude_s attitude;
+	attitude.timestamp = hrt_absolute_time();
+	attitude.q[0] = 1.0f;
+	attitude.q[1] = 0.0f;
+	attitude.q[2] = 0.0f;
+	attitude.q[3] = 0.0f;
 
 	// AND: a parameter handle
 	param_t param = param_handle(px4::params::MPC_COL_PREV_D);
@@ -136,12 +142,15 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithObstacleMessage)
 
 	// WHEN: we publish the message and set the parameter and then run the setpoint modification
 	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
+	orb_advert_t vehicle_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &attitude);
 	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
+	orb_publish(ORB_ID(vehicle_attitude), vehicle_attitude_pub, &attitude);
 	matrix::Vector2f modified_setpoint1 = original_setpoint1;
 	matrix::Vector2f modified_setpoint2 = original_setpoint2;
 	cp.modifySetpoint(modified_setpoint1, max_speed, curr_pos, curr_vel);
 	cp.modifySetpoint(modified_setpoint2, max_speed, curr_pos, curr_vel);
 	orb_unadvertise(obstacle_distance_pub);
+	orb_unadvertise(vehicle_attitude_pub);
 
 	// THEN: the internal map should know the obstacle
 	// case 1: the velocity setpoint should be cut down to zero
@@ -201,15 +210,16 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithDistanceMessage)
 	cp.modifySetpoint(modified_setpoint1, max_speed, curr_pos, curr_vel);
 	cp.modifySetpoint(modified_setpoint2, max_speed, curr_pos, curr_vel);
 	orb_unadvertise(distance_sensor_pub);
+	orb_unadvertise(vehicle_attitude_pub);
 
 	// THEN: the internal map should know the obstacle
-	// case 1: the velocity setpoint should be cut down to zero
-	// case 2: the velocity setpoint should stay the same as the input
+	// case 1: the velocity setpoint should be cut down to zero because there is an obstacle
+	// case 2: the velocity setpoint should be cut down to zero because there is no data
 	EXPECT_FLOAT_EQ(cp.getObstacleMap().min_distance, 100);
 	EXPECT_FLOAT_EQ(cp.getObstacleMap().max_distance, 10000);
 
 	EXPECT_FLOAT_EQ(0.f, modified_setpoint1.norm()) << modified_setpoint1(0) << "," << modified_setpoint1(1);
-	EXPECT_EQ(original_setpoint2, modified_setpoint2);
+	EXPECT_FLOAT_EQ(0.f, modified_setpoint2.norm()) << modified_setpoint2(0) << "," << modified_setpoint2(1);
 }
 
 TEST_F(CollisionPreventionTest, noBias)
@@ -375,19 +385,19 @@ TEST_F(CollisionPreventionTest, addDistanceSensorData)
 	distance_sensor.current_distance = 5.f;
 
 	//THEN: at initialization the internal obstacle map should only contain UINT16_MAX
-	int distances_array_size = sizeof(cp.getObstacleMap().distances) / sizeof(cp.getObstacleMap().distances[0]);
+	uint32_t distances_array_size = sizeof(cp.getObstacleMap().distances) / sizeof(cp.getObstacleMap().distances[0]);
 
-	for (int i = 0; i < distances_array_size; i++) {
+	for (uint32_t i = 0; i < distances_array_size; i++) {
 		EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], UINT16_MAX);
 	}
 
 	//WHEN: we add distance sensor data to the right
 	distance_sensor.orientation = distance_sensor_s::ROTATION_RIGHT_FACING;
-	distance_sensor.h_fov = 0.349f; //20deg
+	distance_sensor.h_fov = math::radians(19.99f);
 	cp.test_addDistanceSensorData(distance_sensor, vehicle_attitude);
 
 	//THEN: the correct bins in the map should be filled
-	for (int i = 0; i < distances_array_size; i++) {
+	for (uint32_t i = 0; i < distances_array_size; i++) {
 		if (i == 8 || i == 9) {
 			EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], 500);
 
@@ -398,12 +408,12 @@ TEST_F(CollisionPreventionTest, addDistanceSensorData)
 
 	//WHEN: we add additionally distance sensor data to the left
 	distance_sensor.orientation = distance_sensor_s::ROTATION_LEFT_FACING;
-	distance_sensor.h_fov = 0.8727f; //50deg
+	distance_sensor.h_fov = math::radians(50.f);
 	distance_sensor.current_distance = 8.f;
 	cp.test_addDistanceSensorData(distance_sensor, vehicle_attitude);
 
 	//THEN: the correct bins in the map should be filled
-	for (int i = 0; i < distances_array_size; i++) {
+	for (uint32_t i = 0; i < distances_array_size; i++) {
 		if (i == 8 || i == 9) {
 			EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], 500);
 
@@ -417,19 +427,19 @@ TEST_F(CollisionPreventionTest, addDistanceSensorData)
 
 	//WHEN: we add additionally distance sensor data to the front
 	distance_sensor.orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
-	distance_sensor.h_fov = 0.1745f; //10deg
+	distance_sensor.h_fov = math::radians(10.1f);
 	distance_sensor.current_distance = 3.f;
 	cp.test_addDistanceSensorData(distance_sensor, vehicle_attitude);
 
 	//THEN: the correct bins in the map should be filled
-	for (int i = 0; i < distances_array_size; i++) {
+	for (uint32_t i = 0; i < distances_array_size; i++) {
 		if (i == 8 || i == 9) {
 			EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], 500);
 
 		} else if (i >= 24 && i <= 29) {
 			EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], 800);
 
-		} else if (i == 35 || i == 0) {
+		} else if (i == 0) {
 			EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], 300);
 
 		} else {

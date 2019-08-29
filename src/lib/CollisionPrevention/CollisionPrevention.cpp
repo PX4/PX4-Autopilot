@@ -55,12 +55,12 @@ CollisionPrevention::CollisionPrevention(ModuleParams *parent) :
 	_obstacle_map_body_frame.min_distance = UINT16_MAX;
 	_obstacle_map_body_frame.max_distance = 0;
 	_obstacle_map_body_frame.angle_offset = 0.f;
-	memset(&_obstacle_map_body_frame.distances[0], UINT16_MAX, sizeof(_obstacle_map_body_frame.distances));
-
+	uint32_t internal_bins = sizeof(_obstacle_map_body_frame.distances) / sizeof(_obstacle_map_body_frame.distances[0]);
 	uint64_t current_time = hrt_absolute_time();
 
-	for (uint i = 0 ; i < sizeof(_data_timestamps); i++) {
+	for (uint32_t i = 0 ; i < internal_bins; i++) {
 		_data_timestamps[i] = current_time;
+		_obstacle_map_body_frame.distances[i] = UINT16_MAX;
 	}
 }
 
