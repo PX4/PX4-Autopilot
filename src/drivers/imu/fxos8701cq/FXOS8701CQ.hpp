@@ -32,26 +32,21 @@
  ****************************************************************************/
 
 /**
- * @file fxos8701cq.cpp
+ * @file FXOS8701CQ.hpp
  * Driver for the NXP FXOS8701CQ 6-axis sensor with integrated linear accelerometer and
  * magnetometer connected via SPI.
  */
 
-#include <drivers/device/integrator.h>
-#include <drivers/device/ringbuffer.h>
+#pragma once
+
 #include <drivers/device/spi.h>
-#include <drivers/drv_accel.h>
-#include <ecl/geo/geo.h>
-#include <lib/conversion/rotation.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <perf/perf_counter.h>
-#include <px4_getopt.h>
+#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/ecl/geo/geo.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-#include <systemlib/err.h>
-
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
-#  include <drivers/drv_mag.h>
+#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #endif
 
 /* SPI protocol address bits */
@@ -60,11 +55,6 @@
 #define ADDR_7(a)                       ((a) & (1 << 7))
 #define swap16(w)                       __builtin_bswap16((w))
 #define swap16RightJustify14(w)         (((int16_t)swap16(w)) >> 2)
-#define FXOS8701C_DEVICE_PATH_ACCEL     "/dev/fxos8701cq_accel"
-#define FXOS8701C_DEVICE_PATH_ACCEL_EXT "/dev/fxos8701cq_accel_ext"
-#if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
-#  define FXOS8701C_DEVICE_PATH_MAG       "/dev/fxos8701cq_mag"
-#endif
 
 #define FXOS8701CQ_DR_STATUS       0x00
 #  define DR_STATUS_ZYXDR          (1 << 3)
@@ -112,12 +102,6 @@
 /* default values for this device */
 #define FXOS8701C_ACCEL_DEFAULT_RANGE_G              8
 #define FXOS8701C_ACCEL_DEFAULT_RATE                 400 /* ODR is 400 in Hybird mode (accel + mag) */
-#define FXOS8701C_ACCEL_DEFAULT_ONCHIP_FILTER_FREQ   50
-#define FXOS8701C_ACCEL_DEFAULT_DRIVER_FILTER_FREQ   30
-#define FXOS8701C_ACCEL_MAX_OUTPUT_RATE              280
-
-#define FXOS8701C_MAG_DEFAULT_RANGE_GA               12 /* It is fixed at 12 G */
-#define FXOS8701C_MAG_DEFAULT_RATE                   100
 
 /*
   we set the timer interrupt to run a bit faster than the desired
@@ -127,154 +111,33 @@
  */
 #define FXOS8701C_TIMER_REDUCTION				240
 
-extern "C" { __EXPORT int fxos8701cq_main(int argc, char *argv[]); }
-
-
-#if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
-class FXOS8701CQ_mag;
-#endif
-
 class FXOS8701CQ : public device::SPI, public px4::ScheduledWorkItem
 {
 public:
-	FXOS8701CQ(int bus, const char *path, uint32_t device, enum Rotation rotation);
+	FXOS8701CQ(int bus, uint32_t device, enum Rotation rotation);
 	virtual ~FXOS8701CQ();
 
 	virtual int		init();
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
-
-	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
 	void			print_info();
-
-	/**
-	 * dump register values
-	 */
 	void			print_registers();
-
-	/**
-	 * deliberately trigger an error
-	 */
 	void			test_error();
 
 protected:
 	virtual int		probe();
 
-#if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
-	friend class 		FXOS8701CQ_mag;
-
-	virtual ssize_t		mag_read(struct file *filp, char *buffer, size_t buflen);
-	virtual int		mag_ioctl(struct file *filp, int cmd, unsigned long arg);
-#endif
-
 private:
 
 	void Run() override;
 
-#if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
-	FXOS8701CQ_mag		*_mag;
-	unsigned    _call_mag_interval;
-	ringbuffer::RingBuffer    *_mag_reports;
-
-	struct mag_calibration_s  _mag_scale;
-	unsigned    _mag_range_ga;
-	float     _mag_range_scale;
-	unsigned    _mag_samplerate;
-	unsigned    _mag_read;
-	perf_counter_t    _mag_sample_perf;
-	int16_t     _last_raw_mag_x;
-	int16_t     _last_raw_mag_y;
-	int16_t     _last_raw_mag_z;
-
-	hrt_abstime		_mag_last_measure{0};
-#endif
-
-	unsigned		_call_accel_interval;
-
-	ringbuffer::RingBuffer	*_accel_reports;
-
-	struct accel_calibration_s	_accel_scale;
-	unsigned		_accel_range_m_s2;
-	float			_accel_range_scale;
-	unsigned		_accel_samplerate;
-	unsigned		_accel_onchip_filter_bandwith;
-
-
-	orb_advert_t		_accel_topic;
-	int			_accel_orb_class_instance;
-	int			_accel_class_instance;
-
-	unsigned		_accel_read;
-
-	perf_counter_t		_accel_sample_perf;
-	perf_counter_t		_bad_registers;
-	perf_counter_t		_bad_values;
-	perf_counter_t		_accel_duplicates;
-
-	uint8_t			_register_wait;
-
-	math::LowPassFilter2p	_accel_filter_x;
-	math::LowPassFilter2p	_accel_filter_y;
-	math::LowPassFilter2p	_accel_filter_z;
-
-	Integrator		_accel_int;
-
-	enum Rotation		_rotation;
-
-	// values used to
-	float			_last_accel[3];
-	uint8_t			_constant_accel_count;
-
-	// last temperature value
-	float			_last_temperature;
-
-	// this is used to support runtime checking of key
-	// configuration registers to detect SPI bus errors and sensor
-	// reset
-#define FXOS8701C_NUM_CHECKED_REGISTERS 5
-	static const uint8_t	_checked_registers[FXOS8701C_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_values[FXOS8701C_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_next;
-
-	/**
-	 * Start automatic measurement.
-	 */
 	void			start();
-
-	/**
-	 * Stop automatic measurement.
-	 */
 	void			stop();
-
-	/**
-	 * Reset chip.
-	 *
-	 * Resets the chip and measurements ranges, but not scale and offset.
-	 */
 	void			reset();
-
-	/**
-	 * disable I2C on the chip
-	 */
-	void			disable_i2c();
 
 	/**
 	 * check key registers for correct values
 	 */
-	void			check_registers(void);
-
-	/**
-	 * Fetch accel measurements from the sensor and update the report ring.
-	 */
-	void			measure();
-
-	/**
-	 * Fetch mag measurements from the sensor and update the report ring.
-	 */
-	void			mag_measure();
+	void			check_registers();
 
 	/**
 	 * Read a register from the FXOS8701C
@@ -330,24 +193,6 @@ private:
 	int			mag_set_range(unsigned max_g);
 
 	/**
-	 * Set the FXOS8701C on-chip anti-alias filter bandwith.
-	 *
-	 * @param bandwidth The anti-alias filter bandwidth in Hz
-	 * 			Zero selects the highest bandwidth
-	 * @return		OK if the value can be supported, -ERANGE otherwise.
-	 */
-	int			accel_set_onchip_lowpass_filter_bandwidth(unsigned bandwidth);
-
-	/**
-	 * Set the driver lowpass filter bandwidth.
-	 *
-	 * @param bandwidth The anti-alias filter bandwidth in Hz
-	 * 			Zero selects the highest bandwidth
-	 * @return		OK if the value can be supported, -ERANGE otherwise.
-	 */
-	int			accel_set_driver_lowpass_filter(float samplerate, float bandwidth);
-
-	/**
 	 * Set the FXOS8701C internal accel and mag sampling frequency.
 	 *
 	 * @param frequency	The internal accel and mag sampling frequency is set to not less than
@@ -357,53 +202,30 @@ private:
 	 */
 	int			accel_set_samplerate(unsigned frequency);
 
-	/**
-	 * Set the FXOS8701CQ internal mag sampling frequency.
-	 *
-	 * @param frequency	The mag reporting frequency is set to not less than
-	 *			this value. (sampling is all way the same as accel
-	 *			Zero selects the maximum rate supported.
-	 * @return		OK if the value can be supported.
-	 */
-	int			mag_set_samplerate(unsigned frequency);
 
-
-
-	/* this class cannot be copied */
-	FXOS8701CQ(const FXOS8701CQ &);
-	FXOS8701CQ operator=(const FXOS8701CQ &);
-};
+	PX4Accelerometer	_px4_accel;
 
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
-/**
- * Helper class implementing the mag driver node.
- */
-class FXOS8701CQ_mag : public device::CDev
-{
-public:
-	FXOS8701CQ_mag(FXOS8701CQ *parent);
-	~FXOS8701CQ_mag();
-
-	virtual ssize_t			read(struct file *filp, char *buffer, size_t buflen);
-	virtual int			ioctl(struct file *filp, int cmd, unsigned long arg);
-
-	virtual int		init();
-
-protected:
-	friend class FXOS8701CQ;
-
-	void				parent_poll_notify();
-private:
-	FXOS8701CQ				*_parent;
-
-	orb_advert_t			_mag_topic;
-	int				_mag_orb_class_instance;
-	int				_mag_class_instance;
-
-	void				measure();
-
-	/* this class does not allow copying due to ptr data members */
-	FXOS8701CQ_mag(const FXOS8701CQ_mag &);
-	FXOS8701CQ_mag operator=(const FXOS8701CQ_mag &);
-};
+	PX4Magnetometer		_px4_mag;
+	hrt_abstime		_mag_last_measure{0};
+	perf_counter_t		_mag_sample_perf;
 #endif
+
+	unsigned		_accel_samplerate{FXOS8701C_ACCEL_DEFAULT_RATE};
+
+	perf_counter_t		_accel_sample_perf;
+	perf_counter_t		_accel_sample_interval_perf;
+	perf_counter_t		_bad_registers;
+	perf_counter_t		_accel_duplicates;
+
+	uint8_t			_register_wait{0};
+
+	// this is used to support runtime checking of key
+	// configuration registers to detect SPI bus errors and sensor
+	// reset
+	static constexpr int FXOS8701C_NUM_CHECKED_REGISTERS{5};
+	static const uint8_t	_checked_registers[FXOS8701C_NUM_CHECKED_REGISTERS];
+	uint8_t			_checked_values[FXOS8701C_NUM_CHECKED_REGISTERS] {};
+	uint8_t			_checked_next{0};
+
+};
