@@ -52,6 +52,13 @@
 
 #include <new>
 
+enum class FlightTaskError : int {
+	NoError = 0,
+	InvalidTask = -1,
+	SubscriptionFailed = -2,
+	ActivationFailed = -3
+};
+
 class FlightTasks
 {
 public:
@@ -102,17 +109,17 @@ public:
 
 	/**
 	 * Switch to the next task in the available list (for testing)
-	 * @return 1 on success, <0 on error
+	 * @return 0 on success, <0 on error
 	 */
-	int switchTask() { return switchTask(static_cast<int>(_current_task.index) + 1); }
+	FlightTaskError switchTask() { return switchTask(static_cast<int>(_current_task.index) + 1); }
 
 	/**
 	 * Switch to a specific task (for normal usage)
 	 * @param task index to switch to
-	 * @return 1 on success, 0 on no change, <0 on error
+	 * @return 0 on success, <0 on error
 	 */
-	int switchTask(FlightTaskIndex new_task_index);
-	int switchTask(int new_task_index);
+	FlightTaskError switchTask(FlightTaskIndex new_task_index);
+	FlightTaskError switchTask(int new_task_index);
 
 	/**
 	 * Get the number of the active task
@@ -134,7 +141,7 @@ public:
 	/**
 	 * Call this method to get the description of a task error.
 	 */
-	const char *errorToString(const int error);
+	const char *errorToString(const FlightTaskError error);
 
 	/**
 	 * Sets an external yaw handler. The active flight task can use the yaw handler to implement a different yaw control strategy.
@@ -174,10 +181,10 @@ private:
 	 * Map from Error int to user friendly string.
 	 */
 	task_error_t _taskError[_numError] = {
-		{0, "No Error"},
-		{-1, "Invalid Task "},
-		{-2, "Subscription Failed"},
-		{-3, "Activation Failed"}
+		{static_cast<int>(FlightTaskError::NoError), "No Error"},
+		{static_cast<int>(FlightTaskError::InvalidTask), "Invalid Task "},
+		{static_cast<int>(FlightTaskError::SubscriptionFailed), "Subscription Failed"},
+		{static_cast<int>(FlightTaskError::ActivationFailed), "Activation Failed"}
 	};
 	/**
 	 * Check for vehicle commands (received via MAVLink), evaluate and acknowledge them
