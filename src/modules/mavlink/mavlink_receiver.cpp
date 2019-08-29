@@ -940,11 +940,6 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 
 		bool is_force_sp = (bool)(set_position_target_global_int.type_mask & (1 << 9));
 
-		bool is_takeoff_sp = (bool)(set_position_target_global_int.type_mask & 0x1000);
-		bool is_land_sp = (bool)(set_position_target_global_int.type_mask & 0x2000);
-		bool is_loiter_sp = (bool)(set_position_target_global_int.type_mask & 0x3000);
-		bool is_idle_sp = (bool)(set_position_target_global_int.type_mask & 0x4000);
-
 		offboard_control_mode.timestamp = hrt_absolute_time();
 		_offboard_control_mode_pub.publish(offboard_control_mode);
 
@@ -972,16 +967,16 @@ MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t
 
 					/* Order of statements matters. Takeoff can override loiter.
 					 * See https://github.com/mavlink/mavlink/pull/670 for a broader conversation. */
-					if (is_loiter_sp) {
+					if (set_position_target_global_int.type_mask & 0x3000) { //Loiter setpoint
 						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
 
-					} else if (is_takeoff_sp) {
+					} else if (set_position_target_global_int.type_mask & 0x1000) { //Takeoff setpoint
 						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
 
-					} else if (is_land_sp) {
+					} else if (set_position_target_global_int.type_mask & 0x2000) { //Land setpoint
 						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
 
-					} else if (is_idle_sp) {
+					} else if (set_position_target_global_int.type_mask & 0x4000) { //Idle setpoint
 						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 
 					} else {
