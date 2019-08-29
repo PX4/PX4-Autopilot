@@ -56,7 +56,12 @@ CollisionPrevention::CollisionPrevention(ModuleParams *parent) :
 	_obstacle_map_body_frame.max_distance = 0;
 	_obstacle_map_body_frame.angle_offset = 0.f;
 	memset(&_obstacle_map_body_frame.distances[0], UINT16_MAX, sizeof(_obstacle_map_body_frame.distances));
-	memset(&_data_timestamps[0], hrt_absolute_time(), floor(360.f / _obstacle_map_body_frame.increment));
+
+	uint64_t current_time = hrt_absolute_time();
+
+	for (uint i = 0 ; i < sizeof(_data_timestamps); i++) {
+		_data_timestamps[i] = current_time;
+	}
 }
 
 CollisionPrevention::~CollisionPrevention()
@@ -147,9 +152,13 @@ void CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sen
 		int upper_bound = (int)floor((sensor_yaw_body_deg  + math::degrees(distance_sensor.h_fov / 2.0f)) /
 					     _obstacle_map_body_frame.increment);
 
+		//floor values above zero, ceil values below zero
+		if (lower_bound < 0) { lower_bound++; }
+
+		if (upper_bound < 0) { upper_bound++; }
+
 		// rotate vehicle attitude into the sensor body frame
-		const int distances_array_size = sizeof(_obstacle_map_body_frame.distances) / sizeof(
-				_obstacle_map_body_frame.distances[0]);
+		const int map_bins_used = 360.f / _obstacle_map_body_frame.increment;
 		matrix::Quatf attitude_sensor_frame = vehicle_attitude;
 		attitude_sensor_frame.rotate(Vector3f(0.f, 0.f, sensor_yaw_body_rad));
 		float attitude_sensor_frame_pitch = cosf(Eulerf(attitude_sensor_frame).theta());
@@ -157,14 +166,14 @@ void CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sen
 		for (int bin = lower_bound; bin <= upper_bound; ++bin) {
 			int wrap_bin = bin;
 
-			if (wrap_bin < 0) {
+			while (wrap_bin < 0) {
 				// wrap bin index around the array
-				wrap_bin = (int)floor(360.f / _obstacle_map_body_frame.increment) + bin;
+				wrap_bin += map_bins_used;
 			}
 
-			if (wrap_bin >= distances_array_size) {
+			while (wrap_bin >= map_bins_used) {
 				// wrap bin index around the array
-				wrap_bin = bin - distances_array_size;
+				wrap_bin -= map_bins_used;
 			}
 
 			// compensate measurement for vehicle tilt and convert to cm

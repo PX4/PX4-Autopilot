@@ -98,7 +98,7 @@ TEST_F(CollisionPreventionTest, noSensorData)
 	EXPECT_FLOAT_EQ(0.f, modified_setpoint.norm());
 }
 
-TEST_F(CollisionPreventionTest, testBehaviorOnWithAnObstacle)
+TEST_F(CollisionPreventionTest, testBehaviorOnWithObstacleMessage)
 {
 	// GIVEN: a simple setup condition
 	TestCollisionPrevention cp;
@@ -143,7 +143,68 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithAnObstacle)
 	cp.modifySetpoint(modified_setpoint2, max_speed, curr_pos, curr_vel);
 	orb_unadvertise(obstacle_distance_pub);
 
-	// THEN: the internal map should know the obstacle and velocity should be cut down to zero
+	// THEN: the internal map should know the obstacle
+	// case 1: the velocity setpoint should be cut down to zero
+	// case 2: the velocity setpoint should stay the same as the input
+	EXPECT_FLOAT_EQ(cp.getObstacleMap().min_distance, 100);
+	EXPECT_FLOAT_EQ(cp.getObstacleMap().max_distance, 10000);
+
+	EXPECT_FLOAT_EQ(0.f, modified_setpoint1.norm()) << modified_setpoint1(0) << "," << modified_setpoint1(1);
+	EXPECT_EQ(original_setpoint2, modified_setpoint2);
+}
+
+TEST_F(CollisionPreventionTest, testBehaviorOnWithDistanceMessage)
+{
+	// GIVEN: a simple setup condition
+	TestCollisionPrevention cp;
+	matrix::Vector2f original_setpoint1(10, 0);
+	matrix::Vector2f original_setpoint2(-10, 0);
+	float max_speed = 3;
+	matrix::Vector2f curr_pos(0, 0);
+	matrix::Vector2f curr_vel(2, 0);
+	vehicle_attitude_s attitude;
+	attitude.timestamp = hrt_absolute_time();
+	attitude.q[0] = 1.0f;
+	attitude.q[1] = 0.0f;
+	attitude.q[2] = 0.0f;
+	attitude.q[3] = 0.0f;
+
+	// AND: a parameter handle
+	param_t param = param_handle(px4::params::MPC_COL_PREV_D);
+	float value = 10; // try to keep 10m distance
+	param_set(param, &value);
+	cp.paramsChanged();
+
+	// AND: an obstacle message
+	distance_sensor_s message;
+	message.timestamp = hrt_absolute_time();
+	message.min_distance = 1.f;
+	message.max_distance = 100.f;
+	message.current_distance = 1.1f;
+
+	message.variance = 0.1f;
+	message.signal_quality = 100;
+	message.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
+	message.orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
+	message.h_fov = math::radians(50.f);
+	message.v_fov = math::radians(30.f);
+
+	// WHEN: we publish the message and set the parameter and then run the setpoint modification
+	orb_advert_t distance_sensor_pub = orb_advertise(ORB_ID(distance_sensor), &message);
+	orb_advert_t vehicle_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &attitude);
+	orb_publish(ORB_ID(distance_sensor), distance_sensor_pub, &message);
+	orb_publish(ORB_ID(vehicle_attitude), vehicle_attitude_pub, &attitude);
+
+	//WHEN:  We run the setpoint modification
+	matrix::Vector2f modified_setpoint1 = original_setpoint1;
+	matrix::Vector2f modified_setpoint2 = original_setpoint2;
+	cp.modifySetpoint(modified_setpoint1, max_speed, curr_pos, curr_vel);
+	cp.modifySetpoint(modified_setpoint2, max_speed, curr_pos, curr_vel);
+	orb_unadvertise(distance_sensor_pub);
+
+	// THEN: the internal map should know the obstacle
+	// case 1: the velocity setpoint should be cut down to zero
+	// case 2: the velocity setpoint should stay the same as the input
 	EXPECT_FLOAT_EQ(cp.getObstacleMap().min_distance, 100);
 	EXPECT_FLOAT_EQ(cp.getObstacleMap().max_distance, 10000);
 
@@ -304,7 +365,7 @@ TEST_F(CollisionPreventionTest, jerkLimit)
 
 TEST_F(CollisionPreventionTest, addDistanceSensorData)
 {
-	// GIVEN: a vehicle attitude and a distacne sensor message
+	// GIVEN: a vehicle attitude and a distance sensor message
 	TestCollisionPrevention cp;
 	cp.getObstacleMap().increment = 10.f;
 	matrix::Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
