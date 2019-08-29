@@ -132,7 +132,7 @@ public:
 	struct Params 					*get_params() {return &_params;}
 
 private:
-	/* handlers for subscriptions */
+
 	uORB::SubscriptionCallbackWorkItem _actuator_inputs_fw{this, ORB_ID(actuator_controls_virtual_fw)};
 	uORB::SubscriptionCallbackWorkItem _actuator_inputs_mc{this, ORB_ID(actuator_controls_virtual_mc)};
 
