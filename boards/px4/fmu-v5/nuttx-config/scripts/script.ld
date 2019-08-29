@@ -7,7 +7,7 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
- * are met:
+ * are met:`
  *
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
@@ -92,8 +92,14 @@ EXTERN(_bootdelay_signature)
 SECTIONS
 {
 	.text : {
+		_application_meta_data = ABSOLUTE(.);
+		FILL(0xba);
+		. += 100;
+
+		. = ALIGN(128);
+
 		_stext = ABSOLUTE(.);
-		*(.vectors)
+		*(.vectors);
 		. = ALIGN(32);
 		/*
 		This signature provides the bootloader with a way to delay booting
@@ -101,10 +107,6 @@ SECTIONS
 		_bootdelay_signature = ABSOLUTE(.);
 		FILL(0xffecc2925d7d05c5)
 		. += 8;
-		_application_signature = ABSOLUTE(.);
-		FILL(0xba)
-		. += 64;
-
 		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
