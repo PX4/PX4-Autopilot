@@ -68,5 +68,3 @@ then
 	# BMI160 internal SPI bus
 	bmi160 start
 fi
-
-pmw3901 start
