@@ -68,6 +68,7 @@ public:
 
 	void arm_all_servos(bool arm);
 	void arm_single_servo(int num, bool arm);
+	void get_offsets();
 
 private:
 	/**
@@ -113,6 +114,11 @@ private:
 	 */
 	uint32_t 			_armed_mask = 0;
 	uint8_t				_max_number_of_nonzero_outputs = 0;
+	int					_t_param;		///< parameter update topic
+	bool				_param_update_force;	///< force a parameter update
+
+	float				_trim[4] = {0.0, 0.0, 0.0, 0.0};
+	float				_scale[4] = {1.0, 1.0, 1.0, 1.0};			
 
 	/*
 	 * Perf counters

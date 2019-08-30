@@ -40,14 +40,18 @@
 #include "servo.hpp"
 #include <systemlib/err.h>
 #include <drivers/drv_hrt.h>
+#include <parameters/param.h>
+#include <uORB/topics/parameter_update.h>
 
 #define MOTOR_BIT(x) (1<<(x))
 
 UavcanServoController::UavcanServoController(uavcan::INode &node) :
-	_node(node),
+        _node(node),
         _uavcan_pub_array_cmd(node),
-	_uavcan_sub_status(node),
-	_orb_timer(node)
+        _uavcan_sub_status(node),
+        _orb_timer(node),
+        _t_param(-1),
+        _param_update_force(false)
 {
         //_uavcan_pub_raw_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
         _uavcan_pub_array_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
@@ -82,6 +86,9 @@ int UavcanServoController::init()
 //	_orb_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / ESC_STATUS_UPDATE_RATE_HZ));
 
 //	return res;
+
+        _t_param = orb_subscribe(ORB_ID(parameter_update));
+         _param_update_force = true;
         return 0;
 }
 
@@ -116,7 +123,10 @@ void UavcanServoController::update_outputs(uint8_t actuator_id, float value)
 
                 cmd.actuator_id = actuator_id;
                 cmd.command_type = uavcan::equipment::actuator::Command::COMMAND_TYPE_UNITLESS;
-                cmd.command_value = value;
+                cmd.command_value = (value * _scale[actuator_id]) + _trim[actuator_id];         // Trim values range from -0.25 to +0.25 scale ranges from 0.75 to 1.0
+                cmd.command_value = (cmd.command_value > 1.0f) ? 1.0f : cmd.command_value;      // just to be safe
+                cmd.command_value = (cmd.command_value < -1.0f) ? -1.0f : cmd.command_value;
+
                 msg.commands.push_back(cmd);
 
                 /*
@@ -124,6 +134,19 @@ void UavcanServoController::update_outputs(uint8_t actuator_id, float value)
                 */
                 (void)_uavcan_pub_array_cmd.broadcast(msg);
         }
+        else {
+                /* check updates on uORB topics and handle it */
+                bool updated = false;
+                orb_check(_t_param, &updated);
+
+                if (updated || _param_update_force) {
+                        _param_update_force = false;
+                        parameter_update_s pupdate;
+                        orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
+                        get_offsets();
+                }
+        }
+        
 
         // TODO: figure out if I need to Publish actuator outputs
 //	if (_actuator_outputs_pub != nullptr) {
@@ -188,4 +211,24 @@ void UavcanServoController::arm_single_servo(int num, bool arm)
 	} else {
 		_armed_mask = 0;
 	}
+}
+
+void UavcanServoController::get_offsets()
+{
+        char str[20];
+        static bool trim_value_found[4] = {false, false, false, false};
+        static bool scale_value_found[4] = {false, false, false, false};
+
+        for(uint8_t i = 5; i < 9; i++) {
+                (void)sprintf(str, "UAVCAN_TRIM%u", i);
+                if((OK == param_get(param_find(str), &_trim[i - 5])) && !trim_value_found[i - 5]) {
+                        trim_value_found[i - 5] = true;
+                        PX4_INFO("UAVCAN_TRIM%u = %4.2f", i, static_cast<double>(_trim[i - 5]));
+                }      
+                (void)sprintf(str, "UAVCAN_SCALE%u", i);
+                if((OK == param_get(param_find(str), &_scale[i - 5])) && !scale_value_found[i - 5]) {
+                        scale_value_found[i - 5] = true;
+                        PX4_INFO("UAVCAN_SCALE%u = %4.2f", i, static_cast<double>(_scale[i - 5]));
+                }               
+        }
 }
