@@ -43,10 +43,13 @@
 #include <px4_workqueue.h>
 #include <px4_tasks.h>
 #include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
+
 #include <semaphore.h>
 #include <time.h>
 #include <string.h>
 #include <errno.h>
+
 #include "hrt_work.h"
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
@@ -57,7 +60,17 @@
 static constexpr unsigned HRT_INTERVAL_MIN = 50;
 static constexpr unsigned HRT_INTERVAL_MAX = 50000000;
 
+/*
+ * Queue of callout entries.
+ */
 static struct sq_queue_s	callout_queue;
+
+/* latency baseline (last compare value applied) */
+static hrt_abstime		latency_baseline;
+
+/* timer count at interrupt (for latency purposes) */
+static hrt_abstime		latency_actual;
+
 static px4_sem_t 	_hrt_lock;
 static struct work_s	_hrt_work;
 
@@ -76,6 +89,7 @@ hrt_abstime hrt_absolute_time_offset();
 static void hrt_call_reschedule();
 static void hrt_call_invoke();
 __EXPORT hrt_abstime hrt_reset();
+static void hrt_latency_update(void);
 
 hrt_abstime hrt_absolute_time_offset()
 {
@@ -252,6 +266,24 @@ void	hrt_cancel(struct hrt_call *entry)
 	// endif
 }
 
+static void
+hrt_latency_update(void)
+{
+	uint64_t latency = latency_actual - latency_baseline;
+	unsigned	index;
+
+	/* bounded buckets */
+	for (index = 0; index < LATENCY_BUCKET_COUNT; index++) {
+		if (latency <= latency_buckets[index]) {
+			latency_counters[index]++;
+			return;
+		}
+	}
+
+	/* catch-all at the end */
+	latency_counters[index]++;
+}
+
 /*
  * initialise a hrt_call structure
  */
@@ -325,8 +357,12 @@ hrt_call_enter(struct hrt_call *entry)
 static void
 hrt_tim_isr(void *p)
 {
+	/* grab the timer for latency tracking purposes */
+	latency_actual = hrt_absolute_time();
 
-	//PX4_INFO("hrt_tim_isr");
+	/* do latency calculations */
+	hrt_latency_update();
+
 	/* run any callouts that have met their deadline */
 	hrt_call_invoke();
 
@@ -350,8 +386,6 @@ hrt_call_reschedule()
 	hrt_abstime	delay = HRT_INTERVAL_MAX;
 	struct hrt_call	*next = (struct hrt_call *)sq_peek(&callout_queue);
 	hrt_abstime	deadline = now + HRT_INTERVAL_MAX;
-
-	//PX4_INFO("hrt_call_reschedule");
 
 	/*
 	 * Determine what the next deadline will be.
@@ -377,6 +411,9 @@ hrt_call_reschedule()
 			delay = next->deadline - now;
 		}
 	}
+
+	/* remember it for latency tracking */
+	latency_baseline = deadline;
 
 	// There is no timer ISR, so simulate one by putting an event on the
 	// high priority work queue
