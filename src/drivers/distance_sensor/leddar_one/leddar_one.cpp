@@ -31,24 +31,22 @@
  *
  ****************************************************************************/
 
-#include <px4_config.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_getopt.h>
-#include <px4_defines.h>
-#include <px4_module.h>
 
 #include <stdlib.h>
 #include <string.h>
 #include <termios.h>
 
 #include <arch/board/board.h>
-
 #include <drivers/device/device.h>
 #include <drivers/device/ringbuffer.h>
 #include <drivers/drv_hrt.h>
-
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <perf/perf_counter.h>
-
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_getopt.h>
+#include <px4_module.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/topics/distance_sensor.h>
 
 using namespace time_literals;
@@ -241,7 +239,7 @@ LeddarOne::collect()
 
 	if (msg->slave_addr != MODBUS_SLAVE_ADDRESS ||
 	    msg->function != MODBUS_READING_FUNCTION) {
-		PX4_ERR("slave address or reading function error");
+		PX4_ERR("slave address or function read error");
 		perf_count(_comms_error);
 		perf_end(_sample_perf);
 		return measure();
@@ -272,11 +270,10 @@ LeddarOne::collect()
 
 	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
 
-	// Trigger the next measurement.
-	measure();
-
 	perf_end(_sample_perf);
-	return PX4_OK;
+
+	// Trigger the next measurement.
+	return measure();;
 }
 
 int
