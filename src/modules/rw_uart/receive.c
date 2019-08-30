@@ -11,9 +11,11 @@ void wp_save(void){
     mission_item.time_inside = ((float_t)wp_data.push->loiter_time);
     mission_item.acceptance_radius = (wp_data.push->turn_mode == 0) ? ((float_t)wp_data.push->photo_dis) : 0;
     //mission_item.yaw = wrap_2pi(math::radians( wp_data.push->yaw));
+    printf("wait dataman\n");
     bool write_failed = dm_write(DM_KEY_WAYPOINTS_OFFBOARD_1, wp_data.push->waypoint_seq, DM_PERSIST_POWER_ON_RESET,
-                                          &mission_item, sizeof(struct mission_item_s)) != sizeof(struct mission_item_s);
+                                         &mission_item, sizeof(struct mission_item_s)) != sizeof(struct mission_item_s);
     if (write_failed) printf("Waypoint saving failed\n");
+    else printf("Waypoint saving success\n");
 }
 
 void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type){
@@ -52,16 +54,22 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
         printf("Passing takeoff\n");
         break;
     case WIFI_COMM_WP_UPLOAD:
+        printf("Start upload\n");
         if (wp_data.num == WP_DATA_NUM_MAX) {
             printf("Too many waypoints\n");
         }else if (*(uint16_t*)((uint32_t)buffer + 6) > WP_DATA_NUM_MAX){
             printf("Wrong waypoints sequece\n");
         }else {
             uint8_t new;
-            if (wp_data.num >= *(uint16_t*)((uint32_t)buffer + 6)){
-                wp_data.push = &wp_data.setd[*(uint16_t*)((uint32_t)buffer + 6) -1];
+            if (wp_data.setd[*(uint16_t*)((uint32_t)buffer + 6) -1].waypoint_seq > 0){
                 new = 0;
             } else new =1;
+            wp_data.push = &wp_data.setd[*(uint16_t*)((uint32_t)buffer + 6) -1];
+            wp_data.push->head[0] = '$';
+            wp_data.push->head[1] = 'S';
+            wp_data.push->head[2] = 'E';
+            wp_data.push->head[3] = 'T';
+            wp_data.push->head[4] = 'D';
             wp_data.push->waypoint_seq = *(uint16_t*)((uint32_t)buffer + 6);
             wp_data.push->lat = *(int32_t*)((uint32_t)buffer + 8);
             wp_data.push->lon = *(int32_t*)((uint32_t)buffer + 12);
@@ -74,8 +82,8 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
             wp_data.num += new;
             wp_save();
             if (wp_data.num == WP_DATA_NUM_MAX) printf("Waypoints num is max\n");
-            else wp_data.push = &wp_data.setd[wp_data.num];
-            printf("Passing wy_upload\n");
+            //else wp_data.push = &wp_data.setd[wp_data.num];
+            printf("Passing wy_upload, num is %d %d\n", wp_data.num, (wp_data.push - wp_data.setd));
         }
         break;
     case WIFI_COMM_WP_UPLOAD_NUM:

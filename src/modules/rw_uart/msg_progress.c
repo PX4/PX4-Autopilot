@@ -55,7 +55,7 @@ void msg_pack_response(MSG_orb_data msg_data, MSG_param_hd msg_hd, MSG_type msg_
                 send_message[26] = calculate_sum_check(send_message);
                 send_message[26] = 0xae;
                 write(uart_read, send_message, sizeof(msg_response.setd));
-                if (p == &wp_data.setd[WP_DATA_NUM_MAX]) {
+                if (p == &wp_data.setd[WP_DATA_NUM_MAX -1]) {
                     printf("Too many waypoints\n");
                     wp_data.num =WP_DATA_NUM_MAX;
                 }

@@ -208,7 +208,7 @@ int rw_uart_main(int argc, char *argv[])
                 rw_uart_task = px4_task_spawn_cmd("rw_uart",
                         SCHED_DEFAULT,
                         SCHED_PRIORITY_DEFAULT + 50,//调度优先级
-                        6000,//堆栈分配大小
+                        8000,//堆栈分配大小
                         rw_uart_thread_main,
                         (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
                 return 0;
@@ -276,6 +276,7 @@ int rw_uart_thread_main(int argc, char *argv[])
         msg_param_saved_get(msg_hd, uart_read);
 
         memset(&wp_data, 0, sizeof(wp_data));
+        wp_data.push = wp_data.setd;
 
         rw_uart_thread_running = true;
 

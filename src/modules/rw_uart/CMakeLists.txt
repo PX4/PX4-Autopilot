@@ -33,7 +33,7 @@
 px4_add_module(
         MODULE modules__rw_uart
         MAIN rw_uart
-        STACK_MAIN 6000
+        STACK_MAIN 8000
         COMPILE_FLAGS
                 -Wno-double-promotion
                 -Wno-float-equal
