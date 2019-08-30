@@ -42,7 +42,6 @@ include(px4_base)
 #	Usage:
 #		px4_add_module(MODULE <string>
 #			MAIN <string>
-#			[ STACK <string> ] !!!!!DEPRECATED, USE STACK_MAIN INSTEAD!!!!!!!!!
 #			[ STACK_MAIN <string> ]
 #			[ STACK_MAX <string> ]
 #			[ COMPILE_FLAGS <list> ]
@@ -87,7 +86,7 @@ function(px4_add_module)
 
 	px4_parse_function_args(
 		NAME px4_add_module
-		ONE_VALUE MODULE MAIN STACK STACK_MAIN STACK_MAX PRIORITY
+		ONE_VALUE MODULE MAIN STACK_MAIN STACK_MAX PRIORITY
 		MULTI_VALUE COMPILE_FLAGS LINK_FLAGS SRCS INCLUDES DEPENDS MODULE_CONFIG
 		OPTIONS EXTERNAL DYNAMIC UNITY_BUILD
 		REQUIRED MODULE MAIN
@@ -166,7 +165,7 @@ function(px4_add_module)
 
 	# set defaults if not set
 	set(MAIN_DEFAULT MAIN-NOTFOUND)
-	set(STACK_MAIN_DEFAULT 1024)
+	set(STACK_MAIN_DEFAULT 2048)
 	set(PRIORITY_DEFAULT SCHED_PRIORITY_DEFAULT)
 
 	foreach(property MAIN STACK_MAIN PRIORITY)

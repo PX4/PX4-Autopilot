@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE drivers__icm20948
 	MAIN icm20948
-	STACK_MAIN 1500
 	COMPILE_FLAGS
 	SRCS
 		icm20948.cpp
