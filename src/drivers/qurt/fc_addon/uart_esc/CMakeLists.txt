@@ -47,7 +47,6 @@ set_target_properties(uart_esc PROPERTIES IMPORTED_LOCATION ${FC_ADDON}/flight_c
 px4_add_module(
 	MODULE platforms__qurt__fc_addon__uart_esc
 	MAIN uart_esc
-	STACK_MAIN 1200
 	INCLUDES
 		${FC_ADDON}/flight_controller/hexagon/inc
 	SRCS

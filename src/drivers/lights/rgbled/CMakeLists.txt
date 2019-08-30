@@ -34,8 +34,6 @@
 px4_add_module(
 	MODULE drivers__rgbled
 	MAIN rgbled
-	STACK_MAIN
-		1500
 	SRCS
 		rgbled.cpp
 	DEPENDS

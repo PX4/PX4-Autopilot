@@ -34,7 +34,6 @@
 px4_add_module(
 	MODULE modules__landing_target_estimator
 	MAIN landing_target_estimator
-	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
 		landing_target_estimator_main.cpp
