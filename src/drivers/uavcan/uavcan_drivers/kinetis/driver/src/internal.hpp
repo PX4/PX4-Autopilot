@@ -11,8 +11,8 @@
 # include <nuttx/arch.h>
 # include "up_arch.h"
 # include <arch/board/board.h>
-# include <chip/kinetis_pit.h>
-# include <chip/kinetis_sim.h>
+# include <hardware/kinetis_pit.h>
+# include <hardware/kinetis_sim.h>
 # include <syslog.h>
 #else
 # error "Unknown OS"
