@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE systemcmds__tune_control
 	MAIN tune_control
-	STACK_MAIN 2500 # TODO: choose an appropriate stack size
 	COMPILE_FLAGS
 	SRCS
 		tune_control.cpp

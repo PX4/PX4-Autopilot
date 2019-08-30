@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE systemcmds__shutdown
 	MAIN shutdown
-	STACK_MAIN 800
 	COMPILE_FLAGS
 	SRCS
 		shutdown.c

@@ -47,7 +47,6 @@ set_target_properties(mpu9x50 PROPERTIES IMPORTED_LOCATION ${FC_ADDON}/flight_co
 px4_add_module(
 	MODULE platforms__qurt__fc_addon__mpu_spi
 	MAIN mpu9x50
-	STACK_MAIN 1200
 	INCLUDES
 		${FC_ADDON}/flight_controller/hexagon/inc
 	SRCS
