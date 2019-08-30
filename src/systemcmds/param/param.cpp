@@ -70,6 +70,12 @@ enum COMPARE_OPERATOR {
 	COMPARE_OPERATOR_GREATER = 1,
 };
 
+enum COMPARE_ERROR_LEVEL {
+	COMPARE_ERROR_LEVEL_ERROR = 0,
+	COMPARE_ERROR_LEVEL_SILENT = 1,
+};
+
+
 #ifdef __PX4_QURT
 #define PARAM_PRINT PX4_INFO
 #else
@@ -86,7 +92,8 @@ static int	do_show_quiet(const char *param_name);
 static int	do_show_index(const char *index, bool used_index);
 static void	do_show_print(void *arg, param_t param);
 static int	do_set(const char *name, const char *val, bool fail_on_not_found);
-static int	do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OPERATOR cmd_op);
+static int	do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OPERATOR cmd_op,
+			   enum COMPARE_ERROR_LEVEL err_level);
 static int 	do_reset(const char *excludes[], int num_excludes);
 static int 	do_touch(const char *params[], int num_params);
 static int	do_reset_nostart(const char *excludes[], int num_excludes);
@@ -271,7 +278,17 @@ param_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "compare")) {
 			if (argc >= 4) {
-				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR_EQUAL);
+				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR_EQUAL, COMPARE_ERROR_LEVEL_ERROR);
+
+			} else {
+				PX4_ERR("not enough arguments.\nTry 'param compare PARAM_NAME 3'");
+				return 1;
+			}
+		}
+
+		if (!strcmp(argv[1], "compare-silent")) {
+			if (argc >= 4) {
+				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR_EQUAL, COMPARE_ERROR_LEVEL_SILENT);
 
 			} else {
 				PX4_ERR("not enough arguments.\nTry 'param compare PARAM_NAME 3'");
@@ -281,7 +298,17 @@ param_main(int argc, char *argv[])
 
 		if (!strcmp(argv[1], "greater")) {
 			if (argc >= 4) {
-				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR_GREATER);
+				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR_GREATER, COMPARE_ERROR_LEVEL_ERROR);
+
+			} else {
+				PX4_ERR("not enough arguments.\nTry 'param greater PARAM_NAME 3'");
+				return 1;
+			}
+		}
+
+		if (!strcmp(argv[1], "greater-silent")) {
+			if (argc >= 4) {
+				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR_GREATER, COMPARE_ERROR_LEVEL_SILENT);
 
 			} else {
 				PX4_ERR("not enough arguments.\nTry 'param greater PARAM_NAME 3'");
@@ -708,7 +735,7 @@ do_set(const char *name, const char *val, bool fail_on_not_found)
 }
 
 static int
-do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OPERATOR cmp_op)
+do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OPERATOR cmp_op, enum COMPARE_ERROR_LEVEL err_level)
 {
 	int32_t i;
 	float f;
@@ -717,7 +744,10 @@ do_compare(const char *name, char *vals[], unsigned comparisons, enum COMPARE_OP
 	/* set nothing if parameter cannot be found */
 	if (param == PARAM_INVALID) {
 		/* param not found */
-		PX4_DEBUG("Parameter %s not found", name);
+		if(err_level == COMPARE_ERROR_LEVEL_ERROR)
+		{
+			PX4_ERR("Parameter %s not found", name);
+		}
 		return 1;
 	}
 
