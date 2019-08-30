@@ -77,10 +77,39 @@ static const uint8_t request_reading_msg[] = {
 	0x09 /* CRC high */
 };
 
+struct __attribute__((__packed__)) reading_msg {
+	uint8_t slave_addr;
+	uint8_t function;
+	uint8_t len;
+	uint8_t low_timestamp_high_byte;
+	uint8_t low_timestamp_low_byte;
+	uint8_t high_timestamp_high_byte;
+	uint8_t high_timestamp_low_byte;
+	uint8_t temp_high;
+	uint8_t temp_low;
+	uint8_t num_detections_high_byte;
+	uint8_t num_detections_low_byte;
+	uint8_t first_dist_high_byte;
+	uint8_t first_dist_low_byte;
+	uint8_t first_amplitude_high_byte;
+	uint8_t first_amplitude_low_byte;
+	uint8_t second_dist_high_byte;
+	uint8_t second_dist_low_byte;
+	uint8_t second_amplitude_high_byte;
+	uint8_t second_amplitude_low_byte;
+	uint8_t third_dist_high_byte;
+	uint8_t third_dist_low_byte;
+	uint8_t third_amplitude_high_byte;
+	uint8_t third_amplitude_low_byte;
+	uint16_t crc; /* little-endian */
+};
+
 class LeddarOne : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
-	LeddarOne(const char *device_path, const char *serial_port, uint8_t rotation);
+	LeddarOne(const char *device_path,
+		  const char *serial_port = LEDDAR_ONE_DEFAULT_SERIAL_PORT,
+		  const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	virtual ~LeddarOne();
 
 	virtual int init() override;
@@ -107,7 +136,7 @@ private:
 	 * @param data_frame The data frame to compute a checksum for.
 	 * @param crc16_length The length of the data frame.
 	 */
-	uint16_t crc16_calc(const unsigned char *data_frame, uint8_t crc16_length);
+	uint16_t crc16_calc(const unsigned char *data_frame, const uint8_t crc16_length);
 
 	/**
 	 * Reads the data measrurement from serial UART.
@@ -126,33 +155,6 @@ private:
 	int open_serial_port(const speed_t speed = B115200);
 
 	void Run() override;
-
-	struct __attribute__((__packed__)) reading_msg {
-		uint8_t slave_addr;
-		uint8_t function;
-		uint8_t len;
-		uint8_t low_timestamp_high_byte;
-		uint8_t low_timestamp_low_byte;
-		uint8_t high_timestamp_high_byte;
-		uint8_t high_timestamp_low_byte;
-		uint8_t temp_high;
-		uint8_t temp_low;
-		uint8_t num_detections_high_byte;
-		uint8_t num_detections_low_byte;
-		uint8_t first_dist_high_byte;
-		uint8_t first_dist_low_byte;
-		uint8_t first_amplitude_high_byte;
-		uint8_t first_amplitude_low_byte;
-		uint8_t second_dist_high_byte;
-		uint8_t second_dist_low_byte;
-		uint8_t second_amplitude_high_byte;
-		uint8_t second_amplitude_low_byte;
-		uint8_t third_dist_high_byte;
-		uint8_t third_dist_low_byte;
-		uint8_t third_amplitude_high_byte;
-		uint8_t third_amplitude_low_byte;
-		uint16_t crc; /* little-endian */
-	};
 
 	const char *_serial_port{nullptr};
 
@@ -192,7 +194,7 @@ LeddarOne::~LeddarOne()
 }
 
 uint16_t
-LeddarOne::crc16_calc(const unsigned char *data_frame, uint8_t crc16_length)
+LeddarOne::crc16_calc(const unsigned char *data_frame, const uint8_t crc16_length)
 {
 	uint16_t crc = 0xFFFF;
 
@@ -460,10 +462,11 @@ namespace leddar_one
 
 LeddarOne *g_dev;
 
-int start(const char *port, const uint8_t rotation);
+int start(const char *port = LEDDAR_ONE_DEFAULT_SERIAL_PORT,
+	  const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 int status();
 int stop();
-int test(const char *port);
+int test(const char *port = LEDDAR_ONE_DEFAULT_SERIAL_PORT);
 int usage();
 
 int start(const char *port, const uint8_t rotation)
@@ -532,31 +535,36 @@ stop()
  * and automatic modes.
  */
 int
-test()
+test(const char *port)
 {
-	int fd = open(LEDDAR_ONE_DEFAULT_SERIAL_PORT, O_RDONLY);
+	// Configure port flags for read/write, non-controlling, non-blocking.
+	int flags = (O_RDWR | O_NOCTTY | O_NONBLOCK);
+
+	// Open the serial port.
+	int fd = ::open(port, flags);
 
 	if (fd < 0) {
-		PX4_ERR("Unable to open %s", LEDDAR_ONE_DEFAULT_SERIAL_PORT);
+		PX4_ERR("Unable to open %s", port);
 		return PX4_ERROR;
 	}
 
-	ssize_t sz = ::write(fd, request_reading_msg, sizeof(request_reading_msg));
+	ssize_t num_bytes = ::write(fd, request_reading_msg, sizeof(request_reading_msg));
 
-	if (sz != sizeof(request_reading_msg)) {
-		PX4_ERR("write failed");
+	if (num_bytes != sizeof(request_reading_msg)) {
+		PX4_INFO("serial port write failed: %i, errno: %i", num_bytes, errno);
 		return PX4_ERROR;
 	}
 
-	distance_sensor_s report;
-	sz = ::read(fd, &report, sizeof(report));
+	px4_usleep(LEDDAR_ONE_MEASURE_INTERVAL);
 
-	if (sz != sizeof(report)) {
-		PX4_ERR("No sample available in %s", LEDDAR_ONE_DEFAULT_SERIAL_PORT);
+	uint8_t buffer[sizeof(reading_msg)];
+
+	num_bytes = ::read(fd, buffer, sizeof(reading_msg));
+
+	if (num_bytes != sizeof(reading_msg)) {
+		PX4_ERR("Data not available at %s", port);
 		return PX4_ERROR;
 	}
-
-	print_message(report);
 
 	close(fd);
 
@@ -593,7 +601,6 @@ $ leddar_one stop
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test","Test driver (basic functional tests)");
 	return PX4_OK;
-
 }
 
 } // namespace
@@ -631,7 +638,6 @@ extern "C" __EXPORT int leddar_one_main(int argc, char *argv[])
 	// Start/load the driver.
 	if (!strcmp(argv[myoptind], "start")) {
 		return leddar_one::start(port, rotation);
-
 	}
 
 	// Print the driver status.
@@ -642,13 +648,11 @@ extern "C" __EXPORT int leddar_one_main(int argc, char *argv[])
 	// Stop the driver.
 	if (!strcmp(argv[myoptind], "stop")) {
 		return leddar_one::stop();
-
 	}
 
 	// Test the driver/device.
 	if (!strcmp(argv[myoptind], "test")) {
-		return leddar_one::test();
-
+		return leddar_one::test(port);
 	}
 
 	// Print driver usage information.
