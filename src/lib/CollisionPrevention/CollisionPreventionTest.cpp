@@ -35,6 +35,7 @@
 #include <CollisionPrevention/CollisionPrevention.hpp>
 
 // to run: make tests TESTFILTER=CollisionPrevention
+hrt_abstime mocked_time = 0;
 
 class CollisionPreventionTest : public ::testing::Test
 {
@@ -59,7 +60,22 @@ public:
 	{
 		_addObstacleSensorData(obstacle, attitude);
 	}
+};
 
+class TestTimingCollisionPrevention : public TestCollisionPrevention
+{
+public:
+	TestTimingCollisionPrevention() : TestCollisionPrevention() {}
+protected:
+	hrt_abstime getTime()
+	{
+		return mocked_time;
+	}
+
+	hrt_abstime getElapsedTime(const hrt_abstime *ptr)
+	{
+		return mocked_time - *ptr;
+	}
 };
 
 TEST_F(CollisionPreventionTest, instantiation) { CollisionPrevention cp(nullptr); }
@@ -220,6 +236,81 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithDistanceMessage)
 
 	EXPECT_FLOAT_EQ(0.f, modified_setpoint1.norm()) << modified_setpoint1(0) << "," << modified_setpoint1(1);
 	EXPECT_FLOAT_EQ(0.f, modified_setpoint2.norm()) << modified_setpoint2(0) << "," << modified_setpoint2(1);
+}
+
+TEST_F(CollisionPreventionTest, testPurgeOldData)
+{
+	// GIVEN: a simple setup condition
+	hrt_abstime start_time = hrt_absolute_time();
+	mocked_time = start_time;
+	TestTimingCollisionPrevention cp;
+	matrix::Vector2f original_setpoint(10, 0);
+	float max_speed = 3;
+	matrix::Vector2f curr_pos(0, 0);
+	matrix::Vector2f curr_vel(2, 0);
+	vehicle_attitude_s attitude;
+	attitude.timestamp = start_time;
+	attitude.q[0] = 1.0f;
+	attitude.q[1] = 0.0f;
+	attitude.q[2] = 0.0f;
+	attitude.q[3] = 0.0f;
+
+	// AND: a parameter handle
+	param_t param = param_handle(px4::params::MPC_COL_PREV_D);
+	float value = 10; // try to keep 10m distance
+	param_set(param, &value);
+	cp.paramsChanged();
+
+	// AND: an obstacle message
+	obstacle_distance_s message, message_empty;
+	memset(&message, 0xDEAD, sizeof(message));
+	message.min_distance = 100;
+	message.max_distance = 10000;
+	message.angle_offset = 0;
+	message.timestamp = start_time;
+	int distances_array_size = sizeof(message.distances) / sizeof(message.distances[0]);
+	message.increment = 360 / distances_array_size;
+	message_empty = message;
+
+	for (int i = 0; i < distances_array_size; i++) {
+		if (i < 10) {
+			message.distances[i] = 10001;
+
+		} else {
+			message.distances[i] = UINT16_MAX;
+		}
+
+		message_empty.distances[i] = UINT16_MAX;
+	}
+
+
+	// WHEN: we publish the message and set the parameter and then run the setpoint modification
+	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &message);
+	orb_advert_t vehicle_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &attitude);
+	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
+	orb_publish(ORB_ID(vehicle_attitude), vehicle_attitude_pub, &attitude);
+
+	for (int i = 0; i < 10; i++) {
+
+		matrix::Vector2f modified_setpoint = original_setpoint;
+		cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+
+		mocked_time = mocked_time + 100000; //advance time by 0.1 seconds
+		message_empty.timestamp = mocked_time;
+		orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message_empty);
+
+		if (i < 6) {
+			// THEN: If the data is new enough, the velocity setpoint should stay the same as the input
+			EXPECT_EQ(original_setpoint, modified_setpoint);
+
+		} else {
+			// THEN: If the data is expired, the velocity setpoint should be cut down to zero because there is no data
+			EXPECT_FLOAT_EQ(0.f, modified_setpoint.norm()) << modified_setpoint(0) << "," << modified_setpoint(1);
+		}
+	}
+
+	orb_unadvertise(obstacle_distance_pub);
+	orb_unadvertise(vehicle_attitude_pub);
 }
 
 TEST_F(CollisionPreventionTest, noBias)

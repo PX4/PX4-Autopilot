@@ -50,13 +50,13 @@ CollisionPrevention::CollisionPrevention(ModuleParams *parent) :
 {
 
 	//initialize internal obstacle map
-	_obstacle_map_body_frame.timestamp = hrt_absolute_time();
+	_obstacle_map_body_frame.timestamp = getTime();
 	_obstacle_map_body_frame.increment = 10.f;		//cannot be lower than 5 degrees
 	_obstacle_map_body_frame.min_distance = UINT16_MAX;
 	_obstacle_map_body_frame.max_distance = 0;
 	_obstacle_map_body_frame.angle_offset = 0.f;
 	uint32_t internal_bins = sizeof(_obstacle_map_body_frame.distances) / sizeof(_obstacle_map_body_frame.distances[0]);
-	uint64_t current_time = hrt_absolute_time();
+	uint64_t current_time = getTime();
 
 	for (uint32_t i = 0 ; i < internal_bins; i++) {
 		_data_timestamps[i] = current_time;
@@ -70,6 +70,16 @@ CollisionPrevention::~CollisionPrevention()
 	if (_mavlink_log_pub != nullptr) {
 		orb_unadvertise(_mavlink_log_pub);
 	}
+}
+
+hrt_abstime CollisionPrevention::getTime()
+{
+	return hrt_absolute_time();
+}
+
+hrt_abstime CollisionPrevention::getElapsedTime(const hrt_abstime *ptr)
+{
+	return hrt_absolute_time() - *ptr;
 }
 
 void CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obstacle,
@@ -87,7 +97,7 @@ void CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obst
 		//add all data points inside to FOV
 		if (obstacle.distances[msg_index] != UINT16_MAX) {
 			_obstacle_map_body_frame.distances[i] = obstacle.distances[msg_index];
-			_data_timestamps[i] = hrt_absolute_time();
+			_data_timestamps[i] = _obstacle_map_body_frame.timestamp;
 		}
 	}
 }
@@ -102,7 +112,7 @@ void CollisionPrevention::_updateObstacleMap()
 		_sub_distance_sensor[i].copy(&distance_sensor);
 
 		// consider only instances with updated, valid data and orientations useful for collision prevention
-		if ((hrt_elapsed_time(&distance_sensor.timestamp) < RANGE_STREAM_TIMEOUT_US) &&
+		if ((getElapsedTime(&distance_sensor.timestamp) < RANGE_STREAM_TIMEOUT_US) &&
 		    (distance_sensor.orientation != distance_sensor_s::ROTATION_DOWNWARD_FACING) &&
 		    (distance_sensor.orientation != distance_sensor_s::ROTATION_UPWARD_FACING)) {
 
@@ -122,7 +132,7 @@ void CollisionPrevention::_updateObstacleMap()
 	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance.get();
 
 	// Update map with obstacle data if the data is not stale
-	if (hrt_elapsed_time(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US) {
+	if (getElapsedTime(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US) {
 		//update message description
 		_obstacle_map_body_frame.timestamp = math::max(_obstacle_map_body_frame.timestamp, obstacle_distance.timestamp);
 		_obstacle_map_body_frame.max_distance = math::max((int)_obstacle_map_body_frame.max_distance,
@@ -179,7 +189,7 @@ void CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sen
 			// compensate measurement for vehicle tilt and convert to cm
 			_obstacle_map_body_frame.distances[wrap_bin] = (int)(100 * distance_sensor.current_distance *
 					attitude_sensor_frame_pitch);
-			_data_timestamps[wrap_bin] = hrt_absolute_time();
+			_data_timestamps[wrap_bin] = _obstacle_map_body_frame.timestamp;
 		}
 	}
 }
@@ -199,7 +209,7 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 	matrix::Quatf attitude = Quatf(_sub_vehicle_attitude.get().q);
 	float vehicle_yaw_angle_rad = Eulerf(attitude).psi();
 
-	if (hrt_elapsed_time(&_obstacle_map_body_frame.timestamp) < RANGE_STREAM_TIMEOUT_US) {
+	if (getElapsedTime(&_obstacle_map_body_frame.timestamp) < RANGE_STREAM_TIMEOUT_US) {
 		if (setpoint_length > 0.001f) {
 
 			Vector2f setpoint_dir = setpoint / setpoint_length;
@@ -209,10 +219,9 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 			for (int i = 0; i < 360.f / _obstacle_map_body_frame.increment; i++) { //disregard unused bins at the end of the message
 
 				//delete stale values
-				if (hrt_elapsed_time(&_data_timestamps[i]) > RANGE_STREAM_TIMEOUT_US) {
+				if (getElapsedTime(&_data_timestamps[i]) > RANGE_STREAM_TIMEOUT_US) {
 					_obstacle_map_body_frame.distances[i] = UINT16_MAX;
 				}
-
 
 				float distance = _obstacle_map_body_frame.distances[i] / 100.0f; //convert to meters
 				float angle = math::radians((float)i * _obstacle_map_body_frame.increment + _obstacle_map_body_frame.angle_offset);

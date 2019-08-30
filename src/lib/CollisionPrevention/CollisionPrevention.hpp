@@ -64,7 +64,7 @@ class CollisionPrevention : public ModuleParams
 public:
 	CollisionPrevention(ModuleParams *parent);
 
-	~CollisionPrevention();
+	virtual ~CollisionPrevention();
 	/**
 	 * Returs true if Collision Prevention is running
 	 */
@@ -92,6 +92,9 @@ protected:
 	 * @param obstacle, obstacle_distance message to be updated
 	 */
 	void _addObstacleSensorData(const obstacle_distance_s &obstacle, const matrix::Quatf &vehicle_attitude);
+
+	virtual hrt_abstime getTime();
+	virtual hrt_abstime getElapsedTime(const hrt_abstime *ptr);
 
 
 private:
