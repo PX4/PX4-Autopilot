@@ -19,7 +19,7 @@ set OUTPUT_DEV none
 #
 if ! param compare-silent MNT_MODE_IN -1
 then
-        if param compare MNT_MODE_OUT 0
+        if param compare-silent MNT_MODE_OUT 0
         then
                 set MIXER_AUX mount
         fi
