@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE drivers__fxos8701cq
 	MAIN fxos8701cq
-	STACK_MAIN 1500
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS

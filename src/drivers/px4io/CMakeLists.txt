@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE drivers__px4io
 	MAIN px4io
-	STACK_MAIN 1816
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
