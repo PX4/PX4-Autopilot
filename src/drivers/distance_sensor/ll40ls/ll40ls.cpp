@@ -103,7 +103,7 @@ struct ll40ls_bus_option {
 LidarLite *instance = nullptr;
 
 void    start(enum LL40LS_BUS busid, uint8_t rotation);
-bool	start_bus(struct ll40ls_bus_option &bus, enum Rotation rotation);
+bool	start_bus(struct ll40ls_bus_option &bus, uint8_t rotation);
 struct ll40ls_bus_option &find_bus(enum LL40LS_BUS busid);
 void    stop();
 void    info();
@@ -133,7 +133,7 @@ struct ll40ls_bus_option &find_bus(enum LL40LS_BUS busid)
  * or failed to detect the sensor.
  */
 void
-start(enum LL40LS_BUS busid, enum Rotation rotation)
+start(enum LL40LS_BUS busid, uint8_t rotation)
 {
 
 	bool started = false;
@@ -163,7 +163,7 @@ start(enum LL40LS_BUS busid, enum Rotation rotation)
  * start driver for a specific bus option
  */
 bool
-start_bus(struct ll40ls_bus_option &bus, enum Rotation rotation)
+start_bus(struct ll40ls_bus_option &bus, uint8_t rotation)
 {
 	if (bus.busid == LL40LS_BUS_PWM) {
 		// bus.dev = new LidarLitePWM(rotation);
