@@ -42,9 +42,10 @@ int px4_platform_init()
 {
 	hrt_init();
 
-	param_init();
-
 	px4::WorkQueueManagerStart();
+
+	// requires WQ for auto save
+	param_init();
 
 	return PX4_OK;
 }

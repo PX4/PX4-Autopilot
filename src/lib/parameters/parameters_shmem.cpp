@@ -41,7 +41,9 @@
  * and background parameter saving.
  */
 
+#define PARAM_IMPLEMENTATION
 #include "param.h"
+#include "param_translation.h"
 #include <parameters/px4_parameters.h>
 #include "tinybson/tinybson.h"
 
@@ -50,14 +52,15 @@
 #include <math.h>
 
 #include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/sem.h>
 #include <px4_platform_common/shutdown.h>
-
-#include <perf/perf_counter.h>
 #include <systemlib/uthash/utarray.h>
+
+using namespace time_literals;
 
 #include "uORB/uORB.h"
 #include "uORB/topics/parameter_update.h"
@@ -85,12 +88,7 @@ static char *param_user_file = nullptr;
 #endif
 #define PARAM_CLOSE	close
 
-#include <px4_platform_common/workqueue.h>
-/* autosaving variables */
-static hrt_abstime last_autosave_timestamp = 0;
-static struct work_s autosave_work;
-static bool autosave_scheduled = false;
-static bool autosave_disabled = false;
+#include "ParametersAutoSave.hpp"
 
 /**
  * Array of static parameter info.
@@ -149,6 +147,7 @@ UT_array *param_values{nullptr};
 /** array info for the modified parameters array */
 const UT_icd param_icd = {sizeof(param_wbuf_s), nullptr, nullptr, nullptr};
 
+/** parameter update topic handle */
 static orb_advert_t param_topic = nullptr;
 static unsigned int param_instance = 0;
 
@@ -517,7 +516,7 @@ param_value_is_default(param_t param)
 	param_lock_reader();
 	s = param_find_changed(param);
 	param_unlock_reader();
-	return s ? false : true;
+	return s == nullptr;
 }
 
 bool
@@ -638,33 +637,6 @@ param_get(param_t param, void *val)
 }
 
 /**
- * worker callback method to save the parameters
- * @param arg unused
- */
-static void
-autosave_worker(void *arg)
-{
-	bool disabled = false;
-
-	param_lock_writer();
-	last_autosave_timestamp = hrt_absolute_time();
-	autosave_scheduled = false;
-	disabled = autosave_disabled;
-	param_unlock_writer();
-
-	if (disabled) {
-		return;
-	}
-
-	PX4_DEBUG("Autosaving params");
-	int ret = param_save_default();
-
-	if (ret != 0) {
-		PX4_ERR("param save failed (%i)", ret);
-	}
-}
-
-/**
  * Automatically save the parameters after a timeout and limited rate.
  *
  * This needs to be called with the writer lock held (it's not necessary that it's the writer lock, but it
@@ -673,38 +645,14 @@ autosave_worker(void *arg)
 static void
 param_autosave()
 {
-	if (autosave_scheduled || autosave_disabled) {
-		return;
-	}
-
-	// wait at least 300ms before saving, because:
-	// - tasks often call param_set() for multiple params, so this avoids unnecessary save calls
-	// - the logger stores changed params. He gets notified on a param change via uORB and then
-	//   looks at all unsaved params.
-	hrt_abstime delay = 300 * 1000;
-
-	const hrt_abstime rate_limit = 2000 * 1000; // rate-limit saving to 2 seconds
-	hrt_abstime last_save_elapsed = hrt_elapsed_time(&last_autosave_timestamp);
-
-	if (last_save_elapsed < rate_limit && rate_limit > last_save_elapsed + delay) {
-		delay = rate_limit - last_save_elapsed;
-	}
-
-	autosave_scheduled = true;
-	work_queue(LPWORK, &autosave_work, (worker_t)&autosave_worker, nullptr, USEC2TICK(delay));
+	ParametersAutoSave::AutoSave();
 }
 
 void
 param_control_autosave(bool enable)
 {
 	param_lock_writer();
-
-	if (!enable && autosave_scheduled) {
-		work_cancel(LPWORK, &autosave_work);
-		autosave_scheduled = false;
-	}
-
-	autosave_disabled = !enable;
+	ParametersAutoSave::Enable(enable);
 	param_unlock_writer();
 }
 
@@ -1430,11 +1378,7 @@ void param_print_status()
 			 utarray_len(param_values), param_values->n, param_values->n * sizeof(UT_icd));
 	}
 
-	PX4_INFO("auto save: %s", autosave_disabled ? "off" : "on");
-
-	if (!autosave_disabled && (last_autosave_timestamp > 0)) {
-		PX4_INFO("last auto save: %.3f seconds ago", hrt_elapsed_time(&last_autosave_timestamp) * 1e-6);
-	}
+	ParametersAutoSave::print_status();
 
 	perf_print_counter(param_export_perf);
 	perf_print_counter(param_find_perf);

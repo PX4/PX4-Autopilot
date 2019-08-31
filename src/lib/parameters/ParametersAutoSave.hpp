@@ -1,7 +1,6 @@
-
 /****************************************************************************
  *
- *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2020 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,56 +31,32 @@
  *
  ****************************************************************************/
 
+#pragma once
+
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
 /**
- * @file wqueue_example.cpp
- * Example for Linux
+ * Automatically save the parameters after a timeout and limited rate.
  *
- * @author Mark Charlebois <charlebm@gmail.com>
+ * This needs to be called with the writer lock held (it's not necessary that it's the writer lock, but it
+ * needs to be the same lock as autosave_worker() and param_control_autosave() use).
  */
 
-#include "wqueue_test.h"
-
-#include <px4_platform_common/time.h>
-#include <px4_platform_common/workqueue.h>
-#include <unistd.h>
-#include <stdio.h>
-
-px4::AppState WQueueTest::appState;
-
-void WQueueTest::hp_worker_cb(void *p)
+class ParametersAutoSave : public px4::ScheduledWorkItem
 {
-	WQueueTest *wqep = (WQueueTest *)p;
+public:
+	ParametersAutoSave() : px4::ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default) {}
+	~ParametersAutoSave() override = default;
 
-	wqep->do_hp_work();
-}
+	float last_autosave_elapsed() const;
 
-void WQueueTest::do_hp_work()
-{
-	static int iter = 0;
-	printf("done hp work\n");
+	static void AutoSave();
+	static bool Enable(bool enable = true);
 
-	if (iter > 5) {
-		_hpwork_done = true;
-	}
+	static void print_status();
 
-	++iter;
+private:
+	hrt_abstime _last_autosave_timestamp{0};
 
-	// requeue
-	work_queue(HPWORK, &_hpwork, (worker_t)&hp_worker_cb, this, 1000);
-}
-
-int WQueueTest::main()
-{
-	appState.setRunning(true);
-
-	//Put work on HP work queue
-	work_queue(HPWORK, &_hpwork, (worker_t)&hp_worker_cb, this, 1000);
-
-	// Wait for work to finsh
-	while (!appState.exitRequested() && !_hpwork_done) {
-		printf("  Sleeping for 2 sec...\n");
-		sleep(2);
-	}
-
-	return 0;
-}
+	void Run() override;
+};

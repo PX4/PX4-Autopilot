@@ -52,8 +52,7 @@
 __BEGIN_DECLS
 
 #define HPWORK 0
-#define LPWORK 1
-#define NWORKERS 2
+#define NWORKERS 1
 
 struct wqueue_s {
 	pid_t             pid; /* The task ID of the worker thread */
