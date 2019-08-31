@@ -48,7 +48,7 @@
  * @decimal 1
  * @group FlightTaskOrbit
  */
-PARAM_DEFINE_FLOAT(FLT_ORB_A_MAX, 2.0f);
+PARAM_DEFINE_FLOAT(ORBIT_ACC_MAX, 2.0f);
 
 /**
  * Minimum radius of orbit
@@ -60,7 +60,7 @@ PARAM_DEFINE_FLOAT(FLT_ORB_A_MAX, 2.0f);
  * @decimal 1
  * @group FlightTaskOrbit
  */
-PARAM_DEFINE_FLOAT(FLT_ORB_R_MIN, 1.0f);
+PARAM_DEFINE_FLOAT(ORBIT_RAD_MIN, 1.0f);
 
 /**
  * Maximum radius of orbit
@@ -72,7 +72,7 @@ PARAM_DEFINE_FLOAT(FLT_ORB_R_MIN, 1.0f);
  * @decimal 1
  * @group FlightTaskOrbit
  */
-PARAM_DEFINE_FLOAT(FLT_ORB_R_MAX, 400.0f);
+PARAM_DEFINE_FLOAT(ORBIT_RAD_MAX, 100.0f);
 
 /**
  * Maximum speed
@@ -84,4 +84,4 @@ PARAM_DEFINE_FLOAT(FLT_ORB_R_MAX, 400.0f);
  * @decimal 1
  * @group FlightTaskOrbit
  */
-PARAM_DEFINE_FLOAT(FLT_ORB_V_MAX, 10.0f);
+PARAM_DEFINE_FLOAT(ORBIT_VEL_MAX, 10.0f);

@@ -105,9 +105,9 @@ private:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualAltitudeSmooth,
 					(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise, /**< cruise speed for circle approach */
 					(ParamFloat<px4::params::MPC_XY_VEL_MAX>) _param_mpc_xy_vel_max,
-					(ParamFloat<px4::params::FLT_ORB_A_MAX>)_param_flt_orb_a_max,
-					(ParamFloat<px4::params::FLT_ORB_R_MIN>)_param_flt_orb_r_min,
-					(ParamFloat<px4::params::FLT_ORB_R_MAX>)_param_flt_orb_r_max,
-					(ParamFloat<px4::params::FLT_ORB_V_MAX>)_param_flt_orb_v_max
+					(ParamFloat<px4::params::ORBIT_ACC_MAX>) _param_orbit_acc_max,
+					(ParamFloat<px4::params::ORBIT_RAD_MIN>) _param_orbit_rad_min,
+					(ParamFloat<px4::params::ORBIT_RAD_MAX>) _param_orbit_rad_max,
+					(ParamFloat<px4::params::ORBIT_VEL_MAX>) _param_orbit_vel_max
 				       )
 };

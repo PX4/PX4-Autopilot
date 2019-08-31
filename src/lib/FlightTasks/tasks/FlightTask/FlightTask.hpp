@@ -152,10 +152,7 @@ public:
 	/**
 	 * Call this whenever a parameter update notification is received (parameter_update uORB message)
 	 */
-	void virtual handleParameterUpdate()
-	{
-		updateParams();
-	}
+	virtual void handleParameterUpdate() { updateParams(); }
 
 	/**
 	 * Sets an external yaw handler which can be used by any flight task to implement a different yaw control strategy.
