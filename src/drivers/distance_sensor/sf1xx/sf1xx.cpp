@@ -167,7 +167,7 @@ extern "C" __EXPORT int sf1xx_main(int argc, char *argv[]);
 
 SF1XX::SF1XX(uint8_t rotation, int bus, int address) :
 	I2C("SF1XX", SF1XX_DEVICE_PATH, bus, address, 400000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_rotation(rotation)
 {
 }

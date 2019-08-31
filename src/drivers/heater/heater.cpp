@@ -51,7 +51,7 @@
 
 Heater::Heater() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(px4::wq_configurations::lp_default)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
 	px4_arch_configgpio(GPIO_HEATER_OUTPUT);
 	px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 0);

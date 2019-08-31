@@ -41,25 +41,44 @@ ScheduledWorkItem::~ScheduledWorkItem()
 	ScheduleClear();
 }
 
-void ScheduledWorkItem::schedule_trampoline(void *arg)
+void
+ScheduledWorkItem::schedule_trampoline(void *arg)
 {
 	ScheduledWorkItem *dev = reinterpret_cast<ScheduledWorkItem *>(arg);
 	dev->ScheduleNow();
 }
 
-void ScheduledWorkItem::ScheduleDelayed(uint32_t delay_us)
+void
+ScheduledWorkItem::ScheduleDelayed(uint32_t delay_us)
 {
 	hrt_call_after(&_call, delay_us, (hrt_callout)&ScheduledWorkItem::schedule_trampoline, this);
 }
 
-void ScheduledWorkItem::ScheduleOnInterval(uint32_t interval_us, uint32_t delay_us)
+void
+ScheduledWorkItem::ScheduleOnInterval(uint32_t interval_us, uint32_t delay_us)
 {
+	// reset start time to first deadline (approximately)
+	_start_time = hrt_absolute_time() + interval_us + delay_us;
+
 	hrt_call_every(&_call, delay_us, interval_us, (hrt_callout)&ScheduledWorkItem::schedule_trampoline, this);
 }
 
-void ScheduledWorkItem::ScheduleClear()
+void
+ScheduledWorkItem::ScheduleClear()
 {
 	hrt_cancel(&_call);
+}
+
+void
+ScheduledWorkItem::print_run_status() const
+{
+	if (_call.period > 0) {
+		PX4_INFO_RAW("%-24s %8.1f Hz %12.1f us (%" PRId64 " us)\n", _item_name, (double)average_rate(),
+			     (double)average_interval(), _call.period);
+
+	} else {
+		WorkItem::print_run_status();
+	}
 }
 
 } // namespace px4

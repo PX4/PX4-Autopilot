@@ -54,9 +54,8 @@
 using namespace matrix;
 
 VtolAttitudeControl::VtolAttitudeControl() :
-	WorkItem(px4::wq_configurations::rate_ctrl),
-	_loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control: cycle")),
-	_loop_interval_perf(perf_alloc(PC_INTERVAL, "vtol_att_control: interval"))
+	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
+	_loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control: cycle"))
 {
 	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
 
@@ -108,7 +107,6 @@ VtolAttitudeControl::VtolAttitudeControl() :
 VtolAttitudeControl::~VtolAttitudeControl()
 {
 	perf_free(_loop_perf);
-	perf_free(_loop_interval_perf);
 }
 
 bool
@@ -309,7 +307,6 @@ VtolAttitudeControl::Run()
 	}
 
 	perf_begin(_loop_perf);
-	perf_count(_loop_interval_perf);
 
 	const bool updated_fw_in = _actuator_inputs_fw.update(&_actuators_fw_in);
 	const bool updated_mc_in = _actuator_inputs_mc.update(&_actuators_mc_in);
@@ -502,7 +499,6 @@ VtolAttitudeControl::print_status()
 	PX4_INFO("Running");
 
 	perf_print_counter(_loop_perf);
-	perf_print_counter(_loop_interval_perf);
 
 	return PX4_OK;
 }

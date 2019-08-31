@@ -183,7 +183,7 @@ private:
 
 LeddarOne::LeddarOne(const char *device_path, const char *serial_port, uint8_t rotation):
 	CDev(device_path),
-	ScheduledWorkItem(px4::wq_configurations::hp_default),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	_rotation(rotation)
 {
 	_serial_port = strdup(serial_port);

@@ -39,7 +39,7 @@
 
 ADIS16448::ADIS16448(int bus, uint32_t device, enum Rotation rotation) :
 	SPI("ADIS16448", nullptr, bus, device, SPIDEV_MODE3, 1000000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_px4_accel(get_device_id(), ORB_PRIO_MAX, rotation),
 	_px4_baro(get_device_id(), ORB_PRIO_MAX),
 	_px4_gyro(get_device_id(), ORB_PRIO_MAX, rotation),
@@ -64,7 +64,6 @@ ADIS16448::~ADIS16448()
 
 	// Delete the perf counter.
 	perf_free(_perf_read);
-	perf_free(_perf_read_interval);
 	perf_free(_perf_transfer);
 	perf_free(_perf_bad_transfer);
 	perf_free(_perf_crc_bad);
@@ -314,7 +313,6 @@ void
 ADIS16448::print_info()
 {
 	perf_print_counter(_perf_read);
-	perf_print_counter(_perf_read_interval);
 	perf_print_counter(_perf_transfer);
 	perf_print_counter(_perf_bad_transfer);
 	perf_print_counter(_perf_crc_bad);
@@ -444,8 +442,6 @@ convert12BitToINT16(uint16_t word)
 int
 ADIS16448::measure()
 {
-	perf_count(_perf_read_interval);
-
 	// Start measuring.
 	perf_begin(_perf_read);
 

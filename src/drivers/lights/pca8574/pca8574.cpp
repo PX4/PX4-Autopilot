@@ -100,7 +100,7 @@ extern "C" __EXPORT int pca8574_main(int argc, char *argv[]);
 
 PCA8574::PCA8574(int bus, int pca8574) :
 	I2C("pca8574", PCA8574_DEVICE_PATH, bus, pca8574, 100000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_values_out(0),
 	_values_in(0),
 	_blinking(0),

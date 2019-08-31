@@ -50,7 +50,7 @@
 class SafetyButton : public ModuleBase<SafetyButton>, public px4::ScheduledWorkItem
 {
 public:
-	SafetyButton() : ScheduledWorkItem(px4::wq_configurations::hp_default) {}
+	SafetyButton() : ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default) {}
 	virtual ~SafetyButton();
 
 	/** @see ModuleBase */

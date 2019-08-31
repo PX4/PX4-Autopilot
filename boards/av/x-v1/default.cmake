@@ -104,6 +104,7 @@ px4_add_board(
 		topic_listener
 		tune_control
 		ver
+		work_queue
 
 	EXAMPLES
 		bottle_drop # OBC challenge

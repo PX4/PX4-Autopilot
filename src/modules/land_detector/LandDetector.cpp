@@ -55,7 +55,7 @@ namespace land_detector
 
 LandDetector::LandDetector() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(px4::wq_configurations::hp_default)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 	_land_detected.timestamp = hrt_absolute_time();
 	_land_detected.freefall = false;

@@ -241,7 +241,7 @@ private:
 
 CM8JL65::CM8JL65(const char *port, uint8_t rotation) :
 	CDev(RANGE_FINDER_BASE_DEVICE_PATH),
-	ScheduledWorkItem(px4::wq_configurations::hp_default),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	_rotation(rotation)
 {
 	// Store the port name.

@@ -161,7 +161,7 @@ private:
 
 TFMINI::TFMINI(const char *port, uint8_t rotation) :
 	CDev(RANGE_FINDER0_DEVICE_PATH),
-	ScheduledWorkItem(px4::wq_configurations::hp_default),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	_rotation(rotation)
 {
 	/* store port name */

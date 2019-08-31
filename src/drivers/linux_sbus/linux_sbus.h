@@ -70,7 +70,7 @@ class RcInput : public px4::ScheduledWorkItem
 {
 public:
 	RcInput() :
-		ScheduledWorkItem(px4::wq_configurations::hp_default),
+		ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 		_shouldExit(false),
 		_isRunning(false),
 		_rcinput_pub(nullptr),

@@ -181,7 +181,7 @@ private:
 MB12XX::MB12XX(const int bus) :
 	I2C("MB12xx", MB12XX_DEVICE_PATH, bus, MB12XX_BASE_ADDR, MB12XX_BUS_SPEED),
 	ModuleParams(nullptr),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id()))
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id()))
 {
 }
 

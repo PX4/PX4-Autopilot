@@ -65,7 +65,6 @@ private:
 	PX4Accelerometer	_px4_accel;
 	PX4Gyroscope		_px4_gyro;
 
-	perf_counter_t		_sample_interval_perf;
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_bad_transfers;
 

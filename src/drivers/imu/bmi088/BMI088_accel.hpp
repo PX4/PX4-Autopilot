@@ -190,7 +190,6 @@ private:
 	PX4Accelerometer	_px4_accel;
 
 	perf_counter_t      _sample_perf;
-	perf_counter_t      _measure_interval;
 	perf_counter_t      _bad_transfers;
 	perf_counter_t      _bad_registers;
 	perf_counter_t      _duplicates;

@@ -148,7 +148,7 @@ extern "C" __EXPORT int irlock_main(int argc, char *argv[]);
 /** constructor **/
 IRLOCK::IRLOCK(int bus, int address) :
 	I2C("irlock", IRLOCK0_DEVICE_PATH, bus, address, 400000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_read_failures(0),

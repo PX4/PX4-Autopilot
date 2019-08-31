@@ -159,7 +159,6 @@ private:
 	PX4Gyroscope	_px4_gyro;
 
 	perf_counter_t      _sample_perf;
-	perf_counter_t      _measure_interval;
 	perf_counter_t      _bad_transfers;
 	perf_counter_t      _bad_registers;
 

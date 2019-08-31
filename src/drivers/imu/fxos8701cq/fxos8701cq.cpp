@@ -422,7 +422,7 @@ private:
 FXOS8701CQ::FXOS8701CQ(int bus, const char *path, uint32_t device, enum Rotation rotation) :
 	SPI("FXOS8701CQ", path, bus, device, SPIDEV_MODE0,
 	    1 * 1000 * 1000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	_mag(new FXOS8701CQ_mag(this)),
 	_call_mag_interval(0),

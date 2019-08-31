@@ -57,10 +57,9 @@ const uint8_t BMI088_gyro::_checked_registers[BMI088_GYRO_NUM_CHECKED_REGISTERS]
 
 BMI088_gyro::BMI088_gyro(int bus, const char *path_gyro, uint32_t device, enum Rotation rotation) :
 	BMI088("BMI088_GYRO", path_gyro, bus, device, SPIDEV_MODE3, BMI088_BUS_SPEED, rotation),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_px4_gyro(get_device_id(), (external() ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmi088_gyro_read")),
-	_measure_interval(perf_alloc(PC_INTERVAL, "bmi088_gyro_measure_interval")),
 	_bad_transfers(perf_alloc(PC_COUNT, "bmi088_gyro_bad_transfers")),
 	_bad_registers(perf_alloc(PC_COUNT, "bmi088_gyro_bad_registers"))
 {
@@ -74,7 +73,6 @@ BMI088_gyro::~BMI088_gyro()
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
-	perf_free(_measure_interval);
 	perf_free(_bad_transfers);
 	perf_free(_bad_registers);
 }
@@ -340,8 +338,6 @@ BMI088_gyro::check_registers(void)
 void
 BMI088_gyro::measure()
 {
-	perf_count(_measure_interval);
-
 	if (hrt_absolute_time() < _reset_wait) {
 		// we're waiting for a reset to complete
 		return;
@@ -435,7 +431,6 @@ BMI088_gyro::print_info()
 	PX4_INFO("Gyro");
 
 	perf_print_counter(_sample_perf);
-	perf_print_counter(_measure_interval);
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_bad_registers);
 

@@ -57,7 +57,6 @@
 #include <px4_getopt.h>
 #include <px4_log.h>
 #include <px4_module.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
@@ -215,7 +214,7 @@ private:
 
 PX4FMU::PX4FMU() :
 	CDev(PX4FMU_DEVICE_PATH),
-	OutputModuleInterface(px4::wq_configurations::hp_default),
+	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
 	_cycle_perf(perf_alloc(PC_ELAPSED, "px4fmu: cycle")),
 	_cycle_interval_perf(perf_alloc(PC_INTERVAL, "px4fmu: cycle interval"))
 {

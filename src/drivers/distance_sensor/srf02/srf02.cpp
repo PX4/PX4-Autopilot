@@ -172,7 +172,7 @@ extern "C" __EXPORT int srf02_main(int argc, char *argv[]);
 
 SRF02::SRF02(uint8_t rotation, int bus, int address) :
 	I2C("SRF02", SRF02_DEVICE_PATH, bus, address, 100000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_rotation(rotation)
 {
 }

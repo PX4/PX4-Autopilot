@@ -191,7 +191,7 @@ extern "C" __EXPORT int pmw3901_main(int argc, char *argv[]);
 
 PMW3901::PMW3901(int bus, enum Rotation yaw_rotation) :
 	SPI("PMW3901", PMW3901_DEVICE_PATH, bus, PMW3901_SPIDEV, SPIDEV_MODE0, PMW3901_SPI_BUS_SPEED),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_reports(nullptr),
 	_sensor_ok(false),
 	_measure_interval(0),

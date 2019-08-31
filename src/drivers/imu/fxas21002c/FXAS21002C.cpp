@@ -188,10 +188,9 @@ using namespace time_literals;
 
 FXAS21002C::FXAS21002C(int bus, uint32_t device, enum Rotation rotation) :
 	SPI("FXAS21002C", nullptr, bus, device, SPIDEV_MODE0, 2 * 1000 * 1000),
-	ScheduledWorkItem(px4::device_bus_to_wq(this->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(this->get_device_id())),
 	_px4_gyro(get_device_id(), (external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
-	_sample_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": read interval")),
 	_errors(perf_alloc(PC_COUNT, MODULE_NAME": err")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad register")),
 	_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": duplicate reading"))
@@ -206,7 +205,6 @@ FXAS21002C::~FXAS21002C()
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
-	perf_free(_sample_interval_perf);
 	perf_free(_errors);
 	perf_free(_bad_registers);
 	perf_free(_duplicates);
@@ -530,7 +528,6 @@ FXAS21002C::measure()
 {
 	// start the performance counter
 	perf_begin(_sample_perf);
-	perf_count(_sample_interval_perf);
 
 	/* status register and data as read back from the device */
 #pragma pack(push, 1)
@@ -598,7 +595,6 @@ FXAS21002C::print_info()
 {
 	printf("gyro reads:          %u\n", _read);
 	perf_print_counter(_sample_perf);
-	perf_print_counter(_sample_interval_perf);
 	perf_print_counter(_errors);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_duplicates);

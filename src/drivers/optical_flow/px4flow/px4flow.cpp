@@ -153,7 +153,7 @@ extern "C" __EXPORT int px4flow_main(int argc, char *argv[]);
 
 PX4FLOW::PX4FLOW(int bus, int address, enum Rotation rotation, int conversion_interval, uint8_t sonar_rotation) :
 	I2C("PX4FLOW", PX4FLOW0_DEVICE_PATH, bus, address, PX4FLOW_I2C_MAX_BUS_SPEED), /* 100-400 KHz */
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_sonar_rotation(sonar_rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "px4f_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "px4f_com_err")),

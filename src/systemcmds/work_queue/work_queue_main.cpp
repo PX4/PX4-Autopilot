@@ -31,54 +31,56 @@
  *
  ****************************************************************************/
 
-#pragma once
+#include <px4_config.h>
+#include <px4_module.h>
+#include <px4_getopt.h>
+#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 
-#include "WorkItem.hpp"
+static void	usage();
 
-#include <drivers/drv_hrt.h>
+extern "C" {
+	__EXPORT int work_queue_main(int argc, char *argv[]);
+}
 
-namespace px4
+int
+work_queue_main(int argc, char *argv[])
+{
+	if (argc != 2) {
+		usage();
+		return 1;
+	}
+
+	if (!strcmp(argv[1], "start")) {
+		px4::WorkQueueManagerStart();
+		return 0;
+
+	} else if (!strcmp(argv[1], "stop")) {
+		px4::WorkQueueManagerStop();
+		return 0;
+
+	} else if (!strcmp(argv[1], "status")) {
+		px4::WorkQueueManagerStatus();
+		return 0;
+	}
+
+	usage();
+
+	return 0;
+}
+
+static void
+usage()
 {
 
-class ScheduledWorkItem : public WorkItem
-{
-public:
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
 
-	/**
-	 * Schedule next run with a delay in microseconds.
-	 *
-	 * @param delay_us		The delay in microseconds.
-	 */
-	void ScheduleDelayed(uint32_t delay_us);
+Command-line tool to show work queue status.
 
-	/**
-	 * Schedule repeating run with optional delay.
-	 *
-	 * @param interval_us		The interval in microseconds.
-	 * @param delay_us		The delay (optional) in microseconds.
-	 */
-	void ScheduleOnInterval(uint32_t interval_us, uint32_t delay_us = 0);
+)DESCR_STR");
 
-	/**
-	 * Clear any scheduled work.
-	 */
-	void ScheduleClear();
-
-protected:
-
-	ScheduledWorkItem(const char *name, const wq_config_t &config) : WorkItem(name, config) {}
-	virtual ~ScheduledWorkItem() override;
-
-	virtual void print_run_status() const override;
-
-private:
-
-	friend void WorkQueue::Run();
-	virtual void Run() override = 0;
-
-	static void	schedule_trampoline(void *arg);
-
-	hrt_call	_call{};
-};
-
-} // namespace px4
+	PRINT_MODULE_USAGE_NAME("work_queue", "system");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}

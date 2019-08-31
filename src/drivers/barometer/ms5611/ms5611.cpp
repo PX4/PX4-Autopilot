@@ -183,7 +183,7 @@ extern "C" __EXPORT int ms5611_main(int argc, char *argv[]);
 MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *path,
 	       enum MS56XX_DEVICE_TYPES device_type) :
 	CDev(path),
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_prom(prom_buf.s),
 	_reports(nullptr),

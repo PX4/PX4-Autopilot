@@ -77,4 +77,3 @@ __EXPORT void output_limit_calc(const bool armed, const bool pre_armed, const un
 				const float *output, uint16_t *effective_output, output_limit_t *limit);
 
 __END_DECLS
-

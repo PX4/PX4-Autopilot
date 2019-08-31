@@ -83,6 +83,11 @@ int WorkQueueManagerStart();
 int WorkQueueManagerStop();
 
 /**
+ * Work queue manager status.
+ */
+int WorkQueueManagerStatus();
+
+/**
  * Create (or find) a work queue with a particular configuration.
  *
  * @param new_wq		The work queue configuration (see WorkQueueManager.hpp).

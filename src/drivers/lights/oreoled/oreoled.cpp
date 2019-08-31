@@ -147,7 +147,7 @@ extern "C" __EXPORT int oreoled_main(int argc, char *argv[]);
 /* constructor */
 OREOLED::OREOLED(int bus, int i2c_addr, bool autoupdate, bool alwaysupdate) :
 	I2C("oreoled", OREOLED0_DEVICE_PATH, bus, i2c_addr, 100000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_num_healthy(0),
 	_num_inboot(0),
 	_cmd_queue(nullptr),

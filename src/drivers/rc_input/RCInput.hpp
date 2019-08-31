@@ -142,7 +142,6 @@ private:
 	CRSFTelemetry *_crsf_telemetry{nullptr};
 
 	perf_counter_t      _cycle_perf;
-	perf_counter_t      _publish_interval_perf;
 
 	static void	cycle_trampoline(void *arg);
 	static void	cycle_trampoline_init(void *arg);

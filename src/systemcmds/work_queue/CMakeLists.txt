@@ -30,8 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
-px4_add_library(vehicle_angular_velocity
-	VehicleAngularVelocity.cpp
-)
-target_link_libraries(vehicle_angular_velocity PRIVATE px4_work_queue)
+px4_add_module(
+	MODULE systemcmds__work_queue
+	MAIN work_queue
+	SRCS
+		work_queue_main.cpp
+	)

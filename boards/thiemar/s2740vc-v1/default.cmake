@@ -45,5 +45,6 @@ px4_add_board(
 		reboot
 		top
 		ver
+		work_queue
 
 	)

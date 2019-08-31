@@ -135,8 +135,6 @@ private:
 	bool _scale_estimation_previously_on{false}; /**< scale_estimation was on in the last cycle */
 
 	perf_counter_t _perf_elapsed{};
-	perf_counter_t _perf_interval{};
-
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::ARSP_W_P_NOISE>) _param_west_w_p_noise,
@@ -168,13 +166,12 @@ private:
 
 AirspeedModule::AirspeedModule():
 	ModuleParams(nullptr),
-	ScheduledWorkItem(px4::wq_configurations::lp_default)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
 	// initialise parameters
 	update_params();
 
 	_perf_elapsed = perf_alloc_once(PC_ELAPSED, "airspeed_selector elapsed");
-	_perf_interval = perf_alloc_once(PC_INTERVAL, "airspeed_selector interval");
 }
 
 AirspeedModule::~AirspeedModule()
@@ -189,9 +186,7 @@ AirspeedModule::~AirspeedModule()
 
 	orb_unadvertise(_airspeed_validated_pub);
 
-
 	perf_free(_perf_elapsed);
-	perf_free(_perf_interval);
 
 	if (_airspeed_validator != nullptr) {
 		delete[] _airspeed_validator;
@@ -223,7 +218,6 @@ AirspeedModule::task_spawn(int argc, char *argv[])
 void
 AirspeedModule::Run()
 {
-	perf_count(_perf_interval);
 	perf_begin(_perf_elapsed);
 
 	/* the first time we run through here, initialize N airspeedValidator
@@ -581,7 +575,6 @@ and also publishes those.
 int AirspeedModule::print_status()
 {
 	perf_print_counter(_perf_elapsed);
-	perf_print_counter(_perf_interval);
 
 	int instance = 0;
 	uORB::SubscriptionData<airspeed_validated_s> est{ORB_ID(airspeed_validated), (uint8_t)instance};

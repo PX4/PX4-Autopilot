@@ -28,8 +28,8 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		gps
 		#heater
-		imu/adis16448
-		imu/adis16497
+		#imu/adis16448
+		#imu/adis16497
 		#imu # all available imu drivers
 # TBD		imu/bmi088 - needs bus selection
 # TBD		imu/ism330dlc - needs bus selection
@@ -112,6 +112,7 @@ px4_add_board(
 		tune_control
 		usb_connected
 		ver
+		work_queue
 
 	EXAMPLES
 		#bottle_drop # OBC challenge
