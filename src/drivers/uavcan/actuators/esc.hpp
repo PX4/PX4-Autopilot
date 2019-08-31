@@ -48,6 +48,7 @@
 #include <uavcan/equipment/esc/RawCommand.hpp>
 #include <uavcan/equipment/esc/Status.hpp>
 #include <perf/perf_counter.h>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <drivers/drv_hrt.h>
@@ -102,9 +103,11 @@ private:
 
 	bool		_armed = false;
 	bool		_run_at_idle_throttle_when_armed = false;
-	esc_status_s	_esc_status = {};
-	orb_advert_t	_esc_status_pub = nullptr;
-	orb_advert_t _actuator_outputs_pub = nullptr;
+
+	esc_status_s	_esc_status{};
+	uORB::PublicationMulti<esc_status_s>		_esc_status_pub{ORB_ID(esc_status)};
+	uORB::PublicationMulti<actuator_outputs_s>	_actuator_outputs_pub{ORB_ID(actuator_outputs)};
+
 	uint8_t		_rotor_count = 0;
 
 	/*

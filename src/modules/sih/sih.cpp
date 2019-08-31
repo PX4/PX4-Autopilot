@@ -398,12 +398,7 @@ void Sih::send_gps()
 	_vehicle_gps_pos.cog_rad = atan2(_gps_vel(1),
 					 _gps_vel(0)); // Course over ground (NOT heading, but direction of movement), -PI..PI, (radians)
 
-	if (_vehicle_gps_pos_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_gps_position), _vehicle_gps_pos_pub, &_vehicle_gps_pos);
-
-	} else {
-		_vehicle_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_vehicle_gps_pos);
-	}
+	_vehicle_gps_pos_pub.publish(_vehicle_gps_pos);
 }
 
 void Sih::publish_sih()
@@ -414,14 +409,7 @@ void Sih::publish_sih()
 	_vehicle_angular_velocity_gt.xyz[1] = _w_B(1); // pitchspeed;
 	_vehicle_angular_velocity_gt.xyz[2] = _w_B(2); // yawspeed;
 
-	if (_vehicle_angular_velocity_gt_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_angular_velocity_groundtruth), _vehicle_angular_velocity_gt_pub,
-			    &_vehicle_angular_velocity_gt);
-
-	} else {
-		_vehicle_angular_velocity_gt_pub = orb_advertise(ORB_ID(vehicle_angular_velocity_groundtruth),
-						   &_vehicle_angular_velocity_gt);
-	}
+	_vehicle_angular_velocity_gt_pub.publish(_vehicle_angular_velocity_gt);
 
 	// publish attitude groundtruth
 	_att_gt.timestamp = hrt_absolute_time();
@@ -430,12 +418,7 @@ void Sih::publish_sih()
 	_att_gt.q[2] = _q(2);
 	_att_gt.q[3] = _q(3);
 
-	if (_att_gt_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_attitude_groundtruth), _att_gt_pub, &_att_gt);
-
-	} else {
-		_att_gt_pub = orb_advertise(ORB_ID(vehicle_attitude_groundtruth), &_att_gt);
-	}
+	_att_gt_pub.publish(_att_gt);
 
 	_gpos_gt.timestamp = hrt_absolute_time();
 	_gpos_gt.lat = _gps_lat_noiseless;
@@ -445,12 +428,7 @@ void Sih::publish_sih()
 	_gpos_gt.vel_e = _v_I(1);
 	_gpos_gt.vel_d = _v_I(2);
 
-	if (_gpos_gt_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_global_position_groundtruth), _gpos_gt_pub, &_gpos_gt);
-
-	} else {
-		_gpos_gt_pub = orb_advertise(ORB_ID(vehicle_global_position_groundtruth), &_gpos_gt);
-	}
+	_gpos_gt_pub.publish(_gpos_gt);
 }
 
 float Sih::generate_wgn()   // generate white Gaussian noise sample with std=1

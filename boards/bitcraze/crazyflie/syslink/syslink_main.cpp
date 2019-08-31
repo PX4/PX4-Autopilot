@@ -59,16 +59,12 @@
 #include <systemlib/err.h>
 
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/input_rc.h>
 
 #include <board_config.h>
 
 #include "crtp.h"
 #include "syslink_main.h"
 #include "drv_deck.h"
-
-
 
 __BEGIN_DECLS
 extern void led_init(void);
@@ -100,9 +96,6 @@ Syslink::Syslink() :
 	_fd(0),
 	_queue(2, sizeof(syslink_message_t)),
 	_writebuffer(16, sizeof(crtp_message_t)),
-	_battery_pub(nullptr),
-	_rc_pub(nullptr),
-	_cmd_pub(nullptr),
 	_rssi(RC_INPUT_RSSI_MAX),
 	_bstate(BAT_DISCHARGING)
 {
@@ -434,14 +427,8 @@ Syslink::handle_message(syslink_message_t *msg)
 			_bstate = BAT_DISCHARGING;
 		}
 
-
 		// announce the battery status if needed, just publish else
-		if (_battery_pub != nullptr) {
-			orb_publish(ORB_ID(battery_status), _battery_pub, &_battery_status);
-
-		} else {
-			_battery_pub = orb_advertise(ORB_ID(battery_status), &_battery_status);
-		}
+		_battery_pub.publish(_battery_status);
 
 	} else if (msg->type == SYSLINK_RADIO_RSSI) {
 		uint8_t rssi = msg->data[0]; // Between 40 and 100 meaning -40 dBm to -100 dBm
@@ -572,12 +559,7 @@ Syslink::handle_raw(syslink_message_t *sys)
 		rc.values[3] = cmd->thrust * 1000 / USHRT_MAX + 1000;
 		rc.values[4] = 1000; // Dummy channel as px4 needs at least 5
 
-		if (_rc_pub == nullptr) {
-			_rc_pub = orb_advertise(ORB_ID(input_rc), &rc);
-
-		} else {
-			orb_publish(ORB_ID(input_rc), _rc_pub, &rc);
-		}
+		_rc_pub.publish(rc);
 
 	} else if (c->port == CRTP_PORT_MAVLINK) {
 		_count_in++;

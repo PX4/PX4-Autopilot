@@ -38,18 +38,12 @@
 #include "FlightTaskOrbit.hpp"
 #include <mathlib/mathlib.h>
 #include <lib/ecl/geo/geo.h>
-#include <uORB/topics/orbit_status.h>
 
 using namespace matrix;
 
 FlightTaskOrbit::FlightTaskOrbit() : _circle_approach_line(_position)
 {
 	_sticks_data_required = false;
-}
-
-FlightTaskOrbit::~FlightTaskOrbit()
-{
-	orb_unadvertise(_orbit_status_pub);
 }
 
 bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
@@ -100,7 +94,7 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 
 bool FlightTaskOrbit::sendTelemetry()
 {
-	orbit_status_s _orbit_status = {};
+	orbit_status_s _orbit_status{};
 	_orbit_status.timestamp = hrt_absolute_time();
 	_orbit_status.radius = math::signNoZero(_v) * _r;
 	_orbit_status.frame = 0; // MAV_FRAME::MAV_FRAME_GLOBAL
@@ -110,12 +104,7 @@ bool FlightTaskOrbit::sendTelemetry()
 		return false; // don't send the message if the transformation failed
 	}
 
-	if (_orbit_status_pub == nullptr) {
-		_orbit_status_pub = orb_advertise(ORB_ID(orbit_status), &_orbit_status);
-
-	} else {
-		orb_publish(ORB_ID(orbit_status), _orbit_status_pub, &_orbit_status);
-	}
+	_orbit_status_pub.publish(_orbit_status);
 
 	return true;
 }

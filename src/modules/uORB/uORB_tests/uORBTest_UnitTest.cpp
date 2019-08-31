@@ -40,6 +40,7 @@
 #include <poll.h>
 #include <math.h>
 #include <lib/cdev/CDev.hpp>
+#include <uORB/Publication.hpp>
 
 ORB_DEFINE(orb_test, struct orb_test, sizeof(orb_test), "ORB_TEST:int val;hrt_abstime time;");
 ORB_DEFINE(orb_multitest, struct orb_test, sizeof(orb_test), "ORB_MULTITEST:int val;hrt_abstime time;");
@@ -269,20 +270,17 @@ int uORBTest::UnitTest::test_single()
 {
 	test_note("try single-topic support");
 
-	struct orb_test t, u;
-	int sfd;
-	orb_advert_t ptopic;
-	bool updated;
+	orb_test t{};
+	orb_test u{};
+
+	uORB::Publication<orb_test> ptopic{ORB_ID(orb_test)};
+	ptopic.publish(t);
+
+	bool updated = false;
 
 	t.val = 0;
-	ptopic = orb_advertise(ORB_ID(orb_test), &t);
 
-	if (ptopic == nullptr) {
-		return test_fail("advertise failed: %d", errno);
-	}
-
-	test_note("publish handle %p", ptopic);
-	sfd = orb_subscribe(ORB_ID(orb_test));
+	int sfd = orb_subscribe(ORB_ID(orb_test));
 
 	if (sfd < 0) {
 		return test_fail("subscribe failed: %d", errno);
@@ -310,7 +308,7 @@ int uORBTest::UnitTest::test_single()
 	t.val = 2;
 	test_note("try publish");
 
-	if (PX4_OK != orb_publish(ORB_ID(orb_test), ptopic, &t)) {
+	if (!ptopic.publish(t)) {
 		return test_fail("publish failed");
 	}
 
@@ -331,12 +329,6 @@ int uORBTest::UnitTest::test_single()
 	}
 
 	orb_unsubscribe(sfd);
-
-	int ret = orb_unadvertise(ptopic);
-
-	if (ret != PX4_OK) {
-		return test_fail("orb_unadvertise failed: %i", ret);
-	}
 
 	return test_note("PASS single-topic test");
 }

@@ -36,8 +36,6 @@
 #include <px4_time.h>
 #include <mathlib/mathlib.h>
 
-#include <uORB/topics/multirotor_motor_limits.h>
-
 PWMSim::PWMSim() :
 	CDev(PWM_OUTPUT0_DEVICE_PATH),
 	_perf_control_latency(perf_alloc(PC_ELAPSED, "pwm_out_sim control latency"))
@@ -159,13 +157,7 @@ PWMSim::run()
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
 
-	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-
-	/* advertise the mixed control outputs, insist on the first group output */
-	_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_actuator_outputs);
-
 	update_params();
-	int params_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	/* loop until killed */
 	while (!should_exit()) {
@@ -289,13 +281,12 @@ PWMSim::run()
 				motor_limits.timestamp = hrt_absolute_time();
 				motor_limits.saturation_status = saturation_status.value;
 
-				int instance;
-				orb_publish_auto(ORB_ID(multirotor_motor_limits), &_mixer_status, &motor_limits, &instance, ORB_PRIO_DEFAULT);
+				_mixer_status.publish(motor_limits);
 			}
 
 			/* and publish for anyone that cares to see */
 			_actuator_outputs.timestamp = hrt_absolute_time();
-			orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_actuator_outputs);
+			_outputs_pub.publish(_actuator_outputs);
 
 			// use first valid timestamp_sample for latency tracking
 			for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
@@ -310,14 +301,10 @@ PWMSim::run()
 		}
 
 		/* how about an arming update? */
-		bool updated;
+		if (_armed_sub.updated()) {
+			actuator_armed_s aa;
 
-		orb_check(_armed_sub, &updated);
-
-		if (updated) {
-			actuator_armed_s aa = {};
-
-			if (orb_copy(ORB_ID(actuator_armed), _armed_sub, &aa) == PX4_OK) {
+			if (_armed_sub.copy(&aa)) {
 				/* do not obey the lockdown value, as lockdown is for PWMSim. Only obey manual lockdown */
 				_armed = aa.armed;
 				_failsafe = aa.force_failsafe;
@@ -326,12 +313,10 @@ PWMSim::run()
 		}
 
 		/* check for parameter updates */
-		bool param_updated = false;
-		orb_check(params_sub, &param_updated);
+		if (_params_sub.updated()) {
+			parameter_update_s update;
+			_params_sub.copy(&update);
 
-		if (param_updated) {
-			struct parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), params_sub, &update);
 			update_params();
 		}
 	}
@@ -341,9 +326,6 @@ PWMSim::run()
 			orb_unsubscribe(_control_subs[i]);
 		}
 	}
-
-	orb_unsubscribe(_armed_sub);
-	orb_unsubscribe(params_sub);
 }
 
 int

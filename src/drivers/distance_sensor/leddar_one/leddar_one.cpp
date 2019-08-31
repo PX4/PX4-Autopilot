@@ -49,6 +49,7 @@
 
 #include <perf/perf_counter.h>
 
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/distance_sensor.h>
 
 using namespace time_literals;
@@ -174,11 +175,11 @@ private:
 
 	hrt_abstime _timeout_usec{0};
 
-	perf_counter_t _collect_timeout_perf{perf_alloc(PC_COUNT, "leddar_one_collect_timeout")};
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, "leddar_one_comms_errors")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "leddar_one_sample")};
+	perf_counter_t _collect_timeout_perf{perf_alloc(PC_COUNT, MODULE_NAME": collect_timeout")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": comms_errors")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": sample")};
 
-	orb_advert_t _topic{nullptr};
+	uORB::PublicationMulti<distance_sensor_s> _topic{ORB_ID(distance_sensor)};
 };
 
 LeddarOne::LeddarOne(const char *device_path, const char *serial_port, uint8_t rotation):
@@ -194,10 +195,6 @@ LeddarOne::~LeddarOne()
 	stop();
 
 	free((char *)_serial_port);
-
-	if (_topic) {
-		orb_unadvertise(_topic);
-	}
 
 	perf_free(_collect_timeout_perf);
 	perf_free(_comms_errors);
@@ -421,7 +418,7 @@ LeddarOne::print_info()
 void
 LeddarOne::publish(uint16_t distance_mm)
 {
-	struct distance_sensor_s report;
+	distance_sensor_s report{};
 
 	report.timestamp = hrt_absolute_time();
 	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_ULTRASOUND;
@@ -433,12 +430,7 @@ LeddarOne::publish(uint16_t distance_mm)
 	report.signal_quality = -1;
 	report.id = 0;
 
-	if (_topic == nullptr) {
-		_topic = orb_advertise(ORB_ID(distance_sensor), &report);
-
-	} else {
-		orb_publish(ORB_ID(distance_sensor), _topic, &report);
-	}
+	_topic.publish(report);
 }
 
 bool

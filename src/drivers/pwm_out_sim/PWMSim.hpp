@@ -45,9 +45,12 @@
 #include <px4_module.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
 
 class PWMSim : public cdev::CDev, public ModuleBase<PWMSim>
@@ -107,11 +110,12 @@ private:
 	px4_pollfd_struct_t	_poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS] {};
 	unsigned	_poll_fds_num{0};
 
-	int		_armed_sub{-1};
+	uORB::Subscription	_armed_sub{ORB_ID(actuator_armed)};
+	uORB::Subscription	_params_sub{ORB_ID(parameter_update)};
 
-	actuator_outputs_s _actuator_outputs = {};
-	orb_advert_t	_outputs_pub{nullptr};
-	orb_advert_t	_mixer_status{nullptr};
+	actuator_outputs_s _actuator_outputs{};
+	uORB::PublicationMulti<actuator_outputs_s>		_outputs_pub{ORB_ID(actuator_outputs)};
+	uORB::PublicationMulti<multirotor_motor_limits_s>	_mixer_status{ORB_ID(multirotor_motor_limits)};
 
 	unsigned	_num_outputs{0};
 

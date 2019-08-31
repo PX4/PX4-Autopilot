@@ -47,6 +47,7 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_hrt.h>
 
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/distance_sensor.h>
 
 #include <px4_module.h>
@@ -213,7 +214,7 @@ public:
 
 	PGA460(const char *port = PGA460_DEFAULT_PORT);
 
-	virtual ~PGA460();
+	virtual ~PGA460() = default;
 
 	/**
 	 * @see ModuleBase::custom_command().
@@ -385,7 +386,7 @@ private:
 	void uORB_publish_results(const float dist);
 
 	/** @orb_advert_t orb_advert_t uORB advertisement topic. */
-	orb_advert_t _distance_sensor_topic{nullptr};
+	uORB::PublicationMulti<distance_sensor_s> _distance_sensor_topic{ORB_ID(distance_sensor)};
 
 	/** @param _fd Returns the file descriptor from px4_open(). */
 	int _fd{-1};

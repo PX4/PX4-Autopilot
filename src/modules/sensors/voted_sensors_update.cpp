@@ -1066,12 +1066,7 @@ void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw, vehicle_air_data_s 
 	if (_corrections_changed) {
 		_corrections.timestamp = hrt_absolute_time();
 
-		if (_sensor_correction_pub == nullptr) {
-			_sensor_correction_pub = orb_advertise(ORB_ID(sensor_correction), &_corrections);
-
-		} else {
-			orb_publish(ORB_ID(sensor_correction), _sensor_correction_pub, &_corrections);
-		}
+		_sensor_correction_pub.publish(_corrections);
 
 		_corrections_changed = false;
 	}
@@ -1080,12 +1075,7 @@ void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw, vehicle_air_data_s 
 	if (_selection_changed) {
 		_selection.timestamp = hrt_absolute_time();
 
-		if (_sensor_selection_pub == nullptr) {
-			_sensor_selection_pub = orb_advertise(ORB_ID(sensor_selection), &_selection);
-
-		} else {
-			orb_publish(ORB_ID(sensor_selection), _sensor_selection_pub, &_selection);
-		}
+		_sensor_selection_pub.publish(_selection);
 
 		_selection_changed = false;
 	}

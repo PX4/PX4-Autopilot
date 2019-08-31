@@ -49,11 +49,6 @@ PGA460::PGA460(const char *port)
 	_port[sizeof(_port) - 1] = '\0';
 }
 
-PGA460::~PGA460()
-{
-	orb_unadvertise(_distance_sensor_topic);
-}
-
 uint8_t PGA460::calc_checksum(uint8_t *data, const uint8_t size)
 {
 	uint8_t checksum_input[size];
@@ -686,14 +681,6 @@ void PGA460::run()
 		return;
 	}
 
-	struct distance_sensor_s report = {};
-	_distance_sensor_topic = orb_advertise(ORB_ID(distance_sensor), &report);
-
-	if (_distance_sensor_topic == nullptr) {
-		PX4_WARN("Advertise failed.");
-		return;
-	}
-
 	_start_loop = hrt_absolute_time();
 
 	while (!should_exit()) {
@@ -812,7 +799,8 @@ void PGA460::uORB_publish_results(const float object_distance)
 	if (data_is_valid) {
 		report.signal_quality = 1;
 		_previous_valid_report_distance = report.current_distance;
-		orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
+
+		_distance_sensor_topic.publish(report);
 	}
 }
 

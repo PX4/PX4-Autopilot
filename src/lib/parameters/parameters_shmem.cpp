@@ -50,21 +50,22 @@
 #include <math.h>
 
 #include <drivers/drv_hrt.h>
+#include <lib/perf/perf_counter.h>
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_sem.h>
 #include <px4_shutdown.h>
-
-#include <perf/perf_counter.h>
 #include <systemlib/uthash/utarray.h>
+
+using namespace time_literals;
 
 //#define PARAM_NO_ORB ///< if defined, avoid uorb dependency. This disables publication of parameter_update on param change
 //#define PARAM_NO_AUTOSAVE ///< if defined, do not autosave (avoids LP work queue dependency)
 
 #if !defined(PARAM_NO_ORB)
-# include "uORB/uORB.h"
-# include "uORB/topics/parameter_update.h"
+# include <uORB/PublicationQueued.hpp>
+# include <uORB/topics/parameter_update.h>
 #endif
 
 #if defined(FLASH_BASED_PARAMS)
@@ -94,8 +95,8 @@ static char *param_user_file = nullptr;
 #include <px4_workqueue.h>
 /* autosaving variables */
 static hrt_abstime last_autosave_timestamp = 0;
-static struct work_s autosave_work;
-static bool autosave_scheduled = false;
+static struct work_s autosave_work {};
+static volatile bool autosave_scheduled = false;
 static bool autosave_disabled = false;
 #endif /* PARAM_NO_AUTOSAVE */
 
@@ -158,7 +159,6 @@ const UT_icd param_icd = {sizeof(param_wbuf_s), nullptr, nullptr, nullptr};
 
 #if !defined(PARAM_NO_ORB)
 /** parameter update topic handle */
-static orb_advert_t param_topic = nullptr;
 static unsigned int param_instance = 0;
 #endif
 
@@ -331,22 +331,13 @@ static void
 _param_notify_changes()
 {
 #if !defined(PARAM_NO_ORB)
-	parameter_update_s pup = {};
+	parameter_update_s pup {};
 	pup.timestamp = hrt_absolute_time();
 	pup.instance = param_instance++;
 
-	/*
-	 * If we don't have a handle to our topic, create one now; otherwise
-	 * just publish.
-	 */
-	if (param_topic == nullptr) {
-		param_topic = orb_advertise(ORB_ID(parameter_update), &pup);
-
-	} else {
-		orb_publish(ORB_ID(parameter_update), param_topic, &pup);
-	}
-
-#endif
+	uORB::PublicationQueued<parameter_update_s> param_update{ORB_ID(parameter_update)};
+	param_update.publish(pup);
+#endif // !PARAM_NO_ORB
 }
 
 void
@@ -687,7 +678,7 @@ autosave_worker(void *arg)
 	int ret = param_save_default();
 
 	if (ret != 0) {
-		PX4_ERR("param save failed (%i)", ret);
+		PX4_ERR("param auto save failed (%i)", ret);
 	}
 }
 #endif /* PARAM_NO_AUTOSAVE */
@@ -711,10 +702,10 @@ param_autosave()
 	// - tasks often call param_set() for multiple params, so this avoids unnecessary save calls
 	// - the logger stores changed params. He gets notified on a param change via uORB and then
 	//   looks at all unsaved params.
-	hrt_abstime delay = 300 * 1000;
+	hrt_abstime delay = 300_ms;
 
-	const hrt_abstime rate_limit = 2000 * 1000; // rate-limit saving to 2 seconds
-	hrt_abstime last_save_elapsed = hrt_elapsed_time(&last_autosave_timestamp);
+	static constexpr const hrt_abstime rate_limit = 2_s; // rate-limit saving to 2 seconds
+	const hrt_abstime last_save_elapsed = hrt_elapsed_time(&last_autosave_timestamp);
 
 	if (last_save_elapsed < rate_limit && rate_limit > last_save_elapsed + delay) {
 		delay = rate_limit - last_save_elapsed;

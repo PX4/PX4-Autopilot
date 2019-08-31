@@ -64,8 +64,8 @@ using namespace time_literals;
 //#define PARAM_NO_AUTOSAVE ///< if defined, do not autosave (avoids LP work queue dependency)
 
 #if !defined(PARAM_NO_ORB)
-# include "uORB/uORB.h"
-# include "uORB/topics/parameter_update.h"
+# include <uORB/PublicationQueued.hpp>
+# include <uORB/topics/parameter_update.h>
 #endif
 
 #if defined(FLASH_BASED_PARAMS)
@@ -146,7 +146,6 @@ const UT_icd param_icd = {sizeof(param_wbuf_s), nullptr, nullptr, nullptr};
 
 #if !defined(PARAM_NO_ORB)
 /** parameter update topic handle */
-static orb_advert_t param_topic = nullptr;
 static unsigned int param_instance = 0;
 #endif
 
@@ -299,22 +298,13 @@ static void
 _param_notify_changes()
 {
 #if !defined(PARAM_NO_ORB)
-	parameter_update_s pup = {};
+	parameter_update_s pup {};
 	pup.timestamp = hrt_absolute_time();
 	pup.instance = param_instance++;
 
-	/*
-	 * If we don't have a handle to our topic, create one now; otherwise
-	 * just publish.
-	 */
-	if (param_topic == nullptr) {
-		param_topic = orb_advertise(ORB_ID(parameter_update), &pup);
-
-	} else {
-		orb_publish(ORB_ID(parameter_update), param_topic, &pup);
-	}
-
-#endif
+	uORB::PublicationQueued<parameter_update_s> param_update{ORB_ID(parameter_update)};
+	param_update.publish(pup);
+#endif // !PARAM_NO_ORB
 }
 
 void

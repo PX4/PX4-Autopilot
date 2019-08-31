@@ -57,11 +57,6 @@
 #include <uavcan_posix/dynamic_node_id_server/file_storage_backend.hpp>
 #include <uavcan_posix/firmware_version_checker.hpp>
 
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_command_ack.h>
-#include <uORB/topics/uavcan_parameter_request.h>
-#include <uORB/topics/uavcan_parameter_value.h>
-
 #include <v2.0/common/mavlink.h>
 
 
@@ -669,12 +664,7 @@ void UavcanServers::cb_getset(const uavcan::ServiceCallResult<uavcan::protocol::
 				response.int_value = param.value.to<uavcan::protocol::param::Value::Tag::boolean_value>();
 			}
 
-			if (_param_response_pub == nullptr) {
-				_param_response_pub = orb_advertise(ORB_ID(uavcan_parameter_value), &response);
-
-			} else {
-				orb_publish(ORB_ID(uavcan_parameter_value), _param_response_pub, &response);
-			}
+			_param_response_pub.publish(response);
 
 		} else {
 			warnx("UAVCAN command bridge: GetSet error");

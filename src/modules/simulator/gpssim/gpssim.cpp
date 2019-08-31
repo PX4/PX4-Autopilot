@@ -57,7 +57,7 @@
 #include <px4_tasks.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/device.h>
-#include <uORB/uORB.h>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
 
@@ -105,13 +105,16 @@ protected:
 
 private:
 
-	bool				_task_should_exit;				///< flag to make the main worker task exit
-	volatile int			_task;						///< worker task
-	GPS_Sat_Info			*_Sat_Info;					///< instance of GPS sat info data object
-	struct vehicle_gps_position_s	_report_gps_pos;				///< uORB topic for gps position
-	orb_advert_t			_report_gps_pos_pub;				///< uORB pub for gps position
-	struct satellite_info_s		*_p_report_sat_info;				///< pointer to uORB topic for satellite info
-	orb_advert_t			_report_sat_info_pub;				///< uORB pub for satellite info
+	bool				_task_should_exit;		///< flag to make the main worker task exit
+	volatile int			_task;				///< worker task
+	GPS_Sat_Info			*_Sat_Info;			///< instance of GPS sat info data object
+
+	vehicle_gps_position_s			_report_gps_pos{};		///< uORB topic for gps position
+	satellite_info_s			*_p_report_sat_info{nullptr};	///< pointer to uORB topic for satellite info
+
+	uORB::Publication<vehicle_gps_position_s>	_report_gps_pos_pub{ORB_ID(vehicle_gps_position)};	///< uORB pub for gps position
+	uORB::Publication<satellite_info_s>		_report_sat_info_pub{ORB_ID(satellite_info)};		///< uORB pub for satellite info
+
 	SyncObj				_sync;
 	int _fix_type;
 	int _num_sat;
@@ -167,10 +170,6 @@ GPSSIM::GPSSIM(bool fake_gps, bool enable_sat_info,
 	VirtDevObj("gps", GPSSIM_DEVICE_PATH, nullptr, 1e6 / 10),
 	_task_should_exit(false),
 	_Sat_Info(nullptr),
-	_report_gps_pos{},
-	_report_gps_pos_pub(nullptr),
-	_p_report_sat_info(nullptr),
-	_report_sat_info_pub(nullptr),
 	_fix_type(fix_type),
 	_num_sat(num_sat),
 	_noise_multiplier(noise_multiplier)
@@ -316,32 +315,13 @@ GPSSIM::task_main()
 		int recv_ret = receive(TIMEOUT_100MS);
 
 		if (recv_ret > 0) {
-
 			/* opportunistic publishing - else invalid data would end up on the bus */
-			if (_report_gps_pos_pub != nullptr) {
-				orb_publish(ORB_ID(vehicle_gps_position), _report_gps_pos_pub, &_report_gps_pos);
-
-			} else {
-				_report_gps_pos_pub = orb_advertise(ORB_ID(vehicle_gps_position), &_report_gps_pos);
-			}
+			_report_gps_pos_pub.publish(_report_gps_pos);
 
 			if (_p_report_sat_info) {
-				if (_report_sat_info_pub != nullptr) {
-					orb_publish(ORB_ID(satellite_info), _report_sat_info_pub, _p_report_sat_info);
-
-				} else {
-					_report_sat_info_pub = orb_advertise(ORB_ID(satellite_info), _p_report_sat_info);
-				}
+				_report_sat_info_pub.publish(*_p_report_sat_info);
 			}
 		}
-	}
-
-	if (_report_gps_pos_pub) {
-		orb_unadvertise(_report_gps_pos_pub);
-	}
-
-	if (_report_sat_info_pub) {
-		orb_unadvertise(_report_sat_info_pub);
 	}
 
 	PX4_INFO("exiting");

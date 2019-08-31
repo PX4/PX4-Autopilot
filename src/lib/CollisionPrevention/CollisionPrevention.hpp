@@ -52,6 +52,8 @@
 #include <mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/mavlink_log.h>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <systemlib/mavlink_log.h>
 #include <commander/px4_custom_mode.h>
@@ -81,10 +83,11 @@ private:
 
 	bool _interfering{false};		/**< states if the collision prevention interferes with the user input */
 
-	orb_advert_t _constraints_pub{nullptr};  	/**< constraints publication */
 	orb_advert_t _mavlink_log_pub{nullptr};	 	/**< Mavlink log uORB handle */
-	orb_advert_t _obstacle_distance_pub{nullptr}; /**< obstacle_distance publication */
-	orb_advert_t _pub_vehicle_command{nullptr}; /**< vehicle command do publication */
+
+	uORB::Publication<collision_constraints_s>	_constraints_pub{ORB_ID(collision_constraints)};		/**< constraints publication */
+	uORB::Publication<obstacle_distance_s>		_obstacle_distance_pub{ORB_ID(obstacle_distance_fused)};	/**< obstacle_distance publication */
+	uORB::PublicationQueued<vehicle_command_s>	_pub_vehicle_command{ORB_ID(vehicle_command)};			/**< vehicle command do publication */
 
 	uORB::SubscriptionData<obstacle_distance_s> _sub_obstacle_distance{ORB_ID(obstacle_distance)}; /**< obstacle distances received form a range sensor */
 	uORB::Subscription _sub_distance_sensor[ORB_MULTI_MAX_INSTANCES] {{ORB_ID(distance_sensor), 0}, {ORB_ID(distance_sensor), 1}, {ORB_ID(distance_sensor), 2}, {ORB_ID(distance_sensor), 3}}; /**< distance data received from onboard rangefinders */

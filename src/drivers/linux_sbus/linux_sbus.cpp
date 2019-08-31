@@ -51,13 +51,6 @@ int RcInput::init()
 		_data.values[i] = UINT16_MAX;
 	}
 
-	_rcinput_pub = orb_advertise(ORB_ID(input_rc), &_data);
-
-	if (nullptr == _rcinput_pub) {
-		PX4_WARN("error: advertise failed");
-		return -1;
-	}
-
 	/**
 	 * open the serial port
 	 */
@@ -231,7 +224,7 @@ void RcInput::_measure(void)
 	_data.rc_lost = (_sbusData[23] & (1 << 2)) ? true : false;
 	_data.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_SBUS;
 
-	orb_publish(ORB_ID(input_rc), _rcinput_pub, &_data);
+	_rcinput_pub.publish(_data);
 }
 //---------------------------------------------------------------------------------------------------------//
 /**

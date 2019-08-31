@@ -170,15 +170,7 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	(void)_uavcan_pub_raw_cmd.broadcast(msg);
 
 	// Publish actuator outputs
-	if (_actuator_outputs_pub != nullptr) {
-		orb_publish(ORB_ID(actuator_outputs), _actuator_outputs_pub, &actuator_outputs);
-
-	} else {
-		int instance;
-		_actuator_outputs_pub = orb_advertise_multi(ORB_ID(actuator_outputs), &actuator_outputs,
-					&instance, ORB_PRIO_DEFAULT);
-	}
-
+	_actuator_outputs_pub.publish(actuator_outputs);
 }
 
 void UavcanEscController::arm_all_escs(bool arm)
@@ -225,12 +217,7 @@ void UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent &)
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
 	_esc_status.esc_online_flags = UavcanEscController::check_escs_status();
 
-	if (_esc_status_pub != nullptr) {
-		(void)orb_publish(ORB_ID(esc_status), _esc_status_pub, &_esc_status);
-
-	} else {
-		_esc_status_pub = orb_advertise(ORB_ID(esc_status), &_esc_status);
-	}
+	_esc_status_pub.publish(_esc_status);
 }
 
 uint8_t UavcanEscController::check_escs_status()

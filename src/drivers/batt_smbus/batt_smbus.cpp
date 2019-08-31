@@ -49,7 +49,6 @@ BATT_SMBUS::BATT_SMBUS(SMBus *interface, const char *path) :
 	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_cycle(perf_alloc(PC_ELAPSED, "batt_smbus_cycle")),
-	_batt_topic(nullptr),
 	_cell_count(4),
 	_batt_capacity(0),
 	_batt_startup_capacity(0),
@@ -62,9 +61,6 @@ BATT_SMBUS::BATT_SMBUS(SMBus *interface, const char *path) :
 	_lifetime_max_delta_cell_voltage(0.0f),
 	_cell_undervoltage_protection_status(1)
 {
-	battery_status_s new_report = {};
-	_batt_topic = orb_advertise(ORB_ID(battery_status), &new_report);
-
 	int battsource = 1;
 	param_set(param_find("BAT_SOURCE"), &battsource);
 
@@ -77,7 +73,6 @@ BATT_SMBUS::BATT_SMBUS(SMBus *interface, const char *path) :
 
 BATT_SMBUS::~BATT_SMBUS()
 {
-	orb_unadvertise(_batt_topic);
 	perf_free(_cycle);
 
 	if (_manufacturer_name != nullptr) {
@@ -253,7 +248,7 @@ void BATT_SMBUS::Run()
 
 	// Only publish if no errors.
 	if (!ret) {
-		orb_publish(ORB_ID(battery_status), _batt_topic, &new_report);
+		_batt_topic.publish(new_report);
 
 		_last_report = new_report;
 	}

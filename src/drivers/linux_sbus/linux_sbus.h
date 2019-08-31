@@ -51,7 +51,7 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_defines.h>
 #include <drivers/drv_hrt.h>
-#include <uORB/uORB.h>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/input_rc.h>
 /* The interval between each frame is 4700us, do not change it. */
 #define RCINPUT_MEASURE_INTERVAL_US 4700
@@ -73,7 +73,6 @@ public:
 		ScheduledWorkItem(px4::wq_configurations::hp_default),
 		_shouldExit(false),
 		_isRunning(false),
-		_rcinput_pub(nullptr),
 		_data { }, _sbusData {   0x0f, 0x01, 0x04, 0x20, 0x00,
 					 0xff, 0x07, 0x40, 0x00, 0x02,
 					 0x10, 0x80, 0x2c, 0x64, 0x21,
@@ -100,8 +99,10 @@ private:
 	void _measure();
 	bool _shouldExit;
 	bool _isRunning;
-	orb_advert_t _rcinput_pub;
-	struct input_rc_s _data;
+
+	uORB::PublicationMulti<input_rc_s>	_rcinput_pub{ORB_ID(input_rc)};
+	input_rc_s _data{};
+
 	uint8_t _sbusData[25];
 	int _channels;
 	int _device_fd;  /** serial port device to read SBUS; */

@@ -187,13 +187,6 @@ void task_main(int argc, char *argv[])
 	// clear the rc_input report for topic advertise
 	memset(&_rc_in, 0, sizeof(struct input_rc_s));
 
-	_input_rc_pub = orb_advertise(ORB_ID(input_rc), &_rc_in);
-
-	if (_input_rc_pub == nullptr) {
-		PX4_WARN("failed to advertise input_rc uorb topic. Quit!");
-		return ;
-	}
-
 	// subscribe to parameter_update topic
 	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 

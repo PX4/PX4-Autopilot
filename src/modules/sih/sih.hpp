@@ -46,6 +46,7 @@
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <perf/perf_counter.h>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_angular_velocity.h>   // to publish groundtruth
 #include <uORB/topics/vehicle_attitude.h>           // to publish groundtruth
@@ -104,20 +105,20 @@ private:
 	PX4Barometer _px4_baro{ 6620172, ORB_PRIO_DEFAULT }; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
 
 	// to publish the gps position
-	vehicle_gps_position_s              _vehicle_gps_pos{};
-	orb_advert_t                        _vehicle_gps_pos_pub{nullptr};
+	vehicle_gps_position_s				_vehicle_gps_pos{};
+	uORB::Publication<vehicle_gps_position_s>	_vehicle_gps_pos_pub{ORB_ID(vehicle_gps_position)};
 
 	// angular velocity groundtruth
-	vehicle_angular_velocity_s          _vehicle_angular_velocity_gt{};
-	orb_advert_t                        _vehicle_angular_velocity_gt_pub{nullptr};
+	vehicle_angular_velocity_s			_vehicle_angular_velocity_gt{};
+	uORB::Publication<vehicle_angular_velocity_s>	_vehicle_angular_velocity_gt_pub{ORB_ID(vehicle_angular_velocity)};
 
 	// attitude groundtruth
-	vehicle_attitude_s                  _att_gt{};
-	orb_advert_t                        _att_gt_pub{nullptr};
+	vehicle_attitude_s				_att_gt{};
+	uORB::Publication<vehicle_attitude_s>		_att_gt_pub{ORB_ID(vehicle_attitude)};
 
 	// global position groundtruth
-	vehicle_global_position_s           _gpos_gt{};
-	orb_advert_t                        _gpos_gt_pub{nullptr};
+	vehicle_global_position_s			_gpos_gt{};
+	uORB::Publication<vehicle_global_position_s>	_gpos_gt_pub{ORB_ID(vehicle_global_position)};
 
 	int _parameter_update_sub {-1};
 	int _actuator_out_sub {-1};

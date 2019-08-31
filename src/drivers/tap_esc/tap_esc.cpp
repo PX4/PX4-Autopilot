@@ -328,16 +328,6 @@ int TAP_ESC::init()
 	/* do regular cdev init */
 	ret = CDev::init();
 
-	/* advertise the mixed control outputs, insist on the first group output */
-	_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
-	_esc_feedback_pub = orb_advertise(ORB_ID(esc_status), &_esc_feedback);
-	multirotor_motor_limits_s multirotor_motor_limits = {};
-	_to_mixer_status = orb_advertise(ORB_ID(multirotor_motor_limits), &multirotor_motor_limits);
-
-	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-	_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-
 	return ret;
 }
 
