@@ -349,10 +349,10 @@ WorkQueueManagerStatus()
 			const bool last_wq = !(i < num_wqs);
 
 			if (!last_wq) {
-				PX4_INFO_RAW("├── %zu) ", i);
+				PX4_INFO_RAW("|__ %zu) ", i);
 
 			} else {
-				PX4_INFO_RAW("└── %zu) ", i);
+				PX4_INFO_RAW("\\__ %zu) ", i);
 			}
 
 			wq->print_status(last_wq);

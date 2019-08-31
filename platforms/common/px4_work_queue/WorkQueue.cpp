@@ -173,17 +173,17 @@ WorkQueue::print_status(bool last)
 		i++;
 
 		if (last) {
-			PX4_INFO_RAW("    ");
+			PX4_INFO_RAW("    ");
 
 		} else {
-			PX4_INFO_RAW("│   ");
+			PX4_INFO_RAW("|   ");
 		}
 
 		if (i < num_items) {
-			PX4_INFO_RAW("├── %zu) ", i);
+			PX4_INFO_RAW("|__ %zu) ", i);
 
 		} else {
-			PX4_INFO_RAW("└── %zu) ", i);
+			PX4_INFO_RAW("\\__ %zu) ", i);
 		}
 
 		item->print_run_status();
