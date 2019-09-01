@@ -92,34 +92,7 @@ static char *param_user_file = nullptr;
 #define PARAM_CLOSE	close
 
 #ifndef PARAM_NO_AUTOSAVE
-
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-
-class ParameterAutosave : public px4::ScheduledWorkItem
-{
-public:
-	ParameterAutosave() : px4::ScheduledWorkItem(px4::wq_configurations::lp_default) {}
-	virtual ~ParameterAutosave() = default;
-
-	hrt_abstime last_autosave_timestamp{0};
-
-private:
-	void Run() override
-	{
-		PX4_DEBUG("Autosaving params");
-		last_autosave_timestamp = hrt_absolute_time();
-		int ret = param_save_default();
-
-		if (ret != 0) {
-			PX4_ERR("param auto save failed (%i)", ret);
-		}
-	}
-};
-
-
-ParameterAutosave *_param_autosave{nullptr};
-
-
+#include "ParametersAutoSave.hpp"
 #endif /* PARAM_NO_AUTOSAVE */
 
 /**
@@ -696,26 +669,7 @@ static void
 param_autosave()
 {
 #ifndef PARAM_NO_AUTOSAVE
-
-	if (_param_autosave == nullptr) {
-		_param_autosave = new ParameterAutosave();
-	}
-
-	// wait at least 300ms before saving, because:
-	// - tasks often call param_set() for multiple params, so this avoids unnecessary save calls
-	// - the logger stores changed params. He gets notified on a param change via uORB and then
-	//   looks at all unsaved params.
-	hrt_abstime delay = 300_ms;
-
-	static constexpr hrt_abstime rate_limit = 2_s; // rate-limit saving to 2 seconds
-	const hrt_abstime last_save_elapsed = hrt_elapsed_time(&_param_autosave->last_autosave_timestamp);
-
-	if (last_save_elapsed < rate_limit && rate_limit > last_save_elapsed + delay) {
-		delay = rate_limit - last_save_elapsed;
-	}
-
-	_param_autosave->ScheduleDelayed(delay);
-
+	ParametersAutoSave::AutoSave();
 #endif /* PARAM_NO_AUTOSAVE */
 }
 
@@ -724,16 +678,7 @@ param_control_autosave(bool enable)
 {
 #ifndef PARAM_NO_AUTOSAVE
 	param_lock_writer();
-
-	if (_param_autosave != nullptr) {
-		_param_autosave->ScheduleClear();
-		delete _param_autosave;
-		_param_autosave = nullptr;
-
-	} else {
-		_param_autosave = new ParameterAutosave();
-	}
-
+	ParametersAutoSave::Enable(enable);
 	param_unlock_writer();
 #endif /* PARAM_NO_AUTOSAVE */
 }
@@ -1495,13 +1440,7 @@ void param_print_status()
 	}
 
 #ifndef PARAM_NO_AUTOSAVE
-	bool autosave_disabled = (_param_autosave == nullptr);
-	PX4_INFO("auto save: %s", autosave_disabled ? "off" : "on");
-
-	if (!autosave_disabled) {
-		PX4_INFO("last auto save: %.3f seconds ago", hrt_elapsed_time(&_param_autosave->last_autosave_timestamp) * 1e-6);
-	}
-
+	ParametersAutoSave::print_status();
 #endif /* PARAM_NO_AUTOSAVE */
 
 	perf_print_counter(param_export_perf);

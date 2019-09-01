@@ -114,14 +114,15 @@ int px4_platform_init(void)
 
 	hrt_init();
 
-	param_init();
-
 	/* configure CPU load estimation */
 #ifdef CONFIG_SCHED_INSTRUMENTATION
 	cpuload_initialize_once();
 #endif
 
 	px4::WorkQueueManagerStart();
+
+	// requires WQ for auto save
+	param_init();
 
 	return PX4_OK;
 }

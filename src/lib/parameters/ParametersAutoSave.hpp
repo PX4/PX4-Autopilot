@@ -31,22 +31,36 @@
  *
  ****************************************************************************/
 
-#include "px4_init.h"
+#pragma once
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <drivers/drv_hrt.h>
-#include <lib/parameters/param.h>
-#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
+#ifndef PARAM_NO_AUTOSAVE
 
-int px4_platform_init(void)
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
+/**
+ * Automatically save the parameters after a timeout and limited rate.
+ *
+ * This needs to be called with the writer lock held (it's not necessary that it's the writer lock, but it
+ * needs to be the same lock as autosave_worker() and param_control_autosave() use).
+ */
+
+class ParametersAutoSave : public px4::ScheduledWorkItem
 {
-	hrt_init();
+public:
+	ParametersAutoSave() : px4::ScheduledWorkItem(px4::wq_configurations::lp_default) {}
+	virtual ~ParametersAutoSave() = default;
 
-	px4::WorkQueueManagerStart();
+	float last_autosave_elapsed() const;
 
-	// requires WQ for auto save
-	param_init();
+	static void AutoSave();
+	static bool Enable(bool enable = true);
 
-	return PX4_OK;
-}
+	static void print_status();
+
+private:
+	hrt_abstime _last_autosave_timestamp{0};
+
+	void Run() override;
+};
+
+#endif // PARAM_NO_AUTOSAVE
