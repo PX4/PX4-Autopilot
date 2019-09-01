@@ -2501,7 +2501,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 {
 	static hrt_abstime overload_start = 0;
 
-	bool overload = (cpuload_local->load > 0.80f) || (cpuload_local->ram_usage > 0.98f);
+	bool overload = (cpuload_local->load > 0.95f) || (cpuload_local->ram_usage > 0.98f);
 
 	if (overload_start == 0 && overload) {
 		overload_start = hrt_absolute_time();
