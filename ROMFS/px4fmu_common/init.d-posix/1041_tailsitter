@@ -35,7 +35,6 @@ then
 
 	param set VT_F_TRANS_DUR 1.5
 	param set VT_F_TRANS_THR 0.7
-	param set VT_MOT_COUNT 0
 	param set VT_TYPE 0
 
 fi
