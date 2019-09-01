@@ -184,11 +184,10 @@ start_bus(struct ll40ls_bus_option &bus, uint8_t rotation)
 		bus.dev = new LidarLiteI2C(bus.busnum, rotation);
 
 		if (!bus.dev) {
-			PX4_ERR("Failed to instantiate LidarLiteI2C");
-			return false;
+			goto fail;
 		}
 
-		if (bus.dev->init() == PX4_OK) {
+		if (bus.dev->init() != PX4_OK) {
 			goto fail;
 		}
 
@@ -205,7 +204,9 @@ fail:
 		bus.dev = nullptr;
 	}
 
-	errx(1, "driver start failed");
+	PX4_ERR("Failed to instantiate LidarLiteI2C on bus: %u", bus.busnum);
+
+	return false;
 
 }
 
