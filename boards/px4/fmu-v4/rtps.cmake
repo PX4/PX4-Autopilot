@@ -16,6 +16,7 @@ px4_add_board(
 		TEL2:/dev/ttyS2
 
 	DRIVERS
+		adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -41,9 +42,6 @@ px4_add_board(
 		px4fmu
 		rc_input
 		safety_button
-		stm32
-		stm32/adc
-		stm32/tone_alarm
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm

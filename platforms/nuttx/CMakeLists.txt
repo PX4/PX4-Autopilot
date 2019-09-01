@@ -36,9 +36,7 @@ include(cygwin_cygpath)
 set(NUTTX_DIR ${PX4_BINARY_DIR}/NuttX/nuttx)
 set(NUTTX_APPS_DIR ${PX4_BINARY_DIR}/NuttX/apps)
 
-add_subdirectory(src)
-
-add_executable(px4 ${PX4_SOURCE_DIR}/src/platforms/empty.c)
+add_executable(px4 ${PX4_SOURCE_DIR}/platforms/common/empty.c)
 set(FW_NAME ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf)
 set_target_properties(px4 PROPERTIES OUTPUT_NAME ${FW_NAME})
 add_dependencies(px4 git_nuttx nuttx_build)
@@ -73,12 +71,16 @@ file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_D
 # because even relative linker script paths are different for linux, mac and windows
 CYGPATH(PX4_BINARY_DIR PX4_BINARY_DIR_CYG)
 
+if(POLICY CMP0079)
+	cmake_policy(SET CMP0079 NEW)
+endif()
+
 target_link_libraries(nuttx_arch
 	INTERFACE
 		drivers_board
-		drivers_arch
 		drivers_boards_common
 		drivers_boards_common_arch
+		arch_hrt
 )
 
 target_link_libraries(nuttx_c INTERFACE nuttx_drivers)

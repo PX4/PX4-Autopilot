@@ -40,7 +40,7 @@
 #include <px4_config.h>
 #include <px4_log.h>
 #include <px4_module_params.h>
-#include <px4_work_queue/WorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>

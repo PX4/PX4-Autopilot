@@ -51,7 +51,7 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_land_detected.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 using namespace time_literals;
 

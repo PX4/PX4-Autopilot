@@ -43,7 +43,7 @@
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <perf/perf_counter.h>
 #include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 
 class FXAS21002C : public device::SPI, public px4::ScheduledWorkItem
@@ -81,6 +81,7 @@ private:
 	unsigned _read{0};
 
 	perf_counter_t _sample_perf;
+	perf_counter_t _sample_interval_perf;
 	perf_counter_t _errors;
 	perf_counter_t _bad_registers;
 	perf_counter_t _duplicates;

@@ -46,40 +46,6 @@
  ************************************************************************************/
 
 /************************************************************************************
- * Name: board_adc_init
- *
- * Description:
- *   boards may provide this function to allow complex version-ing.
- *
- * Input Parameters:
- *   base_address - base address of the ADC
- *
- * Returned Value:
- *
- *      OK, or -1 if the function failed.
- */
-
-__EXPORT int board_adc_init(uint32_t base_address);
-
-/************************************************************************************
- * Name: board_adc_sample
- *
- * Description:
- *   boards provide this function to allow complex version-ing.
- *
- * Input Parameters:
- *   base_address - base address of the ADC
- *   channel      - The number of the adc channel to read.
- *
- * Returned Value:
- *    The ADC DN read for the channel or 0xffff if there
- *    is an error reading the channel.
- */
-
-__EXPORT uint16_t board_adc_sample(uint32_t base_address, unsigned channel);
-
-
-/************************************************************************************
  * Name: board_gpio_init
  *
  * Description:

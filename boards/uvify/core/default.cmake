@@ -16,6 +16,7 @@ px4_add_board(
 		TEL2:/dev/ttyS2
 
 	DRIVERS
+		adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		batt_smbus
@@ -45,9 +46,6 @@ px4_add_board(
 		pwm_out_sim
 		px4fmu
 		rc_input
-		stm32
-		stm32/adc
-		stm32/tone_alarm
 		#tap_esc
 		telemetry # all available telemetry drivers
 		#test_ppm

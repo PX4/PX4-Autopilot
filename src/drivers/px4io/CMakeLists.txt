@@ -33,16 +33,14 @@
 px4_add_module(
 	MODULE drivers__px4io
 	MAIN px4io
-	STACK_MAIN 1816
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		px4io.cpp
-		px4io_uploader.cpp
 		px4io_serial.cpp
-		px4io_serial_f4.cpp
-		px4io_serial_f7.cpp
+		px4io_uploader.cpp
 	DEPENDS
+		arch_px4io_serial
 		circuit_breaker
 		mixer
 	)

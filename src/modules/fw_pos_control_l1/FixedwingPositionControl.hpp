@@ -65,7 +65,7 @@
 #include <px4_module.h>
 #include <px4_module_params.h>
 #include <px4_posix.h>
-#include <px4_work_queue/WorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed.h>

@@ -2451,7 +2451,7 @@ protected:
 
 		if (odom_updated) {
 			msg.time_usec = odom.timestamp;
-			msg.child_frame_id = MAV_FRAME_BODY_NED;
+			msg.child_frame_id = MAV_FRAME_BODY_FRD;
 
 			// Current position
 			msg.x = odom.x;
@@ -2464,11 +2464,11 @@ protected:
 			msg.q[2] = odom.q[2];
 			msg.q[3] = odom.q[3];
 
-			// Local NED to body-NED Dcm matrix
-			matrix::Dcmf Rlb(matrix::Quatf(odom.q));
+			// Body-FRD frame to local NED frame Dcm matrix
+			matrix::Dcmf R_body_to_local(matrix::Quatf(odom.q));
 
 			// Rotate linear and angular velocity from local NED to body-NED frame
-			matrix::Vector3f linvel_body(Rlb * matrix::Vector3f(odom.vx, odom.vy, odom.vz));
+			matrix::Vector3f linvel_body(R_body_to_local.transpose() * matrix::Vector3f(odom.vx, odom.vy, odom.vz));
 
 			// Current linear velocity
 			msg.vx = linvel_body(0);
