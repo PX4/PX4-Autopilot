@@ -39,7 +39,6 @@ if(NOT "${PX4_BOARD}" MATCHES "px4_io") # TODO: fix this hack (move uORB to plat
 	px4_add_module(
 		MODULE modules__uORB
 		MAIN uorb
-		STACK_MAIN 2100
 		SRCS
 			ORBSet.hpp
 			Publication.hpp

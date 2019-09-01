@@ -200,7 +200,7 @@ void print_status();
 
 bool shutdown_if_allowed();
 
-transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub, const char *armedBy);
+transition_result_t arm_disarm(bool arm, bool run_preflight_checks, orb_advert_t *mavlink_log_pub, const char *armedBy);
 
 /**
  * Loop that runs at a lower rate and priority for calibration and parameter tasks.
@@ -383,7 +383,13 @@ int commander_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "arm")) {
-		if (TRANSITION_CHANGED != arm_disarm(true, &mavlink_log_pub, "command line")) {
+		bool force_arming = false;
+
+		if (argc > 2 && !strcmp(argv[2], "-f")) {
+			force_arming = true;
+		}
+
+		if (TRANSITION_CHANGED != arm_disarm(true, !force_arming, &mavlink_log_pub, "command line")) {
 			PX4_ERR("arming failed");
 		}
 
@@ -391,7 +397,7 @@ int commander_main(int argc, char *argv[])
 	}
 
 	if (!strcmp(argv[1], "disarm")) {
-		if (TRANSITION_DENIED == arm_disarm(false, &mavlink_log_pub, "command line")) {
+		if (TRANSITION_DENIED == arm_disarm(false, true, &mavlink_log_pub, "command line")) {
 			PX4_ERR("rejected disarm");
 		}
 
@@ -405,7 +411,7 @@ int commander_main(int argc, char *argv[])
 		/* see if we got a home position */
 		if (status_flags.condition_local_position_valid) {
 
-			if (TRANSITION_DENIED != arm_disarm(true, &mavlink_log_pub, "command line")) {
+			if (TRANSITION_DENIED != arm_disarm(true, true, &mavlink_log_pub, "command line")) {
 				ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF);
 
 			} else {
@@ -512,11 +518,34 @@ int commander_main(int argc, char *argv[])
 
 void usage(const char *reason)
 {
-	if (reason && *reason > 0) {
+	if (reason) {
 		PX4_INFO("%s", reason);
 	}
 
-	PX4_INFO("usage: commander {start|stop|status|calibrate|check|arm|disarm|takeoff|land|transition|mode}\n");
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+The commander module contains the state machine for mode switching and failsafe behavior.
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("commander", "system");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_FLAG('h', "Enable HIL mode", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("calibrate", "Run sensor calibration");
+	PRINT_MODULE_USAGE_ARG("mag|accel|gyro|level|esc|airspeed", "Calibration type", false);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("check", "Run preflight checks");
+	PRINT_MODULE_USAGE_COMMAND("arm");
+	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Force arming (do not run preflight checks)", true);
+	PRINT_MODULE_USAGE_COMMAND("disarm");
+	PRINT_MODULE_USAGE_COMMAND("takeoff");
+	PRINT_MODULE_USAGE_COMMAND("land");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("transition", "VTOL transition");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("mode", "Change flight mode");
+	PRINT_MODULE_USAGE_ARG("manual|acro|offboard|stabilized|rattitude|altctl|posctl|auto:mission|auto:loiter|auto:rtl|auto:takeoff|auto:land|auto:precland",
+			"Flight mode", false);
+	PRINT_MODULE_USAGE_COMMAND("lockdown");
+	PRINT_MODULE_USAGE_ARG("off", "Turn lockdown off", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }
 
 void print_status()
@@ -531,7 +560,8 @@ bool shutdown_if_allowed()
 			hrt_elapsed_time(&commander_boot_timestamp));
 }
 
-transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, const char *armedBy)
+transition_result_t arm_disarm(bool arm, bool run_preflight_checks, orb_advert_t *mavlink_log_pub_local,
+			       const char *armedBy)
 {
 	transition_result_t arming_res = TRANSITION_NOT_CHANGED;
 
@@ -541,7 +571,7 @@ transition_result_t arm_disarm(bool arm, orb_advert_t *mavlink_log_pub_local, co
 					     safety,
 					     arm ? vehicle_status_s::ARMING_STATE_ARMED : vehicle_status_s::ARMING_STATE_STANDBY,
 					     &armed,
-					     true /* fRunPreArmChecks */,
+					     run_preflight_checks,
 					     mavlink_log_pub_local,
 					     &status_flags,
 					     arm_requirements,
@@ -818,7 +848,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 					}
 				}
 
-				transition_result_t arming_res = arm_disarm(cmd_arms, &mavlink_log_pub, "Arm/Disarm component command");
+				transition_result_t arming_res = arm_disarm(cmd_arms, true, &mavlink_log_pub, "Arm/Disarm component command");
 
 				if (arming_res == TRANSITION_DENIED) {
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
@@ -1022,7 +1052,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 					// switch to AUTO_MISSION and ARM
 					if ((TRANSITION_DENIED != main_state_transition(*status_local, commander_state_s::MAIN_STATE_AUTO_MISSION, status_flags,
 							&internal_state))
-					    && (TRANSITION_DENIED != arm_disarm(true, &mavlink_log_pub, "Mission start command"))) {
+					    && (TRANSITION_DENIED != arm_disarm(true, true, &mavlink_log_pub, "Mission start command"))) {
 
 						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
@@ -1213,9 +1243,6 @@ Commander::run()
 	param_t _param_airmode = param_find("MC_AIRMODE");
 	param_t _param_rc_map_arm_switch = param_find("RC_MAP_ARM_SW");
 
-	/* failsafe response to loss of navigation accuracy */
-	param_t _param_posctl_nav_loss_act = param_find("COM_POSCTL_NAVL");
-
 	status_flags.avoidance_system_required = _param_com_obs_avoid.get();
 
 	/* pthread for slow low prio thread */
@@ -1344,7 +1371,6 @@ Commander::run()
 	param_get(_param_rc_arm_hyst, &rc_arm_hyst);
 	rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
 
-	int32_t posctl_nav_loss_act = 0;
 	int32_t geofence_action = 0;
 	int32_t flight_uuid = 0;
 	int32_t airmode = 0;
@@ -1477,9 +1503,6 @@ Commander::run()
 			param_get(_param_fmode_4, &_flight_mode_slots[3]);
 			param_get(_param_fmode_5, &_flight_mode_slots[4]);
 			param_get(_param_fmode_6, &_flight_mode_slots[5]);
-
-			/* failsafe response to loss of navigation accuracy */
-			param_get(_param_posctl_nav_loss_act, &posctl_nav_loss_act);
 
 			param_get(_param_takeoff_finished_action, &takeoff_complete_act);
 
@@ -1683,7 +1706,7 @@ Commander::run()
 				}
 
 				if (_auto_disarm_landed.get_state()) {
-					arm_disarm(false, &mavlink_log_pub, "Auto disarm initiated");
+					arm_disarm(false, true, &mavlink_log_pub, "Auto disarm initiated");
 				}
 			}
 
@@ -1691,7 +1714,7 @@ Commander::run()
 			_auto_disarm_killed.set_state_and_update(armed.manual_lockdown, hrt_absolute_time());
 
 			if (_auto_disarm_killed.get_state()) {
-				arm_disarm(false, &mavlink_log_pub, "Kill-switch still engaged, disarming");
+				arm_disarm(false, true, &mavlink_log_pub, "Kill-switch still engaged, disarming");
 			}
 
 		} else {
@@ -2285,9 +2308,9 @@ Commander::run()
 						       status_flags,
 						       land_detector.landed,
 						       (link_loss_actions_t)_param_nav_rcl_act.get(),
-						       _param_com_obl_act.get(),
-						       _param_com_obl_rc_act.get(),
-						       posctl_nav_loss_act);
+						       (offboard_loss_actions_t)_param_com_obl_act.get(),
+						       (offboard_loss_rc_actions_t)_param_com_obl_rc_act.get(),
+						       (position_nav_loss_actions_t)_param_com_posctl_navl.get());
 
 		if (status.failsafe != failsafe_old) {
 			status_changed = true;
@@ -3627,7 +3650,7 @@ Commander *Commander::instantiate(int argc, char *argv[])
 	Commander *instance = new Commander();
 
 	if (instance) {
-		if (argc >= 2 && !strcmp(argv[1], "--hil")) {
+		if (argc >= 2 && !strcmp(argv[1], "-h")) {
 			instance->enable_hil();
 		}
 	}

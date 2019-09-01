@@ -40,7 +40,7 @@
 
 #include <uORB/SubscriptionInterval.hpp>
 #include <containers/List.hpp>
-#include <px4_work_queue/WorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 
 namespace uORB
 {
@@ -124,7 +124,7 @@ public:
 	void call() override
 	{
 		// schedule immediately if no interval, otherwise check time elapsed
-		if ((_interval_us == 0) || (hrt_elapsed_time(&_last_update) >= _interval_us)) {
+		if ((_interval_us == 0) || (hrt_elapsed_time_atomic(&_last_update) >= _interval_us)) {
 			_work_item->ScheduleNow();
 		}
 	}

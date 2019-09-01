@@ -258,65 +258,68 @@ rtps:
     id: 112
   - msg: vehicle_acceleration
     id: 113
-  # multi topics
+  - msg: sensor_gyro_control
+    id: 114
+  - msg: airspeed_validated
+    id: 115
+  ########## multi topics: begin ##########
   - msg: actuator_controls_0
-    id: 120
+    id: 150
     alias: actuator_controls
   - msg: actuator_controls_1
-    id: 121
+    id: 151
     alias: actuator_controls
   - msg: actuator_controls_2
-    id: 122
+    id: 152
     alias: actuator_controls
   - msg: actuator_controls_3
-    id: 123
+    id: 153
     alias: actuator_controls
   - msg: actuator_controls_virtual_fw
-    id: 124
+    id: 154
     alias: actuator_controls
   - msg: actuator_controls_virtual_mc
-    id: 125
+    id: 155
     alias: actuator_controls
   - msg: mc_virtual_attitude_setpoint
-    id: 126
+    id: 156
     alias: vehicle_attitude_setpoint
   - msg: fw_virtual_attitude_setpoint
-    id: 127
+    id: 157
     alias: vehicle_attitude_setpoint
   - msg: vehicle_attitude_groundtruth
-    id: 128
+    id: 158
     alias: vehicle_attitude
   - msg: vehicle_global_position_groundtruth
-    id: 129
+    id: 159
     alias: vehicle_global_position
   - msg: vehicle_local_position_groundtruth
-    id: 130
+    id: 160
     alias: vehicle_local_position
   - msg: vehicle_mocap_odometry
     alias: vehicle_odometry
-    id: 131
+    id: 161
     receive: true
   - msg: vehicle_visual_odometry
-    id: 132
+    id: 162
     alias: vehicle_odometry
     receive: true
   - msg: vehicle_trajectory_waypoint_desired
-    id: 133
+    id: 163
     alias: vehicle_trajectory_waypoint
   - msg: obstacle_distance_fused
-    id: 134
+    id: 164
     alias: obstacle_distance
   - msg: vehicle_vision_attitude
-    id: 135
+    id: 165
     alias: vehicle_attitude
   - msg: trajectory_setpoint
-    id: 136
+    id: 166
     alias: vehicle_local_position_setpoint
   - msg: camera_trigger_secondary
-    id: 137
+    id: 167
     alias: camera_trigger
   - msg: vehicle_angular_velocity_groundtruth
-    id: 138
+    id: 168
     alias: vehicle_angular_velocity
-  - msg: airspeed_validated
-    id: 139
+  ########## multi topics: end ##########

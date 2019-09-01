@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file px4fmu_timer_config.c
+ * @file timer_config.c
  *
  * Configuration data for the stm32 pwm_servo, input capture and pwm input driver.
  *
@@ -46,7 +46,7 @@
 #include <stm32_tim.h>
 
 #include <drivers/drv_pwm_output.h>
-#include <drivers/stm32/drv_io_timer.h>
+#include <px4_arch/io_timer.h>
 
 #include "board_config.h"
 

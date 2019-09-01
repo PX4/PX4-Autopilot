@@ -41,7 +41,7 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 #include <drivers/device/spi.h>
 
@@ -340,9 +340,6 @@ PMW3901::init()
 
 		_yaw_rotation = (enum Rotation)val;
 	}
-
-	/* For devices competing with NuttX SPI drivers on a bus (Crazyflie SD Card expansion board) */
-	SPI::set_lockmode(LOCK_THREADS);
 
 	/* do SPI init (and probe) first */
 	if (SPI::init() != OK) {

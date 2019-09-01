@@ -17,6 +17,7 @@ px4_add_board(
 		TEL4:/dev/ttyS3
 
 	DRIVERS
+		adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -36,9 +37,7 @@ px4_add_board(
 		px4fmu
 		px4io
 		rc_input
-		stm32
-		stm32/adc
-		stm32/tone_alarm
+		safety_button
 		telemetry # all available telemetry drivers
 		tone_alarm
 		uavcan

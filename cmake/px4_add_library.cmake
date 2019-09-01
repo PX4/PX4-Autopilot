@@ -40,7 +40,7 @@ include(px4_base)
 #	Like add_library but with PX4 platform dependencies
 #
 function(px4_add_library target)
-	add_library(${target} ${ARGN})
+	add_library(${target} EXCLUDE_FROM_ALL ${ARGN})
 
 	target_compile_definitions(${target} PRIVATE MODULE_NAME="${target}")
 

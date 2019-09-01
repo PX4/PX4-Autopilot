@@ -15,11 +15,6 @@ then
 		fmu i2c 2 100000
 	fi
 
-	# External SPI
-	ms5611 -S start
-
-	# Internal SPI (auto detect ms5611 or ms5607)
-	ms5611 -T 0 -s start
 
 	adc start
 fi
