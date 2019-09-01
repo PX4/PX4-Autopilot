@@ -15,5 +15,5 @@ aerofc_adc start
 
 ll40ls start i2c
 
-# Internal SPI
-ms5611 -s start
+# Internal SPI (auto detect ms5611 or ms5607)
+ms5611 -T 0 -s start

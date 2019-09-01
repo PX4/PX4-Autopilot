@@ -34,6 +34,3 @@ bmp388 -I start
 
 # Possible pmw3901 optical flow sensor
 pmw3901 start
-
-# Internal SPI
-ms5611 -s start

@@ -73,6 +73,9 @@ then
 		ak09916 -X -R 6 start
 	fi
 
+	# External SPI
+	ms5611 -S start
+
 	# external L3GD20H is rotated 180 degrees yaw
 	l3gd20 -X -R 4 start
 
