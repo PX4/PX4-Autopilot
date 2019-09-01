@@ -49,7 +49,7 @@
 #include <perf/perf_counter.h>
 #include <platforms/px4_module.h>
 #include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/topics/battery_status.h>
 
 #include "board_config.h"

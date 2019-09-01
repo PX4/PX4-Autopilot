@@ -38,9 +38,9 @@
  * @author Nicolas de Palezieux <ndepal@gmail.com>
  */
 
-#include <px4_middleware.h>
 #include <px4_log.h>
 #include <px4_app.h>
+#include <px4_init.h>
 #include "qshell.h"
 
 extern "C" __EXPORT int qshell_entry(int argc, char **argv);

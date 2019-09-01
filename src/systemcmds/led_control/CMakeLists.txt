@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE systemcmds__led_control
 	MAIN led_control
-	STACK_MAIN 2500
 	COMPILE_FLAGS
 	SRCS
 		led_control.cpp

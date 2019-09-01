@@ -47,7 +47,7 @@
 #include <drivers/drv_oreoled.h>
 #include <perf/perf_counter.h>
 #include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
 
 #define OREOLED_NUM_LEDS		4			///< maximum number of LEDs the oreo led driver can support

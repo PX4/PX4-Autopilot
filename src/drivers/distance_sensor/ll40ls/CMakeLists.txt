@@ -35,8 +35,6 @@ px4_add_module(
 	MAIN ll40ls
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
-	STACK_MAIN
-		1500
 	SRCS
 		ll40ls.cpp
 		LidarLite.cpp

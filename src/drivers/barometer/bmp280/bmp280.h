@@ -50,7 +50,7 @@
 #include <perf/perf_counter.h>
 #include <px4_config.h>
 #include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 #include "board_config.h"
 

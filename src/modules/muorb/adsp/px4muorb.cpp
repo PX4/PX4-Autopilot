@@ -35,7 +35,6 @@
 #include "uORBFastRpcChannel.hpp"
 #include "uORBManager.hpp"
 
-#include <px4_middleware.h>
 #include <px4_tasks.h>
 #include <px4_posix.h>
 #include <dspal_platform.h>

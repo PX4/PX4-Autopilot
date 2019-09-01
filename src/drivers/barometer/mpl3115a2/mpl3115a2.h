@@ -68,7 +68,7 @@
 #include <px4_defines.h>
 #include <px4_getopt.h>
 #include <px4_log.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
 
 #include "board_config.h"
