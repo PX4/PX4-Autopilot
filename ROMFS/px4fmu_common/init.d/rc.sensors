@@ -103,6 +103,12 @@ then
 	teraranger start -a
 fi
 
+# Possible pmw3901 optical flow sensor
+if param greater SENS_EN_PMW3901 0
+then
+	pmw3901 start
+fi
+
 ###############################################################################
 #                            End Optional drivers                             #
 ###############################################################################
