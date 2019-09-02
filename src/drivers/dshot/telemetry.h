@@ -31,39 +31,69 @@
  *
  ****************************************************************************/
 
-/**
- * Configure DShot
- *
- * This enabled/disabled DShot. The different modes define different
- * speeds, for example DShot150 = 150kb/s. Not all ESCs support all modes.
- *
- * Note: this enabled DShot on the FMU outputs. For boards with an IO it is the
- * AUX outputs.
- *
- * @value 0 Disable (use PWM/Oneshot)
- * @value 150 DShot150
- * @value 300 DShot300
- * @value 600 DShot600
- * @value 1200 DShot1200
- * @reboot_required true
- * @group DShot
- */
-PARAM_DEFINE_INT32(DSHOT_CONFIG, 0);
+#pragma once
 
-/**
- * Minimum DShot Motor Output
- *
- * Minimum Output Value for DShot in percent. The value depends on the ESC. Make
- * sure to set this high enough so that the motors are always spinning while
- * armed.
- *
- * @unit norm
- * @min 0
- * @max 1
- * @decimal 2
- * @increment 0.01
- * @group DShot
- */
-PARAM_DEFINE_FLOAT(DSHOT_MIN, 0.055f);
+#include <drivers/drv_hrt.h>
 
+class DShotTelemetry
+{
+public:
+	struct EscData {
+		hrt_abstime time;
+		int8_t temperature;  ///< [deg C]
+		int16_t voltage;     ///< [0.01V]
+		int16_t current;     ///< [0.01A]
+		int16_t consumption; ///< [mAh]
+		int16_t erpm;        ///< [100ERPM]
+	};
 
+	~DShotTelemetry();
+
+	int init(const char *uart_device);
+
+	void deinit();
+
+	void setNumMotors(int num_motors) { _num_motors = num_motors; }
+	int numMotors() const { return _num_motors; }
+
+	/**
+	 * Read telemetry from the UART (non-blocking) and handle timeouts.
+	 * @return -1 if no update, >= 0 for the motor index. Use @latestESCData() to get the data.
+	 */
+	int update();
+
+	/**
+	 * Get the motor index for which telemetry should be requested.
+	 * @return -1 if no request should be made, motor index otherwise
+	 */
+	int getRequestMotorIndex();
+
+	const EscData &latestESCData() const { return _latest_data; }
+
+private:
+	static constexpr int ESC_FRAME_SIZE = 10;
+
+	/**
+	 * set the Baudrate
+	 * @param baud
+	 * @return 0 on success, <0 on error
+	 */
+	int setBaudrate(unsigned baud);
+
+	void requestNextMotor();
+
+	bool decodeByte(uint8_t byte);
+
+	static inline uint8_t updateCrc8(uint8_t crc, uint8_t crc_seed);
+	static uint8_t crc8(const uint8_t *buf, uint8_t len);
+
+	int _uart_fd{-1};
+	int _num_motors{0};
+	uint8_t _frame_buffer[ESC_FRAME_SIZE];
+	int _frame_position{0};
+
+	EscData _latest_data;
+
+	int _current_motor_index_request{-1};
+	hrt_abstime _current_request_start{0};
+};
