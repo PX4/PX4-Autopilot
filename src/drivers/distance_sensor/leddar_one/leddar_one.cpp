@@ -168,8 +168,6 @@ private:
 
 	perf_counter_t _comms_error{perf_alloc(PC_COUNT, "leddar_one_comms_error")};
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "leddar_one_sample")};
-
-	orb_advert_t _distance_sensor_topic{nullptr};
 };
 
 LeddarOne::LeddarOne(const char *device_path, const char *serial_port, uint8_t device_orientation):
@@ -182,20 +180,14 @@ LeddarOne::LeddarOne(const char *device_path, const char *serial_port, uint8_t d
 	_px4_rangefinder.set_device_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
 	_px4_rangefinder.set_max_distance(LEDDAR_ONE_MAX_DISTANCE);
 	_px4_rangefinder.set_min_distance(LEDDAR_ONE_MIN_DISTANCE);
-	_px4_rangefinder.set_fov(0.008); // Divergence 8 mRadian
+	_px4_rangefinder.set_fov(0.105); // FOV cone angle of 6 degrees.
 	_px4_rangefinder.set_orientation(device_orientation);
 }
 
 LeddarOne::~LeddarOne()
 {
 	stop();
-
 	free((char *)_serial_port);
-
-	if (_distance_sensor_topic) {
-		orb_unadvertise(_distance_sensor_topic);
-	}
-
 	perf_free(_comms_error);
 	perf_free(_sample_perf);
 }
