@@ -210,9 +210,8 @@ PARAM_DEFINE_INT32(SENS_EN_THERMAL, -1);
 /**
 * Driver level cutoff frequency for gyro
 *
-* The cutoff frequency for the 2nd order butterworth filter on the gyro driver. This features
-* is currently supported by the mpu6000 and mpu9250. This only affects the signal sent to the
-* controllers, not the estimators. 0 disables the filter.
+* The cutoff frequency for the 2nd order butterworth filter on the gyro driver.
+* This only affects the signal sent to the controllers, not the estimators. 0 disables the filter.
 *
 * @min 0
 * @max 1000
@@ -239,9 +238,8 @@ PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 0);
 /**
 * Driver level cutoff frequency for accel
 *
-* The cutoff frequency for the 2nd order butterworth filter on the accel driver. This features
-* is currently supported by the mpu6000 and mpu9250. This only affects the signal sent to the
-* controllers, not the estimators. 0 disables the filter.
+* The cutoff frequency for the 2nd order butterworth filter on the accel driver.
+* This only affects the signal sent to the controllers, not the estimators. 0 disables the filter.
 *
 * @min 0
 * @max 1000
