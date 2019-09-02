@@ -465,20 +465,19 @@ void Ekf::controlOpticalFlowFusion()
 				_control_status.flags.opt_flow = true;
 				_time_last_of_fuse = _time_last_imu;
 
-				// if we are not using GPS then the velocity and position states and covariances need to be set
-				if (!_control_status.flags.gps || !_control_status.flags.ev_pos) {
+				// if we are not using GPS or external vision aiding, then the velocity and position states and covariances need to be set
+				const bool flow_aid_only = !(_control_status.flags.gps || _control_status.flags.ev_pos);
+				if (flow_aid_only) {
 					resetVelocity();
 					resetPosition();
 
 					// align the output observer to the EKF states
 					alignOutputFilter();
-
 				}
 			}
 
 		} else if (!(_params.fusion_mode & MASK_USE_OF)) {
 			_control_status.flags.opt_flow = false;
-
 		}
 
 		// handle the case when we have optical flow, are reliant on it, but have not been using it for an extended period
