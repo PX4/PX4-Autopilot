@@ -43,7 +43,6 @@
 #pragma once
 
 #include <matrix/math.hpp>
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
 
 #include "LandDetector.h"
@@ -61,9 +60,6 @@ public:
 protected:
 
 	bool _get_landed_state() override;
-
-	float _get_max_altitude() override;
-
 	void _update_topics() override;
 
 private:

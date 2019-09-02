@@ -57,13 +57,6 @@ void FixedwingLandDetector::_update_topics()
 	_airspeed_sub.update(&_airspeed);
 }
 
-float FixedwingLandDetector::_get_max_altitude()
-{
-	// TODO: This means no altitude limit as the limit
-	// is always current position plus 10000 meters.
-	return roundf(-_vehicle_local_position.z + 10000);
-}
-
 bool FixedwingLandDetector::_get_landed_state()
 {
 	// Only trigger flight conditions if we are armed.

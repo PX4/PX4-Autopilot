@@ -41,7 +41,6 @@
 
 #pragma once
 
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_status.h>
 
