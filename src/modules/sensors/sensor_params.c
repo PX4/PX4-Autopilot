@@ -115,6 +115,9 @@ PARAM_DEFINE_FLOAT(SENS_DPRES_ANSC, 0);
  * @max 1500
  * @group Sensors
  * @unit hPa
+ *
+ * @reboot_required true
+ *
  */
 PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
 
