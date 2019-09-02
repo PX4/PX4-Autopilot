@@ -56,51 +56,6 @@ CollisionPrevention::~CollisionPrevention()
 	if (_mavlink_log_pub != nullptr) {
 		orb_unadvertise(_mavlink_log_pub);
 	}
-
-	if (_constraints_pub != nullptr) {
-		orb_unadvertise(_constraints_pub);
-	}
-
-	if (_obstacle_distance_pub != nullptr) {
-		orb_unadvertise(_obstacle_distance_pub);
-	}
-
-	if (_pub_vehicle_command != nullptr) {
-		orb_unadvertise(_pub_vehicle_command);
-	}
-}
-
-void CollisionPrevention::_publishConstrainedSetpoint(const Vector2f &original_setpoint,
-		const Vector2f &adapted_setpoint)
-{
-	collision_constraints_s	constraints{};	/**< collision constraints message */
-
-	//fill in values
-	constraints.timestamp = hrt_absolute_time();
-
-	constraints.original_setpoint[0] = original_setpoint(0);
-	constraints.original_setpoint[1] = original_setpoint(1);
-	constraints.adapted_setpoint[0] = adapted_setpoint(0);
-	constraints.adapted_setpoint[1] = adapted_setpoint(1);
-
-	// publish constraints
-	if (_constraints_pub != nullptr) {
-		orb_publish(ORB_ID(collision_constraints), _constraints_pub, &constraints);
-
-	} else {
-		_constraints_pub = orb_advertise(ORB_ID(collision_constraints), &constraints);
-	}
-}
-
-void CollisionPrevention::_publishObstacleDistance(obstacle_distance_s &obstacle)
-{
-	// publish fused obtacle distance message with data from offboard obstacle_distance and distance sensor
-	if (_obstacle_distance_pub != nullptr) {
-		orb_publish(ORB_ID(obstacle_distance_fused), _obstacle_distance_pub, &obstacle);
-
-	} else {
-		_obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance_fused), &obstacle);
-	}
 }
 
 void CollisionPrevention::_updateOffboardObstacleDistance(obstacle_distance_s &obstacle)
@@ -197,7 +152,8 @@ void CollisionPrevention::_updateDistanceSensor(obstacle_distance_s &obstacle)
 		}
 	}
 
-	_publishObstacleDistance(obstacle);
+	// publish fused obtacle distance message with data from offboard obstacle_distance and distance sensor
+	_obstacle_distance_pub.publish(obstacle);
 }
 
 void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
@@ -298,13 +254,21 @@ void CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const floa
 	}
 
 	_interfering = currently_interfering;
-	_publishConstrainedSetpoint(original_setpoint, new_setpoint);
+
+	// publish constraints
+	collision_constraints_s	constraints{};
+	constraints.timestamp = hrt_absolute_time();
+	original_setpoint.copyTo(constraints.original_setpoint);
+	new_setpoint.copyTo(constraints.adapted_setpoint);
+	_constraints_pub.publish(constraints);
+
 	original_setpoint = new_setpoint;
 }
 
 void CollisionPrevention::_publishVehicleCmdDoLoiter()
 {
 	vehicle_command_s command{};
+	command.timestamp = hrt_absolute_time();
 	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
 	command.param1 = (float)1; // base mode
 	command.param3 = (float)0; // sub mode
@@ -318,11 +282,5 @@ void CollisionPrevention::_publishVehicleCmdDoLoiter()
 	command.param3 = (float)PX4_CUSTOM_SUB_MODE_AUTO_LOITER;
 
 	// publish the vehicle command
-	if (_pub_vehicle_command == nullptr) {
-		_pub_vehicle_command = orb_advertise_queue(ORB_ID(vehicle_command), &command,
-				       vehicle_command_s::ORB_QUEUE_LENGTH);
-
-	} else {
-		orb_publish(ORB_ID(vehicle_command), _pub_vehicle_command, &command);
-	}
+	_vehicle_command_pub.publish(command);
 }
