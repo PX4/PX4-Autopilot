@@ -154,6 +154,15 @@ public:
 
 	void mixerChanged() override;
 
+	/**
+	 * Send a dshot command to one or all motors
+	 * This is expected to be called from another thread.
+	 * @param num_repetitions number of times to repeat, set at least to 1
+	 * @param motor_index index or -1 for all
+	 * @return 0 on success, <0 error otherwise
+	 */
+	int sendCommandThreadSafe(dshot_command_t command, int num_repetitions, int motor_index);
+
 private:
 	enum class DShotConfig {
 		Disabled = 0,
@@ -161,6 +170,15 @@ private:
 		DShot300 = 300,
 		DShot600 = 600,
 		DShot1200 = 1200,
+	};
+
+	struct Command {
+		dshot_command_t command;
+		int num_repetitions{0};
+		uint8_t motor_mask{0xff};
+
+		bool valid() const { return num_repetitions > 0; }
+		void clear() { num_repetitions = 0; }
 	};
 
 	struct Telemetry {
@@ -183,6 +201,8 @@ private:
 
 	uORB::Subscription _param_sub{ORB_ID(parameter_update)};
 
+	Command _current_command;
+	px4::atomic<Command *> _new_command{nullptr};
 
 	unsigned	_num_outputs{0};
 	int		_class_instance{-1};
@@ -578,6 +598,29 @@ void DShotOutput::handleNewTelemetryData(int motor_index, const DShotTelemetry::
 	_telemetry->last_motor_index = motor_index;
 }
 
+int DShotOutput::sendCommandThreadSafe(dshot_command_t command, int num_repetitions, int motor_index)
+{
+	Command cmd;
+	cmd.command = command;
+
+	if (motor_index == -1) {
+		cmd.motor_mask = 0xff;
+
+	} else {
+		cmd.motor_mask = 1 << _mixing_output.reorderedMotorIndex(motor_index);
+	}
+
+	cmd.num_repetitions = num_repetitions;
+	_new_command.store(&cmd);
+
+	// wait until main thread processed it
+	while (_new_command.load()) {
+		usleep(1000);
+	}
+
+	return 0;
+}
+
 void DShotOutput::mixerChanged()
 {
 	updateTelemetryNumMotors();
@@ -598,13 +641,28 @@ void DShotOutput::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS
 
 	if (stop_motors) {
 
+		// when motors are stopped we check if we have other commands to send
 		for (int i = 0; i < (int)num_outputs; i++) {
-			up_dshot_motor_command(i, DShot_cmd_motor_stop, i == requested_telemetry_index);
+			if (_current_command.valid() && (_current_command.motor_mask & (1 << i))) {
+				// for some reason we need to always request telemetry when sending a command
+				up_dshot_motor_command(i, _current_command.command, true);
+
+			} else {
+				up_dshot_motor_command(i, DShot_cmd_motor_stop, i == requested_telemetry_index);
+			}
 		}
+
+		if (_current_command.valid()) {
+			--_current_command.num_repetitions;
+		}
+
 	} else {
 		for (int i = 0; i < (int)num_outputs; i++) {
 			up_dshot_motor_data_set(i, math::min(outputs[i], (uint16_t)DSHOT_MAX_THROTTLE), i == requested_telemetry_index);
 		}
+
+		// clear commands when motors are running
+		_current_command.clear();
 	}
 
 	if (stop_motors || num_control_groups_updated > 0) {
@@ -652,6 +710,16 @@ DShotOutput::Run()
 	if (_request_telemetry_init.load()) {
 		initTelemetry(_telemetry_device);
 		_request_telemetry_init.store(false);
+	}
+
+	// new command?
+	if (!_current_command.valid()) {
+		Command *new_command = _new_command.load();
+
+		if (new_command) {
+			_current_command = *new_command;
+			_new_command.store(nullptr);
+		}
 	}
 
 	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
@@ -1235,6 +1303,53 @@ int DShotOutput::custom_command(int argc, char *argv[])
 		return 0;
 	}
 
+	int motor_index = -1; // select motor index, default: -1=all
+	int myoptind = 1;
+	int ch;
+	const char *myoptarg = nullptr;
+
+	while ((ch = px4_getopt(argc, argv, "m:", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'm':
+			motor_index = strtol(myoptarg, nullptr, 10) - 1;
+			break;
+
+		default:
+			return print_usage("unrecognized flag");
+		}
+	}
+
+	struct Command {
+		const char *name;
+		dshot_command_t command;
+		int num_repetitions;
+	};
+
+	constexpr Command commands[] = {
+		{"reverse", DShot_cmd_spin_direction_reversed, 10},
+		{"normal", DShot_cmd_spin_direction_normal, 10},
+		{"save", DShot_cmd_save_settings, 10},
+		{"3d_on", DShot_cmd_3d_mode_on, 10},
+		{"3d_off", DShot_cmd_3d_mode_off, 10},
+		{"beep1", DShot_cmd_beacon1, 1},
+		{"beep2", DShot_cmd_beacon2, 1},
+		{"beep3", DShot_cmd_beacon3, 1},
+		{"beep4", DShot_cmd_beacon4, 1},
+		{"beep5", DShot_cmd_beacon5, 1},
+	};
+
+	for (unsigned i = 0; i < sizeof(commands) / sizeof(commands[0]); ++i) {
+		if (!strcmp(verb, commands[i].name)) {
+			if (!is_running()) {
+				PX4_ERR("module not running");
+				return -1;
+			}
+
+			return get_instance()->sendCommandThreadSafe(commands[i].command, commands[i].num_repetitions, motor_index);
+		}
+	}
+
+
 	/* start the FMU if not running */
 	if (!is_running()) {
 		int ret = DShotOutput::task_spawn(argc, argv);
@@ -1333,6 +1448,16 @@ int DShotOutput::print_usage(const char *reason)
 This is the DShot output driver. It is similar to the fmu driver, and can be used as drop-in replacement
 to use DShot as ESC communication protocol instead of PWM.
 
+It supports:
+- DShot150, DShot300, DShot600, DShot1200
+- telemetry via separate UART and publishing as esc_status message
+- sending DShot commands via CLI
+
+### Examples
+Permanently reverse motor 1:
+$ dshot reverse -m 1
+$ dshot save -m 1
+After saving, the reversed direction will be regarded as the normal one. So to reverse again repeat the same commands.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("dshot", "driver");
@@ -1363,6 +1488,28 @@ to use DShot as ESC communication protocol instead of PWM.
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("telemetry", "Enable Telemetry on a UART");
 	PRINT_MODULE_USAGE_ARG("<device>", "UART device", false);
+
+	// DShot commands
+	PRINT_MODULE_USAGE_COMMAND_DESCR("reverse", "Reverse motor direction");
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("normal", "Normal motor direction");
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("save", "Save current settings");
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("3d_on", "Enable 3D mode");
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("3d_off", "Disable 3D mode");
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("beep1", "Send Beep pattern 1");
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("beep2", "Send Beep pattern 2");
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("beep3", "Send Beep pattern 3");
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("beep4", "Send Beep pattern 4");
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("beep5", "Send Beep pattern 5");
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
 
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
