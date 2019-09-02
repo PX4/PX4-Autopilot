@@ -33,6 +33,5 @@
 
 #pragma once
 
-#define PX4IO_SERIAL_BUF_ALIGN ARMV7M_DCACHE_LINESIZE
 #include "../../../stm32_common/include/px4_arch/px4io_serial.h"
 
