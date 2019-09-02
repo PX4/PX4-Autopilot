@@ -563,7 +563,6 @@ void TAP_ESC::cycle()
 				if (feed_back_data.channelID < esc_status_s::CONNECTED_ESC_MAX) {
 					_esc_feedback.esc[feed_back_data.channelID].esc_rpm = feed_back_data.speed;
 					_esc_feedback.esc[feed_back_data.channelID].esc_state = feed_back_data.ESCStatus;
-					_esc_feedback.esc[feed_back_data.channelID].esc_vendor = esc_status_s::ESC_VENDOR_TAP;
 					_esc_feedback.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_SERIAL;
 					_esc_feedback.counter++;
 					_esc_feedback.esc_count = num_outputs;
