@@ -48,7 +48,7 @@ class VelocitySmoothingTest : public ::testing::Test
 public:
 	void setConstraints(float j_max, float a_max, float v_max);
 	void setInitialConditions(Vector3f acc, Vector3f vel, Vector3f pos);
-	void updateTrajectories(Vector3f velocity_setpoints, float t);
+	void updateTrajectories(float t, Vector3f velocity_setpoints);
 
 	VelocitySmoothing _trajectories[3];
 };
@@ -71,7 +71,7 @@ void VelocitySmoothingTest::setInitialConditions(Vector3f a0, Vector3f v0, Vecto
 	}
 }
 
-void VelocitySmoothingTest::updateTrajectories(Vector3f velocity_setpoints, float t)
+void VelocitySmoothingTest::updateTrajectories(float t, Vector3f velocity_setpoints)
 {
 	float dummy; // We don't care about the immediate result
 
@@ -104,7 +104,7 @@ TEST_F(VelocitySmoothingTest, testTimeSynchronization)
 
 	// WHEN: We generate trajectories (time synchronized in XY) with constant setpoints and dt
 	Vector3f velocity_setpoints(-3.f, 1.f, 0.f);
-	updateTrajectories(velocity_setpoints, 0.f);
+	updateTrajectories(0.f, velocity_setpoints);
 
 
 	// THEN: The X and Y trajectories should have the same total time (= time sunchronized)
@@ -113,7 +113,14 @@ TEST_F(VelocitySmoothingTest, testTimeSynchronization)
 
 TEST_F(VelocitySmoothingTest, testConstantSetpoint)
 {
-	// GIVEN: A set of initial conditions (same constraints as before)
+	// GIVEN: A set of constraints
+	const float j_max = 55.2f;
+	const float a_max = 6.f;
+	const float v_max = 6.f;
+
+	setConstraints(j_max, a_max, v_max);
+
+	// AND: A set of initial conditions
 	Vector3f a0(0.f, 0.f, 0.f);
 	Vector3f v0(0.f, 0.f, 0.f);
 	Vector3f x0(0.f, 0.f, 0.f);
@@ -124,19 +131,16 @@ TEST_F(VelocitySmoothingTest, testConstantSetpoint)
 	Vector3f velocity_setpoints(-3.f, 0.f, -1.f);
 
 	// Compute the number of steps required to reach desired value
-	// because of known numerical issues, the actual trajectory takes a
-	// bit more time than the predicted one, this is why we have to add 14 steps
-	// to the theoretical value.
 	// The updateTrajectories is fist called once to compute the total time
 	float t = 0.f;
 	const float dt = 0.01;
-	updateTrajectories(velocity_setpoints, t);
+	updateTrajectories(t, velocity_setpoints);
 	float t123 = _trajectories[0].getTotalTime();
 	int nb_steps = ceil(t123 / dt);
 
 	for (int i = 0; i < nb_steps; i++) {
 		t += dt;
-		updateTrajectories(velocity_setpoints, t);
+		updateTrajectories(t, velocity_setpoints);
 	}
 
 	// THEN: All the trajectories should have reach their
@@ -163,7 +167,7 @@ TEST_F(VelocitySmoothingTest, testZeroSetpoint)
 
 	// WHEN: We run a few times the algorithm
 	for (int i = 0; i < 60; i++) {
-		updateTrajectories(velocity_setpoints, t);
+		updateTrajectories(t, velocity_setpoints);
 		t += dt;
 	}
 
