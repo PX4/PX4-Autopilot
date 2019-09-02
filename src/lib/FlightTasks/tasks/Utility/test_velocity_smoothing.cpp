@@ -38,6 +38,7 @@
 
 #include "VelocitySmoothing.hpp"
 #include <cstdio>
+#include <matrix/matrix/math.hpp>
 
 int main(int argc, char *argv[])
 {
@@ -62,25 +63,35 @@ int main(int argc, char *argv[])
 	float t = 0.f;
 	const float dt = 0.01f;
 
-	float velocity_setpoint[3] = {0.f, -1.f, 0.f};
+	float velocity_setpoint[3] = {1.f, 0.f, -1.f};
 
 	for (int i = 0; i < 3; i++) {
-		trajectory[i].updateDurations(velocity_setpoint[i], t);
+		trajectory[i].updateDurations(t, velocity_setpoint[i]);
 	}
 
-	//VelocitySmoothing::timeSynchronization(trajectory, 2);
+	float t123 = trajectory[2].getTotalTime();
+	int nb_steps = ceil(t123 / dt);
+	printf("Nb steps = %d\n", nb_steps);
 
-	t += dt;
-	for (int i = 0; i < 3; i++) {
-		trajectory[i].updateTraj(t, a0[i], v0[i], x0[i]);
-	}
+	for (int i = 0; i < nb_steps; i++) {
+		t += dt;
+		for (int i = 0; i < 3; i++) {
+			trajectory[i].updateTraj(t, a0[i], v0[i], x0[i]);
+		}
 
-	for (int i = 0; i < 3; i++) {
-		printf("Traj[%d]\n", i);
-		printf("jerk = %.3f\taccel = %.3f\tvel = %.3f\n", trajectory[i].getCurrentJerk(),
-		       trajectory[i].getCurrentAcceleration(), trajectory[i].getCurrentVelocity());
-		printf("T1 = %.3f\tT2 = %.3f\tT3 = %.3f\n", trajectory[i].getT1(), trajectory[i].getT2(), trajectory[i].getT3());
-		printf("\n");
+		for (int i = 0; i < 3; i++) {
+			trajectory[i].updateDurations(t, velocity_setpoint[i]);
+		}
+
+		VelocitySmoothing::timeSynchronization(trajectory, 2);
+
+		for (int i = 0; i < 3; i++) {
+			printf("Traj[%d]\n", i);
+			printf("jerk = %.3f\taccel = %.3f\tvel = %.3f\tpos = %.3f\n", trajectory[i].getCurrentJerk(),
+			       a0[i], v0[i], x0[i]);
+			printf("T1 = %.3f\tT2 = %.3f\tT3 = %.3f\n", trajectory[i].getT1(), trajectory[i].getT2(), trajectory[i].getT3());
+			printf("\n");
+		}
 	}
 
 	return 0;
