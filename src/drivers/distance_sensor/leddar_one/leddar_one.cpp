@@ -51,11 +51,11 @@
 
 using namespace time_literals;
 
-#define DEVICE_PATH                    "/dev/LeddarOne"
-#define LEDDAR_ONE_DEFAULT_SERIAL_PORT "/dev/ttyS3"
+#define DEVICE_PATH                     "/dev/LeddarOne"
+#define LEDDAR_ONE_DEFAULT_SERIAL_PORT  "/dev/ttyS3"
 
-#define MAX_DISTANCE                    40.0f
-#define MIN_DISTANCE                    0.01f
+#define LEDDAR_ONE_MAX_DISTANCE         40.0f
+#define LEDDAR_ONE_MIN_DISTANCE         0.01f
 
 #define LEDDAR_ONE_MEASURE_INTERVAL     100_ms // 10Hz
 
@@ -107,7 +107,7 @@ class LeddarOne : public cdev::CDev, public px4::ScheduledWorkItem
 public:
 	LeddarOne(const char *device_path,
 		  const char *serial_port = LEDDAR_ONE_DEFAULT_SERIAL_PORT,
-		  const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+		  const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	virtual ~LeddarOne();
 
 	virtual int init() override;
@@ -156,12 +156,15 @@ private:
 
 	const char *_serial_port{nullptr};
 
+	PX4Rangefinder _px4_rangefinder;
+
 	int _file_descriptor{-1};
 	int _orb_class_instance{-1};
 
 	uint8_t _buffer[sizeof(reading_msg)];
 	uint8_t _buffer_len{0};
-	uint8_t _rotation{distance_sensor_s::ROTATION_DOWNWARD_FACING};
+
+	hrt_abstime _measurement_time{0};
 
 	perf_counter_t _comms_error{perf_alloc(PC_COUNT, "leddar_one_comms_error")};
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "leddar_one_sample")};
@@ -169,12 +172,18 @@ private:
 	orb_advert_t _distance_sensor_topic{nullptr};
 };
 
-LeddarOne::LeddarOne(const char *device_path, const char *serial_port, uint8_t rotation):
+LeddarOne::LeddarOne(const char *device_path, const char *serial_port, uint8_t device_orientation):
 	CDev(device_path),
 	ScheduledWorkItem(px4::wq_configurations::hp_default),
-	_rotation(rotation)
+	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, device_orientation)
 {
 	_serial_port = strdup(serial_port);
+
+	_px4_rangefinder.set_device_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
+	_px4_rangefinder.set_max_distance(LEDDAR_ONE_MAX_DISTANCE);
+	_px4_rangefinder.set_min_distance(LEDDAR_ONE_MIN_DISTANCE);
+	_px4_rangefinder.set_fov(0.008); // Divergence 8 mRadian
+	_px4_rangefinder.set_orientation(device_orientation);
 }
 
 LeddarOne::~LeddarOne()
@@ -256,19 +265,12 @@ LeddarOne::collect()
 
 	// NOTE: little-endian support only.
 	uint16_t distance_mm = (msg->first_dist_high_byte << 8 | msg->first_dist_low_byte);
+	float distance_m = static_cast<float>(distance_mm) / 1000.0f;
 
-	distance_sensor_s report = {};
-	report.current_distance = static_cast<float>(distance_mm) / 1000.0f;
-	report.id = 0;
-	report.max_distance = MAX_DISTANCE;
-	report.min_distance = MIN_DISTANCE;
-	report.orientation = _rotation;
-	report.signal_quality = -1;
-	report.timestamp = hrt_absolute_time();
-	report.type = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
-	report.variance = 0.0f;
+	// @TODO - implement a meaningful signal quality value.
+	int8_t signal_quality = -1;
 
-	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
+	_px4_rangefinder.update(_measurement_time, distance_m, signal_quality);
 
 	perf_end(_sample_perf);
 
@@ -286,15 +288,6 @@ LeddarOne::init()
 
 	if (open_serial_port() != PX4_OK) {
 		return PX4_ERROR;
-	}
-
-	// Get a publish handle on the range finder topic.
-	distance_sensor_s ds_report = {};
-	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-				 &_orb_class_instance, ORB_PRIO_HIGH);
-
-	if (_distance_sensor_topic == nullptr) {
-		PX4_ERR("failed to create distance_sensor object");
 	}
 
 	hrt_abstime time_now = hrt_absolute_time();
@@ -334,6 +327,7 @@ LeddarOne::measure()
 		return PX4_ERROR;
 	}
 
+	_measurement_time = hrt_absolute_time();
 	_buffer_len = 0;
 	return PX4_OK;
 }
