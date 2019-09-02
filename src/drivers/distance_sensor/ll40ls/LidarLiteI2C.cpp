@@ -140,21 +140,35 @@ LidarLiteI2C::probe()
 		/*
 		  check for hw and sw versions for v1, v2 and v3
 		 */
-		if ((read_reg(LL40LS_HW_VERSION, _hw_version) == OK && _hw_version) > 0 &&
-		    (read_reg(LL40LS_SW_VERSION, _sw_version) == OK && _sw_version > 0)) {
-			PX4_INFO("probe success - hw: %u, sw:%u", _hw_version, _sw_version);
-			_retries = 3;
-			return reset_sensor();
-		}
+		if ((read_reg(LL40LS_HW_VERSION, _hw_version) == OK) &&
+		    (read_reg(LL40LS_SW_VERSION, _sw_version) == OK)) {
 
-		/*
-		  check for unit id for v3HP
-		 */
-		if (read_reg(LL40LS_UNIT_ID_HIGH, id_high) == OK &&
-		    read_reg(LL40LS_UNIT_ID_LOW, id_low) == OK) {
-			_unit_id = (uint16_t)((id_high << 8) | id_low) & 0xFFFF;
-			_is_V3hp = true;
-			PX4_INFO("probe success - id: %u", _unit_id);
+			if (read_reg(LL40LS_UNIT_ID_HIGH, id_high) == OK &&
+			    read_reg(LL40LS_UNIT_ID_LOW, id_low) == OK) {
+				_unit_id = (uint16_t)((id_high << 8) | id_low) & 0xFFFF;
+			}
+
+			if (_hw_version > 0) {
+
+				if (_unit_id > 0) {
+					// v2
+					PX4_INFO("probe success - hw: %u, sw:%u, id: %u", _hw_version, _sw_version, _unit_id);
+					_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE_V2);
+
+				} else {
+					// v1 and v3
+					PX4_INFO("probe success - hw: %u, sw:%u", _hw_version, _sw_version);
+				}
+
+			} else {
+
+				if (_unit_id > 0) {
+					// v3hp
+					_is_V3hp = true;
+					PX4_INFO("probe success - id: %u", _unit_id);
+				}
+			}
+
 			_retries = 3;
 			return reset_sensor();
 		}
