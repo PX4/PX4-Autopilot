@@ -223,6 +223,20 @@ PARAM_DEFINE_INT32(SENS_EN_THERMAL, -1);
 PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
 
 /**
+* Gyro control data maximum publication rate
+*
+* This is the maximum rate the gyro control data (sensor_gyro_control) will be allowed to publish at.
+* Set to 0 to disable to publish and publish at the native sensor sample rate.
+*
+* @min 0
+* @max 2000
+* @unit Hz
+* @reboot_required true
+* @group Sensors
+*/
+PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 0);
+
+/**
 * Driver level cutoff frequency for accel
 *
 * The cutoff frequency for the 2nd order butterworth filter on the accel driver. This features
