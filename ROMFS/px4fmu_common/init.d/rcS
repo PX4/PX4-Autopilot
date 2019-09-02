@@ -29,7 +29,7 @@ set FEXTRAS /fs/microsd/etc/extras.txt
 set FMU_ARGS ""
 set FMU_MODE pwm
 set FRC /fs/microsd/etc/rc.txt
-set IOFW "/etc/extras/px4_io-v2_default.bin"
+set IOFW "/etc/extras/px4_io-v2pro_default.bin"
 set IO_PRESENT no
 set LOG_FILE /fs/microsd/bootlog.txt
 set LOGGER_ARGS ""

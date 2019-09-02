@@ -243,6 +243,7 @@ qgc_firmware: px4fmu_firmware misc_qgc_extra_firmware
 # px4fmu NuttX firmware
 px4fmu_firmware: \
 	check_px4_io-v2_default \
+	check_px4_io-v2pro_default \
 	check_px4_fmu-v2_default \
 	check_px4_fmu-v3_default \
 	check_px4_fmu-v4_default \
