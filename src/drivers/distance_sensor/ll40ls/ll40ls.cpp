@@ -151,7 +151,7 @@ start(enum LL40LS_BUS busid, uint8_t rotation)
 
 		started |= start_bus(bus_options[i], rotation);
 
-		if (started) { break; }
+		// if (started) { break; }
 	}
 
 	exit(started ? 0 : 1);
