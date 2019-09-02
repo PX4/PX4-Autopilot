@@ -614,8 +614,6 @@ MK::task_main()
 
 			for (unsigned int i = 0; i < _num_outputs; i++) {
 				esc.esc[i].esc_address = (uint8_t) BLCTRL_BASE_ADDR + i;
-				esc.esc[i].esc_vendor = esc_status_s::ESC_VENDOR_MIKROKOPTER;
-				esc.esc[i].esc_version = (uint16_t) Motor[i].Version;
 				esc.esc[i].esc_voltage = 0.0F;
 				esc.esc[i].esc_current = static_cast<float>(Motor[i].Current) * 0.1F;
 				esc.esc[i].esc_rpm = (uint16_t) 0;
@@ -630,8 +628,8 @@ MK::task_main()
 					esc.esc[i].esc_setpoint_raw = (uint16_t) Motor[i].SetPoint;
 				}
 
-				esc.esc[i].esc_temperature = static_cast<float>(Motor[i].Temperature);
-				esc.esc[i].esc_state = (uint16_t) Motor[i].State;
+				esc.esc[i].esc_temperature = static_cast<uint8_t>(Motor[i].Temperature);
+				esc.esc[i].esc_state = (uint8_t) Motor[i].State;
 				esc.esc[i].esc_errorcount = (uint16_t) 0;
 
 				// if motortest is requested - do it... (deprecated in future)
