@@ -24,9 +24,3 @@ lis3mdl -X start
 
 # Possible internal compass
 ist8310 -C -b 5 start
-
-# Possible pmw3901 optical flow sensor
-pmw3901 start
-
-# Internal SPI
-ms5611 -s start
