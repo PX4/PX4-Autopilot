@@ -38,6 +38,7 @@
 #else
 
 #include <px4_config.h>
+#include <px4_micro_hal.h>
 #include <stm32_dma.h>
 #include <stm32_tim.h>
 #include <px4_arch/dshot.h>
@@ -116,9 +117,13 @@ typedef struct dshot_handler_t {
 	uint8_t			motors_number;
 } dshot_handler_t;
 
+#define DMA_BUFFER_MASK    (PX4_ARCH_DCACHE_LINESIZE - 1)
+#define DMA_ALIGN_UP(n)    (((n) + DMA_BUFFER_MASK) & ~DMA_BUFFER_MASK)
+
 static dshot_handler_t dshot_handler[DSHOT_TIMERS] = {};
 static uint16_t motor_buffer[MOTORS_NUMBER][ONE_MOTOR_BUFF_SIZE] = {};
-static uint32_t dshot_burst_buffer[DSHOT_TIMERS][ALL_MOTORS_BUF_SIZE] = {}; // TODO: DMA-able memory
+static uint8_t dshot_burst_buffer[DSHOT_TIMERS][DMA_ALIGN_UP(sizeof(uint32_t)*ALL_MOTORS_BUF_SIZE)] __attribute__((
+			aligned(PX4_ARCH_DCACHE_LINESIZE))) = {};
 
 #ifdef BOARD_DSHOT_MOTOR_ASSIGNMENT
 static const uint8_t motor_assignment[MOTORS_NUMBER] = BOARD_DSHOT_MOTOR_ASSIGNMENT;
@@ -270,6 +275,10 @@ void up_dshot_trigger(void)
 
 			dshot_dmar_data_prepare(timer, first_motor, dshot_handler[timer].motors_number);
 
+			// Flush cache so DMA sees the data
+			up_clean_dcache((uintptr_t)dshot_burst_buffer[timer],
+					(uintptr_t)dshot_burst_buffer[timer] + DMA_ALIGN_UP(sizeof(uint32_t)*ALL_MOTORS_BUF_SIZE));
+
 			first_motor += dshot_handler[timer].motors_number;
 
 			uint32_t dshot_data_size = dshot_handler[timer].motors_number * ONE_MOTOR_BUFF_SIZE;
@@ -381,9 +390,14 @@ void up_dshot_motor_command(unsigned channel, uint16_t command, bool telemetry)
 
 void dshot_dmar_data_prepare(uint8_t timer, uint8_t first_motor, uint8_t motors_number)
 {
+	// we know the uint8_t* cast to uint32_t* is fine, since we're aligned to cache line size
+#pragma GCC diagnostic ignored "-Wcast-align"
+	uint32_t *buffer = (uint32_t *)dshot_burst_buffer[timer];
+#pragma GCC diagnostic pop
+
 	for (uint32_t motor_data_index = 0; motor_data_index < ONE_MOTOR_BUFF_SIZE ; motor_data_index++) {
 		for (uint32_t motor_index = 0; motor_index < motors_number; motor_index++) {
-			dshot_burst_buffer[timer][motor_data_index * motors_number + motor_index] = motor_buffer[motor_index +
+			buffer[motor_data_index * motors_number + motor_index] = motor_buffer[motor_index +
 					first_motor][motor_data_index];
 		}
 	}
