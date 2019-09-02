@@ -76,7 +76,7 @@
 #include <float.h>
 #include <lib/conversion/rotation.h>
 
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 /*
  * IST8310 internal constants and data structures.

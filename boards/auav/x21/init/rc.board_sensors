@@ -18,3 +18,6 @@ mpu6000 -R 2 -T 20602 start
 
 # Internal SPI bus mpu9250 is rotated 90 deg yaw
 mpu9250 -R 2 start
+
+# Internal SPI
+ms5611 -s start
