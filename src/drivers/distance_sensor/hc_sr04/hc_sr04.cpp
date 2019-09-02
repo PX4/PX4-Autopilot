@@ -37,186 +37,115 @@
  * Driver for the hc_sr04 sonar range finders .
  */
 
-#include <px4_config.h>
-#include <px4_workqueue.h>
-#include <drivers/device/device.h>
-#include <px4_defines.h>
-#include <containers/Array.hpp>
+#include <lib/drivers/distance_sensor/DistanceSensor.h>
 
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_range_finder.h>
-#include <drivers/device/ringbuffer.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/distance_sensor.h>
-
-#define SR04_MAX_RANGEFINDERS 6
-#define SR04_ID_BASE	 0x10
-
-/* Configuration Constants */
-#define SR04_DEVICE_PATH	"/dev/hc_sr04"
+#define SR04_ID_BASE			0x10
+#define SR04_DEVICE_PATH		"/dev/hc_sr04"
+#define SR04_MAX_RANGEFINDERS		6
 
 /* Device limits */
-#define SR04_MIN_DISTANCE 	(0.10f)
-#define SR04_MAX_DISTANCE 	(4.00f)
+#define SR04_MIN_DISTANCE		(0.10f)
+#define SR04_MAX_DISTANCE		(4.00f)
 
-#define SR04_CONVERSION_INTERVAL 	100000 /* 100ms for one sonar */
+#define SR04_CONVERSION_INTERVAL	100000 /* 100ms for one sonar */
+
+#define GPIO_GPIO8_INPUT		0	// Not currrently defined for any board.
+#define GPIO_GPIO9_INPUT		0	// Not currrently defined for any board.
+#define GPIO_GPIO10_INPUT		0	// Not currrently defined for any board.
+#define GPIO_GPIO11_INPUT		0	// Not currrently defined for any board.
+#define GPIO_GPIO12_INPUT		0	// Not currrently defined for any board.
+
+const HC_SR04::GPIOConfig HC_SR04::_gpio_tab[] = {
+	{GPIO_GPIO6_OUTPUT, GPIO_GPIO7_INPUT,  0},
+	{GPIO_GPIO6_OUTPUT, GPIO_GPIO8_INPUT,  0},
+	{GPIO_GPIO6_OUTPUT, GPIO_GPIO9_INPUT,  0},
+	{GPIO_GPIO6_OUTPUT, GPIO_GPIO10_INPUT, 0},
+	{GPIO_GPIO6_OUTPUT, GPIO_GPIO11_INPUT, 0},
+	{GPIO_GPIO6_OUTPUT, GPIO_GPIO12_INPUT, 0}
+};
 
 
-class HC_SR04 : public cdev::CDev
+class HC_SR04 : public DistanceSensor, public cdev::CDev
 {
 public:
 	HC_SR04();
 	virtual ~HC_SR04();
 
-	virtual int 		init();
+	virtual int init();
 
-	virtual ssize_t		read(device::file_t *filp, char *buffer, size_t buflen);
-	virtual int			ioctl(device::file_t *filp, int cmd, unsigned long arg);
-
-	/**
-	* Diagnostics - print some basic information about the driver.
-	*/
-	void				print_info();
-	void                            interrupt(unsigned time);
+	void interrupt(unsigned time);
 
 protected:
-	virtual int			probe();
 
 private:
-	float				_min_distance;
-	float				_max_distance;
-	ringbuffer::RingBuffer	*_reports;
-	bool				_sensor_ok;
-	int					_measure_interval;
-	bool				_collect_phase;
-	int					_class_instance;
-	int					_orb_class_instance;
 
-	orb_advert_t		_distance_sensor_topic;
+	int collect();
 
-	perf_counter_t		_sample_perf;
-	perf_counter_t		_comms_errors;
+	int measure();
 
-	uint8_t				_cycle_counter;	/* counter in cycle to change i2c adresses */
-	int					_cycling_rate;	/* */
-	uint8_t				_index_counter;	/* temporary sonar i2c address */
+	/**
+	 * Test whether the device supported by the driver is present at a
+	 * specific address.
+	 *
+	 * @param address The I2C bus address to probe.
+	 * @return        True if the device is present.
+	 */
+	int probe_address(uint8_t address);
 
-	px4::Array<float, 6>
-	_latest_sonar_measurements; /* vector to store latest sonar measurements in before writing to report */
-	unsigned 		_sonars{6};
+	/**
+	 * Stop the automatic measurement state machine.
+	 */
+	void dev_stop();
+
 	struct GPIOConfig {
-		uint32_t        trig_port;
-		uint32_t        echo_port;
-		uint32_t        alt;
+		uint32_t alt;
+		uint32_t echo_port;
+		uint32_t trig_port;
 	};
+
 	static const GPIOConfig _gpio_tab[];
-	unsigned 		_raising_time;
-	unsigned 		_falling_time;
-	unsigned 		_status;
-	/**
-	* Test whether the device supported by the driver is present at a
-	* specific address.
-	*
-	* @param address	The I2C bus address to probe.
-	* @return			True if the device is present.
-	*/
-	int					probe_address(uint8_t address);
 
-	/**
-	* Initialise the automatic measurement state machine and start it.
-	*
-	* @note This function is called at open and error time.  It might make sense
-	*       to make it more aggressive about resetting the bus in case of errors.
-	*/
-	void				start();
+	px4::Array<float, 6> _latest_sonar_measurements {};	// Array to store latest sonar measurements in before writing to report.
 
-	/**
-	* Stop the automatic measurement state machine.
-	*/
-	void				stop();
+	bool _collect_phase{false};
+	bool _sensor_ok{false};
 
-	/**
-	* Set the min and max distance thresholds if you want the end points of the sensors
-	* range to be brought in at all, otherwise it will use the defaults MB12XX_MIN_DISTANCE
-	* and MB12XX_MAX_DISTANCE
-	*/
-	void				set_minimum_distance(float min);
-	void				set_maximum_distance(float max);
-	float				get_minimum_distance();
-	float				get_maximum_distance();
+	int _class_instance{-1};
+	int _cycling_rate{0};		// Initialize cycling rate to zero, (can differ depending on one sonar or multiple).
+	int _measure_interval{0};
+	int _orb_class_instance{-1};
 
-	/**
-	* Perform a poll cycle; collect from the previous measurement
-	* and start a new one.
-	*/
-	void				Run() override;
-	int					measure();
-	int					collect();
+	unsigned int _falling_time{0};
+	unsigned int _raising_time{0};
+	unsigned int _sonars{6};
+	unsigned int _status{0};
 
+	uint8_t _cycle_counter{0};	// Initialize counter for cycling function to zero.
+	uint8_t _index_counter{0};	// Initialize temp sonar i2c address to zero.
+
+	float _max_distance{SR04_MIN_DISTANCE};
+	float _min_distance{SR04_MAX_DISTANCE};
+
+	ringbuffer::RingBuffer	*_reports{nullptr};
+
+	orb_advert_t _distance_sensor_topic{nullptr};
+
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, "hc_sr04_comms_errors")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "hc_sr04_read")};
 };
 
-const HC_SR04::GPIOConfig HC_SR04::_gpio_tab[] = {
-	{GPIO_GPIO6_OUTPUT,      GPIO_GPIO7_INPUT,       0},
-	{GPIO_GPIO6_OUTPUT,      GPIO_GPIO8_INPUT,       0},
-	{GPIO_GPIO6_OUTPUT,      GPIO_GPIO9_INPUT,       0},
-	{GPIO_GPIO6_OUTPUT,      GPIO_GPIO10_INPUT,       0},
-	{GPIO_GPIO6_OUTPUT,      GPIO_GPIO11_INPUT,       0},
-	{GPIO_GPIO6_OUTPUT,      GPIO_GPIO12_INPUT,       0}
-};
-
-/*
- * Driver 'main' command.
- */
-extern "C"  __EXPORT int hc_sr04_main(int argc, char *argv[]);
-static int sonar_isr(int irq, void *context);
 
 HC_SR04::HC_SR04() :
-	CDev(SR04_DEVICE_PATH, 0),
-	_min_distance(SR04_MIN_DISTANCE),
-	_max_distance(SR04_MAX_DISTANCE),
-	_reports(nullptr),
-	_sensor_ok(false),
-	_measure_interval(0),
-	_collect_phase(false),
-	_class_instance(-1),
-	_orb_class_instance(-1),
-	_distance_sensor_topic(nullptr),
-	_sample_perf(perf_alloc(PC_ELAPSED, "hc_sr04_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "hc_sr04_comms_errors")),
-	_cycle_counter(0),	/* initialising counter for cycling function to zero */
-	_cycling_rate(0),	/* initialising cycling rate (which can differ depending on one sonar or multiple) */
-	_index_counter(0), 	/* initialising temp sonar i2c address to zero */
-	_sonars(sonars),
-	_raising_time(0),
-	_falling_time(0),
-	_status(0)
-
+	CDev(SR04_DEVICE_PATH)
 {
 }
 
 HC_SR04::~HC_SR04()
 {
-	/* make sure we are truly inactive */
+	// Ensure we are truly inactive.
 	stop();
 
-	/* free any existing reports */
+	// Free any existing reports.
 	if (_reports != nullptr) {
 		delete _reports;
 	}
@@ -225,246 +154,9 @@ HC_SR04::~HC_SR04()
 		unregister_class_devname(RANGE_FINDER_BASE_DEVICE_PATH, _class_instance);
 	}
 
-	/* free perf counters */
+	// Free perf counters.
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
-}
-
-int
-HC_SR04::init()
-{
-	int ret = PX4_ERROR;
-
-	/* do I2C init (and probe) first */
-	if (CDev::init() != OK) {
-		return PX4_ERROR;
-	}
-
-	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
-
-	if (_reports == nullptr) {
-		return PX4_ERROR;
-	}
-
-	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
-
-	/* get a publish handle on the range finder topic */
-	struct distance_sensor_s ds_report = {};
-
-	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-				 &_orb_class_instance, ORB_PRIO_LOW);
-
-	if (_distance_sensor_topic == nullptr) {
-		PX4_ERR("failed to create distance_sensor object");
-	}
-
-	/* init echo port : */
-	for (unsigned i = 0; i <= _sonars; i++) {
-		px4_arch_configgpio(_gpio_tab[i].trig_port);
-		px4_arch_gpiowrite(_gpio_tab[i].trig_port, false);
-		px4_arch_configgpio(_gpio_tab[i].echo_port);
-		_latest_sonar_measurements.push_back(0);
-	}
-
-	usleep(200000); /* wait for 200ms; */
-
-	_cycling_rate = SR04_CONVERSION_INTERVAL;
-
-	/* show the connected sonars in terminal */
-	PX4_DEBUG("Number of sonars set: %d", _sonars);
-
-	ret = OK;
-	/* sensor is ok, but we don't really know if it is within range */
-	_sensor_ok = true;
-
-	return ret;
-}
-
-int
-HC_SR04::probe()
-{
-	return (OK);
-}
-
-void
-HC_SR04::set_minimum_distance(float min)
-{
-	_min_distance = min;
-}
-
-void
-HC_SR04::set_maximum_distance(float max)
-{
-	_max_distance = max;
-}
-
-float
-HC_SR04::get_minimum_distance()
-{
-	return _min_distance;
-}
-
-float
-HC_SR04::get_maximum_distance()
-{
-	return _max_distance;
-}
-void
-HC_SR04::interrupt(unsigned time)
-{
-	if (_status == 0) {
-		_raising_time = time;
-		_status++;
-		return;
-
-	} else if (_status == 1) {
-		_falling_time = time;
-		_status++;
-		return;
-	}
-
-	return;
-}
-
-int
-HC_SR04::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-
-	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
-
-			/* zero would be bad */
-			case 0:
-				return -EINVAL;
-
-			/* set default polling rate */
-			case SENSOR_POLLRATE_DEFAULT: {
-					/* do we need to start internal polling? */
-					bool want_start = (_measure_interval == 0);
-
-					/* set interval for next measurement to minimum legal value */
-					_measure_interval = _cycling_rate;
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-
-					}
-
-					return OK;
-				}
-
-			/* adjust to a legal polling interval in Hz */
-			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_measure_interval == 0);
-
-					/* convert hz to tick interval via microseconds */
-					int interval = (1000000 / arg);
-
-					/* check against maximum rate */
-					if (interval < _cycling_rate) {
-						return -EINVAL;
-					}
-
-					/* update interval for next measurement */
-					_measure_interval = interval;
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-					}
-
-					return OK;
-				}
-			}
-		}
-
-	default:
-		/* give it to the superclass */
-		return CDev::ioctl(filp, cmd, arg);
-	}
-}
-
-ssize_t
-HC_SR04::read(device::file_t *filp, char *buffer, size_t buflen)
-{
-
-	unsigned count = buflen / sizeof(struct distance_sensor_s);
-	struct distance_sensor_s *rbuf = reinterpret_cast<struct distance_sensor_s *>(buffer);
-	int ret = 0;
-
-	/* buffer must be large enough */
-	if (count < 1) {
-		return -ENOSPC;
-	}
-
-	/* if automatic measurement is enabled */
-	if (_measure_interval > 0) {
-		/*
-		 * While there is space in the caller's buffer, and reports, copy them.
-		 * Note that we may be pre-empted by the workq thread while we are doing this;
-		 * we are careful to avoid racing with them.
-		 */
-		while (count--) {
-			if (_reports->get(rbuf)) {
-				ret += sizeof(*rbuf);
-				rbuf++;
-			}
-		}
-
-		/* if there was no data, warn the caller */
-		return ret ? ret : -EAGAIN;
-	}
-
-	/* manual measurement - run one conversion */
-	do {
-		_reports->flush();
-
-		/* trigger a measurement */
-		if (OK != measure()) {
-			ret = -EIO;
-			break;
-		}
-
-		/* wait for it to complete */
-		usleep(_cycling_rate * 2);
-
-		/* run the collection phase */
-		if (OK != collect()) {
-			ret = -EIO;
-			break;
-		}
-
-		/* state machine will have generated a report, copy it out */
-		if (_reports->get(rbuf)) {
-			ret = sizeof(*rbuf);
-		}
-
-	} while (0);
-
-	return ret;
-}
-
-int
-HC_SR04::measure()
-{
-
-	int ret;
-	/*
-	 * Send a plus begin a measurement.
-	 */
-	px4_arch_gpiowrite(_gpio_tab[_cycle_counter].trig_port, true);
-	usleep(10);  // 10us
-	px4_arch_gpiowrite(_gpio_tab[_cycle_counter].trig_port, false);
-
-	px4_arch_gpiosetevent(_gpio_tab[_cycle_counter].echo_port, true, true, false, sonar_isr);
-	_status = 0;
-	ret = OK;
-
-	return ret;
 }
 
 int
@@ -548,43 +240,103 @@ HC_SR04::collect()
 	return ret;
 }
 
-void
-HC_SR04::start()
+int
+HC_SR04::init()
 {
-	/* reset the report ring and state machine */
-	_collect_phase = false;
-	_reports->flush();
+	// Perform I2C init (and probe) first.
+	if (CDev::init() != OK) {
+		return PX4_ERROR;
+	}
 
-	measure();  /* begin measure */
+	// Allocate basic report buffers.
+	_reports = new ringbuffer::RingBuffer(2, sizeof(distance_sensor_s));
 
-	/* schedule a cycle to start things */
-	ScheduleDelayed(_cycling_rate);
+	if (_reports == nullptr) {
+		return PX4_ERROR;
+	}
+
+	_class_instance = register_class_devname(RANGE_FINDER_BASE_DEVICE_PATH);
+
+	// Get a publish handle on the range finder topic.
+	struct distance_sensor_s ds_report = {};
+
+	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
+				 &_orb_class_instance, ORB_PRIO_LOW);
+
+	if (_distance_sensor_topic == nullptr) {
+		PX4_ERR("failed to create distance_sensor object");
+	}
+
+	// Init echo port:
+	for (unsigned i = 0; i <= _sonars; i++) {
+		px4_arch_configgpio(_gpio_tab[i].trig_port);
+		px4_arch_gpiowrite(_gpio_tab[i].trig_port, false);
+		px4_arch_configgpio(_gpio_tab[i].echo_port);
+		_latest_sonar_measurements.push_back(0);
+	}
+
+	usleep(200000); // Wait for 200ms for the sensor to configure.
+
+	// sensor is ok, but we don't really know if it is within range.
+	_sensor_ok = true;
+	_cycling_rate = SR04_CONVERSION_INTERVAL;
+
+	// Show the connected sonars in terminal.
+	PX4_INFO("Number of sonars set: %d", _sonars);
+
+	return PX4_OK;
 }
 
 void
-HC_SR04::stop()
+HC_SR04::interrupt(unsigned time)
 {
-	ScheduleClear();
+	if (_status == 0) {
+		_raising_time = time;
+		_status++;
+		return;
+
+	} else if (_status == 1) {
+		_falling_time = time;
+		_status++;
+		return;
+	}
+
+	return;
+}
+
+int
+HC_SR04::measure()
+{
+	// Send a plus begin a measurement.
+	px4_arch_gpiowrite(_gpio_tab[_cycle_counter].trig_port, true);
+
+	usleep(10);  // Allow 10us for register write to complete.
+
+	px4_arch_gpiowrite(_gpio_tab[_cycle_counter].trig_port, false);
+	px4_arch_gpiosetevent(_gpio_tab[_cycle_counter].echo_port, true, true, false, sonar_isr);
+
+	_status = 0;
+
+	return PX4_OK;
 }
 
 void
 HC_SR04::Run()
 {
-	/*_circle_count 计录当前sonar　*/
-	/* perform collection */
-	if (OK != collect()) {
+	int ret = collect();
+
+	// perform collection */
+	if (ret != PX4_OK) {
 		PX4_DEBUG("collection error");
 	}
 
-	/* change to next sonar */
-	_cycle_counter = _cycle_counter + 1;
+	// change to next sonar.
+	_cycle_counter++;
+	_cycle_counter %= _sonars;
 
-	if (_cycle_counter >= _sonars) {
-		_cycle_counter = 0;
-	}
+	ret = measure();
 
-	/* 测量next sonar */
-	if (OK != measure()) {
+	if (ret != PX4_OK) {
 		PX4_DEBUG("measure error sonar adress %d", _cycle_counter);
 	}
 
@@ -592,12 +344,23 @@ HC_SR04::Run()
 }
 
 void
-HC_SR04::print_info()
+HC_SR04::start()
 {
-	perf_print_counter(_sample_perf);
-	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u \n", _measure_interval);
-	_reports->print_info("report queue");
+	// Reset the report ring and state machine.
+	_collect_phase = false;
+	_reports->flush();
+
+	// Begin measure.
+	measure();
+
+	// Schedule a cycle to start things.
+	ScheduleDelayed(_cycling_rate);
+}
+
+void
+HC_SR04::stop()
+{
+	ScheduleClear();
 }
 
 /**
@@ -608,72 +371,84 @@ namespace  hc_sr04
 
 HC_SR04	*g_dev;
 
-void	start();
-void	stop();
-void	test();
-void	reset();
-void	info();
+int reset(const char *port = DEFAULT_SERIAL_PORT);
+int start(const char *port = DEFAULT_SERIAL_PORT,
+	  const uint8_t orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+int status();
+int stop();
+int test(const char *port = DEFAULT_SERIAL_PORT);
+int usage();
+
+/**
+ * Reset the driver.
+ */
+int
+reset(const char *port)
+{
+	if (stop() == PX4_OK) {
+		return start(port);
+	}
+
+	return PX4_ERROR;
+}
 
 /**
  * Start the driver.
  */
-void
-start()
+int
+start(const char *port, const uint8_t orientation)
 {
-	int fd;
-
 	if (g_dev != nullptr) {
-		errx(1, "already started");
+		PX4_INFO("already started");
+		return PX4_OK;
 	}
 
-	/* create the driver */
-	g_dev = new HC_SR04();
+	// Instantiate the driver.
+	g_dev = new HC_SR04(port, orientation);
 
 	if (g_dev == nullptr) {
-		goto fail;
+		PX4_ERR("object instantiate failed");
+		return PX4_ERROR;
 	}
 
-	if (OK != g_dev->init()) {
-		goto fail;
-	}
-
-	/* set the poll rate to default, starts automatic data collection */
-	fd = open(SR04_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		goto fail;
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		goto fail;
-	}
-
-	exit(0);
-
-fail:
-
-	if (g_dev != nullptr) {
+	if (g_dev->DistanceSensor::init() != PX4_OK) {
+		PX4_ERR("driver start failed");
 		delete g_dev;
 		g_dev = nullptr;
+		return PX4_ERROR;
 	}
 
-	errx(1, "driver start failed");
+	return PX4_OK;
+}
+
+/**
+ * Print the driver status.
+ */
+int
+status()
+{
+	if (g_dev == nullptr) {
+		PX4_ERR("driver not running");
+		return PX4_ERROR;
+	}
+
+	printf("state @ %p\n", g_dev);
+	g_dev->print_info();
+
+	return PX4_OK;
 }
 
 /**
  * Stop the driver
  */
-void stop()
+int stop()
 {
 	if (g_dev != nullptr) {
 		delete g_dev;
 		g_dev = nullptr;
-
-	} else {
-		errx(1, "driver not running");
 	}
 
-	exit(0);
+	return PX4_ERROR;
 }
 
 /**
@@ -681,158 +456,101 @@ void stop()
  * make sure we can collect data from the sensor in polled
  * and automatic modes.
  */
-void
-test()
+int
+test(const char *port)
 {
-#if 0
-	struct distance_sensor_s report;
-	ssize_t sz;
-	int ret;
-
-	int fd = open(SR04_DEVICE_PATH, O_RDONLY);
+	int fd = open(port, O_RDONLY);
 
 	if (fd < 0) {
-		err(1, "%s open failed (try 'hc_sr04 start' if the driver is not running", SR04_DEVICE_PATH);
+		PX4_ERR("%s open failed (try 'hc_sr04 start' if the driver is not running", port);
+		return PX4_ERROR;
 	}
 
-	/* do a simple demand read */
-	sz = read(fd, &report, sizeof(report));
+	// Perform a simple demand read.
+	distance_sensor_s report;
+	ssize_t bytes_read = read(fd, &report, sizeof(report));
 
-	if (sz != sizeof(report)) {
-		err(1, "immediate read failed");
+	if (bytes_read != sizeof(report)) {
+		PX4_ERR("immediate read failed");
+		return PX4_ERROR;
 	}
 
+	close(fd);
 	print_message(report);
-
-	/* start the sensor polling at 2Hz */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, 2)) {
-		errx(1, "failed to set 2Hz poll rate");
-	}
-
-	/* read the sensor 5x and report each value */
-	for (unsigned i = 0; i < 5; i++) {
-		struct pollfd fds;
-
-		/* wait for data to be ready */
-		fds.fd = fd;
-		fds.events = POLLIN;
-		ret = poll(&fds, 1, 2000);
-
-		if (ret != 1) {
-			errx(1, "timed out waiting for sensor data");
-		}
-
-		/* now go get it */
-		sz = read(fd, &report, sizeof(report));
-
-		if (sz != sizeof(report)) {
-			err(1, "periodic read failed");
-		}
-
-		print_message(report);
-	}
-
-	/* reset the sensor polling to default rate */
-	if (OK != ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT)) {
-		errx(1, "failed to set default poll rate");
-	}
-
-	errx(0, "PASS");
-#endif
+	return PX4_OK;
 }
 
-/**
- * Reset the driver.
- */
-void
-reset()
+int
+usage()
 {
-	int fd = open(SR04_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "failed ");
-	}
-
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "driver poll restart failed");
-	}
-
-	exit(0);
-}
-
-/**
- * Print a little info about the driver.
- */
-void
-info()
-{
-	if (g_dev == nullptr) {
-		errx(1, "driver not running");
-	}
-
-	printf("state @ %p\n", g_dev);
-	g_dev->print_info();
-
-	exit(0);
+	PX4_INFO("usage: hc_sr04 command [options]");
+	PX4_INFO("command:");
+	PX4_INFO("\treset|start|status|stop|test");
+	PX4_INFO("options:");
+	PX4_INFO("\t-R --rotation (%d)", distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	PX4_INFO("\t-d --device_path");
+	return PX4_OK;
 }
 
 } /* namespace */
 
-static int sonar_isr(int irq, void *context)
+
+/**
+ * Driver 'main' command.
+ */
+extern "C"  __EXPORT int hc_sr04_main(int argc, char *argv[])
 {
-	unsigned time = hrt_absolute_time();
-	/* ack the interrupts we just read */
+	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
+	const char *device_path = CM8JL65_DEFAULT_PORT;
+	int ch;
+	int myoptind = 1;
+	const char *myoptarg = nullptr;
 
-	if (hc_sr04::g_dev != nullptr) {
-		hc_sr04::g_dev->interrupt(time);
+	while ((ch = px4_getopt(argc, argv, "d:R", &myoptind, &myoptarg)) != EOF) {
+		switch (ch) {
+		case 'd':
+			device_path = myoptarg;
+			break;
+
+		case 'R':
+			rotation = (uint8_t)atoi(myoptarg);
+			break;
+
+		default:
+			PX4_WARN("Unknown option!");
+			return hc_sr04::usage();
+		}
 	}
 
-	return OK;
-}
-
-
-
-int
-hc_sr04_main(int argc, char *argv[])
-{
-	/*
-	 * Start/load the driver.
-	 */
-	if (!strcmp(argv[1], "start")) {
-		hc_sr04::start();
+	if (myoptind >= argc) {
+		return hc_sr04::usage();
 	}
 
-	/*
-	 * Stop the driver
-	 */
-	if (!strcmp(argv[1], "stop")) {
-		hc_sr04::stop();
+	// Reset the driver.
+	if (!strcmp(argv[myoptind], "reset")) {
+		return hc_sr04::reset(device_path);
 	}
 
-	/*
-	 * Test the driver/device.
-	 */
-	if (!strcmp(argv[1], "test")) {
-		hc_sr04::test();
+	// Start/load the driver.
+	if (!strcmp(argv[myoptind], "start")) {
+		return hc_sr04::start(device_path, rotation);
 	}
 
-	/*
-	 * Reset the driver.
-	 */
-	if (!strcmp(argv[1], "reset")) {
-		hc_sr04::reset();
+	// Print driver information.
+	if (!strcmp(argv[myoptind], "status")) {
+		return hc_sr04::status();
 	}
 
-	/*
-	 * Print driver information.
-	 */
-	if (!strcmp(argv[1], "info") || !strcmp(argv[1], "status")) {
-		hc_sr04::info();
+	// Stop the driver
+	if (!strcmp(argv[myoptind], "stop")) {
+		return hc_sr04::stop();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'test', 'reset' or 'info'");
+	// Test the driver/device.
+	if (!strcmp(argv[myoptind], "test")) {
+		return hc_sr04::test();
+	}
+
+	// Print driver usage information.
+	return hc_sr04::usage();
 }

@@ -35,6 +35,8 @@ px4_add_module(
 	MAIN cm8jl65
 	SRCS
 		cm8jl65.cpp
-  MODULE_CONFIG
-	  module.yaml
+	DEPENDS
+		drivers_distance_sensor
+	MODULE_CONFIG
+		module.yaml
 	)

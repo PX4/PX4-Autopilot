@@ -37,6 +37,8 @@ px4_add_module(
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		leddar_one.cpp
+	DEPENDS
+		drivers_distance_sensor
 	MODULE_CONFIG
 		module.yaml
 	)

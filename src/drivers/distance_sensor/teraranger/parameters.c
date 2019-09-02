@@ -43,5 +43,6 @@
  * @value 2 TROne
  * @value 3 TREvo60m
  * @value 4 TREvo600Hz
+ * @value 5 TREvo3m
  */
 PARAM_DEFINE_INT32(SENS_EN_TRANGER, 0);

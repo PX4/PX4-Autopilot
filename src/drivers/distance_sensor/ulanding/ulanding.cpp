@@ -39,55 +39,28 @@
  * Driver for the uLanding radar from Aerotenna
  */
 
-#include <errno.h>
-#include <fcntl.h>
-#include <math.h>
-#include <poll.h>
-#include <semaphore.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <termios.h>
-#include <unistd.h>
-
-#include <drivers/device/device.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_range_finder.h>
+#include <lib/drivers/distance_sensor/DistanceSensor.h>
 #include <mathlib/mathlib.h>
-#include <perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
-#include <px4_workqueue.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <systemlib/err.h>
-#include <uORB/topics/distance_sensor.h>
-#include <uORB/uORB.h>
-
 
 using namespace time_literals;
 
 #define ULANDING_MEASURE_INTERVAL       10_ms
-#define ULANDING_MAX_DISTANCE	        50.0f
-#define ULANDING_MIN_DISTANCE	        0.315f
-#define ULANDING_VERSION	        1
+#define ULANDING_MAX_DISTANCE           50.0f
+#define ULANDING_MIN_DISTANCE           0.315f
+#define ULANDING_VERSION                1
 
 #if defined(__PX4_POSIX_OCPOC)
-#define RADAR_DEFAULT_PORT      "/dev/ttyS6"	// Default uLanding port on OCPOC.
+#define ULANDING_DEFAULT_PORT   "/dev/ttyS6"    // Default uLanding port on OCPOC.
 #else
-#define RADAR_DEFAULT_PORT      "/dev/ttyS2"	// Default serial port on Pixhawk (TELEM2), baudrate 115200
+#define ULANDING_DEFAULT_PORT   "/dev/ttyS2"    // Default serial port on Pixhawk (TELEM2), baudrate 115200
 #endif
 
 #if ULANDING_VERSION == 1
-#define ULANDING_PACKET_HDR     254
-#define ULANDING_BUFFER_LENGTH  18
+#define ULANDING_PACKET_HDR        254
+#define ULANDING_BUFFER_LENGTH     18
 #else
-#define ULANDING_PACKET_HDR     72
-#define ULANDING_BUFFER_LENGTH  9
+#define ULANDING_PACKET_HDR        72
+#define ULANDING_BUFFER_LENGTH     9
 #endif
 
 /**
@@ -95,10 +68,10 @@ using namespace time_literals;
  * Static bench tests have shown that the sensor ouput does
  * not vary if the unit is not moved.
  */
-#define SENS_VARIANCE           0.045f * 0.045f
+#define ULANDING_SENSOR_RESOLUTION      0.045f * 0.045f
 
 
-class Radar : public cdev::CDev, public px4::ScheduledWorkItem
+class ULanding : public DistanceSensor, public cdev::CDev
 {
 public:
 	/**
@@ -106,102 +79,84 @@ public:
 	 * @param port The serial port to open for communicating with the sensor.
 	 * @param rotation The sensor rotation relative to the vehicle body.
 	 */
-	Radar(const char *port = RADAR_DEFAULT_PORT, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	ULanding(const char *port = ULANDING_DEFAULT_PORT,
+		 const uint8_t orietation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 
 	/** Virtual destructor */
-	virtual ~Radar();
+	virtual ~ULanding();
 
 	/**
 	 * Method : init()
 	 * This method initializes the general driver for a range finder sensor.
 	 */
-	virtual int init() override;
-
-	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
-	void print_info();
+	virtual int dev_init() override;
 
 private:
 
 	/**
-	 * Reads data from serial UART and places it into a buffer.
+	 * Performs device specific stop actions.
 	 */
-	int collect();
+	void dev_stop();
 
 	/**
-	 * Opens and configures the UART serial communications port.
-	 * @param speed The baudrate (speed) to configure the serial UART port.
+	 * Reads distance sensor data from serial UART, calls the data_parser and validates the checksum.
 	 */
-	int open_serial_port(const speed_t speed = B115200);
-
-	/**
-	 * Perform a reading cycle; collect from the previous measurement
-	 * and start a new one.
-	 */
-	void Run() override;
-
-	/**
-	 * Initialise the automatic measurement state machine and start it.
-	 * @note This function is called at open and error time.  It might make sense
-	 *       to make it more aggressive about resetting the bus in case of errors.
-	 */
-	void start();
-
-	/**
-	 * Stops the automatic measurement state machine.
-	 */
-	void stop();
-
-	char _port[20];
-
-	int _file_descriptor{-1};
-	int _orb_class_instance{-1};
-
-	unsigned int _head{0};
-	unsigned int _tail{0};
+	float get_distance();
 
 	uint8_t _buffer[ULANDING_BUFFER_LENGTH] {};
-	uint8_t _rotation;
-
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, "radar_com_err")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "radar_read")};
-
-	orb_advert_t _distance_sensor_topic{nullptr};
 };
 
-Radar::Radar(const char *port, uint8_t rotation) :
-	CDev(RANGE_FINDER0_DEVICE_PATH),
-	ScheduledWorkItem(px4::wq_configurations::hp_default),
-	_rotation(rotation)
+ULanding::ULanding(const char *serial_port, const uint8_t orientation) :
+	CDev(RANGE_FINDER_BASE_DEVICE_PATH)
 {
-	/* store port name */
-	strncpy(_port, port, sizeof(_port) - 1);
-	/* enforce null termination */
-	_port[sizeof(_port) - 1] = '\0';
+	_collect_phase    = true;
+	_max_distance     = ULANDING_MAX_DISTANCE;
+	_min_distance     = ULANDING_MIN_DISTANCE;
+	_measure_interval = ULANDING_MEASURE_INTERVAL;
+	_orientation      = orientation;
+	_serial_port      = strdup(serial_port);
+	_variance         = ULANDING_SENSOR_RESOLUTION * ULANDING_SENSOR_RESOLUTION;
 }
 
-Radar::~Radar()
+ULanding::~ULanding()
 {
-	// Ensure we are truly inactive.
-	stop();
-
-	perf_free(_sample_perf);
-	perf_free(_comms_errors);
+	// Device specific stop behaviors.
+	dev_stop();
+	free((char *)_serial_port);
 }
 
 int
-Radar::collect()
+ULanding::dev_init()
 {
-	perf_begin(_sample_perf);
+	// Intitialize the character device.
+	if (CDev::init() == OK) {
+		return PX4_OK;
+	}
+
+	return PX4_ERROR;
+}
+
+void
+ULanding::dev_stop()
+{
+	// Ensure the serial port is closed.
+	::close(_file_descriptor);
+	_file_descriptor = -1;
+}
+
+float
+ULanding::get_distance()
+{
+	// Ensure the serial port is open.
+	open_serial_port();
 
 	int bytes_processed = 0;
 	int distance_cm = -1;
 	int index = 0;
 
-	float distance_m = -1.0f;
-
 	bool checksum_passed = false;
+
+	float distance_m = -1.0f;
 
 	// Read from the sensor UART buffer.
 	int bytes_read = ::read(_file_descriptor, &_buffer[0], sizeof(_buffer));
@@ -228,7 +183,7 @@ Radar::collect()
 						checksum_passed = true;
 						distance_cm = (_buffer[index + 1] & 0x7F);
 						distance_cm += ((_buffer[index + 2] & 0x7F) << 7);
-						distance_m = static_cast<float>(distance_cm) * 0.045f;
+						distance_m = static_cast<float>(distance_cm) * ULANDING_SENSOR_RESOLUTION;
 						break;
 					}
 
@@ -245,168 +200,19 @@ Radar::collect()
 	}
 
 	distance_m = math::constrain(distance_m, ULANDING_MIN_DISTANCE, ULANDING_MAX_DISTANCE);
-
-	distance_sensor_s report;
-	report.current_distance = distance_m;
-	report.id               = 0;	// TODO: set proper ID.
-	report.max_distance     = ULANDING_MAX_DISTANCE;
-	report.min_distance     = ULANDING_MIN_DISTANCE;
-	report.orientation      = _rotation;
-	report.signal_quality   = -1;
-	report.timestamp        = hrt_absolute_time();
-	report.type             = distance_sensor_s::MAV_DISTANCE_SENSOR_RADAR;
-	report.variance         = SENS_VARIANCE;
-
-	// Publish the new report.
-	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
-
-	// Notify anyone waiting for data.
-	poll_notify(POLLIN);
-	perf_end(_sample_perf);
-
-	return PX4_OK;
+	return distance_m;
 }
 
-int
-Radar::init()
+namespace ulanding
 {
-	// Intitialize the character device.
-	if (CDev::init() != OK) {
-		return PX4_ERROR;
-	}
+ULanding *g_dev;
 
-	// Get a publish handle on the range finder topic.
-	distance_sensor_s ds_report = {};
-	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-				 &_orb_class_instance, ORB_PRIO_HIGH);
-
-	if (_distance_sensor_topic == nullptr) {
-		PX4_ERR("failed to create distance_sensor object");
-	}
-
-	start();
-	return PX4_OK;
-}
-
-int
-Radar::open_serial_port(const speed_t speed)
-{
-	// File descriptor initialized?
-	if (_file_descriptor > 0) {
-		// PX4_INFO("serial port already open");
-		return PX4_OK;
-	}
-
-	// Configure port flags for read/write, non-controlling, non-blocking.
-	int flags = (O_RDWR | O_NOCTTY | O_NONBLOCK);
-
-	// Open the serial port.
-	_file_descriptor = ::open(_port, flags);
-
-	if (_file_descriptor < 0) {
-		PX4_ERR("open failed (%i)", errno);
-		return PX4_ERROR;
-	}
-
-	if (!isatty(_file_descriptor)) {
-		PX4_WARN("not a serial device");
-		return PX4_ERROR;
-	}
-
-	termios uart_config = {};
-
-	// Store the current port configuration. attributes.
-	tcgetattr(_file_descriptor, &uart_config);
-
-	uart_config.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
-
-	// Clear ONLCR flag (which appends a CR for every LF).
-	uart_config.c_oflag &= ~ONLCR;
-
-	// No parity, one stop bit.
-	uart_config.c_cflag &= ~(CSTOPB | PARENB);
-
-	// No line processing - echo off, echo newline off, canonical mode off, extended input processing off, signal chars off
-	uart_config.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
-
-	// Set the input baud rate in the uart_config struct.
-	int termios_state = cfsetispeed(&uart_config, speed);
-
-	if (termios_state < 0) {
-		PX4_ERR("CFG: %d ISPD", termios_state);
-		::close(_file_descriptor);
-		return PX4_ERROR;
-	}
-
-	// Set the output baud rate in the uart_config struct.
-	termios_state = cfsetospeed(&uart_config, speed);
-
-	if (termios_state < 0) {
-		PX4_ERR("CFG: %d OSPD", termios_state);
-		::close(_file_descriptor);
-		return PX4_ERROR;
-	}
-
-	// Apply the modified port attributes.
-	termios_state = tcsetattr(_file_descriptor, TCSANOW, &uart_config);
-
-	if (termios_state < 0) {
-		PX4_ERR("baud %d ATTR", termios_state);
-		::close(_file_descriptor);
-		return PX4_ERROR;
-	}
-
-	PX4_INFO("successfully opened UART port %s", _port);
-	return PX4_OK;
-}
-
-void
-Radar::print_info()
-{
-	perf_print_counter(_sample_perf);
-	perf_print_counter(_comms_errors);
-	PX4_INFO("ulanding max distance %.2f m", static_cast<double>(ULANDING_MAX_DISTANCE));
-	PX4_INFO("ulanding min distance %.2f m", static_cast<double>(ULANDING_MIN_DISTANCE));
-	PX4_INFO("ulanding update rate: %.2f Hz", static_cast<double>(ULANDING_MEASURE_INTERVAL));
-}
-
-void
-Radar::Run()
-{
-	// Ensure the serial port is open.
-	open_serial_port();
-
-	collect();
-}
-
-void
-Radar::start()
-{
-	// Schedule the driver at regular intervals.
-	ScheduleOnInterval(ULANDING_MEASURE_INTERVAL, 0);
-	PX4_INFO("driver started");
-}
-
-void
-Radar::stop()
-{
-	// Ensure the serial port is closed.
-	::close(_file_descriptor);
-
-	// Clear the work queue schedule.
-	ScheduleClear();
-}
-
-namespace radar
-{
-Radar	*g_dev;
-
-int reset(const char *port = RADAR_DEFAULT_PORT);
-int start(const char *port = RADAR_DEFAULT_PORT,
+int reset(const char *port = ULANDING_DEFAULT_PORT);
+int start(const char *port = ULANDING_DEFAULT_PORT,
 	  const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 int status();
 int stop();
-int test(const char *port = RADAR_DEFAULT_PORT);
+int test(const char *port = ULANDING_DEFAULT_PORT);
 int usage();
 
 /**
@@ -426,7 +232,7 @@ reset(const char *port)
  * Start the driver.
  */
 int
-start(const char *port, const uint8_t rotation)
+start(const char *port, const uint8_t orientation)
 {
 	if (g_dev != nullptr) {
 		PX4_INFO("already started");
@@ -434,14 +240,14 @@ start(const char *port, const uint8_t rotation)
 	}
 
 	// Instantiate the driver.
-	g_dev = new Radar(port, rotation);
+	g_dev = new ULanding(port, orientation);
 
 	if (g_dev == nullptr) {
 		PX4_ERR("object instantiate failed");
 		return PX4_ERROR;
 	}
 
-	if (g_dev->init() != PX4_OK) {
+	if (g_dev->DistanceSensor::init() != PX4_OK) {
 		PX4_ERR("driver start failed");
 		delete g_dev;
 		g_dev = nullptr;
@@ -492,7 +298,7 @@ test(const char *port)
 	int fd = open(port, O_RDONLY);
 
 	if (fd < 0) {
-		PX4_ERR("%s open failed (try 'radar start' if the driver is not running", port);
+		PX4_ERR("%s open failed (try 'cm8jl65 start' if the driver is not running", port);
 		return PX4_ERROR;
 	}
 
@@ -505,6 +311,7 @@ test(const char *port)
 		return PX4_ERROR;
 	}
 
+	close(fd);
 	print_message(report);
 	return PX4_OK;
 }
@@ -512,7 +319,7 @@ test(const char *port)
 int
 usage()
 {
-	PX4_INFO("usage: radar command [options]");
+	PX4_INFO("usage: ulanding command [options]");
 	PX4_INFO("command:");
 	PX4_INFO("\treset|start|status|stop|test");
 	PX4_INFO("options:");
@@ -521,16 +328,17 @@ usage()
 	return PX4_OK;
 }
 
-} // namespace radar
+} // namespace ulanding
 
 
 /**
  * Driver 'main' command.
  */
-extern "C" __EXPORT int ulanding_radar_main(int argc, char *argv[])
+extern "C" __EXPORT int ulanding_main(int argc, char *argv[])
 {
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	const char *device_path = RADAR_DEFAULT_PORT;
+	const char *device_path = ULANDING_DEFAULT_PORT;
+
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
@@ -547,38 +355,38 @@ extern "C" __EXPORT int ulanding_radar_main(int argc, char *argv[])
 
 		default:
 			PX4_WARN("Unknown option!");
-			return radar::usage();
+			return ulanding::usage();
 		}
 	}
 
 	if (myoptind >= argc) {
-		return radar::usage();
+		return ulanding::usage();
 	}
 
 	// Reset the driver.
 	if (!strcmp(argv[myoptind], "reset")) {
-		return radar::reset(device_path);
+		return ulanding::reset(device_path);
 	}
 
 	// Start/load the driver.
 	if (!strcmp(argv[myoptind], "start")) {
-		return radar::start(device_path, rotation);
+		return ulanding::start(device_path, rotation);
 	}
 
 	// Print driver information.
 	if (!strcmp(argv[myoptind], "status")) {
-		return radar::status();
+		return ulanding::status();
 	}
 
 	// Stop the driver
 	if (!strcmp(argv[myoptind], "stop")) {
-		return radar::stop();
+		return ulanding::stop();
 	}
 
 	// Test the driver/device.
 	if (!strcmp(argv[myoptind], "test")) {
-		return radar::test();
+		return ulanding::test();
 	}
 
-	return radar::usage();
+	return ulanding::usage();
 }

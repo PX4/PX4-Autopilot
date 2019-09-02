@@ -31,14 +31,15 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE drivers__ulanding
-	MAIN ulanding_radar
+	MODULE drivers_ulanding
+	MAIN ulanding
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		ulanding.cpp
+	DEPENDS
+		drivers_distance_sensor
 	MODULE_CONFIG
 		module.yaml
-	DEPENDS
 	)
 
