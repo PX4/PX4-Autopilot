@@ -374,67 +374,72 @@ VtolAttitudeControl::Run()
 		}
 
 		// check in which mode we are in and call mode specific functions
-		if (_vtol_type->get_mode() == mode::ROTARY_WING) {
+		switch (_vtol_type->get_mode()) {
+		case mode::TRANSITION_TO_FW:
+		case mode::TRANSITION_TO_MC:
+			// vehicle is doing a transition
+			_vtol_vehicle_status.vtol_in_trans_mode = true;
+			_vtol_vehicle_status.vtol_in_rw_mode = true; // making mc attitude controller work during transition
+			_vtol_vehicle_status.in_transition_to_fw = (_vtol_type->get_mode() == mode::TRANSITION_TO_FW);
 
-			_mc_virtual_att_sp_sub.update(&_mc_virtual_att_sp);
+			_fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
 
+			if (_mc_virtual_att_sp_sub.update(&_mc_virtual_att_sp)) {
+
+				// reinitialize the setpoint while not armed to make sure no value from the last mode or flight is still kept
+				if (!_v_control_mode.flag_armed) {
+					Quatf().copyTo(_mc_virtual_att_sp.q_d);
+					Vector3f().copyTo(_mc_virtual_att_sp.thrust_body);
+					Quatf().copyTo(_v_att_sp.q_d);
+					Vector3f().copyTo(_v_att_sp.thrust_body);
+				}
+
+				_vtol_type->update_transition_state();
+				_v_att_sp_pub.publish(_v_att_sp);
+			}
+
+			break;
+
+		case mode::ROTARY_WING:
 			// vehicle is in rotary wing mode
 			_vtol_vehicle_status.vtol_in_rw_mode = true;
 			_vtol_vehicle_status.vtol_in_trans_mode = false;
 			_vtol_vehicle_status.in_transition_to_fw = false;
 
 			// got data from mc attitude controller
-			_vtol_type->update_mc_state();
+			if (_mc_virtual_att_sp_sub.update(&_mc_virtual_att_sp)) {
 
-		} else if (_vtol_type->get_mode() == mode::FIXED_WING) {
+				// reinitialize the setpoint while not armed to make sure no value from the last mode or flight is still kept
+				if (!_v_control_mode.flag_armed) {
+					Quatf().copyTo(_mc_virtual_att_sp.q_d);
+					Vector3f().copyTo(_mc_virtual_att_sp.thrust_body);
+					Quatf().copyTo(_v_att_sp.q_d);
+					Vector3f().copyTo(_v_att_sp.thrust_body);
+				}
 
-			_fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
+				_vtol_type->update_mc_state();
+				_v_att_sp_pub.publish(_v_att_sp);
+			}
 
+			break;
+
+		case mode::FIXED_WING:
 			// vehicle is in fw mode
 			_vtol_vehicle_status.vtol_in_rw_mode = false;
 			_vtol_vehicle_status.vtol_in_trans_mode = false;
 			_vtol_vehicle_status.in_transition_to_fw = false;
 
-			_vtol_type->update_fw_state();
+			if (_fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp)) {
+				_vtol_type->update_fw_state();
+				_v_att_sp_pub.publish(_v_att_sp);
+			}
 
-		} else if (_vtol_type->get_mode() == mode::TRANSITION_TO_MC || _vtol_type->get_mode() == mode::TRANSITION_TO_FW) {
-
-			_mc_virtual_att_sp_sub.update(&_mc_virtual_att_sp);
-			_fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
-
-			// vehicle is doing a transition
-			_vtol_vehicle_status.vtol_in_trans_mode = true;
-			_vtol_vehicle_status.vtol_in_rw_mode = true; //making mc attitude controller work during transition
-			_vtol_vehicle_status.in_transition_to_fw = (_vtol_type->get_mode() == mode::TRANSITION_TO_FW);
-
-			_vtol_type->update_transition_state();
+			break;
 		}
 
 		_vtol_type->fill_actuator_outputs();
-
-		// reinitialize the setpoint while not armed to make sure no value from the last mode or flight is still kept
-		if (!_v_control_mode.flag_armed) {
-			Quatf().copyTo(_mc_virtual_att_sp.q_d);
-			Vector3f().copyTo(_mc_virtual_att_sp.thrust_body);
-			Quatf().copyTo(_v_att_sp.q_d);
-			Vector3f().copyTo(_v_att_sp.thrust_body);
-		}
-
-		/* Only publish if the proper mode(s) are enabled */
-		if (_v_control_mode.flag_control_attitude_enabled ||
-		    _v_control_mode.flag_control_rates_enabled ||
-		    _v_control_mode.flag_control_manual_enabled) {
-
-			_v_att_sp_pub.publish(_v_att_sp);
-
-			if (updated_mc_in) {
-				_actuators_0_pub.publish(_actuators_out_0);
-			}
-
-			if (updated_fw_in) {
-				_actuators_1_pub.publish(_actuators_out_1);
-			}
-		}
+		_actuators_0_pub.publish(_actuators_out_0);
+		_actuators_1_pub.publish(_actuators_out_1);
 
 		// Advertise/Publish vtol vehicle status
 		_vtol_vehicle_status.timestamp = hrt_absolute_time();
