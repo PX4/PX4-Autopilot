@@ -36,10 +36,13 @@ px4_add_module(
 	STACK_MAIN 1200
 	SRCS
 		dshot.cpp
+		telemetry.cpp
 	DEPENDS
 		arch_io_pins
 		arch_dshot
 		mixer
 		mixer_module
 		output_limit
+	MODULE_CONFIG
+		module.yaml
 	)

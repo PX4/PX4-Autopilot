@@ -3,9 +3,10 @@ uint8 CONNECTED_ESC_MAX = 8				# The number of ESCs supported. Current (Q2/2013)
 
 uint8 ESC_CONNECTION_TYPE_PPM = 0			# Traditional PPM ESC
 uint8 ESC_CONNECTION_TYPE_SERIAL = 1			# Serial Bus connected ESC
-uint8 ESC_CONNECTION_TYPE_ONESHOOT = 2			# One Shoot PPM
+uint8 ESC_CONNECTION_TYPE_ONESHOT = 2			# One Shot PPM
 uint8 ESC_CONNECTION_TYPE_I2C = 3			# I2C
 uint8 ESC_CONNECTION_TYPE_CAN = 4			# CAN-Bus
+uint8 ESC_CONNECTION_TYPE_DSHOT = 5			# DShot
 
 uint16 counter  					# incremented by the writing thread everytime new data is stored
 
