@@ -374,6 +374,23 @@ MixingOutput::reorderOutputs(uint16_t values[MAX_ACTUATORS])
 	 */
 }
 
+int MixingOutput::reorderedMotorIndex(int index)
+{
+	if ((MotorOrdering)_param_mot_ordering.get() == MotorOrdering::Betaflight) {
+		switch (index) {
+		case 0: return 1;
+
+		case 1: return 2;
+
+		case 2: return 3;
+
+		case 3: return 0;
+		}
+	}
+
+	return index;
+}
+
 int MixingOutput::controlCallback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input)
 {
 	const MixingOutput *output = (const MixingOutput *)handle;
@@ -420,6 +437,8 @@ void MixingOutput::resetMixer()
 		_mixers = nullptr;
 		_groups_required = 0;
 	}
+
+	_interface.mixerChanged();
 }
 
 int MixingOutput::loadMixer(const char *buf, unsigned len)
@@ -447,6 +466,7 @@ int MixingOutput::loadMixer(const char *buf, unsigned len)
 	PX4_DEBUG("loaded mixers \n%s\n", buf);
 
 	updateParams();
+	_interface.mixerChanged();
 	return ret;
 }
 

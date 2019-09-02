@@ -46,6 +46,7 @@
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_arch/dshot.h>
+#include <px4_atomic.h>
 #include <px4_config.h>
 #include <px4_getopt.h>
 #include <px4_log.h>
@@ -60,6 +61,9 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/esc_status.h>
+
+#include "telemetry.h"
 
 
 using namespace time_literals;
@@ -148,6 +152,8 @@ public:
 	void updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
+	void mixerChanged() override;
+
 private:
 	enum class DShotConfig {
 		Disabled = 0,
@@ -157,7 +163,21 @@ private:
 		DShot1200 = 1200,
 	};
 
+	struct Telemetry {
+		DShotTelemetry handler;
+		uORB::PublicationData<esc_status_s> esc_status_pub{ORB_ID(esc_status)};
+		int last_motor_index{-1};
+	};
+
+	void updateTelemetryNumMotors();
+	void initTelemetry(const char *device);
+	void handleNewTelemetryData(int motor_index, const DShotTelemetry::EscData &data);
+
 	MixingOutput _mixing_output{*this, MixingOutput::SchedulingPolicy::Auto, false, false};
+
+	Telemetry *_telemetry{nullptr};
+	static char _telemetry_device[20];
+	static px4::atomic_bool _request_telemetry_init;
 
 	Mode		_mode{MODE_NONE};
 
@@ -188,9 +208,13 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::DSHOT_CONFIG>) _param_dshot_config,
-		(ParamFloat<px4::params::DSHOT_MIN>) _param_dshot_min
+		(ParamFloat<px4::params::DSHOT_MIN>) _param_dshot_min,
+		(ParamInt<px4::params::MOT_POLE_COUNT>) _param_mot_pole_count
 	)
 };
+
+char DShotOutput::_telemetry_device[] {};
+px4::atomic_bool DShotOutput::_request_telemetry_init{false};
 
 DShotOutput::DShotOutput() :
 	CDev("/dev/dshot"),
@@ -214,6 +238,7 @@ DShotOutput::~DShotOutput()
 
 	perf_free(_cycle_perf);
 	perf_free(_cycle_interval_perf);
+	delete _telemetry;
 }
 
 int
@@ -484,6 +509,79 @@ DShotOutput::update_dshot_out_state(bool on)
 	up_dshot_arm(on);
 }
 
+void DShotOutput::updateTelemetryNumMotors()
+{
+	if (!_telemetry) {
+		return;
+	}
+
+	int motor_count = 0;
+
+	if (_mixing_output.mixers()) {
+		motor_count = _mixing_output.mixers()->get_multirotor_count();
+	}
+
+	_telemetry->handler.setNumMotors(motor_count);
+}
+
+void DShotOutput::initTelemetry(const char *device)
+{
+	if (!_telemetry) {
+		_telemetry = new Telemetry{};
+
+		if (!_telemetry) {
+			PX4_ERR("alloc failed");
+			return;
+		}
+	}
+
+	int ret = _telemetry->handler.init(device);
+
+	if (ret != 0) {
+		PX4_ERR("telemetry init failed (%i)", ret);
+	}
+
+	updateTelemetryNumMotors();
+}
+
+void DShotOutput::handleNewTelemetryData(int motor_index, const DShotTelemetry::EscData &data)
+{
+	// fill in new motor data
+	esc_status_s &esc_status = _telemetry->esc_status_pub.get();
+
+	if (motor_index < esc_status_s::CONNECTED_ESC_MAX) {
+		esc_status.esc_online_flags |= 1 << motor_index;
+		esc_status.esc[motor_index].timestamp = data.time;
+		esc_status.esc[motor_index].esc_rpm = ((int)data.erpm * 100) / (_param_mot_pole_count.get() / 2);
+		esc_status.esc[motor_index].esc_voltage = (float)data.voltage * 0.01f;
+		esc_status.esc[motor_index].esc_current = (float)data.current * 0.01f;
+		esc_status.esc[motor_index].esc_temperature = data.temperature;
+		// TODO: accumulate consumption and use for battery estimation
+	}
+
+	// publish when motor index wraps (which is robust against motor timeouts)
+	if (motor_index < _telemetry->last_motor_index) {
+		esc_status.timestamp = hrt_absolute_time();
+		esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
+		esc_status.esc_count = _telemetry->handler.numMotors();
+		++esc_status.counter;
+		// FIXME: mark all ESC's as online, otherwise commander complains even for a single dropout
+		esc_status.esc_online_flags = (1 << esc_status.esc_count) - 1;
+
+		_telemetry->esc_status_pub.update();
+
+		// reset esc data (in case a motor times out, so we won't send stale data)
+		memset(&esc_status.esc, 0, sizeof(_telemetry->esc_status_pub.get().esc));
+		esc_status.esc_online_flags = 0;
+	}
+
+	_telemetry->last_motor_index = motor_index;
+}
+
+void DShotOutput::mixerChanged()
+{
+	updateTelemetryNumMotors();
+}
 
 void DShotOutput::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 				unsigned num_outputs, unsigned num_control_groups_updated)
@@ -493,6 +591,10 @@ void DShotOutput::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS
 	}
 
 	int requested_telemetry_index = -1;
+
+	if (_telemetry) {
+		requested_telemetry_index = _mixing_output.reorderedMotorIndex(_telemetry->handler.getRequestMotorIndex());
+	}
 
 	if (stop_motors) {
 
@@ -534,8 +636,22 @@ DShotOutput::Run()
 		update_dshot_out_state(outputs_on);
 	}
 
+	if (_telemetry) {
+		int telem_update = _telemetry->handler.update();
+
+		if (telem_update >= 0) {
+			handleNewTelemetryData(telem_update, _telemetry->handler.latestESCData());
+		}
+	}
+
 	if (_param_sub.updated()) {
 		update_params();
+	}
+
+	// telemetry device update request?
+	if (_request_telemetry_init.load()) {
+		initTelemetry(_telemetry_device);
+		_request_telemetry_init.store(false);
 	}
 
 	// check at end of cycle (updateSubscriptions() can potentially change to a different WorkQueue thread)
@@ -1108,6 +1224,17 @@ int DShotOutput::custom_command(int argc, char *argv[])
 	PortMode new_mode = PORT_MODE_UNSET;
 	const char *verb = argv[0];
 
+	if (!strcmp(verb, "telemetry")) {
+		if (argc > 1) {
+			// telemetry can be requested before the module is started
+			strncpy(_telemetry_device, argv[1], sizeof(_telemetry_device) - 1);
+			_telemetry_device[sizeof(_telemetry_device) - 1] = '\0';
+			_request_telemetry_init.store(true);
+		}
+
+		return 0;
+	}
+
 	/* start the FMU if not running */
 	if (!is_running()) {
 		int ret = DShotOutput::task_spawn(argc, argv);
@@ -1234,6 +1361,9 @@ to use DShot as ESC communication protocol instead of PWM.
   PRINT_MODULE_USAGE_COMMAND("mode_pwm1");
 #endif
 
+	PRINT_MODULE_USAGE_COMMAND_DESCR("telemetry", "Enable Telemetry on a UART");
+	PRINT_MODULE_USAGE_ARG("<device>", "UART device", false);
+
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
@@ -1290,6 +1420,9 @@ int DShotOutput::print_status()
 	perf_print_counter(_cycle_perf);
 	perf_print_counter(_cycle_interval_perf);
 	_mixing_output.printStatus();
+	if (_telemetry) {
+		PX4_INFO("telemetry on: %s", _telemetry_device);
+	}
 
 	return 0;
 }
