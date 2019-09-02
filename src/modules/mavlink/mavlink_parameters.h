@@ -45,6 +45,7 @@
 #include <parameters/param.h>
 
 #include "mavlink_bridge_header.h"
+#include <uORB/Publication.hpp>
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/rc_parameter_map.h>
@@ -125,7 +126,7 @@ protected:
 	bool _uavcan_waiting_for_request_response{false}; ///< We have reqested a parameter and wait for the response
 	uint16_t _uavcan_queued_request_items{0};	///< Number of stored parameter requests currently in the list
 
-	orb_advert_t _rc_param_map_pub{nullptr};
+	uORB::Publication<rc_parameter_map_s>	_rc_param_map_pub{ORB_ID(rc_parameter_map)};
 	rc_parameter_map_s _rc_param_map{};
 
 	uORB::PublicationQueued<uavcan_parameter_request_s> _uavcan_parameter_request_pub{ORB_ID(uavcan_parameter_request)};
