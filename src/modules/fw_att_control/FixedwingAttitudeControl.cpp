@@ -331,14 +331,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 					_rates_sp.yaw = _manual.r * _parameters.acro_max_z_rate_rad;
 					_rates_sp.thrust_body[0] = _manual.z;
 
-					if (_rate_sp_pub != nullptr) {
-						/* publish the attitude rates setpoint */
-						orb_publish(ORB_ID(vehicle_rates_setpoint), _rate_sp_pub, &_rates_sp);
-
-					} else {
-						/* advertise the attitude rates setpoint */
-						_rate_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_rates_sp);
-					}
+					_rate_sp_pub.publish(_rates_sp);
 
 				} else {
 					/* manual/direct control */
@@ -748,14 +741,7 @@ void FixedwingAttitudeControl::Run()
 
 				_rates_sp.timestamp = hrt_absolute_time();
 
-				if (_rate_sp_pub != nullptr) {
-					/* publish the attitude rates setpoint */
-					orb_publish(ORB_ID(vehicle_rates_setpoint), _rate_sp_pub, &_rates_sp);
-
-				} else {
-					/* advertise the attitude rates setpoint */
-					_rate_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_rates_sp);
-				}
+				_rate_sp_pub.publish(_rates_sp);
 
 			} else {
 				vehicle_rates_setpoint_poll();
@@ -784,8 +770,7 @@ void FixedwingAttitudeControl::Run()
 			rate_ctrl_status.yawspeed_integ = _yaw_ctrl.get_integrator();
 			rate_ctrl_status.additional_integ1 = _wheel_ctrl.get_integrator();
 
-			int instance;
-			orb_publish_auto(ORB_ID(rate_ctrl_status), &_rate_ctrl_status_pub, &rate_ctrl_status, &instance, ORB_PRIO_DEFAULT);
+			_rate_ctrl_status_pub.publish(rate_ctrl_status);
 		}
 
 		// Add feed-forward from roll control output to yaw control output
@@ -817,14 +802,7 @@ void FixedwingAttitudeControl::Run()
 				_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
 			}
 
-			if (_actuators_2_pub != nullptr) {
-				/* publish the actuator controls*/
-				orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_airframe);
-
-			} else {
-				/* advertise and publish */
-				_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_airframe);
-			}
+			_actuators_2_pub.publish(_actuators_airframe);
 		}
 	}
 
