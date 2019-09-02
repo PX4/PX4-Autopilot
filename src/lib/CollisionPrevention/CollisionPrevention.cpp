@@ -85,14 +85,31 @@ hrt_abstime CollisionPrevention::getElapsedTime(const hrt_abstime *ptr)
 void CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obstacle,
 		const matrix::Quatf &vehicle_attitude)
 {
+
+
 	//Obstacle message will arrive in local_origin frame, waiting for mavlink PR to add other frame options
 	for (int i = 0; i < floor(360.f / _obstacle_map_body_frame.increment); i++) {
 		float bin_angle_rad =  math::radians((float)i * _obstacle_map_body_frame.increment +
 						     _obstacle_map_body_frame.angle_offset);
+		int msg_index = 0;
 
+		//Obstacle message arrives in local_origin frame (north aligned)
 		//corresponding data index (convert to world frame and shift by msg offset)
-		int msg_index = ceil(math::degrees(wrap_2pi(Eulerf(vehicle_attitude).psi() + bin_angle_rad - math::radians(
-				obstacle.angle_offset))) / obstacle.increment);
+		if (obstacle.frame == obstacle.MAV_FRAME_GLOBAL) {
+			msg_index = ceil(math::degrees(wrap_2pi(Eulerf(vehicle_attitude).psi() + bin_angle_rad - math::radians(
+					obstacle.angle_offset))) / obstacle.increment);
+
+			//Obstacle message arrives in body frame (front aligned)
+			//corresponding data index (shift by msg offset)
+
+		} else if (obstacle.frame == obstacle.MAV_FRAME_BODY_FRD) {
+			msg_index = ceil(math::degrees(wrap_2pi(bin_angle_rad - math::radians(
+					obstacle.angle_offset))) / obstacle.increment);
+
+		} else {
+			mavlink_log_critical(&_mavlink_log_pub, "Obstacle message received in unsupported frame %.0f\n",
+					     (double)obstacle.frame);
+		}
 
 		//add all data points inside to FOV
 		if (obstacle.distances[msg_index] != UINT16_MAX) {
@@ -100,6 +117,7 @@ void CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obst
 			_data_timestamps[i] = _obstacle_map_body_frame.timestamp;
 		}
 	}
+
 }
 
 void CollisionPrevention::_updateObstacleMap()

@@ -139,6 +139,7 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithObstacleMessage)
 	// AND: an obstacle message
 	obstacle_distance_s message;
 	memset(&message, 0xDEAD, sizeof(message));
+	message.frame = message.MAV_FRAME_GLOBAL; //north aligned
 	message.min_distance = 100;
 	message.max_distance = 10000;
 	message.angle_offset = 0;
@@ -264,6 +265,7 @@ TEST_F(CollisionPreventionTest, testPurgeOldData)
 	// AND: an obstacle message
 	obstacle_distance_s message, message_empty;
 	memset(&message, 0xDEAD, sizeof(message));
+	message.frame = message.MAV_FRAME_GLOBAL; //north aligned
 	message.min_distance = 100;
 	message.max_distance = 10000;
 	message.angle_offset = 0;
@@ -330,6 +332,7 @@ TEST_F(CollisionPreventionTest, noBias)
 
 	// AND: an obstacle message
 	obstacle_distance_s message;
+	message.frame = message.MAV_FRAME_GLOBAL; //north aligned
 	memset(&message, 0xDEAD, sizeof(message));
 	message.min_distance = 100;
 	message.max_distance = 2000;
@@ -370,6 +373,7 @@ TEST_F(CollisionPreventionTest, outsideFOV)
 	// AND: an obstacle message
 	obstacle_distance_s message;
 	memset(&message, 0xDEAD, sizeof(message));
+	message.frame = message.MAV_FRAME_GLOBAL; //north aligned
 	message.min_distance = 100;
 	message.max_distance = 2000;
 	int distances_array_size = sizeof(message.distances) / sizeof(message.distances[0]);
@@ -547,6 +551,7 @@ TEST_F(CollisionPreventionTest, addObstacleSensorData_attitude)
 	TestCollisionPrevention cp;
 	cp.getObstacleMap().increment = 10.f;
 	obstacle_distance_s obstacle_msg {};
+	obstacle_msg.frame = obstacle_msg.MAV_FRAME_GLOBAL; //north aligned
 	obstacle_msg.increment = 5.f;
 	obstacle_msg.min_distance = 20;
 	obstacle_msg.max_distance = 2000;
@@ -641,6 +646,106 @@ TEST_F(CollisionPreventionTest, addObstacleSensorData_attitude)
 	}
 }
 
+TEST_F(CollisionPreventionTest, addObstacleSensorData_bodyframe)
+{
+	// GIVEN: a vehicle attitude and obstacle distance message
+	TestCollisionPrevention cp;
+	cp.getObstacleMap().increment = 10.f;
+	obstacle_distance_s obstacle_msg {};
+	obstacle_msg.frame = obstacle_msg.MAV_FRAME_BODY_FRD; //north aligned
+	obstacle_msg.increment = 5.f;
+	obstacle_msg.min_distance = 20;
+	obstacle_msg.max_distance = 2000;
+	obstacle_msg.angle_offset = 0.f;
+
+	matrix::Quaternion<float> vehicle_attitude1(1, 0, 0, 0); //unit transform
+	matrix::Euler<float> attitude2_euler(0, 0, M_PI / 2.0);
+	matrix::Quaternion<float> vehicle_attitude2(attitude2_euler); //90 deg yaw
+	matrix::Euler<float> attitude3_euler(0, 0, -M_PI / 4.0);
+	matrix::Quaternion<float> vehicle_attitude3(attitude3_euler); // -45 deg yaw
+	matrix::Euler<float> attitude4_euler(0, 0, M_PI);
+	matrix::Quaternion<float> vehicle_attitude4(attitude4_euler); // 180 deg yaw
+
+	//obstacle at 10-30 deg body frame, distance 5 meters
+	memset(&obstacle_msg.distances[0], UINT16_MAX, sizeof(obstacle_msg.distances));
+
+	for (int i = 2; i < 6 ; i++) {
+		obstacle_msg.distances[i] = 500;
+	}
+
+
+	//THEN: at initialization the internal obstacle map should only contain UINT16_MAX
+	int distances_array_size = sizeof(cp.getObstacleMap().distances) / sizeof(cp.getObstacleMap().distances[0]);
+
+	for (int i = 0; i < distances_array_size; i++) {
+		EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], UINT16_MAX);
+	}
+
+	//WHEN: we add obstacle data while vehicle has zero yaw
+	cp.test_addObstacleSensorData(obstacle_msg, vehicle_attitude1);
+
+	//THEN: the correct bins in the map should be filled
+	for (int i = 0; i < distances_array_size; i++) {
+		if (i == 1 || i == 2) {
+			EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], 500);
+
+		} else {
+			EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], UINT16_MAX);
+		}
+
+		//reset array to UINT16_MAX
+		cp.getObstacleMap().distances[i] = UINT16_MAX;
+	}
+
+	//WHEN: we add obstacle data while vehicle yaw 90deg to the right
+	cp.test_addObstacleSensorData(obstacle_msg, vehicle_attitude2);
+
+	//THEN: the correct bins in the map should be filled
+	for (int i = 0; i < distances_array_size; i++) {
+		if (i == 1 || i == 2) {
+			EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], 500);
+
+		} else {
+			EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], UINT16_MAX);
+		}
+
+		//reset array to UINT16_MAX
+		cp.getObstacleMap().distances[i] = UINT16_MAX;
+	}
+
+	//WHEN: we add obstacle data while vehicle yaw 45deg to the left
+	cp.test_addObstacleSensorData(obstacle_msg, vehicle_attitude3);
+
+	//THEN: the correct bins in the map should be filled
+	for (int i = 0; i < distances_array_size; i++) {
+		if (i == 1 || i == 2) {
+			EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], 500);
+
+		} else {
+			EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], UINT16_MAX);
+		}
+
+		//reset array to UINT16_MAX
+		cp.getObstacleMap().distances[i] = UINT16_MAX;
+	}
+
+	//WHEN: we add obstacle data while vehicle yaw 180deg
+	cp.test_addObstacleSensorData(obstacle_msg, vehicle_attitude4);
+
+	//THEN: the correct bins in the map should be filled
+	for (int i = 0; i < distances_array_size; i++) {
+		if (i == 1 || i == 2) {
+			EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], 500);
+
+		} else {
+			EXPECT_FLOAT_EQ(cp.getObstacleMap().distances[i], UINT16_MAX);
+		}
+
+		//reset array to UINT16_MAX
+		cp.getObstacleMap().distances[i] = UINT16_MAX;
+	}
+}
+
 
 TEST_F(CollisionPreventionTest, addObstacleSensorData_resolution_offset)
 {
@@ -648,6 +753,7 @@ TEST_F(CollisionPreventionTest, addObstacleSensorData_resolution_offset)
 	TestCollisionPrevention cp;
 	cp.getObstacleMap().increment = 10.f;
 	obstacle_distance_s obstacle_msg {};
+	obstacle_msg.frame = obstacle_msg.MAV_FRAME_GLOBAL; //north aligned
 	obstacle_msg.increment = 6.f;
 	obstacle_msg.min_distance = 20;
 	obstacle_msg.max_distance = 2000;
