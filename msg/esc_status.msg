@@ -1,11 +1,6 @@
 uint64 timestamp					# time since system start (microseconds)
 uint8 CONNECTED_ESC_MAX = 8				# The number of ESCs supported. Current (Q2/2013) we support 8 ESCs
 
-uint8 ESC_VENDOR_GENERIC = 0				# generic ESC
-uint8 ESC_VENDOR_MIKROKOPTER = 1			# Mikrokopter
-uint8 ESC_VENDOR_GRAUPNER_HOTT = 2			# Graupner HoTT ESC
-uint8 ESC_VENDOR_TAP = 3				# TAP ESC
-
 uint8 ESC_CONNECTION_TYPE_PPM = 0			# Traditional PPM ESC
 uint8 ESC_CONNECTION_TYPE_SERIAL = 1			# Serial Bus connected ESC
 uint8 ESC_CONNECTION_TYPE_ONESHOOT = 2			# One Shoot PPM
