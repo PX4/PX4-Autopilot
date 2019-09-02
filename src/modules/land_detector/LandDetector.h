@@ -42,16 +42,25 @@
 
 #pragma once
 
+#include <float.h>
 #include <lib/hysteresis/hysteresis.h>
-#include <parameters/param.h>
+#include <math.h>
 #include <perf/perf_counter.h>
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_module.h>
+#include <px4_module_params.h>
 #include <px4_module.h>
 #include <px4_module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/sensor_bias.h>
+#include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_land_detected.h>
+#include <uORB/topics/vehicle_local_position.h>
+
 
 using namespace time_literals;
 
@@ -100,14 +109,15 @@ public:
 protected:
 
 	/**
-	 * Update parameters.
+	 * Updates parameters if changes have occurred or if forced.
+	 * @var force Forces a parameter update.
 	 */
-	virtual void _update_params() = 0;
+	virtual void _update_params(const bool force = false);
 
 	/**
-	 * Update uORB topics.
+	 * Updates subscribed uORB topics.
 	 */
-	virtual void _update_topics() = 0;
+	virtual void _update_topics();
 
 	/**
 	 * @return true if UAV is in a landed state.
@@ -132,7 +142,7 @@ protected:
 	/**
 	 *  @return maximum altitude that can be reached
 	 */
-	virtual float _get_max_altitude() = 0;
+	virtual float _get_max_altitude() { return INFINITY; }
 
 	/**
 	 *  @return true if vehicle could be in ground effect (close to ground)
@@ -142,9 +152,6 @@ protected:
 	/** Run main land detector loop at this interval. */
 	static constexpr uint32_t LAND_DETECTOR_UPDATE_INTERVAL = 20_ms;
 
-	orb_advert_t _land_detected_pub{nullptr};
-	vehicle_land_detected_s _land_detected{};
-
 	LandDetectionState _state{LandDetectionState::LANDED};
 
 	systemlib::Hysteresis _freefall_hysteresis{false};
@@ -153,11 +160,18 @@ protected:
 	systemlib::Hysteresis _ground_contact_hysteresis{true};
 	systemlib::Hysteresis _ground_effect_hysteresis{false};
 
-	actuator_armed_s _actuator_armed {};
+	actuator_armed_s         _actuator_armed{};
+	vehicle_acceleration_s   _vehicle_acceleration{};
+	vehicle_land_detected_s  _land_detected{};
+	vehicle_local_position_s _vehicle_local_position{};
+
+	orb_advert_t _land_detected_pub{nullptr};
+
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
+	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 
 private:
-
-	void _check_params(bool force = false);
 
 	void Run() override;
 
@@ -165,15 +179,13 @@ private:
 
 	void _update_total_flight_time();
 
-	bool _previous_armed_state{false}; ///< stores the previous actuator_armed.armed state
-
-	uint64_t _total_flight_time{0}; ///< in microseconds
+	bool _previous_armed_state{false};	///< stores the previous actuator_armed.armed state
 
 	hrt_abstime _takeoff_time{0};
+	hrt_abstime _total_flight_time{0};	///< total vehicle flight time in microseconds
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, "land_detector_cycle")};
 
-	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
