@@ -38,6 +38,7 @@ px4_add_module(
 		dshot.cpp
 	DEPENDS
 		arch_io_pins
+		arch_dshot
 		mixer
 		mixer_module
 		output_limit
