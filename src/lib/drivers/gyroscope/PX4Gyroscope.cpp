@@ -129,9 +129,9 @@ PX4Gyroscope::update(hrt_abstime timestamp, float x, float y, float z)
 	sensor_gyro_control_s &control = _sensor_gyro_control_pub.get();
 
 	if (_param_imu_gyro_rate_max.get() > 0) {
-		const uint64_t interval = 1000000.0f / _param_imu_gyro_rate_max.get();
+		const uint64_t interval = 1e6f / _param_imu_gyro_rate_max.get();
 
-		if (hrt_elapsed_time(&control.timestamp_sample) >= interval) {
+		if (hrt_elapsed_time(&control.timestamp_sample) < interval) {
 			publish_control = false;
 		}
 	}
