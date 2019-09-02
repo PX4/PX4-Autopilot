@@ -140,9 +140,17 @@ private:
 
 		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,
 		(ParamInt<px4::params::COM_OBL_ACT>) _param_com_obl_act,
-		(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act
+		(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
+
+		(ParamInt<px4::params::COM_PREARM_MODE>) _param_com_prearm_mode
 
 	)
+
+	enum class PrearmedMode {
+		DISABLED = 0,
+		SAFETY_BUTTON = 1,
+		ALWAYS = 2
+	};
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
 	const int64_t POSVEL_PROBATION_MAX = 100_s;	/**< maximum probation duration (usec) */

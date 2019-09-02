@@ -211,9 +211,12 @@ mixer_tick(void)
 		     );
 
 	should_arm_nothrottle = (
-					(r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)		/* IO initialised without error */
-					&& (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)	/* and IO is armed */
-					&& (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)	/* and there is valid input via or mixer */
+					(r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)                /* IO initialised without error */
+					&& (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)        /* and IO is armed */
+					&& (((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_PREARMED)    /* and FMU is prearmed */
+					     && (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK))     /* and there is valid input via or mixer */
+					    || (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)        /* or direct PWM is set */
+					   )
 				);
 
 	should_always_enable_pwm = (
