@@ -30,13 +30,11 @@ px4_add_board(
 		imu/mpu9250
 		irlock
 		lights/blinkm
-		lights/oreoled
 		lights/rgbled
 		#lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		#md25
 		mkblctrl
-		lights/pca8574
 		#optical_flow # all available optical flow drivers
 		#optical_flow/pmw3901
 		optical_flow/px4flow
