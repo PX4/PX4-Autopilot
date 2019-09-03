@@ -302,6 +302,7 @@ PMW3901::Run()
 
 	int16_t delta_x_raw = 0;
 	int16_t delta_y_raw = 0;
+	uint8_t qual = 0;
 	float delta_x = 0.0f;
 	float delta_y = 0.0f;
 
@@ -311,7 +312,7 @@ PMW3901::Run()
 
 	_flow_dt_sum_usec += dt_flow;
 
-	readMotionCount(delta_x_raw, delta_y_raw);
+	readMotionCount(delta_x_raw, delta_y_raw, qual);
 
 	_flow_sum_x += delta_x_raw;
 	_flow_sum_y += delta_y_raw;
@@ -346,7 +347,7 @@ PMW3901::Run()
 		report.quality = 0;
 
 	} else {
-		report.quality = 255;
+		report.quality = qual;
 	}
 
 	/* No gyro on this board */
@@ -369,13 +370,13 @@ PMW3901::Run()
 }
 
 int
-PMW3901::readMotionCount(int16_t &deltaX, int16_t &deltaY)
+PMW3901::readMotionCount(int16_t &deltaX, int16_t &deltaY, uint8_t &qual)
 {
-	uint8_t data[10] = { DIR_READ(0x02), 0, DIR_READ(0x03), 0, DIR_READ(0x04), 0,
-			     DIR_READ(0x05), 0, DIR_READ(0x06), 0
+	uint8_t data[12] = { DIR_READ(0x02), 0, DIR_READ(0x03), 0, DIR_READ(0x04), 0,
+			     DIR_READ(0x05), 0, DIR_READ(0x06), 0, DIR_READ(0x07), 0
 			   };
 
-	int ret = transfer(&data[0], &data[0], 10);
+	int ret = transfer(&data[0], &data[0], 12);
 
 	if (OK != ret) {
 		perf_count(_comms_errors);
@@ -385,6 +386,7 @@ PMW3901::readMotionCount(int16_t &deltaX, int16_t &deltaY)
 
 	deltaX = ((int16_t)data[5] << 8) | data[3];
 	deltaY = ((int16_t)data[9] << 8) | data[7];
+	qual = data[11];
 
 	ret = OK;
 
