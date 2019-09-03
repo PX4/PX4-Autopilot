@@ -171,7 +171,7 @@ static void *WorkQueueRunner(void *context)
 	return nullptr;
 }
 
-static void WorkQueueManagerRun()
+static int WorkQueueManagerRun(int, char **)
 {
 	_wq_manager_wqs_list = new BlockingList<WorkQueue *>();
 	_wq_manager_create_queue = new BlockingQueue<const wq_config_t *, 1>();
@@ -246,6 +246,8 @@ static void WorkQueueManagerRun()
 			}
 		}
 	}
+
+	return 0;
 }
 
 int WorkQueueManagerStart()
