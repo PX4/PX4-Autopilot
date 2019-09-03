@@ -249,8 +249,7 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 				//get direction of current bin
 				Vector2f bin_direction = {cos(angle), sin(angle)};
 
-				if (_obstacle_map_body_frame.distances[i] < _obstacle_map_body_frame.max_distance &&
-				    _obstacle_map_body_frame.distances[i] > _obstacle_map_body_frame.min_distance) {
+				if (_obstacle_map_body_frame.distances[i] > _obstacle_map_body_frame.min_distance) {
 
 					if (setpoint_dir.dot(bin_direction) > 0
 					    && setpoint_dir.dot(bin_direction) > cosf(col_prev_ang_rad)) {
