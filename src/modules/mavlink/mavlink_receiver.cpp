@@ -1504,6 +1504,7 @@ MavlinkReceiver::handle_message_obstacle_distance(mavlink_message_t *msg)
 	obstacle_distance.min_distance = mavlink_obstacle_distance.min_distance;
 	obstacle_distance.max_distance = mavlink_obstacle_distance.max_distance;
 	obstacle_distance.angle_offset = mavlink_obstacle_distance.angle_offset;
+	obstacle_distance.frame = mavlink_obstacle_distance.frame;
 
 	_obstacle_distance_pub.publish(obstacle_distance);
 }
