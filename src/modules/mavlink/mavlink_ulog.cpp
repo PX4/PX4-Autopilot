@@ -68,9 +68,6 @@ MavlinkULog::MavlinkULog(int datarate, float max_rate_factor, uint8_t target_sys
 
 MavlinkULog::~MavlinkULog()
 {
-	if (_ulog_stream_ack_pub) {
-		orb_unadvertise(_ulog_stream_ack_pub);
-	}
 }
 
 void MavlinkULog::start_ack_received()
@@ -257,10 +254,5 @@ void MavlinkULog::publish_ack(uint16_t sequence)
 	ack.timestamp = hrt_absolute_time();
 	ack.sequence = sequence;
 
-	if (_ulog_stream_ack_pub == nullptr) {
-		_ulog_stream_ack_pub = orb_advertise(ORB_ID(ulog_stream_ack), &ack);
-
-	} else {
-		orb_publish(ORB_ID(ulog_stream_ack), _ulog_stream_ack_pub, &ack);
-	}
+	_ulog_stream_ack_pub.publish(ack);
 }
