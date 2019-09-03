@@ -147,7 +147,8 @@ private:
 		(ParamInt<px4::params::ARSP_BETA_GATE>) _param_west_beta_gate,
 		(ParamInt<px4::params::ARSP_SCALE_EST>) _param_west_scale_estimation_on,
 		(ParamFloat<px4::params::ARSP_SCALE>) _param_west_airspeed_scale,
-		(ParamFloat<px4::params::ARSP_DO_CHECKS>) _param_airspeed_checks_on,
+		(ParamInt<px4::params::ARSP_DO_CHECKS>) _param_airspeed_checks_on,
+		(ParamInt<px4::params::ARSP_FALLBACK>) _param_airspeed_fallback_on,
 
 
 		(ParamFloat<px4::params::COM_TAS_FS_INNOV>) _tas_innov_threshold, /**< innovation check threshold */
@@ -487,11 +488,11 @@ void AirspeedModule::select_airspeed_and_publish()
 	airspeed_validated_s airspeed_validated = {};
 	airspeed_validated.timestamp = hrt_absolute_time();
 	airspeed_validated.true_ground_minus_wind_m_s = NAN;
-	airspeed_validated.indicated_ground_minus_wind_m_s = NAN;
+	airspeed_validated.equivalent_ground_minus_wind_m_s = NAN;
 	airspeed_validated.indicated_airspeed_m_s = NAN;
 	airspeed_validated.equivalent_airspeed_m_s = NAN;
 	airspeed_validated.true_airspeed_m_s = NAN;
-
+	airspeed_validated.airspeed_sensor_measurement_valid = false;
 	airspeed_validated.selected_airspeed_index = _valid_airspeed_index;
 
 	switch (_valid_airspeed_index) {
@@ -499,16 +500,25 @@ void AirspeedModule::select_airspeed_and_publish()
 		break;
 
 	case -1:
+		if (_param_airspeed_fallback_on.get()) {
+			/* Take IAS, EAS, TAS from groundspeed-windspeed */
+			airspeed_validated.indicated_airspeed_m_s = _ground_minus_wind_EAS;
+			airspeed_validated.equivalent_airspeed_m_s = _ground_minus_wind_EAS;
+			airspeed_validated.true_airspeed_m_s = _ground_minus_wind_TAS;
+		}
+
+		airspeed_validated.equivalent_ground_minus_wind_m_s = _ground_minus_wind_EAS;
 		airspeed_validated.true_ground_minus_wind_m_s = _ground_minus_wind_TAS;
-		airspeed_validated.indicated_ground_minus_wind_m_s = _ground_minus_wind_EAS;
+
 		break;
 
 	default:
 		airspeed_validated.indicated_airspeed_m_s = _airspeed_validator[_valid_airspeed_index].get_IAS();
 		airspeed_validated.equivalent_airspeed_m_s = _airspeed_validator[_valid_airspeed_index].get_EAS();
 		airspeed_validated.true_airspeed_m_s = _airspeed_validator[_valid_airspeed_index].get_TAS();
+		airspeed_validated.equivalent_ground_minus_wind_m_s = _ground_minus_wind_EAS;
 		airspeed_validated.true_ground_minus_wind_m_s = _ground_minus_wind_TAS;
-		airspeed_validated.indicated_ground_minus_wind_m_s = _ground_minus_wind_EAS;
+		airspeed_validated.airspeed_sensor_measurement_valid = true;
 		break;
 	}
 

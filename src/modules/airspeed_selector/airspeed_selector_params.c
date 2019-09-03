@@ -100,4 +100,14 @@ PARAM_DEFINE_FLOAT(ARSP_SCALE, 1.0f);
  * @boolean
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ARSP_DO_CHECKS, 1.0f);
+PARAM_DEFINE_INT32(ARSP_DO_CHECKS, 0);
+
+/**
+ * Enable fallback for airspeed estimation (take groundspeed minus windspeed)
+ *
+ * If set to true then the airspeed is estimated using groundspeed minus windspeed if no valid airspeed sensor present.
+ *
+ * @boolean
+ * @group Airspeed Validator
+ */
+PARAM_DEFINE_INT32(ARSP_FALLBACK, 0);

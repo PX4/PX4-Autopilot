@@ -112,7 +112,7 @@ AirspeedValidator::get_wind_estimator_states(uint64_t timestamp)
 void
 AirspeedValidator::update_EAS_scale()
 {
-	_EAS_scale = 1.0f / math::constrain(_wind_estimator.get_tas_scale(), 0.75f, 1.25f);
+	_EAS_scale = 1.0f / math::constrain(_wind_estimator.get_tas_scale(), 0.5f, 2.0f);
 }
 
 void
