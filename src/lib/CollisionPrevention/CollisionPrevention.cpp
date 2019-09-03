@@ -190,8 +190,11 @@ void CollisionPrevention::_updateObstacleMap()
 void CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor,
 		const matrix::Quatf &vehicle_attitude)
 {
-	if ((distance_sensor.current_distance > distance_sensor.min_distance) &&
-	    (distance_sensor.current_distance < distance_sensor.max_distance)) {
+	//clamp at maximum sensor range
+	float distance_reading = math::min(distance_sensor.current_distance, distance_sensor.max_distance);
+
+	//discard values below min range
+	if ((distance_reading > distance_sensor.min_distance)) {
 
 		float sensor_yaw_body_rad = _sensorOrientationToYawOffset(distance_sensor, _obstacle_map_body_frame.angle_offset);
 		float sensor_yaw_body_deg = math::degrees(wrap_2pi(sensor_yaw_body_rad));
@@ -226,8 +229,7 @@ void CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sen
 			}
 
 			// compensate measurement for vehicle tilt and convert to cm
-			_obstacle_map_body_frame.distances[wrap_bin] = (int)(100 * distance_sensor.current_distance *
-					sensor_dist_scale);
+			_obstacle_map_body_frame.distances[wrap_bin] = (int)(100 * distance_reading * sensor_dist_scale);
 			_data_timestamps[wrap_bin] = _obstacle_map_body_frame.timestamp;
 		}
 	}
