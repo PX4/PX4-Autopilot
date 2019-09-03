@@ -57,6 +57,7 @@
 // subscriptions
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
+#include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/mission_result.h>
@@ -133,14 +134,8 @@ private:
 		(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid,
 		(ParamInt<px4::params::COM_OA_BOOT_T>) _param_com_oa_boot_t,
 
-		(ParamFloat<px4::params::COM_TAS_FS_INNOV>) _tas_innov_threshold,
-		(ParamFloat<px4::params::COM_TAS_FS_INTEG>) _tas_innov_integ_threshold,
-		(ParamInt<px4::params::COM_TAS_FS_T1>) _tas_use_stop_delay,
-		(ParamInt<px4::params::COM_TAS_FS_T2>) _tas_use_start_delay,
-		(ParamInt<px4::params::COM_ASPD_FS_ACT>) _airspeed_fail_action,
-		(ParamFloat<px4::params::COM_ASPD_STALL>) _airspeed_stall,
-		(ParamInt<px4::params::COM_ASPD_FS_DLY>) _airspeed_rtl_delay,
 		(ParamInt<px4::params::COM_FLT_PROFILE>) _param_com_flt_profile,
+
 
 		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,
 		(ParamInt<px4::params::COM_OBL_ACT>) _param_com_obl_act,
@@ -185,18 +180,9 @@ private:
 	bool		_nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
 
 	/* class variables used to check for airspeed sensor failure */
-	bool		_tas_check_fail{false};	/**< true when airspeed innovations have failed consistency checks */
-	hrt_abstime	_time_last_tas_pass{0};		/**< last time innovation checks passed */
-	hrt_abstime	_time_last_tas_fail{0};		/**< last time innovation checks failed */
-	static constexpr hrt_abstime TAS_INNOV_FAIL_DELAY{1_s};	/**< time required for innovation levels to pass or fail (usec) */
-	bool		_tas_use_inhibit{false};	/**< true when the commander has instructed the control loops to not use airspeed data */
-	hrt_abstime	_time_tas_good_declared{0};	/**< time TAS use was started (uSec) */
-	hrt_abstime	_time_tas_bad_declared{0};	/**< time TAS use was stopped (uSec) */
-	hrt_abstime	_time_last_airspeed{0};		/**< time last airspeed measurement was received (uSec) */
-	hrt_abstime	_time_last_aspd_innov_check{0};	/**< time airspeed innovation was last checked (uSec) */
-	char		*_airspeed_fault_type = new char[7];
-	float		_load_factor_ratio{0.5f};	/**< ratio of maximum load factor predicted by stall speed to measured load factor */
-	float		_apsd_innov_integ_state{0.0f};	/**< inegral of excess normalised airspeed innovation (sec) */
+	bool _airspeed_fault_declared{false}; /**< airspeed declared faulty */
+	hrt_abstime	_time_airspeed_fault_declared{0};	/**< time airspeed was declared faulty (uSec) */
+
 
 	bool _geofence_loiter_on{false};
 	bool _geofence_rtl_on{false};
@@ -285,6 +271,7 @@ private:
 	uORB::Subscription					_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
 	uORB::SubscriptionData<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
+	uORB::SubscriptionData<airspeed_validated_s>			_airspeed_validated_sub{ORB_ID(airspeed_validated)};
 	uORB::SubscriptionData<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
 	uORB::SubscriptionData<mission_result_s>		_mission_result_sub{ORB_ID(mission_result)};
 	uORB::SubscriptionData<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};

@@ -130,11 +130,24 @@ void Tailsitter::update_vtol_state()
 
 		case vtol_mode::TRANSITION_FRONT_P1: {
 
-				bool airspeed_condition_satisfied = _airspeed->indicated_airspeed_m_s >= _params->transition_airspeed;
-				airspeed_condition_satisfied |= _params->airspeed_disabled;
 
-				// check if we have reached airspeed  and pitch angle to switch to TRANSITION P2 mode
-				if ((airspeed_condition_satisfied && pitch <= PITCH_TRANSITION_FRONT_P1) || can_transition_on_ground()) {
+				const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s)
+						&& !_params->airspeed_disabled;
+
+				bool transition_to_fw = false;
+
+				if (pitch <= PITCH_TRANSITION_FRONT_P1) {
+					if (airspeed_triggers_transition) {
+						transition_to_fw = _airspeed_validated->equivalent_airspeed_m_s >= _params->transition_airspeed;
+
+					} else {
+						transition_to_fw = true;
+					}
+				}
+
+				transition_to_fw |= can_transition_on_ground();
+
+				if (transition_to_fw) {
 					_vtol_schedule.flight_mode = vtol_mode::FW_MODE;
 				}
 
