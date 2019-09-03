@@ -40,7 +40,7 @@
 
 #include "output_mavlink.h"
 
-#include <math.h>
+#include <mathlib/mathlib.h>
 
 #include <uORB/topics/vehicle_command.h>
 #include <px4_platform_common/defines.h>
@@ -88,9 +88,20 @@ int OutputMavlink::update(const ControlData *control_data)
 
 	// vmount spec has roll, pitch on channels 0, 1, respectively; MAVLink spec has roll, pitch on channels 1, 0, respectively
 	// vmount uses radians, MAVLink uses degrees
-	vehicle_command.param1 = (_angle_outputs[1] + _config.pitch_offset) * M_RAD_TO_DEG_F;
-	vehicle_command.param2 = (_angle_outputs[0] + _config.roll_offset) * M_RAD_TO_DEG_F;
-	vehicle_command.param3 = (_angle_outputs[2] + _config.yaw_offset) * M_RAD_TO_DEG_F;
+
+	switch (_config.custom_gimbal) {
+	case 0: // default
+		vehicle_command.param1 = math::degrees(_angle_outputs[1] + _config.pitch_offset);
+		vehicle_command.param2 = math::degrees(_angle_outputs[0] + _config.roll_offset);
+		vehicle_command.param3 = math::degrees(_angle_outputs[2] + _config.yaw_offset);
+		break;
+
+	case 1: // Gremsy Pixy F - need to multiply the degrees by 100
+		vehicle_command.param1 = math::degrees(_angle_outputs[1] + _config.pitch_offset) * 1e2f;
+		vehicle_command.param2 = math::degrees(_angle_outputs[0] + _config.roll_offset) * 1e2f;
+		vehicle_command.param3 = math::degrees(_angle_outputs[2] + _config.yaw_offset) * 1e2f;
+		break;
+	}
 
 	_vehicle_command_pub.publish(vehicle_command);
 

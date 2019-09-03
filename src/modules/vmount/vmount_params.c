@@ -228,3 +228,14 @@ PARAM_DEFINE_FLOAT(MNT_OFF_ROLL, 0.0f);
 * @group Mount
 */
 PARAM_DEFINE_FLOAT(MNT_OFF_YAW, 0.0f);
+
+/**
+* Custom mount settings for specific gimbal devices.
+*
+* @value 0 DEFAULT
+* @value 1 Gremsy Pixy F
+* @min 0
+* @max 1
+* @group Mount
+*/
+PARAM_DEFINE_INT32(MNT_OUT_CUSTOM, 0);
