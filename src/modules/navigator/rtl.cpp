@@ -53,6 +53,14 @@ RTL::RTL(Navigator *navigator) :
 }
 
 void
+RTL::on_inactivation()
+{
+	if (_navigator->get_precland()->is_activated()) {
+		_navigator->get_precland()->on_inactivation();
+	}
+}
+
+void
 RTL::on_inactive()
 {
 	// Reset RTL state.
@@ -223,6 +231,14 @@ RTL::on_active()
 	if (_rtl_state != RTL_STATE_LANDED && is_mission_item_reached()) {
 		advance_rtl();
 		set_rtl_item();
+
+	}
+
+	if (_rtl_state == RTL_STATE_LAND && _param_rtl_pld_md.get() > 0) {
+		_navigator->get_precland()->on_active();
+
+	} else if (_navigator->get_precland()->is_activated()) {
+		_navigator->get_precland()->on_inactivation();
 	}
 }
 
@@ -389,6 +405,16 @@ RTL::set_rtl_item()
 			_mission_item.time_inside = 0.0f;
 			_mission_item.autocontinue = true;
 			_mission_item.origin = ORIGIN_ONBOARD;
+			_mission_item.land_precision = _param_rtl_pld_md.get();
+
+			if (_mission_item.land_precision == 1) {
+				_navigator->get_precland()->set_mode(PrecLandMode::Opportunistic);
+				_navigator->get_precland()->on_activation();
+
+			} else if (_mission_item.land_precision == 2) {
+				_navigator->get_precland()->set_mode(PrecLandMode::Required);
+				_navigator->get_precland()->on_activation();
+			}
 
 			mavlink_log_info(_navigator->get_mavlink_log_pub(), "RTL: land at destination");
 			break;

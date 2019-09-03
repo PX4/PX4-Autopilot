@@ -70,6 +70,7 @@ public:
 
 	~RTL() = default;
 
+	void on_inactivation() override;
 	void on_inactive() override;
 	void on_activation() override;
 	void on_active() override;
@@ -137,6 +138,7 @@ private:
 		(ParamFloat<px4::params::RTL_LAND_DELAY>) _param_rtl_land_delay,
 		(ParamFloat<px4::params::RTL_MIN_DIST>) _param_rtl_min_dist,
 		(ParamInt<px4::params::RTL_TYPE>) _param_rtl_type,
-		(ParamInt<px4::params::RTL_CONE_ANG>) _param_rtl_cone_half_angle_deg
+		(ParamInt<px4::params::RTL_CONE_ANG>) _param_rtl_cone_half_angle_deg,
+		(ParamInt<px4::params::RTL_PLD_MD>) _param_rtl_pld_md
 	)
 };
