@@ -332,11 +332,11 @@ TEST_F(CollisionPreventionTest, noBias)
 
 	// AND: an obstacle message
 	obstacle_distance_s message;
-	message.frame = message.MAV_FRAME_GLOBAL; //north aligned
 	memset(&message, 0xDEAD, sizeof(message));
 	message.min_distance = 100;
 	message.max_distance = 2000;
 	message.timestamp = hrt_absolute_time();
+	message.frame = message.MAV_FRAME_GLOBAL; //north aligned
 	int distances_array_size = sizeof(message.distances) / sizeof(message.distances[0]);
 	message.increment = 360 / distances_array_size;
 
@@ -440,6 +440,7 @@ TEST_F(CollisionPreventionTest, jerkLimit)
 	message.min_distance = 100;
 	message.max_distance = 2000;
 	message.timestamp = hrt_absolute_time();
+	message.frame = message.MAV_FRAME_GLOBAL; //north aligned
 	int distances_array_size = sizeof(message.distances) / sizeof(message.distances[0]);
 	message.increment = 360 / distances_array_size;
 
