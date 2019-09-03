@@ -24,3 +24,6 @@ lis3mdl -X start
 
 # Possible internal compass
 ist8310 -C -b 5 start
+
+# Baro on internal SPI
+ms5611 -s start
