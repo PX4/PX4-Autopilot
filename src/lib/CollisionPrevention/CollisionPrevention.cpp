@@ -47,6 +47,17 @@ namespace
 {
 static const int INTERNAL_MAP_INCREMENT_DEG = 10; //cannot be lower than 5 degrees, should divide 360 evenly
 static const int INTERNAL_MAP_USED_BINS = 360 / INTERNAL_MAP_INCREMENT_DEG;
+
+float wrap_360(float f)
+{
+	f = fmod(f, 360.f);
+
+	if (f < 0) {
+		return f + 360;
+	}
+
+	return f;
+}
 }
 
 CollisionPrevention::CollisionPrevention(ModuleParams *parent) :
@@ -91,7 +102,7 @@ void CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obst
 		const matrix::Quatf &vehicle_attitude)
 {
 	int msg_index = 0;
-	float vehicle_orientation_rad = Eulerf(vehicle_attitude).psi();
+	float vehicle_orientation_deg = math::degrees(Eulerf(vehicle_attitude).psi());
 	float increment_factor = 1.f / obstacle.increment;
 
 
@@ -99,10 +110,8 @@ void CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obst
 		//Obstacle message arrives in local_origin frame (north aligned)
 		//corresponding data index (convert to world frame and shift by msg offset)
 		for (int i = 0; i < INTERNAL_MAP_USED_BINS; i++) {
-			float bin_angle_rad =  math::radians((float)i * INTERNAL_MAP_INCREMENT_DEG +
-							     _obstacle_map_body_frame.angle_offset);
-			msg_index = ceil(math::degrees(wrap_2pi(vehicle_orientation_rad + bin_angle_rad - math::radians(
-					obstacle.angle_offset))) * increment_factor);
+			float bin_angle_deg = (float)i * INTERNAL_MAP_INCREMENT_DEG + _obstacle_map_body_frame.angle_offset;
+			msg_index = ceil(wrap_360(vehicle_orientation_deg + bin_angle_deg - obstacle.angle_offset) * increment_factor);
 
 			//add all data points inside to FOV
 			if (obstacle.distances[msg_index] != UINT16_MAX) {
@@ -116,10 +125,9 @@ void CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obst
 		//Obstacle message arrives in body frame (front aligned)
 		//corresponding data index (shift by msg offset)
 		for (int i = 0; i < INTERNAL_MAP_USED_BINS; i++) {
-			float bin_angle_rad =  math::radians((float)i * INTERNAL_MAP_INCREMENT_DEG +
-							     _obstacle_map_body_frame.angle_offset);
-			msg_index = ceil(math::degrees(wrap_2pi(bin_angle_rad - math::radians(
-					obstacle.angle_offset))) * increment_factor);
+			float bin_angle_deg = (float)i * INTERNAL_MAP_INCREMENT_DEG +
+					      _obstacle_map_body_frame.angle_offset;
+			msg_index = ceil(wrap_360(bin_angle_deg - obstacle.angle_offset) * increment_factor);
 
 			//add all data points inside to FOV
 			if (obstacle.distances[msg_index] != UINT16_MAX) {
@@ -257,7 +265,7 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 				float distance = _obstacle_map_body_frame.distances[i] * 0.01f; //convert to meters
 				float angle = math::radians((float)i * INTERNAL_MAP_INCREMENT_DEG + _obstacle_map_body_frame.angle_offset);
 
-				// convert from body to local frame in the range [0, 360]
+				// convert from body to local frame in the range [0, 2*pi]
 				angle  = wrap_2pi(vehicle_yaw_angle_rad + angle);
 
 				//get direction of current bin
