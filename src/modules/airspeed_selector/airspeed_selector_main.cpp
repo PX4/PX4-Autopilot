@@ -139,23 +139,23 @@ private:
 	perf_counter_t _perf_elapsed{};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::ARSP_W_P_NOISE>) _param_west_w_p_noise,
-		(ParamFloat<px4::params::ARSP_SC_P_NOISE>) _param_west_sc_p_noise,
-		(ParamFloat<px4::params::ARSP_TAS_NOISE>) _param_west_tas_noise,
-		(ParamFloat<px4::params::ARSP_BETA_NOISE>) _param_west_beta_noise,
-		(ParamInt<px4::params::ARSP_TAS_GATE>) _param_west_tas_gate,
-		(ParamInt<px4::params::ARSP_BETA_GATE>) _param_west_beta_gate,
-		(ParamInt<px4::params::ARSP_SCALE_EST>) _param_west_scale_estimation_on,
-		(ParamFloat<px4::params::ARSP_SCALE>) _param_west_airspeed_scale,
-		(ParamInt<px4::params::ARSP_DO_CHECKS>) _param_airspeed_checks_on,
-		(ParamInt<px4::params::ARSP_FALLBACK>) _param_airspeed_fallback_on,
+		(ParamFloat<px4::params::ASPD_W_P_NOISE>) _param_west_w_p_noise,
+		(ParamFloat<px4::params::ASPD_SC_P_NOISE>) _param_west_sc_p_noise,
+		(ParamFloat<px4::params::ASPD_TAS_NOISE>) _param_west_tas_noise,
+		(ParamFloat<px4::params::ASPD_BETA_NOISE>) _param_west_beta_noise,
+		(ParamInt<px4::params::ASPD_TAS_GATE>) _param_west_tas_gate,
+		(ParamInt<px4::params::ASPD_BETA_GATE>) _param_west_beta_gate,
+		(ParamInt<px4::params::ASPD_SCALE_EST>) _param_west_scale_estimation_on,
+		(ParamFloat<px4::params::ASPD_SCALE>) _param_west_airspeed_scale,
+		(ParamInt<px4::params::ASPD_DO_CHECKS>) _param_airspeed_checks_on,
+		(ParamInt<px4::params::ASPD_FALLBACK>) _param_airspeed_fallback_on,
 
 
-		(ParamFloat<px4::params::COM_TAS_FS_INNOV>) _tas_innov_threshold, /**< innovation check threshold */
-		(ParamFloat<px4::params::COM_TAS_FS_INTEG>) _tas_innov_integ_threshold, /**< innovation check integrator threshold */
-		(ParamInt<px4::params::COM_TAS_FS_T1>) _checks_fail_delay, /**< delay to declare airspeed invalid */
-		(ParamInt<px4::params::COM_TAS_FS_T2>) _checks_clear_delay, /**<  delay to declare airspeed valid again */
-		(ParamFloat<px4::params::COM_ASPD_STALL>) _airspeed_stall /**<  stall speed*/
+		(ParamFloat<px4::params::ASPD_FS_INNOV>) _tas_innov_threshold, /**< innovation check threshold */
+		(ParamFloat<px4::params::ASPD_FS_INTEG>) _tas_innov_integ_threshold, /**< innovation check integrator threshold */
+		(ParamInt<px4::params::ASPD_FS_T1>) _checks_fail_delay, /**< delay to declare airspeed invalid */
+		(ParamInt<px4::params::ASPD_FS_T2>) _checks_clear_delay, /**<  delay to declare airspeed valid again */
+		(ParamFloat<px4::params::ASPD_STALL>) _airspeed_stall /**<  stall speed*/
 	)
 
 	int 		start();
@@ -357,7 +357,7 @@ void AirspeedModule::update_params()
 			_param_west_scale_estimation_on.commit_no_notification();
 		}
 
-		/* If one sensor is valid and we switched out of scale estimation, then publish message and change the value of param ARSP_ARSP_SCALE */
+		/* If one sensor is valid and we switched out of scale estimation, then publish message and change the value of param ASPD_ASPD_SCALE */
 
 	} else if (_scale_estimation_previously_on && !_param_west_scale_estimation_on.get()) {
 		if (_valid_airspeed_index >= 0) {
@@ -366,7 +366,7 @@ void AirspeedModule::update_params()
 			_param_west_airspeed_scale.commit_no_notification();
 			_airspeed_validator[_valid_airspeed_index].set_airspeed_scale(_param_west_airspeed_scale.get());
 
-			mavlink_and_console_log_info(&_mavlink_log_pub, "Airspeed: estimated scale (ARSP_ARSP_SCALE): %0.2f",
+			mavlink_and_console_log_info(&_mavlink_log_pub, "Airspeed: estimated scale (ASPD_ASPD_SCALE): %0.2f",
 						     (double)_airspeed_validator[_valid_airspeed_index].get_EAS_scale());
 
 		} else {
@@ -452,7 +452,7 @@ void AirspeedModule::select_airspeed_and_publish()
 	bool find_new_valid_index = false;
 
 	/* Find new valid index if airspeed currently invalid (but we have sensors).
-		 Checks are enabled with ARSP_DO_CHECKS, switch between -1 and -2 is not affected*/
+		 Checks are enabled with ASPD_DO_CHECKS, switch between -1 and -2 is not affected*/
 	if ((_number_of_airspeed_sensors > 0 && _prev_airspeed_index < 0) ||
 	    (_prev_airspeed_index >= 0 && !_airspeed_validator[_prev_airspeed_index].get_airspeed_valid()
 	     && _param_airspeed_checks_on.get()) ||

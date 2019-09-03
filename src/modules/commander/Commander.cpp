@@ -579,7 +579,7 @@ Commander::Commander() :
 
 Commander::~Commander()
 {
-	delete[] _airspeed_fault_type;
+	// delete[] _airspeed_fault_type;
 }
 
 bool
@@ -3998,151 +3998,28 @@ void Commander::battery_status_check()
 
 void Commander::airspeed_use_check()
 {
-	if (_airspeed_fail_action.get() < 1 || _airspeed_fail_action.get() > 4) {
+	if (_param_airspeed_fail_action.get() < 1 || _param_airspeed_fail_action.get() > 4) {
 		// disabled
 		return;
 	}
 
-	_airspeed_sub.update();
-	const airspeed_s &airspeed = _airspeed_sub.get();
+	_airspeed_validated_sub.update();
+	const airspeed_validated_s &airspeed_validated = _airspeed_validated_sub.get();
 
-	vehicle_acceleration_s accel{};
-	_vehicle_acceleration_sub.copy(&accel);
 
-	bool is_fixed_wing = status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
+	bool trigger_airspeed_fault = false;
+	bool trigger_airspeed_fault_cleared = false;
 
-	// assume airspeed sensor is good before starting FW flight
-	bool valid_flight_condition = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) &&
-				      is_fixed_wing && !land_detector.landed;
-	bool fault_declared = false;
-	bool fault_cleared = false;
-	bool bad_number_fail = !PX4_ISFINITE(airspeed.indicated_airspeed_m_s) || !PX4_ISFINITE(airspeed.true_airspeed_m_s);
 
-	if (!valid_flight_condition) {
-
-		_tas_check_fail = false;
-		_time_last_tas_pass = hrt_absolute_time();
-		_time_last_tas_fail = 0;
-
-		_tas_use_inhibit = false;
-		_time_tas_good_declared = hrt_absolute_time();
-		_time_tas_bad_declared = 0;
-
-		status.aspd_check_failing = false;
-		status.aspd_fault_declared = false;
-		status.aspd_use_inhibit = false;
-		status.aspd_fail_rtl = false;
-		status.arspd_check_level = 0.0f;
-
-		_time_last_airspeed = hrt_absolute_time();
-		_time_last_aspd_innov_check = hrt_absolute_time();
-		_load_factor_ratio = 0.5f;
+	if (_airspeed_fault_declared) {
+		trigger_airspeed_fault_cleared = airspeed_validated.airspeed_sensor_measurement_valid;
 
 	} else {
-
-		// Check normalised innovation levels with requirement for continuous data and use of hysteresis
-		// to prevent false triggering.
-		float dt_s = float(1e-6 * (double)hrt_elapsed_time(&_time_last_aspd_innov_check));
-
-		if (dt_s < 1.0f) {
-			if (_estimator_status_sub.get().tas_test_ratio <= _tas_innov_threshold.get()) {
-				// record pass and reset integrator used to trigger
-				_time_last_tas_pass = hrt_absolute_time();
-				_apsd_innov_integ_state = 0.0f;
-
-			} else {
-				// integrate exceedance
-				_apsd_innov_integ_state += dt_s * (_estimator_status_sub.get().tas_test_ratio - _tas_innov_threshold.get());
-			}
-
-			status.arspd_check_level = _apsd_innov_integ_state;
-
-			if ((_estimator_status_sub.get().vel_test_ratio < 1.0f) && (_estimator_status_sub.get().mag_test_ratio < 1.0f)) {
-				// nav velocity data is likely good so airspeed innovations are able to be used
-				if ((_tas_innov_integ_threshold.get() > 0.0f) && (_apsd_innov_integ_state > _tas_innov_integ_threshold.get())) {
-					_time_last_tas_fail = hrt_absolute_time();
-				}
-			}
-
-			if (!_tas_check_fail) {
-				_tas_check_fail = (hrt_elapsed_time(&_time_last_tas_pass) > TAS_INNOV_FAIL_DELAY);
-
-			} else {
-				_tas_check_fail = (hrt_elapsed_time(&_time_last_tas_fail) < TAS_INNOV_FAIL_DELAY);
-			}
+		trigger_airspeed_fault = !airspeed_validated.airspeed_sensor_measurement_valid;
+		if (trigger_airspeed_fault) {
+			_time_airspeed_fault_declared = hrt_absolute_time();
 		}
 
-		_time_last_aspd_innov_check = hrt_absolute_time();
-
-
-		// The vehicle is flying so use the status of the airspeed innovation check '_tas_check_fail' in
-		// addition to a sanity check using airspeed and load factor and a missing sensor data check.
-
-		// Check if sensor data is missing - assume a minimum 5Hz data rate.
-		const bool data_missing = (hrt_elapsed_time(&_time_last_airspeed) > 200_ms);
-
-		// Declare data stopped if not received for longer than 1 second
-		const bool data_stopped = (hrt_elapsed_time(&_time_last_airspeed) > 1_s);
-
-		_time_last_airspeed = hrt_absolute_time();
-
-		// Check if the airpeed reading is lower than physically possible given the load factor
-		bool load_factor_ratio_fail = true;
-
-		if (!bad_number_fail) {
-			float max_lift_ratio = fmaxf(airspeed.indicated_airspeed_m_s, 0.7f) / fmaxf(_airspeed_stall.get(), 1.0f);
-			max_lift_ratio *= max_lift_ratio;
-
-			_load_factor_ratio = 0.95f * _load_factor_ratio + 0.05f * (fabsf(accel.xyz[2]) / CONSTANTS_ONE_G) / max_lift_ratio;
-			_load_factor_ratio = math::constrain(_load_factor_ratio, 0.25f, 2.0f);
-			load_factor_ratio_fail = (_load_factor_ratio > 1.1f);
-			status.load_factor_ratio = _load_factor_ratio;
-
-			// sanity check independent of stall speed and load factor calculation
-			if (airspeed.indicated_airspeed_m_s <= 0.0f) {
-				bad_number_fail = true;
-			}
-		}
-
-		//  Decide if the control loops should be using the airspeed data based on the length of time the
-		// airspeed data has been declared bad
-		if (_tas_check_fail || load_factor_ratio_fail || data_missing || bad_number_fail) {
-			// either load factor or EKF innovation or missing data test failure can declare the airspeed bad
-			_time_tas_bad_declared = hrt_absolute_time();
-			status.aspd_check_failing = true;
-
-		} else if (!_tas_check_fail && !load_factor_ratio_fail && !data_missing && !bad_number_fail) {
-			// All checks must pass to declare airspeed good
-			_time_tas_good_declared = hrt_absolute_time();
-			status.aspd_check_failing = false;
-		}
-
-		if (!_tas_use_inhibit) {
-			// A simultaneous load factor and innovaton check fail makes it more likely that a large
-			// airspeed measurement fault has developed, so a fault should be declared immediately
-			const bool both_checks_failed = (_tas_check_fail && load_factor_ratio_fail);
-
-			// Because the innovation, load factor and data missing checks are subject to short duration false positives
-			// a timeout period is applied.
-			const bool single_check_fail_timeout = (hrt_elapsed_time(&_time_tas_good_declared) > (_tas_use_stop_delay.get() * 1_s));
-
-			if (data_stopped || both_checks_failed || single_check_fail_timeout || bad_number_fail) {
-
-				_tas_use_inhibit = true;
-				fault_declared = true;
-
-				if (data_stopped || data_missing) {
-					strcpy(_airspeed_fault_type, "MISSING");
-
-				} else  {
-					strcpy(_airspeed_fault_type, "FAULTY ");
-				}
-			}
-
-		} else if (hrt_elapsed_time(&_time_tas_bad_declared) > (_tas_use_start_delay.get() * 1_s)) {
-			_tas_use_inhibit = false;
-			fault_cleared = true;
-		}
 	}
 
 	// Do actions based on value of COM_ASPD_FS_ACT parameter
@@ -4150,11 +4027,12 @@ void Commander::airspeed_use_check()
 	status.aspd_use_inhibit = false;
 	status.aspd_fail_rtl = false;
 
-	switch (_airspeed_fail_action.get()) {
+	switch (_param_airspeed_fail_action.get()) {
 	case 4: { // log a message, warn the user, switch to non-airspeed TECS mode, switch to Return mode if not in a pilot controlled mode.
-			if (fault_declared) {
+			if (trigger_airspeed_fault) {
 				status.aspd_fault_declared = true;
 				status.aspd_use_inhibit = true;
+				_airspeed_fault_declared = true;
 
 				if ((internal_state.main_state == commander_state_s::MAIN_STATE_MANUAL)
 				    || (internal_state.main_state == commander_state_s::MAIN_STATE_ACRO)
@@ -4164,12 +4042,12 @@ void Commander::airspeed_use_check()
 				    || (internal_state.main_state == commander_state_s::MAIN_STATE_RATTITUDE)) {
 
 					// don't RTL if pilot is in control
-					mavlink_log_critical(&mavlink_log_pub, "ASPD DATA %s - stopping use", _airspeed_fault_type);
+					mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA INVALID - stopping use");
 
-				} else if (hrt_elapsed_time(&_time_tas_good_declared) < (_airspeed_rtl_delay.get() * 1_s)) {
+				} else if (hrt_elapsed_time(&_time_airspeed_fault_declared) < (_param_airspeed_rtl_delay.get() * 1_s)) {
 					// Wait for timeout and issue message
-					mavlink_log_critical(&mavlink_log_pub, "ASPD DATA %s - stopping use, RTL in %i sec", _airspeed_fault_type,
-							     _airspeed_rtl_delay.get());
+					mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA INVALID - stopping use, RTL in %i sec",
+							     _param_airspeed_rtl_delay.get());
 
 				} else if (TRANSITION_DENIED != main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_RTL, status_flags,
 						&internal_state)) {
@@ -4177,83 +4055,70 @@ void Commander::airspeed_use_check()
 					// Issue critical message even if already in RTL
 					status.aspd_fail_rtl = true;
 
-					if (_airspeed_rtl_delay.get() == 0) {
-						mavlink_log_critical(&mavlink_log_pub, "ASPD DATA %s - stopping use and returning", _airspeed_fault_type);
+					if (_param_airspeed_rtl_delay.get() == 0) {
+						mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA INVALID - stopping use and returning");
 
 					} else {
-						mavlink_log_critical(&mavlink_log_pub, "ASPD DATA STILL %s - returning", _airspeed_fault_type);
+						mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA STILL INVALID - returning");
 					}
 
 				} else {
 					status.aspd_fail_rtl = true;
 
-					if (_airspeed_rtl_delay.get() == 0) {
-						mavlink_log_critical(&mavlink_log_pub, "ASPD DATA %s - stopping use, return failed", _airspeed_fault_type);
+					if (_param_airspeed_rtl_delay.get() == 0) {
+						mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA INVALID - stopping use, return failed");
 
 					} else {
-						mavlink_log_critical(&mavlink_log_pub, "ASPD DATA STILL %s - return failed", _airspeed_fault_type);
+						mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA STILL INVALID - return failed");
 					}
 				}
 
-			} else if (fault_cleared) {
-				mavlink_log_critical(&mavlink_log_pub, "ASPD DATA GOOD - restarting use");
-			}
-
-			// Inhibit airspeed use immediately if a bad number
-			if (bad_number_fail && !status.aspd_use_inhibit) {
-				status.aspd_use_inhibit = true;
+			} else if (trigger_airspeed_fault_cleared) {
+				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED DATA VALID AGAIN - restarting use");
+				_airspeed_fault_declared = false;
 			}
 
 			return;
 		}
 
 	case 3: { // log a message, warn the user, switch to non-airspeed TECS mode
-			if (fault_declared) {
-				mavlink_log_critical(&mavlink_log_pub, "ASPD DATA %s  - stopping use", _airspeed_fault_type);
+			if (trigger_airspeed_fault) {
+				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED INVALID - stopping use");
 				status.aspd_fault_declared = true;
 				status.aspd_use_inhibit = true;
+				_airspeed_fault_declared = true;
 
-			} else if (fault_cleared) {
-				mavlink_log_critical(&mavlink_log_pub, "ASPD DATA GOOD - restarting use");
-			}
-
-			// Inhibit airspeed use immediately if a bad number
-			if (bad_number_fail && !status.aspd_use_inhibit) {
-				status.aspd_use_inhibit = true;
+			} else if (trigger_airspeed_fault_cleared) {
+				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED VALID AGAIN - restarting use");
+				_airspeed_fault_declared = false;
 			}
 
 			return;
 		}
 
 	case 2: { // log a message, warn the user
-			if (fault_declared) {
-				mavlink_log_critical(&mavlink_log_pub, "ASPD DATA %s", _airspeed_fault_type);
+			if (trigger_airspeed_fault) {
+				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED INVALID");
 				status.aspd_fault_declared = true;
+				_airspeed_fault_declared = true;
 
-			} else if (fault_cleared) {
-				mavlink_log_critical(&mavlink_log_pub, "ASPD DATA GOOD");
-			}
-
-			// Inhibit airspeed use immediately if a bad number
-			if (bad_number_fail && !status.aspd_use_inhibit) {
-				status.aspd_use_inhibit = true;
+			} else if (trigger_airspeed_fault_cleared) {
+				mavlink_log_critical(&mavlink_log_pub, "AIRSPEED VALID AGAIN");
+				_airspeed_fault_declared = false;
 			}
 
 			return;
 		}
 
 	case 1: { // log a message
-			if (fault_declared) {
-				mavlink_log_info(&mavlink_log_pub, "ASPD DATA %s", _airspeed_fault_type);
+			if (trigger_airspeed_fault) {
+				mavlink_log_info(&mavlink_log_pub, "AIRSPEED INVALID");
 				status.aspd_fault_declared = true;
+				_airspeed_fault_declared = true;
 
-			} else if (fault_cleared) {
-				mavlink_log_info(&mavlink_log_pub, "ASPD DATA GOOD");
-			}
-
-			// Inhibit airspeed use immediately if a bad number
-			if (bad_number_fail && !status.aspd_use_inhibit) {
-				status.aspd_use_inhibit = true;
+			} else if (trigger_airspeed_fault_cleared) {
+				mavlink_log_info(&mavlink_log_pub, "AIRSPEED VALID AGAIN");
+				_airspeed_fault_declared = false;
 			}
 
 			return;
