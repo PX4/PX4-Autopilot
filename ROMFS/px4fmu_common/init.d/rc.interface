@@ -17,9 +17,9 @@ set OUTPUT_DEV none
 # If mount (gimbal) control is enabled and output mode is AUX, set the aux
 # mixer to mount (override the airframe-specific MIXER_AUX setting).
 #
-if ! param compare-silent MNT_MODE_IN -1
+if ! param compare -s MNT_MODE_IN -1
 then
-        if param compare-silent MNT_MODE_OUT 0
+        if param compare -s MNT_MODE_OUT 0
         then
                 set MIXER_AUX mount
         fi

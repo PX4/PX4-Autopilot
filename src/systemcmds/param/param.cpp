@@ -150,10 +150,14 @@ $ reboot
 	PRINT_MODULE_USAGE_ARG("fail", "If provided, let the command fail if param is not found", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("compare", "Compare a param with a value. Command will succeed if equal");
+	PRINT_MODULE_USAGE_PARAM_FLAG('s', "If provided, silent errors if parameter doesn't exists", true);
 	PRINT_MODULE_USAGE_ARG("<param_name> <value>", "Parameter name and value to compare", false);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("greater",
 					 "Compare a param with a value. Command will succeed if param is greater than the value");
+	PRINT_MODULE_USAGE_PARAM_FLAG('s', "If provided, silent errors if parameter doesn't exists", true);
+	PRINT_MODULE_USAGE_ARG("<param_name> <value>", "Parameter name and value to compare", false);
+
 	PRINT_MODULE_USAGE_ARG("<param_name> <value>", "Parameter name and value to compare", false);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("touch", "Mark a parameter as used");
@@ -277,19 +281,10 @@ param_main(int argc, char *argv[])
 		}
 
 		if (!strcmp(argv[1], "compare")) {
-			if (argc >= 4) {
+			if(argc >= 5 && !strcmp(argv[2], "-s")) {
+				return do_compare(argv[3], &argv[4], argc - 4, COMPARE_OPERATOR_EQUAL, COMPARE_ERROR_LEVEL_SILENT);
+			} else if (argc >= 4) {
 				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR_EQUAL, COMPARE_ERROR_LEVEL_ERROR);
-
-			} else {
-				PX4_ERR("not enough arguments.\nTry 'param compare PARAM_NAME 3'");
-				return 1;
-			}
-		}
-
-		if (!strcmp(argv[1], "compare-silent")) {
-			if (argc >= 4) {
-				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR_EQUAL, COMPARE_ERROR_LEVEL_SILENT);
-
 			} else {
 				PX4_ERR("not enough arguments.\nTry 'param compare PARAM_NAME 3'");
 				return 1;
@@ -297,19 +292,10 @@ param_main(int argc, char *argv[])
 		}
 
 		if (!strcmp(argv[1], "greater")) {
-			if (argc >= 4) {
+			if(argc >= 5 && !strcmp(argv[2], "-s")) {
+				return do_compare(argv[3], &argv[4], argc - 4, COMPARE_OPERATOR_GREATER, COMPARE_ERROR_LEVEL_SILENT);
+			} else if (argc >= 4) {
 				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR_GREATER, COMPARE_ERROR_LEVEL_ERROR);
-
-			} else {
-				PX4_ERR("not enough arguments.\nTry 'param greater PARAM_NAME 3'");
-				return 1;
-			}
-		}
-
-		if (!strcmp(argv[1], "greater-silent")) {
-			if (argc >= 4) {
-				return do_compare(argv[2], &argv[3], argc - 3, COMPARE_OPERATOR_GREATER, COMPARE_ERROR_LEVEL_SILENT);
-
 			} else {
 				PX4_ERR("not enough arguments.\nTry 'param greater PARAM_NAME 3'");
 				return 1;

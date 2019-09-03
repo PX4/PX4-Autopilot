@@ -344,7 +344,7 @@ else
 	fi
 
 	# Sensors on the PWM interface bank.
-	if param compare-silent SENS_EN_LL40LS 1
+	if param compare -s SENS_EN_LL40LS 1
 	then
 		# Clear pins 5 and 6.
 		set FMU_MODE pwm4
@@ -371,7 +371,7 @@ else
 	#
 	# Check if UAVCAN is enabled, default to it for ESCs.
 	#
-	if param greater-silent UAVCAN_ENABLE 0
+	if param greater -s UAVCAN_ENABLE 0
 	then
 		# Start core UAVCAN module.
 		if uavcan start
