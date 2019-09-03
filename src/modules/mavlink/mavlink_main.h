@@ -544,7 +544,7 @@ private:
 
 	uORB::PublicationQueued<telemetry_status_s>	_telem_status_pub{ORB_ID(telemetry_status)};
 
-	bool			_task_running{false};
+	bool			_task_running{true};
 	static bool		_boot_complete;
 	static constexpr int	MAVLINK_MAX_INSTANCES{4};
 	static constexpr int	MAVLINK_MIN_INTERVAL{1500};

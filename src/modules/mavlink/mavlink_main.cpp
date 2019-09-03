@@ -183,9 +183,6 @@ Mavlink::Mavlink() :
 
 Mavlink::~Mavlink()
 {
-	perf_free(_loop_perf);
-	perf_free(_loop_interval_perf);
-
 	if (_task_running) {
 		/* task wakes up every 10ms or so at the longest */
 		_task_should_exit = true;
@@ -205,6 +202,9 @@ Mavlink::~Mavlink()
 			}
 		} while (_task_running);
 	}
+
+	perf_free(_loop_perf);
+	perf_free(_loop_interval_perf);
 }
 
 void
@@ -2494,9 +2494,6 @@ Mavlink::task_main(int argc, char *argv[])
 		}
 
 		perf_end(_loop_perf);
-
-		/* confirm task running only once fully initialized */
-		_task_running = true;
 	}
 
 	/* first wait for threads to complete before tearing down anything */
