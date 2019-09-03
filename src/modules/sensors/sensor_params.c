@@ -232,6 +232,12 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
 *
 * @min 0
 * @max 2000
+* @value 0 0 (no limit)
+* @value 50 50 Hz
+* @value 250 250 Hz
+* @value 400 400 Hz
+* @value 1000 1000 Hz
+* @value 2000 2000 Hz
 * @unit Hz
 * @reboot_required true
 * @group Sensors
