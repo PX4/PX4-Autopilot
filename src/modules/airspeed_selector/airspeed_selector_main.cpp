@@ -146,7 +146,8 @@ private:
 		(ParamInt<px4::params::ARSP_TAS_GATE>) _param_west_tas_gate,
 		(ParamInt<px4::params::ARSP_BETA_GATE>) _param_west_beta_gate,
 		(ParamInt<px4::params::ARSP_SCALE_EST>) _param_west_scale_estimation_on,
-		(ParamFloat<px4::params::ARSP_ARSP_SCALE>) _param_west_airspeed_scale,
+		(ParamFloat<px4::params::ARSP_SCALE>) _param_west_airspeed_scale,
+		(ParamFloat<px4::params::ARSP_DO_CHECKS>) _param_airspeed_checks_on,
 
 
 		(ParamFloat<px4::params::COM_TAS_FS_INNOV>) _tas_innov_threshold, /**< innovation check threshold */
@@ -449,9 +450,11 @@ void AirspeedModule::select_airspeed_and_publish()
 	*/
 	bool find_new_valid_index = false;
 
-	/* find new valid index if airspeed currently invalid (but we have sensors) */
+	/* Find new valid index if airspeed currently invalid (but we have sensors).
+		 Checks are enabled with ARSP_DO_CHECKS, switch between -1 and -2 is not affected*/
 	if ((_number_of_airspeed_sensors > 0 && _prev_airspeed_index < 0) ||
-	    (_prev_airspeed_index >= 0 && !_airspeed_validator[_prev_airspeed_index].get_airspeed_valid()) ||
+	    (_prev_airspeed_index >= 0 && !_airspeed_validator[_prev_airspeed_index].get_airspeed_valid()
+	     && _param_airspeed_checks_on.get()) ||
 	    _prev_airspeed_index == -2) {
 
 		find_new_valid_index = true;

@@ -74,7 +74,7 @@ PARAM_DEFINE_INT32(ARSP_BETA_GATE, 1);
 /**
  * Automatic airspeed scale estimation on
  *
- * Turns the automatic airspeed scale (scale from IAS to CAS/EAS) on or off. It is recommended level (keeping altitude) while performing the estimation. Set to 1 to start estimation (best when already flying). Set to 0 to end scale estimation. The estimated scale is then saved in the ARSP_ARSP_SCALE parameter.
+ * Turns the automatic airspeed scale (scale from IAS to CAS/EAS) on or off. It is recommended level (keeping altitude) while performing the estimation. Set to 1 to start estimation (best when already flying). Set to 0 to end scale estimation. The estimated scale is then saved in the ARSP_SCALE parameter.
  *
  * @boolean
  * @group Airspeed Validator
@@ -90,4 +90,14 @@ PARAM_DEFINE_INT32(ARSP_SCALE_EST, 0);
  * @max 1.5
  * @group Airspeed Validator
  */
-PARAM_DEFINE_FLOAT(ARSP_ARSP_SCALE, 1.0f);
+PARAM_DEFINE_FLOAT(ARSP_SCALE, 1.0f);
+
+/**
+ * Enable checks on airspeed sensors
+ *
+ * If set to true then the data comming from the airspeed sensors is checked for validity.
+ *
+ * @boolean
+ * @group Airspeed Validator
+ */
+PARAM_DEFINE_FLOAT(ARSP_DO_CHECKS, 1.0f);
