@@ -149,38 +149,43 @@ void CollisionPrevention::_updateObstacleMap()
 
 	// add distance sensor data
 	for (unsigned i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
-		distance_sensor_s distance_sensor {};
-		_sub_distance_sensor[i].copy(&distance_sensor);
 
-		// consider only instances with updated, valid data and orientations useful for collision prevention
-		if ((getElapsedTime(&distance_sensor.timestamp) < RANGE_STREAM_TIMEOUT_US) &&
-		    (distance_sensor.orientation != distance_sensor_s::ROTATION_DOWNWARD_FACING) &&
-		    (distance_sensor.orientation != distance_sensor_s::ROTATION_UPWARD_FACING)) {
+		//if a new distance sensor message has arrived
+		if (_sub_distance_sensor[i].updated()) {
+			distance_sensor_s distance_sensor {};
+			_sub_distance_sensor[i].copy(&distance_sensor);
 
-			//update message description
-			_obstacle_map_body_frame.timestamp = math::max(_obstacle_map_body_frame.timestamp, distance_sensor.timestamp);
-			_obstacle_map_body_frame.max_distance = math::max((int)_obstacle_map_body_frame.max_distance,
-								(int)distance_sensor.max_distance * 100);
-			_obstacle_map_body_frame.min_distance = math::min((int)_obstacle_map_body_frame.min_distance,
-								(int)distance_sensor.min_distance * 100);
+			// consider only instances with valid data and orientations useful for collision prevention
+			if ((getElapsedTime(&distance_sensor.timestamp) < RANGE_STREAM_TIMEOUT_US) &&
+			    (distance_sensor.orientation != distance_sensor_s::ROTATION_DOWNWARD_FACING) &&
+			    (distance_sensor.orientation != distance_sensor_s::ROTATION_UPWARD_FACING)) {
 
-			_addDistanceSensorData(distance_sensor, Quatf(_sub_vehicle_attitude.get().q));
+				//update message description
+				_obstacle_map_body_frame.timestamp = math::max(_obstacle_map_body_frame.timestamp, distance_sensor.timestamp);
+				_obstacle_map_body_frame.max_distance = math::max((int)_obstacle_map_body_frame.max_distance,
+									(int)distance_sensor.max_distance * 100);
+				_obstacle_map_body_frame.min_distance = math::min((int)_obstacle_map_body_frame.min_distance,
+									(int)distance_sensor.min_distance * 100);
+
+				_addDistanceSensorData(distance_sensor, Quatf(_sub_vehicle_attitude.get().q));
+			}
 		}
 	}
 
 	// add obstacle distance data
-	_sub_obstacle_distance.update();
-	const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance.get();
+	if (_sub_obstacle_distance.update()) {
+		const obstacle_distance_s &obstacle_distance = _sub_obstacle_distance.get();
 
-	// Update map with obstacle data if the data is not stale
-	if (getElapsedTime(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US && obstacle_distance.increment > 0.f) {
-		//update message description
-		_obstacle_map_body_frame.timestamp = math::max(_obstacle_map_body_frame.timestamp, obstacle_distance.timestamp);
-		_obstacle_map_body_frame.max_distance = math::max((int)_obstacle_map_body_frame.max_distance,
-							(int)obstacle_distance.max_distance);
-		_obstacle_map_body_frame.min_distance = math::min((int)_obstacle_map_body_frame.min_distance,
-							(int)obstacle_distance.min_distance);
-		_addObstacleSensorData(obstacle_distance, Quatf(_sub_vehicle_attitude.get().q));
+		// Update map with obstacle data if the data is not stale
+		if (getElapsedTime(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US && obstacle_distance.increment > 0.f) {
+			//update message description
+			_obstacle_map_body_frame.timestamp = math::max(_obstacle_map_body_frame.timestamp, obstacle_distance.timestamp);
+			_obstacle_map_body_frame.max_distance = math::max((int)_obstacle_map_body_frame.max_distance,
+								(int)obstacle_distance.max_distance);
+			_obstacle_map_body_frame.min_distance = math::min((int)_obstacle_map_body_frame.min_distance,
+								(int)obstacle_distance.min_distance);
+			_addObstacleSensorData(obstacle_distance, Quatf(_sub_vehicle_attitude.get().q));
+		}
 	}
 
 	// publish fused obtacle distance message with data from offboard obstacle_distance and distance sensor
