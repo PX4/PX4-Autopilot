@@ -49,6 +49,7 @@
 /* Configuration Constants */
 static constexpr uint8_t LL40LS_BASEADDR	= 0x62;	/* 7-bit address */
 static constexpr uint8_t LL40LS_BASEADDR_OLD	= 0x42;	/* previous 7-bit address */
+static constexpr uint8_t LL40LS_SIG_COUNT_VAL_DEFAULT = 0x80; /* Default maximum acquisition count */
 
 /* LL40LS Registers addresses */
 static constexpr uint8_t LL40LS_MEASURE_REG	= 0x00;	/* Measure range register */
@@ -66,6 +67,8 @@ static constexpr uint8_t LL40LS_UNIT_ID_LOW	= 0x17;
 
 static constexpr uint8_t LL40LS_SIG_COUNT_VAL_REG	= 0x02;	/* Maximum acquisition count register */
 static constexpr uint8_t LL40LS_SIG_COUNT_VAL_MAX	= 0xFF;	/* Maximum acquisition count max value */
+static constexpr int LL40LS_SIGNAL_STRENGTH_MIN_V3HP = 70;	// Min signal strength for V3HP
+static constexpr int LL40LS_SIGNAL_STRENGTH_MAX_V3HP = 255;	// Max signal strength for V3HP
 
 static constexpr int LL40LS_SIGNAL_STRENGTH_LOW =
 	24;	// Minimum (relative) signal strength value for accepting a measurement
@@ -147,5 +150,6 @@ private:
 	uint8_t		_hw_version{0};
 	uint8_t		_sw_version{0};
 	uint16_t	_unit_id{0};
+	bool 		_is_V3hp{false};
 
 };
