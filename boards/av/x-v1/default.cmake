@@ -32,8 +32,6 @@ px4_add_board(
 		#imu # all available imu drivers
 		irlock
 		lights/blinkm
-		#lights/oreoled
-		#lights/pca8574
 		#lights/rgbled
 		#lights/rgbled_ncp5623c
 		#lights/rgbled_pwm
