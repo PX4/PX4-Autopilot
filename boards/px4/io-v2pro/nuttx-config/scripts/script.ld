@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/px4io-v2pro/scripts/ld.script
+ * configs/nucleo-f4x1re/scripts/f411re.ld
  *
  *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -43,20 +43,13 @@
 
 MEMORY
 {
-    flash (rx) : ORIGIN = 0x08004000, LENGTH = 508K
+    flash (rx) : ORIGIN = 0x08004000, LENGTH = 496K
     sram (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
 }
 
 OUTPUT_ARCH(arm)
-ENTRY(__start)		/* treat __start as the anchor for dead code stripping */
-EXTERN(_vectors)	/* force the vectors to be included in the output */
-
-/*
- * Ensure that abort() is present in the final object.  The exception handling
- * code pulled in by libgcc.a requires it (and that code cannot be easily avoided).
- */
-EXTERN(abort)
-
+EXTERN(_vectors)
+ENTRY(_stext)
 SECTIONS
 {
 	.text : {
@@ -73,21 +66,13 @@ SECTIONS
 		*(.gcc_except_table)
 		*(.gnu.linkonce.r.*)
 		_etext = ABSOLUTE(.);
-		/*
-		 * This is a hack to make the newlib libm __errno() call
-		 * use the NuttX get_errno_ptr() function.
-		 */
-		__errno = get_errno_ptr;
 	} > flash
 
-	/*
-	 * Init functions (static constructors and the like)
-	 */
-        .init_section : {
-                _sinit = ABSOLUTE(.);
-                KEEP(*(.init_array .init_array.*))
-                _einit = ABSOLUTE(.);
-        } > flash
+	.init_section : {
+		_sinit = ABSOLUTE(.);
+		*(.init_array .init_array.*)
+		_einit = ABSOLUTE(.);
+	} > flash
 
 	.ARM.extab : {
 		*(.ARM.extab*)
@@ -101,7 +86,6 @@ SECTIONS
 
 	_eronly = ABSOLUTE(.);
 
-	/* The STM32F411RE has 128Kb of SRAM beginning at the following address */
 
 	.data : {
 		_sdata = ABSOLUTE(.);
@@ -109,7 +93,6 @@ SECTIONS
 		*(.gnu.linkonce.d.*)
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
-		. = ALIGN(4);
 	} > sram AT > flash
 
 	.bss : {
@@ -117,7 +100,6 @@ SECTIONS
 		*(.bss .bss.*)
 		*(.gnu.linkonce.b.*)
 		*(COMMON)
-		. = ALIGN(4);
 		_ebss = ABSOLUTE(.);
 	} > sram
 
