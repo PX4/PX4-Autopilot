@@ -5,6 +5,9 @@
 # Draco-R
 if param compare SYS_AUTOSTART 6002
 then
+   # GPS LED
+   rgbled_ncp5623c start -a 0x38
+
    ms5611 -T 0 -s start
    ist8310 start
    lis3mdl -X start
