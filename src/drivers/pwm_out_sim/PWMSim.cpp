@@ -292,12 +292,7 @@ PWMSim::run()
 
 			_actuator_outputs.timestamp = hrt_absolute_time();
 
-			if (_outputs_pub == nullptr) {
-				_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_actuator_outputs);
-
-			} else {
-				orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_actuator_outputs);
-			}
+			_outputs_pub.publish(_actuator_outputs);
 
 
 			// use first valid timestamp_sample for latency tracking
