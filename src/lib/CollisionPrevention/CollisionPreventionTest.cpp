@@ -67,12 +67,12 @@ class TestTimingCollisionPrevention : public TestCollisionPrevention
 public:
 	TestTimingCollisionPrevention() : TestCollisionPrevention() {}
 protected:
-	hrt_abstime getTime()
+	hrt_abstime getTime() override
 	{
 		return mocked_time;
 	}
 
-	hrt_abstime getElapsedTime(const hrt_abstime *ptr)
+	hrt_abstime getElapsedTime(const hrt_abstime *ptr) override
 	{
 		return mocked_time - *ptr;
 	}
@@ -404,7 +404,7 @@ TEST_F(CollisionPreventionTest, outsideFOV)
 		orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
 		cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
 
-		if (angle_deg > 45.f && angle_deg < 225.f) {
+		if (angle_deg > 50.f && angle_deg < 230.f) {
 			// THEN: inside the FOV the setpoint should be limited
 			EXPECT_GT(modified_setpoint.norm(), 0.f);
 			EXPECT_LT(modified_setpoint.norm(), 10.f);

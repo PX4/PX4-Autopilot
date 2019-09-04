@@ -58,6 +58,17 @@ float wrap_360(float f)
 
 	return f;
 }
+
+int wrap_bin(int i)
+{
+	i = fmod(i, INTERNAL_MAP_USED_BINS);
+
+	while (i < 0) {
+		i += INTERNAL_MAP_USED_BINS;
+	}
+
+	return i;
+}
 }
 
 CollisionPrevention::CollisionPrevention(ModuleParams *parent) :
@@ -221,21 +232,11 @@ void CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sen
 		float sensor_dist_scale = cosf(Eulerf(attitude_sensor_frame).theta());
 
 		for (int bin = lower_bound; bin <= upper_bound; ++bin) {
-			int wrap_bin = bin;
-
-			while (wrap_bin < 0) {
-				// wrap bin index around the array
-				wrap_bin += INTERNAL_MAP_USED_BINS;
-			}
-
-			while (wrap_bin >= INTERNAL_MAP_USED_BINS) {
-				// wrap bin index around the array
-				wrap_bin -= INTERNAL_MAP_USED_BINS;
-			}
+			int wrapped_bin = wrap_bin(bin);
 
 			// compensate measurement for vehicle tilt and convert to cm
-			_obstacle_map_body_frame.distances[wrap_bin] = (int)(100 * distance_reading * sensor_dist_scale);
-			_data_timestamps[wrap_bin] = _obstacle_map_body_frame.timestamp;
+			_obstacle_map_body_frame.distances[wrapped_bin] = (int)(100 * distance_reading * sensor_dist_scale);
+			_data_timestamps[wrapped_bin] = _obstacle_map_body_frame.timestamp;
 		}
 	}
 }
@@ -245,7 +246,8 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 		const Vector2f &curr_pos, const Vector2f &curr_vel)
 {
 	_updateObstacleMap();
-	float setpoint_length = setpoint.norm();
+
+	//read parameters
 	float col_prev_d = _param_mpc_col_prev_d.get();
 	float col_prev_dly = _param_mpc_col_prev_dly.get();
 	float col_prev_ang_rad = math::radians(_param_mpc_col_prev_ang.get());
@@ -255,12 +257,18 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 	matrix::Quatf attitude = Quatf(_sub_vehicle_attitude.get().q);
 	float vehicle_yaw_angle_rad = Eulerf(attitude).psi();
 
+	float setpoint_length = setpoint.norm();
+
 	if (getElapsedTime(&_obstacle_map_body_frame.timestamp) < RANGE_STREAM_TIMEOUT_US) {
 		if (setpoint_length > 0.001f) {
 
 			Vector2f setpoint_dir = setpoint / setpoint_length;
 			float vel_max = setpoint_length;
 			float min_dist_to_keep = math::max(_obstacle_map_body_frame.min_distance / 100.0f, col_prev_d);
+
+			float sp_angle_body_frame = atan2(setpoint_dir(1), setpoint_dir(0)) - vehicle_yaw_angle_rad;
+			float sp_angle_with_offset_deg = wrap_360(math::degrees(sp_angle_body_frame) - _obstacle_map_body_frame.angle_offset);
+			int sp_index = floor(sp_angle_with_offset_deg / INTERNAL_MAP_INCREMENT_DEG);
 
 			for (int i = 0; i < INTERNAL_MAP_USED_BINS; i++) { //disregard unused bins at the end of the message
 
@@ -298,16 +306,8 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 						}
 					}
 
-				} else if (_obstacle_map_body_frame.distances[i] == UINT16_MAX) {
-					float sp_bin = setpoint_dir.dot(bin_direction);
-					float ang_half_bin = cosf(math::radians<float>(INTERNAL_MAP_INCREMENT_DEG) * (1.f /
-								  (2.f - 0.05f))); //half a bin plus some margin for floating point errors
-
-					//if the setpoint lies outside the FOV set velocity to zero
-					if (sp_bin >= ang_half_bin) {
-						vel_max = 0.f;
-					}
-
+				} else if (_obstacle_map_body_frame.distances[i] == UINT16_MAX && i == sp_index) {
+					vel_max = 0.f;
 				}
 			}
 
