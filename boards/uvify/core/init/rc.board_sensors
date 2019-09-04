@@ -13,7 +13,7 @@ then
    lis3mdl -X start
 
    # are those two have same alignment?
-   mpu6000 -R 4 -T 20608 start
+   # mpu6000 -R 4 -T 20608 start
    mpu9250 -R 4 start
 fi
 
