@@ -13,6 +13,8 @@ if(REPLAY_FILE)
 
 	message(STATUS "Building without lockstep for replay")
 	set(ENABLE_LOCKSTEP_SCHEDULER no)
+elif(CMAKE_BUILD_TYPE STREQUAL FuzzTesting)
+	set(ENABLE_LOCKSTEP_SCHEDULER no)
 else()
 	set(ENABLE_LOCKSTEP_SCHEDULER yes)
 endif()
