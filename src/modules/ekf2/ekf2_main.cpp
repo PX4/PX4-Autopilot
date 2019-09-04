@@ -171,8 +171,6 @@ private:
 	uint64_t _start_time_us = 0;		///< system time at EKF start (uSec)
 	int64_t _last_time_slip_us = 0;		///< Last time slip (uSec)
 
-	perf_counter_t _cycle_perf;
-	perf_counter_t _interval_perf;
 	perf_counter_t _ekf_update_perf;
 
 	// Initialise time stamps used to send sensor data to the EKF and for logging
@@ -549,8 +547,6 @@ Ekf2::Ekf2(bool replay_mode):
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
 	_replay_mode(replay_mode),
-	_cycle_perf(perf_alloc_once(PC_ELAPSED, MODULE_NAME": cycle time")),
-	_interval_perf(perf_alloc_once(PC_INTERVAL, MODULE_NAME": interval")),
 	_ekf_update_perf(perf_alloc_once(PC_ELAPSED, MODULE_NAME": update")),
 	_params(_ekf.getParamHandle()),
 	_param_ekf2_min_obs_dt(_params->sensor_interval_min_ms),
@@ -656,8 +652,6 @@ Ekf2::Ekf2(bool replay_mode):
 
 Ekf2::~Ekf2()
 {
-	perf_free(_cycle_perf);
-	perf_free(_interval_perf);
 	perf_free(_ekf_update_perf);
 }
 
@@ -679,8 +673,6 @@ int Ekf2::print_status()
 
 	PX4_INFO("time slip: %" PRId64 " us", _last_time_slip_us);
 
-	perf_print_counter(_cycle_perf);
-	perf_print_counter(_interval_perf);
 	perf_print_counter(_ekf_update_perf);
 
 	return 0;
@@ -727,9 +719,6 @@ void Ekf2::Run()
 		exit_and_cleanup();
 		return;
 	}
-
-	perf_begin(_cycle_perf);
-	perf_count(_interval_perf);
 
 	sensor_combined_s sensors;
 
@@ -1751,8 +1740,6 @@ void Ekf2::Run()
 		// publish ekf2_timestamps
 		_ekf2_timestamps_pub.publish(ekf2_timestamps);
 	}
-
-	perf_end(_cycle_perf);
 }
 
 int Ekf2::getRangeSubIndex()
