@@ -128,17 +128,17 @@ LidarLiteI2C::probe()
 
 		set_device_address(addresses[i]);
 
-		/*
-		The probing is divided in two cases. One to detect v1, v2 and v3 and one to
-		detect v3HP. The reason for this is that registers are not consistent
-		between different versions. The v3HP doesn't have the HW VERSION (or at least no version is specified)
-		while v1, v2 and some v3 don't have the unit id register.
-		It would be better if we had a proper WHOAMI register.
-		*/
+		/**
+		 * The probing is divided into different cases. One to detect v2, one for v3 and v1 and one for v3HP.
+		 * The reason for this is that registers are not consistent between different versions.
+		 * The v3HP doesn't have the HW VERSION (or at least no version is specified),
+		 * v1 and v3 don't have the unit id register while v2 has both.
+		 * It would be better if we had a proper WHOAMI register.
+		 */
 
 
-		/*
-		  check for hw and sw versions for v1, v2 and v3
+		/**
+		 * check for hw and sw versions for v1, v2 and v3
 		 */
 		if ((read_reg(LL40LS_HW_VERSION, _hw_version) == OK) &&
 		    (read_reg(LL40LS_SW_VERSION, _sw_version) == OK)) {
@@ -397,8 +397,8 @@ int LidarLiteI2C::collect()
 
 	// We detect if V3HP is being used
 	if (_is_V3hp) {
-		signal_min = LL40LS_SIGNAL_STRENGH_MIN_V3HP;
-		signal_max = LL40LS_SIGNAL_STRENGH_MAX_V3HP;
+		signal_min = LL40LS_SIGNAL_STRENGTH_MIN_V3HP;
+		signal_max = LL40LS_SIGNAL_STRENGTH_MAX_V3HP;
 		signal_value = ll40ls_signal_strength;
 
 	} else {
@@ -414,7 +414,7 @@ int LidarLiteI2C::collect()
 				read before it is ready, so only consider it
 				an error if more than 100ms has elapsed.
 				*/
-				PX4_INFO("peak strenght read failed");
+				PX4_INFO("peak strength read failed");
 
 				DEVICE_DEBUG("error reading peak strength from sensor: %d", ret);
 				perf_count(_comms_errors);
