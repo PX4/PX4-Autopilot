@@ -72,7 +72,10 @@ protected:
 	/** determines when to trigger a takeoff (ignored in flight) */
 	bool _checkTakeoff() override { return _want_takeoff; };
 
-	inline float _constrainOneSide(float val, float constrain);
+	inline float _constrainOneSide(float val, float constraint); /**< Constrain val between INF and constraint */
+	inline float _constrainAbs(float val, float constraint); /**< Constrain the absolute value of val */
+	inline float _maxAbs(float val, float constraint); /**< Maximum of val and constraint with the sign of val */
+
 	void _initEkfResetCounters();
 	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
 	void _generateHeading();
