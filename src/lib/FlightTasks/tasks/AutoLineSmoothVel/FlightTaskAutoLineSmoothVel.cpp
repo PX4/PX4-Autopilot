@@ -135,16 +135,27 @@ bool FlightTaskAutoLineSmoothVel::_generateHeadingAlongTraj()
 	return res;
 }
 
-/* Constrain some value vith a constrain depending on the sign of the constrain
+/* Constrain some value vith a constrain depending on the sign of the constraint
  * Example: 	- if the constrain is -5, the value will be constrained between -5 and 0
  * 		- if the constrain is 5, the value will be constrained between 0 and 5
  */
-inline float FlightTaskAutoLineSmoothVel::_constrainOneSide(float val, float constrain)
+inline float FlightTaskAutoLineSmoothVel::_constrainOneSide(float val, float constraint)
 {
-	const float min = (constrain < FLT_EPSILON) ? constrain : 0.f;
-	const float max = (constrain > FLT_EPSILON) ? constrain : 0.f;
+	const float min = (constraint < FLT_EPSILON) ? constraint : 0.f;
+	const float max = (constraint > FLT_EPSILON) ? constraint : 0.f;
 
 	return math::constrain(val, min, max);
+}
+
+float FlightTaskAutoLineSmoothVel::_constrainAbs(float val, float constraint)
+{
+	float constraint_abs = fabsf(constraint);
+	return math::constrain(val, -constraint_abs, constraint_abs);
+}
+
+float FlightTaskAutoLineSmoothVel::_maxAbs(float val, float constraint)
+{
+	return math::sign(val) * math::max(fabsf(val), fabsf(constraint));
 }
 
 void FlightTaskAutoLineSmoothVel::_initEkfResetCounters()
@@ -246,34 +257,49 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 		    PX4_ISFINITE(_position_setpoint(1))) {
 			// Use position setpoints to generate velocity setpoints
 
-			// Get various path specific vectors. */
+			// Get various path specific vectors
 			Vector3f pos_traj;
 			pos_traj(0) = _trajectory[0].getCurrentPosition();
 			pos_traj(1) = _trajectory[1].getCurrentPosition();
 			pos_traj(2) = _trajectory[2].getCurrentPosition();
 			Vector2f pos_traj_to_dest_xy(_position_setpoint - pos_traj);
 			Vector2f u_pos_traj_to_dest_xy(pos_traj_to_dest_xy.unit_or_zero());
-			const bool has_reached_altitude = fabsf(_position_setpoint(2) - pos_traj(2)) < _param_nav_mc_alt_rad.get();
 
-			float speed_sp_track = _getMaxSpeedFromDistance(pos_traj_to_dest_xy.length());
+			// Unconstrained desired velocity vector
+			Vector2f vel_sp_xy = u_pos_traj_to_dest_xy * _mc_cruise_speed;
+
+			Vector2f vel_max_xy;
+			vel_max_xy(0) = _getMaxSpeedFromDistance(fabsf(pos_traj_to_dest_xy(0)));
+			vel_max_xy(1) = _getMaxSpeedFromDistance(fabsf(pos_traj_to_dest_xy(1)));
+
+			const bool has_reached_altitude = fabsf(_position_setpoint(2) - pos_traj(2)) < _param_nav_mc_alt_rad.get();
+			Vector2f vel_min_xy;
 
 			if (has_reached_altitude) {
-				speed_sp_track = math::constrain(speed_sp_track, _getSpeedAtTarget(), _mc_cruise_speed);
+				// Compute the minimum speed in NE frame. This is used
+				// to force the drone to pass the waypoint with a desired speed
+				Vector2f u_prev_to_target_xy((_target - _prev_wp).unit_or_zero());
+				vel_min_xy = u_prev_to_target_xy * _getSpeedAtTarget();
+				vel_min_xy(0) = fabsf(vel_min_xy(0));
+				vel_min_xy(1) = fabsf(vel_min_xy(1));
 
 			} else {
-				speed_sp_track = math::constrain(speed_sp_track, 0.0f, _mc_cruise_speed);
-
+				// The drone has to change altitude, stop at the waypoint
+				vel_min_xy.setAll(0.f);
 			}
 
-			Vector2f vel_sp_xy = u_pos_traj_to_dest_xy * speed_sp_track;
+			// Constrain the norm of each component using min and max values
+			Vector2f vel_sp_constrained_xy;
+			vel_sp_constrained_xy(0) = _maxAbs(_constrainAbs(vel_sp_xy(0), vel_max_xy(0)), vel_min_xy(0));
+			vel_sp_constrained_xy(1) = _maxAbs(_constrainAbs(vel_sp_xy(1), vel_max_xy(1)), vel_min_xy(1));
 
 			for (int i = 0; i < 2; i++) {
 				// If available, constrain the velocity using _velocity_setpoint(.)
 				if (PX4_ISFINITE(_velocity_setpoint(i))) {
-					_velocity_setpoint(i) = _constrainOneSide(vel_sp_xy(i), _velocity_setpoint(i));
+					_velocity_setpoint(i) = _constrainOneSide(vel_sp_constrained_xy(i), _velocity_setpoint(i));
 
 				} else {
-					_velocity_setpoint(i) = vel_sp_xy(i);
+					_velocity_setpoint(i) = vel_sp_constrained_xy(i);
 				}
 			}
 
