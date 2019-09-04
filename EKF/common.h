@@ -357,6 +357,9 @@ struct parameters {
 
 	// control of on-ground movement check
 	float is_moving_scaler{1.0f};		///< gain scaler used to adjust the threshold for the on-ground movement detection. Larger values make the test less sensitive.
+
+	// compute synthetic magnetomter Z value if possible
+	int32_t synthesize_mag_z{0};
 };
 
 struct stateSample {
@@ -458,6 +461,7 @@ union filter_control_status_u {
 		uint32_t gps_yaw     : 1; ///< 22 - true when yaw (not ground course) data from a GPS receiver is being fused
 		uint32_t mag_align_complete   : 1; ///< 23 - true when the in-flight mag field alignment has been completed
 		uint32_t ev_vel      : 1; ///< 24 - true when local earth frame velocity data from external vision measurements are being fused
+		uint32_t synthetic_mag_z : 1; ///< 25 - true when we are using a synthesized measurement for the magnetometer Z component
 	} flags;
 	uint32_t value;
 };
