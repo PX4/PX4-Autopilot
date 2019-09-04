@@ -39,7 +39,6 @@ px4_add_board(
 		#iridiumsbd
 		irlock
 		#lights/blinkm
-		#lights/oreoled
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
