@@ -35,8 +35,6 @@ px4_add_board(
 		imu/icm20948
 		irlock
 		#lights/blinkm
-		#lights/oreoled
-		#lights/pca8574
 		lights/rgbled
 		magnetometer # all available magnetometer drivers
 		#md25
