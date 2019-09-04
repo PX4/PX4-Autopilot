@@ -61,7 +61,7 @@ float wrap_360(float f)
 
 int wrap_bin(int i)
 {
-	i = fmod(i, INTERNAL_MAP_USED_BINS);
+	i = i % INTERNAL_MAP_USED_BINS;
 
 	while (i < 0) {
 		i += INTERNAL_MAP_USED_BINS;
