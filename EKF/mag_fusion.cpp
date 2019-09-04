@@ -81,8 +81,13 @@ void Ekf::fuseMag()
 	// compute magnetometer innovations
 	_mag_innov[0] = (mag_I_rot(0) + _state.mag_B(0)) - _mag_sample_delayed.mag(0);
 	_mag_innov[1] = (mag_I_rot(1) + _state.mag_B(1)) - _mag_sample_delayed.mag(1);
-	_mag_innov[2] = (mag_I_rot(2) + _state.mag_B(2)) - _mag_sample_delayed.mag(2);
 
+	// do not use the synthesized measurement for the magnetomter Z component for 3D fusion
+	if (_control_status.flags.synthetic_mag_z) {
+		_mag_innov[2] = 0.0f;
+	} else {
+		_mag_innov[2] = (mag_I_rot(2) + _state.mag_B(2)) - _mag_sample_delayed.mag(2);
+	}
 	// Observation jacobian and Kalman gain vectors
 	float H_MAG[24];
 	float Kfusion[24];
@@ -284,6 +289,12 @@ void Ekf::fuseMag()
 			Kfusion[21] = SK_MY[0]*(P[21][20] + P[21][0]*SH_MAG[2] + P[21][1]*SH_MAG[1] + P[21][2]*SH_MAG[0] - P[21][3]*SK_MY[2] - P[21][17]*SK_MY[1] - P[21][16]*SK_MY[3] + P[21][18]*SK_MY[4]);
 
 		} else if (index == 2) {
+
+			// we do not fuse synthesized magnetomter measurements when doing 3D fusion
+			if (_control_status.flags.synthetic_mag_z) {
+				continue;
+			}
+
 			// calculate Z axis observation jacobians
 			memset(H_MAG, 0, sizeof(H_MAG));
 			H_MAG[0] = SH_MAG[1];
@@ -982,4 +993,16 @@ void Ekf::limitDeclination()
 		_state.mag_I(0) = h_field * cosf(decl_min);
 		_state.mag_I(1) = h_field * sinf(decl_min);
 	}
+}
+
+float Ekf::calculate_synthetic_mag_z_measurement(Vector3f mag_meas, Vector3f mag_earth_predicted)
+{
+	// theoretical magnitude of the magnetometer Z component value given X and Y sensor measurement and our knowledge
+	// of the earth magnetic field vector at the current location
+	float mag_z_abs = sqrtf(math::max(sq(mag_earth_predicted.length()) - sq(mag_meas(0)) - sq(mag_meas(1)), 0.0f));
+
+	// calculate sign of synthetic magnetomter Z component based on the sign of the predicted magnetomer Z component
+	float mag_z_body_pred = _R_to_earth(0,2) * mag_earth_predicted(0) + _R_to_earth(1,2) * mag_earth_predicted(1) + _R_to_earth(2,2) * mag_earth_predicted(2);
+
+	return mag_z_body_pred < 0 ? -mag_z_abs : mag_z_abs;
 }

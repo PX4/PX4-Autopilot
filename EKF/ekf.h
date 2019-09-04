@@ -362,6 +362,7 @@ private:
 	bool _vehicle_at_rest_prev{false};	///< true when the vehicle was at rest the previous time the status was checked
 	bool _mag_yaw_reset_req{false};		///< true when a reset of the yaw using the magnetometer data has been requested
 	bool _mag_decl_cov_reset{false};	///< true after the fuseDeclination() function has been used to modify the earth field covariances after a magnetic field reset event.
+	bool _synthetic_mag_z_active{false};	///< true if we are generating synthetic magnetometer Z measurements
 
 	float P[_k_num_states][_k_num_states] {};	///< state covariance matrix
 
@@ -718,5 +719,9 @@ private:
 	// "accumulator" and passing this value at the next iteration.
 	// Ref: https://en.wikipedia.org/wiki/Kahan_summation_algorithm
 	float kahanSummation(float sum_previous, float input, float &accumulator) const;
+
+	// calculate a synthetic value for the magnetometer Z component, given the 3D magnetomter
+	// sensor measurement
+	float calculate_synthetic_mag_z_measurement(Vector3f mag_meas, Vector3f mag_earth_predicted);
 
 };
