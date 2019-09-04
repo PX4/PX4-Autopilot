@@ -101,7 +101,7 @@ int QShell::_send_cmd(std::vector<std::string> &argList)
 
 	qshell_req.strlen = cmd.size();
 	strcpy((char *)qshell_req.cmd, cmd.c_str());
-	qshell_req.sequence = _current_sequence;
+	qshell_req.request_sequence = _current_sequence;
 
 	int instance;
 	orb_publish_auto(ORB_ID(qshell_req), &_pub_qshell_req, &qshell_req, &instance, ORB_PRIO_DEFAULT);
@@ -131,7 +131,7 @@ int QShell::_wait_for_retval()
 			struct qshell_retval_s retval;
 			orb_copy(ORB_ID(qshell_retval), _sub_qshell_retval, &retval);
 
-			if (retval.sequence != _current_sequence) {
+			if (retval.return_sequence != _current_sequence) {
 				PX4_WARN("Ignoring return value with wrong sequence");
 
 			} else {
