@@ -550,7 +550,6 @@ Matrix<Type, M, N> operator*(Type scalar, const Matrix<Type, M, N> &other)
 template<typename Type, size_t  M, size_t N>
 bool isEqual(const Matrix<Type, M, N> &x,
              const Matrix<Type, M, N> &y, const Type eps=1e-4f) {
-
     bool equal = true;
 
     for (size_t i = 0; i < M; i++) {
@@ -563,16 +562,13 @@ bool isEqual(const Matrix<Type, M, N> &x,
         if (equal == false) break;
     }
 
-
     if (!equal) {
-        static const size_t n = 10*N*M;
-        char * buf = new char[n];
-        x.write_string(buf, n);
-        printf("not equal\nx:\n%s\n", buf);
-        y.write_string(buf, n);
-        printf("y:\n%s\n", buf);
-        delete[] buf;
+        printf("not equal\nx:\n");
+        x.print();
+        printf("y:\n");
+        y.print();
     }
+
     return equal;
 }
 
