@@ -141,7 +141,7 @@ void stp_pack (STP *stp, MSG_orb_data stp_data){
 
     stp->warnning = get_warnning(stp_data.geofence_data.geofence_violated, stp_data.battery_data.warning);
 
-    stp->flight_time = (uint16_t)(stp_data.arm_data.armed_time_ms/1000);
+    stp->flight_time = (uint16_t)(stp->total_time - stp_data.arm_data.armed_time_ms/1000);
     time_t t = stp_data.gps_data.time_utc_usec;
     struct tm *lt =localtime(&t);
     stp->year = lt->tm_year;

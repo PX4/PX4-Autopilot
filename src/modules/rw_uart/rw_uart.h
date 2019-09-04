@@ -41,7 +41,9 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/geofence_result.h>
 //#include <uORB/topics/cpuload.h>
-#include <uORB/topics/vehicle_control_mode.h>
+//#include <uORB/topics/vehicle_control_mode.h>
+//#include <uORB/topics/vehicle_status_flags.h>
+#include <uORB/topics/arm_disarm.h>
 
 #define WP_DATA_NUM_MAX (uint16_t) 20
 
@@ -323,7 +325,7 @@ typedef struct {
     int battery_fd;
     int geofence_fd;
     //int cpu_fd;
-    int control_mode_fd;
+//    int control_mode_fd;
 }MSG_orb_sub;
 
 typedef struct {
@@ -332,7 +334,9 @@ typedef struct {
     orb_advert_t manual_pd;
     orb_advert_t local_position_sp_pd;
     orb_advert_t status_pd;
-    orb_advert_t control_mode_pd;
+//    orb_advert_t control_mode_pd;
+//    orb_advert_t status_flags_pd;
+    orb_advert_t arm_disarm_pd;
 }MSG_orb_pub;
 
 typedef struct {
@@ -348,7 +352,9 @@ typedef struct {
     struct vehicle_attitude_setpoint_s attitude_data;
     struct battery_status_s battery_data;
     struct geofence_result_s geofence_data;
-    struct vehicle_control_mode_s control_mode_data;
+//    struct vehicle_control_mode_s control_mode_data;
+//    struct vehicle_status_flags_s status_flags_data;
+    struct arm_disarm_s arm_disarm_data;
     //struct cpuload_s cpu_data;
 }MSG_orb_data;
 

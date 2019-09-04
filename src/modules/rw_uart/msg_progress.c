@@ -13,7 +13,7 @@ void msg_pack_send( MSG_orb_data msg_data, int uart_read)
     send_message[98] =0xab;
    // send_message[97] = (uint8_t)(msg_data.cpu_data.ram_usage * 100.0);
     //printf("send length : %d, %d\n", sizeof(msg_send->stp), sizeof(send_message));
-    //write(uart_read, send_message, sizeof(msg_send.stp));
+    write(uart_read, send_message, sizeof(msg_send.stp));
 }
 
 void msg_param_saved_get(MSG_param_hd msg_hd, int uart_read)
@@ -121,7 +121,6 @@ void msg_orb_param_pro(MSG_orb_pub *msg_pd, MSG_orb_data *msg_data, MSG_type msg
         case WIFI_COMM_CALI_QUIT:
         case WIFI_COMM_AUTO_FLIGHT_ON:
         case WIFI_COMM_AUTO_FLIGHT_OFF:
-        //case WIFI_COMM_ARMED:
             if (msg_pd->command_pd != NULL){
                     orb_publish(ORB_ID(vehicle_command), msg_pd->command_pd, &msg_data->command_data);
                     printf("Passing 2_1\n");
@@ -132,46 +131,29 @@ void msg_orb_param_pro(MSG_orb_pub *msg_pd, MSG_orb_data *msg_data, MSG_type msg
             }
             break;
         case WIFI_COMM_RECEIVER_ON:
-            paramd = 0;
-            param_set(msg_hd.rc_on_off_hd, &paramd);
-            printf("Passing param_set receiver_on\n");
-            break;
         case WIFI_COMM_RECEIVER_OFF:
-            paramd = 2;
-            param_set(msg_hd.rc_on_off_hd, &paramd);
-            printf("Passing param_set receiver_off\n");
+            if (msg_pd->status_pd != NULL){
+                orb_publish(ORB_ID(vehicle_status), msg_pd->status_pd, &msg_data->status_data);
+                printf("Passing 2_1\n");
+            }
+            else{
+                msg_pd->status_pd = orb_advertise(ORB_ID(vehicle_status), &msg_data->status_data);//
+                printf("Passing 2_2\n");
+            }
             break;
         case WIFI_COMM_GET_MID:
             paramf = msg_data->manual_data.z;
             param_set(msg_hd.hover_thrust_hd, &paramf);
             printf("Passing param_set get_mid\n");
             break;
-        case WIFI_COMM_DISARMED:
-        case WIFI_COMM_ARMED:
-            if (msg_pd->arm_pd != NULL){
-                    orb_publish(ORB_ID(actuator_armed), msg_pd->arm_pd, &msg_data->arm_data);
+         case WIFI_COMM_DISARMED:
+         case WIFI_COMM_ARMED:
+            if (msg_pd->arm_disarm_pd != NULL){
+                    orb_publish(ORB_ID(arm_disarm), msg_pd->arm_disarm_pd, &msg_data->arm_disarm_data);
                     printf("Passing 2_1\n");
             }
             else{
-                    msg_pd->arm_pd = orb_advertise(ORB_ID(actuator_armed), &msg_data->arm_data);
-                    printf("Passing 2_2\n");
-            }
-
-            if (msg_pd->status_pd != NULL){
-                    orb_publish(ORB_ID(vehicle_status), msg_pd->status_pd, &msg_data->status_data);
-                    printf("Passing 2_1\n");
-            }
-            else{
-                    msg_pd->status_pd = orb_advertise(ORB_ID(vehicle_status), &msg_data->status_data);
-                    printf("Passing 2_2\n");
-            }
-
-            if (msg_pd->control_mode_pd != NULL){
-                    orb_publish(ORB_ID(vehicle_control_mode), msg_pd->control_mode_pd, &msg_data->control_mode_data);
-                    printf("Passing 2_1\n");
-            }
-            else{
-                    msg_pd->control_mode_pd = orb_advertise(ORB_ID(vehicle_control_mode), &msg_data->control_mode_data);
+                    msg_pd->arm_disarm_pd = orb_advertise(ORB_ID(arm_disarm), &msg_data->arm_disarm_data);
                     printf("Passing 2_2\n");
             }
             break;

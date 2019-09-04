@@ -48,6 +48,7 @@
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/arm_disarm.h>
 
 // subscriptions
 #include <uORB/Subscription.hpp>

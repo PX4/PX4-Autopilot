@@ -1288,6 +1288,7 @@ Commander::run()
 	int subsys_sub = orb_subscribe(ORB_ID(subsystem_info));
 	int system_power_sub = orb_subscribe(ORB_ID(system_power));
 	int vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
+    int arm_disarm_sub = orb_subscribe(ORB_ID(arm_disarm));
 
 	geofence_result_s geofence_result {};
 
@@ -1621,6 +1622,27 @@ Commander::run()
 				}
 			}
 		}
+
+        /* update DG arm_disarm status*/
+        orb_check(arm_disarm_sub, &updated);
+        if(updated){
+            struct arm_disarm_s arm_disarm_status;
+            arm_disarm_status.arm_disarm = was_armed;
+            orb_copy(ORB_ID(arm_disarm), arm_disarm_sub, &arm_disarm_status);
+            warnx("_missle_ctrl.cmd_id:%d", arm_disarm_status.arm_disarm);
+            if(arm_disarm_status.arm_disarm)
+            {
+                if (TRANSITION_CHANGED != arm_disarm(true, &mavlink_log_pub, "command line")) {
+                    warnx("arming failed");
+                }
+            }
+            else
+            {
+                if (TRANSITION_DENIED == arm_disarm(false, &mavlink_log_pub, "command line")) {
+                    warnx("rejected disarm");
+                }
+            }
+        }
 
 		/* update vtol vehicle status*/
 		orb_check(vtol_vehicle_status_sub, &updated);

@@ -90,6 +90,14 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
         wp_data.num = *(uint16_t*)((uint32_t)buffer + 6);
         printf("Passing wp_upload_num\n");
         break;
+    case WIFI_COMM_RECEIVER_ON:
+        msg_data->status_data.rc_input_mode = 0; //RC_IN_MODE_OFF
+        printf("Passing reiceiver on\n");
+        break;
+    case WIFI_COMM_RECEIVER_OFF:
+        msg_data->status_data.rc_input_mode = 1; //RC_IN_MODE_OFF
+        printf("Passing reiceiver off\n");
+        break;
     case WIFI_COMM_GYRO_CLEAR:
         msg_data->command_data.command = 241; //CMD_PREFLIGHT_CALIBRATION
         msg_data->command_data.param1 = 1;
@@ -178,19 +186,11 @@ void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type)
         printf("Passing auto_off\n");
         break;
     case WIFI_COMM_DISARMED:
-        msg_data->arm_data.lockdown = true;
-        msg_data->arm_data.armed = false;
-        msg_data->status_data.arming_state = 0; //ARMING_STATE_INIT
-        msg_data->control_mode_data.flag_armed = false;
+        msg_data->arm_disarm_data.arm_disarm = false;
         printf("Passing disarm\n");
         break;
     case WIFI_COMM_ARMED:
-        //msg_data->command_data.command = 400; //CMD_COMPONENT_ARM_DISARM
-        //msg_data->command_data.param1 = 1;
-        msg_data->arm_data.lockdown = false;
-        msg_data->arm_data.armed = true;
-        msg_data->status_data.arming_state = 2; //ARMING_STATE_ARMED
-        msg_data->control_mode_data.flag_armed = true;
+        msg_data->arm_disarm_data.arm_disarm = true;
         printf("Passing arm\n");
         break;
     default:
