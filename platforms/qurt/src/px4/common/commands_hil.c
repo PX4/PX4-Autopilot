@@ -54,6 +54,7 @@ const char *get_commands()
 		"ekf2 start\n"
 		"mc_pos_control start\n"
 		"mc_att_control start\n"
+		"mc_rate_control start\n"
 		"sleep 1\n"
 		"pwm_out_sim start\n"
 		"param set RC1_MAX 2015\n"
