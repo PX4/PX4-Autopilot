@@ -20,64 +20,57 @@ bool is_finite(Type x) {
 #endif
 }
 
+/**
+ * Wrap value to stay in range [low, high)
+ *
+ * @param x input possibly outside of the range
+ * @param low lower limit of the allowed range
+ * @param high upper limit of the allowed range
+ * @return wrapped value inside the range
+ */
+template<typename Type>
+Type wrap(Type x, Type low, Type high) {
+    // already in range
+    if (low < x && x < high) {
+        return x;
+    }
+
+    // close to range
+    Type range = high - low;
+    if ((high <= x) && (x < high + (range*100))) {
+        while (high <= x) {
+            x -= range;
+        }
+        return x;
+    }
+
+    if ((low - (range*100) <= x) && (x < low)) {
+        while (x < low) {
+            x += range;
+        }
+        return x;
+    }
+
+    // very far from the range -> something went terribly wrong
+    return NAN;
+}
+
+/**
+ * Wrap value in range [-π, π)
+ */
 template<typename Type>
 Type wrap_pi(Type x)
 {
-    if (!is_finite(x)) {
-        return x;
-    }
-
-    int c = 0;
-
-    while (x >= Type(M_PI)) {
-        x -= Type(2 * M_PI);
-
-        if (c++ > 100) {
-            return INFINITY;
-        }
-    }
-
-    c = 0;
-
-    while (x < Type(-M_PI)) {
-        x += Type(2 * M_PI);
-
-        if (c++ > 100) {
-            return INFINITY;
-        }
-    }
-
-    return x;
+    return wrap(x, Type(-M_PI), Type(M_PI));
 }
 
+/**
+ * Wrap value in range [0, 2π)
+ */
 template<typename Type>
 Type wrap_2pi(Type x)
 {
-    if (!is_finite(x)) {
-        return x;
-    }
-
-    int c = 0;
-
-    while (x >= Type(2 * M_PI)) {
-        x -= Type(2 * M_PI);
-
-        if (c++ > 100) {
-            return INFINITY;
-        }
-    }
-
-    c = 0;
-
-    while (x < Type(0)) {
-        x += Type(2 * M_PI);
-
-        if (c++ > 100) {
-            return INFINITY;
-        }
-    }
-
-    return x;
+    return wrap(x, Type(0), Type(M_TWOPI));
 }
 
 }
