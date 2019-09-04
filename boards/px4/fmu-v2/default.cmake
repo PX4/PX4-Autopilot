@@ -20,6 +20,7 @@ px4_add_board(
 		TEL4:/dev/ttyS6
 
 	DRIVERS
+		adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		#batt_smbus
@@ -55,9 +56,6 @@ px4_add_board(
 		px4fmu
 		px4io
 		#roboclaw
-		stm32
-		stm32/adc
-		stm32/tone_alarm
 		#tap_esc
 		#telemetry # all available telemetry drivers
 		#test_ppm
@@ -86,7 +84,7 @@ px4_add_board(
 		sensors
 		vmount
 		vtol_att_control
-		#wind_estimator
+		#airspeed_selector
 
 	SYSTEMCMDS
 		bl_update
@@ -119,7 +117,6 @@ px4_add_board(
 		#hello
 		#hwtest # Hardware test
 		#matlab_csv_serial
-		#position_estimator_inav
 		#px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		#rover_steering_control # Rover example app

@@ -1,0 +1,4 @@
+float32 integration_interval
+float32[2] rate_gyro_integral
+float32[2] flow_integral
+uint8 quality

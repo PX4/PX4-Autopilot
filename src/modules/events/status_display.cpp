@@ -102,12 +102,7 @@ void StatusDisplay::publish()
 {
 	_led_control.timestamp = hrt_absolute_time();
 
-	if (_led_control_pub != nullptr) {
-		orb_publish(ORB_ID(led_control), _led_control_pub, &_led_control);
-
-	} else {
-		_led_control_pub =  orb_advertise_queue(ORB_ID(led_control), &_led_control, LED_UORB_QUEUE_LENGTH);
-	}
+	_led_control_pub.publish(_led_control);
 }
 
 } /* namespace status */

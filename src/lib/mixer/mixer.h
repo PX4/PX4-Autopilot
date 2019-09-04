@@ -254,6 +254,8 @@ public:
 	 */
 	virtual void set_airmode(Airmode airmode) {};
 
+	virtual unsigned get_multirotor_count()  {return 0;}
+
 protected:
 	/** client-supplied callback used when fetching control values */
 	ControlCallback			_control_cb;
@@ -449,6 +451,8 @@ public:
 	void	set_thrust_factor(float val) override;
 
 	void 	set_airmode(Airmode airmode) override;
+
+	unsigned get_multirotor_count() override;
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */
@@ -714,6 +718,8 @@ public:
 	}
 
 	void 			set_airmode(Airmode airmode) override;
+
+	unsigned get_multirotor_count() override {return _rotor_count;}
 
 	union saturation_status {
 		struct {

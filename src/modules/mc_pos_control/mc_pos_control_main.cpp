@@ -47,6 +47,7 @@
 #include <commander/px4_custom_mode.h>
 
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/parameter_update.h>
@@ -108,7 +109,7 @@ private:
 	Takeoff _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
 
 	orb_advert_t	_att_sp_pub{nullptr};			/**< attitude setpoint publication */
-	orb_advert_t _pub_vehicle_command{nullptr};           /**< vehicle command publication */
+	uORB::PublicationQueued<vehicle_command_s> _pub_vehicle_command{ORB_ID(vehicle_command)};	 /**< vehicle command publication */
 	orb_advert_t _mavlink_log_pub{nullptr};
 
 	orb_id_t _attitude_setpoint_id{nullptr};
@@ -322,13 +323,13 @@ MulticopterPositionControl::parameters_update(bool force)
 		if (_param_mpc_xy_cruise.get() > _param_mpc_xy_vel_max.get()) {
 			_param_mpc_xy_cruise.set(_param_mpc_xy_vel_max.get());
 			_param_mpc_xy_cruise.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Cruise speed has been constrained by max speed")
+			mavlink_log_critical(&_mavlink_log_pub, "Cruise speed has been constrained by max speed");
 		}
 
 		if (_param_mpc_vel_manual.get() > _param_mpc_xy_vel_max.get()) {
 			_param_mpc_vel_manual.set(_param_mpc_xy_vel_max.get());
 			_param_mpc_vel_manual.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed")
+			mavlink_log_critical(&_mavlink_log_pub, "Manual speed has been constrained by max speed");
 		}
 
 		if (_param_mpc_thr_hover.get() > _param_mpc_thr_max.get() ||
@@ -336,7 +337,7 @@ MulticopterPositionControl::parameters_update(bool force)
 			_param_mpc_thr_hover.set(math::constrain(_param_mpc_thr_hover.get(), _param_mpc_thr_min.get(),
 						 _param_mpc_thr_max.get()));
 			_param_mpc_thr_hover.commit();
-			mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max")
+			mavlink_log_critical(&_mavlink_log_pub, "Hover thrust has been constrained by min/max");
 		}
 
 		_flight_tasks.handleParameterUpdate();
@@ -534,12 +535,14 @@ MulticopterPositionControl::run()
 		if (_wv_controller != nullptr) {
 
 			// in manual mode we just want to use weathervane if position is controlled as well
-			if (_wv_controller->weathervane_enabled() && (!_control_mode.flag_control_manual_enabled
-					|| _control_mode.flag_control_position_enabled)) {
-				_wv_controller->activate();
+			// in mission, enabling wv is done in flight task
+			if (_control_mode.flag_control_manual_enabled) {
+				if (_control_mode.flag_control_position_enabled && _wv_controller->weathervane_enabled()) {
+					_wv_controller->activate();
 
-			} else {
-				_wv_controller->deactivate();
+				} else {
+					_wv_controller->deactivate();
+				}
 			}
 
 			_wv_controller->update(matrix::Quatf(_att_sp.q_d), _states.yaw);
@@ -736,9 +739,9 @@ MulticopterPositionControl::start_flight_task()
 
 	if (_vehicle_status.in_transition_mode) {
 		should_disable_task = false;
-		int error = _flight_tasks.switchTask(FlightTaskIndex::Transition);
+		FlightTaskError error = _flight_tasks.switchTask(FlightTaskIndex::Transition);
 
-		if (error != 0) {
+		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
 				PX4_WARN("Transition activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
@@ -763,9 +766,9 @@ MulticopterPositionControl::start_flight_task()
 		_control_mode.flag_control_acceleration_enabled)) {
 
 		should_disable_task = false;
-		int error = _flight_tasks.switchTask(FlightTaskIndex::Offboard);
+		FlightTaskError error = _flight_tasks.switchTask(FlightTaskIndex::Offboard);
 
-		if (error != 0) {
+		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
 				PX4_WARN("Offboard activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
@@ -782,9 +785,9 @@ MulticopterPositionControl::start_flight_task()
 	// Auto-follow me
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) {
 		should_disable_task = false;
-		int error = _flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe);
+		FlightTaskError error = _flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe);
 
-		if (error != 0) {
+		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
 				PX4_WARN("Follow-Me activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
@@ -800,7 +803,7 @@ MulticopterPositionControl::start_flight_task()
 	} else if (_control_mode.flag_control_auto_enabled) {
 		// Auto related maneuvers
 		should_disable_task = false;
-		int error = 0;
+		FlightTaskError error = FlightTaskError::NoError;
 
 		switch (_param_mpc_auto_mode.get()) {
 		case 1:
@@ -812,7 +815,7 @@ MulticopterPositionControl::start_flight_task()
 			break;
 		}
 
-		if (error != 0) {
+		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
 				PX4_WARN("Auto activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
@@ -829,7 +832,7 @@ MulticopterPositionControl::start_flight_task()
 	// manual position control
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL || task_failure) {
 		should_disable_task = false;
-		int error = 0;
+		FlightTaskError error = FlightTaskError::NoError;
 
 		switch (_param_mpc_pos_mode.get()) {
 		case 1:
@@ -849,7 +852,7 @@ MulticopterPositionControl::start_flight_task()
 			break;
 		}
 
-		if (error != 0) {
+		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
 				PX4_WARN("Position-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
@@ -866,7 +869,7 @@ MulticopterPositionControl::start_flight_task()
 	// manual altitude control
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL || task_failure) {
 		should_disable_task = false;
-		int error = 0;
+		FlightTaskError error = FlightTaskError::NoError;
 
 		switch (_param_mpc_pos_mode.get()) {
 		case 1:
@@ -882,7 +885,7 @@ MulticopterPositionControl::start_flight_task()
 			break;
 		}
 
-		if (error != 0) {
+		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
 				PX4_WARN("Altitude-Ctrl activation failed with error: %s", _flight_tasks.errorToString(error));
 			}
@@ -905,9 +908,9 @@ MulticopterPositionControl::start_flight_task()
 
 		// for some reason no flighttask was able to start.
 		// go into failsafe flighttask
-		int error = _flight_tasks.switchTask(FlightTaskIndex::Failsafe);
+		FlightTaskError error = _flight_tasks.switchTask(FlightTaskIndex::Failsafe);
 
-		if (error != 0) {
+		if (error != FlightTaskError::NoError) {
 			// No task was activated.
 			_flight_tasks.switchTask(FlightTaskIndex::None);
 		}
@@ -1038,13 +1041,7 @@ void MulticopterPositionControl::send_vehicle_cmd_do(uint8_t nav_state)
 	}
 
 	// publish the vehicle command
-	if (_pub_vehicle_command == nullptr) {
-		_pub_vehicle_command = orb_advertise_queue(ORB_ID(vehicle_command), &command,
-				       vehicle_command_s::ORB_QUEUE_LENGTH);
-
-	} else {
-		orb_publish(ORB_ID(vehicle_command), _pub_vehicle_command, &command);
-	}
+	_pub_vehicle_command.publish(command);
 }
 
 int MulticopterPositionControl::task_spawn(int argc, char *argv[])

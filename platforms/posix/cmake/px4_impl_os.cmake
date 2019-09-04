@@ -42,6 +42,7 @@
 # 	Required OS Interface Functions
 #
 # 		* px4_os_add_flags
+# 		* px4_os_determine_build_chip
 #		* px4_os_prebuild_targets
 #
 
@@ -98,8 +99,8 @@ function(px4_posix_generate_builtin_commands)
 			math(EXPR command_count "${command_count}+1")
 		endif()
 	endforeach()
-	configure_file(${PX4_SOURCE_DIR}/src/platforms/apps.cpp.in ${OUT}.cpp)
-	configure_file(${PX4_SOURCE_DIR}/src/platforms/apps.h.in ${OUT}.h)
+	configure_file(${PX4_SOURCE_DIR}/platforms/common/apps.cpp.in ${OUT}.cpp)
+	configure_file(${PX4_SOURCE_DIR}/platforms/common/apps.h.in ${OUT}.h)
 endfunction()
 
 
@@ -149,7 +150,7 @@ function(px4_posix_generate_alias)
 			)
 		endif()
 	endforeach()
-	configure_file(${PX4_SOURCE_DIR}/platforms/posix/src/px4-alias.sh_in ${OUT})
+	configure_file(${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/px4-alias.sh_in ${OUT})
 endfunction()
 
 
@@ -322,6 +323,23 @@ function(px4_os_add_flags)
 		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${LIBROBOTCONTROL_INSTALL_DIR}/lib")
 
 	endif()
+
+endfunction()
+
+#=============================================================================
+#
+#	px4_os_determine_build_chip
+#
+#	Sets PX4_CHIP and PX4_CHIP_MANUFACTURER.
+#
+#	Usage:
+#		px4_os_determine_build_chip()
+#
+function(px4_os_determine_build_chip)
+
+	# always use generic chip and chip manufacturer
+	set(PX4_CHIP "generic" CACHE STRING "PX4 Chip" FORCE)
+	set(PX4_CHIP_MANUFACTURER "generic" CACHE STRING "PX4 Chip Manufacturer" FORCE)
 
 endfunction()
 

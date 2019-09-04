@@ -36,3 +36,19 @@ __BEGIN_DECLS
 int px4_platform_init(void);
 
 __END_DECLS
+
+#ifdef __cplusplus
+
+namespace px4
+{
+
+/**
+ * Startup init method. It has no specific functionality, just prints a welcome
+ * message and sets the thread name
+ */
+__EXPORT void init(int argc, char *argv[], const char *process_name);
+
+} // namespace px4
+
+#endif /* __cplusplus */
+

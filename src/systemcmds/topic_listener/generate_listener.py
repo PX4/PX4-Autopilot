@@ -89,7 +89,6 @@ print("""
  */
 
 #include <drivers/drv_hrt.h>
-#include <px4_middleware.h>
 #include <px4_app.h>
 #include <px4_config.h>
 #include <px4_log.h>
@@ -122,7 +121,7 @@ for index, (m, t) in enumerate(zip(messages, topics)):
 	if index == 0:
 		print("\tif (strncmp(topic_name,\"%s\", %d) == 0) {" % (t, len(t)))
 	else:
-		print("\t} else if (strcmp(topic_name,\"%s\") == 0) {" % (t))
+		print("\t} else if (strncmp(topic_name,\"%s\", %d) == 0) {" % (t, len(t)))
 	print("\t\tlistener(listener_print_topic<%s_s>, ORB_ID(%s), num_msgs, topic_instance, topic_interval);" % (m, t))
 
 print("\t} else {")

@@ -27,7 +27,6 @@ px4_add_board(
 		pwm_out_sim
 		px4fmu
 		rc_input
-		stm32
 		tap_esc
 		#telemetry # all available telemetry drivers
 		#uavcan
@@ -55,7 +54,7 @@ px4_add_board(
 		sih
 		vmount
 		#vtol_att_control
-		#wind_estimator
+		#airspeed_selector
 
 	SYSTEMCMDS
 		bl_update

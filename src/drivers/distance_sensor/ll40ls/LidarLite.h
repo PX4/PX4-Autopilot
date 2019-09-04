@@ -66,35 +66,34 @@ public:
 	virtual void stop() = 0;
 
 	/**
-	* @brief
-	*   Diagnostics - print some basic information about the driver.
-	*/
+	 * @brief Diagnostics - print some basic information about the driver.
+	 */
 	void print_info();
 
 	/**
-	 * @brief
-	 *   print registers to console
+	 * @brief print registers to console
 	 */
 	virtual void print_registers() {};
 
 protected:
 
-	uint32_t	get_measure_interval() const { return _measure_interval; }
+	uint32_t get_measure_interval() const { return _measure_interval; }
 
-	virtual int	measure() = 0;
-	virtual int	collect() = 0;
+	virtual int collect() = 0;
 
-	virtual int	reset_sensor() { return PX4_ERROR; };
+	virtual int measure() = 0;
+
+	virtual int reset_sensor() { return PX4_ERROR; };
 
 	PX4Rangefinder	_px4_rangefinder;
 
-	perf_counter_t	_sample_perf;
-	perf_counter_t	_sample_interval_perf;
-	perf_counter_t	_comms_errors;
-	perf_counter_t	_sensor_resets;
-	perf_counter_t	_sensor_zero_resets;
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, "ll40ls: comms errors")};
+	perf_counter_t _sample_interval_perf{perf_alloc(PC_ELAPSED, "ll40ls: interval")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "ll40ls: read")};
+	perf_counter_t _sensor_resets{perf_alloc(PC_COUNT, "ll40ls: resets")};
+	perf_counter_t _sensor_zero_resets{perf_alloc(PC_COUNT, "ll40ls: zero resets")};
 
 private:
 
-	uint32_t            _measure_interval{LL40LS_CONVERSION_INTERVAL};
+	uint32_t  _measure_interval{LL40LS_CONVERSION_INTERVAL};
 };

@@ -203,9 +203,12 @@ else
 	rgbled_ncp5623c start
 	rgbled_pwm start
 
-	if blinkm start
+	if param greater LIGHT_EN_BLINKM 0
 	then
-		blinkm systemstate
+		if blinkm start
+		then
+			blinkm systemstate
+		fi
 	fi
 
 	#
@@ -214,11 +217,6 @@ else
 	# Note that this will still play the already published startup tone.
 	#
 	tone_alarm start
-
-	if param compare SYS_FMU_TASK 1
-	then
-		set FMU_ARGS "-t"
-	fi
 
 	#
 	# Set parameters and env variables for selected AUTOSTART.
@@ -321,7 +319,7 @@ else
 	then
 		set OUTPUT_MODE hil
 		sensors start -h
-		commander start --hil
+		commander start -h
 		# disable GPS
 		param set GPS_1_CONFIG 0
 
@@ -436,14 +434,6 @@ else
 	navigator start
 
 	#
-	# Start the standalone wind estimator.
-	#
-	if param compare WEST_EN 1
-	then
-		wind_estimator start
-	fi
-
-	#
 	# Start a thermal calibration if required.
 	#
 	sh /etc/init.d/rc.thermal_cal
@@ -457,7 +447,10 @@ else
 	fi
 
 	# Check for flow sensor, launched as a background task to scan
-	px4flow start &
+	if param compare SENS_EN_PX4FLOW 1
+	then
+		px4flow start &
+	fi
 
 	# Blacksheep telemetry
 	if param greater TEL_BST_EN 0

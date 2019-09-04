@@ -46,7 +46,7 @@
 #include <drivers/device/i2c.h>
 #include <drivers/drv_io_expander.h>
 #include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
 
 

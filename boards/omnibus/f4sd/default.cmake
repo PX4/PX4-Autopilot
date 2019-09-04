@@ -12,6 +12,7 @@ px4_add_board(
 		URT6:/dev/ttyS2
 
 	DRIVERS
+		adc
 		#barometer # all available barometer drivers
 		barometer/bmp280
 		#batt_smbus
@@ -35,9 +36,6 @@ px4_add_board(
 		#pwm_out_sim
 		px4fmu
 		rc_input
-		stm32
-		stm32/adc
-		#stm32/tone_alarm
 		#tap_esc
 		#telemetry # all available telemetry drivers
 		telemetry/frsky_telemetry
@@ -57,7 +55,7 @@ px4_add_board(
 		land_detector
 		landing_target_estimator
 		load_mon
-		local_position_estimator
+		#local_position_estimator
 		logger
 		mavlink
 		mc_att_control
@@ -67,7 +65,7 @@ px4_add_board(
 		sih
 		#vmount
 		#vtol_att_control
-		#wind_estimator
+		#airspeed_selector
 
 	SYSTEMCMDS
 		#bl_update

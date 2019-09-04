@@ -38,6 +38,7 @@
 #	Required OS Interface Functions
 #
 #		* px4_os_add_flags
+# 		* px4_os_determine_build_chip
 #		* px4_os_prebuild_targets
 #
 
@@ -82,6 +83,41 @@ function(px4_os_add_flags)
 			)
 	endif()
 
+endfunction()
+
+#=============================================================================
+#
+#	px4_os_determine_build_chip
+#
+#	Sets PX4_CHIP and PX4_CHIP_MANUFACTURER.
+#
+#	Usage:
+#		px4_os_determine_build_chip()
+#
+function(px4_os_determine_build_chip)
+
+	# determine chip and chip manufacturer based on NuttX config
+	if (CONFIG_STM32_STM32F10XX)
+		set(CHIP_MANUFACTURER "stm")
+		set(CHIP "stm32f1")
+	elseif(CONFIG_STM32_STM32F30XX)
+		set(CHIP_MANUFACTURER "stm")
+		set(CHIP "stm32f3")
+	elseif(CONFIG_STM32_STM32F4XXX)
+		set(CHIP_MANUFACTURER "stm")
+		set(CHIP "stm32f4")
+	elseif(CONFIG_ARCH_CHIP_STM32F7)
+		set(CHIP_MANUFACTURER "stm")
+		set(CHIP "stm32f7")
+	elseif(CONFIG_ARCH_CHIP_MK66FN2M0VMD18)
+		set(CHIP_MANUFACTURER "nxp")
+		set(CHIP "k66")
+	else()
+		message(FATAL_ERROR "Could not determine chip architecture from NuttX config. You may have to add it.")
+	endif()
+
+	set(PX4_CHIP ${CHIP} CACHE STRING "PX4 Chip" FORCE)
+	set(PX4_CHIP_MANUFACTURER ${CHIP_MANUFACTURER} CACHE STRING "PX4 Chip Manufacturer" FORCE)
 endfunction()
 
 #=============================================================================

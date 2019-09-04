@@ -408,17 +408,28 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 
 	uint64_t timestamp = hrt_absolute_time();
 
+	/* angular velocity */
+	vehicle_angular_velocity_s hil_angular_velocity{};
+	{
+		hil_angular_velocity.timestamp = timestamp;
+
+		hil_angular_velocity.xyz[0] = hil_state.rollspeed;
+		hil_angular_velocity.xyz[1] = hil_state.pitchspeed;
+		hil_angular_velocity.xyz[2] = hil_state.yawspeed;
+
+		// always publish ground truth attitude message
+		int hilstate_multi;
+		orb_publish_auto(ORB_ID(vehicle_angular_velocity_groundtruth), &_vehicle_angular_velocity_pub, &hil_angular_velocity,
+				 &hilstate_multi, ORB_PRIO_HIGH);
+	}
+
 	/* attitude */
-	struct vehicle_attitude_s hil_attitude = {};
+	vehicle_attitude_s hil_attitude{};
 	{
 		hil_attitude.timestamp = timestamp;
 
 		matrix::Quatf q(hil_state.attitude_quaternion);
 		q.copyTo(hil_attitude.q);
-
-		hil_attitude.rollspeed = hil_state.rollspeed;
-		hil_attitude.pitchspeed = hil_state.pitchspeed;
-		hil_attitude.yawspeed = hil_state.yawspeed;
 
 		// always publish ground truth attitude message
 		int hilstate_multi;
@@ -426,7 +437,7 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 	}
 
 	/* global position */
-	struct vehicle_global_position_s hil_gpos = {};
+	vehicle_global_position_s hil_gpos{};
 	{
 		hil_gpos.timestamp = timestamp;
 
