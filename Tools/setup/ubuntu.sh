@@ -84,6 +84,12 @@ sudo apt-get -yy --quiet --no-install-recommends install \
 	;
 
 
+if [[ "${UBUNTU_RELEASE}" == "16.04" ]]; then
+	echo "Installing Ubuntu 16.04 PX4-compatible cmake"
+	wget -O /tmp/ccache_3.4.1-1_amd64.deb http://launchpadlibrarian.net/356662933/ccache_3.4.1-1_amd64.deb
+	sudo dpkg -i /tmp/ccache_3.4.1-1_amd64.deb
+fi
+
 # Python3 dependencies
 echo
 echo "Installing PX4 Python3 dependencies"
