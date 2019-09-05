@@ -45,6 +45,7 @@
 #include <px4_module.h>
 #include <px4_tasks.h>
 #include <px4_time.h>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -109,8 +110,8 @@ private:
 
 	int		_armed_sub{-1};
 
-	actuator_outputs_s _actuator_outputs = {};
-	orb_advert_t	_outputs_pub{nullptr};
+	actuator_outputs_s _actuator_outputs {};
+	uORB::Publication<actuator_outputs_s> _outputs_pub{ORB_ID(actuator_outputs)};
 	orb_advert_t	_mixer_status{nullptr};
 
 	unsigned	_num_outputs{0};
