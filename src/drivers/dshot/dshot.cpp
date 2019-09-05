@@ -163,6 +163,10 @@ public:
 	 */
 	int sendCommandThreadSafe(dshot_command_t command, int num_repetitions, int motor_index);
 
+	void retrieveAndPrintESCInfoThreadSafe(int motor_index);
+
+	bool telemetryEnabled() const { return _telemetry != nullptr; }
+
 private:
 	enum class DShotConfig {
 		Disabled = 0,
@@ -191,11 +195,16 @@ private:
 	void initTelemetry(const char *device);
 	void handleNewTelemetryData(int motor_index, const DShotTelemetry::EscData &data);
 
+	int requestESCInfo();
+
 	MixingOutput _mixing_output{*this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
 	Telemetry *_telemetry{nullptr};
 	static char _telemetry_device[20];
 	static px4::atomic_bool _request_telemetry_init;
+
+	px4::atomic<DShotTelemetry::OutputBuffer *> _request_esc_info{nullptr};
+	bool _waiting_for_esc_info{false};
 
 	Mode		_mode{MODE_NONE};
 
@@ -615,10 +624,51 @@ int DShotOutput::sendCommandThreadSafe(dshot_command_t command, int num_repetiti
 
 	// wait until main thread processed it
 	while (_new_command.load()) {
-		usleep(1000);
+		px4_usleep(1000);
 	}
 
 	return 0;
+}
+
+void DShotOutput::retrieveAndPrintESCInfoThreadSafe(int motor_index)
+{
+	if (_request_esc_info.load() != nullptr) {
+		// already in progress (not expected to ever happen)
+		return;
+	}
+
+	DShotTelemetry::OutputBuffer output_buffer;
+	output_buffer.motor_index = motor_index;
+	// start the request
+	_request_esc_info.store(&output_buffer);
+
+	// wait until processed
+	int max_time = 1000;
+
+	while (_request_esc_info.load() != nullptr && max_time-- > 0) {
+		px4_usleep(1000);
+	}
+
+	_request_esc_info.store(nullptr); // just in case we time out...
+
+	if (output_buffer.buf_pos == 0) {
+		PX4_ERR("No data received. If telemetry is setup correctly, try again");
+		return;
+	}
+
+	DShotTelemetry::decodeAndPrintEscInfoPacket(output_buffer);
+}
+
+int DShotOutput::requestESCInfo()
+{
+	_telemetry->handler.redirectOutput(*_request_esc_info.load());
+	_waiting_for_esc_info = true;
+	int motor_index = _mixing_output.reorderedMotorIndex(_request_esc_info.load()->motor_index);
+	_current_command.motor_mask = 1 << motor_index;
+	_current_command.num_repetitions = 1;
+	_current_command.command = DShot_cmd_esc_info;
+	PX4_DEBUG("Requesting ESC info for motor %i", motor_index);
+	return motor_index;
 }
 
 void DShotOutput::mixerChanged()
@@ -636,7 +686,14 @@ void DShotOutput::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS
 	int requested_telemetry_index = -1;
 
 	if (_telemetry) {
-		requested_telemetry_index = _mixing_output.reorderedMotorIndex(_telemetry->handler.getRequestMotorIndex());
+		// check for an ESC info request. We only process it when we're not expecting other telemetry data
+		if (_request_esc_info.load() != nullptr && !_waiting_for_esc_info && stop_motors
+		    && !_telemetry->handler.expectingData() && !_current_command.valid()) {
+			requested_telemetry_index = requestESCInfo();
+
+		} else {
+			requested_telemetry_index = _mixing_output.reorderedMotorIndex(_telemetry->handler.getRequestMotorIndex());
+		}
 	}
 
 	if (stop_motors) {
@@ -697,7 +754,14 @@ DShotOutput::Run()
 	if (_telemetry) {
 		int telem_update = _telemetry->handler.update();
 
-		if (telem_update >= 0) {
+		// Are we waiting for ESC info?
+		if (_waiting_for_esc_info) {
+			if (telem_update != -1) {
+				_request_esc_info.store(nullptr);
+				_waiting_for_esc_info = false;
+			}
+
+		} else if (telem_update >= 0) {
 			handleNewTelemetryData(telem_update, _telemetry->handler.latestESCData());
 		}
 	}
@@ -1349,8 +1413,27 @@ int DShotOutput::custom_command(int argc, char *argv[])
 		}
 	}
 
+	if (!strcmp(verb, "esc_info")) {
+		if (!is_running()) {
+			PX4_ERR("module not running");
+			return -1;
+		}
 
-	/* start the FMU if not running */
+		if (motor_index == -1) {
+			PX4_ERR("No motor index specified");
+			return -1;
+		}
+
+		if (!get_instance()->telemetryEnabled()) {
+			PX4_ERR("Telemetry is not enabled, but required to get ESC info");
+			return -1;
+		}
+
+		get_instance()->retrieveAndPrintESCInfoThreadSafe(motor_index);
+		return 0;
+	}
+
+
 	if (!is_running()) {
 		int ret = DShotOutput::task_spawn(argc, argv);
 
@@ -1511,6 +1594,9 @@ After saving, the reversed direction will be regarded as the normal one. So to r
 	PRINT_MODULE_USAGE_COMMAND_DESCR("beep5", "Send Beep pattern 5");
 	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based, default=all)", true);
 
+	PRINT_MODULE_USAGE_COMMAND_DESCR("esc_info", "Request ESC information");
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 16, "Motor index (1-based)", false);
+
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
@@ -1569,6 +1655,7 @@ int DShotOutput::print_status()
 	_mixing_output.printStatus();
 	if (_telemetry) {
 		PX4_INFO("telemetry on: %s", _telemetry_device);
+		_telemetry->handler.printStatus();
 	}
 
 	return 0;
