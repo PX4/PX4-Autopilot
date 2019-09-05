@@ -14,6 +14,7 @@ int main()
     TEST(fabs(wrap(15.5, 3.0, 5.0) - 3.5) < FLT_EPSILON);
     TEST(fabs(wrap(-1.0, 30.0, 40.0) - 39.0) < FLT_EPSILON);
     TEST(fabs(wrap(-8000.0, -555.0, 1.0) - (-216.0)) < FLT_EPSILON);
+    TEST(fabs(wrap(0.0, 0.0, 360.0)) < FLT_EPSILON);
     TEST(!is_finite(wrap(1000.,0.,.01)));
 
     // wrap pi
@@ -30,6 +31,7 @@ int main()
     TEST(fabs(wrap_2pi(3.0) - (3.0)) < FLT_EPSILON);
     TEST(fabs(wrap_2pi(200.0f) - (200.0f - 31 * float(M_TWOPI))) < 10e-5);
     TEST(fabs(wrap_2pi(-201.0f) - (-201.0f + 32 * float(M_TWOPI))) < 10e-5);
+    TEST(fabs(wrap_2pi(0.0f)) < FLT_EPSILON);
     TEST(!is_finite(wrap_2pi(NAN)));
 
     Vector3f a(1, 2, 3);
