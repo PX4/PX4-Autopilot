@@ -3042,7 +3042,7 @@ checkcrc(int argc, char *argv[])
 		exit(1);
 	}
 
-	const uint32_t app_size_max = 0xf000;
+	const uint32_t app_size_max = 0x7c000;
 	uint32_t fw_crc = 0;
 	uint32_t nbytes = 0;
 

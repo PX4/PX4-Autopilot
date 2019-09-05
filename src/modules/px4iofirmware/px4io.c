@@ -240,7 +240,7 @@ static void check_reboot(void)
 static void
 calculate_fw_crc(void)
 {
-#define APP_SIZE_MAX 0xf000
+#define APP_SIZE_MAX 0x7c000
 #define APP_LOAD_ADDRESS 0x08004000
 	// compute CRC of the current firmware
 	uint32_t sum = 0;
