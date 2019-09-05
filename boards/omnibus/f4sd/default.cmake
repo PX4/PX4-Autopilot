@@ -25,7 +25,6 @@ px4_add_board(
 		imu/mpu6000
 		#irlock
 		#lights/blinkm
-		#lights/oreoled
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883

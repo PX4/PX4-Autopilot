@@ -116,7 +116,7 @@ int QShell::main()
 
 			struct qshell_retval_s retval;
 			retval.return_value = run_cmd(appargs);
-			retval.sequence = m_qshell_req.sequence;
+			retval.return_sequence = m_qshell_req.request_sequence;
 
 			if (retval.return_value) {
 				PX4_ERR("Failed to execute command: %s", m_qshell_req.cmd);

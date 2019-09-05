@@ -141,5 +141,5 @@ private:
 	int writeRegister(unsigned reg, uint8_t data);
 
 	int sensorInit();
-	int readMotionCount(int16_t &deltaX, int16_t &deltaY);
+	int readMotionCount(int16_t &deltaX, int16_t &deltaY, uint8_t &qual);
 };
