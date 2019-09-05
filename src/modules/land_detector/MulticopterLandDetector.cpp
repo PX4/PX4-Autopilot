@@ -94,6 +94,7 @@ void MulticopterLandDetector::_update_topics()
 	_vehicle_control_mode_sub.update(&_vehicle_control_mode);
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
 	_vehicle_local_position_setpoint_sub.update(&_vehicle_local_position_setpoint);
+	_vehicle_status_sub.update(&_vehicle_status);
 }
 
 void MulticopterLandDetector::_update_params()
@@ -298,7 +299,8 @@ bool MulticopterLandDetector::_has_low_thrust()
 				 _param_lndmc_low_t_thr.get();
 
 	// Check if thrust output is less than the minimum auto throttle param.
-	return _actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] <= sys_min_throttle;
+	return (!_vehicle_status.in_transition_mode
+		&& _actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] <= sys_min_throttle);
 }
 
 bool MulticopterLandDetector::_has_minimal_thrust()
@@ -312,7 +314,8 @@ bool MulticopterLandDetector::_has_minimal_thrust()
 	}
 
 	// Check if thrust output is less than the minimum auto throttle param.
-	return _actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] <= sys_min_throttle;
+	return (!_vehicle_status.in_transition_mode
+		&& _actuator_controls.control[actuator_controls_s::INDEX_THROTTLE] <= sys_min_throttle);
 }
 
 bool MulticopterLandDetector::_get_ground_effect_state()

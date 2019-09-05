@@ -53,6 +53,7 @@
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
 
 #include "LandDetector.h"
 
@@ -125,6 +126,7 @@ private:
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	actuator_controls_s               _actuator_controls {};
 	battery_status_s                  _battery_status {};
@@ -134,6 +136,7 @@ private:
 	vehicle_control_mode_s            _vehicle_control_mode {};
 	vehicle_local_position_s          _vehicle_local_position {};
 	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint {};
+	vehicle_status_s 									_vehicle_status {};
 
 	hrt_abstime _min_trust_start{0};	///< timestamp when minimum trust was applied first
 	hrt_abstime _landed_time{0};
