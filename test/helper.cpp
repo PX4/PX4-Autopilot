@@ -6,32 +6,38 @@ using namespace matrix;
 int main()
 {
     // general wraps
-    TEST(fabs(wrap(4.0, 0.0, 10.0) - 4.0) < FLT_EPSILON);
-    TEST(fabs(wrap(4.0, 0.0, 1.0)) < FLT_EPSILON);
-    TEST(fabs(wrap(-4.0, 0.0, 10.0) - 6.0) < FLT_EPSILON);
-    TEST(fabs(wrap(-18.0, 0.0, 10.0) - 2.0) < FLT_EPSILON);
-    TEST(fabs(wrap(-1.5, 3.0, 5.0) - 4.5) < FLT_EPSILON);
-    TEST(fabs(wrap(15.5, 3.0, 5.0) - 3.5) < FLT_EPSILON);
-    TEST(fabs(wrap(-1.0, 30.0, 40.0) - 39.0) < FLT_EPSILON);
-    TEST(fabs(wrap(-8000.0, -555.0, 1.0) - (-216.0)) < FLT_EPSILON);
-    TEST(fabs(wrap(0.0, 0.0, 360.0)) < FLT_EPSILON);
-    TEST(!is_finite(wrap(1000.,0.,.01)));
+    TEST(fabs(wrap(4., 0., 10.) - 4.) < FLT_EPSILON);
+    TEST(fabs(wrap(4., 0., 1.)) < FLT_EPSILON);
+    TEST(fabs(wrap(-4., 0., 10.) - 6.) < FLT_EPSILON);
+    TEST(fabs(wrap(-18., 0., 10.) - 2.) < FLT_EPSILON);
+    TEST(fabs(wrap(-1.5, 3., 5.) - 4.5) < FLT_EPSILON);
+    TEST(fabs(wrap(15.5, 3., 5.) - 3.5) < FLT_EPSILON);
+    TEST(fabs(wrap(-1., 30., 40.) - 39.) < FLT_EPSILON);
+    TEST(fabs(wrap(-8000., -555., 1.) - (-216.)) < FLT_EPSILON);
+    TEST(fabs(wrap(0., 0., 360.)) < FLT_EPSILON);
+    TEST(fabs(wrap(0. - FLT_EPSILON, 0., 360.) - (360. - FLT_EPSILON)) < FLT_EPSILON);
+    TEST(fabs(wrap(0. + FLT_EPSILON, 0., 360.) - FLT_EPSILON) < FLT_EPSILON);
+    TEST(fabs(wrap(360., 0., 360.)) < FLT_EPSILON);
+    TEST(fabs(wrap(360. - FLT_EPSILON, 0., 360.) - (360. - FLT_EPSILON)) < FLT_EPSILON);
+    TEST(fabs(wrap(360. + FLT_EPSILON, 0., 360.) - FLT_EPSILON) < FLT_EPSILON);
+    TEST(!is_finite(wrap(1000., 0., .01)));
 
     // wrap pi
-    TEST(fabs(wrap_pi(4.0) - (4.0 - M_TWOPI)) < FLT_EPSILON);
-    TEST(fabs(wrap_pi(-4.0) - (-4.0 + M_TWOPI)) < FLT_EPSILON);
-    TEST(fabs(wrap_pi(3.0) - (3.0)) < FLT_EPSILON);
-    TEST(fabs(wrap_pi(100.0f) - (100.0f - 32 * float(M_PI))) < 10e-5);
-    TEST(fabs(wrap_pi(-100.0f) - (-100.0f + 32 * float(M_PI))) < 10e-5);
-    TEST(fabs(wrap_pi(-101.0f) - (-101.0f + 32 * float(M_PI))) < 10e-5);
+    TEST(fabs(wrap_pi(0.)) < FLT_EPSILON);
+    TEST(fabs(wrap_pi(4.) - (4. - M_TWOPI)) < FLT_EPSILON);
+    TEST(fabs(wrap_pi(-4.) - (-4. + M_TWOPI)) < FLT_EPSILON);
+    TEST(fabs(wrap_pi(3.) - (3.)) < FLT_EPSILON);
+    TEST(fabs(wrap_pi(100.) - (100. - 32. * M_PI)) < FLT_EPSILON);
+    TEST(fabs(wrap_pi(-100.) - (-100. + 32. * M_PI)) < FLT_EPSILON);
+    TEST(fabs(wrap_pi(-101.) - (-101. + 32. * M_PI)) < FLT_EPSILON);
     TEST(!is_finite(wrap_pi(NAN)));
 
     // wrap 2pi
-    TEST(fabs(wrap_2pi(-4.0) - (-4.0 + 2*M_PI)) < FLT_EPSILON);
-    TEST(fabs(wrap_2pi(3.0) - (3.0)) < FLT_EPSILON);
-    TEST(fabs(wrap_2pi(200.0f) - (200.0f - 31 * float(M_TWOPI))) < 10e-5);
-    TEST(fabs(wrap_2pi(-201.0f) - (-201.0f + 32 * float(M_TWOPI))) < 10e-5);
-    TEST(fabs(wrap_2pi(0.0f)) < FLT_EPSILON);
+    TEST(fabs(wrap_2pi(0.)) < FLT_EPSILON);
+    TEST(fabs(wrap_2pi(-4.) - (-4. + 2. * M_PI)) < FLT_EPSILON);
+    TEST(fabs(wrap_2pi(3.) - (3.)) < FLT_EPSILON);
+    TEST(fabs(wrap_2pi(200.) - (200. - 31. * M_TWOPI)) < FLT_EPSILON);
+    TEST(fabs(wrap_2pi(-201.) - (-201. + 32. * M_TWOPI)) < FLT_EPSILON);
     TEST(!is_finite(wrap_2pi(NAN)));
 
     Vector3f a(1, 2, 3);
@@ -39,8 +45,8 @@ int main()
     TEST(!isEqual(a, b));
     TEST(isEqual(a, a));
 
-    TEST(isEqualF(1.0f, 1.0f));
-    TEST(!isEqualF(1.0f, 2.0f));
+    TEST(isEqualF(1., 1.));
+    TEST(!isEqualF(1., 2.));
     return 0;
 }
 
