@@ -264,6 +264,43 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 			float sp_angle_with_offset_deg = wrap_360(math::degrees(sp_angle_body_frame) - _obstacle_map_body_frame.angle_offset);
 			int sp_index = floor(sp_angle_with_offset_deg / INTERNAL_MAP_INCREMENT_DEG);
 
+			//change setpoint direction slightly (max by _param_mpc_col_prev_cng degrees) to help guide through narrow gaps
+			int guidance_bins = floor(_param_mpc_col_prev_cng.get() / INTERNAL_MAP_INCREMENT_DEG);
+			float largest_dist = _obstacle_map_body_frame.distances[sp_index];
+			int bin = sp_index;
+
+			for (int i = 1; i <= guidance_bins; i++) {
+
+				//run twice, first for bins to the right, then for bins to the left
+				float largest_dist_layer = largest_dist;
+
+				for (int j = 0; j < 2; j++) {
+					if (j == 0) {
+						bin = sp_index + i;
+
+					} else {
+						bin = sp_index - i;
+					}
+
+					bin = wrap_bin(bin);
+
+					//if the direction is significantly free-er than the closer layer and free-er than the bin on the other side
+					if (_obstacle_map_body_frame.distances[bin] > 1.3f * largest_dist
+					    && _obstacle_map_body_frame.distances[bin] > largest_dist_layer
+					    && _obstacle_map_body_frame.distances[bin] != UINT16_MAX) {
+						largest_dist_layer = _obstacle_map_body_frame.distances[bin];
+
+						float angle = math::radians((float)bin * INTERNAL_MAP_INCREMENT_DEG + _obstacle_map_body_frame.angle_offset);
+						angle  = wrap_2pi(vehicle_yaw_angle_rad + angle);
+						setpoint_dir = {cos(angle), sin(angle)};
+					}
+				}
+
+				largest_dist = largest_dist_layer;
+			}
+
+
+			//limit speed for safe flight
 			for (int i = 0; i < INTERNAL_MAP_USED_BINS; i++) { //disregard unused bins at the end of the message
 
 				//delete stale values
