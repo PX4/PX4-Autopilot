@@ -26,7 +26,7 @@ bool is_finite(Type x) {
  * @param x input possibly outside of the range
  * @param low lower limit of the allowed range
  * @param high upper limit of the allowed range
- * @return wrapped value inside the range
+ * @return wrapped value inside the range, or NAN if value is too far away from range.
  */
 template<typename Type>
 Type wrap(Type x, Type low, Type high) {
