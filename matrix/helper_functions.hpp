@@ -26,7 +26,7 @@ bool is_finite(Type x) {
  * @param x input possibly outside of the range
  * @param low lower limit of the allowed range
  * @param high upper limit of the allowed range
- * @return wrapped value inside the range, or NAN if value is too far away from range.
+ * @return wrapped value inside the range
  */
 template<typename Type>
 Type wrap(Type x, Type low, Type high) {
@@ -35,24 +35,10 @@ Type wrap(Type x, Type low, Type high) {
         return x;
     }
 
-    // close to range
-    Type range = high - low;
-    if ((high <= x) && (x < high + (range*100))) {
-        while (high <= x) {
-            x -= range;
-        }
-        return x;
-    }
-
-    if ((low - (range*100) <= x) && (x < low)) {
-        while (x < low) {
-            x += range;
-        }
-        return x;
-    }
-
-    // very far from the range -> something went terribly wrong
-    return NAN;
+    const Type range = high - low;
+    const Type inv_range = Type(1) / range; // should evaluate at compile time, multiplies below at runtime
+    const Type num_wraps = floor((x - low) * inv_range);
+    return x - range * num_wraps;
 }
 
 /**
