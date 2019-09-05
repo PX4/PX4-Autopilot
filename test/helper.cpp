@@ -20,7 +20,6 @@ int main()
     TEST(fabs(wrap(360., 0., 360.)) < FLT_EPSILON);
     TEST(fabs(wrap(360. - FLT_EPSILON, 0., 360.) - (360. - FLT_EPSILON)) < FLT_EPSILON);
     TEST(fabs(wrap(360. + FLT_EPSILON, 0., 360.) - FLT_EPSILON) < FLT_EPSILON);
-    TEST(!is_finite(wrap(1000., 0., .01)));
 
     // wrap pi
     TEST(fabs(wrap_pi(0.)) < FLT_EPSILON);
