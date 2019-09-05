@@ -50,13 +50,7 @@ static const int INTERNAL_MAP_USED_BINS = 360 / INTERNAL_MAP_INCREMENT_DEG;
 
 float wrap_360(float f)
 {
-	f = fmod(f, 360.f);
-
-	if (f < 0) {
-		return f + 360;
-	}
-
-	return f;
+	return wrap_2pi(f * M_DEG_TO_RAD_F) * M_RAD_TO_DEG_F;
 }
 
 int wrap_bin(int i)
