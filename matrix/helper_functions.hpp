@@ -31,7 +31,7 @@ bool is_finite(Type x) {
 template<typename Type>
 Type wrap(Type x, Type low, Type high) {
     // already in range
-    if (low < x && x < high) {
+    if (low <= x && x < high) {
         return x;
     }
 
