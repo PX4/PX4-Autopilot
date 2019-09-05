@@ -277,5 +277,13 @@ rotate_3f(enum Rotation rot, float &x, float &y, float &z)
 			x = tmp;
 			return;
 		}
+
+	case ROTATION_ROLL_90_YAW_270: {
+			tmp = x;
+			x = -z;
+			z = y;
+			y = -tmp;
+			return;
+		}
 	}
 }
