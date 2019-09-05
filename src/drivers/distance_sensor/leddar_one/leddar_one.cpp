@@ -54,6 +54,8 @@ using namespace time_literals;
 #define DEVICE_PATH                     "/dev/LeddarOne"
 #define LEDDAR_ONE_DEFAULT_SERIAL_PORT  "/dev/ttyS3"
 
+#define LEDDAR_ONE_FIELD_OF_VIEW        (0.105f) // 6 deg cone angle.
+
 #define LEDDAR_ONE_MAX_DISTANCE         40.0f
 #define LEDDAR_ONE_MIN_DISTANCE         0.01f
 
@@ -180,7 +182,7 @@ LeddarOne::LeddarOne(const char *device_path, const char *serial_port, uint8_t d
 	_px4_rangefinder.set_device_type(distance_sensor_s::MAV_DISTANCE_SENSOR_LASER);
 	_px4_rangefinder.set_max_distance(LEDDAR_ONE_MAX_DISTANCE);
 	_px4_rangefinder.set_min_distance(LEDDAR_ONE_MIN_DISTANCE);
-	_px4_rangefinder.set_fov(0.105); // FOV cone angle of 6 degrees.
+	_px4_rangefinder.set_fov(LEDDAR_ONE_FIELD_OF_VIEW);
 	_px4_rangefinder.set_orientation(device_orientation);
 }
 
@@ -309,7 +311,7 @@ LeddarOne::init()
 int
 LeddarOne::measure()
 {
-	// Flush the recieve buffer.
+	// Flush the receive buffer.
 	tcflush(_file_descriptor, TCIFLUSH);
 
 	int num_bytes = ::write(_file_descriptor, request_reading_msg, sizeof(request_reading_msg));
