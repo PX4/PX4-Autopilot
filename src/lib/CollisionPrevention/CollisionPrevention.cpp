@@ -242,7 +242,6 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 	//read parameters
 	float col_prev_d = _param_mpc_col_prev_d.get();
 	float col_prev_dly = _param_mpc_col_prev_dly.get();
-	float col_prev_ang_rad = math::radians(_param_mpc_col_prev_ang.get());
 	float xy_p = _param_mpc_xy_p.get();
 	float max_jerk = _param_mpc_jerk_max.get();
 	float max_accel = _param_mpc_acc_hor.get();
@@ -323,8 +322,7 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 				if (_obstacle_map_body_frame.distances[i] > _obstacle_map_body_frame.min_distance
 				    && _obstacle_map_body_frame.distances[i] < UINT16_MAX) {
 
-					if (setpoint_dir.dot(bin_direction) > 0
-					    && setpoint_dir.dot(bin_direction) > cosf(col_prev_ang_rad)) {
+					if (setpoint_dir.dot(bin_direction) > 0) {
 						//calculate max allowed velocity with a P-controller (same gain as in the position controller)
 						float curr_vel_parallel = math::max(0.f, curr_vel.dot(bin_direction));
 						float delay_distance = curr_vel_parallel * (col_prev_dly + data_age * 1e-6f);
@@ -332,7 +330,12 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 						float vel_max_posctrl = xy_p * stop_distance;
 
 						float vel_max_smooth = math::trajectory::computeMaxSpeedFromBrakingDistance(max_jerk, max_accel, stop_distance);
-						float vel_max_bin = math::min(vel_max_posctrl, vel_max_smooth) / bin_direction.dot(setpoint_dir);
+						float projection = bin_direction.dot(setpoint_dir);
+						float vel_max_bin = vel_max;
+
+						if (projection > 0.01f) {
+							vel_max_bin = math::min(vel_max_posctrl, vel_max_smooth) / projection;
+						}
 
 						//constrain the velocity
 						if (vel_max_bin >= 0) {
