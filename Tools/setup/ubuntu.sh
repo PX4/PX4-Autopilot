@@ -189,3 +189,8 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		;
 
 fi
+
+if [[ $INSTALL_NUTTX == "true" ]]; then
+	echo
+	echo "Reboot computer before attempting to build NUTTX targets"
+fi
