@@ -64,7 +64,7 @@ class CollisionPrevention : public ModuleParams
 public:
 	CollisionPrevention(ModuleParams *parent);
 
-	~CollisionPrevention();
+	virtual ~CollisionPrevention();
 	/**
 	 * Returs true if Collision Prevention is running
 	 */
@@ -79,6 +79,23 @@ public:
 	 */
 	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed,
 			    const matrix::Vector2f &curr_pos, const matrix::Vector2f &curr_vel);
+
+protected:
+
+	obstacle_distance_s _obstacle_map_body_frame {};
+	uint64_t _data_timestamps[sizeof(_obstacle_map_body_frame.distances) / sizeof(_obstacle_map_body_frame.distances[0])];
+
+	void _addDistanceSensorData(distance_sensor_s &distance_sensor, const matrix::Quatf &attitude);
+
+	/**
+	 * Updates obstacle distance message with measurement from offboard
+	 * @param obstacle, obstacle_distance message to be updated
+	 */
+	void _addObstacleSensorData(const obstacle_distance_s &obstacle, const matrix::Quatf &vehicle_attitude);
+
+	virtual hrt_abstime getTime();
+	virtual hrt_abstime getElapsedTime(const hrt_abstime *ptr);
+
 
 private:
 
@@ -136,6 +153,8 @@ private:
 		return offset;
 	}
 
+
+
 	/**
 	 * Computes collision free setpoints
 	 * @param setpoint, setpoint before collision prevention intervention
@@ -146,16 +165,22 @@ private:
 					   const matrix::Vector2f &curr_vel);
 
 	/**
-	 * Updates obstacle distance message with measurement from offboard
-	 * @param obstacle, obstacle_distance message to be updated
+	 * Publishes collision_constraints message
+	 * @param original_setpoint, setpoint before collision prevention intervention
+	 * @param adapted_setpoint, collision prevention adaped setpoint
 	 */
-	void _updateOffboardObstacleDistance(obstacle_distance_s &obstacle);
+	void _publishConstrainedSetpoint(const matrix::Vector2f &original_setpoint, const matrix::Vector2f &adapted_setpoint);
 
 	/**
-	 * Updates obstacle distance message with measurement from distance sensors
-	 * @param obstacle, obstacle_distance message to be updated
+	 * Publishes obstacle_distance message with fused data from offboard and from distance sensors
+	 * @param obstacle, obstacle_distance message to be publsihed
 	 */
-	void _updateDistanceSensor(obstacle_distance_s &obstacle);
+	void _publishObstacleDistance(obstacle_distance_s &obstacle);
+
+	/**
+	 * Aggregates the sensor data into a internal obstacle map in body frame
+	 */
+	void _updateObstacleMap();
 
 	/**
 	 * Publishes vehicle command.
