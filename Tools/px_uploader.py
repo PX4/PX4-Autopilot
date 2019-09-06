@@ -177,7 +177,7 @@ class uploader(object):
 
     INFO_BL_REV     = b'\x01'        # bootloader protocol revision
     BL_REV_MIN      = 2              # minimum supported bootloader protocol
-    BL_REV_MAX      = 5              # maximum supported bootloader protocol
+    BL_REV_MAX      = 7              # maximum supported bootloader protocol
     INFO_BOARD_ID   = b'\x02'        # board type
     INFO_BOARD_REV  = b'\x03'        # board revision
     INFO_FLASH_SIZE = b'\x04'        # max firmware size in bytes
@@ -342,7 +342,7 @@ class uploader(object):
             self.__getSync(False)
         except:
             # if it fails we are on a real Serial Port
-            self.ackWindowedMode = True
+            self.ackWindowedMode = False
 
         self.port.baudrate = self.baudrate_bootloader
 
@@ -733,13 +733,13 @@ def main():
             pyserial_installed = True
     except:
         pass
-    
+
     try:
         if serial.VERSION:
             pyserial_installed = True
     except:
         pass
-    
+
     if not pyserial_installed:
         print("Error: pyserial not installed!")
         print("    (Install using: sudo pip install pyserial)")
