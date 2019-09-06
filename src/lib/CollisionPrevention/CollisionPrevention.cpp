@@ -267,6 +267,7 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 			//change setpoint direction slightly (max by _param_mpc_col_prev_cng degrees) to help guide through narrow gaps
 			int guidance_bins = floor(_param_mpc_col_prev_cng.get() / INTERNAL_MAP_INCREMENT_DEG);
 			float largest_dist = _obstacle_map_body_frame.distances[sp_index];
+			int sp_index_original = sp_index;
 			int bin = sp_index;
 
 			for (int i = 1; i <= guidance_bins; i++) {
@@ -276,10 +277,10 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 
 				for (int j = 0; j < 2; j++) {
 					if (j == 0) {
-						bin = sp_index + i;
+						bin = sp_index_original + i;
 
 					} else {
-						bin = sp_index - i;
+						bin = sp_index_original - i;
 					}
 
 					bin = wrap_bin(bin);
@@ -293,12 +294,12 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 						float angle = math::radians((float)bin * INTERNAL_MAP_INCREMENT_DEG + _obstacle_map_body_frame.angle_offset);
 						angle  = wrap_2pi(vehicle_yaw_angle_rad + angle);
 						setpoint_dir = {cos(angle), sin(angle)};
+						sp_index = bin;
 					}
 				}
 
 				largest_dist = largest_dist_layer;
 			}
-
 
 			//limit speed for safe flight
 			for (int i = 0; i < INTERNAL_MAP_USED_BINS; i++) { //disregard unused bins at the end of the message
@@ -329,9 +330,9 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 						float delay_distance = curr_vel_parallel * (col_prev_dly + data_age * 1e-6f);
 						float stop_distance =  math::max(0.f, distance - min_dist_to_keep - delay_distance);
 						float vel_max_posctrl = xy_p * stop_distance;
+
 						float vel_max_smooth = math::trajectory::computeMaxSpeedFromBrakingDistance(max_jerk, max_accel, stop_distance);
-						Vector2f  vel_max_vec = bin_direction * math::min(vel_max_posctrl, vel_max_smooth);
-						float vel_max_bin = vel_max_vec.dot(setpoint_dir);
+						float vel_max_bin = math::min(vel_max_posctrl, vel_max_smooth) / bin_direction.dot(setpoint_dir);
 
 						//constrain the velocity
 						if (vel_max_bin >= 0) {
@@ -348,7 +349,7 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 		}
 
 	} else {
-		// if distance data are stale, switch to Loiter
+		// if distance data is stale, switch to Loiter
 		_publishVehicleCmdDoLoiter();
 		mavlink_log_critical(&_mavlink_log_pub, "No range data received, loitering.");
 	}
