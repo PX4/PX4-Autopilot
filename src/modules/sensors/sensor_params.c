@@ -161,6 +161,7 @@ PARAM_DEFINE_FLOAT(SENS_BARO_QNH, 1013.25f);
  * @value 32 Pitch 9°, Yaw 180°
  * @value 33 Pitch 45°
  * @value 34 Pitch 315°
+ * @value 35 Roll 90°, Yaw 270°
  *
  * @reboot_required true
  *
