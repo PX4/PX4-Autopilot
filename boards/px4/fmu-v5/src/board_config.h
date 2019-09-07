@@ -671,6 +671,8 @@
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
+#define BOARD_NUM_IO_TIMERS 5
+
 __BEGIN_DECLS
 
 /****************************************************************************************************

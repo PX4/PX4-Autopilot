@@ -531,11 +531,20 @@ DShotOutput::update_dshot_out_state(bool on)
 			break;
 		}
 
-		up_dshot_init(_output_mask, dshot_frequency);
+		int ret = up_dshot_init(_output_mask, dshot_frequency);
+
+		if (ret != 0) {
+			PX4_ERR("up_dshot_init failed (%i)", ret);
+			return;
+		}
+
 		_outputs_initialized = true;
 	}
 
-	up_dshot_arm(on);
+	if (_outputs_initialized) {
+		up_dshot_arm(on);
+		_outputs_on = on;
+	}
 }
 
 void DShotOutput::updateTelemetryNumMotors()
@@ -747,7 +756,6 @@ DShotOutput::Run()
 	bool outputs_on = _mixing_output.armed().armed || _mixing_output.mixers();
 
 	if (_outputs_on != outputs_on) {
-		_outputs_on = outputs_on;
 		update_dshot_out_state(outputs_on);
 	}
 
