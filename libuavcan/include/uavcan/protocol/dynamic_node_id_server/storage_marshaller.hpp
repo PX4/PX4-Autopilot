@@ -62,7 +62,7 @@ public:
     int setAndGetBack(const IStorageBackend::String& key, uint32_t& inout_value)
     {
         IStorageBackend::String serialized;
-        serialized.appendFormatted("%llu", static_cast<unsigned long long>(inout_value));
+        serialized.appendFormatted("%lu", inout_value);
 
         UAVCAN_TRACE("StorageMarshaller", "Set %s = %s", key.c_str(), serialized.c_str());
         storage_.set(key, serialized);
