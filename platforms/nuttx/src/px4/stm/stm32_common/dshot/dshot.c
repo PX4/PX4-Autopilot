@@ -383,6 +383,7 @@ void up_dshot_trigger(void)
 			uint32_t dshot_data_size = motors_number * ONE_MOTOR_BUFF_SIZE;
 			*rxIFCR |= dma_int_streamx_mask; //clear interrupt flags
 			*rSxNDTR = dshot_data_size;
+			io_timer_update_generation(timer);
 			*rSxCR |= DMA_SCR_EN; // Trigger DMA
 		}
 	}
