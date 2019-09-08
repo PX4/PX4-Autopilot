@@ -74,21 +74,18 @@ public:
 
 	/**
 	 * Compute T1, T2, T3 depending on the current state and velocity setpoint. This should be called on every cycle
-	 * and before evaluateTraj().
+	 * and before updateTraj().
 	 * @param vel_setpoint velocity setpoint input
-	 * @param t current time
 	 */
-	void updateDurations(float t_now, float vel_setpoint);
+	void updateDurations(float vel_setpoint);
 
 	/**
 	 * Generate the trajectory (acceleration, velocity and position) by integrating the current jerk
 	 * @param dt optional integration period. If not given, the integration period provided during updateDuration call is used.
 	 * 	A dt different from the one given during the computation of T1-T3 can be used to fast-forward or slow-down the trajectory.
-	 * @param acc_setpoint_smooth returned smoothed acceleration setpoint
-	 * @param vel_setpoint_smooth returned smoothed velocity setpoint
-	 * @param pos_setpoint_smooth returned smoothed position setpoint
 	 */
-	void updateTraj(float t_now, float &accel_setpoint_smooth, float &vel_setpoint_smooth, float &pos_setpoint_smooth);
+	void updateTraj(float dt, float time_stretch);
+	void updateTraj(float dt);
 
 	/* Get / Set constraints (constraints can be updated at any time) */
 	float getMaxJerk() const { return _max_jerk; }
@@ -129,10 +126,28 @@ private:
 
 	/**
 	 * Compute T1, T2, T3 depending on the current state and velocity setpoint.
-	 * @param T123 optional parameter. If set, the total trajectory time will be T123, if not,
-	 * 		the algorithm optimizes for time.
+	 * Minimize the total time of the trajectory
 	 */
-	void updateDurations(float T123 = -1.f);
+	void updateDurationsMinimizeTotalTime();
+
+	/**
+	 * Compute T1, T2, T3 depending on the current state and velocity setpoint.
+	 * @param T123 desired total time of the trajectory
+	 */
+	void updateDurationsGivenTotalTime(float T123);
+
+	/**
+	 * Compute the direction of the jerk to be applied in order to drive the current state
+	 * to the desired one
+	 */
+	int computeDirection();
+
+	/**
+	 * Compute the velocity at which the trajectory will be if the maximum jerk is applied
+	 * during the time required to cancel the current acceleration
+	 */
+	float computeVelAtZeroAcc();
+
 	/**
 	 * Compute increasing acceleration time
 	 */
@@ -187,5 +202,5 @@ private:
 	float _T2 = 0.f; ///< Constant acceleration [s]
 	float _T3 = 0.f; ///< Decreasing acceleration [s]
 
-	float _t0 = 0.f; ///< Starting time
+	float _local_time = 0.f; ///< Current local time
 };
