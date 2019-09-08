@@ -349,13 +349,13 @@ void FlightTaskAutoLineSmoothVel::_generateTrajectory()
 	Vector2f position_xy(_position);
 	Vector2f vel_traj_xy(_trajectory[0].getCurrentVelocity(), _trajectory[1].getCurrentVelocity());
 	Vector2f drone_to_trajectory_xy(position_trajectory_xy - position_xy);
-	//float position_error = drone_to_trajectory_xy.length();
+	float position_error = drone_to_trajectory_xy.length();
 
-	//float time_stretch = 1.f - math::constrain(position_error * 0.5f, 0.f, 1.f);
+	float time_stretch = 1.f - math::constrain(position_error * 0.5f, 0.f, 1.f);
 
 	// Don't stretch time if the drone is ahead of the position setpoint
 	if (drone_to_trajectory_xy.dot(vel_traj_xy) < 0.f) {
-		//time_stretch = 1.f;
+		time_stretch = 1.f;
 	}
 
 	Vector3f jerk_sp_smooth;
@@ -364,16 +364,17 @@ void FlightTaskAutoLineSmoothVel::_generateTrajectory()
 	Vector3f pos_sp_smooth;
 
 	for (int i = 0; i < 3; ++i) {
-		// TODO: fix time stretch
-		//_trajectory[i].updateTraj(_time_stamp_current, time_stretch, accel_sp_smooth(i), vel_sp_smooth(i), pos_sp_smooth(i));
-		_trajectory[i].updateTraj(_time, accel_sp_smooth(i), vel_sp_smooth(i), pos_sp_smooth(i));
+		_trajectory[i].updateTraj(_deltatime, time_stretch);
 		jerk_sp_smooth(i) = _trajectory[i].getCurrentJerk();
+		accel_sp_smooth(i) = _trajectory[i].getCurrentAcceleration();
+		vel_sp_smooth(i) = _trajectory[i].getCurrentVelocity();
+		pos_sp_smooth(i) = _trajectory[i].getCurrentPosition();
 	}
 
 	_updateTrajConstraints();
 
 	for (int i = 0; i < 3; ++i) {
-		_trajectory[i].updateDurations(_time, _velocity_setpoint(i));
+		_trajectory[i].updateDurations(_velocity_setpoint(i));
 	}
 
 	VelocitySmoothing::timeSynchronization(_trajectory, 2); // Synchronize x and y only
