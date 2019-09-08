@@ -42,6 +42,8 @@
 #include "FlightTaskManualPosition.hpp"
 #include "VelocitySmoothing.hpp"
 
+using matrix::Vector2f;
+
 class FlightTaskManualPositionSmoothVel : public FlightTaskManualPosition
 {
 public:
@@ -61,17 +63,52 @@ protected:
 					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
 					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max
 				       )
+
 private:
 	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
-	void _resetPositionLock();
-	void _initEkfResetCounters();
-	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
 
-	VelocitySmoothing _smoothing[3]; ///< Smoothing in x, y and z directions
-	matrix::Vector3f _vel_sp_smooth;
+	void _resetPositionLock();
+	void _resetPositionLockXY();
+	void _resetPositionLockZ();
+
+	void _initEkfResetCounters();
+	void _initEkfResetCountersXY();
+	void _initEkfResetCountersZ();
+
+	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
+	void _checkEkfResetCountersXY();
+	void _checkEkfResetCountersZ();
+
+	void _updateTrajectories();
+	void _updateTrajectoriesXY();
+	void _updateTrajectoriesZ();
+
+	void _updateTrajConstraints();
+	void _updateTrajConstraintsXY();
+	void _updateTrajConstraintsZ();
+
+	void _updateTrajDurations();
+	void _updateTrajDurationsXY();
+	void _updateTrajDurationsZ();
+
+	void _checkPositionLock();
+	void _checkPositionLockXY();
+	void _checkPositionLockZ();
+
+	void _setOutputState();
+	void _setOutputStateXY();
+	void _setOutputStateZ();
+
+	VelocitySmoothing _smoothing_xy[2]; ///< Smoothing in x and y directions
+	VelocitySmoothing _smoothing_z; ///< Smoothing in z direction
+
+	Vector2f _velocity_target_xy;
+	float _velocity_target_z{0.f};
+
 	bool _position_lock_xy_active{false};
 	bool _position_lock_z_active{false};
-	matrix::Vector2f _position_setpoint_xy_locked;
+
+	Vector2f _position_setpoint_xy_locked;
 	float _position_setpoint_z_locked{NAN};
 
 	/* counters for estimator local position resets */
@@ -81,4 +118,18 @@ private:
 		uint8_t z;
 		uint8_t vz;
 	} _reset_counters{0, 0, 0, 0};
+
+	struct {
+		Vector2f j;
+		Vector2f a;
+		Vector2f v;
+		Vector2f x;
+	} _traj_xy;
+
+	struct {
+		float j;
+		float a;
+		float v;
+		float x;
+	} _traj_z{0.f, 0.f, 0.f, NAN};
 };
