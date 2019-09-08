@@ -301,6 +301,76 @@ void up_dshot_trigger(void)
 	for (uint8_t timer = 0; (timer < DSHOT_TIMERS); timer++) {
 
 		if (true == dshot_handler[timer].init) {
+
+			uint32_t dma_int_streamx_mask;
+			volatile uint32_t *rSxNDTR;
+			volatile uint32_t *rSxCR;
+			volatile uint32_t *rxIFCR;
+
+			switch (io_timers[timer].dshot.stream) {
+			case DShot_Stream0:
+				dma_int_streamx_mask = DMA_INT_STREAM0_MASK;
+				rxIFCR = &rLIFCR(timer);
+				rSxNDTR = &rS0NDTR(timer);
+				rSxCR = &rS0CR(timer);
+				break;
+
+			case DShot_Stream1:
+				dma_int_streamx_mask = DMA_INT_STREAM1_MASK;
+				rxIFCR = &rLIFCR(timer);
+				rSxNDTR = &rS1NDTR(timer);
+				rSxCR = &rS1CR(timer);
+				break;
+
+			case DShot_Stream2:
+				dma_int_streamx_mask = DMA_INT_STREAM2_MASK;
+				rxIFCR = &rLIFCR(timer);
+				rSxNDTR = &rS2NDTR(timer);
+				rSxCR = &rS2CR(timer);
+				break;
+
+			case DShot_Stream3:
+				dma_int_streamx_mask = DMA_INT_STREAM3_MASK;
+				rxIFCR = &rLIFCR(timer);
+				rSxNDTR = &rS3NDTR(timer);
+				rSxCR = &rS3CR(timer);
+				break;
+
+			case DShot_Stream4:
+				dma_int_streamx_mask = DMA_INT_STREAM4_MASK;
+				rxIFCR = &rHIFCR(timer);
+				rSxNDTR = &rS4NDTR(timer);
+				rSxCR = &rS4CR(timer);
+				break;
+
+			case DShot_Stream5:
+				dma_int_streamx_mask = DMA_INT_STREAM5_MASK;
+				rxIFCR = &rHIFCR(timer);
+				rSxNDTR = &rS5NDTR(timer);
+				rSxCR = &rS5CR(timer);
+				break;
+
+			case DShot_Stream6:
+				dma_int_streamx_mask = DMA_INT_STREAM6_MASK;
+				rxIFCR = &rHIFCR(timer);
+				rSxNDTR = &rS6NDTR(timer);
+				rSxCR = &rS6CR(timer);
+				break;
+
+			case DShot_Stream7:
+			default:
+				dma_int_streamx_mask = DMA_INT_STREAM7_MASK;
+				rxIFCR = &rHIFCR(timer);
+				rSxNDTR = &rS7NDTR(timer);
+				rSxCR = &rS7CR(timer);
+				break;
+			}
+
+			// Check if DMA is still in progress (just to be safe, not expected to happen)
+			if (*rSxCR & DMA_SCR_EN) {
+				continue;
+			}
+
 			uint8_t motors_number = dshot_handler[timer].motors_number;
 			dshot_dmar_data_prepare(timer, first_motor, motors_number);
 
@@ -311,59 +381,9 @@ void up_dshot_trigger(void)
 			first_motor += motors_number;
 
 			uint32_t dshot_data_size = motors_number * ONE_MOTOR_BUFF_SIZE;
-
-			switch (io_timers[timer].dshot.stream) {
-			case DShot_Stream0:
-				rLIFCR(timer) |= DMA_INT_STREAM0_MASK; //clear flags
-				rS0NDTR(timer) = dshot_data_size;
-				rS0CR(timer) |= DMA_SCR_EN;
-				break;
-
-			case DShot_Stream1:
-				rLIFCR(timer) |= DMA_INT_STREAM1_MASK; //clear flags
-				rS1NDTR(timer) = dshot_data_size;
-				rS1CR(timer) |= DMA_SCR_EN;
-				break;
-
-			case DShot_Stream2:
-				rLIFCR(timer) |= DMA_INT_STREAM2_MASK; //clear flags
-				rS2NDTR(timer) = dshot_data_size;
-				rS2CR(timer) |= DMA_SCR_EN;
-				break;
-
-			case DShot_Stream3:
-				rLIFCR(timer) |= DMA_INT_STREAM3_MASK; //clear flags
-				rS3NDTR(timer) = dshot_data_size;
-				rS3CR(timer) |= DMA_SCR_EN;
-				break;
-
-			case DShot_Stream4:
-				rHIFCR(timer) |= DMA_INT_STREAM4_MASK; //clear flags
-				rS4NDTR(timer) = dshot_data_size;
-				rS4CR(timer) |= DMA_SCR_EN;
-				break;
-
-			case DShot_Stream5:
-				rHIFCR(timer) |= DMA_INT_STREAM5_MASK; //clear flags
-				rS5NDTR(timer) = dshot_data_size;
-				rS5CR(timer) |= DMA_SCR_EN;
-				break;
-
-			case DShot_Stream6:
-				rHIFCR(timer) |= DMA_INT_STREAM6_MASK; //clear flags
-				rS6NDTR(timer) = dshot_data_size;
-				rS6CR(timer) |= DMA_SCR_EN;
-				break;
-
-			case DShot_Stream7:
-				rHIFCR(timer) |= DMA_INT_STREAM7_MASK; //clear flags
-				rS7NDTR(timer) = dshot_data_size;
-				rS7CR(timer) |= DMA_SCR_EN;
-				break;
-
-			default:
-				break;
-			}
+			*rxIFCR |= dma_int_streamx_mask; //clear interrupt flags
+			*rSxNDTR = dshot_data_size;
+			*rSxCR |= DMA_SCR_EN; // Trigger DMA
 		}
 	}
 }
