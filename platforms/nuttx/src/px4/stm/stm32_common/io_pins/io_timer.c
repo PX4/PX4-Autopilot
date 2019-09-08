@@ -492,6 +492,12 @@ static inline void io_timer_set_oneshot_mode(unsigned timer)
 	rEGR(timer) = GTIM_EGR_UG;
 }
 
+void io_timer_update_generation(uint8_t timer)
+{
+	// Re-initialize the counter and generate an update of the registers
+	rEGR(timer) = ATIM_EGR_UG;
+}
+
 int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_t dma_burst_length)
 {
 	int ret_val = OK;
