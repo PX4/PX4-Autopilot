@@ -48,12 +48,14 @@ bool FlightTaskManualPositionSmoothVel::activate(vehicle_local_position_setpoint
 	const Vector3f vel_prev(last_setpoint.vx, last_setpoint.vy, last_setpoint.vz);
 	const Vector3f pos_prev(last_setpoint.x, last_setpoint.y, last_setpoint.z);
 
-	for (int i = 0; i < 3; ++i) {
-		_smoothing[i].reset(accel_prev(i), vel_prev(i), pos_prev(i));
+	for (int i = 0; i < 2; ++i) {
+		_smoothing_xy[i].reset(accel_prev(i), vel_prev(i), pos_prev(i));
 	}
 
-	_initEkfResetCounters();
+	_smoothing_z.reset(accel_prev(2), vel_prev(2), pos_prev(2));
+
 	_resetPositionLock();
+	_initEkfResetCounters();
 
 	return ret;
 }
@@ -63,13 +65,13 @@ void FlightTaskManualPositionSmoothVel::reActivate()
 	// The task is reacivated while the vehicle is on the ground. To detect takeoff in mc_pos_control_main properly
 	// using the generated jerk, reset the z derivatives to zero
 	for (int i = 0; i < 2; ++i) {
-		_smoothing[i].reset(0.f, _velocity(i), _position(i));
+		_smoothing_xy[i].reset(0.f, _velocity(i), _position(i));
 	}
 
-	_smoothing[2].reset(0.f, 0.f, _position(2));
+	_smoothing_z.reset(0.f, 0.f, _position(2));
 
-	_initEkfResetCounters();
 	_resetPositionLock();
+	_initEkfResetCounters();
 }
 
 void FlightTaskManualPositionSmoothVel::checkSetpoints(vehicle_local_position_setpoint_s &setpoints)
@@ -98,176 +100,263 @@ void FlightTaskManualPositionSmoothVel::checkSetpoints(vehicle_local_position_se
 
 void FlightTaskManualPositionSmoothVel::_resetPositionLock()
 {
+	_resetPositionLockXY();
+	_resetPositionLockZ();
+}
+
+void FlightTaskManualPositionSmoothVel::_resetPositionLockXY()
+{
 	_position_lock_xy_active = false;
-	_position_lock_z_active = false;
 	_position_setpoint_xy_locked(0) = NAN;
 	_position_setpoint_xy_locked(1) = NAN;
+}
+
+void FlightTaskManualPositionSmoothVel::_resetPositionLockZ()
+{
+	_position_lock_z_active = false;
 	_position_setpoint_z_locked = NAN;
 }
 
 void FlightTaskManualPositionSmoothVel::_initEkfResetCounters()
 {
+	_initEkfResetCountersXY();
+	_initEkfResetCountersZ();
+}
+
+void FlightTaskManualPositionSmoothVel::_initEkfResetCountersXY()
+{
 	_reset_counters.xy = _sub_vehicle_local_position->get().xy_reset_counter;
 	_reset_counters.vxy = _sub_vehicle_local_position->get().vxy_reset_counter;
+}
+
+void FlightTaskManualPositionSmoothVel::_initEkfResetCountersZ()
+{
 	_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
 	_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
+}
+
+void FlightTaskManualPositionSmoothVel::_updateSetpoints()
+{
+	// Reset trajectories if EKF did a reset
+	_checkEkfResetCounters();
+
+	// Update state
+	_updateTrajectories();
+
+	// Set max accel/vel/jerk
+	// Has to be done before _updateTrajDurations()
+	_updateTrajConstraints();
+
+	// Get yaw setpont, un-smoothed position setpoints
+	// Has to be done before _checkPositionLock()
+	FlightTaskManualPosition::_updateSetpoints();
+	_velocity_target_xy = Vector2f(_velocity_setpoint);
+	_velocity_target_z = _velocity_setpoint(2);
+
+	// Lock or unlock position
+	// Has to be done before _updateTrajDurations()
+	_checkPositionLock();
+
+	// Update durations and sync XY
+	_updateTrajDurations();
+
+	// Fill the jerk, acceleration, velocity and position setpoint vectors
+	_setOutputState();
 }
 
 void FlightTaskManualPositionSmoothVel::_checkEkfResetCounters()
 {
 	// Check if a reset event has happened.
+	_checkEkfResetCountersXY();
+	_checkEkfResetCountersZ();
+}
+
+void FlightTaskManualPositionSmoothVel::_checkEkfResetCountersXY()
+{
 	if (_sub_vehicle_local_position->get().xy_reset_counter != _reset_counters.xy) {
-		_smoothing[0].setCurrentPosition(_position(0));
-		_smoothing[1].setCurrentPosition(_position(1));
+		_smoothing_xy[0].setCurrentPosition(_position(0));
+		_smoothing_xy[1].setCurrentPosition(_position(1));
 		_reset_counters.xy = _sub_vehicle_local_position->get().xy_reset_counter;
 	}
 
 	if (_sub_vehicle_local_position->get().vxy_reset_counter != _reset_counters.vxy) {
-		_smoothing[0].setCurrentVelocity(_velocity(0));
-		_smoothing[1].setCurrentVelocity(_velocity(1));
+		_smoothing_xy[0].setCurrentVelocity(_velocity(0));
+		_smoothing_xy[1].setCurrentVelocity(_velocity(1));
 		_reset_counters.vxy = _sub_vehicle_local_position->get().vxy_reset_counter;
 	}
+}
 
+void FlightTaskManualPositionSmoothVel::_checkEkfResetCountersZ()
+{
 	if (_sub_vehicle_local_position->get().z_reset_counter != _reset_counters.z) {
-		_smoothing[2].setCurrentPosition(_position(2));
+		_smoothing_z.setCurrentPosition(_position(2));
 		_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
 	}
 
 	if (_sub_vehicle_local_position->get().vz_reset_counter != _reset_counters.vz) {
-		_smoothing[2].setCurrentVelocity(_velocity(2));
+		_smoothing_z.setCurrentVelocity(_velocity(2));
 		_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
 	}
 }
 
-void FlightTaskManualPositionSmoothVel::_updateSetpoints()
+void FlightTaskManualPositionSmoothVel::_updateTrajectories()
 {
-	Vector3f pos_sp_smooth;
+	_updateTrajectoriesXY();
+	_updateTrajectoriesZ();
+}
 
-	for (int i = 0; i < 3; ++i) {
-		_smoothing[i].updateTraj(_deltatime);
+void FlightTaskManualPositionSmoothVel::_updateTrajectoriesXY()
+{
+	for (int i = 0; i < 2; ++i) {
+		_smoothing_xy[i].updateTraj(_deltatime);
 
-		_jerk_setpoint(i) = _smoothing[i].getCurrentJerk();
-		_acceleration_setpoint(i) = _smoothing[i].getCurrentAcceleration();
-		_vel_sp_smooth(i) = _smoothing[i].getCurrentVelocity();
-		pos_sp_smooth(i) = _smoothing[i].getCurrentPosition();
+		_traj_xy.j(i) = _smoothing_xy[i].getCurrentJerk();
+		_traj_xy.a(i) = _smoothing_xy[i].getCurrentAcceleration();
+		_traj_xy.v(i) = _smoothing_xy[i].getCurrentVelocity();
+		_traj_xy.x(i) = _smoothing_xy[i].getCurrentPosition();
 	}
+}
 
-	/* Get yaw setpont, un-smoothed position setpoints.*/
-	FlightTaskManualPosition::_updateSetpoints();
+void FlightTaskManualPositionSmoothVel::_updateTrajectoriesZ()
+{
+	_smoothing_z.updateTraj(_deltatime);
 
-	/* Update constraints */
-	_smoothing[0].setMaxAccel(_param_mpc_acc_hor_max.get());
-	_smoothing[1].setMaxAccel(_param_mpc_acc_hor_max.get());
-	_smoothing[0].setMaxVel(_constraints.speed_xy);
-	_smoothing[1].setMaxVel(_constraints.speed_xy);
+	_traj_z.j = _smoothing_z.getCurrentJerk();
+	_traj_z.a = _smoothing_z.getCurrentAcceleration();
+	_traj_z.v = _smoothing_z.getCurrentVelocity();
+	_traj_z.x = _smoothing_z.getCurrentPosition();
+}
+
+void FlightTaskManualPositionSmoothVel::_updateTrajConstraints()
+{
+	_updateTrajConstraintsXY();
+	_updateTrajConstraintsZ();
+}
+
+void FlightTaskManualPositionSmoothVel::_updateTrajConstraintsXY()
+{
+	for (int i = 0; i < 2; i++) {
+		_smoothing_xy[i].setMaxJerk(_param_mpc_jerk_max.get());
+		_smoothing_xy[i].setMaxAccel(_param_mpc_acc_hor_max.get());
+		_smoothing_xy[i].setMaxVel(_constraints.speed_xy);
+	}
+}
+
+void FlightTaskManualPositionSmoothVel::_updateTrajConstraintsZ()
+{
+	_smoothing_z.setMaxJerk(_param_mpc_jerk_max.get());
 
 	if (_velocity_setpoint(2) < 0.f) { // up
-		_smoothing[2].setMaxAccel(_param_mpc_acc_up_max.get());
-		_smoothing[2].setMaxVel(_constraints.speed_up);
+		_smoothing_z.setMaxAccel(_param_mpc_acc_up_max.get());
+		_smoothing_z.setMaxVel(_constraints.speed_up);
 
 	} else { // down
-		_smoothing[2].setMaxAccel(_param_mpc_acc_down_max.get());
-		_smoothing[2].setMaxVel(_constraints.speed_down);
+		_smoothing_z.setMaxAccel(_param_mpc_acc_down_max.get());
+		_smoothing_z.setMaxVel(_constraints.speed_down);
+	}
+}
+
+void FlightTaskManualPositionSmoothVel::_updateTrajDurations()
+{
+	_updateTrajDurationsXY();
+	_updateTrajDurationsZ();
+}
+
+void FlightTaskManualPositionSmoothVel::_updateTrajDurationsXY()
+{
+	for (int i = 0; i < 2; ++i) {
+		_smoothing_xy[i].updateDurations(_velocity_target_xy(i));
 	}
 
-	float jerk[3] = {_param_mpc_jerk_max.get(), _param_mpc_jerk_max.get(), _param_mpc_jerk_max.get()};
+	VelocitySmoothing::timeSynchronization(_smoothing_xy, 2);
+}
 
-	_checkEkfResetCounters();
+void FlightTaskManualPositionSmoothVel::_updateTrajDurationsZ()
+{
+	_smoothing_z.updateDurations(_velocity_target_z);
+}
 
-	/* Check for position unlock
+void FlightTaskManualPositionSmoothVel::_checkPositionLock()
+{
+	/**
 	 * During a position lock -> position unlock transition, we have to make sure that the velocity setpoint
-	 * is continuous. We know that the output of the position loop (part of the velocity setpoint) will suddenly become null
-	 * and only the feedforward (generated by this flight task) will remain. This is why the previous input of the velocity controller
+	 * is continuous. We know that the output of the position loop (part of the velocity setpoint)
+	 * will suddenly become null
+	 * and only the feedforward (generated by this flight task) will remain.
+	 * This is why the previous input of the velocity controller
 	 * is used to set current velocity of the trajectory.
 	 */
-	const Vector2f velocity_target_xy = Vector2f(_velocity_setpoint);
-	const float velocity_target_z = _velocity_setpoint(2);
+	_checkPositionLockXY();
+	_checkPositionLockZ();
+}
 
-	if (velocity_target_xy.length() > FLT_EPSILON) {
+void FlightTaskManualPositionSmoothVel::_checkPositionLockXY()
+{
+	if (_traj_xy.v.length() < 0.1f &&
+	    _traj_xy.a.length() < .2f &&
+	    _velocity_target_xy.length() <= FLT_EPSILON) {
+		// Lock position
+		_position_lock_xy_active = true;
+		_position_setpoint_xy_locked = _traj_xy.x;
+
+	} else {
+		// Unlock position
 		if (_position_lock_xy_active) {
-			_smoothing[0].setCurrentVelocity(_velocity_setpoint_feedback(
+			_smoothing_xy[0].setCurrentVelocity(_velocity_setpoint_feedback(
 					0)); // Start the trajectory at the current velocity setpoint
-			_smoothing[1].setCurrentVelocity(_velocity_setpoint_feedback(1));
+			_smoothing_xy[1].setCurrentVelocity(_velocity_setpoint_feedback(1));
 			_position_setpoint_xy_locked(0) = NAN;
 			_position_setpoint_xy_locked(1) = NAN;
 		}
 
 		_position_lock_xy_active = false;
+		_smoothing_xy[0].setCurrentPosition(_position(0));
+		_smoothing_xy[1].setCurrentPosition(_position(1));
 	}
+}
 
-	if (fabsf(velocity_target_z) > FLT_EPSILON) {
+void FlightTaskManualPositionSmoothVel::_checkPositionLockZ()
+{
+	if (fabsf(_traj_z.v) < 0.1f &&
+	    fabsf(_traj_z.a) < .2f &&
+	    fabsf(_velocity_target_z) <= FLT_EPSILON) {
+		// Lock position
+		_position_lock_z_active = true;
+		_position_setpoint_z_locked = _traj_z.x;
+
+	} else {
+		// Unlock position
 		if (_position_lock_z_active) {
-			_smoothing[2].setCurrentVelocity(_velocity_setpoint_feedback(
-					2)); // Start the trajectory at the current velocity setpoint
+			_smoothing_z.setCurrentVelocity(_velocity_setpoint_feedback(
+								2)); // Start the trajectory at the current velocity setpoint
 			_position_setpoint_z_locked = NAN;
 		}
 
 		_position_lock_z_active = false;
+		_smoothing_z.setCurrentPosition(_position(2));
 	}
+}
 
-	for (int i = 0; i < 3; ++i) {
-		_smoothing[i].setMaxJerk(jerk[i]);
-		_smoothing[i].updateDurations(_velocity_setpoint(i));
+void FlightTaskManualPositionSmoothVel::_setOutputState()
+{
+	_setOutputStateXY();
+	_setOutputStateZ();
+}
+
+void FlightTaskManualPositionSmoothVel::_setOutputStateXY()
+{
+	for (int i = 0; i < 2; i++) {
+		_jerk_setpoint(i) = _traj_xy.j(i);
+		_acceleration_setpoint(i) = _traj_xy.a(i);
+		_velocity_setpoint(i) = _traj_xy.v(i);
+		_position_setpoint(i) = _position_setpoint_xy_locked(i);
 	}
+}
 
-	VelocitySmoothing::timeSynchronization(_smoothing, 2); // Synchronize x and y only
-
-	if (!_position_lock_xy_active) {
-		_smoothing[0].setCurrentPosition(_position(0));
-		_smoothing[1].setCurrentPosition(_position(1));
-	}
-
-	if (!_position_lock_z_active) {
-		_smoothing[2].setCurrentPosition(_position(2));
-	}
-
-	// Check for position lock transition
-	if (Vector2f(_vel_sp_smooth).length() < 0.1f &&
-	    Vector2f(_acceleration_setpoint).length() < .2f &&
-	    velocity_target_xy.length() <= FLT_EPSILON) {
-		_position_lock_xy_active = true;
-	}
-
-	if (fabsf(_vel_sp_smooth(2)) < 0.1f &&
-	    fabsf(_acceleration_setpoint(2)) < .2f &&
-	    fabsf(velocity_target_z) <= FLT_EPSILON) {
-		_position_lock_z_active = true;
-	}
-
-	// Set valid position setpoint while in position lock.
-	// When the position lock condition above is false, it does not
-	// mean that the unlock condition is true. This is why
-	// we are checking the lock flag here.
-	if (_position_lock_xy_active) {
-		_position_setpoint_xy_locked(0) = pos_sp_smooth(0);
-		_position_setpoint_xy_locked(1) = pos_sp_smooth(1);
-
-		// If the velocity setpoint is smaller than 1mm/s and that the acceleration is 0, force the setpoints
-		// to zero. This is required because the generated velocity is never exactly zero and if the drone hovers
-		// for a long period of time, thr drift of the position setpoint will be noticeable.
-		for (int i = 0; i < 2; i++) {
-			if (fabsf(_velocity_setpoint(i)) < 1e-3f && fabsf(_acceleration_setpoint(0)) < FLT_EPSILON) {
-				_velocity_setpoint(i) = 0.f;
-				_acceleration_setpoint(i) = 0.f;
-				_smoothing[i].setCurrentVelocity(0.f);
-				_smoothing[i].setCurrentAcceleration(0.f);
-			}
-		}
-	}
-
-	if (_position_lock_z_active) {
-		_position_setpoint_z_locked = pos_sp_smooth(2);
-
-		if (fabsf(_velocity_setpoint(2)) < 1e-3f && fabsf(_acceleration_setpoint(2)) < FLT_EPSILON) {
-			_velocity_setpoint(2) = 0.f;
-			_acceleration_setpoint(2) = 0.f;
-			_smoothing[2].setCurrentVelocity(0.f);
-			_smoothing[2].setCurrentAcceleration(0.f);
-		}
-	}
-
-	_velocity_setpoint = _vel_sp_smooth; // Feedforward
-	_position_setpoint(0) = _position_setpoint_xy_locked(0);
-	_position_setpoint(1) = _position_setpoint_xy_locked(1);
+void FlightTaskManualPositionSmoothVel::_setOutputStateZ()
+{
+	_jerk_setpoint(2) = _traj_z.j;
+	_acceleration_setpoint(2) = _traj_z.a;
+	_velocity_setpoint(2) = _traj_z.v;
 	_position_setpoint(2) = _position_setpoint_z_locked;
 }
