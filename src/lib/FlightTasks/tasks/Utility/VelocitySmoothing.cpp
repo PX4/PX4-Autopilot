@@ -78,7 +78,7 @@ float VelocitySmoothing::computeT1(float a0, float v3, float j_max, float a_max)
 
 	float sqrt_delta = sqrtf(delta);
 	float T1_plus = (-a0 + 0.5f * sqrt_delta) / j_max;
-        float T1_minus = (-a0 - 0.5f * sqrt_delta) / j_max;
+	float T1_minus = (-a0 - 0.5f * sqrt_delta) / j_max;
 
 	float T3_plus = a0 / j_max + T1_plus;
 	float T3_minus = a0 / j_max + T1_minus;
@@ -101,7 +101,7 @@ float VelocitySmoothing::computeT1(float T123, float a0, float v3, float j_max, 
 {
 	float a = -j_max;
 	float b = j_max * T123 - a0;
-	float delta = T123 * T123 * j_max * j_max + 2.f * T123 *a0 * j_max - a0 * a0 - 4.f * j_max * v3;
+	float delta = T123 * T123 * j_max * j_max + 2.f * T123 * a0 * j_max - a0 * a0 - 4.f * j_max * v3;
 
 	if (delta < 0.f) {
 		// Solution is not real
@@ -134,14 +134,14 @@ float VelocitySmoothing::computeT1(float T123, float a0, float v3, float j_max, 
 }
 
 
-float VelocitySmoothing::computeT2(float T1, float T3, float a0 , float v3, float j_max)
+float VelocitySmoothing::computeT2(float T1, float T3, float a0, float v3, float j_max)
 {
 	float T2 = 0.f;
 
 	float den = a0 + j_max * T1;
 
 	if (math::abs_t(den) > FLT_EPSILON) {
-		T2 = (-0.5f *T1 * T1 * j_max - T1 * T3*j_max - T1 * a0 + 0.5f * T3 * T3 * j_max - T3 * a0 + v3) / den;
+		T2 = (-0.5f * T1 * T1 * j_max - T1 * T3 * j_max - T1 * a0 + 0.5f * T3 * T3 * j_max - T3 * a0 + v3) / den;
 	}
 
 	return math::max(T2, 0.f);
@@ -156,70 +156,69 @@ float VelocitySmoothing::computeT2(float T123, float T1, float T3)
 float VelocitySmoothing::computeT3(float T1, float a0, float j_max)
 {
 	float T3 = a0 / j_max + T1;
-
 	return math::max(T3, 0.f);
 }
 
-void VelocitySmoothing::updateDurations(float t_now, float vel_setpoint)
+void VelocitySmoothing::updateDurations(float vel_setpoint)
 {
 	_vel_sp = math::constrain(vel_setpoint, -_max_vel, _max_vel);
-	_t0 = t_now;
+	_local_time = 0.f;
 	_state_init = _state;
 
-	// Compute the velocity at which the trajectory will be
-	// when the acceleration will be zero
-	float vel_zero_acc = _state.v;
-        if (fabsf(_state.a) > FLT_EPSILON) {
-            float j_zero_acc = -math::sign(_state.a) * _max_jerk; // Required jerk to reduce the acceleration
-            float t_zero_acc = -_state.a / j_zero_acc; // Required time to cancel the current acceleration
-            vel_zero_acc = _state.v + _state.a * t_zero_acc + 0.5f * j_zero_acc * t_zero_acc * t_zero_acc;
-	}
-
-	/* Depending of the direction, start accelerating positively or negatively */
-	_direction = math::sign(_vel_sp - vel_zero_acc);
-	if (_direction == 0) {
-		// If by braking immediately the velocity is exactly
-		// the require one with zero acceleration, then brake
-		_direction = -math::sign(_vel_sp - _state.v);
-	}
+	_direction = computeDirection();
 
 	if (_direction != 0) {
-		updateDurations();
+		updateDurationsMinimizeTotalTime();
 
 	} else {
 		_T1 = _T2 = _T3 = 0.f;
 	}
 }
 
-void VelocitySmoothing::updateDurations(float T123)
+int VelocitySmoothing::computeDirection()
 {
-	float T1, T2, T3;
+	// Compute the velocity at which the trajectory will be
+	// when the acceleration will be zero
+	float vel_zero_acc = computeVelAtZeroAcc();
 
+	/* Depending of the direction, start accelerating positively or negatively */
+	int direction = math::sign(_vel_sp - vel_zero_acc);
+
+	if (direction == 0) {
+		// If by braking immediately the velocity is exactly
+		// the require one with zero acceleration, then brake
+		direction = -math::sign(_state.a);
+	}
+
+	return direction;
+}
+
+float VelocitySmoothing::computeVelAtZeroAcc()
+{
+	float vel_zero_acc = _state.v;
+
+	if (fabsf(_state.a) > FLT_EPSILON) {
+		float j_zero_acc = -math::sign(_state.a) * _max_jerk; // Required jerk to reduce the acceleration
+		float t_zero_acc = -_state.a / j_zero_acc; // Required time to cancel the current acceleration
+		vel_zero_acc = _state.v + _state.a * t_zero_acc + 0.5f * j_zero_acc * t_zero_acc * t_zero_acc;
+	}
+
+	return vel_zero_acc;
+}
+
+void VelocitySmoothing::updateDurationsMinimizeTotalTime()
+{
 	float jerk_max_T1 = _direction * _max_jerk;
 	float delta_v = _vel_sp - _state.v;
 
 	// compute increasing acceleration time
-	if (T123 < 0.f) {
-		T1 = computeT1(_state.a, delta_v, jerk_max_T1, _max_accel);
-
-	} else {
-		T1 = computeT1(T123, _state.a, delta_v, jerk_max_T1, _max_accel);
-	}
+	_T1 = computeT1(_state.a, delta_v, jerk_max_T1, _max_accel);
 
 	// compute decreasing acceleration time
-	T3 = computeT3(T1, _state.a, jerk_max_T1);
+	_T3 = computeT3(_T1, _state.a, jerk_max_T1);
 
 	// compute constant acceleration time
-	if (T123 < 0.f) {
-		T2 = computeT2(T1, T3, _state.a, delta_v, jerk_max_T1);
-
-	} else {
-		T2 = computeT2(T123, T1, T3);
-	}
-
-	_T1 = T1;
-	_T2 = T2;
-	_T3 = T3;
+	_T2 = computeT2(_T1, _T3, _state.a, delta_v, jerk_max_T1);
 }
 
 Trajectory VelocitySmoothing::evaluatePoly(float j, float a0, float v0, float x0, float t, int d)
@@ -237,42 +236,54 @@ Trajectory VelocitySmoothing::evaluatePoly(float j, float a0, float v0, float x0
 	return traj;
 }
 
-void VelocitySmoothing::updateTraj(float t_now, float &accel_setpoint_smooth, float &vel_setpoint_smooth, float &pos_setpoint_smooth)
+void VelocitySmoothing::updateTraj(float dt, float time_stretch)
 {
-	const float t = t_now - _t0;
+	updateTraj(dt * time_stretch);
+}
+
+void VelocitySmoothing::updateTraj(float dt)
+{
+	_local_time += dt;
+	const float t = _local_time;
+	float t1 = 0.f;
+	float t2 = 0.f;
+	float t3 = 0.f;
+	float t4 = 0.f;
 
 	if (t <= _T1) {
-		float t1 = t;
-		_state = evaluatePoly(_max_jerk, _state_init.a, _state_init.v, _state_init.x, t1, _direction);
+		t1 = t;
 
 	} else if (t <= _T1 + _T2) {
-		float t1 = _T1;
-		float t2 = t - _T1;
-		_state = evaluatePoly(_max_jerk, _state_init.a, _state_init.v, _state_init.x, t1, _direction);
-		_state = evaluatePoly(0.f, _state.a, _state.v, _state.x, t2, 0.f);
+		t1 = _T1;
+		t2 = t - _T1;
 
 	} else if (t <= _T1 + _T2 + _T3) {
-		float t1 = _T1;
-		float t2 = _T2;
-		float t3 = t - _T1 - _T2;
-		_state = evaluatePoly(_max_jerk, _state_init.a, _state_init.v, _state_init.x, t1, _direction);
-		_state = evaluatePoly(0.f, _state.a, _state.v, _state.x, t2, 0.f);
-		_state = evaluatePoly(_max_jerk, _state.a, _state.v, _state.x, t3, -_direction);
+		t1 = _T1;
+		t2 = _T2;
+		t3 = t - _T1 - _T2;
 
 	} else {
-		float t1 = _T1;
-		float t2 = _T2;
-		float t3 = _T3;
-		float t4 = t - _T1 - _T2 - _T3;
-		_state = evaluatePoly(_max_jerk, _state_init.a, _state_init.v, _state_init.x, t1, _direction);
-		_state = evaluatePoly(0.f, _state.a, _state.v, _state.x, t2, 0.f);
-		_state = evaluatePoly(_max_jerk, _state.a, _state.v, _state.x, t3, -_direction);
-		_state = evaluatePoly(0.f, 0.f, _state.v, _state.x, t4, 0.f);
+		t1 = _T1;
+		t2 = _T2;
+		t3 = _T3;
+		t4 = t - _T1 - _T2 - _T3;
 	}
 
-	accel_setpoint_smooth = _state.a;
-	vel_setpoint_smooth = _state.v;
-	pos_setpoint_smooth = _state.x;
+	if (t > 0.f) {
+		_state = evaluatePoly(_max_jerk, _state_init.a, _state_init.v, _state_init.x, t1, _direction);
+	}
+
+	if (t >= _T1) {
+		_state = evaluatePoly(0.f, _state.a, _state.v, _state.x, t2, 0.f);
+	}
+
+	if (t >= _T1 + _T2) {
+		_state = evaluatePoly(_max_jerk, _state.a, _state.v, _state.x, t3, -_direction);
+	}
+
+	if (t >= _T1 + _T2 + _T3) {
+		_state = evaluatePoly(0.f, 0.f, _state.v, _state.x, t4, 0.f);
+	}
 }
 
 void VelocitySmoothing::timeSynchronization(VelocitySmoothing *traj, int n_traj)
@@ -292,8 +303,23 @@ void VelocitySmoothing::timeSynchronization(VelocitySmoothing *traj, int n_traj)
 	if (desired_time > FLT_EPSILON) {
 		for (int i = 0; i < n_traj; i++) {
 			if (i != longest_traj_index) {
-				traj[i].updateDurations(desired_time);
+				traj[i].updateDurationsGivenTotalTime(desired_time);
 			}
 		}
 	}
+}
+
+void VelocitySmoothing::updateDurationsGivenTotalTime(float T123)
+{
+	float jerk_max_T1 = _direction * _max_jerk;
+	float delta_v = _vel_sp - _state.v;
+
+	// compute increasing acceleration time
+	_T1 = computeT1(T123, _state.a, delta_v, jerk_max_T1, _max_accel);
+
+	// compute decreasing acceleration time
+	_T3 = computeT3(_T1, _state.a, jerk_max_T1);
+
+	// compute constant acceleration time
+	_T2 = computeT2(T123, _T1, _T3);
 }

@@ -144,8 +144,12 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 	Vector3f pos_sp_smooth;
 
 	for (int i = 0; i < 3; ++i) {
-		_smoothing[i].updateTraj(_time_stamp_current, _acceleration_setpoint(i), _vel_sp_smooth(i), pos_sp_smooth(i));
+		_smoothing[i].updateTraj(_deltatime);
+
 		_jerk_setpoint(i) = _smoothing[i].getCurrentJerk();
+		_acceleration_setpoint(i) = _smoothing[i].getCurrentAcceleration();
+		_vel_sp_smooth(i) = _smoothing[i].getCurrentVelocity();
+		pos_sp_smooth(i) = _smoothing[i].getCurrentPosition();
 	}
 
 	/* Get yaw setpont, un-smoothed position setpoints.*/
@@ -203,7 +207,7 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 
 	for (int i = 0; i < 3; ++i) {
 		_smoothing[i].setMaxJerk(jerk[i]);
-		_smoothing[i].updateDurations(_time_stamp_current, _velocity_setpoint(i));
+		_smoothing[i].updateDurations(_velocity_setpoint(i));
 	}
 
 	VelocitySmoothing::timeSynchronization(_smoothing, 2); // Synchronize x and y only

@@ -147,7 +147,7 @@ void FlightTaskManualAltitudeSmoothVel::_updateSetpoints()
 	jerk = _position_lock_z_active ? 1.f : _param_mpc_jerk_max.get();
 
 	_smoothing.setMaxJerk(jerk);
-	_smoothing.updateDurations(_deltatime, _velocity_setpoint(2));
+	_smoothing.updateDurations(_velocity_setpoint(2));
 
 	if (!_position_lock_z_active) {
 		_smoothing.setCurrentPosition(_position(2));
@@ -156,9 +156,14 @@ void FlightTaskManualAltitudeSmoothVel::_updateSetpoints()
 	float pos_sp_smooth;
 
 	// TODO: move before updateDurations
-	_smoothing.updateTraj(_time_stamp_current, _acceleration_setpoint(2), _vel_sp_smooth, pos_sp_smooth);
-	_velocity_setpoint(2) = _vel_sp_smooth; // Feedforward
+	_smoothing.updateTraj(_deltatime);
+
 	_jerk_setpoint(2) = _smoothing.getCurrentJerk();
+	_acceleration_setpoint(2) = _smoothing.getCurrentAcceleration();
+	_vel_sp_smooth = _smoothing.getCurrentVelocity();
+	pos_sp_smooth = _smoothing.getCurrentPosition();
+
+	_velocity_setpoint(2) = _vel_sp_smooth; // Feedforward
 
 	if (fabsf(_vel_sp_smooth) < 0.1f &&
 	    fabsf(_acceleration_setpoint(2)) < .2f &&
