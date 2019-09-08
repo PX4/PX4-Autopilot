@@ -75,6 +75,9 @@ void VelocitySmoothingTest::updateTrajectories(float dt, Vector3f velocity_setpo
 {
 	for (int i = 0; i < 3; i++) {
 		_trajectories[i].updateTraj(dt);
+		EXPECT_LE(fabsf(_trajectories[i].getCurrentJerk()), _trajectories[i].getMaxJerk());
+		EXPECT_LE(fabsf(_trajectories[i].getCurrentAcceleration()), _trajectories[i].getMaxAccel());
+		EXPECT_LE(fabsf(_trajectories[i].getCurrentVelocity()), _trajectories[i].getMaxVel());
 	}
 
 	for (int i = 0; i < 3; i++) {
