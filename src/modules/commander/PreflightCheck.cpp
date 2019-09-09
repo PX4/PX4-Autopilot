@@ -921,6 +921,19 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 		}
 	}
 
+	/* ---- VTOL ---- */
+	if (status.is_vtol) {
+
+		// prevent arming when not in rotary wing mode
+		if (!(status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)) {
+			if (reportFailures) {
+				mavlink_log_critical(mavlink_log_pub, "Arming not allowed in fixed-wing mode");
+			}
+
+			failed = true;
+		}
+	}
+
 	/* ---- RC CALIBRATION ---- */
 	if (checkRC) {
 		if (rc_calibration_check(mavlink_log_pub, reportFailures && !failed, status.is_vtol) != OK) {
