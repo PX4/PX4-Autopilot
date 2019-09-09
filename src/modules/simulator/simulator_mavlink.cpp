@@ -673,6 +673,7 @@ void Simulator::poll_for_MAVLink_messages()
 
 		if (bind(_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
 			PX4_ERR("bind for UDP port %i failed (%i)", _port, errno);
+			::close(_fd);
 			return;
 		}
 
