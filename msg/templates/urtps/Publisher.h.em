@@ -64,7 +64,11 @@ topic = alias if alias else spec.short_name
 #include <fastrtps/fastrtps_fwd.h>
 #include <fastrtps/publisher/PublisherListener.h>
 
+@[if float(fastrtps_version) < 1.9]@
 #include "@(topic)_PubSubTypes.h"
+@[else]@
+#include "@(topic)PubSubTypes.h"
+@[end if]@
 
 using namespace eprosima::fastrtps;
 using namespace eprosima::fastrtps::rtps;
@@ -76,7 +80,11 @@ public:
     virtual ~@(topic)_Publisher();
     bool init();
     void run();
+@[if (ros2_distro == "ardent" or ros2_distro == "bouncy" or ros2_distro == "crystal") and float(fastrtps_version) < 1.9]@
     void publish(@(topic)_* st);
+@[else]@
+    void publish(@(topic)* st);
+@[end if]@
 private:
     Participant *mp_participant;
     Publisher *mp_publisher;
@@ -89,7 +97,11 @@ private:
         void onPublicationMatched(Publisher* pub, MatchingInfo& info);
         int n_matched;
     } m_listener;
+@[if float(fastrtps_version) < 1.9]@
     @(topic)_PubSubType myType;
+@[else]@
+    @(topic)PubSubType myType;
+@[end if]@
 };
 
 #endif // _@(topic)__PUBLISHER_H_

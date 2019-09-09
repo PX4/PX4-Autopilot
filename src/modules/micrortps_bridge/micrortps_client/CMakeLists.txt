@@ -33,6 +33,9 @@
 
 set(msg_out_path ${CMAKE_CURRENT_BINARY_DIR})
 
+#set(ROS2_DISTRO $ENV{ROS_DISTRO})
+set(ROS2_DISTRO "")
+
 if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_topics}" STREQUAL "")
 
 	set(send_topic_files)
@@ -81,7 +84,8 @@ if (NOT "${config_rtps_send_topics}" STREQUAL "" OR NOT "${config_rtps_receive_t
 			--agent-outdir ${CMAKE_CURRENT_BINARY_DIR}/micrortps_agent
 			--client-outdir ${CMAKE_CURRENT_BINARY_DIR}/micrortps_client
 			--idl-dir ${CMAKE_CURRENT_BINARY_DIR}/micrortps_agent/idl
-			>micrortps_bridge.log > /dev/null
+			--ros2-distro ${ROS2_DISTRO}
+			#>micrortps_bridge.log > /dev/null
 		DEPENDS ${send_topic_files} ${receive_topic_files}
 		COMMENT "Generating RTPS topic bridge"
 	)

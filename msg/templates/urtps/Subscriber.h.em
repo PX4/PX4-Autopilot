@@ -64,7 +64,11 @@ topic = alias if alias else spec.short_name
 #include <fastrtps/fastrtps_fwd.h>
 #include <fastrtps/subscriber/SubscriberListener.h>
 #include <fastrtps/subscriber/SampleInfo.h>
+@[if float(fastrtps_version) < 1.9]@
 #include "@(topic)_PubSubTypes.h"
+@[else]@
+#include "@(topic)PubSubTypes.h"
+@[end if]@
 
 using namespace eprosima::fastrtps;
 using namespace eprosima::fastrtps::rtps;
@@ -77,7 +81,11 @@ public:
     bool init();
     void run();
     bool hasMsg();
+@[if (ros2_distro == "ardent" or ros2_distro == "bouncy" or ros2_distro == "crystal") and float(fastrtps_version) < 1.9]@
     @(topic)_ getMsg();
+@[else]@
+    @(topic) getMsg();
+@[end if]@
 private:
     Participant *mp_participant;
     Subscriber *mp_subscriber;
@@ -92,11 +100,19 @@ private:
         SampleInfo_t m_info;
         int n_matched;
         int n_msg;
+@[if (ros2_distro == "ardent" or ros2_distro == "bouncy" or ros2_distro == "crystal") and float(fastrtps_version) < 1.9]@
         @(topic)_ msg;
+@[else]@
+        @(topic) msg;
+@[end if]@
         bool has_msg = false;
 
     } m_listener;
+@[if float(fastrtps_version) < 1.9]@
     @(topic)_PubSubType myType;
+@[else]@
+    @(topic)PubSubType myType;
+@[end if]@
 };
 
 #endif // _@(topic)__SUBSCRIBER_H_
