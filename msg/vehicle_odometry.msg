@@ -29,7 +29,10 @@ float32 y			# East position
 float32 z			# Down position
 
 # Orientation quaternion. First value NaN if invalid/unknown
-float32[4] q			# Quaternion rotation from NED earth-fixed frame to XYZ body frame
+float32[4] q			# Quaternion rotation from FRD body frame to fixed frame
+
+float32[4] q_offset		# Quaternion rotation from odometry's fixed frame to local_origin NED frame
+
 
 # Row-major representation of 6x6 pose cross-covariance matrix URT.
 # NED earth-fixed frame.
@@ -55,4 +58,4 @@ float32 yawspeed		# Angular velocity about Z body axis
 # If angular velocity covariance invalid/unknown, 16th cell is NaN
 float32[21] velocity_covariance
 
-# TOPICS vehicle_odometry vehicle_mocap_odometry vehicle_visual_odometry
+# TOPICS vehicle_odometry vehicle_mocap_odometry vehicle_visual_odometry vehicle_aligned_visual_odometry
