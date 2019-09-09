@@ -257,7 +257,7 @@ private:
 
 	// republished aligned external visual odometry
 	bool new_ev_data_received = false;
-	vehicle_odometry_s _ev_odom;
+	vehicle_odometry_s _ev_odom{};
 
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
