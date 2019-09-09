@@ -1,5 +1,5 @@
 # Optical flow in XYZ body frame in SI units.
-# @see http://en.wikipedia.org/wiki/International_System_of_Units
+# http://en.wikipedia.org/wiki/International_System_of_Units
 
 uint64 timestamp		# time since system start (microseconds)
 

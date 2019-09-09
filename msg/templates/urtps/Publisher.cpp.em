@@ -125,7 +125,11 @@ void @(topic)_Publisher::run()
 
     // Publication code
 
+@[if (ros2_distro == "ardent" or ros2_distro == "bouncy" or ros2_distro == "crystal") and float(fastrtps_version) < 1.9]@
     @(topic)_ st;
+@[else]@
+    @(topic) st;
+@[end if]@
 
     /* Initialize your structure here */
 
@@ -150,7 +154,11 @@ void @(topic)_Publisher::run()
     }while(std::cin >> ch);
 }
 
+@[if (ros2_distro == "ardent" or ros2_distro == "bouncy" or ros2_distro == "crystal") and float(fastrtps_version) < 1.9]@
 void @(topic)_Publisher::publish(@(topic)_* st)
+@[else]@
+void @(topic)_Publisher::publish(@(topic)* st)
+@[end if]@
 {
     mp_publisher->write(st);
 }
