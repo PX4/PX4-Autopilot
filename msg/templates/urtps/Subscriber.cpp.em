@@ -117,6 +117,13 @@ void @(topic)_Subscriber::SubListener::onNewDataMessage(Subscriber* sub)
 {
         // Take data
         if(sub->takeNextData(&msg, &m_info))
+@[if (ros2_distro == "ardent" or ros2_distro == "bouncy" or ros2_distro == "crystal") and float(fastrtps_version) < 1.9]@
+        @(topic)_ st;
+@[else]@
+        @(topic) st;
+@[end if]@
+
+        if(sub->takeNextData(&st, &m_info))
         {
             if(m_info.sampleKind == ALIVE)
             {
@@ -141,7 +148,11 @@ bool @(topic)_Subscriber::hasMsg()
     return m_listener.has_msg;
 }
 
+@[if (ros2_distro == "ardent" or ros2_distro == "bouncy" or ros2_distro == "crystal") and float(fastrtps_version) < 1.9]@
 @(topic)_ @(topic)_Subscriber::getMsg()
+@[else]@
+@(topic) @(topic)_Subscriber::getMsg()
+@[end if]@
 {
     m_listener.has_msg = false;
     return m_listener.msg;
