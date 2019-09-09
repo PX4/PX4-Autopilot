@@ -66,7 +66,7 @@ public:
 
     Type norm() const {
         const Vector &a(*this);
-        return Type(sqrt(a.dot(a)));
+        return Type(::sqrt(a.dot(a)));
     }
 
     Type norm_squared() const {
@@ -98,11 +98,11 @@ public:
         return unit();
     }
 
-    Vector pow(Type v) const {
+    Vector sqrt() const {
         const Vector &a(*this);
         Vector r;
         for (size_t i = 0; i<M; i++) {
-            r(i) = Type(::pow(a(i), v));
+            r(i) = Type(::sqrt(a(i)));
         }
         return r;
     }

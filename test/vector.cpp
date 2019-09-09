@@ -30,10 +30,10 @@ int main()
     v2.normalize();
     TEST(isEqualF(v2.norm(), 1.f));
 
-    // power
+    // sqrt
     float data1_sq[] = {1,4,9,16,25};
     Vector<float, 5> v4(data1_sq);
-    TEST(isEqual(v1, v4.pow(0.5)));
+    TEST(isEqual(v1, v4.sqrt()));
 
     return 0;
 }
