@@ -68,7 +68,7 @@ public:
 
 	void arm_all_servos(bool arm);
 	void arm_single_servo(int num, bool arm);
-	void get_offsets();
+	void update_params();
 
 private:
 	/**
@@ -82,9 +82,16 @@ private:
 	void orb_pub_timer_cb(const uavcan::TimerEvent &event);
 
 
-        static constexpr unsigned MAX_RATE_HZ = 1;			///< XXX make this configurable  TODO: change this to match servo update rate
-        static constexpr unsigned SERVO_STATUS_UPDATE_RATE_HZ = 10;     // TODO: figure out what this should be, I think it is 1Hz.
-	static constexpr unsigned UAVCAN_COMMAND_TRANSFER_PRIORITY = 5;	///< 0..31, inclusive, 0 - highest, 31 - lowest
+        static constexpr unsigned 	MAX_RATE_HZ = 1;			///< XXX make this configurable  TODO: change this to match servo update rate
+        static constexpr unsigned 	SERVO_STATUS_UPDATE_RATE_HZ = 10;     	// TODO: figure out what this should be, I think it is 1Hz.
+	static constexpr unsigned 	UAVCAN_COMMAND_TRANSFER_PRIORITY = 5;	///< 0..31, inclusive, 0 - highest, 31 - lowest
+	static constexpr unsigned 	MAX_NUM_ACTUATORS = 8;			///< Aux mixer has 8 channels
+	static constexpr float 		DEFAULT_DISARMED = 0.0f;		///< -1.0 - 1.0 can be set by parameters
+	static constexpr float 		DEFAULT_MAX = 1.0f;			///< 0.0 - 1.0 can be set by parameters
+	static constexpr float 		DEFAULT_MIN = -1.0f;			///< -1.0 - 0.0 can be set by parameters
+	static constexpr unsigned 	DEFAULT_RATE_LIMIT = 50;		///< default matches 20mS PWM servos
+	static constexpr float		DEFAULT_TRIM = 0.0;			///< -0.25 -0.25 can be set by parameters
+	static constexpr float		DEFAULT_SCALE = 1.0;			///< 0.50 - 1.00 can be set by parameters
 
         typedef uavcan::MethodBinder<UavcanServoController *,
                 void (UavcanServoController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)>
@@ -114,11 +121,15 @@ private:
 	 */
 	uint32_t 			_armed_mask = 0;
 	uint8_t				_max_number_of_nonzero_outputs = 0;
-	int					_t_param;		///< parameter update topic
-	bool				_param_update_force;	///< force a parameter update
+int					_t_param;							///< parameter update topic
+	bool				_param_update_force;						///< force a parameter update
 
-	float				_trim[4] = {0.0, 0.0, 0.0, 0.0};
-	float				_scale[4] = {1.0, 1.0, 1.0, 1.0};			
+	float				_trim[8] {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};		///< trims updated from parameters
+	float				_scale[8] {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};		///< trims updated from parameters
+	float				_disarmed[8] {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};		///< disarmed output updated from parameters
+	float				_max[8] {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};		///< max output updated from parameters
+	float				_min[8] {-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0};	///< min output updated from parameters
+	id_t				_rate_limit {DEFAULT_RATE_LIMIT};				///< rate limit updated from parameters
 
 	/*
 	 * Perf counters

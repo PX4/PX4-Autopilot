@@ -143,10 +143,10 @@ void UavcanServoController::update_outputs(uint8_t actuator_id, float value)
                         _param_update_force = false;
                         parameter_update_s pupdate;
                         orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
-                        get_offsets();
+                        update_params();
                 }
         }
-        
+
 
         // TODO: figure out if I need to Publish actuator outputs
 //	if (_actuator_outputs_pub != nullptr) {
@@ -213,22 +213,55 @@ void UavcanServoController::arm_single_servo(int num, bool arm)
 	}
 }
 
-void UavcanServoController::get_offsets()
+void UavcanServoController::update_params()
 {
         char str[20];
-        static bool trim_value_found[4] = {false, false, false, false};
-        static bool scale_value_found[4] = {false, false, false, false};
+        float default_disarmed;
+        float default_max;
+        float default_min;
 
-        for(uint8_t i = 5; i < 9; i++) {
-                (void)sprintf(str, "UAVCAN_TRIM%u", i);
-                if((OK == param_get(param_find(str), &_trim[i - 5])) && !trim_value_found[i - 5]) {
-                        trim_value_found[i - 5] = true;
-                        PX4_INFO("UAVCAN_TRIM%u = %4.2f", i, static_cast<double>(_trim[i - 5]));
-                }      
-                (void)sprintf(str, "UAVCAN_SCALE%u", i);
-                if((OK == param_get(param_find(str), &_scale[i - 5])) && !scale_value_found[i - 5]) {
-                        scale_value_found[i - 5] = true;
-                        PX4_INFO("UAVCAN_SCALE%u = %4.2f", i, static_cast<double>(_scale[i - 5]));
-                }               
+        // Find default values for disabled, min and max
+        (void)sprintf(str, "UAVCAN_DISARMED");
+        if(!(OK == param_get(param_find(str), &default_disarmed))) {
+                default_disarmed = DEFAULT_DISARMED;
+        }
+
+        (void)sprintf(str, "UAVCAN_MAX");
+        if(!(OK == param_get(param_find(str), &default_max))) {
+               default_max = DEFAULT_MAX;
+        }
+
+        (void)sprintf(str, "UAVCAN_MIN");
+        if((OK == param_get(param_find(str), &default_min))) {
+                default_min = DEFAULT_MIN;
+        }
+
+        // Rate limit
+        (void)sprintf(str, "UAVCAN_RATE");
+        if(!(OK == param_get(param_find(str), &_rate_limit))) {
+                _rate_limit = DEFAULT_RATE_LIMIT;
+        }
+
+        for(uint8_t i = 0; i < 8; i++) {
+                (void)sprintf(str, "UAVCAN_TRIM%u", i + 1);
+                if(!(OK == param_get(param_find(str), &_trim[i]))) {
+                        _trim[i] = DEFAULT_TRIM;
+                }
+                (void)sprintf(str, "UAVCAN_SCALE%u", i + 1);
+                if(!(OK == param_get(param_find(str), &_scale[i]))) {
+                        _scale[i] = DEFAULT_SCALE;
+                }
+                (void)sprintf(str, "UAVCAN_DIS%u", i + 1);
+                if(!(OK == param_get(param_find(str), &_disarmed[i]))) {
+                        _disarmed[i] = default_disarmed;
+                }
+                (void)sprintf(str, "UAVCAN_MAX%u", i + 1);
+                if(!(OK == param_get(param_find(str), &_max[i]))) {
+                        _max[i] = default_max;
+                }
+                (void)sprintf(str, "UAVCAN_MIN%u", i + 1);
+                if(!(OK == param_get(param_find(str), &_min[i]))) {
+                        _min[i] = default_min;
+                }
         }
 }
