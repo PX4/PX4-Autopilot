@@ -97,6 +97,13 @@ void Ekf::runTerrainEstimator()
 		// limit the variance to prevent it becoming badly conditioned
 		_terrain_var = math::constrain(_terrain_var, 0.0f, 1e4f);
 
+		// if stationary on the ground and no range data for over a second, fake a measurement
+		// to handle bad range finder data when on ground
+		if (!_range_data_ready && !_control_status.flags.in_air && _vehicle_at_rest && (_time_last_imu - _time_last_hagl_fuse) > (uint64_t)1E6) {
+			_range_data_ready = true;
+			_range_sample_delayed.rng = _params.rng_gnd_clearance;
+		}
+
 		// Fuse range finder data if available
 		if (_range_data_ready && !_rng_hgt_faulty) {
 			fuseHagl();
