@@ -71,8 +71,9 @@ protected:
 
 protected:
 
+	void RunPreamble() { _run_count++; }
+
 	friend void WorkQueue::Run();
-	virtual void RunPreamble() { _run_count++; }
 	virtual void Run() = 0;
 
 	/**

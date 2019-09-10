@@ -73,7 +73,6 @@ protected:
 
 private:
 
-	friend void WorkQueue::Run();
 	virtual void Run() override = 0;
 
 	static void	schedule_trampoline(void *arg);

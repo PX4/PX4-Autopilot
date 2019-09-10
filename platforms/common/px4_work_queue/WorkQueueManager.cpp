@@ -251,6 +251,8 @@ WorkQueueManagerRun(int, char **)
 			}
 		}
 	}
+
+	return 0;
 }
 
 int
