@@ -128,35 +128,56 @@ LidarLiteI2C::probe()
 
 		set_device_address(addresses[i]);
 
-		if (addresses[i] == LL40LS_BASEADDR) {
+		/**
+		 * The probing is divided into different cases. One to detect v2, one for v3 and v1 and one for v3HP.
+		 * The reason for this is that registers are not consistent between different versions.
+		 * The v3HP doesn't have the HW VERSION (or at least no version is specified),
+		 * v1 and v3 don't have the unit id register while v2 has both.
+		 * It would be better if we had a proper WHOAMI register.
+		 */
 
-			/*
-			  check for unit id. It would be better if
-			  we had a proper WHOAMI register
-			 */
+
+		/**
+		 * check for hw and sw versions for v1, v2 and v3
+		 */
+		if ((read_reg(LL40LS_HW_VERSION, _hw_version) == OK) &&
+		    (read_reg(LL40LS_SW_VERSION, _sw_version) == OK)) {
+
 			if (read_reg(LL40LS_UNIT_ID_HIGH, id_high) == OK &&
 			    read_reg(LL40LS_UNIT_ID_LOW, id_low) == OK) {
 				_unit_id = (uint16_t)((id_high << 8) | id_low) & 0xFFFF;
-				_retries = 3;
-				return reset_sensor();
 			}
 
-			PX4_DEBUG("probe failed unit_id=0x%02x", (unsigned)_unit_id);
+			if (_hw_version > 0) {
 
-		} else {
-			/*
-			  check for hw and sw versions. It would be better if
-			  we had a proper WHOAMI register
-			 */
-			if (read_reg(LL40LS_HW_VERSION, _hw_version) == OK && _hw_version > 0 &&
-			    read_reg(LL40LS_SW_VERSION, _sw_version) == OK && _sw_version > 0) {
-				_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE_V1);
-				_retries = 3;
-				return reset_sensor();
+				if (_unit_id > 0) {
+					// v2
+					PX4_INFO("probe success - hw: %u, sw:%u, id: %u", _hw_version, _sw_version, _unit_id);
+					_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE_V2);
+
+				} else {
+					// v1 and v3
+					PX4_INFO("probe success - hw: %u, sw:%u", _hw_version, _sw_version);
+				}
+
+			} else {
+
+				if (_unit_id > 0) {
+					// v3hp
+					_is_V3hp = true;
+					PX4_INFO("probe success - id: %u", _unit_id);
+				}
 			}
 
-			PX4_DEBUG("probe failed hw_version=0x%02x sw_version=0x%02x", (unsigned)_hw_version, (unsigned)_sw_version);
+			_retries = 3;
+			return reset_sensor();
 		}
+
+		PX4_DEBUG("probe failed unit_id=0x%02x hw_version=0x%02x sw_version=0x%02x",
+			  (unsigned)_unit_id,
+			  (unsigned)_hw_version,
+			  (unsigned)_sw_version);
+
 	}
 
 	// not found on any address
@@ -205,10 +226,31 @@ LidarLiteI2C::measure()
 int
 LidarLiteI2C::reset_sensor()
 {
-	int ret = write_reg(LL40LS_MEASURE_REG, LL40LS_MSRREG_RESET);
+	int ret;
+
+	px4_usleep(15000);
+
+	ret = write_reg(LL40LS_SIG_COUNT_VAL_REG, LL40LS_SIG_COUNT_VAL_MAX);
 
 	if (ret != OK) {
 		return ret;
+	}
+
+	px4_usleep(15000);
+	ret = write_reg(LL40LS_MEASURE_REG, LL40LS_MSRREG_RESET);
+
+
+	if (ret != OK) {
+		uint8_t sig_cnt;
+
+		px4_usleep(15000);
+		ret = read_reg(LL40LS_SIG_COUNT_VAL_REG, sig_cnt);
+
+		if ((ret != OK) || (sig_cnt != LL40LS_SIG_COUNT_VAL_DEFAULT)) {
+			PX4_INFO("Error: ll40ls reset failure. Exiting!\n");
+			return ret;
+
+		}
 	}
 
 	// wait for sensor reset to complete
@@ -349,49 +391,65 @@ int LidarLiteI2C::collect()
 
 	uint8_t ll40ls_signal_strength = val[0];
 
+	uint8_t signal_min = 0;
+	uint8_t signal_max = 0;
+	uint8_t signal_value = 0;
 
-	/* Absolute peak strength measurement, i.e. absolute strength of main signal peak*/
-	uint8_t peak_strength_reg = LL40LS_PEAK_STRENGTH_REG;
-	ret = lidar_transfer(&peak_strength_reg, 1, &val[0], 1);
+	// We detect if V3HP is being used
+	if (_is_V3hp) {
+		signal_min = LL40LS_SIGNAL_STRENGTH_MIN_V3HP;
+		signal_max = LL40LS_SIGNAL_STRENGTH_MAX_V3HP;
+		signal_value = ll40ls_signal_strength;
 
-	// check if the transfer failed
-	if (ret < 0) {
-		if (hrt_elapsed_time(&_acquire_time_usec) > LL40LS_CONVERSION_TIMEOUT) {
-			/*
-			  NACKs from the sensor are expected when we
-			  read before it is ready, so only consider it
-			  an error if more than 100ms has elapsed.
-			 */
-			PX4_INFO("peak strenght read failed");
+	} else {
+		/* Absolute peak strength measurement, i.e. absolute strength of main signal peak*/
+		uint8_t peak_strength_reg = LL40LS_PEAK_STRENGTH_REG;
+		ret = lidar_transfer(&peak_strength_reg, 1, &val[0], 1);
 
-			DEVICE_DEBUG("error reading peak strength from sensor: %d", ret);
-			perf_count(_comms_errors);
+		// check if the transfer failed
+		if (ret < 0) {
+			if (hrt_elapsed_time(&_acquire_time_usec) > LL40LS_CONVERSION_TIMEOUT) {
+				/*
+				NACKs from the sensor are expected when we
+				read before it is ready, so only consider it
+				an error if more than 100ms has elapsed.
+				*/
+				PX4_INFO("peak strength read failed");
 
-			if (perf_event_count(_comms_errors) % 10 == 0) {
-				perf_count(_sensor_resets);
-				reset_sensor();
+				DEVICE_DEBUG("error reading peak strength from sensor: %d", ret);
+				perf_count(_comms_errors);
+
+				if (perf_event_count(_comms_errors) % 10 == 0) {
+					perf_count(_sensor_resets);
+					reset_sensor();
+				}
 			}
+
+			perf_end(_sample_perf);
+			// if we are getting lots of I2C transfer errors try
+			// resetting the sensor
+			return ret;
 		}
 
-		perf_end(_sample_perf);
-		// if we are getting lots of I2C transfer errors try
-		// resetting the sensor
-		return ret;
-	}
+		uint8_t ll40ls_peak_strength = val[0];
+		signal_min = LL40LS_PEAK_STRENGTH_LOW;
+		signal_max = LL40LS_PEAK_STRENGTH_HIGH;
 
-	uint8_t ll40ls_peak_strength = val[0];
+		// For v2 and v3 use ll40ls_signal_strength (a relative measure, i.e. peak strength to noise!) to reject potentially ambiguous measurements
+		if (ll40ls_signal_strength <= LL40LS_SIGNAL_STRENGTH_LOW) {
+			signal_value = 0;
+
+		} else {
+			signal_value = ll40ls_peak_strength;
+		}
+
+	}
 
 	/* Final data quality evaluation. This is based on the datasheet and simple heuristics retrieved from experiments*/
 	// Step 1: Normalize signal strength to 0...100 percent using the absolute signal peak strength.
-	uint8_t signal_quality = 100 * math::max(ll40ls_peak_strength - LL40LS_PEAK_STRENGTH_LOW,
-				 0) / (LL40LS_PEAK_STRENGTH_HIGH - LL40LS_PEAK_STRENGTH_LOW);
+	uint8_t signal_quality = 100 * math::max(signal_value - signal_min, 0) / (signal_max - signal_min);
 
-	// Step 2: Also use ll40ls_signal_strength (a relative measure, i.e. peak strength to noise!) to reject potentially ambiguous measurements
-	if (ll40ls_signal_strength <= LL40LS_SIGNAL_STRENGTH_LOW) {
-		signal_quality = 0;
-	}
-
-	// Step 3: Filter physically impossible measurements, which removes some crazy outliers that appear on LL40LS.
+	// Step 2: Filter physically impossible measurements, which removes some crazy outliers that appear on LL40LS.
 	if (distance_m < LL40LS_MIN_DISTANCE) {
 		signal_quality = 0;
 	}

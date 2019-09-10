@@ -29,7 +29,6 @@ px4_add_board(
 		imu/mpu6000
 		irlock
 		lights/blinkm
-		lights/oreoled
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		lights/rgbled_pwm

@@ -28,7 +28,6 @@ px4_add_board(
 		imu # all available imu drivers
 		irlock
 		lights/blinkm
-		lights/oreoled
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		magnetometer # all available magnetometer drivers

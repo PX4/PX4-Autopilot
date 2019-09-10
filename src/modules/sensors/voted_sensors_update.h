@@ -52,6 +52,7 @@
 #include <lib/ecl/validation/data_validator.h>
 #include <lib/ecl/validation/data_validator_group.h>
 
+#include <uORB/Publication.hpp>
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_preflight.h>
@@ -247,8 +248,9 @@ private:
 	SensorData _baro {};
 
 	orb_advert_t _mavlink_log_pub{nullptr};
-	orb_advert_t _sensor_correction_pub{nullptr};	/**< handle to the sensor correction uORB topic */
-	orb_advert_t _sensor_selection_pub{nullptr};	/**< handle to the sensor selection uORB topic */
+
+	uORB::Publication<sensor_correction_s>	_sensor_correction_pub{ORB_ID(sensor_correction)};	/**< handle to the sensor correction uORB topic */
+	uORB::Publication<sensor_selection_s>	_sensor_selection_pub{ORB_ID(sensor_selection)};	/**< handle to the sensor selection uORB topic */
 
 	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX] {};	/**< latest sensor data from all sensors instances */
 	vehicle_air_data_s _last_airdata[SENSOR_COUNT_MAX] {};		/**< latest sensor data from all sensors instances */

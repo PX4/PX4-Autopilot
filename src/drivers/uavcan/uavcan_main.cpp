@@ -1058,6 +1058,7 @@ UavcanNode::subscribe()
 
 		if (_control_subs[i] >= 0) {
 			_poll_ids[i] = add_poll_fd(_control_subs[i]);
+			orb_set_interval(_control_subs[i], 1000 / UavcanEscController::MAX_RATE_HZ);
 		}
 	}
 }

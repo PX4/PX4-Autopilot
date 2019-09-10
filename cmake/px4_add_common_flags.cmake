@@ -51,6 +51,7 @@ function(px4_add_common_flags)
 		-fdata-sections
 		-ffunction-sections
 		-fomit-frame-pointer
+		-fmerge-all-constants
 
 		#-funsafe-math-optimizations # Enables -fno-signed-zeros, -fno-trapping-math, -fassociative-math and -freciprocal-math
 		-fno-signed-zeros	# Allow optimizations for floating-point arithmetic that ignore the signedness of zero

@@ -45,7 +45,7 @@ LidarLite::LidarLite(uint8_t rotation) :
 	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, rotation)
 {
 	_px4_rangefinder.set_min_distance(LL40LS_MIN_DISTANCE);
-	_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE_V3);
+	_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE);
 	_px4_rangefinder.set_fov(0.008); // Divergence 8 mRadian
 }
 

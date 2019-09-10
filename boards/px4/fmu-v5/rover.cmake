@@ -26,7 +26,6 @@ px4_add_board(
 		gps
 		imu/bmi055
 		imu/mpu6000
-		lights/pca8574
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		lights/rgbled_pwm

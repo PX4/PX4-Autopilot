@@ -30,7 +30,6 @@ px4_add_board(
 		imu/mpu9250
 		irlock
 		lights/blinkm
-		lights/oreoled
 		lights/rgbled
 		magnetometer # all available magnetometer drivers
 		mkblctrl

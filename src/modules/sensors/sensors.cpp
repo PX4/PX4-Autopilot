@@ -168,12 +168,14 @@ private:
 
 	uORB::Subscription	_actuator_ctrl_0_sub{ORB_ID(actuator_controls_0)};		/**< attitude controls sub */
 	uORB::Subscription	_diff_pres_sub{ORB_ID(differential_pressure)};			/**< raw differential pressure subscription */
-	uORB::Subscription	_vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
 	uORB::Subscription	_params_sub{ORB_ID(parameter_update)};				/**< notification of parameter updates */
+	uORB::Subscription	_vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
 
-	orb_advert_t	_sensor_pub{nullptr};			/**< combined sensor data topic */
-	orb_advert_t	_airdata_pub{nullptr};			/**< combined sensor data topic */
-	orb_advert_t	_magnetometer_pub{nullptr};			/**< combined sensor data topic */
+	uORB::Publication<airspeed_s>			_airspeed_pub{ORB_ID(airspeed)};			/**< airspeed */
+	uORB::Publication<sensor_combined_s>		_sensor_pub{ORB_ID(sensor_combined)};			/**< combined sensor data topic */
+	uORB::Publication<sensor_preflight_s>		_sensor_preflight{ORB_ID(sensor_preflight)};		/**< sensor preflight topic */
+	uORB::Publication<vehicle_air_data_s>		_airdata_pub{ORB_ID(vehicle_air_data)};			/**< combined sensor data topic */
+	uORB::Publication<vehicle_magnetometer_s>	_magnetometer_pub{ORB_ID(vehicle_magnetometer)};	/**< combined sensor data topic */
 
 #if BOARD_NUMBER_BRICKS > 0
 	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] {};			/**< battery status */
@@ -185,17 +187,13 @@ private:
 	int 			_battery_pub_intance0ndx {0}; /**< track the index of instance 0 */
 #endif /* BOARD_NUMBER_BRICKS > 1 */
 
-	orb_advert_t	_airspeed_pub{nullptr};			/**< airspeed */
-	orb_advert_t	_sensor_preflight{nullptr};		/**< sensor preflight topic */
-
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
 
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	differential_pressure_s	_diff_pres {};
-
-	orb_advert_t	_diff_pres_pub{nullptr};			/**< differential_pressure */
+	uORB::PublicationMulti<differential_pressure_s>	_diff_pres_pub{ORB_ID(differential_pressure)};		/**< differential_pressure */
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
 	Parameters		_parameters{};			/**< local copies of interesting parameters */
@@ -358,8 +356,7 @@ Sensors::diff_pres_poll(const vehicle_air_data_s &raw)
 		airspeed.air_temperature_celsius = air_temperature_celsius;
 
 		if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && PX4_ISFINITE(airspeed.true_airspeed_m_s)) {
-			int instance;
-			orb_publish_auto(ORB_ID(airspeed), &_airspeed_pub, &airspeed, &instance, ORB_PRIO_DEFAULT);
+			_airspeed_pub.publish(airspeed);
 		}
 	}
 }
@@ -475,8 +472,7 @@ Sensors::adc_poll()
 								(diff_pres_pa_raw * 0.1f);
 						_diff_pres.temperature = -1000.0f;
 
-						int instance;
-						orb_publish_auto(ORB_ID(differential_pressure), &_diff_pres_pub, &_diff_pres, &instance, ORB_PRIO_DEFAULT);
+						_diff_pres_pub.publish(_diff_pres);
 					}
 
 				} else
@@ -595,8 +591,6 @@ Sensors::run()
 
 	_rc_update.rc_parameter_map_poll(_parameter_handles, true /* forced */);
 
-	_sensor_preflight = orb_advertise(ORB_ID(sensor_preflight), &preflt);
-
 	/* wakeup source */
 	px4_pollfd_struct_t poll_fds = {};
 	poll_fds.events = POLLIN;
@@ -653,15 +647,14 @@ Sensors::run()
 
 			_voted_sensors_update.setRelativeTimestamps(raw);
 
-			int instance;
-			orb_publish_auto(ORB_ID(sensor_combined), &_sensor_pub, &raw, &instance, ORB_PRIO_DEFAULT);
+			_sensor_pub.publish(raw);
 
 			if (airdata.timestamp != airdata_prev_timestamp) {
-				orb_publish_auto(ORB_ID(vehicle_air_data), &_airdata_pub, &airdata, &instance, ORB_PRIO_DEFAULT);
+				_airdata_pub.publish(airdata);
 			}
 
 			if (magnetometer.timestamp != magnetometer_prev_timestamp) {
-				orb_publish_auto(ORB_ID(vehicle_magnetometer), &_magnetometer_pub, &magnetometer, &instance, ORB_PRIO_DEFAULT);
+				_magnetometer_pub.publish(magnetometer);
 			}
 
 			_voted_sensors_update.checkFailover();
@@ -674,7 +667,8 @@ Sensors::run()
 				_voted_sensors_update.calcAccelInconsistency(preflt);
 				_voted_sensors_update.calcGyroInconsistency(preflt);
 				_voted_sensors_update.calcMagInconsistency(preflt);
-				orb_publish(ORB_ID(sensor_preflight), _sensor_preflight, &preflt);
+
+				_sensor_preflight.publish(preflt);
 			}
 		}
 
@@ -698,18 +692,6 @@ Sensors::run()
 		_rc_update.rc_poll(_parameter_handles);
 
 		perf_end(_loop_perf);
-	}
-
-	if (_sensor_pub) {
-		orb_unadvertise(_sensor_pub);
-	}
-
-	if (_airdata_pub) {
-		orb_unadvertise(_airdata_pub);
-	}
-
-	if (_magnetometer_pub) {
-		orb_unadvertise(_magnetometer_pub);
 	}
 
 	_voted_sensors_update.deinit();

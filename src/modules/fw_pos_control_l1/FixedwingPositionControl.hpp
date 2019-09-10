@@ -66,6 +66,7 @@
 #include <px4_module_params.h>
 #include <px4_posix.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed.h>
@@ -165,11 +166,11 @@ private:
 	uORB::SubscriptionData<vehicle_angular_velocity_s>	_vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
 
 	orb_advert_t	_attitude_sp_pub{nullptr};		///< attitude setpoint */
-	orb_advert_t	_pos_ctrl_status_pub{nullptr};		///< navigation capabilities publication */
-	orb_advert_t	_pos_ctrl_landing_status_pub{nullptr};	///< landing status publication */
-	orb_advert_t	_tecs_status_pub{nullptr};		///< TECS status publication */
+	orb_id_t	_attitude_setpoint_id{nullptr};
 
-	orb_id_t _attitude_setpoint_id{nullptr};
+	uORB::Publication<position_controller_status_s>		_pos_ctrl_status_pub{ORB_ID(position_controller_status)};			///< navigation capabilities publication */
+	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};	///< landing status publication */
+	uORB::Publication<tecs_status_s>			_tecs_status_pub{ORB_ID(tecs_status)};						///< TECS status publication */
 
 	manual_control_setpoint_s	_manual {};			///< r/c channel data */
 	position_setpoint_triplet_s	_pos_sp_triplet {};		///< triplet of mission items */
