@@ -323,6 +323,52 @@ CollisionPrevention::_adaptSetpointDirection(Vector2f &setpoint_dir, int &setpoi
 	}
 }
 
+float
+CollisionPrevention::_sensorOrientationToYawOffset(const distance_sensor_s &distance_sensor, float angle_offset) const
+{
+	float offset = angle_offset > 0.0f ? math::radians(angle_offset) : 0.0f;
+
+	switch (distance_sensor.orientation) {
+	case distance_sensor_s::ROTATION_YAW_0:
+		offset = 0.0f;
+		break;
+
+	case distance_sensor_s::ROTATION_YAW_45:
+		offset = M_PI_F / 4.0f;
+		break;
+
+	case distance_sensor_s::ROTATION_YAW_90:
+		offset = M_PI_F / 2.0f;
+		break;
+
+	case distance_sensor_s::ROTATION_YAW_135:
+		offset = 3.0f * M_PI_F / 4.0f;
+		break;
+
+	case distance_sensor_s::ROTATION_YAW_180:
+		offset = M_PI_F;
+		break;
+
+	case distance_sensor_s::ROTATION_YAW_225:
+		offset = -3.0f * M_PI_F / 4.0f;
+		break;
+
+	case distance_sensor_s::ROTATION_YAW_270:
+		offset = -M_PI_F / 2.0f;
+		break;
+
+	case distance_sensor_s::ROTATION_YAW_315:
+		offset = -M_PI_F / 4.0f;
+		break;
+
+	case distance_sensor_s::ROTATION_CUSTOM:
+		offset = matrix::Eulerf(matrix::Quatf(distance_sensor.q)).psi();
+		break;
+	}
+
+	return offset;
+}
+
 void
 CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint, const Vector2f &curr_pos,
 		const Vector2f &curr_vel)
