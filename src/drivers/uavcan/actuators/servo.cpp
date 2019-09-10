@@ -53,7 +53,6 @@ UavcanServoController::UavcanServoController(uavcan::INode &node) :
         _t_param(-1),
         _param_update_force(false)
 {
-        //_uavcan_pub_raw_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
         _uavcan_pub_array_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
 
 	if (_perfcnt_invalid_input == nullptr) {
@@ -73,23 +72,22 @@ UavcanServoController::~UavcanServoController()
 
 int UavcanServoController::init()
 {
-//	// ESC status subscription
-//	int res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanEscController::esc_status_sub_cb));
+	// Servo status subscription
+	int res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanServoController::servo_status_sub_cb));
 
-//	if (res < 0) {
-//		warnx("ESC status sub failed %i", res);
-//		return res;
-//	}
+        if (res < 0) {
+		warnx("Servo status sub failed %i", res);
+		return res;
+	}
 
-//	// ESC status will be relayed from UAVCAN bus into ORB at this rate
-//	_orb_timer.setCallback(TimerCbBinder(this, &UavcanEscController::orb_pub_timer_cb));
-//	_orb_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / ESC_STATUS_UPDATE_RATE_HZ));
-
-//	return res;
+        // Servo status will be relayed from UAVCAN bus into ORB at this rate
+	_orb_timer.setCallback(TimerCbBinder(this, &UavcanServoController::orb_pub_timer_cb));
+	_orb_timer.startPeriodic(uavcan::MonotonicDuration::fromMSec(1000 / ACTUATOR_STATUS_UPDATE_RATE_HZ));
 
         _t_param = orb_subscribe(ORB_ID(parameter_update));
-         _param_update_force = true;
-        return 0;
+        _param_update_force = true;
+
+        return res;
 }
 
 void UavcanServoController::update_outputs(uint8_t actuator_id, float value)
@@ -160,23 +158,15 @@ void UavcanServoController::update_outputs(uint8_t actuator_id, float value)
 
 }
 
-void UavcanServoController::servo_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
+void UavcanServoController::servo_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::actuator::Status> &msg)
 {
-//	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {
-//		_esc_status.esc_count = uavcan::max<int>(_esc_status.esc_count, msg.esc_index + 1);
-//		_esc_status.timestamp = hrt_absolute_time();
-
-//		auto &ref = _esc_status.esc[msg.esc_index];
-
-//		ref.esc_address = msg.getSrcNodeID().get();
-
-//		ref.esc_voltage     = msg.voltage;
-//		ref.esc_current     = msg.current;
-//		ref.esc_temperature = msg.temperature;
-//		ref.esc_setpoint    = msg.power_rating_pct;
-//		ref.esc_rpm         = msg.rpm;
-//		ref.esc_errorcount  = msg.error_count;
-//	}
+        if(msg.actuator_id < MAX_NUM_ACTUATORS)
+        {
+                _actuator_status.timestamp = hrt_absolute_time();
+                _actuator_status.noutputs = MAX_NUM_ACTUATORS;
+                _actuator_status.position[msg.actuator_id] = msg.position;
+                _actuator_status.power_percent[msg.actuator_id] = msg.power_rating_pct;
+        }
 }
 
 void UavcanServoController::orb_pub_timer_cb(const uavcan::TimerEvent &)
