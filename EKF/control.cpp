@@ -1198,7 +1198,7 @@ void Ekf::checkRangeDataValidity()
 		return;
 	} else {
 		// reset fault status when we get new data
-		_rng_hgt_faulty = false;
+		_rng_hgt_faulty = (_range_sample_delayed.quality == 0);
 	}
 
 	// Check if excessively tilted
@@ -1244,7 +1244,7 @@ void Ekf::checkRangeDataValidity()
 			}
 
 			_control_status.flags.rng_stuck = true;
-			_rng_hgt_faulty = true;
+			_rng_hgt_faulty = (_range_sample_delayed.quality == 0);
 		}
 
 	} else {
