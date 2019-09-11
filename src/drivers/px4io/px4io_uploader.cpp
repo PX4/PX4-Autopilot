@@ -151,7 +151,7 @@ PX4IO_Uploader::upload(const char *filenames[])
 		return -errno;
 	}
 
-	fw_size = st.st_size;
+	fw_size = st.st_size; 
 
 	if (_fw_fd == -1) {
 		tcsetattr(_io_fd, TCSANOW, &t_original);
@@ -207,9 +207,8 @@ PX4IO_Uploader::upload(const char *filenames[])
 
 		if (bl_rev <= 2) {
 			ret = verify_rev2(fw_size);
-
 		} else {
-			/* verify rev 3 and higher. Every version *needs* to be verified. */
+			//verify rev 3 and higher. Every version *needs* to be verified.
 			ret = verify_rev3(fw_size);
 		}
 
@@ -257,7 +256,7 @@ PX4IO_Uploader::recv_byte_with_timeout(uint8_t *c, unsigned timeout)
 	fds[0].events = POLLIN;
 
 	/* wait <timout> ms for a character */
-	int ret = ::poll(&fds[0], 1, timeout);
+	int ret = ::poll(&fds[0], 1, timeout); 
 
 	if (ret < 1) {
 #ifdef UDEBUG
@@ -266,7 +265,7 @@ PX4IO_Uploader::recv_byte_with_timeout(uint8_t *c, unsigned timeout)
 		return -ETIMEDOUT;
 	}
 
-	read(_io_fd, c, 1);
+	read(_io_fd, c, 1); 
 #ifdef UDEBUG
 	log("recv_bytes 0x%02x", c);
 #endif
@@ -443,7 +442,7 @@ PX4IO_Uploader::program(size_t fw_size)
 		return -ENOMEM;
 	}
 
-	ASSERT((fw_size & 3) == 0);
+	//ASSERT((fw_size & 3) == 0);
 	ASSERT((PROG_MULTI_MAX & 3) == 0);
 
 	log("programming %u bytes...", (unsigned)fw_size);
@@ -468,6 +467,14 @@ PX4IO_Uploader::program(size_t fw_size)
 			    (int)errno);
 			ret = -errno;
 			break;
+		}
+
+		if (n % 4) {						//modified by cyj
+			int need_more_byte = 4 - (int)(n % 4);
+			for (int i = 0; i < need_more_byte; i++) {
+				file_buf[n + i] = 0xff;
+			}
+			count += need_more_byte;
 		}
 
 		sent += count;
@@ -620,8 +627,8 @@ PX4IO_Uploader::verify_rev3(size_t fw_size_local)
 		}
 
 		/* calculate crc32 sum */
-		sum = crc32part((uint8_t *)&file_buf, sizeof(file_buf), sum);
-
+		sum = crc32part((uint8_t *)&file_buf, count, sum);  //sum = crc32part((uint8_t *)&file_buf, sizeof(file_buf), sum);  //modified by cyj
+		
 		bytes_read += count;
 	}
 
