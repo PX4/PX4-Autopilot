@@ -235,4 +235,7 @@ private:
 	void cb_opcode(const uavcan::ServiceCallResult<uavcan::protocol::param::ExecuteOpcode> &result);
 	void cb_restart(const uavcan::ServiceCallResult<uavcan::protocol::RestartNode> &result);
 
+	void get_mixer_mapping();
+	int _esc_channel_map {0};
+	int _servo_channel_map {0};
 };

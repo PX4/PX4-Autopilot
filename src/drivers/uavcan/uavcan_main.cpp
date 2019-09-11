@@ -1287,6 +1287,27 @@ void UavcanNode::hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command
 	_hardpoint_controller.set_command(hardpoint_id, command);
 	(void)pthread_mutex_unlock(&_node_mutex);
 }
+
+void UavcanNode::get_mixer_mapping()
+{
+        char str[20];
+	int value;
+
+        for(uint8_t i = 1; i < 9; i++) {
+                (void)sprintf(str, "UAVCAN_MIX_CH%u", i);
+                if(OK == param_get(param_find(str), &value)) {
+			if((value == 1) || (value ==3)) {
+				_esc_channel_map += 1<<(i - 1);
+            	PX4_INFO("AUX Mixer ch%u mapped to ESC", i);
+			}
+			if((value == 2) || (value == 3)){
+				_servo_channel_map += 1<<(i - 1);
+            	PX4_INFO("AUX Mixer ch%u mapped to servo", i);
+			}
+                }
+        }
+}
+
 /*
  * App entry point
  */
