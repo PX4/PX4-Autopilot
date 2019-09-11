@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -56,17 +56,17 @@
 // 9) Checksum parity bit (low 8bit), Checksum = Byte1 + Byte2 +...+Byte8. This is only a low 8bit though
 
 
-enum TFMINI_PARSE_STATE {
-	TFMINI_PARSE_STATE0_UNSYNC = 0,
-	TFMINI_PARSE_STATE1_SYNC_1,
-	TFMINI_PARSE_STATE1_SYNC_2,
-	TFMINI_PARSE_STATE2_GOT_DIST_L,
-	TFMINI_PARSE_STATE2_GOT_DIST_H,
-	TFMINI_PARSE_STATE3_GOT_STRENGTH_L,
-	TFMINI_PARSE_STATE3_GOT_STRENGTH_H,
-	TFMINI_PARSE_STATE4_GOT_RESERVED,
-	TFMINI_PARSE_STATE5_GOT_QUALITY,
-	TFMINI_PARSE_STATE6_GOT_CHECKSUM
+enum class TFMINI_PARSE_STATE {
+	STATE0_UNSYNC = 0,
+	STATE1_SYNC_1,
+	STATE1_SYNC_2,
+	STATE2_GOT_DIST_L,
+	STATE2_GOT_DIST_H,
+	STATE3_GOT_STRENGTH_L,
+	STATE3_GOT_STRENGTH_H,
+	STATE4_GOT_RESERVED,
+	STATE5_GOT_QUALITY,
+	STATE6_GOT_CHECKSUM
 };
 
-int tfmini_parse(char c, char *parserbuf, unsigned *parserbuf_index, enum TFMINI_PARSE_STATE *state, float *dist);
+int tfmini_parse(char c, char *parserbuf, unsigned *parserbuf_index, TFMINI_PARSE_STATE *state, float *dist);
