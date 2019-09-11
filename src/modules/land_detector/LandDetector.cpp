@@ -104,7 +104,7 @@ void LandDetector::Run()
 	    (_land_detected.in_ground_effect != in_ground_effect) ||
 	    (fabsf(_land_detected.alt_max - alt_max) > FLT_EPSILON)) {
 
-		if (!landDetected && _land_detected.landed) {
+		if (!landDetected && _land_detected.landed && _takeoff_time == 0) { /* only set take off time once, until disarming */
 			// We did take off
 			_takeoff_time = now;
 		}
