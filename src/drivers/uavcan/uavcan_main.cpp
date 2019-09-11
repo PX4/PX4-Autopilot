@@ -666,6 +666,9 @@ int UavcanNode::init(uavcan::NodeID node_id)
 		PX4_INFO("sensor bridge '%s' init ok", br->get_name());
 	}
 
+	/* find which mixer channels are assigned to ESCs and which channels are assigned to servo motors */
+	get_mixer_mapping();
+
 	/*  Start the Node   */
 	return _node.start();
 }
@@ -926,50 +929,54 @@ int UavcanNode::run()
 		}
 
 		if (new_output) {
-			// iterate actuators, checking for valid values
-			for (uint8_t i = 0; i < _outputs.noutputs; i++) {
-				// last resort: catch NaN, INF and out-of-band errors
-				if (!isfinite(_outputs.output[i])) {
-					/*
-					 * Value is NaN, INF or out of band - set to the minimum value.
-					 * This will be clearly visible on the servo status and will limit the risk of accidentally
-					 * spinning motors. It would be deadly in flight.
-					 */
-					_outputs.output[i] = -1.0f;
+			// Are any channels mapped to ESCs?
+			if (_esc_channel_map) {
+				// Do we have any channels mapped to ESCs?
+				// iterate actuators, checking for valid values
+				for (uint8_t i = 0; i < _outputs.noutputs; i++) {
+
+
+					// last resort: catch NaN, INF and out-of-band errors
+					if (!isfinite(_outputs.output[i])) {
+						/*
+						* Value is NaN, INF or out of band - set to the minimum value.
+						* This will be clearly visible on the servo status and will limit the risk of accidentally
+						* spinning motors. It would be deadly in flight.
+						*/
+						_outputs.output[i] = -1.0f;
+					}
+
+					// never go below min
+					if (_outputs.output[i] < -1.0f) {
+						_outputs.output[i] = -1.0f;
+					}
+
+					// never go above max
+					if (_outputs.output[i] > 1.0f) {
+						_outputs.output[i] = 1.0f;
+					}
+
+					// Determine if this mixer channel is enabled and mapped to an ESC
+					// Ideally we want _esc_controller.update_outputs() to accept single ESC commands with an ID, but that might break existing implementations
+					// For now we just send a minimum value, but this adds unneccesary traffic to the CAN bus
+					if (!(_esc_channel_map & (1<<i))) {
+						_outputs.output[i] = -1.0f;
+					}
 				}
 
-				// never go below min
-				if (_outputs.output[i] < -1.0f) {
-					_outputs.output[i] = -1.0f;
-				}
-
-				// never go above max
-				if (_outputs.output[i] > 1.0f) {
-					_outputs.output[i] = 1.0f;
-				}
+				// Output to the bus
+				_esc_controller.update_outputs(_outputs.output, _outputs.noutputs);
 			}
 
-			// Output to the bus
-			// TODO figure out how to disable esc controller commands correctly
-			_esc_controller.update_outputs(_outputs.output, _outputs.noutputs);
 			_outputs.timestamp = hrt_absolute_time();
-			        if (_actuator_direct.nvalues >= 8)
-				{
-					for (uint8_t i = 0; i < 4; i++)
-					{
-						_servo_controller.update_outputs(i,_actuator_direct.values[i+4]);
-					}
-				}
 
-
-				if (_outputs.noutputs >= 8)
-				{
-					for (uint8_t i = 0; i < 4; i++)
-					{
-						_servo_controller.update_outputs(i,_outputs.output[i+4]);
-										//PX4_INFO("Servo Actuator output %d", _outputs.output[i]);
-					}
+			/* From Mixer */
+            		for (uint8_t i = 0; i < _outputs.noutputs; i++) {
+				if (_servo_channel_map & (1<<i)) {
+					_servo_controller.update_outputs(i,_outputs.output[i]);
+					// PX4_INFO("Servo Actuator output %d", _outputs.output[i]);
 				}
+			}
 
 			// use first valid timestamp_sample for latency tracking
 			for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
