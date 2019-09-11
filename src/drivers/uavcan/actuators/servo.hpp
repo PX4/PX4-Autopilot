@@ -49,7 +49,6 @@
 #include <uavcan/equipment/actuator/Status.hpp>
 #include <uavcan/equipment/actuator/ArrayCommand.hpp>
 #include <perf/perf_counter.h>
-#include <uORB/topics/esc_status.h>
 #include <uORB/topics/actuator_status.h>
 #include <uORB/topics/actuator_outputs.h>
 
