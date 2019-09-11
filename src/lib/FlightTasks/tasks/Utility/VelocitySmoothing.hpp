@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -81,17 +81,17 @@ public:
 
 	/**
 	 * Generate the trajectory (acceleration, velocity and position) by integrating the current jerk
-	 * @param dt optional integration period. If not given, the integration period provided during updateDuration call is used.
-	 * 	A dt different from the one given during the computation of T1-T3 can be used to fast-forward or slow-down the trajectory.
+	 * @param dt integration period
+	 * @param time_stretch (optional) used to scale the integration period. This can be used to slow down
+	 * or fast-forward the trajectory
 	 */
-	void updateTraj(float dt, float time_stretch);
-	void updateTraj(float dt);
+	void updateTraj(float dt, float time_stretch = 1.f);
 
-	/* Get / Set constraints (constraints can be updated at any time) */
+	/**
+	 * Getters and setters
+	 */
 	float getMaxJerk() const { return _max_jerk; }
 	void setMaxJerk(float max_jerk) { _max_jerk = max_jerk; }
-
-
 
 	float getMaxAccel() const { return _max_accel; }
 	void setMaxAccel(float max_accel) { _max_accel = max_accel; }
@@ -107,6 +107,13 @@ public:
 	void setCurrentPosition(const float pos) { _state.x = pos; }
 	float getCurrentPosition() const { return _state.x; }
 
+	float getVelSp() const { return _vel_sp; }
+
+	float getT1() const { return _T1; }
+	float getT2() const { return _T2; }
+	float getT3() const { return _T3; }
+	float getTotalTime() const { return _T1 + _T2 + _T3; }
+
 	/**
 	 * Synchronize several trajectories to have the same total time. This is required to generate
 	 * straight lines.
@@ -115,12 +122,6 @@ public:
 	 * @param n_traj the number of trajectories to be synchronized
 	 */
 	static void timeSynchronization(VelocitySmoothing *traj, int n_traj);
-
-	float getTotalTime() const { return _T1 + _T2 + _T3; }
-	float getT1() const { return _T1; }
-	float getT2() const { return _T2; }
-	float getT3() const { return _T3; }
-	float getVelSp() const { return _vel_sp; }
 
 private:
 
@@ -152,19 +153,27 @@ private:
 	 * Compute increasing acceleration time
 	 */
 	inline float computeT1(float a0, float v3, float j_max, float a_max);
+
 	/**
 	 * Compute increasing acceleration time using total time constraint
 	 */
 	inline float computeT1(float T123, float a0, float v3, float j_max, float a_max);
+
+	/**
+	 * Saturate T1 in order to respect the maximum acceleration constraint
+	 */
 	inline float saturateT1ForAccel(float a0, float j_max, float T1, float a_max);
+
 	/**
 	 * Compute constant acceleration time
 	 */
 	inline float computeT2(float T1, float T3, float a0, float v3, float j_max);
+
 	/**
 	 * Compute constant acceleration time using total time constraint
 	 */
 	inline float computeT2(float T123, float T1, float T3);
+
 	/**
 	 * Compute decreasing acceleration time
 	 */

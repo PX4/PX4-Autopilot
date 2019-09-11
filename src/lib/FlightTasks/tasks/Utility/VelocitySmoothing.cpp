@@ -35,7 +35,6 @@
 
 #include <cstdio>
 #include <float.h>
-
 #include <mathlib/mathlib.h>
 
 VelocitySmoothing::VelocitySmoothing(float initial_accel, float initial_vel, float initial_pos)
@@ -238,12 +237,7 @@ Trajectory VelocitySmoothing::evaluatePoly(float j, float a0, float v0, float x0
 
 void VelocitySmoothing::updateTraj(float dt, float time_stretch)
 {
-	updateTraj(dt * time_stretch);
-}
-
-void VelocitySmoothing::updateTraj(float dt)
-{
-	_local_time += dt;
+	_local_time += dt * time_stretch;
 	const float t = _local_time;
 	float t1 = 0.f;
 	float t2 = 0.f;
