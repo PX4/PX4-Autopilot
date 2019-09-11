@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,9 +40,11 @@
 #pragma once
 
 #include "FlightTaskManualPosition.hpp"
-#include "VelocitySmoothing.hpp"
+#include "ManualVelocitySmoothingXY.hpp"
+#include "ManualVelocitySmoothingZ.hpp"
 
 using matrix::Vector2f;
+using matrix::Vector3f;
 
 class FlightTaskManualPositionSmoothVel : public FlightTaskManualPosition
 {
@@ -67,10 +69,6 @@ protected:
 private:
 	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
 
-	void _resetPositionLock();
-	void _resetPositionLockXY();
-	void _resetPositionLockZ();
-
 	void _initEkfResetCounters();
 	void _initEkfResetCountersXY();
 	void _initEkfResetCountersZ();
@@ -79,37 +77,21 @@ private:
 	void _checkEkfResetCountersXY();
 	void _checkEkfResetCountersZ();
 
-	void _updateTrajectories();
-	void _updateTrajectoriesXY();
-	void _updateTrajectoriesZ();
-
 	void _updateTrajConstraints();
 	void _updateTrajConstraintsXY();
 	void _updateTrajConstraintsZ();
 
-	void _updateTrajDurations();
-	void _updateTrajDurationsXY();
-	void _updateTrajDurationsZ();
+	void _updateTrajVelFeedback();
+	void _updateTrajCurrentPositionEstimate();
 
-	void _checkPositionLock();
-	void _checkPositionLockXY();
-	void _checkPositionLockZ();
+	void _updateTrajectories(Vector3f vel_target);
 
 	void _setOutputState();
 	void _setOutputStateXY();
 	void _setOutputStateZ();
 
-	VelocitySmoothing _smoothing_xy[2]; ///< Smoothing in x and y directions
-	VelocitySmoothing _smoothing_z; ///< Smoothing in z direction
-
-	Vector2f _velocity_target_xy;
-	float _velocity_target_z{0.f};
-
-	bool _position_lock_xy_active{false};
-	bool _position_lock_z_active{false};
-
-	Vector2f _position_setpoint_xy_locked;
-	float _position_setpoint_z_locked{NAN};
+	ManualVelocitySmoothingXY _smoothing_xy; ///< Smoothing in x and y directions
+	ManualVelocitySmoothingZ _smoothing_z; ///< Smoothing in z direction
 
 	/* counters for estimator local position resets */
 	struct {
@@ -118,18 +100,4 @@ private:
 		uint8_t z;
 		uint8_t vz;
 	} _reset_counters{0, 0, 0, 0};
-
-	struct {
-		Vector2f j;
-		Vector2f a;
-		Vector2f v;
-		Vector2f x;
-	} _traj_xy;
-
-	struct {
-		float j;
-		float a;
-		float v;
-		float x;
-	} _traj_z{0.f, 0.f, 0.f, NAN};
 };
