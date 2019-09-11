@@ -62,6 +62,9 @@ UavcanServoController::UavcanServoController(uavcan::INode &node) :
 	if (_perfcnt_scaling_error == nullptr) {
 		errx(1, "uavcan: couldn't allocate _perfcnt_scaling_error");
 	}
+
+        memset(_actuator_status.position, 0, sizeof(_actuator_status.position));
+        memset(_actuator_status.power_percent, 0, sizeof(_actuator_status.power_percent));
 }
 
 UavcanServoController::~UavcanServoController()
