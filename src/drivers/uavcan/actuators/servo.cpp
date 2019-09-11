@@ -92,12 +92,13 @@ int UavcanServoController::init()
 
 void UavcanServoController::update_outputs(uint8_t actuator_id, float value)
 {
-//	if ((outputs == nullptr) ||
-//	    (num_outputs > uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize) ||
-//	    (num_outputs > esc_status_s::CONNECTED_ESC_MAX)) {
-//		perf_count(_perfcnt_invalid_input);
-//		return;
-//	}
+        if ( actuator_id > MAX_NUM_ACTUATORS ) {
+                perf_count(_perfcnt_invalid_input);
+                return;
+        }
+
+        _actuator_outputs.noutputs = MAX_NUM_ACTUATORS;
+        _actuator_outputs.timestamp = hrt_absolute_time();
 
         /*
          * Rate limiting - we don't want to congest the bus
@@ -106,12 +107,12 @@ void UavcanServoController::update_outputs(uint8_t actuator_id, float value)
         if (_armed_mask & SERVO_BIT(actuator_id)) {
                 const auto timestamp = _node.getMonotonicTime();
 
-                //TODO: Determine if we need to rate limit
-        //        if ((timestamp - _prev_cmd_pub).toUSec() < (1000000 / MAX_RATE_HZ)) {
-        //                return;
-        //        }
+                // rate limit
+                if ((timestamp - _prev_cmd_pub[actuator_id]).toUSec() < (1000000 / _rate_limit)) {
+                        return;
+                }
 
-                _prev_cmd_pub = timestamp;
+                _prev_cmd_pub[actuator_id] = timestamp;
 
                 /*
                 * Fill the command message
@@ -122,9 +123,10 @@ void UavcanServoController::update_outputs(uint8_t actuator_id, float value)
                 cmd.actuator_id = actuator_id;
                 cmd.command_type = uavcan::equipment::actuator::Command::COMMAND_TYPE_UNITLESS;
                 cmd.command_value = (value * _scale[actuator_id]) + _trim[actuator_id];         // Trim values range from -0.25 to +0.25 scale ranges from 0.75 to 1.0
-                cmd.command_value = (cmd.command_value > 1.0f) ? 1.0f : cmd.command_value;      // just to be safe
-                cmd.command_value = (cmd.command_value < -1.0f) ? -1.0f : cmd.command_value;
+                cmd.command_value = (cmd.command_value > _max[actuator_id]) ? _max[actuator_id] : cmd.command_value;              // just to be safe
+                cmd.command_value = (cmd.command_value < _min[actuator_id]) ? _min[actuator_id] : cmd.command_value;
 
+                _actuator_outputs.output[actuator_id] = cmd.command_value;
                 msg.commands.push_back(cmd);
 
                 /*
@@ -143,18 +145,25 @@ void UavcanServoController::update_outputs(uint8_t actuator_id, float value)
                         orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
                         update_params();
                 }
+
+                // set to disarmed value
+                uavcan::equipment::actuator::ArrayCommand msg;
+                uavcan::equipment::actuator::Command cmd;
+                cmd.actuator_id = actuator_id;
+                cmd.command_type = uavcan::equipment::actuator::Command::COMMAND_TYPE_UNITLESS;
+                cmd.command_value = _disarmed[actuator_id];
+                _actuator_outputs.output[actuator_id] = cmd.command_value;
+                msg.commands.push_back(cmd);
+                (void)_uavcan_pub_array_cmd.broadcast(msg);
         }
 
-
-        // TODO: figure out if I need to Publish actuator outputs
-//	if (_actuator_outputs_pub != nullptr) {
-//		orb_publish(ORB_ID(actuator_outputs), _actuator_outputs_pub, &actuator_outputs);
-
-//	} else {
-//		int instance;
-//		_actuator_outputs_pub = orb_advertise_multi(ORB_ID(actuator_outputs), &actuator_outputs,
-//					&instance, ORB_PRIO_DEFAULT);
-//	}
+        if (_actuator_outputs_pub != nullptr) {
+                orb_publish(ORB_ID(actuator_outputs), _actuator_outputs_pub, &_actuator_outputs);
+        } else {
+                int instance;
+                _actuator_outputs_pub = orb_advertise_multi(ORB_ID(actuator_outputs), &_actuator_outputs,
+                        &instance, ORB_PRIO_DEFAULT);
+        }
 
 }
 
@@ -171,15 +180,15 @@ void UavcanServoController::servo_status_sub_cb(const uavcan::ReceivedDataStruct
 
 void UavcanServoController::orb_pub_timer_cb(const uavcan::TimerEvent &)
 {
-//	_esc_status.counter += 1;
-//	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
+        _actuator_status.counter += 1;
+        _actuator_status.actuator_connectiontype = actuator_status_s::ACTUATOR_CONNECTION_TYPE_CAN;
 
-//	if (_esc_status_pub != nullptr) {
-//		(void)orb_publish(ORB_ID(esc_status), _esc_status_pub, &_esc_status);
+        if (_actuator_status_pub != nullptr) {
+                (void)orb_publish(ORB_ID(actuator_status), _actuator_status_pub, &_actuator_status);
+        } else {
+                _actuator_status_pub = orb_advertise(ORB_ID(actuator_status), &_actuator_status);
+        }
 
-//	} else {
-//		_esc_status_pub = orb_advertise(ORB_ID(esc_status), &_esc_status);
-//	}
 }
 
 

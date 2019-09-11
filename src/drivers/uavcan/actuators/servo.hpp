@@ -103,13 +103,14 @@ private:
 	bool			_armed = false;
 	bool			_run_at_idle_throttle_when_armed = false;
 	actuator_status_s 	_actuator_status = {};
+	actuator_outputs_s  	_actuator_outputs = {};
 	orb_advert_t 		_actuator_outputs_pub = nullptr;
 	orb_advert_t 		_actuator_status_pub = nullptr;
 
 	/*
 	 * libuavcan related things
 	 */
-	uavcan::MonotonicTime							_prev_cmd_pub;   ///< rate limiting
+	uavcan::MonotonicTime							_prev_cmd_pub[8];   ///< rate limiting
 	uavcan::INode								&_node;
         //uavcan::Publisher<uavcan::equipment::esc::RawCommand>			_uavcan_pub_raw_cmd;
         uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand>		_uavcan_pub_array_cmd;
@@ -121,7 +122,7 @@ private:
 	 */
 	uint32_t 			_armed_mask = 0;
 	uint8_t				_max_number_of_nonzero_outputs = 0;
-int					_t_param;							///< parameter update topic
+	int				_t_param;							///< parameter update topic
 	bool				_param_update_force;						///< force a parameter update
 
 	float				_trim[8] {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};		///< trims updated from parameters
