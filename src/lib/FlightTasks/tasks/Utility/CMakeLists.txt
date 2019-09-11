@@ -37,6 +37,8 @@ px4_add_library(FlightTaskUtility
 	ObstacleAvoidance.cpp
 	StraightLine.cpp
 	VelocitySmoothing.cpp
+	ManualVelocitySmoothingXY.cpp
+	ManualVelocitySmoothingZ.cpp
 )
 
 target_link_libraries(FlightTaskUtility PUBLIC FlightTask hysteresis)
