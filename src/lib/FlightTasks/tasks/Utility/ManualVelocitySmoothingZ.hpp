@@ -40,44 +40,50 @@
 
 #include "VelocitySmoothing.hpp"
 
-class ManualVelocitySmoothingZ
+class ManualVelocitySmoothingZ final
 {
 public:
 	ManualVelocitySmoothingZ() = default;
-
-	virtual ~ManualVelocitySmoothingZ() = default;
+	~ManualVelocitySmoothingZ() = default;
 
 	void reset(float accel, float vel, float pos);
 	void update(float dt, float velocity_target);
 
 	void setVelSpFeedback(const float fb) { _velocity_setpoint_feedback = fb; }
 
-	void setMaxJerk(const float max_jerk) {
-		_smoothing.setMaxJerk(max_jerk);
+	void setMaxJerk(const float max_jerk)
+	{
+		_trajectory.setMaxJerk(max_jerk);
 	}
-	void setMaxAccelUp(const float max_accel_up) {
+	void setMaxAccelUp(const float max_accel_up)
+	{
 		_max_accel_up = max_accel_up;
 	}
-	void setMaxAccelDown(const float max_accel_down) {
+	void setMaxAccelDown(const float max_accel_down)
+	{
 		_max_accel_down = max_accel_down;
 	}
-	void setMaxVelUp(const float max_vel_up) {
+	void setMaxVelUp(const float max_vel_up)
+	{
 		_max_vel_up = max_vel_up;
 	}
-	void setMaxVelDown(const float max_vel_down) {
+	void setMaxVelDown(const float max_vel_down)
+	{
 		_max_vel_down = max_vel_down;
 	}
 
 	float getCurrentJerk() const { return _state.j; }
 	float getCurrentAcceleration() const { return _state.a; }
-	void setCurrentVelocity(const float vel) {
+	void setCurrentVelocity(const float vel)
+	{
 		_state.v = vel;
-		_smoothing.setCurrentVelocity(vel);
+		_trajectory.setCurrentVelocity(vel);
 	}
 	float getCurrentVelocity() const { return _state.v; }
-	void setCurrentPosition(const float pos) {
+	void setCurrentPosition(const float pos)
+	{
 		_state.x = pos;
-		_smoothing.setCurrentPosition(pos);
+		_trajectory.setCurrentPosition(pos);
 	}
 	float getCurrentPosition() const { return _position_setpoint_locked; }
 	void setCurrentPositionEstimate(float pos) { _position_estimate = pos; }
@@ -89,7 +95,7 @@ private:
 	void checkPositionLock(float velocity_target);
 	void updateTrajDurations(float velocity_target);
 
-	VelocitySmoothing _smoothing; ///< Smoothing in z direction
+	VelocitySmoothing _trajectory; ///< Trajectory in z direction
 
 	bool _position_lock_active{false};
 
