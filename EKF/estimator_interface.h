@@ -191,7 +191,7 @@ public:
 	void setAirspeedData(uint64_t time_usec, float true_airspeed, float eas2tas);
 
 	// set range data
-	void setRangeData(uint64_t time_usec, float data, uint8_t quality);
+	void setRangeData(uint64_t time_usec, float data, int8_t quality);
 
 	// set optical flow data
 	// if optical flow sensor gyro delta angles are not available, set gyroXYZ vector fields to NaN and the EKF will use its internal delta angle data instead

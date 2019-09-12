@@ -131,9 +131,9 @@ struct baroSample {
 };
 
 struct rangeSample {
-	float       rng;	///< range (distance to ground) measurement (m)
+	float       rng;	    ///< range (distance to ground) measurement (m)
 	uint64_t    time_us;	///< timestamp of the measurement (uSec)
-	uint8_t	    quality; ///< quality indicator between 0 and 255
+	int8_t	    quality;    ///< Signal quality in percent (0...100%), where 0 = invalid signal, 100 = perfect signal, and -1 = unknown signal quality.
 };
 
 struct airspeedSample {

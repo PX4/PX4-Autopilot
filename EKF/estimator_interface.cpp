@@ -314,7 +314,7 @@ void EstimatorInterface::setAirspeedData(uint64_t time_usec, float true_airspeed
 	}
 }
 
-void EstimatorInterface::setRangeData(uint64_t time_usec, float data, uint8_t quality)
+void EstimatorInterface::setRangeData(uint64_t time_usec, float data, int8_t quality)
 {
 	if (!_initialised || _range_buffer_fail) {
 		return;
