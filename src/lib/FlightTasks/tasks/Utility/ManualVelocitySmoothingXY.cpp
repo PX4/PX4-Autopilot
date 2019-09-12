@@ -41,11 +41,12 @@ using namespace matrix;
 void ManualVelocitySmoothingXY::reset(Vector2f accel, Vector2f vel, Vector2f pos)
 {
 	for (int i = 0; i < 2; i++) {
-		_smoothing[i].reset(accel(i), vel(i), pos(i));
+		_trajectory[i].reset(accel(i), vel(i), pos(i));
 	}
 
 	resetPositionLock();
 }
+
 void ManualVelocitySmoothingXY::resetPositionLock()
 {
 	_position_lock_active = false;
@@ -69,22 +70,22 @@ void ManualVelocitySmoothingXY::update(float dt, Vector2f velocity_target)
 void ManualVelocitySmoothingXY::updateTrajectories(float dt)
 {
 	for (int i = 0; i < 2; ++i) {
-		_smoothing[i].updateTraj(dt);
+		_trajectory[i].updateTraj(dt);
 
-		_state.j(i) = _smoothing[i].getCurrentJerk();
-		_state.a(i) = _smoothing[i].getCurrentAcceleration();
-		_state.v(i) = _smoothing[i].getCurrentVelocity();
-		_state.x(i) = _smoothing[i].getCurrentPosition();
+		_state.j(i) = _trajectory[i].getCurrentJerk();
+		_state.a(i) = _trajectory[i].getCurrentAcceleration();
+		_state.v(i) = _trajectory[i].getCurrentVelocity();
+		_state.x(i) = _trajectory[i].getCurrentPosition();
 	}
 }
 
 void ManualVelocitySmoothingXY::updateTrajDurations(Vector2f velocity_target)
 {
 	for (int i = 0; i < 2; ++i) {
-		_smoothing[i].updateDurations(velocity_target(i));
+		_trajectory[i].updateDurations(velocity_target(i));
 	}
 
-	VelocitySmoothing::timeSynchronization(_smoothing, 2);
+	VelocitySmoothing::timeSynchronization(_trajectory, 2);
 }
 
 void ManualVelocitySmoothingXY::checkPositionLock(Vector2f velocity_target)
@@ -107,15 +108,15 @@ void ManualVelocitySmoothingXY::checkPositionLock(Vector2f velocity_target)
 	} else {
 		// Unlock position
 		if (_position_lock_active) {
-			 // Start the trajectory at the current velocity setpoint
-			_smoothing[0].setCurrentVelocity(_velocity_setpoint_feedback(0));
-			_smoothing[1].setCurrentVelocity(_velocity_setpoint_feedback(1));
+			// Start the trajectory at the current velocity setpoint
+			_trajectory[0].setCurrentVelocity(_velocity_setpoint_feedback(0));
+			_trajectory[1].setCurrentVelocity(_velocity_setpoint_feedback(1));
 			_position_setpoint_locked(0) = NAN;
 			_position_setpoint_locked(1) = NAN;
 		}
 
 		_position_lock_active = false;
-		_smoothing[0].setCurrentPosition(_position_estimate(0));
-		_smoothing[1].setCurrentPosition(_position_estimate(1));
+		_trajectory[0].setCurrentPosition(_position_estimate(0));
+		_trajectory[1].setCurrentPosition(_position_estimate(1));
 	}
 }

@@ -38,10 +38,11 @@
 
 void ManualVelocitySmoothingZ::reset(float accel, float vel, float pos)
 {
-	_smoothing.reset(accel, vel, pos);
+	_trajectory.reset(accel, vel, pos);
 
 	resetPositionLock();
 }
+
 void ManualVelocitySmoothingZ::resetPositionLock()
 {
 	_position_lock_active = false;
@@ -62,28 +63,28 @@ void ManualVelocitySmoothingZ::update(float dt, float velocity_target)
 	checkPositionLock(velocity_target);
 
 	// Update durations
-	_smoothing.updateDurations(velocity_target);
+	_trajectory.updateDurations(velocity_target);
 }
 
 void ManualVelocitySmoothingZ::updateTrajectories(float dt)
 {
-	_smoothing.updateTraj(dt);
+	_trajectory.updateTraj(dt);
 
-	_state.j = _smoothing.getCurrentJerk();
-	_state.a = _smoothing.getCurrentAcceleration();
-	_state.v = _smoothing.getCurrentVelocity();
-	_state.x = _smoothing.getCurrentPosition();
+	_state.j = _trajectory.getCurrentJerk();
+	_state.a = _trajectory.getCurrentAcceleration();
+	_state.v = _trajectory.getCurrentVelocity();
+	_state.x = _trajectory.getCurrentPosition();
 }
 
 void ManualVelocitySmoothingZ::updateTrajConstraints(float velocity_target)
 {
 	if (velocity_target < 0.f) { // up
-		_smoothing.setMaxAccel(_max_accel_up);
-		_smoothing.setMaxVel(_max_vel_up);
+		_trajectory.setMaxAccel(_max_accel_up);
+		_trajectory.setMaxVel(_max_vel_up);
 
 	} else { // down
-		_smoothing.setMaxAccel(_max_accel_down);
-		_smoothing.setMaxVel(_max_vel_down);
+		_trajectory.setMaxAccel(_max_accel_down);
+		_trajectory.setMaxVel(_max_vel_down);
 	}
 }
 
@@ -107,12 +108,12 @@ void ManualVelocitySmoothingZ::checkPositionLock(float velocity_target)
 	} else {
 		// Unlock position
 		if (_position_lock_active) {
-			 // Start the trajectory at the current velocity setpoint
-			_smoothing.setCurrentVelocity(_velocity_setpoint_feedback);
+			// Start the trajectory at the current velocity setpoint
+			_trajectory.setCurrentVelocity(_velocity_setpoint_feedback);
 			_position_setpoint_locked = NAN;
 		}
 
 		_position_lock_active = false;
-		_smoothing.setCurrentPosition(_position_estimate);
+		_trajectory.setCurrentPosition(_position_estimate);
 	}
 }
