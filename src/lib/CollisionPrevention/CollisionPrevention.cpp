@@ -253,7 +253,9 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 
 	float setpoint_length = setpoint.norm();
 
-	if (getElapsedTime(&_obstacle_map_body_frame.timestamp) < RANGE_STREAM_TIMEOUT_US) {
+	hrt_abstime constrain_time = getTime();
+
+	if ((constrain_time - _obstacle_map_body_frame.timestamp) < RANGE_STREAM_TIMEOUT_US) {
 		if (setpoint_length > 0.001f) {
 
 			Vector2f setpoint_dir = setpoint / setpoint_length;
@@ -267,7 +269,9 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 			for (int i = 0; i < INTERNAL_MAP_USED_BINS; i++) { //disregard unused bins at the end of the message
 
 				//delete stale values
-				if (getElapsedTime(&_data_timestamps[i]) > RANGE_STREAM_TIMEOUT_US) {
+				hrt_abstime data_age = constrain_time - _data_timestamps[i];
+
+				if (data_age > RANGE_STREAM_TIMEOUT_US) {
 					_obstacle_map_body_frame.distances[i] = UINT16_MAX;
 				}
 
@@ -287,7 +291,7 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 					    && setpoint_dir.dot(bin_direction) > cosf(col_prev_ang_rad)) {
 						//calculate max allowed velocity with a P-controller (same gain as in the position controller)
 						float curr_vel_parallel = math::max(0.f, curr_vel.dot(bin_direction));
-						float delay_distance = curr_vel_parallel * col_prev_dly;
+						float delay_distance = curr_vel_parallel * (col_prev_dly + data_age * 1e-6f);
 						float stop_distance =  math::max(0.f, distance - min_dist_to_keep - delay_distance);
 						float vel_max_posctrl = xy_p * stop_distance;
 						float vel_max_smooth = trajmath::computeMaxSpeedFromBrakingDistance(max_jerk, max_accel, stop_distance);
