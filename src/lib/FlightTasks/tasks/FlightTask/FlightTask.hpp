@@ -158,12 +158,6 @@ public:
 	static const landing_gear_s empty_landing_gear_default_keep;
 
 	/**
-	 * Empty desired waypoints.
-	 * All waypoints are set to NAN.
-	 */
-	static const vehicle_trajectory_waypoint_s empty_trajectory_waypoint;
-
-	/**
 	 * Call this whenever a parameter update notification is received (parameter_update uORB message)
 	 */
 	void handleParameterUpdate()
