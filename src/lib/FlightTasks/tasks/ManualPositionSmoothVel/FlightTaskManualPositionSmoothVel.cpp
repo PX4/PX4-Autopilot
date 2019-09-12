@@ -211,10 +211,10 @@ void FlightTaskManualPositionSmoothVel::_setOutputState()
 
 void FlightTaskManualPositionSmoothVel::_setOutputStateXY()
 {
-	_jerk_setpoint = _smoothing_xy.getCurrentJerk();
-	_acceleration_setpoint = _smoothing_xy.getCurrentAcceleration();
-	_velocity_setpoint = _smoothing_xy.getCurrentVelocity();
-	_position_setpoint = _smoothing_xy.getCurrentPosition();
+	_jerk_setpoint.xy() = _smoothing_xy.getCurrentJerk();
+	_acceleration_setpoint.xy() = _smoothing_xy.getCurrentAcceleration();
+	_velocity_setpoint.xy() = _smoothing_xy.getCurrentVelocity();
+	_position_setpoint.xy() = _smoothing_xy.getCurrentPosition();
 }
 
 void FlightTaskManualPositionSmoothVel::_setOutputStateZ()
