@@ -52,7 +52,7 @@
 PARAM_DEFINE_FLOAT(MPC_COL_PREV_D, -1.0f);
 
 /**
- * Average delay of the range sensor message in seconds
+ * Average delay of the range sensor message plus the tracking delay of the position controller in seconds
  *
  * Only used in Position mode.
  *
