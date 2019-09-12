@@ -60,14 +60,18 @@ public:
 		_smoothing[0].setMaxJerk(max_jerk);
 		_smoothing[1].setMaxJerk(max_jerk);
 	}
+	float getMaxJerk() const { return _smoothing[0].getMaxJerk(); }
+
 	void setMaxAccel(const float max_accel) {
 		_smoothing[0].setMaxAccel(max_accel);
 		_smoothing[1].setMaxAccel(max_accel);
 	}
+	float getMaxAccel() const { return _smoothing[0].getMaxAccel(); }
 	void setMaxVel(const float max_vel) {
 		_smoothing[0].setMaxVel(max_vel);
 		_smoothing[1].setMaxVel(max_vel);
 	}
+	float getMaxVel() const { return _smoothing[0].getMaxVel(); }
 
 	Vector2f getCurrentJerk() const { return _state.j; }
 	Vector2f getCurrentAcceleration() const { return _state.a; }
