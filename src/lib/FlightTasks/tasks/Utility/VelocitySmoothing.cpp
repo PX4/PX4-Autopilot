@@ -48,6 +48,8 @@ void VelocitySmoothing::reset(float accel, float vel, float pos)
 	_state.a = accel;
 	_state.v = vel;
 	_state.x = pos;
+
+	_state_init = _state;
 }
 
 float VelocitySmoothing::saturateT1ForAccel(float a0, float j_max, float T1, float a_max)

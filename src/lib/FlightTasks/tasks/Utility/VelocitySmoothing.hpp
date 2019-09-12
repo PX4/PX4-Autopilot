@@ -100,11 +100,11 @@ public:
 	void setMaxVel(float max_vel) { _max_vel = max_vel; }
 
 	float getCurrentJerk() const { return _state.j; }
-	void setCurrentAcceleration(const float accel) { _state.a = accel; }
+	void setCurrentAcceleration(const float accel) { _state.a = _state_init.a = accel; }
 	float getCurrentAcceleration() const { return _state.a; }
-	void setCurrentVelocity(const float vel) { _state.v = vel; }
+	void setCurrentVelocity(const float vel) { _state.v = _state_init.v = vel; }
 	float getCurrentVelocity() const { return _state.v; }
-	void setCurrentPosition(const float pos) { _state.x = pos; }
+	void setCurrentPosition(const float pos) { _state.x = _state_init.x = pos; }
 	float getCurrentPosition() const { return _state.x; }
 
 	float getVelSp() const { return _vel_sp; }
