@@ -74,10 +74,10 @@ TEST_F(ManualVelocitySmoothingXYTest, getCurrentState)
 	Vector3f a_end;
 	Vector3f v_end;
 	Vector3f x_end;
-	j_end = _smoothing.getCurrentJerk();
-	a_end = _smoothing.getCurrentAcceleration();
-	v_end = _smoothing.getCurrentVelocity();
-	x_end = _smoothing.getCurrentPosition();
+	j_end.xy() = _smoothing.getCurrentJerk();
+	a_end.xy() = _smoothing.getCurrentAcceleration();
+	v_end.xy() = _smoothing.getCurrentVelocity();
+	x_end.xy() = _smoothing.getCurrentPosition();
 
 	// THEN: the returned values should match the input
 	EXPECT_EQ(j_end, Vector3f(0.f, 0.f, 0.f));
