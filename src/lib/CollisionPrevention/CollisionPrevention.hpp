@@ -155,6 +155,13 @@ private:
 	}
 
 
+	/**
+	 * Computes an adaption to the setpoint direction to guide towards free space
+	 * @param setpoint_dir, setpoint direction before collision prevention intervention
+	 * @param setpoint_index, index of the setpoint in the internal obstacle map
+	 * @param vehicle_yaw_angle_rad, vehicle orientation
+	 */
+	void _adaptSetpointDirection(matrix::Vector2f &setpoint_dir, int &setpoint_index, float vehicle_yaw_angle_rad);
 
 	/**
 	 * Computes collision free setpoints
