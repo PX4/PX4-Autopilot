@@ -1244,7 +1244,7 @@ void Ekf::checkRangeDataValidity()
 			}
 
 			_control_status.flags.rng_stuck = true;
-			_rng_hgt_faulty = (_range_sample_delayed.quality == 0);
+			_rng_hgt_faulty = true;
 		}
 
 	} else {
