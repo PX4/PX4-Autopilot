@@ -79,6 +79,7 @@ CollisionPrevention::CollisionPrevention(ModuleParams *parent) :
 
 	for (uint32_t i = 0 ; i < internal_bins; i++) {
 		_data_timestamps[i] = current_time;
+		_data_maxranges[i] = 0;
 		_obstacle_map_body_frame.distances[i] = UINT16_MAX;
 	}
 }
@@ -120,6 +121,7 @@ void CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obst
 			if (obstacle.distances[msg_index] != UINT16_MAX) {
 				_obstacle_map_body_frame.distances[i] = obstacle.distances[msg_index];
 				_data_timestamps[i] = _obstacle_map_body_frame.timestamp;
+				_data_maxranges[i] = obstacle.max_distance;
 			}
 
 		}
@@ -136,6 +138,7 @@ void CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obst
 			if (obstacle.distances[msg_index] != UINT16_MAX) {
 				_obstacle_map_body_frame.distances[i] = obstacle.distances[msg_index];
 				_data_timestamps[i] = _obstacle_map_body_frame.timestamp;
+				_data_maxranges[i] = obstacle.max_distance;
 			}
 
 		}
@@ -229,6 +232,7 @@ void CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sen
 			// compensate measurement for vehicle tilt and convert to cm
 			_obstacle_map_body_frame.distances[wrapped_bin] = (int)(100 * distance_reading * sensor_dist_scale);
 			_data_timestamps[wrapped_bin] = _obstacle_map_body_frame.timestamp;
+			_data_maxranges[wrapped_bin] = (int)(100 * distance_sensor.max_distance);
 		}
 	}
 }
@@ -311,6 +315,7 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 				}
 
 				float distance = _obstacle_map_body_frame.distances[i] * 0.01f; //convert to meters
+				float max_range = _data_maxranges[i] * 0.01f; //convert to meters
 				float angle = math::radians((float)i * INTERNAL_MAP_INCREMENT_DEG + _obstacle_map_body_frame.angle_offset);
 
 				// convert from body to local frame in the range [0, 2*pi]
@@ -325,7 +330,12 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 					if (setpoint_dir.dot(bin_direction) > 0) {
 						//calculate max allowed velocity with a P-controller (same gain as in the position controller)
 						float curr_vel_parallel = math::max(0.f, curr_vel.dot(bin_direction));
-						float delay_distance = curr_vel_parallel * (col_prev_dly + data_age * 1e-6f);
+						float delay_distance = curr_vel_parallel * col_prev_dly;
+
+						if (distance < max_range) {
+							delay_distance += curr_vel_parallel * (data_age * 1e-6f);
+						}
+
 						float stop_distance =  math::max(0.f, distance - min_dist_to_keep - delay_distance);
 						float vel_max_posctrl = xy_p * stop_distance;
 
