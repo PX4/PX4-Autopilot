@@ -29,7 +29,7 @@ px4_add_board(
 		#differential_pressure # all available differential pressure drivers
 		differential_pressure/ms4525
 		#distance_sensor # all available distance sensor drivers
-		distance_sensor/ll40ls
+		#distance_sensor/ll40ls
 		#distance_sensor/sf0x
 		gps
 		#heater
