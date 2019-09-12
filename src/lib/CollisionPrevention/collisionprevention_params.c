@@ -61,7 +61,7 @@ PARAM_DEFINE_FLOAT(MPC_COL_PREV_D, -1.0f);
  * @unit seconds
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_COL_PREV_DLY, 0.f);
+PARAM_DEFINE_FLOAT(MPC_COL_PREV_DLY, 0.4f);
 
 /**
  * Angle left/right from the commanded setpoint by which the collision prevention algorithm can choose to change the setpoint direction
