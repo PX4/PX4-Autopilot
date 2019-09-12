@@ -1,4 +1,4 @@
-#!nsh
+#!/bin/sh
 #
 # Flight startup script for PX4FMU standalone configuration.
 #

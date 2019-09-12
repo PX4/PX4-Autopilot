@@ -33,13 +33,9 @@
 px4_add_module(
 	MODULE modules__fw_att_control
 	MAIN fw_att_control
-	STACK_MAIN 1200
-	COMPILE_FLAGS
 	SRCS
-		fw_att_control_main.cpp
+		FixedwingAttitudeControl.cpp
 	DEPENDS
-		platforms__common
 		git_ecl
-		lib__ecl
+		ecl_attitude_fw
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

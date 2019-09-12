@@ -1,0 +1,62 @@
+#!/bin/sh
+#
+# @name Holybro Kopis 2
+#
+# @type Quadrotor x
+# @class Copter
+#
+# @maintainer Beat Kueng <beat@px4.io>
+#
+# @board px4_fmu-v2 exclude
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+set MIXER quad_x
+set PWM_OUT 1234
+
+if [ $AUTOCNF = yes ]
+then
+	param set BAT_N_CELLS 4
+
+	param set GPS_1_CONFIG 0
+	param set RC_PORT_CONFIG 201
+
+	param set IMU_GYRO_CUTOFF 120
+	param set MC_DTERM_CUTOFF 0
+
+	param set MC_ROLLRATE_P 0.036
+	param set MC_ROLLRATE_I 0.25
+	param set MC_ROLLRATE_D 0.0006
+	param set MC_ROLLRATE_MAX 1600
+	param set MC_ROLL_P 10
+
+	param set MC_PITCHRATE_P 0.036
+	param set MC_PITCHRATE_I 0.32
+	param set MC_PITCHRATE_D 0.0004
+	param set MC_PITCHRATE_MAX 1600
+	param set MC_PITCH_P 10
+
+	param set MC_YAWRATE_MAX 1000
+	param set MC_YAWRATE_P 0.04
+	param set MC_YAW_P 4
+
+	param set MOT_ORDERING 1
+	param set MPC_MANTHR_MIN 0
+	param set MPC_MAN_TILT_MAX 60
+	param set PWM_MAX 1950
+	param set PWM_MIN 1075
+	param set PWM_RATE 400
+
+	param set OSD_ATXXXX_CFG 1
+
+	param set THR_MDL_FAC 0.7
+
+	param set MPC_THR_CURVE 1
+	param set MPC_THR_HOVER 0.12
+
+	param set MC_AIRMODE 1
+
+	param set EV_TSK_RC_LOSS 1
+fi
+

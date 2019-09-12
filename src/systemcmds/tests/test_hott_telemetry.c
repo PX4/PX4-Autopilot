@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Simon Wilks <sjwilks@gmail.com>
+ *  Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,21 +33,16 @@
 
 /**
  * @file test_hott_telemetry.c
- *
  * Tests the Graupner HoTT telemetry support.
- *
  */
 
-/****************************************************************************
- * Included Files
- ****************************************************************************/
-
-#include <drivers/drv_gpio.h>
+#include <px4_time.h>
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_log.h>
+#include <px4_posix.h>
+#include <sys/ioctl.h>
 #include <sys/types.h>
-#include <systemlib/err.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -61,29 +55,6 @@
 #include "tests_main.h"
 
 
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Private Types
- ****************************************************************************/
-
-/****************************************************************************
- * Private Function Prototypes
- ****************************************************************************/
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
 static int open_uart(const char *device)
 {
 	/* baud rate */
@@ -119,14 +90,6 @@ static int open_uart(const char *device)
 
 	return uart;
 }
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: test_hott_telemetry
- ****************************************************************************/
 
 int test_hott_telemetry(int argc, char *argv[])
 {
@@ -220,11 +183,11 @@ int test_hott_telemetry(int argc, char *argv[])
 			      0x00, 0x00, 0x00, 0x7d, 0x12
 			     };
 
-	usleep(5000);
+	px4_usleep(5000);
 
 	for (unsigned int i = 0; i < sizeof(response); i++) {
 		write(fd, &response[i], 1);
-		usleep(1000);
+		px4_usleep(1000);
 	}
 
 	PX4_INFO("PASS: Response sent to the HoTT receiver device. Voltage should now show 2.5V.");

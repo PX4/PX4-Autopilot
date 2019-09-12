@@ -8,17 +8,15 @@
 .cproject
 .DS_Store
 .gdbinit
+.gdb_history
 .project
 .settings
 .swp
 .~lock.*
 Testing/
 Packages/*
-s3deploy-branch/
-s3deploy-archive/
 build/*
 build_*/
-core
 cscope.out
 cscope.in.out
 cscope.po.out
@@ -33,18 +31,11 @@ tags
 .pydevproject
 .ropeproject
 *.orig
-src/modules/uORB/topics/*
-src/platforms/nuttx/px4_messages/*
-src/platforms/ros/px4_messages/*
 Firmware.zip
 *.generated.h
 .vagrant
 *.pretty
 xcode
-src/platforms/posix/px4_messages/
-src/platforms/posix-arm/px4_messages/
-src/platforms/qurt/px4_messages/
-ROMFS/*/*/rc.autostart
 rootfs/
 *.autosave
 CMakeLists.txt.user
@@ -60,8 +51,6 @@ GTAGS
 .idea
 cmake-build-*/
 
-.vscode
-
 posix-configs/SITL/init/test/*_generated
 
 /airframes.md
@@ -69,5 +58,12 @@ posix-configs/SITL/init/test/*_generated
 /parameters.md
 /parameters.xml
 /modules
+/msg/ros/*.msg
 
 *.gcov
+.coverage
+.coverage.*
+
+# KDevelop ignores
+.kdev4/*
+*.kdev4

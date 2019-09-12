@@ -128,14 +128,14 @@ public:
 private:
 	char		*_data_as_cstring(PayloadHeader *payload);
 
-	void		_process_request(mavlink_file_transfer_protocol_t *ftp_req, uint8_t target_system_id);
+	void		_process_request(mavlink_file_transfer_protocol_t *ftp_req, uint8_t target_system_id, uint8_t target_comp_id);
 	void		_reply(mavlink_file_transfer_protocol_t *ftp_req);
 	int		_copy_file(const char *src_path, const char *dst_path, size_t length);
 
 	ErrorCode	_workList(PayloadHeader *payload, bool list_hidden = false);
 	ErrorCode	_workOpen(PayloadHeader *payload, int oflag);
 	ErrorCode	_workRead(PayloadHeader *payload);
-	ErrorCode	_workBurst(PayloadHeader *payload, uint8_t target_system_id);
+	ErrorCode	_workBurst(PayloadHeader *payload, uint8_t target_system_id, uint8_t target_component_id);
 	ErrorCode	_workWrite(PayloadHeader *payload);
 	ErrorCode	_workTerminate(PayloadHeader *payload);
 	ErrorCode	_workReset(PayloadHeader *payload);
@@ -170,12 +170,13 @@ private:
 		uint32_t	stream_offset;
 		uint16_t	stream_seq_number;
 		uint8_t		stream_target_system_id;
+		uint8_t         stream_target_component_id;
 		unsigned	stream_chunk_transmitted;
 	};
-	struct SessionInfo _session_info;	///< Session info, fd=-1 for no active session
+	struct SessionInfo _session_info {};	///< Session info, fd=-1 for no active session
 
-	ReceiveMessageFunc_t	_utRcvMsgFunc;	///< Unit test override for mavlink message sending
-	void			*_worker_data;	///< Additional parameter to _utRcvMsgFunc;
+	ReceiveMessageFunc_t	_utRcvMsgFunc{};	///< Unit test override for mavlink message sending
+	void			*_worker_data{nullptr};	///< Additional parameter to _utRcvMsgFunc;
 
 	Mavlink *_mavlink;
 
@@ -184,11 +185,11 @@ private:
 	MavlinkFTP operator=(const MavlinkFTP &);
 
 	/* work buffers: they're allocated as soon as we get the first request (lazy, since FTP is rarely used) */
-	char *_work_buffer1;
+	char *_work_buffer1{nullptr};
 	static constexpr int _work_buffer1_len = kMaxDataLength;
-	char *_work_buffer2;
+	char *_work_buffer2{nullptr};
 	static constexpr int _work_buffer2_len = 256;
-	hrt_abstime _last_work_buffer_access; ///< timestamp when the buffers were last accessed
+	hrt_abstime _last_work_buffer_access{0}; ///< timestamp when the buffers were last accessed
 
 	// prepend a root directory to each file/dir access to avoid enumerating the full FS tree (e.g. on Linux).
 	// Note that requests can still fall outside of the root dir by using ../..

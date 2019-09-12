@@ -37,7 +37,7 @@ px4_add_module(
 	SRCS
 		roboclaw_main.cpp
 		RoboClaw.cpp
-	DEPENDS
-		platforms__common
+	MODULE_CONFIG
+		module.yaml
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

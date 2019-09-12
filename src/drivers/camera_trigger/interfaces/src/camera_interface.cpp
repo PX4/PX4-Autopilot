@@ -12,10 +12,6 @@ CameraInterface::CameraInterface():
 {
 }
 
-CameraInterface::~CameraInterface()
-{
-}
-
 void CameraInterface::get_pins()
 {
 

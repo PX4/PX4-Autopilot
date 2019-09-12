@@ -1,0 +1,13 @@
+<launch>
+    <!-- Test mavros posix sitl publishes pose at 30 Hz -->
+    <include file="$(find px4)/launch/mavros_posix_sitl.launch">
+        <arg name="gui" value="false"/>
+        <arg name="interactive" value="false"/>
+        <arg name="verbose" value="true"/>
+    </include>
+    <param name="pub_test/topic" value="/mavros/local_position/pose"/>
+    <param name="pub_test/hz" value="30.0"/>
+    <param name="pub_test/hzerror" value="1.0"/>
+    <param name="pub_test/test_duration" value="10.0"/>
+    <test test-name="pub_test" pkg="rostest" type="hztest" name="pub_test"/>
+</launch>

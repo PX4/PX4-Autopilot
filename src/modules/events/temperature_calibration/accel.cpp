@@ -158,7 +158,7 @@ int TemperatureCalibrationAccel::update_sensor_instance(PerSensorData &data, int
 	}
 
 	//update linear fit matrices
-	double relative_temperature = data.sensor_sample_filt[3] - data.ref_temp;
+	double relative_temperature = (double)data.sensor_sample_filt[3] - (double)data.ref_temp;
 	data.P[0].update(relative_temperature, (double)data.sensor_sample_filt[0]);
 	data.P[1].update(relative_temperature, (double)data.sensor_sample_filt[1]);
 	data.P[2].update(relative_temperature, (double)data.sensor_sample_filt[2]);

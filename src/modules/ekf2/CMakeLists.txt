@@ -34,12 +34,12 @@ px4_add_module(
 	MODULE modules__ekf2
 	MAIN ekf2
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
-	STACK_MAIN 2500
-	STACK_MAX 4000
+	STACK_MAX 2400
 	SRCS
 		ekf2_main.cpp
 	DEPENDS
-		platforms__common
 		git_ecl
+		ecl_EKF
+		ecl_geo
+		perf
 	)

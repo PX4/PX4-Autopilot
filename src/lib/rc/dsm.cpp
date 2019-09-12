@@ -49,6 +49,7 @@
 #include <string.h>
 
 #include "dsm.h"
+#include "spektrum_rssi.h"
 #include "common_rc.h"
 #include <drivers/drv_hrt.h>
 
@@ -56,7 +57,7 @@
 #include <nuttx/arch.h>
 #define dsm_udelay(arg)    up_udelay(arg)
 #else
-#define dsm_udelay(arg) usleep(arg)
+#define dsm_udelay(arg) px4_usleep(arg)
 #endif
 
 // #define DSM_DEBUG
@@ -79,7 +80,8 @@ static unsigned dsm_frame_drops = 0;			/**< Count of incomplete DSM frames */
 static uint16_t dsm_chan_count = 0;         /**< DSM channel count */
 
 static bool
-dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, unsigned max_values);
+dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, unsigned max_values,
+	   int8_t *rssi_percent);
 
 /**
  * Attempt to decode a single channel raw channel datum
@@ -292,7 +294,7 @@ dsm_init(const char *device)
 {
 
 	if (dsm_fd < 0) {
-		dsm_fd = open(device, O_RDONLY | O_NONBLOCK);
+		dsm_fd = open(device, O_RDWR | O_NONBLOCK);
 	}
 
 	dsm_proto_init();
@@ -383,7 +385,8 @@ dsm_bind(uint16_t cmd, int pulses)
  * @return true=DSM frame successfully decoded, false=no update
  */
 bool
-dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, unsigned max_values)
+dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, unsigned max_values,
+	   int8_t *rssi_percent)
 {
 	/*
 	debug("DSM dsm_frame %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x",
@@ -406,9 +409,45 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool 
 	}
 
 	/*
-	 * The encoding of the first two bytes is uncertain, so we're
-	 * going to ignore them for now.
+	 * The first byte represents the rssi in dBm on telemetry receivers with updated
+	 * firmware, or fades on others. If the value is less than zero, it's rssi.
+	 * We have other ways to detect bad link metrics, so ignore positive values,
+	 * but rssi dBm is a useful value.
+	 */
+
+	if (rssi_percent) {
+		if (((int8_t *)dsm_frame)[0] < 0) {
+			/*
+			 * RSSI is a signed integer between -42dBm and -92dBm
+			 * If signal is lost, the value is -128
+			 */
+			int8_t dbm = (int8_t)dsm_frame[0];
+
+			if (dbm == -128) {
+				*rssi_percent = 0;
+
+			} else {
+				*rssi_percent = spek_dbm_to_percent(dbm);
+			}
+
+		} else {
+			/* if we don't know the rssi, anything over 100 will invalidate it */
+			*rssi_percent = 127;
+		}
+	}
+
+	/*
+	 * The second byte indicates the protocol and frame rate. We have a
+	 * guessing state machine, so we don't need to use this. At any rate,
+	 * these are the allowable values:
 	 *
+	 * 0x01 22MS 1024 DSM2
+	 * 0x12 11MS 2048 DSM2
+	 * 0xa2 22MS 2048 DSMX
+	 * 0xb2 11MS 2048 DSMX
+	 */
+
+	/*
 	 * Each channel is a 16-bit unsigned value containing either a 10-
 	 * or 11-bit channel value and a 4-bit channel number, shifted
 	 * either 10 or 11 bits. The MSB may also be set to indicate the
@@ -547,10 +586,12 @@ dsm_decode(hrt_abstime frame_time, uint16_t *values, uint16_t *num_values, bool 
  * @param[out] num_values pointer to number of raw channel values returned, high order bit 0:10 bit data, 1:11 bit data
  * @param[out] n_butes number of bytes read
  * @param[out] bytes pointer to the buffer of read bytes
+ * @param[out] rssi value in percent, if supported, or 127
  * @return true=decoded raw channel values updated, false=no update
  */
 bool
 dsm_input(int fd, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, uint8_t *n_bytes, uint8_t **bytes,
+	  int8_t *rssi,
 	  unsigned max_values)
 {
 	int		ret = 1;
@@ -592,12 +633,12 @@ dsm_input(int fd, uint16_t *values, uint16_t *num_values, bool *dsm_11_bit, uint
 	/*
 	 * Try to decode something with what we got
 	 */
-	return dsm_parse(now, &dsm_buf[0], ret, values, num_values, dsm_11_bit, &dsm_frame_drops, max_values);
+	return dsm_parse(now, &dsm_buf[0], ret, values, num_values, dsm_11_bit, &dsm_frame_drops, rssi, max_values);
 }
 
 bool
 dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uint16_t *values,
-	  uint16_t *num_values, bool *dsm_11_bit, unsigned *frame_drops, uint16_t max_channels)
+	  uint16_t *num_values, bool *dsm_11_bit, unsigned *frame_drops, int8_t *rssi_percent, uint16_t max_channels)
 {
 
 	/* this is set by the decoding state machine and will default to false
@@ -665,7 +706,7 @@ dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uint16_t
 				 * Great, it looks like we might have a frame.  Go ahead and
 				 * decode it.
 				 */
-				decode_ret = dsm_decode(now, &dsm_chan_buf[0], &dsm_chan_count, dsm_11_bit, max_channels);
+				decode_ret = dsm_decode(now, &dsm_chan_buf[0], &dsm_chan_count, dsm_11_bit, max_channels, rssi_percent);
 
 				/* we consumed the partial frame, reset */
 				dsm_partial_frame_count = 0;

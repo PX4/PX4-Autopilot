@@ -48,8 +48,7 @@ fi
 
 # If there are whitespace errors, print the offending file names and fail.
 git diff-index --check --cached $against --
-if [ $? -ne 0 ]
-then
+if [ $? -ne 0 ]; then
         exit 1
 fi
 

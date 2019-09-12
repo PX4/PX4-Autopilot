@@ -46,7 +46,9 @@
 #pragma once
 
 #include <dataman/dataman.h>
-#include <uORB/uORB.h>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/mission_result.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_rate_limiter.h"
@@ -68,7 +70,7 @@ enum MAVLINK_WPM_CODES {
 };
 
 static constexpr uint64_t MAVLINK_MISSION_PROTOCOL_TIMEOUT_DEFAULT = 5000000; ///< Protocol action timeout in us
-static constexpr uint64_t MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT = 500000; ///< Protocol retry timeout in us
+static constexpr uint64_t MAVLINK_MISSION_RETRY_TIMEOUT_DEFAULT = 250000; ///< Protocol retry timeout in us
 
 class Mavlink;
 
@@ -77,7 +79,7 @@ class MavlinkMissionManager
 public:
 	explicit MavlinkMissionManager(Mavlink *mavlink);
 
-	~MavlinkMissionManager();
+	~MavlinkMissionManager() = default;
 
 	/**
 	 * Handle sending of messages. Call this regularly at a fixed frequency.
@@ -86,8 +88,6 @@ public:
 	void send(const hrt_abstime t);
 
 	void handle_message(const mavlink_message_t *msg);
-
-	void set_verbose(bool v) { _verbose = v; }
 
 	void check_active_mission(void);
 
@@ -104,8 +104,9 @@ private:
 
 	unsigned		_filesystem_errcount{0};		///< File system error count
 
-	static int8_t		_dataman_id;				///< Global Dataman storage ID for active mission
-	int8_t			_my_dataman_id{0};			///< class Dataman storage ID
+	static dm_item_t		_dataman_id;				///< Global Dataman storage ID for active mission
+	dm_item_t			_my_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};			///< class Dataman storage ID
+
 	static bool		_dataman_init;				///< Dataman initialized
 
 	static uint16_t		_count[3];				///< Count of items in (active) mission for each MAV_MISSION_TYPE
@@ -113,7 +114,7 @@ private:
 
 	int32_t			_last_reached{-1};			///< Last reached waypoint in active mission (-1 means nothing reached)
 
-	int8_t			_transfer_dataman_id{0};		///< Dataman storage ID for current transmission
+	dm_item_t			_transfer_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_1};		///< Dataman storage ID for current transmission
 
 	uint16_t		_transfer_count{0};			///< Items count in current transmission
 	uint16_t		_transfer_seq{0};			///< Item sequence in current transmission
@@ -125,17 +126,15 @@ private:
 
 	static bool		_transfer_in_progress;			///< Global variable checking for current transmission
 
-	int			_offboard_mission_sub{-1};
-	int			_mission_result_sub{-1};
+	uORB::Subscription	_mission_result_sub{ORB_ID(mission_result)};
 
-	orb_advert_t		_offboard_mission_pub{nullptr};
+	uORB::Publication<mission_s>	_offboard_mission_pub{ORB_ID(mission)};
 
 	static uint16_t		_geofence_update_counter;
+	static uint16_t		_safepoint_update_counter;
 	bool			_geofence_locked{false};		///< if true, we currently hold the dm_lock for the geofence (transaction in progress)
 
 	MavlinkRateLimiter	_slow_rate_limiter{100 * 1000};		///< Rate limit sending of the current WP sequence to 10 Hz
-
-	bool _verbose;
 
 	Mavlink *_mavlink;
 
@@ -160,7 +159,7 @@ private:
 
 	void init_offboard_mission();
 
-	int update_active_mission(int8_t dataman_id, uint16_t count, int32_t seq);
+	int update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq);
 
 	/** store the geofence count to dataman */
 	int update_geofence_count(unsigned count);

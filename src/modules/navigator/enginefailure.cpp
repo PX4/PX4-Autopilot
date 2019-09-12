@@ -43,7 +43,7 @@
 
 #include <systemlib/mavlink_log.h>
 #include <systemlib/err.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <navigator/navigation.h>
 
 #include <uORB/uORB.h>
@@ -52,17 +52,9 @@
 #include "navigator.h"
 #include "enginefailure.h"
 
-#define DELAY_SIGMA	0.01f
-
-EngineFailure::EngineFailure(Navigator *navigator, const char *name) :
-	MissionBlock(navigator, name),
+EngineFailure::EngineFailure(Navigator *navigator) :
+	MissionBlock(navigator),
 	_ef_state(EF_STATE_NONE)
-{
-	/* initial reset */
-	on_inactive();
-}
-
-EngineFailure::~EngineFailure()
 {
 }
 
@@ -94,7 +86,7 @@ EngineFailure::set_ef_item()
 {
 	struct position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
-	set_previous_pos_setpoint();
+	pos_sp_triplet->previous = pos_sp_triplet->current;
 	_navigator->set_can_loiter_at_sp(false);
 
 	switch (_ef_state) {

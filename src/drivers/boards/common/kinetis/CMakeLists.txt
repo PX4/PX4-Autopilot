@@ -31,9 +31,11 @@
 #
 ############################################################################
 
-px4_add_library(board_kinetis
+add_library(drivers_boards_common_arch
 	board_identity.c
 	board_mcu_version.c
 	board_reset.c
 	)
-add_dependencies(board_kinetis nuttx_build)
+add_dependencies(drivers_boards_common_arch prebuild_targets)
+target_compile_options(drivers_boards_common_arch PRIVATE -Wno-cast-align) # TODO: fix and enable
+target_link_libraries(drivers_boards_common_arch PRIVATE nuttx_arch)

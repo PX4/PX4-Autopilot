@@ -1,8 +1,0 @@
-#
-# For a description of the syntax of this configuration file,
-# see misc/tools/kconfig-language.txt.
-#
-
-if CONFIG_ARCH_BOARD_S2740VC_V1
-
-endif

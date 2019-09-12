@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
- *   Author: @author Lorenz Meier <lm@inf.ethz.ch>
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,6 +34,8 @@
 /**
  * @file reboot.c
  * Tool similar to UNIX reboot command
+ *
+ * @author Lorenz Meier <lorenz@px4.io>
  */
 
 #include <px4_config.h>
@@ -42,7 +43,6 @@
 #include <px4_log.h>
 #include <px4_module.h>
 #include <px4_shutdown.h>
-#include <systemlib/systemlib.h>
 #include <string.h>
 
 __EXPORT int reboot_main(int argc, char *argv[]);
@@ -107,7 +107,7 @@ int reboot_main(int argc, char *argv[])
 		return -1;
 	}
 
-	while (1) { usleep(1); } // this command should not return on success
+	while (1) { px4_usleep(1); } // this command should not return on success
 
 	return 0;
 }

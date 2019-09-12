@@ -195,6 +195,7 @@ def normalize_mix_px4(B):
     '''
     B_norm = np.linalg.norm(B, axis=0)
     B_max = np.abs(B).max(axis=0)
+    B_sum = np.sum(B, axis=0)
 
     # Same scale on roll and pitch
     B_norm[0] = max(B_norm[0], B_norm[1]) / np.sqrt(B.shape[0] / 2.0)
@@ -208,7 +209,7 @@ def normalize_mix_px4(B):
     B_norm[4] = B_norm[3]
 
     # Scale z thrust separately
-    B_norm[5] = B_max[5]
+    B_norm[5] = - B_sum[5] / np.count_nonzero(B[:,5])
 
     # Normalize
     B_norm[np.abs(B_norm) < 1e-3] = 1

@@ -33,11 +33,11 @@
 px4_add_module(
 	MODULE modules__bottle_drop
 	MAIN bottle_drop
-	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
 		bottle_drop.cpp
 	DEPENDS
-		platforms__common
+		git_ecl
+		ecl_geo
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

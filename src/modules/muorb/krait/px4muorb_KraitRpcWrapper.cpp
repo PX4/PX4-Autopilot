@@ -36,10 +36,11 @@
 #include <fcntl.h>
 #include "px4muorb_KraitRpcWrapper.hpp"
 #include <rpcmem.h>
-#include "px4muorb.h"
+#include <px4muorb.h>
 #include "px4_log.h"
 #include <shmem.h>
 #include <drivers/drv_hrt.h>
+#include <string.h>
 
 using namespace px4muorb;
 
@@ -143,14 +144,6 @@ int calc_timer_diff_to_dsp_us(int32_t *time_diff_us)
 		  *time_diff_us, ((double)*time_diff_us) / 1e6);
 
 	return 0;
-}
-
-px4muorb::KraitRpcWrapper::KraitRpcWrapper()
-{
-}
-
-px4muorb::KraitRpcWrapper::~KraitRpcWrapper()
-{
 }
 
 bool px4muorb::KraitRpcWrapper::Initialize()

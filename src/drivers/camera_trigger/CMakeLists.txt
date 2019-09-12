@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE drivers__camera_trigger
 	MAIN camera_trigger
-	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
 		camera_trigger.cpp
@@ -42,6 +41,5 @@ px4_add_module(
                 interfaces/src/seagull_map2.cpp
                 interfaces/src/gpio.cpp
 	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

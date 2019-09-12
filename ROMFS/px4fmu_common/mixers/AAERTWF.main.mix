@@ -19,12 +19,10 @@ factors (to reverse the servo movement) and adjust the offset, scaling and
 endpoints to suit.
 
 M: 2
-O:      10000  10000      0 -10000  10000
 S: 0 0  10000  10000      0 -10000  10000
 S: 0 6  10000  10000      0 -10000  10000
 
 M: 2
-O:      10000  10000      0 -10000  10000
 S: 0 0  10000  10000      0 -10000  10000
 S: 0 6 -10000 -10000      0 -10000  10000
 
@@ -38,7 +36,6 @@ factors (to reverse the servo movement) and adjust the offset, scaling and
 endpoints to suit.
 
 M: 1
-O:       10000   10000      0 -10000  10000
 S: 0 1  -10000  -10000      0 -10000  10000
 
 Rudder mixer
@@ -51,7 +48,6 @@ factors (to reverse the servo movement) and adjust the offset, scaling and
 endpoints to suit.
 
 M: 1
-O:      10000  10000      0 -10000  10000
 S: 0 2  10000  10000      0 -10000  10000
 
 Motor speed mixer
@@ -62,7 +58,6 @@ This mixer generates a full-range output (-1 to 1) from an input in the (0 - 1)
 range.  Inputs below zero are treated as zero.
 
 M: 1
-O:      10000  10000      0 -10000  10000
 S: 0 3      0  20000 -10000 -10000  10000
 
 Wheel mixer
@@ -75,7 +70,6 @@ factors (to reverse the servo movement) and adjust the offset, scaling and
 endpoints to suit.
 
 M: 1
-O:      10000  10000      0 -10000  10000
 S: 0 2  10000  10000      0 -10000  10000
 
 
@@ -84,13 +78,10 @@ using the payload control group
 -----------------------------------------------------
 
 M: 1
-O:      10000  10000      0 -10000  10000
 S: 0 4  10000  10000      0 -10000  10000
 
 M: 1
-O:      10000  10000      0 -10000  10000
 S: 2 0  10000  10000      0 -10000  10000
 
 M: 1
-O:      10000  10000      0 -10000  10000
 S: 2 2  10000  10000      0 -10000  10000

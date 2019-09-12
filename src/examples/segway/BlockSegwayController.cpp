@@ -42,7 +42,7 @@ void BlockSegwayController::update()
 	Eulerf euler = Eulerf(Quatf(_att.get().q));
 
 	// compute speed command
-	float spdCmd = -th2v.update(euler.theta()) - q2v.update(_att.get().pitchspeed);
+	float spdCmd = -th2v.update(euler.theta()) - q2v.update(_angular_velocity.get().xyz[1]);
 
 	// handle autopilot modes
 	if (nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION ||
@@ -61,6 +61,6 @@ void BlockSegwayController::update()
 		actuators.control[CH_RIGHT] = -_manual.get().x;
 	}
 
-	// update all publications
-	updatePublications();
+	// publish
+	_actuators.update();
 }

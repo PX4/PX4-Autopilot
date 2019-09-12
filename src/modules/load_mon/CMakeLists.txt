@@ -33,11 +33,10 @@
 px4_add_module(
 	MODULE modules__load_mon
 	MAIN load_mon
-	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
 		load_mon.cpp
 	DEPENDS
-		platforms__common
+		px4_work_queue
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# NXP fmuk66-v3 specific board defaults
+#------------------------------------------------------------------------------
+
+
+if [ $AUTOCNF = yes ]
+then
+
+fi
+
+safety_button start
+

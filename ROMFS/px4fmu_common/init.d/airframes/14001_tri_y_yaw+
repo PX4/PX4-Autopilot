@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# @name Generic Tricopter Y+ Geometry
+#
+# @type Tricopter Y+
+# @class Copter
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 yaw servo
+#
+# @maintainer Trent Lukaczyk <aerialhedgehog@gmail.com>
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+set MIXER tri_y_yaw+
+
+set PWM_OUT 1234

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012, 2013, 2017 PX4 Development Team. All rights reserved.
+ *  Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -34,9 +34,9 @@
 /**
  * @file test_servo.c
  * Tests the servo outputs
- *
  */
 
+#include <px4_time.h>
 #include <px4_config.h>
 
 #include <sys/types.h>
@@ -113,7 +113,7 @@ int test_servo(int argc, char *argv[])
 		goto out;
 	}
 
-	usleep(5000000);
+	px4_usleep(5000000);
 	printf("Advancing channel 0 to 1500\n");
 	result = ioctl(fd, PWM_SERVO_SET(0), 1500);
 	printf("Advancing channel 1 to 1800\n");

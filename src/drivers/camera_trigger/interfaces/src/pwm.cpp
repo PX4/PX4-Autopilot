@@ -2,17 +2,18 @@
 
 #include <sys/ioctl.h>
 #include <lib/mathlib/mathlib.h>
+#include <parameters/param.h>
+
 
 #include "drivers/drv_pwm_trigger.h"
 #include "pwm.h"
 
-// TODO : make these parameters later
-#define PWM_CAMERA_SHOOT 1900
-#define PWM_CAMERA_NEUTRAL 1500
 
 CameraInterfacePWM::CameraInterfacePWM():
 	CameraInterface()
 {
+	param_get(param_find("TRIG_PWM_SHOOT"), &_pwm_camera_shoot);
+	param_get(param_find("TRIG_PWM_NEUTRAL"), &_pwm_camera_neutral);
 	get_pins();
 	setup();
 }
@@ -40,18 +41,18 @@ void CameraInterfacePWM::setup()
 	// Set neutral pulsewidths
 	for (unsigned i = 0; i < arraySize(_pins); i++) {
 		if (_pins[i] >= 0) {
-			up_pwm_trigger_set(_pins[i], math::constrain(PWM_CAMERA_NEUTRAL, PWM_CAMERA_NEUTRAL, 2000));
+			up_pwm_trigger_set(_pins[i], math::constrain(_pwm_camera_neutral, 0, 2000));
 		}
 	}
 
 }
 
-void CameraInterfacePWM::trigger(bool enable)
+void CameraInterfacePWM::trigger(bool trigger_on_true)
 {
 	for (unsigned i = 0; i < arraySize(_pins); i++) {
 		if (_pins[i] >= 0) {
 			// Set all valid pins to shoot or neutral levels
-			up_pwm_trigger_set(_pins[i], math::constrain(enable ? PWM_CAMERA_SHOOT : PWM_CAMERA_NEUTRAL, 1000, 2000));
+			up_pwm_trigger_set(_pins[i], math::constrain(trigger_on_true ? _pwm_camera_shoot : _pwm_camera_neutral, 0, 2000));
 		}
 	}
 }

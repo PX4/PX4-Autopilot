@@ -41,9 +41,9 @@ int BlockLocalPositionEstimator::baroMeasure(Vector<float, n_y_baro> &y)
 {
 	//measure
 	y.setZero();
-	y(0) = _sub_sensor.get().baro_alt_meter;
+	y(0) = _sub_airdata.get().baro_alt_meter;
 	_baroStats.update(y);
-	_time_last_baro = _timeStamp;
+	_time_last_baro = _sub_airdata.get().timestamp;
 	return OK;
 }
 
@@ -64,7 +64,7 @@ void BlockLocalPositionEstimator::baroCorrect()
 
 	Matrix<float, n_y_baro, n_y_baro> R;
 	R.setZero();
-	R(0, 0) = _baro_stddev.get() * _baro_stddev.get();
+	R(0, 0) = _param_lpe_bar_z.get() * _param_lpe_bar_z.get();
 
 	// residual
 	Matrix<float, n_y_baro, n_y_baro> S_I =

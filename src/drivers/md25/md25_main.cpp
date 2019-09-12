@@ -45,14 +45,14 @@
  */
 
 #include <px4_config.h>
+#include <px4_log.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
-#include <systemlib/systemlib.h>
-#include <systemlib/param/param.h>
+#include <parameters/param.h>
 
 #include <arch/board/board.h>
 #include "md25.hpp"
@@ -80,10 +80,10 @@ static void
 usage(const char *reason)
 {
 	if (reason) {
-		fprintf(stderr, "%s\n", reason);
+		PX4_WARN("%s", reason);
 	}
 
-	fprintf(stderr, "usage: md25 {start|stop|read|status|search|test|change_address}\n\n");
+	PX4_INFO("usage: md25 {start|stop|read|status|search|test|change_address}");
 	exit(1);
 }
 

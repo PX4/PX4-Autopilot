@@ -25,5 +25,5 @@ name     = "front"
 position = [1.0, 0.0, 0.0]
 
 [[rotors]]
-name     = "rear_right"
+name     = "rear"
 position = [-1.0, 0.0, 0.0]

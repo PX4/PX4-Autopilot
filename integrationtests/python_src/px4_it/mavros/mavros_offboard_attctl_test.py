@@ -41,17 +41,17 @@ from __future__ import division
 
 PKG = 'px4'
 
-import unittest
 import rospy
+from geometry_msgs.msg import Quaternion, Vector3
+from mavros_msgs.msg import AttitudeTarget
+from mavros_test_common import MavrosTestCommon
+from pymavlink import mavutil
+from std_msgs.msg import Header
 from threading import Thread
 from tf.transformations import quaternion_from_euler
-from geometry_msgs.msg import PoseStamped, Quaternion, Vector3
-from mavros_msgs.msg import AttitudeTarget, HomePosition, State
-from mavros_msgs.srv import CommandBool, SetMode
-from std_msgs.msg import Header
 
 
-class MavrosOffboardAttctlTest(unittest.TestCase):
+class MavrosOffboardAttctlTest(MavrosTestCommon):
     """
     Tests flying in offboard control by sending attitude and thrust setpoints
     via MAVROS.
@@ -60,34 +60,12 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
     """
 
     def setUp(self):
-        self.local_position = PoseStamped()
-        self.state = State()
+        super(MavrosOffboardAttctlTest, self).setUp()
+
         self.att = AttitudeTarget()
-        self.sub_topics_ready = {
-            key: False
-            for key in ['local_pos', 'home_pos', 'state']
-        }
 
-        # setup ROS topics and services
-        try:
-            rospy.wait_for_service('mavros/cmd/arming', 30)
-            rospy.wait_for_service('mavros/set_mode', 30)
-        except rospy.ROSException:
-            self.fail("failed to connect to mavros services")
-
-        self.set_arming_srv = rospy.ServiceProxy('mavros/cmd/arming',
-                                                 CommandBool)
-        self.set_mode_srv = rospy.ServiceProxy('mavros/set_mode', SetMode)
-        self.local_pos_sub = rospy.Subscriber('mavros/local_position/pose',
-                                              PoseStamped,
-                                              self.local_position_callback)
-        self.home_pos_sub = rospy.Subscriber('mavros/home_position/home',
-                                             HomePosition,
-                                             self.home_position_callback)
-        self.state_sub = rospy.Subscriber('mavros/state', State,
-                                          self.state_callback)
         self.att_setpoint_pub = rospy.Publisher(
-            'mavros/setpoint_raw/attitude', AttitudeTarget, queue_size=10)
+            'mavros/setpoint_raw/attitude', AttitudeTarget, queue_size=1)
 
         # send setpoints in seperate thread to better prevent failsafe
         self.att_thread = Thread(target=self.send_att, args=())
@@ -95,30 +73,7 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
         self.att_thread.start()
 
     def tearDown(self):
-        pass
-
-    #
-    # Callback functions
-    #
-    def local_position_callback(self, data):
-        self.local_position = data
-
-        if not self.sub_topics_ready['local_pos']:
-            self.sub_topics_ready['local_pos'] = True
-
-    def home_position_callback(self, data):
-        # this topic publishing seems to be a better indicator that the sim
-        # is ready, it's not actually needed
-        self.home_pos_sub.unregister()
-
-        if not self.sub_topics_ready['home_pos']:
-            self.sub_topics_ready['home_pos'] = True
-
-    def state_callback(self, data):
-        self.state = data
-
-        if not self.sub_topics_ready['state']:
-            self.sub_topics_ready['state'] = True
+        super(MavrosOffboardAttctlTest, self).tearDown()
 
     #
     # Helper methods
@@ -128,7 +83,7 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
         self.att.body_rate = Vector3()
         self.att.header = Header()
         self.att.header.frame_id = "base_footprint"
-        self.att.orientation = Quaternion(*quaternion_from_euler(0.25, 0.25,
+        self.att.orientation = Quaternion(*quaternion_from_euler(-0.25, 0.5,
                                                                  0))
         self.att.thrust = 0.7
         self.att.type_mask = 7  # ignore body rate
@@ -141,125 +96,56 @@ class MavrosOffboardAttctlTest(unittest.TestCase):
             except rospy.ROSInterruptException:
                 pass
 
-    def set_mode(self, mode, timeout):
-        """mode: PX4 mode string, timeout(int): seconds"""
-        old_mode = self.state.mode
-        loop_freq = 1  # Hz
-        rate = rospy.Rate(loop_freq)
-        mode_set = False
-        for i in xrange(timeout * loop_freq):
-            if self.state.mode == mode:
-                mode_set = True
-                rospy.loginfo(
-                    "set mode success | new mode: {0}, old mode: {1} | seconds: {2} of {3}".
-                    format(mode, self.state.mode, i / loop_freq, timeout))
-                break
-            else:
-                try:
-                    res = self.set_mode_srv(0, mode)  # 0 is custom mode
-                    if not res.mode_sent:
-                        rospy.logerr("failed to send mode command")
-                except rospy.ServiceException as e:
-                    rospy.logerr(e)
-
-            rate.sleep()
-
-        self.assertTrue(mode_set, (
-            "failed to set mode | new mode: {0}, old mode: {1} | timeout(seconds): {2}".
-            format(mode, old_mode, timeout)))
-
-    def set_arm(self, arm, timeout):
-        """arm: True to arm or False to disarm, timeout(int): seconds"""
-        old_arm = self.state.armed
-        loop_freq = 1  # Hz
-        rate = rospy.Rate(loop_freq)
-        arm_set = False
-        for i in xrange(timeout * loop_freq):
-            if self.state.armed == arm:
-                arm_set = True
-                rospy.loginfo(
-                    "set arm success | new arm: {0}, old arm: {1} | seconds: {2} of {3}".
-                    format(arm, old_arm, i / loop_freq, timeout))
-                break
-            else:
-                try:
-                    res = self.set_arming_srv(arm)
-                    if not res.success:
-                        rospy.logerr("failed to send arm command")
-                except rospy.ServiceException as e:
-                    rospy.logerr(e)
-
-            rate.sleep()
-
-        self.assertTrue(arm_set, (
-            "failed to set arm | new arm: {0}, old arm: {1} | timeout(seconds): {2}".
-            format(arm, self.state.armed, timeout)))
-
-    def wait_for_topics(self, timeout):
-        """wait for simulation to be ready, make sure we're getting topic info
-        from all topics by checking dictionary of flag values set in callbacks,
-        timeout(int): seconds"""
-        rospy.loginfo("waiting for simulation topics to be ready")
-        loop_freq = 1  # Hz
-        rate = rospy.Rate(loop_freq)
-        simulation_ready = False
-        for i in xrange(timeout * loop_freq):
-            if all(value for value in self.sub_topics_ready.values()):
-                simulation_ready = True
-                rospy.loginfo("simulation topics ready | seconds: {0} of {1}".
-                              format(i / loop_freq, timeout))
-                break
-
-            rate.sleep()
-
-        self.assertTrue(simulation_ready, (
-            "failed to hear from all subscribed simulation topics | topic ready flags: {0} | timeout(seconds): {1}".
-            format(self.sub_topics_ready, timeout)))
-
     #
     # Test method
     #
     def test_attctl(self):
         """Test offboard attitude control"""
         # boundary to cross
-        boundary_x = 5
-        boundary_y = 5
-        boundary_z = -5
+        boundary_x = 200
+        boundary_y = 100
+        boundary_z = 20
 
-        # delay starting the mission
-        self.wait_for_topics(30)
+        # make sure the simulation is ready to start the mission
+        self.wait_for_topics(60)
+        self.wait_for_landed_state(mavutil.mavlink.MAV_LANDED_STATE_ON_GROUND,
+                                   10, -1)
 
-        rospy.loginfo("seting mission mode")
+        self.log_topic_vars()
         self.set_mode("OFFBOARD", 5)
-        rospy.loginfo("arming")
         self.set_arm(True, 5)
 
         rospy.loginfo("run mission")
         rospy.loginfo("attempting to cross boundary | x: {0}, y: {1}, z: {2}".
                       format(boundary_x, boundary_y, boundary_z))
         # does it cross expected boundaries in 'timeout' seconds?
-        timeout = 12  # (int) seconds
-        loop_freq = 10  # Hz
+        timeout = 90  # (int) seconds
+        loop_freq = 2  # Hz
         rate = rospy.Rate(loop_freq)
         crossed = False
         for i in xrange(timeout * loop_freq):
             if (self.local_position.pose.position.x > boundary_x and
-                    self.local_position.pose.position.z > boundary_y and
-                    self.local_position.pose.position.y < boundary_z):
+                    self.local_position.pose.position.y > boundary_y and
+                    self.local_position.pose.position.z > boundary_z):
                 rospy.loginfo("boundary crossed | seconds: {0} of {1}".format(
                     i / loop_freq, timeout))
                 crossed = True
                 break
 
-            rate.sleep()
+            try:
+                rate.sleep()
+            except rospy.ROSException as e:
+                self.fail(e)
 
         self.assertTrue(crossed, (
-            "took too long to cross boundaries | current position x: {0}, y: {1}, z: {2} | timeout(seconds): {3}".
+            "took too long to cross boundaries | current position x: {0:.2f}, y: {1:.2f}, z: {2:.2f} | timeout(seconds): {3}".
             format(self.local_position.pose.position.x,
                    self.local_position.pose.position.y,
                    self.local_position.pose.position.z, timeout)))
 
-        rospy.loginfo("disarming")
+        self.set_mode("AUTO.LAND", 5)
+        self.wait_for_landed_state(mavutil.mavlink.MAV_LANDED_STATE_ON_GROUND,
+                                   90, 0)
         self.set_arm(False, 5)
 
 

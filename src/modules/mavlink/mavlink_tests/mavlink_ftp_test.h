@@ -44,7 +44,7 @@ class MavlinkFtpTest : public UnitTest
 {
 public:
 	MavlinkFtpTest();
-	virtual ~MavlinkFtpTest();
+	virtual ~MavlinkFtpTest() = default;
 
 	virtual bool run_tests(void);
 

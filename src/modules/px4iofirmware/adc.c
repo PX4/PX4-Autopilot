@@ -44,7 +44,7 @@
 #include <stm32.h>
 
 #include <drivers/drv_hrt.h>
-#include <systemlib/perf_counter.h>
+#include <perf/perf_counter.h>
 
 #define DEBUG
 #include "px4io.h"

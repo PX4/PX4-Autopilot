@@ -45,28 +45,8 @@
 #include <sys/ioctl.h>
 #include <stdint.h>
 
-/*
- * ioctl() definitions
- */
-
-/** path to the uORB control device for pub/sub topics */
-#define TOPIC_MASTER_DEVICE_PATH	"/obj/_obj_"
-
-/** path to the uORB control device for parameter topics */
-#define PARAM_MASTER_DEVICE_PATH	"/param/_param_"
-
-/** maximum ogbject name length */
-#define ORB_MAXNAME		32
-
 #define _ORBIOCBASE		(0x2600)
 #define _ORBIOC(_n)		(_PX4_IOC(_ORBIOCBASE, _n))
-
-/*
- * IOCTLs for the uORB control device
- */
-
-/** Advertise a new topic described by *(uorb_metadata *)arg */
-#define ORBIOCADVERTISE		_ORBIOC(0)
 
 /*
  * IOCTLs for individual topics.

@@ -34,13 +34,13 @@
 
 #include "microRTPS_transport.h"
 
-#include <cinttypes>
+#include <inttypes.h>
 #include <cstdio>
 #include <ctime>
 #include <pthread.h>
 #include <termios.h>
 
-#include <microcdr/microCdr.h>
+#include <ucdr/microcdr.h>
 #include <px4_config.h>
 #include <px4_getopt.h>
 #include <px4_posix.h>
@@ -52,7 +52,14 @@
 #define UPDATE_TIME_MS 0
 #define LOOPS -1
 #define SLEEP_MS 1
-#define BAUDRATE 460800
+#define BAUDRATE B460800
+#define BAUDRATE_VAL 460800
+#ifndef B460800
+#define B460800 460800
+#endif
+#ifndef B921600
+#define B921600 921600
+#endif
 #define DEVICE "/dev/ttyACM0"
 #define POLL_MS 1
 #define DEFAULT_RECV_PORT 2019
@@ -60,6 +67,11 @@
 
 void *send(void *data);
 void micrortps_start_topics(struct timespec &begin, int &total_read, uint32_t &received, int &loop);
+
+struct baudtype {
+	speed_t code;
+	uint32_t val;
+};
 
 struct options {
 	enum class eTransports {
@@ -71,7 +83,7 @@ struct options {
 	int update_time_ms = UPDATE_TIME_MS;
 	int loops = LOOPS;
 	int sleep_ms = SLEEP_MS;
-	uint32_t baudrate = BAUDRATE;
+	struct baudtype baudrate = {.code = BAUDRATE, .val = BAUDRATE_VAL};
 	int poll_ms = POLL_MS;
 	uint16_t recv_port = DEFAULT_RECV_PORT;
 	uint16_t send_port = DEFAULT_SEND_PORT;
@@ -80,4 +92,3 @@ struct options {
 extern struct options _options;
 extern bool _should_exit_task;
 extern Transport_node *transport_node;
-

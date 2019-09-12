@@ -1,5 +1,3 @@
-// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
-
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
@@ -45,24 +43,14 @@ namespace math
 class __EXPORT LowPassFilter2p
 {
 public:
-	// constructor
-	LowPassFilter2p(float sample_freq, float cutoff_freq) :
-		_cutoff_freq(cutoff_freq),
-		_a1(0.0f),
-		_a2(0.0f),
-		_b0(0.0f),
-		_b1(0.0f),
-		_b2(0.0f),
-		_delay_element_1(0.0f),
-		_delay_element_2(0.0f)
+
+	LowPassFilter2p(float sample_freq, float cutoff_freq)
 	{
 		// set initial parameters
 		set_cutoff_frequency(sample_freq, cutoff_freq);
 	}
 
-	/**
-	 * Change filter parameters
-	 */
+	// Change filter parameters
 	void set_cutoff_frequency(float sample_freq, float cutoff_freq);
 
 	/**
@@ -72,28 +60,25 @@ public:
 	 */
 	float apply(float sample);
 
-	/**
-	 * Return the cutoff frequency
-	 */
-	float get_cutoff_freq() const
-	{
-		return _cutoff_freq;
-	}
+	// Return the cutoff frequency
+	float get_cutoff_freq() const { return _cutoff_freq; }
 
-	/**
-	 * Reset the filter state to this value
-	 */
+	// Reset the filter state to this value
 	float reset(float sample);
 
 private:
-	float           _cutoff_freq;
-	float           _a1;
-	float           _a2;
-	float           _b0;
-	float           _b1;
-	float           _b2;
-	float           _delay_element_1;        // buffered sample -1
-	float           _delay_element_2;        // buffered sample -2
+
+	float _cutoff_freq{0.0f};
+
+	float _a1{0.0f};
+	float _a2{0.0f};
+
+	float _b0{0.0f};
+	float _b1{0.0f};
+	float _b2{0.0f};
+
+	float _delay_element_1{0.0f};	// buffered sample -1
+	float _delay_element_2{0.0f};	// buffered sample -2
 };
 
 } // namespace math

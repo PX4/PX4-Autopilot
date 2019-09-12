@@ -37,6 +37,7 @@
 #include "../uORB.h"
 #include <px4_time.h>
 #include <px4_tasks.h>
+#include <unistd.h>
 
 struct orb_test {
 	int val;
@@ -86,10 +87,10 @@ private:
 	// Disallow copy
 	UnitTest(const uORBTest::UnitTest & /*unused*/) = delete;
 
-	static int pubsubtest_threadEntry(char *const argv[]);
+	static int pubsubtest_threadEntry(int argc, char *argv[]);
 	int pubsublatency_main();
 
-	static int pub_test_multi2_entry(char *const argv[]);
+	static int pub_test_multi2_entry(int argc, char *argv[]);
 	int pub_test_multi2_main();
 
 	volatile bool _thread_should_exit;
@@ -111,7 +112,7 @@ private:
 
 	/* queuing tests */
 	int test_queue();
-	static int pub_test_queue_entry(char *const argv[]);
+	static int pub_test_queue_entry(int argc, char *argv[]);
 	int pub_test_queue_main();
 	int test_queue_poll_notify();
 	volatile int _num_messages_sent = 0;
@@ -146,14 +147,14 @@ int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
 	// prevent access if the caller data goes out of scope
 	int pubsub_task = px4_task_spawn_cmd("uorb_latency",
 					     SCHED_DEFAULT,
-					     SCHED_PRIORITY_MAX - 5,
-					     1500,
+					     SCHED_PRIORITY_MAX,
+					     2000,
 					     (px4_main_t)&uORBTest::UnitTest::pubsubtest_threadEntry,
 					     args);
 
 	/* give the test task some data */
 	while (!pubsubtest_passed) {
-		t.val = 308;
+		++t.val;
 		t.time = hrt_absolute_time();
 
 		if (PX4_OK != orb_publish(T, pfd0, &t)) {
@@ -161,7 +162,7 @@ int uORBTest::UnitTest::latency_test(orb_id_t T, bool print)
 		}
 
 		/* simulate >800 Hz system operation */
-		usleep(1000);
+		px4_usleep(1000);
 	}
 
 	if (pubsub_task < 0) {

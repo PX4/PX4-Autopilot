@@ -1,5 +1,3 @@
-// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
-
 /****************************************************************************
  *
  *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
@@ -33,12 +31,10 @@
  *
  ****************************************************************************/
 
-/// @file	LowPassFilter.cpp
-/// @brief	A class to implement a second order low pass filter
-/// Author: Leonard Hall <LeonardTHall@gmail.com>
+#include "LowPassFilter2p.hpp"
 
 #include <px4_defines.h>
-#include "LowPassFilter2p.hpp"
+
 #include <cmath>
 
 namespace math
@@ -48,28 +44,36 @@ void LowPassFilter2p::set_cutoff_frequency(float sample_freq, float cutoff_freq)
 {
 	_cutoff_freq = cutoff_freq;
 
+	// reset delay elements on filter change
+	_delay_element_1 = 0.0f;
+	_delay_element_2 = 0.0f;
+
 	if (_cutoff_freq <= 0.0f) {
 		// no filtering
+		_b0 = 1.0f;
+		_b1 = 0.0f;
+		_b2 = 0.0f;
+
+		_a1 = 0.0f;
+		_a2 = 0.0f;
+
 		return;
 	}
 
-	float fr = sample_freq / _cutoff_freq;
-	float ohm = tanf(M_PI_F / fr);
-	float c = 1.0f + 2.0f * cosf(M_PI_F / 4.0f) * ohm + ohm * ohm;
+	const float fr = sample_freq / _cutoff_freq;
+	const float ohm = tanf(M_PI_F / fr);
+	const float c = 1.0f + 2.0f * cosf(M_PI_F / 4.0f) * ohm + ohm * ohm;
+
 	_b0 = ohm * ohm / c;
 	_b1 = 2.0f * _b0;
 	_b2 = _b0;
+
 	_a1 = 2.0f * (ohm * ohm - 1.0f) / c;
 	_a2 = (1.0f - 2.0f * cosf(M_PI_F / 4.0f) * ohm + ohm * ohm) / c;
 }
 
 float LowPassFilter2p::apply(float sample)
 {
-	if (_cutoff_freq <= 0.0f) {
-		// no filtering
-		return sample;
-	}
-
 	// do the filtering
 	float delay_element_0 = sample - _delay_element_1 * _a1 - _delay_element_2 * _a2;
 
@@ -78,22 +82,29 @@ float LowPassFilter2p::apply(float sample)
 		delay_element_0 = sample;
 	}
 
-	float output = delay_element_0 * _b0 + _delay_element_1 * _b1 + _delay_element_2 * _b2;
+	const float output = delay_element_0 * _b0 + _delay_element_1 * _b1 + _delay_element_2 * _b2;
 
 	_delay_element_2 = _delay_element_1;
 	_delay_element_1 = delay_element_0;
 
-	// return the value.  Should be no need to check limits
+	// return the value. Should be no need to check limits
 	return output;
 }
 
 float LowPassFilter2p::reset(float sample)
 {
-	float dval = sample / (_b0 + _b1 + _b2);
-	_delay_element_1 = dval;
-	_delay_element_2 = dval;
+	const float dval = sample / (_b0 + _b1 + _b2);
+
+	if (PX4_ISFINITE(dval)) {
+		_delay_element_1 = dval;
+		_delay_element_2 = dval;
+
+	} else {
+		_delay_element_1 = sample;
+		_delay_element_2 = sample;
+	}
+
 	return apply(sample);
 }
 
 } // namespace math
-

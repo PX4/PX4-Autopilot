@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,6 +45,7 @@
 
 #include <px4_config.h>
 #include <px4_module.h>
+#include <px4_module_params.h>
 #include <px4_getopt.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
@@ -65,14 +66,12 @@
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_adc.h>
 #include <drivers/drv_airspeed.h>
-#include <drivers/drv_px4flow.h>
 
-#include <systemlib/airspeed.h>
-#include <systemlib/systemlib.h>
-#include <systemlib/param/param.h>
+#include <airspeed/airspeed.h>
+#include <parameters/param.h>
 #include <systemlib/err.h>
-#include <systemlib/perf_counter.h>
-#include <systemlib/battery.h>
+#include <perf/perf_counter.h>
+#include <battery/battery.h>
 
 #include <conversion/rotation.h>
 
@@ -84,6 +83,8 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/sensor_preflight.h>
+#include <uORB/topics/vehicle_air_data.h>
+#include <uORB/topics/vehicle_magnetometer.h>
 
 #include <DevMgr.hpp>
 
@@ -91,8 +92,12 @@
 #include "rc_update.h"
 #include "voted_sensors_update.h"
 
+#include "vehicle_acceleration/VehicleAcceleration.hpp"
+#include "vehicle_angular_velocity/VehicleAngularVelocity.hpp"
+
 using namespace DriverFramework;
 using namespace sensors;
+using namespace time_literals;
 
 /**
  * Analog layout:
@@ -129,12 +134,11 @@ using namespace sensors;
  */
 extern "C" __EXPORT int sensors_main(int argc, char *argv[]);
 
-class Sensors : public ModuleBase<Sensors>
+class Sensors : public ModuleBase<Sensors>, public ModuleParams
 {
 public:
 	Sensors(bool hil_enabled);
-
-	~Sensors() {}
+	~Sensors() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -162,33 +166,45 @@ private:
 	const bool	_hil_enabled;			/**< if true, HIL is active */
 	bool		_armed{false};				/**< arming status of the vehicle */
 
-	int		_actuator_ctrl_0_sub{-1};		/**< attitude controls sub */
-	int		_diff_pres_sub{-1};			/**< raw differential pressure subscription */
-	int		_vcontrol_mode_sub{-1};		/**< vehicle control mode subscription */
-	int 		_params_sub{-1};			/**< notification of parameter updates */
+	uORB::Subscription	_actuator_ctrl_0_sub{ORB_ID(actuator_controls_0)};		/**< attitude controls sub */
+	uORB::Subscription	_diff_pres_sub{ORB_ID(differential_pressure)};			/**< raw differential pressure subscription */
+	uORB::Subscription	_params_sub{ORB_ID(parameter_update)};				/**< notification of parameter updates */
+	uORB::Subscription	_vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
 
-	orb_advert_t	_sensor_pub{nullptr};			/**< combined sensor data topic */
+	uORB::Publication<airspeed_s>			_airspeed_pub{ORB_ID(airspeed)};			/**< airspeed */
+	uORB::Publication<sensor_combined_s>		_sensor_pub{ORB_ID(sensor_combined)};			/**< combined sensor data topic */
+	uORB::Publication<sensor_preflight_s>		_sensor_preflight{ORB_ID(sensor_preflight)};		/**< sensor preflight topic */
+	uORB::Publication<vehicle_air_data_s>		_airdata_pub{ORB_ID(vehicle_air_data)};			/**< combined sensor data topic */
+	uORB::Publication<vehicle_magnetometer_s>	_magnetometer_pub{ORB_ID(vehicle_magnetometer)};	/**< combined sensor data topic */
+
+#if BOARD_NUMBER_BRICKS > 0
 	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] {};			/**< battery status */
+
+	Battery		_battery[BOARD_NUMBER_BRICKS];			/**< Helper lib to publish battery_status topic. */
+#endif /* BOARD_NUMBER_BRICKS > 0 */
 
 #if BOARD_NUMBER_BRICKS > 1
 	int 			_battery_pub_intance0ndx {0}; /**< track the index of instance 0 */
-#endif
-
-	orb_advert_t	_airspeed_pub{nullptr};			/**< airspeed */
-	orb_advert_t	_diff_pres_pub{nullptr};			/**< differential_pressure */
-	orb_advert_t	_sensor_preflight{nullptr};		/**< sensor preflight topic */
+#endif /* BOARD_NUMBER_BRICKS > 1 */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
 	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
 
-	Battery		_battery[BOARD_NUMBER_BRICKS];			/**< Helper lib to publish battery_status topic. */
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
+	differential_pressure_s	_diff_pres {};
+	uORB::PublicationMulti<differential_pressure_s>	_diff_pres_pub{ORB_ID(differential_pressure)};		/**< differential_pressure */
+#endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
 	Parameters		_parameters{};			/**< local copies of interesting parameters */
 	ParameterHandles	_parameter_handles{};		/**< handles for interesting parameters */
 
 	RCUpdate		_rc_update;
 	VotedSensorsUpdate _voted_sensors_update;
+
+
+	VehicleAcceleration	_vehicle_acceleration;
+	VehicleAngularVelocity	_vehicle_angular_velocity;
 
 
 	/**
@@ -207,12 +223,7 @@ private:
 	 * @param raw			Combined sensor data structure into which
 	 *				data should be returned.
 	 */
-	void		diff_pres_poll(struct sensor_combined_s &raw);
-
-	/**
-	 * Check for changes in vehicle control mode.
-	 */
-	void		vehicle_control_mode_poll();
+	void		diff_pres_poll(const vehicle_air_data_s &airdata);
 
 	/**
 	 * Check for changes in parameters.
@@ -225,10 +236,11 @@ private:
 	 * @param raw			Combined sensor data structure into which
 	 *				data should be returned.
 	 */
-	void		adc_poll(struct sensor_combined_s &raw);
+	void		adc_poll();
 };
 
 Sensors::Sensors(bool hil_enabled) :
+	ModuleParams(nullptr),
 	_hil_enabled(hil_enabled),
 	_loop_perf(perf_alloc(PC_ELAPSED, "sensors")),
 	_rc_update(_parameters),
@@ -238,6 +250,23 @@ Sensors::Sensors(bool hil_enabled) :
 
 	_airspeed_validator.set_timeout(300000);
 	_airspeed_validator.set_equal_value_threshold(100);
+
+#if BOARD_NUMBER_BRICKS > 0
+
+	for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+		_battery[b].setParent(this);
+	}
+
+#endif /* BOARD_NUMBER_BRICKS > 0 */
+
+	_vehicle_acceleration.Start();
+	_vehicle_angular_velocity.Start();
+}
+
+Sensors::~Sensors()
+{
+	_vehicle_acceleration.Stop();
+	_vehicle_angular_velocity.Stop();
 }
 
 int
@@ -255,31 +284,7 @@ Sensors::parameters_update()
 	}
 
 	_rc_update.update_rc_functions();
-	_voted_sensors_update.parameters_update();
-
-	/* update barometer qnh setting */
-	DevHandle h_baro;
-	DevMgr::getHandle(BARO0_DEVICE_PATH, h_baro);
-
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_RPI) && !defined(__PX4_POSIX_BEBOP) && !defined(__PX4_POSIX_OCPOC)
-
-	// TODO: this needs fixing for QURT and Raspberry Pi
-	if (!h_baro.isValid()) {
-		if (!_hil_enabled) { // in HIL we don't have a baro
-			PX4_ERR("no barometer found on %s (%d)", BARO0_DEVICE_PATH, h_baro.getError());
-			ret = PX4_ERROR;
-		}
-
-	} else {
-		int baroret = h_baro.ioctl(BAROIOCSMSLPRESSURE, (unsigned long)(_parameters.baro_qnh * 100));
-
-		if (baroret) {
-			PX4_ERR("qnh for baro could not be set");
-			ret = PX4_ERROR;
-		}
-	}
-
-#endif
+	_voted_sensors_update.parametersUpdate();
 
 	return ret;
 }
@@ -299,18 +304,11 @@ Sensors::adc_init()
 }
 
 void
-Sensors::diff_pres_poll(struct sensor_combined_s &raw)
+Sensors::diff_pres_poll(const vehicle_air_data_s &raw)
 {
-	bool updated;
-	orb_check(_diff_pres_sub, &updated);
+	differential_pressure_s diff_pres{};
 
-	if (updated) {
-		differential_pressure_s diff_pres;
-		int ret = orb_copy(ORB_ID(differential_pressure), _diff_pres_sub, &diff_pres);
-
-		if (ret != PX4_OK) {
-			return;
-		}
+	if (_diff_pres_sub.update(&diff_pres)) {
 
 		float air_temperature_celsius = (diff_pres.temperature > -300.0f) ? diff_pres.temperature :
 						(raw.baro_temp_celcius - PCB_TEMP_ESTIMATE_DEG);
@@ -346,56 +344,34 @@ Sensors::diff_pres_poll(struct sensor_combined_s &raw)
 		}
 
 		/* don't risk to feed negative airspeed into the system */
-		airspeed.indicated_airspeed_m_s = math::max(0.0f,
-						  calc_indicated_airspeed_corrected((enum AIRSPEED_COMPENSATION_MODEL)_parameters.air_cmodel,
-								  smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
-								  diff_pres.differential_pressure_filtered_pa, _voted_sensors_update.baro_pressure(),
-								  air_temperature_celsius));
+		airspeed.indicated_airspeed_m_s = calc_IAS_corrected((enum AIRSPEED_COMPENSATION_MODEL)
+						  _parameters.air_cmodel,
+						  smodel, _parameters.air_tube_length, _parameters.air_tube_diameter_mm,
+						  diff_pres.differential_pressure_filtered_pa, raw.baro_pressure_pa,
+						  air_temperature_celsius);
 
-		airspeed.true_airspeed_m_s = math::max(0.0f,
-						       calc_true_airspeed_from_indicated(airspeed.indicated_airspeed_m_s,
-								       _voted_sensors_update.baro_pressure(), air_temperature_celsius));
-
-		airspeed.true_airspeed_unfiltered_m_s = math::max(0.0f,
-							calc_true_airspeed(diff_pres.differential_pressure_raw_pa + _voted_sensors_update.baro_pressure(),
-									_voted_sensors_update.baro_pressure(), air_temperature_celsius));
+		airspeed.true_airspeed_m_s = calc_TAS_from_EAS(airspeed.indicated_airspeed_m_s, raw.baro_pressure_pa,
+					     air_temperature_celsius); // assume that EAS = IAS as we don't have an EAS-scale here
 
 		airspeed.air_temperature_celsius = air_temperature_celsius;
 
-		int instance;
-		orb_publish_auto(ORB_ID(airspeed), &_airspeed_pub, &airspeed, &instance, ORB_PRIO_DEFAULT);
-	}
-}
-
-void
-Sensors::vehicle_control_mode_poll()
-{
-	struct vehicle_control_mode_s vcontrol_mode;
-	bool vcontrol_mode_updated;
-
-	orb_check(_vcontrol_mode_sub, &vcontrol_mode_updated);
-
-	if (vcontrol_mode_updated) {
-
-		orb_copy(ORB_ID(vehicle_control_mode), _vcontrol_mode_sub, &vcontrol_mode);
-		_armed = vcontrol_mode.flag_armed;
+		if (PX4_ISFINITE(airspeed.indicated_airspeed_m_s) && PX4_ISFINITE(airspeed.true_airspeed_m_s)) {
+			_airspeed_pub.publish(airspeed);
+		}
 	}
 }
 
 void
 Sensors::parameter_update_poll(bool forced)
 {
-	bool param_updated = false;
-
 	/* Check if any parameter has changed */
-	orb_check(_params_sub, &param_updated);
+	parameter_update_s update;
 
-	if (param_updated || forced) {
+	if (_params_sub.update(&update) || forced) {
 		/* read from param to clear updated flag */
-		struct parameter_update_s update;
-		orb_copy(ORB_ID(parameter_update), _params_sub, &update);
 
 		parameters_update();
+		updateParams();
 
 		/* update airspeed scale */
 		int fd = px4_open(AIRSPEED0_DEVICE_PATH, 0);
@@ -413,15 +389,11 @@ Sensors::parameter_update_poll(bool forced)
 
 			px4_close(fd);
 		}
-
-		for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
-			_battery[b].updateParams();
-		}
 	}
 }
 
 void
-Sensors::adc_poll(struct sensor_combined_s &raw)
+Sensors::adc_poll()
 {
 	/* only read if not in HIL mode */
 	if (_hil_enabled) {
@@ -437,6 +409,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 		/* read all channels available */
 		int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
 
+#if BOARD_NUMBER_BRICKS > 0
 		//todo:abosorb into new class Power
 
 		/* For legacy support we publish the battery_status for the Battery that is
@@ -444,20 +417,23 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 		 * Selection is done in HW ala a LTC4417 or similar, or may be hard coded
 		 * Like in the FMUv4
 		 */
-
-		/* The ADC channela that  are associated with each brick, in power controller
+#if !defined(BOARD_NUMBER_DIGITAL_BRICKS)
+		/* The ADC channels that  are associated with each brick, in power controller
 		 * priority order highest to lowest, as defined by the board config.
 		 */
-
 		int   bat_voltage_v_chan[BOARD_NUMBER_BRICKS] = BOARD_BATT_V_LIST;
 		int   bat_voltage_i_chan[BOARD_NUMBER_BRICKS] = BOARD_BATT_I_LIST;
 
-		/* The valid signals (HW dependent) are associated with each brick */
+		if (_parameters.battery_adc_channel >= 0) {  // overwrite default
+			bat_voltage_v_chan[0] = _parameters.battery_adc_channel;
+		}
 
+#endif
+
+		/* The valid signals (HW dependent) are associated with each brick */
 		bool  valid_chan[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
 
 		/* Per Brick readings with default unread channels at 0 */
-
 		float bat_current_a[BOARD_NUMBER_BRICKS] = {0.0f};
 		float bat_voltage_v[BOARD_NUMBER_BRICKS] = {0.0f};
 
@@ -468,6 +444,8 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 
 		int selected_source = -1;
 
+#endif /* BOARD_NUMBER_BRICKS > 0 */
+
 		if (ret >= (int)sizeof(buf_adc[0])) {
 
 			/* Read add channels we got */
@@ -477,7 +455,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 
 					/* calculate airspeed, raw is the difference from */
-					float voltage = (float)(buf_adc[i].am_data) * 3.3f / 4096.0f * 2.0f;  // V_ref/4096 * (voltage divider factor)
+					const float voltage = (float)(buf_adc[i].am_data) * 3.3f / 4096.0f * 2.0f;  // V_ref/4096 * (voltage divider factor)
 
 					/**
 					 * The voltage divider pulls the signal down, only act on
@@ -486,22 +464,23 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 					 */
 					if (voltage > 0.4f && (_parameters.diff_pres_analog_scale > 0.0f)) {
 
-						float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
+						const float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
 
-						differential_pressure_s diff_pres;
-						diff_pres.timestamp = t;
-						diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
-						diff_pres.differential_pressure_filtered_pa = (diff_pres.differential_pressure_filtered_pa * 0.9f) +
+						_diff_pres.timestamp = t;
+						_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
+						_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) +
 								(diff_pres_pa_raw * 0.1f);
-						diff_pres.temperature = -1000.0f;
+						_diff_pres.temperature = -1000.0f;
 
-						int instance;
-						orb_publish_auto(ORB_ID(differential_pressure), &_diff_pres_pub, &diff_pres, &instance, ORB_PRIO_DEFAULT);
+						_diff_pres_pub.publish(_diff_pres);
 					}
 
 				} else
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 				{
+
+#if BOARD_NUMBER_BRICKS > 0
+
 					for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
 
 						/* Once we have subscriptions, Do this once for the lowest (highest priority
@@ -514,7 +493,7 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 							 */
 							selected_source = b;
 
-#if BOARD_NUMBER_BRICKS > 1
+#  if BOARD_NUMBER_BRICKS > 1
 
 							/* Move the selected_source to instance 0 */
 							if (_battery_pub_intance0ndx != selected_source) {
@@ -525,8 +504,10 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 								_battery_pub_intance0ndx = selected_source;
 							}
 
-#endif
+#  endif /* BOARD_NUMBER_BRICKS > 1 */
 						}
+
+#  if  !defined(BOARD_NUMBER_DIGITAL_BRICKS)
 
 						// todo:per brick scaling
 						/* look for specific channels and process the raw voltage to measurement data */
@@ -538,9 +519,15 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 							bat_current_a[b] = ((buf_adc[i].am_data * _parameters.battery_current_scaling)
 									    - _parameters.battery_current_offset) * _parameters.battery_a_per_v;
 						}
+
+#  endif /* !defined(BOARD_NUMBER_DIGITAL_BRICKS) */
 					}
+
+#endif /* BOARD_NUMBER_BRICKS > 0 */
 				}
 			}
+
+#if BOARD_NUMBER_BRICKS > 0
 
 			if (_parameters.battery_source == 0) {
 
@@ -557,10 +544,10 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 						connected &= valid_chan[b];
 					}
 
-					actuator_controls_s ctrl;
-					orb_copy(ORB_ID(actuator_controls_0), _actuator_ctrl_0_sub, &ctrl);
+					actuator_controls_s ctrl{};
+					_actuator_ctrl_0_sub.copy(&ctrl);
 
-					battery_status_s battery_status;
+					battery_status_s battery_status{};
 					_battery[b].updateBatteryStatus(t, bat_voltage_v[b], bat_current_a[b],
 									connected, selected_source == b, b,
 									ctrl.control[actuator_controls_s::INDEX_THROTTLE],
@@ -570,8 +557,9 @@ Sensors::adc_poll(struct sensor_combined_s &raw)
 				}
 			}
 
-			_last_adc = t;
+#endif /* BOARD_NUMBER_BRICKS > 0 */
 
+			_last_adc = t;
 		}
 	}
 }
@@ -581,55 +569,30 @@ void
 Sensors::run()
 {
 	if (!_hil_enabled) {
-#if !defined(__PX4_QURT) && !defined(__PX4_POSIX_BEBOP)
+#if !defined(__PX4_QURT) && BOARD_NUMBER_BRICKS > 0
 		adc_init();
 #endif
 	}
 
-	struct sensor_combined_s raw = {};
-
-	struct sensor_preflight_s preflt = {};
-
-	_rc_update.init();
+	sensor_combined_s raw = {};
+	sensor_preflight_s preflt = {};
+	vehicle_air_data_s airdata = {};
+	vehicle_magnetometer_s magnetometer = {};
 
 	_voted_sensors_update.init(raw);
 
 	/* (re)load params and calibration */
 	parameter_update_poll(true);
 
-	/*
-	 * do subscriptions
-	 */
-	_diff_pres_sub = orb_subscribe(ORB_ID(differential_pressure));
-
-	_vcontrol_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
-
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-
-	_actuator_ctrl_0_sub = orb_subscribe(ORB_ID(actuator_controls_0));
-
 	/* get a set of initial values */
-	_voted_sensors_update.sensors_poll(raw);
+	_voted_sensors_update.sensorsPoll(raw, airdata, magnetometer);
 
-	diff_pres_poll(raw);
+	diff_pres_poll(airdata);
 
 	_rc_update.rc_parameter_map_poll(_parameter_handles, true /* forced */);
 
-	/* advertise the sensor_combined topic and make the initial publication */
-	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
-
-	/* advertise the sensor_preflight topic and make the initial publication */
-	preflt.accel_inconsistency_m_s_s = 0.0f;
-
-	preflt.gyro_inconsistency_rad_s = 0.0f;
-
-	preflt.mag_inconsistency_ga = 0.0f;
-
-	_sensor_preflight = orb_advertise(ORB_ID(sensor_preflight), &preflt);
-
 	/* wakeup source */
 	px4_pollfd_struct_t poll_fds = {};
-
 	poll_fds.events = POLLIN;
 
 	uint64_t last_config_update = hrt_absolute_time();
@@ -637,67 +600,83 @@ Sensors::run()
 	while (!should_exit()) {
 
 		/* use the best-voted gyro to pace output */
-		poll_fds.fd = _voted_sensors_update.best_gyro_fd();
+		poll_fds.fd = _voted_sensors_update.bestGyroFd();
 
 		/* wait for up to 50ms for data (Note that this implies, we can have a fail-over time of 50ms,
 		 * if a gyro fails) */
 		int pret = px4_poll(&poll_fds, 1, 50);
 
-		/* if pret == 0 it timed out - periodic check for should_exit(), etc. */
+		/* If pret == 0 it timed out but we should still do all checks and potentially copy
+		 * other gyros. */
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
 		if (pret < 0) {
 			/* if the polling operation failed because no gyro sensor is available yet,
 			 * then attempt to subscribe once again
 			 */
-			if (_voted_sensors_update.num_gyros() == 0) {
-				_voted_sensors_update.initialize_sensors();
+			if (_voted_sensors_update.numGyros() == 0) {
+				_voted_sensors_update.initializeSensors();
 			}
 
-			usleep(1000);
-
+			px4_usleep(1000);
 			continue;
 		}
 
 		perf_begin(_loop_perf);
 
 		/* check vehicle status for changes to publication state */
-		vehicle_control_mode_poll();
+		if (_vcontrol_mode_sub.updated()) {
+			vehicle_control_mode_s vcontrol_mode{};
+			_vcontrol_mode_sub.copy(&vcontrol_mode);
+			_armed = vcontrol_mode.flag_armed;
+		}
 
-		/* the timestamp of the raw struct is updated by the gyro_poll() method (this makes the gyro
+		/* the timestamp of the raw struct is updated by the gyroPoll() method (this makes the gyro
 		 * a mandatory sensor) */
-		_voted_sensors_update.sensors_poll(raw);
+		const uint64_t airdata_prev_timestamp = airdata.timestamp;
+		const uint64_t magnetometer_prev_timestamp = magnetometer.timestamp;
+
+		_voted_sensors_update.sensorsPoll(raw, airdata, magnetometer);
 
 		/* check battery voltage */
-		adc_poll(raw);
+		adc_poll();
 
-		diff_pres_poll(raw);
+		diff_pres_poll(airdata);
 
 		if (raw.timestamp > 0) {
 
-			_voted_sensors_update.set_relative_timestamps(raw);
+			_voted_sensors_update.setRelativeTimestamps(raw);
 
-			orb_publish(ORB_ID(sensor_combined), _sensor_pub, &raw);
+			_sensor_pub.publish(raw);
 
-			_voted_sensors_update.check_failover();
+			if (airdata.timestamp != airdata_prev_timestamp) {
+				_airdata_pub.publish(airdata);
+			}
+
+			if (magnetometer.timestamp != magnetometer_prev_timestamp) {
+				_magnetometer_pub.publish(magnetometer);
+			}
+
+			_voted_sensors_update.checkFailover();
 
 			/* If the the vehicle is disarmed calculate the length of the maximum difference between
 			 * IMU units as a consistency metric and publish to the sensor preflight topic
 			*/
 			if (!_armed) {
-				_voted_sensors_update.calc_accel_inconsistency(preflt);
-				_voted_sensors_update.calc_gyro_inconsistency(preflt);
-				_voted_sensors_update.calc_mag_inconsistency(preflt);
-				orb_publish(ORB_ID(sensor_preflight), _sensor_preflight, &preflt);
+				preflt.timestamp = hrt_absolute_time();
+				_voted_sensors_update.calcAccelInconsistency(preflt);
+				_voted_sensors_update.calcGyroInconsistency(preflt);
+				_voted_sensors_update.calcMagInconsistency(preflt);
 
+				_sensor_preflight.publish(preflt);
 			}
 		}
 
 		/* keep adding sensors as long as we are not armed,
 		 * when not adding sensors poll for param updates
 		 */
-		if (!_armed && hrt_elapsed_time(&last_config_update) > 500 * 1000) {
-			_voted_sensors_update.initialize_sensors();
+		if (!_armed && hrt_elapsed_time(&last_config_update) > 500_ms) {
+			_voted_sensors_update.initializeSensors();
 			last_config_update = hrt_absolute_time();
 
 		} else {
@@ -715,13 +694,6 @@ Sensors::run()
 		perf_end(_loop_perf);
 	}
 
-	orb_unsubscribe(_diff_pres_sub);
-	orb_unsubscribe(_vcontrol_mode_sub);
-	orb_unsubscribe(_params_sub);
-	orb_unsubscribe(_actuator_ctrl_0_sub);
-	orb_unadvertise(_sensor_pub);
-
-	_rc_update.deinit();
 	_voted_sensors_update.deinit();
 }
 
@@ -745,10 +717,13 @@ int Sensors::task_spawn(int argc, char *argv[])
 
 int Sensors::print_status()
 {
-	_voted_sensors_update.print_status();
+	_voted_sensors_update.printStatus();
 
 	PX4_INFO("Airspeed status:");
 	_airspeed_validator.print();
+
+	_vehicle_acceleration.PrintStatus();
+	_vehicle_angular_velocity.PrintStatus();
 
 	return 0;
 }
@@ -827,7 +802,7 @@ Sensors *Sensors::instantiate(int argc, char *argv[])
 		return nullptr;
 	}
 
-	return new Sensors(hil_enabled);;
+	return new Sensors(hil_enabled);
 }
 
 int sensors_main(int argc, char *argv[])

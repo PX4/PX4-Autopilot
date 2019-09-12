@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# KakuteF7 specific board extras init
+#------------------------------------------------------------------------------
+
+if ! param compare OSD_ATXXXX_CFG 0
+then
+	atxxxx start
+fi
+
+
+

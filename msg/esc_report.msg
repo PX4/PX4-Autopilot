@@ -1,3 +1,4 @@
+uint64 timestamp					# time since system start (microseconds)
 uint8 esc_vendor					# Vendor of current ESC
 uint32 esc_errorcount					# Number of reported errors by ESC - if supported
 int32 esc_rpm						# Motor RPM, negative for reverse rotation [RPM] - if supported

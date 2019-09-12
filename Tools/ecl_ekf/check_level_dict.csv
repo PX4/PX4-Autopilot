@@ -1,3 +1,4 @@
+check_id,threshold
 mag_fail_pct,0.0
 yaw_fail_pct,0.0
 vel_fail_pct,0.0
@@ -22,8 +23,8 @@ imu_coning_peak_warn,1.8E-5
 imu_coning_mean_warn,3.6E-6
 imu_hfdang_peak_warn,3.0E-3
 imu_hfdang_mean_warn,6.0E-4
-imu_hfdvel_peak_warn,1.8E-2
-imu_hfdvel_mean_warn,3.6E-3
+imu_hfdvel_peak_warn,9.0E-2
+imu_hfdvel_mean_warn,1.8E-2
 obs_ang_err_median_warn,8.0E-3
 obs_vel_err_median_warn,0.05
 obs_pos_err_median_warn,0.15

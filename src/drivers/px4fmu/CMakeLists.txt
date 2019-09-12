@@ -33,11 +33,13 @@
 px4_add_module(
 	MODULE drivers__px4fmu
 	MAIN fmu
-	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
 		fmu.cpp
 	DEPENDS
-		platforms__common
+		arch_io_pins
+		circuit_breaker
+		mixer
+		mixer_module
+		output_limit
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

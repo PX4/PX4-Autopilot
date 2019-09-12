@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE modules__land_detector
 	MAIN land_detector
-	STACK_MAIN 1200
 	COMPILE_FLAGS
 	SRCS
 		land_detector_main.cpp
@@ -43,6 +42,6 @@ px4_add_module(
 		VtolLandDetector.cpp
 		RoverLandDetector.cpp
 	DEPENDS
-		platforms__common
+		hysteresis
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

@@ -57,21 +57,7 @@ static const char sz_ver_buri_str[]     = "uri";
 static const char sz_ver_gcc_str[] 	= "gcc";
 static const char sz_ver_all_str[] 	= "all";
 static const char mcu_ver_str[]		= "mcu";
-static const char mcu_uid_str[]         = "uid";
-static const char mfg_uid_str[]         = "mfguid";
-
-#if defined(PX4_CPU_UUID_WORD32_FORMAT)
-#  define CPU_UUID_FORMAT PX4_CPU_UUID_WORD32_FORMAT
-#else
-/* This is the legacy format that did not print leading zeros*/
-#  define CPU_UUID_FORMAT "%X"
-#endif
-
-#if defined(PX4_CPU_UUID_WORD32_SEPARATOR)
-#  define CPU_UUID_SEPARATOR PX4_CPU_UUID_WORD32_SEPARATOR
-#else
-#  define CPU_UUID_SEPARATOR ":"
-#endif
+static const char px4_guid_str[]         = "px4guid";
 
 static void usage(const char *reason)
 {
@@ -88,14 +74,13 @@ static void usage(const char *reason)
 	PRINT_MODULE_USAGE_COMMAND_DESCR("bdate", "Build date and time");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("gcc", "Compiler info");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("bdate", "Build date and time");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("uid", "UUID");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("mfguid", "Manufacturer UUID");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("px4guid", "PX4 GUID");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("uri", "Build URI");
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("all", "Print all versions");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("hwcmp", "Compare hardware version (returns 0 on match)");
 	PRINT_MODULE_USAGE_ARG("<hw> [<hw2>]",
-			       "Hardware to compare against (eg. PX4FMU_V4). An OR comparison is used if multiple are specified", false);
+			       "Hardware to compare against (eg. PX4_FMU_V4). An OR comparison is used if multiple are specified", false);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("hwtypecmp", "Compare hardware type (returns 0 on match)");
 	PRINT_MODULE_USAGE_ARG("<hwtype> [<hwtype2>]",
 			       "Hardware type to compare against (eg. V2). An OR comparison is used if multiple are specified", false);
@@ -123,7 +108,7 @@ int ver_main(int argc, char *argv[])
 					}
 
 				} else {
-					PX4_ERR("Not enough arguments, try 'ver hwcmp PX4FMU_V2'");
+					PX4_ERR("Not enough arguments, try 'ver hwcmp PX4_FMU_V2'");
 				}
 
 				return 1;
@@ -188,6 +173,13 @@ int ver_main(int argc, char *argv[])
 					printf("FW version: %u.%u.%u %x (%u)\n", major, minor, patch, type, fwver);
 				}
 
+				if (show_all) {
+					const char *git_branch = px4_firmware_git_branch();
+
+					if (git_branch && git_branch[0]) {
+						printf("FW git-branch: %s\n", git_branch);
+					}
+				}
 
 				fwver = px4_os_version();
 				major = (fwver >> (8 * 3)) & 0xFF;
@@ -232,15 +224,11 @@ int ver_main(int argc, char *argv[])
 
 			}
 
-			if (show_all || !strncmp(argv[1], mfg_uid_str, sizeof(mfg_uid_str))) {
+			if (show_all || !strncmp(argv[1], px4_guid_str, sizeof(px4_guid_str))) {
+				char px4guid_fmt_buffer[PX4_GUID_FORMAT_SIZE];
 
-#if defined(BOARD_OVERRIDE_MFGUID)
-				char *mfguid_fmt_buffer = BOARD_OVERRIDE_MFGUID;
-#else
-				char mfguid_fmt_buffer[PX4_CPU_MFGUID_FORMAT_SIZE];
-				board_get_mfguid_formated(mfguid_fmt_buffer, sizeof(mfguid_fmt_buffer));
-#endif
-				printf("MFGUID: %s\n", mfguid_fmt_buffer);
+				board_get_px4_guid_formated(px4guid_fmt_buffer, sizeof(px4guid_fmt_buffer));
+				printf("PX4GUID: %s\n", px4guid_fmt_buffer);
 				ret = 0;
 			}
 
@@ -262,22 +250,10 @@ int ver_main(int argc, char *argv[])
 						printf("\nWARNING   WARNING   WARNING!\n"
 						       "Revision %c has a silicon errata:\n"
 						       "%s"
-						       "\nhttps://pixhawk.org/help/errata\n\n", rev, errata);
+						       "\nhttps://docs.px4.io/en/flight_controller/silicon_errata.html\n\n", rev, errata);
 					}
 				}
 
-				ret = 0;
-			}
-
-			if (show_all || !strncmp(argv[1], mcu_uid_str, sizeof(mcu_uid_str))) {
-
-#if defined(BOARD_OVERRIDE_UUID)
-				char *uid_fmt_buffer = BOARD_OVERRIDE_UUID;
-#else
-				char uid_fmt_buffer[PX4_CPU_UUID_WORD32_FORMAT_SIZE];
-				board_get_uuid32_formated(uid_fmt_buffer, sizeof(uid_fmt_buffer), CPU_UUID_FORMAT, CPU_UUID_SEPARATOR);
-#endif
-				printf("UID: %s \n", uid_fmt_buffer);
 				ret = 0;
 			}
 

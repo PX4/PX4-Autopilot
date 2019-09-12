@@ -16,9 +16,9 @@ class CameraInterfaceGPIO : public CameraInterface
 {
 public:
 	CameraInterfaceGPIO();
-	virtual ~CameraInterfaceGPIO();
+	virtual ~CameraInterfaceGPIO() = default;
 
-	void trigger(bool enable);
+	void trigger(bool trigger_on_true);
 
 	void info();
 
@@ -28,7 +28,7 @@ private:
 
 	param_t _p_polarity;
 
-	int _polarity;
+	bool _trigger_invert;
 
 	static constexpr uint32_t _gpios[6] = {
 		GPIO_GPIO0_OUTPUT,
@@ -39,6 +39,7 @@ private:
 		GPIO_GPIO5_OUTPUT
 	};
 
+	uint32_t _triggers[arraySize(_gpios)];
 };
 
 #endif /* ifdef __PX4_NUTTX */

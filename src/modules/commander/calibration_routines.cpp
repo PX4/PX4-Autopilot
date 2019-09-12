@@ -48,9 +48,10 @@
 #include <poll.h>
 #include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
-#include <geo/geo.h>
+#include <lib/ecl/geo/geo.h>
 #include <string.h>
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
 
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/sensor_combined.h>
@@ -237,7 +238,7 @@ int sphere_fit_least_squares(const float x[], const float y[], const float z[],
 }
 
 int ellipsoid_fit_least_squares(const float x[], const float y[], const float z[],
-				unsigned int size, unsigned int max_iterations, float delta, float *offset_x, float *offset_y, float *offset_z,
+				unsigned int size, int max_iterations, float delta, float *offset_x, float *offset_y, float *offset_z,
 				float *sphere_radius, float *diag_x, float *diag_y, float *diag_z, float *offdiag_x, float *offdiag_y, float *offdiag_z)
 {
 	float _fitness = 1.0e30f, _sphere_lambda = 1.0f, _ellipsoid_lambda = 1.0f;
@@ -270,13 +271,10 @@ int run_lm_sphere_fit(const float x[], const float y[], const float z[], float &
 	float fitness = _fitness;
 	float fit1 = 0.0f, fit2 = 0.0f;
 
-	float JTJ[16];
-	float JTJ2[16];
-	float JTFI[4];
+	matrix::SquareMatrix<float, 4> JTJ;
+	matrix::SquareMatrix<float, 4> JTJ2;
+	float JTFI[4] = {};
 	float residual = 0.0f;
-	memset(JTJ, 0, sizeof(JTJ));
-	memset(JTJ2, 0, sizeof(JTJ2));
-	memset(JTFI, 0, sizeof(JTFI));
 
 	// Gauss Newton Part common for all kind of extensions including LM
 	for (uint16_t k = 0; k < _samples_collected; k++) {
@@ -299,8 +297,8 @@ int run_lm_sphere_fit(const float x[], const float y[], const float z[], float &
 		for (uint8_t i = 0; i < 4; i++) {
 			// compute JTJ
 			for (uint8_t j = 0; j < 4; j++) {
-				JTJ[i * 4 + j] += sphere_jacob[i] * sphere_jacob[j];
-				JTJ2[i * 4 + j] += sphere_jacob[i] * sphere_jacob[j]; //a backup JTJ for LM
+				JTJ(i, j) += sphere_jacob[i] * sphere_jacob[j];
+				JTJ2(i, j) += sphere_jacob[i] * sphere_jacob[j]; //a backup JTJ for LM
 			}
 
 			JTFI[i] += sphere_jacob[i] * residual;
@@ -315,22 +313,22 @@ int run_lm_sphere_fit(const float x[], const float y[], const float z[], float &
 	memcpy(fit2_params, fit1_params, sizeof(fit1_params));
 
 	for (uint8_t i = 0; i < 4; i++) {
-		JTJ[i * 4 + i] += _sphere_lambda;
-		JTJ2[i * 4 + i] += _sphere_lambda / lma_damping;
+		JTJ(i, i) += _sphere_lambda;
+		JTJ2(i, i) += _sphere_lambda / lma_damping;
 	}
 
-	if (!inverse4x4(JTJ, JTJ)) {
+	if (!JTJ.I(JTJ)) {
 		return -1;
 	}
 
-	if (!inverse4x4(JTJ2, JTJ2)) {
+	if (!JTJ2.I(JTJ2)) {
 		return -1;
 	}
 
 	for (uint8_t row = 0; row < 4; row++) {
 		for (uint8_t col = 0; col < 4; col++) {
-			fit1_params[row] -= JTFI[col] * JTJ[row * 4 + col];
-			fit2_params[row] -= JTFI[col] * JTJ2[row * 4 + col];
+			fit1_params[row] -= JTFI[col] * JTJ(row, col);
+			fit2_params[row] -= JTFI[col] * JTJ2(row, col);
 		}
 	}
 
@@ -395,15 +393,13 @@ int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[], floa
 	const float lma_damping = 10.0f;
 	float _samples_collected = size;
 	float fitness = _fitness;
-	float fit1 = 0.0f, fit2 = 0.0f;
+	float fit1 = 0.0f;
+	float fit2 = 0.0f;
 
-	float JTJ[81];
-	float JTJ2[81];
-	float JTFI[9];
+	float JTJ[81] = {};
+	float JTJ2[81] = {};
+	float JTFI[9] = {};
 	float residual = 0.0f;
-	memset(JTJ, 0, sizeof(JTJ));
-	memset(JTJ2, 0, sizeof(JTJ2));
-	memset(JTFI, 0, sizeof(JTFI));
 	float ellipsoid_jacob[9];
 
 	// Gauss Newton Part common for all kind of extensions including LM
@@ -421,13 +417,13 @@ int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[], floa
 		ellipsoid_jacob[1] = 1.0f * (((*offdiag_x * A) + (*diag_y    * B) + (*offdiag_z * C)) / length);
 		ellipsoid_jacob[2] = 1.0f * (((*offdiag_y * A) + (*offdiag_z * B) + (*diag_z    * C)) / length);
 		// 3-5: partial derivative (diag offset wrt fitness fn) fn operated on sample
-		ellipsoid_jacob[3] = -1.0f * ((x[k] + *offset_x) * A) / length;
-		ellipsoid_jacob[4] = -1.0f * ((y[k] + *offset_y) * B) / length;
-		ellipsoid_jacob[5] = -1.0f * ((z[k] + *offset_z) * C) / length;
+		ellipsoid_jacob[3] = -1.0f * ((x[k] - *offset_x) * A) / length;
+		ellipsoid_jacob[4] = -1.0f * ((y[k] - *offset_y) * B) / length;
+		ellipsoid_jacob[5] = -1.0f * ((z[k] - *offset_z) * C) / length;
 		// 6-8: partial derivative (off-diag offset wrt fitness fn) fn operated on sample
-		ellipsoid_jacob[6] = -1.0f * (((y[k] + *offset_y) * A) + ((x[k] + *offset_x) * B)) / length;
-		ellipsoid_jacob[7] = -1.0f * (((z[k] + *offset_z) * A) + ((x[k] + *offset_x) * C)) / length;
-		ellipsoid_jacob[8] = -1.0f * (((z[k] + *offset_z) * B) + ((y[k] + *offset_y) * C)) / length;
+		ellipsoid_jacob[6] = -1.0f * (((y[k] - *offset_y) * A) + ((x[k] - *offset_x) * B)) / length;
+		ellipsoid_jacob[7] = -1.0f * (((z[k] - *offset_z) * A) + ((x[k] - *offset_x) * C)) / length;
+		ellipsoid_jacob[8] = -1.0f * (((z[k] - *offset_z) * B) + ((y[k] - *offset_y) * C)) / length;
 
 		for (uint8_t i = 0; i < 9; i++) {
 			// compute JTJ
@@ -460,8 +456,6 @@ int run_lm_ellipsoid_fit(const float x[], const float y[], const float z[], floa
 	if (!mat_inverse(JTJ2, JTJ2, 9)) {
 		return -1;
 	}
-
-
 
 	for (uint8_t row = 0; row < 9; row++) {
 		for (uint8_t col = 0; col < 9; col++) {
@@ -611,7 +605,7 @@ enum detect_orientation_return detect_orientation(orb_advert_t *mavlink_log_pub,
 				/* not still, reset still start time */
 				if (t_still != 0) {
 					calibration_log_info(mavlink_log_pub, "[cal] detected motion, hold still...");
-					usleep(200000);
+					px4_usleep(200000);
 					t_still = 0;
 				}
 			}
@@ -745,16 +739,16 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		}
 
 		calibration_log_info(mavlink_log_pub, "[cal] pending:%s", pendingStr);
-		usleep(20000);
+		px4_usleep(20000);
 		calibration_log_info(mavlink_log_pub, "[cal] hold vehicle still on a pending side");
-		usleep(20000);
+		px4_usleep(20000);
 		enum detect_orientation_return orient = detect_orientation(mavlink_log_pub, cancel_sub, sub_accel,
 							lenient_still_position);
 
 		if (orient == DETECT_ORIENTATION_ERROR) {
 			orientation_failures++;
 			calibration_log_info(mavlink_log_pub, "[cal] detected motion, hold still...");
-			usleep(20000);
+			px4_usleep(20000);
 			continue;
 		}
 
@@ -763,14 +757,14 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 			orientation_failures++;
 			set_tune(TONE_NOTIFY_NEGATIVE_TUNE);
 			calibration_log_info(mavlink_log_pub, "[cal] %s side already completed", detect_orientation_str(orient));
-			usleep(20000);
+			px4_usleep(20000);
 			continue;
 		}
 
 		calibration_log_info(mavlink_log_pub, CAL_QGC_ORIENTATION_DETECTED_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 		calibration_log_info(mavlink_log_pub, CAL_QGC_ORIENTATION_DETECTED_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 		orientation_failures = 0;
 
 		// Call worker routine
@@ -781,9 +775,9 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		}
 
 		calibration_log_info(mavlink_log_pub, CAL_QGC_SIDE_DONE_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 		calibration_log_info(mavlink_log_pub, CAL_QGC_SIDE_DONE_MSG, detect_orientation_str(orient));
-		usleep(20000);
+		px4_usleep(20000);
 
 		// Note that this side is complete
 		side_data_collected[orient] = true;
@@ -793,7 +787,7 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 
 		// temporary priority boost for the white blinking led to come trough
 		rgbled_set_color_and_mode(led_control_s::COLOR_WHITE, led_control_s::MODE_BLINK_FAST, 3, 1);
-		usleep(200000);
+		px4_usleep(200000);
 	}
 
 	if (sub_accel >= 0) {
@@ -805,7 +799,19 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 
 int calibrate_cancel_subscribe()
 {
-	return orb_subscribe(ORB_ID(vehicle_command));
+	int vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+
+	if (vehicle_command_sub >= 0) {
+		// make sure we won't read any old messages
+		struct vehicle_command_s cmd;
+		bool update;
+
+		while (orb_check(vehicle_command_sub, &update) == 0 && update) {
+			orb_copy(ORB_ID(vehicle_command), vehicle_command_sub, &cmd);
+		}
+	}
+
+	return vehicle_command_sub;
 }
 
 void calibrate_cancel_unsubscribe(int cmd_sub)
@@ -844,12 +850,12 @@ bool calibrate_cancel_check(orb_advert_t *mavlink_log_pub, int cancel_sub)
 		// ignore internal commands, such as VEHICLE_CMD_DO_MOUNT_CONTROL from vmount
 		if (cmd.from_external) {
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION &&
-					(int)cmd.param1 == 0 &&
-					(int)cmd.param2 == 0 &&
-					(int)cmd.param3 == 0 &&
-					(int)cmd.param4 == 0 &&
-					(int)cmd.param5 == 0 &&
-					(int)cmd.param6 == 0) {
+			    (int)cmd.param1 == 0 &&
+			    (int)cmd.param2 == 0 &&
+			    (int)cmd.param3 == 0 &&
+			    (int)cmd.param4 == 0 &&
+			    (int)cmd.param5 == 0 &&
+			    (int)cmd.param6 == 0) {
 				calibrate_answer_command(mavlink_log_pub, cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 				mavlink_log_critical(mavlink_log_pub, CAL_QGC_CANCELLED_MSG);
 				return true;

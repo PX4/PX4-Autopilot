@@ -33,11 +33,9 @@
 px4_add_module(
 	MODULE systemcmds__reboot
 	MAIN reboot
-	STACK_MAIN 800
 	COMPILE_FLAGS
 	SRCS
 		reboot.c
 	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

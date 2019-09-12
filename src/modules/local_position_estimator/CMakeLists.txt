@@ -34,7 +34,7 @@ px4_add_module(
 	MODULE modules__local_position_estimator
 	MAIN local_position_estimator
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
+		-Wno-double-promotion # TODO: fix in Matrix library Vector::pow()
 	STACK_MAIN 5700
 	STACK_MAX 13000
 	SRCS
@@ -48,7 +48,9 @@ px4_add_module(
 		sensors/vision.cpp
 		sensors/mocap.cpp
 		sensors/land.cpp
+		sensors/landing_target.cpp
 	DEPENDS
-		platforms__common
+		controllib
+		git_ecl
+		ecl_geo
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :

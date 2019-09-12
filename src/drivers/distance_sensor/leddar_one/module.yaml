@@ -1,0 +1,6 @@
+module_name: LeddarOne Rangefinder
+serial_config:
+    - command: leddar_one start -d ${SERIAL_DEV}
+      port_config_param:
+        name: SENS_LEDDAR1_CFG
+        group: Sensors

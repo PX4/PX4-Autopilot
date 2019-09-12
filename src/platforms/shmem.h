@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include <parameters/param.h>
+
 #define MAX_SHMEM_PARAMS 2000 //MAP_SIZE - (LOCK_SIZE - sizeof(struct shmem_info))
 
 #define PARAM_BUFFER_SIZE (MAX_SHMEM_PARAMS / 8 + 1)
@@ -64,3 +66,17 @@ struct shmem_info {
 #define TYPE_MASK 	0x1
 
 extern bool handle_in_range(param_t);
+
+#ifdef __PX4_QURT
+extern struct shmem_info *shmem_info_p;
+
+int get_shmem_lock(const char *caller_file_name, int caller_line_number);
+void release_shmem_lock(const char *caller_file_name, int caller_line_number);
+void init_shared_memory(void);
+
+void copy_params_to_shmem(const param_info_s *param_info_base);
+#endif
+
+void update_to_shmem(param_t param, union param_value_u value);
+int update_from_shmem(param_t param, union param_value_u *value);
+void update_index_from_shmem(void);

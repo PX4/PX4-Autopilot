@@ -34,6 +34,7 @@
 /**
  * Primary accel ID
  *
+ * @category system
  * @group Sensor Calibration
  */
 PARAM_DEFINE_INT32(CAL_ACC_PRIME, 0);

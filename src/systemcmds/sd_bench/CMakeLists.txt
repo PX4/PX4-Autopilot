@@ -33,12 +33,9 @@
 px4_add_module(
 	MODULE systemcmds__sd_bench
 	MAIN sd_bench
-	STACK_MAIN 2500
 	COMPILE_FLAGS
-		-Wno-sign-compare # TODO: fix all sign-compare
 	SRCS
 		sd_bench.c
 	DEPENDS
-		platforms__common
 	)
-# vim: set noet ft=cmake fenc=utf-8 ff=unix :
+

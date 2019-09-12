@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <platforms/px4_defines.h>
+#include "Limits.hpp"
 
 namespace math
 {
@@ -51,6 +51,13 @@ int sign(T val)
 	return (T(0) < val) - (val < T(0));
 }
 
+// Type-safe signum function with zero treated as positive
+template<typename T>
+int signNoZero(T val)
+{
+	return (T(0) <= val) - (val < T(0));
+}
+
 /*
  * So called exponential curve function implementation.
  * It is essentially a linear combination between a linear and a cubic function.
@@ -60,11 +67,12 @@ int sign(T val)
  * 		1 - pure cubic function
  * @return result of function output
  */
-template<typename _Tp>
-inline const _Tp expo(const _Tp &value, const _Tp &e)
+template<typename T>
+const T expo(const T &value, const T &e)
 {
-	_Tp x = constrain(value, (_Tp) - 1, (_Tp)1);
-	return (1 - e) * x + e * x * x * x;
+	T x = constrain(value, (T) - 1, (T) 1);
+	T ec = constrain(e, (T) 0, (T) 1);
+	return (1 - ec) * x + ec * x * x * x;
 }
 
 /*
@@ -76,29 +84,43 @@ inline const _Tp expo(const _Tp &value, const _Tp &e)
  * @param g [0,1) function parameter to set SuperExpo shape
  * 		0 - pure expo function
  * 		0.99 - very strong bent curve, stays zero until maximum stick input
- * 		1 - DO NOT USE, division by zero on maxima
  * @return result of function output
  */
-template<typename _Tp>
-inline const _Tp superexpo(const _Tp &value, const _Tp &e, const _Tp &g)
+template<typename T>
+const T superexpo(const T &value, const T &e, const T &g)
 {
-	_Tp x = constrain(value, (_Tp) - 1, (_Tp)1);
-	return expo(x, e) * (1 - g) / (1 - fabsf(x) * g);
+	T x = constrain(value, (T) - 1, (T) 1);
+	T gc = constrain(g, (T) 0, (T) 0.99);
+	return expo(x, e) * (1 - gc) / (1 - fabsf(x) * gc);
 }
 
-template<typename _Tp>
-inline const _Tp deadzone(const _Tp &value, const _Tp &dz)
+/*
+ * Deadzone function being linear and continuous outside of the deadzone
+ * 1                ------
+ *                /
+ *             --
+ *           /
+ * -1 ------
+ *        -1 -dz +dz 1
+ * @param value [-1,1] input value to function
+ * @param dz [0,1) ratio between deazone and complete span
+ * 		0 - no deadzone, linear -1 to 1
+ * 		0.5 - deadzone is half of the span [-0.5,0.5]
+ * 		0.99 - almost entire span is deadzone
+ */
+template<typename T>
+const T deadzone(const T &value, const T &dz)
 {
-	_Tp x = constrain(value, (_Tp) - 1, (_Tp)1);
-	_Tp dzc = constrain(dz, (_Tp) - 1, (_Tp)1);
+	T x = constrain(value, (T) - 1, (T) 1);
+	T dzc = constrain(dz, (T) 0, (T) 0.99);
 	// Rescale the input such that we get a piecewise linear function that will be continuous with applied deadzone
-	_Tp out = (x - sign(x) * dzc) / (1 - dzc);
+	T out = (x - sign(x) * dzc) / (1 - dzc);
 	// apply the deadzone (values zero around the middle)
 	return out * (fabsf(x) > dzc);
 }
 
-template<typename _Tp>
-inline const _Tp expo_deadzone(const _Tp &value, const _Tp &e, const _Tp &dz)
+template<typename T>
+const T expo_deadzone(const T &value, const T &e, const T &dz)
 {
 	return expo(deadzone(value, dz), e);
 }
@@ -113,8 +135,8 @@ inline const _Tp expo_deadzone(const _Tp &value, const _Tp &e, const _Tp &dz)
  * y_low -------
  *         x_low   x_high
  */
-template<typename _Tp>
-inline const _Tp gradual(const _Tp &value, const _Tp &x_low, const _Tp &x_high, const _Tp &y_low, const _Tp &y_high)
+template<typename T>
+const T gradual(const T &value, const T &x_low, const T &x_high, const T &y_low, const T &y_high)
 {
 	if (value < x_low) {
 		return y_low;
@@ -124,10 +146,63 @@ inline const _Tp gradual(const _Tp &value, const _Tp &x_low, const _Tp &x_high, 
 
 	} else {
 		/* linear function between the two points */
-		float a = (y_high - y_low) / (x_high - x_low);
-		float b = y_low - a * x_low;
+		T a = (y_high - y_low) / (x_high - x_low);
+		T b = y_low - a * x_low;
 		return  a * value + b;
 	}
 }
 
+/*
+ * Exponential function of the form Y_out = a*b^X + c
+ *
+ * Y_max    |   *
+ *          |    *
+ *          |      *
+ *          |        *
+ *          |           *
+ * Y_middle |               *
+ *          |                    *
+ * Y_min    |                          *    *
+ *          | __________________________________
+ *              0           1               2
+ *
+ *
+ * @param X in the range [0,2]
+ * @param Y_min minimum output at X = 2
+ * @param Y_mid middle output at X = 1
+ * @param Y_max maximum output at X = 0
+ */
+template<typename T>
+const T expontialFromLimits(const T &X_in, const T &Y_min, const T &Y_mid, const T &Y_max)
+{
+	const T delta = (T)0.001;
+	// constrain X_in to the range of 0 and 2
+	T X = math::constrain(X_in, (T)0, (T)2);
+	// If Y_mid is exactly in the middle, then just apply linear approach.
+	bool use_linear_approach = false;
+
+	if (((Y_max + Y_min) * (T)0.5) - Y_mid < delta) {
+		use_linear_approach = true;
+	}
+
+	T Y_out;
+
+	if (use_linear_approach) {
+		// Y_out =  m*x+q
+		float slope = -(Y_max - Y_min) / (T)2.0;
+		Y_out = slope * X + Y_max;
+
+	} else {
+		// Y_out = a*b^X + c with constraints Y_max = 0, Y_middle = 1, Y_min = 2
+		T a = -((Y_mid - Y_max) * (Y_mid - Y_max))
+		      / ((T)2.0 * Y_mid - Y_max - Y_min);
+		T c = Y_max - a;
+		T b = (Y_mid - c) / a;
+		Y_out = a * powf(b, X) + c;
+	}
+
+	// Y_out needs to be in between max and min
+	return constrain(Y_out, Y_min, Y_max);
+
 }
+} /* namespace math */

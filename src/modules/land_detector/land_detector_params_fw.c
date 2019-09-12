@@ -51,27 +51,27 @@ PARAM_DEFINE_FLOAT(LNDFW_VEL_XY_MAX, 5.0f);
  * Maximum vertical velocity allowed in the landed state (m/s up and down)
  *
  * @unit m/s
- * @min 5
+ * @min 0.1
  * @max 20
  * @decimal 1
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 10.0f);
+PARAM_DEFINE_FLOAT(LNDFW_VEL_Z_MAX, 3.0f);
 
 /**
- * Fixedwing max short-term velocity
+ * Fixedwing max horizontal acceleration
  *
- * Maximum velocity integral in flight direction allowed in the landed state (m/s)
+ * Maximum horizontal (x,y body axes) acceleration allowed in the landed state (m/s^2)
  *
- * @unit m/s
+ * @unit m/s^2
  * @min 2
- * @max 10
+ * @max 15
  * @decimal 1
  *
  * @group Land Detector
  */
-PARAM_DEFINE_FLOAT(LNDFW_VELI_MAX, 8.0f);
+PARAM_DEFINE_FLOAT(LNDFW_XYACC_MAX, 8.0f);
 
 /**
  * Airspeed max

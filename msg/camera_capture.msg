@@ -1,3 +1,4 @@
+uint64 timestamp		# time since system start (microseconds)
 uint64 timestamp_utc		# Capture time in UTC / GPS time
 uint32 seq					# Image sequence number
 float64 lat					# Latitude in degrees (WGS84)

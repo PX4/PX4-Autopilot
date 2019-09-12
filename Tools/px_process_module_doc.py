@@ -93,7 +93,7 @@ def main():
 
     # Output to Markdown/HTML tables
     if args.markdown:
-        if (args.verbose): print("Creating markdown output to directory " + str(args.markdown))
+        if args.verbose: print("Creating markdown output to directory " + str(args.markdown))
         if not os.path.exists(args.markdown):
             os.makedirs(args.markdown)
         out = markdownout.MarkdownOutput(module_groups)

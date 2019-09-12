@@ -40,9 +40,15 @@
 
 #include "status_display.h"
 
-using namespace status;
+namespace events
+{
+namespace status
+{
 
 void StatusDisplay::set_leds()
 {
 	// Put your LED handling here
 }
+
+} /* namespace status */
+} /* namespace events */

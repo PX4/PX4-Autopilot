@@ -42,6 +42,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_time.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
@@ -73,7 +74,6 @@
 
 #include <uORB/uORB.h>
 #include <uORB/topics/pwm_input.h>
-#include <uORB/topics/subsystem_info.h>
 
 #include <drivers/drv_device.h>
 #include <drivers/device/device.h>
@@ -226,7 +226,7 @@
 #define TIMEOUT_POLL 300000 /* reset after no response over this time in microseconds [0.3s] */
 #define TIMEOUT_READ 200000 /* don't reset if the last read is back more than this time in microseconds [0.2s] */
 
-class PWMIN : device::CDev
+class PWMIN : cdev::CDev
 {
 public:
 	PWMIN();
@@ -267,11 +267,12 @@ static void pwmin_start();
 static void pwmin_info(void);
 static void pwmin_test(void);
 static void pwmin_reset(void);
+static void pwmin_usage(void);
 
 static PWMIN *g_dev;
 
 PWMIN::PWMIN() :
-	CDev("pwmin", PWMIN0_DEVICE_PATH),
+	CDev(PWMIN0_DEVICE_PATH),
 	_error_count(0),
 	_pulses_captured(0),
 	_last_period(0),
@@ -437,24 +438,6 @@ int
 PWMIN::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
-	case SENSORIOCSQUEUEDEPTH: {
-			/* lower bound is mandatory, upper bound is a sanity check */
-			if ((arg < 1) || (arg > 500)) {
-				return -EINVAL;
-			}
-
-			irqstate_t flags = px4_enter_critical_section();
-
-			if (!_reports->resize(arg)) {
-				px4_leave_critical_section(flags);
-				return -ENOMEM;
-			}
-
-			px4_leave_critical_section(flags);
-
-			return OK;
-		}
-
 	case SENSORIOCRESET:
 		/* user has asked for the timer to be reset. This may
 		 * be needed if the pin was used for a different
@@ -605,7 +588,7 @@ static void pwmin_test(void)
 
 		} else {
 			/* no data, retry in 2 ms */
-			::usleep(2000);
+			px4_usleep(2000);
 		}
 	}
 
@@ -647,12 +630,21 @@ static void pwmin_info(void)
 	exit(0);
 }
 
+static void pwmin_usage()
+{
+	PX4_ERR("unrecognized command, try 'start', 'info', 'reset' or 'test'");
+}
 
 /*
  * driver entry point
  */
 int pwm_input_main(int argc, char *argv[])
 {
+	if (argc < 2) {
+		pwmin_usage();
+		return -1;
+	}
+
 	const char *verb = argv[1];
 
 	/*
@@ -683,6 +675,6 @@ int pwm_input_main(int argc, char *argv[])
 		pwmin_reset();
 	}
 
-	errx(1, "unrecognized command, try 'start', 'info', 'reset' or 'test'");
-	return 0;
+	pwmin_usage();
+	return -1;
 }

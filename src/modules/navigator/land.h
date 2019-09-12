@@ -38,11 +38,7 @@
  * @author Andreas Antener <andreas@uaventure.com>
  */
 
-#ifndef NAVIGATOR_LAND_H
-#define NAVIGATOR_LAND_H
-
-#include <controllib/blocks.hpp>
-#include <controllib/block/BlockParam.hpp>
+#pragma once
 
 #include "navigator_mode.h"
 #include "mission_block.h"
@@ -50,16 +46,9 @@
 class Land : public MissionBlock
 {
 public:
-	Land(Navigator *navigator, const char *name);
+	Land(Navigator *navigator);
+	~Land() = default;
 
-	~Land();
-
-	virtual void on_inactive();
-
-	virtual void on_activation();
-
-	virtual void on_active();
-
+	void on_activation() override;
+	void on_active() override;
 };
-
-#endif
