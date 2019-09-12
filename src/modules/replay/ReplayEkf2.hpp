@@ -33,14 +33,63 @@
 
 #pragma once
 
+#include "Replay.hpp"
+
 namespace px4
 {
-namespace replay
+
+/**
+ * @class ReplayEkf2
+ * replay specialization for Ekf2 replay
+ */
+class ReplayEkf2 : public Replay
 {
+public:
+protected:
 
-static const char __attribute__((unused)) *ENV_FILENAME = "replay"; ///< name for getenv()
-static const char __attribute__((unused)) *ENV_MODE = "replay_mode";  ///< name for getenv()
+	void onEnterMainLoop() override;
+	void onExitMainLoop() override;
 
+	uint64_t handleTopicDelay(uint64_t next_file_time, uint64_t timestamp_offset) override;
 
-} //namespace replay
+	/**
+	 * handle ekf2 topic publication in ekf2 replay mode
+	 * @param sub
+	 * @param data
+	 * @param replay_file file currently replayed (file seek position should be considered arbitrary after this call)
+	 * @return true if published, false otherwise
+	 */
+	bool handleTopicUpdate(Subscription &sub, void *data, std::ifstream &replay_file) override;
+
+	void onSubscriptionAdded(Subscription &sub, uint16_t msg_id) override;
+
+private:
+
+	bool publishEkf2Topics(const ekf2_timestamps_s &ekf2_timestamps, std::ifstream &replay_file);
+
+	/**
+	 * find the next message for a subscription that matches a given timestamp and publish it
+	 * @param timestamp in 0.1 ms
+	 * @param msg_id
+	 * @param replay_file file currently replayed (file seek position should be considered arbitrary after this call)
+	 * @return true if timestamp found and published
+	 */
+	bool findTimestampAndPublish(uint64_t timestamp, uint16_t msg_id, std::ifstream &replay_file);
+
+	int _vehicle_attitude_sub = -1;
+
+	static constexpr uint16_t msg_id_invalid = 0xffff;
+
+	uint16_t _airspeed_msg_id = msg_id_invalid;
+	uint16_t _distance_sensor_msg_id = msg_id_invalid;
+	uint16_t _gps_msg_id = msg_id_invalid;
+	uint16_t _optical_flow_msg_id = msg_id_invalid;
+	uint16_t _sensor_combined_msg_id = msg_id_invalid;
+	uint16_t _vehicle_air_data_msg_id = msg_id_invalid;
+	uint16_t _vehicle_magnetometer_msg_id = msg_id_invalid;
+	uint16_t _vehicle_visual_odometry_msg_id = msg_id_invalid;
+
+	int _topic_counter = 0;
+};
+
 } //namespace px4
