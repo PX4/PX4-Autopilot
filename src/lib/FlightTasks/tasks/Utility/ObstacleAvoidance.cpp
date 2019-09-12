@@ -46,15 +46,6 @@ static constexpr uint64_t TRAJECTORY_STREAM_TIMEOUT_US = 500_ms;
 static constexpr uint64_t TIME_BEFORE_FAILSAFE = 500_ms;
 static constexpr uint64_t Z_PROGRESS_TIMEOUT_US = 2_s;
 
-const vehicle_trajectory_waypoint_s empty_trajectory_waypoint = {0, 0, {0, 0, 0, 0, 0, 0, 0},
-	{	{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, UINT8_MAX, {0, 0}},
-		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, UINT8_MAX, {0, 0}},
-		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, UINT8_MAX, {0, 0}},
-		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, UINT8_MAX, {0, 0}},
-		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, UINT8_MAX, {0, 0}}
-	}
-};
-
 ObstacleAvoidance::ObstacleAvoidance(ModuleParams *parent) :
 	ModuleParams(parent)
 {
