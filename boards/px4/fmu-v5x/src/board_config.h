@@ -253,8 +253,8 @@
 #define PX4_SPIDEV_ISM330           PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS2,0)
 #define PX4_SENSORS2_BUS_CS_GPIO    {GPIO_SPI2_nCS1_ISM330}
 
-#define PX4_SPIDEV_BMI055_GYR       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS3,0)
-#define PX4_SPIDEV_BMI055_ACC       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS3,1)
+#define PX4_SPIDEV_BMI088_GYR       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS3,0)
+#define PX4_SPIDEV_BMI088_ACC       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS3,1)
 #define PX4_SENSORS3_BUS_CS_GPIO    {GPIO_SPI3_nCS2_BMI088_GYRO, GPIO_SPI3_nCS1_BMI088_ACCEL}
 
 #define PX4_SPIDEV_BMM150           PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS4,0)
@@ -318,6 +318,7 @@
 #define ADC_ADC1_6V6_CHANNEL                    /* PC0 */  ADC1_CH(10)
 #define ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL     /* PC2 */  ADC1_CH(12)
 #define ADC_ADC1_3V3_CHANNEL                    /* PC3 */  ADC1_CH(13)
+
 #define ADC_HW_VER_SENSE_CHANNEL                /* PF4 */  ADC3_CH(14)
 #define ADC_HW_REV_SENSE_CHANNEL                /* PF5 */  ADC3_CH(15)
 
@@ -328,11 +329,15 @@
 	 (1 << ADC_SCALED_V5_CHANNEL)               | \
 	 (1 << ADC_ADC1_6V6_CHANNEL)                | \
 	 (1 << ADC_SCALED_VDD_3V3_SENSORS4_CHANNEL) | \
-	 (1 << ADC_ADC1_3V3_CHANNEL)                | \
-	 (1 << ADC_HW_VER_SENSE_CHANNEL)            | \
-	 (1 << ADC_HW_REV_SENSE_CHANNEL))
+	 (1 << ADC_ADC1_3V3_CHANNEL))
 
 /* HW has to large of R termination on ADC todo:change when HW value is chosen */
+
+#define HW_REV_VER_ADC_BASE STM32_ADC3_BASE
+
+#define SYSTEM_ADC_BASE STM32_ADC1_BASE
+
+
 
 #define BOARD_ADC_OPEN_CIRCUIT_V     (5.6f)
 
@@ -490,6 +495,7 @@
 #define VDD_3V3_SPEKTRUM_POWER_EN(on_true) px4_arch_gpiowrite(GPIO_VDD_3V3_SPEKTRUM_POWER_EN, (on_true))
 #define READ_VDD_3V3_SPEKTRUM_POWER_EN()   px4_arch_gpioread(GPIO_VDD_3V3_SPEKTRUM_POWER_EN)
 #define VDD_3V3_SD_CARD_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SD_CARD_EN, (on_true))
+#define VDD_3V3_ETH_POWER_EN(on_true)        px4_arch_gpiowrite(GPIO_ETH_POWER_EN, (on_true))
 
 /* Tone alarm output */
 

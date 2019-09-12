@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,68 +41,39 @@
 
 #pragma once
 
-#include <px4_module_params.h>
 #include <matrix/matrix/math.hpp>
 
-class StraightLine : public ModuleParams
+class StraightLine
 {
 public:
-	StraightLine(ModuleParams *parent, const float &deltatime, const matrix::Vector3f &pos);
+	StraightLine(const matrix::Vector3f &pos) : _position(pos) {};
 	~StraightLine() = default;
 
 	// setter functions
-	void setLineFromTo(const matrix::Vector3f &origin, const matrix::Vector3f &target);
-	void setSpeed(const float &speed);
-	void setSpeedAtTarget(const float &speed_at_target);
-	void setAcceleration(const float &acc);
-	void setDeceleration(const float &dec);
-
-	/**
-	 * Set all parameters to their default value depending on the direction of the line
-	 */
-	void setAllDefaults();
-
-	/**
-	 * Get the maximum possible acceleration depending on the direction of the line
-	 * Respects horizontal and vertical limits
-	 */
-	float getMaxAcc();
-
-	/**
-	 * Get the maximum possible velocity depending on the direction of the line
-	 * Respects horizontal and vertical limits
-	 */
-	float getMaxVel();
+	void setLineFromTo(const matrix::Vector3f &start, const matrix::Vector3f &end);
+	void setSpeed(const float &speed) { _speed = speed; };
 
 	/**
 	 * Generate setpoints on a straight line according to parameters
 	 *
-	 * @param position_setpoint: 3D vector with the previous position setpoint
-	 * @param velocity_setpoint: 3D vector with the previous velocity setpoint
+	 * @param position_setpoint: reference to the 3D vector with the position setpoint to update
+	 * @param velocity_setpoint: reference to the 3D vector with the velocity setpoint to update
 	 */
 	void generateSetpoints(matrix::Vector3f &position_setpoint, matrix::Vector3f &velocity_setpoint);
 
+	/**
+	 * Check if the end was reached
+	 *
+	 * @return false when on the way from start to end, true when end was reached
+	 */
+	bool isEndReached() { return end_reached; }
+
 private:
-	const float &_deltatime;                 /**< delta time between last update (dependency injection) */
-	const matrix::Vector3f &_pos;            /**< vehicle position (dependency injection) */
+	const matrix::Vector3f &_position; /**< vehicle position (dependency injection) */
 
-	float _desired_acceleration{0.0f};       /**< acceleration along the straight line */
-	float _desired_deceleration{0.0f};       /**< deceleration along the straight line */
-	float _desired_speed{0.0f};              /**< desired maximum velocity */
-	float _desired_speed_at_target{0.0f};    /**< desired velocity at target point */
+	matrix::Vector3f _start; /**< Start point of the straight line */
+	matrix::Vector3f _end; /**< End point of the straight line */
+	float _speed = 1.f; /**< desired speed between accelerating and decelerating */
 
-	matrix::Vector3f _target{};              /**< End point of the straight line */
-	matrix::Vector3f _origin{};              /**< Start point of the straight line */
-
-	// parameters for default values
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_ACC_HOR_MAX>)  _param_mpc_acc_hor_max,   /**< maximum horizontal acceleration */
-		(ParamFloat<px4::params::MPC_ACC_UP_MAX>)   _param_mpc_acc_up_max,    /**< maximum vertical acceleration upwards */
-		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max,  /**< maximum vertical acceleration downwards*/
-		(ParamFloat<px4::params::MPC_XY_VEL_MAX>)   _param_mpc_xy_vel_max,    /**< maximum horizontal velocity */
-		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,  /**< maximum vertical velocity upwards */
-		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,  /**< maximum vertical velocity downwards */
-		(ParamFloat<px4::params::NAV_ACC_RAD>) _param_nav_acc_rad             /**< acceptance radius if a waypoint is reached */
-	)
-
+	bool end_reached = true; /**< Flag to lock further movement when end is reached */
 };

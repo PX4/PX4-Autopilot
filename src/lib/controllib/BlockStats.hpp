@@ -89,7 +89,7 @@ public:
 	}
 	matrix::Vector<Type, M> getStdDev()
 	{
-		return getVar().pow(0.5f);
+		return getVar().sqrt();
 	}
 private:
 // attributes

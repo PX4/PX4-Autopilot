@@ -83,14 +83,14 @@ int detect(int bus)
 				px4_i2c_msg_t msgv[2];
 
 				// send
-				msgv[0].frequency = 1000000;
+				msgv[0].frequency = 100000;
 				msgv[0].addr = addr;
 				msgv[0].flags = 0;
 				msgv[0].buffer = &send_data;
 				msgv[0].length = sizeof(send_data);
 
 				// recv
-				msgv[1].frequency = 1000000;
+				msgv[1].frequency = 100000;
 				msgv[1].addr = addr;
 				msgv[1].flags = I2C_M_READ;
 				msgv[1].buffer = &recv_data;;

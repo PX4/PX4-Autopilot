@@ -55,6 +55,17 @@ bool uORB::Manager::initialize()
 	return _Instance != nullptr;
 }
 
+bool uORB::Manager::terminate()
+{
+	if (_Instance != nullptr) {
+		delete _Instance;
+		_Instance = nullptr;
+		return true;
+	}
+
+	return false;
+}
+
 uORB::Manager::Manager()
 {
 #ifdef ORB_USE_PUBLISHER_RULES

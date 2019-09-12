@@ -64,12 +64,14 @@ public:
 	 */
 	SubscriptionInterval(const orb_metadata *meta, uint32_t interval_us = 0, uint8_t instance = 0) :
 		_subscription{meta, instance},
-		_interval(interval_us)
+		_interval_us(interval_us)
 	{}
 
 	SubscriptionInterval() : _subscription{nullptr} {}
 
 	~SubscriptionInterval() = default;
+
+	bool subscribe() { return _subscription.subscribe(); }
 
 	bool published() { return _subscription.published(); }
 
@@ -78,7 +80,7 @@ public:
 	 * */
 	bool updated()
 	{
-		if (published() && (hrt_elapsed_time(&_last_update) >= _interval)) {
+		if (published() && (hrt_elapsed_time(&_last_update) >= _interval_us)) {
 			return _subscription.updated();
 		}
 
@@ -118,15 +120,24 @@ public:
 
 	uint8_t		get_instance() const { return _subscription.get_instance(); }
 	orb_id_t	get_topic() const { return _subscription.get_topic(); }
-	uint32_t	get_interval() const { return _interval; }
 
-	void		set_interval(uint32_t interval) { _interval = interval; }
+	/**
+	 * Set the interval in microseconds
+	 * @param interval The interval in microseconds.
+	 */
+	void		set_interval_us(uint32_t interval) { _interval_us = interval; }
+
+	/**
+	 * Set the interval in milliseconds
+	 * @param interval The interval in milliseconds.
+	 */
+	void		set_interval_ms(uint32_t interval) { _interval_us = interval * 1000; }
 
 protected:
 
 	Subscription	_subscription;
 	uint64_t	_last_update{0};	// last update in microseconds
-	uint32_t	_interval{0};		// maximum update interval in microseconds
+	uint32_t	_interval_us{0};		// maximum update interval in microseconds
 
 };
 

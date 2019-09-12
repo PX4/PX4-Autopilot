@@ -36,9 +36,7 @@ include(cygwin_cygpath)
 set(NUTTX_DIR ${PX4_BINARY_DIR}/NuttX/nuttx)
 set(NUTTX_APPS_DIR ${PX4_BINARY_DIR}/NuttX/apps)
 
-add_subdirectory(src)
-
-add_executable(px4 ${PX4_SOURCE_DIR}/src/platforms/empty.c)
+add_executable(px4 ${PX4_SOURCE_DIR}/platforms/common/empty.c)
 set(FW_NAME ${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf)
 set_target_properties(px4 PROPERTIES OUTPUT_NAME ${FW_NAME})
 add_dependencies(px4 git_nuttx nuttx_build)
@@ -73,12 +71,16 @@ file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_D
 # because even relative linker script paths are different for linux, mac and windows
 CYGPATH(PX4_BINARY_DIR PX4_BINARY_DIR_CYG)
 
+if(POLICY CMP0079)
+	cmake_policy(SET CMP0079 NEW)
+endif()
+
 target_link_libraries(nuttx_arch
 	INTERFACE
 		drivers_board
-		drivers_arch
 		drivers_boards_common
 		drivers_boards_common_arch
+		arch_hrt
 )
 
 target_link_libraries(nuttx_c INTERFACE nuttx_drivers)
@@ -172,7 +174,8 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 				/dev/serial/by-id/usb-Bitcraze*
 				/dev/serial/by-id/pci-Bitcraze*
 				/dev/serial/by-id/usb-Gumstix*
-
+				/dev/serial/by-id/usb-Hex_ProfiCNC*
+				/dev/serial/by-id/usb-UVify_FMU_BL*
 				)
 
 		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
@@ -244,48 +247,6 @@ add_custom_target(stack_check
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	VERBATIM
 	)
-
-find_program(BLOATY_PROGRAM bloaty)
-if (BLOATY_PROGRAM)
-	# bloaty symbols
-	add_custom_target(bloaty_symbols
-		COMMAND ${BLOATY_PROGRAM} -d symbols -C full -n 50 -s vm $<TARGET_FILE:px4>
-		DEPENDS px4
-		USES_TERMINAL
-		)
-
-	# bloaty compilation units
-	add_custom_target(bloaty_compileunits
-		COMMAND ${BLOATY_PROGRAM} -d compileunits -C full -n 50 -s vm $<TARGET_FILE:px4>
-		DEPENDS px4
-		USES_TERMINAL
-		)
-
-	# bloaty templates
-	add_custom_target(bloaty_templates
-		COMMAND ${BLOATY_PROGRAM} -d shortsymbols,fullsymbols -n 50 $<TARGET_FILE:px4>
-		DEPENDS px4
-		USES_TERMINAL
-		)
-
-	# bloaty inlines
-	add_custom_target(bloaty_inlines
-		COMMAND ${BLOATY_PROGRAM} -d inlines -C full -n 50 $<TARGET_FILE:px4>
-		DEPENDS px4
-		USES_TERMINAL
-		)
-
-	# bloaty compare with last master build
-	add_custom_target(bloaty_compare_master
-		#COMMAND wget --no-verbose https://s3.amazonaws.com/px4-travis/Firmware/master/${FW_NAME} -O master_${FW_NAME}
-		COMMAND wget --no-verbose https://s3.amazonaws.com/px4-travis/Firmware/master/${PX4_BOARD_VENDOR}_${PX4_BOARD_MODEL}_${PX4_BOARD_LABEL}.elf -O master_${FW_NAME}
-		COMMAND ${BLOATY_PROGRAM} -d symbols -n 50 -C full -s vm $<TARGET_FILE:px4> -- master_${FW_NAME}
-		DEPENDS px4
-		WORKING_DIRECTORY ${PX4_BINARY_DIR}
-		VERBATIM
-		USES_TERMINAL
-		)
-endif()
 
 # debugger helpers
 

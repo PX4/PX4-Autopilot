@@ -125,12 +125,14 @@ void FlightTaskAuto::_limitYawRate()
 		const float dyaw_desired = matrix::wrap_pi(_yaw_setpoint - _yaw_sp_prev);
 		const float dyaw_max = yawrate_max * _deltatime;
 		const float dyaw = math::constrain(dyaw_desired, -dyaw_max, dyaw_max);
-		_yaw_setpoint = _yaw_sp_prev + dyaw;
-		_yaw_setpoint = matrix::wrap_pi(_yaw_setpoint);
-		_yaw_sp_prev = _yaw_setpoint;
+		float yaw_setpoint_sat = _yaw_sp_prev + dyaw;
+		yaw_setpoint_sat = matrix::wrap_pi(yaw_setpoint_sat);
 
-		// The yaw setpoint is aligned when its rate is not saturated
-		_yaw_sp_aligned = fabsf(dyaw_desired) < fabsf(dyaw_max);
+		// The yaw setpoint is aligned when it is within tolerance
+		_yaw_sp_aligned = fabsf(_yaw_setpoint - yaw_setpoint_sat) < math::radians(_param_mis_yaw_err.get());
+
+		_yaw_setpoint = yaw_setpoint_sat;
+		_yaw_sp_prev = _yaw_setpoint;
 	}
 
 	if (PX4_ISFINITE(_yawspeed_setpoint)) {
@@ -257,6 +259,12 @@ bool FlightTaskAuto::_evaluateTriplets()
 		}
 	}
 
+	if (_ext_yaw_handler != nullptr) {
+		// activation/deactivation of weather vane is based on parameter WV_EN and setting of navigator (allow_weather_vane)
+		(_param_wv_en.get() && _sub_triplet_setpoint->get().current.allow_weather_vane) ?	_ext_yaw_handler->activate() :
+		_ext_yaw_handler->deactivate();
+	}
+
 	// set heading
 	if (_ext_yaw_handler != nullptr && _ext_yaw_handler->is_active()) {
 		_yaw_setpoint = _yaw;
@@ -292,9 +300,8 @@ bool FlightTaskAuto::_evaluateTriplets()
 				_triplet_next_wp,
 				_sub_triplet_setpoint->get().next.yaw,
 				_sub_triplet_setpoint->get().next.yawspeed_valid ? _sub_triplet_setpoint->get().next.yawspeed : NAN,
-				_ext_yaw_handler != nullptr && _ext_yaw_handler->is_active());
-		_obstacle_avoidance.checkAvoidanceProgress(_position, _triplet_prev_wp, _target_acceptance_radius, _closest_pt,
-				_sub_triplet_setpoint->get().current.type);
+				_ext_yaw_handler != nullptr && _ext_yaw_handler->is_active(), _sub_triplet_setpoint->get().current.type);
+		_obstacle_avoidance.checkAvoidanceProgress(_position, _triplet_prev_wp, _target_acceptance_radius, _closest_pt);
 	}
 
 	return true;

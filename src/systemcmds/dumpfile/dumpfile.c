@@ -99,6 +99,7 @@ dumpfile_main(int argc, char *argv[])
 
 	if (tcsetattr(out, TCSANOW, &tc) < 0) {
 		PX4_ERR("failed setting stdout attributes");
+		fclose(f);
 		return 1;
 	}
 

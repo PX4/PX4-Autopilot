@@ -87,7 +87,7 @@ px4_add_board(
 		simulator
 		vmount
 		vtol_att_control
-		wind_estimator
+		airspeed_selector
 
 	SYSTEMCMDS
 		#bl_update

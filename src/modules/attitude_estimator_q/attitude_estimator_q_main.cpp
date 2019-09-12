@@ -425,9 +425,6 @@ void AttitudeEstimatorQ::task_main()
 		if (update(dt)) {
 			vehicle_attitude_s att = {};
 			att.timestamp = sensors.timestamp;
-			att.rollspeed = _rates(0);
-			att.pitchspeed = _rates(1);
-			att.yawspeed = _rates(2);
 			_q.copyTo(att.q);
 
 			/* the instance count is not used here */

@@ -1,0 +1,13 @@
+#!/bin/sh
+#
+# UVify Core specific board defaults
+#------------------------------------------------------------------------------
+
+
+if [ $AUTOCNF = yes ]
+then
+	# Disable safety switch by default
+	param set CBRK_IO_SAFETY 22027
+
+fi
+

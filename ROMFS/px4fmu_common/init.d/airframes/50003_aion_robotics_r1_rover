@@ -66,7 +66,20 @@ then
 
 	# Enable Airspeed check circuit breaker because Rovers will have no airspeed sensor
 	param set CBRK_AIRSPD_CHK 162128
+
+	# Differential drive acts like ackermann steering with a maximum turn angle of 180 degrees, or pi radians
+	param set GND_MAX_ANG 3.1415
+
+	param set RBCLW_BAUD 8
+	param set RBCLW_COUNTS_REV 1200
+	param set RBCLW_ADDRESS 128
+	# param set SER_TEL4_BAUD 115200
+	# 104 corresponds to Telem 4
+	param set RBCLW_SER_CFG 104
 fi
+
+# Start this driver after setting parameters, because the driver uses some of those parameters.
+# roboclaw start /dev/ttyS3
 
 # Configure this as rover
 set MAV_TYPE 10
