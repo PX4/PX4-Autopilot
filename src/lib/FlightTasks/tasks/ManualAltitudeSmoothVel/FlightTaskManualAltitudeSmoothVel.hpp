@@ -40,7 +40,7 @@
 #pragma once
 
 #include "FlightTaskManualAltitude.hpp"
-#include "VelocitySmoothing.hpp"
+#include "ManualVelocitySmoothingZ.hpp"
 
 class FlightTaskManualAltitudeSmoothVel : public FlightTaskManualAltitude
 {
@@ -64,14 +64,13 @@ protected:
 private:
 
 	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
-	void _resetPositionLock();
+
 	void _initEkfResetCounters();
 	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
+	void _updateTrajConstraints();
+	void _setOutputState();
 
-	VelocitySmoothing _smoothing; ///< Smoothing in z direction
-	float _vel_sp_smooth;
-	bool _position_lock_z_active{false};
-	float _position_setpoint_z_locked{NAN};
+	ManualVelocitySmoothingZ _smoothing; ///< Smoothing in z direction
 
 	/* counters for estimator local position resets */
 	struct {
