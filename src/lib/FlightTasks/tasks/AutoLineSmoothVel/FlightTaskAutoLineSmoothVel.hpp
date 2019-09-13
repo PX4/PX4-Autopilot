@@ -73,7 +73,7 @@ protected:
 	bool _checkTakeoff() override { return _want_takeoff; };
 
 	inline float _constrainOneSide(float val, float constraint); /**< Constrain val between INF and constraint */
-	inline float _constrainAbs(float val, float min, float max); /**< Constrain the absolute value of val to be at least min and at most max */
+	inline float _constrainAbs(float val, float min, float max); /**< Constrain absolute value of val between min and max */
 
 	void _initEkfResetCounters();
 	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
