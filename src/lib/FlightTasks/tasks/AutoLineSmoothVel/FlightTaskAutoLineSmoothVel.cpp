@@ -147,15 +147,9 @@ inline float FlightTaskAutoLineSmoothVel::_constrainOneSide(float val, float con
 	return math::constrain(val, min, max);
 }
 
-float FlightTaskAutoLineSmoothVel::_constrainAbs(float val, float constraint)
+float FlightTaskAutoLineSmoothVel::_constrainAbs(float val, float min, float max)
 {
-	float constraint_abs = fabsf(constraint);
-	return math::constrain(val, -constraint_abs, constraint_abs);
-}
-
-float FlightTaskAutoLineSmoothVel::_maxAbs(float val, float constraint)
-{
-	return math::sign(val) * math::max(fabsf(val), fabsf(constraint));
+	return math::sign(val) * math::constrain(fabsf(val), fabsf(min), fabsf(max));
 }
 
 void FlightTaskAutoLineSmoothVel::_initEkfResetCounters()
@@ -280,8 +274,6 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 				// to force the drone to pass the waypoint with a desired speed
 				Vector2f u_prev_to_target_xy((_target - _prev_wp).unit_or_zero());
 				vel_min_xy = u_prev_to_target_xy * _getSpeedAtTarget();
-				vel_min_xy(0) = fabsf(vel_min_xy(0));
-				vel_min_xy(1) = fabsf(vel_min_xy(1));
 
 			} else {
 				// The drone has to change altitude, stop at the waypoint
@@ -290,8 +282,8 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 
 			// Constrain the norm of each component using min and max values
 			Vector2f vel_sp_constrained_xy;
-			vel_sp_constrained_xy(0) = _maxAbs(_constrainAbs(vel_sp_xy(0), vel_max_xy(0)), vel_min_xy(0));
-			vel_sp_constrained_xy(1) = _maxAbs(_constrainAbs(vel_sp_xy(1), vel_max_xy(1)), vel_min_xy(1));
+			vel_sp_constrained_xy(0) = _constrainAbs(vel_sp_xy(0), vel_min_xy(0), vel_max_xy(0));
+			vel_sp_constrained_xy(1) = _constrainAbs(vel_sp_xy(1), vel_min_xy(1), vel_max_xy(1));
 
 			for (int i = 0; i < 2; i++) {
 				// If available, constrain the velocity using _velocity_setpoint(.)
