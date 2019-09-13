@@ -60,6 +60,11 @@ public:
 	{
 		_addObstacleSensorData(obstacle, attitude);
 	}
+	void test_adaptSetpointDirection(matrix::Vector2f &setpoint_dir, int &setpoint_index,
+					 float vehicle_yaw_angle_rad)
+	{
+		_adaptSetpointDirection(setpoint_dir, setpoint_index, vehicle_yaw_angle_rad);
+	}
 };
 
 class TestTimingCollisionPrevention : public TestCollisionPrevention
@@ -303,7 +308,8 @@ TEST_F(CollisionPreventionTest, testPurgeOldData)
 
 		if (i < 6) {
 			// THEN: If the data is new enough, the velocity setpoint should stay the same as the input
-			EXPECT_EQ(original_setpoint, modified_setpoint);
+			// Note: direction will change slightly due to guidance
+			EXPECT_EQ(original_setpoint.norm(), modified_setpoint.norm());
 
 		} else {
 			// THEN: If the data is expired, the velocity setpoint should be cut down to zero because there is no data
@@ -404,16 +410,16 @@ TEST_F(CollisionPreventionTest, outsideFOV)
 		orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
 		cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
 
-		if (angle_deg > 50.f && angle_deg < 230.f) {
-			// THEN: inside the FOV the setpoint should be limited
-			EXPECT_GT(modified_setpoint.norm(), 0.f);
-			EXPECT_LT(modified_setpoint.norm(), 10.f);
+		//THEN: if the resulting setpoint demands velocities bigger zero, it must lie inside the FOV
+		float setpoint_length = modified_setpoint.norm();
 
-		} else {
-			// THEN: outside the FOV the setpoint should be clamped to zero
-			EXPECT_FLOAT_EQ(modified_setpoint.norm(), 0.f);
+		if (setpoint_length > 0.f) {
+			matrix::Vector2f setpoint_dir = modified_setpoint / setpoint_length;
+			float sp_angle_body_frame = atan2(setpoint_dir(1), setpoint_dir(0));
+			float sp_angle_deg = math::degrees(matrix::wrap_2pi(sp_angle_body_frame));
+			EXPECT_GT(sp_angle_deg, 45.f);
+			EXPECT_LT(sp_angle_deg, 225.f);
 		}
-
 	}
 
 	orb_unadvertise(obstacle_distance_pub);
@@ -803,4 +809,100 @@ TEST_F(CollisionPreventionTest, addObstacleSensorData_resolution_offset)
 		//reset array to UINT16_MAX
 		cp.getObstacleMap().distances[i] = UINT16_MAX;
 	}
+}
+
+TEST_F(CollisionPreventionTest, adaptSetpointDirection_distinct_minimum)
+{
+	// GIVEN: a vehicle attitude and obstacle distance message
+	TestCollisionPrevention cp;
+	cp.getObstacleMap().increment = 10.f;
+	obstacle_distance_s obstacle_msg {};
+	obstacle_msg.frame = obstacle_msg.MAV_FRAME_GLOBAL; //north aligned
+	obstacle_msg.increment = 10.f;
+	obstacle_msg.min_distance = 20;
+	obstacle_msg.max_distance = 2000;
+	obstacle_msg.angle_offset = 0.f;
+
+	matrix::Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
+	float vehicle_yaw_angle_rad = matrix::Eulerf(vehicle_attitude).psi();
+
+	//obstacle at 0-30 deg world frame, distance 5 meters
+	memset(&obstacle_msg.distances[0], UINT16_MAX, sizeof(obstacle_msg.distances));
+
+	for (int i = 0; i < 7 ; i++) {
+		obstacle_msg.distances[i] = 500;
+	}
+
+	obstacle_msg.distances[2] = 1000;
+
+	//define setpoint
+	matrix::Vector2f setpoint_dir(1, 0);
+	float sp_angle_body_frame = matrix::atan2(setpoint_dir(1), setpoint_dir(0)) - vehicle_yaw_angle_rad;
+	float sp_angle_with_offset_deg = matrix::wrap(math::degrees(sp_angle_body_frame) - cp.getObstacleMap().angle_offset,
+					 0.f, 360.f);
+	int sp_index = floor(sp_angle_with_offset_deg / cp.getObstacleMap().increment);
+
+	//set parameter
+	param_t param = param_handle(px4::params::MPC_COL_PREV_D);
+	float value = 3; // try to keep 10m away from obstacles
+	param_set(param, &value);
+	cp.paramsChanged();
+
+	//WHEN: we add distance sensor data
+	cp.test_addObstacleSensorData(obstacle_msg, vehicle_attitude);
+	cp.test_adaptSetpointDirection(setpoint_dir, sp_index, vehicle_yaw_angle_rad);
+
+	//THEN: the setpoint direction should be modified correctly
+	EXPECT_EQ(sp_index, 2);
+	EXPECT_FLOAT_EQ(setpoint_dir(0), 0.93969262);
+	EXPECT_FLOAT_EQ(setpoint_dir(1), 0.34202012);
+}
+
+TEST_F(CollisionPreventionTest, adaptSetpointDirection_flat_minimum)
+{
+	// GIVEN: a vehicle attitude and obstacle distance message
+	TestCollisionPrevention cp;
+	cp.getObstacleMap().increment = 10.f;
+	obstacle_distance_s obstacle_msg {};
+	obstacle_msg.frame = obstacle_msg.MAV_FRAME_GLOBAL; //north aligned
+	obstacle_msg.increment = 10.f;
+	obstacle_msg.min_distance = 20;
+	obstacle_msg.max_distance = 2000;
+	obstacle_msg.angle_offset = 0.f;
+
+	matrix::Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
+	float vehicle_yaw_angle_rad = matrix::Eulerf(vehicle_attitude).psi();
+
+	//obstacle at 0-30 deg world frame, distance 5 meters
+	memset(&obstacle_msg.distances[0], UINT16_MAX, sizeof(obstacle_msg.distances));
+
+	for (int i = 0; i < 7 ; i++) {
+		obstacle_msg.distances[i] = 500;
+	}
+
+	obstacle_msg.distances[1] = 1000;
+	obstacle_msg.distances[2] = 1000;
+	obstacle_msg.distances[3] = 1000;
+
+	//define setpoint
+	matrix::Vector2f setpoint_dir(1, 0);
+	float sp_angle_body_frame = matrix::atan2(setpoint_dir(1), setpoint_dir(0)) - vehicle_yaw_angle_rad;
+	float sp_angle_with_offset_deg = matrix::wrap(math::degrees(sp_angle_body_frame) - cp.getObstacleMap().angle_offset,
+					 0.f, 360.f);
+	int sp_index = floor(sp_angle_with_offset_deg / cp.getObstacleMap().increment);
+
+	//set parameter
+	param_t param = param_handle(px4::params::MPC_COL_PREV_D);
+	float value = 3; // try to keep 10m away from obstacles
+	param_set(param, &value);
+	cp.paramsChanged();
+
+	//WHEN: we add distance sensor data
+	cp.test_addObstacleSensorData(obstacle_msg, vehicle_attitude);
+	cp.test_adaptSetpointDirection(setpoint_dir, sp_index, vehicle_yaw_angle_rad);
+
+	//THEN: the setpoint direction should be modified correctly
+	EXPECT_EQ(sp_index, 2);
+	EXPECT_FLOAT_EQ(setpoint_dir(0), 0.93969262);
+	EXPECT_FLOAT_EQ(setpoint_dir(1), 0.34202012);
 }

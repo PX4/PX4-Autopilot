@@ -264,8 +264,8 @@ void CollisionPrevention::_adaptSetpointDirection(Vector2f &setpoint_dir, int &s
 
 		int bin = wrap_bin(i);
 		mean_dist = mean_dist / (2.f * filter_size + 1.f);
-		float deviation_cost = col_prev_d * 25.f * std::abs(i - sp_index_original);
-		float bin_cost = deviation_cost - mean_dist;
+		float deviation_cost = col_prev_d * 50.f * std::abs(i - sp_index_original);
+		float bin_cost = deviation_cost - mean_dist - _obstacle_map_body_frame.distances[bin];
 
 		if (bin_cost < best_cost && _obstacle_map_body_frame.distances[bin] != UINT16_MAX) {
 			best_cost = bin_cost;
