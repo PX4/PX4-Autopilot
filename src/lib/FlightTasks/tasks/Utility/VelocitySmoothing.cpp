@@ -188,7 +188,7 @@ int VelocitySmoothing::computeDirection()
 	if (direction == 0) {
 		// If by braking immediately the velocity is exactly
 		// the require one with zero acceleration, then brake
-		direction = -math::sign(_state.a);
+		direction = math::sign(_state.a);
 	}
 
 	return direction;
