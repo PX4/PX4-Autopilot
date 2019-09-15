@@ -1123,7 +1123,7 @@ void Ekf2::run()
 				distance_sensor_s range_finder;
 
 				if (_range_finder_subs[_range_finder_sub_index].copy(&range_finder)) {
-						_ekf.setRangeData(range_finder.timestamp, range_finder.current_distance, range_finder.signal_quality);
+					_ekf.setRangeData(range_finder.timestamp, range_finder.current_distance, range_finder.signal_quality);
 
 					// Save sensor limits reported by the rangefinder
 					_ekf.set_rangefinder_limits(range_finder.min_distance, range_finder.max_distance);
