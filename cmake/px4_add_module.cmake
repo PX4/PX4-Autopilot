@@ -158,9 +158,6 @@ function(px4_add_module)
 		set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
 	endif()
 
-	# Pass variable to the parent px4_add_module.
-	set(_no_optimization_for_target ${_no_optimization_for_target} PARENT_SCOPE)
-
 	# set defaults if not set
 	set(MAIN_DEFAULT MAIN-NOTFOUND)
 	set(STACK_MAIN_DEFAULT 2048)
