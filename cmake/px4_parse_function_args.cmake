@@ -33,17 +33,6 @@
 
 #=============================================================================
 #
-#	Defined functions in this file
-#
-# 	utility functions
-#
-#		* px4_parse_function_args
-#
-
-include(CMakeParseArguments)
-
-#=============================================================================
-#
 #	px4_parse_function_args
 #
 #	This function simplifies usage of the cmake_parse_arguments module.
@@ -88,6 +77,7 @@ include(CMakeParseArguments)
 #			name: hello
 #			list: a b c
 #
+include(CMakeParseArguments)
 function(px4_parse_function_args)
 
 	cmake_parse_arguments(IN "" "NAME" "OPTIONS;ONE_VALUE;MULTI_VALUE;REQUIRED;ARGN" "${ARGN}")
