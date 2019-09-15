@@ -149,80 +149,10 @@ if (TARGET parameters_xml AND TARGET airframes_xml)
 	# upload helper
 	# create upload target helper if NuttX USB CDCACM is present
 	if (CONFIG_CDCACM)
-
-		# NuttX CDCACM vendor and product strings
-		set(vendorstr_underscore)
-		set(productstr_underscore)
-		string(REPLACE " " "_" vendorstr_underscore ${CONFIG_CDCACM_VENDORSTR})
-		string(REPLACE " " "_" productstr_underscore ${CONFIG_CDCACM_PRODUCTSTR})
-
-		set(serial_ports)
-		if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
-
-			set(px4_usb_path "${vendorstr_underscore}_${productstr_underscore}")
-
-			list(APPEND serial_ports
-				# NuttX vendor + product string
-				/dev/serial/by-id/*-${px4_usb_path}*
-
-				# Bootloader
-				/dev/serial/by-id/*PX4_BL* # typical bootloader USB device string
-				/dev/serial/by-id/*BL_FMU*
-
-				# TODO: handle these per board
-				/dev/serial/by-id/usb-The_Autopilot*
-				/dev/serial/by-id/usb-Bitcraze*
-				/dev/serial/by-id/pci-Bitcraze*
-				/dev/serial/by-id/usb-Gumstix*
-				/dev/serial/by-id/usb-Hex_ProfiCNC*
-				/dev/serial/by-id/usb-UVify_FMU_BL*
-				)
-
-		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
-			list(APPEND serial_ports
-				/dev/tty.usbmodemPX*,/dev/tty.usbmodem*
-				)
-		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "CYGWIN")
-			list(APPEND serial_ports
-				/dev/ttyS*
-				)
-		elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Windows")
-			foreach(port RANGE 32 0)
-				list(APPEND serial_ports
-					"COM${port}")
-			endforeach()
-		endif()
-
-		string(REPLACE ";" "," serial_ports "${serial_ports}")
-
-		add_custom_target(upload
-			COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --port ${serial_ports} ${fw_package}
-			DEPENDS ${fw_package}
-			COMMENT "uploading px4"
-			VERBATIM
-			USES_TERMINAL
-			WORKING_DIRECTORY ${PX4_BINARY_DIR}
-			)
-
-		add_custom_target(force-upload
-			COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_uploader.py --force --port ${serial_ports} ${fw_package}
-			DEPENDS ${fw_package}
-			COMMENT "uploading px4 with --force"
-			VERBATIM
-			USES_TERMINAL
-			WORKING_DIRECTORY ${PX4_BINARY_DIR}
-			)
+		include(upload)
 	endif()
 
 endif()
-
-# print size
-add_custom_target(size
-	COMMAND size $<TARGET_FILE:px4>
-	DEPENDS px4
-	WORKING_DIRECTORY ${PX4_BINARY_DIR}
-	USES_TERMINAL
-	)
 
 # print weak symbols
 add_custom_target(weak_symbols
@@ -232,24 +162,8 @@ add_custom_target(weak_symbols
 	USES_TERMINAL
 	)
 
-add_custom_target(stack_check
-	COMMAND ${CMAKE_COMMAND} -E make_directory stack_usage && ${CMAKE_OBJDUMP} -d $<TARGET_FILE:px4> | ${PX4_SOURCE_DIR}/Tools/stack_usage/checkstack.pl arm 0 > stack_usage/checkstack_output.txt 2> stack_usage/checkstack_errors.txt
-	COMMAND ${CMAKE_COMMAND} -E echo ""
-	COMMAND ${CMAKE_COMMAND} -E echo ""
-	COMMAND ${CMAKE_COMMAND} -E echo "Top 50:"
-	COMMAND ${CMAKE_COMMAND} -E echo "--------------------------------------------------------------------------------"
-	COMMAND head -n 50 stack_usage/checkstack_output.txt | c++filt
-	COMMAND ${CMAKE_COMMAND} -E echo ""
-	COMMAND ${CMAKE_COMMAND} -E echo "Symbols with 'run', 'task', 'thread', 'main', 'update':"
-	COMMAND ${CMAKE_COMMAND} -E echo "--------------------------------------------------------------------------------"
-    COMMAND cat stack_usage/checkstack_output.txt | c++filt | grep -E 'run|task|thread|main|update'
-	DEPENDS px4
-	WORKING_DIRECTORY ${PX4_BINARY_DIR}
-	VERBATIM
-	)
 
 # debugger helpers
-
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/gdbinit.in ${PX4_BINARY_DIR}/.gdbinit)
 
 add_custom_target(debug
@@ -259,98 +173,7 @@ add_custom_target(debug
 	USES_TERMINAL
 	)
 
-file(GLOB_RECURSE black_magic_probe_path
-     FOLLOW_SYMLINKS
-     /dev/serial/by-id/usb-Black_Sphere_Technologies_Black_Magic_Probe_*-if00
-     )
-file(GLOB_RECURSE black_magic_probe_console_path
-     FOLLOW_SYMLINKS
-     /dev/serial/by-id/usb-Black_Sphere_Technologies_Black_Magic_Probe_*-if02
-     )
-
-if(black_magic_probe_path)
-
-	add_custom_target(blackmagic_debug
-		COMMAND ${GDB} --nh
-			-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
-			-ex 'target extended-remote ${black_magic_probe_path}'
-			-ex 'monitor version'
-			-ex 'monitor connect_srst enable'
-			-ex 'monitor swdp_scan'
-			-ex 'attach 1'
-			-ex 'load'
-			-ex 'run'
-			$<TARGET_FILE:px4>
-		DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit
-		WORKING_DIRECTORY ${PX4_BINARY_DIR}
-		USES_TERMINAL
-		)
-
-	add_custom_target(blackmagic_upload
-		COMMAND ${GDB} --nx --batch
-			-ex 'target extended-remote ${black_magic_probe_path}'
-			-ex 'monitor version'
-			-ex 'monitor connect_srst enable'
-			-ex 'monitor swdp_scan'
-			-ex 'attach 1'
-			-ex 'load'
-			-ex 'kill'
-			$<TARGET_FILE:px4>
-		DEPENDS px4
-		WORKING_DIRECTORY ${PX4_BINARY_DIR}
-		USES_TERMINAL
-		COMMENT "Uploading with Black Magic Probe"
-		)
-
-	add_custom_target(blackmagic_console
-		COMMAND screen -t "${PX4_BOARD} console" ${black_magic_probe_console_path} 57600 8N1
-		USES_TERMINAL
-		)
-
-endif()
-
-add_custom_target(jlink_upload
-	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_start.sh
-	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_upload.sh $<TARGET_FILE:px4>
-	DEPENDS px4
-	WORKING_DIRECTORY ${PX4_BINARY_DIR}
-	USES_TERMINAL
-	)
-
-add_custom_target(jlink_debug
-	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_start.sh
-	COMMAND ${GDB} -nh
-		-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
-		-ex 'target remote localhost:2331'
-		-ex 'monitor reset 0'
-		-ex 'load'
-		-ex 'compare-sections'
-		-ex 'monitor reset 0'
-		-ex 'monitor sleep 1000'
-		-ex 'monitor go'
-		-ex 'continue'
-		$<TARGET_FILE:px4>
-	DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit
-	WORKING_DIRECTORY ${PX4_BINARY_DIR}
-	USES_TERMINAL
-	)
-
-# Poor man's profiler
-include(ExternalProject)
-ExternalProject_Add(FlameGraph
-	GIT_REPOSITORY "https://github.com/brendangregg/FlameGraph.git"
-	UPDATE_COMMAND ""
-	PATCH_COMMAND ""
-	CONFIGURE_COMMAND ""
-	BUILD_COMMAND ""
-	INSTALL_COMMAND ""
-	EXCLUDE_FROM_ALL 1
-	)
-
-add_custom_target(profile
-	COMMAND ${CMAKE_COMMAND} -E env PATH="${PX4_BINARY_DIR}/external/Source/FlameGraph:$ENV{PATH}"
-		${CMAKE_CURRENT_SOURCE_DIR}/Debug/poor-mans-profiler.sh --elf=$<TARGET_FILE:px4> --nsamples=10000
-	DEPENDS px4 ${CMAKE_CURRENT_SOURCE_DIR}/Debug/poor-mans-profiler.sh FlameGraph
-	USES_TERMINAL
-	WORKING_DIRECTORY ${PX4_BINARY_DIR}
-	)
+include(blackmagic)
+include(jlink)
+include(profile)
+include(stack_check)
