@@ -64,9 +64,9 @@ bool FlightTaskOffboard::updateInitialize()
 	       && PX4_ISFINITE(_velocity(1));
 }
 
-bool FlightTaskOffboard::activate()
+bool FlightTaskOffboard::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	bool ret = FlightTask::activate();
+	bool ret = FlightTask::activate(last_setpoint);
 	_position_setpoint = _position;
 	_velocity_setpoint.setZero();
 	_position_lock.setAll(NAN);

@@ -42,9 +42,6 @@
  */
 
 #include "batt_smbus.h"
-#include <px4_getopt.h>
-
-#include <stdlib.h>
 
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 

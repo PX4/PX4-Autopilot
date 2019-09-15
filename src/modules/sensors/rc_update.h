@@ -44,7 +44,11 @@
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_controls.h>
+#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/rc_parameter_map.h>
 
@@ -105,9 +109,10 @@ private:
 	uORB::Subscription	_rc_sub{ORB_ID(input_rc)};				/**< raw rc channels data subscription */
 	uORB::Subscription	_rc_parameter_map_sub{ORB_ID(rc_parameter_map)};	/**< rc parameter map subscription */
 
-	orb_advert_t	_rc_pub = nullptr;		/**< raw r/c control topic */
-	orb_advert_t	_manual_control_pub = nullptr;	/**< manual control signal topic */
-	orb_advert_t	_actuator_group_3_pub = nullptr;/**< manual control as actuator topic */
+	uORB::Publication<rc_channels_s>	_rc_pub{ORB_ID(rc_channels)};				/**< raw r/c control topic */
+	uORB::Publication<actuator_controls_s>	_actuator_group_3_pub{ORB_ID(actuator_controls_3)};	/**< manual control as actuator topic */
+
+	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_control_pub{ORB_ID(manual_control_setpoint), ORB_PRIO_HIGH};	/**< manual control signal topic */
 
 	rc_channels_s _rc {};			/**< r/c channel data */
 

@@ -36,10 +36,7 @@ add_subdirectory(failure_detector)
 px4_add_module(
 	MODULE modules__commander
 	MAIN commander
-	STACK_MAIN 4096
-	STACK_MAX 2450
 	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		accelerometer_calibration.cpp
 		airspeed_calibration.cpp

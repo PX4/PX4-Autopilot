@@ -45,6 +45,7 @@
 #include "rc_check.h"
 
 #include <math.h>
+#include <mathlib/mathlib.h>
 
 #include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
@@ -153,12 +154,9 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s 
 	float test_limit = 1.0f; // pass limit re-used for each test
 
 	// Get sensor_preflight data if available and exit with a fail recorded if not
-	int sensors_sub = orb_subscribe(ORB_ID(sensor_preflight));
-	sensor_preflight_s sensors = {};
-
-	if (orb_copy(ORB_ID(sensor_preflight), sensors_sub, &sensors) != PX4_OK) {
-		goto out;
-	}
+	uORB::SubscriptionData<sensor_preflight_s> sensors_sub{ORB_ID(sensor_preflight)};
+	sensors_sub.update();
+	const sensor_preflight_s &sensors = sensors_sub.get();
 
 	// Use the difference between IMU's to detect a bad calibration.
 	// If a single IMU is fitted, the value being checked will be zero so this check will always pass.
@@ -200,40 +198,41 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s 
 	}
 
 out:
-	orb_unsubscribe(sensors_sub);
 	return success;
 }
 
 // return false if the magnetomer measurements are inconsistent
 static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, bool report_status)
 {
+	bool pass = false; // flag for result of checks
+
 	// get the sensor preflight data
-	int sensors_sub = orb_subscribe(ORB_ID(sensor_preflight));
-	struct sensor_preflight_s sensors = {};
+	uORB::SubscriptionData<sensor_preflight_s> sensors_sub{ORB_ID(sensor_preflight)};
+	sensors_sub.update();
+	const sensor_preflight_s &sensors = sensors_sub.get();
 
-	if (orb_copy(ORB_ID(sensor_preflight), sensors_sub, &sensors) != 0) {
+	if (sensors.timestamp == 0) {
 		// can happen if not advertised (yet)
-		return true;
+		pass = true;
 	}
-
-	orb_unsubscribe(sensors_sub);
 
 	// Use the difference between sensors to detect a bad calibration, orientation or magnetic interference.
 	// If a single sensor is fitted, the value being checked will be zero so this check will always pass.
-	float test_limit;
-	param_get(param_find("COM_ARM_MAG"), &test_limit);
+	int32_t angle_difference_limit_deg;
+	param_get(param_find("COM_ARM_MAG_ANG"), &angle_difference_limit_deg);
 
-	if (sensors.mag_inconsistency_ga > test_limit) {
-		if (report_status) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compass Sensors inconsistent");
-			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_MAG, false, status);
-			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_MAG2, false, status);
-		}
+	pass = pass || angle_difference_limit_deg < 0; // disabled, pass check
+	pass = pass || sensors.mag_inconsistency_angle < math::radians<float>(angle_difference_limit_deg);
 
-		return false;
+	if (!pass && report_status) {
+		mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compasses %d° inconsistent",
+				     static_cast<int>(math::degrees<float>(sensors.mag_inconsistency_angle)));
+		mavlink_log_critical(mavlink_log_pub, "Please check orientations and recalibrate");
+		set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_MAG, false, status);
+		set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_MAG2, false, status);
 	}
 
-	return true;
+	return pass;
 }
 
 static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance,
@@ -382,11 +381,11 @@ static bool airspeedCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &statu
 	bool present = true;
 	bool success = true;
 
-	int fd_airspeed = orb_subscribe(ORB_ID(airspeed));
-	airspeed_s airspeed = {};
+	uORB::SubscriptionData<airspeed_s> airspeed_sub{ORB_ID(airspeed)};
+	airspeed_sub.update();
+	const airspeed_s &airspeed = airspeed_sub.get();
 
-	if ((orb_copy(ORB_ID(airspeed), fd_airspeed, &airspeed) != PX4_OK) ||
-	    (hrt_elapsed_time(&airspeed.timestamp) > 1_s)) {
+	if (hrt_elapsed_time(&airspeed.timestamp) > 1_s) {
 		if (report_fail && !optional) {
 			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Airspeed Sensor missing");
 		}
@@ -430,8 +429,6 @@ static bool airspeedCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &statu
 out:
 	set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_DIFFPRESSURE, present, !optional, success, status);
 
-	orb_unsubscribe(fd_airspeed);
-
 	return success;
 }
 
@@ -444,41 +441,36 @@ static bool powerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, 
 		return true;
 
 	} else {
-		int system_power_sub = orb_subscribe(ORB_ID(system_power));
+		uORB::SubscriptionData<system_power_s> system_power_sub{ORB_ID(system_power)};
+		system_power_sub.update();
+		const system_power_s &system_power = system_power_sub.get();
 
-		system_power_s system_power;
+		if (hrt_elapsed_time(&system_power.timestamp) < 200_ms) {
 
-		if (orb_copy(ORB_ID(system_power), system_power_sub, &system_power) == PX4_OK) {
+			/* copy avionics voltage */
+			float avionics_power_rail_voltage = system_power.voltage5v_v;
 
-			if (hrt_elapsed_time(&system_power.timestamp) < 200_ms) {
+			// avionics rail
+			// Check avionics rail voltages
+			if (avionics_power_rail_voltage < 4.5f) {
+				success = false;
 
-				/* copy avionics voltage */
-				float avionics_power_rail_voltage = system_power.voltage5v_v;
+				if (report_fail) {
+					mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Avionics Power low: %6.2f Volt",
+							     (double)avionics_power_rail_voltage);
+				}
 
-				// avionics rail
-				// Check avionics rail voltages
-				if (avionics_power_rail_voltage < 4.5f) {
-					success = false;
+			} else if (avionics_power_rail_voltage < 4.9f) {
+				if (report_fail) {
+					mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics Power low: %6.2f Volt", (double)avionics_power_rail_voltage);
+				}
 
-					if (report_fail) {
-						mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Avionics Power low: %6.2f Volt",
-								     (double)avionics_power_rail_voltage);
-					}
-
-				} else if (avionics_power_rail_voltage < 4.9f) {
-					if (report_fail) {
-						mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics Power low: %6.2f Volt", (double)avionics_power_rail_voltage);
-					}
-
-				} else if (avionics_power_rail_voltage > 5.4f) {
-					if (report_fail) {
-						mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics Power high: %6.2f Volt", (double)avionics_power_rail_voltage);
-					}
+			} else if (avionics_power_rail_voltage > 5.4f) {
+				if (report_fail) {
+					mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics Power high: %6.2f Volt", (double)avionics_power_rail_voltage);
 				}
 			}
 		}
-
-		orb_unsubscribe(system_power_sub);
 	}
 
 	return success;
@@ -495,10 +487,11 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 	bool gps_present = true;
 
 	// Get estimator status data if available and exit with a fail recorded if not
-	int sub = orb_subscribe(ORB_ID(estimator_status));
-	estimator_status_s status;
+	uORB::SubscriptionData<estimator_status_s> status_sub{ORB_ID(estimator_status)};
+	status_sub.update();
+	const estimator_status_s &status = status_sub.get();
 
-	if (orb_copy(ORB_ID(estimator_status), sub, &status) != PX4_OK) {
+	if (status.timestamp == 0) {
 		present = false;
 		goto out;
 	}
@@ -668,8 +661,6 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 out:
 	set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_AHRS, present, !optional, success && present, vehicle_status);
 	set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_GPS, gps_present, enforce_gps_required, gps_success, vehicle_status);
-
-	orb_unsubscribe(sub);
 
 	return success;
 }

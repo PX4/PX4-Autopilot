@@ -40,9 +40,9 @@
 
 using namespace matrix;
 
-bool FlightTaskAutoMapper::activate()
+bool FlightTaskAutoMapper::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	bool ret = FlightTaskAuto::activate();
+	bool ret = FlightTaskAuto::activate(last_setpoint);
 	_reset();
 	return ret;
 }
@@ -87,7 +87,7 @@ bool FlightTaskAutoMapper::update()
 	}
 
 	if (_param_com_obs_avoid.get()) {
-		_obstacle_avoidance.updateAvoidanceDesiredSetpoints(_position_setpoint, _velocity_setpoint);
+		_obstacle_avoidance.updateAvoidanceDesiredSetpoints(_position_setpoint, _velocity_setpoint, (int)_type);
 		_obstacle_avoidance.injectAvoidanceSetpoints(_position_setpoint, _velocity_setpoint, _yaw_setpoint,
 				_yawspeed_setpoint);
 	}
@@ -125,7 +125,7 @@ void FlightTaskAutoMapper::_generateLandSetpoints()
 	_position_setpoint = Vector3f(_target(0), _target(1), NAN);
 	_velocity_setpoint = Vector3f(Vector3f(NAN, NAN, _param_mpc_land_speed.get()));
 	// set constraints
-	_constraints.tilt = _param_mpc_tiltmax_lnd.get();
+	_constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
 	_constraints.speed_down = _param_mpc_land_speed.get();
 	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
 }

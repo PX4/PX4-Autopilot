@@ -76,9 +76,10 @@ public:
 
 	/**
 	 * Call once on the event where you switch to the task
+	 * @param state of the previous task
 	 * @return true on success, false on error
 	 */
-	virtual bool activate();
+	virtual bool activate(vehicle_local_position_setpoint_s last_setpoint);
 
 	/**
 	 * Call this to reset an active Flight Task
@@ -155,12 +156,6 @@ public:
 	 * default landing gear state
 	 */
 	static const landing_gear_s empty_landing_gear_default_keep;
-
-	/**
-	 * Empty desired waypoints.
-	 * All waypoints are set to NAN.
-	 */
-	static const vehicle_trajectory_waypoint_s empty_trajectory_waypoint;
 
 	/**
 	 * Call this whenever a parameter update notification is received (parameter_update uORB message)

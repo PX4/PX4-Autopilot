@@ -37,13 +37,10 @@
  * I2C interface for AK8963
  */
 
-#include <px4_config.h>
-#include <drivers/device/i2c.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_device.h>
-
 #include "icm20948.h"
-#include "mag.h"
+#include "ICM20948_mag.h"
+
+#include <drivers/device/i2c.h>
 
 #ifdef USE_I2C
 
@@ -78,7 +75,7 @@ AK8963_I2C::AK8963_I2C(int bus) :
 int
 AK8963_I2C::write(unsigned reg_speed, void *data, unsigned count)
 {
-	uint8_t cmd[MPU_MAX_WRITE_BUFFER_SIZE];
+	uint8_t cmd[MPU_MAX_WRITE_BUFFER_SIZE] {};
 
 	if (sizeof(cmd) < (count + 1)) {
 		return -EIO;
@@ -113,4 +110,4 @@ AK8963_I2C::probe()
 	return OK;
 }
 
-#endif
+#endif // USE_I2C

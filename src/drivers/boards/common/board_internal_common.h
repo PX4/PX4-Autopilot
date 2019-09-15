@@ -46,39 +46,6 @@
  ************************************************************************************/
 
 /************************************************************************************
- * Name: board_adc_init
- *
- * Description:
- *   boards may provide this function to allow complex version-ing.
- *
- * Input Parameters:
- *   None.
- *
- * Returned Value:
- *
- *      OK, or -1 if the function failed.
- */
-
-__EXPORT int board_adc_init(void);
-
-/************************************************************************************
- * Name: board_adc_sample
- *
- * Description:
- *   boards provide this function to allow complex version-ing.
- *
- * Input Parameters:
- *   channel  - The number of the adc channel to read.
- *
- * Returned Value:
- *    The ADC DN read for the channel or 0xffff if there
- *    is an error reading the channel.
- */
-
-__EXPORT uint16_t board_adc_sample(unsigned channel);
-
-
-/************************************************************************************
  * Name: board_gpio_init
  *
  * Description:
@@ -117,67 +84,3 @@ __EXPORT void board_gpio_init(const uint32_t list[], int count);
  ************************************************************************************/
 
 __EXPORT int board_determine_hw_info(void);
-
-#if defined(CONFIG_ARMV7M_DCACHE) && defined(CONFIG_ARMV7M_DCACHE_WRITETHROUGH)
-/************************************************************************************
- * Name: board_configure_dcache
- *
- * Description:
- *  Called at various points in start up to disable the dcache if the
- *  1259864 Data corruption in a sequence of Write-Through stores and loads
- *  errata is preset.
- *
- * Input Parameters:
- *   stage - 0 - early init no OS;
- *           1  - OS and file system are runnting;
- *
- * Returned Value:
- * None
- ************************************************************************************/
-
-void board_configure_dcache(int stage);
-
-/************************************************************************************
- * Name: board_get_dcache_setting
- *
- * Description:
- *  Called to retrieve the parameter setting to enable/disable
- *  the dcache.
- *
- * Input Parameters:
- *  None
- *
- * Returned Value:
- *  -1 -  Not set - if Eratta exits turn dcache off else leave it on
- *   0 -  if Eratta exits turn dcache off else leave it on
- *   1 -  Force it off
- *   2 -  Force it on
- *
- ************************************************************************************/
-
-int board_get_dcache_setting(void);
-
-/************************************************************************************
- * Name: board_dcache_info
- *
- * Description:
- *  Called to retrieve dcache info and optionally set dcache to on or off.
- *
- * Input Parameters:
- *  action  - -1 Provide info only.
- *  pmesg   - if non null return the chipid revision and patch level
- *            will indicate if the dcache eratta is present.
- *  state   - if non null return the state of the dcache
- *            true on, false is off.
- *
- * Returned Value:
- *   0 - success
- *
- ************************************************************************************/
-
-int board_dcache_info(int action, char **pmesg, bool *pstate);
-#else
-#  define board_configure_dcache(stage)
-#  define board_get_dcache_setting()
-#  define board_dcache_info(action, pmesg, pstate)
-#endif

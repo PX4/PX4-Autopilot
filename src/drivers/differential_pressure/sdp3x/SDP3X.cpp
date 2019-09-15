@@ -31,14 +31,14 @@
  *
  ****************************************************************************/
 
-#include "SDP3X.hpp"
-
 /**
  * @file SDP3X.hpp
  *
  * Driver for Sensirion SDP3X Differential Pressure Sensor
  *
  */
+
+#include "SDP3X.hpp"
 
 int
 SDP3X::probe()

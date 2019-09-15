@@ -43,15 +43,9 @@
 #define DRIVERS_SDP3X_AIRSPEED_HPP_
 
 #include <drivers/airspeed/airspeed.h>
-#include <drivers/device/i2c.h>
-#include <drivers/drv_airspeed.h>
 #include <math.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <px4_config.h>
-#include <sys/types.h>
-#include <perf/perf_counter.h>
-#include <uORB/topics/differential_pressure.h>
-#include <uORB/uORB.h>
+#include <px4_getopt.h>
 
 #define I2C_ADDRESS_1_SDP3X		0x21
 #define I2C_ADDRESS_2_SDP3X		0x22

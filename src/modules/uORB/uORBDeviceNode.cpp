@@ -33,9 +33,10 @@
 
 #include "uORBDeviceNode.hpp"
 
-#include "uORBDeviceNode.hpp"
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
+
+#include "SubscriptionCallback.hpp"
 
 #ifdef ORB_COMMUNICATOR
 #include "uORBCommunicator.hpp"
@@ -68,6 +69,8 @@ uORB::DeviceNode::~DeviceNode()
 	if (_data != nullptr) {
 		delete[] _data;
 	}
+
+	CDev::unregister_driver_and_memory();
 }
 
 int
@@ -218,18 +221,6 @@ uORB::DeviceNode::copy_and_get_timestamp(void *dst, unsigned &generation)
 	return update_time;
 }
 
-hrt_abstime
-uORB::DeviceNode::last_update()
-{
-	ATOMIC_ENTER;
-
-	const hrt_abstime update_time = _last_update;
-
-	ATOMIC_LEAVE;
-
-	return update_time;
-}
-
 ssize_t
 uORB::DeviceNode::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
@@ -316,6 +307,11 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 	_generation++;
 
 	_published = true;
+
+	// callbacks
+	for (auto item : _callbacks) {
+		item->call();
+	}
 
 	ATOMIC_LEAVE;
 
@@ -672,4 +668,34 @@ int uORB::DeviceNode::update_queue_size(unsigned int queue_size)
 
 	_queue_size = queue_size;
 	return PX4_OK;
+}
+
+bool
+uORB::DeviceNode::register_callback(uORB::SubscriptionCallback *callback_sub)
+{
+	if (callback_sub != nullptr) {
+		ATOMIC_ENTER;
+
+		// prevent duplicate registrations
+		for (auto existing_callbacks : _callbacks) {
+			if (callback_sub == existing_callbacks) {
+				ATOMIC_LEAVE;
+				return true;
+			}
+		}
+
+		_callbacks.add(callback_sub);
+		ATOMIC_LEAVE;
+		return true;
+	}
+
+	return false;
+}
+
+void
+uORB::DeviceNode::unregister_callback(uORB::SubscriptionCallback *callback_sub)
+{
+	ATOMIC_ENTER;
+	_callbacks.remove(callback_sub);
+	ATOMIC_LEAVE;
 }

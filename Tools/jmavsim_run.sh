@@ -33,9 +33,6 @@ while getopts ":b:d:p:qsr:f:i:l" opt; do
 		r)
 			extra_args="$extra_args -r $OPTARG"
 			;;
-		f)
-			extra_args="$extra_args -f $OPTARG"
-			;;
 		l)
 			extra_args="$extra_args -lockstep"
 			;;
@@ -50,6 +47,10 @@ if [ "$device" == "" ]; then
 	device="-tcp $ip:$tcp_port"
 else
 	device="-serial $device $baudrate"
+fi
+
+if [ "$HEADLESS" = "1" ]; then
+    extra_args="$extr_args -no-gui"
 fi
 
 # jMAVSim crashes with Java 9 on macOS, therefore we need to use Java 8

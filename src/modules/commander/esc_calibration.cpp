@@ -43,23 +43,14 @@
 #include "calibration_messages.h"
 #include "calibration_routines.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <systemlib/err.h>
-#include <fcntl.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
 #include <px4_defines.h>
 #include <px4_posix.h>
 #include <px4_time.h>
-#include "drivers/drv_pwm_output.h"
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/uORB.h>
-#include <drivers/drv_hrt.h>
 #include <systemlib/mavlink_log.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/battery_status.h>
 
 using namespace time_literals;
 
@@ -94,37 +85,34 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s *a
 
 #else
 	int	fd = -1;
-
-	struct	battery_status_s battery = {};
-	int	batt_sub = -1;
-	bool	batt_updated = false;
 	bool	batt_connected = true;	// for safety resons assume battery is connected, will be cleared below if not the case
-
-	hrt_abstime battery_connect_wait_timeout = 20_s;
-	hrt_abstime pwm_high_timeout = 3_s;
 	hrt_abstime timeout_start = 0;
 
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, "esc");
 
-	batt_sub = orb_subscribe(ORB_ID(battery_status));
+	uORB::SubscriptionData<battery_status_s> batt_sub{ORB_ID(battery_status)};
+	const battery_status_s &battery = batt_sub.get();
 
-	if (batt_sub < 0) {
-		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Subscribe to battery");
-		goto Error;
+	batt_sub.update();
+
+	if (battery.timestamp == 0) {
+		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "battery unavailable");
+		return_code = PX4_ERROR;
+		goto Out;
 	}
 
 	// Make sure battery is disconnected
-	if (orb_copy(ORB_ID(battery_status), batt_sub, &battery) == PX4_OK) {
+	// battery is not connected if the connected flag is not set and we have a recent battery measurement
+	batt_sub.update();
 
-		// battery is not connected if the connected flag is not set and we have a recent battery measurement
-		if (!battery.connected && (hrt_absolute_time() - battery.timestamp < 500_ms)) {
-			batt_connected = false;
-		}
+	if (!battery.connected && (hrt_elapsed_time(&battery.timestamp) < 500_ms)) {
+		batt_connected = false;
 	}
 
 	if (batt_connected) {
 		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Disconnect battery and try again");
-		goto Error;
+		return_code = PX4_ERROR;
+		goto Out;
 	}
 
 	armed->in_esc_calibration_mode = true;
@@ -133,25 +121,29 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s *a
 
 	if (fd < 0) {
 		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Can't open PWM device");
-		goto Error;
+		return_code = PX4_ERROR;
+		goto Out;
 	}
 
 	/* tell IO/FMU that its ok to disable its safety with the switch */
 	if (px4_ioctl(fd, PWM_SERVO_SET_ARM_OK, 0) != PX4_OK) {
 		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Unable to disable safety switch");
-		goto Error;
+		return_code = PX4_ERROR;
+		goto Out;
 	}
 
 	/* tell IO/FMU that the system is armed (it will output values if safety is off) */
 	if (px4_ioctl(fd, PWM_SERVO_ARM, 0) != PX4_OK) {
 		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Unable to arm system");
-		goto Error;
+		return_code = PX4_ERROR;
+		goto Out;
 	}
 
 	/* tell IO to switch off safety without using the safety switch */
 	if (px4_ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_OFF, 0) != PX4_OK) {
 		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Unable to force safety off");
-		goto Error;
+		return_code = PX4_ERROR;
+		goto Out;
 	}
 
 	calibration_log_info(mavlink_log_pub, "[cal] Connect battery now");
@@ -161,12 +153,15 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s *a
 	while (true) {
 		// We are either waiting for the user to connect the battery. Or we are waiting to let the PWM
 		// sit high.
+		static constexpr hrt_abstime battery_connect_wait_timeout{20_s};
+		static constexpr hrt_abstime pwm_high_timeout{3_s};
 		hrt_abstime timeout_wait = batt_connected ? pwm_high_timeout : battery_connect_wait_timeout;
 
 		if (hrt_elapsed_time(&timeout_start) > timeout_wait) {
 			if (!batt_connected) {
 				calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "Timeout waiting for battery");
-				goto Error;
+				return_code = PX4_ERROR;
+				goto Out;
 			}
 
 			// PWM was high long enough
@@ -174,11 +169,7 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s *a
 		}
 
 		if (!batt_connected) {
-			orb_check(batt_sub, &batt_updated);
-
-			if (batt_updated) {
-				orb_copy(ORB_ID(battery_status), batt_sub, &battery);
-
+			if (batt_sub.update()) {
 				if (battery.connected) {
 					// Battery is connected, signal to user and start waiting again
 					batt_connected = true;
@@ -192,10 +183,6 @@ int do_esc_calibration(orb_advert_t *mavlink_log_pub, struct actuator_armed_s *a
 	}
 
 Out:
-
-	if (batt_sub != -1) {
-		orb_unsubscribe(batt_sub);
-	}
 
 	if (fd != -1) {
 		if (px4_ioctl(fd, PWM_SERVO_SET_FORCE_SAFETY_ON, 0) != PX4_OK) {
@@ -220,9 +207,5 @@ Out:
 	}
 
 	return return_code;
-
-Error:
-	return_code = PX4_ERROR;
-	goto Out;
 #endif
 }

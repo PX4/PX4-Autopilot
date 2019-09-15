@@ -75,17 +75,8 @@ int ToneAlarm::init()
 void ToneAlarm::next_note()
 {
 	if (!_should_run) {
-		if (_tune_control_sub >= 0) {
-			orb_unsubscribe(_tune_control_sub);
-		}
-
 		_running = false;
 		return;
-	}
-
-	// Subscribe to tune_control.
-	if (_tune_control_sub < 0) {
-		_tune_control_sub = orb_subscribe(ORB_ID(tune_control));
 	}
 
 	// Check for updates
@@ -136,11 +127,8 @@ void ToneAlarm::Run()
 void ToneAlarm::orb_update()
 {
 	// Check for updates
-	bool updated = false;
-	orb_check(_tune_control_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(tune_control), _tune_control_sub, &_tune);
+	if (_tune_control_sub.updated()) {
+		_tune_control_sub.copy(&_tune);
 
 		if (_tune.timestamp > 0) {
 			_play_tone = _tunes.set_control(_tune) == 0;

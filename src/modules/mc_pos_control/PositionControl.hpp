@@ -232,9 +232,9 @@ private:
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_DN>) _param_mpc_z_vel_max_dn,
 		(ParamFloat<px4::params::MPC_Z_VEL_MAX_UP>) _param_mpc_z_vel_max_up,
 		(ParamFloat<px4::params::MPC_TILTMAX_AIR>)
-		_param_mpc_tiltmax_air, // maximum tilt for any position controlled mode in radians
+		_param_mpc_tiltmax_air, // maximum tilt for any position controlled mode in degrees
 		(ParamFloat<px4::params::MPC_MAN_TILT_MAX>)
-		_param_mpc_man_tilt_max, // maximum til for stabilized/altitude mode in radians
+		_param_mpc_man_tilt_max, // maximum til for stabilized/altitude mode in degrees
 		(ParamFloat<px4::params::MPC_Z_P>) _param_mpc_z_p,
 		(ParamFloat<px4::params::MPC_Z_VEL_P>) _param_mpc_z_vel_p,
 		(ParamFloat<px4::params::MPC_Z_VEL_I>) _param_mpc_z_vel_i,

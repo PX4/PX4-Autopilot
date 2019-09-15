@@ -42,6 +42,6 @@ px4_add_module(
 		ocpoc_mmap.cpp
 		bbblue_pwm_rc.cpp
 	DEPENDS
-		pwm_limit
+		output_limit
 	)
 

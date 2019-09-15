@@ -51,6 +51,7 @@
 #include <px4_tasks.h>
 #include <px4_time.h>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/distance_sensor.h>
@@ -283,7 +284,7 @@ private:
 	uORB::Publication<sensor_bias_s>			_sensor_bias_pub{ORB_ID(sensor_bias)};
 	uORB::Publication<vehicle_attitude_s>			_att_pub{ORB_ID(vehicle_attitude)};
 	uORB::Publication<vehicle_odometry_s>			_vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
-	uORB::Publication<wind_estimate_s>			_wind_pub{ORB_ID(wind_estimate)};
+	uORB::PublicationMulti<wind_estimate_s>			_wind_pub{ORB_ID(wind_estimate)};
 	uORB::PublicationData<vehicle_global_position_s>	_vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
 	uORB::PublicationData<vehicle_local_position_s>		_vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
 
@@ -915,8 +916,8 @@ void Ekf2::run()
 					const float y_v2 = fminf(vel_body_wind(1) * vel_body_wind(1), max_airspeed_sq);
 					const float z_v2 = fminf(vel_body_wind(2) * vel_body_wind(2), max_airspeed_sq);
 
-					const float pstatic_err = 0.5f * airdata.rho *
-								  (K_pstatic_coef_x * x_v2) + (K_pstatic_coef_y * y_v2) + (_param_ekf2_pcoef_z.get() * z_v2);
+					const float pstatic_err = 0.5f * airdata.rho * (
+									  K_pstatic_coef_x * x_v2 + K_pstatic_coef_y * y_v2 + _param_ekf2_pcoef_z.get() * z_v2);
 
 					// correct baro measurement using pressure error estimate and assuming sea level gravity
 					balt_data_avg += pstatic_err / (airdata.rho * CONSTANTS_ONE_G);
@@ -1482,31 +1483,17 @@ void Ekf2::run()
 
 			{
 				// publish all corrected sensor readings and bias estimates after mag calibration is updated above
-				sensor_bias_s bias;
+				sensor_bias_s bias{};
 
 				bias.timestamp = now;
 
 				// In-run bias estimates
-				float gyro_bias[3];
-				_ekf.get_gyro_bias(gyro_bias);
-				bias.gyro_x_bias = gyro_bias[0];
-				bias.gyro_y_bias = gyro_bias[1];
-				bias.gyro_z_bias = gyro_bias[2];
+				_ekf.get_gyro_bias(bias.gyro_bias);
+				_ekf.get_accel_bias(bias.accel_bias);
 
-				float accel_bias[3];
-				_ekf.get_accel_bias(accel_bias);
-				bias.accel_x_bias = accel_bias[0];
-				bias.accel_y_bias = accel_bias[1];
-				bias.accel_z_bias = accel_bias[2];
-
-				bias.mag_x_bias = _last_valid_mag_cal[0];
-				bias.mag_y_bias = _last_valid_mag_cal[1];
-				bias.mag_z_bias = _last_valid_mag_cal[2];
-
-				// TODO: remove from sensor_bias?
-				bias.accel_x = sensors.accelerometer_m_s2[0] - accel_bias[0];
-				bias.accel_y = sensors.accelerometer_m_s2[1] - accel_bias[1];
-				bias.accel_z = sensors.accelerometer_m_s2[2] - accel_bias[2];
+				bias.mag_bias[0] = _last_valid_mag_cal[0];
+				bias.mag_bias[1] = _last_valid_mag_cal[1];
+				bias.mag_bias[2] = _last_valid_mag_cal[2];
 
 				_sensor_bias_pub.publish(bias);
 			}
@@ -1754,13 +1741,6 @@ bool Ekf2::publish_attitude(const sensor_combined_s &sensors, const hrt_abstime 
 
 		_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);
 
-		// In-run bias estimates
-		float gyro_bias[3];
-		_ekf.get_gyro_bias(gyro_bias);
-		att.rollspeed = sensors.gyro_rad[0] - gyro_bias[0];
-		att.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
-		att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
-
 		_att_pub.publish(att);
 
 		return true;
@@ -1778,19 +1758,22 @@ bool Ekf2::publish_attitude(const sensor_combined_s &sensors, const hrt_abstime 
 bool Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
 {
 	if (_ekf.get_wind_status()) {
+		// Publish wind estimate only if ekf declares them valid
+		wind_estimate_s wind_estimate{};
 		float velNE_wind[2];
-		_ekf.get_wind_velocity(velNE_wind);
-
 		float wind_var[2];
+		_ekf.get_wind_velocity(velNE_wind);
 		_ekf.get_wind_velocity_var(wind_var);
-
-		// Publish wind estimate
-		wind_estimate_s wind_estimate;
+		_ekf.get_airspeed_innov(&wind_estimate.tas_innov);
+		_ekf.get_airspeed_innov_var(&wind_estimate.tas_innov_var);
+		_ekf.get_beta_innov(&wind_estimate.beta_innov);
+		_ekf.get_beta_innov_var(&wind_estimate.beta_innov_var);
 		wind_estimate.timestamp = timestamp;
 		wind_estimate.windspeed_north = velNE_wind[0];
 		wind_estimate.windspeed_east = velNE_wind[1];
 		wind_estimate.variance_north = wind_var[0];
 		wind_estimate.variance_east = wind_var[1];
+		wind_estimate.tas_scale = 0.0f; //leave at 0 as scale is not estimated in ekf
 
 		_wind_pub.publish(wind_estimate);
 

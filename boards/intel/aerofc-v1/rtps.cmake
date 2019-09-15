@@ -30,7 +30,6 @@ px4_add_board(
 		pwm_out_sim
 		px4fmu
 		rc_input
-		stm32
 		tap_esc
 		#telemetry # all available telemetry drivers
 		#uavcan
@@ -44,8 +43,7 @@ px4_add_board(
 		events
 		#fw_att_control
 		#fw_pos_control_l1
-		#gnd_att_control
-		#gnd_pos_control
+		#rover_pos_control
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -60,7 +58,7 @@ px4_add_board(
 		sih
 		vmount
 		#vtol_att_control
-		#wind_estimator
+		#airspeed_selector
 
 	SYSTEMCMDS
 		bl_update
@@ -68,6 +66,7 @@ px4_add_board(
 		dumpfile
 		esc_calib
 		hardfault_log
+		i2cdetect
 		led_control
 		mixer
 		motor_ramp

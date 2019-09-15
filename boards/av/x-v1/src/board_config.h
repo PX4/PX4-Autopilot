@@ -66,7 +66,7 @@
 #define GPIO_SPI1_RESET_ADIS16477  /* PB15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN15)
 
 /* SPI 2 CS */
-#define GPIO_SPI2_CS1_ADIS16497    /* PI0 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN10)
+#define GPIO_SPI2_CS1_ADIS16497    /* PI0 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN0)
 
 /* SPI 4 CS */
 #define GPIO_SPI4_CS1_LPS22HB      /* PE4 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN4)
@@ -268,12 +268,7 @@
 
 /* RC Serial port */
 
-#define RC_UXART_BASE                      STM32_UART5_BASE
 #define RC_SERIAL_PORT                     "/dev/ttyS4"
-#define BOARD_HAS_SINGLE_WIRE              0 /* HW is capable of Single Wire */
-#define BOARD_HAS_SINGLE_WIRE_ON_TX        0 /* HW default is wired as Single Wire On TX pin */
-#define BOARD_HAS_RX_TX_SWAP               0 /* HW Can swap TX and RX */
-#define RC_SERIAL_PORT_IS_SWAPED           0 /* Board wired with RC's TX is on cpu RX */
 
 /* Power switch controls ******************************************************/
 

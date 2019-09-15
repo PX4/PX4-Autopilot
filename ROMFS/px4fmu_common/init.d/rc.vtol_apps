@@ -21,10 +21,10 @@ mc_att_control start
 mc_pos_control start
 fw_att_control start
 fw_pos_control_l1 start
+airspeed_selector start
 
 #
 # Start Land Detector
 # Multicopter for now until we have something for VTOL
 #
 land_detector start vtol
-

@@ -79,15 +79,6 @@ protected:
 	SPI(const char *name, const char *devname, int bus, uint32_t device, enum spi_mode_e mode, uint32_t frequency);
 	virtual ~SPI();
 
-	/**
-	 * Locking modes supported by the driver.
-	 */
-	enum LockMode {
-		LOCK_PREEMPTION,	/**< the default; lock against all forms of preemption. */
-		LOCK_THREADS,		/**< lock only against other threads, using SPI_LOCK */
-		LOCK_NONE		/**< perform no locking, only safe if the bus is entirely private */
-	};
-
 	virtual int	init();
 
 	/**
@@ -147,17 +138,7 @@ protected:
 	 * @param frequency	Frequency to set (Hz)
 	 */
 	void		set_frequency(uint32_t frequency) { _frequency = frequency; }
-	uint32_t		get_frequency() { return _frequency; }
-
-	/**
-	 * Set the SPI bus locking mode
-	 *
-	 * This set the SPI locking mode. For devices competing with NuttX SPI
-	 * drivers on a bus the right lock mode is LOCK_THREADS.
-	 *
-	 * @param mode	Locking mode
-	 */
-	void		set_lockmode(enum LockMode mode) {}
+	uint32_t	get_frequency() { return _frequency; }
 
 private:
 	int 			_fd{-1};

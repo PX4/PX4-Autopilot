@@ -266,7 +266,7 @@ set(package-contact "px4users@googlegroups.com")
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -345,6 +345,17 @@ if(PYTHON_COVERAGE)
 else()
 	# run normally (broken under coveragepy)
 	px4_find_python_module(jinja2 REQUIRED)
+endif()
+
+#=============================================================================
+# get chip and chip manufacturer
+#
+px4_os_determine_build_chip()
+if(NOT PX4_CHIP_MANUFACTURER)
+	message(FATAL_ERROR "px4_os_determine_build_chip() needs to set PX4_CHIP_MANUFACTURER")
+endif()
+if(NOT PX4_CHIP)
+	message(FATAL_ERROR "px4_os_determine_build_chip() needs to set PX4_CHIP")
 endif()
 
 #=============================================================================
@@ -451,7 +462,8 @@ add_library(parameters_interface INTERFACE)
 include(px4_add_library)
 add_subdirectory(src/lib EXCLUDE_FROM_ALL)
 
-add_subdirectory(src/platforms EXCLUDE_FROM_ALL)
+add_subdirectory(platforms/${PX4_PLATFORM}/src/px4)
+add_subdirectory(platforms EXCLUDE_FROM_ALL)
 add_subdirectory(src/modules/uORB EXCLUDE_FROM_ALL) # TODO: platform layer
 add_subdirectory(src/drivers/boards EXCLUDE_FROM_ALL)
 
@@ -598,3 +610,4 @@ else()
 endif()
 
 include(CPack)
+include(bloaty)
