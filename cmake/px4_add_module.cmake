@@ -185,11 +185,12 @@ function(px4_add_module)
 		target_compile_options(${MODULE} PRIVATE -Wframe-larger-than=${STACK_MAX})
 	endif()
 
+	# MAIN
 	if(MAIN)
 		target_compile_definitions(${MODULE} PRIVATE PX4_MAIN=${MAIN}_app_main)
 		target_compile_definitions(${MODULE} PRIVATE MODULE_NAME="${MAIN}")
 	else()
-		target_compile_definitions(${MODULE} PRIVATE MODULE_NAME="${MODULE}")
+		message(FATAL_ERROR "MAIN required")
 	endif()
 
 	if(COMPILE_FLAGS)
