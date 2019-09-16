@@ -295,12 +295,9 @@ public:
     {
         const Matrix<Type, M, N> &self = *this;
 
-        // TODO: set this based on Type
-        static constexpr float eps = 1e-4f;
-
         for (size_t i = 0; i < M; i++) {
             for (size_t j = 0; j < N; j++) {
-                if (fabs(self(i, j) - other(i, j)) > eps) {
+                if (!isEqualF(self(i, j), other(i, j))) {
                     return false;
                 }
             }
@@ -560,43 +557,7 @@ Matrix<Type, M, N> operator*(Type scalar, const Matrix<Type, M, N> &other)
 template<typename Type, size_t  M, size_t N>
 bool isEqual(const Matrix<Type, M, N> &x,
              const Matrix<Type, M, N> &y, const Type eps=1e-4f) {
-    bool equal = true;
-
-    for (size_t i = 0; i < M; i++) {
-        for (size_t j = 0; j < N; j++) {
-            if (fabs(x(i, j) - y(i, j)) > eps) {
-                equal = false;
-                break;
-            }
-        }
-        if (equal == false) break;
-    }
-
-    if (!equal) {
-        printf("not equal\nx:\n");
-        x.print();
-        printf("y:\n");
-        y.print();
-    }
-
-    return equal;
-}
-
-
-template<typename Type>
-bool isEqualF(Type x,
-              Type y, Type eps=1e-4f) {
-
-    bool equal = true;
-
-    if (fabs(x - y) > eps) {
-        equal = false;
-    }
-
-    if (!equal) {
-        printf("not equal\nx:\n%g\ny:\n%g\n", double(x), double(y));
-    }
-    return equal;
+    return x == y;
 }
 
 #if defined(SUPPORT_STDIOSTREAM)

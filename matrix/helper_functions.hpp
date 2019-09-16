@@ -21,6 +21,23 @@ bool is_finite(Type x) {
 }
 
 /**
+ * Compare if two floating point numbers are equal
+ *
+ * Note: Smaller or EQUAL than is important to correctly
+ * handle the comparison to infinite or nan.
+ *
+ * @param x right side of equality check
+ * @param y left side of equality check
+ * @param eps numerical tolerance of the check
+ * @return true if the two values are considered equal, false otherwise
+ */
+template<typename Type>
+bool isEqualF(const Type x, const Type y, const Type eps = 1e-4f)
+{
+    return matrix::fabs(x - y) <= eps;
+}
+
+/**
  * Wrap value to stay in range [low, high)
  *
  * @param x input possibly outside of the range
