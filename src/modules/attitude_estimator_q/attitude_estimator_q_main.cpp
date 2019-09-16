@@ -495,9 +495,9 @@ bool AttitudeEstimatorQ::init()
 
 	// Fill rotation matrix
 	Dcmf R;
-	R.setRow(0, i);
-	R.setRow(1, j);
-	R.setRow(2, k);
+	R.row(0) = i;
+	R.row(1) = j;
+	R.row(2) = k;
 
 	// Convert to quaternion
 	_q = R;

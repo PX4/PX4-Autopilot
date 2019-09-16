@@ -778,7 +778,8 @@ void VotedSensorsUpdate::magPoll(vehicle_magnetometer_s &magnetometer)
 			_last_magnetometer[uorb_index].magnetometer_ga[1] = vect(1);
 			_last_magnetometer[uorb_index].magnetometer_ga[2] = vect(2);
 
-			_mag.voter.put(uorb_index, mag_report.timestamp, vect.data(), mag_report.error_count, _mag.priority[uorb_index]);
+			_mag.voter.put(uorb_index, mag_report.timestamp, _last_magnetometer[uorb_index].magnetometer_ga, mag_report.error_count,
+				       _mag.priority[uorb_index]);
 		}
 	}
 
@@ -834,13 +835,14 @@ void VotedSensorsUpdate::baroPoll(vehicle_air_data_s &airdata)
 			_baro_device_id[uorb_index] = baro_report.device_id;
 
 			got_update = true;
-			Vector3f vect(baro_report.pressure, baro_report.temperature, 0.f);
+
+			float vect[3] = {baro_report.pressure, baro_report.temperature, 0.f};
 
 			_last_airdata[uorb_index].timestamp = baro_report.timestamp;
 			_last_airdata[uorb_index].baro_temp_celcius = baro_report.temperature;
 			_last_airdata[uorb_index].baro_pressure_pa = corrected_pressure;
 
-			_baro.voter.put(uorb_index, baro_report.timestamp, vect.data(), baro_report.error_count, _baro.priority[uorb_index]);
+			_baro.voter.put(uorb_index, baro_report.timestamp, vect, baro_report.error_count, _baro.priority[uorb_index]);
 		}
 	}
 

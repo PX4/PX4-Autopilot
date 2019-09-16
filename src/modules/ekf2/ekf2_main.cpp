@@ -1323,8 +1323,7 @@ void Ekf2::run()
 				}
 
 				// The rotation of the tangent plane vs. geographical north
-				matrix::Quatf q;
-				_ekf.copy_quaternion(q.data());
+				matrix::Quatf q = _ekf.get_quaternion();
 
 				lpos.yaw = matrix::Eulerf(q).psi();
 
@@ -1787,8 +1786,7 @@ const Vector3f Ekf2::get_vel_body_wind()
 {
 	// Used to correct baro data for positional errors
 
-	matrix::Quatf q;
-	_ekf.copy_quaternion(q.data());
+	matrix::Quatf q = _ekf.get_quaternion();
 	matrix::Dcmf R_to_body(q.inversed());
 
 	// Calculate wind-compensated velocity in body frame
