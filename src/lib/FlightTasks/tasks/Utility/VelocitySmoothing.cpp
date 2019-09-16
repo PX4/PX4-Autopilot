@@ -240,45 +240,27 @@ Trajectory VelocitySmoothing::evaluatePoly(float j, float a0, float v0, float x0
 void VelocitySmoothing::updateTraj(float dt, float time_stretch)
 {
 	_local_time += dt * time_stretch;
-	const float t = _local_time;
-	float t1 = 0.f;
-	float t2 = 0.f;
-	float t3 = 0.f;
-	float t4 = 0.f;
+	float t_remain = _local_time;
+	float t[3];
 
-	if (t <= _T1) {
-		t1 = t;
+	t[0] = math::min(t_remain, _T1);
+	_state = evaluatePoly(_max_jerk, _state_init.a, _state_init.v, _state_init.x, t[0], _direction);
+	t_remain -= t[0];
 
-	} else if (t <= _T1 + _T2) {
-		t1 = _T1;
-		t2 = t - _T1;
-
-	} else if (t <= _T1 + _T2 + _T3) {
-		t1 = _T1;
-		t2 = _T2;
-		t3 = t - _T1 - _T2;
-
-	} else {
-		t1 = _T1;
-		t2 = _T2;
-		t3 = _T3;
-		t4 = t - _T1 - _T2 - _T3;
+	if (t_remain > 0.f) {
+		t[1] = math::min(t_remain, _T2);
+		_state = evaluatePoly(0.f, _state.a, _state.v, _state.x, t[1], 0.f);
+		t_remain -= t[1];
 	}
 
-	if (t > 0.f) {
-		_state = evaluatePoly(_max_jerk, _state_init.a, _state_init.v, _state_init.x, t1, _direction);
+	if (t_remain > 0.f) {
+		t[2] = math::min(t_remain, _T3);
+		_state = evaluatePoly(_max_jerk, _state.a, _state.v, _state.x, t[2], -_direction);
+		t_remain -= t[2];
 	}
 
-	if (t >= _T1) {
-		_state = evaluatePoly(0.f, _state.a, _state.v, _state.x, t2, 0.f);
-	}
-
-	if (t >= _T1 + _T2) {
-		_state = evaluatePoly(_max_jerk, _state.a, _state.v, _state.x, t3, -_direction);
-	}
-
-	if (t >= _T1 + _T2 + _T3) {
-		_state = evaluatePoly(0.f, 0.f, _state.v, _state.x, t4, 0.f);
+	if (t_remain > 0.f) {
+		_state = evaluatePoly(0.f, 0.f, _state.v, _state.x, t_remain, 0.f);
 	}
 }
 
