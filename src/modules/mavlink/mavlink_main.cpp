@@ -749,17 +749,22 @@ Mavlink::get_free_tx_buf()
 	 */
 	int buf_free = 0;
 
+#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+
 	// if we are using network sockets, return max length of one packet
 	if (get_protocol() == UDP || get_protocol() == TCP) {
-		return  1500;
+		return MAVLINK_MAX_PACKET_LEN;
 
-	} else {
-		// No FIONSPACE on Linux todo:use SIOCOUTQ  and queue size to emulate FIONSPACE
-#if defined(__PX4_LINUX) || defined(__PX4_DARWIN) || defined(__PX4_CYGWIN)
-		//Linux cp210x does not support TIOCOUTQ
-		buf_free = 256;
-#else
+	} else
+#endif // CONFIG_NET || __PX4_POSIX
+	{
+
+#if defined(__PX4_NUTTX)
 		(void) ioctl(_uart_fd, FIONSPACE, (unsigned long)&buf_free);
+#else
+		// No FIONSPACE on Linux todo:use SIOCOUTQ and queue size to emulate FIONSPACE
+		// Linux cp210x does not support TIOCOUTQ
+		buf_free = MAVLINK_MAX_PACKET_LEN;
 #endif
 
 		if (_flow_control_mode == FLOW_CONTROL_AUTO && buf_free < FLOW_CONTROL_DISABLE_THRESHOLD) {
