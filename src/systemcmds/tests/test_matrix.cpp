@@ -438,8 +438,10 @@ bool MatrixTest::matrixAssignmentTests()
 
 	double eps = 1e-6f;
 
-	for (int i = 0; i < 9; i++) {
-		ut_test(fabs(data[i] - m2.data()[i]) < eps);
+	for (size_t i = 0; i < 3; i++) {
+		for (size_t j = 0; j < 3; j++) {
+			ut_test(fabs(data[i * 3 + j] - m2(i, j)) < eps);
+		}
 	}
 
 	float data_times_2[9] = {2, 4, 6, 8, 10, 12, 14, 16, 18};
@@ -493,8 +495,8 @@ bool MatrixTest::matrixAssignmentTests()
 	ut_test(fabs(m5(0, 0) - s) < 1e-5);
 
 	Matrix<float, 2, 2> m6;
-	m6.setRow(0, Vector2f(1, 1));
-	m6.setCol(0, Vector2f(1, 1));
+	m6.row(0) = Vector2f(1, 1);
+	m6.col(0) = Vector2f(1, 1);
 
 	return true;
 }
@@ -578,7 +580,7 @@ bool MatrixTest::sliceTests()
 	};
 
 	Matrix<float, 2, 2> C(data_2);
-	A.set(C, 1, 1);
+	A.slice<2, 2>(1, 1) = C;
 
 	float data_2_check[9] = {
 		0, 2, 3,
@@ -737,7 +739,7 @@ bool MatrixTest::dcmRenormTests()
 
 	if (verbose) {
 		for (int row = 0; row < 3; row++) {
-			matrix::Vector3f rvec(A._data[row]);
+			matrix::Vector3f rvec(matrix::Matrix<float, 1, 3>(A.row(row)).transpose());
 			err += fabsf(1.0f - rvec.length());
 		}
 
@@ -749,7 +751,7 @@ bool MatrixTest::dcmRenormTests()
 	err = 0.0f;
 
 	for (int row = 0; row < 3; row++) {
-		matrix::Vector3f rvec(A._data[row]);
+		matrix::Vector3f rvec(matrix::Matrix<float, 1, 3>(A.row(row)).transpose());
 		err += fabsf(1.0f - rvec.length());
 	}
 
