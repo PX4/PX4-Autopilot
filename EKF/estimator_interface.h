@@ -277,13 +277,6 @@ public:
 	// return true if the local position estimate is valid
 	bool local_position_is_valid();
 
-	void copy_quaternion(float *quat)
-	{
-		for (unsigned i = 0; i < 4; i++) {
-			quat[i] = _output_new.quat_nominal(i);
-		}
-	}
-
 	const matrix::Quatf &get_quaternion() const { return _output_new.quat_nominal; }
 
 	// return the quaternion defining the rotation from the EKF to the External Vision reference frame
