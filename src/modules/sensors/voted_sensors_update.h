@@ -212,6 +212,14 @@ private:
 	bool checkFailover(SensorData &sensor, const char *sensor_name, const uint64_t type);
 
 	/**
+	 * Publish health on the subsystem info topic
+	 *
+	 * @param	subsystem_type	subsystem type defined with the enum in the subsystem_info_s uORB msg
+	 * @param	ok				health of the subsystem
+	 */
+	void publish_subsystem_info(uint64_t subsystem_type, bool ok);
+
+	/**
 	 * Apply a gyro calibration.
 	 *
 	 * @param h: reference to the DevHandle in use
@@ -248,6 +256,9 @@ private:
 	SensorData _baro {};
 
 	orb_advert_t _mavlink_log_pub{nullptr};
+
+	// subsystem info reporting
+	uint64_t _sensors_health = UINT64_MAX;
 
 	uORB::Publication<sensor_correction_s>	_sensor_correction_pub{ORB_ID(sensor_correction)};	/**< handle to the sensor correction uORB topic */
 	uORB::Publication<sensor_selection_s>	_sensor_selection_pub{ORB_ID(sensor_selection)};	/**< handle to the sensor selection uORB topic */

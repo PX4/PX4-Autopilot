@@ -899,6 +899,45 @@ void VotedSensorsUpdate::baroPoll(vehicle_air_data_s &airdata)
 
 bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_name, const uint64_t type)
 {
+	uint64_t type2 = type;
+
+	if (type == subsystem_info_s::SUBSYSTEM_TYPE_GYRO) { type2 = subsystem_info_s::SUBSYSTEM_TYPE_GYRO2; }
+
+	if (type == subsystem_info_s::SUBSYSTEM_TYPE_ACC) { type2 = subsystem_info_s::SUBSYSTEM_TYPE_ACC2; }
+
+	if (type == subsystem_info_s::SUBSYSTEM_TYPE_MAG) { type2 = subsystem_info_s::SUBSYSTEM_TYPE_MAG2; }
+
+	// set sensors health flags according to the sensor state
+	uint64_t curr_type;
+
+	for (uint8_t i = 0; i < sensor.subscription_count; i++) {
+		if (i == 0) {
+			curr_type = type;
+
+		} else if (i == 1) {
+			curr_type = type2;
+
+		} else {
+			break;
+		}
+
+		bool sensor_healthy = sensor.voter.get_sensor_state(i) == DataValidator::ERROR_FLAG_NO_ERROR;
+
+		uint64_t new_sensors_health = _sensors_health;
+
+		if (sensor_healthy) {
+			new_sensors_health |= curr_type;
+
+		} else {
+			new_sensors_health &= ~curr_type;
+		}
+
+		if (_sensors_health != new_sensors_health) {
+			_sensors_health = new_sensors_health;
+			publish_subsystem_info(curr_type, sensor_healthy);
+		}
+	}
+
 	if (sensor.last_failover_count != sensor.voter.failover_count() && !_hil_enabled) {
 
 		uint32_t flags = sensor.voter.failover_state();
@@ -926,35 +965,9 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 
 				PX4_ERR("Sensor %s #%i failed. Reconfiguring sensor priorities.", sensor_name, failover_index);
 
-				int ctr_valid = 0;
-
 				for (uint8_t i = 0; i < sensor.subscription_count; i++) {
-					if (sensor.priority[i] > 1) { ctr_valid++; }
-
 					PX4_WARN("Remaining sensors after failover event %u: %s #%u priority: %u", failover_index, sensor_name, i,
 						 sensor.priority[i]);
-				}
-
-				if (ctr_valid < 2) {
-					if (ctr_valid == 0) {
-						// Zero valid sensors remain! Set even the primary sensor health to false
-						_info.subsystem_type = type;
-
-					} else if (ctr_valid == 1) {
-						// One valid sensor remains, set secondary sensor health to false
-						if (type == subsystem_info_s::SUBSYSTEM_TYPE_GYRO) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_GYRO2; }
-
-						if (type == subsystem_info_s::SUBSYSTEM_TYPE_ACC) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ACC2; }
-
-						if (type == subsystem_info_s::SUBSYSTEM_TYPE_MAG) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_MAG2; }
-					}
-
-					_info.timestamp = hrt_absolute_time();
-					_info.present = true;
-					_info.enabled = true;
-					_info.ok = false;
-
-					_info_pub.publish(_info);
 				}
 			}
 		}
@@ -1089,6 +1102,17 @@ void VotedSensorsUpdate::checkFailover()
 	checkFailover(_gyro, "Gyro", subsystem_info_s::SUBSYSTEM_TYPE_GYRO);
 	checkFailover(_mag, "Mag", subsystem_info_s::SUBSYSTEM_TYPE_MAG);
 	checkFailover(_baro, "Baro", subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE);
+}
+
+void VotedSensorsUpdate::publish_subsystem_info(uint64_t subsystem_type, bool ok)
+{
+	_info.timestamp = hrt_absolute_time();
+	_info.subsystem_type = subsystem_type;
+	_info.present = true;
+	_info.enabled = true;
+	_info.ok = ok;
+
+	_info_pub.publish(_info);
 }
 
 void VotedSensorsUpdate::setRelativeTimestamps(sensor_combined_s &raw)
