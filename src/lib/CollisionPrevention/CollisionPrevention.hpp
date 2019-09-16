@@ -87,7 +87,7 @@ protected:
 	uint16_t _data_maxranges[sizeof(_obstacle_map_body_frame.distances) / sizeof(
 										    _obstacle_map_body_frame.distances[0])]; /**< in cm */
 
-	void _addDistanceSensorData(distance_sensor_s &distance_sensor, const matrix::Quatf &attitude);
+	void _addDistanceSensorData(distance_sensor_s &distance_sensor);
 
 	/**
 	 * Updates obstacle distance message with measurement from offboard
