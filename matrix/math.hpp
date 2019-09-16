@@ -4,6 +4,7 @@
 #ifdef __PX4_QURT
 #include "dspal_math.h"
 #endif
+#include "helper_functions.hpp"
 #include "Matrix.hpp"
 #include "SquareMatrix.hpp"
 #include "Slice.hpp"

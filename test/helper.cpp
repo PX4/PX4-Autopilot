@@ -1,5 +1,5 @@
 #include "test_macros.hpp"
-#include <matrix/helper_functions.hpp>
+#include <matrix/math.hpp>
 
 using namespace matrix;
 
