@@ -9,7 +9,6 @@
 #pragma once
 
 #include "math.hpp"
-#include "helper_functions.hpp"
 
 namespace matrix
 {
