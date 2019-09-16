@@ -56,6 +56,47 @@ int main()
     Matrix<float, 3, 3> D(data_2_check);
     TEST(isEqual(A, D));
 
+    //Test writing to slices
+    Matrix<float, 3, 1> E;
+    E(0,0) = -1;
+    E(1,0) = 1;
+    E(2,0) = 3;
+
+    Matrix<float, 2, 1> F;
+    F(0,0) = 9;
+    F(1,0) = 11;
+
+    E.slice<2,1>(0,0) = F;
+
+    float data_3_check[3] = {9, 11, 3};
+    Matrix<float, 3, 1> G (data_3_check);
+    TEST(isEqual(E, G));
+    TEST(isEqual(E, Matrix<float,3,1>(E.slice<3,1>(0,0))));
+
+    Matrix<float, 2, 1> H = E.slice<2,1>(0,0);
+    TEST(isEqual(H,F));
+
+    float data_4_check[5] = {3, 11, 9, 0, 0};
+    {   // assigning row slices to each other
+        const Matrix<float, 3, 1> J (data_3_check);
+        Matrix<float, 5, 1> K;
+        K.row(2) = J.row(0);
+        K.row(1) = J.row(1);
+        K.row(0) = J.row(2);
+
+        Matrix<float, 5, 1> K_check(data_4_check);
+        TEST(isEqual(K, K_check));
+    }
+    {   // assigning col slices to each other
+        const Matrix<float, 1, 3> J (data_3_check);
+        Matrix<float, 1, 5> K;
+        K.col(2) = J.col(0);
+        K.col(1) = J.col(1);
+        K.col(0) = J.col(2);
+
+        Matrix<float, 1, 5> K_check(data_4_check);
+        TEST(isEqual(K, K_check));
+    }
     return 0;
 }
 
