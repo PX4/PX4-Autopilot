@@ -112,3 +112,25 @@ PARAM_DEFINE_FLOAT(VT_B_REV_DEL, 0.0f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_FLOAT(VT_PSHER_RMP_DT, 3.0f);
+
+/**
+ * Roll scale on fixed-wing actuators in hover.
+ *
+ * Determines how much the roll controlling surfaces (e.g. ailerons or elevons) are used to assist the multicopter motors in hover.
+ *
+ * @min 0
+ * @max 3
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_MC_AILE_GAIN, 1.0f);
+
+/**
+ * Pitch scale on fixed-wing actuators in hover.
+ *
+ * Determines how much the pitch controlling surfaces (e.g. elevator or elevons) are used to assist the multicopter motors in hover.
+ *
+ * @min 0
+ * @max 3
+ * @group VTOL Attitude Control
+ */
+PARAM_DEFINE_FLOAT(VT_MC_ELEV_GAIN, 1.0f);

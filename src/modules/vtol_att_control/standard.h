@@ -74,6 +74,8 @@ private:
 		float pitch_setpoint_offset;
 		float reverse_output;
 		float reverse_delay;
+		float mc_to_fw_gain_roll;
+		float mc_to_fw_gain_pitch;
 	} _params_standard;
 
 	struct {
@@ -84,6 +86,8 @@ private:
 		param_t pitch_setpoint_offset;
 		param_t reverse_output;
 		param_t reverse_delay;
+		param_t mc_to_fw_gain_roll;
+		param_t mc_to_fw_gain_pitch;
 	} _params_handles_standard;
 
 	enum class vtol_mode {
