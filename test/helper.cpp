@@ -39,13 +39,27 @@ int main()
     TEST(fabs(wrap_2pi(-201.) - (-201. + 32. * M_TWOPI)) < FLT_EPSILON);
     TEST(!is_finite(wrap_2pi(NAN)));
 
+    // Equality checks
+    TEST(isEqualF(1., 1.));
+    TEST(!isEqualF(1., 2.));
+    TEST(!isEqualF(NAN, 1.f));
+    TEST(!isEqualF(1.f, NAN));
+    TEST(!isEqualF(INFINITY, 1.f));
+    TEST(!isEqualF(1.f, INFINITY));
+    TEST(!isEqualF(NAN, NAN));
+    TEST(!isEqualF(INFINITY, INFINITY));
+
     Vector3f a(1, 2, 3);
     Vector3f b(4, 5, 6);
     TEST(!isEqual(a, b));
     TEST(isEqual(a, a));
 
-    TEST(isEqualF(1., 1.));
-    TEST(!isEqualF(1., 2.));
+    Vector3f c(1, 2, 3);
+    Vector3f d(1, 2, NAN);
+    TEST(!isEqual(c, d));
+    TEST(isEqual(c, c));
+    TEST(!isEqual(d, d));
+
     return 0;
 }
 

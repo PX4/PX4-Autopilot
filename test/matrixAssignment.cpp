@@ -129,6 +129,9 @@ int main()
     Matrix<float, 2, 2> m8(m8_array);
     TEST(isEqual(m6, m8));
 
+    m7.setNaN();
+    TEST(m7 != m8);
+
     return 0;
 }
 
