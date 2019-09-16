@@ -39,6 +39,7 @@
 
 #include <stdint.h>
 #include <cassert>
+#include <cstdlib>
 #include <stdio.h>
 #include <math.h>
 #include <validation/data_validator.h>
