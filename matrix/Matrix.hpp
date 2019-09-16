@@ -34,9 +34,9 @@ template<typename Type, size_t M, size_t N>
 class Matrix
 {
 
-public:
-
     Type _data[M][N] {};
+
+public:
 
     // Constructors
     Matrix() = default;
@@ -71,15 +71,6 @@ public:
      * Accessors/ Assignment etc.
      */
 
-    Type *data()
-    {
-        return _data[0];
-    }
-
-    const Type *data() const
-    {
-        return _data[0];
-    }
 
     inline Type operator()(size_t i, size_t j) const
     {

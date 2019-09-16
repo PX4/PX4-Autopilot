@@ -21,14 +21,18 @@ int main()
     float data[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
     Matrix3f m2(data);
 
-    for(int i=0; i<9; i++) {
-        TEST(fabs(data[i] - m2.data()[i]) < FLT_EPSILON);
+    for(size_t i=0; i<3; i++) {
+        for (size_t j = 0; j < 3; j++) {
+            TEST(fabs(data[i*3 + j] - m2(i,j)) < FLT_EPSILON);
+        }
     }
 
     Matrix3f m_nan;
     m_nan.setNaN();
-    for(int i=0; i<9; i++) {
-        TEST(isnan(m_nan.data()[i]));
+    for(size_t i=0; i<3; i++) {
+        for (size_t j = 0; j < 3; j++) {
+            TEST(isnan(m_nan(i,j)));
+        }
     }
     TEST(m_nan.isAllNan());
 
@@ -38,8 +42,10 @@ int main()
         {7, 8, 9}
     };
     m2 = Matrix3f(data2d);
-    for(int i=0; i<9; i++) {
-        TEST(fabs(data[i] - m2.data()[i]) < FLT_EPSILON);
+    for(size_t i=0; i<3; i++) {
+        for (size_t j = 0; j < 3; j++) {
+            TEST(fabs(data[i*3 + j] - m2(i,j)) < FLT_EPSILON);
+        }
     }
     TEST(!m2.isAllNan());
 
