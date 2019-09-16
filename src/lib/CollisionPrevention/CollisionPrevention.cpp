@@ -119,9 +119,13 @@ void CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obst
 
 			//add all data points inside to FOV
 			if (obstacle.distances[msg_index] != UINT16_MAX) {
-				_obstacle_map_body_frame.distances[i] = obstacle.distances[msg_index];
-				_data_timestamps[i] = _obstacle_map_body_frame.timestamp;
-				_data_maxranges[i] = obstacle.max_distance;
+				//for overlapping FOVs the sensor with the shorter range has priority if it receives valid data
+				if ((_obstacle_map_body_frame.distances[i] < _data_maxranges[i] && obstacle.max_distance <= _data_maxranges[i])
+				    || _obstacle_map_body_frame.distances[i] >= _data_maxranges[i]) {
+					_obstacle_map_body_frame.distances[i] = obstacle.distances[msg_index];
+					_data_timestamps[i] = _obstacle_map_body_frame.timestamp;
+					_data_maxranges[i] = obstacle.max_distance;
+				}
 			}
 
 		}
@@ -136,9 +140,13 @@ void CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obst
 
 			//add all data points inside to FOV
 			if (obstacle.distances[msg_index] != UINT16_MAX) {
-				_obstacle_map_body_frame.distances[i] = obstacle.distances[msg_index];
-				_data_timestamps[i] = _obstacle_map_body_frame.timestamp;
-				_data_maxranges[i] = obstacle.max_distance;
+				//for overlapping FOVs the sensor with the shorter range has priority if it receives valid data
+				if ((_obstacle_map_body_frame.distances[i] < _data_maxranges[i] && obstacle.max_distance <= _data_maxranges[i])
+				    || _obstacle_map_body_frame.distances[i] >= _data_maxranges[i]) {
+					_obstacle_map_body_frame.distances[i] = obstacle.distances[msg_index];
+					_data_timestamps[i] = _obstacle_map_body_frame.timestamp;
+					_data_maxranges[i] = obstacle.max_distance;
+				}
 			}
 
 		}
@@ -225,14 +233,20 @@ void CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sen
 		matrix::Quatf attitude_sensor_frame = vehicle_attitude;
 		attitude_sensor_frame.rotate(Vector3f(0.f, 0.f, sensor_yaw_body_rad));
 		float sensor_dist_scale = cosf(Eulerf(attitude_sensor_frame).theta());
+		uint sensor_range = (int)(100 * distance_sensor.max_distance); //convert to cm
 
 		for (int bin = lower_bound; bin <= upper_bound; ++bin) {
 			int wrapped_bin = wrap_bin(bin);
 
-			// compensate measurement for vehicle tilt and convert to cm
-			_obstacle_map_body_frame.distances[wrapped_bin] = (int)(100 * distance_reading * sensor_dist_scale);
-			_data_timestamps[wrapped_bin] = _obstacle_map_body_frame.timestamp;
-			_data_maxranges[wrapped_bin] = (int)(100 * distance_sensor.max_distance);
+			//for overlapping FOVs the sensor with the shorter range has priority if it receives valid data
+			if ((_obstacle_map_body_frame.distances[wrapped_bin] < _data_maxranges[wrapped_bin]
+			     && sensor_range <= _data_maxranges[wrapped_bin])
+			    || _obstacle_map_body_frame.distances[wrapped_bin] >= _data_maxranges[wrapped_bin]) {
+				// compensate measurement for vehicle tilt and convert to cm
+				_obstacle_map_body_frame.distances[wrapped_bin] = (int)(100 * distance_reading * sensor_dist_scale);
+				_data_timestamps[wrapped_bin] = _obstacle_map_body_frame.timestamp;
+				_data_maxranges[wrapped_bin] = sensor_range;
+			}
 		}
 	}
 }

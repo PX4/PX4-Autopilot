@@ -906,3 +906,94 @@ TEST_F(CollisionPreventionTest, adaptSetpointDirection_flat_minimum)
 	EXPECT_FLOAT_EQ(setpoint_dir(0), 0.93969262);
 	EXPECT_FLOAT_EQ(setpoint_dir(1), 0.34202012);
 }
+
+TEST_F(CollisionPreventionTest, overlappingSensors)
+{
+	// GIVEN: a simple setup condition
+	TestCollisionPrevention cp;
+	matrix::Vector2f original_setpoint(10, 0);
+	float max_speed = 3;
+	matrix::Vector2f curr_pos(0, 0);
+	matrix::Vector2f curr_vel(2, 0);
+	vehicle_attitude_s attitude;
+	attitude.timestamp = hrt_absolute_time();
+	attitude.q[0] = 1.0f;
+	attitude.q[1] = 0.0f;
+	attitude.q[2] = 0.0f;
+	attitude.q[3] = 0.0f;
+
+	// AND: a parameter handle
+	param_t param = param_handle(px4::params::MPC_COL_PREV_D);
+	float value = 10; // try to keep 10m distance
+	param_set(param, &value);
+	cp.paramsChanged();
+
+	// AND: an obstacle message for a short range and a long range sensor
+	obstacle_distance_s short_range_msg, short_range_msg_no_obstacle, long_range_msg;
+	memset(&short_range_msg, 0xDEAD, sizeof(short_range_msg));
+	short_range_msg.frame = short_range_msg.MAV_FRAME_GLOBAL; //north aligned
+	short_range_msg.angle_offset = 0;
+	short_range_msg.timestamp = hrt_absolute_time();
+	int distances_array_size = sizeof(short_range_msg.distances) / sizeof(short_range_msg.distances[0]);
+	short_range_msg.increment = 360 / distances_array_size;
+	long_range_msg = short_range_msg;
+	long_range_msg.min_distance = 100;
+	long_range_msg.max_distance = 1000;
+	short_range_msg.min_distance = 20;
+	short_range_msg.max_distance = 200;
+	short_range_msg_no_obstacle = short_range_msg;
+
+
+	for (int i = 0; i < distances_array_size; i++) {
+		if (i < 10) {
+			short_range_msg_no_obstacle.distances[i] = 201;
+			short_range_msg.distances[i] = 150;
+			long_range_msg.distances[i] = 500;
+
+		} else {
+			short_range_msg_no_obstacle.distances[i] = UINT16_MAX;
+			short_range_msg.distances[i] = UINT16_MAX;
+			long_range_msg.distances[i] = UINT16_MAX;
+		}
+	}
+
+
+	// CASE 1
+	//WHEN: we publish the long range sensor message
+	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &long_range_msg);
+	orb_advert_t vehicle_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &attitude);
+	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &long_range_msg);
+	orb_publish(ORB_ID(vehicle_attitude), vehicle_attitude_pub, &attitude);
+	matrix::Vector2f modified_setpoint = original_setpoint;
+	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+
+	// THEN: the internal map data should contain the long range measurement
+	EXPECT_EQ(500, cp.getObstacleMap().distances[2]);
+
+	// CASE 2
+	// WHEN: we publish the short range message followed by a long range message
+	short_range_msg.timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &short_range_msg);
+	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	long_range_msg.timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &long_range_msg);
+	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+
+	// THEN: the internal map data should contain the short range measurement
+	EXPECT_EQ(150, cp.getObstacleMap().distances[2]);
+
+	// CASE 3
+	// WHEN: we publish the short range message with values out of range followed by a long range message
+	short_range_msg_no_obstacle.timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &short_range_msg_no_obstacle);
+	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	long_range_msg.timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &long_range_msg);
+	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+
+	// THEN: the internal map data should contain the short range measurement
+	EXPECT_EQ(500, cp.getObstacleMap().distances[2]);
+
+	orb_unadvertise(obstacle_distance_pub);
+	orb_unadvertise(vehicle_attitude_pub);
+}
