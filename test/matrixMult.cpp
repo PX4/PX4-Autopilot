@@ -35,6 +35,31 @@ int main()
     TEST(isEqual(B, B_check));
     Matrix3f C = B_check.edivide(C_check);
     TEST(isEqual(C, C_check));
+
+    // Test non-square matrix
+    float data_43[12] = {1,3,2,
+                         2,2,1,
+                         5,2,1,
+                         2,3,4
+                        };
+    float data_32[6] = {2,3,
+                        1,7,
+                        5,4
+                       };
+
+    Matrix<float, 4, 3> m43(data_43);
+    Matrix<float, 3, 2> m32(data_32);
+
+    Matrix<float, 4, 2> m42 = m43 * m32;
+
+    float data_42[8] = {15,32,
+                        11,24,
+                        17,33,
+                        27,43
+                       };
+    Matrix<float, 4, 2> m42_check(data_42);
+    TEST(isEqual(m42, m42_check))
+
     return 0;
 }
 
