@@ -109,6 +109,16 @@ public:
         return unit();
     }
 
+    const Slice<Type, 2, 1, 3, 1> xy() const
+    {
+        return Slice<Type, 2, 1, 3, 1>(0, 0, this);
+    }
+
+    Slice<Type, 2, 1, 3, 1> xy()
+    {
+        return Slice<Type, 2, 1, 3, 1>(0, 0, this);
+    }
+
 
     Dcm<Type> hat() const {    // inverse to Dcm.vee() operation
         const Vector3 &v(*this);

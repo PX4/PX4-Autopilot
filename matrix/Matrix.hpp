@@ -381,20 +381,35 @@ public:
         return Slice<Type, P, Q, M, N>(x0, y0, this);
     }
 
-    void setRow(size_t i, const Matrix<Type, N, 1> &row)
+    const Slice<Type, 1, N, M, N> row(size_t i) const
     {
-        Matrix<Type, M, N> &self = *this;
-        for (size_t j = 0; j < N; j++) {
-            self(i, j) = row(j, 0);
-        }
+        return slice<1, N>(i,0);
     }
 
-    void setCol(size_t j, const Matrix<Type, M, 1> &col)
+    Slice<Type, 1, N, M, N> row(size_t i)
     {
-        Matrix<Type, M, N> &self = *this;
-        for (size_t i = 0; i < M; i++) {
-            self(i, j) = col(i, 0);
-        }
+        return slice<1, N>(i,0);
+    }
+
+    const Slice<Type, M, 1, M, N> col(size_t j) const
+    {
+        return slice<M, 1>(0,j);
+    }
+
+    Slice<Type, M, 1, M, N> col(size_t j)
+    {
+        return slice<M, 1>(0,j);
+    }
+
+    void setRow(size_t i, const Matrix<Type, N, 1> &row_in)
+    {
+        slice<1,N>(i,0) = row_in.transpose();
+    }
+
+
+    void setCol(size_t j, const Matrix<Type, M, 1> &column)
+    {
+        slice<M,1>(0,j) = column;
     }
 
     void setZero()

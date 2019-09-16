@@ -166,9 +166,9 @@ public:
     void renormalize()
     {
         /* renormalize rows */
-        for (size_t row = 0; row < 3; row++) {
-            matrix::Vector3f rvec(this->_data[row]);
-            this->setRow(row, rvec.normalized());
+        for (size_t r = 0; r < 3; r++) {
+            matrix::Vector3<Type> rvec(Matrix<Type,1,3>(this->Matrix<Type,3,3>::row(r)).transpose());
+            this->Matrix<Type,3,3>::row(r) = rvec.normalized();
         }
     }
 };
