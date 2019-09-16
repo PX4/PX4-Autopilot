@@ -251,11 +251,11 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	struct timespec ts;
 
 	/*
-	 * Poll at 1ms intervals for received bytes that have not triggered
+	 * Poll at 10ms intervals for received bytes that have not triggered
 	 * a DMA event.
 	 */
 	ts.tv_sec = 0;
-	ts.tv_nsec = 1000000;
+	ts.tv_nsec = 10000000;
 
 	hrt_call_every(&serial_dma_call,
 		       ts_to_abstime(&ts),
