@@ -175,7 +175,7 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 
 	const matrix::Matrix<float, 1, 1> S = H_tas * _P * H_tas.transpose() + _tas_var;
 
-	K /= (S._data[0][0]);
+	K /= S(0,0);
 	// compute innovation
 	const float airspeed_pred = _state(tas) * sqrtf((v_n - _state(w_n)) * (v_n - _state(w_n)) + (v_e - _state(w_e)) *
 				    (v_e - _state(w_e)) + v_d * v_d);
@@ -183,7 +183,7 @@ WindEstimator::fuse_airspeed(uint64_t time_now, const float true_airspeed, const
 	_tas_innov = true_airspeed - airspeed_pred;
 
 	// innovation variance
-	_tas_innov_var = S._data[0][0];
+	_tas_innov_var = S(0,0);
 
 	bool reinit_filter = false;
 	bool meas_is_rejected = false;
@@ -261,7 +261,7 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 
 	const matrix::Matrix<float, 1, 1> S = H_beta * _P * H_beta.transpose() + _beta_var;
 
-	K /= (S._data[0][0]);
+	K /= S(0,0);
 
 	// compute predicted side slip angle
 	matrix::Vector3f rel_wind(velI(0) - _state(w_n), velI(1) - _state(w_e), velI(2));
@@ -276,7 +276,7 @@ WindEstimator::fuse_beta(uint64_t time_now, const matrix::Vector3f &velI, const 
 	const float beta_pred = rel_wind(1) / rel_wind(0);
 
 	_beta_innov = 0.0f - beta_pred;
-	_beta_innov_var = S._data[0][0];
+	_beta_innov_var = S(0,0);
 
 	bool reinit_filter = false;
 	bool meas_is_rejected = false;
