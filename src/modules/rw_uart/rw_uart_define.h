@@ -35,6 +35,7 @@
 #define WIFI_COMM_NOHEAD_OFF (uint8_t)150
 #define WIFI_COMM_RTK_RATIO_ON (uint8_t)151
 #define WIFI_COMM_RTK_RATIO_OFF (uint8_t)152
+#define WIFI_COMM_FOLLOW (uint8_t)153
 #define WIFI_COMM_ONE_MINUTE (uint8_t)201
 //#define WIFI_COMM_TOUCH_CONTROL (uint8_t)255
 
@@ -51,6 +52,8 @@
 #define EXYF_COMM_RC_GET (uint8_t)14 // not used
 #define EXYF_COMM_PLANE_SET (uint8_t)18 //MAV_TYPE
 #define EXYF_COMM_PLANE_GET (uint8_t)19 //MAV_TYPE
+#define EXYF_COMM_FOLLOW (uint8_t)20
+#define EXYF_COMM_FOLLOW_ACK (uint8_t)21
 
 #define EXEX_COMM_HIGHT_CHANGE (uint8_t)1
 

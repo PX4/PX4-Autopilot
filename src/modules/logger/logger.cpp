@@ -50,6 +50,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/follow_target.h>
 
 #include <drivers/drv_hrt.h>
 #include <px4_getopt.h>
@@ -617,6 +618,7 @@ void Logger::add_default_topics()
 	add_topic("actuator_controls_0", 100);
 	add_topic("actuator_controls_1", 100);
 	add_topic("actuator_outputs", 100);
+    //add_topic("adc_report", 200);
 	add_topic("airspeed", 200);
 	add_topic("battery_status", 500);
 	add_topic("camera_capture");
@@ -628,6 +630,7 @@ void Logger::add_default_topics()
 	//add_topic("ekf_gps_drift");
 	add_topic("esc_status", 250);
 	add_topic("estimator_status", 200);
+    add_topic("follow_target", 50);
 	add_topic("home_position");
 	add_topic("input_rc", 200);
 	add_topic("manual_control_setpoint", 200);
@@ -636,7 +639,7 @@ void Logger::add_default_topics()
 	add_topic("optical_flow", 50);
 	add_topic("position_setpoint_triplet", 200);
 	//add_topic("radio_status");
-	add_topic("rate_ctrl_status", 30);
+    add_topic("rate_ctrl_status", 30);
 	add_topic("sensor_combined", 100);
 	add_topic("sensor_preflight", 200);
 	add_topic("system_power", 500);
@@ -647,7 +650,7 @@ void Logger::add_default_topics()
 	add_topic("vehicle_attitude", 30);
 	add_topic("vehicle_attitude_setpoint", 100);
 	add_topic("vehicle_command");
-	add_topic("vehicle_global_position", 200);
+    add_topic("vehicle_global_position", 50); //200
 	add_topic("vehicle_gps_position");
 	add_topic("vehicle_land_detected");
 	add_topic("vehicle_local_position", 100);

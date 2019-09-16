@@ -89,6 +89,7 @@ px4_add_board(
 		vtol_att_control
 		wind_estimator
 		rw_uart
+		send_position
 
 	SYSTEMCMDS
 		bl_update

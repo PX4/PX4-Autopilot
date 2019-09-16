@@ -72,13 +72,14 @@ bool check_command_repeat(const uint8_t *buffer, MSG_type msg_type)
     default:
         break;
     }
+    printf("Check command repeat is %d\n", check_ok);
     return check_ok;
 }
 
-uint8_t calculate_sum_check (const uint8_t *send_message)
+uint8_t calculate_sum_check (const uint8_t *send_message, int len)
 {
     uint8_t sum = 0;
-    for (int i=0; i < (sizeof(send_message)-1); i++){
+    for (int i=0; i < len; i++){
         sum += send_message[i];
     }
     return sum;

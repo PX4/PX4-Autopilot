@@ -83,6 +83,7 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		navigator
+		send_position
 		sensors
 		vmount
 		vtol_att_control
