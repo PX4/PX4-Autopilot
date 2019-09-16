@@ -6,6 +6,7 @@
 #endif
 #include "Matrix.hpp"
 #include "SquareMatrix.hpp"
+#include "Slice.hpp"
 #include "Vector.hpp"
 #include "Vector2.hpp"
 #include "Vector3.hpp"

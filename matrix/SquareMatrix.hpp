@@ -20,6 +20,9 @@ class Matrix;
 template <typename Type, size_t M>
 class Vector;
 
+template <typename Type, size_t P, size_t Q, size_t M, size_t N>
+class Slice;
+
 template<typename Type, size_t  M>
 class SquareMatrix : public Matrix<Type, M, M>
 {
@@ -34,6 +37,24 @@ public:
     SquareMatrix(const Matrix<Type, M, M> &other) :
         Matrix<Type, M, M>(other)
     {
+    }
+
+    template<size_t P, size_t Q>
+    SquareMatrix(const Slice<Type, M, M, P, Q>& in_slice) : Matrix<Type, M, M>(in_slice)
+    {
+    }
+
+    SquareMatrix<Type, M>& operator=(const Matrix<Type, M, M>& other)
+    {
+        Matrix<Type, M, M>::operator=(other);
+        return *this;
+    }
+
+    template <size_t P, size_t Q>
+    SquareMatrix<Type, M> & operator=(const Slice<Type, M, M, P, Q>& in_slice)
+    {
+        Matrix<Type, M, M>::operator=(in_slice);
+        return *this;
     }
 
     // inverse alias
@@ -93,7 +114,6 @@ public:
         }
         return res;
     }
-
 };
 
 typedef SquareMatrix<float, 3> SquareMatrix3f;

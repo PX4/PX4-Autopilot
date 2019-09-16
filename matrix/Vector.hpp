@@ -34,6 +34,12 @@ public:
     {
     }
 
+    template<size_t P, size_t Q>
+    Vector(const Slice<Type, M, 1, P, Q>& slice_in) :
+        Matrix<Type, M, 1>(slice_in)
+    {
+    }
+
     inline Type operator()(size_t i) const
     {
         const MatrixM1 &v = *this;

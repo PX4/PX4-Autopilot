@@ -46,7 +46,7 @@ int main()
     };
 
     Matrix<float, 2, 2> C(data_2);
-    A.set(C, 1, 1);
+    A.slice<2, 2>(1, 1) = C;
 
     float data_2_check[9] = {
         0, 2, 3,
