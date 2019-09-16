@@ -117,6 +117,8 @@ private:
 	int _flow_sum_x{0};
 	int _flow_sum_y{0};
 	uint64_t _flow_dt_sum_usec{0};
+	uint16_t _flow_quality_sum{0};
+	uint8_t _flow_sample_counter{0};
 
 	/**
 	* Initialise the automatic measurement state machine and start it.
