@@ -26,6 +26,19 @@ int main()
     SquareMatrix<float, 3> eA = expm(SquareMatrix<float, 3>(A*dt), 5);
     SquareMatrix<float, 3> eA_check(data_check);
     TEST((eA - eA_check).abs().max() < 1e-3f);
+
+    SquareMatrix<float, 2> A_bottomright = A.slice<2,2>(1,1);
+    SquareMatrix<float, 2> A_bottomright2;
+    A_bottomright2 = A.slice<2,2>(1,1);
+
+    float data_bottomright[4] = {5, 6,
+                                 8, 10
+                                };
+    SquareMatrix<float, 2> bottomright_check(data_bottomright);
+    TEST(isEqual(A_bottomright, bottomright_check));
+    TEST(isEqual(A_bottomright2, bottomright_check));
+
+
     return 0;
 }
 
