@@ -132,7 +132,7 @@ TEST_F(VelocitySmoothingTest, testConstantSetpoint)
 	Vector3f velocity_setpoints(-3.f, 0.f, -1.f);
 
 	// Compute the number of steps required to reach desired value
-	// The updateTrajectories is fist called once to compute the total time
+	// The updateTrajectories is first called once to compute the total time
 	const float dt = 0.01;
 	updateTrajectories(0.f, velocity_setpoints);
 	float t123 = _trajectories[0].getTotalTime();
@@ -159,7 +159,7 @@ TEST_F(VelocitySmoothingTest, testZeroSetpoint)
 
 	setInitialConditions(a0, v0, x0);
 
-	// AND: Null setpoints
+	// AND: Zero setpoints
 	Vector3f velocity_setpoints(0.f, 0.f, 0.f);
 	float t = 0.f;
 	const float dt = 0.01f;
@@ -170,7 +170,7 @@ TEST_F(VelocitySmoothingTest, testZeroSetpoint)
 		t += dt;
 	}
 
-	// THEN: All the trajectories should still be null
+	// THEN: All the trajectories should still be zero
 	for (int i = 0; i < 3; i++) {
 		EXPECT_EQ(_trajectories[i].getCurrentJerk(), 0.f);
 		EXPECT_EQ(_trajectories[i].getCurrentAcceleration(), 0.f);
