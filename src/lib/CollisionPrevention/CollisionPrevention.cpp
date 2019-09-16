@@ -233,7 +233,7 @@ void CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sen
 		matrix::Quatf attitude_sensor_frame = vehicle_attitude;
 		attitude_sensor_frame.rotate(Vector3f(0.f, 0.f, sensor_yaw_body_rad));
 		float sensor_dist_scale = cosf(Eulerf(attitude_sensor_frame).theta());
-		uint sensor_range = (int)(100 * distance_sensor.max_distance); //convert to cm
+		uint16_t sensor_range = (int)(100 * distance_sensor.max_distance); //convert to cm
 
 		for (int bin = lower_bound; bin <= upper_bound; ++bin) {
 			int wrapped_bin = wrap_bin(bin);
