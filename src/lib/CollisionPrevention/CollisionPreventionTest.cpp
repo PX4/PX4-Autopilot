@@ -181,7 +181,7 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithObstacleMessage)
 	EXPECT_FLOAT_EQ(cp.getObstacleMap().max_distance, 10000);
 
 	EXPECT_FLOAT_EQ(0.f, modified_setpoint1.norm()) << modified_setpoint1(0) << "," << modified_setpoint1(1);
-	EXPECT_EQ(original_setpoint2, modified_setpoint2);
+	EXPECT_FLOAT_EQ(original_setpoint2.norm(), modified_setpoint2.norm());
 }
 
 TEST_F(CollisionPreventionTest, testBehaviorOnWithDistanceMessage)
