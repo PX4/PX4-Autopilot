@@ -13,8 +13,8 @@ int main()
 
     SquareMatrix<float, 3> A(data);
 
-    for(int i=0; i<6; i++) {
-        TEST(fabs(urt[i] - A.upper_right_triangle().data()[i]) < FLT_EPSILON);
+    for(size_t i=0; i<6; i++) {
+        TEST(fabs(urt[i] - A.upper_right_triangle()(i)) < FLT_EPSILON);
     }
 
     return 0;

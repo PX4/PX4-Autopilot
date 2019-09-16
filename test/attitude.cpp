@@ -136,8 +136,8 @@ int main()
     A.renormalize();
     float err = 0.0f;
 
-    for (auto & row : A._data) {
-        Vector3f rvec(row);
+    for (size_t r = 0; r < 3; r++) {
+        Vector3f rvec(matrix::Matrix<float,1,3>(A.row(r)).transpose());
         err += fabs(1.0f - rvec.length());
     }
     TEST(err < eps);

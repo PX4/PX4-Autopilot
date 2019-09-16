@@ -8,13 +8,6 @@ int main()
     float data[9] = {1, 0, 0, 0, 1, 0, 1, 0, 1};
     Matrix3f A(data);
 
-    const Matrix3f Const(data);
-    const float * raw_data = Const.data();
-    const float eps = 1e-4f;
-    for (int i=0; i<9; i++) {
-        TEST(fabs(raw_data[i] - data[i]) < eps);
-    }
-
     float data_check[9] = {1, 0, 0, 0, 1, 0, -1, 0, 1};
     Matrix3f A_I(data_check);
     Matrix3f I;
