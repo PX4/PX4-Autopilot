@@ -298,17 +298,19 @@ private:
 	float _posObsNoiseNE{0.0f};		///< 1-STD observation noise used for the fusion of NE position data (m)
 	float _posInnovGateNE{1.0f};		///< Number of standard deviations used for the NE position fusion innovation consistency check
 
-	Vector2f _velObsVarNE;		///< 1-STD observation noise variance used for the fusion of NE velocity data (m/sec)**2
-	float _hvelInnovGate{1.0f};		///< Number of standard deviations used for the horizontal velocity fusion innovation consistency check
+	Vector3f _velObsVarNED;		///< 1-STD observation noise variance used for the fusion of NED velocity data (m/sec)**2
+	float _hvelInnovGate{1.0f};	///< Number of standard deviations used for the horizontal velocity fusion innovation consistency check
+	float _vvelInnovGate{1.0f};	///< Number of standard deviations used for the vertical velocity fusion innovation consistency check
 
 	// variables used when position data is being fused using a relative position odometry model
 	bool _fuse_hpos_as_odom{false};		///< true when the NE position data is being fused using an odometry assumption
 	Vector3f _pos_meas_prev;		///< previous value of NED position measurement fused using odometry assumption (m)
 	Vector2f _hpos_pred_prev;		///< previous value of NE position state used by odometry fusion (m)
 	bool _hpos_prev_available{false};	///< true when previous values of the estimate and measurement are available for use
-	Vector3f _ev_rot_vec_filt;		///< filtered rotation vector defining the rotation from EKF to EV reference (rad)
-	Dcmf _ev_rot_mat;			///< transformation matrix that rotates observations from the EV to the EKF navigation frame
-	uint64_t _ev_rot_last_time_us{0};	///< previous time that the calculation of the ekf to ev rotation matrix was updated (uSec)
+	Vector3f _ev_rot_vec_filt;		///< filtered rotation vector defining the rotation EV to EKF reference, initiliazied to zero rotation  (rad)
+	Dcmf _ev_rot_mat;			///< transformation matrix that rotates observations from the EV to the EKF navigation frame, initialized with Identity
+	uint64_t _ev_rot_last_time_us{0};	///< previous time that the calculation of the EV to EKF rotation matrix was updated (uSec)
+        bool _ev_rot_mat_initialised{0};	///< _ev_rot_mat should only be initialised once in the beginning through the reset function
 
 	// booleans true when fresh sensor data is available at the fusion time horizon
 	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused

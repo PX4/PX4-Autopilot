@@ -189,11 +189,12 @@ struct auxVelSample {
 #define MASK_USE_GPS    (1<<0)		///< set to true to use GPS data
 #define MASK_USE_OF     (1<<1)		///< set to true to use optical flow data
 #define MASK_INHIBIT_ACC_BIAS (1<<2)	///< set to true to inhibit estimation of accelerometer delta velocity bias
-#define MASK_USE_EVPOS	(1<<3)		///< set to true to use external vision NED position data
+#define MASK_USE_EVPOS	(1<<3)		///< set to true to use external vision position data
 #define MASK_USE_EVYAW  (1<<4)		///< set to true to use external vision quaternion data for yaw
 #define MASK_USE_DRAG  (1<<5)		///< set to true to use the multi-rotor drag model to estimate wind
 #define MASK_ROTATE_EV  (1<<6)		///< set to true to if the EV observations are in a non NED reference frame and need to be rotated before being used
 #define MASK_USE_GPSYAW  (1<<7)		///< set to true to use GPS yaw data if available
+#define MASK_USE_EVVEL  (1<<8)		///< sset to true to use external vision velocity data
 
 // Integer definitions for mag_fusion_type
 #define MAG_FUSE_TYPE_AUTO      0	///< The selection of either heading or 3D magnetometer fusion will be automatic
@@ -299,7 +300,9 @@ struct parameters {
 	float range_stuck_threshold{0.1f};	///< minimum variation in range finder reading required to declare a range finder 'unstuck' when readings recommence after being out of range (m)
 
 	// vision position fusion
-	float ev_innov_gate{5.0f};		///< vision estimator fusion innovation consistency gate size (STD)
+        float ev_innov_gate{5.0f};		///< vision estimator fusion innovation consistency gate size (STD)
+        float ev_vel_innov_gate{3.0f};		///< vision velocity fusion innovation consistency gate size (STD)
+        float ev_pos_innov_gate{5.0f};		///< vision position fusion innovation consistency gate size (STD)
 
 	// optical flow fusion
 	float flow_noise{0.15f};		///< observation noise for optical flow LOS rate measurements (rad/sec)
@@ -455,6 +458,7 @@ union filter_control_status_u {
 		uint32_t rng_stuck   : 1; ///< 21 - true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
 		uint32_t gps_yaw     : 1; ///< 22 - true when yaw (not ground course) data from a GPS receiver is being fused
 		uint32_t mag_align_complete   : 1; ///< 23 - true when the in-flight mag field alignment has been completed
+		uint32_t ev_vel      : 1; ///< 24 - true when local earth frame velocity data from external vision measurements are being fused
 	} flags;
 	uint32_t value;
 };
