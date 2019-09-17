@@ -132,6 +132,44 @@ int main()
     m7.setNaN();
     TEST(m7 != m8);
 
+    // check write_string()
+    float comma[6] = {
+        1.f, 12345.678f,
+        12345.67891f, 12345.67891f,
+        1112345.67891f, 12345.111111111f
+    };
+    Matrix<float, 3, 2> Comma(comma);
+    const size_t len = 10*2*3 + 2 + 1;
+    char buffer[len];
+    Comma.write_string(buffer, len);
+    char output[] = "\t       1\t12345.678\n\t12345.679\t12345.679\n\t1112345.6\t12345.111\n";
+    for (size_t i = 0; i < len; i++) {
+        TEST(buffer[i] == output[i]);
+        if (buffer[i] == '\0') {
+            break;
+        }
+    }
+
+    // check print()
+    // write
+    FILE *fp = fopen("testoutput.txt", "w+");
+    TEST(fp != nullptr);
+    Comma.print(fp);
+    TEST(!fclose(fp));
+    // read
+    fp = fopen("testoutput.txt", "r");
+    TEST(fp != nullptr);
+    TEST(!fseek(fp, 0, SEEK_SET));
+    for (size_t i = 0; i < len; i++) {
+        char c = static_cast<char>(fgetc(fp));
+        if (c == '\n') {
+            break;
+        }
+        printf("%d %d %c\n", static_cast<int>(i), c, c);
+        TEST(c == output[i]);
+    }
+    TEST(!fclose(fp));
+
     return 0;
 }
 
