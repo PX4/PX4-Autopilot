@@ -3,6 +3,13 @@
 
 using namespace matrix;
 
+namespace {
+void doTheCopy(const Matrix<float, 2, 3>& A, float array_A[6])
+{
+    A.copyTo(array_A);
+}
+}
+
 int main()
 {
     float eps = 1e-6f;
@@ -32,7 +39,7 @@ int main()
     A(1,1) = 5;
     A(1,2) = 6;
     float array_A[6] = {};
-    A.copyTo(array_A);
+    doTheCopy(A, array_A);
     float array_row[6] = {1, 2, 3, 4, 5, 6};
     for (size_t i = 0; i < 6; i++) {
         TEST(fabs(array_A[i] - array_row[i]) < eps);
