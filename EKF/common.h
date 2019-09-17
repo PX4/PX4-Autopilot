@@ -80,10 +80,12 @@ struct flow_message {
 };
 
 struct ext_vision_message {
-	Vector3f posNED;	///< measured NED position relative to the local origin (m)
-	Quatf quat;		///< measured quaternion orientation defining rotation from NED to body frame
+	Vector3f posNED;	///< XYZ position in earth frame (m) - Z must be aligned with down axis
+	Vector3f velNED;	///< XYZ velocity in earth frame (m/sec) - Z must be aligned with down axis
+	Quatf quat;		///< quaternion defining rotation from body to earth frame
 	float posErr;		///< 1-Sigma horizontal position accuracy (m)
 	float hgtErr;		///< 1-Sigma height accuracy (m)
+	float velErr;		///< 1-Sigma velocity accuracy (m/sec)
 	float angErr;		///< 1-Sigma angular error (rad)
 };
 
@@ -151,10 +153,12 @@ struct flowSample {
 };
 
 struct extVisionSample {
-	Vector3f posNED;	///< measured NED position relative to the local origin (m)
-	Quatf quat;		///< measured quaternion orientation defining rotation from NED to body frame
+	Vector3f posNED;	///< XYZ position in earth frame (m) - Z must be aligned with down axis
+	Vector3f velNED;	///< XYZ velocity in earth frame (m/sec) - Z must be aligned with down axis
+	Quatf quat;		///< quaternion defining rotation from body to earth frame
 	float posErr;		///< 1-Sigma horizontal position accuracy (m)
 	float hgtErr;		///< 1-Sigma height accuracy (m)
+	float velErr;		///< 1-Sigma velocity accuracy (m/sec)
 	float angErr;		///< 1-Sigma angular error (rad)
 	uint64_t time_us;	///< timestamp of the measurement (uSec)
 };
