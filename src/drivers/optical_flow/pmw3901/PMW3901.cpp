@@ -386,7 +386,13 @@ PMW3901::readMotionCount(int16_t &deltaX, int16_t &deltaY, uint8_t &qual)
 
 	deltaX = ((int16_t)data[5] << 8) | data[3];
 	deltaY = ((int16_t)data[9] << 8) | data[7];
-	qual = data[11];
+
+	// If the reported flow is impossibly large, we just got garbage from the SPI
+	if (deltaX > 240 || deltaY > 240 || deltaX < -240 || deltaY < -240){
+		qual = 0;
+	}else{
+		qual = data[11];
+	}
 
 	ret = OK;
 
