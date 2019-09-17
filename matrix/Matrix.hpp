@@ -278,7 +278,7 @@ public:
     void operator/=(Type scalar)
     {
         Matrix<Type, M, N> &self = *this;
-        self = self * (1.0f / scalar);
+        self = self * (Type(1.0f) / scalar);
     }
 
     inline void operator+=(Type scalar)
