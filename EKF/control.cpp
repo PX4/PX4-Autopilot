@@ -736,8 +736,8 @@ void Ekf::controlGpsFusion()
 			_vel_pos_innov[4] = _state.pos(1) - _gps_sample_delayed.pos(1);
 
 			// set innovation gate size
-			_posInnovGateNE = fmaxf(_params.posNE_innov_gate, 1.0f);
-			_hvelInnovGate = fmaxf(_params.vel_innov_gate, 1.0f);
+                        _posInnovGateNE = fmaxf(_params.gps_pos_innov_gate, 1.0f);
+                        _hvelInnovGate = _vvelInnovGate = fmaxf(_params.gps_vel_innov_gate, 1.0f);
 		}
 
 	} else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)10e6)) {
