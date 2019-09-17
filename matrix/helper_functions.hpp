@@ -34,7 +34,9 @@ bool is_finite(Type x) {
 template<typename Type>
 bool isEqualF(const Type x, const Type y, const Type eps = 1e-4f)
 {
-    return matrix::fabs(x - y) <= eps;
+    return (matrix::fabs(x - y) <= eps)
+           || (isnan(x) && isnan(y))
+           || (isinf(x) && isinf(y));
 }
 
 /**
