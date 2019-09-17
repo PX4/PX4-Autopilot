@@ -110,10 +110,10 @@ void ManualVelocitySmoothingZ::checkPositionLock(float velocity_target)
 		if (_position_lock_active) {
 			// Start the trajectory at the current velocity setpoint
 			_trajectory.setCurrentVelocity(_velocity_setpoint_feedback);
-			_position_setpoint_locked = NAN;
+			_state.v = _velocity_setpoint_feedback;
+			resetPositionLock();
 		}
 
-		_position_lock_active = false;
 		_trajectory.setCurrentPosition(_position_estimate);
 	}
 }
