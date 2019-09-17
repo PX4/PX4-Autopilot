@@ -103,7 +103,7 @@ protected:
 
 private:
 
-	const uint64_t _collect_time{15000}; // usecs, optical flow data publish rate
+	const uint64_t _collect_time{15000}; // usecs, ensures flow data is published every second iteration of Run() (100Hz -> 50Hz)
 
 	uORB::PublicationMulti<optical_flow_s> _optical_flow_pub{ORB_ID(optical_flow)};
 
@@ -117,6 +117,8 @@ private:
 	int _flow_sum_x{0};
 	int _flow_sum_y{0};
 	uint64_t _flow_dt_sum_usec{0};
+	uint16_t _flow_quality_sum{0};
+	uint8_t _flow_sample_counter{0};
 
 	/**
 	* Initialise the automatic measurement state machine and start it.
