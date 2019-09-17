@@ -94,11 +94,18 @@ bool Ekf::resetVelocity()
 
 		// reset the horizontal velocity variance using the optical flow noise variance
 		P[5][5] = P[4][4] = sq(range) * calcOptFlowMeasVar();
-
-	} else if (_control_status.flags.ev_pos) {
+        } else if (_control_status.flags.ev_vel) {
+                Vector3f _ev_vel = _ev_sample_delayed.velNED;
+                if(_params.fusion_mode & MASK_ROTATE_EV){
+                    _ev_vel = _ev_rot_mat *_ev_sample_delayed.velNED;
+                }
+                _state.vel(0) = _ev_vel(0);
+                _state.vel(1) = _ev_vel(1);
+                _state.vel(2) = _ev_vel(2);
+                // TODO: to what should we set the covariances?
+        } else if (_control_status.flags.ev_pos) {
 		_state.vel.setZero();
 		zeroOffDiag(P, 4, 6);
-
 	} else {
 		// Used when falling back to non-aiding mode of operation
 		_state.vel(0) = 0.0f;
@@ -149,8 +156,12 @@ bool Ekf::resetPosition()
 
 	} else if (_control_status.flags.ev_pos) {
 		// this reset is only called if we have new ev data at the fusion time horizon
-		_state.pos(0) = _ev_sample_delayed.posNED(0);
-		_state.pos(1) = _ev_sample_delayed.posNED(1);
+                Vector3f _ev_pos = _ev_sample_delayed.posNED;
+                if(_params.fusion_mode & MASK_ROTATE_EV){
+                    _ev_pos = _ev_rot_mat *_ev_sample_delayed.posNED;
+                }
+                _state.pos(0) = _ev_pos(0);
+                _state.pos(1) = _ev_pos(1);
 
 		// use EV accuracy to reset variances
 		setDiag(P, 7, 8, sq(_ev_sample_delayed.posErr));
