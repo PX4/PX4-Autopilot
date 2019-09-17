@@ -28,16 +28,9 @@ int main()
     TEST(isEqual(B, B_check));
     Matrix3f C = B_check.edivide(C_check);
 
+    float off_diagonal_nan[9] = {2, NAN, NAN, NAN, 2, NAN, NAN, NAN, 2};
     // off diagonal are NANs because division by 0
-    for (size_t i = 0; i < 3; i++) {
-        for (size_t j = 0; j < 3; j++) {
-            if (i == j) {
-                TEST(isEqualF(C(i,j), 2.f));
-            } else {
-                TEST(isnan(C(i,j)));
-            }
-        }
-    }
+    TEST(C == Matrix3f(off_diagonal_nan));
 
     // Test non-square matrix
     float data_43[12] = {1,3,2,
