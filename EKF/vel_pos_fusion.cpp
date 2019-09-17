@@ -168,6 +168,8 @@ void Ekf::fuseVelPosHeight()
 			// Compute the ratio of innovation to gate size
 			_vel_pos_test_ratio[obs_index] = sq(innovation[obs_index]) / (sq(gate_size[obs_index]) *
 							 _vel_pos_innov_var[obs_index]);
+		}else{
+			_vel_pos_test_ratio[obs_index] = 0;
 		}
 	}
 
