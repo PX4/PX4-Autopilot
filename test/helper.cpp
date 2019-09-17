@@ -48,7 +48,11 @@ int main()
     TEST(!isEqualF(1.f, INFINITY));
     TEST(isEqualF(NAN, NAN));
     TEST(isEqualF(NAN, -NAN));
+    TEST(isEqualF(-NAN, NAN));
     TEST(isEqualF(INFINITY, INFINITY));
+    TEST(!isEqualF(INFINITY, -INFINITY));
+    TEST(!isEqualF(-INFINITY, INFINITY));
+    TEST(isEqualF(-INFINITY, -INFINITY));
 
     Vector3f a(1, 2, 3);
     Vector3f b(4, 5, 6);
