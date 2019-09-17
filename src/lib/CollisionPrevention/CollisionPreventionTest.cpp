@@ -65,6 +65,10 @@ public:
 	{
 		_adaptSetpointDirection(setpoint_dir, setpoint_index, vehicle_yaw_angle_rad);
 	}
+	bool test_enterData(int map_index, float sensor_range, float sensor_reading)
+	{
+		return _enterData(map_index, sensor_range, sensor_reading);
+	}
 };
 
 class TestTimingCollisionPrevention : public TestCollisionPrevention
@@ -995,4 +999,62 @@ TEST_F(CollisionPreventionTest, overlappingSensors)
 
 	orb_unadvertise(obstacle_distance_pub);
 	orb_unadvertise(vehicle_attitude_pub);
+}
+
+TEST_F(CollisionPreventionTest, enterData)
+{
+	// GIVEN: a simple setup condition
+	TestCollisionPrevention cp;
+	cp.getObstacleMap().increment = 10.f;
+
+	//THEN: just after initialization all bins are at UINT16_MAX and any data should be accepted
+	EXPECT_TRUE(cp.test_enterData(8, 2.f, 1.5f)); //shorter range, reading in range
+	EXPECT_TRUE(cp.test_enterData(8, 2.f, 3.f)); //shorter range, reading out of range
+	EXPECT_TRUE(cp.test_enterData(8, 20.f, 1.5f)); //same range, reading in range
+	EXPECT_TRUE(cp.test_enterData(8, 20.f, 21.f)); //same range, reading out of range
+	EXPECT_TRUE(cp.test_enterData(8, 30.f, 1.5f)); //longer range, reading in range
+	EXPECT_TRUE(cp.test_enterData(8, 30.f, 31.f)); //longer range, reading out of range
+
+	//WHEN: we add distance sensor data to the right with a valid reading
+	distance_sensor_s distance_sensor {};
+	distance_sensor.min_distance = 0.2f;
+	distance_sensor.max_distance = 20.f;
+	distance_sensor.orientation = distance_sensor_s::ROTATION_RIGHT_FACING;
+	distance_sensor.h_fov = math::radians(19.99f);
+	distance_sensor.current_distance = 5.f;
+	cp.test_addDistanceSensorData(distance_sensor);
+
+	//THEN: the internal map should contain the distance sensor readings
+	EXPECT_EQ(500, cp.getObstacleMap().distances[8]);
+	EXPECT_EQ(500, cp.getObstacleMap().distances[9]);
+
+	//THEN: bins 8 & 9 contain valid readings
+	// a valid reading should only be accepted from sensors with shorter or equal range
+	// a out of range reading should only be accepted from sensors with the same range
+
+	EXPECT_TRUE(cp.test_enterData(8, 2.f, 1.5f)); //shorter range, reading in range
+	EXPECT_FALSE(cp.test_enterData(8, 2.f, 3.f)); //shorter range, reading out of range
+	EXPECT_TRUE(cp.test_enterData(8, 20.f, 1.5f)); //same range, reading in range
+	EXPECT_TRUE(cp.test_enterData(8, 20.f, 21.f)); //same range, reading out of range
+	EXPECT_FALSE(cp.test_enterData(8, 30.f, 1.5f)); //longer range, reading in range
+	EXPECT_FALSE(cp.test_enterData(8, 30.f, 31.f)); //longer range, reading out of range
+
+	//WHEN: we add distance sensor data to the right with an out of range reading
+	distance_sensor.current_distance = 21.f;
+	cp.test_addDistanceSensorData(distance_sensor);
+
+	//THEN: the internal map should contain the distance sensor readings
+	EXPECT_EQ(2000, cp.getObstacleMap().distances[8]);
+	EXPECT_EQ(2000, cp.getObstacleMap().distances[9]);
+
+	//THEN: bins 8 & 9 contain readings out of range
+	// a reading in range will be accepted in any case
+	// out of range readings will only be accepted from sensors with bigger or equal range
+
+	EXPECT_TRUE(cp.test_enterData(8, 2.f, 1.5f)); //shorter range, reading in range
+	EXPECT_FALSE(cp.test_enterData(8, 2.f, 3.f)); //shorter range, reading out of range
+	EXPECT_TRUE(cp.test_enterData(8, 20.f, 1.5f)); //same range, reading in range
+	EXPECT_TRUE(cp.test_enterData(8, 20.f, 21.f)); //same range, reading out of range
+	EXPECT_TRUE(cp.test_enterData(8, 30.f, 1.5f)); //longer range, reading in range
+	EXPECT_TRUE(cp.test_enterData(8, 30.f, 31.f)); //longer range, reading out of range
 }

@@ -103,6 +103,14 @@ protected:
 	 */
 	void _adaptSetpointDirection(matrix::Vector2f &setpoint_dir, int &setpoint_index, float vehicle_yaw_angle_rad);
 
+	/**
+	 * Determines whether a new sensor measurement is used
+	 * @param map_index, index of the bin in the internal map the measurement belongs in
+	 * @param sensor_range, max range of the sensor in meters
+	 * @param sensor_reading, distance measurement in meters
+	 */
+	bool _enterData(int map_index, float sensor_range, float sensor_reading);
+
 
 	//Timing functions. Necessary to mock time in the tests
 	virtual hrt_abstime getTime();

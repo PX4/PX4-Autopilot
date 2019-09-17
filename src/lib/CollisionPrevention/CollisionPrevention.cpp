@@ -119,9 +119,7 @@ void CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obst
 
 			//add all data points inside to FOV
 			if (obstacle.distances[msg_index] != UINT16_MAX) {
-				//for overlapping FOVs the sensor with the shorter range has priority if it receives valid data
-				if ((_obstacle_map_body_frame.distances[i] < _data_maxranges[i] && obstacle.max_distance <= _data_maxranges[i])
-				    || _obstacle_map_body_frame.distances[i] >= _data_maxranges[i]) {
+				if (_enterData(i, obstacle.max_distance * 0.01f, obstacle.distances[msg_index] * 0.01f)) {
 					_obstacle_map_body_frame.distances[i] = obstacle.distances[msg_index];
 					_data_timestamps[i] = _obstacle_map_body_frame.timestamp;
 					_data_maxranges[i] = obstacle.max_distance;
@@ -140,9 +138,8 @@ void CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obst
 
 			//add all data points inside to FOV
 			if (obstacle.distances[msg_index] != UINT16_MAX) {
-				//for overlapping FOVs the sensor with the shorter range has priority if it receives valid data
-				if ((_obstacle_map_body_frame.distances[i] < _data_maxranges[i] && obstacle.max_distance <= _data_maxranges[i])
-				    || _obstacle_map_body_frame.distances[i] >= _data_maxranges[i]) {
+
+				if (_enterData(i, obstacle.max_distance * 0.01f, obstacle.distances[msg_index] * 0.01f)) {
 					_obstacle_map_body_frame.distances[i] = obstacle.distances[msg_index];
 					_data_timestamps[i] = _obstacle_map_body_frame.timestamp;
 					_data_maxranges[i] = obstacle.max_distance;
@@ -155,6 +152,37 @@ void CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obst
 		mavlink_log_critical(&_mavlink_log_pub, "Obstacle message received in unsupported frame %.0f\n",
 				     (double)obstacle.frame);
 	}
+}
+
+
+bool CollisionPrevention::_enterData(int map_index, float sensor_range, float sensor_reading)
+{
+	//use data from this sensor if:
+	//1. this sensor data is in range, the bin contains already valid data and this data is coming from the same or less range sensor
+	//2. this sensor data is in range, and the last reading was out of range
+	//3. this sensor data is out of range, the last reading was as well and this is the sensor with longest range
+	//4. this sensor data is out of range, the last reading was valid and coming from the same sensor
+
+	uint16_t sensor_range_cm = (int)(100 * sensor_range); //convert to cm
+
+	if (sensor_reading < sensor_range) {
+		if ((_obstacle_map_body_frame.distances[map_index] < _data_maxranges[map_index]
+		     && sensor_range_cm <= _data_maxranges[map_index])
+		    || _obstacle_map_body_frame.distances[map_index] >= _data_maxranges[map_index]) {
+			return true;
+
+		}
+
+	} else {
+		if ((_obstacle_map_body_frame.distances[map_index] >= _data_maxranges[map_index]
+		     && sensor_range_cm >= _data_maxranges[map_index])
+		    || (_obstacle_map_body_frame.distances[map_index] < _data_maxranges[map_index]
+			&& sensor_range_cm == _data_maxranges[map_index])) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void CollisionPrevention::_updateObstacleMap()
@@ -233,11 +261,7 @@ void CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sen
 		for (int bin = lower_bound; bin <= upper_bound; ++bin) {
 			int wrapped_bin = wrap_bin(bin);
 
-			//for overlapping FOVs the sensor with the shorter range has priority if it receives valid data
-			if ((_obstacle_map_body_frame.distances[wrapped_bin] < _data_maxranges[wrapped_bin]
-			     && sensor_range <= _data_maxranges[wrapped_bin])
-			    || _obstacle_map_body_frame.distances[wrapped_bin] >= _data_maxranges[wrapped_bin]) {
-				// compensate measurement for vehicle tilt and convert to cm
+			if (_enterData(wrapped_bin, distance_sensor.max_distance, distance_reading)) {
 				_obstacle_map_body_frame.distances[wrapped_bin] = (int)(100 * distance_reading);
 				_data_timestamps[wrapped_bin] = _obstacle_map_body_frame.timestamp;
 				_data_maxranges[wrapped_bin] = sensor_range;
