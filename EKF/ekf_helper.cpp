@@ -1336,7 +1336,7 @@ bool Ekf::global_position_is_valid()
 // return true if we are totally reliant on inertial dead-reckoning for position
 void Ekf::update_deadreckoning_status()
 {
-	bool velPosAiding = (_control_status.flags.gps || _control_status.flags.ev_pos)
+	bool velPosAiding = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel)
 			    && (((_time_last_imu - _time_last_pos_fuse) <= _params.no_aid_timeout_max)
 				|| ((_time_last_imu - _time_last_vel_fuse) <= _params.no_aid_timeout_max)
 				|| ((_time_last_imu - _time_last_delpos_fuse) <= _params.no_aid_timeout_max));
