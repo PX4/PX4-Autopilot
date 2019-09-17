@@ -1,5 +1,17 @@
 #! /usr/bin/env bash
 
+## Bash script to setup PX4 development environment on Ubuntu LTS (18.04, 16.04).
+## Can also be used in docker.
+##
+## Installs:
+## - Common dependencies and tools for nuttx, jMAVSim, Gazebo
+## - NuttX toolchain (omit with arg: --no-nuttx)
+## - jMAVSim and Gazebo9 simulator (omit with arg: --no-sim-tools)
+##
+## Not Installs:
+## - FastRTPS and FastCDR
+
+
 INSTALL_NUTTX="true"
 INSTALL_SIM="true"
 
@@ -33,6 +45,14 @@ fi
 # script directory
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
+# check requirements.txt exists (script not run in source tree)
+REQUIREMENTS_FILE="requirements.txt"
+if [[ ! -f "${DIR}/${REQUIREMENTS_FILE}" ]]; then
+	echo "FAILED: ${REQUIREMENTS_FILE} needed in same directory as ubuntu.sh (${DIR})."
+        return 1
+fi
+
+
 # check ubuntu version
 # instructions for 16.04, 18.04
 # otherwise warn and point to docker?
@@ -46,6 +66,8 @@ elif [[ "${UBUNTU_RELEASE}" == "16.04" ]]; then
 elif [[ "${UBUNTU_RELEASE}" == "18.04" ]]; then
 	echo "Ubuntu 18.04"
 fi
+
+
 
 export DEBIAN_FRONTEND=noninteractive
 
@@ -126,7 +148,9 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 
 	# add user to dialout group (serial port access)
 	sudo usermod -a -G dialout $USER
-
+	
+	# Remove modem manager (interferes with PX4 serial port/USB serial usage). 
+	sudo apt-get remove modemmanager -y
 
 	# arm-none-eabi-gcc
 	NUTTX_GCC_VERSION="7-2017-q4-major"

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,16 +31,32 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskUtility
-	ManualSmoothingZ.cpp
-	ManualSmoothingXY.cpp
-	ObstacleAvoidance.cpp
-	StraightLine.cpp
-	VelocitySmoothing.cpp
-)
+# Doxygen
 
-target_link_libraries(FlightTaskUtility PUBLIC FlightTask hysteresis)
-target_include_directories(FlightTaskUtility PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+option(BUILD_DOXYGEN "Build doxygen documentation" OFF)
 
-px4_add_unit_gtest(SRC VelocitySmoothingTest.cpp LINKLIBS FlightTaskUtility)
-px4_add_functional_gtest(SRC ObstacleAvoidanceTest.cpp LINKLIBS FlightTaskUtility)
+if (BUILD_DOXYGEN)
+	find_package(Doxygen)
+	if (DOXYGEN_FOUND)
+	    # set input and output files
+	    set(DOXYGEN_IN ${CMAKE_SOURCE_DIR}/Documentation/Doxyfile.in)
+	    set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+
+	    # request to configure the file
+	    configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+
+	    # note the option ALL which allows to build the docs together with the application
+	    add_custom_target(doxygen ALL
+	        COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+	        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+			COMMENT "Generating documentation with Doxygen"
+			DEPENDS uorb_msgs parameters
+			VERBATIM
+			USES_TERMINAL
+			)
+
+	else()
+		message("Doxygen needs to be installed to generate documentation")
+	endif()
+endif()
+

@@ -644,7 +644,7 @@ bool MatrixTest::vectorTests()
 	ut_test(isEqual(v2, v3));
 	float data1_sq[] = {1, 4, 9, 16, 25};
 	Vector<float, 5> v4(data1_sq);
-	ut_test(isEqual(v1, v4.pow(0.5)));
+	ut_test(isEqual(v1, v4.sqrt()));
 
 	return true;
 }

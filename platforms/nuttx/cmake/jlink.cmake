@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,16 +31,28 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskUtility
-	ManualSmoothingZ.cpp
-	ManualSmoothingXY.cpp
-	ObstacleAvoidance.cpp
-	StraightLine.cpp
-	VelocitySmoothing.cpp
-)
+add_custom_target(jlink_upload
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_start.sh
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_upload.sh $<TARGET_FILE:px4>
+	DEPENDS px4
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	USES_TERMINAL
+	)
 
-target_link_libraries(FlightTaskUtility PUBLIC FlightTask hysteresis)
-target_include_directories(FlightTaskUtility PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-
-px4_add_unit_gtest(SRC VelocitySmoothingTest.cpp LINKLIBS FlightTaskUtility)
-px4_add_functional_gtest(SRC ObstacleAvoidanceTest.cpp LINKLIBS FlightTaskUtility)
+add_custom_target(jlink_debug
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_start.sh
+	COMMAND ${GDB} -nh
+		-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
+		-ex 'target remote localhost:2331'
+		-ex 'monitor reset 0'
+		-ex 'load'
+		-ex 'compare-sections'
+		-ex 'monitor reset 0'
+		-ex 'monitor sleep 1000'
+		-ex 'monitor go'
+		-ex 'continue'
+		$<TARGET_FILE:px4>
+	DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	USES_TERMINAL
+	)

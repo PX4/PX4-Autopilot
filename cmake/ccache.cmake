@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,16 +31,21 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskUtility
-	ManualSmoothingZ.cpp
-	ManualSmoothingXY.cpp
-	ObstacleAvoidance.cpp
-	StraightLine.cpp
-	VelocitySmoothing.cpp
-)
+# ccache
 
-target_link_libraries(FlightTaskUtility PUBLIC FlightTask hysteresis)
-target_include_directories(FlightTaskUtility PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+option(CCACHE "Use ccache if available" ON)
+find_program(CCACHE_PROGRAM ccache)
+if (CCACHE AND CCACHE_PROGRAM AND NOT DEFINED ENV{CCACHE_DISABLE})
 
-px4_add_unit_gtest(SRC VelocitySmoothingTest.cpp LINKLIBS FlightTaskUtility)
-px4_add_functional_gtest(SRC ObstacleAvoidanceTest.cpp LINKLIBS FlightTaskUtility)
+	get_filename_component(ccache_real_path ${CCACHE_PROGRAM} REALPATH)
+	get_filename_component(cxx_real_path ${CMAKE_CXX_COMPILER} REALPATH)
+	get_filename_component(cxx_abs_path ${CMAKE_CXX_COMPILER} ABSOLUTE)
+
+	if ("${ccache_real_path}" STREQUAL "${cxx_real_path}")
+		message(STATUS "ccache enabled via symlink (${cxx_abs_path} -> ${cxx_real_path})")
+	else()
+		message(STATUS "ccache enabled (export CCACHE_DISABLE=1 to disable)")
+		set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
+	endif()
+
+endif()

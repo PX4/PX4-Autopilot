@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,16 +31,52 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskUtility
-	ManualSmoothingZ.cpp
-	ManualSmoothingXY.cpp
-	ObstacleAvoidance.cpp
-	StraightLine.cpp
-	VelocitySmoothing.cpp
-)
+file(GLOB_RECURSE black_magic_probe_path
+     FOLLOW_SYMLINKS
+     /dev/serial/by-id/usb-Black_Sphere_Technologies_Black_Magic_Probe_*-if00
+     )
+file(GLOB_RECURSE black_magic_probe_console_path
+     FOLLOW_SYMLINKS
+     /dev/serial/by-id/usb-Black_Sphere_Technologies_Black_Magic_Probe_*-if02
+     )
 
-target_link_libraries(FlightTaskUtility PUBLIC FlightTask hysteresis)
-target_include_directories(FlightTaskUtility PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+if(black_magic_probe_path)
 
-px4_add_unit_gtest(SRC VelocitySmoothingTest.cpp LINKLIBS FlightTaskUtility)
-px4_add_functional_gtest(SRC ObstacleAvoidanceTest.cpp LINKLIBS FlightTaskUtility)
+	add_custom_target(blackmagic_debug
+		COMMAND ${GDB} --nh
+			-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
+			-ex 'target extended-remote ${black_magic_probe_path}'
+			-ex 'monitor version'
+			-ex 'monitor connect_srst enable'
+			-ex 'monitor swdp_scan'
+			-ex 'attach 1'
+			-ex 'load'
+			-ex 'run'
+			$<TARGET_FILE:px4>
+		DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+		USES_TERMINAL
+		)
+
+	add_custom_target(blackmagic_upload
+		COMMAND ${GDB} --nx --batch
+			-ex 'target extended-remote ${black_magic_probe_path}'
+			-ex 'monitor version'
+			-ex 'monitor connect_srst enable'
+			-ex 'monitor swdp_scan'
+			-ex 'attach 1'
+			-ex 'load'
+			-ex 'kill'
+			$<TARGET_FILE:px4>
+		DEPENDS px4
+		WORKING_DIRECTORY ${PX4_BINARY_DIR}
+		USES_TERMINAL
+		COMMENT "Uploading with Black Magic Probe"
+		)
+
+	add_custom_target(blackmagic_console
+		COMMAND screen -t "${PX4_BOARD} console" ${black_magic_probe_console_path} 57600 8N1
+		USES_TERMINAL
+		)
+
+endif()

@@ -227,8 +227,9 @@ private:
 
 	uint16_t _crc16{0};
 
-	float _max_distance{9.0f};
-	float _min_distance{0.10f};
+	// Use conservative distance bounds, to make sure we don't fuse garbage data
+	float _max_distance{7.9f}; // Datasheet: 8.0m
+	float _min_distance{0.2f}; // Datasheet: 0.17m
 
 	CM8JL65_PARSE_STATE _parse_state{WAITING_FRAME};
 
@@ -335,7 +336,7 @@ CM8JL65::collect()
 	report.max_distance     = _max_distance;
 	report.min_distance     = _min_distance;
 	report.orientation      = _rotation;
-	report.signal_quality   = -1;
+	report.signal_quality   = report.current_distance < _max_distance && report.current_distance > _min_distance ? -1 : 0;
 	report.timestamp        = hrt_absolute_time();
 	report.type             = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
 	report.variance         = 0.0f;

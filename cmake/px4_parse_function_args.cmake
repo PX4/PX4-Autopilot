@@ -1,6 +1,6 @@
 ############################################################################
 #
-# Copyright (c) 2017 PX4 Development Team. All rights reserved.
+# Copyright (c) 2015 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,53 +33,71 @@
 
 #=============================================================================
 #
-#	px4_add_git_submodule
+#	px4_parse_function_args
 #
-#	This function add a git submodule target.
+#	This function simplifies usage of the cmake_parse_arguments module.
+#	It is intended to be called by other functions.
 #
 #	Usage:
-#		px4_add_git_submodule(TARGET <target> PATH <path>)
+#		px4_parse_function_args(
+#			NAME <name>
+#			[ OPTIONS <list> ]
+#			[ ONE_VALUE <list> ]
+#			[ MULTI_VALUE <list> ]
+#			REQUIRED <list>
+#			ARGN <ARGN>)
 #
 #	Input:
-#		PATH		: git submodule path
+#		NAME		: the name of the calling function
+#		OPTIONS		: boolean flags
+#		ONE_VALUE	: single value variables
+#		MULTI_VALUE	: multi value variables
+#		REQUIRED	: required arguments
+#		ARGN		: the function input arguments, typically ${ARGN}
 #
 #	Output:
-#		TARGET		: git target
+#		The function arguments corresponding to the following are set:
+#		${OPTIONS}, ${ONE_VALUE}, ${MULTI_VALUE}
 #
 #	Example:
-#		px4_add_git_submodule(TARGET git_nuttx PATH "NuttX")
+#		function test()
+#			px4_parse_function_args(
+#				NAME TEST
+#				ONE_VALUE NAME
+#				MULTI_VALUE LIST
+#				REQUIRED NAME LIST
+#				ARGN ${ARGN})
+#			message(STATUS "name: ${NAME}")
+#			message(STATUS "list: ${LIST}")
+#		endfunction()
 #
-function(px4_add_git_submodule)
-	px4_parse_function_args(
-		NAME px4_add_git_submodule
-		ONE_VALUE TARGET PATH
-		REQUIRED TARGET PATH
-		ARGN ${ARGN})
+#		test(NAME "hello" LIST a b c)
+#
+#		OUTPUT:
+#			name: hello
+#			list: a b c
+#
+include(CMakeParseArguments)
+function(px4_parse_function_args)
 
-	set(REL_PATH)
+	cmake_parse_arguments(IN "" "NAME" "OPTIONS;ONE_VALUE;MULTI_VALUE;REQUIRED;ARGN" "${ARGN}")
+	cmake_parse_arguments(OUT "${IN_OPTIONS}" "${IN_ONE_VALUE}" "${IN_MULTI_VALUE}" "${IN_ARGN}")
 
-	if(IS_ABSOLUTE ${PATH})
-		file(RELATIVE_PATH REL_PATH ${PX4_SOURCE_DIR} ${PATH})
-	else()
-		file(RELATIVE_PATH REL_PATH ${PX4_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/${PATH})
+	if (OUT_UNPARSED_ARGUMENTS)
+		#message(FATAL_ERROR "${IN_NAME}: unparsed ${OUT_UNPARSED_ARGUMENTS}")
+		# TODO: reenable
 	endif()
 
-	execute_process(
-		COMMAND Tools/check_submodules.sh ${REL_PATH}
-		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-		)
+	foreach(arg ${IN_REQUIRED})
+		if (NOT OUT_${arg})
+			if (NOT "${OUT_${arg}}" STREQUAL "0")
+				message(FATAL_ERROR "${IN_NAME} requires argument ${arg}\nARGN: ${IN_ARGN}")
+			endif()
+		endif()
+	endforeach()
 
-	string(REPLACE "/" "_" NAME ${PATH})
-	string(REPLACE "." "_" NAME ${NAME})
+	foreach(arg ${IN_OPTIONS} ${IN_ONE_VALUE} ${IN_MULTI_VALUE})
+		set(${arg} ${OUT_${arg}} PARENT_SCOPE)
+	endforeach()
 
-	add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/git_init_${NAME}.stamp
-		COMMAND Tools/check_submodules.sh ${REL_PATH}
-		COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/git_init_${NAME}.stamp
-		DEPENDS ${PX4_SOURCE_DIR}/.gitmodules ${PATH}/.git
-		COMMENT "git submodule ${REL_PATH}"
-		WORKING_DIRECTORY ${PX4_SOURCE_DIR}
-		USES_TERMINAL
-		)
-
-	add_custom_target(${TARGET} DEPENDS git_init_${NAME}.stamp)
 endfunction()
