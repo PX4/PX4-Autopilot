@@ -2202,7 +2202,6 @@ Mavlink::task_main(int argc, char *argv[])
 		/* main loop */
 		px4_usleep(_main_loop_delay);
 
-		// If the wait until transmit flag is on, only transmit after we've received messages
 		if (!should_transmit()) {
 			continue;
 		}
