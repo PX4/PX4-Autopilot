@@ -453,7 +453,7 @@ void Ekf::controlOpticalFlowFusion()
 		// Check if we are in-air and require optical flow to control position drift
 		bool flow_required = _control_status.flags.in_air &&
 				(_is_dead_reckoning // is doing inertial dead-reckoning so must constrain drift urgently
-				  || (_control_status.flags.opt_flow && !_control_status.flags.gps && !_control_status.flags.ev_pos) // is completely reliant on optical flow
+                                  || (_control_status.flags.opt_flow && !_control_status.flags.gps && !_control_status.flags.ev_pos && !_control_status.flags.ev_vel) // is completely reliant on optical flow
 				  || (_control_status.flags.gps && (_gps_error_norm > gps_err_norm_lim))); // is using GPS, but GPS is bad
 
 		if (!_inhibit_flow_use && _control_status.flags.opt_flow) {
@@ -504,7 +504,7 @@ void Ekf::controlOpticalFlowFusion()
 				_time_last_of_fuse = _time_last_imu;
 
 				// if we are not using GPS or external vision aiding, then the velocity and position states and covariances need to be set
-				const bool flow_aid_only = !(_control_status.flags.gps || _control_status.flags.ev_pos);
+                                const bool flow_aid_only = !(_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel);
 				if (flow_aid_only) {
 					resetVelocity();
 					resetPosition();
@@ -521,7 +521,8 @@ void Ekf::controlOpticalFlowFusion()
 		// handle the case when we have optical flow, are reliant on it, but have not been using it for an extended period
 		if (_control_status.flags.opt_flow
 		    && !_control_status.flags.gps
-		    && !_control_status.flags.ev_pos) {
+                    && !_control_status.flags.ev_pos
+                    && !_control_status.flags.ev_vel) {
 
 			bool do_reset = ((_time_last_imu - _time_last_of_fuse) > _params.reset_timeout_max);
 
@@ -714,7 +715,7 @@ void Ekf::controlGpsFusion()
 			// calculate observation process noise
 			float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
 
-			if (_control_status.flags.opt_flow || _control_status.flags.ev_pos) {
+                        if (_control_status.flags.opt_flow || _control_status.flags.ev_pos || _control_status.flags.ev_vel) {
 				// if we are using other sources of aiding, then relax the upper observation
 				// noise limit which prevents bad GPS perturbing the position estimate
 				_posObsNoiseNE = fmaxf(_gps_sample_delayed.hacc, lower_limit);
@@ -743,7 +744,7 @@ void Ekf::controlGpsFusion()
 	} else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)10e6)) {
 		_control_status.flags.gps = false;
 		ECL_WARN("EKF GPS data stopped");
-	}  else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)1e6) && (_control_status.flags.opt_flow || _control_status.flags.ev_pos)) {
+        }  else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)1e6) && (_control_status.flags.opt_flow || _control_status.flags.ev_pos || _control_status.flags.ev_vel)) {
 		// Handle the case where we are fusing another position source along GPS,
 		// stop waiting for GPS after 1 s of lost signal
 		_control_status.flags.gps = false;
@@ -1186,7 +1187,7 @@ void Ekf::rangeAidConditionsMet()
 			can_use_range_finder = (_terrain_vpos - _state.pos(2) < 0.7f * _params.max_hagl_for_range_aid) && get_terrain_valid();
 		}
 
-		bool horz_vel_valid = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow)
+                bool horz_vel_valid = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel || _control_status.flags.opt_flow)
 				      && (_fault_status.value == 0);
 
 		if (horz_vel_valid) {
@@ -1471,7 +1472,7 @@ void Ekf::controlMagFusion()
 				_yaw_angle_observable = _accel_lpf_NE.norm() > 2.0f * _params.mag_acc_gate;
 			}
 
-			_yaw_angle_observable = _yaw_angle_observable && (_control_status.flags.gps || _control_status.flags.ev_pos);
+                        _yaw_angle_observable = _yaw_angle_observable && (_control_status.flags.gps || _control_status.flags.ev_pos); // Do we have to add ev_vel here?
 
 			// check if there is enough yaw rotation to make the mag bias states observable
 			if (!_mag_bias_observable && (fabsf(_yaw_rate_lpf_ef) > _params.mag_yaw_rate_gate)) {
@@ -1610,9 +1611,10 @@ void Ekf::controlMagFusion()
 		// is available, assume that we are operating indoors and the magnetometer should not be used.
 		bool user_selected = (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR);
 		bool not_using_gps = !(_params.fusion_mode & MASK_USE_GPS) || !_control_status.flags.gps;
-		bool not_using_evpos = !(_params.fusion_mode & MASK_USE_EVPOS) || !_control_status.flags.ev_pos;
-		bool not_selected_evyaw =  !(_params.fusion_mode & MASK_USE_EVYAW);
-		if (user_selected && not_using_gps && not_using_evpos && not_selected_evyaw) {
+                bool not_using_evpos = !(_params.fusion_mode & MASK_USE_EVPOS) || !_control_status.flags.ev_pos;
+                bool not_using_evvel = !(_params.fusion_mode & MASK_USE_EVVEL) || !_control_status.flags.ev_vel;
+                bool not_selected_evyaw =  !(_params.fusion_mode & MASK_USE_EVYAW);
+                if (user_selected && not_using_gps && not_using_evpos && not_using_evvel && not_selected_evyaw) {
 			_mag_use_inhibit = true;
 		} else {
 			_mag_use_inhibit = false;
@@ -1722,7 +1724,7 @@ void Ekf::controlVelPosFusion()
 void Ekf::controlAuxVelFusion()
 {
 	bool data_ready = _auxvel_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_auxvel_sample_delayed);
-	bool primary_aiding = _control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow;
+        bool primary_aiding = _control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel || _control_status.flags.opt_flow;
 
 	if (data_ready && primary_aiding) {
 		_fuse_hor_vel = _fuse_vert_vel = _fuse_pos = _fuse_height = false;

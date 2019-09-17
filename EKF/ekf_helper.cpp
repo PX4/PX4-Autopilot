@@ -53,7 +53,7 @@ bool Ekf::resetVelocity()
 	Vector3f vel_before_reset = _state.vel;
 
 	// reset EKF states
-	if (_control_status.flags.gps) {
+        if (_control_status.flags.gps && _gps_check_fail_status.value==0) {
 		// this reset is only called if we have new gps data at the fusion time horizon
 		_state.vel = _gps_sample_delayed.vel;
 
@@ -1074,6 +1074,11 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv)
 			vel_err_conservative = math::max(vel_err_conservative, sqrtf(sq(_vel_pos_innov[0]) + sq(_vel_pos_innov[1])));
 		}
 
+                if (_control_status.flags.ev_vel) {
+                    // What is the right thing to do here
+//			vel_err_conservative = math::max(vel_err_conservative, sqrtf(sq(_vel_pos_innov[0]) + sq(_vel_pos_innov[1])));
+                }
+
 		hvel_err = math::max(hvel_err, vel_err_conservative);
 	}
 
@@ -1105,7 +1110,7 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 
 	bool relying_on_rangefinder = _control_status.flags.rng_hgt && !_params.range_aid;
 
-	bool relying_on_optical_flow = _control_status.flags.opt_flow && !(_control_status.flags.gps || _control_status.flags.ev_pos);
+        bool relying_on_optical_flow = _control_status.flags.opt_flow && !(_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel);
 
 	// Do not require limiting by default
 	*vxy_max = NAN;
@@ -1192,7 +1197,7 @@ void Ekf::get_ekf_soln_status(uint16_t *status)
 	ekf_solution_status soln_status;
 
 	soln_status.flags.attitude = _control_status.flags.tilt_align && _control_status.flags.yaw_align && (_fault_status.value == 0);
-	soln_status.flags.velocity_horiz = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow || (_control_status.flags.fuse_beta && _control_status.flags.fuse_aspd)) && (_fault_status.value == 0);
+        soln_status.flags.velocity_horiz = (_control_status.flags.gps || _control_status.flags.ev_pos|| _control_status.flags.ev_vel || _control_status.flags.opt_flow || (_control_status.flags.fuse_beta && _control_status.flags.fuse_aspd)) && (_fault_status.value == 0);
 	soln_status.flags.velocity_vert = (_control_status.flags.baro_hgt || _control_status.flags.ev_hgt || _control_status.flags.gps_hgt || _control_status.flags.rng_hgt) && (_fault_status.value == 0);
 	soln_status.flags.pos_horiz_rel = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow) && (_fault_status.value == 0);
 	soln_status.flags.pos_horiz_abs = (_control_status.flags.gps || _control_status.flags.ev_pos) && (_fault_status.value == 0);
