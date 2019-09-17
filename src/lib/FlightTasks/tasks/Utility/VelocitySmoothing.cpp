@@ -241,22 +241,21 @@ void VelocitySmoothing::updateTraj(float dt, float time_stretch)
 {
 	_local_time += dt * time_stretch;
 	float t_remain = _local_time;
-	float t[3];
 
-	t[0] = math::min(t_remain, _T1);
-	_state = evaluatePoly(_max_jerk, _state_init.a, _state_init.v, _state_init.x, t[0], _direction);
-	t_remain -= t[0];
+	float t1 = math::min(t_remain, _T1);
+	_state = evaluatePoly(_max_jerk, _state_init.a, _state_init.v, _state_init.x, t1, _direction);
+	t_remain -= t1;
 
 	if (t_remain > 0.f) {
-		t[1] = math::min(t_remain, _T2);
-		_state = evaluatePoly(0.f, _state.a, _state.v, _state.x, t[1], 0.f);
-		t_remain -= t[1];
+		float t2 = math::min(t_remain, _T2);
+		_state = evaluatePoly(0.f, _state.a, _state.v, _state.x, t2, 0.f);
+		t_remain -= t2;
 	}
 
 	if (t_remain > 0.f) {
-		t[2] = math::min(t_remain, _T3);
-		_state = evaluatePoly(_max_jerk, _state.a, _state.v, _state.x, t[2], -_direction);
-		t_remain -= t[2];
+		float t3 = math::min(t_remain, _T3);
+		_state = evaluatePoly(_max_jerk, _state.a, _state.v, _state.x, t3, -_direction);
+		t_remain -= t3;
 	}
 
 	if (t_remain > 0.f) {
