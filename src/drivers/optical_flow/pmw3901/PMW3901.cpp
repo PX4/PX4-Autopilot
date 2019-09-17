@@ -314,11 +314,11 @@ PMW3901::Run()
 
 	readMotionCount(delta_x_raw, delta_y_raw, qual);
 
-	if(qual > 0){
-	_flow_sum_x += delta_x_raw;
-	_flow_sum_y += delta_y_raw;
-	_flow_sample_counter ++;
-	_flow_quality_sum += qual;
+	if (qual > 0) {
+		_flow_sum_x += delta_x_raw;
+		_flow_sum_y += delta_y_raw;
+		_flow_sample_counter ++;
+		_flow_quality_sum += qual;
 	}
 
 	// returns if the collect time has not been reached
@@ -344,7 +344,7 @@ PMW3901::Run()
 	report.integration_timespan = _flow_dt_sum_usec; 	// microseconds
 
 	report.sensor_id = 0;
-	report.quality = _flow_sample_counter > 0 ?_flow_quality_sum / _flow_sample_counter : 0;
+	report.quality = _flow_sample_counter > 0 ? _flow_quality_sum / _flow_sample_counter : 0;
 
 
 	/* No gyro on this board */
@@ -388,9 +388,10 @@ PMW3901::readMotionCount(int16_t &deltaX, int16_t &deltaY, uint8_t &qual)
 	deltaY = ((int16_t)data[9] << 8) | data[7];
 
 	// If the reported flow is impossibly large, we just got garbage from the SPI
-	if (deltaX > 240 || deltaY > 240 || deltaX < -240 || deltaY < -240){
+	if (deltaX > 240 || deltaY > 240 || deltaX < -240 || deltaY < -240) {
 		qual = 0;
-	}else{
+
+	} else {
 		qual = data[11];
 	}
 
