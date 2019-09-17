@@ -256,9 +256,7 @@
        return self->get_state_delayed(out);
    }
    void get_quaternion(float out[4]) {
-       for(unsigned int i = 0; i < 4; i++) {
-           out[i] = self->get_quaternion()(i);
-       }
+       self->get_quaternion().copyTo(out);
    }
 }
 
