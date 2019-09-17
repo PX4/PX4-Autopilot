@@ -269,6 +269,8 @@ out:
 
 		if (r_errno == EEXIST) {
 			errorCode = kErrFailFileExists;
+		} else if (r_errno == ENOENT) {
+			errorCode = kErrFileNotFound;
 		}
 
 		payload->data[0] = errorCode;
@@ -350,9 +352,7 @@ MavlinkFTP::_workList(PayloadHeader *payload, bool list_hidden)
 
 	if (dp == nullptr) {
 		PX4_WARN("File open failed %s", _work_buffer1);
-		// this is not an FTP error, abort directory by setting errno to ENOENT "No such file or directory"
-		errno = ENOENT;
-		return kErrFailErrno;
+		return kErrFileNotFound;
 	}
 
 #ifdef MAVLINK_FTP_DEBUG
