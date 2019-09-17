@@ -111,11 +111,10 @@ void ManualVelocitySmoothingXY::checkPositionLock(Vector2f velocity_target)
 			// Start the trajectory at the current velocity setpoint
 			_trajectory[0].setCurrentVelocity(_velocity_setpoint_feedback(0));
 			_trajectory[1].setCurrentVelocity(_velocity_setpoint_feedback(1));
-			_position_setpoint_locked(0) = NAN;
-			_position_setpoint_locked(1) = NAN;
+			_state.v = _velocity_setpoint_feedback;
+			resetPositionLock();
 		}
 
-		_position_lock_active = false;
 		_trajectory[0].setCurrentPosition(_position_estimate(0));
 		_trajectory[1].setCurrentPosition(_position_estimate(1));
 	}
