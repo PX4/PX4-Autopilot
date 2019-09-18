@@ -1137,7 +1137,8 @@ void Ekf2::run()
 					}
 
 					if (range_finder_updated) {
-						_ekf.setRangeData(range_finder.timestamp, range_finder.current_distance);
+						// TODO: Nico's pr will add proper quality handling, for now we put it to unkown
+						_ekf.setRangeData(range_finder.timestamp, range_finder.current_distance, -1.f);
 					}
 
 					// Save sensor limits reported by the rangefinder
