@@ -147,7 +147,6 @@
 %include <matrix/Quaternion.hpp>
 %include <matrix/Dcm.hpp>
 %include <matrix/Euler.hpp>
-%include <matrix/SquareMatrix.hpp>
 %include <matrix/helper_functions.hpp>
 %include <EKF/common.h>
 %include <EKF/estimator_interface.h>
