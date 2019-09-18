@@ -991,6 +991,8 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 		}
 	}
 
+	status.preflight_checks_result = !failed;
+
 	/* Report status */
 	return !failed;
 }
