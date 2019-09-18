@@ -599,6 +599,7 @@ Commander::Commander() :
 	internal_state.main_state = commander_state_s::MAIN_STATE_MANUAL;
 	status.nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
 	status.arming_state = vehicle_status_s::ARMING_STATE_INIT;
+	status.imu_sensors_health = UINT32_MAX;
 
 	/* mark all signals lost as long as they haven't been found */
 	status.rc_signal_lost = true;
@@ -1743,8 +1744,24 @@ Commander::run()
 		do {
 			if (subsys_sub.updated()) {
 				subsystem_info_s info{};
+
 				subsys_sub.copy(&info);
-				set_health_flags(info.subsystem_type, info.present, info.enabled, info.ok, status);
+
+				if (info.subsystem_type & IMU_SUBSYSTEM_MASK) {
+					// imu sensor health received, this is handled in preflight checks
+					if (info.ok) {
+						status.imu_sensors_health |= (uint32_t)info.subsystem_type;
+
+					} else {
+						status.imu_sensors_health &= ~(uint32_t)info.subsystem_type;
+						// set health fail, so we have failure feedback immediatley
+						set_health_flags_healthy(info.subsystem_type, false, status);
+					}
+
+				} else {
+					set_health_flags(info.subsystem_type, info.present, info.enabled, info.ok, status);
+				}
+
 				status_changed = true;
 			}
 		} while (updated);

@@ -60,6 +60,7 @@
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
+#include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_command.h>
@@ -191,6 +192,11 @@ private:
 
 	FailureDetector _failure_detector;
 	bool _flight_termination_triggered{false};
+
+	const uint64_t IMU_SUBSYSTEM_MASK = subsystem_info_s::SUBSYSTEM_TYPE_GYRO | subsystem_info_s::SUBSYSTEM_TYPE_GYRO2 |
+					    subsystem_info_s::SUBSYSTEM_TYPE_ACC | subsystem_info_s::SUBSYSTEM_TYPE_ACC2 |
+					    subsystem_info_s::SUBSYSTEM_TYPE_MAG | subsystem_info_s::SUBSYSTEM_TYPE_MAG2 |
+					    subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE;
 
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd, actuator_armed_s *armed,
 			    uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub, bool *changed);

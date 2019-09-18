@@ -93,6 +93,8 @@ uint32 onboard_control_sensors_present
 uint32 onboard_control_sensors_enabled
 uint32 onboard_control_sensors_health
 
+uint32 imu_sensors_health	# bitmask (see SYS_STATUS mavlink message) containing health flags for the gyro, accel, mag and baro sensors sent by the sensors module
+
 # airspeed fault and airspeed use status
 float32 arspd_check_level	# integrated airspeed inconsistency as checked against the COM_TAS_FS_INTEG parameter
 bool aspd_check_failing		# true when airspeed consistency checks are failing

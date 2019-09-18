@@ -136,12 +136,14 @@ static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &sta
 		}
 	}
 
-	const bool success = calibration_valid && mag_valid;
+	bool success = calibration_valid && mag_valid;
 
 	if (instance == 0) {
+		success = success && (status.imu_sensors_health & subsystem_info_s::SUBSYSTEM_TYPE_MAG);
 		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG, exists, !optional, success, status);
 
 	} else if (instance == 1) {
+		success = success && (status.imu_sensors_health & subsystem_info_s::SUBSYSTEM_TYPE_MAG2);
 		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG2, exists, !optional, success, status);
 	}
 
@@ -184,9 +186,10 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s 
 	if (sensors.gyro_inconsistency_rad_s > test_limit) {
 		if (report_status) {
 			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Gyros inconsistent - Check Cal");
-			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GYRO, false, status);
-			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GYRO2, false, status);
 		}
+
+		set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GYRO, false, status);
+		set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GYRO2, false, status);
 
 		success = false;
 		goto out;
@@ -228,6 +231,9 @@ static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s 
 		mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compasses %d° inconsistent",
 				     static_cast<int>(math::degrees<float>(sensors.mag_inconsistency_angle)));
 		mavlink_log_critical(mavlink_log_pub, "Please check orientations and recalibrate");
+	}
+
+	if (!pass) {
 		set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_MAG, false, status);
 		set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_MAG2, false, status);
 	}
@@ -287,12 +293,14 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 		}
 	}
 
-	const bool success = calibration_valid && accel_valid;
+	bool success = calibration_valid && accel_valid;
 
 	if (instance == 0) {
+		success = success && (status.imu_sensors_health & subsystem_info_s::SUBSYSTEM_TYPE_ACC);
 		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ACC, exists, !optional, success, status);
 
 	} else if (instance == 1) {
+		success = success && (status.imu_sensors_health & subsystem_info_s::SUBSYSTEM_TYPE_ACC2);
 		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ACC2, exists, !optional, success, status);
 	}
 
@@ -334,14 +342,18 @@ static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 		}
 	}
 
+	bool success = calibration_valid && gyro_valid;
+
 	if (instance == 0) {
-		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_GYRO, exists, !optional, calibration_valid && gyro_valid, status);
+		success = success && (status.imu_sensors_health & subsystem_info_s::SUBSYSTEM_TYPE_GYRO);
+		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_GYRO, exists, !optional, success, status);
 
 	} else if (instance == 1) {
-		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_GYRO2, exists, !optional, calibration_valid && gyro_valid, status);
+		success = success && (status.imu_sensors_health & subsystem_info_s::SUBSYSTEM_TYPE_GYRO2);
+		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_GYRO2, exists, !optional, success, status);
 	}
 
-	return calibration_valid && gyro_valid;
+	return success;
 }
 
 static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance, bool optional,
@@ -368,11 +380,14 @@ static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 		}
 	}
 
+	bool success = baro_valid;
+
 	if (instance == 0) {
-		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE, exists, !optional, baro_valid, status);
+		success = success && (status.imu_sensors_health & subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE);
+		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE, exists, !optional, success, status);
 	}
 
-	return baro_valid;
+	return success;
 }
 
 static bool airspeedCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, bool optional, bool report_fail,
