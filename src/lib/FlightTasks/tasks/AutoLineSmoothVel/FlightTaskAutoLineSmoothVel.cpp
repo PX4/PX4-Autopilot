@@ -364,23 +364,17 @@ void FlightTaskAutoLineSmoothVel::_generateTrajectory()
 	Vector3f pos_sp_smooth;
 
 	for (int i = 0; i < 3; ++i) {
-		_trajectory[i].integrate(_deltatime, time_stretch, accel_sp_smooth(i), vel_sp_smooth(i), pos_sp_smooth(i));
+		_trajectory[i].updateTraj(_deltatime, time_stretch);
 		jerk_sp_smooth(i) = _trajectory[i].getCurrentJerk();
+		accel_sp_smooth(i) = _trajectory[i].getCurrentAcceleration();
+		vel_sp_smooth(i) = _trajectory[i].getCurrentVelocity();
+		pos_sp_smooth(i) = _trajectory[i].getCurrentPosition();
 	}
 
 	_updateTrajConstraints();
 
-	// If the acceleration and velocities are small and that we want to stop, reduce the amplitude of the jerk signal
-	// to help the optimizer to converge towards zero
-	if (Vector2f(_velocity_setpoint).length() < (0.01f * _param_mpc_xy_traj_p.get())
-	    && Vector2f(accel_sp_smooth).length() < 0.2f
-	    && Vector2f(vel_sp_smooth).length() < 0.1f) {
-		_trajectory[0].setMaxJerk(1.f);
-		_trajectory[1].setMaxJerk(1.f);
-	}
-
 	for (int i = 0; i < 3; ++i) {
-		_trajectory[i].updateDurations(_deltatime, _velocity_setpoint(i));
+		_trajectory[i].updateDurations(_velocity_setpoint(i));
 	}
 
 	VelocitySmoothing::timeSynchronization(_trajectory, 2); // Synchronize x and y only

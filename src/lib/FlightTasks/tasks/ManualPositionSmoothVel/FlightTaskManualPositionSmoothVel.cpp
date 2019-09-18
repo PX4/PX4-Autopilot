@@ -141,6 +141,17 @@ void FlightTaskManualPositionSmoothVel::_checkEkfResetCounters()
 
 void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 {
+	Vector3f pos_sp_smooth;
+
+	for (int i = 0; i < 3; ++i) {
+		_smoothing[i].updateTraj(_deltatime);
+
+		_jerk_setpoint(i) = _smoothing[i].getCurrentJerk();
+		_acceleration_setpoint(i) = _smoothing[i].getCurrentAcceleration();
+		_vel_sp_smooth(i) = _smoothing[i].getCurrentVelocity();
+		pos_sp_smooth(i) = _smoothing[i].getCurrentPosition();
+	}
+
 	/* Get yaw setpont, un-smoothed position setpoints.*/
 	FlightTaskManualPosition::_updateSetpoints();
 
@@ -194,22 +205,9 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 		_position_lock_z_active = false;
 	}
 
-	// During position lock, lower jerk to help the optimizer
-	// to converge to 0 acceleration and velocity
-	if (_position_lock_xy_active) {
-		jerk[0] = 1.f;
-		jerk[1] = 1.f;
-
-	} else {
-		jerk[0] = _param_mpc_jerk_max.get();
-		jerk[1] = _param_mpc_jerk_max.get();
-	}
-
-	jerk[2] = _position_lock_z_active ? 1.f : _param_mpc_jerk_max.get();
-
 	for (int i = 0; i < 3; ++i) {
 		_smoothing[i].setMaxJerk(jerk[i]);
-		_smoothing[i].updateDurations(_deltatime, _velocity_setpoint(i));
+		_smoothing[i].updateDurations(_velocity_setpoint(i));
 	}
 
 	VelocitySmoothing::timeSynchronization(_smoothing, 2); // Synchronize x and y only
@@ -221,14 +219,6 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 
 	if (!_position_lock_z_active) {
 		_smoothing[2].setCurrentPosition(_position(2));
-	}
-
-	Vector3f pos_sp_smooth;
-
-	for (int i = 0; i < 3; ++i) {
-		_smoothing[i].integrate(_acceleration_setpoint(i), _vel_sp_smooth(i), pos_sp_smooth(i));
-		_velocity_setpoint(i) = _vel_sp_smooth(i); // Feedforward
-		_jerk_setpoint(i) = _smoothing[i].getCurrentJerk();
 	}
 
 	// Check for position lock transition
@@ -276,6 +266,7 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 		}
 	}
 
+	_velocity_setpoint = _vel_sp_smooth; // Feedforward
 	_position_setpoint(0) = _position_setpoint_xy_locked(0);
 	_position_setpoint(1) = _position_setpoint_xy_locked(1);
 	_position_setpoint(2) = _position_setpoint_z_locked;

@@ -106,6 +106,15 @@ void FlightTaskManualAltitudeSmoothVel::_checkEkfResetCounters()
 
 void FlightTaskManualAltitudeSmoothVel::_updateSetpoints()
 {
+	float pos_sp_smooth;
+
+	_smoothing.updateTraj(_deltatime);
+
+	_jerk_setpoint(2) = _smoothing.getCurrentJerk();
+	_acceleration_setpoint(2) = _smoothing.getCurrentAcceleration();
+	_vel_sp_smooth = _smoothing.getCurrentVelocity();
+	pos_sp_smooth = _smoothing.getCurrentPosition();
+
 	/* Get yaw setpont, un-smoothed position setpoints.*/
 	FlightTaskManualAltitude::_updateSetpoints();
 
@@ -142,22 +151,14 @@ void FlightTaskManualAltitudeSmoothVel::_updateSetpoints()
 		_position_lock_z_active = false;
 	}
 
-	// During position lock, lower jerk to help the optimizer
-	// to converge to 0 acceleration and velocity
-	jerk = _position_lock_z_active ? 1.f : _param_mpc_jerk_max.get();
-
 	_smoothing.setMaxJerk(jerk);
-	_smoothing.updateDurations(_deltatime, _velocity_setpoint(2));
+	_smoothing.updateDurations(_velocity_setpoint(2));
 
 	if (!_position_lock_z_active) {
 		_smoothing.setCurrentPosition(_position(2));
 	}
 
-	float pos_sp_smooth;
-
-	_smoothing.integrate(_acceleration_setpoint(2), _vel_sp_smooth, pos_sp_smooth);
 	_velocity_setpoint(2) = _vel_sp_smooth; // Feedforward
-	_jerk_setpoint(2) = _smoothing.getCurrentJerk();
 
 	if (fabsf(_vel_sp_smooth) < 0.1f &&
 	    fabsf(_acceleration_setpoint(2)) < .2f &&
