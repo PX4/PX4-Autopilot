@@ -50,34 +50,32 @@
 
 
 /* Configuration Constants */
-static constexpr uint8_t LL40LS_BASEADDR              = 0x62;   /* 7-bit address */
-static constexpr uint8_t LL40LS_BASEADDR_OLD          = 0x42;   /* previous 7-bit address */
-static constexpr uint8_t LL40LS_SIG_COUNT_VAL_DEFAULT = 0x80;   /* Default maximum acquisition count */
+static constexpr uint8_t LL40LS_BASEADDR              = 0x62; /* 7-bit address */
+static constexpr uint8_t LL40LS_BASEADDR_OLD          = 0x42; /* previous 7-bit address */
+static constexpr uint8_t LL40LS_SIG_COUNT_VAL_DEFAULT = 0x80; /* Default maximum acquisition count */
 
 /* LL40LS Registers addresses */
-static constexpr uint8_t LL40LS_MEASURE_REG         = 0x00;     /* Measure range register */
-static constexpr uint8_t LL40LS_MSRREG_RESET        = 0x00;     /* reset to power on defaults */
-static constexpr uint8_t LL40LS_MSRREG_ACQUIRE      =
-	0x04;     /* Value to initiate a measurement, varies based on sensor revision */
-static constexpr uint8_t LL40LS_DISTHIGH_REG        = 0x0F;     /* High byte of distance register, auto increment */
-static constexpr uint8_t LL40LS_AUTO_INCREMENT      = 0x80;
-static constexpr uint8_t LL40LS_HW_VERSION          = 0x41;
-static constexpr uint8_t LL40LS_SW_VERSION          = 0x4f;
-static constexpr uint8_t LL40LS_SIGNAL_STRENGTH_REG = 0x0e;
-static constexpr uint8_t LL40LS_PEAK_STRENGTH_REG   = 0x0c;
-static constexpr uint8_t LL40LS_UNIT_ID_HIGH        = 0x16;
-static constexpr uint8_t LL40LS_UNIT_ID_LOW         = 0x17;
+static constexpr uint8_t LL40LS_MEASURE_REG           = 0x00; /* Measure range register */
+static constexpr uint8_t LL40LS_MSRREG_RESET          = 0x00; /* reset to power on defaults */
+static constexpr uint8_t LL40LS_MSRREG_ACQUIRE        = 0x04; /* Value to acquire a measurement, version specific */
+static constexpr uint8_t LL40LS_DISTHIGH_REG          = 0x0F; /* High byte of distance register, auto increment */
+static constexpr uint8_t LL40LS_AUTO_INCREMENT        = 0x80;
+static constexpr uint8_t LL40LS_HW_VERSION            = 0x41;
+static constexpr uint8_t LL40LS_SW_VERSION            = 0x4f;
+static constexpr uint8_t LL40LS_SIGNAL_STRENGTH_REG   = 0x0e;
+static constexpr uint8_t LL40LS_PEAK_STRENGTH_REG     = 0x0c;
+static constexpr uint8_t LL40LS_UNIT_ID_HIGH          = 0x16;
+static constexpr uint8_t LL40LS_UNIT_ID_LOW           = 0x17;
 
-static constexpr uint8_t LL40LS_SIG_COUNT_VAL_REG   = 0x02;     /* Maximum acquisition count register */
-static constexpr uint8_t LL40LS_SIG_COUNT_VAL_MAX   = 0xFF;     /* Maximum acquisition count max value */
+static constexpr uint8_t LL40LS_SIG_COUNT_VAL_REG     = 0x02; /* Maximum acquisition count register */
+static constexpr uint8_t LL40LS_SIG_COUNT_VAL_MAX     = 0xFF; /* Maximum acquisition count max value */
 
-static constexpr int LL40LS_SIGNAL_STRENGTH_MIN_V3HP = 70;      /* Min signal strength for V3HP */
-static constexpr int LL40LS_SIGNAL_STRENGTH_MAX_V3HP = 255;     /* Max signal strength for V3HP */
-static constexpr int LL40LS_SIGNAL_STRENGTH_LOW      =
-	24;      /* Minimum (relative) signal strength value for accepting a measurement */
-static constexpr int LL40LS_PEAK_STRENGTH_LOW        =
-	135;     /* Minimum peak strength raw value for accepting a measurement */
-static constexpr int LL40LS_PEAK_STRENGTH_HIGH       = 234;     /* Max peak strength raw value */
+static constexpr int LL40LS_SIGNAL_STRENGTH_MIN_V3HP  = 70;  /* Min signal strength for V3HP */
+static constexpr int LL40LS_SIGNAL_STRENGTH_MAX_V3HP  = 255; /* Max signal strength for V3HP */
+
+static constexpr int LL40LS_SIGNAL_STRENGTH_LOW = 24;  /* Minimum relative signal strength for a valid measurement */
+static constexpr int LL40LS_PEAK_STRENGTH_LOW   = 135; /* Minimum peak strength raw value for accepting a measurement */
+static constexpr int LL40LS_PEAK_STRENGTH_HIGH  = 234; /* Max peak strength raw value */
 
 
 class LidarLiteI2C : public LidarLite, public device::I2C, public px4::ScheduledWorkItem
