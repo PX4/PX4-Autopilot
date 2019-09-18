@@ -959,7 +959,7 @@ int UavcanNode::run()
 					// Determine if this mixer channel is enabled and mapped to an ESC
 					// Ideally we want _esc_controller.update_outputs() to accept single ESC commands with an ID, but that might break existing implementations
 					// For now we just send a minimum value, but this adds unneccesary traffic to the CAN bus
-					if (!(_esc_channel_map & (1<<i))) {
+					if (!(_esc_channel_map & (1 << i))) {
 						_outputs.output[i] = -1.0f;
 					}
 				}
@@ -971,9 +971,9 @@ int UavcanNode::run()
 			_outputs.timestamp = hrt_absolute_time();
 
 			/* From Mixer */
-            		for (uint8_t i = 0; i < _outputs.noutputs; i++) {
-				if (_servo_channel_map & (1<<i)) {
-					_servo_controller.update_outputs(i,_outputs.output[i]);
+			for (uint8_t i = 0; i < _outputs.noutputs; i++) {
+				if (_servo_channel_map & (1 << i)) {
+					_servo_controller.update_outputs(i, _outputs.output[i]);
 					// PX4_INFO("Servo Actuator output %d", _outputs.output[i]);
 				}
 			}
@@ -1297,22 +1297,24 @@ void UavcanNode::hardpoint_controller_set(uint8_t hardpoint_id, uint16_t command
 
 void UavcanNode::get_mixer_mapping()
 {
-        char str[20];
+	char str[20];
 	int value;
 
-        for(uint8_t i = 1; i < 9; i++) {
-                (void)sprintf(str, "UAVCAN_MIX_CH%u", i);
-                if(OK == param_get(param_find(str), &value)) {
-			if((value == 1) || (value ==3)) {
-				_esc_channel_map += 1<<(i - 1);
-            	PX4_INFO("AUX Mixer ch%u mapped to ESC", i);
+	for (uint8_t i = 1; i < 9; i++) {
+		(void)sprintf(str, "UAVCAN_MIX_CH%u", i);
+
+		if (OK == param_get(param_find(str), &value)) {
+			if ((value == 1) || (value == 3)) {
+				_esc_channel_map += 1 << (i - 1);
+				PX4_INFO("AUX Mixer ch%u mapped to ESC", i);
 			}
-			if((value == 2) || (value == 3)){
-				_servo_channel_map += 1<<(i - 1);
-            	PX4_INFO("AUX Mixer ch%u mapped to servo", i);
+
+			if ((value == 2) || (value == 3)) {
+				_servo_channel_map += 1 << (i - 1);
+				PX4_INFO("AUX Mixer ch%u mapped to servo", i);
 			}
-                }
-        }
+		}
+	}
 }
 
 /*

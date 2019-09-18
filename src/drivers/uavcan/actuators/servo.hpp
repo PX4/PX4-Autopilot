@@ -57,12 +57,12 @@
 class UavcanServoController
 {
 public:
-        UavcanServoController(uavcan::INode &node);
-        ~UavcanServoController();
+	UavcanServoController(uavcan::INode &node);
+	~UavcanServoController();
 
 	int init();
 
-        void update_outputs(uint8_t actuator_id, float position);
+	void update_outputs(uint8_t actuator_id, float position);
 
 
 	void arm_all_servos(bool arm);
@@ -71,18 +71,22 @@ public:
 
 private:
 	/**
-         * Servo status message reception will be reported via this callback.
+	 * Servo status message reception will be reported via this callback.
 	 */
-        void servo_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::actuator::Status> &msg);
+	void servo_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::actuator::Status> &msg);
 
 	/**
-         * Servo status will be published to ORB from this callback (fixed rate).
+	 * Servo status will be published to ORB from this callback (fixed rate).
 	 */
 	void orb_pub_timer_cb(const uavcan::TimerEvent &event);
 
 
-        static constexpr unsigned 	MAX_RATE_HZ = 1;			///< XXX make this configurable  TODO: change this to match servo update rate
-        static constexpr unsigned 	ACTUATOR_STATUS_UPDATE_RATE_HZ = 10;     // TODO: figure out what this should be, I think it is 1Hz.
+	static constexpr unsigned 	MAX_RATE_HZ = 1;			///< XXX make this configurable?
+	///< TODO: change this to match servo update rate
+
+	static constexpr unsigned 	ACTUATOR_STATUS_UPDATE_RATE_HZ = 10;    ///< TODO: figure out what this should be,
+	///< I think it is 1Hz.
+
 	static constexpr unsigned 	UAVCAN_COMMAND_TRANSFER_PRIORITY = 5;	///< 0..31, inclusive, 0 - highest, 31 - lowest
 	static constexpr unsigned 	MAX_NUM_ACTUATORS = 8;			///< Aux mixer has 8 channels
 	static constexpr float 		DEFAULT_DISARMED = 0.0f;		///< -1.0 - 1.0 can be set by parameters
@@ -92,11 +96,11 @@ private:
 	static constexpr float		DEFAULT_TRIM = 0.0;			///< -0.25 -0.25 can be set by parameters
 	static constexpr float		DEFAULT_SCALE = 1.0;			///< 0.50 - 1.00 can be set by parameters
 
-        typedef uavcan::MethodBinder<UavcanServoController *,
-                void (UavcanServoController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::actuator::Status>&)>
+	typedef uavcan::MethodBinder<UavcanServoController *,
+		void (UavcanServoController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::actuator::Status>&)>
 		StatusCbBinder;
 
-        typedef uavcan::MethodBinder<UavcanServoController *, void (UavcanServoController::*)(const uavcan::TimerEvent &)>
+	typedef uavcan::MethodBinder<UavcanServoController *, void (UavcanServoController::*)(const uavcan::TimerEvent &)>
 	TimerCbBinder;
 
 	bool			_armed = false;
@@ -111,8 +115,8 @@ private:
 	 */
 	uavcan::MonotonicTime							_prev_cmd_pub[8];   ///< rate limiting
 	uavcan::INode								&_node;
-        //uavcan::Publisher<uavcan::equipment::esc::RawCommand>			_uavcan_pub_raw_cmd;
-        uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand>		_uavcan_pub_array_cmd;
+	//uavcan::Publisher<uavcan::equipment::esc::RawCommand>			_uavcan_pub_raw_cmd;
+	uavcan::Publisher<uavcan::equipment::actuator::ArrayCommand>		_uavcan_pub_array_cmd;
 	uavcan::Subscriber<uavcan::equipment::actuator::Status, StatusCbBinder>	_uavcan_sub_status;
 	uavcan::TimerEventForwarder<TimerCbBinder>				_orb_timer;
 

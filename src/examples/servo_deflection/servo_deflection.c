@@ -55,36 +55,35 @@ __EXPORT int servo_deflection_main(int argc, char *argv[]);
 
 int servo_deflection_main(int argc, char *argv[])
 {
-    if (argc < 5)
-    {
-	PX4_INFO("useage: <actuator_0 value> <actuator_1 value> <actuator_2 value> <actuator_3 value>\n\r");
-        return 1;
-    }
+	if (argc < 5) {
+		PX4_INFO("useage: <actuator_0 value> <actuator_1 value> <actuator_2 value> <actuator_3 value>\n\r");
+		return 1;
+	}
 
-    const float actuator_value[] = {atof(argv[1]), atof(argv[2]), atof(argv[3]), atof(argv[4])};
+	const float actuator_value[] = {atof(argv[1]), atof(argv[2]), atof(argv[3]), atof(argv[4])};
 
-    /* advertise actuator direct topic */
-    struct actuator_direct_s act_out;
-    memset(&act_out, 0, sizeof(act_out));
-    orb_advert_t act_pub = orb_advertise(ORB_ID(actuator_direct), &act_out);
+	/* advertise actuator direct topic */
+	struct actuator_direct_s act_out;
+	memset(&act_out, 0, sizeof(act_out));
+	orb_advert_t act_pub = orb_advertise(ORB_ID(actuator_direct), &act_out);
 
-    /*reserve first four values for ESCs, this will be handled correctly by mixer*/
-    act_out.values[0] = 0.0;
-    act_out.values[1] = 0.0;
-    act_out.values[2] = 0.0;
-    act_out.values[3] = 0.0;
+	/*reserve first four values for ESCs, this will be handled correctly by mixer*/
+	act_out.values[0] = 0.0;
+	act_out.values[1] = 0.0;
+	act_out.values[2] = 0.0;
+	act_out.values[3] = 0.0;
 
-    /*next 4 values I'm using as for servo motors, value must be between -1 and 1*/
-    act_out.values[4] = actuator_value[0];
-    act_out.values[5] = actuator_value[1];
-    act_out.values[6] = actuator_value[2];
-    act_out.values[7] = actuator_value[3];
+	/*next 4 values I'm using as for servo motors, value must be between -1 and 1*/
+	act_out.values[4] = actuator_value[0];
+	act_out.values[5] = actuator_value[1];
+	act_out.values[6] = actuator_value[2];
+	act_out.values[7] = actuator_value[3];
 
-    act_out.nvalues = 8;
+	act_out.nvalues = 8;
 
-    orb_publish(ORB_ID(actuator_direct), act_pub, &act_out);
+	orb_publish(ORB_ID(actuator_direct), act_pub, &act_out);
 
-    PX4_INFO("uORB actuator message sent");
+	PX4_INFO("uORB actuator message sent");
 
-    return 0;
+	return 0;
 }
