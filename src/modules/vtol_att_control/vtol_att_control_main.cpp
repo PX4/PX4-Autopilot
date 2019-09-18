@@ -354,87 +354,98 @@ VtolAttitudeControl::Run()
 		_land_detected_sub.update(&_land_detected);
 		vehicle_cmd_poll();
 
+		// check if mc and fw sp were updated
+		bool mc_att_sp_updated = _mc_virtual_att_sp_sub.update(&_mc_virtual_att_sp);
+		bool fw_att_sp_updated = _fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
+
 		// update the vtol state machine which decides which mode we are in
-		_vtol_type->update_vtol_state();
+		if (mc_att_sp_updated || fw_att_sp_updated) {
+			_vtol_type->update_vtol_state();
 
-		// reset transition command if not auto control
-		if (_v_control_mode.flag_control_manual_enabled) {
-			if (_vtol_type->get_mode() == mode::ROTARY_WING) {
-				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+			// reset transition command if not auto control
+			if (_v_control_mode.flag_control_manual_enabled) {
+				if (_vtol_type->get_mode() == mode::ROTARY_WING) {
+					_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
 
-			} else if (_vtol_type->get_mode() == mode::FIXED_WING) {
-				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
+				} else if (_vtol_type->get_mode() == mode::FIXED_WING) {
+					_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW;
 
-			} else if (_vtol_type->get_mode() == mode::TRANSITION_TO_MC) {
-				/* We want to make sure that a mode change (manual>auto) during the back transition
-				 * doesn't result in an unsafe state. This prevents the instant fall back to
-				 * fixed-wing on the switch from manual to auto */
-				_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+				} else if (_vtol_type->get_mode() == mode::TRANSITION_TO_MC) {
+					/* We want to make sure that a mode change (manual>auto) during the back transition
+					 * doesn't result in an unsafe state. This prevents the instant fall back to
+					 * fixed-wing on the switch from manual to auto */
+					_transition_command = vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC;
+				}
 			}
 		}
 
+
+
 		// check in which mode we are in and call mode specific functions
-		if (_vtol_type->get_mode() == mode::ROTARY_WING) {
+		switch (_vtol_type->get_mode()) {
+		case mode::TRANSITION_TO_FW:
+		case mode::TRANSITION_TO_MC:
+			// vehicle is doing a transition
+			_vtol_vehicle_status.vtol_in_trans_mode = true;
+			_vtol_vehicle_status.vtol_in_rw_mode = true; // making mc attitude controller work during transition
+			_vtol_vehicle_status.in_transition_to_fw = (_vtol_type->get_mode() == mode::TRANSITION_TO_FW);
 
-			_mc_virtual_att_sp_sub.update(&_mc_virtual_att_sp);
+			_fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
 
+			if (mc_att_sp_updated || fw_att_sp_updated) {
+
+				// reinitialize the setpoint while not armed to make sure no value from the last mode or flight is still kept
+				if (!_v_control_mode.flag_armed) {
+					Quatf().copyTo(_mc_virtual_att_sp.q_d);
+					Vector3f().copyTo(_mc_virtual_att_sp.thrust_body);
+					Quatf().copyTo(_v_att_sp.q_d);
+					Vector3f().copyTo(_v_att_sp.thrust_body);
+				}
+
+				_vtol_type->update_transition_state();
+				_v_att_sp_pub.publish(_v_att_sp);
+			}
+
+			break;
+
+		case mode::ROTARY_WING:
 			// vehicle is in rotary wing mode
 			_vtol_vehicle_status.vtol_in_rw_mode = true;
 			_vtol_vehicle_status.vtol_in_trans_mode = false;
 			_vtol_vehicle_status.in_transition_to_fw = false;
 
-			// got data from mc attitude controller
+			if (mc_att_sp_updated) {
+				// reinitialize the setpoint while not armed to make sure no value from the last mode or flight is still kept
+				if (!_v_control_mode.flag_armed) {
+					Quatf().copyTo(_mc_virtual_att_sp.q_d);
+					Vector3f().copyTo(_mc_virtual_att_sp.thrust_body);
+					Quatf().copyTo(_v_att_sp.q_d);
+					Vector3f().copyTo(_v_att_sp.thrust_body);
+				}
+			}
+
 			_vtol_type->update_mc_state();
+			_v_att_sp_pub.publish(_v_att_sp);
 
-		} else if (_vtol_type->get_mode() == mode::FIXED_WING) {
+			break;
 
-			_fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
-
+		case mode::FIXED_WING:
 			// vehicle is in fw mode
 			_vtol_vehicle_status.vtol_in_rw_mode = false;
 			_vtol_vehicle_status.vtol_in_trans_mode = false;
 			_vtol_vehicle_status.in_transition_to_fw = false;
 
-			_vtol_type->update_fw_state();
+			if (fw_att_sp_updated) {
+				_vtol_type->update_fw_state();
+				_v_att_sp_pub.publish(_v_att_sp);
+			}
 
-		} else if (_vtol_type->get_mode() == mode::TRANSITION_TO_MC || _vtol_type->get_mode() == mode::TRANSITION_TO_FW) {
-
-			_mc_virtual_att_sp_sub.update(&_mc_virtual_att_sp);
-			_fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
-
-			// vehicle is doing a transition
-			_vtol_vehicle_status.vtol_in_trans_mode = true;
-			_vtol_vehicle_status.vtol_in_rw_mode = true; //making mc attitude controller work during transition
-			_vtol_vehicle_status.in_transition_to_fw = (_vtol_type->get_mode() == mode::TRANSITION_TO_FW);
-
-			_vtol_type->update_transition_state();
+			break;
 		}
 
 		_vtol_type->fill_actuator_outputs();
-
-		// reinitialize the setpoint while not armed to make sure no value from the last mode or flight is still kept
-		if (!_v_control_mode.flag_armed) {
-			Quatf().copyTo(_mc_virtual_att_sp.q_d);
-			Vector3f().copyTo(_mc_virtual_att_sp.thrust_body);
-			Quatf().copyTo(_v_att_sp.q_d);
-			Vector3f().copyTo(_v_att_sp.thrust_body);
-		}
-
-		/* Only publish if the proper mode(s) are enabled */
-		if (_v_control_mode.flag_control_attitude_enabled ||
-		    _v_control_mode.flag_control_rates_enabled ||
-		    _v_control_mode.flag_control_manual_enabled) {
-
-			_v_att_sp_pub.publish(_v_att_sp);
-
-			if (updated_mc_in) {
-				_actuators_0_pub.publish(_actuators_out_0);
-			}
-
-			if (updated_fw_in) {
-				_actuators_1_pub.publish(_actuators_out_1);
-			}
-		}
+		_actuators_0_pub.publish(_actuators_out_0);
+		_actuators_1_pub.publish(_actuators_out_1);
 
 		// Advertise/Publish vtol vehicle status
 		_vtol_vehicle_status.timestamp = hrt_absolute_time();

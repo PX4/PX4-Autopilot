@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE systemcmds__dmesg
 	MAIN dmesg
-	STACK_MAIN 900
 	SRCS
 		dmesg.cpp
 	)

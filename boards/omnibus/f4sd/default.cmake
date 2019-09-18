@@ -12,6 +12,7 @@ px4_add_board(
 		URT6:/dev/ttyS2
 
 	DRIVERS
+		adc
 		#barometer # all available barometer drivers
 		barometer/bmp280
 		#batt_smbus
@@ -24,7 +25,6 @@ px4_add_board(
 		imu/mpu6000
 		#irlock
 		#lights/blinkm
-		#lights/oreoled
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
@@ -35,9 +35,6 @@ px4_add_board(
 		#pwm_out_sim
 		px4fmu
 		rc_input
-		stm32
-		stm32/adc
-		#stm32/tone_alarm
 		#tap_esc
 		#telemetry # all available telemetry drivers
 		telemetry/frsky_telemetry

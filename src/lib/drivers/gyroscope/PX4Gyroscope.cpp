@@ -123,12 +123,26 @@ PX4Gyroscope::update(hrt_abstime timestamp, float x, float y, float z)
 	// Filtered values
 	const matrix::Vector3f val_filtered{_filter.apply(val_calibrated)};
 
+
 	// publish control data (filtered gyro) immediately
+	bool publish_control = true;
 	sensor_gyro_control_s &control = _sensor_gyro_control_pub.get();
-	control.timestamp_sample = timestamp;
-	val_filtered.copyTo(control.xyz);
-	control.timestamp = hrt_absolute_time();
-	_sensor_gyro_control_pub.update();	// publish
+
+	if (_param_imu_gyro_rate_max.get() > 0) {
+		const uint64_t interval = 1e6f / _param_imu_gyro_rate_max.get();
+
+		if (hrt_elapsed_time(&control.timestamp_sample) < interval) {
+			publish_control = false;
+		}
+	}
+
+	if (publish_control) {
+		control.timestamp_sample = timestamp;
+		val_filtered.copyTo(control.xyz);
+		control.timestamp = hrt_absolute_time();
+		_sensor_gyro_control_pub.update();	// publish
+	}
+
 
 	// Integrated values
 	matrix::Vector3f integrated_value;

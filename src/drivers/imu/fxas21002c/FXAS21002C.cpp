@@ -159,10 +159,7 @@
 /* default values for this device */
 #define FXAS21002C_MAX_RATE              800
 #define FXAS21002C_DEFAULT_RATE          FXAS21002C_MAX_RATE
-#define FXAS21002C_MAX_OUTPUT_RATE       280
 #define FXAS21002C_DEFAULT_RANGE_DPS     2000
-#define FXAS21002C_DEFAULT_FILTER_FREQ   30
-#define FXAS21002C_TEMP_OFFSET_CELSIUS   40
 #define FXAS21002C_DEFAULT_ONCHIP_FILTER_FREQ 	64 // ODR dependant
 
 /*
@@ -193,10 +190,11 @@ FXAS21002C::FXAS21002C(int bus, uint32_t device, enum Rotation rotation) :
 	SPI("FXAS21002C", nullptr, bus, device, SPIDEV_MODE0, 2 * 1000 * 1000),
 	ScheduledWorkItem(px4::device_bus_to_wq(this->get_device_id())),
 	_px4_gyro(get_device_id(), (external() ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT), rotation),
-	_sample_perf(perf_alloc(PC_ELAPSED, "fxas21002c_acc_read")),
-	_errors(perf_alloc(PC_COUNT, "fxas21002c_err")),
-	_bad_registers(perf_alloc(PC_COUNT, "fxas21002c_bad_reg")),
-	_duplicates(perf_alloc(PC_COUNT, "fxas21002c_acc_dupe"))
+	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": read")),
+	_sample_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": read interval")),
+	_errors(perf_alloc(PC_COUNT, MODULE_NAME": err")),
+	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad register")),
+	_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": duplicate reading"))
 {
 	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_FXAS2100C);
 }
@@ -208,6 +206,7 @@ FXAS21002C::~FXAS21002C()
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
+	perf_free(_sample_interval_perf);
 	perf_free(_errors);
 	perf_free(_bad_registers);
 	perf_free(_duplicates);
@@ -529,8 +528,11 @@ FXAS21002C::check_registers(void)
 void
 FXAS21002C::measure()
 {
-	/* status register and data as read back from the device */
+	// start the performance counter
+	perf_begin(_sample_perf);
+	perf_count(_sample_interval_perf);
 
+	/* status register and data as read back from the device */
 #pragma pack(push, 1)
 	struct {
 		uint8_t		cmd;
@@ -540,9 +542,6 @@ FXAS21002C::measure()
 		int16_t		z;
 	} raw_gyro_report{};
 #pragma pack(pop)
-
-	/* start the performance counter */
-	perf_begin(_sample_perf);
 
 	check_registers();
 
@@ -599,6 +598,7 @@ FXAS21002C::print_info()
 {
 	printf("gyro reads:          %u\n", _read);
 	perf_print_counter(_sample_perf);
+	perf_print_counter(_sample_interval_perf);
 	perf_print_counter(_errors);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_duplicates);

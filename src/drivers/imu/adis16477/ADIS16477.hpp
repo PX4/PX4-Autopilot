@@ -45,7 +45,7 @@
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <perf/perf_counter.h>
 #include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 class ADIS16477 : public device::SPI, public px4::ScheduledWorkItem
 {

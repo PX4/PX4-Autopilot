@@ -94,7 +94,7 @@ pipeline {
           }
         }
 
-        stage('Bloaty px4_fmu-v2') {
+        stage('px4_fmu-v2 (bloaty)') {
           agent {
             docker {
               image 'px4io/px4-dev-nuttx:2019-07-29'
@@ -122,9 +122,12 @@ pipeline {
               sh 'make distclean'
             }
           }
+          environment {
+            CCACHE_DISABLE = 1
+          }
         }
 
-        stage('Bloaty px4_fmu-v5') {
+        stage('px4_fmu-v5 (bloaty)') {
           agent {
             docker {
               image 'px4io/px4-dev-nuttx:2019-07-29'
@@ -152,9 +155,12 @@ pipeline {
               sh 'make distclean'
             }
           }
+          environment {
+            CCACHE_DISABLE = 1
+          }
         }
 
-        stage('No-ninja px4_fmu-v2') {
+        stage('px4_sitl (bloaty)') {
           agent {
             docker {
               image 'px4io/px4-dev-nuttx:2019-07-29'
@@ -166,7 +172,15 @@ pipeline {
             sh 'make distclean'
             sh 'ccache -z'
             sh 'git fetch --tags'
-            sh 'NO_NINJA_BUILD=1 make px4_fmu-v2_default'
+            sh 'make px4_sitl_default'
+            sh 'make px4_sitl_default bloaty_compileunits'
+            sh 'make px4_sitl_default bloaty_inlines'
+            sh 'make px4_sitl_default bloaty_sections'
+            sh 'make px4_sitl_default bloaty_segments'
+            sh 'make px4_sitl_default bloaty_symbols'
+            sh 'make px4_sitl_default bloaty_templates'
+            //sh 'make px4_fmu-v5_default bloaty_compare_master'
+            sh 'make sizes'
             sh 'ccache -s'
           }
           post {
@@ -174,9 +188,12 @@ pipeline {
               sh 'make distclean'
             }
           }
+          environment {
+            CCACHE_DISABLE = 1
+          }
         }
 
-        stage('No-ninja px4_fmu-v5') {
+        stage('px4_fmu-v5 (no ninja)') {
           agent {
             docker {
               image 'px4io/px4-dev-nuttx:2019-07-29'
@@ -188,7 +205,8 @@ pipeline {
             sh 'make distclean'
             sh 'ccache -z'
             sh 'git fetch --tags'
-            sh 'NO_NINJA_BUILD=1 make px4_fmu-v5_default'
+            sh 'make px4_fmu-v5_default'
+            sh 'make sizes'
             sh 'ccache -s'
           }
           post {
@@ -196,12 +214,15 @@ pipeline {
               sh 'make distclean'
             }
           }
+          environment {
+            NO_NINJA_BUILD = 1
+          }
         }
 
-        stage('No-ninja SITL build') {
+        stage('px4_sitl (no ninja)') {
           agent {
             docker {
-              image 'px4io/px4-dev-base-bionic:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-07-29'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -210,13 +231,17 @@ pipeline {
             sh 'make distclean'
             sh 'ccache -z'
             sh 'git fetch --tags'
-            sh 'NO_NINJA_BUILD=1 make px4_sitl_default'
+            sh 'make px4_sitl_default'
+            sh 'make sizes'
             sh 'ccache -s'
           }
           post {
             always {
               sh 'make distclean'
             }
+          }
+          environment {
+            NO_NINJA_BUILD = 1
           }
         }
 

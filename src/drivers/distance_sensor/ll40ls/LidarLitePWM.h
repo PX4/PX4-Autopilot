@@ -45,7 +45,7 @@
 
 #include "LidarLite.h"
 
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/topics/pwm_input.h>
 
 class LidarLitePWM : public LidarLite, public px4::ScheduledWorkItem

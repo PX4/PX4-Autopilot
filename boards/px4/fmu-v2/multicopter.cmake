@@ -19,6 +19,7 @@ px4_add_board(
 		TEL4:/dev/ttyS6
 
 	DRIVERS
+		adc
 		barometer/ms5611
 		#batt_smbus
 		camera_capture
@@ -28,16 +29,13 @@ px4_add_board(
 		imu/l3gd20
 		imu/lsm303d
 		imu/mpu6000
-		imu/mpu9250
+		#imu/mpu9250
 		irlock
 		lights/rgbled
 		magnetometer/hmc5883
 		optical_flow/px4flow
 		px4fmu
 		px4io
-		stm32
-		stm32/adc
-		stm32/tone_alarm
 		tone_alarm
 
 	MODULES

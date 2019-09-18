@@ -12,10 +12,9 @@ lsm303agr -R 4 start
 
 ms4525_airspeed -T 4515 -b 3 start
 
-# try to autostart pmw3901 on SPI2 (external)
-if ! pmw3901 start
+if ! param greater SENS_EN_PMW3901 0
 then
-	# if pmw3901 failed to start, try starting the adis16497 (SPI2)
+	# try to start adis16497 only if pmw3901 isn't enabled, or parameter doesn't exists
 	adis16497 start
 fi
 
@@ -24,4 +23,3 @@ ist8310 -C -b 1 start
 ist8310 -C -b 2 start
 hmc5883 -C -T -X start
 qmc5883 -X start
-

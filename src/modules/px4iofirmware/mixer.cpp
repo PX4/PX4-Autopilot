@@ -52,7 +52,7 @@
 #include <drivers/drv_hrt.h>
 
 #include <mixer/mixer.h>
-#include <pwm_limit/pwm_limit.h>
+#include <output_limit/output_limit.h>
 #include <rc/sbus.h>
 
 #include <uORB/topics/actuator_controls.h>
@@ -211,9 +211,12 @@ mixer_tick(void)
 		     );
 
 	should_arm_nothrottle = (
-					(r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)		/* IO initialised without error */
-					&& (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)	/* and IO is armed */
-					&& (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK)	/* and there is valid input via or mixer */
+					(r_status_flags & PX4IO_P_STATUS_FLAGS_INIT_OK)                /* IO initialised without error */
+					&& (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)        /* and IO is armed */
+					&& (((r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_PREARMED)    /* and FMU is prearmed */
+					     && (r_status_flags & PX4IO_P_STATUS_FLAGS_MIXER_OK))     /* and there is valid input via or mixer */
+					    || (r_status_flags & PX4IO_P_STATUS_FLAGS_RAW_PWM)        /* or direct PWM is set */
+					   )
 				);
 
 	should_always_enable_pwm = (
@@ -311,8 +314,8 @@ mixer_tick(void)
 		mixed = mixer_mix_threadsafe(&outputs[0], &r_mixer_limits);
 
 		/* the pwm limit call takes care of out of band errors */
-		pwm_limit_calc(should_arm, should_arm_nothrottle, mixed, r_setup_pwm_reverse, r_page_servo_disarmed,
-			       r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
+		output_limit_calc(should_arm, should_arm_nothrottle, mixed, r_setup_pwm_reverse, r_page_servo_disarmed,
+				  r_page_servo_control_min, r_page_servo_control_max, outputs, r_page_servos, &pwm_limit);
 
 		/* clamp unused outputs to zero */
 		for (unsigned i = mixed; i < PX4IO_SERVO_COUNT; i++) {
@@ -482,7 +485,7 @@ mixer_callback(uintptr_t handle,
 	}
 
 	/* motor spinup phase - lock throttle to zero */
-	if ((pwm_limit.state == PWM_LIMIT_STATE_RAMP) || (should_arm_nothrottle && !should_arm)) {
+	if ((pwm_limit.state == OUTPUT_LIMIT_STATE_RAMP) || (should_arm_nothrottle && !should_arm)) {
 		if ((control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE ||
 		     control_group == actuator_controls_s::GROUP_INDEX_ATTITUDE_ALTERNATE) &&
 		    control_index == actuator_controls_s::INDEX_THROTTLE) {

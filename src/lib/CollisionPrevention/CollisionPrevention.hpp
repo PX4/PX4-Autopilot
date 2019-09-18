@@ -41,27 +41,30 @@
 
 #pragma once
 
-#include <px4_module_params.h>
 #include <float.h>
+
+#include <commander/px4_custom_mode.h>
+#include <drivers/drv_hrt.h>
+#include <mathlib/mathlib.h>
 #include <matrix/matrix/math.hpp>
-#include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/obstacle_distance.h>
+#include <px4_module_params.h>
+#include <systemlib/mavlink_log.h>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationQueued.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/collision_constraints.h>
+#include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/mavlink_log.h>
+#include <uORB/topics/obstacle_distance.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
-#include <mathlib/mathlib.h>
-#include <drivers/drv_hrt.h>
-#include <uORB/topics/mavlink_log.h>
-#include <uORB/Subscription.hpp>
-#include <systemlib/mavlink_log.h>
-#include <commander/px4_custom_mode.h>
 
 class CollisionPrevention : public ModuleParams
 {
 public:
 	CollisionPrevention(ModuleParams *parent);
 
-	~CollisionPrevention();
+	virtual ~CollisionPrevention();
 	/**
 	 * Returs true if Collision Prevention is running
 	 */
@@ -77,14 +80,32 @@ public:
 	void modifySetpoint(matrix::Vector2f &original_setpoint, const float max_speed,
 			    const matrix::Vector2f &curr_pos, const matrix::Vector2f &curr_vel);
 
+protected:
+
+	obstacle_distance_s _obstacle_map_body_frame {};
+	uint64_t _data_timestamps[sizeof(_obstacle_map_body_frame.distances) / sizeof(_obstacle_map_body_frame.distances[0])];
+
+	void _addDistanceSensorData(distance_sensor_s &distance_sensor, const matrix::Quatf &attitude);
+
+	/**
+	 * Updates obstacle distance message with measurement from offboard
+	 * @param obstacle, obstacle_distance message to be updated
+	 */
+	void _addObstacleSensorData(const obstacle_distance_s &obstacle, const matrix::Quatf &vehicle_attitude);
+
+	virtual hrt_abstime getTime();
+	virtual hrt_abstime getElapsedTime(const hrt_abstime *ptr);
+
+
 private:
 
 	bool _interfering{false};		/**< states if the collision prevention interferes with the user input */
 
-	orb_advert_t _constraints_pub{nullptr};  	/**< constraints publication */
 	orb_advert_t _mavlink_log_pub{nullptr};	 	/**< Mavlink log uORB handle */
-	orb_advert_t _obstacle_distance_pub{nullptr}; /**< obstacle_distance publication */
-	orb_advert_t _pub_vehicle_command{nullptr}; /**< vehicle command do publication */
+
+	uORB::Publication<collision_constraints_s>	_constraints_pub{ORB_ID(collision_constraints)};		/**< constraints publication */
+	uORB::Publication<obstacle_distance_s>		_obstacle_distance_pub{ORB_ID(obstacle_distance_fused)};	/**< obstacle_distance publication */
+	uORB::PublicationQueued<vehicle_command_s>	_vehicle_command_pub{ORB_ID(vehicle_command)};			/**< vehicle command do publication */
 
 	uORB::SubscriptionData<obstacle_distance_s> _sub_obstacle_distance{ORB_ID(obstacle_distance)}; /**< obstacle distances received form a range sensor */
 	uORB::Subscription _sub_distance_sensor[ORB_MULTI_MAX_INSTANCES] {{ORB_ID(distance_sensor), 0}, {ORB_ID(distance_sensor), 1}, {ORB_ID(distance_sensor), 2}, {ORB_ID(distance_sensor), 3}}; /**< distance data received from onboard rangefinders */
@@ -96,7 +117,9 @@ private:
 		(ParamFloat<px4::params::MPC_COL_PREV_D>) _param_mpc_col_prev_d, /**< collision prevention keep minimum distance */
 		(ParamFloat<px4::params::MPC_COL_PREV_ANG>) _param_mpc_col_prev_ang, /**< collision prevention detection angle */
 		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p, /**< p gain from position controller*/
-		(ParamFloat<px4::params::MPC_COL_PREV_DLY>) _param_mpc_col_prev_dly /**< delay of the range measurement data*/
+		(ParamFloat<px4::params::MPC_COL_PREV_DLY>) _param_mpc_col_prev_dly, /**< delay of the range measurement data*/
+		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max, /**< vehicle maximum jerk*/
+		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor /**< vehicle maximum horizontal acceleration*/
 	)
 
 	/**
@@ -130,6 +153,8 @@ private:
 		return offset;
 	}
 
+
+
 	/**
 	 * Computes collision free setpoints
 	 * @param setpoint, setpoint before collision prevention intervention
@@ -138,27 +163,25 @@ private:
 	 */
 	void _calculateConstrainedSetpoint(matrix::Vector2f &setpoint, const matrix::Vector2f &curr_pos,
 					   const matrix::Vector2f &curr_vel);
+
 	/**
 	 * Publishes collision_constraints message
 	 * @param original_setpoint, setpoint before collision prevention intervention
 	 * @param adapted_setpoint, collision prevention adaped setpoint
 	 */
 	void _publishConstrainedSetpoint(const matrix::Vector2f &original_setpoint, const matrix::Vector2f &adapted_setpoint);
+
 	/**
 	 * Publishes obstacle_distance message with fused data from offboard and from distance sensors
 	 * @param obstacle, obstacle_distance message to be publsihed
 	 */
 	void _publishObstacleDistance(obstacle_distance_s &obstacle);
+
 	/**
-	 * Updates obstacle distance message with measurement from offboard
-	 * @param obstacle, obstacle_distance message to be updated
+	 * Aggregates the sensor data into a internal obstacle map in body frame
 	 */
-	void _updateOffboardObstacleDistance(obstacle_distance_s &obstacle);
-	/**
-	 * Updates obstacle distance message with measurement from distance sensors
-	 * @param obstacle, obstacle_distance message to be updated
-	 */
-	void _updateDistanceSensor(obstacle_distance_s &obstacle);
+	void _updateObstacleMap();
+
 	/**
 	 * Publishes vehicle command.
 	 */

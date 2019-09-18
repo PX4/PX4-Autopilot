@@ -19,6 +19,7 @@ px4_add_board(
 		#FRSKY:/dev/ttyS5
 
 	DRIVERS
+		adc
 		#barometer # all available barometer drivers
 		#barometer/dps310
 		batt_smbus
@@ -34,8 +35,6 @@ px4_add_board(
 		imu/icm20948
 		irlock
 		#lights/blinkm
-		#lights/oreoled
-		#lights/pca8574
 		lights/rgbled
 		magnetometer # all available magnetometer drivers
 		#md25
@@ -48,9 +47,7 @@ px4_add_board(
 		px4fmu
 		rc_input
 		roboclaw
-		stm32
-		stm32/adc
-		stm32/tone_alarm
+		safety_button
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm

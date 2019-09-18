@@ -531,12 +531,7 @@ FixedwingPositionControl::tecs_status_publish()
 
 	t.timestamp = hrt_absolute_time();
 
-	if (_tecs_status_pub != nullptr) {
-		orb_publish(ORB_ID(tecs_status), _tecs_status_pub, &t);
-
-	} else {
-		_tecs_status_pub = orb_advertise(ORB_ID(tecs_status), &t);
-	}
+	_tecs_status_pub.publish(t);
 }
 
 void
@@ -560,12 +555,7 @@ FixedwingPositionControl::status_publish()
 
 	pos_ctrl_status.timestamp = hrt_absolute_time();
 
-	if (_pos_ctrl_status_pub != nullptr) {
-		orb_publish(ORB_ID(position_controller_status), _pos_ctrl_status_pub, &pos_ctrl_status);
-
-	} else {
-		_pos_ctrl_status_pub = orb_advertise(ORB_ID(position_controller_status), &pos_ctrl_status);
-	}
+	_pos_ctrl_status_pub.publish(pos_ctrl_status);
 }
 
 void
@@ -581,12 +571,7 @@ FixedwingPositionControl::landing_status_publish()
 
 	pos_ctrl_landing_status.timestamp = hrt_absolute_time();
 
-	if (_pos_ctrl_landing_status_pub != nullptr) {
-		orb_publish(ORB_ID(position_controller_landing_status), _pos_ctrl_landing_status_pub, &pos_ctrl_landing_status);
-
-	} else {
-		_pos_ctrl_landing_status_pub = orb_advertise(ORB_ID(position_controller_landing_status), &pos_ctrl_landing_status);
-	}
+	_pos_ctrl_landing_status_pub.publish(pos_ctrl_landing_status);
 }
 
 void
@@ -1761,7 +1746,8 @@ FixedwingPositionControl::Run()
 			if (_control_mode.flag_control_offboard_enabled ||
 			    _control_mode.flag_control_position_enabled ||
 			    _control_mode.flag_control_velocity_enabled ||
-			    _control_mode.flag_control_acceleration_enabled) {
+			    _control_mode.flag_control_acceleration_enabled ||
+			    _control_mode.flag_control_altitude_enabled) {
 
 				/* lazily publish the setpoint only once available */
 				if (_attitude_sp_pub != nullptr) {

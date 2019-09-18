@@ -15,11 +15,6 @@ then
 		fmu i2c 2 100000
 	fi
 
-	# External SPI
-	ms5611 -S start
-
-	# Internal SPI (auto detect ms5611 or ms5607)
-	ms5611 -T 0 -s start
 
 	adc start
 fi
@@ -106,6 +101,12 @@ fi
 if param greater SENS_EN_TRANGER 0
 then
 	teraranger start -a
+fi
+
+# Possible pmw3901 optical flow sensor
+if param greater SENS_EN_PMW3901 0
+then
+	pmw3901 start
 fi
 
 ###############################################################################

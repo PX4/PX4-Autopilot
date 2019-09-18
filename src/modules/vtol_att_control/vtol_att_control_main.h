@@ -60,7 +60,7 @@
 #include <px4_defines.h>
 #include <px4_module.h>
 #include <px4_posix.h>
-#include <px4_work_queue/WorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
@@ -132,7 +132,7 @@ public:
 	struct Params 					*get_params() {return &_params;}
 
 private:
-	/* handlers for subscriptions */
+
 	uORB::SubscriptionCallbackWorkItem _actuator_inputs_fw{this, ORB_ID(actuator_controls_virtual_fw)};
 	uORB::SubscriptionCallbackWorkItem _actuator_inputs_mc{this, ORB_ID(actuator_controls_virtual_mc)};
 

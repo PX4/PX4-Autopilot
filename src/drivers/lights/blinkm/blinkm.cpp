@@ -99,7 +99,7 @@
 
 #include <drivers/device/i2c.h>
 #include <drivers/drv_blinkm.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/battery_status.h>

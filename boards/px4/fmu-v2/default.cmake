@@ -20,6 +20,7 @@ px4_add_board(
 		TEL4:/dev/ttyS6
 
 	DRIVERS
+		adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		#batt_smbus
@@ -28,7 +29,7 @@ px4_add_board(
 		#differential_pressure # all available differential pressure drivers
 		differential_pressure/ms4525
 		#distance_sensor # all available distance sensor drivers
-		distance_sensor/ll40ls
+		#distance_sensor/ll40ls
 		#distance_sensor/sf0x
 		gps
 		#heater
@@ -41,7 +42,6 @@ px4_add_board(
 		#iridiumsbd
 		#irlock
 		#lights/blinkm
-		#lights/oreoled
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
@@ -55,9 +55,6 @@ px4_add_board(
 		px4fmu
 		px4io
 		#roboclaw
-		stm32
-		stm32/adc
-		stm32/tone_alarm
 		#tap_esc
 		#telemetry # all available telemetry drivers
 		#test_ppm

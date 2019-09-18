@@ -20,6 +20,7 @@ px4_add_board(
 		TEL4:/dev/ttyS3
 
 	DRIVERS
+		adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -36,7 +37,6 @@ px4_add_board(
 		imu/mpu9250
 		irlock
 		lights/blinkm
-		lights/oreoled
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		#lights/rgbled_pwm
@@ -45,7 +45,6 @@ px4_add_board(
 		mkblctrl
 		#optical_flow # all available optical flow drivers
 		optical_flow/px4flow
-		lights/pca8574
 		pca9685
 		protocol_splitter
 		pwm_input
@@ -53,9 +52,6 @@ px4_add_board(
 		px4fmu
 		px4io
 		roboclaw
-		stm32
-		stm32/adc
-		stm32/tone_alarm
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm

@@ -1,0 +1,41 @@
+#!/usr/bin/env groovy
+
+pipeline {
+  agent none
+  stages {
+    stage('Build and Verify') {
+
+      agent {
+        label 'navio2'
+      }
+      steps {
+        sh 'export'
+        sh 'make distclean'
+        sh 'ccache -z'
+        sh 'git fetch --tags'
+        sh 'CCACHE_BASEDIR=${WORKSPACE} make emlid_navio2_native'
+        sh 'ccache -s'
+        // sanity check
+        sh 'cd build/emlid_navio2_native/ && ./bin/px4 -s ../../posix-configs/rpi/px4_test.config'
+      }
+      post {
+        always {
+          sh 'make distclean'
+        }
+      }
+      options {
+        timeout(time: 30, unit: 'MINUTES')
+      }
+
+    }
+
+  } // stages
+  environment {
+    CCACHE_DIR = '/tmp/ccache'
+    CI = true
+  }
+  options {
+    buildDiscarder(logRotator(numToKeepStr: '20', artifactDaysToKeepStr: '30'))
+    timeout(time: 60, unit: 'MINUTES')
+  }
+}
