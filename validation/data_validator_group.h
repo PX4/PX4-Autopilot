@@ -112,6 +112,13 @@ public:
 	uint32_t		failover_state();
 
 	/**
+	 * Get the error state of the sensor with the specified index
+	 *
+	 * @return		bitmask with error states of the sensor
+	 */
+	uint32_t		get_sensor_state(unsigned index);
+
+	/**
 	 * Print the validator value
 	 *
 	 */
