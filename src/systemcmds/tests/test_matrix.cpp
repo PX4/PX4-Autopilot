@@ -96,11 +96,6 @@ bool MatrixTest::run_tests()
 
 ut_declare_test_c(test_matrix, MatrixTest)
 
-using matrix::Dcmf;
-using matrix::Quatf;
-using matrix::Eulerf;
-using matrix::Vector3f;
-
 using std::fabs;
 
 bool MatrixTest::attitudeTests()
@@ -391,8 +386,6 @@ bool MatrixTest::integrationTests()
 
 	return true;
 }
-
-template class matrix::SquareMatrix<float, 3>;
 
 bool MatrixTest::inverseTests()
 {
@@ -739,7 +732,7 @@ bool MatrixTest::dcmRenormTests()
 
 	if (verbose) {
 		for (int row = 0; row < 3; row++) {
-			matrix::Vector3f rvec(matrix::Matrix<float, 1, 3>(A.row(row)).transpose());
+			Vector3f rvec(Matrix<float, 1, 3>(A.row(row)).transpose());
 			err += fabsf(1.0f - rvec.length());
 		}
 
@@ -751,7 +744,7 @@ bool MatrixTest::dcmRenormTests()
 	err = 0.0f;
 
 	for (int row = 0; row < 3; row++) {
-		matrix::Vector3f rvec(matrix::Matrix<float, 1, 3>(A.row(row)).transpose());
+		Vector3f rvec(Matrix<float, 1, 3>(A.row(row)).transpose());
 		err += fabsf(1.0f - rvec.length());
 	}
 
