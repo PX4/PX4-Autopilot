@@ -1740,6 +1740,8 @@ Commander::run()
 
 		battery_status_check();
 
+		bool force_preflight_checks = false;
+
 		/* update subsystem info which arrives from outside of commander*/
 		do {
 			if (subsys_sub.updated()) {
@@ -1763,8 +1765,17 @@ Commander::run()
 				}
 
 				status_changed = true;
+				force_preflight_checks = true;
 			}
 		} while (updated);
+
+		// if not armed run pre flight checks every 2s or when the IMU health message is received
+		if (!armed.armed && (hrt_elapsed_time(&_last_preflight_check_time) > 2_s || force_preflight_checks)) {
+			preflight_check(false);
+			status_changed = true;
+			_last_preflight_check_time = hrt_absolute_time();
+		}
+
 
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!status_flags.condition_calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {

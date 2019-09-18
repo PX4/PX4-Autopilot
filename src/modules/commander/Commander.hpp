@@ -198,6 +198,8 @@ private:
 					    subsystem_info_s::SUBSYSTEM_TYPE_MAG | subsystem_info_s::SUBSYSTEM_TYPE_MAG2 |
 					    subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE;
 
+	uint64_t _last_preflight_check_time; /**< timestamp of the last preflight check initiated on the regular interval */
+
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd, actuator_armed_s *armed,
 			    uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub, bool *changed);
 
