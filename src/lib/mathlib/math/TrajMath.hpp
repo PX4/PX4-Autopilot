@@ -34,12 +34,15 @@
 /**
  * @file TrajMath.hpp
  *
- * collection of functions used in trajectory generators
+ * collection of functions used for trajectory generation
  */
 
 #pragma once
 
-namespace trajmath
+namespace math
+{
+
+namespace trajectory
 {
 
 /* Compute the maximum possible speed on the track given the remaining distance,
@@ -54,7 +57,7 @@ namespace trajmath
  *
  * @return maximum speed
  */
-float computeMaxSpeedFromBrakingDistance(const float jerk, const float accel, const float braking_distance)
+inline float computeMaxSpeedFromBrakingDistance(const float jerk, const float accel, const float braking_distance)
 {
 	float b =  4.0f * accel * accel / jerk;
 	float c = - 2.0f * accel * braking_distance;
@@ -77,11 +80,12 @@ float computeMaxSpeedFromBrakingDistance(const float jerk, const float accel, co
  *
  *  @return maximum tangential speed
  */
-float computeMaxSpeedInWaypoint(const float alpha, const float accel, const float d)
+inline float computeMaxSpeedInWaypoint(const float alpha, const float accel, const float d)
 {
 	float tan_alpha = tanf(alpha / 2.0f);
 	float max_speed_in_turn = sqrtf(accel * d * tan_alpha);
 
 	return max_speed_in_turn;
 }
-} /* namespace trajmath */
+} /* namespace traj */
+} /* namespace math */
