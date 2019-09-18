@@ -39,8 +39,6 @@
 
 #include <CollisionPrevention/CollisionPrevention.hpp>
 
-#include <FlightTasks/tasks/Utility/TrajMath.hpp>
-
 using namespace matrix;
 using namespace time_literals;
 namespace
@@ -294,7 +292,7 @@ void CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint,
 						float delay_distance = curr_vel_parallel * (col_prev_dly + data_age * 1e-6f);
 						float stop_distance =  math::max(0.f, distance - min_dist_to_keep - delay_distance);
 						float vel_max_posctrl = xy_p * stop_distance;
-						float vel_max_smooth = trajmath::computeMaxSpeedFromBrakingDistance(max_jerk, max_accel, stop_distance);
+						float vel_max_smooth = math::trajectory::computeMaxSpeedFromBrakingDistance(max_jerk, max_accel, stop_distance);
 						Vector2f  vel_max_vec = bin_direction * math::min(vel_max_posctrl, vel_max_smooth);
 						float vel_max_bin = vel_max_vec.dot(setpoint_dir);
 
