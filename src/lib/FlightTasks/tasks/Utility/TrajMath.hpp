@@ -54,12 +54,11 @@ namespace trajmath
  *
  * @return maximum speed
  */
-template<typename T>
-const T computeMaxSpeedFromBrakingDistance(T jerk, T accel, T braking_distance)
+float computeMaxSpeedFromBrakingDistance(const float jerk, const float accel, const float braking_distance)
 {
-	T b = (T) 4 * accel * accel / jerk;
-	T c = - (T) 2 * accel * braking_distance;
-	T max_speed = (T) 0.5 * (-b + sqrtf(b * b - (T) 4 * c));
+	float b =  4.0f * accel * accel / jerk;
+	float c = - 2.0f * accel * braking_distance;
+	float max_speed = 0.5f * (-b + sqrtf(b * b - 4.0f * c));
 
 	return max_speed;
 }
@@ -78,11 +77,10 @@ const T computeMaxSpeedFromBrakingDistance(T jerk, T accel, T braking_distance)
  *
  *  @return maximum tangential speed
  */
-template<typename T>
-const T computeMaxSpeedInWaypoint(T alpha, T accel, T d)
+float computeMaxSpeedInWaypoint(const float alpha, const float accel, const float d)
 {
-	T tan_alpha = tan(alpha / (T) 2);
-	T max_speed_in_turn = sqrtf(accel * d * tan_alpha);
+	float tan_alpha = tanf(alpha / 2.0f);
+	float max_speed_in_turn = sqrtf(accel * d * tan_alpha);
 
 	return max_speed_in_turn;
 }
