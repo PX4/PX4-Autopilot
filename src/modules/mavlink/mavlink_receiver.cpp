@@ -2517,9 +2517,19 @@ MavlinkReceiver::Run()
 {
 	/* set thread name */
 	{
-		char thread_name[24];
-		sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
+		char thread_name[17];
+		snprintf(thread_name, sizeof(thread_name), "mavlink_rcv_if%d", _mavlink->get_instance_id());
 		px4_prctl(PR_SET_NAME, thread_name, px4_getpid());
+	}
+
+	// make sure mavlink app has booted before we start processing anything (parameter sync, etc)
+	while (!_mavlink->boot_complete()) {
+		if (hrt_absolute_time() > 20_s) {
+			PX4_ERR("system boot did not complete in 20 seconds");
+			_mavlink->set_boot_complete();
+		}
+
+		px4_usleep(100000);
 	}
 
 	// poll timeout in ms. Also defines the max update frequency of the mission & param manager, etc.
@@ -2549,11 +2559,6 @@ MavlinkReceiver::Run()
 	socklen_t addrlen = sizeof(srcaddr);
 
 	if (_mavlink->get_protocol() == UDP || _mavlink->get_protocol() == TCP) {
-		// make sure mavlink app has booted before we start using the socket
-		while (!_mavlink->boot_complete()) {
-			px4_usleep(100000);
-		}
-
 		fds[0].fd = _mavlink->get_socket_fd();
 		fds[0].events = POLLIN;
 	}

@@ -846,12 +846,6 @@ Mavlink::send_packet()
 void
 Mavlink::send_bytes(const uint8_t *buf, unsigned packet_len)
 {
-	/* If the wait until transmit flag is on, only transmit after we've received messages.
-	   Otherwise, transmit all the time. */
-	if (!should_transmit()) {
-		return;
-	}
-
 	_last_write_try_time = hrt_absolute_time();
 
 	if (_mavlink_start_time == 0) {
@@ -2207,6 +2201,10 @@ Mavlink::task_main(int argc, char *argv[])
 	while (!_task_should_exit) {
 		/* main loop */
 		px4_usleep(_main_loop_delay);
+
+		if (!should_transmit()) {
+			continue;
+		}
 
 		perf_count(_loop_interval_perf);
 		perf_begin(_loop_perf);
