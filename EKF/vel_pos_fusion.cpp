@@ -152,7 +152,7 @@ void Ekf::fuseVelPosHeight()
 			R[5] = fmaxf(_ev_sample_delayed.hgtErr, 0.01f);
 			R[5] = R[5] * R[5];
 			// innovation gate size
-                        gate_size[5] = fmaxf(_params.ev_pos_innov_gate, 1.0f);
+			gate_size[5] = fmaxf(_params.ev_pos_innov_gate, 1.0f);
 		}
 
 		// update innovation class variable for logging purposes

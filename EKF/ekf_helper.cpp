@@ -1121,7 +1121,7 @@ void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, fl
 
 	bool relying_on_rangefinder = _control_status.flags.rng_hgt && !_params.range_aid;
 
-        bool relying_on_optical_flow = _control_status.flags.opt_flow && !(_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel);
+	bool relying_on_optical_flow = _control_status.flags.opt_flow && !(_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel);
 
 	// Do not require limiting by default
 	*vxy_max = NAN;

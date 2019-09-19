@@ -67,7 +67,7 @@ bool Ekf::collect_gps(const gps_message &gps)
 		map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
 
 		// if we are already doing aiding, correct for the change in position since the EKF started navigationg
-                if (_control_status.flags.opt_flow || _control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel) {
+		if (_control_status.flags.opt_flow || _control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel) {
 			double est_lat, est_lon;
 			map_projection_reproject(&_pos_ref, -_state.pos(0), -_state.pos(1), &est_lat, &est_lon);
 			map_projection_init_timestamped(&_pos_ref, est_lat, est_lon, _time_last_imu);

@@ -384,7 +384,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 			flow_magnitude_good = (flow_rate_magnitude <= _flow_max_rate);
 		}
 
-                bool relying_on_flow = !_control_status.flags.gps && !_control_status.flags.ev_pos && !_control_status.flags.ev_vel;
+		bool relying_on_flow = !_control_status.flags.gps && !_control_status.flags.ev_pos && !_control_status.flags.ev_vel;
 
 		// check quality metric
 		bool flow_quality_good = (flow->quality >= _params.flow_qual_min);
