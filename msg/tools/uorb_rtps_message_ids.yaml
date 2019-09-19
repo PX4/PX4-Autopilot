@@ -272,6 +272,8 @@ rtps:
     id: 120
   - msg: sensor_gyro_status
     id: 121
+  - msg: uwb_report
+    id: 122
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150
