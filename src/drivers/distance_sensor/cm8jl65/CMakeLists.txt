@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -34,7 +34,9 @@ px4_add_module(
 	MODULE drivers__cm8jl65
 	MAIN cm8jl65
 	SRCS
-		cm8jl65.cpp
-  MODULE_CONFIG
-	  module.yaml
+		CM8JL65.cpp
+		CM8JL65.hpp
+		cm8jl65_main.cpp
+	MODULE_CONFIG
+		module.yaml
 	)
