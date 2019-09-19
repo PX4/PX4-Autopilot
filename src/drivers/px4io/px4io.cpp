@@ -3063,7 +3063,7 @@ checkcrc(int argc, char *argv[])
 		fw_crc = crc32part(&b, 1, fw_crc);
 		nbytes++;
 	}
-
+	printf("px4io checkcrc calculation result fw_crc = %d\n", fw_crc);
 	int ret = g_dev->ioctl(nullptr, PX4IO_CHECK_CRC, fw_crc);
 
 	if (!keep_running) {

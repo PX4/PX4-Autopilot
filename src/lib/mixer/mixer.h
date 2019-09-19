@@ -253,11 +253,11 @@ public:
 	 */
 	virtual void set_airmode(Airmode airmode) {};
 
-protected:
+//protected:
 	/** client-supplied callback used when fetching control values */
 	ControlCallback			_control_cb;
 	uintptr_t			_cb_handle;
-
+protected:
 	/**
 	 * Invoke the client callback to fetch a control value.
 	 *

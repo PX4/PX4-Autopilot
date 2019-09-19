@@ -114,8 +114,9 @@ int mixer_mix_threadsafe(float *outputs, volatile uint16_t *limits)
 
 void
 mixer_tick(void)
-{
+{	
 	/* check if the mixer got modified */
+	mixer_group._control_cb = mixer_callback;
 	mixer_handle_text_create_mixer();
 
 	/* check that we are receiving fresh data from the FMU */

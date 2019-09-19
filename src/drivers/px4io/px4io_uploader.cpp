@@ -637,13 +637,13 @@ PX4IO_Uploader::verify_rev3(size_t fw_size_local)
 		sum = crc32part(&fill_blank, sizeof(fill_blank), sum);
 		bytes_read += sizeof(fill_blank);
 	}
-
+	printf("verify_rev3 calculation result sum = %d\n", sum);
 	/* request CRC from IO */
 	send(PROTO_GET_CRC);
 	send(PROTO_EOC);
 
 	ret = recv_bytes((uint8_t *)(&crc), sizeof(crc));
-
+	printf("crc received from IO is %d\n", crc);
 	if (ret != OK) {
 		log("did not receive CRC checksum");
 		return ret;

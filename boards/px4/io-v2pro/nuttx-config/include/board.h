@@ -87,12 +87,12 @@
 #define STM32_RCC_CFGR_PPRE1    RCC_CFGR_PPRE1_HCLKd2
 #define STM32_PCLK1_FREQUENCY   (STM32_HCLK_FREQUENCY/2)
 
-/* timers driven from APB1 will be PCLK1 */
+/* timers driven from APB1 will be twice PCLK1 */
 
-#define STM32_APB1_TIM2_CLKIN   (STM32_PCLK1_FREQUENCY)
-#define STM32_APB1_TIM3_CLKIN   (STM32_PCLK1_FREQUENCY)
-#define STM32_APB1_TIM4_CLKIN   (STM32_PCLK1_FREQUENCY)
-#define STM32_APB1_TIM5_CLKIN   (STM32_PCLK1_FREQUENCY)
+#define STM32_APB1_TIM2_CLKIN   (2*STM32_PCLK1_FREQUENCY)
+#define STM32_APB1_TIM3_CLKIN   (2*STM32_PCLK1_FREQUENCY)
+#define STM32_APB1_TIM4_CLKIN   (2*STM32_PCLK1_FREQUENCY)
+#define STM32_APB1_TIM5_CLKIN   (2*STM32_PCLK1_FREQUENCY)
 
 /* APB2 clock (PCLK2) is HCLK (70MHz) */
 
@@ -102,10 +102,10 @@
 
 /* APB2 timer 1 will receive PCLK2. */
 
-#define STM32_APB2_TIM1_CLKIN   (STM32_PCLK2_FREQUENCY)
-#define STM32_APB2_TIM9_CLKIN   (STM32_PCLK2_FREQUENCY)
-#define STM32_APB2_TIM10_CLKIN  (STM32_PCLK2_FREQUENCY)
-#define STM32_APB2_TIM11_CLKIN  (STM32_PCLK2_FREQUENCY)
+#define STM32_APB2_TIM1_CLKIN   (2*STM32_PCLK2_FREQUENCY)
+#define STM32_APB2_TIM9_CLKIN   (2*STM32_PCLK2_FREQUENCY)
+#define STM32_APB2_TIM10_CLKIN  (2*STM32_PCLK2_FREQUENCY)
+#define STM32_APB2_TIM11_CLKIN  (2*STM32_PCLK2_FREQUENCY)
 
 /* Timer Frequencies, if APBx is set to 1, frequency is same to APBx
  * otherwise frequency is 2xAPBx.
@@ -126,6 +126,7 @@
  * Some of the USART pins are not available; override the GPIO
  * definitions with an invalid pin configuration.
  */
+ 
 #undef GPIO_USART2_CTS
 #define GPIO_USART2_CTS	0xffffffff
 #undef GPIO_USART2_RTS
@@ -140,8 +141,7 @@
 #define GPIO_USART3_RTS	0xffffffff
 
 /***********************************************************************************/
-#define DMAMAP_USART1_RX		1
-#define DMAMAP_USART3_RX		1
+#define DMAMAP_USART1_RX DMAMAP_USART1_RX_1
 #define GPIO_USART1_TX	GPIO_USART1_TX_1
 #define GPIO_USART1_RX	GPIO_USART1_RX_1
 #define GPIO_USART2_TX	GPIO_USART2_TX_1
