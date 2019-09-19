@@ -2549,21 +2549,22 @@ MavlinkReceiver::Run()
 
 	struct pollfd fds[1] = {};
 
-	if (_mavlink->get_protocol() == SERIAL) {
+	if (_mavlink->get_protocol() == Protocol::SERIAL) {
 		fds[0].fd = _mavlink->get_uart_fd();
 		fds[0].events = POLLIN;
 	}
 
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+#if defined(MAVLINK_UDP)
 	struct sockaddr_in srcaddr = {};
 	socklen_t addrlen = sizeof(srcaddr);
 
-	if (_mavlink->get_protocol() == UDP || _mavlink->get_protocol() == TCP) {
+	if (_mavlink->get_protocol() == Protocol::UDP) {
 		fds[0].fd = _mavlink->get_socket_fd();
 		fds[0].events = POLLIN;
 	}
 
-#endif
+#endif // MAVLINK_UDP
+
 	ssize_t nread = 0;
 	hrt_abstime last_send_update = 0;
 
@@ -2574,7 +2575,7 @@ MavlinkReceiver::Run()
 		}
 
 		if (poll(&fds[0], 1, timeout) > 0) {
-			if (_mavlink->get_protocol() == SERIAL) {
+			if (_mavlink->get_protocol() == Protocol::SERIAL) {
 
 				/*
 				 * to avoid reading very small chunks wait for data before reading
@@ -2589,44 +2590,41 @@ MavlinkReceiver::Run()
 				}
 			}
 
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+#if defined(MAVLINK_UDP)
 
-			if (_mavlink->get_protocol() == UDP) {
+			else if (_mavlink->get_protocol() == Protocol::UDP) {
 				if (fds[0].revents & POLLIN) {
 					nread = recvfrom(_mavlink->get_socket_fd(), buf, sizeof(buf), 0, (struct sockaddr *)&srcaddr, &addrlen);
 				}
 
-			} else {
-				// could be TCP or other protocol
-			}
+				struct sockaddr_in &srcaddr_last = _mavlink->get_client_source_address();
 
-			struct sockaddr_in &srcaddr_last = _mavlink->get_client_source_address();
+				int localhost = (127 << 24) + 1;
 
-			int localhost = (127 << 24) + 1;
+				if (!_mavlink->get_client_source_initialized()) {
 
-			if (!_mavlink->get_client_source_initialized()) {
+					// set the address either if localhost or if 3 seconds have passed
+					// this ensures that a GCS running on localhost can get a hold of
+					// the system within the first N seconds
+					hrt_abstime stime = _mavlink->get_start_time();
 
-				// set the address either if localhost or if 3 seconds have passed
-				// this ensures that a GCS running on localhost can get a hold of
-				// the system within the first N seconds
-				hrt_abstime stime = _mavlink->get_start_time();
+					if ((stime != 0 && (hrt_elapsed_time(&stime) > 3_s))
+					    || (srcaddr_last.sin_addr.s_addr == htonl(localhost))) {
 
-				if ((stime != 0 && (hrt_elapsed_time(&stime) > 3_s))
-				    || (srcaddr_last.sin_addr.s_addr == htonl(localhost))) {
+						srcaddr_last.sin_addr.s_addr = srcaddr.sin_addr.s_addr;
+						srcaddr_last.sin_port = srcaddr.sin_port;
 
-					srcaddr_last.sin_addr.s_addr = srcaddr.sin_addr.s_addr;
-					srcaddr_last.sin_port = srcaddr.sin_port;
+						_mavlink->set_client_source_initialized();
 
-					_mavlink->set_client_source_initialized();
-
-					PX4_INFO("partner IP: %s", inet_ntoa(srcaddr.sin_addr));
+						PX4_INFO("partner IP: %s", inet_ntoa(srcaddr.sin_addr));
+					}
 				}
 			}
 
-#endif
-
 			// only start accepting messages once we're sure who we talk to
 			if (_mavlink->get_client_source_initialized()) {
+#endif // MAVLINK_UDP
+
 				/* if read failed, this loop won't execute */
 				for (ssize_t i = 0; i < nread; i++) {
 					if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &_status)) {
@@ -2667,7 +2665,11 @@ MavlinkReceiver::Run()
 				if (nread > 0) {
 					_mavlink->count_rxbytes(nread);
 				}
+
+#if defined(MAVLINK_UDP)
 			}
+
+#endif // MAVLINK_UDP
 		}
 
 		hrt_abstime t = hrt_absolute_time();
