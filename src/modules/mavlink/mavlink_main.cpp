@@ -586,7 +586,7 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const bool for
 	}
 
 	/* back off 1800 ms to avoid running into the USB setup timing */
-	while (_mode == MAVLINK_MODE_CONFIG &&
+	while (_is_usb_uart &&
 	       hrt_absolute_time() < 1800U * 1000U) {
 		px4_usleep(50000);
 	}
@@ -595,7 +595,7 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const bool for
 	_uart_fd = ::open(uart_name, O_RDWR | O_NOCTTY);
 
 	/* if this is a config link, stay here and wait for it to open */
-	if (_uart_fd < 0 && _mode == MAVLINK_MODE_CONFIG) {
+	if (_uart_fd < 0 && _is_usb_uart) {
 
 		uORB::SubscriptionData<actuator_armed_s> armed_sub{ORB_ID(actuator_armed)};
 
@@ -628,7 +628,6 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const bool for
 	/* Try to set baud rate */
 	struct termios uart_config;
 	int termios_state;
-	_is_usb_uart = false;
 
 	/* Initialize the uart config */
 	if ((termios_state = tcgetattr(_uart_fd, &uart_config)) < 0) {
@@ -640,8 +639,7 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const bool for
 	/* Clear ONLCR flag (which appends a CR for every LF) */
 	uart_config.c_oflag &= ~ONLCR;
 
-	/* USB serial is indicated by /dev/ttyACM0*/
-	if (strcmp(uart_name, "/dev/ttyACM0") != OK && strcmp(uart_name, "/dev/ttyACM1") != OK) {
+	if (!_is_usb_uart) {
 
 		/* Set baud rate */
 		if (cfsetispeed(&uart_config, speed) < 0 || cfsetospeed(&uart_config, speed) < 0) {
@@ -651,7 +649,6 @@ Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const bool for
 		}
 
 	} else {
-		_is_usb_uart = true;
 
 		/* USB has no baudrate, but use a magic number for 'fast' */
 		_baudrate = 2000000;
@@ -1835,7 +1832,7 @@ Mavlink::task_main(int argc, char *argv[])
 	int ch;
 	_baudrate = 57600;
 	_datarate = 0;
-	_mode = MAVLINK_MODE_NORMAL;
+	_mode = MAVLINK_MODE_COUNT;
 	bool _force_flow_control = false;
 
 	_interface_name = nullptr;
@@ -2059,6 +2056,24 @@ Mavlink::task_main(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
+	/* USB serial is indicated by /dev/ttyACM0*/
+	if (strcmp(_device_name, "/dev/ttyACM0") == OK || strcmp(_device_name, "/dev/ttyACM1") == OK) {
+		if (_datarate == 0) {
+			_datarate = 800000;
+		}
+
+		if (_mode == MAVLINK_MODE_COUNT) {
+			_mode = MAVLINK_MODE_CONFIG;
+		}
+
+		_ftp_on = true;
+		_is_usb_uart = true;
+	}
+
+	if (_mode == MAVLINK_MODE_COUNT) {
+		_mode = MAVLINK_MODE_NORMAL;
+	}
+
 	if (_datarate == 0) {
 		/* convert bits to bytes and use 1/2 of bandwidth by default */
 		_datarate = _baudrate / 20;
@@ -2083,11 +2098,11 @@ Mavlink::task_main(int argc, char *argv[])
 		/* default values for arguments */
 		_uart_fd = mavlink_open_uart(_baudrate, _device_name, _force_flow_control);
 
-		if (_uart_fd < 0 && _mode != MAVLINK_MODE_CONFIG) {
+		if (_uart_fd < 0 && !_is_usb_uart) {
 			PX4_ERR("could not open %s", _device_name);
 			return PX4_ERROR;
 
-		} else if (_uart_fd < 0 && _mode == MAVLINK_MODE_CONFIG) {
+		} else if (_uart_fd < 0 && _is_usb_uart) {
 			/* the config link is optional */
 			return OK;
 		}
