@@ -84,15 +84,18 @@ static constexpr unsigned char crc_lsb_vector[] = {
 };
 
 CM8JL65::CM8JL65(const char *port, uint8_t rotation) :
-	CDev(RANGE_FINDER_BASE_DEVICE_PATH),
 	ScheduledWorkItem(px4::wq_configurations::hp_default),
-	_rotation(rotation)
+	_px4_rangefinder(0 /* TODO: device ids */, ORB_PRIO_DEFAULT, rotation)
 {
 	// Store the port name.
 	strncpy(_port, port, sizeof(_port) - 1);
 
 	// Enforce null termination.
 	_port[sizeof(_port) - 1] = '\0';
+
+	// Use conservative distance bounds, to make sure we don't fuse garbage data
+	_px4_rangefinder.set_min_distance(0.2f);	// Datasheet: 8.0m
+	_px4_rangefinder.set_max_distance(7.9f);	// Datasheet: 0.17m
 }
 
 CM8JL65::~CM8JL65()
@@ -136,6 +139,7 @@ CM8JL65::collect()
 	bool crc_valid = false;
 
 	// Read from the sensor UART buffer.
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
 	int bytes_read = ::read(_file_descriptor, &_linebuf[0], sizeof(_linebuf));
 
 	if (bytes_read > 0) {
@@ -153,7 +157,7 @@ CM8JL65::collect()
 					bytes_processed++;
 				}
 
-				_parse_state = WAITING_FRAME;
+				_parse_state = PARSE_STATE::WAITING_FRAME;
 			}
 
 			index--;
@@ -172,23 +176,10 @@ CM8JL65::collect()
 
 	bytes_read = OK;
 
-	distance_sensor_s report = {};
-	report.current_distance = static_cast<float>(distance_mm) / 1000.0f;
-	report.id               = 0;	// TODO: set proper ID.
-	report.h_fov            = 0.0488692f;
-	report.max_distance     = _max_distance;
-	report.min_distance     = _min_distance;
-	report.orientation      = _rotation;
-	report.signal_quality   = report.current_distance < _max_distance && report.current_distance > _min_distance ? -1 : 0;
-	report.timestamp        = hrt_absolute_time();
-	report.type             = distance_sensor_s::MAV_DISTANCE_SENSOR_LASER;
-	report.variance         = 0.0f;
+	const float current_distance = static_cast<float>(distance_mm) / 1000.0f;
 
-	// Publish the new report.
-	orb_publish(ORB_ID(distance_sensor), _distance_sensor_topic, &report);
+	_px4_rangefinder.update(timestamp_sample, current_distance);
 
-	// Notify anyone waiting for data.
-	poll_notify(POLLIN);
 	perf_end(_sample_perf);
 
 	return PX4_OK;
@@ -196,56 +187,55 @@ CM8JL65::collect()
 
 int
 CM8JL65::data_parser(const uint8_t check_byte, uint8_t parserbuf[PARSER_BUF_LENGTH],
-		     CM8JL65_PARSE_STATE &state, uint16_t &crc16, int &distance)
+		     PARSE_STATE &state, uint16_t &crc16, int &distance)
 {
 	switch (state) {
-	case WAITING_FRAME:
+	case PARSE_STATE::WAITING_FRAME:
 		if (check_byte == START_FRAME_DIGIT1) {
-			state = DIGIT_1;
+			state = PARSE_STATE::DIGIT_1;
 		}
 
 		break;
 
-	case DIGIT_1:
+	case PARSE_STATE::DIGIT_1:
 		if (check_byte == START_FRAME_DIGIT1) {
-			state = DIGIT_1;
+			state = PARSE_STATE::DIGIT_1;
 
 		} else if (check_byte == START_FRAME_DIGIT2) {
-			state = DIGIT_2;
+			state = PARSE_STATE::DIGIT_2;
 
 		} else {
-			state = WAITING_FRAME;
+			state = PARSE_STATE::WAITING_FRAME;
 		}
 
 		break;
 
-	case DIGIT_2:
-		state = MSB_DATA;
+	case PARSE_STATE::DIGIT_2:
+		state = PARSE_STATE::MSB_DATA;
 		parserbuf[DISTANCE_MSB_POS] = check_byte; // MSB Data
 		break;
 
-	case MSB_DATA:
-		state = LSB_DATA;
+	case PARSE_STATE::MSB_DATA:
+		state = PARSE_STATE::LSB_DATA;
 		parserbuf[DISTANCE_LSB_POS] = check_byte; // LSB Data
 
 		// Calculate CRC.
 		crc16 = crc16_calc(parserbuf, PARSER_BUF_LENGTH);
 		break;
 
-	case LSB_DATA:
+	case PARSE_STATE::LSB_DATA:
 		if (check_byte == (crc16 >> 8)) {
-			state = CHECKSUM;
+			state = PARSE_STATE::CHECKSUM;
 
 		} else {
-			state = WAITING_FRAME;
-
+			state = PARSE_STATE::WAITING_FRAME;
 		}
 
 		break;
 
-	case CHECKSUM:
+	case PARSE_STATE::CHECKSUM:
 		// Here, reset state to `NOT-STARTED` no matter crc ok or not
-		state = WAITING_FRAME;
+		state = PARSE_STATE::WAITING_FRAME;
 
 		if (check_byte == (crc16 & 0xFF)) {
 			// printf("Checksum verified \n");
@@ -253,10 +243,6 @@ CM8JL65::data_parser(const uint8_t check_byte, uint8_t parserbuf[PARSER_BUF_LENG
 			return PX4_OK;
 		}
 
-		break;
-
-	default:
-		// Nothing todo
 		break;
 	}
 
@@ -266,21 +252,8 @@ CM8JL65::data_parser(const uint8_t check_byte, uint8_t parserbuf[PARSER_BUF_LENG
 int
 CM8JL65::init()
 {
-	// Intitialize the character device.
-	if (CDev::init() != OK) {
-		return PX4_ERROR;
-	}
-
-	// Get a publish handle on the range finder topic.
-	distance_sensor_s ds_report = {};
-	_distance_sensor_topic = orb_advertise_multi(ORB_ID(distance_sensor), &ds_report,
-				 &_orb_class_instance, ORB_PRIO_HIGH);
-
-	if (_distance_sensor_topic == nullptr) {
-		PX4_ERR("failed to create distance_sensor object");
-	}
-
 	start();
+
 	return PX4_OK;
 }
 
@@ -351,6 +324,8 @@ CM8JL65::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
+
+	_px4_rangefinder.print_status();
 }
 
 void
@@ -360,27 +335,24 @@ CM8JL65::Run()
 	open_serial_port();
 
 	// Perform collection.
-	if (collect() == -EAGAIN) {
-		_cycle_counter++;
-	}
-
-	_cycle_counter = 0;
+	collect();
 }
 
 void
 CM8JL65::start()
 {
 	// Schedule the driver at regular intervals.
-	ScheduleOnInterval(CM8JL65_MEASURE_INTERVAL, 0);
+	ScheduleOnInterval(CM8JL65_MEASURE_INTERVAL);
+
 	PX4_INFO("driver started");
 }
 
 void
 CM8JL65::stop()
 {
-	// Ensure the serial port is closed.
-	::close(_file_descriptor);
-
 	// Clear the work queue schedule.
 	ScheduleClear();
+
+	// Ensure the serial port is closed.
+	::close(_file_descriptor);
 }

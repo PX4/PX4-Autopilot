@@ -43,41 +43,22 @@
 
 #pragma once
 
-#include <poll.h>
-#include <px4_cli.h>
 #include <px4_config.h>
-#include <px4_getopt.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
-#include <termios.h>
-#include <unistd.h>
-
-#include <drivers/device/device.h>
-#include <drivers/device/ringbuffer.h>
 #include <drivers/drv_hrt.h>
-#include <drivers/drv_range_finder.h>
-#include <perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_workqueue.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/distance_sensor.h>
+#include <lib/perf/perf_counter.h>
+#include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
+
+#include <termios.h>
 
 using namespace time_literals;
 
 /* Configuration Constants */
-#define CM8JL65_TAKE_RANGE_REG     'd'
-#define CM8JL65_DEFAULT_PORT       "/dev/ttyS2" // Default serial port on Pixhawk (TELEM2), baudrate 115200
-#define CM8JL65_MEASURE_INTERVAL   50_ms        // 50ms default sensor conversion time.
+static constexpr uint32_t CM8JL65_MEASURE_INTERVAL{50_ms};	// 50ms default sensor conversion time.
 
 /* Frame start delimiter */
-#define START_FRAME_DIGIT1          0xA5
-#define START_FRAME_DIGIT2          0x5A
+static constexpr unsigned char START_FRAME_DIGIT1{0xA5};
+static constexpr unsigned char START_FRAME_DIGIT2{0x5A};
 
 /**
  * Frame format definition
@@ -86,11 +67,11 @@ using namespace time_literals;
  *
  * Frame data saved for CRC calculation
  */
-#define DISTANCE_MSB_POS            2
-#define DISTANCE_LSB_POS            3
-#define PARSER_BUF_LENGTH           4
+static constexpr uint8_t DISTANCE_MSB_POS{2};
+static constexpr uint8_t DISTANCE_LSB_POS{3};
+static constexpr uint8_t PARSER_BUF_LENGTH{4};
 
-class CM8JL65 : public cdev::CDev, public px4::ScheduledWorkItem
+class CM8JL65 : public px4::ScheduledWorkItem
 {
 public:
 	/**
@@ -98,7 +79,7 @@ public:
 	 * @param port The serial port to open for communicating with the sensor.
 	 * @param rotation The sensor rotation relative to the vehicle body.
 	 */
-	CM8JL65(const char *port = CM8JL65_DEFAULT_PORT, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	CM8JL65(const char *port, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 
 	/** Virtual destructor */
 	virtual ~CM8JL65() override;
@@ -107,7 +88,7 @@ public:
 	 * Method : init()
 	 * This method initializes the general driver for a range finder sensor.
 	 */
-	virtual int  init() override;
+	int init();
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -116,7 +97,7 @@ public:
 
 private:
 
-	enum CM8JL65_PARSE_STATE {
+	enum class PARSE_STATE {
 		WAITING_FRAME = 0,
 		DIGIT_1,
 		DIGIT_2,
@@ -137,7 +118,7 @@ private:
 	 */
 	int collect();
 
-	int data_parser(const uint8_t check_byte, uint8_t parserbuf[PARSER_BUF_LENGTH], CM8JL65_PARSE_STATE &state,
+	int data_parser(const uint8_t check_byte, uint8_t parserbuf[PARSER_BUF_LENGTH], PARSE_STATE &state,
 			uint16_t &crc16, int &distance);
 
 	/**
@@ -164,29 +145,21 @@ private:
 	 */
 	void stop();
 
+
+	PX4Rangefinder	_px4_rangefinder;
+
 	char _port[20] {};
 
 	unsigned char _frame_data[PARSER_BUF_LENGTH] {START_FRAME_DIGIT1, START_FRAME_DIGIT2, 0, 0};
 
-	int _measure_interval{CM8JL65_MEASURE_INTERVAL};
 	int _file_descriptor{-1};
-	int _orb_class_instance{-1};
 
-	uint8_t _cycle_counter{0};
 	uint8_t _linebuf[25] {};
-	uint8_t _rotation{0};
 
 	uint16_t _crc16{0};
 
-	// Use conservative distance bounds, to make sure we don't fuse garbage data
-	float _max_distance{7.9f}; // Datasheet: 8.0m
-	float _min_distance{0.2f}; // Datasheet: 0.17m
+	PARSE_STATE _parse_state{PARSE_STATE::WAITING_FRAME};
 
-	CM8JL65_PARSE_STATE _parse_state{WAITING_FRAME};
-
-	orb_advert_t _distance_sensor_topic{nullptr};
-
-	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, "cm8jl65_com_err")};
-	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "cm8jl65_read")};
+	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, MODULE_NAME": com_err")};
+	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, MODULE_NAME": read")};
 };
-

@@ -44,12 +44,10 @@ namespace cm8jl65
 
 CM8JL65	*g_dev;
 
-int reset(const char *port = CM8JL65_DEFAULT_PORT);
-int start(const char *port = CM8JL65_DEFAULT_PORT,
-	  const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+int reset(const char *port);
+int start(const char *port, const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 int status();
 int stop();
-int test(const char *port = CM8JL65_DEFAULT_PORT);
 int usage();
 
 /**
@@ -71,6 +69,11 @@ reset(const char *port)
 int
 start(const char *port, const uint8_t rotation)
 {
+	if (port == nullptr) {
+		PX4_ERR("invalid port");
+		return PX4_ERROR;
+	}
+
 	if (g_dev != nullptr) {
 		PX4_INFO("already started");
 		return PX4_OK;
@@ -105,7 +108,6 @@ status()
 		return PX4_ERROR;
 	}
 
-	printf("state @ %p\n", g_dev);
 	g_dev->print_info();
 
 	return PX4_OK;
@@ -124,40 +126,12 @@ int stop()
 	return PX4_ERROR;
 }
 
-/**
- * Perform some basic functional tests on the driver;
- * make sure we can collect data from the sensor in polled
- * and automatic modes.
- */
-int
-test(const char *port)
-{
-	int fd = open(port, O_RDONLY);
-
-	if (fd < 0) {
-		PX4_ERR("%s open failed (try 'cm8jl65 start' if the driver is not running", port);
-		return PX4_ERROR;
-	}
-
-	// Perform a simple demand read.
-	distance_sensor_s report;
-	ssize_t bytes_read = read(fd, &report, sizeof(report));
-
-	if (bytes_read != sizeof(report)) {
-		PX4_ERR("immediate read failed");
-		return PX4_ERROR;
-	}
-
-	print_message(report);
-	return PX4_OK;
-}
-
 int
 usage()
 {
 	PX4_INFO("usage: cm8jl65 command [options]");
 	PX4_INFO("command:");
-	PX4_INFO("\treset|start|status|stop|test");
+	PX4_INFO("\treset|start|status|stop");
 	PX4_INFO("options:");
 	PX4_INFO("\t-R --rotation (%d)", distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	PX4_INFO("\t-d --device_path");
@@ -173,7 +147,7 @@ usage()
 extern "C" __EXPORT int cm8jl65_main(int argc, char *argv[])
 {
 	uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING;
-	const char *device_path = CM8JL65_DEFAULT_PORT;
+	const char *device_path = nullptr;
 	int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
@@ -224,11 +198,6 @@ extern "C" __EXPORT int cm8jl65_main(int argc, char *argv[])
 	// Stop the driver
 	if (!strcmp(argv[myoptind], "stop")) {
 		return cm8jl65::stop();
-	}
-
-	// Test the driver/device.
-	if (!strcmp(argv[myoptind], "test")) {
-		return cm8jl65::test();
 	}
 
 	return cm8jl65::usage();
