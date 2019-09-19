@@ -415,7 +415,7 @@ MavlinkParametersManager::send_uavcan()
 bool
 MavlinkParametersManager::send_one()
 {
-	if (_send_all_index >= 0 && _mavlink->boot_complete()) {
+	if (_send_all_index >= 0) {
 		/* send all parameters if requested, but only after the system has booted */
 
 		/* The first thing we send is a hash of all values for the ground
@@ -461,11 +461,6 @@ MavlinkParametersManager::send_one()
 		} else {
 			return true;
 		}
-
-	} else if (_send_all_index == PARAM_HASH && hrt_absolute_time() > 20 * 1000 * 1000) {
-		/* the boot did not seem to ever complete, warn user and set boot complete */
-		_mavlink->send_statustext_critical("WARNING: SYSTEM BOOT INCOMPLETE. CHECK CONFIG.");
-		_mavlink->set_boot_complete();
 	}
 
 	return false;
