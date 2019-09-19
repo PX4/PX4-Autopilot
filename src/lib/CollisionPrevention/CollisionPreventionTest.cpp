@@ -52,9 +52,9 @@ public:
 	TestCollisionPrevention() : CollisionPrevention(nullptr) {}
 	void paramsChanged() {CollisionPrevention::updateParamsImpl();}
 	obstacle_distance_s &getObstacleMap() {return _obstacle_map_body_frame;}
-	void test_addDistanceSensorData(distance_sensor_s &distance_sensor)
+	void test_addDistanceSensorData(distance_sensor_s &distance_sensor, const matrix::Quatf &attitude)
 	{
-		_addDistanceSensorData(distance_sensor);
+		_addDistanceSensorData(distance_sensor, attitude);
 	}
 	void test_addObstacleSensorData(const obstacle_distance_s &obstacle, const matrix::Quatf &attitude)
 	{
@@ -484,6 +484,7 @@ TEST_F(CollisionPreventionTest, addDistanceSensorData)
 	// GIVEN: a vehicle attitude and a distance sensor message
 	TestCollisionPrevention cp;
 	cp.getObstacleMap().increment = 10.f;
+	matrix::Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
 	distance_sensor_s distance_sensor {};
 	distance_sensor.min_distance = 0.2f;
 	distance_sensor.max_distance = 20.f;
@@ -499,7 +500,7 @@ TEST_F(CollisionPreventionTest, addDistanceSensorData)
 	//WHEN: we add distance sensor data to the right
 	distance_sensor.orientation = distance_sensor_s::ROTATION_RIGHT_FACING;
 	distance_sensor.h_fov = math::radians(19.99f);
-	cp.test_addDistanceSensorData(distance_sensor);
+	cp.test_addDistanceSensorData(distance_sensor, vehicle_attitude);
 
 	//THEN: the correct bins in the map should be filled
 	for (uint32_t i = 0; i < distances_array_size; i++) {
@@ -515,7 +516,7 @@ TEST_F(CollisionPreventionTest, addDistanceSensorData)
 	distance_sensor.orientation = distance_sensor_s::ROTATION_LEFT_FACING;
 	distance_sensor.h_fov = math::radians(50.f);
 	distance_sensor.current_distance = 8.f;
-	cp.test_addDistanceSensorData(distance_sensor);
+	cp.test_addDistanceSensorData(distance_sensor, vehicle_attitude);
 
 	//THEN: the correct bins in the map should be filled
 	for (uint32_t i = 0; i < distances_array_size; i++) {
@@ -534,7 +535,7 @@ TEST_F(CollisionPreventionTest, addDistanceSensorData)
 	distance_sensor.orientation = distance_sensor_s::ROTATION_FORWARD_FACING;
 	distance_sensor.h_fov = math::radians(10.1f);
 	distance_sensor.current_distance = 3.f;
-	cp.test_addDistanceSensorData(distance_sensor);
+	cp.test_addDistanceSensorData(distance_sensor, vehicle_attitude);
 
 	//THEN: the correct bins in the map should be filled
 	for (uint32_t i = 0; i < distances_array_size; i++) {
@@ -1006,6 +1007,7 @@ TEST_F(CollisionPreventionTest, enterData)
 	// GIVEN: a simple setup condition
 	TestCollisionPrevention cp;
 	cp.getObstacleMap().increment = 10.f;
+	matrix::Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
 
 	//THEN: just after initialization all bins are at UINT16_MAX and any data should be accepted
 	EXPECT_TRUE(cp.test_enterData(8, 2.f, 1.5f)); //shorter range, reading in range
@@ -1022,7 +1024,7 @@ TEST_F(CollisionPreventionTest, enterData)
 	distance_sensor.orientation = distance_sensor_s::ROTATION_RIGHT_FACING;
 	distance_sensor.h_fov = math::radians(19.99f);
 	distance_sensor.current_distance = 5.f;
-	cp.test_addDistanceSensorData(distance_sensor);
+	cp.test_addDistanceSensorData(distance_sensor, vehicle_attitude);
 
 	//THEN: the internal map should contain the distance sensor readings
 	EXPECT_EQ(500, cp.getObstacleMap().distances[8]);
@@ -1041,7 +1043,7 @@ TEST_F(CollisionPreventionTest, enterData)
 
 	//WHEN: we add distance sensor data to the right with an out of range reading
 	distance_sensor.current_distance = 21.f;
-	cp.test_addDistanceSensorData(distance_sensor);
+	cp.test_addDistanceSensorData(distance_sensor, vehicle_attitude);
 
 	//THEN: the internal map should contain the distance sensor readings
 	EXPECT_EQ(2000, cp.getObstacleMap().distances[8]);

@@ -209,7 +209,7 @@ void CollisionPrevention::_updateObstacleMap()
 				_obstacle_map_body_frame.min_distance = math::min((int)_obstacle_map_body_frame.min_distance,
 									(int)distance_sensor.min_distance * 100);
 
-				_addDistanceSensorData(distance_sensor);
+				_addDistanceSensorData(distance_sensor, Quatf(_sub_vehicle_attitude.get().q));
 			}
 		}
 	}
@@ -234,7 +234,8 @@ void CollisionPrevention::_updateObstacleMap()
 	_obstacle_distance_pub.publish(_obstacle_map_body_frame);
 }
 
-void CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor)
+void CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sensor,
+		const matrix::Quatf &vehicle_attitude)
 {
 	//clamp at maximum sensor range
 	float distance_reading = math::min(distance_sensor.current_distance, distance_sensor.max_distance);
@@ -255,6 +256,15 @@ void CollisionPrevention::_addDistanceSensorData(distance_sensor_s &distance_sen
 		if (lower_bound < 0) { lower_bound++; }
 
 		if (upper_bound < 0) { upper_bound++; }
+
+		// rotate vehicle attitude into the sensor body frame
+		matrix::Quatf attitude_sensor_frame = vehicle_attitude;
+		attitude_sensor_frame.rotate(Vector3f(0.f, 0.f, sensor_yaw_body_rad));
+		float sensor_dist_scale = cosf(Eulerf(attitude_sensor_frame).theta());
+
+		if (distance_reading < distance_sensor.max_distance) {
+			distance_reading = distance_reading * sensor_dist_scale;
+		}
 
 		uint16_t sensor_range = (int)(100 * distance_sensor.max_distance); //convert to cm
 
