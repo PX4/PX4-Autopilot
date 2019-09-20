@@ -1506,7 +1506,7 @@ void Ekf2::run()
 				// publish vehicle odometry data
 				_vehicle_odometry_pub.update();
 
-				if (_ekf.global_position_is_valid() && !_preflt_fail) {
+                /*if (_ekf.global_position_is_valid() &&   !_preflt_fail) */{
 					// generate and publish global position data
 					vehicle_global_position_s &global_pos = _vehicle_global_position_pub.get();
 

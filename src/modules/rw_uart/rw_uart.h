@@ -124,14 +124,14 @@ typedef struct {
     uint8_t command;
     uint8_t command_re;
     uint8_t roll_p;
-    uint8_t roll_i; // not used
-    uint8_t roll_d; // not used
+    uint8_t roll_i;
+    uint8_t roll_d;
     uint8_t pitch_p;
-    uint8_t pitch_i; // not used
-    uint8_t pitch_d; // not used
+    uint8_t pitch_i;
+    uint8_t pitch_d;
     uint8_t yaw_p;
-    uint8_t yaw_i; // not used
-    uint8_t yaw_d; // not used
+    uint8_t yaw_i;
+    uint8_t yaw_d;
     uint8_t z_p;
     uint8_t remain_1;
     uint8_t remain_2;
@@ -381,14 +381,14 @@ typedef struct {
 
 typedef struct {
     param_t roll_p_hd;
-    //param_t roll_i_hd;
-    //param_t roll_d_hd;
+    param_t roll_i_hd;
+    param_t roll_d_hd;
     param_t pitch_p_hd;
-    //param_t pitch_i_hd;
-    //param_t pitch_d_hd;
+    param_t pitch_i_hd;
+    param_t pitch_d_hd;
     param_t yaw_p_hd;
-    //param_t yaw_i_hd;
-    //param_t yaw_d_hd;
+    param_t yaw_i_hd;
+    param_t yaw_d_hd;
     param_t z_p_hd;
     param_t up_vel_max_hd;
     param_t xy_vel_max_hd;
@@ -451,7 +451,7 @@ extern void yfpa_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd);
 
 extern uint8_t calculate_sum_check (const uint8_t *send_message, int len);
 
-extern uint16_t check_crc(const uint8_t *buffer, uint8_t buflen, uint8_t offset);
+extern uint16_t check_crc(const uint8_t *buffer, uint8_t buflen);
 
 extern void msg_pack_send(MSG_orb_data msg_data);
 

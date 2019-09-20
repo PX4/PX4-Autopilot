@@ -79,7 +79,7 @@ bool check_command_repeat(const uint8_t *buffer, MSG_type msg_type)
 uint8_t calculate_sum_check (const uint8_t *send_message, int len)
 {
     uint8_t sum = 0;
-    for (int i=0; i < len; i++){
+    for (int i=0; i < len -1; i++){
         sum += send_message[i];
     }
     return sum;
@@ -102,10 +102,10 @@ uint16_t crc16_ccitt(uint8_t data, uint16_t crc)
     return crc;
 }
 
-uint16_t check_crc(const uint8_t *buffer, uint8_t buflen, uint8_t offset)
+uint16_t check_crc(const uint8_t *buffer, uint8_t buflen)
 {
     uint16_t crc = 0;
-    for (int i = 0; i < buflen + offset - 2; i++) {
+    for (int i = 0; i < buflen - 2; i++) {
      crc = crc16_ccitt(buffer[i], crc);
     }
     return  crc;

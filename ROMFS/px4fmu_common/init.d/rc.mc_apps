@@ -58,5 +58,9 @@ land_detector start multicopter
 #
 # Start DGXY RW Uart
 #
-#rw_uart start
+rw_uart start
 
+#
+# Send follow position (v2 only)
+#
+#send_position start

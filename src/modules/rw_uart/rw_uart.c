@@ -167,9 +167,15 @@ void msg_orb_unsub (MSG_orb_sub *msg_fd)
 
 void msg_param_hd_cache (MSG_param_hd *msg_hd)
 {
-    msg_hd->roll_p_hd = param_find("MC_ROLL_P");
-    msg_hd->pitch_p_hd = param_find("MC_PITCH_P");
-    msg_hd->yaw_p_hd = param_find("MC_YAW_P");
+    msg_hd->roll_p_hd = param_find("MC_ROLLRATE_P");
+    msg_hd->roll_i_hd = param_find("MC_ROLLRATE_I");
+    msg_hd->roll_d_hd = param_find("MC_ROLLRATE_D");
+    msg_hd->pitch_p_hd = param_find("MC_PITCHRATE_P");
+    msg_hd->pitch_i_hd = param_find("MC_PITCHRATE_I");
+    msg_hd->pitch_d_hd = param_find("MC_PITCHRATE_D");
+    msg_hd->yaw_p_hd = param_find("MC_YAWRATE_P");
+    msg_hd->yaw_i_hd = param_find("MC_YAWRATE_I");
+    msg_hd->yaw_d_hd = param_find("MC_YAWRATE_D");
     msg_hd->z_p_hd = param_find("MPC_Z_P");
     msg_hd->up_vel_max_hd = param_find("MPC_Z_VEL_MAX_UP");
     msg_hd->xy_vel_max_hd = param_find("MPC_VEL_MANUAL");
@@ -183,7 +189,7 @@ void msg_param_hd_cache (MSG_param_hd *msg_hd)
     msg_hd->higt_max_hd = param_find("GF_MAX_VER_DIST");
     msg_hd->acc_hor_max_hd = param_find("MPC_ACC_HOR_MAX");
     msg_hd->dist_max_hd = param_find("GF_MAX_HOR_DIST");
-    msg_hd->mav_type_hd = param_find("MAV_TYPE");
+    msg_hd->mav_type_hd = param_find("SYS_AUTOSTART");
     msg_hd->battery_n_cells_hd = param_find("BAT_N_CELLS");
     msg_hd->battery_warn_hd = param_find("BAT_LOW_THR");
     msg_hd->battery_fail_hd = param_find("COM_LOW_BAT_ACT");
@@ -323,10 +329,12 @@ int rw_uart_thread_main(int argc, char *argv[])
                        if(data == '$')
                        {//找到帧头$
                                buffer[0] = '$';
+                               //usleep(100);
                                for(int i = 1; i  < 5; i++)
                                {
                                        read(uart_read,&data,1);//读取后面的数据
                                        buffer[i] = data;
+                                       //usleep(100);
                            }
                        }
                        //printf("data=%s\n", buffer);
@@ -335,7 +343,7 @@ int rw_uart_thread_main(int argc, char *argv[])
             }
 
           usleep(1000000);
-         //   usleep(10000);
+          //usleep(10000);
 
         }
 

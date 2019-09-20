@@ -146,7 +146,7 @@
 ////        msg_data->command_data.param5 = 0;
 ////        msg_data->command_data.param6 = 0;
 ////        msg_data->command_data.param7 = 0;
-////        printf("Passing rc_cali\n");
+////        printf("Passing rc_cali");
 ////        break;
 //    case WIFI_COMM_ESC_CALI_ON:
 //        msg_data->command_data.command = 241; //CMD_PREFLIGHT_CALIBRATION
@@ -204,17 +204,41 @@ bool change_param (MSG_param_hd msg_hd, uint8_t data, int i){
     int paramd;
     switch (i) {
     case 8:
-        paramf = (float_t)data / 21.25;
+        paramf = (float_t)data / 510.0;
         param_set(msg_hd.roll_p_hd, &paramf);
         //printf("Passing change\n");
         break;
+//    case 9:
+//        paramf = (float_t)data / 5100.0;
+//        param_set(msg_hd.roll_i_hd, &paramf);
+//        break;
+//    case 10:
+//        paramf = (float_t)data / 25500.0;
+//        param_set(msg_hd.roll_d_hd, &paramf);
+//        break;
 //    case 11:
-//        paramf = (float_t)data / 21.25;
+//        paramf = (float_t)data / 510.0;
 //        param_set(msg_hd.pitch_p_hd, &paramf);
 //        break;
+//    case 12:
+//        paramf = (float_t)data / 5100.0;
+//        param_set(msg_hd.pitch_i_hd, &paramf);
+//        break;
+//    case 13:
+//        paramf = (float_t)data / 25500.0;
+//        param_set(msg_hd.pitch_d_hd, &paramf);
+//        break;
 //    case 14:
-//        paramf = (float_t)data / 51.0;
+//        paramf = (float_t)data / 510.0;
 //        param_set(msg_hd.yaw_p_hd, &paramf);
+//        break;
+//    case 15:
+//        paramf = (float_t)data / 1275.0;
+//        param_set(msg_hd.yaw_i_hd, &paramf);
+//        break;
+//    case 16:
+//        paramf = (float_t)data / 25500.0;
+//        param_set(msg_hd.roll_d_hd, &paramf);
 //        break;
 //    case 17:
 //        paramf = (float_t)data / 170.0;

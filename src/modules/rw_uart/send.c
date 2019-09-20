@@ -104,29 +104,29 @@ void stp_pack (STP *stp, MSG_orb_data stp_data){
                              + stp_data.local_position_data.y * stp_data.local_position_data.y);
     stp->distance_high8 =  (uint8_t)(distance/256.0);
     stp->distance_low8 = (uint8_t)(distance);
-    stp->local_vx_high8 = (int8_t)(stp_data.local_position_data.vx * 100.0/256.0);
-    stp->local_vx_low8 =  (int8_t)(stp_data.local_position_data.vx * 100.0);
-    stp->local_vz_high8 = (int8_t)(stp_data.local_position_data.vz * 100.0/256.0);
-    stp->local_vz_low8 =  (int8_t)(stp_data.local_position_data.vz * 100.0);
-    stp->local_vy_high8 = (int8_t)(stp_data.local_position_data.vy * 100.0/256.0);
-    stp->local_vy_low8 =  (int8_t)(stp_data.local_position_data.vy * 100.0);
+    stp->local_vx_high8 = (int8_t)(((int16_t)(stp_data.local_position_data.vx * 100.0) & 0xff00) >> 8);
+    stp->local_vx_low8 =  (int8_t)((int16_t)(stp_data.local_position_data.vx * 100.0) & 0x00ff);
+    stp->local_vz_high8 = (int8_t)(((int16_t)(stp_data.local_position_data.vz * 100.0) & 0xff00) >> 8);
+    stp->local_vz_low8 =  (int8_t)((int16_t)(stp_data.local_position_data.vz * 100.0) & 0x00ff);
+    stp->local_vy_high8 = (int8_t)(((int16_t)(stp_data.local_position_data.vy * 100.0) & 0xff00) >> 8);
+    stp->local_vy_low8 =  (int8_t)((int16_t)(stp_data.local_position_data.vy * 100.0) & 0x00ff);
     stp->receiver_status = (uint8_t)(stp_data.status_data.nav_state > 2 /*NAVIGATION_STATE_POSCTL*/ );
-    //stp->evh = (uint8_t)(stp_data.local_position_data.evh * 100.0);
     stp->photo_num = 0;
-    //stp->evv = (uint8_t)(stp_data.local_position_data.evv * 100.0);
     stp->acc_right = (int16_t)(-stp_data.local_position_data.ay *100.0);
     stp->acc_back = (int16_t)(-stp_data.local_position_data.ax *100.0);
     stp->acc_down = (int16_t)(-stp_data.local_position_data.az *100.0);
 
-    stp->evh = (uint8_t)stp_data.vibe_data.vibe[2];
-    stp->evv = (uint8_t)stp_data.vibe_data.vibe[1];
+    stp->evh = (uint8_t)(stp_data.vibe_data.vibe[2] *10.0);
+    //printf("vibe_data2 is %.8f\n",stp_data.vibe_data.vibe[2]);
+    stp->evv = (uint8_t)(stp_data.vibe_data.vibe[1] * 100000.0);
+    //printf("vibe_data1 is %.8f\n",stp_data.vibe_data.vibe[1]);
 
     float q0 = stp_data.attitude_data.q[0];
     float q1 = stp_data.attitude_data.q[1];
     float q2 = stp_data.attitude_data.q[2];
     float q3 = stp_data.attitude_data.q[3];
-    stp->local_roll =(int32_t)(atan2f(2*(q0*q1 + q2*q3), 1 - 2*(q1*q1 + q2*q2)) /3.14159 *180);
-    stp->local_pitch = (int32_t)(-asinf(2*(q0*q2 - q3*q1)) /3.14159 *180);
+    stp->local_roll =-(int32_t)(atan2f(2*(q0*q1 + q2*q3), 1 - 2*(q1*q1 + q2*q2)) /3.14159 *180);
+    stp->local_pitch = -(int32_t)(-asinf(2*(q0*q2 - q3*q1)) /3.14159 *180);
     stp->gps_yaw = atan2f(2*(q0*q3 + q1*q2), 1 - 2*(q2*q2 + q3*q3));
 
     stp->rc_throttle_mid = 150;
@@ -175,17 +175,30 @@ void yfpa_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd){
     yfpa_param->head[2]='F';
     yfpa_param->head[3]='P';
     yfpa_param->head[4]='A';
-    yfpa_param->buflen = 54; // 不连帧头，命令编号及buflen位的数据长度，自8字节始。
+    //yfpa_param->buflen = 54; // 不连帧头，命令编号及buflen位的数据长度，自8字节始。
+    yfpa_param->buflen = 62;
     yfpa_param->command =116;
     yfpa_param->command_re = 116;
     float_t paramf;
     int paramd;
     param_get(msg_hd.roll_p_hd, &paramf);
-    yfpa_param->roll_p = (uint8_t)(paramf * 21.25);
+    yfpa_param->roll_p = (uint8_t)(paramf * 510.0);
+    param_get(msg_hd.roll_i_hd, &paramf);
+    yfpa_param->roll_i = (uint8_t)(paramf * 5100.0);
+    param_get(msg_hd.roll_d_hd, &paramf);
+    yfpa_param->roll_d = (uint8_t)(paramf * 25500.0);
     param_get(msg_hd.pitch_p_hd, &paramf);
-    yfpa_param->pitch_p = (uint8_t)(paramf * 21.25);
+    yfpa_param->pitch_p = (uint8_t)(paramf * 510.0);
+    param_get(msg_hd.pitch_i_hd, &paramf);
+    yfpa_param->pitch_i = (uint8_t)(paramf * 5100.0);
+    param_get(msg_hd.pitch_d_hd, &paramf);
+    yfpa_param->pitch_d = (uint8_t)(paramf * 25500.0);
     param_get(msg_hd.yaw_p_hd, &paramf);
-    yfpa_param->yaw_p = (uint8_t)(paramf * 51.0);
+    yfpa_param->yaw_p = (uint8_t)(paramf *510.0);
+    param_get(msg_hd.yaw_i_hd, &paramf);
+    yfpa_param->yaw_i = (uint8_t)(paramf *1275.0);
+    param_get(msg_hd.yaw_d_hd, &paramf);
+    yfpa_param->yaw_d = (uint8_t)(paramf *25500.0);
     param_get(msg_hd.z_p_hd, &paramf);
     yfpa_param->z_p = (uint8_t)(paramf * 170.0);
     param_get(msg_hd.up_vel_max_hd, &paramf);
@@ -193,11 +206,11 @@ void yfpa_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd){
     param_get(msg_hd.xy_vel_max_hd, &paramf);
     yfpa_param->xy_vel_max = (uint8_t)((paramf-3.0) * 15.0);
     param_get(msg_hd.roll_rate_hd, &paramf);
-    yfpa_param->roll_rate = (uint8_t)(paramf * 0.14);
+    yfpa_param->roll_rate = (uint8_t)(paramf);
     param_get(msg_hd.pitch_rate_hd, &paramf);
-    yfpa_param->pitch_rate = (uint8_t)(paramf * 0.14);
+    yfpa_param->pitch_rate = (uint8_t)(paramf);
     param_get(msg_hd.yaw_rate_hd, &paramf);
-    yfpa_param->yaw_rate = (uint8_t)(paramf * 0.14);
+    yfpa_param->yaw_rate = (uint8_t)(paramf);
     param_get(msg_hd.acc_up_max_hd, &paramf);
     yfpa_param->acc_up_max = (uint8_t)((paramf - 2.0)* 19.61);
     param_get(msg_hd.yaw_max_hd, &paramf);
@@ -213,7 +226,37 @@ void yfpa_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd){
     param_get(msg_hd.dist_max_hd, &paramf);
     yfpa_param->dist_max = (uint16_t)(paramf * 6.5535);
     param_get(msg_hd.mav_type_hd, &paramd);
-    yfpa_param->mav_type = (uint8_t)(paramd);
+    switch (paramd) {
+    case 5001:
+        yfpa_param->mav_type = 0;
+        break;
+    case 4001:
+        yfpa_param->mav_type = 1;
+        break;
+    case 7001:
+        yfpa_param->mav_type = 2;
+        break;
+    case 6001:
+        yfpa_param->mav_type = 3;
+        break;
+    case 9001:
+        yfpa_param->mav_type = 4;
+        break;
+    case 8001:
+        yfpa_param->mav_type = 5;
+        break;
+    case 11001:
+        yfpa_param->mav_type = 6;
+        break;
+    case 14001:
+        yfpa_param->mav_type = 7;
+        break;
+    case 12001:
+        yfpa_param->mav_type = 8;
+        break;
+    default:
+        break;
+    }
     param_get(msg_hd.battery_n_cells_hd, &paramd);
     yfpa_param->battery_num = (uint8_t)(paramd);
     param_get(msg_hd.battery_warn_hd, &paramf);
@@ -240,31 +283,31 @@ void exyf_response_pack(uint8_t *send_message, MSG_type msg_type, MSG_param_hd m
     uint16_t crc;
     switch (msg_type.command) {
     case EXYF_COMM_IDLE_SPEED_GET:
-        send_message[5] = 4;
+        send_message[5] = 13;
         send_message[6] = 0;
         send_message[7] = 10;
         send_message[8] = 10;
         param_get(msg_hd.pwm_min_hd, &paramd);
         send_message[9] = (uint8_t)(paramd % 256);
         send_message[10] = (uint8_t)(paramd / 256);
-        crc = check_crc(send_message, 4, 9);
+        crc = check_crc(send_message, 13);
         send_message[11] = (uint8_t)(crc & 0x00ff);
         send_message[12] = (uint8_t)((crc & 0xff00)>>8);
-        send_message[12] = 0xba;
-        write(uart_read, send_message, sizeof(send_message));
+        //send_message[12] = 0xba;
+        write(uart_read, send_message, 13);
         break;
     case EXYF_COMM_PLANE_GET:
-        send_message[5] = 3;
+        send_message[5] = 12;
         send_message[6] = 0;
         send_message[7] = 19;
         send_message[8] = 19;
         param_get(msg_hd.mav_type_hd, &paramd);
         send_message[9] = (uint8_t)(paramd);
-        crc = check_crc(send_message, 3, 9);
+        crc = check_crc(send_message, 12);
         send_message[10] = (uint8_t)(crc & 0x00ff);
         send_message[11] = (uint8_t)((crc & 0xff00)>>8);
-        send_message[12] = 0xbb;
-        write(uart_read, send_message, sizeof(send_message));
+        //send_message[12] = 0xbb;
+        write(uart_read, send_message, 12);
         break;
     default:
         break;
@@ -284,10 +327,10 @@ void follow_ack_pack_send(uint8_t failed){
     follow_ack.command_re =21;
     follow_ack.buflen = 12;
     memcpy(send_message, &follow_ack, sizeof(EXYF_FOLLOW_ACK));
-    uint16_t crc = check_crc(send_message, 3, 9);
+    uint16_t crc = check_crc(send_message, 12);
     send_message[10] = (uint8_t)(crc & 0x00ff);
     send_message[11] = (uint8_t)((crc & 0xff00)>>8);
-    send_message[11] = 0xba;
+    //send_message[11] = 0xba;
     write(uart_read, send_message, sizeof(EXYF_FOLLOW_ACK));
 }
 
@@ -303,8 +346,8 @@ void docap_pack_send (int channel, int max_min){
     docap.max_min = (uint8_t)max_min;
     uint8_t send_message[9];
     memcpy(send_message, &docap, sizeof(DOCAP));
-    send_message[8] = calculate_sum_check(send_message, sizeof(send_message));
-    send_message[8] = 0xaf;
+    send_message[8] = calculate_sum_check(send_message, sizeof(DOCAP));
+    //send_message[8] = 0xaf;
     write(uart_read, send_message, sizeof(DOCAP));
 }
 

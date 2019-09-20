@@ -226,7 +226,7 @@ int send_position_thread_main(int argc, char *argv[])
                 follow_data.head[2] = 'X';
                 follow_data.head[3] = 'Y';
                 follow_data.head[4] = 'F';
-                follow_data.buflen = 39;
+                follow_data.buflen = 48;
                 follow_data.command = 20;
                 follow_data.command_re = 20;
                 follow_data.lat = global_position_data.lat;
@@ -250,7 +250,7 @@ int send_position_thread_main(int argc, char *argv[])
                     printf("send_message[%d] is %x\n", i, send_message[i]);
                 }
             }
-            usleep(1000000);
+            usleep(10000);
         }
 
         send_position_thread_running = false;
