@@ -131,7 +131,7 @@ MulticopterAttitudeControl::parameters_updated()
 
 	_man_tilt_max = math::radians(_param_mpc_man_tilt_max.get());
 
-	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
+	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled_by_val(_param_cbrk_rate_ctrl.get(), CBRK_RATE_CTRL_KEY);
 }
 
 void
