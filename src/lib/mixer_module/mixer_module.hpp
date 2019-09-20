@@ -100,7 +100,7 @@ public:
 
 	~MixingOutput();
 
-	void printStatus();
+	void printStatus() const;
 
 	/**
 	 * Call this regularly from Run(). It will call interface.updateOutputs().
