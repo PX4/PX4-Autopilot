@@ -79,10 +79,18 @@ MixingOutput::~MixingOutput()
 	px4_sem_destroy(&_lock);
 }
 
-void MixingOutput::printStatus()
+void MixingOutput::printStatus() const
 {
 	perf_print_counter(_control_latency_perf);
 	PX4_INFO("Switched to rate_ctrl work queue: %i", (int)_wq_switched);
+	PX4_INFO("Mixer loaded: %s", _mixers ? "yes" : "no");
+
+	PX4_INFO("Channel Configuration:");
+
+	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+		PX4_INFO("Channel %i: failsafe: %d, disarmed: %d, min: %d, max: %d", i, _failsafe_value[i], _disarmed_value[i],
+			 _min_value[i], _max_value[i]);
+	}
 }
 
 void MixingOutput::updateParams()
