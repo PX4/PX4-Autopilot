@@ -222,7 +222,6 @@ void VotedSensorsUpdate::parametersUpdate()
 
 	/* run through all gyro sensors */
 	for (unsigned driver_index = 0; driver_index < GYRO_COUNT_MAX; driver_index++) {
-
 		(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, driver_index);
 
 		DevHandle h;
@@ -260,6 +259,8 @@ void VotedSensorsUpdate::parametersUpdate()
 
 			/* if the calibration is for this device, apply it */
 			if ((uint32_t)device_id == driver_device_id) {
+				if (!_gyro.enabled[topic_instance]) { _gyro.priority[topic_instance] = 0; }
+
 				struct gyro_calibration_s gscale = {};
 				(void)sprintf(str, "CAL_GYRO%u_XOFF", i);
 				failed = failed || (OK != param_get(param_find(str), &gscale.x_offset));
@@ -310,7 +311,6 @@ void VotedSensorsUpdate::parametersUpdate()
 
 	/* run through all accel sensors */
 	for (unsigned driver_index = 0; driver_index < ACCEL_COUNT_MAX; driver_index++) {
-
 		(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, driver_index);
 
 		DevHandle h;
@@ -348,6 +348,8 @@ void VotedSensorsUpdate::parametersUpdate()
 
 			/* if the calibration is for this device, apply it */
 			if ((uint32_t)device_id == driver_device_id) {
+				if (!_accel.enabled[topic_instance]) { _accel.priority[topic_instance] = 0; }
+
 				struct accel_calibration_s ascale = {};
 				(void)sprintf(str, "CAL_ACC%u_XOFF", i);
 				failed = failed || (OK != param_get(param_find(str), &ascale.x_offset));
@@ -460,6 +462,10 @@ void VotedSensorsUpdate::parametersUpdate()
 
 			/* if the calibration is for this device, apply it */
 			if ((uint32_t)device_id == _mag_device_id[topic_instance]) {
+				// the mags that were published after the initial parameterUpdate
+				// would be given the priority even if disabled. Reset it to 0 in this case
+				if (!_mag.enabled[topic_instance]) { _mag.priority[topic_instance] = 0; }
+
 				struct mag_calibration_s mscale = {};
 				(void)sprintf(str, "CAL_MAG%u_XOFF", i);
 				failed = failed || (OK != param_get(param_find(str), &mscale.x_offset));
@@ -768,6 +774,15 @@ void VotedSensorsUpdate::magPoll(vehicle_magnetometer_s &magnetometer)
 
 				/* force a scale and offset update the first time we get data */
 				parametersUpdate();
+
+				if (!_mag.enabled[uorb_index]) {
+					/* in case the data on the mag topic comes after the initial parameterUpdate(), we would get here since the sensor
+					 * is enabled by default. The latest parameterUpdate() call would set enabled to false and reset priority to zero
+					 * for disabled sensors, and we shouldn't cal voter.put() in that case
+					 */
+					continue;
+				}
+
 			}
 
 			Vector3f vect(mag_report.x, mag_report.y, mag_report.z);
