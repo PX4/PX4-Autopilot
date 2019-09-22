@@ -518,7 +518,7 @@ class OutputGraphviz(object):
                             graph.edge('t_'+topic, 'm_'+module,
                                     color=topic_colors[topic])
 
-	graph.render(file_name, view=False)
+        graph.render(file_name, view=False)
 
 
 class OutputJSON(object):
@@ -633,6 +633,3 @@ elif args.output == 'graphviz':
     output_graphviz.write(args.file+'_pubs.fv', show_subscriptions=False, engine=engine)
 else:
     print('Error: unknown output format '+args.output)
-
-
-
