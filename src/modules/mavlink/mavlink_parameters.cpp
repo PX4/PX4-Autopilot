@@ -272,11 +272,11 @@ MavlinkParametersManager::send(const hrt_abstime t)
 {
 	int max_num_to_send;
 
-	if (_mavlink->get_protocol() == SERIAL && !_mavlink->is_usb_uart()) {
+	if (_mavlink->get_protocol() == Protocol::SERIAL && !_mavlink->is_usb_uart()) {
 		max_num_to_send = 3;
 
 	} else {
-		// speed up parameter loading via UDP, TCP or USB: try to send 20 at once
+		// speed up parameter loading via UDP or USB: try to send 20 at once
 		max_num_to_send = 20;
 	}
 

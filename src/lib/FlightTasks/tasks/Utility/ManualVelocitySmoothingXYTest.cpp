@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,58 +32,56 @@
  ****************************************************************************/
 
 /**
- * @file TrajMath.hpp
- *
- * collection of functions used in trajectory generators
+ * Test code for the Manual Velocity Smoothing library
+ * Run this test only using make tests TESTFILTER=ManualVelocitySmoothing
  */
 
-#pragma once
+#include <gtest/gtest.h>
+#include <matrix/matrix/math.hpp>
 
-namespace trajmath
+#include "ManualVelocitySmoothingXY.hpp"
+
+using namespace matrix;
+
+class ManualVelocitySmoothingXYTest : public ::testing::Test
 {
+public:
+	ManualVelocitySmoothingXY _smoothing;
+};
 
-/* Compute the maximum possible speed on the track given the remaining distance,
- * the maximum acceleration and the maximum jerk.
- * We assume a constant acceleration profile with a delay of 2*accel/jerk
- * (time to reach the desired acceleration from opposite max acceleration)
- * Equation to solve: 0 = vel^2 - 2*accel*(x - vel*2*accel/jerk)
- *
- * @param jerk maximum jerk
- * @param accel maximum acceleration
- * @param braking_distance distance to the desired stopping point
- *
- * @return maximum speed
- */
-template<typename T>
-const T computeMaxSpeedFromBrakingDistance(T jerk, T accel, T braking_distance)
+
+TEST_F(ManualVelocitySmoothingXYTest, setGet)
 {
-	T b = (T) 4 * accel * accel / jerk;
-	T c = - (T) 2 * accel * braking_distance;
-	T max_speed = (T) 0.5 * (-b + sqrtf(b * b - (T) 4 * c));
+	// GIVEN: Some max values
+	_smoothing.setMaxJerk(11.f);
+	_smoothing.setMaxAccel(7.f);
+	_smoothing.setMaxVel(5.f);
 
-	return max_speed;
+	// THEN: We should be able to get them back
+	EXPECT_EQ(_smoothing.getMaxJerk(), 11.f);
+	EXPECT_EQ(_smoothing.getMaxAccel(), 7.f);
+	EXPECT_EQ(_smoothing.getMaxVel(), 5.f);
 }
 
-/* Compute the maximum tangential speed in a circle defined by two line segments of length "d"
- * forming a V shape, opened by an angle "alpha". The circle is tangent to the end of the
- * two segments as shown below:
- *      \\
- *      | \ d
- *      /  \
- *  __='___a\
- *      d
- *  @param alpha angle between the two line segments
- *  @param accel maximum lateral acceleration
- *  @param d length of the two line segments
- *
- *  @return maximum tangential speed
- */
-template<typename T>
-const T computeMaxSpeedInWaypoint(T alpha, T accel, T d)
+TEST_F(ManualVelocitySmoothingXYTest, getCurrentState)
 {
-	T tan_alpha = tan(alpha / (T) 2);
-	T max_speed_in_turn = sqrtf(accel * d * tan_alpha);
+	// GIVEN: the initial conditions
+	Vector2f v0(11.f, 13.f);
+	_smoothing.setCurrentVelocity(v0);
 
-	return max_speed_in_turn;
+	// WHEN: we get the current state
+	Vector3f j_end;
+	Vector3f a_end;
+	Vector3f v_end;
+	Vector3f x_end;
+	j_end.xy() = _smoothing.getCurrentJerk();
+	a_end.xy() = _smoothing.getCurrentAcceleration();
+	v_end.xy() = _smoothing.getCurrentVelocity();
+	x_end.xy() = _smoothing.getCurrentPosition();
+
+	// THEN: the returned values should match the input
+	EXPECT_EQ(j_end, Vector3f(0.f, 0.f, 0.f));
+	EXPECT_EQ(a_end, Vector3f(0.f, 0.f, 0.f));
+	EXPECT_EQ(v_end, Vector3f(11.f, 13.f, 0.f));
+	EXPECT_EQ(x_end, Vector3f(0.f, 0.f, 0.f));
 }
-} /* namespace trajmath */

@@ -32,49 +32,60 @@
  ****************************************************************************/
 
 /**
- * @file FlightManualAltitudeSmoothVel.hpp
+ * @file TrajMath.hpp
  *
- * Flight task for manual controlled altitude using the velocity smoothing library
+ * collection of functions used for trajectory generation
  */
 
 #pragma once
 
-#include "FlightTaskManualAltitude.hpp"
-#include "ManualVelocitySmoothingZ.hpp"
-
-class FlightTaskManualAltitudeSmoothVel : public FlightTaskManualAltitude
+namespace math
 {
-public:
-	FlightTaskManualAltitudeSmoothVel() = default;
-	virtual ~FlightTaskManualAltitudeSmoothVel() = default;
 
-	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
-	void reActivate() override;
+namespace trajectory
+{
 
-protected:
+/* Compute the maximum possible speed on the track given the remaining distance,
+ * the maximum acceleration and the maximum jerk.
+ * We assume a constant acceleration profile with a delay of 2*accel/jerk
+ * (time to reach the desired acceleration from opposite max acceleration)
+ * Equation to solve: 0 = vel^2 - 2*accel*(x - vel*2*accel/jerk)
+ *
+ * @param jerk maximum jerk
+ * @param accel maximum acceleration
+ * @param braking_distance distance to the desired stopping point
+ *
+ * @return maximum speed
+ */
+inline float computeMaxSpeedFromBrakingDistance(const float jerk, const float accel, const float braking_distance)
+{
+	float b =  4.0f * accel * accel / jerk;
+	float c = - 2.0f * accel * braking_distance;
+	float max_speed = 0.5f * (-b + sqrtf(b * b - 4.0f * c));
 
-	virtual void _updateSetpoints() override;
+	return max_speed;
+}
 
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
-		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
-		(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max
-	)
+/* Compute the maximum tangential speed in a circle defined by two line segments of length "d"
+ * forming a V shape, opened by an angle "alpha". The circle is tangent to the end of the
+ * two segments as shown below:
+ *      \\
+ *      | \ d
+ *      /  \
+ *  __='___a\
+ *      d
+ *  @param alpha angle between the two line segments
+ *  @param accel maximum lateral acceleration
+ *  @param d length of the two line segments
+ *
+ *  @return maximum tangential speed
+ */
+inline float computeMaxSpeedInWaypoint(const float alpha, const float accel, const float d)
+{
+	float tan_alpha = tanf(alpha / 2.0f);
+	float max_speed_in_turn = sqrtf(accel * d * tan_alpha);
 
-private:
-
-	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
-
-	void _initEkfResetCounters();
-	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
-	void _updateTrajConstraints();
-	void _setOutputState();
-
-	ManualVelocitySmoothingZ _smoothing; ///< Smoothing in z direction
-
-	/* counters for estimator local position resets */
-	struct {
-		uint8_t z;
-		uint8_t vz;
-	} _reset_counters{0, 0};
-};
+	return max_speed_in_turn;
+}
+} /* namespace traj */
+} /* namespace math */

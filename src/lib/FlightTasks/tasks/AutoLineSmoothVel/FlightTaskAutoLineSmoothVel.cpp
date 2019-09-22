@@ -38,7 +38,6 @@
 #include "FlightTaskAutoLineSmoothVel.hpp"
 #include <mathlib/mathlib.h>
 #include <float.h>
-#include "TrajMath.hpp"
 
 using namespace matrix;
 
@@ -212,9 +211,10 @@ float FlightTaskAutoLineSmoothVel::_getSpeedAtTarget()
 		// We choose a maximum centripetal acceleration of MPC_ACC_HOR * MPC_XY_TRAJ_P to take in account
 		// that there is a jerk limit (a direct transition from line to circle is not possible)
 		// MPC_XY_TRAJ_P should be between 0 and 1.
-		const float max_speed_in_turn = trajmath::computeMaxSpeedInWaypoint(alpha,
-						_param_mpc_xy_traj_p.get() * _param_mpc_acc_hor.get(),
-						_target_acceptance_radius);
+		float accel_tmp = _param_mpc_xy_traj_p.get() * _param_mpc_acc_hor.get();
+		float max_speed_in_turn = math::trajectory::computeMaxSpeedInWaypoint(alpha,
+					  accel_tmp,
+					  _target_acceptance_radius);
 		speed_at_target = math::min(math::min(max_speed_in_turn, max_speed_current_next), _mc_cruise_speed);
 	}
 
@@ -223,7 +223,7 @@ float FlightTaskAutoLineSmoothVel::_getSpeedAtTarget()
 
 float FlightTaskAutoLineSmoothVel::_getMaxSpeedFromDistance(float braking_distance)
 {
-	float max_speed = trajmath::computeMaxSpeedFromBrakingDistance(_param_mpc_jerk_auto.get(),
+	float max_speed = math::trajectory::computeMaxSpeedFromBrakingDistance(_param_mpc_jerk_auto.get(),
 			  _param_mpc_acc_hor.get(),
 			  braking_distance);
 	// To avoid high gain at low distance due to the sqrt, we take the minimum
