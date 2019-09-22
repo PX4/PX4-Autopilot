@@ -82,7 +82,16 @@ void listener(listener_print_topic_cb cb, const orb_id_t &id, unsigned num_msgs,
 			}
 		}
 
+		if (instances == 0) {
+			PX4_INFO_RAW("never published\n");
+		}
+
 	} else {
+		// default to the first instance if not specified
+		if (topic_instance == -1) {
+			topic_instance = 0;
+		}
+
 		if (orb_exists(id, topic_instance) != 0) {
 			PX4_INFO_RAW("never published\n");
 			return;
