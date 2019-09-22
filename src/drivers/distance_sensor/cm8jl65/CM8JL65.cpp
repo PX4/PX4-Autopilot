@@ -94,8 +94,9 @@ CM8JL65::CM8JL65(const char *port, uint8_t rotation) :
 	_port[sizeof(_port) - 1] = '\0';
 
 	// Use conservative distance bounds, to make sure we don't fuse garbage data
-	_px4_rangefinder.set_min_distance(0.2f);	// Datasheet: 8.0m
-	_px4_rangefinder.set_max_distance(7.9f);	// Datasheet: 0.17m
+	_px4_rangefinder.set_min_distance(0.2f);	// Datasheet: 0.17m
+	_px4_rangefinder.set_max_distance(7.9f);	// Datasheet: 8.0m
+	_px4_rangefinder.set_fov(0.0488692f);
 }
 
 CM8JL65::~CM8JL65()
