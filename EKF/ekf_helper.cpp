@@ -95,14 +95,14 @@ bool Ekf::resetVelocity()
 		// reset the horizontal velocity variance using the optical flow noise variance
 		P[5][5] = P[4][4] = sq(range) * calcOptFlowMeasVar();
 	} else if (_control_status.flags.ev_vel) {
-		Vector3f _ev_vel = _ev_sample_delayed.velNED;
+		Vector3f _ev_vel = _ev_sample_delayed.vel;
 		if(_params.fusion_mode & MASK_ROTATE_EV){
-			_ev_vel = _ev_rot_mat *_ev_sample_delayed.velNED;
+			_ev_vel = _ev_rot_mat *_ev_sample_delayed.vel;
 		}
 		_state.vel(0) = _ev_vel(0);
 		_state.vel(1) = _ev_vel(1);
 		_state.vel(2) = _ev_vel(2);
-		// TODO: to what should we set the covariances?
+		setDiag(P, 4, 6, sq(_ev_sample_delayed.velErr));
 	} else if (_control_status.flags.ev_pos) {
 		_state.vel.setZero();
 		zeroOffDiag(P, 4, 6);
@@ -156,9 +156,9 @@ bool Ekf::resetPosition()
 
 	} else if (_control_status.flags.ev_pos) {
 		// this reset is only called if we have new ev data at the fusion time horizon
-		Vector3f _ev_pos = _ev_sample_delayed.posNED;
+		Vector3f _ev_pos = _ev_sample_delayed.pos;
 		if(_params.fusion_mode & MASK_ROTATE_EV){
-			_ev_pos = _ev_rot_mat *_ev_sample_delayed.posNED;
+			_ev_pos = _ev_rot_mat *_ev_sample_delayed.pos;
 		}
 		_state.pos(0) = _ev_pos(0);
 		_state.pos(1) = _ev_pos(1);
@@ -308,10 +308,10 @@ void Ekf::resetHeight()
 		vert_pos_reset = true;
 
 		if (std::abs(dt_newest) < std::abs(dt_delayed)) {
-			_state.pos(2) = ev_newest.posNED(2);
+			_state.pos(2) = ev_newest.pos(2);
 
 		} else {
-			_state.pos(2) = _ev_sample_delayed.posNED(2);
+			_state.pos(2) = _ev_sample_delayed.pos(2);
 		}
 
 	}
