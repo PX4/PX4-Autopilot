@@ -615,7 +615,7 @@ void Logger::add_estimator_replay_topics()
 	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
 	add_topic("vehicle_visual_odometry");
-
+	add_topic("vehicle_visual_odometry_aligned");
 	add_topic_multi("distance_sensor");
 	add_topic_multi("vehicle_gps_position");
 }
