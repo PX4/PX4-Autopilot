@@ -1454,10 +1454,8 @@ void Ekf2::run()
 					Quatf ev_quat_aligned = quat_ev2ekf * matrix::Quatf(_ev_odom.q) ;
 					ev_quat_aligned.normalize();
 
-					for (unsigned i = 0; i < 4; i++) {
-						aligned_ev_odom.q[i] = ev_quat_aligned(i);
-						aligned_ev_odom.q_offset[i] = quat_ev2ekf(i);
-					}
+					ev_quat_aligned.copyTo(aligned_ev_odom.q);
+					quat_ev2ekf.copyTo(aligned_ev_odom.q_offset);
 
 					_vehicle_aligned_visual_odometry_pub.publish(aligned_ev_odom);
 				}
