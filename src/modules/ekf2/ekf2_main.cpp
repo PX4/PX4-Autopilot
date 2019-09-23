@@ -291,7 +291,7 @@ private:
 	uORB::PublicationMulti<wind_estimate_s>			_wind_pub{ORB_ID(wind_estimate)};
 	uORB::PublicationData<vehicle_global_position_s>	_vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
 	uORB::PublicationData<vehicle_local_position_s>		_vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
-	uORB::PublicationData<vehicle_odometry_s>		_vehicle_aligned_visual_odometry_pub{ORB_ID(vehicle_aligned_visual_odometry)};
+	uORB::PublicationData<vehicle_odometry_s>		_vehicle_visual_odometry_aligned_pub{ORB_ID(vehicle_visual_odometry_aligned)};
 
 	Ekf _ekf;
 
@@ -1457,7 +1457,7 @@ void Ekf2::run()
 					ev_quat_aligned.copyTo(aligned_ev_odom.q);
 					quat_ev2ekf.copyTo(aligned_ev_odom.q_offset);
 
-					_vehicle_aligned_visual_odometry_pub.publish(aligned_ev_odom);
+					_vehicle_visual_odometry_aligned_pub.publish(aligned_ev_odom);
 				}
 
 				if (_ekf.global_position_is_valid() && !_preflt_fail) {
