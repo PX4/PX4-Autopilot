@@ -53,7 +53,7 @@ bool Ekf::resetVelocity()
 	Vector3f vel_before_reset = _state.vel;
 
 	// reset EKF states
-        if (_control_status.flags.gps && _gps_check_fail_status.value==0) {
+	if (_control_status.flags.gps && _gps_check_fail_status.value==0) {
 		// this reset is only called if we have new gps data at the fusion time horizon
 		_state.vel = _gps_sample_delayed.vel;
 
@@ -94,16 +94,16 @@ bool Ekf::resetVelocity()
 
 		// reset the horizontal velocity variance using the optical flow noise variance
 		P[5][5] = P[4][4] = sq(range) * calcOptFlowMeasVar();
-        } else if (_control_status.flags.ev_vel) {
-                Vector3f _ev_vel = _ev_sample_delayed.velNED;
-                if(_params.fusion_mode & MASK_ROTATE_EV){
-                    _ev_vel = _ev_rot_mat *_ev_sample_delayed.velNED;
-                }
-                _state.vel(0) = _ev_vel(0);
-                _state.vel(1) = _ev_vel(1);
-                _state.vel(2) = _ev_vel(2);
-                // TODO: to what should we set the covariances?
-        } else if (_control_status.flags.ev_pos) {
+	} else if (_control_status.flags.ev_vel) {
+		Vector3f _ev_vel = _ev_sample_delayed.velNED;
+		if(_params.fusion_mode & MASK_ROTATE_EV){
+			_ev_vel = _ev_rot_mat *_ev_sample_delayed.velNED;
+		}
+		_state.vel(0) = _ev_vel(0);
+		_state.vel(1) = _ev_vel(1);
+		_state.vel(2) = _ev_vel(2);
+		// TODO: to what should we set the covariances?
+	} else if (_control_status.flags.ev_pos) {
 		_state.vel.setZero();
 		zeroOffDiag(P, 4, 6);
 	} else {
@@ -156,12 +156,12 @@ bool Ekf::resetPosition()
 
 	} else if (_control_status.flags.ev_pos) {
 		// this reset is only called if we have new ev data at the fusion time horizon
-                Vector3f _ev_pos = _ev_sample_delayed.posNED;
-                if(_params.fusion_mode & MASK_ROTATE_EV){
-                    _ev_pos = _ev_rot_mat *_ev_sample_delayed.posNED;
-                }
-                _state.pos(0) = _ev_pos(0);
-                _state.pos(1) = _ev_pos(1);
+		Vector3f _ev_pos = _ev_sample_delayed.posNED;
+		if(_params.fusion_mode & MASK_ROTATE_EV){
+			_ev_pos = _ev_rot_mat *_ev_sample_delayed.posNED;
+		}
+		_state.pos(0) = _ev_pos(0);
+		_state.pos(1) = _ev_pos(1);
 
 		// use EV accuracy to reset variances
 		setDiag(P, 7, 8, sq(_ev_sample_delayed.posErr));
@@ -1085,10 +1085,10 @@ void Ekf::get_ekf_vel_accuracy(float *ekf_evh, float *ekf_evv)
 			vel_err_conservative = math::max(vel_err_conservative, sqrtf(sq(_vel_pos_innov[0]) + sq(_vel_pos_innov[1])));
 		}
 
-                if (_control_status.flags.ev_vel) {
-                    // What is the right thing to do here
+		if (_control_status.flags.ev_vel) {
+			// What is the right thing to do here
 //			vel_err_conservative = math::max(vel_err_conservative, sqrtf(sq(_vel_pos_innov[0]) + sq(_vel_pos_innov[1])));
-                }
+		}
 
 		hvel_err = math::max(hvel_err, vel_err_conservative);
 	}
@@ -1208,7 +1208,7 @@ void Ekf::get_ekf_soln_status(uint16_t *status)
 	ekf_solution_status soln_status;
 
 	soln_status.flags.attitude = _control_status.flags.tilt_align && _control_status.flags.yaw_align && (_fault_status.value == 0);
-        soln_status.flags.velocity_horiz = (_control_status.flags.gps || _control_status.flags.ev_pos|| _control_status.flags.ev_vel || _control_status.flags.opt_flow || (_control_status.flags.fuse_beta && _control_status.flags.fuse_aspd)) && (_fault_status.value == 0);
+	soln_status.flags.velocity_horiz = (_control_status.flags.gps || _control_status.flags.ev_pos|| _control_status.flags.ev_vel || _control_status.flags.opt_flow || (_control_status.flags.fuse_beta && _control_status.flags.fuse_aspd)) && (_fault_status.value == 0);
 	soln_status.flags.velocity_vert = (_control_status.flags.baro_hgt || _control_status.flags.ev_hgt || _control_status.flags.gps_hgt || _control_status.flags.rng_hgt) && (_fault_status.value == 0);
 	soln_status.flags.pos_horiz_rel = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.opt_flow) && (_fault_status.value == 0);
 	soln_status.flags.pos_horiz_abs = (_control_status.flags.gps || _control_status.flags.ev_pos) && (_fault_status.value == 0);
