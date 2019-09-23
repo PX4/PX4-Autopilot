@@ -69,7 +69,7 @@ public:
     AxisAngle(const Quaternion<Type> &q)
     {
         AxisAngle &v = *this;
-        Type ang = Type(2.0f)*acos(q(0));
+        Type ang = Type(2) * acos(q(0));
         Type mag = sin(ang/2.0f);
         if (fabs(mag) > 0) {
             v(0) = ang*q(1)/mag;
