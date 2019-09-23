@@ -55,6 +55,10 @@ protected:
 
 	virtual void _updateSetpoints() override;
 
+	/** Reset position or velocity setpoints in case of EKF reset event */
+	void _ekfResetHandlerPositionZ() override;
+	void _ekfResetHandlerVelocityZ() override;
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
 		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
@@ -65,16 +69,8 @@ private:
 
 	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
 
-	void _initEkfResetCounters();
-	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
 	void _updateTrajConstraints();
 	void _setOutputState();
 
 	ManualVelocitySmoothingZ _smoothing; ///< Smoothing in z direction
-
-	/* counters for estimator local position resets */
-	struct {
-		uint8_t z;
-		uint8_t vz;
-	} _reset_counters{0, 0};
 };
