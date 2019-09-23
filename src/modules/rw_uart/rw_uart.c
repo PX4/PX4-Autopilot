@@ -304,12 +304,13 @@ int rw_uart_thread_main(int argc, char *argv[])
 
             msg_orb_data(&msg_data, msg_fd);
             msg_pack_send(msg_data);
+            usleep(10000);
 
-            int poll_ret = poll(fds,1,10);//阻塞等待10ms
+            int poll_ret = poll(fds,1,10);//阻塞等待20ms
             if (poll_ret == 0)
             {
                     /* this means none of our providers is giving us data */
-                  //printf("No receive data for 10ms\n");
+                  //printf("No receive data for 20ms\n");
             } else if (poll_ret < 0)
             {
                /* this is seriously bad - should be an emergency */
@@ -342,7 +343,7 @@ int rw_uart_thread_main(int argc, char *argv[])
                }
             }
 
-          usleep(1000000);
+          //usleep(1000000);
           //usleep(10000);
 
         }

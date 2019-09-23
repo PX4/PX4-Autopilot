@@ -116,9 +116,9 @@ void stp_pack (STP *stp, MSG_orb_data stp_data){
     stp->acc_back = (int16_t)(-stp_data.local_position_data.ax *100.0);
     stp->acc_down = (int16_t)(-stp_data.local_position_data.az *100.0);
 
-    stp->evh = (uint8_t)(stp_data.vibe_data.vibe[2] *10.0);
+    stp->evv = (uint8_t)(stp_data.vibe_data.vibe[2] *500);
     //printf("vibe_data2 is %.8f\n",stp_data.vibe_data.vibe[2]);
-    stp->evv = (uint8_t)(stp_data.vibe_data.vibe[1] * 100000.0);
+    stp->evh = (uint8_t)(stp_data.vibe_data.vibe[1] *5000);
     //printf("vibe_data1 is %.8f\n",stp_data.vibe_data.vibe[1]);
 
     float q0 = stp_data.attitude_data.q[0];
@@ -255,16 +255,43 @@ void yfpa_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd){
         yfpa_param->mav_type = 8;
         break;
     default:
+        yfpa_param->mav_type = 0;
         break;
     }
     param_get(msg_hd.battery_n_cells_hd, &paramd);
     yfpa_param->battery_num = (uint8_t)(paramd);
     param_get(msg_hd.battery_warn_hd, &paramf);
-    yfpa_param->battery_warn = (uint8_t)((paramf-0.12) * 910.7);
+    paramf = 3.50 + 0.55 *paramf;
+    if (paramf < 3.55) yfpa_param->battery_warn = 0x00;
+    else if (paramf < 3.60) yfpa_param->battery_warn = 0x04;
+    else if (paramf < 3.65) yfpa_param->battery_warn = 0x08;
+    else yfpa_param->battery_warn = 0x0c;
+    //yfpa_param->battery_warn = (uint8_t)((paramf-0.12) * 910.7);
     param_get(msg_hd.battery_fail_hd, &paramd);
-    yfpa_param->bettery_fail = (uint8_t)(paramd);
+    int fail_act = 0;
+    switch (paramd) {
+    case 0:
+        fail_act = 0x06;
+        break;
+    case 1:
+        fail_act = 0x04;
+        break;
+    case 2:
+        fail_act = 0x05;
+        break;
+    case 3:
+        fail_act = 0x00;
+        break;
+    default:
+        fail_act = 0x00;
+        break;
+    }
     param_get(msg_hd.rc_lost_act_hd, &paramd);
     yfpa_param->rc_lost_act = (uint8_t)(paramd);
+    if (paramd == 2) fail_act |= 0x00;
+    else if (paramd == 3) fail_act |= 0x10;
+    else fail_act |= 0x20;
+    yfpa_param->bettery_fail = (uint8_t)(fail_act);
     param_get(msg_hd.dn_vel_max_hd, &paramf);
     yfpa_param->dn_vel_max = (uint8_t)(paramf  * 63.75);
 }

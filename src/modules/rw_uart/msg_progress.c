@@ -13,7 +13,7 @@ void msg_pack_send( MSG_orb_data msg_data)
     //send_message[98] =0xab;
    // send_message[97] = (uint8_t)(msg_data.cpu_data.ram_usage * 100.0);
     //printf("send length : %d, %d\n", sizeof(msg_send->stp), sizeof(send_message));
-    write(uart_read, send_message, sizeof(msg_send.stp));
+    //write(uart_read, send_message, sizeof(msg_send.stp));
 }
 
 void msg_param_saved_get(MSG_param_hd msg_hd)
@@ -26,7 +26,7 @@ void msg_param_saved_get(MSG_param_hd msg_hd)
     param_saved[60] = (uint8_t)(crc & 0x00ff);
     param_saved[61] = (uint8_t)((crc & 0xff00)>>8);
     //param_saved[61] = 0xac;
-    //write(uart_read, param_saved, sizeof(msg_response.yfpa_param));
+    write(uart_read, param_saved, sizeof(msg_response.yfpa_param));
 }
 
 bool set_rc_channel_max(int channel){
@@ -316,7 +316,7 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             msg_data->command_data.param4 = 0.0;
             msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)* 1e-7;
             msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)* 1e-7;
-            msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0 +10.0;
+            msg_data->command_data.param7 = 0; //((float_t) msg_data->gps_data.alt)/1000.0;
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing takeoff\n");
             break;
@@ -759,7 +759,7 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
         msg_type.name =MSG_NAME_EXYF;
         msg_type.command = buffer[7];
         uint16_t  crc_receive = (uint16_t)buffer[buflen -2] + ((uint16_t)buffer[buflen -1] << 8);
-        //if (check_command_repeat(buffer, msg_type) && crc_receive == check_crc(buffer, buflen, 9))
+        //if (check_command_repeat(buffer, msg_type) && crc_receive == check_crc(buffer, buflen))
         if (check_command_repeat(buffer, msg_type) && buffer[buflen -1] == 0x3f)
          {
             //exyf_pack(buffer, msg_data, msg_type, msg_hd);
