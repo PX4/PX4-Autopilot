@@ -42,6 +42,7 @@ import sys
 import os
 import argparse
 import shutil
+from six.moves import input
 import px_generate_uorb_topic_files
 import px_generate_uorb_topic_helper
 from uorb_rtps_classifier import Classifier
@@ -281,9 +282,9 @@ if agent == False and client == False:
 
 if del_tree:
     if agent:
-        _continue = str(raw_input("\nFiles in " + agent_out_dir +
-                                  " will be erased, continue?[Y/n]\n"))
-        if _continue == "N" or _continue == "n":
+        _continue = str(input("\nFiles in " + agent_out_dir +
+                              " will be erased, continue?[Y/n]\n"))
+        if _continue.strip() in ("N", "n"):
             print("Aborting execution...")
             exit(-1)
         else:
@@ -291,9 +292,9 @@ if del_tree:
                 shutil.rmtree(agent_out_dir)
 
     if client:
-        _continue = str(raw_input(
+        _continue = str(input(
             "\nFiles in " + client_out_dir + " will be erased, continue?[Y/n]\n"))
-        if _continue == "N" or _continue == "n":
+        if _continue.strip() in ("N", "n"):
             print("Aborting execution...")
             exit(-1)
         else:
