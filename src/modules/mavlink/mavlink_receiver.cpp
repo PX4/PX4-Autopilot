@@ -1242,7 +1242,6 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		odometry.pose_covariance[i] = odom.pose_covariance[i];
 	}
 
-
 	/*
 	 * PX4 expects the body's linear velocity in the local frame,
 	 * the linear velocity is rotated from the odom child_frame to the
@@ -1256,6 +1255,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 
 		/* the linear velocities needs to be transformed to the local NED frame */
 		matrix::Vector3<float> linvel_local(R_body_to_local * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
+
 		odometry.vx = linvel_local(0);
 		odometry.vy = linvel_local(1);
 		odometry.vz = linvel_local(2);
