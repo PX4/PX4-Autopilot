@@ -238,12 +238,12 @@ protected:
 
 	/* Counters for estimator local position resets */
 	struct {
-		uint8_t xy;
-		uint8_t vxy;
-		uint8_t z;
-		uint8_t vz;
-		uint8_t quat;
-	} _reset_counters{0, 0, 0, 0, 0};
+		uint8_t xy = 0;
+		uint8_t vxy = 0;
+		uint8_t z = 0;
+		uint8_t vz = 0;
+		uint8_t quat = 0;
+	} _reset_counters;
 
 	/**
 	 * Vehicle constraints.
