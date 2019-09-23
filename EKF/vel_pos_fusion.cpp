@@ -147,7 +147,7 @@ void Ekf::fuseVelPosHeight()
 		} else if (_control_status.flags.ev_hgt) {
 			fuse_map[5] = true;
 			// calculate the innovation assuming the external vision observation is in local NED frame
-			innovation[5] = _state.pos(2) - _ev_sample_delayed.posNED(2);
+			innovation[5] = _state.pos(2) - _ev_sample_delayed.pos(2);
 			// observation variance - defined externally
 			R[5] = fmaxf(_ev_sample_delayed.hgtErr, 0.01f);
 			R[5] = R[5] * R[5];
