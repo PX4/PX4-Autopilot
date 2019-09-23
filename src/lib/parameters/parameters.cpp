@@ -961,9 +961,11 @@ param_save_default()
 	const char *filename = param_get_default_file();
 
 	if (!filename) {
+		perf_begin(param_export_perf);
 		param_lock_writer();
 		res = flash_param_save(false);
 		param_unlock_writer();
+		perf_end(param_export_perf);
 		return res;
 	}
 
