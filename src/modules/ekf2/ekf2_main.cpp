@@ -1181,9 +1181,7 @@ void Ekf2::run()
 				// orientation measurement error from parameters
 				if (PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_ROLL_VARIANCE])) {
 					ev_data.angErr = fmaxf(_param_ekf2_eva_noise.get(),
-							       sqrtf(fmaxf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_ROLL_VARIANCE],
-									   fmaxf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_PITCH_VARIANCE],
-											   _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE]))));
+							       sqrtf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE]));
 
 				} else {
 					ev_data.angErr = _param_ekf2_eva_noise.get();
