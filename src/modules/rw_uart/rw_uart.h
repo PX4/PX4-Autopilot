@@ -47,6 +47,7 @@
 #include <uORB/topics/arm_disarm.h>
 #include <uORB/topics/follow_target.h>
 #include <uORB/topics/estimator_status.h>
+#include <uORB/topics/vehicle_global_position.h>
 
 #define WP_DATA_NUM_MAX (uint16_t) 20
 
@@ -343,6 +344,7 @@ typedef struct {
 //    int input_rc_fd;
     //int cpu_fd;
 //    int control_mode_fd;
+    int global_position_fd;
 }MSG_orb_sub;
 
 typedef struct {
@@ -375,6 +377,7 @@ typedef struct {
 //    struct vehicle_status_flags_s status_flags_data;
     struct arm_disarm_s arm_disarm_data;
     struct estimator_status_s vibe_data;
+    struct vehicle_global_position_s global_position_data;
 //    struct follow_target_s follow_target_data;
     //struct cpuload_s cpu_data;
 }MSG_orb_data;

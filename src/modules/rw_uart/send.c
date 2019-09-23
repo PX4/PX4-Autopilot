@@ -227,9 +227,9 @@ void yfpa_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd){
     yfpa_param->dist_max = (uint16_t)(paramf * 6.5535);
     param_get(msg_hd.mav_type_hd, &paramd);
     switch (paramd) {
-    case 5001:
-        yfpa_param->mav_type = 0;
-        break;
+//    case 5001:
+//        yfpa_param->mav_type = 0;
+//        break;
     case 4001:
         yfpa_param->mav_type = 1;
         break;
@@ -279,9 +279,9 @@ void yfpa_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd){
     case 2:
         fail_act = 0x05;
         break;
-    case 3:
-        fail_act = 0x00;
-        break;
+//    case 3:
+//        fail_act = 0x00;
+//        break;
     default:
         fail_act = 0x00;
         break;

@@ -121,6 +121,7 @@ void msg_orb_sub (MSG_orb_sub *msg_fd)
     msg_fd->battery_fd = orb_subscribe(ORB_ID(battery_status));
     msg_fd->geofence_fd = orb_subscribe(ORB_ID(geofence_result));
     msg_fd->vibe_fd = orb_subscribe(ORB_ID(estimator_status));
+    msg_fd->global_position_fd = orb_subscribe(ORB_ID(vehicle_global_position));
     //msg_fd->input_rc_fd = orb_subscribe(ORB_ID(input_rc));
     //msg_fd->control_mode_fd = orb_subscribe(ORB_ID(vehicle_control_mode));
     //msg_fd->cpu_fd = orb_subscribe(ORB_ID(cpuload));
@@ -142,6 +143,7 @@ void msg_orb_data(MSG_orb_data *msg_data, MSG_orb_sub msg_fd)
    orb_copy(ORB_ID(battery_status), msg_fd.battery_fd, &msg_data->battery_data);
    orb_copy(ORB_ID(geofence_result), msg_fd.geofence_fd, &msg_data->geofence_data);
    orb_copy(ORB_ID(estimator_status), msg_fd.vibe_fd, &msg_data->vibe_data);
+   orb_copy(ORB_ID(vehicle_global_position), msg_fd.global_position_fd, &msg_data->global_position_data);
    //orb_copy(ORB_ID(input_rc), msg_fd.input_rc_fd, &msg_data->input_rc_data);
    //orb_copy(ORB_ID(vehicle_control_mode), msg_fd.control_mode_fd, &msg_data->control_mode_data);
    //orb_copy(ORB_ID(cpuload), msg_fd.cpu_fd, &msg_data->cpu_data);
@@ -162,6 +164,7 @@ void msg_orb_unsub (MSG_orb_sub *msg_fd)
     orb_unsubscribe(msg_fd->battery_fd);
     orb_unsubscribe(msg_fd->geofence_fd);
     orb_unsubscribe(msg_fd->vibe_fd);
+    orb_unsubscribe(msg_fd->global_position_fd);
     //orb_unsubscribe(msg_fd->cpu_fd);
 }
 

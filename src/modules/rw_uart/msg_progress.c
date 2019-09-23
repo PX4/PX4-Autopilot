@@ -288,10 +288,10 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
         case WIFI_COMM_WAYPOINT:
             msg_data->command_data.command = 16; //VEHICLE_CMD_NAV_WAYPOINT
             //data = ((int32_t) buffer[6]) + ((int32_t) buffer[7]<<8) +((int32_t) buffer[8]<<16) + ((int32_t)buffer[9]<<24);
-            msg_data->command_data.param5 = ((float_t)*(int32_t*)((uint32_t)buffer + 6)) * 1e-7;
+            msg_data->command_data.param5 = ((double_t)*(int32_t*)((uint32_t)buffer + 6)) * 1e-7;
             //memcpy(&msg_data->command_data.param5, &buffer[6], sizeof(float_t));
             //printf("lat: %d\n", *(int32_t*)((uint32_t)buffer + 6));
-            msg_data->command_data.param6 = ((float_t)*(int32_t*)((uint32_t)buffer + 10))* 1e-7;
+            msg_data->command_data.param6 = ((double_t)*(int32_t*)((uint32_t)buffer + 10))* 1e-7;
             //printf("lon: %d\n", *(int32_t*)((uint32_t)buffer + 10));
             msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0;
             msg_data->command_data.param1 = 0.0;
@@ -304,8 +304,8 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
         case WIFI_COMM_AUTO_LAND:
             msg_data->command_data.command = 21; //VEHICLE_CMD_NAV_LAND
             msg_data->command_data.param4 = 0.0;
-            msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)* 1e-7;
-            msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)* 1e-7;
+            msg_data->command_data.param5 = ((double_t)msg_data->global_position_data.lat); //* 1e-7;
+            msg_data->command_data.param6 = ((double_t)msg_data->global_position_data.lon); //* 1e-7;
             msg_data->command_data.param7 = 0.0;
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing land\n");
@@ -314,9 +314,10 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             msg_data->command_data.command = 22; //VEHICLE_CMD_NAV_TAKEOFF
             msg_data->command_data.param1 = 0.0;
             msg_data->command_data.param4 = 0.0;
-            msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)* 1e-7;
-            msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)* 1e-7;
-            msg_data->command_data.param7 = 0; //((float_t) msg_data->gps_data.alt)/1000.0;
+            msg_data->command_data.param5 = ((double_t)msg_data->global_position_data.lat); //* 1e-7;
+            msg_data->command_data.param6 = ((double_t)msg_data->global_position_data.lon); //* 1e-7;
+            msg_data->command_data.param7 =((float_t) msg_data->global_position_data.alt) +10.0; //
+            printf("Global alt is %.4f\n", msg_data->global_position_data.alt);
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing takeoff\n");
             break;
@@ -400,8 +401,8 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             break;
         case WIFI_COMM_HIGHT_CHANGE:
             msg_data->command_data.command = 16; //VEHICLE_CMD_NAV_WAYPOINT
-            msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)* 1e-7;
-            msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)* 1e-7;
+            msg_data->command_data.param5 = ((double_t)msg_data->gps_data.lat)* 1e-7;
+            msg_data->command_data.param6 = ((double_t)msg_data->gps_data.lon)* 1e-7;
             msg_data->command_data.param7 = ((float_t)*(int16_t*)((uint32_t)buffer + 7))/10.0;
             msg_data->command_data.param1 = 0.0;
             msg_data->command_data.param2 = 0.0;
@@ -446,8 +447,8 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             msg_data->command_data.command = 17; //CMD_NAV_LOITER_UNLIM
             msg_data->command_data.param3 = 0;
             msg_data->command_data.param4 = 0;
-            msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)* 1e-7;
-            msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)* 1e-7;
+            msg_data->command_data.param5 = ((double_t)msg_data->gps_data.lat)* 1e-7;
+            msg_data->command_data.param6 = ((double_t)msg_data->gps_data.lon)* 1e-7;
             msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0;
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing auto_off\n");
@@ -513,8 +514,8 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             msg_data->command_data.command = 17; //CMD_NAV_LOITER_UNLIM
             msg_data->command_data.param3 = 0;
             msg_data->command_data.param4 = (float_t)*(int32_t*)((uint32_t)buffer + 9);
-            msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)* 1e-7;
-            msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)* 1e-7;
+            msg_data->command_data.param5 = ((double_t)msg_data->gps_data.lat)* 1e-7;
+            msg_data->command_data.param6 = ((double_t)msg_data->gps_data.lon)* 1e-7;
             msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0;
             }
             publish_commander_pd(msg_pd, msg_data);
@@ -612,8 +613,8 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             msg_data->command_data.command = 17; //CMD_NAV_LOITER_UNLIM
             msg_data->command_data.param3 = 0;
             msg_data->command_data.param4 = 0;
-            msg_data->command_data.param5 = ((float_t)msg_data->gps_data.lat)* 1e-7;
-            msg_data->command_data.param6 = ((float_t)msg_data->gps_data.lon)* 1e-7;
+            msg_data->command_data.param5 = ((double_t)msg_data->gps_data.lat)* 1e-7;
+            msg_data->command_data.param6 = ((double_t)msg_data->gps_data.lon)* 1e-7;
             msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0 + paramf /10.0;
             paramf = *(float_t*)((uint32_t)buffer + 11);
             param_set(msg_hd.up_vel_max_hd, &paramf);
