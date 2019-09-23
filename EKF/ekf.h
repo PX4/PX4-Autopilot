@@ -310,7 +310,7 @@ private:
 	Vector3f _ev_rot_vec_filt;		///< filtered rotation vector defining the rotation EV to EKF reference, initiliazied to zero rotation  (rad)
 	Dcmf _ev_rot_mat;			///< transformation matrix that rotates observations from the EV to the EKF navigation frame, initialized with Identity
 	uint64_t _ev_rot_last_time_us{0};	///< previous time that the calculation of the EV to EKF rotation matrix was updated (uSec)
-        bool _ev_rot_mat_initialised{0};	///< _ev_rot_mat should only be initialised once in the beginning through the reset function
+	bool _ev_rot_mat_initialised{0};	///< _ev_rot_mat should only be initialised once in the beginning through the reset function
 
 	// booleans true when fresh sensor data is available at the fusion time horizon
 	bool _gps_data_ready{false};	///< true when new GPS data has fallen behind the fusion time horizon and is available to be fused
