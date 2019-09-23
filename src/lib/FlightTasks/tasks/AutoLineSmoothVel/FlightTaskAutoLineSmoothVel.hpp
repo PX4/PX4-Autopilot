@@ -65,12 +65,7 @@ protected:
 				       );
 
 	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
-	float _getSpeedAtTarget();
-	float _getMaxSpeedFromDistance(float braking_distance);
-	void _generateSetpoints() override; /**< Generate setpoints along line. */
 
-	/** determines when to trigger a takeoff (ignored in flight) */
-	bool _checkTakeoff() override { return _want_takeoff; };
 	/** Reset position or velocity setpoints in case of EKF reset event */
 	void _ekfResetHandlerPositionXY() override;
 	void _ekfResetHandlerVelocityXY() override;
@@ -78,16 +73,23 @@ protected:
 	void _ekfResetHandlerVelocityZ() override;
 	void _ekfResetHandlerHeading(float delta_psi) override;
 
+	void _generateSetpoints() override; /**< Generate setpoints along line. */
+	void _generateHeading();
+	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
+
 	inline float _constrainOneSide(float val, float constraint); /**< Constrain val between INF and constraint */
 	inline float _constrainAbs(float val, float min, float max); /**< Constrain absolute value of val between min and max */
 
-	void _generateHeading();
-	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
-	void _updateTrajConstraints();
-	void _prepareSetpoints(); /**< Generate velocity target points for the trajectory generator. */
-	void _generateTrajectory();
-	VelocitySmoothing _trajectory[3]; ///< Trajectories in x, y and z directions
+	float _getSpeedAtTarget();
+	float _getMaxSpeedFromDistance(float braking_distance);
 
+	void _prepareSetpoints(); /**< Generate velocity target points for the trajectory generator. */
+	void _updateTrajConstraints();
+	void _generateTrajectory();
+
+	/** determines when to trigger a takeoff (ignored in flight) */
+	bool _checkTakeoff() override { return _want_takeoff; };
 	bool _want_takeoff{false};
 
+	VelocitySmoothing _trajectory[3]; ///< Trajectories in x, y and z directions
 };
