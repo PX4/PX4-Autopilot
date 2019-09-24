@@ -2207,7 +2207,7 @@ Commander::run()
 		}
 
 		/* Check for failure detector status */
-		const bool failure_detector_updated = _failure_detector.update();
+		const bool failure_detector_updated = _failure_detector.update(status);
 
 		if (failure_detector_updated) {
 
