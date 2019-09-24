@@ -1153,6 +1153,23 @@ void Ekf2::run()
 			_ev_odom_sub.copy(&_ev_odom);
 
 			ext_vision_message ev_data;
+			// check for valid velocity data
+			if (PX4_ISFINITE(_ev_odom.vx) && PX4_ISFINITE(_ev_odom.vy) && PX4_ISFINITE(_ev_odom.vz)) {
+				ev_data.vel(0) = _ev_odom.vx;
+				ev_data.vel(1) = _ev_odom.vy;
+				ev_data.vel(2) = _ev_odom.vz;
+
+				// velocity measurement error from parameters
+				if (PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_X_VARIANCE])) {
+					ev_data.velErr = fmaxf(_param_ekf2_evv_noise.get(),
+							       sqrtf(fmaxf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE],
+									   fmaxf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VY_VARIANCE],
+											   _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE]))));
+
+				} else {
+					ev_data.velErr = _param_ekf2_evv_noise.get();
+				}
+			}
 
 			// check for valid position data
 			if (PX4_ISFINITE(_ev_odom.x) && PX4_ISFINITE(_ev_odom.y) && PX4_ISFINITE(_ev_odom.z)) {
