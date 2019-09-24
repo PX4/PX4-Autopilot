@@ -133,19 +133,16 @@
 #define GPIO_USART2_RTS	0xffffffff
 #undef GPIO_USART2_CK
 #define GPIO_USART2_CK 	0xffffffff
-#undef GPIO_USART3_CK
-#define GPIO_USART3_CK 	0xffffffff
-#undef GPIO_USART3_CTS
-#define GPIO_USART3_CTS	0xffffffff
-#undef GPIO_USART3_RTS
-#define GPIO_USART3_RTS	0xffffffff
 
 /***********************************************************************************/
-#define DMAMAP_USART1_RX DMAMAP_USART1_RX_1
 #define GPIO_USART1_TX	GPIO_USART1_TX_1
 #define GPIO_USART1_RX	GPIO_USART1_RX_1
 #define GPIO_USART2_TX	GPIO_USART2_TX_1
 #define GPIO_USART2_RX	GPIO_USART2_RX_1
+#define GPIO_USART6_TX	GPIO_USART6_TX_1
+#define GPIO_USART6_RX	GPIO_USART6_RX_1
+#define DMAMAP_USART1_RX DMAMAP_USART1_RX_2
+#define DMAMAP_USART6_RX DMAMAP_USART6_RX_2
 #define GPIO_I2C1_SCL	GPIO_I2C1_SCL_1
 #define GPIO_I2C1_SDA 	GPIO_I2C1_SDA_1
 #define DMA_CCR_DIR         DMA_SCR_DIR_M2P

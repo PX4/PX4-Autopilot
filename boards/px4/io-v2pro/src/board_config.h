@@ -57,7 +57,7 @@
 /******************************************************************************
  * Serial
  ******************************************************************************/
-#define PX4FMU_SERIAL_BASE		STM32_USART2_BASE
+#define PX4FMU_SERIAL_BASE	STM32_USART2_BASE
 #define PX4FMU_SERIAL_VECTOR	STM32_IRQ_USART2
 #define PX4FMU_SERIAL_TX_GPIO	GPIO_USART2_TX
 #define PX4FMU_SERIAL_RX_GPIO	GPIO_USART2_RX

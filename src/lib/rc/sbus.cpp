@@ -54,7 +54,7 @@
 
 using namespace time_literals;
 
-#define SBUS_DEBUG_LEVEL 	0 /* Set debug output level */
+#define SBUS_DEBUG_LEVEL 	1 /* Set debug output level */
 
 #if defined(__PX4_POSIX_OCPOC)
 #include <sys/ioctl.h>
