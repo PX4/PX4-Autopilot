@@ -566,8 +566,8 @@ Ekf2::Ekf2():
 	_param_ekf2_baro_gate(_params->baro_innov_gate),
 	_param_ekf2_gnd_eff_dz(_params->gnd_effect_deadzone),
 	_param_ekf2_gnd_max_hgt(_params->gnd_effect_max_hgt),
-	_param_ekf2_gps_p_gate(_params->posNE_innov_gate),
-	_param_ekf2_gps_v_gate(_params->vel_innov_gate),
+	_param_ekf2_gps_p_gate(_params->gps_pos_innov_gate),
+	_param_ekf2_gps_v_gate(_params->gps_vel_innov_gate),
 	_param_ekf2_tas_gate(_params->tas_innov_gate),
 	_param_ekf2_head_noise(_params->mag_heading_noise),
 	_param_ekf2_mag_noise(_params->mag_noise),
@@ -1156,9 +1156,9 @@ void Ekf2::run()
 
 			// check for valid position data
 			if (PX4_ISFINITE(_ev_odom.x) && PX4_ISFINITE(_ev_odom.y) && PX4_ISFINITE(_ev_odom.z)) {
-				ev_data.posNED(0) = _ev_odom.x;
-				ev_data.posNED(1) = _ev_odom.y;
-				ev_data.posNED(2) = _ev_odom.z;
+				ev_data.pos(0) = _ev_odom.x;
+				ev_data.pos(1) = _ev_odom.y;
+				ev_data.pos(2) = _ev_odom.z;
 
 				// position measurement error from parameter
 				if (PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_X_VARIANCE])) {
