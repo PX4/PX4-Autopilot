@@ -720,6 +720,8 @@ private:
 
 	void publish_telemetry_status();
 
+	void check_requested_subscriptions();
+
 	/**
 	 * Check the configuration of a connected radio
 	 *
