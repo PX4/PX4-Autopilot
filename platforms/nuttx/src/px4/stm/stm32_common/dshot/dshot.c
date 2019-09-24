@@ -170,28 +170,22 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 
 	for (unsigned channel = 0; (channel_mask != 0) && (channel < MAX_TIMER_IO_CHANNELS) && (OK == ret_val); channel++) {
 		if (channel_mask & (1 << channel)) {
+			uint8_t timer = timer_io_channels[channel].timer_index;
+
+			if (io_timers[timer].dshot.dma_base == 0) { // board does not configure dshot on this timer
+				continue;
+			}
 
 			// First free any that were not DShot mode before
 			if (-EBUSY == io_timer_is_channel_free(channel)) {
 				io_timer_free_channel(channel);
 			}
 
-			int success = io_timer_channel_init(channel, IOTimerChanMode_Dshot, NULL, NULL);
+			ret_val = io_timer_channel_init(channel, IOTimerChanMode_Dshot, NULL, NULL);
 
-			if (OK == success) {
+			if (OK == ret_val) {
 				channel_mask &= ~(1 << channel);
-				uint8_t timer = timer_io_channels[channel].timer_index;
-
-				if (io_timers[timer].dshot.dma_base == 0) { // board does not configure dshot
-					io_timer_free_channel(channel);
-					ret_val = ERROR;
-
-				} else {
-					dshot_handler[timer].init = true;
-				}
-
-			} else {
-				ret_val = ERROR;
+				dshot_handler[timer].init = true;
 			}
 		}
 	}
