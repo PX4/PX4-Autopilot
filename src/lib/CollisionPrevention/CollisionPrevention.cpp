@@ -315,7 +315,7 @@ void CollisionPrevention::_adaptSetpointDirection(Vector2f &setpoint_dir, int &s
 
 			float angle = math::radians((float)bin * INTERNAL_MAP_INCREMENT_DEG + _obstacle_map_body_frame.angle_offset);
 			angle  = wrap_2pi(vehicle_yaw_angle_rad + angle);
-			setpoint_dir = {cos(angle), sin(angle)};
+			setpoint_dir = {cosf(angle), sinf(angle)};
 			setpoint_index = bin;
 		}
 	}

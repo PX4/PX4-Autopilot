@@ -841,7 +841,7 @@ TEST_F(CollisionPreventionTest, adaptSetpointDirection_distinct_minimum)
 
 	//define setpoint
 	matrix::Vector2f setpoint_dir(1, 0);
-	float sp_angle_body_frame = matrix::atan2(setpoint_dir(1), setpoint_dir(0)) - vehicle_yaw_angle_rad;
+	float sp_angle_body_frame = atan2f(setpoint_dir(1), setpoint_dir(0)) - vehicle_yaw_angle_rad;
 	float sp_angle_with_offset_deg = matrix::wrap(math::degrees(sp_angle_body_frame) - cp.getObstacleMap().angle_offset,
 					 0.f, 360.f);
 	int sp_index = floor(sp_angle_with_offset_deg / cp.getObstacleMap().increment);
@@ -890,7 +890,7 @@ TEST_F(CollisionPreventionTest, adaptSetpointDirection_flat_minimum)
 
 	//define setpoint
 	matrix::Vector2f setpoint_dir(1, 0);
-	float sp_angle_body_frame = matrix::atan2(setpoint_dir(1), setpoint_dir(0)) - vehicle_yaw_angle_rad;
+	float sp_angle_body_frame = atan2f(setpoint_dir(1), setpoint_dir(0)) - vehicle_yaw_angle_rad;
 	float sp_angle_with_offset_deg = matrix::wrap(math::degrees(sp_angle_body_frame) - cp.getObstacleMap().angle_offset,
 					 0.f, 360.f);
 	int sp_index = floor(sp_angle_with_offset_deg / cp.getObstacleMap().increment);
