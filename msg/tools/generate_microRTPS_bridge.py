@@ -42,7 +42,6 @@ import sys
 import os
 import argparse
 import shutil
-from six.moves import input
 import px_generate_uorb_topic_files
 import px_generate_uorb_topic_helper
 from uorb_rtps_classifier import Classifier
@@ -54,6 +53,13 @@ try:
 except ImportError:
     raise ImportError(
         "Failed to import yaml. You may need to install it with 'sudo pip install pyyaml'")
+try:
+    from six.moves import input
+except ImportError:
+    try:
+        input = raw_input  # Python 2
+    except NameError:
+        pass  # Python 3
 
 
 def check_rtps_id_uniqueness(classifier):
