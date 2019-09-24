@@ -421,10 +421,14 @@ private:
 		// vision estimate fusion
 		(ParamFloat<px4::params::EKF2_EVP_NOISE>)
 		_param_ekf2_evp_noise,	///< default position observation noise for exernal vision measurements (m)
+		(ParamFloat<px4::params::EKF2_EVV_NOISE>)
+		_param_ekf2_evv_noise,	///< default velocity observation noise for exernal vision measurements (m/s)
 		(ParamFloat<px4::params::EKF2_EVA_NOISE>)
 		_param_ekf2_eva_noise,	///< default angular observation noise for exernal vision measurements (rad)
-		(ParamExtFloat<px4::params::EKF2_EV_GATE>)
-		_param_ekf2_ev_gate,	///< external vision position innovation consistency gate size (STD)
+		(ParamExtFloat<px4::params::EKF2_EVV_GATE>)
+		_param_ekf2_evv_gate,	///< external vision velocity innovation consistency gate size (STD)
+		(ParamExtFloat<px4::params::EKF2_EVP_GATE>)
+		_param_ekf2_evp_gate,	///< external vision position innovation consistency gate size (STD)
 
 		// optical flow fusion
 		(ParamExtFloat<px4::params::EKF2_OF_N_MIN>)
@@ -601,7 +605,8 @@ Ekf2::Ekf2():
 	_param_ekf2_rng_a_vmax(_params->max_vel_for_range_aid),
 	_param_ekf2_rng_a_hmax(_params->max_hagl_for_range_aid),
 	_param_ekf2_rng_a_igate(_params->range_aid_innov_gate),
-	_param_ekf2_ev_gate(_params->ev_innov_gate),
+	_param_ekf2_evv_gate(_params->ev_vel_innov_gate),
+	_param_ekf2_evp_gate(_params->ev_pos_innov_gate),
 	_param_ekf2_of_n_min(_params->flow_noise),
 	_param_ekf2_of_n_max(_params->flow_noise_qual_min),
 	_param_ekf2_of_qmin(_params->flow_qual_min),
