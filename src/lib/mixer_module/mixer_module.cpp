@@ -89,7 +89,7 @@ void MixingOutput::updateParams()
 {
 	ModuleParams::updateParams();
 
-	bool safety_disabled = circuit_breaker_enabled("CBRK_IO_SAFETY", CBRK_IO_SAFETY_KEY);
+	bool safety_disabled = circuit_breaker_enabled_by_val(_param_cbrk_io_safety.get(), CBRK_IO_SAFETY_KEY);
 
 	if (safety_disabled) {
 		_safety_off = true;

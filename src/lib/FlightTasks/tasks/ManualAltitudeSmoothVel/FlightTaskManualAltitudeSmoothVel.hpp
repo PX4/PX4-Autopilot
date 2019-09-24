@@ -40,7 +40,7 @@
 #pragma once
 
 #include "FlightTaskManualAltitude.hpp"
-#include "VelocitySmoothing.hpp"
+#include "ManualVelocitySmoothingZ.hpp"
 
 class FlightTaskManualAltitudeSmoothVel : public FlightTaskManualAltitude
 {
@@ -55,6 +55,10 @@ protected:
 
 	virtual void _updateSetpoints() override;
 
+	/** Reset position or velocity setpoints in case of EKF reset event */
+	void _ekfResetHandlerPositionZ() override;
+	void _ekfResetHandlerVelocityZ() override;
+
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
 		(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
@@ -64,18 +68,9 @@ protected:
 private:
 
 	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
-	void _resetPositionLock();
-	void _initEkfResetCounters();
-	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
 
-	VelocitySmoothing _smoothing; ///< Smoothing in z direction
-	float _vel_sp_smooth;
-	bool _position_lock_z_active{false};
-	float _position_setpoint_z_locked{NAN};
+	void _updateTrajConstraints();
+	void _setOutputState();
 
-	/* counters for estimator local position resets */
-	struct {
-		uint8_t z;
-		uint8_t vz;
-	} _reset_counters{0, 0};
+	ManualVelocitySmoothingZ _smoothing; ///< Smoothing in z direction
 };

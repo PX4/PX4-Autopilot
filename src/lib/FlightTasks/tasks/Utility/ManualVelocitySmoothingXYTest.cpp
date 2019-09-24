@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,30 +31,57 @@
  *
  ****************************************************************************/
 
-/*
- * @file circuit_breaker.c
- *
- * Circuit breaker parameters.
- * Analog to real aviation circuit breakers these parameters
- * allow to disable subsystems. They are not supported as standard
- * operation procedure and are only provided for development purposes.
- * To ensure they are not activated accidentally, the associated
- * parameter needs to set to the key (magic).
+/**
+ * Test code for the Manual Velocity Smoothing library
+ * Run this test only using make tests TESTFILTER=ManualVelocitySmoothing
  */
 
-#include "circuit_breaker.h"
+#include <gtest/gtest.h>
+#include <matrix/matrix/math.hpp>
 
-#include <stdint.h>
-#include <px4_defines.h>
+#include "ManualVelocitySmoothingXY.hpp"
 
-bool circuit_breaker_enabled(const char *breaker, int32_t magic)
+using namespace matrix;
+
+class ManualVelocitySmoothingXYTest : public ::testing::Test
 {
-	int32_t val = -1;
+public:
+	ManualVelocitySmoothingXY _smoothing;
+};
 
-	return (PX4_PARAM_GET_BYNAME(breaker, &val) == 0) && (val == magic);
+
+TEST_F(ManualVelocitySmoothingXYTest, setGet)
+{
+	// GIVEN: Some max values
+	_smoothing.setMaxJerk(11.f);
+	_smoothing.setMaxAccel(7.f);
+	_smoothing.setMaxVel(5.f);
+
+	// THEN: We should be able to get them back
+	EXPECT_EQ(_smoothing.getMaxJerk(), 11.f);
+	EXPECT_EQ(_smoothing.getMaxAccel(), 7.f);
+	EXPECT_EQ(_smoothing.getMaxVel(), 5.f);
 }
 
-bool circuit_breaker_enabled_by_val(int32_t breaker_val, int32_t magic)
+TEST_F(ManualVelocitySmoothingXYTest, getCurrentState)
 {
-	return (breaker_val == magic);
+	// GIVEN: the initial conditions
+	Vector2f v0(11.f, 13.f);
+	_smoothing.setCurrentVelocity(v0);
+
+	// WHEN: we get the current state
+	Vector3f j_end;
+	Vector3f a_end;
+	Vector3f v_end;
+	Vector3f x_end;
+	j_end.xy() = _smoothing.getCurrentJerk();
+	a_end.xy() = _smoothing.getCurrentAcceleration();
+	v_end.xy() = _smoothing.getCurrentVelocity();
+	x_end.xy() = _smoothing.getCurrentPosition();
+
+	// THEN: the returned values should match the input
+	EXPECT_EQ(j_end, Vector3f(0.f, 0.f, 0.f));
+	EXPECT_EQ(a_end, Vector3f(0.f, 0.f, 0.f));
+	EXPECT_EQ(v_end, Vector3f(11.f, 13.f, 0.f));
+	EXPECT_EQ(x_end, Vector3f(0.f, 0.f, 0.f));
 }
