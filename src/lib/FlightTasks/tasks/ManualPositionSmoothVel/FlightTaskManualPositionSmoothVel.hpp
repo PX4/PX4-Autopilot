@@ -60,6 +60,12 @@ protected:
 
 	virtual void _updateSetpoints() override;
 
+	/** Reset position or velocity setpoints in case of EKF reset event */
+	void _ekfResetHandlerPositionXY() override;
+	void _ekfResetHandlerVelocityXY() override;
+	void _ekfResetHandlerPositionZ() override;
+	void _ekfResetHandlerVelocityZ() override;
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualPosition,
 					(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
 					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
@@ -68,14 +74,6 @@ protected:
 
 private:
 	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
-
-	void _initEkfResetCounters();
-	void _initEkfResetCountersXY();
-	void _initEkfResetCountersZ();
-
-	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
-	void _checkEkfResetCountersXY();
-	void _checkEkfResetCountersZ();
 
 	void _updateTrajConstraints();
 	void _updateTrajConstraintsXY();
@@ -92,12 +90,4 @@ private:
 
 	ManualVelocitySmoothingXY _smoothing_xy; ///< Smoothing in x and y directions
 	ManualVelocitySmoothingZ _smoothing_z; ///< Smoothing in z direction
-
-	/* counters for estimator local position resets */
-	struct {
-		uint8_t xy;
-		uint8_t vxy;
-		uint8_t z;
-		uint8_t vz;
-	} _reset_counters{0, 0, 0, 0};
 };

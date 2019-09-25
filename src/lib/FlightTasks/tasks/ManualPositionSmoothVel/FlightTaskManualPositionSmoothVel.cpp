@@ -51,8 +51,6 @@ bool FlightTaskManualPositionSmoothVel::activate(vehicle_local_position_setpoint
 	_smoothing_xy.reset(accel_prev, vel_prev, pos_prev);
 	_smoothing_z.reset(last_setpoint.acc_z, last_setpoint.vz, last_setpoint.z);
 
-	_initEkfResetCounters();
-
 	return ret;
 }
 
@@ -62,8 +60,6 @@ void FlightTaskManualPositionSmoothVel::reActivate()
 	// using the generated jerk, reset the z derivatives to zero
 	_smoothing_xy.reset(Vector2f(), Vector2f(_velocity), Vector2f(_position));
 	_smoothing_z.reset(0.f, 0.f, _position(2));
-
-	_initEkfResetCounters();
 }
 
 void FlightTaskManualPositionSmoothVel::checkSetpoints(vehicle_local_position_setpoint_s &setpoints)
@@ -90,29 +86,28 @@ void FlightTaskManualPositionSmoothVel::checkSetpoints(vehicle_local_position_se
 	if (!PX4_ISFINITE(setpoints.acc_z)) { setpoints.acc_z = 0.f; }
 }
 
-void FlightTaskManualPositionSmoothVel::_initEkfResetCounters()
+void FlightTaskManualPositionSmoothVel::_ekfResetHandlerPositionXY()
 {
-	_initEkfResetCountersXY();
-	_initEkfResetCountersZ();
+	_smoothing_xy.setCurrentPosition(_position.xy());
 }
 
-void FlightTaskManualPositionSmoothVel::_initEkfResetCountersXY()
+void FlightTaskManualPositionSmoothVel::_ekfResetHandlerVelocityXY()
 {
-	_reset_counters.xy = _sub_vehicle_local_position->get().xy_reset_counter;
-	_reset_counters.vxy = _sub_vehicle_local_position->get().vxy_reset_counter;
+	_smoothing_xy.setCurrentVelocity(_velocity.xy());
 }
 
-void FlightTaskManualPositionSmoothVel::_initEkfResetCountersZ()
+void FlightTaskManualPositionSmoothVel::_ekfResetHandlerPositionZ()
 {
-	_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
-	_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
+	_smoothing_z.setCurrentPosition(_position(2));
+}
+
+void FlightTaskManualPositionSmoothVel::_ekfResetHandlerVelocityZ()
+{
+	_smoothing_z.setCurrentVelocity(_velocity(2));
 }
 
 void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 {
-	// Reset trajectories if EKF did a reset
-	_checkEkfResetCounters();
-
 	// Set max accel/vel/jerk
 	// Has to be done before _updateTrajectories()
 	_updateTrajConstraints();
@@ -126,39 +121,6 @@ void FlightTaskManualPositionSmoothVel::_updateSetpoints()
 
 	// Fill the jerk, acceleration, velocity and position setpoint vectors
 	_setOutputState();
-}
-
-void FlightTaskManualPositionSmoothVel::_checkEkfResetCounters()
-{
-	// Check if a reset event has happened.
-	_checkEkfResetCountersXY();
-	_checkEkfResetCountersZ();
-}
-
-void FlightTaskManualPositionSmoothVel::_checkEkfResetCountersXY()
-{
-	if (_sub_vehicle_local_position->get().xy_reset_counter != _reset_counters.xy) {
-		_smoothing_xy.setCurrentPosition(Vector2f(_position));
-		_reset_counters.xy = _sub_vehicle_local_position->get().xy_reset_counter;
-	}
-
-	if (_sub_vehicle_local_position->get().vxy_reset_counter != _reset_counters.vxy) {
-		_smoothing_xy.setCurrentVelocity(Vector2f(_velocity));
-		_reset_counters.vxy = _sub_vehicle_local_position->get().vxy_reset_counter;
-	}
-}
-
-void FlightTaskManualPositionSmoothVel::_checkEkfResetCountersZ()
-{
-	if (_sub_vehicle_local_position->get().z_reset_counter != _reset_counters.z) {
-		_smoothing_z.setCurrentPosition(_position(2));
-		_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
-	}
-
-	if (_sub_vehicle_local_position->get().vz_reset_counter != _reset_counters.vz) {
-		_smoothing_z.setCurrentVelocity(_velocity(2));
-		_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
-	}
 }
 
 void FlightTaskManualPositionSmoothVel::_updateTrajConstraints()
