@@ -967,3 +967,43 @@ PARAM_DEFINE_INT32(COM_ARM_CHK_ESCS, 1);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_PREARM_MODE, 1);
+
+/**
+ * Required healthy gyros to pass the preflight tests
+ *
+ * @min 1
+ * @max 10
+ * @group Commander
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(PRFLT_REQ_GYRO, 1);
+
+/**
+ * Required healthy accels to pass the preflight tests
+ *
+ * @min 1
+ * @max 10
+ * @group Commander
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(PRFLT_REQ_ACC, 1);
+
+/**
+ * Required healthy mags to pass the preflight tests
+ *
+ * @min 1
+ * @max 10
+ * @group Commander
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(PRFLT_REQ_MAG, 1);
+
+/**
+ * Required healthy baros to pass the preflight tests
+ *
+ * @min 1
+ * @max 10
+ * @group Commander
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(PRFLT_REQ_BARO, 1);

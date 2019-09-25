@@ -75,17 +75,4 @@ namespace Preflight
 bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 		    vehicle_status_flags_s &status_flags, bool checkGNSS, bool reportFailures, bool prearm,
 		    const hrt_abstime &time_since_boot);
-
-static constexpr unsigned max_mandatory_gyro_count = 1;
-static constexpr unsigned max_optional_gyro_count = 3;
-
-static constexpr unsigned max_mandatory_accel_count = 1;
-static constexpr unsigned max_optional_accel_count = 3;
-
-static constexpr unsigned max_mandatory_mag_count = 1;
-static constexpr unsigned max_optional_mag_count = 4;
-
-static constexpr unsigned max_mandatory_baro_count = 1;
-static constexpr unsigned max_optional_baro_count = 1;
-
 }

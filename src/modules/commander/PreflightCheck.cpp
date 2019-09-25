@@ -53,326 +53,467 @@
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/estimator_status.h>
-#include <uORB/topics/sensor_accel.h>
-#include <uORB/topics/sensor_baro.h>
-#include <uORB/topics/sensor_gyro.h>
-#include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/sensor_preflight.h>
 #include <uORB/topics/subsystem_info.h>
 #include <uORB/topics/system_power.h>
+
+#include <sensors/common.h>
 
 using namespace time_literals;
 
 namespace Preflight
 {
 
-static bool check_calibration(const char *param_template, int32_t device_id)
+static bool magnometerCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
+			    const sensor_preflight_s &sensor_preflight, bool report_fail)
 {
-	bool calibration_found = false;
+	bool failed = false;
 
-	char s[20];
-	int instance = 0;
+	int32_t sys_has_mag = 1;
+	param_get(param_find("SYS_HAS_MAG"), &sys_has_mag);
 
-	/* old style transition: check param values */
-	while (!calibration_found) {
-		sprintf(s, param_template, instance);
-		const param_t parm = param_find_no_notification(s);
+	if (sys_has_mag != 1) {
+		return true;
+	}
 
-		/* if the calibration param is not present, abort */
-		if (parm == PARAM_INVALID) {
-			break;
+	int32_t required_mags = 1;
+	param_get(param_find("PRFLT_REQ_MAG"), &required_mags);
+
+	int32_t angle_difference_limit_deg = 0;
+	param_get(param_find("COM_ARM_MAG_ANG"), &angle_difference_limit_deg);
+
+	uint8_t present_cnt = 0;
+	uint8_t calibrated_cnt = 0;
+	uint8_t healthy_cnt = 0;
+	uint8_t enabled_cnt = 0;
+
+	/* run through all mag sensors and check health */
+	for (unsigned i = 0; i < sensors::MAG_COUNT_MAX; i++) {
+		uint64_t type;
+
+		if (i == 0) { type = subsystem_info_s::SUBSYSTEM_TYPE_MAG; }
+
+		else if (i == 1) { type = subsystem_info_s::SUBSYSTEM_TYPE_MAG2; }
+
+		else if (i == 2) { type = subsystem_info_s::SUBSYSTEM_TYPE_MAG3; }
+
+		else if (i == 3) { type = subsystem_info_s::SUBSYSTEM_TYPE_MAG4; }
+
+		else { continue; }
+
+		if ((status.onboard_control_sensors_present & type) != 0) {
+			present_cnt++;
 		}
 
-		/* if param get succeeds */
-		int32_t calibration_devid = -1;
+		if ((status.onboard_control_sensors_present & type) != 0 &&
+		    (status.onboard_control_sensors_enabled & type) != 0) {
+			enabled_cnt++;
+		}
 
-		if (param_get(parm, &calibration_devid) == PX4_OK) {
+		if ((status.onboard_control_sensors_present & type) != 0 &&
+		    (status.onboard_control_sensors_enabled & type) != 0 &&
+		    (status.onboard_control_sensors_health & type) != 0) {
+			healthy_cnt++;
+		}
 
-			/* if the devid matches, exit early */
-			if (device_id == calibration_devid) {
-				calibration_found = true;
-				break;
+		if ((status.onboard_control_sensors_present & type) != 0 &&
+		    (status.onboard_control_sensors_enabled & type) != 0 &&
+		    (sensor_preflight.calibrated & type)) {
+			calibrated_cnt++;
+		}
+	}
+
+	if (present_cnt < required_mags) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: %d compasses required, %d present", required_mags, present_cnt);
+		}
+
+		failed = true;
+		goto out;
+	}
+
+	if (enabled_cnt < required_mags) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: %d compasses required, %d enabled", required_mags, enabled_cnt);
+		}
+
+		failed = true;
+		goto out;
+	}
+
+	if (healthy_cnt < required_mags) {
+		if (report_fail) {
+			if (calibrated_cnt < required_mags) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: %d compasses required, %d calibrated", required_mags,
+						     calibrated_cnt);
+
+			} else {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: %d compasses required, %d healthy", required_mags, healthy_cnt);
 			}
 		}
 
-		instance++;
+		failed = true;
+		goto out;
 	}
 
-	return calibration_found;
+	if (!sensor_preflight.mag_prime_healthy) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Primary compass failure");
+		}
+
+		failed = true;
+		goto out;
+	}
+
+	/* mag consistency checks (need to be performed after the individual checks) */
+	if (sensor_preflight.timestamp != 0 && angle_difference_limit_deg >= 0) {
+		// Use the difference between sensors to detect a bad calibration, orientation or magnetic interference.
+		// If a single sensor is fitted, the value being checked will be zero so this check will always pass.
+		if (sensor_preflight.mag_inconsistency_angle > math::radians<float>(angle_difference_limit_deg)) {
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compasses %d° inconsistent",
+						     static_cast<int>(math::degrees<float>(sensor_preflight.mag_inconsistency_angle)));
+				mavlink_log_critical(mavlink_log_pub, "Please check orientations and recalibrate");
+			}
+
+			failed = true;
+			goto out;
+		}
+	}
+
+out:
+	return !failed;
 }
 
-static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance, bool optional,
-			    int32_t &device_id, bool report_fail)
+static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
+			       const sensor_preflight_s &sensor_preflight, bool dynamic, bool report_fail)
 {
-	const bool exists = (orb_exists(ORB_ID(sensor_mag), instance) == PX4_OK);
-	bool calibration_valid = false;
-	bool mag_valid = false;
+	bool failed = false;
 
-	if (exists) {
+	int32_t required_accels = 1;
+	param_get(param_find("PRFLT_REQ_ACC"), &required_accels);
 
-		uORB::SubscriptionData<sensor_mag_s> magnetometer{ORB_ID(sensor_mag), instance};
+	int32_t consistency_test_limit = 0;
+	param_get(param_find("COM_ARM_IMU_ACC"), &consistency_test_limit);
 
-		mag_valid = (hrt_elapsed_time(&magnetometer.get().timestamp) < 1_s);
+	uint8_t present_cnt = 0;
+	uint8_t calibrated_cnt = 0;
+	uint8_t healthy_cnt = 0;
+	uint8_t enabled_cnt = 0;
 
-		if (!mag_valid) {
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from Compass #%u", instance);
-			}
+	/* run through all accel sensors and check health */
+	for (unsigned i = 0; i < sensors::ACCEL_COUNT_MAX; i++) {
+		uint64_t type;
+
+		if (i == 0) { type = subsystem_info_s::SUBSYSTEM_TYPE_ACC; }
+
+		else if (i == 1) { type = subsystem_info_s::SUBSYSTEM_TYPE_ACC2; }
+
+		else if (i == 2) { type = subsystem_info_s::SUBSYSTEM_TYPE_ACC3; }
+
+		else { continue; }
+
+		if ((status.onboard_control_sensors_present & type) != 0) {
+			present_cnt++;
 		}
 
-		device_id = magnetometer.get().device_id;
-
-		calibration_valid = check_calibration("CAL_MAG%u_ID", device_id);
-
-		if (!calibration_valid) {
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compass #%u uncalibrated", instance);
-			}
+		if ((status.onboard_control_sensors_present & type) != 0 &&
+		    (status.onboard_control_sensors_enabled & type) != 0) {
+			enabled_cnt++;
 		}
 
-	} else {
-		if (!optional && report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compass Sensor #%u missing", instance);
+		if ((status.onboard_control_sensors_present & type) != 0 &&
+		    (status.onboard_control_sensors_enabled & type) != 0 &&
+		    (status.onboard_control_sensors_health & type) != 0) {
+			healthy_cnt++;
+		}
+
+		if ((status.onboard_control_sensors_present & type) != 0 &&
+		    (status.onboard_control_sensors_enabled & type) != 0 &&
+		    (sensor_preflight.calibrated & type)) {
+			calibrated_cnt++;
 		}
 	}
 
-	const bool success = calibration_valid && mag_valid;
+	if (present_cnt < required_accels) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: %d accels required, %d present", required_accels, present_cnt);
+		}
 
-	if (instance == 0) {
-		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG, exists, !optional, success, status);
-
-	} else if (instance == 1) {
-		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG2, exists, !optional, success, status);
+		failed = true;
+		goto out;
 	}
 
-	return success;
-}
+	if (enabled_cnt < required_accels) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: %d accels required, %d enabled", required_accels, enabled_cnt);
+		}
 
-static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, bool report_status)
-{
-	bool success = true; // start with a pass and change to a fail if any test fails
-	float test_limit = 1.0f; // pass limit re-used for each test
+		failed = true;
+		goto out;
+	}
 
-	// Get sensor_preflight data if available and exit with a fail recorded if not
-	uORB::SubscriptionData<sensor_preflight_s> sensors_sub{ORB_ID(sensor_preflight)};
-	sensors_sub.update();
-	const sensor_preflight_s &sensors = sensors_sub.get();
+	if (healthy_cnt < required_accels) {
+		if (report_fail) {
+			if (calibrated_cnt < required_accels) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: %d accels required, %d calibrated", required_accels,
+						     calibrated_cnt);
 
-	// Use the difference between IMU's to detect a bad calibration.
-	// If a single IMU is fitted, the value being checked will be zero so this check will always pass.
-	param_get(param_find("COM_ARM_IMU_ACC"), &test_limit);
+			} else {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: %d accels required, %d healthy", required_accels, healthy_cnt);
+			}
+		}
 
-	if (sensors.accel_inconsistency_m_s_s > test_limit) {
-		if (report_status) {
+		failed = true;
+		goto out;
+	}
+
+	if (!sensor_preflight.accel_prime_healthy) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Primary accelerometer failure");
+		}
+
+		failed = true;
+		goto out;
+	}
+
+
+
+	/* accel consistency checks (need to be performed after the individual checks)
+	 * Use the difference between sensors to detect a bad calibration.
+	 * If a single sensor is fitted, the value being checked will be zero so this check will always pass.
+	 */
+	if (sensor_preflight.accel_inconsistency_m_s_s > consistency_test_limit) {
+		if (report_fail) {
 			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Accels inconsistent - Check Cal");
-			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_ACC, false, status);
-			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_ACC2, false, status);
 		}
 
-		success = false;
+		failed = true;
 		goto out;
 
-	} else if (sensors.accel_inconsistency_m_s_s > test_limit * 0.8f) {
-		if (report_status) {
+	} else if (sensor_preflight.accel_inconsistency_m_s_s > consistency_test_limit * 0.8f) {
+		if (report_fail) {
 			mavlink_log_info(mavlink_log_pub, "Preflight Advice: Accels inconsistent - Check Cal");
 		}
 	}
 
-	// Fail if gyro difference greater than 5 deg/sec and notify if greater than 2.5 deg/sec
-	param_get(param_find("COM_ARM_IMU_GYR"), &test_limit);
-
-	if (sensors.gyro_inconsistency_rad_s > test_limit) {
-		if (report_status) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Gyros inconsistent - Check Cal");
-			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GYRO, false, status);
-			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GYRO2, false, status);
+	if (dynamic && (sensor_preflight.accel_magnitude < 4.0f || sensor_preflight.accel_magnitude > 15.0f /* m/s^2 */)) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Accel Range, hold still on arming");
 		}
 
-		success = false;
+		failed = false;
+		goto out;
+	}
+
+out:
+	return !failed;
+}
+
+static bool gyroCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
+		      const sensor_preflight_s &sensor_preflight, bool report_fail)
+{
+	bool failed = false;
+
+	int32_t required_gyros = 1;
+	param_get(param_find("PRFLT_REQ_GYRO"), &required_gyros);
+
+	int32_t consistency_test_limit = 0;
+	param_get(param_find("COM_ARM_IMU_GYR"), &consistency_test_limit);
+
+	uint8_t present_cnt = 0;
+	uint8_t calibrated_cnt = 0;
+	uint8_t healthy_cnt = 0;
+	uint8_t enabled_cnt = 0;
+
+	/* run through all gyro sensors and check health */
+	for (unsigned i = 0; i < sensors::GYRO_COUNT_MAX ; i++) {
+		uint64_t type;
+
+		if (i == 0) { type = subsystem_info_s::SUBSYSTEM_TYPE_GYRO; }
+
+		else if (i == 1) { type = subsystem_info_s::SUBSYSTEM_TYPE_GYRO2; }
+
+		else if (i == 2) { type = subsystem_info_s::SUBSYSTEM_TYPE_GYRO3; }
+
+		else { continue; }
+
+		if ((status.onboard_control_sensors_present & type) != 0) {
+			present_cnt++;
+		}
+
+		if ((status.onboard_control_sensors_present & type) != 0 &&
+		    (status.onboard_control_sensors_enabled & type) != 0) {
+			enabled_cnt++;
+		}
+
+		if ((status.onboard_control_sensors_present & type) != 0 &&
+		    (status.onboard_control_sensors_enabled & type) != 0 &&
+		    (status.onboard_control_sensors_health & type) != 0) {
+			healthy_cnt++;
+		}
+
+		if ((status.onboard_control_sensors_present & type) != 0 &&
+		    (status.onboard_control_sensors_enabled & type) != 0 &&
+		    (sensor_preflight.calibrated & type)) {
+			calibrated_cnt++;
+		}
+	}
+
+	if (present_cnt < required_gyros) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: %d gyros required, %d present", required_gyros, present_cnt);
+		}
+
+		failed = true;
+		goto out;
+	}
+
+	if (enabled_cnt < required_gyros) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: %d gyros required, %d enabled", required_gyros, enabled_cnt);
+		}
+
+		failed = true;
+		goto out;
+	}
+
+	if (healthy_cnt < required_gyros) {
+		if (report_fail) {
+			if (calibrated_cnt < required_gyros) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: %d gyros required, %d calibrated", required_gyros,
+						     calibrated_cnt);
+
+			} else {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: %d gyros required, %d healthy", required_gyros, healthy_cnt);
+			}
+		}
+
+		failed = true;
+		goto out;
+	}
+
+	if (!sensor_preflight.gyro_prime_healthy) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Primary gyroscope failure");
+		}
+
+		failed = true;
+		goto out;
+	}
+
+
+
+	/* gyro consistency checks (need to be performed after the individual checks)
+	 * Use the difference between sensors to detect a bad calibration.
+	 * If a single sensor is fitted, the value being checked will be zero so this check will always pass.
+	 */
+	if (sensor_preflight.gyro_inconsistency_rad_s > consistency_test_limit) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Gyros inconsistent - Check Cal");
+		}
+
+		failed = true;
 		goto out;
 
-	} else if (sensors.gyro_inconsistency_rad_s > test_limit * 0.5f) {
-		if (report_status) {
+	} else if (sensor_preflight.gyro_inconsistency_rad_s > consistency_test_limit * 0.5f) {
+		if (report_fail) {
 			mavlink_log_info(mavlink_log_pub, "Preflight Advice: Gyros inconsistent - Check Cal");
 		}
 	}
 
 out:
-	return success;
+	return !failed;
 }
 
-// return false if the magnetomer measurements are inconsistent
-static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, bool report_status)
+static bool baroCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
+		      const sensor_preflight_s &sensor_preflight, bool report_fail)
 {
-	bool pass = false; // flag for result of checks
+	bool failed = false;
 
-	// get the sensor preflight data
-	uORB::SubscriptionData<sensor_preflight_s> sensors_sub{ORB_ID(sensor_preflight)};
-	sensors_sub.update();
-	const sensor_preflight_s &sensors = sensors_sub.get();
+	int32_t sys_has_baro = 1;
+	param_get(param_find("SYS_HAS_BARO"), &sys_has_baro);
 
-	if (sensors.timestamp == 0) {
-		// can happen if not advertised (yet)
-		pass = true;
+	if (sys_has_baro != 1) {
+		return true;
 	}
 
-	// Use the difference between sensors to detect a bad calibration, orientation or magnetic interference.
-	// If a single sensor is fitted, the value being checked will be zero so this check will always pass.
-	int32_t angle_difference_limit_deg;
-	param_get(param_find("COM_ARM_MAG_ANG"), &angle_difference_limit_deg);
+	int32_t required_baros = 1;
+	param_get(param_find("PRFLT_REQ_BARO"), &required_baros);
 
-	pass = pass || angle_difference_limit_deg < 0; // disabled, pass check
-	pass = pass || sensors.mag_inconsistency_angle < math::radians<float>(angle_difference_limit_deg);
+	uint8_t present_cnt = 0;
+	uint8_t calibrated_cnt = 0;
+	uint8_t healthy_cnt = 0;
+	uint8_t enabled_cnt = 0;
 
-	if (!pass && report_status) {
-		mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Compasses %d° inconsistent",
-				     static_cast<int>(math::degrees<float>(sensors.mag_inconsistency_angle)));
-		mavlink_log_critical(mavlink_log_pub, "Please check orientations and recalibrate");
-		set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_MAG, false, status);
-		set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_MAG2, false, status);
-	}
+	/* run through all baro sensors and check health */
+	for (unsigned i = 0; i < sensors::BARO_COUNT_MAX; i++) {
+		uint64_t type = 0;
 
-	return pass;
-}
+		if (i == 0) { type = subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE; }
 
-static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance,
-			       bool optional, bool dynamic, int32_t &device_id, bool report_fail)
-{
-	const bool exists = (orb_exists(ORB_ID(sensor_accel), instance) == PX4_OK);
-	bool calibration_valid = false;
-	bool accel_valid = true;
+		else { continue; }
 
-	if (exists) {
-
-		uORB::SubscriptionData<sensor_accel_s> accel{ORB_ID(sensor_accel), instance};
-
-		accel_valid = (hrt_elapsed_time(&accel.get().timestamp) < 1_s);
-
-		if (!accel_valid) {
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from Accel #%u", instance);
-			}
+		if ((status.onboard_control_sensors_present & type) != 0) {
+			present_cnt++;
 		}
 
-		device_id = accel.get().device_id;
-
-		calibration_valid = check_calibration("CAL_ACC%u_ID", device_id);
-
-		if (!calibration_valid) {
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Accel #%u uncalibrated", instance);
-			}
-
-		} else {
-
-			if (dynamic) {
-				const float accel_magnitude = sqrtf(accel.get().x * accel.get().x
-								    + accel.get().y * accel.get().y
-								    + accel.get().z * accel.get().z);
-
-				if (accel_magnitude < 4.0f || accel_magnitude > 15.0f /* m/s^2 */) {
-					if (report_fail) {
-						mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Accel Range, hold still on arming");
-					}
-
-					/* this is frickin' fatal */
-					accel_valid = false;
-				}
-			}
+		if ((status.onboard_control_sensors_present & type) != 0 &&
+		    (status.onboard_control_sensors_enabled & type) != 0) {
+			enabled_cnt++;
 		}
 
-	} else {
-		if (!optional && report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Accel Sensor #%u missing", instance);
+		if ((status.onboard_control_sensors_present & type) != 0 &&
+		    (status.onboard_control_sensors_enabled & type) != 0 &&
+		    (status.onboard_control_sensors_health & type) != 0) {
+			healthy_cnt++;
+		}
+
+		if ((status.onboard_control_sensors_present & type) != 0 &&
+		    (status.onboard_control_sensors_enabled & type) != 0 &&
+		    (sensor_preflight.calibrated & type)) {
+			calibrated_cnt++;
 		}
 	}
 
-	const bool success = calibration_valid && accel_valid;
-
-	if (instance == 0) {
-		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ACC, exists, !optional, success, status);
-
-	} else if (instance == 1) {
-		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ACC2, exists, !optional, success, status);
-	}
-
-	return success;
-}
-
-static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance, bool optional,
-		      int32_t &device_id, bool report_fail)
-{
-	const bool exists = (orb_exists(ORB_ID(sensor_gyro), instance) == PX4_OK);
-	bool calibration_valid = false;
-	bool gyro_valid = false;
-
-	if (exists) {
-
-		uORB::SubscriptionData<sensor_gyro_s> gyro{ORB_ID(sensor_gyro), instance};
-
-		gyro_valid = (hrt_elapsed_time(&gyro.get().timestamp) < 1_s);
-
-		if (!gyro_valid) {
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from Gyro #%u", instance);
-			}
+	if (present_cnt < required_baros) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: %d barometer required, %d present", required_baros, present_cnt);
 		}
 
-		device_id = gyro.get().device_id;
-
-		calibration_valid = check_calibration("CAL_GYRO%u_ID", device_id);
-
-		if (!calibration_valid) {
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Gyro #%u uncalibrated", instance);
-			}
-		}
-
-	} else {
-		if (!optional && report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Gyro Sensor #%u missing", instance);
-		}
+		failed = true;
+		goto out;
 	}
 
-	if (instance == 0) {
-		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_GYRO, exists, !optional, calibration_valid && gyro_valid, status);
-
-	} else if (instance == 1) {
-		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_GYRO2, exists, !optional, calibration_valid && gyro_valid, status);
-	}
-
-	return calibration_valid && gyro_valid;
-}
-
-static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance, bool optional,
-		      int32_t &device_id, bool report_fail)
-{
-	const bool exists = (orb_exists(ORB_ID(sensor_baro), instance) == PX4_OK);
-	bool baro_valid = false;
-
-	if (exists) {
-		uORB::SubscriptionData<sensor_baro_s> baro{ORB_ID(sensor_baro), instance};
-
-		baro_valid = (hrt_elapsed_time(&baro.get().timestamp) < 1_s);
-
-		if (!baro_valid) {
-			if (report_fail) {
-				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from Baro #%u", instance);
-			}
+	if (enabled_cnt < required_baros) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: %d barometer required, %d enabled", required_baros, enabled_cnt);
 		}
 
+		failed = true;
+		goto out;
+	}
 
-	} else {
-		if (!optional && report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Baro Sensor #%u missing", instance);
+	if (healthy_cnt < required_baros) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: %d barometer required, %d healthy", required_baros, healthy_cnt);
 		}
+
+		failed = true;
+		goto out;
 	}
 
-	if (instance == 0) {
-		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE, exists, !optional, baro_valid, status);
+	if (!sensor_preflight.baro_prime_healthy) {
+		if (report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Primary barometer failure");
+		}
+
+		failed = true;
+		goto out;
 	}
 
-	return baro_valid;
+out:
+	return !failed;
 }
 
 static bool airspeedCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, bool optional, bool report_fail,
@@ -726,187 +867,37 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 	reportFailures = (reportFailures && status_flags.condition_system_hotplug_timeout
 			  && !status_flags.condition_calibration_enabled);
 
+	// get the sensor preflight data
+	uORB::SubscriptionData<sensor_preflight_s> senor_preflight_sub{ORB_ID(sensor_preflight)};
+	senor_preflight_sub.update();
+	const sensor_preflight_s &sensor_preflight = senor_preflight_sub.get();
+
 	bool failed = false;
 
 	/* ---- MAG ---- */
 	if (checkSensors) {
-		bool prime_found = false;
-
-		int32_t prime_id = -1;
-		param_get(param_find("CAL_MAG_PRIME"), &prime_id);
-
-		int32_t sys_has_mag = 1;
-		param_get(param_find("SYS_HAS_MAG"), &sys_has_mag);
-
-		bool mag_fail_reported = false;
-
-		/* check all sensors individually, but fail only for mandatory ones */
-		for (unsigned i = 0; i < max_optional_mag_count; i++) {
-			const bool required = (i < max_mandatory_mag_count) && (sys_has_mag == 1);
-			const bool report_fail = (reportFailures && !failed && !mag_fail_reported);
-
-			int32_t device_id = -1;
-
-			if (magnometerCheck(mavlink_log_pub, status, i, !required, device_id, report_fail)) {
-
-				if ((prime_id > 0) && (device_id == prime_id)) {
-					prime_found = true;
-				}
-
-			} else {
-				if (required) {
-					failed = true;
-					mag_fail_reported = true;
-				}
-			}
-		}
-
-		if (sys_has_mag == 1) {
-			/* check if the primary device is present */
-			if (!prime_found) {
-				if (reportFailures && !failed) {
-					mavlink_log_critical(mavlink_log_pub, "Primary compass not found");
-				}
-
-				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_MAG, false, true, false, status);
-				failed = true;
-			}
-
-			/* mag consistency checks (need to be performed after the individual checks) */
-			if (!magConsistencyCheck(mavlink_log_pub, status, (reportFailures && !failed))) {
-				failed = true;
-			}
+		if (!magnometerCheck(mavlink_log_pub, status, sensor_preflight, reportFailures)) {
+			failed = true;
 		}
 	}
 
 	/* ---- ACCEL ---- */
 	if (checkSensors) {
-		bool prime_found = false;
-		int32_t prime_id = -1;
-		param_get(param_find("CAL_ACC_PRIME"), &prime_id);
-
-		bool accel_fail_reported = false;
-
-		/* check all sensors individually, but fail only for mandatory ones */
-		for (unsigned i = 0; i < max_optional_accel_count; i++) {
-			const bool required = (i < max_mandatory_accel_count);
-			const bool report_fail = (reportFailures && !failed && !accel_fail_reported);
-
-			int32_t device_id = -1;
-
-			if (accelerometerCheck(mavlink_log_pub, status, i, !required, checkDynamic, device_id, report_fail)) {
-
-				if ((prime_id > 0) && (device_id == prime_id)) {
-					prime_found = true;
-				}
-
-			} else {
-				if (required) {
-					failed = true;
-					accel_fail_reported = true;
-				}
-			}
-		}
-
-		/* check if the primary device is present */
-		if (!prime_found) {
-			if (reportFailures && !failed) {
-				mavlink_log_critical(mavlink_log_pub, "Primary accelerometer not found");
-			}
-
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ACC, false, true, false, status);
+		if (!accelerometerCheck(mavlink_log_pub, status, sensor_preflight, checkDynamic, reportFailures)) {
 			failed = true;
 		}
 	}
 
 	/* ---- GYRO ---- */
 	if (checkSensors) {
-		bool prime_found = false;
-		int32_t prime_id = -1;
-		param_get(param_find("CAL_GYRO_PRIME"), &prime_id);
-
-		bool gyro_fail_reported = false;
-
-		/* check all sensors individually, but fail only for mandatory ones */
-		for (unsigned i = 0; i < max_optional_gyro_count; i++) {
-			const bool required = (i < max_mandatory_gyro_count);
-			const bool report_fail = (reportFailures && !failed && !gyro_fail_reported);
-
-			int32_t device_id = -1;
-
-			if (gyroCheck(mavlink_log_pub, status, i, !required, device_id, report_fail)) {
-
-				if ((prime_id > 0) && (device_id == prime_id)) {
-					prime_found = true;
-				}
-
-			} else {
-				if (required) {
-					failed = true;
-					gyro_fail_reported = true;
-				}
-			}
-		}
-
-		/* check if the primary device is present */
-		if (!prime_found) {
-			if (reportFailures && !failed) {
-				mavlink_log_critical(mavlink_log_pub, "Primary gyro not found");
-			}
-
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_GYRO, false, true, false, status);
+		if (!gyroCheck(mavlink_log_pub, status, sensor_preflight, reportFailures)) {
 			failed = true;
 		}
 	}
 
 	/* ---- BARO ---- */
 	if (checkSensors) {
-		bool prime_found = false;
-
-		int32_t prime_id = -1;
-		param_get(param_find("CAL_BARO_PRIME"), &prime_id);
-
-		int32_t sys_has_baro = 1;
-		param_get(param_find("SYS_HAS_BARO"), &sys_has_baro);
-
-		bool baro_fail_reported = false;
-
-		/* check all sensors, but fail only for mandatory ones */
-		for (unsigned i = 0; i < max_optional_baro_count; i++) {
-			const bool required = (i < max_mandatory_baro_count) && (sys_has_baro == 1);
-			const bool report_fail = (reportFailures && !failed && !baro_fail_reported);
-
-			int32_t device_id = -1;
-
-			if (baroCheck(mavlink_log_pub, status, i, !required, device_id, report_fail)) {
-				if ((prime_id > 0) && (device_id == prime_id)) {
-					prime_found = true;
-				}
-
-			} else {
-				if (required) {
-					failed = true;
-					baro_fail_reported = true;
-				}
-			}
-		}
-
-		// TODO there is no logic in place to calibrate the primary baro yet
-		// // check if the primary device is present
-		if (!prime_found && false) {
-			if (reportFailures && !failed) {
-				mavlink_log_critical(mavlink_log_pub, "Primary barometer not operational");
-			}
-
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE, false, true, false, status);
-			failed = true;
-		}
-	}
-
-	/* ---- IMU CONSISTENCY ---- */
-	// To be performed after the individual sensor checks have completed
-	if (checkSensors) {
-		if (!imuConsistencyCheck(mavlink_log_pub, status, (reportFailures && !failed))) {
+		if (!baroCheck(mavlink_log_pub, status, sensor_preflight, reportFailures)) {
 			failed = true;
 		}
 	}
