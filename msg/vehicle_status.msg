@@ -89,9 +89,9 @@ bool mission_failure				# Set to true if mission could not continue/finish
 uint8 failure_detector_status			# Bitmask containing FailureDetector status [0, 0, 0, 0, 0, FAILURE_ALT, FAILURE_PITCH, FAILURE_ROLL]
 
 # see SYS_STATUS mavlink message for the following
-uint32 onboard_control_sensors_present
-uint32 onboard_control_sensors_enabled
-uint32 onboard_control_sensors_health
+uint64 onboard_control_sensors_present
+uint64 onboard_control_sensors_enabled
+uint64 onboard_control_sensors_health
 
 # airspeed fault and airspeed use status
 float32 arspd_check_level	# integrated airspeed inconsistency as checked against the COM_TAS_FS_INTEG parameter
