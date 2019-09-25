@@ -1739,7 +1739,7 @@ Commander::run()
 
 		/* update subsystem info which arrives from outside of commander*/
 		do {
-			if (subsys_sub.updated()) {
+			if ( (updated=subsys_sub.updated()) ) {
 				subsystem_info_s info{};
 				subsys_sub.copy(&info);
 				set_health_flags(info.subsystem_type, info.present, info.enabled, info.ok, status);
