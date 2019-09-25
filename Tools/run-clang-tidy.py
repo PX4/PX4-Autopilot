@@ -108,7 +108,7 @@ def run_tidy(args, tmpdir, build_path, queue):
 
     try:
       subprocess.check_call(invocation, stdin=None, stdout=open(os.devnull, 'wb'), stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError, e:
+    except subprocess.CalledProcessError as e:
       sys.stdout.write(' '.join(invocation) + '\n')
       subprocess.call(invocation)
       global tidy_failures

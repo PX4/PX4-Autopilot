@@ -50,8 +50,6 @@ bool FlightTaskManualAltitudeSmoothVel::activate(vehicle_local_position_setpoint
 
 	_smoothing.reset(last_setpoint.acc_z, last_setpoint.vz, last_setpoint.z);
 
-	_initEkfResetCounters();
-
 	return ret;
 }
 
@@ -60,8 +58,6 @@ void FlightTaskManualAltitudeSmoothVel::reActivate()
 	// The task is reacivated while the vehicle is on the ground. To detect takeoff in mc_pos_control_main properly
 	// using the generated jerk, reset the z derivatives to zero
 	_smoothing.reset(0.f, 0.f, _position(2));
-
-	_initEkfResetCounters();
 }
 
 void FlightTaskManualAltitudeSmoothVel::checkSetpoints(vehicle_local_position_setpoint_s &setpoints)
@@ -76,17 +72,18 @@ void FlightTaskManualAltitudeSmoothVel::checkSetpoints(vehicle_local_position_se
 	if (!PX4_ISFINITE(setpoints.acc_z)) { setpoints.acc_z = 0.f; }
 }
 
-void FlightTaskManualAltitudeSmoothVel::_initEkfResetCounters()
+void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerPositionZ()
 {
-	_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
-	_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
+	_smoothing.setCurrentPosition(_position(2));
+}
+
+void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerVelocityZ()
+{
+	_smoothing.setCurrentVelocity(_velocity(2));
 }
 
 void FlightTaskManualAltitudeSmoothVel::_updateSetpoints()
 {
-	// Reset trajectories if EKF did a reset
-	_checkEkfResetCounters();
-
 	// Set max accel/vel/jerk
 	// Has to be done before _updateTrajectories()
 	_updateTrajConstraints();
@@ -102,19 +99,6 @@ void FlightTaskManualAltitudeSmoothVel::_updateSetpoints()
 
 	// Fill the jerk, acceleration, velocity and position setpoint vectors
 	_setOutputState();
-}
-
-void FlightTaskManualAltitudeSmoothVel::_checkEkfResetCounters()
-{
-	if (_sub_vehicle_local_position->get().z_reset_counter != _reset_counters.z) {
-		_smoothing.setCurrentPosition(_position(2));
-		_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
-	}
-
-	if (_sub_vehicle_local_position->get().vz_reset_counter != _reset_counters.vz) {
-		_smoothing.setCurrentVelocity(_velocity(2));
-		_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
-	}
 }
 
 void FlightTaskManualAltitudeSmoothVel::_updateTrajConstraints()

@@ -60,6 +60,15 @@ public:
 	{
 		_addObstacleSensorData(obstacle, attitude);
 	}
+	void test_adaptSetpointDirection(matrix::Vector2f &setpoint_dir, int &setpoint_index,
+					 float vehicle_yaw_angle_rad)
+	{
+		_adaptSetpointDirection(setpoint_dir, setpoint_index, vehicle_yaw_angle_rad);
+	}
+	bool test_enterData(int map_index, float sensor_range, float sensor_reading)
+	{
+		return _enterData(map_index, sensor_range, sensor_reading);
+	}
 };
 
 class TestTimingCollisionPrevention : public TestCollisionPrevention
@@ -176,7 +185,7 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithObstacleMessage)
 	EXPECT_FLOAT_EQ(cp.getObstacleMap().max_distance, 10000);
 
 	EXPECT_FLOAT_EQ(0.f, modified_setpoint1.norm()) << modified_setpoint1(0) << "," << modified_setpoint1(1);
-	EXPECT_EQ(original_setpoint2, modified_setpoint2);
+	EXPECT_FLOAT_EQ(original_setpoint2.norm(), modified_setpoint2.norm());
 }
 
 TEST_F(CollisionPreventionTest, testBehaviorOnWithDistanceMessage)
@@ -303,7 +312,8 @@ TEST_F(CollisionPreventionTest, testPurgeOldData)
 
 		if (i < 6) {
 			// THEN: If the data is new enough, the velocity setpoint should stay the same as the input
-			EXPECT_EQ(original_setpoint, modified_setpoint);
+			// Note: direction will change slightly due to guidance
+			EXPECT_EQ(original_setpoint.norm(), modified_setpoint.norm());
 
 		} else {
 			// THEN: If the data is expired, the velocity setpoint should be cut down to zero because there is no data
@@ -404,16 +414,16 @@ TEST_F(CollisionPreventionTest, outsideFOV)
 		orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
 		cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
 
-		if (angle_deg > 50.f && angle_deg < 230.f) {
-			// THEN: inside the FOV the setpoint should be limited
-			EXPECT_GT(modified_setpoint.norm(), 0.f);
-			EXPECT_LT(modified_setpoint.norm(), 10.f);
+		//THEN: if the resulting setpoint demands velocities bigger zero, it must lie inside the FOV
+		float setpoint_length = modified_setpoint.norm();
 
-		} else {
-			// THEN: outside the FOV the setpoint should be clamped to zero
-			EXPECT_FLOAT_EQ(modified_setpoint.norm(), 0.f);
+		if (setpoint_length > 0.f) {
+			matrix::Vector2f setpoint_dir = modified_setpoint / setpoint_length;
+			float sp_angle_body_frame = atan2(setpoint_dir(1), setpoint_dir(0));
+			float sp_angle_deg = math::degrees(matrix::wrap_2pi(sp_angle_body_frame));
+			EXPECT_GT(sp_angle_deg, 45.f);
+			EXPECT_LT(sp_angle_deg, 225.f);
 		}
-
 	}
 
 	orb_unadvertise(obstacle_distance_pub);
@@ -803,4 +813,250 @@ TEST_F(CollisionPreventionTest, addObstacleSensorData_resolution_offset)
 		//reset array to UINT16_MAX
 		cp.getObstacleMap().distances[i] = UINT16_MAX;
 	}
+}
+
+TEST_F(CollisionPreventionTest, adaptSetpointDirection_distinct_minimum)
+{
+	// GIVEN: a vehicle attitude and obstacle distance message
+	TestCollisionPrevention cp;
+	cp.getObstacleMap().increment = 10.f;
+	obstacle_distance_s obstacle_msg {};
+	obstacle_msg.frame = obstacle_msg.MAV_FRAME_GLOBAL; //north aligned
+	obstacle_msg.increment = 10.f;
+	obstacle_msg.min_distance = 20;
+	obstacle_msg.max_distance = 2000;
+	obstacle_msg.angle_offset = 0.f;
+
+	matrix::Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
+	float vehicle_yaw_angle_rad = matrix::Eulerf(vehicle_attitude).psi();
+
+	//obstacle at 0-30 deg world frame, distance 5 meters
+	memset(&obstacle_msg.distances[0], UINT16_MAX, sizeof(obstacle_msg.distances));
+
+	for (int i = 0; i < 7 ; i++) {
+		obstacle_msg.distances[i] = 500;
+	}
+
+	obstacle_msg.distances[2] = 1000;
+
+	//define setpoint
+	matrix::Vector2f setpoint_dir(1, 0);
+	float sp_angle_body_frame = atan2f(setpoint_dir(1), setpoint_dir(0)) - vehicle_yaw_angle_rad;
+	float sp_angle_with_offset_deg = matrix::wrap(math::degrees(sp_angle_body_frame) - cp.getObstacleMap().angle_offset,
+					 0.f, 360.f);
+	int sp_index = floor(sp_angle_with_offset_deg / cp.getObstacleMap().increment);
+
+	//set parameter
+	param_t param = param_handle(px4::params::MPC_COL_PREV_D);
+	float value = 3; // try to keep 10m away from obstacles
+	param_set(param, &value);
+	cp.paramsChanged();
+
+	//WHEN: we add distance sensor data
+	cp.test_addObstacleSensorData(obstacle_msg, vehicle_attitude);
+	cp.test_adaptSetpointDirection(setpoint_dir, sp_index, vehicle_yaw_angle_rad);
+
+	//THEN: the setpoint direction should be modified correctly
+	EXPECT_EQ(sp_index, 2);
+	EXPECT_FLOAT_EQ(setpoint_dir(0), 0.93969262);
+	EXPECT_FLOAT_EQ(setpoint_dir(1), 0.34202012);
+}
+
+TEST_F(CollisionPreventionTest, adaptSetpointDirection_flat_minimum)
+{
+	// GIVEN: a vehicle attitude and obstacle distance message
+	TestCollisionPrevention cp;
+	cp.getObstacleMap().increment = 10.f;
+	obstacle_distance_s obstacle_msg {};
+	obstacle_msg.frame = obstacle_msg.MAV_FRAME_GLOBAL; //north aligned
+	obstacle_msg.increment = 10.f;
+	obstacle_msg.min_distance = 20;
+	obstacle_msg.max_distance = 2000;
+	obstacle_msg.angle_offset = 0.f;
+
+	matrix::Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
+	float vehicle_yaw_angle_rad = matrix::Eulerf(vehicle_attitude).psi();
+
+	//obstacle at 0-30 deg world frame, distance 5 meters
+	memset(&obstacle_msg.distances[0], UINT16_MAX, sizeof(obstacle_msg.distances));
+
+	for (int i = 0; i < 7 ; i++) {
+		obstacle_msg.distances[i] = 500;
+	}
+
+	obstacle_msg.distances[1] = 1000;
+	obstacle_msg.distances[2] = 1000;
+	obstacle_msg.distances[3] = 1000;
+
+	//define setpoint
+	matrix::Vector2f setpoint_dir(1, 0);
+	float sp_angle_body_frame = atan2f(setpoint_dir(1), setpoint_dir(0)) - vehicle_yaw_angle_rad;
+	float sp_angle_with_offset_deg = matrix::wrap(math::degrees(sp_angle_body_frame) - cp.getObstacleMap().angle_offset,
+					 0.f, 360.f);
+	int sp_index = floor(sp_angle_with_offset_deg / cp.getObstacleMap().increment);
+
+	//set parameter
+	param_t param = param_handle(px4::params::MPC_COL_PREV_D);
+	float value = 3; // try to keep 10m away from obstacles
+	param_set(param, &value);
+	cp.paramsChanged();
+
+	//WHEN: we add distance sensor data
+	cp.test_addObstacleSensorData(obstacle_msg, vehicle_attitude);
+	cp.test_adaptSetpointDirection(setpoint_dir, sp_index, vehicle_yaw_angle_rad);
+
+	//THEN: the setpoint direction should be modified correctly
+	EXPECT_EQ(sp_index, 2);
+	EXPECT_FLOAT_EQ(setpoint_dir(0), 0.93969262);
+	EXPECT_FLOAT_EQ(setpoint_dir(1), 0.34202012);
+}
+
+TEST_F(CollisionPreventionTest, overlappingSensors)
+{
+	// GIVEN: a simple setup condition
+	TestCollisionPrevention cp;
+	matrix::Vector2f original_setpoint(10, 0);
+	float max_speed = 3;
+	matrix::Vector2f curr_pos(0, 0);
+	matrix::Vector2f curr_vel(2, 0);
+	vehicle_attitude_s attitude;
+	attitude.timestamp = hrt_absolute_time();
+	attitude.q[0] = 1.0f;
+	attitude.q[1] = 0.0f;
+	attitude.q[2] = 0.0f;
+	attitude.q[3] = 0.0f;
+
+	// AND: a parameter handle
+	param_t param = param_handle(px4::params::MPC_COL_PREV_D);
+	float value = 10; // try to keep 10m distance
+	param_set(param, &value);
+	cp.paramsChanged();
+
+	// AND: an obstacle message for a short range and a long range sensor
+	obstacle_distance_s short_range_msg, short_range_msg_no_obstacle, long_range_msg;
+	memset(&short_range_msg, 0xDEAD, sizeof(short_range_msg));
+	short_range_msg.frame = short_range_msg.MAV_FRAME_GLOBAL; //north aligned
+	short_range_msg.angle_offset = 0;
+	short_range_msg.timestamp = hrt_absolute_time();
+	int distances_array_size = sizeof(short_range_msg.distances) / sizeof(short_range_msg.distances[0]);
+	short_range_msg.increment = 360 / distances_array_size;
+	long_range_msg = short_range_msg;
+	long_range_msg.min_distance = 100;
+	long_range_msg.max_distance = 1000;
+	short_range_msg.min_distance = 20;
+	short_range_msg.max_distance = 200;
+	short_range_msg_no_obstacle = short_range_msg;
+
+
+	for (int i = 0; i < distances_array_size; i++) {
+		if (i < 10) {
+			short_range_msg_no_obstacle.distances[i] = 201;
+			short_range_msg.distances[i] = 150;
+			long_range_msg.distances[i] = 500;
+
+		} else {
+			short_range_msg_no_obstacle.distances[i] = UINT16_MAX;
+			short_range_msg.distances[i] = UINT16_MAX;
+			long_range_msg.distances[i] = UINT16_MAX;
+		}
+	}
+
+
+	// CASE 1
+	//WHEN: we publish the long range sensor message
+	orb_advert_t obstacle_distance_pub = orb_advertise(ORB_ID(obstacle_distance), &long_range_msg);
+	orb_advert_t vehicle_attitude_pub = orb_advertise(ORB_ID(vehicle_attitude), &attitude);
+	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &long_range_msg);
+	orb_publish(ORB_ID(vehicle_attitude), vehicle_attitude_pub, &attitude);
+	matrix::Vector2f modified_setpoint = original_setpoint;
+	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+
+	// THEN: the internal map data should contain the long range measurement
+	EXPECT_EQ(500, cp.getObstacleMap().distances[2]);
+
+	// CASE 2
+	// WHEN: we publish the short range message followed by a long range message
+	short_range_msg.timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &short_range_msg);
+	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	long_range_msg.timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &long_range_msg);
+	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+
+	// THEN: the internal map data should contain the short range measurement
+	EXPECT_EQ(150, cp.getObstacleMap().distances[2]);
+
+	// CASE 3
+	// WHEN: we publish the short range message with values out of range followed by a long range message
+	short_range_msg_no_obstacle.timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &short_range_msg_no_obstacle);
+	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	long_range_msg.timestamp = hrt_absolute_time();
+	orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &long_range_msg);
+	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+
+	// THEN: the internal map data should contain the short range measurement
+	EXPECT_EQ(500, cp.getObstacleMap().distances[2]);
+
+	orb_unadvertise(obstacle_distance_pub);
+	orb_unadvertise(vehicle_attitude_pub);
+}
+
+TEST_F(CollisionPreventionTest, enterData)
+{
+	// GIVEN: a simple setup condition
+	TestCollisionPrevention cp;
+	cp.getObstacleMap().increment = 10.f;
+	matrix::Quaternion<float> vehicle_attitude(1, 0, 0, 0); //unit transform
+
+	//THEN: just after initialization all bins are at UINT16_MAX and any data should be accepted
+	EXPECT_TRUE(cp.test_enterData(8, 2.f, 1.5f)); //shorter range, reading in range
+	EXPECT_TRUE(cp.test_enterData(8, 2.f, 3.f)); //shorter range, reading out of range
+	EXPECT_TRUE(cp.test_enterData(8, 20.f, 1.5f)); //same range, reading in range
+	EXPECT_TRUE(cp.test_enterData(8, 20.f, 21.f)); //same range, reading out of range
+	EXPECT_TRUE(cp.test_enterData(8, 30.f, 1.5f)); //longer range, reading in range
+	EXPECT_TRUE(cp.test_enterData(8, 30.f, 31.f)); //longer range, reading out of range
+
+	//WHEN: we add distance sensor data to the right with a valid reading
+	distance_sensor_s distance_sensor {};
+	distance_sensor.min_distance = 0.2f;
+	distance_sensor.max_distance = 20.f;
+	distance_sensor.orientation = distance_sensor_s::ROTATION_RIGHT_FACING;
+	distance_sensor.h_fov = math::radians(19.99f);
+	distance_sensor.current_distance = 5.f;
+	cp.test_addDistanceSensorData(distance_sensor, vehicle_attitude);
+
+	//THEN: the internal map should contain the distance sensor readings
+	EXPECT_EQ(500, cp.getObstacleMap().distances[8]);
+	EXPECT_EQ(500, cp.getObstacleMap().distances[9]);
+
+	//THEN: bins 8 & 9 contain valid readings
+	// a valid reading should only be accepted from sensors with shorter or equal range
+	// a out of range reading should only be accepted from sensors with the same range
+
+	EXPECT_TRUE(cp.test_enterData(8, 2.f, 1.5f)); //shorter range, reading in range
+	EXPECT_FALSE(cp.test_enterData(8, 2.f, 3.f)); //shorter range, reading out of range
+	EXPECT_TRUE(cp.test_enterData(8, 20.f, 1.5f)); //same range, reading in range
+	EXPECT_TRUE(cp.test_enterData(8, 20.f, 21.f)); //same range, reading out of range
+	EXPECT_FALSE(cp.test_enterData(8, 30.f, 1.5f)); //longer range, reading in range
+	EXPECT_FALSE(cp.test_enterData(8, 30.f, 31.f)); //longer range, reading out of range
+
+	//WHEN: we add distance sensor data to the right with an out of range reading
+	distance_sensor.current_distance = 21.f;
+	cp.test_addDistanceSensorData(distance_sensor, vehicle_attitude);
+
+	//THEN: the internal map should contain the distance sensor readings
+	EXPECT_EQ(2000, cp.getObstacleMap().distances[8]);
+	EXPECT_EQ(2000, cp.getObstacleMap().distances[9]);
+
+	//THEN: bins 8 & 9 contain readings out of range
+	// a reading in range will be accepted in any case
+	// out of range readings will only be accepted from sensors with bigger or equal range
+
+	EXPECT_TRUE(cp.test_enterData(8, 2.f, 1.5f)); //shorter range, reading in range
+	EXPECT_FALSE(cp.test_enterData(8, 2.f, 3.f)); //shorter range, reading out of range
+	EXPECT_TRUE(cp.test_enterData(8, 20.f, 1.5f)); //same range, reading in range
+	EXPECT_TRUE(cp.test_enterData(8, 20.f, 21.f)); //same range, reading out of range
+	EXPECT_TRUE(cp.test_enterData(8, 30.f, 1.5f)); //longer range, reading in range
+	EXPECT_TRUE(cp.test_enterData(8, 30.f, 31.f)); //longer range, reading out of range
 }

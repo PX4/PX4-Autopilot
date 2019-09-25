@@ -86,10 +86,10 @@ def read_mission_json(f):
     current = True
     missionlist=[]
     for wp in d['items']:
-	cmd = Command( 0, 0, 0, int(wp['frame']), int(wp['command']), current, int(wp['autoContinue']), float(wp['param1']), float(wp['param2']), float(wp['param3']), float(wp['param4']), float(wp['coordinate'][0]), float(wp['coordinate'][1]), float(wp['coordinate'][2]))
-	missionlist.append(cmd)
-	if current:
-	    current = False
+        cmd = Command( 0, 0, 0, int(wp['frame']), int(wp['command']), current, int(wp['autoContinue']), float(wp['param1']), float(wp['param2']), float(wp['param3']), float(wp['param4']), float(wp['coordinate'][0]), float(wp['coordinate'][1]), float(wp['coordinate'][2]))
+        missionlist.append(cmd)
+        if current:
+            current = False
     return missionlist
 
 
@@ -99,7 +99,7 @@ def upload_mission(aFileName):
     """
     #Read mission from file
     with open(aFileName) as f:
-	missionlist = read_mission_json(f)
+        missionlist = read_mission_json(f)
 
     #Clear existing mission from vehicle
     cmds = vehicle.commands
@@ -126,7 +126,7 @@ home_position_set = False
 @vehicle.on_message('MISSION_CURRENT')
 def listener(self, name, mission_current):
     global current_sequence, current_sequence_changed
-    if (current_sequence <> mission_current.seq):
+    if (current_sequence != mission_current.seq):
         current_sequence = mission_current.seq;
         current_sequence_changed = True
         print('current mission sequence: %s' % mission_current.seq)
@@ -135,7 +135,7 @@ def listener(self, name, mission_current):
 @vehicle.on_message('EXTENDED_SYS_STATE')
 def listener(self, name, extended_sys_state):
     global current_landed_state
-    if (current_landed_state <> extended_sys_state.landed_state):
+    if (current_landed_state != extended_sys_state.landed_state):
         current_landed_state = extended_sys_state.landed_state;
 
 #Create a message listener for home position fix
