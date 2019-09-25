@@ -51,6 +51,16 @@ using ecl_abstime = hrt_abstime;
 #define ECL_WARN PX4_WARN
 #define ECL_ERR	 PX4_ERR
 
+#if defined(__PX4_POSIX)
+#define ECL_INFO_TIMESTAMPED(X) PX4_INFO("%lu: " X, _imu_sample_delayed.time_us)
+#define ECL_WARN_TIMESTAMPED(X) PX4_WARN("%lu: " X, _imu_sample_delayed.time_us)
+#define ECL_ERR_TIMESTAMPED(X) PX4_ERR("%lu: " X, _imu_sample_delayed.time_us)
+#else
+#define ECL_INFO_TIMESTAMPED PX4_INFO
+#define ECL_WARN_TIMESTAMPED PX4_WARN
+#define ECL_ERR_TIMESTAMPED PX4_ERR
+#endif
+
 #elif defined(__PAPARAZZI)
 
 #include "std.h"
@@ -63,6 +73,9 @@ using ecl_abstime = uint64_t;
 #define ECL_INFO(...)
 #define ECL_WARN(...)
 #define ECL_ERR(...)
+#define ECL_INFO_TIMESTAMPED PX4_INFO
+#define ECL_WARN_TIMESTAMPED PX4_WARN
+#define ECL_ERR_TIMESTAMPED PX4_ERR
 
 #else
 
@@ -77,6 +90,9 @@ using ecl_abstime = uint64_t;
 #define ECL_INFO printf
 #define ECL_WARN printf
 #define ECL_ERR printf
+#define ECL_INFO_TIMESTAMPED printf
+#define ECL_WARN_TIMESTAMPED printf
+#define ECL_ERR_TIMESTAMPED printf
 
 #endif /* PX4_POSIX || PX4_NUTTX */
 

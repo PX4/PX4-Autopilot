@@ -133,12 +133,12 @@ void Ekf::fuseSideslip()
 			if (update_wind_only) {
 				resetWindStates();
 				resetWindCovariance();
-				ECL_ERR("EKF synthetic sideslip fusion badly conditioned - wind covariance reset");
+				ECL_ERR_TIMESTAMPED("EKF synthetic sideslip fusion badly conditioned - wind covariance reset");
 
 			} else {
 				initialiseCovariance();
 				_state.wind_vel.setZero();
-				ECL_ERR("EKF synthetic sideslip fusion badly conditioned - full covariance reset");
+				ECL_ERR_TIMESTAMPED("EKF synthetic sideslip fusion badly conditioned - full covariance reset");
 			}
 
 			return;

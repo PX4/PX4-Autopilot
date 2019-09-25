@@ -103,12 +103,12 @@ void Ekf::fuseAirspeed()
 			if (update_wind_only) {
 				resetWindStates();
 				resetWindCovariance();
-				ECL_ERR("EKF airspeed fusion badly conditioned - wind covariance reset");
+				ECL_ERR_TIMESTAMPED("EKF airspeed fusion badly conditioned - wind covariance reset");
 
 			} else {
 				initialiseCovariance();
 				_state.wind_vel.setZero();
-				ECL_ERR("EKF airspeed fusion badly conditioned - full covariance reset");
+				ECL_ERR_TIMESTAMPED("EKF airspeed fusion badly conditioned - full covariance reset");
 			}
 
 			return;
