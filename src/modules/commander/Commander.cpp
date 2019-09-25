@@ -1289,8 +1289,6 @@ Commander::run()
 	bool status_changed = true;
 	bool param_init_forced = true;
 
-	bool updated = false;
-
 	uORB::Subscription actuator_controls_sub{ORB_ID_VEHICLE_ATTITUDE_CONTROLS};
 	uORB::Subscription cmd_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription cpuload_sub{ORB_ID(cpuload)};
@@ -1736,14 +1734,11 @@ Commander::run()
 		battery_status_check();
 
 		/* update subsystem info which arrives from outside of commander*/
-		do {
-			if (subsys_sub.updated()) {
-				subsystem_info_s info{};
-				subsys_sub.copy(&info);
-				set_health_flags(info.subsystem_type, info.present, info.enabled, info.ok, status);
-				status_changed = true;
-			}
-		} while (updated);
+		subsystem_info_s info;
+		while (subsys_sub.update(&info))  {
+			set_health_flags(info.subsystem_type, info.present, info.enabled, info.ok, status);
+			status_changed = true;
+		}
 
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!status_flags.condition_calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
