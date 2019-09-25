@@ -51,6 +51,7 @@
 using namespace sensors;
 using namespace DriverFramework;
 using namespace matrix;
+using namespace time_literals;
 
 VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled)
 	: _parameters(parameters), _hil_enabled(hil_enabled)
@@ -220,9 +221,50 @@ void VotedSensorsUpdate::parametersUpdate()
 	unsigned gyro_cal_found_count = 0;
 	unsigned accel_cal_found_count = 0;
 
+	/* set subsystem type for each sensor */
+	_gyro.type[0] = subsystem_info_s::SUBSYSTEM_TYPE_GYRO;
+	_gyro.type[1] = subsystem_info_s::SUBSYSTEM_TYPE_GYRO2;
+	_gyro.type[2] = subsystem_info_s::SUBSYSTEM_TYPE_GYRO3;
+
+	_accel.type[0] = subsystem_info_s::SUBSYSTEM_TYPE_ACC;
+	_accel.type[1] = subsystem_info_s::SUBSYSTEM_TYPE_ACC2;
+	_accel.type[2] = subsystem_info_s::SUBSYSTEM_TYPE_ACC3;
+
+	_mag.type[0] = subsystem_info_s::SUBSYSTEM_TYPE_MAG;
+	_mag.type[1] = subsystem_info_s::SUBSYSTEM_TYPE_MAG2;
+	_mag.type[2] = subsystem_info_s::SUBSYSTEM_TYPE_MAG3;
+	_mag.type[3] = subsystem_info_s::SUBSYSTEM_TYPE_MAG4;
+
+	_baro.type[0] = subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE;
+
+	/* get indeces of primary sensors */
+	_gyro.primary_sens_ind = -1;
+	_accel.primary_sens_ind = -1;
+	_mag.primary_sens_ind = -1;
+	_baro.primary_sens_ind = -1;
+
+	int32_t gyro_prime_id = -1;
+	int32_t accel_prime_id = -1;
+	int32_t mag_prime_id = -1;
+	int32_t baro_prime_id = -1;
+
+	param_get(param_find("CAL_GYRO_PRIME"), &gyro_prime_id);
+	param_get(param_find("CAL_ACC_PRIME"), &accel_prime_id);
+	param_get(param_find("CAL_MAG_PRIME"), &mag_prime_id);
+	param_get(param_find("CAL_BARO_PRIME"), &baro_prime_id);
+
+	// sensor enabled parameter might have changed, force publishing the new subsystem info
+	for (int i = 0; i < SENSOR_COUNT_MAX; i++) {
+		_gyro.force_health_publish[i] = true;
+		_accel.force_health_publish[i] = true;
+		_mag.force_health_publish[i] = true;
+		_baro.force_health_publish[i] = true;
+	}
+
 	/* run through all gyro sensors */
 	for (unsigned driver_index = 0; driver_index < GYRO_COUNT_MAX; driver_index++) {
 		_gyro.enabled[driver_index] = true;
+		_gyro.calibrated[driver_index] = false;
 
 		(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, driver_index);
 
@@ -235,6 +277,12 @@ void VotedSensorsUpdate::parametersUpdate()
 
 		uint32_t driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
 		bool config_ok = false;
+
+		_gyro_device_id[driver_index] = driver_device_id;
+
+		if ((uint32_t)gyro_prime_id == driver_device_id) {
+			_gyro.primary_sens_ind = driver_index;
+		}
 
 		/* run through all stored calibrations that are applied at the driver level*/
 		for (unsigned i = 0; i < GYRO_COUNT_MAX; i++) {
@@ -261,7 +309,7 @@ void VotedSensorsUpdate::parametersUpdate()
 			if ((uint32_t)device_id == driver_device_id) {
 				_gyro.enabled[driver_index] = (device_enabled == 1);
 
-				if (!_gyro.enabled[topic_instance]) { _gyro.priority[topic_instance] = 0; }
+				if (!_gyro.enabled[driver_index]) { _gyro.priority[driver_index] = 0; }
 
 				struct gyro_calibration_s gscale = {};
 				(void)sprintf(str, "CAL_GYRO%u_XOFF", i);
@@ -286,6 +334,8 @@ void VotedSensorsUpdate::parametersUpdate()
 
 					if (!config_ok) {
 						PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "gyro ", i);
+					} else {
+						_gyro.calibrated[driver_index] = true;
 					}
 				}
 
@@ -314,6 +364,7 @@ void VotedSensorsUpdate::parametersUpdate()
 	/* run through all accel sensors */
 	for (unsigned driver_index = 0; driver_index < ACCEL_COUNT_MAX; driver_index++) {
 		_accel.enabled[driver_index] = true;
+		_accel.calibrated[driver_index] = false;
 
 		(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, driver_index);
 
@@ -326,6 +377,12 @@ void VotedSensorsUpdate::parametersUpdate()
 
 		uint32_t driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
 		bool config_ok = false;
+
+		_accel_device_id[driver_index] = driver_device_id;
+
+		if ((uint32_t)accel_prime_id == driver_device_id) {
+			_accel.primary_sens_ind = (int)driver_index;
+		}
 
 		/* run through all stored calibrations */
 		for (unsigned i = 0; i < ACCEL_COUNT_MAX; i++) {
@@ -352,7 +409,7 @@ void VotedSensorsUpdate::parametersUpdate()
 			if ((uint32_t)device_id == driver_device_id) {
 				_accel.enabled[driver_index] = (device_enabled == 1);
 
-				if (!_accel.enabled[topic_instance]) { _accel.priority[topic_instance] = 0; }
+				if (!_accel.enabled[driver_index]) { _accel.priority[driver_index] = 0; }
 
 				struct accel_calibration_s ascale = {};
 				(void)sprintf(str, "CAL_ACC%u_XOFF", i);
@@ -377,6 +434,8 @@ void VotedSensorsUpdate::parametersUpdate()
 
 					if (!config_ok) {
 						PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "accel ", i);
+					} else {
+						_accel.calibrated[driver_index] = true;
 					}
 				}
 
@@ -412,6 +471,7 @@ void VotedSensorsUpdate::parametersUpdate()
 	 */
 	for (int i = 0; i < MAG_COUNT_MAX; i++) {
 		_mag.enabled[i] = true;
+		_mag.calibrated[i] = false;
 	}
 
 	for (int topic_instance = 0; topic_instance < MAG_COUNT_MAX
@@ -426,6 +486,7 @@ void VotedSensorsUpdate::parametersUpdate()
 		int topic_device_id = report.device_id;
 		bool is_external = report.is_external;
 		_mag_device_id[topic_instance] = topic_device_id;
+
 
 		// find the driver handle that matches the topic_device_id
 		DevHandle h;
@@ -449,6 +510,10 @@ void VotedSensorsUpdate::parametersUpdate()
 			} else {
 				DevMgr::releaseHandle(h);
 			}
+		}
+
+		if (mag_prime_id == topic_device_id) {
+			_mag.primary_sens_ind = topic_instance;
 		}
 
 		bool config_ok = false;
@@ -534,6 +599,8 @@ void VotedSensorsUpdate::parametersUpdate()
 
 					if (!config_ok) {
 						PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "mag ", i);
+					} else {
+						_mag.calibrated[topic_instance] = true;
 					}
 				}
 
@@ -542,6 +609,8 @@ void VotedSensorsUpdate::parametersUpdate()
 		}
 	}
 
+	_baro.primary_sens_ind = 0;
+	_baro.calibrated[0] = true;
 }
 
 void VotedSensorsUpdate::accelPoll(struct sensor_combined_s &raw)
@@ -572,8 +641,6 @@ void VotedSensorsUpdate::accelPoll(struct sensor_combined_s &raw)
 				orb_priority(_accel.subscription[uorb_index], &priority);
 				_accel.priority[uorb_index] = (uint8_t)priority;
 			}
-
-			_accel_device_id[uorb_index] = accel_report.device_id;
 
 			Vector3f accel_data;
 
@@ -648,6 +715,8 @@ void VotedSensorsUpdate::accelPoll(struct sensor_combined_s &raw)
 			_selection_changed = true;
 			_selection.accel_device_id = _accel_device_id[best_index];
 		}
+
+		_sensor_preflight.accel_magnitude = Vector3f(raw.accelerometer_m_s2).norm();
 	}
 }
 
@@ -679,8 +748,6 @@ void VotedSensorsUpdate::gyroPoll(struct sensor_combined_s &raw)
 				orb_priority(_gyro.subscription[uorb_index], &priority);
 				_gyro.priority[uorb_index] = (uint8_t)priority;
 			}
-
-			_gyro_device_id[uorb_index] = gyro_report.device_id;
 
 			Vector3f gyro_rate;
 
@@ -953,35 +1020,9 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 
 				PX4_ERR("Sensor %s #%i failed. Reconfiguring sensor priorities.", sensor_name, failover_index);
 
-				int ctr_valid = 0;
-
 				for (uint8_t i = 0; i < sensor.subscription_count; i++) {
-					if (sensor.priority[i] > 1) { ctr_valid++; }
-
 					PX4_WARN("Remaining sensors after failover event %u: %s #%u priority: %u", failover_index, sensor_name, i,
 						 sensor.priority[i]);
-				}
-
-				if (ctr_valid < 2) {
-					if (ctr_valid == 0) {
-						// Zero valid sensors remain! Set even the primary sensor health to false
-						_info.subsystem_type = type;
-
-					} else if (ctr_valid == 1) {
-						// One valid sensor remains, set secondary sensor health to false
-						if (type == subsystem_info_s::SUBSYSTEM_TYPE_GYRO) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_GYRO2; }
-
-						if (type == subsystem_info_s::SUBSYSTEM_TYPE_ACC) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_ACC2; }
-
-						if (type == subsystem_info_s::SUBSYSTEM_TYPE_MAG) { _info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_MAG2; }
-					}
-
-					_info.timestamp = hrt_absolute_time();
-					_info.present = true;
-					_info.enabled = true;
-					_info.ok = false;
-
-					_info_pub.publish(_info);
 				}
 			}
 		}
@@ -991,6 +1032,43 @@ bool VotedSensorsUpdate::checkFailover(SensorData &sensor, const char *sensor_na
 	}
 
 	return false;
+}
+
+void VotedSensorsUpdate::updateSensorsHealth(const struct orb_metadata *meta, SensorData &sensors)
+{
+	for (int uorb_index = 0; uorb_index < sensors.subscription_count; uorb_index++) {
+		// give 10ms between publishing to avoid overloading the topic and loosing msgs due to slower commander period
+		// if it is a forced publish, wait more since the commander loop takes longer when parameters changed
+		if (hrt_elapsed_time(&_last_info_pub_time) < 10_ms + (sensors.force_health_publish[uorb_index] ? 30_ms : 0_ms)) {
+			return;
+		}
+
+		bool present = (orb_exists(meta, uorb_index) == PX4_OK);
+		bool healthy = false;
+
+		if (present) {
+			healthy = sensors.voter.get_sensor_state(uorb_index) == DataValidator::ERROR_FLAG_NO_ERROR &&
+				  sensors.calibrated[uorb_index];
+		}
+
+		// publish on change or if forced
+		if (sensors.force_health_publish[uorb_index] ||
+		    present != sensors.present[uorb_index] ||
+		    healthy != sensors.healthy[uorb_index]) {
+			_info.timestamp = hrt_absolute_time();
+			_info.subsystem_type = sensors.type[uorb_index];
+			_info.present = present;
+			_info.enabled = sensors.enabled[uorb_index];
+			_info.ok = healthy;
+
+			_info_pub.publish(_info);
+			_last_info_pub_time = hrt_absolute_time();
+			sensors.force_health_publish[uorb_index] = false;
+
+			sensors.present[uorb_index] = present;
+			sensors.healthy[uorb_index] = healthy;
+		}
+	}
 }
 
 void VotedSensorsUpdate::initSensorClass(const struct orb_metadata *meta, SensorData &sensor_data,
@@ -1116,6 +1194,72 @@ void VotedSensorsUpdate::checkFailover()
 	checkFailover(_gyro, "Gyro", subsystem_info_s::SUBSYSTEM_TYPE_GYRO);
 	checkFailover(_mag, "Mag", subsystem_info_s::SUBSYSTEM_TYPE_MAG);
 	checkFailover(_baro, "Baro", subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE);
+}
+
+void VotedSensorsUpdate::updateSensorsHealth()
+{
+	// give the commander 10s to initialize and subscribe to subsystem_info
+	// since we publish only on change, otherwise we might loose messages
+	if (hrt_absolute_time() < 10_s) {
+		return;
+	}
+
+	updateSensorsHealth(ORB_ID(sensor_gyro), _gyro);
+	updateSensorsHealth(ORB_ID(sensor_accel), _accel);
+	updateSensorsHealth(ORB_ID(sensor_mag), _mag);
+	updateSensorsHealth(ORB_ID(sensor_baro), _baro);
+}
+
+void VotedSensorsUpdate::updatePreflightState()
+{
+	_sensor_preflight.timestamp = hrt_absolute_time();
+	calcAccelInconsistency(_sensor_preflight);
+	calcGyroInconsistency(_sensor_preflight);
+	calcMagInconsistency(_sensor_preflight);
+
+	_sensor_preflight.gyro_prime_healthy = _gyro.present[_gyro.primary_sens_ind] &&
+					       _gyro.enabled[_gyro.primary_sens_ind] &&
+					       _gyro.healthy[_gyro.primary_sens_ind];
+
+	_sensor_preflight.accel_prime_healthy = _accel.present[_accel.primary_sens_ind] &&
+						_accel.enabled[_accel.primary_sens_ind] &&
+						_accel.healthy[_accel.primary_sens_ind];
+
+	_sensor_preflight.mag_prime_healthy = _mag.present[_mag.primary_sens_ind] &&
+					      _mag.enabled[_mag.primary_sens_ind] &&
+					      _mag.healthy[_mag.primary_sens_ind];
+
+	_sensor_preflight.baro_prime_healthy = _baro.present[_baro.primary_sens_ind] &&
+					       _baro.enabled[_baro.primary_sens_ind] &&
+					       _baro.healthy[_baro.primary_sens_ind];
+
+	_sensor_preflight.calibrated = 0;
+
+	for (int i = 0; i < _gyro.subscription_count; i++) {
+		if (_gyro.calibrated[i]) {
+			_sensor_preflight.calibrated |= _gyro.type[i];
+		}
+	}
+
+	for (int i = 0; i < _accel.subscription_count; i++) {
+		if (_accel.calibrated[i]) {
+			_sensor_preflight.calibrated |= _accel.type[i];
+		}
+	}
+
+	for (int i = 0; i < _mag.subscription_count; i++) {
+		if (_mag.calibrated[i]) {
+			_sensor_preflight.calibrated |= _mag.type[i];
+		}
+	}
+
+	for (int i = 0; i < _baro.subscription_count; i++) {
+		if (_baro.calibrated[i]) {
+			_sensor_preflight.calibrated |= _baro.type[i];
+		}
+	}
+
+	_sensor_preflight_pub.publish(_sensor_preflight);
 }
 
 void VotedSensorsUpdate::setRelativeTimestamps(sensor_combined_s &raw)

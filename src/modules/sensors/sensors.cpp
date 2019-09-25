@@ -173,7 +173,6 @@ private:
 
 	uORB::Publication<airspeed_s>			_airspeed_pub{ORB_ID(airspeed)};			/**< airspeed */
 	uORB::Publication<sensor_combined_s>		_sensor_pub{ORB_ID(sensor_combined)};			/**< combined sensor data topic */
-	uORB::Publication<sensor_preflight_s>		_sensor_preflight{ORB_ID(sensor_preflight)};		/**< sensor preflight topic */
 	uORB::Publication<vehicle_air_data_s>		_airdata_pub{ORB_ID(vehicle_air_data)};			/**< combined sensor data topic */
 	uORB::Publication<vehicle_magnetometer_s>	_magnetometer_pub{ORB_ID(vehicle_magnetometer)};	/**< combined sensor data topic */
 
@@ -575,7 +574,6 @@ Sensors::run()
 	}
 
 	sensor_combined_s raw = {};
-	sensor_preflight_s preflt = {};
 	vehicle_air_data_s airdata = {};
 	vehicle_magnetometer_s magnetometer = {};
 
@@ -659,16 +657,13 @@ Sensors::run()
 
 			_voted_sensors_update.checkFailover();
 
+			_voted_sensors_update.updateSensorsHealth();
+
 			/* If the the vehicle is disarmed calculate the length of the maximum difference between
 			 * IMU units as a consistency metric and publish to the sensor preflight topic
 			*/
 			if (!_armed) {
-				preflt.timestamp = hrt_absolute_time();
-				_voted_sensors_update.calcAccelInconsistency(preflt);
-				_voted_sensors_update.calcGyroInconsistency(preflt);
-				_voted_sensors_update.calcMagInconsistency(preflt);
-
-				_sensor_preflight.publish(preflt);
+				_voted_sensors_update.updatePreflightState();
 			}
 		}
 

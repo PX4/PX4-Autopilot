@@ -124,6 +124,16 @@ public:
 	 */
 	void checkFailover();
 
+	/**
+	 * update health status for each of the sensors
+	 */
+	void updateSensorsHealth();
+
+	/**
+	 * do preflight checks related computations and publish the result on the sensor_preflight topic
+	 */
+	void updatePreflightState();
+
 	int numGyros() const { return _gyro.subscription_count; }
 
 	int gyroFd(int idx) const { return _gyro.subscription[idx]; }
@@ -152,23 +162,34 @@ private:
 			: last_best_vote(0),
 			  subscription_count(0),
 			  voter(1),
-			  last_failover_count(0)
+			  last_failover_count(0),
+			  primary_sens_ind(-1)
 		{
 			for (unsigned i = 0; i < SENSOR_COUNT_MAX; i++) {
+				present[i] = false;
 				enabled[i] = true;
+				healthy[i] = false;
+				calibrated[i] = false;
 				subscription[i] = -1;
 				priority[i] = 0;
+				force_health_publish[i] = true;
 			}
 		}
 
+		uint64_t type[SENSOR_COUNT_MAX];
+		bool present[SENSOR_COUNT_MAX];
 		bool enabled[SENSOR_COUNT_MAX];
+		bool healthy[SENSOR_COUNT_MAX];
+		bool calibrated[SENSOR_COUNT_MAX];
 
 		int subscription[SENSOR_COUNT_MAX]; /**< raw sensor data subscription */
 		uint8_t priority[SENSOR_COUNT_MAX]; /**< sensor priority */
+		bool force_health_publish [SENSOR_COUNT_MAX];	/**< if set to true, force publishing health for this sensor */
 		uint8_t last_best_vote; /**< index of the latest best vote */
 		int subscription_count;
 		DataValidatorGroup voter;
 		unsigned int last_failover_count;
+		int primary_sens_ind; /**< index of the primary sensor */
 	};
 
 	void initSensorClass(const orb_metadata *meta, SensorData &sensor_data, uint8_t sensor_count_max);
@@ -212,6 +233,13 @@ private:
 	bool checkFailover(SensorData &sensor, const char *sensor_name, const uint64_t type);
 
 	/**
+	 * Update health for a sensors group
+	 * @param meta		uORB meta data
+	 * @param sensors	sensors group
+	 */
+	void updateSensorsHealth(const orb_metadata *meta, SensorData &sensors);
+
+	/**
 	 * Apply a gyro calibration.
 	 *
 	 * @param h: reference to the DevHandle in use
@@ -251,6 +279,7 @@ private:
 
 	uORB::Publication<sensor_correction_s>	_sensor_correction_pub{ORB_ID(sensor_correction)};	/**< handle to the sensor correction uORB topic */
 	uORB::Publication<sensor_selection_s>	_sensor_selection_pub{ORB_ID(sensor_selection)};	/**< handle to the sensor selection uORB topic */
+	uORB::Publication<sensor_preflight_s> _sensor_preflight_pub{ORB_ID(sensor_preflight)};		/**< handle to the sensor preflight uORB topic */
 
 	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX] {};	/**< latest sensor data from all sensors instances */
 	vehicle_air_data_s _last_airdata[SENSOR_COUNT_MAX] {};		/**< latest sensor data from all sensors instances */
@@ -273,6 +302,8 @@ private:
 	sensor_correction_s _corrections {};		/**< struct containing the sensor corrections to be published to the uORB */
 	sensor_selection_s _selection {};		/**< struct containing the sensor selection to be published to the uORB */
 	subsystem_info_s _info {};			/**< subsystem info publication */
+	hrt_abstime _last_info_pub_time {0}; /**< timestamp of the last subsystem info publication */
+	sensor_preflight_s _sensor_preflight {};		/**< sensor preflight publication data */
 
 	bool _corrections_changed{false};
 	bool _selection_changed{false};			/**< true when a sensor selection has changed and not been published */
