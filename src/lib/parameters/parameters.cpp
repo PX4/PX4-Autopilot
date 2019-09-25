@@ -66,6 +66,8 @@ using namespace time_literals;
 #if !defined(PARAM_NO_ORB)
 # include "uORB/uORB.h"
 # include "uORB/topics/parameter_update.h"
+# include <uORB/topics/actuator_armed.h>
+# include <uORB/Subscription.hpp>
 #endif
 
 #if defined(FLASH_BASED_PARAMS)
@@ -613,6 +615,21 @@ static void
 autosave_worker(void *arg)
 {
 	bool disabled = false;
+
+#if !defined(PARAM_NO_ORB)
+
+	if (!param_get_default_file()) {
+		// In case we save to FLASH, defer param writes until disarmed,
+		// as writing to FLASH can stall the entire CPU (in rare cases around 300ms on STM32F7)
+		uORB::SubscriptionData<actuator_armed_s> armed_sub{ORB_ID(actuator_armed)};
+
+		if (armed_sub.get().armed) {
+			work_queue(LPWORK, &autosave_work, (worker_t)&autosave_worker, nullptr, USEC2TICK(1_s));
+			return;
+		}
+	}
+
+#endif
 
 	param_lock_writer();
 	last_autosave_timestamp = hrt_absolute_time();
