@@ -101,7 +101,7 @@ void Ekf::fuseMag()
 
 		// we need to re-initialise covariances and abort this fusion step
 		resetMagCovariance();
-		ECL_ERR("EKF magX fusion numerical error - covariance reset");
+		ECL_ERR_TIMESTAMPED("EKF magX fusion numerical error - covariance reset");
 		return;
 
 	}
@@ -120,7 +120,7 @@ void Ekf::fuseMag()
 
 		// we need to re-initialise covariances and abort this fusion step
 		resetMagCovariance();
-		ECL_ERR("EKF magY fusion numerical error - covariance reset");
+		ECL_ERR_TIMESTAMPED("EKF magY fusion numerical error - covariance reset");
 		return;
 
 	}
@@ -139,7 +139,7 @@ void Ekf::fuseMag()
 
 		// we need to re-initialise covariances and abort this fusion step
 		resetMagCovariance();
-		ECL_ERR("EKF magZ fusion numerical error - covariance reset");
+		ECL_ERR_TIMESTAMPED("EKF magZ fusion numerical error - covariance reset");
 		return;
 
 	}
@@ -677,7 +677,7 @@ void Ekf::fuseHeading()
 
 		// we reinitialise the covariance matrix and abort this fusion step
 		initialiseCovariance();
-		ECL_ERR("EKF mag yaw fusion numerical error - covariance reset");
+		ECL_ERR_TIMESTAMPED("EKF mag yaw fusion numerical error - covariance reset");
 		return;
 	}
 
