@@ -1747,6 +1747,13 @@ Commander::run()
 			}
 		} while (updated);
 
+		// if not armed run preflight checks every 2s
+		if (!armed.armed && hrt_elapsed_time(&_last_preflight_check_time) > 2_s) {
+			preflight_check(false);
+			status_changed = true;
+			_last_preflight_check_time = hrt_absolute_time();
+		}
+
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!status_flags.condition_calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 

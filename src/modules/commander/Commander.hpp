@@ -201,6 +201,8 @@ private:
 	FailureDetector _failure_detector;
 	bool _flight_termination_triggered{false};
 
+	hrt_abstime _last_preflight_check_time; /**< timestamp of the last preflight check initiated on the regular interval */
+
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd, actuator_armed_s *armed,
 			    uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub, bool *changed);
 

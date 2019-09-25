@@ -93,6 +93,8 @@ uint64 onboard_control_sensors_present
 uint64 onboard_control_sensors_enabled
 uint64 onboard_control_sensors_health
 
+bool preflight_checks_result	# set to true by the preflight checks if the checks passed
+
 # airspeed fault and airspeed use status
 float32 arspd_check_level	# integrated airspeed inconsistency as checked against the COM_TAS_FS_INTEG parameter
 bool aspd_check_failing		# true when airspeed consistency checks are failing
