@@ -2217,6 +2217,7 @@ Mavlink::task_main(int argc, char *argv[])
 		px4_usleep(_main_loop_delay);
 
 		if (!should_transmit()) {
+			check_requested_subscriptions();
 			continue;
 		}
 
@@ -2370,75 +2371,7 @@ Mavlink::task_main(int argc, char *argv[])
 			}
 		}
 
-		/* check for requested subscriptions */
-		if (_subscribe_to_stream != nullptr) {
-			if (_subscribe_to_stream_rate < -1.5f) {
-				if (configure_streams_to_default(_subscribe_to_stream) == 0) {
-					if (get_protocol() == Protocol::SERIAL) {
-						PX4_DEBUG("stream %s on device %s set to default rate", _subscribe_to_stream, _device_name);
-					}
-
-#if defined(MAVLINK_UDP)
-
-					else if (get_protocol() == Protocol::UDP) {
-						PX4_DEBUG("stream %s on UDP port %d set to default rate", _subscribe_to_stream, _network_port);
-					}
-
-#endif // MAVLINK_UDP
-
-				} else {
-					PX4_ERR("setting stream %s to default failed", _subscribe_to_stream);
-				}
-
-			} else if (configure_stream(_subscribe_to_stream, _subscribe_to_stream_rate) == 0) {
-				if (fabsf(_subscribe_to_stream_rate) > 0.00001f) {
-					if (get_protocol() == Protocol::SERIAL) {
-						PX4_DEBUG("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, _device_name,
-							  (double)_subscribe_to_stream_rate);
-
-					}
-
-#if defined(MAVLINK_UDP)
-
-					else if (get_protocol() == Protocol::UDP) {
-						PX4_DEBUG("stream %s on UDP port %d enabled with rate %.1f Hz", _subscribe_to_stream, _network_port,
-							  (double)_subscribe_to_stream_rate);
-					}
-
-#endif // MAVLINK_UDP
-
-				} else {
-					if (get_protocol() == Protocol::SERIAL) {
-						PX4_DEBUG("stream %s on device %s disabled", _subscribe_to_stream, _device_name);
-
-					}
-
-#if defined(MAVLINK_UDP)
-
-					else if (get_protocol() == Protocol::UDP) {
-						PX4_DEBUG("stream %s on UDP port %d disabled", _subscribe_to_stream, _network_port);
-					}
-
-#endif // MAVLINK_UDP
-				}
-
-			} else {
-				if (get_protocol() == Protocol::SERIAL) {
-					PX4_ERR("stream %s on device %s not found", _subscribe_to_stream, _device_name);
-
-				}
-
-#if defined(MAVLINK_UDP)
-
-				else if (get_protocol() == Protocol::UDP) {
-					PX4_ERR("stream %s on UDP port %d not found", _subscribe_to_stream, _network_port);
-				}
-
-#endif // MAVLINK_UDP
-			}
-
-			_subscribe_to_stream = nullptr;
-		}
+		check_requested_subscriptions();
 
 		/* update streams */
 		for (const auto &stream : _streams) {
@@ -2569,6 +2502,78 @@ Mavlink::task_main(int argc, char *argv[])
 	PX4_INFO("exiting channel %i", (int)_channel);
 
 	return OK;
+}
+
+void Mavlink::check_requested_subscriptions()
+{
+	if (_subscribe_to_stream != nullptr) {
+		if (_subscribe_to_stream_rate < -1.5f) {
+			if (configure_streams_to_default(_subscribe_to_stream) == 0) {
+				if (get_protocol() == Protocol::SERIAL) {
+					PX4_DEBUG("stream %s on device %s set to default rate", _subscribe_to_stream, _device_name);
+				}
+
+#if defined(MAVLINK_UDP)
+
+				else if (get_protocol() == Protocol::UDP) {
+					PX4_DEBUG("stream %s on UDP port %d set to default rate", _subscribe_to_stream, _network_port);
+				}
+
+#endif // MAVLINK_UDP
+
+			} else {
+				PX4_ERR("setting stream %s to default failed", _subscribe_to_stream);
+			}
+
+		} else if (configure_stream(_subscribe_to_stream, _subscribe_to_stream_rate) == 0) {
+			if (fabsf(_subscribe_to_stream_rate) > 0.00001f) {
+				if (get_protocol() == Protocol::SERIAL) {
+					PX4_DEBUG("stream %s on device %s enabled with rate %.1f Hz", _subscribe_to_stream, _device_name,
+						  (double)_subscribe_to_stream_rate);
+
+				}
+
+#if defined(MAVLINK_UDP)
+
+				else if (get_protocol() == Protocol::UDP) {
+					PX4_DEBUG("stream %s on UDP port %d enabled with rate %.1f Hz", _subscribe_to_stream, _network_port,
+						  (double)_subscribe_to_stream_rate);
+				}
+
+#endif // MAVLINK_UDP
+
+			} else {
+				if (get_protocol() == Protocol::SERIAL) {
+					PX4_DEBUG("stream %s on device %s disabled", _subscribe_to_stream, _device_name);
+
+				}
+
+#if defined(MAVLINK_UDP)
+
+				else if (get_protocol() == Protocol::UDP) {
+					PX4_DEBUG("stream %s on UDP port %d disabled", _subscribe_to_stream, _network_port);
+				}
+
+#endif // MAVLINK_UDP
+			}
+
+		} else {
+			if (get_protocol() == Protocol::SERIAL) {
+				PX4_ERR("stream %s on device %s not found", _subscribe_to_stream, _device_name);
+
+			}
+
+#if defined(MAVLINK_UDP)
+
+			else if (get_protocol() == Protocol::UDP) {
+				PX4_ERR("stream %s on UDP port %d not found", _subscribe_to_stream, _network_port);
+			}
+
+#endif // MAVLINK_UDP
+		}
+
+		_subscribe_to_stream = nullptr;
+	}
 }
 
 void Mavlink::publish_telemetry_status()
