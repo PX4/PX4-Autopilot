@@ -616,7 +616,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  *
  * @group EKF2
  * @min 0
- * @max 255
+ * @max 511
  * @bit 0 use GPS
  * @bit 1 use optical flow
  * @bit 2 inhibit IMU bias estimation
@@ -625,6 +625,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * @bit 5 multi-rotor drag fusion
  * @bit 6 rotate external vision
  * @bit 7 GPS yaw fusion
+ * @bit 8 vision velocity fusion
  * @reboot_required true
  */
 PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
