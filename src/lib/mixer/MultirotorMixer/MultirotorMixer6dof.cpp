@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -213,7 +213,8 @@ MultirotorMixer6dof::minimize_saturation(const float *desaturation_vector, float
 }
 
 void
-MultirotorMixer6dof::mix_airmode_rp(float roll, float pitch, float yaw, float x_thrust, float y_thrust, float z_thrust, float *outputs)
+MultirotorMixer6dof::mix_airmode_rp(float roll, float pitch, float yaw, float x_thrust, float y_thrust, float z_thrust,
+				    float *outputs)
 {
 	// Airmode for roll and pitch, but not yaw
 
@@ -226,7 +227,7 @@ MultirotorMixer6dof::mix_airmode_rp(float roll, float pitch, float yaw, float x_
 			     z_thrust * _rotors[i].z_scale;
 
 		// Thrust will be used to unsaturate if needed
-		_tmp_array[i] = _rotors[i].z_scale;
+		_tmp_array[i] = math::abs_t<float>(_rotors[i].z_scale);
 	}
 
 	minimize_saturation(_tmp_array, outputs, _saturation_status);
@@ -236,7 +237,8 @@ MultirotorMixer6dof::mix_airmode_rp(float roll, float pitch, float yaw, float x_
 }
 
 void
-MultirotorMixer6dof::mix_airmode_rpy(float roll, float pitch, float yaw, float x_thrust, float y_thrust, float z_thrust, float *outputs)
+MultirotorMixer6dof::mix_airmode_rpy(float roll, float pitch, float yaw, float x_thrust, float y_thrust, float z_thrust,
+				     float *outputs)
 {
 	// Airmode for roll, pitch and yaw
 
@@ -250,7 +252,7 @@ MultirotorMixer6dof::mix_airmode_rpy(float roll, float pitch, float yaw, float x
 			     z_thrust * _rotors[i].z_scale;
 
 		// Z thrust will be used to unsaturate if needed
-		_tmp_array[i] = _rotors[i].z_scale;
+		_tmp_array[i] = math::abs_t<float>(_rotors[i].z_scale);
 	}
 
 	minimize_saturation(_tmp_array, outputs, _saturation_status);
@@ -265,20 +267,21 @@ MultirotorMixer6dof::mix_airmode_rpy(float roll, float pitch, float yaw, float x
 }
 
 void
-MultirotorMixer6dof::mix_airmode_disabled(float roll, float pitch, float yaw, float x_thrust, float y_thrust, float z_thrust, float *outputs)
+MultirotorMixer6dof::mix_airmode_disabled(float roll, float pitch, float yaw, float x_thrust, float y_thrust,
+		float z_thrust, float *outputs)
 {
 	// Airmode disabled: never allow to increase the thrust to unsaturate a motor
 
 	// Mix without yaw
 	for (unsigned i = 0; i < _rotor_count; i++) {
 		outputs[i] = roll * _rotors[i].roll_scale +
-			     	pitch * _rotors[i].pitch_scale +
-				x_thrust * _rotors[i].x_scale +
-				y_thrust * _rotors[i].y_scale +
-				z_thrust * _rotors[i].z_scale;
+			     pitch * _rotors[i].pitch_scale +
+			     x_thrust * _rotors[i].x_scale +
+			     y_thrust * _rotors[i].y_scale +
+			     z_thrust * _rotors[i].z_scale;
 
 		// Z thrust will be used to unsaturate if needed
-		_tmp_array[i] = _rotors[i].z_scale;
+		_tmp_array[i] = math::abs_t<float>(_rotors[i].z_scale);
 	}
 
 	// only reduce thrust
@@ -316,7 +319,7 @@ void MultirotorMixer6dof::mix_yaw(float yaw, float *outputs)
 	minimize_saturation(_tmp_array, outputs, _saturation_status, 0.f, 1.15f);
 
 	for (unsigned i = 0; i < _rotor_count; i++) {
-		_tmp_array[i] = _rotors[i].z_scale;
+		_tmp_array[i] = math::abs_t<float>(_rotors[i].z_scale);
 	}
 
 	// reduce thrust only
@@ -335,7 +338,7 @@ MultirotorMixer6dof::mix(float *outputs, unsigned space)
 	float yaw     = math::constrain(get_control(0, 2) * _yaw_scale, -1.0f, 1.0f);
 	float x_thrust  = math::constrain(get_control(0, 4), 0.0f, 1.0f);
 	float y_thrust  = math::constrain(get_control(0, 5), 0.0f, 1.0f);
- 	// TODO remove the - sign
+	// TODO remove the - sign
 	float z_thrust  = - math::constrain(get_control(0, 3), 0.0f, 1.0f);
 
 	// clean out class variable used to capture saturation

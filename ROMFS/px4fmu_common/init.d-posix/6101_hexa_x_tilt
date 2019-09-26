@@ -20,8 +20,9 @@ if [ $AUTOCNF = yes ]
 then
 	param set MC_PITCHRATE_P 0.2
 	param set MC_ROLLRATE_P 0.2
+	param set MC_YAWRATE_P 0.1
 	param set MPC_Z_VEL_I 0.15
-	param set MPC_Z_VEL_P 0.6
+	param set MPC_Z_VEL_P 0.3
 
 	param set RTL_DESCEND_ALT 5.0
 	param set RTL_LAND_DELAY 5
