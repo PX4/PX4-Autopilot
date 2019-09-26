@@ -421,10 +421,14 @@ private:
 		// vision estimate fusion
 		(ParamFloat<px4::params::EKF2_EVP_NOISE>)
 		_param_ekf2_evp_noise,	///< default position observation noise for exernal vision measurements (m)
+		(ParamFloat<px4::params::EKF2_EVV_NOISE>)
+		_param_ekf2_evv_noise,	///< default velocity observation noise for exernal vision measurements (m/s)
 		(ParamFloat<px4::params::EKF2_EVA_NOISE>)
 		_param_ekf2_eva_noise,	///< default angular observation noise for exernal vision measurements (rad)
-		(ParamExtFloat<px4::params::EKF2_EV_GATE>)
-		_param_ekf2_ev_gate,	///< external vision position innovation consistency gate size (STD)
+		(ParamExtFloat<px4::params::EKF2_EVV_GATE>)
+		_param_ekf2_evv_gate,	///< external vision velocity innovation consistency gate size (STD)
+		(ParamExtFloat<px4::params::EKF2_EVP_GATE>)
+		_param_ekf2_evp_gate,	///< external vision position innovation consistency gate size (STD)
 
 		// optical flow fusion
 		(ParamExtFloat<px4::params::EKF2_OF_N_MIN>)
@@ -566,8 +570,8 @@ Ekf2::Ekf2():
 	_param_ekf2_baro_gate(_params->baro_innov_gate),
 	_param_ekf2_gnd_eff_dz(_params->gnd_effect_deadzone),
 	_param_ekf2_gnd_max_hgt(_params->gnd_effect_max_hgt),
-	_param_ekf2_gps_p_gate(_params->posNE_innov_gate),
-	_param_ekf2_gps_v_gate(_params->vel_innov_gate),
+	_param_ekf2_gps_p_gate(_params->gps_pos_innov_gate),
+	_param_ekf2_gps_v_gate(_params->gps_vel_innov_gate),
 	_param_ekf2_tas_gate(_params->tas_innov_gate),
 	_param_ekf2_head_noise(_params->mag_heading_noise),
 	_param_ekf2_mag_noise(_params->mag_noise),
@@ -601,7 +605,8 @@ Ekf2::Ekf2():
 	_param_ekf2_rng_a_vmax(_params->max_vel_for_range_aid),
 	_param_ekf2_rng_a_hmax(_params->max_hagl_for_range_aid),
 	_param_ekf2_rng_a_igate(_params->range_aid_innov_gate),
-	_param_ekf2_ev_gate(_params->ev_innov_gate),
+	_param_ekf2_evv_gate(_params->ev_vel_innov_gate),
+	_param_ekf2_evp_gate(_params->ev_pos_innov_gate),
 	_param_ekf2_of_n_min(_params->flow_noise),
 	_param_ekf2_of_n_max(_params->flow_noise_qual_min),
 	_param_ekf2_of_qmin(_params->flow_qual_min),
@@ -1154,11 +1159,29 @@ void Ekf2::run()
 
 			ext_vision_message ev_data;
 
+			// check for valid velocity data
+			if (PX4_ISFINITE(_ev_odom.vx) && PX4_ISFINITE(_ev_odom.vy) && PX4_ISFINITE(_ev_odom.vz)) {
+				ev_data.vel(0) = _ev_odom.vx;
+				ev_data.vel(1) = _ev_odom.vy;
+				ev_data.vel(2) = _ev_odom.vz;
+
+				// velocity measurement error from parameters
+				if (PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_X_VARIANCE])) {
+					ev_data.velErr = fmaxf(_param_ekf2_evv_noise.get(),
+							       sqrtf(fmaxf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE],
+									   fmaxf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VY_VARIANCE],
+											   _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE]))));
+
+				} else {
+					ev_data.velErr = _param_ekf2_evv_noise.get();
+				}
+			}
+
 			// check for valid position data
 			if (PX4_ISFINITE(_ev_odom.x) && PX4_ISFINITE(_ev_odom.y) && PX4_ISFINITE(_ev_odom.z)) {
-				ev_data.posNED(0) = _ev_odom.x;
-				ev_data.posNED(1) = _ev_odom.y;
-				ev_data.posNED(2) = _ev_odom.z;
+				ev_data.pos(0) = _ev_odom.x;
+				ev_data.pos(1) = _ev_odom.y;
+				ev_data.pos(2) = _ev_odom.z;
 
 				// position measurement error from parameter
 				if (PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_X_VARIANCE])) {

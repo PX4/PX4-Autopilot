@@ -700,7 +700,6 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_GATE, 5.0f);
  */
 PARAM_DEFINE_FLOAT(EKF2_MIN_RNG, 0.1f);
 
-
 /**
  * Measurement noise for vision position observations used when the vision system does not supply error estimates
  *
@@ -709,7 +708,17 @@ PARAM_DEFINE_FLOAT(EKF2_MIN_RNG, 0.1f);
  * @unit m
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_EVP_NOISE, 0.05f);
+PARAM_DEFINE_FLOAT(EKF2_EVP_NOISE, 0.1f);
+
+/**
+ * Measurement noise for vision velocity observations used when the vision system does not supply error estimates
+ *
+ * @group EKF2
+ * @min 0.01
+ * @unit m/s
+ * @decimal 2
+*/
+PARAM_DEFINE_FLOAT(EKF2_EVV_NOISE, 0.1f);
 
 /**
  * Measurement noise for vision angle observations used when the vision system does not supply error estimates
@@ -720,18 +729,6 @@ PARAM_DEFINE_FLOAT(EKF2_EVP_NOISE, 0.05f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_EVA_NOISE, 0.05f);
-
-/**
- * Gate size for vision estimate fusion
- *
- * Sets the number of standard deviations used by the innovation consistency test.
- *
- * @group EKF2
- * @min 1.0
- * @unit SD
- * @decimal 1
- */
-PARAM_DEFINE_FLOAT(EKF2_EV_GATE, 5.0f);
 
 /**
  * Measurement noise for the optical flow sensor when it's reported quality metric is at the maximum
@@ -1160,6 +1157,28 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_A_HMAX, 5.0f);
  * @max 5.0
  */
 PARAM_DEFINE_FLOAT(EKF2_RNG_A_IGATE, 1.0f);
+
+/**
+ * Gate size for vision velocity estimate fusion
+ *
+ * Sets the number of standard deviations used by the innovation consistency test.
+ *
+ * @group EKF2
+ * @min 1.0
+ * @unit SD
+ * @decimal 1
+*/
+PARAM_DEFINE_FLOAT(EKF2_EVV_GATE, 3.0f);
+
+/**
+ * Gate size for vision position fusion
+ * Sets the number of standard deviations used by the innovation consistency test.
+ * @group EKF2
+ * @min 1.0
+ * @unit SD
+ * @decimal 1
+*/
+PARAM_DEFINE_FLOAT(EKF2_EVP_GATE, 5.0f);
 
 /**
  * Specific drag force observation noise variance used by the multi-rotor specific drag force model.
