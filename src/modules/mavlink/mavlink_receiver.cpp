@@ -1273,7 +1273,7 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		PX4_ERR("Body frame %u not supported. Unable to publish velocity", odom.child_frame_id);
 	}
 
-	if (odom.frame_id == MAV_FRAME_VISION_NED) {
+	if (odom.frame_id == MAV_FRAME_LOCAL_FRD) {
 		_visual_odometry_pub.publish(odometry);
 
 	} else if (odom.frame_id == MAV_FRAME_MOCAP_NED) {
