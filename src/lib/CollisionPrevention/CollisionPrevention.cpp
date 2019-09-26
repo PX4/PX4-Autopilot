@@ -204,10 +204,10 @@ void CollisionPrevention::_updateObstacleMap()
 
 				//update message description
 				_obstacle_map_body_frame.timestamp = math::max(_obstacle_map_body_frame.timestamp, distance_sensor.timestamp);
-				_obstacle_map_body_frame.max_distance = math::max((int)_obstacle_map_body_frame.max_distance,
-									(int)distance_sensor.max_distance * 100);
-				_obstacle_map_body_frame.min_distance = math::min((int)_obstacle_map_body_frame.min_distance,
-									(int)distance_sensor.min_distance * 100);
+				_obstacle_map_body_frame.max_distance = math::max(_obstacle_map_body_frame.max_distance,
+									(uint16_t)(distance_sensor.max_distance * 100.0f));
+				_obstacle_map_body_frame.min_distance = math::min(_obstacle_map_body_frame.min_distance,
+									(uint16_t)(distance_sensor.min_distance * 100.0f));
 
 				_addDistanceSensorData(distance_sensor, Quatf(_sub_vehicle_attitude.get().q));
 			}
