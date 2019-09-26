@@ -1158,6 +1158,7 @@ void Ekf2::run()
 			_ev_odom_sub.copy(&_ev_odom);
 
 			ext_vision_message ev_data;
+
 			// check for valid velocity data
 			if (PX4_ISFINITE(_ev_odom.vx) && PX4_ISFINITE(_ev_odom.vy) && PX4_ISFINITE(_ev_odom.vz)) {
 				ev_data.vel(0) = _ev_odom.vx;
