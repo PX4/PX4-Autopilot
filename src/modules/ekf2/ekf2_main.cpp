@@ -119,6 +119,7 @@ private:
 	int getRangeSubIndex(); ///< get subscription index of first downward-facing range sensor
 
 	void initializeInnovLpfs();
+	float selectYawTestLimit(const filter_control_status_u &control_status, const vehicle_status_s &vehicle_status);
 	inline float sq(float val) { return val * val; }
 
 	template<typename Param>
@@ -1708,24 +1709,10 @@ void Ekf2::Run()
 					vel_d_innov_lpf = _filter_vel_d_innov.update(innovations.vel_pos_innov[2], alpha);
 					hgt_innov_lpf = _filter_hgt_innov.update(innovations.vel_pos_innov[5], alpha);
 
-					// set the max allowed yaw innovaton depending on whether we are not aiding navigation using
-					// observations in the NE reference frame.
-					bool doing_ne_aiding = control_status.flags.gps ||  control_status.flags.ev_pos;
+					// Get the correct yaw test limit value depending on vehicle type and aiding mode
+					float yaw_test_limit = selectYawTestLimit(control_status, vehicle_status);
 
-					float yaw_test_limit;
-
-					if (doing_ne_aiding && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)) {
-						// use a smaller tolerance when doing NE inertial frame aiding as a rotary wing
-						// vehicle which cannot use GPS course to realign heading in flight
-						yaw_test_limit = _nav_yaw_innov_test_lim;
-
-					} else {
-						// use a larger tolerance when not doing NE inertial frame aiding or
-						// if a fixed wing vehicle which can realign heading using GPS course
-						yaw_test_limit = _yaw_innov_test_lim;
-					}
-
-					// filter the yaw innovations
+					// Filter the yaw innovations
 					_filter_yaw_magnitude_innov.setSpikeLimit(2.0f * yaw_test_limit);
 					yaw_innov_magnitude_lpf = _filter_yaw_magnitude_innov.update(innovations.heading_innov, alpha);
 
@@ -1772,6 +1759,28 @@ void Ekf2::initializeInnovLpfs()
 	_filter_vel_d_innov.setSpikeLimit(_vel_innov_spike_lim);
 	_filter_hgt_innov.setSpikeLimit(_hgt_innov_spike_lim);
 	// Note: spike limit of _filter_yaw_magnitude_innov if set dynamically
+}
+
+float Ekf2::selectYawTestLimit(const filter_control_status_u &control_status, const vehicle_status_s &vehicle_status)
+{
+	// set the max allowed yaw innovaton depending on whether we are not aiding navigation using
+	// observations in the NE reference frame.
+	bool doing_ne_aiding = control_status.flags.gps ||  control_status.flags.ev_pos;
+
+	float yaw_test_limit;
+
+	if (doing_ne_aiding && vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		// use a smaller tolerance when doing NE inertial frame aiding as a rotary wing
+		// vehicle which cannot use GPS course to realign heading in flight
+		yaw_test_limit = _nav_yaw_innov_test_lim;
+
+	} else {
+		// use a larger tolerance when not doing NE inertial frame aiding or
+		// if a fixed wing vehicle which can realign heading using GPS course
+		yaw_test_limit = _yaw_innov_test_lim;
+	}
+
+	return yaw_test_limit;
 }
 
 int Ekf2::getRangeSubIndex()
