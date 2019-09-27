@@ -232,6 +232,8 @@ private:
 	InnovationLpf _filter_vel_d_innov;	///< Preflight low pass filter D axis velocity innovations (m/sec)
 	InnovationLpf _filter_hgt_innov;		///< Preflight low pass filter height innovation (m)
 	InnovationLpf _filter_yaw_magnitude_innov;	///< Preflight low pass filter yaw innovation magntitude (rad)
+	InnovationLpf _filter_flow_x_innov;
+	InnovationLpf _filter_flow_y_innov;
 
 	static constexpr float _innov_lpf_tau_inv = 0.2f;	///< Preflight low pass filter time constant inverse (1/sec)
 	static constexpr float _vel_innov_test_lim =
@@ -242,8 +244,11 @@ private:
 		0.25f;	///< Maximum permissible yaw innovation to pass pre-flight checks when aiding inertial nav using NE frame observations (rad)
 	static constexpr float _yaw_innov_test_lim =
 		0.52f;	///< Maximum permissible yaw innovation to pass pre-flight checks when not aiding inertial nav using NE frame observations (rad)
+	static constexpr float _flow_innov_test_lim =
+		0.1f;	///< Maximum permissible flow innovation to pass pre-flight checks
 	const float _vel_innov_spike_lim = 2.0f * _vel_innov_test_lim;	///< preflight velocity innovation spike limit (m/sec)
 	const float _hgt_innov_spike_lim = 2.0f * _hgt_innov_test_lim;	///< preflight position innovation spike limit (m)
+	const float _flow_innov_spike_lim = 2.0f * _flow_innov_test_lim;///< preflight flow innovation spike limit
 
 	// set pose/velocity as invalid if standard deviation is bigger than max_std_dev
 	// TODO: the user should be allowed to set these values by a parameter
@@ -1732,6 +1737,8 @@ void Ekf2::initializeInnovLpfs()
 	_filter_vel_e_innov.setSpikeLimit(_vel_innov_spike_lim);
 	_filter_vel_d_innov.setSpikeLimit(_vel_innov_spike_lim);
 	_filter_hgt_innov.setSpikeLimit(_hgt_innov_spike_lim);
+	_filter_flow_x_innov.setSpikeLimit(_flow_innov_spike_lim);
+	_filter_flow_y_innov.setSpikeLimit(_flow_innov_spike_lim);
 	// Note: spike limit of _filter_yaw_magnitude_innov if set dynamically
 }
 
@@ -1805,6 +1812,14 @@ bool Ekf2::preFlightCheckHorizVelFailed(const filter_control_status_u &control_s
 		has_failed |= checkInnov2DFailed(vel_ne_innov, vel_ne_innov_lpf, _vel_innov_test_lim);
 	}
 
+	if (control_status.flags.opt_flow) {
+		Vector2f flow_innov = Vector2f(innov.flow_innov);
+		Vector2f flow_innov_lpf;
+		flow_innov_lpf(0) = _filter_flow_x_innov.update(flow_innov(0), alpha);
+		flow_innov_lpf(1) = _filter_flow_x_innov.update(flow_innov(1), alpha);
+		has_failed |= checkInnov2DFailed(flow_innov, flow_innov_lpf, _flow_innov_test_lim);
+	}
+
 	return has_failed;
 }
 
@@ -1841,6 +1856,8 @@ void Ekf2::resetPreFlightChecks()
 	_filter_vel_d_innov.reset();
 	_filter_hgt_innov.reset();
 	_filter_yaw_magnitude_innov.reset();
+	_filter_flow_x_innov.reset();
+	_filter_flow_y_innov.reset();
 	_preflt_horiz_fail = false;
 	_preflt_vert_fail = false;
 	_preflt_fail = false;
