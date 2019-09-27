@@ -34,16 +34,15 @@
 #include "InnovationLpf.hpp"
 
 #include <mathlib/mathlib.h>
-#include <float.h>
 
 float InnovationLpf::update(float val, float alpha)
 {
-	_filter.setAlpha(alpha);
-
 	float val_constrained = math::constrain(val, -_spike_limit, _spike_limit);
-	float filtered_val = _filter.update(val_constrained);
+	float beta = 1.f - alpha;
 
-	return filtered_val;
+	_x = beta * _x + alpha * val_constrained;
+
+	return _x;
 }
 
 float InnovationLpf::computeAlphaFromDtAndTauInv(float dt, float tau_inv)

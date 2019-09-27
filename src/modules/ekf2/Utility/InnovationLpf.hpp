@@ -31,7 +31,9 @@
  *
  ****************************************************************************/
 
-#include "FirstOrderLpf.hpp"
+/**
+ * First order IIR digital filter with input saturation
+ */
 
 class InnovationLpf final
 {
@@ -39,8 +41,21 @@ public:
 	InnovationLpf() = default;
 	~InnovationLpf() = default;
 
-	void reset(float val = 0.f) { _filter.reset(val); }
-	float update(float val, float alpha); ///< update filter and provide alpha
+	void reset(float val = 0.f) { _x = val; }
+
+	/**
+	 * Update the filter with a new value and returns the filtered state
+	 * The new value is constained by the limit set in setSpikeLimit
+	 * @param val new input
+	 * @param alpha normalized weight of the new input
+	 * @return filtered output
+	 */
+	float update(float val, float alpha);
+
+	/**
+	 * Set the amplitude of the saturation at the input of the filter
+	 * @param lim amplitutde of the saturation
+	 */
 	void setSpikeLimit(float lim) { _spike_limit = lim; }
 
 	/**
@@ -52,6 +67,6 @@ public:
 	static float computeAlphaFromDtAndTauInv(float dt, float tau_inv);
 
 private:
-	FirstOrderLpf _filter;
-	float _spike_limit{-1.f}; ///< constrain the input before sending to the lpf (-1 = no constraint)
+	float _x; ///< current state of the filter
+	float _spike_limit{-1.f}; ///< input saturation of the lpf (-1 = no saturation)
 };

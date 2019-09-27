@@ -32,6 +32,5 @@
 ############################################################################
 
 px4_add_library(Ekf2Utility
-	FirstOrderLpf.cpp
 	InnovationLpf.cpp
 )
