@@ -119,7 +119,10 @@ private:
 	int getRangeSubIndex(); ///< get subscription index of first downward-facing range sensor
 
 	void initializeInnovLpfs();
+	void runPreFlightChecks(float dt, const filter_control_status_u &control_status, const vehicle_status_s &vehicle_status,
+				const ekf2_innovations_s &innov);
 	float selectYawTestLimit(const filter_control_status_u &control_status, const vehicle_status_s &vehicle_status);
+	void resetPreFlightChecks();
 	inline float sq(float val) { return val * val; }
 
 	template<typename Param>
@@ -1695,50 +1698,11 @@ void Ekf2::Run()
 
 				// calculate noise filtered velocity innovations which are used for pre-flight checking
 				if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
-					Vector2f vel_ne_innov_lpf;
-					float vel_d_innov_lpf;
-					float yaw_innov_magnitude_lpf;
-					float hgt_innov_lpf;
-					float alpha = InnovationLpf::computeAlphaFromDtAndTauInv(
-							      sensors.accelerometer_integral_dt * 1e-6,
-							      _innov_lpf_tau_inv);
-
-					// Update innovation lowpass filters
-					vel_ne_innov_lpf(0) = _filter_vel_n_innov.update(innovations.vel_pos_innov[0], alpha);
-					vel_ne_innov_lpf(1) = _filter_vel_e_innov.update(innovations.vel_pos_innov[1], alpha);
-					vel_d_innov_lpf = _filter_vel_d_innov.update(innovations.vel_pos_innov[2], alpha);
-					hgt_innov_lpf = _filter_hgt_innov.update(innovations.vel_pos_innov[5], alpha);
-
-					// Get the correct yaw test limit value depending on vehicle type and aiding mode
-					float yaw_test_limit = selectYawTestLimit(control_status, vehicle_status);
-
-					// Filter the yaw innovations
-					_filter_yaw_magnitude_innov.setSpikeLimit(2.0f * yaw_test_limit);
-					yaw_innov_magnitude_lpf = _filter_yaw_magnitude_innov.update(innovations.heading_innov, alpha);
-
-					// check the yaw and horizontal velocity innovations
-					Vector2f vel_ne_innov = Vector2f(innovations.vel_pos_innov);
-					_preflt_horiz_fail = (vel_ne_innov_lpf.norm_squared() > sq(_vel_innov_test_lim))
-							     || (vel_ne_innov.norm_squared() > sq(2.0f * _vel_innov_test_lim))
-							     || (yaw_innov_magnitude_lpf > yaw_test_limit);
-
-					// check the vertical velocity and position innovations
-					_preflt_vert_fail = (fabsf(vel_d_innov_lpf) > _vel_innov_test_lim)
-							    || (fabsf(innovations.vel_pos_innov[2]) > 2.0f * _vel_innov_test_lim)
-							    || (fabsf(hgt_innov_lpf) > _hgt_innov_test_lim);
-
-					// master pass-fail status
-					_preflt_fail = _preflt_horiz_fail || _preflt_vert_fail;
+					float dt_seconds = sensors.accelerometer_integral_dt * 1e-6;
+					runPreFlightChecks(dt_seconds, control_status, vehicle_status, innovations);
 
 				} else {
-					_filter_vel_n_innov.reset();
-					_filter_vel_e_innov.reset();
-					_filter_vel_d_innov.reset();
-					_filter_hgt_innov.reset();
-					_filter_yaw_magnitude_innov.reset();
-					_preflt_horiz_fail = false;
-					_preflt_vert_fail = false;
-					_preflt_fail = false;
+					resetPreFlightChecks();
 				}
 
 				_estimator_innovations_pub.publish(innovations);
@@ -1761,6 +1725,44 @@ void Ekf2::initializeInnovLpfs()
 	// Note: spike limit of _filter_yaw_magnitude_innov if set dynamically
 }
 
+void Ekf2::runPreFlightChecks(float dt,
+			      const filter_control_status_u &control_status,
+			      const vehicle_status_s &vehicle_status,
+			      const ekf2_innovations_s &innov)
+{
+	Vector2f vel_ne_innov_lpf;
+	float vel_d_innov_lpf;
+	float yaw_innov_magnitude_lpf;
+	float hgt_innov_lpf;
+	float alpha = InnovationLpf::computeAlphaFromDtAndTauInv(dt, _innov_lpf_tau_inv);
+
+	// Update innovation lowpass filters
+	vel_ne_innov_lpf(0) = _filter_vel_n_innov.update(innov.vel_pos_innov[0], alpha);
+	vel_ne_innov_lpf(1) = _filter_vel_e_innov.update(innov.vel_pos_innov[1], alpha);
+	vel_d_innov_lpf = _filter_vel_d_innov.update(innov.vel_pos_innov[2], alpha);
+	hgt_innov_lpf = _filter_hgt_innov.update(innov.vel_pos_innov[5], alpha);
+
+	// Get the correct yaw test limit value depending on vehicle type and aiding mode
+	float yaw_test_limit = selectYawTestLimit(control_status, vehicle_status);
+	// Filter the yaw innovations
+	_filter_yaw_magnitude_innov.setSpikeLimit(2.0f * yaw_test_limit);
+	yaw_innov_magnitude_lpf = _filter_yaw_magnitude_innov.update(innov.heading_innov, alpha);
+
+	// check the yaw and horizontal velocity innovations
+	Vector2f vel_ne_innov = Vector2f(innov.vel_pos_innov);
+	_preflt_horiz_fail = (vel_ne_innov_lpf.norm_squared() > sq(_vel_innov_test_lim))
+			     || (vel_ne_innov.norm_squared() > sq(2.0f * _vel_innov_test_lim))
+			     || (yaw_innov_magnitude_lpf > yaw_test_limit);
+
+	// check the vertical velocity and position innovations
+	_preflt_vert_fail = (fabsf(vel_d_innov_lpf) > _vel_innov_test_lim)
+			    || (fabsf(innov.vel_pos_innov[2]) > 2.0f * _vel_innov_test_lim)
+			    || (fabsf(hgt_innov_lpf) > _hgt_innov_test_lim);
+
+	// master pass-fail status
+	_preflt_fail = _preflt_horiz_fail || _preflt_vert_fail;
+}
+
 float Ekf2::selectYawTestLimit(const filter_control_status_u &control_status, const vehicle_status_s &vehicle_status)
 {
 	// set the max allowed yaw innovaton depending on whether we are not aiding navigation using
@@ -1781,6 +1783,18 @@ float Ekf2::selectYawTestLimit(const filter_control_status_u &control_status, co
 	}
 
 	return yaw_test_limit;
+}
+
+void Ekf2::resetPreFlightChecks()
+{
+	_filter_vel_n_innov.reset();
+	_filter_vel_e_innov.reset();
+	_filter_vel_d_innov.reset();
+	_filter_hgt_innov.reset();
+	_filter_yaw_magnitude_innov.reset();
+	_preflt_horiz_fail = false;
+	_preflt_vert_fail = false;
+	_preflt_fail = false;
 }
 
 int Ekf2::getRangeSubIndex()
