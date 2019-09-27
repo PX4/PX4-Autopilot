@@ -123,7 +123,7 @@ private:
 				const ekf2_innovations_s &innov);
 	float selectYawTestLimit(const filter_control_status_u &control_status, const vehicle_status_s &vehicle_status);
 	void resetPreFlightChecks();
-	inline float sq(float val) { return val * val; }
+	static constexpr float sq(float var) { return var * var; }
 
 	template<typename Param>
 	void update_mag_bias(Param &mag_bias_param, int axis_index);
