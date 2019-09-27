@@ -1803,8 +1803,9 @@ bool Ekf2::preFlightCheckHorizVelFailed(const filter_control_status_u &control_s
 {
 	bool has_failed = false;
 
-	// Only check the innovations if the sensor is currently fused
-	if (control_status.flags.gps) {
+	bool doing_ne_aiding = control_status.flags.gps ||  control_status.flags.ev_pos;
+
+	if (doing_ne_aiding) {
 		Vector2f vel_ne_innov = Vector2f(innov.vel_pos_innov);
 		Vector2f vel_ne_innov_lpf;
 		vel_ne_innov_lpf(0) = _filter_vel_n_innov.update(vel_ne_innov(0), alpha);
