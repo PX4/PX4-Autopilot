@@ -97,6 +97,8 @@ public:
 	// TODO: only temporarily static until low priority thread is removed
 	static bool preflight_check(bool report);
 
+	void get_circuit_breaker_params();
+
 private:
 
 	DEFINE_PARAMETERS(
@@ -114,7 +116,7 @@ private:
 		(ParamFloat<px4::params::COM_HOME_V_T>) _param_com_home_v_t,
 
 		(ParamFloat<px4::params::COM_POS_FS_EPH>) _param_com_pos_fs_eph,
-		(ParamFloat<px4::params::COM_POS_FS_EPV>) _param_com_pos_fs_epv,
+		(ParamFloat<px4::params::COM_POS_FS_EPV>) _param_com_pos_fs_epv, 	/*Not realy used for now*/
 		(ParamFloat<px4::params::COM_VEL_FS_EVH>) _param_com_vel_fs_evh,
 		(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl,	/* failsafe response to loss of navigation accuracy */
 
@@ -142,8 +144,15 @@ private:
 		(ParamInt<px4::params::COM_OBL_ACT>) _param_com_obl_act,
 		(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
 
-		(ParamInt<px4::params::COM_PREARM_MODE>) _param_com_prearm_mode
+		(ParamInt<px4::params::COM_PREARM_MODE>) _param_com_prearm_mode,
 
+		(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
+		(ParamInt<px4::params::CBRK_USB_CHK>) _param_cbrk_usb_chk,
+		(ParamInt<px4::params::CBRK_AIRSPD_CHK>) _param_cbrk_airspd_chk,
+		(ParamInt<px4::params::CBRK_ENGINEFAIL>) _param_cbrk_enginefail,
+		(ParamInt<px4::params::CBRK_GPSFAIL>) _param_cbrk_gpsfail,
+		(ParamInt<px4::params::CBRK_FLIGHTTERM>) _param_cbrk_flightterm,
+		(ParamInt<px4::params::CBRK_VELPOSERR>) _param_cbrk_velposerr
 	)
 
 	enum class PrearmedMode {

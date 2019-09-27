@@ -178,7 +178,6 @@ protected:
 
 	uORB::SubscriptionPollable<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
 	uORB::SubscriptionPollable<vehicle_attitude_s> *_sub_attitude{nullptr};
-	uint8_t _heading_reset_counter{0}; /**< estimator heading reset */
 
 	/** Reset all setpoints to NAN */
 	void _resetSetpoints();
@@ -189,8 +188,20 @@ protected:
 	/** Set constraints to default values */
 	virtual void _setDefaultConstraints();
 
-	/** determines when to trigger a takeoff (ignored in flight) */
+	/** Determine when to trigger a takeoff (ignored in flight) */
 	virtual bool _checkTakeoff();
+
+	/**
+	 * Monitor the EKF reset counters and
+	 * call the appropriate handling functions in case of a reset event
+	 */
+	void _initEkfResetCounters();
+	void _checkEkfResetCounters();
+	virtual void _ekfResetHandlerPositionXY() {};
+	virtual void _ekfResetHandlerVelocityXY() {};
+	virtual void _ekfResetHandlerPositionZ() {};
+	virtual void _ekfResetHandlerVelocityZ() {};
+	virtual void _ekfResetHandlerHeading(float delta_psi) {};
 
 	/* Time abstraction */
 	static constexpr uint64_t _timeout = 500000; /**< maximal time in us before a loop or data times out */
@@ -224,6 +235,15 @@ protected:
 
 	matrix::Vector3f _velocity_setpoint_feedback;
 	matrix::Vector3f _thrust_setpoint_feedback;
+
+	/* Counters for estimator local position resets */
+	struct {
+		uint8_t xy = 0;
+		uint8_t vxy = 0;
+		uint8_t z = 0;
+		uint8_t vz = 0;
+		uint8_t quat = 0;
+	} _reset_counters;
 
 	/**
 	 * Vehicle constraints.

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,11 +31,28 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE drivers__hc_sr04
-	MAIN hc_sr04
-	COMPILE_FLAGS
-	SRCS
-		hc_sr04.cpp
-	DEPENDS
+add_custom_target(jlink_upload
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_start.sh
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_upload.sh $<TARGET_FILE:px4>
+	DEPENDS px4
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	USES_TERMINAL
+	)
+
+add_custom_target(jlink_debug
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_start.sh
+	COMMAND ${GDB} -nh
+		-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
+		-ex 'target remote localhost:2331'
+		-ex 'monitor reset 0'
+		-ex 'load'
+		-ex 'compare-sections'
+		-ex 'monitor reset 0'
+		-ex 'monitor sleep 1000'
+		-ex 'monitor go'
+		-ex 'continue'
+		$<TARGET_FILE:px4>
+	DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	USES_TERMINAL
 	)

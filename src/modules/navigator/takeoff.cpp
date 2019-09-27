@@ -139,10 +139,10 @@ Takeoff::set_takeoff_position()
 			pos_sp_triplet->current.yaw = rep->current.yaw;
 		}
 
-		if (PX4_ISFINITE(rep->current.lat) && PX4_ISFINITE(rep->current.lon)) {
-			pos_sp_triplet->current.lat = rep->current.lat;
-			pos_sp_triplet->current.lon = rep->current.lon;
-		}
+		// Set the current latitude and longitude even if they are NAN
+		// NANs are handled in FlightTaskAuto.cpp
+		pos_sp_triplet->current.lat = rep->current.lat;
+		pos_sp_triplet->current.lon = rep->current.lon;
 
 		// mark this as done
 		memset(rep, 0, sizeof(*rep));
