@@ -73,9 +73,9 @@ static constexpr uint8_t LL40LS_SIG_COUNT_VAL_MAX     = 0xFF; /* Maximum acquisi
 static constexpr int LL40LS_SIGNAL_STRENGTH_MIN_V3HP  = 70;  /* Min signal strength for V3HP */
 static constexpr int LL40LS_SIGNAL_STRENGTH_MAX_V3HP  = 255; /* Max signal strength for V3HP */
 
-static constexpr int LL40LS_SIGNAL_STRENGTH_LOW = 24;  /* Minimum relative signal strength for a valid measurement */
-static constexpr int LL40LS_PEAK_STRENGTH_LOW   = 135; /* Minimum peak strength raw value for accepting a measurement */
-static constexpr int LL40LS_PEAK_STRENGTH_HIGH  = 234; /* Max peak strength raw value */
+static constexpr int LL40LS_SIGNAL_STRENGTH_LOW       = 24;  /* Minimum signal strength for a valid measurement */
+static constexpr int LL40LS_PEAK_STRENGTH_LOW         = 135; /* Minimum peak strength for accepting a measurement */
+static constexpr int LL40LS_PEAK_STRENGTH_HIGH        = 234; /* Max peak strength raw value */
 
 
 class LidarLiteI2C : public LidarLite, public device::I2C, public px4::ScheduledWorkItem

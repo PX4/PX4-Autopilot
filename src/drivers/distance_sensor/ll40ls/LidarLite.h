@@ -46,17 +46,16 @@
 
 using namespace time_literals;
 
-/* Device limits */
-#define LL40LS_MIN_DISTANCE    (0.05f)
-#define LL40LS_MAX_DISTANCE    (25.00f)
-#define LL40LS_MAX_DISTANCE_V2 (35.00f)
-
+// Device limits
+static constexpr float LL40LS_MIN_DISTANCE{0.05f};
+static constexpr float LL40LS_MAX_DISTANCE{25.00f};
+static constexpr float LL40LS_MAX_DISTANCE_V2{35.00f};
 
 // Normal conversion wait time.
-#define LL40LS_CONVERSION_INTERVAL 50_ms
+static constexpr uint32_t LL40LS_CONVERSION_INTERVAL{50_ms};
 
 // Maximum time to wait for a conversion to complete.
-#define LL40LS_CONVERSION_TIMEOUT 100_ms
+static constexpr uint32_t LL40LS_CONVERSION_TIMEOUT{100_ms};
 
 class LidarLite
 {
