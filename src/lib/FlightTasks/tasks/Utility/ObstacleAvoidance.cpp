@@ -56,32 +56,21 @@ ObstacleAvoidance::ObstacleAvoidance(ModuleParams *parent) :
 
 }
 
-bool ObstacleAvoidance::initializeSubscriptions(SubscriptionArray &subscription_array)
-{
-	if (!subscription_array.get(ORB_ID(vehicle_trajectory_waypoint), _sub_vehicle_trajectory_waypoint)) {
-		return false;
-	}
-
-	if (!subscription_array.get(ORB_ID(vehicle_status), _sub_vehicle_status)) {
-		return false;
-	}
-
-	return true;
-}
-
 void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel_sp, float &yaw_sp,
 		float &yaw_speed_sp)
 {
+	_sub_vehicle_status.update();
+	_sub_vehicle_trajectory_waypoint.update();
 
-	if (_sub_vehicle_status->get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
+	if (_sub_vehicle_status.get().nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER) {
 		// if in failsafe nav_state LOITER, don't inject setpoints from avoidance system
 		return;
 	}
 
-	const bool avoidance_data_timeout = hrt_elapsed_time((hrt_abstime *)&_sub_vehicle_trajectory_waypoint->get().timestamp)
+	const bool avoidance_data_timeout = hrt_elapsed_time((hrt_abstime *)&_sub_vehicle_trajectory_waypoint.get().timestamp)
 					    > TRAJECTORY_STREAM_TIMEOUT_US;
 	const bool avoidance_point_valid =
-		_sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true;
+		_sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true;
 
 	_avoidance_point_not_valid_hysteresis.set_state_and_update(!avoidance_point_valid, hrt_absolute_time());
 
@@ -106,13 +95,13 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 	}
 
 	if (avoidance_point_valid) {
-		pos_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position;
-		vel_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity;
+		pos_sp = _sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position;
+		vel_sp = _sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity;
 
 		if (!_ext_yaw_active) {
 			// inject yaw setpoints only if weathervane isn't active
-			yaw_sp =  _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw;
-			yaw_speed_sp = _sub_vehicle_trajectory_waypoint->get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed;
+			yaw_sp =  _sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw;
+			yaw_speed_sp = _sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].yaw_speed;
 		}
 	}
 
