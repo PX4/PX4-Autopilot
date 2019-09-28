@@ -100,7 +100,7 @@
 #include <drivers/device/i2c.h>
 #include <drivers/drv_blinkm.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <systemlib/err.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/safety.h>
@@ -175,12 +175,12 @@ private:
 
 	bool systemstate_run;
 
-	int vehicle_status_sub_fd;
-	int battery_status_sub_fd;
-	int vehicle_control_mode_sub_fd;
-	int vehicle_gps_position_sub_fd;
-	int actuator_armed_sub_fd;
-	int safety_sub_fd;
+	uORB::Subscription vehicle_status_sub{ORB_ID(vehicle_status)};
+	uORB::Subscription battery_status_sub{ORB_ID(battery_status)};
+	uORB::Subscription vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
+	uORB::Subscription vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription actuator_armed_sub{ORB_ID(actuator_armed)};
+	uORB::Subscription safety_sub{ORB_ID(safety)};
 
 	int num_of_cells;
 	int detected_cells_runcount;
@@ -189,7 +189,6 @@ private:
 	int led_thread_runcount;
 	int led_interval;
 
-	bool topic_initialized;
 	bool detected_cells_blinked;
 	bool led_thread_ready;
 
@@ -268,19 +267,12 @@ BlinkM::BlinkM(int bus, int blinkm) :
 	led_color_8(LED_OFF),
 	led_blink(LED_NOBLINK),
 	systemstate_run(false),
-	vehicle_status_sub_fd(-1),
-	battery_status_sub_fd(-1),
-	vehicle_control_mode_sub_fd(-1),
-	vehicle_gps_position_sub_fd(-1),
-	actuator_armed_sub_fd(-1),
-	safety_sub_fd(-1),
 	num_of_cells(0),
 	detected_cells_runcount(0),
 	t_led_color{0},
 	t_led_blink(0),
 	led_thread_runcount(0),
 	led_interval(1000),
-	topic_initialized(false),
 	detected_cells_blinked(false),
 	led_thread_ready(true),
 	num_of_used_sats(0)
@@ -392,30 +384,6 @@ BlinkM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 void
 BlinkM::Run()
 {
-
-	if (!topic_initialized) {
-		vehicle_status_sub_fd = orb_subscribe(ORB_ID(vehicle_status));
-		orb_set_interval(vehicle_status_sub_fd, 250);
-
-		battery_status_sub_fd = orb_subscribe(ORB_ID(battery_status));
-		orb_set_interval(battery_status_sub_fd, 250);
-
-		vehicle_control_mode_sub_fd = orb_subscribe(ORB_ID(vehicle_control_mode));
-		orb_set_interval(vehicle_control_mode_sub_fd, 250);
-
-		actuator_armed_sub_fd = orb_subscribe(ORB_ID(actuator_armed));
-		orb_set_interval(actuator_armed_sub_fd, 250);
-
-		vehicle_gps_position_sub_fd = orb_subscribe(ORB_ID(vehicle_gps_position));
-		orb_set_interval(vehicle_gps_position_sub_fd, 250);
-
-		/* Subscribe to safety topic */
-		safety_sub_fd = orb_subscribe(ORB_ID(safety));
-		orb_set_interval(safety_sub_fd, 250);
-
-		topic_initialized = true;
-	}
-
 	if (led_thread_ready == true) {
 		if (!detected_cells_blinked) {
 			if (num_of_cells > 0) {
@@ -475,36 +443,18 @@ BlinkM::Run()
 	}
 
 	if (led_thread_runcount == 15) {
-		/* obtained data for the first file descriptor */
-		struct vehicle_status_s vehicle_status_raw = {};
-		struct battery_status_s battery_status = {};
-		struct vehicle_control_mode_s vehicle_control_mode = {};
-		struct actuator_armed_s actuator_armed = {};
-		struct vehicle_gps_position_s vehicle_gps_position_raw = {};
-		struct safety_s safety = {};
-
-		memset(&vehicle_status_raw, 0, sizeof(vehicle_status_raw));
-		memset(&vehicle_gps_position_raw, 0, sizeof(vehicle_gps_position_raw));
-		memset(&safety, 0, sizeof(safety));
-
-		bool new_data_vehicle_status;
-		bool new_data_battery_status;
-		bool new_data_vehicle_control_mode;
-		bool new_data_actuator_armed;
-		bool new_data_vehicle_gps_position;
-		bool new_data_safety;
-
-
 		int no_data_vehicle_status = 0;
 		int no_data_battery_status = 0;
 		int no_data_vehicle_control_mode = 0;
 		int no_data_actuator_armed = 0;
 		int no_data_vehicle_gps_position = 0;
 
-		orb_check(vehicle_status_sub_fd, &new_data_vehicle_status);
+
+		vehicle_status_s vehicle_status_raw{};
+		bool new_data_vehicle_status = vehicle_status_sub.updated();
 
 		if (new_data_vehicle_status) {
-			orb_copy(ORB_ID(vehicle_status), vehicle_status_sub_fd, &vehicle_status_raw);
+			vehicle_status_sub.copy(&vehicle_status_raw);
 			no_data_vehicle_status = 0;
 
 		} else {
@@ -515,10 +465,12 @@ BlinkM::Run()
 			}
 		}
 
-		orb_check(battery_status_sub_fd, &new_data_battery_status);
+
+		battery_status_s battery_status{};
+		bool new_data_battery_status = battery_status_sub.updated();
 
 		if (new_data_battery_status) {
-			orb_copy(ORB_ID(battery_status), battery_status_sub_fd, &battery_status);
+			battery_status_sub.copy(&battery_status);
 
 		} else {
 			no_data_battery_status++;
@@ -528,10 +480,12 @@ BlinkM::Run()
 			}
 		}
 
-		orb_check(vehicle_control_mode_sub_fd, &new_data_vehicle_control_mode);
+
+		vehicle_control_mode_s vehicle_control_mode{};
+		bool new_data_vehicle_control_mode = vehicle_control_mode_sub.updated();
 
 		if (new_data_vehicle_control_mode) {
-			orb_copy(ORB_ID(vehicle_control_mode), vehicle_control_mode_sub_fd, &vehicle_control_mode);
+			vehicle_control_mode_sub.copy(&vehicle_control_mode);
 			no_data_vehicle_control_mode = 0;
 
 		} else {
@@ -542,10 +496,12 @@ BlinkM::Run()
 			}
 		}
 
-		orb_check(actuator_armed_sub_fd, &new_data_actuator_armed);
+
+		actuator_armed_s actuator_armed{};
+		bool new_data_actuator_armed = actuator_armed_sub.updated();
 
 		if (new_data_actuator_armed) {
-			orb_copy(ORB_ID(actuator_armed), actuator_armed_sub_fd, &actuator_armed);
+			actuator_armed_sub.copy(&actuator_armed);
 			no_data_actuator_armed = 0;
 
 		} else {
@@ -556,10 +512,12 @@ BlinkM::Run()
 			}
 		}
 
-		orb_check(vehicle_gps_position_sub_fd, &new_data_vehicle_gps_position);
+
+		vehicle_gps_position_s vehicle_gps_position_raw{};
+		bool new_data_vehicle_gps_position = vehicle_gps_position_sub.updated();
 
 		if (new_data_vehicle_gps_position) {
-			orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub_fd, &vehicle_gps_position_raw);
+			vehicle_gps_position_sub.copy(&vehicle_gps_position_raw);
 			no_data_vehicle_gps_position = 0;
 
 		} else {
@@ -570,11 +528,13 @@ BlinkM::Run()
 			}
 		}
 
+
 		/* update safety topic */
-		orb_check(safety_sub_fd, &new_data_safety);
+		safety_s safety{};
+		bool new_data_safety = safety_sub.updated();
 
 		if (new_data_safety) {
-			orb_copy(ORB_ID(safety), safety_sub_fd, &safety);
+			safety_sub.copy(&safety);
 		}
 
 		/* get number of used satellites in navigation */
