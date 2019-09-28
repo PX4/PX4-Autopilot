@@ -149,5 +149,3 @@ private:
 	static void		publish_trigger_trampoline(void *arg);
 
 };
-
-struct work_s CameraCapture::_work_publisher;

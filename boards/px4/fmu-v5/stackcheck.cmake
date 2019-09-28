@@ -60,7 +60,7 @@ px4_add_board(
 		airspeed_selector
 		attitude_estimator_q
 		battery_status
-		camera_feedback
+		#camera_feedback
 		commander
 		dataman
 		ekf2
