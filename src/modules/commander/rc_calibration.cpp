@@ -43,8 +43,7 @@
 #include "rc_calibration.h"
 #include "commander_helper.h"
 
-#include <poll.h>
-#include <unistd.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <systemlib/mavlink_log.h>
@@ -53,18 +52,17 @@
 
 int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 {
-	int sub_man = orb_subscribe(ORB_ID(manual_control_setpoint));
+	uORB::Subscription sub_man{ORB_ID(manual_control_setpoint)};
 	px4_usleep(400000);
-	struct manual_control_setpoint_s sp;
-	bool changed;
-	orb_check(sub_man, &changed);
+	manual_control_setpoint_s sp{};
+	bool changed = sub_man.updated();
 
 	if (!changed) {
 		mavlink_log_critical(mavlink_log_pub, "no inputs, aborting");
 		return PX4_ERROR;
 	}
 
-	orb_copy(ORB_ID(manual_control_setpoint), sub_man, &sp);
+	sub_man.copy(&sp);
 
 	/* load trim values which are active */
 	float roll_trim_active;
@@ -98,11 +96,10 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 
 	if (p1r != 0 || p2r != 0 || p3r != 0) {
 		mavlink_log_critical(mavlink_log_pub, "TRIM: PARAM SET FAIL");
-		px4_close(sub_man);
 		return PX4_ERROR;
 	}
 
 	mavlink_log_info(mavlink_log_pub, "trim cal done");
-	px4_close(sub_man);
+
 	return PX4_OK;
 }
