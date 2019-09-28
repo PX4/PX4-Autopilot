@@ -20,9 +20,10 @@ ist8310 -C -b 1 start
 ist8310 -C -b 2 start
 hmc5883 -C -T -X start
 qmc5883 -X start
+lis3mdl -X start
 
 # Possible internal compass
 ist8310 -C -b 5 start
 
-# Possible pmw3901 optical flow sensor
-pmw3901 start
+# Baro on internal SPI
+ms5611 -s start

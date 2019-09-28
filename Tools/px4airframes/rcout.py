@@ -3,7 +3,7 @@ import codecs
 import os
 
 class RCOutput():
-    def __init__(self, groups, board):
+    def __init__(self, groups, board, post_start=False):
 
         result = (  "#\n"
                     "#\n"
@@ -28,10 +28,10 @@ class RCOutput():
                     "# 12000 ..  12999       Octo Cox\n"
                     "# 13000 ..  13999       VTOL\n"
                     "# 14000 ..  14999       Tri Y\n"
-                    ""
-                    ""
-                    "cd /etc/init.d/airframes\n"
                     "\n")
+        result += "\n"
+        result += "set AIRFRAME none\n"
+        result += "\n"
         for group in groups:
             result += "# GROUP: %s\n\n" % group.GetName()
             for param in group.GetParams():
@@ -41,7 +41,19 @@ class RCOutput():
                         excluded = True
                 if excluded:
                     continue
-                path = os.path.split(param.GetPath())[1]
+
+                if post_start:
+                    # Path to post-start sript
+                    path = param.GetPostPath()
+                else:
+                    # Path to start script
+                    path = param.GetPath()
+
+                if not path:
+                    continue
+
+                path = os.path.split(path)[1]
+
                 id_val = param.GetId()
                 name = param.GetFieldValue("short_desc")
                 long_desc = param.GetFieldValue("long_desc")
@@ -50,7 +62,7 @@ class RCOutput():
                 result +=   "# %s\n" % param.GetName()
                 result +=   "if param compare SYS_AUTOSTART %s\n" % id_val
                 result +=   "then\n"
-                result +=   "\tsh %s\n" % path
+                result +=   "\tset AIRFRAME %s\n" % path
                 result +=   "fi\n"
 
                 #if long_desc is not None:
@@ -58,7 +70,18 @@ class RCOutput():
                 result += "\n"
 
             result += "\n"
-        self.output = result;
+        result += "\n"
+        result += "if [ ${AIRFRAME} != none ]\n"
+        result += "then\n"
+        result += "\tsh /etc/init.d/airframes/${AIRFRAME}\n"
+        if not post_start:
+            result += "else\n"
+            result += "\techo \"ERROR  [init] No file matches SYS_AUTOSTART value found in : /etc/init.d/airframes\"\n"
+            result += "\techo \"ERROR  [init] No file matches SYS_AUTOSTART value found in : /etc/init.d/airframes\" >> $LOG_FILE\n"
+            result += "\ttone_alarm ${TUNE_ERR}\n"
+        result += "fi\n"
+        result += "unset AIRFRAME"
+        self.output = result
 
     def Save(self, filename):
         with codecs.open(filename, 'w', 'utf-8') as f:

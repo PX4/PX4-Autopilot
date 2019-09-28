@@ -51,6 +51,7 @@
 #include <px4_tasks.h>
 #include <px4_time.h>
 #include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/distance_sensor.h>
@@ -254,6 +255,10 @@ private:
 	uint64_t _gps_alttitude_ellipsoid_previous_timestamp[GPS_MAX_RECEIVERS] {}; ///< storage for previous timestamp to compute dt
 	float   _wgs84_hgt_offset = 0;  ///< height offset between AMSL and WGS84
 
+	// republished aligned external visual odometry
+	bool new_ev_data_received = false;
+	vehicle_odometry_s _ev_odom{};
+
 	uORB::Subscription _airdata_sub{ORB_ID(vehicle_air_data)};
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
 	uORB::Subscription _ev_odom_sub{ORB_ID(vehicle_visual_odometry)};
@@ -283,9 +288,10 @@ private:
 	uORB::Publication<sensor_bias_s>			_sensor_bias_pub{ORB_ID(sensor_bias)};
 	uORB::Publication<vehicle_attitude_s>			_att_pub{ORB_ID(vehicle_attitude)};
 	uORB::Publication<vehicle_odometry_s>			_vehicle_odometry_pub{ORB_ID(vehicle_odometry)};
-	uORB::Publication<wind_estimate_s>			_wind_pub{ORB_ID(wind_estimate)};
+	uORB::PublicationMulti<wind_estimate_s>			_wind_pub{ORB_ID(wind_estimate)};
 	uORB::PublicationData<vehicle_global_position_s>	_vehicle_global_position_pub{ORB_ID(vehicle_global_position)};
 	uORB::PublicationData<vehicle_local_position_s>		_vehicle_local_position_pub{ORB_ID(vehicle_local_position)};
+	uORB::PublicationData<vehicle_odometry_s>		_vehicle_visual_odometry_aligned_pub{ORB_ID(vehicle_visual_odometry_aligned)};
 
 	Ekf _ekf;
 
@@ -415,10 +421,14 @@ private:
 		// vision estimate fusion
 		(ParamFloat<px4::params::EKF2_EVP_NOISE>)
 		_param_ekf2_evp_noise,	///< default position observation noise for exernal vision measurements (m)
+		(ParamFloat<px4::params::EKF2_EVV_NOISE>)
+		_param_ekf2_evv_noise,	///< default velocity observation noise for exernal vision measurements (m/s)
 		(ParamFloat<px4::params::EKF2_EVA_NOISE>)
 		_param_ekf2_eva_noise,	///< default angular observation noise for exernal vision measurements (rad)
-		(ParamExtFloat<px4::params::EKF2_EV_GATE>)
-		_param_ekf2_ev_gate,	///< external vision position innovation consistency gate size (STD)
+		(ParamExtFloat<px4::params::EKF2_EVV_GATE>)
+		_param_ekf2_evv_gate,	///< external vision velocity innovation consistency gate size (STD)
+		(ParamExtFloat<px4::params::EKF2_EVP_GATE>)
+		_param_ekf2_evp_gate,	///< external vision position innovation consistency gate size (STD)
 
 		// optical flow fusion
 		(ParamExtFloat<px4::params::EKF2_OF_N_MIN>)
@@ -560,8 +570,8 @@ Ekf2::Ekf2():
 	_param_ekf2_baro_gate(_params->baro_innov_gate),
 	_param_ekf2_gnd_eff_dz(_params->gnd_effect_deadzone),
 	_param_ekf2_gnd_max_hgt(_params->gnd_effect_max_hgt),
-	_param_ekf2_gps_p_gate(_params->posNE_innov_gate),
-	_param_ekf2_gps_v_gate(_params->vel_innov_gate),
+	_param_ekf2_gps_p_gate(_params->gps_pos_innov_gate),
+	_param_ekf2_gps_v_gate(_params->gps_vel_innov_gate),
 	_param_ekf2_tas_gate(_params->tas_innov_gate),
 	_param_ekf2_head_noise(_params->mag_heading_noise),
 	_param_ekf2_mag_noise(_params->mag_noise),
@@ -595,7 +605,8 @@ Ekf2::Ekf2():
 	_param_ekf2_rng_a_vmax(_params->max_vel_for_range_aid),
 	_param_ekf2_rng_a_hmax(_params->max_hagl_for_range_aid),
 	_param_ekf2_rng_a_igate(_params->range_aid_innov_gate),
-	_param_ekf2_ev_gate(_params->ev_innov_gate),
+	_param_ekf2_evv_gate(_params->ev_vel_innov_gate),
+	_param_ekf2_evp_gate(_params->ev_pos_innov_gate),
 	_param_ekf2_of_n_min(_params->flow_noise),
 	_param_ekf2_of_n_max(_params->flow_noise_qual_min),
 	_param_ekf2_of_qmin(_params->flow_qual_min),
@@ -1117,27 +1128,12 @@ void Ekf2::run()
 		}
 
 		if (_range_finder_sub_index >= 0) {
-			bool range_finder_updated = _range_finder_subs[_range_finder_sub_index].updated();
 
-			if (range_finder_updated) {
+			if (_range_finder_subs[_range_finder_sub_index].updated()) {
 				distance_sensor_s range_finder;
 
 				if (_range_finder_subs[_range_finder_sub_index].copy(&range_finder)) {
-					// check distance sensor data quality
-					// TODO - move this check inside the ecl library
-					if (range_finder.signal_quality == 0) {
-						// use rng_gnd_clearance if on ground
-						if (_ekf.get_in_air_status()) {
-							range_finder_updated = false;
-
-						} else {
-							range_finder.current_distance = _param_ekf2_min_rng.get();
-						}
-					}
-
-					if (range_finder_updated) {
-						_ekf.setRangeData(range_finder.timestamp, range_finder.current_distance);
-					}
+					_ekf.setRangeData(range_finder.timestamp, range_finder.current_distance, range_finder.signal_quality);
 
 					// Save sensor limits reported by the rangefinder
 					_ekf.set_rangefinder_limits(range_finder.min_distance, range_finder.max_distance);
@@ -1153,26 +1149,47 @@ void Ekf2::run()
 
 		// get external vision data
 		// if error estimates are unavailable, use parameter defined defaults
+		new_ev_data_received = false;
+
 		if (_ev_odom_sub.updated()) {
+			new_ev_data_received = true;
+
 			// copy both attitude & position, we need both to fill a single ext_vision_message
-			vehicle_odometry_s ev_odom;
-			_ev_odom_sub.copy(&ev_odom);
+			_ev_odom_sub.copy(&_ev_odom);
 
 			ext_vision_message ev_data;
 
-			// check for valid position data
-			if (PX4_ISFINITE(ev_odom.x) && PX4_ISFINITE(ev_odom.y) && PX4_ISFINITE(ev_odom.z)) {
-				ev_data.posNED(0) = ev_odom.x;
-				ev_data.posNED(1) = ev_odom.y;
-				ev_data.posNED(2) = ev_odom.z;
+			// check for valid velocity data
+			if (PX4_ISFINITE(_ev_odom.vx) && PX4_ISFINITE(_ev_odom.vy) && PX4_ISFINITE(_ev_odom.vz)) {
+				ev_data.vel(0) = _ev_odom.vx;
+				ev_data.vel(1) = _ev_odom.vy;
+				ev_data.vel(2) = _ev_odom.vz;
 
-				// position measurement error from parameters
-				if (PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_X_VARIANCE])) {
+				// velocity measurement error from parameters
+				if (PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_X_VARIANCE])) {
+					ev_data.velErr = fmaxf(_param_ekf2_evv_noise.get(),
+							       sqrtf(fmaxf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE],
+									   fmaxf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VY_VARIANCE],
+											   _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE]))));
+
+				} else {
+					ev_data.velErr = _param_ekf2_evv_noise.get();
+				}
+			}
+
+			// check for valid position data
+			if (PX4_ISFINITE(_ev_odom.x) && PX4_ISFINITE(_ev_odom.y) && PX4_ISFINITE(_ev_odom.z)) {
+				ev_data.pos(0) = _ev_odom.x;
+				ev_data.pos(1) = _ev_odom.y;
+				ev_data.pos(2) = _ev_odom.z;
+
+				// position measurement error from parameter
+				if (PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_X_VARIANCE])) {
 					ev_data.posErr = fmaxf(_param_ekf2_evp_noise.get(),
-							       sqrtf(fmaxf(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_X_VARIANCE],
-									   ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Y_VARIANCE])));
+							       sqrtf(fmaxf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_X_VARIANCE],
+									   _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_Y_VARIANCE])));
 					ev_data.hgtErr = fmaxf(_param_ekf2_evp_noise.get(),
-							       sqrtf(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_Z_VARIANCE]));
+							       sqrtf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_Z_VARIANCE]));
 
 				} else {
 					ev_data.posErr = _param_ekf2_evp_noise.get();
@@ -1181,15 +1198,13 @@ void Ekf2::run()
 			}
 
 			// check for valid orientation data
-			if (PX4_ISFINITE(ev_odom.q[0])) {
-				ev_data.quat = matrix::Quatf(ev_odom.q);
+			if (PX4_ISFINITE(_ev_odom.q[0])) {
+				ev_data.quat = matrix::Quatf(_ev_odom.q);
 
 				// orientation measurement error from parameters
-				if (PX4_ISFINITE(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_ROLL_VARIANCE])) {
+				if (PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_ROLL_VARIANCE])) {
 					ev_data.angErr = fmaxf(_param_ekf2_eva_noise.get(),
-							       sqrtf(fmaxf(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_ROLL_VARIANCE],
-									   fmaxf(ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_PITCH_VARIANCE],
-											   ev_odom.pose_covariance[ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE]))));
+							       sqrtf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE]));
 
 				} else {
 					ev_data.angErr = _param_ekf2_eva_noise.get();
@@ -1199,10 +1214,10 @@ void Ekf2::run()
 			// only set data if all positions and orientation are valid
 			if (ev_data.posErr < ep_max_std_dev && ev_data.angErr < eo_max_std_dev) {
 				// use timestamp from external computer, clocks are synchronized when using MAVROS
-				_ekf.setExtVisionData(ev_odom.timestamp, &ev_data);
+				_ekf.setExtVisionData(_ev_odom.timestamp, &ev_data);
 			}
 
-			ekf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)ev_odom.timestamp / 100 -
+			ekf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)_ev_odom.timestamp / 100 -
 					(int64_t)ekf2_timestamps.timestamp / 100);
 		}
 
@@ -1322,8 +1337,7 @@ void Ekf2::run()
 				}
 
 				// The rotation of the tangent plane vs. geographical north
-				matrix::Quatf q;
-				_ekf.copy_quaternion(q.data());
+				matrix::Quatf q = _ekf.get_quaternion();
 
 				lpos.yaw = matrix::Eulerf(q).psi();
 
@@ -1439,6 +1453,36 @@ void Ekf2::run()
 				// publish vehicle odometry data
 				_vehicle_odometry_pub.publish(odom);
 
+				// publish external visual odometry after fixed frame alignment if new odometry is received
+				if (new_ev_data_received) {
+					float q_ev2ekf[4];
+					_ekf.get_ev2ekf_quaternion(q_ev2ekf); // rotates from EV to EKF navigation frame
+					Quatf quat_ev2ekf(q_ev2ekf);
+					Dcmf ev_rot_mat(quat_ev2ekf);
+
+					vehicle_odometry_s aligned_ev_odom = _ev_odom;
+
+					// Rotate external position and velocity into EKF navigation frame
+					Vector3f aligned_pos = ev_rot_mat * Vector3f(_ev_odom.x, _ev_odom.y, _ev_odom.z);
+					aligned_ev_odom.x = aligned_pos(0);
+					aligned_ev_odom.y = aligned_pos(1);
+					aligned_ev_odom.z = aligned_pos(2);
+
+					Vector3f aligned_vel = ev_rot_mat * Vector3f(_ev_odom.vx, _ev_odom.vy, _ev_odom.vz);
+					aligned_ev_odom.vx = aligned_vel(0);
+					aligned_ev_odom.vy = aligned_vel(1);
+					aligned_ev_odom.vz = aligned_vel(2);
+
+					// Compute orientation in EKF navigation frame
+					Quatf ev_quat_aligned = quat_ev2ekf * matrix::Quatf(_ev_odom.q) ;
+					ev_quat_aligned.normalize();
+
+					ev_quat_aligned.copyTo(aligned_ev_odom.q);
+					quat_ev2ekf.copyTo(aligned_ev_odom.q_offset);
+
+					_vehicle_visual_odometry_aligned_pub.publish(aligned_ev_odom);
+				}
+
 				if (_ekf.global_position_is_valid() && !_preflt_fail) {
 					// generate and publish global position data
 					vehicle_global_position_s &global_pos = _vehicle_global_position_pub.get();
@@ -1482,31 +1526,17 @@ void Ekf2::run()
 
 			{
 				// publish all corrected sensor readings and bias estimates after mag calibration is updated above
-				sensor_bias_s bias;
+				sensor_bias_s bias{};
 
 				bias.timestamp = now;
 
 				// In-run bias estimates
-				float gyro_bias[3];
-				_ekf.get_gyro_bias(gyro_bias);
-				bias.gyro_x_bias = gyro_bias[0];
-				bias.gyro_y_bias = gyro_bias[1];
-				bias.gyro_z_bias = gyro_bias[2];
+				_ekf.get_gyro_bias(bias.gyro_bias);
+				_ekf.get_accel_bias(bias.accel_bias);
 
-				float accel_bias[3];
-				_ekf.get_accel_bias(accel_bias);
-				bias.accel_x_bias = accel_bias[0];
-				bias.accel_y_bias = accel_bias[1];
-				bias.accel_z_bias = accel_bias[2];
-
-				bias.mag_x_bias = _last_valid_mag_cal[0];
-				bias.mag_y_bias = _last_valid_mag_cal[1];
-				bias.mag_z_bias = _last_valid_mag_cal[2];
-
-				// TODO: remove from sensor_bias?
-				bias.accel_x = sensors.accelerometer_m_s2[0] - accel_bias[0];
-				bias.accel_y = sensors.accelerometer_m_s2[1] - accel_bias[1];
-				bias.accel_z = sensors.accelerometer_m_s2[2] - accel_bias[2];
+				bias.mag_bias[0] = _last_valid_mag_cal[0];
+				bias.mag_bias[1] = _last_valid_mag_cal[1];
+				bias.mag_bias[2] = _last_valid_mag_cal[2];
 
 				_sensor_bias_pub.publish(bias);
 			}
@@ -1754,13 +1784,6 @@ bool Ekf2::publish_attitude(const sensor_combined_s &sensors, const hrt_abstime 
 
 		_ekf.get_quat_reset(&att.delta_q_reset[0], &att.quat_reset_counter);
 
-		// In-run bias estimates
-		float gyro_bias[3];
-		_ekf.get_gyro_bias(gyro_bias);
-		att.rollspeed = sensors.gyro_rad[0] - gyro_bias[0];
-		att.pitchspeed = sensors.gyro_rad[1] - gyro_bias[1];
-		att.yawspeed = sensors.gyro_rad[2] - gyro_bias[2];
-
 		_att_pub.publish(att);
 
 		return true;
@@ -1778,19 +1801,22 @@ bool Ekf2::publish_attitude(const sensor_combined_s &sensors, const hrt_abstime 
 bool Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
 {
 	if (_ekf.get_wind_status()) {
+		// Publish wind estimate only if ekf declares them valid
+		wind_estimate_s wind_estimate{};
 		float velNE_wind[2];
-		_ekf.get_wind_velocity(velNE_wind);
-
 		float wind_var[2];
+		_ekf.get_wind_velocity(velNE_wind);
 		_ekf.get_wind_velocity_var(wind_var);
-
-		// Publish wind estimate
-		wind_estimate_s wind_estimate;
+		_ekf.get_airspeed_innov(&wind_estimate.tas_innov);
+		_ekf.get_airspeed_innov_var(&wind_estimate.tas_innov_var);
+		_ekf.get_beta_innov(&wind_estimate.beta_innov);
+		_ekf.get_beta_innov_var(&wind_estimate.beta_innov_var);
 		wind_estimate.timestamp = timestamp;
 		wind_estimate.windspeed_north = velNE_wind[0];
 		wind_estimate.windspeed_east = velNE_wind[1];
 		wind_estimate.variance_north = wind_var[0];
 		wind_estimate.variance_east = wind_var[1];
+		wind_estimate.tas_scale = 0.0f; //leave at 0 as scale is not estimated in ekf
 
 		_wind_pub.publish(wind_estimate);
 
@@ -1804,8 +1830,7 @@ const Vector3f Ekf2::get_vel_body_wind()
 {
 	// Used to correct baro data for positional errors
 
-	matrix::Quatf q;
-	_ekf.copy_quaternion(q.data());
+	matrix::Quatf q = _ekf.get_quaternion();
 	matrix::Dcmf R_to_body(q.inversed());
 
 	// Calculate wind-compensated velocity in body frame

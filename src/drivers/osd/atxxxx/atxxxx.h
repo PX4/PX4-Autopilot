@@ -39,21 +39,18 @@
  *
  * Driver for the ATXXXX chip on the omnibus fcu connected via SPI.
  */
-
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-
+#include <drivers/device/spi.h>
+#include <drivers/drv_hrt.h>
 #include <parameters/param.h>
+#include <px4_config.h>
 #include <px4_getopt.h>
 #include <px4_module.h>
 #include <px4_module_params.h>
-#include <px4_workqueue.h>
-
-#include <board_config.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/device/spi.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_status.h>
 
 /* Configuration Constants */
 #ifdef PX4_SPI_BUS_OSD
@@ -65,7 +62,7 @@
 #ifdef PX4_SPIDEV_OSD
 #define OSD_SPIDEV PX4_SPIDEV_OSD
 #else
-#error "add the required spi bus from board_config.h here"
+#error "add the required spi device from board_config.h here"
 #endif
 
 #define OSD_SPI_BUS_SPEED (2000000L) /*  2 MHz  */
@@ -73,28 +70,15 @@
 #define DIR_READ(a) ((a) | (1 << 7))
 #define DIR_WRITE(a) ((a) & 0x7f)
 
-#define OSD_DEVICE_PATH "/dev/osd"
-
-#define OSD_UPDATE_RATE 500000 /*  2 Hz  */
 #define OSD_CHARS_PER_ROW	30
 #define OSD_NUM_ROWS_PAL	16
 #define OSD_NUM_ROWS_NTSC	13
 #define OSD_ZERO_BYTE 0x00
 #define OSD_PAL_TX_MODE 0x40
 
-/* OSD Registers addresses */
-// TODO
-
-
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
-
-
 extern "C" __EXPORT int atxxxx_main(int argc, char *argv[]);
 
-
-class OSDatxxxx : public device::SPI, public ModuleBase<OSDatxxxx>, public ModuleParams
+class OSDatxxxx : public device::SPI, public ModuleBase<OSDatxxxx>, public ModuleParams, public px4::ScheduledWorkItem
 {
 public:
 	OSDatxxxx(int bus = OSD_BUS);
@@ -122,11 +106,7 @@ protected:
 	virtual int probe();
 
 private:
-	static void cycle_trampoline(void *arg);
-
-	void cycle();
-
-	static void initialize_trampoline(void *arg);
+	void Run() override;
 
 	int start();
 
@@ -153,11 +133,9 @@ private:
 	int update_topics();
 	int update_screen();
 
-	static work_s _work;
-
-	int _battery_sub{-1};
-	int _local_position_sub{-1};
-	int _vehicle_status_sub{-1};
+	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
+	uORB::Subscription _local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	// battery
 	float _battery_voltage_filtered_v{0.f};

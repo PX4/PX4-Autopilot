@@ -38,7 +38,7 @@
 #include <lib/cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
 #include <uORB/uORB.h>
-#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_mag.h>
 
 class PX4Magnetometer : public cdev::CDev
@@ -63,7 +63,7 @@ public:
 
 private:
 
-	uORB::PublicationData<sensor_mag_s>	_sensor_mag_pub;
+	uORB::PublicationMultiData<sensor_mag_s>	_sensor_mag_pub;
 
 	const enum Rotation	_rotation;
 

@@ -26,6 +26,11 @@ def monitor_firmware_upload(port, baudrate):
             finished = 1
             break
 
+        if time.time() - timeout_start > 10:
+            if "nsh>" in serial_line:
+                finished = 1
+                break
+
         if time.time() > timeout_start + timeout:
             print("Error, timeout")
             finished = 1

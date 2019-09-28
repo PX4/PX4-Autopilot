@@ -61,9 +61,9 @@ bool FlightTaskManualAltitude::updateInitialize()
 	return ret && PX4_ISFINITE(_position(2)) && PX4_ISFINITE(_velocity(2)) && PX4_ISFINITE(_yaw);
 }
 
-bool FlightTaskManualAltitude::activate()
+bool FlightTaskManualAltitude::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	bool ret = FlightTaskManual::activate();
+	bool ret = FlightTaskManual::activate(last_setpoint);
 	_yaw_setpoint = NAN;
 	_yawspeed_setpoint = 0.0f;
 	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, NAN); // altitude is controlled from position/velocity
@@ -310,14 +310,15 @@ void FlightTaskManualAltitude::_updateHeadingSetpoints()
 		// hold the current heading when no more rotation commanded
 		if (!PX4_ISFINITE(_yaw_setpoint)) {
 			_yaw_setpoint = _yaw;
-
-		} else {
-			// check reset counter and update yaw setpoint if necessary
-			if (_sub_attitude->get().quat_reset_counter != _heading_reset_counter) {
-				_yaw_setpoint += matrix::Eulerf(matrix::Quatf(_sub_attitude->get().delta_q_reset)).psi();
-				_heading_reset_counter = _sub_attitude->get().quat_reset_counter;
-			}
 		}
+	}
+}
+
+void FlightTaskManualAltitude::_ekfResetHandlerHeading(float delta_psi)
+{
+	// Only reset the yaw setpoint when the heading is locked
+	if (PX4_ISFINITE(_yaw_setpoint)) {
+		_yaw_setpoint += delta_psi;
 	}
 }
 

@@ -145,7 +145,7 @@ int buzzer_init()
 	tune_durations[TONE_BATTERY_WARNING_FAST_TUNE] = 800000;
 	tune_durations[TONE_BATTERY_WARNING_SLOW_TUNE] = 800000;
 	tune_durations[TONE_SINGLE_BEEP_TUNE] = 300000;
-	tune_control_pub = orb_advertise(ORB_ID(tune_control), &tune_control);
+	tune_control_pub = orb_advertise_queue(ORB_ID(tune_control), &tune_control, tune_control_s::ORB_QUEUE_LENGTH);
 	return PX4_OK;
 }
 
@@ -290,7 +290,7 @@ int led_init()
 	led_control.mode = led_control_s::MODE_OFF;
 	led_control.priority = 0;
 	led_control.timestamp = hrt_absolute_time();
-	led_control_pub = orb_advertise_queue(ORB_ID(led_control), &led_control, LED_UORB_QUEUE_LENGTH);
+	led_control_pub = orb_advertise_queue(ORB_ID(led_control), &led_control, led_control_s::ORB_QUEUE_LENGTH);
 
 	/* first open normal LEDs */
 	DevMgr::getHandle(LED0_DEVICE_PATH, h_leds);

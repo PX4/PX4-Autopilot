@@ -40,7 +40,7 @@
 #pragma once
 
 #include "FlightTaskManualAltitude.hpp"
-#include "VelocitySmoothing.hpp"
+#include "ManualVelocitySmoothingZ.hpp"
 
 class FlightTaskManualAltitudeSmoothVel : public FlightTaskManualAltitude
 {
@@ -48,12 +48,16 @@ public:
 	FlightTaskManualAltitudeSmoothVel() = default;
 	virtual ~FlightTaskManualAltitudeSmoothVel() = default;
 
-	bool activate() override;
+	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
 	void reActivate() override;
 
 protected:
 
 	virtual void _updateSetpoints() override;
+
+	/** Reset position or velocity setpoints in case of EKF reset event */
+	void _ekfResetHandlerPositionZ() override;
+	void _ekfResetHandlerVelocityZ() override;
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
@@ -63,20 +67,10 @@ protected:
 
 private:
 
-	/**
-	 * Reset the required axes. when force_z_zero is set to true, the z derivatives are set to sero and not to the estimated states
-	 */
-	void _reset(bool force_vz_zero = false);
-	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
+	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
 
-	VelocitySmoothing _smoothing; ///< Smoothing in z direction
-	float _vel_sp_smooth;
-	bool _position_lock_z_active{false};
-	float _position_setpoint_z_locked{NAN};
+	void _updateTrajConstraints();
+	void _setOutputState();
 
-	/* counters for estimator local position resets */
-	struct {
-		uint8_t z;
-		uint8_t vz;
-	} _reset_counters{0, 0};
+	ManualVelocitySmoothingZ _smoothing; ///< Smoothing in z direction
 };

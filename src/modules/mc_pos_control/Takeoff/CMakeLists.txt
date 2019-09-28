@@ -39,4 +39,4 @@ target_include_directories(Takeoff
 	${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-px4_add_gtest(SRC TakeoffTest.cpp LINKLIBS Takeoff)
+px4_add_unit_gtest(SRC TakeoffTest.cpp LINKLIBS Takeoff)

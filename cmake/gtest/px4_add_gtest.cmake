@@ -31,20 +31,18 @@
 #
 ############################################################################
 
-include(px4_base)
-
 #=============================================================================
 #
 #	px4_add_gtest
 #
 #	Adds a googletest unit test to the test_results target.
 #
-function(px4_add_gtest)
+function(px4_add_unit_gtest)
 	# skip if unit testing is not configured
 	if(BUILD_TESTING)
 		# parse source file and library dependencies from arguments
 		px4_parse_function_args(
-			NAME px4_add_gtest
+			NAME px4_add_unit_gtest
 			ONE_VALUE SRC
 			MULTI_VALUE LINKLIBS
 			REQUIRED SRC
@@ -62,7 +60,56 @@ function(px4_add_gtest)
 		target_link_libraries(${TESTNAME} ${LINKLIBS} gtest_main)
 
 		# add the test to the ctest plan
-		add_test(NAME ${TESTNAME} COMMAND ${TESTNAME})
+		add_test(NAME ${TESTNAME}
+		         COMMAND ${TESTNAME}
+		         WORKING_DIRECTORY ${PX4_BINARY_DIR})
+
+		# attach it to the unit test target
+		add_dependencies(test_results ${TESTNAME})
+	endif()
+endfunction()
+
+function(px4_add_functional_gtest)
+	# skip if unit testing is not configured
+	if(BUILD_TESTING)
+		# parse source file and library dependencies from arguments
+		px4_parse_function_args(
+			NAME px4_add_functional_gtest
+			ONE_VALUE SRC
+			MULTI_VALUE LINKLIBS
+			REQUIRED SRC
+			ARGN ${ARGN})
+
+		# infer test name from source filname
+		get_filename_component(TESTNAME ${SRC} NAME_WE)
+		string(REPLACE Test "" TESTNAME ${TESTNAME})
+		set(TESTNAME functional-${TESTNAME})
+
+		# build a binary for the unit test
+		add_executable(${TESTNAME} EXCLUDE_FROM_ALL ${SRC})
+
+		# link the libary to test and gtest
+		target_link_libraries(${TESTNAME} ${LINKLIBS} gtest_functional_main
+		                                              px4_daemon
+		                                              px4_platform
+		                                              modules__uORB
+		                                              px4_layer
+		                                              systemlib
+		                                              cdev
+		                                              px4_work_queue
+		                                              px4_daemon
+		                                              work_queue
+		                                              parameters
+		                                              perf
+		                                              tinybson
+		                                              uorb_msgs
+		                                              test_stubs)  #put test_stubs last
+
+		# add the test to the ctest plan
+		add_test(NAME ${TESTNAME}
+		         # functional tests need to run in a new process for each test,
+		         # since they set up and tear down system components
+		         COMMAND ${PX4_BINARY_DIR}/${TESTNAME})
 
 		# attach it to the unit test target
 		add_dependencies(test_results ${TESTNAME})

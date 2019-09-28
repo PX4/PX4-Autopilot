@@ -12,13 +12,14 @@ px4_add_board(
 	UAVCAN_INTERFACES 2
 
 	SERIAL_PORTS
-		GPS1:/dev/ttyS1
+		GPS1:/dev/ttyS0
 		TEL1:/dev/ttyS6
 		TEL2:/dev/ttyS4
 		TEL3:/dev/ttyS2
 		GPS2:/dev/ttyS0
 
 	DRIVERS
+		adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -30,13 +31,11 @@ px4_add_board(
 		imu/adis16448
 		imu/adis16497
 		#imu # all available imu drivers
-# TBD		imu/bmi088 - needs bus selection
+		imu/bmi088
 # TBD		imu/ism330dlc - needs bus selection
 		imu/mpu6000
 		irlock
 		lights/blinkm
-		lights/oreoled
-		lights/pca8574
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		magnetometer # all available magnetometer drivers
@@ -52,10 +51,7 @@ px4_add_board(
 		px4io
 		rc_input
 		roboclaw
-		stm32
-		stm32/adc
-		stm32/armv7-m_dcache
-		stm32/tone_alarm
+		safety_button
 		tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm
@@ -71,8 +67,6 @@ px4_add_board(
 		events
 		fw_att_control
 		fw_pos_control_l1
-		gnd_att_control
-		gnd_pos_control
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -82,11 +76,12 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		navigator
+		rover_pos_control
 		sensors
 		sih
 		vmount
 		vtol_att_control
-		wind_estimator
+		airspeed_selector
 
 	SYSTEMCMDS
 		bl_update
@@ -95,6 +90,7 @@ px4_add_board(
 		dumpfile
 		esc_calib
 		hardfault_log
+		i2cdetect
 		led_control
 		mixer
 		motor_ramp
@@ -121,10 +117,8 @@ px4_add_board(
 		hello
 		hwtest # Hardware test
 		#matlab_csv_serial
-		position_estimator_inav
 		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
-		segway
 		uuv_example_app
 	)

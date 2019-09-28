@@ -7,6 +7,7 @@
 @################################################################################
 @#
 @# Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+@# Copyright (C) 2018-2019 PX4 Development Team. All rights reserved.
 @#
 @# Redistribution and use in source and binary forms, with or without
 @# modification, are permitted provided that the following conditions are met:
@@ -42,6 +43,8 @@ from px_generate_uorb_topic_helper import *  # this is in Tools/
 
 builtin_types = set()
 array_types = set()
+
+topic = alias if alias else spec.short_name
 }@
 @#################################################
 @# Searching for serialize function per each field
@@ -71,7 +74,7 @@ def get_idl_type_name(field_type):
 def add_msg_field(field):
     if (not field.is_header):
         if field.is_array:
-            print('    {0}__{1}_array_{2} {3}_;'.format(spec.short_name, str(get_idl_type_name(field.base_type)).replace(" ", "_"), str(field.array_len), field.name))
+            print('    {0}__{1}_array_{2} {3}_;'.format(topic, str(get_idl_type_name(field.base_type)).replace(" ", "_"), str(field.array_len), field.name))
         else:
             base_type = get_idl_type_name(field.base_type) + "_" if get_idl_type_name(field.base_type) in builtin_types else get_idl_type_name(field.base_type)
             print('    {0} {1}_;'.format(base_type, field.name))
@@ -86,7 +89,7 @@ def add_array_typedefs():
     for field in spec.parsed_fields():
         if not field.is_header and field.is_array:
             base_type = get_idl_type_name(field.base_type) + "_" if get_idl_type_name(field.base_type) in builtin_types else get_idl_type_name(field.base_type)
-            array_type = 'typedef {0} {1}__{2}_array_{3}[{4}];'.format(base_type, spec.short_name, get_idl_type_name(field.base_type).replace(" ", "_"), field.array_len, field.array_len)
+            array_type = 'typedef {0} {1}__{2}_array_{3}[{4}];'.format(base_type, topic, get_idl_type_name(field.base_type).replace(" ", "_"), field.array_len, field.array_len)
             if array_type not in array_types:
                 array_types.add(array_type)
     for atype in array_types:
@@ -97,11 +100,11 @@ def add_msg_constants():
     sorted_constants = sorted(spec.constants,
                        key=sizeof_field_type, reverse=True)
     for constant in sorted_constants:
-        print('const {0} {1}__{2} = {3};'.format(get_idl_type_name(constant.type), spec.short_name, constant.name, constant.val))
+        print('const {0} {1}__{2} = {3};'.format(get_idl_type_name(constant.type), topic, constant.name, constant.val))
 
 }
-#ifndef __@(spec.short_name)__idl__
-#define __@(spec.short_name)__idl__
+#ifndef __@(topic)__idl__
+#define __@(topic)__idl__
 
 @#############################
 @# Include dependency messages
@@ -113,11 +116,11 @@ def add_msg_constants():
 @add_msg_constants()
 @# Array types
 @add_array_typedefs()
-struct @(spec.short_name)_
+struct @(topic)_
 {
 @add_msg_fields()
-}; // struct @(spec.short_name)_
+}; // struct @(topic)_
 
-#pragma keylist @(spec.short_name)_
+#pragma keylist @(topic)_
 
-#endif  // __@(spec.short_name)__idl__
+#endif  // __@(topic)__idl__

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -57,18 +57,8 @@
 namespace device
 {
 
-SPI::SPI(const char *name,
-	 const char *devname,
-	 int bus,
-	 uint32_t device,
-	 enum spi_mode_e mode,
-	 uint32_t frequency) :
-	// base class
+SPI::SPI(const char *name, const char *devname, int bus, uint32_t device, enum spi_mode_e mode, uint32_t frequency) :
 	CDev(name, devname),
-	// public
-	// protected
-	locking_mode(LOCK_PREEMPTION),
-	// private
 	_device(device),
 	_mode(mode),
 	_frequency(frequency),
@@ -90,15 +80,12 @@ SPI::~SPI()
 int
 SPI::init()
 {
-	int ret = OK;
-
 	/* attach to the spi bus */
 	if (_dev == nullptr) {
 		int bus = get_device_bus();
 
 		if (!board_has_bus(BOARD_SPI_BUS, bus)) {
-			ret = -ENOENT;
-			goto out;
+			return -ENOENT;
 		}
 
 		_dev = px4_spibus_initialize(bus);
@@ -106,19 +93,18 @@ SPI::init()
 
 	if (_dev == nullptr) {
 		DEVICE_DEBUG("failed to init SPI");
-		ret = -ENOENT;
-		goto out;
+		return -ENOENT;
 	}
 
 	/* deselect device to ensure high to low transition of pin select */
 	SPI_SELECT(_dev, _device, false);
 
 	/* call the probe function to check whether the device is present */
-	ret = probe();
+	int ret = probe();
 
 	if (ret != OK) {
 		DEVICE_DEBUG("probe failed");
-		goto out;
+		return ret;
 	}
 
 	/* do base class init, which will create the device node, etc. */
@@ -126,14 +112,13 @@ SPI::init()
 
 	if (ret != OK) {
 		DEVICE_DEBUG("cdev init failed");
-		goto out;
+		return ret;
 	}
 
 	/* tell the workd where we are */
 	DEVICE_LOG("on SPI bus %d at %d (%u KHz)", get_device_bus(), PX4_SPI_DEV_ID(_device), _frequency / 1000);
 
-out:
-	return ret;
+	return PX4_OK;
 }
 
 int
@@ -145,7 +130,7 @@ SPI::transfer(uint8_t *send, uint8_t *recv, unsigned len)
 		return -EINVAL;
 	}
 
-	LockMode mode = up_interrupt_context() ? LOCK_NONE : locking_mode;
+	LockMode mode = up_interrupt_context() ? LOCK_NONE : _locking_mode;
 
 	/* lock the bus as required */
 	switch (mode) {
@@ -185,7 +170,7 @@ SPI::_transfer(uint8_t *send, uint8_t *recv, unsigned len)
 	/* and clean up */
 	SPI_SELECT(_dev, _device, false);
 
-	return OK;
+	return PX4_OK;
 }
 
 int
@@ -197,7 +182,7 @@ SPI::transferhword(uint16_t *send, uint16_t *recv, unsigned len)
 		return -EINVAL;
 	}
 
-	LockMode mode = up_interrupt_context() ? LOCK_NONE : locking_mode;
+	LockMode mode = up_interrupt_context() ? LOCK_NONE : _locking_mode;
 
 	/* lock the bus as required */
 	switch (mode) {
@@ -228,7 +213,7 @@ SPI::_transferhword(uint16_t *send, uint16_t *recv, unsigned len)
 {
 	SPI_SETFREQUENCY(_dev, _frequency);
 	SPI_SETMODE(_dev, _mode);
-	SPI_SETBITS(_dev, 16);							/* 16 bit transfer */
+	SPI_SETBITS(_dev, 16);			/* 16 bit transfer */
 	SPI_SELECT(_dev, _device, true);
 
 	/* do the transfer */
@@ -237,7 +222,7 @@ SPI::_transferhword(uint16_t *send, uint16_t *recv, unsigned len)
 	/* and clean up */
 	SPI_SELECT(_dev, _device, false);
 
-	return OK;
+	return PX4_OK;
 }
 
 } // namespace device

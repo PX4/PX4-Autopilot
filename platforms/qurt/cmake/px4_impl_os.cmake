@@ -45,10 +45,9 @@
 # 	Required OS Inteface Functions
 #
 # 		* px4_os_add_flags
+# 		* px4_os_determine_build_chip
 #		* px4_os_prebuild_targets
 #
-
-include(px4_base)
 
 #=============================================================================
 #
@@ -94,8 +93,8 @@ function(px4_qurt_generate_builtin_commands)
 			math(EXPR command_count "${command_count}+1")
 		endif()
 	endforeach()
-	configure_file(${PX4_SOURCE_DIR}/src/platforms/apps.cpp.in ${OUT}.cpp)
-	configure_file(${PX4_SOURCE_DIR}/src/platforms/apps.h.in ${OUT}.h)
+	configure_file(${PX4_SOURCE_DIR}/platforms/common/apps.cpp.in ${OUT}.cpp)
+	configure_file(${PX4_SOURCE_DIR}/platforms/common/apps.h.in ${OUT}.h)
 endfunction()
 
 #=============================================================================
@@ -141,6 +140,23 @@ function(px4_os_add_flags)
 	set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS)
 
 	set(DF_TARGET "qurt" CACHE STRING "DriverFramework target" FORCE)
+
+endfunction()
+
+#=============================================================================
+#
+#	px4_os_determine_build_chip
+#
+#	Sets PX4_CHIP and PX4_CHIP_MANUFACTURER.
+#
+#	Usage:
+#		px4_os_determine_build_chip()
+#
+function(px4_os_determine_build_chip)
+
+	# always use generic chip and chip manufacturer
+	set(PX4_CHIP "generic" CACHE STRING "PX4 Chip" FORCE)
+	set(PX4_CHIP_MANUFACTURER "generic" CACHE STRING "PX4 Chip Manufacturer" FORCE)
 
 endfunction()
 

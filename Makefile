@@ -380,6 +380,7 @@ tests_offboard: rostest
 
 tests_avoidance: rostest
 	@"$(SRC_DIR)"/test/rostest_avoidance_run.sh mavros_posix_test_avoidance.test
+	@"$(SRC_DIR)"/test/rostest_avoidance_run.sh mavros_posix_test_safe_landing.test
 
 python_coverage:
 	@mkdir -p "$(SRC_DIR)"/build/python_coverage

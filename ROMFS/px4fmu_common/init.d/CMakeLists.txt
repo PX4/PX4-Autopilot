@@ -31,6 +31,8 @@
 #
 ############################################################################
 
+add_subdirectory(airframes)
+
 px4_add_romfs_files(
 	rc.fw_apps
 	rc.fw_defaults

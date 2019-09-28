@@ -36,39 +36,7 @@
  * Driver for the BMP280 barometric pressure sensor connected via I2C TODO or SPI.
  */
 
-#include <px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-#include <px4_getopt.h>
-#include <px4_log.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/clock.h>
-
-#include <arch/board/board.h>
-#include <board_config.h>
 #include "bmp280.h"
-
-#include <lib/cdev/CDev.hpp>
-#include <drivers/drv_baro.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/device/ringbuffer.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-
 
 enum BMP280_BUS {
 	BMP280_BUS_ALL = 0,
@@ -454,6 +422,7 @@ BMP280::collect()
 	/* this should be fairly close to the end of the conversion, so the best approximation of the time */
 	report.timestamp = hrt_absolute_time();
 	report.error_count = perf_event_count(_comms_errors);
+	report.device_id = _interface->get_device_id();
 
 	bmp280::data_s *data = _interface->get_data(BMP280_ADDR_DATA);
 

@@ -40,7 +40,7 @@
 
 #include <uORB/SubscriptionInterval.hpp>
 #include <containers/List.hpp>
-#include <px4_work_queue/WorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 
 namespace uORB
 {
@@ -53,6 +53,7 @@ public:
 	 * Constructor
 	 *
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
+	 * @param interval_ms The requested maximum update interval in milliseconds.
 	 * @param instance The instance for multi sub.
 	 */
 	SubscriptionCallback(const orb_metadata *meta, uint8_t interval_ms = 0, uint8_t instance = 0) :
@@ -62,10 +63,10 @@ public:
 
 	virtual ~SubscriptionCallback()
 	{
-		unregister_callback();
+		unregisterCallback();
 	};
 
-	bool register_callback()
+	bool registerCallback()
 	{
 		bool ret = false;
 
@@ -78,7 +79,7 @@ public:
 			int fd = orb_subscribe_multi(_subscription.get_topic(), _subscription.get_instance());
 
 			// try to register callback again
-			if (_subscription.forceInit()) {
+			if (_subscription.subscribe()) {
 				if (_subscription.get_node() && _subscription.get_node()->register_callback(this)) {
 					ret = true;
 				}
@@ -91,7 +92,7 @@ public:
 		return ret;
 	}
 
-	void unregister_callback()
+	void unregisterCallback()
 	{
 		if (_subscription.get_node()) {
 			_subscription.get_node()->unregister_callback(this);
@@ -124,7 +125,7 @@ public:
 	void call() override
 	{
 		// schedule immediately if no interval, otherwise check time elapsed
-		if ((_interval == 0) || (hrt_elapsed_time(&_last_update) >= _interval)) {
+		if ((_interval_us == 0) || (hrt_elapsed_time_atomic(&_last_update) >= _interval_us)) {
 			_work_item->ScheduleNow();
 		}
 	}

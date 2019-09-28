@@ -33,8 +33,6 @@
 
 #include "BMI055_accel.hpp"
 
-#include <ecl/geo/geo.h>
-
 /*
   list of registers that will be checked in check_registers(). Note
   that ADDR_WHO_AM_I must be first in the list.

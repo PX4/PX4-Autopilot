@@ -1,0 +1,41 @@
+#!/bin/sh
+#
+# UVify UVF4 specific board sensors init
+#------------------------------------------------------------------------------
+
+# Internal SPI
+ms5611 -s start
+
+# Draco-R
+if param compare SYS_AUTOSTART 6002
+then
+	# Barometer
+	# Internal SPI
+	ms5611 -T 0 -s start
+
+	# PX4flow
+	px4flow start
+	ist8310 start
+	mpu6000 -R 2 -T 20608 start
+	mpu9250 -R 2 start
+	lis3mdl -R 2 -X start
+fi
+
+# Draco
+if param compare SYS_AUTOSTART 4072
+then
+	mpu9250 -R 2 start
+fi
+
+# IFO
+if param compare SYS_AUTOSTART 4071
+then
+	# IFO GPS LED
+	rgbled_ncp5623c start -a 0x38
+
+	# IFO rgb LED
+	pca9685 start
+
+	mpu9250 -R 2 start
+	lis3mdl -R 2 -X start
+fi

@@ -38,6 +38,40 @@
  */
 
 #pragma once
+#include <assert.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <semaphore.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <math.h>
+#include <unistd.h>
+
+#include <arch/board/board.h>
+#include <board_config.h>
+#include <drivers/device/device.h>
+#include <drivers/device/Device.hpp>
+#include <drivers/device/i2c.h>
+#include <drivers/device/ringbuffer.h>
+#include <drivers/drv_baro.h>
+#include <drivers/drv_hrt.h>
+#include <lib/cdev/CDev.hpp>
+#include <nuttx/arch.h>
+#include <nuttx/clock.h>
+#include <perf/perf_counter.h>
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_getopt.h>
+#include <px4_log.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <systemlib/err.h>
+
+#include "board_config.h"
 
 #define MPL3115A2_REG_WHO_AM_I   0x0c
 #define MPL3115A2_WHO_AM_I       0xC4

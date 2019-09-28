@@ -59,7 +59,7 @@ static constexpr const int simulate = PX4_SIMULATE_I2C;
 namespace device
 {
 
-I2C::I2C(const char *name, const char *devname, int bus, uint16_t address, uint32_t frequency) :
+I2C::I2C(const char *name, const char *devname, const int bus, const uint16_t address, const uint32_t frequency) :
 	CDev(name, devname)
 {
 	DEVICE_DEBUG("I2C::I2C name = %s devname = %s", name, devname);
@@ -119,7 +119,7 @@ I2C::init()
 }
 
 int
-I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
+I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len)
 {
 #ifndef __PX4_LINUX
 	return PX4_ERROR;

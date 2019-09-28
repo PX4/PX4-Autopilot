@@ -425,6 +425,12 @@ void UavcanNode::update_params()
 	if (param_handle != PARAM_INVALID) {
 		param_get(param_handle, &_airmode);
 	}
+
+	param_handle = param_find("THR_MDL_FAC");
+
+	if (param_handle != PARAM_INVALID) {
+		param_get(param_handle, &_thr_mdl_factor);
+	}
 }
 
 int UavcanNode::start_fw_server()
@@ -905,6 +911,7 @@ int UavcanNode::run()
 				// but this driver could well serve multiple groups.
 				unsigned num_outputs_max = 8;
 
+				_mixers->set_thrust_factor(_thr_mdl_factor);
 				_mixers->set_airmode(_airmode);
 
 				// Do mixing
@@ -1051,6 +1058,7 @@ UavcanNode::subscribe()
 
 		if (_control_subs[i] >= 0) {
 			_poll_ids[i] = add_poll_fd(_control_subs[i]);
+			orb_set_interval(_control_subs[i], 1000 / UavcanEscController::MAX_RATE_HZ);
 		}
 	}
 }
@@ -1116,6 +1124,11 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 				} else {
 
 					_mixers->groups_required(_groups_required);
+					PX4_INFO("Groups required %d", _groups_required);
+
+					int rotor_count = _mixers->get_multirotor_count();
+					_esc_controller.set_rotor_count(rotor_count);
+					PX4_INFO("Number of rotors %d", rotor_count);
 				}
 			}
 		}

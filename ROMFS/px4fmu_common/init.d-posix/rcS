@@ -162,20 +162,21 @@ then
 	param set SENS_DPRES_OFF 0.001
 	param set SYS_RESTART_TYPE 2
 
-	param set WEST_EN 0
+	param set TRIG_INTERFACE 3
+
 fi
 
 # Adapt timeout parameters if simulation runs faster or slower than realtime.
 if [ ! -z $PX4_SIM_SPEED_FACTOR ]; then
-	COM_DL_LOSS_T_LONGER=$((PX4_SIM_SPEED_FACTOR * 10))
+	COM_DL_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 10" | bc)
 	echo "COM_DL_LOSS_T set to $COM_DL_LOSS_T_LONGER"
 	param set COM_DL_LOSS_T $COM_DL_LOSS_T_LONGER
 
-	COM_RC_LOSS_T_LONGER=$((PX4_SIM_SPEED_FACTOR * 1))
+	COM_RC_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 1" | bc)
 	echo "COM_RC_LOSS_T set to $COM_RC_LOSS_T_LONGER"
 	param set COM_RC_LOSS_T $COM_RC_LOSS_T_LONGER
 
-	COM_OF_LOSS_T_LONGER=$((PX4_SIM_SPEED_FACTOR * 10))
+	COM_OF_LOSS_T_LONGER=$(echo "$PX4_SIM_SPEED_FACTOR * 10" | bc)
 	echo "COM_OF_LOSS_T set to $COM_OF_LOSS_T_LONGER"
 	param set COM_OF_LOSS_T $COM_OF_LOSS_T_LONGER
 fi
@@ -211,10 +212,6 @@ sensors start
 commander start
 navigator start
 
-if param compare WEST_EN 1
-then
-	wind_estimator start
-fi
 
 if ! param compare MNT_MODE_IN -1
 then
