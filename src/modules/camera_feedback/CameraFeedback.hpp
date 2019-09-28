@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,81 +32,60 @@
  ****************************************************************************/
 
 /**
- * @file camera_feedback.hpp
  *
+ * Online and offline geotagging from camera feedback
+ *
+ * @author Mohammed Kabir <kabir@uasys.io>
  */
 
 #pragma once
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
-#include <stdbool.h>
-#include <poll.h>
-#include <mathlib/mathlib.h>
-#include <systemlib/err.h>
-#include <parameters/param.h>
-
+#include <lib/mathlib/mathlib.h>
+#include <lib/parameters/param.h>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
-#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
-#include <drivers/drv_hrt.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/camera_trigger.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/camera_capture.h>
+#include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_global_position.h>
 
-
-class CameraFeedback
+class CameraFeedback : public ModuleBase<CameraFeedback>, public ModuleParams, public px4::WorkItem
 {
 public:
-	/**
-	 * Constructor
-	 */
 	CameraFeedback();
+	~CameraFeedback() override = default;
 
-	/**
-	 * Destructor, also kills task.
-	 */
-	~CameraFeedback();
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	/**
-	 * Start the task.
-	 *
-	 * @return		OK on success.
-	 */
-	int			start();
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
 
-	/**
-	 * Stop the task.
-	 */
-	void		stop();
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	void Run() override;
+
+	bool init();
 
 private:
 
-	bool		_task_should_exit;		/**< if true, task should exit */
-	int			_main_task;				/**< handle for task */
+	uORB::SubscriptionCallbackWorkItem _trigger_sub{this, ORB_ID(camera_trigger)};
 
-	int			_trigger_sub;
-	int			_gpos_sub;
-	int			_att_sub;
+	uORB::Subscription	_gpos_sub{ORB_ID(vehicle_global_position)};
+	uORB::Subscription	_att_sub{ORB_ID(vehicle_attitude)};
 
-	orb_advert_t	_capture_pub;
+	uORB::Publication<camera_capture_s>	_capture_pub{ORB_ID(camera_capture)};
 
-	param_t			_p_camera_capture_feedback;
-
-	int32_t _camera_capture_feedback;
-
-	void		task_main();
-
-	/**
-	 * Shim for calling task_main from task_create.
-	 */
-	static int	task_main_trampoline(int argc, char *argv[]);
+	DEFINE_PARAMETERS(
+		(ParamBool<px4::params::CAM_CAP_FBACK>) _param_camera_capture_feedback
+	)
 
 };

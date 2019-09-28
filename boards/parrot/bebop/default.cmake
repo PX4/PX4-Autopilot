@@ -21,7 +21,7 @@ px4_add_board(
 
 	MODULES
 		attitude_estimator_q
-		camera_feedback
+		#camera_feedback
 		commander
 		dataman
 		ekf2
