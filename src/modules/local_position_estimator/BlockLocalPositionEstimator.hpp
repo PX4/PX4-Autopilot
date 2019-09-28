@@ -9,6 +9,7 @@
 #include <matrix/Matrix.hpp>
 
 // uORB Subscriptions
+#include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionPollable.hpp>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_armed.h>
@@ -118,7 +119,6 @@ public:
 	enum {Y_mocap_x = 0, Y_mocap_y, Y_mocap_z, n_y_mocap};
 	enum {Y_land_vx = 0, Y_land_vy, Y_land_agl, n_y_land};
 	enum {Y_target_x = 0, Y_target_y, n_y_target};
-	enum {POLL_FLOW = 0, POLL_SENSORS, POLL_PARAM, n_poll};
 	enum {
 		FUSE_GPS = 1 << 0,
 		FUSE_FLOW = 1 << 1,
@@ -247,25 +247,26 @@ private:
 	// ----------------------------
 
 	// subscriptions
-	uORB::SubscriptionPollable<actuator_armed_s> _sub_armed;
-	uORB::SubscriptionPollable<vehicle_land_detected_s> _sub_land;
-	uORB::SubscriptionPollable<vehicle_attitude_s> _sub_att;
-	uORB::SubscriptionPollable<vehicle_angular_velocity_s> _sub_angular_velocity;
-	uORB::SubscriptionPollable<optical_flow_s> _sub_flow;
 	uORB::SubscriptionPollable<sensor_combined_s> _sub_sensor;
-	uORB::SubscriptionPollable<parameter_update_s> _sub_param_update;
-	uORB::SubscriptionPollable<vehicle_gps_position_s> _sub_gps;
-	uORB::SubscriptionPollable<vehicle_odometry_s> _sub_visual_odom;
-	uORB::SubscriptionPollable<vehicle_odometry_s> _sub_mocap_odom;
-	uORB::SubscriptionPollable<distance_sensor_s> _sub_dist0;
-	uORB::SubscriptionPollable<distance_sensor_s> _sub_dist1;
-	uORB::SubscriptionPollable<distance_sensor_s> _sub_dist2;
-	uORB::SubscriptionPollable<distance_sensor_s> _sub_dist3;
-	uORB::SubscriptionPollable<distance_sensor_s> *_dist_subs[N_DIST_SUBS];
-	uORB::SubscriptionPollable<distance_sensor_s> *_sub_lidar;
-	uORB::SubscriptionPollable<distance_sensor_s> *_sub_sonar;
-	uORB::SubscriptionPollable<landing_target_pose_s> _sub_landing_target_pose;
-	uORB::SubscriptionPollable<vehicle_air_data_s> _sub_airdata;
+
+	uORB::SubscriptionData<actuator_armed_s> _sub_armed{ORB_ID(actuator_armed)};
+	uORB::SubscriptionData<vehicle_land_detected_s> _sub_land{ORB_ID(vehicle_land_detected)};
+	uORB::SubscriptionData<vehicle_attitude_s> _sub_att{ORB_ID(vehicle_attitude)};
+	uORB::SubscriptionData<vehicle_angular_velocity_s> _sub_angular_velocity{ORB_ID(vehicle_angular_velocity)};
+	uORB::SubscriptionData<optical_flow_s> _sub_flow{ORB_ID(optical_flow)};
+	uORB::SubscriptionData<parameter_update_s> _sub_param_update{ORB_ID(parameter_update)};
+	uORB::SubscriptionData<vehicle_gps_position_s> _sub_gps{ORB_ID(vehicle_gps_position)};
+	uORB::SubscriptionData<vehicle_odometry_s> _sub_visual_odom{ORB_ID(vehicle_visual_odometry)};
+	uORB::SubscriptionData<vehicle_odometry_s> _sub_mocap_odom{ORB_ID(vehicle_mocap_odometry)};
+	uORB::SubscriptionData<distance_sensor_s> _sub_dist0{ORB_ID(distance_sensor), 0};
+	uORB::SubscriptionData<distance_sensor_s> _sub_dist1{ORB_ID(distance_sensor), 1};
+	uORB::SubscriptionData<distance_sensor_s> _sub_dist2{ORB_ID(distance_sensor), 2};
+	uORB::SubscriptionData<distance_sensor_s> _sub_dist3{ORB_ID(distance_sensor), 3};
+	uORB::SubscriptionData<distance_sensor_s> *_dist_subs[N_DIST_SUBS] {};
+	uORB::SubscriptionData<distance_sensor_s> *_sub_lidar{nullptr};
+	uORB::SubscriptionData<distance_sensor_s> *_sub_sonar{nullptr};
+	uORB::SubscriptionData<landing_target_pose_s> _sub_landing_target_pose{ORB_ID(landing_target_pose)};
+	uORB::SubscriptionData<vehicle_air_data_s> _sub_airdata{ORB_ID(vehicle_air_data)};
 
 	// publications
 	uORB::PublicationData<vehicle_local_position_s> _pub_lpos{ORB_ID(vehicle_local_position)};
@@ -374,7 +375,8 @@ private:
 	BlockDelay<uint64_t, 1, 1, HIST_LEN> _tDelay;
 
 	// misc
-	px4_pollfd_struct_t _polls[3];
+	px4_pollfd_struct_t _polls[1] {};
+
 	uint64_t _timeStamp;
 	uint64_t _time_origin;
 	uint64_t _timeStampLastBaro;

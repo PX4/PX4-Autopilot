@@ -21,33 +21,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	// this block has no parent, and has name LPE
 	SuperBlock(nullptr, "LPE"),
 	ModuleParams(nullptr),
-	// subscriptions, set rate, add to list
-	_sub_armed(ORB_ID(actuator_armed), 1000 / 2, 0, &getSubscriptions()),
-	_sub_land(ORB_ID(vehicle_land_detected), 1000 / 2, 0, &getSubscriptions()),
-	_sub_att(ORB_ID(vehicle_attitude), 1000 / 100, 0, &getSubscriptions()),
-	_sub_angular_velocity(ORB_ID(vehicle_angular_velocity), 1000 / 100, 0, &getSubscriptions()),
-	// set flow max update rate higher than expected to we don't lose packets
-	_sub_flow(ORB_ID(optical_flow), 1000 / 100, 0, &getSubscriptions()),
 	// main prediction loop, 100 hz
 	_sub_sensor(ORB_ID(sensor_combined), 1000 / 100, 0, &getSubscriptions()),
-	// status updates 2 hz
-	_sub_param_update(ORB_ID(parameter_update), 1000 / 2, 0, &getSubscriptions()),
-	// gps 10 hz
-	_sub_gps(ORB_ID(vehicle_gps_position), 1000 / 10, 0, &getSubscriptions()),
-	// vision 50 hz
-	_sub_visual_odom(ORB_ID(vehicle_visual_odometry), 1000 / 50, 0, &getSubscriptions()),
-	// mocap 50 hz
-	_sub_mocap_odom(ORB_ID(vehicle_mocap_odometry), 1000 / 50, 0, &getSubscriptions()),
-	// all distance sensors, 10 hz
-	_sub_dist0(ORB_ID(distance_sensor), 1000 / 10, 0, &getSubscriptions()),
-	_sub_dist1(ORB_ID(distance_sensor), 1000 / 10, 1, &getSubscriptions()),
-	_sub_dist2(ORB_ID(distance_sensor), 1000 / 10, 2, &getSubscriptions()),
-	_sub_dist3(ORB_ID(distance_sensor), 1000 / 10, 3, &getSubscriptions()),
-	_dist_subs(),
-	_sub_lidar(nullptr),
-	_sub_sonar(nullptr),
-	_sub_landing_target_pose(ORB_ID(landing_target_pose), 1000 / 40, 0, &getSubscriptions()),
-	_sub_airdata(ORB_ID(vehicle_air_data), 0, 0, &getSubscriptions()),
 	// map projection
 	_map_ref(),
 
@@ -142,14 +117,8 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_dist_subs[3] = &_sub_dist3;
 
 	// setup event triggering based on new flow messages to integrate
-	_polls[POLL_FLOW].fd = _sub_flow.getHandle();
-	_polls[POLL_FLOW].events = POLLIN;
-
-	_polls[POLL_PARAM].fd = _sub_param_update.getHandle();
-	_polls[POLL_PARAM].events = POLLIN;
-
-	_polls[POLL_SENSORS].fd = _sub_sensor.getHandle();
-	_polls[POLL_SENSORS].events = POLLIN;
+	_polls[0].fd = _sub_sensor.getHandle();
+	_polls[0].events = POLLIN;
 
 	// initialize A, B,  P, x, u
 	_x.setZero();
@@ -184,7 +153,7 @@ Vector<float, BlockLocalPositionEstimator::n_x> BlockLocalPositionEstimator::dyn
 void BlockLocalPositionEstimator::update()
 {
 	// wait for a sensor update, check for exit condition every 100 ms
-	int ret = px4_poll(_polls, 3, 100);
+	int ret = px4_poll(_polls, 1, 100);
 
 	if (ret < 0) {
 		return;
@@ -198,17 +167,17 @@ void BlockLocalPositionEstimator::update()
 	setDt(dt);
 
 	// auto-detect connected rangefinders while not armed
+	_sub_armed.update();
 	bool armedState = _sub_armed.get().armed;
 
 	if (!armedState && (_sub_lidar == nullptr || _sub_sonar == nullptr)) {
 		// detect distance sensors
 		for (size_t i = 0; i < N_DIST_SUBS; i++) {
-			uORB::SubscriptionPollable<distance_sensor_s> *s = _dist_subs[i];
+			auto *s = _dist_subs[i];
 
 			if (s == _sub_lidar || s == _sub_sonar) { continue; }
 
-			if (s->updated()) {
-				s->update();
+			if (s->update()) {
 
 				if (s->get().timestamp == 0) { continue; }
 
@@ -257,27 +226,28 @@ void BlockLocalPositionEstimator::update()
 	_lastArmedState = armedState;
 
 	// see which updates are available
-	bool paramsUpdated = _sub_param_update.updated();
+	bool paramsUpdated = _sub_param_update.update();
 	_baroUpdated = false;
 
-	if ((_param_lpe_fusion.get() & FUSE_BARO) && _sub_airdata.updated()) {
+	if ((_param_lpe_fusion.get() & FUSE_BARO) && _sub_airdata.update()) {
 		if (_sub_airdata.get().timestamp != _timeStampLastBaro) {
 			_baroUpdated = true;
 			_timeStampLastBaro = _sub_airdata.get().timestamp;
 		}
 	}
 
-	_flowUpdated = (_param_lpe_fusion.get() & FUSE_FLOW) && _sub_flow.updated();
-	_gpsUpdated = (_param_lpe_fusion.get() & FUSE_GPS) && _sub_gps.updated();
-	_visionUpdated = (_param_lpe_fusion.get() & FUSE_VIS_POS) && _sub_visual_odom.updated();
-	_mocapUpdated = _sub_mocap_odom.updated();
-	_lidarUpdated = (_sub_lidar != nullptr) && _sub_lidar->updated();
-	_sonarUpdated = (_sub_sonar != nullptr) && _sub_sonar->updated();
+	_flowUpdated = (_param_lpe_fusion.get() & FUSE_FLOW) && _sub_flow.update();
+	_gpsUpdated = (_param_lpe_fusion.get() & FUSE_GPS) && _sub_gps.update();
+	_visionUpdated = (_param_lpe_fusion.get() & FUSE_VIS_POS) && _sub_visual_odom.update();
+	_mocapUpdated = _sub_mocap_odom.update();
+	_lidarUpdated = (_sub_lidar != nullptr) && _sub_lidar->update();
+	_sonarUpdated = (_sub_sonar != nullptr) && _sub_sonar->update();
 	_landUpdated = landed() && ((_timeStamp - _time_last_land) > 1.0e6f / LAND_RATE);// throttle rate
-	bool targetPositionUpdated = _sub_landing_target_pose.updated();
+	bool targetPositionUpdated = _sub_landing_target_pose.update();
 
 	// get new data
-	updateSubscriptions();
+	_sub_att.update();
+	_sub_angular_velocity.update();
 
 	// update parameters
 	if (paramsUpdated) {
@@ -544,6 +514,8 @@ bool BlockLocalPositionEstimator::landed()
 	if (!(_param_lpe_fusion.get() & FUSE_LAND)) {
 		return false;
 	}
+
+	_sub_land.update();
 
 	bool disarmed_not_falling = (!_sub_armed.get().armed) && (!_sub_land.get().freefall);
 
