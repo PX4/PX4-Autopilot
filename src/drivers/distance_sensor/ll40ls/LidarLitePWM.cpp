@@ -43,13 +43,8 @@
  */
 
 #include "LidarLitePWM.h"
-#include <stdio.h>
-#include <string.h>
-#include <px4_defines.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_pwm_input.h>
 
-LidarLitePWM::LidarLitePWM(uint8_t rotation) :
+LidarLitePWM::LidarLitePWM(const uint8_t rotation) :
 	LidarLite(rotation),
 	ScheduledWorkItem(px4::wq_configurations::hp_default)
 {

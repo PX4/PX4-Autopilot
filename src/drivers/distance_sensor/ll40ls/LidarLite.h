@@ -44,22 +44,23 @@
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <perf/perf_counter.h>
 
-/* Device limits */
-#define LL40LS_MIN_DISTANCE (0.05f)
-#define LL40LS_MAX_DISTANCE (25.00f)
-#define LL40LS_MAX_DISTANCE_V2 (35.00f)
+using namespace time_literals;
 
+// Device limits
+static constexpr float LL40LS_MIN_DISTANCE{0.05f};
+static constexpr float LL40LS_MAX_DISTANCE{25.00f};
+static constexpr float LL40LS_MAX_DISTANCE_V2{35.00f};
 
-// normal conversion wait time
-#define LL40LS_CONVERSION_INTERVAL 50*1000UL /* 50ms */
+// Normal conversion wait time.
+static constexpr uint32_t LL40LS_CONVERSION_INTERVAL{50_ms};
 
-// maximum time to wait for a conversion to complete.
-#define LL40LS_CONVERSION_TIMEOUT 100*1000UL /* 100ms */
+// Maximum time to wait for a conversion to complete.
+static constexpr uint32_t LL40LS_CONVERSION_TIMEOUT{100_ms};
 
 class LidarLite
 {
 public:
-	LidarLite(uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	LidarLite(const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	virtual ~LidarLite();
 
 	virtual int init() = 0;
@@ -72,13 +73,13 @@ public:
 	void print_info();
 
 	/**
-	 * @brief print registers to console
+	 * @brief print registers to console.
 	 */
 	virtual void print_registers() {};
 
 protected:
 
-	uint32_t get_measure_interval() const { return _measure_interval; }
+	uint32_t get_measure_interval() const { return _measure_interval; };
 
 	virtual int collect() = 0;
 

@@ -41,11 +41,7 @@
 
 #include "LidarLiteI2C.h"
 
-#include <px4_defines.h>
-#include <mathlib/mathlib.h>
-#include <drivers/drv_hrt.h>
-
-LidarLiteI2C::LidarLiteI2C(int bus, uint8_t rotation, int address) :
+LidarLiteI2C::LidarLiteI2C(const int bus, const uint8_t rotation, const int address) :
 	LidarLite(rotation),
 	I2C("LL40LS", nullptr, bus, address, 100000),
 	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id()))
@@ -62,45 +58,34 @@ LidarLiteI2C::~LidarLiteI2C()
 int
 LidarLiteI2C::init()
 {
-	int ret = PX4_ERROR;
-
-	/* do I2C init (and probe) first */
-	if (I2C::init() != OK) {
-		return ret;
+	// Perform I2C init (and probe) first.
+	if (I2C::init() != PX4_OK) {
+		return PX4_ERROR;
 	}
 
-	/* sensor is ok, but we don't really know if it is within range */
-	_sensor_ok = true;
-
-	start();
-
-	return OK;
+	return PX4_OK;
 }
 
 int
-LidarLiteI2C::read_reg(uint8_t reg, uint8_t &val)
+LidarLiteI2C::read_reg(const uint8_t reg, uint8_t &val)
 {
 	return lidar_transfer(&reg, 1, &val, 1);
 }
 
 int
-LidarLiteI2C::write_reg(uint8_t reg, uint8_t val)
+LidarLiteI2C::write_reg(const uint8_t reg, const uint8_t &val)
 {
 	const uint8_t cmd[2] = { reg, val };
 	return transfer(&cmd[0], 2, nullptr, 0);
 }
 
-/*
-  LidarLite specific transfer() function that avoids a stop condition
-  with SCL low
- */
 int
-LidarLiteI2C::lidar_transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
+LidarLiteI2C::lidar_transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len)
 {
 	if (send != nullptr && send_len > 0) {
 		int ret = transfer(send, send_len, nullptr, 0);
 
-		if (ret != OK) {
+		if (ret != PX4_OK) {
 			return ret;
 		}
 	}
@@ -109,7 +94,7 @@ LidarLiteI2C::lidar_transfer(const uint8_t *send, unsigned send_len, uint8_t *re
 		return transfer(nullptr, 0, recv, recv_len);
 	}
 
-	return OK;
+	return PX4_ERROR;
 }
 
 int
@@ -135,11 +120,6 @@ LidarLiteI2C::probe()
 		 * v1 and v3 don't have the unit id register while v2 has both.
 		 * It would be better if we had a proper WHOAMI register.
 		 */
-
-
-		/**
-		 * check for hw and sw versions for v1, v2 and v3
-		 */
 		if ((read_reg(LL40LS_HW_VERSION, _hw_version) == OK) &&
 		    (read_reg(LL40LS_SW_VERSION, _sw_version) == OK)) {
 
@@ -164,7 +144,7 @@ LidarLiteI2C::probe()
 
 				if (_unit_id > 0) {
 					// v3hp
-					_is_V3hp = true;
+					_is_v3hp = true;
 					PX4_INFO("probe success - id: %u", _unit_id);
 				}
 			}
@@ -194,12 +174,10 @@ LidarLiteI2C::measure()
 		return OK;
 	}
 
-	/*
-	 * Send the command to begin a measurement.
-	 */
+	// Send the command to begin a measurement.
 	int ret = write_reg(LL40LS_MEASURE_REG, LL40LS_MSRREG_ACQUIRE);
 
-	if (OK != ret) {
+	if (ret != PX4_OK) {
 		perf_count(_comms_errors);
 		PX4_DEBUG("i2c::transfer returned %d", ret);
 
@@ -220,19 +198,14 @@ LidarLiteI2C::measure()
 	return OK;
 }
 
-/*
-  reset the sensor to power on defaults plus additional configurations
- */
 int
 LidarLiteI2C::reset_sensor()
 {
-	int ret;
-
 	px4_usleep(15000);
 
-	ret = write_reg(LL40LS_SIG_COUNT_VAL_REG, LL40LS_SIG_COUNT_VAL_MAX);
+	int ret = write_reg(LL40LS_SIG_COUNT_VAL_REG, LL40LS_SIG_COUNT_VAL_MAX);
 
-	if (ret != OK) {
+	if (ret != PX4_OK) {
 		return ret;
 	}
 
@@ -240,13 +213,13 @@ LidarLiteI2C::reset_sensor()
 	ret = write_reg(LL40LS_MEASURE_REG, LL40LS_MSRREG_RESET);
 
 
-	if (ret != OK) {
+	if (ret != PX4_OK) {
 		uint8_t sig_cnt;
 
 		px4_usleep(15000);
 		ret = read_reg(LL40LS_SIG_COUNT_VAL_REG, sig_cnt);
 
-		if ((ret != OK) || (sig_cnt != LL40LS_SIG_COUNT_VAL_DEFAULT)) {
+		if ((ret != PX4_OK) || (sig_cnt != LL40LS_SIG_COUNT_VAL_DEFAULT)) {
 			PX4_INFO("Error: ll40ls reset failure. Exiting!\n");
 			return ret;
 
@@ -257,7 +230,7 @@ LidarLiteI2C::reset_sensor()
 	px4_usleep(50000);
 	ret = write_reg(LL40LS_SIG_COUNT_VAL_REG, LL40LS_SIG_COUNT_VAL_MAX);
 
-	if (ret != OK) {
+	if (ret != PX4_OK) {
 		return ret;
 	}
 
@@ -267,10 +240,8 @@ LidarLiteI2C::reset_sensor()
 	return OK;
 }
 
-/*
-  dump sensor registers for debugging
- */
-void LidarLiteI2C::print_registers()
+void
+LidarLiteI2C::print_registers()
 {
 	_pause_measurements = true;
 	PX4_INFO("registers");
@@ -297,9 +268,10 @@ void LidarLiteI2C::print_registers()
 	_pause_measurements = false;
 }
 
-int LidarLiteI2C::collect()
+int
+LidarLiteI2C::collect()
 {
-	/* read from the sensor */
+	// read from the sensor
 	uint8_t val[2] {};
 
 	perf_begin(_sample_perf);
@@ -359,8 +331,8 @@ int LidarLiteI2C::collect()
 	// this should be fairly close to the end of the measurement, so the best approximation of the time
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	/* Relative signal strength measurement, i.e. the strength of
-	 * the main signal peak compared to the general noise level*/
+	// Relative signal strength measurement, i.e. the strength of
+	// the main signal peak compared to the general noise level.
 	uint8_t signal_strength_reg = LL40LS_SIGNAL_STRENGTH_REG;
 	ret = lidar_transfer(&signal_strength_reg, 1, &val[0], 1);
 
@@ -396,13 +368,13 @@ int LidarLiteI2C::collect()
 	uint8_t signal_value = 0;
 
 	// We detect if V3HP is being used
-	if (_is_V3hp) {
+	if (_is_v3hp) {
 		signal_min = LL40LS_SIGNAL_STRENGTH_MIN_V3HP;
 		signal_max = LL40LS_SIGNAL_STRENGTH_MAX_V3HP;
 		signal_value = ll40ls_signal_strength;
 
 	} else {
-		/* Absolute peak strength measurement, i.e. absolute strength of main signal peak*/
+		// Absolute peak strength measurement, i.e. absolute strength of main signal peak.
 		uint8_t peak_strength_reg = LL40LS_PEAK_STRENGTH_REG;
 		ret = lidar_transfer(&peak_strength_reg, 1, &val[0], 1);
 
@@ -442,10 +414,9 @@ int LidarLiteI2C::collect()
 		} else {
 			signal_value = ll40ls_peak_strength;
 		}
-
 	}
 
-	/* Final data quality evaluation. This is based on the datasheet and simple heuristics retrieved from experiments*/
+	// Final data quality evaluation. This is based on the datasheet and simple heuristics retrieved from experiments
 	// Step 1: Normalize signal strength to 0...100 percent using the absolute signal peak strength.
 	uint8_t signal_quality = 100 * math::max(signal_value - signal_min, 0) / (signal_max - signal_min);
 
@@ -462,10 +433,10 @@ int LidarLiteI2C::collect()
 
 void LidarLiteI2C::start()
 {
-	/* reset the report ring and state machine */
+	// reset the report ring and state machine
 	_collect_phase = false;
 
-	/* schedule a cycle to start things */
+	// schedule a cycle to start things
 	ScheduleNow();
 }
 
