@@ -120,7 +120,7 @@ FixedwingPositionControl::~FixedwingPositionControl()
 bool
 FixedwingPositionControl::init()
 {
-	if (!_global_pos_sub.register_callback()) {
+	if (!_global_pos_sub.registerCallback()) {
 		PX4_ERR("vehicle global position callback registration failed!");
 		return false;
 	}
@@ -1651,7 +1651,7 @@ void
 FixedwingPositionControl::Run()
 {
 	if (should_exit()) {
-		_global_pos_sub.unregister_callback();
+		_global_pos_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
@@ -1746,7 +1746,8 @@ FixedwingPositionControl::Run()
 			if (_control_mode.flag_control_offboard_enabled ||
 			    _control_mode.flag_control_position_enabled ||
 			    _control_mode.flag_control_velocity_enabled ||
-			    _control_mode.flag_control_acceleration_enabled) {
+			    _control_mode.flag_control_acceleration_enabled ||
+			    _control_mode.flag_control_altitude_enabled) {
 
 				/* lazily publish the setpoint only once available */
 				if (_attitude_sp_pub != nullptr) {

@@ -59,9 +59,9 @@ void VtolLandDetector::_update_topics()
 
 bool VtolLandDetector::_get_maybe_landed_state()
 {
-	// Only trigger in RW mode
+	// If in Fixed-wing mode, only trigger if disarmed
 	if ((_vehicle_status.timestamp != 0) && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-		return false;
+		return !_actuator_armed.armed;
 	}
 
 	return MulticopterLandDetector::_get_maybe_landed_state();
@@ -69,9 +69,9 @@ bool VtolLandDetector::_get_maybe_landed_state()
 
 bool VtolLandDetector::_get_landed_state()
 {
-	// Only trigger in RW mode
+	// If in Fixed-wing mode, only trigger if disarmed
 	if ((_vehicle_status.timestamp != 0) && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
-		return false;
+		return !_actuator_armed.armed;
 	}
 
 	// this is returned from the mutlicopter land detector

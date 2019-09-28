@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,11 +31,18 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE drivers__hc_sr04
-	MAIN hc_sr04
-	COMPILE_FLAGS
-	SRCS
-		hc_sr04.cpp
-	DEPENDS
-	)
+add_custom_target(stack_check
+	COMMAND ${CMAKE_COMMAND} -E make_directory stack_usage && ${CMAKE_OBJDUMP} -d $<TARGET_FILE:px4> | ${PX4_SOURCE_DIR}/Tools/stack_usage/checkstack.pl arm 0 > stack_usage/checkstack_output.txt 2> stack_usage/checkstack_errors.txt
+	COMMAND ${CMAKE_COMMAND} -E echo ""
+	COMMAND ${CMAKE_COMMAND} -E echo ""
+	COMMAND ${CMAKE_COMMAND} -E echo "Top 50:"
+	COMMAND ${CMAKE_COMMAND} -E echo "--------------------------------------------------------------------------------"
+	COMMAND head -n 50 stack_usage/checkstack_output.txt | c++filt
+	COMMAND ${CMAKE_COMMAND} -E echo ""
+	COMMAND ${CMAKE_COMMAND} -E echo "Symbols with 'run', 'task', 'thread', 'main', 'update':"
+	COMMAND ${CMAKE_COMMAND} -E echo "--------------------------------------------------------------------------------"
+	COMMAND cat stack_usage/checkstack_output.txt | c++filt | grep -E 'run|task|thread|main|update'
+	DEPENDS px4
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
+	VERBATIM
+)

@@ -33,17 +33,6 @@
 
 #=============================================================================
 #
-#	Defined functions in this file
-#
-# 	utility functions
-#
-#		* px4_parse_function_args
-#
-
-include(CMakeParseArguments)
-
-#=============================================================================
-#
 #	px4_parse_function_args
 #
 #	This function simplifies usage of the cmake_parse_arguments module.
@@ -88,6 +77,7 @@ include(CMakeParseArguments)
 #			name: hello
 #			list: a b c
 #
+include(CMakeParseArguments)
 function(px4_parse_function_args)
 
 	cmake_parse_arguments(IN "" "NAME" "OPTIONS;ONE_VALUE;MULTI_VALUE;REQUIRED;ARGN" "${ARGN}")
@@ -111,43 +101,3 @@ function(px4_parse_function_args)
 	endforeach()
 
 endfunction()
-
-
-#=============================================================================
-#
-#	px4_find_python_module
-#
-#	Find a required python module
-#
-#   Usage
-#		px4_find_python_module(module_name [REQUIRED])
-#
-function(px4_find_python_module module)
-	string(TOUPPER ${module} module_upper)
-	if(NOT PY_${module_upper})
-		if(ARGC GREATER 1 AND ARGV1 STREQUAL "REQUIRED")
-			set(PY_${module}_FIND_REQUIRED TRUE)
-		endif()
-		# A module's location is usually a directory, but for binary modules
-		# it's a .so file.
-		execute_process(COMMAND "${PYTHON_EXECUTABLE}" "-c"
-			"import re, ${module}; print(re.compile('/__init__.py.*').sub('',${module}.__file__))"
-			RESULT_VARIABLE _${module}_status
-			OUTPUT_VARIABLE _${module}_location
-			ERROR_QUIET
-			OUTPUT_STRIP_TRAILING_WHITESPACE)
-		if(NOT _${module}_status)
-			set(PY_${module_upper} ${_${module}_location} CACHE STRING
-				"Location of Python module ${module}")
-		endif()
-	endif()
-	find_package_handle_standard_args(PY_${module}
-		"couldn't find python module ${module}:
-		\nfor debian systems try: \
-		\n\tsudo apt-get install python-${module} \
-		\nor for all other OSs/debian: \
-		\n\tsudo -H pip install ${module}\n" PY_${module_upper})
-	#if (NOT PY_${module}_FOUND)
-		#message(FATAL_ERROR "python module not found, exiting")
-	#endif()
-endfunction(px4_find_python_module)

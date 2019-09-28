@@ -26,8 +26,8 @@ bool FlightTask::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
 	_resetSetpoints();
 	_setDefaultConstraints();
+	_initEkfResetCounters();
 	_time_stamp_activate = hrt_absolute_time();
-	_heading_reset_counter = _sub_attitude->get().quat_reset_counter;
 	_gear = empty_landing_gear_default_keep;
 	return true;
 }
@@ -44,7 +44,47 @@ bool FlightTask::updateInitialize()
 	_deltatime  = math::min((_time_stamp_current - _time_stamp_last), _timeout) / 1e6f;
 	_time_stamp_last = _time_stamp_current;
 	_evaluateVehicleLocalPosition();
+	_checkEkfResetCounters();
 	return true;
+}
+
+void FlightTask::_initEkfResetCounters()
+{
+	_reset_counters.xy = _sub_vehicle_local_position->get().xy_reset_counter;
+	_reset_counters.vxy = _sub_vehicle_local_position->get().vxy_reset_counter;
+	_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
+	_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
+	_reset_counters.quat = _sub_attitude->get().quat_reset_counter;
+}
+
+void FlightTask::_checkEkfResetCounters()
+{
+	// Check if a reset event has happened
+	if (_sub_vehicle_local_position->get().xy_reset_counter != _reset_counters.xy) {
+		_ekfResetHandlerPositionXY();
+		_reset_counters.xy = _sub_vehicle_local_position->get().xy_reset_counter;
+	}
+
+	if (_sub_vehicle_local_position->get().vxy_reset_counter != _reset_counters.vxy) {
+		_ekfResetHandlerVelocityXY();
+		_reset_counters.vxy = _sub_vehicle_local_position->get().vxy_reset_counter;
+	}
+
+	if (_sub_vehicle_local_position->get().z_reset_counter != _reset_counters.z) {
+		_ekfResetHandlerPositionZ();
+		_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
+	}
+
+	if (_sub_vehicle_local_position->get().vz_reset_counter != _reset_counters.vz) {
+		_ekfResetHandlerVelocityZ();
+		_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
+	}
+
+	if (_sub_attitude->get().quat_reset_counter != _reset_counters.quat) {
+		float delta_psi = matrix::Eulerf(matrix::Quatf(_sub_attitude->get().delta_q_reset)).psi();
+		_ekfResetHandlerHeading(delta_psi);
+		_reset_counters.quat = _sub_attitude->get().quat_reset_counter;
+	}
 }
 
 const vehicle_local_position_setpoint_s FlightTask::getPositionSetpoint()

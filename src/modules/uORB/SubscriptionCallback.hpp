@@ -53,6 +53,7 @@ public:
 	 * Constructor
 	 *
 	 * @param meta The uORB metadata (usually from the ORB_ID() macro) for the topic.
+	 * @param interval_ms The requested maximum update interval in milliseconds.
 	 * @param instance The instance for multi sub.
 	 */
 	SubscriptionCallback(const orb_metadata *meta, uint8_t interval_ms = 0, uint8_t instance = 0) :
@@ -62,10 +63,10 @@ public:
 
 	virtual ~SubscriptionCallback()
 	{
-		unregister_callback();
+		unregisterCallback();
 	};
 
-	bool register_callback()
+	bool registerCallback()
 	{
 		bool ret = false;
 
@@ -91,7 +92,7 @@ public:
 		return ret;
 	}
 
-	void unregister_callback()
+	void unregisterCallback()
 	{
 		if (_subscription.get_node()) {
 			_subscription.get_node()->unregister_callback(this);

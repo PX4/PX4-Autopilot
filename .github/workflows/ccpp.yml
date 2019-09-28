@@ -1,0 +1,13 @@
+name: C/C++ CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: px4io/px4-dev-base-bionic:2019-07-29
+    steps:
+    - uses: actions/checkout@v1
+    - name: make
+      run: make
+
