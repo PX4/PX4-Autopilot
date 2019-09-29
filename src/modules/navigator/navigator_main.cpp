@@ -119,9 +119,6 @@ Navigator::~Navigator()
 void
 Navigator::params_update()
 {
-	parameter_update_s param_update;
-	_param_update_sub.update(&param_update);
-
 	updateParams();
 
 	if (_handle_back_trans_dec_mss != PARAM_INVALID) {
@@ -202,8 +199,13 @@ Navigator::run()
 			}
 		}
 
-		/* parameters updated */
-		if (_param_update_sub.updated()) {
+		// check for parameter updates
+		if (_parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			_parameter_update_sub.copy(&pupdate);
+
+			// update parameters from storage
 			params_update();
 		}
 

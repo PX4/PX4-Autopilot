@@ -53,6 +53,7 @@
 #include <perf/perf_counter.h>
 #include <px4_module_params.h>
 #include <px4_posix.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
@@ -181,8 +182,6 @@ private:
 
 		_gps.writeData(&gps_data);
 
-		_param_sub = orb_subscribe(ORB_ID(parameter_update));
-
 		_battery_status.timestamp = hrt_absolute_time();
 
 		_px4_accel.set_sample_rate(250);
@@ -191,9 +190,6 @@ private:
 
 	~Simulator()
 	{
-		// Unsubscribe from uORB topics.
-		orb_unsubscribe(_param_sub);
-
 		// free perf counters
 		perf_free(_perf_gps);
 		perf_free(_perf_sim_delay);
@@ -230,7 +226,7 @@ private:
 	orb_advert_t _irlock_report_pub{nullptr};
 	orb_advert_t _visual_odometry_pub{nullptr};
 
-	int _param_sub{-1};
+	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
 	unsigned int _port{14560};
 

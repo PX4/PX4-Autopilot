@@ -70,18 +70,15 @@ RoverPositionControl::~RoverPositionControl()
 	perf_free(_loop_perf);
 }
 
-void RoverPositionControl::parameters_update(int parameter_update_sub, bool force)
+void RoverPositionControl::parameters_update(bool force)
 {
-	bool updated;
-	struct parameter_update_s param_upd;
+	// check for parameter updates
+	if (_parameter_update_sub.updated() || force) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
-	orb_check(parameter_update_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(parameter_update), parameter_update_sub, &param_upd);
-	}
-
-	if (force || updated) {
+		// update parameters from storage
 		updateParams();
 
 		_gnd_control.set_l1_damping(_param_l1_damping.get());
@@ -275,7 +272,6 @@ RoverPositionControl::run()
 	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
 	_manual_control_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 	_pos_sp_triplet_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
 	_vehicle_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
 	_sensor_combined_sub = orb_subscribe(ORB_ID(sensor_combined));
@@ -287,7 +283,7 @@ RoverPositionControl::run()
 	orb_set_interval(_global_pos_sub, 20);
 	orb_set_interval(_local_pos_sub, 20);
 
-	parameters_update(_params_sub, true);
+	parameters_update(true);
 
 	/* wakeup source(s) */
 	px4_pollfd_struct_t fds[3];
@@ -318,7 +314,7 @@ RoverPositionControl::run()
 		_vehicle_acceleration_sub.update();
 
 		/* update parameters from storage */
-		parameters_update(_params_sub);
+		parameters_update();
 
 		bool manual_mode = _control_mode.flag_control_manual_enabled;
 
@@ -430,7 +426,6 @@ RoverPositionControl::run()
 	orb_unsubscribe(_global_pos_sub);
 	orb_unsubscribe(_local_pos_sub);
 	orb_unsubscribe(_manual_control_sub);
-	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_pos_sp_triplet_sub);
 	orb_unsubscribe(_vehicle_attitude_sub);
 	orb_unsubscribe(_sensor_combined_sub);
