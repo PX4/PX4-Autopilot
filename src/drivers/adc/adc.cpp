@@ -357,7 +357,7 @@ test(void)
 		return 1;
 	}
 
-	for (unsigned i = 0; i < 50; i++) {
+	for (unsigned i = 0; i < 20; i++) {
 		px4_adc_msg_t data[ADC_TOTAL_CHANNELS];
 		ssize_t count = read(fd, data, sizeof(data));
 
