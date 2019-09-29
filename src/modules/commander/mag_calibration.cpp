@@ -62,7 +62,7 @@
 #include <systemlib/err.h>
 #include <uORB/topics/sensor_combined.h>
 
-static const char *sensor_name = "mag";
+static constexpr char sensor_name[] = "mag";
 static constexpr unsigned max_mags = 4;
 static constexpr float mag_sphere_radius = 0.2f;
 static unsigned int calibration_sides = 6;			///< The total number of sides
@@ -82,17 +82,17 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub);
 
 /// Data passed to calibration worker routine
 typedef struct  {
-	orb_advert_t	*mavlink_log_pub;
-	unsigned	done_count;
-	int		sub_mag[max_mags];
+	orb_advert_t	*mavlink_log_pub{nullptr};
+	unsigned	done_count{0};
+	int		sub_mag[max_mags] {-1, -1, -1, -1};
 	unsigned int	calibration_points_perside;
 	unsigned int	calibration_interval_perside_seconds;
 	uint64_t	calibration_interval_perside_useconds;
 	unsigned int	calibration_counter_total[max_mags];
-	bool		side_data_collected[detect_orientation_side_count];
-	float		*x[max_mags];
-	float		*y[max_mags];
-	float		*z[max_mags];
+	bool		side_data_collected[detect_orientation_side_count] {};
+	float		*x[max_mags] {};
+	float		*y[max_mags] {};
+	float		*z[max_mags] {};
 } mag_worker_data_t;
 
 
@@ -100,7 +100,7 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 {
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, sensor_name);
 
-	struct mag_calibration_s mscale_null;
+	mag_calibration_s mscale_null{};
 	mscale_null.x_offset = 0.0f;
 	mscale_null.x_scale = 1.0f;
 	mscale_null.y_offset = 0.0f;
@@ -112,7 +112,7 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 
 	// Determine which mags are available and reset each
 
-	char str[30];
+	char str[30] {};
 
 	// reset the learned EKF mag in-flight bias offsets which have been learned for the previous
 	//  sensor calibration and will be invalidated by a new sensor calibration
@@ -397,7 +397,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		}
 
 		/* Wait clocking for new data on all gyro */
-		px4_pollfd_struct_t fds[1];
+		px4_pollfd_struct_t fds[1] {};
 		fds[0].fd = sub_gyro;
 		fds[0].events = POLLIN;
 		size_t fd_count = 1;
@@ -438,7 +438,7 @@ static calibrate_return mag_calibration_worker(detect_orientation_return orienta
 		}
 
 		// Wait clocking for new data on all mags
-		px4_pollfd_struct_t fds[max_mags];
+		px4_pollfd_struct_t fds[max_mags] {};
 		size_t fd_count = 0;
 
 		for (size_t cur_mag = 0; cur_mag < max_mags; cur_mag++) {
@@ -576,7 +576,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 
 	const unsigned int calibration_points_maxcount = calibration_sides * worker_data.calibration_points_perside;
 
-	char str[30];
+	char str[30] {};
 
 	// Get actual mag count and alloate only as much memory as needed
 	const unsigned orb_mag_count = orb_group_count(ORB_ID(sensor_mag));
@@ -610,7 +610,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 			for (unsigned i = 0; i < orb_mag_count && !found_cur_mag; i++) {
 				worker_data.sub_mag[cur_mag] = orb_subscribe_multi(ORB_ID(sensor_mag), i);
 
-				struct mag_report report;
+				sensor_mag_s report{};
 				orb_copy(ORB_ID(sensor_mag), worker_data.sub_mag[cur_mag], &report);
 
 #ifdef __PX4_NUTTX
@@ -676,7 +676,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 	}
 
 	if (result == calibrate_return_ok) {
-		int cancel_sub  = calibrate_cancel_subscribe();
+		int cancel_sub = calibrate_cancel_subscribe();
 
 		result = calibrate_from_orientation(mavlink_log_pub,                    // uORB handle to write output
 						    cancel_sub,                         // Subscription to vehicle_command for cancel support
@@ -696,28 +696,22 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 
 	// Calculate calibration values for each mag
 
-	float sphere_x[max_mags];
-	float sphere_y[max_mags];
-	float sphere_z[max_mags];
-	float sphere_radius[max_mags];
-	float diag_x[max_mags];
-	float diag_y[max_mags];
-	float diag_z[max_mags];
-	float offdiag_x[max_mags];
-	float offdiag_y[max_mags];
-	float offdiag_z[max_mags];
+	float sphere_x[max_mags] {};
+	float sphere_y[max_mags] {};
+	float sphere_z[max_mags] {};
+	float sphere_radius[max_mags] {};
+	float diag_x[max_mags] {};
+	float diag_y[max_mags] {};
+	float diag_z[max_mags] {};
+	float offdiag_x[max_mags] {};
+	float offdiag_y[max_mags] {};
+	float offdiag_z[max_mags] {};
 
 	for (unsigned cur_mag = 0; cur_mag < max_mags; cur_mag++) {
-		sphere_x[cur_mag] = 0.0f;
-		sphere_y[cur_mag] = 0.0f;
-		sphere_z[cur_mag] = 0.0f;
 		sphere_radius[cur_mag] = 0.2f;
 		diag_x[cur_mag] = 1.0f;
 		diag_y[cur_mag] = 1.0f;
 		diag_z[cur_mag] = 1.0f;
-		offdiag_x[cur_mag] = 0.0f;
-		offdiag_y[cur_mag] = 0.0f;
-		offdiag_z[cur_mag] = 0.0f;
 	}
 
 	// Sphere fit the data to get calibration values
@@ -803,7 +797,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 
 		for (unsigned cur_mag = 0; cur_mag < max_mags; cur_mag++) {
 			if (device_ids[cur_mag] != 0) {
-				struct mag_calibration_s mscale;
+				mag_calibration_s mscale{};
 				mscale.x_scale = 1.0;
 				mscale.y_scale = 1.0;
 				mscale.z_scale = 1.0;
