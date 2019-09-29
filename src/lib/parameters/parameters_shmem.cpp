@@ -1346,7 +1346,7 @@ param_import_callback(bson_decoder_t decoder, void *priv, bson_node_t node)
 		goto out;
 	}
 
-	if (param_set_internal(param, v, state->mark_saved, true)) {
+	if (param_set_internal(param, v, state->mark_saved, false)) {
 		PX4_DEBUG("error setting value for '%s'", node->name);
 		goto out;
 	}
@@ -1386,6 +1386,8 @@ param_import_internal(int fd, bool mark_saved)
 		result = bson_decoder_next(&decoder);
 
 	} while (result > 0);
+
+	param_notify_changes();
 
 	return result;
 }
