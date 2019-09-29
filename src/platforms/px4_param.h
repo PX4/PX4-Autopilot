@@ -112,7 +112,7 @@ class Param<float, p>
 {
 public:
 	// static type-check
-	static_assert(px4::parameters[(int)p].type == PARAM_TYPE_FLOAT, "parameter type must be float");
+	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_FLOAT, "parameter type must be float");
 
 	Param()
 	{
@@ -145,7 +145,7 @@ class Param<float &, p>
 {
 public:
 	// static type-check
-	static_assert(px4::parameters[(int)p].type == PARAM_TYPE_FLOAT, "parameter type must be float");
+	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_FLOAT, "parameter type must be float");
 
 	Param(float &external_val)
 		: _val(external_val)
@@ -178,7 +178,7 @@ class Param<int32_t, p>
 {
 public:
 	// static type-check
-	static_assert(px4::parameters[(int)p].type == PARAM_TYPE_INT32, "parameter type must be int32_t");
+	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_INT32, "parameter type must be int32_t");
 
 	Param()
 	{
@@ -211,7 +211,7 @@ class Param<int32_t &, p>
 {
 public:
 	// static type-check
-	static_assert(px4::parameters[(int)p].type == PARAM_TYPE_INT32, "parameter type must be int32_t");
+	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_INT32, "parameter type must be int32_t");
 
 	Param(int32_t &external_val)
 		: _val(external_val)
@@ -244,7 +244,7 @@ class Param<bool, p>
 {
 public:
 	// static type-check
-	static_assert(px4::parameters[(int)p].type == PARAM_TYPE_INT32, "parameter type must be int32_t");
+	static_assert(px4::parameters_type[(int)p] == PARAM_TYPE_INT32, "parameter type must be int32_t");
 
 	Param()
 	{

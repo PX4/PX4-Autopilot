@@ -431,13 +431,22 @@ param_name(param_t param)
 param_type_t
 param_type(param_t param)
 {
-	return handle_in_range(param) ? px4::parameters[param].type : PARAM_TYPE_UNKNOWN;
+	return handle_in_range(param) ? px4::parameters_type[param] : PARAM_TYPE_UNKNOWN;
 }
 
 bool
 param_is_volatile(param_t param)
 {
-	return handle_in_range(param) ? px4::parameters[param].volatile_param : false;
+	if (handle_in_range(param)) {
+
+		for (const auto &p : px4::parameters_volatile) {
+			if (static_cast<px4::params>(param) == p) {
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 bool
