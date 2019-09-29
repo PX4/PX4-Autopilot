@@ -25,7 +25,6 @@
 #include <parameters/param.h>
 #include <dataman/dataman.h>
 #include <navigator/navigation.h>
-//#include <matrix/math.hpp>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_armed.h>
@@ -41,9 +40,6 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/input_rc.h>
-//#include <uORB/topics/cpuload.h>
-//#include <uORB/topics/vehicle_control_mode.h>
-//#include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/arm_disarm.h>
 #include <uORB/topics/follow_target.h>
 #include <uORB/topics/estimator_status.h>
@@ -152,9 +148,9 @@ typedef struct {
     uint16_t dist_max;
     uint8_t contol_style; // not set
     uint8_t calibration; // not set
-    uint8_t mav_type; //MAV_TYPE
+    uint8_t mav_type;
     uint8_t battery_num;
-    uint8_t battery_warn; // adjust  12% ----40%
+    uint8_t battery_warn;
     uint8_t slope_climb; //not set
     uint8_t remain_5;
     uint8_t remain_6;
@@ -162,8 +158,8 @@ typedef struct {
     uint8_t mount_pitch; // not set
     uint8_t flight_time; // not set
     uint8_t pump_exist; //not set
-    uint8_t bettery_fail; // adjust 1: rtl  2: land 3: disable
-    uint8_t rc_lost_act; // adjust 1: rtl  2: land 3: disable
+    uint8_t bettery_fail;
+    uint8_t rc_lost_act;
     uint8_t agri_fly_speed;
     uint8_t agri_spray_speed;
     uint8_t agri_spray_hor;
@@ -194,8 +190,7 @@ typedef struct {
 
 typedef struct {
     char head[6];
-    uint8_t step_seq;
-    uint8_t max_min;
+    uint8_t max_mid;
     uint8_t sum_check;
 }DOCAP;
 
@@ -302,18 +297,6 @@ typedef struct {
 }MSG_send;
 
 typedef struct {
-    YFPA_param yfpa_param;
-    SETD setd;
-//    DOCAP docap;
-//    EXYF_PWM exyf_pwm;
-//    EXYF_IDLE_SPEED exyf_idle_speed;
-//    EXYF_RC_INPUT exyf_rc_input;
-//  EXYF_RC_SET exyf_rc_set;
-//    EXYF_RC_VALUE exyf_rc_value;
-//   EXYF_PLANE_TYPE exyf_plane_type;
-}MSG_response;
-
-typedef struct {
    uint16_t num;
    SETD *push;
    //SETD *pop;
@@ -341,20 +324,14 @@ typedef struct {
     int battery_fd;
     int geofence_fd;
     int vibe_fd;
-//    int input_rc_fd;
-    //int cpu_fd;
-//    int control_mode_fd;
     int global_position_fd;
 }MSG_orb_sub;
 
 typedef struct {
     orb_advert_t command_pd;
-//    orb_advert_t arm_pd;
     orb_advert_t manual_pd;
     orb_advert_t local_position_sp_pd;
     orb_advert_t status_pd;
-//    orb_advert_t control_mode_pd;
-//    orb_advert_t status_flags_pd;
     orb_advert_t follow_target_pd;
     orb_advert_t arm_disarm_pd;
 }MSG_orb_pub;
@@ -373,13 +350,10 @@ typedef struct {
     struct battery_status_s battery_data;
     struct geofence_result_s geofence_data;
 //    struct input_rc_s input_rc_data;
-//    struct vehicle_control_mode_s control_mode_data;
-//    struct vehicle_status_flags_s status_flags_data;
     struct arm_disarm_s arm_disarm_data;
     struct estimator_status_s vibe_data;
     struct vehicle_global_position_s global_position_data;
 //    struct follow_target_s follow_target_data;
-    //struct cpuload_s cpu_data;
 }MSG_orb_data;
 
 typedef struct {
@@ -440,9 +414,9 @@ extern Waypoint_saved wp_data;
 
 extern int uart_read;
 
-extern void stp_pack (STP *stp, MSG_orb_data stp_data);
+extern bool read_to_buff(uint8_t *buffer, int start, int end);
 
-//extern void wifi_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type);
+extern void stp_pack (STP *stp, MSG_orb_data stp_data);
 
 extern bool check_command_repeat(const uint8_t *buffer, MSG_type msg_type);
 
@@ -463,20 +437,14 @@ extern void find_r_type(uint8_t *buffer, MSG_orb_data *msg_data, MSG_orb_pub *ms
 
 extern void msg_param_saved_get(MSG_param_hd msg_hd);
 
-extern void setd_pack (SETD *setd);
+extern void setd_pack_send (void);
 
-//extern void iwfi_pack(const uint8_t *buffer, MSG_orb_data *msg_data);
-
-extern void docap_pack_send (int channel, int max_min);
+extern void docap_pack_send (int max_min);
 
 extern void follow_ack_pack_send(uint8_t failed);
 
 extern void yfwi_pack(const uint8_t *buffer, MSG_type msg_type, MSG_param_hd msg_hd);
 
-//extern void exyf_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type, MSG_param_hd msg_hd);
-
-extern void exyf_response_pack(uint8_t *send_message, MSG_type msg_type, MSG_param_hd msg_hd);
-
-//extern void exex_pack(const uint8_t *buffer, MSG_orb_data *msg_data, MSG_type msg_type, MSG_param_hd msg_hd);
+extern void exyf_response_pack(MSG_type msg_type, MSG_param_hd msg_hd);
 
 #endif // RW_UART_H

@@ -74,8 +74,9 @@ void stp_pack (STP *stp, MSG_orb_data stp_data){
     stp->gps_num = stp_data.gps_data.satellites_used;
     stp->total_time = (uint16_t)(stp_data.gps_data.timestamp/1000000);
 
-    stp->gps_wp_latitude = (stp_data.command_data.command == 16 /*VEHICLE_CMD_NAV_WAYPOINT*/ ) ? (float_t)stp_data.command_data.param5 : NAN;
-    stp->gps_wp_longitude = (stp_data.command_data.command == 16 /*VEHICLE_CMD_NAV_WAYPOINT*/ ) ? (float_t)stp_data.command_data.param6 : NAN;
+    /*VEHICLE_CMD_NAV_WAYPOINT*/
+    stp->gps_wp_latitude = (stp_data.command_data.command == 16) ? (float_t)stp_data.command_data.param5 : NAN;
+    stp->gps_wp_longitude = (stp_data.command_data.command == 16) ? (float_t)stp_data.command_data.param6 : NAN;
 
     stp->wp_num = (uint8_t)stp_data.mission_data.seq_total;
     stp->mission_num = (uint8_t)stp_data.mission_data.seq_current;
@@ -137,7 +138,7 @@ void stp_pack (STP *stp, MSG_orb_data stp_data){
     stp->version =1000;
     stp->sum_check=0x00;
 
-    stp->local_z_pressure =  (int16_t)(stp_data.air_data.baro_alt_meter * 10.0);
+    stp->local_z_pressure =  (int16_t)(-stp_data.air_data.baro_alt_meter * 10.0);
     stp->temprature = (int8_t)(stp_data.air_data.baro_temp_celcius);
 
     stp->battery_voltage = (uint16_t)(stp_data.battery_data.voltage_filtered_v/25.0 * 4096.0);
@@ -214,7 +215,7 @@ void yfpa_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd){
     param_get(msg_hd.acc_up_max_hd, &paramf);
     yfpa_param->acc_up_max = (uint8_t)((paramf - 2.0)* 19.61);
     param_get(msg_hd.yaw_max_hd, &paramf);
-    yfpa_param->yaw_max = (uint8_t)(paramf * 0.6375);
+    yfpa_param->yaw_max = (uint8_t)(paramf);
     param_get(msg_hd.roll_max_hd, &paramf);
     yfpa_param->roll_max = (uint8_t)(paramf * 2.83);
     param_get(msg_hd.pitch_max_hd, &paramf);
@@ -262,10 +263,11 @@ void yfpa_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd){
     yfpa_param->battery_num = (uint8_t)(paramd);
     param_get(msg_hd.battery_warn_hd, &paramf);
     paramf = 3.50 + 0.55 *paramf;
-    if (paramf < 3.55) yfpa_param->battery_warn = 0x00;
-    else if (paramf < 3.60) yfpa_param->battery_warn = 0x04;
-    else if (paramf < 3.65) yfpa_param->battery_warn = 0x08;
-    else yfpa_param->battery_warn = 0x0c;
+    yfpa_param->battery_warn = (uint8_t)((paramf - 3.55)/0.05 *4);
+//    if (paramf < 3.55) yfpa_param->battery_warn = 0x00;
+//    else if (paramf < 3.60) yfpa_param->battery_warn = 0x04;
+//    else if (paramf < 3.65) yfpa_param->battery_warn = 0x08;
+//    else yfpa_param->battery_warn = 0x0c;
     //yfpa_param->battery_warn = (uint8_t)((paramf-0.12) * 910.7);
     param_get(msg_hd.battery_fail_hd, &paramd);
     int fail_act = 0;
@@ -287,20 +289,26 @@ void yfpa_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd){
         break;
     }
     param_get(msg_hd.rc_lost_act_hd, &paramd);
-    yfpa_param->rc_lost_act = (uint8_t)(paramd);
+   // yfpa_param->rc_lost_act = (uint8_t)(paramd);
     if (paramd == 2) fail_act |= 0x00;
     else if (paramd == 3) fail_act |= 0x10;
     else fail_act |= 0x20;
     yfpa_param->bettery_fail = (uint8_t)(fail_act);
+    yfpa_param->rc_lost_act = 1;
     param_get(msg_hd.dn_vel_max_hd, &paramf);
     yfpa_param->dn_vel_max = (uint8_t)(paramf  * 63.75);
 }
 
-void setd_pack (SETD *setd){
-     memcpy(setd, wp_data.push, sizeof(SETD));
+void setd_pack_send (void){
+    uint8_t send_message[27];
+    memcpy(send_message, wp_data.push, sizeof(SETD));
+    send_message[26] = calculate_sum_check(send_message, sizeof(SETD));
+    write(uart_read, send_message, sizeof(SETD));
 }
 
-void exyf_response_pack(uint8_t *send_message, MSG_type msg_type, MSG_param_hd msg_hd){
+void exyf_response_pack(MSG_type msg_type, MSG_param_hd msg_hd){
+    uint8_t send_message[13];
+    memset(send_message, 0, sizeof(send_message));
     send_message[0] = '$';
     send_message[1] = 'E';
     send_message[2] = 'X';
@@ -361,7 +369,7 @@ void follow_ack_pack_send(uint8_t failed){
     write(uart_read, send_message, sizeof(EXYF_FOLLOW_ACK));
 }
 
-void docap_pack_send (int channel, int max_min){
+void docap_pack_send (int max_min){
     DOCAP docap;
     docap.head[0] = '$';
     docap.head[1] = 'D';
@@ -369,23 +377,10 @@ void docap_pack_send (int channel, int max_min){
     docap.head[3] = 'C';
     docap.head[4] = 'A';
     docap.head[5] = 'P';
-    docap.step_seq = (uint8_t)channel;
-    docap.max_min = (uint8_t)max_min;
-    uint8_t send_message[9];
+    docap.max_mid = (uint8_t)max_min;
+    uint8_t send_message[8];
     memcpy(send_message, &docap, sizeof(DOCAP));
-    send_message[8] = calculate_sum_check(send_message, sizeof(DOCAP));
-    //send_message[8] = 0xaf;
+    send_message[7] = calculate_sum_check(send_message, sizeof(DOCAP));
+    //send_message[7] = 0xaf;
     write(uart_read, send_message, sizeof(DOCAP));
 }
-
-//void docap_pack_send (DOCAP *docap, MSG_param_hd msg_hd, ){
-//    float paramf;
-//    docap->head[0] = '$';
-//    docap->head[1] = 'D';
-//    docap->head[2] = 'O';
-//    docap->head[3] = 'C';
-//    docap->head[4] = 'A';
-//    docap->head[5] = 'P';
-//    param_get(msg_hd.hover_thrust_hd, &paramf);
-//    docap->hover_throttle = (uint8_t)(paramf * 100.0);
-//}

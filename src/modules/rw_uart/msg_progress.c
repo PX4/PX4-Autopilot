@@ -10,101 +10,60 @@ void msg_pack_send( MSG_orb_data msg_data)
     stp_pack(&msg_send.stp, msg_data);
     memcpy(send_message, &msg_send.stp, sizeof(msg_send.stp));
     send_message[98] = calculate_sum_check(send_message, sizeof(send_message));
-    //send_message[98] =0xab;
-   // send_message[97] = (uint8_t)(msg_data.cpu_data.ram_usage * 100.0);
-    //printf("send length : %d, %d\n", sizeof(msg_send->stp), sizeof(send_message));
-    //write(uart_read, send_message, sizeof(msg_send.stp));
+    write(uart_read, send_message, sizeof(msg_send.stp));
 }
 
 void msg_param_saved_get(MSG_param_hd msg_hd)
 {
-    MSG_response msg_response;
-    memset(&msg_response, 0, sizeof(msg_response));
-    yfpa_param_pack(&msg_response.yfpa_param, msg_hd);
-    memcpy(param_saved, &msg_response.yfpa_param, sizeof(msg_response.yfpa_param));
+    YFPA_param yfpa_param;
+    memset(&yfpa_param, 0, sizeof(YFPA_param));
+    yfpa_param_pack(&yfpa_param, msg_hd);
+    memcpy(param_saved, &yfpa_param, sizeof(YFPA_param));
     uint16_t crc = check_crc(param_saved, 62);
     param_saved[60] = (uint8_t)(crc & 0x00ff);
     param_saved[61] = (uint8_t)((crc & 0xff00)>>8);
     //param_saved[61] = 0xac;
-    write(uart_read, param_saved, sizeof(msg_response.yfpa_param));
+    write(uart_read, param_saved, sizeof(YFPA_param));
 }
 
-bool set_rc_channel_max(int channel){
+void set_rc_channel_max_min(void){
     struct input_rc_s value;
-    int set_success = 0;
-    float paramf;
-    param_t channel_hd = 0;
+    float max_1,max_2 ,max_3, max_4;
+    max_1 = max_2 = max_3 = max_4 = 1850.0;
+    float min_1,min_2 ,min_3, min_4;
+    min_1 = min_2 = min_3 = min_4 =1150.0;
+    param_t channel1_max = param_find("RC1_MAX");
+    param_t channel2_max = param_find("RC2_MAX");
+    param_t channel3_max = param_find("RC3_MAX");
+    param_t channel4_max = param_find("RC4_MAX");
+    param_t channel1_min = param_find("RC1_MIN");
+    param_t channel2_min = param_find("RC2_MIN");
+    param_t channel3_min = param_find("RC3_MIN");
+    param_t channel4_min = param_find("RC4_MIN");
     int input_rc_fd =orb_subscribe(ORB_ID(input_rc));
 
-    switch (channel) {
-    case 1:
-        channel_hd =param_find("RC1_MAX");
-        break;
-    case 2:
-        channel_hd =param_find("RC2_MAX");
-        break;
-    case 3:
-        channel_hd =param_find("RC3_MAX");
-        break;
-    case 4:
-        channel_hd =param_find("RC4_MAX");
-        break;
-    default:
-        break;
-    }
-    for (int i=0; i<10; i++){
+    for (int i=0; i< 500; i++){
        orb_copy(ORB_ID(input_rc), input_rc_fd, &value);
-       paramf = value.values[channel - 1];
-        if (paramf > 1850.0)  set_success ++;
-        if (set_success == 3) {
-            param_set(channel_hd, &paramf);
-            docap_pack_send(channel, 2);
-            orb_unsubscribe(input_rc_fd);
-            return true;
-        }
-        usleep(1000000);
+       max_1 = value.values[0] > max_1 ? value.values[0] : max_1;
+       max_2 = value.values[1] > max_2 ? value.values[1] : max_2;
+       max_3 = value.values[2] > max_3 ? value.values[2] : max_3;
+       max_4 = value.values[3] > max_4 ? value.values[3] : max_4;
+       min_1 = value.values[0] < min_1 ? value.values[0] : min_1;
+       min_2 = value.values[1] < min_2 ? value.values[1] : min_2;
+       min_3 = value.values[2] < min_3 ? value.values[2] : min_3;
+       min_4 = value.values[3] < min_4 ? value.values[3] : min_4;
+        usleep(10000);
     }
-    orb_unsubscribe(input_rc_fd);
-    return false;
-}
 
-bool set_rc_channel_min(int channel){
-    struct input_rc_s value;
-    int set_success = 0;
-    float paramf;
-    param_t channel_hd = 0;
-    int input_rc_fd =orb_subscribe(ORB_ID(input_rc));
-
-    switch (channel) {
-    case 1:
-        channel_hd =param_find("RC1_MIN");
-        break;
-    case 2:
-        channel_hd =param_find("RC2_MIN");
-        break;
-    case 3:
-        channel_hd =param_find("RC3_MIN");
-        break;
-    case 4:
-        channel_hd =param_find("RC4_MIN");
-        break;
-    default:
-        break;
-    }
-    for (int i=0; i<10; i++){
-       orb_copy(ORB_ID(input_rc), input_rc_fd, &value);
-       paramf = value.values[channel - 1];
-        if (paramf < 1150.0)  set_success ++;
-        if (set_success == 3) {
-           param_set(channel_hd, &paramf);
-           docap_pack_send(channel, 1);
-           orb_unsubscribe(input_rc_fd);
-           return true;
-        }
-        usleep(1000000);
-    }
+    param_set(channel1_max, &max_1);
+    param_set(channel2_max, &max_2);
+    param_set(channel3_max, &max_3);
+    param_set(channel4_max, &max_4);
+    param_set(channel1_min, &min_1);
+    param_set(channel2_min, &min_2);
+    param_set(channel3_min, &min_3);
+    param_set(channel4_min, &min_4);
     orb_unsubscribe(input_rc_fd);
-    return false;
 }
 
 void set_rc_channel_mid(void){
@@ -129,32 +88,23 @@ void set_rc_channel_mid(void){
 
 void msg_pack_response(MSG_orb_data msg_data, MSG_param_hd msg_hd, MSG_type msg_type)
 {
-    MSG_response msg_response;
-    memset(&msg_response, 0, sizeof(msg_response));
-    uint8_t send_message[37];
-    memset(send_message, 0, sizeof(send_message));
-    SETD *p;
-    //bool rc_cali;
-    //float paramf;
-
     switch (msg_type.name) {
     case MSG_NAME_WIFI:
         switch (msg_type.command) {
         case WIFI_COMM_WP_UPLOAD:
-            setd_pack(&msg_response.setd);
-            memcpy(send_message, &msg_response.setd, sizeof(msg_response.setd));
-            send_message[26] = calculate_sum_check(send_message, sizeof(SETD));
-            //send_message[26] = 0xad;
-            write(uart_read, send_message, sizeof(msg_response.setd));
+            setd_pack_send();
             break;
         case WIFI_COMM_WP_DOWNLOAD:
+            usleep(0);
+            uint8_t send_message[27];
+            memset(send_message, 0, sizeof(send_message));
+            SETD *p;
             p = wp_data.setd;
             for (int i = 0; i < wp_data.num; i++) {
-                msg_response.setd = *p;
-                memcpy(send_message, &msg_response.setd, sizeof(msg_response.setd));
+                memcpy(send_message, p, sizeof(SETD));
                 send_message[26] = calculate_sum_check(send_message, sizeof(SETD));
                 //send_message[26] = 0xae;
-                write(uart_read, send_message, sizeof(msg_response.setd));
+                write(uart_read, send_message, sizeof(SETD));
                 printf("Download waypoints num %d\n", i+1);
                 if (p == &wp_data.setd[WP_DATA_NUM_MAX -1]) {
                     printf("Too many waypoints\n");
@@ -169,8 +119,11 @@ void msg_pack_response(MSG_orb_data msg_data, MSG_param_hd msg_hd, MSG_type msg_
             printf("Passing param_get\n");
             break;
         case WIFI_COMM_GET_MID:
-           docap_pack_send(0xff, 0);
+           docap_pack_send(0);
            break;
+        case WIFI_COMM_RC_POS:
+            docap_pack_send(1);
+            break;
         default:
             break;
         }
@@ -178,20 +131,23 @@ void msg_pack_response(MSG_orb_data msg_data, MSG_param_hd msg_hd, MSG_type msg_
     case MSG_NAME_YFWI:
         switch (msg_type.command) {
         case YFWI_COMM_CHANGE_PARAM:
-            yfpa_param_pack(&msg_response.yfpa_param, msg_hd);
-            memcpy(param_saved, &msg_response.yfpa_param, sizeof(msg_response.yfpa_param));
+            usleep(0);
+            YFPA_param yfpa_param;
+             memset(&yfpa_param, 0, sizeof(YFPA_param));
+            yfpa_param_pack(&yfpa_param, msg_hd);
+            memcpy(param_saved, &yfpa_param, sizeof(YFPA_param));
             uint16_t crc = check_crc(param_saved, 62);
             param_saved[60] = (uint8_t)(crc & 0x00ff);
             param_saved[61] = (uint8_t)((crc & 0xff00)>>8);
             //param_saved[61] = 0xaa;
-            write(uart_read, param_saved, sizeof(msg_response.yfpa_param));
+            write(uart_read, param_saved, sizeof(YFPA_param));
             break;
         default:
             break;
         }
         break;
     case MSG_NAME_EXYF:
-        exyf_response_pack(send_message, msg_type, msg_hd);
+        exyf_response_pack(msg_type, msg_hd);
         break;
     default:
         break;
@@ -276,6 +232,19 @@ void publish_local_position_sp_pd(MSG_orb_pub *msg_pd, MSG_orb_data *msg_data)
     }
 }
 
+void set_command_param(struct vehicle_command_s *command_data, int command_num, float param1, float param2,
+                                        float param3, float param4, double param5, double param6, float param7)
+{
+    command_data->command = command_num;
+    command_data->param1 = param1;
+    command_data->param2 = param2;
+    command_data->param3 = param3;
+    command_data->param4 = param4;
+    command_data->param5 = param5;
+    command_data->param6 = param6;
+    command_data->param7 = param7;
+}
+
 void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data *msg_data,
                                     MSG_param_hd msg_hd, MSG_type msg_type)
 {
@@ -286,38 +255,26 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
     case MSG_NAME_WIFI:
         switch (msg_type.command) {
         case WIFI_COMM_WAYPOINT:
-            msg_data->command_data.command = 16; //VEHICLE_CMD_NAV_WAYPOINT
-            //data = ((int32_t) buffer[6]) + ((int32_t) buffer[7]<<8) +((int32_t) buffer[8]<<16) + ((int32_t)buffer[9]<<24);
-            msg_data->command_data.param5 = ((double_t)*(int32_t*)((uint32_t)buffer + 6)) * 1e-7;
-            //memcpy(&msg_data->command_data.param5, &buffer[6], sizeof(float_t));
-            //printf("lat: %d\n", *(int32_t*)((uint32_t)buffer + 6));
-            msg_data->command_data.param6 = ((double_t)*(int32_t*)((uint32_t)buffer + 10))* 1e-7;
-            //printf("lon: %d\n", *(int32_t*)((uint32_t)buffer + 10));
-            msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0;
-            msg_data->command_data.param1 = 0.0;
-            msg_data->command_data.param2 = 0.0;
-            msg_data->command_data.param3 = 0.0;
-            msg_data->command_data.param4 = 0.0;
+            set_command_param(&msg_data->command_data, 16, 0, 0, 0, 0,
+                              ((double_t)*(int32_t*)((uint32_t)buffer + 6)) * 1e-7,
+                              ((double_t)*(int32_t*)((uint32_t)buffer + 10))* 1e-7,
+                              ((float_t) msg_data->global_position_data.alt)/1000.0);
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing waypoint\n");
             break;
         case WIFI_COMM_AUTO_LAND:
-            msg_data->command_data.command = 21; //VEHICLE_CMD_NAV_LAND
-            msg_data->command_data.param4 = 0.0;
-            msg_data->command_data.param5 = ((double_t)msg_data->global_position_data.lat); //* 1e-7;
-            msg_data->command_data.param6 = ((double_t)msg_data->global_position_data.lon); //* 1e-7;
-            msg_data->command_data.param7 = 0.0;
+            set_command_param(&msg_data->command_data, 21, 0, 0, 0, 0,
+                              ((double_t)msg_data->global_position_data.lat),
+                              ((double_t)msg_data->global_position_data.lat),
+                              0);
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing land\n");
             break;
         case WIFI_COMM_AUTO_TAKEOFF:
-            msg_data->command_data.command = 22; //VEHICLE_CMD_NAV_TAKEOFF
-            msg_data->command_data.param1 = 0.0;
-            msg_data->command_data.param4 = 0.0;
-            msg_data->command_data.param5 = ((double_t)msg_data->global_position_data.lat); //* 1e-7;
-            msg_data->command_data.param6 = ((double_t)msg_data->global_position_data.lon); //* 1e-7;
-            msg_data->command_data.param7 =((float_t) msg_data->global_position_data.alt) +10.0; //
-            printf("Global alt is %.4f\n", msg_data->global_position_data.alt);
+            set_command_param(&msg_data->command_data, 22, 0, 0, 0, 0,
+                              ((double_t)msg_data->global_position_data.lat),
+                              ((double_t)msg_data->global_position_data.lat),
+                              ((float_t) msg_data->global_position_data.alt) +10.0);
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing takeoff\n");
             break;
@@ -325,7 +282,8 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             printf("Start upload\n");
             if (wp_data.num == WP_DATA_NUM_MAX) {
                 printf("Too many waypoints\n");
-            }else if (*(uint16_t*)((uint32_t)buffer + 6) > WP_DATA_NUM_MAX){
+            }
+            if (*(uint16_t*)((uint32_t)buffer + 6) > WP_DATA_NUM_MAX){
                 printf("Wrong waypoints sequece\n");
             }else {
                 uint8_t new;
@@ -369,87 +327,51 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             printf("Passing reiceiver off\n");
             break;
         case WIFI_COMM_GYRO_CLEAR:
-            msg_data->command_data.command = 241; //CMD_PREFLIGHT_CALIBRATION
-            msg_data->command_data.param1 = 1;
-            msg_data->command_data.param2 = 0;
-            msg_data->command_data.param3 = 0;
-            msg_data->command_data.param4 = 0;
-            msg_data->command_data.param5 = 0;
-            msg_data->command_data.param6 = 0;
-            msg_data->command_data.param7 = 0;
+            set_command_param(&msg_data->command_data, 241, 1, 0, 0, 0, 0, 0, 0);//CMD_PREFLIGHT_CALIBRATION
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing gyro_calibration\n");
             break;
         case WIFI_COMM_WP_CHAGE:
-            msg_data->command_data.command = 177; //CMD_DO_JUMP
-            msg_data->command_data.param1 = (uint16_t)buffer[7] + ((uint16_t) buffer[8]<<8);
-            msg_data->command_data.param2 = 0;
+            set_command_param(&msg_data->command_data, 177, (uint16_t)buffer[7] + ((uint16_t) buffer[8]<<8),
+                                            0, 0, 0, 0, 0, 0);
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing wp_chage\n");
             break;
         case WIFI_COMM_MAG_CALI:
-            msg_data->command_data.command = 241; //CMD_PREFLIGHT_CALIBRATION
-            msg_data->command_data.param1 = 0;
-            msg_data->command_data.param2 = 1;
-            msg_data->command_data.param3 = 0;
-            msg_data->command_data.param4 = 0;
-            msg_data->command_data.param5 = 0;
-            msg_data->command_data.param6 = 0;
-            msg_data->command_data.param7 = 0;
+            set_command_param(&msg_data->command_data, 241, 0, 1, 0, 0, 0, 0, 0);//CMD_PREFLIGHT_CALIBRATION
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing mag_calibration\n");
             break;
         case WIFI_COMM_HIGHT_CHANGE:
-            msg_data->command_data.command = 16; //VEHICLE_CMD_NAV_WAYPOINT
-            msg_data->command_data.param5 = ((double_t)msg_data->gps_data.lat)* 1e-7;
-            msg_data->command_data.param6 = ((double_t)msg_data->gps_data.lon)* 1e-7;
-            msg_data->command_data.param7 = ((float_t)*(int16_t*)((uint32_t)buffer + 7))/10.0;
-            msg_data->command_data.param1 = 0.0;
-            msg_data->command_data.param2 = 0.0;
-            msg_data->command_data.param3 = 0.0;
-            msg_data->command_data.param4 = 0.0;
+            set_command_param(&msg_data->command_data, 16, 0, 0, 0, 0,
+                              ((double_t)msg_data->global_position_data.lat),
+                              ((double_t)msg_data->global_position_data.lat),
+                              ((float_t)*(int16_t*)((uint32_t)buffer + 7))/10.0);//VEHICLE_CMD_NAV_WAYPOINT
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing hight_change\n");
             break;
         //case WIFI_COMM_RC_POS:
         case WIFI_COMM_ESC_CALI_ON:
-            msg_data->command_data.command = 241; //CMD_PREFLIGHT_CALIBRATION
-            msg_data->command_data.param1 = 0;
-            msg_data->command_data.param2 = 0;
-            msg_data->command_data.param3 = 0;
-            msg_data->command_data.param4 = 0;
-            msg_data->command_data.param5 = 0;
-            msg_data->command_data.param6 = 0;
-            msg_data->command_data.param7 = 1;
+            set_command_param(&msg_data->command_data, 241, 0, 0, 0, 0, 0, 0, 1);//CMD_PREFLIGHT_CALIBRATION
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing esc_cali\n");
             break;
         case WIFI_COMM_CALI_QUIT:
-            msg_data->command_data.command = 241; //CMD_PREFLIGHT_CALIBRATION
-            msg_data->command_data.param1 = 0;
-            msg_data->command_data.param2 = 0;
-            msg_data->command_data.param3 = 0;
-            msg_data->command_data.param4 = 0;
-            msg_data->command_data.param5 = 0;
-            msg_data->command_data.param6 = 0;
-            msg_data->command_data.param7 = 0;
+            set_command_param(&msg_data->command_data, 241, 0, 0, 0, 0, 0, 0, 0);//CMD_PREFLIGHT_CALIBRATION
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing cali_off\n");
             break;
         case WIFI_COMM_AUTO_FLIGHT_ON:
-            msg_data->command_data.command = 300; //CMD_MISSION_START
-            msg_data->command_data.param1 = wp_data.setd[0].waypoint_seq;
-            msg_data->command_data.param2 = wp_data.push->waypoint_seq;
+            set_command_param(&msg_data->command_data, 300,  wp_data.setd[0].waypoint_seq,
+                                           wp_data.setd[wp_data.num-1].waypoint_seq, 0, 0, 0, 0, 0);//VEHICLE_CMD_MISSION_START
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing atuo_on\n");
             break;
         case WIFI_COMM_AUTO_FLIGHT_OFF:
-            msg_data->command_data.command = 17; //CMD_NAV_LOITER_UNLIM
-            msg_data->command_data.param3 = 0;
-            msg_data->command_data.param4 = 0;
-            msg_data->command_data.param5 = ((double_t)msg_data->gps_data.lat)* 1e-7;
-            msg_data->command_data.param6 = ((double_t)msg_data->gps_data.lon)* 1e-7;
-            msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0;
+            set_command_param(&msg_data->command_data, 17, 0, 0, 0, 0,
+                              ((double_t)msg_data->global_position_data.lat),
+                              ((double_t)msg_data->global_position_data.lat),
+                              ((float_t) msg_data->global_position_data.alt));//CMD_NAV_LOITER_UNLIM
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing auto_off\n");
             break;
@@ -471,26 +393,7 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             break;
         case WIFI_COMM_RC_POS:
             printf("Set_rc_channel_limit Start\n");
-            docap_pack_send(0, 0);
-            bool set_success;
-            for (int i = 1; i < 5; i++)
-            {
-            set_success = set_rc_channel_max(i);
-            if (!set_success) {
-                docap_pack_send(i, 0xff);
-                printf("Set_rc_channel %d max Failed\n", i);
-                break;
-            }
-            printf("Set_rc_channel %d max Success\n", i);
-            set_success = set_rc_channel_min(i);
-            if (!set_success) {
-                docap_pack_send(i, 0xff);
-                printf("Set_rc_channel %d min Failed\n", i);
-                break;
-            }
-            printf("Set_rc_channel %d min Success\n", i);
-            }
-            docap_pack_send(0xff, 0);
+            set_rc_channel_max_min();
             printf("Set_rc_channel_limit Finish\n");
             break;
         default:
@@ -503,6 +406,7 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
         msg_data->manual_data.y = ((float_t)(((uint16_t) buffer[7]<<8) + buffer [8])/65535.0 - 0.5)*2.0;
         msg_data->manual_data.x = ((float_t)(((uint16_t) buffer[9]<<8) + buffer [10])/65535.0 - 0.5)*2.0;
         msg_data->manual_data.z = (float_t)(((uint16_t) buffer[11]<<8) + buffer [12])/65535.0;
+        msg_data->manual_data.data_source = 2; //SOURCE_MAVLINK_0
         printf("Passing iwfi_pack\n");
         publish_manual_pd(msg_pd, msg_data);
         break;
@@ -511,12 +415,11 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
         switch (msg_type.command) {
         case EXYF_COMM_LOITER_YAW:
             if (msg_data->status_data.nav_state == 4){ //NAVIGATION_STATE_AUTO_LOITER
-            msg_data->command_data.command = 17; //CMD_NAV_LOITER_UNLIM
-            msg_data->command_data.param3 = 0;
-            msg_data->command_data.param4 = (float_t)*(int32_t*)((uint32_t)buffer + 9);
-            msg_data->command_data.param5 = ((double_t)msg_data->gps_data.lat)* 1e-7;
-            msg_data->command_data.param6 = ((double_t)msg_data->gps_data.lon)* 1e-7;
-            msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0;
+                set_command_param(&msg_data->command_data, 17, 0, 0, 0,
+                                  (float_t)*(int32_t*)((uint32_t)buffer + 9),
+                                  ((double_t)msg_data->global_position_data.lat),
+                                  ((double_t)msg_data->global_position_data.lat),
+                                  ((float_t) msg_data->global_position_data.alt));
             }
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing loiter_yaw\n");
@@ -610,13 +513,11 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
         switch (msg_type.command) {
         case EXEX_COMM_HIGHT_CHANGE:
             paramf = (float)*(uint16_t*)((uint32_t)buffer + 9);
-            msg_data->command_data.command = 17; //CMD_NAV_LOITER_UNLIM
-            msg_data->command_data.param3 = 0;
-            msg_data->command_data.param4 = 0;
-            msg_data->command_data.param5 = ((double_t)msg_data->gps_data.lat)* 1e-7;
-            msg_data->command_data.param6 = ((double_t)msg_data->gps_data.lon)* 1e-7;
-            msg_data->command_data.param7 = ((float_t) msg_data->gps_data.alt)/1000.0 + paramf /10.0;
-            paramf = *(float_t*)((uint32_t)buffer + 11);
+            set_command_param(&msg_data->command_data, 17, 0, 0, 0, 0,
+                              ((double_t)msg_data->global_position_data.lat),
+                              ((double_t)msg_data->global_position_data.lat),
+                              ((float_t) msg_data->global_position_data.alt)+ paramf /10.0);
+            memcpy(&paramf , &buffer[11], sizeof(float));
             param_set(msg_hd.up_vel_max_hd, &paramf);
             param_set(msg_hd.dn_vel_max_hd, &paramf);
             publish_commander_pd(msg_pd, msg_data);
@@ -635,7 +536,6 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
 void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
                         MSG_param_hd msg_hd)
 {
-    uint8_t data;
     MSG_type msg_type;
     memset(&msg_type, 0, sizeof(msg_type));
 
@@ -643,25 +543,20 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
     if (compare_buffer_n(buffer, (uint8_t*)name, 5))
     {
         printf("Passing WIFI\n");
-        //read(uart_read,&buffer[5], 25);
-        for(int i = 5; i  < 30; i++)
-        {
-            read(uart_read,&data,1);
-            buffer[i] = data;
-            //usleep(100);
-            printf("buffer[%d] is %x\n", i ,data);
-        }
-        msg_type.name =MSG_NAME_WIFI;
-        msg_type.command = buffer[5];
+        if (read_to_buff(buffer, 5, 30)){
 
-        printf("Sum check is %d, %d\n", buffer[29], calculate_sum_check(buffer, 30));
-        //if(check_command_repeat(buffer, msg_type) && buffer[29] == calculate_sum_check(buffer, 30))
-        if (check_command_repeat(buffer, msg_type) && buffer[29] == 0x3f)
-        {
-            printf("Passing check\n");
-            //wifi_pack(buffer, msg_data, msg_type);
-            msg_orb_param_pro(buffer, msg_pd, msg_data, msg_hd, msg_type);
-            msg_pack_response(*msg_data, msg_hd, msg_type);
+            msg_type.name =MSG_NAME_WIFI;
+            msg_type.command = buffer[5];
+
+            printf("Sum check is %d, %d\n", buffer[29], calculate_sum_check(buffer, 30));
+            //if(check_command_repeat(buffer, msg_type) && buffer[29] == calculate_sum_check(buffer, 30))
+            if (check_command_repeat(buffer, msg_type) && (buffer[29] == 0x3f || buffer[29] == calculate_sum_check(buffer, 30)))
+            {
+                printf("Passing check\n");
+                //wifi_pack(buffer, msg_data, msg_type);
+                msg_orb_param_pro(buffer, msg_pd, msg_data, msg_hd, msg_type);
+                msg_pack_response(*msg_data, msg_hd, msg_type);
+            }
         }
         return;
     }
@@ -671,29 +566,27 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
     {
         printf("Passing YFWI\n");
         uint8_t buflen;
-        read(uart_read,&data,1);
-        buflen = data;
-        buffer[5] = data;
-        for(int i = 6; i  < buflen; i++)
-        {
-            read(uart_read,&data,1);
-            buffer[i] = data;
-        }
-        msg_type.name =MSG_NAME_YFWI;
-        msg_type.command = buffer[6];
-        uint16_t  crc_receive = (uint16_t)buffer[buflen -2] + ((uint16_t)buffer[buflen -1] << 8);
-        if (check_command_repeat(buffer, msg_type) && crc_receive == check_crc(buffer, buflen))
-        //if (check_command_repeat(buffer, msg_type) && buffer[buflen + 7] == 0x3f)
-        {
-            printf("Passing check\n");
-            if (msg_type.command == YFWI_COMM_CHANGE_PARAM) {
-                if (yfwi_param_set(buffer, msg_hd)) {
-                    msg_pack_response(*msg_data, msg_hd, msg_type);
-                    printf("Response Sended\n");
+        if (!read_to_buff(buffer, 5, 6)) return;
+        buflen = buffer[5];
+        printf("buffer len is %d\n", buflen);
+        if (read_to_buff(buffer, 6, buflen)) {
+            msg_type.name =MSG_NAME_YFWI;
+            msg_type.command = buffer[6];
+            uint16_t  crc_receive = (uint16_t)buffer[buflen -2] + ((uint16_t)buffer[buflen -1] << 8);
+            printf("crc receive is %x\n",crc_receive);
+            if (check_command_repeat(buffer, msg_type) && crc_receive == check_crc(buffer, buflen))
+            //if (check_command_repeat(buffer, msg_type) && buffer[buflen + 7] == 0x3f)
+            {
+                printf("Passing check\n");
+                if (msg_type.command == YFWI_COMM_CHANGE_PARAM) {
+                    if (yfwi_param_set(buffer, msg_hd)) {
+                        msg_pack_response(*msg_data, msg_hd, msg_type);
+                        printf("Response Sended\n");
+                    }
                 }
-            }
-            else {
-                yfwi_pack(buffer,msg_type, msg_hd);
+                else {
+                    yfwi_pack(buffer,msg_type, msg_hd);
+                }
             }
         }
         return;
@@ -703,21 +596,17 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
     if (compare_buffer_n(buffer, (uint8_t*)name, 5))
     {
         printf("Passing IWFI\n");
-        for(int i = 5; i  < 30; i++)
-        {
-            read(uart_read,&data,1);
-            buffer[i] = data;
-        }
-        msg_type.name =MSG_NAME_IWFI;
-        if(check_command_repeat(buffer, msg_type) && buffer[29] == calculate_sum_check(buffer, 30))
-         //if (check_command_repeat(buffer, msg_type) && buffer[29] == 0x3f)
-         {
-             //printf("Passing check\n");
-             if (msg_data->manual_data.x == 0 && msg_data->manual_data.y == 0
-                  && msg_data->manual_data.z == 0.5 && msg_data->manual_data.r == 0)
+         if (read_to_buff(buffer, 5, 30)){
+            msg_type.name =MSG_NAME_IWFI;
+            //if(check_command_repeat(buffer, msg_type) && buffer[29] == calculate_sum_check(buffer, 30))
+            if (check_command_repeat(buffer, msg_type) && buffer[29] == 0x3f)
              {
-                //iwfi_pack(buffer, msg_data);
-                msg_orb_param_pro(buffer, msg_pd, msg_data, msg_hd, msg_type);
+                 //printf("Passing check\n");
+//                 if (msg_data->manual_data.x == 0 && msg_data->manual_data.y == 0
+//                      && msg_data->manual_data.z == 0.5 && msg_data->manual_data.r == 0)
+                 {
+                    msg_orb_param_pro(buffer, msg_pd, msg_data, msg_hd, msg_type);
+                 }
              }
          }
          return;
@@ -727,17 +616,14 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
     if (compare_buffer_n(buffer, (uint8_t*)name, 5))
     {
         printf("Passing HFMR\n");
-        for(int i = 5; i  < 30; i++)
-        {
-            read(uart_read,&data,1);
-            buffer[i] = data;
+        if (read_to_buff(buffer, 5, 30)){
+            msg_type.name =MSG_NAME_HFMR;
+            if(buffer[29] == calculate_sum_check(buffer, 30))
+             //if (buffer[29] == 0x3f)
+             {
+                param_reset_all();
+             }
         }
-        msg_type.name =MSG_NAME_HFMR;
-        if(buffer[29] == calculate_sum_check(buffer, 30))
-         //if (buffer[29] == 0x3f)
-         {
-            param_reset_all();
-         }
          return;
     }
 
@@ -746,28 +632,22 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
     {
         printf("Passing EXYF\n");
         uint8_t buflen;
-        read(uart_read,&data,1);
-        buffer[5] = data;
-        read(uart_read,&data,1);
-        buffer[6] = data;
+        if (!read_to_buff(buffer, 5, 7)) return;
         buflen = (uint16_t)buffer[5] + ((uint16_t)buffer[6]<<8);
         printf("Buflen is %d\n", buflen);
-        for(int i = 7; i  < buflen; i++)
-        {
-            read(uart_read,&data,1);
-            buffer[i] = data;
+        if (read_to_buff(buffer, 7, buflen)){
+            msg_type.name =MSG_NAME_EXYF;
+            msg_type.command = buffer[7];
+            uint16_t  crc_receive = (uint16_t)buffer[buflen -2] + ((uint16_t)buffer[buflen -1] << 8);
+            //if (check_command_repeat(buffer, msg_type) && crc_receive == check_crc(buffer, buflen))
+            if (check_command_repeat(buffer, msg_type) && buffer[buflen -1] == 0x3f)
+             {
+                //exyf_pack(buffer, msg_data, msg_type, msg_hd);
+                //printf("Check passed\n");
+                msg_orb_param_pro(buffer, msg_pd, msg_data, msg_hd, msg_type);
+                msg_pack_response(*msg_data, msg_hd, msg_type);
+             }
         }
-        msg_type.name =MSG_NAME_EXYF;
-        msg_type.command = buffer[7];
-        uint16_t  crc_receive = (uint16_t)buffer[buflen -2] + ((uint16_t)buffer[buflen -1] << 8);
-        //if (check_command_repeat(buffer, msg_type) && crc_receive == check_crc(buffer, buflen))
-        if (check_command_repeat(buffer, msg_type) && buffer[buflen -1] == 0x3f)
-         {
-            //exyf_pack(buffer, msg_data, msg_type, msg_hd);
-            //printf("Check passed\n");
-            msg_orb_param_pro(buffer, msg_pd, msg_data, msg_hd, msg_type);
-            msg_pack_response(*msg_data, msg_hd, msg_type);
-         }
          return;
     }
 
@@ -776,25 +656,18 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
     {
         printf("Passing EXEF\n");
         uint8_t buflen;
-        read(uart_read,&data,1);
-        buffer[5] = data;
-        read(uart_read,&data,1);
-        buffer[6] = data;
+        if (!read_to_buff(buffer, 5, 7)) return;
         buflen = (uint16_t)buffer[5] + ((uint16_t)buffer[6]<<8);
-        for(int i = 7; i  < buflen; i++)
-        {
-            read(uart_read,&data,1);
-            buffer[i] = data;
-        }
+        if (read_to_buff(buffer, 7, buflen)){
         msg_type.name =MSG_NAME_EXEX;
         msg_type.command = buffer[7];
         uint16_t  crc_receive = (uint16_t)buffer[buflen -2] + ((uint16_t)buffer[buflen -1] << 8);
         if (check_command_repeat(buffer, msg_type) && crc_receive == check_crc(buffer, buflen))
         //if (check_command_repeat(buffer, msg_type) && buffer[buflen + 8] == 0x3f)
          {
-            //exex_pack(buffer, msg_data, msg_type, msg_hd);
             msg_orb_param_pro(buffer ,msg_pd, msg_data, msg_hd, msg_type);
          }
+        }
          return;
     }
 }

@@ -85,28 +85,44 @@ uint8_t calculate_sum_check (const uint8_t *send_message, int len)
     return sum;
 }
 
-uint16_t crc16_ccitt(uint8_t data, uint16_t crc)
-{
-    uint16_t ccitt16 = 0x1021;
-    crc ^=((uint16_t)data << 8);
-    for (int i = 0; i < 8; i++)
-    {
-        if (crc & 0x8000){
-            crc <<= 1;
-            crc ^= ccitt16;
-        }
-        else {
-            crc <<= 1;
-        }
-    }
-    return crc;
-}
+//uint16_t crc16_ccitt(uint8_t data, uint16_t crc)
+//{
+//    uint16_t ccitt16 = 0x1021;
+//    crc ^=((uint16_t)data << 8);
+//    for (int i = 0; i < 8; i++)
+//    {
+//        if (crc & 0x8000){
+//            crc <<= 1;
+//            crc ^= ccitt16;
+//        }
+//        else {
+//            crc <<= 1;
+//        }
+//    }
+//    return crc;
+//}
+
+//uint16_t check_crc(const uint8_t *buffer, uint8_t buflen)
+//{
+//    uint16_t crc = 0;
+//    for (int i = 0; i < buflen - 2; i++) {
+//     crc = crc16_ccitt(buffer[i], crc);
+//    }
+//    printf("crc check is %x\n", crc);
+//    return  crc;
+//}
 
 uint16_t check_crc(const uint8_t *buffer, uint8_t buflen)
 {
-    uint16_t crc = 0;
-    for (int i = 0; i < buflen - 2; i++) {
-     crc = crc16_ccitt(buffer[i], crc);
+    uint16_t crc_table[] ={0x0000, 0xcc01, 0xd801, 0x1400, 0xf001, 0x3c00, 0x2800, 0xe401,
+                                  0xa001, 0x6c00, 0x7800, 0xb401, 0x5000, 0x9c01, 0x8801, 0x4400};
+    uint16_t w_crc = 0xffff;
+    uint8_t chChar = 0;
+    for (int i =0; i < buflen -2; i++){
+        chChar = buffer[i];
+        w_crc = (uint16_t)(crc_table[(chChar ^ w_crc) & 15] ^ (w_crc >>4));
+        w_crc = (uint16_t)(crc_table[((chChar>>4) ^ w_crc) & 15] ^ (w_crc >>4));
     }
-    return  crc;
+    printf("crc check is %x\n", w_crc);
+    return w_crc;
 }

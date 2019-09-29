@@ -70,19 +70,16 @@ int set_rw_uart_baudrate(const int fd, unsigned int baud)
 
          /* 设置波特率 */
         if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
-                //warnx("ERR: %d (cfsetispeed)\n", termios_state);
                  printf("ERR: %d (cfsetispeed)\n", termios_state);
                 return false;
         }
 
         if ((termios_state = cfsetospeed(&uart_config, speed)) < 0) {
-                //warnx("ERR: %d (cfsetospeed)\n", termios_state);
                   printf("ERR: %d (cfsetospeed)\n", termios_state);
                 return false;
         }
         // 设置与终端相关的参数，TCSANOW 立即改变参数
         if ((termios_state = tcsetattr(fd, TCSANOW, &uart_config)) < 0) {
-               //warnx("ERR: %d (tcsetattr)\n", termios_state);
                 printf("ERR: %d (tcsetattr)\n", termios_state);
                 return false;
         }
@@ -122,9 +119,6 @@ void msg_orb_sub (MSG_orb_sub *msg_fd)
     msg_fd->geofence_fd = orb_subscribe(ORB_ID(geofence_result));
     msg_fd->vibe_fd = orb_subscribe(ORB_ID(estimator_status));
     msg_fd->global_position_fd = orb_subscribe(ORB_ID(vehicle_global_position));
-    //msg_fd->input_rc_fd = orb_subscribe(ORB_ID(input_rc));
-    //msg_fd->control_mode_fd = orb_subscribe(ORB_ID(vehicle_control_mode));
-    //msg_fd->cpu_fd = orb_subscribe(ORB_ID(cpuload));
 }
 
 
@@ -144,9 +138,6 @@ void msg_orb_data(MSG_orb_data *msg_data, MSG_orb_sub msg_fd)
    orb_copy(ORB_ID(geofence_result), msg_fd.geofence_fd, &msg_data->geofence_data);
    orb_copy(ORB_ID(estimator_status), msg_fd.vibe_fd, &msg_data->vibe_data);
    orb_copy(ORB_ID(vehicle_global_position), msg_fd.global_position_fd, &msg_data->global_position_data);
-   //orb_copy(ORB_ID(input_rc), msg_fd.input_rc_fd, &msg_data->input_rc_data);
-   //orb_copy(ORB_ID(vehicle_control_mode), msg_fd.control_mode_fd, &msg_data->control_mode_data);
-   //orb_copy(ORB_ID(cpuload), msg_fd.cpu_fd, &msg_data->cpu_data);
 }
 
 void msg_orb_unsub (MSG_orb_sub *msg_fd)
@@ -165,7 +156,6 @@ void msg_orb_unsub (MSG_orb_sub *msg_fd)
     orb_unsubscribe(msg_fd->geofence_fd);
     orb_unsubscribe(msg_fd->vibe_fd);
     orb_unsubscribe(msg_fd->global_position_fd);
-    //orb_unsubscribe(msg_fd->cpu_fd);
 }
 
 void msg_param_hd_cache (MSG_param_hd *msg_hd)
@@ -203,6 +193,28 @@ void msg_param_hd_cache (MSG_param_hd *msg_hd)
     msg_hd->yaw_force_hd = param_find("MPC_YAW_MODE");
     msg_hd->pwm_min_hd = param_find("PWM_MIN");
 }
+
+bool read_to_buff(uint8_t *buffer, int start, int end)
+{
+    uint8_t data = 0;
+    int error_count = 0;
+    for(int i = start; i < end;)
+    {
+        if (read(uart_read,&data,1) > 0){
+            buffer[i] = data;
+            printf("buffer[%d] is %x\n", i ,data);
+            i++;
+            error_count = 0;
+        }
+        else{
+            error_count++;
+            printf("error_count is %d\n", error_count);
+        }
+        if(error_count > 10) return false;
+    }
+    return true;
+}
+
 
 int rw_uart_main(int argc, char *argv[])
 {
@@ -252,8 +264,6 @@ int rw_uart_main(int argc, char *argv[])
 
 int rw_uart_thread_main(int argc, char *argv[])
 {
-        //char *data = "\n";
-        //char sample_test_uart[]="rw_uart TX-test:running!\n";
 
         /*
                 GPS1:/dev/ttyS0
@@ -281,6 +291,12 @@ int rw_uart_thread_main(int argc, char *argv[])
         memset(&msg_hd, 0, sizeof(msg_hd));
         msg_param_hd_cache(&msg_hd);
 
+        MSG_orb_data msg_data;
+
+        uint8_t buffer[65];
+
+        uint8_t data;
+
         px4_pollfd_struct_t fds[] = {
                { .fd = uart_read,   .events = POLLIN },
            };
@@ -297,23 +313,24 @@ int rw_uart_thread_main(int argc, char *argv[])
 
         while (!rw_thread_should_exit)
         {
-            uint8_t data;
+            data = 0;
 
-            MSG_orb_data msg_data;
+            //MSG_orb_data msg_data;
             memset(&msg_data, 0, sizeof(msg_data));
 
-            uint8_t buffer[65];
+            //uint8_t buffer[65];
             memset(buffer, 0, sizeof(buffer));
 
             msg_orb_data(&msg_data, msg_fd);
             msg_pack_send(msg_data);
             usleep(10000);
+           //usleep(1000000);
 
-            int poll_ret = poll(fds,1,10);//阻塞等待20ms
+            int poll_ret = poll(fds,1,10);//阻塞等待10ms
             if (poll_ret == 0)
             {
                     /* this means none of our providers is giving us data */
-                  //printf("No receive data for 20ms\n");
+                  //printf("No receive data for 10ms\n");
             } else if (poll_ret < 0)
             {
                /* this is seriously bad - should be an emergency */
@@ -334,21 +351,18 @@ int rw_uart_thread_main(int argc, char *argv[])
                        {//找到帧头$
                                buffer[0] = '$';
                                //usleep(100);
-                               for(int i = 1; i  < 5; i++)
-                               {
-                                       read(uart_read,&data,1);//读取后面的数据
-                                       buffer[i] = data;
-                                       //usleep(100);
-                           }
+                               if (read_to_buff(buffer, 1, 5)) find_r_type(buffer, &msg_data, &msg_pd, msg_hd);
+//                               for(int i = 1; i  < 5; i++)
+//                               {
+//                                read(uart_read,&data,1);//读取后面的数
+//                                buffer[i] = data;
+//                                //usleep(100);
+//                                }
+                               //find_r_type(buffer, &msg_data, &msg_pd, msg_hd);
                        }
                        //printf("data=%s\n", buffer);
-                       find_r_type(buffer, &msg_data, &msg_pd, msg_hd);
                }
             }
-
-          //usleep(1000000);
-          //usleep(10000);
-
         }
 
         msg_orb_unsub(&msg_fd);
