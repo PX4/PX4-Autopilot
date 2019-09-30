@@ -81,13 +81,13 @@ TEST_F(ObstacleAvoidanceTest, oa_enabled_healthy)
 	message.waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid = true;
 
 	// GIVEN: and we publish the vehicle_trajectory_waypoint message and vehicle status message
-	orb_advert_t vehicle_trajectory_waypoint_pub = orb_advertise(ORB_ID(vehicle_trajectory_waypoint), &message);
-	orb_publish(ORB_ID(vehicle_trajectory_waypoint), vehicle_trajectory_waypoint_pub, &message);
+	uORB::Publication<vehicle_trajectory_waypoint_s> vehicle_trajectory_waypoint_pub{ORB_ID(vehicle_trajectory_waypoint)};
+	vehicle_trajectory_waypoint_pub.publish(message);
 
 	vehicle_status_s vehicle_status{};
 	vehicle_status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
-	orb_advert_t vehicle_status_pub = orb_advertise(ORB_ID(vehicle_status), &vehicle_status);
-	orb_publish(ORB_ID(vehicle_status), vehicle_status_pub, &vehicle_status);
+	uORB::Publication<vehicle_status_s> vehicle_status_pub{ORB_ID(vehicle_status)};
+	vehicle_status_pub.publish(vehicle_status);
 
 	// WHEN: we inject the vehicle_trajectory_waypoint in the interface
 	oa.injectAvoidanceSetpoints(pos_sp, vel_sp, yaw_sp, yaw_speed_sp);
@@ -111,13 +111,13 @@ TEST_F(ObstacleAvoidanceTest, oa_enabled_not_healthy)
 	oa.test_setPosition(pos);
 
 	// GIVEN: and we publish the vehicle_trajectory_waypoint message and vehicle_status
-	orb_advert_t vehicle_trajectory_waypoint_pub = orb_advertise(ORB_ID(vehicle_trajectory_waypoint), &message);
-	orb_publish(ORB_ID(vehicle_trajectory_waypoint), vehicle_trajectory_waypoint_pub, &message);
+	uORB::Publication<vehicle_trajectory_waypoint_s> vehicle_trajectory_waypoint_pub{ORB_ID(vehicle_trajectory_waypoint)};
+	vehicle_trajectory_waypoint_pub.publish(message);
 
 	vehicle_status_s vehicle_status{};
 	vehicle_status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
-	orb_advert_t vehicle_status_pub = orb_advertise(ORB_ID(vehicle_status), &vehicle_status);
-	orb_publish(ORB_ID(vehicle_status), vehicle_status_pub, &vehicle_status);
+	uORB::Publication<vehicle_status_s> vehicle_status_pub{ORB_ID(vehicle_status)};
+	vehicle_status_pub.publish(vehicle_status);
 
 	// WHEN: we inject the vehicle_trajectory_waypoint in the interface
 	oa.injectAvoidanceSetpoints(pos_sp, vel_sp, yaw_sp, yaw_speed_sp);
