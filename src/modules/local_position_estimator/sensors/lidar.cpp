@@ -89,7 +89,7 @@ void BlockLocalPositionEstimator::lidarCorrect()
 	// residual
 	Vector<float, n_y_lidar> r = y - C * _x;
 	// residual covariance
-	Matrix<float, n_y_lidar, n_y_lidar> S = C * _P * C.transpose() + R;
+	Matrix<float, n_y_lidar, n_y_lidar> S = C * m_P * C.transpose() + R;
 
 	// publish innovations
 	_pub_innov.get().hagl_innov = r(0);
@@ -116,10 +116,10 @@ void BlockLocalPositionEstimator::lidarCorrect()
 	}
 
 	// kalman filter correction always
-	Matrix<float, n_x, n_y_lidar> K = _P * C.transpose() * S_I;
+	Matrix<float, n_x, n_y_lidar> K = m_P * C.transpose() * S_I;
 	Vector<float, n_x> dx = K * r;
 	_x += dx;
-	_P -= K * C * _P;
+	m_P -= K * C * m_P;
 }
 
 void BlockLocalPositionEstimator::lidarCheckTimeout()
