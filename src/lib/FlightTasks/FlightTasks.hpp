@@ -54,7 +54,7 @@
 enum class FlightTaskError : int {
 	NoError = 0,
 	InvalidTask = -1,
-	ActivationFailed = -3
+	ActivationFailed = -2
 };
 
 class FlightTasks
