@@ -129,7 +129,7 @@ private:
 
 	matrix::Vector3f _rates_sp;			/**< angular rates setpoint */
 
-	float		_thrust_sp{0.0f};		/**< thrust setpoint */
+	matrix::Vector3f _thrust_body_sp;		/**< 3-D thrust setpoint */
 
 	bool _gear_state_initialized{false};		/**< true if the gear state has been initialized */
 
