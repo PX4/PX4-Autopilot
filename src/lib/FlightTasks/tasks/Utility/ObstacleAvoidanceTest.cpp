@@ -42,7 +42,6 @@ using namespace matrix;
 class ObstacleAvoidanceTest : public ::testing::Test
 {
 public:
-	SubscriptionArray subscription_array;
 	Vector3f pos_sp;
 	Vector3f vel_sp;
 	float yaw_sp = 0.123f;
@@ -71,7 +70,6 @@ TEST_F(ObstacleAvoidanceTest, oa_enabled_healthy)
 	// GIVEN: the flight controller setpoints from FlightTaskAutoMapper and a vehicle_trajectory_waypoint message coming
 	// from offboard
 	TestObstacleAvoidance oa;
-	oa.initializeSubscriptions(subscription_array);
 
 	vehicle_trajectory_waypoint_s message = empty_trajectory_waypoint;
 	message.timestamp = hrt_absolute_time();
@@ -91,8 +89,6 @@ TEST_F(ObstacleAvoidanceTest, oa_enabled_healthy)
 	orb_advert_t vehicle_status_pub = orb_advertise(ORB_ID(vehicle_status), &vehicle_status);
 	orb_publish(ORB_ID(vehicle_status), vehicle_status_pub, &vehicle_status);
 
-	subscription_array.update();
-
 	// WHEN: we inject the vehicle_trajectory_waypoint in the interface
 	oa.injectAvoidanceSetpoints(pos_sp, vel_sp, yaw_sp, yaw_speed_sp);
 
@@ -109,7 +105,6 @@ TEST_F(ObstacleAvoidanceTest, oa_enabled_not_healthy)
 {
 	// GIVEN: the flight controller setpoints from FlightTaskAutoMapper and a vehicle_trajectory_waypoint message
 	TestObstacleAvoidance oa;
-	oa.initializeSubscriptions(subscription_array);
 
 	vehicle_trajectory_waypoint_s message = empty_trajectory_waypoint;
 	Vector3f pos(3.1f, 4.7f, 5.2f);
@@ -123,8 +118,6 @@ TEST_F(ObstacleAvoidanceTest, oa_enabled_not_healthy)
 	vehicle_status.nav_state = vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION;
 	orb_advert_t vehicle_status_pub = orb_advertise(ORB_ID(vehicle_status), &vehicle_status);
 	orb_publish(ORB_ID(vehicle_status), vehicle_status_pub, &vehicle_status);
-
-	subscription_array.update();
 
 	// WHEN: we inject the vehicle_trajectory_waypoint in the interface
 	oa.injectAvoidanceSetpoints(pos_sp, vel_sp, yaw_sp, yaw_speed_sp);
@@ -142,7 +135,6 @@ TEST_F(ObstacleAvoidanceTest, oa_desired)
 {
 	// GIVEN: the flight controller setpoints from FlightTaskAutoMapper and the waypoints from FLightTaskAuto
 	TestObstacleAvoidance oa;
-	oa.initializeSubscriptions(subscription_array);
 
 	pos_sp = Vector3f(1.f, 1.2f, NAN);
 	vel_sp = Vector3f(NAN, NAN, 0.7f);
