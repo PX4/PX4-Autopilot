@@ -71,8 +71,6 @@ RCInput::RCInput(bool run_as_task, char *device) :
 
 RCInput::~RCInput()
 {
-	orb_unadvertise(_to_input_rc);
-
 #ifdef RC_SERIAL_PORT
 	dsm_deinit();
 #endif
@@ -674,8 +672,7 @@ RCInput::cycle()
 		if (rc_updated) {
 			perf_count(_publish_interval_perf);
 
-			int instance;
-			orb_publish_auto(ORB_ID(input_rc), &_to_input_rc, &_rc_in, &instance, ORB_PRIO_DEFAULT);
+			_to_input_rc.publish(_rc_in);
 
 		} else if (!rc_updated && ((hrt_absolute_time() - _rc_in.timestamp_last_signal) > 1_s)) {
 			_rc_scan_locked = false;
