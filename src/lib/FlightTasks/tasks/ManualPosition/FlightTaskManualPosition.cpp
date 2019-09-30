@@ -46,15 +46,6 @@ FlightTaskManualPosition::FlightTaskManualPosition() : _collision_prevention(thi
 
 }
 
-bool FlightTaskManualPosition::initializeSubscriptions(SubscriptionArray &subscription_array)
-{
-	if (!FlightTaskManualAltitude::initializeSubscriptions(subscription_array)) {
-		return false;
-	}
-
-	return true;
-}
-
 bool FlightTaskManualPosition::updateInitialize()
 {
 	bool ret = FlightTaskManualAltitude::updateInitialize();
@@ -102,11 +93,11 @@ void FlightTaskManualPosition::_scaleSticks()
 	}
 
 	// scale the stick inputs
-	if (PX4_ISFINITE(_sub_vehicle_local_position->get().vxy_max)) {
+	if (PX4_ISFINITE(_sub_vehicle_local_position.get().vxy_max)) {
 		// estimator provides vehicle specific max
 
 		// use the minimum of the estimator and user specified limit
-		_velocity_scale = fminf(_constraints.speed_xy, _sub_vehicle_local_position->get().vxy_max);
+		_velocity_scale = fminf(_constraints.speed_xy, _sub_vehicle_local_position.get().vxy_max);
 		// Allow for a minimum of 0.3 m/s for repositioning
 		_velocity_scale = fmaxf(_velocity_scale, 0.3f);
 
@@ -152,10 +143,10 @@ void FlightTaskManualPosition::_updateXYlock()
 	} else if (PX4_ISFINITE(_position_setpoint(0)) && apply_brake) {
 		// Position is locked but check if a reset event has happened.
 		// We will shift the setpoints.
-		if (_sub_vehicle_local_position->get().xy_reset_counter != _reset_counter) {
+		if (_sub_vehicle_local_position.get().xy_reset_counter != _reset_counter) {
 			_position_setpoint(0) = _position(0);
 			_position_setpoint(1) = _position(1);
-			_reset_counter = _sub_vehicle_local_position->get().xy_reset_counter;
+			_reset_counter = _sub_vehicle_local_position.get().xy_reset_counter;
 		}
 
 	} else {
