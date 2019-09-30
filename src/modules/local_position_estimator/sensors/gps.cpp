@@ -186,7 +186,7 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	Vector<float, n_y_gps> r = y - C * x0;
 
 	// residual covariance
-	Matrix<float, n_y_gps, n_y_gps> S = C * _P * C.transpose() + R;
+	Matrix<float, n_y_gps, n_y_gps> S = C * m_P * C.transpose() + R;
 
 	// publish innovations
 	for (size_t i = 0; i < 6; i++) {
@@ -217,10 +217,10 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	}
 
 	// kalman filter correction always for GPS
-	Matrix<float, n_x, n_y_gps> K = _P * C.transpose() * S_I;
+	Matrix<float, n_x, n_y_gps> K = m_P * C.transpose() * S_I;
 	Vector<float, n_x> dx = K * r;
 	_x += dx;
-	_P -= K * C * _P;
+	m_P -= K * C * m_P;
 }
 
 void BlockLocalPositionEstimator::gpsCheckTimeout()
