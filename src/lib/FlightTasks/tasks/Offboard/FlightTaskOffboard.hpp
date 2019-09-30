@@ -47,13 +47,13 @@ public:
 	FlightTaskOffboard() = default;
 
 	virtual ~FlightTaskOffboard() = default;
-	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
 	bool update() override;
 	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
 	bool updateInitialize() override;
 
 protected:
-	uORB::SubscriptionPollable<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
+	uORB::SubscriptionData<position_setpoint_triplet_s> _sub_triplet_setpoint{ORB_ID(position_setpoint_triplet)};
+
 private:
 	matrix::Vector3f _position_lock{};
 

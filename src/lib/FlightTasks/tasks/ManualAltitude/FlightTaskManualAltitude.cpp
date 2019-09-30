@@ -41,22 +41,12 @@
 
 using namespace matrix;
 
-bool FlightTaskManualAltitude::initializeSubscriptions(SubscriptionArray &subscription_array)
-{
-	if (!FlightTaskManual::initializeSubscriptions(subscription_array)) {
-		return false;
-	}
-
-	if (!subscription_array.get(ORB_ID(home_position), _sub_home_position)) {
-		return false;
-	}
-
-	return true;
-}
-
 bool FlightTaskManualAltitude::updateInitialize()
 {
 	bool ret = FlightTaskManual::updateInitialize();
+
+	_sub_home_position.update();
+
 	// in addition to manual require valid position and velocity in D-direction and valid yaw
 	return ret && PX4_ISFINITE(_position(2)) && PX4_ISFINITE(_velocity(2)) && PX4_ISFINITE(_yaw);
 }
@@ -73,15 +63,15 @@ bool FlightTaskManualAltitude::activate(vehicle_local_position_setpoint_s last_s
 
 	_constraints.tilt = math::radians(_param_mpc_man_tilt_max.get());
 
-	if (PX4_ISFINITE(_sub_vehicle_local_position->get().hagl_min)) {
-		_constraints.min_distance_to_ground = _sub_vehicle_local_position->get().hagl_min;
+	if (PX4_ISFINITE(_sub_vehicle_local_position.get().hagl_min)) {
+		_constraints.min_distance_to_ground = _sub_vehicle_local_position.get().hagl_min;
 
 	} else {
 		_constraints.min_distance_to_ground = -INFINITY;
 	}
 
-	if (PX4_ISFINITE(_sub_vehicle_local_position->get().hagl_max)) {
-		_constraints.max_distance_to_ground = _sub_vehicle_local_position->get().hagl_max;
+	if (PX4_ISFINITE(_sub_vehicle_local_position.get().hagl_max)) {
+		_constraints.max_distance_to_ground = _sub_vehicle_local_position.get().hagl_max;
 
 	} else {
 		_constraints.max_distance_to_ground = INFINITY;
@@ -182,9 +172,9 @@ void FlightTaskManualAltitude::_updateAltitudeLock()
 		} else if (PX4_ISFINITE(_position_setpoint(2)) && apply_brake) {
 			// Position is locked but check if a reset event has happened.
 			// We will shift the setpoints.
-			if (_sub_vehicle_local_position->get().z_reset_counter != _reset_counter) {
+			if (_sub_vehicle_local_position.get().z_reset_counter != _reset_counter) {
 				_position_setpoint(2) = _position(2);
-				_reset_counter = _sub_vehicle_local_position->get().z_reset_counter;
+				_reset_counter = _sub_vehicle_local_position.get().z_reset_counter;
 			}
 
 		} else  {
@@ -273,8 +263,8 @@ void FlightTaskManualAltitude::_respectGroundSlowdown()
 	if (PX4_ISFINITE(_dist_to_bottom)) {
 		dist_to_ground = _dist_to_bottom;
 
-	} else if (_sub_home_position->get().valid_alt) {
-		dist_to_ground = -(_position(2) - _sub_home_position->get().z);
+	} else if (_sub_home_position.get().valid_alt) {
+		dist_to_ground = -(_position(2) - _sub_home_position.get().z);
 	}
 
 	// limit speed gradually within the altitudes MPC_LAND_ALT1 and MPC_LAND_ALT2
