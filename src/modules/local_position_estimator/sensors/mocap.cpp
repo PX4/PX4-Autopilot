@@ -106,7 +106,8 @@ void BlockLocalPositionEstimator::mocapCorrect()
 	Vector<float, n_y_mocap> y;
 
 	if (mocapMeasure(y) != OK) {
-		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] mocap data invalid. eph: %f epv: %f", _mocap_eph, _mocap_epv);
+		mavlink_and_console_log_info(&mavlink_log_pub, "[lpe] mocap data invalid. eph: %f epv: %f", (double)_mocap_eph,
+					     (double)_mocap_epv);
 		return;
 	}
 
@@ -141,7 +142,7 @@ void BlockLocalPositionEstimator::mocapCorrect()
 	// residual
 	Vector<float, n_y_mocap> r = y - C * _x;
 	// residual covariance
-	Matrix<float, n_y_mocap, n_y_mocap> S = C * _P * C.transpose() + R;
+	Matrix<float, n_y_mocap, n_y_mocap> S = C * m_P * C.transpose() + R;
 
 	// publish innovations
 	for (size_t i = 0; i < 3; i++) {
@@ -172,10 +173,10 @@ void BlockLocalPositionEstimator::mocapCorrect()
 	}
 
 	// kalman filter correction always
-	Matrix<float, n_x, n_y_mocap> K = _P * C.transpose() * S_I;
+	Matrix<float, n_x, n_y_mocap> K = m_P * C.transpose() * S_I;
 	Vector<float, n_x> dx = K * r;
 	_x += dx;
-	_P -= K * C * _P;
+	m_P -= K * C * m_P;
 }
 
 void BlockLocalPositionEstimator::mocapCheckTimeout()

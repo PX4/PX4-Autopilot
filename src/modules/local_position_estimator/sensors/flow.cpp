@@ -169,7 +169,7 @@ void BlockLocalPositionEstimator::flowCorrect()
 	Vector<float, 2> r = y - C * _x;
 
 	// residual covariance
-	Matrix<float, n_y_flow, n_y_flow> S = C * _P * C.transpose() + R;
+	Matrix<float, n_y_flow, n_y_flow> S = C * m_P * C.transpose() + R;
 
 	// publish innovations
 	_pub_innov.get().flow_innov[0] = r(0);
@@ -196,10 +196,10 @@ void BlockLocalPositionEstimator::flowCorrect()
 
 	if (!(_sensorFault & SENSOR_FLOW)) {
 		Matrix<float, n_x, n_y_flow> K =
-			_P * C.transpose() * S_I;
+			m_P * C.transpose() * S_I;
 		Vector<float, n_x> dx = K * r;
 		_x += dx;
-		_P -= K * C * _P;
+		m_P -= K * C * m_P;
 	}
 }
 
