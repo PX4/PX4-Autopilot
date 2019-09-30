@@ -55,6 +55,7 @@
 #include <arch/board/board.h>
 #include <arch/chip/chip.h>
 
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/parameter_update.h>
 
@@ -810,17 +811,17 @@ int UavcanNode::run()
 
 	update_params();
 
-	int params_sub = orb_subscribe(ORB_ID(parameter_update));
+	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
 
 	while (!_task_should_exit) {
 
-		/* check for parameter updates */
-		bool param_updated = false;
-		orb_check(params_sub, &param_updated);
+		// check for parameter updates
+		if (parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			parameter_update_sub.copy(&pupdate);
 
-		if (param_updated) {
-			struct parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), params_sub, &update);
+			// update parameters from storage
 			update_params();
 		}
 
@@ -994,8 +995,6 @@ int UavcanNode::run()
 			}
 		}
 	}
-
-	orb_unsubscribe(params_sub);
 
 	(void)::close(busevent_fd);
 

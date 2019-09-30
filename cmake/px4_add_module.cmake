@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-include(px4_base)
-
 #=============================================================================
 #
 #	px4_add_module
@@ -160,9 +158,6 @@ function(px4_add_module)
 		set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
 	endif()
 
-	# Pass variable to the parent px4_add_module.
-	set(_no_optimization_for_target ${_no_optimization_for_target} PARENT_SCOPE)
-
 	# set defaults if not set
 	set(MAIN_DEFAULT MAIN-NOTFOUND)
 	set(STACK_MAIN_DEFAULT 2048)
@@ -187,11 +182,12 @@ function(px4_add_module)
 		target_compile_options(${MODULE} PRIVATE -Wframe-larger-than=${STACK_MAX})
 	endif()
 
+	# MAIN
 	if(MAIN)
 		target_compile_definitions(${MODULE} PRIVATE PX4_MAIN=${MAIN}_app_main)
 		target_compile_definitions(${MODULE} PRIVATE MODULE_NAME="${MAIN}")
 	else()
-		target_compile_definitions(${MODULE} PRIVATE MODULE_NAME="${MODULE}")
+		message(FATAL_ERROR "MAIN required")
 	endif()
 
 	if(COMPILE_FLAGS)

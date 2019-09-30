@@ -109,7 +109,7 @@ private:
 
 	int		_sensors_sub = -1;
 
-	uORB::Subscription		_params_sub{ORB_ID(parameter_update)};
+	uORB::Subscription		_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription		_global_pos_sub{ORB_ID(vehicle_global_position)};
 	uORB::Subscription		_vision_odom_sub{ORB_ID(vehicle_visual_odometry)};
 	uORB::Subscription		_mocap_odom_sub{ORB_ID(vehicle_mocap_odometry)};
@@ -437,10 +437,13 @@ void AttitudeEstimatorQ::task_main()
 
 void AttitudeEstimatorQ::update_parameters(bool force)
 {
-	if (_params_sub.updated()) {
-		parameter_update_s param_update;
-		_params_sub.copy(&param_update);
+	// check for parameter updates
+	if (_parameter_update_sub.updated() || force) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
+		// update parameters
 		param_get(_params_handles.w_acc, &_w_accel);
 		param_get(_params_handles.w_mag, &_w_mag);
 
@@ -495,9 +498,9 @@ bool AttitudeEstimatorQ::init()
 
 	// Fill rotation matrix
 	Dcmf R;
-	R.setRow(0, i);
-	R.setRow(1, j);
-	R.setRow(2, k);
+	R.row(0) = i;
+	R.row(1) = j;
+	R.row(2) = k;
 
 	// Convert to quaternion
 	_q = R;

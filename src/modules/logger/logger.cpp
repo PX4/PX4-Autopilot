@@ -615,7 +615,7 @@ void Logger::add_estimator_replay_topics()
 	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
 	add_topic("vehicle_visual_odometry");
-
+	add_topic("vehicle_visual_odometry_aligned");
 	add_topic_multi("distance_sensor");
 	add_topic_multi("vehicle_gps_position");
 }
@@ -976,9 +976,11 @@ void Logger::run()
 
 			/* Check if parameters have changed */
 			if (!_should_stop_file_log) { // do not record param changes after disarming
-				parameter_update_s param_update;
+				if (parameter_update_sub.updated()) {
+					// clear update
+					parameter_update_s pupdate;
+					parameter_update_sub.copy(&pupdate);
 
-				if (parameter_update_sub.update(&param_update)) {
 					write_changed_parameters(LogType::Full);
 				}
 			}

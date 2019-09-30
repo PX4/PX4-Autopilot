@@ -79,9 +79,16 @@ PX4Rangefinder::update(const hrt_abstime timestamp, const float distance, const 
 {
 	distance_sensor_s &report = _distance_sensor_pub.get();
 
+	report.timestamp = timestamp;
 	report.current_distance = distance;
-	report.signal_quality   = quality;
-	report.timestamp        = timestamp;
+	report.signal_quality = quality;
+
+	// if quality is unavailable (-1) set to 0 if distance is outside bounds
+	if (quality < 0) {
+		if ((distance < report.min_distance) || (distance > report.max_distance)) {
+			report.signal_quality = 0;
+		}
+	}
 
 	_distance_sensor_pub.update();
 }

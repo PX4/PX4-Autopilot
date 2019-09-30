@@ -90,7 +90,7 @@ MulticopterAttitudeControl::~MulticopterAttitudeControl()
 bool
 MulticopterAttitudeControl::init()
 {
-	if (!_vehicle_angular_velocity_sub.register_callback()) {
+	if (!_vehicle_angular_velocity_sub.registerCallback()) {
 		PX4_ERR("vehicle_angular_velocity callback registration failed!");
 		return false;
 	}
@@ -131,17 +131,19 @@ MulticopterAttitudeControl::parameters_updated()
 
 	_man_tilt_max = math::radians(_param_mpc_man_tilt_max.get());
 
-	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled("CBRK_RATE_CTRL", CBRK_RATE_CTRL_KEY);
+	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled_by_val(_param_cbrk_rate_ctrl.get(), CBRK_RATE_CTRL_KEY);
 }
 
 void
 MulticopterAttitudeControl::parameter_update_poll()
 {
-	/* Check if parameters have changed */
-	parameter_update_s param_update;
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
-	if (_params_sub.update(&param_update)) {
-		updateParams();
+		// update parameters from storage
 		parameters_updated();
 	}
 }
@@ -415,9 +417,9 @@ MulticopterAttitudeControl::control_attitude_rates(float dt, const Vector3f &rat
 	/* apply low-pass filtering to the rates for D-term */
 	Vector3f rates_filtered(_lp_filters_d.apply(rates));
 
-	_att_control = _rate_k.emult(rates_p_scaled.emult(rates_err) +
-				     _rates_int -
+	_att_control = _rate_k.emult(rates_p_scaled.emult(rates_err) -
 				     rates_d_scaled.emult(rates_filtered - _rates_prev_filtered) / dt) +
+		       _rates_int +
 		       _rate_ff.emult(_rates_sp);
 
 	_rates_prev = rates;
@@ -441,13 +443,11 @@ MulticopterAttitudeControl::control_attitude_rates(float dt, const Vector3f &rat
 			// prevent further positive control saturation
 			if (positive_saturation) {
 				rates_err(i) = math::min(rates_err(i), 0.0f);
-
 			}
 
 			// prevent further negative control saturation
 			if (negative_saturation) {
 				rates_err(i) = math::max(rates_err(i), 0.0f);
-
 			}
 
 			// I term factor: reduce the I gain with increasing rate error.
@@ -460,18 +460,12 @@ MulticopterAttitudeControl::control_attitude_rates(float dt, const Vector3f &rat
 			i_factor = math::max(0.0f, 1.f - i_factor * i_factor);
 
 			// Perform the integration using a first order method and do not propagate the result if out of range or invalid
-			float rate_i = _rates_int(i) + i_factor * rates_i_scaled(i) * rates_err(i) * dt;
+			float rate_i = _rates_int(i) + i_factor * _rate_k(i) * rates_i_scaled(i) * rates_err(i) * dt;
 
-			if (PX4_ISFINITE(rate_i) && rate_i > -_rate_int_lim(i) && rate_i < _rate_int_lim(i)) {
-				_rates_int(i) = rate_i;
-
+			if (PX4_ISFINITE(rate_i)) {
+				_rates_int(i) = math::constrain(rate_i, -_rate_int_lim(i), _rate_int_lim(i));
 			}
 		}
-	}
-
-	/* explicitly limit the integrator state */
-	for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
-		_rates_int(i) = math::constrain(_rates_int(i), -_rate_int_lim(i), _rate_int_lim(i));
 	}
 }
 
@@ -528,7 +522,7 @@ void
 MulticopterAttitudeControl::Run()
 {
 	if (should_exit()) {
-		_vehicle_angular_velocity_sub.unregister_callback();
+		_vehicle_angular_velocity_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}

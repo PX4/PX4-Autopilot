@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,11 +31,22 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE drivers__hc_sr04
-	MAIN hc_sr04
-	COMPILE_FLAGS
-	SRCS
-		hc_sr04.cpp
-	DEPENDS
+# Poor man's profiler
+include(ExternalProject)
+ExternalProject_Add(FlameGraph
+	GIT_REPOSITORY "https://github.com/brendangregg/FlameGraph.git"
+	UPDATE_COMMAND ""
+	PATCH_COMMAND ""
+	CONFIGURE_COMMAND ""
+	BUILD_COMMAND ""
+	INSTALL_COMMAND ""
+	EXCLUDE_FROM_ALL 1
+	)
+
+add_custom_target(profile
+	COMMAND ${CMAKE_COMMAND} -E env PATH="${PX4_BINARY_DIR}/external/Source/FlameGraph:$ENV{PATH}"
+		${CMAKE_CURRENT_SOURCE_DIR}/Debug/poor-mans-profiler.sh --elf=$<TARGET_FILE:px4> --nsamples=10000
+	DEPENDS px4 ${CMAKE_CURRENT_SOURCE_DIR}/Debug/poor-mans-profiler.sh FlameGraph
+	USES_TERMINAL
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	)

@@ -105,6 +105,7 @@ set(PX4_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(PX4_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}")
 
 list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/cmake)
+include(px4_parse_function_args)
 
 #=============================================================================
 # git
@@ -117,6 +118,7 @@ execute_process(
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
 	)
+message(STATUS "PX4 version: ${PX4_GIT_TAG}")
 
 define_property(GLOBAL PROPERTY PX4_MODULE_LIBRARIES
                  BRIEF_DOCS "PX4 module libs"
@@ -138,79 +140,7 @@ include(px4_add_module)
 set(config_module_list)
 set(config_df_driver_list)
 
-# find PX4 config
-#  look for in tree board config that matches CONFIG input
-if(NOT PX4_CONFIG_FILE)
-
-	file(GLOB_RECURSE board_configs
-		RELATIVE "${PX4_SOURCE_DIR}/boards"
-		"boards/*.cmake"
-		)
-
-	set(PX4_CONFIGS ${board_configs} CACHE STRING "PX4 board configs" FORCE)
-
-	foreach(filename ${board_configs})
-		# parse input CONFIG into components to match with existing in tree configs
-		#  the platform prefix (eg nuttx_) is historical, and removed if present
-		string(REPLACE ".cmake" "" filename_stripped ${filename})
-		string(REPLACE "/" ";" config ${filename_stripped})
-		list(LENGTH config config_len)
-
-		if(${config_len} EQUAL 3)
-
-
-			list(GET config 0 vendor)
-			list(GET config 1 model)
-			list(GET config 2 label)
-
-			set(board "${vendor}${model}")
-
-			# <VENDOR>_<MODEL>_<LABEL> (eg px4_fmu-v2_default)
-			# <VENDOR>_<MODEL>_default (eg px4_fmu-v2) # allow skipping label if "default"
-			if ((${CONFIG} MATCHES "${vendor}_${model}_${label}") OR # match full vendor, model, label
-			    ((${label} STREQUAL "default") AND (${CONFIG} STREQUAL "${vendor}_${model}")) # default label can be omitted
-			)
-				set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
-				break()
-			endif()
-
-			# <BOARD>_<LABEL> (eg px4_fmu-v2_default)
-			# <BOARD>_default (eg px4_fmu-v2) # allow skipping label if "default"
-			if ((${CONFIG} MATCHES "${board}_${label}") OR # match full board, label
-			    ((${label} STREQUAL "default") AND (${CONFIG} STREQUAL "${board}")) # default label can be omitted
-			)
-				set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
-				break()
-			endif()
-
-
-			# LEGACY form
-			# <OS>_<BOARD>_<LABEL> (eg nuttx_px4_fmu-v2_default)
-			string(REGEX REPLACE "^nuttx_|^posix_|^qurt_" "" config_no_os ${CONFIG}) # ignore OS prefix
-
-			if ((${config_no_os} MATCHES "${board}_${label}"))
-				set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
-				break()
-			endif()
-
-
-			# LEGACY form special case to ease board layout transition (2018-11-18)
-			#  match board with model and label only: eg sitl_default -> px4_sitl_default
-			if ((${config_no_os} MATCHES "${model}_${label}"))
-				set(PX4_CONFIG_FILE "${PX4_SOURCE_DIR}/boards/${filename}" CACHE FILEPATH "path to PX4 CONFIG file" FORCE)
-				break()
-			endif()
-
-		endif()
-
-	endforeach()
-endif()
-
-if(NOT PX4_CONFIG_FILE)
-	message(FATAL_ERROR "PX4 config file not set, try one of ${PX4_CONFIGS}")
-endif()
-
-message(STATUS "PX4 config file: ${PX4_CONFIG_FILE}")
+include(px4_config)
 include(px4_add_board)
 include(${PX4_CONFIG_FILE})
 message(STATUS "PX4 config: ${PX4_CONFIG}")
@@ -251,10 +181,6 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel;Coverage;AddressSanitizer;UndefinedBehaviorSanitizer")
-
-#=============================================================================
-
-message(STATUS "PX4 version: ${PX4_GIT_TAG}")
 message(STATUS "cmake build type: ${CMAKE_BUILD_TYPE}")
 
 #=============================================================================
@@ -301,25 +227,7 @@ if (${PX4_PLATFORM} STREQUAL "posix")
 	endif()
 endif()
 
-#=============================================================================
-# ccache
-#
-option(CCACHE "Use ccache if available" ON)
-find_program(CCACHE_PROGRAM ccache)
-if (CCACHE AND CCACHE_PROGRAM AND NOT DEFINED ENV{CCACHE_DISABLE})
-
-	get_filename_component(ccache_real_path ${CCACHE_PROGRAM} REALPATH)
-	get_filename_component(cxx_real_path ${CMAKE_CXX_COMPILER} REALPATH)
-	get_filename_component(cxx_abs_path ${CMAKE_CXX_COMPILER} ABSOLUTE)
-
-	if ("${ccache_real_path}" STREQUAL "${cxx_real_path}")
-		message(STATUS "ccache enabled via symlink (${cxx_abs_path} -> ${cxx_real_path})")
-	else()
-		message(STATUS "ccache enabled (export CCACHE_DISABLE=1 to disable)")
-		set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
-	endif()
-
-endif()
+include(ccache)
 
 #=============================================================================
 # find programs and packages
@@ -336,6 +244,8 @@ if (CATKIN_DEVEL_PREFIX)
 	endif()
 endif()
 
+# python
+include(px4_find_python_module)
 find_package(PythonInterp REQUIRED)
 
 option(PYTHON_COVERAGE "Python code coverage" OFF)
@@ -502,112 +412,15 @@ add_custom_command(OUTPUT ${uorb_graph_config}
 )
 add_custom_target(uorb_graph DEPENDS ${uorb_graph_config})
 
-#=============================================================================
-# Doxygen
-#
-option(BUILD_DOXYGEN "Build doxygen documentation" OFF)
 
-if (BUILD_DOXYGEN)
-	find_package(Doxygen)
-	if (DOXYGEN_FOUND)
-	    # set input and output files
-	    set(DOXYGEN_IN ${CMAKE_SOURCE_DIR}/Documentation/Doxyfile.in)
-	    set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+include(doxygen)
+include(metadata)
+include(package)
 
-	    # request to configure the file
-	    configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
-
-	    # note the option ALL which allows to build the docs together with the application
-	    add_custom_target(doxygen ALL
-	        COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
-	        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-			COMMENT "Generating documentation with Doxygen"
-			DEPENDS uorb_msgs parameters
-			VERBATIM
-			USES_TERMINAL
-			)
-
-	else()
-		message("Doxygen needs to be installed to generate documentation")
-	endif()
-endif()
-
-#=============================================================================
-# Metadata - helpers for generating documentation
-#
-
-add_custom_target(metadata_airframes
-	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/docs
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
-		-v -a ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d
-		--markdown ${PX4_BINARY_DIR}/docs/airframes.md
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
-		-v -a ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/init.d
-		--xml ${PX4_BINARY_DIR}/docs/airframes.xml
-	COMMENT "Generating full airframe metadata (markdown and xml)"
+# print size
+add_custom_target(size
+	COMMAND size $<TARGET_FILE:px4>
+	DEPENDS px4
+	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	USES_TERMINAL
-)
-
-file(GLOB_RECURSE yaml_config_files ${PX4_SOURCE_DIR}/src/modules/*.yaml
-	${PX4_SOURCE_DIR}/src/drivers/*.yaml ${PX4_SOURCE_DIR}/src/lib/*.yaml)
-add_custom_target(metadata_parameters
-	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/docs
-	COMMAND ${PYTHON_EXECUTABLE}
-	${PX4_SOURCE_DIR}/Tools/serial/generate_config.py --all-ports --params-file ${PX4_SOURCE_DIR}/src/generated_serial_params.c --config-files ${yaml_config_files}
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/src/lib/parameters/px_process_params.py
-		--src-path `find ${PX4_SOURCE_DIR}/src -maxdepth 4 -type d`
-		--inject-xml ${PX4_SOURCE_DIR}/src/lib/parameters/parameters_injected.xml
-		--markdown ${PX4_BINARY_DIR}/docs/parameters.md
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/src/lib/parameters/px_process_params.py
-		--src-path `find ${PX4_SOURCE_DIR}/src -maxdepth 4 -type d`
-		--inject-xml ${PX4_SOURCE_DIR}/src/lib/parameters/parameters_injected.xml
-		--xml ${PX4_BINARY_DIR}/docs/parameters.xml
-	COMMENT "Generating full parameter metadata (markdown and xml)"
-	USES_TERMINAL
-)
-
-add_custom_target(metadata_module_documentation
-	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/docs
-	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/px_process_module_doc.py -v --src-path ${PX4_SOURCE_DIR}/src
-		--markdown ${PX4_BINARY_DIR}/docs/modules
-	COMMENT "Generating module documentation"
-	USES_TERMINAL
-)
-
-add_custom_target(all_metadata
-	DEPENDS
-		metadata_airframes
-		metadata_parameters
-		metadata_module_documentation
-)
-
-#=============================================================================
-# packaging
-#
-# Important to having packaging at end of cmake file.
-#
-set(CPACK_PACKAGE_NAME ${PROJECT_NAME}-${PX4_CONFIG})
-set(CPACK_PACKAGE_VERSION ${PX4_GIT_TAG})
-set(CPACK_PACKAGE_CONTACT ${package-contact})
-set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS OFF) # TODO: review packaging for linux boards
-set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
-set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
-set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "The PX4 Pro autopilot.")
-set(CPACK_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PX4_CONFIG}-${PX4_GIT_TAG}")
-set(CPACK_SOURCE_PACKAGE_FILE_NAME "${PROJECT_NAME}-${PX4_GIT_TAG}")
-set(CPACK_SOURCE_GENERATOR "ZIP;TBZ2")
-set(CPACK_PACKAGING_INSTALL_PREFIX "")
-set(CPACK_SET_DESTDIR "OFF")
-
-if ("${CMAKE_SYSTEM}" MATCHES "Linux")
-	set(CPACK_GENERATOR "TBZ2")
-	find_program(DPKG_PROGRAM dpkg)
-	if (EXISTS ${DPKG_PROGRAM})
-		list (APPEND CPACK_GENERATOR "DEB")
-	endif()
-else()
-	set(CPACK_GENERATOR "ZIP")
-endif()
-
-include(CPack)
-include(bloaty)
+	)

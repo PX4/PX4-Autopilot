@@ -46,8 +46,6 @@
 #		* px4_os_prebuild_targets
 #
 
-include(px4_base)
-
 #=============================================================================
 #
 #	px4_posix_generate_builtin_commands
@@ -219,7 +217,7 @@ function(px4_os_add_flags)
 		-D__PX4_POSIX
 		-Dnoreturn_function=__attribute__\(\(noreturn\)\)
 		)
-		
+
 	include_directories(platforms/posix/include)
 
 	if ("${PX4_BOARD}" MATCHES "sitl")
@@ -314,7 +312,7 @@ function(px4_os_add_flags)
 		set(LIBROBOTCONTROL_INSTALL_DIR $ENV{LIBROBOTCONTROL_INSTALL_DIR})
 
 		# On cross compile host system and native build system:
-		#   a) select and define LIBROBOTCONTROL_INSTALL_DIR environment variable so that 
+		#   a) select and define LIBROBOTCONTROL_INSTALL_DIR environment variable so that
 		#      other unwanted headers will not be included
 		#   b) install robotcontrol.h and rc/* into $LIBROBOTCONTROL_INSTALL_DIR/include
 		#   c) install pre-built native (ARM) version of librobotcontrol.* into $LIBROBOTCONTROL_INSTALL_DIR/lib

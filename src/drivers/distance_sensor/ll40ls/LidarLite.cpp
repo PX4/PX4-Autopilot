@@ -41,7 +41,7 @@
 
 #include "LidarLite.h"
 
-LidarLite::LidarLite(uint8_t rotation) :
+LidarLite::LidarLite(const uint8_t rotation) :
 	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, rotation)
 {
 	_px4_rangefinder.set_min_distance(LL40LS_MIN_DISTANCE);

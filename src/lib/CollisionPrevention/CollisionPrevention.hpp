@@ -59,6 +59,8 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_command.h>
 
+using namespace time_literals;
+
 class CollisionPrevention : public ModuleParams
 {
 public:
@@ -84,8 +86,10 @@ protected:
 
 	obstacle_distance_s _obstacle_map_body_frame {};
 	uint64_t _data_timestamps[sizeof(_obstacle_map_body_frame.distances) / sizeof(_obstacle_map_body_frame.distances[0])];
+	uint16_t _data_maxranges[sizeof(_obstacle_map_body_frame.distances) / sizeof(
+										    _obstacle_map_body_frame.distances[0])]; /**< in cm */
 
-	void _addDistanceSensorData(distance_sensor_s &distance_sensor, const matrix::Quatf &attitude);
+	void _addDistanceSensorData(distance_sensor_s &distance_sensor, const matrix::Quatf &vehicle_attitude);
 
 	/**
 	 * Updates obstacle distance message with measurement from offboard
@@ -93,6 +97,24 @@ protected:
 	 */
 	void _addObstacleSensorData(const obstacle_distance_s &obstacle, const matrix::Quatf &vehicle_attitude);
 
+	/**
+	 * Computes an adaption to the setpoint direction to guide towards free space
+	 * @param setpoint_dir, setpoint direction before collision prevention intervention
+	 * @param setpoint_index, index of the setpoint in the internal obstacle map
+	 * @param vehicle_yaw_angle_rad, vehicle orientation
+	 */
+	void _adaptSetpointDirection(matrix::Vector2f &setpoint_dir, int &setpoint_index, float vehicle_yaw_angle_rad);
+
+	/**
+	 * Determines whether a new sensor measurement is used
+	 * @param map_index, index of the bin in the internal map the measurement belongs in
+	 * @param sensor_range, max range of the sensor in meters
+	 * @param sensor_reading, distance measurement in meters
+	 */
+	bool _enterData(int map_index, float sensor_range, float sensor_reading);
+
+
+	//Timing functions. Necessary to mock time in the tests
 	virtual hrt_abstime getTime();
 	virtual hrt_abstime getElapsedTime(const hrt_abstime *ptr);
 
@@ -111,11 +133,13 @@ private:
 	uORB::Subscription _sub_distance_sensor[ORB_MULTI_MAX_INSTANCES] {{ORB_ID(distance_sensor), 0}, {ORB_ID(distance_sensor), 1}, {ORB_ID(distance_sensor), 2}, {ORB_ID(distance_sensor), 3}}; /**< distance data received from onboard rangefinders */
 	uORB::SubscriptionData<vehicle_attitude_s> _sub_vehicle_attitude{ORB_ID(vehicle_attitude)};
 
-	static constexpr uint64_t RANGE_STREAM_TIMEOUT_US{500000};
+	static constexpr uint64_t RANGE_STREAM_TIMEOUT_US{500_ms};
+
+	hrt_abstime	_last_collision_warning{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_COL_PREV_D>) _param_mpc_col_prev_d, /**< collision prevention keep minimum distance */
-		(ParamFloat<px4::params::MPC_COL_PREV_ANG>) _param_mpc_col_prev_ang, /**< collision prevention detection angle */
+		(ParamFloat<px4::params::MPC_COL_PREV_CNG>) _param_mpc_col_prev_cng, /**< collision prevention change setpoint angle */
 		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p, /**< p gain from position controller*/
 		(ParamFloat<px4::params::MPC_COL_PREV_DLY>) _param_mpc_col_prev_dly, /**< delay of the range measurement data*/
 		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max, /**< vehicle maximum jerk*/
@@ -152,8 +176,6 @@ private:
 
 		return offset;
 	}
-
-
 
 	/**
 	 * Computes collision free setpoints

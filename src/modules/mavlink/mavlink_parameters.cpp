@@ -272,11 +272,11 @@ MavlinkParametersManager::send(const hrt_abstime t)
 {
 	int max_num_to_send;
 
-	if (_mavlink->get_protocol() == SERIAL && !_mavlink->is_usb_uart()) {
+	if (_mavlink->get_protocol() == Protocol::SERIAL && !_mavlink->is_usb_uart()) {
 		max_num_to_send = 3;
 
 	} else {
-		// speed up parameter loading via UDP, TCP or USB: try to send 20 at once
+		// speed up parameter loading via UDP or USB: try to send 20 at once
 		max_num_to_send = 20;
 	}
 
@@ -415,7 +415,7 @@ MavlinkParametersManager::send_uavcan()
 bool
 MavlinkParametersManager::send_one()
 {
-	if (_send_all_index >= 0 && _mavlink->boot_complete()) {
+	if (_send_all_index >= 0) {
 		/* send all parameters if requested, but only after the system has booted */
 
 		/* The first thing we send is a hash of all values for the ground
@@ -461,11 +461,6 @@ MavlinkParametersManager::send_one()
 		} else {
 			return true;
 		}
-
-	} else if (_send_all_index == PARAM_HASH && hrt_absolute_time() > 20 * 1000 * 1000) {
-		/* the boot did not seem to ever complete, warn user and set boot complete */
-		_mavlink->send_statustext_critical("WARNING: SYSTEM BOOT INCOMPLETE. CHECK CONFIG.");
-		_mavlink->set_boot_complete();
 	}
 
 	return false;

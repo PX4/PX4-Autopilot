@@ -292,9 +292,13 @@ float Heater::temperature_setpoint(char *argv[])
 
 void Heater::update_params(const bool force)
 {
-	parameter_update_s param_update;
+	// check for parameter updates
+	if (_parameter_update_sub.updated() || force) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
-	if (_params_sub.update(&param_update) || force) {
+		// update parameters from storage
 		ModuleParams::updateParams();
 	}
 }
