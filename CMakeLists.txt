@@ -208,6 +208,25 @@ endif()
 
 #=============================================================================
 
+# gold linker - use if available
+include(CMakeDependentOption)
+CMAKE_DEPENDENT_OPTION(USE_LD_GOLD
+                      "Use GNU gold linker" ON
+                      "NOT WIN32;NOT APPLE" OFF
+)
+
+if(USE_LD_GOLD)
+	execute_process(COMMAND ${CMAKE_C_COMPILER} -fuse-ld=gold -Wl,--version ERROR_QUIET OUTPUT_VARIABLE LD_VERSION)
+	if("${LD_VERSION}" MATCHES "GNU gold")
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fuse-ld=gold")
+		set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fuse-ld=gold")
+	else()
+		set(USE_LD_GOLD OFF)
+	endif()
+endif()
+
+#=============================================================================
+
 # Setup install paths
 if (${PX4_PLATFORM} STREQUAL "posix")
 
