@@ -42,6 +42,10 @@ if [[ -f $1"/.git" || -d $1"/.git" ]]; then
 			git submodule sync --recursive -- $1
 			git submodule update --init --recursive --jobs=8 -- $1 || true
 			git submodule update --init --recursive --force -- $1
+
+			# put submodule on branch
+			git -C $1 checkout -q -B $(git config -f .gitmodules submodule.$1.branch || echo master)
+
 			echo "Submodule fixed, continuing build.."
 		else
 			echo "Build aborted."
@@ -49,9 +53,14 @@ if [[ -f $1"/.git" || -d $1"/.git" ]]; then
 		fi
 	fi
 else
+
 	git submodule --quiet sync --recursive --quiet -- $1
 	git submodule --quiet update --init --recursive --jobs=8 -- $1  || true
 	git submodule --quiet update --init --recursive -- $1
+
+	# put submodule on branch
+	git -C $1 checkout -q -B $(git config -f .gitmodules submodule.$1.branch || echo master)
+
 fi
 
 }

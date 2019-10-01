@@ -450,11 +450,14 @@ submodulesclean:
 	@git submodule update --quiet --init --recursive --force || true
 	@git submodule sync --recursive
 	@git submodule update --init --recursive --force
+	@git submodule foreach 'git checkout -q -B $$(git config -f $$toplevel/.gitmodules submodule.$$name.branch || echo master)'
 
 submodulesupdate:
-	@git submodule update --quiet --init --recursive || true
+	@git submodule update --quiet --init --recursive --jobs=8 || true
+	@git submodule update --quiet --init --recursive
 	@git submodule sync --recursive
-	@git submodule update --init --recursive
+	@git submodule update --remote
+	@git submodule foreach 'git checkout -q -B $$(git config -f $$toplevel/.gitmodules submodule.$$name.branch || echo master)'
 
 gazeboclean:
 	@rm -rf ~/.gazebo/*
