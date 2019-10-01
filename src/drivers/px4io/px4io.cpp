@@ -264,11 +264,11 @@ private:
 	bool			_param_update_force;	///< force a parameter update
 
 	/* advertised topics */
-	uORB::PublicationMulti<input_rc_s>			_to_input_rc{ORB_ID(input_rc)};				///< rc inputs from io
-	uORB::PublicationMulti<actuator_outputs_s>		_to_outputs{ORB_ID(actuator_outputs)};			///< mixed servo outputs topic
-	uORB::PublicationMulti<multirotor_motor_limits_s>	_to_mixer_status{ORB_ID(multirotor_motor_limits)};	///< mixer status flags
-	uORB::Publication<servorail_status_s>			_to_servorail{ORB_ID(servorail_status)};		///< servorail status
-	uORB::Publication<safety_s>				_to_safety{ORB_ID(safety)};				///< status of safety
+	uORB::PublicationMulti<input_rc_s>			_to_input_rc{ORB_ID(input_rc)};
+	uORB::PublicationMulti<actuator_outputs_s>		_to_outputs{ORB_ID(actuator_outputs)};
+	uORB::PublicationMulti<multirotor_motor_limits_s>	_to_mixer_status{ORB_ID(multirotor_motor_limits)};
+	uORB::Publication<servorail_status_s>			_to_servorail{ORB_ID(servorail_status)};
+	uORB::Publication<safety_s>				_to_safety{ORB_ID(safety)};
 
 	bool			_primary_pwm_device;	///< true if we are the default PWM output
 	bool			_lockdown_override;	///< allow to override the safety lockdown
