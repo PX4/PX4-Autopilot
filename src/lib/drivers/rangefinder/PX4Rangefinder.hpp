@@ -46,7 +46,7 @@ class PX4Rangefinder : public cdev::CDev
 
 public:
 	PX4Rangefinder(const uint32_t device_id,
-		       const uint8_t priority,
+		       const uint8_t priority = ORB_PRIO_DEFAULT,
 		       const uint8_t device_orientation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	~PX4Rangefinder() override;
 

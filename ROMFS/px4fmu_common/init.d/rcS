@@ -396,9 +396,15 @@ else
 	fi
 
 	#
-	# Start mavlink streams that are not configurable (e.g. on USB).
+	# Optional board mavlink streams: rc.board_mavlink
 	#
-	sh /etc/init.d/rc.mavlink
+	set BOARD_RC_MAVLINK /etc/init.d/rc.board_mavlink
+	if [ -f $BOARD_RC_MAVLINK ]
+	then
+		echo "Board extras: ${BOARD_RC_MAVLINK}"
+		sh $BOARD_RC_MAVLINK
+	fi
+	unset BOARD_RC_MAVLINK
 
 	#
 	# Start UART/Serial device drivers.

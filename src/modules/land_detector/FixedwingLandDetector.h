@@ -73,7 +73,7 @@ private:
 	static constexpr hrt_abstime FLYING_TRIGGER_TIME_US = 0_us;
 
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
-	uORB::Subscription _param_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 

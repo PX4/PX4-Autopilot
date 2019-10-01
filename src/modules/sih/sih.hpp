@@ -46,6 +46,7 @@
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <perf/perf_counter.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_angular_velocity.h>   // to publish groundtruth
 #include <uORB/topics/vehicle_attitude.h>           // to publish groundtruth
@@ -119,7 +120,7 @@ private:
 	vehicle_global_position_s           _gpos_gt{};
 	orb_advert_t                        _gpos_gt_pub{nullptr};
 
-	int _parameter_update_sub {-1};
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	int _actuator_out_sub {-1};
 
 	// hard constants

@@ -20,7 +20,6 @@ bool FlightTasks::update()
 	_updateCommand();
 
 	if (isAnyTaskActive()) {
-		_subscription_array.update();
 		return _current_task.task->updateInitialize() && _current_task.task->update() && _current_task.task->updateFinalize();
 	}
 
@@ -76,16 +75,6 @@ FlightTaskError FlightTasks::switchTask(FlightTaskIndex new_task_index)
 		// no task running
 		return FlightTaskError::NoError;
 	}
-
-	// subscription failed
-	if (!_current_task.task->initializeSubscriptions(_subscription_array)) {
-		_current_task.task->~FlightTask();
-		_current_task.task = nullptr;
-		_current_task.index = FlightTaskIndex::None;
-		return FlightTaskError::SubscriptionFailed;
-	}
-
-	_subscription_array.forcedUpdate(); // make sure data is available for all new subscriptions
 
 	// activation failed
 	if (!_current_task.task->updateInitialize() || !_current_task.task->activate(last_setpoint)) {

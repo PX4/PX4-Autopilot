@@ -156,7 +156,7 @@ private:
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};		///< control mode subscription */
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _manual_control_sub{ORB_ID(manual_control_setpoint)};	///< notification of manual control updates */
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};			///< notification of parameter updates */
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		///< notification of parameter updates */
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _sensor_baro_sub{ORB_ID(sensor_baro)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};		///< vehicle attitude subscription */

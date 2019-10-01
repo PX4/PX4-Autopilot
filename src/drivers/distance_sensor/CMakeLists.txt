@@ -32,7 +32,6 @@
 ############################################################################
 
 add_subdirectory(cm8jl65)
-#add_subdirectory(hc_sr04) # not currently supported
 add_subdirectory(leddar_one)
 add_subdirectory(ll40ls)
 add_subdirectory(mappydot)

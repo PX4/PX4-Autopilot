@@ -118,7 +118,7 @@ FixedwingPositionControl::~FixedwingPositionControl()
 bool
 FixedwingPositionControl::init()
 {
-	if (!_global_pos_sub.register_callback()) {
+	if (!_global_pos_sub.registerCallback()) {
 		PX4_ERR("vehicle global position callback registration failed!");
 		return false;
 	}
@@ -1649,7 +1649,7 @@ void
 FixedwingPositionControl::Run()
 {
 	if (should_exit()) {
-		_global_pos_sub.unregister_callback();
+		_global_pos_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
@@ -1659,15 +1659,13 @@ FixedwingPositionControl::Run()
 	/* only run controller if position changed */
 	if (_global_pos_sub.update(&_global_pos)) {
 
-		/* only update parameters if they changed */
-		bool params_updated = _params_sub.updated();
+		// check for parameter updates
+		if (_parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			_parameter_update_sub.copy(&pupdate);
 
-		if (params_updated) {
-			/* read from param to clear updated flag */
-			parameter_update_s update;
-			_params_sub.copy(&update);
-
-			/* update parameters from storage */
+			// update parameters from storage
 			parameters_update();
 		}
 

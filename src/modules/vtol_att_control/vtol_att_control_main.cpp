@@ -112,12 +112,12 @@ VtolAttitudeControl::~VtolAttitudeControl()
 bool
 VtolAttitudeControl::init()
 {
-	if (!_actuator_inputs_mc.register_callback()) {
+	if (!_actuator_inputs_mc.registerCallback()) {
 		PX4_ERR("MC actuator controls callback registration failed!");
 		return false;
 	}
 
-	if (!_actuator_inputs_fw.register_callback()) {
+	if (!_actuator_inputs_fw.registerCallback()) {
 		PX4_ERR("FW actuator controls callback registration failed!");
 		return false;
 	}
@@ -288,8 +288,8 @@ void
 VtolAttitudeControl::Run()
 {
 	if (should_exit()) {
-		_actuator_inputs_fw.unregister_callback();
-		_actuator_inputs_mc.unregister_callback();
+		_actuator_inputs_fw.unregisterCallback();
+		_actuator_inputs_mc.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
@@ -330,13 +330,13 @@ VtolAttitudeControl::Run()
 	}
 
 	if (should_run) {
-		/* only update parameters if they changed */
-		if (_params_sub.updated()) {
-			/* read from param to clear updated flag */
-			parameter_update_s update;
-			_params_sub.copy(&update);
+		// check for parameter updates
+		if (_parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			_parameter_update_sub.copy(&pupdate);
 
-			/* update parameters from storage */
+			// update parameters from storage
 			parameters_update();
 		}
 

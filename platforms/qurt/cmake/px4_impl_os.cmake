@@ -49,8 +49,6 @@
 #		* px4_os_prebuild_targets
 #
 
-include(px4_base)
-
 #=============================================================================
 #
 #	px4_qurt_generate_builtin_commands
