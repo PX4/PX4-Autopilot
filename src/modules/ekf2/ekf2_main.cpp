@@ -118,7 +118,6 @@ public:
 private:
 	int getRangeSubIndex(); ///< get subscription index of first downward-facing range sensor
 
-	void initializeInnovLpfs();
 	void runPreFlightChecks(float dt, const filter_control_status_u &control_status, const vehicle_status_s &vehicle_status,
 				const ekf2_innovations_s &innov);
 	bool preFlightCheckHeadingFailed(const filter_control_status_u &control_status,
@@ -754,8 +753,6 @@ void Ekf2::Run()
 		exit_and_cleanup();
 		return;
 	}
-
-	initializeInnovLpfs();
 
 	perf_begin(_cycle_perf);
 	perf_count(_interval_perf);
@@ -1712,9 +1709,9 @@ void Ekf2::Run()
 				_ekf.get_output_tracking_error(&innovations.output_tracking_error[0]);
 
 				// calculate noise filtered velocity innovations which are used for pre-flight checking
-				if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
-					float dt_seconds = sensors.accelerometer_integral_dt * 1e-6;
-					runPreFlightChecks(dt_seconds, control_status, vehicle_status, innovations);
+				if (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
+					float dt_seconds = sensors.accelerometer_integral_dt * 1e-6f;
+					runPreFlightChecks(dt_seconds, control_status, _vehicle_status, innovations);
 
 				} else {
 					resetPreFlightChecks();
@@ -1729,17 +1726,6 @@ void Ekf2::Run()
 	}
 
 	perf_end(_cycle_perf);
-}
-
-void Ekf2::initializeInnovLpfs()
-{
-	_filter_vel_n_innov.setSpikeLimit(_vel_innov_spike_lim);
-	_filter_vel_e_innov.setSpikeLimit(_vel_innov_spike_lim);
-	_filter_vel_d_innov.setSpikeLimit(_vel_innov_spike_lim);
-	_filter_hgt_innov.setSpikeLimit(_hgt_innov_spike_lim);
-	_filter_flow_x_innov.setSpikeLimit(_flow_innov_spike_lim);
-	_filter_flow_y_innov.setSpikeLimit(_flow_innov_spike_lim);
-	// Note: spike limit of _filter_yaw_magnitude_innov if set dynamically
 }
 
 void Ekf2::runPreFlightChecks(float dt,
@@ -1768,9 +1754,9 @@ bool Ekf2::preFlightCheckHeadingFailed(const filter_control_status_u &control_st
 {
 	// Get the correct yaw test limit value depending on vehicle type and aiding mode
 	float yaw_test_limit = selectYawTestLimit(control_status, vehicle_status);
-	_filter_yaw_magnitude_innov.setSpikeLimit(2.0f * yaw_test_limit);
+	float yaw_innov_spike_lim = 2.0f * yaw_test_limit;
 
-	float heading_innov_lpf = _filter_yaw_magnitude_innov.update(innov.heading_innov, alpha);
+	float heading_innov_lpf = _filter_yaw_magnitude_innov.update(innov.heading_innov, alpha, yaw_innov_spike_lim);
 
 	return checkInnovFailed(innov.heading_innov, heading_innov_lpf, yaw_test_limit);
 }
@@ -1808,16 +1794,16 @@ bool Ekf2::preFlightCheckHorizVelFailed(const filter_control_status_u &control_s
 	if (doing_ne_aiding) {
 		Vector2f vel_ne_innov = Vector2f(innov.vel_pos_innov);
 		Vector2f vel_ne_innov_lpf;
-		vel_ne_innov_lpf(0) = _filter_vel_n_innov.update(vel_ne_innov(0), alpha);
-		vel_ne_innov_lpf(1) = _filter_vel_n_innov.update(vel_ne_innov(1), alpha);
+		vel_ne_innov_lpf(0) = _filter_vel_n_innov.update(vel_ne_innov(0), alpha, _vel_innov_spike_lim);
+		vel_ne_innov_lpf(1) = _filter_vel_n_innov.update(vel_ne_innov(1), alpha, _vel_innov_spike_lim);
 		has_failed |= checkInnov2DFailed(vel_ne_innov, vel_ne_innov_lpf, _vel_innov_test_lim);
 	}
 
 	if (control_status.flags.opt_flow) {
 		Vector2f flow_innov = Vector2f(innov.flow_innov);
 		Vector2f flow_innov_lpf;
-		flow_innov_lpf(0) = _filter_flow_x_innov.update(flow_innov(0), alpha);
-		flow_innov_lpf(1) = _filter_flow_x_innov.update(flow_innov(1), alpha);
+		flow_innov_lpf(0) = _filter_flow_x_innov.update(flow_innov(0), alpha, _flow_innov_spike_lim);
+		flow_innov_lpf(1) = _filter_flow_x_innov.update(flow_innov(1), alpha, _flow_innov_spike_lim);
 		has_failed |= checkInnov2DFailed(flow_innov, flow_innov_lpf, _flow_innov_test_lim);
 	}
 
@@ -1827,14 +1813,14 @@ bool Ekf2::preFlightCheckHorizVelFailed(const filter_control_status_u &control_s
 bool Ekf2::preFlightCheckDownVelFailed(const ekf2_innovations_s &innov, float alpha)
 {
 	float vel_d_innov = innov.vel_pos_innov[2];
-	float vel_d_innov_lpf = _filter_vel_d_innov.update(vel_d_innov, alpha);
+	float vel_d_innov_lpf = _filter_vel_d_innov.update(vel_d_innov, alpha, _vel_innov_spike_lim);
 	return checkInnovFailed(vel_d_innov, vel_d_innov_lpf, _vel_innov_test_lim);
 }
 
 bool Ekf2::preFlightCheckHeightFailed(const ekf2_innovations_s &innov, float alpha)
 {
 	float hgt_innov = innov.vel_pos_innov[5];
-	float hgt_innov_lpf = _filter_hgt_innov.update(hgt_innov, alpha);
+	float hgt_innov_lpf = _filter_hgt_innov.update(hgt_innov, alpha, _hgt_innov_spike_lim);
 	return checkInnovFailed(hgt_innov, hgt_innov_lpf, _hgt_innov_test_lim);
 }
 

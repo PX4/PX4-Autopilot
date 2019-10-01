@@ -32,8 +32,10 @@
  ****************************************************************************/
 
 /**
- * First order IIR digital filter with input saturation
+ * First order "alpha" IIR digital filter with input saturation
  */
+
+#include <mathlib/mathlib.h>
 
 class InnovationLpf final
 {
@@ -48,15 +50,18 @@ public:
 	 * The new value is constained by the limit set in setSpikeLimit
 	 * @param val new input
 	 * @param alpha normalized weight of the new input
+	 * @param spike_limit the amplitude of the saturation at the input of the filter
 	 * @return filtered output
 	 */
-	float update(float val, float alpha);
+	float update(float val, float alpha, float spike_limit)
+	{
+		float val_constrained = math::constrain(val, -spike_limit, spike_limit);
+		float beta = 1.f - alpha;
 
-	/**
-	 * Set the amplitude of the saturation at the input of the filter
-	 * @param lim amplitutde of the saturation
-	 */
-	void setSpikeLimit(float lim) { _spike_limit = lim; }
+		_x = beta * _x + alpha * val_constrained;
+
+		return _x;
+	}
 
 	/**
 	 * Helper function to compute alpha from dt and the inverse of tau
@@ -64,9 +69,11 @@ public:
 	 * @param tau_inv inverse of the time constant of the filter
 	 * @return alpha, the normalized weight of a new measurement
 	 */
-	static float computeAlphaFromDtAndTauInv(float dt, float tau_inv);
+	static float computeAlphaFromDtAndTauInv(float dt, float tau_inv)
+	{
+		return dt * tau_inv;
+	}
 
 private:
 	float _x; ///< current state of the filter
-	float _spike_limit{-1.f}; ///< input saturation of the lpf (-1 = no saturation)
 };
