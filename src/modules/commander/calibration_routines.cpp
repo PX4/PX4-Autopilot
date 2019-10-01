@@ -654,7 +654,7 @@ int calibrate_cancel_subscribe()
 	if (vehicle_command_sub >= 0) {
 		// make sure we won't read any old messages
 		vehicle_command_s cmd{};
-		bool update = false;
+		bool updated = false;
 
 		while (orb_check(vehicle_command_sub, &update) == 0 && update) {
 			orb_copy(ORB_ID(vehicle_command), vehicle_command_sub, &cmd);
