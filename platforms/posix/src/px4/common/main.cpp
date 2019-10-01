@@ -178,10 +178,10 @@ int main(int argc, char **argv)
 	} else {
 		/* Server/daemon apps need to parse the command line arguments. */
 
-		std::string data_path;
+		std::string data_path{};
 		std::string commands_file = "etc/init.d/rcS";
-		std::string test_data_path;
-		std::string working_directory;
+		std::string test_data_path{};
+		std::string working_directory{};
 		int instance = 0;
 
 		int myoptind = 1;
