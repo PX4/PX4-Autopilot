@@ -44,6 +44,7 @@ using namespace matrix;
 bool FlightTaskManualAcceleration::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
 	bool ret = FlightTaskManual::activate(last_setpoint);
+	_velocity_setpoint.zero();
 	return ret;
 }
 
@@ -55,7 +56,7 @@ bool FlightTaskManualAcceleration::update()
 	acceleration_scale(0) = acceleration_scale(1) = _param_mpc_acc_hor.get();
 	velocity_scale(0) = velocity_scale(1) = _param_mpc_vel_manual.get();
 
-	if (_velocity(2) < 0) {
+	if (_velocity(2) < 0.f) {
 		acceleration_scale(2) = _param_mpc_acc_up_max.get();
 		velocity_scale(2) = _param_mpc_z_vel_max_up.get();
 
@@ -75,7 +76,6 @@ bool FlightTaskManualAcceleration::update()
 	_position_lock.limitStickUnitLengthXY(stick_xy);
 	_position_lock.rotateIntoHeadingFrameXY(stick_xy, _yaw, _yaw_setpoint);
 
-
 	_acceleration_setpoint = Vector3f(stick_xy(0), stick_xy(1), _sticks_expo(2)).emult(acceleration_scale);
 
 	// Add drag to limit speed and brake again
@@ -91,20 +91,19 @@ bool FlightTaskManualAcceleration::update()
 
 void FlightTaskManualAcceleration::lockAltitude()
 {
+	// integrate vertical velocity
+	const float velocity_setpoint_z_last = _velocity_setpoint(2);
+	_velocity_setpoint(2) += _acceleration_setpoint(2) * _deltatime;
+
 	if (fabsf(_sticks_expo(2)) > FLT_EPSILON) {
 		_position_setpoint(2) = NAN;
-		_velocity_setpoint(2) = NAN;
 
 	} else {
 		if (!PX4_ISFINITE(_position_setpoint(2))) {
 			_position_setpoint(2) = _position(2);
-			_velocity_setpoint(2) = _velocity(2);
 		}
 
 		_position_setpoint(2) += _velocity_setpoint(2) * _deltatime;
-
-		const float velocity_setpoint_z_last = _velocity_setpoint(2);
-		_velocity_setpoint(2) += _acceleration_setpoint(2) * _deltatime;
 
 		if (fabsf(_velocity_setpoint(2)) > fabsf(velocity_setpoint_z_last)) {
 			_velocity_setpoint(2) = velocity_setpoint_z_last;
