@@ -91,8 +91,5 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	// battery.is_powering_off = msg.;
 	// battery.warning = msg.;
 
-	PX4_INFO("Got a uavcan battery msg");
-
-
 	publish(msg.getSrcNodeID().get(), &battery);
 }
