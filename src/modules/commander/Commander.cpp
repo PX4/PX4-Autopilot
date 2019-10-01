@@ -2660,6 +2660,7 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 	const bool position_got_valid = !_last_condition_global_position_valid && status_flags.condition_global_position_valid;
 	const bool first_time_rc = _last_sp_man.timestamp == 0;
 	const bool rc_values_updated = _last_sp_man.timestamp != sp_man.timestamp;
+	const bool is_fixed_wing = status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING;
 	const bool some_switch_changed =
 		(_last_sp_man.offboard_switch != sp_man.offboard_switch)
 		|| (_last_sp_man.return_switch != sp_man.return_switch)
@@ -2676,7 +2677,8 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 	const bool should_evaluate_rc_mode_switch = first_time_rc
 			|| altitude_got_valid
 			|| position_got_valid
-			|| (rc_values_updated && some_switch_changed);
+			|| (rc_values_updated && some_switch_changed)
+			|| is_fixed_wing;
 
 	if (!should_evaluate_rc_mode_switch) {
 
