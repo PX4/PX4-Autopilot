@@ -8,8 +8,8 @@ if [[ -f $1"/.git" || -d $1"/.git" ]]; then
 	# CI environment always update
 	if [ "$CI" == "true" ]; then
 		git submodule --quiet sync --recursive -- $1
-		git submodule --quiet update --init --recursive --jobs=8 -- $1  || true
-		git submodule --quiet update --init --recursive --jobs=8 -- $1
+		git submodule --quiet update --init --recursive --jobs=8 -- $1 || true
+		git submodule --quiet update --init --recursive -- $1
 		exit 0
 	fi
 
@@ -40,7 +40,7 @@ if [[ -f $1"/.git" || -d $1"/.git" ]]; then
 			echo "Continuing build with manually overridden submodule.."
 		elif [ "$user_cmd" == "u" ]; then
 			git submodule sync --recursive -- $1
-			git submodule update --init --recursive -- $1 || true
+			git submodule update --init --recursive --jobs=8 -- $1 || true
 			git submodule update --init --recursive --force -- $1
 			echo "Submodule fixed, continuing build.."
 		else
@@ -50,7 +50,7 @@ if [[ -f $1"/.git" || -d $1"/.git" ]]; then
 	fi
 else
 	git submodule --quiet sync --recursive --quiet -- $1
-	git submodule --quiet update --init --recursive -- $1  || true
+	git submodule --quiet update --init --recursive --jobs=8 -- $1  || true
 	git submodule --quiet update --init --recursive -- $1
 fi
 
