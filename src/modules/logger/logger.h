@@ -196,8 +196,8 @@ private:
 	};
 
 	struct MissionSubscription {
-		unsigned min_delta_ms;        ///< minimum time between 2 topic writes [ms]
-		unsigned next_write_time;     ///< next time to write in 0.1 seconds
+		unsigned min_delta_ms{0};        ///< minimum time between 2 topic writes [ms]
+		unsigned next_write_time{0};     ///< next time to write in 0.1 seconds
 	};
 
 	/**
@@ -382,7 +382,7 @@ private:
 	const bool					_log_name_timestamp;
 
 	Array<LoggerSubscription, MAX_TOPICS_NUM>	_subscriptions; ///< all subscriptions for full & mission log (in front)
-	MissionSubscription 				_mission_subscriptions[MAX_MISSION_TOPICS_NUM]; ///< additional data for mission subscriptions
+	MissionSubscription 				_mission_subscriptions[MAX_MISSION_TOPICS_NUM] {}; ///< additional data for mission subscriptions
 	int						_num_mission_subs{0};
 
 	LogWriter					_writer;
