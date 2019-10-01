@@ -91,9 +91,9 @@ set_property(CACHE config_sitl_debugger PROPERTY STRINGS "disable;gdb;lldb")
 # support. In this case, we enable the orb publisher rules.
 set(REPLAY_FILE "$ENV{replay}")
 if(REPLAY_FILE)
-	message("Building with uorb publisher rules support")
+	message(STATUS "Building with uorb publisher rules support")
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 endif()
 
-message("Building without lockstep for test")
+message(STATUS "Building without lockstep for test")
 set(ENABLE_LOCKSTEP_SCHEDULER no)
