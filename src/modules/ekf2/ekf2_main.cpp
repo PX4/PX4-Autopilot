@@ -124,14 +124,17 @@ private:
 					 const vehicle_status_s &vehicle_status,
 					 const ekf2_innovations_s &innov,
 					 float alpha);
-	float selectYawTestLimit(const filter_control_status_u &control_status, const vehicle_status_s &vehicle_status);
+	static float selectHeadingTestLimit(const filter_control_status_u &control_status,
+					    const vehicle_status_s &vehicle_status);
 	bool preFlightCheckHorizVelFailed(const filter_control_status_u &control_status, const ekf2_innovations_s &innov,
 					  float alpha);
 	bool preFlightCheckDownVelFailed(const ekf2_innovations_s &innov, float alpha);
 	bool preFlightCheckHeightFailed(const ekf2_innovations_s &innov, float alpha);
-	bool checkInnovFailed(float innov, float innov_lpf, float test_limit);
-	bool checkInnov2DFailed(const Vector2f &innov, const Vector2f &innov_lpf, float test_limit);
+
+	static bool checkInnovFailed(float innov, float innov_lpf, float test_limit);
+	static bool checkInnov2DFailed(const Vector2f &innov, const Vector2f &innov_lpf, float test_limit);
 	void resetPreFlightChecks();
+
 	static constexpr float sq(float var) { return var * var; }
 
 	template<typename Param>
@@ -229,25 +232,29 @@ private:
 	InnovationLpf _filter_vel_n_innov;	///< Preflight low pass filter N axis velocity innovations (m/sec)
 	InnovationLpf _filter_vel_e_innov;	///< Preflight low pass filter E axis velocity innovations (m/sec)
 	InnovationLpf _filter_vel_d_innov;	///< Preflight low pass filter D axis velocity innovations (m/sec)
-	InnovationLpf _filter_hgt_innov;		///< Preflight low pass filter height innovation (m)
-	InnovationLpf _filter_yaw_magnitude_innov;	///< Preflight low pass filter yaw innovation magntitude (rad)
-	InnovationLpf _filter_flow_x_innov;
-	InnovationLpf _filter_flow_y_innov;
+	InnovationLpf _filter_hgt_innov;	///< Preflight low pass filter height innovation (m)
+	InnovationLpf _filter_heading_innov;	///< Preflight low pass filter heading innovation magntitude (rad)
+	InnovationLpf _filter_flow_x_innov;	///< Preflight low pass filter optical flow innovation (rad)
+	InnovationLpf _filter_flow_y_innov;	///< Preflight low pass filter optical flow innovation (rad)
 
-	static constexpr float _innov_lpf_tau_inv = 0.2f;	///< Preflight low pass filter time constant inverse (1/sec)
-	static constexpr float _vel_innov_test_lim =
-		0.5f;	///< Maximum permissible velocity innovation to pass pre-flight checks (m/sec)
-	static constexpr float _hgt_innov_test_lim =
-		1.5f;	///< Maximum permissible height innovation to pass pre-flight checks (m)
-	static constexpr float _nav_yaw_innov_test_lim =
-		0.25f;	///< Maximum permissible yaw innovation to pass pre-flight checks when aiding inertial nav using NE frame observations (rad)
-	static constexpr float _yaw_innov_test_lim =
-		0.52f;	///< Maximum permissible yaw innovation to pass pre-flight checks when not aiding inertial nav using NE frame observations (rad)
-	static constexpr float _flow_innov_test_lim =
-		0.1f;	///< Maximum permissible flow innovation to pass pre-flight checks
-	const float _vel_innov_spike_lim = 2.0f * _vel_innov_test_lim;	///< preflight velocity innovation spike limit (m/sec)
-	const float _hgt_innov_spike_lim = 2.0f * _hgt_innov_test_lim;	///< preflight position innovation spike limit (m)
-	const float _flow_innov_spike_lim = 2.0f * _flow_innov_test_lim;///< preflight flow innovation spike limit
+	// Preflight low pass filter time constant inverse (1/sec)
+	static constexpr float _innov_lpf_tau_inv = 0.2f;
+	// Maximum permissible velocity innovation to pass pre-flight checks (m/sec)
+	static constexpr float _vel_innov_test_lim = 0.5f;
+	// Maximum permissible height innovation to pass pre-flight checks (m)
+	static constexpr float _hgt_innov_test_lim = 1.5f;
+	// Maximum permissible yaw innovation to pass pre-flight checks when aiding inertial nav using NE frame observations (rad)
+	static constexpr float _nav_heading_innov_test_lim = 0.25f;
+	// Maximum permissible yaw innovation to pass pre-flight checks when not aiding inertial nav using NE frame observations (rad)
+	static constexpr float _heading_innov_test_lim = 0.52f;
+	// Maximum permissible flow innovation to pass pre-flight checks
+	static constexpr float _flow_innov_test_lim = 0.1f;
+	// Preflight velocity innovation spike limit (m/sec)
+	static constexpr float _vel_innov_spike_lim = 2.0f * _vel_innov_test_lim;
+	// Preflight position innovation spike limit (m)
+	static constexpr float _hgt_innov_spike_lim = 2.0f * _hgt_innov_test_lim;
+	// Preflight flow innovation spike limit (rad)
+	static constexpr float _flow_innov_spike_lim = 2.0f * _flow_innov_test_lim;
 
 	// set pose/velocity as invalid if standard deviation is bigger than max_std_dev
 	// TODO: the user should be allowed to set these values by a parameter
@@ -1752,35 +1759,36 @@ bool Ekf2::preFlightCheckHeadingFailed(const filter_control_status_u &control_st
 				       float alpha)
 
 {
-	// Get the correct yaw test limit value depending on vehicle type and aiding mode
-	float yaw_test_limit = selectYawTestLimit(control_status, vehicle_status);
-	float yaw_innov_spike_lim = 2.0f * yaw_test_limit;
+	// Get the correct heading test limit value depending on vehicle type and aiding mode
+	float heading_test_limit = selectHeadingTestLimit(control_status, vehicle_status);
+	float heading_innov_spike_lim = 2.0f * heading_test_limit;
 
-	float heading_innov_lpf = _filter_yaw_magnitude_innov.update(innov.heading_innov, alpha, yaw_innov_spike_lim);
+	float heading_innov_lpf = _filter_heading_innov.update(innov.heading_innov, alpha, heading_innov_spike_lim);
 
-	return checkInnovFailed(innov.heading_innov, heading_innov_lpf, yaw_test_limit);
+	return checkInnovFailed(innov.heading_innov, heading_innov_lpf, heading_test_limit);
 }
 
-float Ekf2::selectYawTestLimit(const filter_control_status_u &control_status, const vehicle_status_s &vehicle_status)
+float Ekf2::selectHeadingTestLimit(const filter_control_status_u &control_status,
+				   const vehicle_status_s &vehicle_status)
 {
-	// set the max allowed yaw innovaton depending on whether we are not aiding navigation using
+	// set the max allowed heading innovaton depending on whether we are not aiding navigation using
 	// observations in the NE reference frame.
 	bool doing_ne_aiding = control_status.flags.gps ||  control_status.flags.ev_pos;
 
-	float yaw_test_limit;
+	float heading_test_limit;
 
 	if (doing_ne_aiding && vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		// use a smaller tolerance when doing NE inertial frame aiding as a rotary wing
 		// vehicle which cannot use GPS course to realign heading in flight
-		yaw_test_limit = _nav_yaw_innov_test_lim;
+		heading_test_limit = _nav_heading_innov_test_lim;
 
 	} else {
 		// use a larger tolerance when not doing NE inertial frame aiding or
 		// if a fixed wing vehicle which can realign heading using GPS course
-		yaw_test_limit = _yaw_innov_test_lim;
+		heading_test_limit = _heading_innov_test_lim;
 	}
 
-	return yaw_test_limit;
+	return heading_test_limit;
 }
 
 bool Ekf2::preFlightCheckHorizVelFailed(const filter_control_status_u &control_status,
@@ -1826,13 +1834,13 @@ bool Ekf2::preFlightCheckHeightFailed(const ekf2_innovations_s &innov, float alp
 
 bool Ekf2::checkInnovFailed(float innov, float innov_lpf, float test_limit)
 {
-	return (innov_lpf > test_limit) || (innov > 2.0f * test_limit);
+	return innov_lpf > test_limit || innov > 2.0f * test_limit;
 }
 
 bool Ekf2::checkInnov2DFailed(const Vector2f &innov, const Vector2f &innov_lpf, float test_limit)
 {
-	bool has_failed = (innov_lpf.norm_squared() > sq(test_limit))
-			  || (innov.norm_squared() > sq(2.0f * test_limit));
+	bool has_failed = innov_lpf.norm_squared() > sq(test_limit)
+			  || innov.norm_squared() > sq(2.0f * test_limit);
 	return has_failed;
 }
 
@@ -1842,7 +1850,7 @@ void Ekf2::resetPreFlightChecks()
 	_filter_vel_e_innov.reset();
 	_filter_vel_d_innov.reset();
 	_filter_hgt_innov.reset();
-	_filter_yaw_magnitude_innov.reset();
+	_filter_heading_innov.reset();
 	_filter_flow_x_innov.reset();
 	_filter_flow_y_innov.reset();
 	_preflt_horiz_fail = false;
