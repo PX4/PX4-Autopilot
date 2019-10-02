@@ -66,7 +66,7 @@ topic = alias if alias else spec.short_name
 
 @[if 1.5 < fastrtpsgen_version <= 1.7]@
 #include <fastrtps/utils/eClock.h>
-@[else]@
+@[end if]@
 
 #include "@(topic)_Publisher.h"
 
