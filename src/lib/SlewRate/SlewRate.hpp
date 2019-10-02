@@ -42,6 +42,9 @@
 #pragma once
 
 #include <mathlib/mathlib.h>
+#include <matrix/math.hpp>
+
+using namespace matrix;
 
 template<typename Type>
 class SlewRate
@@ -73,12 +76,28 @@ public:
 		// Limit the rate of change of the value
 		const Type dvalue_desired = new_value - _value;
 		const Type dvalue_max = _slew_rate * deltatime;
-		const Type dvalue = math::constrain(dvalue_desired, -dvalue_max, dvalue_max);
+		const Type dvalue = constrain(dvalue_desired, -dvalue_max, dvalue_max);
 		_value += dvalue;
 		return _value;
 	}
 
 private:
-	Type _slew_rate = 0; ///< maximum rate of change for the value
-	Type _value = (Type)0; ///< state to keep last value of the slew rate
+	Type _slew_rate; ///< maximum rate of change for the value
+	Type _value; ///< state to keep last value of the slew rate
+
+	float constrain(float value, float min, float max)
+	{
+		return math::constrain(value, min, max);
+	}
+
+	Vector3f constrain(const Vector3f &value, const Vector3f &min, const Vector3f &max)
+	{
+		Vector3f constrained;
+
+		for (int i = 0; i < 3; i++) {
+			constrained(i) = math::constrain(value(i), min(i), max(i));
+		}
+
+		return constrained;
+	}
 };

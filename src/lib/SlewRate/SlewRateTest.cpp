@@ -70,3 +70,17 @@ TEST(SlewRateTest, ReachValueSlewed)
 		EXPECT_FLOAT_EQ(_slew_rate.update(10.f, 1.f), 10.f);
 	}
 }
+
+TEST(SlewRateTest, SlewVector3f)
+{
+	using namespace matrix;
+
+	SlewRate<Vector3f> _slew_rate;
+	_slew_rate.setSlewRate(Vector3f(1, 2, 3));
+	_slew_rate.setForcedValue(Vector3f(4, 5, 6));
+
+	EXPECT_EQ(_slew_rate.update(Vector3f(100, 100, 100), 1.f), Vector3f(5, 7, 9));
+	EXPECT_EQ(_slew_rate.update(Vector3f(5, 7, 9), 1.f), Vector3f(5, 7, 9));
+	EXPECT_EQ(_slew_rate.update(Vector3f(-100, 100, -100), 1.f), Vector3f(4, 9, 6));
+	EXPECT_EQ(_slew_rate.update(Vector3f(4.1f, 8.8f, 6.3f), 1.f), Vector3f(4.1f, 8.8f, 6.3f));
+}
