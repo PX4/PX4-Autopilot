@@ -77,6 +77,7 @@ px4_add_board(
 		mc_pos_control
 		navigator
 		rover_pos_control
+		battery_status
 		sensors
 		sih
 		vmount

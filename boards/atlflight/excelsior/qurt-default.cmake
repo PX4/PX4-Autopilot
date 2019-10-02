@@ -72,6 +72,7 @@ px4_add_board(
 		local_position_estimator
 		mc_att_control
 		mc_pos_control
+		battery_status
 		sensors
 		sih
 		vmount
