@@ -612,11 +612,16 @@ MulticopterPositionControl::Run()
 						    constraints.speed_up, !_control_mode.flag_control_climb_rate_enabled, time_stamp_current);
 			constraints.speed_up = _takeoff.updateRamp(_dt, constraints.speed_up);
 
-			if (_takeoff.getTakeoffState() < TakeoffState::rampup) {
-				// we are not flying yet and need to avoid any corrections
+			// make sure we don't correct when not taken off yet or landed again
+			// since we lower the thrust it helps to decide if we are actually landed or not
+			const bool not_taken_off = _takeoff.getTakeoffState() <= TakeoffState::ready_for_takeoff;
+			const bool in_flight = _takeoff.getTakeoffState() >= TakeoffState::flight;
+			const bool ground_detected = _vehicle_land_detected.ground_contact || _vehicle_land_detected.maybe_landed;
+
+			if (not_taken_off || (in_flight && ground_detected)) {
+				// override setpoints with level, idle thrust
 				reset_setpoint_to_nan(setpoint);
 				Vector3f(0.f, 0.f, 100.f).copyTo(setpoint.acceleration);
-				setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
 				// set yaw-sp to current yaw
 				// TODO: we need a clean way to disable yaw control
 				setpoint.yaw = _states.yaw;
@@ -625,23 +630,6 @@ MulticopterPositionControl::Run()
 				_control.resetIntegral();
 				// reactivate the task which will reset the setpoint to current state
 				_flight_tasks.reActivate();
-			}
-
-			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
-			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.
-			// Note: only adust thrust output if there was not thrust-setpoint demand in D-direction.
-			if (_takeoff.getTakeoffState() > TakeoffState::rampup) {
-				if (_vehicle_land_detected.ground_contact
-				    || _vehicle_land_detected.maybe_landed) {
-					// we set thrust to zero, this will help to decide if we are actually landed or not
-					Vector3f(0.f, 0.f, 100.f).copyTo(setpoint.acceleration);
-					setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
-					// set yaw-sp to current yaw to avoid any corrections
-					setpoint.yaw = _states.yaw;
-					setpoint.yawspeed = 0.f;
-					// prevent any integrator windup
-					_control.resetIntegral();
-				}
 			}
 
 			if (_takeoff.getTakeoffState() < TakeoffState::flight) {
