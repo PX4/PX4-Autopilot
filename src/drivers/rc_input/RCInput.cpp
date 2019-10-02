@@ -45,8 +45,8 @@ work_s RCInput::_work = {};
 constexpr char const *RCInput::RC_SCAN_STRING[];
 
 RCInput::RCInput(bool run_as_task, char *device) :
-	_cycle_perf(perf_alloc(PC_ELAPSED, "rc_input cycle time")),
-	_publish_interval_perf(perf_alloc(PC_INTERVAL, "rc_input publish interval"))
+	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
+	_publish_interval_perf(perf_alloc(PC_INTERVAL,  MODULE_NAME": publish interval"))
 {
 	// rc input, published to ORB
 	_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;

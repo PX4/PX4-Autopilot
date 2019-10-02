@@ -84,7 +84,7 @@ static constexpr unsigned char crc_lsb_vector[] = {
 };
 
 CM8JL65::CM8JL65(const char *port, uint8_t rotation) :
-	ScheduledWorkItem(px4::wq_configurations::hp_default),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	_px4_rangefinder(0 /* TODO: device ids */, ORB_PRIO_DEFAULT, rotation)
 {
 	// Store the port name.

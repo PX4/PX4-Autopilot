@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,38 +31,56 @@
  *
  ****************************************************************************/
 
+#include <px4_config.h>
+#include <px4_module.h>
+#include <px4_getopt.h>
+#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 
-/**
- * @file LidarLite.h
- * @author Johan Jansen <jnsn.johan@gmail.com>
- *
- * Generic interface driver for the PulsedLight Lidar-Lite range finders.
- */
+static void	usage();
 
-#include "LidarLite.h"
-
-LidarLite::LidarLite(const uint8_t rotation) :
-	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, rotation)
-{
-	_px4_rangefinder.set_min_distance(LL40LS_MIN_DISTANCE);
-	_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE);
-	_px4_rangefinder.set_fov(0.008); // Divergence 8 mRadian
+extern "C" {
+	__EXPORT int work_queue_main(int argc, char *argv[]);
 }
 
-LidarLite::~LidarLite()
+int
+work_queue_main(int argc, char *argv[])
 {
-	perf_free(_sample_perf);
-	perf_free(_comms_errors);
-	perf_free(_sensor_resets);
-	perf_free(_sensor_zero_resets);
-};
+	if (argc != 2) {
+		usage();
+		return 1;
+	}
 
-void
-LidarLite::print_info()
+	if (!strcmp(argv[1], "start")) {
+		px4::WorkQueueManagerStart();
+		return 0;
+
+	} else if (!strcmp(argv[1], "stop")) {
+		px4::WorkQueueManagerStop();
+		return 0;
+
+	} else if (!strcmp(argv[1], "status")) {
+		px4::WorkQueueManagerStatus();
+		return 0;
+	}
+
+	usage();
+
+	return 0;
+}
+
+static void
+usage()
 {
-	perf_print_counter(_sample_perf);
-	perf_print_counter(_comms_errors);
-	perf_print_counter(_sensor_resets);
-	perf_print_counter(_sensor_zero_resets);
-	printf("poll interval:  %u \n", get_measure_interval());
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+Command-line tool to show work queue status.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("work_queue", "system");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }

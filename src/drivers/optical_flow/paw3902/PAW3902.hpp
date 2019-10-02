@@ -120,7 +120,6 @@ private:
 	uORB::PublicationMulti<optical_flow_s> _optical_flow_pub{ORB_ID(optical_flow)};
 
 	perf_counter_t	_sample_perf;
-	perf_counter_t	_interval_perf;
 	perf_counter_t	_comms_errors;
 	perf_counter_t	_dupe_count_perf;
 

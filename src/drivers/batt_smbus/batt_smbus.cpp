@@ -46,7 +46,7 @@
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 
 BATT_SMBUS::BATT_SMBUS(SMBus *interface, const char *path) :
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_cycle(perf_alloc(PC_ELAPSED, "batt_smbus_cycle")),
 	_batt_topic(nullptr),

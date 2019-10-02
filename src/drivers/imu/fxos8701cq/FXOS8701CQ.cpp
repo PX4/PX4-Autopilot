@@ -55,14 +55,13 @@ const uint8_t FXOS8701CQ::_checked_registers[FXOS8701C_NUM_CHECKED_REGISTERS] = 
 
 FXOS8701CQ::FXOS8701CQ(int bus, uint32_t device, enum Rotation rotation) :
 	SPI("FXOS8701CQ", nullptr, bus, device, SPIDEV_MODE0, 1 * 1000 * 1000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_px4_accel(get_device_id(), ORB_PRIO_LOW, rotation),
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	_px4_mag(get_device_id(), ORB_PRIO_LOW, rotation),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": mag read")),
 #endif
 	_accel_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": acc read")),
-	_accel_sample_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": acc read interval")),
 	_bad_registers(perf_alloc(PC_COUNT, MODULE_NAME": bad reg")),
 	_accel_duplicates(perf_alloc(PC_COUNT, MODULE_NAME": acc dupe"))
 {
@@ -87,7 +86,6 @@ FXOS8701CQ::~FXOS8701CQ()
 
 	// delete the perf counter
 	perf_free(_accel_sample_perf);
-	perf_free(_accel_sample_interval_perf);
 	perf_free(_bad_registers);
 	perf_free(_accel_duplicates);
 }
@@ -334,7 +332,6 @@ FXOS8701CQ::Run()
 {
 	// start the performance counter
 	perf_begin(_accel_sample_perf);
-	perf_count(_accel_sample_interval_perf);
 
 	// status register and data as read back from the device
 #pragma pack(push, 1)
@@ -413,7 +410,6 @@ void
 FXOS8701CQ::print_info()
 {
 	perf_print_counter(_accel_sample_perf);
-	perf_print_counter(_accel_sample_interval_perf);
 
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	perf_print_counter(_mag_sample_perf);

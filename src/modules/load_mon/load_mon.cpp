@@ -123,7 +123,7 @@ private:
 
 LoadMon::LoadMon() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(px4::wq_configurations::lp_default),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
 	_stack_perf(perf_alloc(PC_ELAPSED, "stack_check"))
 {
 }

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,39 +30,37 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
-
 /**
- * @file LidarLite.h
- * @author Johan Jansen <jnsn.johan@gmail.com>
- *
- * Generic interface driver for the PulsedLight Lidar-Lite range finders.
+ * @author Jacob Dahl <dahl.jakejacob@gmail.com>
  */
 
-#include "LidarLite.h"
+#pragma once
 
-LidarLite::LidarLite(const uint8_t rotation) :
-	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, rotation)
-{
-	_px4_rangefinder.set_min_distance(LL40LS_MIN_DISTANCE);
-	_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE);
-	_px4_rangefinder.set_fov(0.008); // Divergence 8 mRadian
-}
+#include "sensor_bridge.hpp"
 
-LidarLite::~LidarLite()
+#include <uORB/topics/battery_status.h>
+
+#include <uavcan/equipment/power/BatteryInfo.hpp>
+
+class UavcanBatteryBridge : public UavcanCDevSensorBridgeBase
 {
-	perf_free(_sample_perf);
-	perf_free(_comms_errors);
-	perf_free(_sensor_resets);
-	perf_free(_sensor_zero_resets);
+public:
+	static const char *const NAME;
+
+	UavcanBatteryBridge(uavcan::INode &node);
+
+	const char *get_name() const override { return NAME; }
+
+	int init() override;
+
+private:
+
+	void battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg);
+
+	typedef uavcan::MethodBinder < UavcanBatteryBridge *,
+		void (UavcanBatteryBridge::*)
+		(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &) >
+		BatteryInfoCbBinder;
+
+	uavcan::Subscriber<uavcan::equipment::power::BatteryInfo, BatteryInfoCbBinder> _sub_battery;
 };
-
-void
-LidarLite::print_info()
-{
-	perf_print_counter(_sample_perf);
-	perf_print_counter(_comms_errors);
-	perf_print_counter(_sensor_resets);
-	perf_print_counter(_sensor_zero_resets);
-	printf("poll interval:  %u \n", get_measure_interval());
-}

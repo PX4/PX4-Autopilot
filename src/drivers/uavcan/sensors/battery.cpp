@@ -31,98 +31,65 @@
  *
  ****************************************************************************/
 
-#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include "battery.hpp"
 
-#include <px4_platform_common/px4_work_queue/WorkQueue.hpp>
-#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
-
-#include <px4_log.h>
 #include <drivers/drv_hrt.h>
 
-namespace px4
-{
+const char *const UavcanBatteryBridge::NAME = "battery";
 
-WorkItem::WorkItem(const char *name, const wq_config_t &config) :
-	_item_name(name)
+UavcanBatteryBridge::UavcanBatteryBridge(uavcan::INode &node) :
+	UavcanCDevSensorBridgeBase("uavcan_battery", "/dev/uavcan/battery", "/dev/battery", ORB_ID(battery_status)),
+	_sub_battery(node)
 {
-	if (!Init(config)) {
-		PX4_ERR("init failed");
-	}
 }
 
-WorkItem::~WorkItem()
+int
+UavcanBatteryBridge::init()
 {
-	Deinit();
-}
+	int res = device::CDev::init();
 
-bool
-WorkItem::Init(const wq_config_t &config)
-{
-	// clear any existing first
-	Deinit();
-
-	px4::WorkQueue *wq = WorkQueueFindOrCreate(config);
-
-	if ((wq != nullptr) && wq->Attach(this)) {
-		_wq = wq;
-		_start_time = hrt_absolute_time();
-		return true;
+	if (res < 0) {
+		return res;
 	}
 
-	PX4_ERR("%s not available", config.name);
-	return false;
+	res = _sub_battery.start(BatteryInfoCbBinder(this, &UavcanBatteryBridge::battery_sub_cb));
+
+	if (res < 0) {
+		PX4_ERR("failed to start uavcan sub: %d", res);
+		return res;
+	}
+
+	return 0;
 }
 
 void
-WorkItem::Deinit()
+UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::power::BatteryInfo> &msg)
 {
-	// remove any currently queued work
-	if (_wq != nullptr) {
-		// prevent additional insertions
-		px4::WorkQueue *wq_temp = _wq;
-		_wq = nullptr;
+	battery_status_s battery{};
 
-		// remove any queued work
-		wq_temp->Remove(this);
+	battery.timestamp = hrt_absolute_time();
+	battery.voltage_v = msg.voltage;
+	// battery.voltage_filtered_v = msg.;
+	battery.current_a = msg.current;
+	// battery.current_filtered_a = msg.;
+	// battery.average_current_a = msg.;
+	// battery.discharged_mah = msg.;
+	battery.remaining = msg.remaining_capacity_wh / msg.full_charge_capacity_wh; // between 0 and 1
+	// battery.scale = msg.; // Power scaling factor, >= 1, or -1 if unknown
+	battery.temperature = msg.temperature;
+	// battery.cell_count = msg.;
+	// battery.voltage_cell_v[4] = msg.;
+	// battery.max_cell_voltage_delta = msg.;
+	battery.capacity = msg.full_charge_capacity_wh;
+	// battery.cycle_count = msg.;
+	// battery.run_time_to_empty = msg.;
+	// battery.average_time_to_empty = msg.;
+	battery.serial_number = msg.model_instance_id;
+	battery.connected = true;
+	battery.system_source = msg.status_flags & uavcan::equipment::power::BatteryInfo::STATUS_FLAG_IN_USE;
+	// battery.priority = msg.;
+	// battery.is_powering_off = msg.;
+	// battery.warning = msg.;
 
-		wq_temp->Detach(this);
-	}
+	publish(msg.getSrcNodeID().get(), &battery);
 }
-
-float
-WorkItem::elapsed_time() const
-{
-	return hrt_elapsed_time(&_start_time) / 1e6f;
-}
-
-float
-WorkItem::average_rate() const
-{
-	const float rate = _run_count / elapsed_time();
-
-	if (PX4_ISFINITE(rate)) {
-		return rate;
-	}
-
-	return 0.0f;
-}
-
-float
-WorkItem::average_interval() const
-{
-	const float interval = 1000000.0f / average_rate();
-
-	if (PX4_ISFINITE(interval)) {
-		return interval;
-	}
-
-	return 0.0f;
-}
-
-void
-WorkItem::print_run_status() const
-{
-	PX4_INFO_RAW("%-24s %8.1f Hz %12.1f us\n", _item_name, (double)average_rate(), (double)average_interval());
-}
-
-} // namespace px4

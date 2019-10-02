@@ -524,4 +524,3 @@ int MixingOutput::loadMixerThreadSafe(const char *buf, unsigned len)
 
 	return _command.result;
 }
-

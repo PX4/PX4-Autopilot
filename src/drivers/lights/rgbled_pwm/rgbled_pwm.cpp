@@ -88,7 +88,7 @@ RGBLED_PWM *g_rgbled = nullptr;
 
 RGBLED_PWM::RGBLED_PWM() :
 	CDev("rgbled_pwm", RGBLED_PWM0_DEVICE_PATH),
-	ScheduledWorkItem(px4::wq_configurations::lp_default)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
 }
 
