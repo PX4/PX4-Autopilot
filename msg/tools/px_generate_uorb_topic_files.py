@@ -190,7 +190,7 @@ def generate_idl_file(filename_msg, msg_dir, alias, outputdir, templatedir, pack
         os.makedirs(outputdir)
 
     template_file = os.path.join(templatedir, IDL_TEMPLATE_FILE)
-    if ros2_distro == "ardent" or ros2_distro == "bouncy" or ros2_distro == "crystal":
+    if 1.5 <= fastrtpsgen_version <= 1.7:
         output_file = os.path.join(outputdir, IDL_TEMPLATE_FILE.replace(
             "msg.idl.em", str(spec_short_name + "_.idl")))
     else:
