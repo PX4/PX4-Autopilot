@@ -64,7 +64,7 @@ topic = alias if alias else spec.short_name
 #include <fastrtps/fastrtps_fwd.h>
 #include <fastrtps/subscriber/SubscriberListener.h>
 #include <fastrtps/subscriber/SampleInfo.h>
-@[if 1.5 < fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
 #include "@(topic)_PubSubTypes.h"
 @[else]@
 #include "@(topic)PubSubTypes.h"
@@ -81,7 +81,7 @@ public:
     bool init();
     void run();
     bool hasMsg();
-@[if 1.5 < fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
     @(topic)_ getMsg();
 @[else]@
     @(topic) getMsg();
@@ -100,7 +100,7 @@ private:
         SampleInfo_t m_info;
         int n_matched;
         int n_msg;
-@[if 1.5 < fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
         @(topic)_ msg;
 @[else]@
         @(topic) msg;
@@ -108,7 +108,7 @@ private:
         bool has_msg = false;
 
     } m_listener;
-@[if 1.5 < fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
     @(topic)_PubSubType myType;
 @[else]@
     @(topic)PubSubType myType;

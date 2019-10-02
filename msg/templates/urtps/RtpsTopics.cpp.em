@@ -92,7 +92,7 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
 @[for topic in send_topics]@
         case @(rtps_message_id(ids, topic)): // @(topic)
         {
-@[    if 1.5 < fastrtpsgen_version <= 1.7]@
+@[    if 1.5 <= fastrtpsgen_version[0] <= 1.7]@
             @(topic)_ st;
 @[    else]@
             @(topic) st;
@@ -149,7 +149,7 @@ bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
         case @(rtps_message_id(ids, topic)): // @(topic)
             if (_@(topic)_sub.hasMsg())
             {
-@[    if 1.5 < fastrtpsgen_version <= 1.7]@
+@[    if 1.5 <= fastrtpsgen_version[0] <= 1.7]@
                 @(topic)_ msg = _@(topic)_sub.getMsg();
 @[    else]@
                 @(topic) msg = _@(topic)_sub.getMsg();
