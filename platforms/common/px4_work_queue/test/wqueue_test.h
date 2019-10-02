@@ -42,7 +42,7 @@ using namespace px4;
 class WQueueTest : public px4::WorkItem
 {
 public:
-	WQueueTest() : px4::WorkItem(px4::wq_configurations::test1) {}
+	WQueueTest() : px4::WorkItem("WQueueTest", px4::wq_configurations::test1) {}
 	~WQueueTest() = default;
 
 	int main();

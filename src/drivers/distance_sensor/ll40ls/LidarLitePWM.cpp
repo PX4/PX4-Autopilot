@@ -46,7 +46,7 @@
 
 LidarLitePWM::LidarLitePWM(const uint8_t rotation) :
 	LidarLite(rotation),
-	ScheduledWorkItem(px4::wq_configurations::hp_default)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 }
 

@@ -42,7 +42,8 @@
 namespace px4
 {
 
-WorkItem::WorkItem(const wq_config_t &config)
+WorkItem::WorkItem(const char *name, const wq_config_t &config) :
+	_item_name(name)
 {
 	if (!Init(config)) {
 		PX4_ERR("init failed");
@@ -54,25 +55,26 @@ WorkItem::~WorkItem()
 	Deinit();
 }
 
-bool WorkItem::Init(const wq_config_t &config)
+bool
+WorkItem::Init(const wq_config_t &config)
 {
 	// clear any existing first
 	Deinit();
 
 	px4::WorkQueue *wq = WorkQueueFindOrCreate(config);
 
-	if (wq == nullptr) {
-		PX4_ERR("%s not available", config.name);
-
-	} else {
+	if ((wq != nullptr) && wq->Attach(this)) {
 		_wq = wq;
+		_start_time = hrt_absolute_time();
 		return true;
 	}
 
+	PX4_ERR("%s not available", config.name);
 	return false;
 }
 
-void WorkItem::Deinit()
+void
+WorkItem::Deinit()
 {
 	// remove any currently queued work
 	if (_wq != nullptr) {
@@ -80,8 +82,47 @@ void WorkItem::Deinit()
 		px4::WorkQueue *wq_temp = _wq;
 		_wq = nullptr;
 
+		// remove any queued work
 		wq_temp->Remove(this);
+
+		wq_temp->Detach(this);
 	}
+}
+
+float
+WorkItem::elapsed_time() const
+{
+	return hrt_elapsed_time(&_start_time) / 1e6f;
+}
+
+float
+WorkItem::average_rate() const
+{
+	const float rate = _run_count / elapsed_time();
+
+	if (PX4_ISFINITE(rate)) {
+		return rate;
+	}
+
+	return 0.0f;
+}
+
+float
+WorkItem::average_interval() const
+{
+	const float interval = 1000000.0f / average_rate();
+
+	if (PX4_ISFINITE(interval)) {
+		return interval;
+	}
+
+	return 0.0f;
+}
+
+void
+WorkItem::print_run_status() const
+{
+	PX4_INFO_RAW("%-24s %8.1f Hz %12.1f us\n", _item_name, (double)average_rate(), (double)average_interval());
 }
 
 } // namespace px4

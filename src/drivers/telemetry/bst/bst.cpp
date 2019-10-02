@@ -191,7 +191,7 @@ static BST *g_bst = nullptr;
 
 BST::BST(int bus) :
 	I2C("bst", nullptr, bus, BST_ADDR, 100000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id()))
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id()))
 {
 }
 

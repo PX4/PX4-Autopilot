@@ -44,9 +44,6 @@ class ScheduledWorkItem : public WorkItem
 {
 public:
 
-	ScheduledWorkItem(const wq_config_t &config) : WorkItem(config) {}
-	virtual ~ScheduledWorkItem() override;
-
 	/**
 	 * Schedule next run with a delay in microseconds.
 	 *
@@ -58,7 +55,7 @@ public:
 	 * Schedule repeating run with optional delay.
 	 *
 	 * @param interval_us		The interval in microseconds.
-	 * @param delay_us			The delay (optional) in microseconds.
+	 * @param delay_us		The delay (optional) in microseconds.
 	 */
 	void ScheduleOnInterval(uint32_t interval_us, uint32_t delay_us = 0);
 
@@ -67,14 +64,20 @@ public:
 	 */
 	void ScheduleClear();
 
-	virtual void Run() override = 0;
+protected:
+
+	ScheduledWorkItem(const char *name, const wq_config_t &config) : WorkItem(name, config) {}
+	virtual ~ScheduledWorkItem() override;
+
+	virtual void print_run_status() const override;
 
 private:
+
+	virtual void Run() override = 0;
 
 	static void	schedule_trampoline(void *arg);
 
 	hrt_call	_call{};
-
 };
 
 } // namespace px4

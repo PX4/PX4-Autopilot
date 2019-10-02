@@ -69,5 +69,6 @@ px4_add_board(
 		topic_listener
 		usb_connected
 		ver
+		work_queue
 
 	)

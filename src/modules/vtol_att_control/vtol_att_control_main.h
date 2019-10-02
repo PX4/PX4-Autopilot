@@ -217,7 +217,6 @@ private:
 	bool		_initialized{false};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
-	perf_counter_t	_loop_interval_perf;		/**< loop interval performance counter */
 
 	void		vehicle_cmd_poll();
 

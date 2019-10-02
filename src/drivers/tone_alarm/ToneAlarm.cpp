@@ -41,7 +41,7 @@
 
 ToneAlarm::ToneAlarm() :
 	CDev(TONE_ALARM0_DEVICE_PATH),
-	ScheduledWorkItem(px4::wq_configurations::hp_default)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
 }
 
