@@ -178,7 +178,7 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	const hrt_abstime now = hrt_absolute_time();
 
 	// When not armed, consider to be maybe-landed
-	if (!_actuator_armed.armed || (_vehicle_attitude.timestamp == 0)) {
+	if (!_actuator_armed.armed) {
 		return true;
 	}
 
