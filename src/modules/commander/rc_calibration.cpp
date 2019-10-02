@@ -39,6 +39,7 @@
 #include <px4_posix.h>
 #include <px4_time.h>
 #include <px4_defines.h>
+#include <px4_module_params.h>
 
 #include "rc_calibration.h"
 #include "commander_helper.h"
@@ -65,34 +66,37 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 	sub_man.copy(&sp);
 
 	/* load trim values which are active */
-	float roll_trim_active;
-	param_get(param_find("TRIM_ROLL"), &roll_trim_active);
-	float pitch_trim_active;
-	param_get(param_find("TRIM_PITCH"), &pitch_trim_active);
-	float yaw_trim_active;
-	param_get(param_find("TRIM_YAW"), &yaw_trim_active);
+	param_t param_trim_roll = param_handle(px4::params::TRIM_ROLL);
+	param_t param_trim_pitch = param_handle(px4::params::TRIM_PITCH);
+	param_t param_trim_yaw = param_handle(px4::params::TRIM_YAW);
+	param_t param_fw_man_r_sc = param_handle(px4::params::FW_MAN_R_SC);
+	param_t param_fw_man_p_sc = param_handle(px4::params::FW_MAN_P_SC);
+	param_t param_fw_man_y_sc = param_handle(px4::params::FW_MAN_Y_SC);
+
+	float roll_trim_active, pitch_trim_active, yaw_trim_active, roll_scale, pitch_scale, yaw_scale;
+
+	param_get(param_trim_roll, &roll_trim_active);
+	param_get(param_trim_pitch, &pitch_trim_active);
+	param_get(param_trim_yaw, &yaw_trim_active);
 
 	/* get manual control scale values */
-	float roll_scale;
-	param_get(param_find("FW_MAN_R_SC"), &roll_scale);
-	float pitch_scale;
-	param_get(param_find("FW_MAN_P_SC"), &pitch_scale);
-	float yaw_scale;
-	param_get(param_find("FW_MAN_Y_SC"), &yaw_scale);
+	param_get(param_fw_man_r_sc, &roll_scale);
+	param_get(param_fw_man_p_sc, &pitch_scale);
+	param_get(param_fw_man_y_sc, &yaw_scale);
 
 	/* set parameters: the new trim values are the combination of active trim values
 	   and the values coming from the remote control of the user
 	*/
 	float p = sp.y * roll_scale + roll_trim_active;
-	int p1r = param_set(param_find("TRIM_ROLL"), &p);
+	int p1r = param_set(param_trim_roll, &p);
 	/*
 	 we explicitly swap sign here because the trim is added to the actuator controls
 	 which are moving in an inverse sense to manual pitch inputs
 	*/
 	p = -sp.x * pitch_scale + pitch_trim_active;
-	int p2r = param_set(param_find("TRIM_PITCH"), &p);
+	int p2r = param_set(param_trim_pitch, &p);
 	p = sp.r * yaw_scale + yaw_trim_active;
-	int p3r = param_set(param_find("TRIM_YAW"), &p);
+	int p3r = param_set(param_trim_yaw, &p);
 
 	if (p1r != 0 || p2r != 0 || p3r != 0) {
 		mavlink_log_critical(mavlink_log_pub, "TRIM: PARAM SET FAIL");
