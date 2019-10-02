@@ -55,7 +55,7 @@ UavcanBatteryBridge::init()
 	res = _sub_battery.start(BatteryInfoCbBinder(this, &UavcanBatteryBridge::battery_sub_cb));
 
 	if (res < 0) {
-		DEVICE_LOG("failed to start uavcan sub: %d", res);
+		PX4_ERR("failed to start uavcan sub: %d", res);
 		return res;
 	}
 
