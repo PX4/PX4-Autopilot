@@ -38,6 +38,7 @@
 #include "FlightTaskManualAltitude.hpp"
 #include <float.h>
 #include <mathlib/mathlib.h>
+#include <ecl/geo/geo.h>
 
 using namespace matrix;
 
@@ -290,14 +291,12 @@ void FlightTaskManualAltitude::_ekfResetHandlerHeading(float delta_psi)
 
 void FlightTaskManualAltitude::_updateSetpoints()
 {
-	// Thrust in xy are extracted directly from stick inputs. A magnitude of
-	// 1 means that maximum thrust along xy is demanded. A magnitude of 0 means no
-	// thrust along xy is demanded. The maximum thrust along xy depends on the thrust
-	// setpoint along z-direction, which is computed in PositionControl.cpp.
+	// Extraact acceleration from sticks with the maximum tilt as scale
 	Vector2f stick_xy(&_sticks(0));
 	_position_lock.limitStickUnitLengthXY(stick_xy);
 	_position_lock.rotateIntoHeadingFrameXY(stick_xy, _yaw, _yaw_setpoint);
-	_thrust_setpoint = Vector3f(stick_xy(0), stick_xy(1), NAN);
+	_acceleration_setpoint = Vector3f(stick_xy(0), stick_xy(1), NAN);
+	_acceleration_setpoint *= tanf(math::radians(_param_mpc_man_tilt_max.get())) * CONSTANTS_ONE_G;
 
 	_updateAltitudeLock();
 	_respectGroundSlowdown();

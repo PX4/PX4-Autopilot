@@ -222,7 +222,6 @@ TEST_F(PositionControlBasicTest, PositionControlFailsafeInput)
 {
 	_input_setpoint.vz = 0.7f;
 	_input_setpoint.acceleration[0] = _input_setpoint.acceleration[1] = 0.0f;
-	_input_setpoint.thrust[0] = _input_setpoint.thrust[1] = 0.0f;
 
 	runController();
 	EXPECT_EQ(_attitude.thrust_body[0], 0.f);
@@ -230,18 +229,4 @@ TEST_F(PositionControlBasicTest, PositionControlFailsafeInput)
 	EXPECT_GT(_output_setpoint.acceleration[2], 0);
 	EXPECT_GT(_attitude.thrust_body[2], -0.5f);
 	EXPECT_LE(_attitude.thrust_body[2], -0.1f);
-}
-
-TEST_F(PositionControlBasicTest, PositionControlAltitudeModeInput)
-{
-	_input_setpoint.vz = 0.0f;
-	_input_setpoint.thrust[0] = .1f;
-	_input_setpoint.thrust[1] = .2f;
-
-	runController();
-	EXPECT_EQ(_attitude.thrust_body[0], 0.f);
-	EXPECT_EQ(_attitude.thrust_body[1], 0.f);
-	EXPECT_EQ(_output_setpoint.acceleration[2], 0);
-	EXPECT_LT(_attitude.thrust_body[2], -0.5f);
-	EXPECT_GE(_attitude.thrust_body[2], -0.9f);
 }

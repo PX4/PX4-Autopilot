@@ -148,9 +148,6 @@ void PositionControl::_velocityControl(const float dt)
 	// No control input from setpoints or corresponding states which are NAN
 	_addIfNotNanVector(_acc_sp, acc_sp_velocity);
 
-	// Support deprecated feed forward thrust
-	_addIfNotNanVector(_acc_sp, hover_scale * (_thr_sp + Vector3f(0, 0, _hover_thrust)));
-
 	_accelerationControl();
 
 	// Apply Anti-Windup in vertical direction
