@@ -136,10 +136,6 @@ public:
 	int print_status() override;
 
 private:
-	DevHandle 	_h_adc;				/**< ADC driver handle */
-
-	hrt_abstime	_last_adc{0};			/**< last time we took input from the ADC */
-
 	const bool	_hil_enabled;			/**< if true, HIL is active */
 	bool		_armed{false};				/**< arming status of the vehicle */
 
@@ -159,6 +155,10 @@ private:
 	DataValidator	_airspeed_validator;		/**< data validator to monitor airspeed */
 
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
+	DevHandle 	_h_adc;				/**< ADC driver handle */
+
+	hrt_abstime	_last_adc{0};			/**< last time we took input from the ADC */
+
 	differential_pressure_s	_diff_pres {};
 	uORB::PublicationMulti<differential_pressure_s>	_diff_pres_pub{ORB_ID(differential_pressure)};		/**< differential_pressure */
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
@@ -180,11 +180,6 @@ private:
 	int		parameters_update();
 
 	/**
-	 * Do adc-related initialisation.
-	 */
-	int		adc_init();
-
-	/**
 	 * Poll the differential pressure sensor for updated data.
 	 *
 	 * @param raw			Combined sensor data structure into which
@@ -198,12 +193,18 @@ private:
 	void 		parameter_update_poll(bool forced = false);
 
 	/**
+	 * Do adc-related initialisation.
+	 */
+	int		adc_init();
+
+	/**
 	 * Poll the ADC and update readings to suit.
 	 *
 	 * @param raw			Combined sensor data structure into which
 	 *				data should be returned.
 	 */
 	void		adc_poll();
+
 };
 
 Sensors::Sensors(bool hil_enabled) :
@@ -248,16 +249,22 @@ Sensors::parameters_update()
 	return ret;
 }
 
-
 int
 Sensors::adc_init()
 {
-	DevMgr::getHandle(ADC0_DEVICE_PATH, _h_adc);
+#ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 
-	if (!_h_adc.isValid()) {
-		PX4_ERR("no ADC found: %s (%d)", ADC0_DEVICE_PATH, _h_adc.getError());
-		return PX4_ERROR;
+	if (!_hil_enabled) {
+
+		DevMgr::getHandle(ADC0_DEVICE_PATH, _h_adc);
+
+		if (!_h_adc.isValid()) {
+			PX4_ERR("no ADC found: %s (%d)", ADC0_DEVICE_PATH, _h_adc.getError());
+			return PX4_ERROR;
+		}
 	}
+
+#endif // ADC_AIRSPEED_VOLTAGE_CHANNEL
 
 	return OK;
 }
@@ -362,62 +369,57 @@ Sensors::adc_poll()
 		return;
 	}
 
-	hrt_abstime t = hrt_absolute_time();
+	if (_parameters.diff_pres_analog_scale > 0.0f) {
 
-	/* rate limit to 100 Hz */
-	if (t - _last_adc >= 10000) {
-		/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
-		px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS];
-		/* read all channels available */
-		int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
+		hrt_abstime t = hrt_absolute_time();
 
-		if (ret >= (int)sizeof(buf_adc[0])) {
+		/* rate limit to 100 Hz */
+		if (t - _last_adc >= 10000) {
+			/* make space for a maximum of twelve channels (to ensure reading all channels at once) */
+			px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS];
+			/* read all channels available */
+			int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
 
-			/* Read add channels we got */
-			for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {
-				if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
+			if (ret >= (int)sizeof(buf_adc[0])) {
 
-					/* calculate airspeed, raw is the difference from */
-					const float voltage = (float)(buf_adc[i].am_data) * 3.3f / 4096.0f * 2.0f;  // V_ref/4096 * (voltage divider factor)
+				/* Read add channels we got */
+				for (unsigned i = 0; i < ret / sizeof(buf_adc[0]); i++) {
+					if (ADC_AIRSPEED_VOLTAGE_CHANNEL == buf_adc[i].am_channel) {
 
-					/**
-					 * The voltage divider pulls the signal down, only act on
-					 * a valid voltage from a connected sensor. Also assume a non-
-					 * zero offset from the sensor if its connected.
-					 */
-					if (voltage > 0.4f && (_parameters.diff_pres_analog_scale > 0.0f)) {
+						/* calculate airspeed, raw is the difference from */
+						const float voltage = (float)(buf_adc[i].am_data) * 3.3f / 4096.0f * 2.0f;  // V_ref/4096 * (voltage divider factor)
 
-						const float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
+						/**
+						 * The voltage divider pulls the signal down, only act on
+						 * a valid voltage from a connected sensor. Also assume a non-
+						 * zero offset from the sensor if its connected.
+						 */
+						if (voltage > 0.4f) {
+							const float diff_pres_pa_raw = voltage * _parameters.diff_pres_analog_scale - _parameters.diff_pres_offset_pa;
 
-						_diff_pres.timestamp = t;
-						_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
-						_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) +
-								(diff_pres_pa_raw * 0.1f);
-						_diff_pres.temperature = -1000.0f;
+							_diff_pres.timestamp = t;
+							_diff_pres.differential_pressure_raw_pa = diff_pres_pa_raw;
+							_diff_pres.differential_pressure_filtered_pa = (_diff_pres.differential_pressure_filtered_pa * 0.9f) +
+									(diff_pres_pa_raw * 0.1f);
+							_diff_pres.temperature = -1000.0f;
 
-						_diff_pres_pub.publish(_diff_pres);
+							_diff_pres_pub.publish(_diff_pres);
+						}
 					}
 				}
 
-
+				_last_adc = t;
 			}
-
-			_last_adc = t;
 		}
 	}
 
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 }
 
-
 void
 Sensors::run()
 {
-	if (!_hil_enabled) {
-#if !defined(__PX4_QURT)
-		adc_init();
-#endif
-	}
+	adc_init();
 
 	sensor_combined_s raw = {};
 	sensor_preflight_s preflt = {};
