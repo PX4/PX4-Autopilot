@@ -201,6 +201,35 @@ struct mtd_dev_s *mtd_partition(FAR struct mtd_dev_s *mtd,
 				off_t firstblock, off_t nblocks);
 
 #ifdef CONFIG_MTD_RAMTRON
+
+struct ramtron_parts_s {
+	FAR const char *name;
+	uint8_t id1;
+	uint8_t id2;
+	uint32_t size;
+	uint8_t addr_len;
+	uint32_t speed;
+#ifdef CONFIG_RAMTRON_CHUNKING
+	bool chunked;                            /* True: write buffer size limitations */
+	uint16_t chunksize;                      /* Write chunk Size */
+#endif
+};
+
+/* This type represents the state of the MTD device.  The struct mtd_dev_s
+ * must appear at the beginning of the definition so that you can freely
+ * cast between pointers to struct mtd_dev_s and struct ramtron_dev_s.
+ */
+
+struct ramtron_dev_s {
+	struct mtd_dev_s mtd;                    /* MTD interface */
+	FAR struct spi_dev_s *dev;               /* Saved SPI interface instance */
+	uint8_t sectorshift;
+	uint8_t pageshift;
+	uint16_t nsectors;
+	uint32_t npages;
+	uint32_t speed;                          /* Overridable via ioctl */
+	FAR const struct ramtron_parts_s *part;  /* Part instance */
+};
 static int
 ramtron_attach(void)
 {
@@ -225,6 +254,11 @@ ramtron_attach(void)
 
 		if (mtd_dev) {
 			/* abort on first valid result */
+			FAR struct ramtron_dev_s *rt = (struct ramtron_dev_s *) mtd_dev;
+			PX4_WARN("mtd name:%s, id1:0x%02x id2:0x%02x size:0x%08x speed:%d\n", rt->part->name, rt->part->id1, rt->part->id2,
+				 rt->part->size, rt->part->speed);
+			UNUSED(rt);
+
 			if (i > 0) {
 				PX4_WARN("mtd needed %d attempts to attach", i + 1);
 			}
