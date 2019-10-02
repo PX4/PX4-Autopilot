@@ -101,9 +101,10 @@ bool PositionControl::update(const float dt)
 	_yawspeed_sp = PX4_ISFINITE(_yawspeed_sp) ? _yawspeed_sp : 0.f;
 	_yaw_sp = PX4_ISFINITE(_yaw_sp) ? _yaw_sp : _yaw;
 
-	// const bool valid_acceleration_setpoint = PX4_ISFINITE(_acc_sp(0)) && PX4_ISFINITE(_acc_sp(1))
-	// 		&& PX4_ISFINITE(_acc_sp(2));
-	return true;//valid_acceleration_setpoint;
+	const bool valid_acceleration_setpoint = PX4_ISFINITE(_acc_sp(0))
+			&& PX4_ISFINITE(_acc_sp(1))
+			&& PX4_ISFINITE(_acc_sp(2));
+	return valid_acceleration_setpoint;
 }
 
 void PositionControl::_positionControl()
