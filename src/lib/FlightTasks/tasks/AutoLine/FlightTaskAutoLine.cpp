@@ -62,6 +62,24 @@ void FlightTaskAutoLine::_generateSetpoints()
 		_generateAltitudeSetpoints();
 		_generateXYsetpoints();
 	}
+
+	// COLLISION PREVENTION
+	Vector2f vel_sp_xy = Vector2f(_velocity_setpoint);
+	// use the minimum of the estimator and user specified limit
+	float velocity_scale = fminf(_constraints.speed_xy, _sub_vehicle_local_position.get().vxy_max);
+	// Allow for a minimum of 0.3 m/s for repositioning
+	velocity_scale = fmaxf(velocity_scale, 0.3f);
+
+	if (_collision_prevention.is_active()) {
+		PX4_INFO_RAW("modifying...\n");
+		_collision_prevention.modifySetpoint(vel_sp_xy, velocity_scale, Vector2f(_position),
+						     Vector2f(_velocity));
+	}
+
+	PX4_INFO_RAW("original setpoint [%.3f, %.3f], new setpoint [%.3f, %.3f]\n", (double)_velocity_setpoint(0),
+		     (double)_velocity_setpoint(1), (double)vel_sp_xy(0), (double)vel_sp_xy(1));
+	_velocity_setpoint(0) = vel_sp_xy(0);
+	_velocity_setpoint(1) = vel_sp_xy(1);
 }
 
 void FlightTaskAutoLine::_setSpeedAtTarget()

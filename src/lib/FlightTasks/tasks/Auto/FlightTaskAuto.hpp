@@ -47,6 +47,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <lib/ecl/geo/geo.h>
 #include <ObstacleAvoidance.hpp>
+#include <CollisionPrevention/CollisionPrevention.hpp>
 
 /**
  * This enum has to agree with position_setpoint_s type definition
@@ -85,6 +86,8 @@ public:
 	 * Sets an external yaw handler which can be used to implement a different yaw control strategy.
 	 */
 	void setYawHandler(WeatherVane *ext_yaw_handler) override {_ext_yaw_handler = ext_yaw_handler;}
+
+	CollisionPrevention _collision_prevention;	/**< collision avoidance setpoint amendment */
 
 protected:
 	void _setDefaultConstraints() override;

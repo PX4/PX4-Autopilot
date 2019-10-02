@@ -43,7 +43,7 @@ using namespace matrix;
 static constexpr float SIGMA_NORM	= 0.001f;
 
 FlightTaskAuto::FlightTaskAuto() :
-	_obstacle_avoidance(this)
+	_collision_prevention(this), _obstacle_avoidance(this)
 {
 
 }
