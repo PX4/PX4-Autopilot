@@ -64,7 +64,7 @@ topic = alias if alias else spec.short_name
 #include <fastrtps/fastrtps_fwd.h>
 #include <fastrtps/publisher/PublisherListener.h>
 
-@[if 1.5 < fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
 #include "@(topic)_PubSubTypes.h"
 @[else]@
 #include "@(topic)PubSubTypes.h"
@@ -80,7 +80,7 @@ public:
     virtual ~@(topic)_Publisher();
     bool init();
     void run();
-@[if 1.5 < fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
     void publish(@(topic)_* st);
 @[else]@
     void publish(@(topic)* st);
@@ -97,7 +97,7 @@ private:
         void onPublicationMatched(Publisher* pub, MatchingInfo& info);
         int n_matched;
     } m_listener;
-@[if 1.5 < fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
     @(topic)_PubSubType myType;
 @[else]@
     @(topic)PubSubType myType;

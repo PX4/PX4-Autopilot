@@ -64,7 +64,7 @@ topic = alias if alias else spec.short_name
 
 #include <fastrtps/Domain.h>
 
-@[if 1.5 < fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
 #include <fastrtps/utils/eClock.h>
 @[end if]@
 
@@ -80,7 +80,7 @@ bool @(topic)_Publisher::init()
     // Create RTPSParticipant
     ParticipantAttributes PParam;
     PParam.rtps.builtin.domainId = 0;
-@[if 1.5 < fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
 @[else]@
     PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
@@ -97,7 +97,7 @@ bool @(topic)_Publisher::init()
     PublisherAttributes Wparam;
     Wparam.topic.topicKind = NO_KEY;
     Wparam.topic.topicDataType = myType.getName();  //This type MUST be registered
-@[if 1.5 < fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
     Wparam.topic.topicName = "@(topic)_PubSubTopic";
 @[else]@
     Wparam.topic.topicName = "@(topic)PubSubTopic";
@@ -130,7 +130,7 @@ void @(topic)_Publisher::run()
 {
     while(m_listener.n_matched == 0)
     {
-@[if 1.5 < fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
         eClock::my_sleep(250); // Sleep 250 ms;
 @[else]@
         std::this_thread::sleep_for(std::chrono::milliseconds(250)); // Sleep 250 ms
@@ -138,7 +138,7 @@ void @(topic)_Publisher::run()
     }
 
     // Publication code
-@[if 1.5 < fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
     @(topic)_ st;
 @[else]@
     @(topic) st;
@@ -167,7 +167,7 @@ void @(topic)_Publisher::run()
     }while(std::cin >> ch);
 }
 
-@[if 1.5 < fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
 void @(topic)_Publisher::publish(@(topic)_* st)
 @[else]@
 void @(topic)_Publisher::publish(@(topic)* st)

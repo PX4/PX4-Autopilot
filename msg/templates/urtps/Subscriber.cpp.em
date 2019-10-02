@@ -75,7 +75,7 @@ bool @(topic)_Subscriber::init()
     // Create RTPSParticipant
     ParticipantAttributes PParam;
     PParam.rtps.builtin.domainId = 0; // MUST BE THE SAME AS IN THE PUBLISHER
-@[if 1.5 < fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
 @[else]@
     PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
@@ -92,7 +92,7 @@ bool @(topic)_Subscriber::init()
     SubscriberAttributes Rparam;
     Rparam.topic.topicKind = NO_KEY;
     Rparam.topic.topicDataType = myType.getName(); //Must be registered before the creation of the subscriber
-@[if 1.5 < fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
     Rparam.topic.topicName = "@(topic)_PubSubTopic";
 @[else]@
     Rparam.topic.topicName = "@(topic)PubSubTopic";
@@ -125,7 +125,7 @@ void @(topic)_Subscriber::SubListener::onSubscriptionMatched(Subscriber* sub, Ma
 void @(topic)_Subscriber::SubListener::onNewDataMessage(Subscriber* sub)
 {
         // Take data
-@[if 1.5 < fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
         @(topic)_ st;
 @[else]@
         @(topic) st;
@@ -156,7 +156,7 @@ bool @(topic)_Subscriber::hasMsg()
     return m_listener.has_msg;
 }
 
-@[if 1.5 < fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
 @(topic)_ @(topic)_Subscriber::getMsg()
 @[else]@
 @(topic) @(topic)_Subscriber::getMsg()
