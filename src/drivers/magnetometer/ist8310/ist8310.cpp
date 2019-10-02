@@ -377,7 +377,7 @@ extern "C" __EXPORT int ist8310_main(int argc, char *argv[]);
 
 IST8310::IST8310(int bus_number, int address, const char *path, enum Rotation rotation) :
 	I2C("IST8310", path, bus_number, address, IST8310_DEFAULT_BUS_SPEED),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ist8310_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ist8310_com_err")),
 	_range_errors(perf_alloc(PC_COUNT, "ist8310_rng_err")),

@@ -61,8 +61,8 @@ class OutputModuleInterface : public px4::ScheduledWorkItem, public ModuleParams
 public:
 	static constexpr int MAX_ACTUATORS = DIRECT_PWM_OUTPUT_CHANNELS;
 
-	OutputModuleInterface(const px4::wq_config_t &config)
-		: px4::ScheduledWorkItem(config), ModuleParams(nullptr) {}
+	OutputModuleInterface(const char *name, const px4::wq_config_t &config)
+		: px4::ScheduledWorkItem(name, config), ModuleParams(nullptr) {}
 
 	virtual void updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 				   unsigned num_outputs, unsigned num_control_groups_updated) = 0;
@@ -239,4 +239,3 @@ private:
 
 	)
 };
-

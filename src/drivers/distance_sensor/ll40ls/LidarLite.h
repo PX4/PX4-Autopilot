@@ -90,7 +90,6 @@ protected:
 	PX4Rangefinder	_px4_rangefinder;
 
 	perf_counter_t _comms_errors{perf_alloc(PC_COUNT, "ll40ls: comms errors")};
-	perf_counter_t _sample_interval_perf{perf_alloc(PC_ELAPSED, "ll40ls: interval")};
 	perf_counter_t _sample_perf{perf_alloc(PC_ELAPSED, "ll40ls: read")};
 	perf_counter_t _sensor_resets{perf_alloc(PC_COUNT, "ll40ls: resets")};
 	perf_counter_t _sensor_zero_resets{perf_alloc(PC_COUNT, "ll40ls: zero resets")};

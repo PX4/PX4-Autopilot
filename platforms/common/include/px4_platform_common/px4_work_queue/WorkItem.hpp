@@ -33,7 +33,6 @@
 
 #pragma once
 
-
 #include "WorkQueueManager.hpp"
 #include "WorkQueue.hpp"
 
@@ -41,21 +40,18 @@
 #include <px4_defines.h>
 #include <drivers/drv_hrt.h>
 
+#include <lib/perf/perf_counter.h>
+
 namespace px4
 {
 
-class WorkItem : public IntrusiveQueueNode<WorkItem *>
+class WorkItem : public ListNode<WorkItem *>, public IntrusiveQueueNode<WorkItem *>
 {
 public:
 
-	explicit WorkItem(const wq_config_t &config);
-	WorkItem() = delete;
-
-	virtual ~WorkItem();
-
 	inline void ScheduleNow() { if (_wq != nullptr) _wq->Add(this); }
 
-	virtual void Run() = 0;
+	virtual void print_run_status() const;
 
 	/**
 	 * Switch to a different WorkQueue.
@@ -68,6 +64,18 @@ public:
 
 protected:
 
+	explicit WorkItem(const char *name, const wq_config_t &config);
+	WorkItem() = delete;
+
+	virtual ~WorkItem();
+
+protected:
+
+	void RunPreamble() { _run_count++; }
+
+	friend void WorkQueue::Run();
+	virtual void Run() = 0;
+
 	/**
 	 * Initialize WorkItem given a WorkQueue config. This call
 	 * can also be used to switch to a different WorkQueue.
@@ -79,9 +87,18 @@ protected:
 	bool Init(const wq_config_t &config);
 	void Deinit();
 
+	float elapsed_time() const;
+	float average_rate() const;
+	float average_interval() const;
+
+
+	hrt_abstime	_start_time{0};
+	unsigned	_run_count{0};
+	const char 	*_item_name;
+
 private:
 
-	WorkQueue *_wq{nullptr};
+	WorkQueue	*_wq{nullptr};
 
 };
 

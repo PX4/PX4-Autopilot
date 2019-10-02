@@ -63,7 +63,7 @@ static constexpr uint8_t LSM303AGR_WHO_AM_I_M = 0x40;
 
 LSM303AGR::LSM303AGR(int bus, const char *path, uint32_t device, enum Rotation rotation) :
 	SPI("LSM303AGR", path, bus, device, SPIDEV_MODE3, 8 * 1000 * 1000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_mag_sample_perf(perf_alloc(PC_ELAPSED, "LSM303AGR_mag_read")),
 	_bad_registers(perf_alloc(PC_COUNT, "LSM303AGR_bad_reg")),
 	_bad_values(perf_alloc(PC_COUNT, "LSM303AGR_bad_val")),

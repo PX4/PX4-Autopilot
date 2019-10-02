@@ -40,9 +40,8 @@ using namespace time_literals;
 
 VehicleAngularVelocity::VehicleAngularVelocity() :
 	ModuleParams(nullptr),
-	WorkItem(px4::wq_configurations::rate_ctrl),
+	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_cycle_perf(perf_alloc(PC_ELAPSED, "vehicle_angular_velocity: cycle time")),
-	_interval_perf(perf_alloc(PC_INTERVAL, "vehicle_angular_velocity: interval")),
 	_sensor_latency_perf(perf_alloc(PC_ELAPSED, "vehicle_angular_velocity: sensor latency"))
 {
 }
@@ -52,7 +51,6 @@ VehicleAngularVelocity::~VehicleAngularVelocity()
 	Stop();
 
 	perf_free(_cycle_perf);
-	perf_free(_interval_perf);
 	perf_free(_sensor_latency_perf);
 }
 
@@ -217,7 +215,6 @@ void
 VehicleAngularVelocity::Run()
 {
 	perf_begin(_cycle_perf);
-	perf_count(_interval_perf);
 
 	// update corrections first to set _selected_sensor
 	SensorCorrectionsUpdate();
@@ -296,6 +293,5 @@ VehicleAngularVelocity::PrintStatus()
 	}
 
 	perf_print_counter(_cycle_perf);
-	perf_print_counter(_interval_perf);
 	perf_print_counter(_sensor_latency_perf);
 }

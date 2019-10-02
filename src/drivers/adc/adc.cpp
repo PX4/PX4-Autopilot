@@ -104,7 +104,7 @@ private:
 
 ADC::ADC(uint32_t base_address, uint32_t channels) :
 	CDev(ADC0_DEVICE_PATH),
-	ScheduledWorkItem(px4::wq_configurations::hp_default),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_base_address(base_address)
 {

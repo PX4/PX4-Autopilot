@@ -167,7 +167,7 @@ private:
 
 VL53LXX::VL53LXX(uint8_t rotation, int bus, int address) :
 	I2C("VL53LXX", VL53LXX_DEVICE_PATH, bus, address, 400000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_rotation(rotation)
 {
 	// Allow 3 retries as the device typically misses the first measure attempts.
