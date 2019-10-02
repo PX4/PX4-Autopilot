@@ -22,9 +22,6 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-set MIXER quad_x
-set PWM_OUT 1234
-
 if [ $AUTOCNF = yes ]
 then
 	# use the Q attitude estimator, it works w/o mag or GPS.
@@ -101,3 +98,5 @@ then
 	# TELEM2 ttyS2
 	#param set MAV_1_CONFIG 0
 fi
+
+set MIXER quad_x

@@ -12,12 +12,6 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-set MIXER quad_x
-set PWM_OUT 1234
-
-set MIXER_AUX mount
-set PWM_AUX_OUT 123456
-
 # The Z1 Tiny2 can handle up to 400Hz
 # and works with min 1020us, middle 1520us, max 2020us
 # see http://www.zhiyun-tech.com/uploadfile/datedown/instruction/Tiny2_English_instructionV1.03.pdf
@@ -30,6 +24,10 @@ then
 	param set PWM_AUX_MAX 2020
 	param set PWM_AUX_RATE 400
 fi
+
+set MIXER quad_x
+set MIXER_AUX mount
+set PWM_AUX_OUT 123456
 
 # Start FrSky telemetry on SERIAL4 (ttyS6, designated "SERIAL4/5" on the case)
 frsky_telemetry start -d /dev/ttyS6

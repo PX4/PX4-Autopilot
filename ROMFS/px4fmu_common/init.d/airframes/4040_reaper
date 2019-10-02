@@ -42,9 +42,3 @@ then
 fi
 
 set MIXER quad_h
-
-set PWM_OUT 1234
-
-set MIXER_AUX pass
-
-set PWM_AUX_OUT 1234

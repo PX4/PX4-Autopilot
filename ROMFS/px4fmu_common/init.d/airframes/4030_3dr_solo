@@ -88,7 +88,4 @@ then
 fi
 
 set MIXER quad_x
-
-set PWM_OUT 1234
 set MIXER_AUX none
-

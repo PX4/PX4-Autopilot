@@ -18,12 +18,7 @@
 # @maintainer Matt McFadden <matt.mcfadden@tealdrones.com>
 #
 
-echo "Executing 4250_teal script."
-
 sh /etc/init.d/rc.mc_defaults
-
-set MIXER quad_x
-set PWM_OUT 1234
 
 if [ $AUTOCNF = yes ]
 then
@@ -199,6 +194,8 @@ then
 	param set CAL_MAG_PRIME 265738
 
 fi
+
+set MIXER quad_x
 
 # Logger mode. Default(1) + estimator replay(2) + thermal calibration(4)
 param set SDLOG_PROFILE 6

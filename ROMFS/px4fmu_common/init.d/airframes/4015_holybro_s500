@@ -10,9 +10,6 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-set MIXER quad_x
-set PWM_OUT 1234
-
 if [ $AUTOCNF = yes ]
 then
 	param set IMU_GYRO_CUTOFF 80
@@ -24,3 +21,5 @@ then
 	param set MC_ROLLRATE_D 0.004
 	param set MC_PITCHRATE_D 0.004
 fi
+
+set MIXER quad_x

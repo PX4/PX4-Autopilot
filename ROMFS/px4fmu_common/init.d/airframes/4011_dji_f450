@@ -10,9 +10,6 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-set MIXER quad_x
-set PWM_OUT 1234
-
 if [ $AUTOCNF = yes ]
 then
 	param set MC_ROLL_P 7
@@ -31,3 +28,5 @@ then
 	# DJI ESCs do not support calibration and need a higher min
 	param set PWM_MIN 1230
 fi
+
+set MIXER quad_x

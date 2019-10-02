@@ -75,7 +75,6 @@ px4_add_romfs_files(
 	4031_3dr_quad
 	4040_reaper
 	4041_beta75x
-	4050_generic_250
 	4051_s250aq
 	4052_holybro_qav250
 	4053_holybro_kopis2
@@ -86,8 +85,11 @@ px4_add_romfs_files(
 	4080_zmr250
 	4090_nanomind
 	4100_tiltquadrotor
+	4250_generic_quad_250
 	4250_teal
+	4450_generic_quad_450
 	4500_clover4
+	4650_generic_quad_650
 	4900_crazyflie
 
 	# [5000, 5999] Quadrotor +"

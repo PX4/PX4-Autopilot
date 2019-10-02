@@ -62,5 +62,3 @@ fi
 
 # The Whoop uses reversed props
 set MIXER quad_h
-set PWM_OUT 1234
-
