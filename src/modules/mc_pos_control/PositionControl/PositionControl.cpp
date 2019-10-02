@@ -91,6 +91,18 @@ void PositionControl::setConstraints(const vehicle_constraints_s &constraints)
 	if (!PX4_ISFINITE(constraints.tilt) || (constraints.tilt > _lim_tilt)) {
 		_constraints.tilt = _lim_tilt;
 	}
+
+	if (!PX4_ISFINITE(constraints.speed_up) || (constraints.speed_up > _lim_vel_up)) {
+		_constraints.speed_up = _lim_vel_up;
+	}
+
+	if (!PX4_ISFINITE(constraints.speed_down) || (constraints.speed_down > _lim_vel_down)) {
+		_constraints.speed_down = _lim_vel_down;
+	}
+
+	if (!PX4_ISFINITE(constraints.speed_xy) || (constraints.speed_xy > _lim_vel_horizontal)) {
+		_constraints.speed_xy = _lim_vel_horizontal;
+	}
 }
 
 bool PositionControl::update(const float dt)
@@ -116,11 +128,11 @@ void PositionControl::_positionControl()
 	// Constrain horizontal velocity by prioritizing the velocity component along the
 	// the desired position setpoint over the feed-forward term.
 	const Vector2f vel_sp_xy = ControlMath::constrainXY(Vector2f(vel_sp_position),
-				   Vector2f(_vel_sp - vel_sp_position), _lim_vel_horizontal);
+				   Vector2f(_vel_sp - vel_sp_position), _constraints.speed_xy);
 	_vel_sp(0) = vel_sp_xy(0);
 	_vel_sp(1) = vel_sp_xy(1);
 	// Constrain velocity in z-direction.
-	_vel_sp(2) = math::constrain(_vel_sp(2), -_lim_vel_up, _lim_vel_down);
+	_vel_sp(2) = math::constrain(_vel_sp(2), -_constraints.speed_up, _constraints.speed_down);
 }
 
 void PositionControl::_velocityControl(const float dt)

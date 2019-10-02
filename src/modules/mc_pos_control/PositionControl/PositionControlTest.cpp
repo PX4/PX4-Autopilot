@@ -99,6 +99,9 @@ public:
 		_position_control.setHoverThrust(.5f);
 
 		_contraints.tilt = 1.f;
+		_contraints.speed_xy = NAN;
+		_contraints.speed_up = NAN;
+		_contraints.speed_down = NAN;
 
 		_input_setpoint.x = NAN;
 		_input_setpoint.y = NAN;
