@@ -70,7 +70,6 @@
         "editor.minimap.maxColumn": 120,
         "editor.minimap.renderCharacters": false,
         "editor.minimap.showSlider": "always",
-        "editor.smoothScrolling": true,
         "editor.suggest.localityBonus": true,
         "editor.tabSize": 8,
         "editor.wordWrapColumn": 120,
