@@ -46,6 +46,7 @@
 #include <px4_posix.h>
 #include <px4_defines.h>
 #include <px4_time.h>
+#include <px4_param.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -446,7 +447,8 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		/* set offset parameters to new values */
 		bool failed = false;
 
-		failed = failed || (PX4_OK != param_set_no_notification(param_find("CAL_GYRO_PRIME"), &(device_id_primary)));
+		failed = failed
+			 || (PX4_OK != param_set_no_notification(param_handle(px4::params::CAL_GYRO_PRIME), &(device_id_primary)));
 
 		bool tc_locked[3] = {false}; // true when the thermal parameter instance has already been adjusted by the calibrator
 
@@ -456,7 +458,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 				/* check if thermal compensation is enabled */
 				int32_t tc_enabled_int;
-				param_get(param_find("TC_G_ENABLE"), &(tc_enabled_int));
+				param_get(param_handle(px4::params::TC_G_ENABLE), &(tc_enabled_int));
 
 				if (tc_enabled_int == 1) {
 					/* Get struct containing sensor thermal compensation data */

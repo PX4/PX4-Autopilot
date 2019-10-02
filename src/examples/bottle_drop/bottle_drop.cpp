@@ -42,6 +42,7 @@
 
 #include <px4_config.h>
 #include <px4_tasks.h>
+#include <px4_param.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -394,12 +395,12 @@ BottleDrop::task_main()
 
 	unsigned counter = 0;
 
-	param_t param_gproperties = param_find("BD_GPROPERTIES");
-	param_t param_turn_radius = param_find("BD_TURNRADIUS");
-	param_t param_precision = param_find("BD_PRECISION");
-	param_t param_cd = param_find("BD_OBJ_CD");
-	param_t param_mass = param_find("BD_OBJ_MASS");
-	param_t param_surface = param_find("BD_OBJ_SURFACE");
+	param_t param_gproperties = param_handle(px4::params::BD_GPROPERTIES);
+	param_t param_turn_radius = param_handle(px4::params::BD_TURNRADIUS);
+	param_t param_precision = param_handle(px4::params::BD_PRECISION);
+	param_t param_cd = param_handle(px4::params::BD_OBJ_CD);
+	param_t param_mass = param_handle(px4::params::BD_OBJ_MASS);
+	param_t param_surface = param_handle(px4::params::BD_OBJ_SURFACE);
 
 
 	param_get(param_precision, &precision);

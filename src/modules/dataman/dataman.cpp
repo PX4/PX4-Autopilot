@@ -47,6 +47,8 @@
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <px4_getopt.h>
+#include <px4_param.h>
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -1319,7 +1321,7 @@ task_main(int argc, char *argv[])
 		goto end;
 	}
 
-	if (param_get(param_find("SYS_RESTART_TYPE"), &sys_restart_val) == OK) {
+	if (param_get(param_handle(px4::params::SYS_RESTART_TYPE), &sys_restart_val) == OK) {
 		if (sys_restart_val == DM_INIT_REASON_POWER_ON) {
 			restart_type_str = "Power on restart";
 			g_dm_ops->restart(DM_INIT_REASON_POWER_ON);

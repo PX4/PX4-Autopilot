@@ -52,6 +52,7 @@
 #include <px4_cli.h>
 #include <px4_getopt.h>
 #include <px4_module.h>
+#include <px4_param.h>
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/gps_dump.h>
@@ -537,7 +538,7 @@ int GPS::setBaudrate(unsigned baud)
 
 void GPS::initializeCommunicationDump()
 {
-	param_t gps_dump_comm_ph = param_find("GPS_DUMP_COMM");
+	param_t gps_dump_comm_ph = param_handle(px4::params::GPS_DUMP_COMM);
 	int32_t param_dump_comm;
 
 	if (gps_dump_comm_ph == PARAM_INVALID || param_get(gps_dump_comm_ph, &param_dump_comm) != 0) {
@@ -632,7 +633,7 @@ GPS::run()
 #endif /* __PX4_LINUX */
 	}
 
-	param_t handle = param_find("GPS_YAW_OFFSET");
+	param_t handle = param_handle(px4::params::GPS_YAW_OFFSET);
 	float heading_offset = 0.f;
 
 	if (handle != PARAM_INVALID) {
@@ -641,7 +642,7 @@ GPS::run()
 	}
 
 	int32_t gps_ubx_dynmodel = 7; // default to 7: airborne with <2g acceleration
-	handle = param_find("GPS_UBX_DYNMODEL");
+	handle = param_handle(px4::params::GPS_UBX_DYNMODEL);
 
 	if (handle != PARAM_INVALID) {
 		param_get(handle, &gps_ubx_dynmodel);

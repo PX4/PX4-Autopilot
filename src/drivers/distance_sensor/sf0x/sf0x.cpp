@@ -42,6 +42,7 @@
 #include <px4_config.h>
 #include <px4_getopt.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_param.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -206,7 +207,7 @@ int
 SF0X::init()
 {
 	int hw_model;
-	param_get(param_find("SENS_EN_SF0X"), &hw_model);
+	param_get(param_handle(px4::params::SENS_EN_SF0X), &hw_model);
 
 	switch (hw_model) {
 
@@ -571,7 +572,7 @@ SF0X::Run()
 		/* if distance sensor model is SF11/C, then set baudrate 115200, else 9600 */
 		int hw_model;
 
-		param_get(param_find("SENS_EN_SF0X"), &hw_model);
+		param_get(param_handle(px4::params::SENS_EN_SF0X), &hw_model);
 
 		unsigned speed;
 

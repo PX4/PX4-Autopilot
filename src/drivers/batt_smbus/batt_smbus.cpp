@@ -42,6 +42,7 @@
  */
 
 #include "batt_smbus.h"
+#include <px4_param.h>
 
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 
@@ -66,7 +67,7 @@ BATT_SMBUS::BATT_SMBUS(SMBus *interface, const char *path) :
 	_batt_topic = orb_advertise(ORB_ID(battery_status), &new_report);
 
 	int battsource = 1;
-	param_set(param_find("BAT_SOURCE"), &battsource);
+	param_set(param_handle(px4::params::BAT_SOURCE), &battsource);
 
 	_interface->init();
 	// unseal() here to allow an external config script to write to protected flash.
@@ -89,7 +90,7 @@ BATT_SMBUS::~BATT_SMBUS()
 	}
 
 	int battsource = 0;
-	param_set(param_find("BAT_SOURCE"), &battsource);
+	param_set(param_handle(px4::params::BAT_SOURCE), &battsource);
 
 	PX4_WARN("Exiting.");
 }
@@ -452,9 +453,9 @@ int BATT_SMBUS::get_startup_info()
 	}
 
 	// Read battery threshold params on startup.
-	param_get(param_find("BAT_CRIT_THR"), &_crit_thr);
-	param_get(param_find("BAT_LOW_THR"), &_low_thr);
-	param_get(param_find("BAT_EMERGEN_THR"), &_emergency_thr);
+	param_get(param_handle(px4::params::BAT_CRIT_THR), &_crit_thr);
+	param_get(param_handle(px4::params::BAT_LOW_THR), &_low_thr);
+	param_get(param_handle(px4::params::BAT_EMERGEN_THR), &_emergency_thr);
 
 	return result;
 }

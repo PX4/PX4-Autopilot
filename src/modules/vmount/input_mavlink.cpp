@@ -47,6 +47,7 @@
 
 #include <px4_defines.h>
 #include <px4_posix.h>
+#include <px4_param.h>
 #include <errno.h>
 #include <math.h>
 
@@ -178,13 +179,13 @@ void InputMavlinkROI::print_status()
 InputMavlinkCmdMount::InputMavlinkCmdMount(bool stabilize)
 	: _stabilize {stabilize, stabilize, stabilize}
 {
-	param_t handle = param_find("MAV_SYS_ID");
+	param_t handle = param_handle(px4::params::MAV_SYS_ID);
 
 	if (handle != PARAM_INVALID) {
 		param_get(handle, &_mav_sys_id);
 	}
 
-	handle = param_find("MAV_COMP_ID");
+	handle = param_handle(px4::params::MAV_COMP_ID);
 
 	if (handle != PARAM_INVALID) {
 		param_get(handle, &_mav_comp_id);

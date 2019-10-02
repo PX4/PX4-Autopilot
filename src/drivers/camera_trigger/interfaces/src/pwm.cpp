@@ -3,7 +3,7 @@
 #include <sys/ioctl.h>
 #include <lib/mathlib/mathlib.h>
 #include <parameters/param.h>
-
+#include <px4_param.h>
 
 #include "drivers/drv_pwm_trigger.h"
 #include "pwm.h"
@@ -12,8 +12,8 @@
 CameraInterfacePWM::CameraInterfacePWM():
 	CameraInterface()
 {
-	param_get(param_find("TRIG_PWM_SHOOT"), &_pwm_camera_shoot);
-	param_get(param_find("TRIG_PWM_NEUTRAL"), &_pwm_camera_neutral);
+	param_get(param_handle(px4::params::TRIG_PWM_SHOOT), &_pwm_camera_shoot);
+	param_get(param_handle(px4::params::TRIG_PWM_NEUTRAL), &_pwm_camera_neutral);
 	get_pins();
 	setup();
 }

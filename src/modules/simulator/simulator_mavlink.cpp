@@ -954,11 +954,11 @@ int Simulator::publish_flow_topic(const mavlink_hil_optical_flow_t *flow_mavlink
 
 	/* fill in sensor limits */
 	float flow_rate_max;
-	param_get(param_find("SENS_FLOW_MAXR"), &flow_rate_max);
+	param_get(param_handle(px4::params::SENS_FLOW_MAXR), &flow_rate_max);
 	float flow_min_hgt;
-	param_get(param_find("SENS_FLOW_MINHGT"), &flow_min_hgt);
+	param_get(param_handle(px4::params::SENS_FLOW_MINHGT), &flow_min_hgt);
 	float flow_max_hgt;
-	param_get(param_find("SENS_FLOW_MAXHGT"), &flow_max_hgt);
+	param_get(param_handle(px4::params::SENS_FLOW_MAXHGT), &flow_max_hgt);
 
 	flow.max_flow_rate = flow_rate_max;
 	flow.min_ground_distance = flow_min_hgt;
@@ -966,7 +966,7 @@ int Simulator::publish_flow_topic(const mavlink_hil_optical_flow_t *flow_mavlink
 
 	/* rotate measurements according to parameter */
 	int32_t flow_rot_int;
-	param_get(param_find("SENS_FLOW_ROT"), &flow_rot_int);
+	param_get(param_handle(px4::params::SENS_FLOW_ROT), &flow_rot_int);
 	const enum Rotation flow_rot = (Rotation)flow_rot_int;
 
 	float zeroval = 0.0f;

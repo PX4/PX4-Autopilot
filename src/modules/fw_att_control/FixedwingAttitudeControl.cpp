@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "FixedwingAttitudeControl.hpp"
+#include <px4_param.h>
 
 #include <vtol_att_control/vtol_type.h>
 
@@ -52,72 +53,72 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	// check if VTOL first
 	vehicle_status_poll();
 
-	_parameter_handles.p_tc = param_find("FW_P_TC");
-	_parameter_handles.p_p = param_find("FW_PR_P");
-	_parameter_handles.p_i = param_find("FW_PR_I");
-	_parameter_handles.p_ff = param_find("FW_PR_FF");
-	_parameter_handles.p_rmax_pos = param_find("FW_P_RMAX_POS");
-	_parameter_handles.p_rmax_neg = param_find("FW_P_RMAX_NEG");
-	_parameter_handles.p_integrator_max = param_find("FW_PR_IMAX");
+	_parameter_handles.p_tc = param_handle(px4::params::FW_P_TC);
+	_parameter_handles.p_p = param_handle(px4::params::FW_PR_P);
+	_parameter_handles.p_i = param_handle(px4::params::FW_PR_I);
+	_parameter_handles.p_ff = param_handle(px4::params::FW_PR_FF);
+	_parameter_handles.p_rmax_pos = param_handle(px4::params::FW_P_RMAX_POS);
+	_parameter_handles.p_rmax_neg = param_handle(px4::params::FW_P_RMAX_NEG);
+	_parameter_handles.p_integrator_max = param_handle(px4::params::FW_PR_IMAX);
 
-	_parameter_handles.r_tc = param_find("FW_R_TC");
-	_parameter_handles.r_p = param_find("FW_RR_P");
-	_parameter_handles.r_i = param_find("FW_RR_I");
-	_parameter_handles.r_ff = param_find("FW_RR_FF");
-	_parameter_handles.r_integrator_max = param_find("FW_RR_IMAX");
-	_parameter_handles.r_rmax = param_find("FW_R_RMAX");
+	_parameter_handles.r_tc = param_handle(px4::params::FW_R_TC);
+	_parameter_handles.r_p = param_handle(px4::params::FW_RR_P);
+	_parameter_handles.r_i = param_handle(px4::params::FW_RR_I);
+	_parameter_handles.r_ff = param_handle(px4::params::FW_RR_FF);
+	_parameter_handles.r_integrator_max = param_handle(px4::params::FW_RR_IMAX);
+	_parameter_handles.r_rmax = param_handle(px4::params::FW_R_RMAX);
 
-	_parameter_handles.y_p = param_find("FW_YR_P");
-	_parameter_handles.y_i = param_find("FW_YR_I");
-	_parameter_handles.y_ff = param_find("FW_YR_FF");
-	_parameter_handles.y_integrator_max = param_find("FW_YR_IMAX");
-	_parameter_handles.y_rmax = param_find("FW_Y_RMAX");
-	_parameter_handles.roll_to_yaw_ff = param_find("FW_RLL_TO_YAW_FF");
+	_parameter_handles.y_p = param_handle(px4::params::FW_YR_P);
+	_parameter_handles.y_i = param_handle(px4::params::FW_YR_I);
+	_parameter_handles.y_ff = param_handle(px4::params::FW_YR_FF);
+	_parameter_handles.y_integrator_max = param_handle(px4::params::FW_YR_IMAX);
+	_parameter_handles.y_rmax = param_handle(px4::params::FW_Y_RMAX);
+	_parameter_handles.roll_to_yaw_ff = param_handle(px4::params::FW_RLL_TO_YAW_FF);
 
-	_parameter_handles.w_en = param_find("FW_W_EN");
-	_parameter_handles.w_p = param_find("FW_WR_P");
-	_parameter_handles.w_i = param_find("FW_WR_I");
-	_parameter_handles.w_ff = param_find("FW_WR_FF");
-	_parameter_handles.w_integrator_max = param_find("FW_WR_IMAX");
-	_parameter_handles.w_rmax = param_find("FW_W_RMAX");
+	_parameter_handles.w_en = param_handle(px4::params::FW_W_EN);
+	_parameter_handles.w_p = param_handle(px4::params::FW_WR_P);
+	_parameter_handles.w_i = param_handle(px4::params::FW_WR_I);
+	_parameter_handles.w_ff = param_handle(px4::params::FW_WR_FF);
+	_parameter_handles.w_integrator_max = param_handle(px4::params::FW_WR_IMAX);
+	_parameter_handles.w_rmax = param_handle(px4::params::FW_W_RMAX);
 
-	_parameter_handles.airspeed_min = param_find("FW_AIRSPD_MIN");
-	_parameter_handles.airspeed_trim = param_find("FW_AIRSPD_TRIM");
-	_parameter_handles.airspeed_max = param_find("FW_AIRSPD_MAX");
+	_parameter_handles.airspeed_min = param_handle(px4::params::FW_AIRSPD_MIN);
+	_parameter_handles.airspeed_trim = param_handle(px4::params::FW_AIRSPD_TRIM);
+	_parameter_handles.airspeed_max = param_handle(px4::params::FW_AIRSPD_MAX);
 
-	_parameter_handles.trim_roll = param_find("TRIM_ROLL");
-	_parameter_handles.trim_pitch = param_find("TRIM_PITCH");
-	_parameter_handles.trim_yaw = param_find("TRIM_YAW");
-	_parameter_handles.dtrim_roll_vmin = param_find("FW_DTRIM_R_VMIN");
-	_parameter_handles.dtrim_pitch_vmin = param_find("FW_DTRIM_P_VMIN");
-	_parameter_handles.dtrim_yaw_vmin = param_find("FW_DTRIM_Y_VMIN");
-	_parameter_handles.dtrim_roll_vmax = param_find("FW_DTRIM_R_VMAX");
-	_parameter_handles.dtrim_pitch_vmax = param_find("FW_DTRIM_P_VMAX");
-	_parameter_handles.dtrim_yaw_vmax = param_find("FW_DTRIM_Y_VMAX");
-	_parameter_handles.dtrim_roll_flaps = param_find("FW_DTRIM_R_FLPS");
-	_parameter_handles.dtrim_pitch_flaps = param_find("FW_DTRIM_P_FLPS");
-	_parameter_handles.rollsp_offset_deg = param_find("FW_RSP_OFF");
-	_parameter_handles.pitchsp_offset_deg = param_find("FW_PSP_OFF");
+	_parameter_handles.trim_roll = param_handle(px4::params::TRIM_ROLL);
+	_parameter_handles.trim_pitch = param_handle(px4::params::TRIM_PITCH);
+	_parameter_handles.trim_yaw = param_handle(px4::params::TRIM_YAW);
+	_parameter_handles.dtrim_roll_vmin = param_handle(px4::params::FW_DTRIM_R_VMIN);
+	_parameter_handles.dtrim_pitch_vmin = param_handle(px4::params::FW_DTRIM_P_VMIN);
+	_parameter_handles.dtrim_yaw_vmin = param_handle(px4::params::FW_DTRIM_Y_VMIN);
+	_parameter_handles.dtrim_roll_vmax = param_handle(px4::params::FW_DTRIM_R_VMAX);
+	_parameter_handles.dtrim_pitch_vmax = param_handle(px4::params::FW_DTRIM_P_VMAX);
+	_parameter_handles.dtrim_yaw_vmax = param_handle(px4::params::FW_DTRIM_Y_VMAX);
+	_parameter_handles.dtrim_roll_flaps = param_handle(px4::params::FW_DTRIM_R_FLPS);
+	_parameter_handles.dtrim_pitch_flaps = param_handle(px4::params::FW_DTRIM_P_FLPS);
+	_parameter_handles.rollsp_offset_deg = param_handle(px4::params::FW_RSP_OFF);
+	_parameter_handles.pitchsp_offset_deg = param_handle(px4::params::FW_PSP_OFF);
 
-	_parameter_handles.man_roll_max = param_find("FW_MAN_R_MAX");
-	_parameter_handles.man_pitch_max = param_find("FW_MAN_P_MAX");
-	_parameter_handles.man_roll_scale = param_find("FW_MAN_R_SC");
-	_parameter_handles.man_pitch_scale = param_find("FW_MAN_P_SC");
-	_parameter_handles.man_yaw_scale = param_find("FW_MAN_Y_SC");
+	_parameter_handles.man_roll_max = param_handle(px4::params::FW_MAN_R_MAX);
+	_parameter_handles.man_pitch_max = param_handle(px4::params::FW_MAN_P_MAX);
+	_parameter_handles.man_roll_scale = param_handle(px4::params::FW_MAN_R_SC);
+	_parameter_handles.man_pitch_scale = param_handle(px4::params::FW_MAN_P_SC);
+	_parameter_handles.man_yaw_scale = param_handle(px4::params::FW_MAN_Y_SC);
 
-	_parameter_handles.acro_max_x_rate = param_find("FW_ACRO_X_MAX");
-	_parameter_handles.acro_max_y_rate = param_find("FW_ACRO_Y_MAX");
-	_parameter_handles.acro_max_z_rate = param_find("FW_ACRO_Z_MAX");
+	_parameter_handles.acro_max_x_rate = param_handle(px4::params::FW_ACRO_X_MAX);
+	_parameter_handles.acro_max_y_rate = param_handle(px4::params::FW_ACRO_Y_MAX);
+	_parameter_handles.acro_max_z_rate = param_handle(px4::params::FW_ACRO_Z_MAX);
 
-	_parameter_handles.flaps_scale = param_find("FW_FLAPS_SCL");
-	_parameter_handles.flaps_takeoff_scale = param_find("FW_FLAPS_TO_SCL");
-	_parameter_handles.flaps_land_scale = param_find("FW_FLAPS_LND_SCL");
-	_parameter_handles.flaperon_scale = param_find("FW_FLAPERON_SCL");
+	_parameter_handles.flaps_scale = param_handle(px4::params::FW_FLAPS_SCL);
+	_parameter_handles.flaps_takeoff_scale = param_handle(px4::params::FW_FLAPS_TO_SCL);
+	_parameter_handles.flaps_land_scale = param_handle(px4::params::FW_FLAPS_LND_SCL);
+	_parameter_handles.flaperon_scale = param_handle(px4::params::FW_FLAPERON_SCL);
 
-	_parameter_handles.rattitude_thres = param_find("FW_RATT_TH");
+	_parameter_handles.rattitude_thres = param_handle(px4::params::FW_RATT_TH);
 
-	_parameter_handles.bat_scale_en = param_find("FW_BAT_SCALE_EN");
-	_parameter_handles.airspeed_mode = param_find("FW_ARSP_MODE");
+	_parameter_handles.bat_scale_en = param_handle(px4::params::FW_BAT_SCALE_EN);
+	_parameter_handles.airspeed_mode = param_handle(px4::params::FW_ARSP_MODE);
 
 	/* fetch initial parameter values */
 	parameters_update();

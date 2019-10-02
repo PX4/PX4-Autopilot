@@ -46,6 +46,7 @@
 #include <px4_getopt.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_module.h>
+#include <px4_param.h>
 
 #include <drivers/device/i2c.h>
 
@@ -200,7 +201,7 @@ SF1XX::init()
 {
 	int ret = PX4_ERROR;
 	int hw_model;
-	param_get(param_find("SENS_EN_SF1XX"), &hw_model);
+	param_get(param_handle(px4::params::SENS_EN_SF1XX), &hw_model);
 
 	switch (hw_model) {
 	case 0:

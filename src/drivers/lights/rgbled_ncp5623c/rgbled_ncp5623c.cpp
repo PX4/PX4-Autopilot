@@ -47,6 +47,7 @@
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
+#include <px4_param.h>
 
 
 #define ADDR			0x39	/**< I2C adress of NCP5623C */
@@ -249,7 +250,7 @@ void
 RGBLED_NPC5623C::update_params()
 {
 	int32_t maxbrt = 31;
-	param_get(param_find("LED_RGB1_MAXBRT"), &maxbrt);
+	param_get(param_handle(px4::params::LED_RGB1_MAXBRT), &maxbrt);
 	maxbrt = maxbrt > 31 ? 31 : maxbrt;
 	maxbrt = maxbrt <  0 ?  0 : maxbrt;
 

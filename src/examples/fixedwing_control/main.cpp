@@ -51,6 +51,7 @@
 #include <matrix/math.hpp>
 #include <px4_config.h>
 #include <px4_tasks.h>
+#include <px4_param.h>
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
@@ -227,9 +228,9 @@ void control_heading(const struct vehicle_global_position_s *pos, const struct p
 int parameters_init(struct param_handles *handles)
 {
 	/* PID parameters */
-	handles->hdng_p 	=	param_find("EXFW_HDNG_P");
-	handles->roll_p 	=	param_find("EXFW_ROLL_P");
-	handles->pitch_p 	=	param_find("EXFW_PITCH_P");
+	handles->hdng_p 	=	param_handle(px4::params::EXFW_HDNG_P);
+	handles->roll_p 	=	param_handle(px4::params::EXFW_ROLL_P);
+	handles->pitch_p 	=	param_handle(px4::params::EXFW_PITCH_P);
 
 	return 0;
 }

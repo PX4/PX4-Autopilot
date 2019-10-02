@@ -46,6 +46,7 @@
 
 #include <systemlib/err.h>
 #include <parameters/param.h>
+#include <px4_param.h>
 
 static constexpr const char *satcom_state_string[4] = {"STANDBY", "SIGNAL CHECK", "SBD SESSION", "TEST"};
 
@@ -316,17 +317,17 @@ void IridiumSBD::main_loop(int argc, char *argv[])
 
 	param_t param_pointer;
 
-	param_pointer = param_find("ISBD_READ_INT");
+	param_pointer = param_handle(px4::params::ISBD_READ_INT);
 	param_get(param_pointer, &_param_read_interval_s);
 
-	param_pointer = param_find("ISBD_SBD_TIMEOUT");
+	param_pointer = param_handle(px4::params::ISBD_SBD_TIMEOUT);
 	param_get(param_pointer, &_param_session_timeout_s);
 
 	if (_param_session_timeout_s < 0) {
 		_param_session_timeout_s = 60;
 	}
 
-	param_pointer = param_find("ISBD_STACK_TIME");
+	param_pointer = param_handle(px4::params::ISBD_STACK_TIME);
 	param_get(param_pointer, &_param_stacking_time_ms);
 
 	if (_param_stacking_time_ms < 0) {

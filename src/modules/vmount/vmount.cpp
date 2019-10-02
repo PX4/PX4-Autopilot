@@ -54,6 +54,7 @@
 #include <systemlib/err.h>
 #include <px4_defines.h>
 #include <px4_tasks.h>
+#include <px4_param.h>
 
 #include "input_mavlink.h"
 #include "input_rc.h"
@@ -539,22 +540,22 @@ void update_params(ParameterHandles &param_handles, Parameters &params, bool &go
 
 bool get_params(ParameterHandles &param_handles, Parameters &params)
 {
-	param_handles.mnt_mode_in = param_find("MNT_MODE_IN");
-	param_handles.mnt_mode_out = param_find("MNT_MODE_OUT");
-	param_handles.mnt_mav_sysid = param_find("MNT_MAV_SYSID");
-	param_handles.mnt_mav_compid = param_find("MNT_MAV_COMPID");
-	param_handles.mnt_ob_lock_mode = param_find("MNT_OB_LOCK_MODE");
-	param_handles.mnt_ob_norm_mode = param_find("MNT_OB_NORM_MODE");
-	param_handles.mnt_man_pitch = param_find("MNT_MAN_PITCH");
-	param_handles.mnt_man_roll = param_find("MNT_MAN_ROLL");
-	param_handles.mnt_man_yaw = param_find("MNT_MAN_YAW");
-	param_handles.mnt_do_stab = param_find("MNT_DO_STAB");
-	param_handles.mnt_range_pitch = param_find("MNT_RANGE_PITCH");
-	param_handles.mnt_range_roll = param_find("MNT_RANGE_ROLL");
-	param_handles.mnt_range_yaw = param_find("MNT_RANGE_YAW");
-	param_handles.mnt_off_pitch = param_find("MNT_OFF_PITCH");
-	param_handles.mnt_off_roll = param_find("MNT_OFF_ROLL");
-	param_handles.mnt_off_yaw = param_find("MNT_OFF_YAW");
+	param_handles.mnt_mode_in = param_handle(px4::params::MNT_MODE_IN);
+	param_handles.mnt_mode_out = param_handle(px4::params::MNT_MODE_OUT);
+	param_handles.mnt_mav_sysid = param_handle(px4::params::MNT_MAV_SYSID);
+	param_handles.mnt_mav_compid = param_handle(px4::params::MNT_MAV_COMPID);
+	param_handles.mnt_ob_lock_mode = param_handle(px4::params::MNT_OB_LOCK_MODE);
+	param_handles.mnt_ob_norm_mode = param_handle(px4::params::MNT_OB_NORM_MODE);
+	param_handles.mnt_man_pitch = param_handle(px4::params::MNT_MAN_PITCH);
+	param_handles.mnt_man_roll = param_handle(px4::params::MNT_MAN_ROLL);
+	param_handles.mnt_man_yaw = param_handle(px4::params::MNT_MAN_YAW);
+	param_handles.mnt_do_stab = param_handle(px4::params::MNT_DO_STAB);
+	param_handles.mnt_range_pitch = param_handle(px4::params::MNT_RANGE_PITCH);
+	param_handles.mnt_range_roll = param_handle(px4::params::MNT_RANGE_ROLL);
+	param_handles.mnt_range_yaw = param_handle(px4::params::MNT_RANGE_YAW);
+	param_handles.mnt_off_pitch = param_handle(px4::params::MNT_OFF_PITCH);
+	param_handles.mnt_off_roll = param_handle(px4::params::MNT_OFF_ROLL);
+	param_handles.mnt_off_yaw = param_handle(px4::params::MNT_OFF_YAW);
 
 	if (param_handles.mnt_mode_in == PARAM_INVALID ||
 	    param_handles.mnt_mode_out == PARAM_INVALID ||

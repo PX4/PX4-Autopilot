@@ -44,6 +44,7 @@
 #include <uORB/topics/sensor_accel.h>
 #include <mathlib/mathlib.h>
 #include <drivers/drv_hrt.h>
+#include <px4_param.h>
 
 TemperatureCalibrationAccel::TemperatureCalibrationAccel(float min_temperature_rise, float min_start_temperature,
 		float max_start_temperature)
@@ -173,7 +174,7 @@ int TemperatureCalibrationAccel::finish()
 	}
 
 	int32_t enabled = 1;
-	int result = param_set_no_notification(param_find("TC_A_ENABLE"), &enabled);
+	int result = param_set_no_notification(param_handle(px4::params::TC_A_ENABLE), &enabled);
 
 	if (result != PX4_OK) {
 		PX4_ERR("unable to reset TC_A_ENABLE (%i)", result);

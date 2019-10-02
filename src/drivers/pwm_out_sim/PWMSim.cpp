@@ -34,6 +34,7 @@
 #include "PWMSim.hpp"
 
 #include <px4_time.h>
+#include <px4_param.h>
 #include <mathlib/mathlib.h>
 
 #include <uORB/Subscription.hpp>
@@ -148,11 +149,7 @@ PWMSim::subscribe()
 void PWMSim::update_params()
 {
 	// multicopter air-mode
-	param_t param_handle = param_find("MC_AIRMODE");
-
-	if (param_handle != PARAM_INVALID) {
-		param_get(param_handle, &_airmode);
-	}
+	param_get(param_handle(px4::params::MC_AIRMODE), &_airmode);
 }
 
 void

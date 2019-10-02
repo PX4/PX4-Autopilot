@@ -141,10 +141,10 @@ int mixer_control_callback(uintptr_t handle,
 void update_params(Mixer::Airmode &airmode)
 {
 	// multicopter air-mode
-	param_t param_handle = param_find("MC_AIRMODE");
+	param_t param_handle_mc_airmode = param_find("MC_AIRMODE");
 
-	if (param_handle != PARAM_INVALID) {
-		param_get(param_handle, (int32_t *)&airmode);
+	if (param_handle_mc_airmode != PARAM_INVALID) {
+		param_get(param_handle_mc_airmode, (int32_t *)&airmode);
 	}
 }
 

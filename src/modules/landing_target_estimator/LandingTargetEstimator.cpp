@@ -41,6 +41,7 @@
 
 #include <px4_config.h>
 #include <px4_defines.h>
+#include <px4_param.h>
 #include <drivers/drv_hrt.h>
 
 #include "LandingTargetEstimator.h"
@@ -53,13 +54,13 @@ namespace landing_target_estimator
 
 LandingTargetEstimator::LandingTargetEstimator()
 {
-	_paramHandle.acc_unc = param_find("LTEST_ACC_UNC");
-	_paramHandle.meas_unc = param_find("LTEST_MEAS_UNC");
-	_paramHandle.pos_unc_init = param_find("LTEST_POS_UNC_IN");
-	_paramHandle.vel_unc_init = param_find("LTEST_VEL_UNC_IN");
-	_paramHandle.mode = param_find("LTEST_MODE");
-	_paramHandle.scale_x = param_find("LTEST_SCALE_X");
-	_paramHandle.scale_y = param_find("LTEST_SCALE_Y");
+	_paramHandle.acc_unc = param_handle(px4::params::LTEST_ACC_UNC);
+	_paramHandle.meas_unc = param_handle(px4::params::LTEST_MEAS_UNC);
+	_paramHandle.pos_unc_init = param_handle(px4::params::LTEST_POS_UNC_IN);
+	_paramHandle.vel_unc_init = param_handle(px4::params::LTEST_VEL_UNC_IN);
+	_paramHandle.mode = param_handle(px4::params::LTEST_MODE);
+	_paramHandle.scale_x = param_handle(px4::params::LTEST_SCALE_X);
+	_paramHandle.scale_y = param_handle(px4::params::LTEST_SCALE_Y);
 
 	_check_params(true);
 }

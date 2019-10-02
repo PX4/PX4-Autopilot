@@ -39,7 +39,7 @@
 #include <px4_posix.h>
 #include <px4_time.h>
 #include <px4_defines.h>
-#include <px4_module_params.h>
+#include <px4_param.h>
 
 #include "rc_calibration.h"
 #include "commander_helper.h"
@@ -69,9 +69,9 @@ int do_trim_calibration(orb_advert_t *mavlink_log_pub)
 	param_t param_trim_roll = param_handle(px4::params::TRIM_ROLL);
 	param_t param_trim_pitch = param_handle(px4::params::TRIM_PITCH);
 	param_t param_trim_yaw = param_handle(px4::params::TRIM_YAW);
-	param_t param_fw_man_r_sc = param_handle(px4::params::FW_MAN_R_SC);
-	param_t param_fw_man_p_sc = param_handle(px4::params::FW_MAN_P_SC);
-	param_t param_fw_man_y_sc = param_handle(px4::params::FW_MAN_Y_SC);
+	param_t param_fw_man_r_sc = param_find("FW_MAN_R_SC");
+	param_t param_fw_man_p_sc = param_find("FW_MAN_P_SC");
+	param_t param_fw_man_y_sc = param_find("FW_MAN_Y_SC");
 
 	float roll_trim_active, pitch_trim_active, yaw_trim_active, roll_scale, pitch_scale, yaw_scale;
 

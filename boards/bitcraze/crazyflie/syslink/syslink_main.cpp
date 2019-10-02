@@ -40,6 +40,7 @@
 #include <px4_tasks.h>
 #include <px4_posix.h>
 #include <px4_defines.h>
+#include <px4_param.h>
 
 #include <unistd.h>
 #include <stdio.h>
@@ -182,10 +183,10 @@ Syslink::send_queued_raw_message()
 void
 Syslink::update_params(bool force_set)
 {
-	param_t _param_radio_channel = param_find("SLNK_RADIO_CHAN");
-	param_t _param_radio_rate = param_find("SLNK_RADIO_RATE");
-	param_t _param_radio_addr1 = param_find("SLNK_RADIO_ADDR1");
-	param_t _param_radio_addr2 = param_find("SLNK_RADIO_ADDR2");
+	param_t _param_radio_channel = param_handle(px4::params::SLNK_RADIO_CHAN);
+	param_t _param_radio_rate = param_handle(px4::params::SLNK_RADIO_RATE);
+	param_t _param_radio_addr1 = param_handle(px4::params::SLNK_RADIO_ADDR1);
+	param_t _param_radio_addr2 = param_handle(px4::params::SLNK_RADIO_ADDR2);
 
 
 	// reading parameter values into temp variables

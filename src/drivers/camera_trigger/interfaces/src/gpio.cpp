@@ -2,6 +2,7 @@
 
 #include "gpio.h"
 #include <cstring>
+#include <px4_param.h>
 
 constexpr uint32_t CameraInterfaceGPIO::_gpios[6];
 
@@ -10,7 +11,7 @@ CameraInterfaceGPIO::CameraInterfaceGPIO():
 	_trigger_invert(false),
 	_triggers{0}
 {
-	_p_polarity = param_find("TRIG_POLARITY");
+	_p_polarity = param_handle(px4::params::TRIG_POLARITY);
 
 	// polarity of the trigger (0 = active low, 1 = active high )
 	int32_t polarity;

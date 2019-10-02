@@ -41,6 +41,7 @@
 
 #include "tailsitter.h"
 #include "vtol_att_control_main.h"
+#include <px4_param.h>
 
 #define ARSP_YAW_CTRL_DISABLE 4.0f	// airspeed at which we stop controlling yaw during a front transition
 #define THROTTLE_TRANSITION_MAX 0.25f	// maximum added thrust above last value in transition
@@ -61,7 +62,7 @@ Tailsitter::Tailsitter(VtolAttitudeControl *attc) :
 
 	_flag_was_in_trans_mode = false;
 
-	_params_handles_tailsitter.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
+	_params_handles_tailsitter.front_trans_dur_p2 = param_handle(px4::params::VT_TRANS_P2_DUR);
 	_params_handles_tailsitter.fw_pitch_sp_offset = param_find("FW_PSP_OFF");
 }
 

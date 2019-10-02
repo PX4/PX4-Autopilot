@@ -57,6 +57,7 @@
 #include <px4_sem.h>
 #include <px4_shutdown.h>
 #include <px4_tasks.h>
+#include <px4_param.h>
 #include <systemlib/mavlink_log.h>
 #include <replay/definitions.hpp>
 #include <version/version.h>
@@ -367,10 +368,10 @@ Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_inte
 	_writer(backend, buffer_size),
 	_log_interval(log_interval)
 {
-	_log_utc_offset = param_find("SDLOG_UTC_OFFSET");
-	_log_dirs_max = param_find("SDLOG_DIRS_MAX");
-	_sdlog_profile_handle = param_find("SDLOG_PROFILE");
-	_mission_log = param_find("SDLOG_MISSION");
+	_log_utc_offset = param_handle(px4::params::SDLOG_UTC_OFFSET);
+	_log_dirs_max = param_handle(px4::params::SDLOG_DIRS_MAX);
+	_sdlog_profile_handle = param_handle(px4::params::SDLOG_PROFILE);
+	_mission_log = param_handle(px4::params::SDLOG_MISSION);
 
 	if (poll_topic_name) {
 		const orb_metadata *const *topics = orb_get_topics();
@@ -2027,7 +2028,7 @@ void Logger::write_version(LogType type)
 
 #ifndef BOARD_HAS_NO_UUID
 	/* write the UUID if enabled */
-	param_t write_uuid_param = param_find("SDLOG_UUID");
+	param_t write_uuid_param = param_handle(px4::params::SDLOG_UUID);
 
 	if (write_uuid_param != PARAM_INVALID) {
 		int32_t write_uuid;

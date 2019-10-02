@@ -36,6 +36,7 @@
 #include <px4_tasks.h>
 #include <px4_getopt.h>
 #include <px4_posix.h>
+#include <px4_param.h>
 #include <errno.h>
 #include <cmath>	// NAN
 #include <string.h>
@@ -165,11 +166,7 @@ int mixer_control_callback(uintptr_t handle,
 void update_params(Mixer::Airmode &airmode)
 {
 	// multicopter air-mode
-	param_t param_handle = param_find("MC_AIRMODE");
-
-	if (param_handle != PARAM_INVALID) {
-		param_get(param_handle, &airmode);
-	}
+	param_get(param_handle(px4::params::MC_AIRMODE), &airmode);
 }
 
 int initialize_mixer(const char *mixer_filename)
@@ -581,9 +578,9 @@ int snapdragon_pwm_out_main(int argc, char *argv[])
 	}
 
 	// gets the parameters for the esc's pwm
-	param_get(param_find("PWM_DISARMED"), &snapdragon_pwm::_pwm_disarmed);
-	param_get(param_find("PWM_MIN"), &snapdragon_pwm::_pwm_min);
-	param_get(param_find("PWM_MAX"), &snapdragon_pwm::_pwm_max);
+	param_get(param_handle(px4::params::PWM_DISARMED), &snapdragon_pwm::_pwm_disarmed);
+	param_get(param_handle(px4::params::PWM_MIN), &snapdragon_pwm::_pwm_min);
+	param_get(param_handle(px4::params::PWM_MAX), &snapdragon_pwm::_pwm_max);
 
 	/*
 	 * Start/load the driver.

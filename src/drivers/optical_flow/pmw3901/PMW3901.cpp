@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "PMW3901.hpp"
+#include <px4_param.h>
 
 static constexpr uint32_t TIME_us_TSWW = 11; //  - actually 10.5us
 
@@ -211,7 +212,7 @@ int
 PMW3901::init()
 {
 	// get yaw rotation from sensor frame to body frame
-	param_t rot = param_find("SENS_FLOW_ROT");
+	param_t rot = param_handle(px4::params::SENS_FLOW_ROT);
 
 	if (rot != PARAM_INVALID) {
 		int32_t val = 0;

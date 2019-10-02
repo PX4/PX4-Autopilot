@@ -58,6 +58,8 @@
 #include <drivers/drv_hrt.h>
 #include <math.h>
 
+#include <px4_param.h>
+
 // The RoboClaw has a serial communication timeout of 10ms.
 // Add a little extra to account for timing inaccuracy
 #define TIMEOUT_US 10500
@@ -87,11 +89,11 @@ RoboClaw::RoboClaw(const char *deviceName, const char *baudRateParam):
 	_motorSpeeds{0, 0}
 
 {
-	_param_handles.actuator_write_period_ms = 	param_find("RBCLW_WRITE_PER");
-	_param_handles.encoder_read_period_ms = 	param_find("RBCLW_READ_PER");
-	_param_handles.counts_per_rev = 			param_find("RBCLW_COUNTS_REV");
+	_param_handles.actuator_write_period_ms = 	param_handle(px4::params::RBCLW_WRITE_PER);
+	_param_handles.encoder_read_period_ms = 	param_handle(px4::params::RBCLW_READ_PER);
+	_param_handles.counts_per_rev = 			param_handle(px4::params::RBCLW_COUNTS_REV);
 	_param_handles.serial_baud_rate = 			param_find(baudRateParam);
-	_param_handles.address = 					param_find("RBCLW_ADDRESS");
+	_param_handles.address = 					param_handle(px4::params::RBCLW_ADDRESS);
 
 	_parameters_update();
 
