@@ -245,12 +245,13 @@ if fastrtpsgen_include is not None and fastrtpsgen_include != '':
 # follow the Fast-RTPS version convention
 fastrtpsgen_version = 0.0
 if(os.path.exists(fastrtpsgen_path)):
-    fastrtpsgen_version_out = subprocess.check_output(
-        [fastrtpsgen_path, "-version"]).strip()[-5:-2]
-    if not fastrtpsgen_version_out:
-        raise Exception(
-            "FastRTPSGen failed with code error %s" % fastrtpsgen_version)
-    else:
+    try:
+        fastrtpsgen_version_out = subprocess.check_output(
+            [fastrtpsgen_path, "-version"]).strip()[-5:-2]
+    except OSError:
+        raise
+
+    if fastrtpsgen_version_out:
         fastrtpsgen_version = float(fastrtpsgen_version_out)
 else:
     raise Exception(
@@ -412,11 +413,11 @@ def generate_agent(out_dir):
     if not glob.glob(os.path.join(idl_dir, "*.idl")):
         raise Exception("No IDL files found in %s" % idl_dir)
     for idl_file in glob.glob(os.path.join(idl_dir, "*.idl")):
-        ret = subprocess.call(fastrtpsgen_path + " -d " + out_dir +
-                              "/fastrtpsgen -example x64Linux2.6gcc " + fastrtpsgen_include + idl_file, shell=True)
-        if ret:
-            raise Exception(
-                "FastRTPSGen failed with code error %s" % ret)
+        try:
+            ret = subprocess.check_call(fastrtpsgen_path + " -d " + out_dir +
+                                  "/fastrtpsgen -example x64Linux2.6gcc " + fastrtpsgen_include + idl_file, shell=True)
+        except OSError:
+            raise
 
     rm_wildcard(os.path.join(out_dir, "fastrtpsgen/*PubSubMain*"))
     rm_wildcard(os.path.join(out_dir, "fastrtpsgen/makefile*"))
