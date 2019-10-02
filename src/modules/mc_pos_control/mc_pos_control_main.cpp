@@ -910,6 +910,8 @@ MulticopterPositionControl::limit_thrust_during_landing(vehicle_attitude_setpoin
 	if (_vehicle_land_detected.ground_contact
 	    || _vehicle_land_detected.maybe_landed) {
 		// we set the collective thrust to zero, this will help to decide if we are actually landed or not
+		setpoint.thrust_body[0] = 0.f;
+		setpoint.thrust_body[1] = 0.f;
 		setpoint.thrust_body[2] = 0.f;
 		// go level to avoid corrections but keep the heading we have
 		Quatf(AxisAngle<float>(0, 0, _states.yaw)).copyTo(setpoint.q_d);
