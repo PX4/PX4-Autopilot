@@ -36,20 +36,28 @@
  * Multicopter position controller.
  */
 
+#include <commander/px4_custom_mode.h>
+#include <drivers/drv_hrt.h>
+#include <lib/controllib/blocks.hpp>
+#include <lib/FlightTasks/FlightTasks.hpp>
+#include <lib/hysteresis/hysteresis.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/perf/perf_counter.h>
+#include <lib/systemlib/mavlink_log.h>
+#include <lib/WeatherVane/WeatherVane.hpp>
 #include <px4_config.h>
 #include <px4_defines.h>
-#include <px4_module_params.h>
-#include <px4_tasks.h>
 #include <px4_module.h>
+#include <px4_module_params.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_posix.h>
-#include <drivers/drv_hrt.h>
-#include <lib/hysteresis/hysteresis.h>
-#include <commander/px4_custom_mode.h>
-
+#include <px4_tasks.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/landing_gear.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -58,19 +66,12 @@
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
-#include <uORB/topics/landing_gear.h>
 
-#include <float.h>
-#include <mathlib/mathlib.h>
-#include <systemlib/mavlink_log.h>
-
-#include <controllib/blocks.hpp>
-
-#include <lib/FlightTasks/FlightTasks.hpp>
-#include <lib/WeatherVane/WeatherVane.hpp>
 #include "PositionControl.hpp"
 #include "Utility/ControlMath.hpp"
 #include "Takeoff.hpp"
+
+#include <float.h>
 
 using namespace time_literals;
 
@@ -80,18 +81,15 @@ using namespace time_literals;
 extern "C" __EXPORT int mc_pos_control_main(int argc, char *argv[]);
 
 class MulticopterPositionControl : public ModuleBase<MulticopterPositionControl>, public control::SuperBlock,
-	public ModuleParams
+	public ModuleParams, public px4::WorkItem
 {
 public:
 	MulticopterPositionControl();
 
-	~MulticopterPositionControl();
+	virtual ~MulticopterPositionControl() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static MulticopterPositionControl *instantiate(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
@@ -99,8 +97,9 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	/** @see ModuleBase::run() */
-	void run() override;
+	void Run() override;
+
+	bool init();
 
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
@@ -118,14 +117,16 @@ private:
 	uORB::Publication<vehicle_local_position_setpoint_s>	_local_pos_sp_pub{ORB_ID(vehicle_local_position_setpoint)};	/**< vehicle local position setpoint publication */
 	uORB::Publication<vehicle_local_position_setpoint_s>	_traj_sp_pub{ORB_ID(trajectory_setpoint)};			/**< trajectory setpoints publication */
 
-	int		_local_pos_sub{-1};			/**< vehicle local position */
+	uORB::SubscriptionCallbackWorkItem _local_pos_sub{this, ORB_ID(vehicle_local_position)};	/**< vehicle local position */
 
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			/**< vehicle status subscription */
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};			/**< notification of parameter updates */
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		/**< notification of parameter updates */
 	uORB::Subscription _att_sub{ORB_ID(vehicle_attitude)};				/**< vehicle attitude */
 	uORB::Subscription _home_pos_sub{ORB_ID(home_position)}; 			/**< home position */
+
+	hrt_abstime	_time_stamp_last_loop{0};		/**< time stamp of last loop iteration */
 
 	int _task_failure_count{0};         /**< counter for task failures */
 
@@ -192,6 +193,9 @@ private:
 	systemlib::Hysteresis _failsafe_land_hysteresis{false}; /**< becomes true if task did not update correctly for LOITER_TIME_BEFORE_DESCEND */
 
 	WeatherVane *_wv_controller{nullptr};
+
+	perf_counter_t _cycle_perf;
+	perf_counter_t _interval_perf;
 
 	/**
 	 * Update our local parameter cache.
@@ -280,13 +284,17 @@ private:
 MulticopterPositionControl::MulticopterPositionControl() :
 	SuperBlock(nullptr, "MPC"),
 	ModuleParams(nullptr),
+	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
-	_control(this)
+	_control(this),
+	_cycle_perf(perf_alloc_once(PC_ELAPSED, MODULE_NAME": cycle time")),
+	_interval_perf(perf_alloc_once(PC_INTERVAL, MODULE_NAME": interval"))
 {
 	// fetch initial parameter values
 	parameters_update(true);
+
 	// set failsafe hysteresis
 	_failsafe_land_hysteresis.set_hysteresis_time_from(false, LOITER_TIME_BEFORE_DESCEND);
 }
@@ -296,6 +304,24 @@ MulticopterPositionControl::~MulticopterPositionControl()
 	if (_wv_controller != nullptr) {
 		delete _wv_controller;
 	}
+
+	perf_free(_cycle_perf);
+	perf_free(_interval_perf);
+}
+
+bool
+MulticopterPositionControl::init()
+{
+	if (!_local_pos_sub.registerCallback()) {
+		PX4_ERR("vehicle_local_position callback registration failed!");
+		return false;
+	}
+
+	_local_pos_sub.set_interval_us(20_ms); // 50 Hz max update rate
+
+	_time_stamp_last_loop = hrt_absolute_time();
+
+	return true;
 }
 
 void
@@ -312,10 +338,13 @@ MulticopterPositionControl::warn_rate_limited(const char *string)
 int
 MulticopterPositionControl::parameters_update(bool force)
 {
-	parameter_update_s param_upd;
-	bool updated = _params_sub.update(&param_upd);
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
-	if (updated || force) {
+		// update parameters from storage
 		ModuleParams::updateParams();
 		SuperBlock::updateParams();
 
@@ -362,9 +391,6 @@ MulticopterPositionControl::parameters_update(bool force)
 void
 MulticopterPositionControl::poll_subscriptions()
 {
-	// This is polled for, so all we need to do is a copy now.
-	orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
-
 	if (_vehicle_status_sub.update(&_vehicle_status)) {
 
 		// set correct uORB ID, depending on if vehicle is VTOL or not
@@ -488,44 +514,33 @@ MulticopterPositionControl::print_status()
 		PX4_INFO("Running, no flight task active");
 	}
 
+	perf_print_counter(_cycle_perf);
+	perf_print_counter(_interval_perf);
+
 	return 0;
 }
 
 void
-MulticopterPositionControl::run()
+MulticopterPositionControl::Run()
 {
-	hrt_abstime time_stamp_last_loop = hrt_absolute_time(); // time stamp of last loop iteration
+	if (should_exit()) {
+		_local_pos_sub.unregisterCallback();
+		exit_and_cleanup();
+		return;
+	}
 
-	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	orb_set_interval(_local_pos_sub, 20); // 50 Hz updates
+	perf_begin(_cycle_perf);
+	perf_count(_interval_perf);
 
-	// get initial values for all parameters and subscribtions
-	parameters_update(true);
-	poll_subscriptions();
-
-	// setup file descriptor to poll the local position as loop wakeup source
-	px4_pollfd_struct_t poll_fd = {};
-	poll_fd.fd = _local_pos_sub;
-	poll_fd.events = POLLIN;
-
-	while (!should_exit()) {
-		// poll for new data on the local position state topic (wait for up to 20ms)
-		const int poll_return = px4_poll(&poll_fd, 1, 20);
-
-		// poll_return == 0: go through the loop anyway to copy manual input at 50 Hz
-		// this is undesirable but not much we can do
-		if (poll_return < 0) {
-			PX4_ERR("poll error %d %d", poll_return, errno);
-			continue;
-		}
+	if (_local_pos_sub.update(&_local_pos)) {
 
 		poll_subscriptions();
 		parameters_update(false);
 
 		// set _dt in controllib Block - the time difference since the last loop iteration in seconds
 		const hrt_abstime time_stamp_current = hrt_absolute_time();
-		setDt((time_stamp_current - time_stamp_last_loop) / 1e6f);
-		time_stamp_last_loop = time_stamp_current;
+		setDt((time_stamp_current - _time_stamp_last_loop) / 1e6f);
+		_time_stamp_last_loop = time_stamp_current;
 
 		const bool was_in_failsafe = _in_failsafe;
 		_in_failsafe = false;
@@ -721,7 +736,7 @@ MulticopterPositionControl::run()
 		}
 	}
 
-	orb_unsubscribe(_local_pos_sub);
+	perf_end(_cycle_perf);
 }
 
 void
@@ -1046,24 +1061,25 @@ void MulticopterPositionControl::send_vehicle_cmd_do(uint8_t nav_state)
 
 int MulticopterPositionControl::task_spawn(int argc, char *argv[])
 {
-	_task_id = px4_task_spawn_cmd("mc_pos_control",
-				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_POSITION_CONTROL,
-				      1900,
-				      (px4_main_t)&run_trampoline,
-				      (char *const *)argv);
+	MulticopterPositionControl *instance = new MulticopterPositionControl();
 
-	if (_task_id < 0) {
-		_task_id = -1;
-		return -errno;
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
 	}
 
-	return 0;
-}
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
 
-MulticopterPositionControl *MulticopterPositionControl::instantiate(int argc, char *argv[])
-{
-	return new MulticopterPositionControl();
+	return PX4_ERROR;
 }
 
 int MulticopterPositionControl::custom_command(int argc, char *argv[])

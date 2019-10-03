@@ -174,7 +174,7 @@ private:
 
 	float _integrator_value = 0.0f;
 
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
 	float _proportional_value = 0.0f;
 

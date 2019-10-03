@@ -51,42 +51,43 @@
 #include <matrix/matrix/math.hpp>
 #include <uORB/PublicationQueued.hpp>
 
+#include <px4_param.h>
+
 using namespace matrix;
 
 VtolAttitudeControl::VtolAttitudeControl() :
-	WorkItem(px4::wq_configurations::rate_ctrl),
-	_loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control: cycle")),
-	_loop_interval_perf(perf_alloc(PC_INTERVAL, "vtol_att_control: interval"))
+	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
+	_loop_perf(perf_alloc(PC_ELAPSED, "vtol_att_control: cycle"))
 {
 	_vtol_vehicle_status.vtol_in_rw_mode = true;	/* start vtol in rotary wing mode*/
 
 	_params.idle_pwm_mc = PWM_DEFAULT_MIN;
 	_params.vtol_motor_id = 0;
 
-	_params_handles.idle_pwm_mc = param_find("VT_IDLE_PWM_MC");
-	_params_handles.vtol_motor_id = param_find("VT_MOT_ID");
-	_params_handles.vtol_fw_permanent_stab = param_find("VT_FW_PERM_STAB");
-	_params_handles.vtol_type = param_find("VT_TYPE");
-	_params_handles.elevons_mc_lock = param_find("VT_ELEV_MC_LOCK");
-	_params_handles.fw_min_alt = param_find("VT_FW_MIN_ALT");
-	_params_handles.fw_alt_err = param_find("VT_FW_ALT_ERR");
-	_params_handles.fw_qc_max_pitch = param_find("VT_FW_QC_P");
-	_params_handles.fw_qc_max_roll = param_find("VT_FW_QC_R");
-	_params_handles.front_trans_time_openloop = param_find("VT_F_TR_OL_TM");
-	_params_handles.front_trans_time_min = param_find("VT_TRANS_MIN_TM");
+	_params_handles.idle_pwm_mc = param_handle(px4::params::VT_IDLE_PWM_MC);
+	_params_handles.vtol_motor_id = param_handle(px4::params::VT_MOT_ID);
+	_params_handles.vtol_fw_permanent_stab = param_handle(px4::params::VT_FW_PERM_STAB);
+	_params_handles.vtol_type = param_handle(px4::params::VT_TYPE);
+	_params_handles.elevons_mc_lock = param_handle(px4::params::VT_ELEV_MC_LOCK);
+	_params_handles.fw_min_alt = param_handle(px4::params::VT_FW_MIN_ALT);
+	_params_handles.fw_alt_err = param_handle(px4::params::VT_FW_ALT_ERR);
+	_params_handles.fw_qc_max_pitch = param_handle(px4::params::VT_FW_QC_P);
+	_params_handles.fw_qc_max_roll = param_handle(px4::params::VT_FW_QC_R);
+	_params_handles.front_trans_time_openloop = param_handle(px4::params::VT_F_TR_OL_TM);
+	_params_handles.front_trans_time_min = param_handle(px4::params::VT_TRANS_MIN_TM);
 
-	_params_handles.front_trans_duration = param_find("VT_F_TRANS_DUR");
-	_params_handles.back_trans_duration = param_find("VT_B_TRANS_DUR");
-	_params_handles.transition_airspeed = param_find("VT_ARSP_TRANS");
-	_params_handles.front_trans_throttle = param_find("VT_F_TRANS_THR");
-	_params_handles.back_trans_throttle = param_find("VT_B_TRANS_THR");
-	_params_handles.airspeed_blend = param_find("VT_ARSP_BLEND");
-	_params_handles.airspeed_mode = param_find("FW_ARSP_MODE");
-	_params_handles.front_trans_timeout = param_find("VT_TRANS_TIMEOUT");
-	_params_handles.mpc_xy_cruise = param_find("MPC_XY_CRUISE");
-	_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
-	_params_handles.diff_thrust = param_find("VT_FW_DIFTHR_EN");
-	_params_handles.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
+	_params_handles.front_trans_duration = param_handle(px4::params::VT_F_TRANS_DUR);
+	_params_handles.back_trans_duration = param_handle(px4::params::VT_B_TRANS_DUR);
+	_params_handles.transition_airspeed = param_handle(px4::params::VT_ARSP_TRANS);
+	_params_handles.front_trans_throttle = param_handle(px4::params::VT_F_TRANS_THR);
+	_params_handles.back_trans_throttle = param_handle(px4::params::VT_B_TRANS_THR);
+	_params_handles.airspeed_blend = param_handle(px4::params::VT_ARSP_BLEND);
+	_params_handles.airspeed_mode = param_handle(px4::params::FW_ARSP_MODE);
+	_params_handles.front_trans_timeout = param_handle(px4::params::VT_TRANS_TIMEOUT);
+	_params_handles.mpc_xy_cruise = param_handle(px4::params::MPC_XY_CRUISE);
+	_params_handles.fw_motors_off = param_handle(px4::params::VT_FW_MOT_OFFID);
+	_params_handles.diff_thrust = param_handle(px4::params::VT_FW_DIFTHR_EN);
+	_params_handles.diff_thrust_scale = param_handle(px4::params::VT_FW_DIFTHR_SC);
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -108,18 +109,17 @@ VtolAttitudeControl::VtolAttitudeControl() :
 VtolAttitudeControl::~VtolAttitudeControl()
 {
 	perf_free(_loop_perf);
-	perf_free(_loop_interval_perf);
 }
 
 bool
 VtolAttitudeControl::init()
 {
-	if (!_actuator_inputs_mc.register_callback()) {
+	if (!_actuator_inputs_mc.registerCallback()) {
 		PX4_ERR("MC actuator controls callback registration failed!");
 		return false;
 	}
 
-	if (!_actuator_inputs_fw.register_callback()) {
+	if (!_actuator_inputs_fw.registerCallback()) {
 		PX4_ERR("FW actuator controls callback registration failed!");
 		return false;
 	}
@@ -290,8 +290,8 @@ void
 VtolAttitudeControl::Run()
 {
 	if (should_exit()) {
-		_actuator_inputs_fw.unregister_callback();
-		_actuator_inputs_mc.unregister_callback();
+		_actuator_inputs_fw.unregisterCallback();
+		_actuator_inputs_mc.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
@@ -309,7 +309,6 @@ VtolAttitudeControl::Run()
 	}
 
 	perf_begin(_loop_perf);
-	perf_count(_loop_interval_perf);
 
 	const bool updated_fw_in = _actuator_inputs_fw.update(&_actuators_fw_in);
 	const bool updated_mc_in = _actuator_inputs_mc.update(&_actuators_mc_in);
@@ -333,13 +332,13 @@ VtolAttitudeControl::Run()
 	}
 
 	if (should_run) {
-		/* only update parameters if they changed */
-		if (_params_sub.updated()) {
-			/* read from param to clear updated flag */
-			parameter_update_s update;
-			_params_sub.copy(&update);
+		// check for parameter updates
+		if (_parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			_parameter_update_sub.copy(&pupdate);
 
-			/* update parameters from storage */
+			// update parameters from storage
 			parameters_update();
 		}
 
@@ -513,7 +512,6 @@ VtolAttitudeControl::print_status()
 	PX4_INFO("Running");
 
 	perf_print_counter(_loop_perf);
-	perf_print_counter(_loop_interval_perf);
 
 	return PX4_OK;
 }

@@ -77,17 +77,13 @@ void Simulator::write_gps_data(void *buf)
 
 void Simulator::parameters_update(bool force)
 {
-	bool updated;
-	struct parameter_update_s param_upd;
+	// check for parameter updates
+	if (_parameter_update_sub.updated() || force) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
-	orb_check(_param_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(parameter_update), _param_sub, &param_upd);
-	}
-
-	if (updated || force) {
-		// update C++ param system
+		// update parameters from storage
 		updateParams();
 	}
 }

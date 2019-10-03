@@ -63,7 +63,7 @@ using namespace matrix;
 
 MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	ModuleParams(nullptr),
-	WorkItem(px4::wq_configurations::rate_ctrl),
+	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
 {
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
@@ -90,7 +90,7 @@ MulticopterAttitudeControl::~MulticopterAttitudeControl()
 bool
 MulticopterAttitudeControl::init()
 {
-	if (!_vehicle_angular_velocity_sub.register_callback()) {
+	if (!_vehicle_angular_velocity_sub.registerCallback()) {
 		PX4_ERR("vehicle_angular_velocity callback registration failed!");
 		return false;
 	}
@@ -137,11 +137,13 @@ MulticopterAttitudeControl::parameters_updated()
 void
 MulticopterAttitudeControl::parameter_update_poll()
 {
-	/* Check if parameters have changed */
-	parameter_update_s param_update;
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
-	if (_params_sub.update(&param_update)) {
-		updateParams();
+		// update parameters from storage
 		parameters_updated();
 	}
 }
@@ -520,7 +522,7 @@ void
 MulticopterAttitudeControl::Run()
 {
 	if (should_exit()) {
-		_vehicle_angular_velocity_sub.unregister_callback();
+		_vehicle_angular_velocity_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}

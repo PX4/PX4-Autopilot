@@ -42,7 +42,6 @@
 #pragma once
 
 #include "FlightTask.hpp"
-#include "SubscriptionArray.hpp"
 #include "FlightTasks_generated.hpp"
 #include <lib/WeatherVane/WeatherVane.hpp>
 #include <uORB/PublicationQueued.hpp>
@@ -55,8 +54,7 @@
 enum class FlightTaskError : int {
 	NoError = 0,
 	InvalidTask = -1,
-	SubscriptionFailed = -2,
-	ActivationFailed = -3
+	ActivationFailed = -2
 };
 
 class FlightTasks
@@ -169,23 +167,21 @@ private:
 	};
 	flight_task_t _current_task = {nullptr, FlightTaskIndex::None};
 
-	SubscriptionArray _subscription_array;
-
 	struct task_error_t {
 		int error;
 		const char *msg;
 	};
 
-	static const int _numError = 4;
+	static constexpr int _numError = 3;
 	/**
 	 * Map from Error int to user friendly string.
 	 */
 	task_error_t _taskError[_numError] = {
 		{static_cast<int>(FlightTaskError::NoError), "No Error"},
 		{static_cast<int>(FlightTaskError::InvalidTask), "Invalid Task "},
-		{static_cast<int>(FlightTaskError::SubscriptionFailed), "Subscription Failed"},
 		{static_cast<int>(FlightTaskError::ActivationFailed), "Activation Failed"}
 	};
+
 	/**
 	 * Check for vehicle commands (received via MAVLink), evaluate and acknowledge them
 	 */

@@ -86,7 +86,7 @@ const uint16_t ICM20948::_icm20948_checked_registers[ICM20948_NUM_CHECKED_REGIST
 
 ICM20948::ICM20948(device::Device *interface, device::Device *mag_interface, const char *path, enum Rotation rotation,
 		   bool magnetometer_only) :
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_px4_accel(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_DEFAULT : ORB_PRIO_HIGH), rotation),
 	_px4_gyro(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_DEFAULT : ORB_PRIO_HIGH), rotation),

@@ -102,7 +102,6 @@ private:
 	matrix::Vector3f			_bias;
 
 	perf_counter_t				_cycle_perf;
-	perf_counter_t				_interval_perf;
 	perf_counter_t				_sensor_latency_perf;
 
 	uint8_t					_selected_sensor{0};

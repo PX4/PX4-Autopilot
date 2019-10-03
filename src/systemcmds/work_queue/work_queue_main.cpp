@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,55 +31,56 @@
  *
  ****************************************************************************/
 
-#include "SubscriptionArray.hpp"
+#include <px4_config.h>
+#include <px4_module.h>
+#include <px4_getopt.h>
+#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
 
-#include <string.h>
+static void	usage();
 
-SubscriptionArray::~SubscriptionArray()
-{
-	cleanup();
+extern "C" {
+	__EXPORT int work_queue_main(int argc, char *argv[]);
 }
 
-void SubscriptionArray::cleanup()
+int
+work_queue_main(int argc, char *argv[])
 {
-	for (int i = 0; i < _subscriptions_count; ++i) {
-		delete _subscriptions[i];
+	if (argc != 2) {
+		usage();
+		return 1;
 	}
 
-	delete[] _subscriptions;
-	_subscriptions = nullptr;
+	if (!strcmp(argv[1], "start")) {
+		px4::WorkQueueManagerStart();
+		return 0;
+
+	} else if (!strcmp(argv[1], "stop")) {
+		px4::WorkQueueManagerStop();
+		return 0;
+
+	} else if (!strcmp(argv[1], "status")) {
+		px4::WorkQueueManagerStatus();
+		return 0;
+	}
+
+	usage();
+
+	return 0;
 }
 
-bool SubscriptionArray::resizeSubscriptions()
+static void
+usage()
 {
-	const int new_size = _subscriptions_size == 0 ? 4 : _subscriptions_size * 2;
-	uORB::SubscriptionPollableNode **new_array = new uORB::SubscriptionPollableNode*[new_size];
 
-	if (!new_array) {
-		return false;
-	}
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
 
-	if (_subscriptions) {
-		memcpy(new_array, _subscriptions, sizeof(uORB::SubscriptionPollableNode *)*_subscriptions_count);
-		delete[] _subscriptions;
-	}
+Command-line tool to show work queue status.
 
-	_subscriptions = new_array;
-	_subscriptions_size = new_size;
+)DESCR_STR");
 
-	return true;
-}
-
-void SubscriptionArray::update()
-{
-	for (int i = 0; i < _subscriptions_count; ++i) {
-		_subscriptions[i]->update();
-	}
-}
-
-void SubscriptionArray::forcedUpdate()
-{
-	for (int i = 0; i < _subscriptions_count; ++i) {
-		_subscriptions[i]->forcedUpdate();
-	}
+	PRINT_MODULE_USAGE_NAME("work_queue", "system");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }

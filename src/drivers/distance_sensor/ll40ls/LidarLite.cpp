@@ -41,7 +41,7 @@
 
 #include "LidarLite.h"
 
-LidarLite::LidarLite(uint8_t rotation) :
+LidarLite::LidarLite(const uint8_t rotation) :
 	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, rotation)
 {
 	_px4_rangefinder.set_min_distance(LL40LS_MIN_DISTANCE);
@@ -52,7 +52,6 @@ LidarLite::LidarLite(uint8_t rotation) :
 LidarLite::~LidarLite()
 {
 	perf_free(_sample_perf);
-	perf_free(_sample_interval_perf);
 	perf_free(_comms_errors);
 	perf_free(_sensor_resets);
 	perf_free(_sensor_zero_resets);
@@ -62,7 +61,6 @@ void
 LidarLite::print_info()
 {
 	perf_print_counter(_sample_perf);
-	perf_print_counter(_sample_interval_perf);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_sensor_resets);
 	perf_print_counter(_sensor_zero_resets);

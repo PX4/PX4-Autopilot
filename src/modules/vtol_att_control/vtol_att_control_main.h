@@ -143,7 +143,7 @@ private:
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};			// sensor subscription
 	uORB::Subscription _manual_control_sp_sub{ORB_ID(manual_control_setpoint)};	//manual control setpoint subscription
 	uORB::Subscription _mc_virtual_att_sp_sub{ORB_ID(mc_virtual_attitude_setpoint)};
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};			//parameter updates subscription
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};			// local position setpoint subscription
 	uORB::Subscription _tecs_status_sub{ORB_ID(tecs_status)};
 	uORB::Subscription _v_att_sub{ORB_ID(vehicle_attitude)};		//vehicle attitude subscription
@@ -217,7 +217,6 @@ private:
 	bool		_initialized{false};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
-	perf_counter_t	_loop_interval_perf;		/**< loop interval performance counter */
 
 	void		vehicle_cmd_poll();
 

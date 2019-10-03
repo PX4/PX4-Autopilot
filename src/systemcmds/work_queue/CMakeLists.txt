@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,12 +31,8 @@
 #
 ############################################################################
 px4_add_module(
-	MODULE examples__segway
-	MAIN segway
+	MODULE systemcmds__work_queue
+	MAIN work_queue
 	SRCS
-		blocks.cpp
-		segway_main.cpp
-		BlockSegwayController.cpp
-	DEPENDS
+		work_queue_main.cpp
 	)
-

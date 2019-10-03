@@ -72,10 +72,44 @@ WorkQueue::~WorkQueue()
 #endif /* __PX4_NUTTX */
 }
 
-void WorkQueue::Add(WorkItem *item)
+bool
+WorkQueue::Attach(WorkItem *item)
 {
-	// TODO: prevent additions when shutting down
+	work_lock();
 
+	if (!should_exit()) {
+		_work_items.add(item);
+		work_unlock();
+		return true;
+	}
+
+	work_unlock();
+	return false;
+}
+
+void
+WorkQueue::Detach(WorkItem *item)
+{
+	work_lock();
+
+	_work_items.remove(item);
+
+	if (_work_items.size() == 0) {
+		// shutdown, no active WorkItems
+		PX4_DEBUG("stopping: %s, last active WorkItem closing", _config.name);
+
+		request_stop();
+
+		// Wake up the worker thread
+		px4_sem_post(&_process_lock);
+	}
+
+	work_unlock();
+}
+
+void
+WorkQueue::Add(WorkItem *item)
+{
 	work_lock();
 	_q.push(item);
 	work_unlock();
@@ -84,14 +118,16 @@ void WorkQueue::Add(WorkItem *item)
 	px4_sem_post(&_process_lock);
 }
 
-void WorkQueue::Remove(WorkItem *item)
+void
+WorkQueue::Remove(WorkItem *item)
 {
 	work_lock();
 	_q.remove(item);
 	work_unlock();
 }
 
-void WorkQueue::Clear()
+void
+WorkQueue::Clear()
 {
 	work_lock();
 
@@ -102,7 +138,8 @@ void WorkQueue::Clear()
 	work_unlock();
 }
 
-void WorkQueue::Run()
+void
+WorkQueue::Run()
 {
 	while (!should_exit()) {
 		px4_sem_wait(&_process_lock);
@@ -114,17 +151,43 @@ void WorkQueue::Run()
 			WorkItem *work = _q.pop();
 
 			work_unlock(); // unlock work queue to run (item may requeue itself)
+			work->RunPreamble();
 			work->Run();
 			work_lock(); // re-lock
 		}
 
 		work_unlock();
 	}
+
+	PX4_DEBUG("%s: exiting", _config.name);
 }
 
-void WorkQueue::print_status()
+void
+WorkQueue::print_status(bool last)
 {
-	PX4_INFO("WorkQueue: %s running", get_name());
+	const size_t num_items = _work_items.size();
+	PX4_INFO_RAW("%-16s\n", get_name());
+	size_t i = 0;
+
+	for (WorkItem *item : _work_items) {
+		i++;
+
+		if (last) {
+			PX4_INFO_RAW("    ");
+
+		} else {
+			PX4_INFO_RAW("|   ");
+		}
+
+		if (i < num_items) {
+			PX4_INFO_RAW("|__ %zu) ", i);
+
+		} else {
+			PX4_INFO_RAW("\\__ %zu) ", i);
+		}
+
+		item->print_run_status();
+	}
 }
 
 } // namespace px4

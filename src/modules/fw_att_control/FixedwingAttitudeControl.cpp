@@ -45,9 +45,8 @@ using namespace time_literals;
 extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[]);
 
 FixedwingAttitudeControl::FixedwingAttitudeControl() :
-	WorkItem(px4::wq_configurations::att_pos_ctrl),
-	_loop_perf(perf_alloc(PC_ELAPSED, "fw_att_control: cycle")),
-	_loop_interval_perf(perf_alloc(PC_INTERVAL, "fw_att_control: interval"))
+	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
+	_loop_perf(perf_alloc(PC_ELAPSED, "fw_att_control: cycle"))
 {
 	// check if VTOL first
 	vehicle_status_poll();
@@ -132,13 +131,12 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 FixedwingAttitudeControl::~FixedwingAttitudeControl()
 {
 	perf_free(_loop_perf);
-	perf_free(_loop_interval_perf);
 }
 
 bool
 FixedwingAttitudeControl::init()
 {
-	if (!_att_sub.register_callback()) {
+	if (!_att_sub.registerCallback()) {
 		PX4_ERR("vehicle attitude callback registration failed!");
 		return false;
 	}
@@ -444,25 +442,25 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 void FixedwingAttitudeControl::Run()
 {
 	if (should_exit()) {
-		_att_sub.unregister_callback();
+		_att_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
 
 	perf_begin(_loop_perf);
-	perf_count(_loop_interval_perf);
 
 	if (_att_sub.update(&_att)) {
 
-		/* only update parameters if they changed */
-		bool params_updated = _params_sub.updated();
+		// only update parameters if they changed
+		bool params_updated = _parameter_update_sub.updated();
 
+		// check for parameter updates
 		if (params_updated) {
-			/* read from param to clear updated flag */
-			parameter_update_s update;
-			_params_sub.copy(&update);
+			// clear update
+			parameter_update_s pupdate;
+			_parameter_update_sub.copy(&pupdate);
 
-			/* update parameters from storage */
+			// update parameters from storage
 			parameters_update();
 		}
 
@@ -526,10 +524,10 @@ void FixedwingAttitudeControl::Run()
 		const matrix::Eulerf euler_angles(R);
 
 		vehicle_attitude_setpoint_poll();
+		vehicle_status_poll(); // this poll has to be before the control_mode_poll, otherwise rate sp are not published during whole transition
 		vehicle_control_mode_poll();
 		vehicle_manual_poll();
 		_global_pos_sub.update(&_global_pos);
-		vehicle_status_poll();
 		vehicle_land_detected_poll();
 
 		// the position controller will not emit attitude setpoints in some modes
@@ -921,7 +919,6 @@ int FixedwingAttitudeControl::print_status()
 	PX4_INFO("Running");
 
 	perf_print_counter(_loop_perf);
-	perf_print_counter(_loop_interval_perf);
 
 	return 0;
 }

@@ -54,6 +54,7 @@
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
@@ -326,15 +327,14 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 	int manual_sp_sub = orb_subscribe(ORB_ID(manual_control_setpoint));
 	int vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
 	int global_sp_sub = orb_subscribe(ORB_ID(position_setpoint_triplet));
-	int param_sub = orb_subscribe(ORB_ID(parameter_update));
+
+	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
 
 	/* Setup of loop */
 
-	struct pollfd fds[2] = {};
-	fds[0].fd = param_sub;
+	struct pollfd fds[1] {};
+	fds[0].fd = att_sub;
 	fds[0].events = POLLIN;
-	fds[1].fd = att_sub;
-	fds[1].events = POLLIN;
 
 	while (!thread_should_exit) {
 
@@ -348,7 +348,7 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 		 * This design pattern makes the controller also agnostic of the attitude
 		 * update speed - it runs as fast as the attitude updates with minimal latency.
 		 */
-		int ret = poll(fds, 2, 500);
+		int ret = poll(fds, 1, 500);
 
 		if (ret < 0) {
 			/*
@@ -361,18 +361,18 @@ int fixedwing_control_thread_main(int argc, char *argv[])
 			/* no return value = nothing changed for 500 ms, ignore */
 		} else {
 
-			/* only update parameters if they changed */
-			if (fds[0].revents & POLLIN) {
-				/* read from param to clear updated flag (uORB API requirement) */
-				struct parameter_update_s update;
-				orb_copy(ORB_ID(parameter_update), param_sub, &update);
+			// check for parameter updates
+			if (parameter_update_sub.updated()) {
+				// clear update
+				parameter_update_s pupdate;
+				parameter_update_sub.copy(&pupdate);
 
-				/* if a param update occured, re-read our parameters */
+				// if a param update occured, re-read our parameters
 				parameters_update(&ph, &p);
 			}
 
 			/* only run controller if attitude changed */
-			if (fds[1].revents & POLLIN) {
+			if (fds[0].revents & POLLIN) {
 
 
 				/* Check if there is a new position measurement or position setpoint */

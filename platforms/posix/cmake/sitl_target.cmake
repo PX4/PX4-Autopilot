@@ -39,14 +39,11 @@ ExternalProject_Add(sitl_gazebo
 	INSTALL_COMMAND ""
 	DEPENDS
 		git_gazebo
-	)
-set_target_properties(sitl_gazebo PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
-ExternalProject_Add_Step(sitl_gazebo forceconfigure
-	DEPENDEES update
-	DEPENDERS configure
-	ALWAYS 1
-	)
+	USES_TERMINAL_CONFIGURE true
+	USES_TERMINAL_BUILD true
+	EXCLUDE_FROM_ALL true
+	BUILD_ALWAYS 1
+)
 
 # create targets for each viewer/model/debugger combination
 set(viewers none jmavsim gazebo)

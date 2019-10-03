@@ -44,7 +44,7 @@
 #include <px4_module_params.h>
 #include <drivers/drv_hrt.h>
 #include <matrix/matrix/math.hpp>
-#include <uORB/SubscriptionPollable.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
@@ -53,7 +53,6 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <lib/WeatherVane/WeatherVane.hpp>
-#include "SubscriptionArray.hpp"
 
 class FlightTask : public ModuleParams
 {
@@ -66,13 +65,6 @@ public:
 	}
 
 	virtual ~FlightTask() = default;
-
-	/**
-	 * Initialize the uORB subscriptions using an array
-	 * @param subscription_array handling uORB subscribtions externally across task switches
-	 * @return true on success, false on error
-	 */
-	virtual bool initializeSubscriptions(SubscriptionArray &subscription_array);
 
 	/**
 	 * Call once on the event where you switch to the task
@@ -176,8 +168,8 @@ public:
 
 protected:
 
-	uORB::SubscriptionPollable<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
-	uORB::SubscriptionPollable<vehicle_attitude_s> *_sub_attitude{nullptr};
+	uORB::SubscriptionData<vehicle_local_position_s>	_sub_vehicle_local_position{ORB_ID(vehicle_local_position)};
+	uORB::SubscriptionData<vehicle_attitude_s>		_sub_attitude{ORB_ID(vehicle_attitude)};
 
 	/** Reset all setpoints to NAN */
 	void _resetSetpoints();

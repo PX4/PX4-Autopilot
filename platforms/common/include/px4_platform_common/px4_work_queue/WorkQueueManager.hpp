@@ -62,7 +62,7 @@ static constexpr wq_config_t I2C2{"wq:I2C2", 1250, -8};
 static constexpr wq_config_t I2C3{"wq:I2C3", 1250, -9};
 static constexpr wq_config_t I2C4{"wq:I2C4", 1250, -10};
 
-static constexpr wq_config_t att_pos_ctrl{"wq:att_pos_ctrl", 2000, -11}; // PX4 att/pos controllers, highest priority after sensors
+static constexpr wq_config_t att_pos_ctrl{"wq:att_pos_ctrl", 6600, -11}; // PX4 att/pos controllers, highest priority after sensors
 
 static constexpr wq_config_t hp_default{"wq:hp_default", 1500, -12};
 static constexpr wq_config_t lp_default{"wq:lp_default", 1700, -50};
@@ -81,6 +81,11 @@ int WorkQueueManagerStart();
  * Stop the work queue manager task.
  */
 int WorkQueueManagerStop();
+
+/**
+ * Work queue manager status.
+ */
+int WorkQueueManagerStatus();
 
 /**
  * Create (or find) a work queue with a particular configuration.

@@ -322,7 +322,7 @@ constexpr uint8_t L3GD20::_checked_registers[];
 
 L3GD20::L3GD20(int bus, const char *path, uint32_t device, enum Rotation rotation) :
 	SPI("L3GD20", path, bus, device, SPIDEV_MODE3, 11 * 1000 * 1000),
-	ScheduledWorkItem(px4::device_bus_to_wq(this->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(this->get_device_id())),
 	_px4_gyro(get_device_id(), ORB_PRIO_DEFAULT, rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "l3gd20_read")),
 	_errors(perf_alloc(PC_COUNT, "l3gd20_err")),

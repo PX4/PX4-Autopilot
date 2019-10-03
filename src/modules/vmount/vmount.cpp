@@ -61,7 +61,7 @@
 #include "output_rc.h"
 #include "output_mavlink.h"
 
-#include <uORB/uORB.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
 
 #include <px4_config.h>
@@ -216,7 +216,7 @@ static int vmount_thread_main(int argc, char *argv[])
 		return -1;
 	}
 
-	int parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
+	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
 	thread_running = true;
 	ControlData *control_data = nullptr;
 	g_thread_data = &thread_data;
@@ -370,13 +370,14 @@ static int vmount_thread_main(int argc, char *argv[])
 			break;
 		}
 
+		// check for parameter updates
+		if (parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			parameter_update_sub.copy(&pupdate);
 
-		//check for parameter changes
-		bool updated;
-
-		if (orb_check(parameter_update_sub, &updated) == 0 && updated) {
-			parameter_update_s param_update;
-			orb_copy(ORB_ID(parameter_update), parameter_update_sub, &param_update);
+			// update parameters from storage
+			bool updated = false;
 			update_params(param_handles, params, updated);
 
 			if (updated) {
@@ -401,8 +402,6 @@ static int vmount_thread_main(int argc, char *argv[])
 	}
 
 	g_thread_data = nullptr;
-
-	orb_unsubscribe(parameter_update_sub);
 
 	for (int i = 0; i < input_objs_len_max; ++i) {
 		if (thread_data.input_objs[i]) {

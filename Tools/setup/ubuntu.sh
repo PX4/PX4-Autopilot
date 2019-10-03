@@ -148,8 +148,8 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 
 	# add user to dialout group (serial port access)
 	sudo usermod -a -G dialout $USER
-	
-	# Remove modem manager (interferes with PX4 serial port/USB serial usage). 
+
+	# Remove modem manager (interferes with PX4 serial port/USB serial usage).
 	sudo apt-get remove modemmanager -y
 
 	# arm-none-eabi-gcc
