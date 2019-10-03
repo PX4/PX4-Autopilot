@@ -3,6 +3,9 @@
 
 using namespace matrix;
 
+template class matrix::Slice<float, 2, 3, 4, 5>; // so that we get full coverage results
+
+
 int main()
 {
     float data[9] = {0, 2, 3,
@@ -97,6 +100,31 @@ int main()
         Matrix<float, 1, 5> K_check(data_4_check);
         TEST(isEqual(K, K_check));
     }
+
+    // check that slice of a slice works for reading
+    const Matrix<float, 3, 3> cm33(data);
+    Matrix<float, 2, 1> topRight = cm33.slice<2,3>(0,0).slice<2,1>(0,2);
+    float top_right_check[2] = {3,6};
+    TEST(isEqual(topRight, Matrix<float, 2, 1>(top_right_check)));
+
+    // check that slice of a slice works for writing
+    Matrix<float, 3, 3> m33(data);
+    m33.slice<2,3>(0,0).slice<2,1>(0,2) = Matrix<float, 2, 1>();
+    const float data_check[9] = {0, 2, 0,
+                                 4, 5, 0,
+                                 7, 8, 10
+                                };
+    TEST(isEqual(m33, Matrix<float, 3, 3>(data_check)));
+
+    // longerThan
+    Vector3f v5;
+    v5(0) = 3;
+    v5(1) = 4;
+    v5(2) = 9;
+    TEST(v5.xy().longerThan(4.99f));
+    TEST(!v5.xy().longerThan(5.f));
+    TEST(isEqualF(5.f, v5.xy().norm()));
+
     return 0;
 }
 

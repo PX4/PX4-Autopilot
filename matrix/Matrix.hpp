@@ -90,12 +90,12 @@ public:
         return (*this);
     }
 
-    void copyTo(Type dst [M*N]) const
+    void copyTo(Type dst[M*N]) const
     {
         memcpy(dst, _data, sizeof(Type)*M*N);
     }
 
-    void copyToColumnMajor(Type (&dst)[M*N]) const
+    void copyToColumnMajor(Type dst[M*N]) const
     {
         const Matrix<Type, M, N> &self = *this;
 

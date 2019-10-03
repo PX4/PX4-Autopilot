@@ -35,6 +35,13 @@ int main()
     Vector<float, 5> v4(data1_sq);
     TEST(isEqual(v1, v4.sqrt()));
 
+    // longerThan
+    Vector<float, 2> v5;
+    v5(0) = 3;
+    v5(1) = 4;
+    TEST(v5.longerThan(4.99f));
+    TEST(!v5.longerThan(5.f));
+
     return 0;
 }
 
