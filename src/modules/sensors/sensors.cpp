@@ -252,9 +252,10 @@ Sensors::parameters_update()
 int
 Sensors::adc_init()
 {
+	if (!_hil_enabled) {
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 
-	if (!_hil_enabled) {
+
 
 		DevMgr::getHandle(ADC0_DEVICE_PATH, _h_adc);
 
@@ -262,9 +263,10 @@ Sensors::adc_init()
 			PX4_ERR("no ADC found: %s (%d)", ADC0_DEVICE_PATH, _h_adc.getError());
 			return PX4_ERROR;
 		}
-	}
+
 
 #endif // ADC_AIRSPEED_VOLTAGE_CHANNEL
+	}
 
 	return OK;
 }
