@@ -37,7 +37,7 @@ public:
      *
      * @param data_ array
      */
-    AxisAngle(const Type data_[3]) :
+    explicit AxisAngle(const Type data_[3]) :
         Vector<Type, 3>(data_)
     {
     }

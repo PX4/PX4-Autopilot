@@ -31,7 +31,7 @@ public:
     {
     }
 
-    Vector2(const Type data_[2]) :
+    explicit Vector2(const Type data_[2]) :
         Vector<Type, 2>(data_)
     {
     }

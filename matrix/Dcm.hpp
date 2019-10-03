@@ -56,7 +56,16 @@ public:
      *
      * @param _data pointer to array
      */
-    Dcm(const Type *data_) : SquareMatrix<Type, 3>(data_)
+    explicit Dcm(const Type data_[3][3]) : SquareMatrix<Type, 3>(data_)
+    {
+    }
+
+    /**
+     * Constructor from array
+     *
+     * @param _data pointer to array
+     */
+    explicit Dcm(const Type data_[3*3]) : SquareMatrix<Type, 3>(data_)
     {
     }
 
