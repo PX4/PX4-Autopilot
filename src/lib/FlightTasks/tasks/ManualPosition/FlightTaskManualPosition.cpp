@@ -152,6 +152,7 @@ void FlightTaskManualPosition::_updateXYlock()
 void FlightTaskManualPosition::_updateSetpoints()
 {
 	FlightTaskManualAltitude::_updateSetpoints(); // needed to get yaw and setpoints in z-direction
+	_acceleration_setpoint.setNaN();
 
 	// check if an external yaw handler is active and if yes, let it update the yaw setpoints
 	if (_weathervane_yaw_handler != nullptr && _weathervane_yaw_handler->is_active()) {
@@ -159,6 +160,5 @@ void FlightTaskManualPosition::_updateSetpoints()
 		_yawspeed_setpoint += _weathervane_yaw_handler->get_weathervane_yawrate();
 	}
 
-	_thrust_setpoint.setAll(NAN); // don't require any thrust setpoints
 	_updateXYlock(); // check for position lock
 }
