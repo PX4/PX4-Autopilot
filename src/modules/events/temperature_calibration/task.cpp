@@ -45,6 +45,7 @@
 #include <px4_log.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
+#include <px4_param.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_led.h>
 
@@ -126,14 +127,14 @@ void TemperatureCalibration::task_main()
 	}
 
 	int32_t min_temp_rise = 24;
-	param_get(param_find("SYS_CAL_TDEL"), &min_temp_rise);
+	param_get(param_handle(px4::params::SYS_CAL_TDEL), &min_temp_rise);
 	PX4_INFO("Waiting for %i degrees difference in sensor temperature", min_temp_rise);
 
 	int32_t min_start_temp = 5;
-	param_get(param_find("SYS_CAL_TMIN"), &min_start_temp);
+	param_get(param_handle(px4::params::SYS_CAL_TMIN), &min_start_temp);
 
 	int32_t max_start_temp = 10;
-	param_get(param_find("SYS_CAL_TMAX"), &max_start_temp);
+	param_get(param_handle(px4::params::SYS_CAL_TMAX), &max_start_temp);
 
 	//init calibrators
 	TemperatureCalibrationBase *calibrators[3];

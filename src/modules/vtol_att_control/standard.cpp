@@ -45,6 +45,7 @@
 #include "vtol_att_control_main.h"
 
 #include <float.h>
+#include <px4_param.h>
 
 #include <px4_param.h>
 

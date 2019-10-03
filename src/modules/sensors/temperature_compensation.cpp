@@ -43,6 +43,7 @@
 #include <parameters/param.h>
 #include <px4_defines.h>
 #include <px4_log.h>
+#include <px4_param.h>
 
 namespace sensors
 {
@@ -53,7 +54,7 @@ int TemperatureCompensation::initialize_parameter_handles(ParameterHandles &para
 	int ret = PX4_ERROR;
 
 	/* rate gyro calibration parameters */
-	parameter_handles.gyro_tc_enable = param_find("TC_G_ENABLE");
+	parameter_handles.gyro_tc_enable = param_handle(px4::params::TC_G_ENABLE);
 	int32_t gyro_tc_enabled = 0;
 	ret = param_get(parameter_handles.gyro_tc_enable, &gyro_tc_enabled);
 
@@ -85,7 +86,7 @@ int TemperatureCompensation::initialize_parameter_handles(ParameterHandles &para
 	}
 
 	/* accelerometer calibration parameters */
-	parameter_handles.accel_tc_enable = param_find("TC_A_ENABLE");
+	parameter_handles.accel_tc_enable = param_handle(px4::params::TC_A_ENABLE);
 	int32_t accel_tc_enabled = 0;
 	ret = param_get(parameter_handles.accel_tc_enable, &accel_tc_enabled);
 
@@ -117,7 +118,7 @@ int TemperatureCompensation::initialize_parameter_handles(ParameterHandles &para
 	}
 
 	/* barometer calibration parameters */
-	parameter_handles.baro_tc_enable = param_find("TC_B_ENABLE");
+	parameter_handles.baro_tc_enable = param_handle(px4::params::TC_B_ENABLE);
 	int32_t baro_tc_enabled = 0;
 	ret = param_get(parameter_handles.baro_tc_enable, &baro_tc_enabled);
 

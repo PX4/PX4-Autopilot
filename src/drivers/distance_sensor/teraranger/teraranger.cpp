@@ -43,6 +43,7 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_getopt.h>
+#include <px4_param.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_module.h>
 #include <uORB/topics/distance_sensor.h>
@@ -269,7 +270,7 @@ int
 TERARANGER::init()
 {
 	int hw_model = 0;
-	param_get(param_find("SENS_EN_TRANGER"), &hw_model);
+	param_get(param_handle(px4::params::SENS_EN_TRANGER), &hw_model);
 
 	switch (hw_model) {
 	case 0: // Disabled

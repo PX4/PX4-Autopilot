@@ -39,6 +39,7 @@
  */
 
 #include <px4_config.h>
+#include <px4_param.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -241,10 +242,11 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled, enum Rotation rotation) :
 	}
 
 	// set software low pass filter for controllers
-	param_t param_handle = param_find("IMU_ACCEL_CUTOFF");
+	param_t param_handle_imu_accel_cutoff = param_handle(px4::params::IMU_ACCEL_CUTOFF);
 	float param_val = MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ;
 
-	if (param_handle != PARAM_INVALID && (param_get(param_handle, &param_val) == PX4_OK)) {
+	if (param_handle_imu_accel_cutoff != PARAM_INVALID &&
+	    (param_get(param_handle_imu_accel_cutoff, &param_val) == PX4_OK)) {
 		_accel_filter_x.set_cutoff_frequency(MPU9250_ACCEL_DEFAULT_RATE, param_val);
 		_accel_filter_y.set_cutoff_frequency(MPU9250_ACCEL_DEFAULT_RATE, param_val);
 		_accel_filter_z.set_cutoff_frequency(MPU9250_ACCEL_DEFAULT_RATE, param_val);
@@ -253,10 +255,11 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled, enum Rotation rotation) :
 		PX4_ERR("IMU_ACCEL_CUTOFF param invalid");
 	}
 
-	param_handle = param_find("IMU_GYRO_CUTOFF");
+	param_t param_handle_imu_gyro_cutoff = param_handle(px4::params::IMU_GYRO_CUTOFF);
 	param_val = MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ;
 
-	if (param_handle != PARAM_INVALID && (param_get(param_handle, &param_val) == PX4_OK)) {
+	if (param_handle_imu_gyro_cutoff != PARAM_INVALID &&
+	    (param_get(param_handle_imu_gyro_cutoff, &param_val) == PX4_OK)) {
 		_gyro_filter_x.set_cutoff_frequency(MPU9250_GYRO_DEFAULT_RATE, param_val);
 		_gyro_filter_y.set_cutoff_frequency(MPU9250_GYRO_DEFAULT_RATE, param_val);
 		_gyro_filter_z.set_cutoff_frequency(MPU9250_GYRO_DEFAULT_RATE, param_val);

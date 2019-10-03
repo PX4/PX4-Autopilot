@@ -51,6 +51,8 @@
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_param.h>
+
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
@@ -265,11 +267,11 @@ CameraTrigger::CameraTrigger() :
 	}
 
 	// Parameters
-	_p_interval = param_find("TRIG_INTERVAL");
-	_p_distance = param_find("TRIG_DISTANCE");
-	_p_activation_time = param_find("TRIG_ACT_TIME");
-	_p_mode = param_find("TRIG_MODE");
-	_p_interface = param_find("TRIG_INTERFACE");
+	_p_interval = param_handle(px4::params::TRIG_INTERVAL);
+	_p_distance = param_handle(px4::params::TRIG_DISTANCE);
+	_p_activation_time = param_handle(px4::params::TRIG_ACT_TIME);
+	_p_mode = param_handle(px4::params::TRIG_MODE);
+	_p_interface = param_handle(px4::params::TRIG_INTERFACE);
 	_p_cam_cap_fback = param_find("CAM_CAP_FBACK");
 
 	param_get(_p_activation_time, &_activation_time);

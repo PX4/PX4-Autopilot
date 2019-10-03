@@ -44,6 +44,7 @@
 
 #include <px4_config.h>
 #include <px4_tasks.h>
+#include <px4_param.h>
 
 #include <cstdlib>
 #include <cstring>
@@ -420,18 +421,8 @@ int  UavcanNode::get_param(int remote_node_id, const char *name)
 
 void UavcanNode::update_params()
 {
-	// multicopter air-mode
-	param_t param_handle = param_find("MC_AIRMODE");
-
-	if (param_handle != PARAM_INVALID) {
-		param_get(param_handle, &_airmode);
-	}
-
-	param_handle = param_find("THR_MDL_FAC");
-
-	if (param_handle != PARAM_INVALID) {
-		param_get(param_handle, &_thr_mdl_factor);
-	}
+	param_get(param_handle(px4::params::MC_AIRMODE), &_airmode);
+	param_get(param_handle(px4::params::THR_MDL_FAC), &_thr_mdl_factor);
 }
 
 int UavcanNode::start_fw_server()
@@ -640,7 +631,7 @@ int UavcanNode::init(uavcan::NodeID node_id)
 	}
 
 	{
-		(void) param_get(param_find("UAVCAN_ESC_IDLT"), &_idle_throttle_when_armed);
+		(void) param_get(param_handle(px4::params::UAVCAN_ESC_IDLT), &_idle_throttle_when_armed);
 		_esc_controller.enable_idle_throttle_when_armed(_idle_throttle_when_armed > 0);
 	}
 
@@ -1306,7 +1297,7 @@ int uavcan_main(int argc, char *argv[])
 
 		// Node ID
 		int32_t node_id = 1;
-		(void)param_get(param_find("UAVCAN_NODE_ID"), &node_id);
+		(void)param_get(param_handle(px4::params::UAVCAN_NODE_ID), &node_id);
 
 		if (node_id < 0 || node_id > uavcan::NodeID::Max || !uavcan::NodeID(node_id).isUnicast()) {
 			PX4_ERR("Invalid Node ID %i", node_id);
@@ -1315,7 +1306,7 @@ int uavcan_main(int argc, char *argv[])
 
 		// CAN bitrate
 		int32_t bitrate = 1000000;
-		(void)param_get(param_find("UAVCAN_BITRATE"), &bitrate);
+		(void)param_get(param_handle(px4::params::UAVCAN_BITRATE), &bitrate);
 
 		// Start
 		PX4_INFO("Node ID %u, bitrate %u", node_id, bitrate);

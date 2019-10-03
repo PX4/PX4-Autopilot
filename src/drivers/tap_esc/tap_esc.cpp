@@ -38,6 +38,8 @@
 #include <px4_tasks.h>
 #include <px4_getopt.h>
 #include <px4_posix.h>
+#include <px4_module_params.h>
+
 #include <errno.h>
 
 #include <cmath>	// NAN
@@ -46,7 +48,6 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/cdev/CDev.hpp>
 #include <perf/perf_counter.h>
-#include <px4_module_params.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>

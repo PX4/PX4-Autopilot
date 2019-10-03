@@ -41,6 +41,7 @@
 
 #include <px4_config.h>
 #include <px4_tasks.h>
+#include <px4_param.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -136,7 +137,7 @@ static struct param_handles ph;
 int parameters_init(struct param_handles *h)
 {
 	/* PID parameters */
-	h->yaw_p 	=	param_find("RV_YAW_P");
+	h->yaw_p 	=	param_handle(px4::params::RV_YAW_P);
 
 	return OK;
 }

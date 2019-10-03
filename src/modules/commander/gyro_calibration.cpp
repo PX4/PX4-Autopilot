@@ -47,6 +47,7 @@
 #include <px4_defines.h>
 #include <px4_param.h>
 #include <px4_time.h>
+#include <px4_param.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -458,7 +459,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 				/* check if thermal compensation is enabled */
 				int32_t tc_enabled_int;
-				param_get(param_find("TC_G_ENABLE"), &(tc_enabled_int));
+				param_get(param_handle(px4::params::TC_G_ENABLE), &(tc_enabled_int));
 
 				if (tc_enabled_int == 1) {
 					/* Get struct containing sensor thermal compensation data */

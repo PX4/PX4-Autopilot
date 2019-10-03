@@ -50,6 +50,7 @@
 #include <systemlib/mavlink_log.h>
 #include <matrix/matrix/math.hpp>
 #include <uORB/PublicationQueued.hpp>
+#include <px4_param.h>
 
 #include <px4_param.h>
 

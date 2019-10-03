@@ -45,6 +45,7 @@
 #include <px4_param.h>
 #include <px4_posix.h>
 #include <px4_time.h>
+#include <px4_param.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>

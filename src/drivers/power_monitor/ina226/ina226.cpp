@@ -43,6 +43,7 @@
 
 #include <px4_config.h>
 #include <px4_getopt.h>
+#include <px4_param.h>
 #include <drivers/device/i2c.h>
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
@@ -114,7 +115,7 @@
 #define INA226_AVERAGES_512                   (6 << INA226_AVERAGES_SHIFTS)
 #define INA226_AVERAGES_1024                  (7 << INA226_AVERAGES_SHIFTS)
 
-#define INA226_CONFIG (INA226_MODE_SHUNT_BUS_CONT | INA226_VSHCT_588US | INA226_VBUSCT_588US | INA226_AVERAGES_64)
+#define INA226_CONFIG_DEFAULT (INA226_MODE_SHUNT_BUS_CONT | INA226_VSHCT_588US | INA226_VBUSCT_588US | INA226_AVERAGES_64)
 
 #define INA226_RST                            (1 << 15)
 
@@ -137,7 +138,7 @@
 #define MAX_CURRENT                           164.0f    /* 164 Amps */
 #define DN_MAX                                32768.0f  /* 2^15 */
 #define INA226_CONST                          0.00512f  /* is an internal fixed value used to ensure scaling is maintained properly  */
-#define INA226_SHUNT                          0.0005f   /* Shunt is 500 uOhm */
+#define INA226_SHUNT_RES                      0.0005f   /* Shunt is 500 uOhm */
 #define INA226_VSCALE                         0.00125f  /* LSB of voltage is 1.25 mV  */
 
 #define swap16(w)                       __builtin_bswap16((w))
@@ -176,8 +177,8 @@ private:
 	bool              _mode_trigged{false};
 
 	float             _max_current{MAX_CURRENT};
-	float             _rshunt{INA226_SHUNT};
-	uint16_t          _config{INA226_CONFIG};
+	float             _rshunt{INA226_SHUNT_RES};
+	uint16_t          _config{INA226_CONFIG_DEFAULT};
 	float             _current_lsb{_max_current / DN_MAX};
 	float             _power_lsb{25.0f * _current_lsb};
 
@@ -228,22 +229,22 @@ INA226::INA226(int bus, int address) :
 {
 	float fvalue = MAX_CURRENT;
 	_max_current = fvalue;
-	param_t ph = param_find("INA226_CURRENT");
+	param_t ph = param_handle(px4::params::INA226_CURRENT);
 
 	if (ph != PARAM_INVALID && param_get(ph, &fvalue) == PX4_OK) {
 		_max_current = fvalue;
 	}
 
-	fvalue = INA226_SHUNT;
+	fvalue = INA226_SHUNT_RES;
 	_rshunt = fvalue;
-	ph = param_find("INA226_SHUNT");
+	ph = param_handle(px4::params::INA226_SHUNT);
 
 	if (ph != PARAM_INVALID && param_get(ph, &fvalue) == PX4_OK) {
 		_rshunt = fvalue;
 	}
 
-	ph = param_find("INA226_CONFIG");
-	int32_t value = INA226_CONFIG;
+	ph = param_handle(px4::params::INA226_CONFIG);
+	int32_t value = INA226_CONFIG_DEFAULT;
 	_config = (uint16_t)value;
 
 	if (ph != PARAM_INVALID && param_get(ph, &value) == PX4_OK) {
@@ -304,7 +305,7 @@ INA226::init()
 
 	write(INA226_REG_CONFIGURATION, INA226_RST);
 
-	_cal = INA226_CONST / (_current_lsb * INA226_SHUNT);
+	_cal = INA226_CONST / (_current_lsb * INA226_SHUNT_RES);
 
 	if (write(INA226_REG_CALIBRATION, _cal) < 0) {
 		return -3;

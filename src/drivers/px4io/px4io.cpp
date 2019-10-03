@@ -40,6 +40,7 @@
 
 #include <px4_config.h>
 #include <px4_tasks.h>
+#include <px4_param.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -571,7 +572,7 @@ PX4IO::init()
 	param_t sys_restart_param;
 	int32_t sys_restart_val = DM_INIT_REASON_VOLATILE;
 
-	sys_restart_param = param_find("SYS_RESTART_TYPE");
+	sys_restart_param = param_handle(px4::params::SYS_RESTART_TYPE);
 
 	if (sys_restart_param != PARAM_INVALID) {
 		/* Indicate restart type is unknown */
@@ -643,9 +644,9 @@ PX4IO::init()
 		_max_rc_input = input_rc_s::RC_INPUT_MAX_CHANNELS;
 	}
 
-	param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
-	param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
-	param_get(param_find("RC_RSSI_PWM_MIN"), &_rssi_pwm_min);
+	param_get(param_handle(px4::params::RC_RSSI_PWM_CHAN), &_rssi_pwm_chan);
+	param_get(param_handle(px4::params::RC_RSSI_PWM_MAX), &_rssi_pwm_max);
+	param_get(param_handle(px4::params::RC_RSSI_PWM_MIN), &_rssi_pwm_min);
 
 	/*
 	 * Check for IO flight state - if FMU was flagged to be in
@@ -706,8 +707,8 @@ PX4IO::init()
 		} while (true);
 
 		/* send this to itself */
-		param_t sys_id_param = param_find("MAV_SYS_ID");
-		param_t comp_id_param = param_find("MAV_COMP_ID");
+		param_t sys_id_param = param_handle(px4::params::MAV_SYS_ID);
+		param_t comp_id_param = param_handle(px4::params::MAV_COMP_ID);
 
 		int32_t sys_id;
 		int32_t comp_id;
@@ -1010,7 +1011,7 @@ PX4IO::task_main()
 
 				/* send RC throttle failsafe value to IO */
 				int32_t failsafe_param_val;
-				param_t failsafe_param = param_find("RC_FAILS_THR");
+				param_t failsafe_param = param_handle(px4::params::RC_FAILS_THR);
 
 				if (failsafe_param != PARAM_INVALID) {
 
@@ -1037,11 +1038,11 @@ PX4IO::task_main()
 				/* Tell IO that it can terminate the flight if FMU is not responding or if a failure has been reported by the FailureDetector logic */
 				(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION, !_cb_flighttermination);
 
-				param_get(param_find("RC_RSSI_PWM_CHAN"), &_rssi_pwm_chan);
-				param_get(param_find("RC_RSSI_PWM_MAX"), &_rssi_pwm_max);
-				param_get(param_find("RC_RSSI_PWM_MIN"), &_rssi_pwm_min);
+				param_get(param_handle(px4::params::RC_RSSI_PWM_CHAN), &_rssi_pwm_chan);
+				param_get(param_handle(px4::params::RC_RSSI_PWM_MAX), &_rssi_pwm_max);
+				param_get(param_handle(px4::params::RC_RSSI_PWM_MIN), &_rssi_pwm_min);
 
-				param_t thermal_param = param_find("SENS_EN_THERMAL");
+				param_t thermal_param = param_handle(px4::params::SENS_EN_THERMAL);
 
 				if (thermal_param != PARAM_INVALID) {
 
@@ -1113,21 +1114,21 @@ PX4IO::task_main()
 				float param_val;
 				param_t parm_handle;
 
-				parm_handle = param_find("TRIM_ROLL");
+				parm_handle = param_handle(px4::params::TRIM_ROLL);
 
 				if (parm_handle != PARAM_INVALID) {
 					param_get(parm_handle, &param_val);
 					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_ROLL, FLOAT_TO_REG(param_val));
 				}
 
-				parm_handle = param_find("TRIM_PITCH");
+				parm_handle = param_handle(px4::params::TRIM_PITCH);
 
 				if (parm_handle != PARAM_INVALID) {
 					param_get(parm_handle, &param_val);
 					(void)io_reg_set(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_TRIM_PITCH, FLOAT_TO_REG(param_val));
 				}
 
-				parm_handle = param_find("TRIM_YAW");
+				parm_handle = param_handle(px4::params::TRIM_YAW);
 
 				if (parm_handle != PARAM_INVALID) {
 					param_get(parm_handle, &param_val);
@@ -1157,7 +1158,7 @@ PX4IO::task_main()
 
 				/* S.BUS output */
 				int sbus_mode;
-				parm_handle = param_find("PWM_SBUS_MODE");
+				parm_handle = param_handle(px4::params::PWM_SBUS_MODE);
 
 				if (parm_handle != PARAM_INVALID) {
 					param_get(parm_handle, &sbus_mode);
@@ -1178,7 +1179,7 @@ PX4IO::task_main()
 				}
 
 				/* thrust to pwm modelling factor */
-				parm_handle = param_find("THR_MDL_FAC");
+				parm_handle = param_handle(px4::params::THR_MDL_FAC);
 
 				if (parm_handle != PARAM_INVALID) {
 					param_get(parm_handle, &param_val);
@@ -1186,7 +1187,7 @@ PX4IO::task_main()
 				}
 
 				/* maximum motor pwm slew rate */
-				parm_handle = param_find("MOT_SLEW_MAX");
+				parm_handle = param_handle(px4::params::MOT_SLEW_MAX);
 
 				if (parm_handle != PARAM_INVALID) {
 					param_get(parm_handle, &param_val);
@@ -1194,7 +1195,7 @@ PX4IO::task_main()
 				}
 
 				/* air-mode */
-				parm_handle = param_find("MC_AIRMODE");
+				parm_handle = param_handle(px4::params::MC_AIRMODE);
 
 				if (parm_handle != PARAM_INVALID) {
 					int32_t param_val_int;
@@ -1427,63 +1428,63 @@ PX4IO::io_set_rc_config()
 	 */
 
 	/* ROLL */
-	param_get(param_find("RC_MAP_ROLL"), &ichan);
+	param_get(param_handle(px4::params::RC_MAP_ROLL), &ichan);
 
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 0;
 	}
 
 	/* PITCH */
-	param_get(param_find("RC_MAP_PITCH"), &ichan);
+	param_get(param_handle(px4::params::RC_MAP_PITCH), &ichan);
 
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 1;
 	}
 
 	/* YAW */
-	param_get(param_find("RC_MAP_YAW"), &ichan);
+	param_get(param_handle(px4::params::RC_MAP_YAW), &ichan);
 
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 2;
 	}
 
 	/* THROTTLE */
-	param_get(param_find("RC_MAP_THROTTLE"), &ichan);
+	param_get(param_handle(px4::params::RC_MAP_THROTTLE), &ichan);
 
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 3;
 	}
 
 	/* FLAPS */
-	param_get(param_find("RC_MAP_FLAPS"), &ichan);
+	param_get(param_handle(px4::params::RC_MAP_FLAPS), &ichan);
 
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 4;
 	}
 
 	/* AUX 1*/
-	param_get(param_find("RC_MAP_AUX1"), &ichan);
+	param_get(param_handle(px4::params::RC_MAP_AUX1), &ichan);
 
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 5;
 	}
 
 	/* AUX 2*/
-	param_get(param_find("RC_MAP_AUX2"), &ichan);
+	param_get(param_handle(px4::params::RC_MAP_AUX2), &ichan);
 
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 6;
 	}
 
 	/* AUX 3*/
-	param_get(param_find("RC_MAP_AUX3"), &ichan);
+	param_get(param_handle(px4::params::RC_MAP_AUX3), &ichan);
 
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		input_map[ichan - 1] = 7;
 	}
 
 	/* MAIN MODE SWITCH */
-	param_get(param_find("RC_MAP_MODE_SW"), &ichan);
+	param_get(param_handle(px4::params::RC_MAP_MODE_SW), &ichan);
 
 	if ((ichan > 0) && (ichan <= (int)_max_rc_input)) {
 		/* use out of normal bounds index to indicate special channel */

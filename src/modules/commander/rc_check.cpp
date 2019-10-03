@@ -42,6 +42,7 @@
 #include <px4_config.h>
 #include <px4_param.h>
 #include <px4_time.h>
+#include <px4_param.h>
 
 #include <lib/parameters/param.h>
 #include <systemlib/mavlink_log.h>

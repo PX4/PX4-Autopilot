@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include "PAW3902.hpp"
+#include <px4_param.h>
 
 PAW3902::PAW3902(int bus, enum Rotation yaw_rotation) :
 	SPI("PAW3902", nullptr, bus, PAW3902_SPIDEV, SPIDEV_MODE0, PAW3902_SPI_BUS_SPEED),
@@ -58,7 +59,7 @@ int
 PAW3902::init()
 {
 	// get yaw rotation from sensor frame to body frame
-	param_t rot = param_find("SENS_FLOW_ROT");
+	param_t rot = param_handle(px4::params::SENS_FLOW_ROT);
 
 	if (rot != PARAM_INVALID) {
 		int32_t val = 0;

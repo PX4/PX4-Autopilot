@@ -43,6 +43,7 @@
 #include <px4_log.h>
 #include <px4_module.h>
 #include <px4_posix.h>
+#include <px4_param.h>
 
 #include <errno.h>
 #include <stdio.h>
@@ -812,8 +813,8 @@ do_reset_nostart(const char *excludes[], int num_excludes)
 	int32_t autostart;
 	int32_t autoconfig;
 
-	(void)param_get(param_find("SYS_AUTOSTART"), &autostart);
-	(void)param_get(param_find("SYS_AUTOCONFIG"), &autoconfig);
+	(void)param_get(param_handle(px4::params::SYS_AUTOSTART), &autostart);
+	(void)param_get(param_handle(px4::params::SYS_AUTOCONFIG), &autoconfig);
 
 	if (num_excludes > 0) {
 		param_reset_excludes(excludes, num_excludes);
@@ -822,8 +823,8 @@ do_reset_nostart(const char *excludes[], int num_excludes)
 		param_reset_all();
 	}
 
-	(void)param_set(param_find("SYS_AUTOSTART"), &autostart);
-	(void)param_set(param_find("SYS_AUTOCONFIG"), &autoconfig);
+	(void)param_set(param_handle(px4::params::SYS_AUTOSTART), &autostart);
+	(void)param_set(param_handle(px4::params::SYS_AUTOCONFIG), &autoconfig);
 
 	return 0;
 }

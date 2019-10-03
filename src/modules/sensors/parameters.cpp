@@ -38,6 +38,7 @@
  */
 
 #include "parameters.h"
+#include <px4_param.h>
 
 namespace sensors
 {
@@ -71,37 +72,37 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	}
 
 	/* mandatory input switched, mapped to channels 1-4 per default */
-	parameter_handles.rc_map_roll 	= param_find("RC_MAP_ROLL");
-	parameter_handles.rc_map_pitch = param_find("RC_MAP_PITCH");
-	parameter_handles.rc_map_yaw 	= param_find("RC_MAP_YAW");
-	parameter_handles.rc_map_throttle = param_find("RC_MAP_THROTTLE");
-	parameter_handles.rc_map_failsafe = param_find("RC_MAP_FAILSAFE");
+	parameter_handles.rc_map_roll 	= param_handle(px4::params::RC_MAP_ROLL);
+	parameter_handles.rc_map_pitch = param_handle(px4::params::RC_MAP_PITCH);
+	parameter_handles.rc_map_yaw 	= param_handle(px4::params::RC_MAP_YAW);
+	parameter_handles.rc_map_throttle = param_handle(px4::params::RC_MAP_THROTTLE);
+	parameter_handles.rc_map_failsafe = param_handle(px4::params::RC_MAP_FAILSAFE);
 
 	/* mandatory mode switches, mapped to channel 5 and 6 per default */
-	parameter_handles.rc_map_mode_sw = param_find("RC_MAP_MODE_SW");
-	parameter_handles.rc_map_return_sw = param_find("RC_MAP_RETURN_SW");
+	parameter_handles.rc_map_mode_sw = param_handle(px4::params::RC_MAP_MODE_SW);
+	parameter_handles.rc_map_return_sw = param_handle(px4::params::RC_MAP_RETURN_SW);
 
-	parameter_handles.rc_map_flaps = param_find("RC_MAP_FLAPS");
+	parameter_handles.rc_map_flaps = param_handle(px4::params::RC_MAP_FLAPS);
 
 	/* optional mode switches, not mapped per default */
-	parameter_handles.rc_map_rattitude_sw = param_find("RC_MAP_RATT_SW");
-	parameter_handles.rc_map_posctl_sw = param_find("RC_MAP_POSCTL_SW");
-	parameter_handles.rc_map_loiter_sw = param_find("RC_MAP_LOITER_SW");
-	parameter_handles.rc_map_acro_sw = param_find("RC_MAP_ACRO_SW");
-	parameter_handles.rc_map_offboard_sw = param_find("RC_MAP_OFFB_SW");
-	parameter_handles.rc_map_kill_sw = param_find("RC_MAP_KILL_SW");
-	parameter_handles.rc_map_arm_sw = param_find("RC_MAP_ARM_SW");
-	parameter_handles.rc_map_trans_sw = param_find("RC_MAP_TRANS_SW");
-	parameter_handles.rc_map_gear_sw = param_find("RC_MAP_GEAR_SW");
-	parameter_handles.rc_map_stab_sw = param_find("RC_MAP_STAB_SW");
-	parameter_handles.rc_map_man_sw = param_find("RC_MAP_MAN_SW");
+	parameter_handles.rc_map_rattitude_sw = param_handle(px4::params::RC_MAP_RATT_SW);
+	parameter_handles.rc_map_posctl_sw = param_handle(px4::params::RC_MAP_POSCTL_SW);
+	parameter_handles.rc_map_loiter_sw = param_handle(px4::params::RC_MAP_LOITER_SW);
+	parameter_handles.rc_map_acro_sw = param_handle(px4::params::RC_MAP_ACRO_SW);
+	parameter_handles.rc_map_offboard_sw = param_handle(px4::params::RC_MAP_OFFB_SW);
+	parameter_handles.rc_map_kill_sw = param_handle(px4::params::RC_MAP_KILL_SW);
+	parameter_handles.rc_map_arm_sw = param_handle(px4::params::RC_MAP_ARM_SW);
+	parameter_handles.rc_map_trans_sw = param_handle(px4::params::RC_MAP_TRANS_SW);
+	parameter_handles.rc_map_gear_sw = param_handle(px4::params::RC_MAP_GEAR_SW);
+	parameter_handles.rc_map_stab_sw = param_handle(px4::params::RC_MAP_STAB_SW);
+	parameter_handles.rc_map_man_sw = param_handle(px4::params::RC_MAP_MAN_SW);
 
-	parameter_handles.rc_map_aux1 = param_find("RC_MAP_AUX1");
-	parameter_handles.rc_map_aux2 = param_find("RC_MAP_AUX2");
-	parameter_handles.rc_map_aux3 = param_find("RC_MAP_AUX3");
-	parameter_handles.rc_map_aux4 = param_find("RC_MAP_AUX4");
-	parameter_handles.rc_map_aux5 = param_find("RC_MAP_AUX5");
-	parameter_handles.rc_map_aux6 = param_find("RC_MAP_AUX6");
+	parameter_handles.rc_map_aux1 = param_handle(px4::params::RC_MAP_AUX1);
+	parameter_handles.rc_map_aux2 = param_handle(px4::params::RC_MAP_AUX2);
+	parameter_handles.rc_map_aux3 = param_handle(px4::params::RC_MAP_AUX3);
+	parameter_handles.rc_map_aux4 = param_handle(px4::params::RC_MAP_AUX4);
+	parameter_handles.rc_map_aux5 = param_handle(px4::params::RC_MAP_AUX5);
+	parameter_handles.rc_map_aux6 = param_handle(px4::params::RC_MAP_AUX6);
 
 	/* RC to parameter mapping for changing parameters with RC */
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
@@ -111,85 +112,85 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 		parameter_handles.rc_map_param[i] = param_find(name);
 	}
 
-	parameter_handles.rc_map_flightmode = param_find("RC_MAP_FLTMODE");
+	parameter_handles.rc_map_flightmode = param_handle(px4::params::RC_MAP_FLTMODE);
 
 	/* RC thresholds */
-	parameter_handles.rc_fails_thr = param_find("RC_FAILS_THR");
-	parameter_handles.rc_assist_th = param_find("RC_ASSIST_TH");
-	parameter_handles.rc_auto_th = param_find("RC_AUTO_TH");
-	parameter_handles.rc_rattitude_th = param_find("RC_RATT_TH");
-	parameter_handles.rc_posctl_th = param_find("RC_POSCTL_TH");
-	parameter_handles.rc_return_th = param_find("RC_RETURN_TH");
-	parameter_handles.rc_loiter_th = param_find("RC_LOITER_TH");
-	parameter_handles.rc_acro_th = param_find("RC_ACRO_TH");
-	parameter_handles.rc_offboard_th = param_find("RC_OFFB_TH");
-	parameter_handles.rc_killswitch_th = param_find("RC_KILLSWITCH_TH");
-	parameter_handles.rc_armswitch_th = param_find("RC_ARMSWITCH_TH");
-	parameter_handles.rc_trans_th = param_find("RC_TRANS_TH");
-	parameter_handles.rc_gear_th = param_find("RC_GEAR_TH");
-	parameter_handles.rc_stab_th = param_find("RC_STAB_TH");
-	parameter_handles.rc_man_th = param_find("RC_MAN_TH");
+	parameter_handles.rc_fails_thr = param_handle(px4::params::RC_FAILS_THR);
+	parameter_handles.rc_assist_th = param_handle(px4::params::RC_ASSIST_TH);
+	parameter_handles.rc_auto_th = param_handle(px4::params::RC_AUTO_TH);
+	parameter_handles.rc_rattitude_th = param_handle(px4::params::RC_RATT_TH);
+	parameter_handles.rc_posctl_th = param_handle(px4::params::RC_POSCTL_TH);
+	parameter_handles.rc_return_th = param_handle(px4::params::RC_RETURN_TH);
+	parameter_handles.rc_loiter_th = param_handle(px4::params::RC_LOITER_TH);
+	parameter_handles.rc_acro_th = param_handle(px4::params::RC_ACRO_TH);
+	parameter_handles.rc_offboard_th = param_handle(px4::params::RC_OFFB_TH);
+	parameter_handles.rc_killswitch_th = param_handle(px4::params::RC_KILLSWITCH_TH);
+	parameter_handles.rc_armswitch_th = param_handle(px4::params::RC_ARMSWITCH_TH);
+	parameter_handles.rc_trans_th = param_handle(px4::params::RC_TRANS_TH);
+	parameter_handles.rc_gear_th = param_handle(px4::params::RC_GEAR_TH);
+	parameter_handles.rc_stab_th = param_handle(px4::params::RC_STAB_TH);
+	parameter_handles.rc_man_th = param_handle(px4::params::RC_MAN_TH);
 
 	/* RC low pass filter configuration */
-	parameter_handles.rc_flt_smp_rate = param_find("RC_FLT_SMP_RATE");
-	parameter_handles.rc_flt_cutoff = param_find("RC_FLT_CUTOFF");
+	parameter_handles.rc_flt_smp_rate = param_handle(px4::params::RC_FLT_SMP_RATE);
+	parameter_handles.rc_flt_cutoff = param_handle(px4::params::RC_FLT_CUTOFF);
 
 	/* Differential pressure offset */
-	parameter_handles.diff_pres_offset_pa = param_find("SENS_DPRES_OFF");
+	parameter_handles.diff_pres_offset_pa = param_handle(px4::params::SENS_DPRES_OFF);
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
-	parameter_handles.diff_pres_analog_scale = param_find("SENS_DPRES_ANSC");
+	parameter_handles.diff_pres_analog_scale = param_handle(px4::params::SENS_DPRES_ANSC);
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
-	parameter_handles.battery_voltage_scaling = param_find("BAT_CNT_V_VOLT");
-	parameter_handles.battery_current_scaling = param_find("BAT_CNT_V_CURR");
-	parameter_handles.battery_current_offset = param_find("BAT_V_OFFS_CURR");
-	parameter_handles.battery_v_div = param_find("BAT_V_DIV");
-	parameter_handles.battery_a_per_v = param_find("BAT_A_PER_V");
-	parameter_handles.battery_source = param_find("BAT_SOURCE");
-	parameter_handles.battery_adc_channel = param_find("BAT_ADC_CHANNEL");
+	parameter_handles.battery_voltage_scaling = param_handle(px4::params::BAT_CNT_V_VOLT);
+	parameter_handles.battery_current_scaling = param_handle(px4::params::BAT_CNT_V_CURR);
+	parameter_handles.battery_current_offset = param_handle(px4::params::BAT_V_OFFS_CURR);
+	parameter_handles.battery_v_div = param_handle(px4::params::BAT_V_DIV);
+	parameter_handles.battery_a_per_v = param_handle(px4::params::BAT_A_PER_V);
+	parameter_handles.battery_source = param_handle(px4::params::BAT_SOURCE);
+	parameter_handles.battery_adc_channel = param_handle(px4::params::BAT_ADC_CHANNEL);
 
 	/* rotations */
-	parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
+	parameter_handles.board_rotation = param_handle(px4::params::SENS_BOARD_ROT);
 
 	/* rotation offsets */
-	parameter_handles.board_offset[0] = param_find("SENS_BOARD_X_OFF");
-	parameter_handles.board_offset[1] = param_find("SENS_BOARD_Y_OFF");
-	parameter_handles.board_offset[2] = param_find("SENS_BOARD_Z_OFF");
+	parameter_handles.board_offset[0] = param_handle(px4::params::SENS_BOARD_X_OFF);
+	parameter_handles.board_offset[1] = param_handle(px4::params::SENS_BOARD_Y_OFF);
+	parameter_handles.board_offset[2] = param_handle(px4::params::SENS_BOARD_Z_OFF);
 
 	/* Barometer QNH */
-	parameter_handles.baro_qnh = param_find("SENS_BARO_QNH");
+	parameter_handles.baro_qnh = param_handle(px4::params::SENS_BARO_QNH);
 
-	parameter_handles.air_cmodel = param_find("CAL_AIR_CMODEL");
-	parameter_handles.air_tube_length = param_find("CAL_AIR_TUBELEN");
-	parameter_handles.air_tube_diameter_mm = param_find("CAL_AIR_TUBED_MM");
+	parameter_handles.air_cmodel = param_handle(px4::params::CAL_AIR_CMODEL);
+	parameter_handles.air_tube_length = param_handle(px4::params::CAL_AIR_TUBELEN);
+	parameter_handles.air_tube_diameter_mm = param_handle(px4::params::CAL_AIR_TUBED_MM);
 
 	// These are parameters for which QGroundControl always expects to be returned in a list request.
 	// We do a param_find here to force them into the list.
-	(void)param_find("RC_CHAN_CNT");
+	(void)param_handle(px4::params::RC_CHAN_CNT);
 
-	(void)param_find("CAL_ACC0_ID");
-	(void)param_find("CAL_GYRO0_ID");
+	(void)param_handle(px4::params::CAL_ACC0_ID);
+	(void)param_handle(px4::params::CAL_GYRO0_ID);
 
-	(void)param_find("CAL_MAG0_ID");
-	(void)param_find("CAL_MAG1_ID");
-	(void)param_find("CAL_MAG2_ID");
-	(void)param_find("CAL_MAG3_ID");
-	(void)param_find("CAL_MAG0_ROT");
-	(void)param_find("CAL_MAG1_ROT");
-	(void)param_find("CAL_MAG2_ROT");
-	(void)param_find("CAL_MAG3_ROT");
-	(void)param_find("CAL_MAG_SIDES");
+	(void)param_handle(px4::params::CAL_MAG0_ID);
+	(void)param_handle(px4::params::CAL_MAG1_ID);
+	(void)param_handle(px4::params::CAL_MAG2_ID);
+	(void)param_handle(px4::params::CAL_MAG3_ID);
+	(void)param_handle(px4::params::CAL_MAG0_ROT);
+	(void)param_handle(px4::params::CAL_MAG1_ROT);
+	(void)param_handle(px4::params::CAL_MAG2_ROT);
+	(void)param_handle(px4::params::CAL_MAG3_ROT);
+	(void)param_handle(px4::params::CAL_MAG_SIDES);
 
-	(void)param_find("SYS_PARAM_VER");
-	(void)param_find("SYS_AUTOSTART");
-	(void)param_find("SYS_AUTOCONFIG");
+	(void)param_handle(px4::params::SYS_PARAM_VER);
+	(void)param_handle(px4::params::SYS_AUTOSTART);
+	(void)param_handle(px4::params::SYS_AUTOCONFIG);
 	(void)param_find("TRIG_MODE");
 	(void)param_find("UAVCAN_ENABLE");
 
 	// Parameters controlling the on-board sensor thermal calibrator
-	(void)param_find("SYS_CAL_TDEL");
-	(void)param_find("SYS_CAL_TMAX");
-	(void)param_find("SYS_CAL_TMIN");
+	(void)param_handle(px4::params::SYS_CAL_TDEL);
+	(void)param_handle(px4::params::SYS_CAL_TMAX);
+	(void)param_handle(px4::params::SYS_CAL_TMIN);
 }
 
 int update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters)

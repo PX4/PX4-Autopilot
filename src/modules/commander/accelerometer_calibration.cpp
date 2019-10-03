@@ -131,6 +131,7 @@
 #include <px4_param.h>
 #include <px4_posix.h>
 #include <px4_time.h>
+#include <px4_param.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <poll.h>
@@ -333,7 +334,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 		/* check if thermal compensation is enabled */
 		int32_t tc_enabled_int;
-		param_get(param_find("TC_A_ENABLE"), &(tc_enabled_int));
+		param_get(param_handle(px4::params::TC_A_ENABLE), &(tc_enabled_int));
 
 		if (tc_enabled_int == 1) {
 			/* Get struct containing sensor thermal compensation data */

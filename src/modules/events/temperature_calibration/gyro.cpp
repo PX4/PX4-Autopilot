@@ -41,6 +41,7 @@
 
 #include <mathlib/mathlib.h>
 #include <uORB/topics/sensor_gyro.h>
+#include <px4_param.h>
 #include "gyro.h"
 #include <drivers/drv_hrt.h>
 
@@ -160,7 +161,7 @@ int TemperatureCalibrationGyro::finish()
 	}
 
 	int32_t enabled = 1;
-	int result = param_set_no_notification(param_find("TC_G_ENABLE"), &enabled);
+	int result = param_set_no_notification(param_handle(px4::params::TC_G_ENABLE), &enabled);
 
 	if (result != PX4_OK) {
 		PX4_ERR("unable to reset TC_G_ENABLE (%i)", result);

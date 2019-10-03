@@ -41,6 +41,7 @@
 
 #include "tiltrotor.h"
 #include "vtol_att_control_main.h"
+#include <px4_param.h>
 
 #include <px4_param.h>
 

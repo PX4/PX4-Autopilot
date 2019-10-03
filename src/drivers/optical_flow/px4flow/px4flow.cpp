@@ -49,6 +49,7 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_getopt.h>
+#include <px4_param.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/topics/distance_sensor.h>
 #include <uORB/topics/optical_flow.h>
@@ -202,7 +203,7 @@ PX4FLOW::init()
 	_sensor_ok = true;
 
 	/* get yaw rotation from sensor frame to body frame */
-	param_t rot = param_find("SENS_FLOW_ROT");
+	param_t rot = param_handle(px4::params::SENS_FLOW_ROT);
 
 	if (rot != PARAM_INVALID) {
 		int32_t val = 6; // the recommended installation for the flow sensor is with the Y sensor axis forward
@@ -212,7 +213,7 @@ PX4FLOW::init()
 	}
 
 	/* get operational limits of the sensor */
-	param_t hmin = param_find("SENS_FLOW_MINHGT");
+	param_t hmin = param_handle(px4::params::SENS_FLOW_MINHGT);
 
 	if (hmin != PARAM_INVALID) {
 		float val = 0.7;
@@ -221,7 +222,7 @@ PX4FLOW::init()
 		_sensor_min_range = val;
 	}
 
-	param_t hmax = param_find("SENS_FLOW_MAXHGT");
+	param_t hmax = param_handle(px4::params::SENS_FLOW_MAXHGT);
 
 	if (hmax != PARAM_INVALID) {
 		float val = 3.0;
@@ -230,7 +231,7 @@ PX4FLOW::init()
 		_sensor_max_range = val;
 	}
 
-	param_t ratemax = param_find("SENS_FLOW_MAXR");
+	param_t ratemax = param_handle(px4::params::SENS_FLOW_MAXR);
 
 	if (ratemax != PARAM_INVALID) {
 		float val = 2.5;

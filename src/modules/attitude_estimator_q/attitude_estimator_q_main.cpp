@@ -50,6 +50,7 @@
 #include <px4_config.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
+#include <px4_param.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
@@ -175,16 +176,16 @@ private:
 
 AttitudeEstimatorQ::AttitudeEstimatorQ()
 {
-	_params_handles.w_acc		= param_find("ATT_W_ACC");
-	_params_handles.w_mag		= param_find("ATT_W_MAG");
-	_params_handles.w_ext_hdg	= param_find("ATT_W_EXT_HDG");
-	_params_handles.w_gyro_bias	= param_find("ATT_W_GYRO_BIAS");
-	_params_handles.mag_decl	= param_find("ATT_MAG_DECL");
-	_params_handles.mag_decl_auto	= param_find("ATT_MAG_DECL_A");
-	_params_handles.acc_comp	= param_find("ATT_ACC_COMP");
-	_params_handles.bias_max	= param_find("ATT_BIAS_MAX");
-	_params_handles.ext_hdg_mode	= param_find("ATT_EXT_HDG_M");
-	_params_handles.has_mag		= param_find("SYS_HAS_MAG");
+	_params_handles.w_acc		= param_handle(px4::params::ATT_W_ACC);
+	_params_handles.w_mag		= param_handle(px4::params::ATT_W_MAG);
+	_params_handles.w_ext_hdg	= param_handle(px4::params::ATT_W_EXT_HDG);
+	_params_handles.w_gyro_bias	= param_handle(px4::params::ATT_W_GYRO_BIAS);
+	_params_handles.mag_decl	= param_handle(px4::params::ATT_MAG_DECL);
+	_params_handles.mag_decl_auto	= param_handle(px4::params::ATT_MAG_DECL_A);
+	_params_handles.acc_comp	= param_handle(px4::params::ATT_ACC_COMP);
+	_params_handles.bias_max	= param_handle(px4::params::ATT_BIAS_MAX);
+	_params_handles.ext_hdg_mode	= param_handle(px4::params::ATT_EXT_HDG_M);
+	_params_handles.has_mag		= param_handle(px4::params::SYS_HAS_MAG);
 
 	_vel_prev.zero();
 	_pos_acc.zero();

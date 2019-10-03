@@ -40,6 +40,7 @@
  */
 
 #include "camera_capture.hpp"
+#include <px4_param.h>
 
 #define commandParamToInt(n) static_cast<int>(n >= 0 ? n + 0.5f : n - 0.5f)
 
@@ -54,13 +55,13 @@ CameraCapture::CameraCapture() :
 	memset(&_work_publisher, 0, sizeof(_work_publisher));
 
 	// Capture Parameters
-	_p_strobe_delay = param_find("CAM_CAP_DELAY");
+	_p_strobe_delay = param_handle(px4::params::CAM_CAP_DELAY);
 	param_get(_p_strobe_delay, &_strobe_delay);
 
-	_p_camera_capture_mode = param_find("CAM_CAP_MODE");
+	_p_camera_capture_mode = param_handle(px4::params::CAM_CAP_MODE);
 	param_get(_p_camera_capture_mode, &_camera_capture_mode);
 
-	_p_camera_capture_edge = param_find("CAM_CAP_EDGE");
+	_p_camera_capture_edge = param_handle(px4::params::CAM_CAP_EDGE);
 	param_get(_p_camera_capture_edge, &_camera_capture_edge);
 }
 

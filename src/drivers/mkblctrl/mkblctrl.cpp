@@ -45,6 +45,7 @@
 #include <px4_tasks.h>
 #include <drivers/device/i2c.h>
 #include <parameters/param.h>
+#include <px4_param.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -276,7 +277,7 @@ MK::~MK()
 int
 MK::init(unsigned motors)
 {
-	_param_indicate_esc	= param_find("MKBLCTRL_TEST");
+	_param_indicate_esc	= param_handle(px4::params::MKBLCTRL_TEST);
 
 	_num_outputs = motors;
 	debugCounter = 0;
