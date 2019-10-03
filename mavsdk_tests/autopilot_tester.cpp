@@ -100,6 +100,11 @@ void AutopilotTester::execute_mission()
         prom.set_value();
     });
 
+    // TODO: Adapt time limit based on mission size, flight speed, sim speed factor, etc.
+
+    REQUIRE(poll_condition_with_timeout(
+        [this]() { return _mission->mission_finished(); }, std::chrono::seconds(30)));
+
     REQUIRE(fut.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
 }
 
