@@ -41,36 +41,93 @@ public:
     }
 
     template<size_t MM, size_t NN>
-    Slice<Type, P, Q, M, N>& operator=(const Slice<Type, P, Q, MM, NN>& in_matrix)
+    Slice<Type, P, Q, M, N>& operator=(const Slice<Type, P, Q, MM, NN>& other)
     {
         Slice<Type, P, Q, M, N>& self = *this;
         for (size_t i = 0; i < P; i++) {
             for (size_t j = 0; j < Q; j++) {
-                self(i, j) = in_matrix(i, j);
+                self(i, j) = other(i, j);
             }
         }
         return self;
     }
 
-    Slice<Type, P, Q, M, N>& operator=(const Matrix<Type, P, Q>& in_matrix)
+    Slice<Type, P, Q, M, N>& operator=(const Matrix<Type, P, Q>& other)
     {
         Slice<Type, P, Q, M, N>& self = *this;
         for (size_t i = 0; i < P; i++) {
             for (size_t j = 0; j < Q; j++) {
-                self(i, j) = in_matrix(i, j);
+                self(i, j) = other(i, j);
             }
         }
         return self;
     }
 
     // allow assigning vectors to a slice that are in the axis
-    Slice<Type, 1, Q, M, N>& operator=(const Vector<Type, Q>& in_vector)
+    template <size_t DUMMY = 1> // make this a template function since it only exists for some instantiations
+    Slice<Type, 1, Q, M, N>& operator=(const Vector<Type, Q>& other)
     {
         Slice<Type, 1, Q, M, N>& self = *this;
         for (size_t j = 0; j < Q; j++) {
-            self(0, j) = in_vector(j);
+            self(0, j) = other(j);
         }
         return self;
+    }
+
+    template<size_t R, size_t S>
+    const Slice<Type, R, S, M, N> slice(size_t x0, size_t y0) const
+    {
+        return Slice<Type, R, S, M, N>(x0 + _x0, y0 + _y0, _data);
+    }
+
+    template<size_t R, size_t S>
+    Slice<Type, R, S, M, N> slice(size_t x0, size_t y0)
+    {
+        return Slice<Type, R, S, M, N>(x0 + _x0, y0 + _y0, _data);
+    }
+
+    void copyTo(Type dst[M*N]) const
+    {
+        const Slice<Type, P, Q, M, N> &self = *this;
+
+        for (size_t i = 0; i < M; i++) {
+            for (size_t j = 0; j < N; j++) {
+                dst[i*N+j] = self(i, j);
+            }
+        }
+    }
+
+    void copyToColumnMajor(Type dst[M*N]) const
+    {
+        const Slice<Type, P, Q, M, N> &self = *this;
+
+        for (size_t i = 0; i < M; i++) {
+            for (size_t j = 0; j < N; j++) {
+                dst[i+(j*M)] = self(i, j);
+            }
+        }
+    }
+
+    Type norm_squared()
+    {
+        Slice<Type, P, Q, M, N>& self = *this;
+        Type accum(0);
+        for (size_t i = 0; i < P; i++) {
+            for (size_t j = 0; j < Q; j++) {
+                accum += self(i, j)*self(i, j);
+            }
+        }
+        return accum;
+    }
+
+    Type norm()
+    {
+        return matrix::sqrt(norm_squared());
+    }
+
+    bool longerThan(Type testVal)
+    {
+        return norm_squared() > testVal*testVal;
     }
 
 private:

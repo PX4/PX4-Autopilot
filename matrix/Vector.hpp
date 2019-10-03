@@ -104,6 +104,11 @@ public:
         return unit();
     }
 
+    bool longerThan(Type testVal)
+    {
+        return norm_squared() > testVal*testVal;
+    }
+
     Vector sqrt() const {
         const Vector &a(*this);
         Vector r;

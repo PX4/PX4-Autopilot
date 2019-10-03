@@ -52,6 +52,20 @@ int main()
         TEST(fabs(array_A[i] - array_column[i]) < eps);
     }
 
+    // Slice copyTo
+    float dst5[2] = {};
+    v.slice<2,1>(0,0).copyTo(dst5);
+    for (size_t i = 0; i < 2; i++) {
+        TEST(fabs(v(i) - dst5[i]) < eps);
+    }
+
+    float subarray_A[4] = {};
+    A.slice<2,2>(0,0).copyToColumnMajor(subarray_A);
+    float subarray_column[4] = {1,4,2,5};
+    for (size_t i = 0; i < 4; i++) {
+        TEST(fabs(subarray_A[i] - subarray_column[i]) < eps);
+    }
+
     return 0;
 }
 
