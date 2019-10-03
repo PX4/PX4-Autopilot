@@ -91,6 +91,9 @@ public:
 	TakeoffState getTakeoffState() { return _takeoff_state; }
 
 private:
+	// Helper class to handle state transitions
+	class StateHandler;
+
 	TakeoffState _takeoff_state = TakeoffState::disarmed;
 
 	float _takeoff_ramp_time = 0.f;
