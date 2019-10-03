@@ -57,7 +57,7 @@ bool FlightTaskManualAltitude::activate(vehicle_local_position_setpoint_s last_s
 	bool ret = FlightTaskManual::activate(last_setpoint);
 	_yaw_setpoint = NAN;
 	_yawspeed_setpoint = 0.0f;
-	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, NAN); // altitude is controlled from position/velocity
+	_acceleration_setpoint = Vector3f(0.f, 0.f, NAN); // altitude is controlled from position/velocity
 	_position_setpoint(2) = _position(2);
 	_velocity_setpoint(2) = 0.0f;
 	_setDefaultConstraints();

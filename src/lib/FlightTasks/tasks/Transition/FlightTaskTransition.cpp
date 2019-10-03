@@ -78,11 +78,9 @@ void FlightTaskTransition::updateAccelerationEstimate()
 bool FlightTaskTransition::update()
 {
 	// level wings during the transition, altitude should be controlled
-	_thrust_setpoint(0) = _thrust_setpoint(1) = 0.0f;
-	_thrust_setpoint(2) = NAN;
-	_position_setpoint *= NAN;
-	_velocity_setpoint *= NAN;
-	_position_setpoint(2) = _transition_altitude;
+	_position_setpoint = matrix::Vector3f(NAN, NAN, _transition_altitude);
+	_velocity_setpoint.setNaN();
+	_acceleration_setpoint = matrix::Vector3f(0.f, 0.f, NAN);
 
 	updateAccelerationEstimate();
 

@@ -67,7 +67,7 @@ bool FlightTaskAutoMapper::update()
 	// vehicle exits idle.
 
 	if (_type_previous == WaypointType::idle) {
-		_thrust_setpoint = Vector3f(NAN, NAN, NAN);
+		_acceleration_setpoint.setNaN();
 	}
 
 	if (_type == WaypointType::idle) {
@@ -113,10 +113,10 @@ void FlightTaskAutoMapper::_reset()
 
 void FlightTaskAutoMapper::_generateIdleSetpoints()
 {
-	// Send zero thrust setpoint
+	// Produce minimum thrust to idle motors
 	_position_setpoint = Vector3f(NAN, NAN, NAN); // Don't require any position/velocity setpoints
 	_velocity_setpoint = Vector3f(NAN, NAN, NAN);
-	_thrust_setpoint.zero();
+	_acceleration_setpoint = Vector3f(0.f, 0.f, 100.f);
 }
 
 void FlightTaskAutoMapper::_generateLandSetpoints()

@@ -51,8 +51,6 @@ public:
 
 private:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
-					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
-					(ParamFloat<px4::params::MPC_THR_HOVER>)
-					_param_mpc_thr_hover /**< throttle value at which vehicle is at hover equilibrium */
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed
 				       )
 };
