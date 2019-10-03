@@ -46,8 +46,6 @@
 
 #include <float.h>
 
-#include <px4_param.h>
-
 using namespace matrix;
 
 Standard::Standard(VtolAttitudeControl *attc) :
@@ -62,13 +60,13 @@ Standard::Standard(VtolAttitudeControl *attc) :
 	_mc_yaw_weight = 1.0f;
 	_mc_throttle_weight = 1.0f;
 
-	_params_handles_standard.pusher_ramp_dt = param_handle(px4::params::VT_PSHER_RMP_DT);
-	_params_handles_standard.back_trans_ramp = param_handle(px4::params::VT_B_TRANS_RAMP);
-	_params_handles_standard.down_pitch_max = param_handle(px4::params::VT_DWN_PITCH_MAX);
-	_params_handles_standard.forward_thrust_scale = param_handle(px4::params::VT_FWD_THRUST_SC);
-	_params_handles_standard.pitch_setpoint_offset = param_handle(px4::params::FW_PSP_OFF);
-	_params_handles_standard.reverse_output = param_handle(px4::params::VT_B_REV_OUT);
-	_params_handles_standard.reverse_delay = param_handle(px4::params::VT_B_REV_DEL);
+	_params_handles_standard.pusher_ramp_dt = param_find("VT_PSHER_RMP_DT");
+	_params_handles_standard.back_trans_ramp = param_find("VT_B_TRANS_RAMP");
+	_params_handles_standard.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
+	_params_handles_standard.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
+	_params_handles_standard.pitch_setpoint_offset = param_find("FW_PSP_OFF");
+	_params_handles_standard.reverse_output = param_find("VT_B_REV_OUT");
+	_params_handles_standard.reverse_delay = param_find("VT_B_REV_DEL");
 }
 
 void
