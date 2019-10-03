@@ -35,6 +35,5 @@ TEST_CASE("We can fly a square mission and do RTL", "[multicopter]")
 
     tester.arm();
     tester.execute_mission();
-    tester.wait_until_hovering();
     tester.wait_until_disarmed();
 }
