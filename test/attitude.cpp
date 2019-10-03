@@ -4,11 +4,10 @@
 
 using namespace matrix;
 
-namespace matrix {
-
 // manually instantiated all files we intend to test
 // so that coverage works correctly
 // doesn't matter what test this is in
+namespace matrix {
 template class Matrix<float, 3, 3>;
 template class Vector3<float>;
 template class Vector2<float>;
@@ -17,13 +16,10 @@ template class Quaternion<float>;
 template class AxisAngle<float>;
 template class Scalar<float>;
 template class SquareMatrix<float, 4>;
-
 }
 
 int main()
 {
-
-
     // check data
     Eulerf euler_check(0.1f, 0.2f, 0.3f);
     Quatf q_check(0.98334744f, 0.0342708f, 0.10602051f, .14357218f);

@@ -41,12 +41,12 @@ public:
     // Constructors
     Matrix() = default;
 
-    Matrix(const Type data_[M*N])
+    explicit Matrix(const Type data_[M*N])
     {
         memcpy(_data, data_, sizeof(_data));
     }
 
-    Matrix(const Type data_[M][N])
+    explicit Matrix(const Type data_[M][N])
     {
         memcpy(_data, data_, sizeof(_data));
     }
