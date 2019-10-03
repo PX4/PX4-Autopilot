@@ -45,11 +45,10 @@
 #include "rc_check.h"
 
 #include <math.h>
+#include <mathlib/mathlib.h>
 
-#include <px4_param.h>
-#include <lib/mathlib/mathlib.h>
-#include <lib/parameters/param.h>
-#include <lib/systemlib/mavlink_log.h>
+#include <parameters/param.h>
+#include <systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/differential_pressure.h>
@@ -161,7 +160,7 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s 
 
 	// Use the difference between IMU's to detect a bad calibration.
 	// If a single IMU is fitted, the value being checked will be zero so this check will always pass.
-	param_get(param_handle(px4::params::COM_ARM_IMU_ACC), &test_limit);
+	param_get(param_find("COM_ARM_IMU_ACC"), &test_limit);
 
 	if (sensors.accel_inconsistency_m_s_s > test_limit) {
 		if (report_status) {
@@ -180,7 +179,7 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s 
 	}
 
 	// Fail if gyro difference greater than 5 deg/sec and notify if greater than 2.5 deg/sec
-	param_get(param_handle(px4::params::COM_ARM_IMU_GYR), &test_limit);
+	param_get(param_find("COM_ARM_IMU_GYR"), &test_limit);
 
 	if (sensors.gyro_inconsistency_rad_s > test_limit) {
 		if (report_status) {
@@ -220,7 +219,7 @@ static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s 
 	// Use the difference between sensors to detect a bad calibration, orientation or magnetic interference.
 	// If a single sensor is fitted, the value being checked will be zero so this check will always pass.
 	int32_t angle_difference_limit_deg;
-	param_get(param_handle(px4::params::COM_ARM_MAG_ANG), &angle_difference_limit_deg);
+	param_get(param_find("COM_ARM_MAG_ANG"), &angle_difference_limit_deg);
 
 	pass = pass || angle_difference_limit_deg < 0; // disabled, pass check
 	pass = pass || sensors.mag_inconsistency_angle < math::radians<float>(angle_difference_limit_deg);
@@ -508,7 +507,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 	}
 
 	// check vertical position innovation test ratio
-	param_get(param_handle(px4::params::COM_ARM_EKF_HGT), &test_limit);
+	param_get(param_find("COM_ARM_EKF_HGT"), &test_limit);
 
 	if (status.hgt_test_ratio > test_limit) {
 		if (report_fail) {
@@ -520,7 +519,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 	}
 
 	// check velocity innovation test ratio
-	param_get(param_handle(px4::params::COM_ARM_EKF_VEL), &test_limit);
+	param_get(param_find("COM_ARM_EKF_VEL"), &test_limit);
 
 	if (status.vel_test_ratio > test_limit) {
 		if (report_fail) {
@@ -532,7 +531,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 	}
 
 	// check horizontal position innovation test ratio
-	param_get(param_handle(px4::params::COM_ARM_EKF_POS), &test_limit);
+	param_get(param_find("COM_ARM_EKF_POS"), &test_limit);
 
 	if (status.pos_test_ratio > test_limit) {
 		if (report_fail) {
@@ -544,7 +543,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 	}
 
 	// check magnetometer innovation test ratio
-	param_get(param_handle(px4::params::COM_ARM_EKF_YAW), &test_limit);
+	param_get(param_find("COM_ARM_EKF_YAW"), &test_limit);
 
 	if (status.mag_test_ratio > test_limit) {
 		if (report_fail) {
@@ -556,7 +555,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 	}
 
 	// check accelerometer delta velocity bias estimates
-	param_get(param_handle(px4::params::COM_ARM_EKF_AB), &test_limit);
+	param_get(param_find("COM_ARM_EKF_AB"), &test_limit);
 
 	for (uint8_t index = 13; index < 16; index++) {
 		// allow for higher uncertainty in estimates for axes that are less observable to prevent false positives
@@ -574,7 +573,7 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 	}
 
 	// check gyro delta angle bias estimates
-	param_get(param_handle(px4::params::COM_ARM_EKF_GB), &test_limit);
+	param_get(param_find("COM_ARM_EKF_GB"), &test_limit);
 
 	if (fabsf(status.states[10]) > test_limit || fabsf(status.states[11]) > test_limit
 	    || fabsf(status.states[12]) > test_limit) {
@@ -734,10 +733,10 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 		bool prime_found = false;
 
 		int32_t prime_id = -1;
-		param_get(param_handle(px4::params::CAL_MAG_PRIME), &prime_id);
+		param_get(param_find("CAL_MAG_PRIME"), &prime_id);
 
 		int32_t sys_has_mag = 1;
-		param_get(param_handle(px4::params::SYS_HAS_MAG), &sys_has_mag);
+		param_get(param_find("SYS_HAS_MAG"), &sys_has_mag);
 
 		bool mag_fail_reported = false;
 
@@ -784,7 +783,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 	if (checkSensors) {
 		bool prime_found = false;
 		int32_t prime_id = -1;
-		param_get(param_handle(px4::params::CAL_ACC_PRIME), &prime_id);
+		param_get(param_find("CAL_ACC_PRIME"), &prime_id);
 
 		bool accel_fail_reported = false;
 
@@ -824,7 +823,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 	if (checkSensors) {
 		bool prime_found = false;
 		int32_t prime_id = -1;
-		param_get(param_handle(px4::params::CAL_GYRO_PRIME), &prime_id);
+		param_get(param_find("CAL_GYRO_PRIME"), &prime_id);
 
 		bool gyro_fail_reported = false;
 
@@ -865,10 +864,10 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 		bool prime_found = false;
 
 		int32_t prime_id = -1;
-		param_get(param_handle(px4::params::CAL_BARO_PRIME), &prime_id);
+		param_get(param_find("CAL_BARO_PRIME"), &prime_id);
 
 		int32_t sys_has_baro = 1;
-		param_get(param_handle(px4::params::SYS_HAS_BARO), &sys_has_baro);
+		param_get(param_find("SYS_HAS_BARO"), &sys_has_baro);
 
 		bool baro_fail_reported = false;
 
@@ -954,7 +953,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
 	int32_t estimator_type = -1;
 
 	if (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING && !status.is_vtol) {
-		param_get(param_handle(px4::params::SYS_MC_EST_GROUP), &estimator_type);
+		param_get(param_find("SYS_MC_EST_GROUP"), &estimator_type);
 
 	} else {
 		// EKF2 is currently the only supported option for FW & VTOL

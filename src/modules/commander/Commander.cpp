@@ -1212,33 +1212,33 @@ Commander::run()
 	status_flags.condition_system_sensors_initialized = true;
 
 	/* set parameters */
-	param_t _param_sys_type = param_handle(px4::params::MAV_TYPE);
-	param_t _param_system_id = param_handle(px4::params::MAV_SYS_ID);
-	param_t _param_component_id = param_handle(px4::params::MAV_COMP_ID);
-	param_t _param_ef_throttle_thres = param_handle(px4::params::COM_EF_THROT);
-	param_t _param_ef_current2throttle_thres = param_handle(px4::params::COM_EF_C2T);
-	param_t _param_ef_time_thres = param_handle(px4::params::COM_EF_TIME);
-	param_t _param_rc_in_off = param_handle(px4::params::COM_RC_IN_MODE);
-	param_t _param_rc_arm_hyst = param_handle(px4::params::COM_RC_ARM_HYST);
-	param_t _param_min_stick_change = param_handle(px4::params::COM_RC_STICK_OV);
-	param_t _param_geofence_action = param_handle(px4::params::GF_ACTION);
-	param_t _param_arm_without_gps = param_handle(px4::params::COM_ARM_WO_GPS);
-	param_t _param_arm_switch_is_button = param_handle(px4::params::COM_ARM_SWISBTN);
-	param_t _param_rc_override = param_handle(px4::params::COM_RC_OVERRIDE);
-	param_t _param_arm_mission_required = param_handle(px4::params::COM_ARM_MIS_REQ);
-	param_t _param_escs_checks_required = param_handle(px4::params::COM_ARM_CHK_ESCS);
-	param_t _param_flight_uuid = param_handle(px4::params::COM_FLIGHT_UUID);
-	param_t _param_takeoff_finished_action = param_handle(px4::params::COM_TAKEOFF_ACT);
+	param_t _param_sys_type = param_find("MAV_TYPE");
+	param_t _param_system_id = param_find("MAV_SYS_ID");
+	param_t _param_component_id = param_find("MAV_COMP_ID");
+	param_t _param_ef_throttle_thres = param_find("COM_EF_THROT");
+	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
+	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
+	param_t _param_rc_in_off = param_find("COM_RC_IN_MODE");
+	param_t _param_rc_arm_hyst = param_find("COM_RC_ARM_HYST");
+	param_t _param_min_stick_change = param_find("COM_RC_STICK_OV");
+	param_t _param_geofence_action = param_find("GF_ACTION");
+	param_t _param_arm_without_gps = param_find("COM_ARM_WO_GPS");
+	param_t _param_arm_switch_is_button = param_find("COM_ARM_SWISBTN");
+	param_t _param_rc_override = param_find("COM_RC_OVERRIDE");
+	param_t _param_arm_mission_required = param_find("COM_ARM_MIS_REQ");
+	param_t _param_escs_checks_required = param_find("COM_ARM_CHK_ESCS");
+	param_t _param_flight_uuid = param_find("COM_FLIGHT_UUID");
+	param_t _param_takeoff_finished_action = param_find("COM_TAKEOFF_ACT");
 
-	param_t _param_fmode_1 = param_handle(px4::params::COM_FLTMODE1);
-	param_t _param_fmode_2 = param_handle(px4::params::COM_FLTMODE2);
-	param_t _param_fmode_3 = param_handle(px4::params::COM_FLTMODE3);
-	param_t _param_fmode_4 = param_handle(px4::params::COM_FLTMODE4);
-	param_t _param_fmode_5 = param_handle(px4::params::COM_FLTMODE5);
-	param_t _param_fmode_6 = param_handle(px4::params::COM_FLTMODE6);
+	param_t _param_fmode_1 = param_find("COM_FLTMODE1");
+	param_t _param_fmode_2 = param_find("COM_FLTMODE2");
+	param_t _param_fmode_3 = param_find("COM_FLTMODE3");
+	param_t _param_fmode_4 = param_find("COM_FLTMODE4");
+	param_t _param_fmode_5 = param_find("COM_FLTMODE5");
+	param_t _param_fmode_6 = param_find("COM_FLTMODE6");
 
 	param_t _param_airmode = param_find("MC_AIRMODE");
-	param_t _param_rc_map_arm_switch = param_handle(px4::params::RC_MAP_ARM_SW);
+	param_t _param_rc_map_arm_switch = param_find("RC_MAP_ARM_SW");
 
 	status_flags.avoidance_system_required = _param_com_obs_avoid.get();
 

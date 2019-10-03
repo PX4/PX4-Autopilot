@@ -128,7 +128,6 @@
 #include "commander_helper.h"
 
 #include <px4_defines.h>
-#include <px4_param.h>
 #include <px4_posix.h>
 #include <px4_time.h>
 #include <unistd.h>
@@ -291,7 +290,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	}
 
 	/* measurements completed successfully, rotate calibration values */
-	param_t board_rotation_h = param_handle(px4::params::SENS_BOARD_ROT);
+	param_t board_rotation_h = param_find("SENS_BOARD_ROT");
 	int32_t board_rotation_int;
 	param_get(board_rotation_h, &(board_rotation_int));
 	enum Rotation board_rotation_id = (enum Rotation)board_rotation_int;
@@ -318,8 +317,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 		bool failed = false;
 
-		failed = failed
-			 || (PX4_OK != param_set_no_notification(param_handle(px4::params::CAL_ACC_PRIME), &(device_id_primary)));
+		failed = failed || (PX4_OK != param_set_no_notification(param_find("CAL_ACC_PRIME"), &(device_id_primary)));
 
 
 		PX4_INFO("found offset %d: x: %.6f, y: %.6f, z: %.6f", uorb_index,
@@ -617,10 +615,10 @@ calibrate_return read_accelerometer_avg(int sensor_correction_sub, int (&subs)[m
 					float (&accel_avg)[max_accel_sens][detect_orientation_side_count][3], unsigned orient, unsigned samples_num)
 {
 	/* get total sensor board rotation matrix */
-	param_t board_rotation_h = param_handle(px4::params::SENS_BOARD_ROT);
-	param_t board_offset_x = param_handle(px4::params::SENS_BOARD_X_OFF);
-	param_t board_offset_y = param_handle(px4::params::SENS_BOARD_Y_OFF);
-	param_t board_offset_z = param_handle(px4::params::SENS_BOARD_Z_OFF);
+	param_t board_rotation_h = param_find("SENS_BOARD_ROT");
+	param_t board_offset_x = param_find("SENS_BOARD_X_OFF");
+	param_t board_offset_y = param_find("SENS_BOARD_Y_OFF");
+	param_t board_offset_z = param_find("SENS_BOARD_Z_OFF");
 
 	float board_offset[3];
 	param_get(board_offset_x, &board_offset[0]);
@@ -807,9 +805,9 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub)
 
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, "level");
 
-	param_t roll_offset_handle = param_handle(px4::params::SENS_BOARD_X_OFF);
-	param_t pitch_offset_handle = param_handle(px4::params::SENS_BOARD_Y_OFF);
-	param_t board_rot_handle = param_handle(px4::params::SENS_BOARD_ROT);
+	param_t roll_offset_handle = param_find("SENS_BOARD_X_OFF");
+	param_t pitch_offset_handle = param_find("SENS_BOARD_Y_OFF");
+	param_t board_rot_handle = param_find("SENS_BOARD_ROT");
 
 	// save old values if calibration fails
 	float roll_offset_current;
