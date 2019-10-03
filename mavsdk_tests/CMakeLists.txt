@@ -7,6 +7,7 @@ add_definitions("-std=c++17 -Wall -Wextra -Werror")
 find_package(MAVSDK REQUIRED)
 
 add_executable(test_mission_multicopter
+    test_main.cpp
     autopilot_tester.cpp
     test_mission_multicopter.cpp
 )

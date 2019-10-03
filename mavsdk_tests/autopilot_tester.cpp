@@ -5,6 +5,8 @@
 using namespace mavsdk;
 using namespace mavsdk::geometry;
 
+std::string connection_url {"udp://"};
+
 void AutopilotTester::connect(const std::string uri)
 {
     ConnectionResult ret = _mavsdk.add_any_connection(uri);

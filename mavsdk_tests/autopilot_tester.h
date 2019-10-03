@@ -10,6 +10,8 @@
 #include <memory>
 #include <thread>
 
+extern std::string connection_url;
+
 class AutopilotTester {
 public:
     struct MissionOptions {
