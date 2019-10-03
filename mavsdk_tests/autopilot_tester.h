@@ -30,6 +30,7 @@ public:
     void wait_until_hovering();
     void prepare_square_mission(MissionOptions mission_options);
     void execute_mission();
+    void execute_rtl();
 
 private:
     mavsdk::geometry::CoordinateTransformation _get_coordinate_transformation();
