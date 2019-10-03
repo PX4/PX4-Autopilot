@@ -103,11 +103,11 @@ const vehicle_local_position_setpoint_s FlightTask::getPositionSetpoint()
 
 void FlightTask::_resetSetpoints()
 {
-	_position_setpoint.setAll(NAN);
-	_velocity_setpoint.setAll(NAN);
-	_acceleration_setpoint.setAll(NAN);
-	_jerk_setpoint.setAll(NAN);
-	_thrust_setpoint.setAll(NAN);
+	_position_setpoint.setNaN();
+	_velocity_setpoint.setNaN();
+	_acceleration_setpoint.setNaN();
+	_jerk_setpoint.setNaN();
+	_thrust_setpoint.setNaN();
 	_yaw_setpoint = _yawspeed_setpoint = NAN;
 }
 

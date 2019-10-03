@@ -91,7 +91,6 @@ void FlightTaskManualAltitudeSmoothVel::_updateSetpoints()
 	_smoothing.setVelSpFeedback(_velocity_setpoint_feedback(2));
 	_smoothing.setCurrentPositionEstimate(_position(2));
 
-
 	// Get yaw setpoint, un-smoothed position setpoints
 	FlightTaskManualAltitude::_updateSetpoints();
 

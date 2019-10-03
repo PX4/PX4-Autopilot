@@ -69,7 +69,7 @@ void FlightTaskTransition::updateAccelerationEstimate()
 	if (!PX4_ISFINITE(_acceleration_setpoint(0)) ||
 	    !PX4_ISFINITE(_acceleration_setpoint(1)) ||
 	    !PX4_ISFINITE(_acceleration_setpoint(2))) {
-		_acceleration_setpoint.setAll(0.f);
+		_acceleration_setpoint.setZero();
 	}
 
 	_velocity_prev = _velocity;
