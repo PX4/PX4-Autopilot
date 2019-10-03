@@ -128,3 +128,8 @@ std::shared_ptr<MissionItem>  AutopilotTester::_create_mission_item(
     mission_item->set_relative_altitude(mission_options.relative_altitude_m);
     return mission_item;
 }
+
+void AutopilotTester::execute_rtl()
+{
+    REQUIRE(Action::Result::SUCCESS == _action->return_to_launch());
+}
