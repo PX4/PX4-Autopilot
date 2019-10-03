@@ -372,7 +372,7 @@ void FlightTaskAutoLineSmoothVel::_generateTrajectory()
 	VelocitySmoothing::timeSynchronization(_trajectory, 2); // Synchronize x and y only
 
 	_jerk_setpoint = jerk_sp_smooth;
-	_acceleration_setpoint = accel_sp_smooth;
+	_acceleration_setpoint.setNaN(); // TODO: until smooth feed-forward is fixed
 	_velocity_setpoint = vel_sp_smooth;
 	_position_setpoint = pos_sp_smooth;
 }

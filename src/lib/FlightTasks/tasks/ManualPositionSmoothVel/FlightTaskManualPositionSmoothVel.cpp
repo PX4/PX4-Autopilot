@@ -172,7 +172,7 @@ void FlightTaskManualPositionSmoothVel::_setOutputState()
 void FlightTaskManualPositionSmoothVel::_setOutputStateXY()
 {
 	_jerk_setpoint.xy() = _smoothing_xy.getCurrentJerk();
-	_acceleration_setpoint.xy() = _smoothing_xy.getCurrentAcceleration();
+	_acceleration_setpoint.xy() = Vector2f(NAN, NAN); // TODO: until smooth feed-forward is fixed
 	_velocity_setpoint.xy() = _smoothing_xy.getCurrentVelocity();
 	_position_setpoint.xy() = _smoothing_xy.getCurrentPosition();
 }
@@ -180,7 +180,7 @@ void FlightTaskManualPositionSmoothVel::_setOutputStateXY()
 void FlightTaskManualPositionSmoothVel::_setOutputStateZ()
 {
 	_jerk_setpoint(2) = _smoothing_z.getCurrentJerk();
-	_acceleration_setpoint(2) = _smoothing_z.getCurrentAcceleration();
+	_acceleration_setpoint(2) = NAN; // TODO: until smooth feed-forward is fixed
 	_velocity_setpoint(2) = _smoothing_z.getCurrentVelocity();
 	_position_setpoint(2) = _smoothing_z.getCurrentPosition();
 }
