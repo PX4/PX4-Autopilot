@@ -66,6 +66,7 @@
 #include <px4_module_params.h>
 #include <px4_posix.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed.h>
@@ -155,7 +156,7 @@ private:
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};		///< control mode subscription */
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _manual_control_sub{ORB_ID(manual_control_setpoint)};	///< notification of manual control updates */
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};			///< notification of parameter updates */
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		///< notification of parameter updates */
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _sensor_baro_sub{ORB_ID(sensor_baro)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};		///< vehicle attitude subscription */
@@ -165,11 +166,11 @@ private:
 	uORB::SubscriptionData<vehicle_angular_velocity_s>	_vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
 
 	orb_advert_t	_attitude_sp_pub{nullptr};		///< attitude setpoint */
-	orb_advert_t	_pos_ctrl_status_pub{nullptr};		///< navigation capabilities publication */
-	orb_advert_t	_pos_ctrl_landing_status_pub{nullptr};	///< landing status publication */
-	orb_advert_t	_tecs_status_pub{nullptr};		///< TECS status publication */
+	orb_id_t	_attitude_setpoint_id{nullptr};
 
-	orb_id_t _attitude_setpoint_id{nullptr};
+	uORB::Publication<position_controller_status_s>		_pos_ctrl_status_pub{ORB_ID(position_controller_status)};			///< navigation capabilities publication */
+	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};	///< landing status publication */
+	uORB::Publication<tecs_status_s>			_tecs_status_pub{ORB_ID(tecs_status)};						///< TECS status publication */
 
 	manual_control_setpoint_s	_manual {};			///< r/c channel data */
 	position_setpoint_triplet_s	_pos_sp_triplet {};		///< triplet of mission items */
@@ -186,7 +187,6 @@ private:
 	SubscriptionData<vehicle_acceleration_s>	_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
 	perf_counter_t	_loop_perf;				///< loop performance counter */
-	perf_counter_t	_loop_interval_perf;			///< loop interval performance counter */
 
 	float	_hold_alt{0.0f};				///< hold altitude for altitude mode */
 	float	_takeoff_ground_alt{0.0f};			///< ground altitude at which plane was launched */

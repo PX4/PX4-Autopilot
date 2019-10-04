@@ -69,6 +69,7 @@ px4_add_board(
 		topic_listener
 		tune_control
 		ver
+		work_queue
 
 	EXAMPLES
 		bottle_drop # OBC challenge
@@ -79,7 +80,6 @@ px4_add_board(
 		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
-		segway
 	)
 
 set(config_sitl_viewer jmavsim CACHE STRING "viewer for sitl")
@@ -92,9 +92,9 @@ set_property(CACHE config_sitl_debugger PROPERTY STRINGS "disable;gdb;lldb")
 # support. In this case, we enable the orb publisher rules.
 set(REPLAY_FILE "$ENV{replay}")
 if(REPLAY_FILE)
-	message("Building with uorb publisher rules support")
+	message(STATUS "Building with uorb publisher rules support")
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 endif()
 
-message("Building without lockstep for test")
+message(STATUS "Building without lockstep for test")
 set(ENABLE_LOCKSTEP_SCHEDULER no)

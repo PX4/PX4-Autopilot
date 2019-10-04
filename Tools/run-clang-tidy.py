@@ -33,6 +33,7 @@ Example invocations.
 Compilation database setup:
 http://clang.llvm.org/docs/HowToSetupToolingForLLVM.html
 """
+from __future__ import print_function
 
 import argparse
 import json
@@ -54,7 +55,7 @@ def find_compilation_database(path):
   result = './'
   while not os.path.isfile(os.path.join(result, path)):
     if os.path.realpath(result) == '/':
-      print 'Error: could not find compilation database.'
+      print('Error: could not find compilation database.')
       sys.exit(1)
     result += '../'
   return os.path.realpath(result)
@@ -107,7 +108,7 @@ def run_tidy(args, tmpdir, build_path, queue):
 
     try:
       subprocess.check_call(invocation, stdin=None, stdout=open(os.devnull, 'wb'), stderr=subprocess.STDOUT)
-    except subprocess.CalledProcessError, e:
+    except subprocess.CalledProcessError as e:
       sys.stdout.write(' '.join(invocation) + '\n')
       subprocess.call(invocation)
       global tidy_failures
@@ -168,9 +169,9 @@ def main():
     if args.checks:
       invocation.append('-checks=' + args.checks)
     invocation.append('-')
-    print subprocess.check_output(invocation)
+    print(subprocess.check_output(invocation))
   except:
-    print >>sys.stderr, "Unable to run clang-tidy."
+    print("Unable to run clang-tidy.", file=sys.stderr)
     sys.exit(1)
 
   # Load the database and extract all files.
@@ -208,18 +209,18 @@ def main():
   except KeyboardInterrupt:
     # This is a sad hack. Unfortunately subprocess goes
     # bonkers with ctrl-c and we start forking merrily.
-    print '\nCtrl-C detected, goodbye.'
+    print('\nCtrl-C detected, goodbye.')
     if args.fix:
       shutil.rmtree(tmpdir)
     os.kill(0, 9)
 
   if args.fix:
-    print 'Applying fixes ...'
+    print('Applying fixes ...')
     apply_fixes(args, tmpdir)
 
   global tidy_failures
   if tidy_failures > 0:
-    print >>sys.stderr, "clang-tidy errors: ", tidy_failures
+    print("clang-tidy errors: ", tidy_failures, file=sys.stderr)
     sys.exit(1)
 
 if __name__ == '__main__':

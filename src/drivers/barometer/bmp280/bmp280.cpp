@@ -112,7 +112,7 @@ extern "C" __EXPORT int bmp280_main(int argc, char *argv[]);
 
 BMP280::BMP280(bmp280::IBMP280 *interface, const char *path) :
 	CDev(path),
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_running(false),
 	_report_interval(0),

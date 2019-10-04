@@ -55,5 +55,6 @@ px4_add_board(
 		param
 		top
 		ver
+		work_queue
 
 	)

@@ -92,8 +92,6 @@ add_custom_target(px4_uavcan_dsdlc DEPENDS px4_uavcan_dsdlc_run.stamp)
 px4_add_module(
 	MODULE modules__uavcan
 	MAIN uavcan
-	STACK_MAIN 3200
-	STACK_MAX 1500
 	INCLUDES
 		${DSDLC_OUTPUT}
 		${PX4_SOURCE_DIR}/mavlink/include/mavlink
@@ -117,6 +115,7 @@ px4_add_module(
 		sensors/mag.cpp
 		sensors/baro.cpp
 		sensors/flow.cpp
+		sensors/battery.cpp
 
 	DEPENDS
 		px4_uavcan_dsdlc

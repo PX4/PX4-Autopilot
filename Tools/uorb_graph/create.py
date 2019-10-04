@@ -240,7 +240,7 @@ class Graph(object):
 
 
         special_cases_pub = [
-    ('replay', r'replay_main\.cpp$', None, r'^sub\.orb_meta$'),
+    ('replay', r'Replay\.cpp$', None, r'^sub\.orb_meta$'),
     ('fw_pos_control_l1', r'FixedwingPositionControl\.cpp$', r'\b_attitude_setpoint_id=([^,)]+)', r'^_attitude_setpoint_id$'),
 
     ('mc_pos_control', r'mc_pos_control_main\.cpp$', r'\b_attitude_setpoint_id=([^,)]+)', r'^_attitude_setpoint_id$'),
@@ -518,7 +518,7 @@ class OutputGraphviz(object):
                             graph.edge('t_'+topic, 'm_'+module,
                                     color=topic_colors[topic])
 
-	graph.render(file_name, view=False)
+        graph.render(file_name, view=False)
 
 
 class OutputJSON(object):
@@ -633,6 +633,3 @@ elif args.output == 'graphviz':
     output_graphviz.write(args.file+'_pubs.fv', show_subscriptions=False, engine=engine)
 else:
     print('Error: unknown output format '+args.output)
-
-
-

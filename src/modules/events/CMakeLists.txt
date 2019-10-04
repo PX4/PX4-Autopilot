@@ -34,7 +34,6 @@
 px4_add_module(
 	MODULE modules__events
 	MAIN send_event
-	STACK_MAIN 2200
 	COMPILE_FLAGS
 	SRCS
 		rc_loss_alarm.cpp

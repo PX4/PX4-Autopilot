@@ -39,8 +39,6 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <drivers/drv_hrt.h>
-
 #include "RoverLandDetector.h"
 
 namespace land_detector
@@ -59,23 +57,12 @@ bool RoverLandDetector::_get_ground_contact_state()
 	return true;
 }
 
-bool RoverLandDetector::_get_maybe_landed_state()
-{
-	return false;
-}
-
-
 bool RoverLandDetector::_get_landed_state()
 {
 	if (!_actuator_armed.armed) {
 		return true;
 	}
 
-	return false;
-}
-
-bool RoverLandDetector::_get_freefall_state()
-{
 	return false;
 }
 

@@ -45,8 +45,8 @@ work_s RCInput::_work = {};
 constexpr char const *RCInput::RC_SCAN_STRING[];
 
 RCInput::RCInput(bool run_as_task, char *device) :
-	_cycle_perf(perf_alloc(PC_ELAPSED, "rc_input cycle time")),
-	_publish_interval_perf(perf_alloc(PC_INTERVAL, "rc_input publish interval"))
+	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
+	_publish_interval_perf(perf_alloc(PC_INTERVAL,  MODULE_NAME": publish interval"))
 {
 	// rc input, published to ORB
 	_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
@@ -71,8 +71,6 @@ RCInput::RCInput(bool run_as_task, char *device) :
 
 RCInput::~RCInput()
 {
-	orb_unadvertise(_to_input_rc);
-
 #ifdef RC_SERIAL_PORT
 	dsm_deinit();
 #endif
@@ -674,8 +672,7 @@ RCInput::cycle()
 		if (rc_updated) {
 			perf_count(_publish_interval_perf);
 
-			int instance;
-			orb_publish_auto(ORB_ID(input_rc), &_to_input_rc, &_rc_in, &instance, ORB_PRIO_DEFAULT);
+			_to_input_rc.publish(_rc_in);
 
 		} else if (!rc_updated && ((hrt_absolute_time() - _rc_in.timestamp_last_signal) > 1_s)) {
 			_rc_scan_locked = false;

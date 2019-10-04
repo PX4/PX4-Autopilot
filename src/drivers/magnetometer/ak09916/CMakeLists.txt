@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE drivers__ak09916
 	MAIN ak09916
-	STACK_MAIN 1200
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS

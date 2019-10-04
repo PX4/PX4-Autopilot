@@ -47,7 +47,7 @@
 #include <lib/cdev/CDev.hpp>
 #include <perf/perf_counter.h>
 #include <px4_module_params.h>
-#include <uORB/uORB.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
@@ -60,7 +60,6 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
 #include <mixer/mixer.h>
-#include <pwm_limit/pwm_limit.h>
 
 #include "tap_esc_common.h"
 
@@ -115,7 +114,9 @@ private:
 	bool 			_is_armed = false;
 	int			_armed_sub = -1;
 	int 			_test_motor_sub = -1;
-	int 			_params_sub = -1;
+
+	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
+
 	orb_advert_t        	_outputs_pub = nullptr;
 	actuator_outputs_s      _outputs = {};
 	actuator_armed_s	_armed = {};
@@ -192,7 +193,6 @@ TAP_ESC::~TAP_ESC()
 
 	orb_unsubscribe(_armed_sub);
 	orb_unsubscribe(_test_motor_sub);
-	orb_unsubscribe(_params_sub);
 
 	orb_unadvertise(_outputs_pub);
 	orb_unadvertise(_esc_feedback_pub);
@@ -337,7 +337,6 @@ int TAP_ESC::init()
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 	_test_motor_sub = orb_subscribe(ORB_ID(test_motor));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
 
 	return ret;
 }
@@ -610,13 +609,13 @@ void TAP_ESC::cycle()
 
 	}
 
-	/* check for parameter updates */
-	bool param_updated = false;
-	orb_check(_params_sub, &param_updated);
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
-	if (param_updated) {
-		struct parameter_update_s update;
-		orb_copy(ORB_ID(parameter_update), _params_sub, &update);
+		// update parameters from storage
 		updateParams();
 	}
 }

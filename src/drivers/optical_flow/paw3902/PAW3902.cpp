@@ -35,9 +35,8 @@
 
 PAW3902::PAW3902(int bus, enum Rotation yaw_rotation) :
 	SPI("PAW3902", nullptr, bus, PAW3902_SPIDEV, SPIDEV_MODE0, PAW3902_SPI_BUS_SPEED),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_sample_perf(perf_alloc(PC_ELAPSED, "paw3902: read")),
-	_interval_perf(perf_alloc(PC_INTERVAL, "paw3902: interval")),
 	_comms_errors(perf_alloc(PC_COUNT, "paw3902: com_err")),
 	_dupe_count_perf(perf_alloc(PC_COUNT, "paw3902: duplicate reading")),
 	_yaw_rotation(yaw_rotation)
@@ -51,11 +50,9 @@ PAW3902::~PAW3902()
 
 	// free perf counters
 	perf_free(_sample_perf);
-	perf_free(_interval_perf);
 	perf_free(_comms_errors);
 	perf_free(_dupe_count_perf);
 }
-
 
 int
 PAW3902::init()
@@ -540,7 +537,6 @@ void
 PAW3902::Run()
 {
 	perf_begin(_sample_perf);
-	perf_count(_interval_perf);
 
 	struct TransferBuffer {
 		uint8_t cmd = Register::Motion_Burst;
@@ -699,7 +695,6 @@ void
 PAW3902::print_info()
 {
 	perf_print_counter(_sample_perf);
-	perf_print_counter(_interval_perf);
 	perf_print_counter(_comms_errors);
 	perf_print_counter(_dupe_count_perf);
 }

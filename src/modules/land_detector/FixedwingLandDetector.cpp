@@ -62,9 +62,13 @@ void FixedwingLandDetector::_update_topics()
 
 void FixedwingLandDetector::_update_params()
 {
-	parameter_update_s param_update;
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
-	if (_param_update_sub.update(&param_update)) {
+		// update parameters from storage
 		_update_params();
 	}
 }

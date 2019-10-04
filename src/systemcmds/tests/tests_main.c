@@ -73,7 +73,6 @@ const struct {
 	{"adc",			test_adc,		OPT_NOJIGTEST},
 	{"file",		test_file,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"led",			test_led,		0},
-	{"sensors",		test_sensors,		0},
 	{"time",		test_time,		OPT_NOJIGTEST},
 	{"uart_baudchange",	test_uart_baudchange,	OPT_NOJIGTEST},
 	{"uart_break",		test_uart_break,	OPT_NOJIGTEST | OPT_NOALLTEST},

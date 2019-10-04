@@ -111,7 +111,7 @@ __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *
 	}
 
 	/* publish an orb log message */
-	if (level >= _PX4_LOG_LEVEL_WARN && orb_log_message_pub) { //only publish important messages
+	if (level >= _PX4_LOG_LEVEL_INFO && orb_log_message_pub) { //publish all messages
 
 		struct log_message_s log_message;
 		const unsigned max_length_pub = sizeof(log_message.text);

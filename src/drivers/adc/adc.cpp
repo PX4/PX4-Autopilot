@@ -104,7 +104,7 @@ private:
 
 ADC::ADC(uint32_t base_address, uint32_t channels) :
 	CDev(ADC0_DEVICE_PATH),
-	ScheduledWorkItem(px4::wq_configurations::hp_default),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
 	_base_address(base_address)
 {
@@ -357,7 +357,7 @@ test(void)
 		return 1;
 	}
 
-	for (unsigned i = 0; i < 50; i++) {
+	for (unsigned i = 0; i < 20; i++) {
 		px4_adc_msg_t data[ADC_TOTAL_CHANNELS];
 		ssize_t count = read(fd, data, sizeof(data));
 

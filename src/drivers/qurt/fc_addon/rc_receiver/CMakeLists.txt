@@ -47,7 +47,6 @@ set_target_properties(rc_receiver PROPERTIES IMPORTED_LOCATION ${FC_ADDON}/fligh
 px4_add_module(
 	MODULE platforms__qurt__fc_addon__rc_receiver
 	MAIN rc_receiver
-	STACK_MAIN 1200
 	INCLUDES
 		${FC_ADDON}/flight_controller/hexagon/inc
         SRCS

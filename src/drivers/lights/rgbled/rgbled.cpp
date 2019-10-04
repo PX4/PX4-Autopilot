@@ -80,7 +80,8 @@ private:
 	volatile bool		_running{false};
 	volatile bool		_should_run{true};
 	bool			_leds_enabled{true};
-	uORB::Subscription	_param_sub{ORB_ID(parameter_update)};
+
+	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
 	LedController		_led_controller;
 
@@ -104,7 +105,7 @@ extern "C" __EXPORT int rgbled_main(int argc, char *argv[]);
 
 RGBLED::RGBLED(int bus, int rgbled) :
 	I2C("rgbled", RGBLED0_DEVICE_PATH, bus, rgbled, 100000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id()))
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id()))
 {
 }
 
@@ -202,11 +203,13 @@ RGBLED::Run()
 		return;
 	}
 
-	if (_param_sub.updated()) {
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
 		// clear update
 		parameter_update_s pupdate;
-		_param_sub.copy(&pupdate);
+		_parameter_update_sub.copy(&pupdate);
 
+		// update parameters from storage
 		update_params();
 
 		// Immediately update to change brightness

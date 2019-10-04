@@ -41,13 +41,12 @@ constexpr uint8_t MPU6000::_checked_registers[MPU6000_NUM_CHECKED_REGISTERS];
 
 MPU6000::MPU6000(device::Device *interface, const char *path, enum Rotation rotation, int device_type) :
 	CDev(path),
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_device_type(device_type),
 	_px4_accel(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),
 	_px4_gyro(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6k_read")),
-	_measure_interval(perf_alloc(PC_INTERVAL, "mpu6k_measure_interval")),
 	_bad_transfers(perf_alloc(PC_COUNT, "mpu6k_bad_trans")),
 	_bad_registers(perf_alloc(PC_COUNT, "mpu6k_bad_reg")),
 	_reset_retries(perf_alloc(PC_COUNT, "mpu6k_reset")),
@@ -84,7 +83,6 @@ MPU6000::~MPU6000()
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
-	perf_free(_measure_interval);
 	perf_free(_bad_transfers);
 	perf_free(_bad_registers);
 	perf_free(_reset_retries);
@@ -729,8 +727,6 @@ MPU6000::check_registers(void)
 int
 MPU6000::measure()
 {
-	perf_count(_measure_interval);
-
 	if (_in_factory_test) {
 		// don't publish any data while in factory test mode
 		return OK;
@@ -897,7 +893,6 @@ void
 MPU6000::print_info()
 {
 	perf_print_counter(_sample_perf);
-	perf_print_counter(_measure_interval);
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_reset_retries);

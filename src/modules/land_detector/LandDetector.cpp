@@ -55,7 +55,7 @@ namespace land_detector
 
 LandDetector::LandDetector() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(px4::wq_configurations::hp_default)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl)
 {
 	_land_detected.timestamp = hrt_absolute_time();
 	_land_detected.freefall = false;
@@ -104,7 +104,7 @@ void LandDetector::Run()
 	    (_land_detected.in_ground_effect != in_ground_effect) ||
 	    (fabsf(_land_detected.alt_max - alt_max) > FLT_EPSILON)) {
 
-		if (!landDetected && _land_detected.landed) {
+		if (!landDetected && _land_detected.landed && _takeoff_time == 0) { /* only set take off time once, until disarming */
 			// We did take off
 			_takeoff_time = now;
 		}
@@ -151,10 +151,15 @@ void LandDetector::Run()
 
 void LandDetector::_check_params(const bool force)
 {
-	parameter_update_s param_update;
+	// check for parameter updates
+	if (_parameter_update_sub.updated() || force) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
-	if (_param_update_sub.update(&param_update) || force) {
+		// update parameters from storage
 		_update_params();
+
 		_update_total_flight_time();
 	}
 }

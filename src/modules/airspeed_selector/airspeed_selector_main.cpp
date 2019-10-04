@@ -49,6 +49,8 @@
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/mavlink_log.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -93,8 +95,8 @@ public:
 private:
 	static constexpr int MAX_NUM_AIRSPEED_SENSORS = 3; /**< Support max 3 airspeed sensors */
 
-	orb_advert_t	_airspeed_validated_pub {nullptr};			/**< airspeed validated topic*/
-	orb_advert_t 	_wind_est_pub[MAX_NUM_AIRSPEED_SENSORS + 1] {};							/**< wind estimate topic (for each airspeed validator + purely sideslip fusion) */
+	uORB::Publication<airspeed_validated_s> _airspeed_validated_pub {ORB_ID(airspeed_validated)};			/**< airspeed validated topic*/
+	uORB::PublicationMulti<wind_estimate_s> _wind_est_pub[MAX_NUM_AIRSPEED_SENSORS + 1] {{ORB_ID(wind_estimate)}, {ORB_ID(wind_estimate)}, {ORB_ID(wind_estimate)}, {ORB_ID(wind_estimate)}}; /**< wind estimate topic (for each airspeed validator + purely sideslip fusion) */
 	orb_advert_t 	_mavlink_log_pub {nullptr}; 						/**< mavlink log topic*/
 
 	uORB::Subscription _estimator_status_sub{ORB_ID(estimator_status)};
@@ -135,8 +137,6 @@ private:
 	bool _scale_estimation_previously_on{false}; /**< scale_estimation was on in the last cycle */
 
 	perf_counter_t _perf_elapsed{};
-	perf_counter_t _perf_interval{};
-
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::ARSP_W_P_NOISE>) _param_west_w_p_noise,
@@ -168,30 +168,19 @@ private:
 
 AirspeedModule::AirspeedModule():
 	ModuleParams(nullptr),
-	ScheduledWorkItem(px4::wq_configurations::lp_default)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
 	// initialise parameters
 	update_params();
 
 	_perf_elapsed = perf_alloc_once(PC_ELAPSED, "airspeed_selector elapsed");
-	_perf_interval = perf_alloc_once(PC_INTERVAL, "airspeed_selector interval");
 }
 
 AirspeedModule::~AirspeedModule()
 {
 	ScheduleClear();
 
-	for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
-		if (_wind_est_pub[i] != nullptr) {
-			orb_unadvertise(_wind_est_pub[i]);
-		}
-	}
-
-	orb_unadvertise(_airspeed_validated_pub);
-
-
 	perf_free(_perf_elapsed);
-	perf_free(_perf_interval);
 
 	if (_airspeed_validator != nullptr) {
 		delete[] _airspeed_validator;
@@ -223,7 +212,6 @@ AirspeedModule::task_spawn(int argc, char *argv[])
 void
 AirspeedModule::Run()
 {
-	perf_count(_perf_interval);
 	perf_begin(_perf_elapsed);
 
 	/* the first time we run through here, initialize N airspeedValidator
@@ -524,17 +512,15 @@ void AirspeedModule::select_airspeed_and_publish()
 	}
 
 	/* publish airspeed validated topic */
-	int instance;
-	orb_publish_auto(ORB_ID(airspeed_validated), &_airspeed_validated_pub, &airspeed_validated, &instance,
-			 ORB_PRIO_DEFAULT);
+	_airspeed_validated_pub.publish(airspeed_validated);
 
 	/* publish sideslip-only-fusion wind topic */
-	orb_publish_auto(ORB_ID(wind_estimate), &_wind_est_pub[0], &_wind_estimate_sideslip, &instance, ORB_PRIO_LOW);
+	_wind_est_pub[0].publish(_wind_estimate_sideslip);
 
 	/* publish the wind estimator states from all airspeed validators */
 	for (int i = 0; i < _number_of_airspeed_sensors; i++) {
 		wind_estimate_s wind_est = _airspeed_validator[i].get_wind_estimator_states(hrt_absolute_time());
-		orb_publish_auto(ORB_ID(wind_estimate), &_wind_est_pub[i + 1], &wind_est, &instance, ORB_PRIO_LOW);
+		_wind_est_pub[i + 1].publish(wind_est);
 	}
 
 }
@@ -581,7 +567,6 @@ and also publishes those.
 int AirspeedModule::print_status()
 {
 	perf_print_counter(_perf_elapsed);
-	perf_print_counter(_perf_interval);
 
 	int instance = 0;
 	uORB::SubscriptionData<airspeed_validated_s> est{ORB_ID(airspeed_validated), (uint8_t)instance};

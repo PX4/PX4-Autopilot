@@ -2451,7 +2451,7 @@ protected:
 
 		if (odom_updated) {
 			msg.time_usec = odom.timestamp;
-			msg.child_frame_id = MAV_FRAME_BODY_NED;
+			msg.child_frame_id = MAV_FRAME_BODY_FRD;
 
 			// Current position
 			msg.x = odom.x;
@@ -2464,11 +2464,11 @@ protected:
 			msg.q[2] = odom.q[2];
 			msg.q[3] = odom.q[3];
 
-			// Local NED to body-NED Dcm matrix
-			matrix::Dcmf Rlb(matrix::Quatf(odom.q));
+			// Body-FRD frame to local NED frame Dcm matrix
+			matrix::Dcmf R_body_to_local(matrix::Quatf(odom.q));
 
 			// Rotate linear and angular velocity from local NED to body-NED frame
-			matrix::Vector3f linvel_body(Rlb * matrix::Vector3f(odom.vx, odom.vy, odom.vz));
+			matrix::Vector3f linvel_body(R_body_to_local.transpose() * matrix::Vector3f(odom.vx, odom.vy, odom.vz));
 
 			// Current linear velocity
 			msg.vx = linvel_body(0);
@@ -2966,12 +2966,12 @@ public:
 
 	unsigned get_size()
 	{
-		return _att_ctrl_sub->is_published() ? (MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
+		return _act_ctrl_sub->is_published() ? (MAVLINK_MSG_ID_ACTUATOR_CONTROL_TARGET_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) : 0;
 	}
 
 private:
-	MavlinkOrbSubscription *_att_ctrl_sub;
-	uint64_t _att_ctrl_time;
+	MavlinkOrbSubscription *_act_ctrl_sub;
+	uint64_t _act_ctrl_time;
 
 	/* do not allow top copying this class */
 	MavlinkStreamActuatorControlTarget(MavlinkStreamActuatorControlTarget &) = delete;
@@ -2979,41 +2979,41 @@ private:
 
 protected:
 	explicit MavlinkStreamActuatorControlTarget(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_att_ctrl_sub(nullptr),
-		_att_ctrl_time(0)
+		_act_ctrl_sub(nullptr),
+		_act_ctrl_time(0)
 	{
 		// XXX this can be removed once the multiplatform system remaps topics
 		switch (N) {
 		case 0:
-			_att_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_0));
+			_act_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_0));
 			break;
 
 		case 1:
-			_att_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_1));
+			_act_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_1));
 			break;
 
 		case 2:
-			_att_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_2));
+			_act_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_2));
 			break;
 
 		case 3:
-			_att_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_3));
+			_act_ctrl_sub = _mavlink->add_orb_subscription(ORB_ID(actuator_controls_3));
 			break;
 		}
 	}
 
 	bool send(const hrt_abstime t)
 	{
-		actuator_controls_s att_ctrl;
+		actuator_controls_s act_ctrl;
 
-		if (_att_ctrl_sub->update(&_att_ctrl_time, &att_ctrl)) {
+		if (_act_ctrl_sub->update(&_act_ctrl_time, &act_ctrl)) {
 			mavlink_actuator_control_target_t msg = {};
 
-			msg.time_usec = att_ctrl.timestamp;
+			msg.time_usec = act_ctrl.timestamp;
 			msg.group_mlx = N;
 
 			for (unsigned i = 0; i < sizeof(msg.controls) / sizeof(msg.controls[0]); i++) {
-				msg.controls[i] = att_ctrl.control[i];
+				msg.controls[i] = act_ctrl.control[i];
 			}
 
 			mavlink_msg_actuator_control_target_send_struct(_mavlink->get_channel(), &msg);
@@ -3431,7 +3431,10 @@ protected:
 
 			} else {
 				matrix::Quatf q = matrix::Eulerf(att_sp.roll_body, att_sp.pitch_body, att_sp.yaw_body);
-				memcpy(&msg.q[0], q.data(), sizeof(msg.q));
+
+				for (size_t i = 0; i < 4; i++) {
+					msg.q[i] = q(i);
+				}
 			}
 
 			msg.body_roll_rate = att_rates_sp.roll;
