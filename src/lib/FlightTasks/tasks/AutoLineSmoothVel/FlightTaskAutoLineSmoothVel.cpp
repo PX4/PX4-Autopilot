@@ -363,7 +363,7 @@ void FlightTaskAutoLineSmoothVel::_generateTrajectory()
 		jerk_sp_smooth(i) = _trajectory[i].getCurrentJerk();
 		accel_sp_smooth(i) = _trajectory[i].getCurrentAcceleration();
 		vel_sp_smooth(i) = _trajectory[i].getCurrentVelocity();
-		pos_sp_smooth(i) = _trajectory[i].getCurrentPosition();
+		pos_sp_smooth(i) = PX4_ISFINITE(_position_setpoint(i)) ? _trajectory[i].getCurrentPosition() : NAN;
 	}
 
 	_updateTrajConstraints();
