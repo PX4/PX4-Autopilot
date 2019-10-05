@@ -11,7 +11,7 @@ pipeline {
         // stage('Catkin build on ROS workspace') {
         //   agent {
         //     docker {
-        //       image 'px4io/px4-dev-ros-melodic:2019-07-29'
+        //       image 'px4io/px4-dev-ros-melodic:2019-10-04'
         //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
         //     }
         //   }
@@ -51,7 +51,7 @@ pipeline {
         stage('Colcon build on ROS2 workspace') {
           agent {
             docker {
-              image 'px4io/px4-dev-ros2-bouncy:2019-07-29'
+              image 'px4io/px4-dev-ros2-bouncy:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
             }
           }
@@ -82,7 +82,7 @@ pipeline {
 
         stage('Style check') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2019-07-29' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-10-04' }
           }
           steps {
             sh 'make check_format'
@@ -97,7 +97,7 @@ pipeline {
         stage('px4_fmu-v2 (bloaty)') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -130,7 +130,7 @@ pipeline {
         stage('px4_fmu-v5 (bloaty)') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -163,7 +163,7 @@ pipeline {
         stage('px4_sitl (bloaty)') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -196,7 +196,7 @@ pipeline {
         stage('px4_fmu-v5 (no ninja)') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -222,7 +222,7 @@ pipeline {
         stage('px4_sitl (no ninja)') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -248,7 +248,7 @@ pipeline {
         stage('SITL unit tests') {
           agent {
             docker {
-              image 'px4io/px4-dev-base-bionic:2019-07-29'
+              image 'px4io/px4-dev-base-bionic:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -270,7 +270,7 @@ pipeline {
         stage('Clang analyzer') {
           agent {
             docker {
-              image 'px4io/px4-dev-clang:2019-07-29'
+              image 'px4io/px4-dev-clang:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -308,7 +308,7 @@ pipeline {
         // stage('Clang tidy') {
         //   agent {
         //     docker {
-        //       image 'px4io/px4-dev-clang:2019-07-29'
+        //       image 'px4io/px4-dev-clang:2019-10-04'
         //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
         //     }
         //   }
@@ -329,7 +329,7 @@ pipeline {
         stage('Cppcheck') {
           agent {
             docker {
-              image 'px4io/px4-dev-base-bionic:2019-07-29'
+              image 'px4io/px4-dev-base-bionic:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -367,7 +367,7 @@ pipeline {
         stage('Check stack') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -387,7 +387,7 @@ pipeline {
         stage('ShellCheck') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -406,7 +406,7 @@ pipeline {
         stage('Module config validation') {
           agent {
             docker {
-              image 'px4io/px4-dev-base-bionic:2019-07-29'
+              image 'px4io/px4-dev-base-bionic:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -431,7 +431,7 @@ pipeline {
 
         stage('Airframe') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2019-07-29' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-10-04' }
           }
           steps {
             sh 'make distclean'
@@ -450,7 +450,7 @@ pipeline {
 
         stage('Parameter') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2019-07-29' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-10-04' }
           }
           steps {
             sh 'make distclean'
@@ -469,7 +469,7 @@ pipeline {
 
         stage('Module') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2019-07-29' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-10-04' }
           }
           steps {
             sh 'make distclean'
@@ -489,7 +489,7 @@ pipeline {
         stage('uORB graphs') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -518,7 +518,7 @@ pipeline {
 
         stage('Devguide') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2019-07-29' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-10-04' }
           }
           steps {
             sh('export')
@@ -548,7 +548,7 @@ pipeline {
 
         stage('Userguide') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2019-07-29' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-10-04' }
           }
           steps {
             sh('export')
@@ -576,7 +576,7 @@ pipeline {
 
         stage('QGroundControl') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2019-07-29' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-10-04' }
           }
           steps {
             sh('export')
@@ -604,7 +604,7 @@ pipeline {
 
         stage('PX4 ROS msgs') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2019-07-29' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-10-04' }
           }
           steps {
             sh('export')
@@ -633,7 +633,7 @@ pipeline {
 
         stage('PX4 ROS2 bridge') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2019-07-29' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-10-04' }
           }
           steps {
             sh('export')
@@ -674,7 +674,7 @@ pipeline {
 
         stage('S3') {
           agent {
-            docker { image 'px4io/px4-dev-base-bionic:2019-07-29' }
+            docker { image 'px4io/px4-dev-base-bionic:2019-10-04' }
           }
           steps {
             sh('export')
