@@ -11,6 +11,9 @@ px4_add_board(
 	TESTING
 	UAVCAN_INTERFACES 2
 
+	CONTROL_MODES
+		multicopter
+
 	SERIAL_PORTS
 		GPS1:/dev/ttyS0
 		TEL1:/dev/ttyS1

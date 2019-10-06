@@ -30,6 +30,28 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
+set(CONTROL_MODES_SRCS)
+list(FIND control_modes "fixed_wing" control_mode_index)
+if(${control_mode_index} GREATER -1)
+	list(APPEND CONTROL_MODES_SRCS FixedwingLandDetector.cpp)
+endif()
+
+list(FIND control_modes "multicopter" control_mode_index)
+if(${control_mode_index} GREATER -1)
+	list(APPEND CONTROL_MODES_SRCS MulticopterLandDetector.cpp)
+endif()
+
+list(FIND control_modes "vtol" control_mode_index)
+if(${control_mode_index} GREATER -1)
+	list(APPEND CONTROL_MODES_SRCS VtolLandDetector.cpp)
+endif()
+
+list(FIND control_modes "rover" control_mode_index)
+if(${control_mode_index} GREATER -1)
+	list(APPEND CONTROL_MODES_SRCS RoverLandDetector.cpp)
+endif()
+
 px4_add_module(
 	MODULE modules__land_detector
 	MAIN land_detector
@@ -37,10 +59,8 @@ px4_add_module(
 	SRCS
 		land_detector_main.cpp
 		LandDetector.cpp
-		MulticopterLandDetector.cpp
-		FixedwingLandDetector.cpp
-		VtolLandDetector.cpp
-		RoverLandDetector.cpp
+		${CONTROL_MODES_SRCS}
+
 	DEPENDS
 		hysteresis
 	)

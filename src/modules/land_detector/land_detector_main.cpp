@@ -67,22 +67,35 @@ int LandDetector::task_spawn(int argc, char *argv[])
 
 	LandDetector *obj = nullptr;
 
+#ifdef CONTROL_MODE_FW
+
 	if (strcmp(argv[1], "fixedwing") == 0) {
 		obj = new FixedwingLandDetector();
 
-	} else if (strcmp(argv[1], "multicopter") == 0) {
-		obj = new MulticopterLandDetector();
+	} else
+#endif
+#ifdef CONTROL_MODE_MC
+		if (strcmp(argv[1], "multicopter") == 0) {
+			obj = new MulticopterLandDetector();
 
-	} else if (strcmp(argv[1], "vtol") == 0) {
-		obj = new VtolLandDetector();
+		} else
+#endif
+#ifdef CONTROL_MODE_VT
+			if (strcmp(argv[1], "vtol") == 0) {
+				obj = new VtolLandDetector();
 
-	} else if (strcmp(argv[1], "rover") == 0) {
-		obj = new RoverLandDetector();
+			} else
+#endif
+#ifdef CONTROL_MODE_ROVER
+				if (strcmp(argv[1], "rover") == 0) {
+					obj = new RoverLandDetector();
 
-	} else {
-		print_usage("unknown mode");
-		return PX4_ERROR;
-	}
+				} else
+#endif
+				{
+					print_usage("unknown mode");
+					return PX4_ERROR;
+				}
 
 	if (obj == nullptr) {
 		PX4_ERR("alloc failed");

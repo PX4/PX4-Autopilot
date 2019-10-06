@@ -6,6 +6,12 @@ px4_add_board(
 	LABEL rtps
 	TESTING
 
+	CONTROL_MODES
+		fixed_wing
+		vtol
+		multicopter
+		rover
+
 	DRIVERS
 		#barometer # all available barometer drivers
 		#batt_smbus

@@ -146,6 +146,7 @@ function(px4_add_board)
 			SYSTEMCMDS
 			EXAMPLES
 			SERIAL_PORTS
+			CONTROL_MODES
 			DF_DRIVERS
 		OPTIONS
 			CONSTRAINED_FLASH
@@ -198,6 +199,10 @@ function(px4_add_board)
 
 	if(SERIAL_PORTS)
 		set(board_serial_ports ${SERIAL_PORTS} PARENT_SCOPE)
+	endif()
+
+	if(CONTROL_MODES)
+		set(control_modes ${CONTROL_MODES} PARENT_SCOPE)
 	endif()
 
 	# ROMFS

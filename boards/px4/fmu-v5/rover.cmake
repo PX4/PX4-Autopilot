@@ -10,6 +10,9 @@ px4_add_board(
 	IO px4_io-v2_default
 	UAVCAN_INTERFACES 2
 
+	CONTROL_MODES
+		rover
+
 	SERIAL_PORTS
 		GPS1:/dev/ttyS0
 		TEL1:/dev/ttyS1

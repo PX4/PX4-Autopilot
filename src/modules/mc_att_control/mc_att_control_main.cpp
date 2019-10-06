@@ -159,11 +159,16 @@ MulticopterAttitudeControl::vehicle_status_poll()
 				_actuators_id = ORB_ID(actuator_controls_virtual_mc);
 				_attitude_sp_id = ORB_ID(mc_virtual_attitude_setpoint);
 
+#ifdef CONTROL_MODE_VTOL
 				int32_t vt_type = -1;
 
 				if (param_get(param_find("VT_TYPE"), &vt_type) == PX4_OK) {
 					_is_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
 				}
+
+#else
+				_is_tailsitter = false;
+#endif
 
 			} else {
 				_actuators_id = ORB_ID(actuator_controls_0);

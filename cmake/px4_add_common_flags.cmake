@@ -191,4 +191,33 @@ function(px4_add_common_flags)
 		-D__STDC_FORMAT_MACROS
 		)
 
+	list(FIND control_modes "fixed_wing" control_mode_index)
+	if(${control_mode_index} GREATER -1)
+		add_definitions(
+			-DCONTROL_MODES_FW
+		)
+	endif()
+
+	list(FIND control_modes "multicopter" control_mode_index)
+	if(${control_mode_index} GREATER -1)
+		add_definitions(
+			-DCONTROL_MODES_MC
+			)
+	endif()
+
+	list(FIND control_modes "vtol" control_mode_index)
+	if(${control_mode_index} GREATER -1)
+		add_definitions(
+			-DCONTROL_MODES_VTOL
+		)
+	endif()
+
+	list(FIND control_modes "rover" control_mode_index)
+	if(${control_mode_index} GREATER -1)
+		add_definitions(
+			-DCONTROL_MODES_ROVER
+		)
+	endif()
+
+
 endfunction()
