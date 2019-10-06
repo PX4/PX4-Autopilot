@@ -57,12 +57,12 @@ public:
 	{
 		int i; // need function scope to check how many steps
 		Vector3f rate_setpoint(1000, 1000, 1000);
-		printf("Iterations: ");
 
 		for (i = 100; i > 0; i--) {
-			printf("%d ", i);
 			// run attitude control to get rate setpoints
 			const Vector3f rate_setpoint_new = _attitude_control.update(_quat_state, _quat_goal, 0.f);
+			// rotate the simulated state quaternion according to the rate setpoint
+			_quat_state = _quat_state * Quatf(AxisAnglef(rate_setpoint_new));
 
 			// expect the error and hence also the output to get smaller with each iteration
 			if (rate_setpoint_new.norm() >= rate_setpoint.norm()) {
@@ -70,21 +70,28 @@ public:
 			}
 
 			rate_setpoint = rate_setpoint_new;
-			// rotate the simulated state quaternion according to the rate setpoint
-			_quat_state = _quat_state * Quatf(AxisAnglef(rate_setpoint));
 		}
 
-		printf("\n");
+		// we need to have reached the goal attitude
+		if (!(antipodal(_quat_state) == (antipodal(_quat_goal)))) {
+			antipodal(_quat_state).print();
+			antipodal(_quat_goal).print();
+		}
 
+		EXPECT_TRUE(antipodal(_quat_state) == antipodal(_quat_goal));
 		// it shouldn't have taken longer than an iteration timeout to converge
 		EXPECT_GT(i, 0);
-		// we need to have reached the goal attitude
-		EXPECT_EQ(antipodal(_quat_state), antipodal(_quat_goal));
 	}
 
 	Quatf antipodal(const Quatf q)
 	{
-		return q * math::signNoZero(q(0));
+		for (int i = 0; i < 1; i++) {
+			if (fabs(q(i)) > FLT_EPSILON) {
+				return q * math::signNoZero(q(i));
+			}
+		}
+
+		return Quatf(NAN, NAN, NAN, NAN);
 	}
 
 	AttitudeControl _attitude_control;
@@ -92,44 +99,26 @@ public:
 	Quatf _quat_goal;
 };
 
-TEST_F(AttitudeControlConvergenceTest, AttitudeControlConvergenceUnit)
+TEST_F(AttitudeControlConvergenceTest, AttitudeControlConvergence)
 {
-	_quat_state = Quatf();
-	checkConvergence();
-}
+	const int inputs = 8;
 
-TEST_F(AttitudeControlConvergenceTest, AttitudeControlConvergenceRoll180)
-{
-	_quat_state = Quatf(0, 1, 0, 0);
-	checkConvergence();
-}
-
-TEST_F(AttitudeControlConvergenceTest, AttitudeControlConvergencePitch180)
-{
-	_quat_state = Quatf(0, 0, 1, 0);
-	checkConvergence();
-}
-
-TEST_F(AttitudeControlConvergenceTest, AttitudeControlConvergenceYaw180)
-{
-	_quat_state = Quatf(0, 0, 0, 1);
-	checkConvergence();
-}
-
-TEST_F(AttitudeControlConvergenceTest, AttitudeControlConvergenceRandom)
-{
-	const Quatf QRandom[] = {
+	const Quatf QArray[inputs] = {
+		Quatf(),
+		Quatf(0, 1, 0, 0),
+		Quatf(0, 0, 1, 0),
+		Quatf(0, 0, 0, 1),
 		Quatf(0.698f, 0.024f, -0.681f, -0.220f),
 		Quatf(-0.820f, -0.313f, 0.225f, -0.423f),
 		Quatf(0.599f, -0.172f, 0.755f, -0.204f),
 		Quatf(0.216f, -0.662f, 0.290f, -0.656f)
 	};
 
-	for (int i = 0; i < 4; i++) {
-		for (int j = 0; j < 4; j++) {
-			printf("Random combination: %d %d\n", i, j);
-			_quat_state = QRandom[i];
-			_quat_goal = QRandom[j];
+	for (int i = 0; i < inputs; i++) {
+		for (int j = 0; j < inputs; j++) {
+			printf("--- Input combination: %d %d\n", i, j);
+			_quat_state = QArray[i];
+			_quat_goal = QArray[j];
 			_quat_state.normalize();
 			_quat_goal.normalize();
 			checkConvergence();
