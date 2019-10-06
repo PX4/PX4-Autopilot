@@ -38,6 +38,14 @@
 find_program(FASTRTPSGEN fastrtpsgen PATHS $ENV{FASTRTPSGEN_DIR})
 if(NOT FASTRTPSGEN)
 	message(FATAL_ERROR "Unable to find fastrtpsgen")
+else()
+	execute_process(
+		COMMAND $ENV{FASTRTPSGEN_DIR}fastrtpsgen -version
+		OUTPUT_VARIABLE FASTRTPSGEN_VERSION
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+		ERROR_QUIET
+	)
+	message(STATUS "${FASTRTPSGEN_VERSION}")
 endif()
 
 if (EXISTS "${PX4_SOURCE_DIR}/msg/tools/uorb_rtps_message_ids.yaml")

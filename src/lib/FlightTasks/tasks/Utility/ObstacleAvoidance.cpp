@@ -95,8 +95,8 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 	}
 
 	if (avoidance_point_valid) {
-		pos_sp = _sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position;
-		vel_sp = _sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity;
+		pos_sp = Vector3f(_sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].position);
+		vel_sp = Vector3f(_sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].velocity);
 
 		if (!_ext_yaw_active) {
 			// inject yaw setpoints only if weathervane isn't active
