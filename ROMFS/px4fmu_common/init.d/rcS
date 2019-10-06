@@ -299,7 +299,7 @@ else
 	#
 	# Set USE_IO flag.
 	#
-	if param compare SYS_USE_IO 1
+	if param compare -s SYS_USE_IO 1
 	then
 		set USE_IO yes
 	fi
@@ -426,7 +426,7 @@ else
 	sh /etc/init.d/rc.vehicle_setup
 
 	# Camera capture driver
-	if param greater CAM_CAP_FBACK 0
+	if param greater -s CAM_CAP_FBACK 0
 	then
 		if camera_capture start
 		then
