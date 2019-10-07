@@ -41,8 +41,7 @@ fi
 echo
 echo "Installing PX4 general dependencies"
 
-sudo pacman -Sy
-sudo pacman -S \
+sudo pacman -Sy --noconfirm --needed \
 	astyle \
 	base-devel \
 	ccache \
@@ -51,9 +50,17 @@ sudo pacman -S \
 	cppcheck \
 	doxygen \
 	gdb \
+	git \
+	gnutls \
+	nettle \
 	ninja \
+	python-pip \
 	rsync \
 	shellcheck \
+	tar \
+	unzip \
+	wget \
+	zip \
 	;
 
 # Python dependencies
@@ -67,7 +74,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	echo
 	echo "Installing NuttX dependencies"
 
-	sudo pacman -S \
+	sudo pacman -S --noconfirm --needed \
 		gperf \
 		vim \
 		;
@@ -76,7 +83,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	sudo usermod -aG uucp $USER
 
 	# Remove modem manager (interferes with PX4 serial port/USB serial usage).
-	sudo pacman -R modemmanager
+	sudo pacman -R modemmanager --noconfirm
 
 	# arm-none-eabi-gcc
 	NUTTX_GCC_VERSION="7-2017-q4-major"
@@ -108,7 +115,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	echo "Installing PX4 simulation dependencies"
 
 	# java (jmavsim or fastrtps)
-	sudo pacman -S \
+	sudo pacman -S --noconfirm --needed \
 		ant \
 		jdk8-openjdk \
 		;
