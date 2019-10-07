@@ -134,9 +134,6 @@ private:
 		(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid,
 		(ParamInt<px4::params::COM_OA_BOOT_T>) _param_com_oa_boot_t,
 
-		(ParamInt<px4::params::COM_ASPD_FS_ACT>) _param_airspeed_fail_action,
-		(ParamInt<px4::params::COM_ASPD_FS_DLY>) _param_airspeed_rtl_delay,
-
 		(ParamInt<px4::params::COM_FLT_PROFILE>) _param_com_flt_profile,
 
 

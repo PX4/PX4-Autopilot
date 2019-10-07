@@ -839,34 +839,6 @@ PARAM_DEFINE_INT32(COM_OBS_AVOID, 0);
 PARAM_DEFINE_INT32(COM_OA_BOOT_T, 100);
 
 /**
- * Airspeed fault detection (Experimental)
- *
- * Failsafe action when bad airspeed measurements are detected. Ensure the COM_ASPD_STALL parameter is set correctly before use.
- *
- * @value 0 disabled
- * @value 1 log a message
- * @value 2 log a message, warn the user
- * @value 3 log a message, warn the user, switch to non-airspeed TECS mode
- * @value 4 log a message, warn the user, switch to non-airspeed TECS mode, switch to Return mode after COM_ASPD_FS_DLY seconds
- * @group Commander
- * @category Developer
- */
-PARAM_DEFINE_INT32(COM_ASPD_FS_ACT, 0);
-
-/**
- * Airspeed fault detection delay before RTL (Experimental)
- *
- * RTL delay after bad airspeed measurements are detected if COM_ASPD_FS_ACT is set to 4. Ensure the COM_ASPD_STALL parameter is set correctly before use. The failsafe start and stop delays are controlled by the COM_TAS_FS_T1 and COM_TAS_FS_T2 parameters. Additional protection against persistent airspeed sensor errors can be enabled using the COM_TAS_FS_INNOV parameter, but these addtional checks are more prone to false positives in windy conditions.
- *
- * @min 0
- * @max 300
- * @unit s
- * @group Commander
- * @category Developer
- */
-PARAM_DEFINE_INT32(COM_ASPD_FS_DLY, 0);
-
-/**
  * User Flight Profile
  *
  * Describes the intended use of the vehicle.
