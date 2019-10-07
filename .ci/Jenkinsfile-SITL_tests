@@ -86,13 +86,13 @@ pipeline {
               mission: "VTOL_mission_1",
               vehicle: "tiltrotor"
             ],
-            // [
-            //   name: "MC_avoidance",
-            //   test: "mavros_posix_test_avoidance.test",
-            //   mission: "avoidance",
-            //   vehicle: "iris_obs_avoid",
-            //   run_script: "rostest_avoidance_run.sh"
-            // ],
+            [
+              name: "MC_avoidance",
+              test: "mavros_posix_test_avoidance.test",
+              mission: "avoidance",
+              vehicle: "iris_obs_avoid",
+              run_script: "rostest_avoidance_run.sh"
+            ],
             // [
             //   name: "MC_safe_landing",
             //   test: "mavros_posix_test_safe_landing.test",
