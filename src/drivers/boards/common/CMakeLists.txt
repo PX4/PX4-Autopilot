@@ -32,7 +32,7 @@
 ############################################################################
 
 # common board drivers (currently only for nuttx fmu boards)
-if ((${PX4_PLATFORM} MATCHES "nuttx") AND NOT ${PX4_BOARD} MATCHES "io")
+if ((${PX4_PLATFORM} MATCHES "nuttx") AND NOT ${PX4_BOARD} MATCHES "px4_io")
 
 	add_library(drivers_boards_common
 		board_crashdump.c

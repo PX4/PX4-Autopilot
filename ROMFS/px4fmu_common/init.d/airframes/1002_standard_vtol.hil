@@ -58,7 +58,8 @@ then
 	param set SYS_RESTART_TYPE 2
 
 	param set VT_F_TRANS_THR 0.75
-	param set VT_MOT_COUNT 4
+	param set VT_MOT_ID 1234
+	param set VT_FW_MOT_OFFID 1234
 	param set VT_TYPE 2
 fi
 

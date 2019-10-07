@@ -44,7 +44,7 @@
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <drivers/device/spi.h>
 #include <conversion/rotation.h>
 #include <lib/perf/perf_counter.h>
@@ -120,7 +120,6 @@ private:
 	uORB::PublicationMulti<optical_flow_s> _optical_flow_pub{ORB_ID(optical_flow)};
 
 	perf_counter_t	_sample_perf;
-	perf_counter_t	_interval_perf;
 	perf_counter_t	_comms_errors;
 	perf_counter_t	_dupe_count_perf;
 

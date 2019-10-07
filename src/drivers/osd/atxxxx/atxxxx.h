@@ -46,7 +46,7 @@
 #include <px4_getopt.h>
 #include <px4_module.h>
 #include <px4_module_params.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_local_position.h>

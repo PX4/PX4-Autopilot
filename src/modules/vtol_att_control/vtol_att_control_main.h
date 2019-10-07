@@ -60,7 +60,7 @@
 #include <px4_defines.h>
 #include <px4_module.h>
 #include <px4_posix.h>
-#include <px4_work_queue/WorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
@@ -132,7 +132,7 @@ public:
 	struct Params 					*get_params() {return &_params;}
 
 private:
-	/* handlers for subscriptions */
+
 	uORB::SubscriptionCallbackWorkItem _actuator_inputs_fw{this, ORB_ID(actuator_controls_virtual_fw)};
 	uORB::SubscriptionCallbackWorkItem _actuator_inputs_mc{this, ORB_ID(actuator_controls_virtual_mc)};
 
@@ -143,7 +143,7 @@ private:
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};			// sensor subscription
 	uORB::Subscription _manual_control_sp_sub{ORB_ID(manual_control_setpoint)};	//manual control setpoint subscription
 	uORB::Subscription _mc_virtual_att_sp_sub{ORB_ID(mc_virtual_attitude_setpoint)};
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};			//parameter updates subscription
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};			// local position setpoint subscription
 	uORB::Subscription _tecs_status_sub{ORB_ID(tecs_status)};
 	uORB::Subscription _v_att_sub{ORB_ID(vehicle_attitude)};		//vehicle attitude subscription
@@ -217,7 +217,6 @@ private:
 	bool		_initialized{false};
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
-	perf_counter_t	_loop_interval_perf;		/**< loop interval performance counter */
 
 	void		vehicle_cmd_poll();
 

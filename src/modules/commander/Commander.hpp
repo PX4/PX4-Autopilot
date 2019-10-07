@@ -60,6 +60,7 @@
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_command.h>
@@ -97,6 +98,8 @@ public:
 	// TODO: only temporarily static until low priority thread is removed
 	static bool preflight_check(bool report);
 
+	void get_circuit_breaker_params();
+
 private:
 
 	DEFINE_PARAMETERS(
@@ -114,8 +117,9 @@ private:
 		(ParamFloat<px4::params::COM_HOME_V_T>) _param_com_home_v_t,
 
 		(ParamFloat<px4::params::COM_POS_FS_EPH>) _param_com_pos_fs_eph,
-		(ParamFloat<px4::params::COM_POS_FS_EPV>) _param_com_pos_fs_epv,
+		(ParamFloat<px4::params::COM_POS_FS_EPV>) _param_com_pos_fs_epv, 	/*Not realy used for now*/
 		(ParamFloat<px4::params::COM_VEL_FS_EVH>) _param_com_vel_fs_evh,
+		(ParamInt<px4::params::COM_POSCTL_NAVL>) _param_com_posctl_navl,	/* failsafe response to loss of navigation accuracy */
 
 		(ParamInt<px4::params::COM_POS_FS_DELAY>) _param_com_pos_fs_delay,
 		(ParamInt<px4::params::COM_POS_FS_PROB>) _param_com_pos_fs_prob,
@@ -139,9 +143,24 @@ private:
 
 		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,
 		(ParamInt<px4::params::COM_OBL_ACT>) _param_com_obl_act,
-		(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act
+		(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
 
+		(ParamInt<px4::params::COM_PREARM_MODE>) _param_com_prearm_mode,
+
+		(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
+		(ParamInt<px4::params::CBRK_USB_CHK>) _param_cbrk_usb_chk,
+		(ParamInt<px4::params::CBRK_AIRSPD_CHK>) _param_cbrk_airspd_chk,
+		(ParamInt<px4::params::CBRK_ENGINEFAIL>) _param_cbrk_enginefail,
+		(ParamInt<px4::params::CBRK_GPSFAIL>) _param_cbrk_gpsfail,
+		(ParamInt<px4::params::CBRK_FLIGHTTERM>) _param_cbrk_flightterm,
+		(ParamInt<px4::params::CBRK_VELPOSERR>) _param_cbrk_velposerr
 	)
+
+	enum class PrearmedMode {
+		DISABLED = 0,
+		SAFETY_BUTTON = 1,
+		ALWAYS = 2
+	};
 
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
 	const int64_t POSVEL_PROBATION_MAX = 100_s;	/**< maximum probation duration (usec) */
@@ -256,6 +275,7 @@ private:
 	bool _print_avoidance_msg_once{false};
 
 	// Subscriptions
+	uORB::Subscription					_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription					_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
 	uORB::SubscriptionData<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};

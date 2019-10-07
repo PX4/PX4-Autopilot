@@ -48,7 +48,7 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/power_monitor.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 /* Configuration Constants */
 #define INA226_BUS_DEFAULT		                PX4_I2C_BUS_EXPANSION
@@ -222,7 +222,7 @@ extern "C" __EXPORT int ina226_main(int argc, char *argv[]);
 
 INA226::INA226(int bus, int address) :
 	I2C("INA226", nullptr, bus, address, 100000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ina226_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ina226_com_err"))
 {

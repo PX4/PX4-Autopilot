@@ -40,9 +40,8 @@ using namespace time_literals;
 
 VehicleAcceleration::VehicleAcceleration() :
 	ModuleParams(nullptr),
-	WorkItem(px4::wq_configurations::att_pos_ctrl),
+	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
 	_cycle_perf(perf_alloc(PC_ELAPSED, "vehicle_acceleration: cycle time")),
-	_interval_perf(perf_alloc(PC_INTERVAL, "vehicle_acceleration: interval")),
 	_sensor_latency_perf(perf_alloc(PC_ELAPSED, "vehicle_acceleration: sensor latency"))
 {
 }
@@ -52,7 +51,6 @@ VehicleAcceleration::~VehicleAcceleration()
 	Stop();
 
 	perf_free(_cycle_perf);
-	perf_free(_interval_perf);
 	perf_free(_sensor_latency_perf);
 }
 
@@ -69,7 +67,7 @@ VehicleAcceleration::Start()
 	SensorBiasUpdate(true);
 
 	// needed to change the active sensor if the primary stops updating
-	_sensor_selection_sub.register_callback();
+	_sensor_selection_sub.registerCallback();
 
 	return SensorCorrectionsUpdate(true);
 }
@@ -81,10 +79,10 @@ VehicleAcceleration::Stop()
 
 	// clear all registered callbacks
 	for (auto &sub : _sensor_sub) {
-		sub.unregister_callback();
+		sub.unregisterCallback();
 	}
 
-	_sensor_selection_sub.unregister_callback();
+	_sensor_selection_sub.unregisterCallback();
 }
 
 void
@@ -132,12 +130,12 @@ VehicleAcceleration::SensorCorrectionsUpdate(bool force)
 			if (corrections.selected_accel_instance < MAX_SENSOR_COUNT) {
 				// clear all registered callbacks
 				for (auto &sub : _sensor_sub) {
-					sub.unregister_callback();
+					sub.unregisterCallback();
 				}
 
 				const int sensor_new = corrections.selected_accel_instance;
 
-				if (_sensor_sub[sensor_new].register_callback()) {
+				if (_sensor_sub[sensor_new].registerCallback()) {
 					PX4_DEBUG("selected sensor changed %d -> %d", _selected_sensor, sensor_new);
 					_selected_sensor = sensor_new;
 
@@ -178,7 +176,6 @@ void
 VehicleAcceleration::Run()
 {
 	perf_begin(_cycle_perf);
-	perf_count(_interval_perf);
 
 	// update corrections first to set _selected_sensor
 	SensorCorrectionsUpdate();
@@ -220,6 +217,5 @@ VehicleAcceleration::PrintStatus()
 	PX4_INFO("selected sensor: %d", _selected_sensor);
 
 	perf_print_counter(_cycle_perf);
-	perf_print_counter(_interval_perf);
 	perf_print_counter(_sensor_latency_perf);
 }

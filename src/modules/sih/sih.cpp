@@ -110,7 +110,6 @@ void Sih::run()
 	_actuator_out_sub = orb_subscribe(ORB_ID(actuator_outputs));
 
 	// initialize parameters
-	_parameter_update_sub = orb_subscribe(ORB_ID(parameter_update));
 	parameters_update_poll();
 
 	init_variables();
@@ -143,7 +142,6 @@ void Sih::run()
 	hrt_cancel(&_timer_call);   // close the periodic timer interruption
 	px4_sem_destroy(&_data_semaphore);
 	orb_unsubscribe(_actuator_out_sub);
-	orb_unsubscribe(_parameter_update_sub);
 }
 
 // timer_callback() is used as a real time callback to post the semaphore
@@ -186,13 +184,13 @@ void Sih::inner_loop()
 
 void Sih::parameters_update_poll()
 {
-	bool updated = false;
-	struct parameter_update_s param_upd;
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
-	orb_check(_parameter_update_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(parameter_update), _parameter_update_sub, &param_upd);
+		// update parameters from storage
 		updateParams();
 		parameters_updated();
 	}

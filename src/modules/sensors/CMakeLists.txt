@@ -38,7 +38,6 @@ px4_add_module(
 	MODULE modules__sensors
 	MAIN sensors
 	PRIORITY "SCHED_PRIORITY_MAX-5"
-	STACK_MAIN 1500
 	SRCS
 		voted_sensors_update.cpp
 		rc_update.cpp
@@ -54,6 +53,6 @@ px4_add_module(
 		git_ecl
 		ecl_validation
 		mathlib
-		sensors__vehicle_acceleration
-		sensors__vehicle_angular_velocity
+		vehicle_acceleration
+		vehicle_angular_velocity
 	)

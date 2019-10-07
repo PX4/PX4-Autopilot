@@ -6,5 +6,5 @@
 
 if [ $AUTOCNF = yes ]
 then
-	param set SYS_FMU_TASK 0
+
 fi

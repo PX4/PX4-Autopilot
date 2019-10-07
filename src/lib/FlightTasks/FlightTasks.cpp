@@ -20,7 +20,6 @@ bool FlightTasks::update()
 	_updateCommand();
 
 	if (isAnyTaskActive()) {
-		_subscription_array.update();
 		return _current_task.task->updateInitialize() && _current_task.task->update() && _current_task.task->updateFinalize();
 	}
 
@@ -57,11 +56,11 @@ const landing_gear_s FlightTasks::getGear()
 	}
 }
 
-int FlightTasks::switchTask(FlightTaskIndex new_task_index)
+FlightTaskError FlightTasks::switchTask(FlightTaskIndex new_task_index)
 {
 	// switch to the running task, nothing to do
 	if (new_task_index == _current_task.index) {
-		return 0;
+		return FlightTaskError::NoError;
 	}
 
 	// Save current setpoints for the nex FlightTask
@@ -69,36 +68,26 @@ int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 
 	if (_initTask(new_task_index)) {
 		// invalid task
-		return -1;
+		return FlightTaskError::InvalidTask;
 	}
 
 	if (!_current_task.task) {
 		// no task running
-		return 0;
+		return FlightTaskError::NoError;
 	}
-
-	// subscription failed
-	if (!_current_task.task->initializeSubscriptions(_subscription_array)) {
-		_current_task.task->~FlightTask();
-		_current_task.task = nullptr;
-		_current_task.index = FlightTaskIndex::None;
-		return -2;
-	}
-
-	_subscription_array.forcedUpdate(); // make sure data is available for all new subscriptions
 
 	// activation failed
 	if (!_current_task.task->updateInitialize() || !_current_task.task->activate(last_setpoint)) {
 		_current_task.task->~FlightTask();
 		_current_task.task = nullptr;
 		_current_task.index = FlightTaskIndex::None;
-		return -3;
+		return FlightTaskError::ActivationFailed;
 	}
 
-	return 0;
+	return FlightTaskError::NoError;
 }
 
-int FlightTasks::switchTask(int new_task_index)
+FlightTaskError FlightTasks::switchTask(int new_task_index)
 {
 	// make sure we are in range of the enumeration before casting
 	if (static_cast<int>(FlightTaskIndex::None) <= new_task_index &&
@@ -107,7 +96,7 @@ int FlightTasks::switchTask(int new_task_index)
 	}
 
 	switchTask(FlightTaskIndex::None);
-	return -1;
+	return FlightTaskError::InvalidTask;
 }
 
 void FlightTasks::handleParameterUpdate()
@@ -117,10 +106,10 @@ void FlightTasks::handleParameterUpdate()
 	}
 }
 
-const char *FlightTasks::errorToString(const int error)
+const char *FlightTasks::errorToString(const FlightTaskError error)
 {
 	for (auto e : _taskError) {
-		if (e.error == error) {
+		if (static_cast<FlightTaskError>(e.error) == error) {
 			return e.msg;
 		}
 	}
@@ -157,11 +146,11 @@ void FlightTasks::_updateCommand()
 	}
 
 	// switch to the commanded task
-	int switch_result = switchTask(desired_task);
+	FlightTaskError switch_result = switchTask(desired_task);
 	uint8_t cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 
 	// if we are in/switched to the desired task
-	if (switch_result >= 0) {
+	if (switch_result >= FlightTaskError::NoError) {
 		cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED;
 
 		// if the task is running apply parameters to it and see if it rejects
@@ -169,7 +158,7 @@ void FlightTasks::_updateCommand()
 			cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
 
 			// if we just switched and parameters are not accepted, go to failsafe
-			if (switch_result == 1) {
+			if (switch_result >= FlightTaskError::NoError) {
 				switchTask(FlightTaskIndex::ManualPosition);
 				cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 			}
@@ -181,7 +170,7 @@ void FlightTasks::_updateCommand()
 	command_ack.timestamp = hrt_absolute_time();
 	command_ack.command = command.command;
 	command_ack.result = cmd_result;
-	command_ack.result_param1 = switch_result;
+	command_ack.result_param1 = static_cast<int>(switch_result);
 	command_ack.target_system = command.source_system;
 	command_ack.target_component = command.source_component;
 

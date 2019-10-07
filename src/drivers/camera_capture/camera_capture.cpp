@@ -49,7 +49,7 @@ CameraCapture *g_camera_capture{nullptr};
 }
 
 CameraCapture::CameraCapture() :
-	ScheduledWorkItem(px4::wq_configurations::lp_default)
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
 	memset(&_work_publisher, 0, sizeof(_work_publisher));
 

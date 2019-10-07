@@ -45,9 +45,8 @@ using namespace time_literals;
 extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[]);
 
 FixedwingAttitudeControl::FixedwingAttitudeControl() :
-	WorkItem(px4::wq_configurations::att_pos_ctrl),
-	_loop_perf(perf_alloc(PC_ELAPSED, "fw_att_control: cycle")),
-	_loop_interval_perf(perf_alloc(PC_INTERVAL, "fw_att_control: interval"))
+	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
+	_loop_perf(perf_alloc(PC_ELAPSED, "fw_att_control: cycle"))
 {
 	// check if VTOL first
 	vehicle_status_poll();
@@ -132,13 +131,12 @@ FixedwingAttitudeControl::FixedwingAttitudeControl() :
 FixedwingAttitudeControl::~FixedwingAttitudeControl()
 {
 	perf_free(_loop_perf);
-	perf_free(_loop_interval_perf);
 }
 
 bool
 FixedwingAttitudeControl::init()
 {
-	if (!_att_sub.register_callback()) {
+	if (!_att_sub.registerCallback()) {
 		PX4_ERR("vehicle attitude callback registration failed!");
 		return false;
 	}
@@ -331,14 +329,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 					_rates_sp.yaw = _manual.r * _parameters.acro_max_z_rate_rad;
 					_rates_sp.thrust_body[0] = _manual.z;
 
-					if (_rate_sp_pub != nullptr) {
-						/* publish the attitude rates setpoint */
-						orb_publish(ORB_ID(vehicle_rates_setpoint), _rate_sp_pub, &_rates_sp);
-
-					} else {
-						/* advertise the attitude rates setpoint */
-						_rate_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_rates_sp);
-					}
+					_rate_sp_pub.publish(_rates_sp);
 
 				} else {
 					/* manual/direct control */
@@ -451,25 +442,25 @@ float FixedwingAttitudeControl::get_airspeed_and_update_scaling()
 void FixedwingAttitudeControl::Run()
 {
 	if (should_exit()) {
-		_att_sub.unregister_callback();
+		_att_sub.unregisterCallback();
 		exit_and_cleanup();
 		return;
 	}
 
 	perf_begin(_loop_perf);
-	perf_count(_loop_interval_perf);
 
 	if (_att_sub.update(&_att)) {
 
-		/* only update parameters if they changed */
-		bool params_updated = _params_sub.updated();
+		// only update parameters if they changed
+		bool params_updated = _parameter_update_sub.updated();
 
+		// check for parameter updates
 		if (params_updated) {
-			/* read from param to clear updated flag */
-			parameter_update_s update;
-			_params_sub.copy(&update);
+			// clear update
+			parameter_update_s pupdate;
+			_parameter_update_sub.copy(&pupdate);
 
-			/* update parameters from storage */
+			// update parameters from storage
 			parameters_update();
 		}
 
@@ -533,10 +524,10 @@ void FixedwingAttitudeControl::Run()
 		const matrix::Eulerf euler_angles(R);
 
 		vehicle_attitude_setpoint_poll();
+		vehicle_status_poll(); // this poll has to be before the control_mode_poll, otherwise rate sp are not published during whole transition
 		vehicle_control_mode_poll();
 		vehicle_manual_poll();
 		_global_pos_sub.update(&_global_pos);
-		vehicle_status_poll();
 		vehicle_land_detected_poll();
 
 		// the position controller will not emit attitude setpoints in some modes
@@ -748,14 +739,7 @@ void FixedwingAttitudeControl::Run()
 
 				_rates_sp.timestamp = hrt_absolute_time();
 
-				if (_rate_sp_pub != nullptr) {
-					/* publish the attitude rates setpoint */
-					orb_publish(ORB_ID(vehicle_rates_setpoint), _rate_sp_pub, &_rates_sp);
-
-				} else {
-					/* advertise the attitude rates setpoint */
-					_rate_sp_pub = orb_advertise(ORB_ID(vehicle_rates_setpoint), &_rates_sp);
-				}
+				_rate_sp_pub.publish(_rates_sp);
 
 			} else {
 				vehicle_rates_setpoint_poll();
@@ -784,8 +768,7 @@ void FixedwingAttitudeControl::Run()
 			rate_ctrl_status.yawspeed_integ = _yaw_ctrl.get_integrator();
 			rate_ctrl_status.additional_integ1 = _wheel_ctrl.get_integrator();
 
-			int instance;
-			orb_publish_auto(ORB_ID(rate_ctrl_status), &_rate_ctrl_status_pub, &rate_ctrl_status, &instance, ORB_PRIO_DEFAULT);
+			_rate_ctrl_status_pub.publish(rate_ctrl_status);
 		}
 
 		// Add feed-forward from roll control output to yaw control output
@@ -817,14 +800,7 @@ void FixedwingAttitudeControl::Run()
 				_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
 			}
 
-			if (_actuators_2_pub != nullptr) {
-				/* publish the actuator controls*/
-				orb_publish(ORB_ID(actuator_controls_2), _actuators_2_pub, &_actuators_airframe);
-
-			} else {
-				/* advertise and publish */
-				_actuators_2_pub = orb_advertise(ORB_ID(actuator_controls_2), &_actuators_airframe);
-			}
+			_actuators_2_pub.publish(_actuators_airframe);
 		}
 	}
 
@@ -943,7 +919,6 @@ int FixedwingAttitudeControl::print_status()
 	PX4_INFO("Running");
 
 	perf_print_counter(_loop_perf);
-	perf_print_counter(_loop_interval_perf);
 
 	return 0;
 }

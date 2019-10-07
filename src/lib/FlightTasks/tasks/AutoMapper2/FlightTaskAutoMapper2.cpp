@@ -176,9 +176,9 @@ void FlightTaskAutoMapper2::_updateAltitudeAboveGround()
 		// We have a valid distance to ground measurement
 		_alt_above_ground = _dist_to_bottom;
 
-	} else if (_sub_home_position->get().valid_alt) {
+	} else if (_sub_home_position.get().valid_alt) {
 		// if home position is set, then altitude above ground is relative to the home position
-		_alt_above_ground = -_position(2) + _sub_home_position->get().z;
+		_alt_above_ground = -_position(2) + _sub_home_position.get().z;
 	}
 }
 
@@ -199,12 +199,12 @@ bool FlightTaskAutoMapper2::_highEnoughForLandingGear()
 float FlightTaskAutoMapper2::_getLandSpeed()
 {
 	bool rc_assist_enabled = _param_mpc_land_rc_help.get();
-	bool rc_is_valid = !_sub_vehicle_status->get().rc_signal_lost;
+	bool rc_is_valid = !_sub_vehicle_status.get().rc_signal_lost;
 
 	float throttle = 0.5f;
 
 	if (rc_is_valid && rc_assist_enabled) {
-		throttle = _sub_manual_control_setpoint->get().z;
+		throttle = _sub_manual_control_setpoint.get().z;
 	}
 
 	float speed = 0;

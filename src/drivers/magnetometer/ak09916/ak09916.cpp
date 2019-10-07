@@ -165,7 +165,7 @@ usage()
 // Otherwise, it will passthrough the parent AK09916
 AK09916::AK09916(int bus, const char *path, enum Rotation rotation) :
 	I2C("AK09916", path, bus, AK09916_I2C_ADDR, 400000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_px4_mag(get_device_id(), ORB_PRIO_MAX, rotation),
 	_mag_reads(perf_alloc(PC_COUNT, "ak09916_mag_reads")),
 	_mag_errors(perf_alloc(PC_COUNT, "ak09916_mag_errors")),

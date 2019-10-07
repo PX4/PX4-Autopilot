@@ -8,7 +8,7 @@ pipeline {
     stage('Build') {
       agent {
         docker {
-          image 'px4io/px4-dev-ros-kinetic:2019-07-29'
+          image 'px4io/px4-dev-ros-kinetic:2019-10-04'
           args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
         }
       }
@@ -117,7 +117,7 @@ def createTestNode(Map test_def) {
   return {
     node {
       cleanWs()
-      docker.image("px4io/px4-dev-ros-kinetic:2019-07-29").inside('-e HOME=${WORKSPACE}') {
+      docker.image("px4io/px4-dev-ros-kinetic:2019-10-04").inside('-e HOME=${WORKSPACE}') {
         stage(test_def.name) {
           def test_ok = true
           sh('export')
