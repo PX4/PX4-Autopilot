@@ -93,21 +93,40 @@ PARAM_DEFINE_INT32(ASPD_SCALE_EST, 0);
 PARAM_DEFINE_FLOAT(ASPD_SCALE, 1.0f);
 
 /**
+ * Index or primary airspeed measurement source
+ *
+ * @value -1 Disabled
+ * @value 0 Groundspeed minus windspeed
+ * @value 1 First airspeed sensor
+ * @value 2 Second airspeed sensor
+ * @value 3 Third airspeed sensor
+ *
+ * @reboot_required true
+ * @group Airspeed Validator
+ */
+PARAM_DEFINE_INT32(ASPD_PRIMARY, 1);
+
+
+/**
  * Enable checks on airspeed sensors
  *
- * If set to true then the data comming from the airspeed sensors is checked for validity.
+ * If set to true then the data comming from the airspeed sensors is checked for validity. Only applied if ASPD_PRIMARY > 0.
  *
+ * @reboot_required true
  * @boolean
  * @group Airspeed Validator
  */
 PARAM_DEFINE_INT32(ASPD_DO_CHECKS, 0);
 
 /**
- * Enable fallback for airspeed estimation (take groundspeed minus windspeed)
+ * Enable fallback to secondary airspeed measurement.
  *
- * If set to true then the airspeed is estimated using groundspeed minus windspeed if no valid airspeed sensor present.
- *
+ * If ASPD_DO_CHECKS is set to true, then airspeed estimation can fallback from what specified in ASPD_PRIMARY to secondary source (other airspeed sensors, groundspeed minus windspeed).
+
+ * @value 0 To other airspeed sensor (if one valid), else disable airspeed
+ * @value 1 To other airspeed sensor (if one valid), else to ground-windspeed
  * @boolean
+ * @reboot_required true
  * @group Airspeed Validator
  */
 PARAM_DEFINE_INT32(ASPD_FALLBACK, 0);
@@ -115,35 +134,32 @@ PARAM_DEFINE_INT32(ASPD_FALLBACK, 0);
 /**
  * Airspeed failsafe consistency threshold (Experimental)
  *
- * This specifies the minimum airspeed test ratio as logged in estimator_status.tas_test_ratio required to trigger a failsafe. Larger values make the check less sensitive, smaller values make it more sensitive. Start with a value of 1.0 when tuning. When estimator_status.tas_test_ratio is > 1.0 it indicates the inconsistency between predicted and measured airspeed is large enough to cause the navigation EKF to reject airspeed measurements. The time required to detect a fault when the threshold is exceeded depends on the size of the exceedance and is controlled by the COM_TAS_FS_INTEG parameter. The subsequent failsafe response is controlled by the COM_ASPD_FS_ACT parameter.
+ * This specifies the minimum airspeed test ratio required to trigger a failsafe. Larger values make the check less sensitive, smaller values make it more sensitive. Start with a value of 1.0 when tuning. When tas_test_ratio is > 1.0 it indicates the inconsistency between predicted and measured airspeed is large enough to cause the navigation EKF to reject airspeed measurements. The time required to detect a fault when the threshold is exceeded depends on the size of the exceedance and is controlled by the ASPD_FS_INTEG parameter.
 *
  * @min 0.5
  * @max 3.0
- * @group Commander
- * @category Developer
+ * @group Airspeed Validator
  */
 PARAM_DEFINE_FLOAT(ASPD_FS_INNOV, 1.0f);
 
 /**
  * Airspeed failsafe consistency delay (Experimental)
  *
- * This sets the time integral of airspeed test ratio exceedance above COM_TAS_FS_INNOV required to trigger a failsafe. For example if COM_TAS_FS_INNOV is 100 and estimator_status.tas_test_ratio is 2.0, then the exceedance is 1.0 and the integral will rise at a rate of 1.0/second. A negative value disables the check. Larger positive values make the check less sensitive, smaller positive values make it more sensitive. The failsafe response is controlled by the COM_ASPD_FS_ACT parameter.
+ * This sets the time integral of airspeed test ratio exceedance above ASPD_FS_INNOV required to trigger a failsafe. For example if ASPD_FS_INNOV is 100 and estimator_status.tas_test_ratio is 2.0, then the exceedance is 1.0 and the integral will rise at a rate of 1.0/second. A negative value disables the check. Larger positive values make the check less sensitive, smaller positive values make it more sensitive.
  *
  * @unit s
  * @max 30.0
- * @group Commander
- * @category Developer
+ * @group Airspeed Validator
  */
 PARAM_DEFINE_FLOAT(ASPD_FS_INTEG, -1.0f);
 
 /**
  * Airspeed failsafe stop delay (Experimental)
  *
- * Delay before stopping use of airspeed sensor if checks indicate sensor is bad. The failsafe response is controlled by the COM_ASPD_FS_ACT parameter.
+ * Delay before stopping use of airspeed sensor if checks indicate sensor is bad.
  *
  * @unit s
- * @group Commander
- * @category Developer
+ * @group Airspeed Validator
  * @min 1
  * @max 10
  */
@@ -152,11 +168,10 @@ PARAM_DEFINE_INT32(ASPD_FS_T1, 3);
 /**
  * Airspeed failsafe start delay (Experimental)
  *
- * Delay before switching back to using airspeed sensor if checks indicate sensor is good. The failsafe response is controlled by the COM_ASPD_FS_ACT parameter.
+ * Delay before switching back to using airspeed sensor if checks indicate sensor is good.
  *
  * @unit s
- * @group Commander
- * @category Developer
+ * @group Airspeed Validator
  * @min 10
  * @max 1000
  */
@@ -165,10 +180,9 @@ PARAM_DEFINE_INT32(ASPD_FS_T2, 100);
 /**
  * Airspeed fault detection stall airspeed. (Experimental)
  *
- * This is the minimum indicated airspeed at which the wing can produce 1g of lift. It is used by the airspeed sensor fault detection and failsafe calculation to detect a significant airspeed low measurement error condition and should be set based on flight test for reliable operation. The failsafe response is controlled by the COM_ASPD_FS_ACT parameter.
+ * This is the minimum indicated airspeed at which the wing can produce 1g of lift. It is used by the airspeed sensor fault detection and failsafe calculation to detect a significant airspeed low measurement error condition and should be set based on flight test for reliable operation.
  *
- * @group Commander
- * @category Developer
+ * @group Airspeed Validator
  * @unit m/s
  */
 PARAM_DEFINE_FLOAT(ASPD_STALL, 10.0f);
