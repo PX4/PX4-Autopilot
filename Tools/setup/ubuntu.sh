@@ -49,7 +49,7 @@ DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 REQUIREMENTS_FILE="requirements.txt"
 if [[ ! -f "${DIR}/${REQUIREMENTS_FILE}" ]]; then
 	echo "FAILED: ${REQUIREMENTS_FILE} needed in same directory as ubuntu.sh (${DIR})."
-        return 1
+	return 1
 fi
 
 
@@ -216,5 +216,5 @@ fi
 
 if [[ $INSTALL_NUTTX == "true" ]]; then
 	echo
-	echo "Reboot computer before attempting to build NUTTX targets"
+	echo "Reboot computer before attempting to build NuttX targets"
 fi
