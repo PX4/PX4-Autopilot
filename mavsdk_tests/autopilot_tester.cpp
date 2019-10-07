@@ -27,7 +27,7 @@ void AutopilotTester::wait_until_ready()
 {
     std::cout << "Waiting for system to be ready" << std::endl;
     CHECK(poll_condition_with_timeout(
-        [this]() { return _telemetry->health_all_ok(); }, std::chrono::seconds(10)));
+        [this]() { return _telemetry->health_all_ok(); }, std::chrono::seconds(20)));
 }
 
 void AutopilotTester::set_takeoff_altitude(const float altitude_m)
@@ -59,7 +59,7 @@ void AutopilotTester::land()
 void AutopilotTester::wait_until_disarmed()
 {
     REQUIRE(poll_condition_with_timeout(
-        [this]() { return !_telemetry->armed(); }, std::chrono::seconds(10)));
+        [this]() { return !_telemetry->armed(); }, std::chrono::seconds(60)));
 }
 
 void AutopilotTester::wait_until_hovering()
@@ -103,7 +103,7 @@ void AutopilotTester::execute_mission()
     // TODO: Adapt time limit based on mission size, flight speed, sim speed factor, etc.
 
     REQUIRE(poll_condition_with_timeout(
-        [this]() { return _mission->mission_finished(); }, std::chrono::seconds(30)));
+        [this]() { return _mission->mission_finished(); }, std::chrono::seconds(60)));
 
     REQUIRE(fut.wait_for(std::chrono::seconds(1)) == std::future_status::ready);
 }
