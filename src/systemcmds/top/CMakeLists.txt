@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,13 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
 	MODULE systemcmds__top
 	MAIN top
-	PRIORITY "SCHED_PRIORITY_MAX"
-	COMPILE_FLAGS
+	PRIORITY "SCHED_PRIORITY_MAX - 7"
+
 	SRCS
 		top.c
 	DEPENDS
-	)
-
+		systemlib
+)
