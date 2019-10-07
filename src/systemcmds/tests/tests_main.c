@@ -47,9 +47,6 @@
 #include <fcntl.h>
 #include <errno.h>
 
-// Not using Eigen at the moment
-#define TESTS_EIGEN_DISABLE
-
 
 static int test_help(int argc, char *argv[]);
 static int test_runner(unsigned option);
