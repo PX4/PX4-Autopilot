@@ -47,6 +47,7 @@
 
 #include <commander/px4_custom_mode.h>
 #include <drivers/drv_pwm_output.h>
+#include <lib/conversion/rotation.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
@@ -1344,19 +1345,24 @@ public:
 	}
 
 private:
-	MavlinkOrbSubscription *_pos_sub;
-	uint64_t _pos_time;
-
-	MavlinkOrbSubscription *_armed_sub;
-	uint64_t _armed_time;
-
 	MavlinkOrbSubscription *_act0_sub;
 	MavlinkOrbSubscription *_act1_sub;
-
 	MavlinkOrbSubscription *_airspeed_sub;
-	uint64_t _airspeed_time;
-
 	MavlinkOrbSubscription *_air_data_sub;
+	MavlinkOrbSubscription *_angular_velocity_sub;
+	MavlinkOrbSubscription *_armed_sub;
+	MavlinkOrbSubscription *_attitude_sub;
+	MavlinkOrbSubscription *_pos_sub;
+	MavlinkOrbSubscription *_status_sub;
+
+	uint64_t _airspeed_time{0};
+	uint64_t _angular_velocity_time{0};
+	uint64_t _armed_time{0};
+	uint64_t _attitude_time{0};
+	uint64_t _pos_time{0};
+	uint64_t _status_time{0};
+
+	matrix::Quatf _rotation{get_rot_quaternion(ROTATION_NONE)};
 
 	/* do not allow top copying this class */
 	MavlinkStreamVFRHUD(MavlinkStreamVFRHUD &) = delete;
@@ -1364,15 +1370,15 @@ private:
 
 protected:
 	explicit MavlinkStreamVFRHUD(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
-		_pos_time(0),
-		_armed_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_armed))),
-		_armed_time(0),
 		_act0_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_0))),
 		_act1_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_controls_1))),
 		_airspeed_sub(_mavlink->add_orb_subscription(ORB_ID(airspeed))),
-		_airspeed_time(0),
-		_air_data_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_air_data)))
+		_air_data_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_air_data))),
+		_angular_velocity_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_angular_velocity))),
+		_armed_sub(_mavlink->add_orb_subscription(ORB_ID(actuator_armed))),
+		_attitude_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
+		_pos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_local_position))),
+		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status)))
 	{}
 
 	bool send(const hrt_abstime t)
@@ -1380,11 +1386,17 @@ protected:
 		vehicle_local_position_s pos = {};
 		actuator_armed_s armed = {};
 		airspeed_s airspeed = {};
+		vehicle_attitude_s attitude = {};
+		vehicle_angular_velocity_s angular_velocity = {};
+		vehicle_status_s status = {};
 
 		bool updated = false;
 		updated |= _pos_sub->update(&_pos_time, &pos);
 		updated |= _armed_sub->update(&_armed_time, &armed);
 		updated |= _airspeed_sub->update(&_airspeed_time, &airspeed);
+		updated |= _angular_velocity_sub->update(&_angular_velocity_time, &angular_velocity);
+		updated |= _attitude_sub->update(&_attitude_time, &attitude);
+		updated |= _status_sub->update(&_status_time, &status);
 
 		if (updated) {
 			mavlink_vfr_hud_t msg = {};
@@ -1428,6 +1440,29 @@ protected:
 			if (pos.v_z_valid) {
 				msg.climb = -pos.vz;
 			}
+
+			if (status.is_vtol && status.is_vtol_tailsitter && (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
+				// This is a tailsitter VTOL flying in fixed wing mode:
+				// report attitude rotated by 90 degrees upward pitch
+				_rotation = get_rot_quaternion(ROTATION_PITCH_90);
+
+			} else {
+				// Normal case
+				_rotation = get_rot_quaternion(ROTATION_NONE);
+			}
+
+			// Attitude
+			const matrix::Quatf att = matrix::Quatf(attitude.q) * _rotation;
+			msg.q1 = att(0);
+			msg.q2 = att(1);
+			msg.q3 = att(2);
+			msg.q4 = att(3);
+
+			// Angular velocity
+			const matrix::Vector3f rate = _rotation.conjugate_inversed(matrix::Vector3f(angular_velocity.xyz));
+			msg.rollspeed = rate(0);
+			msg.pitchspeed = rate(1);
+			msg.yawspeed = rate(2);
 
 			mavlink_msg_vfr_hud_send_struct(_mavlink->get_channel(), &msg);
 
