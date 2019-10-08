@@ -34,19 +34,19 @@
 /**
  * @file rtl_params.c
  *
- * Parameters for RTL
+ * Parameters for return to home mode.
  *
  * @author Julian Oes <julian@oes.ch>
  */
 
 /*
- * RTL parameters, accessible via MAVLink
+ * Return to home parameters, accessible via MAVLink
  */
 
 /**
  * Return to home relative altitude.
  *
- * Relative altitude above home at which the vehicle will return during RTL mode.
+ * Default minimum altitude above home for return flight in return mode.
  * This is affected by RTL_MIN_DIST and RTL_CONE_ANG.
  *
  * @unit m
@@ -60,9 +60,9 @@ PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
 
 
 /**
- * Return to home relative loiter altitude.
+ * Return mode loiter altitude (relative to home).
  *
- * Stay at this altitude above home position after RTL descending.
+ * Stay at this altitude above home position after return to home mode descending.
  * Land (i.e. slowly descend) from this altitude if autolanding allowed.
  *
  * @unit m
@@ -90,11 +90,10 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
 PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
 
 /**
- * Maximum horizontal distance to home position below which vehicle will use
- * RTL_DESCEND_ALT as return altitude.
+ * Maximum horizontal distance from home, below which RTL_DESCEND_ALT is used as return altitude.
  *
- * If the system is horizontally closer than this distance to home
- * it will only ascend to RTL_DESCEND_ALT before moving horizontally to the home position.
+ * If the vehicle is less than this horizontal distance from home when return mode is activated it will ascend
+ * to RTL_DESCEND_ALT for the return journey (rather than the altitude set by RTL_RETURN_ALT and RTL_CONE_ANG).
  *
  * @unit m
  * @min 0.5
@@ -119,10 +118,10 @@ PARAM_DEFINE_FLOAT(RTL_MIN_DIST, 5.0f);
 PARAM_DEFINE_INT32(RTL_TYPE, 0);
 
 /**
- * Half-angle of the RTL cone.
+ * Half-angle of the return to home cone.
  *
- * Defines the half-angle of a cone centered around the home position which
- * affects the altitude at which the vehicle returns during RTL.
+ * Defines the half-angle of a cone centered around the home position that
+ * affects the altitude at which the vehicle returns during return to home.
  *
  * @unit degrees
  * @min 0
