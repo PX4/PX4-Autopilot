@@ -45,7 +45,7 @@
 BMP388::BMP388(IBMP388 *interface, const char *path) :
 	CDev(path),
 	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
-	_px4_baro(interface->get_device_id(), ORB_PRIO_MAX),
+	_px4_baro(interface->get_device_id(), ORB_PRIO_DEFAULT),
 	_interface(interface),
 	_osr_t(BMP3_OVERSAMPLING_2X),
 	_osr_p(BMP3_OVERSAMPLING_16X),
