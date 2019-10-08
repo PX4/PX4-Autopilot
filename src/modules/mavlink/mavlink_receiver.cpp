@@ -1412,7 +1412,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
                         _virt_att_sp_pub.publish(att_sp);
                         break;
                     default:
-                        //_att_sp_pub.publish(att_sp);
+                        _att_sp_pub.publish(att_sp);
                         break;
                     }
 				}
