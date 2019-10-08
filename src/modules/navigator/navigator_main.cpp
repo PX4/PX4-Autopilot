@@ -945,9 +945,6 @@ void Navigator::check_traffic()
 
 	float horizontal_separation = 500;
 	float vertical_separation = 500;
-		
-
-
 
 	while (changed) {
 
