@@ -685,7 +685,7 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 	ds.q[1]             = dist_sensor.quaternion[1];
 	ds.q[2]             = dist_sensor.quaternion[2];
 	ds.q[3]             = dist_sensor.quaternion[3];
-	// ds.signal_quality   = dist_sensor.signal_quality;  // TODO: This field is missing from the mavlink message definition.
+	ds.signal_quality   = -1; // TODO: A dist_sensor.signal_quality field is missing from the mavlink message definition.
 	ds.type             = dist_sensor.type;
 	ds.id               = MAV_DISTANCE_SENSOR_LASER;
 	ds.orientation      = dist_sensor.orientation;
