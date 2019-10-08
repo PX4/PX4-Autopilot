@@ -967,7 +967,7 @@ void Navigator::check_traffic()
 		
 		//TODO a better denomination if the other Vehicle is manned or an UAV
 		//Right now it decides on there being an ADSB emitter
-		if (tr.emitter_type) {
+		if (tr.emitter_type==14) {
 			float horizontal_separation = 10;
 			float vertical_separation = 10;
 		}
