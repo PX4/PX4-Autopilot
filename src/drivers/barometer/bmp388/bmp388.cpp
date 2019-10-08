@@ -45,13 +45,16 @@
 BMP388::BMP388(IBMP388 *interface, const char *path) :
 	CDev(path),
 	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
-	_px4_baro(interface->get_device_id()),
+	_px4_baro(interface->get_device_id(), ORB_PRIO_MAX),
 	_interface(interface),
-	_osr_t(BMP3_NO_OVERSAMPLING),
-	_osr_p(BMP3_NO_OVERSAMPLING),
+	_osr_t(BMP3_OVERSAMPLING_2X),
+	_osr_p(BMP3_OVERSAMPLING_16X),
+	_odr(BMP3_ODR_50_HZ),
+	_iir_coef(BMP3_IIR_FILTER_DISABLE),
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmp388: read")),
 	_measure_perf(perf_alloc(PC_ELAPSED, "bmp388: measure")),
-	_comms_errors(perf_alloc(PC_COUNT, "bmp388: comms errors"))
+	_comms_errors(perf_alloc(PC_COUNT, "bmp388: comms errors")),
+	_collect_phase(false)
 {
 	_px4_baro.set_device_type(DRV_DEVTYPE_BMP388);
 }
@@ -111,6 +114,13 @@ BMP388::init()
 		return -EIO;
 	}
 
+	/* sleep this first time around */
+	px4_usleep(_measure_interval);
+
+	if (collect()) {
+		return -EIO;
+	}
+
 	start();
 
 	return OK;
@@ -120,6 +130,7 @@ void
 BMP388::print_info()
 {
 	perf_print_counter(_sample_perf);
+	perf_print_counter(_measure_perf);
 	perf_print_counter(_comms_errors);
 	printf("measurement interval:  %u us \n", _measure_interval);
 
@@ -129,12 +140,12 @@ BMP388::print_info()
 void
 BMP388::start()
 {
-	/* make sure we are stopped first */
-	uint32_t last_call_interval = _call_interval;
-	stop();
-	_call_interval = last_call_interval;
+	_collect_phase = false;
 
-	ScheduleOnInterval(_call_interval, 1000);
+	/* make sure we are stopped first */
+	stop();
+
+	ScheduleOnInterval(_measure_interval, 1000);
 }
 
 void
@@ -149,15 +160,17 @@ BMP388::stop()
 void
 BMP388::Run()
 {
+	if (_collect_phase) {
+		collect();
+	}
+
 	measure();
 }
 
 int
 BMP388::measure()
 {
-	/* enable pressure and temperature */
-	uint8_t sensor_comp = BMP3_PRESS | BMP3_TEMP;
-	bmp3_data data{};
+	_collect_phase = true;
 
 	perf_begin(_measure_perf);
 
@@ -169,10 +182,19 @@ BMP388::measure()
 		return -EIO;
 	}
 
-	/* wait based on sampling config */
-	px4_usleep(_measure_interval);
-
 	perf_end(_measure_perf);
+
+	return OK;
+}
+
+int
+BMP388::collect()
+{
+	_collect_phase = false;
+
+	/* enable pressure and temperature */
+	uint8_t sensor_comp = BMP3_PRESS | BMP3_TEMP;
+	bmp3_data data{};
 
 	perf_begin(_sample_perf);
 
@@ -291,16 +313,16 @@ uint32_t
 BMP388::get_measurement_time(uint8_t osr_t, uint8_t osr_p)
 {
 	/*
-	  From BST-BMP388-DS001.pdf
+	  From BST-BMP388-DS001.pdf, page 25, table 21
 
-	  Pressure      Temperature   Measurement
+	  Pressure      Temperature   Measurement     Max Time
 	  Oversample    Oversample    Time (Forced)
-	  x1            1x            4.9 ms
-	  x2            1x            6.9 ms
-	  x4            1x            10.9 ms
-	  x8            1x            18.9 ms
-	  x16           2x            36.9 ms
-	  x32           2x            68.9 m
+	  x1            1x            4.9 ms          5.7 ms
+	  x2            1x            6.9 ms          8.7 ms
+	  x4            1x            10.9 ms         13.3 ms
+	  x8            1x            18.9 ms         22.5 ms
+	  x16           2x            36.9 ms         43.3 ms
+	  x32           2x            68.9 ms         (not documented)
 	*/
 
 	uint32_t meas_time_us = 0; // unsupported value by default
@@ -308,26 +330,26 @@ BMP388::get_measurement_time(uint8_t osr_t, uint8_t osr_p)
 	if (osr_t == BMP3_NO_OVERSAMPLING) {
 		switch (osr_p) {
 		case BMP3_NO_OVERSAMPLING:
-			meas_time_us = 4900;
+			meas_time_us = 5700;
 			break;
 
 		case BMP3_OVERSAMPLING_2X:
-			meas_time_us = 6900;
+			meas_time_us = 8700;
 			break;
 
 		case BMP3_OVERSAMPLING_4X:
-			meas_time_us = 10900;
+			meas_time_us = 13300;
 			break;
 
 		case BMP3_OVERSAMPLING_8X:
-			meas_time_us = 18900;
+			meas_time_us = 22500;
 			break;
 		}
 
 	} else if (osr_t == BMP3_OVERSAMPLING_2X) {
 		switch (osr_p) {
 		case BMP3_OVERSAMPLING_16X:
-			meas_time_us = 36900;
+			meas_time_us = 43300;
 			break;
 
 		case BMP3_OVERSAMPLING_32X:
@@ -368,7 +390,7 @@ BMP388::set_sensor_settings()
 		return false;
 	}
 
-	/* Select the output data rate and over sampling settings for pressure and temperature */
+	/* Select the and over sampling settings for pressure and temperature */
 	uint8_t osr_ctl_reg = 0;
 	osr_ctl_reg = BMP3_SET_BITS_POS_0(osr_ctl_reg, BMP3_PRESS_OS, _osr_p);
 	osr_ctl_reg = BMP3_SET_BITS(osr_ctl_reg, BMP3_TEMP_OS, _osr_t);
@@ -380,13 +402,23 @@ BMP388::set_sensor_settings()
 		return false;
 	}
 
+	/* Using 'forced mode' so this is not required but here for future use possibly */
 	uint8_t odr_ctl_reg = 0;
-	odr_ctl_reg = BMP3_SET_BITS_POS_0(odr_ctl_reg, BMP3_ODR, BMP3_ODR_25_HZ);
+	odr_ctl_reg = BMP3_SET_BITS_POS_0(odr_ctl_reg, BMP3_ODR, _odr);
 
 	ret = _interface->set_reg(odr_ctl_reg, BMP3_ODR_ADDR);
 
 	if (ret != OK) {
-		PX4_WARN("failed to set settingsoutput data rate register");
+		PX4_WARN("failed to set output data rate register");
+		return false;
+	}
+
+	uint8_t iir_ctl_reg = 0;
+	iir_ctl_reg = BMP3_SET_BITS(iir_ctl_reg, BMP3_IIR_FILTER, _iir_coef);
+	ret = _interface->set_reg(iir_ctl_reg, BMP3_IIR_ADDR);
+
+	if (ret != OK) {
+		PX4_WARN("failed to set IIR settings");
 		return false;
 	}
 

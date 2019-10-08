@@ -43,7 +43,7 @@
 #include <drivers/drv_hrt.h>
 #include <lib/cdev/CDev.hpp>
 #include <perf/perf_counter.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 
 #include "board_config.h"
@@ -56,6 +56,7 @@
 #define BMP3_TRIM_CRC_DATA_ADDR           0x30
 #define BPM3_CMD_SOFT_RESET               0xB6
 #define BMP3_ODR_ADDR                     0x1D
+#define BMP3_IIR_ADDR                     0x1F
 
 // https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3.c
 /*! Power control settings */
@@ -160,20 +161,22 @@ public:
 	void			print_info();
 
 private:
-	unsigned 		_call_interval{1000};
-
 	PX4Barometer		_px4_baro;
 	IBMP388			*_interface;
 
 	unsigned		_measure_interval{0}; // interval in microseconds needed to measure
-	uint8_t                 _osr_t; // oversampling rate, temperature
-	uint8_t                 _osr_p; // oversampling rate, pressure
+	uint8_t			_osr_t;               // oversampling rate, temperature
+	uint8_t			_osr_p;               // oversampling rate, pressure
+	uint8_t			_odr;                 // output data rate
+	uint8_t			_iir_coef;            // IIR coefficient
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_measure_perf;
 	perf_counter_t		_comms_errors;
 
 	struct calibration_s 	*_cal; // stored calibration constants
+
+	bool			_collect_phase;
 
 	void 			Run() override;
 	void 			start();
