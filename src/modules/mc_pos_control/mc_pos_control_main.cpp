@@ -963,21 +963,34 @@ MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint
 	} else {
 		reset_setpoint_to_nan(setpoint);
 
-		if (PX4_ISFINITE(_states.velocity(2))) {
-			// We have a valid velocity in D-direction.
-			// descend downwards with landspeed.
-			setpoint.vz = _param_mpc_land_speed.get();
-			setpoint.thrust[0] = setpoint.thrust[1] = 0.0f;
+		if (PX4_ISFINITE(_states.velocity(0)) && PX4_ISFINITE(_states.velocity(1))) {
+			// don't move along xy
+			setpoint.vx = setpoint.vy = 0.0f;
 
 			if (warn) {
-				PX4_WARN("Failsafe: Descend with land-speed.");
+				PX4_WARN("Failsafe: stop and wait");
 			}
 
 		} else {
-			// Use the failsafe from the PositionController.
+			// descend with land speed since we can't stop
+			setpoint.thrust[0] = setpoint.thrust[1] = 0.f;
+			setpoint.vz = _param_mpc_land_speed.get();
+
 			if (warn) {
-				PX4_WARN("Failsafe: Descend with just attitude control.");
+				PX4_WARN("Failsafe: blind hover");
 			}
+		}
+
+		if (PX4_ISFINITE(_states.velocity(2))) {
+			// don't move along z if we can stop in all dimensions
+			if (!PX4_ISFINITE(setpoint.vz)) {
+				setpoint.vz = 0.f;
+			}
+
+		} else {
+			// emergency descend with a bit below hover thrust
+			setpoint.vz = NAN;
+			setpoint.thrust[2] = _param_mpc_thr_hover.get() * .8f;
 		}
 
 		_in_failsafe = true;
