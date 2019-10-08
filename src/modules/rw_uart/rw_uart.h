@@ -403,7 +403,7 @@ typedef struct {
     //param_t CH12_set_hd;
     param_t dn_vel_max_hd;
     param_t rc_on_off_hd;
-    param_t hover_thrust_hd;
+    //param_t hover_thrust_hd;
     param_t yaw_force_hd;
     param_t pwm_min_hd;
 }MSG_param_hd;
@@ -446,5 +446,7 @@ extern void follow_ack_pack_send(uint8_t failed);
 extern void yfwi_pack(const uint8_t *buffer, MSG_type msg_type, MSG_param_hd msg_hd);
 
 extern void exyf_response_pack(MSG_type msg_type, MSG_param_hd msg_hd);
+
+extern int find_frame(uint8_t data);
 
 #endif // RW_UART_H

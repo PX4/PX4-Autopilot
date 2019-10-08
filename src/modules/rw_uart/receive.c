@@ -1,6 +1,43 @@
 #include "rw_uart.h"
 #include "rw_uart_define.h"
 
+int find_frame(uint8_t data){
+    int paramd = 5001;
+    switch (data) {
+//        case 0:
+//            paramd = 5001;
+//            break;
+    case 1:
+        paramd = 4001;
+        break;
+    case 2:
+        paramd = 7001;
+        break;
+    case 3:
+        paramd = 6001;
+        break;
+    case 4:
+        paramd = 9001;
+        break;
+    case 5:
+        paramd = 8001;
+        break;
+    case 6:
+        paramd = 11001;
+        break;
+    case 7:
+        paramd = 14001;
+        break;
+    case 8:
+        paramd = 12001;
+        break;
+    default:
+        paramd = 5001;
+        break;
+    }
+    return paramd;
+}
+
 bool change_param (MSG_param_hd msg_hd, uint8_t data, int i){
     bool changed = true;
     float_t paramf;
@@ -88,38 +125,7 @@ bool change_param (MSG_param_hd msg_hd, uint8_t data, int i){
         param_set(msg_hd.acc_hor_max_hd, &paramf);
         break;
     case 38:
-        switch (data) {
-//        case 0:
-//            paramd = 5001;
-//            break;
-        case 1:
-            paramd = 4001;
-            break;
-        case 2:
-            paramd = 7001;
-            break;
-        case 3:
-            paramd = 6001;
-            break;
-        case 4:
-            paramd = 9001;
-            break;
-        case 5:
-            paramd = 8001;
-            break;
-        case 6:
-            paramd = 11001;
-            break;
-        case 7:
-            paramd = 14001;
-            break;
-        case 8:
-            paramd = 12001;
-            break;
-        default:
-            paramd = 5001;
-            break;
-        }
+        paramd = find_frame(data);
         param_set(msg_hd.mav_type_hd, &paramd);
         break;
     case 39:

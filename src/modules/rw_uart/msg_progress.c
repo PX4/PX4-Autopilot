@@ -317,13 +317,13 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             printf("Passing wp_upload_num\n");
             break;
         case WIFI_COMM_RECEIVER_ON:
-            msg_data->status_data.rc_input_mode = 0; //RC_IN_MODE_ON
-            publish_status_pd(msg_pd, msg_data);
+            paramd = 0;
+            param_set(msg_hd.rc_on_off_hd, &paramd);
             printf("Passing reiceiver on\n");
             break;
         case WIFI_COMM_RECEIVER_OFF:
-            msg_data->status_data.rc_input_mode = 1; //RC_IN_MODE_OFF
-            publish_status_pd(msg_pd, msg_data);
+            paramd = 1; //RC_IN_MODE_OFF
+            param_set(msg_hd.rc_on_off_hd, &paramd);
             printf("Passing reiceiver off\n");
             break;
         case WIFI_COMM_GYRO_CLEAR:
@@ -462,7 +462,7 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
              printf("Passing idle_speed_set\n");
             break;
         case EXYF_COMM_PLANE_SET:
-            paramd = (int)buffer[9];
+            paramd = find_frame(buffer[9]);
             param_set(msg_hd.mav_type_hd, &paramd);
             printf("Passing plane_set\n");
             break;

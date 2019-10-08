@@ -11,7 +11,42 @@ void stp_pack (STP *stp, MSG_orb_data stp_data);
 void YFPA_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd);
 
 //void send_stp (STP *stp);
-
+uint8_t get_frame(int data){
+    uint8_t frame;
+    switch (data) {
+//    case 5001:
+//        yfpa_param->mav_type = 0;
+//        break;
+    case 4001:
+        frame = 1;
+        break;
+    case 7001:
+        frame = 2;
+        break;
+    case 6001:
+        frame = 3;
+        break;
+    case 9001:
+        frame = 4;
+        break;
+    case 8001:
+        frame = 5;
+        break;
+    case 11001:
+        frame = 6;
+        break;
+    case 14001:
+        frame = 7;
+        break;
+    case 12001:
+        frame = 8;
+        break;
+    default:
+        frame = 0;
+        break;
+    }
+    return frame;
+}
 
 uint8_t get_control_status(uint16_t command, uint8_t nav_state){
     if (command == 241){ //VEHICLE_CMD_PREFLIGHT_CALIBRATION
@@ -227,48 +262,12 @@ void yfpa_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd){
     param_get(msg_hd.dist_max_hd, &paramf);
     yfpa_param->dist_max = (uint16_t)(paramf * 6.5535);
     param_get(msg_hd.mav_type_hd, &paramd);
-    switch (paramd) {
-//    case 5001:
-//        yfpa_param->mav_type = 0;
-//        break;
-    case 4001:
-        yfpa_param->mav_type = 1;
-        break;
-    case 7001:
-        yfpa_param->mav_type = 2;
-        break;
-    case 6001:
-        yfpa_param->mav_type = 3;
-        break;
-    case 9001:
-        yfpa_param->mav_type = 4;
-        break;
-    case 8001:
-        yfpa_param->mav_type = 5;
-        break;
-    case 11001:
-        yfpa_param->mav_type = 6;
-        break;
-    case 14001:
-        yfpa_param->mav_type = 7;
-        break;
-    case 12001:
-        yfpa_param->mav_type = 8;
-        break;
-    default:
-        yfpa_param->mav_type = 0;
-        break;
-    }
+     yfpa_param->mav_type = get_frame(paramd);
     param_get(msg_hd.battery_n_cells_hd, &paramd);
     yfpa_param->battery_num = (uint8_t)(paramd);
     param_get(msg_hd.battery_warn_hd, &paramf);
     paramf = 3.50 + 0.55 *paramf;
     yfpa_param->battery_warn = (uint8_t)((paramf - 3.55)/0.05 *4);
-//    if (paramf < 3.55) yfpa_param->battery_warn = 0x00;
-//    else if (paramf < 3.60) yfpa_param->battery_warn = 0x04;
-//    else if (paramf < 3.65) yfpa_param->battery_warn = 0x08;
-//    else yfpa_param->battery_warn = 0x0c;
-    //yfpa_param->battery_warn = (uint8_t)((paramf-0.12) * 910.7);
     param_get(msg_hd.battery_fail_hd, &paramd);
     int fail_act = 0;
     switch (paramd) {
@@ -337,7 +336,7 @@ void exyf_response_pack(MSG_type msg_type, MSG_param_hd msg_hd){
         send_message[7] = 19;
         send_message[8] = 19;
         param_get(msg_hd.mav_type_hd, &paramd);
-        send_message[9] = (uint8_t)(paramd);
+        send_message[9] = get_frame(paramd);
         crc = check_crc(send_message, 12);
         send_message[10] = (uint8_t)(crc & 0x00ff);
         send_message[11] = (uint8_t)((crc & 0xff00)>>8);
