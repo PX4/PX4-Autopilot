@@ -96,11 +96,12 @@ bool FlightTaskManual::_evaluateSticks()
 		return valid_sticks;
 
 	} else {
-		/* Timeout: set all sticks to zero */
+		// Timeout: set all sticks to zero
 		_sticks.zero();
 		_sticks_expo.zero();
 		_gear.landing_gear = landing_gear_s::GEAR_KEEP;
-		return false;
+		// We still return true because it's up to commander to figure out the failsafe.
+		return true;
 	}
 }
 
