@@ -43,7 +43,8 @@
 #include <drivers/drv_hrt.h>
 #include <lib/cdev/CDev.hpp>
 #include <perf/perf_counter.h>
-#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+//TODO #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 
 #include "board_config.h"
