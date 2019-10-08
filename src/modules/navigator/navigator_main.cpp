@@ -948,13 +948,6 @@ void Navigator::check_traffic()
 		
 
 
-	//TODO a better denomination if the other Vehicle is manned or an UAV
-	//Right now it decides on there being an ADSB emitter
-	if (NULL == transponder_report_s::emitter_type) {
-		float horizontal_separation = 10;
-		float vertical_separation = 10;
-	}
-
 
 	while (changed) {
 
@@ -969,10 +962,18 @@ void Navigator::check_traffic()
 			changed = _traffic_sub.updated();
 			continue;
 		}
+		
 
 		float d_hor, d_vert;
 		get_distance_to_point_global_wgs84(lat, lon, alt,
 						   tr.lat, tr.lon, tr.altitude, &d_hor, &d_vert);
+		
+		//TODO a better denomination if the other Vehicle is manned or an UAV
+		//Right now it decides on there being an ADSB emitter
+		if (tr.emitter_type) {
+			float horizontal_separation = 10;
+			float vertical_separation = 10;
+		}
 
 
 		// predict final altitude (positive is up) in prediction time frame
