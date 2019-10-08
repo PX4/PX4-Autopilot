@@ -1397,6 +1397,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						case MAV_TYPE_OCTOROTOR:
 						case MAV_TYPE_TRICOPTER:
 						case MAV_TYPE_HELICOPTER:
+                        case MAV_TYPE_VTOL_RESERVED2:
 							att_sp.thrust_body[2] = -set_attitude_target.thrust;
 							break;
 
@@ -1406,7 +1407,14 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						}
 					}
 
-					_att_sp_pub.publish(att_sp);
+                    switch (_mavlink->get_system_type()) {
+                    case MAV_TYPE_VTOL_RESERVED2:
+                        _virt_att_sp_pub.publish(att_sp);
+                        break;
+                    default:
+                        //_att_sp_pub.publish(att_sp);
+                        break;
+                    }
 				}
 
 				/* Publish attitude rate setpoint if bodyrate and thrust ignore bits are not set */
