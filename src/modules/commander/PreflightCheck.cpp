@@ -665,17 +665,12 @@ out:
 static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail,
 				 const bool prearm)
 {
-	bool success = true;
-
+	// Ignore failure detector check after arming
 	if (!prearm) {
-		// Ignore failure detector check after arming.
 		return true;
-
 	}
 
 	if (status.failure_detector_status != vehicle_status_s::FAILURE_NONE) {
-		success = false;
-
 		if (report_fail) {
 			if (status.failure_detector_status & vehicle_status_s::FAILURE_ROLL) {
 				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Roll failure detected");
@@ -689,9 +684,11 @@ static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Altitude failure detected");
 			}
 		}
+
+		return false;
 	}
 
-	return success;
+	return true;
 }
 
 bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, vehicle_status_flags_s &status_flags,
