@@ -1263,6 +1263,7 @@ Mission::heading_sp_update()
 
 			_mission_item.yaw = yaw;
 			pos_sp_triplet->current.yaw = _mission_item.yaw;
+			pos_sp_triplet->current.yaw_valid = true;
 		}
 
 		// we set yaw directly so we can run this in parallel to the FOH update
