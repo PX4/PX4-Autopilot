@@ -2529,7 +2529,7 @@ MavlinkReceiver::Run()
 
 	// make sure mavlink app has booted before we start processing anything (parameter sync, etc)
 	while (!_mavlink->boot_complete()) {
-		if (hrt_absolute_time() > 20_s) {
+		if (hrt_elapsed_time(&_mavlink->get_first_start_time()) > 20_s) {
 			PX4_ERR("system boot did not complete in 20 seconds");
 			_mavlink->set_boot_complete();
 		}
