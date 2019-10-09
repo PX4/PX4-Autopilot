@@ -216,5 +216,5 @@ fi
 
 if [[ $INSTALL_NUTTX == "true" ]]; then
 	echo
-	echo "Reboot computer before attempting to build NuttX targets"
+	echo "Reboot or logout, login computer before attempting to build NuttX targets"
 fi
