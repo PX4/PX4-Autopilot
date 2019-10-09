@@ -33,15 +33,9 @@
 
 #pragma once
 
-#include "BMI055.hpp"
-
-#include <drivers/device/spi.h>
-#include <drivers/drv_hrt.h>
-#include <lib/conversion/rotation.h>
-#include <lib/perf/perf_counter.h>
 #include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
-#include <px4_config.h>
-#include <systemlib/conversions.h>
+
+#include "BMI055.hpp"
 
 #define BMI055_DEVICE_PATH_GYRO		"/dev/bmi055_gyro"
 #define BMI055_DEVICE_PATH_GYRO_EXT	"/dev/bmi055_gyro_ext"
@@ -167,7 +161,6 @@ private:
 	PX4Gyroscope	_px4_gyro;
 
 	perf_counter_t      _sample_perf;
-	perf_counter_t      _measure_interval;
 	perf_counter_t      _bad_transfers;
 	perf_counter_t      _bad_registers;
 

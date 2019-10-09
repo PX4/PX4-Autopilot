@@ -35,7 +35,7 @@ message(WARNING "Configuraton is incomplete")
 message(WARNING "DO NOT RUN THIS ON HW")
 message(WARNING "IT IS NOT PINED OUT TO HW")
 
-px4_add_library(drivers_board
+add_library(drivers_board
 	init.c
 	led.c
 	usb.c

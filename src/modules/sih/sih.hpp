@@ -41,17 +41,17 @@
 #include <conversion/rotation.h>    // math::radians,
 #include <ecl/geo/geo.h>            // to get the physical constants
 #include <drivers/drv_hrt.h>        // to get the real time
+#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <perf/perf_counter.h>
-
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/sensor_baro.h>
-#include <uORB/topics/sensor_gyro.h>
-#include <uORB/topics/sensor_accel.h>
-#include <uORB/topics/sensor_mag.h>
-#include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/vehicle_global_position.h>    // to publish groundtruth
+#include <uORB/topics/vehicle_angular_velocity.h>   // to publish groundtruth
 #include <uORB/topics/vehicle_attitude.h>           // to publish groundtruth
+#include <uORB/topics/vehicle_global_position.h>    // to publish groundtruth
+#include <uORB/topics/vehicle_gps_position.h>
 
 extern "C" __EXPORT int sih_main(int argc, char *argv[]);
 
@@ -98,29 +98,29 @@ private:
 	void parameters_update_poll();
 	void parameters_updated();
 
-	// to publish the sensor baro
-	struct sensor_baro_s            _sensor_baro {};
-	orb_advert_t                    _sensor_baro_pub{nullptr};
-	// to publish the sensor mag
-	struct sensor_mag_s             _sensor_mag {};
-	orb_advert_t                    _sensor_mag_pub{nullptr};
-	// to publish the sensor gyroscope
-	struct sensor_gyro_s            _sensor_gyro {};
-	orb_advert_t                    _sensor_gyro_pub{nullptr};
-	// to publish the sensor accelerometer
-	struct sensor_accel_s           _sensor_accel {};
-	orb_advert_t                    _sensor_accel_pub{nullptr};
-	// to publish the gps position
-	struct vehicle_gps_position_s   _vehicle_gps_pos {};
-	orb_advert_t                    _vehicle_gps_pos_pub{nullptr};
-	// attitude groundtruth
-	struct vehicle_global_position_s    _gpos_gt {};
-	orb_advert_t                        _gpos_gt_sub{nullptr};
-	// global position groundtruth
-	struct vehicle_attitude_s           _att_gt {};
-	orb_advert_t                        _att_gt_sub{nullptr};
+	// simulated sensor instances
+	PX4Accelerometer _px4_accel{ 1311244, ORB_PRIO_DEFAULT, ROTATION_NONE }; // 1311244: DRV_ACC_DEVTYPE_ACCELSIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	PX4Gyroscope _px4_gyro{ 2294028, ORB_PRIO_DEFAULT, ROTATION_NONE }; // 2294028: DRV_GYR_DEVTYPE_GYROSIM, BUS: 1, ADDR: 2, TYPE: SIMULATION
+	PX4Magnetometer _px4_mag{ 197388, ORB_PRIO_DEFAULT, ROTATION_NONE }; // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+	PX4Barometer _px4_baro{ 6620172, ORB_PRIO_DEFAULT }; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
 
-	int _parameter_update_sub {-1};
+	// to publish the gps position
+	vehicle_gps_position_s              _vehicle_gps_pos{};
+	orb_advert_t                        _vehicle_gps_pos_pub{nullptr};
+
+	// angular velocity groundtruth
+	vehicle_angular_velocity_s          _vehicle_angular_velocity_gt{};
+	orb_advert_t                        _vehicle_angular_velocity_gt_pub{nullptr};
+
+	// attitude groundtruth
+	vehicle_attitude_s                  _att_gt{};
+	orb_advert_t                        _att_gt_pub{nullptr};
+
+	// global position groundtruth
+	vehicle_global_position_s           _gpos_gt{};
+	orb_advert_t                        _gpos_gt_pub{nullptr};
+
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	int _actuator_out_sub {-1};
 
 	// hard constants

@@ -55,6 +55,7 @@
 #include <arch/board/board.h>
 #include <arch/chip/chip.h>
 
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/parameter_update.h>
 
@@ -424,6 +425,12 @@ void UavcanNode::update_params()
 
 	if (param_handle != PARAM_INVALID) {
 		param_get(param_handle, &_airmode);
+	}
+
+	param_handle = param_find("THR_MDL_FAC");
+
+	if (param_handle != PARAM_INVALID) {
+		param_get(param_handle, &_thr_mdl_factor);
 	}
 }
 
@@ -804,17 +811,17 @@ int UavcanNode::run()
 
 	update_params();
 
-	int params_sub = orb_subscribe(ORB_ID(parameter_update));
+	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
 
 	while (!_task_should_exit) {
 
-		/* check for parameter updates */
-		bool param_updated = false;
-		orb_check(params_sub, &param_updated);
+		// check for parameter updates
+		if (parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			parameter_update_sub.copy(&pupdate);
 
-		if (param_updated) {
-			struct parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), params_sub, &update);
+			// update parameters from storage
 			update_params();
 		}
 
@@ -905,6 +912,7 @@ int UavcanNode::run()
 				// but this driver could well serve multiple groups.
 				unsigned num_outputs_max = 8;
 
+				_mixers->set_thrust_factor(_thr_mdl_factor);
 				_mixers->set_airmode(_airmode);
 
 				// Do mixing
@@ -988,8 +996,6 @@ int UavcanNode::run()
 		}
 	}
 
-	orb_unsubscribe(params_sub);
-
 	(void)::close(busevent_fd);
 
 	teardown();
@@ -1051,6 +1057,7 @@ UavcanNode::subscribe()
 
 		if (_control_subs[i] >= 0) {
 			_poll_ids[i] = add_poll_fd(_control_subs[i]);
+			orb_set_interval(_control_subs[i], 1000 / UavcanEscController::MAX_RATE_HZ);
 		}
 	}
 }
@@ -1116,6 +1123,11 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 				} else {
 
 					_mixers->groups_required(_groups_required);
+					PX4_INFO("Groups required %d", _groups_required);
+
+					int rotor_count = _mixers->get_multirotor_count();
+					_esc_controller.set_rotor_count(rotor_count);
+					PX4_INFO("Number of rotors %d", rotor_count);
 				}
 			}
 		}

@@ -38,7 +38,7 @@
 #include <lib/cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
 #include <uORB/uORB.h>
-#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_baro.h>
 
 class PX4Barometer : public cdev::CDev
@@ -59,7 +59,7 @@ public:
 
 private:
 
-	uORB::PublicationData<sensor_baro_s>	_sensor_baro_pub;
+	uORB::PublicationMultiData<sensor_baro_s>	_sensor_baro_pub;
 
 	int			_class_device_instance{-1};
 

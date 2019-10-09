@@ -13,3 +13,5 @@ uint8 volume         # value between 0-100 if supported by backend
 uint8 VOLUME_LEVEL_MIN = 0
 uint8 VOLUME_LEVEL_DEFAULT = 40
 uint8 VOLUME_LEVEL_MAX = 100
+
+uint8 ORB_QUEUE_LENGTH = 3

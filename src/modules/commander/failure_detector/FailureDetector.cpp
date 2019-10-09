@@ -41,29 +41,60 @@
 #include "FailureDetector.hpp"
 
 FailureDetector::FailureDetector(ModuleParams *parent) :
-	ModuleParams(parent),
-	_sub_vehicle_attitude_setpoint(ORB_ID(vehicle_attitude_setpoint)),
-	_sub_vehicule_attitude(ORB_ID(vehicle_attitude))
+	ModuleParams(parent)
 {
 }
 
+bool FailureDetector::resetStatus()
+{
+	bool status_changed = _status != FAILURE_NONE;
+	_status = FAILURE_NONE;
+
+	return status_changed;
+}
+
 bool
-FailureDetector::update()
+FailureDetector::update(const vehicle_status_s &vehicle_status)
 {
 	bool updated(false);
 
-	updated = updateAttitudeStatus();
+	if (isAttitudeStabilized(vehicle_status)) {
+		updated = updateAttitudeStatus();
+
+	} else {
+		updated = resetStatus();
+	}
 
 	return updated;
+}
+
+bool
+FailureDetector::isAttitudeStabilized(const vehicle_status_s &vehicle_status)
+{
+	bool attitude_is_stabilized{false};
+	const uint8_t vehicle_type = vehicle_status.vehicle_type;
+	const uint8_t nav_state = vehicle_status.nav_state;
+
+	if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+		attitude_is_stabilized =  nav_state != vehicle_status_s::NAVIGATION_STATE_ACRO &&
+					  nav_state != vehicle_status_s::NAVIGATION_STATE_RATTITUDE;
+
+	} else if (vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+		attitude_is_stabilized =  nav_state != vehicle_status_s::NAVIGATION_STATE_MANUAL &&
+					  nav_state != vehicle_status_s::NAVIGATION_STATE_ACRO &&
+					  nav_state != vehicle_status_s::NAVIGATION_STATE_RATTITUDE;
+	}
+
+	return attitude_is_stabilized;
 }
 
 bool
 FailureDetector::updateAttitudeStatus()
 {
 	bool updated(false);
+	vehicle_attitude_s attitude;
 
-	if (_sub_vehicule_attitude.update()) {
-		const vehicle_attitude_s &attitude = _sub_vehicule_attitude.get();
+	if (_sub_vehicule_attitude.update(&attitude)) {
 
 		const matrix::Eulerf euler(matrix::Quatf(attitude.q));
 		const float roll(euler.phi());
@@ -97,9 +128,6 @@ FailureDetector::updateAttitudeStatus()
 		}
 
 		updated = true;
-
-	} else {
-		updated = false;
 	}
 
 	return updated;

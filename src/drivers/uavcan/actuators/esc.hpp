@@ -50,6 +50,7 @@
 #include <perf/perf_counter.h>
 #include <uORB/topics/esc_status.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <drivers/drv_hrt.h>
 
 
 class UavcanEscController
@@ -67,6 +68,13 @@ public:
 
 	void enable_idle_throttle_when_armed(bool value) { _run_at_idle_throttle_when_armed = value; }
 
+	/**
+	 * Sets the number of rotors
+	 */
+	void set_rotor_count(uint8_t count) { _rotor_count = count; }
+
+	static constexpr unsigned MAX_RATE_HZ = 200;			///< XXX make this configurable
+
 private:
 	/**
 	 * ESC status message reception will be reported via this callback.
@@ -78,8 +86,11 @@ private:
 	 */
 	void orb_pub_timer_cb(const uavcan::TimerEvent &event);
 
+	/**
+	 * Checks all the ESCs freshness based on timestamp, if an ESC exceeds the timeout then is flagged offline.
+	 */
+	uint8_t check_escs_status();
 
-	static constexpr unsigned MAX_RATE_HZ = 200;			///< XXX make this configurable
 	static constexpr unsigned ESC_STATUS_UPDATE_RATE_HZ = 10;
 	static constexpr unsigned UAVCAN_COMMAND_TRANSFER_PRIORITY = 5;	///< 0..31, inclusive, 0 - highest, 31 - lowest
 
@@ -95,6 +106,7 @@ private:
 	esc_status_s	_esc_status = {};
 	orb_advert_t	_esc_status_pub = nullptr;
 	orb_advert_t _actuator_outputs_pub = nullptr;
+	uint8_t		_rotor_count = 0;
 
 	/*
 	 * libuavcan related things

@@ -40,18 +40,18 @@
  */
 
 #include <float.h>
+
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/ecl/geo_lookup/geo_mag_declination.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <mathlib/mathlib.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/parameters/param.h>
 #include <matrix/math.hpp>
 #include <px4_config.h>
 #include <px4_posix.h>
 #include <px4_tasks.h>
-#include <systemlib/err.h>
-#include <parameters/param.h>
-#include <perf/perf_counter.h>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -107,14 +107,15 @@ private:
 	bool		_task_should_exit = false;	/**< if true, task should exit */
 	int		_control_task = -1;		/**< task handle for task */
 
-	int		_params_sub = -1;
 	int		_sensors_sub = -1;
-	int		_global_pos_sub = -1;
-	int		_vision_odom_sub = -1;
-	int		_mocap_odom_sub = -1;
-	int		_magnetometer_sub = -1;
 
-	orb_advert_t	_att_pub = nullptr;
+	uORB::Subscription		_parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription		_global_pos_sub{ORB_ID(vehicle_global_position)};
+	uORB::Subscription		_vision_odom_sub{ORB_ID(vehicle_visual_odometry)};
+	uORB::Subscription		_mocap_odom_sub{ORB_ID(vehicle_mocap_odometry)};
+	uORB::Subscription		_magnetometer_sub{ORB_ID(vehicle_magnetometer)};
+
+	uORB::Publication<vehicle_attitude_s>	_att_pub{ORB_ID(vehicle_attitude)};
 
 	struct {
 		param_t	w_acc;
@@ -253,19 +254,7 @@ int AttitudeEstimatorQ::task_main_trampoline(int argc, char *argv[])
 
 void AttitudeEstimatorQ::task_main()
 {
-
-#ifdef __PX4_POSIX
-	perf_counter_t _perf_accel(perf_alloc_once(PC_ELAPSED, "sim_accel_delay"));
-	perf_counter_t _perf_mpu(perf_alloc_once(PC_ELAPSED, "sim_mpu_delay"));
-	perf_counter_t _perf_mag(perf_alloc_once(PC_ELAPSED, "sim_mag_delay"));
-#endif
-
 	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
-	_vision_odom_sub = orb_subscribe(ORB_ID(vehicle_visual_odometry));
-	_mocap_odom_sub = orb_subscribe(ORB_ID(vehicle_mocap_odometry));
-	_params_sub = orb_subscribe(ORB_ID(parameter_update));
-	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
-	_magnetometer_sub = orb_subscribe(ORB_ID(vehicle_magnetometer));
 
 	update_parameters(true);
 
@@ -319,13 +308,10 @@ void AttitudeEstimatorQ::task_main()
 		}
 
 		// Update magnetometer
-		bool magnetometer_updated = false;
-		orb_check(_magnetometer_sub, &magnetometer_updated);
-
-		if (magnetometer_updated) {
+		if (_magnetometer_sub.updated()) {
 			vehicle_magnetometer_s magnetometer;
 
-			if (orb_copy(ORB_ID(vehicle_magnetometer), _magnetometer_sub, &magnetometer) == PX4_OK) {
+			if (_magnetometer_sub.copy(&magnetometer)) {
 				_mag(0) = magnetometer.magnetometer_ga[0];
 				_mag(1) = magnetometer.magnetometer_ga[1];
 				_mag(2) = magnetometer.magnetometer_ga[2];
@@ -340,13 +326,11 @@ void AttitudeEstimatorQ::task_main()
 
 		// Update vision and motion capture heading
 		_ext_hdg_good = false;
-		bool vision_updated = false;
-		orb_check(_vision_odom_sub, &vision_updated);
 
-		if (vision_updated) {
+		if (_vision_odom_sub.updated()) {
 			vehicle_odometry_s vision;
 
-			if (orb_copy(ORB_ID(vehicle_visual_odometry), _vision_odom_sub, &vision) == PX4_OK) {
+			if (_vision_odom_sub.copy(&vision)) {
 				// validation check for vision attitude data
 				bool vision_att_valid = PX4_ISFINITE(vision.q[0])
 							&& (PX4_ISFINITE(vision.pose_covariance[vision.COVARIANCE_MATRIX_ROLL_VARIANCE]) ? sqrtf(fmaxf(
@@ -372,13 +356,10 @@ void AttitudeEstimatorQ::task_main()
 			}
 		}
 
-		bool mocap_updated = false;
-		orb_check(_mocap_odom_sub, &mocap_updated);
-
-		if (mocap_updated) {
+		if (_mocap_odom_sub.updated()) {
 			vehicle_odometry_s mocap;
 
-			if (orb_copy(ORB_ID(vehicle_mocap_odometry), _mocap_odom_sub, &mocap) == PX4_OK) {
+			if (_mocap_odom_sub.copy(&mocap)) {
 				// validation check for mocap attitude data
 				bool mocap_att_valid = PX4_ISFINITE(mocap.q[0])
 						       && (PX4_ISFINITE(mocap.pose_covariance[mocap.COVARIANCE_MATRIX_ROLL_VARIANCE]) ? sqrtf(fmaxf(
@@ -404,13 +385,10 @@ void AttitudeEstimatorQ::task_main()
 			}
 		}
 
-		bool gpos_updated = false;
-		orb_check(_global_pos_sub, &gpos_updated);
-
-		if (gpos_updated) {
+		if (_global_pos_sub.updated()) {
 			vehicle_global_position_s gpos;
 
-			if (orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &gpos) == PX4_OK) {
+			if (_global_pos_sub.copy(&gpos)) {
 				if (_mag_decl_auto && gpos.eph < 20.0f && hrt_elapsed_time(&gpos.timestamp) < 1000000) {
 					/* set magnetic declination automatically */
 					update_mag_declination(math::radians(get_mag_declination(gpos.lat, gpos.lon)));
@@ -447,43 +425,25 @@ void AttitudeEstimatorQ::task_main()
 		if (update(dt)) {
 			vehicle_attitude_s att = {};
 			att.timestamp = sensors.timestamp;
-			att.rollspeed = _rates(0);
-			att.pitchspeed = _rates(1);
-			att.yawspeed = _rates(2);
 			_q.copyTo(att.q);
 
 			/* the instance count is not used here */
-			int att_inst;
-			orb_publish_auto(ORB_ID(vehicle_attitude), &_att_pub, &att, &att_inst, ORB_PRIO_HIGH);
+			_att_pub.publish(att);
 		}
 	}
 
-#ifdef __PX4_POSIX
-	perf_end(_perf_accel);
-	perf_end(_perf_mpu);
-	perf_end(_perf_mag);
-#endif
-
-	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_sensors_sub);
-	orb_unsubscribe(_global_pos_sub);
-	orb_unsubscribe(_vision_odom_sub);
-	orb_unsubscribe(_mocap_odom_sub);
-	orb_unsubscribe(_magnetometer_sub);
 }
 
 void AttitudeEstimatorQ::update_parameters(bool force)
 {
-	bool updated = force;
+	// check for parameter updates
+	if (_parameter_update_sub.updated() || force) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
-	if (!updated) {
-		orb_check(_params_sub, &updated);
-	}
-
-	if (updated) {
-		parameter_update_s param_update;
-		orb_copy(ORB_ID(parameter_update), _params_sub, &param_update);
-
+		// update parameters
 		param_get(_params_handles.w_acc, &_w_accel);
 		param_get(_params_handles.w_mag, &_w_mag);
 
@@ -538,9 +498,9 @@ bool AttitudeEstimatorQ::init()
 
 	// Fill rotation matrix
 	Dcmf R;
-	R.setRow(0, i);
-	R.setRow(1, j);
-	R.setRow(2, k);
+	R.row(0) = i;
+	R.row(1) = j;
+	R.row(2) = k;
 
 	// Convert to quaternion
 	_q = R;

@@ -46,6 +46,7 @@
 #pragma once
 
 #include <dataman/dataman.h>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/mission_result.h>
 
@@ -78,7 +79,7 @@ class MavlinkMissionManager
 public:
 	explicit MavlinkMissionManager(Mavlink *mavlink);
 
-	~MavlinkMissionManager();
+	~MavlinkMissionManager() = default;
 
 	/**
 	 * Handle sending of messages. Call this regularly at a fixed frequency.
@@ -127,7 +128,7 @@ private:
 
 	uORB::Subscription	_mission_result_sub{ORB_ID(mission_result)};
 
-	orb_advert_t		_offboard_mission_pub{nullptr};
+	uORB::Publication<mission_s>	_offboard_mission_pub{ORB_ID(mission)};
 
 	static uint16_t		_geofence_update_counter;
 	static uint16_t		_safepoint_update_counter;

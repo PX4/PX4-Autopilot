@@ -49,6 +49,8 @@
 #include <px4_log.h>
 #include <px4_module.h>
 #include <px4_workqueue.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/adc_report.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/vehicle_command.h>
@@ -63,7 +65,7 @@ class RCInput : public ModuleBase<RCInput>
 {
 public:
 
-	RCInput(bool run_as_task);
+	RCInput(bool run_as_task, char *device);
 	virtual ~RCInput();
 
 	/** @see ModuleBase */
@@ -121,17 +123,18 @@ private:
 
 	static struct work_s	_work;
 
-	int		_vehicle_cmd_sub{-1};
-	int		_adc_sub{-1};
+	uORB::Subscription	_vehicle_cmd_sub{ORB_ID(vehicle_command)};
+	uORB::Subscription	_adc_sub{ORB_ID(adc_report)};
 
 	input_rc_s	_rc_in{};
 
 	float		_analog_rc_rssi_volt{-1.0f};
 	bool		_analog_rc_rssi_stable{false};
 
-	orb_advert_t	_to_input_rc{nullptr};
+	uORB::PublicationMulti<input_rc_s>	_to_input_rc{ORB_ID(input_rc)};
 
 	int		_rcs_fd{-1};
+	char		_device[20] {};					///< device / serial port path
 
 	uint8_t _rcs_buf[SBUS_BUFFER_SIZE] {};
 
@@ -144,6 +147,7 @@ private:
 	perf_counter_t      _publish_interval_perf;
 
 	static void	cycle_trampoline(void *arg);
+	static void	cycle_trampoline_init(void *arg);
 	int 		start();
 
 	void fill_rc_in(uint16_t raw_rc_count_local,
@@ -153,6 +157,6 @@ private:
 
 	void set_rc_scan_state(RC_SCAN _rc_scan_state);
 
-	void rc_io_invert(bool invert, uint32_t uxart_base);
+	void rc_io_invert(bool invert);
 
 };

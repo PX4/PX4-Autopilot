@@ -45,11 +45,12 @@
 #include <px4_defines.h>
 #include <px4_module.h>
 #include <px4_module_params.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/cpuload.h>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/task_stack_info.h>
-#include <uORB/uORB.h>
 
 #if defined(__PX4_NUTTX) && !defined(CONFIG_SCHED_INSTRUMENTATION)
 #  error load_mon support requires CONFIG_SCHED_INSTRUMENTATION
@@ -105,14 +106,14 @@ private:
 	void _stack_usage();
 
 	int _stack_task_index{0};
-	orb_advert_t _task_stack_info_pub{nullptr};
+	uORB::PublicationQueued<task_stack_info_s> _task_stack_info_pub{ORB_ID(task_stack_info)};
 #endif
 
 	DEFINE_PARAMETERS(
 		(ParamBool<px4::params::SYS_STCK_EN>) _param_sys_stck_en
 	)
 
-	orb_advert_t _cpuload_pub{nullptr};
+	uORB::Publication<cpuload_s>  _cpuload_pub{ORB_ID(cpuload)};
 
 	hrt_abstime _last_idle_time{0};
 	hrt_abstime _last_idle_time_sample{0};
@@ -122,7 +123,7 @@ private:
 
 LoadMon::LoadMon() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(px4::wq_configurations::lp_default),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
 	_stack_perf(perf_alloc(PC_ELAPSED, "stack_check"))
 {
 }
@@ -192,17 +193,12 @@ void LoadMon::_cpuload()
 	_last_idle_time = total_runtime;
 	_last_idle_time_sample = hrt_absolute_time();
 
-	cpuload_s cpuload = {};
+	cpuload_s cpuload{};
 	cpuload.load = 1.0f - (float)interval_idletime / (float)interval;
 	cpuload.ram_usage = _ram_used();
 	cpuload.timestamp = hrt_absolute_time();
 
-	if (_cpuload_pub == nullptr) {
-		_cpuload_pub = orb_advertise(ORB_ID(cpuload), &cpuload);
-
-	} else {
-		orb_publish(ORB_ID(cpuload), _cpuload_pub, &cpuload);
-	}
+	_cpuload_pub.publish(cpuload);
 }
 
 float LoadMon::_ram_used()
@@ -247,12 +243,14 @@ void LoadMon::_stack_usage()
 
 		task_stack_info_s task_stack_info = {};
 
-		if (system_load.tasks[task_index].valid && system_load.tasks[task_index].tcb->pid > 0) {
+		if (system_load.tasks[task_index].valid && (system_load.tasks[task_index].tcb->pid > 0)) {
 
 			stack_free = up_check_tcbstack_remain(system_load.tasks[task_index].tcb);
 
-			strncpy((char *)task_stack_info.task_name, system_load.tasks[task_index].tcb->name,
-				task_stack_info_s::MAX_REPORT_TASK_NAME_LEN);
+			static_assert(sizeof(task_stack_info.task_name) == CONFIG_TASK_NAME_SIZE,
+				      "task_stack_info.task_name must match NuttX CONFIG_TASK_NAME_SIZE");
+			strncpy((char *)task_stack_info.task_name, system_load.tasks[task_index].tcb->name, CONFIG_TASK_NAME_SIZE - 1);
+			task_stack_info.task_name[CONFIG_TASK_NAME_SIZE - 1] = '\0';
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
 			FAR struct task_group_s *group = system_load.tasks[task_index].tcb->group;
@@ -269,7 +267,7 @@ void LoadMon::_stack_usage()
 				fds_free = CONFIG_NFILE_DESCRIPTORS - tcb_num_used_fds;
 			}
 
-#endif
+#endif // CONFIG_NFILE_DESCRIPTORS
 
 			checked_task = true;
 		}
@@ -282,12 +280,7 @@ void LoadMon::_stack_usage()
 			task_stack_info.stack_free = stack_free;
 			task_stack_info.timestamp = hrt_absolute_time();
 
-			if (_task_stack_info_pub == nullptr) {
-				_task_stack_info_pub = orb_advertise_queue(ORB_ID(task_stack_info), &task_stack_info, num_tasks_per_cycle);
-
-			} else {
-				orb_publish(ORB_ID(task_stack_info), _task_stack_info_pub, &task_stack_info);
-			}
+			_task_stack_info_pub.publish(task_stack_info);
 
 			/*
 			 * Found task low on stack, report and exit. Continue here in next cycle.

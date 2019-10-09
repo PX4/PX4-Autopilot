@@ -47,7 +47,7 @@ class FlightTaskAutoMapper : public FlightTaskAuto
 public:
 	FlightTaskAutoMapper() = default;
 	virtual ~FlightTaskAutoMapper() = default;
-	bool activate() override;
+	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
 	bool update() override;
 
 protected:

@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# PX4 FMUv5X specific board sensors init
+#------------------------------------------------------------------------------
+
+# Start Digital power monitors
+ina226 -b 1 start
+ina226 -b 2 start
+
+# Internal SPI bus ICM-20602
+mpu6000 -R 8 -s -T 20602 start
+
+# Internal SPI bus ISM300DLC
+ism330dlc start
+
+# Internal SPI bus BMI088 accel
+bmi088 -A -R 10 start
+
+# Internal SPI bus BMI088 gyro
+bmi088 -G -R 10 start
+
+# Possible external compasses
+ist8310 -C -b 1 start
+ist8310 -C -b 2 start
+hmc5883 -C -T -X start
+qmc5883 -X start
+
+# Possible internal compass
+bmm150 start
+
+# Possible internal Barro
+bmp388 -I start
+#bmp388 -J start fixme

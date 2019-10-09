@@ -42,16 +42,16 @@
 
 #pragma once
 
-#include <px4_module.h>
-#include <px4_module_params.h>
 #include <lib/hysteresis/hysteresis.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
+#include <px4_module.h>
+#include <px4_module_params.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_land_detected.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 using namespace time_literals;
 
@@ -143,7 +143,7 @@ protected:
 	static constexpr uint32_t LAND_DETECTOR_UPDATE_INTERVAL = 20_ms;
 
 	orb_advert_t _land_detected_pub{nullptr};
-	vehicle_land_detected_s _landDetected{};
+	vehicle_land_detected_s _land_detected{};
 
 	LandDetectionState _state{LandDetectionState::LANDED};
 
@@ -153,7 +153,7 @@ protected:
 	systemlib::Hysteresis _ground_contact_hysteresis{true};
 	systemlib::Hysteresis _ground_effect_hysteresis{false};
 
-	actuator_armed_s _arming {};
+	actuator_armed_s _actuator_armed {};
 
 private:
 
@@ -174,9 +174,10 @@ private:
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, "land_detector_cycle")};
 
 	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
-	uORB::Subscription _param_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
-	DEFINE_PARAMETERS(
+	DEFINE_PARAMETERS_CUSTOM_PARENT(
+		ModuleParams,
 		(ParamInt<px4::params::LND_FLIGHT_T_HI>) _param_total_flight_time_high,
 		(ParamInt<px4::params::LND_FLIGHT_T_LO>) _param_total_flight_time_low
 	);

@@ -39,14 +39,12 @@
 
 #include "LPS22HB.hpp"
 
-#include <cstring>
-
 /* Max measurement rate is 25Hz */
 #define LPS22HB_CONVERSION_INTERVAL	(1000000 / 25)	/* microseconds */
 
 LPS22HB::LPS22HB(device::Device *interface, const char *path) :
 	CDev(path),
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, "lps22hb_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "lps22hb_comms_errors"))

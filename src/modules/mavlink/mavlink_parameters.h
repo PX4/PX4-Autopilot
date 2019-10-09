@@ -45,7 +45,8 @@
 #include <parameters/param.h>
 
 #include "mavlink_bridge_header.h"
-#include <uORB/uORB.h>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/rc_parameter_map.h>
 #include <uORB/topics/uavcan_parameter_request.h>
@@ -59,7 +60,7 @@ class MavlinkParametersManager
 {
 public:
 	explicit MavlinkParametersManager(Mavlink *mavlink);
-	~MavlinkParametersManager();
+	~MavlinkParametersManager() = default;
 
 	/**
 	 * Handle sending of messages. Call this regularly at a fixed frequency.
@@ -125,10 +126,11 @@ protected:
 	bool _uavcan_waiting_for_request_response{false}; ///< We have reqested a parameter and wait for the response
 	uint16_t _uavcan_queued_request_items{0};	///< Number of stored parameter requests currently in the list
 
-	orb_advert_t _rc_param_map_pub{nullptr};
+	uORB::Publication<rc_parameter_map_s>	_rc_param_map_pub{ORB_ID(rc_parameter_map)};
 	rc_parameter_map_s _rc_param_map{};
 
-	orb_advert_t _uavcan_parameter_request_pub{nullptr};
+	uORB::PublicationQueued<uavcan_parameter_request_s> _uavcan_parameter_request_pub{ORB_ID(uavcan_parameter_request)};
+
 	uORB::Subscription _uavcan_parameter_value_sub{ORB_ID(uavcan_parameter_value)};
 
 	uORB::Subscription _mavlink_parameter_sub{ORB_ID(parameter_update)};

@@ -72,7 +72,8 @@ then
 	param set VT_B_TRANS_DUR  4
 	param set VT_F_TRANS_THR    0.6
 	param set VT_IDLE_PWM_MC 1180
-	param set VT_MOT_COUNT 4
+	param set VT_MOT_ID 1234
+	param set VT_FW_MOT_OFFID 1234
 	param set VT_TRANS_MIN_TM 5
 	param set VT_TRANS_TIMEOUT    30
 	param set VT_TYPE 2

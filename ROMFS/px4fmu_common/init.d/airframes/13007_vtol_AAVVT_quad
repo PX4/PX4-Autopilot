@@ -35,7 +35,8 @@ then
 	param set PWM_RATE 400
 
 	param set VT_F_TRANS_THR 0.75
-	param set VT_MOT_COUNT 4
+	param set VT_MOT_ID 1234
+	param set VT_FW_MOT_OFFID 1234
 	param set VT_IDLE_PWM_MC 1080
 	param set VT_TYPE 2
 fi

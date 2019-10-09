@@ -76,11 +76,6 @@ MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) :
 	init_offboard_mission();
 }
 
-MavlinkMissionManager::~MavlinkMissionManager()
-{
-	orb_unadvertise(_offboard_mission_pub);
-}
-
 void
 MavlinkMissionManager::init_offboard_mission()
 {
@@ -185,12 +180,7 @@ MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t coun
 		_my_dataman_id = _dataman_id;
 
 		/* mission state saved successfully, publish offboard_mission topic */
-		if (_offboard_mission_pub == nullptr) {
-			_offboard_mission_pub = orb_advertise(ORB_ID(mission), &mission);
-
-		} else {
-			orb_publish(ORB_ID(mission), _offboard_mission_pub, &mission);
-		}
+		_offboard_mission_pub.publish(mission);
 
 		return PX4_OK;
 
@@ -269,7 +259,6 @@ MavlinkMissionManager::send_mission_ack(uint8_t sysid, uint8_t compid, uint8_t t
 
 	PX4_DEBUG("WPM: Send MISSION_ACK type %u to ID %u", wpa.type, wpa.target_system);
 }
-
 
 void
 MavlinkMissionManager::send_mission_current(uint16_t seq)

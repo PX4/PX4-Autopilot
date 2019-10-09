@@ -76,6 +76,9 @@
 #include <circuit_breaker/circuit_breaker.h>
 #include <systemlib/mavlink_log.h>
 
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -255,17 +258,17 @@ private:
 	uORB::Subscription	_t_actuator_controls_3{ORB_ID(actuator_controls_3)};;	///< actuator controls group 3 topic
 	uORB::Subscription	_t_actuator_armed{ORB_ID(actuator_armed)};		///< system armed control topic
 	uORB::Subscription 	_t_vehicle_control_mode{ORB_ID(vehicle_control_mode)};	///< vehicle control mode topic
-	uORB::Subscription	_t_param{ORB_ID(parameter_update)};			///< parameter update topic
+	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};	///< parameter update topic
 	uORB::Subscription	_t_vehicle_command{ORB_ID(vehicle_command)};		///< vehicle command topic
 
 	bool			_param_update_force;	///< force a parameter update
 
 	/* advertised topics */
-	orb_advert_t 		_to_input_rc;		///< rc inputs from io
-	orb_advert_t		_to_outputs;		///< mixed servo outputs topic
-	orb_advert_t		_to_servorail;		///< servorail status
-	orb_advert_t		_to_safety;		///< status of safety
-	orb_advert_t 		_to_mixer_status; 	///< mixer status flags
+	uORB::PublicationMulti<input_rc_s>			_to_input_rc{ORB_ID(input_rc)};
+	uORB::PublicationMulti<actuator_outputs_s>		_to_outputs{ORB_ID(actuator_outputs)};
+	uORB::PublicationMulti<multirotor_motor_limits_s>	_to_mixer_status{ORB_ID(multirotor_motor_limits)};
+	uORB::Publication<servorail_status_s>			_to_servorail{ORB_ID(servorail_status)};
+	uORB::Publication<safety_s>				_to_safety{ORB_ID(safety)};
 
 	bool			_primary_pwm_device;	///< true if we are the default PWM output
 	bool			_lockdown_override;	///< allow to override the safety lockdown
@@ -473,11 +476,6 @@ PX4IO::PX4IO(device::Device *interface) :
 	_last_written_arming_c(0),
 	_t_actuator_controls_0(-1),
 	_param_update_force(false),
-	_to_input_rc(nullptr),
-	_to_outputs(nullptr),
-	_to_servorail(nullptr),
-	_to_safety(nullptr),
-	_to_mixer_status(nullptr),
 	_primary_pwm_device(false),
 	_lockdown_override(false),
 	_armed(false),
@@ -738,7 +736,8 @@ PX4IO::init()
 			vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION;
 
 			/* send command once */
-			orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+			uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+			vcmd_pub.publish(vcmd);
 
 			/* spin here until IO's state has propagated into the system */
 			do {
@@ -755,7 +754,7 @@ PX4IO::init()
 
 				/* re-send if necessary */
 				if (!actuator_armed.force_failsafe) {
-					orb_publish(ORB_ID(vehicle_command), pub, &vcmd);
+					vcmd_pub.publish(vcmd);
 					PX4_WARN("re-sending flight termination cmd");
 				}
 
@@ -769,7 +768,8 @@ PX4IO::init()
 		vcmd.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
 
 		/* send command once */
-		orb_advert_t pub = orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+		vcmd_pub.publish(vcmd);
 
 		/* spin here until IO's state has propagated into the system */
 		do {
@@ -786,7 +786,7 @@ PX4IO::init()
 
 			/* re-send if necessary */
 			if (!actuator_armed.armed) {
-				orb_publish(ORB_ID(vehicle_command), pub, &vcmd);
+				vcmd_pub.publish(vcmd);
 				PX4_WARN("re-sending arm cmd");
 			}
 
@@ -994,10 +994,14 @@ PX4IO::task_main()
 			 *
 			 * XXX this may be a bit spammy
 			 */
-			if (_t_param.updated() || _param_update_force) {
-				_param_update_force = false;
+
+			// check for parameter updates
+			if (_parameter_update_sub.updated() || _param_update_force) {
+				// clear update
 				parameter_update_s pupdate;
-				_t_param.copy(&pupdate);
+				_parameter_update_sub.copy(&pupdate);
+
+				_param_update_force = false;
 
 				if (!_rc_handling_disabled) {
 					/* re-upload RC input config as it may have changed */
@@ -1214,27 +1218,6 @@ out:
 		unregister_driver(PWM_OUTPUT0_DEVICE_PATH);
 	}
 
-	if (_to_input_rc) {
-		orb_unadvertise(_to_input_rc);
-	}
-
-	if (_to_outputs) {
-		orb_unadvertise(_to_outputs);
-	}
-
-	if (_to_servorail) {
-		orb_unadvertise(_to_servorail);
-	}
-
-	if (_to_safety) {
-		orb_unadvertise(_to_safety);
-	}
-
-	if (_to_mixer_status) {
-		orb_unadvertise(_to_mixer_status);
-	}
-
-
 	/* tell the dtor that we are exiting */
 	_task = -1;
 	_exit(0);
@@ -1302,7 +1285,14 @@ PX4IO::io_set_control_state(unsigned group)
 		/* ensure FLOAT_TO_REG does not produce an integer overflow */
 		const float ctrl = math::constrain(controls.control[i], -1.0f, 1.0f);
 
-		regs[i] = FLOAT_TO_REG(ctrl);
+		if (!isfinite(ctrl)) {
+			regs[i] = INT16_MAX;
+
+		} else {
+			regs[i] = FLOAT_TO_REG(ctrl);
+		}
+
+
 	}
 
 	if (!_test_fmu_fail) {
@@ -1333,6 +1323,13 @@ PX4IO::io_set_arming_state()
 		}
 
 		_armed = armed.armed;
+
+		if (armed.prearmed) {
+			set |= PX4IO_P_SETUP_ARMING_FMU_PREARMED;
+
+		} else {
+			clear |= PX4IO_P_SETUP_ARMING_FMU_PREARMED;
+		}
 
 		if ((armed.lockdown || armed.manual_lockdown) && !_lockdown_override) {
 			set |= PX4IO_P_SETUP_ARMING_LOCKDOWN;
@@ -1597,21 +1594,14 @@ PX4IO::io_handle_status(uint16_t status)
 	/**
 	 * Get and handle the safety status
 	 */
-	struct safety_s safety;
+	safety_s safety{};
 	safety.timestamp = hrt_absolute_time();
 	safety.safety_switch_available = true;
 	safety.safety_off = (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ? true : false;
 	safety.override_available = _override_available;
 	safety.override_enabled = (status & PX4IO_P_STATUS_FLAGS_OVERRIDE) ? true : false;
 
-	/* lazily publish the safety status */
-	if (_to_safety != nullptr) {
-		orb_publish(ORB_ID(safety), _to_safety, &safety);
-
-	} else {
-		int instance;
-		_to_safety = orb_advertise_multi(ORB_ID(safety), &safety, &instance, ORB_PRIO_DEFAULT);
-	}
+	_to_safety.publish(safety);
 
 	return ret;
 }
@@ -1650,7 +1640,7 @@ PX4IO::io_handle_alarms(uint16_t alarms)
 void
 PX4IO::io_handle_vservo(uint16_t vservo, uint16_t vrssi)
 {
-	servorail_status_s servorail_status = {};
+	servorail_status_s servorail_status{};
 
 	servorail_status.timestamp = hrt_absolute_time();
 
@@ -1669,12 +1659,7 @@ PX4IO::io_handle_vservo(uint16_t vservo, uint16_t vrssi)
 	}
 
 	/* lazily publish the servorail voltages */
-	if (_to_servorail != nullptr) {
-		orb_publish(ORB_ID(servorail_status), _to_servorail, &servorail_status);
-
-	} else {
-		_to_servorail = orb_advertise(ORB_ID(servorail_status), &servorail_status);
-	}
+	_to_servorail.publish(servorail_status);
 }
 
 int
@@ -1843,8 +1828,8 @@ PX4IO::io_publish_raw_rc()
 		}
 	}
 
-	int instance = 0;
-	orb_publish_auto(ORB_ID(input_rc), &_to_input_rc, &rc_val, &instance, ORB_PRIO_HIGH);
+	_to_input_rc.publish(rc_val);
+
 	return OK;
 }
 
@@ -1868,8 +1853,7 @@ PX4IO::io_publish_pwm_outputs()
 		outputs.output[i] = ctl[i];
 	}
 
-	int instance;
-	orb_publish_auto(ORB_ID(actuator_outputs), &_to_outputs, &outputs, &instance, ORB_PRIO_DEFAULT);
+	_to_outputs.publish(outputs);
 
 	/* get mixer status flags from IO */
 	MultirotorMixer::saturation_status saturation_status;
@@ -1881,11 +1865,11 @@ PX4IO::io_publish_pwm_outputs()
 
 	/* publish mixer status */
 	if (saturation_status.flags.valid) {
-		multirotor_motor_limits_s motor_limits;
+		multirotor_motor_limits_s motor_limits{};
 		motor_limits.timestamp = hrt_absolute_time();
 		motor_limits.saturation_status = saturation_status.value;
 
-		orb_publish_auto(ORB_ID(multirotor_motor_limits), &_to_mixer_status, &motor_limits, &instance, ORB_PRIO_DEFAULT);
+		_to_mixer_status.publish(motor_limits);
 	}
 
 	return OK;
@@ -2274,6 +2258,7 @@ PX4IO::print_status(bool extended_status)
 	printf("arming 0x%04hx%s%s%s%s%s%s%s%s%s%s\n",
 	       arming,
 	       ((arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)		? " FMU_ARMED" : " FMU_DISARMED"),
+	       ((arming & PX4IO_P_SETUP_ARMING_FMU_PREARMED)		? " FMU_PREARMED" : " FMU_NOT_PREARMED"),
 	       ((arming & PX4IO_P_SETUP_ARMING_IO_ARM_OK)		? " IO_ARM_OK" : " IO_ARM_DENIED"),
 	       ((arming & PX4IO_P_SETUP_ARMING_MANUAL_OVERRIDE_OK)	? " MANUAL_OVERRIDE_OK" : ""),
 	       ((arming & PX4IO_P_SETUP_ARMING_FAILSAFE_CUSTOM)		? " FAILSAFE_CUSTOM" : ""),

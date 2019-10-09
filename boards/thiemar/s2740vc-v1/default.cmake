@@ -36,7 +36,6 @@ px4_add_board(
 
 	DRIVERS
 		bootloaders
-		stm32
 		#uavcannode
 
 	MODULES
@@ -46,5 +45,6 @@ px4_add_board(
 		reboot
 		top
 		ver
+		work_queue
 
 	)

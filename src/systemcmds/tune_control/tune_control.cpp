@@ -69,7 +69,7 @@ static void publish_tune_control(tune_control_s &tune_control)
 
 	if (tune_control_pub == nullptr) {
 		// We have a minimum of 3 so that tune, stop, tune will fit
-		tune_control_pub = orb_advertise_queue(ORB_ID(tune_control), &tune_control, 3);
+		tune_control_pub = orb_advertise_queue(ORB_ID(tune_control), &tune_control, tune_control_s::ORB_QUEUE_LENGTH);
 
 	} else {
 		orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);

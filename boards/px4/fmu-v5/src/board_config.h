@@ -496,12 +496,8 @@
 
 /* RC Serial port */
 
-#define RC_UXART_BASE                      STM32_USART6_BASE
 #define RC_SERIAL_PORT                     "/dev/ttyS4"
-#define BOARD_HAS_SINGLE_WIRE              1 /* HW is capable of Single Wire */
-#define BOARD_HAS_SINGLE_WIRE_ON_TX        1 /* HW default is wired as Single Wire On TX pin */
-#define BOARD_HAS_RX_TX_SWAP               1 /* HW Can swap TX and RX */
-#define RC_SERIAL_PORT_IS_SWAPED           0 /* Board wired with RC's TX is on cpu RX */
+#define RC_SERIAL_SINGLEWIRE
 
 /* Input Capture Channels. */
 #define INPUT_CAP1_TIMER                  2

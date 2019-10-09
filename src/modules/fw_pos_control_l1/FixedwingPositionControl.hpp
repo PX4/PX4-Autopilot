@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -65,8 +65,10 @@
 #include <px4_module.h>
 #include <px4_module_params.h>
 #include <px4_posix.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
@@ -74,8 +76,9 @@
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/sensor_baro.h>
-#include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/tecs_status.h>
+#include <uORB/topics/vehicle_acceleration.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
@@ -122,19 +125,15 @@ static constexpr float MANUAL_THROTTLE_CLIMBOUT_THRESH =
 	0.85f; ///< a throttle / pitch input above this value leads to the system switching to climbout mode
 static constexpr float ALTHOLD_EPV_RESET_THRESH = 5.0f;
 
-class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams
+class FixedwingPositionControl final : public ModuleBase<FixedwingPositionControl>, public ModuleParams,
+	public px4::WorkItem
 {
 public:
 	FixedwingPositionControl();
 	~FixedwingPositionControl() override;
-	FixedwingPositionControl(const FixedwingPositionControl &) = delete;
-	FixedwingPositionControl operator=(const FixedwingPositionControl &other) = delete;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
-
-	/** @see ModuleBase */
-	static FixedwingPositionControl *instantiate(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
@@ -142,8 +141,9 @@ public:
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	/** @see ModuleBase::run() */
-	void run() override;
+	void Run() override;
+
+	bool init();
 
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
@@ -151,25 +151,26 @@ public:
 private:
 	orb_advert_t	_mavlink_log_pub{nullptr};
 
-	int		_global_pos_sub{-1};
+	uORB::SubscriptionCallbackWorkItem _global_pos_sub{this, ORB_ID(vehicle_global_position)};
 
 	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};		///< control mode subscription */
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _manual_control_sub{ORB_ID(manual_control_setpoint)};	///< notification of manual control updates */
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};			///< notification of parameter updates */
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		///< notification of parameter updates */
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _sensor_baro_sub{ORB_ID(sensor_baro)};
 	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};		///< vehicle attitude subscription */
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};		///< vehicle command subscription */
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	///< vehicle land detected subscription */
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			///< vehicle status subscription */
+	uORB::SubscriptionData<vehicle_angular_velocity_s>	_vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
 
 	orb_advert_t	_attitude_sp_pub{nullptr};		///< attitude setpoint */
-	orb_advert_t	_pos_ctrl_status_pub{nullptr};		///< navigation capabilities publication */
-	orb_advert_t	_pos_ctrl_landing_status_pub{nullptr};	///< landing status publication */
-	orb_advert_t	_tecs_status_pub{nullptr};		///< TECS status publication */
+	orb_id_t	_attitude_setpoint_id{nullptr};
 
-	orb_id_t _attitude_setpoint_id{nullptr};
+	uORB::Publication<position_controller_status_s>		_pos_ctrl_status_pub{ORB_ID(position_controller_status)};			///< navigation capabilities publication */
+	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};	///< landing status publication */
+	uORB::Publication<tecs_status_s>			_tecs_status_pub{ORB_ID(tecs_status)};						///< TECS status publication */
 
 	manual_control_setpoint_s	_manual {};			///< r/c channel data */
 	position_setpoint_triplet_s	_pos_sp_triplet {};		///< triplet of mission items */
@@ -182,8 +183,8 @@ private:
 	vehicle_land_detected_s		_vehicle_land_detected {};	///< vehicle land detected */
 	vehicle_status_s		_vehicle_status {};		///< vehicle status */
 
-	SubscriptionData<airspeed_s> _sub_airspeed;
-	SubscriptionData<sensor_bias_s> _sub_sensors;
+	SubscriptionData<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
+	SubscriptionData<vehicle_acceleration_s>	_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
 	perf_counter_t	_loop_perf;				///< loop performance counter */
 
@@ -371,6 +372,9 @@ private:
 		param_t vtol_type;
 	} _parameter_handles {};				///< handles for interesting parameters */
 
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _groundspeed_min
+	)
 
 	// Update our local parameter cache.
 	int		parameters_update();
@@ -436,9 +440,7 @@ private:
 	float		get_tecs_thrust();
 
 	float		get_demanded_airspeed();
-	float		calculate_target_airspeed(float airspeed_demand);
-	void		calculate_gndspeed_undershoot(const Vector2f &curr_pos, const Vector2f &ground_speed,
-			const position_setpoint_s &pos_sp_prev, const position_setpoint_s &pos_sp_curr);
+	float		calculate_target_airspeed(float airspeed_demand, const Vector2f &ground_speed);
 
 	/**
 	 * Handle incoming vehicle commands

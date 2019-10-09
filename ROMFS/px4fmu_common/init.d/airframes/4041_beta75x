@@ -10,6 +10,8 @@
 # @board px4_fmu-v4 exclude
 # @board px4_fmu-v4pro exclude
 # @board px4_fmu-v5 exclude
+# @board px4_fmu-v5x exclude
+# @board intel_aerofc-v1 exclude
 #
 # @output MAIN1 motor 1
 # @output MAIN2 motor 2

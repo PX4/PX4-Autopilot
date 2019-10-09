@@ -39,6 +39,7 @@
 
 #pragma once
 
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_gps_position.h>
@@ -62,7 +63,7 @@ public:
 	 */
 	CRSFTelemetry(int uart_fd);
 
-	~CRSFTelemetry();
+	~CRSFTelemetry() = default;
 
 	/**
 	 * Send telemetry data. Call this regularly (i.e. at 100Hz), it will automatically
@@ -77,10 +78,10 @@ private:
 	bool send_attitude();
 	bool send_flight_mode();
 
-	int _vehicle_gps_position_sub;
-	int _battery_status_sub;
-	int _vehicle_attitude_sub;
-	int _vehicle_status_sub;
+	uORB::Subscription _vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	hrt_abstime _last_update{0};
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,13 +46,18 @@
 #include <px4_tasks.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rate_ctrl_status.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -66,7 +71,7 @@ using matrix::Quatf;
 
 using uORB::SubscriptionData;
 
-class FixedwingAttitudeControl final : public ModuleBase<FixedwingAttitudeControl>
+class FixedwingAttitudeControl final : public ModuleBase<FixedwingAttitudeControl>, public px4::WorkItem
 {
 public:
 	FixedwingAttitudeControl();
@@ -76,44 +81,44 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	static FixedwingAttitudeControl *instantiate(int argc, char *argv[]);
-
-	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	/** @see ModuleBase::run() */
-	void run() override;
-
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
+	void Run() override;
+
+	bool init();
+
 private:
 
-	int		_att_sub{-1};				/**< vehicle attitude */
+	uORB::SubscriptionCallbackWorkItem _att_sub{this, ORB_ID(vehicle_attitude)};	/**< vehicle attitude */
 
 	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};		/**< vehicle attitude setpoint */
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};			/**< battery status subscription */
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};		/**< global position subscription */
 	uORB::Subscription _manual_sub{ORB_ID(manual_control_setpoint)};		/**< notification of manual control updates */
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};			/**< notification of parameter updates */
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		/**< notification of parameter updates */
 	uORB::Subscription _rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};		/**< vehicle rates setpoint */
 	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle status subscription */
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			/**< vehicle status subscription */
+	uORB::Subscription _vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
 
 	uORB::SubscriptionData<airspeed_s> _airspeed_sub{ORB_ID(airspeed)};
 
-	orb_advert_t	_rate_sp_pub{nullptr};			/**< rate setpoint publication */
-	orb_advert_t	_attitude_sp_pub{nullptr};		/**< attitude setpoint point */
-	orb_advert_t	_actuators_0_pub{nullptr};		/**< actuator control group 0 setpoint */
-	orb_advert_t	_actuators_2_pub{nullptr};		/**< actuator control group 1 setpoint (Airframe) */
-	orb_advert_t	_rate_ctrl_status_pub{nullptr};		/**< rate controller status publication */
+	uORB::Publication<actuator_controls_s>		_actuators_2_pub{ORB_ID(actuator_controls_2)};		/**< actuator control group 1 setpoint (Airframe) */
+	uORB::Publication<vehicle_rates_setpoint_s>	_rate_sp_pub{ORB_ID(vehicle_rates_setpoint)};		/**< rate setpoint publication */
+	uORB::PublicationMulti<rate_ctrl_status_s>	_rate_ctrl_status_pub{ORB_ID(rate_ctrl_status)};	/**< rate controller status publication */
 
-	orb_id_t _actuators_id{nullptr};	// pointer to correct actuator controls0 uORB metadata structure
-	orb_id_t _attitude_setpoint_id{nullptr};
+	orb_id_t	_attitude_setpoint_id{nullptr};
+	orb_advert_t	_attitude_sp_pub{nullptr};	/**< attitude setpoint point */
+
+	orb_id_t	_actuators_id{nullptr};		/**< pointer to correct actuator controls0 uORB metadata structure */
+	orb_advert_t	_actuators_0_pub{nullptr};	/**< actuator control group 0 setpoint */
 
 	actuator_controls_s			_actuators {};		/**< actuator control inputs */
 	actuator_controls_s			_actuators_airframe {};	/**< actuator control inputs */
@@ -126,8 +131,6 @@ private:
 	vehicle_status_s			_vehicle_status {};	/**< vehicle status */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
-	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
-	perf_counter_t	_nonfinite_output_perf;		/**< performance counter for non finite output */
 
 	float _flaps_applied{0.0f};
 	float _flaperons_applied{0.0f};

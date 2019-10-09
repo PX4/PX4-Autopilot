@@ -37,44 +37,6 @@
  * Driver for the LPS25H barometer connected via I2C or SPI.
  */
 
-#include <px4_config.h>
-
-#include <lib/cdev/CDev.hpp>
-#include <drivers/device/Device.hpp>
-#include <drivers/device/i2c.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-
-#include <nuttx/arch.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-#include <nuttx/clock.h>
-
-#include <board_config.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-
-#include <drivers/drv_baro.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/drv_device.h>
-
-#include <uORB/uORB.h>
-
-#include <float.h>
-#include <px4_getopt.h>
-
 #include "lps25h.h"
 
 /*
@@ -299,7 +261,7 @@ extern "C" __EXPORT int lps25h_main(int argc, char *argv[]);
 
 LPS25H::LPS25H(device::Device *interface, const char *path) :
 	CDev(path),
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_sample_perf(perf_alloc(PC_ELAPSED, "lps25h_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "lps25h_comms_errors"))

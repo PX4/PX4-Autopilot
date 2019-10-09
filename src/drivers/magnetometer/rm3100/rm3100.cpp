@@ -43,7 +43,7 @@
 
 RM3100::RM3100(device::Device *interface, const char *path, enum Rotation rotation) :
 	CDev("RM3100", path),
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_reports(nullptr),
 	_scale{},

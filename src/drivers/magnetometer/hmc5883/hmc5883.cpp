@@ -57,7 +57,7 @@
 #include <unistd.h>
 
 #include <nuttx/arch.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <nuttx/clock.h>
 
 #include <board_config.h>
@@ -326,7 +326,7 @@ extern "C" __EXPORT int hmc5883_main(int argc, char *argv[]);
 
 HMC5883::HMC5883(device::Device *interface, const char *path, enum Rotation rotation) :
 	CDev("HMC5883", path),
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_reports(nullptr),
 	_scale{},

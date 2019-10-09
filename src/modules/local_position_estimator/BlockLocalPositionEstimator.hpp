@@ -12,6 +12,7 @@
 #include <uORB/SubscriptionPollable.hpp>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -249,6 +250,7 @@ private:
 	uORB::SubscriptionPollable<actuator_armed_s> _sub_armed;
 	uORB::SubscriptionPollable<vehicle_land_detected_s> _sub_land;
 	uORB::SubscriptionPollable<vehicle_attitude_s> _sub_att;
+	uORB::SubscriptionPollable<vehicle_angular_velocity_s> _sub_angular_velocity;
 	uORB::SubscriptionPollable<optical_flow_s> _sub_flow;
 	uORB::SubscriptionPollable<sensor_combined_s> _sub_sensor;
 	uORB::SubscriptionPollable<parameter_update_s> _sub_param_update;

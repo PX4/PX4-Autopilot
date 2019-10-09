@@ -37,23 +37,7 @@
  * SPI interface for MS5611
  */
 
-/* XXX trim includes */
-#include <px4_time.h>
-#include <px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <assert.h>
-#include <errno.h>
-#include <unistd.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/device/spi.h>
-
 #include "ms5611.h"
-#include "board_config.h"
 
 /* SPI protocol address bits */
 #define DIR_READ			(1<<7)
@@ -140,14 +124,7 @@ MS5611_SPI::MS5611_SPI(uint8_t bus, uint32_t device, ms5611::prom_u &prom_buf) :
 int
 MS5611_SPI::init()
 {
-	int ret;
-
-#if defined(PX4_SPI_BUS_RAMTRON) && \
-	(PX4_SPI_BUS_BARO == PX4_SPI_BUS_RAMTRON)
-	SPI::set_lockmode(LOCK_THREADS);
-#endif
-
-	ret = SPI::init();
+	int ret = SPI::init();
 
 	if (ret != OK) {
 		PX4_DEBUG("SPI init failed");
