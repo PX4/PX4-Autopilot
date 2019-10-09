@@ -193,8 +193,8 @@ private:
 	float _lim_vel_horizontal{0}; ///< Horizontal velocity limit with feed forward and position control
 	float _lim_vel_up{0}; ///< Upwards velocity limit with feed forward and position control
 	float _lim_vel_down{0}; ///< Downwards velocity limit with feed forward and position control
-	float _lim_thr_min{0}; ///< Minimum collective thrust allowed as output [0,1]
-	float _lim_thr_max{0}; ///< Maximum collective thrust allowed as output [0,1]
+	float _lim_thr_min{0}; ///< Minimum collective thrust allowed as output [-1,0] e.g. -0.9
+	float _lim_thr_max{0}; ///< Maximum collective thrust allowed as output [-1,0] e.g. -0.1
 	float _lim_tilt{0}; ///< Maximum tilt from level the output attitude is allowed to have
 
 	float _hover_thrust{0}; ///< Thrust [0,1] with which the vehicle hovers not aacelerating down or up with level orientation

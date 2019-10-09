@@ -59,9 +59,10 @@ void PositionControl::setVelocityLimits(const float vel_horizontal, const float 
 
 void PositionControl::setThrustLimits(const float min, const float max)
 {
-	// make sure the thrust has a tiny minimal length to infer the direction
-	_lim_thr_min = math::max(min, -10e-4f);
-	_lim_thr_max = max;
+	// convert the parameter input interface [0,1] to NED frame [-1,0]
+	// make sure the thrust vector has a tiny minimal length to infer the direction
+	_lim_thr_min = -max;
+	_lim_thr_max = -math::max(min, -10e-4f);
 }
 
 void PositionControl::setState(const PositionControlStates &states)
@@ -146,24 +147,24 @@ void PositionControl::_velocityControl(const float dt)
 	_accelerationControl();
 
 	// Apply Anti-Windup in vertical direction
-	if ((_thr_sp(2) >= -_lim_thr_min && vel_error(2) >= 0.0f) ||
-	    (_thr_sp(2) <= -_lim_thr_max && vel_error(2) <= 0.0f)) {
+	if ((_thr_sp(2) >= _lim_thr_max && vel_error(2) >= 0.0f) ||
+	    (_thr_sp(2) <= _lim_thr_min && vel_error(2) <= 0.0f)) {
 		vel_error(2) = 0.f;
 	}
 
 	// Saturate thrust setpoint in vertical direction
-	_thr_sp(2) = math::constrain(_thr_sp(2), -_lim_thr_max, -_lim_thr_min);
+	_thr_sp(2) = math::constrain(_thr_sp(2), _lim_thr_min, _lim_thr_max);
 
-	// Get maximum allowed horizontal thrust based on tilt and excess thrust
-	const float thrust_xy_max_squared = _lim_thr_max * _lim_thr_max;
+	// Get allowed horizontal thrust limit based on excess thrust
+	const float thrust_xy_min_squared = _lim_thr_min * _lim_thr_min;
 	const float thrust_z_squared = _thr_sp(2) * _thr_sp(2);
-	float thrust_max_xy = sqrtf(thrust_xy_max_squared - thrust_z_squared);
+	float thrust_min_xy = sqrtf(thrust_xy_min_squared - thrust_z_squared);
 
 	// Saturate thrust in horizontal direction.
 	Vector2f thrust_sp_xy(_thr_sp);
 
-	if (thrust_sp_xy.norm_squared() > thrust_max_xy * thrust_max_xy) {
-		thrust_sp_xy = thrust_sp_xy.normalized() * thrust_max_xy;
+	if (thrust_sp_xy.norm_squared() > thrust_min_xy * thrust_min_xy) {
+		thrust_sp_xy = thrust_sp_xy.normalized() * thrust_min_xy;
 		_thr_sp(0) = thrust_sp_xy(0);
 		_thr_sp(1) = thrust_sp_xy(1);
 	}
