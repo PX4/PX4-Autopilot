@@ -176,6 +176,8 @@ public:
 	void _addIfNotNan(float &setpoint, const float addition) const;
 	/** same but bulk for Vector3f */
 	void _addIfNotNanVector(matrix::Vector3f &setpoint, const matrix::Vector3f &addition) const;
+	/** overwrites elements of a Vector3f which are NaN with zero */
+	void _setZeroIfNanVector(matrix::Vector3f &vector) const;
 private:
 	void _positionControl(); ///< Position proportional control
 	void _velocityControl(const float dt); ///< Velocity PID control

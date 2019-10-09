@@ -121,7 +121,7 @@ void PositionControl::_positionControl()
 {
 	Vector3f vel_sp_position = (_pos_sp - _pos).emult(_gain_pos_p);
 	_addIfNotNanVector(_vel_sp, vel_sp_position);
-	_addIfNotNanVector(vel_sp_position, Vector3f());
+	_setZeroIfNanVector(vel_sp_position);
 
 	// Constrain horizontal velocity by prioritizing the velocity component along the
 	// the desired position setpoint over the feed-forward term.
@@ -178,7 +178,7 @@ void PositionControl::_velocityControl(const float dt)
 	// Update integral part of velocity control
 	_vel_int += vel_error * _gain_vel_i * dt;
 	// Make sure integral doesn't stay NAN
-	_addIfNotNanVector(_vel_int, Vector3f());
+	_setZeroIfNanVector(_vel_int);
 }
 
 void PositionControl::_accelerationControl()
@@ -233,4 +233,10 @@ void PositionControl::_addIfNotNanVector(Vector3f &setpoint, const Vector3f &add
 	for (int i = 0; i < 3; i++) {
 		_addIfNotNan(setpoint(i), addition(i));
 	}
+}
+
+void PositionControl::_setZeroIfNanVector(Vector3f &vector) const
+{
+	// Adding zero vector overwrites elements that are NaN with zero
+	_addIfNotNanVector(vector, Vector3f());
 }
