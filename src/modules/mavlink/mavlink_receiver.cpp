@@ -85,21 +85,6 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_parameters_manager(parent),
 	_mavlink_timesync(parent)
 {
-	unsigned int system_type = _mavlink->get_system_type();
-
-	if (system_type == MAV_TYPE_VTOL_DUOROTOR ||
-	    system_type == MAV_TYPE_VTOL_QUADROTOR ||
-	    system_type == MAV_TYPE_VTOL_TILTROTOR ||
-	    system_type == MAV_TYPE_VTOL_RESERVED2 ||
-	    system_type == MAV_TYPE_VTOL_RESERVED3 ||
-	    system_type == MAV_TYPE_VTOL_RESERVED4 ||
-	    system_type == MAV_TYPE_VTOL_RESERVED5) {
-		_is_vtol = true;
-
-	} else {
-		_is_vtol = false;
-	}
-
 }
 
 void
@@ -1402,33 +1387,42 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					}
 
 					if (!offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
-						if (!_is_vtol) {
-							// Fill correct field by checking frametype
-							// TODO: add as needed
-							switch (_mavlink->get_system_type()) {
-							case MAV_TYPE_GENERIC:
-								break;
 
-							case MAV_TYPE_FIXED_WING:
-								att_sp.thrust_body[0] = set_attitude_target.thrust;
-								break;
+						// Fill correct field by checking frametype
+						// TODO: add as needed
+						switch (_mavlink->get_system_type()) {
+						case MAV_TYPE_GENERIC:
+							break;
 
-							case MAV_TYPE_QUADROTOR:
-							case MAV_TYPE_HEXAROTOR:
-							case MAV_TYPE_OCTOROTOR:
-							case MAV_TYPE_TRICOPTER:
-							case MAV_TYPE_HELICOPTER:
-								att_sp.thrust_body[2] = -set_attitude_target.thrust;
-								break;
-
-							case MAV_TYPE_GROUND_ROVER:
-								att_sp.thrust_body[0] = set_attitude_target.thrust;
-								break;
-							}
+						case MAV_TYPE_FIXED_WING:
+							att_sp.thrust_body[0] = set_attitude_target.thrust;
 
 							_att_sp_pub.publish(att_sp);
+							break;
 
-						} else {
+						case MAV_TYPE_QUADROTOR:
+						case MAV_TYPE_HEXAROTOR:
+						case MAV_TYPE_OCTOROTOR:
+						case MAV_TYPE_TRICOPTER:
+						case MAV_TYPE_HELICOPTER:
+							att_sp.thrust_body[2] = -set_attitude_target.thrust;
+
+							_att_sp_pub.publish(att_sp);
+							break;
+
+						case MAV_TYPE_GROUND_ROVER:
+							att_sp.thrust_body[0] = set_attitude_target.thrust;
+
+							_att_sp_pub.publish(att_sp);
+							break;
+
+						case MAV_TYPE_VTOL_DUOROTOR:
+						case MAV_TYPE_VTOL_QUADROTOR:
+						case MAV_TYPE_VTOL_TILTROTOR:
+						case MAV_TYPE_VTOL_RESERVED2:
+						case MAV_TYPE_VTOL_RESERVED3:
+						case MAV_TYPE_VTOL_RESERVED4:
+						case MAV_TYPE_VTOL_RESERVED5:
 							if (_vtol_vehicle_status_sub.updated()) {
 								_vtol_vehicle_status_sub.copy(&_vtol_vehicle_status);
 							}
@@ -1441,7 +1435,10 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 								att_sp.thrust_body[0] = set_attitude_target.thrust;
 								_fw_virtual_att_sp_pub.publish(att_sp);
 							}
+
+							break;
 						}
+
 					}
 				}
 
