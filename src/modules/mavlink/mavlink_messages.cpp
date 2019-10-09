@@ -108,6 +108,7 @@
 #include <uORB/topics/sensor_mag.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_magnetometer.h>
+#include <uORB/topics/esc_status.h>
 #include <uORB/uORB.h>
 
 using matrix::wrap_2pi;
@@ -5047,6 +5048,79 @@ protected:
 	}
 };
 
+class MavlinkStreamActuatorOutputStatus : public MavlinkStream
+{
+public:
+	const char *get_name() const
+	{
+		return MavlinkStreamActuatorOutputStatus::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "ACTUATOR_OUTPUT_STATUS";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_ACTUATOR_OUTPUT_STATUS;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamActuatorOutputStatus(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return _esc_status_sub->is_published() ? (MAVLINK_MSG_ID_ACTUATOR_OUTPUT_STATUS_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES) :
+		       0;
+	}
+
+private:
+	uint64_t _esc_status_time;
+
+	MavlinkOrbSubscription *_esc_status_sub;
+
+	/* do not allow top copying this class */
+	MavlinkStreamActuatorOutputStatus(MavlinkStreamActuatorOutputStatus &) = delete;
+	MavlinkStreamActuatorOutputStatus &operator = (const MavlinkStreamActuatorOutputStatus &) = delete;
+
+protected:
+	explicit MavlinkStreamActuatorOutputStatus(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_esc_status_time(0),
+		_esc_status_sub(_mavlink->add_orb_subscription(ORB_ID(esc_status)))
+	{
+	}
+
+	bool send(const hrt_abstime t)
+	{
+		esc_status_s esc_status;
+
+		if (_esc_status_sub->update(&_esc_status_time, &esc_status)) {
+			mavlink_actuator_output_status_t msg = {};
+
+			msg.time_usec = hrt_absolute_time();
+			msg.active = esc_status.esc_count;
+
+			for (unsigned i = 0; i < esc_status.esc_count; i++) {
+				msg.actuator[i] = static_cast<float>(esc_status.esc[i].esc_rpm);
+			}
+
+			mavlink_msg_actuator_output_status_send_struct(_mavlink->get_channel(), &msg);
+
+			return true;
+		}
+
+		return false;
+	}
+};
+
 static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static, &MavlinkStreamHeartbeat::get_id_static),
 	StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static, &MavlinkStreamStatustext::get_id_static),
@@ -5106,7 +5180,8 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamGroundTruth::new_instance, &MavlinkStreamGroundTruth::get_name_static, &MavlinkStreamGroundTruth::get_id_static),
 	StreamListItem(&MavlinkStreamPing::new_instance, &MavlinkStreamPing::get_name_static, &MavlinkStreamPing::get_id_static),
 	StreamListItem(&MavlinkStreamOrbitStatus::new_instance, &MavlinkStreamOrbitStatus::get_name_static, &MavlinkStreamOrbitStatus::get_id_static),
-	StreamListItem(&MavlinkStreamObstacleDistance::new_instance, &MavlinkStreamObstacleDistance::get_name_static, &MavlinkStreamObstacleDistance::get_id_static)
+	StreamListItem(&MavlinkStreamObstacleDistance::new_instance, &MavlinkStreamObstacleDistance::get_name_static, &MavlinkStreamObstacleDistance::get_id_static),
+	StreamListItem(&MavlinkStreamActuatorOutputStatus::new_instance, &MavlinkStreamActuatorOutputStatus::get_name_static, &MavlinkStreamActuatorOutputStatus::get_id_static)
 };
 
 const char *get_stream_name(const uint16_t msg_id)
