@@ -3197,8 +3197,7 @@ Commander::update_control_mode()
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-		/* TODO: check if this makes sense */
-		control_mode.flag_control_auto_enabled = true;
+		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
