@@ -1397,6 +1397,10 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						case MAV_TYPE_OCTOROTOR:
 						case MAV_TYPE_TRICOPTER:
 						case MAV_TYPE_HELICOPTER:
+						case MAV_TYPE_VTOL_DUOROTOR:
+						case MAV_TYPE_VTOL_QUADROTOR:
+						case MAV_TYPE_VTOL_TILTROTOR:
+						case MAV_TYPE_VTOL_RESERVED2:
 							att_sp.thrust_body[2] = -set_attitude_target.thrust;
 							break;
 
