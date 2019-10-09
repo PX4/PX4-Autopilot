@@ -279,8 +279,6 @@ private:
 
 	hrt_abstime			_last_utm_global_pos_com{0};
 
-	bool _is_vtol{false};
-
 	vtol_vehicle_status_s _vtol_vehicle_status{};
 
 	DEFINE_PARAMETERS(
