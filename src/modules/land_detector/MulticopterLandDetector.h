@@ -121,7 +121,6 @@ private:
 	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
-	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
@@ -130,7 +129,6 @@ private:
 	battery_status_s                  _battery_status {};
 	vehicle_acceleration_s            _vehicle_acceleration{};
 	vehicle_angular_velocity_s        _vehicle_angular_velocity{};
-	vehicle_attitude_s                _vehicle_attitude {};
 	vehicle_control_mode_s            _vehicle_control_mode {};
 	vehicle_local_position_s          _vehicle_local_position {};
 	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint {};
