@@ -1423,17 +1423,28 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						case MAV_TYPE_VTOL_RESERVED3:
 						case MAV_TYPE_VTOL_RESERVED4:
 						case MAV_TYPE_VTOL_RESERVED5:
-							if (_vtol_vehicle_status_sub.updated()) {
-								_vtol_vehicle_status_sub.copy(&_vtol_vehicle_status);
+							if (_vehicle_status_sub.updated()) {
+								_vehicle_status_sub.copy(&_vehicle_status);
 							}
 
-							if (_vtol_vehicle_status.vtol_in_rw_mode) {
+							switch (_vehicle_status.vehicle_type) {
+							case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
+								att_sp.thrust_body[0] = set_attitude_target.thrust;
+
+								_fw_virtual_att_sp_pub.publish(att_sp);
+
+								break;
+
+							case vehicle_status_s::VEHICLE_TYPE_ROTARY_WING:
 								att_sp.thrust_body[2] = -set_attitude_target.thrust;
+
 								_mc_virtual_att_sp_pub.publish(att_sp);
 
-							} else {
-								att_sp.thrust_body[0] = set_attitude_target.thrust;
-								_fw_virtual_att_sp_pub.publish(att_sp);
+								break;
+
+							default:
+								// This should never happen
+								break;
 							}
 
 							break;
