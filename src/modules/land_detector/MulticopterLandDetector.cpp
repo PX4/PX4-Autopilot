@@ -90,7 +90,6 @@ void MulticopterLandDetector::_update_topics()
 	_battery_sub.update(&_battery_status);
 	_vehicle_acceleration_sub.update(&_vehicle_acceleration);
 	_vehicle_angular_velocity_sub.update(&_vehicle_angular_velocity);
-	_vehicle_attitude_sub.update(&_vehicle_attitude);
 	_vehicle_control_mode_sub.update(&_vehicle_control_mode);
 	_vehicle_local_position_sub.update(&_vehicle_local_position);
 	_vehicle_local_position_setpoint_sub.update(&_vehicle_local_position_setpoint);
