@@ -378,6 +378,7 @@ CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint, const Vec
 	// read parameters
 	const float col_prev_d = _param_mpc_cp_dist.get();
 	const float col_prev_dly = _param_mpc_cp_delay.get();
+	bool move_no_data = _param_mpc_cp_go_nodata.get() > 0;
 	const float xy_p = _param_mpc_xy_p.get();
 	const float max_jerk = _param_mpc_jerk_max.get();
 	const float max_accel = _param_mpc_acc_hor.get();
@@ -452,7 +453,7 @@ CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint, const Vec
 						}
 					}
 
-				} else if (_obstacle_map_body_frame.distances[i] == UINT16_MAX && i == sp_index) {
+				} else if (_obstacle_map_body_frame.distances[i] == UINT16_MAX && i == sp_index && (!move_no_data)) {
 					vel_max = 0.f;
 				}
 			}

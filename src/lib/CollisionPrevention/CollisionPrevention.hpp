@@ -139,9 +139,10 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_CP_DIST>) _param_mpc_cp_dist, /**< collision prevention keep minimum distance */
-		(ParamFloat<px4::params::MPC_CP_GUIDE_ANG>) _param_mpc_cp_guide_ang, /**< collision prevention change setpoint angle */
-		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p, /**< p gain from position controller*/
 		(ParamFloat<px4::params::MPC_CP_DELAY>) _param_mpc_cp_delay, /**< delay of the range measurement data*/
+		(ParamFloat<px4::params::MPC_CP_GUIDE_ANG>) _param_mpc_cp_guide_ang, /**< collision prevention change setpoint angle */
+		(ParamFloat<px4::params::MPC_CP_GO_NODATA>) _param_mpc_cp_go_nodata, /**< movement allowed where no data*/
+		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p, /**< p gain from position controller*/
 		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max, /**< vehicle maximum jerk*/
 		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor /**< vehicle maximum horizontal acceleration*/
 	)

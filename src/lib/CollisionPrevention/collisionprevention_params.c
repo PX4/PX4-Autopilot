@@ -74,3 +74,13 @@ PARAM_DEFINE_FLOAT(MPC_CP_DELAY, 0.4f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_CP_GUIDE_ANG, 30.f);
+
+/**
+ * Boolean to allow moving into directions where there is no sensor data (outside FOV)
+ *
+ * Only used in Position mode.
+ *
+ * @boolean
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_CP_GO_NODATA, 0);
