@@ -264,17 +264,29 @@ void VotedSensorsUpdate::parametersUpdate()
 				if (!_gyro.enabled[driver_index]) { _gyro.priority[driver_index] = 0; }
 
 				struct gyro_calibration_s gscale = {};
+
 				(void)sprintf(str, "CAL_GYRO%u_XOFF", i);
+
 				failed = failed || (OK != param_get(param_find(str), &gscale.x_offset));
+
 				(void)sprintf(str, "CAL_GYRO%u_YOFF", i);
+
 				failed = failed || (OK != param_get(param_find(str), &gscale.y_offset));
+
 				(void)sprintf(str, "CAL_GYRO%u_ZOFF", i);
+
 				failed = failed || (OK != param_get(param_find(str), &gscale.z_offset));
+
 				(void)sprintf(str, "CAL_GYRO%u_XSCALE", i);
+
 				failed = failed || (OK != param_get(param_find(str), &gscale.x_scale));
+
 				(void)sprintf(str, "CAL_GYRO%u_YSCALE", i);
+
 				failed = failed || (OK != param_get(param_find(str), &gscale.y_scale));
+
 				(void)sprintf(str, "CAL_GYRO%u_ZSCALE", i);
+
 				failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
 
 				if (failed) {
@@ -355,17 +367,29 @@ void VotedSensorsUpdate::parametersUpdate()
 				if (!_accel.enabled[driver_index]) { _accel.priority[driver_index] = 0; }
 
 				struct accel_calibration_s ascale = {};
+
 				(void)sprintf(str, "CAL_ACC%u_XOFF", i);
+
 				failed = failed || (OK != param_get(param_find(str), &ascale.x_offset));
+
 				(void)sprintf(str, "CAL_ACC%u_YOFF", i);
+
 				failed = failed || (OK != param_get(param_find(str), &ascale.y_offset));
+
 				(void)sprintf(str, "CAL_ACC%u_ZOFF", i);
+
 				failed = failed || (OK != param_get(param_find(str), &ascale.z_offset));
+
 				(void)sprintf(str, "CAL_ACC%u_XSCALE", i);
+
 				failed = failed || (OK != param_get(param_find(str), &ascale.x_scale));
+
 				(void)sprintf(str, "CAL_ACC%u_YSCALE", i);
+
 				failed = failed || (OK != param_get(param_find(str), &ascale.y_scale));
+
 				(void)sprintf(str, "CAL_ACC%u_ZSCALE", i);
+
 				failed = failed || (OK != param_get(param_find(str), &ascale.z_scale));
 
 				if (failed) {
@@ -479,22 +503,35 @@ void VotedSensorsUpdate::parametersUpdate()
 				if (!_mag.enabled[topic_instance]) { _mag.priority[topic_instance] = 0; }
 
 				struct mag_calibration_s mscale = {};
+
 				(void)sprintf(str, "CAL_MAG%u_XOFF", i);
+
 				failed = failed || (OK != param_get(param_find(str), &mscale.x_offset));
+
 				(void)sprintf(str, "CAL_MAG%u_YOFF", i);
+
 				failed = failed || (OK != param_get(param_find(str), &mscale.y_offset));
+
 				(void)sprintf(str, "CAL_MAG%u_ZOFF", i);
+
 				failed = failed || (OK != param_get(param_find(str), &mscale.z_offset));
+
 				(void)sprintf(str, "CAL_MAG%u_XSCALE", i);
+
 				failed = failed || (OK != param_get(param_find(str), &mscale.x_scale));
+
 				(void)sprintf(str, "CAL_MAG%u_YSCALE", i);
+
 				failed = failed || (OK != param_get(param_find(str), &mscale.y_scale));
+
 				(void)sprintf(str, "CAL_MAG%u_ZSCALE", i);
+
 				failed = failed || (OK != param_get(param_find(str), &mscale.z_scale));
 
 				(void)sprintf(str, "CAL_MAG%u_ROT", i);
 
 				int32_t mag_rot;
+
 				param_get(param_find(str), &mag_rot);
 
 				if (is_external) {
