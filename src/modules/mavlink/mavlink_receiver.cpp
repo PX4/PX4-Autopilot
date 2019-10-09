@@ -85,6 +85,20 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_parameters_manager(parent),
 	_mavlink_timesync(parent)
 {
+	unsigned int system_type = _mavlink->get_system_type();
+
+	if (system_type == MAV_TYPE_VTOL_DUOROTOR ||
+	    system_type == MAV_TYPE_VTOL_QUADROTOR ||
+	    system_type == MAV_TYPE_VTOL_TILTROTOR ||
+	    system_type == MAV_TYPE_VTOL_RESERVED2 ||
+	    system_type == MAV_TYPE_VTOL_RESERVED3 ||
+	    system_type == MAV_TYPE_VTOL_RESERVED4 ||
+	    system_type == MAV_TYPE_VTOL_RESERVED5) {
+		_is_vtol = true;
+
+	} else {
+		_is_vtol = false;
+	}
 }
 
 void
@@ -1411,7 +1425,12 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						}
 					}
 
-					_att_sp_pub.publish(att_sp);
+					if (!_is_vtol) {
+						_att_sp_pub.publish(att_sp);
+
+					} else {
+						_mc_virtual_att_sp_pub.publish(att_sp);
+					}
 				}
 
 				/* Publish attitude rate setpoint if bodyrate and thrust ignore bits are not set */
