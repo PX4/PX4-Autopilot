@@ -152,16 +152,15 @@ void Tailsitter::update_vtol_state()
 				if (!_lock_to_mc)
 				{
 					_vtol_schedule.flight_mode 	= TRANSITION_FRONT_P1;
-					_vtol_schedule.f_trans_start_t = hrt_absolute_time();
 				}
 			}
 			else
 			{
 				_vtol_schedule.flight_mode 	= MC_MODE;
-				_vtol_schedule.b_trans_start_t = hrt_absolute_time();
 				mavlink_log_critical(&mavlink_log_pub, "dangerous altitude");
 			}
 			
+			_vtol_schedule.f_trans_start_t = hrt_absolute_time();
 
 			break;
 
@@ -352,10 +351,10 @@ void Tailsitter::update_transition_state()
 		_alt_sp          = _local_pos->z;
 		_dist_sp         = _pm3901_tof_data->tof_pos_calib;
 
-		_mc_hover_thrust = _v_att_sp->thrust_body[2];
+		_mc_hover_thrust = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
 	}
 
-	_v_att_sp->thrust_body[2] = _mc_virtual_att_sp->thrust_body[2];
+	_trans_end_thrust = _mc_hover_thrust;
 
 	// tilt angle (zero if vehicle nose points up (hover))
 	float tilt = acosf(_q_trans_sp(0) * _q_trans_sp(0) - _q_trans_sp(1) * _q_trans_sp(1) - _q_trans_sp(2) * _q_trans_sp(
@@ -366,32 +365,42 @@ void Tailsitter::update_transition_state()
 		switch (_params->vt_sweep_or_suck_type){
 		case NO_SUCK:
 		case TOP_WALL:
-			if (time_since_trans_start <= _params->front_trans_duration) {
+			{
 				_q_trans_sp = Quatf(_v_att->q);
-				_v_att_sp->thrust_body[2] = _mc_hover_thrust * 0.7f;
-				if ((_vtol_vehicle_status->ticks_since_trans % 10) == 5)
+				float acc_time = 0.7f;
+				if (time_since_trans_start <= acc_time)
 				{
-					mavlink_log_critical(&mavlink_log_pub, "Suck Top Start Thrust: %.4f", (double)(_v_att_sp->thrust_body[2]));
-					mavlink_log_critical(&mavlink_log_pub, "Is FW require: %d", _attc->is_fixed_wing_requested());
+					_trans_end_thrust = _mc_hover_thrust;
+				}
+				else if (time_since_trans_start <= _params->front_trans_duration)
+				{
+					_trans_end_thrust = _mc_hover_thrust *  _params->suck_thr_ratio;
+				}
+				else {
+					_trans_end_thrust = _mc_hover_thrust * (0.5f);
+				}
+
+				if ((_vtol_vehicle_status->ticks_since_trans % 50) == 5)
+				{
+					mavlink_log_critical(&mavlink_log_pub, "Start Thrust: %.4f Current: %.4f time: %.4f", (double)(_mc_hover_thrust), (double)(_trans_end_thrust), (double)(time_since_trans_start));
+				}
+			}	    	
+			break;
+
+	    case SIDE_WALL:
+		    {
+		    	float roll_sp = track_path(distance_to_wall, _pm3901_tof_data->tof_vel_calib, time_since_trans_start);
+		    	_q_trans_sp   = Quatf(AxisAnglef(_trans_roll_axis, roll_sp)) * _q_trans_start;
+
+		    	//_vtol_vehicle_status->dist_sp = _dist_sp;
+		    	_vtol_vehicle_status->rollrot = roll_sp;
+		    	if ((_vtol_vehicle_status->ticks_since_trans % 10) == 5)
+				{
+					mavlink_log_critical(&mavlink_log_pub, "Transition Start");
 				}
 			}
-			else {
-				_q_trans_sp = Quatf(_v_att->q);
-				_v_att_sp->thrust_body[2] = _mc_hover_thrust * (0.4f);
-				_q_trans_sp = Quatf(_v_att->q);
-			}
-	    	
-			break;
-	    case SIDE_WALL:
-	    	float roll_sp = track_path(distance_to_wall, _pm3901_tof_data->tof_vel_calib, time_since_trans_start);
-	    	_q_trans_sp   = Quatf(AxisAnglef(_trans_roll_axis, roll_sp)) * _q_trans_start;
-
-	    	//_vtol_vehicle_status->dist_sp = _dist_sp;
-	    	_vtol_vehicle_status->rollrot = roll_sp;
-	    	if ((_vtol_vehicle_status->ticks_since_trans % 10) == 5)
-			{
-				mavlink_log_critical(&mavlink_log_pub, "Transition Start");
-			}
+	    	break;
+	    default:
 	    	break;
 		}
 
@@ -553,7 +562,7 @@ void Tailsitter::fill_actuator_outputs()
 		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL]     = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL];
 		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH]    = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];
 		_actuators_out_0->control[actuator_controls_s::INDEX_YAW]      = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW];
-		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
+		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] = _trans_end_thrust;
 
 		_vtol_schedule.ctrl_out_trans_end = _actuators_out_0->control[actuator_controls_s::INDEX_PITCH];
 		break;

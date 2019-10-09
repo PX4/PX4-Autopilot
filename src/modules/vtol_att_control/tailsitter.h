@@ -107,7 +107,7 @@ private:
 	enum wall_suck_type {
 		NO_SUCK = 0,
 		TOP_WALL,
-		SIDE_WALL,
+		SIDE_WALL
 	};
 
 	struct {
