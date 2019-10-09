@@ -99,6 +99,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	} else {
 		_is_vtol = false;
 	}
+
 }
 
 void
@@ -1401,35 +1402,46 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					}
 
 					if (!offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
-						// Fill correct field by checking frametype
-						// TODO: add as needed
-						switch (_mavlink->get_system_type()) {
-						case MAV_TYPE_GENERIC:
-							break;
+						if (!_is_vtol) {
+							// Fill correct field by checking frametype
+							// TODO: add as needed
+							switch (_mavlink->get_system_type()) {
+							case MAV_TYPE_GENERIC:
+								break;
 
-						case MAV_TYPE_FIXED_WING:
-							att_sp.thrust_body[0] = set_attitude_target.thrust;
-							break;
+							case MAV_TYPE_FIXED_WING:
+								att_sp.thrust_body[0] = set_attitude_target.thrust;
+								break;
 
-						case MAV_TYPE_QUADROTOR:
-						case MAV_TYPE_HEXAROTOR:
-						case MAV_TYPE_OCTOROTOR:
-						case MAV_TYPE_TRICOPTER:
-						case MAV_TYPE_HELICOPTER:
-							att_sp.thrust_body[2] = -set_attitude_target.thrust;
-							break;
+							case MAV_TYPE_QUADROTOR:
+							case MAV_TYPE_HEXAROTOR:
+							case MAV_TYPE_OCTOROTOR:
+							case MAV_TYPE_TRICOPTER:
+							case MAV_TYPE_HELICOPTER:
+								att_sp.thrust_body[2] = -set_attitude_target.thrust;
+								break;
 
-						case MAV_TYPE_GROUND_ROVER:
-							att_sp.thrust_body[0] = set_attitude_target.thrust;
-							break;
+							case MAV_TYPE_GROUND_ROVER:
+								att_sp.thrust_body[0] = set_attitude_target.thrust;
+								break;
+							}
+
+							_att_sp_pub.publish(att_sp);
+
+						} else {
+							if (_vtol_vehicle_status_sub.updated()) {
+								_vtol_vehicle_status_sub.copy(&_vtol_vehicle_status);
+							}
+
+							if (_vtol_vehicle_status.vtol_in_rw_mode) {
+								att_sp.thrust_body[2] = -set_attitude_target.thrust;
+								_mc_virtual_att_sp_pub.publish(att_sp);
+
+							} else {
+								att_sp.thrust_body[0] = set_attitude_target.thrust;
+								_fw_virtual_att_sp_pub.publish(att_sp);
+							}
 						}
-					}
-
-					if (!_is_vtol) {
-						_att_sp_pub.publish(att_sp);
-
-					} else {
-						_mc_virtual_att_sp_pub.publish(att_sp);
 					}
 				}
 
