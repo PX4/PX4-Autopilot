@@ -97,7 +97,6 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
-#include <uORB/topics/vtol_vehicle_status.h>
 
 class Mavlink;
 
@@ -265,7 +264,7 @@ private:
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription	_vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription	_vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription	_vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
+	uORB::Subscription	_vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	static constexpr unsigned int	MOM_SWITCH_COUNT{8};
 	uint8_t				_mom_switch_pos[MOM_SWITCH_COUNT] {};
@@ -279,7 +278,7 @@ private:
 
 	hrt_abstime			_last_utm_global_pos_com{0};
 
-	vtol_vehicle_status_s _vtol_vehicle_status{};
+	vehicle_status_s _vehicle_status{};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
