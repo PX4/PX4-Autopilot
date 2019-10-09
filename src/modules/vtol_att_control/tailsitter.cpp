@@ -113,13 +113,14 @@ void Tailsitter::update_vtol_state()
 	*/
 	_euler = matrix::Quatf(_v_att->q);//Eulerf _euler = Quatf(_v_att->q);
 	float time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
-	float time_since_b_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.b_trans_start_t) * 1e-6f;
-	float pitch = _euler.theta();
+	static bool _lock_to_mc = 0;
+	//float pitch = _euler.theta();
 
 	if (!_attc->is_fixed_wing_requested()) {
 
 		switch (_vtol_schedule.flight_mode) { // user switchig to MC mode
 		case MC_MODE:
+			_lock_to_mc = 0;
 			_vtol_schedule.b_trans_start_t = hrt_absolute_time();
 			break;
 
@@ -136,11 +137,7 @@ void Tailsitter::update_vtol_state()
 
 		case TRANSITION_BACK:
 			time_since_trans_start = (float)(hrt_absolute_time() - _vtol_schedule.f_trans_start_t) * 1e-6f;
-
-			// check if we have reached pitch angle to switch to MC mode
-			if (pitch >= PITCH_TRANSITION_BACK && time_since_b_trans_start >= 0.8f) {
-				_vtol_schedule.flight_mode = MC_MODE;
-			}
+			_vtol_schedule.flight_mode = MC_MODE;
 
 			break;
 		}
@@ -149,31 +146,40 @@ void Tailsitter::update_vtol_state()
 
 		switch (_vtol_schedule.flight_mode) {
 		case MC_MODE:
-			// initialise a front transition
-		#if 0 // Disabled for suck wall
+			// Safety
 			if (_local_pos->z < (- _params->vt_safe_alt)) {
-				_vtol_schedule.flight_mode 	= TRANSITION_FRONT_P1;
-				_vtol_schedule.f_trans_start_t = hrt_absolute_time();
+				// initialise a front transition
+				if (!_lock_to_mc)
+				{
+					_vtol_schedule.flight_mode 	= TRANSITION_FRONT_P1;
+					_vtol_schedule.f_trans_start_t = hrt_absolute_time();
+				}
 			}
-		#endif
-			_vtol_schedule.flight_mode 	= TRANSITION_FRONT_P1;
-			_vtol_schedule.f_trans_start_t = hrt_absolute_time();
+			else
+			{
+				_vtol_schedule.flight_mode 	= MC_MODE;
+				_vtol_schedule.b_trans_start_t = hrt_absolute_time();
+				mavlink_log_critical(&mavlink_log_pub, "dangerous altitude");
+			}
+			
+
 			break;
 
 		case FW_MODE:
 			break;
 
 		case TRANSITION_FRONT_P1: {
-
 				bool airspeed_condition_satisfied = _airspeed->indicated_airspeed_m_s >= _params->transition_airspeed;
 				airspeed_condition_satisfied |= _params->airspeed_disabled;
 
 				_vtol_schedule.fw_start = hrt_absolute_time();
 
 				// check if we have reached airspeed  and the transition time is over the setpoint to switch to TRANSITION P2 mode
-				if ((airspeed_condition_satisfied && (time_since_trans_start >= (_params->front_trans_duration + _params_tailsitter.front_trans_dur_p2))) || can_transition_on_ground()) {
+				if (time_since_trans_start >= (_params->front_trans_duration + _params_tailsitter.front_trans_dur_p2)) {
 					//_vtol_schedule.flight_mode = FW_MODE;
+					_lock_to_mc = 1;
 					_vtol_schedule.flight_mode = MC_MODE; //Just for the wall suck
+
 				}
 
 				break;
@@ -181,13 +187,12 @@ void Tailsitter::update_vtol_state()
 
 		case TRANSITION_BACK:
 			// failsafe into fixed wing mode
-			_vtol_schedule.flight_mode = FW_MODE;
+			_vtol_schedule.flight_mode = MC_MODE;
 			break;
 		}
 	}
 	
 	/* Safety altitude protection, stay at MC mode when trige for once */
-#if 0 // Disabled for suck wall
 	static bool alt_danger = false;
 	if ((_local_pos->z > (- _params->vt_safe_alt)) || (alt_danger == true))
 	{
@@ -198,7 +203,6 @@ void Tailsitter::update_vtol_state()
 		}
 		_vtol_schedule.flight_mode = MC_MODE;
 	}
-#endif
 
 	// map tailsitter specific control phases to simple control modes
 	switch (_vtol_schedule.flight_mode) {
@@ -220,138 +224,11 @@ void Tailsitter::update_vtol_state()
 		break;
 
 	case TRANSITION_BACK:
-		_vtol_mode = TRANSITION_TO_MC;
+		_vtol_mode = ROTARY_WING;
 		_vtol_vehicle_status->vtol_in_trans_mode = true;
 		break;
 	}
 }
-
-
-#if 0 //For tailsitter outdoor transition's altitude control
-float Tailsitter::get_CL(float aoa)
-{
-	float aoa_degree = RAD_TO_DEG(aoa);
-	int   aoa_int    = 0;
-	float CL         = 0.0f;
-
-	if ((fabsf(aoa_degree) <= 89.99f) && (fabsf(aoa_degree) >= 0.01f)) 
-	{
-		aoa_int = aoa_degree / 1;
-		CL      = _CL_Degree[aoa_int] + (aoa_degree - aoa_int) * (_CL_Degree[aoa_int + 1] - _CL_Degree[aoa_int]);
-	}
-	else
-	{
-		CL = 0.0f;
-	}
-
-	return CL;
-}
-
-/***
- *	calculate the thrust feedforward cmd based on the vertical acceleration cmd, horizontal velocity, pitch angle and ang-of-attack
- *	@input: vertical acceleration cmd (up is positive)
- *			horizontal velocity
- *			pitch angle
- *			ang-of-attack
- *	@output: thrust feedforward cmd
- ***/
-float Tailsitter::thr_from_acc_cmd(float vert_acc_cmd, float airspeed, float pitch_ang, float vz)
-{
-	float bx_acc_cmd      = 0.0f;
-	float bx_acc_err      = 0.0f;
-	float bx_acc_err_i    = 0.0f;
-
-	/* bx_acc_kp and bx_acc_ki are from loopshaping */
-	float bx_acc_kp       = 0.03f;
-	float bx_acc_ki       = 0.03f;
-
-	float thrust_cmd      = 0.0f;
-
-	/* calculate the aerodynamic lift force */
-	//float CL_temp           = 0.0f;
-	//float lift_weight_ratio = 0.0f;
-	float ang_of_attack     = 0.0f;
-	//float dyn_pressure      = 0.5f * 1.237f * airspeed * airspeed;
-
-	float ang_of_vel    = atan2f(vz, airspeed) * (math::constrain(vz * vz / (5.0f * 5.0f), 0.0f, 1.0f));
-
-	pitch_ang           = math::constrain(pitch_ang,     DEG_TO_RAD(0.001f), DEG_TO_RAD(89.99f));
-	ang_of_attack       = math::constrain(ang_of_vel, DEG_TO_RAD(-20.0f), DEG_TO_RAD(20.0f)) + DEG_TO_RAD(100.0f) - pitch_ang;
-	ang_of_attack       = math::constrain(ang_of_attack, DEG_TO_RAD(0.001f), DEG_TO_RAD(89.99f));
-	
-	_vtol_vehicle_status->aoa = ang_of_attack;
-
-	if ((fabsf(ang_of_attack) < DEG_TO_RAD(89.999f)) && (fabsf(ang_of_attack) >= DEG_TO_RAD(0.001f)))
-	{
-		/***
-		CL_temp           = get_CL(ang_of_attack);
-		lift_weight_ratio = dyn_pressure * 1.0f * CL_temp * 0.5f/ (1.68f * 9.8f);
-		thrust_cmd        = (-_mc_hover_thrust - lift_weight_ratio * (-_mc_hover_thrust) + vert_acc_cmd / 9.8f * (-_mc_hover_thrust)) / cosf(pitch_ang);
-		 ***/
-		bx_acc_cmd    = (9.8f + _sensor_acc->x * sinf(pitch_ang) - vert_acc_cmd) / cosf(pitch_ang);
-		bx_acc_cmd    = math::constrain(bx_acc_cmd, -2.0f * 9.8f, 2.0f * 9.8f);
-		bx_acc_err    = bx_acc_cmd + _sensor_acc->z;
-		bx_acc_err_i  = _vtol_vehicle_status->bx_acc_i + bx_acc_ki * bx_acc_err * 0.004f;
-		thrust_cmd    = bx_acc_cmd / 9.8f * (-_mc_hover_thrust) + bx_acc_err * bx_acc_kp + bx_acc_err_i;
-	}
-	else
-	{
-		//lift_weight_ratio = 0.0f;
-		thrust_cmd        = -_mc_hover_thrust;
-		bx_acc_err_i      = 0.0f;
-	}
-
-	_vtol_vehicle_status->pitch_ang  = pitch_ang;
-	_vtol_vehicle_status->bx_acc_cmd = bx_acc_cmd;
-	_vtol_vehicle_status->bx_acc_e   = bx_acc_err;
-	_vtol_vehicle_status->bx_acc_i   = bx_acc_err_i;
-
-	return thrust_cmd;
-}
-
-float ILC_in(float time_since_trans_start)
-{
-	if ((time_since_trans_start > 0.0001f) && (time_since_trans_start < 6.0f)) {
-		int   index_left = int(time_since_trans_start * 25);
-		float input      = U_ILC_INPUT[index_left] + (time_since_trans_start * 25.0f - index_left) * (U_ILC_INPUT[index_left + 1] - U_ILC_INPUT[index_left]);
-
-		return input;
-	}
-	else {
-		return 0.0f;
-	}
-}
-
-/***
- *	calculate the thrust cmd using feedforward and feedback controller
- *	@input: 
- *	@output:
- ***/
-float Tailsitter::control_altitude(float time_since_trans_start, float alt_cmd)
-{
-	float alt_kp         = 0.6f;
-	float vel_kp         = 1.5f;
-
-	/* calculate the euler angle from quatnion(follow the Pitch-Roll-Yaw) */
-	matrix::EulerFromQuatf euler = matrix::Quatf(_v_att->q);
-
-	/* calculate the feedforward thrust cmd */
-	float pitch          = - euler.theta(); // theta is minus zero
-
-	//float ang_of_attack  = DEG_TO_RAD(96.0f) - pitch; //install pitch angle is 6 degree
-	float horiz_vel      = sqrtf((_local_pos->vx * _local_pos->vx) + (_local_pos->vy * _local_pos->vy));
-	float ILC_input      = ILC_in(time_since_trans_start);
-	float vert_acc_cmd   = (alt_cmd - _local_pos->z) * alt_kp + -_local_pos->vz * vel_kp ;//+ ILC_input * 9.8f / (-_mc_hover_thrust);
-	float thrust_cmd     = math::constrain(thr_from_acc_cmd(vert_acc_cmd, horiz_vel, pitch, _local_pos->vz), 0.0f, 0.9f);
-
-	_vtol_vehicle_status->ilc_input 		= ILC_input;
-	_vtol_vehicle_status->vert_acc_cmd      = vert_acc_cmd;
-	_vtol_vehicle_status->thrust_cmd        = thrust_cmd;
-	_vtol_vehicle_status->ticks_since_trans ++;
-	
-	return (-1.0f * thrust_cmd);
-}
-#endif
 
 float Tailsitter::calc_pitch_rot(float time_since_trans_start)
 {
@@ -486,41 +363,21 @@ void Tailsitter::update_transition_state()
 
 	/*** Excute the movement on the forward transition period ***/
 	if (_vtol_schedule.flight_mode == TRANSITION_FRONT_P1) {
-
-#if 0
-		// const float trans_pitch_rate = M_PI_2_F / _params->front_trans_duration;
-		_trans_pitch_rot = calc_pitch_rot(time_since_trans_start);
-
-		/* lateral control */
-		delt_x = _local_pos->x - _trans_start_x;
-		delt_y = _local_pos->y - _trans_start_y;
-		float lateral_dist = sqrtf(delt_x * delt_x + delt_y * delt_y) * (atan2f(delt_y, delt_x) - _mc_virtual_att_sp->yaw_body);
-		_trans_roll_rot  = math::constrain(-0.05f * lateral_dist, -0.15f, 0.15f);
-		_vtol_vehicle_status->rollrot      = _trans_roll_rot;
-		_vtol_vehicle_status->lat_dist      = lateral_dist;
-
-		_q_trans_sp = Quatf(AxisAnglef(_trans_roll_axis, _trans_roll_rot))*Quatf(AxisAnglef(_trans_rot_axis, _trans_pitch_rot)) * _q_trans_start;
-
-		/* calculate the thrust cmd to control altitude*/
-		_v_att_sp->thrust_body[2] = control_altitude(time_since_trans_start, _alt_sp);
-
-		/* save the thrust value at the end of the transition */
-		_trans_end_thrust = _actuators_mc_in->control[actuator_controls_s::INDEX_THROTTLE];
-#endif
-
-		float suck_wall_thr_cmd = 0.0f;
 		switch (_params->vt_sweep_or_suck_type){
 		case NO_SUCK:
 		case TOP_WALL:
 			if (time_since_trans_start <= _params->front_trans_duration) {
-				suck_wall_thr_cmd = _params->front_trans_throttle - (float)(_params->vt_sweep_or_suck_amp) * time_since_trans_start;
-				_v_att_sp->thrust_body[2] = _params->front_trans_throttle * (-1.0f);
-				_vtol_vehicle_status->thrust_cmd = suck_wall_thr_cmd;
-				_trans_pitch_rot = time_since_trans_start * M_PI_2_F / _params->front_trans_duration;
-				_q_trans_sp = Quatf(AxisAnglef(_trans_rot_axis, _trans_pitch_rot)) * _q_trans_start;
+				_q_trans_sp = Quatf(_v_att->q);
+				_v_att_sp->thrust_body[2] = _mc_hover_thrust * 0.7f;
+				if ((_vtol_vehicle_status->ticks_since_trans % 10) == 5)
+				{
+					mavlink_log_critical(&mavlink_log_pub, "Suck Top Start Thrust: %.4f", (double)(_v_att_sp->thrust_body[2]));
+					mavlink_log_critical(&mavlink_log_pub, "Is FW require: %d", _attc->is_fixed_wing_requested());
+				}
 			}
 			else {
-				_v_att_sp->thrust_body[2] = _params->front_trans_throttle * (-1.0f);
+				_q_trans_sp = Quatf(_v_att->q);
+				_v_att_sp->thrust_body[2] = _mc_hover_thrust * (0.4f);
 				_q_trans_sp = Quatf(_v_att->q);
 			}
 	    	
@@ -539,7 +396,7 @@ void Tailsitter::update_transition_state()
 		}
 
 	}
-	/*** Excute the movement on the backward transition period ***/
+	/*** Excute the movement on the suck top and suck wall period ***/
 	else if (_vtol_schedule.flight_mode == TRANSITION_BACK)
 	{
 		_target_alt  = _local_pos->z;

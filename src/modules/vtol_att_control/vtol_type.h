@@ -73,6 +73,7 @@ struct Params {
 	int32_t fw_motors_off;			/**< bitmask of all motors that should be off in fixed wing mode */
 	int32_t vt_sweep_or_suck_type;
 	float vt_sweep_or_suck_amp;
+	float suck_thr_ratio;
 	int32_t diff_thrust;
 	float diff_thrust_scale;
 };

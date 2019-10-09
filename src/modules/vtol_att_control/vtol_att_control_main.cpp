@@ -90,6 +90,7 @@ VtolAttitudeControl::VtolAttitudeControl()
 	_params_handles.fw_motors_off = param_find("VT_FW_MOT_OFFID");
 	_params_handles.vt_sweep_or_suck_type = param_find("SWEEP_SUCK_TYPE");
 	_params_handles.vt_sweep_or_suck_amp = param_find("SWEEP_SUCK_AMP");
+	_params_handles.suck_thr_ratio = param_find("SUCK_THR_RATIO");
 	_params_handles.diff_thrust = param_find("VT_FW_DIFTHR_EN");
 	_params_handles.diff_thrust_scale = param_find("VT_FW_DIFTHR_SC");
 
@@ -529,6 +530,8 @@ VtolAttitudeControl::parameters_update()
 	param_get(_params_handles.front_trans_time_min, &_params.front_trans_time_min);
 
 	param_get(_params_handles.vt_sweep_or_suck_amp, &_params.vt_sweep_or_suck_amp);
+
+	param_get(_params_handles.suck_thr_ratio, &_params.suck_thr_ratio);
 
 	/*
 	 * Minimum transition time can be maximum 90 percent of the open loop transition time,

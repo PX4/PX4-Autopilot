@@ -210,6 +210,7 @@ private:
 		param_t fw_motors_off;
 		param_t vt_sweep_or_suck_type;
 		param_t vt_sweep_or_suck_amp;
+		param_t suck_thr_ratio;
 		param_t diff_thrust;
 		param_t diff_thrust_scale;
 	} _params_handles{};

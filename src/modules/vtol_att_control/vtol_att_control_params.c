@@ -118,6 +118,8 @@ PARAM_DEFINE_INT32(SWEEP_SUCK_TYPE, 0);
  */
 PARAM_DEFINE_FLOAT(SWEEP_SUCK_AMP, 0.2f);
 
+PARAM_DEFINE_FLOAT(SUCK_THR_RATIO, 0.7f);
+
 /**
  * Duration of a front transition
  *
