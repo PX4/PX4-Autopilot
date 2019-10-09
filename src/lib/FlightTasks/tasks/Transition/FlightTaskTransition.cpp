@@ -45,8 +45,6 @@ bool FlightTaskTransition::updateInitialize()
 bool FlightTaskTransition::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
 	checkSetpoints(last_setpoint);
-	_transition_altitude = last_setpoint.z;
-	_transition_yaw = last_setpoint.yaw;
 	_acceleration_setpoint.setAll(0.f);
 	_velocity_prev = _velocity;
 	return FlightTask::activate(last_setpoint);
@@ -77,15 +75,12 @@ void FlightTaskTransition::updateAccelerationEstimate()
 
 bool FlightTaskTransition::update()
 {
-	// level wings during the transition, altitude should be controlled
-	_thrust_setpoint(0) = _thrust_setpoint(1) = 0.0f;
-	_thrust_setpoint(2) = NAN;
-	_position_setpoint *= NAN;
-	_velocity_setpoint *= NAN;
-	_position_setpoint(2) = _transition_altitude;
+	// level wings during the transition
+	_thrust_setpoint = matrix::Vector3f(0.f, 0.f, NAN);
+	// altitude and yaw should be controlled to slow down/stop
+	_velocity_setpoint = matrix::Vector3f(NAN, NAN, 0.f);
+	_yawspeed_setpoint = 0.f;
 
 	updateAccelerationEstimate();
-
-	_yaw_setpoint = _transition_yaw;
 	return true;
 }
