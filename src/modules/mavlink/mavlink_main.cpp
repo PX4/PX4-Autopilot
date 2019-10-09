@@ -159,6 +159,8 @@ mavlink_message_t *mavlink_get_channel_buffer(uint8_t channel)
 
 static void usage();
 
+hrt_abstime Mavlink::_first_start_time = {0};
+
 bool Mavlink::_boot_complete = false;
 
 Mavlink::Mavlink() :
@@ -178,6 +180,10 @@ Mavlink::Mavlink() :
 
 	if (comp_id > 0 && comp_id < 255) {
 		mavlink_system.compid = comp_id;
+	}
+
+	if (_first_start_time == 0) {
+		_first_start_time = hrt_absolute_time();
 	}
 }
 
