@@ -1387,6 +1387,9 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					}
 
 					if (!offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
+						if (_vehicle_status_sub.updated()) {
+							_vehicle_status_sub.copy(&_vehicle_status);
+						}
 
 						// Fill correct field by checking frametype
 						// TODO: add as needed
@@ -1397,7 +1400,6 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						case MAV_TYPE_FIXED_WING:
 							att_sp.thrust_body[0] = set_attitude_target.thrust;
 
-							_att_sp_pub.publish(att_sp);
 							break;
 
 						case MAV_TYPE_QUADROTOR:
@@ -1407,13 +1409,11 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						case MAV_TYPE_HELICOPTER:
 							att_sp.thrust_body[2] = -set_attitude_target.thrust;
 
-							_att_sp_pub.publish(att_sp);
 							break;
 
 						case MAV_TYPE_GROUND_ROVER:
 							att_sp.thrust_body[0] = set_attitude_target.thrust;
 
-							_att_sp_pub.publish(att_sp);
 							break;
 
 						case MAV_TYPE_VTOL_DUOROTOR:
@@ -1423,22 +1423,14 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 						case MAV_TYPE_VTOL_RESERVED3:
 						case MAV_TYPE_VTOL_RESERVED4:
 						case MAV_TYPE_VTOL_RESERVED5:
-							if (_vehicle_status_sub.updated()) {
-								_vehicle_status_sub.copy(&_vehicle_status);
-							}
-
 							switch (_vehicle_status.vehicle_type) {
 							case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
 								att_sp.thrust_body[0] = set_attitude_target.thrust;
-
-								_fw_virtual_att_sp_pub.publish(att_sp);
 
 								break;
 
 							case vehicle_status_s::VEHICLE_TYPE_ROTARY_WING:
 								att_sp.thrust_body[2] = -set_attitude_target.thrust;
-
-								_mc_virtual_att_sp_pub.publish(att_sp);
 
 								break;
 
@@ -1450,6 +1442,17 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 							break;
 						}
 
+					}
+
+					// Publish attitude setpoint
+					if (_vehicle_status.is_vtol && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)) {
+						_mc_virtual_att_sp_pub.publish(att_sp);
+
+					} else if (_vehicle_status.is_vtol && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
+						_fw_virtual_att_sp_pub.publish(att_sp);
+
+					} else {
+						_att_sp_pub.publish(att_sp);
 					}
 				}
 
