@@ -72,26 +72,20 @@ public:
 			rate_setpoint = rate_setpoint_new;
 		}
 
-		// we need to have reached the goal attitude
-		if (!(antipodal(_quat_state) == (antipodal(_quat_goal)))) {
-			antipodal(_quat_state).print();
-			antipodal(_quat_goal).print();
-		}
-
-		EXPECT_TRUE(antipodal(_quat_state) == antipodal(_quat_goal));
+		EXPECT_EQ(adaptAntipodal(_quat_state), adaptAntipodal(_quat_goal));
 		// it shouldn't have taken longer than an iteration timeout to converge
 		EXPECT_GT(i, 0);
 	}
 
-	Quatf antipodal(const Quatf q)
+	Quatf adaptAntipodal(const Quatf q)
 	{
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < 4; i++) {
 			if (fabs(q(i)) > FLT_EPSILON) {
-				return q * math::signNoZero(q(i));
+				return q * math::sign(q(i));
 			}
 		}
 
-		return Quatf(NAN, NAN, NAN, NAN);
+		return q;
 	}
 
 	AttitudeControl _attitude_control;
