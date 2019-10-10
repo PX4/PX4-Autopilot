@@ -559,9 +559,9 @@ void Tailsitter::fill_actuator_outputs()
 	case TRANSITION_TO_FW:
 	case TRANSITION_TO_MC:
 		// in transition engines are mixed by weight (BACK TRANSITION ONLY)
-		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL]     = _actuators_mc_in->control[actuator_controls_s::INDEX_ROLL];
-		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH]    = _actuators_mc_in->control[actuator_controls_s::INDEX_PITCH];
-		_actuators_out_0->control[actuator_controls_s::INDEX_YAW]      = _actuators_mc_in->control[actuator_controls_s::INDEX_YAW];
+		_actuators_out_0->control[actuator_controls_s::INDEX_ROLL]     = 0.0f;
+		_actuators_out_0->control[actuator_controls_s::INDEX_PITCH]    = 0.0f;
+		_actuators_out_0->control[actuator_controls_s::INDEX_YAW]      = 0.0f;
 		_actuators_out_0->control[actuator_controls_s::INDEX_THROTTLE] = _trans_end_thrust;
 
 		_vtol_schedule.ctrl_out_trans_end = _actuators_out_0->control[actuator_controls_s::INDEX_PITCH];
