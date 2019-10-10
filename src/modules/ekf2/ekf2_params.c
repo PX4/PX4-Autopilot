@@ -702,6 +702,16 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_GATE, 5.0f);
 PARAM_DEFINE_FLOAT(EKF2_MIN_RNG, 0.1f);
 
 /**
+ * Whether to set the external vision observation noise from the parameter or from vision message
+ *
+ * If set to true the observation noise is set from the parameters directly, if set to false the measurement noise is taken from the vision message and the parameter are used as a lower bound.
+ *
+ * @boolean
+ * @group EKF2
+ */
+PARAM_DEFINE_INT32(EKF2_EV_NOISE_MD, 0);
+
+/**
  * Measurement noise for vision position observations used when the vision system does not supply error estimates
  *
  * @group EKF2
