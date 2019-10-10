@@ -104,11 +104,8 @@ public:
 	// gets the innovation of the drag specific force measurement
 	void get_drag_innov(float drag_innov[2]);
 
-	// gets the innovation variance of the HAGL measurement
-	void get_hagl_innov_var(float *hagl_innov_var);
-
-	// gets the innovation of the HAGL measurement
-	void get_hagl_innov(float *hagl_innov);
+	void getHaglInnovVar(float *hagl_innov_var);
+	void getHaglInnov(float *hagl_innov);
 
 	// get the state vector at the delayed time horizon
 	void get_state_delayed(float *state);
@@ -197,14 +194,12 @@ public:
 	// check if the EKF is dead reckoning horizontal velocity using inertial data only
 	void update_deadreckoning_status();
 
-	// return true if the terrain estimate is valid
-	bool get_terrain_valid();
+	bool isTerrainEstimateValid();
 
-	// update terrain validity status
-	void update_terrain_valid();
+	void updateTerrainValidity();
 
 	// get the estimated terrain vertical position relative to the NED origin
-	void get_terrain_vert_pos(float *ret);
+	void getTerrainVertPos(float *ret);
 
 	// get the terrain variance
 	float get_terrain_var() const { return _terrain_var; }
