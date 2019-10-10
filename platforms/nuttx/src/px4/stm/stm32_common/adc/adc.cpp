@@ -70,7 +70,7 @@
 
 
 #ifdef STM32_ADC_CCR
-# define rCCR(base)		REG((base), STM32_ADC_CCR_OFFSET)
+# define rCCR(base)		REG((STM32_ADCCMN_BASE), STM32_ADC_CCR_OFFSET)
 
 /* Assuming VDC 2.4 - 3.6 */
 
@@ -235,7 +235,11 @@ float px4_arch_adc_reference_v()
 
 uint32_t px4_arch_adc_temp_sensor_mask()
 {
+#ifdef ADC_INTERNAL_TEMP_SENSOR_CHANNEL
+	return 1 << ADC_INTERNAL_TEMP_SENSOR_CHANNEL;
+#elif
 	return 1 << 16;
+#endif
 }
 
 uint32_t px4_arch_adc_dn_fullcount()
