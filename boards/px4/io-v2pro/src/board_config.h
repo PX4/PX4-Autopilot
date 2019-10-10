@@ -108,7 +108,7 @@
 
 /* Safety switch button *******************************************************/
 
-#define GPIO_BTN_SAFETY (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTB|GPIO_PIN5)
+//#define GPIO_BTN_SAFETY (GPIO_INPUT|GPIO_FLOAT|GPIO_PORTB|GPIO_PIN5)
 
 /* Power switch controls ******************************************************/
 

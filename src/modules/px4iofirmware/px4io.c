@@ -313,8 +313,9 @@ user_start(int argc, char *argv[])
 #endif
 
 	/* start the safety switch handler */
+#ifdef GPIO_BTN_SAFETY
 	safety_init();
-
+#endif
 	/* initialise the control inputs */
 	controls_init();
 

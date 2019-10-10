@@ -979,7 +979,7 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 			prearm_ok = false;
 		}
 	}
-
+#ifdef GPIO_BTN_SAFETY
 	// safety button
 	if (safety.safety_switch_available && !safety.safety_off) {
 		// Fail transition if we need safety switch press
@@ -989,7 +989,7 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 
 		prearm_ok = false;
 	}
-
+#endif
 	// Arm Requirements: authorization
 	// check last, and only if everything else has passed
 	if ((arm_requirements & ARM_REQ_ARM_AUTH_BIT) && prearm_ok) {
