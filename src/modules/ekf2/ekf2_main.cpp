@@ -422,6 +422,8 @@ private:
 		_param_ekf2_rng_a_igate,	///< gate size used for innovation consistency checks for range aid fusion (STD)
 
 		// vision estimate fusion
+		(ParamInt<px4::params::EKF2_EV_NOISE_MD>)
+		_param_ekf2_ev_noise_md,	///< determine source of vision observation noise
 		(ParamFloat<px4::params::EKF2_EVP_NOISE>)
 		_param_ekf2_evp_noise,	///< default position observation noise for exernal vision measurements (m)
 		(ParamFloat<px4::params::EKF2_EVV_NOISE>)
@@ -1162,8 +1164,8 @@ void Ekf2::Run()
 				ev_data.vel(1) = _ev_odom.vy;
 				ev_data.vel(2) = _ev_odom.vz;
 
-				// velocity measurement error from parameters
-				if (PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_X_VARIANCE])) {
+				// velocity measurement error from ev_data or parameters
+				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE])) {
 					ev_data.velErr = fmaxf(_param_ekf2_evv_noise.get(),
 							       sqrtf(fmaxf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE],
 									   fmaxf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VY_VARIANCE],
@@ -1180,8 +1182,8 @@ void Ekf2::Run()
 				ev_data.pos(1) = _ev_odom.y;
 				ev_data.pos(2) = _ev_odom.z;
 
-				// position measurement error from parameter
-				if (PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_X_VARIANCE])) {
+				// position measurement error from ev_data or parameters
+				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_X_VARIANCE])) {
 					ev_data.posErr = fmaxf(_param_ekf2_evp_noise.get(),
 							       sqrtf(fmaxf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_X_VARIANCE],
 									   _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_Y_VARIANCE])));
@@ -1198,8 +1200,9 @@ void Ekf2::Run()
 			if (PX4_ISFINITE(_ev_odom.q[0])) {
 				ev_data.quat = matrix::Quatf(_ev_odom.q);
 
-				// orientation measurement error from parameters
-				if (PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_ROLL_VARIANCE])) {
+				// orientation measurement error from ev_data or parameters
+				if (!_param_ekf2_ev_noise_md.get()
+				    && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE])) {
 					ev_data.angErr = fmaxf(_param_ekf2_eva_noise.get(),
 							       sqrtf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE]));
 
