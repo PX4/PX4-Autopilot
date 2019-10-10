@@ -48,9 +48,6 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicle_attitu
 {
 	if (omni) {
 		thrustToOmniAttitude(thr_sp, yaw_sp, att_sp);
-		att_sp.thrust_body[0] = thr_sp(0);
-		att_sp.thrust_body[1] = thr_sp(1);
-		att_sp.thrust_body[2] = thr_sp(2);
 
 	} else {
 		bodyzToAttitude(-thr_sp, yaw_sp, att_sp);
@@ -119,25 +116,9 @@ void thrustToOmniAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicle_at
 	// vector of desired yaw direction in XY plane, rotated by PI/2
 	Vector3f y_C(-sinf(yaw_sp), cosf(yaw_sp), 0.0f);
 
-	// desired body_x axis, orthogonal to body_z
-	Vector3f body_x = y_C % body_z;
-
-	// keep nose to front while inverted upside down
-	if (body_z(2) < 0.0f) {
-		body_x = -body_x;
-	}
-
-	if (fabsf(body_z(2)) < 0.000001f) {
-		// desired thrust is in XY plane, set X downside to construct correct matrix,
-		// but yaw component will not be used actually
-		body_x.zero();
-		body_x(2) = 1.0f;
-	}
-
-	body_x.normalize();
-
-	// desired body_y axis
-	Vector3f body_y = body_z % body_x;
+	// desired body_x and body_y axis
+	Vector3f body_x = Vector3f(cos(yaw_sp), sin(yaw_sp), 0.0f);
+	Vector3f body_y = Vector3f(-sinf(yaw_sp), cosf(yaw_sp), 0.0f);
 
 	Dcmf R_sp;
 
@@ -153,23 +134,15 @@ void thrustToOmniAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicle_at
 	q_sp.copyTo(att_sp.q_d);
 	att_sp.q_d_valid = true;
 
-	// calculate euler angles, for logging only, must not be used for control
-	Eulerf euler = R_sp;
-	att_sp.roll_body = euler(0);
-	att_sp.pitch_body = euler(1);
-	att_sp.yaw_body = euler(2);
+	// set the euler angles, for logging only, must not be used for control
+	att_sp.roll_body = 0;
+	att_sp.pitch_body = 0;
+	att_sp.yaw_body = yaw_sp;
 
 
-	// Define attitude and thrust for the omni-directional vehicles
-	Eulerf omni_euler;
-	omni_euler(0) = 0;
-	omni_euler(1) = 0;
-	omni_euler(2) = att_sp.yaw_body;
-	//Quatf omni_q_sp = omni_euler;
-	//omni_q_sp.copyTo(att_sp.q_d);
-
-	att_sp.roll_body = omni_euler(0);
-	att_sp.pitch_body = omni_euler(1);
+	att_sp.thrust_body[0] = thr_sp.dot(body_x);
+	att_sp.thrust_body[1] = thr_sp.dot(body_y);
+	att_sp.thrust_body[2] = thr_sp(2);
 }
 
 Vector2f constrainXY(const Vector2f &v0, const Vector2f &v1, const float &max)
