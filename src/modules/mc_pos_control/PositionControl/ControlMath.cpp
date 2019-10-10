@@ -46,17 +46,19 @@ namespace ControlMath
 {
 void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp, const bool omni)
 {
-	bodyzToAttitude(-thr_sp, yaw_sp, att_sp, omni);
-	att_sp.thrust_body[2] = -thr_sp.length();
-
-	if (omni == true) {
+	if (omni) {
+		thrustToOmniAttitude(thr_sp, yaw_sp, att_sp);
 		att_sp.thrust_body[0] = thr_sp(0);
 		att_sp.thrust_body[1] = thr_sp(1);
 		att_sp.thrust_body[2] = thr_sp(2);
+
+	} else {
+		bodyzToAttitude(-thr_sp, yaw_sp, att_sp);
+		att_sp.thrust_body[2] = -thr_sp.length();
 	}
 }
 
-void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp, const bool omni)
+void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp)
 {
 	// zero vector, no direction, set safe level value
 	if (body_z.norm_squared() < FLT_EPSILON) {
@@ -107,19 +109,67 @@ void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpo
 	att_sp.roll_body = euler(0);
 	att_sp.pitch_body = euler(1);
 	att_sp.yaw_body = euler(2);
+}
 
-	if (omni == true) {
-		// Define attitude and thrust for the omni-directional vehicles
-		Eulerf omni_euler;
-		omni_euler(0) = 0;
-		omni_euler(1) = 0;
-		omni_euler(2) = att_sp.yaw_body;
-		//Quatf omni_q_sp = omni_euler;
-		//omni_q_sp.copyTo(att_sp.q_d);
+void thrustToOmniAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp)
+{
+	// set Z axis to upward direction
+	Vector3f body_z = Vector3f(0.f, 0.f, 1.f);
 
-		att_sp.roll_body = omni_euler(0);
-		att_sp.pitch_body = omni_euler(1);
+	// vector of desired yaw direction in XY plane, rotated by PI/2
+	Vector3f y_C(-sinf(yaw_sp), cosf(yaw_sp), 0.0f);
+
+	// desired body_x axis, orthogonal to body_z
+	Vector3f body_x = y_C % body_z;
+
+	// keep nose to front while inverted upside down
+	if (body_z(2) < 0.0f) {
+		body_x = -body_x;
 	}
+
+	if (fabsf(body_z(2)) < 0.000001f) {
+		// desired thrust is in XY plane, set X downside to construct correct matrix,
+		// but yaw component will not be used actually
+		body_x.zero();
+		body_x(2) = 1.0f;
+	}
+
+	body_x.normalize();
+
+	// desired body_y axis
+	Vector3f body_y = body_z % body_x;
+
+	Dcmf R_sp;
+
+	// fill rotation matrix
+	for (int i = 0; i < 3; i++) {
+		R_sp(i, 0) = body_x(i);
+		R_sp(i, 1) = body_y(i);
+		R_sp(i, 2) = body_z(i);
+	}
+
+	// copy quaternion setpoint to attitude setpoint topic
+	Quatf q_sp = R_sp;
+	q_sp.copyTo(att_sp.q_d);
+	att_sp.q_d_valid = true;
+
+	// calculate euler angles, for logging only, must not be used for control
+	Eulerf euler = R_sp;
+	att_sp.roll_body = euler(0);
+	att_sp.pitch_body = euler(1);
+	att_sp.yaw_body = euler(2);
+
+
+	// Define attitude and thrust for the omni-directional vehicles
+	Eulerf omni_euler;
+	omni_euler(0) = 0;
+	omni_euler(1) = 0;
+	omni_euler(2) = att_sp.yaw_body;
+	//Quatf omni_q_sp = omni_euler;
+	//omni_q_sp.copyTo(att_sp.q_d);
+
+	att_sp.roll_body = omni_euler(0);
+	att_sp.pitch_body = omni_euler(1);
 }
 
 Vector2f constrainXY(const Vector2f &v0, const Vector2f &v1, const float &max)
