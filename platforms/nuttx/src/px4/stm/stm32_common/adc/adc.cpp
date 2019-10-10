@@ -237,7 +237,7 @@ uint32_t px4_arch_adc_temp_sensor_mask()
 {
 #ifdef ADC_INTERNAL_TEMP_SENSOR_CHANNEL
 	return 1 << ADC_INTERNAL_TEMP_SENSOR_CHANNEL;
-#elif
+#else
 	return 1 << 16;
 #endif
 }
