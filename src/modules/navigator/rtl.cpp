@@ -57,6 +57,150 @@ RTL::on_inactive()
 {
 	// Reset RTL state.
 	_rtl_state = RTL_STATE_NONE;
+
+	find_RTL_destination();
+
+}
+
+void
+RTL::find_closest_landing_point()
+{
+	// get home position:
+	home_position_s &home_landing_position = *_navigator->get_home_position();
+	// get global position
+	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
+
+	// set destination to home per default, then check if other valid landing spot is closer
+	_destination.set(home_landing_position);
+	// get distance to home position
+	double dlat = home_landing_position.lat - global_position.lat;
+	double dlon = home_landing_position.lon - global_position.lon;
+	double min_dist_squared = dlat * dlat + dlon * dlon;
+
+	_destination.type = RTL_DESTINATION_HOME;
+
+	if (_navigator->get_mission_start_land_available()) {
+		double mission_landing_lat = _navigator->get_mission_landing_lat();
+		double mission_landing_lon = _navigator->get_mission_landing_lon();
+
+		// compare home position to landing position to decide which is closer
+		dlat = mission_landing_lat - global_position.lat;
+		dlon = mission_landing_lon - global_position.lon;
+		double dist_squared = dlat * dlat + dlon * dlon;
+
+		if (dist_squared < min_dist_squared) {
+			min_dist_squared = dist_squared;
+			_destination.lat = _navigator->get_mission_landing_lat();
+			_destination.lon = _navigator->get_mission_landing_lon();
+			_destination.alt = _navigator->get_mission_landing_alt();
+			_destination.type = RTL_DESTINATION_MISSION_LANDING;
+
+		}
+	}
+
+	// compare to safe landing positions
+	mission_safe_point_s closest_safe_point {} ;
+	mission_stats_entry_s stats;
+	int ret = dm_read(DM_KEY_SAFE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
+	int num_safe_points = 0;
+
+	if (ret == sizeof(mission_stats_entry_s)) {
+		num_safe_points = stats.num_items;
+	}
+
+	// check if a safe point is closer than home or landing
+	int closest_index = 0;
+
+	for (int current_seq = 1; current_seq <= num_safe_points; ++current_seq) {
+		mission_safe_point_s mission_safe_point;
+
+		if (dm_read(DM_KEY_SAFE_POINTS, current_seq, &mission_safe_point, sizeof(mission_safe_point_s)) !=
+		    sizeof(mission_safe_point_s)) {
+			PX4_ERR("dm_read failed");
+			continue;
+		}
+
+		// TODO: take altitude into account for distance measurement
+		dlat = mission_safe_point.lat - global_position.lat;
+		dlon = mission_safe_point.lon - global_position.lon;
+		double dist_squared = dlat * dlat + dlon * dlon;
+
+		if (dist_squared < min_dist_squared) {
+			closest_index = current_seq;
+			min_dist_squared = dist_squared;
+			closest_safe_point = mission_safe_point;
+		}
+	}
+
+	if (closest_index > 0) {
+		_destination.type = RTL_DESTINATION_SAFE_POINT;
+
+		// There is a safe point closer than home/mission landing
+		// TODO: handle all possible mission_safe_point.frame cases
+		switch (closest_safe_point.frame) {
+		case 0: // MAV_FRAME_GLOBAL
+			_destination.lat = closest_safe_point.lat;
+			_destination.lon = closest_safe_point.lon;
+			_destination.alt = closest_safe_point.alt;
+			_destination.yaw = home_landing_position.yaw;
+			break;
+
+		case 3: // MAV_FRAME_GLOBAL_RELATIVE_ALT
+			_destination.lat = closest_safe_point.lat;
+			_destination.lon = closest_safe_point.lon;
+			_destination.alt = closest_safe_point.alt + home_landing_position.alt; // alt of safe point is rel to home
+			_destination.yaw = home_landing_position.yaw;
+			break;
+
+		default:
+			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: unsupported MAV_FRAME");
+			break;
+		}
+	}
+
+}
+
+void
+RTL::find_RTL_destination()
+{
+	// get home position:
+	home_position_s &home_landing_position = *_navigator->get_home_position();
+
+	switch (rtl_type()) {
+	case RTL_HOME:
+		// always take home position as landing destination
+		_destination.set(home_landing_position);
+		_destination.type = RTL_DESTINATION_HOME;
+		break;
+
+	case RTL_LAND:
+
+	// take mission landing as landing destination (if available), otherwise home
+	case RTL_MISSION:
+
+		// inverse mission
+		if (_navigator->get_mission_start_land_available()) {
+			_destination.lat = _navigator->get_mission_landing_lat();
+			_destination.lon = _navigator->get_mission_landing_lon();
+			_destination.alt = _navigator->get_mission_landing_alt();
+			_destination.type = RTL_DESTINATION_MISSION_LANDING;
+
+		} else {
+			_destination.set(home_landing_position);
+			_destination.type = RTL_DESTINATION_HOME;
+		}
+
+		break;
+
+	case RTL_CLOSEST:
+		// choose closest possible landing point (consider home, mission landing and safe points)
+		find_closest_landing_point();
+		break;
+
+	default:
+		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: unsupported RTL_TYPE. Change RTL_TYPE param.");
+		break;
+	}
 }
 
 int
@@ -69,78 +213,22 @@ void
 RTL::on_activation()
 {
 
-	// find the RTL destination: go through the safe points & home position
-	const home_position_s &home_position = *_navigator->get_home_position();
+	// output the correct message, depending on where the RTL destination is
+	switch (_destination.type) {
+	case RTL_DESTINATION_HOME:
+		mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: landing at home position.");
+		break;
+
+	case RTL_DESTINATION_MISSION_LANDING:
+		mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: landing at mission landing.");
+		break;
+
+	case RTL_DESTINATION_SAFE_POINT:
+		mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: landing at safe landing point.");
+		break;
+	}
+
 	const vehicle_global_position_s &global_position = *_navigator->get_global_position();
-
-	mission_stats_entry_s stats;
-	int ret = dm_read(DM_KEY_SAFE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
-	int num_safe_points = 0;
-
-	if (ret == sizeof(mission_stats_entry_s)) {
-		num_safe_points = stats.num_items;
-	}
-
-	int closest_index = 0;
-	mission_safe_point_s closest_safe_point;
-
-	// take home position into account
-	double dlat = home_position.lat - global_position.lat;
-	double dlon = home_position.lon - global_position.lon;
-	double min_dist_squared = dlat * dlat + dlon * dlon;
-
-	// find the closest point
-	for (int current_seq = 1; current_seq <= num_safe_points; ++current_seq) {
-		mission_safe_point_s mission_safe_point;
-
-		if (dm_read(DM_KEY_SAFE_POINTS, current_seq, &mission_safe_point, sizeof(mission_safe_point_s)) !=
-		    sizeof(mission_safe_point_s)) {
-			PX4_ERR("dm_read failed");
-			continue;
-		}
-
-		// TODO: take altitude into account for distance measurement
-
-		dlat = mission_safe_point.lat - global_position.lat;
-		dlon = mission_safe_point.lon - global_position.lon;
-		double dist_squared = dlat * dlat + dlon * dlon;
-
-		if (dist_squared < min_dist_squared) {
-			closest_index = current_seq;
-			min_dist_squared = dist_squared;
-			closest_safe_point = mission_safe_point;
-		}
-	}
-
-	if (closest_index == 0) {
-		_destination.set(home_position);
-
-	} else {
-
-		// TODO: handle all possible mission_safe_point.frame cases
-		switch (closest_safe_point.frame) {
-		case 0: // MAV_FRAME_GLOBAL
-			_destination.safe_point_index = closest_index;
-			_destination.lat = closest_safe_point.lat;
-			_destination.lon = closest_safe_point.lon;
-			_destination.alt = closest_safe_point.alt;
-			_destination.yaw = home_position.yaw;
-			break;
-
-		case 3: // MAV_FRAME_GLOBAL_RELATIVE_ALT
-			_destination.safe_point_index = closest_index;
-			_destination.lat = closest_safe_point.lat;
-			_destination.lon = closest_safe_point.lon;
-			_destination.alt = closest_safe_point.alt + home_position.alt; // alt of safe point is rel to home
-			_destination.yaw = home_position.yaw;
-			break;
-
-		default:
-			mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: unsupported MAV_FRAME. Landing at HOME.");
-			_destination.set(home_position);
-			break;
-		}
-	}
 
 	_rtl_alt = calculate_return_alt_from_cone_half_angle((float)_param_rtl_cone_half_angle_deg.get());
 
@@ -148,7 +236,7 @@ RTL::on_activation()
 		// For safety reasons don't go into RTL if landed.
 		_rtl_state = RTL_STATE_LANDED;
 
-	} else if ((rtl_type() == RTL_LAND) && _navigator->on_mission_landing()) {
+	} else if ((_destination.type == RTL_DESTINATION_MISSION_LANDING) && _navigator->on_mission_landing()) {
 		// RTL straight to RETURN state, but mission will takeover for landing.
 
 	} else if ((global_position.alt < _destination.alt + _param_rtl_return_alt.get()) || _rtl_alt_min) {
@@ -185,8 +273,8 @@ RTL::set_rtl_item()
 {
 	// RTL_TYPE: mission landing.
 	// Landing using planned mission landing, fly to DO_LAND_START instead of returning _destination.
-	// Do nothing, let navigator takeover with mission landing.
-	if (rtl_type() == RTL_LAND) {
+	// After reaching DO_LAND_START, do nothing, let navigator takeover with mission landing.
+	if (_destination.type == RTL_DESTINATION_MISSION_LANDING) {
 		if (_rtl_state > RTL_STATE_CLIMB) {
 			if (_navigator->start_mission_landing()) {
 				mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: using mission landing");
