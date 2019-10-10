@@ -48,7 +48,7 @@ px4_add_board(
 		pwm_out_sim
 		px4fmu
 		px4io
-		pozyx
+		#pozyx
 		rc_input
 		roboclaw
 		safety_button
