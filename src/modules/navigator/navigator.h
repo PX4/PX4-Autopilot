@@ -268,7 +268,11 @@ public:
 	bool		is_planned_mission() const { return _navigation_mode == &_mission; }
 	bool		on_mission_landing() { return _mission.landing(); }
 	bool		start_mission_landing() { return _mission.land_start(); }
-	bool		mission_start_land_available() { return _mission.get_land_start_available(); }
+	bool		get_mission_start_land_available() { return _mission.get_land_start_available(); }
+	int 		get_mission_landing_index() { return _mission.get_land_start_index(); }
+	double 	get_mission_landing_lat() { return _mission.get_landing_lat(); }
+	double 	get_mission_landing_lon() { return _mission.get_landing_lon(); }
+	float 	get_mission_landing_alt() { return _mission.get_landing_alt(); }
 
 	// RTL
 	bool		mission_landing_required() { return _rtl.rtl_type() == RTL::RTL_LAND; }

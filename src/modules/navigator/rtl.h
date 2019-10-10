@@ -57,6 +57,13 @@ public:
 		RTL_HOME = 0,
 		RTL_LAND,
 		RTL_MISSION,
+		RTL_CLOSEST,
+	};
+
+	enum RTLDestinationType {
+		RTL_DESTINATION_HOME = 0,
+		RTL_DESTINATION_MISSION_LANDING,
+		RTL_DESTINATION_SAFE_POINT,
 	};
 
 	RTL(Navigator *navigator);
@@ -67,9 +74,14 @@ public:
 	void on_activation() override;
 	void on_active() override;
 
+	void find_closest_landing_point();
+	void find_RTL_destination();
+
 	void set_return_alt_min(bool min);
 
 	int rtl_type() const;
+
+	int rtl_destination();
 
 private:
 	/**
@@ -101,7 +113,8 @@ private:
 		double lon;
 		float alt;
 		float yaw;
-		uint8_t safe_point_index; ///< 0 = home position
+		uint8_t safe_point_index; ///< 0 = home position, 1 = mission landing, >1 = safe landing points (rally points)
+		RTLDestinationType type{RTL_DESTINATION_HOME};
 
 		void set(const home_position_s &home_position)
 		{
@@ -110,10 +123,11 @@ private:
 			alt = home_position.alt;
 			yaw = home_position.yaw;
 			safe_point_index = 0;
+			type = RTL_DESTINATION_HOME;
 		}
 	};
 
-	RTLPosition _destination; ///< the RTL position to fly to (typically the home position or a safe point)
+	RTLPosition _destination{}; ///< the RTL position to fly to (typically the home position or a safe point)
 
 	float _rtl_alt{0.0f};	// AMSL altitude at which the vehicle should return to the home position
 	bool _rtl_alt_min{false};
