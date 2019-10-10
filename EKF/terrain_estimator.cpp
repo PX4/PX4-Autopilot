@@ -103,8 +103,8 @@ void Ekf::runTerrainEstimator()
 		_terrain_var += sq(_imu_sample_delayed.delta_vel_dt * _params.terrain_p_noise);
 
 		// process noise due to terrain gradient
-		_terrain_var += sq(_imu_sample_delayed.delta_vel_dt * _params.terrain_gradient) * (sq(_state.vel(0)) + sq(_state.vel(
-					1)));
+		_terrain_var += sq(_imu_sample_delayed.delta_vel_dt * _params.terrain_gradient)
+				* (sq(_state.vel(0)) + sq(_state.vel(1)));
 
 		// limit the variance to prevent it becoming badly conditioned
 		_terrain_var = math::constrain(_terrain_var, 0.0f, 1e4f);
@@ -117,7 +117,6 @@ void Ekf::runTerrainEstimator()
 			// we do this here to avoid doing those calculations at a high rate
 			_sin_tilt_rng = sinf(_params.rng_sens_pitch);
 			_cos_tilt_rng = cosf(_params.rng_sens_pitch);
-
 		}
 
 		if (_flow_for_terrain_data_ready) {
@@ -131,8 +130,7 @@ void Ekf::runTerrainEstimator()
 		}
 	}
 
-	// Update terrain validity
-	update_terrain_valid();
+	updateTerrainValidity();
 }
 
 void Ekf::fuseHagl()
@@ -149,7 +147,9 @@ void Ekf::fuseHagl()
 		_hagl_innov = pred_hagl - meas_hagl;
 
 		// calculate the observation variance adding the variance of the vehicles own height uncertainty
-		float obs_variance = fmaxf(P[9][9] * _params.vehicle_variance_scaler, 0.0f) + sq(_params.range_noise) + sq(_params.range_noise_scaler * _range_sample_delayed.rng);
+		float obs_variance = fmaxf(P[9][9] * _params.vehicle_variance_scaler, 0.0f)
+				     + sq(_params.range_noise)
+				     + sq(_params.range_noise_scaler * _range_sample_delayed.rng);
 
 		// calculate the innovation variance - limiting it to prevent a badly conditioned fusion
 		_hagl_innov_var = fmaxf(_terrain_var + obs_variance, obs_variance);
@@ -168,18 +168,20 @@ void Ekf::fuseHagl()
 			// record last successful fusion event
 			_time_last_hagl_fuse = _time_last_imu;
 			_innov_check_fail_status.flags.reject_hagl = false;
+
 		} else {
 			// If we have been rejecting range data for too long, reset to measurement
 			if ((_time_last_imu - _time_last_hagl_fuse) > (uint64_t)10E6) {
 				_terrain_vpos = _state.pos(2) + meas_hagl;
 				_terrain_var = obs_variance;
+
 			} else {
 				_innov_check_fail_status.flags.reject_hagl = true;
 			}
 		}
+
 	} else {
 		_innov_check_fail_status.flags.reject_hagl = true;
-		return;
 	}
 }
 
@@ -218,14 +220,14 @@ void Ekf::fuseFlowForTerrain()
 	// rotate into body frame
 	Vector3f vel_body = earth_to_body * vel_rel_earth;
 
-	float t0 = q0*q0 - q1*q1 - q2*q2 + q3*q3;
+	float t0 = q0 * q0 - q1 * q1 - q2 * q2 + q3 * q3;
 
 	// constrain terrain to minimum allowed value and predict height above ground
 	_terrain_vpos = fmaxf(_terrain_vpos, _params.rng_gnd_clearance + _state.pos(2));
 	float pred_hagl = _terrain_vpos - _state.pos(2);
 
 	// Calculate observation matrix for flow around the vehicle x axis
-	float Hx = vel_body(1) * t0 /(pred_hagl * pred_hagl);
+	float Hx = vel_body(1) * t0 / (pred_hagl * pred_hagl);
 
 	// Constrain terrain variance to be non-negative
 	_terrain_var = fmaxf(_terrain_var, 0.0f);
@@ -237,7 +239,7 @@ void Ekf::fuseFlowForTerrain()
 	float Kx = _terrain_var * Hx / _flow_innov_var[0];
 
 	// calculate prediced optical flow about x axis
-	float pred_flow_x = vel_body(1) * earth_to_body(2,2) / pred_hagl;
+	float pred_flow_x = vel_body(1) * earth_to_body(2, 2) / pred_hagl;
 
 	// calculate flow innovation (x axis)
 	_flow_innov[0] = pred_flow_x - opt_flow_rate(0);
@@ -258,7 +260,7 @@ void Ekf::fuseFlowForTerrain()
 	}
 
 	// Calculate observation matrix for flow around the vehicle y axis
-	float Hy = -vel_body(0) * t0 /(pred_hagl * pred_hagl);
+	float Hy = -vel_body(0) * t0 / (pred_hagl * pred_hagl);
 
 	// Calculuate innovation variance
 	_flow_innov_var[1] = Hy * Hy * _terrain_var + R_LOS;
@@ -267,7 +269,7 @@ void Ekf::fuseFlowForTerrain()
 	float Ky = _terrain_var * Hy / _flow_innov_var[1];
 
 	// calculate prediced optical flow about y axis
-	float pred_flow_y = -vel_body(0) * earth_to_body(2,2) / pred_hagl;
+	float pred_flow_y = -vel_body(0) * earth_to_body(2, 2) / pred_hagl;
 
 	// calculate flow innovation (y axis)
 	_flow_innov[1] = pred_flow_y - opt_flow_rate(1);
@@ -286,45 +288,37 @@ void Ekf::fuseFlowForTerrain()
 	}
 }
 
-// return true if the terrain height estimate is valid
-bool Ekf::get_terrain_valid()
+bool Ekf::isTerrainEstimateValid()
 {
 	return _hagl_valid;
 }
 
-// determine terrain validity
-void Ekf::update_terrain_valid()
+void Ekf::updateTerrainValidity()
 {
 	// we have been fusing range finder measurements in the last 5 seconds
-	bool recent_range_fusion = (_time_last_imu - _time_last_hagl_fuse) < 5*1000*1000;
+	bool recent_range_fusion = (_time_last_imu - _time_last_hagl_fuse) < (uint64_t)5e6;
 
 	// we have been fusing optical flow measurements for terrain estimation within the last 5 seconds
 	// this can only be the case if the main filter does not fuse optical flow
-	bool recent_flow_for_terrain_fusion = ((_time_last_imu - _time_last_of_fuse) < 5*1000*1000) && !_control_status.flags.opt_flow;
+	bool recent_flow_for_terrain_fusion = ((_time_last_imu - _time_last_of_fuse) < (uint64_t)5e6)
+					      && !_control_status.flags.opt_flow;
 
-
-	if (_terrain_initialised && (recent_range_fusion || recent_flow_for_terrain_fusion)) {
-
-		_hagl_valid = true;
-
-	} else {
-		_hagl_valid = false;
-	}
+	_hagl_valid = (_terrain_initialised && (recent_range_fusion || recent_flow_for_terrain_fusion));
 }
 
 // get the estimated vertical position of the terrain relative to the NED origin
-void Ekf::get_terrain_vert_pos(float *ret)
+void Ekf::getTerrainVertPos(float *ret)
 {
 	memcpy(ret, &_terrain_vpos, sizeof(float));
 }
 
-void Ekf::get_hagl_innov(float *hagl_innov)
+void Ekf::getHaglInnov(float *hagl_innov)
 {
 	memcpy(hagl_innov, &_hagl_innov, sizeof(_hagl_innov));
 }
 
 
-void Ekf::get_hagl_innov_var(float *hagl_innov_var)
+void Ekf::getHaglInnovVar(float *hagl_innov_var)
 {
 	memcpy(hagl_innov_var, &_hagl_innov_var, sizeof(_hagl_innov_var));
 }
@@ -342,10 +336,5 @@ void Ekf::checkRangeDataContinuity()
 
 	_dt_last_range_update_filt_us = fminf(_dt_last_range_update_filt_us, 4e6f);
 
-	if (_dt_last_range_update_filt_us < 2e6f) {
-		_range_data_continuous = true;
-
-	} else {
-		_range_data_continuous = false;
-	}
+	_range_data_continuous = (_dt_last_range_update_filt_us < 2e6f);
 }
