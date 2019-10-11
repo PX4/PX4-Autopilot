@@ -65,15 +65,14 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_direct.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/test_motor.h>
 
 #define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	4
 
-// we add two to allow for actuator_direct and busevent
-#define UAVCAN_NUM_POLL_FDS (NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN+2)
+// we add 1 to allow for busevent
+#define UAVCAN_NUM_POLL_FDS (NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN+1)
 
 /**
  * A UAVCAN node.
@@ -203,10 +202,6 @@ private:
 	uORB::Subscription		_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription		_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription		_test_motor_sub{ORB_ID(test_motor)};
-
-	int				_actuator_direct_sub{-1};   ///< uORB subscription of the actuator_direct topic
-	uint8_t				_actuator_direct_poll_fd_num{0};
-
 
 	perf_counter_t			_cycle_perf;
 	perf_counter_t			_interval_perf;
