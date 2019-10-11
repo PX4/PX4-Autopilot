@@ -289,6 +289,7 @@ CollisionPrevention::_adaptSetpointDirection(Vector2f &setpoint_dir, int &setpoi
 	const int guidance_bins = floor(_param_cp_guide_ang.get() / INTERNAL_MAP_INCREMENT_DEG);
 	const int sp_index_original = setpoint_index;
 	float best_cost = 9999.f;
+	int new_sp_index = setpoint_index;
 
 	for (int i = sp_index_original - guidance_bins; i <= sp_index_original + guidance_bins; i++) {
 
@@ -314,12 +315,16 @@ CollisionPrevention::_adaptSetpointDirection(Vector2f &setpoint_dir, int &setpoi
 
 		if (bin_cost < best_cost && _obstacle_map_body_frame.distances[bin] != UINT16_MAX) {
 			best_cost = bin_cost;
-
-			float angle = math::radians((float)bin * INTERNAL_MAP_INCREMENT_DEG + _obstacle_map_body_frame.angle_offset);
-			angle = wrap_2pi(vehicle_yaw_angle_rad + angle);
-			setpoint_dir = {cosf(angle), sinf(angle)};
-			setpoint_index = bin;
+			new_sp_index = bin;
 		}
+	}
+
+	//only change setpoint direction if it was moved to a different bin
+	if (new_sp_index != setpoint_index) {
+		float angle = math::radians((float)new_sp_index * INTERNAL_MAP_INCREMENT_DEG + _obstacle_map_body_frame.angle_offset);
+		angle = wrap_2pi(vehicle_yaw_angle_rad + angle);
+		setpoint_dir = {cosf(angle), sinf(angle)};
+		setpoint_index = new_sp_index;
 	}
 }
 

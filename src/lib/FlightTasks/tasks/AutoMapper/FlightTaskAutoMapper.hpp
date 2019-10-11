@@ -77,6 +77,10 @@ protected:
 private:
 
 	void _reset(); /**< Resets member variables to current vehicle state */
+	void _checkPositionLock(); /**< check whether position should be locked */
 	WaypointType _type_previous{WaypointType::idle}; /**< Previous type of current target triplet. */
 	bool _highEnoughForLandingGear(); /**< Checks if gears can be lowered. */
+	bool _position_locked{false};
+	bool _request_position_lock{false};
+	matrix::Vector3f _locked_position; /**< position at which vehicle is locked */
 };

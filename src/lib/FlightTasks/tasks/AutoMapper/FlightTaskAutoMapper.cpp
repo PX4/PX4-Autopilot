@@ -92,6 +92,37 @@ bool FlightTaskAutoMapper::update()
 				_yawspeed_setpoint);
 	}
 
+	// COLLISION PREVENTION
+	if (_collision_prevention.is_active() && follow_line) {
+
+		//from position to velocity setpoints
+		if (!PX4_ISFINITE(_velocity_setpoint(0)) || !PX4_ISFINITE(_velocity_setpoint(1))) {
+			_velocity_setpoint = _position_setpoint - _position;
+		}
+
+		Vector2f vel_sp_original = Vector2f(_velocity_setpoint);
+		Vector2f vel_sp_modified = vel_sp_original;
+		// use the minimum of the estimator and user specified limit
+		float velocity_scale = fminf(_constraints.speed_xy, _sub_vehicle_local_position.get().vxy_max);
+		// Allow for a minimum of 0.3 m/s for repositioning
+		velocity_scale = fmaxf(velocity_scale, 0.3f);
+
+		_collision_prevention.modifySetpoint(vel_sp_modified, velocity_scale, Vector2f(_position),
+						     Vector2f(_velocity));
+
+		// switch to hold if the collision prevention limits the setpoint to zero
+		if (vel_sp_modified.norm() < 0.01f && vel_sp_original.norm() > 0.01f) {
+			_request_position_lock = true;
+		}
+
+		_velocity_setpoint(0) = vel_sp_modified(0);
+		_velocity_setpoint(1) = vel_sp_modified(1);
+		_position_setpoint(0) = NAN;
+		_position_setpoint(1) = NAN;
+		_compute_heading_from_2D_vector(_yaw_setpoint, Vector2f(_velocity_setpoint));
+		_checkPositionLock();
+	}
+
 	// during mission and reposition, raise the landing gears but only
 	// if altitude is high enough
 	if (_highEnoughForLandingGear()) {
@@ -102,6 +133,25 @@ bool FlightTaskAutoMapper::update()
 	_type_previous = _type;
 
 	return true;
+}
+
+void FlightTaskAutoMapper::_checkPositionLock()
+{
+
+	if ((_param_mpc_yaw_mode.get() == 4 && !_yaw_sp_aligned) || _request_position_lock) {
+		// Wait for the yaw setpoint to be aligned
+		if (!_position_locked) {
+			_locked_position = _position;
+		}
+
+		_velocity_setpoint.setAll(0.f);
+		_position_setpoint = _locked_position;
+		_position_locked = true;
+		_request_position_lock = false;
+
+	} else {
+		_position_locked = false;
+	}
 }
 
 void FlightTaskAutoMapper::_reset()
