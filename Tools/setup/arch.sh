@@ -86,7 +86,7 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 	# add user to dialout group (serial port access)
 	sudo usermod -aG uucp $USER
 
-	# Remove modem manager (interferes with PX4 serial port/USB serial usage).
+	# remove modem manager (interferes with PX4 serial port/USB serial usage).
 	sudo pacman -R modemmanager --noconfirm
 
 	# arm-none-eabi-gcc
@@ -124,12 +124,12 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		jdk8-openjdk \
 		;
 
-	# Simulation tools
+	# Gazebo setup
 	if [[ $INSTALL_GAZEBO == "true" ]]; then
 		echo
 		echo "Installing gazebo and dependencies for PX4 simulation"
 
-		# java (jmavsim or fastrtps)
+		# PX4 gazebo simulation dependencies
 		sudo pacman -S --noconfirm --needed \
 			eigen3 \
 			hdf5 \
@@ -139,8 +139,20 @@ if [[ $INSTALL_SIM == "true" ]]; then
 			yay \
 			;
 
+		# enable multicore gazebo compilation
 		sudo sed -i '/MAKEFLAGS=/c\MAKEFLAGS="-j'$(($(grep -c processor /proc/cpuinfo)+2))'"' /etc/makepkg.conf
 
+		# install gazebo from AUR
+		yay -S gazebo --noconfirm
+
+		# fix incompatible compile flag to disable default testing that leads to build error
+		# see https://bitbucket.org/ignitionrobotics/ign-cmake/issues/62/compilation-failing-when-performing
+		pushd ~/.cache/yay/ignition-cmake/
+		sed -i 's/-DENABLE_TESTS_COMPILATION:BOOL=False/-DBUILD_TESTING=OFF/g' PKGBUILD
+		makepkg -si --noconfirm
+		popd
+
+		# continue installing gezebo
 		yay -S gazebo --noconfirm
 
 		if sudo dmidecode -t system | grep -q "Manufacturer: VMware, Inc." ; then
