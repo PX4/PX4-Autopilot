@@ -139,6 +139,8 @@ if [[ $INSTALL_SIM == "true" ]]; then
 			yay \
 			;
 
+		sudo sed -i '/MAKEFLAGS=/c\MAKEFLAGS="-j'$(($(grep -c processor /proc/cpuinfo)+2))'"' /etc/makepkg.conf
+
 		yay -S gazebo --noconfirm
 
 		if sudo dmidecode -t system | grep -q "Manufacturer: VMware, Inc." ; then
