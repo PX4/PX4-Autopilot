@@ -440,8 +440,6 @@ extern void docap_pack_send (int max_min);
 
 extern void follow_ack_pack_send(uint8_t failed);
 
-extern void yfwi_pack(const uint8_t *buffer, MSG_type msg_type, MSG_param_hd msg_hd);
-
 extern void exyf_response_pack(MSG_type msg_type, MSG_param_hd msg_hd);
 
 extern int find_frame(uint8_t data);

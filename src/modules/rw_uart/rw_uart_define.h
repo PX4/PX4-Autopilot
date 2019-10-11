@@ -40,6 +40,7 @@
 //#define WIFI_COMM_TOUCH_CONTROL (uint8_t)255
 
 #define YFWI_COMM_CHANGE_PARAM (uint8_t)116
+#define YFWI_COMM_RETURN (uint8_t)117
 #define YFWI_COMM_YAW_FORCE (uint8_t)118
 
 #define EXYF_COMM_LOITER_YAW (uint8_t)4

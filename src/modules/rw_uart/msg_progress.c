@@ -405,6 +405,29 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
         publish_manual_pd(msg_pd, msg_data);
         break;
 
+    case MSG_NAME_YFWI:
+        switch (msg_type.command) {
+        case YFWI_COMM_YAW_FORCE:
+            if (buffer[8] == 0) {
+                paramd = 3;
+                param_set(msg_hd.yaw_force_hd, &paramd);
+            }
+            else {
+                paramd= 0;
+                param_set(msg_hd.yaw_force_hd, &paramd);
+            }
+            printf("Passing yfwi_pack\n");
+            break;
+        case YFWI_COMM_RETURN:
+            set_command_param(&msg_data->command_data, 20, 0, 0, 0, 0, 0, 0, 0);
+                                           //VEHICLE_CMD_NAV_RETURN_TO_LAUNCH
+            publish_commander_pd(msg_pd, msg_data);
+            break;
+        default:
+            break;
+        }
+        break;
+
     case MSG_NAME_EXYF:
         switch (msg_type.command) {
         case EXYF_COMM_LOITER_YAW:
@@ -579,7 +602,7 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
                     }
                 }
                 else {
-                    yfwi_pack(buffer,msg_type, msg_hd);
+                    msg_orb_param_pro(buffer, msg_pd, msg_data, msg_hd, msg_type);
                 }
             }
         }

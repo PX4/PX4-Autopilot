@@ -219,22 +219,3 @@ bool yfwi_param_set(const uint8_t *buffer, MSG_param_hd msg_hd){
     }
     return changed;
 }
-
-void yfwi_pack(const uint8_t *buffer, MSG_type msg_type, MSG_param_hd msg_hd){
-    int paramd;
-    switch (msg_type.command) {
-    case YFWI_COMM_YAW_FORCE:
-        if (buffer[8] == 0) {
-            paramd = 3;
-            param_set(msg_hd.yaw_force_hd, &paramd);
-        }
-        else {
-            paramd= 0;
-            param_set(msg_hd.yaw_force_hd, &paramd);
-        }
-        printf("Passing yfwi_pack\n");
-        break;
-    default:
-        break;
-    }
-}
