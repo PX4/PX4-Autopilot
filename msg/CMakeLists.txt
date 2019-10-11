@@ -38,7 +38,6 @@ set(msg_files
 	actuator_outputs.msg
 	adc_report.msg
 	airspeed.msg
-	arm_disarm.msg
 	battery_status.msg
 	camera_capture.msg
 	camera_trigger.msg

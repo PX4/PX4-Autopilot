@@ -196,18 +196,6 @@ void publish_status_pd(MSG_orb_pub *msg_pd, MSG_orb_data *msg_data)
     }
 }
 
-void publish_arm_pd(MSG_orb_pub *msg_pd, MSG_orb_data *msg_data)
-{
-    if (msg_pd->arm_disarm_pd != NULL){
-        orb_publish(ORB_ID(arm_disarm), msg_pd->arm_disarm_pd, &msg_data->arm_disarm_data);
-        printf("Passing 2_1\n");
-    }
-    else{
-        msg_pd->arm_disarm_pd = orb_advertise(ORB_ID(arm_disarm), &msg_data->arm_disarm_data);
-        printf("Passing 2_2\n");
-    }
-}
-
 void publish_manual_pd(MSG_orb_pub *msg_pd, MSG_orb_data *msg_data)
 {
     if (msg_pd->manual_pd != NULL){
@@ -243,6 +231,12 @@ void set_command_param(struct vehicle_command_s *command_data, int command_num, 
     command_data->param5 = param5;
     command_data->param6 = param6;
     command_data->param7 = param7;
+    command_data->target_system = 1;
+    command_data->target_component =1;
+    command_data->source_system =255;
+    command_data->source_component =0;
+    command_data->confirmation =0;
+    command_data->from_external =1;
 }
 
 void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data *msg_data,
@@ -265,7 +259,7 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
         case WIFI_COMM_AUTO_LAND:
             set_command_param(&msg_data->command_data, 21, 0, 0, 0, 0,
                               ((double_t)msg_data->global_position_data.lat),
-                              ((double_t)msg_data->global_position_data.lat),
+                              ((double_t)msg_data->global_position_data.lon),
                               0);
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing land\n");
@@ -273,8 +267,8 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
         case WIFI_COMM_AUTO_TAKEOFF:
             set_command_param(&msg_data->command_data, 22, 0, 0, 0, 0,
                               ((double_t)msg_data->global_position_data.lat),
-                              ((double_t)msg_data->global_position_data.lat),
-                              ((float_t) msg_data->global_position_data.alt) +10.0);
+                              ((double_t)msg_data->global_position_data.lon),
+                              ((float_t) msg_data->global_position_data.alt) -10.0);
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing takeoff\n");
             break;
@@ -286,10 +280,10 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             if (*(uint16_t*)((uint32_t)buffer + 6) > WP_DATA_NUM_MAX){
                 printf("Wrong waypoints sequece\n");
             }else {
-                uint8_t new;
+                uint8_t newpoint;
                 if (wp_data.setd[*(uint16_t*)((uint32_t)buffer + 6) -1].waypoint_seq > 0){
-                    new = 0;
-                } else new =1;
+                    newpoint = 0;
+                } else newpoint =1;
                 wp_data.push = &wp_data.setd[*(uint16_t*)((uint32_t)buffer + 6) -1];
                 wp_data.push->head[0] = '$';
                 wp_data.push->head[1] = 'S';
@@ -305,7 +299,7 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
                 wp_data.push->photo_set = buffer[23];
                 wp_data.push->photo_dis = buffer[24];
                 wp_data.push->turn_mode = buffer[25];
-                wp_data.num += new;
+                wp_data.num += newpoint;
                 wp_save();
                 if (wp_data.num == WP_DATA_NUM_MAX) printf("Waypoints num is max\n");
                 //else wp_data.push = &wp_data.setd[wp_data.num];
@@ -345,7 +339,7 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
         case WIFI_COMM_HIGHT_CHANGE:
             set_command_param(&msg_data->command_data, 16, 0, 0, 0, 0,
                               ((double_t)msg_data->global_position_data.lat),
-                              ((double_t)msg_data->global_position_data.lat),
+                              ((double_t)msg_data->global_position_data.lon),
                               ((float_t)*(int16_t*)((uint32_t)buffer + 7))/10.0);//VEHICLE_CMD_NAV_WAYPOINT
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing hight_change\n");
@@ -370,7 +364,7 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
         case WIFI_COMM_AUTO_FLIGHT_OFF:
             set_command_param(&msg_data->command_data, 17, 0, 0, 0, 0,
                               ((double_t)msg_data->global_position_data.lat),
-                              ((double_t)msg_data->global_position_data.lat),
+                              ((double_t)msg_data->global_position_data.lon),
                               ((float_t) msg_data->global_position_data.alt));//CMD_NAV_LOITER_UNLIM
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing auto_off\n");
@@ -380,15 +374,15 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             printf("Passing param_set get_mid\n");
             break;
         case WIFI_COMM_DISARMED:
-            msg_data->arm_disarm_data.arm_disarm = false;
-            msg_data->arm_disarm_data.timestamp = hrt_absolute_time();
-            publish_arm_pd(msg_pd, msg_data);
+            set_command_param(&msg_data->command_data, 400,
+                                            0, 0, 0, 0, 0, 0, 0);//VEHICLE_CMD_COMPONENT_ARM_DISARM
+            publish_commander_pd(msg_pd, msg_data);
             printf("Passing disarm\n");
             break;
         case WIFI_COMM_ARMED:
-            msg_data->arm_disarm_data.arm_disarm = true;
-            msg_data->arm_disarm_data.timestamp = hrt_absolute_time();
-            publish_arm_pd(msg_pd, msg_data);
+            set_command_param(&msg_data->command_data, 400,
+                                            1, 0, 0, 0, 0, 0, 0);//VEHICLE_CMD_COMPONENT_ARM_DISARM
+            publish_commander_pd(msg_pd, msg_data);
             printf("Passing arm\n");
             break;
         case WIFI_COMM_RC_POS:
@@ -418,7 +412,7 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
                 set_command_param(&msg_data->command_data, 17, 0, 0, 0,
                                   (float_t)*(int32_t*)((uint32_t)buffer + 9),
                                   ((double_t)msg_data->global_position_data.lat),
-                                  ((double_t)msg_data->global_position_data.lat),
+                                  ((double_t)msg_data->global_position_data.lon),
                                   ((float_t) msg_data->global_position_data.alt));
             }
             publish_commander_pd(msg_pd, msg_data);
@@ -515,7 +509,7 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             paramf = (float)*(uint16_t*)((uint32_t)buffer + 9);
             set_command_param(&msg_data->command_data, 17, 0, 0, 0, 0,
                               ((double_t)msg_data->global_position_data.lat),
-                              ((double_t)msg_data->global_position_data.lat),
+                              ((double_t)msg_data->global_position_data.lon),
                               ((float_t) msg_data->global_position_data.alt)+ paramf /10.0);
             memcpy(&paramf , &buffer[11], sizeof(float));
             param_set(msg_hd.up_vel_max_hd, &paramf);

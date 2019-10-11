@@ -2,14 +2,6 @@
 #include"rw_uart.h"
 #include"rw_uart_define.h"
 
-uint8_t get_control_status(uint16_t command,uint8_t nav_state);
-
-uint8_t get_warnning (bool geofence_violated, uint8_t warning );
-
-void stp_pack (STP *stp, MSG_orb_data stp_data);
-
-void YFPA_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd);
-
 //void send_stp (STP *stp);
 uint8_t get_frame(int data){
     uint8_t frame;
@@ -67,8 +59,16 @@ uint8_t get_control_status(uint16_t command, uint8_t nav_state){
             return 2;
             break;
         case 1: //NAVIGATION_STATE_ALTCTL :
-        case 2: //NAVIGATION_STATE_POSCTL :
             return 3;
+            break;
+        case 2: //NAVIGATION_STATE_POSCTL :
+            return 10;
+            break;
+        case 17: //NAVIGATION_STATE_TAKEOFF :
+            return 5;
+            break;
+        case 18: //NAVIGATION_STATE_LAND :
+            return 6;
             break;
         case 20: //NAVIGATION_STATE_AUTO_PRECLAND :
             return 4;
@@ -116,12 +116,14 @@ void stp_pack (STP *stp, MSG_orb_data stp_data){
     stp->wp_num = (uint8_t)stp_data.mission_data.seq_total;
     stp->mission_num = (uint8_t)stp_data.mission_data.seq_current;
 
+    stp->control_status = get_control_status (stp_data.command_data.command, stp_data.status_data.nav_state);
+
     stp->rc_yaw = (uint8_t)(stp_data.manual_data.r * 50.0 + 150.0);
     stp->rc_y = (uint8_t)(stp_data.manual_data.y * 50.0 +150.0 );
     stp->rc_x = (uint8_t)(-stp_data.manual_data.x * 50.0 + 150.0);
     stp->rc_z = (uint8_t)((1-stp_data.manual_data.z) * 200.0);
 
-    if (stp_data.status_data.nav_state == 0 /*NAVIGATION_STATE_MANUAL*/ ){
+    if (stp_data.status_data.nav_state < 3 /*NAVIGATION_STATE_MANUAL*/ ){
         stp->sp_yaw = stp->rc_yaw;
         stp->sp_y = stp->rc_y;
         stp->sp_x = stp->rc_x;
@@ -131,7 +133,8 @@ void stp_pack (STP *stp, MSG_orb_data stp_data){
          stp->sp_yaw =(uint8_t)(stp_data.local_position_sp_data.yawspeed/45.0 * 50.0 + 150.0);
          stp->sp_y = (uint8_t)(stp_data.local_position_sp_data.thrust[1] * 50.0 + 150.0);
          stp->sp_x = (uint8_t)(stp_data.local_position_sp_data.thrust[0] * 50.0 + 150.0);
-         stp->sp_z = (uint8_t)(stp_data.local_position_sp_data.thrust[2] * 50.0 + 150.0);
+         //stp->sp_z = (uint8_t)(stp_data.local_position_sp_data.thrust[2] * 50.0 + 150.0);
+         stp->sp_z = (uint8_t)(-stp_data.local_position_sp_data.thrust[2] * 200);
     }
     stp->local_vz_sp = (int16_t)(stp_data.local_position_sp_data.vz * 100.0);
     stp->local_z_sp = (int16_t)(stp_data.local_position_sp_data.z * 10.0);
@@ -169,18 +172,21 @@ void stp_pack (STP *stp, MSG_orb_data stp_data){
     stp->rc_pitch_mid =150;
     stp->rc_roll_mid =150;
     stp->rc_yaw_mid =150;
-    stp->remain =0xff;
     stp->version =1000;
     stp->sum_check=0x00;
 
-    stp->local_z_pressure =  (int16_t)(-stp_data.air_data.baro_alt_meter * 10.0);
+    stp->local_z_pressure =  (int16_t)(stp_data.air_data.baro_alt_meter * 10.0);
     stp->temprature = (int8_t)(stp_data.air_data.baro_temp_celcius);
 
     stp->battery_voltage = (uint16_t)(stp_data.battery_data.voltage_filtered_v/25.0 * 4096.0);
     stp->battery_usage = (uint16_t)(stp_data.battery_data.discharged_mah);
     stp->battery_current = (uint8_t)(stp_data.battery_data.current_filtered_a);
 
-    stp->control_status = get_control_status (stp_data.command_data.command, stp_data.status_data.nav_state);
+    stp->skyway_state = (stp_data.status_data.nav_state < 3) ? 0x00 : 0x06;
+    if(stp_data.mission_data.finished == true) stp->skyway_state |= 0x80;
+    else stp->skyway_state &= 0x7f;
+    if (param_saved[18] == 3) stp->skyway_state &= 0xfe;
+    else stp->skyway_state |= 0x01;
 
     stp->warnning = get_warnning(stp_data.geofence_data.geofence_violated, stp_data.battery_data.warning);
 
@@ -237,6 +243,8 @@ void yfpa_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd){
     yfpa_param->yaw_d = (uint8_t)(paramf *25500.0);
     param_get(msg_hd.z_p_hd, &paramf);
     yfpa_param->z_p = (uint8_t)(paramf * 170.0);
+    param_get(msg_hd.yaw_force_hd, &paramd);
+    yfpa_param->yaw_mode =(uint8_t)(paramd);
     param_get(msg_hd.up_vel_max_hd, &paramf);
     yfpa_param->up_vel_max = (uint8_t)((paramf - 0.5)* 34.0);
     param_get(msg_hd.xy_vel_max_hd, &paramf);

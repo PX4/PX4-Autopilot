@@ -224,8 +224,8 @@ void yfwi_pack(const uint8_t *buffer, MSG_type msg_type, MSG_param_hd msg_hd){
     int paramd;
     switch (msg_type.command) {
     case YFWI_COMM_YAW_FORCE:
-        if (buffer[8] == 1) {
-            paramd = 1;
+        if (buffer[8] == 0) {
+            paramd = 3;
             param_set(msg_hd.yaw_force_hd, &paramd);
         }
         else {

@@ -40,7 +40,6 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/input_rc.h>
-#include <uORB/topics/arm_disarm.h>
 #include <uORB/topics/follow_target.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/vehicle_global_position.h>
@@ -104,7 +103,7 @@ typedef struct {
     uint8_t rc_pitch_mid;
     int8_t local_vy_high8;
     int16_t local_z_sp;
-    uint8_t remain; //0xff
+    uint8_t skyway_state; //0xff
     int16_t magnet_yaw;
     int8_t local_vz_low8;
     uint16_t flight_time;
@@ -130,7 +129,7 @@ typedef struct {
     uint8_t yaw_i;
     uint8_t yaw_d;
     uint8_t z_p;
-    uint8_t remain_1;
+    uint8_t yaw_mode; //remain_1
     uint8_t remain_2;
     uint8_t remain_3;
     uint8_t up_vel_max;
@@ -333,7 +332,6 @@ typedef struct {
     orb_advert_t local_position_sp_pd;
     orb_advert_t status_pd;
     orb_advert_t follow_target_pd;
-    orb_advert_t arm_disarm_pd;
 }MSG_orb_pub;
 
 typedef struct {
@@ -350,7 +348,6 @@ typedef struct {
     struct battery_status_s battery_data;
     struct geofence_result_s geofence_data;
 //    struct input_rc_s input_rc_data;
-    struct arm_disarm_s arm_disarm_data;
     struct estimator_status_s vibe_data;
     struct vehicle_global_position_s global_position_data;
 //    struct follow_target_s follow_target_data;
