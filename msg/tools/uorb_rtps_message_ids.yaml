@@ -3,8 +3,6 @@ rtps:
     id: 0
   - msg: actuator_controls
     id: 1
-  - msg: actuator_direct
-    id: 2
   - msg: actuator_outputs
     id: 3
   - msg: adc_report
