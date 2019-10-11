@@ -85,6 +85,7 @@
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/transponder_report.h>
+#include <uORB/topics/tune_control.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_command.h>
@@ -266,6 +267,7 @@ private:
 	uORB::PublicationQueued<transponder_report_s>	_transponder_report_pub{ORB_ID(transponder_report)};
 	uORB::PublicationQueued<vehicle_command_ack_s>	_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
 	uORB::PublicationQueued<vehicle_command_s>	_cmd_pub{ORB_ID(vehicle_command)};
+	uORB::PublicationQueued<tune_control_s>		_tune_control_pub{ORB_ID(tune_control)};
 
 	// ORB subscriptions
 	uORB::Subscription	_actuator_armed_sub{ORB_ID(actuator_armed)};
