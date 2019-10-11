@@ -960,6 +960,13 @@ void Navigator::check_traffic()
 			continue;
 		}
 
+
+		//ADSB Transmitter 14 = UAV
+		if (tr.emitter_type == 14) {
+			horizontal_separation = 10;
+			vertical_separation = 10;
+		}
+
 		float d_hor, d_vert;
 		get_distance_to_point_global_wgs84(lat, lon, alt,
 						   tr.lat, tr.lon, tr.altitude, &d_hor, &d_vert);
