@@ -7,13 +7,14 @@
 ## - Common dependencies and tools for nuttx, jMAVSim
 ## - NuttX toolchain (omit with arg: --no-nuttx)
 ## - jMAVSim simulator (omit with arg: --no-sim-tools)
+## - Gazebo simulator (not by default, use --gazebo)
 ##
 ## Not Installs:
-## - Gazebo simulation
 ## - FastRTPS and FastCDR
 
 INSTALL_NUTTX="true"
 INSTALL_SIM="true"
+INSTALL_GAZEBO="false"
 
 # Parse arguments
 for arg in "$@"
@@ -26,6 +27,9 @@ do
 		INSTALL_SIM="false"
 	fi
 
+	if [[ $arg == "--gazebo" ]]; then
+		INSTALL_GAZEBO="true"
+	fi
 done
 
 # script directory
@@ -119,6 +123,29 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		ant \
 		jdk8-openjdk \
 		;
+
+	# Simulation tools
+	if [[ $INSTALL_GAZEBO == "true" ]]; then
+		echo
+		echo "Installing gazebo and dependencies for PX4 simulation"
+
+		# java (jmavsim or fastrtps)
+		sudo pacman -S --noconfirm --needed \
+			eigen3 \
+			hdf5 \
+			opencv \
+			protobuf \
+			vtk \
+			yay \
+			;
+
+		yay -S gazebo --noconfirm
+
+		if sudo dmidecode -t system | grep -q "Manufacturer: VMware, Inc." ; then
+			# fix VMWare 3D graphics acceleration for gazebo
+			echo "export SVGA_VGPU10=0" >> ~/.profile
+		fi
+	fi
 fi
 
 if [[ $INSTALL_NUTTX == "true" ]]; then
