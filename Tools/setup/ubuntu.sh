@@ -136,9 +136,6 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		sudo usermod -a -G dialout $USER
 	fi
 
-	# Remove modem manager (interferes with PX4 serial port/USB serial usage).
-	sudo apt-get remove modemmanager -y
-
 	# arm-none-eabi-gcc
 	NUTTX_GCC_VERSION="7-2017-q4-major"
 
