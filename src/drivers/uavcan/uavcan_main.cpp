@@ -139,8 +139,6 @@ UavcanNode::~UavcanNode()
 		} while (_task != -1);
 	}
 
-	(void)orb_unsubscribe(_actuator_direct_sub);
-
 	// Removing the sensor bridges
 	_sensor_bridges.clear();
 
@@ -763,8 +761,6 @@ UavcanNode::run()
 	// XXX figure out the output count
 	_output_count = 2;
 
-	_actuator_direct_sub = orb_subscribe(ORB_ID(actuator_direct));
-
 	actuator_outputs_s outputs{};
 
 	// Set up the time synchronization
@@ -807,14 +803,6 @@ UavcanNode::run()
 	 * Instead, all ORB events need to be checked individually (see below).
 	 */
 	add_poll_fd(busevent_fd);
-
-	/*
-	 * setup poll to look for actuator direct input if we are
-	 * subscribed to the topic
-	 */
-	if (_actuator_direct_sub != -1) {
-		_actuator_direct_poll_fd_num = add_poll_fd(_actuator_direct_sub);
-	}
 
 	update_params();
 
@@ -884,23 +872,6 @@ UavcanNode::run()
 						orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
 					}
 				}
-			}
-
-			// see if we have any direct actuator updates
-			actuator_direct_s actuator_direct{};
-
-			if (_actuator_direct_sub != -1 &&
-			    (_poll_fds[_actuator_direct_poll_fd_num].revents & POLLIN) &&
-			    orb_copy(ORB_ID(actuator_direct), _actuator_direct_sub, &actuator_direct) == OK &&
-			    !_test_in_progress) {
-
-				if (actuator_direct.nvalues > actuator_outputs_s::NUM_ACTUATOR_OUTPUTS) {
-					actuator_direct.nvalues = actuator_outputs_s::NUM_ACTUATOR_OUTPUTS;
-				}
-
-				memcpy(&outputs.output[0], &actuator_direct.values[0], actuator_direct.nvalues * sizeof(float));
-				outputs.noutputs = actuator_direct.nvalues;
-				new_output = true;
 			}
 
 			// can we mix?

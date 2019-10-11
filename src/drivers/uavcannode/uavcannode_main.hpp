@@ -51,8 +51,8 @@
 #define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	1
 #define UAVCAN_DEVICE_PATH	"/dev/uavcan/node"
 
-// we add two to allow for actuator_direct and busevent
-#define UAVCAN_NUM_POLL_FDS (NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN+2)
+// we add 1 to allow for busevent
+#define UAVCAN_NUM_POLL_FDS (NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN+1)
 
 /**
  * A UAVCAN node.
