@@ -165,6 +165,7 @@ private:
 	void handle_message_trajectory_representation_waypoints(mavlink_message_t *msg);
 	void handle_message_utm_global_position(mavlink_message_t *msg);
 	void handle_message_vision_position_estimate(mavlink_message_t *msg);
+	void handle_message_onboard_computer_status(mavlink_message_t *msg);
 
 
 	void Run();
