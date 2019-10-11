@@ -245,6 +245,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_debug_float_array(msg);
 		break;
 
+	case MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS:
+		handle_message_onboard_computer_status(msg);
+		break;
+
 	default:
 		break;
 	}
@@ -2533,6 +2537,14 @@ MavlinkReceiver::handle_message_debug_float_array(mavlink_message_t *msg)
 	}
 
 	_debug_array_pub.publish(debug_topic);
+}
+
+void
+MavlinkReceiver::handle_message_onboard_computer_status(mavlink_message_t *msg)
+{
+	mavlink_onboard_computer_status_t status_msg;
+	mavlink_msg_onboard_computer_status_decode(msg, &status_msg);
+
 }
 
 /**
