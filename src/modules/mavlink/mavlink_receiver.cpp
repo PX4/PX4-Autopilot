@@ -2547,6 +2547,15 @@ MavlinkReceiver::handle_message_onboard_computer_status(mavlink_message_t *msg)
 
 	onboard_computer_status_s onboard_computer_status_topic{};
 
+	onboard_computer_status_topic.cpu_cores[0] = status_msg.cpu_cores[0];
+	onboard_computer_status_topic.cpu_cores[1] = status_msg.cpu_cores[1];
+	onboard_computer_status_topic.cpu_cores[2] = status_msg.cpu_cores[2];
+	onboard_computer_status_topic.cpu_cores[3] = status_msg.cpu_cores[3];
+	onboard_computer_status_topic.cpu_cores[4] = status_msg.cpu_cores[4];
+	onboard_computer_status_topic.cpu_cores[5] = status_msg.cpu_cores[5];
+	onboard_computer_status_topic.cpu_cores[6] = status_msg.cpu_cores[6];
+	onboard_computer_status_topic.cpu_cores[7] = status_msg.cpu_cores[7];
+
 	_onboard_computer_status_pub.publish(onboard_computer_status_topic);
 }
 
