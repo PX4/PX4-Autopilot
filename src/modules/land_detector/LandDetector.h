@@ -70,13 +70,6 @@ namespace land_detector
 class LandDetector : public ModuleBase<LandDetector>, ModuleParams, px4::ScheduledWorkItem
 {
 public:
-	enum class LandDetectionState {
-		FLYING = 0,
-		LANDED = 1,
-		FREEFALL = 2,
-		GROUND_CONTACT = 3,
-		MAYBE_LANDED = 4
-	};
 
 	LandDetector();
 	virtual ~LandDetector();
@@ -93,11 +86,6 @@ public:
 
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
-
-	/**
-	 * @return current state.
-	 */
-	LandDetectionState get_state() const { return _state; }
 
 	/**
 	 * Get the work queue going.
@@ -152,8 +140,6 @@ protected:
 	/** Run main land detector loop at this interval. */
 	static constexpr uint32_t LAND_DETECTOR_UPDATE_INTERVAL = 20_ms;
 
-	LandDetectionState _state{LandDetectionState::LANDED};
-
 	systemlib::Hysteresis _freefall_hysteresis{false};
 	systemlib::Hysteresis _landed_hysteresis{true};
 	systemlib::Hysteresis _maybe_landed_hysteresis{true};
@@ -162,7 +148,14 @@ protected:
 
 	actuator_armed_s         _actuator_armed{};
 	vehicle_acceleration_s   _vehicle_acceleration{};
-	vehicle_land_detected_s  _land_detected{};
+	vehicle_land_detected_s _land_detected = {
+		.timestamp = 0,
+		.alt_max = -1.0f,
+		.freefall = false,
+		.ground_contact = true,
+		.maybe_landed = true,
+		.landed = true,
+	};
 	vehicle_local_position_s _vehicle_local_position{};
 
 	orb_advert_t _land_detected_pub{nullptr};

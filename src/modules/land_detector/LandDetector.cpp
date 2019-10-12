@@ -48,13 +48,7 @@ namespace land_detector
 LandDetector::LandDetector() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl)
-{
-	_land_detected.timestamp = hrt_absolute_time();
-	_land_detected.freefall = false;
-	_land_detected.landed = true;
-	_land_detected.ground_contact = false;
-	_land_detected.maybe_landed = false;
-}
+{}
 
 LandDetector::~LandDetector()
 {
@@ -76,12 +70,11 @@ void LandDetector::Run()
 	_update_topics();
 	_update_state();
 
-	const bool landDetected = (_state == LandDetectionState::LANDED);
-	const bool freefallDetected = (_state == LandDetectionState::FREEFALL);
-	const bool maybe_landedDetected = (_state == LandDetectionState::MAYBE_LANDED);
-	const bool ground_contactDetected = (_state == LandDetectionState::GROUND_CONTACT);
+	const bool freefallDetected = _freefall_hysteresis.get_state();
+	const bool ground_contactDetected = _ground_contact_hysteresis.get_state();
+	const bool maybe_landedDetected = _maybe_landed_hysteresis.get_state();
+	const bool landDetected = _landed_hysteresis.get_state();
 	const float alt_max = _get_max_altitude() > 0.0f ? _get_max_altitude() : INFINITY;
-
 	const bool in_ground_effect = _ground_effect_hysteresis.get_state();
 
 	const hrt_abstime now = hrt_absolute_time();
@@ -163,22 +156,6 @@ void LandDetector::_update_state()
 	_maybe_landed_hysteresis.set_state_and_update(_get_maybe_landed_state(), now_us);
 	_ground_contact_hysteresis.set_state_and_update(_get_ground_contact_state(), now_us);
 	_ground_effect_hysteresis.set_state_and_update(_get_ground_effect_state(), now_us);
-
-	if (_freefall_hysteresis.get_state()) {
-		_state = LandDetectionState::FREEFALL;
-
-	} else if (_landed_hysteresis.get_state()) {
-		_state = LandDetectionState::LANDED;
-
-	} else if (_maybe_landed_hysteresis.get_state()) {
-		_state = LandDetectionState::MAYBE_LANDED;
-
-	} else if (_ground_contact_hysteresis.get_state()) {
-		_state = LandDetectionState::GROUND_CONTACT;
-
-	} else {
-		_state = LandDetectionState::FLYING;
-	}
 }
 
 void LandDetector::_update_topics()

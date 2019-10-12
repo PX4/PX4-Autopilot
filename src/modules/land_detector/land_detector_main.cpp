@@ -104,29 +104,8 @@ int LandDetector::task_spawn(int argc, char *argv[])
 int LandDetector::print_status()
 {
 	PX4_INFO("running (%s)", _currentMode);
-	LandDetector::LandDetectionState state = get_state();
-
-	switch (state) {
-	case LandDetector::LandDetectionState::FLYING:
-		PX4_INFO("State: Flying");
-		break;
-
-	case LandDetector::LandDetectionState::LANDED:
-		PX4_INFO("State: Landed");
-		break;
-
-	case LandDetector::LandDetectionState::FREEFALL:
-		PX4_INFO("State: Freefall");
-		break;
-
-	default:
-		PX4_ERR("State: unknown");
-		break;
-	}
-
 	return 0;
 }
-
 int LandDetector::print_usage(const char *reason)
 {
 	if (reason != nullptr) {
