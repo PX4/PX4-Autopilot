@@ -643,6 +643,7 @@ void Logger::add_vision_and_avoidance_topics()
 	add_topic("vehicle_trajectory_waypoint", 200);
 	add_topic("vehicle_trajectory_waypoint_desired", 200);
 	add_topic("vehicle_visual_odometry", 30);
+	add_topic("onboard_computer_status", 200);
 }
 
 void Logger::add_system_identification_topics()
