@@ -135,10 +135,10 @@ private:
 	vehicle_land_detected_s _vehicle_land_detected = {
 		.timestamp = 0,
 		.alt_max = -1.0f,
-		.landed = true,
 		.freefall = false,
-		.ground_contact = false,
-		.maybe_landed = false,
+		.ground_contact = true,
+		.maybe_landed = true,
+		.landed = true,
 	};
 
 	vehicle_attitude_setpoint_s	_att_sp{};			/**< vehicle attitude setpoint */
