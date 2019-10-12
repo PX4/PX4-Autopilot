@@ -2545,6 +2545,9 @@ MavlinkReceiver::handle_message_onboard_computer_status(mavlink_message_t *msg)
 	mavlink_onboard_computer_status_t status_msg;
 	mavlink_msg_onboard_computer_status_decode(msg, &status_msg);
 
+	onboard_computer_status_s onboard_computer_status_topic{};
+
+	_onboard_computer_status_pub.publish(onboard_computer_status_topic);
 }
 
 /**
