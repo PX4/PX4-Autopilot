@@ -181,8 +181,8 @@ void Standard::update_vtol_state()
 
 		} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_FW) {
 			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
-			if (((_params->airspeed_disabled ||
-			      _airspeed_validated->indicated_airspeed_m_s >= _params->transition_airspeed) &&
+			if (((_params->airspeed_disabled || !PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s) ||
+			      _airspeed_validated->equivalent_airspeed_m_s >= _params->transition_airspeed) &&
 			     time_since_trans_start > _params->front_trans_time_min) ||
 			    can_transition_on_ground()) {
 
@@ -242,15 +242,16 @@ void Standard::update_transition_state()
 
 		// do blending of mc and fw controls if a blending airspeed has been provided and the minimum transition time has passed
 		if (_airspeed_trans_blend_margin > 0.0f &&
-		    _airspeed_validated->indicated_airspeed_m_s > 0.0f &&
-		    _airspeed_validated->indicated_airspeed_m_s >= _params->airspeed_blend &&
+		    PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s) &&
+		    _airspeed_validated->equivalent_airspeed_m_s > 0.0f &&
+		    _airspeed_validated->equivalent_airspeed_m_s >= _params->airspeed_blend &&
 		    time_since_trans_start > _params->front_trans_time_min) {
 
-			mc_weight = 1.0f - fabsf(_airspeed_validated->indicated_airspeed_m_s - _params->airspeed_blend) /
+			mc_weight = 1.0f - fabsf(_airspeed_validated->equivalent_airspeed_m_s - _params->airspeed_blend) /
 				    _airspeed_trans_blend_margin;
 			// time based blending when no airspeed sensor is set
 
-		} else if (_params->airspeed_disabled) {
+		} else if (_params->airspeed_disabled || !PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s)) {
 			mc_weight = 1.0f - time_since_trans_start / _params->front_trans_time_min;
 			mc_weight = math::constrain(2.0f * mc_weight, 0.0f, 1.0f);
 

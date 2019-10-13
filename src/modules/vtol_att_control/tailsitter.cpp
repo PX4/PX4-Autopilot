@@ -130,8 +130,10 @@ void Tailsitter::update_vtol_state()
 
 		case vtol_mode::TRANSITION_FRONT_P1: {
 
-				bool airspeed_condition_satisfied = _airspeed_validated->indicated_airspeed_m_s >= _params->transition_airspeed;
+				bool airspeed_condition_satisfied = _airspeed_validated->equivalent_airspeed_m_s >= _params->transition_airspeed;
 				airspeed_condition_satisfied |= _params->airspeed_disabled;
+				airspeed_condition_satisfied |= !PX4_ISFINITE(
+									_airspeed_validated->equivalent_airspeed_m_s); // switch to non-airspeed mode if airspeed invalid
 
 				// check if we have reached airspeed  and pitch angle to switch to TRANSITION P2 mode
 				if ((airspeed_condition_satisfied && pitch <= PITCH_TRANSITION_FRONT_P1) || can_transition_on_ground()) {
