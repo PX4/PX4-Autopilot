@@ -9,6 +9,7 @@
 #  Otherwise, the variable name goes to the end of the argument.
 #
 
+set FMU_CMD fmu
 set MIXER_AUX_FILE none
 set OUTPUT_AUX_DEV /dev/pwm_output1
 set OUTPUT_DEV none
@@ -17,9 +18,9 @@ set OUTPUT_DEV none
 # If mount (gimbal) control is enabled and output mode is AUX, set the aux
 # mixer to mount (override the airframe-specific MIXER_AUX setting).
 #
-if ! param compare MNT_MODE_IN -1
+if ! param compare -s MNT_MODE_IN -1
 then
-        if param compare MNT_MODE_OUT 0
+        if param compare -s MNT_MODE_OUT 0
         then
                 set MIXER_AUX mount
         fi
@@ -42,9 +43,19 @@ then
 		if [ $IO_PRESENT = yes ]
 		then
 			set OUTPUT_MODE io
+			if param greater DSHOT_CONFIG 0
+			then
+				set FMU_CMD dshot
+			fi
 		fi
 	else
-		set OUTPUT_MODE fmu
+		if param greater DSHOT_CONFIG 0
+		then
+			set OUTPUT_MODE dshot
+			set FMU_CMD dshot
+		else
+			set OUTPUT_MODE fmu
+		fi
 	fi
 fi
 
@@ -80,11 +91,11 @@ then
 		fi
 	fi
 
-	if [ $OUTPUT_MODE = fmu ]
+	if [ $OUTPUT_MODE = $FMU_CMD ]
 	then
-		if ! fmu mode_$FMU_MODE $FMU_ARGS
+		if ! $FMU_CMD mode_$FMU_MODE
 		then
-			echo "FMU start failed" >> $LOG_FILE
+			echo "$FMU_CMD start failed" >> $LOG_FILE
 			# Error tune.
 			tune_control play -t 2
 		fi
@@ -195,7 +206,7 @@ then
 
 	if [ $MIXER_AUX_FILE != none ]
 	then
-		if fmu mode_${AUX_MODE} $FMU_ARGS
+		if $FMU_CMD mode_${AUX_MODE}
 		then
 			# Append aux mixer to main device.
 			if param greater SYS_HITL 0
@@ -228,82 +239,86 @@ then
 			set FAILSAFE_AUX none
 		fi
 
-		# Set min / max for aux out and rates.
-		if [ $PWM_AUX_OUT != none ]
+		# for DShot do not configure pwm values
+		if [ $FMU_CMD != dshot ]
 		then
-			# Set PWM_AUX output frequency.
-			if [ $PWM_AUX_RATE != none ]
+			# Set min / max for aux out and rates.
+			if [ $PWM_AUX_OUT != none ]
 			then
-				pwm rate -c ${PWM_AUX_OUT} -r ${PWM_AUX_RATE} -d ${OUTPUT_AUX_DEV}
+				# Set PWM_AUX output frequency.
+				if [ $PWM_AUX_RATE != none ]
+				then
+					pwm rate -c ${PWM_AUX_OUT} -r ${PWM_AUX_RATE} -d ${OUTPUT_AUX_DEV}
+				fi
+
+				# Set disarmed, min and max PWM_AUX values.
+				if [ $PWM_AUX_DISARMED != none ]
+				then
+					pwm disarmed -c ${PWM_AUX_OUT} -p ${PWM_AUX_DISARMED} -d ${OUTPUT_AUX_DEV}
+				fi
+				if [ $PWM_AUX_MIN != none ]
+				then
+					pwm min -c ${PWM_AUX_OUT} -p ${PWM_AUX_MIN} -d ${OUTPUT_AUX_DEV}
+				fi
+				if [ $PWM_AUX_MAX != none ]
+				then
+					pwm max -c ${PWM_AUX_OUT} -p ${PWM_AUX_MAX} -d ${OUTPUT_AUX_DEV}
+				fi
 			fi
 
-			# Set disarmed, min and max PWM_AUX values.
-			if [ $PWM_AUX_DISARMED != none ]
+			#
+			# Per channel disarmed settings.
+			#
+			pwm disarmed -c 1 -p p:PWM_AUX_DIS1 -d ${OUTPUT_AUX_DEV}
+			pwm disarmed -c 2 -p p:PWM_AUX_DIS2 -d ${OUTPUT_AUX_DEV}
+			pwm disarmed -c 3 -p p:PWM_AUX_DIS3 -d ${OUTPUT_AUX_DEV}
+			pwm disarmed -c 4 -p p:PWM_AUX_DIS4 -d ${OUTPUT_AUX_DEV}
+			pwm disarmed -c 5 -p p:PWM_AUX_DIS5 -d ${OUTPUT_AUX_DEV}
+			pwm disarmed -c 6 -p p:PWM_AUX_DIS6 -d ${OUTPUT_AUX_DEV}
+			pwm disarmed -c 7 -p p:PWM_AUX_DIS7 -d ${OUTPUT_AUX_DEV}
+			pwm disarmed -c 8 -p p:PWM_AUX_DIS8 -d ${OUTPUT_AUX_DEV}
+
+			#
+			# Per channel min settings.
+			#
+			pwm min -c 1 -p p:PWM_AUX_MIN1 -d ${OUTPUT_AUX_DEV}
+			pwm min -c 2 -p p:PWM_AUX_MIN2 -d ${OUTPUT_AUX_DEV}
+			pwm min -c 3 -p p:PWM_AUX_MIN3 -d ${OUTPUT_AUX_DEV}
+			pwm min -c 4 -p p:PWM_AUX_MIN4 -d ${OUTPUT_AUX_DEV}
+			pwm min -c 5 -p p:PWM_AUX_MIN5 -d ${OUTPUT_AUX_DEV}
+			pwm min -c 6 -p p:PWM_AUX_MIN6 -d ${OUTPUT_AUX_DEV}
+			pwm min -c 7 -p p:PWM_AUX_MIN7 -d ${OUTPUT_AUX_DEV}
+			pwm min -c 8 -p p:PWM_AUX_MIN8 -d ${OUTPUT_AUX_DEV}
+
+			#
+			# Per channel max settings.
+			#
+			pwm max -c 1 -p p:PWM_AUX_MAX1 -d ${OUTPUT_AUX_DEV}
+			pwm max -c 2 -p p:PWM_AUX_MAX2 -d ${OUTPUT_AUX_DEV}
+			pwm max -c 3 -p p:PWM_AUX_MAX3 -d ${OUTPUT_AUX_DEV}
+			pwm max -c 4 -p p:PWM_AUX_MAX4 -d ${OUTPUT_AUX_DEV}
+			pwm max -c 5 -p p:PWM_AUX_MAX5 -d ${OUTPUT_AUX_DEV}
+			pwm max -c 6 -p p:PWM_AUX_MAX6 -d ${OUTPUT_AUX_DEV}
+			pwm max -c 7 -p p:PWM_AUX_MAX7 -d ${OUTPUT_AUX_DEV}
+			pwm max -c 8 -p p:PWM_AUX_MAX8 -d ${OUTPUT_AUX_DEV}
+
+			if [ $FAILSAFE_AUX != none ]
 			then
-				pwm disarmed -c ${PWM_AUX_OUT} -p ${PWM_AUX_DISARMED} -d ${OUTPUT_AUX_DEV}
+				pwm failsafe -c ${PWM_AUX_OUT} -p ${FAILSAFE} -d ${OUTPUT_AUX_DEV}
 			fi
-			if [ $PWM_AUX_MIN != none ]
-			then
-				pwm min -c ${PWM_AUX_OUT} -p ${PWM_AUX_MIN} -d ${OUTPUT_AUX_DEV}
-			fi
-			if [ $PWM_AUX_MAX != none ]
-			then
-				pwm max -c ${PWM_AUX_OUT} -p ${PWM_AUX_MAX} -d ${OUTPUT_AUX_DEV}
-			fi
+
+			#
+			# Per channel failsafe settings.
+			#
+			pwm failsafe -c 1 -p p:PWM_AUX_FAIL1 -d ${OUTPUT_AUX_DEV}
+			pwm failsafe -c 2 -p p:PWM_AUX_FAIL2 -d ${OUTPUT_AUX_DEV}
+			pwm failsafe -c 3 -p p:PWM_AUX_FAIL3 -d ${OUTPUT_AUX_DEV}
+			pwm failsafe -c 4 -p p:PWM_AUX_FAIL4 -d ${OUTPUT_AUX_DEV}
+			pwm failsafe -c 5 -p p:PWM_AUX_FAIL5 -d ${OUTPUT_AUX_DEV}
+			pwm failsafe -c 6 -p p:PWM_AUX_FAIL6 -d ${OUTPUT_AUX_DEV}
+			pwm failsafe -c 7 -p p:PWM_AUX_FAIL7 -d ${OUTPUT_AUX_DEV}
+			pwm failsafe -c 8 -p p:PWM_AUX_FAIL8 -d ${OUTPUT_AUX_DEV}
 		fi
-
-		#
-		# Per channel disarmed settings.
-		#
-		pwm disarmed -c 1 -p p:PWM_AUX_DIS1 -d ${OUTPUT_AUX_DEV}
-		pwm disarmed -c 2 -p p:PWM_AUX_DIS2 -d ${OUTPUT_AUX_DEV}
-		pwm disarmed -c 3 -p p:PWM_AUX_DIS3 -d ${OUTPUT_AUX_DEV}
-		pwm disarmed -c 4 -p p:PWM_AUX_DIS4 -d ${OUTPUT_AUX_DEV}
-		pwm disarmed -c 5 -p p:PWM_AUX_DIS5 -d ${OUTPUT_AUX_DEV}
-		pwm disarmed -c 6 -p p:PWM_AUX_DIS6 -d ${OUTPUT_AUX_DEV}
-		pwm disarmed -c 7 -p p:PWM_AUX_DIS7 -d ${OUTPUT_AUX_DEV}
-		pwm disarmed -c 8 -p p:PWM_AUX_DIS8 -d ${OUTPUT_AUX_DEV}
-
-		#
-		# Per channel min settings.
-		#
-		pwm min -c 1 -p p:PWM_AUX_MIN1 -d ${OUTPUT_AUX_DEV}
-		pwm min -c 2 -p p:PWM_AUX_MIN2 -d ${OUTPUT_AUX_DEV}
-		pwm min -c 3 -p p:PWM_AUX_MIN3 -d ${OUTPUT_AUX_DEV}
-		pwm min -c 4 -p p:PWM_AUX_MIN4 -d ${OUTPUT_AUX_DEV}
-		pwm min -c 5 -p p:PWM_AUX_MIN5 -d ${OUTPUT_AUX_DEV}
-		pwm min -c 6 -p p:PWM_AUX_MIN6 -d ${OUTPUT_AUX_DEV}
-		pwm min -c 7 -p p:PWM_AUX_MIN7 -d ${OUTPUT_AUX_DEV}
-		pwm min -c 8 -p p:PWM_AUX_MIN8 -d ${OUTPUT_AUX_DEV}
-
-		#
-		# Per channel max settings.
-		#
-		pwm max -c 1 -p p:PWM_AUX_MAX1 -d ${OUTPUT_AUX_DEV}
-		pwm max -c 2 -p p:PWM_AUX_MAX2 -d ${OUTPUT_AUX_DEV}
-		pwm max -c 3 -p p:PWM_AUX_MAX3 -d ${OUTPUT_AUX_DEV}
-		pwm max -c 4 -p p:PWM_AUX_MAX4 -d ${OUTPUT_AUX_DEV}
-		pwm max -c 5 -p p:PWM_AUX_MAX5 -d ${OUTPUT_AUX_DEV}
-		pwm max -c 6 -p p:PWM_AUX_MAX6 -d ${OUTPUT_AUX_DEV}
-		pwm max -c 7 -p p:PWM_AUX_MAX7 -d ${OUTPUT_AUX_DEV}
-		pwm max -c 8 -p p:PWM_AUX_MAX8 -d ${OUTPUT_AUX_DEV}
-
-		if [ $FAILSAFE_AUX != none ]
-		then
-			pwm failsafe -c ${PWM_AUX_OUT} -p ${FAILSAFE} -d ${OUTPUT_AUX_DEV}
-		fi
-
-		#
-		# Per channel failsafe settings.
-		#
-		pwm failsafe -c 1 -p p:PWM_AUX_FAIL1 -d ${OUTPUT_AUX_DEV}
-		pwm failsafe -c 2 -p p:PWM_AUX_FAIL2 -d ${OUTPUT_AUX_DEV}
-		pwm failsafe -c 3 -p p:PWM_AUX_FAIL3 -d ${OUTPUT_AUX_DEV}
-		pwm failsafe -c 4 -p p:PWM_AUX_FAIL4 -d ${OUTPUT_AUX_DEV}
-		pwm failsafe -c 5 -p p:PWM_AUX_FAIL5 -d ${OUTPUT_AUX_DEV}
-		pwm failsafe -c 6 -p p:PWM_AUX_FAIL6 -d ${OUTPUT_AUX_DEV}
-		pwm failsafe -c 7 -p p:PWM_AUX_FAIL7 -d ${OUTPUT_AUX_DEV}
-		pwm failsafe -c 8 -p p:PWM_AUX_FAIL8 -d ${OUTPUT_AUX_DEV}
 	fi
 fi
 
@@ -386,6 +401,7 @@ then
 	pwm failsafe -c 8 -p p:PWM_MAIN_FAIL8
 fi
 
+unset FMU_CMD
 unset MIXER_AUX_FILE
 unset OUTPUT_AUX_DEV
 unset OUTPUT_DEV

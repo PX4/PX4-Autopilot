@@ -79,10 +79,18 @@ MixingOutput::~MixingOutput()
 	px4_sem_destroy(&_lock);
 }
 
-void MixingOutput::printStatus()
+void MixingOutput::printStatus() const
 {
 	perf_print_counter(_control_latency_perf);
 	PX4_INFO("Switched to rate_ctrl work queue: %i", (int)_wq_switched);
+	PX4_INFO("Mixer loaded: %s", _mixers ? "yes" : "no");
+
+	PX4_INFO("Channel Configuration:");
+
+	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+		PX4_INFO("Channel %i: failsafe: %d, disarmed: %d, min: %d, max: %d", i, _failsafe_value[i], _disarmed_value[i],
+			 _min_value[i], _max_value[i]);
+	}
 }
 
 void MixingOutput::updateParams()
@@ -374,6 +382,23 @@ MixingOutput::reorderOutputs(uint16_t values[MAX_ACTUATORS])
 	 */
 }
 
+int MixingOutput::reorderedMotorIndex(int index)
+{
+	if ((MotorOrdering)_param_mot_ordering.get() == MotorOrdering::Betaflight) {
+		switch (index) {
+		case 0: return 1;
+
+		case 1: return 2;
+
+		case 2: return 3;
+
+		case 3: return 0;
+		}
+	}
+
+	return index;
+}
+
 int MixingOutput::controlCallback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input)
 {
 	const MixingOutput *output = (const MixingOutput *)handle;
@@ -420,6 +445,8 @@ void MixingOutput::resetMixer()
 		_mixers = nullptr;
 		_groups_required = 0;
 	}
+
+	_interface.mixerChanged();
 }
 
 int MixingOutput::loadMixer(const char *buf, unsigned len)
@@ -447,6 +474,7 @@ int MixingOutput::loadMixer(const char *buf, unsigned len)
 	PX4_DEBUG("loaded mixers \n%s\n", buf);
 
 	updateParams();
+	_interface.mixerChanged();
 	return ret;
 }
 

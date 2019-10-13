@@ -669,23 +669,28 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 {
-	/* distance sensor */
 	mavlink_distance_sensor_t dist_sensor;
 	mavlink_msg_distance_sensor_decode(msg, &dist_sensor);
 
-	distance_sensor_s d{};
+	distance_sensor_s ds{};
 
-	d.timestamp = hrt_absolute_time(); /* Use system time for now, don't trust sender to attach correct timestamp */
-	d.min_distance = float(dist_sensor.min_distance) * 1e-2f; /* cm to m */
-	d.max_distance = float(dist_sensor.max_distance) * 1e-2f; /* cm to m */
-	d.current_distance = float(dist_sensor.current_distance) * 1e-2f; /* cm to m */
-	d.type = dist_sensor.type;
-	d.id = 	MAV_DISTANCE_SENSOR_LASER;
-	d.orientation = dist_sensor.orientation;
-	d.variance = dist_sensor.covariance * 1e-4f; // cm^2 to m^2
+	ds.timestamp        = hrt_absolute_time(); /* Use system time for now, don't trust sender to attach correct timestamp */
+	ds.min_distance     = static_cast<float>(dist_sensor.min_distance) * 1e-2f;     /* cm to m */
+	ds.max_distance     = static_cast<float>(dist_sensor.max_distance) * 1e-2f;     /* cm to m */
+	ds.current_distance = static_cast<float>(dist_sensor.current_distance) * 1e-2f; /* cm to m */
+	ds.variance         = dist_sensor.covariance * 1e-4f;                           /* cm^2 to m^2 */
+	ds.h_fov            = dist_sensor.horizontal_fov;
+	ds.v_fov            = dist_sensor.vertical_fov;
+	ds.q[0]             = dist_sensor.quaternion[0];
+	ds.q[1]             = dist_sensor.quaternion[1];
+	ds.q[2]             = dist_sensor.quaternion[2];
+	ds.q[3]             = dist_sensor.quaternion[3];
+	ds.signal_quality   = -1; // TODO: A dist_sensor.signal_quality field is missing from the mavlink message definition.
+	ds.type             = dist_sensor.type;
+	ds.id               = MAV_DISTANCE_SENSOR_LASER;
+	ds.orientation      = dist_sensor.orientation;
 
-	/// TODO Add sensor rotation according to MAV_SENSOR_ORIENTATION enum
-	_distance_sensor_pub.publish(d);
+	_distance_sensor_pub.publish(ds);
 }
 
 void
@@ -2524,7 +2529,7 @@ MavlinkReceiver::Run()
 
 	// make sure mavlink app has booted before we start processing anything (parameter sync, etc)
 	while (!_mavlink->boot_complete()) {
-		if (hrt_absolute_time() > 20_s) {
+		if (hrt_elapsed_time(&_mavlink->get_first_start_time()) > 20_s) {
 			PX4_ERR("system boot did not complete in 20 seconds");
 			_mavlink->set_boot_complete();
 		}

@@ -322,7 +322,7 @@ rtps:
   - msg: vehicle_angular_velocity_groundtruth
     id: 168
     alias: vehicle_angular_velocity
-    msg: vehicle_visual_odometry_aligned
+  - msg: vehicle_visual_odometry_aligned
     id: 169
     alias: vehicle_odometry
   ########## multi topics: end ##########

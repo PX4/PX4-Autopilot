@@ -213,7 +213,7 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 	// on the main thread of commander.
 	power_button_state_s button_state{};
 	button_state.timestamp = hrt_absolute_time();
-	int ret = PWR_BUTTON_RESPONSE_SHUT_DOWN_PENDING;
+	const int ret = PWR_BUTTON_RESPONSE_SHUT_DOWN_PENDING;
 
 	switch (request) {
 	case PWR_BUTTON_IDEL:
@@ -430,10 +430,10 @@ int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "transition")) {
 
-		bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION,
-						(float)(status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING ?
-							vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW :
-							vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC));
+		const bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION,
+						      (float)(status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING ?
+								      vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW :
+								      vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC));
 
 		return (ret ? 0 : 1);
 	}
@@ -1289,8 +1289,6 @@ Commander::run()
 	bool status_changed = true;
 	bool param_init_forced = true;
 
-	bool updated = false;
-
 	uORB::Subscription actuator_controls_sub{ORB_ID_VEHICLE_ATTITUDE_CONTROLS};
 	uORB::Subscription cmd_sub{ORB_ID(vehicle_command)};
 	uORB::Subscription cpuload_sub{ORB_ID(cpuload)};
@@ -1736,14 +1734,11 @@ Commander::run()
 		battery_status_check();
 
 		/* update subsystem info which arrives from outside of commander*/
-		do {
-			if (subsys_sub.updated()) {
-				subsystem_info_s info{};
-				subsys_sub.copy(&info);
-				set_health_flags(info.subsystem_type, info.present, info.enabled, info.ok, status);
-				status_changed = true;
-			}
-		} while (updated);
+		subsystem_info_s info;
+		while (subsys_sub.update(&info))  {
+			set_health_flags(info.subsystem_type, info.present, info.enabled, info.ok, status);
+			status_changed = true;
+		}
 
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!status_flags.condition_calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
@@ -1911,7 +1906,7 @@ Commander::run()
 
 				// revert to position control in any case
 				main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &internal_state);
-				mavlink_log_critical(&mavlink_log_pub, "Autopilot off! Returning control to pilot");
+				mavlink_log_critical(&mavlink_log_pub, "Autonomy off! Returned control to pilot");
 			}
 		}
 
@@ -2639,8 +2634,7 @@ Commander::set_main_state(const vehicle_status_s &status_local, bool *changed)
 transition_result_t
 Commander::set_main_state_override_on(const vehicle_status_s &status_local, bool *changed)
 {
-	transition_result_t res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, status_flags,
-				  &internal_state);
+	const transition_result_t res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, status_flags, &internal_state);
 	*changed = (res == TRANSITION_CHANGED);
 
 	return res;
@@ -3703,7 +3697,7 @@ bool Commander::preflight_check(bool report)
 {
 	const bool checkGNSS = (arm_requirements & ARM_REQ_GPS_BIT);
 
-	bool success = Preflight::preflightCheck(&mavlink_log_pub, status, status_flags, checkGNSS, report, false,
+	const bool success = Preflight::preflightCheck(&mavlink_log_pub, status, status_flags, checkGNSS, report, false,
 			hrt_elapsed_time(&commander_boot_timestamp));
 
 	if (success) {

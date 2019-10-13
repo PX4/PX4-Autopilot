@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,21 +30,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
-/**
- * @file px4_eigen.h
- *
- * Compatability header to make Eigen compile on the PX4 stack
- * @author Johan Jansen <jnsn.johan@gmail.com>
- */
-
 #pragma once
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wshadow"
-#pragma GCC diagnostic ignored "-Wfloat-equal"
-#define _GLIBCXX_USE_C99_FP_MACROS_DYNAMIC 1
 
-#include <eigen/Eigen/Core>
-#include <eigen/Eigen/Geometry>
-#pragma GCC diagnostic pop
+#include "../../../stm32_common/include/px4_arch/dshot.h"
+
