@@ -82,9 +82,17 @@ public:
     void run();
     bool hasMsg();
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[    if ros2_distro]@
+    @(package)::msg::dds_::@(topic)_ getMsg();
+@[    else]@
     @(topic)_ getMsg();
+@[    end if]@
 @[else]@
+@[    if ros2_distro]@
+    @(package)::msg::@(topic) getMsg();
+@[    else]@
     @(topic) getMsg();
+@[    end if]@
 @[end if]@
 private:
     Participant *mp_participant;
@@ -101,17 +109,33 @@ private:
         int n_matched;
         int n_msg;
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[    if ros2_distro]@
+        @(package)::msg::dds_::@(topic)_ msg;
+@[    else]@
         @(topic)_ msg;
+@[    end if]@
 @[else]@
+@[    if ros2_distro]@
+        @(package)::msg::@(topic) msg;
+@[    else]@
         @(topic) msg;
+@[    end if]@
 @[end if]@
         bool has_msg = false;
 
     } m_listener;
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[    if ros2_distro]@
+    @(package)::msg::dds_::@(topic)_PubSubType myType;
+@[    else]@
     @(topic)_PubSubType myType;
+@[    end if]@
 @[else]@
+@[    if ros2_distro]@
+    @(package)::msg::@(topic)PubSubType myType;
+@[    else]@
     @(topic)PubSubType myType;
+@[    end if]@
 @[end if]@
 };
 

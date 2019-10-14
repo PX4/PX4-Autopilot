@@ -69,9 +69,7 @@ sudo pacman -Sy --noconfirm --needed \
 
 # Python dependencies
 echo "Installing PX4 Python3 dependencies"
-pip install --upgrade pip setuptools wheel
-pip install -r ${DIR}/requirements.txt
-
+pip install --user -r ${DIR}/requirements.txt
 
 # NuttX toolchain (arm-none-eabi-gcc)
 if [[ $INSTALL_NUTTX == "true" ]]; then
@@ -83,10 +81,10 @@ if [[ $INSTALL_NUTTX == "true" ]]; then
 		vim \
 		;
 
-	# add user to dialout group (serial port access)
+	# add user to uucp group (to get serial port access)
 	sudo usermod -aG uucp $USER
 
-	# remove modem manager (interferes with PX4 serial port/USB serial usage).
+	# remove modem manager (interferes with PX4 serial port usage)
 	sudo pacman -R modemmanager --noconfirm
 
 	# arm-none-eabi-gcc
