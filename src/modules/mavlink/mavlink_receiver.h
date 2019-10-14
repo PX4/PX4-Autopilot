@@ -278,8 +278,6 @@ private:
 
 	hrt_abstime			_last_utm_global_pos_com{0};
 
-	vehicle_status_s _vehicle_status{};
-
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::BAT_CRIT_THR>)     _param_bat_crit_thr,
 		(ParamFloat<px4::params::BAT_EMERGEN_THR>)  _param_bat_emergen_thr,
