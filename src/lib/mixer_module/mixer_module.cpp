@@ -285,18 +285,15 @@ bool MixingOutput::update()
 		}
 	}
 
+	bool stop_motors = mixed_num_outputs == 0 || !_throttle_armed;
+
 	/* overwrite outputs in case of lockdown or parachute triggering with disarmed values */
 	if (_armed.lockdown || _armed.manual_lockdown) {
 		for (size_t i = 0; i < mixed_num_outputs; i++) {
 			output_limited[i] = _disarmed_value[i];
 		}
-	}
 
-	bool stop_motors = true;
-
-	if (mixed_num_outputs > 0) {
-		/* assume if one (here the 1.) motor is disarmed, all of them should be stopped */
-		stop_motors = (output_limited[0] == _disarmed_value[0]);
+		stop_motors = true;
 	}
 
 	/* apply _param_mot_ordering */
