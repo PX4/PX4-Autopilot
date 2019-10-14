@@ -2632,55 +2632,48 @@ MavlinkReceiver::Run()
 				}
 			}
 
-			// only start accepting messages once we're sure who we talk to
-			if (_mavlink->get_client_source_initialized()) {
 #endif // MAVLINK_UDP
 
-				/* if read failed, this loop won't execute */
-				for (ssize_t i = 0; i < nread; i++) {
-					if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &_status)) {
+			/* if read failed, this loop won't execute */
+			for (ssize_t i = 0; i < nread; i++) {
+				if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &_status)) {
 
-						/* check if we received version 2 and request a switch. */
-						if (!(_mavlink->get_status()->flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)) {
-							/* this will only switch to proto version 2 if allowed in settings */
-							_mavlink->set_proto_version(2);
-						}
-
-						/* handle generic messages and commands */
-						handle_message(&msg);
-
-						/* handle packet with mission manager */
-						_mission_manager.handle_message(&msg);
-
-
-						/* handle packet with parameter component */
-						_parameters_manager.handle_message(&msg);
-
-						if (_mavlink->ftp_enabled()) {
-							/* handle packet with ftp component */
-							_mavlink_ftp.handle_message(&msg);
-						}
-
-						/* handle packet with log component */
-						_mavlink_log_handler.handle_message(&msg);
-
-						/* handle packet with timesync component */
-						_mavlink_timesync.handle_message(&msg);
-
-						/* handle packet with parent object */
-						_mavlink->handle_message(&msg);
+					/* check if we received version 2 and request a switch. */
+					if (!(_mavlink->get_status()->flags & MAVLINK_STATUS_FLAG_IN_MAVLINK1)) {
+						/* this will only switch to proto version 2 if allowed in settings */
+						_mavlink->set_proto_version(2);
 					}
-				}
 
-				/* count received bytes (nread will be -1 on read error) */
-				if (nread > 0) {
-					_mavlink->count_rxbytes(nread);
-				}
+					/* handle generic messages and commands */
+					handle_message(&msg);
 
-#if defined(MAVLINK_UDP)
+					/* handle packet with mission manager */
+					_mission_manager.handle_message(&msg);
+
+
+					/* handle packet with parameter component */
+					_parameters_manager.handle_message(&msg);
+
+					if (_mavlink->ftp_enabled()) {
+						/* handle packet with ftp component */
+						_mavlink_ftp.handle_message(&msg);
+					}
+
+					/* handle packet with log component */
+					_mavlink_log_handler.handle_message(&msg);
+
+					/* handle packet with timesync component */
+					_mavlink_timesync.handle_message(&msg);
+
+					/* handle packet with parent object */
+					_mavlink->handle_message(&msg);
+				}
 			}
 
-#endif // MAVLINK_UDP
+			/* count received bytes (nread will be -1 on read error) */
+			if (nread > 0) {
+				_mavlink->count_rxbytes(nread);
+			}
 		}
 
 		hrt_abstime t = hrt_absolute_time();
