@@ -14,7 +14,6 @@ px4_add_board(
 		imu/mpu9250
 		optical_flow/pmw3901
 		px4fmu
-		stm32
 
 	MODULES
 		attitude_estimator_q
@@ -43,6 +42,7 @@ px4_add_board(
 	SYSTEMCMDS
 		bl_update
 		config
+		dmesg
 		dumpfile
 		esc_calib
 		hardfault_log
@@ -66,5 +66,6 @@ px4_add_board(
 		tune_control
 		usb_connected
 		ver
+		work_queue
 
 	)

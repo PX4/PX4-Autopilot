@@ -17,7 +17,9 @@ px4_add_board(
 		# /dev/ttyS5: UART7 (ESC telemetry)
 
 	DRIVERS
+		adc
 		barometer/bmp280
+		dshot
 		gps
 		imu/mpu6000
 		magnetometer
@@ -25,9 +27,6 @@ px4_add_board(
 		pwm_out_sim
 		px4fmu
 		rc_input
-		stm32
-		stm32/adc
-		stm32/tone_alarm
 		telemetry
 		tone_alarm
 		osd
@@ -71,5 +70,6 @@ px4_add_board(
 		topic_listener
 		usb_connected
 		ver
+		work_queue
 
 	)

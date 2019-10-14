@@ -549,13 +549,13 @@ void Logger::add_default_topics()
 	add_topic("vehicle_status", 200);
 	add_topic("vehicle_status_flags");
 	add_topic("vtol_vehicle_status", 200);
-	add_topic("wind_estimate", 200);
 
 	add_topic_multi("actuator_outputs", 100);
 	add_topic_multi("battery_status", 500);
 	add_topic_multi("distance_sensor", 100);
 	add_topic_multi("telemetry_status");
 	add_topic_multi("vehicle_gps_position");
+	add_topic_multi("wind_estimate", 200);
 
 #ifdef CONFIG_ARCH_BOARD_PX4_SITL
 
@@ -615,7 +615,7 @@ void Logger::add_estimator_replay_topics()
 	add_topic("vehicle_magnetometer");
 	add_topic("vehicle_status");
 	add_topic("vehicle_visual_odometry");
-
+	add_topic("vehicle_visual_odometry_aligned");
 	add_topic_multi("distance_sensor");
 	add_topic_multi("vehicle_gps_position");
 }
@@ -976,9 +976,11 @@ void Logger::run()
 
 			/* Check if parameters have changed */
 			if (!_should_stop_file_log) { // do not record param changes after disarming
-				parameter_update_s param_update;
+				if (parameter_update_sub.updated()) {
+					// clear update
+					parameter_update_s pupdate;
+					parameter_update_sub.copy(&pupdate);
 
-				if (parameter_update_sub.update(&param_update)) {
 					write_changed_parameters(LogType::Full);
 				}
 			}
@@ -1693,6 +1695,13 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 		return;
 	}
 
+	// check if we already wrote the format
+	for (const auto &written_format : written_formats) {
+		if (written_format == &meta) {
+			return;
+		}
+	}
+
 	// Write the current format (we don't need to check if we already added it to written_formats)
 	int format_len = snprintf(msg.format, sizeof(msg.format), "%s:%s", meta.o_name, meta.o_fields);
 	size_t msg_size = sizeof(msg) - sizeof(msg.format) + format_len;
@@ -1764,17 +1773,8 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 			}
 
 			if (found_topic) {
-				// check if we already wrote the format
-				for (const auto &written_format : written_formats) {
-					if (written_format == found_topic) {
-						found_topic = nullptr;
-						break;
-					}
-				}
 
-				if (found_topic) {
-					write_format(type, *found_topic, written_formats, msg, level + 1);
-				}
+				write_format(type, *found_topic, written_formats, msg, level + 1);
 
 			} else {
 				PX4_ERR("No definition for topic %s found", fmt);

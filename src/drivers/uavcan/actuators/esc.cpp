@@ -240,7 +240,7 @@ uint8_t UavcanEscController::check_escs_status()
 
 	for (int index = 0; index < esc_status_s::CONNECTED_ESC_MAX; index++) {
 
-		if (_esc_status.esc[index].timestamp > 0 && now - _esc_status.esc[index].timestamp < 800_ms) {
+		if (_esc_status.esc[index].timestamp > 0 && now - _esc_status.esc[index].timestamp < 1200_ms) {
 			esc_status_flags |= (1 << index);
 		}
 

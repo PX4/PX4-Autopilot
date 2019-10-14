@@ -45,7 +45,6 @@ px4_add_board(
 
 	DRIVERS
 		bootloaders
-		stm32
 		uavcanesc
 
 	MODULES
@@ -56,5 +55,6 @@ px4_add_board(
 		param
 		top
 		ver
+		work_queue
 
 	)

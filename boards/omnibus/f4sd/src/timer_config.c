@@ -46,7 +46,7 @@
 #include <stm32_tim.h>
 
 #include <drivers/drv_pwm_output.h>
-#include <drivers/stm32/drv_io_timer.h>
+#include <px4_arch/io_timer.h>
 
 #include "board_config.h"
 
@@ -59,7 +59,14 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.first_channel_index = 0,
 		.last_channel_index = 1,
 		.handler = io_timer_handler1,
-		.vectorno =  STM32_IRQ_TIM2
+		.vectorno =  STM32_IRQ_TIM2,
+		.dshot = {
+			.dma_base = DSHOT_DMA1_BASE,
+			.channel = DShot_Channel3,
+			.stream = DShot_Stream1,
+			.start_ccr_register = TIM_DMABASE_CCR3,
+			.channels_number = 2u /* CCR3 and CCR4 */
+		}
 	},
 	{
 		.base = STM32_TIM3_BASE,
@@ -69,9 +76,17 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.first_channel_index = 2,
 		.last_channel_index = 3,
 		.handler = io_timer_handler2,
-		.vectorno =  STM32_IRQ_TIM3
+		.vectorno =  STM32_IRQ_TIM3,
+		.dshot = {
+			.dma_base = DSHOT_DMA1_BASE,
+			.channel = DShot_Channel5,
+			.stream = DShot_Stream2,
+			.start_ccr_register = TIM_DMABASE_CCR3,
+			.channels_number = 2u /* CCR3 and CCR4 */
+		}
 	}
 };
+
 /*
  * OUTPUTS:
  *  M3 : PA3 : TIM2_CH3

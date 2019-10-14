@@ -42,10 +42,9 @@
 # 	Required OS Interface Functions
 #
 # 		* px4_os_add_flags
+# 		* px4_os_determine_build_chip
 #		* px4_os_prebuild_targets
 #
-
-include(px4_base)
 
 #=============================================================================
 #
@@ -98,8 +97,8 @@ function(px4_posix_generate_builtin_commands)
 			math(EXPR command_count "${command_count}+1")
 		endif()
 	endforeach()
-	configure_file(${PX4_SOURCE_DIR}/src/platforms/apps.cpp.in ${OUT}.cpp)
-	configure_file(${PX4_SOURCE_DIR}/src/platforms/apps.h.in ${OUT}.h)
+	configure_file(${PX4_SOURCE_DIR}/platforms/common/apps.cpp.in ${OUT}.cpp)
+	configure_file(${PX4_SOURCE_DIR}/platforms/common/apps.h.in ${OUT}.h)
 endfunction()
 
 
@@ -149,7 +148,7 @@ function(px4_posix_generate_alias)
 			)
 		endif()
 	endforeach()
-	configure_file(${PX4_SOURCE_DIR}/platforms/posix/src/px4-alias.sh_in ${OUT})
+	configure_file(${PX4_SOURCE_DIR}/platforms/posix/src/px4/common/px4-alias.sh_in ${OUT})
 endfunction()
 
 
@@ -218,7 +217,7 @@ function(px4_os_add_flags)
 		-D__PX4_POSIX
 		-Dnoreturn_function=__attribute__\(\(noreturn\)\)
 		)
-		
+
 	include_directories(platforms/posix/include)
 
 	if ("${PX4_BOARD}" MATCHES "sitl")
@@ -313,7 +312,7 @@ function(px4_os_add_flags)
 		set(LIBROBOTCONTROL_INSTALL_DIR $ENV{LIBROBOTCONTROL_INSTALL_DIR})
 
 		# On cross compile host system and native build system:
-		#   a) select and define LIBROBOTCONTROL_INSTALL_DIR environment variable so that 
+		#   a) select and define LIBROBOTCONTROL_INSTALL_DIR environment variable so that
 		#      other unwanted headers will not be included
 		#   b) install robotcontrol.h and rc/* into $LIBROBOTCONTROL_INSTALL_DIR/include
 		#   c) install pre-built native (ARM) version of librobotcontrol.* into $LIBROBOTCONTROL_INSTALL_DIR/lib
@@ -322,6 +321,23 @@ function(px4_os_add_flags)
 		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${LIBROBOTCONTROL_INSTALL_DIR}/lib")
 
 	endif()
+
+endfunction()
+
+#=============================================================================
+#
+#	px4_os_determine_build_chip
+#
+#	Sets PX4_CHIP and PX4_CHIP_MANUFACTURER.
+#
+#	Usage:
+#		px4_os_determine_build_chip()
+#
+function(px4_os_determine_build_chip)
+
+	# always use generic chip and chip manufacturer
+	set(PX4_CHIP "generic" CACHE STRING "PX4 Chip" FORCE)
+	set(PX4_CHIP_MANUFACTURER "generic" CACHE STRING "PX4 Chip Manufacturer" FORCE)
 
 endfunction()
 

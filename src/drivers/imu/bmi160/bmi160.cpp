@@ -51,7 +51,7 @@ const uint8_t BMI160::_checked_registers[BMI160_NUM_CHECKED_REGISTERS] = {    BM
 
 BMI160::BMI160(int bus, uint32_t device, enum Rotation rotation) :
 	SPI("BMI160", nullptr, bus, device, SPIDEV_MODE3, BMI160_BUS_SPEED),
-	ScheduledWorkItem(px4::device_bus_to_wq(this->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(this->get_device_id())),
 	_px4_accel(get_device_id(), (external() ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1), rotation),
 	_px4_gyro(get_device_id(), (external() ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1), rotation),
 	_accel_reads(perf_alloc(PC_COUNT, "bmi160_accel_read")),

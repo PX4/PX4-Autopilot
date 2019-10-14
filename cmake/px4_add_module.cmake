@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-include(px4_base)
-
 #=============================================================================
 #
 #	px4_add_module
@@ -42,7 +40,6 @@ include(px4_base)
 #	Usage:
 #		px4_add_module(MODULE <string>
 #			MAIN <string>
-#			[ STACK <string> ] !!!!!DEPRECATED, USE STACK_MAIN INSTEAD!!!!!!!!!
 #			[ STACK_MAIN <string> ]
 #			[ STACK_MAX <string> ]
 #			[ COMPILE_FLAGS <list> ]
@@ -87,7 +84,7 @@ function(px4_add_module)
 
 	px4_parse_function_args(
 		NAME px4_add_module
-		ONE_VALUE MODULE MAIN STACK STACK_MAIN STACK_MAX PRIORITY
+		ONE_VALUE MODULE MAIN STACK_MAIN STACK_MAX PRIORITY
 		MULTI_VALUE COMPILE_FLAGS LINK_FLAGS SRCS INCLUDES DEPENDS MODULE_CONFIG
 		OPTIONS EXTERNAL DYNAMIC UNITY_BUILD
 		REQUIRED MODULE MAIN
@@ -161,12 +158,9 @@ function(px4_add_module)
 		set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
 	endif()
 
-	# Pass variable to the parent px4_add_module.
-	set(_no_optimization_for_target ${_no_optimization_for_target} PARENT_SCOPE)
-
 	# set defaults if not set
 	set(MAIN_DEFAULT MAIN-NOTFOUND)
-	set(STACK_MAIN_DEFAULT 1024)
+	set(STACK_MAIN_DEFAULT 2048)
 	set(PRIORITY_DEFAULT SCHED_PRIORITY_DEFAULT)
 
 	foreach(property MAIN STACK_MAIN PRIORITY)
@@ -188,11 +182,12 @@ function(px4_add_module)
 		target_compile_options(${MODULE} PRIVATE -Wframe-larger-than=${STACK_MAX})
 	endif()
 
+	# MAIN
 	if(MAIN)
 		target_compile_definitions(${MODULE} PRIVATE PX4_MAIN=${MAIN}_app_main)
 		target_compile_definitions(${MODULE} PRIVATE MODULE_NAME="${MAIN}")
 	else()
-		target_compile_definitions(${MODULE} PRIVATE MODULE_NAME="${MODULE}")
+		message(FATAL_ERROR "MAIN required")
 	endif()
 
 	if(COMPILE_FLAGS)

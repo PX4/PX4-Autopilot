@@ -39,14 +39,11 @@ ExternalProject_Add(sitl_gazebo
 	INSTALL_COMMAND ""
 	DEPENDS
 		git_gazebo
-	)
-set_target_properties(sitl_gazebo PROPERTIES EXCLUDE_FROM_ALL TRUE)
-
-ExternalProject_Add_Step(sitl_gazebo forceconfigure
-	DEPENDEES update
-	DEPENDERS configure
-	ALWAYS 1
-	)
+	USES_TERMINAL_CONFIGURE true
+	USES_TERMINAL_BUILD true
+	EXCLUDE_FROM_ALL true
+	BUILD_ALWAYS 1
+)
 
 # create targets for each viewer/model/debugger combination
 set(viewers none jmavsim gazebo)
@@ -104,3 +101,6 @@ add_custom_target(list_vmd_make_targets
 	COMMENT "List of acceptable '${PX4_BOARD}' <viewer_model_debugger> targets:"
 	VERBATIM
 	)
+
+# vscode launch.json
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/launch.json.in ${PX4_SOURCE_DIR}/.vscode/launch.json COPYONLY)

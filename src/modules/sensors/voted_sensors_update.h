@@ -52,6 +52,7 @@
 #include <lib/ecl/validation/data_validator.h>
 #include <lib/ecl/validation/data_validator_group.h>
 
+#include <uORB/Publication.hpp>
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_preflight.h>
@@ -247,14 +248,13 @@ private:
 	SensorData _baro {};
 
 	orb_advert_t _mavlink_log_pub{nullptr};
-	orb_advert_t _sensor_correction_pub{nullptr};	/**< handle to the sensor correction uORB topic */
-	orb_advert_t _sensor_selection_pub{nullptr};	/**< handle to the sensor selection uORB topic */
+
+	uORB::Publication<sensor_correction_s>	_sensor_correction_pub{ORB_ID(sensor_correction)};	/**< handle to the sensor correction uORB topic */
+	uORB::Publication<sensor_selection_s>	_sensor_selection_pub{ORB_ID(sensor_selection)};	/**< handle to the sensor selection uORB topic */
 
 	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX] {};	/**< latest sensor data from all sensors instances */
 	vehicle_air_data_s _last_airdata[SENSOR_COUNT_MAX] {};		/**< latest sensor data from all sensors instances */
 	vehicle_magnetometer_s _last_magnetometer[SENSOR_COUNT_MAX] {}; /**< latest sensor data from all sensors instances */
-
-	uint64_t _last_accel_timestamp[ACCEL_COUNT_MAX] {};	/**< latest full timestamp */
 
 	matrix::Dcmf _board_rotation {};		/**< rotation matrix for the orientation that the board is mounted */
 	matrix::Dcmf _mag_rotation[MAG_COUNT_MAX] {};	/**< rotation matrix for the orientation that the external mag0 is mounted */
@@ -262,26 +262,27 @@ private:
 	const Parameters &_parameters;
 	const bool _hil_enabled{false};			/**< is hardware-in-the-loop mode enabled? */
 
-	float _accel_diff[3][2] {};			/**< filtered accel differences between IMU units (m/s/s) */
-	float _gyro_diff[3][2] {};			/**< filtered gyro differences between IMU uinits (rad/s) */
-	float _mag_angle_diff[2] {};			/**< filtered mag angle differences between sensor instances (Ga) */
-
-	/* sensor thermal compensation */
-	TemperatureCompensation _temperature_compensation{};
-	sensor_correction_s _corrections {};		/**< struct containing the sensor corrections to be published to the uORB */
-	sensor_selection_s _selection {};		/**< struct containing the sensor selection to be published to the uORB */
-	subsystem_info_s _info {};			/**< subsystem info publication */
-
 	bool _corrections_changed{false};
 	bool _selection_changed{false};			/**< true when a sensor selection has changed and not been published */
 
-	uORB::PublicationQueued<subsystem_info_s> _info_pub{ORB_ID(subsystem_info)};	/* subsystem info publication */
+	float _accel_diff[3][2] {};			/**< filtered accel differences between IMU units (m/s/s) */
+	float _gyro_diff[3][2] {};			/**< filtered gyro differences between IMU uinits (rad/s) */
+	float _mag_angle_diff[2] {};			/**< filtered mag angle differences between sensor instances (Ga) */
 
 	uint32_t _accel_device_id[SENSOR_COUNT_MAX] {};	/**< accel driver device id for each uorb instance */
 	uint32_t _baro_device_id[SENSOR_COUNT_MAX] {};	/**< baro driver device id for each uorb instance */
 	uint32_t _gyro_device_id[SENSOR_COUNT_MAX] {};	/**< gyro driver device id for each uorb instance */
 	uint32_t _mag_device_id[SENSOR_COUNT_MAX] {};	/**< mag driver device id for each uorb instance */
 
+	uint64_t _last_accel_timestamp[ACCEL_COUNT_MAX] {};	/**< latest full timestamp */
+
+	sensor_correction_s _corrections {};		/**< struct containing the sensor corrections to be published to the uORB */
+	sensor_selection_s _selection {};		/**< struct containing the sensor selection to be published to the uORB */
+	subsystem_info_s _info {};			/**< subsystem info publication */
+
+	TemperatureCompensation _temperature_compensation{}; /**< sensor thermal compensation */
+
+	uORB::PublicationQueued<subsystem_info_s> _info_pub{ORB_ID(subsystem_info)};	/* subsystem info publication */
 };
 
 } /* namespace sensors */

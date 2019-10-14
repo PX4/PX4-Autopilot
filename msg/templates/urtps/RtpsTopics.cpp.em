@@ -23,7 +23,7 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
- * Copyright (C) 2018-2019 PX4 Pro Development Team. All rights reserved.
+ * Copyright (C) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -92,7 +92,11 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
 @[for topic in send_topics]@
         case @(rtps_message_id(ids, topic)): // @(topic)
         {
+@[    if 1.5 <= fastrtpsgen_version[0] <= 1.7]@
             @(topic)_ st;
+@[    else]@
+            @(topic) st;
+@[    end if]@
             eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, len);
             eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
             st.deserialize(cdr_des);
@@ -145,7 +149,11 @@ bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
         case @(rtps_message_id(ids, topic)): // @(topic)
             if (_@(topic)_sub.hasMsg())
             {
+@[    if 1.5 <= fastrtpsgen_version[0] <= 1.7]@
                 @(topic)_ msg = _@(topic)_sub.getMsg();
+@[    else]@
+                @(topic) msg = _@(topic)_sub.getMsg();
+@[    end if]@
                 msg.serialize(scdr);
                 ret = true;
             }

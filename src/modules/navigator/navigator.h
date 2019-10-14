@@ -317,7 +317,7 @@ private:
 	uORB::Subscription _gps_pos_sub{ORB_ID(vehicle_gps_position)};		/**< gps position subscription */
 	uORB::Subscription _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
 	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
-	uORB::Subscription _param_update_sub{ORB_ID(parameter_update)};		/**< param update subscription */
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};	/**< param update subscription */
 	uORB::Subscription _pos_ctrl_landing_status_sub{ORB_ID(position_controller_landing_status)};	/**< position controller landing status subscription */
 	uORB::Subscription _traffic_sub{ORB_ID(transponder_report)};		/**< traffic subscription */
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */

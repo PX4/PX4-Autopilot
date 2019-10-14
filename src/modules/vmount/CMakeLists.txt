@@ -34,7 +34,6 @@ px4_add_module(
 	MODULE drivers__vmount
 	MAIN vmount
 	COMPILE_FLAGS
-	STACK_MAIN 1024
 	SRCS
 		input.cpp
 		input_mavlink.cpp
@@ -48,4 +47,4 @@ px4_add_module(
 		git_ecl
 		ecl_geo
 	)
- 
+

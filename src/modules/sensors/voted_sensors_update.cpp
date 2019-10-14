@@ -222,6 +222,7 @@ void VotedSensorsUpdate::parametersUpdate()
 
 	/* run through all gyro sensors */
 	for (unsigned driver_index = 0; driver_index < GYRO_COUNT_MAX; driver_index++) {
+		_gyro.enabled[driver_index] = true;
 
 		(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, driver_index);
 
@@ -248,8 +249,6 @@ void VotedSensorsUpdate::parametersUpdate()
 			int32_t device_enabled = 1;
 			failed = failed || (OK != param_get(param_find(str), &device_enabled));
 
-			_gyro.enabled[i] = (device_enabled == 1);
-
 			if (failed) {
 				continue;
 			}
@@ -260,18 +259,34 @@ void VotedSensorsUpdate::parametersUpdate()
 
 			/* if the calibration is for this device, apply it */
 			if ((uint32_t)device_id == driver_device_id) {
+				_gyro.enabled[driver_index] = (device_enabled == 1);
+
+				if (!_gyro.enabled[driver_index]) { _gyro.priority[driver_index] = 0; }
+
 				struct gyro_calibration_s gscale = {};
+
 				(void)sprintf(str, "CAL_GYRO%u_XOFF", i);
+
 				failed = failed || (OK != param_get(param_find(str), &gscale.x_offset));
+
 				(void)sprintf(str, "CAL_GYRO%u_YOFF", i);
+
 				failed = failed || (OK != param_get(param_find(str), &gscale.y_offset));
+
 				(void)sprintf(str, "CAL_GYRO%u_ZOFF", i);
+
 				failed = failed || (OK != param_get(param_find(str), &gscale.z_offset));
+
 				(void)sprintf(str, "CAL_GYRO%u_XSCALE", i);
+
 				failed = failed || (OK != param_get(param_find(str), &gscale.x_scale));
+
 				(void)sprintf(str, "CAL_GYRO%u_YSCALE", i);
+
 				failed = failed || (OK != param_get(param_find(str), &gscale.y_scale));
+
 				(void)sprintf(str, "CAL_GYRO%u_ZSCALE", i);
+
 				failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
 
 				if (failed) {
@@ -310,6 +325,7 @@ void VotedSensorsUpdate::parametersUpdate()
 
 	/* run through all accel sensors */
 	for (unsigned driver_index = 0; driver_index < ACCEL_COUNT_MAX; driver_index++) {
+		_accel.enabled[driver_index] = true;
 
 		(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, driver_index);
 
@@ -336,8 +352,6 @@ void VotedSensorsUpdate::parametersUpdate()
 			int32_t device_enabled = 1;
 			failed = failed || (OK != param_get(param_find(str), &device_enabled));
 
-			_accel.enabled[i] = (device_enabled == 1);
-
 			if (failed) {
 				continue;
 			}
@@ -348,18 +362,34 @@ void VotedSensorsUpdate::parametersUpdate()
 
 			/* if the calibration is for this device, apply it */
 			if ((uint32_t)device_id == driver_device_id) {
+				_accel.enabled[driver_index] = (device_enabled == 1);
+
+				if (!_accel.enabled[driver_index]) { _accel.priority[driver_index] = 0; }
+
 				struct accel_calibration_s ascale = {};
+
 				(void)sprintf(str, "CAL_ACC%u_XOFF", i);
+
 				failed = failed || (OK != param_get(param_find(str), &ascale.x_offset));
+
 				(void)sprintf(str, "CAL_ACC%u_YOFF", i);
+
 				failed = failed || (OK != param_get(param_find(str), &ascale.y_offset));
+
 				(void)sprintf(str, "CAL_ACC%u_ZOFF", i);
+
 				failed = failed || (OK != param_get(param_find(str), &ascale.z_offset));
+
 				(void)sprintf(str, "CAL_ACC%u_XSCALE", i);
+
 				failed = failed || (OK != param_get(param_find(str), &ascale.x_scale));
+
 				(void)sprintf(str, "CAL_ACC%u_YSCALE", i);
+
 				failed = failed || (OK != param_get(param_find(str), &ascale.y_scale));
+
 				(void)sprintf(str, "CAL_ACC%u_ZSCALE", i);
+
 				failed = failed || (OK != param_get(param_find(str), &ascale.z_scale));
 
 				if (failed) {
@@ -400,6 +430,14 @@ void VotedSensorsUpdate::parametersUpdate()
 	 * Because we store the device id in _mag_device_id, we need to get the id via uorb topic since
 	 * the DevHandle method does not work on POSIX.
 	 */
+
+	/* first we have to reset all possible mags, since we are looping through the uORB instances instead of the drivers,
+	 * and not all uORB instances have to be published yet at the initial call of parametersUpdate()
+	 */
+	for (int i = 0; i < MAG_COUNT_MAX; i++) {
+		_mag.enabled[i] = true;
+	}
+
 	for (int topic_instance = 0; topic_instance < MAG_COUNT_MAX
 	     && topic_instance < _mag.subscription_count; ++topic_instance) {
 
@@ -452,31 +490,48 @@ void VotedSensorsUpdate::parametersUpdate()
 			int32_t device_enabled = 1;
 			failed = failed || (OK != param_get(param_find(str), &device_enabled));
 
-			_mag.enabled[i] = (device_enabled == 1);
-
 			if (failed) {
 				continue;
 			}
 
 			/* if the calibration is for this device, apply it */
 			if ((uint32_t)device_id == _mag_device_id[topic_instance]) {
+				_mag.enabled[topic_instance] = (device_enabled == 1);
+
+				// the mags that were published after the initial parameterUpdate
+				// would be given the priority even if disabled. Reset it to 0 in this case
+				if (!_mag.enabled[topic_instance]) { _mag.priority[topic_instance] = 0; }
+
 				struct mag_calibration_s mscale = {};
+
 				(void)sprintf(str, "CAL_MAG%u_XOFF", i);
+
 				failed = failed || (OK != param_get(param_find(str), &mscale.x_offset));
+
 				(void)sprintf(str, "CAL_MAG%u_YOFF", i);
+
 				failed = failed || (OK != param_get(param_find(str), &mscale.y_offset));
+
 				(void)sprintf(str, "CAL_MAG%u_ZOFF", i);
+
 				failed = failed || (OK != param_get(param_find(str), &mscale.z_offset));
+
 				(void)sprintf(str, "CAL_MAG%u_XSCALE", i);
+
 				failed = failed || (OK != param_get(param_find(str), &mscale.x_scale));
+
 				(void)sprintf(str, "CAL_MAG%u_YSCALE", i);
+
 				failed = failed || (OK != param_get(param_find(str), &mscale.y_scale));
+
 				(void)sprintf(str, "CAL_MAG%u_ZSCALE", i);
+
 				failed = failed || (OK != param_get(param_find(str), &mscale.z_scale));
 
 				(void)sprintf(str, "CAL_MAG%u_ROT", i);
 
 				int32_t mag_rot;
+
 				param_get(param_find(str), &mag_rot);
 
 				if (is_external) {
@@ -768,6 +823,15 @@ void VotedSensorsUpdate::magPoll(vehicle_magnetometer_s &magnetometer)
 
 				/* force a scale and offset update the first time we get data */
 				parametersUpdate();
+
+				if (!_mag.enabled[uorb_index]) {
+					/* in case the data on the mag topic comes after the initial parameterUpdate(), we would get here since the sensor
+					 * is enabled by default. The latest parameterUpdate() call would set enabled to false and reset priority to zero
+					 * for disabled sensors, and we shouldn't cal voter.put() in that case
+					 */
+					continue;
+				}
+
 			}
 
 			Vector3f vect(mag_report.x, mag_report.y, mag_report.z);
@@ -778,7 +842,8 @@ void VotedSensorsUpdate::magPoll(vehicle_magnetometer_s &magnetometer)
 			_last_magnetometer[uorb_index].magnetometer_ga[1] = vect(1);
 			_last_magnetometer[uorb_index].magnetometer_ga[2] = vect(2);
 
-			_mag.voter.put(uorb_index, mag_report.timestamp, vect.data(), mag_report.error_count, _mag.priority[uorb_index]);
+			_mag.voter.put(uorb_index, mag_report.timestamp, _last_magnetometer[uorb_index].magnetometer_ga, mag_report.error_count,
+				       _mag.priority[uorb_index]);
 		}
 	}
 
@@ -834,13 +899,14 @@ void VotedSensorsUpdate::baroPoll(vehicle_air_data_s &airdata)
 			_baro_device_id[uorb_index] = baro_report.device_id;
 
 			got_update = true;
-			Vector3f vect(baro_report.pressure, baro_report.temperature, 0.f);
+
+			float vect[3] = {baro_report.pressure, baro_report.temperature, 0.f};
 
 			_last_airdata[uorb_index].timestamp = baro_report.timestamp;
 			_last_airdata[uorb_index].baro_temp_celcius = baro_report.temperature;
 			_last_airdata[uorb_index].baro_pressure_pa = corrected_pressure;
 
-			_baro.voter.put(uorb_index, baro_report.timestamp, vect.data(), baro_report.error_count, _baro.priority[uorb_index]);
+			_baro.voter.put(uorb_index, baro_report.timestamp, vect, baro_report.error_count, _baro.priority[uorb_index]);
 		}
 	}
 
@@ -1066,12 +1132,7 @@ void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw, vehicle_air_data_s 
 	if (_corrections_changed) {
 		_corrections.timestamp = hrt_absolute_time();
 
-		if (_sensor_correction_pub == nullptr) {
-			_sensor_correction_pub = orb_advertise(ORB_ID(sensor_correction), &_corrections);
-
-		} else {
-			orb_publish(ORB_ID(sensor_correction), _sensor_correction_pub, &_corrections);
-		}
+		_sensor_correction_pub.publish(_corrections);
 
 		_corrections_changed = false;
 	}
@@ -1080,12 +1141,7 @@ void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw, vehicle_air_data_s 
 	if (_selection_changed) {
 		_selection.timestamp = hrt_absolute_time();
 
-		if (_sensor_selection_pub == nullptr) {
-			_sensor_selection_pub = orb_advertise(ORB_ID(sensor_selection), &_selection);
-
-		} else {
-			orb_publish(ORB_ID(sensor_selection), _sensor_selection_pub, &_selection);
-		}
+		_sensor_selection_pub.publish(_selection);
 
 		_selection_changed = false;
 	}

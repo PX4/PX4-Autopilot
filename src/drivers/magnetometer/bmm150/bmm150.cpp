@@ -251,7 +251,7 @@ usage()
 
 BMM150::BMM150(int bus, const char *path, enum Rotation rotation) :
 	I2C("BMM150", path, bus, BMM150_SLAVE_ADDRESS, BMM150_BUS_SPEED),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_running(false),
 	_call_interval(0),
 	_reports(nullptr),

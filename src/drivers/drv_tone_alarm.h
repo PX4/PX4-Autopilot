@@ -91,3 +91,23 @@ enum {
 	TONE_HOME_SET,
 	TONE_NUMBER_OF_TUNES
 };
+
+namespace ToneAlarmInterface
+{
+
+/**
+ * @brief Activates/configures the hardware registers.
+ */
+void init();
+
+/**
+ * @brief Starts playing the note.
+ */
+void start_note(unsigned frequency);
+
+/**
+ * @brief Stops playing the current note and makes the player 'safe'.
+ */
+void stop_note();
+
+} // ToneAlarmInterface

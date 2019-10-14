@@ -68,7 +68,7 @@ class FailureDetector : public ModuleParams
 public:
 	FailureDetector(ModuleParams *parent);
 
-	bool update();
+	bool update(const vehicle_status_s &vehicle_status);
 
 	uint8_t getStatus() const { return _status; }
 	bool isFailure() const { return _status != FAILURE_NONE; }
@@ -83,13 +83,14 @@ private:
 	)
 
 	// Subscriptions
-	SubscriptionData<vehicle_attitude_s> _sub_vehicle_attitude_setpoint;
-	SubscriptionData<vehicle_attitude_s> _sub_vehicule_attitude;
+	uORB::Subscription _sub_vehicule_attitude{ORB_ID(vehicle_attitude)};
 
 	uint8_t _status{FAILURE_NONE};
 
 	systemlib::Hysteresis _roll_failure_hysteresis{false};
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
 
+	bool resetStatus();
+	bool isAttitudeStabilized(const vehicle_status_s &vehicle_status);
 	bool updateAttitudeStatus();
 };

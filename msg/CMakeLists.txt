@@ -105,6 +105,7 @@ set(msg_files
 	sensor_combined.msg
 	sensor_correction.msg
 	sensor_gyro.msg
+	sensor_gyro_control.msg
 	sensor_mag.msg
 	sensor_preflight.msg
 	sensor_selection.msg
