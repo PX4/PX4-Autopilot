@@ -63,7 +63,7 @@ FlightTaskError FlightTasks::switchTask(FlightTaskIndex new_task_index)
 		return FlightTaskError::NoError;
 	}
 
-	// Save current setpoints for the nex FlightTask
+	// Save current setpoints for the next FlightTask
 	vehicle_local_position_setpoint_s last_setpoint = getPositionSetpoint();
 
 	if (_initTask(new_task_index)) {

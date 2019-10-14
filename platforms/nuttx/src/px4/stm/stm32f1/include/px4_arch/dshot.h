@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,23 +30,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#pragma once
 
-/**
- * Motor Ordering
- *
- * Determines the motor ordering. This can be used for example in combination with
- * a 4-in-1 ESC that assumes a motor ordering which is different from PX4.
- *
- * ONLY supported for Quads.
- * ONLY supported for fmu output (Pixracer or Omnibus F4).
- *
- * When changing this, make sure to test the motor response without props first.
- *
- * @value 0 PX4
- * @value 1 Betaflight / Cleanflight
- *
- * @min 0
- * @max 1
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(MOT_ORDERING, 0);
+
+#include "../../../stm32_common/include/px4_arch/dshot.h"
+

@@ -671,6 +671,10 @@
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
+#define BOARD_NUM_IO_TIMERS 5
+
+#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7};
+
 __BEGIN_DECLS
 
 /****************************************************************************************************

@@ -41,6 +41,7 @@
 
 #include <board_config.h>
 #include <px4_config.h>
+#include <px4_micro_hal.h>
 
 #include <perf/perf_counter.h>
 
@@ -164,6 +165,6 @@ private:
 	/**
 	 * IO Buffer storage
 	 */
-	static uint8_t _io_buffer_storage[] __attribute__((aligned(PX4IO_SERIAL_BUF_ALIGN)));
+	static uint8_t _io_buffer_storage[] __attribute__((aligned(PX4_ARCH_DCACHE_LINESIZE)));
 };
 

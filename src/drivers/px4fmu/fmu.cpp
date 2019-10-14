@@ -48,7 +48,6 @@
 #include <drivers/drv_mixer.h>
 #include <drivers/drv_pwm_output.h>
 #include <lib/cdev/CDev.hpp>
-#include <lib/circuit_breaker/circuit_breaker.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/parameters/param.h>
@@ -165,8 +164,6 @@ public:
 
 private:
 	MixingOutput _mixing_output{*this, MixingOutput::SchedulingPolicy::Auto, true};
-
-	static constexpr uint8_t MAX_ACTUATORS = DIRECT_PWM_OUTPUT_CHANNELS;
 
 	Mode		_mode{MODE_NONE};
 
