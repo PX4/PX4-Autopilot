@@ -1368,6 +1368,9 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 			_control_mode_sub.copy(&control_mode);
 
 			if (control_mode.flag_control_offboard_enabled) {
+				if (_vehicle_status_sub.updated()) {
+					_vehicle_status_sub.copy(&_vehicle_status);
+				}
 
 				/* Publish attitude setpoint if attitude and thrust ignore bits are not set */
 				if (!(offboard_control_mode.ignore_attitude)) {
@@ -1387,10 +1390,6 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					}
 
 					if (!offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
-						if (_vehicle_status_sub.updated()) {
-							_vehicle_status_sub.copy(&_vehicle_status);
-						}
-
 						// Fill correct field by checking frametype
 						// TODO: add as needed
 						switch (_mavlink->get_system_type()) {
@@ -1497,6 +1496,31 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 
 						case MAV_TYPE_GROUND_ROVER:
 							rates_sp.thrust_body[0] = set_attitude_target.thrust;
+							break;
+
+						case MAV_TYPE_VTOL_DUOROTOR:
+						case MAV_TYPE_VTOL_QUADROTOR:
+						case MAV_TYPE_VTOL_TILTROTOR:
+						case MAV_TYPE_VTOL_RESERVED2:
+						case MAV_TYPE_VTOL_RESERVED3:
+						case MAV_TYPE_VTOL_RESERVED4:
+						case MAV_TYPE_VTOL_RESERVED5:
+							switch (_vehicle_status.vehicle_type) {
+							case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
+								rates_sp.thrust_body[0] = set_attitude_target.thrust;
+
+								break;
+
+							case vehicle_status_s::VEHICLE_TYPE_ROTARY_WING:
+								rates_sp.thrust_body[2] = -set_attitude_target.thrust;
+
+								break;
+
+							default:
+								// This should never happen
+								break;
+							}
+
 							break;
 						}
 
