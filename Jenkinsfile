@@ -8,45 +8,45 @@ pipeline {
 
       parallel {
 
-        // stage('Catkin build on ROS workspace') {
-        //   agent {
-        //     docker {
-        //       image 'px4io/px4-dev-ros-melodic:2019-10-04'
-        //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
-        //     }
-        //   }
-        //   steps {
-        //     sh 'ls -l'
-        //     sh '''#!/bin/bash -l
-        //       echo $0;
-        //       mkdir -p catkin_ws/src;
-        //       cd catkin_ws;
-        //       git -C ${WORKSPACE}/catkin_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
-        //       git clone --recursive ${WORKSPACE}/catkin_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
-        //       git -C ${WORKSPACE}/catkin_ws/src/Firmware fetch --tags;
-        //       source /opt/ros/melodic/setup.bash;
-        //       catkin init;
-        //       catkin build -j$(nproc) -l$(nproc);
-        //     '''
-        //     // test if the binary was correctly installed and runs using 'mavros_posix_silt.launch'
-        //     sh '''#!/bin/bash -l
-        //       echo $0;
-        //       source catkin_ws/devel/setup.bash;
-        //       rostest px4 pub_test.launch;
-        //     '''
-        //   }
-        //   post {
-        //     always {
-        //       sh 'rm -rf catkin_ws'
-        //     }
-        //     failure {
-        //       archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.xml, .ros/**/*.log')
-        //     }
-        //   }
-        //   options {
-        //     checkoutToSubdirectory('catkin_ws/src/Firmware')
-        //   }
-        // }
+        stage('Catkin build on ROS workspace') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-ros-melodic:2019-10-04'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw -e HOME=$WORKSPACE'
+            }
+          }
+          steps {
+            sh 'ls -l'
+            sh '''#!/bin/bash -l
+              echo $0;
+              mkdir -p catkin_ws/src;
+              cd catkin_ws;
+              git -C ${WORKSPACE}/catkin_ws/src/Firmware submodule update --init --recursive --force Tools/sitl_gazebo
+              git clone --recursive ${WORKSPACE}/catkin_ws/src/Firmware/Tools/sitl_gazebo src/mavlink_sitl_gazebo;
+              git -C ${WORKSPACE}/catkin_ws/src/Firmware fetch --tags;
+              source /opt/ros/melodic/setup.bash;
+              catkin init;
+              catkin build -j$(nproc) -l$(nproc);
+            '''
+            // test if the binary was correctly installed and runs using 'mavros_posix_silt.launch'
+            sh '''#!/bin/bash -l
+              echo $0;
+              source catkin_ws/devel/setup.bash;
+              rostest px4 pub_test.launch;
+            '''
+          }
+          post {
+            always {
+              sh 'rm -rf catkin_ws'
+            }
+            failure {
+              archiveArtifacts(allowEmptyArchive: false, artifacts: '.ros/**/*.xml, .ros/**/*.log')
+            }
+          }
+          options {
+            checkoutToSubdirectory('catkin_ws/src/Firmware')
+          }
+        }
 
         stage('Colcon build on ROS2 workspace') {
           agent {
