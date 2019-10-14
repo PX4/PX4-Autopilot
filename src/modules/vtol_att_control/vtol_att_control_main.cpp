@@ -390,15 +390,6 @@ VtolAttitudeControl::Run()
 			_fw_virtual_att_sp_sub.update(&_fw_virtual_att_sp);
 
 			if (mc_att_sp_updated || fw_att_sp_updated) {
-
-				// reinitialize the setpoint while not armed to make sure no value from the last mode or flight is still kept
-				if (!_v_control_mode.flag_armed) {
-					Quatf().copyTo(_mc_virtual_att_sp.q_d);
-					Vector3f().copyTo(_mc_virtual_att_sp.thrust_body);
-					Quatf().copyTo(_v_att_sp.q_d);
-					Vector3f().copyTo(_v_att_sp.thrust_body);
-				}
-
 				_vtol_type->update_transition_state();
 				_v_att_sp_pub.publish(_v_att_sp);
 			}
@@ -412,17 +403,9 @@ VtolAttitudeControl::Run()
 			_vtol_vehicle_status.in_transition_to_fw = false;
 
 			if (mc_att_sp_updated) {
-				// reinitialize the setpoint while not armed to make sure no value from the last mode or flight is still kept
-				if (!_v_control_mode.flag_armed) {
-					Quatf().copyTo(_mc_virtual_att_sp.q_d);
-					Vector3f().copyTo(_mc_virtual_att_sp.thrust_body);
-					Quatf().copyTo(_v_att_sp.q_d);
-					Vector3f().copyTo(_v_att_sp.thrust_body);
-				}
+				_vtol_type->update_mc_state();
+				_v_att_sp_pub.publish(_v_att_sp);
 			}
-
-			_vtol_type->update_mc_state();
-			_v_att_sp_pub.publish(_v_att_sp);
 
 			break;
 
