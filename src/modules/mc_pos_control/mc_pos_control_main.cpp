@@ -579,9 +579,9 @@ MulticopterPositionControl::Run()
 
 		// check if any task is active
 		if (_flight_tasks.isAnyTaskActive()) {
-
-			// setpoints from flighttask
-			vehicle_local_position_setpoint_s setpoint;
+			// setpoints and constraints for the position controller from flighttask or failsafe
+			vehicle_local_position_setpoint_s setpoint = FlightTask::empty_setpoint;
+			vehicle_constraints_s constraints = FlightTask::empty_constraints;
 
 			_flight_tasks.setYawHandler(_wv_controller);
 
@@ -593,6 +593,8 @@ MulticopterPositionControl::Run()
 
 			} else {
 				setpoint = _flight_tasks.getPositionSetpoint();
+				constraints = _flight_tasks.getConstraints();
+
 				_failsafe_land_hysteresis.set_state_and_update(false, time_stamp_current);
 
 				// Check if position, velocity or thrust pairs are valid -> trigger failsaife if no pair is valid
@@ -612,7 +614,6 @@ MulticopterPositionControl::Run()
 			// publish trajectory setpoint
 			_traj_sp_pub.publish(setpoint);
 
-			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
 			landing_gear_s gear = _flight_tasks.getGear();
 
 			// check if all local states are valid and map accordingly
@@ -642,7 +643,6 @@ MulticopterPositionControl::Run()
 				constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
 			}
 
-
 			// limit altitude only if local position is valid
 			if (PX4_ISFINITE(_states.position(2))) {
 				limit_altitude(setpoint);
@@ -655,6 +655,9 @@ MulticopterPositionControl::Run()
 			// update position controller setpoints
 			if (!_control.updateSetpoint(setpoint)) {
 				warn_rate_limited("Position-Control Setpoint-Update failed");
+				failsafe(setpoint, _states, true, !was_in_failsafe);
+				_control.updateSetpoint(setpoint);
+				constraints = FlightTask::empty_constraints;
 			}
 
 			// Generate desired thrust and yaw.
@@ -977,7 +980,7 @@ MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint
 			setpoint.vz = _param_mpc_land_speed.get();
 
 			if (warn) {
-				PX4_WARN("Failsafe: blind hover");
+				PX4_WARN("Failsafe: blind land");
 			}
 		}
 
@@ -991,6 +994,10 @@ MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint
 			// emergency descend with a bit below hover thrust
 			setpoint.vz = NAN;
 			setpoint.thrust[2] = _param_mpc_thr_hover.get() * .8f;
+
+			if (warn) {
+				PX4_WARN("Failsafe: blind descend");
+			}
 		}
 
 		_in_failsafe = true;
