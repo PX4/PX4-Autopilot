@@ -224,15 +224,8 @@ void Ekf::resetHeight()
 
 	// reset the vertical position
 	if (_control_status.flags.rng_hgt) {
-		rangeSample range_newest = _range_buffer.get_newest();
 
-		if (_time_last_imu - range_newest.time_us < 2 * RNG_MAX_INTERVAL) {
-			// correct the range data for position offset relative to the IMU
-			Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
-			Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
-			range_newest.rng += pos_offset_earth(2) / _R_rng_to_earth_2_2;
-			// calculate the new vertical position using range sensor
-			float new_pos_down = _hgt_sensor_offset - range_newest.rng * _R_rng_to_earth_2_2;
+			float new_pos_down = _hgt_sensor_offset - _range_sample_delayed.rng * _R_rng_to_earth_2_2;
 
 			// update the state and associated variance
 			_state.pos(2) = new_pos_down;
@@ -249,11 +242,6 @@ void Ekf::resetHeight()
 			// reset the baro offset which is subtracted from the baro reading if we need to use it as a backup
 			const baroSample &baro_newest = _baro_buffer.get_newest();
 			_baro_hgt_offset = baro_newest.hgt + _state.pos(2);
-
-		} else {
-			// TODO: reset to last known range based estimate
-		}
-
 
 	} else if (_control_status.flags.baro_hgt) {
 		// initialize vertical position with newest baro measurement
