@@ -34,19 +34,19 @@
 /**
  * @file rtl_params.c
  *
- * Parameters for return to home mode.
+ * Parameters for return mode
  *
  * @author Julian Oes <julian@oes.ch>
  */
 
 /*
- * Return to home parameters, accessible via MAVLink
+ * Return mode parameters, accessible via MAVLink
  */
 
 /**
- * Return to home relative altitude.
+ * Return mode return altitude
  *
- * Default minimum altitude above home for return flight in return mode.
+ * Default minimum altitude above home for return flight.
  * This is affected by RTL_MIN_DIST and RTL_CONE_ANG.
  *
  * @unit m
@@ -60,9 +60,9 @@ PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
 
 
 /**
- * Return mode loiter altitude (relative to home).
+ * Return mode loiter altitude (relative to home)
  *
- * Stay at this altitude above home position after return to home mode descending.
+ * Descend to this altitude (above home position) after return, and wait for time defined in RTL_LAND_DELAY.
  * Land (i.e. slowly descend) from this altitude if autolanding allowed.
  *
  * @unit m
@@ -77,7 +77,7 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
 /**
  * Return mode delay
  *
- * Delay after descend before landing in Return mode.
+ * Delay before landing (after initial descent) in Return mode.
  * If set to -1 the system will not land but loiter at RTL_DESCEND_ALT.
  *
  * @unit s
@@ -90,7 +90,7 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
 PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
 
 /**
- * Maximum horizontal distance from home, below which RTL_DESCEND_ALT is used as return altitude.
+ * Maximum horizontal distance from home, below which RTL_DESCEND_ALT is used as return altitude
  *
  * If the vehicle is less than this horizontal distance from home when return mode is activated it will ascend
  * to RTL_DESCEND_ALT for the return journey (rather than the altitude set by RTL_RETURN_ALT and RTL_CONE_ANG).
@@ -118,7 +118,7 @@ PARAM_DEFINE_FLOAT(RTL_MIN_DIST, 5.0f);
 PARAM_DEFINE_INT32(RTL_TYPE, 0);
 
 /**
- * Half-angle of the return to home cone.
+ * Half-angle of the return mode altitude cone
  *
  * Defines the half-angle of a cone centered around the home position that
  * affects the altitude at which the vehicle returns during return to home.
