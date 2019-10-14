@@ -129,7 +129,6 @@ UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 
 			msg.cmd.push_back(static_cast<int>(scaled));
 
-			_esc_status.esc[i].esc_setpoint_raw = abs(static_cast<int>(scaled));
 			actuator_outputs.output[i] = scaled;
 
 		} else {
@@ -201,7 +200,6 @@ UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavca
 		ref.esc_voltage     = msg.voltage;
 		ref.esc_current     = msg.current;
 		ref.esc_temperature = msg.temperature;
-		ref.esc_setpoint    = msg.power_rating_pct;
 		ref.esc_rpm         = msg.rpm;
 		ref.esc_errorcount  = msg.error_count;
 	}
