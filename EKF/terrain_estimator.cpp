@@ -56,7 +56,7 @@ bool Ekf::initHagl()
 		_terrain_var = sq(_params.rng_gnd_clearance);
 		initialized = true;
 
-	} else if (!_rng_hgt_faulty
+	} else if (_rng_hgt_valid
 		   && (_time_last_imu - latest_measurement.time_us) < (uint64_t)2e5
 		   && _R_rng_to_earth_2_2 > _params.range_cos_max_tilt) {
 		// if we have a fresh measurement, use it to initialise the terrain estimator
@@ -87,9 +87,6 @@ bool Ekf::initHagl()
 
 void Ekf::runTerrainEstimator()
 {
-	// Perform a continuity check on range finder data
-	checkRangeDataContinuity();
-
 	// Perform initialisation check and
 	// on ground, continuously reset the terrain estimator
 	if (!_terrain_initialised || !_control_status.flags.in_air) {
@@ -110,7 +107,7 @@ void Ekf::runTerrainEstimator()
 		_terrain_var = math::constrain(_terrain_var, 0.0f, 1e4f);
 
 		// Fuse range finder data if available
-		if (_range_data_ready && !_rng_hgt_faulty) {
+		if (_range_data_ready && _rng_hgt_valid) {
 			fuseHagl();
 
 			// update range sensor angle parameters in case they have changed
@@ -320,20 +317,4 @@ void Ekf::getHaglInnov(float *hagl_innov)
 void Ekf::getHaglInnovVar(float *hagl_innov_var)
 {
 	memcpy(hagl_innov_var, &_hagl_innov_var, sizeof(_hagl_innov_var));
-}
-
-// check that the range finder data is continuous
-void Ekf::checkRangeDataContinuity()
-{
-	// update range data continuous flag (1Hz ie 2000 ms)
-	/* Timing in micro seconds */
-
-	/* Apply a 2.0 sec low pass filter to the time delta from the last range finder updates */
-	float alpha = 0.5f * _dt_update;
-	_dt_last_range_update_filt_us = _dt_last_range_update_filt_us * (1.0f - alpha) + alpha *
-					(_imu_sample_delayed.time_us - _range_sample_delayed.time_us);
-
-	_dt_last_range_update_filt_us = fminf(_dt_last_range_update_filt_us, 4e6f);
-
-	_range_data_continuous = (_dt_last_range_update_filt_us < 2e6f);
 }
