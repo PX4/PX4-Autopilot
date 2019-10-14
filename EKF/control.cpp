@@ -118,9 +118,9 @@ void Ekf::controlFusionModes()
 	// Get range data from buffer and check validity
 	_range_data_ready = _range_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_range_sample_delayed);
 
-	checkRangeDataValidity();
+	updateRangeDataValidity();
 
-	if (_range_data_ready && !_rng_hgt_faulty) {
+	if (_range_data_ready && _rng_hgt_valid) {
 		// correct the range data for position offset relative to the IMU
 		Vector3f pos_offset_body = _params.rng_pos_body - _params.imu_pos_body;
 		Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
@@ -910,23 +910,25 @@ void Ekf::controlHeightSensorTimeouts()
 
 		// handle the case we are using range finder for height
 		if (_control_status.flags.rng_hgt) {
-			// check if range finder data is available
-			const rangeSample &rng_init = _range_buffer.get_newest();
-			bool rng_data_available = ((_time_last_imu - rng_init.time_us) < 2 * RNG_MAX_INTERVAL);
 
 			// check if baro data is available
 			const baroSample &baro_init = _baro_buffer.get_newest();
 			bool baro_data_available = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
 
 			// reset to baro if we have no range data and baro data is available
-			bool reset_to_baro = !rng_data_available && baro_data_available;
+			bool reset_to_baro = !_rng_hgt_valid && baro_data_available;
 
-			// reset to range data if it is available
-			bool reset_to_rng = rng_data_available;
+			if (_rng_hgt_valid) {
 
-			if (reset_to_baro) {
+				// reset the height mode
+				setControlRangeHeight();
+
+				// request a reset
+				reset_height = true;
+				ECL_WARN_TIMESTAMPED("EKF rng hgt timeout - reset to rng hgt");
+
+			} else if (reset_to_baro) {
 				// set height sensor health
-				_rng_hgt_faulty = true;
 				_baro_hgt_faulty = false;
 
 				// reset the height mode
@@ -935,17 +937,6 @@ void Ekf::controlHeightSensorTimeouts()
 				// request a reset
 				reset_height = true;
 				ECL_WARN_TIMESTAMPED("EKF rng hgt timeout - reset to baro");
-
-			} else if (reset_to_rng) {
-				// set height sensor health
-				_rng_hgt_faulty = false;
-
-				// reset the height mode
-				setControlRangeHeight();
-
-				// request a reset
-				reset_height = true;
-				ECL_WARN_TIMESTAMPED("EKF rng hgt timeout - reset to rng hgt");
 
 			} else {
 				// we have nothing to reset to
@@ -1016,7 +1007,7 @@ void Ekf::controlHeightFusion()
 
 	if (_params.vdist_sensor_type == VDIST_SENSOR_BARO) {
 
-		if (_range_aid_mode_selected && _range_data_ready && !_rng_hgt_faulty) {
+		if (_range_aid_mode_selected && _range_data_ready && _rng_hgt_valid) {
 			setControlRangeHeight();
 			_fuse_height = true;
 
@@ -1062,7 +1053,7 @@ void Ekf::controlHeightFusion()
 	}
 
 	// set the height data source to range if requested
-	if ((_params.vdist_sensor_type == VDIST_SENSOR_RANGE) && !_rng_hgt_faulty) {
+	if ((_params.vdist_sensor_type == VDIST_SENSOR_RANGE) && _rng_hgt_valid) {
 		setControlRangeHeight();
 		_fuse_height = _range_data_ready;
 
@@ -1098,7 +1089,7 @@ void Ekf::controlHeightFusion()
 	// Determine if GPS should be used as the height source
 	if (_params.vdist_sensor_type == VDIST_SENSOR_GPS) {
 
-		if (_range_aid_mode_selected && _range_data_ready && !_rng_hgt_faulty) {
+		if (_range_aid_mode_selected && _range_data_ready && _rng_hgt_valid) {
 			setControlRangeHeight();
 			_fuse_height = true;
 
@@ -1161,7 +1152,7 @@ void Ekf::controlHeightFusion()
 	}
 
 	if ((_time_last_imu - _time_last_hgt_fuse) > 2 * RNG_MAX_INTERVAL && _control_status.flags.rng_hgt
-	    && (!_range_data_ready || _rng_hgt_faulty)) {
+	    && (!_range_data_ready || !_rng_hgt_valid)) {
 
 		// If we are supposed to be using range finder data as the primary height sensor, have missed or rejected measurements
 		// and are on the ground, then synthesise a measurement at the expected on ground value
@@ -1207,78 +1198,6 @@ void Ekf::checkRangeAidSuitability()
 
 	} else {
 		_is_range_aid_suitable = false;
-	}
-}
-
-void Ekf::checkRangeDataValidity()
-{
-	// check if out of date
-	if ((_imu_sample_delayed.time_us - _range_sample_delayed .time_us) > 2 * RNG_MAX_INTERVAL) {
-		_rng_hgt_faulty = true;
-		return;
-	}
-
-	// Don't allow faulty flag to clear unless range data is continuous
-	if (_rng_hgt_faulty && !_range_data_continuous) {
-		return;
-	}
-
-	// Don't run the checks after this unless we have retrieved new data from the buffer
-	if (!_range_data_ready) {
-		return;
-	} else {
-		// reset fault status when we get new data
-		_rng_hgt_faulty = (_range_sample_delayed.quality == 0);
-	}
-
-	// Check if excessively tilted
-	if (_R_rng_to_earth_2_2 < _params.range_cos_max_tilt) {
-		_rng_hgt_faulty = true;
-		return;
-	}
-
-	// Check if out of range
-	if ((_range_sample_delayed.rng > _rng_valid_max_val)
-	|| (_range_sample_delayed.rng < _rng_valid_min_val)) {
-		if (_control_status.flags.in_air) {
-			_rng_hgt_faulty = true;
-			return;
-		} else {
-			// Range finders can fail to provide valid readings when resting on the ground
-			// or being handled by the user, which prevents use of as a primary height sensor.
-			// To work around this issue, we replace out of range data with the expected on ground value.
-			_range_sample_delayed.rng = _params.rng_gnd_clearance;
-			return;
-		}
-	}
-
-	// Check for "stuck" range finder measurements when range was not valid for certain period
-	// This handles a failure mode observed with some lidar sensors
-	if (((_range_sample_delayed.time_us - _time_last_rng_ready) > (uint64_t)10e6) &&
-	    _control_status.flags.in_air) {
-
-		// require a variance of rangefinder values to check for "stuck" measurements
-		if (_rng_stuck_max_val - _rng_stuck_min_val > _params.range_stuck_threshold) {
-			_time_last_rng_ready = _range_sample_delayed.time_us;
-			_rng_stuck_min_val = 0.0f;
-			_rng_stuck_max_val = 0.0f;
-			_control_status.flags.rng_stuck = false;
-
-		} else {
-			if (_range_sample_delayed.rng > _rng_stuck_max_val) {
-				_rng_stuck_max_val = _range_sample_delayed.rng;
-			}
-
-			if (_rng_stuck_min_val < 0.1f || _range_sample_delayed.rng < _rng_stuck_min_val) {
-				_rng_stuck_min_val = _range_sample_delayed.rng;
-			}
-
-			_control_status.flags.rng_stuck = true;
-			_rng_hgt_faulty = true;
-		}
-
-	} else {
-		_time_last_rng_ready = _range_sample_delayed.time_us;
 	}
 }
 
