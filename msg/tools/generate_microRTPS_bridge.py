@@ -251,9 +251,10 @@ if(os.path.exists(fastrtpsgen_path)):
     except OSError:
         raise
 
-    if fastrtpsgen_version_out.isdigit():
+    try:
         fastrtpsgen_version = float(fastrtpsgen_version_out)
-    else:
+    except ValueError:
+        print("'fastrtpsgen -version' returned None. Hardsetting version to 1.0")
         fastrtpsgen_version = 1.0
 else:
     raise Exception(
