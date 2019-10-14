@@ -102,8 +102,12 @@ bool @(topic)_Publisher::init()
 @[else]@
     Wparam.topic.topicName = "@(topic)PubSubTopic";
 @[end if]@
-@[if ros2_distro and ros2_distro != "ardent"]@
+@[if ros2_distro]@
+@[    if ros2_distro == "ardent"]@
+    Wparam.qos.m_partition.push_back("rt");
+@[    else]@
     Wparam.topic.topicName = "rt/" + Wparam.topic.topicName;
+@[    end if]@
 @[end if]@
     mp_publisher = Domain::createPublisher(mp_participant, Wparam, static_cast<PublisherListener*>(&m_listener));
     if(mp_publisher == nullptr)
@@ -139,9 +143,17 @@ void @(topic)_Publisher::run()
 
     // Publication code
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[    if ros2_distro]@
+    @(package)::msg::dds_::@(topic)_ st;
+@[    else]@
     @(topic)_ st;
+@[    end if]@
 @[else]@
+@[    if ros2_distro]@
+    @(package)::msg::@(topic) st;
+@[    else]@
     @(topic) st;
+@[    end if]@
 @[end if]@
 
     /* Initialize your structure here */
@@ -168,9 +180,17 @@ void @(topic)_Publisher::run()
 }
 
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
-void @(topic)_Publisher::publish(@(topic)_* st)
+@[    if ros2_distro]@
+    void @(topic)_Publisher::publish(@(package)::msg::dds_::@(topic)_* st)
+@[    else]@
+    void @(topic)_Publisher::publish(@(topic)_* st)
+@[    end if]@
 @[else]@
-void @(topic)_Publisher::publish(@(topic)* st)
+@[    if ros2_distro]@
+    void @(topic)_Publisher::publish(@(package)::msg::@(topic)* st)
+@[    else]@
+    void @(topic)_Publisher::publish(@(topic)* st)
+@[    end if]@
 @[end if]@
 {
     mp_publisher->write(st);

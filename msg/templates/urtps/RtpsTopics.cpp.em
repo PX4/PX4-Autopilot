@@ -93,9 +93,17 @@ void RtpsTopics::publish(uint8_t topic_ID, char data_buffer[], size_t len)
         case @(rtps_message_id(ids, topic)): // @(topic)
         {
 @[    if 1.5 <= fastrtpsgen_version[0] <= 1.7]@
+@[        if ros2_distro[0]]@
+            @(package[0])::msg::dds_::@(topic)_ st;
+@[        else]@
             @(topic)_ st;
+@[        end if]@
 @[    else]@
+@[        if ros2_distro[0]]@
+            @(package[0])::msg::@(topic) st;
+@[        else]@
             @(topic) st;
+@[        end if]@
 @[    end if]@
             eprosima::fastcdr::FastBuffer cdrbuffer(data_buffer, len);
             eprosima::fastcdr::Cdr cdr_des(cdrbuffer);
@@ -150,9 +158,17 @@ bool RtpsTopics::getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr)
             if (_@(topic)_sub.hasMsg())
             {
 @[    if 1.5 <= fastrtpsgen_version[0] <= 1.7]@
+@[        if ros2_distro[0]]@
+                @(package[0])::msg::dds_::@(topic)_ msg = _@(topic)_sub.getMsg();
+@[        else]@
                 @(topic)_ msg = _@(topic)_sub.getMsg();
+@[        end if]@
 @[    else]@
+@[        if ros2_distro[0]]@
+                @(package[0])::msg::@(topic) msg = _@(topic)_sub.getMsg();
+@[        else]@
                 @(topic) msg = _@(topic)_sub.getMsg();
+@[        end if]@
 @[    end if]@
                 msg.serialize(scdr);
                 ret = true;
