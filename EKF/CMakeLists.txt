@@ -58,10 +58,10 @@ set_target_properties(ecl_EKF PROPERTIES PUBLIC_HEADER "ekf.h")
 
 target_compile_options(ecl_EKF PRIVATE -fno-associative-math)
 
-if(EKF_PYTHON_TESTS)
-	add_subdirectory(swig)
-endif()
+#if(EKF_PYTHON_TESTS)
+#	add_subdirectory(swig)
+#endif()
 
-if(BUILD_TESTING)
-	add_subdirectory(tests)
-endif()
+#if(BUILD_TESTING)
+#	add_subdirectory(tests)
+#endif()

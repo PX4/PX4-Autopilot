@@ -90,7 +90,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 	elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 		add_compile_options(
 			-pedantic
-		
+
 			-Wall
 			-Wextra
 			-Werror
@@ -102,7 +102,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 	# testing
 	include(CTest)
 	enable_testing()
-	
+
 	if(BUILD_TESTING)
 		option(ECL_TESTS "Build ECL tests" ON)
 
@@ -196,17 +196,17 @@ endif()
 if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 
 	option(BUILD_DOXYGEN "Build doxygen documentation" OFF)
-	
+
 	if (BUILD_DOXYGEN)
 		find_package(Doxygen)
 		if (DOXYGEN_FOUND)
 			# set input and output files
 			set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/docs/Doxyfile.in)
 			set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
-	
+
 			# request to configure the file
 			configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
-	
+
 			# note the option ALL which allows to build the docs together with the application
 			add_custom_target(doxygen ALL
 				COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
@@ -216,9 +216,24 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 				VERBATIM
 				USES_TERMINAL
 			)
-	
+
 		else()
 			message(FATAL_ERROR "Doxygen needs to be installed to generate documentation")
 		endif()
 	endif()
 endif()
+
+
+enable_testing()
+include_directories(${GTEST_INCLUDE_DIR})
+add_subdirectory("/usr/src/gtest" ${CMAKE_BINARY_DIR}/gtest)
+
+set(SRCS
+   test/main.cpp
+   test/test_example.cpp
+   )
+add_executable(TestECL ${SRCS})
+
+target_include_directories(TestECL PRIVATE ${GTEST_INCLUDE_DIRS})
+target_link_libraries(TestECL gtest gtest_main)
+add_test(NAME TestECL COMMAND TestECL)
