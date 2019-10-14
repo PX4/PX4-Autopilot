@@ -471,14 +471,14 @@ void Ekf::controlOpticalFlowFusion()
 		if (!_inhibit_flow_use && _control_status.flags.opt_flow) {
 			// inhibit use of optical flow if motion is unsuitable and we are not reliant on it for flight navigation
 			bool preflight_motion_not_ok = !_control_status.flags.in_air && ((_imu_sample_delayed.time_us - _time_good_motion_us) > (uint64_t)1E5);
-			bool flight_motion_not_ok = _control_status.flags.in_air && !_range_aid_mode_enabled;
+			bool flight_motion_not_ok = _control_status.flags.in_air && !areRangeAidConditionsMet();
 			if ((preflight_motion_not_ok || flight_motion_not_ok) && !flow_required) {
 				_inhibit_flow_use = true;
 			}
 		} else if (_inhibit_flow_use && !_control_status.flags.opt_flow){
 			// allow use of optical flow if motion is suitable or we are reliant on it for flight navigation
 			bool preflight_motion_ok = !_control_status.flags.in_air && ((_imu_sample_delayed.time_us - _time_bad_motion_us) > (uint64_t)5E6);
-			bool flight_motion_ok = _control_status.flags.in_air && _range_aid_mode_enabled;
+			bool flight_motion_ok = _control_status.flags.in_air && areRangeAidConditionsMet();
 			if (preflight_motion_ok || flight_motion_ok || flow_required) {
 				_inhibit_flow_use = false;
 			}
@@ -1011,9 +1011,8 @@ void Ekf::controlHeightFusion()
 {
 	// set control flags for the desired primary height source
 
-	rangeAidConditionsMet();
-
-	_range_aid_mode_selected = (_params.range_aid == 1) && _range_aid_mode_enabled;
+	checkRangeAidConditionsMet();
+	_range_aid_mode_selected = (_params.range_aid == 1) && areRangeAidConditionsMet();
 
 	if (_params.vdist_sensor_type == VDIST_SENSOR_BARO) {
 
@@ -1178,57 +1177,33 @@ void Ekf::controlHeightFusion()
 
 }
 
-void Ekf::rangeAidConditionsMet()
+void Ekf::checkRangeAidConditionsMet()
 {
-	// if the parameter for range aid is enabled we allow to switch from using the primary height source to using range finder as height source
-	// under the following conditions
-	// 1) Vehicle is in-air
-	// 2) Range data is valid
-	// 3) Vehicle is no further than max_hagl_for_range_aid away from the ground
-	// 4) Ground speed is not higher than max_vel_for_range_aid
-	// 5) Terrain estimate is stable (needs better checks)
-	if (_control_status.flags.in_air && !_rng_hgt_faulty) {
+	const bool horz_vel_valid = _control_status.flags.gps
+				    || _control_status.flags.ev_pos
+				    || _control_status.flags.ev_vel
+				    || _control_status.flags.opt_flow;
+
+	if (_control_status.flags.in_air
+	    && !_rng_hgt_faulty
+	    && get_terrain_valid()
+	    && horz_vel_valid) {
 		// check if we can use range finder measurements to estimate height, use hysteresis to avoid rapid switching
-		bool can_use_range_finder;
-		if (_range_aid_mode_enabled) {
-			can_use_range_finder = (_terrain_vpos - _state.pos(2) < _params.max_hagl_for_range_aid) && get_terrain_valid();
+		// Note that the 0.7 coefficients and the innovation check are arbitrary values but work well in practice
+		const bool is_in_range = _range_aid_mode_enabled
+					 ? (_terrain_vpos - _state.pos(2) < _params.max_hagl_for_range_aid)
+					 : (_terrain_vpos - _state.pos(2) < _params.max_hagl_for_range_aid * 0.7f);
 
-		} else {
-			// if we were not using range aid in the previous iteration then require the current height above terrain to be
-			// smaller than 70 % of the maximum allowed ground distance for range aid
-			can_use_range_finder = (_terrain_vpos - _state.pos(2) < 0.7f * _params.max_hagl_for_range_aid) && get_terrain_valid();
-		}
+		const float ground_vel = sqrtf(_state.vel(0) * _state.vel(0) + _state.vel(1) * _state.vel(1));
+		const bool is_below_max_speed = _range_aid_mode_enabled
+						? ground_vel < _params.max_vel_for_range_aid
+						: ground_vel < _params.max_vel_for_range_aid * 0.7f;
 
-		bool horz_vel_valid = (_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel || _control_status.flags.opt_flow)
-				      && (_fault_status.value == 0);
+		const bool is_hagl_stable = _range_aid_mode_enabled
+					    ? ((_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var)) < 1.0f)
+					    : ((_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var)) < 0.01f);
 
-		if (horz_vel_valid) {
-			float ground_vel = sqrtf(_state.vel(0) * _state.vel(0) + _state.vel(1) * _state.vel(1));
-
-			if (_range_aid_mode_enabled) {
-				can_use_range_finder &= ground_vel < _params.max_vel_for_range_aid;
-
-			} else {
-				// if we were not using range aid in the previous iteration then require the ground velocity to be
-				// smaller than 70 % of the maximum allowed ground velocity for range aid
-				can_use_range_finder &= ground_vel < 0.7f * _params.max_vel_for_range_aid;
-			}
-
-		} else {
-			can_use_range_finder = false;
-		}
-
-		// use hysteresis to check for hagl
-		if (_range_aid_mode_enabled) {
-			can_use_range_finder &= ((_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var)) < 1.0f);
-
-		} else {
-			// if we were not using range aid in the previous iteration then use a much lower (1/100) threshold to avoid
-			// switching to range finder too soon (wait for terrain to update).
-			can_use_range_finder &= ((_hagl_innov * _hagl_innov / (sq(_params.range_aid_innov_gate) * _hagl_innov_var)) < 0.01f);
-		}
-
-		_range_aid_mode_enabled = can_use_range_finder;
+		_range_aid_mode_enabled = is_in_range && is_below_max_speed && is_hagl_stable;
 
 	} else {
 		_range_aid_mode_enabled = false;

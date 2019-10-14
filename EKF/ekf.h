@@ -648,8 +648,9 @@ private:
 	// control for combined height fusion mode (implemented for switching between baro and range height)
 	void controlHeightFusion();
 
-	// determine if flight condition is suitable so use range finder instead of the primary height sensor
-	void rangeAidConditionsMet();
+	// determine if flight condition is suitable to use range finder instead of the primary height sensor
+	void checkRangeAidConditionsMet();
+	bool areRangeAidConditionsMet() { return _range_aid_mode_enabled; }
 
 	// check for "stuck" range finder measurements when rng was not valid for certain period
 	void checkRangeDataValidity();
