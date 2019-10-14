@@ -27,7 +27,6 @@ set FAILSAFE none
 set FAILSAFE_AUX none
 set FCONFIG /fs/microsd/etc/config.txt
 set FEXTRAS /fs/microsd/etc/extras.txt
-set FMU_ARGS ""
 set FMU_MODE pwm
 set FRC /fs/microsd/etc/rc.txt
 set IOFW "/etc/extras/px4_io-v2_default.bin"
@@ -203,9 +202,12 @@ else
 	rgbled_ncp5623c start
 	rgbled_pwm start
 
-	if blinkm start
+	if param greater LIGHT_EN_BLINKM 0
 	then
-		blinkm systemstate
+		if blinkm start
+		then
+			blinkm systemstate
+		fi
 	fi
 
 	#
@@ -214,11 +216,6 @@ else
 	# Note that this will still play the already published startup tone.
 	#
 	tone_alarm start
-
-	if param compare SYS_FMU_TASK 1
-	then
-		set FMU_ARGS "-t"
-	fi
 
 	#
 	# Set parameters and env variables for selected AUTOSTART.
@@ -301,7 +298,7 @@ else
 	#
 	# Set USE_IO flag.
 	#
-	if param compare SYS_USE_IO 1
+	if param compare -s SYS_USE_IO 1
 	then
 		set USE_IO yes
 	fi
@@ -321,7 +318,7 @@ else
 	then
 		set OUTPUT_MODE hil
 		sensors start -h
-		commander start --hil
+		commander start -h
 		# disable GPS
 		param set GPS_1_CONFIG 0
 
@@ -349,7 +346,7 @@ else
 	fi
 
 	# Sensors on the PWM interface bank.
-	if param compare SENS_EN_LL40LS 1
+	if param compare -s SENS_EN_LL40LS 1
 	then
 		# Clear pins 5 and 6.
 		set FMU_MODE pwm4
@@ -376,7 +373,7 @@ else
 	#
 	# Check if UAVCAN is enabled, default to it for ESCs.
 	#
-	if param greater UAVCAN_ENABLE 0
+	if param greater -s UAVCAN_ENABLE 0
 	then
 		# Start core UAVCAN module.
 		if uavcan start
@@ -398,9 +395,15 @@ else
 	fi
 
 	#
-	# Start mavlink streams that are not configurable (e.g. on USB).
+	# Optional board mavlink streams: rc.board_mavlink
 	#
-	sh /etc/init.d/rc.mavlink
+	set BOARD_RC_MAVLINK /etc/init.d/rc.board_mavlink
+	if [ -f $BOARD_RC_MAVLINK ]
+	then
+		echo "Board extras: ${BOARD_RC_MAVLINK}"
+		sh $BOARD_RC_MAVLINK
+	fi
+	unset BOARD_RC_MAVLINK
 
 	#
 	# Start UART/Serial device drivers.
@@ -422,7 +425,7 @@ else
 	sh /etc/init.d/rc.vehicle_setup
 
 	# Camera capture driver
-	if param greater CAM_CAP_FBACK 0
+	if param greater -s CAM_CAP_FBACK 0
 	then
 		if camera_capture start
 		then
@@ -434,14 +437,6 @@ else
 	# Start the navigator.
 	#
 	navigator start
-
-	#
-	# Start the standalone wind estimator.
-	#
-	if param compare WEST_EN 1
-	then
-		wind_estimator start
-	fi
 
 	#
 	# Start a thermal calibration if required.
@@ -525,7 +520,6 @@ unset FAILSAFE
 unset FAILSAFE_AUX
 unset FCONFIG
 unset FEXTRAS
-unset FMU_ARGS
 unset FMU_MODE
 unset FRC
 unset IO_PRESENT

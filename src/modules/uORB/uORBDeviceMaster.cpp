@@ -102,10 +102,10 @@ uORB::DeviceMaster::advertise(const struct orb_metadata *meta, int *instance, in
 			return -ENOMEM;
 		}
 
-		/* construct the new node */
+		/* construct the new node, passing the ownership of path to it */
 		uORB::DeviceNode *node = new uORB::DeviceNode(meta, group_tries, devpath, priority);
 
-		/* if we didn't get a device, that's bad */
+		/* if we didn't get a device, that's bad, free the path too */
 		if (node == nullptr) {
 			free((void *)devpath);
 			return -ENOMEM;
@@ -132,9 +132,6 @@ uORB::DeviceMaster::advertise(const struct orb_metadata *meta, int *instance, in
 					/* otherwise: data has already been published, keep looking */
 				}
 			}
-
-			/* also discard the name now */
-			free((void *)devpath);
 
 		} else {
 			// add to the node map;.

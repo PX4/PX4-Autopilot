@@ -50,7 +50,7 @@
 #include <poll.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
@@ -233,7 +233,7 @@ CameraTrigger	*g_camera_trigger;
 }
 
 CameraTrigger::CameraTrigger() :
-	ScheduledWorkItem(px4::wq_configurations::lp_default),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
 	_engagecall {},
 	_disengagecall {},
 	_engage_turn_on_off_call {},

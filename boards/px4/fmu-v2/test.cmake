@@ -18,6 +18,7 @@ px4_add_board(
 		TEL4:/dev/ttyS3
 
 	DRIVERS
+		adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		#batt_smbus
@@ -34,11 +35,10 @@ px4_add_board(
 		imu/l3gd20
 		imu/lsm303d
 		imu/mpu6000
-		imu/mpu9250
+		#imu/mpu9250
 		#iridiumsbd
 		#irlock
 		#lights/blinkm
-		#lights/oreoled
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
@@ -51,9 +51,6 @@ px4_add_board(
 		#pwm_out_sim
 		px4fmu
 		px4io
-		stm32
-		stm32/adc
-		stm32/tone_alarm
 		#tap_esc
 		#telemetry # all available telemetry drivers
 		#test_ppm
@@ -82,7 +79,7 @@ px4_add_board(
 		sensors
 		vmount
 		vtol_att_control
-		#wind_estimator
+		#airspeed_selector
 
 	SYSTEMCMDS
 		#bl_update
@@ -107,6 +104,7 @@ px4_add_board(
 		#topic_listener
 		tune_control
 		ver
+		work_queue
 
 	EXAMPLES
 		#bottle_drop # OBC challenge
@@ -116,5 +114,4 @@ px4_add_board(
 		#px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		#rover_steering_control # Rover example app
-		#segway
 	)

@@ -292,6 +292,53 @@ struct pwm_output_rc_config {
  */
 #define PWM_SERVO_GET_RATEGROUP(_n) _PX4_IOC(_PWM_SERVO_BASE, 0x70 + _n)
 
+/** specific rates for configuring the timer for OneShot or PWM */
+#define	PWM_RATE_ONESHOT			0u
+#define	PWM_RATE_LOWER_LIMIT		1u
+#define	PWM_RATE_UPPER_LIMIT		10000u
+
+/** Dshot PWM frequency */
+#define DSHOT1200					1200000u	//Hz
+#define DSHOT600					600000u		//Hz
+#define DSHOT300					300000u		//Hz
+#define DSHOT150					150000u		//Hz
+
+#define DSHOT_MAX_THROTTLE			1999
+
+typedef enum {
+	DShot_cmd_motor_stop = 0,
+	DShot_cmd_beacon1,
+	DShot_cmd_beacon2,
+	DShot_cmd_beacon3,
+	DShot_cmd_beacon4,
+	DShot_cmd_beacon5,
+	DShot_cmd_esc_info, // V2 includes settings
+	DShot_cmd_spin_direction_1,
+	DShot_cmd_spin_direction_2,
+	DShot_cmd_3d_mode_off,
+	DShot_cmd_3d_mode_on,
+	DShot_cmd_settings_request, // Currently not implemented
+	DShot_cmd_save_settings,
+	DShot_cmd_spin_direction_normal = 20,
+	DShot_cmd_spin_direction_reversed = 21,
+	DShot_cmd_led0_on, // BLHeli32 only
+	DShot_cmd_led1_on, // BLHeli32 only
+	DShot_cmd_led2_on, // BLHeli32 only
+	DShot_cmd_led3_on, // BLHeli32 only
+	DShot_cmd_led0_off, // BLHeli32 only
+	DShot_cmd_led1_off, // BLHeli32 only
+	DShot_cmd_led2_off, // BLHeli32 only
+	DShot_cmd_led4_off, // BLHeli32 only
+	DShot_cmd_audio_stream_mode_on_off = 30, // KISS audio Stream mode on/off
+	DShot_cmd_silent_mode_on_off = 31, // KISS silent Mode on/off
+	DShot_cmd_signal_line_telemeetry_disable = 32,
+	DShot_cmd_signal_line_continuous_erpm_telemetry = 33,
+	DShot_cmd_MAX = 47,
+	DShot_cmd_MIN_throttle = 48
+				 // >47 are throttle values
+} dshot_command_t;
+
+
 /*
  * Low-level PWM output interface.
  *
@@ -377,5 +424,49 @@ __EXPORT extern int	up_pwm_servo_set(unsigned channel, servo_position_t value);
  *			outputs are not armed or not configured.
  */
 __EXPORT extern servo_position_t up_pwm_servo_get(unsigned channel);
+
+/**
+ * Intialise the Dshot outputs using the specified configuration.
+ *
+ * @param	channel_mask	Bitmask of channels (LSB = channel 0) to enable.
+ *			This allows some of the channels to remain configured
+ *			as GPIOs or as another function.
+ * @param	dshot_pwm_freq is frequency of DSHOT signal. Usually DSHOT1200, DSHOT600, DSHOT300 or DSHOT150
+ * @return	OK on success.
+ */
+__EXPORT extern int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq);
+
+/**
+ * Set the current dshot throttle value for a channel (motor).
+ *
+ * @param channel	The channel to set.
+ * @param throttle	The output dshot throttle value in [0, 1999 = DSHOT_MAX_THROTTLE].
+ * @param telemetry If true, request telemetry from that motor
+ */
+__EXPORT extern void up_dshot_motor_data_set(unsigned channel, uint16_t throttle, bool telemetry);
+
+/**
+ * Send DShot command to a channel (motor).
+ *
+ * @param channel	The channel to set.
+ * @param command	dshot_command_t
+ * @param telemetry If true, request telemetry from that motor
+ */
+__EXPORT extern void up_dshot_motor_command(unsigned channel, uint16_t command, bool telemetry);
+
+/**
+ * Trigger dshot data transfer.
+ */
+__EXPORT extern void up_dshot_trigger(void);
+
+/**
+ * Arm or disarm dshot outputs (This will enable/disable complete timer for safety purpose.).
+ *
+ * When disarmed, dshot output no pulse.
+ *
+ * @param armed		If true, outputs are armed; if false they
+ *			are disarmed.
+ */
+__EXPORT extern int up_dshot_arm(bool armed);
 
 __END_DECLS

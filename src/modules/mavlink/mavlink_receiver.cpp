@@ -137,6 +137,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_set_position_target_local_ned(msg);
 		break;
 
+	case MAVLINK_MSG_ID_SET_POSITION_TARGET_GLOBAL_INT:
+		handle_message_set_position_target_global_int(msg);
+		break;
+
 	case MAVLINK_MSG_ID_SET_ATTITUDE_TARGET:
 		handle_message_set_attitude_target(msg);
 		break;
@@ -665,23 +669,28 @@ MavlinkReceiver::handle_message_set_mode(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 {
-	/* distance sensor */
 	mavlink_distance_sensor_t dist_sensor;
 	mavlink_msg_distance_sensor_decode(msg, &dist_sensor);
 
-	distance_sensor_s d{};
+	distance_sensor_s ds{};
 
-	d.timestamp = hrt_absolute_time(); /* Use system time for now, don't trust sender to attach correct timestamp */
-	d.min_distance = float(dist_sensor.min_distance) * 1e-2f; /* cm to m */
-	d.max_distance = float(dist_sensor.max_distance) * 1e-2f; /* cm to m */
-	d.current_distance = float(dist_sensor.current_distance) * 1e-2f; /* cm to m */
-	d.type = dist_sensor.type;
-	d.id = 	MAV_DISTANCE_SENSOR_LASER;
-	d.orientation = dist_sensor.orientation;
-	d.variance = dist_sensor.covariance * 1e-4f; // cm^2 to m^2
+	ds.timestamp        = hrt_absolute_time(); /* Use system time for now, don't trust sender to attach correct timestamp */
+	ds.min_distance     = static_cast<float>(dist_sensor.min_distance) * 1e-2f;     /* cm to m */
+	ds.max_distance     = static_cast<float>(dist_sensor.max_distance) * 1e-2f;     /* cm to m */
+	ds.current_distance = static_cast<float>(dist_sensor.current_distance) * 1e-2f; /* cm to m */
+	ds.variance         = dist_sensor.covariance * 1e-4f;                           /* cm^2 to m^2 */
+	ds.h_fov            = dist_sensor.horizontal_fov;
+	ds.v_fov            = dist_sensor.vertical_fov;
+	ds.q[0]             = dist_sensor.quaternion[0];
+	ds.q[1]             = dist_sensor.quaternion[1];
+	ds.q[2]             = dist_sensor.quaternion[2];
+	ds.q[3]             = dist_sensor.quaternion[3];
+	ds.signal_quality   = -1; // TODO: A dist_sensor.signal_quality field is missing from the mavlink message definition.
+	ds.type             = dist_sensor.type;
+	ds.id               = MAV_DISTANCE_SENSOR_LASER;
+	ds.orientation      = dist_sensor.orientation;
 
-	/// TODO Add sensor rotation according to MAV_SENSOR_ORIENTATION enum
-	_distance_sensor_pub.publish(d);
+	_distance_sensor_pub.publish(ds);
 }
 
 void
@@ -886,6 +895,183 @@ MavlinkReceiver::handle_message_set_position_target_local_ned(mavlink_message_t 
 }
 
 void
+MavlinkReceiver::handle_message_set_position_target_global_int(mavlink_message_t *msg)
+{
+	mavlink_set_position_target_global_int_t set_position_target_global_int;
+	mavlink_msg_set_position_target_global_int_decode(msg, &set_position_target_global_int);
+
+	const bool values_finite =
+		PX4_ISFINITE(set_position_target_global_int.alt) &&
+		PX4_ISFINITE(set_position_target_global_int.vx) &&
+		PX4_ISFINITE(set_position_target_global_int.vy) &&
+		PX4_ISFINITE(set_position_target_global_int.vz) &&
+		PX4_ISFINITE(set_position_target_global_int.afx) &&
+		PX4_ISFINITE(set_position_target_global_int.afy) &&
+		PX4_ISFINITE(set_position_target_global_int.afz) &&
+		PX4_ISFINITE(set_position_target_global_int.yaw);
+
+	/* Only accept messages which are intended for this system */
+	if ((mavlink_system.sysid == set_position_target_global_int.target_system ||
+	     set_position_target_global_int.target_system == 0) &&
+	    (mavlink_system.compid == set_position_target_global_int.target_component ||
+	     set_position_target_global_int.target_component == 0) &&
+	    values_finite) {
+
+		offboard_control_mode_s offboard_control_mode{};
+
+		/* convert mavlink type (local, NED) to uORB offboard control struct */
+		offboard_control_mode.ignore_position = (bool)(set_position_target_global_int.type_mask &
+							(POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_X_IGNORE
+									| POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_Y_IGNORE
+									| POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_Z_IGNORE));
+		offboard_control_mode.ignore_alt_hold = (bool)(set_position_target_global_int.type_mask & 0x4);
+		offboard_control_mode.ignore_velocity = (bool)(set_position_target_global_int.type_mask &
+							(POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_VX_IGNORE
+									| POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_VY_IGNORE
+									| POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_VZ_IGNORE));
+		offboard_control_mode.ignore_acceleration_force = (bool)(set_position_target_global_int.type_mask &
+				(POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_AX_IGNORE
+				 | POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_AY_IGNORE
+				 | POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_AZ_IGNORE));
+		/* yaw ignore flag mapps to ignore_attitude */
+		offboard_control_mode.ignore_attitude = (bool)(set_position_target_global_int.type_mask &
+							POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_YAW_IGNORE);
+		offboard_control_mode.ignore_bodyrate_x = (bool)(set_position_target_global_int.type_mask &
+				POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE);
+		offboard_control_mode.ignore_bodyrate_y = (bool)(set_position_target_global_int.type_mask &
+				POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE);
+		offboard_control_mode.ignore_bodyrate_z = (bool)(set_position_target_global_int.type_mask &
+				POSITION_TARGET_TYPEMASK::POSITION_TARGET_TYPEMASK_YAW_RATE_IGNORE);
+
+		bool is_force_sp = (bool)(set_position_target_global_int.type_mask & (1 << 9));
+
+		offboard_control_mode.timestamp = hrt_absolute_time();
+		_offboard_control_mode_pub.publish(offboard_control_mode);
+
+		/* If we are in offboard control mode and offboard control loop through is enabled
+		 * also publish the setpoint topic which is read by the controller */
+		if (_mavlink->get_forward_externalsp()) {
+
+			vehicle_control_mode_s control_mode{};
+			_control_mode_sub.copy(&control_mode);
+
+			if (control_mode.flag_control_offboard_enabled) {
+				if (is_force_sp && offboard_control_mode.ignore_position &&
+				    offboard_control_mode.ignore_velocity) {
+
+					PX4_WARN("force setpoint not supported");
+
+				} else {
+					/* It's not a pure force setpoint: publish to setpoint triplet  topic */
+					position_setpoint_triplet_s pos_sp_triplet{};
+
+					pos_sp_triplet.timestamp = hrt_absolute_time();
+					pos_sp_triplet.previous.valid = false;
+					pos_sp_triplet.next.valid = false;
+					pos_sp_triplet.current.valid = true;
+
+					/* Order of statements matters. Takeoff can override loiter.
+					 * See https://github.com/mavlink/mavlink/pull/670 for a broader conversation. */
+					if (set_position_target_global_int.type_mask & 0x3000) { //Loiter setpoint
+						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_LOITER;
+
+					} else if (set_position_target_global_int.type_mask & 0x1000) { //Takeoff setpoint
+						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_TAKEOFF;
+
+					} else if (set_position_target_global_int.type_mask & 0x2000) { //Land setpoint
+						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_LAND;
+
+					} else if (set_position_target_global_int.type_mask & 0x4000) { //Idle setpoint
+						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
+
+					} else {
+						pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_POSITION;
+					}
+
+					/* set the local pos values */
+					vehicle_local_position_s local_pos{};
+
+					if (!offboard_control_mode.ignore_position && _vehicle_local_position_sub.copy(&local_pos)) {
+						if (!globallocalconverter_initialized()) {
+							globallocalconverter_init(local_pos.ref_lat, local_pos.ref_lon,
+										  local_pos.ref_alt, local_pos.ref_timestamp);
+							pos_sp_triplet.current.position_valid = false;
+
+						} else {
+							globallocalconverter_tolocal(set_position_target_global_int.lat_int / 1e7,
+										     set_position_target_global_int.lon_int / 1e7, set_position_target_global_int.alt,
+										     &pos_sp_triplet.current.x, &pos_sp_triplet.current.y, &pos_sp_triplet.current.z);
+							pos_sp_triplet.current.position_valid = true;
+						}
+
+					} else {
+						pos_sp_triplet.current.position_valid = false;
+					}
+
+					/* set the local velocity values */
+					if (!offboard_control_mode.ignore_velocity) {
+
+						pos_sp_triplet.current.velocity_valid = true;
+						pos_sp_triplet.current.vx = set_position_target_global_int.vx;
+						pos_sp_triplet.current.vy = set_position_target_global_int.vy;
+						pos_sp_triplet.current.vz = set_position_target_global_int.vz;
+
+						pos_sp_triplet.current.velocity_frame = set_position_target_global_int.coordinate_frame;
+
+					} else {
+						pos_sp_triplet.current.velocity_valid = false;
+					}
+
+					if (!offboard_control_mode.ignore_alt_hold) {
+						pos_sp_triplet.current.alt_valid = true;
+
+					} else {
+						pos_sp_triplet.current.alt_valid = false;
+					}
+
+					/* set the local acceleration values if the setpoint type is 'local pos' and none
+					 * of the accelerations fields is set to 'ignore' */
+					if (!offboard_control_mode.ignore_acceleration_force) {
+
+						pos_sp_triplet.current.acceleration_valid = true;
+						pos_sp_triplet.current.a_x = set_position_target_global_int.afx;
+						pos_sp_triplet.current.a_y = set_position_target_global_int.afy;
+						pos_sp_triplet.current.a_z = set_position_target_global_int.afz;
+						pos_sp_triplet.current.acceleration_is_force = is_force_sp;
+
+					} else {
+						pos_sp_triplet.current.acceleration_valid = false;
+					}
+
+					/* set the yaw setpoint */
+					if (!offboard_control_mode.ignore_attitude) {
+						pos_sp_triplet.current.yaw_valid = true;
+						pos_sp_triplet.current.yaw = set_position_target_global_int.yaw;
+
+					} else {
+						pos_sp_triplet.current.yaw_valid = false;
+					}
+
+					/* set the yawrate sp value */
+					if (!(offboard_control_mode.ignore_bodyrate_x ||
+					      offboard_control_mode.ignore_bodyrate_y ||
+					      offboard_control_mode.ignore_bodyrate_z)) {
+
+						pos_sp_triplet.current.yawspeed_valid = true;
+						pos_sp_triplet.current.yawspeed = set_position_target_global_int.yaw_rate;
+
+					} else {
+						pos_sp_triplet.current.yawspeed_valid = false;
+					}
+
+					_pos_sp_triplet_pub.publish(pos_sp_triplet);
+				}
+			}
+		}
+	}
+}
+
+void
 MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *msg)
 {
 	mavlink_set_actuator_control_target_t set_actuator_control_target;
@@ -1029,15 +1215,16 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 
 	odometry.timestamp = _mavlink_timesync.sync_stamp(odom.time_usec);
 
-	/* The position is in the local NED frame */
+	/* The position is in a local FRD frame */
 	odometry.x = odom.x;
 	odometry.y = odom.y;
 	odometry.z = odom.z;
 
-	/* The quaternion of the ODOMETRY msg represents a rotation from NED
-	 * earth/local frame to XYZ body frame */
-	const matrix::Quatf q(odom.q);
-	q.copyTo(odometry.q);
+	/* The quaternion of the ODOMETRY msg represents a rotation from body frame to
+	 * a local frame*/
+	matrix::Quatf q_body_to_local(odom.q);
+	q_body_to_local.normalize();
+	q_body_to_local.copyTo(odometry.q);
 
 	// TODO:
 	// - add a MAV_FRAME_*_OTHER to the Mavlink MAV_FRAME enum IOT define
@@ -1060,14 +1247,20 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		odometry.pose_covariance[i] = odom.pose_covariance[i];
 	}
 
-	if (odom.child_frame_id == MAV_FRAME_BODY_FRD) { /* WRT to estimated vehicle body-fixed frame */
-		/* Get quaternion from the msg quaternion itself and build DCM matrix from it
-		 * Note that the msg quaternion represents the rotation of the msg frame to the msg child frame
-		 * but rotates msg child frame *data* into the msg frame */
-		const matrix::Dcmf Rbl = matrix::Dcmf(matrix::Quatf(odometry.q));
+	/*
+	 * PX4 expects the body's linear velocity in the local frame,
+	 * the linear velocity is rotated from the odom child_frame to the
+	 * local NED frame. The angular velocity needs to be expressed in the
+	 * body (fcu_frd) frame.
+	 */
+	if (odom.child_frame_id == MAV_FRAME_BODY_FRD) {
+		/* Linear velocity has to be rotated to the local NED frame
+		 * Angular velocities are already in the right body frame  */
+		const matrix::Dcmf R_body_to_local = matrix::Dcmf(q_body_to_local);
 
 		/* the linear velocities needs to be transformed to the local NED frame */
-		matrix::Vector3<float> linvel_local(Rbl * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
+		matrix::Vector3<float> linvel_local(R_body_to_local * matrix::Vector3<float>(odom.vx, odom.vy, odom.vz));
+
 		odometry.vx = linvel_local(0);
 		odometry.vy = linvel_local(1);
 		odometry.vz = linvel_local(2);
@@ -1079,93 +1272,13 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 		//TODO: Apply rotation matrix to transform from body-fixed NED to earth-fixed NED frame
 		for (size_t i = 0; i < VEL_URT_SIZE; i++) {
 			odometry.velocity_covariance[i] = odom.velocity_covariance[i];
-		}
-
-	} else if (odom.child_frame_id == MAV_FRAME_BODY_FLU) { /* WRT to estimated vehicle body-fixed frame */
-		/* Get quaternion from the msg quaternion itself and build DCM matrix from it
-		 * Note that the msg quaternion represents the rotation of the msg frame to the msg child frame
-		 * but rotates msg child frame *data* into the msg frame */
-		const matrix::Dcmf Rbl = matrix::Dcmf(matrix::Quatf(odometry.q));
-
-		/* the position needs to be transformed to the local NED frame */
-		matrix::Vector3f pos(Rbl * matrix::Vector3<float>(odom.x, -odom.y, -odom.z));
-		odometry.x = pos(0);
-		odometry.y = pos(1);
-		odometry.z = pos(2);
-
-		/* the linear velocities needs to be transformed to the local NED frame */
-		matrix::Vector3f linvel_local(Rbl * matrix::Vector3<float>(odom.vx, -odom.vy, -odom.vz));
-		odometry.vx = linvel_local(0);
-		odometry.vy = linvel_local(1);
-		odometry.vz = linvel_local(2);
-
-		odometry.rollspeed = odom.rollspeed;
-		odometry.pitchspeed = odom.pitchspeed;
-		odometry.yawspeed = odom.yawspeed;
-
-		//TODO: Apply rotation matrix to transform from body-fixed NED to earth-fixed NED frame
-		for (size_t i = 0; i < VEL_URT_SIZE; i++) {
-			odometry.velocity_covariance[i] = odom.velocity_covariance[i];
-		}
-
-	} else if (odom.child_frame_id == MAV_FRAME_BODY_NED) { /* WRT to vehicle body-NED frame */
-		vehicle_attitude_s att{};
-
-		if (_vehicle_attitude_sub.copy(&att)) {
-
-			/* Get quaternion from vehicle_attitude quaternion and build DCM matrix from it
-			 * Note that the msg quaternion represents the rotation of the msg frame to the msg child frame
-			 * but rotates msg child frame *data* into the msg frame */
-			const matrix::Dcmf Rbl = matrix::Dcmf(matrix::Quatf(att.q));
-
-			/* the linear velocities needs to be transformed to the local NED frame */
-			matrix::Vector3f linvel_local(Rbl * matrix::Vector3f(odom.vx, odom.vy, odom.vz));
-			odometry.vx = linvel_local(0);
-			odometry.vy = linvel_local(1);
-			odometry.vz = linvel_local(2);
-
-			odometry.rollspeed = odom.rollspeed;
-			odometry.pitchspeed = odom.pitchspeed;
-			odometry.yawspeed = odom.yawspeed;
-
-			//TODO: Apply rotation matrix to transform from body-fixed to earth-fixed NED frame
-			for (size_t i = 0; i < VEL_URT_SIZE; i++) {
-				odometry.velocity_covariance[i] = odom.velocity_covariance[i];
-			}
-
-		}
-
-	} else if (odom.child_frame_id == MAV_FRAME_VISION_NED || /* WRT to vehicle local NED frame */
-		   odom.child_frame_id == MAV_FRAME_MOCAP_NED) {
-
-		vehicle_attitude_s att{};
-
-		if (_vehicle_attitude_sub.copy(&att)) {
-
-			/* get quaternion from vehicle_attitude quaternion and build DCM matrix from it */
-			matrix::Dcmf Rlb = matrix::Quatf(att.q);
-
-			odometry.vx = odom.vx;
-			odometry.vy = odom.vy;
-			odometry.vz = odom.vz;
-
-			/* the angular rates need to be transformed to the body frame */
-			matrix::Vector3f angvel_local(Rlb * matrix::Vector3f(odom.rollspeed, odom.pitchspeed, odom.yawspeed));
-			odometry.rollspeed = angvel_local(0);
-			odometry.pitchspeed = angvel_local(1);
-			odometry.yawspeed = angvel_local(2);
-
-			//TODO: Apply rotation matrix to transform from earth-fixed to body-fixed NED frame
-			for (size_t i = 0; i < VEL_URT_SIZE; i++) {
-				odometry.velocity_covariance[i] = odom.velocity_covariance[i];
-			}
 		}
 
 	} else {
 		PX4_ERR("Body frame %u not supported. Unable to publish velocity", odom.child_frame_id);
 	}
 
-	if (odom.frame_id == MAV_FRAME_VISION_NED) {
+	if (odom.frame_id == MAV_FRAME_LOCAL_FRD) {
 		_visual_odometry_pub.publish(odometry);
 
 	} else if (odom.frame_id == MAV_FRAME_MOCAP_NED) {
@@ -1577,6 +1690,7 @@ MavlinkReceiver::handle_message_obstacle_distance(mavlink_message_t *msg)
 	obstacle_distance.min_distance = mavlink_obstacle_distance.min_distance;
 	obstacle_distance.max_distance = mavlink_obstacle_distance.max_distance;
 	obstacle_distance.angle_offset = mavlink_obstacle_distance.angle_offset;
+	obstacle_distance.frame = mavlink_obstacle_distance.frame;
 
 	_obstacle_distance_pub.publish(obstacle_distance);
 }
@@ -1887,8 +2001,10 @@ MavlinkReceiver::handle_message_hil_sensor(mavlink_message_t *msg)
 	{
 		airspeed_s airspeed{};
 
-		float ias = calc_indicated_airspeed(imu.diff_pressure * 1e2f);
-		float tas = calc_true_airspeed_from_indicated(ias, imu.abs_pressure * 100, imu.temperature);
+		float ias = calc_IAS(imu.diff_pressure * 1e2f);
+		float scale = 1.0f; //assume no instrument or pitot placement errors
+		float eas = calc_EAS_from_IAS(ias, scale);
+		float tas = calc_TAS_from_EAS(eas, imu.abs_pressure * 100, imu.temperature);
 
 		airspeed.timestamp = timestamp;
 		airspeed.indicated_airspeed_m_s = ias;
@@ -2406,9 +2522,19 @@ MavlinkReceiver::Run()
 {
 	/* set thread name */
 	{
-		char thread_name[24];
-		sprintf(thread_name, "mavlink_rcv_if%d", _mavlink->get_instance_id());
+		char thread_name[17];
+		snprintf(thread_name, sizeof(thread_name), "mavlink_rcv_if%d", _mavlink->get_instance_id());
 		px4_prctl(PR_SET_NAME, thread_name, px4_getpid());
+	}
+
+	// make sure mavlink app has booted before we start processing anything (parameter sync, etc)
+	while (!_mavlink->boot_complete()) {
+		if (hrt_elapsed_time(&_mavlink->get_first_start_time()) > 20_s) {
+			PX4_ERR("system boot did not complete in 20 seconds");
+			_mavlink->set_boot_complete();
+		}
+
+		px4_usleep(100000);
 	}
 
 	// poll timeout in ms. Also defines the max update frequency of the mission & param manager, etc.
@@ -2428,37 +2554,39 @@ MavlinkReceiver::Run()
 
 	struct pollfd fds[1] = {};
 
-	if (_mavlink->get_protocol() == SERIAL) {
+	if (_mavlink->get_protocol() == Protocol::SERIAL) {
 		fds[0].fd = _mavlink->get_uart_fd();
 		fds[0].events = POLLIN;
 	}
 
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+#if defined(MAVLINK_UDP)
 	struct sockaddr_in srcaddr = {};
 	socklen_t addrlen = sizeof(srcaddr);
 
-	if (_mavlink->get_protocol() == UDP || _mavlink->get_protocol() == TCP) {
-		// make sure mavlink app has booted before we start using the socket
-		while (!_mavlink->boot_complete()) {
-			px4_usleep(100000);
-		}
-
+	if (_mavlink->get_protocol() == Protocol::UDP) {
 		fds[0].fd = _mavlink->get_socket_fd();
 		fds[0].events = POLLIN;
 	}
 
-#endif
+#endif // MAVLINK_UDP
+
 	ssize_t nread = 0;
 	hrt_abstime last_send_update = 0;
 
 	while (!_mavlink->_task_should_exit) {
-		// Check for updated parameters.
-		if (_param_update_sub.updated()) {
-			update_params();
+
+		// check for parameter updates
+		if (_parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			_parameter_update_sub.copy(&pupdate);
+
+			// update parameters from storage
+			updateParams();
 		}
 
 		if (poll(&fds[0], 1, timeout) > 0) {
-			if (_mavlink->get_protocol() == SERIAL) {
+			if (_mavlink->get_protocol() == Protocol::SERIAL) {
 
 				/*
 				 * to avoid reading very small chunks wait for data before reading
@@ -2473,44 +2601,41 @@ MavlinkReceiver::Run()
 				}
 			}
 
-#if defined(CONFIG_NET) || defined(__PX4_POSIX)
+#if defined(MAVLINK_UDP)
 
-			if (_mavlink->get_protocol() == UDP) {
+			else if (_mavlink->get_protocol() == Protocol::UDP) {
 				if (fds[0].revents & POLLIN) {
 					nread = recvfrom(_mavlink->get_socket_fd(), buf, sizeof(buf), 0, (struct sockaddr *)&srcaddr, &addrlen);
 				}
 
-			} else {
-				// could be TCP or other protocol
-			}
+				struct sockaddr_in &srcaddr_last = _mavlink->get_client_source_address();
 
-			struct sockaddr_in &srcaddr_last = _mavlink->get_client_source_address();
+				int localhost = (127 << 24) + 1;
 
-			int localhost = (127 << 24) + 1;
+				if (!_mavlink->get_client_source_initialized()) {
 
-			if (!_mavlink->get_client_source_initialized()) {
+					// set the address either if localhost or if 3 seconds have passed
+					// this ensures that a GCS running on localhost can get a hold of
+					// the system within the first N seconds
+					hrt_abstime stime = _mavlink->get_start_time();
 
-				// set the address either if localhost or if 3 seconds have passed
-				// this ensures that a GCS running on localhost can get a hold of
-				// the system within the first N seconds
-				hrt_abstime stime = _mavlink->get_start_time();
+					if ((stime != 0 && (hrt_elapsed_time(&stime) > 3_s))
+					    || (srcaddr_last.sin_addr.s_addr == htonl(localhost))) {
 
-				if ((stime != 0 && (hrt_elapsed_time(&stime) > 3_s))
-				    || (srcaddr_last.sin_addr.s_addr == htonl(localhost))) {
+						srcaddr_last.sin_addr.s_addr = srcaddr.sin_addr.s_addr;
+						srcaddr_last.sin_port = srcaddr.sin_port;
 
-					srcaddr_last.sin_addr.s_addr = srcaddr.sin_addr.s_addr;
-					srcaddr_last.sin_port = srcaddr.sin_port;
+						_mavlink->set_client_source_initialized();
 
-					_mavlink->set_client_source_initialized();
-
-					PX4_INFO("partner IP: %s", inet_ntoa(srcaddr.sin_addr));
+						PX4_INFO("partner IP: %s", inet_ntoa(srcaddr.sin_addr));
+					}
 				}
 			}
 
-#endif
-
 			// only start accepting messages once we're sure who we talk to
 			if (_mavlink->get_client_source_initialized()) {
+#endif // MAVLINK_UDP
+
 				/* if read failed, this loop won't execute */
 				for (ssize_t i = 0; i < nread; i++) {
 					if (mavlink_parse_char(_mavlink->get_channel(), buf[i], &msg, &_status)) {
@@ -2551,7 +2676,11 @@ MavlinkReceiver::Run()
 				if (nread > 0) {
 					_mavlink->count_rxbytes(nread);
 				}
+
+#if defined(MAVLINK_UDP)
 			}
+
+#endif // MAVLINK_UDP
 		}
 
 		hrt_abstime t = hrt_absolute_time();
@@ -2599,12 +2728,4 @@ MavlinkReceiver::receive_start(pthread_t *thread, Mavlink *parent)
 	pthread_create(thread, &receiveloop_attr, MavlinkReceiver::start_helper, (void *)parent);
 
 	pthread_attr_destroy(&receiveloop_attr);
-}
-
-void
-MavlinkReceiver::update_params()
-{
-	parameter_update_s param_update;
-	_param_update_sub.update(&param_update);
-	updateParams();
 }

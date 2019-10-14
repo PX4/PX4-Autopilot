@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE examples__fixedwing_control
 	MAIN ex_fixedwing_control
-	STACK_MAIN 1200
 	STACK_MAX 1300
 	SRCS
 		main.cpp

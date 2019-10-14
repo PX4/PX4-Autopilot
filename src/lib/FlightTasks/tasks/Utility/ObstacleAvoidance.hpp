@@ -48,6 +48,7 @@
 
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationQueued.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
@@ -58,15 +59,20 @@
 
 #include <matrix/matrix/math.hpp>
 
-#include <SubscriptionArray.hpp>
+const vehicle_trajectory_waypoint_s empty_trajectory_waypoint = {0, 0, {0, 0, 0, 0, 0, 0, 0},
+	{	{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, UINT8_MAX, {0, 0}},
+		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, UINT8_MAX, {0, 0}},
+		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, UINT8_MAX, {0, 0}},
+		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, UINT8_MAX, {0, 0}},
+		{0, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, NAN, NAN, false, UINT8_MAX, {0, 0}}
+	}
+};
 
 class ObstacleAvoidance : public ModuleParams
 {
 public:
 	ObstacleAvoidance(ModuleParams *parent);
 	~ObstacleAvoidance() = default;
-
-	bool initializeSubscriptions(SubscriptionArray &subscription_array);
 
 	/**
 	 * Inject setpoints from obstacle avoidance system into FlightTasks.
@@ -108,14 +114,10 @@ public:
 	void checkAvoidanceProgress(const matrix::Vector3f &pos, const matrix::Vector3f &prev_wp,
 				    float target_acceptance_radius, const matrix::Vector2f &closest_pt);
 
-private:
+protected:
 
-	uORB::SubscriptionPollable<vehicle_trajectory_waypoint_s> *_sub_vehicle_trajectory_waypoint{nullptr}; /**< vehicle trajectory waypoint subscription */
-	uORB::SubscriptionPollable<vehicle_status_s> *_sub_vehicle_status{nullptr}; /**< vehicle status subscription */
-
-	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::NAV_MC_ALT_RAD>) _param_nav_mc_alt_rad    /**< Acceptance radius for multicopter altitude */
-	);
+	uORB::SubscriptionData<vehicle_trajectory_waypoint_s> _sub_vehicle_trajectory_waypoint{ORB_ID(vehicle_trajectory_waypoint)}; /**< vehicle trajectory waypoint subscription */
+	uORB::SubscriptionData<vehicle_status_s> _sub_vehicle_status{ORB_ID(vehicle_status)}; /**< vehicle status subscription */
 
 	vehicle_trajectory_waypoint_s _desired_waypoint{};  /**< desired vehicle trajectory waypoint to be sent to OA */
 
@@ -138,5 +140,9 @@ private:
 	 * Publishes vehicle command.
 	 */
 	void _publishVehicleCmdDoLoiter();
+
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::NAV_MC_ALT_RAD>) _param_nav_mc_alt_rad    /**< Acceptance radius for multicopter altitude */
+	);
 
 };

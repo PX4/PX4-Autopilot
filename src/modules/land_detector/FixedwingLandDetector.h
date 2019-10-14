@@ -42,7 +42,6 @@
 
 #pragma once
 
-#include <drivers/drv_hrt.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_acceleration.h>
@@ -74,7 +73,7 @@ private:
 	static constexpr hrt_abstime FLYING_TRIGGER_TIME_US = 0_us;
 
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};
-	uORB::Subscription _param_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 
@@ -82,10 +81,10 @@ private:
 	vehicle_acceleration_s _vehicle_acceleration{};
 	vehicle_local_position_s _vehicle_local_position{};
 
-	float _accel_horz_lp{0.0f};
 	float _airspeed_filtered{0.0f};
 	float _velocity_xy_filtered{0.0f};
 	float _velocity_z_filtered{0.0f};
+	float _xy_accel_filtered{0.0f};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		LandDetector,

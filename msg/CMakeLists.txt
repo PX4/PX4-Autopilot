@@ -38,6 +38,7 @@ set(msg_files
 	actuator_outputs.msg
 	adc_report.msg
 	airspeed.msg
+	airspeed_validated.msg
 	battery_status.msg
 	camera_capture.msg
 	camera_trigger.msg
@@ -104,6 +105,7 @@ set(msg_files
 	sensor_combined.msg
 	sensor_correction.msg
 	sensor_gyro.msg
+	sensor_gyro_control.msg
 	sensor_mag.msg
 	sensor_preflight.msg
 	sensor_selection.msg

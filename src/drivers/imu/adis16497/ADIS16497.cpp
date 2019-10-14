@@ -68,10 +68,9 @@ using namespace time_literals;
 
 ADIS16497::ADIS16497(int bus, uint32_t device, enum Rotation rotation) :
 	SPI("ADIS16497", nullptr, bus, device, SPIDEV_MODE3, 5000000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_px4_accel(get_device_id(), ORB_PRIO_MAX, rotation),
 	_px4_gyro(get_device_id(), ORB_PRIO_MAX, rotation),
-	_sample_interval_perf(perf_alloc(PC_INTERVAL, "adis16497: read interval")),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adis16497: read")),
 	_bad_transfers(perf_alloc(PC_COUNT, "adis16497: bad transfers"))
 {
@@ -95,7 +94,6 @@ ADIS16497::~ADIS16497()
 	stop();
 
 	// delete the perf counters
-	perf_free(_sample_interval_perf);
 	perf_free(_sample_perf);
 	perf_free(_bad_transfers);
 }
@@ -384,7 +382,6 @@ ADIS16497::Run()
 int
 ADIS16497::measure()
 {
-	perf_count(_sample_interval_perf);
 	perf_begin(_sample_perf);
 
 	// Fetch the full set of measurements from the ADIS16497 in one pass (burst read).
@@ -468,7 +465,6 @@ ADIS16497::measure()
 void
 ADIS16497::print_info()
 {
-	perf_print_counter(_sample_interval_perf);
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_bad_transfers);
 

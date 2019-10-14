@@ -2,7 +2,7 @@
 
 uint64 timestamp		# time since system start (microseconds)
 
-float32[4] q			# Quaternion rotation from NED earth frame to XYZ body frame
+float32[4] q			# Quaternion rotation from XYZ body frame to NED earth frame.
 float32[4] delta_q_reset 	# Amount by which quaternion has changed during last reset
 uint8 quat_reset_counter	# Quaternion reset counter
 

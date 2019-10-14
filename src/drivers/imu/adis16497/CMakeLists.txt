@@ -33,7 +33,6 @@
 px4_add_module(
 	MODULE drivers__imu__adis16497
 	MAIN adis16497
-	STACK_MAIN 1200
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS

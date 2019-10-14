@@ -30,7 +30,6 @@ px4_add_board(
 		pwm_out_sim
 		px4fmu
 		rc_input
-		stm32
 		tap_esc
 		#telemetry # all available telemetry drivers
 		#uavcan
@@ -59,7 +58,7 @@ px4_add_board(
 		sih
 		vmount
 		#vtol_att_control
-		#wind_estimator
+		#airspeed_selector
 
 	SYSTEMCMDS
 		bl_update
@@ -86,6 +85,7 @@ px4_add_board(
 		#topic_listener
 		tune_control
 		ver
+		work_queue
 
 	EXAMPLES
 		#bottle_drop # OBC challenge
@@ -95,7 +95,6 @@ px4_add_board(
 		#px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		#rover_steering_control # Rover example app
-		#segway
 		#uuv_example_app
 
 	)

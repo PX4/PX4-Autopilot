@@ -75,7 +75,22 @@ public:
 	void unsubscribe();
 
 	bool valid() const { return _node != nullptr; }
-	bool published() { return valid() ? _node->is_published() : init(); }
+	bool published()
+	{
+		if (valid()) {
+			return _node->is_published();
+		}
+
+		// try to initialize
+		if (init()) {
+			// check again if valid
+			if (valid()) {
+				return _node->is_published();
+			}
+		}
+
+		return false;
+	}
 
 	/**
 	 * Check if there is a new update.

@@ -50,7 +50,7 @@
 
 #include "protocol.h"
 
-#include <pwm_limit/pwm_limit.h>
+#include <output_limit/output_limit.h>
 
 /*
  hotfix: we are critically short of memory in px4io and this is the
@@ -160,7 +160,7 @@ extern bool update_trims;
 /*
  * PWM limit structure
  */
-extern pwm_limit_t pwm_limit;
+extern output_limit_t pwm_limit;
 
 /*
  * GPIO handling.

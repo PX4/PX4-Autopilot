@@ -6,7 +6,6 @@ px4_add_board(
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m3
 	DRIVERS
-		stm32
 	MODULES
 		px4iofirmware
 	)

@@ -319,7 +319,7 @@ MissionBlock::is_mission_item_reached()
 			}
 		}
 
-		if (_waypoint_position_reached) {
+		if (_waypoint_position_reached && !_waypoint_position_reached_previously) {
 			// reached just now
 			_time_wp_reached = now;
 		}
@@ -387,7 +387,9 @@ MissionBlock::is_mission_item_reached()
 			     _mission_item.nav_cmd == NAV_CMD_LOITER_TO_ALT)) {
 
 				float bearing = get_bearing_to_next_waypoint(curr_sp.lat, curr_sp.lon, next_sp.lat, next_sp.lon);
-				float inner_angle = M_PI_2_F - asinf(_mission_item.loiter_radius / range);
+				// We should not use asinf outside of [-1..1].
+				const float ratio = math::constrain(_mission_item.loiter_radius / range, -1.0f, 1.0f);
+				float inner_angle = M_PI_2_F - asinf(ratio);
 
 				// Compute "ideal" tangent origin
 				if (curr_sp.loiter_direction > 0) {
@@ -408,6 +410,7 @@ MissionBlock::is_mission_item_reached()
 	}
 
 	// all acceptance criteria must be met in the same iteration
+	_waypoint_position_reached_previously = _waypoint_position_reached;
 	_waypoint_position_reached = false;
 	_waypoint_yaw_reached = false;
 	return false;

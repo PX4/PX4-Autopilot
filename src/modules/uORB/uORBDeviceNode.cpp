@@ -33,7 +33,6 @@
 
 #include "uORBDeviceNode.hpp"
 
-#include "uORBDeviceNode.hpp"
 #include "uORBUtils.hpp"
 #include "uORBManager.hpp"
 
@@ -70,6 +69,8 @@ uORB::DeviceNode::~DeviceNode()
 	if (_data != nullptr) {
 		delete[] _data;
 	}
+
+	CDev::unregister_driver_and_memory();
 }
 
 int

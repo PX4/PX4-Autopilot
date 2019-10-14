@@ -42,22 +42,19 @@
 
 #pragma once
 
-#include "LandDetector.h"
+#include <math.h>
 
-#include <parameters/param.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+
+#include "LandDetector.h"
 
 using namespace time_literals;
 
@@ -84,6 +81,7 @@ private:
 
 	/* get control mode dependent pilot throttle threshold with which we should quit landed state and take off */
 	float _get_takeoff_throttle();
+
 	bool _has_low_thrust();
 	bool _has_minimal_thrust();
 	bool _has_altitude_lock();
@@ -121,27 +119,24 @@ private:
 
 	uORB::Subscription _actuator_controls_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
-	uORB::Subscription _sensor_bias_sub{ORB_ID(sensor_bias)};
 	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
-	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
 
 	actuator_controls_s               _actuator_controls {};
 	battery_status_s                  _battery_status {};
-	vehicle_control_mode_s            _control_mode {};
 	vehicle_acceleration_s            _vehicle_acceleration{};
-	vehicle_attitude_s                _vehicle_attitude {};
 	vehicle_angular_velocity_s        _vehicle_angular_velocity{};
+	vehicle_control_mode_s            _vehicle_control_mode {};
 	vehicle_local_position_s          _vehicle_local_position {};
 	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint {};
 
-	hrt_abstime _min_trust_start{0};		///< timestamp when minimum trust was applied first
+	hrt_abstime _min_trust_start{0};	///< timestamp when minimum trust was applied first
 	hrt_abstime _landed_time{0};
 
-	bool _in_descend{false};	///< vehicle is desending
+	bool _in_descend{false};		///< vehicle is desending
 	bool _horizontal_movement{false};	///< vehicle is moving horizontally
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
