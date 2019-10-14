@@ -1185,7 +1185,6 @@ private:
 	MavlinkOrbSubscription *_att_sub;
 	MavlinkOrbSubscription *_angular_velocity_sub;
 	uint64_t _att_time{0};
-	uint64_t _angular_velocity_time{0};
 
 	/* do not allow top copying this class */
 	MavlinkStreamAttitude(MavlinkStreamAttitude &) = delete;
@@ -1200,18 +1199,16 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		bool updated = false;
+		vehicle_attitude_s att;
 
-		vehicle_attitude_s att{};
-		vehicle_angular_velocity_s angular_velocity{};
-		updated |= _att_sub->update(&_att_time, &att);
-		updated |= _angular_velocity_sub->update(&_angular_velocity_time, &angular_velocity);
+		if (_att_sub->update(&_att_time, &att)) {
+			vehicle_angular_velocity_s angular_velocity{};
+			_angular_velocity_sub->update(&angular_velocity);
 
-		if (updated) {
 			mavlink_attitude_t msg{};
 
 			const matrix::Eulerf euler = matrix::Quatf(att.q);
-			msg.time_boot_ms = math::max(angular_velocity.timestamp, att.timestamp) / 1000;
+			msg.time_boot_ms = att.timestamp / 1000;
 			msg.roll = euler.phi();
 			msg.pitch = euler.theta();
 			msg.yaw = euler.psi();
@@ -1267,7 +1264,6 @@ private:
 	MavlinkOrbSubscription *_att_sub;
 	MavlinkOrbSubscription *_angular_velocity_sub;
 	uint64_t _att_time{0};
-	uint64_t _angular_velocity_time{0};
 
 	/* do not allow top copying this class */
 	MavlinkStreamAttitudeQuaternion(MavlinkStreamAttitudeQuaternion &) = delete;
@@ -1281,17 +1277,15 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		bool updated = false;
+		vehicle_attitude_s att;
 
-		vehicle_attitude_s att{};
-		vehicle_angular_velocity_s angular_velocity{};
-		updated |= _att_sub->update(&_att_time, &att);
-		updated |= _angular_velocity_sub->update(&_angular_velocity_time, &angular_velocity);
+		if (_att_sub->update(&_att_time, &att)) {
+			vehicle_angular_velocity_s angular_velocity{};
+			_angular_velocity_sub->update(&angular_velocity);
 
-		if (updated) {
 			mavlink_attitude_quaternion_t msg{};
 
-			msg.time_boot_ms = math::max(angular_velocity.timestamp, att.timestamp) / 1000;
+			msg.time_boot_ms = att.timestamp / 1000;
 			msg.q1 = att.q[0];
 			msg.q2 = att.q[1];
 			msg.q3 = att.q[2];
