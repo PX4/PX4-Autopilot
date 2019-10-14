@@ -217,6 +217,18 @@ void MixingOutput::unregister()
 	}
 }
 
+void MixingOutput::updateOutputSlewrate()
+{
+	const hrt_abstime now = hrt_absolute_time();
+	const float dt = math::constrain((now - _time_last_mix) / 1e6f, 0.0001f, 0.02f);
+	_time_last_mix = now;
+
+	// maximum value the outputs of the multirotor mixer are allowed to change in this cycle
+	// factor 2 is needed because actuator outputs are in the range [-1,1]
+	const float delta_out_max = 2.0f * 1000.0f * dt / (_max_value[0] - _min_value[0]) / _param_mot_slew_max.get();
+	_mixers->set_max_delta_out_once(delta_out_max);
+}
+
 bool MixingOutput::update()
 {
 	if (!_mixers) {
@@ -234,14 +246,7 @@ bool MixingOutput::update()
 	}
 
 	if (_param_mot_slew_max.get() > FLT_EPSILON) {
-		const hrt_abstime now = hrt_absolute_time();
-		const float dt = math::constrain((now - _time_last_mix) / 1e6f, 0.0001f, 0.02f);
-		_time_last_mix = now;
-
-		// maximum value the outputs of the multirotor mixer are allowed to change in this cycle
-		// factor 2 is needed because actuator outputs are in the range [-1,1]
-		const float delta_out_max = 2.0f * 1000.0f * dt / (_max_value[0] - _min_value[0]) / _param_mot_slew_max.get();
-		_mixers->set_max_delta_out_once(delta_out_max);
+		updateOutputSlewrate();
 	}
 
 	unsigned n_updates = 0;
@@ -306,7 +311,6 @@ bool MixingOutput::update()
 	actuator_outputs_s actuator_outputs{};
 	actuator_outputs.noutputs = mixed_num_outputs;
 
-	// zero unused outputs
 	for (size_t i = 0; i < mixed_num_outputs; ++i) {
 		actuator_outputs.output[i] = output_limited[i];
 	}
@@ -314,7 +318,30 @@ bool MixingOutput::update()
 	actuator_outputs.timestamp = hrt_absolute_time();
 	_outputs_pub.publish(actuator_outputs);
 
-	/* publish mixer status */
+	publishMixerStatus(actuator_outputs);
+	updateLatencyPerfCounter(actuator_outputs);
+
+	checkSafetyButton();
+	handleCommands();
+
+	return true;
+}
+
+void
+MixingOutput::checkSafetyButton()
+{
+	if (_safety_sub.updated()) {
+		safety_s safety;
+
+		if (_safety_sub.copy(&safety)) {
+			_safety_off = !safety.safety_switch_available || safety.safety_off;
+		}
+	}
+}
+
+void
+MixingOutput::publishMixerStatus(const actuator_outputs_s &actuator_outputs)
+{
 	MultirotorMixer::saturation_status saturation_status;
 	saturation_status.value = _mixers->get_saturation_status();
 
@@ -325,7 +352,11 @@ bool MixingOutput::update()
 
 		_to_mixer_status.publish(motor_limits);
 	}
+}
 
+void
+MixingOutput::updateLatencyPerfCounter(const actuator_outputs_s &actuator_outputs)
+{
 	// use first valid timestamp_sample for latency tracking
 	for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		const bool required = _groups_required & (1 << i);
@@ -336,19 +367,6 @@ bool MixingOutput::update()
 			break;
 		}
 	}
-
-	// check safety button state
-	if (_safety_sub.updated()) {
-		safety_s safety;
-
-		if (_safety_sub.copy(&safety)) {
-			_safety_off = !safety.safety_switch_available || safety.safety_off;
-		}
-	}
-
-	handleCommands();
-
-	return true;
 }
 
 void
