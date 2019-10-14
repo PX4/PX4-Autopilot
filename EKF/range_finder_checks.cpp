@@ -90,6 +90,8 @@ void Ekf::updateRangeDataValidity()
 	} else if (_time_bad_rng_signal_quality > 0 && _imu_sample_delayed.time_us - _time_bad_rng_signal_quality > RNG_BAD_SIG_HYST) {
 		_time_bad_rng_signal_quality = 0;
 		_rng_hgt_valid = true;
+	} else if (_time_bad_rng_signal_quality == 0) {
+		_rng_hgt_valid = true;
 	}
 
 	// Check if excessively tilted
