@@ -81,7 +81,6 @@ void LandDetector::Run()
 
 	// publish at 1 Hz, very first time, or when the result has changed
 	if ((hrt_elapsed_time(&_land_detected.timestamp) >= 1_s) ||
-	    (_land_detected_pub == nullptr) ||
 	    (_land_detected.landed != landDetected) ||
 	    (_land_detected.freefall != freefallDetected) ||
 	    (_land_detected.maybe_landed != maybe_landedDetected) ||
@@ -102,9 +101,7 @@ void LandDetector::Run()
 		_land_detected.alt_max = alt_max;
 		_land_detected.in_ground_effect = in_ground_effect;
 
-		int instance;
-		orb_publish_auto(ORB_ID(vehicle_land_detected), &_land_detected_pub, &_land_detected,
-				 &instance, ORB_PRIO_DEFAULT);
+		_vehicle_land_detected_pub.publish(_land_detected);
 	}
 
 	// set the flight time when disarming (not necessarily when landed, because all param changes should
