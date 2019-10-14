@@ -478,7 +478,7 @@ private:
 	bool _bad_vert_accel_detected{false};	///< true when bad vertical accelerometer data has been detected
 
 	// variables used to control range aid functionality
-	bool _range_aid_mode_enabled{false};	///< true when range finder can be used in flight as the height reference instead of the primary height sensor
+	bool _is_range_aid_suitable{false};	///< true when range finder can be used in flight as the height reference instead of the primary height sensor
 	bool _range_aid_mode_selected{false};	///< true when range finder is being used as the height reference instead of the primary height sensor
 
 	// variables used to check range finder validity data
@@ -649,8 +649,8 @@ private:
 	void controlHeightFusion();
 
 	// determine if flight condition is suitable to use range finder instead of the primary height sensor
-	void checkRangeAidConditionsMet();
-	bool areRangeAidConditionsMet() { return _range_aid_mode_enabled; }
+	void checkRangeAidSuitability();
+	bool isRangeAidSuitable() { return _is_range_aid_suitable; }
 
 	// check for "stuck" range finder measurements when rng was not valid for certain period
 	void checkRangeDataValidity();
