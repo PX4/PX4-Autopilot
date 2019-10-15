@@ -495,7 +495,7 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
  * @value 0 Automatic
  * @value 1 Magnetic heading
  * @value 2 3-axis
- * @value 3 VTOL customn
+ * @value 3 VTOL custom
  * @value 4 MC custom
  * @value 5 None
  * @reboot_required true
