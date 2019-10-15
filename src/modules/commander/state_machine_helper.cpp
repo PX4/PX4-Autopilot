@@ -1089,15 +1089,6 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 		prearm_ok = false;
 	}
 
-	// Arm Requirements: authorization
-	// check last, and only if everything else has passed
-	if ((arm_requirements & ARM_REQ_ARM_AUTH_BIT) && prearm_ok) {
-		if (arm_auth_check() != vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED) {
-			// feedback provided in arm_auth_check
-			prearm_ok = false;
-		}
-	}
-
 	if (status_flags.avoidance_system_required && !status_flags.avoidance_system_valid) {
 		if (prearm_ok && reportFailures) {
 			mavlink_log_critical(mavlink_log_pub, "Arming denied! Avoidance system not ready");
@@ -1110,6 +1101,15 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 	if (status_flags.condition_escs_error && (arm_requirements & ARM_REQ_ESCS_CHECK_BIT)) {
 		if (prearm_ok && reportFailures) {
 			mavlink_log_critical(mavlink_log_pub, "Arming denied! One or more ESCs are offline");
+			prearm_ok = false;
+		}
+	}
+
+	// Arm Requirements: authorization
+	// check last, and only if everything else has passed
+	if ((arm_requirements & ARM_REQ_ARM_AUTH_BIT) && prearm_ok) {
+		if (arm_auth_check() != vehicle_command_ack_s::VEHICLE_RESULT_ACCEPTED) {
+			// feedback provided in arm_auth_check
 			prearm_ok = false;
 		}
 	}
