@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,54 +31,55 @@
  *
  ****************************************************************************/
 
-/// @file	LowPassFilter.h
+/// @file	LowPassFilter2pArray.hpp
 /// @brief	A class to implement a second order low pass filter
-/// Author: Leonard Hall <LeonardTHall@gmail.com>
-/// Adapted for PX4 by Andrew Tridgell
 
 #pragma once
 
+#include "LowPassFilter2p.hpp"
+
 namespace math
 {
-class __EXPORT LowPassFilter2p
+
+class LowPassFilter2pArray : public LowPassFilter2p
 {
 public:
 
-	LowPassFilter2p(float sample_freq, float cutoff_freq)
+	LowPassFilter2pArray(float sample_freq, float cutoff_freq) : LowPassFilter2p(sample_freq, cutoff_freq)
 	{
-		// set initial parameters
-		set_cutoff_frequency(sample_freq, cutoff_freq);
 	}
-
-	// Change filter parameters
-	void set_cutoff_frequency(float sample_freq, float cutoff_freq);
 
 	/**
 	 * Add a new raw value to the filter
 	 *
 	 * @return retrieve the filtered result
 	 */
-	float apply(float sample);
+	inline float apply(const int16_t samples[], uint8_t num_samples)
+	{
+		float output = 0.0f;
 
-	// Return the cutoff frequency
-	float get_cutoff_freq() const { return _cutoff_freq; }
+		for (int n = 0; n < num_samples; n++) {
+			// do the filtering
+			float delay_element_0 = samples[n] - _delay_element_1 * _a1 - _delay_element_2 * _a2;
 
-	// Reset the filter state to this value
-	float reset(float sample);
+			if (n == num_samples - 1) {
+				output = delay_element_0 * _b0 + _delay_element_1 * _b1 + _delay_element_2 * _b2;
+			}
 
-protected:
+			_delay_element_2 = _delay_element_1;
+			_delay_element_1 = delay_element_0;
+		}
 
-	float _cutoff_freq{0.0f};
+		// don't allow bad values to propagate via the filter
+		if (!PX4_ISFINITE(output)) {
+			reset(samples[num_samples - 1]);
+			output = samples[num_samples - 1];
+		}
 
-	float _a1{0.0f};
-	float _a2{0.0f};
+		// return the value. Should be no need to check limits
+		return output;
+	}
 
-	float _b0{0.0f};
-	float _b1{0.0f};
-	float _b2{0.0f};
-
-	float _delay_element_1{0.0f};	// buffered sample -1
-	float _delay_element_2{0.0f};	// buffered sample -2
 };
 
 } // namespace math
