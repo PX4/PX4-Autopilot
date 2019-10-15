@@ -415,9 +415,7 @@ pwm_main(int argc, char *argv[])
 			return 1;
 		}
 
-		struct pwm_output_values pwm_values;
-
-		memset(&pwm_values, 0, sizeof(pwm_values));
+		struct pwm_output_values pwm_values {};
 
 		pwm_values.channel_count = servo_count;
 
@@ -471,9 +469,7 @@ pwm_main(int argc, char *argv[])
 			return 1;
 		}
 
-		struct pwm_output_values pwm_values;
-
-		memset(&pwm_values, 0, sizeof(pwm_values));
+		struct pwm_output_values pwm_values {};
 
 		pwm_values.channel_count = servo_count;
 
@@ -526,9 +522,7 @@ pwm_main(int argc, char *argv[])
 			PX4_WARN("reading disarmed value of zero, disabling disarmed PWM");
 		}
 
-		struct pwm_output_values pwm_values;
-
-		memset(&pwm_values, 0, sizeof(pwm_values));
+		struct pwm_output_values pwm_values {};
 
 		pwm_values.channel_count = servo_count;
 
@@ -582,9 +576,7 @@ pwm_main(int argc, char *argv[])
 			return 1;
 		}
 
-		struct pwm_output_values pwm_values;
-
-		memset(&pwm_values, 0, sizeof(pwm_values));
+		struct pwm_output_values pwm_values {};
 
 		pwm_values.channel_count = servo_count;
 

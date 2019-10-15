@@ -274,8 +274,7 @@ int set_min_pwm(int fd, unsigned long max_channels, int pwm_value)
 {
 	int ret;
 
-	struct pwm_output_values pwm_values;
-	memset(&pwm_values, 0, sizeof(pwm_values));
+	struct pwm_output_values pwm_values {};
 
 	pwm_values.channel_count = max_channels;
 
