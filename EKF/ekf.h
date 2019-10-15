@@ -67,44 +67,61 @@ public:
 
 	void getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos);
 
-	// gets the innovations of the earth magnetic field measurements
-	void get_mag_innov(float mag_innov[3]) override;
+	void getGpsVelPosInnovRatio(float& hvel, float &vvel, float& hpos, float &vpos);
 
 	void getEvVelPosInnov(float hvel[2], float& vvel, float hpos[2], float& vpos);
-	void get_heading_innov(float *heading_innov);
 
 	void getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos);
 
-	// gets the innovation variances of the earth magnetic field measurements
-	void get_mag_innov_var(float mag_innov_var[3]) override;
+	void getEvVelPosInnovRatio(float& hvel, float &vvel, float& hpos, float &vpos);
 
 	void getAuxVelInnov(float aux_vel_innov[2]);
 
 	void getAuxVelInnovVar(float aux_vel_innov[2]);
 
-	// gets the innovations of synthetic sideslip measurement
-	void get_beta_innov(float *beta_innov) override;
+	void getAuxVelInnovRatio(float &aux_vel_innov_ratio);
 
-	// gets the innovation variance of the synthetic sideslip measurement
-	void get_beta_innov_var(float *beta_innov_var) override;
+	void getFlowInnov(float flow_innov[2]);
 
-	// gets the innovation variance of the heading measurement
-	void get_heading_innov_var(float *heading_innov_var) override;
+	void getFlowInnovVar(float flow_innov_var[2]);
 
-	// gets the innovation variance of the flow measurement
-	void get_flow_innov_var(float flow_innov_var[2]) override;
+	void getFlowInnovRatio(float &flow_innov_ratio);
 
-	// gets the innovation of the flow measurement
-	void get_flow_innov(float flow_innov[2]) override;
+	void getHeadingInnov(float &heading_innov);
 
-	// gets the innovation variance of the drag specific force measurement
-	void get_drag_innov_var(float drag_innov_var[2]) override;
+	void getHeadingInnovVar(float &heading_innov_var);
 
-	// gets the innovation of the drag specific force measurement
-	void get_drag_innov(float drag_innov[2]) override;
+	void getHeadingInnovRatio(float &heading_innov_ratio);
 
-	void getHaglInnovVar(float *hagl_innov_var) override;
-	void getHaglInnov(float *hagl_innov) override;
+	void getMagInnov(float mag_innov[3]);
+
+	void getMagInnovVar(float mag_innov_var[3]);
+
+	void getMagInnovRatio(float &mag_innov_ratio);
+
+	void getDragInnov(float drag_innov[2]);
+
+	void getDragInnovVar(float drag_innov_var[2]);
+
+	void getDragInnovRatio(float drag_innov_ratio[2]);
+
+	void getAirspeedInnov(float &airspeed_innov);
+
+	void getAirspeedInnovVar(float &airspeed_innov_var);
+
+	void getAirspeedInnovRatio(float &airspeed_innov_ratio);
+
+	void getBetaInnov(float &beta_innov);
+
+	void getBetaInnovVar(float &beta_innov_var);
+
+	void getBetaInnovRatio(float &beta_innov_ratio);
+
+	void getHaglInnov(float &hagl_innov);
+
+	void getHaglInnovVar(float &hagl_innov_var);
+
+	void getHaglInnovRatio(float &hagl_innov_ratio);
 
 	// get the state vector at the delayed time horizon
 	void get_state_delayed(float *state) override;
@@ -244,7 +261,7 @@ public:
 	// Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.
 	// A value > 1 indicates that the sensor measurement has exceeded the maximum acceptable level and has been rejected by the EKF
 	// Where a measurement type is a vector quantity, eg magnetometer, GPS position, etc, the maximum value is returned.
-	void get_innovation_test_status(uint16_t *status, float *mag, float *vel, float *pos, float *hgt, float *tas, float *hagl, float *beta) override;
+	void get_innovation_test_status(uint16_t &status, float &mag, float &gps_vel, float &gps_pos, float &ev_vel, float &ev_pos, float &hgt, float &tas, float &hagl, float &beta);
 
 	// return a bitmask integer that describes which state estimates can be used for flight control
 	void get_ekf_soln_status(uint16_t *status) override;
@@ -367,8 +384,15 @@ private:
 
 	float _aux_vel_innov[2] {};	///< horizontal auxiliary velocity innovations: (m/sec)
 	float _aux_vel_innov_var[2] {};	///< horizontal auxiliary velocity innovation variances: ((m/sec)**2)
+
+	float _heading_innov{0.0f};	///< heading measurement innovation (rad)
+	float _heading_innov_var{0.0f};	///< heading measurement innovation variance (rad**2)
+
 	float _mag_innov[3] {};		///< earth magnetic field innovations (Gauss)
 	float _mag_innov_var[3] {};	///< earth magnetic field innovation variance (Gauss**2)
+
+	float _drag_innov[2] {};	///< multirotor drag measurement innovation (m/sec**2)
+	float _drag_innov_var[2] {};	///< multirotor drag measurement innovation variance ((m/sec**2)**2)
 
 	float _airspeed_innov{0.0f};		///< airspeed measurement innovation (m/sec)
 	float _airspeed_innov_var{0.0f};	///< airspeed measurement innovation variance ((m/sec)**2)
@@ -376,11 +400,8 @@ private:
 	float _beta_innov{0.0f};	///< synthetic sideslip measurement innovation (rad)
 	float _beta_innov_var{0.0f};	///< synthetic sideslip measurement innovation variance (rad**2)
 
-	float _drag_innov[2] {};	///< multirotor drag measurement innovation (m/sec**2)
-	float _drag_innov_var[2] {};	///< multirotor drag measurement innovation variance ((m/sec**2)**2)
-
-	float _heading_innov{0.0f};	///< heading measurement innovation (rad)
-	float _heading_innov_var{0.0f};	///< heading measurement innovation variance (rad**2)
+	float _hagl_innov{0.0f};		///< innovation of the last height above terrain measurement (m)
+	float _hagl_innov_var{0.0f};		///< innovation variance for the last height above terrain measurement (m**2)
 
 	// optical flow processing
 	float _flow_innov[2] {};	///< flow measurement innovation (rad/sec)
@@ -450,8 +471,6 @@ private:
 	// Terrain height state estimation
 	float _terrain_vpos{0.0f};		///< estimated vertical position of the terrain underneath the vehicle in local NED frame (m)
 	float _terrain_var{1e4f};		///< variance of terrain position estimate (m**2)
-	float _hagl_innov{0.0f};		///< innovation of the last height above terrain measurement (m)
-	float _hagl_innov_var{0.0f};		///< innovation variance for the last height above terrain measurement (m**2)
 	uint64_t _time_last_hagl_fuse{0};		///< last system time that the hagl measurement failed it's checks (uSec)
 	bool _terrain_initialised{false};	///< true when the terrain estimator has been initialized
 	float _sin_tilt_rng{0.0f};		///< sine of the range finder tilt rotation about the Y body axis

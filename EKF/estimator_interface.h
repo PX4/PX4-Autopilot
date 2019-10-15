@@ -71,36 +71,80 @@ public:
 	virtual void getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) = 0;
 	// gets the GPS innovation variances of velocity and position measurements
 	virtual void getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) = 0;
+	// gets the GPS innovation test ratios of velocity and position measurements
+	virtual void getGpsVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) = 0;
 
 
 	// gets the external vision innovations of velocity and position measurements
 	virtual void getEvVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) = 0;
 	// gets the external vision innovation variances of velocity and position measurements
 	virtual void getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) = 0;
+	// gets the external vision innovation test ratios of velocity and position measurements
+	virtual void getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) = 0;
 
-	// gets the innovation of airspeed measurement
-	virtual void get_airspeed_innov(float *airspeed_innov) = 0;
 
 	// gets the innovations for of the horizontal auxiliary velocity measurement
 	virtual void getAuxVelInnov(float aux_vel_innov[2]) = 0;
 	// gets the innovation variances for of the horizontal auxiliary velocity measurement
 	virtual void getAuxVelInnovVar(float aux_vel_innov[2]) = 0;
+	// gets the innovation test ratios of the horizontal auxiliary velocity measurement
+	virtual void getAuxVelInnovRatio(float &aux_vel_innov_ratio) = 0;
+
+
+	// gets the innovation of the flow measurement
+	virtual void getFlowInnov(float flow_innov[2]) = 0;
+	// gets the innovation variance of the flow measurement
+	virtual void getFlowInnovVar(float flow_innov_var[2]) = 0;
+	// gets the innovation test ratios of the flow measurement
+	virtual void getFlowInnovRatio(float &flow_innov_ratio) = 0;
+
 
 	// gets the innovations of the heading measurement
-	virtual void get_heading_innov(float *heading_innov) = 0;
-
-
-	// gets the innovation variances of the earth magnetic field measurements
-	virtual void get_mag_innov_var(float mag_innov_var[3]) = 0;
-
-	// gets the innovation variance of the airspeed measurement
-	virtual void get_airspeed_innov_var(float *get_airspeed_innov_var) = 0;
-
-	// gets the innovation variance of the synthetic sideslip measurement
-	virtual void get_beta_innov_var(float *get_beta_innov_var) = 0;
-
+	virtual void getHeadingInnov(float &heading_innov) = 0;
 	// gets the innovation variance of the heading measurement
-	virtual void get_heading_innov_var(float *heading_innov_var) = 0;
+	virtual void getHeadingInnovVar(float &heading_innov_var) = 0;
+	// gets the innovation test ratios of the heading measurement
+	virtual void getHeadingInnovRatio(float &heading_innov_ratio) = 0;
+
+
+	// gets the innovations of the earth magnetic field measurements
+	virtual void getMagInnov(float mag_innov[3]) = 0;
+	// gets the innovation variances of the earth magnetic field measurements
+	virtual void getMagInnovVar(float mag_innov_var[3]) = 0;
+	// gets the innovation test ratios of the earth magnetic field measurements
+	virtual void getMagInnovRatio(float &mag_innov_ratio) = 0;
+
+
+	// gets the innovation of the drag specific force measurement
+	virtual void getDragInnov(float drag_innov[2]) = 0;
+	// gets the innovation variance of the drag specific force measurement
+	virtual void getDragInnovVar(float drag_innov_var[2]) = 0;
+	// gets the innovation test ratios of the drag specific force measurement
+	virtual void getDragInnovRatio(float drag_innov_ratio[2]) = 0;
+
+	// gets the innovation of airspeed measurement
+	virtual void getAirspeedInnov(float &airspeed_innov) = 0;
+	// gets the innovation variance of the airspeed measurement
+	virtual void getAirspeedInnovVar(float &get_airspeed_innov_var) = 0;
+	// gets the innovation test ratios of the airspeed measurement
+	virtual void getAirspeedInnovRatio(float &airspeed_innov_ratio) = 0;
+
+
+	// gets the innovation of the synthetic sideslip measurement
+	virtual void getBetaInnov(float &beta_innov) = 0;
+	// gets the innovation variance of the synthetic sideslip measurement
+	virtual void getBetaInnovVar(float &get_beta_innov_var) = 0;
+	// gets the innovation test ratios of the synthetic sideslip measurement
+	virtual void getBetaInnovRatio(float &beta_innov_ratio) = 0;
+
+
+	// gets the innovation of the HAGL measurement
+	virtual void getHaglInnov(float &hagl_innov) = 0;
+	// gets the innovation variance of the HAGL measurement
+	virtual void getHaglInnovVar(float &hagl_innov_var) = 0;
+	// gets the innovation test ratios of the HAGL measurement
+	virtual void getHaglInnovRatio(float &hagl_innov_ratio) = 0;
+
 
 	virtual void get_state_delayed(float *state) = 0;
 
@@ -116,24 +160,6 @@ public:
 	// gets the variances for the NED position states
 	virtual void get_pos_var(Vector3f &pos_var) = 0;
 
-	// gets the innovation variance of the flow measurement
-	virtual void get_flow_innov_var(float flow_innov_var[2]) = 0;
-
-	// gets the innovation of the flow measurement
-	virtual void get_flow_innov(float flow_innov[2]) = 0;
-
-	// gets the innovation variance of the drag specific force measurement
-	virtual void get_drag_innov_var(float drag_innov_var[2]) = 0;
-
-	// gets the innovation of the drag specific force measurement
-	virtual void get_drag_innov(float drag_innov[2]) = 0;
-
-	virtual void getHaglInnovVar(float *hagl_innov_var) = 0;
-	virtual void getHaglInnov(float *hagl_innov) = 0;
-	//[[deprecated("Replaced by getHaglInnovVar")]]
-	void get_hagl_innov_var(float *hagl_innov_var) { getHaglInnovVar(hagl_innov_var); }
-	//[[deprecated("Replaced by getHaglInnov")]]
-	void get_hagl_innov(float *hagl_innov) { getHaglInnov(hagl_innov); }
 
 	// return an array containing the output predictor angular, velocity and position tracking
 	// error magnitudes (rad), (m/s), (m)
@@ -385,7 +411,7 @@ public:
 	// Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.
 	// A value > 1 indicates that the sensor measurement has exceeded the maximum acceptable level and has been rejected by the EKF
 	// Where a measurement type is a vector quantity, eg magnetometer, GPS position, etc, the maximum value is returned.
-	virtual void get_innovation_test_status(uint16_t *status, float *mag, float *vel, float *pos, float *hgt, float *tas, float *hagl, float *beta) = 0;
+	virtual void get_innovation_test_status(uint16_t &status, float &mag, float &gps_vel, float &gps_pos, float &ev_vel, float &ev_pos, float &hgt, float &tas, float &hagl, float &beta) = 0;
 
 	// return a bitmask integer that describes which state estimates can be used for flight control
 	virtual void get_ekf_soln_status(uint16_t *status) = 0;
@@ -484,12 +510,15 @@ protected:
 	float _gps_yaw_offset{0.0f};	// Yaw offset angle for dual GPS antennas used for yaw estimation (radians).
 
 	// innovation consistency check monitoring ratios
-	float _yaw_test_ratio{0.0f};          // yaw innovation consistency check ratio
-	float _mag_test_ratio[3] {};      // magnetometer XYZ innovation consistency check ratios
+	float _yaw_test_ratio{};		// yaw innovation consistency check ratio
+	float _mag_test_ratio[3] {};		// magnetometer XYZ innovation consistency check ratios
 	float _gps_vel_pos_test_ratio[4] {};	// GPS velocity and position innovation consistency check ratios
 	float _ev_vel_pos_test_ratio[4] {};	// EV velocity and position innovation consistency check ratios
 	float _aux_vel_test_ratio{};	// Auxiliray horizontal velocity innovation consistency check ratio
-	float _beta_test_ratio{0.0f};		// sideslip innovation consistency check ratio
+	float _optflow_test_ratio{};	// Optical flow innovation consistency check ratio
+	float _tas_test_ratio{};		// tas innovation consistency check ratio
+	float _hagl_test_ratio{};		// height above terrain measurement innovation consistency check ratio
+	float _beta_test_ratio{};		// sideslip innovation consistency check ratio
 	float _drag_test_ratio[2] {};	// drag innovation consistency check ratio
 	innovation_fault_status_u _innov_check_fail_status{};
 
