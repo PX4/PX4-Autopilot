@@ -80,7 +80,7 @@ void Ekf::updateRangeDataValidity()
 	if (_range_sample_delayed.quality == 0) {
 		_time_bad_rng_signal_quality = _imu_sample_delayed.time_us;
 		_rng_hgt_valid = false;
-	} else if (_imu_sample_delayed.time_us - _time_bad_rng_signal_quality > RNG_BAD_SIG_HYST) {
+	} else if (_imu_sample_delayed.time_us - _time_bad_rng_signal_quality > (unsigned)_params.range_signal_hysteresis_ms) {
 		_rng_hgt_valid = true;
 	}
 
