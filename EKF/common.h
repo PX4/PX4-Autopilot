@@ -210,6 +210,12 @@ struct auxVelSample {
 #define RNG_MAX_INTERVAL  (uint64_t)2e5	///< Maximum allowable time interval between range finder  measurements (uSec)
 #define EV_MAX_INTERVAL   (uint64_t)2e5	///< Maximum allowable time interval between external vision system measurements (uSec)
 
+// VelPos measurement bundles indices
+#define HVEL 0	///< x and y velocity bundle index
+#define VVEL 1	///< z velocity bundle index
+#define HPOS 2	///< x and y position bundle index
+#define VPOS 3	///< z position bundle index
+
 // bad accelerometer detection and mitigation
 #define BADACC_PROBATION  (uint64_t)10e6	///< Period of time that accel data declared bad must continuously pass checks to be declared good again (uSec)
 #define BADACC_BIAS_PNOISE	4.9f	///< The delta velocity process noise is set to this when accel data is declared bad (m/sec**2)
