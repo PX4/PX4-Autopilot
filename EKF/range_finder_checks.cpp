@@ -55,13 +55,6 @@ void Ekf::updateRangeDataContinuity()
 					(_imu_sample_delayed.time_us - _range_sample_delayed.time_us);
 
 	_dt_last_range_update_filt_us = fminf(_dt_last_range_update_filt_us, 4e6f);
-
-	if (_dt_last_range_update_filt_us < 2e6f) {
-		_range_data_continuous = true;
-
-	} else {
-		_range_data_continuous = false;
-	}
 }
 
 void Ekf::updateRangeDataValidity()
@@ -69,13 +62,13 @@ void Ekf::updateRangeDataValidity()
 	updateRangeDataContinuity();
 
 	// check if out of date
-	if ((_imu_sample_delayed.time_us - _range_sample_delayed .time_us) > 2 * RNG_MAX_INTERVAL) {
+	if ((_imu_sample_delayed.time_us - _range_sample_delayed.time_us) > 2 * RNG_MAX_INTERVAL) {
 		_rng_hgt_valid = false;
 		return;
 	}
 
 	// Don't allow faulty flag to clear unless range data is continuous
-	if (!_rng_hgt_valid && !_range_data_continuous) {
+	if (!_rng_hgt_valid && !isRangeDataContinuous()) {
 		return;
 	}
 
@@ -87,10 +80,7 @@ void Ekf::updateRangeDataValidity()
 	if (_range_sample_delayed.quality == 0) {
 		_time_bad_rng_signal_quality = _imu_sample_delayed.time_us;
 		_rng_hgt_valid = false;
-	} else if (_time_bad_rng_signal_quality > 0 && _imu_sample_delayed.time_us - _time_bad_rng_signal_quality > RNG_BAD_SIG_HYST) {
-		_time_bad_rng_signal_quality = 0;
-		_rng_hgt_valid = true;
-	} else if (_time_bad_rng_signal_quality == 0) {
+	} else if (_imu_sample_delayed.time_us - _time_bad_rng_signal_quality > RNG_BAD_SIG_HYST) {
 		_rng_hgt_valid = true;
 	}
 
@@ -115,6 +105,13 @@ void Ekf::updateRangeDataValidity()
 		}
 	}
 
+	updateRangeDataStuck();
+
+	_rng_hgt_valid = !_control_status.flags.rng_stuck;
+}
+
+void Ekf::updateRangeDataStuck()
+{
 	// Check for "stuck" range finder measurements when range was not valid for certain period
 	// This handles a failure mode observed with some lidar sensors
 	if (((_range_sample_delayed.time_us - _time_last_rng_ready) > (uint64_t)10e6) &&
@@ -137,7 +134,6 @@ void Ekf::updateRangeDataValidity()
 			}
 
 			_control_status.flags.rng_stuck = true;
-			_rng_hgt_valid = false;
 		}
 
 	} else {
