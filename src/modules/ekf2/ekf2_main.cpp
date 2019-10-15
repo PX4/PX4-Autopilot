@@ -118,7 +118,8 @@ public:
 private:
 	int getRangeSubIndex(); ///< get subscription index of first downward-facing range sensor
 
-	void runPreFlightChecks(float dt, const filter_control_status_u &control_status, const vehicle_status_s &vehicle_status,
+	void runPreFlightChecks(float dt, const filter_control_status_u &control_status,
+				const vehicle_status_s &vehicle_status,
 				const ekf2_innovations_s &innov);
 	bool preFlightCheckHeadingFailed(const filter_control_status_u &control_status,
 					 const vehicle_status_s &vehicle_status,
@@ -1735,7 +1736,7 @@ void Ekf2::Run()
 	perf_end(_cycle_perf);
 }
 
-void Ekf2::runPreFlightChecks(float dt,
+void Ekf2::runPreFlightChecks(const float dt,
 			      const filter_control_status_u &control_status,
 			      const vehicle_status_s &vehicle_status,
 			      const ekf2_innovations_s &innov)
@@ -1755,14 +1756,13 @@ void Ekf2::runPreFlightChecks(float dt,
 bool Ekf2::preFlightCheckHeadingFailed(const filter_control_status_u &control_status,
 				       const vehicle_status_s &vehicle_status,
 				       const ekf2_innovations_s &innov,
-				       float alpha)
+				       const float alpha)
 
 {
-	// Get the correct heading test limit value depending on vehicle type and aiding mode
-	float heading_test_limit = selectHeadingTestLimit(control_status, vehicle_status);
-	float heading_innov_spike_lim = 2.0f * heading_test_limit;
+	const float heading_test_limit = selectHeadingTestLimit(control_status, vehicle_status);
+	const float heading_innov_spike_lim = 2.0f * heading_test_limit;
 
-	float heading_innov_lpf = _filter_heading_innov.update(innov.heading_innov, alpha, heading_innov_spike_lim);
+	const float heading_innov_lpf = _filter_heading_innov.update(innov.heading_innov, alpha, heading_innov_spike_lim);
 
 	return checkInnovFailed(innov.heading_innov, heading_innov_lpf, heading_test_limit);
 }
@@ -1770,7 +1770,7 @@ bool Ekf2::preFlightCheckHeadingFailed(const filter_control_status_u &control_st
 float Ekf2::selectHeadingTestLimit(const filter_control_status_u &control_status,
 				   const vehicle_status_s &vehicle_status)
 {
-	// set the max allowed heading innovaton depending on whether we are not aiding navigation using
+	// Select the max allowed heading innovaton depending on whether we are not aiding navigation using
 	// observations in the NE reference frame and if the vehicle can use GPS course to realign in flight (fixedwing sideslip fusion).
 	const bool doing_ne_aiding = control_status.flags.gps ||  control_status.flags.ev_pos;
 	const bool cannot_realign_in_flight = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
@@ -1782,14 +1782,14 @@ float Ekf2::selectHeadingTestLimit(const filter_control_status_u &control_status
 
 bool Ekf2::preFlightCheckHorizVelFailed(const filter_control_status_u &control_status,
 					const ekf2_innovations_s &innov,
-					float alpha)
+					const float alpha)
 {
 	bool has_failed = false;
 
-	bool doing_ne_aiding = control_status.flags.gps ||  control_status.flags.ev_pos;
+	const bool doing_ne_aiding = control_status.flags.gps ||  control_status.flags.ev_pos;
 
 	if (doing_ne_aiding) {
-		Vector2f vel_ne_innov = Vector2f(innov.vel_pos_innov);
+		const Vector2f vel_ne_innov = Vector2f(innov.vel_pos_innov);
 		Vector2f vel_ne_innov_lpf;
 		vel_ne_innov_lpf(0) = _filter_vel_n_innov.update(vel_ne_innov(0), alpha, _vel_innov_spike_lim);
 		vel_ne_innov_lpf(1) = _filter_vel_n_innov.update(vel_ne_innov(1), alpha, _vel_innov_spike_lim);
@@ -1797,7 +1797,7 @@ bool Ekf2::preFlightCheckHorizVelFailed(const filter_control_status_u &control_s
 	}
 
 	if (control_status.flags.opt_flow) {
-		Vector2f flow_innov = Vector2f(innov.flow_innov);
+		const Vector2f flow_innov = Vector2f(innov.flow_innov);
 		Vector2f flow_innov_lpf;
 		flow_innov_lpf(0) = _filter_flow_x_innov.update(flow_innov(0), alpha, _flow_innov_spike_lim);
 		flow_innov_lpf(1) = _filter_flow_x_innov.update(flow_innov(1), alpha, _flow_innov_spike_lim);
@@ -1807,29 +1807,29 @@ bool Ekf2::preFlightCheckHorizVelFailed(const filter_control_status_u &control_s
 	return has_failed;
 }
 
-bool Ekf2::preFlightCheckDownVelFailed(const ekf2_innovations_s &innov, float alpha)
+bool Ekf2::preFlightCheckDownVelFailed(const ekf2_innovations_s &innov, const float alpha)
 {
-	float vel_d_innov = innov.vel_pos_innov[2];
-	float vel_d_innov_lpf = _filter_vel_d_innov.update(vel_d_innov, alpha, _vel_innov_spike_lim);
+	const float vel_d_innov = innov.vel_pos_innov[2];
+	const float vel_d_innov_lpf = _filter_vel_d_innov.update(vel_d_innov, alpha, _vel_innov_spike_lim);
 	return checkInnovFailed(vel_d_innov, vel_d_innov_lpf, _vel_innov_test_lim);
 }
 
-bool Ekf2::preFlightCheckHeightFailed(const ekf2_innovations_s &innov, float alpha)
+bool Ekf2::preFlightCheckHeightFailed(const ekf2_innovations_s &innov, const float alpha)
 {
-	float hgt_innov = innov.vel_pos_innov[5];
-	float hgt_innov_lpf = _filter_hgt_innov.update(hgt_innov, alpha, _hgt_innov_spike_lim);
+	const float hgt_innov = innov.vel_pos_innov[5];
+	const float hgt_innov_lpf = _filter_hgt_innov.update(hgt_innov, alpha, _hgt_innov_spike_lim);
 	return checkInnovFailed(hgt_innov, hgt_innov_lpf, _hgt_innov_test_lim);
 }
 
-bool Ekf2::checkInnovFailed(float innov, float innov_lpf, float test_limit)
+bool Ekf2::checkInnovFailed(const float innov, const float innov_lpf, const float test_limit)
 {
 	return innov_lpf > test_limit || innov > 2.0f * test_limit;
 }
 
-bool Ekf2::checkInnov2DFailed(const Vector2f &innov, const Vector2f &innov_lpf, float test_limit)
+bool Ekf2::checkInnov2DFailed(const Vector2f &innov, const Vector2f &innov_lpf, const float test_limit)
 {
-	bool has_failed = innov_lpf.norm_squared() > sq(test_limit)
-			  || innov.norm_squared() > sq(2.0f * test_limit);
+	const bool has_failed = innov_lpf.norm_squared() > sq(test_limit)
+				|| innov.norm_squared() > sq(2.0f * test_limit);
 	return has_failed;
 }
 
