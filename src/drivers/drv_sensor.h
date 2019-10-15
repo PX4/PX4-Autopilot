@@ -116,6 +116,7 @@
 #define DRV_BARO_DEVTYPE_BAROSIM	0x65
 #define DRV_DEVTYPE_BMI088		0x66
 #define DRV_DEVTYPE_BMP388		0x67
+#define DRV_DEVTYPE_ST_ISM330DLC	0x68
 
 /*
  * ioctl() definitions
