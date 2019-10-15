@@ -33,7 +33,6 @@
 
 /**
  * @file FlightTaskDescend.hpp
- *
  */
 
 #pragma once
@@ -44,15 +43,14 @@ class FlightTaskDescend : public FlightTask
 {
 public:
 	FlightTaskDescend() = default;
-
 	virtual ~FlightTaskDescend() = default;
+
 	bool update() override;
 	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
 
 private:
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
-					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,
-					(ParamFloat<px4::params::MPC_THR_HOVER>)
-					_param_mpc_thr_hover /**< throttle value at which vehicle is at hover equilibrium */
+					(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover, ///< thrust at hover equilibrium
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed ///< velocity for controlled descend
 				       )
 };
