@@ -153,9 +153,9 @@ void Ekf::fuseHagl()
 
 		// perform an innovation consistency check and only fuse data if it passes
 		float gate_size = fmaxf(_params.range_innov_gate, 1.0f);
-		_terr_test_ratio = sq(_hagl_innov) / (sq(gate_size) * _hagl_innov_var);
+		_hagl_test_ratio = sq(_hagl_innov) / (sq(gate_size) * _hagl_innov_var);
 
-		if (_terr_test_ratio <= 1.0f) {
+		if (_hagl_test_ratio <= 1.0f) {
 			// calculate the Kalman gain
 			float gain = _terrain_var / _hagl_innov_var;
 			// correct the state
@@ -308,13 +308,4 @@ void Ekf::getTerrainVertPos(float *ret)
 	memcpy(ret, &_terrain_vpos, sizeof(float));
 }
 
-void Ekf::getHaglInnov(float *hagl_innov)
-{
-	memcpy(hagl_innov, &_hagl_innov, sizeof(_hagl_innov));
-}
-
-
-void Ekf::getHaglInnovVar(float *hagl_innov_var)
-{
-	memcpy(hagl_innov_var, &_hagl_innov_var, sizeof(_hagl_innov_var));
 }

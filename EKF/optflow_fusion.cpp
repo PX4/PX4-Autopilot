@@ -48,7 +48,6 @@
 void Ekf::fuseOptFlow()
 {
 	float gndclearance = fmaxf(_params.rng_gnd_clearance, 0.1f);
-	float optflow_test_ratio[2] = {0};
 
 	// get latest estimated orientation
 	float q0 = _state.quat_nominal(0);
@@ -262,9 +261,6 @@ void Ekf::fuseOptFlow()
 			Kfusion[22][0] = t78*(P[22][0]*t2*t5-P[22][4]*t2*t7+P[22][1]*t2*t15+P[22][6]*t2*t10+P[22][2]*t2*t19-P[22][3]*t2*t22+P[22][5]*t2*t27);
 			Kfusion[23][0] = t78*(P[23][0]*t2*t5-P[23][4]*t2*t7+P[23][1]*t2*t15+P[23][6]*t2*t10+P[23][2]*t2*t19-P[23][3]*t2*t22+P[23][5]*t2*t27);
 
-			// run innovation consistency checks
-			optflow_test_ratio[0] = sq(_flow_innov[0]) / (sq(math::max(_params.flow_innov_gate, 1.0f)) * _flow_innov_var[0]);
-
 		} else if (obs_index == 1) {
 
 			// calculate Y axis observation Jacobian
@@ -407,17 +403,18 @@ void Ekf::fuseOptFlow()
 			Kfusion[22][1] = -t78*(P[22][0]*t2*t5+P[22][5]*t2*t8-P[22][6]*t2*t10+P[22][1]*t2*t16-P[22][2]*t2*t19+P[22][3]*t2*t22+P[22][4]*t2*t27);
 			Kfusion[23][1] = -t78*(P[23][0]*t2*t5+P[23][5]*t2*t8-P[23][6]*t2*t10+P[23][1]*t2*t16-P[23][2]*t2*t19+P[23][3]*t2*t22+P[23][4]*t2*t27);
 
-			// run innovation consistency check
-			optflow_test_ratio[1] = sq(_flow_innov[1]) / (sq(math::max(_params.flow_innov_gate, 1.0f)) * _flow_innov_var[1]);
-
 		}
 	}
 
-	// record the innovation test pass/fail
+	// run the innovation consistency check and record result
 	bool flow_fail = false;
+	float test_ratio[2];
+	test_ratio[0] = sq(_flow_innov[0]) / (sq(math::max(_params.flow_innov_gate, 1.0f)) * _flow_innov_var[0]);
+	test_ratio[1] = sq(_flow_innov[1]) / (sq(math::max(_params.flow_innov_gate, 1.0f)) * _flow_innov_var[1]);
+	_optflow_test_ratio = math::max(test_ratio[0],test_ratio[1]);
 
 	for (uint8_t obs_index = 0; obs_index <= 1; obs_index++) {
-		if (optflow_test_ratio[obs_index] > 1.0f) {
+		if (test_ratio[obs_index] > 1.0f) {
 			flow_fail = true;
 			_innov_check_fail_status.value |= (1 << (obs_index + 10));
 
@@ -513,28 +510,6 @@ void Ekf::fuseOptFlow()
 			_time_last_of_fuse = _time_last_imu;
 		}
 	}
-}
-
-void Ekf::get_flow_innov(float flow_innov[2])
-{
-	memcpy(flow_innov, _flow_innov, sizeof(_flow_innov));
-}
-
-
-void Ekf::get_flow_innov_var(float flow_innov_var[2])
-{
-	memcpy(flow_innov_var, _flow_innov_var, sizeof(_flow_innov_var));
-}
-
-void Ekf::get_drag_innov(float drag_innov[2])
-{
-	memcpy(drag_innov, _drag_innov, sizeof(_drag_innov));
-}
-
-
-void Ekf::get_drag_innov_var(float drag_innov_var[2])
-{
-	memcpy(drag_innov_var, _drag_innov_var, sizeof(_drag_innov_var));
 }
 
 // calculate optical flow body angular rate compensation

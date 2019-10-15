@@ -840,10 +840,12 @@ void Ekf::getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float 
 	memcpy(&vpos, _gps_vel_pos_innov_var+5, sizeof(float) * 1);
 }
 
-// writes the innovations of the earth magnetic field measurements
-void Ekf::get_mag_innov(float mag_innov[3])
+void Ekf::getGpsVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos)
 {
-	memcpy(mag_innov, _mag_innov, 3 * sizeof(float));
+	memcpy(&hvel, _gps_vel_pos_test_ratio+HVEL, sizeof(float));
+	memcpy(&vvel, _gps_vel_pos_test_ratio+VVEL, sizeof(float));
+	memcpy(&hpos, _gps_vel_pos_test_ratio+HPOS, sizeof(float));
+	memcpy(&vpos, _gps_vel_pos_test_ratio+VPOS, sizeof(float));
 }
 
 void Ekf::getEvVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos)
@@ -861,8 +863,13 @@ void Ekf::getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &
 	memcpy(hpos, _ev_vel_pos_innov_var+3, sizeof(float) * 2);
 	memcpy(&vpos, _ev_vel_pos_innov_var+5, sizeof(float) * 1);
 }
+
+void Ekf::getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos)
 {
-	memcpy(beta_innov, &_beta_innov, sizeof(float));
+	memcpy(&hvel, _ev_vel_pos_test_ratio+HVEL, sizeof(float));
+	memcpy(&vvel, _ev_vel_pos_test_ratio+VVEL, sizeof(float));
+	memcpy(&hpos, _ev_vel_pos_test_ratio+HPOS, sizeof(float));
+	memcpy(&vpos, _ev_vel_pos_test_ratio+VPOS, sizeof(float));
 }
 
 void Ekf::getAuxVelInnov(float aux_vel_innov[2])
@@ -874,37 +881,115 @@ void Ekf::getAuxVelInnovVar(float aux_vel_innov_var[2])
 {
 	memcpy(aux_vel_innov_var, _aux_vel_innov_var, sizeof(_aux_vel_innov_var));
 }
+
+void Ekf::getAuxVelInnovRatio(float &aux_vel_innov_ratio)
+{
+	memcpy(&aux_vel_innov_ratio, &_aux_vel_test_ratio, sizeof(_aux_vel_test_ratio));
 }
 
-// gets the innovation variances of velocity and position measurements
-// 0-2 vel, 3-5 pos
-void Ekf::get_vel_pos_innov_var(float vel_pos_innov_var[6])
+void Ekf::getFlowInnov(float flow_innov[2])
 {
-	memcpy(vel_pos_innov_var, _vel_pos_innov_var, sizeof(float) * 6);
+	memcpy(flow_innov, _flow_innov, sizeof(_flow_innov));
 }
 
-// gets the innovation variances of the earth magnetic field measurements
-void Ekf::get_mag_innov_var(float mag_innov_var[3])
+void Ekf::getFlowInnovVar(float flow_innov_var[2])
 {
-	memcpy(mag_innov_var, _mag_innov_var, sizeof(float) * 3);
+	memcpy(flow_innov_var, _flow_innov_var, sizeof(_flow_innov_var));
 }
 
-// gets the innovation variance of the airspeed measurement
-void Ekf::get_airspeed_innov_var(float *airspeed_innov_var)
+void Ekf::getFlowInnovRatio(float &flow_innov_ratio)
 {
-	memcpy(airspeed_innov_var, &_airspeed_innov_var, sizeof(float));
+	memcpy(&flow_innov_ratio, &_optflow_test_ratio, sizeof(_optflow_test_ratio));
 }
 
-// gets the innovation variance of the synthetic sideslip measurement
-void Ekf::get_beta_innov_var(float *beta_innov_var)
+void Ekf::getHeadingInnov(float &heading_innov)
 {
-	memcpy(beta_innov_var, &_beta_innov_var, sizeof(float));
+	memcpy(&heading_innov, &_heading_innov, sizeof(_heading_innov));
 }
 
-// gets the innovation variance of the heading measurement
-void Ekf::get_heading_innov_var(float *heading_innov_var)
+void Ekf::getHeadingInnovVar(float &heading_innov_var)
 {
-	memcpy(heading_innov_var, &_heading_innov_var, sizeof(float));
+	memcpy(&heading_innov_var, &_heading_innov_var, sizeof(_heading_innov_var));
+}
+
+void Ekf::getHeadingInnovRatio(float &heading_innov_ratio)
+{
+	memcpy(&heading_innov_ratio, &_yaw_test_ratio, sizeof(_yaw_test_ratio));
+}
+
+void Ekf::getMagInnov(float mag_innov[3])
+{
+	memcpy(mag_innov, _mag_innov, sizeof(_mag_innov));
+}
+
+void Ekf::getMagInnovVar(float mag_innov_var[3])
+{
+	memcpy(mag_innov_var, _mag_innov_var, sizeof(_mag_innov_var));
+}
+
+void Ekf::getMagInnovRatio(float &mag_innov_ratio)
+{
+	mag_innov_ratio = math::max(math::max(_mag_test_ratio[0], _mag_test_ratio[1]), _mag_test_ratio[2]);
+}
+
+void Ekf::getDragInnov(float drag_innov[2])
+{
+	memcpy(&drag_innov, _drag_innov, sizeof(_drag_innov));
+}
+
+void Ekf::getDragInnovVar(float drag_innov_var[2])
+{
+	memcpy(drag_innov_var, _drag_innov_var, sizeof(_drag_innov_var));
+}
+
+void Ekf::getDragInnovRatio(float drag_innov_ratio[2])
+{
+	memcpy(drag_innov_ratio, &_drag_test_ratio, sizeof(_drag_test_ratio));
+}
+
+void Ekf::getAirspeedInnov(float &airspeed_innov)
+{
+	memcpy(&airspeed_innov, &_airspeed_innov, sizeof(_airspeed_innov));
+}
+
+void Ekf::getAirspeedInnovVar(float &airspeed_innov_var)
+{
+	memcpy(&airspeed_innov_var, &_airspeed_innov_var, sizeof(_airspeed_innov_var));
+}
+
+void Ekf::getAirspeedInnovRatio(float &airspeed_innov_ratio)
+{
+	memcpy(&airspeed_innov_ratio, &_tas_test_ratio, sizeof(_tas_test_ratio));
+}
+
+void Ekf::getBetaInnov(float &beta_innov)
+{
+	memcpy(&beta_innov, &_beta_innov, sizeof(_beta_innov));
+}
+
+void Ekf::getBetaInnovVar(float &beta_innov_var)
+{
+	memcpy(&beta_innov_var, &_beta_innov_var, sizeof(_beta_innov_var));
+}
+
+void Ekf::getBetaInnovRatio(float &beta_innov_ratio)
+{
+	memcpy(&beta_innov_ratio, &_beta_test_ratio, sizeof(_beta_test_ratio));
+}
+
+void Ekf::getHaglInnov(float &hagl_innov)
+{
+	memcpy(&hagl_innov, &_hagl_innov, sizeof(_hagl_innov));
+}
+
+void Ekf::getHaglInnovVar(float &hagl_innov_var)
+{
+	memcpy(&hagl_innov_var, &_hagl_innov_var, sizeof(_hagl_innov_var));
+}
+
+void Ekf::getHaglInnovRatio(float &hagl_innov_ratio)
+{
+	memcpy(&hagl_innov_ratio, &_hagl_test_ratio, sizeof(_hagl_test_ratio));
 }
 
 // get GPS check status
@@ -1169,24 +1254,28 @@ bool Ekf::reset_imu_bias()
 // Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.
 // A value > 1 indicates that the sensor measurement has exceeded the maximum acceptable level and has been rejected by the EKF
 // Where a measurement type is a vector quantity, eg magnetometer, GPS position, etc, the maximum value is returned.
-void Ekf::get_innovation_test_status(uint16_t *status, float *mag, float *vel, float *pos, float *hgt, float *tas, float *hagl, float *beta)
+void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &gps_vel, float &gps_pos, float &ev_vel, float &ev_pos, float &hgt, float &tas, float &hagl, float &beta)
 {
 	// return the integer bitmask containing the consistency check pass/fail status
-	*status = _innov_check_fail_status.value;
+	status = _innov_check_fail_status.value;
 	// return the largest magnetometer innovation test ratio
-	*mag = sqrtf(math::max(_yaw_test_ratio, math::max(math::max(_mag_test_ratio[0], _mag_test_ratio[1]), _mag_test_ratio[2])));
-	// return the largest NED velocity innovation test ratio
-	*vel = sqrtf(math::max(math::max(_vel_pos_test_ratio[0], _vel_pos_test_ratio[1]), _vel_pos_test_ratio[2]));
-	// return the largest NE position innovation test ratio
-	*pos = sqrtf(math::max(_vel_pos_test_ratio[3], _vel_pos_test_ratio[4]));
+	mag = sqrtf(math::max(_yaw_test_ratio, math::max(math::max(_mag_test_ratio[0], _mag_test_ratio[1]), _mag_test_ratio[2])));
+	// return the largest NED GPS velocity innovation test ratio
+	gps_vel = sqrtf(math::max(_gps_vel_pos_test_ratio[HVEL], _gps_vel_pos_test_ratio[VVEL]));
+	// return the largest NE GPS position innovation test ratio
+	gps_pos = sqrtf(_gps_vel_pos_test_ratio[HPOS]);
+	// return the largest external vision velocity innovation test ratio
+	ev_vel = sqrtf(math::max(_ev_vel_pos_test_ratio[HVEL], _ev_vel_pos_test_ratio[VVEL]));
+	// return the largest horizontal external vision position innovation test ratio
+	ev_pos = sqrtf(_ev_vel_pos_test_ratio[HPOS]);
 	// return the vertical position innovation test ratio
-	*hgt = sqrtf(_vel_pos_test_ratio[5]);
+	hgt = sqrtf(_gps_vel_pos_test_ratio[VPOS]);
 	// return the airspeed fusion innovation test ratio
-	*tas = sqrtf(_tas_test_ratio);
+	tas = sqrtf(_tas_test_ratio);
 	// return the terrain height innovation test ratio
-	*hagl = sqrtf(_terr_test_ratio);
+	hagl = sqrtf(_hagl_test_ratio);
 	// return the synthetic sideslip innovation test ratio
-	*beta = sqrtf(_beta_test_ratio);
+	beta = sqrtf(_beta_test_ratio);
 }
 
 // return a bitmask integer that describes which state estimates are valid
