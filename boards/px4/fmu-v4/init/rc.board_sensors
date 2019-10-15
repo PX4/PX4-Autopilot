@@ -48,10 +48,10 @@ fi
 # will prevent the incorrect driver from a successful initialization.
 
 # ICM20602 internal SPI bus ICM-20608-G is rotated 90 deg yaw
-if ! mpu6000 -R 2 -T 20602 start
+if ! icm20602 -R 8 start
 then
 	# ICM20608 internal SPI bus ICM-20602-G is rotated 90 deg yaw
-	if ! mpu6000 -R 2 -T 20608 start
+	if ! icm20608g -R 8 start
 	then
 		# BMI055 accel internal SPI bus
 		bmi055 -A start

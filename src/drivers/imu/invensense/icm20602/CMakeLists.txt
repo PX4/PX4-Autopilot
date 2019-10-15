@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,16 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE drivers__tfmini
-	MAIN tfmini
+	MODULE drivers__imu__invensense__icm20602
+	MAIN icm20602
+	COMPILE_FLAGS
 	SRCS
-		TFMINI.cpp
-		TFMINI.hpp
-		tfmini_main.cpp
-		tfmini_parser.cpp
-	MODULE_CONFIG
-		module.yaml
+		ICM20602.cpp
+		ICM20602.hpp
+		icm20602_main.cpp
 	DEPENDS
-		drivers_rangefinder
+		drivers_accelerometer
+		drivers_gyroscope
+		px4_work_queue
 	)

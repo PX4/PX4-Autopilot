@@ -16,7 +16,7 @@ then
 	# PX4flow
 	px4flow start
 	ist8310 start
-	mpu6000 -R 2 -T 20608 start
+	icm20608g start
 	mpu9250 -R 2 start
 	lis3mdl -R 2 -X start
 fi

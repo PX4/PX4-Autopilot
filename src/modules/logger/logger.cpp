@@ -553,6 +553,8 @@ void Logger::add_default_topics()
 	add_topic_multi("actuator_outputs", 100);
 	add_topic_multi("battery_status", 500);
 	add_topic_multi("distance_sensor", 100);
+	add_topic_multi("sensor_accel_status", 1000);
+	add_topic_multi("sensor_gyro_status", 1000);
 	add_topic_multi("telemetry_status");
 	add_topic_multi("vehicle_gps_position");
 	add_topic_multi("wind_estimate", 200);

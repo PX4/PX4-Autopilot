@@ -4,10 +4,10 @@
 #------------------------------------------------------------------------------
 
 # Internal SPI bus ICM-20608-G
-mpu6000 -R 2 -T 20608 start
+icm20608g start
 
 # Internal SPI bus ICM-20602
-mpu6000 -R 2 -T 20602 start
+icm20602 start
 
 # Internal SPI bus mpu9250
 mpu9250 -R 2 start
