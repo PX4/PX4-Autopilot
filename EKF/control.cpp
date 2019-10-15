@@ -392,9 +392,7 @@ void Ekf::controlExternalVisionFusion()
 		   && ((_time_last_imu - _time_last_ext_vision) > (uint64_t)_params.reset_timeout_max)) {
 
 		// Turn off EV fusion mode if no data has been received
-		_control_status.flags.ev_pos = false;
-		_control_status.flags.ev_vel = false;
-		_control_status.flags.ev_yaw = false;
+		stopEvFusion();
 		ECL_INFO_TIMESTAMPED("EKF External Vision Data Stopped");
 
 	}
@@ -464,12 +462,12 @@ void Ekf::controlOpticalFlowFusion()
 		// Handle cases where we are using optical flow but are no longer able to because data is old
 		// or its use has been inhibited.
 		if (_control_status.flags.opt_flow) {
-		       if (_inhibit_flow_use) {
-			       _control_status.flags.opt_flow = false;
-			       _time_last_of_fuse = 0;
+			if (_inhibit_flow_use) {
+				stopFlowFusion();
+				_time_last_of_fuse = 0;
 
 			} else if ((_time_last_imu - _time_last_of_fuse) > (uint64_t)_params.reset_timeout_max) {
-				_control_status.flags.opt_flow = false;
+				stopFlowFusion();
 
 			}
 		}
@@ -642,7 +640,7 @@ void Ekf::controlGpsFusion()
 
 		// Handle the case where we are using GPS and another source of aiding and GPS is failing checks
 		if (_control_status.flags.gps  && gps_checks_failing && (_control_status.flags.opt_flow || _control_status.flags.ev_pos || _control_status.flags.ev_vel)) {
-			_control_status.flags.gps = false;
+			stopGpsFusion();
 			// Reset position state to external vision if we are going to use absolute values
 			if (_control_status.flags.ev_pos && !(_params.fusion_mode & MASK_ROTATE_EV)) {
 				resetPosition();
@@ -740,12 +738,12 @@ void Ekf::controlGpsFusion()
 		}
 
 	} else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)10e6)) {
-		_control_status.flags.gps = false;
+		stopGpsFusion();
 		ECL_WARN_TIMESTAMPED("EKF GPS data stopped");
 	}  else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)1e6) && (_control_status.flags.opt_flow || _control_status.flags.ev_pos || _control_status.flags.ev_vel)) {
 		// Handle the case where we are fusing another position source along GPS,
 		// stop waiting for GPS after 1 s of lost signal
-		_control_status.flags.gps = false;
+		stopGpsFusion();
 		ECL_WARN_TIMESTAMPED("EKF GPS data stopped, using only EV or OF");
 	}
 }

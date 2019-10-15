@@ -789,4 +789,37 @@ private:
 	// sensor measurement
 	float calculate_synthetic_mag_z_measurement(Vector3f mag_meas, Vector3f mag_earth_predicted);
 
+	// stop GPS fusion
+	void stopGpsFusion();
+
+	// stop GPS position fusion
+	void stopGpsPosFusion();
+
+	// stop GPS velocity fusion
+	void stopGpsVelFusion();
+
+	// stop GPS yaw fusion
+	void stopGpsYawFusion();
+
+	// stop external vision fusion
+	void stopEvFusion();
+
+	// stop external vision position fusion
+	void stopEvPosFusion();
+
+	// stop external vision velocity fusion
+	void stopEvVelFusion();
+
+	// stop external vision yaw fusion
+	void stopEvYawFusion();
+
+	// stop auxiliary horizontal velocity fusion
+	void stopAuxVelFusion();
+
+	// stop optical flow fusion
+	void stopFlowFusion();
+
+	// Helper function to set velPos fault status
+	void setVelPosFaultStatus(const int index, const bool status);
+
 };
