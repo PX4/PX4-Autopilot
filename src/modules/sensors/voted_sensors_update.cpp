@@ -55,18 +55,6 @@ using namespace matrix;
 VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled)
 	: _parameters(parameters), _hil_enabled(hil_enabled)
 {
-	memset(&_last_sensor_data, 0, sizeof(_last_sensor_data));
-	memset(&_last_magnetometer, 0, sizeof(_last_magnetometer));
-	memset(&_last_airdata, 0, sizeof(_last_airdata));
-	memset(&_last_accel_timestamp, 0, sizeof(_last_accel_timestamp));
-	memset(&_accel_diff, 0, sizeof(_accel_diff));
-	memset(&_gyro_diff, 0, sizeof(_gyro_diff));
-	memset(&_mag_angle_diff, 0, sizeof(_mag_angle_diff));
-
-	// initialise the publication variables
-	memset(&_corrections, 0, sizeof(_corrections));
-	memset(&_info, 0, sizeof(_info));
-
 	for (unsigned i = 0; i < 3; i++) {
 		_corrections.gyro_scale_0[i] = 1.0f;
 		_corrections.accel_scale_0[i] = 1.0f;
