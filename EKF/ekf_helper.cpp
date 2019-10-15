@@ -1870,3 +1870,73 @@ float Ekf::kahanSummation(float sum_previous, float input, float &accumulator) c
 	accumulator = (t - sum_previous) - y;
 	return t;
 }
+
+
+void Ekf::stopGpsFusion()
+{
+	stopGpsPosFusion();
+	stopGpsVelFusion();
+	stopGpsYawFusion();
+}
+
+void Ekf::stopGpsPosFusion()
+{
+	_control_status.flags.gps = false;
+	_control_status.flags.gps_hgt = false;
+	memset(_gps_vel_pos_innov+3,0.0f, sizeof(float)*3);
+	memset(_gps_vel_pos_innov_var+3,0.0f, sizeof(float)*3);
+	memset(_gps_vel_pos_test_ratio+HPOS,0.0f, sizeof(float)*2);
+}
+
+void Ekf::stopGpsVelFusion()
+{
+	memset(_gps_vel_pos_innov,0.0f, sizeof(float)*3);
+	memset(_gps_vel_pos_innov_var,0.0f, sizeof(float)*3);
+	memset(_gps_vel_pos_test_ratio,0.0f, sizeof(float)*2);
+}
+
+void Ekf::stopGpsYawFusion()
+{
+	_control_status.flags.gps_yaw = false;
+}
+
+void Ekf::stopEvFusion()
+{
+	stopEvPosFusion();
+	stopEvVelFusion();
+	stopEvYawFusion();
+}
+
+void Ekf::stopEvPosFusion()
+{
+	_control_status.flags.ev_pos = false;
+	memset(_ev_vel_pos_innov+3,0.0f, sizeof(float)*3);
+	memset(_ev_vel_pos_innov_var+3,0.0f, sizeof(float)*3);
+	memset(_ev_vel_pos_test_ratio+HPOS,0.0f, sizeof(float)*2);
+}
+
+void Ekf::stopEvVelFusion()
+{
+	_control_status.flags.ev_vel = false;
+	memset(_ev_vel_pos_innov,0.0f, sizeof(float)*3);
+	memset(_ev_vel_pos_innov_var,0.0f, sizeof(float)*3);
+	memset(_ev_vel_pos_test_ratio,0.0f, sizeof(float)*2);}
+
+void Ekf::stopEvYawFusion()
+{
+	_control_status.flags.ev_yaw = false;
+
+}
+
+void Ekf::stopAuxVelFusion()
+{
+	// TODO: Add proper handling of auxiliar velocity fusion
+}
+
+void Ekf::stopFlowFusion()
+{
+	_control_status.flags.opt_flow = false;
+	memset(_flow_innov,0.0f,sizeof(_flow_innov));
+	memset(_flow_innov_var,0.0f,sizeof(_flow_innov_var));
+	memset(&_optflow_test_ratio,0.0f,sizeof(_optflow_test_ratio));
+}
