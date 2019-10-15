@@ -34,6 +34,7 @@
 #pragma once
 
 #include <board_config.h>
+#include <drivers/drv_pwm_output.h>
 #include <lib/mixer/mixer.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/output_limit/output_limit.h>
@@ -59,7 +60,7 @@
 class OutputModuleInterface : public px4::ScheduledWorkItem, public ModuleParams
 {
 public:
-	static constexpr int MAX_ACTUATORS = DIRECT_PWM_OUTPUT_CHANNELS;
+	static constexpr int MAX_ACTUATORS = PWM_OUTPUT_MAX_CHANNELS;
 
 	OutputModuleInterface(const char *name, const px4::wq_config_t &config)
 		: px4::ScheduledWorkItem(name, config), ModuleParams(nullptr) {}
@@ -90,12 +91,13 @@ public:
 
 	/**
 	 * Contructor
+	 * @param max_num_outputs maximum number of supported outputs
 	 * @param interface Parent module for scheduling, parameter updates and callbacks
 	 * @param scheduling_policy
 	 * @param support_esc_calibration true if the output module supports ESC calibration via max, then min setting
 	 * @param ramp_up true if motor ramp up from disarmed to min upon arming is wanted
 	 */
-	MixingOutput(OutputModuleInterface &interface, SchedulingPolicy scheduling_policy,
+	MixingOutput(uint8_t max_num_outputs, OutputModuleInterface &interface, SchedulingPolicy scheduling_policy,
 		     bool support_esc_calibration, bool ramp_up = true);
 
 	~MixingOutput();
@@ -162,6 +164,8 @@ public:
 	 * @return reordered motor index. When out of range, the input index is returned
 	 */
 	int reorderedMotorIndex(int index);
+
+	void setIgnoreLockdown(bool ignore_lockdown) { _ignore_lockdown = ignore_lockdown; }
 
 protected:
 	void updateParams() override;
@@ -232,6 +236,7 @@ private:
 
 	bool _safety_off{false}; ///< State of the safety button from the subscribed _safety_sub topic
 	bool _throttle_armed{false};
+	bool _ignore_lockdown{false}; ///< if true, ignore the _armed.lockdown flag (for HIL outputs)
 
 	MixerGroup *_mixers{nullptr};
 	uint32_t _groups_required{0};
@@ -241,6 +246,7 @@ private:
 	const bool _support_esc_calibration;
 
 	bool _wq_switched{false};
+	const uint8_t _max_num_outputs;
 
 	OutputModuleInterface &_interface;
 

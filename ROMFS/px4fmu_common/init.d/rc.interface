@@ -84,7 +84,7 @@ then
 
 	if [ $OUTPUT_MODE = hil -o $OUTPUT_MODE = sim ]
 	then
-		if ! pwm_out_sim start
+		if ! pwm_out_sim start -m $OUTPUT_MODE
 		then
 			# Error tune.
 			tune_control play -t 2
