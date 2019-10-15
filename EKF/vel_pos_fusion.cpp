@@ -45,276 +45,175 @@
 #include <ecl.h>
 #include <mathlib/mathlib.h>
 
-void Ekf::fuseVelPosHeight()
+/**
+ * Update the EKF state with velocity and position measurements sequentially. [(vx vy) (vz) (x y) (z)]
+ *
+ * @param innov  	Input		[vx vy vz x y z]
+ * @param innov_gate	Input		[vxy vz xy z]
+ * @param obs_var	Input		[vx vy vz x y z]
+ * @param fuse_mask	Input/Output	[vxy vz xy z]
+ * 					Specify which innovation components should be fused,
+ * 					components that do not pass innovations checks will be set to zero
+ * @param innov_var	Ouput		[vx vy vz x y z]
+ * @param test_ratio	Output		[vxy vz xy z]
+ */
+void Ekf::fuseVelPosHeightSeq(const float (&innov)[6], const float (&innov_gate)[4],
+				 const float (obs_var)[6], bool (&fuse_mask)[4],
+				 float (&innov_var)[6], float (&test_ratio)[4])
 {
-	bool fuse_map[6] = {}; // map of booleans true when [VN,VE,VD,PN,PE,PD] observations are available
-	bool innov_check_pass_map[6] = {}; // true when innovations consistency checks pass for [VN,VE,VD,PN,PE,PD] observations
-	float R[6] = {}; // observation variances for [VN,VE,VD,PN,PE,PD]
-	float gate_size[6] = {}; // innovation consistency check gate sizes for [VN,VE,VD,PN,PE,PD] observations
-	float Kfusion[24] = {}; // Kalman gain vector for any single observation - sequential fusion is used
-	float innovation[6]; // local copy of innovations for  [VN,VE,VD,PN,PE,PD]
-	memcpy(innovation, _vel_pos_innov, sizeof(_vel_pos_innov));
+	// check position, velocity and height innovations sequentially and if checks are passed fuse it
+	// treat 2D horizintal velocity, vertical velocity, 2D horizontal position and vertical height as separate sensors
+	// At the moment we still fuse velocity as 3D measurement, but this should be split in the future
 
-	// calculate innovations, innovations gate sizes and observation variances
-	if (_fuse_hor_vel || _fuse_hor_vel_aux) {
-		// enable fusion for NE velocity axes
-		fuse_map[0] = fuse_map[1] = true;
+	// horizontal and vertical velocity
+	if(fuse_mask[HVEL] && fuse_mask[VVEL]){
+		innov_var[0] = P[4][4] + obs_var[0];
+		innov_var[1] = P[5][5] + obs_var[1];
+		test_ratio[HVEL] = fmaxf( sq(innov[0]) / (sq(innov_gate[HVEL]) * innov_var[0]),
+					sq(innov[1]) / (sq(innov_gate[HVEL]) * innov_var[1]));
 
-		// handle special case where we are getting velocity observations from an auxiliary source
-		if (!_fuse_hor_vel) {
-			innovation[0] = _aux_vel_innov[0];
-			innovation[1] = _aux_vel_innov[1];
-		}
+		innov_var[2] = P[6][6] + obs_var[2];
+		test_ratio[VVEL] = sq(innov[2]) / (sq(innov_gate[VVEL]) * innov_var[2]);
 
-		// Set observation noise variance and innovation consistency check gate size for the NE position observations
-		R[0] = _velObsVarNED(0);
-		R[1] = _velObsVarNED(1);
-		gate_size[1] = gate_size[0] = _hvelInnovGate;
+		bool innov_check_pass = (test_ratio[HVEL] <= 1.0f) && (test_ratio[VVEL] <= 1.0f);
+		if (innov_check_pass) {
+			_time_last_vel_fuse = _time_last_imu;
+			_innov_check_fail_status.flags.reject_vel_NED = false;
 
-	}
+			// fuse the horizontal and vertical velocity measurements
+			fuseVelPosHeight(innov[0],innov_var[0],0);
+			fuseVelPosHeight(innov[1],innov_var[1],1);
+			fuseVelPosHeight(innov[2],innov_var[2],2);
 
-	if (_fuse_vert_vel) {
-		fuse_map[2] = true;
-		// observation variance - use receiver reported accuracy with parameter setting the minimum value
-		R[2] = _velObsVarNED(2);
-		// use scaled horizontal speed accuracy assuming typical ratio of VDOP/HDOP
-		R[2] = 1.5f * fmaxf(R[2], _gps_sample_delayed.sacc);
-		R[2] = R[2] * R[2];
-		// innovation gate size
-		gate_size[2] = _vvelInnovGate;
-	}
-
-	if (_fuse_pos) {
-		// enable fusion for the NE position axes
-		fuse_map[3] = fuse_map[4] = true;
-
-		// Set observation noise variance and innovation consistency check gate size for the NE position observations
-		R[4] = R[3] = sq(_posObsNoiseNE);
-		gate_size[4] = gate_size[3] = _posInnovGateNE;
-
-	}
-
-	if (_fuse_height) {
-		if (_control_status.flags.baro_hgt) {
-			fuse_map[5] = true;
-			// vertical position innovation - baro measurement has opposite sign to earth z axis
-			innovation[5] = _state.pos(2) + _baro_sample_delayed.hgt - _baro_hgt_offset - _hgt_sensor_offset;
-			// observation variance - user parameter defined
-			R[5] = fmaxf(_params.baro_noise, 0.01f);
-			R[5] = R[5] * R[5];
-			// innovation gate size
-			gate_size[5] = fmaxf(_params.baro_innov_gate, 1.0f);
-
-			// Compensate for positive static pressure transients (negative vertical position innovations)
-			// caused by rotor wash ground interaction by applying a temporary deadzone to baro innovations.
-			float deadzone_start = 0.0f;
-			float deadzone_end = deadzone_start + _params.gnd_effect_deadzone;
-
-			if (_control_status.flags.gnd_effect) {
-				if (innovation[5] < -deadzone_start) {
-					if (innovation[5] <= -deadzone_end) {
-						innovation[5] += deadzone_end;
-
-					} else {
-						innovation[5] = -deadzone_start;
-					}
-				}
-			}
-
-		} else if (_control_status.flags.gps_hgt) {
-			fuse_map[5] = true;
-			// vertical position innovation - gps measurement has opposite sign to earth z axis
-			innovation[5] = _state.pos(2) + _gps_sample_delayed.hgt - _gps_alt_ref - _hgt_sensor_offset;
-			// observation variance - receiver defined and parameter limited
-			// use scaled horizontal position accuracy assuming typical ratio of VDOP/HDOP
-			float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
-			float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
-			R[5] = 1.5f * math::constrain(_gps_sample_delayed.vacc, lower_limit, upper_limit);
-			R[5] = R[5] * R[5];
-			// innovation gate size
-			gate_size[5] = fmaxf(_params.baro_innov_gate, 1.0f);
-
-		} else if (_control_status.flags.rng_hgt && (_R_rng_to_earth_2_2 > _params.range_cos_max_tilt)) {
-			fuse_map[5] = true;
-			// use range finder with tilt correction
-			innovation[5] = _state.pos(2) - (-math::max(_range_sample_delayed.rng * _R_rng_to_earth_2_2,
-							 _params.rng_gnd_clearance)) - _hgt_sensor_offset;
-			// observation variance - user parameter defined
-			R[5] = fmaxf((sq(_params.range_noise) + sq(_params.range_noise_scaler * _range_sample_delayed.rng)) * sq(_R_rng_to_earth_2_2), 0.01f);
-			// innovation gate size
-			gate_size[5] = fmaxf(_params.range_innov_gate, 1.0f);
-
-		} else if (_control_status.flags.ev_hgt) {
-			fuse_map[5] = true;
-			// calculate the innovation assuming the external vision observation is in local NED frame
-			innovation[5] = _state.pos(2) - _ev_sample_delayed.pos(2);
-			// observation variance - defined externally
-			R[5] = fmaxf(_ev_sample_delayed.hgtErr, 0.01f);
-			R[5] = R[5] * R[5];
-			// innovation gate size
-			gate_size[5] = fmaxf(_params.ev_pos_innov_gate, 1.0f);
-		}
-
-		// update innovation class variable for logging purposes
-		_vel_pos_innov[5] = innovation[5];
-	}
-
-	// calculate innovation test ratios
-	for (unsigned obs_index = 0; obs_index < 6; obs_index++) {
-		if (fuse_map[obs_index]) {
-			// compute the innovation variance SK = HPH + R
-			unsigned state_index = obs_index + 4;	// we start with vx and this is the 4. state
-			_vel_pos_innov_var[obs_index] = P[state_index][state_index] + R[obs_index];
-			// Compute the ratio of innovation to gate size
-			_vel_pos_test_ratio[obs_index] = sq(innovation[obs_index]) / (sq(gate_size[obs_index]) *
-							 _vel_pos_innov_var[obs_index]);
 		}else{
-			_vel_pos_test_ratio[obs_index] = 0;
+			fuse_mask[HVEL] = fuse_mask[VVEL] = false;
+			_innov_check_fail_status.flags.reject_vel_NED = true;
 		}
 	}
 
-	// check position, velocity and height innovations
-	// treat 3D velocity, 2D position and height as separate sensors
-	// always pass position checks if using synthetic position measurements or yet to complete tilt alignment
-	// always pass height checks if yet to complete tilt alignment
-	bool vel_check_pass = (_vel_pos_test_ratio[0] <= 1.0f) && (_vel_pos_test_ratio[1] <= 1.0f)
-			      && (_vel_pos_test_ratio[2] <= 1.0f);
-	innov_check_pass_map[2] = innov_check_pass_map[1] = innov_check_pass_map[0] = vel_check_pass;
-	bool pos_check_pass = ((_vel_pos_test_ratio[3] <= 1.0f) && (_vel_pos_test_ratio[4] <= 1.0f)) || !_control_status.flags.tilt_align;
-	innov_check_pass_map[4] = innov_check_pass_map[3] = pos_check_pass;
-	innov_check_pass_map[5] = (_vel_pos_test_ratio[5] <= 1.0f) || !_control_status.flags.tilt_align;
+	// horizontal position
+	if(fuse_mask[HPOS]){
+		innov_var[3] = P[7][7] + obs_var[3];
+		innov_var[4] = P[8][8] + obs_var[4];
+		test_ratio[HPOS] = fmaxf( sq(innov[3]) / (sq(innov_gate[HPOS]) * innov_var[3]),
+					sq(innov[4]) / (sq(innov_gate[HPOS]) * innov_var[4]));
 
-	// record the successful velocity fusion event
-	if ((_fuse_hor_vel || _fuse_hor_vel_aux || _fuse_vert_vel) && vel_check_pass) {
-		_time_last_vel_fuse = _time_last_imu;
-		_innov_check_fail_status.flags.reject_vel_NED = false;
-
-	} else if (!vel_check_pass) {
-		_innov_check_fail_status.flags.reject_vel_NED = true;
-	}
-
-	_fuse_hor_vel = _fuse_hor_vel_aux = _fuse_vert_vel = false;
-
-	// record the successful position fusion event
-	if (pos_check_pass && _fuse_pos) {
-		if (!_fuse_hpos_as_odom) {
-			_time_last_pos_fuse = _time_last_imu;
-
-		} else {
-			_time_last_delpos_fuse = _time_last_imu;
-		}
-
-		_innov_check_fail_status.flags.reject_pos_NE = false;
-
-	} else if (!pos_check_pass) {
-		_innov_check_fail_status.flags.reject_pos_NE = true;
-	}
-
-	_fuse_pos = false;
-
-	// record the successful height fusion event
-	if (innov_check_pass_map[5] && _fuse_height) {
-		_time_last_hgt_fuse = _time_last_imu;
-		_innov_check_fail_status.flags.reject_pos_D = false;
-
-	} else if (!innov_check_pass_map[5]) {
-		_innov_check_fail_status.flags.reject_pos_D = true;
-	}
-
-	_fuse_height = false;
-
-	for (unsigned obs_index = 0; obs_index < 6; obs_index++) {
-		// skip fusion if not requested or checks have failed
-		if (!fuse_map[obs_index] || !innov_check_pass_map[obs_index]) {
-			continue;
-		}
-
-		unsigned state_index = obs_index + 4;	// we start with vx and this is the 4. state
-
-		// calculate kalman gain K = PHS, where S = 1/innovation variance
-		for (int row = 0; row < _k_num_states; row++) {
-			Kfusion[row] = P[row][state_index] / _vel_pos_innov_var[obs_index];
-		}
-
-		// update covariance matrix via Pnew = (I - KH)P
-		float KHP[_k_num_states][_k_num_states];
-
-		for (unsigned row = 0; row < _k_num_states; row++) {
-			for (unsigned column = 0; column < _k_num_states; column++) {
-				KHP[row][column] = Kfusion[row] * P[state_index][column];
-			}
-		}
-
-		// if the covariance correction will result in a negative variance, then
-		// the covariance matrix is unhealthy and must be corrected
-		bool healthy = true;
-
-		for (int i = 0; i < _k_num_states; i++) {
-			if (P[i][i] < KHP[i][i]) {
-				// zero rows and columns
-				zeroRows(P, i, i);
-				zeroCols(P, i, i);
-
-				//flag as unhealthy
-				healthy = false;
-
-				// update individual measurement health status
-				if (obs_index == 0) {
-					_fault_status.flags.bad_vel_N = true;
-
-				} else if (obs_index == 1) {
-					_fault_status.flags.bad_vel_E = true;
-
-				} else if (obs_index == 2) {
-					_fault_status.flags.bad_vel_D = true;
-
-				} else if (obs_index == 3) {
-					_fault_status.flags.bad_pos_N = true;
-
-				} else if (obs_index == 4) {
-					_fault_status.flags.bad_pos_E = true;
-
-				} else if (obs_index == 5) {
-					_fault_status.flags.bad_pos_D = true;
-				}
+		bool innov_check_pass = (test_ratio[HPOS] <= 1.0f) || !_control_status.flags.tilt_align;
+		if (innov_check_pass) {
+			if (!_fuse_hpos_as_odom) {
+				_time_last_pos_fuse = _time_last_imu;
 
 			} else {
-				// update individual measurement health status
-				if (obs_index == 0) {
-					_fault_status.flags.bad_vel_N = false;
+				_time_last_delpos_fuse = _time_last_imu;
+			}
+			_innov_check_fail_status.flags.reject_pos_NE = false;
 
-				} else if (obs_index == 1) {
-					_fault_status.flags.bad_vel_E = false;
+			// fuse the horizontal position measurements
+			fuseVelPosHeight(innov[3],innov_var[3],3);
+			fuseVelPosHeight(innov[4],innov_var[4],4);
 
-				} else if (obs_index == 2) {
-					_fault_status.flags.bad_vel_D = false;
+		}else{
+			fuse_mask[HPOS] = false;
+			_innov_check_fail_status.flags.reject_pos_NE = true;
+		}
+	}
 
-				} else if (obs_index == 3) {
-					_fault_status.flags.bad_pos_N = false;
+	// vertical position
+	if(fuse_mask[VPOS]){
+		innov_var[5] = P[9][9] + obs_var[5];
+		test_ratio[VPOS] = sq(innov[5]) / (sq(innov_gate[VPOS]) * innov_var[5]);
 
-				} else if (obs_index == 4) {
-					_fault_status.flags.bad_pos_E = false;
+		bool innov_check_pass = (test_ratio[VPOS] <= 1.0f) || !_control_status.flags.tilt_align;
+		if (innov_check_pass) {
+			_time_last_hgt_fuse = _time_last_imu;
+			_innov_check_fail_status.flags.reject_pos_D = false;
 
-				} else if (obs_index == 5) {
-					_fault_status.flags.bad_pos_D = false;
-				}
+			// fuse the horizontal position measurements
+			fuseVelPosHeight(innov[5],innov_var[5],5);
+
+		}else{
+			fuse_mask[VPOS] = false;
+			_innov_check_fail_status.flags.reject_pos_D = true;
+		}
+	}
+
+}
+
+// Helper function that fuses a single velocity or position measurement
+void Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int obs_index)
+{
+	float Kfusion[24] = {}; // Kalman gain vector for any single observation - sequential fusion is used.
+	unsigned state_index = obs_index + 4;	// we start with vx and this is the 4. state
+
+	// calculate kalman gain K = PHS, where S = 1/innovation variance
+	for (int row = 0; row < _k_num_states; row++) {
+		Kfusion[row] = P[row][state_index] / innov_var;
+	}
+
+	float KHP[_k_num_states][_k_num_states];
+
+	for (unsigned row = 0; row < _k_num_states; row++) {
+		for (unsigned column = 0; column < _k_num_states; column++) {
+			KHP[row][column] = Kfusion[row] * P[state_index][column];
+		}
+	}
+
+	// if the covariance correction will result in a negative variance, then
+	// the covariance matrix is unhealthy and must be corrected
+	bool healthy = true;
+
+	for (int i = 0; i < _k_num_states; i++) {
+		if (P[i][i] < KHP[i][i]) {
+			// zero rows and columns
+			zeroRows(P, i, i);
+			zeroCols(P, i, i);
+
+			healthy = false;
+
+			setVelPosFaultStatus(obs_index,true);
+
+		} else {
+			setVelPosFaultStatus(obs_index,false);
+		}
+	}
+
+
+	// only apply covariance and state corrections if healthy
+	if (healthy) {
+		// apply the covariance corrections
+		for (unsigned row = 0; row < _k_num_states; row++) {
+			for (unsigned column = 0; column < _k_num_states; column++) {
+				P[row][column] = P[row][column] - KHP[row][column];
 			}
 		}
 
-		// only apply covariance and state corrections if healthy
-		if (healthy) {
-			// apply the covariance corrections
-			for (unsigned row = 0; row < _k_num_states; row++) {
-				for (unsigned column = 0; column < _k_num_states; column++) {
-					P[row][column] = P[row][column] - KHP[row][column];
-				}
-			}
+		// correct the covariance matrix for gross errors
+		fixCovarianceErrors();
 
-			// correct the covariance matrix for gross errors
-			fixCovarianceErrors();
+		// apply the state corrections
+		fuse(Kfusion, innov);
 
-			// apply the state corrections
-			fuse(Kfusion, innovation[obs_index]);
-		}
+	}
+}
+
+void Ekf::setVelPosFaultStatus(const int index, const bool status)
+{
+	if (index == 0) {
+		_fault_status.flags.bad_vel_N = status;
+
+	} else if (index == 1) {
+		_fault_status.flags.bad_vel_E = status;
+
+	} else if (index == 2) {
+		_fault_status.flags.bad_vel_D = status;
+
+	} else if (index == 3) {
+		_fault_status.flags.bad_pos_N = status;
+
+	} else if (index == 4) {
+		_fault_status.flags.bad_pos_E = status;
+
+	} else if (index == 5) {
+		_fault_status.flags.bad_pos_D = status;
 	}
 }

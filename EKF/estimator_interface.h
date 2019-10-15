@@ -67,28 +67,28 @@ public:
 	virtual void resetStatesAndCovariances() = 0;
 	virtual bool update() = 0;
 
-	// gets the innovations of velocity and position measurements
-	// 0-2 vel, 3-5 pos
-	virtual void get_vel_pos_innov(float vel_pos_innov[6]) = 0;
+	// gets the GPS innovations of velocity and position measurements
+	virtual void getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) = 0;
+	// gets the GPS innovation variances of velocity and position measurements
+	virtual void getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) = 0;
 
-	// gets the innovations for of the NE auxiliary velocity measurement
-	virtual void get_aux_vel_innov(float aux_vel_innov[2]) = 0;
 
-	// gets the innovations of the earth magnetic field measurements
-	virtual void get_mag_innov(float mag_innov[3]) = 0;
+	// gets the external vision innovations of velocity and position measurements
+	virtual void getEvVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) = 0;
+	// gets the external vision innovation variances of velocity and position measurements
+	virtual void getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) = 0;
 
 	// gets the innovation of airspeed measurement
 	virtual void get_airspeed_innov(float *airspeed_innov) = 0;
 
-	// gets the innovation of the synthetic sideslip measurement
-	virtual void get_beta_innov(float *beta_innov) = 0;
+	// gets the innovations for of the horizontal auxiliary velocity measurement
+	virtual void getAuxVelInnov(float aux_vel_innov[2]) = 0;
+	// gets the innovation variances for of the horizontal auxiliary velocity measurement
+	virtual void getAuxVelInnovVar(float aux_vel_innov[2]) = 0;
 
 	// gets the innovations of the heading measurement
 	virtual void get_heading_innov(float *heading_innov) = 0;
 
-	// gets the innovation variances of velocity and position measurements
-	// 0-2 vel, 3-5 pos
-	virtual void get_vel_pos_innov_var(float vel_pos_innov_var[6]) = 0;
 
 	// gets the innovation variances of the earth magnetic field measurements
 	virtual void get_mag_innov_var(float mag_innov_var[3]) = 0;
@@ -486,9 +486,9 @@ protected:
 	// innovation consistency check monitoring ratios
 	float _yaw_test_ratio{0.0f};          // yaw innovation consistency check ratio
 	float _mag_test_ratio[3] {};      // magnetometer XYZ innovation consistency check ratios
-	float _vel_pos_test_ratio[6] {};  // velocity and position innovation consistency check ratios
-	float _tas_test_ratio{0.0f};		// tas innovation consistency check ratio
-	float _terr_test_ratio{0.0f};		// height above terrain measurement innovation consistency check ratio
+	float _gps_vel_pos_test_ratio[4] {};	// GPS velocity and position innovation consistency check ratios
+	float _ev_vel_pos_test_ratio[4] {};	// EV velocity and position innovation consistency check ratios
+	float _aux_vel_test_ratio{};	// Auxiliray horizontal velocity innovation consistency check ratio
 	float _beta_test_ratio{0.0f};		// sideslip innovation consistency check ratio
 	float _drag_test_ratio[2] {};	// drag innovation consistency check ratio
 	innovation_fault_status_u _innov_check_fail_status{};

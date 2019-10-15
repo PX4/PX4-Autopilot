@@ -408,8 +408,8 @@ bool Ekf::realignYawGPS()
 	float gpsSpeed = sqrtf(sq(_gps_sample_delayed.vel(0)) + sq(_gps_sample_delayed.vel(1)));
 
 	if ((gpsSpeed > 5.0f) && (_gps_sample_delayed.sacc < (0.15f * gpsSpeed))) {
-		// check for excessive GPS velocity innovations
-		bool badVelInnov = ((_vel_pos_test_ratio[0] > 1.0f) || (_vel_pos_test_ratio[1] > 1.0f)) && _control_status.flags.gps;
+		// check for excessive horizontal GPS velocity innovations
+		bool badVelInnov = (_gps_vel_pos_test_ratio[HVEL] > 1.0f) && _control_status.flags.gps;
 
 		// calculate GPS course over ground angle
 		float gpsCOG = atan2f(_gps_sample_delayed.vel(1), _gps_sample_delayed.vel(0));
@@ -824,17 +824,20 @@ void Ekf::calcEarthRateNED(Vector3f &omega, float lat_rad) const
 	omega(2) = -CONSTANTS_EARTH_SPIN_RATE * sinf(lat_rad);
 }
 
-// gets the innovations of velocity and position measurements
-// 0-2 vel, 3-5 pos
-void Ekf::get_vel_pos_innov(float vel_pos_innov[6])
+void Ekf::getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2],  float &vpos)
 {
-	memcpy(vel_pos_innov, _vel_pos_innov, sizeof(float) * 6);
+	memcpy(hvel, _gps_vel_pos_innov+0, sizeof(float) * 2);
+	memcpy(&vvel, _gps_vel_pos_innov+2, sizeof(float) * 1);
+	memcpy(hpos, _gps_vel_pos_innov+3, sizeof(float) * 2);
+	memcpy(&vpos, _gps_vel_pos_innov+5, sizeof(float) * 1);
 }
 
-// gets the innovations for of the NE auxiliary velocity measurement
-void Ekf::get_aux_vel_innov(float aux_vel_innov[2])
+void Ekf::getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos)
 {
-	memcpy(aux_vel_innov, _aux_vel_innov, sizeof(float) * 2);
+	memcpy(hvel, _gps_vel_pos_innov_var+0, sizeof(float) * 2);
+	memcpy(&vvel, _gps_vel_pos_innov_var+2, sizeof(float) * 1);
+	memcpy(hpos, _gps_vel_pos_innov_var+3, sizeof(float) * 2);
+	memcpy(&vpos, _gps_vel_pos_innov_var+5, sizeof(float) * 1);
 }
 
 // writes the innovations of the earth magnetic field measurements
@@ -843,22 +846,34 @@ void Ekf::get_mag_innov(float mag_innov[3])
 	memcpy(mag_innov, _mag_innov, 3 * sizeof(float));
 }
 
-// gets the innovations of the airspeed measurement
-void Ekf::get_airspeed_innov(float *airspeed_innov)
+void Ekf::getEvVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos)
 {
-	memcpy(airspeed_innov, &_airspeed_innov, sizeof(float));
+	memcpy(hvel, _ev_vel_pos_innov+0, sizeof(float) * 2);
+	memcpy(&vvel, _ev_vel_pos_innov+2, sizeof(float) * 1);
+	memcpy(hpos, _ev_vel_pos_innov+3, sizeof(float) * 2);
+	memcpy(&vpos, _ev_vel_pos_innov+5, sizeof(float) * 1);
 }
 
-// gets the innovations of the synthetic sideslip measurements
-void Ekf::get_beta_innov(float *beta_innov)
+void Ekf::getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos)
+{
+	memcpy(hvel, _ev_vel_pos_innov_var+0, sizeof(float) * 2);
+	memcpy(&vvel, _ev_vel_pos_innov_var+2, sizeof(float) * 1);
+	memcpy(hpos, _ev_vel_pos_innov_var+3, sizeof(float) * 2);
+	memcpy(&vpos, _ev_vel_pos_innov_var+5, sizeof(float) * 1);
+}
 {
 	memcpy(beta_innov, &_beta_innov, sizeof(float));
 }
 
-// gets the innovations of the heading measurement
-void Ekf::get_heading_innov(float *heading_innov)
+void Ekf::getAuxVelInnov(float aux_vel_innov[2])
 {
-	memcpy(heading_innov, &_heading_innov, sizeof(float));
+	memcpy(aux_vel_innov, _aux_vel_innov, sizeof(_aux_vel_innov));
+}
+
+void Ekf::getAuxVelInnovVar(float aux_vel_innov_var[2])
+{
+	memcpy(aux_vel_innov_var, _aux_vel_innov_var, sizeof(_aux_vel_innov_var));
+}
 }
 
 // gets the innovation variances of velocity and position measurements
@@ -1189,8 +1204,8 @@ void Ekf::get_ekf_soln_status(uint16_t *status)
 	soln_status.flags.const_pos_mode = !soln_status.flags.velocity_horiz;
 	soln_status.flags.pred_pos_horiz_rel = soln_status.flags.pos_horiz_rel;
 	soln_status.flags.pred_pos_horiz_abs = soln_status.flags.pos_horiz_abs;
-	bool gps_vel_innov_bad = (_vel_pos_test_ratio[0] > 1.0f) || (_vel_pos_test_ratio[1] > 1.0f);
-	bool gps_pos_innov_bad = (_vel_pos_test_ratio[3] > 1.0f) || (_vel_pos_test_ratio[4] > 1.0f);
+	bool gps_vel_innov_bad = (_gps_vel_pos_test_ratio[HVEL] > 1.0f) || (_gps_vel_pos_test_ratio[VVEL] > 1.0f);
+	bool gps_pos_innov_bad = (_gps_vel_pos_test_ratio[HPOS] > 1.0f);
 	bool mag_innov_good = (_mag_test_ratio[0] < 1.0f) && (_mag_test_ratio[1] < 1.0f) && (_mag_test_ratio[2] < 1.0f) && (_yaw_test_ratio < 1.0f);
 	soln_status.flags.gps_glitch = (gps_vel_innov_bad || gps_pos_innov_bad) && mag_innov_good;
 	soln_status.flags.accel_error = _bad_vert_accel_detected;

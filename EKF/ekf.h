@@ -63,31 +63,24 @@ public:
 	// should be called every time new data is pushed into the filter
 	bool update() override;
 
-	// gets the innovations of velocity and position measurements
-	// 0-2 vel, 3-5 pos
-	void get_vel_pos_innov(float vel_pos_innov[6]) override;
+	void getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos);
 
-	// gets the innovations for of the NE auxiliary velocity measurement
-	void get_aux_vel_innov(float aux_vel_innov[2]) override;
+	void getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos);
 
 	// gets the innovations of the earth magnetic field measurements
 	void get_mag_innov(float mag_innov[3]) override;
 
-	// gets the innovations of the heading measurement
-	void get_heading_innov(float *heading_innov) override;
+	void getEvVelPosInnov(float hvel[2], float& vvel, float hpos[2], float& vpos);
+	void get_heading_innov(float *heading_innov);
 
-	// gets the innovation variances of velocity and position measurements
-	// 0-2 vel, 3-5 pos
-	void get_vel_pos_innov_var(float vel_pos_innov_var[6]) override;
+	void getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos);
 
 	// gets the innovation variances of the earth magnetic field measurements
 	void get_mag_innov_var(float mag_innov_var[3]) override;
 
-	// gets the innovations of airspeed measurement
-	void get_airspeed_innov(float *airspeed_innov) override;
+	void getAuxVelInnov(float aux_vel_innov[2]);
 
-	// gets the innovation variance of the airspeed measurement
-	void get_airspeed_innov_var(float *airspeed_innov_var) override;
+	void getAuxVelInnovVar(float aux_vel_innov[2]);
 
 	// gets the innovations of synthetic sideslip measurement
 	void get_beta_innov(float *beta_innov) override;
@@ -296,13 +289,6 @@ private:
 	bool _fuse_vert_vel{false};	///< true when gps vertical velocity measurement should be fused
 	bool _fuse_hor_vel_aux{false};	///< true when auxiliary horizontal velocity measurement should be fused
 
-	float _posObsNoiseNE{0.0f};		///< 1-STD observation noise used for the fusion of NE position data (m)
-	float _posInnovGateNE{1.0f};		///< Number of standard deviations used for the NE position fusion innovation consistency check
-
-	Vector3f _velObsVarNED;		///< 1-STD observation noise variance used for the fusion of NED velocity data (m/sec)**2
-	float _hvelInnovGate{1.0f};	///< Number of standard deviations used for the horizontal velocity fusion innovation consistency check
-	float _vvelInnovGate{1.0f};	///< Number of standard deviations used for the vertical velocity fusion innovation consistency check
-
 	// variables used when position data is being fused using a relative position odometry model
 	bool _fuse_hpos_as_odom{false};		///< true when the NE position data is being fused using an odometry assumption
 	Vector3f _pos_meas_prev;		///< previous value of NED position measurement fused using odometry assumption (m)
@@ -323,7 +309,7 @@ private:
 	bool _tas_data_ready{false};	///< true when new true airspeed data has fallen behind the fusion time horizon and is available to be fused
 	bool _flow_for_terrain_data_ready{false}; /// same flag as "_flow_data_ready" but used for separate terrain estimator
 
-	uint64_t _time_last_fake_gps{0};	///< last time we faked GPS position measurements to constrain tilt errors during operation without external aiding (uSec)
+	uint64_t _time_last_fake_pos{0};	///< last time we faked position measurements to constrain tilt errors during operation without external aiding (uSec)
 	uint64_t _time_ins_deadreckon_start{0};	///< amount of time we have been doing inertial only deadreckoning (uSec)
 	bool _using_synthetic_position{false};	///< true if we are using a synthetic position to constrain drift
 
@@ -335,7 +321,7 @@ private:
 	uint64_t _time_last_arsp_fuse{0};	///< time the last fusion of airspeed measurements were performed (uSec)
 	uint64_t _time_last_beta_fuse{0};	///< time the last fusion of synthetic sideslip measurements were performed (uSec)
 	uint64_t _time_last_rng_ready{0};	///< time the last range finder measurement was ready (uSec)
-	Vector2f _last_known_posNE;		///< last known local NE position vector (m)
+	Vector2f _last_known_posNE{};		///< last known local NE position vector (m)
 	float _imu_collection_time_adj{0.0f};	///< the amount of time the IMU collection needs to be advanced to meet the target set by FILTER_UPDATE_PERIOD_MS (sec)
 
 	uint64_t _time_acc_bias_check{0};	///< last time the  accel bias check passed (uSec)
@@ -369,10 +355,18 @@ private:
 	Vector3f _delta_vel_bias_var_accum;		///< kahan summation algorithm accumulator for delta velocity bias variance
 	Vector3f _delta_angle_bias_var_accum;	///< kahan summation algorithm accumulator for delta angle bias variance
 
-	float _vel_pos_innov[6] {};	///< NED velocity and position innovations: 0-2 vel (m/sec),  3-5 pos (m)
-	float _vel_pos_innov_var[6] {};	///< NED velocity and position innovation variances: 0-2 vel ((m/sec)**2), 3-5 pos (m**2)
-	float _aux_vel_innov[2] {};	///< NE auxiliary velocity innovations: (m/sec)
 
+	float _vel_pos_innov[6] {};	///< velocity and position innovations: 0-2 vel (m/sec),  3-5 pos (m)
+	float _vel_pos_innov_var[6] {};	///< velocity and position innovation variances: 0-2 vel ((m/sec)**2), 3-5 pos (m**2)
+
+	float _gps_vel_pos_innov[6] {};	///< GPS velocity and position innovations: 0-2 vel (m/sec),  3-5 pos (m)
+	float _gps_vel_pos_innov_var[6] {};	///< GPS velocity and position innovation variances: 0-2 vel ((m/sec)**2), 3-5 pos (m**2)
+
+	float _ev_vel_pos_innov[6] {};	///< external vision velocity and position innovations: 0-2 vel (m/sec),  3-5 pos (m)
+	float _ev_vel_pos_innov_var[6] {};	///< external vision velocity and position innovation variances: 0-2 vel ((m/sec)**2), 3-5 pos (m**2)
+
+	float _aux_vel_innov[2] {};	///< horizontal auxiliary velocity innovations: (m/sec)
+	float _aux_vel_innov_var[2] {};	///< horizontal auxiliary velocity innovation variances: ((m/sec)**2)
 	float _mag_innov[3] {};		///< earth magnetic field innovations (Gauss)
 	float _mag_innov_var[3] {};	///< earth magnetic field innovation variance (Gauss**2)
 
@@ -533,8 +527,13 @@ private:
 	// fuse body frame drag specific forces for multi-rotor wind estimation
 	void fuseDrag();
 
-	// fuse velocity and position measurements (also barometer height)
-	void fuseVelPosHeight();
+	// fuse velocity and position measurements sequentially
+	void fuseVelPosHeightSeq(const float (&innov)[6], const float (&innov_gate)[4],
+				 const float (obs_var)[6], bool (&fuse_mask)[4],
+				 float (&innov_var)[6], float (&test_ratio)[4]);
+
+	// fuse single velocity and position measurement
+	void fuseVelPosHeight(const float innov, const float innov_var, const int obs_index);
 
 	// reset velocity states of the ekf
 	bool resetVelocity();
@@ -669,8 +668,8 @@ private:
 	// control fusion of pressure altitude observations
 	void controlBaroFusion();
 
-	// control fusion of velocity and position observations
-	void controlVelPosFusion();
+	// control fusion of fake position observations to constrain drift
+	void controlFakePosFusion();
 
 	// control fusion of auxiliary velocity observations
 	void controlAuxVelFusion();
