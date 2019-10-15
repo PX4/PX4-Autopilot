@@ -108,7 +108,7 @@ then
 
 	param set MPC_TKO_RAMP_T 0.4000
 	param set MPC_TKO_SPEED 1.5000
-	param set MPC_VEL_MANUAL 10.0000
+	param set MPC_VEL_MANUAL 5.0000
 
 	# EKF
 	# Set baro first
