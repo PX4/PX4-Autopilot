@@ -1772,23 +1772,13 @@ float Ekf2::selectHeadingTestLimit(const filter_control_status_u &control_status
 				   const vehicle_status_s &vehicle_status)
 {
 	// set the max allowed heading innovaton depending on whether we are not aiding navigation using
-	// observations in the NE reference frame.
-	bool doing_ne_aiding = control_status.flags.gps ||  control_status.flags.ev_pos;
+	// observations in the NE reference frame and if the vehicle can use GPS course to realign in flight (fixedwing sideslip fusion).
+	const bool doing_ne_aiding = control_status.flags.gps ||  control_status.flags.ev_pos;
+	const bool cannot_realign_in_flight = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 
-	float heading_test_limit;
-
-	if (doing_ne_aiding && vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		// use a smaller tolerance when doing NE inertial frame aiding as a rotary wing
-		// vehicle which cannot use GPS course to realign heading in flight
-		heading_test_limit = _nav_heading_innov_test_lim;
-
-	} else {
-		// use a larger tolerance when not doing NE inertial frame aiding or
-		// if a fixed wing vehicle which can realign heading using GPS course
-		heading_test_limit = _heading_innov_test_lim;
-	}
-
-	return heading_test_limit;
+	return (doing_ne_aiding && cannot_realign_in_flight)
+	       ? _nav_heading_innov_test_lim
+	       : _heading_innov_test_lim;
 }
 
 bool Ekf2::preFlightCheckHorizVelFailed(const filter_control_status_u &control_status,
