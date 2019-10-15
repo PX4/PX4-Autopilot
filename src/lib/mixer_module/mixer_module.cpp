@@ -39,7 +39,8 @@
 using namespace time_literals;
 
 
-MixingOutput::MixingOutput(OutputModuleInterface &interface, SchedulingPolicy scheduling_policy,
+MixingOutput::MixingOutput(uint8_t max_num_outputs, OutputModuleInterface &interface,
+			   SchedulingPolicy scheduling_policy,
 			   bool support_esc_calibration, bool ramp_up)
 	: ModuleParams(&interface),
 	  _control_subs{
@@ -50,6 +51,7 @@ MixingOutput::MixingOutput(OutputModuleInterface &interface, SchedulingPolicy sc
 },
 _scheduling_policy(scheduling_policy),
 _support_esc_calibration(support_esc_calibration),
+_max_num_outputs(max_num_outputs < MAX_ACTUATORS ? max_num_outputs : MAX_ACTUATORS),
 _interface(interface),
 _control_latency_perf(perf_alloc(PC_ELAPSED, "control latency"))
 {
@@ -240,6 +242,11 @@ bool MixingOutput::update()
 	// check arming state
 	if (_armed_sub.update(&_armed)) {
 		_armed.in_esc_calibration_mode &= _support_esc_calibration;
+
+		if (_ignore_lockdown) {
+			_armed.lockdown = false;
+		}
+
 		/* Update the armed status and check that we're not locked down.
 		 * We also need to arm throttle for the ESC calibration. */
 		_throttle_armed = (_safety_off && _armed.armed && !_armed.lockdown) || (_safety_off && _armed.in_esc_calibration_mode);
@@ -275,7 +282,7 @@ bool MixingOutput::update()
 
 	/* do mixing */
 	float outputs[MAX_ACTUATORS] {};
-	const unsigned mixed_num_outputs = _mixers->mix(outputs, MAX_ACTUATORS);
+	const unsigned mixed_num_outputs = _mixers->mix(outputs, _max_num_outputs);
 
 	/* the output limit call takes care of out of band errors, NaN and constrains */
 	uint16_t output_limited[MAX_ACTUATORS] {};
