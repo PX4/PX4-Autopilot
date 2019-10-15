@@ -39,11 +39,10 @@
 bool FlightTaskDescend::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
 	bool ret = FlightTask::activate(last_setpoint);
-	_position_setpoint = {NAN, NAN, NAN};
-	_velocity_setpoint = {NAN, NAN, NAN};
-	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, -_param_mpc_thr_hover.get() * 0.6f);
+	// stay level to minimize horizontal drift
+	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, NAN);
+	// keep heading
 	_yaw_setpoint = _yaw;
-	_yawspeed_setpoint = 0.0f;
 	return ret;
 }
 
@@ -52,11 +51,13 @@ bool FlightTaskDescend::update()
 	if (PX4_ISFINITE(_velocity(2))) {
 		// land with landspeed
 		_velocity_setpoint(2) = _param_mpc_land_speed.get();
+		_thrust_setpoint(2) = NAN;
 
 	} else {
-		return false;
+		// descend with constant thrust (crash landing)
+		_velocity_setpoint(2) = NAN;
+		_thrust_setpoint(2) = -_param_mpc_thr_hover.get() * 0.7f;
 	}
 
 	return true;
-
 }
