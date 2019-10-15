@@ -48,20 +48,27 @@
 
 extern "C" __EXPORT int motor_test_main(int argc, char *argv[]);
 
-static void motor_test(unsigned channel, float value);
+static void motor_test(unsigned channel, float value, uint8_t driver_instance);
 static void usage(const char *reason);
 
-void motor_test(unsigned channel, float value)
+void motor_test(unsigned channel, float value, uint8_t driver_instance)
 {
 	test_motor_s test_motor{};
 	test_motor.timestamp = hrt_absolute_time();
 	test_motor.motor_number = channel;
 	test_motor.value = value;
+	test_motor.action = value >= 0.f ? test_motor_s::ACTION_RUN : test_motor_s::ACTION_STOP;
+	test_motor.driver_instance = driver_instance;
 
 	uORB::PublicationQueued<test_motor_s> test_motor_pub{ORB_ID(test_motor)};
 	test_motor_pub.publish(test_motor);
 
-	PX4_INFO("motor %d set to %.2f", channel, (double)value);
+	if (test_motor.action == test_motor_s::ACTION_STOP) {
+		PX4_INFO("motors stop command sent");
+
+	} else {
+		PX4_INFO("motor %d set to %.2f", channel, (double)value);
+	}
 }
 
 static void usage(const char *reason)
@@ -70,15 +77,20 @@ static void usage(const char *reason)
 		PX4_WARN("%s", reason);
 	}
 
-	PRINT_MODULE_DESCRIPTION("Utility to test motors.\n"
-				 "\n"
-				 "Note: this can only be used for drivers which support the motor_test uorb topic (currently uavcan and tap_esc)\n"
-				);
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+Utility to test motors.
+
+WARNING: remove all props before using this command.
+
+Note: this can only be used for drivers which support the motor_test uorb topic (not px4io).
+)DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("motor_test", "command");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Set motor(s) to a specific output value");
 	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 7, "Motor to test (0...7, all if not specified)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 100, "Power (0...100)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('i', 0, 0, 4, "driver instance", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop all motors");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("iterate", "Iterate all motors starting and stopping one after the other");
 
@@ -89,13 +101,18 @@ int motor_test_main(int argc, char *argv[])
 	int channel = -1; //default to all channels
 	unsigned long lval;
 	float value = 0.0f;
+	uint8_t driver_instance = 0;
 	int ch;
 
 	int myoptind = 1;
 	const char *myoptarg = NULL;
 
-	while ((ch = px4_getopt(argc, argv, "m:p:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "i:m:p:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
+
+		case 'i':
+			driver_instance = (uint8_t)strtol(myoptarg, NULL, 0);
+			break;
 
 		case 'm':
 			/* Read in motor number */
@@ -124,17 +141,17 @@ int motor_test_main(int argc, char *argv[])
 
 	if (myoptind >= 0 && myoptind < argc) {
 		if (strcmp("stop", argv[myoptind]) == 0) {
-			channel = -1;
-			value = 0.f;
+			channel = 0;
+			value = -1.f;
 
 		} else if (strcmp("iterate", argv[myoptind]) == 0) {
-			value = 0.3f;
+			value = 0.15f;
 
 			for (int i = 0; i < 8; ++i) {
-				motor_test(i, value);
-				usleep(500000);
-				motor_test(i, 0.f);
-				usleep(10000);
+				motor_test(i, value, driver_instance);
+				px4_usleep(500000);
+				motor_test(i, -1.f, driver_instance);
+				px4_usleep(10000);
 			}
 
 			run_test = false;
@@ -154,12 +171,12 @@ int motor_test_main(int argc, char *argv[])
 	if (run_test) {
 		if (channel < 0) {
 			for (int i = 0; i < 8; ++i) {
-				motor_test(i, value);
-				usleep(10000);
+				motor_test(i, value, driver_instance);
+				px4_usleep(10000);
 			}
 
 		} else {
-			motor_test(channel, value);
+			motor_test(channel, value, driver_instance);
 		}
 	}
 

@@ -165,6 +165,8 @@ public:
 	bool telemetryEnabled() const { return _telemetry != nullptr; }
 
 private:
+	static constexpr uint16_t DISARMED_VALUE = 0;
+
 	enum class DShotConfig {
 		Disabled = 0,
 		DShot150 = 150,
@@ -248,8 +250,8 @@ DShotOutput::DShotOutput() :
 	_cycle_perf(perf_alloc(PC_ELAPSED, "dshot: cycle")),
 	_cycle_interval_perf(perf_alloc(PC_INTERVAL, "dshot: cycle interval"))
 {
-	_mixing_output.setAllDisarmedValues(0);
-	_mixing_output.setAllMinValues(1);
+	_mixing_output.setAllDisarmedValues(DISARMED_VALUE);
+	_mixing_output.setAllMinValues(DISARMED_VALUE + 1);
 	_mixing_output.setAllMaxValues(DSHOT_MAX_THROTTLE);
 
 }
@@ -285,6 +287,8 @@ DShotOutput::init()
 	} else if (_class_instance < 0) {
 		PX4_ERR("FAILED registering class device");
 	}
+
+	_mixing_output.setDriverInstance(_class_instance);
 
 	// Getting initial parameter values
 	update_params();
@@ -721,7 +725,12 @@ void DShotOutput::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS
 
 	} else {
 		for (int i = 0; i < (int)num_outputs; i++) {
-			up_dshot_motor_data_set(i, math::min(outputs[i], (uint16_t)DSHOT_MAX_THROTTLE), i == requested_telemetry_index);
+			if (outputs[i] == DISARMED_VALUE) {
+				up_dshot_motor_command(i, DShot_cmd_motor_stop, i == requested_telemetry_index);
+
+			} else {
+				up_dshot_motor_data_set(i, math::min(outputs[i], (uint16_t)DSHOT_MAX_THROTTLE), i == requested_telemetry_index);
+			}
 		}
 
 		// clear commands when motors are running
@@ -805,8 +814,8 @@ void DShotOutput::update_params()
 	updateParams();
 
 	// we use a minimum value of 1, since 0 is for disarmed
-	_mixing_output.setAllMinValues(math::constrain((int)(_param_dshot_min.get() * (float)DSHOT_MAX_THROTTLE), 1,
-				       DSHOT_MAX_THROTTLE));
+	_mixing_output.setAllMinValues(math::constrain((int)(_param_dshot_min.get() * (float)DSHOT_MAX_THROTTLE),
+				       DISARMED_VALUE + 1, DSHOT_MAX_THROTTLE));
 }
 
 

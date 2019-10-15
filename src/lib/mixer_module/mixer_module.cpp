@@ -34,6 +34,7 @@
 #include "mixer_module.hpp"
 
 #include <lib/circuit_breaker/circuit_breaker.h>
+#include <uORB/PublicationQueued.hpp>
 #include <px4_log.h>
 
 using namespace time_literals;
@@ -72,6 +73,12 @@ _control_latency_perf(perf_alloc(PC_ELAPSED, "control latency"))
 #endif
 
 	px4_sem_init(&_lock, 0, 1);
+
+	// Enforce the existence of the test_motor topic, so we won't miss initial publications
+	test_motor_s test{};
+	uORB::PublicationQueued<test_motor_s> test_motor_pub{ORB_ID(test_motor)};
+	test_motor_pub.publish(test);
+	_motor_test.test_motor_sub.subscribe();
 }
 
 MixingOutput::~MixingOutput()
@@ -86,12 +93,14 @@ void MixingOutput::printStatus() const
 	perf_print_counter(_control_latency_perf);
 	PX4_INFO("Switched to rate_ctrl work queue: %i", (int)_wq_switched);
 	PX4_INFO("Mixer loaded: %s", _mixers ? "yes" : "no");
+	PX4_INFO("Driver instance: %i", _driver_instance);
 
 	PX4_INFO("Channel Configuration:");
 
-	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
-		PX4_INFO("Channel %i: failsafe: %d, disarmed: %d, min: %d, max: %d", i, _failsafe_value[i], _disarmed_value[i],
-			 _min_value[i], _max_value[i]);
+	for (unsigned i = 0; i < _max_num_outputs; i++) {
+		int reordered_i = reorderedMotorIndex(i);
+		PX4_INFO("Channel %i: value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d", reordered_i, _current_output_value[i],
+			 _failsafe_value[reordered_i], _disarmed_value[reordered_i], _min_value[reordered_i], _max_value[reordered_i]);
 	}
 }
 
@@ -231,6 +240,44 @@ void MixingOutput::updateOutputSlewrate()
 	_mixers->set_max_delta_out_once(delta_out_max);
 }
 
+
+unsigned MixingOutput::motorTest()
+{
+	test_motor_s test_motor;
+	bool had_update = false;
+
+	while (_motor_test.test_motor_sub.update(&test_motor)) {
+		if (test_motor.driver_instance != _driver_instance ||
+		    hrt_elapsed_time(&test_motor.timestamp) > 100_ms) {
+			continue;
+		}
+
+		bool in_test_mode = test_motor.action == test_motor_s::ACTION_RUN;
+
+		if (in_test_mode != _motor_test.in_test_mode) {
+			// reset all outputs to disarmed on state change
+			for (int i = 0; i < MAX_ACTUATORS; ++i) {
+				_current_output_value[i] = _disarmed_value[i];
+			}
+		}
+
+		if (in_test_mode) {
+			int idx = test_motor.motor_number;
+
+			if (idx < MAX_ACTUATORS) {
+				_current_output_value[reorderedMotorIndex(idx)] =
+					math::constrain<uint16_t>(_min_value[idx] + (uint16_t)((_max_value[idx] - _min_value[idx]) * test_motor.value),
+								  _min_value[idx], _max_value[idx]);
+			}
+		}
+
+		_motor_test.in_test_mode = in_test_mode;
+		had_update = true;
+	}
+
+	return (_motor_test.in_test_mode || had_update) ? _max_num_outputs : 0;
+}
+
 bool MixingOutput::update()
 {
 	if (!_mixers) {
@@ -250,6 +297,24 @@ bool MixingOutput::update()
 		/* Update the armed status and check that we're not locked down.
 		 * We also need to arm throttle for the ESC calibration. */
 		_throttle_armed = (_safety_off && _armed.armed && !_armed.lockdown) || (_safety_off && _armed.in_esc_calibration_mode);
+
+		if (_armed.armed) {
+			_motor_test.in_test_mode = false;
+		}
+	}
+
+	// check for motor test
+	if (!_armed.armed) {
+		unsigned num_motor_test = motorTest();
+
+		if (num_motor_test > 0) {
+			_interface.updateOutputs(false, _current_output_value, num_motor_test, 1);
+			actuator_outputs_s actuator_outputs{};
+			setAndPublishActuatorOutputs(num_motor_test, actuator_outputs);
+			checkSafetyButton();
+			handleCommands();
+			return true;
+		}
 	}
 
 	if (_param_mot_slew_max.get() > FLT_EPSILON) {
@@ -285,15 +350,13 @@ bool MixingOutput::update()
 	const unsigned mixed_num_outputs = _mixers->mix(outputs, _max_num_outputs);
 
 	/* the output limit call takes care of out of band errors, NaN and constrains */
-	uint16_t output_limited[MAX_ACTUATORS] {};
-
 	output_limit_calc(_throttle_armed, armNoThrottle(), mixed_num_outputs, _reverse_output_mask,
-			  _disarmed_value, _min_value, _max_value, outputs, output_limited, &_output_limit);
+			  _disarmed_value, _min_value, _max_value, outputs, _current_output_value, &_output_limit);
 
 	/* overwrite outputs in case of force_failsafe with _failsafe_value values */
 	if (_armed.force_failsafe) {
 		for (size_t i = 0; i < mixed_num_outputs; i++) {
-			output_limited[i] = _failsafe_value[i];
+			_current_output_value[i] = _failsafe_value[i];
 		}
 	}
 
@@ -302,28 +365,21 @@ bool MixingOutput::update()
 	/* overwrite outputs in case of lockdown or parachute triggering with disarmed values */
 	if (_armed.lockdown || _armed.manual_lockdown) {
 		for (size_t i = 0; i < mixed_num_outputs; i++) {
-			output_limited[i] = _disarmed_value[i];
+			_current_output_value[i] = _disarmed_value[i];
 		}
 
 		stop_motors = true;
 	}
 
 	/* apply _param_mot_ordering */
-	reorderOutputs(output_limited);
+	reorderOutputs(_current_output_value);
 
 	/* now return the outputs to the driver */
-	_interface.updateOutputs(stop_motors, output_limited, mixed_num_outputs, n_updates);
+	_interface.updateOutputs(stop_motors, _current_output_value, mixed_num_outputs, n_updates);
 
 
 	actuator_outputs_s actuator_outputs{};
-	actuator_outputs.noutputs = mixed_num_outputs;
-
-	for (size_t i = 0; i < mixed_num_outputs; ++i) {
-		actuator_outputs.output[i] = output_limited[i];
-	}
-
-	actuator_outputs.timestamp = hrt_absolute_time();
-	_outputs_pub.publish(actuator_outputs);
+	setAndPublishActuatorOutputs(mixed_num_outputs, actuator_outputs);
 
 	publishMixerStatus(actuator_outputs);
 	updateLatencyPerfCounter(actuator_outputs);
@@ -344,6 +400,19 @@ MixingOutput::checkSafetyButton()
 			_safety_off = !safety.safety_switch_available || safety.safety_off;
 		}
 	}
+}
+
+void
+MixingOutput::setAndPublishActuatorOutputs(unsigned num_outputs, actuator_outputs_s &actuator_outputs)
+{
+	actuator_outputs.noutputs = num_outputs;
+
+	for (size_t i = 0; i < num_outputs; ++i) {
+		actuator_outputs.output[i] = _current_output_value[i];
+	}
+
+	actuator_outputs.timestamp = hrt_absolute_time();
+	_outputs_pub.publish(actuator_outputs);
 }
 
 void
@@ -404,7 +473,7 @@ MixingOutput::reorderOutputs(uint16_t values[MAX_ACTUATORS])
 	 */
 }
 
-int MixingOutput::reorderedMotorIndex(int index)
+int MixingOutput::reorderedMotorIndex(int index) const
 {
 	if ((MotorOrdering)_param_mot_ordering.get() == MotorOrdering::Betaflight) {
 		switch (index) {
