@@ -643,8 +643,7 @@ calibrate_return read_accelerometer_avg(int sensor_correction_sub, int (&subs)[m
 	}
 
 	unsigned counts[max_accel_sens] = { 0 };
-	float accel_sum[max_accel_sens][3];
-	memset(accel_sum, 0, sizeof(accel_sum));
+	float accel_sum[max_accel_sens][3] {};
 
 	unsigned errcount = 0;
 	struct sensor_correction_s sensor_correction; /**< sensor thermal corrections */
