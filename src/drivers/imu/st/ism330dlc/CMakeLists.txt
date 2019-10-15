@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -30,16 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+
 px4_add_module(
-	MODULE drivers__tfmini
-	MAIN tfmini
+	MODULE drivers__imu__st__ism330dlc
+	MAIN ism330dlc
 	SRCS
-		TFMINI.cpp
-		TFMINI.hpp
-		tfmini_main.cpp
-		tfmini_parser.cpp
-	MODULE_CONFIG
-		module.yaml
+		ism330dlc_main.cpp
+		ISM330DLC.cpp
+		ISM330DLC.hpp
+		ST_ISM330DLC_Registers.hpp
 	DEPENDS
-		drivers_rangefinder
+		drivers_accelerometer
+		drivers_gyroscope
+		px4_work_queue
 	)

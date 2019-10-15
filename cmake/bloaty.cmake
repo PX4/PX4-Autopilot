@@ -34,7 +34,7 @@
 find_program(BLOATY_PROGRAM bloaty)
 if (BLOATY_PROGRAM)
 
-	set(BLOATY_OPTS --demangle=short --domain=vm -s vm -n 100 -w)
+	set(BLOATY_OPTS --demangle=full --domain=vm -s vm -n 100 -w)
 
 	# bloaty compilation units
 	add_custom_target(bloaty_compileunits
