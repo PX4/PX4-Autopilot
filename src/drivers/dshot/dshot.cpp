@@ -122,9 +122,6 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	static DShotOutput *instantiate(int argc, char *argv[]);
-
-	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
 
 	/** @see ModuleBase */
@@ -197,7 +194,7 @@ private:
 
 	int requestESCInfo();
 
-	MixingOutput _mixing_output{*this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	MixingOutput _mixing_output{DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
 	Telemetry *_telemetry{nullptr};
 	static char _telemetry_device[20];
