@@ -42,16 +42,11 @@
 
 #pragma once
 
-#include <math.h>
-
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 
 #include "LandDetector.h"
