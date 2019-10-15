@@ -47,15 +47,16 @@ class FlightTaskManualAltitude : public FlightTaskManual
 public:
 	FlightTaskManualAltitude() = default;
 	virtual ~FlightTaskManualAltitude() = default;
-	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
-	bool activate() override;
+	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
 	bool updateInitialize() override;
 	bool update() override;
 
 protected:
 	void _updateHeadingSetpoints(); /**< sets yaw or yaw speed */
+	void _ekfResetHandlerHeading(float delta_psi) override; /**< adjust heading setpoint in case of EKF reset event */
 	virtual void _updateSetpoints(); /**< updates all setpoints */
 	virtual void _scaleSticks(); /**< scales sticks to velocity in z */
+	bool _checkTakeoff() override;
 
 	/**
 	 * rotates vector into local frame
@@ -109,7 +110,7 @@ private:
 	 */
 	void _respectGroundSlowdown();
 
-	uORB::Subscription<home_position_s> *_sub_home_position{nullptr};
+	uORB::SubscriptionData<home_position_s> _sub_home_position{ORB_ID(home_position)};
 
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
 	float _max_speed_up = 10.0f;

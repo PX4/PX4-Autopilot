@@ -46,6 +46,7 @@
 #include <errno.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 /************************************************************************************
  * Definitions
  ************************************************************************************/
@@ -178,9 +179,11 @@
 #  define BOARD_BATT_I_LIST       {ADC_BATTERY_CURRENT_CHANNEL}
 #  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK_VALID}
 #elif BOARD_NUMBER_BRICKS == 2
-#  define BOARD_BATT_V_LIST       {ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL}
-#  define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL}
-#  define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID}
+#  if  !defined(BOARD_NUMBER_DIGITAL_BRICKS)
+#    define BOARD_BATT_V_LIST       {ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL}
+#    define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL}
+#  endif
+#define BOARD_BRICK_VALID_LIST  {BOARD_ADC_BRICK1_VALID, BOARD_ADC_BRICK2_VALID}
 #elif BOARD_NUMBER_BRICKS == 3
 #  define BOARD_BATT_V_LIST       {ADC_BATTERY1_VOLTAGE_CHANNEL, ADC_BATTERY2_VOLTAGE_CHANNEL, ADC_BATTERY3_VOLTAGE_CHANNEL}
 #  define BOARD_BATT_I_LIST       {ADC_BATTERY1_CURRENT_CHANNEL, ADC_BATTERY2_CURRENT_CHANNEL, ADC_BATTERY3_CURRENT_CHANNEL}
@@ -451,32 +454,78 @@ typedef uint8_t px4_guid_t[PX4_GUID_BYTE_LENGTH];
  ************************************************************************************/
 __BEGIN_DECLS
 
-/* Provide an interface for determining if a board supports single wire */
 
 /************************************************************************************
- * Name: board_supports_single_wire
+ * Name: board_rc_singlewire
  *
  * Description:
- *   A board may provide serial ports that supports single wire.
- *   This interface will call into the board support code to determine
- *   if the interface is available at runtime, on this version of the
- *   hardware.
+ *   A board may define RC_SERIAL_SINGLEWIRE, so that RC_SERIAL_PORT is configured
+ *   as singlewire UART.
  *
  * Input Parameters:
- *   uxart_base - the base address of the UxART.
+ *   device: serial device, e.g. "/dev/ttyS0"
  *
  * Returned Value:
- *   true the hardware supports this interface.
+ *   true singlewire should be enabled.
  *   false if not.
  *
  ************************************************************************************/
 
-#if !defined(BOARD_HAS_SINGLE_WIRE)
-#  define board_supports_single_wire(_uxart_base) false
+#if defined(RC_SERIAL_SINGLEWIRE)
+static inline bool board_rc_singlewire(const char *device) { return strcmp(device, RC_SERIAL_PORT) == 0; }
 #else
-__EXPORT bool board_supports_single_wire(uint32_t uxart_base);
+static inline bool board_rc_singlewire(const char *device) { return false; }
 #endif
 
+/************************************************************************************
+ * Name: board_rc_swap_rxtx
+ *
+ * Description:
+ *   A board may define RC_SERIAL_SWAP_RXTX, so that RC_SERIAL_PORT is configured
+ *   as UART with RX/TX swapped.
+ *
+ * Input Parameters:
+ *   device: serial device, e.g. "/dev/ttyS0"
+ *
+ * Returned Value:
+ *   true RX/RX should be swapped.
+ *   false if not.
+ *
+ ************************************************************************************/
+
+#if defined(RC_SERIAL_SWAP_RXTX)
+static inline bool board_rc_swap_rxtx(const char *device) { return strcmp(device, RC_SERIAL_PORT) == 0; }
+#else
+static inline bool board_rc_swap_rxtx(const char *device) { return false; }
+#endif
+
+/************************************************************************************
+ * Name: board_rc_invert_input
+ *
+ * Description:
+ *   All boards may optionally define RC_INVERT_INPUT(bool invert) that is
+ *   used to invert the RC_SERIAL_PORT RC port (e.g. to toggle an external XOR via
+ *   GPIO).
+ *
+ * Input Parameters:
+ *   invert_on - A positive logic value, that when true (on) will set the HW in
+ *               inverted NRZ mode where a MARK will be 0 and SPACE will be a 1.
+ *
+ * Returned Value:
+ *   true the UART inversion got set.
+ *
+ ************************************************************************************/
+
+#ifdef RC_INVERT_INPUT
+static inline bool board_rc_invert_input(const char *device, bool invert)
+{
+	if (strcmp(device, RC_SERIAL_PORT) == 0) { RC_INVERT_INPUT(invert); return true; }
+
+	return false;
+}
+#else
+static inline bool board_rc_invert_input(const char *device, bool invert) { return false; }
+#endif
 
 /* Provide an interface for reading the connected state of VBUS */
 
@@ -500,102 +549,6 @@ __EXPORT bool board_supports_single_wire(uint32_t uxart_base);
 #  define board_read_VBUS_state() (px4_arch_gpioread(GPIO_OTGFS_VBUS) ? 0 : 1)
 #else
 int board_read_VBUS_state(void);
-#endif
-
-/************************************************************************************
- * Name: board_dma_alloc_init
- *
- * Description:
- *   All boards may optionally provide this API to instantiate a pool of
- *   memory for uses with FAST FS DMA operations.
- *
- *   Provision is controlled by declaring BOARD_DMA_ALLOC_POOL_SIZE in board_config.h
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   Zero (OK) is returned on success; a negated errno value is returned on failure
- *   EPERM - board does not support function
- *   ENOMEM - There is not enough memory to satisfy allocation.
- *
- ************************************************************************************/
-#if defined(BOARD_DMA_ALLOC_POOL_SIZE)
-__EXPORT int board_dma_alloc_init(void);
-#else
-#define board_dma_alloc_init() (-EPERM)
-#endif
-
-/************************************************************************************
- * Name: board_get_dma_usage
- *
- * Description:
- *   All boards may optionally provide this API to supply instrumentation for a pool of
- *   memory used for DMA operations.
- *
- *   Provision is controlled by declaring BOARD_DMA_ALLOC_POOL_SIZE in board_config.h
- *
- * Input Parameters:
- *   dma_total     -  A pointer to receive the total allocation size of the memory
- *                    allocated with board_dma_alloc_init. It should be equal to
- *                    BOARD_DMA_ALLOC_POOL_SIZE.
- *   dma_used      -  A pointer to receive the current allocation in use.
- *   dma_peak_used -  A pointer to receive the peak allocation used.
- *
- * Returned Value:
- *   Zero (OK) is returned on success;
- *
- ************************************************************************************/
-#if defined(BOARD_DMA_ALLOC_POOL_SIZE)
-__EXPORT int board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16_t *dma_peak_used);
-#else
-#define board_get_dma_usage(dma_total,dma_used, dma_peak_used) (-ENOMEM)
-#endif
-
-/************************************************************************************
- * Name: board_rc_input
- *
- * Description:
- *   All boards my optionally provide this API to invert the Serial RC input.
- *   This is needed on SoCs that support the notion RXINV or TXINV as opposed to
- *   and external XOR controlled by a GPIO
- *
- * Input Parameters:
- *   invert_on - A positive logic value, that when true (on) will set the HW in
- *               inverted NRZ mode where a MARK will be 0 and SPACE will be a 1.
- *
- * Returned Value:
- *   None
- *
- ************************************************************************************/
-
-/* Provide an interface for Inversion of serial data
- *
- * Case 1:Board does provide UxART based inversion
- *    Use it, and it will define RC_UXART_BASE
- *
- * Case 1:Board does provide GPIO inversion
- *    Use it and let board determine active state
- *    Define RC_UXART_BASE as empty
- *
- * Case 3:Board does not provide any inversions
- *    Default to nop
- *    Define RC_UXART_BASE as empty
- */
-
-#if defined(RC_UXART_BASE)
-__EXPORT void board_rc_input(bool invert_on, uint32_t uxart_base);
-#  define INVERT_RC_INPUT(_invert_true, _rc_uxart) board_rc_input((_invert_true), (_rc_uxart));
-#endif
-
-#if defined(BOARD_INVERT_RC_INPUT)
-#  define INVERT_RC_INPUT BOARD_INVERT_RC_INPUT
-#  define RC_UXART_BASE 0
-#endif
-
-#if !defined(INVERT_RC_INPUT)
-#  define INVERT_RC_INPUT(_invert_true, _na) while(0)
-#  define RC_UXART_BASE 0
 #endif
 
 /************************************************************************************

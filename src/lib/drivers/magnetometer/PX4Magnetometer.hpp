@@ -31,51 +31,47 @@
  *
  ****************************************************************************/
 
+#pragma once
 
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-
-#include <drivers/device/integrator.h>
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
-#include <lib/drivers/device/Device.hpp>
 #include <lib/cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
-#include <uORB/topics/sensor_mag.h>
 #include <uORB/uORB.h>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/sensor_mag.h>
 
 class PX4Magnetometer : public cdev::CDev
 {
 
 public:
-	PX4Magnetometer(const char *name, device::Device  *interface, uint8_t dev_type, enum Rotation rotation, float scale);
+	PX4Magnetometer(uint32_t device_id, uint8_t priority, enum Rotation rotation);
 	~PX4Magnetometer() override;
 
-	int	init() override;
 	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
 
-	int publish(float x, float y, float z, float temperature);
+	void set_device_type(uint8_t devtype);
+	void set_error_count(uint64_t error_count) { _sensor_mag_pub.get().error_count = error_count; }
+	void set_scale(float scale) { _sensor_mag_pub.get().scaling = scale; }
+	void set_temperature(float temperature) { _sensor_mag_pub.get().temperature = temperature; }
+	void set_external(bool external) { _sensor_mag_pub.get().is_external = external; }
+	void set_sensitivity(float x, float y, float z) { _sensitivity = matrix::Vector3f{x, y, z}; }
 
-	void configure_filter(float sample_freq, float cutoff_freq);
+	void update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z);
+
+	void print_status();
 
 private:
-	// Pointer to the communication interface
-	const device::Device *_interface{nullptr};
 
-	mag_calibration_s _cal{};
+	uORB::PublicationMultiData<sensor_mag_s>	_sensor_mag_pub;
 
-	orb_advert_t _topic{nullptr};
+	const enum Rotation	_rotation;
 
-	device::Device::DeviceId _device_id{};
+	matrix::Vector3f	_calibration_scale{1.0f, 1.0f, 1.0f};
+	matrix::Vector3f	_calibration_offset{0.0f, 0.0f, 0.0f};
 
-	int	_orb_class_instance{-1};
+	matrix::Vector3f	_sensitivity{1.0f, 1.0f, 1.0f};
 
-	int _class_device_instance{-1};
+	int			_class_device_instance{-1};
 
-	enum Rotation _rotation {ROTATION_NONE};
-
-	float _scale{1.0f};
-
-	math::LowPassFilter2p _filter_x{100, 20};
-	math::LowPassFilter2p _filter_y{100, 20};
-	math::LowPassFilter2p _filter_z{100, 20};
 };

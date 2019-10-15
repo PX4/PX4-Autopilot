@@ -564,20 +564,14 @@ pthread_addr_t UavcanServers::run(pthread_addr_t)
 			}
 
 			// Acknowledge the received command
-			vehicle_command_ack_s ack = {};
+			vehicle_command_ack_s ack{};
 			ack.timestamp = hrt_absolute_time();
 			ack.command = cmd.command;
 			ack.result = cmd_ack_result;
 			ack.target_system = cmd.source_system;
 			ack.target_component = cmd.source_component;
 
-			if (_command_ack_pub == nullptr) {
-				_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &ack, vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-
-			} else {
-				orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &ack);
-			}
-
+			_command_ack_pub.publish(ack);
 		}
 
 		// Shut down once armed

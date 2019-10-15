@@ -41,12 +41,13 @@
 
 #include <px4_config.h>
 #include <px4_getopt.h>
-#include <px4_workqueue.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <drivers/device/i2c.h>
 #include <systemlib/err.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -54,11 +55,7 @@
 
 using namespace matrix;
 
-#define BST_DEVICE_PATH "/dev/bst0"
-
 static const char commandline_usage[] = "usage: bst start|status|stop";
-
-extern "C" __EXPORT int bst_main(int argc, char *argv[]);
 
 #define BST_ADDR		0x76
 
@@ -111,7 +108,7 @@ struct BSTBattery {
 
 #pragma pack(pop)
 
-class BST : public device::I2C
+class BST : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
 	BST(int bus);
@@ -126,25 +123,22 @@ public:
 
 	virtual int		ioctl(device::file_t *filp, int cmd, unsigned long arg) { return 0; }
 
-	work_s *work_ptr() { return &_work; }
-
 	void stop();
 
 	static void		start_trampoline(void *arg);
 
 private:
-	work_s			_work = {};
+
 	bool			_should_run = false;
 	unsigned		_interval = 100;
-	int				_gps_sub;
-	int				_attitude_sub;
-	int				_battery_sub;
+
+	uORB::Subscription	_gps_sub{ORB_ID(vehicle_gps_position)};
+	uORB::Subscription	_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription	_battery_sub{ORB_ID(battery_status)};
 
 	void			start();
 
-	static void		cycle_trampoline(void *arg);
-
-	void			cycle();
+	void			Run() override;
 
 	template <typename T>
 	void			send_packet(BSTPacket<T> &packet)
@@ -196,19 +190,16 @@ private:
 static BST *g_bst = nullptr;
 
 BST::BST(int bus) :
-	I2C("bst", BST_DEVICE_PATH, bus, BST_ADDR
-#ifdef __PX4_NUTTX
-	    , 100000 /* maximum speed supported */
-#endif
-	   )
+	I2C("bst", nullptr, bus, BST_ADDR, 100000),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id()))
 {
 }
 
 BST::~BST()
 {
-	_should_run = false;
+	ScheduleClear();
 
-	work_cancel(LPWORK, &_work);
+	_should_run = false;
 }
 
 int BST::probe()
@@ -248,67 +239,44 @@ int BST::probe()
 
 int BST::init()
 {
-	int ret;
-	ret = I2C::init();
+	int ret = I2C::init();
 
 	if (ret != OK) {
 		return ret;
 	}
 
-	work_queue(LPWORK, &_work, BST::start_trampoline, g_bst, 0);
+	ScheduleNow();
 
 	return OK;
 }
 
-void BST::start_trampoline(void *arg)
+void BST::Run()
 {
-	reinterpret_cast<BST *>(arg)->start();
-}
+	if (!_should_run) {
+		_should_run = true;
+		set_device_address(0x00); // General call address
+	}
 
-void BST::start()
-{
-	_should_run = true;
-
-	_attitude_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	_gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	_battery_sub = orb_subscribe(ORB_ID(battery_status));
-
-	set_device_address(0x00);	// General call address
-
-	work_queue(LPWORK, &_work, BST::cycle_trampoline, this, 0);
-}
-
-void BST::cycle_trampoline(void *arg)
-{
-	reinterpret_cast<BST *>(arg)->cycle();
-}
-
-void BST::cycle()
-{
 	if (_should_run) {
-		bool updated = false;
-
-		orb_check(_attitude_sub, &updated);
-
-		if (updated) {
+		if (_attitude_sub.updated()) {
 			vehicle_attitude_s att;
-			orb_copy(ORB_ID(vehicle_attitude), _attitude_sub, &att);
+			_attitude_sub.copy(&att);
 			Quatf q(att.q);
 			Eulerf euler(q);
+
 			BSTPacket<BSTAttitude> bst_att = {};
 			bst_att.type = 0x1E;
 			bst_att.payload.roll = swap_int32(euler.phi() * 10000);
 			bst_att.payload.pitch = swap_int32(euler.theta() * 10000);
 			bst_att.payload.yaw = swap_int32(euler.psi() * 10000);
+
 			send_packet(bst_att);
 		}
 
-		updated = false;
-		orb_check(_battery_sub, &updated);
-
-		if (updated) {
+		if (_battery_sub.updated()) {
 			battery_status_s batt;
-			orb_copy(ORB_ID(battery_status), _battery_sub, &batt);
+			_battery_sub.copy(&batt);
+
 			BSTPacket<BSTBattery> bst_batt = {};
 			bst_batt.type = 0x08;
 			bst_batt.payload.voltage = swap_uint16(batt.voltage_v * 10.0f);
@@ -317,15 +285,13 @@ void BST::cycle()
 			bst_batt.payload.capacity[0] = static_cast<uint8_t>(discharged >> 16);
 			bst_batt.payload.capacity[1] = static_cast<uint8_t>(discharged >> 8);
 			bst_batt.payload.capacity[2] = static_cast<uint8_t>(discharged);
+
 			send_packet(bst_batt);
 		}
 
-		updated = false;
-		orb_check(_gps_sub, &updated);
-
-		if (updated) {
+		if (_gps_sub.updated()) {
 			vehicle_gps_position_s gps;
-			orb_copy(ORB_ID(vehicle_gps_position), _gps_sub, &gps);
+			_gps_sub.copy(&gps);
 
 			if (gps.fix_type >= 3 && gps.eph < 50.0f) {
 				BSTPacket<BSTGPSPosition> bst_gps = {};
@@ -336,11 +302,12 @@ void BST::cycle()
 				bst_gps.payload.gs = swap_int16(gps.vel_m_s * 360.0f);
 				bst_gps.payload.heading = swap_int16(gps.cog_rad * 18000.0f / M_PI_F);
 				bst_gps.payload.sats = gps.satellites_used;
+
 				send_packet(bst_gps);
 			}
 		}
 
-		work_queue(LPWORK, &_work, BST::cycle_trampoline, this, _interval);
+		ScheduleDelayed(_interval);
 	}
 }
 
@@ -364,7 +331,7 @@ uint8_t BST::crc8(uint8_t *data, size_t len)
 
 using namespace px4::bst;
 
-int bst_main(int argc, char *argv[])
+extern "C" __EXPORT int bst_main(int argc, char *argv[])
 {
 	if (argc < 2) {
 		errx(1, "missing command\n%s", commandline_usage);

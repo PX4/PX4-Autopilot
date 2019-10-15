@@ -50,7 +50,7 @@
 
 #include "protocol.h"
 
-#include <pwm_limit/pwm_limit.h>
+#include <output_limit/output_limit.h>
 
 /*
  hotfix: we are critically short of memory in px4io and this is the
@@ -133,6 +133,7 @@ extern uint16_t			r_page_servo_disarmed[];	/* PX4IO_PAGE_DISARMED_PWM */
 #define r_setup_thr_fac		r_page_setup[PX4IO_P_SETUP_THR_MDL_FAC]
 #define r_setup_slew_max	r_page_setup[PX4IO_P_SETUP_MOTOR_SLEW_MAX]
 #define r_setup_airmode		r_page_setup[PX4IO_P_SETUP_AIRMODE]
+#define r_setup_flighttermination	r_page_setup[PX4IO_P_SETUP_ENABLE_FLIGHTTERMINATION]
 
 #define r_control_values	(&r_page_controls[0])
 
@@ -159,7 +160,7 @@ extern bool update_trims;
 /*
  * PWM limit structure
  */
-extern pwm_limit_t pwm_limit;
+extern output_limit_t pwm_limit;
 
 /*
  * GPIO handling.

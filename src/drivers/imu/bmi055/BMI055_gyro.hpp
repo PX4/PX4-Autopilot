@@ -33,18 +33,9 @@
 
 #pragma once
 
-#include "BMI055.hpp"
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 
-#include <drivers/device/integrator.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/spi.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/drv_hrt.h>
-#include <lib/conversion/rotation.h>
-#include <lib/perf/perf_counter.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <px4_config.h>
-#include <systemlib/conversions.h>
+#include "BMI055.hpp"
 
 #define BMI055_DEVICE_PATH_GYRO		"/dev/bmi055_gyro"
 #define BMI055_DEVICE_PATH_GYRO_EXT	"/dev/bmi055_gyro_ext"
@@ -140,7 +131,7 @@
 
 #define BMI055_ACC_TEMP             0x08
 
-class BMI055_gyro : public BMI055
+class BMI055_gyro : public BMI055, public px4::ScheduledWorkItem
 {
 public:
 	BMI055_gyro(int bus, const char *path_gyro, uint32_t device, enum Rotation rotation);
@@ -148,8 +139,8 @@ public:
 
 	virtual int     init();
 
-	virtual ssize_t     read(struct file *filp, char *buffer, size_t buflen);
-	virtual int     ioctl(struct file *filp, int cmd, unsigned long arg);
+	// Start automatic measurement.
+	void            start();
 
 	/**
 	* Diagnostics - print some basic information about the driver.
@@ -167,28 +158,11 @@ protected:
 
 private:
 
+	PX4Gyroscope	_px4_gyro;
+
 	perf_counter_t      _sample_perf;
-	perf_counter_t      _measure_interval;
 	perf_counter_t      _bad_transfers;
 	perf_counter_t      _bad_registers;
-
-	ringbuffer::RingBuffer  *_gyro_reports;
-
-	struct gyro_calibration_s   _gyro_scale;
-	float           _gyro_range_scale;
-	float           _gyro_range_rad_s;
-
-	orb_advert_t        _gyro_topic;
-	int         _gyro_orb_class_instance;
-	int         _gyro_class_instance;
-
-	float       _gyro_sample_rate;
-
-	math::LowPassFilter2p   _gyro_filter_x;
-	math::LowPassFilter2p   _gyro_filter_y;
-	math::LowPassFilter2p   _gyro_filter_z;
-
-	Integrator      _gyro_int;
 
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
@@ -197,14 +171,6 @@ private:
 	static const uint8_t    _checked_registers[BMI055_GYRO_NUM_CHECKED_REGISTERS];
 	uint8_t         _checked_values[BMI055_GYRO_NUM_CHECKED_REGISTERS];
 	uint8_t         _checked_bad[BMI055_GYRO_NUM_CHECKED_REGISTERS];
-
-	// last temperature reading for print_info()
-	float           _last_temperature;
-
-	/**
-	 * Start automatic measurement.
-	 */
-	void            start();
 
 	/**
 	 * Stop automatic measurement.
@@ -218,16 +184,7 @@ private:
 	 */
 	int         reset();
 
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg       Instance pointer for the driver that is polling.
-	 */
-	static void     measure_trampoline(void *arg);
+	void     Run() override;
 
 	/**
 	 * Fetch measurements from the sensor and update the report buffers.
@@ -260,13 +217,6 @@ private:
 	 * @return      OK if the value can be supported, -EINVAL otherwise.
 	 */
 	int         set_gyro_range(unsigned max_dps);
-
-	/**
-	 * Measurement self test
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int             self_test();
 
 	/*
 	 * set gyro sample rate

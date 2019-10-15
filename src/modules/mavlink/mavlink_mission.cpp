@@ -62,6 +62,8 @@ int32_t MavlinkMissionManager::_current_seq = 0;
 bool MavlinkMissionManager::_transfer_in_progress = false;
 constexpr uint16_t MavlinkMissionManager::MAX_COUNT[];
 uint16_t MavlinkMissionManager::_geofence_update_counter = 0;
+uint16_t MavlinkMissionManager::_safepoint_update_counter = 0;
+
 
 #define CHECK_SYSID_COMPID_MISSION(_msg)		(_msg.target_system == mavlink_system.sysid && \
 		((_msg.target_component == mavlink_system.compid) || \
@@ -71,16 +73,7 @@ uint16_t MavlinkMissionManager::_geofence_update_counter = 0;
 MavlinkMissionManager::MavlinkMissionManager(Mavlink *mavlink) :
 	_mavlink(mavlink)
 {
-	_offboard_mission_sub = orb_subscribe(ORB_ID(mission));
-	_mission_result_sub = orb_subscribe(ORB_ID(mission_result));
-
 	init_offboard_mission();
-}
-
-MavlinkMissionManager::~MavlinkMissionManager()
-{
-	orb_unsubscribe(_mission_result_sub);
-	orb_unadvertise(_offboard_mission_pub);
 }
 
 void
@@ -156,7 +149,8 @@ MavlinkMissionManager::load_safepoint_stats()
 int
 MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq)
 {
-	mission_s mission;
+	// We want to make sure the whole struct is initialized including padding before getting written by dataman.
+	mission_s mission {};
 	mission.timestamp = hrt_absolute_time();
 	mission.dataman_id = dataman_id;
 	mission.count = count;
@@ -186,12 +180,7 @@ MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t coun
 		_my_dataman_id = _dataman_id;
 
 		/* mission state saved successfully, publish offboard_mission topic */
-		if (_offboard_mission_pub == nullptr) {
-			_offboard_mission_pub = orb_advertise(ORB_ID(mission), &mission);
-
-		} else {
-			orb_publish(ORB_ID(mission), _offboard_mission_pub, &mission);
-		}
+		_offboard_mission_pub.publish(mission);
 
 		return PX4_OK;
 
@@ -236,6 +225,7 @@ MavlinkMissionManager::update_safepoint_count(unsigned count)
 {
 	mission_stats_entry_s stats;
 	stats.num_items = count;
+	stats.update_counter = ++_safepoint_update_counter;
 
 	/* update stats in dataman */
 	int res = dm_write(DM_KEY_SAFE_POINTS, 0, DM_PERSIST_POWER_ON_RESET, &stats, sizeof(mission_stats_entry_s));
@@ -269,7 +259,6 @@ MavlinkMissionManager::send_mission_ack(uint8_t sysid, uint8_t compid, uint8_t t
 
 	PX4_DEBUG("WPM: Send MISSION_ACK type %u to ID %u", wpa.type, wpa.target_system);
 }
-
 
 void
 MavlinkMissionManager::send_mission_current(uint16_t seq)
@@ -485,12 +474,9 @@ MavlinkMissionManager::send(const hrt_abstime now)
 		return;
 	}
 
-	bool updated = false;
-	orb_check(_mission_result_sub, &updated);
+	mission_result_s mission_result{};
 
-	if (updated) {
-		mission_result_s mission_result;
-		orb_copy(ORB_ID(mission_result), _mission_result_sub, &mission_result);
+	if (_mission_result_sub.update(&mission_result)) {
 
 		if (_current_seq != mission_result.seq_current) {
 			_current_seq = mission_result.seq_current;

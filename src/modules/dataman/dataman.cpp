@@ -495,11 +495,9 @@ static ssize_t
 _file_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf, size_t count)
 {
 	unsigned char buffer[g_per_item_size[item]];
-	size_t len;
-	int offset;
 
 	/* Get the offset for this item */
-	offset = calculate_offset(item, index);
+	const int offset = calculate_offset(item, index);
 
 	/* If item type or index out of range, return error */
 	if (offset < 0) {
@@ -523,19 +521,16 @@ _file_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const v
 
 	count += DM_SECTOR_HDR_SIZE;
 
-	len = -1;
-
-	/* Seek to the right spot in the data manager file and write the data item */
-	if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) == offset) {
-		if ((len = write(dm_operations_data.file.fd, buffer, count)) == count) {
-			fsync(dm_operations_data.file.fd);        /* Make sure data is written to physical media */
-		}
-	}
-
-	/* Make sure the write succeeded */
-	if (len != count) {
+	if (lseek(dm_operations_data.file.fd, offset, SEEK_SET) != offset) {
 		return -1;
 	}
+
+	if ((write(dm_operations_data.file.fd, buffer, count)) != (ssize_t)count) {
+		return -1;
+	}
+
+	/* Make sure data is written to physical media */
+	fsync(dm_operations_data.file.fd);
 
 	/* All is well... return the number of user data written */
 	return count - DM_SECTOR_HDR_SIZE;

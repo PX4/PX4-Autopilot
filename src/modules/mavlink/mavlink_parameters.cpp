@@ -42,36 +42,12 @@
 
 #include <stdio.h>
 
-#include <uORB/topics/uavcan_parameter_request.h>
-#include <uORB/topics/uavcan_parameter_value.h>
-
 #include "mavlink_parameters.h"
 #include "mavlink_main.h"
 
 MavlinkParametersManager::MavlinkParametersManager(Mavlink *mavlink) :
-	_send_all_index(-1),
-	_uavcan_open_request_list(nullptr),
-	_uavcan_waiting_for_request_response(false),
-	_uavcan_queued_request_items(0),
-	_rc_param_map_pub(nullptr),
-	_rc_param_map(),
-	_uavcan_parameter_request_pub(nullptr),
-	_uavcan_parameter_value_sub(-1),
-	_mavlink_parameter_sub(-1),
-	_param_update_time(0),
-	_param_update_index(0),
 	_mavlink(mavlink)
 {
-}
-MavlinkParametersManager::~MavlinkParametersManager()
-{
-	if (_uavcan_parameter_value_sub >= 0) {
-		orb_unsubscribe(_uavcan_parameter_value_sub);
-	}
-
-	if (_uavcan_parameter_request_pub) {
-		orb_unadvertise(_uavcan_parameter_request_pub);
-	}
 }
 
 unsigned
@@ -108,12 +84,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				req.node_id = req_list.target_component;
 				req.param_index = 0;
 
-				if (_uavcan_parameter_request_pub == nullptr) {
-					_uavcan_parameter_request_pub = orb_advertise(ORB_ID(uavcan_parameter_request), &req);
-
-				} else {
-					orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
-				}
+				_uavcan_parameter_request_pub.publish(req);
 			}
 
 			break;
@@ -152,6 +123,12 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					sprintf(buf, "[pm] unknown param: %s", name);
 					_mavlink->send_statustext_info(buf);
 
+				} else if (!((param_type(param) == PARAM_TYPE_INT32 && set.param_type == MAV_PARAM_TYPE_INT32) ||
+					     (param_type(param) == PARAM_TYPE_FLOAT && set.param_type == MAV_PARAM_TYPE_REAL32))) {
+					char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
+					sprintf(buf, "[pm] param types mismatch param: %s", name);
+					_mavlink->send_statustext_info(buf);
+
 				} else {
 					// According to the mavlink spec we should always acknowledge a write operation.
 					param_set(param, &(set.param_value));
@@ -180,12 +157,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					req.int_value = val;
 				}
 
-				if (_uavcan_parameter_request_pub == nullptr) {
-					_uavcan_parameter_request_pub = orb_advertise(ORB_ID(uavcan_parameter_request), &req);
-
-				} else {
-					orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
-				}
+				_uavcan_parameter_request_pub.publish(req);
 			}
 
 			break;
@@ -290,14 +262,7 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 				}
 
 				_rc_param_map.timestamp = hrt_absolute_time();
-
-				if (_rc_param_map_pub == nullptr) {
-					_rc_param_map_pub = orb_advertise(ORB_ID(rc_parameter_map), &_rc_param_map);
-
-				} else {
-					orb_publish(ORB_ID(rc_parameter_map), _rc_param_map_pub, &_rc_param_map);
-				}
-
+				_rc_param_map_pub.publish(_rc_param_map);
 			}
 
 			break;
@@ -313,11 +278,11 @@ MavlinkParametersManager::send(const hrt_abstime t)
 {
 	int max_num_to_send;
 
-	if (_mavlink->get_protocol() == SERIAL && !_mavlink->is_usb_uart()) {
+	if (_mavlink->get_protocol() == Protocol::SERIAL && !_mavlink->is_usb_uart()) {
 		max_num_to_send = 3;
 
 	} else {
-		// speed up parameter loading via UDP, TCP or USB: try to send 20 at once
+		// speed up parameter loading via UDP or USB: try to send 20 at once
 		max_num_to_send = 20;
 	}
 
@@ -349,18 +314,10 @@ MavlinkParametersManager::send_untransmitted()
 {
 	bool sent_one = false;
 
-	// Check for untransmitted system parameters
-	if (_mavlink_parameter_sub < 0) {
-		_mavlink_parameter_sub = orb_subscribe(ORB_ID(parameter_update));
-	}
-
-	bool param_ready;
-	orb_check(_mavlink_parameter_sub, &param_ready);
-
-	if (param_ready) {
+	if (_mavlink_parameter_sub.updated()) {
 		// Clear the ready flag
-		struct parameter_update_s value;
-		orb_copy(ORB_ID(parameter_update), _mavlink_parameter_sub, &value);
+		parameter_update_s value;
+		_mavlink_parameter_sub.update(&value);
 
 		// Schedule an update if not already the case
 		if (_param_update_time == 0) {
@@ -408,26 +365,20 @@ bool
 MavlinkParametersManager::send_uavcan()
 {
 	/* Send parameter values received from the UAVCAN topic */
-	if (_uavcan_parameter_value_sub < 0) {
-		_uavcan_parameter_value_sub = orb_subscribe(ORB_ID(uavcan_parameter_value));
-	}
+	uavcan_parameter_value_s value{};
 
-	bool param_value_ready;
-	orb_check(_uavcan_parameter_value_sub, &param_value_ready);
-
-	if (param_value_ready) {
-		struct uavcan_parameter_value_s value;
-		orb_copy(ORB_ID(uavcan_parameter_value), _uavcan_parameter_value_sub, &value);
+	if (_uavcan_parameter_value_sub.update(&value)) {
 
 		// Check if we received a matching parameter, drop it from the list and request the next
-		if (_uavcan_open_request_list != nullptr
-		    && value.param_index == _uavcan_open_request_list->req.param_index
-		    && value.node_id == _uavcan_open_request_list->req.node_id) {
+		if ((_uavcan_open_request_list != nullptr)
+		    && (value.param_index == _uavcan_open_request_list->req.param_index)
+		    && (value.node_id == _uavcan_open_request_list->req.node_id)) {
+
 			dequeue_uavcan_request();
 			request_next_uavcan_parameter();
 		}
 
-		mavlink_param_value_t msg;
+		mavlink_param_value_t msg{};
 		msg.param_count = value.param_count;
 		msg.param_index = value.param_index;
 #if defined(__GNUC__) && __GNUC__ >= 8
@@ -456,7 +407,7 @@ MavlinkParametersManager::send_uavcan()
 		}
 
 		// Re-pack the message with the UAVCAN node ID
-		mavlink_message_t mavlink_packet;
+		mavlink_message_t mavlink_packet{};
 		mavlink_msg_param_value_encode_chan(mavlink_system.sysid, value.node_id, _mavlink->get_channel(), &mavlink_packet,
 						    &msg);
 		_mavlink_resend_uart(_mavlink->get_channel(), &mavlink_packet);
@@ -470,7 +421,7 @@ MavlinkParametersManager::send_uavcan()
 bool
 MavlinkParametersManager::send_one()
 {
-	if (_send_all_index >= 0 && _mavlink->boot_complete()) {
+	if (_send_all_index >= 0) {
 		/* send all parameters if requested, but only after the system has booted */
 
 		/* The first thing we send is a hash of all values for the ground
@@ -516,11 +467,6 @@ MavlinkParametersManager::send_one()
 		} else {
 			return true;
 		}
-
-	} else if (_send_all_index == PARAM_HASH && hrt_absolute_time() > 20 * 1000 * 1000) {
-		/* the boot did not seem to ever complete, warn user and set boot complete */
-		_mavlink->send_statustext_critical("WARNING: SYSTEM BOOT INCOMPLETE. CHECK CONFIG.");
-		_mavlink->set_boot_complete();
 	}
 
 	return false;
@@ -608,12 +554,7 @@ void MavlinkParametersManager::request_next_uavcan_parameter()
 	if (!_uavcan_waiting_for_request_response && _uavcan_open_request_list != nullptr) {
 		uavcan_parameter_request_s req = _uavcan_open_request_list->req;
 
-		if (_uavcan_parameter_request_pub == nullptr) {
-			_uavcan_parameter_request_pub = orb_advertise_queue(ORB_ID(uavcan_parameter_request), &req, 5);
-
-		} else {
-			orb_publish(ORB_ID(uavcan_parameter_request), _uavcan_parameter_request_pub, &req);
-		}
+		_uavcan_parameter_request_pub.publish(req);
 
 		_uavcan_waiting_for_request_response = true;
 	}

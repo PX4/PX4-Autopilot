@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013, 2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,26 +46,29 @@
  * @author Andreas Antener 	<andreas@uaventure.com>
  *
  */
-#ifndef VTOL_ATT_CONTROL_MAIN_H
-#define VTOL_ATT_CONTROL_MAIN_H
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_tasks.h>
-#include <px4_posix.h>
+#pragma once
 
-#include <arch/board/board.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
 #include <lib/ecl/geo/geo.h>
-#include <mathlib/mathlib.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/parameters/param.h>
+#include <lib/perf/perf_counter.h>
 #include <matrix/math.hpp>
-#include <parameters/param.h>
-
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <px4_module.h>
+#include <px4_posix.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -75,25 +78,37 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 
-#include "tiltrotor.h"
-#include "tailsitter.h"
 #include "standard.h"
-
+#include "tailsitter.h"
+#include "tiltrotor.h"
 
 extern "C" __EXPORT int vtol_att_control_main(int argc, char *argv[]);
 
-
-class VtolAttitudeControl
+class VtolAttitudeControl : public ModuleBase<VtolAttitudeControl>, public px4::WorkItem
 {
 public:
 
 	VtolAttitudeControl();
 	~VtolAttitudeControl();
 
-	int start();	/* start the task and return OK on success */
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	void Run() override;
+
+	bool init();
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
+
 	bool is_fixed_wing_requested();
 	void abort_front_transition(const char *reason);
 
@@ -116,38 +131,31 @@ public:
 
 	struct Params 					*get_params() {return &_params;}
 
-
 private:
-//******************flags & handlers******************************************************
-	bool	_task_should_exit{false};
-	int	_control_task{-1};		//task handle for VTOL attitude controller
 
-	/* handlers for subscriptions */
-	int	_actuator_inputs_fw{-1};	//topic on which the fw_att_controller publishes actuator inputs
-	int	_actuator_inputs_mc{-1};	//topic on which the mc_att_controller publishes actuator inputs
-	int	_airspeed_sub{-1};			// airspeed subscription
-	int	_fw_virtual_att_sp_sub{-1};
-	int	_land_detected_sub{-1};
-	int	_local_pos_sp_sub{-1};			// setpoint subscription
-	int	_local_pos_sub{-1};			// sensor subscription
-	int	_manual_control_sp_sub{-1};	//manual control setpoint subscription
-	int	_mc_virtual_att_sp_sub{-1};
-	int	_params_sub{-1};			//parameter updates subscription
-	int	_pos_sp_triplet_sub{-1};			// local position setpoint subscription
-	int	_tecs_status_sub{-1};
-	int	_v_att_sub{-1};				//vehicle attitude subscription
-	int	_v_control_mode_sub{-1};	//vehicle control mode subscription
-	int	_vehicle_cmd_sub{-1};
+	uORB::SubscriptionCallbackWorkItem _actuator_inputs_fw{this, ORB_ID(actuator_controls_virtual_fw)};
+	uORB::SubscriptionCallbackWorkItem _actuator_inputs_mc{this, ORB_ID(actuator_controls_virtual_mc)};
 
-	//handlers for publishers
-	orb_advert_t	_actuators_0_pub{nullptr};		//input for the mixer (roll,pitch,yaw,thrust)
+	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};			// airspeed subscription
+	uORB::Subscription _fw_virtual_att_sp_sub{ORB_ID(fw_virtual_attitude_setpoint)};
+	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription _local_pos_sp_sub{ORB_ID(vehicle_local_position_setpoint)};			// setpoint subscription
+	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};			// sensor subscription
+	uORB::Subscription _manual_control_sp_sub{ORB_ID(manual_control_setpoint)};	//manual control setpoint subscription
+	uORB::Subscription _mc_virtual_att_sp_sub{ORB_ID(mc_virtual_attitude_setpoint)};
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};			// local position setpoint subscription
+	uORB::Subscription _tecs_status_sub{ORB_ID(tecs_status)};
+	uORB::Subscription _v_att_sub{ORB_ID(vehicle_attitude)};		//vehicle attitude subscription
+	uORB::Subscription _v_control_mode_sub{ORB_ID(vehicle_control_mode)};	//vehicle control mode subscription
+	uORB::Subscription _vehicle_cmd_sub{ORB_ID(vehicle_command)};
+
+	uORB::Publication<actuator_controls_s>		_actuators_0_pub{ORB_ID(actuator_controls_0)};		//input for the mixer (roll,pitch,yaw,thrust)
+	uORB::Publication<actuator_controls_s>		_actuators_1_pub{ORB_ID(actuator_controls_1)};
+	uORB::Publication<vehicle_attitude_setpoint_s>	_v_att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
+	uORB::Publication<vtol_vehicle_status_s>	_vtol_vehicle_status_pub{ORB_ID(vtol_vehicle_status)};
+
 	orb_advert_t	_mavlink_log_pub{nullptr};	// mavlink log uORB handle
-	orb_advert_t	_v_att_sp_pub{nullptr};
-	orb_advert_t	_v_cmd_ack_pub{nullptr};
-	orb_advert_t	_vtol_vehicle_status_pub{nullptr};
-	orb_advert_t 	_actuators_1_pub{nullptr};
-
-//*******************data containers***********************************************************
 
 	vehicle_attitude_setpoint_s		_v_att_sp{};			//vehicle attitude setpoint
 	vehicle_attitude_setpoint_s 		_fw_virtual_att_sp{};	// virtual fw attitude setpoint
@@ -166,7 +174,7 @@ private:
 	vehicle_command_s			_vehicle_cmd{};
 	vehicle_control_mode_s			_v_control_mode{};	//vehicle control mode
 	vehicle_land_detected_s			_land_detected{};
-	vehicle_local_position_s			_local_pos{};
+	vehicle_local_position_s		_local_pos{};
 	vehicle_local_position_setpoint_s	_local_pos_sp{};
 	vtol_vehicle_status_s 			_vtol_vehicle_status{};
 
@@ -174,7 +182,7 @@ private:
 
 	struct {
 		param_t idle_pwm_mc;
-		param_t vtol_motor_count;
+		param_t vtol_motor_id;
 		param_t vtol_fw_permanent_stab;
 		param_t vtol_type;
 		param_t elevons_mc_lock;
@@ -196,40 +204,23 @@ private:
 		param_t fw_motors_off;
 		param_t diff_thrust;
 		param_t diff_thrust_scale;
-		param_t v19_vt_rolldir;
 	} _params_handles{};
 
 	/* for multicopters it is usual to have a non-zero idle speed of the engines
 	 * for fixed wings we want to have an idle speed of zero since we do not want
 	 * to waste energy when gliding. */
-	int _transition_command{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC};
-	bool _abort_front_transition{false};
+	int		_transition_command{vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC};
+	bool		_abort_front_transition{false};
 
-	VtolType *_vtol_type{nullptr};	// base class for different vtol types
+	VtolType	*_vtol_type{nullptr};	// base class for different vtol types
 
-//*****************Member functions***********************************************************************
+	bool		_initialized{false};
 
-	void 		task_main();	//main task
-	static int	task_main_trampoline(int argc, char *argv[]);	//Shim for calling task_main from task_create.
+	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	void		land_detected_poll();
-	void		tecs_status_poll();
-	void		vehicle_attitude_poll();  //Check for attitude updates.
 	void		vehicle_cmd_poll();
-	void		vehicle_control_mode_poll();	//Check for changes in vehicle control mode.
-	void		vehicle_manual_poll();			//Check for changes in manual inputs.
-	void 		actuator_controls_fw_poll();	//Check for changes in fw_attitude_control output
-	void 		actuator_controls_mc_poll();	//Check for changes in mc_attitude_control output
-	void 		fw_virtual_att_sp_poll();
-	void 		mc_virtual_att_sp_poll();
-	void 		pos_sp_triplet_poll();		// Check for changes in position setpoint values
-	void 		vehicle_airspeed_poll();		// Check for changes in airspeed
-	void 		vehicle_local_pos_poll();		// Check for changes in sensor values
-	void 		vehicle_local_pos_sp_poll();		// Check for changes in setpoint values
 
 	int 		parameters_update();			//Update local parameter cache
 
 	void		handle_command();
 };
-
-#endif

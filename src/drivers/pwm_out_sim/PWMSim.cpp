@@ -36,6 +36,8 @@
 #include <px4_time.h>
 #include <mathlib/mathlib.h>
 
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/multirotor_motor_limits.h>
 
 PWMSim::PWMSim() :
@@ -161,11 +163,8 @@ PWMSim::run()
 
 	_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
 
-	/* advertise the mixed control outputs, insist on the first group output */
-	_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_actuator_outputs);
-
 	update_params();
-	int params_sub = orb_subscribe(ORB_ID(parameter_update));
+	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
 
 	/* loop until killed */
 	while (!should_exit()) {
@@ -293,9 +292,10 @@ PWMSim::run()
 				orb_publish_auto(ORB_ID(multirotor_motor_limits), &_mixer_status, &motor_limits, &instance, ORB_PRIO_DEFAULT);
 			}
 
-			/* and publish for anyone that cares to see */
 			_actuator_outputs.timestamp = hrt_absolute_time();
-			orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_actuator_outputs);
+
+			_outputs_pub.publish(_actuator_outputs);
+
 
 			// use first valid timestamp_sample for latency tracking
 			for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
@@ -325,13 +325,13 @@ PWMSim::run()
 			}
 		}
 
-		/* check for parameter updates */
-		bool param_updated = false;
-		orb_check(params_sub, &param_updated);
+		// check for parameter updates
+		if (parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			parameter_update_sub.copy(&pupdate);
 
-		if (param_updated) {
-			struct parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), params_sub, &update);
+			// update parameters from storage
 			update_params();
 		}
 	}
@@ -343,7 +343,6 @@ PWMSim::run()
 	}
 
 	orb_unsubscribe(_armed_sub);
-	orb_unsubscribe(params_sub);
 }
 
 int
@@ -516,28 +515,6 @@ PWMSim::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 		}
 
 		break;
-
-	case MIXERIOCADDSIMPLE: {
-			mixer_simple_s *mixinfo = (mixer_simple_s *)arg;
-
-			SimpleMixer *mixer = new SimpleMixer(control_callback, (uintptr_t)&_controls, mixinfo);
-
-			if (mixer->check()) {
-				delete mixer;
-				_groups_required = 0;
-				ret = -EINVAL;
-
-			} else {
-				if (_mixers == nullptr) {
-					_mixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
-				}
-
-				_mixers->add_mixer(mixer);
-				_mixers->groups_required(_groups_required);
-			}
-
-			break;
-		}
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;

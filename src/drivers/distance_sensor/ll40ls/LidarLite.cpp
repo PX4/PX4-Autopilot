@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,96 +41,28 @@
 
 #include "LidarLite.h"
 
-LidarLite::LidarLite() :
-	_min_distance(LL40LS_MIN_DISTANCE),
-	_max_distance(LL40LS_MAX_DISTANCE_V3),
-	_measure_ticks(0)
+LidarLite::LidarLite(const uint8_t rotation) :
+	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, rotation)
 {
+	_px4_rangefinder.set_min_distance(LL40LS_MIN_DISTANCE);
+	_px4_rangefinder.set_max_distance(LL40LS_MAX_DISTANCE);
+	_px4_rangefinder.set_fov(0.008); // Divergence 8 mRadian
 }
 
-void LidarLite::set_minimum_distance(const float min)
+LidarLite::~LidarLite()
 {
-	_min_distance = min;
-}
+	perf_free(_sample_perf);
+	perf_free(_comms_errors);
+	perf_free(_sensor_resets);
+	perf_free(_sensor_zero_resets);
+};
 
-void LidarLite::set_maximum_distance(const float max)
+void
+LidarLite::print_info()
 {
-	_max_distance = max;
-}
-
-float LidarLite::get_minimum_distance() const
-{
-	return _min_distance;
-}
-
-float LidarLite::get_maximum_distance() const
-{
-	return _max_distance;
-}
-
-uint32_t LidarLite::getMeasureTicks() const
-{
-	return _measure_ticks;
-}
-
-int LidarLite::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-
-	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
-
-			/* zero would be bad */
-			case 0:
-				return -EINVAL;
-
-			/* set default polling rate */
-			case SENSOR_POLLRATE_DEFAULT: {
-					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
-
-					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(LL40LS_CONVERSION_INTERVAL);
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-					}
-
-					return OK;
-				}
-
-			/* adjust to a legal polling interval in Hz */
-			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
-
-					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
-
-					/* check against maximum rate */
-					if (ticks < USEC2TICK(LL40LS_CONVERSION_INTERVAL)) {
-						return -EINVAL;
-					}
-
-					/* update interval for next measurement */
-					_measure_ticks = ticks;
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-					}
-
-					return OK;
-				}
-			}
-		}
-
-	case SENSORIOCRESET:
-		reset_sensor();
-		return OK;
-
-	default:
-		return -EINVAL;
-	}
+	perf_print_counter(_sample_perf);
+	perf_print_counter(_comms_errors);
+	perf_print_counter(_sensor_resets);
+	perf_print_counter(_sensor_zero_resets);
+	printf("poll interval:  %u \n", get_measure_interval());
 }

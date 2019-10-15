@@ -47,9 +47,6 @@
 #include <fcntl.h>
 #include <errno.h>
 
-// Not using Eigen at the moment
-#define TESTS_EIGEN_DISABLE
-
 
 static int test_help(int argc, char *argv[]);
 static int test_runner(unsigned option);
@@ -73,7 +70,6 @@ const struct {
 	{"adc",			test_adc,		OPT_NOJIGTEST},
 	{"file",		test_file,		OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"led",			test_led,		0},
-	{"sensors",		test_sensors,		0},
 	{"time",		test_time,		OPT_NOJIGTEST},
 	{"uart_baudchange",	test_uart_baudchange,	OPT_NOJIGTEST},
 	{"uart_break",		test_uart_break,	OPT_NOJIGTEST | OPT_NOALLTEST},
@@ -93,7 +89,6 @@ const struct {
 	{"float",		test_float,		0},
 	{"hott_telemetry",	test_hott_telemetry,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"hrt",			test_hrt,		OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"hysteresis",		test_hysteresis,	0},
 	{"int",			test_int,		0},
 	{"IntrusiveQueue",	test_IntrusiveQueue,	0},
 	{"jig_voltages",	test_jig_voltages,	OPT_NOALLTEST},
@@ -128,8 +123,9 @@ const struct {
 	{"controllib",		controllib_test_main,	0},
 #ifndef __PX4_NUTTX
 	{"mavlink",		mavlink_tests_main,	0},
-#endif
+#else
 	{"sf0x",		sf0x_tests_main,	0},
+#endif
 	{"uorb",		uorb_tests_main,	0},
 
 	{NULL,			NULL, 		0}

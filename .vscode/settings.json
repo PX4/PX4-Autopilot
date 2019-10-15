@@ -1,8 +1,4 @@
 {
-        "editor.insertSpaces": false,
-        "editor.tabSize": 8,
-        "editor.wordWrapColumn": 120,
-        "editor.suggest.localityBonus": true,
         "astyle.astylerc": "${workspaceFolder}/Tools/astyle/astylerc",
         "astyle.c.enable": true,
         "astyle.cpp.enable": true,
@@ -57,6 +53,7 @@
                         ]
                 }
         },
+        "cortex-debug.enableTelemetry": false,
         "C_Cpp.clang_format_fallbackStyle": "none",
         "C_Cpp.configurationWarnings": "Disabled",
         "C_Cpp.default.cppStandard": "c++11",
@@ -67,7 +64,26 @@
         "C_Cpp.intelliSenseEngine": "Default",
         "C_Cpp.intelliSenseEngineFallback": "Disabled",
         "debug.toolBarLocation": "docked",
+        "editor.defaultFormatter": "chiehyu.vscode-astyle",
+        "editor.dragAndDrop": false,
+        "editor.insertSpaces": false,
+        "editor.minimap.maxColumn": 120,
+        "editor.minimap.renderCharacters": false,
+        "editor.minimap.showSlider": "always",
+        "editor.suggest.localityBonus": true,
+        "editor.tabSize": 8,
+        "editor.wordWrapColumn": 120,
+        "explorer.openEditors.visible": 0,
+        "files.insertFinalNewline": true,
+        "files.trimTrailingWhitespace": true,
+        "files.watcherExclude": {
+                "**/build/*": true
+        },
         "git.detectSubmodulesLimit": 20,
+        "git.ignoreLimitWarning": true,
+        "githubPullRequests.defaultMergeMethod": "squash",
+        "githubPullRequests.telemetry.enabled": false,
+        "gitlens.advanced.telemetry.enabled": false,
         "files.associations": {
                 "*.jinja": "jinja"
         },
@@ -75,8 +91,10 @@
                 "build/**": true
         },
         "search.showLineNumbers": true,
-        "workbench.statusBar.feedback.visible": false,
-        "workbench.editor.enablePreview": false,
-        "workbench.editor.enablePreviewFromQuickOpen": false,
-        "workbench.editor.highlightModifiedTabs": true
+        "telemetry.enableTelemetry": false,
+        "window.title": "${dirty} ${activeEditorMedium}${separator}${rootName}",
+        "workbench.editor.highlightModifiedTabs": true,
+        "workbench.enableExperiments": false,
+        "workbench.settings.enableNaturalLanguageSearch": false,
+        "workbench.statusBar.feedback.visible": false
 }

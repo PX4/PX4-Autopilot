@@ -4,7 +4,10 @@ import codecs
 class MarkdownTablesOutput():
     def __init__(self, groups):
         result = ("# Parameter Reference\n"
-                  "> **Note** **This list is auto-generated from the source code** (using `make parameters_metadata`) and contains the most recent parameter documentation.\n"
+                  "> **Note** **This documentation was auto-generated from the source code for this PX4 version** (using `make parameters_metadata`).\n"
+                  "\n"
+                  "<span></span>\n"
+                  "> **Note** If a listed parameter is missing from the Firmware see: [Finding/Updating Parameters](http://docs.px4.io/master/en/advanced_config/parameters.html#missing).\n"
                   "\n")
         for group in groups:
             result += '## %s\n\n' % group.GetName()

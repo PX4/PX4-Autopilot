@@ -2,60 +2,60 @@ CONFIG:
   default: px4_sitl_default
   choices:
     px4_sitl_default:
-      short: px4_sitl
+      short: px4_sitl_default
       buildType: RelWithDebInfo
       settings:
         CONFIG: px4_sitl_default
-    px4_sitl_default_Debug:
-      short: px4_sitl (Debug)
-      buildType: Debug
-      settings:
-        CONFIG: px4_sitl_default
-    px4_sitl_default_ASan:
-      short: px4_sitl (Address Sanitizer)
-      buildType: AddressSanitizer
-      settings:
-        CONFIG: px4_sitl_default
     px4_fmu-v2_default:
-      short: px4_fmu-v2
+      short: px4_fmu-v2_default
       buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v2_default
     px4_fmu-v3_default:
-      short: px4_fmu-v3
+      short: px4_fmu-v3_default
       buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v3_default
     px4_fmu-v4_default:
-      short: px4_fmu-v4
+      short: px4_fmu-v4_default
       buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v4_default
     px4_fmu-v4pro_default:
-      short: px4_fmu-v4pro
+      short: px4_fmu-v4pro_default
       buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v4pro_default
     px4_fmu-v5_default:
-      short: px4_fmu-v5
+      short: px4_fmu-v5_default
       buildType: MinSizeRel
       settings:
         CONFIG: px4_fmu-v5_default
+    px4_fmu-v5x_default:
+      short: px4_fmu-v5x_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: px4_fmu-v5x_default
     airmind_mindpx-v2_default:
-      short: airmind_mindpx-v2
+      short: airmind_mindpx-v2_default
       buildType: MinSizeRel
       settings:
         CONFIG: airmind_mindpx-v2_default
     av_x-v1_default:
-      short: av-x
+      short: av_x-v1_default
       buildType: MinSizeRel
       settings:
         CONFIG: av_x-v1_default
     intel_aerofc-v1_default:
-      short: intel_aerofc-v1
+      short: intel_aerofc-v1_default
       buildType: MinSizeRel
       settings:
         CONFIG: intel_aerofc-v1_default
+    mro_ctrl-zero-f7_default:
+      short: mro_ctrl-zero-f7_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: mro_ctrl-zero-f7_default
     nxp_fmuk66-v3_default:
       short: nxp_fmuk66-v3
       buildType: MinSizeRel

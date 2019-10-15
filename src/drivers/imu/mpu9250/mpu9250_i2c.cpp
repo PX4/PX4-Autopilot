@@ -37,10 +37,7 @@
  * I2C interface for MPU9250
  */
 
-#include <px4_config.h>
 #include <drivers/device/i2c.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_device.h>
 
 #include "mpu9250.h"
 
@@ -79,7 +76,7 @@ MPU9250_I2C::MPU9250_I2C(int bus, uint32_t address) :
 int
 MPU9250_I2C::write(unsigned reg_speed, void *data, unsigned count)
 {
-	uint8_t cmd[MPU_MAX_WRITE_BUFFER_SIZE];
+	uint8_t cmd[MPU_MAX_WRITE_BUFFER_SIZE] {};
 
 	if (sizeof(cmd) < (count + 1)) {
 		return -EIO;

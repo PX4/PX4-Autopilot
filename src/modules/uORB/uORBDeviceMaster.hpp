@@ -98,8 +98,8 @@ private:
 		DeviceNodeStatisticsData *next = nullptr;
 	};
 
-	void addNewDeviceNodes(DeviceNodeStatisticsData **first_node, int &num_topics, size_t &max_topic_name_length,
-			       char **topic_filter, int num_filters);
+	int addNewDeviceNodes(DeviceNodeStatisticsData **first_node, int &num_topics, size_t &max_topic_name_length,
+			      char **topic_filter, int num_filters);
 
 	friend class uORB::Manager;
 

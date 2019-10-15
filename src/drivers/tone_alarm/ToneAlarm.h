@@ -43,18 +43,19 @@
 #include <circuit_breaker/circuit_breaker.h>
 #include <drivers/device/device.h>
 #include <drivers/drv_tone_alarm.h>
-#include <lib/drivers/tone_alarm/ToneAlarmInterface.h>
 #include <lib/tunes/tunes.h>
 #include <px4_defines.h>
-#include <px4_workqueue.h>
-#include <string.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/tune_control.h>
 
+#include <string.h>
 
 #if !defined(UNUSED)
 #  define UNUSED(a) ((void)(a))
 #endif
 
-class ToneAlarm : public cdev::CDev
+class ToneAlarm : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
 	ToneAlarm();
@@ -63,7 +64,7 @@ public:
 	/**
 	 * @brief Initializes the character device and hardware registers.
 	 */
-	int init();
+	int init() override;
 
 	/**
 	 * @brief Prints the driver status to the console.
@@ -79,9 +80,8 @@ protected:
 
 	/**
 	 * @brief Trampoline for the work queue.
-	 * @param argv Pointer to the task startup arguments.
 	 */
-	static void next_trampoline(void *argv);
+	void Run() override;
 
 	/**
 	 * @brief Updates the uORB topics for local subscribers.
@@ -110,11 +110,9 @@ private:
 
 	unsigned int _silence_length{0};	///< If nonzero, silence before next note.
 
-	int _tune_control_sub{-1};
+	uORB::Subscription _tune_control_sub{ORB_ID(tune_control)};
 
 	tune_control_s _tune{};
 
 	Tunes _tunes = Tunes();
-
-	static work_s _work;
 };

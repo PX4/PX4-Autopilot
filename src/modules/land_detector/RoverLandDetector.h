@@ -41,8 +41,6 @@
 
 #pragma once
 
-#include <uORB/topics/airspeed.h>
-
 #include "LandDetector.h"
 
 namespace land_detector
@@ -54,24 +52,11 @@ public:
 	RoverLandDetector() = default;
 
 protected:
-	virtual void _initialize_topics() override;
-
-	virtual void _update_params() override;
-
-	virtual void _update_topics() override;
-
-	virtual bool _get_landed_state() override;
-
-	virtual bool  _get_ground_contact_state() override;
-
-	virtual bool _get_maybe_landed_state() override;
-
-	virtual bool _get_freefall_state() override;
-
-	virtual float _get_max_altitude() override;
+	bool _get_ground_contact_state() override;
+	bool _get_landed_state() override;
 
 private:
-};
 
+};
 
 } // namespace land_detector

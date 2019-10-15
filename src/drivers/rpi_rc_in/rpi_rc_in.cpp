@@ -42,7 +42,7 @@ RcInput::~RcInput()
 		_mem = nullptr;
 	}
 
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 	_is_running = false;
 }
 
@@ -68,6 +68,7 @@ int RcInput::rpi_rc_init()
 
 	return 0;
 }
+
 int RcInput::start()
 {
 	int result = 0;
@@ -80,11 +81,8 @@ int RcInput::start()
 	}
 
 	_is_running = true;
-	result = work_queue(HPWORK, &_work, (worker_t) & RcInput::cycle_trampoline, this, 0);
 
-	if (result == -1) {
-		_is_running = false;
-	}
+	ScheduleNow();
 
 	return result;
 }
@@ -94,19 +92,12 @@ void RcInput::stop()
 	_should_exit = true;
 }
 
-void RcInput::cycle_trampoline(void *arg)
-{
-	RcInput *dev = reinterpret_cast<RcInput *>(arg);
-	dev->_cycle();
-}
-
-void RcInput::_cycle()
+void RcInput::Run()
 {
 	_measure();
 
 	if (!_should_exit) {
-		work_queue(HPWORK, &_work, (worker_t) & RcInput::cycle_trampoline, this,
-			   USEC2TICK(RCINPUT_MEASURE_INTERVAL_US));
+		ScheduleDelayed(RCINPUT_MEASURE_INTERVAL_US);
 	}
 }
 

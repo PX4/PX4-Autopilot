@@ -134,7 +134,13 @@ def airmode_rpy(m_sp, P, u_min, u_max):
     # Use thrust to unsaturate the outputs if needed
     u_T = P[:, 3]
     u_prime = minimize_sat(u, u_min, u_max, u_T)
-    return (u, u_prime)
+
+    # Unsaturate yaw (in case upper and lower bounds are exceeded)
+    # to prioritize roll/pitch over yaw.
+    u_T = P[:, 2]
+    u_prime_yaw = minimize_sat(u_prime, u_min, u_max, u_T)
+
+    return (u, u_prime_yaw)
 
 
 def normal_mode(m_sp, P, u_min, u_max):

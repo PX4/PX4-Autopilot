@@ -42,79 +42,39 @@
 
 #pragma once
 
-#include <px4_posix.h>
-#include <px4_module_params.h>
-#include <uORB/topics/manual_control_setpoint.h>
-#include <uORB/topics/actuator_outputs.h>
-#include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_global_position.h>
-#include <uORB/topics/vehicle_odometry.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/irlock_report.h>
-#include <uORB/topics/parameter_update.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/drv_baro.h>
-#include <drivers/drv_mag.h>
+#include <battery/battery.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
-#include <perf/perf_counter.h>
-#include <battery/battery.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/optical_flow.h>
-#include <uORB/topics/distance_sensor.h>
-#include <v2.0/mavlink_types.h>
-#include <v2.0/common/mavlink.h>
+#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+#include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/ecl/geo/geo.h>
+#include <perf/perf_counter.h>
+#include <px4_module_params.h>
+#include <px4_posix.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/differential_pressure.h>
+#include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/irlock_report.h>
+#include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/optical_flow.h>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
+#include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_odometry.h>
+#include <uORB/topics/vehicle_status.h>
+#include <uORB/uORB.h>
+
+#include <v2.0/common/mavlink.h>
+#include <v2.0/mavlink_types.h>
 
 namespace simulator
 {
-
-#pragma pack(push, 1)
-struct RawAccelData {
-	float temperature;
-	float x;
-	float y;
-	float z;
-};
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-struct RawMagData {
-	float temperature;
-	float x;
-	float y;
-	float z;
-};
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-struct RawMPUData {
-	float	accel_x;
-	float	accel_y;
-	float	accel_z;
-	float	temp;
-	float	gyro_x;
-	float	gyro_y;
-	float	gyro_z;
-};
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-struct RawBaroData {
-	float pressure;
-	float temperature;
-};
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-struct RawAirspeedData {
-	float temperature;
-	float diff_pressure;
-};
-#pragma pack(pop)
 
 #pragma pack(push, 1)
 struct RawGPSData {
@@ -198,20 +158,6 @@ class Simulator : public ModuleParams
 public:
 	static Simulator *getInstance();
 
-	enum sim_dev_t {
-		SIM_GYRO,
-		SIM_ACCEL,
-		SIM_MAG
-	};
-
-	struct sample {
-		float x;
-		float y;
-		float z;
-		sample() : x(0), y(0), z(0) {}
-		sample(float a, float b, float c) : x(a), y(b), z(c) {}
-	};
-
 	enum class InternetProtocol {
 		TCP,
 		UDP
@@ -219,21 +165,9 @@ public:
 
 	static int start(int argc, char *argv[]);
 
-	bool getAirspeedSample(uint8_t *buf, int len);
-	bool getBaroSample(uint8_t *buf, int len);
 	bool getGPSSample(uint8_t *buf, int len);
-	bool getMagReport(uint8_t *buf, int len);
-	bool getMPUReport(uint8_t *buf, int len);
-	bool getRawAccelReport(uint8_t *buf, int len);
 
-	void write_airspeed_data(void *buf);
-	void write_accel_data(void *buf);
-	void write_baro_data(void *buf);
 	void write_gps_data(void *buf);
-	void write_mag_data(void *buf);
-	void write_MPU_data(void *buf);
-
-	bool isInitialized() { return _initialized; }
 
 	void set_ip(InternetProtocol ip);
 	void set_port(unsigned port);
@@ -248,33 +182,24 @@ private:
 
 		_gps.writeData(&gps_data);
 
-		_param_sub = orb_subscribe(ORB_ID(parameter_update));
-
 		_battery_status.timestamp = hrt_absolute_time();
+
+		_px4_accel.set_sample_rate(250);
+		_px4_gyro.set_sample_rate(250);
 	}
 
 	~Simulator()
 	{
-		// Unsubscribe from uORB topics.
-		orb_unsubscribe(_param_sub);
-
 		// free perf counters
-		perf_free(_perf_accel);
-		perf_free(_perf_airspeed);
-		perf_free(_perf_baro);
 		perf_free(_perf_gps);
-		perf_free(_perf_mag);
-		perf_free(_perf_mpu);
 		perf_free(_perf_sim_delay);
 		perf_free(_perf_sim_interval);
 
-		_instance = NULL;
+		_instance = nullptr;
 	}
 
 	// class methods
-	void initialize_sensor_data();
 
-	int publish_sensor_topics(const mavlink_hil_sensor_t *imu);
 	int publish_flow_topic(const mavlink_hil_optical_flow_t *flow);
 	int publish_odometry_topic(const mavlink_message_t *odom_mavlink);
 	int publish_distance_topic(const mavlink_distance_sensor_t *dist);
@@ -282,40 +207,30 @@ private:
 	static Simulator *_instance;
 
 	// simulated sensor instances
-	simulator::Report<simulator::RawAirspeedData>	_airspeed{1};
-	simulator::Report<simulator::RawAccelData>	_accel{1};
-	simulator::Report<simulator::RawBaroData>	_baro{1};
-	simulator::Report<simulator::RawGPSData>	_gps{1};
-	simulator::Report<simulator::RawMagData>	_mag{1};
-	simulator::Report<simulator::RawMPUData>	_mpu{1};
+	PX4Accelerometer	_px4_accel{1311244, ORB_PRIO_DEFAULT, ROTATION_NONE}; // 1311244: DRV_ACC_DEVTYPE_ACCELSIM, BUS: 1, ADDR: 1, TYPE: SIMULATION
+	PX4Gyroscope		_px4_gyro{2294028, ORB_PRIO_DEFAULT, ROTATION_NONE}; // 2294028: DRV_GYR_DEVTYPE_GYROSIM, BUS: 1, ADDR: 2, TYPE: SIMULATION
+	PX4Magnetometer		_px4_mag{197388, ORB_PRIO_DEFAULT, ROTATION_NONE}; // 197388: DRV_MAG_DEVTYPE_MAGSIM, BUS: 3, ADDR: 1, TYPE: SIMULATION
+	PX4Barometer		_px4_baro{6620172, ORB_PRIO_DEFAULT}; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
 
-	perf_counter_t _perf_accel{perf_alloc_once(PC_ELAPSED, "sim_accel_delay")};
-	perf_counter_t _perf_airspeed{perf_alloc_once(PC_ELAPSED, "sim_airspeed_delay")};
-	perf_counter_t _perf_baro{perf_alloc_once(PC_ELAPSED, "sim_baro_delay")};
+	simulator::Report<simulator::RawGPSData>	_gps{1};
+
 	perf_counter_t _perf_gps{perf_alloc_once(PC_ELAPSED, "sim_gps_delay")};
-	perf_counter_t _perf_mag{perf_alloc_once(PC_ELAPSED, "sim_mag_delay")};
-	perf_counter_t _perf_mpu{perf_alloc_once(PC_ELAPSED, "sim_mpu_delay")};
 	perf_counter_t _perf_sim_delay{perf_alloc_once(PC_ELAPSED, "sim_network_delay")};
 	perf_counter_t _perf_sim_interval{perf_alloc(PC_INTERVAL, "sim_network_interval")};
 
 	// uORB publisher handlers
-	orb_advert_t _accel_pub{nullptr};
-	orb_advert_t _baro_pub{nullptr};
 	orb_advert_t _battery_pub{nullptr};
+	orb_advert_t _differential_pressure_pub{nullptr};
 	orb_advert_t _dist_pub{nullptr};
 	orb_advert_t _flow_pub{nullptr};
-	orb_advert_t _gyro_pub{nullptr};
 	orb_advert_t _irlock_report_pub{nullptr};
-	orb_advert_t _mag_pub{nullptr};
 	orb_advert_t _visual_odometry_pub{nullptr};
 
-	int _param_sub{-1};
+	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
 	unsigned int _port{14560};
 
 	InternetProtocol _ip{InternetProtocol::UDP};
-
-	bool _initialized{false};
 
 	double _realtime_factor{1.0};		///< How fast the simulation runs in comparison to real system time
 
@@ -349,13 +264,13 @@ private:
 	void send_controls();
 	void send_heartbeat();
 	void send_mavlink_message(const mavlink_message_t &aMsg);
-	void set_publish(const bool publish = true);
-	void update_sensors(const mavlink_hil_sensor_t *imu);
+	void update_sensors(const hrt_abstime &time, const mavlink_hil_sensor_t &imu);
 	void update_gps(const mavlink_hil_gps_t *gps_sim);
 
 	static void *sending_trampoline(void *);
 
 	// uORB publisher handlers
+	orb_advert_t _vehicle_angular_velocity_pub{nullptr};
 	orb_advert_t _attitude_pub{nullptr};
 	orb_advert_t _gpos_pub{nullptr};
 	orb_advert_t _lpos_pub{nullptr};
@@ -369,7 +284,6 @@ private:
 	struct map_projection_reference_s _hil_local_proj_ref {};
 
 	bool _hil_local_proj_inited{false};
-	bool _publish{false};
 
 	double _hil_ref_lat{0};
 	double _hil_ref_lon{0};
@@ -384,6 +298,7 @@ private:
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval
+		(ParamFloat<px4::params::SIM_BAT_MIN_PCT>) _battery_min_percentage, //< minimum battery percentage
 		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type,
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
 		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id

@@ -1,6 +1,4 @@
 
-add_subdirectory(src)
-
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
@@ -37,7 +35,7 @@ if (("${PX4_BOARD}" MATCHES "atlflight_eagle") OR ("${PX4_BOARD}" MATCHES "atlfl
 		APPS_DEST "/home/linaro"
 		SOURCES
 			px4muorb_stub.c
-			src/main.cpp
+			src/px4/common/main.cpp
 			apps.cpp
 		LINK_LIBS
 			-Wl,--start-group
@@ -52,7 +50,7 @@ if (("${PX4_BOARD}" MATCHES "atlflight_eagle") OR ("${PX4_BOARD}" MATCHES "atlfl
 
 else()
 	add_executable(px4
-		src/main.cpp
+		src/px4/common/main.cpp
 		apps.cpp
 		)
 
@@ -62,10 +60,11 @@ else()
 			${df_driver_libs}
 			df_driver_framework
 			pthread m
-			
+
 			# horrible circular dependencies that need to be teased apart
-			px4_layer
-			px4_platform
+			px4_layer px4_platform
+			work_queue
+			parameters
 	)
 
 	if (NOT APPLE)

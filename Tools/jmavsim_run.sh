@@ -10,7 +10,7 @@ extra_args=
 baudrate=921600
 device=
 ip="127.0.0.1"
-while getopts ":b:d:p:qr:f:i:l" opt; do
+while getopts ":b:d:p:qsr:f:i:l" opt; do
 	case $opt in
 		b)
 			baudrate=$OPTARG
@@ -27,11 +27,11 @@ while getopts ":b:d:p:qr:f:i:l" opt; do
 		q)
 			extra_args="$extra_args -qgc"
 			;;
+		s)
+			extra_args="$extra_args -sdk"
+			;;
 		r)
 			extra_args="$extra_args -r $OPTARG"
-			;;
-		f)
-			extra_args="$extra_args -f $OPTARG"
 			;;
 		l)
 			extra_args="$extra_args -lockstep"
@@ -47,6 +47,10 @@ if [ "$device" == "" ]; then
 	device="-tcp $ip:$tcp_port"
 else
 	device="-serial $device $baudrate"
+fi
+
+if [ "$HEADLESS" = "1" ]; then
+    extra_args="$extr_args -no-gui"
 fi
 
 # jMAVSim crashes with Java 9 on macOS, therefore we need to use Java 8

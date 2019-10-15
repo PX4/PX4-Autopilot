@@ -43,48 +43,49 @@
 
 #pragma once
 
-#include <drivers/drv_hrt.h>
 #include <ecl/geo/geo.h>
 #include <lib/drivers/smbus/SMBus.hpp>
 #include <mathlib/mathlib.h>
-#include <px4_config.h>
-#include <px4_workqueue.h>
 #include <perf/perf_counter.h>
 #include <platforms/px4_module.h>
+#include <px4_getopt.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/topics/battery_status.h>
 
-#define DATA_BUFFER_SIZE				                32
+#include "board_config.h"
 
-#define BATT_CELL_VOLTAGE_THRESHOLD_RTL                 0.5f                    ///< Threshold in volts to RTL if cells are imbalanced
-#define BATT_CELL_VOLTAGE_THRESHOLD_FAILED              1.5f                    ///< Threshold in volts to Land if cells are imbalanced
+#define DATA_BUFFER_SIZE                                32
 
-#define BATT_CURRENT_UNDERVOLTAGE_THRESHOLD             5.0f                    ///< Threshold in amps to disable undervoltage protection
-#define BATT_VOLTAGE_UNDERVOLTAGE_THRESHOLD             3.4f                    ///< Threshold in volts to re-enable undervoltage protection
+#define BATT_CELL_VOLTAGE_THRESHOLD_RTL                 0.5f            ///< Threshold in volts to RTL if cells are imbalanced
+#define BATT_CELL_VOLTAGE_THRESHOLD_FAILED              1.5f            ///< Threshold in volts to Land if cells are imbalanced
 
-#define BATT_SMBUS_CURRENT                              0x0A                    ///< current register
-#define BATT_SMBUS_AVERAGE_CURRENT                      0x0B                    ///< current register
-#define BATT_SMBUS_ADDR                                 0x0B                    ///< Default 7 bit address I2C address. 8 bit = 0x16
-#define BATT_SMBUS_ADDR_MIN                             0x00                    ///< lowest possible address
-#define BATT_SMBUS_ADDR_MAX                             0xFF                    ///< highest possible address
-#define BATT_SMBUS_PEC_POLYNOMIAL                       0x07                    ///< Polynomial for calculating PEC
-#define BATT_SMBUS_TEMP                                 0x08                    ///< temperature register
-#define BATT_SMBUS_VOLTAGE                              0x09                    ///< voltage register
-#define BATT_SMBUS_FULL_CHARGE_CAPACITY                 0x10                    ///< capacity when fully charged
-#define BATT_SMBUS_RUN_TIME_TO_EMPTY                    0x11                    ///< predicted remaining battery capacity based on the present rate of discharge in min
-#define BATT_SMBUS_AVERAGE_TIME_TO_EMPTY                0x12                    ///< predicted remaining battery capacity based on the present rate of discharge in min
-#define BATT_SMBUS_REMAINING_CAPACITY                   0x0F                    ///< predicted remaining battery capacity as a percentage
-#define BATT_SMBUS_CYCLE_COUNT                          0x17                    ///< number of cycles the battery has experienced
-#define BATT_SMBUS_DESIGN_CAPACITY                      0x18                    ///< design capacity register
-#define BATT_SMBUS_DESIGN_VOLTAGE                       0x19                    ///< design voltage register
-#define BATT_SMBUS_MANUFACTURER_NAME                    0x20                    ///< manufacturer name
-#define BATT_SMBUS_MANUFACTURE_DATE                     0x1B                    ///< manufacture date register
-#define BATT_SMBUS_SERIAL_NUMBER                        0x1C                    ///< serial number register
-#define BATT_SMBUS_MEASUREMENT_INTERVAL_US              100000                  ///< time in microseconds, measure at 10Hz
-#define BATT_SMBUS_TIMEOUT_US                           1000000                 ///< timeout looking for battery 10seconds after startup
+#define BATT_CURRENT_UNDERVOLTAGE_THRESHOLD             5.0f            ///< Threshold in amps to disable undervoltage protection
+#define BATT_VOLTAGE_UNDERVOLTAGE_THRESHOLD             3.4f            ///< Threshold in volts to re-enable undervoltage protection
+
+#define BATT_SMBUS_CURRENT                              0x0A            ///< current register
+#define BATT_SMBUS_AVERAGE_CURRENT                      0x0B            ///< current register
+#define BATT_SMBUS_ADDR                                 0x0B            ///< Default 7 bit address I2C address. 8 bit = 0x16
+#define BATT_SMBUS_ADDR_MIN                             0x00            ///< lowest possible address
+#define BATT_SMBUS_ADDR_MAX                             0xFF            ///< highest possible address
+#define BATT_SMBUS_PEC_POLYNOMIAL                       0x07            ///< Polynomial for calculating PEC
+#define BATT_SMBUS_TEMP                                 0x08            ///< temperature register
+#define BATT_SMBUS_VOLTAGE                              0x09            ///< voltage register
+#define BATT_SMBUS_FULL_CHARGE_CAPACITY                 0x10            ///< capacity when fully charged
+#define BATT_SMBUS_RUN_TIME_TO_EMPTY                    0x11            ///< predicted remaining battery capacity based on the present rate of discharge in min
+#define BATT_SMBUS_AVERAGE_TIME_TO_EMPTY                0x12            ///< predicted remaining battery capacity based on the present rate of discharge in min
+#define BATT_SMBUS_REMAINING_CAPACITY                   0x0F            ///< predicted remaining battery capacity as a percentage
+#define BATT_SMBUS_CYCLE_COUNT                          0x17            ///< number of cycles the battery has experienced
+#define BATT_SMBUS_DESIGN_CAPACITY                      0x18            ///< design capacity register
+#define BATT_SMBUS_DESIGN_VOLTAGE                       0x19            ///< design voltage register
+#define BATT_SMBUS_MANUFACTURER_NAME                    0x20            ///< manufacturer name
+#define BATT_SMBUS_MANUFACTURE_DATE                     0x1B            ///< manufacture date register
+#define BATT_SMBUS_SERIAL_NUMBER                        0x1C            ///< serial number register
+#define BATT_SMBUS_MEASUREMENT_INTERVAL_US              100000          ///< time in microseconds, measure at 10Hz
+#define BATT_SMBUS_TIMEOUT_US                           1000000         ///< timeout looking for battery 10seconds after startup
 #define BATT_SMBUS_MANUFACTURER_ACCESS                  0x00
-#define BATT_SMBUS_MANUFACTURER_DATA			        0x23
+#define BATT_SMBUS_MANUFACTURER_DATA                    0x23
 #define BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS            0x44
-#define BATT_SMBUS_SECURITY_KEYS			            0x0035
+#define BATT_SMBUS_SECURITY_KEYS                        0x0035
 #define BATT_SMBUS_CELL_1_VOLTAGE                       0x3F
 #define BATT_SMBUS_CELL_2_VOLTAGE                       0x3E
 #define BATT_SMBUS_CELL_3_VOLTAGE                       0x3D
@@ -94,8 +95,8 @@
 #define BATT_SMBUS_ENABLED_PROTECTIONS_A_ADDRESS        0x4938
 #define BATT_SMBUS_SEAL                                 0x0030
 
-#define BATT_SMBUS_ENABLED_PROTECTIONS_A_DEFAULT		0xcf
-#define BATT_SMBUS_ENABLED_PROTECTIONS_A_CUV_DISABLED	0xce
+#define BATT_SMBUS_ENABLED_PROTECTIONS_A_DEFAULT        0xcf
+#define BATT_SMBUS_ENABLED_PROTECTIONS_A_CUV_DISABLED   0xce
 
 #define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
@@ -144,7 +145,7 @@ int serial_number();
 
 
 
-class BATT_SMBUS : public ModuleBase<BATT_SMBUS>
+class BATT_SMBUS : public ModuleBase<BATT_SMBUS>, public px4::ScheduledWorkItem
 {
 public:
 
@@ -280,9 +281,7 @@ public:
 
 private:
 
-	static void cycle_trampoline(void *arg);
-
-	static work_s _work;
+	void Run() override;
 
 	perf_counter_t _cycle;
 
@@ -293,8 +292,6 @@ private:
 	float _min_cell_voltage{0};
 
 	bool _should_suspend{false};
-
-	void cycle();
 
 	/** @param _last_report Last published report, used for test(). */
 	battery_status_s _last_report = battery_status_s{};

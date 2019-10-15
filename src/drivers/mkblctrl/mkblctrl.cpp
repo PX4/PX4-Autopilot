@@ -341,14 +341,14 @@ void
 MK::set_rc_min_value(unsigned value)
 {
 	_rc_min_value = value;
-	fprintf(stderr, "[mkblctrl] rc_min = %i\n", _rc_min_value);
+	PX4_INFO("rc_min = %i", _rc_min_value);
 }
 
 void
 MK::set_rc_max_value(unsigned value)
 {
 	_rc_max_value = value;
-	fprintf(stderr, "[mkblctrl] rc_max = %i\n", _rc_max_value);
+	PX4_INFO("rc_max = %i", _rc_max_value);
 }
 
 int
@@ -360,10 +360,10 @@ MK::set_motor_count(unsigned count)
 
 		if (_px4mode == MAPPING_MK) {
 			if (_frametype == FRAME_PLUS) {
-				fprintf(stderr, "[mkblctrl] Mikrokopter ESC addressing. Frame: +\n");
+				PX4_INFO("Mikrokopter ESC addressing. Frame: +");
 
 			} else if (_frametype == FRAME_X) {
-				fprintf(stderr, "[mkblctrl] Mikrokopter ESC addressing. Frame: X\n");
+				PX4_INFO("Mikrokopter ESC addressing. Frame: X");
 			}
 
 			if (_num_outputs == 4) {
@@ -392,18 +392,18 @@ MK::set_motor_count(unsigned count)
 			}
 
 		} else {
-			fprintf(stderr, "[mkblctrl] PX4 ESC addressing.\n");
+			PX4_INFO("PX4 ESC addressing.");
 			memcpy(&addrTranslator, &blctrlAddr_px4, sizeof(blctrlAddr_px4));
 		}
 
 		if (_num_outputs == 4) {
-			fprintf(stderr, "[mkblctrl] 4 ESCs = Quadrocopter\n");
+			PX4_INFO("4 ESCs = Quadrocopter");
 
 		} else 	if (_num_outputs == 6) {
-			fprintf(stderr, "[mkblctrl] 6 ESCs = Hexacopter\n");
+			PX4_INFO("6 ESCs = Hexacopter");
 
 		} else 	if (_num_outputs == 8) {
-			fprintf(stderr, "[mkblctrl] 8 ESCs = Octocopter\n");
+			PX4_INFO("8 ESCs = Octocopter");
 		}
 
 		return OK;
@@ -495,7 +495,7 @@ MK::task_main()
 	 * advertise the tune_control.
 	 */
 	tune_control_s tune = {};
-	_tune_control_sub = orb_advertise(ORB_ID(tune_control), &tune);
+	_tune_control_sub = orb_advertise_queue(ORB_ID(tune_control), &tune, tune_control_s::ORB_QUEUE_LENGTH);
 
 	pollfd fds[2];
 	fds[0].fd = _t_actuators;
@@ -614,8 +614,6 @@ MK::task_main()
 
 			for (unsigned int i = 0; i < _num_outputs; i++) {
 				esc.esc[i].esc_address = (uint8_t) BLCTRL_BASE_ADDR + i;
-				esc.esc[i].esc_vendor = esc_status_s::ESC_VENDOR_MIKROKOPTER;
-				esc.esc[i].esc_version = (uint16_t) Motor[i].Version;
 				esc.esc[i].esc_voltage = 0.0F;
 				esc.esc[i].esc_current = static_cast<float>(Motor[i].Current) * 0.1F;
 				esc.esc[i].esc_rpm = (uint16_t) 0;
@@ -630,8 +628,8 @@ MK::task_main()
 					esc.esc[i].esc_setpoint_raw = (uint16_t) Motor[i].SetPoint;
 				}
 
-				esc.esc[i].esc_temperature = static_cast<float>(Motor[i].Temperature);
-				esc.esc[i].esc_state = (uint16_t) Motor[i].State;
+				esc.esc[i].esc_temperature = static_cast<uint8_t>(Motor[i].Temperature);
+				esc.esc[i].esc_state = (uint8_t) Motor[i].State;
 				esc.esc[i].esc_errorcount = (uint16_t) 0;
 
 				// if motortest is requested - do it... (deprecated in future)
@@ -726,11 +724,11 @@ MK::mk_check_for_blctrl(unsigned int count, bool showOutput, bool initI2C)
 	}
 
 	if (showOutput) {
-		fprintf(stderr, "[mkblctrl] MotorsFound: %i\n", foundMotorCount);
+		PX4_INFO("MotorsFound: %i", foundMotorCount);
 
 		for (unsigned i = 0; i < foundMotorCount; i++) {
-			fprintf(stderr, "[mkblctrl] blctrl[%i] : found=%i\tversion=%i\tcurrent=%i\tmaxpwm=%i\ttemperature=%i\n", i,
-				Motor[i].State, Motor[i].Version, Motor[i].Current, Motor[i].MaxPWM, Motor[i].Temperature);
+			PX4_INFO("blctrl[%i] : found=%i\tversion=%i\tcurrent=%i\tmaxpwm=%i\ttemperature=%i", i,
+				 Motor[i].State, Motor[i].Version, Motor[i].Current, Motor[i].MaxPWM, Motor[i].Temperature);
 		}
 
 
@@ -841,12 +839,12 @@ MK::mk_servo_set(unsigned int chan, short val)
 
 			for (unsigned int i = 0; i < _num_outputs; i++) {
 				if (Motor[i].State & MOTOR_STATE_PRESENT_MASK) {
-					fprintf(stderr, "[mkblctrl] #%i:\tVer: %i\tVal: %i\tCurr: %i\tMaxPWM: %i\tTemp: %i\tState: %i\n", i, Motor[i].Version,
-						Motor[i].SetPoint, Motor[i].Current, Motor[i].MaxPWM, Motor[i].Temperature, Motor[i].State);
+					PX4_INFO("#%i:\tVer: %i\tVal: %i\tCurr: %i\tMaxPWM: %i\tTemp: %i\tState: %i", i, Motor[i].Version,
+						 Motor[i].SetPoint, Motor[i].Current, Motor[i].MaxPWM, Motor[i].Temperature, Motor[i].State);
 				}
 			}
 
-			fprintf(stderr, "\n");
+			PX4_INFO("\n");
 		}
 	}
 
@@ -868,13 +866,13 @@ MK::mk_servo_test(unsigned int chan)
 		_motor++;
 
 		if (_motor < _num_outputs) {
-			fprintf(stderr, "[mkblctrl] Motortest - #%i:\tspinup\n", _motor);
+			PX4_INFO("Motortest - #%i:\tspinup", _motor);
 		}
 
 		if (_motor >= _num_outputs) {
 			_motor = -1;
 			_motortest = false;
-			fprintf(stderr, "[mkblctrl] Motortest finished...\n");
+			PX4_INFO("Motortest finished...");
 		}
 	}
 
@@ -938,7 +936,7 @@ MK::mk_servo_locate()
 		chan++;
 
 		if (chan <= _num_outputs) {
-			fprintf(stderr, "[mkblctrl] ESC Locate - #%i:\tgreen\n", chan);
+			PX4_INFO("ESC Locate - #%i:\tgreen", chan);
 			play_beep(chan);
 		}
 
@@ -1051,27 +1049,6 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		}
 
 		break;
-
-	case MIXERIOCADDSIMPLE: {
-			mixer_simple_s *mixinfo = (mixer_simple_s *)arg;
-
-			SimpleMixer *mixer = new SimpleMixer(control_callback,
-							     (uintptr_t)&_controls, mixinfo);
-
-			if (mixer->check()) {
-				delete mixer;
-				ret = -EINVAL;
-
-			} else {
-				if (_mixers == nullptr)
-					_mixers = new MixerGroup(control_callback,
-								 (uintptr_t)&_controls);
-
-				_mixers->add_mixer(mixer);
-			}
-
-			break;
-		}
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
@@ -1388,19 +1365,18 @@ mkblctrl_main(int argc, char *argv[])
 	}
 
 	if (showHelp) {
-		fprintf(stderr, "mkblctrl: help:\n");
-		fprintf(stderr, "  [-mkmode {+/x}] [-b i2c_bus_number] [-d devicename] [--override-security-checks] [-h / --help]\n\n");
-		fprintf(stderr, "\t -mkmode {+/x} \t\t Type of frame, if Mikrokopter motor order is used.\n");
-		fprintf(stderr, "\t -d {devicepath & name}\t\t Create alternate pwm device.\n");
-		fprintf(stderr,
-			"\t --override-security-checks \t\t Disable all security checks (arming and number of ESCs). Used to test single Motors etc. (DANGER !!!)\n");
-		fprintf(stderr, "\t -rcmin {pwn-value}\t\t Set RC_MIN Value.\n");
-		fprintf(stderr, "\t -rcmax {pwn-value}\t\t Set RC_MAX Value.\n");
-		fprintf(stderr, "\n");
-		fprintf(stderr, "Motortest:\n");
-		fprintf(stderr, "First you have to start mkblctrl, the you can enter Motortest Mode with:\n");
-		fprintf(stderr, "mkblctrl -t\n");
-		fprintf(stderr, "This will spin up once every motor in order of motoraddress. (DANGER !!!)\n");
+		PX4_INFO("mkblctrl: help:");
+		PX4_INFO("  [-mkmode {+/x}] [-b i2c_bus_number] [-d devicename] [--override-security-checks] [-h / --help]");
+		PX4_INFO("\t -mkmode {+/x} \t\t Type of frame, if Mikrokopter motor order is used.");
+		PX4_INFO("\t -d {devicepath & name}\t\t Create alternate pwm device.");
+		PX4_INFO("\t --override-security-checks \t\t Disable all security checks (arming and number of ESCs). Used to test single Motors etc. (DANGER !!!)");
+		PX4_INFO("\t -rcmin {pwn-value}\t\t Set RC_MIN Value.");
+		PX4_INFO("\t -rcmax {pwn-value}\t\t Set RC_MAX Value.");
+		PX4_INFO("\n");
+		PX4_INFO("Motortest:");
+		PX4_INFO("First you have to start mkblctrl, the you can enter Motortest Mode with:");
+		PX4_INFO("mkblctrl -t");
+		PX4_INFO("This will spin up once every motor in order of motoraddress. (DANGER !!!)");
 		exit(1);
 	}
 

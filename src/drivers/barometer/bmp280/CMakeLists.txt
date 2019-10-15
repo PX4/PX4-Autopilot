@@ -35,11 +35,11 @@ px4_add_module(
 	MODULE drivers__bmp280
 	MAIN bmp280
 	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable	
-	STACK_MAIN
-		1200
+		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		bmp280_spi.cpp
 		bmp280_i2c.cpp
 		bmp280.cpp
+	DEPENDS
+		px4_work_queue
 	)

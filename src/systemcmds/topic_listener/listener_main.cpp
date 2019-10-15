@@ -40,6 +40,8 @@
 #include <px4_module.h>
 #include <px4_getopt.h>
 
+#include <poll.h>
+
 #include "topic_listener.hpp"
 #include "topic_listener_generated.hpp"
 
@@ -47,52 +49,120 @@ extern "C" __EXPORT int listener_main(int argc, char *argv[]);
 
 static void usage();
 
-void listener(listener_print_topic_cb cb, const orb_id_t &id, unsigned num_msgs, unsigned topic_instance,
+void listener(listener_print_topic_cb cb, const orb_id_t &id, unsigned num_msgs, int topic_instance,
 	      unsigned topic_interval)
 {
-	if (orb_exists(id, topic_instance) != 0) {
-		PX4_INFO_RAW("never published\n");
-		return;
-	}
 
-	int sub = orb_subscribe_multi(id, topic_instance);
-	orb_set_interval(sub, topic_interval);
+	if (topic_instance == -1 && num_msgs == 1) {
+		// first count the number of instances
+		int instances = 0;
 
-	bool updated = false;
-	unsigned i = 0;
-	hrt_abstime start_time = hrt_absolute_time();
-
-	while (i < num_msgs) {
-		orb_check(sub, &updated);
-
-		if (i == 0) {
-			updated = true;
-
-		} else {
-			px4_usleep(500);
-		}
-
-		if (updated) {
-			start_time = hrt_absolute_time();
-			i++;
-
-			PX4_INFO_RAW("\nTOPIC: %s instance %d #%d\n", id->o_name, topic_instance, i);
-
-			int ret = cb(id, sub);
-
-			if (ret != PX4_OK) {
-				PX4_ERR("listener callback failed (%i)", ret);
-			}
-
-		} else {
-			if (hrt_elapsed_time(&start_time) > 2 * 1000 * 1000) {
-				PX4_INFO_RAW("Waited for 2 seconds without a message. Giving up.\n");
-				break;
+		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			if (orb_exists(id, i) == PX4_OK) {
+				instances++;
 			}
 		}
+
+		if (instances == 1) {
+			PX4_INFO_RAW("\nTOPIC: %s\n", id->o_name);
+			int sub = orb_subscribe(id);
+			cb(id, sub);
+			orb_unsubscribe(sub);
+
+		} else if (instances > 1) {
+			PX4_INFO_RAW("\nTOPIC: %s %d instances\n", id->o_name, instances);
+
+			for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+				if (orb_exists(id, i) == PX4_OK) {
+					PX4_INFO_RAW("\nInstance %d:\n", i);
+					int sub = orb_subscribe_multi(id, i);
+					cb(id, sub);
+					orb_unsubscribe(sub);
+				}
+			}
+		}
+
+		if (instances == 0) {
+			PX4_INFO_RAW("never published\n");
+		}
+
+	} else {
+		// default to the first instance if not specified
+		if (topic_instance == -1) {
+			topic_instance = 0;
+		}
+
+		if (orb_exists(id, topic_instance) != 0) {
+			PX4_INFO_RAW("never published\n");
+			return;
+		}
+
+		int sub = orb_subscribe_multi(id, topic_instance);
+		orb_set_interval(sub, topic_interval);
+
+		bool updated = false;
+		unsigned i = 0;
+		hrt_abstime start_time = hrt_absolute_time();
+
+		while (i < num_msgs) {
+
+			// check for user input to quit
+			int user_input_timeout = 1;
+
+			orb_check(sub, &updated);
+
+			if (i == 0) {
+				updated = true;
+				user_input_timeout = 0;	// don't wait
+			}
+
+			// check for user input
+			struct pollfd fds {};
+			fds.fd = 0; /* stdin */
+			fds.events = POLLIN;
+
+			if (poll(&fds, 1, 0) > 0) {
+
+				char c = 0;
+				int ret = read(0, &c, user_input_timeout);
+
+				if (ret) {
+					return;
+				}
+
+				switch (c) {
+				case 0x03: // ctrl-c
+				case 0x1b: // esc
+				case 'q':
+					return;
+					/* not reached */
+				}
+			}
+
+			if (updated) {
+				start_time = hrt_absolute_time();
+				i++;
+
+				PX4_INFO_RAW("\nTOPIC: %s instance %d #%d\n", id->o_name, topic_instance, i);
+
+				int ret = cb(id, sub);
+
+				if (ret != PX4_OK) {
+					PX4_ERR("listener callback failed (%i)", ret);
+				}
+
+			} else {
+				if (hrt_elapsed_time(&start_time) > 2 * 1000 * 1000) {
+					PX4_INFO_RAW("Waited for 2 seconds without a message. Giving up.\n");
+					break;
+				}
+			}
+		}
+
+		orb_unsubscribe(sub);
 	}
 
-	orb_unsubscribe(sub);
+
 }
 
 int listener_main(int argc, char *argv[])
@@ -104,7 +174,7 @@ int listener_main(int argc, char *argv[])
 
 	char *topic_name = argv[1];
 
-	unsigned topic_instance = 0;
+	int topic_instance = -1;
 	unsigned topic_rate = 0;
 	unsigned num_msgs = 0;
 
@@ -136,7 +206,7 @@ int listener_main(int argc, char *argv[])
 
 	if (num_msgs == 0) {
 		if (topic_rate != 0) {
-			num_msgs = 10 * topic_rate; // arbitrary limit (10 seconds at max rate)
+			num_msgs = 30 * topic_rate; // arbitrary limit (30 seconds at max rate)
 
 		} else {
 			num_msgs = 1;
@@ -155,6 +225,8 @@ usage()
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 Utility to listen on uORB topics and print the data to the console.
+
+The listener can be exited any time by pressing Ctrl+C, Esc, or Q.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("listener", "command");

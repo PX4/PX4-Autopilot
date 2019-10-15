@@ -39,53 +39,23 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <drivers/drv_hrt.h>
-
 #include "RoverLandDetector.h"
 
 namespace land_detector
 {
-
-void RoverLandDetector::_initialize_topics()
-{
-}
-
-void RoverLandDetector::_update_topics()
-{
-}
-
-void RoverLandDetector::_update_params()
-{
-}
 
 bool RoverLandDetector::_get_ground_contact_state()
 {
 	return true;
 }
 
-bool RoverLandDetector::_get_maybe_landed_state()
-{
-	return false;
-}
-
-
 bool RoverLandDetector::_get_landed_state()
 {
-	if (!_arming.armed) {
+	if (!_actuator_armed.armed) {
 		return true;
 	}
 
 	return false;
-}
-
-bool RoverLandDetector::_get_freefall_state()
-{
-	return false;
-}
-
-float RoverLandDetector::_get_max_altitude()
-{
-	return 0.0f;
 }
 
 } // namespace land_detector

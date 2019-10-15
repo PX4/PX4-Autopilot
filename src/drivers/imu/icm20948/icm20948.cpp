@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,17 +48,9 @@
 #include <systemlib/px4_macros.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/spi.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/drv_mag.h>
-#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
 
-#include "mag.h"
-#include "accel.h"
-#include "gyro.h"
+#include "ICM20948_mag.h"
 #include "icm20948.h"
 
 /*
@@ -75,155 +67,54 @@
   list of registers that will be checked in check_registers(). Note
   that MPUREG_PRODUCT_ID must be first in the list.
  */
-const uint16_t ICM20948::_icm20948_checked_registers[ICM20948_NUM_CHECKED_REGISTERS] = {
-	ICMREG_20948_USER_CTRL,
-	ICMREG_20948_PWR_MGMT_1,
-	ICMREG_20948_PWR_MGMT_2,
-	ICMREG_20948_INT_PIN_CFG,
-	ICMREG_20948_INT_ENABLE,
-	ICMREG_20948_INT_ENABLE_1,
-	ICMREG_20948_INT_ENABLE_2,
-	ICMREG_20948_INT_ENABLE_3,
-	ICMREG_20948_GYRO_SMPLRT_DIV,
-	ICMREG_20948_GYRO_CONFIG_1,
-	ICMREG_20948_GYRO_CONFIG_2,
-	ICMREG_20948_ACCEL_SMPLRT_DIV_1,
-	ICMREG_20948_ACCEL_SMPLRT_DIV_2,
-	ICMREG_20948_ACCEL_CONFIG,
-	ICMREG_20948_ACCEL_CONFIG_2
-};
+const uint16_t ICM20948::_icm20948_checked_registers[ICM20948_NUM_CHECKED_REGISTERS] = { ICMREG_20948_USER_CTRL,
+											 ICMREG_20948_PWR_MGMT_1,
+											 ICMREG_20948_PWR_MGMT_2,
+											 ICMREG_20948_INT_PIN_CFG,
+											 ICMREG_20948_INT_ENABLE,
+											 ICMREG_20948_INT_ENABLE_1,
+											 ICMREG_20948_INT_ENABLE_2,
+											 ICMREG_20948_INT_ENABLE_3,
+											 ICMREG_20948_GYRO_SMPLRT_DIV,
+											 ICMREG_20948_GYRO_CONFIG_1,
+											 ICMREG_20948_GYRO_CONFIG_2,
+											 ICMREG_20948_ACCEL_SMPLRT_DIV_1,
+											 ICMREG_20948_ACCEL_SMPLRT_DIV_2,
+											 ICMREG_20948_ACCEL_CONFIG,
+											 ICMREG_20948_ACCEL_CONFIG_2
+										       };
 
-
-ICM20948::ICM20948(device::Device *interface, device::Device *mag_interface, const char *path_accel,
-		   const char *path_gyro, const char *path_mag,
-		   enum Rotation rotation,
+ICM20948::ICM20948(device::Device *interface, device::Device *mag_interface, const char *path, enum Rotation rotation,
 		   bool magnetometer_only) :
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
-	_whoami(0),
-	_accel(magnetometer_only ? nullptr : new ICM20948_accel(this, path_accel)),
-	_gyro(magnetometer_only ? nullptr : new ICM20948_gyro(this, path_gyro)),
-	_mag(new ICM20948_mag(this, mag_interface, path_mag)),
+	_px4_accel(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_DEFAULT : ORB_PRIO_HIGH), rotation),
+	_px4_gyro(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_DEFAULT : ORB_PRIO_HIGH), rotation),
+	_mag(this, mag_interface, rotation),
 	_selected_bank(0xFF),	// invalid/improbable bank value, will be set on first read/write
 	_magnetometer_only(magnetometer_only),
-#if defined(USE_I2C)
-	_work {},
-	_use_hrt(false),
-#else
-	_use_hrt(true),
-#endif
-	_call {},
-	_call_interval(0),
-	_accel_reports(nullptr),
-	_accel_scale{},
-	_accel_range_scale(0.0f),
-	_accel_range_m_s2(0.0f),
-	_accel_topic(nullptr),
-	_gyro_reports(nullptr),
-	_gyro_scale{},
-	_gyro_range_scale(0.0f),
-	_gyro_range_rad_s(0.0f),
 	_dlpf_freq(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
 	_dlpf_freq_icm_gyro(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
 	_dlpf_freq_icm_accel(MPU9250_DEFAULT_ONCHIP_FILTER_FREQ),
-	_sample_rate(1000),
-	_accel_reads(perf_alloc(PC_COUNT, "mpu9250_acc_read")),
-	_gyro_reads(perf_alloc(PC_COUNT, "mpu9250_gyro_read")),
-	_sample_perf(perf_alloc(PC_ELAPSED, "mpu9250_read")),
-	_bad_transfers(perf_alloc(PC_COUNT, "mpu9250_bad_trans")),
-	_bad_registers(perf_alloc(PC_COUNT, "mpu9250_bad_reg")),
-	_good_transfers(perf_alloc(PC_COUNT, "mpu9250_good_trans")),
-	_reset_retries(perf_alloc(PC_COUNT, "mpu9250_reset")),
-	_duplicates(perf_alloc(PC_COUNT, "mpu9250_dupe")),
-	_register_wait(0),
-	_reset_wait(0),
-	_accel_filter_x(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_filter_y(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_filter_z(MPU9250_ACCEL_DEFAULT_RATE, MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_x(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_y(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_z(MPU9250_GYRO_DEFAULT_RATE, MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_accel_int(1000000 / MPU9250_ACCEL_MAX_OUTPUT_RATE),
-	_gyro_int(1000000 / MPU9250_GYRO_MAX_OUTPUT_RATE, true),
-	_rotation(rotation),
-	_checked_registers(nullptr),
-	_checked_next(0),
-	_num_checked_registers(0),
-	_last_temperature(0),
-	_last_accel_data{},
-	_got_duplicate(false)
+	_accel_reads(perf_alloc(PC_COUNT, "icm20948: acc_read")),
+	_gyro_reads(perf_alloc(PC_COUNT, "icm20948: gyro_read")),
+	_sample_perf(perf_alloc(PC_ELAPSED, "icm20948: read")),
+	_bad_transfers(perf_alloc(PC_COUNT, "icm20948: bad_trans")),
+	_bad_registers(perf_alloc(PC_COUNT, "icm20948: bad_reg")),
+	_good_transfers(perf_alloc(PC_COUNT, "icm20948: good_trans")),
+	_reset_retries(perf_alloc(PC_COUNT, "icm20948: reset")),
+	_duplicates(perf_alloc(PC_COUNT, "icm20948: dupe"))
 {
-	if (_accel != nullptr) {
-		/* Set device parameters and make sure parameters of the bus device are adopted */
-		_accel->_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU9250;
-		_accel->_device_id.devid_s.bus_type = (device::Device::DeviceBusType)_interface->get_device_bus_type();
-		_accel->_device_id.devid_s.bus = _interface->get_device_bus();
-		_accel->_device_id.devid_s.address = _interface->get_device_address();
-	}
-
-	if (_gyro != nullptr) {
-		/* Prime _gyro with common devid. */
-		/* Set device parameters and make sure parameters of the bus device are adopted */
-		_gyro->_device_id.devid = 0;
-		_gyro->_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_MPU9250;
-		_gyro->_device_id.devid_s.bus_type = _interface->get_device_bus_type();
-		_gyro->_device_id.devid_s.bus = _interface->get_device_bus();
-		_gyro->_device_id.devid_s.address = _interface->get_device_address();
-	}
-
-	/* Prime _mag with common devid. */
-	_mag->_device_id.devid = 0;
-	_mag->_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_MPU9250;
-	_mag->_device_id.devid_s.bus_type = _interface->get_device_bus_type();
-	_mag->_device_id.devid_s.bus = _interface->get_device_bus();
-	_mag->_device_id.devid_s.address = _interface->get_device_address();
-
-	// default accel scale factors
-	_accel_scale.x_offset = 0;
-	_accel_scale.x_scale  = 1.0f;
-	_accel_scale.y_offset = 0;
-	_accel_scale.y_scale  = 1.0f;
-	_accel_scale.z_offset = 0;
-	_accel_scale.z_scale  = 1.0f;
-
-	// default gyro scale factors
-	_gyro_scale.x_offset = 0;
-	_gyro_scale.x_scale  = 1.0f;
-	_gyro_scale.y_offset = 0;
-	_gyro_scale.y_scale  = 1.0f;
-	_gyro_scale.z_offset = 0;
-	_gyro_scale.z_scale  = 1.0f;
+	_px4_accel.set_device_type(DRV_DEVTYPE_ICM20948);
+	_px4_gyro.set_device_type(DRV_DEVTYPE_ICM20948);
 }
 
 ICM20948::~ICM20948()
 {
-	/* make sure we are truly inactive */
+	// make sure we are truly inactive
 	stop();
-	_call_interval = 0;
 
-	if (!_magnetometer_only) {
-		orb_unadvertise(_accel_topic);
-		orb_unadvertise(_gyro->_gyro_topic);
-	}
-
-	/* delete the accel subdriver */
-	delete _accel;
-
-	/* delete the gyro subdriver */
-	delete _gyro;
-
-	/* delete the magnetometer subdriver */
-	delete _mag;
-
-	/* free any existing reports */
-	if (_accel_reports != nullptr) {
-		delete _accel_reports;
-	}
-
-	if (_gyro_reports != nullptr) {
-		delete _gyro_reports;
-	}
-
-	/* delete the perf counter */
+	// delete the perf counter
 	perf_free(_sample_perf);
 	perf_free(_accel_reads);
 	perf_free(_gyro_reads);
@@ -237,181 +128,56 @@ ICM20948::~ICM20948()
 int
 ICM20948::init()
 {
-	irqstate_t state;
-
-#if defined(USE_I2C)
-	use_i2c(_interface->get_device_bus_type() == device::Device::DeviceBusType_I2C);
-#endif
-
 	/*
 	 * If the MPU is using I2C we should reduce the sample rate to 200Hz and
 	 * make the integration autoreset faster so that we integrate just one
 	 * sample since the sampling rate is already low.
 	*/
-	if (is_i2c() && !_magnetometer_only) {
+	const bool is_i2c = (_interface->get_device_bus_type() == device::Device::DeviceBusType_I2C);
+
+	if (is_i2c && !_magnetometer_only) {
 		_sample_rate = 200;
-		_accel_int.set_autoreset_interval(1000000 / 1000);
-		_gyro_int.set_autoreset_interval(1000000 / 1000);
 	}
 
 	int ret = probe();
 
 	if (ret != OK) {
-		PX4_DEBUG("ICM20948 probe failed");
+		PX4_DEBUG("probe failed");
 		return ret;
 	}
 
-	state = px4_enter_critical_section();
 	_reset_wait = hrt_absolute_time() + 100000;
-	px4_leave_critical_section(state);
 
 	if (reset_mpu() != OK) {
 		PX4_ERR("Exiting! Device failed to take initialization");
 		return ret;
 	}
 
-	if (!_magnetometer_only) {
-		/* allocate basic report buffers */
-		_accel_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_accel_s));
-		ret = -ENOMEM;
-
-		if (_accel_reports == nullptr) {
-			return ret;
-		}
-
-		_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_gyro_s));
-
-		if (_gyro_reports == nullptr) {
-			return ret;
-		}
-
-		/* Initialize offsets and scales */
-		_accel_scale.x_offset = 0;
-		_accel_scale.x_scale  = 1.0f;
-		_accel_scale.y_offset = 0;
-		_accel_scale.y_scale  = 1.0f;
-		_accel_scale.z_offset = 0;
-		_accel_scale.z_scale  = 1.0f;
-
-		_gyro_scale.x_offset = 0;
-		_gyro_scale.x_scale  = 1.0f;
-		_gyro_scale.y_offset = 0;
-		_gyro_scale.y_scale  = 1.0f;
-		_gyro_scale.z_offset = 0;
-		_gyro_scale.z_scale  = 1.0f;
-
-		// set software low pass filter for controllers
-		param_t accel_cut_ph = param_find("IMU_ACCEL_CUTOFF");
-		float accel_cut = MPU9250_ACCEL_DEFAULT_DRIVER_FILTER_FREQ;
-
-		if (accel_cut_ph != PARAM_INVALID && (param_get(accel_cut_ph, &accel_cut) == PX4_OK)) {
-			PX4_INFO("accel cutoff set to %.2f Hz", double(accel_cut));
-
-			_accel_filter_x.set_cutoff_frequency(MPU9250_ACCEL_DEFAULT_RATE, accel_cut);
-			_accel_filter_y.set_cutoff_frequency(MPU9250_ACCEL_DEFAULT_RATE, accel_cut);
-			_accel_filter_z.set_cutoff_frequency(MPU9250_ACCEL_DEFAULT_RATE, accel_cut);
-
-		}
-
-		param_t gyro_cut_ph = param_find("IMU_GYRO_CUTOFF");
-		float gyro_cut = MPU9250_GYRO_DEFAULT_DRIVER_FILTER_FREQ;
-
-		if (gyro_cut_ph != PARAM_INVALID && (param_get(gyro_cut_ph, &gyro_cut) == PX4_OK)) {
-			PX4_INFO("gyro cutoff set to %.2f Hz", double(gyro_cut));
-
-			_gyro_filter_x.set_cutoff_frequency(MPU9250_GYRO_DEFAULT_RATE, gyro_cut);
-			_gyro_filter_y.set_cutoff_frequency(MPU9250_GYRO_DEFAULT_RATE, gyro_cut);
-			_gyro_filter_z.set_cutoff_frequency(MPU9250_GYRO_DEFAULT_RATE, gyro_cut);
-
-		}
-
-		/* do CDev init for the accel device node */
-		ret = _accel->init();
-
-		/* if probe/setup failed, bail now */
-		if (ret != OK) {
-			PX4_DEBUG("accel init failed");
-			return ret;
-		}
-
-		/* do CDev init for the gyro device node */
-		ret = _gyro->init();
-
-		/* if probe/setup failed, bail now */
-		if (ret != OK) {
-			PX4_DEBUG("gyro init failed");
-			return ret;
-		}
-	}
-
 	/* Magnetometer setup */
 
 #ifdef USE_I2C
-	up_udelay(100);
+	px4_usleep(100);
 
-	if (!_mag->is_passthrough() && _mag->_interface->init() != PX4_OK) {
+	if (!_mag.is_passthrough() && _mag._interface->init() != PX4_OK) {
 		PX4_ERR("failed to setup ak8963 interface");
 	}
 
 #endif /* USE_I2C */
 
-	/* do CDev init for the mag device node */
-	ret = _mag->init();
-
-	/* if probe/setup failed, bail now */
-	if (ret != OK) {
-		PX4_DEBUG("mag init failed");
-		return ret;
-	}
-
-	ret = _mag->ak8963_reset();
+	ret = _mag.ak8963_reset();
 
 	if (ret != OK) {
 		PX4_DEBUG("mag reset failed");
 		return ret;
 	}
 
-	measure();
-
-	if (!_magnetometer_only) {
-		/* advertise sensor topic, measure manually to initialize valid report */
-		sensor_accel_s arp;
-		_accel_reports->get(&arp);
-
-		/* measurement will have generated a report, publish */
-		_accel_topic = orb_advertise_multi(ORB_ID(sensor_accel), &arp,
-						   &_accel->_accel_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
-
-		if (_accel_topic == nullptr) {
-			PX4_ERR("ADVERT FAIL");
-			return ret;
-		}
-
-		/* advertise sensor topic, measure manually to initialize valid report */
-		sensor_gyro_s grp;
-		_gyro_reports->get(&grp);
-
-		_gyro->_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-				     &_gyro->_gyro_orb_class_instance, (is_external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
-
-		if (_gyro->_gyro_topic == nullptr) {
-			PX4_ERR("ADVERT FAIL");
-			return ret;
-		}
-	}
+	start();
 
 	return ret;
 }
 
-uint8_t ICM20948::get_whoami()
-{
-	return _whoami;
-}
-
 int ICM20948::reset()
 {
-	irqstate_t state;
-
 	/* When the mpu9250 starts from 0V the internal power on circuit
 	 * per the data sheet will require:
 	 *
@@ -422,21 +188,15 @@ int ICM20948::reset()
 	px4_usleep(110000);
 
 	// Hold off sampling until done (100 MS will be shortened)
-	state = px4_enter_critical_section();
 	_reset_wait = hrt_absolute_time() + 100000;
-	px4_leave_critical_section(state);
 
-	int ret;
-
-	ret = reset_mpu();
+	int ret = reset_mpu();
 
 	if (ret == OK && (_whoami == ICM_WHOAMI_20948)) {
-		ret = _mag->ak8963_reset();
+		ret = _mag.ak8963_reset();
 	}
 
-	state = px4_enter_critical_section();
 	_reset_wait = hrt_absolute_time() + 10;
-	px4_leave_critical_section(state);
 
 	return ret;
 }
@@ -457,10 +217,8 @@ int ICM20948::reset_mpu()
 	}
 
 	// Enable I2C bus or Disable I2C bus (recommended on data sheet)
-
-
-	write_checked_reg(MPU_OR_ICM(MPUREG_USER_CTRL, ICMREG_20948_USER_CTRL), is_i2c() ? 0 : BIT_I2C_IF_DIS);
-
+	const bool is_i2c = (_interface->get_device_bus_type() == device::Device::DeviceBusType_I2C);
+	write_checked_reg(ICMREG_20948_USER_CTRL, is_i2c ? 0 : BIT_I2C_IF_DIS);
 
 	// SAMPLE RATE
 	_set_sample_rate(_sample_rate);
@@ -480,17 +238,15 @@ int ICM20948::reset_mpu()
 	// 2000 deg/s = (2000/180)*PI = 34.906585 rad/s
 	// scaling factor:
 	// 1/(2^15)*(2000/180)*PI
-	_gyro_range_scale = (0.0174532 / 16.4);//1.0f / (32768.0f * (2000.0f / 180.0f) * M_PI_F);
-	_gyro_range_rad_s = (2000.0f / 180.0f) * M_PI_F;
+	_px4_gyro.set_scale(0.0174532 / 16.4); //1.0f / (32768.0f * (2000.0f / 180.0f) * M_PI_F);
 
 	set_accel_range(ACCEL_RANGE_G);
 
 	// INT CFG => Interrupt on Data Ready
-	write_checked_reg(MPU_OR_ICM(MPUREG_INT_ENABLE, ICMREG_20948_INT_ENABLE_1),
-			  BIT_RAW_RDY_EN);        // INT: Raw data ready
+	write_checked_reg(ICMREG_20948_INT_ENABLE_1, BIT_RAW_RDY_EN);        // INT: Raw data ready
 
 #ifdef USE_I2C
-	bool bypass = !_mag->is_passthrough();
+	bool bypass = !_mag.is_passthrough();
 #else
 	bool bypass = false;
 #endif
@@ -504,11 +260,9 @@ int ICM20948::reset_mpu()
 	 * so bypass is true if the mag has an i2c non null interfaces.
 	 */
 
-	write_checked_reg(MPU_OR_ICM(MPUREG_INT_PIN_CFG, ICMREG_20948_INT_PIN_CFG),
-			  BIT_INT_ANYRD_2CLEAR | (bypass ? BIT_INT_BYPASS_EN : 0));
+	write_checked_reg(ICMREG_20948_INT_PIN_CFG, BIT_INT_ANYRD_2CLEAR | (bypass ? BIT_INT_BYPASS_EN : 0));
 
-	write_checked_reg(MPU_OR_ICM(MPUREG_ACCEL_CONFIG2, ICMREG_20948_ACCEL_CONFIG_2),
-			  MPU_OR_ICM(BITS_ACCEL_CONFIG2_41HZ, ICM_BITS_DEC3_CFG_32));
+	write_checked_reg(ICMREG_20948_ACCEL_CONFIG_2, ICM_BITS_DEC3_CFG_32);
 
 	retries = 3;
 	bool all_ok = false;
@@ -604,61 +358,6 @@ ICM20948::_set_sample_rate(unsigned desired_sample_rate_hz)
 }
 
 /*
- * Set poll rate
- */
-int
-ICM20948::_set_pollrate(unsigned long rate)
-{
-	if (rate == 0) {
-		return -EINVAL;
-
-	} else {
-		/* do we need to start internal polling? */
-		bool want_start = (_call_interval == 0);
-
-		/* convert hz to hrt interval via microseconds */
-		unsigned ticks = 1000000 / rate;
-
-		/* check against maximum sane rate */
-		if (ticks < 1000) {
-			return -EINVAL;
-		}
-
-		// adjust filters
-		float cutoff_freq_hz = _accel_filter_x.get_cutoff_freq();
-		float sample_rate = 1.0e6f / ticks;
-		_accel_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-		_accel_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-		_accel_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz);
-
-
-		float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
-		_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
-		_gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
-		_gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
-
-		/* update interval for next measurement */
-		/* XXX this is a bit shady, but no other way to adjust... */
-		_call_interval = ticks;
-
-		/*
-		  set call interval faster than the sample time. We
-		  then detect when we have duplicate samples and reject
-		  them. This prevents aliasing due to a beat between the
-		  stm32 clock and the mpu9250 clock
-		 */
-		_call.period = _call_interval - MPU9250_TIMER_REDUCTION;
-
-		/* if we need to start the poll state machine, do it */
-		if (want_start) {
-			start();
-		}
-
-		return OK;
-	}
-}
-
-/*
   set the DLPF filter frequency. This affects both accel and gyro.
  */
 void
@@ -673,39 +372,39 @@ ICM20948::_set_dlpf_filter(uint16_t frequency_hz)
 		   choose next highest filter frequency available for gyroscope
 		 */
 		if (frequency_hz == 0) {
-			_dlpf_freq_icm_gyro = 0;
+			//_dlpf_freq_icm_gyro = 0;
 			filter = ICM_BITS_GYRO_DLPF_CFG_361HZ;
 
 		} else if (frequency_hz <= 5) {
-			_dlpf_freq_icm_gyro = 5;
+			//_dlpf_freq_icm_gyro = 5;
 			filter = ICM_BITS_GYRO_DLPF_CFG_5HZ;
 
 		} else if (frequency_hz <= 11) {
-			_dlpf_freq_icm_gyro = 11;
+			//_dlpf_freq_icm_gyro = 11;
 			filter = ICM_BITS_GYRO_DLPF_CFG_11HZ;
 
 		} else if (frequency_hz <= 23) {
-			_dlpf_freq_icm_gyro = 23;
+			//_dlpf_freq_icm_gyro = 23;
 			filter = ICM_BITS_GYRO_DLPF_CFG_23HZ;
 
 		} else if (frequency_hz <= 51) {
-			_dlpf_freq_icm_gyro = 51;
+			//_dlpf_freq_icm_gyro = 51;
 			filter = ICM_BITS_GYRO_DLPF_CFG_51HZ;
 
 		} else if (frequency_hz <= 119) {
-			_dlpf_freq_icm_gyro = 119;
+			//_dlpf_freq_icm_gyro = 119;
 			filter = ICM_BITS_GYRO_DLPF_CFG_119HZ;
 
 		} else if (frequency_hz <= 151) {
-			_dlpf_freq_icm_gyro = 151;
+			//_dlpf_freq_icm_gyro = 151;
 			filter = ICM_BITS_GYRO_DLPF_CFG_151HZ;
 
 		} else if (frequency_hz <= 197) {
-			_dlpf_freq_icm_gyro = 197;
+			//_dlpf_freq_icm_gyro = 197;
 			filter = ICM_BITS_GYRO_DLPF_CFG_197HZ;
 
 		} else {
-			_dlpf_freq_icm_gyro = 0;
+			//_dlpf_freq_icm_gyro = 0;
 			filter = ICM_BITS_GYRO_DLPF_CFG_361HZ;
 		}
 
@@ -715,35 +414,35 @@ ICM20948::_set_dlpf_filter(uint16_t frequency_hz)
 		   choose next highest filter frequency available for accelerometer
 		 */
 		if (frequency_hz == 0) {
-			_dlpf_freq_icm_accel = 0;
+			//_dlpf_freq_icm_accel = 0;
 			filter = ICM_BITS_ACCEL_DLPF_CFG_473HZ;
 
 		} else if (frequency_hz <= 5) {
-			_dlpf_freq_icm_accel = 5;
+			//_dlpf_freq_icm_accel = 5;
 			filter = ICM_BITS_ACCEL_DLPF_CFG_5HZ;
 
 		} else if (frequency_hz <= 11) {
-			_dlpf_freq_icm_accel = 11;
+			//_dlpf_freq_icm_accel = 11;
 			filter = ICM_BITS_ACCEL_DLPF_CFG_11HZ;
 
 		} else if (frequency_hz <= 23) {
-			_dlpf_freq_icm_accel = 23;
+			//_dlpf_freq_icm_accel = 23;
 			filter = ICM_BITS_ACCEL_DLPF_CFG_23HZ;
 
 		} else if (frequency_hz <= 50) {
-			_dlpf_freq_icm_accel = 50;
+			//_dlpf_freq_icm_accel = 50;
 			filter = ICM_BITS_ACCEL_DLPF_CFG_50HZ;
 
 		} else if (frequency_hz <= 111) {
-			_dlpf_freq_icm_accel = 111;
+			//_dlpf_freq_icm_accel = 111;
 			filter = ICM_BITS_ACCEL_DLPF_CFG_111HZ;
 
 		} else if (frequency_hz <= 246) {
-			_dlpf_freq_icm_accel = 246;
+			//_dlpf_freq_icm_accel = 246;
 			filter = ICM_BITS_ACCEL_DLPF_CFG_246HZ;
 
 		} else {
-			_dlpf_freq_icm_accel = 0;
+			//_dlpf_freq_icm_accel = 0;
 			filter = ICM_BITS_ACCEL_DLPF_CFG_473HZ;
 		}
 
@@ -802,15 +501,10 @@ ICM20948::select_register_bank(uint8_t bank)
 uint8_t
 ICM20948::read_reg(unsigned reg, uint32_t speed)
 {
-	uint8_t buf;
+	uint8_t buf{};
 
-	if (_whoami == ICM_WHOAMI_20948) {
-		select_register_bank(REG_BANK(reg));
-		_interface->read(MPU9250_SET_SPEED(REG_ADDRESS(reg), speed), &buf, 1);
-
-	} else {
-		_interface->read(MPU9250_SET_SPEED(REG_ADDRESS(reg), speed), &buf, 1);
-	}
+	select_register_bank(REG_BANK(reg));
+	_interface->read(MPU9250_SET_SPEED(REG_ADDRESS(reg), speed), &buf, 1);
 
 	return buf;
 }
@@ -818,35 +512,22 @@ ICM20948::read_reg(unsigned reg, uint32_t speed)
 uint8_t
 ICM20948::read_reg_range(unsigned start_reg, uint32_t speed, uint8_t *buf, uint16_t count)
 {
-	uint8_t ret;
-
-	if (buf == NULL) { return PX4_ERROR; }
-
-	if (_whoami == ICM_WHOAMI_20948) {
-		select_register_bank(REG_BANK(start_reg));
-		ret = _interface->read(MPU9250_SET_SPEED(REG_ADDRESS(start_reg), speed), buf, count);
-
-	} else {
-		ret = _interface->read(MPU9250_SET_SPEED(REG_ADDRESS(start_reg), speed), buf, count);
+	if (buf == NULL) {
+		return PX4_ERROR;
 	}
 
-	return ret;
+	select_register_bank(REG_BANK(start_reg));
+	return _interface->read(MPU9250_SET_SPEED(REG_ADDRESS(start_reg), speed), buf, count);
 }
 
 uint16_t
 ICM20948::read_reg16(unsigned reg)
 {
-	uint8_t buf[2];
+	uint8_t buf[2] {};
 
 	// general register transfer at low clock speed
-
-	if (_whoami == ICM_WHOAMI_20948) {
-		select_register_bank(REG_BANK(reg));
-		_interface->read(MPU9250_LOW_SPEED_OP(REG_ADDRESS(reg)), &buf, arraySize(buf));
-
-	} else {
-		_interface->read(MPU9250_LOW_SPEED_OP(reg), &buf, arraySize(buf));
-	}
+	select_register_bank(REG_BANK(reg));
+	_interface->read(MPU9250_LOW_SPEED_OP(REG_ADDRESS(reg)), &buf, arraySize(buf));
 
 	return (uint16_t)(buf[0] << 8) | buf[1];
 }
@@ -855,22 +536,14 @@ void
 ICM20948::write_reg(unsigned reg, uint8_t value)
 {
 	// general register transfer at low clock speed
-
-	if (_whoami == ICM_WHOAMI_20948) {
-		select_register_bank(REG_BANK(reg));
-		_interface->write(MPU9250_LOW_SPEED_OP(REG_ADDRESS(reg)), &value, 1);
-
-	} else {
-		_interface->write(MPU9250_LOW_SPEED_OP(reg), &value, 1);
-	}
+	select_register_bank(REG_BANK(reg));
+	_interface->write(MPU9250_LOW_SPEED_OP(REG_ADDRESS(reg)), &value, 1);
 }
 
 void
 ICM20948::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 {
-	uint8_t	val;
-
-	val = read_reg(reg);
+	uint8_t	val = read_reg(reg);
 	val &= ~clearbits;
 	val |= setbits;
 	write_reg(reg, val);
@@ -879,9 +552,7 @@ ICM20948::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 void
 ICM20948::modify_checked_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 {
-	uint8_t	val;
-
-	val = read_reg(reg);
+	uint8_t	val = read_reg(reg);
 	val &= ~clearbits;
 	val |= setbits;
 	write_checked_reg(reg, val);
@@ -906,27 +577,27 @@ ICM20948::set_accel_range(unsigned max_g_in)
 {
 	uint8_t afs_sel;
 	float lsb_per_g;
-	float max_accel_g;
+	//float max_accel_g;
 
 	if (max_g_in > 8) { // 16g - AFS_SEL = 3
 		afs_sel = 3;
 		lsb_per_g = 2048;
-		max_accel_g = 16;
+		//max_accel_g = 16;
 
 	} else if (max_g_in > 4) { //  8g - AFS_SEL = 2
 		afs_sel = 2;
 		lsb_per_g = 4096;
-		max_accel_g = 8;
+		//max_accel_g = 8;
 
 	} else if (max_g_in > 2) { //  4g - AFS_SEL = 1
 		afs_sel = 1;
 		lsb_per_g = 8192;
-		max_accel_g = 4;
+		//max_accel_g = 4;
 
 	} else {                //  2g - AFS_SEL = 0
 		afs_sel = 0;
 		lsb_per_g = 16384;
-		max_accel_g = 2;
+		//max_accel_g = 2;
 	}
 
 	switch (_whoami) {
@@ -935,8 +606,7 @@ ICM20948::set_accel_range(unsigned max_g_in)
 		break;
 	}
 
-	_accel_range_scale = (CONSTANTS_ONE_G / lsb_per_g);
-	_accel_range_m_s2 = max_accel_g * CONSTANTS_ONE_G;
+	_px4_accel.set_scale(CONSTANTS_ONE_G / lsb_per_g);
 
 	return OK;
 }
@@ -947,86 +617,20 @@ ICM20948::start()
 	/* make sure we are stopped first */
 	stop();
 
-	/* discard any stale data in the buffers */
-	if (!_magnetometer_only) {
-		_accel_reports->flush();
-		_gyro_reports->flush();
-	}
-
-	_mag->_mag_reports->flush();
-
-	if (_use_hrt) {
-		/* start polling at the specified rate */
-		hrt_call_every(&_call,
-			       1000,
-			       _call_interval - MPU9250_TIMER_REDUCTION,
-			       (hrt_callout)&ICM20948::measure_trampoline, this);
-
-	} else {
-#ifdef USE_I2C
-		/* schedule a cycle to start things */
-		work_queue(HPWORK, &_work, (worker_t)&ICM20948::cycle_trampoline, this, 1);
-#endif
-	}
-
+	ScheduleOnInterval(_call_interval - MPU9250_TIMER_REDUCTION, 1000);
 }
 
 void
 ICM20948::stop()
 {
-	if (_use_hrt) {
-		hrt_cancel(&_call);
-
-	} else {
-#ifdef USE_I2C
-		work_cancel(HPWORK, &_work);
-#endif
-	}
-}
-
-
-#if defined(USE_I2C)
-void
-ICM20948::cycle_trampoline(void *arg)
-{
-	ICM20948 *dev = (ICM20948 *)arg;
-
-	dev->cycle();
+	ScheduleClear();
 }
 
 void
-ICM20948::cycle()
+ICM20948::Run()
 {
-
-//	int ret = measure();
-
-	measure();
-
-//	if (ret != OK) {
-//		/* issue a reset command to the sensor */
-//		reset();
-//		start();
-//		return;
-//	}
-
-	if (_call_interval != 0) {
-		work_queue(HPWORK,
-			   &_work,
-			   (worker_t)&ICM20948::cycle_trampoline,
-			   this,
-			   USEC2TICK(_call_interval - MPU9250_TIMER_REDUCTION));
-	}
-}
-#endif
-
-
-void
-ICM20948::measure_trampoline(void *arg)
-{
-	ICM20948 *dev = reinterpret_cast<ICM20948 *>(arg);
-
 	/* make another measurement */
-	dev->measure();
+	measure();
 }
 
 void
@@ -1064,12 +668,7 @@ ICM20948::check_registers(void)
 			// if the product_id is wrong then reset the
 			// sensor completely
 
-			if (_whoami == ICM_WHOAMI_20948) {
-				// reset_mpu();
-			} else {
-				write_reg(MPUREG_PWR_MGMT_1, BIT_H_RESET);
-				write_reg(MPUREG_PWR_MGMT_2, MPU_CLK_SEL_AUTO);
-			}
+			reset_mpu();
 
 			// after doing a reset we need to wait a long
 			// time before we do any other register writes
@@ -1140,7 +739,6 @@ bool ICM20948::check_duplicate(uint8_t *accel_data)
 void
 ICM20948::measure()
 {
-
 	if (hrt_absolute_time() < _reset_wait) {
 		// we're waiting for a reset to complete
 		return;
@@ -1163,11 +761,12 @@ ICM20948::measure()
 	/* start measuring */
 	perf_begin(_sample_perf);
 
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
 	/*
 	 * Fetch the full set of measurements from the MPU9250 in one pass
 	 */
 
-	if ((!_magnetometer_only || _mag->is_passthrough()) && _register_wait == 0) {
+	if ((!_magnetometer_only || _mag.is_passthrough()) && _register_wait == 0) {
 
 		select_register_bank(REG_BANK(ICMREG_20948_ACCEL_XOUT_H));
 
@@ -1191,15 +790,15 @@ ICM20948::measure()
 
 #   ifdef USE_I2C
 
-	if (_mag->is_passthrough()) {
+	if (_mag.is_passthrough()) {
 #   endif
 
-		_mag->_measure(mpu_report.mag);
+		_mag._measure(timestamp_sample, mpu_report.mag);
 
 #   ifdef USE_I2C
 
 	} else {
-		_mag->measure();
+		_mag.measure();
 	}
 
 #   endif
@@ -1251,6 +850,8 @@ ICM20948::measure()
 	 */
 	_last_temperature = (report.temp) / 333.87f + 21.0f;
 
+	_px4_accel.set_temperature(_last_temperature);
+	_px4_gyro.set_temperature(_last_temperature);
 
 	/*
 	 * Convert and publish accelerometer and gyrometer data.
@@ -1260,43 +861,30 @@ ICM20948::measure()
 
 		/*
 		 * Keeping the axes as they are for ICM20948 so orientation will match the actual chip orientation
+		 * Swap axes and negate y
 		 */
-		if (_whoami != ICM_WHOAMI_20948) {
-			/*
-			 * Swap axes and negate y
-			 */
 
-			int16_t accel_xt = report.accel_y;
-			int16_t accel_yt = ((report.accel_x == -32768) ? 32767 : -report.accel_x);
+		int16_t accel_xt = report.accel_y;
+		int16_t accel_yt = ((report.accel_x == -32768) ? 32767 : -report.accel_x);
 
-			int16_t gyro_xt = report.gyro_y;
-			int16_t gyro_yt = ((report.gyro_x == -32768) ? 32767 : -report.gyro_x);
-
-			/*
-			 * Apply the swap
-			 */
-			report.accel_x = accel_xt;
-			report.accel_y = accel_yt;
-			report.gyro_x = gyro_xt;
-			report.gyro_y = gyro_yt;
-		}
+		int16_t gyro_xt = report.gyro_y;
+		int16_t gyro_yt = ((report.gyro_x == -32768) ? 32767 : -report.gyro_x);
 
 		/*
-		 * Report buffers.
+		 * Apply the swap
 		 */
-		sensor_accel_s		arb;
-		sensor_gyro_s			grb;
-
-		/*
-		 * Adjust and scale results to m/s^2.
-		 */
-		grb.timestamp = arb.timestamp = hrt_absolute_time();
+		report.accel_x = accel_xt;
+		report.accel_y = accel_yt;
+		report.gyro_x = gyro_xt;
+		report.gyro_y = gyro_yt;
 
 		// report the error count as the sum of the number of bad
 		// transfers and bad register reads. This allows the higher
 		// level code to decide if it should use this sensor based on
 		// whether it has had failures
-		grb.error_count = arb.error_count = perf_event_count(_bad_transfers) + perf_event_count(_bad_registers);
+		const uint64_t error_count = perf_event_count(_bad_transfers) + perf_event_count(_bad_registers);
+		_px4_accel.set_error_count(error_count);
+		_px4_gyro.set_error_count(error_count);
 
 		/*
 		 * 1) Scale raw value to SI units using scaling from datasheet.
@@ -1314,96 +902,8 @@ ICM20948::measure()
 		 */
 
 		/* NOTE: Axes have been swapped to match the board a few lines above. */
-
-		arb.x_raw = report.accel_x;
-		arb.y_raw = report.accel_y;
-		arb.z_raw = report.accel_z;
-
-		float xraw_f = report.accel_x;
-		float yraw_f = report.accel_y;
-		float zraw_f = report.accel_z;
-
-		// apply user specified rotation
-		rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
-
-		float x_in_new = ((xraw_f * _accel_range_scale) - _accel_scale.x_offset) * _accel_scale.x_scale;
-		float y_in_new = ((yraw_f * _accel_range_scale) - _accel_scale.y_offset) * _accel_scale.y_scale;
-		float z_in_new = ((zraw_f * _accel_range_scale) - _accel_scale.z_offset) * _accel_scale.z_scale;
-
-		arb.x = _accel_filter_x.apply(x_in_new);
-		arb.y = _accel_filter_y.apply(y_in_new);
-		arb.z = _accel_filter_z.apply(z_in_new);
-
-		matrix::Vector3f aval(x_in_new, y_in_new, z_in_new);
-		matrix::Vector3f aval_integrated;
-
-		bool accel_notify = _accel_int.put(arb.timestamp, aval, aval_integrated, arb.integral_dt);
-		arb.x_integral = aval_integrated(0);
-		arb.y_integral = aval_integrated(1);
-		arb.z_integral = aval_integrated(2);
-
-		arb.scaling = _accel_range_scale;
-
-		arb.temperature = _last_temperature;
-
-		/* return device ID */
-		arb.device_id = _accel->_device_id.devid;
-
-		grb.x_raw = report.gyro_x;
-		grb.y_raw = report.gyro_y;
-		grb.z_raw = report.gyro_z;
-
-		xraw_f = report.gyro_x;
-		yraw_f = report.gyro_y;
-		zraw_f = report.gyro_z;
-
-		// apply user specified rotation
-		rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
-
-		float x_gyro_in_new = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-		float y_gyro_in_new = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-		float z_gyro_in_new = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
-
-		grb.x = _gyro_filter_x.apply(x_gyro_in_new);
-		grb.y = _gyro_filter_y.apply(y_gyro_in_new);
-		grb.z = _gyro_filter_z.apply(z_gyro_in_new);
-
-		matrix::Vector3f gval(x_gyro_in_new, y_gyro_in_new, z_gyro_in_new);
-		matrix::Vector3f gval_integrated;
-
-		bool gyro_notify = _gyro_int.put(arb.timestamp, gval, gval_integrated, grb.integral_dt);
-		grb.x_integral = gval_integrated(0);
-		grb.y_integral = gval_integrated(1);
-		grb.z_integral = gval_integrated(2);
-
-		grb.scaling = _gyro_range_scale;
-
-		grb.temperature = _last_temperature;
-
-		/* return device ID */
-		grb.device_id = _gyro->_device_id.devid;
-
-		_accel_reports->force(&arb);
-		_gyro_reports->force(&grb);
-
-		/* notify anyone waiting for data */
-		if (accel_notify) {
-			_accel->poll_notify(POLLIN);
-		}
-
-		if (gyro_notify) {
-			_gyro->parent_poll_notify();
-		}
-
-		if (accel_notify && !(_accel->_pub_blocked)) {
-			/* publish it */
-			orb_publish(ORB_ID(sensor_accel), _accel_topic, &arb);
-		}
-
-		if (gyro_notify && !(_gyro->_pub_blocked)) {
-			/* publish it */
-			orb_publish(ORB_ID(sensor_gyro), _gyro->_gyro_topic, &grb);
-		}
+		_px4_accel.update(timestamp_sample, report.accel_x, report.accel_y, report.accel_z);
+		_px4_gyro.update(timestamp_sample, report.gyro_x, report.gyro_y, report.gyro_z);
 	}
 
 	/* stop measuring */
@@ -1413,7 +913,6 @@ ICM20948::measure()
 void
 ICM20948::print_info()
 {
-	::printf("Device type:%d\n", _whoami);
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_accel_reads);
 	perf_print_counter(_gyro_reads);
@@ -1422,11 +921,11 @@ ICM20948::print_info()
 	perf_print_counter(_good_transfers);
 	perf_print_counter(_reset_retries);
 	perf_print_counter(_duplicates);
-	::printf("temperature: %.1f\n", (double)_last_temperature);
 
 	if (!_magnetometer_only) {
-		_accel_reports->print_info("accel queue");
-		_gyro_reports->print_info("gyro queue");
-		_mag->_mag_reports->print_info("mag queue");
+		_px4_accel.print_status();
+		_px4_gyro.print_status();
 	}
+
+	_mag.print_status();
 }

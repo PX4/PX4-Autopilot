@@ -10,9 +10,6 @@ extern orb_advert_t mavlink_log_pub;
 static const uint32_t		REQ_FLOW_INIT_COUNT = 10;
 static const uint32_t		FLOW_TIMEOUT = 1000000;	// 1 s
 
-// minimum flow altitude
-static const float flow_min_agl = 0.3;
-
 void BlockLocalPositionEstimator::flowInit()
 {
 	// measure
@@ -44,7 +41,7 @@ int BlockLocalPositionEstimator::flowMeasure(Vector<float, n_y_flow> &y)
 	}
 
 	// check for agl
-	if (agl() < flow_min_agl) {
+	if (agl() < _sub_flow.get().min_ground_distance) {
 		return -1;
 	}
 
@@ -155,9 +152,10 @@ void BlockLocalPositionEstimator::flowCorrect()
 	// compute polynomial value
 	float flow_vxy_stddev = p[0] * h + p[1] * h * h + p[2] * v + p[3] * v * h + p[4] * v * h * h;
 
-	float rotrate_sq = _sub_att.get().rollspeed * _sub_att.get().rollspeed
-			   + _sub_att.get().pitchspeed * _sub_att.get().pitchspeed
-			   + _sub_att.get().yawspeed * _sub_att.get().yawspeed;
+	const Vector3f rates{_sub_angular_velocity.get().xyz};
+	float rotrate_sq = rates(0) * rates(0)
+			   + rates(1) * rates(1)
+			   + rates(2) * rates(2);
 
 	matrix::Eulerf euler(matrix::Quatf(_sub_att.get().q));
 	float rot_sq = euler.phi() * euler.phi() + euler.theta() * euler.theta();

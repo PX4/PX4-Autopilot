@@ -48,7 +48,7 @@
 #include <asm-generic/termbits.h>
 #include <errno.h>
 #include <px4_config.h>
-#include <px4_workqueue.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_defines.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
@@ -66,13 +66,13 @@
 
 namespace linux_sbus
 {
-class RcInput
+class RcInput : public px4::ScheduledWorkItem
 {
 public:
 	RcInput() :
+		ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 		_shouldExit(false),
 		_isRunning(false),
-		_work { },
 		_rcinput_pub(nullptr),
 		_data { }, _sbusData {   0x0f, 0x01, 0x04, 0x20, 0x00,
 					 0xff, 0x07, 0x40, 0x00, 0x02,
@@ -82,7 +82,7 @@ public:
 	{ }
 	~RcInput()
 	{
-		work_cancel(HPWORK, &_work);
+		ScheduleClear();
 		_isRunning = false;
 		close(_device_fd);
 	}
@@ -90,20 +90,16 @@ public:
 	int start(char *device, int channels);
 	void stop();
 
-	/** Trampoline for the work queue. */
-	static void cycle_trampoline(void *arg);
-
 	bool isRunning()
 	{
 		return _isRunning;
 	}
 
 private:
-	void _cycle();
+	void Run() override;
 	void _measure();
 	bool _shouldExit;
 	bool _isRunning;
-	struct work_s _work;
 	orb_advert_t _rcinput_pub;
 	struct input_rc_s _data;
 	uint8_t _sbusData[25];

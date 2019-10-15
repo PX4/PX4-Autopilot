@@ -38,6 +38,7 @@ set(msg_files
 	actuator_outputs.msg
 	adc_report.msg
 	airspeed.msg
+	airspeed_validated.msg
 	battery_status.msg
 	camera_capture.msg
 	camera_trigger.msg
@@ -88,6 +89,7 @@ set(msg_files
 	position_setpoint.msg
 	position_setpoint_triplet.msg
 	power_button_state.msg
+	power_monitor.msg
 	pwm_input.msg
 	qshell_req.msg
 	qshell_retval.msg
@@ -103,6 +105,7 @@ set(msg_files
 	sensor_combined.msg
 	sensor_correction.msg
 	sensor_gyro.msg
+	sensor_gyro_control.msg
 	sensor_mag.msg
 	sensor_preflight.msg
 	sensor_selection.msg
@@ -121,7 +124,9 @@ set(msg_files
 	uavcan_parameter_value.msg
 	ulog_stream.msg
 	ulog_stream_ack.msg
+	vehicle_acceleration.msg
 	vehicle_air_data.msg
+	vehicle_angular_velocity.msg
 	vehicle_attitude.msg
 	vehicle_attitude_setpoint.msg
 	vehicle_command.msg
@@ -141,6 +146,7 @@ set(msg_files
 	vehicle_status_flags.msg
 	vehicle_trajectory_waypoint.msg
 	vtol_vehicle_status.msg
+	wheel_encoders.msg
 	wind_estimate.msg
 	)
 
@@ -183,7 +189,7 @@ add_custom_command(OUTPUT ${uorb_headers}
 		-q
 	DEPENDS
 		${msg_files}
-		templates/uorb/msg.h.template
+		templates/uorb/msg.h.em
 		tools/px_generate_uorb_topic_files.py
 	COMMENT "Generating uORB topic headers"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -203,7 +209,7 @@ add_custom_command(OUTPUT ${uorb_sources}
 		-q
 	DEPENDS
 		${msg_files}
-		templates/uorb/msg.cpp.template
+		templates/uorb/msg.cpp.em
 		tools/px_generate_uorb_topic_files.py
 	COMMENT "Generating uORB topic sources"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

@@ -49,7 +49,7 @@
 #include <unistd.h>
 
 #include <px4_config.h>
-#include <px4_workqueue.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <px4_defines.h>
 
 #include <drivers/drv_hrt.h>
@@ -61,10 +61,10 @@
 
 namespace rpi_rc_in
 {
-class RcInput
+class RcInput : public px4::ScheduledWorkItem
 {
 public:
-	RcInput() = default;
+	RcInput() : ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default) {}
 
 	~RcInput();
 
@@ -74,23 +74,19 @@ public:
 	/** @return 0 on success, -errno on failure */
 	void stop();
 
-	/** Trampoline for the work queue. */
-	static void cycle_trampoline(void *arg);
-
 	bool is_running()
 	{
 		return _is_running;
 	}
 
 private:
-	void _cycle();
+	void Run() override;
 	void _measure();
 
 	int rpi_rc_init();
 
 	bool _should_exit = false;
 	bool _is_running = false;
-	struct work_s _work = {};
 	orb_advert_t _rcinput_pub = nullptr;
 	int _channels = 8; //D8R-II plus
 	struct input_rc_s _data = {};

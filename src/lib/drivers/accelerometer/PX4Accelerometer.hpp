@@ -31,6 +31,7 @@
  *
  ****************************************************************************/
 
+#pragma once
 
 #include <drivers/device/integrator.h>
 #include <drivers/drv_accel.h>
@@ -40,14 +41,14 @@
 #include <mathlib/math/filter/LowPassFilter2pVector3f.hpp>
 #include <px4_module_params.h>
 #include <uORB/uORB.h>
-#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_accel.h>
 
 class PX4Accelerometer : public cdev::CDev, public ModuleParams
 {
 
 public:
-	PX4Accelerometer(uint32_t device_id, uint8_t priority, enum Rotation rotation);
+	PX4Accelerometer(uint32_t device_id, uint8_t priority = ORB_PRIO_DEFAULT, enum Rotation rotation = ROTATION_NONE);
 	~PX4Accelerometer() override;
 
 	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
@@ -57,17 +58,17 @@ public:
 	void set_scale(float scale) { _sensor_accel_pub.get().scaling = scale; }
 	void set_temperature(float temperature) { _sensor_accel_pub.get().temperature = temperature; }
 
-	void set_sample_rate(unsigned rate) { _sample_rate = rate; }
+	void set_sample_rate(unsigned rate);
 
-	void configure_filter(float cutoff_freq) { _filter.set_cutoff_frequency(_sample_rate, cutoff_freq); }
-
-	void update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z);
+	void update(hrt_abstime timestamp, float x, float y, float z);
 
 	void print_status();
 
 private:
 
-	uORB::Publication<sensor_accel_s>	_sensor_accel_pub;
+	void configure_filter(float cutoff_freq) { _filter.set_cutoff_frequency(_sample_rate, cutoff_freq); }
+
+	uORB::PublicationMultiData<sensor_accel_s>	_sensor_accel_pub;
 
 	math::LowPassFilter2pVector3f _filter{1000, 100};
 	Integrator _integrator{4000, false};
@@ -79,7 +80,7 @@ private:
 
 	int			_class_device_instance{-1};
 
-	unsigned	_sample_rate{1000};
+	unsigned		_sample_rate{1000};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::IMU_ACCEL_CUTOFF>) _param_imu_accel_cutoff

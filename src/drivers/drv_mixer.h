@@ -71,11 +71,6 @@
 /** reset (clear) the mixer configuration */
 #define MIXERIOCRESET		_MIXERIOC(1)
 
-/**
- * add a simple mixer in (struct mixer_simple_s *)arg
- */
-#define MIXERIOCADDSIMPLE	_MIXERIOC(2)
-
 /* _MIXERIOC(3) was deprecated */
 /* _MIXERIOC(4) was deprecated */
 

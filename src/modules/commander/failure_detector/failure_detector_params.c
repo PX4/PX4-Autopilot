@@ -46,8 +46,13 @@
  * FailureDetector Max Roll
  *
  * Maximum roll angle before FailureDetector triggers the attitude_failure flag
- * Does not affect the behavior of the vehicle for now; only for logging
- * @min 0
+ * If flight termination is enabled (@CBRK_FLIGHTTERM set to 0), the autopilot
+ * will terminate the flight and set all the outputs to their failsafe value
+ * as soon as the attitude_failure flag is set.
+ *
+ * Setting this parameter to 0 disables the check
+ *
+ * @min 60
  * @max 180
  * @unit degrees
  * @group Failure Detector
@@ -58,10 +63,43 @@ PARAM_DEFINE_INT32(FD_FAIL_R, 60);
  * FailureDetector Max Pitch
  *
  * Maximum pitch angle before FailureDetector triggers the attitude_failure flag
- * Does not affect the behavior of the vehicle for now; only for logging
- * @min 0
+ * If flight termination is enabled (@CBRK_FLIGHTTERM set to 0), the autopilot
+ * will terminate the flight and set all the outputs to their failsafe value
+ * as soon as the attitude_failure flag is set.
+ *
+ * Setting this parameter to 0 disables the check
+ *
+ * @min 60
  * @max 180
  * @unit degrees
  * @group Failure Detector
  */
 PARAM_DEFINE_INT32(FD_FAIL_P, 60);
+
+/**
+ * Roll failure trigger time
+ *
+ * Seconds (decimal) that roll has to exceed FD_FAIL_R before being considered as a failure.
+ *
+ * @unit s
+ * @min 0.02
+ * @max 5
+ * @decimal 2
+ *
+ * @group Failure Detector
+ */
+PARAM_DEFINE_FLOAT(FD_FAIL_R_TTRI, 0.3);
+
+/**
+ * Pitch failure trigger time
+ *
+ * Seconds (decimal) that pitch has to exceed FD_FAIL_P before being considered as a failure.
+ *
+ * @unit s
+ * @min 0.02
+ * @max 5
+ * @decimal 2
+ *
+ * @group Failure Detector
+ */
+PARAM_DEFINE_FLOAT(FD_FAIL_P_TTRI, 0.3);

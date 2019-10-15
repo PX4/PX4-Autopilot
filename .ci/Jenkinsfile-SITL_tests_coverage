@@ -36,6 +36,13 @@ pipeline {
             ],
 
             [
+              name: "Rover 1",
+              test: "mavros_posix_test_mission.test",
+              mission: "rover_mission_1",
+              vehicle: "rover"
+            ],
+
+            [
               name: "VTOL_standard",
               test: "mavros_posix_test_mission.test",
               mission: "VTOL_mission_1",
@@ -47,12 +54,12 @@ pipeline {
               mission: "VTOL_mission_1",
               vehicle: "tailsitter"
             ],
-            [
-              name: "VTOL_tiltrotor",
-              test: "mavros_posix_test_mission.test",
-              mission: "VTOL_mission_1",
-              vehicle: "tiltrotor"
-            ],
+            // [
+            //   name: "VTOL_tiltrotor",
+            //   test: "mavros_posix_test_mission.test",
+            //   mission: "VTOL_mission_1",
+            //   vehicle: "tiltrotor"
+            // ],
 
           ]
 
@@ -72,13 +79,14 @@ pipeline {
         stage('code coverage (python)') {
           agent {
             docker {
-              image 'px4io/px4-dev-base-bionic:2019-03-08'
+              image 'px4io/px4-dev-base-bionic:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
           steps {
             sh 'export'
             sh 'make distclean'
+            sh 'git fetch --tags'
             sh 'make python_coverage'
             withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
               sh 'curl -s https://codecov.io/bash | bash -s - -F python'
@@ -91,13 +99,14 @@ pipeline {
         stage('unit tests') {
           agent {
             docker {
-              image 'px4io/px4-dev-base-bionic:2019-03-08'
+              image 'px4io/px4-dev-base-bionic:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
           steps {
             sh 'export'
             sh 'make distclean'
+            sh 'git fetch --tags'
             sh 'make px4_sitl_test test_results_junit'
             withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
               sh 'curl -s https://codecov.io/bash | bash -s - -F unittest'
@@ -128,7 +137,7 @@ def createTestNode(Map test_def) {
   return {
     node {
       cleanWs()
-      docker.image("px4io/px4-dev-ros-kinetic:2019-03-08").inside('-e HOME=${WORKSPACE}') {
+      docker.image("px4io/px4-dev-ros-kinetic:2019-10-04").inside('-e HOME=${WORKSPACE}') {
         stage(test_def.name) {
           def test_ok = true
           sh('export')
@@ -138,6 +147,7 @@ def createTestNode(Map test_def) {
           // run test
           try {
             sh('make distclean')
+            sh 'git fetch --tags'
             sh('ccache -z')
             sh('make px4_sitl_default')
             sh('make px4_sitl_default sitl_gazebo')

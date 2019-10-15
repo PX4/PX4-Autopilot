@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,39 +39,12 @@
  *       also supported by this driver.
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/clock.h>
-
-#include <drivers/drv_hrt.h>
 #include <drivers/device/spi.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
-
-#include <board_config.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+#include <perf/perf_counter.h>
+#include <px4_getopt.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 #define L3GD20_DEVICE_PATH "/dev/l3gd20"
 
@@ -192,16 +165,13 @@
 
 extern "C" { __EXPORT int l3gd20_main(int argc, char *argv[]); }
 
-class L3GD20 : public device::SPI
+class L3GD20 : public device::SPI, public px4::ScheduledWorkItem
 {
 public:
 	L3GD20(int bus, const char *path, uint32_t device, enum Rotation rotation);
 	virtual ~L3GD20();
 
 	virtual int		init();
-
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -219,48 +189,42 @@ protected:
 
 private:
 
-	struct hrt_call		_call;
-	unsigned		_call_interval;
+	PX4Gyroscope		_px4_gyro;
 
-	ringbuffer::RingBuffer	*_reports;
+	unsigned		_current_rate{0};
+	unsigned		_orientation{SENSOR_BOARD_ROTATION_DEFAULT};
 
-	struct gyro_calibration_s	_gyro_scale;
-	float			_gyro_range_scale;
-	float			_gyro_range_rad_s;
-	orb_advert_t		_gyro_topic;
-	int			_orb_class_instance;
-	int			_class_instance;
-
-	unsigned		_current_rate;
-	unsigned		_orientation;
-
-	unsigned		_read;
+	unsigned		_read{0};
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_errors;
 	perf_counter_t		_bad_registers;
 	perf_counter_t		_duplicates;
 
-	uint8_t			_register_wait;
-
-	math::LowPassFilter2p	_gyro_filter_x;
-	math::LowPassFilter2p	_gyro_filter_y;
-	math::LowPassFilter2p	_gyro_filter_z;
-
-	Integrator		_gyro_int;
+	uint8_t			_register_wait{0};
 
 	/* true if an L3G4200D is detected */
-	bool	_is_l3g4200d;
+	bool	_is_l3g4200d{false};
 
 	enum Rotation		_rotation;
 
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
-#define L3GD20_NUM_CHECKED_REGISTERS 8
-	static const uint8_t	_checked_registers[L3GD20_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_values[L3GD20_NUM_CHECKED_REGISTERS];
-	uint8_t			_checked_next;
+	static constexpr int L3GD20_NUM_CHECKED_REGISTERS{8};
+	static constexpr uint8_t _checked_registers[] = {
+		ADDR_WHO_AM_I,
+		ADDR_CTRL_REG1,
+		ADDR_CTRL_REG2,
+		ADDR_CTRL_REG3,
+		ADDR_CTRL_REG4,
+		ADDR_CTRL_REG5,
+		ADDR_FIFO_CTRL_REG,
+		ADDR_LOW_ODR
+	};
+
+	uint8_t			_checked_values[L3GD20_NUM_CHECKED_REGISTERS] {};
+	uint8_t			_checked_next{0};
 
 	/**
 	 * Start automatic measurement.
@@ -282,16 +246,7 @@ private:
 	 */
 	void			disable_i2c();
 
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		measure_trampoline(void *arg);
+	void		Run() override;
 
 	/**
 	 * check key registers for correct values
@@ -358,92 +313,30 @@ private:
 	 */
 	int			set_samplerate(unsigned frequency);
 
-	/**
-	 * Set the lowpass filter of the driver
-	 *
-	 * @param samplerate	The current samplerate
-	 * @param frequency	The cutoff frequency for the lowpass filter
-	 */
-	void			set_driver_lowpass_filter(float samplerate, float bandwidth);
-
-	/**
-	 * Self test
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int 			self_test();
-
 	/* this class does not allow copying */
 	L3GD20(const L3GD20 &);
 	L3GD20 operator=(const L3GD20 &);
 };
 
-/*
-  list of registers that will be checked in check_registers(). Note
-  that ADDR_WHO_AM_I must be first in the list.
- */
-const uint8_t L3GD20::_checked_registers[L3GD20_NUM_CHECKED_REGISTERS] = { ADDR_WHO_AM_I,
-									   ADDR_CTRL_REG1,
-									   ADDR_CTRL_REG2,
-									   ADDR_CTRL_REG3,
-									   ADDR_CTRL_REG4,
-									   ADDR_CTRL_REG5,
-									   ADDR_FIFO_CTRL_REG,
-									   ADDR_LOW_ODR
-									 };
+constexpr uint8_t L3GD20::_checked_registers[];
 
 L3GD20::L3GD20(int bus, const char *path, uint32_t device, enum Rotation rotation) :
-	SPI("L3GD20", path, bus, device, SPIDEV_MODE3,
-	    11 * 1000 * 1000 /* will be rounded to 10.4 MHz, within margins for L3GD20 */),
-	_call{},
-	_call_interval(0),
-	_reports(nullptr),
-	_gyro_scale{},
-	_gyro_range_scale(0.0f),
-	_gyro_range_rad_s(0.0f),
-	_gyro_topic(nullptr),
-	_orb_class_instance(-1),
-	_class_instance(-1),
-	_current_rate(0),
-	_orientation(SENSOR_BOARD_ROTATION_DEFAULT),
-	_read(0),
+	SPI("L3GD20", path, bus, device, SPIDEV_MODE3, 11 * 1000 * 1000),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(this->get_device_id())),
+	_px4_gyro(get_device_id(), ORB_PRIO_DEFAULT, rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "l3gd20_read")),
 	_errors(perf_alloc(PC_COUNT, "l3gd20_err")),
 	_bad_registers(perf_alloc(PC_COUNT, "l3gd20_bad_reg")),
 	_duplicates(perf_alloc(PC_COUNT, "l3gd20_dupe")),
-	_register_wait(0),
-	_gyro_filter_x(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
-	_gyro_filter_y(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
-	_gyro_filter_z(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ),
-	_gyro_int(1000000 / L3GD20_MAX_OUTPUT_RATE, true),
-	_is_l3g4200d(false),
-	_rotation(rotation),
-	_checked_next(0)
+	_rotation(rotation)
 {
-	_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_L3GD20;
-
-	// default scale factors
-	_gyro_scale.x_offset = 0;
-	_gyro_scale.x_scale  = 1.0f;
-	_gyro_scale.y_offset = 0;
-	_gyro_scale.y_scale  = 1.0f;
-	_gyro_scale.z_offset = 0;
-	_gyro_scale.z_scale  = 1.0f;
+	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_L3GD20);
 }
 
 L3GD20::~L3GD20()
 {
 	/* make sure we are truly inactive */
 	stop();
-
-	/* free any existing reports */
-	if (_reports != nullptr) {
-		delete _reports;
-	}
-
-	if (_class_instance != -1) {
-		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _class_instance);
-	}
 
 	/* delete the perf counter */
 	perf_free(_sample_perf);
@@ -455,40 +348,16 @@ L3GD20::~L3GD20()
 int
 L3GD20::init()
 {
-	int ret = PX4_ERROR;
-
 	/* do SPI init (and probe) first */
 	if (SPI::init() != OK) {
-		goto out;
+		return PX4_ERROR;
 	}
-
-	/* allocate basic report buffers */
-	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_gyro_s));
-
-	if (_reports == nullptr) {
-		goto out;
-	}
-
-	_class_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
 
 	reset();
 
-	measure();
+	start();
 
-	/* advertise sensor topic, measure manually to initialize valid report */
-	sensor_gyro_s grp;
-	_reports->get(&grp);
-
-	_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-					  &_orb_class_instance, (external()) ? ORB_PRIO_VERY_HIGH : ORB_PRIO_DEFAULT);
-
-	if (_gyro_topic == nullptr) {
-		DEVICE_DEBUG("failed to create sensor_gyro publication");
-	}
-
-	ret = OK;
-out:
-	return ret;
+	return PX4_OK;
 }
 
 int
@@ -525,122 +394,10 @@ L3GD20::probe()
 	return -EIO;
 }
 
-ssize_t
-L3GD20::read(struct file *filp, char *buffer, size_t buflen)
-{
-	unsigned count = buflen / sizeof(sensor_gyro_s);
-	sensor_gyro_s *gbuf = reinterpret_cast<sensor_gyro_s *>(buffer);
-	int ret = 0;
-
-	/* buffer must be large enough */
-	if (count < 1) {
-		return -ENOSPC;
-	}
-
-	/* if automatic measurement is enabled */
-	if (_call_interval > 0) {
-
-		/*
-		 * While there is space in the caller's buffer, and reports, copy them.
-		 * Note that we may be pre-empted by the measurement code while we are doing this;
-		 * we are careful to avoid racing with it.
-		 */
-		while (count--) {
-			if (_reports->get(gbuf)) {
-				ret += sizeof(*gbuf);
-				gbuf++;
-			}
-		}
-
-		/* if there was no data, warn the caller */
-		return ret ? ret : -EAGAIN;
-	}
-
-	/* manual measurement */
-	_reports->flush();
-	measure();
-
-	/* measurement will have generated a report, copy it out */
-	if (_reports->get(gbuf)) {
-		ret = sizeof(*gbuf);
-	}
-
-	return ret;
-}
-
-int
-L3GD20::ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-
-	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
-
-			/* zero would be bad */
-			case 0:
-				return -EINVAL;
-
-			/* set default polling rate */
-			case SENSOR_POLLRATE_DEFAULT:
-				if (_is_l3g4200d) {
-					return ioctl(filp, SENSORIOCSPOLLRATE, L3G4200D_DEFAULT_RATE);
-				}
-
-				return ioctl(filp, SENSORIOCSPOLLRATE, L3GD20_DEFAULT_RATE);
-
-			/* adjust to a legal polling interval in Hz */
-			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_call_interval == 0);
-
-					/* convert hz to hrt interval via microseconds */
-					unsigned ticks = 1000000 / arg;
-
-					/* check against maximum sane rate */
-					if (ticks < 1000) {
-						return -EINVAL;
-					}
-
-					/* update interval for next measurement */
-					/* XXX this is a bit shady, but no other way to adjust... */
-					_call_interval = ticks;
-
-					_call.period = _call_interval - L3GD20_TIMER_REDUCTION;
-
-					/* adjust filters */
-					float cutoff_freq_hz = _gyro_filter_x.get_cutoff_freq();
-					float sample_rate = 1.0e6f / ticks;
-					set_driver_lowpass_filter(sample_rate, cutoff_freq_hz);
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-					}
-
-					return OK;
-				}
-			}
-		}
-
-	case SENSORIOCRESET:
-		reset();
-		return OK;
-
-	case GYROIOCSSCALE:
-		/* copy scale in */
-		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
-		return OK;
-
-	default:
-		/* give it to the superclass */
-		return SPI::ioctl(filp, cmd, arg);
-	}
-}
-
 uint8_t
 L3GD20::read_reg(unsigned reg)
 {
-	uint8_t cmd[2];
+	uint8_t cmd[2] {};
 
 	cmd[0] = reg | DIR_READ;
 	cmd[1] = 0;
@@ -653,7 +410,7 @@ L3GD20::read_reg(unsigned reg)
 void
 L3GD20::write_reg(unsigned reg, uint8_t value)
 {
-	uint8_t	cmd[2];
+	uint8_t	cmd[2] {};
 
 	cmd[0] = reg | DIR_WRITE;
 	cmd[1] = value;
@@ -677,9 +434,7 @@ L3GD20::write_checked_reg(unsigned reg, uint8_t value)
 void
 L3GD20::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 {
-	uint8_t	val;
-
-	val = read_reg(reg);
+	uint8_t	val = read_reg(reg);
 	val &= ~clearbits;
 	val |= setbits;
 	write_checked_reg(reg, val);
@@ -690,24 +445,23 @@ L3GD20::set_range(unsigned max_dps)
 {
 	uint8_t bits = REG4_BDU;
 	float new_range_scale_dps_digit;
-	float new_range;
 
 	if (max_dps == 0) {
 		max_dps = 2000;
 	}
 
 	if (max_dps <= 250) {
-		new_range = 250;
+		//new_range = 250;
 		bits |= RANGE_250DPS;
 		new_range_scale_dps_digit = 8.75e-3f;
 
 	} else if (max_dps <= 500) {
-		new_range = 500;
+		//new_range = 500;
 		bits |= RANGE_500DPS;
 		new_range_scale_dps_digit = 17.5e-3f;
 
 	} else if (max_dps <= 2000) {
-		new_range = 2000;
+		//new_range = 2000;
 		bits |= RANGE_2000DPS;
 		new_range_scale_dps_digit = 70e-3f;
 
@@ -715,8 +469,8 @@ L3GD20::set_range(unsigned max_dps)
 		return -EINVAL;
 	}
 
-	_gyro_range_rad_s = new_range / 180.0f * M_PI_F;
-	_gyro_range_scale = new_range_scale_dps_digit / 180.0f * M_PI_F;
+	_px4_gyro.set_scale(new_range_scale_dps_digit / 180.0f * M_PI_F);
+
 	write_checked_reg(ADDR_CTRL_REG4, bits);
 
 	return OK;
@@ -761,33 +515,20 @@ L3GD20::set_samplerate(unsigned frequency)
 }
 
 void
-L3GD20::set_driver_lowpass_filter(float samplerate, float bandwidth)
-{
-	_gyro_filter_x.set_cutoff_frequency(samplerate, bandwidth);
-	_gyro_filter_y.set_cutoff_frequency(samplerate, bandwidth);
-	_gyro_filter_z.set_cutoff_frequency(samplerate, bandwidth);
-}
-
-void
 L3GD20::start()
 {
 	/* make sure we are stopped first */
 	stop();
 
-	/* reset the report ring */
-	_reports->flush();
-
 	/* start polling at the specified rate */
-	hrt_call_every(&_call,
-		       1000,
-		       _call_interval - L3GD20_TIMER_REDUCTION,
-		       (hrt_callout)&L3GD20::measure_trampoline, this);
+	uint64_t interval = 1000000 / L3G4200D_DEFAULT_RATE;
+	ScheduleOnInterval(interval - L3GD20_TIMER_REDUCTION, 10000);
 }
 
 void
 L3GD20::stop()
 {
-	hrt_cancel(&_call);
+	ScheduleClear();
 }
 
 void
@@ -820,8 +561,7 @@ L3GD20::reset()
 	disable_i2c();
 
 	/* set default configuration */
-	write_checked_reg(ADDR_CTRL_REG1,
-			  REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE);
+	write_checked_reg(ADDR_CTRL_REG1, REG1_POWER_NORMAL | REG1_Z_ENABLE | REG1_Y_ENABLE | REG1_X_ENABLE);
 	write_checked_reg(ADDR_CTRL_REG2, 0);		/* disable high-pass filters */
 	write_checked_reg(ADDR_CTRL_REG3, 0x08);        /* DRDY enable */
 	write_checked_reg(ADDR_CTRL_REG4, REG4_BDU);
@@ -835,18 +575,15 @@ L3GD20::reset()
 
 	set_samplerate(0); // 760Hz or 800Hz
 	set_range(L3GD20_DEFAULT_RANGE_DPS);
-	set_driver_lowpass_filter(L3GD20_DEFAULT_RATE, L3GD20_DEFAULT_FILTER_FREQ);
 
 	_read = 0;
 }
 
 void
-L3GD20::measure_trampoline(void *arg)
+L3GD20::Run()
 {
-	L3GD20 *dev = (L3GD20 *)arg;
-
 	/* make another measurement */
-	dev->measure();
+	measure();
 }
 
 void
@@ -891,10 +628,8 @@ L3GD20::measure()
 		int16_t		x;
 		int16_t		y;
 		int16_t		z;
-	} raw_report;
+	} raw_report{};
 #pragma pack(pop)
-
-	sensor_gyro_s report;
 
 	/* start the performance counter */
 	perf_begin(_sample_perf);
@@ -902,7 +637,7 @@ L3GD20::measure()
 	check_registers();
 
 	/* fetch data from the sensor */
-	memset(&raw_report, 0, sizeof(raw_report));
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
 	raw_report.cmd = ADDR_OUT_TEMP | DIR_READ | ADDR_INCREMENT;
 	transfer((uint8_t *)&raw_report, (uint8_t *)&raw_report, sizeof(raw_report));
 
@@ -926,79 +661,39 @@ L3GD20::measure()
 	 *	 	  the offset is 74 from the origin and subtracting
 	 *		  74 from all measurements centers them around zero.
 	 */
-	report.timestamp = hrt_absolute_time();
-	report.error_count = perf_event_count(_bad_registers);
+	_px4_gyro.set_error_count(perf_event_count(_bad_registers));
+
+	_px4_gyro.set_temperature(L3GD20_TEMP_OFFSET_CELSIUS - raw_report.temp);
 
 	switch (_orientation) {
-
-	case SENSOR_BOARD_ROTATION_000_DEG:
-		/* keep axes in place */
-		report.x_raw = raw_report.x;
-		report.y_raw = raw_report.y;
-		break;
-
 	case SENSOR_BOARD_ROTATION_090_DEG:
 		/* swap x and y */
-		report.x_raw = raw_report.y;
-		report.y_raw = raw_report.x;
+		_px4_gyro.update(timestamp_sample, raw_report.y, raw_report.x, raw_report.z);
 		break;
 
-	case SENSOR_BOARD_ROTATION_180_DEG:
-		/* swap x and y and negate both */
-		report.x_raw = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
-		report.y_raw = ((raw_report.y == -32768) ? 32767 : -raw_report.y);
-		break;
-
-	case SENSOR_BOARD_ROTATION_270_DEG:
-		/* swap x and y and negate y */
-		report.x_raw = raw_report.y;
-		report.y_raw = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
-		break;
-	}
-
-	report.z_raw = raw_report.z;
-
-	float xraw_f = report.x_raw;
-	float yraw_f = report.y_raw;
-	float zraw_f = report.z_raw;
-
-	// apply user specified rotation
-	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
-
-	float xin = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	float yin = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	float zin = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
-
-	report.x = _gyro_filter_x.apply(xin);
-	report.y = _gyro_filter_y.apply(yin);
-	report.z = _gyro_filter_z.apply(zin);
-
-	matrix::Vector3f gval(xin, yin, zin);
-	matrix::Vector3f gval_integrated;
-
-	bool gyro_notify = _gyro_int.put(report.timestamp, gval, gval_integrated, report.integral_dt);
-	report.x_integral = gval_integrated(0);
-	report.y_integral = gval_integrated(1);
-	report.z_integral = gval_integrated(2);
-
-	report.temperature = L3GD20_TEMP_OFFSET_CELSIUS - raw_report.temp;
-
-	report.scaling = _gyro_range_scale;
-
-	/* return device ID */
-	report.device_id = _device_id.devid;
-
-	_reports->force(&report);
-
-	if (gyro_notify) {
-		/* notify anyone waiting for data */
-		poll_notify(POLLIN);
-
-		/* publish for subscribers */
-		if (!(_pub_blocked)) {
-			/* publish it */
-			orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &report);
+	case SENSOR_BOARD_ROTATION_180_DEG: {
+			/* swap x and y and negate both */
+			int16_t x = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
+			int16_t y = ((raw_report.y == -32768) ? 32767 : -raw_report.y);
+			_px4_gyro.update(timestamp_sample, x, y, raw_report.z);
 		}
+
+		break;
+
+	case SENSOR_BOARD_ROTATION_270_DEG: {
+			/* swap x and y and negate y */
+			int16_t x = raw_report.y;
+			int16_t y = ((raw_report.x == -32768) ? 32767 : -raw_report.x);
+			_px4_gyro.update(timestamp_sample, x, y, raw_report.z);
+		}
+		break;
+
+	case SENSOR_BOARD_ROTATION_000_DEG:
+
+	// FALLTHROUGH
+	default:
+		// keep axes in place
+		_px4_gyro.update(timestamp_sample, raw_report.x, raw_report.y, raw_report.z);
 	}
 
 	_read++;
@@ -1015,7 +710,7 @@ L3GD20::print_info()
 	perf_print_counter(_errors);
 	perf_print_counter(_bad_registers);
 	perf_print_counter(_duplicates);
-	_reports->print_info("report queue");
+
 	::printf("checked_next: %u\n", _checked_next);
 
 	for (uint8_t i = 0; i < L3GD20_NUM_CHECKED_REGISTERS; i++) {
@@ -1028,6 +723,8 @@ L3GD20::print_info()
 				 (unsigned)_checked_values[i]);
 		}
 	}
+
+	_px4_gyro.print_status();
 }
 
 void
@@ -1054,37 +751,6 @@ L3GD20::test_error()
 	write_reg(ADDR_CTRL_REG3, 0);
 }
 
-int
-L3GD20::self_test()
-{
-	/* evaluate gyro offsets, complain if offset larger than 25 dps */
-	if (fabsf(_gyro_scale.x_offset) > L3GD20_MAX_OFFSET) {
-		return 1;
-	}
-
-	if (fabsf(_gyro_scale.x_scale - 1.0f) > 0.3f) {
-		return 1;
-	}
-
-	if (fabsf(_gyro_scale.y_offset) > L3GD20_MAX_OFFSET) {
-		return 1;
-	}
-
-	if (fabsf(_gyro_scale.y_scale - 1.0f) > 0.3f) {
-		return 1;
-	}
-
-	if (fabsf(_gyro_scale.z_offset) > L3GD20_MAX_OFFSET) {
-		return 1;
-	}
-
-	if (fabsf(_gyro_scale.z_scale - 1.0f) > 0.3f) {
-		return 1;
-	}
-
-	return 0;
-}
-
 /**
  * Local functions in support of the shell command.
  */
@@ -1095,8 +761,6 @@ L3GD20	*g_dev;
 
 void	usage();
 void	start(bool external_bus, enum Rotation rotation);
-void	test();
-void	reset();
 void	info();
 void	regdump();
 void	test_error();
@@ -1110,8 +774,6 @@ void	test_error();
 void
 start(bool external_bus, enum Rotation rotation)
 {
-	int fd;
-
 	if (g_dev != nullptr) {
 		errx(0, "already started");
 	}
@@ -1136,19 +798,6 @@ start(bool external_bus, enum Rotation rotation)
 		goto fail;
 	}
 
-	/* set the poll rate to default, starts automatic data collection */
-	fd = open(L3GD20_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		goto fail;
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		goto fail;
-	}
-
-	close(fd);
-
 	exit(0);
 fail:
 
@@ -1158,69 +807,6 @@ fail:
 	}
 
 	errx(1, "driver start failed");
-}
-
-/**
- * Perform some basic functional tests on the driver;
- * make sure we can collect data from the sensor in polled
- * and automatic modes.
- */
-void
-test()
-{
-	int fd_gyro = -1;
-	sensor_gyro_s g_report;
-	ssize_t sz;
-
-	/* get the driver */
-	fd_gyro = open(L3GD20_DEVICE_PATH, O_RDONLY);
-
-	if (fd_gyro < 0) {
-		err(1, "%s open failed", L3GD20_DEVICE_PATH);
-	}
-
-	/* do a simple demand read */
-	sz = read(fd_gyro, &g_report, sizeof(g_report));
-
-	if (sz != sizeof(g_report)) {
-		err(1, "immediate gyro read failed");
-	}
-
-	print_message(g_report);
-
-	if (ioctl(fd_gyro, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "reset to default polling");
-	}
-
-	close(fd_gyro);
-
-	/* XXX add poll-rate tests here too */
-	errx(0, "PASS");
-}
-
-/**
- * Reset the driver.
- */
-void
-reset()
-{
-	int fd = open(L3GD20_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		err(1, "failed ");
-	}
-
-	if (ioctl(fd, SENSORIOCRESET, 0) < 0) {
-		err(1, "driver reset failed");
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		err(1, "accel pollrate reset failed");
-	}
-
-	close(fd);
-
-	exit(0);
 }
 
 /**
@@ -1274,7 +860,7 @@ test_error(void)
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'reset', 'testerror' or 'regdump'");
+	warnx("missing command: try 'start', 'info', 'testerror' or 'regdump'");
 	warnx("options:");
 	warnx("    -X    (external bus)");
 	warnx("    -R rotation");
@@ -1320,20 +906,6 @@ l3gd20_main(int argc, char *argv[])
 	 */
 	if (!strcmp(verb, "start")) {
 		l3gd20::start(external_bus, rotation);
-	}
-
-	/*
-	 * Test the driver/device.
-	 */
-	if (!strcmp(verb, "test")) {
-		l3gd20::test();
-	}
-
-	/*
-	 * Reset the driver.
-	 */
-	if (!strcmp(verb, "reset")) {
-		l3gd20::reset();
 	}
 
 	/*

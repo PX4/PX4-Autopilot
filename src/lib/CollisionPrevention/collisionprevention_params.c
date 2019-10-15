@@ -42,7 +42,7 @@
 /**
  * Minimum distance the vehicle should keep to all obstacles
  *
- * Only used in Position mode. Collision avoidace is disabled by setting this parameter to a negative value
+ * Only used in Position mode. Collision avoidance is disabled by setting this parameter to a negative value
  *
  * @min -1
  * @max 15
@@ -50,3 +50,27 @@
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_FLOAT(MPC_COL_PREV_D, -1.0f);
+
+/**
+ * Average delay of the range sensor message plus the tracking delay of the position controller in seconds
+ *
+ * Only used in Position mode.
+ *
+ * @min 0
+ * @max 1
+ * @unit seconds
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_COL_PREV_DLY, 0.4f);
+
+/**
+ * Angle left/right from the commanded setpoint by which the collision prevention algorithm can choose to change the setpoint direction
+ *
+ * Only used in Position mode.
+ *
+ * @min 0
+ * @max 90
+ * @unit [deg]
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_COL_PREV_CNG, 30.f);

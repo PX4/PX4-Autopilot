@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,7 +40,11 @@
 #pragma once
 
 #include "FlightTaskManualPosition.hpp"
-#include "VelocitySmoothing.hpp"
+#include "ManualVelocitySmoothingXY.hpp"
+#include "ManualVelocitySmoothingZ.hpp"
+
+using matrix::Vector2f;
+using matrix::Vector3f;
 
 class FlightTaskManualPositionSmoothVel : public FlightTaskManualPosition
 {
@@ -49,41 +53,41 @@ public:
 
 	virtual ~FlightTaskManualPositionSmoothVel() = default;
 
-	bool activate() override;
+	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
 	void reActivate() override;
 
 protected:
 
 	virtual void _updateSetpoints() override;
 
+	/** Reset position or velocity setpoints in case of EKF reset event */
+	void _ekfResetHandlerPositionXY() override;
+	void _ekfResetHandlerVelocityXY() override;
+	void _ekfResetHandlerPositionZ() override;
+	void _ekfResetHandlerVelocityZ() override;
+
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManualPosition,
-					(ParamFloat<px4::params::MPC_JERK_MIN>) _param_mpc_jerk_min, /**< Minimum jerk (velocity-based if > 0) */
 					(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max,
 					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
 					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max
 				       )
+
 private:
+	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
 
-	enum class Axes {XY, XYZ};
+	void _updateTrajConstraints();
+	void _updateTrajConstraintsXY();
+	void _updateTrajConstraintsZ();
 
-	/**
-	 * Reset the required axes. when force_z_zero is set to true, the z derivatives are set to sero and not to the estimated states
-	 */
-	void reset(Axes axes, bool force_z_zero = false);
-	void _checkEkfResetCounters(); /**< Reset the trajectories when the ekf resets velocity or position */
+	void _updateTrajVelFeedback();
+	void _updateTrajCurrentPositionEstimate();
 
-	VelocitySmoothing _smoothing[3]; ///< Smoothing in x, y and z directions
-	matrix::Vector3f _vel_sp_smooth;
-	bool _position_lock_xy_active{false};
-	bool _position_lock_z_active{false};
-	matrix::Vector2f _position_setpoint_xy_locked;
-	float _position_setpoint_z_locked{NAN};
+	void _updateTrajectories(Vector3f vel_target);
 
-	/* counters for estimator local position resets */
-	struct {
-		uint8_t xy;
-		uint8_t vxy;
-		uint8_t z;
-		uint8_t vz;
-	} _reset_counters{0, 0, 0, 0};
+	void _setOutputState();
+	void _setOutputStateXY();
+	void _setOutputStateZ();
+
+	ManualVelocitySmoothingXY _smoothing_xy; ///< Smoothing in x and y directions
+	ManualVelocitySmoothingZ _smoothing_z; ///< Smoothing in z direction
 };

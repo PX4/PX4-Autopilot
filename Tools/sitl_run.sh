@@ -63,16 +63,9 @@ done
 
 SIM_PID=0
 
-# Allow speed factor to bet set from environment.
-if [[ -n "$PX4_SIM_SPEED_FACTOR" ]]; then
-    speed_factor=$PX4_SIM_SPEED_FACTOR
-else
-    speed_factor=1
-fi
-
 if [ "$program" == "jmavsim" ] && [ ! -n "$no_sim" ]; then
 	# Start Java simulator
-	"$src_path"/Tools/jmavsim_run.sh -r 250 -f $speed_factor -l &
+	"$src_path"/Tools/jmavsim_run.sh -r 250 -l &
 	SIM_PID=`echo $!`
 elif [ "$program" == "gazebo" ] && [ ! -n "$no_sim" ]; then
 	if [ -x "$(command -v gazebo)" ]; then
@@ -116,7 +109,7 @@ export PX4_SIM_MODEL=${model}
 
 
 if [[ -n "$DONT_RUN" ]]; then
-    echo "Not running simulation (\$DONT_RUN is set)."
+	echo "Not running simulation (\$DONT_RUN is set)."
 elif [ "$debugger" == "lldb" ]; then
 	eval lldb -- $sitl_command
 elif [ "$debugger" == "gdb" ]; then

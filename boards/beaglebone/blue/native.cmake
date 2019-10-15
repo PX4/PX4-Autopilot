@@ -34,8 +34,7 @@ px4_add_board(
 		events
 		fw_att_control
 		fw_pos_control_l1
-		gnd_att_control
-		gnd_pos_control
+		rover_pos_control
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -49,7 +48,7 @@ px4_add_board(
 		sih
 		vmount
 		vtol_att_control
-		wind_estimator
+		airspeed_selector
 
 	SYSTEMCMDS
 		esc_calib
@@ -66,15 +65,14 @@ px4_add_board(
 		topic_listener
 		tune_control
 		ver
+		work_queue
 
 	EXAMPLES
 		bottle_drop # OBC challenge
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		#hwtest # Hardware test
-		position_estimator_inav
 		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
-		segway
 	)

@@ -41,14 +41,9 @@
  * @author David sidrane
  */
 
-#include <px4_config.h>
 #include <drivers/device/spi.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_device.h>
 
 #include "MPU6000.hpp"
-
-#include <string.h>
 
 #define DIR_READ			0x80
 #define DIR_WRITE			0x00

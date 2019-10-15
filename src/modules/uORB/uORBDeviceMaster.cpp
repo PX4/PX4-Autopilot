@@ -102,10 +102,10 @@ uORB::DeviceMaster::advertise(const struct orb_metadata *meta, int *instance, in
 			return -ENOMEM;
 		}
 
-		/* construct the new node */
+		/* construct the new node, passing the ownership of path to it */
 		uORB::DeviceNode *node = new uORB::DeviceNode(meta, group_tries, devpath, priority);
 
-		/* if we didn't get a device, that's bad */
+		/* if we didn't get a device, that's bad, free the path too */
 		if (node == nullptr) {
 			free((void *)devpath);
 			return -ENOMEM;
@@ -133,9 +133,6 @@ uORB::DeviceMaster::advertise(const struct orb_metadata *meta, int *instance, in
 				}
 			}
 
-			/* also discard the name now */
-			free((void *)devpath);
-
 		} else {
 			// add to the node map;.
 			_node_list.add(node);
@@ -161,22 +158,38 @@ void uORB::DeviceMaster::printStatistics(bool reset)
 	PX4_INFO("TOPIC, NR LOST MSGS");
 	bool had_print = false;
 
+	/* Add all nodes to a list while locked, and then print them in unlocked state, to avoid potential
+	 * dead-locks (where printing blocks) */
 	lock();
+	DeviceNodeStatisticsData *first_node = nullptr;
+	DeviceNodeStatisticsData *cur_node = nullptr;
+	size_t max_topic_name_length = 0;
+	int num_topics = 0;
+	int ret = addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, nullptr, 0);
+	unlock();
 
-	for (const auto &node : _node_list) {
-		if (node->print_statistics(reset)) {
-			had_print = true;
-		}
+	if (ret != 0) {
+		PX4_ERR("addNewDeviceNodes failed (%i)", ret);
 	}
 
-	unlock();
+	cur_node = first_node;
+
+	while (cur_node) {
+		if (cur_node->node->print_statistics(reset)) {
+			had_print = true;
+		}
+
+		DeviceNodeStatisticsData *prev = cur_node;
+		cur_node = cur_node->next;
+		delete prev;
+	}
 
 	if (!had_print) {
 		PX4_INFO("No lost messages");
 	}
 }
 
-void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node, int &num_topics,
+int uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node, int &num_topics,
 		size_t &max_topic_name_length, char **topic_filter, int num_filters)
 {
 	DeviceNodeStatisticsData *cur_node = nullptr;
@@ -227,8 +240,7 @@ void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node
 		}
 
 		if (!last_node) {
-			PX4_ERR("mem alloc failed");
-			break;
+			return -ENOMEM;
 		}
 
 		last_node->node = node;
@@ -242,6 +254,8 @@ void uORB::DeviceMaster::addNewDeviceNodes(DeviceNodeStatisticsData **first_node
 		last_node->last_lost_msg_count = last_node->node->lost_message_count();
 		last_node->last_pub_msg_count = last_node->node->published_message_count();
 	}
+
+	return 0;
 }
 
 #define CLEAR_LINE "\033[K"
@@ -284,10 +298,14 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 	DeviceNodeStatisticsData *cur_node = nullptr;
 	size_t max_topic_name_length = 0;
 	int num_topics = 0;
-	addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
+	int ret = addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
 
 	/* a DeviceNode is never deleted, so it's save to unlock here and still access the DeviceNodes */
 	unlock();
+
+	if (ret != 0) {
+		PX4_ERR("addNewDeviceNodes failed (%i)", ret);
+	}
 
 #ifdef __PX4_QURT //QuRT has no poll()
 	only_once = true;
@@ -310,7 +328,7 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 		for (int k = 0; k < 5; k++) {
 			char c;
 
-			int ret = ::poll(&fds, 1, 0); //just want to check if there is new data available
+			ret = ::poll(&fds, 1, 0); //just want to check if there is new data available
 
 			if (ret > 0) {
 
@@ -365,8 +383,13 @@ void uORB::DeviceMaster::showTop(char **topic_filter, int num_filters)
 			}
 
 			lock();
-			addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
+			ret = addNewDeviceNodes(&first_node, num_topics, max_topic_name_length, topic_filter, num_filters);
 			unlock();
+
+			if (ret != 0) {
+				PX4_ERR("addNewDeviceNodes failed (%i)", ret);
+			}
+
 		}
 
 		if (only_once) {
@@ -404,6 +427,10 @@ uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const char *nodepath)
 
 uORB::DeviceNode *uORB::DeviceMaster::getDeviceNode(const struct orb_metadata *meta, const uint8_t instance)
 {
+	if (meta == nullptr) {
+		return nullptr;
+	}
+
 	lock();
 	uORB::DeviceNode *node = getDeviceNodeLocked(meta, instance);
 	unlock();

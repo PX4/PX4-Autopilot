@@ -53,7 +53,6 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 #include <lib/WeatherVane/WeatherVane.hpp>
-#include "SubscriptionArray.hpp"
 
 class FlightTask : public ModuleParams
 {
@@ -68,17 +67,11 @@ public:
 	virtual ~FlightTask() = default;
 
 	/**
-	 * Initialize the uORB subscriptions using an array
-	 * @param subscription_array handling uORB subscribtions externally across task switches
-	 * @return true on success, false on error
-	 */
-	virtual bool initializeSubscriptions(SubscriptionArray &subscription_array);
-
-	/**
 	 * Call once on the event where you switch to the task
+	 * @param state of the previous task
 	 * @return true on success, false on error
 	 */
-	virtual bool activate();
+	virtual bool activate(vehicle_local_position_setpoint_s last_setpoint);
 
 	/**
 	 * Call this to reset an active Flight Task
@@ -104,6 +97,14 @@ public:
 	 * @return true on success, false on error
 	 */
 	virtual bool update() = 0;
+
+	/**
+	 * Call after update()
+	 * to constrain the generated setpoints in order to comply
+	 * with the constraints of the current mode
+	 * @return true on success, false on error
+	 */
+	virtual bool updateFinalize() { return true; };
 
 	/**
 	 * Get the output data
@@ -149,12 +150,6 @@ public:
 	static const landing_gear_s empty_landing_gear_default_keep;
 
 	/**
-	 * Empty desired waypoints.
-	 * All waypoints are set to NAN.
-	 */
-	static const vehicle_trajectory_waypoint_s empty_trajectory_waypoint;
-
-	/**
 	 * Call this whenever a parameter update notification is received (parameter_update uORB message)
 	 */
 	void handleParameterUpdate()
@@ -173,24 +168,32 @@ public:
 
 protected:
 
-	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
-	uORB::Subscription<vehicle_attitude_s> *_sub_attitude{nullptr};
-	uint8_t _heading_reset_counter{0}; /**< estimator heading reset */
+	uORB::SubscriptionData<vehicle_local_position_s>	_sub_vehicle_local_position{ORB_ID(vehicle_local_position)};
+	uORB::SubscriptionData<vehicle_attitude_s>		_sub_attitude{ORB_ID(vehicle_attitude)};
 
-	/**
-	 * Reset all setpoints to NAN
-	 */
+	/** Reset all setpoints to NAN */
 	void _resetSetpoints();
 
-	/**
-	 * Check and update local position
-	 */
+	/** Check and update local position */
 	void _evaluateVehicleLocalPosition();
 
+	/** Set constraints to default values */
+	virtual void _setDefaultConstraints();
+
+	/** Determine when to trigger a takeoff (ignored in flight) */
+	virtual bool _checkTakeoff();
+
 	/**
-	 * Set constraints to default values
+	 * Monitor the EKF reset counters and
+	 * call the appropriate handling functions in case of a reset event
 	 */
-	virtual void  _setDefaultConstraints();
+	void _initEkfResetCounters();
+	void _checkEkfResetCounters();
+	virtual void _ekfResetHandlerPositionXY() {};
+	virtual void _ekfResetHandlerVelocityXY() {};
+	virtual void _ekfResetHandlerPositionZ() {};
+	virtual void _ekfResetHandlerVelocityZ() {};
+	virtual void _ekfResetHandlerHeading(float delta_psi) {};
 
 	/* Time abstraction */
 	static constexpr uint64_t _timeout = 500000; /**< maximal time in us before a loop or data times out */
@@ -224,6 +227,15 @@ protected:
 
 	matrix::Vector3f _velocity_setpoint_feedback;
 	matrix::Vector3f _thrust_setpoint_feedback;
+
+	/* Counters for estimator local position resets */
+	struct {
+		uint8_t xy = 0;
+		uint8_t vxy = 0;
+		uint8_t z = 0;
+		uint8_t vz = 0;
+		uint8_t quat = 0;
+	} _reset_counters;
 
 	/**
 	 * Vehicle constraints.

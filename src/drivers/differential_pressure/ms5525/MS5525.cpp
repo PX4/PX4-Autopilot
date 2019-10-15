@@ -272,7 +272,7 @@ MS5525::collect()
 }
 
 void
-MS5525::cycle()
+MS5525::Run()
 {
 	int ret = PX4_ERROR;
 
@@ -292,11 +292,10 @@ MS5525::cycle()
 		_collect_phase = false;
 
 		// is there a collect->measure gap?
-		if (_measure_ticks > USEC2TICK(CONVERSION_INTERVAL)) {
+		if (_measure_interval > CONVERSION_INTERVAL) {
 
 			// schedule a fresh cycle call when we are ready to measure again
-			work_queue(HPWORK, &_work, (worker_t)&Airspeed::cycle_trampoline, this,
-				   _measure_ticks - USEC2TICK(CONVERSION_INTERVAL));
+			ScheduleDelayed(_measure_interval - CONVERSION_INTERVAL);
 
 			return;
 		}
@@ -315,5 +314,5 @@ MS5525::cycle()
 	_collect_phase = true;
 
 	// schedule a fresh cycle call when the measurement is done
-	work_queue(HPWORK, &_work, (worker_t)&Airspeed::cycle_trampoline, this, USEC2TICK(CONVERSION_INTERVAL));
+	ScheduleDelayed(CONVERSION_INTERVAL);
 }

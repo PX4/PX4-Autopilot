@@ -39,7 +39,6 @@
 
 #include <px4_config.h>
 #include <drivers/device/i2c.h>
-#include <drivers/drv_accel.h>
 #include <drivers/drv_device.h>
 
 #include "icm20948.h"

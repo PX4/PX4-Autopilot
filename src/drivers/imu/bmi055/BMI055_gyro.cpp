@@ -49,35 +49,13 @@ const uint8_t BMI055_gyro::_checked_registers[BMI055_GYRO_NUM_CHECKED_REGISTERS]
 
 BMI055_gyro::BMI055_gyro(int bus, const char *path_gyro, uint32_t device, enum Rotation rotation) :
 	BMI055("BMI055_GYRO", path_gyro, bus, device, SPIDEV_MODE3, BMI055_BUS_SPEED, rotation),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
+	_px4_gyro(get_device_id(), (external() ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "bmi055_gyro_read")),
-	_measure_interval(perf_alloc(PC_INTERVAL, "bmi055_gyro_measure_interval")),
 	_bad_transfers(perf_alloc(PC_COUNT, "bmi055_gyro_bad_transfers")),
-	_bad_registers(perf_alloc(PC_COUNT, "bmi055_gyro_bad_registers")),
-	_gyro_reports(nullptr),
-	_gyro_scale{},
-	_gyro_range_scale(0.0f),
-	_gyro_range_rad_s(0.0f),
-	_gyro_topic(nullptr),
-	_gyro_orb_class_instance(-1),
-	_gyro_class_instance(-1),
-	_gyro_sample_rate(BMI055_GYRO_DEFAULT_RATE),
-	_gyro_filter_x(BMI055_GYRO_DEFAULT_RATE, BMI055_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_y(BMI055_GYRO_DEFAULT_RATE, BMI055_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_filter_z(BMI055_GYRO_DEFAULT_RATE, BMI055_GYRO_DEFAULT_DRIVER_FILTER_FREQ),
-	_gyro_int(1000000 / BMI055_GYRO_MAX_PUBLISH_RATE, true),
-	_last_temperature(0)
+	_bad_registers(perf_alloc(PC_COUNT, "bmi055_gyro_bad_registers"))
 {
-	_device_id.devid_s.devtype = DRV_GYR_DEVTYPE_BMI055;
-
-	// default gyro scale factors
-	_gyro_scale.x_offset = 0;
-	_gyro_scale.x_scale  = 1.0f;
-	_gyro_scale.y_offset = 0;
-	_gyro_scale.y_scale  = 1.0f;
-	_gyro_scale.z_offset = 0;
-	_gyro_scale.z_scale  = 1.0f;
-
-	memset(&_call, 0, sizeof(_call));
+	_px4_gyro.set_device_type(DRV_GYR_DEVTYPE_BMI055);
 }
 
 BMI055_gyro::~BMI055_gyro()
@@ -85,18 +63,8 @@ BMI055_gyro::~BMI055_gyro()
 	/* make sure we are truly inactive */
 	stop();
 
-	/* free any existing reports */
-	if (_gyro_reports != nullptr) {
-		delete _gyro_reports;
-	}
-
-	if (_gyro_class_instance != -1) {
-		unregister_class_devname(GYRO_BASE_DEVICE_PATH, _gyro_class_instance);
-	}
-
 	/* delete the perf counter */
 	perf_free(_sample_perf);
-	perf_free(_measure_interval);
 	perf_free(_bad_transfers);
 	perf_free(_bad_registers);
 }
@@ -113,53 +81,7 @@ BMI055_gyro::init()
 		return ret;
 	}
 
-	/* allocate basic report buffers */
-	_gyro_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_gyro_s));
-
-	if (_gyro_reports == nullptr) {
-		return -ENOMEM;
-	}
-
-	ret = reset();
-
-	if (ret != OK) {
-		return ret;
-	}
-
-	/* Initialize offsets and scales */
-	_gyro_scale.x_offset = 0;
-	_gyro_scale.x_scale  = 1.0f;
-	_gyro_scale.y_offset = 0;
-	_gyro_scale.y_scale  = 1.0f;
-	_gyro_scale.z_offset = 0;
-	_gyro_scale.z_scale  = 1.0f;
-
-	param_t gyro_cut_ph = param_find("IMU_GYRO_CUTOFF");
-	float gyro_cut = BMI055_GYRO_DEFAULT_DRIVER_FILTER_FREQ;
-
-	if (gyro_cut_ph != PARAM_INVALID && (param_get(gyro_cut_ph, &gyro_cut) == PX4_OK)) {
-
-		_gyro_filter_x.set_cutoff_frequency(BMI055_GYRO_DEFAULT_RATE, gyro_cut);
-		_gyro_filter_y.set_cutoff_frequency(BMI055_GYRO_DEFAULT_RATE, gyro_cut);
-		_gyro_filter_z.set_cutoff_frequency(BMI055_GYRO_DEFAULT_RATE, gyro_cut);
-	}
-
-	_gyro_class_instance = register_class_devname(GYRO_BASE_DEVICE_PATH);
-
-	measure();
-
-	/* advertise sensor topic, measure manually to initialize valid report */
-	sensor_gyro_s grp;
-	_gyro_reports->get(&grp);
-
-	_gyro_topic = orb_advertise_multi(ORB_ID(sensor_gyro), &grp,
-					  &_gyro_orb_class_instance, (external()) ? ORB_PRIO_MAX - 1 : ORB_PRIO_HIGH - 1);
-
-	if (_gyro_topic == nullptr) {
-		warnx("ADVERT FAIL");
-	}
-
-	return ret;
+	return reset();
 }
 
 int BMI055_gyro::reset()
@@ -226,19 +148,19 @@ BMI055_gyro::gyro_set_sample_rate(float frequency)
 
 	if (frequency <= 100) {
 		setbits |= BMI055_GYRO_RATE_100; /* 32 Hz cutoff */
-		_gyro_sample_rate = 100;
+		//_gyro_sample_rate = 100;
 
 	} else if (frequency <= 250) {
 		setbits |= BMI055_GYRO_RATE_400; /* 47 Hz cutoff */
-		_gyro_sample_rate = 400;
+		//_gyro_sample_rate = 400;
 
 	} else if (frequency <= 1000) {
 		setbits |= BMI055_GYRO_RATE_1000; /* 116 Hz cutoff */
-		_gyro_sample_rate = 1000;
+		//_gyro_sample_rate = 1000;
 
 	} else if (frequency > 1000) {
 		setbits |= BMI055_GYRO_RATE_2000; /* 230 Hz cutoff */
-		_gyro_sample_rate = 2000;
+		//_gyro_sample_rate = 2000;
 
 	} else {
 		return -EINVAL;
@@ -247,17 +169,6 @@ BMI055_gyro::gyro_set_sample_rate(float frequency)
 	modify_reg(BMI055_GYR_BW, clearbits, setbits);
 
 	return OK;
-}
-
-int
-BMI055_gyro::self_test()
-{
-	if (perf_event_count(_sample_perf) == 0) {
-		measure();
-	}
-
-	/* return 0 on success, 1 else */
-	return (perf_event_count(_sample_perf) > 0) ? 0 : 1;
 }
 
 /*
@@ -271,121 +182,10 @@ BMI055_gyro::test_error()
 	print_registers();
 }
 
-ssize_t
-BMI055_gyro::read(struct file *filp, char *buffer, size_t buflen)
-{
-	unsigned count = buflen / sizeof(sensor_gyro_s);
-
-	/* buffer must be large enough */
-	if (count < 1) {
-		return -ENOSPC;
-	}
-
-	/* if automatic measurement is not enabled, get a fresh measurement into the buffer */
-	if (_call_interval == 0) {
-		_gyro_reports->flush();
-		measure();
-	}
-
-	/* if no data, error (we could block here) */
-	if (_gyro_reports->empty()) {
-		return -EAGAIN;
-	}
-
-	/* copy reports out of our buffer to the caller */
-	sensor_gyro_s *grp = reinterpret_cast<sensor_gyro_s *>(buffer);
-	int transferred = 0;
-
-	while (count--) {
-		if (!_gyro_reports->get(grp)) {
-			break;
-		}
-
-		transferred++;
-		grp++;
-	}
-
-	/* return the number of bytes transferred */
-	return (transferred * sizeof(sensor_gyro_s));
-}
-
-int
-BMI055_gyro::ioctl(struct file *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-
-	case SENSORIOCRESET:
-		return reset();
-
-	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
-
-			/* zero would be bad */
-			case 0:
-				return -EINVAL;
-
-			/* set default polling rate */
-			case SENSOR_POLLRATE_DEFAULT:
-				return ioctl(filp, SENSORIOCSPOLLRATE, BMI055_GYRO_DEFAULT_RATE);
-
-			/* adjust to a legal polling interval in Hz */
-			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_call_interval == 0);
-
-					/* convert hz to hrt interval via microseconds */
-					unsigned ticks = 1000000 / arg;
-
-					/* check against maximum rate */
-					if (ticks < 1000) {
-						return -EINVAL;
-					}
-
-					// adjust filters
-					float cutoff_freq_hz_gyro = _gyro_filter_x.get_cutoff_freq();
-					float sample_rate = 1.0e6f / ticks;
-					_gyro_filter_x.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
-					_gyro_filter_y.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
-					_gyro_filter_z.set_cutoff_frequency(sample_rate, cutoff_freq_hz_gyro);
-
-					/* update interval for next measurement */
-					_call_interval = ticks;
-
-					/*
-					  set call interval faster than the sample time. We
-					  then detect when we have duplicate samples and reject
-					  them. This prevents aliasing due to a beat between the
-					  stm32 clock and the bmi055 clock
-					 */
-					_call.period = _call_interval - BMI055_TIMER_REDUCTION;
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-					}
-
-					return OK;
-				}
-			}
-		}
-
-	case GYROIOCSSCALE:
-		/* copy scale in */
-		memcpy(&_gyro_scale, (struct gyro_calibration_s *) arg, sizeof(_gyro_scale));
-		return OK;
-
-	default:
-		/* give it to the superclass */
-		return SPI::ioctl(filp, cmd, arg);
-	}
-}
-
 void
 BMI055_gyro::modify_reg(unsigned reg, uint8_t clearbits, uint8_t setbits)
 {
-	uint8_t val;
-
-	val = read_reg(reg);
+	uint8_t val = read_reg(reg);
 	val &= ~clearbits;
 	val |= setbits;
 	write_checked_reg(reg, val);
@@ -410,34 +210,33 @@ BMI055_gyro::set_gyro_range(unsigned max_dps)
 	uint8_t setbits = 0;
 	uint8_t clearbits = BMI055_GYRO_RANGE_125_DPS | BMI055_GYRO_RANGE_250_DPS;
 	float lsb_per_dps;
-	float max_gyro_dps;
 
 	if (max_dps == 0) {
 		max_dps = 2000;
 	}
 
 	if (max_dps <= 125) {
-		max_gyro_dps = 125;
+		//max_gyro_dps = 125;
 		lsb_per_dps = 262.4;
 		setbits |= BMI055_GYRO_RANGE_125_DPS;
 
 	} else if (max_dps <= 250) {
-		max_gyro_dps = 250;
+		//max_gyro_dps = 250;
 		lsb_per_dps = 131.2;
 		setbits |= BMI055_GYRO_RANGE_250_DPS;
 
 	} else if (max_dps <= 500) {
-		max_gyro_dps = 500;
+		//max_gyro_dps = 500;
 		lsb_per_dps = 65.6;
 		setbits |= BMI055_GYRO_RANGE_500_DPS;
 
 	} else if (max_dps <= 1000) {
-		max_gyro_dps = 1000;
+		//max_gyro_dps = 1000;
 		lsb_per_dps = 32.8;
 		setbits |= BMI055_GYRO_RANGE_1000_DPS;
 
 	} else if (max_dps <= 2000) {
-		max_gyro_dps = 2000;
+		//max_gyro_dps = 2000;
 		lsb_per_dps = 16.4;
 		setbits |= BMI055_GYRO_RANGE_2000_DPS;
 
@@ -445,8 +244,7 @@ BMI055_gyro::set_gyro_range(unsigned max_dps)
 		return -EINVAL;
 	}
 
-	_gyro_range_rad_s = (max_gyro_dps / 180.0f * M_PI_F);
-	_gyro_range_scale = (M_PI_F / (180.0f * lsb_per_dps));
+	_px4_gyro.set_scale(M_PI_F / (180.0f * lsb_per_dps));
 
 	modify_reg(BMI055_GYR_RANGE, clearbits, setbits);
 
@@ -459,30 +257,21 @@ BMI055_gyro::start()
 	/* make sure we are stopped first */
 	stop();
 
-	/* discard any stale data in the buffers */
-	_gyro_reports->flush();
-
 	/* start polling at the specified rate */
-	hrt_call_every(&_call,
-		       1000,
-		       _call_interval - BMI055_TIMER_REDUCTION,
-		       (hrt_callout)&BMI055_gyro::measure_trampoline, this);
-	reset();
+	ScheduleOnInterval(BMI055_GYRO_DEFAULT_RATE - BMI055_TIMER_REDUCTION, 1000);
 }
 
 void
 BMI055_gyro::stop()
 {
-	hrt_cancel(&_call);
+	ScheduleClear();
 }
 
 void
-BMI055_gyro::measure_trampoline(void *arg)
+BMI055_gyro::Run()
 {
-	BMI055_gyro *dev = reinterpret_cast<BMI055_gyro *>(arg);
-
 	/* make another measurement */
-	dev->measure();
+	measure();
 }
 
 void
@@ -531,8 +320,6 @@ BMI055_gyro::check_registers(void)
 void
 BMI055_gyro::measure()
 {
-	perf_count(_measure_interval);
-
 	if (hrt_absolute_time() < _reset_wait) {
 		// we're waiting for a reset to complete
 		return;
@@ -555,6 +342,7 @@ BMI055_gyro::measure()
 	 */
 	bmi_gyroreport.cmd = BMI055_GYR_X_L | DIR_READ;
 
+	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
 	if (OK != transfer((uint8_t *)&bmi_gyroreport, ((uint8_t *)&bmi_gyroreport), sizeof(bmi_gyroreport))) {
 		return;
@@ -562,8 +350,7 @@ BMI055_gyro::measure()
 
 	check_registers();
 
-	uint8_t temp = read_reg(BMI055_ACC_TEMP);
-
+	int8_t temp = read_reg(BMI055_ACC_TEMP);
 	report.temp = temp;
 
 	report.gyro_x = bmi_gyroreport.gyro_x;
@@ -591,18 +378,18 @@ BMI055_gyro::measure()
 		return;
 	}
 
-	/*
-	 * Report buffers.
-	 */
-	sensor_gyro_s grb;
-
-	grb.timestamp = hrt_absolute_time();
-
 	// report the error count as the sum of the number of bad
 	// transfers and bad register reads. This allows the higher
 	// level code to decide if it should use this sensor based on
 	// whether it has had failures
-	grb.error_count = perf_event_count(_bad_transfers) + perf_event_count(_bad_registers);
+	const uint64_t error_count  = perf_event_count(_bad_transfers) + perf_event_count(_bad_registers);
+	_px4_gyro.set_error_count(error_count);
+
+	/*
+	 * Temperature is reported as Eight-bit 2’s complement sensor temperature value
+	 * with 0.5 °C/LSB sensitivity and an offset of 23.0 °C
+	 */
+	_px4_gyro.set_temperature((report.temp * 0.5f) + 23.0f);
 
 	/*
 	 * 1) Scale raw value to SI units using scaling from datasheet.
@@ -618,50 +405,7 @@ BMI055_gyro::measure()
 	 *        the offset is 74 from the origin and subtracting
 	 *        74 from all measurements centers them around zero.
 	 */
-
-	grb.x_raw = report.gyro_x;
-	grb.y_raw = report.gyro_y;
-	grb.z_raw = report.gyro_z;
-
-	float xraw_f = report.gyro_x;
-	float yraw_f = report.gyro_y;
-	float zraw_f = report.gyro_z;
-
-	// apply user specified rotation
-	rotate_3f(_rotation, xraw_f, yraw_f, zraw_f);
-
-	float x_gyro_in_new = ((xraw_f * _gyro_range_scale) - _gyro_scale.x_offset) * _gyro_scale.x_scale;
-	float y_gyro_in_new = ((yraw_f * _gyro_range_scale) - _gyro_scale.y_offset) * _gyro_scale.y_scale;
-	float z_gyro_in_new = ((zraw_f * _gyro_range_scale) - _gyro_scale.z_offset) * _gyro_scale.z_scale;
-
-	grb.x = _gyro_filter_x.apply(x_gyro_in_new);
-	grb.y = _gyro_filter_y.apply(y_gyro_in_new);
-	grb.z = _gyro_filter_z.apply(z_gyro_in_new);
-
-	matrix::Vector3f gval(x_gyro_in_new, y_gyro_in_new, z_gyro_in_new);
-	matrix::Vector3f gval_integrated;
-
-	bool gyro_notify = _gyro_int.put(grb.timestamp, gval, gval_integrated, grb.integral_dt);
-	grb.x_integral = gval_integrated(0);
-	grb.y_integral = gval_integrated(1);
-	grb.z_integral = gval_integrated(2);
-
-	grb.scaling = _gyro_range_scale;
-
-	grb.temperature = _last_temperature;
-	grb.device_id = _device_id.devid;
-
-	_gyro_reports->force(&grb);
-
-	/* notify anyone waiting for data */
-	if (gyro_notify) {
-		poll_notify(POLLIN);
-	}
-
-	if (gyro_notify && !(_pub_blocked)) {
-		/* publish it */
-		orb_publish(ORB_ID(sensor_gyro), _gyro_topic, &grb);
-	}
+	_px4_gyro.update(timestamp_sample, report.gyro_x, report.gyro_y, report.gyro_z);
 
 	/* stop measuring */
 	perf_end(_sample_perf);
@@ -673,11 +417,9 @@ BMI055_gyro::print_info()
 	PX4_INFO("Gyro");
 
 	perf_print_counter(_sample_perf);
-	perf_print_counter(_measure_interval);
 	perf_print_counter(_bad_transfers);
 	perf_print_counter(_bad_registers);
 
-	_gyro_reports->print_info("gyro queue");
 	::printf("checked_next: %u\n", _checked_next);
 
 	for (uint8_t i = 0; i < BMI055_GYRO_NUM_CHECKED_REGISTERS; i++) {
@@ -698,8 +440,7 @@ BMI055_gyro::print_info()
 		}
 	}
 
-	::printf("temperature: %.1f\n", (double)_last_temperature);
-	printf("\n");
+	_px4_gyro.print_status();
 }
 
 void

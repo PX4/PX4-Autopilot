@@ -57,15 +57,6 @@ public:
 	~AttitudeControl() = default;
 
 	/**
-	 * Run one control loop cycle calculation with either new
-	 * @param q estimation of the current vehicle attitude unit quaternion
-	 * @param qd desired vehicle attitude setpoint
-	 * @param yawspeed_feedforward [rad/s] yaw feed forward angular rate in world frame
-	 * @return [rad/s] body frame 3D angular rate setpoint vector to be executed by the rate controller
-	 */
-	matrix::Vector3f update(matrix::Quatf q, matrix::Quatf qd, float yawspeed_feedforward);
-
-	/**
 	 * Set proportional attitude control gain
 	 * @param proportional_gain 3D vector containing gains for roll, pitch, yaw
 	 */
@@ -78,10 +69,13 @@ public:
 	void setRateLimit(const matrix::Vector3f &rate_limit) { _rate_limit = rate_limit; }
 
 	/**
-	 * Set hard limit for output rate setpoint around yaw axis
-	 * @param rate_limit_yaw [rad/s] limits for rotation around yaw axis
+	 * Run one control loop cycle calculation
+	 * @param q estimation of the current vehicle attitude unit quaternion
+	 * @param qd desired vehicle attitude setpoint
+	 * @param yawspeed_feedforward [rad/s] yaw feed forward angular rate in world frame
+	 * @return [rad/s] body frame 3D angular rate setpoint vector to be executed by the rate controller
 	 */
-	void setRateLimitYaw(const float rate_limit_yaw) { _rate_limit(2) = rate_limit_yaw; }
+	matrix::Vector3f update(matrix::Quatf q, matrix::Quatf qd, float yawspeed_feedforward);
 
 private:
 	matrix::Vector3f _proportional_gain;

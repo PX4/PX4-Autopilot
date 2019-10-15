@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -46,13 +46,18 @@
 #include <px4_tasks.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rate_ctrl_status.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
@@ -60,14 +65,13 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
-#include <vtol_att_control/vtol_type.h>
 
 using matrix::Eulerf;
 using matrix::Quatf;
 
-using uORB::Subscription;
+using uORB::SubscriptionData;
 
-class FixedwingAttitudeControl final : public ModuleBase<FixedwingAttitudeControl>
+class FixedwingAttitudeControl final : public ModuleBase<FixedwingAttitudeControl>, public px4::WorkItem
 {
 public:
 	FixedwingAttitudeControl();
@@ -77,41 +81,44 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	static FixedwingAttitudeControl *instantiate(int argc, char *argv[]);
-
-	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
 
-	/** @see ModuleBase::run() */
-	void run() override;
-
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
+	void Run() override;
+
+	bool init();
+
 private:
 
-	int		_att_sub{-1};				/**< vehicle attitude */
-	int		_att_sp_sub{-1};			/**< vehicle attitude setpoint */
-	int		_rates_sp_sub{-1};			/**< vehicle rates setpoint */
-	int		_battery_status_sub{-1};		/**< battery status subscription */
-	int		_global_pos_sub{-1};			/**< global position subscription */
-	int		_manual_sub{-1};			/**< notification of manual control updates */
-	int		_params_sub{-1};			/**< notification of parameter updates */
-	int		_vcontrol_mode_sub{-1};			/**< vehicle status subscription */
-	int		_vehicle_land_detected_sub{-1};		/**< vehicle land detected subscription */
-	int		_vehicle_status_sub{-1};		/**< vehicle status subscription */
+	uORB::SubscriptionCallbackWorkItem _att_sub{this, ORB_ID(vehicle_attitude)};	/**< vehicle attitude */
 
-	orb_advert_t	_rate_sp_pub{nullptr};			/**< rate setpoint publication */
-	orb_advert_t	_attitude_sp_pub{nullptr};		/**< attitude setpoint point */
-	orb_advert_t	_actuators_0_pub{nullptr};		/**< actuator control group 0 setpoint */
-	orb_advert_t	_actuators_2_pub{nullptr};		/**< actuator control group 1 setpoint (Airframe) */
-	orb_advert_t	_rate_ctrl_status_pub{nullptr};		/**< rate controller status publication */
+	uORB::Subscription _att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};		/**< vehicle attitude setpoint */
+	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};			/**< battery status subscription */
+	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};		/**< global position subscription */
+	uORB::Subscription _manual_sub{ORB_ID(manual_control_setpoint)};		/**< notification of manual control updates */
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		/**< notification of parameter updates */
+	uORB::Subscription _rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};		/**< vehicle rates setpoint */
+	uORB::Subscription _vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle status subscription */
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			/**< vehicle status subscription */
+	uORB::Subscription _vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
 
-	orb_id_t _actuators_id{nullptr};	// pointer to correct actuator controls0 uORB metadata structure
-	orb_id_t _attitude_setpoint_id{nullptr};
+	uORB::SubscriptionData<airspeed_s> _airspeed_sub{ORB_ID(airspeed)};
+
+	uORB::Publication<actuator_controls_s>		_actuators_2_pub{ORB_ID(actuator_controls_2)};		/**< actuator control group 1 setpoint (Airframe) */
+	uORB::Publication<vehicle_rates_setpoint_s>	_rate_sp_pub{ORB_ID(vehicle_rates_setpoint)};		/**< rate setpoint publication */
+	uORB::PublicationMulti<rate_ctrl_status_s>	_rate_ctrl_status_pub{ORB_ID(rate_ctrl_status)};	/**< rate controller status publication */
+
+	orb_id_t	_attitude_setpoint_id{nullptr};
+	orb_advert_t	_attitude_sp_pub{nullptr};	/**< attitude setpoint point */
+
+	orb_id_t	_actuators_id{nullptr};		/**< pointer to correct actuator controls0 uORB metadata structure */
+	orb_advert_t	_actuators_0_pub{nullptr};	/**< actuator control group 0 setpoint */
 
 	actuator_controls_s			_actuators {};		/**< actuator control inputs */
 	actuator_controls_s			_actuators_airframe {};	/**< actuator control inputs */
@@ -123,20 +130,20 @@ private:
 	vehicle_rates_setpoint_s		_rates_sp {};		/* attitude rates setpoint */
 	vehicle_status_s			_vehicle_status {};	/**< vehicle status */
 
-	Subscription<airspeed_s>			_airspeed_sub;
-
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
-	perf_counter_t	_nonfinite_input_perf;		/**< performance counter for non finite input */
-	perf_counter_t	_nonfinite_output_perf;		/**< performance counter for non finite output */
 
 	float _flaps_applied{0.0f};
 	float _flaperons_applied{0.0f};
+
+	float _airspeed_scaling{1.0f};
 
 	bool _landed{true};
 
 	float _battery_scale{1.0f};
 
 	bool _flag_control_attitude_enabled_last{false};
+
+	bool _is_tailsitter{false};
 
 	struct {
 		float p_tc;
@@ -201,8 +208,6 @@ private:
 		float flaperon_scale;			/**< Scale factor for flaperons */
 
 		float rattitude_thres;
-
-		int32_t vtol_type;			/**< VTOL type: 0 = tailsitter, 1 = tiltrotor */
 
 		int32_t bat_scale_en;			/**< Battery scaling enabled */
 		bool airspeed_disabled;
@@ -272,8 +277,6 @@ private:
 
 		param_t rattitude_thres;
 
-		param_t vtol_type;
-
 		param_t bat_scale_en;
 		param_t airspeed_mode;
 
@@ -295,8 +298,8 @@ private:
 	void		vehicle_manual_poll();
 	void		vehicle_attitude_setpoint_poll();
 	void		vehicle_rates_setpoint_poll();
-	void		global_pos_poll();
 	void		vehicle_status_poll();
 	void		vehicle_land_detected_poll();
-	void 		get_airspeed_and_scaling(float &airspeed, float &airspeed_scaling);
+
+	float 		get_airspeed_and_update_scaling();
 };

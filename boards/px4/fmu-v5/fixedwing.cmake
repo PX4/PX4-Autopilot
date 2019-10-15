@@ -17,6 +17,7 @@ px4_add_board(
 		TEL4:/dev/ttyS3
 
 	DRIVERS
+		adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -36,11 +37,9 @@ px4_add_board(
 		px4fmu
 		px4io
 		rc_input
-		stm32
-		stm32/adc
-		stm32/armv7-m_dcache
-		stm32/tone_alarm
+		safety_button
 		telemetry # all available telemetry drivers
+		tone_alarm
 		uavcan
 
 	MODULES
@@ -58,7 +57,7 @@ px4_add_board(
 		navigator
 		sensors
 		vmount
-		wind_estimator
+		airspeed_selector
 
 	SYSTEMCMDS
 		bl_update
@@ -66,6 +65,7 @@ px4_add_board(
 		dumpfile
 		esc_calib
 		hardfault_log
+		i2cdetect
 		led_control
 		mixer
 		motor_ramp
@@ -84,4 +84,6 @@ px4_add_board(
 		tune_control
 		usb_connected
 		ver
+		work_queue
+
 	)

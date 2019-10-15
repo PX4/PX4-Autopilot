@@ -57,14 +57,6 @@
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <systemlib/mavlink_log.h>
-#include <uORB/topics/home_position.h>
-#include <uORB/topics/mission.h>
-#include <uORB/topics/position_controller_landing_status.h>
-#include <uORB/topics/transponder_report.h>
-#include <uORB/topics/vehicle_command.h>
-#include <uORB/topics/vehicle_command_ack.h>
-#include <uORB/topics/vehicle_status.h>
-#include <uORB/uORB.h>
 
 /**
  * navigator app start / stop handling function
@@ -114,85 +106,19 @@ Navigator::Navigator() :
 	_handle_back_trans_dec_mss = param_find("VT_B_DEC_MSS");
 	_handle_reverse_delay = param_find("VT_B_REV_DEL");
 
-	// subscriptions
-	_global_pos_sub = orb_subscribe(ORB_ID(vehicle_global_position));
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_gps_pos_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
-	_pos_ctrl_landing_status_sub = orb_subscribe(ORB_ID(position_controller_landing_status));
-	_vstatus_sub = orb_subscribe(ORB_ID(vehicle_status));
-	_land_detected_sub = orb_subscribe(ORB_ID(vehicle_land_detected));
-	_home_pos_sub = orb_subscribe(ORB_ID(home_position));
-	_mission_sub = orb_subscribe(ORB_ID(mission));
-	_param_update_sub = orb_subscribe(ORB_ID(parameter_update));
-	_vehicle_command_sub = orb_subscribe(ORB_ID(vehicle_command));
-	_traffic_sub = orb_subscribe(ORB_ID(transponder_report));
 
 	reset_triplets();
 }
 
 Navigator::~Navigator()
 {
-	orb_unsubscribe(_global_pos_sub);
 	orb_unsubscribe(_local_pos_sub);
-	orb_unsubscribe(_gps_pos_sub);
-	orb_unsubscribe(_pos_ctrl_landing_status_sub);
-	orb_unsubscribe(_vstatus_sub);
-	orb_unsubscribe(_land_detected_sub);
-	orb_unsubscribe(_home_pos_sub);
-	orb_unsubscribe(_mission_sub);
-	orb_unsubscribe(_param_update_sub);
-	orb_unsubscribe(_vehicle_command_sub);
-}
-
-void
-Navigator::global_position_update()
-{
-	orb_copy(ORB_ID(vehicle_global_position), _global_pos_sub, &_global_pos);
-}
-
-void
-Navigator::local_position_update()
-{
-	orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
-}
-
-void
-Navigator::gps_position_update()
-{
-	orb_copy(ORB_ID(vehicle_gps_position), _gps_pos_sub, &_gps_pos);
-}
-
-void
-Navigator::home_position_update(bool force)
-{
-	bool updated = false;
-	orb_check(_home_pos_sub, &updated);
-
-	if (updated || force) {
-		orb_copy(ORB_ID(home_position), _home_pos_sub, &_home_pos);
-	}
-}
-
-void
-Navigator::vehicle_status_update()
-{
-	if (orb_copy(ORB_ID(vehicle_status), _vstatus_sub, &_vstatus) != OK) {
-		/* in case the commander is not be running */
-		_vstatus.arming_state = vehicle_status_s::ARMING_STATE_STANDBY;
-	}
-}
-
-void
-Navigator::vehicle_land_detected_update()
-{
-	orb_copy(ORB_ID(vehicle_land_detected), _land_detected_sub, &_land_detected);
 }
 
 void
 Navigator::params_update()
 {
-	parameter_update_s param_update;
-	orb_copy(ORB_ID(parameter_update), _param_update_sub, &param_update);
 	updateParams();
 
 	if (_handle_back_trans_dec_mss != PARAM_INVALID) {
@@ -218,13 +144,6 @@ Navigator::run()
 		_geofence.loadFromFile(GEOFENCE_FILENAME);
 	}
 
-	/* copy all topics first time */
-	vehicle_status_update();
-	vehicle_land_detected_update();
-	global_position_update();
-	local_position_update();
-	gps_position_update();
-	home_position_update(true);
 	params_update();
 
 	/* wakeup source(s) */
@@ -256,19 +175,15 @@ Navigator::run()
 		} else {
 			if (fds[0].revents & POLLIN) {
 				/* success, local pos is available */
-				local_position_update();
+				orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 			}
 		}
 
 		perf_begin(_loop_perf);
 
-		bool updated;
-
 		/* gps updated */
-		orb_check(_gps_pos_sub, &updated);
-
-		if (updated) {
-			gps_position_update();
+		if (_gps_pos_sub.updated()) {
+			_gps_pos_sub.copy(&_gps_pos);
 
 			if (_geofence.getSource() == Geofence::GF_SOURCE_GPS) {
 				have_geofence_position_data = true;
@@ -276,53 +191,32 @@ Navigator::run()
 		}
 
 		/* global position updated */
-		orb_check(_global_pos_sub, &updated);
-
-		if (updated) {
-			global_position_update();
+		if (_global_pos_sub.updated()) {
+			_global_pos_sub.copy(&_global_pos);
 
 			if (_geofence.getSource() == Geofence::GF_SOURCE_GLOBALPOS) {
 				have_geofence_position_data = true;
 			}
 		}
 
-		/* parameters updated */
-		orb_check(_param_update_sub, &updated);
+		// check for parameter updates
+		if (_parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			_parameter_update_sub.copy(&pupdate);
 
-		if (updated) {
+			// update parameters from storage
 			params_update();
 		}
 
-		/* vehicle status updated */
-		orb_check(_vstatus_sub, &updated);
-
-		if (updated) {
-			vehicle_status_update();
-		}
-
-		/* vehicle land detected updated */
-		orb_check(_land_detected_sub, &updated);
-
-		if (updated) {
-			vehicle_land_detected_update();
-		}
-
-		/* navigation capabilities updated */
+		_vstatus_sub.update(&_vstatus);
+		_land_detected_sub.update(&_land_detected);
 		_position_controller_status_sub.update();
+		_home_pos_sub.update(&_home_pos);
 
-		/* home position updated */
-		orb_check(_home_pos_sub, &updated);
-
-		if (updated) {
-			home_position_update();
-		}
-
-		/* vehicle_command updated */
-		orb_check(_vehicle_command_sub, &updated);
-
-		if (updated) {
-			vehicle_command_s cmd;
-			orb_copy(ORB_ID(vehicle_command), _vehicle_command_sub, &cmd);
+		if (_vehicle_command_sub.updated()) {
+			vehicle_command_s cmd{};
+			_vehicle_command_sub.copy(&cmd);
 
 			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_GO_AROUND) {
 
@@ -524,12 +418,7 @@ Navigator::run()
 
 				_vroi.timestamp = hrt_absolute_time();
 
-				if (_vehicle_roi_pub != nullptr) {
-					orb_publish(ORB_ID(vehicle_roi), _vehicle_roi_pub, &_vroi);
-
-				} else {
-					_vehicle_roi_pub = orb_advertise(ORB_ID(vehicle_roi), &_vroi);
-				}
+				_vehicle_roi_pub.publish(_vroi);
 
 				publish_vehicle_command_ack(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED);
 			}
@@ -570,7 +459,7 @@ Navigator::run()
 				_geofence_violation_warning_sent = false;
 			}
 
-			publish_geofence_result();
+			_geofence_result_pub.publish(_geofence_result);
 		}
 
 		/* Do stuff according to navigation state set by commander */
@@ -843,12 +732,7 @@ Navigator::publish_position_setpoint_triplet()
 	_pos_sp_triplet.timestamp = hrt_absolute_time();
 
 	/* lazily publish the position setpoint triplet only once available */
-	if (_pos_sp_triplet_pub != nullptr) {
-		orb_publish(ORB_ID(position_setpoint_triplet), _pos_sp_triplet_pub, &_pos_sp_triplet);
-
-	} else {
-		_pos_sp_triplet_pub = orb_advertise(ORB_ID(position_setpoint_triplet), &_pos_sp_triplet);
-	}
+	_pos_sp_triplet_pub.publish(_pos_sp_triplet);
 
 	_pos_sp_triplet_updated = false;
 }
@@ -868,8 +752,11 @@ Navigator::get_acceptance_radius()
 float
 Navigator::get_default_altitude_acceptance_radius()
 {
-	if (!get_vstatus()->is_rotary_wing) {
+	if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		return _param_nav_fw_alt_rad.get();
+
+	} else if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROVER) {
+		return INFINITY;
 
 	} else {
 		float alt_acceptance_radius = _param_nav_mc_alt_rad.get();
@@ -888,7 +775,7 @@ Navigator::get_default_altitude_acceptance_radius()
 float
 Navigator::get_altitude_acceptance_radius()
 {
-	if (!get_vstatus()->is_rotary_wing) {
+	if (get_vstatus()->vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 		const position_setpoint_s &next_sp = get_position_setpoint_triplet()->next;
 
 		if (next_sp.type == position_setpoint_s::SETPOINT_TYPE_LAND && next_sp.valid) {
@@ -904,7 +791,7 @@ float
 Navigator::get_cruising_speed()
 {
 	/* there are three options: The mission-requested cruise speed, or the current hover / plane speed */
-	if (_vstatus.is_rotary_wing) {
+	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		if (is_planned_mission() && _mission_cruising_speed_mc > 0.0f) {
 			return _mission_cruising_speed_mc;
 
@@ -925,7 +812,7 @@ Navigator::get_cruising_speed()
 void
 Navigator::set_cruising_speed(float speed)
 {
-	if (_vstatus.is_rotary_wing) {
+	if (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
 		_mission_cruising_speed_mc = speed;
 
 	} else {
@@ -1018,7 +905,7 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 	// float vel_e = get_global_position()->vel_e;
 	// float vel_d = get_global_position()->vel_d;
 
-	transponder_report_s tr = {};
+	transponder_report_s tr{};
 	tr.timestamp = hrt_absolute_time();
 	tr.icao_address = 1234;
 	tr.lat = lat; // Latitude, expressed as degrees
@@ -1038,8 +925,8 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 		   transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN; // Flags to indicate various statuses including valid data fields
 	tr.squawk = 6667;
 
-	orb_advert_t h = orb_advertise_queue(ORB_ID(transponder_report), &tr, transponder_report_s::ORB_QUEUE_LENGTH);
-	(void)orb_unadvertise(h);
+	uORB::PublicationQueued<transponder_report_s> tr_pub{ORB_ID(transponder_report)};
+	tr_pub.publish(tr);
 }
 
 void Navigator::check_traffic()
@@ -1054,23 +941,22 @@ void Navigator::check_traffic()
 	// float vel_e = get_global_position()->vel_e;
 	// float vel_d = get_global_position()->vel_d;
 
-	bool changed;
-	orb_check(_traffic_sub, &changed);
+	bool changed = _traffic_sub.updated();
 
 	float horizontal_separation = 500;
 	float vertical_separation = 500;
 
 	while (changed) {
 
-		transponder_report_s tr;
-		orb_copy(ORB_ID(transponder_report), _traffic_sub, &tr);
+		transponder_report_s tr{};
+		_traffic_sub.copy(&tr);
 
 		uint16_t required_flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS |
 					  transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
 					  transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY | transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;
 
 		if ((tr.flags & required_flags) != required_flags) {
-			orb_check(_traffic_sub, &changed);
+			changed = _traffic_sub.updated();
 			continue;
 		}
 
@@ -1145,7 +1031,7 @@ void Navigator::check_traffic()
 			}
 		}
 
-		orb_check(_traffic_sub, &changed);
+		changed = _traffic_sub.updated();
 	}
 }
 
@@ -1158,15 +1044,11 @@ Navigator::abort_landing()
 	if (_pos_sp_triplet.current.valid
 	    && _pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
 
-		bool updated = false;
-
-		orb_check(_pos_ctrl_landing_status_sub, &updated);
-
-		if (updated) {
-			position_controller_landing_status_s landing_status = {};
+		if (_pos_ctrl_landing_status_sub.updated()) {
+			position_controller_landing_status_s landing_status{};
 
 			// landing status from position controller must be newer than navigator's last position setpoint
-			if (orb_copy(ORB_ID(position_controller_landing_status), _pos_ctrl_landing_status_sub, &landing_status) == PX4_OK) {
+			if (_pos_ctrl_landing_status_sub.copy(&landing_status)) {
 				if (landing_status.timestamp > _pos_sp_triplet.timestamp) {
 					should_abort = landing_status.abort_landing;
 				}
@@ -1181,39 +1063,8 @@ bool
 Navigator::force_vtol()
 {
 	return _vstatus.is_vtol &&
-	       (!_vstatus.is_rotary_wing || _vstatus.in_transition_to_fw)
+	       (_vstatus.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING || _vstatus.in_transition_to_fw)
 	       && _param_nav_force_vt.get();
-}
-
-int Navigator::print_usage(const char *reason)
-{
-	if (reason) {
-		PX4_WARN("%s\n", reason);
-	}
-
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Module that is responsible for autonomous flight modes. This includes missions (read from dataman),
-takeoff and RTL.
-It is also responsible for geofence violation checking.
-
-### Implementation
-The different internal modes are implemented as separate classes that inherit from a common base class `NavigatorMode`.
-The member `_navigation_mode` contains the current active mode.
-
-Navigator publishes position setpoint triplets (`position_setpoint_triplet_s`), which are then used by the position
-controller.
-
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("navigator", "controller");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("fencefile", "load a geofence file from SD card, stored at etc/geofence.txt");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("fake_traffic", "publishes 3 fake transponder_report_s uORB messages");
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
-	return 0;
 }
 
 int Navigator::custom_command(int argc, char *argv[])
@@ -1248,14 +1099,7 @@ Navigator::publish_mission_result()
 	_mission_result.timestamp = hrt_absolute_time();
 
 	/* lazily publish the mission result only once available */
-	if (_mission_result_pub != nullptr) {
-		/* publish mission result */
-		orb_publish(ORB_ID(mission_result), _mission_result_pub, &_mission_result);
-
-	} else {
-		/* advertise and publish */
-		_mission_result_pub = orb_advertise(ORB_ID(mission_result), &_mission_result);
-	}
+	_mission_result_pub.publish(_mission_result);
 
 	/* reset some of the flags */
 	_mission_result.item_do_jump_changed = false;
@@ -1263,20 +1107,6 @@ Navigator::publish_mission_result()
 	_mission_result.item_do_jump_remaining = 0;
 
 	_mission_result_updated = false;
-}
-
-void
-Navigator::publish_geofence_result()
-{
-	/* lazily publish the geofence result only once available */
-	if (_geofence_result_pub != nullptr) {
-		/* publish mission result */
-		orb_publish(ORB_ID(geofence_result), _geofence_result_pub, &_geofence_result);
-
-	} else {
-		/* advertise and publish */
-		_geofence_result_pub = orb_advertise(ORB_ID(geofence_result), &_geofence_result);
-	}
 }
 
 void
@@ -1314,12 +1144,7 @@ Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 		break;
 	}
 
-	if (_vehicle_cmd_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, vcmd);
-
-	} else {
-		_vehicle_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-	}
+	_vehicle_cmd_pub.publish(*vcmd);
 }
 
 void
@@ -1337,11 +1162,36 @@ Navigator::publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t res
 	command_ack.result_param1 = 0;
 	command_ack.result_param2 = 0;
 
-	if (_vehicle_cmd_ack_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_command_ack), _vehicle_cmd_ack_pub, &command_ack);
+	_vehicle_cmd_ack_pub.publish(command_ack);
+}
 
-	} else {
-		_vehicle_cmd_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-				       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+int Navigator::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
 	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Module that is responsible for autonomous flight modes. This includes missions (read from dataman),
+takeoff and RTL.
+It is also responsible for geofence violation checking.
+
+### Implementation
+The different internal modes are implemented as separate classes that inherit from a common base class `NavigatorMode`.
+The member `_navigation_mode` contains the current active mode.
+
+Navigator publishes position setpoint triplets (`position_setpoint_triplet_s`), which are then used by the position
+controller.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("navigator", "controller");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("fencefile", "load a geofence file from SD card, stored at etc/geofence.txt");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("fake_traffic", "publishes 3 fake transponder_report_s uORB messages");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
 }

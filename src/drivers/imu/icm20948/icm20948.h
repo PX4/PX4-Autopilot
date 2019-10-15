@@ -31,32 +31,24 @@
  *
  ****************************************************************************/
 
+#pragma once
+
 #include <stdint.h>
 
 #include <perf/perf_counter.h>
 #include <systemlib/conversions.h>
 
-#include <nuttx/wqueue.h>
-
-#include <board_config.h>
 #include <drivers/drv_hrt.h>
 
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/integrator.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <drivers/drv_mag.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
 #include <lib/conversion/rotation.h>
 #include <systemlib/err.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 #include <uORB/uORB.h>
-#include <uORB/topics/debug_key_value.h>
 
-#include "mag.h"
-#include "accel.h"
-#include "gyro.h"
-
+#include "ICM20948_mag.h"
 
 #if defined(PX4_I2C_OBDEV_MPU9250) || defined(PX4_I2C_BUS_EXPANSION)
 #  define USE_I2C
@@ -371,21 +363,17 @@ extern int MPU9250_probe(device::Device *dev);
 typedef device::Device *(*ICM20948_constructor)(int, uint32_t, bool);
 
 class ICM20948_mag;
-class ICM20948_accel;
-class ICM20948_gyro;
 
-class ICM20948
+class ICM20948 : public px4::ScheduledWorkItem
 {
 public:
-	ICM20948(device::Device *interface, device::Device *mag_interface, const char *path_accel, const char *path_gyro,
-		 const char *path_mag,
-		 enum Rotation rotation,
+	ICM20948(device::Device *interface, device::Device *mag_interface, const char *path, enum Rotation rotation,
 		 bool magnetometer_only);
 
 	virtual ~ICM20948();
 
 	virtual int		init();
-	uint8_t			get_whoami();
+	uint8_t			get_whoami() { return _whoami; }
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -398,48 +386,28 @@ protected:
 
 	virtual int		probe();
 
-	friend class ICM20948_accel;
 	friend class ICM20948_mag;
-	friend class ICM20948_gyro;
+
+	void Run() override;
 
 private:
-	ICM20948_accel   *_accel;
-	ICM20948_gyro	*_gyro;
-	ICM20948_mag     *_mag;
+
+	PX4Accelerometer	_px4_accel;
+	PX4Gyroscope		_px4_gyro;
+
+	ICM20948_mag		_mag;
 	uint8_t 		_selected_bank;			/* Remember selected memory bank to avoid polling / setting on each read/write */
 	bool
 	_magnetometer_only;     /* To disable accel and gyro reporting if only magnetometer is used (e.g. as external magnetometer) */
 
-#if defined(USE_I2C)
-	/*
-	 * SPI bus based device use hrt
-	 * I2C bus needs to use work queue
-	 */
-	work_s			_work{};
-#endif
-	bool 			_use_hrt;
-
-	struct hrt_call		_call {};
-	unsigned		_call_interval;
-
-	ringbuffer::RingBuffer	*_accel_reports;
-
-	struct accel_calibration_s	_accel_scale;
-	float			_accel_range_scale;
-	float			_accel_range_m_s2;
-	orb_advert_t		_accel_topic;
-
-	ringbuffer::RingBuffer	*_gyro_reports;
-
-	struct gyro_calibration_s	_gyro_scale;
-	float			_gyro_range_scale;
-	float			_gyro_range_rad_s;
+	unsigned		_call_interval{1000};
 
 	unsigned		_dlpf_freq;
 	unsigned		_dlpf_freq_icm_gyro;
 	unsigned		_dlpf_freq_icm_accel;
 
-	unsigned		_sample_rate;
+	unsigned		_sample_rate{1000};
+
 	perf_counter_t		_accel_reads;
 	perf_counter_t		_gyro_reads;
 	perf_counter_t		_sample_perf;
@@ -449,48 +417,32 @@ private:
 	perf_counter_t		_reset_retries;
 	perf_counter_t		_duplicates;
 
-	uint8_t			_register_wait;
-	uint64_t		_reset_wait;
-
-	math::LowPassFilter2p	_accel_filter_x;
-	math::LowPassFilter2p	_accel_filter_y;
-	math::LowPassFilter2p	_accel_filter_z;
-	math::LowPassFilter2p	_gyro_filter_x;
-	math::LowPassFilter2p	_gyro_filter_y;
-	math::LowPassFilter2p	_gyro_filter_z;
-
-	Integrator		_accel_int;
-	Integrator		_gyro_int;
-
-	enum Rotation		_rotation;
+	uint8_t			_register_wait{0};
+	uint64_t		_reset_wait{0};
 
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
 	// reset
 
-#ifndef MAX
-#define MAX(X,Y) ((X) > (Y) ? (X) : (Y))
-#endif
-
 	static constexpr int ICM20948_NUM_CHECKED_REGISTERS{15};
 	static const uint16_t	_icm20948_checked_registers[ICM20948_NUM_CHECKED_REGISTERS];
 
-	const uint16_t			*_checked_registers;
+	const uint16_t			*_checked_registers{nullptr};
 
 	uint8_t					_checked_values[ICM20948_NUM_CHECKED_REGISTERS];
 	uint8_t					_checked_bad[ICM20948_NUM_CHECKED_REGISTERS];
-	unsigned				_checked_next;
-	unsigned				_num_checked_registers;
+	unsigned				_checked_next{0};
+	unsigned				_num_checked_registers{0};
 
 
 	// last temperature reading for print_info()
-	float			_last_temperature;
+	float			_last_temperature{0.0f};
 
 	bool check_null_data(uint16_t *data, uint8_t size);
 	bool check_duplicate(uint8_t *accel_data);
 	// keep last accel reading for duplicate detection
-	uint8_t			_last_accel_data[6];
-	bool			_got_duplicate;
+	uint8_t			_last_accel_data[6] {};
+	bool			_got_duplicate{false};
 
 	/**
 	 * Start automatic measurement.
@@ -514,52 +466,6 @@ private:
 	 * Resets the main chip (excluding the magnetometer if any).
 	 */
 	int			reset_mpu();
-
-
-#if defined(USE_I2C)
-	/**
-	 * When the I2C interfase is on
-	 * Perform a poll cycle; collect from the previous measurement
-	 * and start a new one.
-	 *
-	 * This is the heart of the measurement state machine.  This function
-	 * alternately starts a measurement, or collects the data from the
-		 * previous measurement.
-		 *
-		 * When the interval between measurements is greater than the minimum
-		 * measurement interval, a gap is inserted between collection
-		 * and measurement to provide the most recent measurement possible
-		 * at the next interval.
-		 */
-	void			cycle();
-
-	/**
-	 * Static trampoline from the workq context; because we don't have a
-	 * generic workq wrapper yet.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		cycle_trampoline(void *arg);
-
-	void use_i2c(bool on_true) { _use_hrt = !on_true; }
-
-#endif
-
-	bool is_i2c(void) { return !_use_hrt; }
-
-
-
-
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		measure_trampoline(void *arg);
 
 	/**
 	 * Fetch measurements from the sensor and update the report buffers.
@@ -678,7 +584,4 @@ private:
 	 */
 	void check_registers(void);
 
-	/* do not allow to copy this class due to pointer data members */
-	ICM20948(const ICM20948 &);
-	ICM20948 operator=(const ICM20948 &);
 };

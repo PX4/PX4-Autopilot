@@ -43,6 +43,9 @@
 
 #include "mission_block.h"
 
+#include <uORB/Publication.hpp>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
+
 class Navigator;
 
 class GpsFailure : public MissionBlock, public ModuleParams
@@ -72,7 +75,7 @@ private:
 
 	hrt_abstime _timestamp_activation{0}; //*< timestamp when this mode was activated */
 
-	orb_advert_t	_att_sp_pub{nullptr};
+	uORB::Publication<vehicle_attitude_setpoint_s>	_att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
 
 	/**
 	 * Set the GPSF item

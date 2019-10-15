@@ -268,11 +268,11 @@ GPSSIM::receive(int timeout)
 {
 	Simulator *sim = Simulator::getInstance();
 	simulator::RawGPSData gps;
-	sim->getGPSSample((uint8_t *)&gps, sizeof(gps));
 
 	static uint64_t timestamp_last = 0;
 
-	if (gps.timestamp != timestamp_last) {
+	if (sim->getGPSSample((uint8_t *)&gps, sizeof(gps)) &&
+	    (gps.timestamp != timestamp_last || timestamp_last == 0)) {
 		_report_gps_pos.timestamp = hrt_absolute_time();
 		_report_gps_pos.lat = gps.lat;
 		_report_gps_pos.lon = gps.lon;

@@ -41,52 +41,26 @@
 #include <nuttx/arch.h>
 #endif
 
-
-#include <termios.h>
-
 #ifndef __PX4_QURT
 #include <poll.h>
 #endif
 
+#include <termios.h>
 
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-#include <px4_cli.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_module.h>
-#include <px4_tasks.h>
-#include <px4_time.h>
-#include <arch/board/board.h>
-#include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
-#include <systemlib/err.h>
-#include <parameters/param.h>
-#include <uORB/uORB.h>
-#include <uORB/topics/vehicle_gps_position.h>
-#include <uORB/topics/satellite_info.h>
-#include <uORB/topics/gps_inject_data.h>
+#include <px4_cli.h>
+#include <px4_getopt.h>
+#include <px4_module.h>
+#include <uORB/PublicationQueued.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/gps_dump.h>
+#include <uORB/topics/gps_inject_data.h>
 
-#include <board_config.h>
-
-#include "devices/src/ubx.h"
-#include "devices/src/mtk.h"
 #include "devices/src/ashtech.h"
 #include "devices/src/emlid_reach.h"
+#include "devices/src/mtk.h"
+#include "devices/src/ubx.h"
 
 #ifdef __PX4_LINUX
 #include <linux/spi/spidev.h>
@@ -198,10 +172,11 @@ private:
 
 	const Instance 			_instance;
 
-	int				_orb_inject_data_fd{-1};
-	orb_advert_t			_dump_communication_pub{nullptr};		///< if non-null, dump communication
+	uORB::Subscription		_orb_inject_data_sub{ORB_ID(gps_inject_data)};
+	uORB::PublicationQueued<gps_dump_s>	_dump_communication_pub{ORB_ID(gps_dump)};
 	gps_dump_s			*_dump_to_device{nullptr};
 	gps_dump_s			*_dump_from_device{nullptr};
+	bool				_should_dump_communication{false};			///< if true, dump communication
 
 	static volatile bool _is_gps_main_advertised; ///< for the second gps we want to make sure that it gets instance 1
 	/// and thus we wait until the first one publishes at least one message.
@@ -285,7 +260,7 @@ GPS::GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interfac
 	_instance(instance)
 {
 	/* store port name */
-	strncpy(_port, path, sizeof(_port));
+	strncpy(_port, path, sizeof(_port) - 1);
 	/* enforce null termination */
 	_port[sizeof(_port) - 1] = '\0';
 
@@ -439,18 +414,22 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 
 void GPS::handleInjectDataTopic()
 {
-	if (_orb_inject_data_fd == -1) {
-		return;
-	}
-
 	bool updated = false;
 
+	// Limit maximum number of GPS injections to 6 since usually
+	// GPS injections should consist of 1-4 packets (GPS, Glonass, Baidu, Galileo).
+	// Looking at 6 packets thus guarantees, that at least a full injection
+	// data set is evaluated.
+	const size_t max_num_injections = 6;
+	size_t num_injections = 0;
+
 	do {
-		orb_check(_orb_inject_data_fd, &updated);
+		num_injections++;
+		updated = _orb_inject_data_sub.updated();
 
 		if (updated) {
-			struct gps_inject_data_s msg;
-			orb_copy(ORB_ID(gps_inject_data), _orb_inject_data_fd, &msg);
+			gps_inject_data_s msg;
+			_orb_inject_data_sub.copy(&msg);
 
 			/* Write the message to the gps device. Note that the message could be fragmented.
 			 * But as we don't write anywhere else to the device during operation, we don't
@@ -460,7 +439,7 @@ void GPS::handleInjectDataTopic()
 
 			++_last_rate_rtcm_injection_count;
 		}
-	} while (updated);
+	} while (updated && num_injections < max_num_injections);
 }
 
 bool GPS::injectData(uint8_t *data, size_t len)
@@ -580,16 +559,16 @@ void GPS::initializeCommunicationDump()
 	memset(_dump_to_device, 0, sizeof(gps_dump_s));
 	memset(_dump_from_device, 0, sizeof(gps_dump_s));
 
-	int instance;
 	//make sure to use a large enough queue size, so that we don't lose messages. You may also want
 	//to increase the logger rate for that.
-	_dump_communication_pub = orb_advertise_multi_queue(ORB_ID(gps_dump), _dump_from_device, &instance,
-				  ORB_PRIO_DEFAULT, 8);
+	_dump_communication_pub.publish(*_dump_from_device);
+
+	_should_dump_communication = true;
 }
 
 void GPS::dumpGpsData(uint8_t *data, size_t len, bool msg_to_gps_device)
 {
-	if (!_dump_communication_pub) {
+	if (!_should_dump_communication) {
 		return;
 	}
 
@@ -613,7 +592,7 @@ void GPS::dumpGpsData(uint8_t *data, size_t len, bool msg_to_gps_device)
 			}
 
 			dump_data->timestamp = hrt_absolute_time();
-			orb_publish(ORB_ID(gps_dump), _dump_communication_pub, dump_data);
+			_dump_communication_pub.publish(*dump_data);
 			dump_data->len = 0;
 		}
 	}
@@ -667,8 +646,6 @@ GPS::run()
 	if (handle != PARAM_INVALID) {
 		param_get(handle, &gps_ubx_dynmodel);
 	}
-
-	_orb_inject_data_fd = orb_subscribe(ORB_ID(gps_inject_data));
 
 	initializeCommunicationDump();
 
@@ -853,12 +830,6 @@ GPS::run()
 
 	PX4_INFO("exiting");
 
-	orb_unsubscribe(_orb_inject_data_fd);
-
-	if (_dump_communication_pub) {
-		orb_unadvertise(_dump_communication_pub);
-	}
-
 	if (_serial_fd >= 0) {
 		::close(_serial_fd);
 		_serial_fd = -1;
@@ -866,8 +837,6 @@ GPS::run()
 
 	orb_unadvertise(_report_gps_pos_pub);
 }
-
-
 
 int
 GPS::print_status()
@@ -1099,7 +1068,7 @@ int GPS::task_spawn(int argc, char *argv[], Instance instance)
 	}
 
 	int task_id = px4_task_spawn_cmd("gps", SCHED_DEFAULT,
-				   SCHED_PRIORITY_SLOW_DRIVER, 1600,
+				   SCHED_PRIORITY_SLOW_DRIVER, 1700,
 				   entry_point, (char *const *)argv);
 
 	if (task_id < 0) {

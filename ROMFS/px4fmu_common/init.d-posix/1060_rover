@@ -3,7 +3,7 @@
 # @name Rover
 #
 
-sh /etc/init.d/rc.ugv_defaults
+sh /etc/init.d/rc.rover_defaults
 
 if [ $AUTOCNF = yes ]
 then
@@ -19,10 +19,6 @@ then
 	param set GND_THR_IDLE 0
 	param set GND_THR_MAX 0.5
 	param set GND_THR_MIN 0
-	param set GND_WR_D 1.2
-	param set GND_WR_I 0.9674
-	param set GND_WR_IMAX 0.1
-	param set GND_WR_P 2
 
 	param set MIS_LTRMIN_ALT 0.01
 	param set MIS_TAKEOFF_ALT 0.01
@@ -30,6 +26,10 @@ then
 	param set NAV_LOITER_RAD 2
 
 	param set CBRK_AIRSPD_CHK 162128
+
+	param set GND_MAX_ANG 0.6
+	param set GND_WHEEL_BASE 2.0
+
 fi
 
 set MAV_TYPE 10

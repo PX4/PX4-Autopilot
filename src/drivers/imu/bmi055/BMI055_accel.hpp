@@ -33,18 +33,9 @@
 
 #pragma once
 
-#include "BMI055.hpp"
+#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
 
-#include <drivers/device/integrator.h>
-#include <drivers/device/ringbuffer.h>
-#include <drivers/device/spi.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_hrt.h>
-#include <lib/conversion/rotation.h>
-#include <lib/perf/perf_counter.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <px4_config.h>
-#include <systemlib/conversions.h>
+#include "BMI055.hpp"
 
 #define BMI055_DEVICE_PATH_ACCEL	"/dev/bmi055_accel"
 #define BMI055_DEVICE_PATH_ACCEL_EXT	"/dev/bmi055_accel_ext"
@@ -148,7 +139,7 @@
 /* Mask definitions for ACCD_X_LSB, ACCD_Y_LSB and ACCD_Z_LSB Register */
 #define BMI055_NEW_DATA_MASK                 0x01
 
-class BMI055_accel : public BMI055
+class BMI055_accel : public BMI055, public px4::ScheduledWorkItem
 {
 public:
 	BMI055_accel(int bus, const char *path_accel, uint32_t device, enum Rotation rotation);
@@ -156,8 +147,8 @@ public:
 
 	virtual int     init();
 
-	virtual ssize_t     read(struct file *filp, char *buffer, size_t buflen);
-	virtual int     ioctl(struct file *filp, int cmd, unsigned long arg);
+	// Start automatic measurement.
+	void            start();
 
 	/**
 	* Diagnostics - print some basic information about the driver.
@@ -175,27 +166,12 @@ protected:
 
 private:
 
+	PX4Accelerometer	_px4_accel;
+
 	perf_counter_t      _sample_perf;
-	perf_counter_t      _measure_interval;
 	perf_counter_t      _bad_transfers;
 	perf_counter_t      _bad_registers;
 	perf_counter_t      _duplicates;
-
-	ringbuffer::RingBuffer  *_accel_reports;
-
-	struct accel_calibration_s  _accel_scale;
-	float           _accel_range_scale;
-	float           _accel_range_m_s2;
-
-	orb_advert_t        _accel_topic;
-	int         _accel_orb_class_instance;
-	int         _accel_class_instance;
-
-	math::LowPassFilter2p   _accel_filter_x;
-	math::LowPassFilter2p   _accel_filter_y;
-	math::LowPassFilter2p   _accel_filter_z;
-
-	Integrator      _accel_int;
 
 	// this is used to support runtime checking of key
 	// configuration registers to detect SPI bus errors and sensor
@@ -205,15 +181,7 @@ private:
 	uint8_t         _checked_values[BMI055_ACCEL_NUM_CHECKED_REGISTERS];
 	uint8_t         _checked_bad[BMI055_ACCEL_NUM_CHECKED_REGISTERS];
 
-	// last temperature reading for print_info()
-	float           _last_temperature;
-
 	bool            _got_duplicate;
-
-	/**
-	 * Start automatic measurement.
-	 */
-	void            start();
 
 	/**
 	 * Stop automatic measurement.
@@ -227,16 +195,7 @@ private:
 	 */
 	int         reset();
 
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg       Instance pointer for the driver that is polling.
-	 */
-	static void     measure_trampoline(void *arg);
+	void     Run() override;
 
 	/**
 	 * Fetch measurements from the sensor and update the report buffers.
@@ -269,13 +228,6 @@ private:
 	 * @return      OK if the value can be supported, -EINVAL otherwise.
 	 */
 	int         set_accel_range(unsigned max_g);
-
-	/**
-	 * Measurement self test
-	 *
-	 * @return 0 on success, 1 on failure
-	 */
-	int             self_test();
 
 	/*
 	 * check that key registers still have the right value

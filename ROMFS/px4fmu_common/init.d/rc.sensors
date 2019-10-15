@@ -15,14 +15,6 @@ then
 		fmu i2c 2 100000
 	fi
 
-	# External SPI
-	ms5611 -S start
-
-	# Internal SPI (auto detect ms5611 or ms5607)
-	ms5611 -T 0 -s start
-
-	# Blacksheep telemetry
-	bst start
 
 	adc start
 fi
@@ -55,13 +47,13 @@ then
 	fi
 fi
 
-if param compare SENS_EN_BATT 1
+if param compare -s SENS_EN_BATT 1
 then
 	batt_smbus start -X
 fi
 
 # Sensors on the PWM interface bank
-if param compare SENS_EN_LL40LS 1
+if param compare -s SENS_EN_LL40LS 1
 then
 	if pwm_input start
 	then
@@ -70,39 +62,51 @@ then
 fi
 
 # Lidar-Lite on I2C
-if param compare SENS_EN_LL40LS 2
+if param compare -s SENS_EN_LL40LS 2
 then
-	ll40ls start i2c
+	ll40ls start i2c -a
+fi
+
+# mappydot lidar sensor
+if param compare -s SENS_EN_MPDT 1
+then
+	mappydot start -a
 fi
 
 # mb12xx sonar sensor
-if param greater SENS_EN_MB12XX 0
+if param greater -s SENS_EN_MB12XX 0
 then
 	mb12xx start -a
 fi
 
 # pga460 sonar sensor
-if param greater SENS_EN_PGA460 0
+if param greater -s SENS_EN_PGA460 0
 then
 	pga460 start
 fi
 
 # Lightware i2c lidar sensor
-if param greater SENS_EN_SF1XX 0
+if param greater -s SENS_EN_SF1XX 0
 then
 	sf1xx start -a
 fi
 
 # Heater driver for temperature regulated IMUs.
-if param compare SENS_EN_THERMAL 1
+if param compare -s SENS_EN_THERMAL 1
 then
 	heater start
 fi
 
 # Teraranger one tof sensor
-if param greater SENS_EN_TRANGER 0
+if param greater -s SENS_EN_TRANGER 0
 then
 	teraranger start -a
+fi
+
+# Possible pmw3901 optical flow sensor
+if param greater -s SENS_EN_PMW3901 0
+then
+	pmw3901 start
 fi
 
 ###############################################################################

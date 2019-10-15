@@ -37,24 +37,7 @@
  * I2C interface for MPL3115A2
  */
 
-/* XXX trim includes */
-#include <px4_config.h>
-#include <px4_defines.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <assert.h>
-#include <errno.h>
-#include <unistd.h>
-
-#include <arch/board/board.h>
-
-#include <drivers/device/i2c.h>
-
 #include "mpl3115a2.h"
-
-#include "board_config.h"
 
 #define MPL3115A2_ADDRESS        0x60
 

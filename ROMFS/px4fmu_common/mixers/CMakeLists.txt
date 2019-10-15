@@ -52,6 +52,7 @@ px4_add_romfs_files(
 	firefly6.main.mix
 	fw_generic_wing.main.mix
 	FX79.main.mix
+	generic_diff_rover.main.mix
 	hexa_cox.main.mix
 	hexa_+.main.mix
 	hexa_x.main.mix
@@ -77,7 +78,7 @@ px4_add_romfs_files(
 	stampede.main.mix
 	tri_y_yaw-.main.mix
 	tri_y_yaw+.main.mix
-	ugv_generic.main.mix
+	rover_generic.main.mix
 	Viper.main.mix
 	vtol_AAERT.aux.mix
 	vtol_AAVVT.aux.mix

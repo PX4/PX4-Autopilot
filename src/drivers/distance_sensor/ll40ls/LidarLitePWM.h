@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,79 +45,35 @@
 
 #include "LidarLite.h"
 
-#include <px4_workqueue.h>
+#include <stdio.h>
+#include <string.h>
 
-
-#include <drivers/device/ringbuffer.h>
-#include <perf/perf_counter.h>
-
-#include <uORB/uORB.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_input.h>
+#include <px4_defines.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/topics/pwm_input.h>
-#include <uORB/topics/distance_sensor.h>
 
-
-
-class LidarLitePWM : public LidarLite, public cdev::CDev
+class LidarLitePWM : public LidarLite, public px4::ScheduledWorkItem
 {
 public:
-	LidarLitePWM(const char *path, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
+	LidarLitePWM(const uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING);
 	virtual ~LidarLitePWM();
 
 	int init() override;
-
-	ssize_t read(device::file_t *filp, char *buffer, size_t buflen) override;
-	int	ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
-
 	void start() override;
-
 	void stop() override;
 
-	void cycle();
-
-	/**
-	* @brief
-	*   Diagnostics - print some basic information about the driver.
-	*/
-	void print_info() override;
-
-	/**
-	 * @brief
-	 *   print registers to console
-	 */
-	void print_registers() override;
-
-	/**
-	* Static trampoline from the workq context; because we don't have a
-	* generic workq wrapper yet.
-	*
-	* @param arg        Instance pointer for the driver that is polling.
-	*/
-	static void     cycle_trampoline(void *arg);
-
-	const char *get_dev_name() override;
+	void Run() override;
 
 protected:
 
+	int collect() override;
 	int measure() override;
 
-	int collect() override;
-
-	int reset_sensor() override;
-
-	void task_main_trampoline(int argc, char *argv[]);
-
 private:
-	uint8_t _rotation;
-	work_s			_work;
-	ringbuffer::RingBuffer	*_reports;
-	int			_class_instance;
-	int			_orb_class_instance;
-	int			_pwmSub;
-	struct pwm_input_s	_pwm;
-	orb_advert_t	        _distance_sensor_topic;
-	struct distance_sensor_s _range;
 
-	perf_counter_t	        _sample_perf;
-	perf_counter_t	        _read_errors;
-	perf_counter_t	        _sensor_zero_resets;
+	int _pwmSub{-1};
+
+	pwm_input_s _pwm{};
 };

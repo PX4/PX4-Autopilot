@@ -63,48 +63,13 @@ extern "C" {
 	__EXPORT int tune_control_main(int argc, char *argv[]);
 }
 
-static void
-usage()
-{
-
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Command-line tool to control & test the (external) tunes.
-
-Tunes are used to provide audible notification and warnings (e.g. when the system arms, gets position lock, etc.).
-The tool requires that a driver is running that can handle the tune_control uorb topic.
-
-Information about the tune format and predefined system tunes can be found here:
-https://github.com/PX4/Firmware/blob/master/src/lib/tunes/tune_definition.desc
-
-### Examples
-
-Play system tune #2:
-$ tune_control play -t 2
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("tune_control", "system");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("play","Play system tune or single note.");
-	PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 21, "Play predefined system tune", true);
-	PRINT_MODULE_USAGE_PARAM_INT('f', -1, 0, 22, "Frequency of note in Hz (0-22kHz)", true);
-	PRINT_MODULE_USAGE_PARAM_INT('d', -1, 1, 21, "Duration of note in us", true);
-	PRINT_MODULE_USAGE_PARAM_INT('s', 40, 0, 100, "Volume level (loudness) of the note (0-100)", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('m', nullptr,  R"(<string> - e.g. "MFT200e8a8a")",
-					 "Melody in string form", true);
-	PRINT_MODULE_USAGE_COMMAND_DESCR("libtest","Test library");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop playback (use for repeated tunes)");
-
-}
-
 static void publish_tune_control(tune_control_s &tune_control)
 {
 	tune_control.timestamp = hrt_absolute_time();
 
 	if (tune_control_pub == nullptr) {
 		// We have a minimum of 3 so that tune, stop, tune will fit
-		tune_control_pub = orb_advertise_queue(ORB_ID(tune_control), &tune_control, 3);
+		tune_control_pub = orb_advertise_queue(ORB_ID(tune_control), &tune_control, tune_control_s::ORB_QUEUE_LENGTH);
 
 	} else {
 		orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);
@@ -268,4 +233,39 @@ tune_control_main(int argc, char *argv[])
 	}
 
 	return 0;
+}
+
+static void
+usage()
+{
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+Command-line tool to control & test the (external) tunes.
+
+Tunes are used to provide audible notification and warnings (e.g. when the system arms, gets position lock, etc.).
+The tool requires that a driver is running that can handle the tune_control uorb topic.
+
+Information about the tune format and predefined system tunes can be found here:
+https://github.com/PX4/Firmware/blob/master/src/lib/tunes/tune_definition.desc
+
+### Examples
+
+Play system tune #2:
+$ tune_control play -t 2
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("tune_control", "system");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("play","Play system tune or single note.");
+	PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 21, "Play predefined system tune", true);
+	PRINT_MODULE_USAGE_PARAM_INT('f', -1, 0, 22, "Frequency of note in Hz (0-22kHz)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('d', -1, 1, 21, "Duration of note in us", true);
+	PRINT_MODULE_USAGE_PARAM_INT('s', 40, 0, 100, "Volume level (loudness) of the note (0-100)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('m', nullptr,  R"(<string> - e.g. "MFT200e8a8a")",
+					 "Melody in string form", true);
+	PRINT_MODULE_USAGE_COMMAND_DESCR("libtest","Test library");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("stop","Stop playback (use for repeated tunes)");
+
 }

@@ -166,7 +166,7 @@ private:
 		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist
 	)
 
-	uORB::Subscription<vehicle_air_data_s>	_sub_airdata;
+	uORB::SubscriptionData<vehicle_air_data_s>	_sub_airdata;
 
 	int _outside_counter{0};
 	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, we polygon data was updated

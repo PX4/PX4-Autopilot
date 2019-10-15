@@ -9,9 +9,10 @@
 #include <matrix/Matrix.hpp>
 
 // uORB Subscriptions
-#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionPollable.hpp>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -246,31 +247,32 @@ private:
 	// ----------------------------
 
 	// subscriptions
-	uORB::Subscription<actuator_armed_s> _sub_armed;
-	uORB::Subscription<vehicle_land_detected_s> _sub_land;
-	uORB::Subscription<vehicle_attitude_s> _sub_att;
-	uORB::Subscription<optical_flow_s> _sub_flow;
-	uORB::Subscription<sensor_combined_s> _sub_sensor;
-	uORB::Subscription<parameter_update_s> _sub_param_update;
-	uORB::Subscription<vehicle_gps_position_s> _sub_gps;
-	uORB::Subscription<vehicle_odometry_s> _sub_visual_odom;
-	uORB::Subscription<vehicle_odometry_s> _sub_mocap_odom;
-	uORB::Subscription<distance_sensor_s> _sub_dist0;
-	uORB::Subscription<distance_sensor_s> _sub_dist1;
-	uORB::Subscription<distance_sensor_s> _sub_dist2;
-	uORB::Subscription<distance_sensor_s> _sub_dist3;
-	uORB::Subscription<distance_sensor_s> *_dist_subs[N_DIST_SUBS];
-	uORB::Subscription<distance_sensor_s> *_sub_lidar;
-	uORB::Subscription<distance_sensor_s> *_sub_sonar;
-	uORB::Subscription<landing_target_pose_s> _sub_landing_target_pose;
-	uORB::Subscription<vehicle_air_data_s> _sub_airdata;
+	uORB::SubscriptionPollable<actuator_armed_s> _sub_armed;
+	uORB::SubscriptionPollable<vehicle_land_detected_s> _sub_land;
+	uORB::SubscriptionPollable<vehicle_attitude_s> _sub_att;
+	uORB::SubscriptionPollable<vehicle_angular_velocity_s> _sub_angular_velocity;
+	uORB::SubscriptionPollable<optical_flow_s> _sub_flow;
+	uORB::SubscriptionPollable<sensor_combined_s> _sub_sensor;
+	uORB::SubscriptionPollable<parameter_update_s> _sub_param_update;
+	uORB::SubscriptionPollable<vehicle_gps_position_s> _sub_gps;
+	uORB::SubscriptionPollable<vehicle_odometry_s> _sub_visual_odom;
+	uORB::SubscriptionPollable<vehicle_odometry_s> _sub_mocap_odom;
+	uORB::SubscriptionPollable<distance_sensor_s> _sub_dist0;
+	uORB::SubscriptionPollable<distance_sensor_s> _sub_dist1;
+	uORB::SubscriptionPollable<distance_sensor_s> _sub_dist2;
+	uORB::SubscriptionPollable<distance_sensor_s> _sub_dist3;
+	uORB::SubscriptionPollable<distance_sensor_s> *_dist_subs[N_DIST_SUBS];
+	uORB::SubscriptionPollable<distance_sensor_s> *_sub_lidar;
+	uORB::SubscriptionPollable<distance_sensor_s> *_sub_sonar;
+	uORB::SubscriptionPollable<landing_target_pose_s> _sub_landing_target_pose;
+	uORB::SubscriptionPollable<vehicle_air_data_s> _sub_airdata;
 
 	// publications
-	uORB::Publication<vehicle_local_position_s> _pub_lpos;
-	uORB::Publication<vehicle_global_position_s> _pub_gpos;
-	uORB::Publication<vehicle_odometry_s> _pub_odom;
-	uORB::Publication<estimator_status_s> _pub_est_status;
-	uORB::Publication<ekf2_innovations_s> _pub_innov;
+	uORB::PublicationData<vehicle_local_position_s> _pub_lpos{ORB_ID(vehicle_local_position)};
+	uORB::PublicationData<vehicle_global_position_s> _pub_gpos{ORB_ID(vehicle_global_position)};
+	uORB::PublicationData<vehicle_odometry_s> _pub_odom{ORB_ID(vehicle_odometry)};
+	uORB::PublicationData<estimator_status_s> _pub_est_status{ORB_ID(estimator_status)};
+	uORB::PublicationData<ekf2_innovations_s> _pub_innov{ORB_ID(ekf2_innovations)};
 
 	// map projection
 	struct map_projection_reference_s _map_ref;

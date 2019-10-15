@@ -8,16 +8,15 @@ px4_add_board(
 
 	DRIVERS
 		#barometer # all available barometer drivers
-		batt_smbus
+		#batt_smbus
 		camera_trigger
-		differential_pressure # all available differential pressure drivers
-		distance_sensor # all available distance sensor drivers
+		#differential_pressure # all available differential pressure drivers
+		#distance_sensor # all available distance sensor drivers
 		gps
 		#imu # all available imu drivers
 		#magnetometer # all available magnetometer drivers
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
-		sim/tone_alarm
 		tone_alarm
 		#uavcan
 
@@ -30,8 +29,7 @@ px4_add_board(
 		events
 		fw_att_control
 		fw_pos_control_l1
-		gnd_att_control
-		gnd_pos_control
+		rover_pos_control
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -47,7 +45,7 @@ px4_add_board(
 		simulator
 		vmount
 		vtol_att_control
-		wind_estimator
+		airspeed_selector
 
 	SYSTEMCMDS
 		#bl_update
@@ -72,6 +70,7 @@ px4_add_board(
 		topic_listener
 		tune_control
 		ver
+		work_queue
 
 	EXAMPLES
 		bottle_drop # OBC challenge
@@ -79,11 +78,9 @@ px4_add_board(
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		#hwtest # Hardware test
-		position_estimator_inav
 		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
-		segway
 	)
 
 set(config_sitl_viewer jmavsim CACHE STRING "viewer for sitl")
@@ -99,7 +96,7 @@ if(REPLAY_FILE)
 	message("Building with uorb publisher rules support")
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 
-	message("Building without lockstep for replay")
+	message(STATUS "Building without lockstep for replay")
 	set(ENABLE_LOCKSTEP_SCHEDULER no)
 else()
 	set(ENABLE_LOCKSTEP_SCHEDULER yes)

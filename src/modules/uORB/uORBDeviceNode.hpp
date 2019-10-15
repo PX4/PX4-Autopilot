@@ -45,6 +45,7 @@ namespace uORB
 class DeviceNode;
 class DeviceMaster;
 class Manager;
+class SubscriptionCallback;
 }
 
 /**
@@ -55,7 +56,7 @@ class uORB::DeviceNode : public cdev::CDev, public ListNode<uORB::DeviceNode *>
 public:
 	DeviceNode(const struct orb_metadata *meta, const uint8_t instance, const char *path, uint8_t priority,
 		   uint8_t queue_size = 1);
-	~DeviceNode();
+	virtual ~DeviceNode();
 
 	// no copy, assignment, move, move assignment
 	DeviceNode(const DeviceNode &) = delete;
@@ -195,6 +196,40 @@ public:
 	int get_priority() const { return _priority; }
 	void set_priority(uint8_t priority) { _priority = priority; }
 
+	/**
+	 * Copies data and the corresponding generation
+	 * from a node to the buffer provided.
+	 *
+	 * @param dst
+	 *   The buffer into which the data is copied.
+	 * @param generation
+	 *   The generation that was copied.
+	 * @return bool
+	 *   Returns true if the data was copied.
+	 */
+	bool copy(void *dst, unsigned &generation);
+
+	/**
+	 * Copies data and the corresponding generation
+	 * from a node to the buffer provided.
+	 *
+	 * @param dst
+	 *   The buffer into which the data is copied.
+	 *   If topic was not updated since last check it will return false but
+	 *   still copy the data.
+	 * @param generation
+	 *   The generation that was copied.
+	 * @return uint64_t
+	 *   Returns the timestamp of the copied data.
+	 */
+	uint64_t copy_and_get_timestamp(void *dst, unsigned &generation);
+
+	// add item to list of work items to schedule on node update
+	bool register_callback(SubscriptionCallback *callback_sub);
+
+	// remove item from list of work items
+	void unregister_callback(SubscriptionCallback *callback_sub);
+
 protected:
 
 	pollevent_t poll_state(cdev::file_t *filp) override;
@@ -202,24 +237,30 @@ protected:
 	void poll_notify_one(px4_pollfd_struct_t *fds, pollevent_t events) override;
 
 private:
+
+	/**
+	 * Copies data and the corresponding generation
+	 * from a node to the buffer provided. Caller handles locking.
+	 *
+	 * @param dst
+	 *   The buffer into which the data is copied.
+	 * @param generation
+	 *   The generation that was copied.
+	 * @return bool
+	 *   Returns true if the data was copied.
+	 */
+	bool copy_locked(void *dst, unsigned &generation);
+
 	struct UpdateIntervalData {
-		struct hrt_call update_call;  /**< deferred wakeup call if update_period is nonzero */
-#ifndef __PX4_NUTTX
-		uint64_t last_update; /**< time at which the last update was provided, used when update_interval is nonzero */
-#endif
-		unsigned  interval; /**< if nonzero minimum interval between updates */
-		bool update_reported;
+		uint64_t last_update{0}; /**< time at which the last update was provided, used when update_interval is nonzero */
+		unsigned interval{0}; /**< if nonzero minimum interval between updates */
 	};
+
 	struct SubscriberData {
 		~SubscriberData() { if (update_interval) { delete (update_interval); } }
 
-		unsigned  generation; /**< last generation the subscriber has seen */
-		UpdateIntervalData *update_interval; /**< if null, no update interval */
-
-		// these flags are only used if update_interval != null
-		bool update_reported() const { return update_interval ? update_interval->update_reported : false; }
-		void set_update_reported(bool update_reported_flag)
-		{ if (update_interval) { update_interval->update_reported = update_reported_flag; } }
+		unsigned generation{0}; /**< last generation the subscriber has seen */
+		UpdateIntervalData *update_interval{nullptr}; /**< if null, no update interval */
 	};
 
 	const orb_metadata *_meta; /**< object metadata information */
@@ -227,6 +268,7 @@ private:
 	uint8_t     *_data{nullptr};   /**< allocated object buffer */
 	hrt_abstime   _last_update{0}; /**< time the object was last updated */
 	volatile unsigned   _generation{0};  /**< object generation count */
+	List<uORB::SubscriptionCallback *>	_callbacks;
 	uint8_t   _priority;  /**< priority of the topic */
 	bool _published{false};  /**< has ever data been published */
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
@@ -240,18 +282,6 @@ private:
 					message, it is counted as two. */
 
 	inline static SubscriberData    *filp_to_sd(cdev::file_t *filp);
-
-	/**
-	 * Perform a deferred update for a rate-limited subscriber.
-	 */
-	void      update_deferred();
-
-	/**
-	 * Bridge from hrt_call to update_deferred
-	 *
-	 * void *arg    ORBDevNode pointer for which the deferred update is performed.
-	 */
-	static void   update_deferred_trampoline(void *arg);
 
 	/**
 	 * Check whether a topic appears updated to a subscriber.

@@ -33,9 +33,10 @@
 px4_add_module(
 	MODULE drivers__l3gd20
 	MAIN l3gd20
-	STACK_MAIN 1500
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		l3gd20.cpp
+	DEPENDS
+		drivers_gyroscope
 	)

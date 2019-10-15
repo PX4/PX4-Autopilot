@@ -10,10 +10,14 @@
             "isBackground": true,
             "args": [
                 "-r",
-                "500"
+                "250",
+                "-l"
             ],
             "options": {
-                "cwd": "${workspaceRoot}"
+                "cwd": "${workspaceRoot}",
+                "env": {
+                    "PX4_SIM_SPEED_FACTOR": "1"
+                }
             },
             "presentation": {
                 "reveal": "always",
@@ -60,10 +64,83 @@
                 "cwd": "${workspaceRoot}",
                 "env": {
                     "GAZEBO_PLUGIN_PATH": "${workspaceRoot}/build/px4_sitl_default/build_gazebo",
-                    "GAZEBO_MODEL_PATH": "${workspaceRoot}/Tools/sitl_gazebo/models"
+                    "GAZEBO_MODEL_PATH": "${workspaceRoot}/Tools/sitl_gazebo/models",
+                    "PX4_SIM_SPEED_FACTOR": "1"
                 }
             },
-            "command": "gzserver --verbose ${workspaceRoot}/Tools/sitl_gazebo/worlds/iris.world",
+            "command": "gzserver ${workspaceRoot}/Tools/sitl_gazebo/worlds/iris.world & gzclient",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": ".",
+                        "endsPattern": ".",
+                    }
+                }
+            ]
+        },
+        {
+            "label": "gazebo plane",
+            "type": "shell",
+            "dependsOn": "gazebo build",
+            "options": {
+                "cwd": "${workspaceRoot}",
+                "env": {
+                    "GAZEBO_PLUGIN_PATH": "${workspaceRoot}/build/px4_sitl_default/build_gazebo",
+                    "GAZEBO_MODEL_PATH": "${workspaceRoot}/Tools/sitl_gazebo/models",
+                    "PX4_SIM_SPEED_FACTOR": "1"
+                }
+            },
+            "command": "gzserver ${workspaceRoot}/Tools/sitl_gazebo/worlds/plane.world & gzclient",
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "problemMatcher": [
+                {
+                    "pattern": [
+                        {
+                            "regexp": ".",
+                            "file": 1,
+                            "location": 2,
+                            "message": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": ".",
+                        "endsPattern": ".",
+                    }
+                }
+            ]
+        },
+        {
+            "label": "gazebo standard_vtol",
+            "type": "shell",
+            "dependsOn": "gazebo build",
+            "options": {
+                "cwd": "${workspaceRoot}",
+                "env": {
+                    "GAZEBO_PLUGIN_PATH": "${workspaceRoot}/build/px4_sitl_default/build_gazebo",
+                    "GAZEBO_MODEL_PATH": "${workspaceRoot}/Tools/sitl_gazebo/models",
+                    "PX4_SIM_SPEED_FACTOR": "1"
+                }
+            },
+            "command": "gzserver ${workspaceRoot}/Tools/sitl_gazebo/worlds/standard_vtol.world & gzclient",
             "isBackground": true,
             "presentation": {
                 "reveal": "always",
@@ -90,8 +167,17 @@
         {
             "label": "gazebo kill",
             "type": "shell",
-            "command": "killall gzserver",
+            "command": "killall gzserver; killall gzclient",
             "problemMatcher": []
         },
+        {
+            "label": "mavlink shell",
+            "type": "shell",
+            "command": "./Tools/mavlink_shell.py",
+            "options": {
+                "cwd": "${workspaceRoot}"
+            },
+            "problemMatcher": []
+        }
     ]
 }

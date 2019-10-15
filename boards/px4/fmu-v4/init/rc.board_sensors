@@ -16,11 +16,14 @@ fmu sensor_reset 50
 hmc5883 -C -T -X start
 lis3mdl -X start
 ist8310 start
-bmp280 -I start
+bmp280 -X start
 qmc5883 -X start
 
 # expansion i2c used for BMM150 rotated by 90deg
 bmm150 -X -R 2 start
+
+# Internal SPI
+ms5611 -s start
 
 # For Teal One airframe
 if param compare SYS_AUTOSTART 4250
@@ -65,5 +68,3 @@ then
 	# BMI160 internal SPI bus
 	bmi160 start
 fi
-
-pmw3901 start

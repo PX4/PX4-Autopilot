@@ -35,8 +35,7 @@ set(SRCS
 	conversions.c
 	cpuload.c
 	crc.c
-	hysteresis/hysteresis.cpp
-	mavlink_log.c
+	mavlink_log.cpp
 	otp.c
 	)
 

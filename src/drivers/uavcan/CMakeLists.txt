@@ -45,6 +45,10 @@ if(CONFIG_ARCH_CHIP)
 	endif()
 endif()
 
+if(NOT DEFINED UAVCAN_PLATFORM)
+	message(FATAL_ERROR "UAVCAN_PLATFORM not set")
+endif()
+
 if(NOT config_uavcan_num_ifaces)
 	message(FATAL_ERROR "config_uavcan_num_ifaces not set")
 endif()
@@ -67,12 +71,29 @@ add_compile_options(-Wno-cast-align) # TODO: fix and enable
 add_subdirectory(libuavcan EXCLUDE_FROM_ALL)
 add_dependencies(uavcan prebuild_targets)
 
+
+# generated DSDL
+set(DSDLC_INPUTS "${CMAKE_CURRENT_SOURCE_DIR}/dsdl/com" "${CMAKE_CURRENT_SOURCE_DIR}/libuavcan/dsdl/uavcan")
+set(DSDLC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/include/dsdlc_generated")
+
+set(DSDLC_INPUT_FILES)
+foreach(DSDLC_INPUT ${DSDLC_INPUTS})
+	file(GLOB_RECURSE DSDLC_NEW_INPUT_FILES ${CMAKE_CURRENT_SOURCE_DIR} "${DSDLC_INPUT}/*.uavcan")
+	list(APPEND DSDLC_INPUT_FILES ${DSDLC_NEW_INPUT_FILES})
+endforeach(DSDLC_INPUT)
+add_custom_command(OUTPUT px4_uavcan_dsdlc_run.stamp
+                   COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/libuavcan/libuavcan/dsdl_compiler/libuavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
+                   COMMAND ${CMAKE_COMMAND} -E touch px4_uavcan_dsdlc_run.stamp
+                   DEPENDS ${DSDLC_INPUT_FILES}
+		   COMMENT "PX4 UAVCAN dsdl compiler"
+		   )
+add_custom_target(px4_uavcan_dsdlc DEPENDS px4_uavcan_dsdlc_run.stamp)
+
 px4_add_module(
 	MODULE modules__uavcan
 	MAIN uavcan
-	STACK_MAIN 3200
-	STACK_MAX 1500
 	INCLUDES
+		${DSDLC_OUTPUT}
 		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 		libuavcan/libuavcan/include
 		libuavcan/libuavcan/include/dsdlc_generated
@@ -93,15 +114,18 @@ px4_add_module(
 		sensors/gnss.cpp
 		sensors/mag.cpp
 		sensors/baro.cpp
+		sensors/flow.cpp
+		sensors/battery.cpp
 
 	DEPENDS
+		px4_uavcan_dsdlc
+
 		mixer
 		version
 
 		git_uavcan
 
 		# within libuavcan
-		libuavcan_dsdlc
 		uavcan
 		uavcan_${UAVCAN_PLATFORM}_driver
 	)

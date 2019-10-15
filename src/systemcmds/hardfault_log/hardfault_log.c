@@ -172,7 +172,7 @@ static int format_fault_file_name(struct timespec *ts, char *buffer, unsigned in
 		unsigned int plen = LOG_PATH_BASE_LEN;
 
 		if (maxsz >= LOG_PATH_LEN) {
-			strncpy(buffer, LOG_PATH_BASE, plen);
+			memcpy(buffer, LOG_PATH_BASE, plen);
 			maxsz -= plen;
 			int rv = format_fault_time(TIME_FMT, ts, fmtbuff, arraySize(fmtbuff));
 
@@ -312,7 +312,7 @@ static int  write_stack(bool inValid, int winsize, uint32_t wtopaddr,
 					if (wtopaddr == topaddr) {
 						strncpy(marker, "<-- ", sizeof(marker));
 						strncat(marker, sp_name, sizeof(marker) - 1);
-						strncat(marker, " top", sizeof(marker));
+						strncat(marker, " top", sizeof(marker) - 1);
 
 					} else if (wtopaddr == spaddr) {
 						strncpy(marker, "<-- ", sizeof(marker));
@@ -321,7 +321,7 @@ static int  write_stack(bool inValid, int winsize, uint32_t wtopaddr,
 					} else if (wtopaddr == botaddr) {
 						strncpy(marker, "<-- ", sizeof(marker));
 						strncat(marker, sp_name, sizeof(marker) - 1);
-						strncat(marker, " bottom", sizeof(marker));
+						strncat(marker, " bottom", sizeof(marker) - 1);
 
 					} else {
 						marker[0] = '\0';

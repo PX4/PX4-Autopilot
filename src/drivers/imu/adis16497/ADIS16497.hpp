@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -36,28 +36,19 @@
  *
  */
 
-#ifndef DRIVERS_IMU_ADIS16497_ADIS16497_HPP_
-#define DRIVERS_IMU_ADIS16497_ADIS16497_HPP_
+#pragma once
 
-#include <drivers/device/ringbuffer.h>
 #include <drivers/device/spi.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_accel.h>
-#include <drivers/drv_gyro.h>
-#include <mathlib/math/filter/LowPassFilter2pVector3f.hpp>
-#include <drivers/device/integrator.h>
-#include <lib/conversion/rotation.h>
-#include <perf/perf_counter.h>
 #include <ecl/geo/geo.h>
-
-#define ADIS16497_GYRO_DEFAULT_RATE			1000
-#define ADIS16497_GYRO_DEFAULT_DRIVER_FILTER_FREQ	80
-
-#define ADIS16497_ACCEL_DEFAULT_RATE			1000
-#define ADIS16497_ACCEL_DEFAULT_DRIVER_FILTER_FREQ	30
+#include <lib/conversion/rotation.h>
+#include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
+#include <lib/drivers/gyroscope/PX4Gyroscope.hpp>
+#include <perf/perf_counter.h>
+#include <px4_getopt.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 // TODO : This is a copy of the NuttX CRC32 table
-static const uint32_t crc32_tab[] = {
+static constexpr uint32_t crc32_tab[] = {
 	0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3,
 	0x0edb8832, 0x79dcb8a4, 0xe0d5e91e, 0x97d2d988, 0x09b64c2b, 0x7eb17cbd, 0xe7b82d07, 0x90bf1d91,
 	0x1db71064, 0x6ab020f2, 0xf3b97148, 0x84be41de, 0x1adad47d, 0x6ddde4eb, 0xf4d4b551, 0x83d385c7,
@@ -92,69 +83,29 @@ static const uint32_t crc32_tab[] = {
 	0xb3667a2e, 0xc4614ab8, 0x5d681b02, 0x2a6f2b94, 0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
-class ADIS16497_gyro;
-
-class ADIS16497 : public device::SPI
+class ADIS16497 : public device::SPI, public px4::ScheduledWorkItem
 {
 public:
-	ADIS16497(int bus, const char *path_accel, const char *path_gyro, uint32_t device, enum Rotation rotation);
+	ADIS16497(int bus, uint32_t device, enum Rotation rotation = ROTATION_NONE);
 	virtual ~ADIS16497();
 
 	virtual int		init();
-
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
 
 	void			print_info();
 
 protected:
 	virtual int		probe();
 
-	friend class ADIS16497_gyro;
-
-	virtual int		gyro_ioctl(struct file *filp, int cmd, unsigned long arg);
-
 private:
-	ADIS16497_gyro		*_gyro{nullptr};
 
-	struct hrt_call		_call {};
-	unsigned		_call_interval{1000};
-
-	struct gyro_calibration_s	_gyro_scale {};
-
-	// gyro 0.025 °/sec/LSB
-	float				_gyro_range_scale{0.025f};
-	float				_gyro_range_rad_s{math::radians(500.0f)};
-
-	struct accel_calibration_s	_accel_scale {};
-
-	// accel 1.25 mg/LSB
-	float				_accel_range_scale{1.25f * CONSTANTS_ONE_G / 1000.0f};
-	float				_accel_range_m_s2{40.0f * CONSTANTS_ONE_G};
-
-	orb_advert_t		_accel_topic{nullptr};
-
-	int					_accel_orb_class_instance{-1};
-	int					_accel_class_instance{-1};
-
-	unsigned			_sample_rate{1000};
+	PX4Accelerometer	_px4_accel;
+	PX4Gyroscope		_px4_gyro;
 
 	perf_counter_t		_sample_perf;
-	perf_counter_t		_sample_interval_perf;
-
 	perf_counter_t		_bad_transfers;
 
-	math::LowPassFilter2pVector3f	_gyro_filter{ADIS16497_GYRO_DEFAULT_RATE, ADIS16497_GYRO_DEFAULT_DRIVER_FILTER_FREQ};
-	math::LowPassFilter2pVector3f	_accel_filter{ADIS16497_ACCEL_DEFAULT_RATE, ADIS16497_ACCEL_DEFAULT_DRIVER_FILTER_FREQ};
-
-	Integrator			_accel_int{4000, false};
-	Integrator			_gyro_int{4000, true};
-
-	enum Rotation		_rotation;
-
 #pragma pack(push, 1)
-	/**
-	 * Report conversation with the ADIS16497, including command byte.
-	 */
+	// Report conversation with the ADIS16497, including command byte.
 	struct ADISReport {
 		uint16_t	cmd;
 		uint16_t	ZEROES;
@@ -182,12 +133,12 @@ private:
 	/**
 	 * Start automatic measurement.
 	 */
-	void		start();
+	void			start();
 
 	/**
 	 * Stop automatic measurement.
 	 */
-	void		stop();
+	void			stop();
 
 	/**
 	 * Reset chip.
@@ -196,16 +147,7 @@ private:
 	 */
 	int			reset();
 
-	/**
-	 * Static trampoline from the hrt_call context; because we don't have a
-	 * generic hrt wrapper yet.
-	 *
-	 * Called by the HRT in interrupt context at the specified rate if
-	 * automatic polling is enabled.
-	 *
-	 * @param arg		Instance pointer for the driver that is polling.
-	 */
-	static void		measure_trampoline(void *arg);
+	void			Run() override;
 
 	static int		data_ready_interrupt(int irq, void *context, void *arg);
 
@@ -214,21 +156,15 @@ private:
 	 */
 	int			measure();
 
-	void			publish_accel(const hrt_abstime &t, const ADISReport &report);
-	void			publish_gyro(const hrt_abstime &t, const ADISReport &report);
-
 	uint16_t		read_reg16(uint8_t reg);
 
 	void			write_reg(uint8_t reg, uint8_t value);
 	void			write_reg16(uint8_t reg, uint16_t value);
 
 	// ADIS16497 onboard self test
-	bool 			self_test_sensor();
+	bool 			self_test();
 
-	ADIS16497(const ADIS16497 &);
-	ADIS16497 operator=(const ADIS16497 &);
-
-	uint32_t crc32(const uint16_t *data, size_t len)
+	uint32_t crc32(const uint16_t *data, size_t len) const
 	{
 		uint32_t crc = 0xffffffff;
 		uint8_t tbl_idx;
@@ -250,5 +186,3 @@ private:
 	}
 
 };
-
-#endif /* DRIVERS_IMU_ADIS16497_ADIS16497_HPP_ */

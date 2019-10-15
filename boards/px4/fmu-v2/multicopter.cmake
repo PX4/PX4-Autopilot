@@ -7,7 +7,9 @@ px4_add_board(
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
+	BOOTLOADER ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/extras/px4fmuv3_bl.bin
 	IO px4_io-v2_default
+	CONSTRAINED_FLASH
 	#UAVCAN_INTERFACES 2
 
 	SERIAL_PORTS
@@ -17,8 +19,9 @@ px4_add_board(
 		TEL4:/dev/ttyS6
 
 	DRIVERS
+		adc
 		barometer/ms5611
-		batt_smbus
+		#batt_smbus
 		camera_capture
 		camera_trigger
 		distance_sensor # all available distance sensor drivers
@@ -26,16 +29,14 @@ px4_add_board(
 		imu/l3gd20
 		imu/lsm303d
 		imu/mpu6000
-		imu/mpu9250
+		#imu/mpu9250
 		irlock
 		lights/rgbled
 		magnetometer/hmc5883
-		px4flow
+		optical_flow/px4flow
 		px4fmu
 		px4io
-		stm32
-		stm32/adc
-		stm32/tone_alarm
+		tone_alarm
 
 	MODULES
 		#attitude_estimator_q
@@ -62,6 +63,7 @@ px4_add_board(
 		#dumpfile
 		#esc_calib
 		hardfault_log
+		#i2cdetect
 		#led_control
 		mixer
 		#motor_ramp
@@ -78,4 +80,6 @@ px4_add_board(
 		tune_control
 		usb_connected
 		ver
+		work_queue
+
 	)

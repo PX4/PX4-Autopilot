@@ -23,5 +23,5 @@ for gen_file in args.gen_files:
         "tasks_add": args.tasks_add,
     }
     interpreter = em.Interpreter(output=output_file, globals=em_globals)
-    interpreter.file(open(args.directory_in + "/" + gen_file + ".template"))
+    interpreter.file(open(args.directory_in + "/" + gen_file + ".em"))
     interpreter.shutdown()

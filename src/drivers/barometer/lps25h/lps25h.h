@@ -39,6 +39,21 @@
 
 #pragma once
 
+#include <string.h>
+
+#include <drivers/device/Device.hpp>
+#include <drivers/device/i2c.h>
+#include <drivers/device/ringbuffer.h>
+#include <drivers/device/spi.h>
+#include <drivers/drv_baro.h>
+#include <lib/cdev/CDev.hpp>
+#include <perf/perf_counter.h>
+#include <px4_getopt.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <systemlib/err.h>
+#include <uORB/uORB.h>
+
+
 #define ADDR_WHO_AM_I		0x0F
 
 #define ID_WHO_AM_I		0xBD

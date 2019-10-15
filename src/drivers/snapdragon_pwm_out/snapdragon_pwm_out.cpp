@@ -40,7 +40,7 @@
 #include <cmath>	// NAN
 #include <string.h>
 
-#include <uORB/uORB.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/actuator_armed.h>
@@ -53,7 +53,7 @@
 #include <mixer/mixer_multirotor_normalized.generated.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
-#include <pwm_limit/pwm_limit.h>
+#include <output_limit/output_limit.h>
 #include <dev_fs_lib_pwm.h>
 
 /*
@@ -105,7 +105,7 @@ px4_pollfd_struct_t _poll_fds[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 uint32_t	_groups_required = 0;
 
 // limit for pwm
-pwm_limit_t     _pwm_limit;
+output_limit_t     _pwm_limit;
 
 // esc parameters
 int32_t _pwm_disarmed;
@@ -357,14 +357,14 @@ void task_main(int argc, char *argv[])
 
 	Mixer::Airmode airmode = Mixer::Airmode::disabled;
 	update_params(airmode);
-	int params_sub = orb_subscribe(ORB_ID(parameter_update));
+	uORB::Subscription parameter_update_sub{ORB_ID(parameter_update)};
 
 	// Start disarmed
 	_armed.armed = false;
 	_armed.prearmed = false;
 
 	// set max min pwm
-	pwm_limit_init(&_pwm_limit);
+	output_limit_init(&_pwm_limit);
 
 	_perf_control_latency = perf_alloc(PC_ELAPSED, "snapdragon_pwm_out control latency");
 
@@ -439,9 +439,9 @@ void task_main(int argc, char *argv[])
 
 
 		// TODO FIXME: pre-armed seems broken -> copied and pasted from pwm_out_rc_in: needs to be tested
-		pwm_limit_calc(_armed.armed,
-			       false/*_armed.prearmed*/, _outputs.noutputs, reverse_mask, disarmed_pwm,
-			       min_pwm, max_pwm, _outputs.output, pwm, &_pwm_limit);
+		output_limit_calc(_armed.armed,
+				  false/*_armed.prearmed*/, _outputs.noutputs, reverse_mask, disarmed_pwm,
+				  min_pwm, max_pwm, _outputs.output, pwm, &_pwm_limit);
 
 		// send and publish outputs
 		if (_armed.lockdown || _armed.manual_lockdown || timeout) {
@@ -471,13 +471,13 @@ void task_main(int argc, char *argv[])
 			}
 		}
 
-		/* check for parameter updates */
-		bool param_updated = false;
-		orb_check(params_sub, &param_updated);
+		// check for parameter updates
+		if (parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			parameter_update_sub.copy(&pupdate);
 
-		if (param_updated) {
-			struct parameter_update_s update;
-			orb_copy(ORB_ID(parameter_update), params_sub, &update);
+			// update parameters from storage
 			update_params(airmode);
 		}
 	}
@@ -491,7 +491,6 @@ void task_main(int argc, char *argv[])
 	}
 
 	orb_unsubscribe(_armed_sub);
-	orb_unsubscribe(params_sub);
 
 	perf_free(_perf_control_latency);
 

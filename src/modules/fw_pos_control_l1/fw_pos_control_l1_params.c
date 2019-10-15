@@ -396,7 +396,7 @@ PARAM_DEFINE_FLOAT(FW_LND_AIRSPD_SC, 1.3f);
 /**
  * Throttle time constant factor for landing
  *
- * Set this parameter to <1.0 to make the TECS throttle loop react faster during
+ * Set this parameter to less than 1.0 to make the TECS throttle loop react faster during
  * landing than during normal flight (i.e. giving efficiency and low motor wear at
  * high altitudes but control accuracy during landing). During landing, the TECS
  * throttle time constant (FW_T_THRO_CONST) is multiplied by this value.
@@ -727,3 +727,18 @@ PARAM_DEFINE_FLOAT(FW_T_HRATE_FF, 0.8f);
  * @group FW TECS
  */
 PARAM_DEFINE_FLOAT(FW_T_SRATE_P, 0.02f);
+
+/**
+ * Minimum groundspeed
+ *
+ * The controller will increase the commanded airspeed to maintain
+ * this minimum groundspeed to the next waypoint.
+ *
+ * @unit m/s
+ * @min 0.0
+ * @max 40
+ * @decimal 1
+ * @increment 0.5
+ * @group FW TECS
+ */
+PARAM_DEFINE_FLOAT(FW_GND_SPD_MIN, 5.0f);

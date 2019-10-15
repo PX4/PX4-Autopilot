@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-include(px4_base)
-
 #=============================================================================
 #
 #	px4_add_common_flags
@@ -51,10 +49,17 @@ function(px4_add_common_flags)
 		-fdata-sections
 		-ffunction-sections
 		-fomit-frame-pointer
-		-funsafe-math-optimizations
+		-fmerge-all-constants
+
+		#-funsafe-math-optimizations # Enables -fno-signed-zeros, -fno-trapping-math, -fassociative-math and -freciprocal-math
+		-fno-signed-zeros	# Allow optimizations for floating-point arithmetic that ignore the signedness of zero
+		-fno-trapping-math	# Compile code assuming that floating-point operations cannot generate user-visible traps
+		#-fassociative-math	# Allow re-association of operands in series of floating-point operations
+		-freciprocal-math	# Allow the reciprocal of a value to be used instead of dividing by the value if this enables optimizations
+
+		-fno-math-errno		# Do not set errno after calling math functions that are executed with a single instruction, e.g., sqrt
 
 		-fno-strict-aliasing
-		-fno-math-errno
 
 		# visibility
 		-fvisibility=hidden
@@ -81,7 +86,6 @@ function(px4_add_common_flags)
 		-Wunused-variable
 
 		# disabled warnings
-		-Wno-implicit-fallthrough # set appropriate level and update
 		-Wno-missing-field-initializers
 		-Wno-missing-include-dirs # TODO: fix and enable
 		-Wno-unused-parameter
@@ -169,6 +173,9 @@ function(px4_add_common_flags)
 		${PX4_BINARY_DIR}/src/lib
 		${PX4_BINARY_DIR}/src/modules
 
+		${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/${PX4_CHIP_MANUFACTURER}/${PX4_CHIP}/include
+		${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/common/include
+		${PX4_SOURCE_DIR}/platforms/common/include
 		${PX4_SOURCE_DIR}/src
 		${PX4_SOURCE_DIR}/src/include
 		${PX4_SOURCE_DIR}/src/lib
@@ -176,7 +183,6 @@ function(px4_add_common_flags)
 		${PX4_SOURCE_DIR}/src/lib/matrix
 		${PX4_SOURCE_DIR}/src/modules
 		${PX4_SOURCE_DIR}/src/platforms
-		${PX4_SOURCE_DIR}/src/platforms/common
 		)
 
 	add_definitions(

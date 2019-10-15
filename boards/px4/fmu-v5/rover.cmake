@@ -17,6 +17,7 @@ px4_add_board(
 		TEL4:/dev/ttyS3
 
 	DRIVERS
+		adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -25,27 +26,23 @@ px4_add_board(
 		gps
 		imu/bmi055
 		imu/mpu6000
-		lights/pca8574
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		#md25
 		mkblctrl
+		optical_flow # all available optical flow drivers
 		pca9685
-		pmw3901
 		pwm_input
 		pwm_out_sim
-		px4flow
 		px4fmu
 		px4io
 		rc_input
 		roboclaw
-		stm32
-		stm32/adc
-		stm32/armv7-m_dcache
-		stm32/tone_alarm
+		safety_button
 		telemetry # all available telemetry drivers
+		tone_alarm
 		uavcan
 
 	MODULES
@@ -54,8 +51,7 @@ px4_add_board(
 		dataman
 		ekf2
 		events
-		gnd_att_control
-		gnd_pos_control
+		rover_pos_control
 		land_detector
 		load_mon
 		logger
@@ -70,6 +66,7 @@ px4_add_board(
 		dumpfile
 		esc_calib
 		hardfault_log
+		i2cdetect
 		led_control
 		mixer
 		motor_ramp
@@ -88,4 +85,6 @@ px4_add_board(
 		tune_control
 		usb_connected
 		ver
+		work_queue
+
 	)

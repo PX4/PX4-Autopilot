@@ -264,6 +264,11 @@
 
 #define BOARD_HAS_ON_RESET 1
 
+#define BOARD_ENABLE_CONSOLE_BUFFER
+#define BOARD_CONSOLE_BUFFER_SIZE (1024*3)
+
+#define BOARD_DSHOT_MOTOR_ASSIGNMENT {2, 3, 1, 0};
+
 __BEGIN_DECLS
 
 /****************************************************************************************************

@@ -13,21 +13,5 @@ fi
 # other configurations.
 param set SYS_AUTOSTART 4070
 
-if [ $AUTOCNF = yes ]
-then
-	# Disable safety switch by default
-	param set CBRK_IO_SAFETY 22027
-
-	# use the Q attitude estimator, it works w/o mag or GPS.
-	param set SYS_MC_EST_GROUP 1
-	param set ATT_ACC_COMP 0
-	param set ATT_W_ACC 0.4000
-	param set ATT_W_GYRO_BIAS 0.0000
-
-	param set SYS_HAS_MAG 0
-fi
-
-
 set DATAMAN_OPT -i
 set LOGGER_ARGS "-m mavlink"
-set MIXER_AUX none

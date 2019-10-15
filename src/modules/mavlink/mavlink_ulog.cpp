@@ -56,19 +56,9 @@ MavlinkULog::MavlinkULog(int datarate, float max_rate_factor, uint8_t target_sys
 				      (MAVLINK_MSG_ID_LOGGING_DATA_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES)))),
 	  _current_rate_factor(max_rate_factor)
 {
-	_ulog_stream_sub = orb_subscribe(ORB_ID(ulog_stream));
+	// make sure we won't read any old messages
+	while (_ulog_stream_sub.update()) {
 
-	if (_ulog_stream_sub < 0) {
-		PX4_ERR("orb_subscribe failed (%i)", errno);
-
-	} else {
-		// make sure we won't read any old messages
-		struct ulog_stream_s stream_msg;
-		bool update;
-
-		while (orb_check(_ulog_stream_sub, &update) == 0 && update) {
-			orb_copy(ORB_ID(ulog_stream), _ulog_stream_sub, &stream_msg);
-		}
 	}
 
 	_waiting_for_initial_ack = true;
@@ -78,13 +68,6 @@ MavlinkULog::MavlinkULog(int datarate, float max_rate_factor, uint8_t target_sys
 
 MavlinkULog::~MavlinkULog()
 {
-	if (_ulog_stream_ack_pub) {
-		orb_unadvertise(_ulog_stream_ack_pub);
-	}
-
-	if (_ulog_stream_sub >= 0) {
-		orb_unsubscribe(_ulog_stream_sub);
-	}
 }
 
 void MavlinkULog::start_ack_received()
@@ -129,13 +112,16 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 				} else {
 					PX4_DEBUG("re-sending ulog mavlink message (try=%i)", _sent_tries);
 					_last_sent_time = hrt_absolute_time();
+
+					const ulog_stream_s &ulog_data = _ulog_stream_sub.get();
+
 					mavlink_logging_data_acked_t msg;
-					msg.sequence = _ulog_data.sequence;
-					msg.length = _ulog_data.length;
-					msg.first_message_offset = _ulog_data.first_message_offset;
+					msg.sequence = ulog_data.msg_sequence;
+					msg.length = ulog_data.length;
+					msg.first_message_offset = ulog_data.first_message_offset;
 					msg.target_system = _target_system;
 					msg.target_component = _target_component;
-					memcpy(msg.data, _ulog_data.data, sizeof(msg.data));
+					memcpy(msg.data, ulog_data.data, sizeof(msg.data));
 					mavlink_msg_logging_data_acked_send_struct(channel, &msg);
 				}
 			}
@@ -146,44 +132,40 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 		}
 	}
 
-	bool updated = false;
-	int ret = orb_check(_ulog_stream_sub, &updated);
+	while ((_current_num_msgs < _max_num_messages) && _ulog_stream_sub.update()) {
+		const ulog_stream_s &ulog_data = _ulog_stream_sub.get();
 
-	while (updated && !ret && _current_num_msgs < _max_num_messages) {
-		orb_copy(ORB_ID(ulog_stream), _ulog_stream_sub, &_ulog_data);
-
-		if (_ulog_data.timestamp > 0) {
-			if (_ulog_data.flags & ulog_stream_s::FLAGS_NEED_ACK) {
+		if (ulog_data.timestamp > 0) {
+			if (ulog_data.flags & ulog_stream_s::FLAGS_NEED_ACK) {
 				_sent_tries = 1;
 				_last_sent_time = hrt_absolute_time();
 				lock();
-				_wait_for_ack_sequence = _ulog_data.sequence;
+				_wait_for_ack_sequence = ulog_data.msg_sequence;
 				_ack_received = false;
 				unlock();
 
 				mavlink_logging_data_acked_t msg;
-				msg.sequence = _ulog_data.sequence;
-				msg.length = _ulog_data.length;
-				msg.first_message_offset = _ulog_data.first_message_offset;
+				msg.sequence = ulog_data.msg_sequence;
+				msg.length = ulog_data.length;
+				msg.first_message_offset = ulog_data.first_message_offset;
 				msg.target_system = _target_system;
 				msg.target_component = _target_component;
-				memcpy(msg.data, _ulog_data.data, sizeof(msg.data));
+				memcpy(msg.data, ulog_data.data, sizeof(msg.data));
 				mavlink_msg_logging_data_acked_send_struct(channel, &msg);
 
 			} else {
 				mavlink_logging_data_t msg;
-				msg.sequence = _ulog_data.sequence;
-				msg.length = _ulog_data.length;
-				msg.first_message_offset = _ulog_data.first_message_offset;
+				msg.sequence = ulog_data.msg_sequence;
+				msg.length = ulog_data.length;
+				msg.first_message_offset = ulog_data.first_message_offset;
 				msg.target_system = _target_system;
 				msg.target_component = _target_component;
-				memcpy(msg.data, _ulog_data.data, sizeof(msg.data));
+				memcpy(msg.data, ulog_data.data, sizeof(msg.data));
 				mavlink_msg_logging_data_send_struct(channel, &msg);
 			}
 		}
 
 		++_current_num_msgs;
-		ret = orb_check(_ulog_stream_sub, &updated);
 	}
 
 	//need to update the rate?
@@ -270,12 +252,7 @@ void MavlinkULog::publish_ack(uint16_t sequence)
 {
 	ulog_stream_ack_s ack;
 	ack.timestamp = hrt_absolute_time();
-	ack.sequence = sequence;
+	ack.msg_sequence = sequence;
 
-	if (_ulog_stream_ack_pub == nullptr) {
-		_ulog_stream_ack_pub = orb_advertise(ORB_ID(ulog_stream_ack), &ack);
-
-	} else {
-		orb_publish(ORB_ID(ulog_stream_ack), _ulog_stream_ack_pub, &ack);
-	}
+	_ulog_stream_ack_pub.publish(ack);
 }

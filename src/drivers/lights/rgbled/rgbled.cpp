@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,35 +40,14 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <px4_config.h>
-#include <px4_getopt.h>
+#include <string.h>
 
 #include <drivers/device/i2c.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <ctype.h>
-
-#include <px4_workqueue.h>
-
-#include <perf/perf_counter.h>
-#include <systemlib/err.h>
-
-#include <board_config.h>
-
-#include <drivers/drv_led.h>
 #include <lib/led/led.h>
-
-#include "uORB/topics/parameter_update.h"
-
-#define RGBLED_ONTIME 120
-#define RGBLED_OFFTIME 120
+#include <px4_getopt.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/parameter_update.h>
 
 #define ADDR			0x55	/**< I2C adress of TCA62724FMG */
 #define SUB_ADDR_START		0x01	/**< write everything (with auto-increment) */
@@ -80,41 +59,38 @@
 #define SETTING_NOT_POWERSAVE	0x01	/**< power-save mode not off */
 #define SETTING_ENABLE   	0x02	/**< on */
 
-
-class RGBLED : public device::I2C
+class RGBLED : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
 	RGBLED(int bus, int rgbled);
 	virtual ~RGBLED();
 
-
 	virtual int		init();
 	virtual int		probe();
-	int		status();
+	int			status();
 
 private:
-	work_s			_work;
 
-	float			_brightness;
-	float			_max_brightness;
+	float			_brightness{1.0f};
+	float			_max_brightness{1.0f};
 
-	uint8_t			_r;
-	uint8_t			_g;
-	uint8_t			_b;
-	volatile bool		_running;
-	volatile bool		_should_run;
-	bool			_leds_enabled;
-	int			_param_sub;
+	uint8_t			_r{0};
+	uint8_t			_g{0};
+	uint8_t			_b{0};
+	volatile bool		_running{false};
+	volatile bool		_should_run{true};
+	bool			_leds_enabled{true};
+
+	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
 	LedController		_led_controller;
 
-	static void		led_trampoline(void *arg);
-	void			led();
+	void			Run() override;
 
 	int			send_led_enable(bool enable);
 	int			send_led_rgb();
 	int			get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b);
-	void		update_params();
+	void			update_params();
 };
 
 /* for now, we only support one RGBLED */
@@ -128,21 +104,8 @@ void rgbled_usage();
 extern "C" __EXPORT int rgbled_main(int argc, char *argv[]);
 
 RGBLED::RGBLED(int bus, int rgbled) :
-	I2C("rgbled", RGBLED0_DEVICE_PATH, bus, rgbled
-#ifdef __PX4_NUTTX
-	    , 100000 /* maximum speed supported */
-#endif
-	   ),
-	_work{},
-	_brightness(1.0f),
-	_max_brightness(1.0f),
-	_r(0),
-	_g(0),
-	_b(0),
-	_running(false),
-	_should_run(true),
-	_leds_enabled(true),
-	_param_sub(-1)
+	I2C("rgbled", RGBLED0_DEVICE_PATH, bus, rgbled, 100000),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id()))
 {
 }
 
@@ -159,8 +122,7 @@ RGBLED::~RGBLED()
 int
 RGBLED::init()
 {
-	int ret;
-	ret = I2C::init();
+	int ret = I2C::init();
 
 	if (ret != OK) {
 		return ret;
@@ -173,8 +135,9 @@ RGBLED::init()
 	update_params();
 
 	_running = true;
+
 	// kick off work queue
-	work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, 0);
+	ScheduleNow();
 
 	return OK;
 }
@@ -212,11 +175,10 @@ RGBLED::probe()
 int
 RGBLED::status()
 {
-	int ret;
 	bool on, powersave;
 	uint8_t r, g, b;
 
-	ret = get(on, powersave, r, g, b);
+	int ret = get(on, powersave, r, g, b);
 
 	if (ret == OK) {
 		/* we don't care about power-save mode */
@@ -230,55 +192,28 @@ RGBLED::status()
 	return ret;
 }
 
-void
-RGBLED::led_trampoline(void *arg)
-{
-	RGBLED *rgbl = reinterpret_cast<RGBLED *>(arg);
-
-	rgbl->led();
-}
-
 /**
  * Main loop function
  */
 void
-RGBLED::led()
+RGBLED::Run()
 {
 	if (!_should_run) {
-		if (_param_sub >= 0) {
-			orb_unsubscribe(_param_sub);
-		}
-
-		int led_control_sub = _led_controller.led_control_subscription();
-
-		if (led_control_sub >= 0) {
-			orb_unsubscribe(led_control_sub);
-		}
-
 		_running = false;
 		return;
 	}
 
-	if (_param_sub < 0) {
-		_param_sub = orb_subscribe(ORB_ID(parameter_update));
-	}
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
-	if (!_led_controller.is_init()) {
-		int led_control_sub = orb_subscribe(ORB_ID(led_control));
-		_led_controller.init(led_control_sub);
-	}
+		// update parameters from storage
+		update_params();
 
-	if (_param_sub >= 0) {
-		bool updated = false;
-		orb_check(_param_sub, &updated);
-
-		if (updated) {
-			parameter_update_s pupdate;
-			orb_copy(ORB_ID(parameter_update), _param_sub, &pupdate);
-			update_params();
-			// Immediately update to change brightness
-			send_led_rgb();
-		}
+		// Immediately update to change brightness
+		send_led_rgb();
 	}
 
 	LedControlData led_control_data;
@@ -332,10 +267,8 @@ RGBLED::led()
 		send_led_rgb();
 	}
 
-
 	/* re-queue ourselves to run again later */
-	work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this,
-		   USEC2TICK(_led_controller.maximum_update_interval()));
+	ScheduleDelayed(_led_controller.maximum_update_interval());
 }
 
 /**

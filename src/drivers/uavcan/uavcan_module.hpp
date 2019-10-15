@@ -50,7 +50,7 @@
 // firmware paths
 #define UAVCAN_MAX_PATH_LENGTH (128 + 40)
 #define UAVCAN_FIRMWARE_PATH   "/fs/microsd/fw"
-#define UAVCAN_ROMFS_FW_PATH   "/etc/firmware/uavcan"
+#define UAVCAN_ROMFS_FW_PATH   "/etc/uavcan/fw"
 #define UAVCAN_ROMFS_FW_PREFIX "_"
 
 // logging

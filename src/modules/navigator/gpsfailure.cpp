@@ -93,14 +93,7 @@ GpsFailure::on_active()
 			q.copyTo(att_sp.q_d);
 			att_sp.q_d_valid = true;
 
-			if (_att_sp_pub != nullptr) {
-				/* publish att sp*/
-				orb_publish(ORB_ID(vehicle_attitude_setpoint), _att_sp_pub, &att_sp);
-
-			} else {
-				/* advertise and publish */
-				_att_sp_pub = orb_advertise(ORB_ID(vehicle_attitude_setpoint), &att_sp);
-			}
+			_att_sp_pub.publish(att_sp);
 
 			/* Measure time */
 			if ((_param_nav_gpsf_lt.get() > FLT_EPSILON) &&

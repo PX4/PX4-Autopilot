@@ -65,54 +65,9 @@ Simulator *Simulator::getInstance()
 	return _instance;
 }
 
-bool Simulator::getMPUReport(uint8_t *buf, int len)
-{
-	return _mpu.copyData(buf, len);
-}
-
-bool Simulator::getRawAccelReport(uint8_t *buf, int len)
-{
-	return _accel.copyData(buf, len);
-}
-
-bool Simulator::getMagReport(uint8_t *buf, int len)
-{
-	return _mag.copyData(buf, len);
-}
-
-bool Simulator::getBaroSample(uint8_t *buf, int len)
-{
-	return _baro.copyData(buf, len);
-}
-
 bool Simulator::getGPSSample(uint8_t *buf, int len)
 {
 	return _gps.copyData(buf, len);
-}
-
-bool Simulator::getAirspeedSample(uint8_t *buf, int len)
-{
-	return _airspeed.copyData(buf, len);
-}
-
-void Simulator::write_MPU_data(void *buf)
-{
-	_mpu.writeData(buf);
-}
-
-void Simulator::write_accel_data(void *buf)
-{
-	_accel.writeData(buf);
-}
-
-void Simulator::write_mag_data(void *buf)
-{
-	_mag.writeData(buf);
-}
-
-void Simulator::write_baro_data(void *buf)
-{
-	_baro.writeData(buf);
 }
 
 void Simulator::write_gps_data(void *buf)
@@ -120,24 +75,15 @@ void Simulator::write_gps_data(void *buf)
 	_gps.writeData(buf);
 }
 
-void Simulator::write_airspeed_data(void *buf)
-{
-	_airspeed.writeData(buf);
-}
-
 void Simulator::parameters_update(bool force)
 {
-	bool updated;
-	struct parameter_update_s param_upd;
+	// check for parameter updates
+	if (_parameter_update_sub.updated() || force) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
 
-	orb_check(_param_sub, &updated);
-
-	if (updated) {
-		orb_copy(ORB_ID(parameter_update), _param_sub, &param_upd);
-	}
-
-	if (updated || force) {
-		// update C++ param system
+		// update parameters from storage
 		updateParams();
 	}
 }
@@ -149,32 +95,20 @@ int Simulator::start(int argc, char *argv[])
 	if (_instance) {
 		drv_led_start();
 
-		if (argc == 5 && strcmp(argv[3], "-u") == 0) {
+		if (argc == 4 && strcmp(argv[2], "-u") == 0) {
 			_instance->set_ip(InternetProtocol::UDP);
-			_instance->set_port(atoi(argv[4]));
+			_instance->set_port(atoi(argv[3]));
 		}
 
-		if (argc == 5 && strcmp(argv[3], "-c") == 0) {
+		if (argc == 4 && strcmp(argv[2], "-c") == 0) {
 			_instance->set_ip(InternetProtocol::TCP);
-			_instance->set_port(atoi(argv[4]));
+			_instance->set_port(atoi(argv[3]));
 		}
 
-		if (argv[2][1] == 's') {
-			_instance->initialize_sensor_data();
 #ifndef __PX4_QURT
-			// Update sensor data
-			_instance->poll_for_MAVLink_messages();
+		// Update sensor data
+		_instance->poll_for_MAVLink_messages();
 #endif
-
-		} else if (argv[2][1] == 'p') {
-			// Update sensor data
-			_instance->set_publish(true);
-			_instance->poll_for_MAVLink_messages();
-
-		} else {
-			_instance->initialize_sensor_data();
-			_instance->_initialized = true;
-		}
 
 		return 0;
 
@@ -197,11 +131,9 @@ void Simulator::set_port(unsigned port)
 static void usage()
 {
 	PX4_WARN("Usage: simulator {start -[spt] [-u udp_port / -c tcp_port] |stop}");
-	PX4_WARN("Simulate raw sensors:     simulator start -s");
-	PX4_WARN("Publish sensors combined: simulator start -p");
+	PX4_WARN("Start simulator:     simulator start");
 	PX4_WARN("Connect using UDP: simulator start -u udp_port");
 	PX4_WARN("Connect using TCP: simulator start -c tcp_port");
-	PX4_WARN("Dummy unit test data:     simulator start -t");
 }
 
 __BEGIN_DECLS
@@ -212,35 +144,27 @@ extern "C" {
 
 	int simulator_main(int argc, char *argv[])
 	{
-		if (argc > 2 && strcmp(argv[1], "start") == 0) {
-			if (strcmp(argv[2], "-s") == 0 ||
-			    strcmp(argv[2], "-p") == 0 ||
-			    strcmp(argv[2], "-t") == 0) {
+		if (argc > 1 && strcmp(argv[1], "start") == 0) {
 
-				if (g_sim_task >= 0) {
-					PX4_WARN("Simulator already started");
-					return 0;
+			if (g_sim_task >= 0) {
+				PX4_WARN("Simulator already started");
+				return 0;
+			}
+
+			g_sim_task = px4_task_spawn_cmd("simulator",
+							SCHED_DEFAULT,
+							SCHED_PRIORITY_DEFAULT,
+							1500,
+							Simulator::start,
+							argv);
+
+			while (true) {
+				if (Simulator::getInstance()) {
+					break;
+
+				} else {
+					system_sleep(1);
 				}
-
-				g_sim_task = px4_task_spawn_cmd("simulator",
-								SCHED_DEFAULT,
-								SCHED_PRIORITY_DEFAULT,
-								1500,
-								Simulator::start,
-								argv);
-
-				while (true) {
-					if (Simulator::getInstance() && Simulator::getInstance()->isInitialized()) {
-						break;
-
-					} else {
-						system_sleep(1);
-					}
-				}
-
-			} else {
-				usage();
-				return 1;
 			}
 
 		} else if (argc == 2 && strcmp(argv[1], "stop") == 0) {

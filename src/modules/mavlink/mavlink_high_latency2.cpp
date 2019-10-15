@@ -70,8 +70,6 @@ MavlinkStreamHighLatency2::MavlinkStreamHighLatency2(Mavlink *mavlink) : Mavlink
 	_airspeed_time(0),
 	_attitude_sp_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude_setpoint))),
 	_attitude_sp_time(0),
-	_battery_sub(_mavlink->add_orb_subscription(ORB_ID(battery_status))),
-	_battery_time(0),
 	_estimator_status_sub(_mavlink->add_orb_subscription(ORB_ID(estimator_status))),
 	_estimator_status_time(0),
 	_pos_ctrl_status_sub(_mavlink->add_orb_subscription(ORB_ID(position_controller_status))),
@@ -94,7 +92,6 @@ MavlinkStreamHighLatency2::MavlinkStreamHighLatency2(Mavlink *mavlink) : Mavlink
 	_wind_time(0),
 	_airspeed(SimpleAnalyzer::AVERAGE),
 	_airspeed_sp(SimpleAnalyzer::AVERAGE),
-	_battery(SimpleAnalyzer::AVERAGE),
 	_climb_rate(SimpleAnalyzer::MAX),
 	_eph(SimpleAnalyzer::MAX),
 	_epv(SimpleAnalyzer::MAX),
@@ -103,6 +100,11 @@ MavlinkStreamHighLatency2::MavlinkStreamHighLatency2(Mavlink *mavlink) : Mavlink
 	_throttle(SimpleAnalyzer::AVERAGE),
 	_windspeed(SimpleAnalyzer::AVERAGE)
 {
+
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		_batteries[i].subscription = _mavlink->add_orb_subscription(ORB_ID(battery_status), i);
+	}
+
 	reset_last_sent();
 }
 
@@ -116,7 +118,11 @@ bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 
 		bool updated = _airspeed.valid();
 		updated |= _airspeed_sp.valid();
-		updated |= _battery.valid();
+
+		for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+			updated |= _batteries[i].analyzer.valid();
+		}
+
 		updated |= _climb_rate.valid();
 		updated |= _eph.valid();
 		updated |= _epv.valid();
@@ -151,9 +157,26 @@ bool MavlinkStreamHighLatency2::send(const hrt_abstime t)
 				_airspeed_sp.get_scaled(msg.airspeed_sp, 5.0f);
 			}
 
-			if (_battery.valid()) {
-				_battery.get_scaled(msg.battery, 100.0f);
+			int lowest = 0;
+
+			for (int i = 1; i < ORB_MULTI_MAX_INSTANCES; i++) {
+				const bool battery_connected = _batteries[i].connected && _batteries[i].analyzer.valid();
+				const bool battery_is_lowest = _batteries[i].analyzer.get_scaled(100.0f) <= _batteries[lowest].analyzer.get_scaled(
+								       100.0f);
+
+				if (battery_connected && battery_is_lowest) {
+					lowest = i;
+				}
+
 			}
+
+			if (_batteries[lowest].connected) {
+				_batteries[lowest].analyzer.get_scaled(msg.battery, 100.0f);
+
+			} else {
+				msg.battery = -1;
+			}
+
 
 			if (_climb_rate.valid()) {
 				_climb_rate.get_scaled(msg.climb_rate, 10.0f);
@@ -206,7 +229,11 @@ void MavlinkStreamHighLatency2::reset_analysers(const hrt_abstime t)
 	// reset the analyzers
 	_airspeed.reset();
 	_airspeed_sp.reset();
-	_battery.reset();
+
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		_batteries[i].analyzer.reset();
+	}
+
 	_climb_rate.reset();
 	_eph.reset();
 	_epv.reset();
@@ -249,12 +276,16 @@ bool MavlinkStreamHighLatency2::write_attitude_sp(mavlink_high_latency2_t *msg)
 bool MavlinkStreamHighLatency2::write_battery_status(mavlink_high_latency2_t *msg)
 {
 	struct battery_status_s battery;
+	bool updated = false;
 
-	const bool updated = _battery_sub->update(&_battery_time, &battery);
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		if (_batteries[i].subscription->update(&_batteries[i].timestamp, &battery)) {
+			updated = true;
+			_batteries[i].connected = battery.connected;
 
-	if (_battery_time > 0) {
-		if (battery.warning > battery_status_s::BATTERY_WARNING_LOW) {
-			msg->failure_flags |= HL_FAILURE_FLAG_BATTERY;
+			if (battery.warning > battery_status_s::BATTERY_WARNING_LOW) {
+				msg->failure_flags |= HL_FAILURE_FLAG_BATTERY;
+			}
 		}
 	}
 
@@ -504,8 +535,11 @@ void MavlinkStreamHighLatency2::update_battery_status()
 {
 	battery_status_s battery;
 
-	if (_battery_sub->update(&battery)) {
-		_battery.add_value(battery.remaining, _update_rate_filtered);
+	for (int i = 0; i < ORB_MULTI_MAX_INSTANCES; i++) {
+		if (_batteries[i].subscription->update(&battery)) {
+			_batteries[i].connected = battery.connected;
+			_batteries[i].analyzer.add_value(battery.remaining, _update_rate_filtered);
+		}
 	}
 }
 
@@ -538,7 +572,7 @@ void MavlinkStreamHighLatency2::update_vehicle_status()
 		if (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED) {
 			struct actuator_controls_s actuator = {};
 
-			if (status.is_vtol && !status.is_rotary_wing) {
+			if (status.is_vtol && status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
 				if (_actuator_sub_1->update(&actuator)) {
 					_throttle.add_value(actuator.control[actuator_controls_s::INDEX_THROTTLE], _update_rate_filtered);
 				}
