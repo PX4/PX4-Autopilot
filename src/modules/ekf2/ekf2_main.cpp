@@ -1740,16 +1740,15 @@ void Ekf2::runPreFlightChecks(float dt,
 			      const vehicle_status_s &vehicle_status,
 			      const ekf2_innovations_s &innov)
 {
-	float alpha = InnovationLpf::computeAlphaFromDtAndTauInv(dt, _innov_lpf_tau_inv);
+	const float alpha = InnovationLpf::computeAlphaFromDtAndTauInv(dt, _innov_lpf_tau_inv);
 
-	_preflt_horiz_fail = preFlightCheckHeadingFailed(control_status, vehicle_status, innov, alpha)
-			     || preFlightCheckHorizVelFailed(control_status, innov, alpha);
+	const bool heading_failed = preFlightCheckHeadingFailed(control_status, vehicle_status, innov, alpha);
+	const bool horiz_vel_failed = preFlightCheckHorizVelFailed(control_status, innov, alpha);
+	const bool down_vel_failed = preFlightCheckDownVelFailed(innov, alpha);
+	const bool height_failed = preFlightCheckHeightFailed(innov, alpha);
 
-	// check the vertical velocity and position innovations
-	_preflt_vert_fail = preFlightCheckDownVelFailed(innov, alpha)
-			    || preFlightCheckHeightFailed(innov, alpha);
-
-	// master pass-fail status
+	_preflt_horiz_fail = heading_failed || horiz_vel_failed;
+	_preflt_vert_fail = down_vel_failed || height_failed;
 	_preflt_fail = _preflt_horiz_fail || _preflt_vert_fail;
 }
 
