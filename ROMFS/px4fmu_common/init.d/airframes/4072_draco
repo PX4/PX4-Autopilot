@@ -47,8 +47,8 @@ then
 	param set MC_PITCHRATE_D 0.0015
 	param set MC_PITCHRATE_MAX 1600.0
 
-	param set MC_YAW_P 2.8
-	param set MC_YAWRATE_P 0.2
+	param set MC_YAW_P 4.0
+	param set MC_YAWRATE_P 0.21
 	param set MC_YAWRATE_I 0.3
 	param set MC_YAWRATE_D 0.0
 	param set MC_YAW_FF 0.5
@@ -56,7 +56,6 @@ then
 
 	param set MC_ROLL_TC 0.19
 	param set MC_PITCH_TC 0.16
-
 	param set MC_AIRMODE 1
 
 	param set MPC_MAN_TILT_MAX 60.0
@@ -65,10 +64,6 @@ then
 
 	# Disable RC filtering
 	param set RC_FLT_CUTOFF 0.00000
-
-	# Filter settings
-	param set MC_DTERM_CUTOFF 100.00000
-	param set IMU_GYRO_CUTOFF 100.00000
 
 	# Thrust curve (avoids the need for TPA)
 	param set THR_MDL_FAC 0.3
@@ -89,7 +84,7 @@ then
 
 	# Filter settings
 	param set IMU_GYRO_CUTOFF 90.00000
-	param set MC_DTERM_CUTOFF 70.00000
+	param set MC_DTERM_CUTOFF 100.00000
 
 	# Don't try to be intelligent on RC loss: just cut the motors
 	#param set NAV_RCL_ACT 6
