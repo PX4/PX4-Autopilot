@@ -32,8 +32,8 @@ px4_add_board(
 		imu/adis16477
 		imu/adis16497
 		imu/bmi088
-# TBD		imu/ism330dlc - needs bus selection
 		imu/mpu6000
+		imu/st/ism330dlc
 		irlock
 		lights/blinkm
 		lights/rgbled

@@ -265,6 +265,14 @@ rtps:
     id: 116
   - msg: cellular_status
     id: 117
+  - msg: sensor_accel_fifo
+    id: 118
+  - msg: sensor_accel_status
+    id: 119
+  - msg: sensor_gyro_fifo
+    id: 120
+  - msg: sensor_gyro_status
+    id: 121
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150
