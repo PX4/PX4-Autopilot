@@ -1176,7 +1176,7 @@ void Ekf::checkRangeAidSuitability()
 				    || _control_status.flags.opt_flow;
 
 	if (_control_status.flags.in_air
-	    && !_rng_hgt_faulty
+	    && _rng_hgt_valid
 	    && isTerrainEstimateValid()
 	    && horz_vel_valid) {
 		// check if we can use range finder measurements to estimate height, use hysteresis to avoid rapid switching

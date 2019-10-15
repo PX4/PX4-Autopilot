@@ -457,7 +457,6 @@ private:
 	float _sin_tilt_rng{0.0f};		///< sine of the range finder tilt rotation about the Y body axis
 	float _cos_tilt_rng{0.0f};		///< cosine of the range finder tilt rotation about the Y body axis
 	float _R_rng_to_earth_2_2{0.0f};	///< 2,2 element of the rotation matrix from sensor frame to earth frame
-	bool _range_data_continuous{false};	///< true when we are receiving range finder data faster than a 2Hz average
 	float _dt_last_range_update_filt_us{0.0f};	///< filtered value of the delta time elapsed since the last range measurement came into the filter (uSec)
 	bool _hagl_valid{false};		///< true when the height above ground estimate is valid
 
@@ -648,8 +647,11 @@ private:
 	void checkRangeAidSuitability();
 	bool isRangeAidSuitable() { return _is_range_aid_suitable; }
 
-	// check for "stuck" range finder measurements when rng was not valid for certain period
+	// update _rng_hgt_valid, which indicates if the current range sample has passed validity checks
 	void updateRangeDataValidity();
+
+	// check for "stuck" range finder measurements when rng was not valid for certain period
+	void updateRangeDataStuck();
 
 	// return the square of two floating point numbers - used in auto coded sections
 	static constexpr float sq(float var) { return var * var; }
@@ -699,6 +701,8 @@ private:
 
 	// check that the range finder data is continuous
 	void updateRangeDataContinuity();
+
+	bool isRangeDataContinuous() { return _dt_last_range_update_filt_us < 2e6f; }
 
 	// Increase the yaw error variance of the quaternions
 	// Argument is additional yaw variance in rad**2
