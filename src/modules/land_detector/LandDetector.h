@@ -61,7 +61,6 @@
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
 
-
 using namespace time_literals;
 
 namespace land_detector
