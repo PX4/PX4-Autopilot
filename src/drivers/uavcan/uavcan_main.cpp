@@ -971,7 +971,7 @@ int UavcanNode::run()
 			orb_copy(ORB_ID(test_motor), _test_motor_sub, &_test_motor);
 
 			// Update the test status and check that we're not locked down
-			_test_in_progress = (_test_motor.value > 0);
+			_test_in_progress = (_test_motor.action == test_motor_s::ACTION_RUN);
 			_esc_controller.arm_single_esc(_test_motor.motor_number, _test_in_progress);
 		}
 

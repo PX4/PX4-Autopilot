@@ -253,6 +253,8 @@ PX4FMU::init()
 		PX4_ERR("FAILED registering class device");
 	}
 
+	_mixing_output.setDriverInstance(_class_instance);
+
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
 
