@@ -51,6 +51,7 @@
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/safety.h>
+#include <uORB/topics/test_motor.h>
 
 
 /**
@@ -101,6 +102,8 @@ public:
 		     bool support_esc_calibration, bool ramp_up = true);
 
 	~MixingOutput();
+
+	void setDriverInstance(uint8_t instance) { _driver_instance = instance; }
 
 	void printStatus() const;
 
@@ -163,7 +166,7 @@ public:
 	 * @param index motor index in [0, num_motors-1]
 	 * @return reordered motor index. When out of range, the input index is returned
 	 */
-	int reorderedMotorIndex(int index);
+	int reorderedMotorIndex(int index) const;
 
 	void setIgnoreLockdown(bool ignore_lockdown) { _ignore_lockdown = ignore_lockdown; }
 
@@ -178,8 +181,11 @@ private:
 		return (_armed.prearmed && !_armed.armed) || _armed.in_esc_calibration_mode;
 	}
 
+	unsigned motorTest();
+
 	void updateOutputSlewrate();
 	void checkSafetyButton();
+	void setAndPublishActuatorOutputs(unsigned num_outputs, actuator_outputs_s &actuator_outputs);
 	void publishMixerStatus(const actuator_outputs_s &actuator_outputs);
 	void updateLatencyPerfCounter(const actuator_outputs_s &actuator_outputs);
 
@@ -218,6 +224,7 @@ private:
 	uint16_t _disarmed_value[MAX_ACTUATORS] {};
 	uint16_t _min_value[MAX_ACTUATORS] {};
 	uint16_t _max_value[MAX_ACTUATORS] {};
+	uint16_t _current_output_value[MAX_ACTUATORS] {}; ///< current output values (reordered)
 	uint16_t _reverse_output_mask{0}; ///< reverses the interval [min, max] -> [max, min], NOT motor direction
 	output_limit_t _output_limit;
 
@@ -246,7 +253,14 @@ private:
 	const bool _support_esc_calibration;
 
 	bool _wq_switched{false};
+	uint8_t _driver_instance{0}; ///< for boards that supports multiple outputs (e.g. PX4IO + FMU)
 	const uint8_t _max_num_outputs;
+
+	struct MotorTest {
+		uORB::Subscription test_motor_sub{ORB_ID(test_motor)};
+		bool in_test_mode{false};
+	};
+	MotorTest _motor_test;
 
 	OutputModuleInterface &_interface;
 
