@@ -62,7 +62,7 @@
 
 static const char *sensor_name = "gyro";
 
-static const unsigned max_gyros = 3;
+static constexpr unsigned max_gyros = 3;
 
 /// Data passed to calibration worker routine
 typedef struct  {
