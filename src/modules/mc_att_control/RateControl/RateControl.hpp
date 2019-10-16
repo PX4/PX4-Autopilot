@@ -81,13 +81,6 @@ public:
 	void setFeedForwardGain(const matrix::Vector3f &FF) { _gain_ff = FF; };
 
 	/**
-	 * Set the rate control gains
-	 * @param breakpoint parameter 3D vector for P, I and D
-	 * @param rate parameter 3D vector for P, I and D
-	 */
-	void setTPA(const matrix::Vector3f &breakpoint, const matrix::Vector3f &rate);
-
-	/**
 	 * Set saturation status
 	 * @param status message from mixer reporting about saturation
 	 */
@@ -98,11 +91,9 @@ public:
 	 * @param rate estimation of the current vehicle angular rate
 	 * @param rate_sp desired vehicle angular rate setpoint
 	 * @param dt desired vehicle angular rate setpoint
-	 * @param thrust_sp total thrust setpoint to be used for TPA
 	 * @return [-1,1] normalized torque vector to apply to the vehicle
 	 */
-	matrix::Vector3f update(const matrix::Vector3f rate, const matrix::Vector3f rate_sp, const float dt, const bool landed,
-				const float thrust_sp);
+	matrix::Vector3f update(const matrix::Vector3f rate, const matrix::Vector3f rate_sp, const float dt, const bool landed);
 
 	/**
 	 * Set the integral term to 0 to prevent windup
@@ -117,7 +108,7 @@ public:
 	void getRateControlStatus(rate_ctrl_status_s &rate_ctrl_status);
 
 private:
-	void updateIntegral(matrix::Vector3f &rate_error, const float dt, const matrix::Vector3f &gain_i_tpa);
+	void updateIntegral(matrix::Vector3f &rate_error, const float dt);
 
 	// Gains
 	matrix::Vector3f _gain_p; ///< rate control proportional gain for all axes x, y, z
@@ -133,17 +124,4 @@ private:
 	math::LowPassFilter2pVector3f _lp_filters_d{0.f, 0.f}; ///< low-pass filters for D-term (roll, pitch & yaw)
 	bool _mixer_saturation_positive[3] {};
 	bool _mixer_saturation_negative[3] {};
-
-	/*
-	* Throttle PID attenuation
-	* Lowers the overall gain of the PID controller linearly depending on total thrust.
-	* Function visualization available here https://www.desmos.com/calculator/gn4mfoddje
-	* @param tpa_breakpoint
-	* @param tpa_rate
-	* @param thrust_sp
-	* @return attenuation [0,1] per axis in a vector
-	*/
-	matrix::Vector3f tpa_attenuations(float tpa_breakpoint, float tpa_rate, float thrust_sp);
-	matrix::Vector3f _tpa_breakpoint;
-	matrix::Vector3f _tpa_rate;
 };
