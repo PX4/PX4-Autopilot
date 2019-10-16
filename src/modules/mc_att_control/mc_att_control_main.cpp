@@ -377,7 +377,7 @@ MulticopterAttitudeControl::control_attitude_rates(float dt, const Vector3f &rat
 
 	const bool landed = _vehicle_land_detected.maybe_landed || _vehicle_land_detected.landed;
 	_rate_control.setSaturationStatus(_saturation_status);
-	_att_control = _rate_control.update(rates, _rates_sp, dt, landed, _thrust_sp);
+	_att_control = _rate_control.update(rates, _rates_sp, dt, landed);
 }
 
 void
