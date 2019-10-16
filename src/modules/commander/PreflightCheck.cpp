@@ -66,7 +66,7 @@ using namespace time_literals;
 namespace Preflight
 {
 
-static bool check_calibration(const char *param_template, int32_t device_id)
+static bool check_calibration(const char *param_template, const int32_t device_id)
 {
 	bool calibration_found = false;
 
@@ -101,8 +101,8 @@ static bool check_calibration(const char *param_template, int32_t device_id)
 	return calibration_found;
 }
 
-static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance, bool optional,
-			    int32_t &device_id, bool report_fail)
+static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
+			    const bool optional, int32_t &device_id, const bool report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(sensor_mag), instance) == PX4_OK);
 	bool calibration_valid = false;
@@ -148,9 +148,8 @@ static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &sta
 	return success;
 }
 
-static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, bool report_status)
+static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool report_status)
 {
-	bool success = true; // start with a pass and change to a fail if any test fails
 	float test_limit = 1.0f; // pass limit re-used for each test
 
 	// Get sensor_preflight data if available and exit with a fail recorded if not
@@ -169,8 +168,7 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s 
 			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_ACC2, false, status);
 		}
 
-		success = false;
-		goto out;
+		return false;
 
 	} else if (sensors.accel_inconsistency_m_s_s > test_limit * 0.8f) {
 		if (report_status) {
@@ -188,8 +186,7 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s 
 			set_health_flags_healthy(subsystem_info_s::SUBSYSTEM_TYPE_GYRO2, false, status);
 		}
 
-		success = false;
-		goto out;
+		return false;
 
 	} else if (sensors.gyro_inconsistency_rad_s > test_limit * 0.5f) {
 		if (report_status) {
@@ -197,12 +194,11 @@ static bool imuConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s 
 		}
 	}
 
-out:
-	return success;
+	return true;
 }
 
 // return false if the magnetomer measurements are inconsistent
-static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, bool report_status)
+static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool report_status)
 {
 	bool pass = false; // flag for result of checks
 
@@ -235,8 +231,8 @@ static bool magConsistencyCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s 
 	return pass;
 }
 
-static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance,
-			       bool optional, bool dynamic, int32_t &device_id, bool report_fail)
+static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
+			       const bool optional, const bool dynamic, int32_t &device_id, const bool report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(sensor_accel), instance) == PX4_OK);
 	bool calibration_valid = false;
@@ -299,8 +295,8 @@ static bool accelerometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	return success;
 }
 
-static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance, bool optional,
-		      int32_t &device_id, bool report_fail)
+static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
+		      const bool optional, int32_t &device_id, const bool report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(sensor_gyro), instance) == PX4_OK);
 	bool calibration_valid = false;
@@ -344,8 +340,8 @@ static bool gyroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 	return calibration_valid && gyro_valid;
 }
 
-static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, uint8_t instance, bool optional,
-		      int32_t &device_id, bool report_fail)
+static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
+		      const bool optional, int32_t &device_id, const bool report_fail)
 {
 	const bool exists = (orb_exists(ORB_ID(sensor_baro), instance) == PX4_OK);
 	bool baro_valid = false;
@@ -375,8 +371,8 @@ static bool baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, u
 	return baro_valid;
 }
 
-static bool airspeedCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, bool optional, bool report_fail,
-			  bool prearm)
+static bool airspeedCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const bool optional,
+			  const bool report_fail, const bool prearm)
 {
 	bool present = true;
 	bool success = true;
@@ -432,7 +428,8 @@ out:
 	return success;
 }
 
-static bool powerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, bool report_fail, bool prearm)
+static bool powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail,
+		       const bool prearm)
 {
 	bool success = true;
 
@@ -476,8 +473,8 @@ static bool powerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, 
 	return success;
 }
 
-static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, bool optional, bool report_fail,
-		      bool enforce_gps_required)
+static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_status, const bool optional,
+		      const bool report_fail, const bool enforce_gps_required)
 {
 	bool success = true; // start with a pass and change to a fail if any test fails
 	bool present = true;
@@ -665,20 +662,15 @@ out:
 	return success;
 }
 
-static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, bool report_fail,
-				 bool prearm)
+static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail,
+				 const bool prearm)
 {
-	bool success = true;
-
+	// Ignore failure detector check after arming
 	if (!prearm) {
-		// Ignore failure detector check after arming.
 		return true;
-
 	}
 
 	if (status.failure_detector_status != vehicle_status_s::FAILURE_NONE) {
-		success = false;
-
 		if (report_fail) {
 			if (status.failure_detector_status & vehicle_status_s::FAILURE_ROLL) {
 				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Roll failure detected");
@@ -692,14 +684,15 @@ static bool failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Altitude failure detected");
 			}
 		}
+
+		return false;
 	}
 
-	return success;
+	return true;
 }
 
-bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status,
-		    vehicle_status_flags_s &status_flags, bool checkGNSS, bool reportFailures, bool prearm,
-		    const hrt_abstime &time_since_boot)
+bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, vehicle_status_flags_s &status_flags,
+		    const bool checkGNSS, bool reportFailures, const bool prearm, const hrt_abstime &time_since_boot)
 {
 	if (time_since_boot < 2_s) {
 		// the airspeed driver filter doesn't deliver the actual value yet

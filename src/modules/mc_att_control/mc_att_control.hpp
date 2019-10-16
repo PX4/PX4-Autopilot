@@ -32,7 +32,6 @@
  ****************************************************************************/
 
 #include <lib/mixer/mixer.h>
-#include <mathlib/math/filter/LowPassFilter2pVector3f.hpp>
 #include <matrix/matrix/math.hpp>
 #include <perf/perf_counter.h>
 #include <px4_config.h>
@@ -62,6 +61,7 @@
 #include <vtol_att_control/vtol_type.h>
 
 #include <AttitudeControl.hpp>
+#include <RateControl.hpp>
 
 /**
  * Multicopter attitude control app start / stop handling function
@@ -140,7 +140,8 @@ private:
 	 */
 	matrix::Vector3f pid_attenuations(float tpa_breakpoint, float tpa_rate);
 
-	AttitudeControl _attitude_control; /**< class for attitude control calculations */
+	AttitudeControl _attitude_control; ///< class for attitude control calculations
+	RateControl _rate_control; ///< class for rate control calculations
 
 	uORB::Subscription _v_att_sub{ORB_ID(vehicle_attitude)};			/**< vehicle attitude subscription */
 	uORB::Subscription _v_att_sp_sub{ORB_ID(vehicle_attitude_setpoint)};		/**< vehicle attitude setpoint subscription */
@@ -183,14 +184,10 @@ private:
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
 
-	math::LowPassFilter2pVector3f _lp_filters_d{initial_update_rate_hz, 50.f};	/**< low-pass filters for D-term (roll, pitch & yaw) */
 	static constexpr const float initial_update_rate_hz = 250.f; /**< loop update rate used for initialization */
 	float _loop_update_rate_hz{initial_update_rate_hz};          /**< current rate-controller loop update rate in [Hz] */
 
-	matrix::Vector3f _rates_prev;			/**< angular rates on previous step */
-	matrix::Vector3f _rates_prev_filtered;		/**< angular rates on previous step (low-pass filtered) */
 	matrix::Vector3f _rates_sp;			/**< angular rates setpoint */
-	matrix::Vector3f _rates_int;			/**< angular rates integral error */
 
 	matrix::Vector3f _att_control;			/**< attitude control vector */
 	float		_thrust_sp{0.0f};		/**< thrust setpoint */
@@ -272,13 +269,6 @@ private:
 	)
 
 	bool _is_tailsitter{false};
-
-	matrix::Vector3f _rate_p;		/**< P gain for angular rate error */
-	matrix::Vector3f _rate_i;		/**< I gain for angular rate error */
-	matrix::Vector3f _rate_int_lim;		/**< integrator state limit for rate loop */
-	matrix::Vector3f _rate_d;		/**< D gain for angular rate error */
-	matrix::Vector3f _rate_ff;		/**< Feedforward gain for desired rates */
-	matrix::Vector3f _rate_k;		/**< Rate controller global gain */
 
 	matrix::Vector3f _acro_rate_max;	/**< max attitude rates in acro mode */
 	float _man_tilt_max;			/**< maximum tilt allowed for manual flight [rad] */

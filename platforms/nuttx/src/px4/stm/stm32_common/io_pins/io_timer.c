@@ -32,12 +32,7 @@
  ****************************************************************************/
 
 /*
- * @file drv_pwm_servo.c
- *
- * Servo driver supporting PWM servos connected to STM32 timer blocks.
- *
- * Works with any of the 'generic' or 'advanced' STM32 timers that
- * have output pins, does not require an interrupt.
+ * @file drv_io_timer.c
  */
 
 #include <px4_config.h>
@@ -59,6 +54,7 @@
 #include <drivers/drv_pwm_output.h>
 
 #include <px4_arch/io_timer.h>
+#include <px4_arch/dshot.h>
 
 #include <stm32_gpio.h>
 #include <stm32_tim.h>
@@ -114,7 +110,7 @@
 #define GTIM_SR_CCIF (GTIM_SR_CC4IF|GTIM_SR_CC3IF|GTIM_SR_CC2IF|GTIM_SR_CC1IF)
 #define GTIM_SR_CCOF (GTIM_SR_CC4OF|GTIM_SR_CC3OF|GTIM_SR_CC2OF|GTIM_SR_CC1OF)
 
-#define CCMR_C1_RESET 		0x00ff
+#define CCMR_C1_RESET 			0x00ff
 #define CCMR_C1_NUM_BITS 		8
 #define CCER_C1_NUM_BITS 		4
 
@@ -131,8 +127,18 @@
 #else
 #define CCER_C1_INIT  GTIM_CCER_CC1E
 #endif
-//												 				  NotUsed   PWMOut  PWMIn Capture OneShot Trigger
-io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT8_MAX,   0,  0,  0, 0, 0 };
+
+/* The transfer is done to 1 register starting from TIMx_CR1 + TIMx_DCR.DBA   */
+#define TIM_DMABURSTLENGTH_1TRANSFER	0x00000000U
+/* The transfer is done to 2 registers starting from TIMx_CR1 + TIMx_DCR.DBA  */
+#define TIM_DMABURSTLENGTH_2TRANSFERS	0x00000100U
+/* The transfer is done to 3 registers starting from TIMx_CR1 + TIMx_DCR.DBA  */
+#define TIM_DMABURSTLENGTH_3TRANSFERS	0x00000200U
+/* The transfer is done to 4 registers starting from TIMx_CR1 + TIMx_DCR.DBA  */
+#define TIM_DMABURSTLENGTH_4TRANSFERS	0x00000300U
+
+//												 				  NotUsed   PWMOut  PWMIn Capture OneShot Trigger Dshot
+io_timer_channel_allocation_t channel_allocations[IOTimerChanModeSize] = { UINT8_MAX,   0,  0,  0, 0, 0, 0 };
 
 typedef uint8_t io_timer_allocation_t; /* big enough to hold MAX_IO_TIMERS */
 
@@ -172,7 +178,7 @@ static int io_timer_handler(uint16_t timer_index)
 	/* What is pending and enabled? */
 
 	uint16_t statusr = rSR(timer_index);
-	uint16_t enabled =  rDIER(timer_index) & GTIM_SR_CCIF;
+	uint16_t enabled = rDIER(timer_index) & GTIM_SR_CCIF;
 
 	/* Iterate over the timer_io_channels table */
 
@@ -486,6 +492,44 @@ static inline void io_timer_set_oneshot_mode(unsigned timer)
 	rEGR(timer) = GTIM_EGR_UG;
 }
 
+void io_timer_update_generation(uint8_t timer)
+{
+	// Re-initialize the counter and generate an update of the registers
+	rEGR(timer) = ATIM_EGR_UG;
+}
+
+int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_t dma_burst_length)
+{
+	int ret_val = OK;
+	uint32_t tim_dma_burst_length;
+
+	if (1u == dma_burst_length) {
+		tim_dma_burst_length = TIM_DMABURSTLENGTH_1TRANSFER;
+
+	} else if (2u == dma_burst_length) {
+		tim_dma_burst_length = TIM_DMABURSTLENGTH_2TRANSFERS;
+
+	} else if (3u == dma_burst_length) {
+		tim_dma_burst_length = TIM_DMABURSTLENGTH_3TRANSFERS;
+
+	} else if (4u == dma_burst_length) {
+		tim_dma_burst_length = TIM_DMABURSTLENGTH_4TRANSFERS;
+
+	} else {
+		ret_val = ERROR;
+	}
+
+	if (OK == ret_val) {
+		rARR(timer)  = DSHOT_MOTOR_PWM_BIT_WIDTH;
+		rPSC(timer)  = ((int)(io_timers[timer].clock_freq / dshot_pwm_freq) / DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
+		rEGR(timer)  = ATIM_EGR_UG;
+		rDCR(timer)  = (io_timers[timer].dshot.start_ccr_register | tim_dma_burst_length);
+		rDIER(timer) = ATIM_DIER_UDE;
+	}
+
+	return ret_val;
+}
+
 static inline void io_timer_set_PWM_mode(unsigned timer)
 {
 	rPSC(timer) = (io_timers[timer].clock_freq / BOARD_PWM_FREQ) - 1;
@@ -594,9 +638,10 @@ int io_timer_set_rate(unsigned timer, unsigned rate)
 
 	uint32_t channels = get_timer_channels(timer);
 
-	/* Check that all channels are either in PWM or Oneshot */
+	/* Check that all channels are either in PWM, Oneshot or Dshot*/
 
-	if ((channels & (channel_allocations[IOTimerChanMode_PWMOut] |
+	if ((channels & (channel_allocations[IOTimerChanMode_Dshot] |
+			 channel_allocations[IOTimerChanMode_PWMOut] |
 			 channel_allocations[IOTimerChanMode_OneShot] |
 			 channel_allocations[IOTimerChanMode_NotUsed])) ==
 	    channels) {
@@ -605,16 +650,20 @@ int io_timer_set_rate(unsigned timer, unsigned rate)
 
 		/* Request to use OneShot ?*/
 
-		if (rate == 0) {
+		if (PWM_RATE_ONESHOT == rate) {
 
 			/* Request to use OneShot
 			 *
-			 * We are here because ALL these channels were either PWM or Oneshot
+			 * We are here because ALL these channels were either PWM or Dshot
 			 * Now they need to be Oneshot
 			 */
 
+			int changePWMOut = reallocate_channel_resources(channels, IOTimerChanMode_PWMOut, IOTimerChanMode_OneShot);
+			int changeDshot = reallocate_channel_resources(channels, IOTimerChanMode_Dshot, IOTimerChanMode_OneShot);
+			int changedChannels = changePWMOut | changeDshot;
+
 			/* Did the allocation change */
-			if (reallocate_channel_resources(channels, IOTimerChanMode_PWMOut, IOTimerChanMode_OneShot)) {
+			if (changedChannels) {
 				io_timer_set_oneshot_mode(timer);
 			}
 
@@ -622,11 +671,14 @@ int io_timer_set_rate(unsigned timer, unsigned rate)
 
 			/* Request to use PWM
 			 *
-			 * We are here because  ALL these channels were either PWM or Oneshot
+			 * We are here because  ALL these channels were either Oneshot or Dshot
 			 * Now they need to be PWM
 			 */
 
-			if (reallocate_channel_resources(channels, IOTimerChanMode_OneShot, IOTimerChanMode_PWMOut)) {
+			int changeOneShot = reallocate_channel_resources(channels, IOTimerChanMode_OneShot, IOTimerChanMode_PWMOut);
+			int changeDshot = reallocate_channel_resources(channels, IOTimerChanMode_Dshot, IOTimerChanMode_PWMOut);
+
+			if (changeOneShot && changeDshot) {
 				io_timer_set_PWM_mode(timer);
 			}
 
@@ -656,6 +708,7 @@ int io_timer_channel_init(unsigned channel, io_timer_channel_mode_t mode,
 	case IOTimerChanMode_OneShot:
 	case IOTimerChanMode_PWMOut:
 	case IOTimerChanMode_Trigger:
+	case IOTimerChanMode_Dshot:
 		ccer_setbits = 0;
 		dier_setbits = 0;
 		setbits = CCMR_C1_PWMOUT_INIT;
@@ -767,6 +820,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 
 	uint32_t dier_bit = state ? GTIM_DIER_CC1IE : 0;
 	uint32_t ccer_bit =  state ? CCER_C1_INIT : 0;
+	uint32_t cr1_bit  = 0;
 
 	switch (mode) {
 	case IOTimerChanMode_NotUsed:
@@ -774,6 +828,12 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 	case IOTimerChanMode_PWMOut:
 	case IOTimerChanMode_Trigger:
 		dier_bit = 0;
+		cr1_bit  = GTIM_CR1_CEN | GTIM_CR1_ARPE;
+		break;
+
+	case IOTimerChanMode_Dshot:
+		dier_bit = 0;
+		cr1_bit  = state ? GTIM_CR1_CEN : 0;
 		break;
 
 	case IOTimerChanMode_PWMIn:
@@ -818,6 +878,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 			if ((state &&
 			     (mode == IOTimerChanMode_PWMOut ||
 			      mode == IOTimerChanMode_OneShot ||
+			      mode == IOTimerChanMode_Dshot ||
 			      mode == IOTimerChanMode_Trigger))) {
 				action_cache[timer].gpio[shifts] = timer_io_channels[chan_index].gpio_out;
 			}
@@ -855,7 +916,7 @@ int io_timer_set_enable(bool state, io_timer_channel_mode_t mode, io_timer_chann
 				}
 
 				/* arm requires the timer be enabled */
-				rCR1(actions) |= GTIM_CR1_CEN | GTIM_CR1_ARPE;
+				rCR1(actions) |= cr1_bit;
 
 			} else 	{
 
@@ -877,6 +938,7 @@ int io_timer_set_ccr(unsigned channel, uint16_t value)
 	if (rv == 0) {
 		if ((mode != IOTimerChanMode_PWMOut) &&
 		    (mode != IOTimerChanMode_OneShot) &&
+		    (mode != IOTimerChanMode_Dshot) &&
 		    (mode != IOTimerChanMode_Trigger)) {
 
 			rv = -EIO;

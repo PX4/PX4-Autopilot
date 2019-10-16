@@ -146,8 +146,7 @@ int VideoDevice::close_device()
 
 int VideoDevice::init_device()
 {
-	struct v4l2_capability cap;
-	memset(&cap, 0, sizeof(cap));
+	struct v4l2_capability cap {};
 
 	int ret = ioctl(_fd, VIDIOC_QUERYCAP, &cap);
 
@@ -179,11 +178,8 @@ int VideoDevice::init_device()
 
 int VideoDevice::init_crop()
 {
-	struct v4l2_cropcap cropcap;
-	struct v4l2_crop crop;
-
-	memset(&cropcap, 0, sizeof(cropcap));
-	memset(&crop, 0, sizeof(crop));
+	struct v4l2_cropcap cropcap {};
+	struct v4l2_crop crop {};
 
 	cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	int ret = ioctl(_fd, VIDIOC_CROPCAP, &cropcap);
@@ -206,9 +202,7 @@ int VideoDevice::init_crop()
 int VideoDevice::init_format()
 {
 	usleep(10000);
-	struct v4l2_format fmt;
-
-	memset(&fmt, 0, sizeof(fmt));
+	struct v4l2_format fmt {};
 
 	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	fmt.fmt.pix.width = VIDEO_DEVICE_IMAGE_WIDTH;
@@ -253,9 +247,7 @@ int VideoDevice::init_format()
 
 int VideoDevice::init_buffers()
 {
-	struct v4l2_requestbuffers req;
-
-	memset(&req, 0, sizeof(req));
+	struct v4l2_requestbuffers req {};
 
 	req.count = _n_buffers;
 	req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -276,8 +268,7 @@ int VideoDevice::init_buffers()
 	}
 
 	for (unsigned int i = 0; i < _n_buffers; ++i) {
-		struct v4l2_buffer buf;
-		memset(&buf, 0, sizeof(buf));
+		struct v4l2_buffer buf {};
 
 		buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		buf.memory = V4L2_MEMORY_MMAP;
@@ -306,9 +297,7 @@ int VideoDevice::init_buffers()
 int VideoDevice::start_capturing()
 {
 	for (unsigned int i = 0; i < _n_buffers; ++i) {
-		struct v4l2_buffer buf;
-
-		memset(&buf, 0, sizeof(buf));
+		struct v4l2_buffer buf {};
 
 		buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		buf.memory = V4L2_MEMORY_MMAP;
@@ -350,8 +339,7 @@ int VideoDevice::stop_capturing()
 
 int VideoDevice::get_frame(struct frame_data &frame)
 {
-	struct v4l2_buffer buf;
-	memset(&buf, 0, sizeof(buf));
+	struct v4l2_buffer buf {};
 
 	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	buf.memory = V4L2_MEMORY_MMAP;
@@ -384,8 +372,7 @@ int VideoDevice::get_frame(struct frame_data &frame)
 
 int VideoDevice::put_frame(struct frame_data &frame)
 {
-	struct v4l2_buffer buf;
-	memset(&buf, 0, sizeof(buf));
+	struct v4l2_buffer buf {};
 
 	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	buf.memory = V4L2_MEMORY_MMAP;
