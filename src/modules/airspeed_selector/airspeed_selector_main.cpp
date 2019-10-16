@@ -370,7 +370,8 @@ void AirspeedModule::update_params()
 		_airspeed_validator[i].set_wind_estimator_scale_estimation_on(_param_west_scale_estimation_on.get());
 
 		/* Only apply manual entered airspeed scale to first airspeed measurement */
-		_airspeed_validator[0].set_airspeed_scale(_param_west_airspeed_scale.get());
+		// TODO: enable multiple airspeed sensors
+		_airspeed_validator[0].set_airspeed_scale_manual(_param_west_airspeed_scale.get());
 
 		_airspeed_validator[i].set_tas_innov_threshold(_tas_innov_threshold.get());
 		_airspeed_validator[i].set_tas_innov_integ_threshold(_tas_innov_integ_threshold.get());
@@ -382,7 +383,7 @@ void AirspeedModule::update_params()
 	/* when airspeed scale estimation is turned on and the airspeed is valid, then set the scale inside the wind estimator to -1 such that it starts to estimate it */
 	if (!_scale_estimation_previously_on && _param_west_scale_estimation_on.get()) {
 		if (_valid_airspeed_index > 0) {
-			_airspeed_validator[0].set_airspeed_scale(
+			_airspeed_validator[0].set_airspeed_scale_manual(
 				-1.0f);  // set it to a negative value to start estimation inside wind estimator
 
 		} else {
@@ -398,7 +399,7 @@ void AirspeedModule::update_params()
 
 			_param_west_airspeed_scale.set(_airspeed_validator[_valid_airspeed_index - 1].get_EAS_scale());
 			_param_west_airspeed_scale.commit_no_notification();
-			_airspeed_validator[_valid_airspeed_index - 1].set_airspeed_scale(_param_west_airspeed_scale.get());
+			_airspeed_validator[_valid_airspeed_index - 1].set_airspeed_scale_manual(_param_west_airspeed_scale.get());
 
 			mavlink_and_console_log_info(&_mavlink_log_pub, "Airspeed: estimated scale (ASPD_ASPD_SCALE): %0.2f",
 						     (double)_airspeed_validator[_valid_airspeed_index - 1].get_EAS_scale());
