@@ -202,7 +202,7 @@ private:
 			resetMixer,
 			loadMixer
 		};
-		px4::atomic<Type> command{Type::None};
+		px4::atomic<int> command{(int)Type::None};
 		const char *mixer_buf;
 		unsigned mixer_buf_length;
 		int result;
