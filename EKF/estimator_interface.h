@@ -124,6 +124,10 @@ public:
 
 	virtual void getHaglInnovVar(float *hagl_innov_var) = 0;
 	virtual void getHaglInnov(float *hagl_innov) = 0;
+	//[[deprecated("Replaced by getHaglInnovVar")]]
+	void get_hagl_innov_var(float *hagl_innov_var) { getHaglInnovVar(hagl_innov_var); }
+	//[[deprecated("Replaced by getHaglInnov")]]
+	void get_hagl_innov(float *hagl_innov) { getHaglInnov(hagl_innov); }
 
 	// return an array containing the output predictor angular, velocity and position tracking
 	// error magnitudes (rad), (m/s), (m)
@@ -266,9 +270,13 @@ public:
 	bool inertial_dead_reckoning() {return _is_dead_reckoning;}
 
 	virtual bool isTerrainEstimateValid() = 0;
+	//[[deprecated("Replaced by isTerrainEstimateValid")]]
+	bool get_terrain_valid() { return isTerrainEstimateValid(); }
 
 	// get the estimated terrain vertical position relative to the NED origin
 	virtual void getTerrainVertPos(float *ret) = 0;
+	//[[deprecated("Replaced by getTerrainVertPos")]]
+	void get_terrain_vert_pos(float *ret) { getTerrainVertPos(ret); }
 
 	// return true if the local position estimate is valid
 	bool local_position_is_valid();
