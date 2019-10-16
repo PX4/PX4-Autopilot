@@ -474,13 +474,16 @@ void AirspeedModule::update_ground_minus_wind_airspeed()
 void AirspeedModule::select_airspeed_and_publish()
 {
 	/* Find new valid index if airspeed currently is invalid, but we have sensors, primary sensor is real sensor and checks are enabled. */
-	if (_param_airspeed_primary_index.get() > 0 && _param_airspeed_checks_on.get() &&
-	    (_prev_airspeed_index < airspeed_index::FIRST_SENSOR_INDEX
-	     || !_airspeed_validator[_prev_airspeed_index - 1].get_airspeed_valid())) {
+	bool airspeed_sensor_switching_necessary = _prev_airspeed_index < airspeed_index::FIRST_SENSOR_INDEX ||
+			!_airspeed_validator[_prev_airspeed_index - 1].get_airspeed_valid();
+	bool airspeed_sensor_switching_allowed = _number_of_airspeed_sensors > 0 &&
+			_param_airspeed_primary_index.get() > 0 &&	_param_airspeed_checks_on.get();
+
+	if (airspeed_sensor_switching_necessary && airspeed_sensor_switching_allowed) {
+
+		_valid_airspeed_index = airspeed_index::DISABLED_INDEX; // set to disabled
 
 		/* Loop through all sensors and take the first valid one */
-		_valid_airspeed_index = 0;
-
 		for (int i = 0; i < _number_of_airspeed_sensors; i++) {
 			if (_airspeed_validator[i].get_airspeed_valid()) {
 				_valid_airspeed_index = i + 1;
@@ -490,11 +493,11 @@ void AirspeedModule::select_airspeed_and_publish()
 	}
 
 	/* No valid airspeed sensor available, or Primary set to 0 or -1. Thus set index to ground-wind one (if position is valid), otherwise to disabled*/
-	if (_param_airspeed_primary_index.get() >= airspeed_index::GROUND_MINUS_WIND_INDEX
-	    && _valid_airspeed_index < airspeed_index::FIRST_SENSOR_INDEX) {
+	if (_param_airspeed_primary_index.get() >= airspeed_index::GROUND_MINUS_WIND_INDEX &&
+	    _valid_airspeed_index < airspeed_index::FIRST_SENSOR_INDEX) {
 
-		if (_param_airspeed_fallback.get()
-		    && _vehicle_local_position_valid) { // _vehicle_local_position_valid determines if ground-wind estimate is valid
+		/* _vehicle_local_position_valid determines if ground-wind estimate is valid */
+		if (_param_airspeed_fallback.get() && _vehicle_local_position_valid) {
 			_valid_airspeed_index = airspeed_index::GROUND_MINUS_WIND_INDEX;
 
 		} else {
