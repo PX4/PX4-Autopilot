@@ -47,7 +47,114 @@
 #include <lib/drivers/barometer/PX4Barometer.hpp>
 
 #include "board_config.h"
-#include "bmp3_defs.h"
+
+// From https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3_defs.h
+
+#define BMP3_CHIP_ID                      (0x50)
+
+/* Over sampling macros */
+#define BMP3_NO_OVERSAMPLING              (0x00)
+#define BMP3_OVERSAMPLING_2X              (0x01)
+#define BMP3_OVERSAMPLING_4X              (0x02)
+#define BMP3_OVERSAMPLING_8X              (0x03)
+#define BMP3_OVERSAMPLING_16X             (0x04)
+#define BMP3_OVERSAMPLING_32X             (0x05)
+
+/* Filter setting macros */
+#define BMP3_IIR_FILTER_DISABLE           (0x00)
+#define BMP3_IIR_FILTER_COEFF_1           (0x01)
+#define BMP3_IIR_FILTER_COEFF_3           (0x02)
+#define BMP3_IIR_FILTER_COEFF_7           (0x03)
+#define BMP3_IIR_FILTER_COEFF_15          (0x04)
+#define BMP3_IIR_FILTER_COEFF_31          (0x05)
+#define BMP3_IIR_FILTER_COEFF_63          (0x06)
+#define BMP3_IIR_FILTER_COEFF_127         (0x07)
+
+/* Odr setting macros */
+#define BMP3_ODR_200_HZ                   (0x00)
+#define BMP3_ODR_100_HZ                   (0x01)
+#define BMP3_ODR_50_HZ                    (0x02)
+#define BMP3_ODR_25_HZ                    (0x03)
+
+/* Register Address */
+#define BMP3_CHIP_ID_ADDR                 (0x00)
+#define BMP3_ERR_REG_ADDR                 (0x02)
+#define BMP3_SENS_STATUS_REG_ADDR         (0x03)
+#define BMP3_DATA_ADDR                    (0x04)
+#define BMP3_PWR_CTRL_ADDR                (0x1B)
+#define BMP3_OSR_ADDR                     (0X1C)
+#define BMP3_CALIB_DATA_ADDR              (0x31)
+#define BMP3_CMD_ADDR                     (0x7E)
+
+/* Error status macros */
+#define BMP3_FATAL_ERR                    (0x01)
+#define BMP3_CMD_ERR                      (0x02)
+#define BMP3_CONF_ERR                     (0x04)
+
+/* Status macros */
+#define BMP3_CMD_RDY                      (0x10)
+#define BMP3_DRDY_PRESS                   (0x20)
+#define BMP3_DRDY_TEMP                    (0x40)
+
+/* Power mode macros */
+#define BMP3_SLEEP_MODE                   (0x00)
+#define BMP3_FORCED_MODE                  (0x01)
+#define BMP3_NORMAL_MODE                  (0x03)
+
+#define BMP3_ENABLE                       (0x01)
+#define BMP3_DISABLE                      (0x00)
+
+/* Sensor component selection macros.  These values are internal for API implementation.
+ * Don't relate this t0 data sheet.
+ */
+#define BMP3_PRESS                        (1)
+#define BMP3_TEMP                         (1 << 1)
+#define BMP3_ALL                          (0x03)
+
+/* Macros related to size */
+#define BMP3_CALIB_DATA_LEN               (21)
+#define BMP3_P_T_DATA_LEN                 (6)
+
+/* Macros to select the which sensor settings are to be set by the user.
+ * These values are internal for API implementation. Don't relate this to
+ * data sheet. */
+#define BMP3_PRESS_EN_SEL                 (1 << 1)
+#define BMP3_TEMP_EN_SEL                  (1 << 2)
+#define BMP3_PRESS_OS_SEL                 (1 << 4)
+
+/* Macros for bit masking */
+#define BMP3_OP_MODE_MSK                  (0x30)
+#define BMP3_OP_MODE_POS                  (0x04)
+
+#define BMP3_PRESS_EN_MSK                 (0x01)
+
+#define BMP3_TEMP_EN_MSK                  (0x02)
+#define BMP3_TEMP_EN_POS                  (0x01)
+
+#define BMP3_IIR_FILTER_MSK               (0x0E)
+#define BMP3_IIR_FILTER_POS               (0x01)
+
+#define BMP3_ODR_MSK                      (0x1F)
+
+#define BMP3_PRESS_OS_MSK                 (0x07)
+
+#define BMP3_TEMP_OS_MSK                  (0x38)
+#define BMP3_TEMP_OS_POS                  (0x03)
+
+#define BMP3_SET_BITS(reg_data, bitname, data) \
+	((reg_data & ~(bitname##_MSK)) | \
+	 ((data << bitname##_POS) & bitname##_MSK))
+
+/* Macro variant to handle the bitname position if it is zero */
+#define BMP3_SET_BITS_POS_0(reg_data, bitname, data) \
+	((reg_data & ~(bitname##_MSK)) | \
+	 (data & bitname##_MSK))
+
+#define BMP3_GET_BITS(reg_data, bitname)       ((reg_data & (bitname##_MSK)) >> \
+		(bitname##_POS))
+
+/* Macro variant to handle the bitname position if it is zero */
+#define BMP3_GET_BITS_POS_0(reg_data, bitname) (reg_data & (bitname##_MSK))
 
 // From https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/self-test/bmp3_selftest.c
 #define BMP3_POST_SLEEP_WAIT_TIME         5000
@@ -59,13 +166,13 @@
 #define BMP3_IIR_ADDR                     0x1F
 
 // https://github.com/BoschSensortec/BMP3-Sensor-API/blob/master/bmp3.c
-/*! Power control settings */
+/* Power control settings */
 #define POWER_CNTL            (0x0006)
-/*! Odr and filter settings */
+/* Odr and filter settings */
 #define ODR_FILTER            (0x00F0)
-/*! Interrupt control settings */
+/* Interrupt control settings */
 #define INT_CTRL              (0x0708)
-/*! Advance settings */
+/* Advance settings */
 #define ADV_SETT              (0x1800)
 
 #pragma pack(push,1)
@@ -97,7 +204,63 @@ struct data_s {
 	uint8_t t_lsb;
 	uint8_t t_xlsb;
 }; // data
+
+struct bmp3_reg_calib_data {
+	/**
+	 * @ Trim Variables
+	 */
+
+	/**@{*/
+	uint16_t par_t1;
+	uint16_t par_t2;
+	int8_t par_t3;
+	int16_t par_p1;
+	int16_t par_p2;
+	int8_t par_p3;
+	int8_t par_p4;
+	uint16_t par_p5;
+	uint16_t par_p6;
+	int8_t par_p7;
+	int8_t par_p8;
+	int16_t par_p9;
+	int8_t par_p10;
+	int8_t par_p11;
+	int64_t t_lin;
+
+	/**@}*/
+};
 #pragma pack(pop)
+
+/*!
+ * bmp3 sensor structure which comprises of temperature and pressure data.
+ */
+struct bmp3_data {
+	/* Compensated temperature */
+	int64_t temperature;
+
+	/* Compensated pressure */
+	uint64_t pressure;
+};
+
+/*!
+ * Calibration data
+ */
+struct bmp3_calib_data {
+	/*! Register data */
+	struct bmp3_reg_calib_data reg_calib_data;
+};
+
+/*!
+ * bmp3 sensor structure which comprises of un-compensated temperature
+ * and pressure data.
+ */
+struct bmp3_uncomp_data {
+	/*! un-compensated pressure */
+	uint32_t pressure;
+
+	/*! un-compensated temperature */
+	uint32_t temperature;
+};
 
 struct fcalibration_s {
 	float t1;
