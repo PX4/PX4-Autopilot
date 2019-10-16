@@ -198,7 +198,7 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 	int fd = node_open(meta, true, instance, priority);
 
 	if (fd == PX4_ERROR) {
-		PX4_ERR("%s advertise failed", meta->o_name);
+		PX4_ERR("%s advertise failed (%i)", meta->o_name, errno);
 		return nullptr;
 	}
 
