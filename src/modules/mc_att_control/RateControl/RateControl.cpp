@@ -56,12 +56,6 @@ void RateControl::setDTermCutoff(const float loop_rate, const float cutoff, cons
 	}
 }
 
-void RateControl::setTPA(const Vector3f &breakpoint, const Vector3f &rate)
-{
-	_tpa_breakpoint = breakpoint;
-	_tpa_rate = rate;
-}
-
 void RateControl::setSaturationStatus(const MultirotorMixer::saturation_status &status)
 {
 	_mixer_saturation_positive[0] = status.flags.roll_pos;
@@ -72,13 +66,8 @@ void RateControl::setSaturationStatus(const MultirotorMixer::saturation_status &
 	_mixer_saturation_negative[2] = status.flags.yaw_neg;
 }
 
-Vector3f RateControl::update(const Vector3f rate, const Vector3f rate_sp, const float dt, const bool landed,
-			     const float thrust_sp)
+Vector3f RateControl::update(const Vector3f rate, const Vector3f rate_sp, const float dt, const bool landed)
 {
-	Vector3f gain_p_tpa = _gain_p.emult(tpa_attenuations(_tpa_breakpoint(0), _tpa_rate(0), thrust_sp));
-	Vector3f gain_i_tpa = _gain_i.emult(tpa_attenuations(_tpa_breakpoint(1), _tpa_rate(1), thrust_sp));
-	Vector3f gain_d_tpa = _gain_d.emult(tpa_attenuations(_tpa_breakpoint(2), _tpa_rate(2), thrust_sp));
-
 	// angular rates error
 	Vector3f rate_error = rate_sp - rate;
 
@@ -91,20 +80,20 @@ Vector3f RateControl::update(const Vector3f rate, const Vector3f rate_sp, const 
 	}
 
 	// PID control with feed forward
-	Vector3f torque = gain_p_tpa.emult(rate_error) + _rate_int - gain_d_tpa.emult(rate_d) + _gain_ff.emult(rate_sp);
+	Vector3f torque = _gain_p.emult(rate_error) + _rate_int - _gain_d.emult(rate_d) + _gain_ff.emult(rate_sp);
 
 	_rate_prev = rate;
 	_rate_prev_filtered = rate_filtered;
 
 	// update integral only if we are not landed
 	if (!landed) {
-		updateIntegral(rate_error, dt, gain_i_tpa);
+		updateIntegral(rate_error, dt);
 	}
 
 	return torque;
 }
 
-void RateControl::updateIntegral(Vector3f &rate_error, const float dt, const Vector3f &gain_i_tpa)
+void RateControl::updateIntegral(Vector3f &rate_error, const float dt)
 {
 	for (int i = 0; i < 3; i++) {
 		// prevent further positive control saturation
@@ -127,7 +116,7 @@ void RateControl::updateIntegral(Vector3f &rate_error, const float dt, const Vec
 		i_factor = math::max(0.0f, 1.f - i_factor * i_factor);
 
 		// Perform the integration using a first order method
-		float rate_i = _rate_int(i) + i_factor * gain_i_tpa(i) * rate_error(i) * dt;
+		float rate_i = _rate_int(i) + i_factor * _gain_i(i) * rate_error(i) * dt;
 
 		// do not propagate the result if out of range or invalid
 		if (PX4_ISFINITE(rate_i)) {
@@ -141,15 +130,4 @@ void RateControl::getRateControlStatus(rate_ctrl_status_s &rate_ctrl_status)
 	rate_ctrl_status.rollspeed_integ = _rate_int(0);
 	rate_ctrl_status.pitchspeed_integ = _rate_int(1);
 	rate_ctrl_status.yawspeed_integ = _rate_int(2);
-}
-
-Vector3f RateControl::tpa_attenuations(float tpa_breakpoint, float tpa_rate, float thrust_sp)
-{
-	static constexpr float tpa_rate_lower_limit = 0.05f;
-
-	/* throttle pid attenuation factor */
-	float tpa = 1.0f - tpa_rate * (fabsf(thrust_sp) - tpa_breakpoint) / (1.0f - tpa_breakpoint);
-	tpa = fmaxf(tpa_rate_lower_limit, fminf(1.0f, tpa));
-
-	return Vector3f(tpa, tpa, 1.f);
 }
