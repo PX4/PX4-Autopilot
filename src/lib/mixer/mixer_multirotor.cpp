@@ -354,6 +354,10 @@ void MultirotorMixer::mix_yaw(float yaw, float *outputs)
 unsigned
 MultirotorMixer::mix(float *outputs, unsigned space)
 {
+	if (space < _rotor_count) {
+		return 0;
+	}
+
 	float roll    = math::constrain(get_control(0, 0) * _roll_scale, -1.0f, 1.0f);
 	float pitch   = math::constrain(get_control(0, 1) * _pitch_scale, -1.0f, 1.0f);
 	float yaw     = math::constrain(get_control(0, 2) * _yaw_scale, -1.0f, 1.0f);
