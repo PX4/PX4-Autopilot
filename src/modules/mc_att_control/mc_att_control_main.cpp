@@ -132,6 +132,7 @@ MulticopterAttitudeControl::parameter_update_poll()
 		_parameter_update_sub.copy(&pupdate);
 
 		// update parameters from storage
+		updateParams();
 		parameters_updated();
 	}
 }
