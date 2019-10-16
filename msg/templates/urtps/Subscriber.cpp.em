@@ -93,28 +93,15 @@ bool @(topic)_Subscriber::init()
     SubscriberAttributes Rparam;
     Rparam.topic.topicKind = NO_KEY;
     Rparam.topic.topicDataType = myType.getName(); //Must be registered before the creation of the subscriber
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[    if ros2_distro]@
-@[        if ros2_distro == "ardent"]@
+@[if ros2_distro]@
+@[    if ros2_distro == "ardent"]@
     Rparam.qos.m_partition.push_back("rt");
     Rparam.topic.topicName = "@(topic)_PubSubTopic";
-@[        else]@
-    Rparam.topic.topicName = "rt/@(topic)_PubSubTopic";
-@[        end if]@
 @[    else]@
-    Rparam.topic.topicName = "@(topic)_PubSubTopic";
+    Rparam.topic.topicName = "rt/@(topic)_PubSubTopic";
 @[    end if]@
 @[else]@
-@[    if ros2_distro]@
-@[        if ros2_distro == "ardent"]@
-    Rparam.qos.m_partition.push_back("rt");
-    Rparam.topic.topicName = "@(topic)PubSubTopic";
-@[        else]@
-    Rparam.topic.topicName = "rt/@(topic)PubSubTopic";
-@[        end if]@
-@[    else]@
-    Rparam.topic.topicName = "@(topic)PubSubTopic";
-@[    end if]@
+    Rparam.topic.topicName = "@(topic)_PubSubTopic";
 @[end if]@
     mp_subscriber = Domain::createSubscriber(mp_participant, Rparam, static_cast<SubscriberListener*>(&m_listener));
     if(mp_subscriber == nullptr)
