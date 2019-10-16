@@ -140,7 +140,7 @@ private:
 	bool _vehicle_local_position_valid{false}; /**< local position (from GPS) valid */
 	bool _in_takeoff_situation{true}; /**< in takeoff situation (defined as not yet stall speed reached) */
 	float _ground_minus_wind_TAS{0.0f}; /**< true airspeed from groundspeed minus windspeed */
-	float _ground_minus_wind_EAS{0.0f}; /**< true airspeed from groundspeed minus windspeed */
+	float _ground_minus_wind_EAS{0.0f}; /**< equivalent airspeed from groundspeed minus windspeed */
 
 	bool _scale_estimation_previously_on{false}; /**< scale_estimation was on in the last cycle */
 
@@ -207,13 +207,10 @@ AirspeedModule::task_spawn(int argc, char *argv[])
 
 	_object.store(dev);
 
-	if (dev) {
-		dev->ScheduleOnInterval(SCHEDULE_INTERVAL, 10000);
-		_task_id = task_id_is_work_queue;
-		return PX4_OK;
-	}
+	dev->ScheduleOnInterval(SCHEDULE_INTERVAL, 10000);
+	_task_id = task_id_is_work_queue;
+	return PX4_OK;
 
-	return PX4_ERROR;
 }
 void
 AirspeedModule::init()
@@ -236,6 +233,12 @@ AirspeedModule::init()
 	}
 
 	_airspeed_validator = new AirspeedValidator[_number_of_airspeed_sensors];
+
+	if (_number_of_airspeed_sensors != 0 && _airspeed_validator == nullptr) {
+		// airspeed validator allocation failed (e.g. no enough RAM). Set number of sensors to 0.
+		_number_of_airspeed_sensors = 0;
+		mavlink_log_critical(&_mavlink_log_pub, "Airspeed Validator init failed. Don't use airspeed sensor. ");
+	}
 
 	if (_number_of_airspeed_sensors > 0) {
 		for (int i = 0; i < _number_of_airspeed_sensors; i++) {
@@ -281,7 +284,7 @@ AirspeedModule::Run()
 	update_wind_estimator_sideslip();
 	update_ground_minus_wind_airspeed();
 
-	if (_airspeed_validator != nullptr) {
+	if (_number_of_airspeed_sensors > 0) {
 
 		bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 		bool fixed_wing = !_vtol_vehicle_status.vtol_in_rw_mode;
@@ -597,7 +600,7 @@ int AirspeedModule::print_usage(const char *reason)
 		R"DESCR_STR(
 ### Description
 This module provides a single airspeed_validated topic, containing an indicated (IAS),
-equivalend (EAS), true airspeed (TAS) and the information if the estimation currently
+equivalent (EAS), true airspeed (TAS) and the information if the estimation currently
 is invalid and if based sensor readings or on groundspeed minus windspeed.
 Supporting the input of multiple "raw" airspeed inputs, this module automatically switches
 to a valid sensor in case of failure detection. For failure detection as well as for

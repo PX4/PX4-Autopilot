@@ -186,7 +186,7 @@ AirspeedValidator::check_load_factor(float accel_z)
 {
 	// Check if the airpeed reading is lower than physically possible given the load factor
 
-	bool bad_number_fail = false; // disable this for now
+	const bool bad_number_fail = false; // disable this for now
 
 	if (_in_fixed_wing_flight) {
 
@@ -214,7 +214,7 @@ void
 AirspeedValidator::update_airspeed_valid_status(const uint64_t timestamp)
 {
 
-	bool bad_number_fail = false; // disable this for now
+	const bool bad_number_fail = false; // disable this for now
 
 	// Check if sensor data is missing - assume a minimum 5Hz data rate.
 	const bool data_missing = (timestamp - _time_last_airspeed) > 200_ms;
