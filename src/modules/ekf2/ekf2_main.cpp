@@ -1694,9 +1694,14 @@ void Ekf2::runPreFlightChecks(const float dt,
 			      const vehicle_status_s &vehicle_status,
 			      const ekf2_innovations_s &innov)
 {
-	const bool is_ne_aiding = control_status.flags.gps ||  control_status.flags.ev_pos;
-	const bool is_flow_aiding = control_status.flags.opt_flow;
-	_preflt_checker.update(dt, is_ne_aiding, is_flow_aiding, vehicle_status, innov);
+	const bool can_observe_heading_in_flight = (vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+
+	_preflt_checker.setVehicleCanObserveHeadingInFlight(can_observe_heading_in_flight);
+	_preflt_checker.setUsingGpsAiding(control_status.flags.gps);
+	_preflt_checker.setUsingFlowAiding(control_status.flags.opt_flow);
+	_preflt_checker.setUsingEvPosAiding(control_status.flags.ev_pos);
+
+	_preflt_checker.update(dt, innov);
 }
 
 void Ekf2::resetPreFlightChecks()

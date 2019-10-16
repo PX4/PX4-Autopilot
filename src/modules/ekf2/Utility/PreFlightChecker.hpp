@@ -64,13 +64,18 @@ public:
 	/*
 	 * Update the internal states
 	 * @param dt the sampling time
-	 * @param is_ne_aiding true if the EKF is currently fusing NE vel and pos
-	 * @param is_flow_aiding true if the EKF is currently fusing optical flow
-	 * @param vehicle_status the vehicle_status_s struct containing the status flags
 	 * @param innov the ekf2_innovation_s struct containing the current innovations
 	 */
-	void update(float dt, bool is_ne_aiding, bool is_flow_aiding, const vehicle_status_s &vehicle_status,
-		    const ekf2_innovations_s &innov);
+	void update(float dt, const ekf2_innovations_s &innov);
+
+	/*
+	 * If set to true, the checker will use a less conservative heading innovation check
+	 */
+	void setVehicleCanObserveHeadingInFlight(bool val) { _can_observe_heading_in_flight = val; }
+
+	void setUsingGpsAiding(bool val) { _is_using_gps_aiding = val; }
+	void setUsingFlowAiding(bool val) { _is_using_flow_aiding = val; }
+	void setUsingEvPosAiding(bool val) { _is_using_ev_pos_aiding = val; }
 
 	bool hasHeadingFailed() const { return _has_heading_failed; }
 	bool hasHorizVelFailed() const { return _has_horiz_vel_failed; }
@@ -141,23 +146,13 @@ public:
 	static uint8_t prefltFailBoolToBitMask(bool heading_failed, bool horiz_vel_failed, bool down_vel_failed,
 					       bool height_failed);
 
-	/*
-	 * Select the appropriate heading test limit depending on the type of aiding and
-	 * the ability of the vehicle to observe heading in flight
-	 * @param is_ne_aiding true if the vehicle is relying on heading for vel/pos fusion
-	 * @param vehicle_status the vehicle_status_s containing the status flags
-	 * @return the appropriate heading test limit
-	 */
-	static float selectHeadingTestLimit(bool is_ne_aiding, const vehicle_status_s &vehicle_status);
 	static constexpr float sq(float var) { return var * var; }
 
 private:
-	bool preFlightCheckHeadingFailed(bool is_ne_aiding,
-					 const vehicle_status_s &vehicle_status,
-					 const ekf2_innovations_s &innov,
-					 float alpha);
-	bool preFlightCheckHorizVelFailed(bool is_ne_aiding, bool is_flow_aiding, const ekf2_innovations_s &innov,
-					  float alpha);
+	bool preFlightCheckHeadingFailed(const ekf2_innovations_s &innov, float alpha);
+	float selectHeadingTestLimit();
+
+	bool preFlightCheckHorizVelFailed(const ekf2_innovations_s &innov, float alpha);
 	bool preFlightCheckDownVelFailed(const ekf2_innovations_s &innov, float alpha);
 	bool preFlightCheckHeightFailed(const ekf2_innovations_s &innov, float alpha);
 
@@ -167,6 +162,11 @@ private:
 	bool _has_horiz_vel_failed{};
 	bool _has_down_vel_failed{};
 	bool _has_height_failed{};
+
+	bool _can_observe_heading_in_flight{};
+	bool _is_using_gps_aiding{};
+	bool _is_using_flow_aiding{};
+	bool _is_using_ev_pos_aiding{};
 
 	// Low-pass filters for innovation pre-flight checks
 	InnovationLpf _filter_vel_n_innov;	///< Preflight low pass filter N axis velocity innovations (m/sec)
