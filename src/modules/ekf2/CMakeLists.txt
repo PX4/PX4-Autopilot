@@ -45,4 +45,5 @@ px4_add_module(
 		ecl_EKF
 		ecl_geo
 		perf
+		Ekf2Utility
 	)

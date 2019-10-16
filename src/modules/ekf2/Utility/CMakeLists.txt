@@ -30,3 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 #############################################################################
+
+px4_add_library(Ekf2Utility
+	PreFlightChecker.cpp
+)
+
+target_include_directories(Ekf2Utility
+	PUBLIC
+	${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(Ekf2Utility PRIVATE mathlib)
+
+px4_add_unit_gtest(SRC PreFlightCheckerTest.cpp LINKLIBS Ekf2Utility)

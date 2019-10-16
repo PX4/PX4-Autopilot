@@ -78,7 +78,7 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
 
-#include "Utility/InnovationLpf.hpp"
+#include "Utility/PreFlightChecker.hpp"
 
 // defines used to specify the mask position for use of different accuracy metrics in the GPS blending algorithm
 #define BLEND_MASK_USE_SPD_ACC      1
@@ -118,25 +118,11 @@ public:
 private:
 	int getRangeSubIndex(); ///< get subscription index of first downward-facing range sensor
 
+	PreFlightChecker _preflt_checker;
 	void runPreFlightChecks(float dt, const filter_control_status_u &control_status,
 				const vehicle_status_s &vehicle_status,
 				const ekf2_innovations_s &innov);
-	bool preFlightCheckHeadingFailed(const filter_control_status_u &control_status,
-					 const vehicle_status_s &vehicle_status,
-					 const ekf2_innovations_s &innov,
-					 float alpha);
-	static float selectHeadingTestLimit(const filter_control_status_u &control_status,
-					    const vehicle_status_s &vehicle_status);
-	bool preFlightCheckHorizVelFailed(const filter_control_status_u &control_status, const ekf2_innovations_s &innov,
-					  float alpha);
-	bool preFlightCheckDownVelFailed(const ekf2_innovations_s &innov, float alpha);
-	bool preFlightCheckHeightFailed(const ekf2_innovations_s &innov, float alpha);
-
-	static bool checkInnovFailed(float innov, float innov_lpf, float test_limit);
-	static bool checkInnov2DFailed(const Vector2f &innov, const Vector2f &innov_lpf, float test_limit);
 	void resetPreFlightChecks();
-
-	static constexpr float sq(float var) { return var * var; }
 
 	template<typename Param>
 	void update_mag_bias(Param &mag_bias_param, int axis_index);
@@ -223,39 +209,6 @@ private:
 
 	// Used to control saving of mag declination to be used on next startup
 	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
-
-	// Used to filter velocity innovations during pre-flight checks
-	bool _preflt_horiz_fail = false;	///< true if preflight horizontal innovation checks are failed
-	bool _preflt_vert_fail = false;		///< true if preflight vertical innovation checks are failed
-	bool _preflt_fail = false;		///< true if any preflight innovation checks are failed
-	//
-	// Low-pass filters for innovation pre-flight checks
-	InnovationLpf _filter_vel_n_innov;	///< Preflight low pass filter N axis velocity innovations (m/sec)
-	InnovationLpf _filter_vel_e_innov;	///< Preflight low pass filter E axis velocity innovations (m/sec)
-	InnovationLpf _filter_vel_d_innov;	///< Preflight low pass filter D axis velocity innovations (m/sec)
-	InnovationLpf _filter_hgt_innov;	///< Preflight low pass filter height innovation (m)
-	InnovationLpf _filter_heading_innov;	///< Preflight low pass filter heading innovation magntitude (rad)
-	InnovationLpf _filter_flow_x_innov;	///< Preflight low pass filter optical flow innovation (rad)
-	InnovationLpf _filter_flow_y_innov;	///< Preflight low pass filter optical flow innovation (rad)
-
-	// Preflight low pass filter time constant inverse (1/sec)
-	static constexpr float _innov_lpf_tau_inv = 0.2f;
-	// Maximum permissible velocity innovation to pass pre-flight checks (m/sec)
-	static constexpr float _vel_innov_test_lim = 0.5f;
-	// Maximum permissible height innovation to pass pre-flight checks (m)
-	static constexpr float _hgt_innov_test_lim = 1.5f;
-	// Maximum permissible yaw innovation to pass pre-flight checks when aiding inertial nav using NE frame observations (rad)
-	static constexpr float _nav_heading_innov_test_lim = 0.25f;
-	// Maximum permissible yaw innovation to pass pre-flight checks when not aiding inertial nav using NE frame observations (rad)
-	static constexpr float _heading_innov_test_lim = 0.52f;
-	// Maximum permissible flow innovation to pass pre-flight checks
-	static constexpr float _flow_innov_test_lim = 0.1f;
-	// Preflight velocity innovation spike limit (m/sec)
-	static constexpr float _vel_innov_spike_lim = 2.0f * _vel_innov_test_lim;
-	// Preflight position innovation spike limit (m)
-	static constexpr float _hgt_innov_spike_lim = 2.0f * _hgt_innov_test_lim;
-	// Preflight flow innovation spike limit (rad)
-	static constexpr float _flow_innov_spike_lim = 2.0f * _flow_innov_test_lim;
 
 	// set pose/velocity as invalid if standard deviation is bigger than max_std_dev
 	// TODO: the user should be allowed to set these values by a parameter
@@ -1348,10 +1301,10 @@ void Ekf2::Run()
 				lpos.az = vel_deriv[2];
 
 				// TODO: better status reporting
-				lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
-				lpos.z_valid = !_preflt_vert_fail;
-				lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
-				lpos.v_z_valid = !_preflt_vert_fail;
+				lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_checker.hasHorizFailed();
+				lpos.z_valid = !_preflt_checker.hasVertFailed();
+				lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_checker.hasHorizFailed();
+				lpos.v_z_valid = !_preflt_checker.hasVertFailed();
 
 				// Position of local NED origin in GPS / WGS84 frame
 				map_projection_reference_s ekf_origin;
@@ -1515,7 +1468,7 @@ void Ekf2::Run()
 					_vehicle_visual_odometry_aligned_pub.publish(aligned_ev_odom);
 				}
 
-				if (_ekf.global_position_is_valid() && !_preflt_fail) {
+				if (_ekf.global_position_is_valid() && !_preflt_checker.hasFailed()) {
 					// generate and publish global position data
 					vehicle_global_position_s &global_pos = _vehicle_global_position_pub.get();
 
@@ -1597,7 +1550,7 @@ void Ekf2::Run()
 			status.time_slip = _last_time_slip_us / 1e6f;
 			status.health_flags = 0.0f; // unused
 			status.timeout_flags = 0.0f; // unused
-			status.pre_flt_fail = _preflt_fail;
+			status.pre_flt_fail_flags = _preflt_checker.getBitmask();
 
 			_estimator_status_pub.publish(status);
 
@@ -1741,110 +1694,14 @@ void Ekf2::runPreFlightChecks(const float dt,
 			      const vehicle_status_s &vehicle_status,
 			      const ekf2_innovations_s &innov)
 {
-	const float alpha = InnovationLpf::computeAlphaFromDtAndTauInv(dt, _innov_lpf_tau_inv);
-
-	const bool heading_failed = preFlightCheckHeadingFailed(control_status, vehicle_status, innov, alpha);
-	const bool horiz_vel_failed = preFlightCheckHorizVelFailed(control_status, innov, alpha);
-	const bool down_vel_failed = preFlightCheckDownVelFailed(innov, alpha);
-	const bool height_failed = preFlightCheckHeightFailed(innov, alpha);
-
-	_preflt_horiz_fail = heading_failed || horiz_vel_failed;
-	_preflt_vert_fail = down_vel_failed || height_failed;
-	_preflt_fail = _preflt_horiz_fail || _preflt_vert_fail;
-}
-
-bool Ekf2::preFlightCheckHeadingFailed(const filter_control_status_u &control_status,
-				       const vehicle_status_s &vehicle_status,
-				       const ekf2_innovations_s &innov,
-				       const float alpha)
-
-{
-	const float heading_test_limit = selectHeadingTestLimit(control_status, vehicle_status);
-	const float heading_innov_spike_lim = 2.0f * heading_test_limit;
-
-	const float heading_innov_lpf = _filter_heading_innov.update(innov.heading_innov, alpha, heading_innov_spike_lim);
-
-	return checkInnovFailed(innov.heading_innov, heading_innov_lpf, heading_test_limit);
-}
-
-float Ekf2::selectHeadingTestLimit(const filter_control_status_u &control_status,
-				   const vehicle_status_s &vehicle_status)
-{
-	// Select the max allowed heading innovaton depending on whether we are not aiding navigation using
-	// observations in the NE reference frame and if the vehicle can use GPS course to realign in flight (fixedwing sideslip fusion).
-	const bool doing_ne_aiding = control_status.flags.gps ||  control_status.flags.ev_pos;
-	const bool cannot_realign_in_flight = (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
-
-	return (doing_ne_aiding && cannot_realign_in_flight)
-	       ? _nav_heading_innov_test_lim
-	       : _heading_innov_test_lim;
-}
-
-bool Ekf2::preFlightCheckHorizVelFailed(const filter_control_status_u &control_status,
-					const ekf2_innovations_s &innov,
-					const float alpha)
-{
-	bool has_failed = false;
-
-	const bool doing_ne_aiding = control_status.flags.gps ||  control_status.flags.ev_pos;
-
-	if (doing_ne_aiding) {
-		const Vector2f vel_ne_innov = Vector2f(innov.vel_pos_innov);
-		Vector2f vel_ne_innov_lpf;
-		vel_ne_innov_lpf(0) = _filter_vel_n_innov.update(vel_ne_innov(0), alpha, _vel_innov_spike_lim);
-		vel_ne_innov_lpf(1) = _filter_vel_n_innov.update(vel_ne_innov(1), alpha, _vel_innov_spike_lim);
-		has_failed |= checkInnov2DFailed(vel_ne_innov, vel_ne_innov_lpf, _vel_innov_test_lim);
-	}
-
-	if (control_status.flags.opt_flow) {
-		const Vector2f flow_innov = Vector2f(innov.flow_innov);
-		Vector2f flow_innov_lpf;
-		flow_innov_lpf(0) = _filter_flow_x_innov.update(flow_innov(0), alpha, _flow_innov_spike_lim);
-		flow_innov_lpf(1) = _filter_flow_x_innov.update(flow_innov(1), alpha, _flow_innov_spike_lim);
-		has_failed |= checkInnov2DFailed(flow_innov, flow_innov_lpf, _flow_innov_test_lim);
-	}
-
-	return has_failed;
-}
-
-bool Ekf2::preFlightCheckDownVelFailed(const ekf2_innovations_s &innov, const float alpha)
-{
-	const float vel_d_innov = innov.vel_pos_innov[2];
-	const float vel_d_innov_lpf = _filter_vel_d_innov.update(vel_d_innov, alpha, _vel_innov_spike_lim);
-	return checkInnovFailed(vel_d_innov, vel_d_innov_lpf, _vel_innov_test_lim);
-}
-
-bool Ekf2::preFlightCheckHeightFailed(const ekf2_innovations_s &innov, const float alpha)
-{
-	const float hgt_innov = innov.vel_pos_innov[5];
-	const float hgt_innov_lpf = _filter_hgt_innov.update(hgt_innov, alpha, _hgt_innov_spike_lim);
-	return checkInnovFailed(hgt_innov, hgt_innov_lpf, _hgt_innov_test_lim);
-}
-
-bool Ekf2::checkInnovFailed(const float innov, const float innov_lpf, const float test_limit)
-{
-	return innov_lpf > test_limit || innov > 2.0f * test_limit;
-}
-
-bool Ekf2::checkInnov2DFailed(const Vector2f &innov, const Vector2f &innov_lpf, const float test_limit)
-{
-	const bool has_failed = innov_lpf.norm_squared() > sq(test_limit)
-				|| innov.norm_squared() > sq(2.0f * test_limit);
-	return has_failed;
+	const bool is_ne_aiding = control_status.flags.gps ||  control_status.flags.ev_pos;
+	const bool is_flow_aiding = control_status.flags.opt_flow;
+	_preflt_checker.update(dt, is_ne_aiding, is_flow_aiding, vehicle_status, innov);
 }
 
 void Ekf2::resetPreFlightChecks()
 {
-	_filter_vel_n_innov.reset();
-	_filter_vel_e_innov.reset();
-	_filter_vel_d_innov.reset();
-	_filter_hgt_innov.reset();
-	_filter_heading_innov.reset();
-	_filter_flow_x_innov.reset();
-	_filter_flow_y_innov.reset();
-	_preflt_horiz_fail = false;
-	_preflt_vert_fail = false;
-	_preflt_fail = false;
+	_preflt_checker.reset();
 }
 
 int Ekf2::getRangeSubIndex()
