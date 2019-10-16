@@ -571,11 +571,11 @@ int MixingOutput::loadMixer(const char *buf, unsigned len)
 
 void MixingOutput::handleCommands()
 {
-	if (_command.command.load() == Command::Type::None) {
+	if ((Command::Type)_command.command.load() == Command::Type::None) {
 		return;
 	}
 
-	switch (_command.command.load()) {
+	switch ((Command::Type)_command.command.load()) {
 	case Command::Type::loadMixer:
 		_command.result = loadMixer(_command.mixer_buf, _command.mixer_buf_length);
 		break;
@@ -590,12 +590,12 @@ void MixingOutput::handleCommands()
 	}
 
 	// mark as done
-	_command.command.store(Command::Type::None);
+	_command.command.store((int)Command::Type::None);
 }
 
 void MixingOutput::resetMixerThreadSafe()
 {
-	if (_command.command.load() != Command::Type::None) {
+	if ((Command::Type)_command.command.load() != Command::Type::None) {
 		// Cannot happen, because we expect only one other thread to call this.
 		// But as a safety precaution we return here.
 		PX4_ERR("Command not None");
@@ -604,14 +604,14 @@ void MixingOutput::resetMixerThreadSafe()
 
 	lock();
 
-	_command.command.store(Command::Type::resetMixer);
+	_command.command.store((int)Command::Type::resetMixer);
 
 	_interface.ScheduleNow();
 
 	unlock();
 
 	// wait until processed
-	while (_command.command.load() != Command::Type::None) {
+	while ((Command::Type)_command.command.load() != Command::Type::None) {
 		usleep(1000);
 	}
 
@@ -619,7 +619,7 @@ void MixingOutput::resetMixerThreadSafe()
 
 int MixingOutput::loadMixerThreadSafe(const char *buf, unsigned len)
 {
-	if (_command.command.load() != Command::Type::None) {
+	if ((Command::Type)_command.command.load() != Command::Type::None) {
 		// Cannot happen, because we expect only one other thread to call this.
 		// But as a safety precaution we return here.
 		PX4_ERR("Command not None");
@@ -630,14 +630,14 @@ int MixingOutput::loadMixerThreadSafe(const char *buf, unsigned len)
 
 	_command.mixer_buf = buf;
 	_command.mixer_buf_length = len;
-	_command.command.store(Command::Type::loadMixer);
+	_command.command.store((int)Command::Type::loadMixer);
 
 	_interface.ScheduleNow();
 
 	unlock();
 
 	// wait until processed
-	while (_command.command.load() != Command::Type::None) {
+	while ((Command::Type)_command.command.load() != Command::Type::None) {
 		usleep(1000);
 	}
 
