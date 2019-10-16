@@ -1,0 +1,144 @@
+#!/bin/sh
+#
+# @name AAC HAMR
+#
+# @type Hexarotor HAMR
+# @class Copter
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+# @output MAIN5 motor 5
+# @output MAIN6 motor 6
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+#
+# @maintainer
+#
+
+sh /etc/init.d/rc.mc_defaults
+
+set PARAM_DEFAULTS_VER 1
+
+if [ $AUTOCNF = yes ]
+then
+
+	# battery
+	param set BAT_A_PER_V 30.82
+	param set BAT_CRIT_THR 0.06
+	param set BAT_EMERGEN_THR 0.03
+	param set BAT_LOW_THR 0.12
+	param set BAT_N_CELLS 12
+	param set BAT_V_CHARGED 4.2
+	param set BAT_V_DIV 28.13
+
+	# commander
+	param set COM_DL_LOSS_T 5
+	param set COM_DL_REG_T 0
+	param set COM_RC_LOSS_T 1.0
+
+	# flight mode switches
+	param set COM_FLTMODE1 8
+	param set COM_FLTMODE2 1
+	param set COM_FLTMODE3 2
+	param set COM_FLTMODE4 5
+	param set COM_FLTMODE5 5
+	param set COM_FLTMODE6 5
+
+	# IMU filter
+	param set IMU_ACCEL_CUTOFF 10.0
+	param set IMU_GYRO_CUTOFF 10.0
+	param set IMU_GYRO_RATEMAX 400
+
+	# land detector
+	param set LNDMC_ROT_MAX 30.0
+
+	# MC attitude controller
+	param set MC_PITCHRATE_D 0.011
+	param set MC_PITCHRATE_I 0.4
+	param set MC_PITCHRATE_MAX 60.0
+	param set MC_PITCHRATE_P 0.22
+	param set MC_PITCH_P 1.5
+	param set MC_PITCH_TC 0.2
+	param set MC_PR_INT_LIM 60.0
+
+	param set MC_ROLLRATE_D 0.015
+	param set MC_ROLLRATE_I 0.40
+	param set MC_ROLLRATE_MAX 60.0
+	param set MC_ROLLRATE_P 0.40
+	param set MC_ROLL_P 1.5
+	param set MC_ROLL_TC 0.20
+	param set MC_RR_INT_LIM 120.0
+
+	param set MC_YAWRATE_D 0.01
+	param set MC_YAWRATE_I 1.60
+	param set MC_YAWRATE_MAX 45.0
+	param set MC_YAWRATE_P 1.20
+	param set MC_YAWRAUTO_MAX 30.0
+	param set MC_YAW_FF 0.5
+	param set MC_YAW_P 1.0
+	param set MC_YR_INT_LIM 3.0
+
+	# navigator
+	param set MIS_TAKEOFF_ALT 6.1
+
+	# MC position controller
+	param set MPC_ACC_DOWN_MAX 5.0
+	param set MPC_ACC_HOR_MAX 0.5
+	param set MPC_ACC_UP_MAX 5.0
+	param set MPC_CRUISE_90 5.0
+	param set MPC_DEC_HOR_SLOW 3.0
+	param set MPC_JERK_MAX 0.0
+	param set MPC_JERK_MIN 1.0
+	param set MPC_LAND_ALT2 7.62
+	param set MPC_MANTHR_MAX 0.9
+	param set MPC_MAN_TILT_MAX 25.0
+	param set MPC_MAN_Y_MAX 200.0
+	param set MPC_THR_HOVER 0.55
+	param set MPC_THR_MAX 0.90
+	param set MPC_TILTMAX_AIR 25.0
+	param set MPC_TKO_RAMP_T 1.0
+	param set MPC_VEL_MANUAL 10.29
+	param set MPC_XY_CRUISE 10.29
+	param set MPC_XY_P 0.08
+	param set MPC_XY_VEL_D 0.02
+	param set MPC_XY_VEL_I 0.02
+	param set MPC_XY_VEL_MAX 10.29
+	param set MPC_XY_VEL_P 0.02
+	param set MPC_Z_P 1.4
+	param set MPC_Z_VEL_D 0.03
+	param set MPC_Z_VEL_I 0.09
+	param set MPC_Z_VEL_MAX_DN 1.03
+	param set MPC_Z_VEL_MAX_UP 2.0
+	param set MPC_Z_VEL_P 0.15
+
+	# PWM output
+	param set PWM_RATE 400
+	param set PWM_AUX_DIS2 1000
+	param set PWM_MAIN_DIS7 1500
+	param set PWM_MAIN_DIS8 1500
+	param set PWM_MAX 1900
+	param set PWM_MIN 1200
+
+	# RC switch mapping
+	param set RC_MAP_AUX2 9
+	param set RC_MAP_FLTMODE 5
+	param set RC_MAP_PITCH 2
+	param set RC_MAP_ROLL 1
+	param set RC_MAP_THROTTLE 3
+	param set RC_MAP_YAW 4
+
+	# RTL
+	param set RTL_DESCEND_ALT 15.24
+	param set RTL_LAND_DELAY 1.0
+	param set RTL_RETURN_ALT 45.72
+
+fi
+
+set MIXER hamr
+
+# Need to set all 8 channels
+set PWM_OUT 12345678

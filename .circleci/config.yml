@@ -9,11 +9,11 @@ jobs:
           name: Fetch tags
           command: git fetch --tags
       - run:
-          name: Build px4_fmu-v5_default
-          command: make px4_fmu-v5_default
+          name: Build px4_fmu-v3_default
+          command: make px4_fmu-v3_default
       - store_artifacts:
-          path: build/px4_fmu-v5_default/px4_fmu-v5_default.px4
-          destination: px4_fmu-v5_default.px4
+          path: build/px4_fmu-v3_default/px4_fmu-v3_default.px4
+          destination: px4_fmu-v3_default.px4
       - store_artifacts:
-          path: build/px4_fmu-v5_default/px4_fmu-v5_default.elf
-          destination: px4_fmu-v5_default.elf
+          path: build/px4_fmu-v3_default/px4_fmu-v3_default.elf
+          destination: px4_fmu-v3_default.elf
