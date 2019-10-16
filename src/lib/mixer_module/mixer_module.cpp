@@ -308,9 +308,11 @@ bool MixingOutput::update()
 		unsigned num_motor_test = motorTest();
 
 		if (num_motor_test > 0) {
-			_interface.updateOutputs(false, _current_output_value, num_motor_test, 1);
-			actuator_outputs_s actuator_outputs{};
-			setAndPublishActuatorOutputs(num_motor_test, actuator_outputs);
+			if (_interface.updateOutputs(false, _current_output_value, num_motor_test, 1)) {
+				actuator_outputs_s actuator_outputs{};
+				setAndPublishActuatorOutputs(num_motor_test, actuator_outputs);
+			}
+
 			checkSafetyButton();
 			handleCommands();
 			return true;
@@ -375,14 +377,13 @@ bool MixingOutput::update()
 	reorderOutputs(_current_output_value);
 
 	/* now return the outputs to the driver */
-	_interface.updateOutputs(stop_motors, _current_output_value, mixed_num_outputs, n_updates);
+	if (_interface.updateOutputs(stop_motors, _current_output_value, mixed_num_outputs, n_updates)) {
+		actuator_outputs_s actuator_outputs{};
+		setAndPublishActuatorOutputs(mixed_num_outputs, actuator_outputs);
 
-
-	actuator_outputs_s actuator_outputs{};
-	setAndPublishActuatorOutputs(mixed_num_outputs, actuator_outputs);
-
-	publishMixerStatus(actuator_outputs);
-	updateLatencyPerfCounter(actuator_outputs);
+		publishMixerStatus(actuator_outputs);
+		updateLatencyPerfCounter(actuator_outputs);
+	}
 
 	checkSafetyButton();
 	handleCommands();
