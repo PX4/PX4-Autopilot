@@ -221,7 +221,7 @@ AirspeedModule::init()
 	 */
 	if (_param_airspeed_primary_index.get() > 0) {
 		for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
-			if (orb_exists(ORB_ID(airspeed), i) == 0) {
+			if (orb_exists(ORB_ID(airspeed), i) != PX4_OK) {
 				break;
 			}
 
