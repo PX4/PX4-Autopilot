@@ -95,17 +95,16 @@ void MulticopterLandDetector::_update_topics()
 	_vehicle_local_position_setpoint_sub.update(&_vehicle_local_position_setpoint);
 }
 
-void MulticopterLandDetector::_update_params(const bool force)
+void MulticopterLandDetector::_update_params()
 {
-	LandDetector::_update_params(force);
+	LandDetector::_update_params();
 
-	if (_parameter_update_sub.updated() || force) {
-		_freefall_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _param_lndmc_ffall_ttri.get()));
-		param_get(_paramHandle.minThrottle, &_params.minThrottle);
-		param_get(_paramHandle.hoverThrottle, &_params.hoverThrottle);
-		param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
-		param_get(_paramHandle.landSpeed, &_params.landSpeed);
-	}
+	_freefall_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _param_lndmc_ffall_ttri.get()));
+
+	param_get(_paramHandle.minThrottle, &_params.minThrottle);
+	param_get(_paramHandle.hoverThrottle, &_params.hoverThrottle);
+	param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
+	param_get(_paramHandle.landSpeed, &_params.landSpeed);
 }
 
 bool MulticopterLandDetector::_get_freefall_state()
