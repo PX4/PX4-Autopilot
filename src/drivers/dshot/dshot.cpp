@@ -146,7 +146,7 @@ public:
 					   hrt_abstime edge_time, uint32_t edge_state,
 					   uint32_t overflow);
 
-	void updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	void mixerChanged() override;
@@ -686,11 +686,11 @@ void DShotOutput::mixerChanged()
 	updateTelemetryNumMotors();
 }
 
-void DShotOutput::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool DShotOutput::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 				unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	if (!_outputs_on) {
-		return;
+		return false;
 	}
 
 	int requested_telemetry_index = -1;
@@ -740,6 +740,8 @@ void DShotOutput::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS
 	if (stop_motors || num_control_groups_updated > 0) {
 		up_dshot_trigger();
 	}
+
+	return true;
 }
 
 void

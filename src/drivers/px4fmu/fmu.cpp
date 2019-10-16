@@ -156,7 +156,7 @@ public:
 
 	void update_pwm_trims();
 
-	void updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:
@@ -719,11 +719,11 @@ PX4FMU::update_pwm_out_state(bool on)
 }
 
 
-void PX4FMU::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool PX4FMU::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	if (_test_mode) {
-		return;
+		return false;
 	}
 
 	/* output to the servos */
@@ -739,6 +739,8 @@ void PX4FMU::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	if (num_control_groups_updated > 0) {
 		up_pwm_update();
 	}
+
+	return true;
 }
 
 void

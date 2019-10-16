@@ -79,11 +79,13 @@ PWMSim::Run()
 	_mixing_output.updateSubscriptions(true);
 }
 
-void
+bool
 PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs,
 		      unsigned num_control_groups_updated)
 {
-	// nothing to do, as we are only interested in the actuator_outputs topic publication
+	// Nothing to do, as we are only interested in the actuator_outputs topic publication.
+	// That should only be published once we receive actuator_controls (important for lock-step to work correctly)
+	return num_control_groups_updated > 0;
 }
 
 int
