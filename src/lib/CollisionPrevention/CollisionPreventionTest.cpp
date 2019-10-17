@@ -429,6 +429,39 @@ TEST_F(CollisionPreventionTest, outsideFOV)
 	orb_unadvertise(obstacle_distance_pub);
 }
 
+TEST_F(CollisionPreventionTest, goNoData)
+{
+	// GIVEN: a simple setup condition with the initial state (no distance data)
+	TestCollisionPrevention cp;
+	float max_speed = 3;
+	matrix::Vector2f curr_pos(0, 0);
+	matrix::Vector2f curr_vel(2, 0);
+
+	// AND: a parameter handle
+	param_t param = param_handle(px4::params::CP_DIST);
+	float value = 5; // try to keep 5m distance
+	param_set(param, &value);
+	cp.paramsChanged();
+
+	matrix::Vector2f original_setpoint = {-5, 0};
+	matrix::Vector2f modified_setpoint = original_setpoint;
+
+	//THEN: the modified setpoint should be zero velocity
+	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	EXPECT_FLOAT_EQ(modified_setpoint.norm(), 0.f);
+
+	//WHEN: we change the parameter CP_GO_NO_DATA to allow flying ouside the FOV
+	param_t param_allow = param_handle(px4::params::CP_GO_NO_DATA);
+	float value_allow = 1;
+	param_set(param_allow, &value_allow);
+	cp.paramsChanged();
+
+	//THEN: the modified setpoint should stay the same as the input
+	modified_setpoint = original_setpoint;
+	cp.modifySetpoint(modified_setpoint, max_speed, curr_pos, curr_vel);
+	EXPECT_FLOAT_EQ(modified_setpoint.norm(), original_setpoint.norm());
+}
+
 TEST_F(CollisionPreventionTest, jerkLimit)
 {
 	// GIVEN: a simple setup condition
