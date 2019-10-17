@@ -40,9 +40,6 @@
 
 #include "ekf.h"
 
-
-#define RNG_BAD_SIG_HYST (uint64_t)3e6	// range finder data needs to have 3 seconds of non-zero signal quality to be valid
-
 // check that the range finder data is continuous
 void Ekf::updateRangeDataContinuity()
 {
