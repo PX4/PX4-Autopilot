@@ -36,8 +36,8 @@ cmake_minimum_required(VERSION 3.0)
 project(ECL CXX)
 
 if (NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Build type" FORCE)
-    message(STATUS "set build type to ${CMAKE_BUILD_TYPE}")
+	set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Build type" FORCE)
+	message(STATUS "set build type to ${CMAKE_BUILD_TYPE}")
 endif()
 
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel;Coverage")
@@ -60,11 +60,11 @@ option(COV_HTML "Display html for coverage" OFF)
 option(ECL_ASAN "Enable ECL address sanitizer" OFF)
 
 set(CMAKE_CXX_FLAGS_COVERAGE
-    "--coverage -fprofile-arcs -ftest-coverage -fno-default-inline -fno-inline -fno-inline-small-functions -fno-elide-constructors"
-    CACHE STRING "Flags used by the C++ compiler during coverage builds" FORCE)
+	"--coverage -fprofile-arcs -ftest-coverage -fno-default-inline -fno-inline -fno-inline-small-functions -fno-elide-constructors"
+	CACHE STRING "Flags used by the C++ compiler during coverage builds" FORCE)
 set(CMAKE_EXE_LINKER_FLAGS_COVERAGE
-    "--coverage -ftest-coverage -lgcov"
-    CACHE STRING "Flags used for linking binaries during coverage builds" FORCE)
+	"--coverage -ftest-coverage -lgcov"
+	CACHE STRING "Flags used for linking binaries during coverage builds" FORCE)
 mark_as_advanced(CMAKE_CXX_FLAGS_COVERAGE CMAKE_C_FLAGS_COVERAGE CMAKE_EXE_LINKER_FLAGS_COVERAGE)
 
 
@@ -92,18 +92,17 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 			-pedantic
 
 			-Wall
-			-Wextra
+			#-Wextra	# This was causing an issue in the swig stuff
 			-Werror
 
 			-Wno-missing-field-initializers # ignore for GCC 4.8 support
 		)
 	endif()
 
-	# testing
-	include(CTest)
-	enable_testing()
-
 	if(BUILD_TESTING)
+
+		include(CTest)
+
 		option(ECL_TESTS "Build ECL tests" ON)
 
 		add_custom_target(check
@@ -118,6 +117,8 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 			# swig requires -fPIC
 			set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 		endif()
+
+
 	endif()
 
 	# fetch latest matrix from github
@@ -164,28 +165,36 @@ add_subdirectory(geo)
 add_subdirectory(geo_lookup)
 add_subdirectory(l1)
 add_subdirectory(tecs)
-add_subdirectory(validation)
+if(BUILD_TESTING)
+	add_subdirectory(validation)
+	add_subdirectory(test)
+endif()
 
 #=============================================================================
 # Coverage
 #
 if (${CMAKE_BUILD_TYPE} STREQUAL "Coverage")
 
-    add_custom_target(coverage
-        COMMAND ${CMAKE_CTEST_COMMAND}
-        COMMAND lcov --capture --directory . --output-file coverage.info
-        COMMAND lcov --remove coverage.info '/usr/*' --output-file coverage.info # filter out system
-        COMMAND lcov --remove coverage.info 'build/coverage_build/EKF/swig/*' --output-file coverage.info
-        COMMAND lcov --summary coverage.info
-        WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
-        DEPENDS check
-        )
+	add_custom_target(coverage
+		COMMAND ${CMAKE_CTEST_COMMAND}
+		COMMAND lcov --capture --directory . --output-file coverage.info
+		COMMAND lcov --remove coverage.info  --output-file coverage.info '/usr/*' '${CMAKE_BINARY_DIR}/*' # filter out system
+		COMMAND lcov --summary coverage.info
+		WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
+		DEPENDS check
+	)
 
-    add_custom_target(coverage_html
-        COMMAND genhtml coverage.info --output-directory out
-        WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
-        DEPENDS coverage
-        )
+	add_custom_target(coverage_html
+		COMMAND genhtml coverage.info --output-directory out
+		WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
+		DEPENDS coverage
+	)
+
+	add_custom_target(coverage_html_view
+		COMMAND x-www-browser out/index.html
+		WORKING_DIRECTORY ${CMAKE_BUILD_DIR}
+		DEPENDS coverage_html
+	)
 
 endif()
 
@@ -223,17 +232,3 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 	endif()
 endif()
 
-
-enable_testing()
-include_directories(${GTEST_INCLUDE_DIR})
-add_subdirectory("/usr/src/gtest" ${CMAKE_BINARY_DIR}/gtest)
-
-set(SRCS
-   test/main.cpp
-   test/test_example.cpp
-   )
-add_executable(TestECL ${SRCS})
-
-target_include_directories(TestECL PRIVATE ${GTEST_INCLUDE_DIRS})
-target_link_libraries(TestECL gtest gtest_main)
-add_test(NAME TestECL COMMAND TestECL)

@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2018 ECL Development Team. All rights reserved.
+# Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -12,7 +12,7 @@
 #    notice, this list of conditions and the following disclaimer in
 #    the documentation and/or other materials provided with the
 #    distribution.
-# 3. Neither the name ECL nor the names of its contributors may be
+# 3. Neither the name PX4 nor the names of its contributors may be
 #    used to endorse or promote products derived from this software
 #    without specific prior written permission.
 #
@@ -31,9 +31,20 @@
 #
 ############################################################################
 
-add_executable(ecl_EKF_tests_ringbuffer ringbuffer.cpp)
-target_link_libraries(ecl_EKF_tests_ringbuffer ecl_EKF)
+# Download and unpack googletest at configure time
+configure_file(${CMAKE_CURRENT_LIST_DIR}/CMakeLists.txt.in googletest-download/CMakeLists.txt)
+execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" . RESULT_VARIABLE result1 WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download)
+execute_process(COMMAND ${CMAKE_COMMAND} --build . RESULT_VARIABLE result2 WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download)
+if(result1 OR result2)
+	message(FATAL_ERROR "Preparing googletest failed: ${result1} ${result2}")
+endif()
 
-add_test(NAME ecl_EKF_tests_ringbuffer
-	COMMAND ecl_EKF_tests_ringbuffer
-	)
+# Add googletest, defines gtest and gtest_main targets
+add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src ${CMAKE_CURRENT_BINARY_DIR}/googletest-build EXCLUDE_FROM_ALL)
+
+# Remove visibility.h from the compile flags for gtest because of poisoned exit()
+get_target_property(GTEST_COMPILE_FLAGS gtest COMPILE_OPTIONS)
+list(REMOVE_ITEM GTEST_COMPILE_FLAGS "-include")
+list(REMOVE_ITEM GTEST_COMPILE_FLAGS "visibility.h")
+set_target_properties(gtest PROPERTIES COMPILE_OPTIONS "${GTEST_COMPILE_FLAGS}")
+
