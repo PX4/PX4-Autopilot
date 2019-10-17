@@ -139,6 +139,7 @@ void LandDetector::_update_params()
 	parameter_update_s param_update;
 	_parameter_update_sub.copy(&param_update);
 
+	updateParams();
 	_update_total_flight_time();
 }
 
