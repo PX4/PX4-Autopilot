@@ -98,10 +98,20 @@ public:
 	 * @param rate estimation of the current vehicle angular rate
 	 * @param rate_sp desired vehicle angular rate setpoint
 	 * @param dt desired vehicle angular rate setpoint
-	 * @return [-1,1] normalized torque vector to apply to the vehicle
 	 */
-	matrix::Vector3f update(const matrix::Vector3f &rate, const matrix::Vector3f &rate_sp, const float dt,
-				const bool landed);
+	void update(const matrix::Vector3f &rate, const matrix::Vector3f &rate_sp, const float dt, const bool landed);
+
+	/**
+	 * Get the desired angular acceleration
+	 * @see _angular_accel_sp
+	 */
+	const matrix::Vector3f &getAngularAccelerationSetpoint() {return _angular_accel_sp;};
+
+	/**
+	 * Get the torque vector to apply to the vehicle
+	 * @see _torque_sp
+	 */
+	const matrix::Vector3f &getTorqueSetpoint() {return _torque_sp;};
 
 	/**
 	 * Set the integral term to 0 to prevent windup
@@ -133,4 +143,8 @@ private:
 	math::LowPassFilter2pVector3f _lp_filters_d{0.f, 0.f}; ///< low-pass filters for D-term (roll, pitch & yaw)
 	bool _mixer_saturation_positive[3] {};
 	bool _mixer_saturation_negative[3] {};
+
+	// Output
+	matrix::Vector3f _angular_accel_sp; 	//< Angular acceleration setpoint computed using P and D gains
+	matrix::Vector3f _torque_sp;		//< Torque setpoint to apply to the vehicle
 };
