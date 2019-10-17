@@ -66,7 +66,7 @@ void RateControl::setSaturationStatus(const MultirotorMixer::saturation_status &
 	_mixer_saturation_negative[2] = status.flags.yaw_neg;
 }
 
-Vector3f RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, const float dt, const bool landed)
+void RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, const float dt, const bool landed)
 {
 	// angular rates error
 	Vector3f rate_error = rate_sp - rate;
@@ -79,9 +79,28 @@ Vector3f RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, cons
 		rate_d = (rate_filtered - _rate_prev_filtered) / dt;
 	}
 
-	// PID control with feed forward
-	const Vector3f torque = _gain_p.emult(rate_error) + _rate_int - _gain_d.emult(rate_d) + _gain_ff.emult(rate_sp);
+	// P + D control
+	_angular_accel_sp = _gain_p.emult(rate_error) - _gain_d.emult(rate_d);
 
+	// I + FF control
+	Vector3f torque_feedforward = _rate_int + _gain_ff.emult(rate_sp);
+
+	// compute torque setpoint
+	// Note: this may go into a separate module for general usage with FW and VTOLs
+	// if so, TODO:
+	// - [x] publish accel sp
+	// - [ ] publish torque ff sp
+	// - [ ] add dynamic model module
+	// - [ ] move params for inertia to that module
+	// - [ ] poll vehicle_angular_velocity & vehicle_angular_acceleration_setpoint & vehicle_torque_feedforward_setpoint => compute and publish vehicle_torque_setpoint
+	// - [ ] (eventually) add param for mass, poll vehicle_linear_acceleration_setpoint + vehicle_attitude => compute and publish vehicle_thrust_setpoint
+	_torque_sp = (
+			     _inertia * _angular_accel_sp
+			     + torque_feedforward
+			     + rate.cross(_inertia * rate)
+		     );
+
+	// save states
 	_rate_prev = rate;
 	_rate_prev_filtered = rate_filtered;
 
@@ -89,8 +108,6 @@ Vector3f RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, cons
 	if (!landed) {
 		updateIntegral(rate_error, dt);
 	}
-
-	return torque;
 }
 
 void RateControl::updateIntegral(Vector3f &rate_error, const float dt)
@@ -123,6 +140,15 @@ void RateControl::updateIntegral(Vector3f &rate_error, const float dt)
 			_rate_int(i) = math::constrain(rate_i, -_lim_int(i), _lim_int(i));
 		}
 	}
+}
+
+void RateControl::reset()
+{
+	_rate_int.zero();
+	_rate_prev.zero();
+	_rate_prev_filtered.zero();
+	_torque_sp.zero();
+	_angular_accel_sp.zero();
 }
 
 void RateControl::getRateControlStatus(rate_ctrl_status_s &rate_ctrl_status)

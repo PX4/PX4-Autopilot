@@ -54,11 +54,15 @@
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rate_ctrl_status.h>
+#include <uORB/topics/vehicle_angular_acceleration_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_torque_setpoint.h>
+
 
 class MulticopterRateControl : public ModuleBase<MulticopterRateControl>, public ModuleParams, public px4::WorkItem
 {
@@ -98,6 +102,11 @@ private:
 	 */
 	float		get_landing_gear_state();
 
+	void		publish_angular_acceleration_setpoint();
+	void		publish_torque_setpoint();
+	void		publish_thrust_setpoint();
+	void		publish_actuator_controls();
+
 	RateControl _rate_control; ///< class for rate control calculations
 
 	uORB::Subscription _v_rates_sp_sub{ORB_ID(vehicle_rates_setpoint)};		/**< vehicle rates setpoint subscription */
@@ -115,6 +124,9 @@ private:
 	uORB::PublicationMulti<rate_ctrl_status_s>	_controller_status_pub{ORB_ID(rate_ctrl_status), ORB_PRIO_DEFAULT};	/**< controller status publication */
 	uORB::Publication<landing_gear_s>		_landing_gear_pub{ORB_ID(landing_gear)};
 	uORB::Publication<vehicle_rates_setpoint_s>	_v_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};			/**< rate setpoint publication */
+	uORB::Publication<vehicle_angular_acceleration_setpoint_s> _vehicle_angular_acceleration_setpoint_pub{ORB_ID(vehicle_angular_acceleration_setpoint)};	/**< angular acceleration setpoint publication */
+	uORB::Publication<vehicle_thrust_setpoint_s>		   _vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};				/**< thrust setpoint publication */
+	uORB::Publication<vehicle_torque_setpoint_s>		   _vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};				/**< torque setpoint publication */
 
 	orb_advert_t	_actuators_0_pub{nullptr};		/**< attitude actuator controls publication */
 	orb_id_t _actuators_id{nullptr};	/**< pointer to correct actuator controls0 uORB metadata structure */
@@ -143,6 +155,7 @@ private:
 
 	hrt_abstime _task_start{hrt_absolute_time()};
 	hrt_abstime _last_run{0};
+	hrt_abstime _timestamp_sample{0};
 	float _dt_accumulator{0.0f};
 	int _loop_counter{0};
 
@@ -184,7 +197,14 @@ private:
 
 		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en,
 
-		(ParamInt<px4::params::CBRK_RATE_CTRL>) _param_cbrk_rate_ctrl
+		(ParamInt<px4::params::CBRK_RATE_CTRL>) _param_cbrk_rate_ctrl,
+
+		(ParamFloat<px4::params::VM_INERTIA_XX>) _param_vm_inertia_xx,			/**< vehicle inertia */
+		(ParamFloat<px4::params::VM_INERTIA_YY>) _param_vm_inertia_yy,
+		(ParamFloat<px4::params::VM_INERTIA_ZZ>) _param_vm_inertia_zz,
+		(ParamFloat<px4::params::VM_INERTIA_XY>) _param_vm_inertia_xy,
+		(ParamFloat<px4::params::VM_INERTIA_XZ>) _param_vm_inertia_xz,
+		(ParamFloat<px4::params::VM_INERTIA_YZ>) _param_vm_inertia_yz
 	)
 
 	matrix::Vector3f _acro_rate_max;	/**< max attitude rates in acro mode */
