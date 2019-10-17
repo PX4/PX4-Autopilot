@@ -598,7 +598,7 @@ void DShotOutput::handleNewTelemetryData(int motor_index, const DShotTelemetry::
 	}
 
 	// publish when motor index wraps (which is robust against motor timeouts)
-	if (motor_index < _telemetry->last_motor_index) {
+	if (motor_index <= _telemetry->last_motor_index) {
 		esc_status.timestamp = hrt_absolute_time();
 		esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
 		esc_status.esc_count = _telemetry->handler.numMotors();
