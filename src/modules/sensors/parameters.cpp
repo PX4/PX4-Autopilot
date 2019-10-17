@@ -65,6 +65,8 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.air_tube_length = param_find("CAL_AIR_TUBELEN");
 	parameter_handles.air_tube_diameter_mm = param_find("CAL_AIR_TUBED_MM");
 
+	parameter_handles.imu_dgyro_en = param_find("IMU_DGYRO_EN");
+
 	(void)param_find("BAT_V_DIV");
 	(void)param_find("BAT_A_PER_V");
 
@@ -112,6 +114,8 @@ void update_parameters(const ParameterHandles &parameter_handles, Parameters &pa
 	param_get(parameter_handles.air_cmodel, &parameters.air_cmodel);
 	param_get(parameter_handles.air_tube_length, &parameters.air_tube_length);
 	param_get(parameter_handles.air_tube_diameter_mm, &parameters.air_tube_diameter_mm);
+
+	param_get(parameter_handles.imu_dgyro_en, &parameters.imu_dgyro_en);
 }
 
 } /* namespace sensors */
