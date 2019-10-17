@@ -108,7 +108,7 @@ TEST_F(CollisionPreventionTest, noSensorData)
 	matrix::Vector2f curr_vel(2, 0);
 
 	// AND: a parameter handle
-	param_t param = param_handle(px4::params::MPC_CP_DIST);
+	param_t param = param_handle(px4::params::CP_DIST);
 
 	// WHEN: we set the parameter check then apply the setpoint modification
 	float value = 10; // try to keep 10m away from obstacles
@@ -140,7 +140,7 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithObstacleMessage)
 	attitude.q[3] = 0.0f;
 
 	// AND: a parameter handle
-	param_t param = param_handle(px4::params::MPC_CP_DIST);
+	param_t param = param_handle(px4::params::CP_DIST);
 	float value = 10; // try to keep 10m distance
 	param_set(param, &value);
 	cp.paramsChanged();
@@ -205,7 +205,7 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithDistanceMessage)
 	attitude.q[3] = 0.0f;
 
 	// AND: a parameter handle
-	param_t param = param_handle(px4::params::MPC_CP_DIST);
+	param_t param = param_handle(px4::params::CP_DIST);
 	float value = 10; // try to keep 10m distance
 	param_set(param, &value);
 	cp.paramsChanged();
@@ -266,7 +266,7 @@ TEST_F(CollisionPreventionTest, testPurgeOldData)
 	attitude.q[3] = 0.0f;
 
 	// AND: a parameter handle
-	param_t param = param_handle(px4::params::MPC_CP_DIST);
+	param_t param = param_handle(px4::params::CP_DIST);
 	float value = 10; // try to keep 10m distance
 	param_set(param, &value);
 	cp.paramsChanged();
@@ -335,7 +335,7 @@ TEST_F(CollisionPreventionTest, noBias)
 	matrix::Vector2f curr_vel(2, 0);
 
 	// AND: a parameter handle
-	param_t param = param_handle(px4::params::MPC_CP_DIST);
+	param_t param = param_handle(px4::params::CP_DIST);
 	float value = 5; // try to keep 5m distance
 	param_set(param, &value);
 	cp.paramsChanged();
@@ -375,7 +375,7 @@ TEST_F(CollisionPreventionTest, outsideFOV)
 	matrix::Vector2f curr_vel(2, 0);
 
 	// AND: a parameter handle
-	param_t param = param_handle(px4::params::MPC_CP_DIST);
+	param_t param = param_handle(px4::params::CP_DIST);
 	float value = 5; // try to keep 5m distance
 	param_set(param, &value);
 	cp.paramsChanged();
@@ -439,7 +439,7 @@ TEST_F(CollisionPreventionTest, jerkLimit)
 	matrix::Vector2f curr_vel(2, 0);
 
 	// AND: distance set to 5m
-	param_t param = param_handle(px4::params::MPC_CP_DIST);
+	param_t param = param_handle(px4::params::CP_DIST);
 	float value = 5; // try to keep 5m distance
 	param_set(param, &value);
 	cp.paramsChanged();
@@ -847,7 +847,7 @@ TEST_F(CollisionPreventionTest, adaptSetpointDirection_distinct_minimum)
 	int sp_index = floor(sp_angle_with_offset_deg / cp.getObstacleMap().increment);
 
 	//set parameter
-	param_t param = param_handle(px4::params::MPC_CP_DIST);
+	param_t param = param_handle(px4::params::CP_DIST);
 	float value = 3; // try to keep 10m away from obstacles
 	param_set(param, &value);
 	cp.paramsChanged();
@@ -896,7 +896,7 @@ TEST_F(CollisionPreventionTest, adaptSetpointDirection_flat_minimum)
 	int sp_index = floor(sp_angle_with_offset_deg / cp.getObstacleMap().increment);
 
 	//set parameter
-	param_t param = param_handle(px4::params::MPC_CP_DIST);
+	param_t param = param_handle(px4::params::CP_DIST);
 	float value = 3; // try to keep 10m away from obstacles
 	param_set(param, &value);
 	cp.paramsChanged();
@@ -927,7 +927,7 @@ TEST_F(CollisionPreventionTest, overlappingSensors)
 	attitude.q[3] = 0.0f;
 
 	// AND: a parameter handle
-	param_t param = param_handle(px4::params::MPC_CP_DIST);
+	param_t param = param_handle(px4::params::CP_DIST);
 	float value = 10; // try to keep 10m distance
 	param_set(param, &value);
 	cp.paramsChanged();
