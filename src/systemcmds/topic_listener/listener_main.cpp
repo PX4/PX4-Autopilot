@@ -103,17 +103,17 @@ void listener(listener_print_topic_cb cb, const orb_id_t &id, unsigned num_msgs,
 		int sub = orb_subscribe_multi(id, topic_instance);
 		orb_set_interval(sub, topic_interval);
 
-		unsigned i = 0;
+		unsigned msgs_received = 0;
 
-		while (i < num_msgs) {
+		struct pollfd fds[2] {};
+		// Poll for user input (for q or escape)
+		fds[0].fd = 0; /* stdin */
+		fds[0].events = POLLIN;
+		// Poll the UOrb subscription
+		fds[1].fd = sub;
+		fds[1].events = POLLIN;
 
-			struct pollfd fds[2] {};
-			// Poll for user input (for q or escape)
-			fds[0].fd = 0; /* stdin */
-			fds[0].events = POLLIN;
-			// Poll the UOrb subscription
-			fds[1].fd = sub;
-			fds[1].events = POLLIN;
+		while (msgs_received < num_msgs) {
 
 			if (poll(&fds[0], 2, int(MESSAGE_TIMEOUT_S * 1000)) > 0) {
 
@@ -137,9 +137,9 @@ void listener(listener_print_topic_cb cb, const orb_id_t &id, unsigned num_msgs,
 
 				// Received message from subscription
 				if (fds[1].revents & POLLIN) {
-					i++;
+					msgs_received++;
 
-					PX4_INFO_RAW("\nTOPIC: %s instance %d #%d\n", id->o_name, topic_instance, i);
+					PX4_INFO_RAW("\nTOPIC: %s instance %d #%d\n", id->o_name, topic_instance, msgs_received);
 
 					int ret = cb(id, sub);
 
