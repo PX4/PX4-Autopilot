@@ -117,7 +117,6 @@ private:
 	uORB::Subscription _vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
 
 	estimator_status_s _estimator_status {};
-	parameter_update_s _parameter_update {};
 	vehicle_acceleration_s _accel {};
 	vehicle_air_data_s _vehicle_air_data {};
 	vehicle_attitude_s _vehicle_attitude {};
