@@ -92,7 +92,7 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 			-pedantic
 
 			-Wall
-			#-Wextra	# This was causing an issue in the swig stuff
+			-Wextra
 			-Werror
 
 			-Wno-missing-field-initializers # ignore for GCC 4.8 support
@@ -110,15 +110,6 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 			DEPENDS ecl_EKF
 			USES_TERMINAL
 		)
-
-		option(EKF_PYTHON_TESTS "Build the EKF python tests" OFF)
-
-		if (EKF_PYTHON_TESTS)
-			# swig requires -fPIC
-			set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-		endif()
-
-
 	endif()
 
 	# fetch latest matrix from github
@@ -165,6 +156,7 @@ add_subdirectory(geo)
 add_subdirectory(geo_lookup)
 add_subdirectory(l1)
 add_subdirectory(tecs)
+
 if(BUILD_TESTING)
 	add_subdirectory(validation)
 	add_subdirectory(test)
