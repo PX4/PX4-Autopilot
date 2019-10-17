@@ -81,6 +81,13 @@ public:
 	void setFeedForwardGain(const matrix::Vector3f &FF) { _gain_ff = FF; };
 
 	/**
+	 * Set inertia matrix
+	 * @see _inertia
+	 * @param inertia inertia matrix
+	 */
+	void setInertiaMatrix(const matrix::Matrix3f &inertia) { _inertia = inertia; };
+
+	/**
 	 * Set saturation status
 	 * @param status message from mixer reporting about saturation
 	 */
@@ -91,16 +98,31 @@ public:
 	 * @param rate estimation of the current vehicle angular rate
 	 * @param rate_sp desired vehicle angular rate setpoint
 	 * @param dt desired vehicle angular rate setpoint
-	 * @return [-1,1] normalized torque vector to apply to the vehicle
 	 */
-	matrix::Vector3f update(const matrix::Vector3f &rate, const matrix::Vector3f &rate_sp, const float dt,
-				const bool landed);
+	void update(const matrix::Vector3f &rate, const matrix::Vector3f &rate_sp, const float dt, const bool landed);
+
+	/**
+	 * Get the desired angular acceleration
+	 * @see _angular_accel_sp
+	 */
+	const matrix::Vector3f &getAngularAccelerationSetpoint() {return _angular_accel_sp;};
+
+	/**
+	 * Get the torque vector to apply to the vehicle
+	 * @see _torque_sp
+	 */
+	const matrix::Vector3f &getTorqueSetpoint() {return _torque_sp;};
 
 	/**
 	 * Set the integral term to 0 to prevent windup
 	 * @see _rate_int
 	 */
 	void resetIntegral() { _rate_int.zero(); }
+
+	/**
+	 * ReSet the controller state
+	 */
+	void reset();
 
 	/**
 	 * Get status message of controller for logging/debugging
@@ -117,6 +139,7 @@ private:
 	matrix::Vector3f _gain_d; ///< rate control derivative gain
 	matrix::Vector3f _lim_int; ///< integrator term maximum absolute value
 	matrix::Vector3f _gain_ff; ///< direct rate to torque feed forward gain only useful for helicopters
+	matrix::Matrix3f _inertia{matrix::eye<float, 3>()}; ///< inertia matrix
 
 	// States
 	matrix::Vector3f _rate_prev; ///< angular rates of previous update
@@ -125,4 +148,8 @@ private:
 	math::LowPassFilter2pVector3f _lp_filters_d{0.f, 0.f}; ///< low-pass filters for D-term (roll, pitch & yaw)
 	bool _mixer_saturation_positive[3] {};
 	bool _mixer_saturation_negative[3] {};
+
+	// Output
+	matrix::Vector3f _angular_accel_sp; 	//< Angular acceleration setpoint computed using P and D gains
+	matrix::Vector3f _torque_sp;		//< Torque setpoint to apply to the vehicle
 };

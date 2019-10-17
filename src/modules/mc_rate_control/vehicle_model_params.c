@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,15 +31,79 @@
  *
  ****************************************************************************/
 
-#include <gtest/gtest.h>
-#include <RateControl.hpp>
+/**
+ * @file vehicle_model_params.c
+ * Parameters for vehicle model.
+ *
+ * @author Julien Lecoeur <julien.lecoeur@gmail.com>
+ */
 
-using namespace matrix;
+/**
+ * Mass
+ *
+ * @unit kg
+ * @decimal 5
+ * @increment 0.00001
+ * @group Vehicle Model
+ */
+PARAM_DEFINE_FLOAT(VM_MASS, 1.f);
 
-TEST(RateControlTest, AllZeroCase)
-{
-	RateControl rate_control;
-	rate_control.update(Vector3f(), Vector3f(), 0.f, false);
-	Vector3f torque = rate_control.getTorqueSetpoint();
-	EXPECT_EQ(torque, Vector3f());
-}
+/**
+ * Inertia matrix, XX component
+ *
+ * @unit kg.m^2
+ * @decimal 5
+ * @increment 0.00001
+ * @group Vehicle Model
+ */
+PARAM_DEFINE_FLOAT(VM_INERTIA_XX, 1.f);
+
+/**
+ * Inertia matrix, YY component
+ *
+ * @unit kg.m^2
+ * @decimal 5
+ * @increment 0.00001
+ * @group Vehicle Model
+ */
+PARAM_DEFINE_FLOAT(VM_INERTIA_YY, 1.f);
+
+/**
+ * Inertia matrix, ZZ component
+ *
+ * @unit kg.m^2
+ * @decimal 5
+ * @increment 0.00001
+ * @group Vehicle Model
+ */
+PARAM_DEFINE_FLOAT(VM_INERTIA_ZZ, 1.f);
+
+/**
+ * Inertia matrix, XY component
+ *
+ * @unit kg.m^2
+ * @decimal 5
+ * @increment 0.00001
+ * @group Vehicle Model
+ */
+PARAM_DEFINE_FLOAT(VM_INERTIA_XY, 0.f);
+
+/**
+ * Inertia matrix, XZ component
+ *
+ * @unit kg.m^2
+ * @decimal 5
+ * @increment 0.00001
+ * @group Vehicle Model
+ */
+PARAM_DEFINE_FLOAT(VM_INERTIA_XZ, 0.f);
+
+/**
+ * Inertia matrix, YZ component
+ *
+ * @unit kg.m^2
+ * @decimal 5
+ * @increment 0.00001
+ * @group Vehicle Model
+ */
+PARAM_DEFINE_FLOAT(VM_INERTIA_YZ, 0.f);
