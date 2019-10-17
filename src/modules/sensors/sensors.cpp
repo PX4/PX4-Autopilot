@@ -92,6 +92,7 @@
 
 #include "vehicle_acceleration/VehicleAcceleration.hpp"
 #include "vehicle_angular_velocity/VehicleAngularVelocity.hpp"
+#include "vehicle_angular_acceleration/VehicleAngularAcceleration.hpp"
 
 using namespace DriverFramework;
 using namespace sensors;
@@ -170,8 +171,9 @@ private:
 	VotedSensorsUpdate _voted_sensors_update;
 
 
-	VehicleAcceleration	_vehicle_acceleration;
-	VehicleAngularVelocity	_vehicle_angular_velocity;
+	VehicleAcceleration		_vehicle_acceleration;
+	VehicleAngularVelocity		_vehicle_angular_velocity;
+	VehicleAngularAcceleration	_vehicle_angular_acceleration;
 
 
 	/**
@@ -215,18 +217,24 @@ Sensors::Sensors(bool hil_enabled) :
 	_voted_sensors_update(_parameters, hil_enabled)
 {
 	initialize_parameter_handles(_parameter_handles);
+	parameters_update();
 
 	_airspeed_validator.set_timeout(300000);
 	_airspeed_validator.set_equal_value_threshold(100);
 
 	_vehicle_acceleration.Start();
 	_vehicle_angular_velocity.Start();
+
+	if (_parameters.imu_dgyro_en) {
+		_vehicle_angular_acceleration.Start();
+	}
 }
 
 Sensors::~Sensors()
 {
 	_vehicle_acceleration.Stop();
 	_vehicle_angular_velocity.Stop();
+	_vehicle_angular_acceleration.Stop();
 }
 
 int
@@ -573,6 +581,7 @@ int Sensors::print_status()
 
 	_vehicle_acceleration.PrintStatus();
 	_vehicle_angular_velocity.PrintStatus();
+	_vehicle_angular_acceleration.PrintStatus();
 
 	return 0;
 }
