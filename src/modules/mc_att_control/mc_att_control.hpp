@@ -238,6 +238,13 @@ private:
 		(ParamFloat<px4::params::MC_ACRO_SUPEXPO>) _param_mc_acro_supexpo,			/**< superexpo stick curve shape (roll & pitch) */
 		(ParamFloat<px4::params::MC_ACRO_SUPEXPOY>) _param_mc_acro_supexpoy,			/**< superexpo stick curve shape (yaw) */
 
+		(ParamFloat<px4::params::MC_INERTIA_XX>) _param_mc_inertia_xx,
+		(ParamFloat<px4::params::MC_INERTIA_YY>) _param_mc_inertia_yy,
+		(ParamFloat<px4::params::MC_INERTIA_ZZ>) _param_mc_inertia_zz,
+		(ParamFloat<px4::params::MC_INERTIA_XY>) _param_mc_inertia_xy,
+		(ParamFloat<px4::params::MC_INERTIA_XZ>) _param_mc_inertia_xz,
+		(ParamFloat<px4::params::MC_INERTIA_YZ>) _param_mc_inertia_yz,
+
 		(ParamFloat<px4::params::MC_RATT_TH>) _param_mc_ratt_th,
 
 		(ParamBool<px4::params::MC_BAT_SCALE_EN>) _param_mc_bat_scale_en,

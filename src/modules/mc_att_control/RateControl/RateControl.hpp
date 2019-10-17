@@ -81,6 +81,13 @@ public:
 	void setFeedForwardGain(const matrix::Vector3f &FF) { _gain_ff = FF; };
 
 	/**
+	 * Set inertia matrix
+	 * @see _inertia
+	 * @param inertia inertia matrix
+	 */
+	void setInertiaMatrix(const matrix::Matrix3f &inertia) { _inertia = inertia; };
+
+	/**
 	 * Set saturation status
 	 * @param status message from mixer reporting about saturation
 	 */
@@ -117,6 +124,7 @@ private:
 	matrix::Vector3f _gain_d; ///< rate control derivative gain
 	matrix::Vector3f _lim_int; ///< integrator term maximum absolute value
 	matrix::Vector3f _gain_ff; ///< direct rate to torque feed forward gain only useful for helicopters
+	matrix::Matrix3f _inertia{matrix::eye<float, 3>()}; ///< inertia matrix
 
 	// States
 	matrix::Vector3f _rate_prev; ///< angular rates of previous update

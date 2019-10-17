@@ -108,6 +108,14 @@ MulticopterAttitudeControl::parameters_updated()
 	_rate_control.setFeedForwardGain(
 		Vector3f(_param_mc_rollrate_ff.get(), _param_mc_pitchrate_ff.get(), _param_mc_yawrate_ff.get()));
 
+	// inertia matrix
+	const float inertia[9] = {
+		_param_mc_inertia_xx.get(), _param_mc_inertia_xy.get(), _param_mc_inertia_xz.get(),
+		_param_mc_inertia_xy.get(), _param_mc_inertia_yy.get(), _param_mc_inertia_yz.get(),
+		_param_mc_inertia_xz.get(), _param_mc_inertia_yz.get(), _param_mc_inertia_zz.get()
+	};
+	_rate_control.setInertiaMatrix(matrix::Matrix3f(inertia));
+
 	// angular rate limits
 	using math::radians;
 	_attitude_control.setRateLimit(Vector3f(radians(_param_mc_rollrate_max.get()), radians(_param_mc_pitchrate_max.get()),
