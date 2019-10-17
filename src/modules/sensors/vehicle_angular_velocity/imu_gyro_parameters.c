@@ -94,3 +94,18 @@ PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
 * @group Sensors
 */
 PARAM_DEFINE_INT32(IMU_GYRO_RATEMAX, 0);
+
+/**
+* Cutoff frequency for angular acceleration
+*
+* The cutoff frequency for the 2nd order butterworth filter used on
+* the time derivative of the measured angular velocity.
+* Set to 0 to disable the filter.
+*
+* @min 0
+* @max 1000
+* @unit Hz
+* @reboot_required true
+* @group Sensors
+*/
+PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 10.0f);
