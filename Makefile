@@ -78,7 +78,7 @@ SRC_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 define cmake-build
 +@$(eval BUILD_DIR = $(SRC_DIR)/build/$@$(BUILD_DIR_SUFFIX))
 +@if [ $(PX4_CMAKE_GENERATOR) = "Ninja" ] && [ -e $(BUILD_DIR)/Makefile ]; then rm -rf $(BUILD_DIR); fi
-+@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(2) -G"$(PX4_CMAKE_GENERATOR)" $(CMAKE_ARGS) $(3) $(4) || (rm -rf $(BUILD_DIR)); fi
++@if [ ! -e $(BUILD_DIR)/CMakeCache.txt ]; then mkdir -p $(BUILD_DIR) && cd $(BUILD_DIR) && cmake $(2) -G"$(PX4_CMAKE_GENERATOR)" $(CMAKE_ARGS) $(3) $(4) $(5) || (rm -rf $(BUILD_DIR)); fi
 +@(cd $(BUILD_DIR) && $(PX4_MAKE) $(PX4_MAKE_ARGS) $(ARGS))
 endef
 
@@ -98,19 +98,19 @@ doxygen:
 .PHONY: test_build test test_EKF
 
 test_build:
-	@$(call cmake-build,$@,$(SRC_DIR), "-DEKF_PYTHON_TESTS=ON")
+	@$(call cmake-build,$@,$(SRC_DIR), "-DEKF_PYTHON_TESTS=ON", "-DBUILD_TESTING=ON")
 
 test: test_build
 	@cmake --build $(SRC_DIR)/build/test_build --target check
 
 test_EKF: test_build
 	@cmake --build $(SRC_DIR)/build/test_build --target ecl_EKF_pytest-quick
-	
+
 test_EKF_plots: test_build
 	@cmake --build $(SRC_DIR)/build/test_build --target ecl_EKF_pytest-plots
 
 test_build_asan:
-	@$(call cmake-build,$@,$(SRC_DIR), "-DECL_ASAN=ON")
+	@$(call cmake-build,$@,$(SRC_DIR), "-DECL_ASAN=ON", "-DBUILD_TESTING=ON")
 
 test_asan: test_build_asan
 	@cmake --build $(SRC_DIR)/build/test_build_asan --target check
@@ -119,13 +119,16 @@ test_asan: test_build_asan
 # --------------------------------------------------------------------
 
 coverage_build:
-	@$(call cmake-build,$@,$(SRC_DIR), "-DCMAKE_BUILD_TYPE=Coverage", "-DEKF_PYTHON_TESTS=ON")
-	
+	@$(call cmake-build,$@,$(SRC_DIR), "-DCMAKE_BUILD_TYPE=Coverage", "-DEKF_PYTHON_TESTS=ON", "-DBUILD_TESTING=ON")
+
 coverage: coverage_build
 	@cmake --build $(SRC_DIR)/build/coverage_build --target coverage
 
-coverage_html: coverage
+coverage_html: coverage_build
 	@cmake --build $(SRC_DIR)/build/coverage_build --target coverage_html
+
+coverage_html_view: coverage_build
+	@cmake --build $(SRC_DIR)/build/coverage_build --target coverage_html_view
 
 # Cleanup
 # --------------------------------------------------------------------
@@ -133,7 +136,7 @@ coverage_html: coverage
 
 clean:
 	@rm -rf $(SRC_DIR)/build
-	
+
 distclean:
 	@git clean -ff -x -d .
 

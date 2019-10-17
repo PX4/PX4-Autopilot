@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015-2018 ECL Development Team. All rights reserved.
+#   Copyright (c) 2019 ECL Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,37 +31,14 @@
 #
 ############################################################################
 
-add_library(ecl_EKF
-	airspeed_fusion.cpp
-	control.cpp
-	covariance.cpp
-	drag_fusion.cpp
-	ekf.cpp
-	ekf_helper.cpp
-	estimator_interface.cpp
-	gps_checks.cpp
-	mag_fusion.cpp
-	optflow_fusion.cpp
-	sideslip_fusion.cpp
-	terrain_estimator.cpp
-	vel_pos_fusion.cpp
-	gps_yaw_fusion.cpp
-	range_finder_checks.cpp
-)
+include(gtest.cmake)
 
-add_dependencies(ecl_EKF prebuild_targets)
-target_compile_definitions(ecl_EKF PRIVATE -DMODULE_NAME="ecl/EKF")
-target_include_directories(ecl_EKF PUBLIC ${ECL_SOURCE_DIR})
-target_link_libraries(ecl_EKF PRIVATE ecl_geo ecl_geo_lookup mathlib)
+set(SRCS
+   main.cpp
+   test_EKF_basics.cpp
+   )
+add_executable(ECL_GTESTS ${SRCS})
 
-set_target_properties(ecl_EKF PROPERTIES PUBLIC_HEADER "ekf.h")
+target_link_libraries(ECL_GTESTS gtest_main ecl_EKF)
 
-target_compile_options(ecl_EKF PRIVATE -fno-associative-math)
-
-if(EKF_PYTHON_TESTS)
-	add_subdirectory(swig)
-endif()
-
-if(BUILD_TESTING)
-	add_subdirectory(tests)
-endif()
+add_test(NAME ECL_GTESTS COMMAND ECL_GTESTS)

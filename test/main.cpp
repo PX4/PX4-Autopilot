@@ -2,6 +2,6 @@
 
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);
-  std::cout << "init test \n";
+  std::cout << "Run ECL gtests" << std::endl;
   return RUN_ALL_TESTS();
 }
