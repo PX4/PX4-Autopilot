@@ -73,11 +73,6 @@ namespace land_detector
 
 MulticopterLandDetector::MulticopterLandDetector()
 {
-	_paramHandle.landSpeed      = param_find("MPC_LAND_SPEED");
-	_paramHandle.minManThrottle = param_find("MPC_MANTHR_MIN");
-	_paramHandle.minThrottle    = param_find("MPC_THR_MIN");
-	_paramHandle.hoverThrottle  = param_find("MPC_THR_HOVER");
-
 	// Use Trigger time when transitioning from in-air (false) to landed (true) / ground contact (true).
 	_ground_contact_hysteresis.set_hysteresis_time_from(false, GROUND_CONTACT_TRIGGER_TIME_US);
 	_landed_hysteresis.set_hysteresis_time_from(false, LAND_DETECTOR_TRIGGER_TIME_US);
@@ -100,11 +95,6 @@ void MulticopterLandDetector::_update_params()
 	LandDetector::_update_params();
 
 	_freefall_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _param_lndmc_ffall_ttri.get()));
-
-	param_get(_paramHandle.minThrottle, &_params.minThrottle);
-	param_get(_paramHandle.hoverThrottle, &_params.hoverThrottle);
-	param_get(_paramHandle.minManThrottle, &_params.minManThrottle);
-	param_get(_paramHandle.landSpeed, &_params.landSpeed);
 }
 
 bool MulticopterLandDetector::_get_freefall_state()
@@ -133,7 +123,7 @@ bool MulticopterLandDetector::_get_ground_contact_state()
 	}
 
 	// land speed threshold
-	float land_speed_threshold = 0.9f * math::max(_params.landSpeed, 0.1f);
+	float land_speed_threshold = 0.9f * math::max(_param_mpc_land_speed.get(), 0.1f);
 
 	// Check if we are moving vertically - this might see a spike after arming due to
 	// throttle-up vibration. If accelerating fast the throttle thresholds will still give
@@ -287,7 +277,7 @@ bool MulticopterLandDetector::_is_climb_rate_enabled()
 bool MulticopterLandDetector::_has_low_thrust()
 {
 	// 30% of throttle range between min and hover
-	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) *
+	float sys_min_throttle = _param_mpc_thr_min.get() + (_param_mpc_thr_hover.get() - _param_mpc_thr_min.get()) *
 				 _param_lndmc_low_t_thr.get();
 
 	// Check if thrust output is less than the minimum auto throttle param.
@@ -297,11 +287,11 @@ bool MulticopterLandDetector::_has_low_thrust()
 bool MulticopterLandDetector::_has_minimal_thrust()
 {
 	// 10% of throttle range between min and hover once we entered ground contact
-	float sys_min_throttle = _params.minThrottle + (_params.hoverThrottle - _params.minThrottle) * 0.1f;
+	float sys_min_throttle = _param_mpc_thr_min.get() + (_param_mpc_thr_hover.get() - _param_mpc_thr_min.get()) * 0.1f;
 
 	// Determine the system min throttle based on flight mode
 	if (!_vehicle_control_mode.flag_control_climb_rate_enabled) {
-		sys_min_throttle = (_params.minManThrottle + 0.01f);
+		sys_min_throttle = (_param_mpc_manthr_min.get() + 0.01f);
 	}
 
 	// Check if thrust output is less than the minimum auto throttle param.
