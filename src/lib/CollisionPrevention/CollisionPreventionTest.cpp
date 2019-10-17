@@ -408,7 +408,7 @@ TEST_F(CollisionPreventionTest, outsideFOV)
 
 		float angle_deg = (float)i * message.increment;
 		float angle_rad = math::radians(angle_deg);
-		matrix::Vector2f original_setpoint = {10.f *(float)cos(angle_rad), 10.f *(float)sin(angle_rad)};
+		matrix::Vector2f original_setpoint = {10.f * cosf(angle_rad), 10.f * sinf(angle_rad)};
 		matrix::Vector2f modified_setpoint = original_setpoint;
 		message.timestamp = hrt_absolute_time();
 		orb_publish(ORB_ID(obstacle_distance), obstacle_distance_pub, &message);
