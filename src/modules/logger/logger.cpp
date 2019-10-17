@@ -653,6 +653,9 @@ void Logger::add_system_identification_topics()
 	add_topic("actuator_controls_0");
 	add_topic("actuator_controls_1");
 	add_topic("sensor_combined");
+	add_topic("vehicle_angular_acceleration");
+	add_topic("vehicle_angular_acceleration_setpoint");
+	add_topic("vehicle_torque_setpoint");
 }
 
 int Logger::add_topics_from_file(const char *fname)
