@@ -131,6 +131,7 @@ set(msg_files
 	vehicle_acceleration.msg
 	vehicle_air_data.msg
 	vehicle_angular_acceleration.msg
+	vehicle_angular_acceleration_setpoint.msg
 	vehicle_angular_velocity.msg
 	vehicle_attitude.msg
 	vehicle_attitude_setpoint.msg
@@ -149,6 +150,8 @@ set(msg_files
 	vehicle_roi.msg
 	vehicle_status.msg
 	vehicle_status_flags.msg
+	vehicle_thrust_setpoint.msg
+	vehicle_torque_setpoint.msg
 	vehicle_trajectory_waypoint.msg
 	vtol_vehicle_status.msg
 	wheel_encoders.msg
