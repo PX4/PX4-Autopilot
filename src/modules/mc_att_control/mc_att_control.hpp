@@ -50,12 +50,15 @@
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rate_ctrl_status.h>
+#include <uORB/topics/vehicle_angular_acceleration_setpoint.h>
 #include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/vehicle_thrust_setpoint.h>
+#include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/landing_gear.h>
 #include <vtol_att_control/vtol_type.h>
@@ -107,6 +110,9 @@ private:
 	void		vehicle_motor_limits_poll();
 	void		vehicle_status_poll();
 
+	void		publish_angular_acceleration_setpoint();
+	void		publish_torque_setpoint();
+	void		publish_thrust_setpoint();
 	void		publish_actuator_controls();
 	void		publish_rates_setpoint();
 	void		publish_rate_controller_status();
@@ -153,8 +159,11 @@ private:
 	uORB::SubscriptionCallbackWorkItem _vehicle_angular_velocity_sub{this, ORB_ID(vehicle_angular_velocity)};
 
 	uORB::PublicationMulti<rate_ctrl_status_s>	_controller_status_pub{ORB_ID(rate_ctrl_status), ORB_PRIO_DEFAULT};	/**< controller status publication */
-	uORB::Publication<landing_gear_s>		_landing_gear_pub{ORB_ID(landing_gear)};
+	uORB::Publication<landing_gear_s>		_landing_gear_pub{ORB_ID(landing_gear)};				/**< landing gear publication */
 	uORB::Publication<vehicle_rates_setpoint_s>	_v_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};			/**< rate setpoint publication */
+	uORB::Publication<vehicle_angular_acceleration_setpoint_s> _vehicle_angular_acceleration_setpoint_pub{ORB_ID(vehicle_angular_acceleration_setpoint)};	/**< angular acceleration setpoint publication */
+	uORB::Publication<vehicle_thrust_setpoint_s>		   _vehicle_thrust_setpoint_pub{ORB_ID(vehicle_thrust_setpoint)};				/**< thrust setpoint publication */
+	uORB::Publication<vehicle_torque_setpoint_s>		   _vehicle_torque_setpoint_pub{ORB_ID(vehicle_torque_setpoint)};				/**< torque setpoint publication */
 
 	orb_advert_t	_actuators_0_pub{nullptr};		/**< attitude actuator controls publication */
 	orb_advert_t	_vehicle_attitude_setpoint_pub{nullptr};
@@ -183,15 +192,15 @@ private:
 	float _loop_update_rate_hz{initial_update_rate_hz};          /**< current rate-controller loop update rate in [Hz] */
 
 	matrix::Vector3f _rates_sp;			/**< angular rates setpoint */
-
-	matrix::Vector3f _att_control;			/**< attitude control vector */
-	float		_thrust_sp{0.0f};		/**< thrust setpoint */
+	matrix::Vector3f _torque_sp;			/**< torque setpoint */
+	float		 _thrust_sp{0.0f};		/**< thrust setpoint */
 
 	float _man_yaw_sp{0.f};				/**< current yaw setpoint in manual mode */
 	bool _gear_state_initialized{false};		/**< true if the gear state has been initialized */
 
 	hrt_abstime _task_start{hrt_absolute_time()};
 	hrt_abstime _last_run{0};
+	hrt_abstime _timestamp_sample{0};
 	float _dt_accumulator{0.0f};
 	int _loop_counter{0};
 

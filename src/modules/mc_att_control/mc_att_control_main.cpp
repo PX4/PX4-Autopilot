@@ -66,8 +66,8 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_v_att_sp.q_d[0] = 1.f;
 
 	_rates_sp.zero();
+	_torque_sp.zero();
 	_thrust_sp = 0.0f;
-	_att_control.zero();
 
 	parameters_updated();
 }
@@ -373,7 +373,7 @@ MulticopterAttitudeControl::control_attitude()
 /*
  * Attitude rates controller.
  * Input: '_rates_sp' vector, '_thrust_sp'
- * Output: '_att_control' vector
+ * Output: '_torque_sp' vector
  */
 void
 MulticopterAttitudeControl::control_attitude_rates(float dt, const Vector3f &rates)
@@ -385,7 +385,9 @@ MulticopterAttitudeControl::control_attitude_rates(float dt, const Vector3f &rat
 
 	const bool landed = _vehicle_land_detected.maybe_landed || _vehicle_land_detected.landed;
 	_rate_control.setSaturationStatus(_saturation_status);
-	_att_control = _rate_control.update(rates, _rates_sp, dt, landed);
+	_rate_control.update(rates, _rates_sp, dt, landed);
+
+	_torque_sp = _rate_control.getTorqueSetpoint();
 }
 
 void
@@ -414,13 +416,15 @@ MulticopterAttitudeControl::publish_rate_controller_status()
 void
 MulticopterAttitudeControl::publish_actuator_controls()
 {
-	_actuators.control[0] = (PX4_ISFINITE(_att_control(0))) ? _att_control(0) : 0.0f;
-	_actuators.control[1] = (PX4_ISFINITE(_att_control(1))) ? _att_control(1) : 0.0f;
-	_actuators.control[2] = (PX4_ISFINITE(_att_control(2))) ? _att_control(2) : 0.0f;
+	matrix::Vector3f act_controls =  _torque_sp;
+
+	_actuators.timestamp = hrt_absolute_time();
+	_actuators.timestamp_sample = _timestamp_sample;
+	_actuators.control[0] = (PX4_ISFINITE(act_controls(0))) ? act_controls(0) : 0.0f;
+	_actuators.control[1] = (PX4_ISFINITE(act_controls(1))) ? act_controls(1) : 0.0f;
+	_actuators.control[2] = (PX4_ISFINITE(act_controls(2))) ? act_controls(2) : 0.0f;
 	_actuators.control[3] = (PX4_ISFINITE(_thrust_sp)) ? _thrust_sp : 0.0f;
 	_actuators.control[7] = (float)_landing_gear.landing_gear;
-	// note: _actuators.timestamp_sample is set in MulticopterAttitudeControl::Run()
-	_actuators.timestamp = hrt_absolute_time();
 
 	/* scale effort by battery status */
 	if (_param_mc_bat_scale_en.get() && _battery_status.scale > 0.0f) {
@@ -431,6 +435,53 @@ MulticopterAttitudeControl::publish_actuator_controls()
 
 	if (!_actuators_0_circuit_breaker_enabled) {
 		orb_publish_auto(_actuators_id, &_actuators_0_pub, &_actuators, nullptr, ORB_PRIO_DEFAULT);
+	}
+}
+
+void
+MulticopterAttitudeControl::publish_angular_acceleration_setpoint()
+{
+	Vector3f angular_accel_sp = _rate_control.getAngularAccelerationSetpoint();
+
+	vehicle_angular_acceleration_setpoint_s v_angular_accel_sp = {};
+	v_angular_accel_sp.timestamp = hrt_absolute_time();
+	v_angular_accel_sp.timestamp_sample = _timestamp_sample;
+	v_angular_accel_sp.xyz[0] = (PX4_ISFINITE(angular_accel_sp(0))) ? angular_accel_sp(0) : 0.0f;
+	v_angular_accel_sp.xyz[1] = (PX4_ISFINITE(angular_accel_sp(1))) ? angular_accel_sp(1) : 0.0f;
+	v_angular_accel_sp.xyz[2] = (PX4_ISFINITE(angular_accel_sp(2))) ? angular_accel_sp(2) : 0.0f;
+
+	if (!_vehicle_status.is_vtol) {
+		_vehicle_angular_acceleration_setpoint_pub.publish(v_angular_accel_sp);
+	}
+}
+
+void
+MulticopterAttitudeControl::publish_torque_setpoint()
+{
+	vehicle_torque_setpoint_s v_torque_sp = {};
+	v_torque_sp.timestamp = hrt_absolute_time();
+	v_torque_sp.timestamp_sample = _timestamp_sample;
+	v_torque_sp.xyz[0] = (PX4_ISFINITE(_torque_sp(0))) ? _torque_sp(0) : 0.0f;
+	v_torque_sp.xyz[1] = (PX4_ISFINITE(_torque_sp(1))) ? _torque_sp(1) : 0.0f;
+	v_torque_sp.xyz[2] = (PX4_ISFINITE(_torque_sp(2))) ? _torque_sp(2) : 0.0f;
+
+	if (!_vehicle_status.is_vtol) {
+		_vehicle_torque_setpoint_pub.publish(v_torque_sp);
+	}
+}
+
+void
+MulticopterAttitudeControl::publish_thrust_setpoint()
+{
+	vehicle_thrust_setpoint_s v_thrust_sp = {};
+	v_thrust_sp.timestamp = hrt_absolute_time();
+	v_thrust_sp.timestamp_sample = _timestamp_sample;
+	v_thrust_sp.xyz[0] = 0.0f;
+	v_thrust_sp.xyz[1] = 0.0f;
+	v_thrust_sp.xyz[2] = (PX4_ISFINITE(-_thrust_sp)) ? (-_thrust_sp) : 0.0f;
+
+	if (!_vehicle_status.is_vtol) {
+		_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
 	}
 }
 
@@ -457,13 +508,18 @@ MulticopterAttitudeControl::Run()
 
 		const Vector3f rates{angular_velocity.xyz};
 
-		_actuators.timestamp_sample = angular_velocity.timestamp_sample;
+		_timestamp_sample = angular_velocity.timestamp_sample;
 
 		/* run the rate controller immediately after a gyro update */
 		if (_v_control_mode.flag_control_rates_enabled) {
 			control_attitude_rates(dt, rates);
 
 			publish_actuator_controls();
+
+			publish_angular_acceleration_setpoint();
+			publish_torque_setpoint();
+			publish_thrust_setpoint();
+
 			publish_rate_controller_status();
 		}
 
@@ -552,7 +608,7 @@ MulticopterAttitudeControl::Run()
 				_rates_sp.zero();
 				_rate_control.resetIntegral();
 				_thrust_sp = 0.0f;
-				_att_control.zero();
+				_torque_sp.zero();
 				publish_actuator_controls();
 			}
 		}
