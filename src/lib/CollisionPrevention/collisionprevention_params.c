@@ -49,7 +49,7 @@
  * @unit meters
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_COL_PREV_D, -1.0f);
+PARAM_DEFINE_FLOAT(CP_DIST, -1.0f);
 
 /**
  * Average delay of the range sensor message plus the tracking delay of the position controller in seconds
@@ -61,7 +61,7 @@ PARAM_DEFINE_FLOAT(MPC_COL_PREV_D, -1.0f);
  * @unit seconds
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_COL_PREV_DLY, 0.4f);
+PARAM_DEFINE_FLOAT(CP_DELAY, 0.4f);
 
 /**
  * Angle left/right from the commanded setpoint by which the collision prevention algorithm can choose to change the setpoint direction
@@ -73,4 +73,14 @@ PARAM_DEFINE_FLOAT(MPC_COL_PREV_DLY, 0.4f);
  * @unit [deg]
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_COL_PREV_CNG, 30.f);
+PARAM_DEFINE_FLOAT(CP_GUIDE_ANG, 30.f);
+
+/**
+ * Boolean to allow moving into directions where there is no sensor data (outside FOV)
+ *
+ * Only used in Position mode.
+ *
+ * @boolean
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(CP_GO_NO_DATA, 0);

@@ -70,7 +70,7 @@ public:
 	/**
 	 * Returs true if Collision Prevention is running
 	 */
-	bool is_active() { return _param_mpc_col_prev_d.get() > 0; }
+	bool is_active() { return _param_cp_dist.get() > 0; }
 
 	/**
 	 * Computes collision free setpoints
@@ -138,10 +138,11 @@ private:
 	hrt_abstime	_last_collision_warning{0};
 
 	DEFINE_PARAMETERS(
-		(ParamFloat<px4::params::MPC_COL_PREV_D>) _param_mpc_col_prev_d, /**< collision prevention keep minimum distance */
-		(ParamFloat<px4::params::MPC_COL_PREV_CNG>) _param_mpc_col_prev_cng, /**< collision prevention change setpoint angle */
+		(ParamFloat<px4::params::CP_DIST>) _param_cp_dist, /**< collision prevention keep minimum distance */
+		(ParamFloat<px4::params::CP_DELAY>) _param_cp_delay, /**< delay of the range measurement data*/
+		(ParamFloat<px4::params::CP_GUIDE_ANG>) _param_cp_guide_ang, /**< collision prevention change setpoint angle */
+		(ParamFloat<px4::params::CP_GO_NO_DATA>) _param_cp_go_nodata, /**< movement allowed where no data*/
 		(ParamFloat<px4::params::MPC_XY_P>) _param_mpc_xy_p, /**< p gain from position controller*/
-		(ParamFloat<px4::params::MPC_COL_PREV_DLY>) _param_mpc_col_prev_dly, /**< delay of the range measurement data*/
 		(ParamFloat<px4::params::MPC_JERK_MAX>) _param_mpc_jerk_max, /**< vehicle maximum jerk*/
 		(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor /**< vehicle maximum horizontal acceleration*/
 	)
