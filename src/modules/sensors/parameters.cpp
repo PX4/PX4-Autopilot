@@ -155,6 +155,8 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.air_tube_length = param_find("CAL_AIR_TUBELEN");
 	parameter_handles.air_tube_diameter_mm = param_find("CAL_AIR_TUBED_MM");
 
+	parameter_handles.imu_dgyro_en = param_find("IMU_DGYRO_EN");
+
 	// These are parameters for which QGroundControl always expects to be returned in a list request.
 	// We do a param_find here to force them into the list.
 	(void)param_find("RC_CHAN_CNT");
@@ -384,6 +386,8 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 	param_get(parameter_handles.air_cmodel, &parameters.air_cmodel);
 	param_get(parameter_handles.air_tube_length, &parameters.air_tube_length);
 	param_get(parameter_handles.air_tube_diameter_mm, &parameters.air_tube_diameter_mm);
+
+	param_get(parameter_handles.imu_dgyro_en, &parameters.imu_dgyro_en);
 
 	return ret;
 }
