@@ -519,3 +519,62 @@ PARAM_DEFINE_INT32(MC_BAT_SCALE_EN, 0);
  */
 PARAM_DEFINE_FLOAT(MC_DTERM_CUTOFF, 0.f);
 
+/**
+ * Inertia matrix, XX component
+ *
+ * @unit kg.m^2
+ * @decimal 5
+ * @increment 0.00001
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_INERTIA_XX, 1.f);
+
+/**
+ * Inertia matrix, YY component
+ *
+ * @unit kg.m^2
+ * @decimal 5
+ * @increment 0.00001
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_INERTIA_YY, 1.f);
+
+/**
+ * Inertia matrix, ZZ component
+ *
+ * @unit kg.m^2
+ * @decimal 5
+ * @increment 0.00001
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_INERTIA_ZZ, 1.f);
+
+/**
+ * Inertia matrix, XY component
+ *
+ * @unit kg.m^2
+ * @decimal 5
+ * @increment 0.00001
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_INERTIA_XY, 0.f);
+
+/**
+ * Inertia matrix, XZ component
+ *
+ * @unit kg.m^2
+ * @decimal 5
+ * @increment 0.00001
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_INERTIA_XZ, 0.f);
+
+/**
+ * Inertia matrix, YZ component
+ *
+ * @unit kg.m^2
+ * @decimal 5
+ * @increment 0.00001
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_INERTIA_YZ, 0.f);
