@@ -226,6 +226,31 @@ PARAM_DEFINE_INT32(SENS_EN_THERMAL, -1);
 PARAM_DEFINE_FLOAT(IMU_GYRO_CUTOFF, 30.0f);
 
 /**
+* Enable computation of angular acceleration by gyro differentiation.
+*
+* @reboot_required true
+*
+* @boolean
+* @group Sensors
+*/
+PARAM_DEFINE_INT32(IMU_DGYRO_EN, 0);
+
+/**
+* Cutoff frequency for angular acceleration
+*
+* The cutoff frequency for the 2nd order butterworth filter used on
+* the time derivative of the measured angular velocity.
+* Set to 0 to disable the filter.
+*
+* @min 0
+* @max 1000
+* @unit Hz
+* @reboot_required true
+* @group Sensors
+*/
+PARAM_DEFINE_FLOAT(IMU_DGYRO_CUTOFF, 10.0f);
+
+/**
 * Gyro control data maximum publication rate
 *
 * This is the maximum rate the gyro control data (sensor_gyro_control) will be allowed to publish at.
