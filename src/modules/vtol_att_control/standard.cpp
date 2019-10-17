@@ -181,17 +181,30 @@ void Standard::update_vtol_state()
 
 		} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_FW) {
 			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
-			if (((_params->airspeed_disabled || !PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s) ||
-			      _airspeed_validated->equivalent_airspeed_m_s >= _params->transition_airspeed) &&
-			     time_since_trans_start > _params->front_trans_time_min) ||
-			    can_transition_on_ground()) {
 
+			const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s)
+					&& !_params->airspeed_disabled;
+			const bool minimum_trans_time_elapsed = time_since_trans_start > _params->front_trans_time_min;
+
+			bool transition_to_fw = false;
+
+			if (minimum_trans_time_elapsed) {
+				if (airspeed_triggers_transition) {
+					transition_to_fw = _airspeed_validated->equivalent_airspeed_m_s >= _params->transition_airspeed;
+
+				} else {
+					transition_to_fw = true;
+				}
+			}
+
+			transition_to_fw |= can_transition_on_ground();
+
+			if (transition_to_fw) {
 				_vtol_schedule.flight_mode = vtol_mode::FW_MODE;
 
 				// don't set pusher throttle here as it's being ramped up elsewhere
 				_trans_finished_ts = hrt_absolute_time();
 			}
-
 		}
 	}
 
