@@ -34,8 +34,9 @@
 include(gtest.cmake)
 
 set(SRCS
-   main.cpp
-   test_EKF_basics.cpp
+	main.cpp
+	test_EKF_basics.cpp
+	test_EKF_ringbuffer.cpp
    )
 add_executable(ECL_GTESTS ${SRCS})
 
