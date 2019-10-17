@@ -105,9 +105,3 @@ INSTANTIATE_TEST_CASE_P(imuSamplingAtMultipleRates,
 				std::make_tuple<float,float>(1.6f,1.6f),
 				std::make_tuple<float,float>(0.333f,1.0f)
 			));
-
-// TODO:
-// """Make sure the acceleration is updated correctly when there is no angular velocity (test with and without downsampling) Tests random accelerations in x, y, z directions (using the hypothesis decorator) with different update frequencies (using pytest's parametrize decorator)
-// """Make sure the timing is updated correctly If the imu update is faster than the filter period, it should be downsampled, otherwise used as is.
-// Feed in baro data at 50 Hz (too fast), check if filter samples correctly
-// Feed in mag data at 50 Hz (too fast), check if filter samples correctly

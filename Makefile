@@ -98,16 +98,10 @@ doxygen:
 .PHONY: test_build test test_EKF
 
 test_build:
-	@$(call cmake-build,$@,$(SRC_DIR), "-DEKF_PYTHON_TESTS=ON", "-DBUILD_TESTING=ON")
+	@$(call cmake-build,$@,$(SRC_DIR), "-DBUILD_TESTING=ON")
 
 test: test_build
 	@cmake --build $(SRC_DIR)/build/test_build --target check
-
-test_EKF: test_build
-	@cmake --build $(SRC_DIR)/build/test_build --target ecl_EKF_pytest-quick
-
-test_EKF_plots: test_build
-	@cmake --build $(SRC_DIR)/build/test_build --target ecl_EKF_pytest-plots
 
 test_build_asan:
 	@$(call cmake-build,$@,$(SRC_DIR), "-DECL_ASAN=ON", "-DBUILD_TESTING=ON")
@@ -119,7 +113,7 @@ test_asan: test_build_asan
 # --------------------------------------------------------------------
 
 coverage_build:
-	@$(call cmake-build,$@,$(SRC_DIR), "-DCMAKE_BUILD_TYPE=Coverage", "-DEKF_PYTHON_TESTS=ON", "-DBUILD_TESTING=ON")
+	@$(call cmake-build,$@,$(SRC_DIR), "-DCMAKE_BUILD_TYPE=Coverage", "-DBUILD_TESTING=ON")
 
 coverage: coverage_build
 	@cmake --build $(SRC_DIR)/build/coverage_build --target coverage

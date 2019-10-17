@@ -102,24 +102,6 @@ pipeline {
           }
         }
 
-        stage('EKF pytest') {
-          agent {
-            docker {
-              image 'px4io/px4-dev-ecl:2019-01-31'
-              args '-v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-            }
-          }
-          steps {
-            sh 'export'
-            sh 'ccache -z'
-            sh 'make distclean'
-            sh 'make test_EKF'
-            sh 'ccache -s'
-            archiveArtifacts 'build/test_build/*.pdf'
-            sh 'make distclean'
-          }
-        }
-
         stage('test') {
           agent {
             docker {
