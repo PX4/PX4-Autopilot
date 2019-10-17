@@ -143,6 +143,8 @@ struct Parameters {
 	int32_t air_cmodel;
 	float air_tube_length;
 	float air_tube_diameter_mm;
+
+	int32_t imu_dgyro_en;
 };
 
 struct ParameterHandles {
@@ -222,6 +224,7 @@ struct ParameterHandles {
 	param_t air_tube_length;
 	param_t air_tube_diameter_mm;
 
+	param_t imu_dgyro_en;
 };
 
 /**
