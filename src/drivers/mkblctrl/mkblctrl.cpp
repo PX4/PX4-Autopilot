@@ -1052,7 +1052,7 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
-			unsigned buflen = strnlen(buf, 1024);
+			unsigned buflen = strlen(buf);
 
 			if (_mixers == nullptr) {
 				_mixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
