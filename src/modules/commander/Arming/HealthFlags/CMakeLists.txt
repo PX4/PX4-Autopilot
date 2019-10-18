@@ -31,6 +31,7 @@
 #
 ############################################################################
 
-add_subdirectory(PreFlightCheck)
-add_subdirectory(ArmAuthorization)
-add_subdirectory(HealthFlags)
+px4_add_library(HealthFlags
+	HealthFlags.cpp
+)
+target_include_directories(HealthFlags PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

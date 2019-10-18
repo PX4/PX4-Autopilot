@@ -35,4 +35,4 @@ px4_add_library(PreFlightCheck
 	PreFlightCheck.cpp
 )
 target_include_directories(PreFlightCheck PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(PreFlightCheck PUBLIC ArmAuthorization)
+target_link_libraries(PreFlightCheck PUBLIC ArmAuthorization HealthFlags)

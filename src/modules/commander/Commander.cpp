@@ -47,6 +47,7 @@
 /* commander module headers */
 #include <PreFlightCheck.hpp>
 #include <ArmAuthorization.h>
+#include <HealthFlags.h>
 #include "accelerometer_calibration.h"
 #include "airspeed_calibration.h"
 #include "baro_calibration.h"
@@ -55,11 +56,9 @@
 #include "esc_calibration.h"
 #include "gyro_calibration.h"
 #include "mag_calibration.h"
-#include "PreflightCheck.h"
 #include "px4_custom_mode.h"
 #include "rc_calibration.h"
 #include "state_machine_helper.h"
-#include "health_flag_helper.h"
 
 /* PX4 headers */
 #include <dataman/dataman.h>
@@ -3762,7 +3761,7 @@ bool Commander::preflight_check(bool report)
 {
 	const bool checkGNSS = (arm_requirements & PreFlightCheck::ARM_REQ_GPS_BIT);
 
-	const bool success = Preflight::preflightCheck(&mavlink_log_pub, status, status_flags, checkGNSS, report, false,
+	const bool success = PreFlightCheck::preflightCheck(&mavlink_log_pub, status, status_flags, checkGNSS, report, false,
 			     hrt_elapsed_time(&commander_boot_timestamp));
 
 	if (success) {

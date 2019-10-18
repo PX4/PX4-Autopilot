@@ -49,7 +49,6 @@
 #include <PreFlightCheck.hpp>
 #include "state_machine_helper.h"
 #include "commander_helper.h"
-#include "PreflightCheck.h"
 
 static constexpr const char reason_no_rc[] = "no RC";
 static constexpr const char reason_no_offboard[] = "no offboard";
@@ -137,7 +136,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 		if (fRunPreArmChecks && (new_arming_state == vehicle_status_s::ARMING_STATE_ARMED)
 		    && !hil_enabled) {
 
-			preflight_check_ret = Preflight::preflightCheck(mavlink_log_pub, *status, *status_flags, checkGNSS, true, true,
+			preflight_check_ret = PreFlightCheck::preflightCheck(mavlink_log_pub, *status, *status_flags, checkGNSS, true, true,
 					      time_since_boot);
 
 			if (preflight_check_ret) {
@@ -156,7 +155,8 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 
 			if ((last_preflight_check == 0) || (hrt_elapsed_time(&last_preflight_check) > 1000 * 1000)) {
 
-				status_flags->condition_system_sensors_initialized = Preflight::preflightCheck(mavlink_log_pub, *status, *status_flags,
+				status_flags->condition_system_sensors_initialized = PreFlightCheck::preflightCheck(mavlink_log_pub, *status,
+						*status_flags,
 						checkGNSS, false, false, time_since_boot);
 
 				last_preflight_check = hrt_absolute_time();
