@@ -33,7 +33,6 @@
 
 #include "mixer_module.hpp"
 
-#include <lib/circuit_breaker/circuit_breaker.h>
 #include <uORB/PublicationQueued.hpp>
 #include <px4_log.h>
 
@@ -66,11 +65,6 @@ _control_latency_perf(perf_alloc(PC_ELAPSED, "control latency"))
 	_armed.lockdown = false;
 	_armed.force_failsafe = false;
 	_armed.in_esc_calibration_mode = false;
-
-	// If there is no safety button, disable it on init.
-#ifndef GPIO_BTN_SAFETY
-	_safety_off = true;
-#endif
 
 	px4_sem_init(&_lock, 0, 1);
 
@@ -107,12 +101,6 @@ void MixingOutput::printStatus() const
 void MixingOutput::updateParams()
 {
 	ModuleParams::updateParams();
-
-	bool safety_disabled = circuit_breaker_enabled_by_val(_param_cbrk_io_safety.get(), CBRK_IO_SAFETY_KEY);
-
-	if (safety_disabled) {
-		_safety_off = true;
-	}
 
 	// update mixer if we have one
 	if (_mixers) {
@@ -296,7 +284,7 @@ bool MixingOutput::update()
 
 		/* Update the armed status and check that we're not locked down.
 		 * We also need to arm throttle for the ESC calibration. */
-		_throttle_armed = (_safety_off && _armed.armed && !_armed.lockdown) || (_safety_off && _armed.in_esc_calibration_mode);
+		_throttle_armed = (_armed.armed && !_armed.lockdown) || _armed.in_esc_calibration_mode;
 
 		if (_armed.armed) {
 			_motor_test.in_test_mode = false;
@@ -313,7 +301,6 @@ bool MixingOutput::update()
 				setAndPublishActuatorOutputs(num_motor_test, actuator_outputs);
 			}
 
-			checkSafetyButton();
 			handleCommands();
 			return true;
 		}
@@ -385,22 +372,9 @@ bool MixingOutput::update()
 		updateLatencyPerfCounter(actuator_outputs);
 	}
 
-	checkSafetyButton();
 	handleCommands();
 
 	return true;
-}
-
-void
-MixingOutput::checkSafetyButton()
-{
-	if (_safety_sub.updated()) {
-		safety_s safety;
-
-		if (_safety_sub.copy(&safety)) {
-			_safety_off = !safety.safety_switch_available || safety.safety_off;
-		}
-	}
 }
 
 void
