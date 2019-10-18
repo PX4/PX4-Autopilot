@@ -138,7 +138,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 			;
 
 		# enable multicore gazebo compilation
-		sudo sed -i '/MAKEFLAGS=/c\MAKEFLAGS="-j'$(($(grep -c processor /proc/cpuinfo)+2))'"' /etc/makepkg.conf
+		sudo sed -i '/MAKEFLAGS=/c\MAKEFLAGS="-j'$(($(nproc)+2))'"' /etc/makepkg.conf
 
 		# install gazebo from AUR
 		yay -S gazebo --noconfirm

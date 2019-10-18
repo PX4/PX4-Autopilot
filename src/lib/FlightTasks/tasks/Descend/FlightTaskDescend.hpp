@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,55 +32,25 @@
  ****************************************************************************/
 
 /**
- * @file collisionprevention_params.c
- *
- * Parameters defined by the collisionprevention lib.
- *
- * @author Tanja Baumann <tanja@auterion.com>
+ * @file FlightTaskDescend.hpp
  */
 
-/**
- * Minimum distance the vehicle should keep to all obstacles
- *
- * Only used in Position mode. Collision avoidance is disabled by setting this parameter to a negative value
- *
- * @min -1
- * @max 15
- * @unit meters
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(CP_DIST, -1.0f);
+#pragma once
 
-/**
- * Average delay of the range sensor message plus the tracking delay of the position controller in seconds
- *
- * Only used in Position mode.
- *
- * @min 0
- * @max 1
- * @unit seconds
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(CP_DELAY, 0.4f);
+#include "FlightTask.hpp"
 
-/**
- * Angle left/right from the commanded setpoint by which the collision prevention algorithm can choose to change the setpoint direction
- *
- * Only used in Position mode.
- *
- * @min 0
- * @max 90
- * @unit [deg]
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(CP_GUIDE_ANG, 30.f);
+class FlightTaskDescend : public FlightTask
+{
+public:
+	FlightTaskDescend() = default;
+	virtual ~FlightTaskDescend() = default;
 
-/**
- * Boolean to allow moving into directions where there is no sensor data (outside FOV)
- *
- * Only used in Position mode.
- *
- * @boolean
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(CP_GO_NO_DATA, 0);
+	bool update() override;
+	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
+
+private:
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
+					(ParamFloat<px4::params::MPC_THR_HOVER>) _param_mpc_thr_hover, ///< thrust at hover equilibrium
+					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed ///< velocity for controlled descend
+				       )
+};

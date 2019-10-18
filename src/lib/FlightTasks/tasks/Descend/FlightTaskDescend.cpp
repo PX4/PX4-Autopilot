@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,57 +30,34 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
 /**
- * @file collisionprevention_params.c
- *
- * Parameters defined by the collisionprevention lib.
- *
- * @author Tanja Baumann <tanja@auterion.com>
+ * @file FlightTaskDescend.cpp
  */
 
-/**
- * Minimum distance the vehicle should keep to all obstacles
- *
- * Only used in Position mode. Collision avoidance is disabled by setting this parameter to a negative value
- *
- * @min -1
- * @max 15
- * @unit meters
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(CP_DIST, -1.0f);
+#include "FlightTaskDescend.hpp"
 
-/**
- * Average delay of the range sensor message plus the tracking delay of the position controller in seconds
- *
- * Only used in Position mode.
- *
- * @min 0
- * @max 1
- * @unit seconds
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(CP_DELAY, 0.4f);
+bool FlightTaskDescend::activate(vehicle_local_position_setpoint_s last_setpoint)
+{
+	bool ret = FlightTask::activate(last_setpoint);
+	// stay level to minimize horizontal drift
+	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, NAN);
+	// keep heading
+	_yaw_setpoint = _yaw;
+	return ret;
+}
 
-/**
- * Angle left/right from the commanded setpoint by which the collision prevention algorithm can choose to change the setpoint direction
- *
- * Only used in Position mode.
- *
- * @min 0
- * @max 90
- * @unit [deg]
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(CP_GUIDE_ANG, 30.f);
+bool FlightTaskDescend::update()
+{
+	if (PX4_ISFINITE(_velocity(2))) {
+		// land with landspeed
+		_velocity_setpoint(2) = _param_mpc_land_speed.get();
+		_thrust_setpoint(2) = NAN;
 
-/**
- * Boolean to allow moving into directions where there is no sensor data (outside FOV)
- *
- * Only used in Position mode.
- *
- * @boolean
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(CP_GO_NO_DATA, 0);
+	} else {
+		// descend with constant thrust (crash landing)
+		_velocity_setpoint(2) = NAN;
+		_thrust_setpoint(2) = -_param_mpc_thr_hover.get() * 0.7f;
+	}
+
+	return true;
+}

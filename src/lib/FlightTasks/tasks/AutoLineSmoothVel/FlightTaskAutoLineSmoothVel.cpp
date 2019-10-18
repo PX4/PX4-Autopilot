@@ -202,8 +202,8 @@ float FlightTaskAutoLineSmoothVel::_getSpeedAtTarget()
 	    yaw_align_check_pass) {
 		// Max speed between current and next
 		const float max_speed_current_next = _getMaxSpeedFromDistance(distance_current_next);
-		const float alpha = acos(Vector2f(&(_target - _prev_wp)(0)).unit_or_zero() *
-					 Vector2f(&(_target - _next_wp)(0)).unit_or_zero());
+		const float alpha = acosf(Vector2f(&(_target - _prev_wp)(0)).unit_or_zero() *
+					  Vector2f(&(_target - _next_wp)(0)).unit_or_zero());
 		// We choose a maximum centripetal acceleration of MPC_ACC_HOR * MPC_XY_TRAJ_P to take in account
 		// that there is a jerk limit (a direct transition from line to circle is not possible)
 		// MPC_XY_TRAJ_P should be between 0 and 1.
