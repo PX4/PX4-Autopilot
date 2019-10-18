@@ -1842,24 +1842,15 @@ Commander::run()
 						tune_mission_ok(true);
 					}
 				}
-
-				if (mission_result.finished) {
-					_last_mission_result_finished = mission_result.timestamp;
-				}
 			}
 		}
 
-		// When auto mission/rtl/land is finished, transition back to the most recently-used manual mode.
-		// This check is done using time because we cannot guarantee that the disarm will happen first or
-		// the mission_result message will come in first.
-		const bool disarmed_and_mission_finished = !armed.armed
-				&& hrt_elapsed_time(&last_disarmed_timestamp) < MISSION_FINISH_DISARM_TIMEOUT
-				&& hrt_elapsed_time(&_last_mission_result_finished) < MISSION_FINISH_DISARM_TIMEOUT;
+		const bool just_disarmed = !armed.armed && was_armed;
+		const bool just_finished_auto_mission = is_auto_state(internal_state.main_state) && _mission_result_sub.get().finished;
+		const bool last_state_valid = last_non_auto_state != commander_state_s::MAIN_STATE_MAX;
 
-		if (disarmed_and_mission_finished && is_auto_state(internal_state.main_state)
-		    && last_non_auto_state != commander_state_s::MAIN_STATE_MAX) {
-			// This branch will only happen once per mission finish because, after transitioning to the non-auto
-			// state, is_auto_state(internal_state.main_state) will be false.
+		if(just_disarmed && land_detector.landed && just_finished_auto_mission && last_state_valid){
+			PX4_INFO("Just finished auto mission, transitioning back to last manual mode.");
 			main_state_transition(status, last_non_auto_state, status_flags, &internal_state);
 		}
 
