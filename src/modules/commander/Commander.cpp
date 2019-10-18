@@ -3405,6 +3405,12 @@ void *commander_low_prio_loop(void *arg)
 			switch (cmd.command) {
 
 			case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
+				if (((int)(cmd.param1)) == 0) {
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+					/* do nothing for autopilot */
+					break;
+				}
+
 				if (is_safe(safety, armed)) {
 
 					if (((int)(cmd.param1)) == 1) {
