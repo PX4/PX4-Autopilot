@@ -39,4 +39,5 @@ px4_add_module(
 		../state_machine_helper.cpp
 		../PreflightCheck.cpp
 	DEPENDS
+		PreFlightCheck
 	)

@@ -42,6 +42,7 @@
 
 #include "../state_machine_helper.h"
 #include <unit_test.h>
+#include <PreFlightCheck.hpp>
 
 class StateMachineHelperTest : public UnitTest
 {
@@ -304,7 +305,7 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 					     true /* enable pre-arm checks */,
 					     nullptr /* no mavlink_log_pub */,
 					     &status_flags,
-					     (check_gps ? ARM_REQ_GPS_BIT : 0),
+					     (check_gps ? PreFlightCheck::ARM_REQ_GPS_BIT : 0),
 					     2e6 /* 2 seconds after boot, everything should be checked */
 								    );
 
