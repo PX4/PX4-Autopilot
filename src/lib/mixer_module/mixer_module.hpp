@@ -50,7 +50,6 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/safety.h>
 #include <uORB/topics/test_motor.h>
 
 
@@ -193,7 +192,6 @@ private:
 	unsigned motorTest();
 
 	void updateOutputSlewrate();
-	void checkSafetyButton();
 	void setAndPublishActuatorOutputs(unsigned num_outputs, actuator_outputs_s &actuator_outputs);
 	void publishMixerStatus(const actuator_outputs_s &actuator_outputs);
 	void updateLatencyPerfCounter(const actuator_outputs_s &actuator_outputs);
@@ -238,7 +236,6 @@ private:
 	output_limit_t _output_limit;
 
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
-	uORB::Subscription _safety_sub{ORB_ID(safety)};
 	uORB::SubscriptionCallbackWorkItem _control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
 	uORB::PublicationMulti<actuator_outputs_s> _outputs_pub{ORB_ID(actuator_outputs), ORB_PRIO_DEFAULT};
@@ -250,7 +247,6 @@ private:
 	hrt_abstime _time_last_mix{0};
 	unsigned _max_topic_update_interval_us{0}; ///< max _control_subs topic update interval (0=unlimited)
 
-	bool _safety_off{false}; ///< State of the safety button from the subscribed _safety_sub topic
 	bool _throttle_armed{false};
 	bool _ignore_lockdown{false}; ///< if true, ignore the _armed.lockdown flag (for HIL outputs)
 
@@ -279,8 +275,7 @@ private:
 		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,   ///< multicopter air-mode
 		(ParamFloat<px4::params::MOT_SLEW_MAX>) _param_mot_slew_max,
 		(ParamFloat<px4::params::THR_MDL_FAC>) _param_thr_mdl_fac, ///< thrust to motor control signal modelling factor
-		(ParamInt<px4::params::MOT_ORDERING>) _param_mot_ordering,
-		(ParamInt<px4::params::CBRK_IO_SAFETY>) _param_cbrk_io_safety
+		(ParamInt<px4::params::MOT_ORDERING>) _param_mot_ordering
 
 	)
 };
