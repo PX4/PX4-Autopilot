@@ -267,25 +267,36 @@ RoverPositionControl::control_position(const matrix::Vector2f &current_position,
 
 void
 RoverPositionControl::control_velocity(const matrix::Vector2f &current_velocity,
-				       const position_setpoint_triplet_s &pos_sp_triplet)
+				       const matrix::Vector3f &ground_speed, const position_setpoint_triplet_s &pos_sp_triplet)
 {
+
+	float dt = 0.01; // Using non zero value to a avoid division by zero
+
 	const float mission_throttle = _param_throttle_cruise.get();
 	const matrix::Vector2f desired_velocity{pos_sp_triplet.current.vx, pos_sp_triplet.current.vy};
 	const float desired_speed = desired_velocity.norm();
 
 	if (desired_speed > 0.01f) {
 
-		const float control_throttle = _act_controls.control[actuator_controls_s::INDEX_THROTTLE] +
-					       (desired_velocity.norm() - current_velocity.norm());
+		const Dcmf R_to_body(Quatf(_vehicle_att.q).inversed());
+		const Vector3f vel = R_to_body * Vector3f(ground_speed(0), ground_speed(1), ground_speed(2));
+
+		const float x_vel = vel(0);
+		const float x_acc = _vehicle_acceleration_sub.get().xyz[0];
+
+		const float control_throttle = pid_calculate(&_speed_ctrl, desired_speed, x_vel, x_acc, dt);
+
 		_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = math::constrain(control_throttle, 0.0f, mission_throttle);
 
 		const float desired_theta = atan2f(desired_velocity(1), desired_velocity(0)) - atan2f(current_velocity(1),
 					    current_velocity(0));
 		float control_effort = desired_theta / _param_max_turn_angle.get();
+
 		control_effort = math::constrain(control_effort, -1.0f, 1.0f);
 		_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
 
 	} else {
+
 		_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
 		_act_controls.control[actuator_controls_s::INDEX_YAW] = 0.0f;
 
@@ -416,7 +427,7 @@ RoverPositionControl::run()
 
 			} else if (!manual_mode && _control_mode.flag_control_velocity_enabled) {
 
-				control_velocity(current_velocity, _pos_sp_triplet);
+				control_velocity(current_velocity, ground_speed, _pos_sp_triplet);
 
 			}
 
