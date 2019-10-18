@@ -317,12 +317,14 @@ public:
 
 	void			print_registers();
 
+#ifndef CONSTRAINED_FLASH
 	/**
 	 * Test behaviour against factory offsets
 	 *
 	 * @return 0 on success, 1 on failure
 	 */
 	int 			factory_self_test();
+#endif
 
 	// deliberately cause a sensor error
 	void 			test_error();
