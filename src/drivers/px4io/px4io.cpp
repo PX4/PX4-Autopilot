@@ -2704,7 +2704,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
-			ret = mixer_send(buf, strnlen(buf, 2048));
+			ret = mixer_send(buf, strlen(buf));
 			break;
 		}
 
