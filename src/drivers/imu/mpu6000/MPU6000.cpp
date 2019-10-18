@@ -383,6 +383,7 @@ MPU6000::_set_icm_acc_dlpf_filter(uint16_t frequency_hz)
 	write_checked_reg(ICMREG_ACCEL_CONFIG2, filter);
 }
 
+#ifndef CONSTRAINED_FLASH
 /*
   perform a self-test comparison to factory trim values. This takes
   about 200ms and will return OK if the current values are within 14%
@@ -526,6 +527,7 @@ MPU6000::factory_self_test()
 
 	return ret;
 }
+#endif
 
 /*
   deliberately trigger an error in the sensor to trigger recovery
