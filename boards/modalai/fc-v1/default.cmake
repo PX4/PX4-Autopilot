@@ -2,7 +2,7 @@
 px4_add_board(
 	PLATFORM nuttx
 	VENDOR modalai
-	MODEL fc1
+	MODEL fc-v1
 	LABEL default
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
@@ -25,12 +25,8 @@ px4_add_board(
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
-		#heater
-		imu/adis16448
-		imu/adis16497
-		#imu # all available imu drivers
 		imu/bmi088
-# TBD		imu/ism330dlc - needs bus selection
+# TODO		imu/icm42688
 		imu/mpu6000
 		irlock
 		lights/blinkm

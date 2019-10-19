@@ -147,7 +147,7 @@ __EXPORT void board_peripheral_reset(int ms)
 {
 	/* set the peripheral rails off */
 
-	// NA, rails not controlled in ModalAI-FC1
+	// NA, rails not controlled in ModalAI FC-v1
 
 	bool last = READ_VDD_3V3_SPEKTRUM_POWER_EN();
 	/* Keep Spektum on to discharge rail*/
@@ -162,7 +162,7 @@ __EXPORT void board_peripheral_reset(int ms)
 	/* switch the peripheral rail back on */
 	VDD_3V3_SPEKTRUM_POWER_EN(last);
 
-	// NA, rails not controlled in ModalAI-FC1
+	// NA, rails not controlled in ModalAI FC-v1
 
 }
 

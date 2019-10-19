@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# ModalAI FC1 specific board sensors init
+# ModalAI FC-v1 specific board sensors init
 #------------------------------------------------------------------------------
 
 # Start Digital power monitors

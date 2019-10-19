@@ -34,7 +34,7 @@
 /**
  * @file board_config.h
  *
- * ModalAI-FC1 internal definitions
+ * ModalAI FC-v1 internal definitions
  */
 
 #pragma once
@@ -55,7 +55,7 @@
 
 /* Configuration ************************************************************************************/
 
-// NA on ModalAI-FC1
+// NA on ModalAI FC-v1
 
 /* PX4FMU GPIOs ***********************************************************************************/
 
@@ -370,7 +370,7 @@
 #define BOARD_HAS_RX_TX_SWAP               1 /* HW Can swap TX and RX */
 #define RC_SERIAL_PORT_IS_SWAPED           1 /* Board wired with RC's TX is on cpu RX */
 
-/* Safety Switch: Enable the FMU to control it as there is no px4io in ModalAI-FC1 */
+/* Safety Switch: Enable the FMU to control it as there is no px4io in ModalAI FC-v1 */
 #define GPIO_SAFETY_SWITCH_IN              /* PF3 */ (GPIO_INPUT|GPIO_PULLDOWN|GPIO_PORTF|GPIO_PIN3)
 #define GPIO_BTN_SAFETY GPIO_SAFETY_SWITCH_IN /* Enable the FMU to control it if there is no px4io */
 
@@ -379,7 +379,7 @@
 #define SPEKTRUM_POWER(_on_true)           VDD_3V3_SPEKTRUM_POWER_EN(_on_true)
 
 /*
- * ModalAI-FC1 has a separate RC_IN
+ * ModalAI FC-v1 has a separate RC_IN
  *
  * GPIO PPM_IN on PI5 T8CH1
  * SPEKTRUM_RX (it's TX or RX in Bind) on UART6 PC7
@@ -414,7 +414,7 @@
  */
 #define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
 
-/* ModalAI-FC1 never powers off the Servo rail */
+/* ModalAI FC-v1 never powers off the Servo rail */
 
 #define BOARD_ADC_SERVO_VALID     (1)
 

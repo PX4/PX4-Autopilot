@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# ModalAI FC1 specific board MAVLink startup script.
+# ModalAI FC-v1 specific board MAVLink startup script.
 #------------------------------------------------------------------------------
 
 # Start MAVLink on the USB port

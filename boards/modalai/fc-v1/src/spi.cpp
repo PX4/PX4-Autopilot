@@ -338,7 +338,7 @@ __EXPORT void board_spi_reset(int mask_ms)
 
 		/* set the sensor rail off */
 
-		// NA, not controlling rails in ModalAI-FC1
+		// NA, not controlling rails in ModalAI FC-v1
 
 	}
 
@@ -359,7 +359,7 @@ __EXPORT void board_spi_reset(int mask_ms)
 #endif
 		/* set the sensor rail off */
 
-		// NA, not controlling rails in ModalAI-FC1
+		// NA, not controlling rails in ModalAI FC-v1
 	}
 
 #endif
@@ -380,7 +380,7 @@ __EXPORT void board_spi_reset(int mask_ms)
 #endif
 		/* set the sensor rail off */
 
-		// NA, not controlling rails in ModalAI-FC1
+		// NA, not controlling rails in ModalAI FC-v1
 	}
 
 #endif
@@ -400,7 +400,7 @@ __EXPORT void board_spi_reset(int mask_ms)
 #endif
 		/* set the sensor rail off */
 
-		// NA, not controlling rails in ModalAI-FC1
+		// NA, not controlling rails in ModalAI FC-v1
 	}
 
 #endif
@@ -411,7 +411,7 @@ __EXPORT void board_spi_reset(int mask_ms)
 
 	/* re-enable power */
 
-	// NA, not controlling rails in ModalAI-FC1
+	// NA, not controlling rails in ModalAI FC-v1
 
 	/* wait a bit before starting SPI, different times didn't influence results */
 	usleep(100);
