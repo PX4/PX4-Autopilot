@@ -16,6 +16,7 @@ import gencpp
 from px_generate_uorb_topic_helper import * # this is in Tools/
 
 topic = alias if alias else spec.short_name
+ros2_distro = ros2_distro.decode("utf-8")
 }@
 /****************************************************************************
  *
@@ -80,7 +81,7 @@ bool @(topic)_Publisher::init()
     // Create RTPSParticipant
     ParticipantAttributes PParam;
     PParam.rtps.builtin.domainId = 0;
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7 or ros2_distro == "ardent" or ros2_distro == "bouncy" or ros2_distro == "crystal" or ros2_distro == "dashing"]@
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
 @[else]@
     PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
@@ -97,13 +98,15 @@ bool @(topic)_Publisher::init()
     PublisherAttributes Wparam;
     Wparam.topic.topicKind = NO_KEY;
     Wparam.topic.topicDataType = myType.getName();  //This type MUST be registered
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[if ros2_distro]@
+@[    if ros2_distro == "ardent"]@
+    Wparam.qos.m_partition.push_back("rt");
     Wparam.topic.topicName = "@(topic)_PubSubTopic";
+@[    else]@
+    Wparam.topic.topicName = "rt/@(topic)_PubSubTopic";
+@[    end if]@
 @[else]@
-    Wparam.topic.topicName = "@(topic)PubSubTopic";
-@[end if]@
-@[if ros2_distro and ros2_distro != "ardent"]@
-    Wparam.topic.topicName = "rt/" + Wparam.topic.topicName;
+    Wparam.topic.topicName = "@(topic)_PubSubTopic";
 @[end if]@
     mp_publisher = Domain::createPublisher(mp_participant, Wparam, static_cast<PublisherListener*>(&m_listener));
     if(mp_publisher == nullptr)
@@ -139,9 +142,17 @@ void @(topic)_Publisher::run()
 
     // Publication code
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[    if ros2_distro]@
+    @(package)::msg::dds_::@(topic)_ st;
+@[    else]@
     @(topic)_ st;
+@[    end if]@
 @[else]@
+@[    if ros2_distro]@
+    @(package)::msg::@(topic) st;
+@[    else]@
     @(topic) st;
+@[    end if]@
 @[end if]@
 
     /* Initialize your structure here */
@@ -168,9 +179,17 @@ void @(topic)_Publisher::run()
 }
 
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
-void @(topic)_Publisher::publish(@(topic)_* st)
+@[    if ros2_distro]@
+    void @(topic)_Publisher::publish(@(package)::msg::dds_::@(topic)_* st)
+@[    else]@
+    void @(topic)_Publisher::publish(@(topic)_* st)
+@[    end if]@
 @[else]@
-void @(topic)_Publisher::publish(@(topic)* st)
+@[    if ros2_distro]@
+    void @(topic)_Publisher::publish(@(package)::msg::@(topic)* st)
+@[    else]@
+    void @(topic)_Publisher::publish(@(topic)* st)
+@[    end if]@
 @[end if]@
 {
     mp_publisher->write(st);

@@ -45,6 +45,9 @@
 #include "topic_listener.hpp"
 #include "topic_listener_generated.hpp"
 
+// Amount of time to wait when listening for a message, before giving up.
+static constexpr float MESSAGE_TIMEOUT_S = 2.0f;
+
 extern "C" __EXPORT int listener_main(int argc, char *argv[]);
 
 static void usage();
@@ -100,62 +103,54 @@ void listener(listener_print_topic_cb cb, const orb_id_t &id, unsigned num_msgs,
 		int sub = orb_subscribe_multi(id, topic_instance);
 		orb_set_interval(sub, topic_interval);
 
-		bool updated = false;
-		unsigned i = 0;
-		hrt_abstime start_time = hrt_absolute_time();
+		unsigned msgs_received = 0;
 
-		while (i < num_msgs) {
+		struct pollfd fds[2] {};
+		// Poll for user input (for q or escape)
+		fds[0].fd = 0; /* stdin */
+		fds[0].events = POLLIN;
+		// Poll the UOrb subscription
+		fds[1].fd = sub;
+		fds[1].events = POLLIN;
 
-			// check for user input to quit
-			int user_input_timeout = 1;
+		while (msgs_received < num_msgs) {
 
-			orb_check(sub, &updated);
+			if (poll(&fds[0], 2, int(MESSAGE_TIMEOUT_S * 1000)) > 0) {
 
-			if (i == 0) {
-				updated = true;
-				user_input_timeout = 0;	// don't wait
-			}
+				// Received character from stdin
+				if (fds[0].revents & POLLIN) {
+					char c = 0;
+					int ret = read(0, &c, 1);
 
-			// check for user input
-			struct pollfd fds {};
-			fds.fd = 0; /* stdin */
-			fds.events = POLLIN;
+					if (ret) {
+						return;
+					}
 
-			if (poll(&fds, 1, 0) > 0) {
-
-				char c = 0;
-				int ret = read(0, &c, user_input_timeout);
-
-				if (ret) {
-					return;
+					switch (c) {
+					case 0x03: // ctrl-c
+					case 0x1b: // esc
+					case 'q':
+						return;
+						/* not reached */
+					}
 				}
 
-				switch (c) {
-				case 0x03: // ctrl-c
-				case 0x1b: // esc
-				case 'q':
-					return;
-					/* not reached */
-				}
-			}
+				// Received message from subscription
+				if (fds[1].revents & POLLIN) {
+					msgs_received++;
 
-			if (updated) {
-				start_time = hrt_absolute_time();
-				i++;
+					PX4_INFO_RAW("\nTOPIC: %s instance %d #%d\n", id->o_name, topic_instance, msgs_received);
 
-				PX4_INFO_RAW("\nTOPIC: %s instance %d #%d\n", id->o_name, topic_instance, i);
+					int ret = cb(id, sub);
 
-				int ret = cb(id, sub);
-
-				if (ret != PX4_OK) {
-					PX4_ERR("listener callback failed (%i)", ret);
+					if (ret != PX4_OK) {
+						PX4_ERR("listener callback failed (%i)", ret);
+					}
 				}
 
 			} else {
-				if (hrt_elapsed_time(&start_time) > 2 * 1000 * 1000) {
-					PX4_INFO_RAW("Waited for 2 seconds without a message. Giving up.\n");
-					break;
-				}
+				PX4_INFO_RAW("Waited for %.1f seconds without a message. Giving up.\n", (double) MESSAGE_TIMEOUT_S);
+				break;
 			}
 		}
 

@@ -96,8 +96,7 @@ int calc_timer_diff_to_dsp_us(int32_t *time_diff_us)
 		return -1;
 	}
 
-	char buffer[21];
-	memset(buffer, 0, sizeof(buffer));
+	char buffer[21] {};
 	int bytes_read = read(fd, buffer, sizeof(buffer));
 
 	if (bytes_read < 0) {

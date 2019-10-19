@@ -19,6 +19,7 @@ px4_add_board(
 	DRIVERS
 		adc
 		barometer/bmp280
+		dshot
 		gps
 		imu/mpu6000
 		magnetometer

@@ -591,11 +591,6 @@ Navigator::run()
 			_precland.set_mode(PrecLandMode::Required);
 			break;
 
-		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-			_pos_sp_triplet_published_invalid_once = false;
-			navigation_mode_new = &_land;
-			break;
-
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
 			_pos_sp_triplet_published_invalid_once = false;
 			navigation_mode_new = &_dataLinkLoss;
@@ -620,6 +615,7 @@ Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
 		case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
 		case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
 		case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
 		case vehicle_status_s::NAVIGATION_STATE_STAB:

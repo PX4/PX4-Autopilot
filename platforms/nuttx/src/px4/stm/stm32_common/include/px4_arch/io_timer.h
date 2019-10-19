@@ -7,14 +7,14 @@
  * are met:
  *
  * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
+ *	notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
+ *	notice, this list of conditions and the following disclaimer in
+ *	the documentation and/or other materials provided with the
+ *	distribution.
  * 3. Neither the name PX4 nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ *	used to endorse or promote products derived from this software
+ *	without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -32,26 +32,35 @@
  ****************************************************************************/
 
 /**
- * @file drv_io_timer.h
- *
- * stm32-specific PWM output data.
+ * @file io_timer.h
  */
 #include <px4_config.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
 #include <drivers/drv_hrt.h>
+#include "dshot.h"
 
 #pragma once
 __BEGIN_DECLS
 /* configuration limits */
-#define MAX_IO_TIMERS			5
+#ifdef BOARD_NUM_IO_TIMERS
+#define MAX_IO_TIMERS			BOARD_NUM_IO_TIMERS
+#else
+#define MAX_IO_TIMERS			2
+#endif
 #define MAX_TIMER_IO_CHANNELS	8
 
 #define MAX_LED_TIMERS			2
 #define MAX_TIMER_LED_CHANNELS	6
 
 #define IO_TIMER_ALL_MODES_CHANNELS 0
+
+/* TIM_DMA_Base_address TIM DMA Base Address */
+#define TIM_DMABASE_CCR1		0x0000000DU
+#define TIM_DMABASE_CCR2		0x0000000EU
+#define TIM_DMABASE_CCR3		0x0000000FU
+#define TIM_DMABASE_CCR4		0x00000010U
 
 typedef enum io_timer_channel_mode_t {
 	IOTimerChanMode_NotUsed = 0,
@@ -60,6 +69,7 @@ typedef enum io_timer_channel_mode_t {
 	IOTimerChanMode_Capture = 3,
 	IOTimerChanMode_OneShot = 4,
 	IOTimerChanMode_Trigger = 5,
+	IOTimerChanMode_Dshot   = 6,
 	IOTimerChanModeSize
 } io_timer_channel_mode_t;
 
@@ -74,14 +84,15 @@ typedef uint8_t io_timer_channel_allocation_t; /* big enough to hold MAX_TIMER_I
  *** the resulting PSC will be one and the timer will count at it's clock frequency.
  */
 typedef struct io_timers_t {
-	uint32_t	base;
-	uint32_t	clock_register;
-	uint32_t	clock_bit;
-	uint32_t	clock_freq;
-	uint32_t	vectorno;
-	uint32_t    first_channel_index;
-	uint32_t    last_channel_index;
-	xcpt_t      handler;
+	uint32_t		base;
+	uint32_t		clock_register;
+	uint32_t		clock_bit;
+	uint32_t		clock_freq;
+	uint32_t		vectorno;
+	uint32_t		first_channel_index;
+	uint32_t		last_channel_index;
+	xcpt_t			handler;
+	dshot_conf_t	dshot;
 } io_timers_t;
 
 /* array of channels in logical order */
@@ -132,5 +143,8 @@ __EXPORT int io_timer_free_channel(unsigned channel);
 __EXPORT int io_timer_get_channel_mode(unsigned channel);
 __EXPORT int io_timer_get_mode_channels(io_timer_channel_mode_t mode);
 __EXPORT extern void io_timer_trigger(void);
+__EXPORT void io_timer_update_generation(uint8_t timer);
+
+__EXPORT extern int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_rate, uint8_t dma_burst_length);
 
 __END_DECLS

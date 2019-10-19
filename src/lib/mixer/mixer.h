@@ -241,7 +241,7 @@ public:
 	virtual unsigned get_trim(float *trim) = 0;
 
 	/*
-	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to pwm.
+	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to motor control signal output.
 	 *
 	 * @param[in]  val   The value
 	 */
@@ -444,7 +444,7 @@ public:
 	}
 
 	/**
-	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to pwm.
+	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to motor control signal output.
 	 *
 	 * @param[in]  val   The value
 	 */
@@ -708,7 +708,7 @@ public:
 	}
 
 	/**
-	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to pwm.
+	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to motor control signal output.
 	 *
 	 * @param[in]  val   The value
 	 */

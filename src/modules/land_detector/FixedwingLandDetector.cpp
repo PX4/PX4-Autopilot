@@ -39,8 +39,6 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <matrix/math.hpp>
-
 #include "FixedwingLandDetector.h"
 
 namespace land_detector
@@ -55,35 +53,13 @@ FixedwingLandDetector::FixedwingLandDetector()
 
 void FixedwingLandDetector::_update_topics()
 {
+	LandDetector::_update_topics();
 	_airspeed_sub.update(&_airspeed);
-	_vehicle_acceleration_sub.update(&_vehicle_acceleration);
-	_vehicle_local_position_sub.update(&_vehicle_local_position);
-}
-
-void FixedwingLandDetector::_update_params()
-{
-	// check for parameter updates
-	if (_parameter_update_sub.updated()) {
-		// clear update
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
-
-		// update parameters from storage
-		_update_params();
-	}
-}
-
-float FixedwingLandDetector::_get_max_altitude()
-{
-	// TODO
-	// This means no altitude limit as the limit
-	// is always current position plus 10000 meters
-	return roundf(-_vehicle_local_position.z + 10000);
 }
 
 bool FixedwingLandDetector::_get_landed_state()
 {
-	// only trigger flight conditions if we are armed
+	// Only trigger flight conditions if we are armed.
 	if (!_actuator_armed.armed) {
 		return true;
 	}
@@ -116,11 +92,11 @@ bool FixedwingLandDetector::_get_landed_state()
 
 		_xy_accel_filtered = _xy_accel_filtered * 0.8f + acc_hor * 0.18f;
 
-		// crude land detector for fixedwing
-		landDetected = _xy_accel_filtered       < _param_lndfw_xyaccel_max.get()
-			       && _airspeed_filtered    < _param_lndfw_airspd.get()
+		// Crude land detector for fixedwing.
+		landDetected = _airspeed_filtered       < _param_lndfw_airspd.get()
 			       && _velocity_xy_filtered < _param_lndfw_vel_xy_max.get()
-			       && _velocity_z_filtered  < _param_lndfw_vel_z_max.get();
+			       && _velocity_z_filtered  < _param_lndfw_vel_z_max.get()
+			       && _xy_accel_filtered    < _param_lndfw_xyaccel_max.get();
 
 	} else {
 		// Control state topic has timed out and we need to assume we're landed.

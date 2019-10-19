@@ -62,7 +62,7 @@
 
 static const char *sensor_name = "gyro";
 
-static const unsigned max_gyros = 3;
+static constexpr unsigned max_gyros = 3;
 
 /// Data passed to calibration worker routine
 typedef struct  {
@@ -82,12 +82,9 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, void *data)
 	sensor_gyro_s	gyro_report;
 	unsigned		poll_errcount = 0;
 
-	struct sensor_correction_s sensor_correction; /**< sensor thermal corrections */
+	struct sensor_correction_s sensor_correction {}; /**< sensor thermal corrections */
 
 	if (orb_copy(ORB_ID(sensor_correction), worker_data->sensor_correction_sub, &sensor_correction) != 0) {
-		/* use default values */
-		memset(&sensor_correction, 0, sizeof(sensor_correction));
-
 		for (unsigned i = 0; i < 3; i++) {
 			sensor_correction.gyro_scale_0[i] = 1.0f;
 			sensor_correction.gyro_scale_1[i] = 1.0f;

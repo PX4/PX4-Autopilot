@@ -66,6 +66,9 @@ public:
 
 	virtual void updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 				   unsigned num_outputs, unsigned num_control_groups_updated) = 0;
+
+	/** called whenever the mixer gets updated/reset */
+	virtual void mixerChanged() {};
 };
 
 /**
@@ -97,7 +100,7 @@ public:
 
 	~MixingOutput();
 
-	void printStatus();
+	void printStatus() const;
 
 	/**
 	 * Call this regularly from Run(). It will call interface.updateOutputs().
@@ -148,10 +151,17 @@ public:
 
 	uint16_t &reverseOutputMask() { return _reverse_output_mask; }
 	uint16_t &failsafeValue(int index) { return _failsafe_value[index]; }
-	/** Disarmed values: if ramp_up is true, then disarmedValue < minValue needs to hold */
+	/** Disarmed values: disarmedValue < minValue needs to hold */
 	uint16_t &disarmedValue(int index) { return _disarmed_value[index]; }
 	uint16_t &minValue(int index) { return _min_value[index]; }
 	uint16_t &maxValue(int index) { return _max_value[index]; }
+
+	/**
+	 * Get the motor index that maps from PX4 convention to the configured one
+	 * @param index motor index in [0, num_motors-1]
+	 * @return reordered motor index. When out of range, the input index is returned
+	 */
+	int reorderedMotorIndex(int index);
 
 protected:
 	void updateParams() override;
@@ -233,7 +243,7 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,   ///< multicopter air-mode
 		(ParamFloat<px4::params::MOT_SLEW_MAX>) _param_mot_slew_max,
-		(ParamFloat<px4::params::THR_MDL_FAC>) _param_thr_mdl_fac, ///< thrust to pwm modelling factor
+		(ParamFloat<px4::params::THR_MDL_FAC>) _param_thr_mdl_fac, ///< thrust to motor control signal modelling factor
 		(ParamInt<px4::params::MOT_ORDERING>) _param_mot_ordering,
 		(ParamInt<px4::params::CBRK_IO_SAFETY>) _param_cbrk_io_safety
 

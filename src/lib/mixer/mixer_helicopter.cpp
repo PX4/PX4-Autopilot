@@ -200,6 +200,10 @@ HelicopterMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 unsigned
 HelicopterMixer::mix(float *outputs, unsigned space)
 {
+	if (space < _mixer_info.control_count + 1u) {
+		return 0;
+	}
+
 	/* Find index to use for curves */
 	float thrust_cmd = get_control(0, 3);
 	int idx = (thrust_cmd / 0.25f);

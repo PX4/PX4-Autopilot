@@ -76,7 +76,7 @@ private:
 	hrt_abstime _timestamp_activation{0}; //*< timestamp when this mode was activated */
 
 	uORB::Publication<vehicle_attitude_setpoint_s>	_att_sp_pub{ORB_ID(vehicle_attitude_setpoint)};
-
+	uORB::Publication<vehicle_attitude_setpoint_s>	_fw_virtual_att_sp_pub{ORB_ID(fw_virtual_attitude_setpoint)};
 	/**
 	 * Set the GPSF item
 	 */
