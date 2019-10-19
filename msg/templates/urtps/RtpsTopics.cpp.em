@@ -21,7 +21,10 @@ send_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumerate(spec) if scope[idx] == MsgScope.RECEIVE]
 package = package[0]
 fastrtpsgen_version = fastrtpsgen_version[0]
-ros2_distro = ros2_distro[0].decode("utf-8")
+try:
+    ros2_distro = ros2_distro[0].decode("utf-8")
+except AttributeError:
+    ros2_distro = ros2_distro[0]
 }@
 /****************************************************************************
  *
