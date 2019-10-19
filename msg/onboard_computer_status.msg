@@ -1,5 +1,5 @@
 uint64 timestamp # time since system start (microseconds)
-uint32 uptime	 # time since system boot  (miliseconds)
+uint32 uptime	 # time since system boot of the companion (milliseconds)
 
 uint8 type	 # type of onboard computer
 
