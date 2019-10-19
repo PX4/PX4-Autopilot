@@ -30,12 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
-
 px4_add_module(
 	MODULE systemcmds__top
 	MAIN top
-	PRIORITY "SCHED_PRIORITY_MAX - 7"
-
+	PRIORITY
+		"SCHED_PRIORITY_MAX - 7" # max priority below sensor WQ threads
 	SRCS
 		top.c
 	DEPENDS
