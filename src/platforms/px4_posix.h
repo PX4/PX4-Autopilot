@@ -81,7 +81,7 @@ typedef struct pollfd px4_pollfd_struct_t;
 
 #elif defined(__PX4_POSIX)
 
-#define	 PX4_STACK_OVERHEAD	8192
+#define	 PX4_STACK_OVERHEAD	(1024 * 11)
 
 /**
  * Terminates the calling process immediately.
