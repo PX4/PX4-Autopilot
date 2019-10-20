@@ -31,10 +31,15 @@
 #
 ############################################################################
 
-px4_add_library(PreFlightCheck
-	PreFlightCheck.cpp
-)
-target_include_directories(PreFlightCheck PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(PreFlightCheck PUBLIC ArmAuthorization HealthFlags)
-
-add_subdirectory(checks)
+target_sources(PreFlightCheck PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/preArmCheck.cpp)
+target_sources(PreFlightCheck PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/magnetometerCheck.cpp)
+target_sources(PreFlightCheck PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/magConsistencyCheck.cpp)
+target_sources(PreFlightCheck PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/accelerometerCheck.cpp)
+target_sources(PreFlightCheck PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/gyroCheck.cpp)
+target_sources(PreFlightCheck PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/baroCheck.cpp)
+target_sources(PreFlightCheck PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/imuConsistencyCheck.cpp)
+target_sources(PreFlightCheck PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/airspeedCheck.cpp)
+target_sources(PreFlightCheck PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/rcCalibrationCheck.cpp)
+target_sources(PreFlightCheck PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/powerCheck.cpp)
+target_sources(PreFlightCheck PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ekf2Check.cpp)
+target_sources(PreFlightCheck PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/failureDetectorCheck.cpp)
