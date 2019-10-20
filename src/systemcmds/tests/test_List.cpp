@@ -136,7 +136,7 @@ bool ListTest::test_remove()
 		for (auto t : list1) {
 			if (t->i == remove_i) {
 				ut_assert_true(list1.remove(t));
-				t = removed;
+				removed = t;
 			}
 		}
 
