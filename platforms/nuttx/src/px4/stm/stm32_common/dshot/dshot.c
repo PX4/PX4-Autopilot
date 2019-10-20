@@ -51,23 +51,23 @@
 #define DSHOT_TIMERS				MAX_IO_TIMERS
 #define MOTORS_NUMBER				DIRECT_PWM_OUTPUT_CHANNELS
 #define ONE_MOTOR_DATA_SIZE			16u
-#define ONE_MOTOR_BUFF_SIZE			18u
+#define ONE_MOTOR_BUFF_SIZE			17u
 #define ALL_MOTORS_BUF_SIZE			(MOTORS_NUMBER * ONE_MOTOR_BUFF_SIZE)
 #define DSHOT_THROTTLE_POSITION		5u
 #define DSHOT_TELEMETRY_POSITION	4u
 #define NIBBLES_SIZE 				4u
 #define DSHOT_NUMBER_OF_NIBBLES		3u
-#define DSHOT_REDUNDANT_BIT_16 		16u
-#define DSHOT_REDUNDANT_BIT_17 		17u
+#define DSHOT_END_OF_STREAM 		16u
 #define MAX_NUM_CHANNELS_PER_TIMER	4u // CCR1-CCR4
 
 #define DSHOT_DMA_SCR (DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | \
-				 DMA_SCR_DIR_M2P | DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE)
+		       DMA_SCR_DIR_M2P | DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE)
 
 typedef struct dshot_handler_t {
 	bool			init;
 	DMA_HANDLE		dma_handle;
 	uint32_t		dma_size;
+	uint8_t			callback_arg;
 } dshot_handler_t;
 
 #define DMA_BUFFER_MASK    (PX4_ARCH_DCACHE_LINESIZE - 1)
@@ -85,6 +85,7 @@ static const uint8_t motor_assignment[MOTORS_NUMBER] = BOARD_DSHOT_MOTOR_ASSIGNM
 #endif /* BOARD_DSHOT_MOTOR_ASSIGNMENT */
 
 void dshot_dmar_data_prepare(uint8_t timer, uint8_t first_motor, uint8_t motors_number);
+void dshot_callback(DMA_HANDLE handle, uint8_t status, void *arg);
 
 int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 {
@@ -175,18 +176,26 @@ void up_dshot_trigger(void)
 
 			first_motor += motors_number;
 
-			io_timer_update_generation(timer);
-
 			stm32_dmasetup(dshot_handler[timer].dma_handle,
-			                io_timers[timer].base + STM32_GTIM_DMAR_OFFSET,
-			                (uint32_t)(dshot_burst_buffer[timer]),
-			                dshot_handler[timer].dma_size,
-			                DSHOT_DMA_SCR);
+				       io_timers[timer].base + STM32_GTIM_DMAR_OFFSET,
+				       (uint32_t)(dshot_burst_buffer[timer]),
+				       dshot_handler[timer].dma_size,
+				       DSHOT_DMA_SCR);
 
 			// Trigger DMA (DShot Outputs)
-			stm32_dmastart(dshot_handler[timer].dma_handle, NULL, NULL, false);
+			dshot_handler[timer].callback_arg = timer;
+			stm32_dmastart(dshot_handler[timer].dma_handle, &dshot_callback, &(dshot_handler[timer].callback_arg), false);
+			io_timer_update_dma_req(timer, true);
+
 		}
 	}
+}
+
+void dshot_callback(DMA_HANDLE handle, uint8_t status, void *arg)
+{
+
+	uint8_t timer = *((uint8_t *)arg);
+	io_timer_update_dma_req(timer, false);
 }
 
 /**
@@ -225,8 +234,7 @@ static void dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool 
 		packet <<= 1;
 	}
 
-	motor_buffer[motor_number * ONE_MOTOR_BUFF_SIZE + DSHOT_REDUNDANT_BIT_16] = 0;
-	motor_buffer[motor_number * ONE_MOTOR_BUFF_SIZE + DSHOT_REDUNDANT_BIT_17] = 0;
+	motor_buffer[motor_number * ONE_MOTOR_BUFF_SIZE + DSHOT_END_OF_STREAM] = 0;
 }
 
 void up_dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool telemetry)
