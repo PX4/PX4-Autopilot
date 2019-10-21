@@ -59,6 +59,7 @@ public:
 	virtual ~EstimatorInterface() = default;
 
 	virtual bool init(uint64_t timestamp) = 0;
+	virtual void reset(uint64_t timestamp) = 0;
 	virtual bool update() = 0;
 
 	// gets the innovations of velocity and position measurements
@@ -356,6 +357,8 @@ public:
 	{
 		*val = _fault_status.value;
 	}
+
+	bool isVehicleAtRest() const { return _vehicle_at_rest; }
 
 	// get GPS check status
 	virtual void get_gps_check_status(uint16_t *val) = 0;
