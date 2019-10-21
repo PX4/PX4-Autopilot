@@ -45,7 +45,6 @@
 
 #include <px4_posix.h>
 #include <px4_defines.h>
-#include <px4_param.h>
 #include <px4_time.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -63,7 +62,7 @@
 
 static const char *sensor_name = "gyro";
 
-static const unsigned max_gyros = 3;
+static constexpr unsigned max_gyros = 3;
 
 /// Data passed to calibration worker routine
 typedef struct  {
@@ -83,12 +82,9 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, void *data)
 	sensor_gyro_s	gyro_report;
 	unsigned		poll_errcount = 0;
 
-	struct sensor_correction_s sensor_correction; /**< sensor thermal corrections */
+	struct sensor_correction_s sensor_correction {}; /**< sensor thermal corrections */
 
 	if (orb_copy(ORB_ID(sensor_correction), worker_data->sensor_correction_sub, &sensor_correction) != 0) {
-		/* use default values */
-		memset(&sensor_correction, 0, sizeof(sensor_correction));
-
 		for (unsigned i = 0; i < 3; i++) {
 			sensor_correction.gyro_scale_0[i] = 1.0f;
 			sensor_correction.gyro_scale_1[i] = 1.0f;
@@ -447,8 +443,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 		/* set offset parameters to new values */
 		bool failed = false;
 
-		failed = failed
-			 || (PX4_OK != param_set_no_notification(param_handle(px4::params::CAL_GYRO_PRIME), &(device_id_primary)));
+		failed = failed || (PX4_OK != param_set_no_notification(param_find("CAL_GYRO_PRIME"), &(device_id_primary)));
 
 		bool tc_locked[3] = {false}; // true when the thermal parameter instance has already been adjusted by the calibrator
 

@@ -1185,7 +1185,6 @@ private:
 	MavlinkOrbSubscription *_att_sub;
 	MavlinkOrbSubscription *_angular_velocity_sub;
 	uint64_t _att_time{0};
-	uint64_t _angular_velocity_time{0};
 
 	/* do not allow top copying this class */
 	MavlinkStreamAttitude(MavlinkStreamAttitude &) = delete;
@@ -1200,18 +1199,16 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		bool updated = false;
+		vehicle_attitude_s att;
 
-		vehicle_attitude_s att{};
-		vehicle_angular_velocity_s angular_velocity{};
-		updated |= _att_sub->update(&_att_time, &att);
-		updated |= _angular_velocity_sub->update(&_angular_velocity_time, &angular_velocity);
+		if (_att_sub->update(&_att_time, &att)) {
+			vehicle_angular_velocity_s angular_velocity{};
+			_angular_velocity_sub->update(&angular_velocity);
 
-		if (updated) {
 			mavlink_attitude_t msg{};
 
 			const matrix::Eulerf euler = matrix::Quatf(att.q);
-			msg.time_boot_ms = math::max(angular_velocity.timestamp, att.timestamp) / 1000;
+			msg.time_boot_ms = att.timestamp / 1000;
 			msg.roll = euler.phi();
 			msg.pitch = euler.theta();
 			msg.yaw = euler.psi();
@@ -1267,7 +1264,6 @@ private:
 	MavlinkOrbSubscription *_att_sub;
 	MavlinkOrbSubscription *_angular_velocity_sub;
 	uint64_t _att_time{0};
-	uint64_t _angular_velocity_time{0};
 
 	/* do not allow top copying this class */
 	MavlinkStreamAttitudeQuaternion(MavlinkStreamAttitudeQuaternion &) = delete;
@@ -1281,17 +1277,15 @@ protected:
 
 	bool send(const hrt_abstime t)
 	{
-		bool updated = false;
+		vehicle_attitude_s att;
 
-		vehicle_attitude_s att{};
-		vehicle_angular_velocity_s angular_velocity{};
-		updated |= _att_sub->update(&_att_time, &att);
-		updated |= _angular_velocity_sub->update(&_angular_velocity_time, &angular_velocity);
+		if (_att_sub->update(&_att_time, &att)) {
+			vehicle_angular_velocity_s angular_velocity{};
+			_angular_velocity_sub->update(&angular_velocity);
 
-		if (updated) {
 			mavlink_attitude_quaternion_t msg{};
 
-			msg.time_boot_ms = math::max(angular_velocity.timestamp, att.timestamp) / 1000;
+			msg.time_boot_ms = att.timestamp / 1000;
 			msg.q1 = att.q[0];
 			msg.q2 = att.q[1];
 			msg.q3 = att.q[2];
@@ -3533,23 +3527,6 @@ protected:
 			msg.rssi = (rc.channel_count > 0) ? rc.rssi : 0;
 
 			mavlink_msg_rc_channels_send_struct(_mavlink->get_channel(), &msg);
-
-			/* send override message - harmless if connected to GCS, allows to connect a board to a Linux system */
-			/* http://mavlink.org/messages/common#RC_CHANNELS_OVERRIDE */
-			mavlink_rc_channels_override_t over = {};
-			over.target_system = mavlink_system.sysid;
-			over.target_component = 0;
-			over.chan1_raw = msg.chan1_raw;
-			over.chan2_raw = msg.chan2_raw;
-			over.chan3_raw = msg.chan3_raw;
-			over.chan4_raw = msg.chan4_raw;
-			over.chan5_raw = msg.chan5_raw;
-			over.chan6_raw = msg.chan6_raw;
-			over.chan7_raw = msg.chan7_raw;
-			over.chan8_raw = msg.chan8_raw;
-
-			mavlink_msg_rc_channels_override_send_struct(_mavlink->get_channel(), &over);
-
 			return true;
 		}
 

@@ -42,8 +42,6 @@
 #include "tiltrotor.h"
 #include "vtol_att_control_main.h"
 
-#include <px4_param.h>
-
 #define ARSP_YAW_CTRL_DISABLE 7.0f	// airspeed at which we stop controlling yaw during a front transition
 
 Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
@@ -58,10 +56,10 @@ Tiltrotor::Tiltrotor(VtolAttitudeControl *attc) :
 
 	_flag_was_in_trans_mode = false;
 
-	_params_handles_tiltrotor.tilt_mc = param_handle(px4::params::VT_TILT_MC);
-	_params_handles_tiltrotor.tilt_transition = param_handle(px4::params::VT_TILT_TRANS);
-	_params_handles_tiltrotor.tilt_fw = param_handle(px4::params::VT_TILT_FW);
-	_params_handles_tiltrotor.front_trans_dur_p2 = param_handle(px4::params::VT_TRANS_P2_DUR);
+	_params_handles_tiltrotor.tilt_mc = param_find("VT_TILT_MC");
+	_params_handles_tiltrotor.tilt_transition = param_find("VT_TILT_TRANS");
+	_params_handles_tiltrotor.tilt_fw = param_find("VT_TILT_FW");
+	_params_handles_tiltrotor.front_trans_dur_p2 = param_find("VT_TRANS_P2_DUR");
 }
 
 void

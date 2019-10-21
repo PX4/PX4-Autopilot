@@ -43,7 +43,6 @@
 #include "calibration_messages.h"
 
 #include <px4_defines.h>
-#include <px4_param.h>
 #include <px4_posix.h>
 #include <px4_time.h>
 #include <stdio.h>
@@ -542,7 +541,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 	// Collect: As defined by configuration
 	// start with a full mask, all six bits set
 	int32_t cal_mask = (1 << 6) - 1;
-	param_get(param_handle(px4::params::CAL_MAG_SIDES), &cal_mask);
+	param_get(param_find("CAL_MAG_SIDES"), &cal_mask);
 
 	calibration_sides = 0;
 
@@ -793,7 +792,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 		// }
 	}
 
-// Data points are no longer needed
+	// Data points are no longer needed
 	for (size_t cur_mag = 0; cur_mag < max_mags; cur_mag++) {
 		free(worker_data.x[cur_mag]);
 		free(worker_data.y[cur_mag]);
@@ -900,7 +899,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 
 		// Trigger a param set on the last step so the whole
 		// system updates
-		(void)param_set(param_handle(px4::params::CAL_MAG_PRIME), &(device_id_primary));
+		(void)param_set(param_find("CAL_MAG_PRIME"), &(device_id_primary));
 	}
 
 	return result;

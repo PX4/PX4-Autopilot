@@ -37,9 +37,8 @@
 
 #include <px4_defines.h>
 #include <px4_config.h>
-#include <px4_param.h>
 
-#include <lib/systemlib/mavlink_log.h>
+#include <systemlib/mavlink_log.h>
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
@@ -277,7 +276,7 @@ void arm_auth_update(hrt_abstime now, bool param_update)
 void arm_auth_init(orb_advert_t *mav_log_pub, uint8_t *sys_id)
 {
 	system_id = sys_id;
-	param_arm_parameters = param_handle(px4::params::COM_ARM_AUTH);
+	param_arm_parameters = param_find("COM_ARM_AUTH");
 	command_ack_sub = orb_subscribe(ORB_ID(vehicle_command_ack));
 	mavlink_log_pub = mav_log_pub;
 }

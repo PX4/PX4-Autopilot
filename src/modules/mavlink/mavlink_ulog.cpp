@@ -116,7 +116,7 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 					const ulog_stream_s &ulog_data = _ulog_stream_sub.get();
 
 					mavlink_logging_data_acked_t msg;
-					msg.sequence = ulog_data.sequence;
+					msg.sequence = ulog_data.msg_sequence;
 					msg.length = ulog_data.length;
 					msg.first_message_offset = ulog_data.first_message_offset;
 					msg.target_system = _target_system;
@@ -140,12 +140,12 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 				_sent_tries = 1;
 				_last_sent_time = hrt_absolute_time();
 				lock();
-				_wait_for_ack_sequence = ulog_data.sequence;
+				_wait_for_ack_sequence = ulog_data.msg_sequence;
 				_ack_received = false;
 				unlock();
 
 				mavlink_logging_data_acked_t msg;
-				msg.sequence = ulog_data.sequence;
+				msg.sequence = ulog_data.msg_sequence;
 				msg.length = ulog_data.length;
 				msg.first_message_offset = ulog_data.first_message_offset;
 				msg.target_system = _target_system;
@@ -155,7 +155,7 @@ int MavlinkULog::handle_update(mavlink_channel_t channel)
 
 			} else {
 				mavlink_logging_data_t msg;
-				msg.sequence = ulog_data.sequence;
+				msg.sequence = ulog_data.msg_sequence;
 				msg.length = ulog_data.length;
 				msg.first_message_offset = ulog_data.first_message_offset;
 				msg.target_system = _target_system;
@@ -252,7 +252,7 @@ void MavlinkULog::publish_ack(uint16_t sequence)
 {
 	ulog_stream_ack_s ack;
 	ack.timestamp = hrt_absolute_time();
-	ack.sequence = sequence;
+	ack.msg_sequence = sequence;
 
 	_ulog_stream_ack_pub.publish(ack);
 }

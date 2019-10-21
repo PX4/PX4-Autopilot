@@ -27,7 +27,6 @@ set FAILSAFE none
 set FAILSAFE_AUX none
 set FCONFIG /fs/microsd/etc/config.txt
 set FEXTRAS /fs/microsd/etc/extras.txt
-set FMU_ARGS ""
 set FMU_MODE pwm
 set FRC /fs/microsd/etc/rc.txt
 set IOFW "/etc/extras/px4_io-v2_default.bin"
@@ -299,7 +298,7 @@ else
 	#
 	# Set USE_IO flag.
 	#
-	if param compare SYS_USE_IO 1
+	if param compare -s SYS_USE_IO 1
 	then
 		set USE_IO yes
 	fi
@@ -348,7 +347,7 @@ else
 	fi
 
 	# Sensors on the PWM interface bank.
-	if param compare SENS_EN_LL40LS 1
+	if param compare -s SENS_EN_LL40LS 1
 	then
 		# Clear pins 5 and 6.
 		set FMU_MODE pwm4
@@ -375,7 +374,7 @@ else
 	#
 	# Check if UAVCAN is enabled, default to it for ESCs.
 	#
-	if param greater UAVCAN_ENABLE 0
+	if param greater -s UAVCAN_ENABLE 0
 	then
 		# Start core UAVCAN module.
 		if uavcan start
@@ -427,7 +426,7 @@ else
 	sh /etc/init.d/rc.vehicle_setup
 
 	# Camera capture driver
-	if param greater CAM_CAP_FBACK 0
+	if param greater -s CAM_CAP_FBACK 0
 	then
 		if camera_capture start
 		then
@@ -522,7 +521,6 @@ unset FAILSAFE
 unset FAILSAFE_AUX
 unset FCONFIG
 unset FEXTRAS
-unset FMU_ARGS
 unset FMU_MODE
 unset FRC
 unset IO_PRESENT

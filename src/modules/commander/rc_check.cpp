@@ -40,10 +40,15 @@
 #include "rc_check.h"
 
 #include <px4_config.h>
-#include <px4_param.h>
 #include <px4_time.h>
 
-#include <lib/parameters/param.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+#include <systemlib/err.h>
+
+#include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
 #include <drivers/drv_rc_input.h>
 
@@ -66,7 +71,7 @@ int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool i
 
 	/* if VTOL, check transition switch mapping */
 	if (isVTOL) {
-		param_t trans_parm = param_handle(px4::params::RC_MAP_TRANS_SW);
+		param_t trans_parm = param_find("RC_MAP_TRANS_SW");
 
 		if (trans_parm == PARAM_INVALID) {
 			if (report_fail) { mavlink_log_critical(mavlink_log_pub, "RC_MAP_TRANS_SW PARAMETER MISSING."); }

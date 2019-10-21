@@ -123,6 +123,12 @@ MavlinkParametersManager::handle_message(const mavlink_message_t *msg)
 					sprintf(buf, "[pm] unknown param: %s", name);
 					_mavlink->send_statustext_info(buf);
 
+				} else if (!((param_type(param) == PARAM_TYPE_INT32 && set.param_type == MAV_PARAM_TYPE_INT32) ||
+					     (param_type(param) == PARAM_TYPE_FLOAT && set.param_type == MAV_PARAM_TYPE_REAL32))) {
+					char buf[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN];
+					sprintf(buf, "[pm] param types mismatch param: %s", name);
+					_mavlink->send_statustext_info(buf);
+
 				} else {
 					// According to the mavlink spec we should always acknowledge a write operation.
 					param_set(param, &(set.param_value));

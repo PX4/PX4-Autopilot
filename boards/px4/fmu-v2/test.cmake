@@ -79,7 +79,7 @@ px4_add_board(
 		battery_status
 		sensors
 		vmount
-		#vtol_att_control
+		vtol_att_control
 		#airspeed_selector
 
 	SYSTEMCMDS

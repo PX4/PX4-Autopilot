@@ -159,6 +159,7 @@ static uint64_t rc_signal_lost_timestamp;		// Time at which the RC reception was
 static uint8_t arm_requirements = ARM_REQ_NONE;
 
 static bool _last_condition_local_altitude_valid = false;
+static bool _last_condition_local_position_valid = false;
 static bool _last_condition_global_position_valid = false;
 
 static struct vehicle_land_detected_s land_detector = {};
@@ -213,7 +214,7 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 	// on the main thread of commander.
 	power_button_state_s button_state{};
 	button_state.timestamp = hrt_absolute_time();
-	int ret = PWR_BUTTON_RESPONSE_SHUT_DOWN_PENDING;
+	const int ret = PWR_BUTTON_RESPONSE_SHUT_DOWN_PENDING;
 
 	switch (request) {
 	case PWR_BUTTON_IDEL:
@@ -430,10 +431,10 @@ int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "transition")) {
 
-		bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION,
-						(float)(status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING ?
-							vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW :
-							vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC));
+		const bool ret = send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_VTOL_TRANSITION,
+						      (float)(status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING ?
+								      vtol_vehicle_status_s::VEHICLE_VTOL_STATE_FW :
+								      vtol_vehicle_status_s::VEHICLE_VTOL_STATE_MC));
 
 		return (ret ? 0 : 1);
 	}
@@ -1212,33 +1213,33 @@ Commander::run()
 	status_flags.condition_system_sensors_initialized = true;
 
 	/* set parameters */
-	param_t _param_sys_type = param_handle(px4::params::MAV_TYPE);
-	param_t _param_system_id = param_handle(px4::params::MAV_SYS_ID);
-	param_t _param_component_id = param_handle(px4::params::MAV_COMP_ID);
-	param_t _param_ef_throttle_thres = param_handle(px4::params::COM_EF_THROT);
-	param_t _param_ef_current2throttle_thres = param_handle(px4::params::COM_EF_C2T);
-	param_t _param_ef_time_thres = param_handle(px4::params::COM_EF_TIME);
-	param_t _param_rc_in_off = param_handle(px4::params::COM_RC_IN_MODE);
-	param_t _param_rc_arm_hyst = param_handle(px4::params::COM_RC_ARM_HYST);
-	param_t _param_min_stick_change = param_handle(px4::params::COM_RC_STICK_OV);
-	param_t _param_geofence_action = param_handle(px4::params::GF_ACTION);
-	param_t _param_arm_without_gps = param_handle(px4::params::COM_ARM_WO_GPS);
-	param_t _param_arm_switch_is_button = param_handle(px4::params::COM_ARM_SWISBTN);
-	param_t _param_rc_override = param_handle(px4::params::COM_RC_OVERRIDE);
-	param_t _param_arm_mission_required = param_handle(px4::params::COM_ARM_MIS_REQ);
-	param_t _param_escs_checks_required = param_handle(px4::params::COM_ARM_CHK_ESCS);
-	param_t _param_flight_uuid = param_handle(px4::params::COM_FLIGHT_UUID);
-	param_t _param_takeoff_finished_action = param_handle(px4::params::COM_TAKEOFF_ACT);
+	param_t _param_sys_type = param_find("MAV_TYPE");
+	param_t _param_system_id = param_find("MAV_SYS_ID");
+	param_t _param_component_id = param_find("MAV_COMP_ID");
+	param_t _param_ef_throttle_thres = param_find("COM_EF_THROT");
+	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
+	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
+	param_t _param_rc_in_off = param_find("COM_RC_IN_MODE");
+	param_t _param_rc_arm_hyst = param_find("COM_RC_ARM_HYST");
+	param_t _param_min_stick_change = param_find("COM_RC_STICK_OV");
+	param_t _param_geofence_action = param_find("GF_ACTION");
+	param_t _param_arm_without_gps = param_find("COM_ARM_WO_GPS");
+	param_t _param_arm_switch_is_button = param_find("COM_ARM_SWISBTN");
+	param_t _param_rc_override = param_find("COM_RC_OVERRIDE");
+	param_t _param_arm_mission_required = param_find("COM_ARM_MIS_REQ");
+	param_t _param_escs_checks_required = param_find("COM_ARM_CHK_ESCS");
+	param_t _param_flight_uuid = param_find("COM_FLIGHT_UUID");
+	param_t _param_takeoff_finished_action = param_find("COM_TAKEOFF_ACT");
 
-	param_t _param_fmode_1 = param_handle(px4::params::COM_FLTMODE1);
-	param_t _param_fmode_2 = param_handle(px4::params::COM_FLTMODE2);
-	param_t _param_fmode_3 = param_handle(px4::params::COM_FLTMODE3);
-	param_t _param_fmode_4 = param_handle(px4::params::COM_FLTMODE4);
-	param_t _param_fmode_5 = param_handle(px4::params::COM_FLTMODE5);
-	param_t _param_fmode_6 = param_handle(px4::params::COM_FLTMODE6);
+	param_t _param_fmode_1 = param_find("COM_FLTMODE1");
+	param_t _param_fmode_2 = param_find("COM_FLTMODE2");
+	param_t _param_fmode_3 = param_find("COM_FLTMODE3");
+	param_t _param_fmode_4 = param_find("COM_FLTMODE4");
+	param_t _param_fmode_5 = param_find("COM_FLTMODE5");
+	param_t _param_fmode_6 = param_find("COM_FLTMODE6");
 
 	param_t _param_airmode = param_find("MC_AIRMODE");
-	param_t _param_rc_map_arm_switch = param_handle(px4::params::RC_MAP_ARM_SW);
+	param_t _param_rc_map_arm_switch = param_find("RC_MAP_ARM_SW");
 
 	status_flags.avoidance_system_required = _param_com_obs_avoid.get();
 
@@ -1288,8 +1289,6 @@ Commander::run()
 
 	bool status_changed = true;
 	bool param_init_forced = true;
-
-	bool updated = false;
 
 	uORB::Subscription actuator_controls_sub{ORB_ID_VEHICLE_ATTITUDE_CONTROLS};
 	uORB::Subscription cmd_sub{ORB_ID(vehicle_command)};
@@ -1736,14 +1735,11 @@ Commander::run()
 		battery_status_check();
 
 		/* update subsystem info which arrives from outside of commander*/
-		do {
-			if (subsys_sub.updated()) {
-				subsystem_info_s info{};
-				subsys_sub.copy(&info);
-				set_health_flags(info.subsystem_type, info.present, info.enabled, info.ok, status);
-				status_changed = true;
-			}
-		} while (updated);
+		subsystem_info_s info;
+		while (subsys_sub.update(&info))  {
+			set_health_flags(info.subsystem_type, info.present, info.enabled, info.ok, status);
+			status_changed = true;
+		}
 
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!status_flags.condition_calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
@@ -1911,7 +1907,7 @@ Commander::run()
 
 				// revert to position control in any case
 				main_state_transition(status, commander_state_s::MAIN_STATE_POSCTL, status_flags, &internal_state);
-				mavlink_log_critical(&mavlink_log_pub, "Autopilot off! Returning control to pilot");
+				mavlink_log_critical(&mavlink_log_pub, "Autonomy off! Returned control to pilot");
 			}
 		}
 
@@ -2071,6 +2067,7 @@ Commander::run()
 
 			/* store last position lock state */
 			_last_condition_local_altitude_valid = status_flags.condition_local_altitude_valid;
+			_last_condition_local_position_valid = status_flags.condition_local_position_valid;
 			_last_condition_global_position_valid = status_flags.condition_global_position_valid;
 
 			/* play tune on mode change only if armed, blink LED always */
@@ -2639,8 +2636,7 @@ Commander::set_main_state(const vehicle_status_s &status_local, bool *changed)
 transition_result_t
 Commander::set_main_state_override_on(const vehicle_status_s &status_local, bool *changed)
 {
-	transition_result_t res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, status_flags,
-				  &internal_state);
+	const transition_result_t res = main_state_transition(status_local, commander_state_s::MAIN_STATE_MANUAL, status_flags, &internal_state);
 	*changed = (res == TRANSITION_CHANGED);
 
 	return res;
@@ -2656,10 +2652,11 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 	// we want to allow rc mode change to take precidence.  This is a safety
 	// feature, just in case offboard control goes crazy.
 
-	const bool altitude_got_valid = !_last_condition_local_altitude_valid && status_flags.condition_local_altitude_valid;
-	const bool position_got_valid = !_last_condition_global_position_valid && status_flags.condition_global_position_valid;
-	const bool first_time_rc = _last_sp_man.timestamp == 0;
-	const bool rc_values_updated = _last_sp_man.timestamp != sp_man.timestamp;
+	const bool altitude_got_valid = (!_last_condition_local_altitude_valid && status_flags.condition_local_altitude_valid);
+	const bool lpos_got_valid = (!_last_condition_local_position_valid && status_flags.condition_local_position_valid);
+	const bool gpos_got_valid = (!_last_condition_global_position_valid && status_flags.condition_global_position_valid);
+	const bool first_time_rc = (_last_sp_man.timestamp == 0);
+	const bool rc_values_updated = (_last_sp_man.timestamp != sp_man.timestamp);
 	const bool some_switch_changed =
 		(_last_sp_man.offboard_switch != sp_man.offboard_switch)
 		|| (_last_sp_man.return_switch != sp_man.return_switch)
@@ -2675,7 +2672,8 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
 	// only switch mode based on RC switch if necessary to also allow mode switching via MAVLink
 	const bool should_evaluate_rc_mode_switch = first_time_rc
 			|| altitude_got_valid
-			|| position_got_valid
+			|| lpos_got_valid
+			|| gpos_got_valid
 			|| (rc_values_updated && some_switch_changed);
 
 	if (!should_evaluate_rc_mode_switch) {
@@ -3199,8 +3197,7 @@ Commander::update_control_mode()
 		break;
 
 	case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-		/* TODO: check if this makes sense */
-		control_mode.flag_control_auto_enabled = true;
+		control_mode.flag_control_auto_enabled = false;
 		control_mode.flag_control_rates_enabled = true;
 		control_mode.flag_control_attitude_enabled = true;
 		control_mode.flag_control_climb_rate_enabled = true;
@@ -3408,6 +3405,12 @@ void *commander_low_prio_loop(void *arg)
 			switch (cmd.command) {
 
 			case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
+				if (((int)(cmd.param1)) == 0) {
+					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+					/* do nothing for autopilot */
+					break;
+				}
+
 				if (is_safe(safety, armed)) {
 
 					if (((int)(cmd.param1)) == 1) {
@@ -3703,7 +3706,7 @@ bool Commander::preflight_check(bool report)
 {
 	const bool checkGNSS = (arm_requirements & ARM_REQ_GPS_BIT);
 
-	bool success = Preflight::preflightCheck(&mavlink_log_pub, status, status_flags, checkGNSS, report, false,
+	const bool success = Preflight::preflightCheck(&mavlink_log_pub, status, status_flags, checkGNSS, report, false,
 			hrt_elapsed_time(&commander_boot_timestamp));
 
 	if (success) {

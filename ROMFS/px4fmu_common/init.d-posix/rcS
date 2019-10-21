@@ -213,12 +213,12 @@ commander start
 navigator start
 
 
-if ! param compare MNT_MODE_IN -1
+if ! param compare -s MNT_MODE_IN -1
 then
 	vmount start
 fi
 
-if param greater TRIG_MODE 0
+if param greater -s TRIG_MODE 0
 then
 	camera_trigger start
 	camera_feedback start
