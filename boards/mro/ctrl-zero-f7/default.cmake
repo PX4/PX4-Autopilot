@@ -73,6 +73,7 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		navigator
+		battery_status
 		sensors
 		sih
 		vmount

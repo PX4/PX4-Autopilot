@@ -31,27 +31,16 @@
 #
 ############################################################################
 
-add_subdirectory(vehicle_acceleration)
-add_subdirectory(vehicle_angular_velocity)
-
 px4_add_module(
-	MODULE modules__sensors
-	MAIN sensors
-	PRIORITY "SCHED_PRIORITY_MAX-5"
+	MODULE modules__battery_status
+	MAIN battery_status
 	SRCS
-		voted_sensors_update.cpp
-		rc_update.cpp
-		sensors.cpp
+		battery_status.cpp
 		parameters.cpp
-		temperature_compensation.cpp
 
 	DEPENDS
-		airspeed
+		battery
 		conversion
 		drivers__device
-		git_ecl
-		ecl_validation
 		mathlib
-		vehicle_acceleration
-		vehicle_angular_velocity
 	)

@@ -340,6 +340,7 @@ else
 		fi
 		unset BOARD_RC_SENSORS
 
+		battery_status start
 
 		sh /etc/init.d/rc.sensors
 		commander start
