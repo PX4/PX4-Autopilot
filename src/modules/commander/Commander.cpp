@@ -1077,7 +1077,11 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 	case vehicle_command_s::VEHICLE_CMD_DO_ORBIT:
 		// Switch to orbit state and let the orbit task handle the command further
-		main_state_transition(*status_local, commander_state_s::MAIN_STATE_ORBIT, status_flags, &internal_state);
+		if (TRANSITION_DENIED != main_state_transition(*status_local, commander_state_s::MAIN_STATE_ORBIT, status_flags, &internal_state)) {
+			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+		} else {
+			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+		}
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_DO_MOTOR_TEST:
