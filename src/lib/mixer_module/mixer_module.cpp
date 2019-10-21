@@ -316,7 +316,7 @@ bool MixingOutput::update()
 	}
 
 	// check for motor test
-	if (!_armed.armed) {
+	if (!_armed.armed && !_armed.manual_lockdown) {
 		unsigned num_motor_test = motorTest();
 
 		if (num_motor_test > 0) {
