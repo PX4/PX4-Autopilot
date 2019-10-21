@@ -138,14 +138,6 @@ struct Parameters {
 	float rc_flt_smp_rate;
 	float rc_flt_cutoff;
 
-	float battery_voltage_scaling;
-	float battery_current_scaling;
-	float battery_current_offset;
-	float battery_v_div;
-	float battery_a_per_v;
-	int32_t battery_source;
-	int32_t battery_adc_channel;
-
 	float baro_qnh;
 
 	int32_t air_cmodel;
@@ -219,14 +211,6 @@ struct ParameterHandles {
 
 	param_t rc_flt_smp_rate;
 	param_t rc_flt_cutoff;
-
-	param_t battery_voltage_scaling;
-	param_t battery_current_scaling;
-	param_t battery_current_offset;
-	param_t battery_v_div;
-	param_t battery_a_per_v;
-	param_t battery_source;
-	param_t battery_adc_channel;
 
 	param_t board_rotation;
 
