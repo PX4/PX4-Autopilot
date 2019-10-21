@@ -1302,6 +1302,7 @@ void MavlinkReceiver::fill_thrust(float *thrust_body_array, uint8_t vehicle_type
 		break;
 
 	case MAV_TYPE_FIXED_WING:
+	case MAV_TYPE_GROUND_ROVER:
 		thrust_body_array[0] = thrust;
 		break;
 
@@ -1311,10 +1312,6 @@ void MavlinkReceiver::fill_thrust(float *thrust_body_array, uint8_t vehicle_type
 	case MAV_TYPE_TRICOPTER:
 	case MAV_TYPE_HELICOPTER:
 		thrust_body_array[2] = -thrust;
-		break;
-
-	case MAV_TYPE_GROUND_ROVER:
-		thrust_body_array[0] = thrust;
 		break;
 
 	case MAV_TYPE_VTOL_DUOROTOR:
