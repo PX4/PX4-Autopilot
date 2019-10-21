@@ -106,6 +106,7 @@ private:
 	int		_local_pos_sub{-1};
 	int		_manual_control_sub{-1};		/**< notification of manual control updates */
 	int		_pos_sp_triplet_sub{-1};
+	int 		_att_sp_sub{-1};
 	int     _vehicle_attitude_sub{-1};
 	int		_sensor_combined_sub{-1};
 
@@ -113,6 +114,7 @@ private:
 
 	manual_control_setpoint_s		_manual{};			    /**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
+	vehicle_attitude_setpoint_s		_att_sp{};			/**< attitude setpoint > */
 	vehicle_control_mode_s			_control_mode{};		/**< control mode */
 	vehicle_global_position_s		_global_pos{};			/**< global vehicle position */
 	vehicle_local_position_s		_local_pos{};			/**< global vehicle position */
@@ -172,6 +174,7 @@ private:
 
 	void		manual_control_setpoint_poll();
 	void		position_setpoint_triplet_poll();
+	void		attitude_setpoint_poll();
 	void		vehicle_control_mode_poll();
 	void 		vehicle_attitude_poll();
 
@@ -181,5 +184,6 @@ private:
 	bool		control_position(const matrix::Vector2f &global_pos, const matrix::Vector3f &ground_speed,
 					 const position_setpoint_triplet_s &_pos_sp_triplet);
 	void		control_velocity(const matrix::Vector3f &current_velocity, const position_setpoint_triplet_s &pos_sp_triplet);
+	void		control_attitude(const vehicle_attitude_s &att, const vehicle_attitude_setpoint_s &att_sp);
 
 };
