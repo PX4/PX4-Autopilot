@@ -67,7 +67,6 @@ typedef struct dshot_handler_t {
 	bool			init;
 	DMA_HANDLE		dma_handle;
 	uint32_t		dma_size;
-	uint8_t			callback_arg;
 } dshot_handler_t;
 
 #define DMA_BUFFER_MASK    (PX4_ARCH_DCACHE_LINESIZE - 1)
@@ -85,7 +84,6 @@ static const uint8_t motor_assignment[MOTORS_NUMBER] = BOARD_DSHOT_MOTOR_ASSIGNM
 #endif /* BOARD_DSHOT_MOTOR_ASSIGNMENT */
 
 void dshot_dmar_data_prepare(uint8_t timer, uint8_t first_motor, uint8_t motors_number);
-void dshot_callback(DMA_HANDLE handle, uint8_t status, void *arg);
 
 int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 {
@@ -182,20 +180,14 @@ void up_dshot_trigger(void)
 				       dshot_handler[timer].dma_size,
 				       DSHOT_DMA_SCR);
 
+			// Clean UDE flag before DMA is started
+			io_timer_update_dma_req(timer, false);
 			// Trigger DMA (DShot Outputs)
-			dshot_handler[timer].callback_arg = timer;
-			stm32_dmastart(dshot_handler[timer].dma_handle, &dshot_callback, &(dshot_handler[timer].callback_arg), false);
+			stm32_dmastart(dshot_handler[timer].dma_handle, NULL, NULL, false);
 			io_timer_update_dma_req(timer, true);
 
 		}
 	}
-}
-
-void dshot_callback(DMA_HANDLE handle, uint8_t status, void *arg)
-{
-
-	uint8_t timer = *((uint8_t *)arg);
-	io_timer_update_dma_req(timer, false);
 }
 
 /**
