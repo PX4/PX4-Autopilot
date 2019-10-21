@@ -47,6 +47,13 @@
 bool Ekf::init(uint64_t timestamp)
 {
 	bool ret = initialise_interface(timestamp);
+	reset(timestamp);
+
+	return ret;
+}
+
+void Ekf::reset(uint64_t timestamp)
+{
 	_state.vel.setZero();
 	_state.pos.setZero();
 	_state.gyro_bias.setZero();
@@ -94,8 +101,6 @@ bool Ekf::init(uint64_t timestamp)
 	_accel_mag_filt = 0.0f;
 	_ang_rate_mag_filt = 0.0f;
 	_prev_dvel_bias_var.zero();
-
-	return ret;
 }
 
 bool Ekf::update()
