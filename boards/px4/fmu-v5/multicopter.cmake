@@ -66,6 +66,7 @@ px4_add_board(
 		mc_pos_control
 		mc_rate_control
 		navigator
+		rc_update
 		sensors
 		sih
 		vmount

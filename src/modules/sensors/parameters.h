@@ -40,29 +40,13 @@
  *
  * @author Beat Kueng <beat-kueng@gmx.net>
  */
-#include <px4_platform_common/px4_config.h>
-#include <drivers/drv_rc_input.h>
 
-#include <parameters/param.h>
-#include <mathlib/mathlib.h>
-
-#include <uORB/topics/rc_parameter_map.h>
-#include <uORB/topics/input_rc.h>
+#include <lib/parameters/param.h>
 
 namespace sensors
 {
 
-static const unsigned RC_MAX_CHAN_COUNT =
-	input_rc_s::RC_INPUT_MAX_CHANNELS;	/**< maximum number of r/c channels we handle */
-
 struct Parameters {
-	float min[RC_MAX_CHAN_COUNT];
-	float trim[RC_MAX_CHAN_COUNT];
-	float max[RC_MAX_CHAN_COUNT];
-	float rev[RC_MAX_CHAN_COUNT];
-	float dz[RC_MAX_CHAN_COUNT];
-	float scaling_factor[RC_MAX_CHAN_COUNT];
-
 	float diff_pres_offset_pa;
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	float diff_pres_analog_scale;
@@ -72,72 +56,6 @@ struct Parameters {
 
 	float board_offset[3];
 
-	int32_t rc_map_roll;
-	int32_t rc_map_pitch;
-	int32_t rc_map_yaw;
-	int32_t rc_map_throttle;
-	int32_t rc_map_failsafe;
-
-	int32_t rc_map_mode_sw;
-	int32_t rc_map_return_sw;
-	int32_t rc_map_rattitude_sw;
-	int32_t rc_map_posctl_sw;
-	int32_t rc_map_loiter_sw;
-	int32_t rc_map_acro_sw;
-	int32_t rc_map_offboard_sw;
-	int32_t rc_map_kill_sw;
-	int32_t rc_map_arm_sw;
-	int32_t rc_map_trans_sw;
-	int32_t rc_map_gear_sw;
-	int32_t rc_map_stab_sw;
-	int32_t rc_map_man_sw;
-	int32_t rc_map_flaps;
-
-	int32_t rc_map_aux1;
-	int32_t rc_map_aux2;
-	int32_t rc_map_aux3;
-	int32_t rc_map_aux4;
-	int32_t rc_map_aux5;
-	int32_t rc_map_aux6;
-
-	int32_t rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
-
-	int32_t rc_map_flightmode;
-
-	int32_t rc_fails_thr;
-	float rc_assist_th;
-	float rc_auto_th;
-	float rc_rattitude_th;
-	float rc_posctl_th;
-	float rc_return_th;
-	float rc_loiter_th;
-	float rc_acro_th;
-	float rc_offboard_th;
-	float rc_killswitch_th;
-	float rc_armswitch_th;
-	float rc_trans_th;
-	float rc_gear_th;
-	float rc_stab_th;
-	float rc_man_th;
-
-	bool rc_assist_inv;
-	bool rc_auto_inv;
-	bool rc_rattitude_inv;
-	bool rc_posctl_inv;
-	bool rc_return_inv;
-	bool rc_loiter_inv;
-	bool rc_acro_inv;
-	bool rc_offboard_inv;
-	bool rc_killswitch_inv;
-	bool rc_armswitch_inv;
-	bool rc_trans_inv;
-	bool rc_gear_inv;
-	bool rc_stab_inv;
-	bool rc_man_inv;
-
-	float rc_flt_smp_rate;
-	float rc_flt_cutoff;
-
 	float baro_qnh;
 
 	int32_t air_cmodel;
@@ -146,71 +64,10 @@ struct Parameters {
 };
 
 struct ParameterHandles {
-	param_t min[RC_MAX_CHAN_COUNT];
-	param_t trim[RC_MAX_CHAN_COUNT];
-	param_t max[RC_MAX_CHAN_COUNT];
-	param_t rev[RC_MAX_CHAN_COUNT];
-	param_t dz[RC_MAX_CHAN_COUNT];
-
 	param_t diff_pres_offset_pa;
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	param_t diff_pres_analog_scale;
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
-
-	param_t rc_map_roll;
-	param_t rc_map_pitch;
-	param_t rc_map_yaw;
-	param_t rc_map_throttle;
-	param_t rc_map_failsafe;
-
-	param_t rc_map_mode_sw;
-	param_t rc_map_return_sw;
-	param_t rc_map_rattitude_sw;
-	param_t rc_map_posctl_sw;
-	param_t rc_map_loiter_sw;
-	param_t rc_map_acro_sw;
-	param_t rc_map_offboard_sw;
-	param_t rc_map_kill_sw;
-	param_t rc_map_arm_sw;
-	param_t rc_map_trans_sw;
-	param_t rc_map_gear_sw;
-	param_t rc_map_flaps;
-	param_t rc_map_stab_sw;
-	param_t rc_map_man_sw;
-
-	param_t rc_map_aux1;
-	param_t rc_map_aux2;
-	param_t rc_map_aux3;
-	param_t rc_map_aux4;
-	param_t rc_map_aux5;
-	param_t rc_map_aux6;
-
-	param_t rc_map_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];
-	param_t rc_param[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< param handles for the parameters which are bound
-							  to a RC channel, equivalent float values in the
-							  _parameters struct are not existing
-							  because these parameters are never read. */
-
-	param_t rc_map_flightmode;
-
-	param_t rc_fails_thr;
-	param_t rc_assist_th;
-	param_t rc_auto_th;
-	param_t rc_rattitude_th;
-	param_t rc_posctl_th;
-	param_t rc_return_th;
-	param_t rc_loiter_th;
-	param_t rc_acro_th;
-	param_t rc_offboard_th;
-	param_t rc_killswitch_th;
-	param_t rc_armswitch_th;
-	param_t rc_trans_th;
-	param_t rc_gear_th;
-	param_t rc_stab_th;
-	param_t rc_man_th;
-
-	param_t rc_flt_smp_rate;
-	param_t rc_flt_cutoff;
 
 	param_t board_rotation;
 
@@ -234,6 +91,6 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles);
  * Read out the parameters using the handles into the parameters struct.
  * @return 0 on success, <0 on error
  */
-int update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters);
+void update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters);
 
 } /* namespace sensors */

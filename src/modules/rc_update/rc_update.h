@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -41,18 +41,27 @@
 
 #include "parameters.h"
 
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <drivers/drv_hrt.h>
-#include <mathlib/mathlib.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/mathlib/mathlib.h>
+#include <lib/mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/perf/perf_counter.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/rc_channels.h>
 #include <uORB/topics/rc_parameter_map.h>
+#include <uORB/topics/parameter_update.h>
 
-namespace sensors
+namespace RCUpdate
 {
 
 /**
@@ -60,31 +69,43 @@ namespace sensors
  *
  * Handling of RC updates
  */
-class RCUpdate
+class RCUpdate : public ModuleBase<RCUpdate>, public ModuleParams, public px4::WorkItem
 {
 public:
-	/**
-	 * @param parameters parameter values. These do not have to be initialized when constructing this object.
-	 * Only when calling init(), they have to be initialized.
-	 */
-	RCUpdate(const Parameters &parameters);
+	RCUpdate();
+	~RCUpdate() override;
+
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
+
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
+
+	void Run() override;
+	bool init();
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
+
+private:
 
 	/**
 	 * Check for changes in rc_parameter_map
 	 */
-	void rc_parameter_map_poll(ParameterHandles &parameter_handles, bool forced = false);
+	void		rc_parameter_map_poll(bool forced = false);
 
 	/**
 	 * update the RC functions. Call this when the parameters change.
 	 */
-	void update_rc_functions();
+	void		update_rc_functions();
 
 	/**
-	 * Gather and publish RC input data.
+	 * Update our local parameter cache.
 	 */
-	void		rc_poll(const ParameterHandles &parameter_handles);
-
-private:
+	void		parameters_updated();
 
 	/**
 	 * Get and limit value for specified RC function. Returns NAN if not mapped.
@@ -103,10 +124,16 @@ private:
 	 *
 	 * @param
 	 */
-	void set_params_from_rc(const ParameterHandles &parameter_handles);
+	void		set_params_from_rc();
 
+	perf_counter_t		_loop_perf;			/**< loop performance counter */
 
-	uORB::Subscription	_rc_sub{ORB_ID(input_rc)};				/**< raw rc channels data subscription */
+	Parameters		_parameters{};			/**< local copies of interesting parameters */
+	ParameterHandles	_parameter_handles{};		/**< handles for interesting parameters */
+
+	uORB::SubscriptionCallbackWorkItem _input_rc_sub{this, ORB_ID(input_rc)};
+
+	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};	/**< notification of parameter updates */
 	uORB::Subscription	_rc_parameter_map_sub{ORB_ID(rc_parameter_map)};	/**< rc parameter map subscription */
 
 	uORB::Publication<rc_channels_s>	_rc_pub{ORB_ID(rc_channels)};				/**< raw r/c control topic */
@@ -119,8 +146,6 @@ private:
 	rc_parameter_map_s _rc_parameter_map {};
 	float _param_rc_values[rc_parameter_map_s::RC_PARAM_MAP_NCHAN] {};	/**< parameter values for RC control */
 
-	const Parameters &_parameters;
-
 	hrt_abstime _last_rc_to_param_map_time = 0;
 
 	math::LowPassFilter2p _filter_roll; /**< filters for the main 4 stick inputs */
@@ -132,4 +157,4 @@ private:
 
 
 
-} /* namespace sensors */
+} /* namespace RCUpdate */

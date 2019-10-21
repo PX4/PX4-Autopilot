@@ -176,6 +176,7 @@ fi
 
 qshell df_mpu9250_wrapper start
 qshell df_bmp280_wrapper start
+qshell rc_update start
 qshell sensors start
 
 if param compare SYS_MC_EST_GROUP 1
