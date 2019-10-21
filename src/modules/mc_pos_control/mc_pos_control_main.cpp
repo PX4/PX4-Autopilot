@@ -195,7 +195,6 @@ private:
 	WeatherVane *_wv_controller{nullptr};
 
 	perf_counter_t _cycle_perf;
-	perf_counter_t _interval_perf;
 
 	/**
 	 * Update our local parameter cache.
@@ -289,8 +288,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
 	_control(this),
-	_cycle_perf(perf_alloc_once(PC_ELAPSED, MODULE_NAME": cycle time")),
-	_interval_perf(perf_alloc_once(PC_INTERVAL, MODULE_NAME": interval"))
+	_cycle_perf(perf_alloc_once(PC_ELAPSED, MODULE_NAME": cycle time"))
 {
 	// fetch initial parameter values
 	parameters_update(true);
@@ -306,7 +304,6 @@ MulticopterPositionControl::~MulticopterPositionControl()
 	}
 
 	perf_free(_cycle_perf);
-	perf_free(_interval_perf);
 }
 
 bool
@@ -515,7 +512,6 @@ MulticopterPositionControl::print_status()
 	}
 
 	perf_print_counter(_cycle_perf);
-	perf_print_counter(_interval_perf);
 
 	return 0;
 }
@@ -530,7 +526,6 @@ MulticopterPositionControl::Run()
 	}
 
 	perf_begin(_cycle_perf);
-	perf_count(_interval_perf);
 
 	if (_local_pos_sub.update(&_local_pos)) {
 
