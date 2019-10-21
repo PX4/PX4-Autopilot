@@ -1550,7 +1550,10 @@ void Ekf2::Run()
 			status.time_slip = _last_time_slip_us / 1e6f;
 			status.health_flags = 0.0f; // unused
 			status.timeout_flags = 0.0f; // unused
-			status.pre_flt_fail_flags = _preflt_checker.getBitmask();
+			status.pre_flt_fail_innov_heading = _preflt_checker.hasHeadingFailed();
+			status.pre_flt_fail_innov_vel_horiz = _preflt_checker.hasHorizVelFailed();
+			status.pre_flt_fail_innov_vel_vert = _preflt_checker.hasVertVelFailed();
+			status.pre_flt_fail_innov_height = _preflt_checker.hasHeightFailed();
 
 			_estimator_status_pub.publish(status);
 

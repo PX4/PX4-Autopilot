@@ -79,7 +79,7 @@ public:
 
 	bool hasHeadingFailed() const { return _has_heading_failed; }
 	bool hasHorizVelFailed() const { return _has_horiz_vel_failed; }
-	bool hasDownVelFailed() const { return _has_down_vel_failed; }
+	bool hasVertVelFailed() const { return _has_vert_vel_failed; }
 	bool hasHeightFailed() const { return _has_height_failed; }
 
 	/*
@@ -98,23 +98,7 @@ public:
 	 * Vertical checks overall result
 	 * @return true if one of the vertical checks failed
 	 */
-	bool hasVertFailed() const { return _has_down_vel_failed || _has_height_failed; }
-
-	/*
-	 * Bitfield representation of the failures
-	 * @return a bitfield where the bits represent
-	 * #0 _has_heading_failed
-	 * #1 _has_horiz_vel_failed
-	 * #2 _has_down_vel_failed
-	 * #3 _has_height_failed
-	 */
-	uint8_t getBitmask() const
-	{
-		return prefltFailBoolToBitMask(_has_heading_failed,
-					       _has_horiz_vel_failed,
-					       _has_down_vel_failed,
-					       _has_height_failed);
-	}
+	bool hasVertFailed() const { return _has_vert_vel_failed || _has_height_failed; }
 
 	/*
 	 * Check if the innovation fails the test
@@ -143,7 +127,7 @@ public:
 	/*
 	 * Packs the boolean flags into a bit field
 	 */
-	static uint8_t prefltFailBoolToBitMask(bool heading_failed, bool horiz_vel_failed, bool down_vel_failed,
+	static uint8_t prefltFailBoolToBitMask(bool heading_failed, bool horiz_vel_failed, bool vert_vel_failed,
 					       bool height_failed);
 
 	static constexpr float sq(float var) { return var * var; }
@@ -153,14 +137,14 @@ private:
 	float selectHeadingTestLimit();
 
 	bool preFlightCheckHorizVelFailed(const ekf2_innovations_s &innov, float alpha);
-	bool preFlightCheckDownVelFailed(const ekf2_innovations_s &innov, float alpha);
+	bool preFlightCheckVertVelFailed(const ekf2_innovations_s &innov, float alpha);
 	bool preFlightCheckHeightFailed(const ekf2_innovations_s &innov, float alpha);
 
 	void resetPreFlightChecks();
 
 	bool _has_heading_failed{};
 	bool _has_horiz_vel_failed{};
-	bool _has_down_vel_failed{};
+	bool _has_vert_vel_failed{};
 	bool _has_height_failed{};
 
 	bool _can_observe_heading_in_flight{};

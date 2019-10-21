@@ -44,7 +44,7 @@ void PreFlightChecker::update(const float dt, const ekf2_innovations_s &innov)
 
 	_has_heading_failed = preFlightCheckHeadingFailed(innov, alpha);
 	_has_horiz_vel_failed = preFlightCheckHorizVelFailed(innov, alpha);
-	_has_down_vel_failed = preFlightCheckDownVelFailed(innov, alpha);
+	_has_vert_vel_failed = preFlightCheckVertVelFailed(innov, alpha);
 	_has_height_failed = preFlightCheckHeightFailed(innov, alpha);
 }
 
@@ -92,7 +92,7 @@ bool PreFlightChecker::preFlightCheckHorizVelFailed(const ekf2_innovations_s &in
 	return has_failed;
 }
 
-bool PreFlightChecker::preFlightCheckDownVelFailed(const ekf2_innovations_s &innov, const float alpha)
+bool PreFlightChecker::preFlightCheckVertVelFailed(const ekf2_innovations_s &innov, const float alpha)
 {
 	const float vel_d_innov = innov.vel_pos_innov[2];
 	const float vel_d_innov_lpf = _filter_vel_d_innov.update(vel_d_innov, alpha, _vel_innov_spike_lim);
@@ -118,9 +118,9 @@ bool PreFlightChecker::checkInnov2DFailed(const Vector2f &innov, const Vector2f 
 }
 
 uint8_t PreFlightChecker::prefltFailBoolToBitMask(const bool heading_failed, const bool horiz_vel_failed,
-		const bool down_vel_failed, const bool height_failed)
+		const bool vert_vel_failed, const bool height_failed)
 {
-	return heading_failed | (horiz_vel_failed << 1) | (down_vel_failed << 2) | (height_failed << 3);
+	return heading_failed | (horiz_vel_failed << 1) | (vert_vel_failed << 2) | (height_failed << 3);
 }
 
 void PreFlightChecker::reset()
@@ -130,7 +130,7 @@ void PreFlightChecker::reset()
 	_is_using_ev_pos_aiding = false;
 	_has_heading_failed = false;
 	_has_horiz_vel_failed = false;
-	_has_down_vel_failed = false;
+	_has_vert_vel_failed = false;
 	_has_height_failed = false;
 	_filter_vel_n_innov.reset();
 	_filter_vel_e_innov.reset();
