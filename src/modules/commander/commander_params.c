@@ -967,3 +967,10 @@ PARAM_DEFINE_INT32(COM_ARM_CHK_ESCS, 1);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_PREARM_MODE, 1);
+
+/*
+ * Allow arming without onboard logger being enabled and in ready state
+ *
+ * The default allows the vehicle to arm without the onboard logger reporting as ready via it's heartbeat
+ */
+PARAM_DEFINE_INT32(COM_ARM_OBLOG, 0);

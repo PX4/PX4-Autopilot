@@ -1105,6 +1105,16 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 		}
 	}
 
+
+	if (status_flags.onboard_logging_system_required && !status_flags.onboard_logging_system_valid) {
+		if (prearm_ok && reportFailures) {
+			mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: Onboard logging system not ready");
+		}
+
+		prearm_ok = false;
+
+	}
+
 	// Arm Requirements: authorization
 	// check last, and only if everything else has passed
 	if ((arm_requirements & ARM_REQ_ARM_AUTH_BIT) && prearm_ok) {
@@ -1113,7 +1123,6 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 			prearm_ok = false;
 		}
 	}
-
 
 	return prearm_ok;
 }

@@ -607,6 +607,8 @@ Commander::Commander() :
 	status_flags.rc_calibration_valid = true;
 
 	status_flags.avoidance_system_valid = false;
+	status_flags.onboard_logging_system_valid = false;
+
 }
 
 Commander::~Commander()
@@ -1242,6 +1244,7 @@ Commander::run()
 	param_t _param_rc_map_arm_switch = param_find("RC_MAP_ARM_SW");
 
 	status_flags.avoidance_system_required = _param_com_obs_avoid.get();
+	status_flags.onboard_logging_system_required = _param_com_arm_ob_logger.get();
 
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
@@ -1518,6 +1521,7 @@ Commander::run()
 
 		/* Update OA parameter */
 		status_flags.avoidance_system_required = _param_com_obs_avoid.get();
+		status_flags.onboard_logging_system_required = _param_com_arm_ob_logger.get();
 
 		/* handle power button state */
 		if (power_button_state_sub.updated()) {
@@ -3778,31 +3782,49 @@ void Commander::data_link_check(bool &status_changed)
 						status_changed = true;
 					}
 
+				} else {
+
+					// AVOIDANCE SYSTEM update heartbeat values if needed
+
+					if (status_flags.avoidance_system_required) {
+						process_onboard_system_heartbeat(_avoidance, status_flags.avoidance_system_valid, status_changed, telemetry);
+					}
+
+					// ONBOARD LOGGING SYSTEM update heartbeat values if needed
+
+					if (status_flags.onboard_logging_system_required) {
+						process_onboard_system_heartbeat(_logger, status_flags.onboard_logging_system_valid, status_changed, telemetry);
+					}
 				}
 
 				_datalink_last_heartbeat_onboard_controller = telemetry.heartbeat_time;
-
-				if (telemetry.remote_component_id == telemetry_status_s::COMPONENT_ID_OBSTACLE_AVOIDANCE) {
-					if (telemetry.heartbeat_time != _datalink_last_heartbeat_avoidance_system) {
-						_avoidance_system_status_change = _datalink_last_status_avoidance_system != telemetry.remote_system_status;
-					}
-
-					_datalink_last_heartbeat_avoidance_system = telemetry.heartbeat_time;
-					_datalink_last_status_avoidance_system = telemetry.remote_system_status;
-
-					if (_avoidance_system_lost) {
-						mavlink_log_info(&mavlink_log_pub, "Avoidance system regained");
-						status_changed = true;
-						_avoidance_system_lost = false;
-						status_flags.avoidance_system_valid = true;
-					}
-				}
 
 				break;
 			}
 		}
 	}
 
+	// AVOIDANCE SYSTEM state check (only if it is enabled)
+
+	if (status_flags.avoidance_system_required) {
+
+		//if avoidance never started
+		if (_datalink_last_heartbeat_avoidance_system == 0 &&
+		    _avoidance.print_msg_once == false &&
+		    hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > _param_com_oa_boot_t.get() * 1_s) {
+			_avoidance.print_msg_once = true;
+			mavlink_log_critical(&mavlink_log_pub, "avoidance system not available");
+
+		} else {
+			update_onboard_system_state(_avoidance, status_flags.avoidance_system_valid, status_changed);
+		}
+	}
+
+	// ON BOARD LOGGING SYSTEM state check (only if it is enabled)
+
+	if (status_flags.onboard_logging_system_required) {
+		update_onboard_system_state(_logger, status_flags.onboard_logging_system_valid, status_changed);
+	}
 
 	// GCS data link loss failsafe
 	if (!status.data_link_lost) {
@@ -3828,54 +3850,6 @@ void Commander::data_link_check(bool &status_changed)
 		status_changed = true;
 	}
 
-	// AVOIDANCE SYSTEM state check (only if it is enabled)
-	if (status_flags.avoidance_system_required && !_onboard_controller_lost) {
-
-		//if avoidance never started
-		if (_datalink_last_heartbeat_avoidance_system == 0
-		    && hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > _param_com_oa_boot_t.get() * 1_s) {
-			if (!_print_avoidance_msg_once) {
-				mavlink_log_critical(&mavlink_log_pub, "Avoidance system not available");
-				_print_avoidance_msg_once = true;
-
-			}
-		}
-
-		//if heartbeats stop
-		if (!_avoidance_system_lost && (_datalink_last_heartbeat_avoidance_system > 0)
-		    && (hrt_elapsed_time(&_datalink_last_heartbeat_avoidance_system) > 5_s)) {
-			_avoidance_system_lost = true;
-			mavlink_log_critical(&mavlink_log_pub, "Avoidance system lost");
-			status_flags.avoidance_system_valid = false;
-			_print_avoidance_msg_once = false;
-		}
-
-		//if status changed
-		if (_avoidance_system_status_change) {
-			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_BOOT) {
-				mavlink_log_info(&mavlink_log_pub, "Avoidance system starting");
-			}
-
-			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_ACTIVE) {
-				mavlink_log_info(&mavlink_log_pub, "Avoidance system connected");
-				status_flags.avoidance_system_valid = true;
-			}
-
-			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_CRITICAL) {
-				mavlink_log_info(&mavlink_log_pub, "Avoidance system timed out");
-			}
-
-			if (_datalink_last_status_avoidance_system == telemetry_status_s::MAV_STATE_FLIGHT_TERMINATION) {
-				mavlink_log_critical(&mavlink_log_pub, "Avoidance system rejected");
-				status_flags.avoidance_system_valid = false;
-				status_changed = true;
-			}
-
-			_avoidance_system_status_change = false;
-		}
-	}
-
-
 	// high latency data link loss failsafe
 	if (_high_latency_datalink_heartbeat > 0
 	    && hrt_elapsed_time(&_high_latency_datalink_heartbeat) > (_param_com_hldl_loss_t.get() * 1_s)) {
@@ -3888,6 +3862,81 @@ void Commander::data_link_check(bool &status_changed)
 		}
 	}
 }
+
+void Commander::process_onboard_system_heartbeat(OnboardHeartBeatMonitor &monitor, bool &status_flag_system_valid,
+		bool &status_changed, telemetry_status_s &telemetry)
+{
+	if (telemetry.remote_component_id == monitor.hb_component_id) {
+
+		if (telemetry.heartbeat_time != monitor.datalink_last_heartbeat) {
+			monitor.system_status_change = monitor.datalink_last_status != telemetry.remote_system_status;
+		}
+
+		monitor.datalink_last_heartbeat = telemetry.heartbeat_time;
+		monitor.datalink_last_status = telemetry.remote_system_status;
+
+		if (monitor.system_lost) {
+			mavlink_log_warning(&mavlink_log_pub, "%s system regained", monitor.hb_name);
+			status_changed = true;
+			monitor.system_lost = false;
+			status_flag_system_valid = true;
+		}
+	}
+}
+
+void Commander::update_onboard_system_state(OnboardHeartBeatMonitor &monitor, bool &status_flag_system_valid,
+		bool &status_changed)
+{
+
+	//if heartbeat stops
+	if (!monitor.system_lost && (monitor.datalink_last_heartbeat > 0)
+	    && (hrt_elapsed_time(&monitor.datalink_last_heartbeat) > 5_s)) {
+		monitor.system_lost = true;
+		mavlink_log_critical(&mavlink_log_pub, "%s system lost", monitor.hb_name);
+		status_flag_system_valid = false;
+		monitor.print_msg_once = false;
+	}
+
+	//if status changed
+	if (monitor.system_status_change) {
+		switch (monitor.datalink_last_status) {
+		case telemetry_status_s::MAV_STATE_UNINIT:
+			break;
+
+		case telemetry_status_s::MAV_STATE_BOOT:
+		case telemetry_status_s::MAV_STATE_CALIBRATING:
+			mavlink_log_info(&mavlink_log_pub, "%s system starting", monitor.hb_name);
+			status_flag_system_valid = false;
+			break;
+
+		case telemetry_status_s::MAV_STATE_STANDBY:
+		case telemetry_status_s::MAV_STATE_ACTIVE:
+			mavlink_log_info(&mavlink_log_pub, "%s system connected", monitor.hb_name);
+			status_flag_system_valid = true;
+			break;
+
+		case telemetry_status_s::MAV_STATE_CRITICAL:
+			mavlink_log_critical(&mavlink_log_pub, "%s system failure", monitor.hb_name);
+			status_flag_system_valid = false;
+			break;
+
+		case telemetry_status_s::MAV_STATE_EMERGENCY:
+			mavlink_log_critical(&mavlink_log_pub, "%s system emergency", monitor.hb_name);
+			status_flag_system_valid = false;
+			break;
+
+		case telemetry_status_s::MAV_STATE_POWEROFF:
+		case telemetry_status_s::MAV_STATE_FLIGHT_TERMINATION:
+			mavlink_log_info(&mavlink_log_pub, "%s system shutdown", monitor.hb_name);
+			status_flag_system_valid = false;
+			break;
+		}
+
+		status_changed = true;
+		monitor.system_status_change = false;
+	}
+}
+
 
 void Commander::battery_status_check()
 {
