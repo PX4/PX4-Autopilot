@@ -40,6 +40,7 @@
 
 #include <px4_config.h>
 #include <px4_tasks.h>
+#include <px4_sem.hpp>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -2333,6 +2334,7 @@ PX4IO::print_status(bool extended_status)
 int
 PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 {
+	SmartLock lock_guard(_lock);
 	int ret = OK;
 
 	/* regular ioctl? */
