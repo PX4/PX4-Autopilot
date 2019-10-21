@@ -40,18 +40,13 @@ using namespace time_literals;
 
 VehicleAngularVelocity::VehicleAngularVelocity() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
-	_cycle_perf(perf_alloc(PC_ELAPSED, "vehicle_angular_velocity: cycle time")),
-	_sensor_latency_perf(perf_alloc(PC_ELAPSED, "vehicle_angular_velocity: sensor latency"))
+	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl)
 {
 }
 
 VehicleAngularVelocity::~VehicleAngularVelocity()
 {
 	Stop();
-
-	perf_free(_cycle_perf);
-	perf_free(_sensor_latency_perf);
 }
 
 bool
@@ -214,8 +209,6 @@ VehicleAngularVelocity::ParametersUpdate(bool force)
 void
 VehicleAngularVelocity::Run()
 {
-	perf_begin(_cycle_perf);
-
 	// update corrections first to set _selected_sensor
 	SensorCorrectionsUpdate();
 
@@ -224,8 +217,6 @@ VehicleAngularVelocity::Run()
 		sensor_gyro_control_s sensor_data;
 
 		if (_sensor_control_sub[_selected_sensor].update(&sensor_data)) {
-			perf_set_elapsed(_sensor_latency_perf, hrt_elapsed_time(&sensor_data.timestamp));
-
 			ParametersUpdate();
 			SensorBiasUpdate();
 
@@ -251,8 +242,6 @@ VehicleAngularVelocity::Run()
 		sensor_gyro_s sensor_data;
 
 		if (_sensor_sub[_selected_sensor].update(&sensor_data)) {
-			perf_set_elapsed(_sensor_latency_perf, hrt_elapsed_time(&sensor_data.timestamp));
-
 			ParametersUpdate();
 			SensorBiasUpdate();
 
@@ -276,8 +265,6 @@ VehicleAngularVelocity::Run()
 			_vehicle_angular_velocity_pub.publish(angular_velocity);
 		}
 	}
-
-	perf_end(_cycle_perf);
 }
 
 void
@@ -291,7 +278,4 @@ VehicleAngularVelocity::PrintStatus()
 	} else {
 		PX4_WARN("sensor_gyro_control unavailable for selected sensor: %d (%d)", _selected_sensor_device_id,  _selected_sensor);
 	}
-
-	perf_print_counter(_cycle_perf);
-	perf_print_counter(_sensor_latency_perf);
 }

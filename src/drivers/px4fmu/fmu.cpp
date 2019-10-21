@@ -187,7 +187,6 @@ private:
 	unsigned	_num_disarmed_set{0};
 
 	perf_counter_t	_cycle_perf;
-	perf_counter_t	_cycle_interval_perf;
 
 	void		capture_callback(uint32_t chan_index,
 					 hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
@@ -212,8 +211,7 @@ private:
 PX4FMU::PX4FMU() :
 	CDev(PX4FMU_DEVICE_PATH),
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
-	_cycle_perf(perf_alloc(PC_ELAPSED, "px4fmu: cycle")),
-	_cycle_interval_perf(perf_alloc(PC_INTERVAL, "px4fmu: cycle interval"))
+	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	_mixing_output.setAllMinValues(PWM_DEFAULT_MIN);
 	_mixing_output.setAllMaxValues(PWM_DEFAULT_MAX);
@@ -229,7 +227,6 @@ PX4FMU::~PX4FMU()
 	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
 
 	perf_free(_cycle_perf);
-	perf_free(_cycle_interval_perf);
 }
 
 int
@@ -755,7 +752,6 @@ PX4FMU::Run()
 	}
 
 	perf_begin(_cycle_perf);
-	perf_count(_cycle_interval_perf);
 
 	_mixing_output.update();
 
@@ -2305,7 +2301,6 @@ int PX4FMU::print_status()
 	}
 
 	perf_print_counter(_cycle_perf);
-	perf_print_counter(_cycle_interval_perf);
 	_mixing_output.printStatus();
 
 	return 0;
