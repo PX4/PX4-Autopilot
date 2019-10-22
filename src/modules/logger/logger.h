@@ -175,7 +175,8 @@ private:
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
 	static constexpr const char	*LOG_ROOT[(int)LogType::Count] = {
 		PX4_STORAGEDIR "/log",
-		PX4_STORAGEDIR "/mission_log"
+		PX4_STORAGEDIR "/mission_log",      	//
+		PX4_STORAGEDIR "/dg_log"		//add by cyj, 191017
 	};
 
 	struct LogFileName {

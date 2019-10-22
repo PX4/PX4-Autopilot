@@ -62,6 +62,10 @@ LogWriterFile::LogWriterFile(size_t buffer_size)
 		perf_alloc(PC_ELAPSED, "logger_sd_write"), perf_alloc(PC_ELAPSED, "logger_sd_fsync")},
 
 	{
+		1024,
+		perf_alloc(PC_ELAPSED, "logger_sd_write_dglog"), perf_alloc(PC_ELAPSED, "logger_sd_fsync_dglog")},	//add by cyj, 191017
+
+	{
 		300, // buffer size for the mission log (can be kept fairly small)
 		perf_alloc(PC_ELAPSED, "logger_sd_write_mission"), perf_alloc(PC_ELAPSED, "logger_sd_fsync_mission")}
 }
@@ -366,6 +370,8 @@ const char *log_type_str(LogType type)
 	case LogType::Full: return "full";
 
 	case LogType::Mission: return "mission";
+
+	case LogType::DgMessage: return "dgMessage";  //add by cyj, 191017
 
 	case LogType::Count: break;
 	}
