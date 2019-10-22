@@ -46,12 +46,11 @@ bool FlightTaskAutoLineSmoothVel::activate(vehicle_local_position_setpoint_s las
 	bool ret = FlightTaskAutoMapper2::activate(last_setpoint);
 
 	checkSetpoints(last_setpoint);
-	const Vector3f accel_prev(last_setpoint.acc_x, last_setpoint.acc_y, last_setpoint.acc_z);
 	const Vector3f vel_prev(last_setpoint.vx, last_setpoint.vy, last_setpoint.vz);
 	const Vector3f pos_prev(last_setpoint.x, last_setpoint.y, last_setpoint.z);
 
 	for (int i = 0; i < 3; ++i) {
-		_trajectory[i].reset(accel_prev(i), vel_prev(i), pos_prev(i));
+		_trajectory[i].reset(last_setpoint.acceleration[i], vel_prev(i), pos_prev(i));
 	}
 
 	_yaw_sp_prev = last_setpoint.yaw;
@@ -87,11 +86,9 @@ void FlightTaskAutoLineSmoothVel::checkSetpoints(vehicle_local_position_setpoint
 	if (!PX4_ISFINITE(setpoints.vz)) { setpoints.vz = _velocity(2); }
 
 	// No acceleration estimate available, set to zero if the setpoint is NAN
-	if (!PX4_ISFINITE(setpoints.acc_x)) { setpoints.acc_x = 0.f; }
-
-	if (!PX4_ISFINITE(setpoints.acc_y)) { setpoints.acc_y = 0.f; }
-
-	if (!PX4_ISFINITE(setpoints.acc_z)) { setpoints.acc_z = 0.f; }
+	for (int i = 0; i < 3; i++) {
+		if (!PX4_ISFINITE(setpoints.acceleration[i])) { setpoints.acceleration[i] = 0.f; }
+	}
 
 	if (!PX4_ISFINITE(setpoints.yaw)) { setpoints.yaw = _yaw; }
 }

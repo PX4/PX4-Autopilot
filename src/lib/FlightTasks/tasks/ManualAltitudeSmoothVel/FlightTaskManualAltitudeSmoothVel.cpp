@@ -48,7 +48,7 @@ bool FlightTaskManualAltitudeSmoothVel::activate(vehicle_local_position_setpoint
 	// Check if the previous FlightTask provided setpoints
 	checkSetpoints(last_setpoint);
 
-	_smoothing.reset(last_setpoint.acc_z, last_setpoint.vz, last_setpoint.z);
+	_smoothing.reset(last_setpoint.acceleration[2], last_setpoint.vz, last_setpoint.z);
 
 	return ret;
 }
@@ -69,7 +69,7 @@ void FlightTaskManualAltitudeSmoothVel::checkSetpoints(vehicle_local_position_se
 	if (!PX4_ISFINITE(setpoints.vz)) { setpoints.vz = _velocity(2); }
 
 	// No acceleration estimate available, set to zero if the setpoint is NAN
-	if (!PX4_ISFINITE(setpoints.acc_z)) { setpoints.acc_z = 0.f; }
+	if (!PX4_ISFINITE(setpoints.acceleration[2])) { setpoints.acceleration[2] = 0.f; }
 }
 
 void FlightTaskManualAltitudeSmoothVel::_ekfResetHandlerPositionZ()
@@ -90,7 +90,6 @@ void FlightTaskManualAltitudeSmoothVel::_updateSetpoints()
 
 	_smoothing.setVelSpFeedback(_velocity_setpoint_feedback(2));
 	_smoothing.setCurrentPositionEstimate(_position(2));
-
 
 	// Get yaw setpoint, un-smoothed position setpoints
 	FlightTaskManualAltitude::_updateSetpoints();

@@ -32,7 +32,7 @@
 ############################################################################
 
 px4_add_library(FlightTask
-    FlightTask.cpp
+	FlightTask.cpp
 )
 
 target_include_directories(FlightTask PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
