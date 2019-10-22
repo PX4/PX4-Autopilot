@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 - 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,6 +39,7 @@
 
 #include <matrix/matrix/math.hpp>
 
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_constraints.h>
@@ -130,13 +131,6 @@ public:
 
 	/**
 	 * 	Get the
-	 * 	@see _yawspeed_sp
-	 * 	@return The yawspeed set-point member.
-	 */
-	const float &getYawspeedSetpoint() { return _yawspeed_sp; }
-
-	/**
-	 * 	Get the
 	 * 	@see _vel_sp
 	 * 	@return The velocity set-point that was executed in the control-loop. Nan if velocity control-loop was skipped.
 	 */
@@ -163,6 +157,14 @@ public:
 	 * @param local_position_setpoint reference to struct to fill up
 	 */
 	void getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint);
+
+	/**
+	 * Get the controllers output attitude setpoint
+	 * This attitude setpoint was generated from the resulting acceleration setpoint after position and velocity control.
+	 * It needs to be executed by the attitude controller to achieve velocity and position tracking.
+	 * @param attitude_setpoint reference to struct to fill up
+	 */
+	void getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint);
 
 protected:
 
