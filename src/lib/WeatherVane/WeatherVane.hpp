@@ -60,15 +60,15 @@ public:
 
 	bool weathervane_enabled() { return _param_wv_en.get(); }
 
-	void update(const matrix::Quatf &q_sp_prev, float yaw);
+	void update(const matrix::Vector3f &dcm_z_sp_prev, float yaw);
 
 	float get_weathervane_yawrate();
 
 	void update_parameters() { ModuleParams::updateParams(); }
 
 private:
-	matrix::Dcmf _R_sp_prev;	// previous attitude setpoint rotation matrix
-	float _yaw = 0.0f;			// current yaw angle
+	matrix::Vector3f _dcm_z_sp_prev; ///< previous attitude setpoint body z axis
+	float _yaw = 0.0f; ///< current yaw angle
 
 	bool _is_active = true;
 
