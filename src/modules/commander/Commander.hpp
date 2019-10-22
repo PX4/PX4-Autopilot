@@ -147,6 +147,7 @@ private:
 		(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
 
 		(ParamInt<px4::params::COM_PREARM_MODE>) _param_com_prearm_mode,
+		(ParamInt<px4::params::COM_MOT_TEST_EN>) _param_com_mot_test_en,
 
 		(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
 		(ParamInt<px4::params::CBRK_USB_CHK>) _param_cbrk_usb_chk,
