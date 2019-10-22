@@ -68,7 +68,6 @@
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 
 #include <PositionControl.hpp>
-#include <ControlMath.hpp>
 #include "Takeoff.hpp"
 
 #include <float.h>
@@ -689,12 +688,10 @@ MulticopterPositionControl::Run()
 				limit_thrust_during_landing(local_pos_sp);
 			}
 
-			// Fill attitude setpoint. Attitude is computed from yaw and thrust setpoint.
 			vehicle_attitude_setpoint_s attitude_setpoint{};
-			attitude_setpoint = ControlMath::thrustToAttitude(matrix::Vector3f(local_pos_sp.thrust), local_pos_sp.yaw);
-			attitude_setpoint.yaw_sp_move_rate = _control.getYawspeedSetpoint();
-			attitude_setpoint.fw_control_yaw = false;
-			attitude_setpoint.apply_flaps = false;
+			attitude_setpoint.timestamp = hrt_absolute_time();
+			_control.getAttitudeSetpoint(attitude_setpoint);
+
 
 			// publish attitude setpoint
 			// Note: this requires review. The reason for not sending
