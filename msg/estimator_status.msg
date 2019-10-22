@@ -106,8 +106,10 @@ uint16 solution_status_flags # Bitmask indicating which filter kinematic state o
 
 float32 time_slip # cumulative amount of time in seconds that the EKF inertial calculation has slipped relative to system time
 
-bool pre_flt_fail # true when estimator has failed pre-flight checks and the vehicle should not be flown regardless of flight mode
-
+bool pre_flt_fail_innov_heading
+bool pre_flt_fail_innov_vel_horiz
+bool pre_flt_fail_innov_vel_vert
+bool pre_flt_fail_innov_height
 
 # legacy local position estimator (LPE) flags
 uint8 health_flags		# Bitmask to indicate sensor health states (vel, pos, hgt)
