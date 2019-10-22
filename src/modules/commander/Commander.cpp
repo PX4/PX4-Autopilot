@@ -1144,6 +1144,10 @@ Commander::handle_command_motor_test(const vehicle_command_s &cmd)
 		return vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
 	}
 
+	if (_param_com_mot_test_en.get() != 1) {
+		return vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+	}
+
 	test_motor_s test_motor{};
 	test_motor.timestamp = hrt_absolute_time();
 	test_motor.motor_number = (int)(cmd.param1 + 0.5f) - 1;
