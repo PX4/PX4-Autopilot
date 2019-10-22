@@ -37,7 +37,7 @@
  */
 
 #include <unit_test.h>
-#include <mc_pos_control/Utility/ControlMath.hpp>
+#include <mc_pos_control/PositionControl/ControlMath.hpp>
 #include <mathlib/mathlib.h>
 #include <float.h>
 
