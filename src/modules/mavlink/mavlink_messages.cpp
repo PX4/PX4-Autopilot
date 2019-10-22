@@ -47,6 +47,7 @@
 
 #include <commander/px4_custom_mode.h>
 #include <drivers/drv_pwm_output.h>
+#include <lib/conversion/rotation.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/matrix/matrix/math.hpp>
@@ -1263,6 +1264,7 @@ public:
 private:
 	MavlinkOrbSubscription *_att_sub;
 	MavlinkOrbSubscription *_angular_velocity_sub;
+	MavlinkOrbSubscription *_status_sub;
 	uint64_t _att_time{0};
 
 	/* do not allow top copying this class */
@@ -1272,7 +1274,8 @@ private:
 protected:
 	explicit MavlinkStreamAttitudeQuaternion(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_att_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_attitude))),
-		_angular_velocity_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_angular_velocity)))
+		_angular_velocity_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_angular_velocity))),
+		_status_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_status)))
 	{}
 
 	bool send(const hrt_abstime t)
@@ -1282,6 +1285,9 @@ protected:
 		if (_att_sub->update(&_att_time, &att)) {
 			vehicle_angular_velocity_s angular_velocity{};
 			_angular_velocity_sub->update(&angular_velocity);
+
+			vehicle_status_s status{};
+			_status_sub->update(&status);
 
 			mavlink_attitude_quaternion_t msg{};
 
@@ -1293,6 +1299,23 @@ protected:
 			msg.rollspeed = angular_velocity.xyz[0];
 			msg.pitchspeed = angular_velocity.xyz[1];
 			msg.yawspeed = angular_velocity.xyz[2];
+
+			if (status.is_vtol && status.is_vtol_tailsitter && (status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
+				// This is a tailsitter VTOL flying in fixed wing mode:
+				// indicate that reported attitude should be rotated by
+				// 90 degrees upward pitch for user display
+				get_rot_quaternion(ROTATION_PITCH_90).copyTo(msg.repr_offset_q);
+
+			} else {
+				// Normal case
+				// zero rotation should be [1 0 0 0]:
+				// `get_rot_quaternion(ROTATION_NONE).copyTo(msg.repr_offset_q);`
+				// but to save bandwidth, we instead send [0, 0, 0, 0].
+				msg.repr_offset_q[0] = 0.0f;
+				msg.repr_offset_q[1] = 0.0f;
+				msg.repr_offset_q[2] = 0.0f;
+				msg.repr_offset_q[3] = 0.0f;
+			}
 
 			mavlink_msg_attitude_quaternion_send_struct(_mavlink->get_channel(), &msg);
 
