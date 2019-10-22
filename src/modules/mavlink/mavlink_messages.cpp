@@ -3259,9 +3259,9 @@ protected:
 					msg.vz = lpos_sp.vz;
 
 					// acceleration
-					msg.afx = lpos_sp.acc_x;
-					msg.afy = lpos_sp.acc_y;
-					msg.afz = lpos_sp.acc_z;
+					msg.afx = lpos_sp.acceleration[0];
+					msg.afy = lpos_sp.acceleration[1];
+					msg.afz = lpos_sp.acceleration[2];
 
 					// yaw
 					msg.yaw = lpos_sp.yaw;
@@ -3343,9 +3343,9 @@ protected:
 			msg.vx = pos_sp.vx;
 			msg.vy = pos_sp.vy;
 			msg.vz = pos_sp.vz;
-			msg.afx = pos_sp.acc_x;
-			msg.afy = pos_sp.acc_y;
-			msg.afz = pos_sp.acc_z;
+			msg.afx = pos_sp.acceleration[0];
+			msg.afy = pos_sp.acceleration[1];
+			msg.afz = pos_sp.acceleration[2];
 
 			mavlink_msg_position_target_local_ned_send_struct(_mavlink->get_channel(), &msg);
 
