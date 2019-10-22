@@ -555,7 +555,7 @@ MulticopterPositionControl::Run()
 				}
 			}
 
-			_wv_controller->update(matrix::Quatf(_att_sp.q_d), _states.yaw);
+			_wv_controller->update(Quatf(_att_sp.q_d).dcm_z(), _states.yaw);
 		}
 
 		// an update is necessary here because otherwise the takeoff state doesn't get skiped with non-altitude-controlled modes
