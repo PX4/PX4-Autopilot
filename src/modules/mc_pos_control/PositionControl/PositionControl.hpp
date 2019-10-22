@@ -130,20 +130,6 @@ public:
 
 	/**
 	 * 	Get the
-	 * 	@see _thr_sp
-	 * 	@return The thrust set-point member.
-	 */
-	const matrix::Vector3f &getThrustSetpoint() { return _thr_sp; }
-
-	/**
-	 * 	Get the
-	 * 	@see _yaw_sp
-	 * 	@return The yaw set-point member.
-	 */
-	const float &getYawSetpoint() { return _yaw_sp; }
-
-	/**
-	 * 	Get the
 	 * 	@see _yawspeed_sp
 	 * 	@return The yawspeed set-point member.
 	 */
@@ -171,25 +157,12 @@ public:
 	}
 
 	/**
-	 * 	Get the
-	 * 	@see _pos_sp
-	 * 	@return The position set-point that was executed in the control-loop. Nan if the position control-loop was skipped.
+	 * Get the controllers output local position setpoint
+	 * These setpoints are the ones which were executed on including PID output and feed-forward.
+	 * The acceleration or thrust setpoints can be used for attitude control.
+	 * @param local_position_setpoint reference to struct to fill up
 	 */
-	const matrix::Vector3f getPosSp()
-	{
-		matrix::Vector3f pos_sp{};
-
-		for (int i = 0; i <= 2; i++) {
-			if (_ctrl_pos[i]) {
-				pos_sp(i) = _pos_sp(i);
-
-			} else {
-				pos_sp(i) = NAN;
-			}
-		}
-
-		return pos_sp;
-	}
+	void getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint);
 
 protected:
 
