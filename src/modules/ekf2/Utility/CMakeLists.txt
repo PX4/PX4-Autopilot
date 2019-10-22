@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,19 +31,15 @@
 #
 #############################################################################
 
-add_subdirectory(Utility)
+px4_add_library(Ekf2Utility
+	PreFlightChecker.cpp
+)
 
-px4_add_module(
-	MODULE modules__ekf2
-	MAIN ekf2
-	COMPILE_FLAGS
-	STACK_MAX 2400
-	SRCS
-		ekf2_main.cpp
-	DEPENDS
-		git_ecl
-		ecl_EKF
-		ecl_geo
-		perf
-		Ekf2Utility
-	)
+target_include_directories(Ekf2Utility
+	PUBLIC
+	${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+target_link_libraries(Ekf2Utility PRIVATE mathlib)
+
+px4_add_unit_gtest(SRC PreFlightCheckerTest.cpp LINKLIBS Ekf2Utility)
