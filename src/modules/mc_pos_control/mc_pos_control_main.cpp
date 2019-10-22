@@ -668,15 +668,10 @@ MulticopterPositionControl::Run()
 			// PositionController.
 			vehicle_local_position_setpoint_s local_pos_sp{};
 			local_pos_sp.timestamp = hrt_absolute_time();
-			local_pos_sp.x = setpoint.x;
-			local_pos_sp.y = setpoint.y;
-			local_pos_sp.z = setpoint.z;
-			local_pos_sp.yaw = _control.getYawSetpoint();
-			local_pos_sp.yawspeed = _control.getYawspeedSetpoint();
+			_control.getLocalPositionSetpoint(local_pos_sp);
 			local_pos_sp.vx = PX4_ISFINITE(_control.getVelSp()(0)) ? _control.getVelSp()(0) : setpoint.vx;
 			local_pos_sp.vy = PX4_ISFINITE(_control.getVelSp()(1)) ? _control.getVelSp()(1) : setpoint.vy;
 			local_pos_sp.vz = PX4_ISFINITE(_control.getVelSp()(2)) ? _control.getVelSp()(2) : setpoint.vz;
-			_control.getThrustSetpoint().copyTo(local_pos_sp.thrust);
 
 			// Publish local position setpoint
 			// This message will be used by other modules (such as Landdetector) to determine
