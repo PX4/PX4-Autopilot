@@ -10,7 +10,6 @@ set(tests
 	commander
 	controllib
 	conv
-	ctlmath
 	dataman
 	file2
 	float
