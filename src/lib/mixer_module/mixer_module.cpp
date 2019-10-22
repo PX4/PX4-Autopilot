@@ -439,6 +439,18 @@ MixingOutput::reorderOutputs(uint16_t values[MAX_ACTUATORS])
 		values[1] = value_tmp[0];
 		values[2] = value_tmp[1];
 		values[3] = value_tmp[2];
+
+	} else if ((MotorOrdering)_param_mot_ordering.get() == MotorOrdering::CW) {
+		/*
+		 * Clock-wise motor ordering:
+		 * 4     1
+		 *    ^
+		 * 3     2
+		 */
+		const uint16_t value_tmp[4] = {values[0], values[1], values[2], values[3] };
+		values[1] = value_tmp[3];
+		values[2] = value_tmp[1];
+		values[3] = value_tmp[2];
 	}
 
 	/* else: PX4, no need to reorder
@@ -459,6 +471,17 @@ int MixingOutput::reorderedMotorIndex(int index) const
 		case 2: return 3;
 
 		case 3: return 0;
+		}
+
+	} else if ((MotorOrdering)_param_mot_ordering.get() == MotorOrdering::CW) {
+		switch (index) {
+		case 0: return 0;
+
+		case 1: return 2;
+
+		case 2: return 3;
+
+		case 3: return 1;
 		}
 	}
 

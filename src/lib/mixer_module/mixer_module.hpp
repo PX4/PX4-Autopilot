@@ -200,7 +200,8 @@ private:
 
 	enum class MotorOrdering : int32_t {
 		PX4 = 0,
-		Betaflight = 1
+		Betaflight = 1,
+		CW = 2
 	};
 
 	struct Command {
