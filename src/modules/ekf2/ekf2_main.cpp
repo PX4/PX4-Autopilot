@@ -78,6 +78,8 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
 
+#include "Utility/PreFlightChecker.hpp"
+
 // defines used to specify the mask position for use of different accuracy metrics in the GPS blending algorithm
 #define BLEND_MASK_USE_SPD_ACC      1
 #define BLEND_MASK_USE_HPOS_ACC     2
@@ -115,6 +117,12 @@ public:
 
 private:
 	int getRangeSubIndex(); ///< get subscription index of first downward-facing range sensor
+
+	PreFlightChecker _preflt_checker;
+	void runPreFlightChecks(float dt, const filter_control_status_u &control_status,
+				const vehicle_status_s &vehicle_status,
+				const ekf2_innovations_s &innov);
+	void resetPreFlightChecks();
 
 	template<typename Param>
 	void update_mag_bias(Param &mag_bias_param, int axis_index);
@@ -199,27 +207,6 @@ private:
 
 	// Used to control saving of mag declination to be used on next startup
 	bool _mag_decl_saved = false;	///< true when the magnetic declination has been saved
-
-	// Used to filter velocity innovations during pre-flight checks
-	bool _preflt_horiz_fail = false;	///< true if preflight horizontal innovation checks are failed
-	bool _preflt_vert_fail = false;		///< true if preflight vertical innovation checks are failed
-	bool _preflt_fail = false;		///< true if any preflight innovation checks are failed
-	Vector2f _vel_ne_innov_lpf = {};	///< Preflight low pass filtered NE axis velocity innovations (m/sec)
-	float _vel_d_innov_lpf = {};		///< Preflight low pass filtered D axis velocity innovations (m/sec)
-	float _hgt_innov_lpf = 0.0f;		///< Preflight low pass filtered height innovation (m)
-	float _yaw_innov_magnitude_lpf = 0.0f;	///< Preflight low pass filtered yaw innovation magntitude (rad)
-
-	static constexpr float _innov_lpf_tau_inv = 0.2f;	///< Preflight low pass filter time constant inverse (1/sec)
-	static constexpr float _vel_innov_test_lim =
-		0.5f;	///< Maximum permissible velocity innovation to pass pre-flight checks (m/sec)
-	static constexpr float _hgt_innov_test_lim =
-		1.5f;	///< Maximum permissible height innovation to pass pre-flight checks (m)
-	static constexpr float _nav_yaw_innov_test_lim =
-		0.25f;	///< Maximum permissible yaw innovation to pass pre-flight checks when aiding inertial nav using NE frame observations (rad)
-	static constexpr float _yaw_innov_test_lim =
-		0.52f;	///< Maximum permissible yaw innovation to pass pre-flight checks when not aiding inertial nav using NE frame observations (rad)
-	const float _vel_innov_spike_lim = 2.0f * _vel_innov_test_lim;	///< preflight velocity innovation spike limit (m/sec)
-	const float _hgt_innov_spike_lim = 2.0f * _hgt_innov_test_lim;	///< preflight position innovation spike limit (m)
 
 	// set pose/velocity as invalid if standard deviation is bigger than max_std_dev
 	// TODO: the user should be allowed to set these values by a parameter
@@ -1303,10 +1290,10 @@ void Ekf2::Run()
 				lpos.az = vel_deriv[2];
 
 				// TODO: better status reporting
-				lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
-				lpos.z_valid = !_preflt_vert_fail;
-				lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_horiz_fail;
-				lpos.v_z_valid = !_preflt_vert_fail;
+				lpos.xy_valid = _ekf.local_position_is_valid() && !_preflt_checker.hasHorizFailed();
+				lpos.z_valid = !_preflt_checker.hasVertFailed();
+				lpos.v_xy_valid = _ekf.local_position_is_valid() && !_preflt_checker.hasHorizFailed();
+				lpos.v_z_valid = !_preflt_checker.hasVertFailed();
 
 				// Position of local NED origin in GPS / WGS84 frame
 				map_projection_reference_s ekf_origin;
@@ -1470,7 +1457,7 @@ void Ekf2::Run()
 					_vehicle_visual_odometry_aligned_pub.publish(aligned_ev_odom);
 				}
 
-				if (_ekf.global_position_is_valid() && !_preflt_fail) {
+				if (_ekf.global_position_is_valid() && !_preflt_checker.hasFailed()) {
 					// generate and publish global position data
 					vehicle_global_position_s &global_pos = _vehicle_global_position_pub.get();
 
@@ -1552,7 +1539,10 @@ void Ekf2::Run()
 			status.time_slip = _last_time_slip_us / 1e6f;
 			status.health_flags = 0.0f; // unused
 			status.timeout_flags = 0.0f; // unused
-			status.pre_flt_fail = _preflt_fail;
+			status.pre_flt_fail_innov_heading = _preflt_checker.hasHeadingFailed();
+			status.pre_flt_fail_innov_vel_horiz = _preflt_checker.hasHorizVelFailed();
+			status.pre_flt_fail_innov_vel_vert = _preflt_checker.hasVertVelFailed();
+			status.pre_flt_fail_innov_height = _preflt_checker.hasHeightFailed();
 
 			_estimator_status_pub.publish(status);
 
@@ -1673,64 +1663,11 @@ void Ekf2::Run()
 
 				// calculate noise filtered velocity innovations which are used for pre-flight checking
 				if (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
-					// calculate coefficients for LPF applied to innovation sequences
-					float alpha = constrain(sensors.accelerometer_integral_dt / 1.e6f * _innov_lpf_tau_inv, 0.0f, 1.0f);
-					float beta = 1.0f - alpha;
-
-					// filter the velocity and innvovations
-					_vel_ne_innov_lpf(0) = beta * _vel_ne_innov_lpf(0) + alpha * constrain(innovations.vel_pos_innov[0],
-							       -_vel_innov_spike_lim, _vel_innov_spike_lim);
-					_vel_ne_innov_lpf(1) = beta * _vel_ne_innov_lpf(1) + alpha * constrain(innovations.vel_pos_innov[1],
-							       -_vel_innov_spike_lim, _vel_innov_spike_lim);
-					_vel_d_innov_lpf = beta * _vel_d_innov_lpf + alpha * constrain(innovations.vel_pos_innov[2],
-							   -_vel_innov_spike_lim, _vel_innov_spike_lim);
-
-					// set the max allowed yaw innovaton depending on whether we are not aiding navigation using
-					// observations in the NE reference frame.
-					bool doing_ne_aiding = control_status.flags.gps ||  control_status.flags.ev_pos;
-
-					float yaw_test_limit;
-
-					if (doing_ne_aiding && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)) {
-						// use a smaller tolerance when doing NE inertial frame aiding as a rotary wing
-						// vehicle which cannot use GPS course to realign heading in flight
-						yaw_test_limit = _nav_yaw_innov_test_lim;
-
-					} else {
-						// use a larger tolerance when not doing NE inertial frame aiding or
-						// if a fixed wing vehicle which can realign heading using GPS course
-						yaw_test_limit = _yaw_innov_test_lim;
-					}
-
-					// filter the yaw innovations
-					_yaw_innov_magnitude_lpf = beta * _yaw_innov_magnitude_lpf + alpha * constrain(innovations.heading_innov,
-								   -2.0f * yaw_test_limit, 2.0f * yaw_test_limit);
-
-					_hgt_innov_lpf = beta * _hgt_innov_lpf + alpha * constrain(innovations.vel_pos_innov[5], -_hgt_innov_spike_lim,
-							 _hgt_innov_spike_lim);
-
-					// check the yaw and horizontal velocity innovations
-					float vel_ne_innov_length = sqrtf(innovations.vel_pos_innov[0] * innovations.vel_pos_innov[0] +
-									  innovations.vel_pos_innov[1] * innovations.vel_pos_innov[1]);
-					_preflt_horiz_fail = (_vel_ne_innov_lpf.norm() > _vel_innov_test_lim)
-							     || (vel_ne_innov_length > 2.0f * _vel_innov_test_lim)
-							     || (_yaw_innov_magnitude_lpf > yaw_test_limit);
-
-					// check the vertical velocity and position innovations
-					_preflt_vert_fail = (fabsf(_vel_d_innov_lpf) > _vel_innov_test_lim)
-							    || (fabsf(innovations.vel_pos_innov[2]) > 2.0f * _vel_innov_test_lim)
-							    || (fabsf(_hgt_innov_lpf) > _hgt_innov_test_lim);
-
-					// master pass-fail status
-					_preflt_fail = _preflt_horiz_fail || _preflt_vert_fail;
+					float dt_seconds = sensors.accelerometer_integral_dt * 1e-6f;
+					runPreFlightChecks(dt_seconds, control_status, _vehicle_status, innovations);
 
 				} else {
-					_vel_ne_innov_lpf.zero();
-					_vel_d_innov_lpf = 0.0f;
-					_hgt_innov_lpf = 0.0f;
-					_preflt_horiz_fail = false;
-					_preflt_vert_fail = false;
-					_preflt_fail = false;
+					resetPreFlightChecks();
 				}
 
 				_estimator_innovations_pub.publish(innovations);
@@ -1740,6 +1677,26 @@ void Ekf2::Run()
 		// publish ekf2_timestamps
 		_ekf2_timestamps_pub.publish(ekf2_timestamps);
 	}
+}
+
+void Ekf2::runPreFlightChecks(const float dt,
+			      const filter_control_status_u &control_status,
+			      const vehicle_status_s &vehicle_status,
+			      const ekf2_innovations_s &innov)
+{
+	const bool can_observe_heading_in_flight = (vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
+
+	_preflt_checker.setVehicleCanObserveHeadingInFlight(can_observe_heading_in_flight);
+	_preflt_checker.setUsingGpsAiding(control_status.flags.gps);
+	_preflt_checker.setUsingFlowAiding(control_status.flags.opt_flow);
+	_preflt_checker.setUsingEvPosAiding(control_status.flags.ev_pos);
+
+	_preflt_checker.update(dt, innov);
+}
+
+void Ekf2::resetPreFlightChecks()
+{
+	_preflt_checker.reset();
 }
 
 int Ekf2::getRangeSubIndex()
