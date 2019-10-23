@@ -56,8 +56,6 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 
 UavcanEscController::~UavcanEscController()
 {
-	perf_free(_perfcnt_invalid_input);
-	perf_free(_perfcnt_scaling_error);
 }
 
 int
@@ -79,14 +77,14 @@ UavcanEscController::init()
 }
 
 void
-UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
+UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
-	if ((outputs == nullptr) ||
-	    (num_outputs > uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize) ||
-	    (num_outputs > esc_status_s::CONNECTED_ESC_MAX)) {
+	if (num_outputs > uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize) {
+		num_outputs = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize;
+	}
 
-		perf_count(_perfcnt_invalid_input);
-		return;
+	if (num_outputs > esc_status_s::CONNECTED_ESC_MAX) {
+		num_outputs = esc_status_s::CONNECTED_ESC_MAX;
 	}
 
 	/*
@@ -106,34 +104,12 @@ UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	 */
 	uavcan::equipment::esc::RawCommand msg;
 
-	actuator_outputs_s actuator_outputs{};
-	actuator_outputs.noutputs = num_outputs;
-
-	static const int cmd_max = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max();
-	const float cmd_min = _run_at_idle_throttle_when_armed ? 1.0F : 0.0F;
-
 	for (unsigned i = 0; i < num_outputs; i++) {
-		if (_armed_mask & MOTOR_BIT(i)) {
-			float scaled = (outputs[i] + 1.0F) * 0.5F * cmd_max;
-
-			// trim negative values back to minimum
-			if (scaled < cmd_min) {
-				scaled = cmd_min;
-				perf_count(_perfcnt_scaling_error);
-			}
-
-			if (scaled > cmd_max) {
-				scaled = cmd_max;
-				perf_count(_perfcnt_scaling_error);
-			}
-
-			msg.cmd.push_back(static_cast<int>(scaled));
-
-			actuator_outputs.output[i] = scaled;
+		if (stop_motors || outputs[i] == DISARMED_OUTPUT_VALUE) {
+			msg.cmd.push_back(static_cast<unsigned>(0));
 
 		} else {
-			msg.cmd.push_back(static_cast<unsigned>(0));
-			actuator_outputs.output[i] = 0.0f;
+			msg.cmd.push_back(static_cast<int>(outputs[i]));
 		}
 	}
 
@@ -161,32 +137,6 @@ UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	 * Note that for a quadrotor it takes one CAN frame
 	 */
 	_uavcan_pub_raw_cmd.broadcast(msg);
-
-	// Publish actuator outputs
-	actuator_outputs.timestamp = hrt_absolute_time();
-	_actuator_outputs_pub.publish(actuator_outputs);
-}
-
-void
-UavcanEscController::arm_all_escs(bool arm)
-{
-	if (arm) {
-		_armed_mask = -1;
-
-	} else {
-		_armed_mask = 0;
-	}
-}
-
-void
-UavcanEscController::arm_single_esc(int num, bool arm)
-{
-	if (arm) {
-		_armed_mask = MOTOR_BIT(num);
-
-	} else {
-		_armed_mask = 0;
-	}
 }
 
 void
@@ -212,7 +162,7 @@ UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent &)
 	_esc_status.esc_count = _rotor_count;
 	_esc_status.counter += 1;
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
-	_esc_status.esc_online_flags = UavcanEscController::check_escs_status();
+	_esc_status.esc_online_flags = check_escs_status();
 
 	_esc_status_pub.publish(_esc_status);
 }

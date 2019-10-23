@@ -57,6 +57,8 @@
 
 #include "boot_app_shared.h"
 
+using namespace time_literals;
+
 /**
  *
  * Implements basic functionality of UAVCAN esc.
@@ -99,6 +101,10 @@ UavcanEsc::UavcanEsc(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &syste
 		std::abort();
 	}
 
+	px4_sem_init(&_sem, 0, 0);
+	/* semaphore use case is a signal */
+	px4_sem_setprotocol(&_sem, SEM_PRIO_NONE);
+
 }
 
 UavcanEsc::~UavcanEsc()
@@ -123,7 +129,7 @@ UavcanEsc::~UavcanEsc()
 	}
 
 	_instance = nullptr;
-
+	px4_sem_destroy(&_sem);
 }
 
 int UavcanEsc::start(uavcan::NodeID node_id, uint32_t bitrate)
@@ -163,7 +169,7 @@ int UavcanEsc::start(uavcan::NodeID node_id, uint32_t bitrate)
 	}
 
 
-	const int node_init_res = _instance->init(node_id);
+	const int node_init_res = _instance->init(node_id, can.driver.updateEvent());
 
 	if (node_init_res < 0) {
 		delete _instance;
@@ -255,7 +261,7 @@ void UavcanEsc::cb_beginfirmware_update(const uavcan::ReceivedDataStructure<Uavc
 	}
 }
 
-int UavcanEsc::init(uavcan::NodeID node_id)
+int UavcanEsc::init(uavcan::NodeID node_id, uavcan_stm32::BusEvent &bus_events)
 {
 	int ret = -1;
 
@@ -278,6 +284,8 @@ int UavcanEsc::init(uavcan::NodeID node_id)
 	if (srv_start_res < 0) {
 		return ret;
 	}
+
+	bus_events.registerSignalCallback(UavcanEsc::busevent_signal_trampoline);
 
 	return _node.start();
 }
@@ -306,25 +314,27 @@ void UavcanEsc::node_spin_once()
 	}
 }
 
-/*
-  add a fd to the list of polled events. This assumes you want
-  POLLIN for now.
- */
-int UavcanEsc::add_poll_fd(int fd)
+static void signal_callback(void *arg)
 {
-	int ret = _poll_fds_num;
+	/* Note: we are in IRQ context here */
+	px4_sem_t *sem = (px4_sem_t *)arg;
+	int semaphore_value;
 
-	if (_poll_fds_num >= UAVCAN_NUM_POLL_FDS) {
-		errx(1, "uavcan: too many poll fds, exiting");
+	if (px4_sem_getvalue(sem, &semaphore_value) == 0 && semaphore_value > 1) {
+		return;
 	}
 
-	_poll_fds[_poll_fds_num] = ::pollfd();
-	_poll_fds[_poll_fds_num].fd = fd;
-	_poll_fds[_poll_fds_num].events = POLLIN;
-	_poll_fds_num += 1;
-	return ret;
+	px4_sem_post(sem);
 }
 
+
+void
+UavcanEsc::busevent_signal_trampoline()
+{
+	if (_instance) {
+		signal_callback(&_instance->_sem);
+	}
+}
 
 int UavcanEsc::run()
 {
@@ -338,54 +348,28 @@ int UavcanEsc::run()
 
 	(void)pthread_mutex_lock(&_node_mutex);
 
-	const unsigned PollTimeoutMs = 50;
-
-	const int busevent_fd = ::open(uavcan_stm32::BusEvent::DevName, 0);
-
-	if (busevent_fd < 0) {
-		PX4_WARN("Failed to open %s", uavcan_stm32::BusEvent::DevName);
-		_task_should_exit = true;
-	}
-
-	/* If we had an  RTC we would call uavcan_stm32::clock::setUtc()
-	* but for now we use adjustUtc with a correction of 0
-	*/
-//        uavcan_stm32::clock::adjustUtc(uavcan::UtcDuration::fromUSec(0));
-
 	_node.setModeOperational();
 
-	/*
-	 * This event is needed to wake up the thread on CAN bus activity (RX/TX/Error).
-	 * Please note that with such multiplexing it is no longer possible to rely only on
-	 * the value returned from poll() to detect whether actuator control has timed out or not.
-	 * Instead, all ORB events need to be checked individually (see below).
-	 */
-	add_poll_fd(busevent_fd);
+	hrt_call timer_call{};
+	hrt_call_every(&timer_call, 50_ms, 50_ms, signal_callback, &_sem);
 
 	while (!_task_should_exit) {
 		// Mutex is unlocked while the thread is blocked on IO multiplexing
 		(void)pthread_mutex_unlock(&_node_mutex);
 
-		const int poll_ret = ::poll(_poll_fds, _poll_fds_num, PollTimeoutMs);
-
+		while (px4_sem_wait(&_sem) != 0);
 
 		(void)pthread_mutex_lock(&_node_mutex);
 
 		node_spin_once();  // Non-blocking
 
+		// Do Something
 
-		// this would be bad...
-		if (poll_ret < 0) {
-			PX4_ERR("poll error %d", errno);
-			continue;
-
-		} else {
-			// Do Something
-		}
 	}
 
+	hrt_cancel(&timer_call);
 	teardown();
-	PX4_WARN("exiting.");
+	(void)pthread_mutex_unlock(&_node_mutex);
 
 	exit(0);
 }
