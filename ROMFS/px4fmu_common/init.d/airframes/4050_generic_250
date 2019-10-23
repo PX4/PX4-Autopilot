@@ -17,7 +17,7 @@ if [ $AUTOCNF = yes ]
 then
 	param set MC_ROLL_P 8
 	param set MC_ROLLRATE_P 0.08
-	param set MC_ROLLRATE_I 0.25
+	param set MC_ROLLRATE_I 0.2
 	param set MC_ROLLRATE_D 0.001
 	param set MC_PITCH_P 8
 	param set MC_PITCHRATE_P 0.08

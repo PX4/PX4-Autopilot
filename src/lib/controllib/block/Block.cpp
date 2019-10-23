@@ -42,7 +42,8 @@
 
 #include <cstring>
 
-#include <uORB/SubscriptionPollable.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
 
 namespace control
 {
@@ -101,7 +102,7 @@ void Block::updateParams()
 
 void Block::updateSubscriptions()
 {
-	uORB::SubscriptionPollableNode *sub = getSubscriptions().getHead();
+	uORB::SubscriptionNode *sub = getSubscriptions().getHead();
 	int count = 0;
 
 	while (sub != nullptr) {
@@ -114,6 +115,24 @@ void Block::updateSubscriptions()
 
 		sub->update();
 		sub = sub->getSibling();
+	}
+}
+
+void Block::updatePublications()
+{
+	uORB::PublicationNode *pub = getPublications().getHead();
+	int count = 0;
+
+	while (pub != nullptr) {
+		if (count++ > maxPublicationsPerBlock) {
+			char name[blockNameLengthMax];
+			getName(name, blockNameLengthMax);
+			PX4_ERR("exceeded max publications for block: %s", name);
+			break;
+		}
+
+		pub->update();
+		pub = pub->getSibling();
 	}
 }
 
@@ -172,7 +191,26 @@ void SuperBlock::updateChildSubscriptions()
 	}
 }
 
+void SuperBlock::updateChildPublications()
+{
+	Block *child = getChildren().getHead();
+	int count = 0;
+
+	while (child != nullptr) {
+		if (count++ > maxChildrenPerBlock) {
+			char name[blockNameLengthMax];
+			getName(name, blockNameLengthMax);
+			PX4_ERR("exceeded max children for block: %s", name);
+			break;
+		}
+
+		child->updatePublications();
+		child = child->getSibling();
+	}
+}
+
 } // namespace control
 
-template class List<uORB::SubscriptionPollableNode *>;
+template class List<uORB::SubscriptionNode *>;
+template class List<uORB::PublicationNode *>;
 template class List<control::BlockParamBase *>;

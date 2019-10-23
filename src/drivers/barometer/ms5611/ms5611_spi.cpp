@@ -37,7 +37,23 @@
  * SPI interface for MS5611
  */
 
+/* XXX trim includes */
+#include <px4_time.h>
+#include <px4_config.h>
+
+#include <sys/types.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <assert.h>
+#include <errno.h>
+#include <unistd.h>
+
+#include <arch/board/board.h>
+
+#include <drivers/device/spi.h>
+
 #include "ms5611.h"
+#include "board_config.h"
 
 /* SPI protocol address bits */
 #define DIR_READ			(1<<7)

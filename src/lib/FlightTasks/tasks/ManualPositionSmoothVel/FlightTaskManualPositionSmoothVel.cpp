@@ -38,22 +38,11 @@
 
 using namespace matrix;
 
-bool FlightTaskManualPositionSmoothVel::activate(vehicle_local_position_setpoint_s last_setpoint)
+bool FlightTaskManualPositionSmoothVel::activate()
 {
-	bool ret = FlightTaskManualPosition::activate(last_setpoint);
+	bool ret = FlightTaskManualPosition::activate();
 
-	// Check if the previous FlightTask provided setpoints
-	checkSetpoints(last_setpoint);
-	const Vector3f accel_prev(last_setpoint.acc_x, last_setpoint.acc_y, last_setpoint.acc_z);
-	const Vector3f vel_prev(last_setpoint.vx, last_setpoint.vy, last_setpoint.vz);
-	const Vector3f pos_prev(last_setpoint.x, last_setpoint.y, last_setpoint.z);
-
-	for (int i = 0; i < 3; ++i) {
-		_smoothing[i].reset(accel_prev(i), vel_prev(i), pos_prev(i));
-	}
-
-	_initEkfResetCounters();
-	_resetPositionLock();
+	reset(Axes::XYZ);
 
 	return ret;
 }
@@ -62,55 +51,42 @@ void FlightTaskManualPositionSmoothVel::reActivate()
 {
 	// The task is reacivated while the vehicle is on the ground. To detect takeoff in mc_pos_control_main properly
 	// using the generated jerk, reset the z derivatives to zero
-	for (int i = 0; i < 2; ++i) {
+	reset(Axes::XYZ, true);
+}
+
+void FlightTaskManualPositionSmoothVel::reset(Axes axes, bool force_z_zero)
+{
+	int count;
+
+	switch (axes) {
+	case Axes::XY:
+		count = 2;
+		break;
+
+	case Axes::XYZ:
+		count = 3;
+		break;
+
+	default:
+		count = 0;
+		break;
+	}
+
+	// TODO: get current accel
+	for (int i = 0; i < count; ++i) {
 		_smoothing[i].reset(0.f, _velocity(i), _position(i));
 	}
 
-	_smoothing[2].reset(0.f, 0.f, _position(2));
+	// Set the z derivatives to zero
+	if (force_z_zero) {
+		_smoothing[2].reset(0.f, 0.f, _position(2));
+	}
 
-	_initEkfResetCounters();
-	_resetPositionLock();
-}
-
-void FlightTaskManualPositionSmoothVel::checkSetpoints(vehicle_local_position_setpoint_s &setpoints)
-{
-	// If the position setpoint is unknown, set to the current postion
-	if (!PX4_ISFINITE(setpoints.x)) { setpoints.x = _position(0); }
-
-	if (!PX4_ISFINITE(setpoints.y)) { setpoints.y = _position(1); }
-
-	if (!PX4_ISFINITE(setpoints.z)) { setpoints.z = _position(2); }
-
-	// If the velocity setpoint is unknown, set to the current velocity
-	if (!PX4_ISFINITE(setpoints.vx)) { setpoints.vx = _velocity(0); }
-
-	if (!PX4_ISFINITE(setpoints.vy)) { setpoints.vy = _velocity(1); }
-
-	if (!PX4_ISFINITE(setpoints.vz)) { setpoints.vz = _velocity(2); }
-
-	// No acceleration estimate available, set to zero if the setpoint is NAN
-	if (!PX4_ISFINITE(setpoints.acc_x)) { setpoints.acc_x = 0.f; }
-
-	if (!PX4_ISFINITE(setpoints.acc_y)) { setpoints.acc_y = 0.f; }
-
-	if (!PX4_ISFINITE(setpoints.acc_z)) { setpoints.acc_z = 0.f; }
-}
-
-void FlightTaskManualPositionSmoothVel::_resetPositionLock()
-{
 	_position_lock_xy_active = false;
 	_position_lock_z_active = false;
 	_position_setpoint_xy_locked(0) = NAN;
 	_position_setpoint_xy_locked(1) = NAN;
 	_position_setpoint_z_locked = NAN;
-}
-
-void FlightTaskManualPositionSmoothVel::_initEkfResetCounters()
-{
-	_reset_counters.xy = _sub_vehicle_local_position->get().xy_reset_counter;
-	_reset_counters.vxy = _sub_vehicle_local_position->get().vxy_reset_counter;
-	_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
-	_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
 }
 
 void FlightTaskManualPositionSmoothVel::_checkEkfResetCounters()

@@ -90,6 +90,10 @@ void FollowTarget::on_activation()
 	}
 
 	_rot_matrix = (_follow_position_matricies[_follow_target_position]);
+
+	if (_follow_target_sub < 0) {
+		_follow_target_sub = orb_subscribe(ORB_ID(follow_target));
+	}
 }
 
 void FollowTarget::on_active()
@@ -102,7 +106,9 @@ void FollowTarget::on_active()
 	bool updated = false;
 	float dt_ms = 0;
 
-	if (_follow_target_sub.updated()) {
+	orb_check(_follow_target_sub, &updated);
+
+	if (updated) {
 		follow_target_s target_motion;
 
 		_target_updates++;
@@ -111,7 +117,7 @@ void FollowTarget::on_active()
 
 		_previous_target_motion = _current_target_motion;
 
-		_follow_target_sub.copy(&target_motion);
+		orb_copy(ORB_ID(follow_target), _follow_target_sub, &target_motion);
 
 		if (_current_target_motion.timestamp == 0) {
 			_current_target_motion = target_motion;

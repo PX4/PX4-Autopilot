@@ -40,8 +40,7 @@
 #include <px4_time.h>
 
 ToneAlarm::ToneAlarm() :
-	CDev(TONE_ALARM0_DEVICE_PATH),
-	ScheduledWorkItem(px4::wq_configurations::hp_default)
+	CDev(TONE_ALARM0_DEVICE_PATH)
 {
 }
 
@@ -66,9 +65,7 @@ int ToneAlarm::init()
 	ToneAlarmInterface::init();
 
 	_running = true;
-
-	ScheduleNow();
-
+	work_queue(HPWORK, &_work, (worker_t)&ToneAlarm::next_trampoline, this, 0);
 	return OK;
 }
 
@@ -125,12 +122,13 @@ void ToneAlarm::next_note()
 	}
 
 	// Schedule a callback when the note should stop.
-	ScheduleDelayed(duration);
+	work_queue(HPWORK, &_work, (worker_t)&ToneAlarm::next_trampoline, this, USEC2TICK(duration));
 }
 
-void ToneAlarm::Run()
+void ToneAlarm::next_trampoline(void *argv)
 {
-	next_note();
+	ToneAlarm *toneAlarm = (ToneAlarm *)argv;
+	toneAlarm->next_note();
 }
 
 void ToneAlarm::orb_update()
@@ -178,6 +176,9 @@ void ToneAlarm::stop_note()
 	// NOTE: Implement hardware specific detail in the ToneAlarmInterface class implementation.
 	ToneAlarmInterface::stop_note();
 }
+
+
+struct work_s ToneAlarm::_work = {};
 
 /**
  * Local functions in support of the shell command.

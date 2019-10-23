@@ -38,20 +38,28 @@
 
 #pragma once
 
-#include <drivers/device/ringbuffer.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/drv_input_capture.h>
-#include <drivers/drv_pwm_output.h>
-#include <lib/parameters/param.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <stdbool.h>
+#include <poll.h>
+#include <mathlib/mathlib.h>
+#include <systemlib/err.h>
+#include <parameters/param.h>
+
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_module.h>
 #include <px4_tasks.h>
 #include <px4_workqueue.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationQueued.hpp>
-#include <uORB/Subscription.hpp>
+
+#include <drivers/drv_hrt.h>
+#include <drivers/drv_pwm_output.h>
+#include <drivers/drv_input_capture.h>
+#include <drivers/device/ringbuffer.h>
+
+#include <uORB/uORB.h>
 #include <uORB/topics/camera_trigger.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
@@ -62,7 +70,7 @@
 #define GPIO_TRIG_AVX /* PD14 */  (GPIO_INPUT|GPIO_FLOAT|GPIO_EXTI|GPIO_PORTD|GPIO_PIN14)
 
 
-class CameraCapture : public px4::ScheduledWorkItem
+class CameraCapture
 {
 public:
 	/**
@@ -87,10 +95,10 @@ public:
 
 	void 			status();
 
-	// Low-rate command handling loop
-	void			Run() override;
+	void			cycle();
 
-	static void		capture_trampoline(void *context, uint32_t chan_index, hrt_abstime edge_time, uint32_t edge_state,
+	static void		capture_trampoline(void *context, uint32_t chan_index,
+			hrt_abstime edge_time, uint32_t edge_state,
 			uint32_t overflow);
 
 	void 			set_capture_control(bool enabled);
@@ -100,16 +108,20 @@ public:
 	void			publish_trigger();
 
 
+	static struct work_s	_work;
 	static struct work_s	_work_publisher;
 
 private:
 
+	bool			_capture_enabled;
+	bool			_gpio_capture;
+
 	// Publishers
-	uORB::PublicationQueued<vehicle_command_ack_s>	_command_ack_pub{ORB_ID(vehicle_command_ack)};
-	uORB::Publication<camera_trigger_s>		_trigger_pub{ORB_ID(camera_trigger)};
+	orb_advert_t	_trigger_pub;
+	orb_advert_t	_command_ack_pub;
 
 	// Subscribers
-	uORB::Subscription				_command_sub{ORB_ID(vehicle_command)};
+	int				_command_sub;
 
 	// Trigger Buffer
 	struct _trig_s {
@@ -117,30 +129,30 @@ private:
 		hrt_abstime edge_time;
 		uint32_t edge_state;
 		uint32_t overflow;
-	} _trigger{};
+	};
 
-	ringbuffer::RingBuffer	*_trig_buffer{nullptr};
+	struct _trig_s _trigger;
 
-	bool			_capture_enabled{false};
-	bool			_gpio_capture{false};
+	ringbuffer::RingBuffer *_trig_buffer;
 
 	// Parameters
-	param_t 		_p_strobe_delay{PARAM_INVALID};
-	float			_strobe_delay{0.0f};
-	param_t			_p_camera_capture_mode{PARAM_INVALID};
-	int32_t			_camera_capture_mode{0};
-	param_t			_p_camera_capture_edge{PARAM_INVALID};
-	int32_t			_camera_capture_edge{0};
+	param_t 		_p_strobe_delay;
+	float			_strobe_delay;
+	param_t			_p_camera_capture_mode;
+	int32_t			_camera_capture_mode;
+	param_t			_p_camera_capture_edge;
+	int32_t			_camera_capture_edge;
 
 	// Signal capture statistics
-	uint32_t		_capture_seq{0};
-	hrt_abstime		_last_trig_begin_time{0};
-	hrt_abstime		_last_exposure_time{0};
-	hrt_abstime		_last_trig_time{0};
-	uint32_t 		_capture_overflows{0};
+	uint32_t		_capture_seq;
+	hrt_abstime		_last_trig_begin_time;
+	hrt_abstime		_last_exposure_time;
+	hrt_abstime		_last_trig_time;
+	uint32_t 		_capture_overflows;
 
 	// Signal capture callback
-	void			capture_callback(uint32_t chan_index, hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
+	void			capture_callback(uint32_t chan_index,
+			hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
 
 	// GPIO interrupt routine (for AV_X board)
 	static int		gpio_interrupt_routine(int irq, void *context, void *arg);
@@ -148,6 +160,9 @@ private:
 	// Signal capture publish
 	static void		publish_trigger_trampoline(void *arg);
 
-};
+	// Low-rate command handling loop
+	static void		cycle_trampoline(void *arg);
 
+};
+struct work_s CameraCapture::_work;
 struct work_s CameraCapture::_work_publisher;

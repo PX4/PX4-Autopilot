@@ -46,12 +46,12 @@ class ListNode
 {
 public:
 
-	void setSibling(T sibling) { _list_node_sibling = sibling; }
-	const T getSibling() const { return _list_node_sibling; }
+	void setSibling(T sibling) { _sibling = sibling; }
+	const T getSibling() const { return _sibling; }
 
 protected:
 
-	T _list_node_sibling{nullptr};
+	T _sibling{nullptr};
 
 };
 
@@ -68,16 +68,9 @@ public:
 
 	bool remove(T removeNode)
 	{
-		if (removeNode == nullptr) {
-			return false;
-		}
-
 		// base case
 		if (removeNode == _head) {
-			if (_head != nullptr) {
-				_head = _head->getSibling();
-			}
-
+			_head = nullptr;
 			return true;
 		}
 

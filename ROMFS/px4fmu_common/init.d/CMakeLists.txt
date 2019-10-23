@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-add_subdirectory(airframes)
-
 px4_add_romfs_files(
 	rc.fw_apps
 	rc.fw_defaults
@@ -45,8 +43,8 @@ px4_add_romfs_files(
 	rcS
 	rc.sensors
 	rc.thermal_cal
-	rc.rover_apps
-	rc.rover_defaults
+	rc.ugv_apps
+	rc.ugv_defaults
 	rc.vehicle_setup
 	rc.vtol_apps
 	rc.vtol_defaults

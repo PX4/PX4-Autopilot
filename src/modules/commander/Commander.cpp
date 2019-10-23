@@ -347,7 +347,7 @@ int commander_main(int argc, char *argv[])
 
                         if (!strcmp(argv[2], "mag")) {
                                 calib_ret = do_mag_calibration(&mavlink_log_pub);
-                                mag_cali_done = true;
+                mag_cali_done = true;
 
                         } else if (!strcmp(argv[2], "accel")) {
                                 calib_ret = do_accel_calibration(&mavlink_log_pub);
@@ -3710,7 +3710,7 @@ void *commander_low_prio_loop(void *arg)
                                                 /* magnetometer calibration */
                                                 answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
                                                 calib_ret = do_mag_calibration(&mavlink_log_pub);
-                                                mag_cali_done = true;
+                        mag_cali_done = true;
 
                                         } else if ((int)(cmd.param3) == 1) {
                                                 /* zero-altitude pressure calibration */

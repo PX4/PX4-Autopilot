@@ -44,7 +44,7 @@ static bool bind_spektrum(int arg);
 work_s RCInput::_work = {};
 constexpr char const *RCInput::RC_SCAN_STRING[];
 
-RCInput::RCInput(bool run_as_task, char *device) :
+RCInput::RCInput(bool run_as_task) :
 	_cycle_perf(perf_alloc(PC_ELAPSED, "rc_input cycle time")),
 	_publish_interval_perf(perf_alloc(PC_INTERVAL, "rc_input publish interval"))
 {
@@ -58,20 +58,14 @@ RCInput::RCInput(bool run_as_task, char *device) :
 	for (unsigned i = 0; i < input_rc_s::RC_INPUT_MAX_CHANNELS; i++) {
 		_raw_rc_values[i] = UINT16_MAX;
 	}
-
-#ifdef RC_SERIAL_PORT
-
-	if (device) {
-		strncpy(_device, device, sizeof(_device));
-		_device[sizeof(_device) - 1] = '\0';
-	}
-
-#endif
 }
 
 RCInput::~RCInput()
 {
 	orb_unadvertise(_to_input_rc);
+
+	orb_unsubscribe(_adc_sub);
+	orb_unsubscribe(_vehicle_cmd_sub);
 
 #ifdef RC_SERIAL_PORT
 	dsm_deinit();
@@ -88,28 +82,21 @@ RCInput::~RCInput()
 int
 RCInput::init()
 {
+	_adc_sub = orb_subscribe(ORB_ID(adc_report));
+
 #ifdef RC_SERIAL_PORT
 
 #  ifdef RF_RADIO_POWER_CONTROL
 	// power radio on
 	RF_RADIO_POWER_CONTROL(true);
 #  endif
-
+	_vehicle_cmd_sub = orb_subscribe(ORB_ID(vehicle_command));
 	// dsm_init sets some file static variables and returns a file descriptor
-	_rcs_fd = dsm_init(_device);
-
-	if (_rcs_fd < 0) {
-		return -errno;
-	}
-
-	if (board_rc_swap_rxtx(_device)) {
-		ioctl(_rcs_fd, TIOCSSWAP, SER_SWAP_ENABLED);
-	}
-
+	_rcs_fd = dsm_init(RC_SERIAL_PORT);
 	// assume SBUS input and immediately switch it to
 	// so that if Single wire mode on TX there will be only
 	// a short contention
-	sbus_config(_rcs_fd, board_rc_singlewire(_device));
+	sbus_config(_rcs_fd, board_supports_single_wire(RC_UXART_BASE));
 #  ifdef GPIO_PPM_IN
 	// disable CPPM input by mapping it away from the timer capture input
 	px4_arch_unconfiggpio(GPIO_PPM_IN);
@@ -128,16 +115,11 @@ RCInput::task_spawn(int argc, char *argv[])
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
-	const char *device = RC_SERIAL_PORT;
 
-	while ((ch = px4_getopt(argc, argv, "td:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "t", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 't':
 			run_as_task = true;
-			break;
-
-		case 'd':
-			device = myoptarg;
 			break;
 
 		case '?':
@@ -159,14 +141,11 @@ RCInput::task_spawn(int argc, char *argv[])
 	if (!run_as_task) {
 
 		/* schedule a cycle to start things */
-		int ret = work_queue(HPWORK, &_work, (worker_t)&RCInput::cycle_trampoline_init, (void *)device, 0);
+		int ret = work_queue(HPWORK, &_work, (worker_t)&RCInput::cycle_trampoline, nullptr, 0);
 
 		if (ret < 0) {
 			return ret;
 		}
-
-		// we need to wait, otherwise 'device' could go out of scope while still being accessed
-		wait_until_running();
 
 		_task_id = task_id_is_work_queue;
 
@@ -174,13 +153,12 @@ RCInput::task_spawn(int argc, char *argv[])
 
 		/* start the IO interface task */
 
-		const char *const args[] = { device, nullptr };
 		_task_id = px4_task_spawn_cmd("rc_input",
 					      SCHED_DEFAULT,
 					      SCHED_PRIORITY_SLOW_DRIVER,
 					      1000,
 					      (px4_main_t)&run_trampoline,
-					      (char *const *)args);
+					      nullptr);
 
 		if (_task_id < 0) {
 			_task_id = -1;
@@ -192,31 +170,28 @@ RCInput::task_spawn(int argc, char *argv[])
 }
 
 void
-RCInput::cycle_trampoline_init(void *arg)
-{
-	RCInput *dev = new RCInput(false, (char *)arg);
-
-	if (!dev) {
-		PX4_ERR("alloc failed");
-		return;
-	}
-
-	int ret = dev->init();
-
-	if (ret != 0) {
-		PX4_ERR("init failed (%i)", ret);
-		delete dev;
-		return;
-	}
-
-	_object.store(dev);
-
-	dev->cycle();
-}
-void
 RCInput::cycle_trampoline(void *arg)
 {
 	RCInput *dev = reinterpret_cast<RCInput *>(arg);
+
+	// check if the trampoline is called for the first time
+	if (!dev) {
+		dev = new RCInput(false);
+
+		if (!dev) {
+			PX4_ERR("alloc failed");
+			return;
+		}
+
+		if (dev->init() != 0) {
+			PX4_ERR("init failed");
+			delete dev;
+			return;
+		}
+
+		_object.store(dev);
+	}
+
 	dev->cycle();
 }
 
@@ -293,23 +268,17 @@ void RCInput::set_rc_scan_state(RC_SCAN newState)
 	_rc_scan_state = newState;
 }
 
-void RCInput::rc_io_invert(bool invert)
+void RCInput::rc_io_invert(bool invert, uint32_t uxart_base)
 {
-	// First check if the board provides a board-specific inversion method (e.g. via GPIO),
-	// and if not use an IOCTL
-	if (!board_rc_invert_input(_device, invert)) {
-		ioctl(_rcs_fd, TIOCSINVERT, invert ? (SER_INVERT_ENABLED_RX | SER_INVERT_ENABLED_TX) : 0);
-	}
+	INVERT_RC_INPUT(invert, uxart_base);
 }
 #endif
 
 void
 RCInput::run()
 {
-	int ret = init();
-
-	if (ret != 0) {
-		PX4_ERR("init failed (%i)", ret);
+	if (init() != 0) {
+		PX4_ERR("init failed");
 		exit_and_cleanup();
 		return;
 	}
@@ -328,9 +297,13 @@ RCInput::cycle()
 
 #if defined(SPEKTRUM_POWER)
 		/* vehicle command */
-		vehicle_command_s vcmd;
+		bool vehicle_command_updated = false;
+		orb_check(_vehicle_cmd_sub, &vehicle_command_updated);
 
-		if (_vehicle_cmd_sub.update(&vcmd)) {
+		if (vehicle_command_updated) {
+			vehicle_command_s vcmd = {};
+			orb_copy(ORB_ID(vehicle_command), _vehicle_cmd_sub, &vcmd);
+
 			// Check for a pairing command
 			if ((unsigned int)vcmd.command == vehicle_command_s::VEHICLE_CMD_START_RX_PAIR) {
 				if (!_rc_scan_locked /* !_armed.armed */) { // TODO: add armed check?
@@ -363,9 +336,13 @@ RCInput::cycle()
 
 		/* update ADC sampling */
 #ifdef ADC_RC_RSSI_CHANNEL
-		adc_report_s adc;
+		bool adc_updated = false;
+		orb_check(_adc_sub, &adc_updated);
 
-		if (_adc_sub.update(&adc)) {
+		if (adc_updated) {
+
+			struct adc_report_s adc;
+			orb_copy(ORB_ID(adc_report), _adc_sub, &adc);
 			const unsigned adc_chans = sizeof(adc.channel_id) / sizeof(adc.channel_id[0]);
 
 			for (unsigned i = 0; i < adc_chans; i++) {
@@ -422,8 +399,8 @@ RCInput::cycle()
 			if (_rc_scan_begin == 0) {
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for SBUS
-				sbus_config(_rcs_fd, board_rc_singlewire(_device));
-				rc_io_invert(true);
+				sbus_config(_rcs_fd, board_supports_single_wire(RC_UXART_BASE));
+				rc_io_invert(true, RC_UXART_BASE);
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -454,7 +431,7 @@ RCInput::cycle()
 				_rc_scan_begin = cycle_timestamp;
 				//			// Configure serial port for DSM
 				dsm_config(_rcs_fd);
-				rc_io_invert(false);
+				rc_io_invert(false, RC_UXART_BASE);
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -487,7 +464,7 @@ RCInput::cycle()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for DSM
 				dsm_config(_rcs_fd);
-				rc_io_invert(false);
+				rc_io_invert(false, RC_UXART_BASE);
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -535,7 +512,7 @@ RCInput::cycle()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for DSM
 				dsm_config(_rcs_fd);
-				rc_io_invert(false);
+				rc_io_invert(false, RC_UXART_BASE);
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -577,8 +554,7 @@ RCInput::cycle()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure timer input pin for CPPM
 				px4_arch_configgpio(GPIO_PPM_IN);
-				rc_io_invert(false);
-				ioctl(_rcs_fd, TIOCSINVERT, 0);
+				rc_io_invert(false, RC_UXART_BASE);
 
 			} else if (_rc_scan_locked || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
 
@@ -612,7 +588,7 @@ RCInput::cycle()
 				_rc_scan_begin = cycle_timestamp;
 				// Configure serial port for CRSF
 				crsf_config(_rcs_fd);
-				rc_io_invert(false);
+				rc_io_invert(false, RC_UXART_BASE);
 
 			} else if (_rc_scan_locked
 				   || cycle_timestamp - _rc_scan_begin < rc_scan_max) {
@@ -744,7 +720,7 @@ bool bind_spektrum(int arg)
 RCInput *RCInput::instantiate(int argc, char *argv[])
 {
 	// No arguments to parse. We also know that we should run as task
-	return new RCInput(true, argv[0]);
+	return new RCInput(true);
 }
 
 int RCInput::custom_command(int argc, char *argv[])
@@ -797,7 +773,6 @@ When running on the work queue, it schedules at a fixed frequency.
 	PRINT_MODULE_USAGE_NAME("rc_input", "driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task (without any mode set, use any of the mode_* cmds)");
 	PRINT_MODULE_USAGE_PARAM_FLAG('t', "Run as separate task instead of the work queue", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS3", "<file:dev>", "RC device", true);
 
 #if defined(SPEKTRUM_POWER)
 	PRINT_MODULE_USAGE_COMMAND_DESCR("bind", "Send a DSM bind command (module must be running)");
@@ -814,9 +789,6 @@ int RCInput::print_status()
 
 	if (!_run_as_task) {
 		PX4_INFO("Max update rate: %i Hz", 1000000 / _current_update_interval);
-	}
-	if (_device[0] != '\0') {
-		PX4_INFO("Serial device: %s", _device);
 	}
 
 	PX4_INFO("RC scan state: %s, locked: %s", RC_SCAN_STRING[_rc_scan_state], _rc_scan_locked ? "yes" : "no");

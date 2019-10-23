@@ -54,6 +54,8 @@ public:
 	RoverLandDetector() = default;
 
 protected:
+	virtual void _initialize_topics() override;
+
 	virtual void _update_params() override;
 
 	virtual void _update_topics() override;

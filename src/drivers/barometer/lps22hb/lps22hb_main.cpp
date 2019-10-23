@@ -33,6 +33,10 @@
 
 #include "LPS22HB.hpp"
 
+#include <px4_getopt.h>
+
+#include <cstring>
+
 extern "C" __EXPORT int lps22hb_main(int argc, char *argv[]);
 
 enum LPS22HB_BUS {

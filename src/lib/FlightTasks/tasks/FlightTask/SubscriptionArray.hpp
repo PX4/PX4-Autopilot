@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include <uORB/SubscriptionPollable.hpp>
+#include <uORB/Subscription.hpp>
 
 class SubscriptionArray
 {
@@ -57,7 +57,7 @@ public:
 	 * @return true on success, false otherwise (subscription set to nullptr)
 	 */
 	template<class T>
-	bool get(const struct orb_metadata *meta, uORB::SubscriptionPollable<T> *&subscription, unsigned instance = 0);
+	bool get(const struct orb_metadata *meta, uORB::Subscription<T> *&subscription, unsigned instance = 0);
 
 	/**
 	 * update all subscriptions (if new data is available)
@@ -74,21 +74,20 @@ private:
 
 	bool resizeSubscriptions();
 
-	uORB::SubscriptionPollableNode **_subscriptions{nullptr};
+	uORB::SubscriptionNode **_subscriptions{nullptr};
 	int _subscriptions_count{0}; ///< number of valid subscriptions
 	int _subscriptions_size{0}; ///< actual size of the _subscriptions array
 };
 
 
 template<class T>
-bool SubscriptionArray::get(const struct orb_metadata *meta, uORB::SubscriptionPollable<T> *&subscription,
-			    unsigned instance)
+bool SubscriptionArray::get(const struct orb_metadata *meta, uORB::Subscription<T> *&subscription, unsigned instance)
 {
 	// does it already exist?
 	for (int i = 0; i < _subscriptions_count; ++i) {
 		if (_subscriptions[i]->getMeta() == meta && _subscriptions[i]->getInstance() == instance) {
 			// we know the type must be correct, so we can use reinterpret_cast (dynamic_cast is not available)
-			subscription = reinterpret_cast<uORB::SubscriptionPollable<T>*>(_subscriptions[i]);
+			subscription = reinterpret_cast<uORB::Subscription<T>*>(_subscriptions[i]);
 			return true;
 		}
 	}
@@ -101,7 +100,7 @@ bool SubscriptionArray::get(const struct orb_metadata *meta, uORB::SubscriptionP
 		}
 	}
 
-	subscription = new uORB::SubscriptionPollable<T>(meta, 0, instance);
+	subscription = new uORB::Subscription<T>(meta, 0, instance);
 
 	if (!subscription) {
 		return false;

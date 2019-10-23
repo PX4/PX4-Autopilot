@@ -86,7 +86,7 @@ private:
 		param_t reverse_delay;
 	} _params_handles_standard;
 
-	enum class vtol_mode {
+	enum vtol_mode {
 		MC_MODE = 0,
 		TRANSITION_TO_FW,
 		TRANSITION_TO_MC,

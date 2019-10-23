@@ -109,7 +109,7 @@ PARAM_DEFINE_FLOAT(FW_PR_P, 0.08f);
  * @increment 0.005
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_PR_I, 0.1f);
+PARAM_DEFINE_FLOAT(FW_PR_I, 0.02f);
 
 /**
  * Maximum positive / up pitch rate.
@@ -183,7 +183,7 @@ PARAM_DEFINE_FLOAT(FW_RR_P, 0.05f);
  * @increment 0.005
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_RR_I, 0.1f);
+PARAM_DEFINE_FLOAT(FW_RR_I, 0.01f);
 
 /**
  * Roll integrator anti-windup
@@ -241,7 +241,7 @@ PARAM_DEFINE_FLOAT(FW_YR_P, 0.05f);
  * @increment 0.5
  * @group FW Attitude Control
  */
-PARAM_DEFINE_FLOAT(FW_YR_I, 0.1f);
+PARAM_DEFINE_FLOAT(FW_YR_I, 0.01f);
 
 /**
  * Yaw rate integrator limit

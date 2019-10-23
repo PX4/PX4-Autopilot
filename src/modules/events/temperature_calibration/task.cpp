@@ -39,7 +39,6 @@
  * @author Beat Küng <beat-kueng@gmx.net>
  */
 
-#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/sensor_gyro.h>
 #include <mathlib/mathlib.h>
 #include <px4_log.h>
@@ -93,7 +92,7 @@ public:
 private:
 	void publish_led_control(led_control_s &led_control);
 
-	uORB::PublicationQueued<led_control_s> _led_control_pub{ORB_ID(led_control)};
+	orb_advert_t _led_control_pub = nullptr;
 
 	bool	_force_task_exit = false;
 	int	_control_task = -1;		// task handle for task
@@ -350,7 +349,13 @@ int TemperatureCalibration::start()
 void TemperatureCalibration::publish_led_control(led_control_s &led_control)
 {
 	led_control.timestamp = hrt_absolute_time();
-	_led_control_pub.publish(led_control);
+
+	if (_led_control_pub == nullptr) {
+		_led_control_pub = orb_advertise_queue(ORB_ID(led_control), &led_control, LED_UORB_QUEUE_LENGTH);
+
+	} else {
+		orb_publish(ORB_ID(led_control), _led_control_pub, &led_control);
+	}
 }
 
 int run_temperature_calibration(bool accel, bool baro, bool gyro)

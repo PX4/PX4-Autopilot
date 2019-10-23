@@ -51,7 +51,18 @@
 namespace landing_target_estimator
 {
 
-LandingTargetEstimator::LandingTargetEstimator()
+LandingTargetEstimator::LandingTargetEstimator() :
+	_targetPosePub(nullptr),
+	_targetInnovationsPub(nullptr),
+	_paramHandle(),
+	_vehicleLocalPosition_valid(false),
+	_vehicleAttitude_valid(false),
+	_sensorBias_valid(false),
+	_new_irlockReport(false),
+	_estimator_initialized(false),
+	_faulty(false),
+	_last_predict(0),
+	_last_update(0)
 {
 	_paramHandle.acc_unc = param_find("LTEST_ACC_UNC");
 	_paramHandle.meas_unc = param_find("LTEST_MEAS_UNC");
@@ -60,6 +71,9 @@ LandingTargetEstimator::LandingTargetEstimator()
 	_paramHandle.mode = param_find("LTEST_MODE");
 	_paramHandle.scale_x = param_find("LTEST_SCALE_X");
 	_paramHandle.scale_y = param_find("LTEST_SCALE_Y");
+
+	// Initialize uORB topics.
+	_initialize_topics();
 
 	_check_params(true);
 }
@@ -80,11 +94,14 @@ void LandingTargetEstimator::update()
 			float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC;
 
 			// predict target position with the help of accel data
-			matrix::Vector3f a{_vehicle_acceleration.xyz};
+			matrix::Vector3f a;
 
-			if (_vehicleAttitude_valid && _vehicle_acceleration_valid) {
+			if (_vehicleAttitude_valid && _sensorBias_valid) {
 				matrix::Quaternion<float> q_att(&_vehicleAttitude.q[0]);
 				_R_att = matrix::Dcm<float>(q_att);
+				a(0) = _sensorBias.accel_x;
+				a(1) = _sensorBias.accel_y;
+				a(2) = _sensorBias.accel_z;
 				a = _R_att * a;
 
 			} else {
@@ -203,7 +220,12 @@ void LandingTargetEstimator::update()
 				_target_pose.abs_pos_valid = false;
 			}
 
-			_targetPosePub.publish(_target_pose);
+			if (_targetPosePub == nullptr) {
+				_targetPosePub = orb_advertise(ORB_ID(landing_target_pose), &_target_pose);
+
+			} else {
+				orb_publish(ORB_ID(landing_target_pose), _targetPosePub, &_target_pose);
+			}
 
 			_last_update = hrt_absolute_time();
 			_last_predict = _last_update;
@@ -219,17 +241,25 @@ void LandingTargetEstimator::update()
 		_target_innovations.innov_y = innov_y;
 		_target_innovations.innov_cov_y = innov_cov_y;
 
-		_targetInnovationsPub.publish(_target_innovations);
+		if (_targetInnovationsPub == nullptr) {
+			_targetInnovationsPub = orb_advertise(ORB_ID(landing_target_innovations), &_target_innovations);
+
+		} else {
+			orb_publish(ORB_ID(landing_target_innovations), _targetInnovationsPub, &_target_innovations);
+		}
 	}
+
 }
 
 void LandingTargetEstimator::_check_params(const bool force)
 {
-	bool updated = _parameterSub.updated();
+	bool updated;
+	parameter_update_s paramUpdate;
+
+	orb_check(_parameterSub, &updated);
 
 	if (updated) {
-		parameter_update_s paramUpdate;
-		_parameterSub.copy(&paramUpdate);
+		orb_copy(ORB_ID(parameter_update), _parameterSub, &paramUpdate);
 	}
 
 	if (updated || force) {
@@ -237,13 +267,44 @@ void LandingTargetEstimator::_check_params(const bool force)
 	}
 }
 
+void LandingTargetEstimator::_initialize_topics()
+{
+	_vehicleLocalPositionSub = orb_subscribe(ORB_ID(vehicle_local_position));
+	_attitudeSub = orb_subscribe(ORB_ID(vehicle_attitude));
+	_sensorBiasSub = orb_subscribe(ORB_ID(sensor_bias));
+	_irlockReportSub = orb_subscribe(ORB_ID(irlock_report));
+	_parameterSub = orb_subscribe(ORB_ID(parameter_update));
+}
+
 void LandingTargetEstimator::_update_topics()
 {
-	_vehicleLocalPosition_valid = _vehicleLocalPositionSub.update(&_vehicleLocalPosition);
-	_vehicleAttitude_valid = _attitudeSub.update(&_vehicleAttitude);
-	_vehicle_acceleration_valid = _vehicle_acceleration_sub.update(&_vehicle_acceleration);
+	_vehicleLocalPosition_valid = _orb_update(ORB_ID(vehicle_local_position), _vehicleLocalPositionSub,
+				      &_vehicleLocalPosition);
+	_vehicleAttitude_valid = _orb_update(ORB_ID(vehicle_attitude), _attitudeSub, &_vehicleAttitude);
+	_sensorBias_valid = _orb_update(ORB_ID(sensor_bias), _sensorBiasSub, &_sensorBias);
 
-	_new_irlockReport = _irlockReportSub.update(&_irlockReport);
+	_new_irlockReport = _orb_update(ORB_ID(irlock_report), _irlockReportSub, &_irlockReport);
+}
+
+
+bool LandingTargetEstimator::_orb_update(const struct orb_metadata *meta, int handle, void *buffer)
+{
+	bool newData = false;
+
+	// check if there is new data to grab
+	if (orb_check(handle, &newData) != OK) {
+		return false;
+	}
+
+	if (!newData) {
+		return false;
+	}
+
+	if (orb_copy(meta, handle, buffer) != OK) {
+		return false;
+	}
+
+	return true;
 }
 
 void LandingTargetEstimator::_update_params()
@@ -252,11 +313,9 @@ void LandingTargetEstimator::_update_params()
 	param_get(_paramHandle.meas_unc, &_params.meas_unc);
 	param_get(_paramHandle.pos_unc_init, &_params.pos_unc_init);
 	param_get(_paramHandle.vel_unc_init, &_params.vel_unc_init);
-
 	int32_t mode = 0;
 	param_get(_paramHandle.mode, &mode);
 	_params.mode = (TargetMode)mode;
-
 	param_get(_paramHandle.scale_x, &_params.scale_x);
 	param_get(_paramHandle.scale_y, &_params.scale_y);
 }

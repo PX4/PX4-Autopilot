@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2016-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +37,10 @@
  * Provide the board dma allocator interface.
  */
 
+/************************************************************************************
+ * Included Files
+ ************************************************************************************/
+
 #include <px4_config.h>
 #include "board_config.h"
 
@@ -45,6 +49,18 @@
 #include <nuttx/mm/gran.h>
 
 #include <perf/perf_counter.h>
+
+/************************************************************************************
+ * Definitions
+ ************************************************************************************/
+
+/************************************************************************************
+ * Private Functions
+ ************************************************************************************/
+
+/************************************************************************************
+ * Public Functions
+ ************************************************************************************/
 
 /************************************************************************************
  * Name: board_dma_alloc_init
@@ -56,7 +72,9 @@
  ************************************************************************************/
 #if defined(BOARD_DMA_ALLOC_POOL_SIZE)
 
-#if defined(CONFIG_GRAN)
+#  if !defined(CONFIG_GRAN) || !defined(CONFIG_FAT_DMAMEMORY)
+#    error microSD DMA support requires CONFIG_GRAN and CONFIG_FAT_DMAMEMORY
+#  endif
 
 static GRAN_HANDLE dma_allocator;
 
@@ -74,12 +92,10 @@ static uint8_t g_dma_heap[BOARD_DMA_ALLOC_POOL_SIZE] __attribute__((aligned(64))
 static perf_counter_t g_dma_perf;
 static uint16_t dma_heap_inuse;
 static uint16_t dma_heap_peak_use;
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-__EXPORT int
-board_dma_alloc_init(void)
+__EXPORT int board_dma_alloc_init(void)
 {
 	dma_allocator = gran_initialize(g_dma_heap,
 					sizeof(g_dma_heap),
@@ -98,8 +114,7 @@ board_dma_alloc_init(void)
 	return OK;
 }
 
-__EXPORT int
-board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16_t *dma_peak_used)
+__EXPORT int board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16_t *dma_peak_used)
 {
 	*dma_total = sizeof(g_dma_heap);
 	*dma_used = dma_heap_inuse;
@@ -107,9 +122,15 @@ board_get_dma_usage(uint16_t *dma_total, uint16_t *dma_used, uint16_t *dma_peak_
 
 	return OK;
 }
+/*
+ * DMA-aware allocator stubs for the FAT filesystem.
+ */
 
-__EXPORT void *
-board_dma_alloc(size_t size)
+__EXPORT void *fat_dma_alloc(size_t size);
+__EXPORT void fat_dma_free(FAR void *memory, size_t size);
+
+void *
+fat_dma_alloc(size_t size)
 {
 	void *rv = NULL;
 	perf_count(g_dma_perf);
@@ -126,12 +147,10 @@ board_dma_alloc(size_t size)
 	return rv;
 }
 
-__EXPORT void
-board_dma_free(FAR void *memory, size_t size)
+void
+fat_dma_free(FAR void *memory, size_t size)
 {
 	gran_free(dma_allocator, memory, size);
 	dma_heap_inuse -= size;
 }
-
-#endif /* CONFIG_GRAN */
-#endif /* BOARD_DMA_ALLOC_POOL_SIZE */
+#endif /* defined(BOARD_DMA_ALLOC_POOL_SIZE) */

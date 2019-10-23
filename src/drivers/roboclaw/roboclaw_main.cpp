@@ -34,18 +34,16 @@
 
 
 /**
- * @file roboclaw_main.cpp
+ * @ file roboclaw_main.cpp
  *
  * RoboClaw Motor Driver
  *
  * references:
- * http://downloads.ionmc.com/docs/roboclaw_user_manual.pdf
+ * http://downloads.orionrobotics.com/downloads/datasheets/motor_controller_robo_claw_R0401.pdf
  *
  */
 
 #include <px4_config.h>
-#include <px4_log.h>
-#include <px4_module.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,8 +55,9 @@
 #include <arch/board/board.h>
 #include "RoboClaw.hpp"
 
+static bool thread_should_exit = false;     /**< Deamon exit flag */
 static bool thread_running = false;     /**< Deamon status flag */
-px4_task_t deamon_task;
+static int deamon_task;             /**< Handle of deamon task / thread */
 
 /**
  * Deamon management function.
@@ -77,49 +76,8 @@ static void usage();
 
 static void usage()
 {
-	PRINT_MODULE_USAGE_NAME("roboclaw", "driver");
-
-	PRINT_MODULE_DESCRIPTION(R"DESCR_STR(
-### Description
-
-This driver communicates over UART with the [Roboclaw motor driver](http://downloads.ionmc.com/docs/roboclaw_user_manual.pdf).
-It performs two tasks:
-
- - Control the motors based on the `actuator_controls_0` UOrb topic.
- - Read the wheel encoders and publish the raw data in the `wheel_encoders` UOrb topic
-
-In order to use this driver, the Roboclaw should be put into Packet Serial mode (see the linked documentation), and
-your flight controller's UART port should be connected to the Roboclaw as shown in the documentation. For Pixhawk 4,
-use the `UART & I2C B` port, which corresponds to `/dev/ttyS3`.
-
-### Implementation
-
-The main loop of this module (Located in `RoboClaw.cpp::task_main()`) performs 2 tasks:
-
- 1. Write `actuator_controls_0` messages to the Roboclaw as they become available
- 2. Read encoder data from the Roboclaw at a constant, fixed rate.
-
-Because of the latency of UART, this driver does not write every single `actuator_controls_0` message to the Roboclaw
-immediately. Instead, it is rate limited based on the parameter `RBCLW_WRITE_PER`.
-
-On startup, this driver will attempt to read the status of the Roboclaw to verify that it is connected. If this fails,
-the driver terminates immediately.
-
-### Examples
-
-The command to start this driver is:
-
- $ roboclaw start <device> <baud>
-
-`<device>` is the name of the UART port. On the Pixhawk 4, this is `/dev/ttyS3`.
-`<baud>` is te baud rate.
-
-All available commands are:
-
- - `$ roboclaw start <device> <baud>`
- - `$ roboclaw status`
- - `$ roboclaw stop`
-	)DESCR_STR");
+	fprintf(stderr, "usage: roboclaw "
+		"{start|stop|status|test}\n\n");
 }
 
 /**
@@ -133,7 +91,7 @@ All available commands are:
 int roboclaw_main(int argc, char *argv[])
 {
 
-	if (argc < 4) {
+	if (argc < 2) {
 		usage();
 	}
 
@@ -142,22 +100,48 @@ int roboclaw_main(int argc, char *argv[])
 		if (thread_running) {
 			printf("roboclaw already running\n");
 			/* this is not an error */
-			return 0;
+			exit(0);
 		}
 
-		RoboClaw::taskShouldExit = false;
+		thread_should_exit = false;
 		deamon_task = px4_task_spawn_cmd("roboclaw",
 						 SCHED_DEFAULT,
 						 SCHED_PRIORITY_MAX - 10,
-						 2000,
+						 2048,
 						 roboclaw_thread_main,
 						 (char *const *)argv);
-		return 0;
+		exit(0);
+
+	} else if (!strcmp(argv[1], "test")) {
+
+		const char *deviceName = "/dev/ttyS2";
+		uint8_t address = 128;
+		uint16_t pulsesPerRev = 1200;
+
+		if (argc == 2) {
+			printf("testing with default settings\n");
+
+		} else if (argc != 4) {
+			printf("usage: roboclaw test device address pulses_per_rev\n");
+			exit(-1);
+
+		} else {
+			deviceName = argv[2];
+			address = strtoul(argv[3], nullptr, 0);
+			pulsesPerRev = strtoul(argv[4], nullptr, 0);
+		}
+
+		printf("device:\t%s\taddress:\t%d\tpulses per rev:\t%ld\n",
+		       deviceName, address, pulsesPerRev);
+
+		roboclawTest(deviceName, address, pulsesPerRev);
+		thread_should_exit = true;
+		exit(0);
 
 	} else if (!strcmp(argv[1], "stop")) {
 
-		RoboClaw::taskShouldExit = true;
-		return 0;
+		thread_should_exit = true;
+		exit(0);
 
 	} else if (!strcmp(argv[1], "status")) {
 
@@ -168,11 +152,11 @@ int roboclaw_main(int argc, char *argv[])
 			printf("\troboclaw app not started\n");
 		}
 
-		return 0;
+		exit(0);
 	}
 
 	usage();
-	return 1;
+	exit(1);
 }
 
 int roboclaw_thread_main(int argc, char *argv[])
@@ -183,23 +167,32 @@ int roboclaw_thread_main(int argc, char *argv[])
 	argc -= 2;
 	argv += 2;
 
-	if (argc < 2) {
-		printf("usage: roboclaw start <device> <baud>\n");
+	if (argc < 3) {
+		printf("usage: roboclaw start device address\n");
 		return -1;
 	}
 
 	const char *deviceName = argv[1];
-	const char *baudRate = argv[2];
+	uint8_t address = strtoul(argv[2], nullptr, 0);
+	uint16_t pulsesPerRev = strtoul(argv[3], nullptr, 0);
+
+	printf("device:\t%s\taddress:\t%d\tpulses per rev:\t%ld\n",
+	       deviceName, address, pulsesPerRev);
 
 	// start
-	RoboClaw roboclaw(deviceName, baudRate);
+	RoboClaw roboclaw(deviceName, address, pulsesPerRev);
 
 	thread_running = true;
 
-	roboclaw.taskMain();
+	// loop
+	while (!thread_should_exit) {
+		roboclaw.update();
+	}
 
 	// exit
 	printf("[roboclaw] exiting.\n");
 	thread_running = false;
 	return 0;
 }
+
+// vi:noet:smarttab:autoindent:ts=4:sw=4:tw=78

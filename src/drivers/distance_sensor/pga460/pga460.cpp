@@ -41,6 +41,8 @@
 #include "pga460.h"
 
 
+extern "C" __EXPORT int pga460_main(int argc, char *argv[]);
+
 PGA460::PGA460(const char *port)
 {
 	// Store port name.
@@ -311,6 +313,7 @@ int PGA460::open_serial()
 	// no NL to CR translation, don't mark parity errors or breaks
 	// no input parity check, don't strip high bit off,
 	// no XON/XOFF software flow control
+	//
 	uart_config.c_iflag &= ~(IGNBRK | BRKINT | ICRNL |  INLCR | IGNCR | PARMRK | INPCK | ISTRIP | IXON | IXOFF);
 
 	uart_config.c_iflag |= IGNPAR;
@@ -336,7 +339,7 @@ int PGA460::open_serial()
 
 	uart_config.c_cc[VTIME] = 0;
 
-	speed_t speed = 115200;
+	unsigned speed = 115200;
 
 	// Set the baud rate.
 	if ((termios_state = cfsetispeed(&uart_config, speed)) < 0) {
@@ -896,7 +899,7 @@ int PGA460::write_register(const uint8_t reg, const uint8_t val)
 	}
 }
 
-extern "C" __EXPORT int pga460_main(int argc, char *argv[])
+int pga460_main(int argc, char *argv[])
 {
 	return PGA460::main(argc, argv);
 }

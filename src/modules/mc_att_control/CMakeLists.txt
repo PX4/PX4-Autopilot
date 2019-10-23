@@ -46,5 +46,4 @@ px4_add_module(
 		conversion
 		mathlib
 		AttitudeControl
-		px4_work_queue
 	)

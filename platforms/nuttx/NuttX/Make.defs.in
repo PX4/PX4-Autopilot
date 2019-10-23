@@ -89,7 +89,7 @@ ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
 endif
 
 CFLAGS = $(ARCHINCLUDES) \
-	-std=gnu11 \
+	-std=gnu99 \
 	${CMAKE_C_FLAGS} \
 	$(FLAGS) \
 	-Wno-bad-function-cast \

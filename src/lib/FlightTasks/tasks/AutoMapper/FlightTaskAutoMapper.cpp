@@ -40,9 +40,9 @@
 
 using namespace matrix;
 
-bool FlightTaskAutoMapper::activate(vehicle_local_position_setpoint_s last_setpoint)
+bool FlightTaskAutoMapper::activate()
 {
-	bool ret = FlightTaskAuto::activate(last_setpoint);
+	bool ret = FlightTaskAuto::activate();
 	_reset();
 	return ret;
 }
@@ -86,11 +86,8 @@ bool FlightTaskAutoMapper::update()
 		_generateVelocitySetpoints();
 	}
 
-	if (_param_com_obs_avoid.get()) {
-		_obstacle_avoidance.updateAvoidanceDesiredSetpoints(_position_setpoint, _velocity_setpoint, (int)_type);
-		_obstacle_avoidance.injectAvoidanceSetpoints(_position_setpoint, _velocity_setpoint, _yaw_setpoint,
-				_yawspeed_setpoint);
-	}
+	_obstacle_avoidance.injectAvoidanceSetpoints(_position_setpoint, _velocity_setpoint, _yaw_setpoint,
+			_yawspeed_setpoint);
 
 	// during mission and reposition, raise the landing gears but only
 	// if altitude is high enough

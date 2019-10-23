@@ -42,6 +42,4 @@ px4_add_module(
 		bmp280_spi.cpp
 		bmp280_i2c.cpp
 		bmp280.cpp
-	DEPENDS
-		px4_work_queue
 	)

@@ -10,9 +10,13 @@ param set SYS_RESTART_TYPE 0
 
 dataman start
 
-simulator start
+simulator start -t
 tone_alarm start
+gyrosim start
+accelsim start
+barosim start
 gpssim start
+measairspeedsim start
 pwm_out_sim start
 
 ver all

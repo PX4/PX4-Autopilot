@@ -33,8 +33,39 @@
 
 /**
  * @file ms5611.cpp
- * Driver for the MS5611 and MS5607 barometric pressure sensor connected via I2C or SPI.
+ * Driver for the MS5611 and MS6507 barometric pressure sensor connected via I2C or SPI.
  */
+
+#include <px4_config.h>
+
+#include <sys/types.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <semaphore.h>
+#include <string.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <errno.h>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+
+#include <nuttx/arch.h>
+#include <nuttx/wqueue.h>
+#include <nuttx/clock.h>
+
+#include <arch/board/board.h>
+#include <board_config.h>
+
+#include <drivers/device/device.h>
+#include <drivers/drv_baro.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/device/ringbuffer.h>
+
+#include <perf/perf_counter.h>
+#include <systemlib/err.h>
+#include <platforms/px4_getopt.h>
 
 #include "ms5611.h"
 
@@ -51,6 +82,10 @@ enum MS5611_BUS {
 	MS5611_BUS_SPI_INTERNAL,
 	MS5611_BUS_SPI_EXTERNAL
 };
+
+#ifndef CONFIG_SCHED_WORKQUEUE
+# error This requires CONFIG_SCHED_WORKQUEUE.
+#endif
 
 /* helper macro for handling report buffer indices */
 #define INCREMENT(_x, _lim)	do { __typeof__(_x) _tmp = _x+1; if (_tmp >= _lim) _tmp = 0; _x = _tmp; } while(0)
@@ -91,7 +126,7 @@ enum MS5611_BUS {
 #define MS5611_BARO_DEVICE_PATH_EXT	"/dev/ms5611_ext"
 #define MS5611_BARO_DEVICE_PATH_INT	"/dev/ms5611_int"
 
-class MS5611 : public cdev::CDev, public px4::ScheduledWorkItem
+class MS5611 : public cdev::CDev
 {
 public:
 	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *path, enum MS56XX_DEVICE_TYPES device_type);
@@ -112,7 +147,8 @@ protected:
 
 	ms5611::prom_s		_prom;
 
-	unsigned		_measure_interval{0};
+	struct work_s		_work {};
+	unsigned		_measure_ticks;
 
 	ringbuffer::RingBuffer	*_reports;
 	enum MS56XX_DEVICE_TYPES _device_type;
@@ -137,15 +173,17 @@ protected:
 	/**
 	 * Initialize the automatic measurement state machine and start it.
 	 *
+	 * @param delay_ticks the number of queue ticks before executing the next cycle
+	 *
 	 * @note This function is called at open and error time.  It might make sense
 	 *       to make it more aggressive about resetting the bus in case of errors.
 	 */
-	void			start();
+	void			start_cycle(unsigned delay_ticks = 1);
 
 	/**
 	 * Stop the automatic measurement state machine.
 	 */
-	void			stop();
+	void			stop_cycle();
 
 	/**
 	 * Perform a poll cycle; collect from the previous measurement
@@ -160,7 +198,15 @@ protected:
 	 * and measurement to provide the most recent measurement possible
 	 * at the next interval.
 	 */
-	void			Run() override;
+	void			cycle();
+
+	/**
+	 * Static trampoline from the workq context; because we don't have a
+	 * generic workq wrapper yet.
+	 *
+	 * @param arg		Instance pointer for the driver that is polling.
+	 */
+	static void		cycle_trampoline(void *arg);
 
 	/**
 	 * Issue a measurement command for the current state.
@@ -183,9 +229,9 @@ extern "C" __EXPORT int ms5611_main(int argc, char *argv[]);
 MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *path,
 	       enum MS56XX_DEVICE_TYPES device_type) :
 	CDev(path),
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_prom(prom_buf.s),
+	_measure_ticks(0),
 	_reports(nullptr),
 	_device_type(device_type),
 	_collect_phase(false),
@@ -205,7 +251,7 @@ MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *
 MS5611::~MS5611()
 {
 	/* make sure we are truly inactive */
-	stop();
+	stop_cycle();
 
 	if (_class_instance != -1) {
 		unregister_class_devname(get_devname(), _class_instance);
@@ -354,7 +400,7 @@ MS5611::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is enabled */
-	if (_measure_interval > 0) {
+	if (_measure_ticks > 0) {
 
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
@@ -428,14 +474,14 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_interval == 0);
+					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_interval = MS5611_CONVERSION_INTERVAL;
+					_measure_ticks = USEC2TICK(MS5611_CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
-						start();
+						start_cycle();
 					}
 
 					return OK;
@@ -444,22 +490,22 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_interval == 0);
+					bool want_start = (_measure_ticks == 0);
 
-					/* convert hz to interval via microseconds */
-					unsigned interval = (1000000 / arg);
+					/* convert hz to tick interval via microseconds */
+					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (_measure_interval < MS5611_CONVERSION_INTERVAL) {
+					if (ticks < USEC2TICK(MS5611_CONVERSION_INTERVAL)) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					_measure_interval = interval;
+					_measure_ticks = ticks;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
-						start();
+						start_cycle();
 					}
 
 					return OK;
@@ -484,25 +530,34 @@ MS5611::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 void
-MS5611::start()
+MS5611::start_cycle(unsigned delay_ticks)
 {
+
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_measure_phase = 0;
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	ScheduleNow();
+	work_queue(HPWORK, &_work, (worker_t)&MS5611::cycle_trampoline, this, delay_ticks);
 }
 
 void
-MS5611::stop()
+MS5611::stop_cycle()
 {
-	ScheduleClear();
+	work_cancel(HPWORK, &_work);
 }
 
 void
-MS5611::Run()
+MS5611::cycle_trampoline(void *arg)
+{
+	MS5611 *dev = reinterpret_cast<MS5611 *>(arg);
+
+	dev->cycle();
+}
+
+void
+MS5611::cycle()
 {
 	int ret;
 	unsigned dummy;
@@ -530,7 +585,7 @@ MS5611::Run()
 			 * to wait 2.8 ms after issuing the sensor reset command
 			 * according to the MS5611 datasheet
 			 */
-			ScheduleDelayed(2800);
+			start_cycle(USEC2TICK(2800));
 			return;
 		}
 
@@ -543,10 +598,14 @@ MS5611::Run()
 		 * doing pressure measurements at something close to the desired rate.
 		 */
 		if ((_measure_phase != 0) &&
-		    (_measure_interval > MS5611_CONVERSION_INTERVAL)) {
+		    (_measure_ticks > USEC2TICK(MS5611_CONVERSION_INTERVAL))) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
-			ScheduleDelayed(_measure_interval - MS5611_CONVERSION_INTERVAL);
+			work_queue(HPWORK,
+				   &_work,
+				   (worker_t)&MS5611::cycle_trampoline,
+				   this,
+				   _measure_ticks - USEC2TICK(MS5611_CONVERSION_INTERVAL));
 
 			return;
 		}
@@ -559,7 +618,7 @@ MS5611::Run()
 		/* issue a reset command to the sensor */
 		_interface->ioctl(IOCTL_RESET, dummy);
 		/* reset the collection state machine and try again */
-		start();
+		start_cycle();
 		return;
 	}
 
@@ -567,7 +626,11 @@ MS5611::Run()
 	_collect_phase = true;
 
 	/* schedule a fresh cycle call when the measurement is done */
-	ScheduleDelayed(MS5611_CONVERSION_INTERVAL);
+	work_queue(HPWORK,
+		   &_work,
+		   (worker_t)&MS5611::cycle_trampoline,
+		   this,
+		   USEC2TICK(MS5611_CONVERSION_INTERVAL));
 }
 
 int
@@ -725,7 +788,7 @@ MS5611::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u\n", _measure_interval);
+	printf("poll interval:  %u ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
 	printf("device:         %s\n", _device_type == MS5611_DEVICE ? "ms5611" : "ms5607");
 

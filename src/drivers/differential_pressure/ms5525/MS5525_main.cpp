@@ -33,6 +33,10 @@
 
 #include "MS5525.hpp"
 
+#include <px4_getopt.h>
+
+#include <stdlib.h>
+
 // Driver 'main' command.
 extern "C" __EXPORT int ms5525_airspeed_main(int argc, char *argv[]);
 

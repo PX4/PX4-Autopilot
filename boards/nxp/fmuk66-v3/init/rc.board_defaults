@@ -9,3 +9,4 @@ then
 
 fi
 
+set MIXER_AUX none

@@ -30,18 +30,10 @@ then
 	fi
 else
 	#
-	# Q estimator (attitude estimation only)
+	# EKF2
 	#
-	if param compare SYS_MC_EST_GROUP 3
-	then
-		attitude_estimator_q start
-	else
-		#
-		# EKF2
-		#
-		param set SYS_MC_EST_GROUP 2
-		ekf2 start
-	fi
+	param set SYS_MC_EST_GROUP 2
+	ekf2 start
 fi
 
 ###############################################################################

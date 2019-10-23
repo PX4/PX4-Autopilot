@@ -1,11 +1,11 @@
 rtps:
   - msg: actuator_armed
     id: 0
-  - msg: actuator_controls
+  - msg: actuator_control
     id: 1
   - msg: actuator_direct
     id: 2
-  - msg: actuator_outputs
+  - msg: actuator_output
     id: 3
   - msg: adc_report
     id: 4
@@ -80,7 +80,7 @@ rtps:
     send: true
   - msg: irlock_report
     id: 32
-  - msg: landing_target_innovations
+  - msg: landing_target_innovation
     id: 33
   - msg: landing_target_pose
     id: 34
@@ -98,7 +98,7 @@ rtps:
     id: 40
   - msg: mount_orientation
     id: 41
-  - msg: multirotor_motor_limits
+  - msg: multirotor_motor_limit
     id: 42
   - msg: obstacle_distance
     id: 43
@@ -207,7 +207,7 @@ rtps:
     id: 89
   - msg: vehicle_command_ack
     id: 90
-  - msg: vehicle_constraints
+  - msg: vehicle_constraint
     id: 91
   - msg: vehicle_control_mode
     id: 92
@@ -246,77 +246,36 @@ rtps:
   - msg: collision_constraints
     id: 107
     send: true
-  - msg: orbit_status
-    id: 108
-  - msg: power_monitor
-    id: 109
-  - msg: landing_gear
-    id: 110
-  - msg: wheel_encoders
-    id: 111
-  - msg: vehicle_angular_velocity
-    id: 112
-  - msg: vehicle_acceleration
-    id: 113
   # multi topics
-  - msg: actuator_controls_0
+  - msg: actuator_control0
     id: 120
-    alias: actuator_controls
-  - msg: actuator_controls_1
+  - msg: actuator_control1
     id: 121
-    alias: actuator_controls
-  - msg: actuator_controls_2
+  - msg: actuator_control2
     id: 122
-    alias: actuator_controls
-  - msg: actuator_controls_3
+  - msg: actuator_control3
     id: 123
-    alias: actuator_controls
   - msg: actuator_controls_virtual_fw
     id: 124
-    alias: actuator_controls
   - msg: actuator_controls_virtual_mc
     id: 125
-    alias: actuator_controls
   - msg: mc_virtual_attitude_setpoint
     id: 126
-    alias: vehicle_attitude_setpoint
   - msg: fw_virtual_attitude_setpoint
     id: 127
-    alias: vehicle_attitude_setpoint
   - msg: vehicle_attitude_groundtruth
     id: 128
-    alias: vehicle_attitude
   - msg: vehicle_global_position_groundtruth
     id: 129
-    alias: vehicle_global_position
   - msg: vehicle_local_position_groundtruth
     id: 130
-    alias: vehicle_local_position
   - msg: vehicle_mocap_odometry
-    alias: vehicle_odometry
     id: 131
-    receive: true
   - msg: vehicle_visual_odometry
     id: 132
-    alias: vehicle_odometry
-    receive: true
-  - msg: vehicle_trajectory_waypoint_desired
+  - msg: mc_virtual_rates_setpoint
     id: 133
-    alias: vehicle_trajectory_waypoint
-  - msg: obstacle_distance_fused
+  - msg: fw_virtual_rates_setpoint
     id: 134
-    alias: obstacle_distance
-  - msg: vehicle_vision_attitude
+  - msg: vehicle_trajectory_waypoint_desired
     id: 135
-    alias: vehicle_attitude
-  - msg: trajectory_setpoint
-    id: 136
-    alias: vehicle_local_position_setpoint
-  - msg: camera_trigger_secondary
-    id: 137
-    alias: camera_trigger
-  - msg: vehicle_angular_velocity_groundtruth
-    id: 138
-    alias: vehicle_angular_velocity
-  - msg: airspeed_validated
-    id: 139

@@ -42,7 +42,7 @@
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <lib/conversion/rotation.h>
 #include <perf/perf_counter.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_workqueue.h>
 #include <systemlib/err.h>
 
 // Register mapping
@@ -88,7 +88,7 @@ static constexpr uint8_t OUTY_H_REG_M = 0x6B;
 static constexpr uint8_t OUTZ_L_REG_M = 0x6C;
 static constexpr uint8_t OUTZ_H_REG_M = 0x6D;
 
-class LSM303AGR : public device::SPI, public px4::ScheduledWorkItem
+class LSM303AGR : public device::SPI
 {
 public:
 	LSM303AGR(int bus, const char *path, uint32_t device, enum Rotation rotation);
@@ -108,9 +108,10 @@ protected:
 
 private:
 
+	work_s			_work{};
 	bool			_collect_phase{false};
 
-	unsigned		_measure_interval{0};
+	unsigned		_measure_ticks{0};
 
 	unsigned		_call_mag_interval{0};
 
@@ -177,7 +178,15 @@ private:
 	 * and measurement to provide the most recent measurement possible
 	 * at the next interval.
 	 */
-	void			Run() override;
+	void			cycle();
+
+	/**
+	 * Static trampoline from the workq context; because we don't have a
+	 * generic workq wrapper yet.
+	 *
+	 * @param arg		Instance pointer for the driver that is polling.
+	 */
+	static void		cycle_trampoline(void *arg);
 
 	/**
 	 * Read a register from the LSM303AGR

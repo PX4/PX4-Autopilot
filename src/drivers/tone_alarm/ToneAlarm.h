@@ -46,7 +46,7 @@
 #include <lib/drivers/tone_alarm/ToneAlarmInterface.h>
 #include <lib/tunes/tunes.h>
 #include <px4_defines.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_workqueue.h>
 #include <string.h>
 
 
@@ -54,7 +54,7 @@
 #  define UNUSED(a) ((void)(a))
 #endif
 
-class ToneAlarm : public cdev::CDev, public px4::ScheduledWorkItem
+class ToneAlarm : public cdev::CDev
 {
 public:
 	ToneAlarm();
@@ -63,7 +63,7 @@ public:
 	/**
 	 * @brief Initializes the character device and hardware registers.
 	 */
-	int init() override;
+	int init();
 
 	/**
 	 * @brief Prints the driver status to the console.
@@ -79,8 +79,9 @@ protected:
 
 	/**
 	 * @brief Trampoline for the work queue.
+	 * @param argv Pointer to the task startup arguments.
 	 */
-	void Run() override;
+	static void next_trampoline(void *argv);
 
 	/**
 	 * @brief Updates the uORB topics for local subscribers.
@@ -114,4 +115,6 @@ private:
 	tune_control_s _tune{};
 
 	Tunes _tunes = Tunes();
+
+	static work_s _work;
 };

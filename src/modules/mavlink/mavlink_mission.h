@@ -46,8 +46,7 @@
 #pragma once
 
 #include <dataman/dataman.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/mission_result.h>
+#include <uORB/uORB.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_rate_limiter.h"
@@ -125,7 +124,8 @@ private:
 
 	static bool		_transfer_in_progress;			///< Global variable checking for current transmission
 
-	uORB::Subscription	_mission_result_sub{ORB_ID(mission_result)};
+	int			_offboard_mission_sub{-1};
+	int			_mission_result_sub{-1};
 
 	orb_advert_t		_offboard_mission_pub{nullptr};
 

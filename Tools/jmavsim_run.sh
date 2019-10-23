@@ -33,6 +33,9 @@ while getopts ":b:d:p:qsr:f:i:l" opt; do
 		r)
 			extra_args="$extra_args -r $OPTARG"
 			;;
+		f)
+			extra_args="$extra_args -f $OPTARG"
+			;;
 		l)
 			extra_args="$extra_args -lockstep"
 			;;

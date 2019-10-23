@@ -37,7 +37,6 @@ px4_add_module(
 	SRCS
 		roboclaw_main.cpp
 		RoboClaw.cpp
-	MODULE_CONFIG
-		module.yaml
+	DEPENDS
 	)
 

@@ -93,27 +93,45 @@
  *
  */
 
-#include <ctype.h>
-#include <string.h>
 #include <strings.h>
+
+#include <px4_config.h>
+
+#include <sys/types.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <poll.h>
+
+#include <px4_workqueue.h>
+
+#include <perf/perf_counter.h>
+#include <systemlib/err.h>
+
+#include <board_config.h>
 
 #include <drivers/device/i2c.h>
 #include <drivers/drv_blinkm.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-#include <systemlib/err.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/safety.h>
-#include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_gps_position.h>
+
+#include <uORB/uORB.h>
 #include <uORB/topics/vehicle_status.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/vehicle_control_mode.h>
+#include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/safety.h>
 
 static const int LED_ONTIME = 120;
 static const int LED_OFFTIME = 120;
 static const int LED_BLINK = 1;
 static const int LED_NOBLINK = 0;
 
-class BlinkM : public device::I2C, public px4::ScheduledWorkItem
+class BlinkM : public device::I2C
 {
 public:
 	BlinkM(int bus, int blinkm);
@@ -163,6 +181,8 @@ private:
 		LED_AMBER
 	};
 
+	work_s			_work;
+
 	int led_color_1;
 	int led_color_2;
 	int led_color_3;
@@ -196,8 +216,8 @@ private:
 	int num_of_used_sats;
 
 	void 			setLEDColor(int ledcolor);
-
-	void			Run() override;
+	static void		led_trampoline(void *arg);
+	void			led();
 
 	int			set_rgb(uint8_t r, uint8_t g, uint8_t b);
 
@@ -256,8 +276,11 @@ const char *const BlinkM::script_names[] = {
 extern "C" __EXPORT int blinkm_main(int argc, char *argv[]);
 
 BlinkM::BlinkM(int bus, int blinkm) :
-	I2C("blinkm", BLINKM0_DEVICE_PATH, bus, blinkm, 100000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	I2C("blinkm", BLINKM0_DEVICE_PATH, bus, blinkm
+#ifdef __PX4_NUTTX
+	    , 100000
+#endif
+	   ),
 	led_color_1(LED_OFF),
 	led_color_2(LED_OFF),
 	led_color_3(LED_OFF),
@@ -285,12 +308,14 @@ BlinkM::BlinkM(int bus, int blinkm) :
 	led_thread_ready(true),
 	num_of_used_sats(0)
 {
+	memset(&_work, 0, sizeof(_work));
 }
 
 int
 BlinkM::init()
 {
-	int ret = I2C::init();
+	int ret;
+	ret = I2C::init();
 
 	if (ret != OK) {
 		warnx("I2C init failed");
@@ -311,7 +336,7 @@ BlinkM::setMode(int mode)
 			stop_script();
 			set_rgb(0, 0, 0);
 			systemstate_run = true;
-			ScheduleNow();
+			work_queue(LPWORK, &_work, (worker_t)&BlinkM::led_trampoline, this, 1);
 		}
 
 	} else {
@@ -390,7 +415,17 @@ BlinkM::ioctl(device::file_t *filp, int cmd, unsigned long arg)
 
 
 void
-BlinkM::Run()
+BlinkM::led_trampoline(void *arg)
+{
+	BlinkM *bm = (BlinkM *)arg;
+
+	bm->led();
+}
+
+
+
+void
+BlinkM::led()
 {
 
 	if (!topic_initialized) {
@@ -755,7 +790,7 @@ BlinkM::Run()
 
 	if (systemstate_run == true) {
 		/* re-queue ourselves to run again later */
-		ScheduleDelayed(led_interval);
+		work_queue(LPWORK, &_work, (worker_t)&BlinkM::led_trampoline, this, led_interval);
 
 	} else {
 		stop_script();
@@ -1028,7 +1063,7 @@ blinkm_main(int argc, char *argv[])
 
 
 	if (g_blinkm == nullptr) {
-		PX4_ERR("not started");
+		fprintf(stderr, "not started\n");
 		blinkm_usage();
 		return 0;
 	}
@@ -1046,10 +1081,10 @@ blinkm_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "list")) {
 		for (unsigned i = 0; BlinkM::script_names[i] != nullptr; i++) {
-			PX4_ERR("    %s", BlinkM::script_names[i]);
+			fprintf(stderr, "    %s\n", BlinkM::script_names[i]);
 		}
 
-		PX4_ERR("    <html color number>");
+		fprintf(stderr, "    <html color number>\n");
 		return 0;
 	}
 

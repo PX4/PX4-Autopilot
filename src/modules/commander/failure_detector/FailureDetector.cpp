@@ -52,13 +52,13 @@ FailureDetector::update()
 {
 	bool updated(false);
 
-	updated = updateAttitudeStatus();
+	updated = update_attitude_status();
 
 	return updated;
 }
 
 bool
-FailureDetector::updateAttitudeStatus()
+FailureDetector::update_attitude_status()
 {
 	bool updated(false);
 
@@ -77,22 +77,14 @@ FailureDetector::updateAttitudeStatus()
 		const bool roll_status = (max_roll > 0.0f) && (fabsf(roll) > max_roll);
 		const bool pitch_status = (max_pitch > 0.0f) && (fabsf(pitch) > max_pitch);
 
-		hrt_abstime time_now = hrt_absolute_time();
-
-		// Update hysteresis
-		_roll_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _param_fd_fail_r_ttri.get()));
-		_pitch_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _param_fd_fail_p_ttri.get()));
-		_roll_failure_hysteresis.set_state_and_update(roll_status, time_now);
-		_pitch_failure_hysteresis.set_state_and_update(pitch_status, time_now);
-
 		// Update bitmask
 		_status &= ~(FAILURE_ROLL | FAILURE_PITCH);
 
-		if (_roll_failure_hysteresis.get_state()) {
+		if (roll_status) {
 			_status |= FAILURE_ROLL;
 		}
 
-		if (_pitch_failure_hysteresis.get_state()) {
+		if (pitch_status) {
 			_status |= FAILURE_PITCH;
 		}
 

@@ -64,9 +64,6 @@ int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 		return 0;
 	}
 
-	// Save current setpoints for the nex FlightTask
-	vehicle_local_position_setpoint_s last_setpoint = getPositionSetpoint();
-
 	if (_initTask(new_task_index)) {
 		// invalid task
 		return -1;
@@ -88,7 +85,7 @@ int FlightTasks::switchTask(FlightTaskIndex new_task_index)
 	_subscription_array.forcedUpdate(); // make sure data is available for all new subscriptions
 
 	// activation failed
-	if (!_current_task.task->updateInitialize() || !_current_task.task->activate(last_setpoint)) {
+	if (!_current_task.task->updateInitialize() || !_current_task.task->activate()) {
 		_current_task.task->~FlightTask();
 		_current_task.task = nullptr;
 		_current_task.index = FlightTaskIndex::None;
@@ -137,16 +134,22 @@ void FlightTasks::reActivate()
 
 void FlightTasks::_updateCommand()
 {
+	// lazy subscription to command topic
+	if (_sub_vehicle_command < 0) {
+		_sub_vehicle_command = orb_subscribe(ORB_ID(vehicle_command));
+	}
+
 	// check if there's any new command
-	bool updated = _sub_vehicle_command.updated();
+	bool updated = false;
+	orb_check(_sub_vehicle_command, &updated);
 
 	if (!updated) {
 		return;
 	}
 
 	// get command
-	vehicle_command_s command{};
-	_sub_vehicle_command.copy(&command);
+	struct vehicle_command_s command;
+	orb_copy(ORB_ID(vehicle_command), _sub_vehicle_command, &command);
 
 	// check what command it is
 	FlightTaskIndex desired_task = switchVehicleCommand(command.command);
@@ -177,13 +180,19 @@ void FlightTasks::_updateCommand()
 	}
 
 	// send back acknowledgment
-	vehicle_command_ack_s command_ack{};
-	command_ack.timestamp = hrt_absolute_time();
+	vehicle_command_ack_s command_ack = {};
 	command_ack.command = command.command;
 	command_ack.result = cmd_result;
 	command_ack.result_param1 = switch_result;
 	command_ack.target_system = command.source_system;
 	command_ack.target_component = command.source_component;
 
-	_pub_vehicle_command_ack.publish(command_ack);
+	if (_pub_vehicle_command_ack == nullptr) {
+		_pub_vehicle_command_ack = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
+					   vehicle_command_ack_s::ORB_QUEUE_LENGTH);
+
+	} else {
+		orb_publish(ORB_ID(vehicle_command_ack), _pub_vehicle_command_ack, &command_ack);
+
+	}
 }

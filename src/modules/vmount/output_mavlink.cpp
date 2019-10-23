@@ -54,9 +54,16 @@ OutputMavlink::OutputMavlink(const OutputConfig &output_config)
 {
 }
 
+OutputMavlink::~OutputMavlink()
+{
+	if (_vehicle_command_pub) {
+		orb_unadvertise(_vehicle_command_pub);
+	}
+}
+
 int OutputMavlink::update(const ControlData *control_data)
 {
-	vehicle_command_s vehicle_command{};
+	vehicle_command_s vehicle_command = {};
 	vehicle_command.timestamp = hrt_absolute_time();
 	vehicle_command.target_system = (uint8_t)_config.mavlink_sys_id;
 	vehicle_command.target_component = (uint8_t)_config.mavlink_comp_id;
@@ -75,7 +82,18 @@ int OutputMavlink::update(const ControlData *control_data)
 			vehicle_command.param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
 		}
 
-		_vehicle_command_pub.publish(vehicle_command);
+		if (_vehicle_command_pub) {
+			orb_publish(ORB_ID(vehicle_command), _vehicle_command_pub, &vehicle_command);
+
+		} else {
+			_vehicle_command_pub = orb_advertise_queue(ORB_ID(vehicle_command), &vehicle_command,
+					       vehicle_command_s::ORB_QUEUE_LENGTH);
+		}
+
+	}
+
+	if (!_vehicle_command_pub) {
+		return 0;
 	}
 
 	_handle_position_update();
@@ -92,7 +110,7 @@ int OutputMavlink::update(const ControlData *control_data)
 	vehicle_command.param2 = (_angle_outputs[0] + _config.roll_offset) * M_RAD_TO_DEG_F;
 	vehicle_command.param3 = (_angle_outputs[2] + _config.yaw_offset) * M_RAD_TO_DEG_F;
 
-	_vehicle_command_pub.publish(vehicle_command);
+	orb_publish(ORB_ID(vehicle_command), _vehicle_command_pub, &vehicle_command);
 
 	_last_update = t;
 

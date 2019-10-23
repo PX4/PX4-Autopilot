@@ -22,6 +22,9 @@ sh /etc/init.d/rc.mc_defaults
 if [ $AUTOCNF = yes ]
 then
 	# Set all params here, then disable autoconfig
+
+	param set COM_DISARM_LAND 3
+
 	param set EKF2_GPS_POS_X -0.0600
 	param set EKF2_GPS_POS_Z -0.1000
 	param set EKF2_MIN_OBS_DT 50

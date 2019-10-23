@@ -34,7 +34,7 @@
 /**
  * @file bl_update.c
  *
- * STM32F4 & STM32F7 bootloader update tool.
+ * STM32F4 bootloader update tool.
  */
 
 #include <px4_config.h>
@@ -58,7 +58,7 @@
 
 __EXPORT int bl_update_main(int argc, char *argv[]);
 
-#if defined (CONFIG_STM32_STM32F4XXX) || defined (CONFIG_ARCH_CHIP_STM32F7)
+#if defined (CONFIG_STM32_STM32F4XXX)
 static int setopt(void);
 
 static void print_usage(const char *reason)
@@ -75,13 +75,12 @@ static void print_usage(const char *reason)
 	PRINT_MODULE_USAGE_COMMAND_DESCR("<file>", "Bootloader bin file");
 }
 
-#endif // defined (CONFIG_STM32_STM32F4XXX) || defined (CONFIG_ARCH_CHIP_STM32F7)
-
+#endif
 
 int
 bl_update_main(int argc, char *argv[])
 {
-#if !(defined (CONFIG_STM32_STM32F4XXX) || defined (CONFIG_ARCH_CHIP_STM32F7))
+#if !defined (CONFIG_STM32_STM32F4XXX)
 	PX4_ERR("Not supported on this HW");
 	return 1;
 }
@@ -243,4 +242,4 @@ setopt(void)
 	PX4_ERR("option bits setting failed; readback 0x%04" PRIx32, *optcr);
 	return 1;
 }
-#endif // defined (CONFIG_STM32_STM32F4XXX) || defined (CONFIG_ARCH_CHIP_STM32F7)
+#endif // CONFIG_STM32_STM32F4XXX

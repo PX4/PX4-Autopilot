@@ -44,7 +44,7 @@
 
 #include <drivers/drv_hrt.h>
 
-#include <uORB/PublicationQueued.hpp>
+#include <uORB/uORB.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/led_control.h>
@@ -96,9 +96,7 @@ private:
 	bool _critical_battery = false;
 	int _old_nav_state = -1;
 	int _old_battery_status_warning = -1;
-
-	uORB::PublicationQueued<led_control_s> _led_control_pub{ORB_ID(led_control)};
-
+	orb_advert_t _led_control_pub = nullptr;
 	const events::SubscriberHandler &_subscriber_handler;
 };
 

@@ -41,12 +41,13 @@
 
 #pragma once
 
-#include <px4_config.h>
-#include <px4_getopt.h>
+#include <px4_workqueue.h>
 #include <px4_module.h>
 #include <px4_module_params.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-#include <uORB/Subscription.hpp>
+#include <px4_config.h>
+#include <px4_getopt.h>
+
+#include <uORB/uORB.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
 
@@ -61,7 +62,7 @@
 extern "C" __EXPORT int heater_main(int argc, char *argv[]);
 
 
-class Heater : public ModuleBase<Heater>, public ModuleParams, public px4::ScheduledWorkItem
+class Heater : public ModuleBase<Heater>, public ModuleParams
 {
 public:
 	Heater();
@@ -148,14 +149,36 @@ protected:
 	 */
 	void initialize_topics();
 
+	/**
+	 * @see ModuleBase::initialize_trampoline().
+	 * @brief Trampoline initialization.
+	 * @param argv Pointer to the task startup arguments.
+	 */
+	static void initialize_trampoline(void *argv);
+
 private:
+
+	/**
+	 * @brief Trampoline for the work queue.
+	 * @param argv Pointer to the task startup arguments.
+	 */
+	static void cycle_trampoline(void *argv);
 
 	/**
 	 * @brief Calculates the heater element on/off time, carries out
 	 *        closed loop feedback and feedforward temperature control,
 	 *        and schedules the next cycle.
 	 */
-	void Run() override;
+	void cycle();
+
+	/**
+	 * @brief Updates the uORB topics for local subscribers.
+	 * @param meta The uORB metadata to copy.
+	 * @param handle The uORB handle to obtain data from.
+	 * @param buffer The data buffer to copy data into.
+	 * @return Returns true iff update was successful.
+	 */
+	int orb_update(const struct orb_metadata *meta, int handle, void *buffer);
 
 	/**
 	 * @brief Updates and checks for updated uORB parameters.
@@ -174,12 +197,13 @@ private:
 
 	float _integrator_value = 0.0f;
 
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
+	int _params_sub = 0;
 
 	float _proportional_value = 0.0f;
 
-	uORB::Subscription _sensor_accel_sub{ORB_ID(sensor_accel)};
-	sensor_accel_s _sensor_accel{};
+	struct sensor_accel_s _sensor_accel = {};
+
+	int _sensor_accel_sub = -1;
 
 	float _sensor_temperature = 0.0f;
 

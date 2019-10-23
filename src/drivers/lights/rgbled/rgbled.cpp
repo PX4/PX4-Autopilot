@@ -40,12 +40,31 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
-#include <string.h>
+#include <px4_config.h>
+#include <px4_getopt.h>
 
 #include <drivers/device/i2c.h>
+
+#include <sys/types.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <ctype.h>
+
+#include <px4_workqueue.h>
+
+#include <perf/perf_counter.h>
+#include <systemlib/err.h>
+
+#include <board_config.h>
+
+#include <drivers/drv_led.h>
 #include <lib/led/led.h>
-#include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+
 #include "uORB/topics/parameter_update.h"
 
 #define RGBLED_ONTIME 120
@@ -62,7 +81,7 @@
 #define SETTING_ENABLE   	0x02	/**< on */
 
 
-class RGBLED : public device::I2C, public px4::ScheduledWorkItem
+class RGBLED : public device::I2C
 {
 public:
 	RGBLED(int bus, int rgbled);
@@ -74,6 +93,8 @@ public:
 	int		status();
 
 private:
+	work_s			_work;
+
 	float			_brightness;
 	float			_max_brightness;
 
@@ -87,7 +108,8 @@ private:
 
 	LedController		_led_controller;
 
-	void			Run() override;
+	static void		led_trampoline(void *arg);
+	void			led();
 
 	int			send_led_enable(bool enable);
 	int			send_led_rgb();
@@ -106,8 +128,12 @@ void rgbled_usage();
 extern "C" __EXPORT int rgbled_main(int argc, char *argv[]);
 
 RGBLED::RGBLED(int bus, int rgbled) :
-	I2C("rgbled", RGBLED0_DEVICE_PATH, bus, rgbled, 100000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	I2C("rgbled", RGBLED0_DEVICE_PATH, bus, rgbled
+#ifdef __PX4_NUTTX
+	    , 100000 /* maximum speed supported */
+#endif
+	   ),
+	_work{},
 	_brightness(1.0f),
 	_max_brightness(1.0f),
 	_r(0),
@@ -147,9 +173,8 @@ RGBLED::init()
 	update_params();
 
 	_running = true;
-
 	// kick off work queue
-	ScheduleNow();
+	work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this, 0);
 
 	return OK;
 }
@@ -205,11 +230,19 @@ RGBLED::status()
 	return ret;
 }
 
+void
+RGBLED::led_trampoline(void *arg)
+{
+	RGBLED *rgbl = reinterpret_cast<RGBLED *>(arg);
+
+	rgbl->led();
+}
+
 /**
  * Main loop function
  */
 void
-RGBLED::Run()
+RGBLED::led()
 {
 	if (!_should_run) {
 		if (_param_sub >= 0) {
@@ -299,8 +332,10 @@ RGBLED::Run()
 		send_led_rgb();
 	}
 
+
 	/* re-queue ourselves to run again later */
-	ScheduleDelayed(_led_controller.maximum_update_interval());
+	work_queue(LPWORK, &_work, (worker_t)&RGBLED::led_trampoline, this,
+		   USEC2TICK(_led_controller.maximum_update_interval()));
 }
 
 /**

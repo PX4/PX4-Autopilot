@@ -45,12 +45,25 @@
 
 namespace camera_capture
 {
-CameraCapture *g_camera_capture{nullptr};
+CameraCapture	*g_camera_capture;
 }
 
 CameraCapture::CameraCapture() :
-	ScheduledWorkItem(px4::wq_configurations::lp_default)
+	_capture_enabled(false),
+	_gpio_capture(false),
+	_trigger_pub(nullptr),
+	_command_ack_pub(nullptr),
+	_command_sub(-1),
+	_trig_buffer(nullptr),
+	_camera_capture_mode(0),
+	_camera_capture_edge(0),
+	_capture_seq(0),
+	_last_trig_begin_time(0),
+	_last_exposure_time(0),
+	_capture_overflows(0)
 {
+
+	memset(&_work, 0, sizeof(_work));
 	memset(&_work_publisher, 0, sizeof(_work_publisher));
 
 	// Capture Parameters
@@ -62,6 +75,7 @@ CameraCapture::CameraCapture() :
 
 	_p_camera_capture_edge = param_find("CAM_CAP_EDGE");
 	param_get(_p_camera_capture_edge, &_camera_capture_edge);
+
 }
 
 CameraCapture::~CameraCapture()
@@ -75,8 +89,10 @@ CameraCapture::~CameraCapture()
 }
 
 void
-CameraCapture::capture_callback(uint32_t chan_index, hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
+CameraCapture::capture_callback(uint32_t chan_index,
+				hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
+
 	_trigger.chan_index = chan_index;
 	_trigger.edge_time = edge_time;
 	_trigger.edge_state = edge_state;
@@ -98,6 +114,7 @@ CameraCapture::gpio_interrupt_routine(int irq, void *context, void *arg)
 	work_queue(HPWORK, &_work_publisher, (worker_t)&CameraCapture::publish_trigger_trampoline, dev, 0);
 
 	return PX4_OK;
+
 }
 
 void
@@ -113,7 +130,7 @@ CameraCapture::publish_trigger()
 {
 	bool publish = false;
 
-	camera_trigger_s trigger{};
+	struct camera_trigger_s	trigger {};
 
 	// MODES 1 and 2 are not fully tested
 	if (_camera_capture_mode == 0 || _gpio_capture) {
@@ -156,23 +173,48 @@ CameraCapture::publish_trigger()
 		return;
 	}
 
-	_trigger_pub.publish(trigger);
+	if (_trigger_pub == nullptr) {
+
+		_trigger_pub = orb_advertise(ORB_ID(camera_trigger), &trigger);
+
+	} else {
+
+		orb_publish(ORB_ID(camera_trigger), _trigger_pub, &trigger);
+	}
+
 }
 
 void
-CameraCapture::capture_trampoline(void *context, uint32_t chan_index, hrt_abstime edge_time, uint32_t edge_state,
-				  uint32_t overflow)
+CameraCapture::capture_trampoline(void *context, uint32_t chan_index,
+				  hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
 	camera_capture::g_camera_capture->capture_callback(chan_index, edge_time, edge_state, overflow);
 }
 
 void
-CameraCapture::Run()
+CameraCapture::cycle_trampoline(void *arg)
 {
-	// Command handling
-	vehicle_command_s cmd{};
+	CameraCapture *dev = reinterpret_cast<CameraCapture *>(arg);
 
-	if (_command_sub.update(&cmd)) {
+	dev->cycle();
+}
+
+void
+CameraCapture::cycle()
+{
+
+	if (_command_sub < 0) {
+		_command_sub = orb_subscribe(ORB_ID(vehicle_command));
+	}
+
+	bool updated = false;
+	orb_check(_command_sub, &updated);
+
+	// Command handling
+	if (updated) {
+
+		vehicle_command_s cmd;
+		orb_copy(ORB_ID(vehicle_command), _command_sub, &cmd);
 
 		// TODO : this should eventuallly be a capture control command
 		if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL) {
@@ -193,17 +235,31 @@ CameraCapture::Run()
 			}
 
 			// Acknowledge the command
-			vehicle_command_ack_s command_ack{};
+			vehicle_command_ack_s command_ack = {
+				.timestamp = 0,
+				.result_param2 = 0,
+				.command = cmd.command,
+				.result = (uint8_t)vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED,
+				.from_external = false,
+				.result_param1 = 0,
+				.target_system = cmd.source_system,
+				.target_component = cmd.source_component
+			};
 
-			command_ack.timestamp = hrt_absolute_time();
-			command_ack.command = cmd.command;
-			command_ack.result = (uint8_t)vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
-			command_ack.target_system = cmd.source_system;
-			command_ack.target_component = cmd.source_component;
+			if (_command_ack_pub == nullptr) {
+				_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
+								       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
 
-			_command_ack_pub.publish(command_ack);
+			} else {
+				orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
+
+			}
 		}
+
 	}
+
+	work_queue(LPWORK, &_work, (worker_t)&CameraCapture::cycle_trampoline, camera_capture::g_camera_capture,
+		   USEC2TICK(100000)); // 100ms
 }
 
 void
@@ -211,7 +267,9 @@ CameraCapture::set_capture_control(bool enabled)
 {
 #if !defined CONFIG_ARCH_BOARD_AV_X_V1
 
-	int fd = ::open(PX4FMU_DEVICE_PATH, O_RDWR);
+	int fd = -1;
+
+	fd = ::open(PX4FMU_DEVICE_PATH, O_RDWR);
 
 	if (fd < 0) {
 		PX4_ERR("open fail");
@@ -285,9 +343,7 @@ err_out:
 void
 CameraCapture::reset_statistics(bool reset_seq)
 {
-	if (reset_seq) {
-		_capture_seq = 0;
-	}
+	if (reset_seq) { _capture_seq = 0; }
 
 	_last_trig_begin_time = 0;
 	_last_exposure_time = 0;
@@ -305,8 +361,9 @@ CameraCapture::start()
 		return PX4_ERROR;
 	}
 
-	// run every 100 ms (10 Hz)
-	ScheduleOnInterval(100000, 10000);
+	// start to monitor at low rates for capture control commands
+	work_queue(LPWORK, &_work, (worker_t)&CameraCapture::cycle_trampoline, this,
+		   USEC2TICK(1));
 
 	return PX4_OK;
 }
@@ -314,8 +371,8 @@ CameraCapture::start()
 void
 CameraCapture::stop()
 {
-	ScheduleClear();
 
+	work_cancel(LPWORK, &_work);
 	work_cancel(HPWORK, &_work_publisher);
 
 	if (camera_capture::g_camera_capture != nullptr) {

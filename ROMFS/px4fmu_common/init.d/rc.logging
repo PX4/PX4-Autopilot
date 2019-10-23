@@ -4,10 +4,13 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-if param greater UAVCAN_ENABLE 1
+if ! ver hwcmp PX4_SITL
 then
-	# Reduce logger buffer to free up some RAM for UAVCAN servers.
-	set LOGGER_BUF 6
+	if param greater UAVCAN_ENABLE 1
+	then
+		# Reduce logger buffer to free up some RAM for UAVCAN servers.
+		set LOGGER_BUF 6
+	fi
 fi
 
 ###############################################################################
@@ -22,11 +25,6 @@ fi
 if param compare SDLOG_MODE 2
 then
 	set LOGGER_ARGS "-f"
-fi
-
-if param compare SDLOG_MODE 3
-then
-	set LOGGER_ARGS "-x"
 fi
 
 if ! param compare SDLOG_MODE -1

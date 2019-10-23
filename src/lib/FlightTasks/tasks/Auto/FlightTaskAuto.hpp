@@ -43,7 +43,6 @@
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <uORB/topics/position_setpoint.h>
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <lib/ecl/geo/geo.h>
 #include <ObstacleAvoidance.hpp>
@@ -78,7 +77,7 @@ public:
 
 	virtual ~FlightTaskAuto() = default;
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
-	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
+	bool activate() override;
 	bool updateInitialize() override;
 	bool updateFinalize() override;
 
@@ -99,16 +98,11 @@ protected:
 	matrix::Vector3f _next_wp{}; /**< The next waypoint after target (local frame). If no next setpoint is available, next is set to target. */
 	float _mc_cruise_speed{0.0f}; /**< Requested cruise speed. If not valid, default cruise speed is used. */
 	WaypointType _type{WaypointType::idle}; /**< Type of current target triplet. */
-	uORB::SubscriptionPollable<home_position_s> *_sub_home_position{nullptr};
-	uORB::SubscriptionPollable<manual_control_setpoint_s> *_sub_manual_control_setpoint{nullptr};
-	uORB::SubscriptionPollable<vehicle_status_s> *_sub_vehicle_status{nullptr};
+	uORB::Subscription<home_position_s> *_sub_home_position{nullptr};
 
 	State _current_state{State::none};
-	float _target_acceptance_radius{0.0f}; /**< Acceptances radius of the target */
-	int _mission_gear{landing_gear_s::GEAR_KEEP};
-
-	float _yaw_sp_prev{NAN};
-	bool _yaw_sp_aligned{false};
+	float _target_acceptance_radius = 0.0f; /**< Acceptances radius of the target */
+	int _mission_gear = landing_gear_s::GEAR_KEEP;
 
 	ObstacleAvoidance _obstacle_avoidance; /**< class adjusting setpoints according to external avoidance module's input */
 
@@ -119,14 +113,15 @@ protected:
 					_param_nav_mc_alt_rad, //vertical acceptance radius at which waypoints are updated
 					(ParamInt<px4::params::MPC_YAW_MODE>) _param_mpc_yaw_mode, // defines how heading is executed,
 					(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid, // obstacle avoidance active
-					(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max,
-					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err // yaw-error threshold
+					(ParamFloat<px4::params::MPC_YAWRAUTO_MAX>) _param_mpc_yawrauto_max
 				       );
 
 private:
 	matrix::Vector2f _lock_position_xy{NAN, NAN}; /**< if no valid triplet is received, lock positition to current position */
-	bool _yaw_lock{false}; /**< if within acceptance radius, lock yaw to current yaw */
-	uORB::SubscriptionPollable<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
+	bool _yaw_lock = false; /**< if within acceptance radius, lock yaw to current yaw */
+	float _yaw_sp_prev = NAN;
+	uORB::Subscription<position_setpoint_triplet_s> *_sub_triplet_setpoint{nullptr};
+	uORB::Subscription<vehicle_status_s> *_sub_vehicle_status{nullptr};
 
 	matrix::Vector3f
 	_triplet_target; /**< current triplet from navigator which may differ from the intenal one (_target) depending on the vehicle state. */
@@ -137,10 +132,11 @@ private:
 	matrix::Vector2f _closest_pt; /**< closest point to the vehicle position on the line previous - target */
 
 	map_projection_reference_s _reference_position{}; /**< Structure used to project lat/lon setpoint into local frame. */
-	float _reference_altitude{NAN};  /**< Altitude relative to ground. */
-	hrt_abstime _time_stamp_reference{0}; /**< time stamp when last reference update occured. */
+	float _reference_altitude = NAN;  /**< Altitude relative to ground. */
+	hrt_abstime _time_stamp_reference = 0; /**< time stamp when last reference update occured. */
 
-	WeatherVane *_ext_yaw_handler{nullptr};	/**< external weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
+	WeatherVane *_ext_yaw_handler =
+		nullptr;	/**< external weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
 
 
 	void _limitYawRate(); /**< Limits the rate of change of the yaw setpoint. */

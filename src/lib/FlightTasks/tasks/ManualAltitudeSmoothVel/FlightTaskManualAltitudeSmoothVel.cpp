@@ -41,17 +41,11 @@
 
 using namespace matrix;
 
-bool FlightTaskManualAltitudeSmoothVel::activate(vehicle_local_position_setpoint_s last_setpoint)
+bool FlightTaskManualAltitudeSmoothVel::activate()
 {
-	bool ret = FlightTaskManualAltitude::activate(last_setpoint);
+	bool ret = FlightTaskManualAltitude::activate();
 
-	// Check if the previous FlightTask provided setpoints
-	checkSetpoints(last_setpoint);
-
-	_smoothing.reset(last_setpoint.acc_z, last_setpoint.vz, last_setpoint.z);
-
-	_initEkfResetCounters();
-	_resetPositionLock();
+	_reset();
 
 	return ret;
 }
@@ -60,35 +54,23 @@ void FlightTaskManualAltitudeSmoothVel::reActivate()
 {
 	// The task is reacivated while the vehicle is on the ground. To detect takeoff in mc_pos_control_main properly
 	// using the generated jerk, reset the z derivatives to zero
-	_smoothing.reset(0.f, 0.f, _position(2));
-
-	_initEkfResetCounters();
-	_resetPositionLock();
+	_reset(true);
 }
 
-void FlightTaskManualAltitudeSmoothVel::checkSetpoints(vehicle_local_position_setpoint_s &setpoints)
+void FlightTaskManualAltitudeSmoothVel::_reset(bool force_vz_zero)
 {
-	// If the position setpoint is unknown, set to the current postion
-	if (!PX4_ISFINITE(setpoints.z)) { setpoints.z = _position(2); }
+	// Set the z derivatives to zero
+	if (force_vz_zero) {
+		_smoothing.reset(0.f, 0.f, _position(2));
 
-	// If the velocity setpoint is unknown, set to the current velocity
-	if (!PX4_ISFINITE(setpoints.vz)) { setpoints.vz = _velocity(2); }
+	} else {
+		// TODO: get current accel
+		_smoothing.reset(0.f, _velocity(2), _position(2));
+	}
 
-	// No acceleration estimate available, set to zero if the setpoint is NAN
-	if (!PX4_ISFINITE(setpoints.acc_z)) { setpoints.acc_z = 0.f; }
-}
-
-void FlightTaskManualAltitudeSmoothVel::_resetPositionLock()
-{
 	// Always start unlocked
 	_position_lock_z_active = false;
 	_position_setpoint_z_locked = NAN;
-}
-
-void FlightTaskManualAltitudeSmoothVel::_initEkfResetCounters()
-{
-	_reset_counters.z = _sub_vehicle_local_position->get().z_reset_counter;
-	_reset_counters.vz = _sub_vehicle_local_position->get().vz_reset_counter;
 }
 
 void FlightTaskManualAltitudeSmoothVel::_checkEkfResetCounters()

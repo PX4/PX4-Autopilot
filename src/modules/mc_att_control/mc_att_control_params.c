@@ -115,26 +115,6 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_D, 0.003f);
 PARAM_DEFINE_FLOAT(MC_ROLLRATE_FF, 0.0f);
 
 /**
- * Roll rate controller gain
- *
- * Global gain of the controller.
- *
- * This gain scales the P, I and D terms of the controller:
- * output = MC_ROLLRATE_K * (MC_ROLLRATE_P * error
- * 			     + MC_ROLLRATE_I * error_integral
- * 			     + MC_ROLLRATE_D * error_derivative)
- * Set MC_ROLLRATE_P=1 to implement a PID in the ideal form.
- * Set MC_ROLLRATE_K=1 to implement a PID in the parallel form.
- *
- * @min 0.0
- * @max 5.0
- * @decimal 4
- * @increment 0.0005
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_ROLLRATE_K, 1.0f);
-
-/**
  * Pitch P gain
  *
  * Pitch proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
@@ -207,26 +187,6 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_D, 0.003f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_PITCHRATE_FF, 0.0f);
-
-/**
- * Pitch rate controller gain
- *
- * Global gain of the controller.
- *
- * This gain scales the P, I and D terms of the controller:
- * output = MC_PITCHRATE_K * (MC_PITCHRATE_P * error
- * 			     + MC_PITCHRATE_I * error_integral
- * 			     + MC_PITCHRATE_D * error_derivative)
- * Set MC_PITCHRATE_P=1 to implement a PID in the ideal form.
- * Set MC_PITCHRATE_K=1 to implement a PID in the parallel form.
- *
- * @min 0.0
- * @max 5.0
- * @decimal 4
- * @increment 0.0005
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_PITCHRATE_K, 1.0f);
 
 /**
  * Yaw P gain
@@ -302,26 +262,6 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_YAWRATE_FF, 0.0f);
-
-/**
- * Yaw rate controller gain
- *
- * Global gain of the controller.
- *
- * This gain scales the P, I and D terms of the controller:
- * output = MC_YAWRATE_K * (MC_YAWRATE_P * error
- * 			     + MC_YAWRATE_I * error_integral
- * 			     + MC_YAWRATE_D * error_derivative)
- * Set MC_YAWRATE_P=1 to implement a PID in the ideal form.
- * Set MC_YAWRATE_K=1 to implement a PID in the parallel form.
- *
- * @min 0.0
- * @max 5.0
- * @decimal 4
- * @increment 0.0005
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_YAWRATE_K, 1.0f);
 
 /**
  * Max roll rate

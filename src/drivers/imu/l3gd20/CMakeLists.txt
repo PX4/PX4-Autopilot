@@ -38,6 +38,4 @@ px4_add_module(
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		l3gd20.cpp
-	DEPENDS
-		drivers_gyroscope
 	)
