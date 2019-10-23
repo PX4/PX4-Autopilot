@@ -115,21 +115,19 @@ public:
 
 private:
 	void		fill_node_info();
-	int		init(uavcan::NodeID node_id);
+	int		init(uavcan::NodeID node_id, uavcan_stm32::BusEvent &bus_events);
 	void		node_spin_once();
 	int		run();
-	int		add_poll_fd(int fd);			///< add a fd to poll list, returning index into _poll_fds[]
+	static void	busevent_signal_trampoline();
 
 
+	px4_sem_t		_sem;				///< semaphore for scheduling the task
 	int			_task = -1;			///< handle to the OS task
 	bool			_task_should_exit = false;	///< flag to indicate to tear down the CAN driver
 
 	static UavcanEsc	*_instance;			///< singleton pointer
 	Node			_node;				///< library instance
 	pthread_mutex_t		_node_mutex;
-
-	pollfd			_poll_fds[UAVCAN_NUM_POLL_FDS] = {};
-	unsigned		_poll_fds_num = 0;
 
 	typedef uavcan::MethodBinder<UavcanEsc *,
 		void (UavcanEsc::*)(const uavcan::ReceivedDataStructure<UavcanEsc::BeginFirmwareUpdate::Request> &,

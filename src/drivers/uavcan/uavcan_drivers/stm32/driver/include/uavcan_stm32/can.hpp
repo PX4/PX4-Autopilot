@@ -282,6 +282,8 @@ public:
      * This is designed for use with iface activity LEDs.
      */
     bool hadActivity();
+
+    BusEvent& updateEvent() { return update_event_; }
 };
 
 /**

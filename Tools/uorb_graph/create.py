@@ -225,7 +225,6 @@ class Graph(object):
     ('listener', r'.*', None, r'^(id)$'),
     ('logger', r'.*', None, r'^(topic|sub\.metadata|_polling_topic_meta)$'),
 
-    ('uavcan', r'uavcan_main\.cpp$', r'\b_control_topics\[[0-9]\]=([^,)]+)', r'^_control_topics\[i\]$'),
     ('tap_esc', r'.*', r'\b_control_topics\[[0-9]\]=([^,)]+)', r'^_control_topics\[i\]$'),
     ('snapdragon_pwm_out', r'.*', r'\b_controls_topics\[[0-9]\]=([^,)]+)', r'^_controls_topics\[i\]$'),
     ('linux_pwm_out', r'.*', r'\b_controls_topics\[[0-9]\]=([^,)]+)', r'^_controls_topics\[i\]$'),

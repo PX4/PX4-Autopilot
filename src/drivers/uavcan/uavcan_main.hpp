@@ -43,6 +43,8 @@
 #pragma once
 
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 #include "uavcan_driver.hpp"
 #include "uavcan_servers.hpp"
@@ -60,31 +62,56 @@
 #include <uavcan/protocol/RestartNode.hpp>
 
 #include <lib/drivers/device/device.h>
+#include <lib/mixer_module/mixer_module.hpp>
 #include <lib/perf/perf_counter.h>
 
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/test_motor.h>
 
-#define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	4
+class UavcanNode;
 
-// we add 1 to allow for busevent
-#define UAVCAN_NUM_POLL_FDS (NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN+1)
+/**
+ * UAVCAN mixing class.
+ * It is separate from UavcanNode to have 2 WorkItems and therefore allowing independent scheduling
+ * (I.e. UavcanMixingInterface runs upon actuator_control updates, whereas UavcanNode runs at
+ * a fixed rate or upon bus updates).
+ * Both work items are expected to run on the same work queue.
+ */
+class UavcanMixingInterface : public OutputModuleInterface
+{
+public:
+	UavcanMixingInterface(pthread_mutex_t &node_mutex, UavcanEscController &esc_controller)
+		: OutputModuleInterface(MODULE_NAME "-actuators", px4::wq_configurations::uavcan),
+		  _node_mutex(node_mutex),
+		  _esc_controller(esc_controller) {}
+
+	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+			   unsigned num_outputs, unsigned num_control_groups_updated) override;
+
+	void mixerChanged() override;
+
+	MixingOutput &mixingOutput() { return _mixing_output; }
+
+protected:
+	void Run() override;
+private:
+	friend class UavcanNode;
+	pthread_mutex_t &_node_mutex;
+	UavcanEscController &_esc_controller;
+	MixingOutput _mixing_output{MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
+};
 
 /**
  * A UAVCAN node.
  */
-class UavcanNode : public cdev::CDev
+class UavcanNode : public cdev::CDev, public px4::ScheduledWorkItem, public ModuleParams
 {
 	static constexpr unsigned MaxBitRatePerSec	= 1000000;
 	static constexpr unsigned bitPerFrame		= 148;
 	static constexpr unsigned FramePerSecond	= MaxBitRatePerSec / bitPerFrame;
 	static constexpr unsigned FramePerMSecond	= ((FramePerSecond / 1000) + 1);
 
-	static constexpr unsigned PollTimeoutMs		= 3;
+	static constexpr unsigned ScheduleIntervalMs		= 3;
 
 
 	/*
@@ -92,19 +119,18 @@ class UavcanNode : public cdev::CDev
 	 * At 1Mbit there is approximately one CAN frame every 145 uS.
 	 * The number of buffers sets how long you can go without calling
 	 * node_spin_xxxx. Since our task is the only one running and the
-	 * driver will light the fd when there is a CAN frame we can nun with
+	 * driver will light the callback when there is a CAN frame we can nun with
 	 * a minimum number of buffers to conserver memory. Each buffer is
 	 * 32 bytes. So 5 buffers costs 160 bytes and gives us a poll rate
 	 * of ~1 mS
 	 *  1000000/200
 	 */
 
-	static constexpr unsigned RxQueueLenPerIface	= FramePerMSecond * PollTimeoutMs; // At
-	static constexpr unsigned StackSize		= 2400;
+	static constexpr unsigned RxQueueLenPerIface	= FramePerMSecond * ScheduleIntervalMs; // At
 
 public:
 	typedef UAVCAN_DRIVER::CanInitHelper<RxQueueLenPerIface> CanInitHelper;
-	enum eServerAction {None, Start, Stop, CheckFW, Busy};
+	enum eServerAction : int {None, Start, Stop, CheckFW, Busy};
 
 	UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &system_clock);
 
@@ -116,14 +142,7 @@ public:
 
 	uavcan::Node<>	&get_node() { return _node; }
 
-	// TODO: move the actuator mixing stuff into the ESC controller class
-	static int	control_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input);
-
-	void		subscribe();
-
 	int		teardown();
-
-	int		arm_actuators(bool arm);
 
 	void		print_info();
 
@@ -141,13 +160,14 @@ public:
 	int			 get_param(int remote_node_id, const char *name);
 	int			 reset_node(int remote_node_id);
 
+	static void busevent_signal_trampoline();
+
+protected:
+	void Run() override;
 private:
 	void		fill_node_info();
-	int		init(uavcan::NodeID node_id);
+	int		init(uavcan::NodeID node_id, UAVCAN_DRIVER::BusEvent &bus_events);
 	void		node_spin_once();
-	int		run();
-
-	int		add_poll_fd(int fd);			///< add a fd to poll list, returning index into _poll_fds[]
 
 	int		start_fw_server();
 	int		stop_fw_server();
@@ -160,15 +180,13 @@ private:
 	void		set_setget_response(uavcan::protocol::param::GetSet::Response *resp) { _setget_response = resp; }
 	void		free_setget_response(void) { _setget_response = nullptr; }
 
-	int			_task{-1};			///< handle to the OS task
-	bool			_task_should_exit{false};	///< flag to indicate to tear down the CAN driver
-	volatile eServerAction	_fw_server_action{None};
+	void enable_idle_throttle_when_armed(bool value);
+
+	px4::atomic_bool	_task_should_exit{false};	///< flag to indicate to tear down the CAN driver
+	px4::atomic<int>	_fw_server_action{None};
 	int			 _fw_server_status{-1};
 
 	bool			_is_armed{false};		///< the arming status of the actuators on the bus
-
-	test_motor_s		_test_motor{};
-	bool			_test_in_progress{false};
 
 	unsigned		_output_count{0};		///< number of actuators currently available
 
@@ -177,9 +195,10 @@ private:
 	uavcan_node::Allocator	 _pool_allocator;
 
 	uavcan::Node<>			_node;				///< library instance
-	pthread_mutex_t			_node_mutex{};
+	pthread_mutex_t			_node_mutex;
 	px4_sem_t			_server_command_sem;
 	UavcanEscController		_esc_controller;
+	UavcanMixingInterface 		_mixing_interface{_node_mutex, _esc_controller};
 	UavcanHardpointController	_hardpoint_controller;
 	uavcan::GlobalTimeSyncMaster	_time_sync_master;
 	uavcan::GlobalTimeSyncSlave	_time_sync_slave;
@@ -187,31 +206,15 @@ private:
 
 	List<IUavcanSensorBridge *>	_sensor_bridges;		///< List of active sensor bridges
 
-	MixerGroup			*_mixers{nullptr};
 	ITxQueueInjector		*_tx_injector{nullptr};
 
-	uint32_t			_groups_required{0};
-	uint32_t			_groups_subscribed{0};
-	int				_control_subs[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] {};
-	actuator_controls_s		_controls[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] {};
-	orb_id_t			_control_topics[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] {};
-	pollfd				_poll_fds[UAVCAN_NUM_POLL_FDS] {};
-	unsigned			_poll_fds_num{0};
-	int32_t 			_idle_throttle_when_armed{0};
+	bool 				_idle_throttle_when_armed{false};
+	int32_t 			_idle_throttle_when_armed_param{0};
 
-	uORB::Subscription		_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription		_parameter_update_sub{ORB_ID(parameter_update)};
-	uORB::Subscription		_test_motor_sub{ORB_ID(test_motor)};
 
 	perf_counter_t			_cycle_perf;
 	perf_counter_t			_interval_perf;
-	perf_counter_t			_control_latency_perf;
-
-	Mixer::Airmode 			_airmode{Mixer::Airmode::disabled};
-	float 				_thr_mdl_factor{0.0f};
-
-	// index into _poll_fds for each _control_subs handle
-	uint8_t				_poll_ids[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN] {};
 
 	void handle_time_sync(const uavcan::TimerEvent &);
 

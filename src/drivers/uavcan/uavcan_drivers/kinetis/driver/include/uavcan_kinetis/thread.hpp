@@ -28,29 +28,16 @@ class CanDriver;
  */
 class BusEvent : uavcan::Noncopyable
 {
-    static const unsigned MaxPollWaiters = 8;
+    using SignalCallbackHandler = void(*)();
 
-    ::file_operations file_ops_;
-    ::pollfd* pollset_[MaxPollWaiters];
-    CanDriver& can_driver_;
-    bool signal_;
-
-    static int openTrampoline(::file* filp);
-    static int closeTrampoline(::file* filp);
-    static int pollTrampoline(::file* filp, ::pollfd* fds, bool setup);
-
-    int open(::file* filp);
-    int close(::file* filp);
-    int poll(::file* filp, ::pollfd* fds, bool setup);
-
-    int addPollWaiter(::pollfd* fds);
-    int removePollWaiter(::pollfd* fds);
-
+    SignalCallbackHandler signal_cb_{nullptr};
+    sem_t sem_;
 public:
-    static const char* const DevName;
 
     BusEvent(CanDriver& can_driver);
     ~BusEvent();
+
+    void registerSignalCallback(SignalCallbackHandler handler) { signal_cb_ = handler; }
 
     bool wait(uavcan::MonotonicDuration duration);
 
