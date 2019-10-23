@@ -1620,7 +1620,7 @@ void Logger::start_log_file(LogType type)
 		write_parameters(type);
 		write_perf_data(true);
 	}
-	write_all_add_logged_msg(type);
+    if (type != LogType::DgMessage)write_all_add_logged_msg(type);
 	_writer.set_need_reliable_transfer(false);
 	_writer.unselect_write_backend();
 	_writer.notify();

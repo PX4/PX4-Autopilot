@@ -1491,7 +1491,7 @@ Commander::run()
                                 if (airmode == 2 && rc_map_arm_switch == 0) {
                                         airmode = 1; // change to roll/pitch airmode
                                         param_set(_param_airmode, &airmode);
-                                        mavlink_log_critical(&mavlink_log_pub, "Yaw Airmode requires the use of an Arm Switch")
+                                        mavlink_log_critical(&mavlink_log_pub, "Yaw Airmode requires the use of an Arm Switch");
                                 }
                         }
 
@@ -1519,15 +1519,16 @@ Commander::run()
                         orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
 
             // DG_rc_mag_cali code
-            if (abs(sp_man.mode_slot - mode_slot_pre) == 5){
+            if (abs(sp_man.mode_slot - mode_slot_pre) >3){
                 if(sp_man.timestamp - timestamp_pre < 500000){
                     mode_chage_count++;
                 }
                 else
                     mode_chage_count = 0;
                 timestamp_pre = sp_man.timestamp;
+                mavlink_log_critical(&mavlink_log_pub, "mode_chage_count = %d", mode_chage_count);
                 }
-                if (mode_chage_count >4)
+                if (mode_chage_count >3)
                 {
                     mode_chage_count = 0;
                     if(status.arming_state <2) {
