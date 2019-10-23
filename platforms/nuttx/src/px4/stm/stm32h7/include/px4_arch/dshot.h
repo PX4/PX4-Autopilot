@@ -33,20 +33,4 @@
 #pragma once
 
 
-#include "../../../stm32_common/include/px4_arch/micro_hal.h"
-
-__BEGIN_DECLS
-
-#include <stm32.h>
-#define PX4_SOC_ARCH_ID             PX4_SOC_ARCH_ID_STM32F4
-#define PX4_FLASH_BASE  STM32_FLASH_BASE
-#if defined(CONFIG_STM32_STM32F4XXX)
-# include <stm32_bbsram.h>
-# define PX4_BBSRAM_SIZE STM32_BBSRAM_SIZE
-# define PX4_BBSRAM_GETDESC_IOCTL STM32_BBSRAM_GETDESC_IOCTL
-#endif
-#define PX4_NUMBER_I2C_BUSES STM32_NI2C
-#define PX4_ARCH_DCACHE_LINESIZE 32 // REMOVE this The DSHOT added this and needs to be fixed THERE IS NO DCAHE on F4
-
-__END_DECLS
-
+#include "../../../stm32_common/include/px4_arch/dshot.h"
