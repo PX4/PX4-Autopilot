@@ -65,7 +65,9 @@ fi
 
 
 # Use environment variable PX4_ESTIMATOR to choose estimator.
-if [ "$PX4_ESTIMATOR" = "ekf2" ]; then
+if [ "$PX4_ESTIMATOR" = "q" ]; then
+	param set SYS_MC_EST_GROUP 3
+elif [ "$PX4_ESTIMATOR" = "ekf2" ]; then
 	param set SYS_MC_EST_GROUP 2
 elif [ "$PX4_ESTIMATOR" = "lpe" ]; then
 	param set SYS_MC_EST_GROUP 1
@@ -94,15 +96,16 @@ then
 
 	param set BAT_N_CELLS 3
 
-	param set CAL_ACC0_ID 1376264
-	param set CAL_ACC1_ID 1310728
-	param set CAL_ACC_PRIME 1376264
+	param set CAL_ACC0_ID 1311244
+	param set CAL_ACC_PRIME 1311244
 
-	param set CAL_GYRO0_ID 2293768
-	param set CAL_GYRO_PRIME 2293768
+	param set CAL_GYRO0_ID 2294028
+	param set CAL_GYRO_PRIME 2294028
 
-	param set CAL_MAG0_ID 196616
-	param set CAL_MAG_PRIME 196616
+	param set CAL_MAG0_ID 197388
+	param set CAL_MAG_PRIME 197388
+
+	param set CAL_BARO_PRIME 6620172
 
 	param set CBRK_AIRSPD_CHK 0
 
@@ -116,6 +119,8 @@ then
 	param set EKF2_ANGERR_INIT 0.01
 	param set EKF2_HGT_MODE 0
 	param set EKF2_GBIAS_INIT 0.01
+	# Speedup SITL startup
+	param set EKF2_REQ_GPS_H 0.5
 
 	# LPE: GPS only mode
 	param set LPE_FUSION 145
@@ -157,7 +162,8 @@ then
 	param set SENS_DPRES_OFF 0.001
 	param set SYS_RESTART_TYPE 2
 
-	param set WEST_EN 0
+	param set TRIG_INTERFACE 3
+
 fi
 
 # Adapt timeout parameters if simulation runs faster or slower than realtime.
@@ -199,20 +205,13 @@ sh "$autostart_file"
 
 dataman start
 replay tryapplyparams
-simulator start -s -c $simulator_tcp_port
+simulator start -c $simulator_tcp_port
 tone_alarm start
-gyrosim start
-accelsim start
-barosim start
 gpssim start
 sensors start
 commander start
 navigator start
 
-if param compare WEST_EN 1
-then
-	wind_estimator start
-fi
 
 if ! param compare MNT_MODE_IN -1
 then
@@ -225,18 +224,9 @@ then
 	camera_feedback start
 fi
 
-
-if [ ${VEHICLE_TYPE} = fw -o ${VEHICLE_TYPE} = vtol ]
-then
-	if param compare CBRK_AIRSPD_CHK 0
-	then
-		measairspeedsim start
-	fi
-fi
-
 # Configure vehicle type specific parameters.
 # Note: rc.vehicle_setup is the entry point for rc.interface,
-#       rc.fw_apps, rc.mc_apps, rc.ugv_apps, and rc.vtol_apps.
+#       rc.fw_apps, rc.mc_apps, rc.rover_apps, and rc.vtol_apps.
 #
 sh etc/init.d/rc.vehicle_setup
 

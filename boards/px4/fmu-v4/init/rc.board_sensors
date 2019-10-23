@@ -16,7 +16,7 @@ fmu sensor_reset 50
 hmc5883 -C -T -X start
 lis3mdl -X start
 ist8310 start
-bmp280 -I start
+bmp280 -X start
 qmc5883 -X start
 
 # expansion i2c used for BMM150 rotated by 90deg

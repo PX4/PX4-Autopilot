@@ -84,6 +84,10 @@ int Pxh::process_line(const std::string &line, bool silently_fail)
 		words.push_back(word);
 	}
 
+	if (words.empty()) {
+		return 0;
+	}
+
 	const std::string &command(words.front());
 
 	if (_apps.find(command) != _apps.end()) {

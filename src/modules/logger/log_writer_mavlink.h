@@ -34,6 +34,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/ulog_stream.h>
 #include <uORB/topics/ulog_stream_ack.h>
 
@@ -49,7 +50,7 @@ namespace logger
 class LogWriterMavlink
 {
 public:
-	LogWriterMavlink(unsigned int queue_size);
+	LogWriterMavlink();
 	~LogWriterMavlink();
 
 	bool init();
@@ -75,12 +76,11 @@ private:
 	/** publish message, wait for ack if needed & reset message */
 	int publish_message();
 
-	ulog_stream_s _ulog_stream_data;
-	orb_advert_t _ulog_stream_pub = nullptr;
-	int _ulog_stream_ack_sub = -1;
-	bool _need_reliable_transfer = false;
-	bool _is_started = false;
-	const unsigned int _queue_size;
+	ulog_stream_s _ulog_stream_data{};
+	uORB::PublicationQueued<ulog_stream_s> _ulog_stream_pub{ORB_ID(ulog_stream)};
+	int _ulog_stream_ack_sub{-1};
+	bool _need_reliable_transfer{false};
+	bool _is_started{false};
 };
 
 }

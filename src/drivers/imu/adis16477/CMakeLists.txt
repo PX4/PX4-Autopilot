@@ -38,6 +38,9 @@ px4_add_module(
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		ADIS16477.cpp
-		ADIS16477_gyro.cpp
-		ADIS16477_main.cpp
+		adis16477_main.cpp
+	DEPENDS
+		px4_work_queue
+		drivers_accelerometer
+		drivers_gyroscope
 	)

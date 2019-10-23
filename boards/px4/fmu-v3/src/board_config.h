@@ -494,15 +494,6 @@ __BEGIN_DECLS
 
 extern void stm32_spiinitialize(void);
 
-/************************************************************************************
- * Name: stm32_spi_bus_initialize
- *
- * Description:
- *   Called to configure SPI Buses.
- *
- ************************************************************************************/
-
-extern int stm32_spi_bus_initialize(void);
 
 /****************************************************************************************************
  * Name: board_spi_reset board_peripheral_reset

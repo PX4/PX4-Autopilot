@@ -37,5 +37,7 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		fxas21002c.cpp
+		FXAS21002C.cpp
+		FXAS21002C.hpp
+		fxas21002c_main.cpp
 	)

@@ -45,9 +45,9 @@ void Takeoff::generateInitialRampValue(const float hover_thrust, float velocity_
 }
 
 void Takeoff::updateTakeoffState(const bool armed, const bool landed, const bool want_takeoff,
-				 const float takeoff_desired_vz, const bool skip_takeoff)
+				 const float takeoff_desired_vz, const bool skip_takeoff, const hrt_abstime &now_us)
 {
-	_spoolup_time_hysteresis.set_state_and_update(armed);
+	_spoolup_time_hysteresis.set_state_and_update(armed, now_us);
 
 	switch (_takeoff_state) {
 	case TakeoffState::disarmed:

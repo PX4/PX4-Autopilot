@@ -290,6 +290,8 @@
 #define HRT_PPM_CHANNEL              3  /* use capture/compare channel 3 */
 #define GPIO_PPM_IN                  (GPIO_ALT|GPIO_AF2|GPIO_PULLUP|GPIO_PORTB|GPIO_PIN0)
 
+/* RC Serial port */
+
 #define RC_SERIAL_PORT               "/dev/ttyS4"
 
 /* PWM input driver. Use FMU AUX5 pins attached to timer4 channel 2. */
@@ -304,7 +306,7 @@
 
 /* For R12, this signal is active high. */
 #define GPIO_SBUS_INV                (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTC|GPIO_PIN13)
-#define BOARD_INVERT_RC_INPUT(_invert_true, _na) px4_arch_gpiowrite(GPIO_SBUS_INV, _invert_true)
+#define RC_INVERT_INPUT(_invert_true) px4_arch_gpiowrite(GPIO_SBUS_INV, _invert_true)
 
 #define GPIO_SPEKTRUM_PWR_EN         (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTE|GPIO_PIN4)
 

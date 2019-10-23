@@ -4,6 +4,7 @@
 
 #include "px4_tasks.h"	// px4_main_t
 #include <map>
+#include <string>
 
 // Maps an app name to it's function.
 typedef std::map<std::string, px4_main_t> apps_map_type;

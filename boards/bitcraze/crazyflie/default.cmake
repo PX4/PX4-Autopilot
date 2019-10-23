@@ -12,7 +12,7 @@ px4_add_board(
 		distance_sensor/vl53lxx
 		gps
 		imu/mpu9250
-		pmw3901
+		optical_flow/pmw3901
 		px4fmu
 		stm32
 
@@ -25,8 +25,7 @@ px4_add_board(
 		events
 		#fw_att_control
 		#fw_pos_control_l1
-		#gnd_att_control
-		#gnd_pos_control
+		#rover_pos_control
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -39,7 +38,7 @@ px4_add_board(
 		sensors
 		sih
 		#vtol_att_control
-		wind_estimator
+		airspeed_selector
 
 	SYSTEMCMDS
 		bl_update
@@ -47,6 +46,7 @@ px4_add_board(
 		dumpfile
 		esc_calib
 		hardfault_log
+		i2cdetect
 		led_control
 		mixer
 		motor_ramp

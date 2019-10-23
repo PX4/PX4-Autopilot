@@ -41,13 +41,9 @@ constexpr uint8_t MPU6000::_checked_registers[MPU6000_NUM_CHECKED_REGISTERS];
 
 MPU6000::MPU6000(device::Device *interface, const char *path, enum Rotation rotation, int device_type) :
 	CDev(path),
+	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_device_type(device_type),
-#if defined(USE_I2C)
-	_use_hrt(false),
-#else
-	_use_hrt(true),
-#endif
 	_px4_accel(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),
 	_px4_gyro(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),
 	_sample_perf(perf_alloc(PC_ELAPSED, "mpu6k_read")),
@@ -98,11 +94,6 @@ MPU6000::~MPU6000()
 int
 MPU6000::init()
 {
-
-#if defined(USE_I2C)
-	use_i2c(_interface->get_device_bus_type() == Device::DeviceBusType_I2C);
-#endif
-
 	/* probe again to get our settings that are based on the device type */
 	int ret = probe();
 
@@ -153,7 +144,8 @@ int MPU6000::reset()
 		up_udelay(1000);
 
 		// Enable I2C bus or Disable I2C bus (recommended on data sheet)
-		write_checked_reg(MPUREG_USER_CTRL, is_i2c() ? 0 : BIT_I2C_IF_DIS);
+		const bool is_i2c = (_interface->get_device_bus_type() == device::Device::DeviceBusType_I2C);
+		write_checked_reg(MPUREG_USER_CTRL, is_i2c ? 0 : BIT_I2C_IF_DIS);
 
 		px4_leave_critical_section(state);
 
@@ -654,79 +646,23 @@ MPU6000::start()
 	stop();
 	_call_interval = last_call_interval;
 
-	if (!is_i2c()) {
-
-		_call.period = _call_interval - MPU6000_TIMER_REDUCTION;
-
-		/* start polling at the specified rate */
-		hrt_call_every(&_call,
-			       1000,
-			       _call_interval - MPU6000_TIMER_REDUCTION,
-			       (hrt_callout)&MPU6000::measure_trampoline, this);
-
-	} else {
-#ifdef USE_I2C
-		/* schedule a cycle to start things */
-		work_queue(HPWORK, &_work, (worker_t)&MPU6000::cycle_trampoline, this, 1);
-#endif
-	}
+	ScheduleOnInterval(_call_interval - MPU6000_TIMER_REDUCTION, 1000);
 }
 
 void
 MPU6000::stop()
 {
-	if (!is_i2c()) {
-		hrt_cancel(&_call);
-
-	} else {
-#ifdef USE_I2C
-		_call_interval = 0;
-		work_cancel(HPWORK, &_work);
-#endif
-	}
+	ScheduleClear();
 
 	/* reset internal states */
 	memset(_last_accel, 0, sizeof(_last_accel));
 }
 
-#if defined(USE_I2C)
 void
-MPU6000::cycle_trampoline(void *arg)
+MPU6000::Run()
 {
-	MPU6000 *dev = (MPU6000 *)arg;
-
-	dev->cycle();
-}
-
-void
-MPU6000::cycle()
-{
-	int ret = measure();
-
-	if (ret != OK) {
-		/* issue a reset command to the sensor */
-		reset();
-		start();
-		return;
-	}
-
-	if (_call_interval != 0) {
-		work_queue(HPWORK,
-			   &_work,
-			   (worker_t)&MPU6000::cycle_trampoline,
-			   this,
-			   USEC2TICK(_call_interval - MPU6000_TIMER_REDUCTION));
-	}
-}
-#endif
-
-void
-MPU6000::measure_trampoline(void *arg)
-{
-	MPU6000 *dev = reinterpret_cast<MPU6000 *>(arg);
-
 	/* make another measurement */
-	dev->measure();
+	measure();
 }
 
 void

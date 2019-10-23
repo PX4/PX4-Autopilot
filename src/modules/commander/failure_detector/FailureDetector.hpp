@@ -46,6 +46,7 @@
 #include <matrix/matrix/math.hpp>
 #include <mathlib/mathlib.h>
 #include <px4_module_params.h>
+#include <hysteresis/hysteresis.h>
 
 // subscriptions
 #include <uORB/Subscription.hpp>
@@ -60,7 +61,7 @@ typedef enum {
 	FAILURE_ALT = vehicle_status_s::FAILURE_ALT,
 } failure_detector_bitmak;
 
-using uORB::Subscription;
+using uORB::SubscriptionData;
 
 class FailureDetector : public ModuleParams
 {
@@ -69,20 +70,26 @@ public:
 
 	bool update();
 
-	uint8_t get_status() const {return _status;}
+	uint8_t getStatus() const { return _status; }
+	bool isFailure() const { return _status != FAILURE_NONE; }
 
 private:
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::FD_FAIL_P>) _param_fd_fail_p,
-		(ParamInt<px4::params::FD_FAIL_R>) _param_fd_fail_r
+		(ParamInt<px4::params::FD_FAIL_R>) _param_fd_fail_r,
+		(ParamFloat<px4::params::FD_FAIL_R_TTRI>) _param_fd_fail_r_ttri,
+		(ParamFloat<px4::params::FD_FAIL_P_TTRI>) _param_fd_fail_p_ttri
 	)
 
 	// Subscriptions
-	Subscription<vehicle_attitude_s> _sub_vehicle_attitude_setpoint;
-	Subscription<vehicle_attitude_s> _sub_vehicule_attitude;
+	SubscriptionData<vehicle_attitude_s> _sub_vehicle_attitude_setpoint;
+	SubscriptionData<vehicle_attitude_s> _sub_vehicule_attitude;
 
 	uint8_t _status{FAILURE_NONE};
 
-	bool update_attitude_status();
+	systemlib::Hysteresis _roll_failure_hysteresis{false};
+	systemlib::Hysteresis _pitch_failure_hysteresis{false};
+
+	bool updateAttitudeStatus();
 };

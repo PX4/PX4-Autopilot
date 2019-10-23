@@ -93,7 +93,6 @@ const struct {
 	{"float",		test_float,		0},
 	{"hott_telemetry",	test_hott_telemetry,	OPT_NOJIGTEST | OPT_NOALLTEST},
 	{"hrt",			test_hrt,		OPT_NOJIGTEST | OPT_NOALLTEST},
-	{"hysteresis",		test_hysteresis,	0},
 	{"int",			test_int,		0},
 	{"IntrusiveQueue",	test_IntrusiveQueue,	0},
 	{"jig_voltages",	test_jig_voltages,	OPT_NOALLTEST},

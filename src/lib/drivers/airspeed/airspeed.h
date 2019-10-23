@@ -39,15 +39,15 @@
 #include <drivers/drv_hrt.h>
 #include <px4_config.h>
 #include <px4_defines.h>
-#include <px4_workqueue.h>
 #include <perf/perf_counter.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/uORB.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 /* Default I2C bus */
 static constexpr uint8_t PX4_I2C_BUS_DEFAULT = PX4_I2C_BUS_EXPANSION;
 
-class __EXPORT Airspeed : public device::I2C
+class __EXPORT Airspeed : public device::I2C, public px4::ScheduledWorkItem
 {
 public:
 	Airspeed(int bus, int address, unsigned conversion_interval, const char *path);
@@ -69,13 +69,12 @@ protected:
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
 	*/
-	virtual void	cycle() = 0;
+	virtual void	Run() = 0;
 	virtual int	measure() = 0;
 	virtual int	collect() = 0;
 
-	work_s			_work;
 	bool			_sensor_ok;
-	int				_measure_ticks;
+	int				_measure_interval;
 	bool			_collect_phase;
 	float			_diff_pres_offset;
 
@@ -101,14 +100,6 @@ protected:
 	* Stop the automatic measurement state machine.
 	*/
 	void	stop();
-
-	/**
-	* Static trampoline from the workq context; because we don't have a
-	* generic workq wrapper yet.
-	*
-	* @param arg		Instance pointer for the driver that is polling.
-	*/
-	static void	cycle_trampoline(void *arg);
 
 	/**
 	* add a new report to the reports queue

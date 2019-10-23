@@ -104,7 +104,7 @@ class MavrosOffboardAttctlTest(MavrosTestCommon):
         # boundary to cross
         boundary_x = 200
         boundary_y = 100
-        boundary_z = 50
+        boundary_z = 20
 
         # make sure the simulation is ready to start the mission
         self.wait_for_topics(60)

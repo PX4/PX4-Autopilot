@@ -37,4 +37,6 @@ px4_add_module(
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		ina226.cpp
+	DEPENDS
+		px4_work_queue
 	)

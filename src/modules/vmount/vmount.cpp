@@ -153,34 +153,6 @@ static bool get_params(ParameterHandles &param_handles, Parameters &params);
 static int vmount_thread_main(int argc, char *argv[]);
 extern "C" __EXPORT int vmount_main(int argc, char *argv[]);
 
-static void usage()
-{
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Mount (Gimbal) control driver. It maps several different input methods (eg. RC or MAVLink) to a configured
-output (eg. AUX channels or MAVLink).
-
-Documentation how to use it is on the [gimbal_control](https://dev.px4.io/en/advanced/gimbal_control.html) page.
-
-### Implementation
-Each method is implemented in its own class, and there is a common base class for inputs and outputs.
-They are connected via an API, defined by the `ControlData` data structure. This makes sure that each input method
-can be used with each output method and new inputs/outputs can be added with minimal effort.
-
-### Examples
-Test the output by setting a fixed yaw angle (and the other axes to 0):
-$ vmount stop
-$ vmount test yaw 30
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("vmount", "driver");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test the output: set a fixed angle for one axis (vmount must not be running)");
-	PRINT_MODULE_USAGE_ARG("roll|pitch|yaw <angle>", "Specify an axis and an angle in degrees", false);
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-}
-
 static int vmount_thread_main(int argc, char *argv[])
 {
 	ParameterHandles param_handles;
@@ -283,13 +255,15 @@ static int vmount_thread_main(int argc, char *argv[])
 					// RC is on purpose last here so that if there are any mavlink
 					// messages, they will take precedence over RC.
 					// This logic is done further below while update() is called.
-					thread_data.input_objs[2] = new InputRC(params.mnt_do_stab, params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
+					thread_data.input_objs[2] = new InputRC(params.mnt_do_stab, params.mnt_man_roll, params.mnt_man_pitch,
+										params.mnt_man_yaw);
 					thread_data.input_objs_len = 3;
 
 					break;
 
 				case 1: //RC
-					thread_data.input_objs[0] = new InputRC(params.mnt_do_stab, params.mnt_man_roll, params.mnt_man_pitch, params.mnt_man_yaw);
+					thread_data.input_objs[0] = new InputRC(params.mnt_do_stab, params.mnt_man_roll, params.mnt_man_pitch,
+										params.mnt_man_yaw);
 					break;
 
 				case 2: //MAVLINK_ROI
@@ -592,17 +566,45 @@ bool get_params(ParameterHandles &param_handles, Parameters &params)
 	    param_handles.mnt_man_pitch == PARAM_INVALID ||
 	    param_handles.mnt_man_roll == PARAM_INVALID ||
 	    param_handles.mnt_man_yaw == PARAM_INVALID ||
-		param_handles.mnt_do_stab == PARAM_INVALID ||
-		param_handles.mnt_range_pitch == PARAM_INVALID ||
-		param_handles.mnt_range_roll == PARAM_INVALID ||
-		param_handles.mnt_range_yaw == PARAM_INVALID ||
-		param_handles.mnt_off_pitch == PARAM_INVALID ||
-		param_handles.mnt_off_roll == PARAM_INVALID ||
-		param_handles.mnt_off_yaw == PARAM_INVALID) {
+	    param_handles.mnt_do_stab == PARAM_INVALID ||
+	    param_handles.mnt_range_pitch == PARAM_INVALID ||
+	    param_handles.mnt_range_roll == PARAM_INVALID ||
+	    param_handles.mnt_range_yaw == PARAM_INVALID ||
+	    param_handles.mnt_off_pitch == PARAM_INVALID ||
+	    param_handles.mnt_off_roll == PARAM_INVALID ||
+	    param_handles.mnt_off_yaw == PARAM_INVALID) {
 		return false;
 	}
 
 	bool dummy;
 	update_params(param_handles, params, dummy);
 	return true;
+}
+
+static void usage()
+{
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Mount (Gimbal) control driver. It maps several different input methods (eg. RC or MAVLink) to a configured
+output (eg. AUX channels or MAVLink).
+
+Documentation how to use it is on the [gimbal_control](https://dev.px4.io/en/advanced/gimbal_control.html) page.
+
+### Implementation
+Each method is implemented in its own class, and there is a common base class for inputs and outputs.
+They are connected via an API, defined by the `ControlData` data structure. This makes sure that each input method
+can be used with each output method and new inputs/outputs can be added with minimal effort.
+
+### Examples
+Test the output by setting a fixed yaw angle (and the other axes to 0):
+$ vmount stop
+$ vmount test yaw 30
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("vmount", "driver");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Test the output: set a fixed angle for one axis (vmount must not be running)");
+	PRINT_MODULE_USAGE_ARG("roll|pitch|yaw <angle>", "Specify an axis and an angle in degrees", false);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 }

@@ -48,7 +48,7 @@ public:
 	FlightTaskManualAltitude() = default;
 	virtual ~FlightTaskManualAltitude() = default;
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
-	bool activate() override;
+	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
 	bool updateInitialize() override;
 	bool update() override;
 
@@ -110,7 +110,7 @@ private:
 	 */
 	void _respectGroundSlowdown();
 
-	uORB::Subscription<home_position_s> *_sub_home_position{nullptr};
+	uORB::SubscriptionPollable<home_position_s> *_sub_home_position{nullptr};
 
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
 	float _max_speed_up = 10.0f;

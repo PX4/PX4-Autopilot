@@ -44,7 +44,7 @@
  *
  * @reboot_required true
  * @min 0
- * @max 99999
+ * @max 9999999
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_AUTOSTART, 0);
@@ -102,15 +102,16 @@ PARAM_DEFINE_INT32(SYS_RESTART_TYPE, 2);
  *
  * @value 1 local_position_estimator, attitude_estimator_q (unsupported)
  * @value 2 ekf2 (recommended)
+ * @value 3 Q attitude estimator (no position)
  *
- * @min 1
- * @max 2
  * @reboot_required true
  * @group System
  */
 PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 2);
 
 /**
+<<<<<<< HEAD
+=======
  * TELEM2 as companion computer link (deprecated)
  *
  * This parameter is deprecated and will be removed after 1.9.0. Use the generic serial
@@ -144,6 +145,7 @@ PARAM_DEFINE_INT32(SYS_MC_EST_GROUP, 2);
 PARAM_DEFINE_INT32(SYS_COMPANION, 3115200);
 
 /**
+>>>>>>> DGXY
  * Parameter version
  *
  * This is used internally only: an airframe configuration might set an expected

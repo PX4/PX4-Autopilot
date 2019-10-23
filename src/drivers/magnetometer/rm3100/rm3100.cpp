@@ -43,8 +43,8 @@
 
 RM3100::RM3100(device::Device *interface, const char *path, enum Rotation rotation) :
 	CDev("RM3100", path),
+	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
-	_work{},
 	_reports(nullptr),
 	_scale{},
 	_last_report{},
@@ -57,7 +57,7 @@ RM3100::RM3100(device::Device *interface, const char *path, enum Rotation rotati
 	_continuous_mode_set(false),
 	_mode(SINGLE),
 	_rotation(rotation),
-	_measure_ticks(0),
+	_measure_interval(0),
 	_class_instance(-1),
 	_orb_class_instance(-1),
 	_range_scale(1.0f / (RM3100_SENSITIVITY * UTESLA_TO_GAUSS)),
@@ -69,9 +69,6 @@ RM3100::RM3100(device::Device *interface, const char *path, enum Rotation rotati
 	_device_id.devid_s.address = _interface->get_device_address();
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_RM3100;
 
-	// enable debug() calls
-	_debug_enabled = false;
-
 	// default scaling
 	_scale.x_offset = 0;
 	_scale.x_scale = 1.0f;
@@ -79,9 +76,6 @@ RM3100::RM3100(device::Device *interface, const char *path, enum Rotation rotati
 	_scale.y_scale = 1.0f;
 	_scale.z_offset = 0;
 	_scale.z_scale = 1.0f;
-
-	// work_cancel in the dtor will explode if we don't do this...
-	memset(&_work, 0, sizeof(_work));
 }
 
 RM3100::~RM3100()
@@ -293,10 +287,10 @@ RM3100::convert_signed(int32_t *n)
 }
 
 void
-RM3100::cycle()
+RM3100::Run()
 {
-	/* _measure_ticks == 0  is used as _task_should_exit */
-	if (_measure_ticks == 0) {
+	/* _measure_interval == 0  is used as _task_should_exit */
+	if (_measure_interval == 0) {
 		return;
 	}
 
@@ -313,22 +307,10 @@ RM3100::cycle()
 		DEVICE_DEBUG("measure error");
 	}
 
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 		/* schedule a fresh cycle call when the measurement is done */
-		work_queue(HPWORK,
-			   &_work,
-			   (worker_t)&RM3100::cycle_trampoline,
-			   this,
-			   _measure_ticks);
+		ScheduleDelayed(_measure_interval);
 	}
-}
-
-void
-RM3100::cycle_trampoline(void *arg)
-{
-	RM3100 *dev = (RM3100 *)arg;
-
-	dev->cycle();
 }
 
 int
@@ -379,10 +361,10 @@ RM3100::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
-					bool not_started = (_measure_ticks == 0);
+					bool not_started = (_measure_interval == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(RM3100_CONVERSION_INTERVAL);
+					_measure_interval = (RM3100_CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
 					if (not_started) {
@@ -395,18 +377,18 @@ RM3100::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
 			/* Uses arg (hz) for a custom poll rate */
 			default: {
 					/* do we need to start internal polling? */
-					bool not_started = (_measure_ticks == 0);
+					bool not_started = (_measure_interval == 0);
 
 					/* convert hz to tick interval via microseconds */
-					unsigned ticks = USEC2TICK(1000000 / arg);
+					unsigned interval = (1000000 / arg);
 
 					/* check against maximum rate */
-					if (ticks < USEC2TICK(RM3100_CONVERSION_INTERVAL)) {
+					if (interval < RM3100_CONVERSION_INTERVAL) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					_measure_ticks = ticks;
+					_measure_interval = interval;
 
 					/* if we need to start the poll state machine, do it */
 					if (not_started) {
@@ -496,7 +478,7 @@ RM3100::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	PX4_INFO("poll interval:  %u ticks", _measure_ticks);
+	PX4_INFO("poll interval:  %u", _measure_interval);
 	print_message(_last_report);
 	_reports->print_info("report queue");
 }
@@ -528,7 +510,7 @@ RM3100::read(struct file *file_pointer, char *buffer, size_t buffer_len)
 	}
 
 	/* if automatic measurement is enabled */
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
 		 * Note that we may be pre-empted by the workq thread while we are doing this;
@@ -609,18 +591,18 @@ RM3100::start()
 	_reports->flush();
 
 	set_default_register_values();
-	_measure_ticks = USEC2TICK(RM3100_CONVERSION_INTERVAL);
+	_measure_interval = (RM3100_CONVERSION_INTERVAL);
 
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&RM3100::cycle_trampoline, this, 1);
+	ScheduleNow();
 }
 
 void
 RM3100::stop()
 {
-	if (_measure_ticks > 0) {
+	if (_measure_interval > 0) {
 		/* ensure no new items are queued while we cancel this one */
-		_measure_ticks = 0;
-		work_cancel(HPWORK, &_work);
+		_measure_interval = 0;
+		ScheduleClear();
 	}
 }

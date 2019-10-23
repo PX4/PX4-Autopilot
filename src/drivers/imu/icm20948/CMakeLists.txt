@@ -39,10 +39,8 @@ px4_add_module(
 		icm20948.cpp
 		icm20948_i2c.cpp
 		icm20948_spi.cpp
-		main.cpp
-		accel.cpp
-		gyro.cpp
-		mag.cpp
+		icm20948_main.cpp
+		ICM20948_mag.cpp
 		mag_i2c.cpp
 	DEPENDS
 	)

@@ -31,12 +31,14 @@
  *
  ****************************************************************************/
 
+#pragma once
+
 #include <drivers/drv_mag.h>
 #include <drivers/drv_hrt.h>
 #include <lib/cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
 #include <uORB/uORB.h>
-#include <uORB/Publication.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_mag.h>
 
 class PX4Magnetometer : public cdev::CDev
@@ -53,6 +55,7 @@ public:
 	void set_scale(float scale) { _sensor_mag_pub.get().scaling = scale; }
 	void set_temperature(float temperature) { _sensor_mag_pub.get().temperature = temperature; }
 	void set_external(bool external) { _sensor_mag_pub.get().is_external = external; }
+	void set_sensitivity(float x, float y, float z) { _sensitivity = matrix::Vector3f{x, y, z}; }
 
 	void update(hrt_abstime timestamp, int16_t x, int16_t y, int16_t z);
 
@@ -60,12 +63,14 @@ public:
 
 private:
 
-	uORB::Publication<sensor_mag_s>	_sensor_mag_pub;
+	uORB::PublicationMultiData<sensor_mag_s>	_sensor_mag_pub;
 
 	const enum Rotation	_rotation;
 
 	matrix::Vector3f	_calibration_scale{1.0f, 1.0f, 1.0f};
 	matrix::Vector3f	_calibration_offset{0.0f, 0.0f, 0.0f};
+
+	matrix::Vector3f	_sensitivity{1.0f, 1.0f, 1.0f};
 
 	int			_class_device_instance{-1};
 

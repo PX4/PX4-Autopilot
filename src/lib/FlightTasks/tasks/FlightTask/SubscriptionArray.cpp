@@ -53,14 +53,14 @@ void SubscriptionArray::cleanup()
 bool SubscriptionArray::resizeSubscriptions()
 {
 	const int new_size = _subscriptions_size == 0 ? 4 : _subscriptions_size * 2;
-	uORB::SubscriptionNode **new_array = new uORB::SubscriptionNode*[new_size];
+	uORB::SubscriptionPollableNode **new_array = new uORB::SubscriptionPollableNode*[new_size];
 
 	if (!new_array) {
 		return false;
 	}
 
 	if (_subscriptions) {
-		memcpy(new_array, _subscriptions, sizeof(uORB::SubscriptionNode *)*_subscriptions_count);
+		memcpy(new_array, _subscriptions, sizeof(uORB::SubscriptionPollableNode *)*_subscriptions_count);
 		delete[] _subscriptions;
 	}
 

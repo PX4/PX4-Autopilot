@@ -62,6 +62,7 @@ px4_add_module(
 		failure_detector
 		git_ecl
 		ecl_geo
+		hysteresis
 	)
 
 if(PX4_TESTING)

@@ -10,4 +10,4 @@ target_include_directories(lockstep_scheduler
 	${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-px4_add_gtest(SRC test/src/lockstep_scheduler_test.cpp LINKLIBS lockstep_scheduler)
+px4_add_unit_gtest(SRC test/src/lockstep_scheduler_test.cpp LINKLIBS lockstep_scheduler)

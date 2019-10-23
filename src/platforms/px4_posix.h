@@ -83,6 +83,12 @@ typedef struct pollfd px4_pollfd_struct_t;
 
 #define	 PX4_STACK_OVERHEAD	8192
 
+/**
+ * Terminates the calling process immediately.
+ * @return 0 on success, 1 on error
+ */
+#define px4_exit(status) ({return status;})
+
 __BEGIN_DECLS
 
 typedef short pollevent_t;

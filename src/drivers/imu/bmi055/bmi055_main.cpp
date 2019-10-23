@@ -34,9 +34,6 @@
 #include "BMI055_accel.hpp"
 #include "BMI055_gyro.hpp"
 
-#include <px4_config.h>
-#include <px4_getopt.h>
-
 /** driver 'main' command */
 extern "C" { __EXPORT int bmi055_main(int argc, char *argv[]); }
 
@@ -56,8 +53,6 @@ BMI055_gyro     *g_gyr_dev_ext; // on external bus (gyro)
 
 void    start(bool, enum Rotation, enum sensor_type);
 void    stop(bool, enum sensor_type);
-void    test(bool, enum sensor_type);
-void    reset(bool, enum sensor_type);
 void    info(bool, enum sensor_type);
 void    regdump(bool, enum sensor_type);
 void    testerror(bool, enum sensor_type);
@@ -72,10 +67,9 @@ void    usage();
 void
 start(bool external_bus, enum Rotation rotation, enum sensor_type sensor)
 {
-
-	int fd_acc, fd_gyr;
 	BMI055_accel **g_dev_acc_ptr = external_bus ? &g_acc_dev_ext : &g_acc_dev_int;
 	const char *path_accel = external_bus ? BMI055_DEVICE_PATH_ACCEL_EXT : BMI055_DEVICE_PATH_ACCEL;
+
 	BMI055_gyro **g_dev_gyr_ptr = external_bus ? &g_gyr_dev_ext : &g_gyr_dev_int;
 	const char *path_gyro  = external_bus ? BMI055_DEVICE_PATH_GYRO_EXT : BMI055_DEVICE_PATH_GYRO;
 
@@ -106,18 +100,8 @@ start(bool external_bus, enum Rotation rotation, enum sensor_type sensor)
 			goto fail_accel;
 		}
 
-		/* set the poll rate to default, starts automatic data collection */
-		fd_acc = open(path_accel, O_RDONLY);
-
-		if (fd_acc < 0) {
-			goto fail_accel;
-		}
-
-		if (ioctl(fd_acc, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-			goto fail_accel;
-		}
-
-		close(fd_acc);
+		// start automatic data collection
+		(*g_dev_acc_ptr)->start();
 	}
 
 	if (sensor == BMI055_GYRO) {
@@ -146,18 +130,8 @@ start(bool external_bus, enum Rotation rotation, enum sensor_type sensor)
 			goto fail_gyro;
 		}
 
-		/* set the poll rate to default, starts automatic data collection */
-		fd_gyr = open(path_gyro, O_RDONLY);
-
-		if (fd_gyr < 0) {
-			goto fail_gyro;
-		}
-
-		if (ioctl(fd_gyr, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-			goto fail_gyro;
-		}
-
-		close(fd_gyr);
+		// start automatic data collection
+		(*g_dev_gyr_ptr)->start();
 	}
 
 	exit(PX4_OK);
@@ -213,131 +187,6 @@ stop(bool external_bus, enum sensor_type sensor)
 
 	exit(0);
 
-}
-
-/**
- * Perform some basic functional tests on the driver;
- * make sure we can collect data from the sensor in polled
- * and automatic modes.
- */
-void
-test(bool external_bus, enum sensor_type sensor)
-{
-	const char *path_accel = external_bus ? BMI055_DEVICE_PATH_ACCEL_EXT : BMI055_DEVICE_PATH_ACCEL;
-	const char *path_gyro  = external_bus ? BMI055_DEVICE_PATH_GYRO_EXT : BMI055_DEVICE_PATH_GYRO;
-	sensor_accel_s a_report{};
-	sensor_gyro_s g_report{};
-	ssize_t sz;
-
-	if (sensor == BMI055_ACCEL) {
-		/* get the accel driver */
-		int fd_acc = open(path_accel, O_RDONLY);
-
-		if (fd_acc < 0) {
-			err(1, "%s Accel file open failed (try 'bmi055 -A start')",
-			    path_accel);
-		}
-
-		/* do a simple demand read */
-		sz = read(fd_acc, &a_report, sizeof(a_report));
-
-		if (sz != sizeof(a_report)) {
-			warnx("ret: %d, expected: %d", sz, sizeof(a_report));
-			err(1, "immediate accel read failed");
-		}
-
-		print_message(a_report);
-
-		/* reset to default polling */
-		if (ioctl(fd_acc, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-			err(1, "accel reset to default polling");
-		}
-
-		close(fd_acc);
-	}
-
-	if (sensor == BMI055_GYRO) {
-
-		/* get the gyro driver */
-		int fd_gyr = open(path_gyro, O_RDONLY);
-
-		if (fd_gyr < 0) {
-			err(1, "%s Gyro file open failed (try 'bmi055 -G start')", path_gyro);
-		}
-
-		/* do a simple demand read */
-		sz = read(fd_gyr, &g_report, sizeof(g_report));
-
-		if (sz != sizeof(g_report)) {
-			warnx("ret: %d, expected: %d", sz, sizeof(g_report));
-			err(1, "immediate gyro read failed");
-		}
-
-		print_message(g_report);
-
-		/* reset to default polling */
-		if (ioctl(fd_gyr, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-			err(1, "gyro reset to default polling");
-		}
-
-		close(fd_gyr);
-	}
-
-	if ((sensor == BMI055_ACCEL) || (sensor == BMI055_GYRO)) {
-		/* XXX add poll-rate tests here too */
-		reset(external_bus, sensor);
-	}
-
-	errx(0, "PASS");
-}
-
-/**
- * Reset the driver.
- */
-void
-reset(bool external_bus, enum sensor_type sensor)
-{
-	const char *path_accel = external_bus ? BMI055_DEVICE_PATH_ACCEL_EXT : BMI055_DEVICE_PATH_ACCEL;
-	const char *path_gyro = external_bus ? BMI055_DEVICE_PATH_GYRO_EXT : BMI055_DEVICE_PATH_GYRO;
-
-	if (sensor == BMI055_ACCEL) {
-		int fd_acc = open(path_accel, O_RDONLY);
-
-		if (fd_acc < 0) {
-			err(1, "Opening accel file failed ");
-		}
-
-		if (ioctl(fd_acc, SENSORIOCRESET, 0) < 0) {
-			err(1, "accel driver reset failed");
-		}
-
-
-		if (ioctl(fd_acc, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-			err(1, "accel driver poll restart failed");
-		}
-
-		close(fd_acc);
-	}
-
-	if (sensor == BMI055_GYRO) {
-		int fd_gyr = open(path_gyro, O_RDONLY);
-
-		if (fd_gyr < 0) {
-			err(1, "Opening gyro file failed ");
-		}
-
-		if (ioctl(fd_gyr, SENSORIOCRESET, 0) < 0) {
-			err(1, "gyro driver reset failed");
-		}
-
-		if (ioctl(fd_gyr, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-			err(1, "gyro driver poll restart failed");
-		}
-
-		close(fd_gyr);
-	}
-
-	exit(0);
 }
 
 /**
@@ -431,7 +280,7 @@ testerror(bool external_bus, enum sensor_type sensor)
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'stop',\n'reset', 'regdump', 'testerror'");
+	warnx("missing command: try 'start', 'info', 'stop', 'regdump', 'testerror'");
 	warnx("options:");
 	warnx("    -X    (external bus)");
 	warnx("    -R    rotation");
@@ -446,8 +295,6 @@ BMI055::BMI055(const char *name, const char *devname, int bus, uint32_t device, 
 	       uint32_t frequency, enum Rotation rotation):
 	SPI(name, devname, bus, device, mode, frequency),
 	_whoami(0),
-	_call{},
-	_call_interval(0),
 	_register_wait(0),
 	_reset_wait(0),
 	_rotation(rotation),
@@ -540,20 +387,6 @@ bmi055_main(int argc, char *argv[])
 	 */
 	if (!strcmp(verb, "stop")) {
 		bmi055::stop(external_bus, sensor);
-	}
-
-	/*
-	 * Test the driver/device.
-	 */
-	if (!strcmp(verb, "test")) {
-		bmi055::test(external_bus, sensor);
-	}
-
-	/*
-	 * Reset the driver.
-	 */
-	if (!strcmp(verb, "reset")) {
-		bmi055::reset(external_bus, sensor);
 	}
 
 	/*

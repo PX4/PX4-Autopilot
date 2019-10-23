@@ -40,6 +40,8 @@
 #include <px4_module.h>
 #include <px4_getopt.h>
 
+#include <poll.h>
+
 #include "topic_listener.hpp"
 #include "topic_listener_generated.hpp"
 
@@ -63,13 +65,38 @@ void listener(listener_print_topic_cb cb, const orb_id_t &id, unsigned num_msgs,
 	hrt_abstime start_time = hrt_absolute_time();
 
 	while (i < num_msgs) {
+
+		// check for user input to quit
+		int user_input_timeout = 1;
+
 		orb_check(sub, &updated);
 
 		if (i == 0) {
 			updated = true;
+			user_input_timeout = 0;	// don't wait
+		}
 
-		} else {
-			px4_usleep(500);
+		// check for user input
+		struct pollfd fds {};
+		fds.fd = 0; /* stdin */
+		fds.events = POLLIN;
+
+		if (poll(&fds, 1, 0) > 0) {
+
+			char c = 0;
+			int ret = read(0, &c, user_input_timeout);
+
+			if (ret) {
+				return;
+			}
+
+			switch (c) {
+			case 0x03: // ctrl-c
+			case 0x1b: // esc
+			case 'q':
+				return;
+				/* not reached */
+			}
 		}
 
 		if (updated) {
@@ -136,7 +163,7 @@ int listener_main(int argc, char *argv[])
 
 	if (num_msgs == 0) {
 		if (topic_rate != 0) {
-			num_msgs = 10 * topic_rate; // arbitrary limit (10 seconds at max rate)
+			num_msgs = 30 * topic_rate; // arbitrary limit (30 seconds at max rate)
 
 		} else {
 			num_msgs = 1;
@@ -155,6 +182,8 @@ usage()
 	PRINT_MODULE_DESCRIPTION(
 		R"DESCR_STR(
 Utility to listen on uORB topics and print the data to the console.
+
+The listener can be exited any time by pressing Ctrl+C, Esc, or Q.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("listener", "command");

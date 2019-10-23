@@ -37,8 +37,8 @@ if ((${PX4_PLATFORM} MATCHES "nuttx") AND NOT ${PX4_BOARD} MATCHES "io")
 	add_library(drivers_boards_common
 		board_crashdump.c
 		board_dma_alloc.c
+		board_fat_dma_alloc.c
 		board_gpio_init.c
-		board_dcache_control.c
 		)
 
 	if (${CONFIG_ARCH_CHIP} MATCHES "kinetis")

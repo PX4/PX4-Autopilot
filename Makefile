@@ -247,7 +247,11 @@ px4fmu_firmware: \
 	check_px4_fmu-v4_default \
 	check_px4_fmu-v4pro_default \
 	check_px4_fmu-v5_default \
+<<<<<<< HEAD
+	check_px4_fmu-v5x_default \
+=======
 	check_px4_fmu_v5pro_default \
+>>>>>>> DGXY
 	sizes
 
 misc_qgc_extra_firmware: \
@@ -344,9 +348,18 @@ format:
 .PHONY: rostest python_coverage
 
 tests:
+<<<<<<< HEAD
+	$(eval CMAKE_ARGS += -DCONFIG=px4_sitl_test)
+	$(eval CMAKE_ARGS += -DTESTFILTER=$(TESTFILTER))
+	$(eval ARGS += test_results)
+	$(eval ASAN_OPTIONS += color=always:check_initialization_order=1:detect_stack_use_after_return=1)
+	$(eval UBSAN_OPTIONS += color=always)
+	$(call cmake-build,px4_sitl_test)
+=======
 	@$(MAKE) --no-print-directory px4_sitl_test test_results \
 	ASAN_OPTIONS="color=always:check_initialization_order=1:detect_stack_use_after_return=1" \
 	UBSAN_OPTIONS="color=always"
+>>>>>>> DGXY
 
 tests_coverage:
 	@$(MAKE) clean
@@ -376,6 +389,7 @@ tests_offboard: rostest
 
 tests_avoidance: rostest
 	@"$(SRC_DIR)"/test/rostest_avoidance_run.sh mavros_posix_test_avoidance.test
+	@"$(SRC_DIR)"/test/rostest_avoidance_run.sh mavros_posix_test_safe_landing.test
 
 python_coverage:
 	@mkdir -p "$(SRC_DIR)"/build/python_coverage

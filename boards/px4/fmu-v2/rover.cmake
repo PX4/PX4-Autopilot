@@ -28,7 +28,7 @@ px4_add_board(
 		imu/mpu9250
 		lights/rgbled
 		magnetometer/hmc5883
-		px4flow
+		optical_flow/px4flow
 		px4fmu
 		px4io
 		stm32
@@ -42,8 +42,7 @@ px4_add_board(
 		dataman
 		ekf2
 		events
-		gnd_att_control
-		gnd_pos_control
+		rover_pos_control
 		land_detector
 		load_mon
 		logger
@@ -58,6 +57,7 @@ px4_add_board(
 		#dumpfile
 		#esc_calib
 		hardfault_log
+		i2cdetect
 		#led_control
 		mixer
 		#motor_ramp

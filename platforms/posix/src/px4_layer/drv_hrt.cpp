@@ -411,7 +411,7 @@ hrt_call_internal(struct hrt_call *entry, hrt_abstime deadline, hrt_abstime inte
 	// Use this to debug busy CPU that keeps rescheduling with 0 period time
 	/*if (interval < HRT_INTERVAL_MIN) {*/
 	/*PX4_ERR("hrt_call_internal interval too short: %" PRIu64, interval);*/
-	/*PX4_BACKTRACE();*/
+	/*abort();*/
 	/*}*/
 
 #endif

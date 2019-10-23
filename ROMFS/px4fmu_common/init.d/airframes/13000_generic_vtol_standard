@@ -26,10 +26,8 @@ then
 	param set PWM_RATE 400
 
 	param set VT_TYPE 2
-	param set VT_MOT_COUNT 4
-
-	# Indicate that FW roll direction was fixed in mixer, to be removed in v1.10
-	param set V19_VT_ROLLDIR 0
+	param set VT_MOT_ID 1234
+	param set VT_FW_MOT_OFFID 1234
 fi
 
 set MAV_TYPE 22

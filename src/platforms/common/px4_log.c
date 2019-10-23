@@ -42,9 +42,6 @@
 
 #include <px4_log.h>
 #if defined(__PX4_POSIX)
-#if !defined(__PX4_CYGWIN)
-#include <execinfo.h>
-#endif
 #include <px4_daemon/server_io.h>
 #endif
 
@@ -76,27 +73,6 @@ void px4_log_initialize(void)
 	if (!orb_log_message_pub) {
 		PX4_ERR("failed to advertise log_message");
 	}
-}
-
-void px4_backtrace()
-{
-#if defined(__PX4_POSIX) && !defined(__PX4_CYGWIN)
-	void *buffer[10];
-	char **callstack;
-	int bt_size;
-	int idx;
-
-	bt_size = backtrace(buffer, 10);
-	callstack = backtrace_symbols(buffer, bt_size);
-
-	PX4_INFO("Backtrace: %d", bt_size);
-
-	for (idx = 0; idx < bt_size; idx++) {
-		PX4_INFO("%s", callstack[idx]);
-	}
-
-	free(callstack);
-#endif
 }
 
 

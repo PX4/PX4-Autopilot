@@ -39,10 +39,10 @@
 #include <px4_config.h>
 
 #include <systemlib/mavlink_log.h>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_command_ack.h>
 
-static orb_advert_t handle_vehicle_command_pub;
 static orb_advert_t *mavlink_log_pub;
 static int command_ack_sub = -1;
 
@@ -78,17 +78,13 @@ static uint8_t (*arm_check_method[ARM_AUTH_METHOD_LAST])() = {
 
 static void arm_auth_request_msg_send()
 {
-	vehicle_command_s vcmd = {};
+	vehicle_command_s vcmd{};
 	vcmd.timestamp = hrt_absolute_time();
 	vcmd.command = vehicle_command_s::VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST;
 	vcmd.target_system = arm_parameters.authorizer_system_id;
 
-	if (handle_vehicle_command_pub == nullptr) {
-		handle_vehicle_command_pub = orb_advertise(ORB_ID(vehicle_command), &vcmd);
-
-	} else {
-		orb_publish(ORB_ID(vehicle_command), handle_vehicle_command_pub, &vcmd);
-	}
+	uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+	vcmd_pub.publish(vcmd);
 }
 
 static uint8_t _auth_method_arm_req_check()

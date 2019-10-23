@@ -51,7 +51,7 @@ using namespace matrix;
 Standard::Standard(VtolAttitudeControl *attc) :
 	VtolType(attc)
 {
-	_vtol_schedule.flight_mode = MC_MODE;
+	_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 	_vtol_schedule.transition_start = 0;
 	_pusher_active = false;
 
@@ -118,39 +118,39 @@ void Standard::update_vtol_state()
 	if (!_attc->is_fixed_wing_requested()) {
 
 		// the transition to fw mode switch is off
-		if (_vtol_schedule.flight_mode == MC_MODE) {
+		if (_vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
 			// in mc mode
-			_vtol_schedule.flight_mode = MC_MODE;
+			_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 			mc_weight = 1.0f;
 			_pusher_throttle = 0.0f;
 			_reverse_output = 0.0f;
 
-		} else if (_vtol_schedule.flight_mode == FW_MODE) {
+		} else if (_vtol_schedule.flight_mode == vtol_mode::FW_MODE) {
 			// transition to mc mode
 			if (_vtol_vehicle_status->vtol_transition_failsafe == true) {
 				// Failsafe event, engage mc motors immediately
-				_vtol_schedule.flight_mode = MC_MODE;
+				_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 				_pusher_throttle = 0.0f;
 				_reverse_output = 0.0f;
 
 
 			} else {
 				// Regular backtransition
-				_vtol_schedule.flight_mode = TRANSITION_TO_MC;
+				_vtol_schedule.flight_mode = vtol_mode::TRANSITION_TO_MC;
 				_vtol_schedule.transition_start = hrt_absolute_time();
 				_reverse_output = _params_standard.reverse_output;
 
 			}
 
-		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
+		} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_FW) {
 			// failsafe back to mc mode
-			_vtol_schedule.flight_mode = MC_MODE;
+			_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 			mc_weight = 1.0f;
 			_pusher_throttle = 0.0f;
 			_reverse_output = 0.0f;
 
 
-		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
+		} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_MC) {
 			// transition to MC mode if transition time has passed or forward velocity drops below MPC cruise speed
 
 			const Dcmf R_to_body(Quatf(_v_att->q).inversed());
@@ -160,33 +160,33 @@ void Standard::update_vtol_state()
 
 			if (time_since_trans_start > _params->back_trans_duration ||
 			    (_local_pos->v_xy_valid && x_vel <= _params->mpc_xy_cruise)) {
-				_vtol_schedule.flight_mode = MC_MODE;
+				_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 			}
 
 		}
 
 	} else {
 		// the transition to fw mode switch is on
-		if (_vtol_schedule.flight_mode == MC_MODE || _vtol_schedule.flight_mode == TRANSITION_TO_MC) {
+		if (_vtol_schedule.flight_mode == vtol_mode::MC_MODE || _vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_MC) {
 			// start transition to fw mode
 			/* NOTE: The failsafe transition to fixed-wing was removed because it can result in an
 			 * unsafe flying state. */
-			_vtol_schedule.flight_mode = TRANSITION_TO_FW;
+			_vtol_schedule.flight_mode = vtol_mode::TRANSITION_TO_FW;
 			_vtol_schedule.transition_start = hrt_absolute_time();
 
-		} else if (_vtol_schedule.flight_mode == FW_MODE) {
+		} else if (_vtol_schedule.flight_mode == vtol_mode::FW_MODE) {
 			// in fw mode
-			_vtol_schedule.flight_mode = FW_MODE;
+			_vtol_schedule.flight_mode = vtol_mode::FW_MODE;
 			mc_weight = 0.0f;
 
-		} else if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
+		} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_FW) {
 			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
 			if (((_params->airspeed_disabled ||
 			      _airspeed->indicated_airspeed_m_s >= _params->transition_airspeed) &&
 			     time_since_trans_start > _params->front_trans_time_min) ||
 			    can_transition_on_ground()) {
 
-				_vtol_schedule.flight_mode = FW_MODE;
+				_vtol_schedule.flight_mode = vtol_mode::FW_MODE;
 
 				// don't set pusher throttle here as it's being ramped up elsewhere
 				_trans_finished_ts = hrt_absolute_time();
@@ -202,19 +202,19 @@ void Standard::update_vtol_state()
 
 	// map specific control phases to simple control modes
 	switch (_vtol_schedule.flight_mode) {
-	case MC_MODE:
+	case vtol_mode::MC_MODE:
 		_vtol_mode = mode::ROTARY_WING;
 		break;
 
-	case FW_MODE:
+	case vtol_mode::FW_MODE:
 		_vtol_mode = mode::FIXED_WING;
 		break;
 
-	case TRANSITION_TO_FW:
+	case vtol_mode::TRANSITION_TO_FW:
 		_vtol_mode = mode::TRANSITION_TO_FW;
 		break;
 
-	case TRANSITION_TO_MC:
+	case vtol_mode::TRANSITION_TO_MC:
 		_vtol_mode = mode::TRANSITION_TO_MC;
 		break;
 	}
@@ -230,7 +230,7 @@ void Standard::update_transition_state()
 	// copy virtual attitude setpoint to real attitude setpoint
 	memcpy(_v_att_sp, _mc_virtual_att_sp, sizeof(vehicle_attitude_setpoint_s));
 
-	if (_vtol_schedule.flight_mode == TRANSITION_TO_FW) {
+	if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_FW) {
 		if (_params_standard.pusher_ramp_dt <= 0.0f) {
 			// just set the final target throttle value
 			_pusher_throttle = _params->front_trans_throttle;
@@ -270,7 +270,7 @@ void Standard::update_transition_state()
 			}
 		}
 
-	} else if (_vtol_schedule.flight_mode == TRANSITION_TO_MC) {
+	} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_MC) {
 
 		// maintain FW_PSP_OFF
 		_v_att_sp->pitch_body = _params_standard.pitch_setpoint_offset;
@@ -294,8 +294,8 @@ void Standard::update_transition_state()
 		}
 
 		// in back transition we need to start the MC motors again
-		if (_motor_state != ENABLED) {
-			_motor_state = set_motor_state(_motor_state, ENABLED);
+		if (_motor_state != motor_state::ENABLED) {
+			_motor_state = set_motor_state(_motor_state, motor_state::ENABLED);
 		}
 	}
 
@@ -416,7 +416,7 @@ void Standard::fill_actuator_outputs()
 	_actuators_out_1->timestamp = hrt_absolute_time();
 	_actuators_out_1->timestamp_sample = _actuators_fw_in->timestamp_sample;
 
-	if (_vtol_schedule.flight_mode != MC_MODE) {
+	if (_vtol_schedule.flight_mode != vtol_mode::MC_MODE) {
 		// roll
 		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
 			_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
@@ -454,7 +454,7 @@ void Standard::fill_actuator_outputs()
 	}
 
 	// set the fixed wing throttle control
-	if (_vtol_schedule.flight_mode == FW_MODE) {
+	if (_vtol_schedule.flight_mode == vtol_mode::FW_MODE) {
 
 		// take the throttle value commanded by the fw controller
 		_actuators_out_1->control[actuator_controls_s::INDEX_THROTTLE] =

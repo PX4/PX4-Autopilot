@@ -49,6 +49,7 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 
+echo
 echo "Installing PX4 general dependencies"
 
 sudo apt-get update -yy --quiet
@@ -81,20 +82,16 @@ sudo apt-get -yy --quiet --no-install-recommends install \
 	;
 
 
-# python dependencies
-echo "Installing PX4 Python dependencies"
-
-# TODO: deprecate python 2
-sudo python -m pip install --upgrade pip setuptools wheel
-sudo python -m pip install -r ${DIR}/requirements.txt
-
+# Python3 dependencies
+echo
+echo "Installing PX4 Python3 dependencies"
 sudo python3 -m pip install --upgrade pip setuptools wheel
 sudo python3 -m pip install -r ${DIR}/requirements.txt
-
 
 # NuttX toolchain (arm-none-eabi-gcc)
 if [[ $INSTALL_NUTTX == "true" ]]; then
 
+	echo
 	echo "Installing NuttX dependencies"
 
 	sudo apt-get -yy --quiet --no-install-recommends install \
@@ -145,6 +142,7 @@ fi
 # Simulation tools
 if [[ $INSTALL_SIM == "true" ]]; then
 
+	echo
 	echo "Installing PX4 simulation dependencies"
 
 	# java (jmavsim or fastrtps)
@@ -156,6 +154,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 
 	# Gazebo
 	sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
+	wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
 	sudo apt-get update -yy --quiet
 	sudo apt-get -yy --quiet --no-install-recommends install gazebo9
 

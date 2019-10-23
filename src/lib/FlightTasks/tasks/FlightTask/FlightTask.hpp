@@ -44,7 +44,7 @@
 #include <px4_module_params.h>
 #include <drivers/drv_hrt.h>
 #include <matrix/matrix/math.hpp>
-#include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionPollable.hpp>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
@@ -76,9 +76,10 @@ public:
 
 	/**
 	 * Call once on the event where you switch to the task
+	 * @param state of the previous task
 	 * @return true on success, false on error
 	 */
-	virtual bool activate();
+	virtual bool activate(vehicle_local_position_setpoint_s last_setpoint);
 
 	/**
 	 * Call this to reset an active Flight Task
@@ -181,8 +182,8 @@ public:
 
 protected:
 
-	uORB::Subscription<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
-	uORB::Subscription<vehicle_attitude_s> *_sub_attitude{nullptr};
+	uORB::SubscriptionPollable<vehicle_local_position_s> *_sub_vehicle_local_position{nullptr};
+	uORB::SubscriptionPollable<vehicle_attitude_s> *_sub_attitude{nullptr};
 	uint8_t _heading_reset_counter{0}; /**< estimator heading reset */
 
 	/** Reset all setpoints to NAN */

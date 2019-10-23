@@ -196,7 +196,6 @@ extern "C" {
 					PX4_WARN("failed getting thread name");
 				}
 
-				PX4_BACKTRACE();
 #endif
 
 				ret = -ENOENT;

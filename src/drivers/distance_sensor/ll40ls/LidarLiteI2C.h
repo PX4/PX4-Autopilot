@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2014, 2015 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2014-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -42,97 +42,56 @@
 
 #include "LidarLite.h"
 
-#include <px4_workqueue.h>
-
-#include <perf/perf_counter.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 #include <drivers/device/i2c.h>
-#include <drivers/device/ringbuffer.h>
-
-#include <uORB/uORB.h>
-#include <uORB/topics/distance_sensor.h>
-
 
 /* Configuration Constants */
-#define LL40LS_BASEADDR     0x62 /* 7-bit address */
-#define LL40LS_BASEADDR_OLD     0x42 /* previous 7-bit address */
+static constexpr uint8_t LL40LS_BASEADDR	= 0x62;	/* 7-bit address */
+static constexpr uint8_t LL40LS_BASEADDR_OLD	= 0x42;	/* previous 7-bit address */
 
 /* LL40LS Registers addresses */
+static constexpr uint8_t LL40LS_MEASURE_REG	= 0x00;	/* Measure range register */
+static constexpr uint8_t LL40LS_MSRREG_RESET	= 0x00;	/* reset to power on defaults */
+static constexpr uint8_t LL40LS_MSRREG_ACQUIRE	=
+	0x04;	/* Value to initiate a measurement, varies based on sensor revision */
+static constexpr uint8_t LL40LS_DISTHIGH_REG	= 0x0F;	/* High byte of distance register, auto increment */
+static constexpr uint8_t LL40LS_AUTO_INCREMENT	= 0x80;
+static constexpr uint8_t LL40LS_HW_VERSION	= 0x41;
+static constexpr uint8_t LL40LS_SW_VERSION	= 0x4f;
+static constexpr uint8_t LL40LS_SIGNAL_STRENGTH_REG	= 0x0e;
+static constexpr uint8_t LL40LS_PEAK_STRENGTH_REG	= 0x0c;
+static constexpr uint8_t LL40LS_UNIT_ID_HIGH	= 0x16;
+static constexpr uint8_t LL40LS_UNIT_ID_LOW	= 0x17;
 
-#define LL40LS_MEASURE_REG      0x00        /* Measure range register */
-#define LL40LS_MSRREG_RESET     0x00        /* reset to power on defaults */
-#define LL40LS_MSRREG_ACQUIRE       0x04        /* Value to initiate a measurement, varies based on sensor revision */
-#define LL40LS_DISTHIGH_REG     0x0F        /* High byte of distance register, auto increment */
-#define LL40LS_AUTO_INCREMENT   0x80
-#define LL40LS_HW_VERSION         0x41
-#define LL40LS_SW_VERSION         0x4f
-#define LL40LS_SIGNAL_STRENGTH_REG  0x0e
-#define LL40LS_PEAK_STRENGTH_REG  0x0c
-#define LL40LS_UNIT_ID_HIGH 0x16
-#define LL40LS_UNIT_ID_LOW 0x17
+static constexpr uint8_t LL40LS_SIG_COUNT_VAL_REG	= 0x02;	/* Maximum acquisition count register */
+static constexpr uint8_t LL40LS_SIG_COUNT_VAL_MAX	= 0xFF;	/* Maximum acquisition count max value */
 
-#define LL40LS_SIG_COUNT_VAL_REG      0x02        /* Maximum acquisition count register */
-#define LL40LS_SIG_COUNT_VAL_MAX     0xFF        /* Maximum acquisition count max value */
+static constexpr int LL40LS_SIGNAL_STRENGTH_LOW =
+	24;	// Minimum (relative) signal strength value for accepting a measurement
+static constexpr int LL40LS_PEAK_STRENGTH_LOW	= 135;	// Minimum peak strength raw value for accepting a measurement
+static constexpr int LL40LS_PEAK_STRENGTH_HIGH	= 234;	// Max peak strength raw value
 
-#define LL40LS_SIGNAL_STRENGTH_LOW 24			// Minimum (relative) signal strength value for accepting a measurement
-#define LL40LS_PEAK_STRENGTH_LOW 135			// Minimum peak strength raw value for accepting a measurement
-#define LL40LS_PEAK_STRENGTH_HIGH 234			// Max peak strength raw value
 
-class LidarLiteI2C : public LidarLite, public device::I2C
+class LidarLiteI2C : public LidarLite, public device::I2C, public px4::ScheduledWorkItem
 {
 public:
-	LidarLiteI2C(int bus, const char *path,
-		     uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING,
-		     int address = LL40LS_BASEADDR);
+	LidarLiteI2C(int bus, uint8_t rotation = distance_sensor_s::ROTATION_DOWNWARD_FACING, int address = LL40LS_BASEADDR);
 	virtual ~LidarLiteI2C();
 
-	int         init() override;
+	int		init() override;
 
-	ssize_t     read(device::file_t *filp, char *buffer, size_t buflen) override;
-	int         ioctl(device::file_t *filp, int cmd, unsigned long arg) override;
-
-	/**
-	* Diagnostics - print some basic information about the driver.
-	*/
-	void print_info() override;
-
-	/**
-	 * print registers to console
-	 */
-	void print_registers() override;
-
-	const char *get_dev_name() override;
+	void		print_registers() override;
 
 protected:
-	int         probe() override;
-	int         read_reg(uint8_t reg, uint8_t &val);
-	int         write_reg(uint8_t reg, uint8_t val);
+	int		probe() override;
+	int		read_reg(uint8_t reg, uint8_t &val);
+	int		write_reg(uint8_t reg, uint8_t val);
 
-	int                 measure() override;
-	int                 reset_sensor() override;
+	int		measure() override;
+	int		reset_sensor() override;
 
 private:
-	uint8_t _rotation;
-	work_s              _work;
-	ringbuffer::RingBuffer          *_reports;
-	bool                _sensor_ok;
-	bool                _collect_phase;
-	int                 _class_instance;
-	int		    _orb_class_instance;
-
-	orb_advert_t        _distance_sensor_topic;
-
-	perf_counter_t      _sample_perf;
-	perf_counter_t      _comms_errors;
-	perf_counter_t      _sensor_resets;
-	perf_counter_t      _sensor_zero_resets;
-	uint16_t        _last_distance;
-	uint16_t        _zero_counter;
-	uint64_t        _acquire_time_usec;
-	volatile bool       _pause_measurements;
-	uint8_t		_hw_version;
-	uint8_t		_sw_version;
-	uint16_t	_unit_id;
 
 	/**
 	 * LidarLite specific transfer function. This is needed
@@ -145,7 +104,7 @@ private:
 	 * @return		OK if the transfer was successful, -errno
 	 *			otherwise.
 	 */
-	int lidar_transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len);
+	int                 lidar_transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len);
 
 	/**
 	* Test whether the device supported by the driver is present at a
@@ -173,18 +132,20 @@ private:
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
 	*/
-	void                cycle();
+	void                Run() override;
 	int                 collect() override;
 
-	/**
-	* Static trampoline from the workq context; because we don't have a
-	* generic workq wrapper yet.
-	*
-	* @param arg        Instance pointer for the driver that is polling.
-	*/
-	static void     cycle_trampoline(void *arg);
 
-private:
-	LidarLiteI2C(const LidarLiteI2C &copy) = delete;
-	LidarLiteI2C operator=(const LidarLiteI2C &assignment) = delete;
+	bool		_sensor_ok{false};
+	bool		_collect_phase{false};
+
+	uint16_t	_zero_counter{0};
+	uint64_t	_acquire_time_usec{0};
+
+	bool		_pause_measurements{false};
+
+	uint8_t		_hw_version{0};
+	uint8_t		_sw_version{0};
+	uint16_t	_unit_id{0};
+
 };

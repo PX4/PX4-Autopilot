@@ -83,9 +83,8 @@
         },
         "search.showLineNumbers": true,
         "window.title": "${dirty} ${activeEditorMedium}${separator}${rootName}",
-        "workbench.editor.enablePreview": false,
-        "workbench.editor.enablePreviewFromQuickOpen": false,
         "workbench.editor.highlightModifiedTabs": true,
         "workbench.settings.enableNaturalLanguageSearch": false,
-        "workbench.statusBar.feedback.visible": false
+        "workbench.statusBar.feedback.visible": false,
+        "git.ignoreLimitWarning": true
 }

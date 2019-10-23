@@ -13,6 +13,7 @@
         "twxs.cmake",
         "uavcan.dsdl",
         "vector-of-bool.cmake-tools",
-        "wholroyd.jinja"
+        "wholroyd.jinja",
+        "zixuanwang.linkerscript"
     ]
 }

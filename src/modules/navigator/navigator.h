@@ -60,18 +60,24 @@
 #include <lib/perf/perf_counter.h>
 #include <px4_module.h>
 #include <px4_module_params.h>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/geofence_result.h>
+#include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/parameter_update.h>
+#include <uORB/topics/position_controller_landing_status.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/transponder_report.h>
 #include <uORB/topics/vehicle_command.h>
+#include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_global_position.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
 
 /**
@@ -111,11 +117,6 @@ public:
 	 * Load fence from file
 	 */
 	void		load_fence_from_file(const char *filename);
-
-	/**
-	 * Publish the geofence result
-	 */
-	void		publish_geofence_result();
 
 	void		publish_vehicle_cmd(vehicle_command_s *vcmd);
 
@@ -163,8 +164,6 @@ public:
 
 	bool home_alt_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt); }
 	bool home_position_valid() { return (_home_pos.timestamp > 0 && _home_pos.valid_alt && _home_pos.valid_hpos); }
-
-	int		get_mission_sub() { return _mission_sub; }
 
 	Geofence	&get_geofence() { return _geofence; }
 
@@ -312,25 +311,29 @@ private:
 		(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err
 	)
 
-	int		_global_pos_sub{-1};		/**< global position subscription */
-	int		_gps_pos_sub{-1};		/**< gps position subscription */
-	int		_home_pos_sub{-1};		/**< home position subscription */
-	int		_land_detected_sub{-1};		/**< vehicle land detected subscription */
 	int		_local_pos_sub{-1};		/**< local position subscription */
-	int		_mission_sub{-1};		/**< mission subscription */
-	int		_param_update_sub{-1};		/**< param update subscription */
-	int		_pos_ctrl_landing_status_sub{-1};	/**< position controller landing status subscription */
-	int		_traffic_sub{-1};		/**< traffic subscription */
-	int		_vehicle_command_sub{-1};	/**< vehicle commands (onboard and offboard) */
-	int		_vstatus_sub{-1};		/**< vehicle status subscription */
 
-	orb_advert_t	_geofence_result_pub{nullptr};
+	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};	/**< global position subscription */
+	uORB::Subscription _gps_pos_sub{ORB_ID(vehicle_gps_position)};		/**< gps position subscription */
+	uORB::Subscription _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
+	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
+	uORB::Subscription _param_update_sub{ORB_ID(parameter_update)};		/**< param update subscription */
+	uORB::Subscription _pos_ctrl_landing_status_sub{ORB_ID(position_controller_landing_status)};	/**< position controller landing status subscription */
+	uORB::Subscription _traffic_sub{ORB_ID(transponder_report)};		/**< traffic subscription */
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */
+	uORB::Subscription _vstatus_sub{ORB_ID(vehicle_status)};		/**< vehicle status subscription */
+
+	uORB::SubscriptionData<position_controller_status_s>	_position_controller_status_sub{ORB_ID(position_controller_status)};
+
+	uORB::Publication<geofence_result_s>		_geofence_result_pub{ORB_ID(geofence_result)};
+	uORB::Publication<mission_result_s>		_mission_result_pub{ORB_ID(mission_result)};
+	uORB::Publication<position_setpoint_triplet_s>	_pos_sp_triplet_pub{ORB_ID(position_setpoint_triplet)};
+	uORB::Publication<vehicle_roi_s>		_vehicle_roi_pub{ORB_ID(vehicle_roi)};
+
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
-	orb_advert_t	_mission_result_pub{nullptr};
-	orb_advert_t	_pos_sp_triplet_pub{nullptr};
-	orb_advert_t	_vehicle_cmd_ack_pub{nullptr};
-	orb_advert_t	_vehicle_cmd_pub{nullptr};
-	orb_advert_t	_vehicle_roi_pub{nullptr};
+
+	uORB::PublicationQueued<vehicle_command_ack_s>	_vehicle_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::PublicationQueued<vehicle_command_s>	_vehicle_cmd_pub{ORB_ID(vehicle_command)};
 
 	// Subscriptions
 	home_position_s					_home_pos{};		/**< home position for RTL */
@@ -340,8 +343,6 @@ private:
 	vehicle_land_detected_s				_land_detected{};	/**< vehicle land_detected */
 	vehicle_local_position_s			_local_pos{};		/**< local vehicle position */
 	vehicle_status_s				_vstatus{};		/**< vehicle status */
-
-	uORB::Subscription<position_controller_status_s>	_position_controller_status_sub{ORB_ID(position_controller_status)};
 
 	uint8_t						_previous_nav_state{}; /**< nav_state of the previous iteration*/
 
@@ -387,13 +388,7 @@ private:
 	float _mission_throttle{-1.0f};
 
 	// update subscriptions
-	void		global_position_update();
-	void		gps_position_update();
-	void		home_position_update(bool force = false);
-	void		local_position_update();
 	void		params_update();
-	void		vehicle_land_detected_update();
-	void		vehicle_status_update();
 
 	/**
 	 * Publish a new position setpoint triplet for position controllers

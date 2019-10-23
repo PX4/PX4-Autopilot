@@ -211,6 +211,7 @@ private:
 	perf_counter_t			_perf_control_latency;
 
 	Mixer::Airmode 			_airmode = Mixer::Airmode::disabled;
+	float 					_thr_mdl_factor = 0.0f;
 
 	// index into _poll_fds for each _control_subs handle
 	uint8_t				_poll_ids[NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN];

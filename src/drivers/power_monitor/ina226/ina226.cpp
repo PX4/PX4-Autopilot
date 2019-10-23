@@ -38,41 +38,23 @@
  * Driver for the I2C attached INA226
  */
 #define INA226_RAW // remove this
+
+#include <string.h>
+
 #include <px4_config.h>
 #include <px4_getopt.h>
-#include <px4_workqueue.h>
-
 #include <drivers/device/i2c.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-
-#include <perf/perf_counter.h>
-
+#include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
-
 #include <uORB/uORB.h>
 #include <uORB/topics/power_monitor.h>
-
-#include <board_config.h>
+#include <px4_work_queue/ScheduledWorkItem.hpp>
 
 /* Configuration Constants */
-
 #define INA226_BUS_DEFAULT		                PX4_I2C_BUS_EXPANSION
 #define INA226_BASEADDR 	                    0x41 /* 7-bit address. 8-bit address is 0x41 */
-#define INA226_DEVICE_PATH	                  "/dev/ina226"
 
 /* INA226 Registers addresses */
-
 #define INA226_REG_CONFIGURATION             (0x00)
 #define INA226_REG_SHUNTVOLTAGE              (0x01)
 #define INA226_REG_BUSVOLTAGE                (0x02)
@@ -88,7 +70,6 @@
 #define INA226_MFG_DIE                       (0x2260) // INA2260
 
 /* INA226 Configuration Register */
-
 #define INA226_MODE_SHIFTS                   (0)
 #define INA226_MODE_MASK                     (7 << INA226_MODE_SHIFTS)
 #define INA226_MODE_SHUTDOWN                 (0 << INA226_MODE_SHIFTS)
@@ -159,23 +140,15 @@
 #define INA226_SHUNT                          0.0005f   /* Shunt is 500 uOhm */
 #define INA226_VSCALE                         0.00125f  /* LSB of voltage is 1.25 mV  */
 
-
-#ifndef CONFIG_SCHED_WORKQUEUE
-# error This requires CONFIG_SCHED_WORKQUEUE.
-#endif
-
 #define swap16(w)                       __builtin_bswap16((w))
 
-
-class INA226 : public device::I2C
+class INA226 : public device::I2C, px4::ScheduledWorkItem
 {
 public:
 	INA226(int bus = INA226_BUS_DEFAULT, int address = INA226_BASEADDR);
 	virtual ~INA226();
 
 	virtual int 		  init();
-
-	virtual int			  ioctl(device::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	* Diagnostics - print some basic information about the driver.
@@ -186,30 +159,27 @@ protected:
 	virtual int	  		probe();
 
 private:
-	work_s				    _work{};
-	bool			        _sensor_ok;
-	int				        _measure_ticks;
-	bool			        _collect_phase;
-	int				        _class_instance;
-	int				        _orb_class_instance;
+	bool			        _sensor_ok{false};
+	int				        _measure_interval{0};
+	bool			        _collect_phase{false};
 
-	orb_advert_t		  _power_monitor_topic;
+	orb_advert_t		  _power_monitor_topic{nullptr};
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
 
-	int16_t           _bus_volatage;
-	int16_t           _power;
-	int16_t           _current;
-	int16_t           _shunt;
-	int16_t           _cal;
-	bool              _mode_trigged;
+	int16_t           _bus_volatage{0};
+	int16_t           _power{-1};
+	int16_t           _current{-1};
+	int16_t           _shunt{0};
+	int16_t           _cal{0};
+	bool              _mode_trigged{false};
 
-	float             _max_current = MAX_CURRENT;
-	float             _rshunt = INA226_SHUNT;
-	uint16_t          _config = INA226_CONFIG;
-	float             _current_lsb = _max_current / DN_MAX;
-	float             _power_lsb = 25 * _current_lsb;
+	float             _max_current{MAX_CURRENT};
+	float             _rshunt{INA226_SHUNT};
+	uint16_t          _config{INA226_CONFIG};
+	float             _current_lsb{_max_current / DN_MAX};
+	float             _power_lsb{25.0f * _current_lsb};
 
 	/**
 	* Test whetpower_monitorhe device supported by the driver is present at a
@@ -235,29 +205,13 @@ private:
 	void				      stop();
 
 	/**
-	* Set the min and max distance thresholds if you want the end points of the sensors
-	* range to be brought in at all, otherwise it will use the defaults INA226_MIN_DISTANCE
-	* and INA226_MAX_DISTANCE
-	*/
-	void				      set_minimum_distance(float min);
-	void				      set_maximum_distance(float max);
-	float				      get_minimum_distance();
-	float				      get_maximum_distance();
-
-	/**
 	* Perform a poll cycle; collect from the previous measurement
 	* and start a new one.
 	*/
-	void				     cycle();
+	void				     Run() override;
+
 	int					     measure();
 	int					     collect();
-	/**
-	* Static trampoline from the workq context; because we don't have a
-	* generic workq wrapper yet.
-	*
-	* @param arg		Instance pointer for the driver that is polling.
-	*/
-	static void			cycle_trampoline(void *arg);
 
 };
 
@@ -267,23 +221,11 @@ private:
 extern "C" __EXPORT int ina226_main(int argc, char *argv[]);
 
 INA226::INA226(int bus, int address) :
-	I2C("INA226", INA226_DEVICE_PATH, bus, address, 100000),
-	_sensor_ok(false),
-	_measure_ticks(0),
-	_collect_phase(false),
-	_class_instance(-1),
-	_orb_class_instance(-1),
-	_power_monitor_topic(nullptr),
+	I2C("INA226", nullptr, bus, address, 100000),
+	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ina226_read")),
-	_comms_errors(perf_alloc(PC_COUNT, "ina226_com_err")),
-	_bus_volatage(0),
-	_power(-1),
-	_current(-1),
-	_shunt(0),
-	_cal(0),
-	_mode_trigged(false)
+	_comms_errors(perf_alloc(PC_COUNT, "ina226_com_err"))
 {
-
 	float fvalue = MAX_CURRENT;
 	_max_current = fvalue;
 	param_t ph = param_find("INA226_CURRENT");
@@ -319,15 +261,9 @@ INA226::INA226(int bus, int address) :
 INA226::~INA226()
 {
 	/* make sure we are truly inactive */
-
 	stop();
 
-	if (_class_instance != -1) {
-		unregister_class_devname(INA226_DEVICE_PATH, _class_instance);
-	}
-
 	/* free perf counters */
-
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
 }
@@ -352,7 +288,7 @@ int INA226::read(uint8_t address)
 
 int INA226::write(uint8_t address, uint16_t value)
 {
-	uint8_t  data[3] = {address, ((uint8_t)((value & 0xff00) >> 8)), (uint8_t)(value & 0xff)};
+	uint8_t data[3] = {address, ((uint8_t)((value & 0xff00) >> 8)), (uint8_t)(value & 0xff)};
 	return transfer(data, sizeof(data), nullptr, 0);
 }
 
@@ -378,21 +314,14 @@ INA226::init()
 
 	if (!_mode_trigged) {
 		ret = write(INA226_REG_CONFIGURATION, _config);
+
+	} else {
+		ret = OK;
 	}
 
-	set_device_address(INA226_BASEADDR);		/* set I2c Address */
+	set_device_address(INA226_BASEADDR);	/* set I2c Address */
 
-	_class_instance = register_class_devname(INA226_DEVICE_PATH);
-
-	struct power_monitor_s report = {};
-	_power_monitor_topic = orb_advertise_multi(ORB_ID(power_monitor), &report,
-			       &_orb_class_instance, ORB_PRIO_LOW);
-
-	if (_power_monitor_topic == nullptr) {
-		PX4_ERR("failed to create power_monitor object");
-	}
-
-	ret = measure();
+	start();
 	_sensor_ok = true;
 
 	return ret;
@@ -425,66 +354,6 @@ INA226::probe()
 
 	return OK;
 }
-int
-INA226::ioctl(device::file_t *filp, int cmd, unsigned long arg)
-{
-	switch (cmd) {
-
-	case SENSORIOCSPOLLRATE: {
-			switch (arg) {
-
-			/* zero would be bad */
-			case 0:
-				return -EINVAL;
-
-			/* set default polling rate */
-			case SENSOR_POLLRATE_DEFAULT: {
-					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
-
-					/* set interval for next measurement to minimum legal value */
-					_measure_ticks = USEC2TICK(INA226_CONVERSION_INTERVAL);
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-
-					}
-
-					return OK;
-				}
-
-			/* adjust to a legal polling interval in Hz */
-			default: {
-					/* do we need to start internal polling? */
-					bool want_start = (_measure_ticks == 0);
-
-					/* convert hz to tick interval via microseconds */
-					int ticks = USEC2TICK(1000000 / arg);
-
-					/* check against maximum rate */
-					if (ticks < USEC2TICK(INA226_CONVERSION_INTERVAL)) {
-						return -EINVAL;
-					}
-
-					/* update interval for next measurement */
-					_measure_ticks = ticks;
-
-					/* if we need to start the poll state machine, do it */
-					if (want_start) {
-						start();
-					}
-
-					return OK;
-				}
-			}
-		}
-
-	default:
-		/* give it to the superclass */
-		return I2C::ioctl(filp, cmd, arg);
-	}
-}
 
 int
 INA226::measure()
@@ -506,7 +375,7 @@ INA226::measure()
 int
 INA226::collect()
 {
-	int	ret = -EIO;
+	int ret = -EIO;
 
 	/* read from the sensor */
 	perf_begin(_sample_perf);
@@ -540,10 +409,9 @@ INA226::collect()
 					report.al     = read(INA226_REG_ALERTLIMIT);
 #endif
 
-					/* publish it, if we are the primary */
-					if (_power_monitor_topic != nullptr) {
-						orb_publish(ORB_ID(power_monitor), _power_monitor_topic, &report);
-					}
+					/* publish it */
+					int instance;
+					orb_publish_auto(ORB_ID(power_monitor), &_power_monitor_topic, &report, &instance, ORB_PRIO_DEFAULT);
 
 					ret = OK;
 					perf_end(_sample_perf);
@@ -562,32 +430,25 @@ INA226::collect()
 void
 INA226::start()
 {
+	ScheduleClear();
 
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 
+	_measure_interval = INA226_CONVERSION_INTERVAL;
+
 	/* schedule a cycle to start things */
-	work_queue(HPWORK, &_work, (worker_t)&INA226::cycle_trampoline, this, 5);
+	ScheduleDelayed(5);
 }
 
 void
 INA226::stop()
 {
-	work_cancel(HPWORK, &_work);
+	ScheduleClear();
 }
 
 void
-INA226::cycle_trampoline(void *arg)
-{
-
-	INA226 *dev = (INA226 *)arg;
-
-	dev->cycle();
-
-}
-
-void
-INA226::cycle()
+INA226::Run()
 {
 	if (_collect_phase) {
 
@@ -602,15 +463,10 @@ INA226::cycle()
 		/* next phase is measurement */
 		_collect_phase = !_mode_trigged;
 
-
-		if (_measure_ticks > USEC2TICK(INA226_CONVERSION_INTERVAL)) {
+		if (_measure_interval > INA226_CONVERSION_INTERVAL) {
 
 			/* schedule a fresh cycle call when we are ready to measure again */
-			work_queue(HPWORK,
-				   &_work,
-				   (worker_t)&INA226::cycle_trampoline,
-				   this,
-				   _measure_ticks - USEC2TICK(INA226_CONVERSION_INTERVAL));
+			ScheduleDelayed(_measure_interval - INA226_CONVERSION_INTERVAL);
 			return;
 		}
 	}
@@ -626,11 +482,7 @@ INA226::cycle()
 	_collect_phase = true;
 
 	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(HPWORK,
-		   &_work,
-		   (worker_t)&INA226::cycle_trampoline,
-		   this,
-		   USEC2TICK(INA226_CONVERSION_INTERVAL));
+	ScheduleDelayed(INA226_CONVERSION_INTERVAL);
 }
 
 void
@@ -638,7 +490,8 @@ INA226::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u ticks\n", _measure_ticks);
+
+	printf("poll interval:  %u \n", _measure_interval);
 }
 
 /**
@@ -652,7 +505,6 @@ INA226	*g_dev;
 int 	start();
 int 	start_bus(int i2c_bus);
 int 	stop();
-int 	test();
 int 	info();
 
 /**
@@ -690,8 +542,6 @@ start()
 int
 start_bus(int i2c_bus)
 {
-	int fd = -1;
-
 	if (g_dev != nullptr) {
 		PX4_ERR("already started");
 		return PX4_ERROR;
@@ -708,25 +558,9 @@ start_bus(int i2c_bus)
 		goto fail;
 	}
 
-	/* set the poll rate to default, starts automatic data collection */
-	fd = px4_open(INA226_DEVICE_PATH, O_RDONLY);
-
-	if (fd < 0) {
-		goto fail;
-	}
-
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		goto fail;
-	}
-
-	px4_close(fd);
 	return PX4_OK;
 
 fail:
-
-	if (fd >= 0) {
-		px4_close(fd);
-	}
 
 	if (g_dev != nullptr) {
 		delete g_dev;
@@ -754,58 +588,6 @@ stop()
 	return PX4_OK;
 }
 
-int
-test()
-{
-	int h = orb_subscribe(ORB_ID(power_monitor));
-	struct power_monitor_s mon;
-	bool done = false;
-
-	while (!done) {
-
-		bool updated = false;
-		orb_check(h, &updated);
-
-		if (updated) {
-			orb_copy(ORB_ID(power_monitor), h, &mon);
-			print_message(mon);
-		}
-
-		for (int k = 0; k < 5; k++) {
-			char c;
-			struct pollfd fds;
-			int ret;
-			fds.fd = 0; /* stdin */
-			fds.events = POLLIN;
-			ret = poll(&fds, 1, 0);
-
-			if (ret > 0) {
-				ret = read(0, &c, 1);
-
-				if (ret) {
-					done = true;
-				}
-
-				return 1;
-			}
-
-			switch (c) {
-			case 0x03: // ctrl-c
-			case 0x1b: // esc
-			case 'c':
-			case 'q':
-				done = true;
-				break;
-			}
-		}
-
-		px4_usleep(250000);
-	}
-
-	orb_unsubscribe(h);
-	return 0;
-
-}
 /**
  * Print a little info about the driver.
  */
@@ -878,13 +660,6 @@ ina226_main(int argc, char *argv[])
 		} else {
 			return ina226::start_bus(i2c_bus);
 		}
-	}
-
-	/*
-	 * Test the driver/device.
-	 */
-	if (!strcmp(argv[myoptind], "test")) {
-		return ina226::test();
 	}
 
 	/*
