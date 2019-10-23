@@ -54,7 +54,7 @@ public:
 
     Type dot(const MatrixM1 & b) const {
         const Vector &a(*this);
-        Type r = 0;
+        Type r(0);
         for (size_t i = 0; i<M; i++) {
             r += a(i)*b(i,0);
         }
@@ -66,7 +66,7 @@ public:
         return a.dot(b);
     }
 
-    inline Vector operator*(float b) const {
+    inline Vector operator*(Type b) const {
         return Vector(MatrixM1::operator*(b));
     }
 

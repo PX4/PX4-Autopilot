@@ -19,6 +19,7 @@ set(tests
     copyto
     least_squares
     upperRightTriangle
+    dual
     )
 
 add_custom_target(test_build)

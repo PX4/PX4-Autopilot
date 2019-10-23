@@ -34,12 +34,23 @@ template<typename Type, size_t M, size_t N>
 class Matrix
 {
 
-    Type _data[M][N] {};
+    Type _data[M][N];
 
 public:
 
     // Constructors
-    Matrix() = default;
+    Matrix()
+    {
+#ifdef  __STDC_IEC_559__
+        memset(_data, 0, sizeof(_data)); //workaround for GCC 4.8 bug, don't use {} for array init
+#else
+        for (size_t i = 0; i < M; i++) {
+            for (size_t j = 0; j < N; j++) {
+                _data[i][j] = Type{};
+            }
+        }
+#endif
+    }
 
     explicit Matrix(const Type data_[M*N])
     {
@@ -558,7 +569,14 @@ Matrix<Type, M, N> operator*(Type scalar, const Matrix<Type, M, N> &other)
 template<typename Type, size_t  M, size_t N>
 bool isEqual(const Matrix<Type, M, N> &x,
              const Matrix<Type, M, N> &y, const Type eps=1e-4f) {
-    return x == y;
+    for (size_t i = 0; i < M; i++) {
+        for (size_t j = 0; j < N; j++) {
+            if (!isEqualF(x(i,j), y(i,j), eps)) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 #if defined(SUPPORT_STDIOSTREAM)
@@ -569,7 +587,7 @@ std::ostream& operator<<(std::ostream& os,
     for (size_t i = 0; i < M; ++i) {
         os << "[";
         for (size_t j = 0; j < N; ++j) {
-            os << std::setw(10) << static_cast<double>(matrix(i, j));
+            os << std::setw(10) << matrix(i, j);
             os << "\t";
         }
         os << "]" << std::endl;
