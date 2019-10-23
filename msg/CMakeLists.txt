@@ -143,6 +143,8 @@ set(msg_files
 	vehicle_trajectory_waypoint.msg
 	vtol_vehicle_status.msg
 	wind_estimate.msg
+	virtual_stick.msg
+	dg_vehicle_status.msg
 	)
 
 if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")

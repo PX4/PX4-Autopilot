@@ -231,9 +231,9 @@ private:
 	/**
 	 * Adjust the setpoint during landing.
 	 * Thrust is adjusted to support the land-detector during detection.
-	 * @param setpoint gets adjusted based on land-detector state                                           DG
-	 */                                                                             
-	void limit_thrust_during_landing(vehicle_local_position_setpoint_s &setpoint,float _dg_thrust_land_test1[3],bool &_dg_land_test );
+	 * @param setpoint gets adjusted based on land-detector state
+	 */
+	void limit_thrust_during_landing(vehicle_local_position_setpoint_s &setpoint);
 
 	/**
 	 * Start flightasks based on navigation state.
@@ -525,9 +525,6 @@ MulticopterPositionControl::print_status()
 void
 MulticopterPositionControl::run()
 {
-	bool _dg_land_test=false;
-	float _dg_thrust_land_test[3]={0.0f};
-	
 	hrt_abstime time_stamp_last_loop = hrt_absolute_time(); // time stamp of last loop iteration
 
 	// initialize all subscriptions
@@ -715,7 +712,7 @@ MulticopterPositionControl::run()
 			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.
 			// Note: only adust thrust output if there was not thrust-setpoint demand in D-direction.
 			if (_takeoff.getTakeoffState() > TakeoffState::rampup && !PX4_ISFINITE(setpoint.thrust[2])) {
-				limit_thrust_during_landing(local_pos_sp,_dg_thrust_land_test,_dg_land_test);                                    //DG
+				limit_thrust_during_landing(local_pos_sp);
 			}
 
 			// Fill attitude setpoint. Attitude is computed from yaw and thrust setpoint.
@@ -960,9 +957,10 @@ MulticopterPositionControl::start_flight_task()
 }
 
 void
-MulticopterPositionControl::limit_thrust_during_landing(vehicle_local_position_setpoint_s &setpoint,float _dg_thrust_land_test1[3],bool &_dg_land_test)
+MulticopterPositionControl::limit_thrust_during_landing(vehicle_local_position_setpoint_s &setpoint)
 {
-	if(_vehicle_land_detected.maybe_landed){
+	if (_vehicle_land_detected.ground_contact
+	    || _vehicle_land_detected.maybe_landed) {
 		// we set thrust to zero, this will help to decide if we are actually landed or not
 		setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
 		// set yaw-sp to current yaw to avoid any corrections
@@ -970,26 +968,8 @@ MulticopterPositionControl::limit_thrust_during_landing(vehicle_local_position_s
 		setpoint.yawspeed = 0.f;
 		// prevent any integrator windup
 		_control.resetIntegralXY();
-		_control.resetIntegralZ();			
-	}else if (_vehicle_land_detected.ground_contact
-        /*||_vehicle_land_detected.dg_ground_contact */) {
-		if(_dg_land_test){
-               _dg_thrust_land_test1[0]=_dg_thrust_land_test1[0]*0.99f;
-               _dg_thrust_land_test1[1]=_dg_thrust_land_test1[1]*0.99f;
-               _dg_thrust_land_test1[2]=_dg_thrust_land_test1[2]*0.99f;
-               setpoint.thrust[0]=_dg_thrust_land_test1[0]*0.99f;
-               setpoint.thrust[1]=_dg_thrust_land_test1[1]*0.99f;
-               setpoint.thrust[2]=_dg_thrust_land_test1[2]*0.99f;
-		}
-		    else{
-			   _dg_land_test=true;
-			   _dg_thrust_land_test1[0]=setpoint.thrust[0];
-			   _dg_thrust_land_test1[1]=setpoint.thrust[1];
-			   _dg_thrust_land_test1[2]=setpoint.thrust[2];
-			}
-	}else {
-	   _dg_land_test=false;
-	}	
+		_control.resetIntegralZ();
+	}
 }
 
 void

@@ -76,6 +76,15 @@ int RCUpdate::init()
 		return -errno;
 	}
 
+    _vs_sub = orb_subscribe(ORB_ID(virtual_stick));
+    if (_vs_sub < 0) {
+        return -errno;
+    }
+
+    _vs_enable_DG = 0;
+    vs_last_timestamp = 0;
+    memset(&_vs_sp, 0, sizeof(_vs_sp));
+
 	return 0;
 }
 
@@ -83,6 +92,7 @@ void RCUpdate::deinit()
 {
 	orb_unsubscribe(_rc_sub);
 	orb_unsubscribe(_rc_parameter_map_sub);
+    orb_unsubscribe(_vs_sub);
 }
 
 void RCUpdate::update_rc_functions()
@@ -256,7 +266,34 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 	bool rc_updated;
 	orb_check(_rc_sub, &rc_updated);
 
-	if (rc_updated) {
+    bool vs_updated;
+    orb_check(_vs_sub, &vs_updated);
+
+    /* DG virtual stick data for x, y, z, r when rc lost*/
+    if(vs_updated) {
+        orb_copy(ORB_ID(virtual_stick), _vs_sub, &_vs_sp);
+        vs_last_timestamp = _vs_sp.timestamp;
+        if(_vs_sp.rc_signal_lost){
+                        struct manual_control_setpoint_s manual = {};
+                        manual.timestamp = _vs_sp.timestamp;
+                        manual.data_source = manual_control_setpoint_s::SOURCE_RC;
+                        manual.x = _vs_sp.x;
+                        manual.y = _vs_sp.y;
+                        manual.r = _vs_sp.r;
+                        manual.z = _vs_sp.z;
+//                        manual.x = 0;
+//                        manual.y = 0;
+//                        manual.r = 0;
+//                        manual.z = 0.8f;
+                        manual.virtual_stick_enable = true;
+                        int instance;
+                        orb_publish_auto(ORB_ID(manual_control_setpoint), &_manual_control_pub, &manual, &instance,
+                             ORB_PRIO_HIGH);
+        }
+    }
+
+
+    if (rc_updated) {
 		/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
 		struct input_rc_s rc_input;
 
@@ -359,14 +396,30 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 		orb_publish_auto(ORB_ID(rc_channels), &_rc_pub, &_rc, &instance, ORB_PRIO_DEFAULT);
 
 		/* only publish manual control if the signal is still present and was present once */
-		if (!signal_lost && rc_input.timestamp_last_signal > 0) {
+        if ((!signal_lost && rc_input.timestamp_last_signal > 0)) {
 
 			/* initialize manual setpoint */
 			struct manual_control_setpoint_s manual = {};
 			/* set mode slot to unassigned */
 			manual.mode_slot = manual_control_setpoint_s::MODE_SLOT_NONE;
+
+            /* DG virtual stick data for x, y, z, r */
+             _vs_enable_DG = rc_input.timestamp - vs_last_timestamp > 1000000 ? 0 : _vs_sp.vs_enable;
+             manual.virtual_stick_enable = _vs_enable_DG;
+            if (_vs_enable_DG){
+            manual.data_source = 255;
+            manual.x = _vs_sp.x;
+            manual.y = _vs_sp.y;
+            manual.r = _vs_sp.r;
+            manual.z = _vs_sp.z;
+//            manual.x = 0;
+//            manual.y = 0;
+//            manual.r = 0;
+//            manual.z = 0.8f;
+            }
+
+            else {
 			/* set the timestamp to the last signal time */
-			manual.timestamp = rc_input.timestamp_last_signal;
 			manual.data_source = manual_control_setpoint_s::SOURCE_RC;
 
 			/* limit controls */
@@ -374,6 +427,8 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			manual.x = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_PITCH, -1.0, 1.0);
 			manual.r = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_YAW, -1.0, 1.0);
 			manual.z = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE, 0.0, 1.0);
+            }
+            manual.timestamp = rc_input.timestamp_last_signal;
 			manual.flaps = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS, -1.0, 1.0);
 			manual.aux1 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_1, -1.0, 1.0);
 			manual.aux2 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_2, -1.0, 1.0);

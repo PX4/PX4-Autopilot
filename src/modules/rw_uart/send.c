@@ -137,7 +137,7 @@ void stp_pack (STP *stp, MSG_orb_data stp_data){
          stp->sp_z = (uint8_t)(-stp_data.local_position_sp_data.thrust[2] * 200);
     }
     stp->local_vz_sp = (int16_t)(stp_data.local_position_sp_data.vz * 100.0);
-    stp->local_z_sp = (int16_t)(stp_data.local_position_sp_data.z * 10.0);
+    stp->local_z_sp = -(int16_t)(stp_data.local_position_sp_data.z * 10.0);
 
     float_t distance = (float_t) sqrtl(stp_data.local_position_data.z * stp_data.local_position_data.z + stp_data.local_position_data.x * stp_data.local_position_data.x
                              + stp_data.local_position_data.y * stp_data.local_position_data.y);
@@ -175,7 +175,8 @@ void stp_pack (STP *stp, MSG_orb_data stp_data){
     stp->version =1000;
     stp->sum_check=0x00;
 
-    stp->local_z_pressure =  (int16_t)(stp_data.air_data.baro_alt_meter * 10.0);
+    //stp->local_z_pressure =  (int16_t)(stp_data.air_data.baro_alt_meter * 10.0);
+    stp->local_z_pressure =  -(int16_t)(stp_data.local_position_data.z * 10.0);
     stp->temprature = (int8_t)(stp_data.air_data.baro_temp_celcius);
 
     stp->battery_voltage = (uint16_t)(stp_data.battery_data.voltage_filtered_v/25.0 * 4096.0);

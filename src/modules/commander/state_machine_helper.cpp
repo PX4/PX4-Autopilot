@@ -944,7 +944,7 @@ bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &s
 				mavlink_log_critical(mavlink_log_pub, "ARMING DENIED: CHECK BATTERY");
 			}
 
-			prearm_ok = false;
+            //prearm_ok = false;
 		}
 	}
 

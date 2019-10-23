@@ -71,7 +71,6 @@ public:
 	 */
 	int init(int led_control_sub);
 
-	
 	/**
 	 * check if already initialized
 	 */
@@ -95,12 +94,10 @@ public:
 
 	static const int BREATHE_INTERVAL = 25 * 1000; /**< single step when in breathe mode */
 	static const int BREATHE_STEPS = 64; /**< number of steps in breathe mode for a full on-off cycle */
-	
-    static const int BLINK_FLASH_DURATION = 150 * 1000;
-	
+
 	static const int BLINK_FAST_DURATION = 100 * 1000; /**< duration of half a blinking cycle
 									(on-to-off and off-to-on) in us */
-	static const int BLINK_NORMAL_DURATION = 700 * 1000; /**< duration of half a blinking cycle
+	static const int BLINK_NORMAL_DURATION = 500 * 1000; /**< duration of half a blinking cycle
 									(on-to-off and off-to-on) in us */
 	static const int BLINK_SLOW_DURATION = 2000 * 1000; /**< duration of half a blinking cycle
 									(on-to-off and off-to-on) in us */
@@ -161,7 +158,7 @@ private:
 
 			if (priority[next_priority].blink_times_left == 0) {
 				// handle infinite case
-				priority[next_priority].blink_times_left = 248;
+				priority[next_priority].blink_times_left = 246;
 			}
 
 
@@ -182,7 +179,7 @@ private:
 
 			if (priority[next_priority].blink_times_left == 0) {
 				// handle infinite case
-				priority[next_priority].blink_times_left = 248;
+				priority[next_priority].blink_times_left = 254;
 			}
 		}
 	};

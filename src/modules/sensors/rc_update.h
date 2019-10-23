@@ -45,6 +45,7 @@
 #include <mathlib/mathlib.h>
 #include <mathlib/math/filter/LowPassFilter2p.hpp>
 #include <uORB/topics/rc_channels.h>
+#include <uORB/topics/virtual_stick.h>
 
 namespace sensors
 {
@@ -113,12 +114,18 @@ private:
 
 	int		_rc_sub = -1;			/**< raw rc channels data subscription */
 	int		_rc_parameter_map_sub = -1;		/**< rc parameter map subscription */
+    int    _vs_sub = -1; /**virtual stick by DGXY  subscription*/
+
+    int     _vs_enable_DG = 0;   /**< virtual stick message by DGXY enable*/
+    uint64_t vs_last_timestamp = 0;
 
 	orb_advert_t	_rc_pub = nullptr;		/**< raw r/c control topic */
 	orb_advert_t	_manual_control_pub = nullptr;	/**< manual control signal topic */
 	orb_advert_t	_actuator_group_3_pub = nullptr;/**< manual control as actuator topic */
 
 	struct rc_channels_s _rc;			/**< r/c channel data */
+
+    struct virtual_stick_s _vs_sp;   /**< DG virtual stick data */
 
 	struct rc_parameter_map_s _rc_parameter_map;
 	float _param_rc_values[rc_parameter_map_s::RC_PARAM_MAP_NCHAN];	/**< parameter values for RC control */

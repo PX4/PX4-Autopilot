@@ -1857,12 +1857,15 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 
 		_mom_switch_state = man.buttons;
 
-		if (_rc_pub == nullptr) {
-			_rc_pub = orb_advertise(ORB_ID(input_rc), &rc);
+//		if (_rc_pub == nullptr) {
+//			_rc_pub = orb_advertise(ORB_ID(input_rc), &rc);
 
-		} else {
-			orb_publish(ORB_ID(input_rc), _rc_pub, &rc);
-		}
+//		} else {
+//			orb_publish(ORB_ID(input_rc), _rc_pub, &rc);
+//		}
+
+        int m_inst;
+        orb_publish_auto(ORB_ID(input_rc), &_rc_pub, &rc, &m_inst, ORB_PRIO_VERY_HIGH);
 
 	} else {
 		struct manual_control_setpoint_s manual = {};
@@ -1875,7 +1878,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		manual.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0 + _mavlink->get_instance_id();
 
 		int m_inst;
-		orb_publish_auto(ORB_ID(manual_control_setpoint), &_manual_pub, &manual, &m_inst, ORB_PRIO_LOW);
+        orb_publish_auto(ORB_ID(manual_control_setpoint), &_manual_pub, &manual, &m_inst, ORB_PRIO_LOW);
 	}
 }
 

@@ -199,7 +199,7 @@ private:
 
 	void airspeed_use_check();
 
-	void battery_status_check();
+    void battery_status_check(bool &status_changed);
 
 	/**
 	 * Checks the status of all available data links and handles switching between different system telemetry states.

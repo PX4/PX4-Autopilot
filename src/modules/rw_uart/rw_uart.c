@@ -117,6 +117,7 @@ void msg_orb_sub (MSG_orb_sub *msg_fd)
     msg_fd->attitude_fd = orb_subscribe(ORB_ID(vehicle_attitude));
     msg_fd->battery_fd = orb_subscribe(ORB_ID(battery_status));
     msg_fd->geofence_fd = orb_subscribe(ORB_ID(geofence_result));
+    //msg_fd->rc_input_fd = orb_subscribe(ORB_ID(input_rc));
     msg_fd->vibe_fd = orb_subscribe(ORB_ID(estimator_status));
     msg_fd->global_position_fd = orb_subscribe(ORB_ID(vehicle_global_position));
 }
@@ -136,6 +137,7 @@ void msg_orb_data(MSG_orb_data *msg_data, MSG_orb_sub msg_fd)
    orb_copy(ORB_ID(vehicle_attitude), msg_fd.attitude_fd, &msg_data->attitude_data);
    orb_copy(ORB_ID(battery_status), msg_fd.battery_fd, &msg_data->battery_data);
    orb_copy(ORB_ID(geofence_result), msg_fd.geofence_fd, &msg_data->geofence_data);
+   //orb_copy(ORB_ID(input_rc), msg_fd.rc_input_fd, &msg_data->input_rc_data);
    orb_copy(ORB_ID(estimator_status), msg_fd.vibe_fd, &msg_data->vibe_data);
    orb_copy(ORB_ID(vehicle_global_position), msg_fd.global_position_fd, &msg_data->global_position_data);
 }
@@ -152,6 +154,7 @@ void msg_orb_unsub (MSG_orb_sub *msg_fd)
     orb_unsubscribe(msg_fd->local_position_fd);
     orb_unsubscribe(msg_fd->air_data_fd);
     orb_unsubscribe(msg_fd->attitude_fd);
+    //orb_unsubscribe(msg_fd->rc_input_fd);
     orb_unsubscribe(msg_fd->battery_fd);
     orb_unsubscribe(msg_fd->geofence_fd);
     orb_unsubscribe(msg_fd->vibe_fd);
@@ -322,9 +325,8 @@ int rw_uart_thread_main(int argc, char *argv[])
             memset(buffer, 0, sizeof(buffer));
 
             msg_orb_data(&msg_data, msg_fd);
-            msg_pack_send(msg_data);
+            msg_pack_send(msg_data, &msg_pd);
             usleep(10000);
-           //usleep(1000000);
 
             int poll_ret = poll(fds,1,10);//阻塞等待10ms
             if (poll_ret == 0)

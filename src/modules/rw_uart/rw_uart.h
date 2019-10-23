@@ -31,6 +31,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/mission_result.h>
+#include <uORB/topics/mission.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
@@ -43,6 +44,8 @@
 #include <uORB/topics/follow_target.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/vehicle_global_position.h>
+#include <uORB/topics/virtual_stick.h>
+#include <uORB/topics/dg_vehicle_status.h>
 
 #define WP_DATA_NUM_MAX (uint16_t) 20
 
@@ -103,14 +106,14 @@ typedef struct {
     uint8_t rc_pitch_mid;
     int8_t local_vy_high8;
     int16_t local_z_sp;
-    uint8_t skyway_state; //0xff
+    uint8_t skyway_state;
     int16_t magnet_yaw;
     int8_t local_vz_low8;
     uint16_t flight_time;
     uint8_t battery_current;
     int8_t local_vy_low8;
     int16_t gps_vy;
-    uint16_t version; //0xffff
+    uint16_t version; //1000
     uint8_t sum_check;
 } STP;
 
@@ -322,16 +325,19 @@ typedef struct {
     int attitude_fd;
     int battery_fd;
     int geofence_fd;
+    //int rc_input_fd;
     int vibe_fd;
     int global_position_fd;
 }MSG_orb_sub;
 
 typedef struct {
     orb_advert_t command_pd;
-    orb_advert_t manual_pd;
+    orb_advert_t virtual_stick_pd;
     orb_advert_t local_position_sp_pd;
-    orb_advert_t status_pd;
+    //orb_advert_t status_pd;
     orb_advert_t follow_target_pd;
+    orb_advert_t dg_vehicle_status_pd;
+    orb_advert_t mission_pd;
 }MSG_orb_pub;
 
 typedef struct {
@@ -347,7 +353,7 @@ typedef struct {
     struct vehicle_attitude_s attitude_data;
     struct battery_status_s battery_data;
     struct geofence_result_s geofence_data;
-//    struct input_rc_s input_rc_data;
+    //struct input_rc_s input_rc_data;
     struct estimator_status_s vibe_data;
     struct vehicle_global_position_s global_position_data;
 //    struct follow_target_s follow_target_data;
@@ -427,7 +433,7 @@ extern uint8_t calculate_sum_check (const uint8_t *send_message, int len);
 
 extern uint16_t check_crc(const uint8_t *buffer, uint8_t buflen);
 
-extern void msg_pack_send(MSG_orb_data msg_data);
+extern void msg_pack_send(MSG_orb_data msg_data, MSG_orb_pub *msg_pd);
 
 extern void find_r_type(uint8_t *buffer, MSG_orb_data *msg_data, MSG_orb_pub *msg_pd,
                         MSG_param_hd msg_hd);
