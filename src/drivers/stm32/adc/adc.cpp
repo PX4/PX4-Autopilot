@@ -412,7 +412,7 @@ ADC::update_system_power(hrt_abstime now)
 		{
 			if (_samples[i].am_channel == ADC_SCALED_V3V3_SENSORS_SENSE) {
 				// it is 2:1 scaled
-				system_power.voltage3v3_v = _samples[i].am_data * (ADC_3V3_SCALE * (3.3f / 4096.0f));
+				system_power.voltage3v3_v = _samples[i].am_data * (ADC_3V3_SCALE * (3.3f / 4096.0f)); 
 				system_power.v3v3_valid = 1;
 				cnt--;
 			}

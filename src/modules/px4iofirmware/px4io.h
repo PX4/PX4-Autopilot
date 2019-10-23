@@ -179,9 +179,9 @@ extern pwm_limit_t pwm_limit;
 # define PX4IO_ADC_CHANNEL_COUNT	2
 # define ADC_VSERVO			4
 # define ADC_RSSI			5
-
-#define BUTTON_SAFETY		px4_arch_gpioread(GPIO_BTN_SAFETY)
-
+#ifdef GPIO_BTN_SAFETY
+  #define BUTTON_SAFETY		px4_arch_gpioread(GPIO_BTN_SAFETY)
+#endif
 #define CONTROL_PAGE_INDEX(_group, _channel) (_group * PX4IO_CONTROL_CHANNELS + _channel)
 
 #define PX4_CRITICAL_SECTION(cmd)	{ irqstate_t flags = px4_enter_critical_section(); cmd; px4_leave_critical_section(flags); }
