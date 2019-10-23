@@ -46,6 +46,7 @@ px4_add_board(
 		logger
 		mavlink
 		navigator
+		battery_status
 		sensors
 		vmount
 
@@ -72,4 +73,6 @@ px4_add_board(
 		tune_control
 		usb_connected
 		ver
+		work_queue
+
 	)

@@ -187,7 +187,6 @@ private:
 	SubscriptionData<vehicle_acceleration_s>	_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
 	perf_counter_t	_loop_perf;				///< loop performance counter */
-	perf_counter_t	_loop_interval_perf;			///< loop interval performance counter */
 
 	float	_hold_alt{0.0f};				///< hold altitude for altitude mode */
 	float	_takeoff_ground_alt{0.0f};			///< ground altitude at which plane was launched */

@@ -225,7 +225,7 @@ private:
 MappyDot::MappyDot(const int bus) :
 	I2C("MappyDot", MAPPYDOT_DEVICE_PATH, bus, MAPPYDOT_BASE_ADDR, MAPPYDOT_BUS_CLOCK),
 	ModuleParams(nullptr),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id()))
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id()))
 {}
 
 MappyDot::~MappyDot()

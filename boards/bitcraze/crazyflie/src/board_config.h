@@ -153,12 +153,6 @@
  */
 #define ADC_CHANNELS 0
 
-// ADC defines to be used in sensors.cpp to read from a particular channel
-// Crazyflie 2 performs battery sensing via the NRF module
-#define ADC_BATTERY_VOLTAGE_CHANNEL	((uint8_t)(-1))
-#define ADC_BATTERY_CURRENT_CHANNEL	((uint8_t)(-1))
-#define ADC_AIRSPEED_VOLTAGE_CHANNEL	((uint8_t)(-1))
-
 /* Tone alarm output : These are only applicable when the buzzer deck is attached */
 #define TONE_ALARM_TIMER	5	/* timer 5 */
 #define TONE_ALARM_CHANNEL 3	/* channel 3 */
@@ -216,6 +210,9 @@
 #define HRT_TIMER_CHANNEL	1	/* use capture/compare channel */
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
+
+#define BOARD_ENABLE_CONSOLE_BUFFER
+#define BOARD_CONSOLE_BUFFER_SIZE (1024*3)
 
 __BEGIN_DECLS
 

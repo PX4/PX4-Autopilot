@@ -54,6 +54,7 @@ px4_add_board(
 		mc_pos_control
 		micrortps_bridge
 		navigator
+		battery_status
 		sensors
 		sih
 		vmount
@@ -85,6 +86,7 @@ px4_add_board(
 		#topic_listener
 		tune_control
 		ver
+		work_queue
 
 	EXAMPLES
 		#bottle_drop # OBC challenge

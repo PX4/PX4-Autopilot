@@ -76,6 +76,7 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		navigator
+		battery_status
 		sensors
 		vmount
 		#vtol_att_control
@@ -104,6 +105,7 @@ px4_add_board(
 		#topic_listener
 		tune_control
 		ver
+		work_queue
 
 	EXAMPLES
 		#bottle_drop # OBC challenge

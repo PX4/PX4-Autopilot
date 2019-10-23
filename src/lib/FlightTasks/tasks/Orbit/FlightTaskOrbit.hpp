@@ -42,14 +42,15 @@
 #pragma once
 
 #include "FlightTaskManualAltitudeSmooth.hpp"
-#include <uORB/uORB.h>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/orbit_status.h>
 #include <StraightLine.hpp>
 
 class FlightTaskOrbit : public FlightTaskManualAltitudeSmooth
 {
 public:
 	FlightTaskOrbit();
-	virtual ~FlightTaskOrbit();
+	virtual ~FlightTaskOrbit() = default;
 
 	bool applyCommandParameters(const vehicle_command_s &command) override;
 	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
@@ -103,7 +104,7 @@ private:
 	const float _velocity_max = 10.f;
 	const float _acceleration_max = 2.f;
 
-	orb_advert_t _orbit_status_pub = nullptr;
+	uORB::Publication<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::MPC_XY_CRUISE>) _param_mpc_xy_cruise /**< cruise speed for circle approach */

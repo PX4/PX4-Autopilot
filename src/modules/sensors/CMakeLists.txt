@@ -47,12 +47,11 @@ px4_add_module(
 
 	DEPENDS
 		airspeed
-		battery
 		conversion
 		drivers__device
 		git_ecl
 		ecl_validation
 		mathlib
-		sensors__vehicle_acceleration
-		sensors__vehicle_angular_velocity
+		vehicle_acceleration
+		vehicle_angular_velocity
 	)

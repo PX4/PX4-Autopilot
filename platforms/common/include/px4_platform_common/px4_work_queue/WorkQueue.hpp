@@ -35,6 +35,7 @@
 
 #include "WorkQueueManager.hpp"
 
+#include <containers/BlockingList.hpp>
 #include <containers/List.hpp>
 #include <containers/IntrusiveQueue.hpp>
 #include <px4_atomic.h>
@@ -57,6 +58,9 @@ public:
 
 	const char *get_name() { return _config.name; }
 
+	bool Attach(WorkItem *item);
+	void Detach(WorkItem *item);
+
 	void Add(WorkItem *item);
 	void Remove(WorkItem *item);
 
@@ -66,11 +70,13 @@ public:
 
 	void request_stop() { _should_exit.store(true); }
 
-	void print_status();
+	void print_status(bool last = false);
 
 private:
 
 	bool should_exit() const { return _should_exit.load(); }
+
+	inline void signal_worker_thread();
 
 #ifdef __PX4_NUTTX
 	// In NuttX work can be enqueued from an ISR
@@ -84,10 +90,10 @@ private:
 #endif
 
 	IntrusiveQueue<WorkItem *>	_q;
-	px4_sem_t		_process_lock;
-
-	px4::atomic_bool	_should_exit{false};
-	const wq_config_t	&_config;
+	px4_sem_t			_process_lock;
+	const wq_config_t		&_config;
+	BlockingList<WorkItem *>	_work_items;
+	px4::atomic_bool		_should_exit{false};
 
 };
 

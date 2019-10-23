@@ -214,7 +214,6 @@ private:
 	unsigned		_accel_samplerate{FXOS8701C_ACCEL_DEFAULT_RATE};
 
 	perf_counter_t		_accel_sample_perf;
-	perf_counter_t		_accel_sample_interval_perf;
 	perf_counter_t		_bad_registers;
 	perf_counter_t		_accel_duplicates;
 

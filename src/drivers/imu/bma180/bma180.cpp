@@ -223,7 +223,7 @@ private:
 
 BMA180::BMA180(int bus, uint32_t device) :
 	SPI("BMA180", ACCEL_DEVICE_PATH, bus, device, SPIDEV_MODE3, 8000000),
-	ScheduledWorkItem(px4::device_bus_to_wq(this->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(this->get_device_id())),
 	_call_interval(0),
 	_reports(nullptr),
 	_accel_range_scale(0.0f),

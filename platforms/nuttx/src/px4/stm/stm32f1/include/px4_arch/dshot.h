@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,56 +30,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#pragma once
 
-#include "SubscriptionArray.hpp"
 
-#include <string.h>
+#include "../../../stm32_common/include/px4_arch/dshot.h"
 
-SubscriptionArray::~SubscriptionArray()
-{
-	cleanup();
-}
-
-void SubscriptionArray::cleanup()
-{
-	for (int i = 0; i < _subscriptions_count; ++i) {
-		delete _subscriptions[i];
-	}
-
-	delete[] _subscriptions;
-	_subscriptions = nullptr;
-}
-
-bool SubscriptionArray::resizeSubscriptions()
-{
-	const int new_size = _subscriptions_size == 0 ? 4 : _subscriptions_size * 2;
-	uORB::SubscriptionPollableNode **new_array = new uORB::SubscriptionPollableNode*[new_size];
-
-	if (!new_array) {
-		return false;
-	}
-
-	if (_subscriptions) {
-		memcpy(new_array, _subscriptions, sizeof(uORB::SubscriptionPollableNode *)*_subscriptions_count);
-		delete[] _subscriptions;
-	}
-
-	_subscriptions = new_array;
-	_subscriptions_size = new_size;
-
-	return true;
-}
-
-void SubscriptionArray::update()
-{
-	for (int i = 0; i < _subscriptions_count; ++i) {
-		_subscriptions[i]->update();
-	}
-}
-
-void SubscriptionArray::forcedUpdate()
-{
-	for (int i = 0; i < _subscriptions_count; ++i) {
-		_subscriptions[i]->forcedUpdate();
-	}
-}

@@ -174,7 +174,7 @@ private:
 
 LeddarOne::LeddarOne(const char *device_path, const char *serial_port, uint8_t device_orientation):
 	CDev(device_path),
-	ScheduledWorkItem(px4::wq_configurations::hp_default),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, device_orientation)
 {
 	_serial_port = strdup(serial_port);

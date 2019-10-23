@@ -33,6 +33,7 @@
 
 
 add_subdirectory(../stm32_common/adc adc)
+add_subdirectory(../stm32_common/dshot dshot)
 add_subdirectory(../stm32_common/hrt hrt)
 add_subdirectory(../stm32_common/led_pwm led_pwm)
 add_subdirectory(../stm32_common/io_pins io_pins)

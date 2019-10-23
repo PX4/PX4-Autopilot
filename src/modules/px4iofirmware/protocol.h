@@ -235,7 +235,7 @@ enum {							/* DSM bind states */
 
 #define PX4IO_P_SETUP_MOTOR_SLEW_MAX		24 	/**< max motor slew rate */
 
-#define PX4IO_P_SETUP_THR_MDL_FAC 		25	/**< factor for modelling static pwm output to thrust relationship */
+#define PX4IO_P_SETUP_THR_MDL_FAC 		25	/**< factor for modelling motor control signal output to static thrust relationship */
 
 #define PX4IO_P_SETUP_THERMAL			26	/**< thermal management */
 

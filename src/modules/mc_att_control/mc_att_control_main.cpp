@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -52,18 +52,11 @@
 #include <mathlib/math/Limits.hpp>
 #include <mathlib/math/Functions.hpp>
 
-#define TPA_RATE_LOWER_LIMIT 0.05f
-
-#define AXIS_INDEX_ROLL 0
-#define AXIS_INDEX_PITCH 1
-#define AXIS_INDEX_YAW 2
-#define AXIS_COUNT 3
-
 using namespace matrix;
 
 MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	ModuleParams(nullptr),
-	WorkItem(px4::wq_configurations::rate_ctrl),
+	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
 	_loop_perf(perf_alloc(PC_ELAPSED, "mc_att_control"))
 {
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
@@ -72,10 +65,7 @@ MulticopterAttitudeControl::MulticopterAttitudeControl() :
 	_v_att.q[0] = 1.f;
 	_v_att_sp.q_d[0] = 1.f;
 
-	_rates_prev.zero();
-	_rates_prev_filtered.zero();
 	_rates_sp.zero();
-	_rates_int.zero();
 	_thrust_sp = 0.0f;
 	_att_control.zero();
 
@@ -104,21 +94,19 @@ MulticopterAttitudeControl::parameters_updated()
 	// Store some of the parameters in a more convenient way & precompute often-used values
 	_attitude_control.setProportionalGain(Vector3f(_param_mc_roll_p.get(), _param_mc_pitch_p.get(), _param_mc_yaw_p.get()));
 
-	// rate gains
-	_rate_p = Vector3f(_param_mc_rollrate_p.get(), _param_mc_pitchrate_p.get(), _param_mc_yawrate_p.get());
-	_rate_i = Vector3f(_param_mc_rollrate_i.get(), _param_mc_pitchrate_i.get(), _param_mc_yawrate_i.get());
-	_rate_int_lim = Vector3f(_param_mc_rr_int_lim.get(), _param_mc_pr_int_lim.get(), _param_mc_yr_int_lim.get());
-	_rate_d = Vector3f(_param_mc_rollrate_d.get(), _param_mc_pitchrate_d.get(), _param_mc_yawrate_d.get());
-	_rate_ff = Vector3f(_param_mc_rollrate_ff.get(), _param_mc_pitchrate_ff.get(), _param_mc_yawrate_ff.get());
-
+	// rate control parameters
 	// The controller gain K is used to convert the parallel (P + I/s + sD) form
 	// to the ideal (K * [1 + 1/sTi + sTd]) form
-	_rate_k = Vector3f(_param_mc_rollrate_k.get(), _param_mc_pitchrate_k.get(), _param_mc_yawrate_k.get());
-
-	if (fabsf(_lp_filters_d.get_cutoff_freq() - _param_mc_dterm_cutoff.get()) > 0.01f) {
-		_lp_filters_d.set_cutoff_frequency(_loop_update_rate_hz, _param_mc_dterm_cutoff.get());
-		_lp_filters_d.reset(_rates_prev);
-	}
+	Vector3f rate_k = Vector3f(_param_mc_rollrate_k.get(), _param_mc_pitchrate_k.get(), _param_mc_yawrate_k.get());
+	_rate_control.setGains(
+		rate_k.emult(Vector3f(_param_mc_rollrate_p.get(), _param_mc_pitchrate_p.get(), _param_mc_yawrate_p.get())),
+		rate_k.emult(Vector3f(_param_mc_rollrate_i.get(), _param_mc_pitchrate_i.get(), _param_mc_yawrate_i.get())),
+		rate_k.emult(Vector3f(_param_mc_rollrate_d.get(), _param_mc_pitchrate_d.get(), _param_mc_yawrate_d.get())));
+	_rate_control.setIntegratorLimit(
+		Vector3f(_param_mc_rr_int_lim.get(), _param_mc_pr_int_lim.get(), _param_mc_yr_int_lim.get()));
+	_rate_control.setDTermCutoff(_loop_update_rate_hz, _param_mc_dterm_cutoff.get(), false);
+	_rate_control.setFeedForwardGain(
+		Vector3f(_param_mc_rollrate_ff.get(), _param_mc_pitchrate_ff.get(), _param_mc_yawrate_ff.get()));
 
 	// angular rate limits
 	using math::radians;
@@ -144,6 +132,7 @@ MulticopterAttitudeControl::parameter_update_poll()
 		_parameter_update_sub.copy(&pupdate);
 
 		// update parameters from storage
+		updateParams();
 		parameters_updated();
 	}
 }
@@ -374,27 +363,6 @@ MulticopterAttitudeControl::control_attitude()
 }
 
 /*
- * Throttle PID attenuation
- * Function visualization available here https://www.desmos.com/calculator/gn4mfoddje
- * Input: 'tpa_breakpoint', 'tpa_rate', '_thrust_sp'
- * Output: 'pidAttenuationPerAxis' vector
- */
-Vector3f
-MulticopterAttitudeControl::pid_attenuations(float tpa_breakpoint, float tpa_rate)
-{
-	/* throttle pid attenuation factor */
-	float tpa = 1.0f - tpa_rate * (fabsf(_thrust_sp) - tpa_breakpoint) / (1.0f - tpa_breakpoint);
-	tpa = fmaxf(TPA_RATE_LOWER_LIMIT, fminf(1.0f, tpa));
-
-	Vector3f pidAttenuationPerAxis;
-	pidAttenuationPerAxis(AXIS_INDEX_ROLL) = tpa;
-	pidAttenuationPerAxis(AXIS_INDEX_PITCH) = tpa;
-	pidAttenuationPerAxis(AXIS_INDEX_YAW) = 1.0;
-
-	return pidAttenuationPerAxis;
-}
-
-/*
  * Attitude rates controller.
  * Input: '_rates_sp' vector, '_thrust_sp'
  * Output: '_att_control' vector
@@ -402,71 +370,14 @@ MulticopterAttitudeControl::pid_attenuations(float tpa_breakpoint, float tpa_rat
 void
 MulticopterAttitudeControl::control_attitude_rates(float dt, const Vector3f &rates)
 {
-	/* reset integral if disarmed */
+	// reset integral if disarmed
 	if (!_v_control_mode.flag_armed || _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-		_rates_int.zero();
+		_rate_control.resetIntegral();
 	}
 
-	Vector3f rates_p_scaled = _rate_p.emult(pid_attenuations(_param_mc_tpa_break_p.get(), _param_mc_tpa_rate_p.get()));
-	Vector3f rates_i_scaled = _rate_i.emult(pid_attenuations(_param_mc_tpa_break_i.get(), _param_mc_tpa_rate_i.get()));
-	Vector3f rates_d_scaled = _rate_d.emult(pid_attenuations(_param_mc_tpa_break_d.get(), _param_mc_tpa_rate_d.get()));
-
-	/* angular rates error */
-	Vector3f rates_err = _rates_sp - rates;
-
-	/* apply low-pass filtering to the rates for D-term */
-	Vector3f rates_filtered(_lp_filters_d.apply(rates));
-
-	_att_control = _rate_k.emult(rates_p_scaled.emult(rates_err) -
-				     rates_d_scaled.emult(rates_filtered - _rates_prev_filtered) / dt) +
-		       _rates_int +
-		       _rate_ff.emult(_rates_sp);
-
-	_rates_prev = rates;
-	_rates_prev_filtered = rates_filtered;
-
-	/* update integral only if we are not landed */
-	if (!_vehicle_land_detected.maybe_landed && !_vehicle_land_detected.landed) {
-		for (int i = AXIS_INDEX_ROLL; i < AXIS_COUNT; i++) {
-			// Check for positive control saturation
-			bool positive_saturation =
-				((i == AXIS_INDEX_ROLL) && _saturation_status.flags.roll_pos) ||
-				((i == AXIS_INDEX_PITCH) && _saturation_status.flags.pitch_pos) ||
-				((i == AXIS_INDEX_YAW) && _saturation_status.flags.yaw_pos);
-
-			// Check for negative control saturation
-			bool negative_saturation =
-				((i == AXIS_INDEX_ROLL) && _saturation_status.flags.roll_neg) ||
-				((i == AXIS_INDEX_PITCH) && _saturation_status.flags.pitch_neg) ||
-				((i == AXIS_INDEX_YAW) && _saturation_status.flags.yaw_neg);
-
-			// prevent further positive control saturation
-			if (positive_saturation) {
-				rates_err(i) = math::min(rates_err(i), 0.0f);
-			}
-
-			// prevent further negative control saturation
-			if (negative_saturation) {
-				rates_err(i) = math::max(rates_err(i), 0.0f);
-			}
-
-			// I term factor: reduce the I gain with increasing rate error.
-			// This counteracts a non-linear effect where the integral builds up quickly upon a large setpoint
-			// change (noticeable in a bounce-back effect after a flip).
-			// The formula leads to a gradual decrease w/o steps, while only affecting the cases where it should:
-			// with the parameter set to 400 degrees, up to 100 deg rate error, i_factor is almost 1 (having no effect),
-			// and up to 200 deg error leads to <25% reduction of I.
-			float i_factor = rates_err(i) / math::radians(400.f);
-			i_factor = math::max(0.0f, 1.f - i_factor * i_factor);
-
-			// Perform the integration using a first order method and do not propagate the result if out of range or invalid
-			float rate_i = _rates_int(i) + i_factor * _rate_k(i) * rates_i_scaled(i) * rates_err(i) * dt;
-
-			if (PX4_ISFINITE(rate_i)) {
-				_rates_int(i) = math::constrain(rate_i, -_rate_int_lim(i), _rate_int_lim(i));
-			}
-		}
-	}
+	const bool landed = _vehicle_land_detected.maybe_landed || _vehicle_land_detected.landed;
+	_rate_control.setSaturationStatus(_saturation_status);
+	_att_control = _rate_control.update(rates, _rates_sp, dt, landed);
 }
 
 void
@@ -488,10 +399,7 @@ MulticopterAttitudeControl::publish_rate_controller_status()
 {
 	rate_ctrl_status_s rate_ctrl_status = {};
 	rate_ctrl_status.timestamp = hrt_absolute_time();
-	rate_ctrl_status.rollspeed_integ = _rates_int(0);
-	rate_ctrl_status.pitchspeed_integ = _rates_int(1);
-	rate_ctrl_status.yawspeed_integ = _rates_int(2);
-
+	_rate_control.getRateControlStatus(rate_ctrl_status);
 	_controller_status_pub.publish(rate_ctrl_status);
 }
 
@@ -634,7 +542,7 @@ MulticopterAttitudeControl::Run()
 		if (_v_control_mode.flag_control_termination_enabled) {
 			if (!_vehicle_status.is_vtol) {
 				_rates_sp.zero();
-				_rates_int.zero();
+				_rate_control.resetIntegral();
 				_thrust_sp = 0.0f;
 				_att_control.zero();
 				publish_actuator_controls();
@@ -661,7 +569,7 @@ MulticopterAttitudeControl::Run()
 				_loop_update_rate_hz = _loop_update_rate_hz * 0.5f + loop_update_rate * 0.5f;
 				_dt_accumulator = 0;
 				_loop_counter = 0;
-				_lp_filters_d.set_cutoff_frequency(_loop_update_rate_hz, _param_mc_dterm_cutoff.get());
+				_rate_control.setDTermCutoff(_loop_update_rate_hz, _param_mc_dterm_cutoff.get(), true);
 			}
 		}
 

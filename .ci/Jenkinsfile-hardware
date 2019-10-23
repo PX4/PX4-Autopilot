@@ -11,7 +11,7 @@ pipeline {
         stage('px4_fmu-v2_test') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -35,7 +35,7 @@ pipeline {
         stage('px4_fmu-v3_default') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -59,7 +59,7 @@ pipeline {
         stage('px4_fmu-v4_default') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -83,7 +83,7 @@ pipeline {
         stage('px4_fmu-v4pro_default') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -107,7 +107,7 @@ pipeline {
         stage('px4_fmu-v5_default') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -131,7 +131,7 @@ pipeline {
         stage('px4_fmu-v5_critmonitor') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -155,7 +155,7 @@ pipeline {
         stage('px4_fmu-v5_irqmonitor') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -179,7 +179,7 @@ pipeline {
         stage('px4_fmu-v5_stackcheck') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -203,7 +203,7 @@ pipeline {
         stage('px4_fmu-v5x_default') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -227,7 +227,7 @@ pipeline {
         stage('nxp_fmuk66-v3_default') {
           agent {
             docker {
-              image 'px4io/px4-dev-nuttx:2019-07-29'
+              image 'px4io/px4-dev-nuttx:2019-10-04'
               args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
             }
           }
@@ -291,6 +291,7 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "top once"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "work_queue status"'
             // ensure buzzer is disabled for the next test
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set CBRK_BUZZER 782097"'  // disable buzzer
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "param set LED_RGB_MAXBRT 0"'    // disable rgbled
@@ -351,6 +352,7 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb top -1"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "work_queue status"'
             // run tests
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
             // ensure buzzer is disabled for the next test
@@ -420,6 +422,7 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb top -1"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "work_queue status"'
             // run tests
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
             // ensure buzzer is disabled for the next test
@@ -490,6 +493,7 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb top -1"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "work_queue status"'
             // run tests
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
             // ensure buzzer is disabled for the next test
@@ -561,6 +565,7 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb top -1"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "work_queue status"'
             // run tests
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
             // ensure buzzer is disabled for the next test
@@ -632,6 +637,7 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb top -1"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "work_queue status"'
             // critmon
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "critmon_start; sleep 5; critmon_stop"'
             // run tests
@@ -709,6 +715,7 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb top -1"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "work_queue status"'
             // irqinfo
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "irqinfo"'
             // run tests
@@ -766,11 +773,12 @@ pipeline {
                 sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "pwm info -d /dev/pwm_output1"'
                 sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "pwm info"'
                 sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "px4io status"'
-                sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sd_bench -r 2"'
+                //sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sd_bench -r 2"'
                 sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "sensors status"'
                 sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "top once"'
                 sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
                 sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
+                sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "work_queue status"'
                 // run tests
                 // sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`' // TODO: currently unusably slow
                 // ensure buzzer is disabled for the next test
@@ -847,6 +855,7 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "uorb status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "uorb top -1"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "ver all"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-SEGGER_*` --cmd "work_queue status"'
             // run tests
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-SEGGER_*`'
             // ensure buzzer is disabled for the next test
@@ -916,6 +925,7 @@ pipeline {
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb status"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "uorb top -1"'
             sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "ver all"'
+            sh './Tools/HIL/run_nsh_cmd.py --device `find /dev/serial -name *usb-FTDI_*` --cmd "work_queue status"'
             // run tests
             sh './Tools/HIL/run_tests.py --device `find /dev/serial -name *usb-FTDI_*`'
             // ensure buzzer is disabled for the next test

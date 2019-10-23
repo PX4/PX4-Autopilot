@@ -70,6 +70,7 @@ px4_add_board(
 		topic_listener
 		tune_control
 		ver
+		work_queue
 
 	EXAMPLES
 		bottle_drop # OBC challenge
@@ -95,7 +96,7 @@ if(REPLAY_FILE)
 	message("Building with uorb publisher rules support")
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 
-	message("Building without lockstep for replay")
+	message(STATUS "Building without lockstep for replay")
 	set(ENABLE_LOCKSTEP_SCHEDULER no)
 else()
 	set(ENABLE_LOCKSTEP_SCHEDULER yes)

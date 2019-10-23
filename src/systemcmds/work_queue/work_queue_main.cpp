@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2015-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,22 +31,56 @@
  *
  ****************************************************************************/
 
-/**
- * Motor Ordering
- *
- * Determines the motor ordering. This can be used for example in combination with
- * a 4-in-1 ESC that assumes a motor ordering which is different from PX4.
- *
- * ONLY supported for Quads.
- * ONLY supported for fmu output (Pixracer or Omnibus F4).
- *
- * When changing this, make sure to test the motor response without props first.
- *
- * @value 0 PX4
- * @value 1 Betaflight / Cleanflight
- *
- * @min 0
- * @max 1
- * @group PWM Outputs
- */
-PARAM_DEFINE_INT32(MOT_ORDERING, 0);
+#include <px4_config.h>
+#include <px4_module.h>
+#include <px4_getopt.h>
+#include <px4_platform_common/px4_work_queue/WorkQueueManager.hpp>
+
+static void	usage();
+
+extern "C" {
+	__EXPORT int work_queue_main(int argc, char *argv[]);
+}
+
+int
+work_queue_main(int argc, char *argv[])
+{
+	if (argc != 2) {
+		usage();
+		return 1;
+	}
+
+	if (!strcmp(argv[1], "start")) {
+		px4::WorkQueueManagerStart();
+		return 0;
+
+	} else if (!strcmp(argv[1], "stop")) {
+		px4::WorkQueueManagerStop();
+		return 0;
+
+	} else if (!strcmp(argv[1], "status")) {
+		px4::WorkQueueManagerStatus();
+		return 0;
+	}
+
+	usage();
+
+	return 0;
+}
+
+static void
+usage()
+{
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+Command-line tool to show work queue status.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("work_queue", "system");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+}

@@ -57,7 +57,7 @@ void BlockLocalPositionEstimator::gpsInit()
 			// find lat, lon of current origin by subtracting x and y
 			// if not using vision position since vision will
 			// have it's own origin, not necessarily where vehicle starts
-			if (!_map_ref.init_done && !(_param_lpe_fusion.get() & FUSE_VIS_POS)) {
+			if (!_map_ref.init_done) {
 				double gpsLatOrigin = 0;
 				double gpsLonOrigin = 0;
 				// reproject at current coordinates

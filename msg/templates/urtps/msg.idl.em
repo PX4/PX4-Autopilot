@@ -57,7 +57,10 @@ def get_include_directives(spec):
         if genmsg.msgs.is_valid_constant_type(genmsg.msgs.bare_msg_type(field.type)):
             continue
         builtin_type = str(field.base_type).replace('px4/', '')
-        include_directive = '#include "%s_.idl"' % builtin_type
+        if 1.5 <= fastrtpsgen_version <= 1.7:
+            include_directive = '#include "%s_.idl"' % builtin_type
+        else:
+            include_directive = '#include "%s.idl"' % builtin_type
         builtin_types.add(builtin_type)
         include_directives.add(include_directive)
     return sorted(include_directives)
@@ -74,11 +77,16 @@ def get_idl_type_name(field_type):
 def add_msg_field(field):
     if (not field.is_header):
         if field.is_array:
-            print('    {0}__{1}_array_{2} {3}_;'.format(topic, str(get_idl_type_name(field.base_type)).replace(" ", "_"), str(field.array_len), field.name))
+            if 1.5 <= fastrtpsgen_version <= 1.7:
+                print('    {0}__{1}_array_{2} {3}_;'.format(topic, str(get_idl_type_name(field.base_type)).replace(" ", "_"), str(field.array_len), field.name))
+            else:
+                print('    {0}__{1}_array_{2} {3};'.format(topic, str(get_idl_type_name(field.base_type)).replace(" ", "_"), str(field.array_len), field.name))
         else:
-            base_type = get_idl_type_name(field.base_type) + "_" if get_idl_type_name(field.base_type) in builtin_types else get_idl_type_name(field.base_type)
+            if 1.5 <= fastrtpsgen_version <= 1.7:
+                base_type = get_idl_type_name(field.base_type) + "_" if get_idl_type_name(field.base_type) in builtin_types else get_idl_type_name(field.base_type)
+            else:
+                base_type = get_idl_type_name(field.base_type) if get_idl_type_name(field.base_type) in builtin_types else get_idl_type_name(field.base_type)
             print('    {0} {1}_;'.format(base_type, field.name))
-
 
 def add_msg_fields():
     for field in spec.parsed_fields():
@@ -88,7 +96,10 @@ def add_msg_fields():
 def add_array_typedefs():
     for field in spec.parsed_fields():
         if not field.is_header and field.is_array:
-            base_type = get_idl_type_name(field.base_type) + "_" if get_idl_type_name(field.base_type) in builtin_types else get_idl_type_name(field.base_type)
+            if 1.5 <= fastrtpsgen_version <= 1.7:
+                base_type = get_idl_type_name(field.base_type) + "_" if get_idl_type_name(field.base_type) in builtin_types else get_idl_type_name(field.base_type)
+            else:
+                base_type = get_idl_type_name(field.base_type) if get_idl_type_name(field.base_type) in builtin_types else get_idl_type_name(field.base_type)
             array_type = 'typedef {0} {1}__{2}_array_{3}[{4}];'.format(base_type, topic, get_idl_type_name(field.base_type).replace(" ", "_"), field.array_len, field.array_len)
             if array_type not in array_types:
                 array_types.add(array_type)
@@ -109,18 +120,28 @@ def add_msg_constants():
 @#############################
 @# Include dependency messages
 @#############################
-@[for line in get_include_directives(spec)]
-@(line)
-@[end for]
+@[for line in get_include_directives(spec)]@
+@(line)@
+@[end for]@
 @# Constants
 @add_msg_constants()
 @# Array types
 @add_array_typedefs()
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
 struct @(topic)_
+@[else]@
+struct @(topic)
+@[end if]@
 {
 @add_msg_fields()
+@[if 1.5 <= fastrtpsgen_version <= 1.7]@
 }; // struct @(topic)_
 
 #pragma keylist @(topic)_
+@[else]@
+}; // struct @(topic)
+
+#pragma keylist @(topic)
+@[end if]@
 
 #endif  // __@(topic)__idl__

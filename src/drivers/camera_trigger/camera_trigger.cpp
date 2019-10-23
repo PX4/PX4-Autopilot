@@ -233,7 +233,7 @@ CameraTrigger	*g_camera_trigger;
 }
 
 CameraTrigger::CameraTrigger() :
-	ScheduledWorkItem(px4::wq_configurations::lp_default),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default),
 	_engagecall {},
 	_disengagecall {},
 	_engage_turn_on_off_call {},

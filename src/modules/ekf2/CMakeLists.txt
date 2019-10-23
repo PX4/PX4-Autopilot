@@ -30,6 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 #############################################################################
+
+add_subdirectory(Utility)
+
 px4_add_module(
 	MODULE modules__ekf2
 	MAIN ekf2
@@ -42,4 +45,5 @@ px4_add_module(
 		ecl_EKF
 		ecl_geo
 		perf
+		Ekf2Utility
 	)

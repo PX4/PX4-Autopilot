@@ -86,18 +86,19 @@ MulticopterLandDetector::MulticopterLandDetector()
 
 void MulticopterLandDetector::_update_topics()
 {
+	LandDetector::_update_topics();
+
 	_actuator_controls_sub.update(&_actuator_controls);
 	_battery_sub.update(&_battery_status);
-	_vehicle_acceleration_sub.update(&_vehicle_acceleration);
 	_vehicle_angular_velocity_sub.update(&_vehicle_angular_velocity);
-	_vehicle_attitude_sub.update(&_vehicle_attitude);
 	_vehicle_control_mode_sub.update(&_vehicle_control_mode);
-	_vehicle_local_position_sub.update(&_vehicle_local_position);
 	_vehicle_local_position_setpoint_sub.update(&_vehicle_local_position_setpoint);
 }
 
 void MulticopterLandDetector::_update_params()
 {
+	LandDetector::_update_params();
+
 	_freefall_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _param_lndmc_ffall_ttri.get()));
 
 	param_get(_paramHandle.minThrottle, &_params.minThrottle);
@@ -178,7 +179,7 @@ bool MulticopterLandDetector::_get_maybe_landed_state()
 	const hrt_abstime now = hrt_absolute_time();
 
 	// When not armed, consider to be maybe-landed
-	if (!_actuator_armed.armed || (_vehicle_attitude.timestamp == 0)) {
+	if (!_actuator_armed.armed) {
 		return true;
 	}
 

@@ -64,7 +64,7 @@ namespace rpi_rc_in
 class RcInput : public px4::ScheduledWorkItem
 {
 public:
-	RcInput() : ScheduledWorkItem(px4::wq_configurations::hp_default) {}
+	RcInput() : ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default) {}
 
 	~RcInput();
 

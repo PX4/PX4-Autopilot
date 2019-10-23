@@ -42,7 +42,7 @@ using namespace px4;
 class WQueueScheduledTest : public px4::ScheduledWorkItem
 {
 public:
-	WQueueScheduledTest() : px4::ScheduledWorkItem(px4::wq_configurations::test2) {}
+	WQueueScheduledTest() : px4::ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::test2) {}
 	~WQueueScheduledTest() = default;
 
 	int main();
