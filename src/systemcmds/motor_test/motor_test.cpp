@@ -67,7 +67,7 @@ void motor_test(unsigned channel, float value, uint8_t driver_instance)
 		PX4_INFO("motors stop command sent");
 
 	} else {
-		PX4_INFO("motor %d set to %.2f", channel, (double)value);
+		PX4_INFO("motor %d set to %.2f", channel + 1, (double)value);
 	}
 }
 
@@ -88,7 +88,7 @@ Note: this can only be used for drivers which support the motor_test uorb topic 
 
 	PRINT_MODULE_USAGE_NAME("motor_test", "command");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "Set motor(s) to a specific output value");
-	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 0, 7, "Motor to test (0...7, all if not specified)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('m', -1, 1, 8, "Motor to test (1...8, all if not specified)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', 0, 0, 100, "Power (0...100)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('i', 0, 0, 4, "driver instance", true);
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop all motors");
@@ -117,6 +117,12 @@ int motor_test_main(int argc, char *argv[])
 		case 'm':
 			/* Read in motor number */
 			channel = (int)strtol(myoptarg, NULL, 0);
+
+			if (channel < 1 || channel > 8) {
+				usage("value invalid");
+				return 1;
+			}
+			channel = channel -1;
 			break;
 
 		case 'p':
