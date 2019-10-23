@@ -125,7 +125,7 @@ if [[ $INSTALL_SIM == "true" ]]; then
 	# Gazebo setup
 	if [[ $INSTALL_GAZEBO == "true" ]]; then
 		echo
-		echo "Installing gazebo and dependencies for PX4 simulation"
+		echo "Installing gazebo and dependencies for PX4 gazebo simulation"
 
 		# PX4 gazebo simulation dependencies
 		sudo pacman -S --noconfirm --needed \
@@ -141,16 +141,6 @@ if [[ $INSTALL_SIM == "true" ]]; then
 		sudo sed -i '/MAKEFLAGS=/c\MAKEFLAGS="-j'$(($(nproc)+2))'"' /etc/makepkg.conf
 
 		# install gazebo from AUR
-		yay -S gazebo --noconfirm
-
-		# fix incompatible compile flag to disable default testing that leads to build error
-		# see https://bitbucket.org/ignitionrobotics/ign-cmake/issues/62/compilation-failing-when-performing
-		pushd ~/.cache/yay/ignition-cmake/
-		sed -i 's/-DENABLE_TESTS_COMPILATION:BOOL=False/-DBUILD_TESTING=OFF/g' PKGBUILD
-		makepkg -si --noconfirm
-		popd
-
-		# continue installing gezebo
 		yay -S gazebo --noconfirm
 
 		if sudo dmidecode -t system | grep -q "Manufacturer: VMware, Inc." ; then
