@@ -559,7 +559,7 @@ void io_timer_trigger(void)
 
 		irqstate_t flags = px4_enter_critical_section();
 
-		for (actions = 0; action_cache[actions] != 0 &&  actions < MAX_IO_TIMERS; actions++) {
+		for (actions = 0; actions < MAX_IO_TIMERS && action_cache[actions] != 0; actions++) {
 			_REG32(action_cache[actions], STM32_GTIM_EGR_OFFSET) |= GTIM_EGR_UG;
 		}
 

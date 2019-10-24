@@ -178,6 +178,10 @@ foreach(msg_file ${msg_files})
 	list(APPEND uorb_sources ${msg_source_out_path}/${msg}.cpp)
 endforeach()
 
+if (px4_constrained_flash_build)
+	set(added_arguments --constrained-flash)
+endif()
+
 # Generate uORB headers
 add_custom_command(OUTPUT ${uorb_headers}
 	COMMAND ${PYTHON_EXECUTABLE} tools/px_generate_uorb_topic_files.py
@@ -188,6 +192,7 @@ add_custom_command(OUTPUT ${uorb_headers}
 		-e templates/uorb
 		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/headers
 		-q
+		${added_arguments}
 	DEPENDS
 		${msg_files}
 		templates/uorb/msg.h.em
@@ -208,6 +213,7 @@ add_custom_command(OUTPUT ${uorb_sources}
 		-e templates/uorb
 		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/sources
 		-q
+		${added_arguments}
 	DEPENDS
 		${msg_files}
 		templates/uorb/msg.cpp.em

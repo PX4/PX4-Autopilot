@@ -180,5 +180,6 @@ private:
 	 */
 	bool		control_position(const matrix::Vector2f &global_pos, const matrix::Vector3f &ground_speed,
 					 const position_setpoint_triplet_s &_pos_sp_triplet);
+	void		control_velocity(const matrix::Vector3f &current_velocity, const position_setpoint_triplet_s &pos_sp_triplet);
 
 };

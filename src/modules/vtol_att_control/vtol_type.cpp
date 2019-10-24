@@ -246,8 +246,7 @@ bool VtolType::set_idle_mc()
 {
 
 	unsigned pwm_value = _params->idle_pwm_mc;
-	struct pwm_output_values pwm_values;
-	memset(&pwm_values, 0, sizeof(pwm_values));
+	struct pwm_output_values pwm_values {};
 
 	for (int i = 0; i < num_outputs_max; i++) {
 		if (is_channel_set(i, _params->vtol_motor_id)) {
@@ -265,9 +264,7 @@ bool VtolType::set_idle_mc()
 
 bool VtolType::set_idle_fw()
 {
-	struct pwm_output_values pwm_values;
-
-	memset(&pwm_values, 0, sizeof(pwm_values));
+	struct pwm_output_values pwm_values {};
 
 	for (int i = 0; i < num_outputs_max; i++) {
 		if (is_channel_set(i, _params->vtol_motor_id)) {

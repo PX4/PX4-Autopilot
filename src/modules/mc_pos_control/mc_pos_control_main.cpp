@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 - 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 - 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -67,8 +67,8 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 
-#include "PositionControl.hpp"
-#include "Utility/ControlMath.hpp"
+#include <PositionControl.hpp>
+#include <ControlMath.hpp>
 #include "Takeoff.hpp"
 
 #include <float.h>
@@ -135,10 +135,10 @@ private:
 	vehicle_land_detected_s _vehicle_land_detected = {
 		.timestamp = 0,
 		.alt_max = -1.0f,
-		.landed = true,
 		.freefall = false,
-		.ground_contact = false,
-		.maybe_landed = false,
+		.ground_contact = true,
+		.maybe_landed = true,
+		.landed = true,
 	};
 
 	vehicle_attitude_setpoint_s	_att_sp{};			/**< vehicle attitude setpoint */
@@ -195,7 +195,6 @@ private:
 	WeatherVane *_wv_controller{nullptr};
 
 	perf_counter_t _cycle_perf;
-	perf_counter_t _interval_perf;
 
 	/**
 	 * Update our local parameter cache.
@@ -289,8 +288,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
 	_control(this),
-	_cycle_perf(perf_alloc_once(PC_ELAPSED, MODULE_NAME": cycle time")),
-	_interval_perf(perf_alloc_once(PC_INTERVAL, MODULE_NAME": interval"))
+	_cycle_perf(perf_alloc_once(PC_ELAPSED, MODULE_NAME": cycle time"))
 {
 	// fetch initial parameter values
 	parameters_update(true);
@@ -306,7 +304,6 @@ MulticopterPositionControl::~MulticopterPositionControl()
 	}
 
 	perf_free(_cycle_perf);
-	perf_free(_interval_perf);
 }
 
 bool
@@ -515,7 +512,6 @@ MulticopterPositionControl::print_status()
 	}
 
 	perf_print_counter(_cycle_perf);
-	perf_print_counter(_interval_perf);
 
 	return 0;
 }
@@ -530,7 +526,6 @@ MulticopterPositionControl::Run()
 	}
 
 	perf_begin(_cycle_perf);
-	perf_count(_interval_perf);
 
 	if (_local_pos_sub.update(&_local_pos)) {
 
@@ -579,9 +574,9 @@ MulticopterPositionControl::Run()
 
 		// check if any task is active
 		if (_flight_tasks.isAnyTaskActive()) {
-
-			// setpoints from flighttask
-			vehicle_local_position_setpoint_s setpoint;
+			// setpoints and constraints for the position controller from flighttask or failsafe
+			vehicle_local_position_setpoint_s setpoint = FlightTask::empty_setpoint;
+			vehicle_constraints_s constraints = FlightTask::empty_constraints;
 
 			_flight_tasks.setYawHandler(_wv_controller);
 
@@ -593,6 +588,8 @@ MulticopterPositionControl::Run()
 
 			} else {
 				setpoint = _flight_tasks.getPositionSetpoint();
+				constraints = _flight_tasks.getConstraints();
+
 				_failsafe_land_hysteresis.set_state_and_update(false, time_stamp_current);
 
 				// Check if position, velocity or thrust pairs are valid -> trigger failsaife if no pair is valid
@@ -612,7 +609,6 @@ MulticopterPositionControl::Run()
 			// publish trajectory setpoint
 			_traj_sp_pub.publish(setpoint);
 
-			vehicle_constraints_s constraints = _flight_tasks.getConstraints();
 			landing_gear_s gear = _flight_tasks.getGear();
 
 			// check if all local states are valid and map accordingly
@@ -642,7 +638,6 @@ MulticopterPositionControl::Run()
 				constraints.tilt = math::radians(_param_mpc_tiltmax_lnd.get());
 			}
 
-
 			// limit altitude only if local position is valid
 			if (PX4_ISFINITE(_states.position(2))) {
 				limit_altitude(setpoint);
@@ -655,6 +650,9 @@ MulticopterPositionControl::Run()
 			// update position controller setpoints
 			if (!_control.updateSetpoint(setpoint)) {
 				warn_rate_limited("Position-Control Setpoint-Update failed");
+				failsafe(setpoint, _states, true, !was_in_failsafe);
+				_control.updateSetpoint(setpoint);
+				constraints = FlightTask::empty_constraints;
 			}
 
 			// Generate desired thrust and yaw.
@@ -842,6 +840,28 @@ MulticopterPositionControl::start_flight_task()
 			// we want to be in this mode, reset the failure count
 			_task_failure_count = 0;
 		}
+
+	} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND) {
+
+		// Emergency descend
+		should_disable_task = false;
+		FlightTaskError error = FlightTaskError::NoError;
+
+		error =  _flight_tasks.switchTask(FlightTaskIndex::Descend);
+
+		if (error != FlightTaskError::NoError) {
+			if (prev_failure_count == 0) {
+				PX4_WARN("Descend activation failed with error: %s", _flight_tasks.errorToString(error));
+			}
+
+			task_failure = true;
+			_task_failure_count++;
+
+		} else {
+			// we want to be in this mode, reset the failure count
+			_task_failure_count = 0;
+		}
+
 	}
 
 	// manual position control
@@ -963,20 +983,37 @@ MulticopterPositionControl::failsafe(vehicle_local_position_setpoint_s &setpoint
 	} else {
 		reset_setpoint_to_nan(setpoint);
 
-		if (PX4_ISFINITE(_states.velocity(2))) {
-			// We have a valid velocity in D-direction.
-			// descend downwards with landspeed.
-			setpoint.vz = _param_mpc_land_speed.get();
-			setpoint.thrust[0] = setpoint.thrust[1] = 0.0f;
+		if (PX4_ISFINITE(_states.velocity(0)) && PX4_ISFINITE(_states.velocity(1))) {
+			// don't move along xy
+			setpoint.vx = setpoint.vy = 0.0f;
 
 			if (warn) {
-				PX4_WARN("Failsafe: Descend with land-speed.");
+				PX4_WARN("Failsafe: stop and wait");
 			}
 
 		} else {
-			// Use the failsafe from the PositionController.
+			// descend with land speed since we can't stop
+			setpoint.thrust[0] = setpoint.thrust[1] = 0.f;
+			setpoint.vz = _param_mpc_land_speed.get();
+
 			if (warn) {
-				PX4_WARN("Failsafe: Descend with just attitude control.");
+				PX4_WARN("Failsafe: blind land");
+			}
+		}
+
+		if (PX4_ISFINITE(_states.velocity(2))) {
+			// don't move along z if we can stop in all dimensions
+			if (!PX4_ISFINITE(setpoint.vz)) {
+				setpoint.vz = 0.f;
+			}
+
+		} else {
+			// emergency descend with a bit below hover thrust
+			setpoint.vz = NAN;
+			setpoint.thrust[2] = _param_mpc_thr_hover.get() * .8f;
+
+			if (warn) {
+				PX4_WARN("Failsafe: blind descend");
 			}
 		}
 

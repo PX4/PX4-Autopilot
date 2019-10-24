@@ -77,8 +77,7 @@ void task_main(int argc, char *argv[])
 {
 	_is_running = true;
 	int ret = 0;
-	struct frame_data frame;
-	memset(&frame, 0, sizeof(frame));
+	struct frame_data frame {};
 	uint32_t timeout_cnt = 0;
 
 	// Main loop

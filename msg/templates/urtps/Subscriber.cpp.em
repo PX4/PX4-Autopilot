@@ -16,6 +16,10 @@ import gencpp
 from px_generate_uorb_topic_helper import * # this is in Tools/
 
 topic = alias if alias else spec.short_name
+try:
+    ros2_distro = ros2_distro.decode("utf-8")
+except AttributeError:
+    pass
 }@
 /****************************************************************************
  *
@@ -75,7 +79,7 @@ bool @(topic)_Subscriber::init()
     // Create RTPSParticipant
     ParticipantAttributes PParam;
     PParam.rtps.builtin.domainId = 0; // MUST BE THE SAME AS IN THE PUBLISHER
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[if 1.5 <= fastrtpsgen_version <= 1.7 or ros2_distro == "ardent" or ros2_distro == "bouncy" or ros2_distro == "crystal" or ros2_distro == "dashing"]@
     PParam.rtps.builtin.leaseDuration = c_TimeInfinite;
 @[else]@
     PParam.rtps.builtin.discovery_config.leaseDuration = c_TimeInfinite;
@@ -92,13 +96,15 @@ bool @(topic)_Subscriber::init()
     SubscriberAttributes Rparam;
     Rparam.topic.topicKind = NO_KEY;
     Rparam.topic.topicDataType = myType.getName(); //Must be registered before the creation of the subscriber
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[if ros2_distro]@
+@[    if ros2_distro == "ardent"]@
+    Rparam.qos.m_partition.push_back("rt");
     Rparam.topic.topicName = "@(topic)_PubSubTopic";
+@[    else]@
+    Rparam.topic.topicName = "rt/@(topic)_PubSubTopic";
+@[    end if]@
 @[else]@
-    Rparam.topic.topicName = "@(topic)PubSubTopic";
-@[end if]@
-@[if ros2_distro and ros2_distro != "ardent"]@
-    Rparam.topic.topicName = "rt/" + Wparam.topic.topicName;
+    Rparam.topic.topicName = "@(topic)_PubSubTopic";
 @[end if]@
     mp_subscriber = Domain::createSubscriber(mp_participant, Rparam, static_cast<SubscriberListener*>(&m_listener));
     if(mp_subscriber == nullptr)
@@ -126,9 +132,17 @@ void @(topic)_Subscriber::SubListener::onNewDataMessage(Subscriber* sub)
 {
         // Take data
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[    if ros2_distro]@
+        @(package)::msg::dds_::@(topic)_ st;
+@[    else]@
         @(topic)_ st;
+@[    end if]@
 @[else]@
+@[    if ros2_distro]@
+        @(package)::msg::@(topic) st;
+@[    else]@
         @(topic) st;
+@[    end if]@
 @[end if]@
 
         if(sub->takeNextData(&st, &m_info))
@@ -157,9 +171,17 @@ bool @(topic)_Subscriber::hasMsg()
 }
 
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[    if ros2_distro]@
+@(package)::msg::dds_::@(topic)_ @(topic)_Subscriber::getMsg()
+@[    else]@
 @(topic)_ @(topic)_Subscriber::getMsg()
+@[    end if]@
 @[else]@
+@[    if ros2_distro]@
+@(package)::msg::@(topic) @(topic)_Subscriber::getMsg()
+@[    else]@
 @(topic) @(topic)_Subscriber::getMsg()
+@[    end if]@
 @[end if]@
 {
     m_listener.has_msg = false;

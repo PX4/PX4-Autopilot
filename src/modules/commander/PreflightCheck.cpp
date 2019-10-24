@@ -494,9 +494,23 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 	}
 
 	// Check if preflight check performed by estimator has failed
-	if (status.pre_flt_fail) {
+	if (status.pre_flt_fail_innov_heading ||
+	    status.pre_flt_fail_innov_vel_horiz ||
+	    status.pre_flt_fail_innov_vel_vert ||
+	    status.pre_flt_fail_innov_height) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Position unknown");
+			if (status.pre_flt_fail_innov_heading) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: heading estimate not stable");
+
+			} else if (status.pre_flt_fail_innov_vel_horiz) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: horizontal velocity estimate not stable");
+
+			} else if (status.pre_flt_fail_innov_vel_horiz) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: vertical velocity estimate not stable");
+
+			} else if (status.pre_flt_fail_innov_height) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: height estimate not stable");
+			}
 		}
 
 		success = false;

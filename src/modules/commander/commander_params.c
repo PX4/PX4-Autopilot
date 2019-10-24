@@ -967,3 +967,14 @@ PARAM_DEFINE_INT32(COM_ARM_CHK_ESCS, 1);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_PREARM_MODE, 1);
+
+/**
+ * Enable Motor Testing
+ *
+ * If set, enables the motor test interface via MAVLink (DO_MOTOR_TEST), that
+ * allows spinning the motors for testing purposes.
+ *
+ * @boolean
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_MOT_TEST_EN, 1);
