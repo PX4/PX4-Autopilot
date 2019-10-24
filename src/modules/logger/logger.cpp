@@ -48,6 +48,8 @@
 #include <uORB/uORBTopics.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/cpuload.h>
+#include <uORB/topics/dg_vehicle_status.h>
 
 #include <drivers/drv_hrt.h>
 #include <mathlib/math/Limits.hpp>
@@ -358,7 +360,6 @@ Logger *Logger::instantiate(int argc, char *argv[])
 
 	return logger;
 }
-
 
 Logger::Logger(LogWriter::Backend backend, size_t buffer_size, uint32_t log_interval, const char *poll_topic_name,
 	       LogMode log_mode, bool log_name_timestamp) :
@@ -795,18 +796,30 @@ void Logger::add_mission_topic(const char *name, uint32_t interval_ms)
 	}
 }
 
+#define DG_LOG_MESSAGE_LOG	99
 void Logger::run()
 {
 	PX4_INFO("logger started (mode=%s)", configured_backend_mode());
 
-	if (_writer.backend() & LogWriter::BackendFile) {
+	if (_writer.backend() & LogWriter::BackendFile) { 
 		int mkdir_ret = mkdir(LOG_ROOT[(int)LogType::Full], S_IRWXU | S_IRWXG | S_IRWXO);
-
 		if (mkdir_ret == 0) {
 			PX4_INFO("log root dir created: %s", LOG_ROOT[(int)LogType::Full]);
 
 		} else if (errno != EEXIST) {
 			PX4_ERR("failed creating log root dir: %s (%i)", LOG_ROOT[(int)LogType::Full], errno);
+
+			if ((_writer.backend() & ~LogWriter::BackendFile) == 0) {
+				return;
+			}
+		} 
+
+		mkdir_ret = mkdir(LOG_ROOT[(int)LogType::DgMessage], S_IRWXU | S_IRWXG | S_IRWXO);
+		if(mkdir_ret == 0) {
+			PX4_INFO("dg_log root dir created: %s", LOG_ROOT[(int)LogType::DgMessage]);
+
+		} else if (errno != EEXIST) {
+			PX4_ERR("failed creating dg_log root dir: %s (%i)", LOG_ROOT[(int)LogType::DgMessage], errno);
 
 			if ((_writer.backend() & ~LogWriter::BackendFile) == 0) {
 				return;
@@ -825,7 +838,12 @@ void Logger::run()
 		}
 	}
 
-	uORB::Subscription parameter_update_sub(ORB_ID(parameter_update));
+	int vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+	uORB::Subscription<parameter_update_s> parameter_update_sub(ORB_ID(parameter_update));
+	int log_message_sub = orb_subscribe(ORB_ID(log_message));
+	orb_set_interval(log_message_sub, 20);
+	int dg_vehicle_status_sub = orb_subscribe(ORB_ID(dg_vehicle_status));
+	orb_set_interval(dg_vehicle_status_sub, 200);
 
 	// mission log topics if enabled (must be added first)
 	int32_t mission_log_mode = 0;
@@ -900,6 +918,7 @@ void Logger::run()
 
 	if (_log_mode == LogMode::boot_until_disarm || _log_mode == LogMode::boot_until_shutdown) {
 		start_log_file(LogType::Full);
+		start_log_file(LogType::DgMessage);	//add by cyj, 191017
 	}
 
 	/* init the update timer */
@@ -957,10 +976,9 @@ void Logger::run()
 			initialize_load_output(PrintLoadReason::Watchdog);
 		}
 
-
 		const hrt_abstime loop_time = hrt_absolute_time();
 
-		if (_writer.is_started(LogType::Full)) { // mission log only runs when full log is also started
+		if (_writer.is_started(LogType::Full) || _writer.is_started(LogType::DgMessage)) { // mission log only runs when full log is also started
 
 			/* check if we need to output the process load */
 			if (_next_load_print != 0 && loop_time >= _next_load_print) {
@@ -970,6 +988,7 @@ void Logger::run()
 				if (_should_stop_file_log) {
 					_should_stop_file_log = false;
 					stop_log_file(LogType::Full);
+					stop_log_file(LogType::DgMessage);	//add by cyj, 191017
 					continue; // skip to next loop iteration
 				}
 			}
@@ -1035,9 +1054,21 @@ void Logger::run()
 
 				++sub_idx;
 			}
-
-			// check for new logging message(s)
-			log_message_s log_message;
+			
+			//check for new dg_log message(s)
+			bool dg_vehicle_status_updated = false;
+			ret = orb_check(dg_vehicle_status_sub, &dg_vehicle_status_updated);
+			
+			if(ret == 0 && dg_vehicle_status_updated) {
+				dg_vehicle_status_s dg_vehicle_status;
+				orb_copy(ORB_ID(dg_vehicle_status), dg_vehicle_status_sub, &dg_vehicle_status);
+				const char *dg_log_buffer = (const char *)dg_vehicle_status.stp;
+				write_message(LogType::DgMessage, (char *)dg_log_buffer, DG_LOG_MESSAGE_LOG);
+			}
+	
+			//check for new logging message(s)
+			bool log_message_updated = false;
+			ret = orb_check(log_message_sub, &log_message_updated);
 
 			if (_log_message_sub.update(&log_message)) {
 				const char *message = (const char *)log_message.text;
@@ -1155,6 +1186,7 @@ void Logger::run()
 
 	stop_log_file(LogType::Full);
 	stop_log_file(LogType::Mission);
+	stop_log_file(LogType::DgMessage);
 
 	hrt_cancel(&timer_call);
 	px4_sem_destroy(&timer_callback_data.semaphore);
@@ -1208,10 +1240,14 @@ bool Logger::start_stop_logging(MissionLogType mission_log_type)
 
 		if (_manual_control_sp_sub.update(&manual_sp)) {
 
-			bool should_start = ((manual_sp.aux1 > 0.3f) || _manually_logging_override);
+				if (_should_stop_file_log) { // happens on quick arming after disarm
+					_should_stop_file_log = false;
+					stop_log_file(LogType::Full);
+					stop_log_file(LogType::DgMessage);  //add by cyj, 191017
+				}
 
-			if (_prev_state != should_start) {
-				_prev_state = should_start;
+				start_log_file(LogType::Full);
+				start_log_file(LogType::DgMessage);  //add by cyj, 191017
 
 				if (should_start) {
 					want_start = true;
@@ -1416,8 +1452,15 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 		}
 
 		char log_file_name_time[16] = "";
-		strftime(log_file_name_time, sizeof(log_file_name_time), "%H_%M_%S", &tt);
-		snprintf(log_file_name, sizeof(LogFileName::log_file_name), "%s%s.ulg", log_file_name_time, replay_suffix);
+		
+		if(type == LogType::DgMessage) {	//add by cyj, 191017
+			tt.tm_hour += 8;
+			strftime(log_file_name_time, sizeof(log_file_name_time), "%H_%M_%S", &tt);
+			snprintf(log_file_name, sizeof(LogFileName::log_file_name), "%s_.dgext2", log_file_name_time);
+		} else {
+			strftime(log_file_name_time, sizeof(log_file_name_time), "%H_%M_%S", &tt);
+			snprintf(log_file_name, sizeof(LogFileName::log_file_name), "%s%s.ulg", log_file_name_time, replay_suffix);
+		}
 		snprintf(file_name + n, file_name_size - n, "/%s", log_file_name);
 
 	} else {
@@ -1432,7 +1475,11 @@ int Logger::get_log_file_name(LogType type, char *file_name, size_t file_name_si
 		/* look for the next file that does not exist */
 		while (file_number <= MAX_NO_LOGFILE) {
 			/* format log file path: e.g. /fs/microsd/log/sess001/log001.ulg */
-			snprintf(log_file_name, sizeof(LogFileName::log_file_name), "log%03u%s.ulg", file_number, replay_suffix);
+			if(type == LogType::DgMessage) {
+				snprintf(log_file_name, sizeof(LogFileName::log_file_name), "log%03u_.dgext2", file_number);
+			} else {
+				snprintf(log_file_name, sizeof(LogFileName::log_file_name), "log%03u%s.ulg", file_number, replay_suffix);
+			}
 			snprintf(file_name + n, file_name_size - n, "/%s", log_file_name);
 
 			if (!util::file_exist(file_name)) {
@@ -1475,7 +1522,7 @@ void Logger::start_log_file(LogType type)
 		return;
 	}
 
-	if (type == LogType::Full) {
+	if (type == LogType::Full || type == LogType::DgMessage) {	//modified by cyj, 191017
 		/* print logging path, important to find log file later */
 		mavlink_log_info(&_mavlink_log_pub, "[logger] file: %s", file_name);
 	}
@@ -1483,17 +1530,19 @@ void Logger::start_log_file(LogType type)
 	_writer.start_log_file(type, file_name);
 	_writer.select_write_backend(LogWriter::BackendFile);
 	_writer.set_need_reliable_transfer(true);
-	write_header(type);
-	write_version(type);
-	write_formats(type);
-
+	if(type != LogType::DgMessage) {	//modified by cyj, 191017
+		write_header(type);
+		write_version(type);
+		write_formats(type);
+	}
 	if (type == LogType::Full) {
 		write_parameters(type);
 		write_perf_data(true);
 		write_console_output();
 	}
-
-	write_all_add_logged_msg(type);
+	if(type != LogType::DgMessage) {
+		write_all_add_logged_msg(type);
+	}
 	_writer.set_need_reliable_transfer(false);
 	_writer.unselect_write_backend();
 	_writer.notify();
@@ -1514,7 +1563,7 @@ void Logger::stop_log_file(LogType type)
 	if (!_writer.is_started(type, LogWriter::BackendFile)) {
 		return;
 	}
-
+	PX4_INFO("Stop file log (type: %s)", log_type_str(type));
 	if (type == LogType::Full) {
 		_writer.set_need_reliable_transfer(true);
 		write_perf_data(false);

@@ -83,7 +83,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		determineWarning(connected);
 	}
 
-	if (_voltage_filtered_v > 2.1f) {
+	if (_voltage_filtered_v > 2.1f) { 
 		_battery_initialized = true;
 		battery_status->voltage_v = voltage_v;
 		battery_status->voltage_filtered_v = _voltage_filtered_v;
@@ -95,7 +95,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		battery_status->remaining = _remaining;
 		battery_status->connected = connected;
 		battery_status->system_source = selected_source;
-		battery_status->priority = priority;
+		battery_status->priority = priority; 
 	}
 
 	battery_status->temperature = NAN;

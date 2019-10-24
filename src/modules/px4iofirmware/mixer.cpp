@@ -115,7 +115,7 @@ int mixer_mix_threadsafe(float *outputs, volatile uint16_t *limits)
 
 void
 mixer_tick(void)
-{
+{	
 	/* check if the mixer got modified */
 	mixer_handle_text_create_mixer();
 

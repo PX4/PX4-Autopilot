@@ -566,10 +566,10 @@ protected:
 	}
 
 	bool send(const hrt_abstime t)
-	{
-		vehicle_status_s status{};
-		cpuload_s cpuload{};
-		battery_status_s battery_status[ORB_MULTI_MAX_INSTANCES] {};
+	{	
+		vehicle_status_s status = {};
+		cpuload_s cpuload = {};
+		battery_status_s battery_status = {};
 
 		const bool updated_status = _status_sub->update(&_status_timestamp, &status);
 		const bool updated_cpuload = _cpuload_sub->update(&_cpuload_timestamp, &cpuload);
