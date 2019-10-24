@@ -76,6 +76,7 @@ px4_add_board(
 		mc_pos_control
 		micrortps_bridge
 		navigator
+		battery_status
 		sensors
 		sih
 		vmount

@@ -40,14 +40,6 @@
 
 #include "LandDetector.h"
 
-#include <float.h>
-#include <math.h>
-
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <drivers/drv_hrt.h>
-#include <uORB/topics/parameter_update.h>
-
 using namespace time_literals;
 
 namespace land_detector
@@ -56,13 +48,7 @@ namespace land_detector
 LandDetector::LandDetector() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl)
-{
-	_land_detected.timestamp = hrt_absolute_time();
-	_land_detected.freefall = false;
-	_land_detected.landed = true;
-	_land_detected.ground_contact = false;
-	_land_detected.maybe_landed = false;
-}
+{}
 
 LandDetector::~LandDetector()
 {
@@ -71,7 +57,7 @@ LandDetector::~LandDetector()
 
 void LandDetector::start()
 {
-	_check_params(true);
+	_update_params();
 	ScheduleOnInterval(LAND_DETECTOR_UPDATE_INTERVAL);
 }
 
@@ -79,24 +65,25 @@ void LandDetector::Run()
 {
 	perf_begin(_cycle_perf);
 
-	_check_params(false);
+	if (_parameter_update_sub.updated()) {
+		_update_params();
+	}
+
 	_actuator_armed_sub.update(&_actuator_armed);
 	_update_topics();
 	_update_state();
 
-	const bool landDetected = (_state == LandDetectionState::LANDED);
-	const bool freefallDetected = (_state == LandDetectionState::FREEFALL);
-	const bool maybe_landedDetected = (_state == LandDetectionState::MAYBE_LANDED);
-	const bool ground_contactDetected = (_state == LandDetectionState::GROUND_CONTACT);
+	const bool freefallDetected = _freefall_hysteresis.get_state();
+	const bool ground_contactDetected = _ground_contact_hysteresis.get_state();
+	const bool maybe_landedDetected = _maybe_landed_hysteresis.get_state();
+	const bool landDetected = _landed_hysteresis.get_state();
 	const float alt_max = _get_max_altitude() > 0.0f ? _get_max_altitude() : INFINITY;
-
 	const bool in_ground_effect = _ground_effect_hysteresis.get_state();
 
 	const hrt_abstime now = hrt_absolute_time();
 
 	// publish at 1 Hz, very first time, or when the result has changed
 	if ((hrt_elapsed_time(&_land_detected.timestamp) >= 1_s) ||
-	    (_land_detected_pub == nullptr) ||
 	    (_land_detected.landed != landDetected) ||
 	    (_land_detected.freefall != freefallDetected) ||
 	    (_land_detected.maybe_landed != maybe_landedDetected) ||
@@ -117,9 +104,7 @@ void LandDetector::Run()
 		_land_detected.alt_max = alt_max;
 		_land_detected.in_ground_effect = in_ground_effect;
 
-		int instance;
-		orb_publish_auto(ORB_ID(vehicle_land_detected), &_land_detected_pub, &_land_detected,
-				 &instance, ORB_PRIO_DEFAULT);
+		_vehicle_land_detected_pub.publish(_land_detected);
 	}
 
 	// set the flight time when disarming (not necessarily when landed, because all param changes should
@@ -149,19 +134,13 @@ void LandDetector::Run()
 	}
 }
 
-void LandDetector::_check_params(const bool force)
+void LandDetector::_update_params()
 {
-	// check for parameter updates
-	if (_parameter_update_sub.updated() || force) {
-		// clear update
-		parameter_update_s pupdate;
-		_parameter_update_sub.copy(&pupdate);
+	parameter_update_s param_update;
+	_parameter_update_sub.copy(&param_update);
 
-		// update parameters from storage
-		_update_params();
-
-		_update_total_flight_time();
-	}
+	updateParams();
+	_update_total_flight_time();
 }
 
 void LandDetector::_update_state()
@@ -174,22 +153,13 @@ void LandDetector::_update_state()
 	_maybe_landed_hysteresis.set_state_and_update(_get_maybe_landed_state(), now_us);
 	_ground_contact_hysteresis.set_state_and_update(_get_ground_contact_state(), now_us);
 	_ground_effect_hysteresis.set_state_and_update(_get_ground_effect_state(), now_us);
+}
 
-	if (_freefall_hysteresis.get_state()) {
-		_state = LandDetectionState::FREEFALL;
-
-	} else if (_landed_hysteresis.get_state()) {
-		_state = LandDetectionState::LANDED;
-
-	} else if (_maybe_landed_hysteresis.get_state()) {
-		_state = LandDetectionState::MAYBE_LANDED;
-
-	} else if (_ground_contact_hysteresis.get_state()) {
-		_state = LandDetectionState::GROUND_CONTACT;
-
-	} else {
-		_state = LandDetectionState::FLYING;
-	}
+void LandDetector::_update_topics()
+{
+	_actuator_armed_sub.update(&_actuator_armed);
+	_vehicle_acceleration_sub.update(&_vehicle_acceleration);
+	_vehicle_local_position_sub.update(&_vehicle_local_position);
 }
 
 void LandDetector::_update_total_flight_time()

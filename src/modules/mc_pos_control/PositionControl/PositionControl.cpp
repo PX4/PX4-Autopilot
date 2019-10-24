@@ -38,7 +38,7 @@
 #include "PositionControl.hpp"
 #include <float.h>
 #include <mathlib/mathlib.h>
-#include "Utility/ControlMath.hpp"
+#include <ControlMath.hpp>
 #include <px4_defines.h>
 
 using namespace matrix;
@@ -69,7 +69,7 @@ bool PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &se
 
 	_pos_sp = Vector3f(setpoint.x, setpoint.y, setpoint.z);
 	_vel_sp = Vector3f(setpoint.vx, setpoint.vy, setpoint.vz);
-	_acc_sp = Vector3f(setpoint.acc_x, setpoint.acc_y, setpoint.acc_z);
+	_acc_sp = Vector3f(setpoint.acceleration);
 	_thr_sp = Vector3f(setpoint.thrust);
 	_yaw_sp = setpoint.yaw;
 	_yawspeed_sp = setpoint.yawspeed;

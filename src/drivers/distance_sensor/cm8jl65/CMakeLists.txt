@@ -39,4 +39,6 @@ px4_add_module(
 		cm8jl65_main.cpp
 	MODULE_CONFIG
 		module.yaml
+	DEPENDS
+		drivers_rangefinder
 	)

@@ -46,12 +46,11 @@ bool FlightTaskAutoLineSmoothVel::activate(vehicle_local_position_setpoint_s las
 	bool ret = FlightTaskAutoMapper2::activate(last_setpoint);
 
 	checkSetpoints(last_setpoint);
-	const Vector3f accel_prev(last_setpoint.acc_x, last_setpoint.acc_y, last_setpoint.acc_z);
 	const Vector3f vel_prev(last_setpoint.vx, last_setpoint.vy, last_setpoint.vz);
 	const Vector3f pos_prev(last_setpoint.x, last_setpoint.y, last_setpoint.z);
 
 	for (int i = 0; i < 3; ++i) {
-		_trajectory[i].reset(accel_prev(i), vel_prev(i), pos_prev(i));
+		_trajectory[i].reset(last_setpoint.acceleration[i], vel_prev(i), pos_prev(i));
 	}
 
 	_yaw_sp_prev = last_setpoint.yaw;
@@ -87,11 +86,9 @@ void FlightTaskAutoLineSmoothVel::checkSetpoints(vehicle_local_position_setpoint
 	if (!PX4_ISFINITE(setpoints.vz)) { setpoints.vz = _velocity(2); }
 
 	// No acceleration estimate available, set to zero if the setpoint is NAN
-	if (!PX4_ISFINITE(setpoints.acc_x)) { setpoints.acc_x = 0.f; }
-
-	if (!PX4_ISFINITE(setpoints.acc_y)) { setpoints.acc_y = 0.f; }
-
-	if (!PX4_ISFINITE(setpoints.acc_z)) { setpoints.acc_z = 0.f; }
+	for (int i = 0; i < 3; i++) {
+		if (!PX4_ISFINITE(setpoints.acceleration[i])) { setpoints.acceleration[i] = 0.f; }
+	}
 
 	if (!PX4_ISFINITE(setpoints.yaw)) { setpoints.yaw = _yaw; }
 }
@@ -202,8 +199,8 @@ float FlightTaskAutoLineSmoothVel::_getSpeedAtTarget()
 	    yaw_align_check_pass) {
 		// Max speed between current and next
 		const float max_speed_current_next = _getMaxSpeedFromDistance(distance_current_next);
-		const float alpha = acos(Vector2f(&(_target - _prev_wp)(0)).unit_or_zero() *
-					 Vector2f(&(_target - _next_wp)(0)).unit_or_zero());
+		const float alpha = acosf(Vector2f(&(_target - _prev_wp)(0)).unit_or_zero() *
+					  Vector2f(&(_target - _next_wp)(0)).unit_or_zero());
 		// We choose a maximum centripetal acceleration of MPC_ACC_HOR * MPC_XY_TRAJ_P to take in account
 		// that there is a jerk limit (a direct transition from line to circle is not possible)
 		// MPC_XY_TRAJ_P should be between 0 and 1.

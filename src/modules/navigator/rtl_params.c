@@ -34,19 +34,20 @@
 /**
  * @file rtl_params.c
  *
- * Parameters for RTL
+ * Parameters for return mode
  *
  * @author Julian Oes <julian@oes.ch>
  */
 
 /*
- * RTL parameters, accessible via MAVLink
+ * Return mode parameters, accessible via MAVLink
  */
 
 /**
- * RTL altitude
+ * Return mode return altitude
  *
- * Altitude to fly back in RTL in meters
+ * Default minimum altitude above home for return flight.
+ * This is affected by RTL_MIN_DIST and RTL_CONE_ANG.
  *
  * @unit m
  * @min 0
@@ -59,9 +60,9 @@ PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
 
 
 /**
- * Return mode loiter altitude
+ * Return mode loiter altitude (relative to home)
  *
- * Stay at this altitude above home position after RTL descending.
+ * Descend to this altitude (above home position) after return, and wait for time defined in RTL_LAND_DELAY.
  * Land (i.e. slowly descend) from this altitude if autolanding allowed.
  *
  * @unit m
@@ -76,7 +77,7 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
 /**
  * Return mode delay
  *
- * Delay after descend before landing in Return mode.
+ * Delay before landing (after initial descent) in Return mode.
  * If set to -1 the system will not land but loiter at RTL_DESCEND_ALT.
  *
  * @unit s
@@ -89,11 +90,10 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
 PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
 
 /**
- * Minimum distance to trigger rising to a safe altitude
+ * Maximum horizontal distance from home, below which RTL_DESCEND_ALT is used as return altitude
  *
- * If the system is horizontally closer than this distance to home
- * it will land straight on home instead of raising to the return
- * altitude first.
+ * If the vehicle is less than this horizontal distance from home when return mode is activated it will ascend
+ * to RTL_DESCEND_ALT for the return journey (rather than the altitude set by RTL_RETURN_ALT and RTL_CONE_ANG).
  *
  * @unit m
  * @min 0.5
@@ -118,9 +118,10 @@ PARAM_DEFINE_FLOAT(RTL_MIN_DIST, 5.0f);
 PARAM_DEFINE_INT32(RTL_TYPE, 0);
 
 /**
- * Half-angle of the RTL cone.
+ * Half-angle of the return mode altitude cone
  *
- * Defines the half-angle of the cone which defines the vehicle RTL behavior.
+ * Defines the half-angle of a cone centered around the home position that
+ * affects the altitude at which the vehicle returns during return to home.
  *
  * @unit degrees
  * @min 0
