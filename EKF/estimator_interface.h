@@ -60,6 +60,8 @@ public:
 
 	virtual bool init(uint64_t timestamp) = 0;
 	virtual void reset(uint64_t timestamp) = 0;
+	virtual void resetStates() = 0;
+	virtual void resetStatesAndCovariances() = 0;
 	virtual bool update() = 0;
 
 	// gets the innovations of velocity and position measurements

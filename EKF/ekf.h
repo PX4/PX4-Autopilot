@@ -57,6 +57,9 @@ public:
 	// set the internal states and status to their default value
 	void reset(uint64_t timestamp) override;
 
+	void resetStatesAndCovariances() override;
+	void resetStates() override;
+
 	// should be called every time new data is pushed into the filter
 	bool update() override;
 
