@@ -16,7 +16,10 @@ import gencpp
 from px_generate_uorb_topic_helper import * # this is in Tools/
 
 topic = alias if alias else spec.short_name
-ros2_distro = ros2_distro.decode("utf-8")
+try:
+    ros2_distro = ros2_distro.decode("utf-8")
+except AttributeError:
+    pass
 }@
 /****************************************************************************
  *

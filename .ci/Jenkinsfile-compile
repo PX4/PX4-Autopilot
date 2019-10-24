@@ -37,7 +37,8 @@ pipeline {
                      "px4_fmu-v5_default", "px4_fmu-v5_fixedwing", "px4_fmu-v5_multicopter", "px4_fmu-v5_rover", "px4_fmu-v5_rtps", "px4_fmu-v5_stackcheck",
                      "px4_fmu-v5x_default",
                      "intel_aerofc-v1_default", "auav_x21_default", "av_x-v1_default", "bitcraze_crazyflie_default", "airmind_mindpx-v2_default",
-                     "holybro_kakutef7", "mro_ctrl-zero-f7_default", "nxp_fmuk66-v3_default", "omnibus_f4sd_default", "uvify_core_default"],
+                     "holybro_kakutef7", "modalai_fc-v1_default", "mro_ctrl-zero-f7_default", "nxp_fmuk66-v3_default", "omnibus_f4sd_default",
+                     "uvify_core_default"],
             image: docker_images.nuttx,
             archive: true
           ]

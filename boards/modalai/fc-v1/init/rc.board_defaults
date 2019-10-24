@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# ModalAI FC-v1 specific board defaults
+#------------------------------------------------------------------------------
+
+
+if [ $AUTOCNF = yes ]
+then
+	# Disable safety switch by default
+	param set CBRK_IO_SAFETY 22027
+
+	#
+	# TELEM2 /dev/ttyS4
+	#
+	# In the VOXL-FMU, this port is connect to the VOXL internally
+	# In the FMU, this J1 port can connect to the VOXL J12
+	# By default, we use this UART connection with MAVLink at 921.6kHz
+	#
+	param set MAV_1_CONFIG 102 # TELEM2
+	param set MAV_1_MODE 0	# normal
+	param set SER_TEL2_BAUD 921600
+fi
+
+set LOGGER_BUF 64
+
+safety_button start

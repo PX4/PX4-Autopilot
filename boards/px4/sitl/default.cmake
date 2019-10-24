@@ -56,6 +56,7 @@ px4_add_board(
 		led_control
 		mixer
 		motor_ramp
+		motor_test
 		#mtd
 		#nshterm
 		param

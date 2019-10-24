@@ -33,7 +33,7 @@
 #############################################################################
 
 """
-px_generate_uorb_topics.py
+px_generate_uorb_topic_files.py
 Generates c/cpp header/source files for uorb topics from .msg (ROS syntax)
 message files
 """
@@ -84,6 +84,8 @@ INCL_DEFAULT = ['std_msgs:./msg/std_msgs']
 PACKAGE = 'px4'
 TOPICS_TOKEN = '# TOPICS '
 IDL_TEMPLATE_FILE = 'msg.idl.em'
+
+CONSTRAINED_FLASH = False
 
 
 class MsgScope:
@@ -156,7 +158,8 @@ def generate_output_from_file(format_idx, filename, outputdir, package, template
         "search_path": search_path,
         "msg_context": msg_context,
         "spec": spec,
-        "topics": topics
+        "topics": topics,
+        "constrained_flash": CONSTRAINED_FLASH
     }
 
     # Make sure output directory exists:
@@ -511,10 +514,14 @@ if __name__ == "__main__":
     parser.add_argument('-q', dest='quiet', default=False, action='store_true',
                         help='string added as prefix to the output file '
                         ' name when converting directories')
+    parser.add_argument('--constrained-flash', dest='constrained_flash', default=False, action='store_true',
+                        help='set to save flash space')
     args = parser.parse_args()
 
     if args.include_paths:
         append_to_include_path(args.include_paths, INCL_DEFAULT, args.package)
+
+    CONSTRAINED_FLASH = args.constrained_flash
 
     if args.headers:
         generate_idx = 0

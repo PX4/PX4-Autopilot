@@ -135,11 +135,6 @@ private:
 	 */
 	void		control_attitude_rates(float dt, const matrix::Vector3f &rates);
 
-	/**
-	 * Throttle PID attenuation.
-	 */
-	matrix::Vector3f pid_attenuations(float tpa_breakpoint, float tpa_rate);
-
 	AttitudeControl _attitude_control; ///< class for attitude control calculations
 	RateControl _rate_control; ///< class for rate control calculations
 
@@ -229,13 +224,6 @@ private:
 		(ParamFloat<px4::params::MC_YAWRATE_K>) _param_mc_yawrate_k,
 
 		(ParamFloat<px4::params::MC_DTERM_CUTOFF>) _param_mc_dterm_cutoff,			/**< Cutoff frequency for the D-term filter */
-
-		(ParamFloat<px4::params::MC_TPA_BREAK_P>) _param_mc_tpa_break_p,			/**< Throttle PID Attenuation breakpoint */
-		(ParamFloat<px4::params::MC_TPA_BREAK_I>) _param_mc_tpa_break_i,			/**< Throttle PID Attenuation breakpoint */
-		(ParamFloat<px4::params::MC_TPA_BREAK_D>) _param_mc_tpa_break_d,			/**< Throttle PID Attenuation breakpoint */
-		(ParamFloat<px4::params::MC_TPA_RATE_P>) _param_mc_tpa_rate_p,				/**< Throttle PID Attenuation slope */
-		(ParamFloat<px4::params::MC_TPA_RATE_I>) _param_mc_tpa_rate_i,				/**< Throttle PID Attenuation slope */
-		(ParamFloat<px4::params::MC_TPA_RATE_D>) _param_mc_tpa_rate_d,				/**< Throttle PID Attenuation slope */
 
 		(ParamFloat<px4::params::MC_ROLLRATE_MAX>) _param_mc_rollrate_max,
 		(ParamFloat<px4::params::MC_PITCHRATE_MAX>) _param_mc_pitchrate_max,
