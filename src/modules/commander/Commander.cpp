@@ -1077,7 +1077,15 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 	case vehicle_command_s::VEHICLE_CMD_DO_ORBIT:
 		// Switch to orbit state and let the orbit task handle the command further
-		main_state_transition(*status_local, commander_state_s::MAIN_STATE_ORBIT, status_flags, &internal_state);
+		if (TRANSITION_DENIED != main_state_transition(*status_local, commander_state_s::MAIN_STATE_ORBIT, status_flags, &internal_state)) {
+			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
+		} else {
+			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
+		}
+		break;
+
+	case vehicle_command_s::VEHICLE_CMD_DO_MOTOR_TEST:
+		cmd_result = handle_command_motor_test(cmd);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
@@ -1127,6 +1135,45 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 	}
 
 	return true;
+}
+
+unsigned
+Commander::handle_command_motor_test(const vehicle_command_s &cmd)
+{
+	if (armed.armed || (safety.safety_switch_available && !safety.safety_off)) {
+		return vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+	}
+
+	if (_param_com_mot_test_en.get() != 1) {
+		return vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+	}
+
+	test_motor_s test_motor{};
+	test_motor.timestamp = hrt_absolute_time();
+	test_motor.motor_number = (int)(cmd.param1 + 0.5f) - 1;
+	int throttle_type = (int)(cmd.param2 + 0.5f);
+	if (throttle_type != 0) { // 0: MOTOR_TEST_THROTTLE_PERCENT
+		return vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+	}
+	int motor_count = (int) (cmd.param5 + 0.5);
+	if (motor_count > 1) {
+		return vehicle_command_s::VEHICLE_CMD_RESULT_UNSUPPORTED;
+	}
+	test_motor.action = test_motor_s::ACTION_RUN;
+	test_motor.value = math::constrain(cmd.param3 / 100.f, 0.f, 1.f);
+	if (test_motor.value < FLT_EPSILON) {
+		// the message spec is not clear on whether 0 means stop, but it should be closer to what a user expects
+		test_motor.value = -1.f;
+	}
+	test_motor.timeout_ms = (int)(cmd.param4 * 1000.f + 0.5f);
+	// enforce a timeout and a maximum limit
+	if (test_motor.timeout_ms == 0 || test_motor.timeout_ms > 3000) {
+		test_motor.timeout_ms = 3000;
+	}
+	test_motor.driver_instance = 0; // the mavlink command does not allow to specify the instance, so set to 0 for now
+	_test_motor_pub.publish(test_motor);
+
+	return vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 }
 
 /**
@@ -3323,7 +3370,6 @@ void answer_command(const vehicle_command_s &cmd, unsigned result,
 {
 	switch (result) {
 	case vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED:
-		tune_positive(true);
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_RESULT_DENIED:

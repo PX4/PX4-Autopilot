@@ -40,6 +40,7 @@
 
 #include <px4_config.h>
 #include <px4_tasks.h>
+#include <px4_sem.hpp>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -90,6 +91,7 @@
 #include <uORB/topics/servorail_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/multirotor_motor_limits.h>
+#include <uORB/topics/test_motor.h>
 
 #include <debug.h>
 
@@ -111,6 +113,8 @@ static constexpr unsigned UPDATE_INTERVAL_MAX{100};	// 100 ms -> 10 Hz
 
 #define ORB_CHECK_INTERVAL		200000		// 200 ms -> 5 Hz
 #define IO_POLL_INTERVAL		20000		// 20 ms -> 50 Hz
+
+using namespace time_literals;
 
 /**
  * The PX4IO class.
@@ -222,7 +226,6 @@ public:
 private:
 	device::Device		*_interface;
 
-	// XXX
 	unsigned		_hardware;		///< Hardware revision
 	unsigned		_max_actuators;		///< Maximum # of actuators supported by PX4IO
 	unsigned		_max_controls;		///< Maximum # of controls supported by PX4IO
@@ -286,6 +289,13 @@ private:
 	float			_analog_rc_rssi_volt; ///< analog RSSI voltage
 
 	bool			_test_fmu_fail; ///< To test what happens if IO looses FMU
+
+	struct MotorTest {
+		uORB::Subscription test_motor_sub{ORB_ID(test_motor)};
+		bool in_test_mode{false};
+		hrt_abstime timeout{0};
+	};
+	MotorTest _motor_test;
 
 	/**
 	 * Trampoline to the worker task
@@ -438,6 +448,11 @@ private:
 	 * @param vrssi 	vrssi register
 	 */
 	void			io_handle_vservo(uint16_t vservo, uint16_t vrssi);
+
+	/**
+	 * check and handle test_motor topic updates
+	 */
+	void handle_motor_test();
 
 	/* do not allow to copy this class due to ptr data members */
 	PX4IO(const PX4IO &);
@@ -946,6 +961,13 @@ PX4IO::task_main()
 			(void)io_set_control_groups();
 		}
 
+		if (!_armed && !_lockdown_override) {
+			handle_motor_test();
+
+		} else {
+			_motor_test.in_test_mode = false;
+		}
+
 		if (now >= poll_last + IO_POLL_INTERVAL) {
 			/* run at 50-250Hz */
 			poll_last = now;
@@ -1295,12 +1317,80 @@ PX4IO::io_set_control_state(unsigned group)
 
 	}
 
-	if (!_test_fmu_fail) {
+	if (!_test_fmu_fail && !_motor_test.in_test_mode) {
 		/* copy values to registers in IO */
 		return io_reg_set(PX4IO_PAGE_CONTROLS, group * PX4IO_PROTOCOL_MAX_CONTROL_COUNT, regs, _max_controls);
 
 	} else {
 		return OK;
+	}
+}
+
+void
+PX4IO::handle_motor_test()
+{
+	test_motor_s test_motor;
+
+	while (_motor_test.test_motor_sub.update(&test_motor)) {
+		if (test_motor.driver_instance != 0 ||
+		    hrt_elapsed_time(&test_motor.timestamp) > 100_ms) {
+			continue;
+		}
+
+		bool in_test_mode = test_motor.action == test_motor_s::ACTION_RUN;
+
+		if (in_test_mode != _motor_test.in_test_mode) {
+			// reset all outputs to disarmed on state change
+			pwm_output_values pwm_disarmed;
+
+			if (io_reg_get(PX4IO_PAGE_DISARMED_PWM, 0, pwm_disarmed.values, _max_actuators) == 0) {
+				for (unsigned i = 0; i < _max_actuators; ++i) {
+					io_reg_set(PX4IO_PAGE_DIRECT_PWM, i, pwm_disarmed.values[i]);
+				}
+			}
+		}
+
+		if (in_test_mode) {
+			unsigned idx = test_motor.motor_number;
+
+			if (idx < _max_actuators) {
+				if (test_motor.value < 0.f) {
+					pwm_output_values pwm_disarmed;
+
+					if (io_reg_get(PX4IO_PAGE_DISARMED_PWM, 0, pwm_disarmed.values, _max_actuators) == 0) {
+						io_reg_set(PX4IO_PAGE_DIRECT_PWM, idx, pwm_disarmed.values[idx]);
+					}
+
+				} else {
+					pwm_output_values pwm_min;
+					pwm_output_values pwm_max;
+
+					if (io_reg_get(PX4IO_PAGE_CONTROL_MIN_PWM, 0, pwm_min.values, _max_actuators) == 0 &&
+					    io_reg_get(PX4IO_PAGE_CONTROL_MAX_PWM, 0, pwm_max.values, _max_actuators) == 0) {
+
+						uint16_t value = math::constrain<uint16_t>(pwm_min.values[idx] +
+								 (uint16_t)((pwm_max.values[idx] - pwm_min.values[idx]) * test_motor.value),
+								 pwm_min.values[idx], pwm_max.values[idx]);
+						io_reg_set(PX4IO_PAGE_DIRECT_PWM, idx, value);
+					}
+				}
+			}
+
+			if (test_motor.timeout_ms > 0) {
+				_motor_test.timeout = test_motor.timestamp + test_motor.timeout_ms * 1000;
+
+			} else {
+				_motor_test.timeout = 0;
+			}
+		}
+
+		_motor_test.in_test_mode = in_test_mode;
+	}
+
+	// check for timeouts
+	if (_motor_test.timeout != 0 && hrt_absolute_time() > _motor_test.timeout) {
+		_motor_test.in_test_mode = false;
+		_motor_test.timeout = 0;
 	}
 }
 
@@ -2333,6 +2423,7 @@ PX4IO::print_status(bool extended_status)
 int
 PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 {
+	SmartLock lock_guard(_lock);
 	int ret = OK;
 
 	/* regular ioctl? */
@@ -2641,7 +2732,7 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 				ret = -EINVAL;
 
 			} else {
-				if (!_test_fmu_fail) {
+				if (!_test_fmu_fail && _motor_test.in_test_mode) {
 					/* send a direct PWM value */
 					ret = io_reg_set(PX4IO_PAGE_DIRECT_PWM, channel, arg);
 
@@ -2690,8 +2781,20 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			break;
 		}
 
-	case PWM_SERVO_SET_MODE:
-		ret = (arg == PWM_SERVO_ENTER_TEST_MODE || PWM_SERVO_EXIT_TEST_MODE) ? 0 : -EINVAL;
+	case PWM_SERVO_SET_MODE: {
+			// reset all channels to disarmed when entering/leaving test mode, so that we don't
+			// accidentially use values from previous tests
+			pwm_output_values pwm_disarmed;
+
+			if (io_reg_get(PX4IO_PAGE_DISARMED_PWM, 0, pwm_disarmed.values, _max_actuators) == 0) {
+				for (unsigned i = 0; i < _max_actuators; ++i) {
+					io_reg_set(PX4IO_PAGE_DIRECT_PWM, i, pwm_disarmed.values[i]);
+				}
+			}
+
+			_motor_test.in_test_mode = (arg == PWM_SERVO_ENTER_TEST_MODE);
+			ret = (arg == PWM_SERVO_ENTER_TEST_MODE || PWM_SERVO_EXIT_TEST_MODE) ? 0 : -EINVAL;
+		}
 		break;
 
 	case MIXERIOCGETOUTPUTCOUNT:
