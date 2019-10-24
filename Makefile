@@ -141,6 +141,10 @@ else
 
 endif
 
+ifdef PX4_MAVSDK_TESTING
+	CMAKE_ARGS += -DMAVSDK_TESTING=ON
+endif
+
 # Functions
 # --------------------------------------------------------------------
 # describe how to build a cmake config
