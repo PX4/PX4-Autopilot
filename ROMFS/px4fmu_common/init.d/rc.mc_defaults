@@ -5,8 +5,6 @@
 # NOTE: Script variables are declared/initialized/unset in the rcS script.
 #
 
-set VEHICLE_TYPE mc
-
 if [ $AUTOCNF = yes ]
 then
 	param set NAV_ACC_RAD 2
@@ -20,9 +18,11 @@ then
 	param set PWM_RATE 400
 fi
 
-#
-# This is the gimbal pass mixer.
-#
+set MIXER quad_x
+
 set MIXER_AUX pass
 
+set PWM_OUT 1234
 set PWM_AUX_OUT 1234
+
+set VEHICLE_TYPE mc

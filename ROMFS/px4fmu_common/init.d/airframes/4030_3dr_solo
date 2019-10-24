@@ -87,8 +87,4 @@ then
 	param set SER_TEL1_BAUD 921600
 fi
 
-set MIXER quad_x
-
-set PWM_OUT 1234
 set MIXER_AUX none
-

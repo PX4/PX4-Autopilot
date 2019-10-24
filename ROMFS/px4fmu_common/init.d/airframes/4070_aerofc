@@ -77,6 +77,5 @@ then
   set OUTPUT_MODE tap_esc
 fi
 
-set MIXER quad_x
 set USE_IO no
 

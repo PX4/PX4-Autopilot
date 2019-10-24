@@ -15,15 +15,8 @@
 # @output MAIN3 motor 3
 # @output MAIN4 motor 4
 #
-# @maintainer Jacob Dahl <jacob.dahl@tealdrones.com>
-#
-
-echo "Executing 4250_teal script."
 
 sh /etc/init.d/rc.mc_defaults
-
-set MIXER quad_x
-set PWM_OUT 1234
 
 if [ $AUTOCNF = yes ]
 then

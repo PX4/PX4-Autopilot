@@ -13,9 +13,6 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-set MIXER quad_x
-set PWM_OUT 1234
-
 if [ $AUTOCNF = yes ]
 then
 	# The set does not include a battery, but most people will probably use 4S
@@ -54,4 +51,3 @@ then
 	param set RC_FLT_CUTOFF 0
 	param set THR_MDL_FAC 0.3
 fi
-

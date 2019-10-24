@@ -13,9 +13,6 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-set MIXER zmr250
-set PWM_OUT 1234
-
 if [ $AUTOCNF = yes ]
 then
 	param set CBRK_IO_SAFETY 22027
@@ -52,3 +49,5 @@ then
 	param set PWM_RATE 400
 	param set PWM_DISARMED 900
 fi
+
+set MIXER zmr250

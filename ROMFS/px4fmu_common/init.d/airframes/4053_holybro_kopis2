@@ -12,9 +12,6 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-set MIXER quad_x
-set PWM_OUT 1234
-
 if [ $AUTOCNF = yes ]
 then
 	param set BAT_N_CELLS 4
@@ -58,4 +55,3 @@ then
 
 	param set EV_TSK_RC_LOSS 1
 fi
-

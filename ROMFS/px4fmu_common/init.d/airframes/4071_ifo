@@ -20,10 +20,6 @@
 # @maintainer Hyon Lim <lim@uvify.com>
 #
 
-set VEHICLE_TYPE mc
-set MIXER quad_x
-set PWM_OUT 1234
-
 if [ $AUTOCNF = yes ]
 then
 	# Attitude & rate gains
@@ -121,3 +117,7 @@ then
 	param set MAV_1_MODE 0	# normal
 	param set SER_TEL2_BAUD 57600
 fi
+
+set MIXER quad_x
+set PWM_OUT 1234
+set VEHICLE_TYPE mc

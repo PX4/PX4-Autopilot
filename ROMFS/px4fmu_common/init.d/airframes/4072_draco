@@ -20,10 +20,6 @@
 # @maintainer Hyon Lim <lim@uvify.com>
 #
 
-set VEHICLE_TYPE mc
-set MIXER quad_x
-set PWM_OUT 1234
-
 if [ $AUTOCNF = yes ]
 then
 	# Attitude & rate gains
@@ -117,3 +113,7 @@ then
 	# TELEM2 ttyS2
 	param set MAV_1_CONFIG 0
 fi
+
+set MIXER quad_x
+set PWM_OUT 1234
+set VEHICLE_TYPE mc

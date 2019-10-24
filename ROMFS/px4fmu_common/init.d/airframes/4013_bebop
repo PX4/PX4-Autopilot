@@ -38,6 +38,7 @@ then
 	param set MC_YAWRATE_D 0
 fi
 
-set OUTPUT_MODE bebop
-set USE_IO no
 set MIXER bebop
+set OUTPUT_MODE bebop
+set PWM_OUT none
+set USE_IO no

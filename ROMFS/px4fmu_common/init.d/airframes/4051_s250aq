@@ -21,11 +21,6 @@
 
 sh /etc/init.d/rc.mc_defaults
 
-set MIXER quad_s250aq
-set MAV_TYPE 2
-
-set PWM_OUT 1234
-
 if [ $AUTOCNF = yes ]
 then
 	param set ATT_BIAS_MAX 0
@@ -61,3 +56,6 @@ then
 
 	param set PWM_MIN 1075
 fi
+
+set MAV_TYPE 2
+set MIXER quad_s250aq
