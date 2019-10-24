@@ -91,18 +91,3 @@ TEST_F(PreFlightCheckerTest, testInnov2dFailed)
 		EXPECT_FALSE(PreFlightChecker::checkInnov2DFailed(innovations[i], innovations_lpf[i], 1.42));
 	}
 }
-
-TEST_F(PreFlightCheckerTest, testBitMask)
-{
-	PreFlightChecker preflt_checker;
-
-	const bool heading_failed = true;
-	const bool horiz_vel_failed = true;
-	const bool down_vel_failed = false;
-	const bool height_failed = true;
-
-	int bitmask = PreFlightChecker::prefltFailBoolToBitMask(heading_failed, horiz_vel_failed, down_vel_failed,
-			height_failed);
-
-	EXPECT_EQ(bitmask, 0b1011);
-}
