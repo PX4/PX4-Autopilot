@@ -429,25 +429,25 @@ class NX_tcb(object):
 	def is_in(self,arg,list):
 		for i in list:
 			if arg == i:
-				return True;
+				return True
 		return False
 
 	def find_tcb_list(self,dq_entry_t):
 		tcb_list = []
 		tcb_ptr = dq_entry_t.cast(gdb.lookup_type('struct tcb_s').pointer())
 		first_tcb = tcb_ptr.dereference()
-		tcb_list.append(first_tcb);
+		tcb_list.append(first_tcb)
 		next_tcb = first_tcb['flink'].dereference()
 		while not self.is_in(parse_int(next_tcb['pid']),[parse_int(t['pid']) for t in tcb_list]):
-			tcb_list.append(next_tcb);
-			old_tcb = next_tcb;
+			tcb_list.append(next_tcb)
+			old_tcb = next_tcb
 			next_tcb = old_tcb['flink'].dereference()
 
 		return [t for t in tcb_list if parse_int(t['pid'])<2000]
 
 	def getTCB(self):
 		list_of_listsnames = ['g_pendingtasks','g_readytorun','g_waitingforsemaphore','g_waitingforsignal','g_inactivetasks']
-		tcb_list = [];
+		tcb_list = []
 		for l in list_of_listsnames:
 			li = gdb.lookup_global_symbol(l)
 			print(li)
@@ -463,25 +463,25 @@ class NX_check_stack_order(gdb.Command):
 	def is_in(self,arg,list):
 		for i in list:
 			if arg == i:
-				return True;
+				return True
 		return False
 
 	def find_tcb_list(self,dq_entry_t):
 		tcb_list = []
 		tcb_ptr = dq_entry_t.cast(gdb.lookup_type('struct tcb_s').pointer())
 		first_tcb = tcb_ptr.dereference()
-		tcb_list.append(first_tcb);
+		tcb_list.append(first_tcb)
 		next_tcb = first_tcb['flink'].dereference()
 		while not self.is_in(parse_int(next_tcb['pid']),[parse_int(t['pid']) for t in tcb_list]):
-			tcb_list.append(next_tcb);
-			old_tcb = next_tcb;
+			tcb_list.append(next_tcb)
+			old_tcb = next_tcb
 			next_tcb = old_tcb['flink'].dereference()
 
 		return [t for t in tcb_list if parse_int(t['pid'])<2000]
 
 	def getTCB(self):
 		list_of_listsnames = ['g_pendingtasks','g_readytorun','g_waitingforsemaphore','g_waitingforsignal','g_inactivetasks']
-		tcb_list = [];
+		tcb_list = []
 		for l in list_of_listsnames:
 			li = gdb.lookup_global_symbol(l)
 			cursor = li.value()['head']
@@ -516,22 +516,22 @@ class NX_check_stack_order(gdb.Command):
 
 	def check_name(self,name):
 		if isinstance(name,(list)):
-			name = name[0];
+			name = name[0]
 		idx = name.find("\\")
 		newname = name[:idx]
 
 		return newname
 
 	def invoke(self,args,sth):
-		tcb = self.getTCB();
-		stackadresses={};
+		tcb = self.getTCB()
+		stackadresses={}
 		for t in tcb:
-			p = [];
+			p = []
 			#print(t.name,t._tcb['stack_alloc_ptr'])
 			p.append(parse_int(t['stack_alloc_ptr']))
 			p.append(parse_int(t['adj_stack_ptr']))
 			p.append(self.getSPfromTask(t))
-			stackadresses[str(t['name'])] = p;
+			stackadresses[str(t['name'])] = p
 		address = int("0x30000000",0)
 		print("stack address  :  process")
 		for i in range(len(stackadresses)*3):
@@ -568,7 +568,7 @@ class NX_run_debug_util(gdb.Command):
 				print("this is the location in code where the current threads $pc is:")
 				gdb.execute(eval_str)
 		else:
-			tcb_nr = int(args);
+			tcb_nr = int(args)
 			print("tcb_nr = ",tcb_nr)
 			t = tasks[tcb_nr]
 			self.printRegisters(t)
@@ -588,25 +588,25 @@ class NX_search_tcb(gdb.Command):
 	def is_in(self,arg,list):
 		for i in list:
 			if arg == i:
-				return True;
+				return True
 		return False
 
 	def find_tcb_list(self,dq_entry_t):
 		tcb_list = []
 		tcb_ptr = dq_entry_t.cast(gdb.lookup_type('struct tcb_s').pointer())
 		first_tcb = tcb_ptr.dereference()
-		tcb_list.append(first_tcb);
+		tcb_list.append(first_tcb)
 		next_tcb = first_tcb['flink'].dereference()
 		while not self.is_in(parse_int(next_tcb['pid']),[parse_int(t['pid']) for t in tcb_list]):
-			tcb_list.append(next_tcb);
-			old_tcb = next_tcb;
+			tcb_list.append(next_tcb)
+			old_tcb = next_tcb
 			next_tcb = old_tcb['flink'].dereference()
 
 		return [t for t in tcb_list if parse_int(t['pid'])<2000]
 
 	def invoke(self,args,sth):
 		list_of_listsnames = ['g_pendingtasks','g_readytorun','g_waitingforsemaphore','g_waitingforsignal','g_inactivetasks']
-		tasks = [];
+		tasks = []
 		for l in list_of_listsnames:
 			li = gdb.lookup_global_symbol(l)
 			cursor = li.value()['head']
@@ -615,9 +615,9 @@ class NX_search_tcb(gdb.Command):
 		# filter for tasks that are listed twice
 		tasks_filt = {}
 		for t in tasks:
-			pid = parse_int(t['pid']);
+			pid = parse_int(t['pid'])
 			if not pid in tasks_filt.keys():
-				tasks_filt[pid] = t['name'];
+				tasks_filt[pid] = t['name']
 		print('{num_t} Tasks found:'.format(num_t = len(tasks_filt)))
 		for pid in tasks_filt.keys():
 			print("PID: ",pid," ",tasks_filt[pid])
@@ -645,12 +645,12 @@ class NX_my_bt(gdb.Command):
 
 	def is_in_bounds(self,val):
 		lower_bound = int("08004000",16)
-		upper_bound = int("080ae0c0",16);
+		upper_bound = int("080ae0c0",16)
 		#print(lower_bound," ",val," ",upper_bound)
 		if val>lower_bound and val<upper_bound:
-			return True;
+			return True
 		else:
-			return False;
+			return False
 	def get_tcb_from_address(self,addr):
 		addr_value = gdb.Value(addr)
 		tcb_ptr = addr_value.cast(gdb.lookup_type('struct tcb_s').pointer())
