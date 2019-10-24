@@ -101,6 +101,8 @@ PrecLand::on_activation()
 	_last_slewrate_time = 0;
 
 	switch_to_state_start();
+
+	_is_activated = true;
 }
 
 void
@@ -156,6 +158,12 @@ PrecLand::on_active()
 		break;
 	}
 
+}
+
+void
+PrecLand::on_inactivation()
+{
+	_is_activated = false;
 }
 
 void
