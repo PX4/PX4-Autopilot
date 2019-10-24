@@ -49,7 +49,8 @@
 #include "vtol_att_control_main.h"
 #include <systemlib/mavlink_log.h>
 #include <matrix/matrix/math.hpp>
-#include <uORB/PublicationQueued.hpp>
+
+using namespace matrix;
 
 using namespace matrix;
 
@@ -411,6 +412,14 @@ VtolAttitudeControl::Run()
 		}
 
 		_vtol_type->fill_actuator_outputs();
+
+		// reinitialize the setpoint while not armed to make sure no value from the last mode or flight is still kept
+		if (!_v_control_mode.flag_armed) {
+			Quatf().copyTo(_mc_virtual_att_sp.q_d);
+			Vector3f().copyTo(_mc_virtual_att_sp.thrust_body);
+			Quatf().copyTo(_v_att_sp.q_d);
+			Vector3f().copyTo(_v_att_sp.thrust_body);
+		}
 
 		// reinitialize the setpoint while not armed to make sure no value from the last mode or flight is still kept
 		if (!_v_control_mode.flag_armed) {
