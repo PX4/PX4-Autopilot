@@ -75,5 +75,5 @@ public:
 	}
 
 private:
-	float _x; ///< current state of the filter
+	float _x{}; ///< current state of the filter
 };
