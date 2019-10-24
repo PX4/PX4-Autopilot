@@ -87,7 +87,7 @@ public:
 	 */
 	void setYawHandler(WeatherVane *ext_yaw_handler) override {_ext_yaw_handler = ext_yaw_handler;}
 
-	CollisionPrevention _collision_prevention;	/**< collision avoidance setpoint amendment */
+	CollisionPrevention _collision_prevention;
 
 protected:
 	void _setDefaultConstraints() override;

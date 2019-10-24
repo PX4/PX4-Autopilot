@@ -76,5 +76,5 @@ private:
 	WeatherVane *_weathervane_yaw_handler =
 		nullptr;	/**< external weathervane library, used to implement a yaw control law that turns the vehicle nose into the wind */
 
-	CollisionPrevention _collision_prevention;	/**< collision avoidance setpoint amendment */
+	CollisionPrevention _collision_prevention;
 };
