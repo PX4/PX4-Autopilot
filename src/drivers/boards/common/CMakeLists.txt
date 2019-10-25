@@ -40,15 +40,8 @@ if ((${PX4_PLATFORM} MATCHES "nuttx") AND NOT ${PX4_BOARD} MATCHES "px4_io")
 		board_fat_dma_alloc.c
 		)
 
-	if (${CONFIG_ARCH_CHIP} MATCHES "kinetis")
-		add_subdirectory(kinetis)
-	elseif (${CONFIG_ARCH_CHIP} MATCHES "stm32")
-		add_subdirectory(stm32)
-	endif()
-
 	target_link_libraries(drivers_boards_common
 		PRIVATE
-			drivers_boards_common_arch
 			nuttx_arch # bbsram
 			nuttx_mm # dma gran alloc
 			systemlib
@@ -56,5 +49,4 @@ if ((${PX4_PLATFORM} MATCHES "nuttx") AND NOT ${PX4_BOARD} MATCHES "px4_io")
 
 else()
 	add_library(drivers_boards_common INTERFACE)
-	add_library(drivers_boards_common_arch INTERFACE)
 endif()
