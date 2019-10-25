@@ -41,7 +41,7 @@
 #include <float.h>
 
 #include <drivers/airspeed/airspeed.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
 /* I2C bus address */
 #define I2C_ADDRESS	0x75	/* 7-bit address. 8-bit address is 0xEA */

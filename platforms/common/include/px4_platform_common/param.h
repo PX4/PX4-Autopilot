@@ -32,14 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file px4_param.h
+ * @file param.h
  *
  * C++ Parameter class
  */
 
 #pragma once
 
-#include "px4_param_macros.h"
+#include "param_macros.h"
 
 #include <parameters/px4_parameters_public.h>
 

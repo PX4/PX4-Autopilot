@@ -41,8 +41,8 @@
 
 #include "wqueue_test.h"
 
-#include <px4_time.h>
-#include <px4_workqueue.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/workqueue.h>
 #include <unistd.h>
 #include <stdio.h>
 

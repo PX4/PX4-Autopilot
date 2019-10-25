@@ -45,7 +45,7 @@
 #include <drivers/device/i2c.h>
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
 

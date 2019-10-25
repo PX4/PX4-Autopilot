@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4_console_buffer.h
+ * @file console_buffer.h
  * This implements a simple console buffer to store the full bootup output.
  * It can be printed via the 'dmesg' utility.
  * The output of stdout is redirected to CONSOLE_BUFFER_DEVICE, which is stored
@@ -40,7 +40,7 @@
  * to the original console.
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 
 #define CONSOLE_BUFFER_DEVICE "/dev/console_buf"

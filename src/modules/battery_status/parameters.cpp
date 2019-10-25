@@ -39,7 +39,7 @@
 
 #include "parameters.h"
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 namespace battery_status
 {

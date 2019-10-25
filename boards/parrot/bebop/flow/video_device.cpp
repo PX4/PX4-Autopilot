@@ -50,7 +50,7 @@
 
 #include <linux/videodev2.h>
 
-#include <px4_posix.h>
+#include <px4_platform_common/posix.h>
 
 int VideoDevice::start()
 {

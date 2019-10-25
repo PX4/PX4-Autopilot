@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4_sem.h
+ * @file sem.h
  *
  * Synchronization primitive: Semaphore
  */

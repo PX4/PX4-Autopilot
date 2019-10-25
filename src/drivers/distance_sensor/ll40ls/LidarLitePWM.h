@@ -50,7 +50,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_input.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/topics/pwm_input.h>
 

@@ -39,8 +39,8 @@
 
 #pragma once
 
-#include <px4_defines.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/tasks.h>
 #include <stdint.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -53,7 +53,7 @@
 #include <sys/types.h>
 #endif
 
-#include "px4_sem.h"
+#include "sem.h"
 
 #define  PX4_F_RDONLY 1
 #define  PX4_F_WRONLY 2

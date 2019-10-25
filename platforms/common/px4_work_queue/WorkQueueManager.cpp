@@ -36,10 +36,10 @@
 #include <px4_platform_common/px4_work_queue/WorkQueue.hpp>
 
 #include <drivers/drv_hrt.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
-#include <px4_time.h>
-#include <px4_atomic.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/atomic.h>
 #include <containers/BlockingList.hpp>
 #include <containers/BlockingQueue.hpp>
 #include <lib/drivers/device/Device.hpp>

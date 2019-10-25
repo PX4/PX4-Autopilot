@@ -37,7 +37,7 @@
  * sitl board shutdown backend.
  */
 
-#include <px4_tasks.h>
+#include <px4_platform_common/tasks.h>
 #include <board_config.h>
 
 int board_register_power_state_notification_cb(power_button_state_notification_t cb)
