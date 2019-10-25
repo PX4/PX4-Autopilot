@@ -351,7 +351,7 @@ void PositionControl::updateConstraints(const vehicle_constraints_s &constraints
 	}
 }
 
-void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint)
+void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint) const
 {
 	local_position_setpoint.x = _pos_sp(0);
 	local_position_setpoint.y = _pos_sp(1);
@@ -365,7 +365,7 @@ void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s
 	_thr_sp.copyTo(local_position_setpoint.thrust);
 }
 
-void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint)
+void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const
 {
 	attitude_setpoint = ControlMath::thrustToAttitude(_thr_sp, _yaw_sp);
 	attitude_setpoint.yaw_sp_move_rate = _yawspeed_sp;
