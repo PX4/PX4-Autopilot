@@ -104,10 +104,12 @@ int board_get_uuid32_formated(char *format_buffer, int size,
 int board_get_mfguid(mfguid_t mfgid)
 {
 	uint32_t *chip_uuid = (uint32_t *) STM32_SYSMEM_UID;
-	uint32_t  *rv = (uint32_t *) &mfgid[0];
+	uint8_t  *rv = &mfgid[0];
 
 	for (unsigned i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
-		*rv++ = SWAP_UINT32(chip_uuid[(PX4_CPU_UUID_WORD32_LENGTH - 1) - i]);
+		uint32_t uuid_bytes = SWAP_UINT32(chip_uuid[(PX4_CPU_UUID_WORD32_LENGTH - 1) - i]);
+		memcpy(rv, &uuid_bytes, sizeof(uint32_t));
+		rv += sizeof(uint32_t);
 	}
 
 	return PX4_CPU_MFGUID_BYTE_LENGTH;
@@ -137,13 +139,12 @@ int board_get_px4_guid(px4_guid_t px4_guid)
 		*pb++ = 0;
 	}
 
-	uint32_t  *rv = (uint32_t *) pb;
 	uint32_t *chip_uuid = (uint32_t *) STM32_SYSMEM_UID;
 
 	for (unsigned i = 0; i < PX4_CPU_UUID_WORD32_LENGTH; i++) {
 		uint32_t uuid_bytes = SWAP_UINT32(chip_uuid[(PX4_CPU_UUID_WORD32_LENGTH - 1) - i]);
-		memcpy(rv, &uuid_bytes, sizeof(uint32_t));
-		++rv;
+		memcpy(pb, &uuid_bytes, sizeof(uint32_t));
+		pb += sizeof(uint32_t);
 	}
 
 	return PX4_GUID_BYTE_LENGTH;
