@@ -70,7 +70,7 @@
 #include <px4_platform_common/init.h>
 #include <px4_platform/gpio.h>
 #include <px4_platform/gpio.h>
-#include <drivers/boards/common/board_dma_alloc.h>
+#include <px4_platform/board_dma_alloc.h>
 
 # if defined(FLASH_BASED_PARAMS)
 #  include <parameters/flashparams/flashfs.h>

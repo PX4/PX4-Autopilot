@@ -38,10 +38,8 @@
  */
 
 #include <px4_platform_common/px4_config.h>
-#include "board_config.h"
-
-#include "board_dma_alloc.h"
-#include <perf/perf_counter.h>
+#include <px4_platform/board_dma_alloc.h>
+#include <board_config.h>
 
 #if defined(CONFIG_FAT_DMAMEMORY)
 
