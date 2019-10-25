@@ -194,6 +194,8 @@
 #define PX4_MEMORY_BUS_CS_GPIO      {GPIO_SPI2_CS_FRAM}
 
 #define PX4_SPIDEV_BARO             PX4_MK_SPI_SEL(PX4_SPI_BUS_BARO,0)
+#define PX4_SPIDEV_LPS22HB          PX4_SPIDEV_BARO
+#define PX4_SPI_BUS_SENSOR4         PX4_SPI_BUS_BARO
 #define PX4_SPIDEV_SPI4_CS2         PX4_MK_SPI_SEL(PX4_SPI_BUS_BARO,1)
 #define PX4_BARO_BUS_CS_GPIO        {GPIO_SPI4_CS1_MS5611, GPIO_SPI4_CS2}
 
@@ -446,7 +448,9 @@
 
 #define GPIO_nVDD_BRICK1_VALID          GPIO_nPOWER_IN_A /* Brick 1 Is Chosen */
 #define GPIO_nVDD_BRICK2_VALID          GPIO_nPOWER_IN_B /* Brick 2 Is Chosen  */
-#define BOARD_NUMBER_BRICKS             2
+//#define BOARD_NUMBER_BRICKS             2
+#define ADC_BATTERY_VOLTAGE_CHANNEL	ADC_BATTERY1_VOLTAGE_CHANNEL
+#define ADC_BATTERY_CURRENT_CHANNEL	ADC_BATTERY1_CURRENT_CHANNEL
 #define GPIO_nVDD_USB_VALID             GPIO_nPOWER_IN_C /* USB     Is Chosen */
 
 #define GPIO_nVDD_5V_PERIPH_EN          /* PG4  */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTG|GPIO_PIN4)
@@ -539,7 +543,7 @@
 #define GPIO_LED_SAFETY GPIO_nSAFETY_SWITCH_LED_OUT
 #define GPIO_SAFETY_SWITCH_IN              /* PE10 */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTE|GPIO_PIN10)
 /* Enable the FMU to use the switch it if there is no px4io fixme:This should be BOARD_SAFTY_BUTTON() */
-#define GPIO_BTN_SAFETY GPIO_SAFETY_SWITCH_IN /* Enable the FMU to control it if there is no px4io */
+//#define GPIO_BTN_SAFETY GPIO_SAFETY_SWITCH_IN /* Enable the FMU to control it if there is no px4io */
 
 /* Power switch controls ******************************************************/
 

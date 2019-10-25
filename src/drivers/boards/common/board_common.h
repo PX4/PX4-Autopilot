@@ -133,7 +133,7 @@
  * defaults
  */
 #if !defined(ADC_V5_V_FULL_SCALE)
-#define ADC_V5_V_FULL_SCALE             (6.6f)  // 5 volt Rail full scale voltage
+#define ADC_V5_V_FULL_SCALE             (6.0f)  // 5 volt Rail full scale voltage
 #endif
 #if !defined(ADC_V5_SCALE)
 #define ADC_V5_SCALE                    (2.0f) // The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb

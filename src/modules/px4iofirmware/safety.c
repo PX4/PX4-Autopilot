@@ -46,15 +46,6 @@
 
 #include "px4io.h"
 
-static struct hrt_call arming_call;
-static struct hrt_call failsafe_call;
-
-/*
- * Count the number of times in a row that we see the arming button
- * held down.
- */
-static unsigned counter = 0;
-
 /*
  * Define the various LED flash sequences for each system state.
  */
@@ -63,8 +54,6 @@ static unsigned counter = 0;
 #define LED_PATTERN_IO_ARMED			0x5050			/**< long off, then double blink 	*/
 #define LED_PATTERN_FMU_ARMED			0x5500			/**< long off, then quad blink 		*/
 #define LED_PATTERN_IO_FMU_ARMED		0xffff			/**< constantly on			*/
-
-static unsigned blink_counter = 0;
 
 /*
  * IMPORTANT: The arming state machine critically
@@ -75,23 +64,30 @@ static unsigned blink_counter = 0;
  */
 #define ARM_COUNTER_THRESHOLD	10
 
-static bool safety_button_pressed;
-
-static void safety_check_button(void *arg);
+static struct hrt_call failsafe_call;
 static void failsafe_blink(void *arg);
 
-void
-safety_init(void)
-{
-	/* arrange for the button handler to be called at 10Hz */
-	hrt_call_every(&arming_call, 1000, 100000, safety_check_button, NULL);
-}
+#ifdef GPIO_BTN_SAFETY
+static struct hrt_call arming_call;
+static unsigned counter = 0;  //Count the number of times in a row that we see the arming button held down.
+static unsigned blink_counter = 0;
+static bool safety_button_pressed;
+static void safety_check_button(void *arg);
+#endif
 
 void
 failsafe_led_init(void)
 {
 	/* arrange for the failsafe blinker to be called at 8Hz */
 	hrt_call_every(&failsafe_call, 1000, 125000, failsafe_blink, NULL);
+}
+
+#ifdef GPIO_BTN_SAFETY
+void
+safety_init(void)
+{
+	/* arrange for the button handler to be called at 10Hz */
+	hrt_call_every(&arming_call, 1000, 100000, safety_check_button, NULL);
 }
 
 static void
@@ -164,6 +160,7 @@ safety_check_button(void *arg)
 		blink_counter = 0;
 	}
 }
+#endif
 
 static void
 failsafe_blink(void *arg)

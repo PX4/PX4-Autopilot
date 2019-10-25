@@ -96,7 +96,7 @@ LPS22HB_SPI::init()
 	}
 
 	if (id != LPS22HB_ID_WHO_AM_I) {
-		DEVICE_DEBUG("ID byte mismatch (%02x != %02x)", LPS22HB_ID_WHO_AM_I, id);
+		DEVICE_DEBUG("ID byte mismatch (%02x != %02x)", LPS22HB_ID_WHO_AM_I, id);PX4_WARN("ID byte mismatch (%02x != %02x)", LPS22HB_ID_WHO_AM_I, id);
 		return -EIO;
 	}
 
@@ -128,7 +128,6 @@ LPS22HB_SPI::read(unsigned address, void *data, unsigned count)
 	}
 
 	buf[0] = address | DIR_READ;
-
 	int ret = transfer(&buf[0], &buf[0], count + 1);
 	memcpy(data, &buf[1], count);
 	return ret;

@@ -112,7 +112,7 @@ isr_debug(uint8_t level, const char *fmt, ...)
 
 /*
  * show all pending debug messages
- */
+ */ 
 static void
 show_debug_messages(void)
 {
@@ -132,12 +132,12 @@ show_debug_messages(void)
 
 /*
  * Get the memory usage at 2 Hz while not armed
- */
+ */ 
 static void
 update_mem_usage(void)
 {
-	if (/* IO armed */ (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
-			   /* and FMU is armed */ && (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
+			   && (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {  //IO armed and FMU is armed
 		return;
 	}
 
@@ -163,8 +163,8 @@ ring_blink(void)
 {
 #ifdef GPIO_LED4
 
-	if (/* IO armed */ (r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
-			   /* and FMU is armed */ && (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {
+	if ((r_status_flags & PX4IO_P_STATUS_FLAGS_SAFETY_OFF)
+			   && (r_setup_arming & PX4IO_P_SETUP_ARMING_FMU_ARMED)) {  //IO armed and FMU is armed
 		LED_RING(1);
 		return;
 	}
@@ -229,19 +229,19 @@ void schedule_reboot(uint32_t time_delta_usec)
 
 /**
    check for a scheduled reboot
- */
+ */ 
 static void check_reboot(void)
 {
 	if (reboot_time != 0 && hrt_absolute_time() > reboot_time) {
 		up_systemreset();
 	}
-}
+} 
 
 static void
 calculate_fw_crc(void)
 {
-#define APP_SIZE_MAX 0xf000
-#define APP_LOAD_ADDRESS 0x08001000
+#define APP_SIZE_MAX 0x7c000
+#define APP_LOAD_ADDRESS 0x08004000
 	// compute CRC of the current firmware
 	uint32_t sum = 0;
 
@@ -313,8 +313,9 @@ user_start(int argc, char *argv[])
 #endif
 
 	/* start the safety switch handler */
+#ifdef GPIO_BTN_SAFETY
 	safety_init();
-
+#endif
 	/* initialise the control inputs */
 	controls_init();
 
@@ -381,7 +382,6 @@ user_start(int argc, char *argv[])
 	/*
 	 * Run everything in a tight loop.
 	 */
-
 	uint64_t last_debug_time = 0;
 	uint64_t last_heartbeat_time = 0;
 	uint64_t last_loop_time = 0;
@@ -397,15 +397,15 @@ user_start(int argc, char *argv[])
 			dt = 0.02f;
 		}
 
-		/* track the rate at which the loop is running */
+		// track the rate at which the loop is running
 		perf_count(loop_perf);
 
-		/* kick the mixer */
+		// kick the mixer
 		perf_begin(mixer_perf);
 		mixer_tick();
 		perf_end(mixer_perf);
 
-		/* kick the control inputs */
+		// kick the control inputs
 		perf_begin(controls_perf);
 		controls_tick();
 		perf_end(controls_perf);
@@ -434,11 +434,11 @@ user_start(int argc, char *argv[])
 			}
 
 		} else if (r_page_setup[PX4IO_P_SETUP_THERMAL] < PX4IO_THERMAL_FULL) {
-			/* switch resistive heater off */
+			// switch resistive heater off 
 			LED_BLUE(false);
 
 		} else {
-			/* switch resistive heater hard on */
+			// switch resistive heater hard on 
 			LED_BLUE(true);
 		}
 
@@ -448,12 +448,11 @@ user_start(int argc, char *argv[])
 
 		check_reboot();
 
-		/* check for debug activity (default: none) */
+		// check for debug activity (default: none)
 		show_debug_messages();
 
-		/* post debug state at ~1Hz - this is via an auxiliary serial port
-		 * DEFAULTS TO OFF!
-		 */
+		// post debug state at ~1Hz - this is via an auxiliary serial port DEFAULTS TO OFF!
+
 		if (hrt_absolute_time() - last_debug_time > (1000 * 1000)) {
 
 			isr_debug(1, "d:%u s=0x%x a=0x%x f=0x%x m=%u",
@@ -463,7 +462,7 @@ user_start(int argc, char *argv[])
 				  (unsigned)r_setup_features,
 				  (unsigned)mallinfo().mxordblk);
 			last_debug_time = hrt_absolute_time();
-		}
+		} 
 	}
 }
 

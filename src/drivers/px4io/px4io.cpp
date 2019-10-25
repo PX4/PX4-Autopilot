@@ -3042,7 +3042,7 @@ checkcrc(int argc, char *argv[])
 		exit(1);
 	}
 
-	const uint32_t app_size_max = 0xf000;
+	const uint32_t app_size_max = 0x7c000;
 	uint32_t fw_crc = 0;
 	uint32_t nbytes = 0;
 
@@ -3063,7 +3063,7 @@ checkcrc(int argc, char *argv[])
 		fw_crc = crc32part(&b, 1, fw_crc);
 		nbytes++;
 	}
-
+	printf("px4io checkcrc calculation result fw_crc = %d\n", fw_crc);
 	int ret = g_dev->ioctl(nullptr, PX4IO_CHECK_CRC, fw_crc);
 
 	if (!keep_running) {

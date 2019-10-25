@@ -559,7 +559,7 @@ protected:
 	{}
 
 	bool send(const hrt_abstime t)
-	{
+	{	
 		vehicle_status_s status = {};
 		cpuload_s cpuload = {};
 		battery_status_s battery_status = {};
