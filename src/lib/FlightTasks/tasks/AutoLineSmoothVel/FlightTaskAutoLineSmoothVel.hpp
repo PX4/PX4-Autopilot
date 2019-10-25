@@ -77,11 +77,21 @@ protected:
 	void _generateHeading();
 	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
 
-	inline float _constrainOneSide(float val, float constraint); /**< Constrain val between INF and constraint */
-	inline float _constrainAbs(float val, float min, float max); /**< Constrain absolute value of val between min and max */
+	static float _constrainOneSide(float val, float constraint); /**< Constrain val between INF and constraint */
 
-	float _getSpeedAtTarget();
-	float _getMaxSpeedFromDistance(float braking_distance);
+	/**
+	 * Constrain the abs value below max but above min
+	 * Min can be larger than max and has priority over it
+	 * The whole computation is done on the absolute values but the returned
+	 * value has the sign of val
+	 * @param val the value to constrain and boost
+	 * @param min the minimum value that the function should return
+	 * @param max the value by which val is constrained before the boost is applied
+	 */
+	static float _constrainAbsPrioritizeMin(float val, float min, float max);
+
+	float _getSpeedAtTarget() const;
+	float _getMaxSpeedFromDistance(float braking_distance) const;
 
 	void _prepareSetpoints(); /**< Generate velocity target points for the trajectory generator. */
 	void _updateTrajConstraints();
