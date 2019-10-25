@@ -72,7 +72,7 @@
 #include <px4_platform_common/init.h>
 #include <px4_platform_common/i2c.h>
 #include <px4_platform/gpio.h>
-#include <drivers/boards/common/board_dma_alloc.h>
+#include <px4_platform/board_dma_alloc.h>
 
 static int configure_switch(void);
 

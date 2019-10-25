@@ -72,7 +72,7 @@
 #include <drivers/drv_board_led.h>
 
 #include <px4_platform_common/init.h>
-#include <drivers/boards/common/board_dma_alloc.h>
+#include <px4_platform/board_dma_alloc.h>
 
 /****************************************************************************
  * Pre-Processor Definitions

@@ -35,6 +35,9 @@
 if (NOT ${PX4_BOARD} MATCHES "px4_io")
 
 	add_library(px4_layer
+		board_crashdump.c
+		board_dma_alloc.c
+		board_fat_dma_alloc.c
 		console_buffer.cpp
 		gpio.c
 		px4_nuttx_tasks.c

@@ -44,6 +44,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <board_config.h>
+
 /************************************************************************************
  * Name: board_dma_alloc_init
  *
