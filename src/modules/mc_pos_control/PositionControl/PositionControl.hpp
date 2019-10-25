@@ -134,7 +134,7 @@ public:
 	 * 	@see _vel_sp
 	 * 	@return The velocity set-point that was executed in the control-loop. Nan if velocity control-loop was skipped.
 	 */
-	const matrix::Vector3f getVelSp()
+	const matrix::Vector3f getVelSp() const
 	{
 		matrix::Vector3f vel_sp{};
 
@@ -156,7 +156,7 @@ public:
 	 * The acceleration or thrust setpoints can be used for attitude control.
 	 * @param local_position_setpoint reference to struct to fill up
 	 */
-	void getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint);
+	void getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint) const;
 
 	/**
 	 * Get the controllers output attitude setpoint
@@ -164,7 +164,7 @@ public:
 	 * It needs to be executed by the attitude controller to achieve velocity and position tracking.
 	 * @param attitude_setpoint reference to struct to fill up
 	 */
-	void getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint);
+	void getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const;
 
 protected:
 
