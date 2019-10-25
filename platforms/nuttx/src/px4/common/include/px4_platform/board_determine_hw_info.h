@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,31 +30,33 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
-/**
- * @file board_config.h
- *
- * OCPOC internal definitions
- */
-
 #pragma once
 
-#define BOARD_OVERRIDE_UUID "OCPOC00000000000" // must be of length 16
-#define PX4_SOC_ARCH_ID     PX4_SOC_ARCH_ID_OCPOC
 
-#define BOARD_BATTERY1_V_DIV   (10.177939394f)
-#define BOARD_HAS_NO_RESET
-#define BOARD_HAS_NO_BOOTLOADER
+__BEGIN_DECLS
 
-#define BOARD_NUMBER_I2C_BUSES 4
-#define BOARD_MAX_LEDS 1 // Number of external LED's this board has
-#define PX4_I2C_BUS_LED 1
-#define PX4_I2C_BUS_EXPANSION 1
+/************************************************************************************
+  * Name: board_determine_hw_info
+ *
+ * Description:
+ *	Uses the HW revision and version detection added in FMUv5.
+ *	See https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY
+ *	HW REV and VER ID tab.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   0  - on success or negated errorno
+ *   The values for integer value of this boards hardware revision.
+ *   and integer value of this boards hardware version are set.
+ *
+ *   A value of 0 is the default for boards supporting the BOARD_HAS_HW_VERSIONING API.
+ *   but not having R1 and R2.
+ *
+ ************************************************************************************/
 
-// Battery ADC channels
-#define ADC_BATTERY_VOLTAGE_CHANNEL     10
-#define ADC_BATTERY_CURRENT_CHANNEL     ((uint8_t)(-1))
-#define ADC_AIRSPEED_VOLTAGE_CHANNEL    11
+__EXPORT int board_determine_hw_info(void);
 
-#include <system_config.h>
-#include <px4_platform_common/board_common.h>
+__END_DECLS
+

@@ -518,7 +518,7 @@ extern void board_peripheral_reset(int ms);
 
 extern void stm32_usbinitialize(void);
 
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */
 

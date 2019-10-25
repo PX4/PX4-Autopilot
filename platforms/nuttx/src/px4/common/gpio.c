@@ -33,7 +33,7 @@
  ****************************************************************************/
 
 /**
- * @file board_gpio_init.c.c
+ * @file gpio.c
  * Implementation of Generic PIO init Note we use he HAL version of configgpio
  * So this will work with any ARCH
  */
@@ -41,10 +41,10 @@
 #include <px4_platform_common/px4_config.h>
 
 /************************************************************************************
- * Name: board_gpio_init
+ * Name: px4_gpio_init
  *
  * Description:
- *   Board may provide a list of GPI pins to get initialized
+ *   A board may provide a list of GPI pins to get initialized
  *
  *  list    - A list of GPIO pins to be initialized
  *  count   - Size of the list
@@ -53,7 +53,7 @@
   ************************************************************************************/
 
 
-void board_gpio_init(const uint32_t list[], int count)
+void px4_gpio_init(const uint32_t list[], int count)
 {
 	for (int gpio = 0; gpio < count; gpio++) {
 		if (list[gpio] != 0) {
