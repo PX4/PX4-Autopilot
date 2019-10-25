@@ -68,6 +68,8 @@
 #include <drivers/drv_board_led.h>
 #include <systemlib/px4_macros.h>
 #include <px4_platform_common/init.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform/gpio.h>
 #include <drivers/boards/common/board_dma_alloc.h>
 
 # if defined(FLASH_BASED_PARAMS)
@@ -120,7 +122,7 @@ __EXPORT void board_on_reset(int status)
 	/* configure the GPIO pins to outputs and keep them low */
 
 	const uint32_t gpio[] = PX4_GPIO_PWM_INIT_LIST;
-	board_gpio_init(gpio, arraySize(gpio));
+	px4_gpio_init(gpio, arraySize(gpio));
 
 	if (status >= 0) {
 		up_mdelay(6);
@@ -149,7 +151,7 @@ stm32_boardinitialize(void)
 	/* configure pins */
 
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
-	board_gpio_init(gpio, arraySize(gpio));
+	px4_gpio_init(gpio, arraySize(gpio));
 
 	/* configure SPI interfaces */
 

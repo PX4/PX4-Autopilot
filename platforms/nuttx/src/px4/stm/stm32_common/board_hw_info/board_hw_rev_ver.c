@@ -40,10 +40,9 @@
 #include <drivers/drv_adc.h>
 #include <px4_arch/adc.h>
 #include <px4_platform_common/px4_config.h>
+#include <px4_platform/board_determine_hw_info.h>
 #include <stdio.h>
-#include "board_config.h"
-
-#include "../board_internal_common.h"
+#include <board_config.h>
 
 #include <systemlib/px4_macros.h>
 

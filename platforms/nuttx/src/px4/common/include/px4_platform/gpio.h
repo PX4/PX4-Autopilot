@@ -1,7 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2017 PX4 Development Team. All rights reserved.
- *                 Author: David Sidrane <david_s5@nscdg.com>
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,25 +30,16 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
-/**
- * @file board_internal_common.h
- *
- * Provide the internal common board interfaces that should only be used
- * in the board source.
- */
-
 #pragma once
 
-/************************************************************************************
- * Included Files
- ************************************************************************************/
+
+__BEGIN_DECLS
 
 /************************************************************************************
- * Name: board_gpio_init
+ * Name: px4_gpio_init
  *
  * Description:
- *   Board may provide a list of GPI pins to get initialized
+ *   A board may provide a list of GPI pins to get initialized
  *
  * Input Parameters:
  *  list    - A list of GPIO pins to be initialized
@@ -60,27 +50,7 @@
  *
  ************************************************************************************/
 
-__EXPORT void board_gpio_init(const uint32_t list[], int count);
+__EXPORT void px4_gpio_init(const uint32_t list[], int count);
 
-/************************************************************************************
-  * Name: board_determine_hw_info
- *
- * Description:
- *	Uses the HW revision and version detection added in FMUv5.
- *	See https://docs.google.com/spreadsheets/d/1-n0__BYDedQrc_2NHqBenG1DNepAgnHpSGglke-QQwY
- *	HW REV and VER ID tab.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   0  - on success or negated errorno
- *   The values for integer value of this boards hardware revision.
- *   and integer value of this boards hardware version are set.
- *
- *   A value of 0 is the default for boards supporting the BOARD_HAS_HW_VERSIONING API.
- *   but not having R1 and R2.
- *
- ************************************************************************************/
+__END_DECLS
 
-__EXPORT int board_determine_hw_info(void);
