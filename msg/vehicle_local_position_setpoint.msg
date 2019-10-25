@@ -11,12 +11,8 @@ float32 yawspeed	# in radians/sec
 float32 vx		# in meters/sec
 float32 vy		# in meters/sec
 float32 vz		# in meters/sec
-float32 acc_x		# in meters/(sec*sec)
-float32 acc_y		# in meters/(sec*sec)
-float32 acc_z		# in meters/(sec*sec)
-float32 jerk_x		# in meters/(sec*sec*sec)
-float32 jerk_y		# in meters/(sec*sec*sec)
-float32 jerk_z		# in meters/(sec*sec*sec)
+float32[3] acceleration # in meters/sec^2
+float32[3] jerk # in meters/sec^3
 float32[3] thrust	# normalized thrust vector in NED
 
 # TOPICS vehicle_local_position_setpoint trajectory_setpoint

@@ -291,6 +291,8 @@ registers_set(uint8_t page, uint8_t offset, const uint16_t *values, unsigned num
 			values++;
 		}
 
+		r_status_flags &= ~PX4IO_P_STATUS_FLAGS_RAW_PWM;
+
 		system_state.fmu_data_received_time = hrt_absolute_time();
 
 		break;

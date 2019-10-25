@@ -39,5 +39,6 @@ px4_add_module(
 		voxlpm.cpp
 		voxlpm_main.cpp
 	DEPENDS
+		battery
 		px4_work_queue
 	)

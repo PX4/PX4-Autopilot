@@ -971,7 +971,7 @@ int UavcanNode::run()
 			orb_copy(ORB_ID(test_motor), _test_motor_sub, &_test_motor);
 
 			// Update the test status and check that we're not locked down
-			_test_in_progress = (_test_motor.value > 0);
+			_test_in_progress = (_test_motor.action == test_motor_s::ACTION_RUN);
 			_esc_controller.arm_single_esc(_test_motor.motor_number, _test_in_progress);
 		}
 
@@ -1099,7 +1099,7 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
-			unsigned buflen = strnlen(buf, 1024);
+			unsigned buflen = strlen(buf);
 
 			if (_mixers == nullptr) {
 				_mixers = new MixerGroup(control_callback, (uintptr_t)_controls);

@@ -97,10 +97,9 @@ public:
 protected:
 
 	/**
-	 * Updates parameters if changes have occurred or if forced.
-	 * @var force Forces a parameter update.
+	 * Updates parameters.
 	 */
-	virtual void _update_params(const bool force = false);
+	virtual void _update_params();
 
 	/**
 	 * Updates subscribed uORB topics.
@@ -148,6 +147,7 @@ protected:
 
 	actuator_armed_s         _actuator_armed{};
 	vehicle_acceleration_s   _vehicle_acceleration{};
+
 	vehicle_land_detected_s _land_detected = {
 		.timestamp = 0,
 		.alt_max = -1.0f,
@@ -156,13 +156,10 @@ protected:
 		.maybe_landed = true,
 		.landed = true,
 	};
+
 	vehicle_local_position_s _vehicle_local_position{};
 
 	uORB::Publication<vehicle_land_detected_s> _vehicle_land_detected_pub{ORB_ID(vehicle_land_detected)};
-
-	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
-	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
-	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 
 private:
 
@@ -179,7 +176,10 @@ private:
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, "land_detector_cycle")};
 
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		ModuleParams,

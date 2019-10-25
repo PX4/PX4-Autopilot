@@ -95,9 +95,9 @@ void MulticopterLandDetector::_update_topics()
 	_vehicle_local_position_setpoint_sub.update(&_vehicle_local_position_setpoint);
 }
 
-void MulticopterLandDetector::_update_params(const bool force)
+void MulticopterLandDetector::_update_params()
 {
-	LandDetector::_update_params(force);
+	LandDetector::_update_params();
 
 	_freefall_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _param_lndmc_ffall_ttri.get()));
 
