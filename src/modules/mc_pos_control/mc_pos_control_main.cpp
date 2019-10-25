@@ -531,9 +531,9 @@ MulticopterPositionControl::Run()
 		parameters_update(false);
 
 		// set _dt in controllib Block - the time difference since the last loop iteration in seconds
-		const hrt_abstime time_stamp_current = hrt_absolute_time();
-		setDt((time_stamp_current - _time_stamp_last_loop) / 1e6f);
-		_time_stamp_last_loop = time_stamp_current;
+		const hrt_abstime time_stamp_now = hrt_absolute_time();
+		setDt((time_stamp_now - _time_stamp_last_loop) / 1e6f);
+		_time_stamp_last_loop = time_stamp_now;
 
 		const bool was_in_failsafe = _in_failsafe;
 		_in_failsafe = false;
@@ -558,7 +558,7 @@ MulticopterPositionControl::Run()
 
 		// an update is necessary here because otherwise the takeoff state doesn't get skiped with non-altitude-controlled modes
 		_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f,
-					    !_control_mode.flag_control_climb_rate_enabled, time_stamp_current);
+					    !_control_mode.flag_control_climb_rate_enabled, time_stamp_now);
 
 		// takeoff delay for motors to reach idle speed
 		if (_takeoff.getTakeoffState() >= TakeoffState::ready_for_takeoff) {
@@ -588,7 +588,7 @@ MulticopterPositionControl::Run()
 				setpoint = _flight_tasks.getPositionSetpoint();
 				constraints = _flight_tasks.getConstraints();
 
-				_failsafe_land_hysteresis.set_state_and_update(false, time_stamp_current);
+				_failsafe_land_hysteresis.set_state_and_update(false, time_stamp_now);
 
 				// Check if position, velocity or thrust pairs are valid -> trigger failsaife if no pair is valid
 				if (!(PX4_ISFINITE(setpoint.x) && PX4_ISFINITE(setpoint.y)) &&
@@ -614,7 +614,7 @@ MulticopterPositionControl::Run()
 
 			// handle smooth takeoff
 			_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, constraints.want_takeoff,
-						    constraints.speed_up, !_control_mode.flag_control_climb_rate_enabled, time_stamp_current);
+						    constraints.speed_up, !_control_mode.flag_control_climb_rate_enabled, time_stamp_now);
 			constraints.speed_up = _takeoff.updateRamp(_dt, constraints.speed_up);
 
 			if (_takeoff.getTakeoffState() < TakeoffState::rampup && !PX4_ISFINITE(setpoint.thrust[2])) {
@@ -666,7 +666,7 @@ MulticopterPositionControl::Run()
 			// will remain NAN. Given that the PositionController cannot generate a position-setpoint, this type of setpoint is always equal to the input to the
 			// PositionController.
 			vehicle_local_position_setpoint_s local_pos_sp{};
-			local_pos_sp.timestamp = hrt_absolute_time();
+			local_pos_sp.timestamp = time_stamp_now;
 			_control.getLocalPositionSetpoint(local_pos_sp);
 			local_pos_sp.vx = PX4_ISFINITE(_control.getVelSp()(0)) ? _control.getVelSp()(0) : setpoint.vx;
 			local_pos_sp.vy = PX4_ISFINITE(_control.getVelSp()(1)) ? _control.getVelSp()(1) : setpoint.vy;
@@ -689,7 +689,7 @@ MulticopterPositionControl::Run()
 			}
 
 			vehicle_attitude_setpoint_s attitude_setpoint{};
-			attitude_setpoint.timestamp = hrt_absolute_time();
+			attitude_setpoint.timestamp = time_stamp_now;
 			_control.getAttitudeSetpoint(attitude_setpoint);
 
 
@@ -709,7 +709,7 @@ MulticopterPositionControl::Run()
 			    && gear.landing_gear != landing_gear_s::GEAR_KEEP) {
 
 				_landing_gear.landing_gear = gear.landing_gear;
-				_landing_gear.timestamp = hrt_absolute_time();
+				_landing_gear.timestamp = time_stamp_now;
 
 				_landing_gear_pub.publish(_landing_gear);
 			}
