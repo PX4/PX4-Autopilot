@@ -1846,10 +1846,11 @@ Commander::run()
 		}
 
 		const bool just_disarmed = !armed.armed && was_armed;
-		const bool just_finished_auto_mission = is_auto_state(internal_state.main_state) && _mission_result_sub.get().finished;
+		const bool just_finished_rtl = internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL
+				&& _mission_result_sub.get().finished;
 		const bool last_state_valid = last_non_auto_state != commander_state_s::MAIN_STATE_MAX;
 
-		if(just_disarmed && land_detector.landed && just_finished_auto_mission && last_state_valid){
+		if(just_disarmed && land_detector.landed && just_finished_rtl && last_state_valid){
 			PX4_INFO("Just finished auto mission, transitioning back to last manual mode.");
 			main_state_transition(status, last_non_auto_state, status_flags, &internal_state);
 		}
