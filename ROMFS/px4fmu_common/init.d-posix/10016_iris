@@ -9,5 +9,18 @@
 
 sh /etc/init.d/rc.mc_defaults
 
+if [ $AUTOCNF = yes ]
+then
+	param set MC_ROLLRATE_P 18.0
+	param set MC_ROLLRATE_D 0.36
+	param set MC_PITCHRATE_P 18.0
+	param set MC_PITCHRATE_D 0.36
+	param set MC_YAWRATE_P 7.0
+	param set MC_YAWRATE_D 0.0
+
+	param set MC_INERTIA_XX 0.0083
+	param set MC_INERTIA_YY 0.0083
+	param set MC_INERTIA_ZZ 0.0286
+fi
 set MIXER quad_w
 
