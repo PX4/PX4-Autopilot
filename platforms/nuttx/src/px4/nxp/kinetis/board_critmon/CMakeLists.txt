@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2017 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,9 +31,6 @@
 #
 ############################################################################
 
-add_library(drivers_boards_common_arch
-	board_reset.c
-	)
-add_dependencies(drivers_boards_common_arch prebuild_targets)
-target_compile_options(drivers_boards_common_arch PRIVATE -Wno-cast-align) # TODO: fix and enable
-target_link_libraries(drivers_boards_common_arch PRIVATE nuttx_arch)
+px4_add_library(arch_board_critmon
+	board_critmon.c
+)

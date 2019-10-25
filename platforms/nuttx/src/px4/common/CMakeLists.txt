@@ -43,10 +43,11 @@ if (NOT ${PX4_BOARD} MATCHES "px4_io")
 	)
 	target_link_libraries(px4_layer
 		PRIVATE
+			arch_board_reset
+			arch_board_critmon
 			arch_version
 			nuttx_apps # up_cxxinitialize
 			nuttx_sched
-			drivers_boards_common_arch
 			px4_work_queue
 		)
 else()
