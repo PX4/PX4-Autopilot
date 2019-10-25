@@ -90,7 +90,7 @@ int set_rw_uart_baudrate(const int fd, unsigned int baud)
 
 int rw_uart_init (void)
 {
-       char *uart_name = "/dev/ttyS3";
+       char *uart_name = "/dev/ttyS2";
        //char uart_name[] = "/dev/ttyS3";
         int serial_fd = open(uart_name, O_RDWR | O_NONBLOCK | O_NOCTTY);
         // 选项 O_NOCTTY 表示不能把本串口当成控制终端，否则用户的键盘输入信息将影响程序的执行
@@ -269,10 +269,10 @@ int rw_uart_thread_main(int argc, char *argv[])
 {
 
         /*
-                GPS1:/dev/ttyS0
+                GPS1:/dev/ttyS3
                 TEL1:/dev/ttyS1
                 TEL2:/dev/ttyS2
-                TEL4:/dev/ttyS3
+                TEL4:/dev/ttyS0
          */
 
          uart_read = rw_uart_init();
