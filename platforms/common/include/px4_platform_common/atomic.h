@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4_atomic.h
+ * @file atomic.h
  *
  * Provides atomic integers and counters. Each method is executed atomically and thus
  * can be used to prevent data races and add memory synchronization between threads.

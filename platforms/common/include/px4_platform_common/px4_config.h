@@ -1,6 +1,7 @@
+
 /****************************************************************************
  *
- * Copyright (C) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (C) 2015 Mark Charlebois. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,15 +33,19 @@
  ****************************************************************************/
 
 /**
- * @file px4_getopt.h
- * Thread safe version of getopt
+ * @file px4_config.h
+   Configuration flags used in code.
  */
 
 #pragma once
 
-__BEGIN_DECLS
+#if defined(__PX4_NUTTX)
 
-int px4_getopt(int argc, char *argv[], const char *options, int *myoptind, const char **myoptarg);
+#include <nuttx/config.h>
+#include <nuttx/arch.h>
+#include "micro_hal.h"
+#include <board_config.h>
 
-__END_DECLS
-
+#elif defined (__PX4_POSIX)
+# include <board_config.h>
+#endif

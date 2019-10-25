@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
 #include "bmp388.h"
 

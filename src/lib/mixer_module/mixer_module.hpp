@@ -38,8 +38,8 @@
 #include <lib/mixer/mixer.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/output_limit/output_limit.h>
-#include <px4_atomic.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>

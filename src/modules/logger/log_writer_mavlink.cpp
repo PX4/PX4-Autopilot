@@ -36,8 +36,8 @@
 
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
-#include <px4_log.h>
-#include <px4_posix.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/posix.h>
 #include <cstring>
 
 namespace px4

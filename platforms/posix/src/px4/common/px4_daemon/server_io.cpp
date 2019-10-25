@@ -48,7 +48,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 #include "server.h"
 #include <px4_daemon/server_io.h>

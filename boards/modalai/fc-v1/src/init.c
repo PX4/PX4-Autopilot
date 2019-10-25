@@ -69,7 +69,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
 #include <systemlib/px4_macros.h>
-#include <px4_init.h>
+#include <px4_platform_common/init.h>
 #include <drivers/boards/common/board_dma_alloc.h>
 
 /****************************************************************************

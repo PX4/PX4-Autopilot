@@ -38,7 +38,7 @@
  * @author Nicolas de Palezieux <ndepal@gmail.com>
  */
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>

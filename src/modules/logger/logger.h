@@ -37,12 +37,12 @@
 #include "messages.h"
 #include <containers/Array.hpp>
 #include "util.h"
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 #include <version/version.h>
 #include <parameters/param.h>
 #include <systemlib/printload.h>
-#include <px4_module.h>
+#include <px4_platform_common/module.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionInterval.hpp>

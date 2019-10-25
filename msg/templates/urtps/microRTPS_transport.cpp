@@ -36,9 +36,9 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include <cstdlib>
-#if __has_include("px4_log.h") && __has_include("px4_time.h")
-#include <px4_log.h>
-#include <px4_time.h>
+#if __has_include("px4_platform_common/log.h") && __has_include("px4_platform_common/time.h")
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/time.h>
 #endif
 
 #include "microRTPS_transport.h"

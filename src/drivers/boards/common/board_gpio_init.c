@@ -38,7 +38,7 @@
  * So this will work with any ARCH
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 /************************************************************************************
  * Name: board_gpio_init

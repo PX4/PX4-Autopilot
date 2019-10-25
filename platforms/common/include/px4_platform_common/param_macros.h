@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4_param_macros.h
+ * @file param_macros.h
  *
  * Helper macros used by px4_param.h
  */

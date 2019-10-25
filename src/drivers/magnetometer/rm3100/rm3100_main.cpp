@@ -38,7 +38,7 @@
  */
 
 #include "rm3100_main.h"
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
 /**
  * Driver 'main' command.

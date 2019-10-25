@@ -32,14 +32,14 @@
  ****************************************************************************/
 
 /**
- * @file px4_defines.h
+ * @file defines.h
  *
  * Generally used magic defines
  */
 
 #pragma once
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 #if defined(__PX4_NUTTX) && !defined(CONFIG_ARCH_MATH_H)
 #error CONFIG_ARCH_MATH_H is required to use math definitions and functions

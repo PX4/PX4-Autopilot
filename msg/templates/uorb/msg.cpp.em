@@ -67,8 +67,8 @@ topic_fields = ["%s %s" % (convert_type(field.type), field.name) for field in so
 }@
 
 #include <inttypes.h>
-#include <px4_log.h>
-#include <px4_defines.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/defines.h>
 #include <uORB/topics/@(topic_name).h>
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/device/Device.hpp>

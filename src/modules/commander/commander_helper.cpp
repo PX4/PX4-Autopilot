@@ -41,8 +41,8 @@
  *
  */
 
-#include <px4_defines.h>
-#include <px4_posix.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdint.h>

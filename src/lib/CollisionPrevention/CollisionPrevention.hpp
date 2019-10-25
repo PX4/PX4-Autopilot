@@ -47,7 +47,7 @@
 #include <drivers/drv_hrt.h>
 #include <mathlib/mathlib.h>
 #include <matrix/matrix/math.hpp>
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationQueued.hpp>

@@ -34,7 +34,7 @@
 #include "PWMSim.hpp"
 
 #include <mathlib/mathlib.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,65 +32,37 @@
  ****************************************************************************/
 
 /**
- * @file px4_module_params.h
+ * @file sem.hpp
  *
- * @class ModuleParams is a C++ base class for modules/classes using configuration parameters.
+ * C++ synchronization helpers
  */
 
 #pragma once
 
-#include <containers/List.hpp>
+#include "sem.h"
 
-#include "px4_param.h"
 
-class ModuleParams : public ListNode<ModuleParams *>
+/**
+ * @class Smart locking object that uses a semaphore. It automatically
+ * takes the lock when created and releases the lock when the object goes out of
+ * scope. Use like this:
+ *
+ *   px4_sem_t my_lock;
+ *   int ret = px4_sem_init(&my_lock, 0, 1);
+ *   ...
+ *
+ *   {
+ *       SmartLock smart_lock(my_lock);
+ *       //critical section start
+ *       ...
+ *       //critical section end
+ *   }
+ */
+class SmartLock
 {
 public:
-
-	ModuleParams(ModuleParams *parent)
-	{
-		setParent(parent);
-	}
-
-	/**
-	 * @brief Sets the parent module. This is typically not required,
-	 *         only in cases where the parent cannot be set via constructor.
-	 */
-	void setParent(ModuleParams *parent)
-	{
-		if (parent) {
-			parent->_children.add(this);
-		}
-	}
-
-	virtual ~ModuleParams() = default;
-
-	// Disallow copy construction and move assignment.
-	ModuleParams(const ModuleParams &) = delete;
-	ModuleParams &operator=(const ModuleParams &) = delete;
-	ModuleParams(ModuleParams &&) = delete;
-	ModuleParams &operator=(ModuleParams &&) = delete;
-
-protected:
-	/**
-	 * @brief Call this method whenever the module gets a parameter change notification.
-	 *        It will automatically call updateParams() for all children, which then call updateParamsImpl().
-	 */
-	virtual void updateParams()
-	{
-		for (const auto &child : _children) {
-			child->updateParams();
-		}
-
-		updateParamsImpl();
-	}
-
-	/**
-	 * @brief The implementation for this is generated with the macro DEFINE_PARAMETERS()
-	 */
-	virtual void updateParamsImpl() {}
-
+	SmartLock(px4_sem_t &sem) : _sem(sem) { do {} while (px4_sem_wait(&_sem) != 0); }
+	~SmartLock() { px4_sem_post(&_sem); }
 private:
-	/** @list _children The module parameter list of inheriting classes. */
-	List<ModuleParams *> _children;
+	px4_sem_t &_sem;
 };

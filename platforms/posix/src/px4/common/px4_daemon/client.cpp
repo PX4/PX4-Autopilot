@@ -50,7 +50,7 @@
 
 #include <string>
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 #include "client.h"
 
 namespace px4_daemon

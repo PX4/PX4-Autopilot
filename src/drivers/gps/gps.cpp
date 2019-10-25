@@ -49,9 +49,9 @@
 
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
-#include <px4_cli.h>
-#include <px4_getopt.h>
-#include <px4_module.h>
+#include <px4_platform_common/cli.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/gps_dump.h>
