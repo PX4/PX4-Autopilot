@@ -32,7 +32,6 @@
 ############################################################################
 
 add_library(drivers_boards_common_arch
-	board_identity.c
 	board_mcu_version.c
 	board_reset.c
 	)
