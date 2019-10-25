@@ -47,7 +47,7 @@
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>
 
 /******************************************************************************
  * Definitions

@@ -36,6 +36,7 @@ if (NOT ${PX4_BOARD} MATCHES "px4_io")
 
 	add_library(px4_layer
 		console_buffer.cpp
+		gpio.c
 		px4_nuttx_tasks.c
 		px4_nuttx_impl.cpp
 		px4_init.cpp

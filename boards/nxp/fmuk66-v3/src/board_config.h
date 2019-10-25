@@ -664,7 +664,7 @@ void fmuk66_automount_event(bool inserted);
 
 void fmuk66_timer_initialize(void);
 
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */
 

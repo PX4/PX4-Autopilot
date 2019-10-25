@@ -274,7 +274,7 @@ int usbmsc_archinitialize(void);
 extern int composite_archinitialize(void);
 #endif
 
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */
 
