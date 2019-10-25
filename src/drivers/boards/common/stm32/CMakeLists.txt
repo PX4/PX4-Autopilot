@@ -32,7 +32,6 @@
 ############################################################################
 
 add_library(drivers_boards_common_arch
-	board_mcu_version.c
 	board_reset.c
 	board_critmon.c
 )
