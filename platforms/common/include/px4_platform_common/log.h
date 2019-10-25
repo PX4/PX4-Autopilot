@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4_log.h
+ * @file log.h
  * Platform dependant logging/debug implementation
  */
 
@@ -121,7 +121,7 @@ __END_DECLS
 #include <stdio.h>
 #include <stdarg.h>
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 __BEGIN_DECLS
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,37 +32,10 @@
  ****************************************************************************/
 
 /**
- * @file px4_sem.hpp
- *
- * C++ synchronization helpers
+ * @file px4_time.h
+ * transitional include header for submodules
  */
-
 #pragma once
 
-#include "px4_sem.h"
+#include <px4_platform_common/time.h>
 
-
-/**
- * @class Smart locking object that uses a semaphore. It automatically
- * takes the lock when created and releases the lock when the object goes out of
- * scope. Use like this:
- *
- *   px4_sem_t my_lock;
- *   int ret = px4_sem_init(&my_lock, 0, 1);
- *   ...
- *
- *   {
- *       SmartLock smart_lock(my_lock);
- *       //critical section start
- *       ...
- *       //critical section end
- *   }
- */
-class SmartLock
-{
-public:
-	SmartLock(px4_sem_t &sem) : _sem(sem) { do {} while (px4_sem_wait(&_sem) != 0); }
-	~SmartLock() { px4_sem_post(&_sem); }
-private:
-	px4_sem_t &_sem;
-};

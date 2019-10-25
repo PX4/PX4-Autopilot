@@ -39,10 +39,10 @@
  */
 
 #include "muorb_test_example.h"
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>

@@ -37,7 +37,7 @@
 #include "WorkQueue.hpp"
 
 #include <containers/IntrusiveQueue.hpp>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 
 #include <lib/perf/perf_counter.h>

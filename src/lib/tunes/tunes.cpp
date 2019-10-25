@@ -37,7 +37,7 @@
 
 #include "tunes.h"
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 #include <math.h>
 #include <ctype.h>
 #include <errno.h>

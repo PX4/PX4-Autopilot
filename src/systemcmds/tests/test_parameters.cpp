@@ -38,7 +38,7 @@
 
 #include <unit_test.h>
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 #include <errno.h>
 #include <fcntl.h>

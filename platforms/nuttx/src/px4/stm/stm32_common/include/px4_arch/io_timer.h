@@ -34,7 +34,7 @@
 /**
  * @file io_timer.h
  */
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 

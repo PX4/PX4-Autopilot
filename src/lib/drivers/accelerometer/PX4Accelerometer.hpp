@@ -39,7 +39,7 @@
 #include <lib/cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
 #include <mathlib/math/filter/LowPassFilter2pVector3f.hpp>
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 #include <uORB/uORB.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_accel.h>

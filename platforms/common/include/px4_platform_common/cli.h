@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (c) 2015 Mark Charlebois. All rights reserved.
+ *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,43 +32,23 @@
  ****************************************************************************/
 
 /**
- * @file px4_app.h
- *
- * PX4 app template classes, functions and defines. Apps need to call their
- * main function PX4_MAIN.
+ * @file cli.h
+ * Helper methods for command-line parameters
  */
 
 #pragma once
 
-namespace px4
-{
 
-class AppState
-{
-public:
-	~AppState() {}
-
-	AppState() : _exitRequested(false), _isRunning(false) {}
-
-	bool exitRequested() { return _exitRequested; }
-	void requestExit() { _exitRequested = true; }
-
-	bool isRunning() { return _isRunning; }
-	void setRunning(bool running) { _isRunning = running; }
-
-protected:
-	bool _exitRequested;
-	bool _isRunning;
-private:
-	AppState(const AppState &);
-	const AppState &operator=(const AppState &);
-};
-}
-
-// Task/process based build
-
-#ifdef PX4_MAIN
-extern int PX4_MAIN(int argc, char *argv[]);
-#endif
+/**
+ * Parse a CLI argument to an integer. There are 2 valid formats:
+ * - 'p:<param_name>'
+ *   in this case the parameter is loaded from an integer parameter
+ * - <int>
+ *   an integer value, so just a string to integer conversion is done
+ * @param option CLI argument
+ * @param value returned value
+ * @return 0 on success, -errno otherwise
+ */
+int px4_get_parameter_value(const char *option, int &value);
 
 

@@ -36,7 +36,7 @@
  */
 
 #include <RateControl.hpp>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 using namespace matrix;
 
