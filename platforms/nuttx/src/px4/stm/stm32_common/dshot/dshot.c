@@ -46,76 +46,27 @@
 #include <drivers/drv_pwm_output.h>
 
 
-#define REG(_tmr, _reg)			(*(volatile uint32_t *)(io_timers[_tmr].dshot.dma_base + _reg))
-
-/* DMA registers */
-#define rLIFCR(_tmr)		REG(_tmr, STM32_DMA_LIFCR_OFFSET)
-#define rHIFCR(_tmr)		REG(_tmr, STM32_DMA_HIFCR_OFFSET)
-
-#define rS0CR(_tmr)			REG(_tmr, STM32_DMA_S0CR_OFFSET)
-#define rS0NDTR(_tmr)		REG(_tmr, STM32_DMA_S0NDTR_OFFSET)
-#define rS0PAR(_tmr)		REG(_tmr, STM32_DMA_S0PAR_OFFSET)
-#define rS0M0AR(_tmr)		REG(_tmr, STM32_DMA_S0M0AR_OFFSET)
-#define rS0FCR(_tmr)		REG(_tmr, STM32_DMA_S0FCR_OFFSET)
-
-#define rS1CR(_tmr)			REG(_tmr, STM32_DMA_S1CR_OFFSET)
-#define rS1NDTR(_tmr)		REG(_tmr, STM32_DMA_S1NDTR_OFFSET)
-#define rS1PAR(_tmr)		REG(_tmr, STM32_DMA_S1PAR_OFFSET)
-#define rS1M0AR(_tmr)		REG(_tmr, STM32_DMA_S1M0AR_OFFSET)
-#define rS1FCR(_tmr)		REG(_tmr, STM32_DMA_S1FCR_OFFSET)
-
-#define rS2CR(_tmr)			REG(_tmr, STM32_DMA_S2CR_OFFSET)
-#define rS2NDTR(_tmr)		REG(_tmr, STM32_DMA_S2NDTR_OFFSET)
-#define rS2PAR(_tmr)		REG(_tmr, STM32_DMA_S2PAR_OFFSET)
-#define rS2M0AR(_tmr)		REG(_tmr, STM32_DMA_S2M0AR_OFFSET)
-#define rS2FCR(_tmr)		REG(_tmr, STM32_DMA_S2FCR_OFFSET)
-
-#define rS3CR(_tmr)			REG(_tmr, STM32_DMA_S3CR_OFFSET)
-#define rS3NDTR(_tmr)		REG(_tmr, STM32_DMA_S3NDTR_OFFSET)
-#define rS3PAR(_tmr)		REG(_tmr, STM32_DMA_S3PAR_OFFSET)
-#define rS3M0AR(_tmr)		REG(_tmr, STM32_DMA_S3M0AR_OFFSET)
-#define rS3FCR(_tmr)		REG(_tmr, STM32_DMA_S3FCR_OFFSET)
-
-#define rS4CR(_tmr)			REG(_tmr, STM32_DMA_S4CR_OFFSET)
-#define rS4NDTR(_tmr)		REG(_tmr, STM32_DMA_S4NDTR_OFFSET)
-#define rS4PAR(_tmr)		REG(_tmr, STM32_DMA_S4PAR_OFFSET)
-#define rS4M0AR(_tmr)		REG(_tmr, STM32_DMA_S4M0AR_OFFSET)
-#define rS4FCR(_tmr)		REG(_tmr, STM32_DMA_S4FCR_OFFSET)
-
-#define rS5CR(_tmr)			REG(_tmr, STM32_DMA_S5CR_OFFSET)
-#define rS5NDTR(_tmr)		REG(_tmr, STM32_DMA_S5NDTR_OFFSET)
-#define rS5PAR(_tmr)		REG(_tmr, STM32_DMA_S5PAR_OFFSET)
-#define rS5M0AR(_tmr)		REG(_tmr, STM32_DMA_S5M0AR_OFFSET)
-#define rS5FCR(_tmr)		REG(_tmr, STM32_DMA_S5FCR_OFFSET)
-
-#define rS6CR(_tmr)			REG(_tmr, STM32_DMA_S6CR_OFFSET)
-#define rS6NDTR(_tmr)		REG(_tmr, STM32_DMA_S6NDTR_OFFSET)
-#define rS6PAR(_tmr)		REG(_tmr, STM32_DMA_S6PAR_OFFSET)
-#define rS6M0AR(_tmr)		REG(_tmr, STM32_DMA_S6M0AR_OFFSET)
-#define rS6FCR(_tmr)		REG(_tmr, STM32_DMA_S6FCR_OFFSET)
-
-#define rS7CR(_tmr)			REG(_tmr, STM32_DMA_S7CR_OFFSET)
-#define rS7NDTR(_tmr)		REG(_tmr, STM32_DMA_S7NDTR_OFFSET)
-#define rS7PAR(_tmr)		REG(_tmr, STM32_DMA_S7PAR_OFFSET)
-#define rS7M0AR(_tmr)		REG(_tmr, STM32_DMA_S7M0AR_OFFSET)
-#define rS7FCR(_tmr)		REG(_tmr, STM32_DMA_S7FCR_OFFSET)
-
 #define MOTOR_PWM_BIT_1				14u
 #define MOTOR_PWM_BIT_0				7u
 #define DSHOT_TIMERS				MAX_IO_TIMERS
 #define MOTORS_NUMBER				DIRECT_PWM_OUTPUT_CHANNELS
 #define ONE_MOTOR_DATA_SIZE			16u
-#define ONE_MOTOR_BUFF_SIZE			18u
+#define ONE_MOTOR_BUFF_SIZE			17u
 #define ALL_MOTORS_BUF_SIZE			(MOTORS_NUMBER * ONE_MOTOR_BUFF_SIZE)
 #define DSHOT_THROTTLE_POSITION		5u
 #define DSHOT_TELEMETRY_POSITION	4u
 #define NIBBLES_SIZE 				4u
 #define DSHOT_NUMBER_OF_NIBBLES		3u
+#define DSHOT_END_OF_STREAM 		16u
 #define MAX_NUM_CHANNELS_PER_TIMER	4u // CCR1-CCR4
+
+#define DSHOT_DMA_SCR (DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | \
+		       DMA_SCR_DIR_M2P | DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE)
 
 typedef struct dshot_handler_t {
 	bool			init;
-	uint8_t			motors_number;
+	DMA_HANDLE		dma_handle;
+	uint32_t		dma_size;
 } dshot_handler_t;
 
 #define DMA_BUFFER_MASK    (PX4_ARCH_DCACHE_LINESIZE - 1)
@@ -133,7 +84,6 @@ static const uint8_t motor_assignment[MOTORS_NUMBER] = BOARD_DSHOT_MOTOR_ASSIGNM
 #endif /* BOARD_DSHOT_MOTOR_ASSIGNMENT */
 
 void dshot_dmar_data_prepare(uint8_t timer, uint8_t first_motor, uint8_t motors_number);
-int dshot_setup_stream_registers(uint32_t timer);
 
 int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 {
@@ -193,96 +143,15 @@ int up_dshot_init(uint32_t channel_mask, unsigned dshot_pwm_freq)
 	for (uint8_t timer_index = 0; (timer_index < DSHOT_TIMERS) && (OK == ret_val); timer_index++) {
 
 		if (true == dshot_handler[timer_index].init) {
-			dshot_handler[timer_index].motors_number = io_timers[timer_index].dshot.channels_number;
-			io_timer_set_dshot_mode(timer_index, dshot_pwm_freq, dshot_handler[timer_index].motors_number);
-			ret_val = dshot_setup_stream_registers(timer_index);
+			dshot_handler[timer_index].dma_size = io_timers[timer_index].dshot.channels_number * ONE_MOTOR_BUFF_SIZE;
+			io_timer_set_dshot_mode(timer_index, dshot_pwm_freq, io_timers[timer_index].dshot.channels_number);
+
+			dshot_handler[timer_index].dma_handle = stm32_dmachannel(io_timers[timer_index].dshot.dmamap);
+
+			if (NULL == dshot_handler[timer_index].dma_handle) {
+				ret_val = ERROR;
+			}
 		}
-	}
-
-	return ret_val;
-}
-
-int dshot_setup_stream_registers(uint32_t timer)
-{
-	int ret_val = OK;
-
-	switch (io_timers[timer].dshot.stream) {
-	case DShot_Stream0:
-		rS0CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
-		rS0CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
-		rS0CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
-		rS0PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
-		rS0M0AR(timer) = (uint32_t)(dshot_burst_buffer[timer]);
-		rS0FCR(timer) &= 0x0;  /* Disable FIFO */
-		break;
-
-	case DShot_Stream1:
-		rS1CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
-		rS1CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
-		rS1CR(timer) |= DMA_SCR_DIR_M2P;
-		rS1CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
-		rS1PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
-		rS1M0AR(timer) = (uint32_t)(dshot_burst_buffer[timer]);
-		rS1FCR(timer) &= 0x0;  /* Disable FIFO */
-		break;
-
-	case DShot_Stream2:
-		rS2CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
-		rS2CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
-		rS2CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
-		rS2PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
-		rS2M0AR(timer) = (uint32_t)(dshot_burst_buffer[timer]);
-		rS2FCR(timer) &= 0x0;  /* Disable FIFO */
-		break;
-
-	case DShot_Stream3:
-		rS3CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
-		rS3CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
-		rS3CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
-		rS3PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
-		rS3M0AR(timer) = (uint32_t)(dshot_burst_buffer[timer]);
-		rS3FCR(timer) &= 0x0;  /* Disable FIFO */
-		break;
-
-	case DShot_Stream4:
-		rS4CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
-		rS4CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
-		rS4CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
-		rS4PAR(timer)  = io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
-		rS4M0AR(timer) = (uint32_t)(dshot_burst_buffer[timer]);
-		rS4FCR(timer) &= 0x0;  /* Disable FIFO */
-		break;
-
-	case DShot_Stream5:
-		rS5CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
-		rS5CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
-		rS5CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
-		rS5PAR(timer)  =  io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
-		rS5M0AR(timer) = (uint32_t)(dshot_burst_buffer[timer]);
-		rS5FCR(timer) &= 0x0;  /* Disable FIFO */
-		break;
-
-	case DShot_Stream6:
-		rS6CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
-		rS6CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
-		rS6CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
-		rS6PAR(timer)  =  io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
-		rS6M0AR(timer) = (uint32_t)(dshot_burst_buffer[timer]);
-		rS6FCR(timer) &= 0x0;  /* Disable FIFO */
-		break;
-
-	case DShot_Stream7:
-		rS7CR(timer) |= DMA_SCR_CHSEL(io_timers[timer].dshot.channel);
-		rS7CR(timer) |= DMA_SCR_PRIHI | DMA_SCR_MSIZE_32BITS | DMA_SCR_PSIZE_32BITS | DMA_SCR_MINC | DMA_SCR_DIR_M2P;
-		rS7CR(timer) |= DMA_SCR_TCIE | DMA_SCR_HTIE | DMA_SCR_TEIE | DMA_SCR_DMEIE;
-		rS7PAR(timer)  =  io_timers[timer].base + STM32_GTIM_DMAR_OFFSET;
-		rS7M0AR(timer) = (uint32_t)(dshot_burst_buffer[timer]);
-		rS7FCR(timer) &= 0x0;  /* Disable FIFO */
-		break;
-
-	default:
-		ret_val = ERROR;
-		break;
 	}
 
 	return ret_val;
@@ -296,76 +165,7 @@ void up_dshot_trigger(void)
 
 		if (true == dshot_handler[timer].init) {
 
-			uint32_t dma_int_streamx_mask;
-			volatile uint32_t *rSxNDTR;
-			volatile uint32_t *rSxCR;
-			volatile uint32_t *rxIFCR;
-
-			switch (io_timers[timer].dshot.stream) {
-			case DShot_Stream0:
-				dma_int_streamx_mask = DMA_INT_STREAM0_MASK;
-				rxIFCR = &rLIFCR(timer);
-				rSxNDTR = &rS0NDTR(timer);
-				rSxCR = &rS0CR(timer);
-				break;
-
-			case DShot_Stream1:
-				dma_int_streamx_mask = DMA_INT_STREAM1_MASK;
-				rxIFCR = &rLIFCR(timer);
-				rSxNDTR = &rS1NDTR(timer);
-				rSxCR = &rS1CR(timer);
-				break;
-
-			case DShot_Stream2:
-				dma_int_streamx_mask = DMA_INT_STREAM2_MASK;
-				rxIFCR = &rLIFCR(timer);
-				rSxNDTR = &rS2NDTR(timer);
-				rSxCR = &rS2CR(timer);
-				break;
-
-			case DShot_Stream3:
-				dma_int_streamx_mask = DMA_INT_STREAM3_MASK;
-				rxIFCR = &rLIFCR(timer);
-				rSxNDTR = &rS3NDTR(timer);
-				rSxCR = &rS3CR(timer);
-				break;
-
-			case DShot_Stream4:
-				dma_int_streamx_mask = DMA_INT_STREAM4_MASK;
-				rxIFCR = &rHIFCR(timer);
-				rSxNDTR = &rS4NDTR(timer);
-				rSxCR = &rS4CR(timer);
-				break;
-
-			case DShot_Stream5:
-				dma_int_streamx_mask = DMA_INT_STREAM5_MASK;
-				rxIFCR = &rHIFCR(timer);
-				rSxNDTR = &rS5NDTR(timer);
-				rSxCR = &rS5CR(timer);
-				break;
-
-			case DShot_Stream6:
-				dma_int_streamx_mask = DMA_INT_STREAM6_MASK;
-				rxIFCR = &rHIFCR(timer);
-				rSxNDTR = &rS6NDTR(timer);
-				rSxCR = &rS6CR(timer);
-				break;
-
-			case DShot_Stream7:
-			default:
-				dma_int_streamx_mask = DMA_INT_STREAM7_MASK;
-				rxIFCR = &rHIFCR(timer);
-				rSxNDTR = &rS7NDTR(timer);
-				rSxCR = &rS7CR(timer);
-				break;
-			}
-
-			// Check if DMA is still in progress (just to be safe, not expected to happen)
-			if (*rSxCR & DMA_SCR_EN) {
-				continue;
-			}
-
-			uint8_t motors_number = dshot_handler[timer].motors_number;
+			uint8_t motors_number = io_timers[timer].dshot.channels_number;
 			dshot_dmar_data_prepare(timer, first_motor, motors_number);
 
 			// Flush cache so DMA sees the data
@@ -374,11 +174,18 @@ void up_dshot_trigger(void)
 
 			first_motor += motors_number;
 
-			uint32_t dshot_data_size = motors_number * ONE_MOTOR_BUFF_SIZE;
-			*rxIFCR |= dma_int_streamx_mask; //clear interrupt flags
-			*rSxNDTR = dshot_data_size;
-			io_timer_update_generation(timer);
-			*rSxCR |= DMA_SCR_EN; // Trigger DMA
+			stm32_dmasetup(dshot_handler[timer].dma_handle,
+				       io_timers[timer].base + STM32_GTIM_DMAR_OFFSET,
+				       (uint32_t)(dshot_burst_buffer[timer]),
+				       dshot_handler[timer].dma_size,
+				       DSHOT_DMA_SCR);
+
+			// Clean UDE flag before DMA is started
+			io_timer_update_dma_req(timer, false);
+			// Trigger DMA (DShot Outputs)
+			stm32_dmastart(dshot_handler[timer].dma_handle, NULL, NULL, false);
+			io_timer_update_dma_req(timer, true);
+
 		}
 	}
 }
@@ -419,8 +226,7 @@ static void dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool 
 		packet <<= 1;
 	}
 
-	motor_buffer[motor_number * ONE_MOTOR_BUFF_SIZE + 16] = 0;
-	motor_buffer[motor_number * ONE_MOTOR_BUFF_SIZE + 17] = 0;
+	motor_buffer[motor_number * ONE_MOTOR_BUFF_SIZE + DSHOT_END_OF_STREAM] = 0;
 }
 
 void up_dshot_motor_data_set(uint32_t motor_number, uint16_t throttle, bool telemetry)
@@ -449,6 +255,5 @@ int up_dshot_arm(bool armed)
 {
 	return io_timer_set_enable(armed, IOTimerChanMode_Dshot, IO_TIMER_ALL_MODES_CHANNELS);
 }
-
 
 #endif

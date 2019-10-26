@@ -71,9 +71,9 @@ public:
 	 */
 	static float computeAlphaFromDtAndTauInv(float dt, float tau_inv)
 	{
-		return dt * tau_inv;
+		return math::constrain(dt * tau_inv, 0.f, 1.f);
 	}
 
 private:
-	float _x; ///< current state of the filter
+	float _x{}; ///< current state of the filter
 };
