@@ -4,7 +4,7 @@
 
 constexpr uint64_t FlightTask::_timeout;
 // First index of empty_setpoint corresponds to time-stamp and requires a finite number.
-const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {NAN, NAN, NAN}};
+const vehicle_local_position_setpoint_s FlightTask::empty_setpoint = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, NAN, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {NAN, NAN, NAN}, {}};
 
 const vehicle_constraints_s FlightTask::empty_constraints = {0, NAN, NAN, NAN, NAN, NAN, NAN, NAN, false, {}};
 const landing_gear_s FlightTask::empty_landing_gear_default_keep = {0, landing_gear_s::GEAR_KEEP, {}};
@@ -92,14 +92,8 @@ const vehicle_local_position_setpoint_s FlightTask::getPositionSetpoint()
 	vehicle_local_position_setpoint.vy = _velocity_setpoint(1);
 	vehicle_local_position_setpoint.vz = _velocity_setpoint(2);
 
-	vehicle_local_position_setpoint.acc_x = _acceleration_setpoint(0);
-	vehicle_local_position_setpoint.acc_y = _acceleration_setpoint(1);
-	vehicle_local_position_setpoint.acc_z = _acceleration_setpoint(2);
-
-	vehicle_local_position_setpoint.jerk_x = _jerk_setpoint(0);
-	vehicle_local_position_setpoint.jerk_y = _jerk_setpoint(1);
-	vehicle_local_position_setpoint.jerk_z = _jerk_setpoint(2);
-
+	_acceleration_setpoint.copyTo(vehicle_local_position_setpoint.acceleration);
+	_jerk_setpoint.copyTo(vehicle_local_position_setpoint.jerk);
 	_thrust_setpoint.copyTo(vehicle_local_position_setpoint.thrust);
 	vehicle_local_position_setpoint.yaw = _yaw_setpoint;
 	vehicle_local_position_setpoint.yawspeed = _yawspeed_setpoint;

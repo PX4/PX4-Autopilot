@@ -44,12 +44,12 @@ bool FlightTaskManualPositionSmoothVel::activate(vehicle_local_position_setpoint
 
 	// Check if the previous FlightTask provided setpoints
 	checkSetpoints(last_setpoint);
-	const Vector2f accel_prev(last_setpoint.acc_x, last_setpoint.acc_y);
+	const Vector2f accel_prev(last_setpoint.acceleration[0], last_setpoint.acceleration[1]);
 	const Vector2f vel_prev(last_setpoint.vx, last_setpoint.vy);
 	const Vector2f pos_prev(last_setpoint.x, last_setpoint.y);
 
 	_smoothing_xy.reset(accel_prev, vel_prev, pos_prev);
-	_smoothing_z.reset(last_setpoint.acc_z, last_setpoint.vz, last_setpoint.z);
+	_smoothing_z.reset(last_setpoint.acceleration[2], last_setpoint.vz, last_setpoint.z);
 
 	return ret;
 }
@@ -79,11 +79,9 @@ void FlightTaskManualPositionSmoothVel::checkSetpoints(vehicle_local_position_se
 	if (!PX4_ISFINITE(setpoints.vz)) { setpoints.vz = _velocity(2); }
 
 	// No acceleration estimate available, set to zero if the setpoint is NAN
-	if (!PX4_ISFINITE(setpoints.acc_x)) { setpoints.acc_x = 0.f; }
-
-	if (!PX4_ISFINITE(setpoints.acc_y)) { setpoints.acc_y = 0.f; }
-
-	if (!PX4_ISFINITE(setpoints.acc_z)) { setpoints.acc_z = 0.f; }
+	for (int i = 0; i < 3; i++) {
+		if (!PX4_ISFINITE(setpoints.acceleration[i])) { setpoints.acceleration[i] = 0.f; }
+	}
 }
 
 void FlightTaskManualPositionSmoothVel::_ekfResetHandlerPositionXY()

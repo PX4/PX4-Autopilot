@@ -47,7 +47,6 @@ px4_add_module(
 
 	DEPENDS
 		airspeed
-		battery
 		conversion
 		drivers__device
 		git_ecl
