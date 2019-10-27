@@ -70,7 +70,7 @@ void ObstacleAvoidance::injectAvoidanceSetpoints(Vector3f &pos_sp, Vector3f &vel
 	const bool avoidance_data_timeout = hrt_elapsed_time((hrt_abstime *)&_sub_vehicle_trajectory_waypoint.get().timestamp)
 					    > TRAJECTORY_STREAM_TIMEOUT_US;
 	const bool avoidance_point_valid =
-		_sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid == true;
+		_sub_vehicle_trajectory_waypoint.get().waypoints[vehicle_trajectory_waypoint_s::POINT_0].point_valid;
 
 	_avoidance_point_not_valid_hysteresis.set_state_and_update(!avoidance_point_valid, hrt_absolute_time());
 
