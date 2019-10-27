@@ -57,13 +57,8 @@ MavlinkFTP::MavlinkFTP(Mavlink *mavlink) :
 
 MavlinkFTP::~MavlinkFTP()
 {
-	if (_work_buffer1) {
-		delete[] _work_buffer1;
-	}
-
-	if (_work_buffer2) {
-		delete[] _work_buffer2;
-	}
+	delete[] _work_buffer1;
+	delete[] _work_buffer2;
 }
 
 unsigned
