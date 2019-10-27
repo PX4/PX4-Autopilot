@@ -49,6 +49,14 @@ class WorkItem : public ListNode<WorkItem *>, public IntrusiveQueueNode<WorkItem
 {
 public:
 
+	WorkItem() = delete;
+
+	// no copy, assignment, move, move assignment
+	WorkItem(const WorkItem &) = delete;
+	WorkItem &operator=(const WorkItem &) = delete;
+	WorkItem(WorkItem &&) = delete;
+	WorkItem &operator=(WorkItem &&) = delete;
+
 	inline void ScheduleNow()
 	{
 		if (_wq != nullptr) {
@@ -70,7 +78,6 @@ public:
 protected:
 
 	explicit WorkItem(const char *name, const wq_config_t &config);
-	WorkItem() = delete;
 
 	virtual ~WorkItem();
 

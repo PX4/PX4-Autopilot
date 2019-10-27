@@ -60,6 +60,12 @@ class __EXPORT I2C : public CDev
 
 public:
 
+	// no copy, assignment, move, move assignment
+	I2C(const I2C &) = delete;
+	I2C &operator=(const I2C &) = delete;
+	I2C(I2C &&) = delete;
+	I2C &operator=(I2C &&) = delete;
+
 	virtual int	init();
 
 protected:
@@ -78,7 +84,7 @@ protected:
 	 * @param address	I2C bus address, or zero if set_address will be used
 	 * @param frequency	I2C bus frequency for the device (currently not used)
 	 */
-	I2C(const char *name, const char *devname, const int bus, const uint16_t address, const uint32_t frequency = 0);
+	I2C(const char *name, const char *devname, const int bus, const uint16_t address, const uint32_t frequency);
 	virtual ~I2C();
 
 	/**
@@ -103,10 +109,8 @@ protected:
 	bool		external() { return px4_i2c_bus_external(_device_id.devid_s.bus); }
 
 private:
-	int 			_fd{-1};
+	int			_fd{-1};
 
-	I2C(const device::I2C &);
-	I2C operator=(const device::I2C &);
 };
 
 } // namespace device
