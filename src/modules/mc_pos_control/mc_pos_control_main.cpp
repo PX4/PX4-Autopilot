@@ -297,9 +297,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 
 MulticopterPositionControl::~MulticopterPositionControl()
 {
-	if (_wv_controller != nullptr) {
-		delete _wv_controller;
-	}
+	delete _wv_controller;
 
 	perf_free(_cycle_perf);
 }
