@@ -74,7 +74,7 @@ void motor_test(unsigned channel, float value, uint8_t driver_instance, int time
 
 static void usage(const char *reason)
 {
-	if (reason != NULL) {
+	if (reason != nullptr) {
 		PX4_WARN("%s", reason);
 	}
 
@@ -108,23 +108,23 @@ int motor_test_main(int argc, char *argv[])
 	int timeout_ms = 0;
 
 	int myoptind = 1;
-	const char *myoptarg = NULL;
+	const char *myoptarg = nullptr;
 
 	while ((ch = px4_getopt(argc, argv, "i:m:p:t:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 
 		case 'i':
-			driver_instance = (uint8_t)strtol(myoptarg, NULL, 0);
+			driver_instance = (uint8_t)strtol(myoptarg, nullptr, 0);
 			break;
 
 		case 'm':
 			/* Read in motor number */
-			channel = (int)strtol(myoptarg, NULL, 0);
+			channel = (int)strtol(myoptarg, nullptr, 0);
 			break;
 
 		case 'p':
 			/* Read in power value */
-			lval = strtoul(myoptarg, NULL, 0);
+			lval = strtoul(myoptarg, nullptr, 0);
 
 			if (lval > 100) {
 				usage("value invalid");
@@ -135,11 +135,11 @@ int motor_test_main(int argc, char *argv[])
 			break;
 
 		case 't':
-			timeout_ms = strtol(myoptarg, NULL, 0) * 1000;
+			timeout_ms = strtol(myoptarg, nullptr, 0) * 1000;
 			break;
 
 		default:
-			usage(NULL);
+			usage(nullptr);
 			return 1;
 		}
 	}
@@ -166,12 +166,12 @@ int motor_test_main(int argc, char *argv[])
 		} else if (strcmp("test", argv[myoptind]) == 0) {
 			// nothing to do
 		} else {
-			usage(NULL);
+			usage(nullptr);
 			return 0;
 		}
 
 	} else {
-		usage(NULL);
+		usage(nullptr);
 		return 0;
 	}
 
