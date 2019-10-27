@@ -72,7 +72,7 @@ public:
 		_u(0),
 		_y(0),
 		_limit(this, "") {}
-	virtual ~BlockIntegralTrap() {}
+	virtual ~BlockIntegralTrap() = default;
 	float update(float input);
 // accessors
 	float getU() {return _u;}

@@ -70,7 +70,7 @@ public:
 		update(0);
 	}
 
-	virtual ~BlockOutput() {}
+	virtual ~BlockOutput() = default;
 	void update(float input)
 	{
 		_val = _limit.update(input + getTrim());

@@ -46,10 +46,6 @@
 namespace land_detector
 {
 
-VtolLandDetector::VtolLandDetector()
-{
-}
-
 void VtolLandDetector::_update_topics()
 {
 	MulticopterLandDetector::_update_topics();
