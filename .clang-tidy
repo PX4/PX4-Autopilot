@@ -99,7 +99,6 @@ Checks:          '*,
                   -readability-redundant-control-flow,
                   -readability-redundant-declaration,
                   -readability-redundant-member-init,
-                  -readability-simplify-boolean-expr,
                   -readability-static-accessed-through-instance,
                   -readability-static-definition-in-anonymous-namespace,
                  '
