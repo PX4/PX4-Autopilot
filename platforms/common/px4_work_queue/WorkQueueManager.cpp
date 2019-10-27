@@ -162,6 +162,45 @@ device_bus_to_wq(uint32_t device_id_int)
 	return wq_configurations::hp_default;
 };
 
+const wq_config_t &
+serial_port_to_wq(const char *serial)
+{
+	if (serial == nullptr) {
+		return wq_configurations::hp_default;
+
+	} else if (strstr(serial, "ttyS0")) {
+		return wq_configurations::UART0;
+
+	} else if (strstr(serial, "ttyS1")) {
+		return wq_configurations::UART1;
+
+	} else if (strstr(serial, "ttyS2")) {
+		return wq_configurations::UART2;
+
+	} else if (strstr(serial, "ttyS3")) {
+		return wq_configurations::UART3;
+
+	} else if (strstr(serial, "ttyS4")) {
+		return wq_configurations::UART4;
+
+	} else if (strstr(serial, "ttyS5")) {
+		return wq_configurations::UART5;
+
+	} else if (strstr(serial, "ttyS6")) {
+		return wq_configurations::UART6;
+
+	} else if (strstr(serial, "ttyS7")) {
+		return wq_configurations::UART7;
+
+	} else if (strstr(serial, "ttyS8")) {
+		return wq_configurations::UART8;
+	}
+
+	PX4_ERR("unknown serial port: %s", serial);
+
+	return wq_configurations::hp_default;
+}
+
 static void *
 WorkQueueRunner(void *context)
 {
