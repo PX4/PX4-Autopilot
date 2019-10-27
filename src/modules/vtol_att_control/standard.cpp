@@ -127,7 +127,7 @@ void Standard::update_vtol_state()
 
 		} else if (_vtol_schedule.flight_mode == vtol_mode::FW_MODE) {
 			// transition to mc mode
-			if (_vtol_vehicle_status->vtol_transition_failsafe == true) {
+			if (_vtol_vehicle_status->vtol_transition_failsafe) {
 				// Failsafe event, engage mc motors immediately
 				_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 				_pusher_throttle = 0.0f;

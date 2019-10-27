@@ -354,8 +354,8 @@ bool FlightTaskAuto::_evaluateGlobalReference()
 		return true;
 	}
 
-	double ref_lat =  _sub_vehicle_local_position.get().ref_lat;
-	double ref_lon =  _sub_vehicle_local_position.get().ref_lon;
+	double ref_lat = _sub_vehicle_local_position.get().ref_lat;
+	double ref_lon = _sub_vehicle_local_position.get().ref_lon;
 	_reference_altitude = _sub_vehicle_local_position.get().ref_alt;
 
 	if (!_sub_vehicle_local_position.get().z_global) {
@@ -372,20 +372,10 @@ bool FlightTaskAuto::_evaluateGlobalReference()
 	}
 
 	// init projection
-	map_projection_init(&_reference_position,
-			    ref_lat,
-			    ref_lon);
+	map_projection_init(&_reference_position, ref_lat, ref_lon);
 
 	// check if everything is still finite
-	if (PX4_ISFINITE(_reference_altitude)
-	    && PX4_ISFINITE(_sub_vehicle_local_position.get().ref_lat)
-	    && PX4_ISFINITE(_sub_vehicle_local_position.get().ref_lon)) {
-		return true;
-
-	} else {
-		// no valid reference
-		return false;
-	}
+	return PX4_ISFINITE(_reference_altitude) && PX4_ISFINITE(ref_lat) && PX4_ISFINITE(ref_lon);
 }
 
 void FlightTaskAuto::_setDefaultConstraints()

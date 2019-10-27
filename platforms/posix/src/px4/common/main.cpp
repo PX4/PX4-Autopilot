@@ -590,11 +590,7 @@ bool is_already_running(int instance)
 
 	if (fcntl(fd, F_SETLK, &fl) == -1) {
 		// We failed to create a file lock, must be already locked.
-		if (errno == EACCES || errno == EAGAIN) {
-			return true;
-		}
-
-		return false;
+		return errno == EACCES || errno == EAGAIN;
 	}
 
 	errno = 0;
