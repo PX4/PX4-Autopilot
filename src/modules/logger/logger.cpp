@@ -1152,7 +1152,7 @@ void Logger::run()
 			 * And on linux this is quite accurate as well, but under NuttX it is not accurate,
 			 * because usleep() has only a granularity of CONFIG_MSEC_PER_TICK (=1ms).
 			 */
-			while (px4_sem_wait(&timer_callback_data.semaphore) != 0);
+			while (px4_sem_wait(&timer_callback_data.semaphore) != 0) {}
 		}
 	}
 

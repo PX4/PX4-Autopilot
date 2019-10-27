@@ -55,7 +55,7 @@ void sq_rem(sq_entry_t *node, sq_queue_t *queue)
 
 			for (prev = (sq_entry_t *)queue->head;
 			     prev && prev->flink != node;
-			     prev = prev->flink);
+			     prev = prev->flink) {}
 
 			if (prev) {
 				sq_remafter(prev, queue);
