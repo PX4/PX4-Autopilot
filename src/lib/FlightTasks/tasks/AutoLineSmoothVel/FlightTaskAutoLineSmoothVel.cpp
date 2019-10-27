@@ -165,7 +165,7 @@ bool FlightTaskAutoLineSmoothVel::_generateHeadingAlongTraj()
  * Example: 	- if the constrain is -5, the value will be constrained between -5 and 0
  * 		- if the constrain is 5, the value will be constrained between 0 and 5
  */
-inline float FlightTaskAutoLineSmoothVel::_constrainOneSide(float val, float constraint)
+float FlightTaskAutoLineSmoothVel::_constrainOneSide(float val, float constraint)
 {
 	const float min = (constraint < FLT_EPSILON) ? constraint : 0.f;
 	const float max = (constraint > FLT_EPSILON) ? constraint : 0.f;
@@ -173,12 +173,12 @@ inline float FlightTaskAutoLineSmoothVel::_constrainOneSide(float val, float con
 	return math::constrain(val, min, max);
 }
 
-float FlightTaskAutoLineSmoothVel::_constrainAbs(float val, float min, float max)
+float FlightTaskAutoLineSmoothVel::_constrainAbsPrioritizeMin(float val, float min, float max)
 {
-	return math::sign(val) * math::constrain(fabsf(val), fabsf(min), fabsf(max));
+	return math::sign(val) * math::max(math::min(fabsf(val), fabsf(max)), fabsf(min));
 }
 
-float FlightTaskAutoLineSmoothVel::_getSpeedAtTarget()
+float FlightTaskAutoLineSmoothVel::_getSpeedAtTarget() const
 {
 	// Compute the maximum allowed speed at the waypoint assuming that we want to
 	// connect the two lines (prev-current and current-next)
@@ -214,7 +214,7 @@ float FlightTaskAutoLineSmoothVel::_getSpeedAtTarget()
 	return speed_at_target;
 }
 
-float FlightTaskAutoLineSmoothVel::_getMaxSpeedFromDistance(float braking_distance)
+float FlightTaskAutoLineSmoothVel::_getMaxSpeedFromDistance(float braking_distance) const
 {
 	float max_speed = math::trajectory::computeMaxSpeedFromBrakingDistance(_param_mpc_jerk_auto.get(),
 			  _param_mpc_acc_hor.get(),
@@ -274,8 +274,8 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 
 			// Constrain the norm of each component using min and max values
 			Vector2f vel_sp_constrained_xy;
-			vel_sp_constrained_xy(0) = _constrainAbs(vel_sp_xy(0), vel_min_xy(0), vel_max_xy(0));
-			vel_sp_constrained_xy(1) = _constrainAbs(vel_sp_xy(1), vel_min_xy(1), vel_max_xy(1));
+			vel_sp_constrained_xy(0) = _constrainAbsPrioritizeMin(vel_sp_xy(0), vel_min_xy(0), vel_max_xy(0));
+			vel_sp_constrained_xy(1) = _constrainAbsPrioritizeMin(vel_sp_xy(1), vel_min_xy(1), vel_max_xy(1));
 
 			for (int i = 0; i < 2; i++) {
 				// If available, constrain the velocity using _velocity_setpoint(.)

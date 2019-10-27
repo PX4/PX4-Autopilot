@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2018 - 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -349,6 +349,26 @@ void PositionControl::updateConstraints(const vehicle_constraints_s &constraints
 	if (!PX4_ISFINITE(constraints.speed_xy) || !(constraints.speed_xy < _param_mpc_xy_vel_max.get())) {
 		_constraints.speed_xy = _param_mpc_xy_vel_max.get();
 	}
+}
+
+void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint) const
+{
+	local_position_setpoint.x = _pos_sp(0);
+	local_position_setpoint.y = _pos_sp(1);
+	local_position_setpoint.z = _pos_sp(2);
+	local_position_setpoint.yaw = _yaw_sp;
+	local_position_setpoint.yawspeed = _yawspeed_sp;
+	local_position_setpoint.vx = _vel_sp(0);
+	local_position_setpoint.vy = _vel_sp(1);
+	local_position_setpoint.vz = _vel_sp(2);
+	_acc_sp.copyTo(local_position_setpoint.acceleration);
+	_thr_sp.copyTo(local_position_setpoint.thrust);
+}
+
+void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const
+{
+	attitude_setpoint = ControlMath::thrustToAttitude(_thr_sp, _yaw_sp);
+	attitude_setpoint.yaw_sp_move_rate = _yawspeed_sp;
 }
 
 void PositionControl::updateParams()
