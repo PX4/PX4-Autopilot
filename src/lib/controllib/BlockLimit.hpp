@@ -69,7 +69,7 @@ public:
 		_min(this, "MIN"),
 		_max(this, "MAX")
 	{}
-	virtual ~BlockLimit() {}
+	virtual ~BlockLimit() = default;
 	float update(float input);
 // accessors
 	float getMin() { return _min.get(); }

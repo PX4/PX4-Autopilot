@@ -48,7 +48,7 @@ TerrainEstimator::TerrainEstimator() :
 	_time_last_distance(0),
 	_time_last_gps(0)
 {
-	memset(&_x._data[0], 0, sizeof(_x._data));
+	_x.zero();
 	_u_z = 0.0f;
 	_P.setIdentity();
 }
