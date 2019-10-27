@@ -120,7 +120,7 @@ void SendEvent::initialize_trampoline(void *arg)
 
 void SendEvent::cycle_trampoline(void *arg)
 {
-	SendEvent *obj = reinterpret_cast<SendEvent *>(arg);
+	SendEvent *obj = static_cast<SendEvent *>(arg);
 
 	obj->cycle();
 }
