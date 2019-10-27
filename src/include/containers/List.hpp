@@ -101,7 +101,7 @@ public:
 
 	struct Iterator {
 		T node;
-		Iterator(T v) : node(v) {}
+		explicit Iterator(T v) : node(v) {}
 
 		operator T() const { return node; }
 		operator T &() { return node; }
