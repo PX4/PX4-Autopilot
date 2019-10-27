@@ -114,7 +114,7 @@ extern "C" __EXPORT int sensors_main(int argc, char *argv[]);
 class Sensors : public ModuleBase<Sensors>, public ModuleParams
 {
 public:
-	Sensors(bool hil_enabled);
+	explicit Sensors(bool hil_enabled);
 	~Sensors() override;
 
 	/** @see ModuleBase */
