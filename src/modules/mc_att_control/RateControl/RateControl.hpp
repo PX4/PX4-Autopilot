@@ -93,7 +93,8 @@ public:
 	 * @param dt desired vehicle angular rate setpoint
 	 * @return [-1,1] normalized torque vector to apply to the vehicle
 	 */
-	matrix::Vector3f update(const matrix::Vector3f rate, const matrix::Vector3f rate_sp, const float dt, const bool landed);
+	matrix::Vector3f update(const matrix::Vector3f &rate, const matrix::Vector3f &rate_sp, const float dt,
+				const bool landed);
 
 	/**
 	 * Set the integral term to 0 to prevent windup
