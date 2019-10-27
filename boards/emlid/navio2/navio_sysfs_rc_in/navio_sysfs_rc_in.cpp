@@ -164,7 +164,7 @@ void RcInput::stop()
 
 void RcInput::cycle_trampoline(void *arg)
 {
-	RcInput *dev = reinterpret_cast<RcInput *>(arg);
+	RcInput *dev = static_cast<RcInput *>(arg);
 	dev->_cycle();
 }
 

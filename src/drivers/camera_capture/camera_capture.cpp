@@ -88,7 +88,7 @@ CameraCapture::capture_callback(uint32_t chan_index, hrt_abstime edge_time, uint
 int
 CameraCapture::gpio_interrupt_routine(int irq, void *context, void *arg)
 {
-	CameraCapture *dev = reinterpret_cast<CameraCapture *>(arg);
+	CameraCapture *dev = static_cast<CameraCapture *>(arg);
 
 	dev->_trigger.chan_index = 0;
 	dev->_trigger.edge_time = hrt_absolute_time();
@@ -103,7 +103,7 @@ CameraCapture::gpio_interrupt_routine(int irq, void *context, void *arg)
 void
 CameraCapture::publish_trigger_trampoline(void *arg)
 {
-	CameraCapture *dev = reinterpret_cast<CameraCapture *>(arg);
+	CameraCapture *dev = static_cast<CameraCapture *>(arg);
 
 	dev->publish_trigger();
 }
