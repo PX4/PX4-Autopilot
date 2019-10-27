@@ -65,6 +65,13 @@ namespace device
 class __EXPORT Device
 {
 public:
+
+	// no copy, assignment, move, move assignment
+	Device(const Device &) = delete;
+	Device &operator=(const Device &) = delete;
+	Device(Device &&) = delete;
+	Device &operator=(Device &&) = delete;
+
 	/**
 	 * Destructor.
 	 *
@@ -252,12 +259,6 @@ protected:
 		_device_id.devid_s.address = address;
 		_device_id.devid_s.devtype = devtype;
 	}
-
-	// no copy, assignment, move, move assignment
-	Device(const Device &) = delete;
-	Device &operator=(const Device &) = delete;
-	Device(Device &&) = delete;
-	Device &operator=(Device &&) = delete;
 
 };
 
