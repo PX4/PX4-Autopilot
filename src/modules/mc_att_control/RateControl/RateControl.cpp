@@ -66,7 +66,7 @@ void RateControl::setSaturationStatus(const MultirotorMixer::saturation_status &
 	_mixer_saturation_negative[2] = status.flags.yaw_neg;
 }
 
-Vector3f RateControl::update(const Vector3f rate, const Vector3f rate_sp, const float dt, const bool landed)
+Vector3f RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, const float dt, const bool landed)
 {
 	// angular rates error
 	Vector3f rate_error = rate_sp - rate;

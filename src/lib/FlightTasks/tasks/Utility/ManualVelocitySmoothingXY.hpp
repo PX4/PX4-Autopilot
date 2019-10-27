@@ -50,10 +50,10 @@ public:
 	ManualVelocitySmoothingXY() = default;
 	~ManualVelocitySmoothingXY() = default;
 
-	void reset(Vector2f accel, Vector2f vel, Vector2f pos);
-	void update(float dt, Vector2f velocity_target);
+	void reset(const Vector2f &accel, const Vector2f &vel, const Vector2f &pos);
+	void update(float dt, const Vector2f &velocity_target);
 
-	void setVelSpFeedback(const Vector2f fb) { _velocity_setpoint_feedback = fb; }
+	void setVelSpFeedback(const Vector2f &fb) { _velocity_setpoint_feedback = fb; }
 
 	void setMaxJerk(const float max_jerk)
 	{
@@ -79,7 +79,7 @@ public:
 	Vector2f getCurrentJerk() const { return _state.j; }
 	Vector2f getCurrentAcceleration() const { return _state.a; }
 
-	void setCurrentVelocity(const Vector2f vel)
+	void setCurrentVelocity(const Vector2f &vel)
 	{
 		_state.v = vel;
 		_trajectory[0].setCurrentVelocity(vel(0));
@@ -87,7 +87,7 @@ public:
 	}
 	Vector2f getCurrentVelocity() const { return _state.v; }
 
-	void setCurrentPosition(const Vector2f pos)
+	void setCurrentPosition(const Vector2f &pos)
 	{
 		_state.x = pos;
 		_trajectory[0].setCurrentPosition(pos(0));
@@ -96,13 +96,13 @@ public:
 	}
 	Vector2f getCurrentPosition() const { return _position_setpoint_locked; }
 
-	void setCurrentPositionEstimate(Vector2f pos) { _position_estimate = pos; }
+	void setCurrentPositionEstimate(const Vector2f &pos) { _position_estimate = pos; }
 
 private:
 	void resetPositionLock();
 	void updateTrajectories(float dt);
-	void checkPositionLock(Vector2f velocity_target);
-	void updateTrajDurations(Vector2f velocity_target);
+	void checkPositionLock(const Vector2f &velocity_target);
+	void updateTrajDurations(const Vector2f &velocity_target);
 
 	VelocitySmoothing _trajectory[2]; ///< Trajectory in x and y directions
 
