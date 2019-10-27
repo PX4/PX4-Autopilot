@@ -216,7 +216,7 @@ public:
 	 */
 	static int device_id_print_buffer(char *buffer, int length, uint32_t id)
 	{
-		DeviceId dev_id;
+		DeviceId dev_id{};
 		dev_id.devid = id;
 
 		int num_written = snprintf(buffer, length, "Type: 0x%02X, %s:%d (0x%02X)", dev_id.devid_s.devtype,
@@ -228,12 +228,12 @@ public:
 	}
 
 protected:
-	union DeviceId	_device_id;             /**< device identifier information */
+	union DeviceId	_device_id {};            /**< device identifier information */
 
-	const char	*_name;			/**< driver name */
+	const char	*_name{nullptr};		/**< driver name */
 	bool		_debug_enabled{false};		/**< if true, debug messages are printed */
 
-	Device(const char *name) : _name(name)
+	explicit Device(const char *name) : _name(name)
 	{
 		/* setup a default device ID. When bus_type is UNKNOWN the
 		   other fields are invalid */

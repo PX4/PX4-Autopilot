@@ -49,7 +49,12 @@ class WorkItem : public ListNode<WorkItem *>, public IntrusiveQueueNode<WorkItem
 {
 public:
 
-	inline void ScheduleNow() { if (_wq != nullptr) _wq->Add(this); }
+	inline void ScheduleNow()
+	{
+		if (_wq != nullptr) {
+			_wq->Add(this);
+		}
+	}
 
 	virtual void print_run_status() const;
 
