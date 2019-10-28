@@ -51,7 +51,7 @@ extern "C" __EXPORT int local_position_estimator_main(int argc, char *argv[]);
 class LocalPositionEstimatorModule : public ModuleBase<LocalPositionEstimatorModule>
 {
 public:
-	virtual ~LocalPositionEstimatorModule() = default;
+	~LocalPositionEstimatorModule() override = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);

@@ -76,7 +76,7 @@ public:
 
 	AirspeedModule();
 
-	~AirspeedModule();
+	~AirspeedModule() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);

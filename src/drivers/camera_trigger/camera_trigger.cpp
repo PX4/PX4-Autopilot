@@ -103,7 +103,7 @@ public:
 	/**
 	 * Destructor, also kills task.
 	 */
-	~CameraTrigger();
+	~CameraTrigger() override;
 
 	/**
 	 * Run intervalometer update
