@@ -46,7 +46,7 @@
 /**
  * Return mode return altitude
  *
- * Default minimum altitude above home for return flight.
+ * Default minimum altitude above destination (e.g. home, safe point, landing pattern) for return flight.
  * This is affected by RTL_MIN_DIST and RTL_CONE_ANG.
  *
  * @unit m
@@ -60,9 +60,9 @@ PARAM_DEFINE_FLOAT(RTL_RETURN_ALT, 60);
 
 
 /**
- * Return mode loiter altitude (relative to home)
+ * Return mode loiter altitude
  *
- * Descend to this altitude (above home position) after return, and wait for time defined in RTL_LAND_DELAY.
+ * Descend to this altitude (above destination position) after return, and wait for time defined in RTL_LAND_DELAY.
  * Land (i.e. slowly descend) from this altitude if autolanding allowed.
  *
  * @unit m
@@ -90,9 +90,9 @@ PARAM_DEFINE_FLOAT(RTL_DESCEND_ALT, 30);
 PARAM_DEFINE_FLOAT(RTL_LAND_DELAY, -1.0f);
 
 /**
- * Maximum horizontal distance from home, below which RTL_DESCEND_ALT is used as return altitude
+ * Maximum horizontal distance from return destination, below which RTL_DESCEND_ALT is used as return altitude
  *
- * If the vehicle is less than this horizontal distance from home when return mode is activated it will ascend
+ * If the vehicle is less than this horizontal distance from the return destination when return mode is activated it will ascend
  * to RTL_DESCEND_ALT for the return journey (rather than the altitude set by RTL_RETURN_ALT and RTL_CONE_ANG).
  *
  * @unit m
@@ -107,13 +107,13 @@ PARAM_DEFINE_FLOAT(RTL_MIN_DIST, 5.0f);
 /**
  * Return type
  *
- * Fly straight to the home location or planned mission landing and land there or
+ * Fly straight to the return location or planned mission landing and land there or
  * use the planned mission to get to those points.
  *
  * @value 0 Return home via direct path
  * @value 1 Return to a planned mission landing, if available, via direct path, else return to home via direct path
  * @value 2 Return to a planned mission landing, if available, using the mission path, else return to home via the reverse mission path
- * @value 3 Return via direct way to whatever is closest: home, mission lading or safe point
+ * @value 3 Return via direct path to closest destination: home, mission landing pattern or safe point
  * @group Return Mode
  */
 PARAM_DEFINE_INT32(RTL_TYPE, 0);
@@ -121,18 +121,18 @@ PARAM_DEFINE_INT32(RTL_TYPE, 0);
 /**
  * Half-angle of the return mode altitude cone
  *
- * Defines the half-angle of a cone centered around the home position that
- * affects the altitude at which the vehicle returns during return to home.
+ * Defines the half-angle of a cone centered around the destination position that
+ * affects the altitude at which the vehicle returns.
  *
  * @unit degrees
  * @min 0
  * @max 90
- * @value 0 No cone, always climb to RTL_RETURN_ALT above home.
+ * @value 0 No cone, always climb to RTL_RETURN_ALT above destination.
  * @value 25 25 degrees half cone angle.
  * @value 45 45 degrees half cone angle.
  * @value 65 65 degrees half cone angle.
  * @value 80 80 degrees half cone angle.
- * @value 90 Only climb to at least RTL_DESCEND_ALT above home.
+ * @value 90 Only climb to at least RTL_DESCEND_ALT above destination.
  * @group Return Mode
  */
 PARAM_DEFINE_INT32(RTL_CONE_ANG, 0);
