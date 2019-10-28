@@ -94,7 +94,6 @@ Checks:          '*,
                   -readability-named-parameter,
                   -readability-non-const-parameter,
                   -readability-redundant-declaration,
-                  -readability-redundant-control-flow,
                   -readability-static-accessed-through-instance,
                   -readability-static-definition-in-anonymous-namespace,
                  '
