@@ -192,7 +192,7 @@ public:
 	 * @param control_cb		Callback invoked when reading controls.
 	 */
 	Mixer(ControlCallback control_cb, uintptr_t cb_handle);
-	virtual ~Mixer() {}
+	virtual ~Mixer() = default;
 
 	/**
 	 * Perform the mixing function.
@@ -471,7 +471,7 @@ class NullMixer : public Mixer
 {
 public:
 	NullMixer();
-	~NullMixer() {}
+	~NullMixer() = default;
 
 	/**
 	 * Factory method.

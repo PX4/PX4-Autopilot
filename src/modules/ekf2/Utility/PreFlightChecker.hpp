@@ -124,12 +124,6 @@ public:
 	 */
 	static bool checkInnov2DFailed(const Vector2f &innov, const Vector2f &innov_lpf, float test_limit);
 
-	/*
-	 * Packs the boolean flags into a bit field
-	 */
-	static uint8_t prefltFailBoolToBitMask(bool heading_failed, bool horiz_vel_failed, bool vert_vel_failed,
-					       bool height_failed);
-
 	static constexpr float sq(float var) { return var * var; }
 
 private:

@@ -70,7 +70,7 @@ public:
 			_state(i) = 0.0f / 0.0f;
 		}
 	}
-	virtual ~BlockLowPassVector() {}
+	virtual ~BlockLowPassVector() = default;
 	matrix::Vector<Type, M> update(const matrix::Matrix<Type, M, 1> &input)
 	{
 		for (size_t i = 0; i < M; i++) {

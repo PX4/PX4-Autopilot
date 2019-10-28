@@ -266,6 +266,45 @@ RoverPositionControl::control_position(const matrix::Vector2f &current_position,
 }
 
 void
+RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity,
+				       const position_setpoint_triplet_s &pos_sp_triplet)
+{
+
+	float dt = 0.01; // Using non zero value to a avoid division by zero
+
+	const float mission_throttle = _param_throttle_cruise.get();
+	const matrix::Vector3f desired_local_velocity{pos_sp_triplet.current.vx, pos_sp_triplet.current.vy, pos_sp_triplet.current.vz};
+	const float desired_speed = desired_local_velocity.norm();
+
+	if (desired_speed > 0.01f) {
+
+		const Dcmf R_to_body(Quatf(_vehicle_att.q).inversed());
+		const Vector3f vel = R_to_body * Vector3f(current_velocity(0), current_velocity(1), current_velocity(2));
+
+		const float x_vel = vel(0);
+		const float x_acc = _vehicle_acceleration_sub.get().xyz[0];
+
+		const float control_throttle = pid_calculate(&_speed_ctrl, desired_speed, x_vel, x_acc, dt);
+
+		_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = math::constrain(control_throttle, 0.0f, mission_throttle);
+
+		const Vector3f desired_velocity = R_to_body * Vector3f(desired_local_velocity(0), desired_local_velocity(1),
+						  desired_local_velocity(2));
+		const float desired_theta = atan2f(desired_velocity(1), desired_velocity(0));
+		float control_effort = desired_theta / _param_max_turn_angle.get();
+		control_effort = math::constrain(control_effort, -1.0f, 1.0f);
+
+		_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
+
+	} else {
+
+		_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
+		_act_controls.control[actuator_controls_s::INDEX_YAW] = 0.0f;
+
+	}
+}
+
+void
 RoverPositionControl::run()
 {
 	_control_mode_sub = orb_subscribe(ORB_ID(vehicle_control_mode));
@@ -347,39 +386,45 @@ RoverPositionControl::run()
 
 			matrix::Vector3f ground_speed(_global_pos.vel_n, _global_pos.vel_e,  _global_pos.vel_d);
 			matrix::Vector2f current_position((float)_global_pos.lat, (float)_global_pos.lon);
+			matrix::Vector3f current_velocity(_local_pos.vx, _local_pos.vy, _local_pos.vz);
 
-			// This if statement depends upon short-circuiting: If !manual_mode, then control_position(...)
-			// should not be called.
-			// It doesn't really matter if it is called, it will just be bad for performance.
-			if (!manual_mode && control_position(current_position, ground_speed, _pos_sp_triplet)) {
+			if (!manual_mode && _control_mode.flag_control_position_enabled) {
 
-				/* XXX check if radius makes sense here */
-				float turn_distance = _param_l1_distance.get(); //_gnd_control.switch_distance(100.0f);
+				if (control_position(current_position, ground_speed, _pos_sp_triplet)) {
 
-				// publish status
-				position_controller_status_s pos_ctrl_status = {};
+					//TODO: check if radius makes sense here
+					float turn_distance = _param_l1_distance.get(); //_gnd_control.switch_distance(100.0f);
 
-				pos_ctrl_status.nav_roll = 0.0f;
-				pos_ctrl_status.nav_pitch = 0.0f;
-				pos_ctrl_status.nav_bearing = _gnd_control.nav_bearing();
+					// publish status
+					position_controller_status_s pos_ctrl_status = {};
 
-				pos_ctrl_status.target_bearing = _gnd_control.target_bearing();
-				pos_ctrl_status.xtrack_error = _gnd_control.crosstrack_error();
+					pos_ctrl_status.nav_roll = 0.0f;
+					pos_ctrl_status.nav_pitch = 0.0f;
+					pos_ctrl_status.nav_bearing = _gnd_control.nav_bearing();
 
-				pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon,
-							  _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
+					pos_ctrl_status.target_bearing = _gnd_control.target_bearing();
+					pos_ctrl_status.xtrack_error = _gnd_control.crosstrack_error();
 
-				pos_ctrl_status.acceptance_radius = turn_distance;
-				pos_ctrl_status.yaw_acceptance = NAN;
+					pos_ctrl_status.wp_dist = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon,
+								  _pos_sp_triplet.current.lat, _pos_sp_triplet.current.lon);
 
-				pos_ctrl_status.timestamp = hrt_absolute_time();
+					pos_ctrl_status.acceptance_radius = turn_distance;
+					pos_ctrl_status.yaw_acceptance = NAN;
 
-				if (_pos_ctrl_status_pub != nullptr) {
-					orb_publish(ORB_ID(position_controller_status), _pos_ctrl_status_pub, &pos_ctrl_status);
+					pos_ctrl_status.timestamp = hrt_absolute_time();
 
-				} else {
-					_pos_ctrl_status_pub = orb_advertise(ORB_ID(position_controller_status), &pos_ctrl_status);
+					if (_pos_ctrl_status_pub != nullptr) {
+						orb_publish(ORB_ID(position_controller_status), _pos_ctrl_status_pub, &pos_ctrl_status);
+
+					} else {
+						_pos_ctrl_status_pub = orb_advertise(ORB_ID(position_controller_status), &pos_ctrl_status);
+					}
+
 				}
+
+			} else if (!manual_mode && _control_mode.flag_control_velocity_enabled) {
+
+				control_velocity(current_velocity, _pos_sp_triplet);
 
 			}
 

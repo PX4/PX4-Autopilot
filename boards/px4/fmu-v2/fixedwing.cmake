@@ -9,7 +9,9 @@ px4_add_board(
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
 	#TESTING
+	CONSTRAINED_FLASH
 	#UAVCAN_INTERFACES 2
+	CONSTRAINED_FLASH
 
 	SERIAL_PORTS
 		GPS1:/dev/ttyS3

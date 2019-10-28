@@ -97,7 +97,7 @@ extern "C" __EXPORT int ekf2_main(int argc, char *argv[]);
 class Ekf2 final : public ModuleBase<Ekf2>, public ModuleParams, public px4::WorkItem
 {
 public:
-	Ekf2(bool replay_mode = false);
+	explicit Ekf2(bool replay_mode = false);
 	~Ekf2() override;
 
 	/** @see ModuleBase */

@@ -69,7 +69,7 @@ public:
 		_state(NAN /* initialize to invalid val, force into is_finite() check on first call */),
 		_fCut(this, "") // only one parameter, no need to name
 	{}
-	virtual ~BlockLowPass() {}
+	virtual ~BlockLowPass() = default;
 	float update(float input);
 // accessors
 	float getState() { return _state; }

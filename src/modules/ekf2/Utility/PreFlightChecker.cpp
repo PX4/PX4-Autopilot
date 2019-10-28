@@ -117,12 +117,6 @@ bool PreFlightChecker::checkInnov2DFailed(const Vector2f &innov, const Vector2f 
 	       || innov.norm_squared() > sq(2.0f * test_limit);
 }
 
-uint8_t PreFlightChecker::prefltFailBoolToBitMask(const bool heading_failed, const bool horiz_vel_failed,
-		const bool vert_vel_failed, const bool height_failed)
-{
-	return heading_failed | (horiz_vel_failed << 1) | (vert_vel_failed << 2) | (height_failed << 3);
-}
-
 void PreFlightChecker::reset()
 {
 	_is_using_gps_aiding = false;

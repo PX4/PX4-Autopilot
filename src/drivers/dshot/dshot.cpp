@@ -492,7 +492,7 @@ void
 DShotOutput::capture_trampoline(void *context, uint32_t chan_index,
 				hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
-	DShotOutput *dev = reinterpret_cast<DShotOutput *>(context);
+	DShotOutput *dev = static_cast<DShotOutput *>(context);
 	dev->capture_callback(chan_index, edge_time, edge_state, overflow);
 }
 

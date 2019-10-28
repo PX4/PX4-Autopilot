@@ -65,6 +65,13 @@ namespace device
 class __EXPORT Device
 {
 public:
+
+	// no copy, assignment, move, move assignment
+	Device(const Device &) = delete;
+	Device &operator=(const Device &) = delete;
+	Device(Device &&) = delete;
+	Device &operator=(Device &&) = delete;
+
 	/**
 	 * Destructor.
 	 *
@@ -216,7 +223,7 @@ public:
 	 */
 	static int device_id_print_buffer(char *buffer, int length, uint32_t id)
 	{
-		DeviceId dev_id;
+		DeviceId dev_id{};
 		dev_id.devid = id;
 
 		int num_written = snprintf(buffer, length, "Type: 0x%02X, %s:%d (0x%02X)", dev_id.devid_s.devtype,
@@ -235,7 +242,7 @@ protected:
 	const char	*_name{nullptr};		/**< driver name */
 	bool		_debug_enabled{false};		/**< if true, debug messages are printed */
 
-	Device(const char *name) : _name(name)
+	explicit Device(const char *name) : _name(name)
 	{
 		set_device_bus_type(DeviceBusType_UNKNOWN);
 	}
@@ -256,12 +263,6 @@ protected:
 		set_device_address(address);
 		set_device_type(devtype);
 	}
-
-	// no copy, assignment, move, move assignment
-	Device(const Device &) = delete;
-	Device &operator=(const Device &) = delete;
-	Device(Device &&) = delete;
-	Device &operator=(Device &&) = delete;
 
 };
 

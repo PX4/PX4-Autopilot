@@ -264,6 +264,7 @@ private:
 	struct MotorTest {
 		uORB::Subscription test_motor_sub{ORB_ID(test_motor)};
 		bool in_test_mode{false};
+		hrt_abstime timeout{0};
 	};
 	MotorTest _motor_test;
 

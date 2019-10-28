@@ -35,7 +35,7 @@ pipeline {
     CI = true
   }
   options {
-    buildDiscarder(logRotator(numToKeepStr: '20', artifactDaysToKeepStr: '30'))
+    buildDiscarder(logRotator(numToKeepStr: '10', artifactDaysToKeepStr: '20'))
     timeout(time: 60, unit: 'MINUTES')
   }
 }

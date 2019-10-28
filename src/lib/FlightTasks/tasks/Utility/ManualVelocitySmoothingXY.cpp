@@ -38,7 +38,7 @@
 
 using namespace matrix;
 
-void ManualVelocitySmoothingXY::reset(Vector2f accel, Vector2f vel, Vector2f pos)
+void ManualVelocitySmoothingXY::reset(const Vector2f &accel, const Vector2f &vel, const Vector2f &pos)
 {
 	for (int i = 0; i < 2; i++) {
 		_trajectory[i].reset(accel(i), vel(i), pos(i));
@@ -54,7 +54,7 @@ void ManualVelocitySmoothingXY::resetPositionLock()
 	_position_setpoint_locked(1) = NAN;
 }
 
-void ManualVelocitySmoothingXY::update(float dt, Vector2f velocity_target)
+void ManualVelocitySmoothingXY::update(float dt, const Vector2f &velocity_target)
 {
 	// Update state
 	updateTrajectories(dt);
@@ -79,7 +79,7 @@ void ManualVelocitySmoothingXY::updateTrajectories(float dt)
 	}
 }
 
-void ManualVelocitySmoothingXY::updateTrajDurations(Vector2f velocity_target)
+void ManualVelocitySmoothingXY::updateTrajDurations(const Vector2f &velocity_target)
 {
 	for (int i = 0; i < 2; ++i) {
 		_trajectory[i].updateDurations(velocity_target(i));
@@ -88,7 +88,7 @@ void ManualVelocitySmoothingXY::updateTrajDurations(Vector2f velocity_target)
 	VelocitySmoothing::timeSynchronization(_trajectory, 2);
 }
 
-void ManualVelocitySmoothingXY::checkPositionLock(Vector2f velocity_target)
+void ManualVelocitySmoothingXY::checkPositionLock(const Vector2f &velocity_target)
 {
 	/**
 	 * During a position lock -> position unlock transition, we have to make sure that the velocity setpoint

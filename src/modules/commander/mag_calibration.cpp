@@ -587,9 +587,9 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 	}
 
 	for (size_t cur_mag = 0; cur_mag < orb_mag_count && cur_mag < max_mags; cur_mag++) {
-		worker_data.x[cur_mag] = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
-		worker_data.y[cur_mag] = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
-		worker_data.z[cur_mag] = reinterpret_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
+		worker_data.x[cur_mag] = static_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
+		worker_data.y[cur_mag] = static_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
+		worker_data.z[cur_mag] = static_cast<float *>(malloc(sizeof(float) * calibration_points_maxcount));
 
 		if (worker_data.x[cur_mag] == nullptr || worker_data.y[cur_mag] == nullptr || worker_data.z[cur_mag] == nullptr) {
 			calibration_log_critical(mavlink_log_pub, "ERROR: out of memory");

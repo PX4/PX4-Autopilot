@@ -60,10 +60,10 @@ class LED : cdev::CDev
 {
 public:
 	LED();
-	virtual ~LED() = default;
+	~LED() override = default;
 
-	virtual int		init();
-	virtual int		ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
+	int	init() override;
+	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
 };
 
 LED::LED() : CDev(LED0_DEVICE_PATH)

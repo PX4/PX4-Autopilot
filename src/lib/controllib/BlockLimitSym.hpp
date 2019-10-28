@@ -68,7 +68,7 @@ public:
 		Block(parent, name),
 		_max(this, "MAX")
 	{}
-	virtual ~BlockLimitSym() {}
+	virtual ~BlockLimitSym() = default;
 	float update(float input);
 // accessors
 	float getMax() { return _max.get(); }

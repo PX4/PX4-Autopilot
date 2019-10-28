@@ -50,10 +50,6 @@ SMBus::SMBus(int bus_num, uint16_t address) :
 {
 }
 
-SMBus::~SMBus()
-{
-}
-
 int SMBus::read_word(const uint8_t cmd_code, void *data)
 {
 	// 2 data bytes + pec byte

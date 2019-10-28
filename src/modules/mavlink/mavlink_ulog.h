@@ -102,7 +102,7 @@ private:
 
 	MavlinkULog(int datarate, float max_rate_factor, uint8_t target_system, uint8_t target_component);
 
-	~MavlinkULog();
+	~MavlinkULog() = default;
 
 	static void lock()
 	{

@@ -63,13 +63,13 @@ class LED : public VirtDevObj
 {
 public:
 	LED();
-	virtual ~LED() = default;
+	~LED() override = default;
 
-	virtual int		init();
-	virtual int		devIOCTL(unsigned long cmd, unsigned long arg);
+	int	init() override;
+	int	devIOCTL(unsigned long cmd, unsigned long arg) override;
 
 protected:
-	virtual void		_measure() {}
+	void	_measure() override {}
 };
 
 LED::LED() :
