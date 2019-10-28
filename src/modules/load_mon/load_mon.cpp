@@ -71,7 +71,7 @@ class LoadMon : public ModuleBase<LoadMon>, public ModuleParams, public px4::Sch
 {
 public:
 	LoadMon();
-	~LoadMon();
+	~LoadMon() override;
 
 	static int task_spawn(int argc, char *argv[]);
 
