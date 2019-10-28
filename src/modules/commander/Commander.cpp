@@ -1378,6 +1378,7 @@ Commander::run()
 	}
 
 	status.is_vtol = is_vtol(&status);
+	status.is_vtol_tailsitter = is_vtol_tailsitter(&status);
 
 	commander_boot_timestamp = hrt_absolute_time();
 
@@ -1498,6 +1499,7 @@ Commander::run()
 
 				/* set vehicle_status.is_vtol flag */
 				status.is_vtol = is_vtol(&status);
+				status.is_vtol_tailsitter = is_vtol_tailsitter(&status);
 
 				/* check and update system / component ID */
 				int32_t sys_id = 0;

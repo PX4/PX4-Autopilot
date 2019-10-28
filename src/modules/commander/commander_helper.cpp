@@ -110,6 +110,12 @@ bool is_vtol(const struct vehicle_status_s *current_status)
 		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED5);
 }
 
+bool is_vtol_tailsitter(const struct vehicle_status_s *current_status)
+{
+	return (current_status->system_type == VEHICLE_TYPE_VTOL_DUOROTOR ||
+		current_status->system_type == VEHICLE_TYPE_VTOL_QUADROTOR);
+}
+
 bool is_fixed_wing(const struct vehicle_status_s *current_status)
 {
 	return current_status->system_type == VEHICLE_TYPE_FIXED_WING;
