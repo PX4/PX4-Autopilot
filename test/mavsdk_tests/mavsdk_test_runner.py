@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
+import argparse
 import datetime
 import os
 import subprocess
+import sys
 import time
+
 
 test_matrix = [
     {
@@ -20,39 +23,54 @@ test_matrix = [
 
 
 class Runner:
-    def __init__(self):
+    def __init__(self, log_dir):
         self.cmd = ""
         self.cwd = None
         self.args = []
         self.env = {}
         self.log_prefix = ""
+        self.log_dir = log_dir
 
-    def run(self, group):
-        with open(
-            "log-{}-{}-{}-{}.txt".format(
-                self.log_prefix,
-                group['model'],
-                group['test_filter'],
-                datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
-                ), 'w') as f:
+    def start(self, config):
+        if self.log_dir:
+            f = open(self.log_dir + os.path.sep +
+                     "log-{}-{}-{}-{}.txt".format(
+                         self.log_prefix,
+                         config['model'],
+                         config['test_filter'],
+                         datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
+                        ), 'w')
+        else:
+            f = sys.stdout
 
-            print("Running: {}".format(" ".join([self.cmd] + self.args)))
-            print("Raw: {}".format([self.cmd] + self.args))
+        print("Running: {}".format(" ".join([self.cmd] + self.args)))
 
-            self.process = subprocess.Popen(
-                [self.cmd] + self.args,
-                cwd=self.cwd,
-                env=self.env,
-                stdout=f, stderr=f
-            )
+        self.process = subprocess.Popen(
+            [self.cmd] + self.args,
+            cwd=self.cwd,
+            env=self.env,
+            stdout=f, stderr=f
+        )
 
-            # self.process.wait(timeout=None)
-            # print("Result is {}".format(self.process.returncode))
+    def stop(self):
+        returncode = self.process.poll()
+        if returncode is not None:
+            return returncode
+
+        print("Sending terminate to {}".format(self.process.pid))
+        self.process.terminate()
+
+        try:
+            return self.process.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            print("Sending kill to {}".format(self.process.pid))
+            self.process.kill()
+            return self.process.returncode
 
 
 class Px4Runner(Runner):
-    def __init__(self, workspace_dir):
-        super().__init__()
+    def __init__(self, workspace_dir, log_dir):
+        super().__init__(log_dir)
         self.cmd = workspace_dir + "/build/px4_sitl_default/bin/px4"
         self.cwd = workspace_dir + "/build/px4_sitl_default/tmp/rootfs"
         self.args = [
@@ -69,8 +87,8 @@ class Px4Runner(Runner):
 
 
 class GazeboRunner(Runner):
-    def __init__(self, workspace_dir):
-        super().__init__()
+    def __init__(self, workspace_dir, log_dir):
+        super().__init__(log_dir)
         self.env = {"PATH": os.environ['PATH'],
                     "HOME": os.environ['HOME'],
                     "GAZEBO_PLUGIN_PATH":
@@ -85,18 +103,30 @@ class GazeboRunner(Runner):
 
 
 def main():
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--log-dir",
+                        help="Directory for log files, stdout if not provided")
+    args = parser.parse_args()
+
     for group in test_matrix:
         print("Running test group for '{}' with filter '{}'"
               .format(group['model'], group['test_filter']))
 
-        px4_runner = Px4Runner(os.getcwd())
-        px4_runner.run(group)
+        px4_runner = Px4Runner(os.getcwd(), log_dir=args.log_dir)
+        px4_runner.start(group)
 
-        gazebo_runner = GazeboRunner(os.getcwd())
-        gazebo_runner.run(group)
+        gazebo_runner = GazeboRunner(os.getcwd(), log_dir=args.log_dir)
+        gazebo_runner.start(group)
 
         # Run test here
-        time.sleep(30)
+        time.sleep(group['timeout_min']*60)
+
+        returncode = gazebo_runner.stop()
+        print("Gazebo stopped with {}".format(returncode))
+
+        px4_runner.stop()
+        print("PX4 stopped with {}".format(returncode))
 
 
 if __name__ == '__main__':
