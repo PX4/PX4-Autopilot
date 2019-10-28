@@ -346,25 +346,40 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			manual.z = math::constrain(_filter_throttle.apply(manual.z), 0.f, 1.f);
 
 			if (_parameters.rc_map_flightmode > 0) {
+
 				/* number of valid slots */
 				const int num_slots = manual_control_setpoint_s::MODE_SLOT_NUM;
 
-				/* the half width of the range of a slot is the total range
-				 * divided by the number of slots, again divided by two
-				 */
-				const float slot_width_half = 2.0f / num_slots / 2.0f;
+				const float rc_pwm_rng = 1000.0f;	//range of rc pwm (1000-2000us)
+				const float rc_pwm_mid = 1500.0f;	//middle of rc pwm (1500us)
 
-				/* min is -1, max is +1, range is 2. We offset below min and max */
-				const float slot_min = -1.0f - 0.05f;
-				const float slot_max = 1.0f + 0.05f;
+				/* determine flight mode slot index from rc input */
+  				float rc_channel_val = _rc.channels[_parameters.rc_map_flightmode-1];
 
-				/* the slot gets mapped by first normalizing into a 0..1 interval using min
-				 * and max. Then the right slot is obtained by multiplying with the number of
-				 * slots. And finally we add half a slot width to ensure that integer rounding
-				 * will take us to the correct final index.
-				 */
-				manual.mode_slot = (((((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * num_slots) + slot_width_half) /
-						     (slot_max - slot_min)) + (1.0f / num_slots)) + 1;
+				/* map rc value from +/-1 to pwm 1000-2000us */
+				rc_channel_val = rc_channel_val * rc_pwm_rng/2 + rc_pwm_mid;
+
+ 				if (rc_channel_val >= 980.0f && rc_channel_val < 1160.0f){
+					manual.mode_slot = 0;
+				}
+				else if (rc_channel_val >= 1160.0f && rc_channel_val < 1320.0f) {
+					manual.mode_slot = 1;
+				}
+				else if (rc_channel_val >= 1320.0f && rc_channel_val < 1480.0f) {
+					manual.mode_slot = 2;
+				}
+				else if (rc_channel_val >= 1480.0f && rc_channel_val < 1640.0f) {
+					manual.mode_slot = 3;
+				}
+				else if (rc_channel_val >= 1640.0f && rc_channel_val < 1800.0f) {
+					manual.mode_slot = 4;
+				}
+				else if (rc_channel_val >= 1800.0f && rc_channel_val < 2000.0f) {
+					manual.mode_slot = 5;
+				}
+				else {
+					manual.mode_slot = 0;
+				}
 
 				if (manual.mode_slot > num_slots) {
 					manual.mode_slot = num_slots;
