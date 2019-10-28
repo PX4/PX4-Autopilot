@@ -313,7 +313,8 @@ PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
 /**
  * Battery failsafe mode
  *
- * Action the system takes at critical battery.
+ * Action the system takes at critical battery. See also BAT_CRIT_THR and BAT_EMERGEN_THR
+ * for definition of battery states.
  *
  * @group Commander
  * @value 0 Warning
