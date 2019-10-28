@@ -302,9 +302,6 @@ RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity,
 		_act_controls.control[actuator_controls_s::INDEX_YAW] = 0.0f;
 
 	}
-
-	return;
-
 }
 
 void
