@@ -313,18 +313,16 @@ PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
 /**
  * Battery failsafe mode
  *
- * Action the system takes on low battery. Defaults to off
+ * Action the system takes at critical battery.
  *
  * @group Commander
  * @value 0 Warning
- * @value 1 Return mode
  * @value 2 Land mode
- * @value 3 Return mode at critically low level, Land mode at current position if reaching dangerously low levels
+ * @value 3 Return at critical level, land at emergency level
  * @decimal 0
  * @increment 1
- * @increment 1
  */
-PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
+PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 3);
 
 /**
  * Time-out to wait when offboard connection is lost before triggering offboard lost action.
