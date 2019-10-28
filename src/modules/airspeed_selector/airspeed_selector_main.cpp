@@ -76,7 +76,7 @@ public:
 
 	AirspeedModule();
 
-	~AirspeedModule();
+	~AirspeedModule() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -182,9 +182,7 @@ AirspeedModule::~AirspeedModule()
 
 	perf_free(_perf_elapsed);
 
-	if (_airspeed_validator != nullptr) {
-		delete[] _airspeed_validator;
-	}
+	delete[] _airspeed_validator;
 }
 
 int

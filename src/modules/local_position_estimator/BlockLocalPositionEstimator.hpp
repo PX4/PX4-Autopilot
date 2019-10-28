@@ -106,6 +106,9 @@ class BlockLocalPositionEstimator : public control::SuperBlock, public ModulePar
 //
 public:
 
+	BlockLocalPositionEstimator(const BlockLocalPositionEstimator &) = delete;
+	BlockLocalPositionEstimator operator=(const BlockLocalPositionEstimator &) = delete;
+
 	// constants
 	enum {X_x = 0, X_y, X_z, X_vx, X_vy, X_vz, X_bx, X_by, X_bz, X_tz, n_x};
 	enum {U_ax = 0, U_ay, U_az, n_u};
@@ -154,8 +157,6 @@ public:
 	virtual ~BlockLocalPositionEstimator() = default;
 
 private:
-	BlockLocalPositionEstimator(const BlockLocalPositionEstimator &) = delete;
-	BlockLocalPositionEstimator operator=(const BlockLocalPositionEstimator &) = delete;
 
 	// methods
 	// ----------------------------

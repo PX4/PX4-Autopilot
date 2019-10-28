@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,61 +32,26 @@
  ****************************************************************************/
 
 /**
- * @file blocks.h
+ * Battery voltage divider (V divider)
  *
- * Controller library code
+ * This is the divider from battery voltage to 3.3V ADC voltage.
+ * If using e.g. Mauch power modules the value from the datasheet
+ * can be applied straight here. A value of -1 means to use
+ * the board default.
+ *
+ * @group Battery Calibration
+ * @decimal 8
  */
-
-#pragma once
-
-#include <px4_defines.h>
-#include <assert.h>
-#include <time.h>
-#include <stdlib.h>
-#include <math.h>
-#include <mathlib/math/test/test.hpp>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-
-#include "block/Block.hpp"
-#include "block/BlockParam.hpp"
-
-#include "matrix/math.hpp"
-
-namespace control
-{
+PARAM_DEFINE_FLOAT(BAT_V_DIV, -1.0);
 
 /**
- * A uniform random number generator
+ * Battery current per volt (A/V)
+ *
+ * The voltage seen by the 3.3V ADC multiplied by this factor
+ * will determine the battery current. A value of -1 means to use
+ * the board default.
+ *
+ * @group Battery Calibration
+ * @decimal 8
  */
-class __EXPORT BlockRandUniform: public Block
-{
-public:
-// methods
-	BlockRandUniform(SuperBlock *parent,
-			 const char *name) :
-		Block(parent, name),
-		_min(this, "MIN"),
-		_max(this, "MAX")
-	{
-		// seed should be initialized somewhere
-		// in main program for all calls to rand
-		// XXX currently in nuttx if you seed to 0, rand breaks
-	}
-	virtual ~BlockRandUniform() = default;
-	float update()
-	{
-		static float rand_max = RAND_MAX;
-		float rand_val = rand();
-		float bounds = getMax() - getMin();
-		return getMin() + (rand_val * bounds) / rand_max;
-	}
-// accessors
-	float getMin() { return _min.get(); }
-	float getMax() { return _max.get(); }
-private:
-// attributes
-	control::BlockParamFloat _min;
-	control::BlockParamFloat _max;
-};
-
-} // namespace control
+PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);

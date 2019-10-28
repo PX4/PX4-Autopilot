@@ -69,7 +69,7 @@ public:
 		_kP(this, "P"),
 		_kI(this, "I")
 	{}
-	virtual ~BlockPI() {}
+	virtual ~BlockPI() = default;
 	float update(float input)
 	{
 		return getKP() * input +

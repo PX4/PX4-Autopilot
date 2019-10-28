@@ -286,7 +286,7 @@ BMI088_gyro::Run()
 void
 BMI088_gyro::measure_trampoline(void *arg)
 {
-	BMI088_gyro *dev = reinterpret_cast<BMI088_gyro *>(arg);
+	BMI088_gyro *dev = static_cast<BMI088_gyro *>(arg);
 
 	/* make another measurement */
 	dev->measure();

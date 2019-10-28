@@ -47,9 +47,9 @@ class StateMachineHelperTest : public UnitTest
 {
 public:
 	StateMachineHelperTest() = default;
-	virtual ~StateMachineHelperTest() = default;
+	~StateMachineHelperTest() override = default;
 
-	virtual bool run_tests();
+	bool run_tests() override;
 
 private:
 	bool armingStateTransitionTest();

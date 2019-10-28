@@ -56,6 +56,7 @@ class FixedwingLandDetector final : public LandDetector
 {
 public:
 	FixedwingLandDetector();
+	~FixedwingLandDetector() override = default;
 
 protected:
 

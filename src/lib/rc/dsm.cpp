@@ -712,7 +712,7 @@ dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uint16_t
 				dsm_partial_frame_count = 0;
 
 				/* if decoding failed, set proto to desync */
-				if (decode_ret == false) {
+				if (!decode_ret) {
 					dsm_decode_state = DSM_DECODE_STATE_DESYNC;
 					dsm_frame_drops++;
 				}

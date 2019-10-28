@@ -50,6 +50,13 @@ namespace device __EXPORT
  */
 class __EXPORT SPI : public CDev
 {
+public:
+	// no copy, assignment, move, move assignment
+	SPI(const SPI &) = delete;
+	SPI &operator=(const SPI &) = delete;
+	SPI(SPI &&) = delete;
+	SPI &operator=(SPI &&) = delete;
+
 protected:
 	/**
 	 * Constructor
@@ -151,10 +158,6 @@ private:
 	struct spi_dev_s	*_dev;
 
 	LockMode		_locking_mode{LOCK_THREADS};	/**< selected locking mode */
-
-	/* this class does not allow copying */
-	SPI(const SPI &);
-	SPI operator=(const SPI &);
 
 protected:
 	int	_transfer(uint8_t *send, uint8_t *recv, unsigned len);

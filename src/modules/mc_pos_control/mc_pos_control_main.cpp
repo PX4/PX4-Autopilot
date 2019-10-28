@@ -85,7 +85,7 @@ class MulticopterPositionControl : public ModuleBase<MulticopterPositionControl>
 public:
 	MulticopterPositionControl();
 
-	virtual ~MulticopterPositionControl() override;
+	~MulticopterPositionControl() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -297,9 +297,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 
 MulticopterPositionControl::~MulticopterPositionControl()
 {
-	if (_wv_controller != nullptr) {
-		delete _wv_controller;
-	}
+	delete _wv_controller;
 
 	perf_free(_cycle_perf);
 }

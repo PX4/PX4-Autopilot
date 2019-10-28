@@ -692,7 +692,7 @@ void
 PX4FMU::capture_trampoline(void *context, uint32_t chan_index,
 			   hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
-	PX4FMU *dev = reinterpret_cast<PX4FMU *>(context);
+	PX4FMU *dev = static_cast<PX4FMU *>(context);
 	dev->capture_callback(chan_index, edge_time, edge_state, overflow);
 }
 

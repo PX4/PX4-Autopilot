@@ -102,13 +102,6 @@ int fixedwing_control_thread_main(int argc, char *argv[]);
  */
 static void usage(const char *reason);
 
-int parameters_init(struct param_handles *h);
-
-/**
- * Update all parameters
- *
- */
-int parameters_update(const struct param_handles *h, struct params *p);
 
 /**
  * Control roll and pitch angle.

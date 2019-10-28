@@ -1378,6 +1378,7 @@ Commander::run()
 	}
 
 	status.is_vtol = is_vtol(&status);
+	status.is_vtol_tailsitter = is_vtol_tailsitter(&status);
 
 	commander_boot_timestamp = hrt_absolute_time();
 
@@ -1498,6 +1499,7 @@ Commander::run()
 
 				/* set vehicle_status.is_vtol flag */
 				status.is_vtol = is_vtol(&status);
+				status.is_vtol_tailsitter = is_vtol_tailsitter(&status);
 
 				/* check and update system / component ID */
 				int32_t sys_id = 0;
@@ -1983,16 +1985,14 @@ Commander::run()
 			/* handle the case where RC signal was regained */
 			if (!status_flags.rc_signal_found_once) {
 				status_flags.rc_signal_found_once = true;
-				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, true
-						 && status_flags.rc_calibration_valid, status);
+				set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, status_flags.rc_calibration_valid, status);
 				status_changed = true;
 
 			} else {
 				if (status.rc_signal_lost) {
 					mavlink_log_info(&mavlink_log_pub, "Manual control regained after %llums",
 							 hrt_elapsed_time(&rc_signal_lost_timestamp) / 1000);
-					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, true
-							 && status_flags.rc_calibration_valid, status);
+					set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_RCRECEIVER, true, true, status_flags.rc_calibration_valid, status);
 					status_changed = true;
 				}
 			}

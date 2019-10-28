@@ -81,13 +81,8 @@ SendEvent::SendEvent() : ModuleParams(nullptr)
 
 SendEvent::~SendEvent()
 {
-	if (_status_display != nullptr) {
-		delete _status_display;
-	}
-
-	if (_rc_loss_alarm != nullptr) {
-		delete _rc_loss_alarm;
-	}
+	delete _status_display;
+	delete _rc_loss_alarm;
 }
 
 int SendEvent::start()
@@ -120,7 +115,7 @@ void SendEvent::initialize_trampoline(void *arg)
 
 void SendEvent::cycle_trampoline(void *arg)
 {
-	SendEvent *obj = reinterpret_cast<SendEvent *>(arg);
+	SendEvent *obj = static_cast<SendEvent *>(arg);
 
 	obj->cycle();
 }

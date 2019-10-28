@@ -2692,8 +2692,8 @@ MavlinkReceiver::Run()
 				}
 			}
 
-			// only start accepting messages once we're sure who we talk to
-			if (_mavlink->get_client_source_initialized()) {
+			// only start accepting messages on UDP once we're sure who we talk to
+			if (_mavlink->get_protocol() != Protocol::UDP || _mavlink->get_client_source_initialized()) {
 #endif // MAVLINK_UDP
 
 				/* if read failed, this loop won't execute */
