@@ -85,7 +85,7 @@ class MulticopterPositionControl : public ModuleBase<MulticopterPositionControl>
 public:
 	MulticopterPositionControl();
 
-	virtual ~MulticopterPositionControl() override;
+	~MulticopterPositionControl() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);

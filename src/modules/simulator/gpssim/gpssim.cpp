@@ -87,11 +87,11 @@ class GPSSIM : public VirtDevObj
 public:
 	GPSSIM(bool fake_gps, bool enable_sat_info,
 	       int fix_type, int num_sat, int noise_multiplier);
-	virtual ~GPSSIM();
+	~GPSSIM() override;
 
-	virtual int			init();
+	int		init() override;
 
-	virtual int			devIOCTL(unsigned long cmd, unsigned long arg);
+	int		devIOCTL(unsigned long cmd, unsigned long arg) override;
 
 	void set(int fix_type, int num_sat, int noise_multiplier);
 
@@ -101,7 +101,7 @@ public:
 	void				print_info();
 
 protected:
-	virtual void			_measure() {}
+	void		_measure() override {}
 
 private:
 
