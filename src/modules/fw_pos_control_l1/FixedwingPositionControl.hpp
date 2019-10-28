@@ -295,6 +295,7 @@ private:
 		float pitchsp_offset_rad;
 
 		float throttle_land_max;
+		float loiter_radius;
 
 		float land_heading_hold_horizontal_distance;
 		float land_flare_pitch_min_deg;
@@ -368,6 +369,7 @@ private:
 		param_t land_early_config_change;
 		param_t land_airspeed_scale;
 		param_t land_throtTC_scale;
+		param_t loiter_radius;
 
 		param_t vtol_type;
 	} _parameter_handles {};				///< handles for interesting parameters */
