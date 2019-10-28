@@ -38,8 +38,6 @@
 #include <queue.h>
 #include <stddef.h>
 
-__EXPORT void sq_rem(sq_entry_t *node, sq_queue_t *queue);
-sq_entry_t *sq_remafter(sq_entry_t *node, sq_queue_t *queue);
 void sq_rem(sq_entry_t *node, sq_queue_t *queue)
 {
 	if (queue->head && node) {
@@ -83,7 +81,6 @@ sq_entry_t *sq_remafter(sq_entry_t *node, sq_queue_t *queue)
 	return ret;
 }
 
-__EXPORT void sq_addfirst(sq_entry_t *node, sq_queue_t *queue);
 void sq_addfirst(sq_entry_t *node, sq_queue_t *queue)
 {
 	node->flink = queue->head;
