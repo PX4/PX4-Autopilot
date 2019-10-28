@@ -1137,7 +1137,7 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 
 		switch (low_battery_action) {
 		case LOW_BAT_ACTION::WARNING:
-			mavlink_log_critical(mavlink_log_pub, "%s, Landing advised", battery_critical);
+			mavlink_log_critical(mavlink_log_pub, "%s, landing advised", battery_critical);
 			break;
 
 		case LOW_BAT_ACTION::RETURN:
@@ -1174,7 +1174,7 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 
 		switch (low_battery_action) {
 		case LOW_BAT_ACTION::WARNING:
-			mavlink_log_emergency(mavlink_log_pub, "%s, Please land!", battery_dangerous);
+			mavlink_log_emergency(mavlink_log_pub, "%s, please land!", battery_dangerous);
 			break;
 
 		case LOW_BAT_ACTION::RETURN:
