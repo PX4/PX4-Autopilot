@@ -159,6 +159,9 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	// We do a param_find here to force them into the list.
 	(void)param_find("RC_CHAN_CNT");
 
+	(void)param_find("BAT_V_DIV");
+	(void)param_find("BAT_A_PER_V");
+
 	(void)param_find("CAL_ACC0_ID");
 	(void)param_find("CAL_GYRO0_ID");
 
