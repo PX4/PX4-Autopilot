@@ -5,7 +5,6 @@ import datetime
 import os
 import subprocess
 import sys
-import time
 
 
 test_matrix = [
@@ -14,11 +13,11 @@ test_matrix = [
         "test_filter": "[multicopter]",
         "timeout_min": 10,
     },
-    {
-        "model": "standard_vtol",
-        "test_filter": "[vtol]",
-        "timeout_min": 10,
-    }
+    # {
+    #     "model": "standard_vtol",
+    #     "test_filter": "[vtol]",
+    #     "timeout_min": 10,
+    # }
 ]
 
 
@@ -51,6 +50,12 @@ class Runner:
             env=self.env,
             stdout=f, stderr=f
         )
+
+    def wait(self, timeout_s):
+        try:
+            return self.process.wait(timeout=timeout_s)
+        except subprocess.TimeoutExpired:
+            self.stop()
 
     def stop(self):
         returncode = self.process.poll()
@@ -95,11 +100,21 @@ class GazeboRunner(Runner):
                     workspace_dir + "/build/px4_sitl_default/build_gazebo",
                     "GAZEBO_MODEL_PATH":
                     workspace_dir + "/Tools/sitl_gazebo/models",
-                    "PX4_SIM_SPEED_FACTOR": "1"}
+                    "PX4_SIM_SPEED_FACTOR": "5"}
         self.cmd = "gzserver"
         self.args = ["--verbose",
                      workspace_dir + "/Tools/sitl_gazebo/worlds/iris.world"]
         self.log_prefix = "gazebo"
+
+
+class TestRunner(Runner):
+    def __init__(self, workspace_dir, log_dir, config):
+        super().__init__(log_dir)
+        self.env = {"PATH": os.environ['PATH']}
+        self.cmd = workspace_dir + \
+            "/build/px4_sitl_default/test_mission_multicopter"
+        self.args = [config['test_filter']]
+        self.log_prefix = "test_runner"
 
 
 def main():
@@ -113,20 +128,23 @@ def main():
         print("Running test group for '{}' with filter '{}'"
               .format(group['model'], group['test_filter']))
 
-        px4_runner = Px4Runner(os.getcwd(), log_dir=args.log_dir)
+        px4_runner = Px4Runner(os.getcwd(), args.log_dir)
         px4_runner.start(group)
 
-        gazebo_runner = GazeboRunner(os.getcwd(), log_dir=args.log_dir)
+        gazebo_runner = GazeboRunner(os.getcwd(), args.log_dir)
         gazebo_runner.start(group)
 
-        # Run test here
-        time.sleep(group['timeout_min']*60)
+        test_runner = TestRunner(os.getcwd(), args.log_dir, group)
+        test_runner.start(group)
+
+        returncode = test_runner.wait(group['timeout_min']*60)
+        print("Test exited with {}".format(returncode))
 
         returncode = gazebo_runner.stop()
-        print("Gazebo stopped with {}".format(returncode))
+        print("Gazebo exited with {}".format(returncode))
 
         px4_runner.stop()
-        print("PX4 stopped with {}".format(returncode))
+        print("PX4 exited with {}".format(returncode))
 
 
 if __name__ == '__main__':
