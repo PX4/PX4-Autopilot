@@ -65,7 +65,7 @@ public:
 	I2C(I2C &&) = delete;
 	I2C &operator=(I2C &&) = delete;
 
-	virtual int	init();
+	virtual int	init() override;
 
 	static int	set_bus_clock(unsigned bus, unsigned clock_hz);
 
@@ -109,7 +109,7 @@ protected:
 	 */
 	int		transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len);
 
-	bool		external() { return px4_i2c_bus_external(_device_id.devid_s.bus); }
+	virtual bool	external() const override { return px4_i2c_bus_external(_device_id.devid_s.bus); }
 
 private:
 	uint32_t		_frequency{0};

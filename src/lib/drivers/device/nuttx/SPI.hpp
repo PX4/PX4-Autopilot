@@ -80,7 +80,7 @@ protected:
 		LOCK_NONE		/**< perform no locking, only safe if the bus is entirely private */
 	};
 
-	virtual int	init();
+	virtual int	init() override;
 
 	/**
 	 * Check for the presence of the device on the bus.
@@ -164,7 +164,7 @@ protected:
 
 	int	_transferhword(uint16_t *send, uint16_t *recv, unsigned len);
 
-	bool	external() { return px4_spi_bus_external(get_device_bus()); }
+	virtual bool	external() const override { return px4_spi_bus_external(get_device_bus()); }
 
 };
 
