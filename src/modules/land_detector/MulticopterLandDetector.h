@@ -60,9 +60,10 @@ class MulticopterLandDetector : public LandDetector
 {
 public:
 	MulticopterLandDetector();
+	~MulticopterLandDetector() override = default;
 
 protected:
-	void _update_params(const bool force = false) override;
+	void _update_params() override;
 	void _update_topics() override;
 
 	bool _get_landed_state() override;

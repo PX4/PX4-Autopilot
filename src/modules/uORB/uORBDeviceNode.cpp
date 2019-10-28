@@ -66,9 +66,7 @@ uORB::DeviceNode::DeviceNode(const struct orb_metadata *meta, const uint8_t inst
 
 uORB::DeviceNode::~DeviceNode()
 {
-	if (_data != nullptr) {
-		delete[] _data;
-	}
+	delete[] _data;
 
 	CDev::unregister_driver_and_memory();
 }

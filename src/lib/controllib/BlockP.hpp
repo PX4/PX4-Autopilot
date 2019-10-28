@@ -67,7 +67,7 @@ public:
 		Block(parent, name),
 		_kP(this, "") // only one param, no need to name
 	{}
-	virtual ~BlockP() {}
+	virtual ~BlockP() = default;
 	float update(float input)
 	{
 		return getKP() * input;

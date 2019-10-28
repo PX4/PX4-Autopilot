@@ -69,7 +69,7 @@ public:
 		_fs(sample_freq),
 		_lp(_fs, _fCut.get())
 	{}
-	virtual ~BlockLowPass2() {}
+	virtual ~BlockLowPass2() = default;
 	float update(float input);
 // accessors
 	float getState() { return _state; }

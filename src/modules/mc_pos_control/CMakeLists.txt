@@ -32,6 +32,7 @@
 ############################################################################
 
 add_subdirectory(Takeoff)
+add_subdirectory(PositionControl)
 
 px4_add_module(
 	MODULE modules__mc_pos_control
@@ -40,9 +41,8 @@ px4_add_module(
 		-Wno-implicit-fallthrough # TODO: fix and remove
 	SRCS
 		mc_pos_control_main.cpp
-		PositionControl.cpp
-		Utility/ControlMath.cpp
 	DEPENDS
+		PositionControl
 		controllib
 		FlightTasks
 		git_ecl

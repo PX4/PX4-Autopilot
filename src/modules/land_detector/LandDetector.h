@@ -54,6 +54,7 @@
 #include <px4_module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_bias.h>
@@ -69,13 +70,6 @@ namespace land_detector
 class LandDetector : public ModuleBase<LandDetector>, ModuleParams, px4::ScheduledWorkItem
 {
 public:
-	enum class LandDetectionState {
-		FLYING = 0,
-		LANDED = 1,
-		FREEFALL = 2,
-		GROUND_CONTACT = 3,
-		MAYBE_LANDED = 4
-	};
 
 	LandDetector();
 	virtual ~LandDetector();
@@ -94,11 +88,6 @@ public:
 	int print_status() override;
 
 	/**
-	 * @return current state.
-	 */
-	LandDetectionState get_state() const { return _state; }
-
-	/**
 	 * Get the work queue going.
 	 */
 	void start();
@@ -108,10 +97,9 @@ public:
 protected:
 
 	/**
-	 * Updates parameters if changes have occurred or if forced.
-	 * @var force Forces a parameter update.
+	 * Updates parameters.
 	 */
-	virtual void _update_params(const bool force = false);
+	virtual void _update_params();
 
 	/**
 	 * Updates subscribed uORB topics.
@@ -151,8 +139,6 @@ protected:
 	/** Run main land detector loop at this interval. */
 	static constexpr uint32_t LAND_DETECTOR_UPDATE_INTERVAL = 20_ms;
 
-	LandDetectionState _state{LandDetectionState::LANDED};
-
 	systemlib::Hysteresis _freefall_hysteresis{false};
 	systemlib::Hysteresis _landed_hysteresis{true};
 	systemlib::Hysteresis _maybe_landed_hysteresis{true};
@@ -161,14 +147,19 @@ protected:
 
 	actuator_armed_s         _actuator_armed{};
 	vehicle_acceleration_s   _vehicle_acceleration{};
-	vehicle_land_detected_s  _land_detected{};
+
+	vehicle_land_detected_s _land_detected = {
+		.timestamp = 0,
+		.alt_max = -1.0f,
+		.freefall = false,
+		.ground_contact = true,
+		.maybe_landed = true,
+		.landed = true,
+	};
+
 	vehicle_local_position_s _vehicle_local_position{};
 
-	orb_advert_t _land_detected_pub{nullptr};
-
-	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
-	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
-	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
+	uORB::Publication<vehicle_land_detected_s> _vehicle_land_detected_pub{ORB_ID(vehicle_land_detected)};
 
 private:
 
@@ -185,7 +176,10 @@ private:
 
 	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, "land_detector_cycle")};
 
+	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
+	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(
 		ModuleParams,

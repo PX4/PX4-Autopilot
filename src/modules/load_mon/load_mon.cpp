@@ -56,8 +56,6 @@
 #  error load_mon support requires CONFIG_SCHED_INSTRUMENTATION
 #endif
 
-extern struct system_load_s system_load;
-
 #define STACK_LOW_WARNING_THRESHOLD 300 ///< if free stack space falls below this, print a warning
 #define FDS_LOW_WARNING_THRESHOLD 3 ///< if free file descriptors fall below this, print a warning
 
@@ -73,7 +71,7 @@ class LoadMon : public ModuleBase<LoadMon>, public ModuleParams, public px4::Sch
 {
 public:
 	LoadMon();
-	~LoadMon();
+	~LoadMon() override;
 
 	static int task_spawn(int argc, char *argv[]);
 

@@ -291,7 +291,7 @@ ssize_t AEROFC_ADC::read(file *filp, char *buffer, size_t len)
 
 void AEROFC_ADC::cycle_trampoline(void *arg)
 {
-	AEROFC_ADC *dev = reinterpret_cast<AEROFC_ADC * >(arg);
+	AEROFC_ADC *dev = static_cast<AEROFC_ADC * >(arg);
 	dev->cycle();
 }
 

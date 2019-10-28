@@ -72,7 +72,7 @@ public:
 		// in main program for all calls to rand
 		// XXX currently in nuttx if you seed to 0, rand breaks
 	}
-	virtual ~BlockRandUniform() {}
+	virtual ~BlockRandUniform() = default;
 	float update()
 	{
 		static float rand_max = RAND_MAX;

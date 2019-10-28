@@ -140,14 +140,6 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	parameter_handles.diff_pres_analog_scale = param_find("SENS_DPRES_ANSC");
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
 
-	parameter_handles.battery_voltage_scaling = param_find("BAT_CNT_V_VOLT");
-	parameter_handles.battery_current_scaling = param_find("BAT_CNT_V_CURR");
-	parameter_handles.battery_current_offset = param_find("BAT_V_OFFS_CURR");
-	parameter_handles.battery_v_div = param_find("BAT_V_DIV");
-	parameter_handles.battery_a_per_v = param_find("BAT_A_PER_V");
-	parameter_handles.battery_source = param_find("BAT_SOURCE");
-	parameter_handles.battery_adc_channel = param_find("BAT_ADC_CHANNEL");
-
 	/* rotations */
 	parameter_handles.board_rotation = param_find("SENS_BOARD_ROT");
 
@@ -166,6 +158,9 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 	// These are parameters for which QGroundControl always expects to be returned in a list request.
 	// We do a param_find here to force them into the list.
 	(void)param_find("RC_CHAN_CNT");
+
+	(void)param_find("BAT_V_DIV");
+	(void)param_find("BAT_A_PER_V");
 
 	(void)param_find("CAL_ACC0_ID");
 	(void)param_find("CAL_GYRO0_ID");
@@ -194,7 +189,6 @@ void initialize_parameter_handles(ParameterHandles &parameter_handles)
 
 int update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters)
 {
-
 	bool rc_valid = true;
 	float tmpScaleFactor = 0.0f;
 	float tmpRevFactor = 0.0f;
@@ -378,56 +372,6 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 #ifdef ADC_AIRSPEED_VOLTAGE_CHANNEL
 	param_get(parameter_handles.diff_pres_analog_scale, &(parameters.diff_pres_analog_scale));
 #endif /* ADC_AIRSPEED_VOLTAGE_CHANNEL */
-
-	/* scaling of ADC ticks to battery voltage */
-	if (param_get(parameter_handles.battery_voltage_scaling, &(parameters.battery_voltage_scaling)) != OK) {
-		PX4_WARN("%s", paramerr);
-
-	} else if (parameters.battery_voltage_scaling < 0.0f) {
-		/* apply scaling according to defaults if set to default */
-		parameters.battery_voltage_scaling = (3.3f / 4096);
-		param_set_no_notification(parameter_handles.battery_voltage_scaling, &parameters.battery_voltage_scaling);
-	}
-
-	/* scaling of ADC ticks to battery current */
-	if (param_get(parameter_handles.battery_current_scaling, &(parameters.battery_current_scaling)) != OK) {
-		PX4_WARN("%s", paramerr);
-
-	} else if (parameters.battery_current_scaling < 0.0f) {
-		/* apply scaling according to defaults if set to default */
-		parameters.battery_current_scaling = (3.3f / 4096);
-		param_set_no_notification(parameter_handles.battery_current_scaling, &parameters.battery_current_scaling);
-	}
-
-	if (param_get(parameter_handles.battery_current_offset, &(parameters.battery_current_offset)) != OK) {
-		PX4_WARN("%s", paramerr);
-
-	}
-
-	if (param_get(parameter_handles.battery_v_div, &(parameters.battery_v_div)) != OK) {
-		PX4_WARN("%s", paramerr);
-		parameters.battery_v_div = 0.0f;
-
-	} else if (parameters.battery_v_div <= 0.0f) {
-		/* apply scaling according to defaults if set to default */
-
-		parameters.battery_v_div = BOARD_BATTERY1_V_DIV;
-		param_set_no_notification(parameter_handles.battery_v_div, &parameters.battery_v_div);
-	}
-
-	if (param_get(parameter_handles.battery_a_per_v, &(parameters.battery_a_per_v)) != OK) {
-		PX4_WARN("%s", paramerr);
-		parameters.battery_a_per_v = 0.0f;
-
-	} else if (parameters.battery_a_per_v <= 0.0f) {
-		/* apply scaling according to defaults if set to default */
-
-		parameters.battery_a_per_v = BOARD_BATTERY1_A_PER_V;
-		param_set_no_notification(parameter_handles.battery_a_per_v, &parameters.battery_a_per_v);
-	}
-
-	param_get(parameter_handles.battery_source,      &(parameters.battery_source));
-	param_get(parameter_handles.battery_adc_channel, &(parameters.battery_adc_channel));
 
 	param_get(parameter_handles.board_rotation, &(parameters.board_rotation));
 

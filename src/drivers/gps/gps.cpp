@@ -97,7 +97,7 @@ public:
 
 	GPS(const char *path, gps_driver_mode_t mode, GPSHelper::Interface interface, bool fake_gps, bool enable_sat_info,
 	    Instance instance, unsigned configured_baudrate);
-	virtual ~GPS();
+	~GPS() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);

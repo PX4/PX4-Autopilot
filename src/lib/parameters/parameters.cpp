@@ -501,7 +501,7 @@ param_value_is_default(param_t param)
 	param_lock_reader();
 	s = param_find_changed(param);
 	param_unlock_reader();
-	return s ? false : true;
+	return s == nullptr;
 }
 
 bool

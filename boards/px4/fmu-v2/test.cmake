@@ -10,6 +10,7 @@ px4_add_board(
 	IO px4_io-v2_default
 	TESTING
 	#UAVCAN_INTERFACES 2
+	CONSTRAINED_FLASH
 
 	SERIAL_PORTS
 		GPS1:/dev/ttyS0
@@ -76,6 +77,7 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		navigator
+		battery_status
 		sensors
 		vmount
 		vtol_att_control

@@ -494,9 +494,23 @@ static bool ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &vehicle_s
 	}
 
 	// Check if preflight check performed by estimator has failed
-	if (status.pre_flt_fail) {
+	if (status.pre_flt_fail_innov_heading ||
+	    status.pre_flt_fail_innov_vel_horiz ||
+	    status.pre_flt_fail_innov_vel_vert ||
+	    status.pre_flt_fail_innov_height) {
 		if (report_fail) {
-			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Position unknown");
+			if (status.pre_flt_fail_innov_heading) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: heading estimate not stable");
+
+			} else if (status.pre_flt_fail_innov_vel_horiz) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: horizontal velocity estimate not stable");
+
+			} else if (status.pre_flt_fail_innov_vel_horiz) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: vertical velocity estimate not stable");
+
+			} else if (status.pre_flt_fail_innov_height) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: height estimate not stable");
+			}
 		}
 
 		success = false;
@@ -854,7 +868,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, veh
 
 	/* ---- BARO ---- */
 	if (checkSensors) {
-		bool prime_found = false;
+		//bool prime_found = false;
 
 		int32_t prime_id = -1;
 		param_get(param_find("CAL_BARO_PRIME"), &prime_id);
@@ -873,7 +887,7 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, veh
 
 			if (baroCheck(mavlink_log_pub, status, i, !required, device_id, report_fail)) {
 				if ((prime_id > 0) && (device_id == prime_id)) {
-					prime_found = true;
+					//prime_found = true;
 				}
 
 			} else {
@@ -886,14 +900,14 @@ bool preflightCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, veh
 
 		// TODO there is no logic in place to calibrate the primary baro yet
 		// // check if the primary device is present
-		if (!prime_found && false) {
-			if (reportFailures && !failed) {
-				mavlink_log_critical(mavlink_log_pub, "Primary barometer not operational");
-			}
+		// if (false) {
+		// 	if (reportFailures && !failed) {
+		// 		mavlink_log_critical(mavlink_log_pub, "Primary barometer not operational");
+		// 	}
 
-			set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE, false, true, false, status);
-			failed = true;
-		}
+		// 	set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE, false, true, false, status);
+		// 	failed = true;
+		// }
 	}
 
 	/* ---- IMU CONSISTENCY ---- */
