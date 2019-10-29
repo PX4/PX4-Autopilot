@@ -265,13 +265,13 @@ void Ekf::controlExternalVisionFusion()
 			}
 		}
 
-		bool ev_fuse_mask[4]{};
-		float ev_obs_var[6]{};
-		float ev_innov_gate[4]{};
+
 
 		// determine if we should use the horizontal position observations
 		if (_control_status.flags.ev_pos) {
-			ev_fuse_mask[HPOS] = true;
+
+			Vector3f ev_pos_obs_var{};
+			Vector2f ev_pos_innov_gates{};
 
 			// correct position and height for offset relative to IMU
 			Vector3f pos_offset_body = _params.ev_pos_body - _params.imu_pos_body;
@@ -301,11 +301,11 @@ void Ekf::controlExternalVisionFusion()
 					ev_delta_pos = _ev_rot_mat * ev_delta_pos;
 
 					// use the change in position since the last measurement
-					_ev_vel_pos_innov[3] = _state.pos(0) - _hpos_pred_prev(0) - ev_delta_pos(0);
-					_ev_vel_pos_innov[4] = _state.pos(1) - _hpos_pred_prev(1) - ev_delta_pos(1);
+					_ev_pos_innov(0) = _state.pos(0) - _hpos_pred_prev(0) - ev_delta_pos(0);
+					_ev_pos_innov(1) = _state.pos(1) - _hpos_pred_prev(1) - ev_delta_pos(1);
 
 					// observation 1-STD error, incremental pos observation is expected to have more uncertainty
-					ev_obs_var[3] = ev_obs_var[4] = fmaxf(_ev_sample_delayed.posErr, 0.5f);
+					ev_pos_obs_var(0) = ev_pos_obs_var(1) = fmaxf(_ev_sample_delayed.posErr, 0.5f);
 				}
 
 				// record observation and estimate for use next time
@@ -319,15 +319,15 @@ void Ekf::controlExternalVisionFusion()
 				if (_params.fusion_mode & MASK_ROTATE_EV) {
 					ev_pos_meas = _ev_rot_mat * ev_pos_meas;
 				}
-				_ev_vel_pos_innov[3] = _state.pos(0) - ev_pos_meas(0);
-				_ev_vel_pos_innov[4] = _state.pos(1) - ev_pos_meas(1);
+				_ev_pos_innov(0) = _state.pos(0) - ev_pos_meas(0);
+				_ev_pos_innov(1) = _state.pos(1) - ev_pos_meas(1);
 				// observation 1-STD error
-				ev_obs_var[3] = ev_obs_var[4] = fmaxf(_ev_sample_delayed.posErr, 0.01f);
+				ev_pos_obs_var(0) = ev_pos_obs_var(1) = fmaxf(_ev_sample_delayed.posErr, 0.01f);
 
 				// check if we have been deadreckoning too long
-				if ((_time_last_imu - _time_last_pos_fuse) > _params.reset_timeout_max) {
+				if ((_time_last_imu - _time_last_hor_pos_fuse) > _params.reset_timeout_max) {
 					// don't reset velocity if we have another source of aiding constraining it
-					if (((_time_last_imu - _time_last_of_fuse) > (uint64_t)1E6) && ((_time_last_imu - _time_last_vel_fuse) > (uint64_t)1E6)) {
+					if (((_time_last_imu - _time_last_of_fuse) > (uint64_t)1E6) && ((_time_last_imu - _time_last_hor_vel_fuse) > (uint64_t)1E6)) {
 						resetVelocity();
 					}
 
@@ -336,12 +336,16 @@ void Ekf::controlExternalVisionFusion()
 			}
 
 			// innovation gate size
-			ev_innov_gate[HPOS] = fmaxf(_params.ev_pos_innov_gate, 1.0f);
+			ev_pos_innov_gates(0) = fmaxf(_params.ev_pos_innov_gate, 1.0f);
+
+			fuseHorizontalPosition(_ev_pos_innov, ev_pos_innov_gates, ev_pos_obs_var, _ev_pos_innov_var, _ev_pos_test_ratio);
 		}
 
 		// determine if we should use the velocity observations
 		if (_control_status.flags.ev_vel) {
-			ev_fuse_mask[HVEL] = ev_fuse_mask[VVEL] = true;
+
+			Vector3f ev_vel_obs_var{};
+			Vector2f ev_vel_innov_gates{};
 
 			Vector3f vel_aligned{_ev_sample_delayed.vel};
 
@@ -357,34 +361,31 @@ void Ekf::controlExternalVisionFusion()
 			Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
 			vel_aligned -= vel_offset_earth;
 
-			_ev_vel_pos_innov[0] = _state.vel(0) - vel_aligned(0);
-			_ev_vel_pos_innov[1] = _state.vel(1) - vel_aligned(1);
-			_ev_vel_pos_innov[2] = _state.vel(2) - vel_aligned(2);
+			_ev_vel_innov(0) = _state.vel(0) - vel_aligned(0);
+			_ev_vel_innov(1) = _state.vel(1) - vel_aligned(1);
+			_ev_vel_innov(2) = _state.vel(2) - vel_aligned(2);
 
 			// check if we have been deadreckoning too long
-			if ((_time_last_imu - _time_last_vel_fuse) > _params.reset_timeout_max) {
+			if ((_time_last_imu - _time_last_hor_vel_fuse) > _params.reset_timeout_max) {
 				// don't reset velocity if we have another source of aiding constraining it
-				if (((_time_last_imu - _time_last_of_fuse) > (uint64_t)1E6) && ((_time_last_imu - _time_last_pos_fuse) > (uint64_t)1E6)) {
+				if (((_time_last_imu - _time_last_of_fuse) > (uint64_t)1E6) && ((_time_last_imu - _time_last_hor_pos_fuse) > (uint64_t)1E6)) {
 					resetVelocity();
 				}
 			}
 
 			// observation 1-STD error
-			ev_obs_var[0] = ev_obs_var[1] = ev_obs_var[2] = fmaxf(_ev_sample_delayed.velErr, 0.01f);
+			ev_vel_obs_var(0) = ev_vel_obs_var(1) = ev_vel_obs_var(2) = fmaxf(_ev_sample_delayed.velErr, 0.01f);
 
 			// innovation gate size
-			ev_innov_gate[HVEL] = ev_innov_gate[VVEL] = fmaxf(_params.ev_vel_innov_gate, 1.0f);
-		}
+			ev_vel_innov_gates(0) = ev_vel_innov_gates(1) = fmaxf(_params.ev_vel_innov_gate, 1.0f);
 
-		// Fuse available NED position data into the main filter
-		if (ev_fuse_mask[HVEL] || ev_fuse_mask[VVEL] || ev_fuse_mask[HPOS]) {
-			fuseVelPosHeightSeq(_ev_vel_pos_innov, ev_innov_gate, ev_obs_var , ev_fuse_mask, _ev_vel_pos_innov_var, _ev_vel_pos_test_ratio);
+			fuseHorizontalVelocity(_ev_vel_innov, ev_vel_innov_gates,ev_vel_obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
+			fuseVerticalVelocity(_ev_vel_innov, ev_vel_innov_gates, ev_vel_obs_var, _ev_vel_innov_var, _ev_vel_test_ratio);
 		}
 
 		// determine if we should use the yaw observation
 		if (_control_status.flags.ev_yaw) {
 			fuseHeading();
-
 		}
 
 	} else if ((_control_status.flags.ev_pos || _control_status.flags.ev_vel)
@@ -652,13 +653,13 @@ void Ekf::controlGpsFusion()
 		if (_control_status.flags.gps) {
 			// We are relying on aiding to constrain drift so after a specified time
 			// with no aiding we need to do something
-			bool do_reset = ((_time_last_imu - _time_last_pos_fuse) > _params.reset_timeout_max)
+			bool do_reset = ((_time_last_imu - _time_last_hor_pos_fuse) > _params.reset_timeout_max)
 					&& ((_time_last_imu - _time_last_delpos_fuse) > _params.reset_timeout_max)
-					&& ((_time_last_imu - _time_last_vel_fuse) > _params.reset_timeout_max)
+					&& ((_time_last_imu - _time_last_hor_vel_fuse) > _params.reset_timeout_max)
 					&& ((_time_last_imu - _time_last_of_fuse) > _params.reset_timeout_max);
 
 			// We haven't had an absolute position fix for a longer time so need to do something
-			do_reset = do_reset || ((_time_last_imu - _time_last_pos_fuse) > (2 * _params.reset_timeout_max));
+			do_reset = do_reset || ((_time_last_imu - _time_last_hor_pos_fuse) > (2 * _params.reset_timeout_max));
 
 			if (do_reset) {
 				// use GPS velocity data to check and correct yaw angle if a FW vehicle
@@ -673,8 +674,8 @@ void Ekf::controlGpsFusion()
 				ECL_WARN_TIMESTAMPED("EKF GPS fusion timeout - reset to GPS");
 
 				// Reset the timeout counters
-				_time_last_pos_fuse = _time_last_imu;
-				_time_last_vel_fuse = _time_last_imu;
+				_time_last_hor_pos_fuse = _time_last_imu;
+				_time_last_hor_vel_fuse = _time_last_imu;
 
 			}
 		}
@@ -682,13 +683,11 @@ void Ekf::controlGpsFusion()
 		// Only use GPS data for position and velocity aiding if enabled
 		if (_control_status.flags.gps) {
 
-			bool gps_fuse_mask[4]{};
-			float gps_obs_var[6]{};
-			float gps_innov_gate[4]{};
 
-			// Enable full velocity and horizontal position fusion
-			gps_fuse_mask[HVEL] = gps_fuse_mask[VVEL] = true;
-			gps_fuse_mask[HPOS] = true;
+			Vector2f gps_vel_innov_gates{}; // [horizontal vertical]
+			Vector2f gps_pos_innov_gates{}; // [horizontal vertical]
+			Vector3f gps_vel_obs_var{};
+			Vector3f gps_pos_obs_var{};
 
 			// correct velocity for offset relative to IMU
 			Vector3f ang_rate = _imu_sample_delayed.delta_ang * (1.0f / _imu_sample_delayed.delta_ang_dt);
@@ -709,32 +708,32 @@ void Ekf::controlGpsFusion()
 			if (_control_status.flags.opt_flow || _control_status.flags.ev_pos || _control_status.flags.ev_vel) {
 				// if we are using other sources of aiding, then relax the upper observation
 				// noise limit which prevents bad GPS perturbing the position estimate
-				gps_obs_var[3] = gps_obs_var[4] = fmaxf(_gps_sample_delayed.hacc, lower_limit);
+				gps_pos_obs_var(0) = gps_pos_obs_var(1) = fmaxf(_gps_sample_delayed.hacc, lower_limit);
 
 			} else {
 				// if we are not using another source of aiding, then we are reliant on the GPS
 				// observations to constrain attitude errors and must limit the observation noise value.
 				float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
-				gps_obs_var[3] = gps_obs_var[4] = math::constrain(_gps_sample_delayed.hacc, lower_limit, upper_limit);
+				gps_pos_obs_var(0) = gps_pos_obs_var(1) = math::constrain(_gps_sample_delayed.hacc, lower_limit, upper_limit);
 			}
 
-			gps_obs_var[0] = gps_obs_var[1] = gps_obs_var[2] = sq(fmaxf(_gps_sample_delayed.sacc, _params.gps_vel_noise));
+			gps_vel_obs_var(0) = gps_vel_obs_var(1) = gps_vel_obs_var(2) = sq(fmaxf(_gps_sample_delayed.sacc, _params.gps_vel_noise));
 
 			// calculate innovations
-			_gps_vel_pos_innov[0] = _state.vel(0) - _gps_sample_delayed.vel(0);
-			_gps_vel_pos_innov[1] = _state.vel(1) - _gps_sample_delayed.vel(1);
-			_gps_vel_pos_innov[2] = _state.vel(2) - _gps_sample_delayed.vel(2);
-			_gps_vel_pos_innov[3] = _state.pos(0) - _gps_sample_delayed.pos(0);
-			_gps_vel_pos_innov[4] = _state.pos(1) - _gps_sample_delayed.pos(1);
+			_gps_vel_innov(0) = _state.vel(0) - _gps_sample_delayed.vel(0);
+			_gps_vel_innov(1) = _state.vel(1) - _gps_sample_delayed.vel(1);
+			_gps_vel_innov(2) = _state.vel(2) - _gps_sample_delayed.vel(2);
+			_gps_pos_innov(0) = _state.pos(0) - _gps_sample_delayed.pos(0);
+			_gps_pos_innov(1) = _state.pos(1) - _gps_sample_delayed.pos(1);
 
 			// set innovation gate size
-			gps_innov_gate[HPOS] = fmaxf(_params.gps_pos_innov_gate, 1.0f);
-			gps_innov_gate[HVEL] = gps_innov_gate[VVEL] = fmaxf(_params.gps_vel_innov_gate, 1.0f);
+			gps_pos_innov_gates(0) = fmaxf(_params.gps_pos_innov_gate, 1.0f);
+			gps_pos_innov_gates(1) = fmaxf(_params.gps_vel_innov_gate, 1.0f);
 
 			// fuse GPS measurement
-			fuseVelPosHeightSeq(_gps_vel_pos_innov,gps_innov_gate,
-					gps_obs_var,gps_fuse_mask,
-					_gps_vel_pos_innov_var,_gps_vel_pos_test_ratio);
+			fuseHorizontalVelocity(_gps_vel_innov, gps_vel_innov_gates,gps_vel_obs_var, _gps_vel_innov_var, _gps_vel_test_ratio);
+			fuseVerticalVelocity(_gps_vel_innov, gps_vel_innov_gates, gps_vel_obs_var, _gps_vel_innov_var, _gps_vel_test_ratio);
+			fuseHorizontalPosition(_gps_pos_innov, gps_pos_innov_gates, gps_pos_obs_var, _gps_pos_innov_var, _gps_pos_test_ratio);
 		}
 
 	} else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)10e6)) {
@@ -761,8 +760,8 @@ void Ekf::controlHeightSensorTimeouts()
 	// Clipping causes the average accel reading to move towards zero which makes the INS think it is falling and produces positive vertical innovations
 	float var_product_lim = sq(_params.vert_innov_test_lim) * sq(_params.vert_innov_test_lim);
 	bool bad_vert_accel = (_control_status.flags.baro_hgt && // we can only run this check if vertical position and velocity observations are independent
-			(sq(_vel_pos_innov[5] * _vel_pos_innov[2]) > var_product_lim * (_vel_pos_innov_var[5] * _vel_pos_innov_var[2])) && // vertical position and velocity sensors are in agreement that we have a significant error
-			(_vel_pos_innov[2] > 0.0f) && // positive innovation indicates that the inertial nav thinks it is falling
+			(sq(_gps_pos_innov(2) * fmaxf(fabsf(_gps_vel_innov(2)),fabsf(_ev_vel_innov(2)))) > var_product_lim * (_gps_pos_innov_var(2) * fmaxf(fabsf(_gps_vel_innov_var(2)),fabsf(_ev_vel_innov_var(2))))) && // vertical position and velocity sensors are in agreement that we have a significant error
+			(_gps_vel_innov(2) > 0.0f || _ev_vel_innov(2) > 0.0f) && // positive innovation indicates that the inertial nav thinks it is falling
 			((_imu_sample_delayed.time_us - _baro_sample_delayed.time_us) < 2 * BARO_MAX_INTERVAL) && // vertical position data is fresh
 			((_imu_sample_delayed.time_us - _gps_sample_delayed.time_us) < 2 * GPS_MAX_INTERVAL)); // vertical velocity data is fresh
 
@@ -984,12 +983,6 @@ void Ekf::controlHeightSensorTimeouts()
 
 void Ekf::controlHeightFusion()
 {
-	bool height_fuse_mask[4]{};
-	float height_innov_gate[4]{};
-	float height_test_ratio[4]{};
-	float height_obs_var[6]{};
-	float height_innov_var[6]{};
-	float height_innov[6]{};
 
 	checkRangeAidSuitability();
 	_range_aid_mode_selected = (_params.range_aid == 1) && isRangeAidSuitable();
@@ -998,7 +991,7 @@ void Ekf::controlHeightFusion()
 
 		if (_range_aid_mode_selected && _range_data_ready && _rng_hgt_valid) {
 			setControlRangeHeight();
-			height_fuse_mask[VPOS] = true;
+			_fuse_height = true;
 
 			// we have just switched to using range finder, calculate height sensor offset such that current
 			// measurement matches our current height estimate
@@ -1013,7 +1006,7 @@ void Ekf::controlHeightFusion()
 
 		} else if (!_range_aid_mode_selected && _baro_data_ready && !_baro_hgt_faulty) {
 			setControlBaroHeight();
-			height_fuse_mask[VPOS] = true;
+			_fuse_height = true;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
@@ -1031,7 +1024,7 @@ void Ekf::controlHeightFusion()
 
 		} else if (_control_status.flags.gps_hgt && _gps_data_ready && !_gps_hgt_intermittent) {
 			// switch to gps if there was a reset to gps
-			height_fuse_mask[VPOS] = true;
+			_fuse_height = true;
 
 			// we have just switched to using gps height, calculate height sensor offset such that current
 			// measurement matches our current height estimate
@@ -1044,7 +1037,7 @@ void Ekf::controlHeightFusion()
 	// set the height data source to range if requested
 	if ((_params.vdist_sensor_type == VDIST_SENSOR_RANGE) && _rng_hgt_valid) {
 		setControlRangeHeight();
-		height_fuse_mask[VPOS] = _range_data_ready;
+		_fuse_height = _range_data_ready;
 
 		// we have just switched to using range finder, calculate height sensor offset such that current
 		// measurement matches our current height estimate
@@ -1066,7 +1059,7 @@ void Ekf::controlHeightFusion()
 
 	} else if ((_params.vdist_sensor_type == VDIST_SENSOR_RANGE) && _baro_data_ready && !_baro_hgt_faulty) {
 		setControlBaroHeight();
-		height_fuse_mask[VPOS] = true;
+		_fuse_height = true;
 
 		// we have just switched to using baro height, we don't need to set a height sensor offset
 		// since we track a separate _baro_hgt_offset
@@ -1080,7 +1073,7 @@ void Ekf::controlHeightFusion()
 
 		if (_range_aid_mode_selected && _range_data_ready && _rng_hgt_valid) {
 			setControlRangeHeight();
-			height_fuse_mask[VPOS] = true;
+			_fuse_height = true;
 
 			// we have just switched to using range finder, calculate height sensor offset such that current
 			// measurement matches our current height estimate
@@ -1095,7 +1088,7 @@ void Ekf::controlHeightFusion()
 
 		} else if (!_range_aid_mode_selected && _gps_data_ready && !_gps_hgt_intermittent && _gps_checks_passed) {
 			setControlGPSHeight();
-			height_fuse_mask[VPOS] = true;
+			_fuse_height = true;
 
 			// we have just switched to using gps height, calculate height sensor offset such that current
 			// measurement matches our current height estimate
@@ -1105,7 +1098,7 @@ void Ekf::controlHeightFusion()
 
 		} else if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
 			// switch to baro if there was a reset to baro
-			height_fuse_mask[VPOS] = true;
+			_fuse_height = true;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
@@ -1120,14 +1113,14 @@ void Ekf::controlHeightFusion()
 
 		// don't start using EV data unless data is arriving frequently
 		if (!_control_status.flags.ev_hgt && ((_time_last_imu - _time_last_ext_vision) < (2 * EV_MAX_INTERVAL))) {
-			height_fuse_mask[VPOS] = true;
+			_fuse_height = true;
 			setControlEVHeight();
 			resetHeight();
 		}
 
 		if (_control_status.flags.baro_hgt && _baro_data_ready && !_baro_hgt_faulty) {
 			// switch to baro if there was a reset to baro
-			height_fuse_mask[VPOS] = true;
+			_fuse_height = true;
 
 			// we have just switched to using baro height, we don't need to set a height sensor offset
 			// since we track a separate _baro_hgt_offset
@@ -1138,7 +1131,7 @@ void Ekf::controlHeightFusion()
 		// TODO: Add EV normal case here
 		// determine if we should use the vertical position observation
 		if (_control_status.flags.ev_hgt) {
-			height_fuse_mask[VPOS] = true;
+			_fuse_height = true;
 		}
 	}
 
@@ -1164,18 +1157,25 @@ void Ekf::controlHeightFusion()
 
 		}
 
-		height_fuse_mask[VPOS] = true;
+		_fuse_height = true;
 	}
 
-	if (height_fuse_mask[VPOS]) {
+	if (_fuse_height) {
+
+		Vector2f height_innov_gate{};
+		Vector2f height_test_ratio{};
+		Vector3f height_obs_var{};
+		Vector3f height_innov_var{};
+		Vector3f height_innov{};
+
 		if (_control_status.flags.baro_hgt) {
 			// vertical position innovation - baro measurement has opposite sign to earth z axis
-			height_innov[5] = _state.pos(2) + _baro_sample_delayed.hgt - _baro_hgt_offset - _hgt_sensor_offset;
+			height_innov(2) = _state.pos(2) + _baro_sample_delayed.hgt - _baro_hgt_offset - _hgt_sensor_offset;
 			// observation variance - user parameter defined
-			height_obs_var[5] = sq(fmaxf(_params.baro_noise, 0.01f));
+			height_obs_var(2) = sq(fmaxf(_params.baro_noise, 0.01f));
 
 			// innovation gate size
-			height_innov_gate[VPOS] = fmaxf(_params.baro_innov_gate, 1.0f);
+			height_innov_gate(1) = fmaxf(_params.baro_innov_gate, 1.0f);
 
 			// Compensate for positive static pressure transients (negative vertical position innovations)
 			// caused by rotor wash ground interaction by applying a temporary deadzone to baro innovations.
@@ -1183,53 +1183,52 @@ void Ekf::controlHeightFusion()
 			float deadzone_end = deadzone_start + _params.gnd_effect_deadzone;
 
 			if (_control_status.flags.gnd_effect) {
-				if (height_innov[5] < -deadzone_start) {
-					if (height_innov[5] <= -deadzone_end) {
-						height_innov[5] += deadzone_end;
+				if (height_innov(2) < -deadzone_start) {
+					if (height_innov(2) <= -deadzone_end) {
+						height_innov(2) += deadzone_end;
 
 					} else {
-						height_innov[5] = -deadzone_start;
+						height_innov(2) = -deadzone_start;
 					}
 				}
 			}
 
 		} else if (_control_status.flags.gps_hgt) {
 			// vertical position innovation - gps measurement has opposite sign to earth z axis
-			height_innov[5] = _state.pos(2) + _gps_sample_delayed.hgt - _gps_alt_ref - _hgt_sensor_offset;
+			height_innov(2) = _state.pos(2) + _gps_sample_delayed.hgt - _gps_alt_ref - _hgt_sensor_offset;
 			// observation variance - receiver defined and parameter limited
 			// use scaled horizontal position accuracy assuming typical ratio of VDOP/HDOP
 			float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
 			float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
-			height_obs_var[5] = sq(1.5f * math::constrain(_gps_sample_delayed.vacc, lower_limit, upper_limit));
+			height_obs_var(2) = sq(1.5f * math::constrain(_gps_sample_delayed.vacc, lower_limit, upper_limit));
 			// innovation gate size
-			height_innov_gate[VPOS] = fmaxf(_params.baro_innov_gate, 1.0f);
+			height_innov_gate(1) = fmaxf(_params.baro_innov_gate, 1.0f);
 
 		} else if (_control_status.flags.rng_hgt && (_R_rng_to_earth_2_2 > _params.range_cos_max_tilt)) {
 			// use range finder with tilt correction
-			height_innov[5] = _state.pos(2) - (-math::max(_range_sample_delayed.rng * _R_rng_to_earth_2_2,
+			height_innov(2) = _state.pos(2) - (-math::max(_range_sample_delayed.rng * _R_rng_to_earth_2_2,
 							 _params.rng_gnd_clearance)) - _hgt_sensor_offset;
 			// observation variance - user parameter defined
-			height_obs_var[5] = fmaxf((sq(_params.range_noise) + sq(_params.range_noise_scaler * _range_sample_delayed.rng)) * sq(_R_rng_to_earth_2_2), 0.01f);
+			height_obs_var(2) = fmaxf((sq(_params.range_noise) + sq(_params.range_noise_scaler * _range_sample_delayed.rng)) * sq(_R_rng_to_earth_2_2), 0.01f);
 			// innovation gate size
-			height_innov_gate[VPOS] = fmaxf(_params.range_innov_gate, 1.0f);
+			height_innov_gate(1) = fmaxf(_params.range_innov_gate, 1.0f);
 
 		} else if (_control_status.flags.ev_hgt) {
 			// calculate the innovation assuming the external vision observation is in local NED frame
-			height_innov[5] = _state.pos(2) - _ev_sample_delayed.pos(2);
+			height_innov(2) = _state.pos(2) - _ev_sample_delayed.pos(2);
 			// observation variance - defined externally
-			height_obs_var[5] = sq(fmaxf(_ev_sample_delayed.hgtErr, 0.01f));
+			height_obs_var(2) = sq(fmaxf(_ev_sample_delayed.hgtErr, 0.01f));
 			// innovation gate size
-			height_innov_gate[VPOS] = fmaxf(_params.ev_pos_innov_gate, 1.0f);
+			height_innov_gate(1) = fmaxf(_params.ev_pos_innov_gate, 1.0f);
 		}
 		// fuse height inforamtion
-		fuseVelPosHeightSeq(height_innov,height_innov_gate,
-				height_obs_var,height_fuse_mask,
-				height_innov_var,height_test_ratio);
+		fuseVerticalPosition(height_innov,height_innov_gate,
+				height_obs_var, height_innov_var,height_test_ratio);
 
 		// This is a temporary hack until we do proper height sensor fusion
-		_gps_vel_pos_innov[5] = height_innov[5];
-		_gps_vel_pos_innov_var[5] = height_innov_var[5];
-		_gps_vel_pos_test_ratio[VPOS] = height_test_ratio[VPOS];
+		_gps_pos_innov(2) = height_innov(2);
+		_gps_pos_innov_var(2) = height_innov_var(2);
+		_gps_pos_test_ratio(1) = height_test_ratio(1);
 	}
 
 }
@@ -1371,9 +1370,6 @@ void Ekf::controlFakePosFusion()
 {
 	// if we aren't doing any aiding, fake position measurements at the last known position to constrain drift
 	// Coincide fake measurements with baro data for efficiency with a minimum fusion rate of 5Hz
-	bool fake_gps_fuse_mask[4]{};
-	float fake_gps_obs_var[6]{};
-	float fake_gps_innov_gate[4]{};
 
 	if (!_control_status.flags.gps &&
 	    !_control_status.flags.opt_flow &&
@@ -1386,6 +1382,11 @@ void Ekf::controlFakePosFusion()
 
 		// Fuse synthetic position observations every 200msec
 		if (((_time_last_imu - _time_last_fake_pos) > (uint64_t)2e5) || _fuse_height) {
+
+			Vector3f fake_gps_pos_obs_var{};
+			Vector2f fake_gps_pos_innov_gate{};
+
+
 			// Reset position and velocity states if we re-commence this aiding method
 			if ((_time_last_imu - _time_last_fake_pos) > (uint64_t)4e5) {
 				resetPosition();
@@ -1397,27 +1398,23 @@ void Ekf::controlFakePosFusion()
 				}
 
 			}
-			// Fuse horizontal position
-			fake_gps_fuse_mask[HPOS] = true;
-
 			_time_last_fake_pos = _time_last_imu;
 
 			if (_control_status.flags.in_air && _control_status.flags.tilt_align) {
-				fake_gps_obs_var[3] = fake_gps_obs_var[4] = fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise);
+				fake_gps_pos_obs_var(0) = fake_gps_pos_obs_var(1) = fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise);
 
 			} else {
-				fake_gps_obs_var[3] = fake_gps_obs_var[4] = 0.5f;
+				fake_gps_pos_obs_var(0) = fake_gps_pos_obs_var(1) = 0.5f;
 			}
 
-			_gps_vel_pos_innov[3] = _state.pos(0) - _last_known_posNE(0);
-			_gps_vel_pos_innov[4] = _state.pos(1) - _last_known_posNE(1);
+			_gps_pos_innov(0) = _state.pos(0) - _last_known_posNE(0);
+			_gps_pos_innov(1) = _state.pos(1) - _last_known_posNE(1);
 
 			// glitch protection is not required so set gate to a large value
-			fake_gps_innov_gate[HPOS] = 100.0f;
+			fake_gps_pos_innov_gate(0) = 100.0f;
 
-			fuseVelPosHeightSeq(_gps_vel_pos_innov,fake_gps_innov_gate,
-					fake_gps_obs_var,fake_gps_fuse_mask,
-					_gps_vel_pos_innov_var,_gps_vel_pos_test_ratio);
+			fuseHorizontalPosition(_gps_pos_innov, fake_gps_pos_innov_gate, fake_gps_pos_obs_var,
+						_gps_pos_innov_var, _gps_pos_test_ratio);
 		}
 
 	} else {
@@ -1433,31 +1430,17 @@ void Ekf::controlAuxVelFusion()
 
 	if (data_ready && primary_aiding) {
 
-		bool auxvel_fuse_mask[4]{};
-		float auxvel_innov[6]{};
-		float auxvel_innov_gate[4]{};
-		float auxvel_obs_var[4]{};
-		float auxvel_innov_var[6]{};
-		float auxvel_test_ratio[4]{};
+		Vector2f aux_vel_innov_gate{};
+		Vector3f aux_vel_obs_var{};
 
-		auxvel_fuse_mask[HVEL] = true;
-		auxvel_innov[0] = _state.vel(0) - _auxvel_sample_delayed.velNE(0);
-		auxvel_innov[1] = _state.vel(1) - _auxvel_sample_delayed.velNE(1);
-		auxvel_innov_gate[HVEL] = _params.auxvel_gate;
-		auxvel_obs_var[0] = _auxvel_sample_delayed.velVarNE(0);
-		auxvel_obs_var[1] = _auxvel_sample_delayed.velVarNE(1);
+		_aux_vel_innov(0) = _state.vel(0) - _auxvel_sample_delayed.velNE(0);
+		_aux_vel_innov(1) = _state.vel(1) - _auxvel_sample_delayed.velNE(1);
+		aux_vel_innov_gate(0) = _params.auxvel_gate;
+		aux_vel_obs_var(0) = _auxvel_sample_delayed.velVarNE(0);
+		aux_vel_obs_var(1) = _auxvel_sample_delayed.velVarNE(1);
 
-		fuseVelPosHeightSeq(auxvel_innov,auxvel_innov_gate,
-				auxvel_obs_var,auxvel_fuse_mask,
-				auxvel_innov_var,auxvel_test_ratio);
-
-		_aux_vel_innov[0] = auxvel_innov[0];
-		_aux_vel_innov[1] = auxvel_innov[1];
-
-		_aux_vel_innov_var[0] = auxvel_innov_var[0];
-		_aux_vel_innov_var[1] = auxvel_innov_var[1];
-
-		_aux_vel_test_ratio = auxvel_test_ratio[HVEL];
+		fuseHorizontalVelocity(_aux_vel_innov, aux_vel_innov_gate, aux_vel_obs_var,
+				_aux_vel_innov_var, _aux_vel_test_ratio);
 
 	}
 }
