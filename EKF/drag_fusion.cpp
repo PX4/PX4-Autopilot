@@ -90,7 +90,7 @@ void Ekf::fuseDrag()
 		// calculate observation jacobiam and Kalman gain vectors
 		if (axis_index == 0) {
 			// Estimate the airspeed from the measured drag force and ballistic coefficient
-			float mea_acc = _drag_sample_delayed.accelXY(axis_index)  - _state.accel_bias(axis_index) / _dt_ekf_avg;
+			float mea_acc = _drag_sample_delayed.accelXY(axis_index)  - _state.delta_vel_bias(axis_index) / _dt_ekf_avg;
 			float airSpd = sqrtf((2.0f * fabsf(mea_acc)) / (BC_inv_x * rho));
 
 			// Estimate the derivative of specific force wrt airspeed along the X axis
@@ -163,7 +163,7 @@ void Ekf::fuseDrag()
 
 		} else if (axis_index == 1) {
 			// Estimate the airspeed from the measured drag force and ballistic coefficient
-			float mea_acc = _drag_sample_delayed.accelXY(axis_index)  - _state.accel_bias(axis_index) / _dt_ekf_avg;
+			float mea_acc = _drag_sample_delayed.accelXY(axis_index)  - _state.delta_vel_bias(axis_index) / _dt_ekf_avg;
 			float airSpd = sqrtf((2.0f * fabsf(mea_acc)) / (BC_inv_y * rho));
 
 			// Estimate the derivative of specific force wrt airspeed along the X axis

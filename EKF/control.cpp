@@ -424,7 +424,7 @@ void Ekf::controlOpticalFlowFusion()
 	}
 
 	// Accumulate autopilot gyro data across the same time interval as the flow sensor
-	_imu_del_ang_of += _imu_sample_delayed.delta_ang - _state.gyro_bias;
+	_imu_del_ang_of += _imu_sample_delayed.delta_ang - _state.delta_ang_bias;
 	_delta_time_of += _imu_sample_delayed.delta_ang_dt;
 
 	// New optical flow data is available and is ready to be fused when the midpoint of the sample falls behind the fusion time horizon
@@ -1383,8 +1383,8 @@ void Ekf::controlFakePosFusion()
 		// Fuse synthetic position observations every 200msec
 		if (((_time_last_imu - _time_last_fake_pos) > (uint64_t)2e5) || _fuse_height) {
 
-			Vector3f fake_gps_pos_obs_var{};
-			Vector2f fake_gps_pos_innov_gate{};
+			Vector3f fake_pos_obs_var{};
+			Vector2f fake_pos_innov_gate{};
 
 
 			// Reset position and velocity states if we re-commence this aiding method
@@ -1401,19 +1401,19 @@ void Ekf::controlFakePosFusion()
 			_time_last_fake_pos = _time_last_imu;
 
 			if (_control_status.flags.in_air && _control_status.flags.tilt_align) {
-				fake_gps_pos_obs_var(0) = fake_gps_pos_obs_var(1) = fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise);
+				fake_pos_obs_var(0) = fake_pos_obs_var(1) = fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise);
 
 			} else {
-				fake_gps_pos_obs_var(0) = fake_gps_pos_obs_var(1) = 0.5f;
+				fake_pos_obs_var(0) = fake_pos_obs_var(1) = 0.5f;
 			}
 
 			_gps_pos_innov(0) = _state.pos(0) - _last_known_posNE(0);
 			_gps_pos_innov(1) = _state.pos(1) - _last_known_posNE(1);
 
 			// glitch protection is not required so set gate to a large value
-			fake_gps_pos_innov_gate(0) = 100.0f;
+			fake_pos_innov_gate(0) = 100.0f;
 
-			fuseHorizontalPosition(_gps_pos_innov, fake_gps_pos_innov_gate, fake_gps_pos_obs_var,
+			fuseHorizontalPosition(_gps_pos_innov, fake_pos_innov_gate, fake_pos_obs_var,
 						_gps_pos_innov_var, _gps_pos_test_ratio);
 		}
 

@@ -805,11 +805,11 @@ void Ekf::constrainStates()
 	}
 
 	for (int i = 0; i < 3; i++) {
-		_state.gyro_bias(i) = math::constrain(_state.gyro_bias(i), -math::radians(20.f) * _dt_ekf_avg, math::radians(20.f) * _dt_ekf_avg);
+		_state.delta_ang_bias(i) = math::constrain(_state.delta_ang_bias(i), -math::radians(20.f) * _dt_ekf_avg, math::radians(20.f) * _dt_ekf_avg);
 	}
 
 	for (int i = 0; i < 3; i++) {
-		_state.accel_bias(i) = math::constrain(_state.accel_bias(i), -_params.acc_bias_lim * _dt_ekf_avg, _params.acc_bias_lim * _dt_ekf_avg);
+		_state.delta_vel_bias(i) = math::constrain(_state.delta_vel_bias(i), -_params.acc_bias_lim * _dt_ekf_avg, _params.acc_bias_lim * _dt_ekf_avg);
 	}
 
 	for (int i = 0; i < 3; i++) {
@@ -953,7 +953,7 @@ void Ekf::getMagInnovRatio(float &mag_innov_ratio)
 
 void Ekf::getDragInnov(float drag_innov[2])
 {
-	memcpy(&drag_innov, _drag_innov, sizeof(_drag_innov));
+	memcpy(drag_innov, _drag_innov, sizeof(_drag_innov));
 }
 
 void Ekf::getDragInnovVar(float drag_innov_var[2])
@@ -1033,11 +1033,11 @@ void Ekf::get_state_delayed(float *state)
 	}
 
 	for (int i = 0; i < 3; i++) {
-		state[i + 10] = _state.gyro_bias(i);
+		state[i + 10] = _state.delta_ang_bias(i);
 	}
 
 	for (int i = 0; i < 3; i++) {
-		state[i + 13] = _state.accel_bias(i);
+		state[i + 13] = _state.delta_vel_bias(i);
 	}
 
 	for (int i = 0; i < 3; i++) {
@@ -1057,9 +1057,9 @@ void Ekf::get_state_delayed(float *state)
 void Ekf::get_accel_bias(float bias[3])
 {
 	float temp[3];
-	temp[0] = _state.accel_bias(0) / _dt_ekf_avg;
-	temp[1] = _state.accel_bias(1) / _dt_ekf_avg;
-	temp[2] = _state.accel_bias(2) / _dt_ekf_avg;
+	temp[0] = _state.delta_vel_bias(0) / _dt_ekf_avg;
+	temp[1] = _state.delta_vel_bias(1) / _dt_ekf_avg;
+	temp[2] = _state.delta_vel_bias(2) / _dt_ekf_avg;
 	memcpy(bias, temp, 3 * sizeof(float));
 }
 
@@ -1067,9 +1067,9 @@ void Ekf::get_accel_bias(float bias[3])
 void Ekf::get_gyro_bias(float bias[3])
 {
 	float temp[3];
-	temp[0] = _state.gyro_bias(0) / _dt_ekf_avg;
-	temp[1] = _state.gyro_bias(1) / _dt_ekf_avg;
-	temp[2] = _state.gyro_bias(2) / _dt_ekf_avg;
+	temp[0] = _state.delta_ang_bias(0) / _dt_ekf_avg;
+	temp[1] = _state.delta_ang_bias(1) / _dt_ekf_avg;
+	temp[2] = _state.delta_ang_bias(2) / _dt_ekf_avg;
 	memcpy(bias, temp, 3 * sizeof(float));
 }
 
@@ -1250,8 +1250,8 @@ bool Ekf::reset_imu_bias()
 	}
 
 	// Zero the delta angle and delta velocity bias states
-	_state.gyro_bias.zero();
-	_state.accel_bias.zero();
+	_state.delta_ang_bias.zero();
+	_state.delta_vel_bias.zero();
 
 	// Zero the corresponding covariances
 	zeroCols(P, 10, 15);
@@ -1342,11 +1342,11 @@ void Ekf::fuse(float *K, float innovation)
 	}
 
 	for (unsigned i = 0; i < 3; i++) {
-		_state.gyro_bias(i) = _state.gyro_bias(i) - K[i + 10] * innovation;
+		_state.delta_ang_bias(i) = _state.delta_ang_bias(i) - K[i + 10] * innovation;
 	}
 
 	for (unsigned i = 0; i < 3; i++) {
-		_state.accel_bias(i) = _state.accel_bias(i) - K[i + 13] * innovation;
+		_state.delta_vel_bias(i) = _state.delta_vel_bias(i) - K[i + 13] * innovation;
 	}
 
 	for (unsigned i = 0; i < 3; i++) {

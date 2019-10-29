@@ -148,13 +148,13 @@ void Ekf::predictCovariance()
 	float dvy = _imu_sample_delayed.delta_vel(1);
 	float dvz = _imu_sample_delayed.delta_vel(2);
 
-	float dax_b = _state.gyro_bias(0);
-	float day_b = _state.gyro_bias(1);
-	float daz_b = _state.gyro_bias(2);
+	float dax_b = _state.delta_ang_bias(0);
+	float day_b = _state.delta_ang_bias(1);
+	float daz_b = _state.delta_ang_bias(2);
 
-	float dvx_b = _state.accel_bias(0);
-	float dvy_b = _state.accel_bias(1);
-	float dvz_b = _state.accel_bias(2);
+	float dvx_b = _state.delta_vel_bias(0);
+	float dvy_b = _state.delta_vel_bias(1);
+	float dvz_b = _state.delta_vel_bias(2);
 
 	float dt = math::constrain(_imu_sample_delayed.delta_ang_dt, 0.5f * FILTER_UPDATE_PERIOD_S, 2.0f * FILTER_UPDATE_PERIOD_S);
 	float dt_inv = 1.0f / dt;
@@ -337,7 +337,7 @@ void Ekf::predictCovariance()
 	SPP[10] = SF[16];
 
 	// covariance update
-	float nextP[24][24];
+	float nextP[24][24] = {};
 
 	// calculate variances and upper diagonal covariances for quaternion, velocity, position and gyro bias states
 	nextP[0][0] = P[0][0] + P[1][0]*SF[9] + P[2][0]*SF[11] + P[3][0]*SF[10] + P[10][0]*SF[14] + P[11][0]*SF[15] + P[12][0]*SPP[10] + (daxVar*SQ[10])/4 + SF[9]*(P[0][1] + P[1][1]*SF[9] + P[2][1]*SF[11] + P[3][1]*SF[10] + P[10][1]*SF[14] + P[11][1]*SF[15] + P[12][1]*SPP[10]) + SF[11]*(P[0][2] + P[1][2]*SF[9] + P[2][2]*SF[11] + P[3][2]*SF[10] + P[10][2]*SF[14] + P[11][2]*SF[15] + P[12][2]*SPP[10]) + SF[10]*(P[0][3] + P[1][3]*SF[9] + P[2][3]*SF[11] + P[3][3]*SF[10] + P[10][3]*SF[14] + P[11][3]*SF[15] + P[12][3]*SPP[10]) + SF[14]*(P[0][10] + P[1][10]*SF[9] + P[2][10]*SF[11] + P[3][10]*SF[10] + P[10][10]*SF[14] + P[11][10]*SF[15] + P[12][10]*SPP[10]) + SF[15]*(P[0][11] + P[1][11]*SF[9] + P[2][11]*SF[11] + P[3][11]*SF[10] + P[10][11]*SF[14] + P[11][11]*SF[15] + P[12][11]*SPP[10]) + SPP[10]*(P[0][12] + P[1][12]*SF[9] + P[2][12]*SF[11] + P[3][12]*SF[10] + P[10][12]*SF[14] + P[11][12]*SF[15] + P[12][12]*SPP[10]) + (dayVar*sq(q2))/4 + (dazVar*sq(q3))/4;
@@ -822,13 +822,14 @@ void Ekf::fixCovarianceErrors()
 		float down_dvel_bias = 0.0f;
 
 		for (uint8_t axis_index = 0; axis_index < 3; axis_index++) {
-			down_dvel_bias += _state.accel_bias(axis_index) * _R_to_earth(2, axis_index);
+			down_dvel_bias += _state.delta_vel_bias(axis_index) * _R_to_earth(2, axis_index);
 		}
 
 		// check that the vertical component of accel bias is consistent with both the vertical position and velocity innovation
 		bool bad_acc_bias = (fabsf(down_dvel_bias) > dVel_bias_lim
-				     && down_dvel_bias * _vel_pos_innov[2] < 0.0f
-				     && down_dvel_bias * _vel_pos_innov[5] < 0.0f);
+				     && ( (down_dvel_bias * _gps_vel_innov(2) < 0.0f && _control_status.flags.gps)
+				     ||   (down_dvel_bias * _ev_vel_innov(2) < 0.0f && _control_status.flags.ev_vel) )
+				     && down_dvel_bias * _gps_pos_innov(2) < 0.0f);
 
 		// record the pass/fail
 		if (!bad_acc_bias) {
