@@ -32,11 +32,12 @@
 ############################################################################
 
 set(LIBUAVCAN_DIR ${PX4_SOURCE_DIR}/src/drivers/uavcan/libuavcan)
+set(LIBUAVCAN_DIR_DRIVERS ${PX4_SOURCE_DIR}/src/drivers/uavcan/uavcan_drivers)
 
 px4_add_git_submodule(TARGET git_uavcan PATH ${LIBUAVCAN_DIR})
 
 set(UAVCAN_USE_CPP03 ON CACHE BOOL "uavcan cpp03")
-set(UAVCAN_PLATFORM stm32 CACHE STRING "uavcan platform")
+set(UAVCAN_PLATFORM generic CACHE STRING "uavcan platform")
 
 string(TOUPPER "${PX4_PLATFORM}" OS_UPPER)
 add_definitions(
@@ -44,7 +45,7 @@ add_definitions(
 		-DUAVCAN_MAX_NETWORK_SIZE_HINT=16
 		-DUAVCAN_MEM_POOL_BLOCK_SIZE=48
 		-DUAVCAN_NO_ASSERTIONS
-		-DUAVCAN_PLATFORM=stm32
+		-DUAVCAN_PLATFORM=generic
 		-DUAVCAN_STM32_${OS_UPPER}=1
 		-DUAVCAN_STM32_NUM_IFACES=1
 		-DUAVCAN_STM32_TIMER_NUMBER=2
@@ -54,13 +55,18 @@ add_definitions(
 
 add_compile_options(-Wno-cast-align) # TODO: fix and enable
 add_subdirectory(${LIBUAVCAN_DIR} uavcanesc_libuavcan)
+add_subdirectory(${LIBUAVCAN_DIR_DRIVERS}/stm32/driver uavcanesc_uavcan_drivers)
+target_include_directories(uavcan_stm32_driver PUBLIC
+	${LIBUAVCAN_DIR}/libuavcan/include
+	${LIBUAVCAN_DIR}/libuavcan/include/dsdlc_generated
+	)
 add_dependencies(uavcan prebuild_targets)
 
 include_directories(${PX4_SOURCE_DIR}/src/modules/systemlib/flashparams)
 include_directories(${LIBUAVCAN_DIR}/libuavcan/include)
 include_directories(${LIBUAVCAN_DIR}/libuavcan/include/dsdlc_generated)
 include_directories(${LIBUAVCAN_DIR}/libuavcan_drivers/posix/include)
-include_directories(${LIBUAVCAN_DIR}/libuavcan_drivers/stm32/driver/include)
+include_directories(${LIBUAVCAN_DIR_DRIVERS}/stm32/driver/include)
 
 include_directories(${PX4_SOURCE_DIR}/src/drivers/bootloaders)
 
@@ -82,10 +88,11 @@ px4_add_module(
 		version
 		cdev
 
+		uavcan_stm32_driver
+
 		# within libuavcan
 		libuavcan_dsdlc
 		uavcan
-		uavcan_stm32_driver
 	)
 
 add_subdirectory(commands)
