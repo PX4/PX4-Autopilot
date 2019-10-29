@@ -210,12 +210,6 @@ struct auxVelSample {
 #define RNG_MAX_INTERVAL  (uint64_t)2e5	///< Maximum allowable time interval between range finder  measurements (uSec)
 #define EV_MAX_INTERVAL   (uint64_t)2e5	///< Maximum allowable time interval between external vision system measurements (uSec)
 
-// VelPos measurement bundles indices
-#define HVEL 0	///< x and y velocity bundle index
-#define VVEL 1	///< z velocity bundle index
-#define HPOS 2	///< x and y position bundle index
-#define VPOS 3	///< z position bundle index
-
 // bad accelerometer detection and mitigation
 #define BADACC_PROBATION  (uint64_t)10e6	///< Period of time that accel data declared bad must continuously pass checks to be declared good again (uSec)
 #define BADACC_BIAS_PNOISE	4.9f	///< The delta velocity process noise is set to this when accel data is declared bad (m/sec**2)
@@ -407,18 +401,19 @@ union fault_status_u {
 // define structure used to communicate innovation test failures
 union innovation_fault_status_u {
 	struct {
-		bool reject_vel_NED: 1;		///< 0 - true if velocity observations have been rejected
-		bool reject_pos_NE: 1;		///< 1 - true if horizontal position observations have been rejected
-		bool reject_pos_D: 1;		///< 2 - true if true if vertical position observations have been rejected
-		bool reject_mag_x: 1;		///< 3 - true if the X magnetometer observation has been rejected
-		bool reject_mag_y: 1;		///< 4 - true if the Y magnetometer observation has been rejected
-		bool reject_mag_z: 1;		///< 5 - true if the Z magnetometer observation has been rejected
-		bool reject_yaw: 1;		///< 6 - true if the yaw observation has been rejected
-		bool reject_airspeed: 1;	///< 7 - true if the airspeed observation has been rejected
-		bool reject_sideslip: 1;	///< 8 - true if the synthetic sideslip observation has been rejected
-		bool reject_hagl: 1;		///< 9 - true if the height above ground observation has been rejected
-		bool reject_optflow_X: 1;	///< 10 - true if the X optical flow observation has been rejected
-		bool reject_optflow_Y: 1;	///< 11 - true if the Y optical flow observation has been rejected
+		bool reject_hor_vel: 1;		///< 0 - true if horizontal velocity observations have been rejected
+		bool reject_ver_vel: 1;		///< 1 - true if vertical velocity observations have been rejected
+		bool reject_hor_pos: 1;		///< 2 - true if horizontal position observations have been rejected
+		bool reject_ver_pos: 1;		///< 3 - true if true if vertical position observations have been rejected
+		bool reject_mag_x: 1;		///< 4 - true if the X magnetometer observation has been rejected
+		bool reject_mag_y: 1;		///< 5 - true if the Y magnetometer observation has been rejected
+		bool reject_mag_z: 1;		///< 6 - true if the Z magnetometer observation has been rejected
+		bool reject_yaw: 1;		///< 7 - true if the yaw observation has been rejected
+		bool reject_airspeed: 1;	///< 8 - true if the airspeed observation has been rejected
+		bool reject_sideslip: 1;	///< 9 - true if the synthetic sideslip observation has been rejected
+		bool reject_hagl: 1;		///< 10 - true if the height above ground observation has been rejected
+		bool reject_optflow_X: 1;	///< 11 - true if the X optical flow observation has been rejected
+		bool reject_optflow_Y: 1;	///< 12 - true if the Y optical flow observation has been rejected
 	} flags;
 	uint16_t value;
 

@@ -45,98 +45,97 @@
 #include <ecl.h>
 #include <mathlib/mathlib.h>
 
-/**
- * Update the EKF state with velocity and position measurements sequentially. [(vx vy) (vz) (x y) (z)]
- *
- * @param innov  	Input		[vx vy vz x y z]
- * @param innov_gate	Input		[vxy vz xy z]
- * @param obs_var	Input		[vx vy vz x y z]
- * @param fuse_mask	Input/Output	[vxy vz xy z]
- * 					Specify which innovation components should be fused,
- * 					components that do not pass innovations checks will be set to zero
- * @param innov_var	Ouput		[vx vy vz x y z]
- * @param test_ratio	Output		[vxy vz xy z]
- */
-void Ekf::fuseVelPosHeightSeq(const float (&innov)[6], const float (&innov_gate)[4],
-				 const float (obs_var)[6], bool (&fuse_mask)[4],
-				 float (&innov_var)[6], float (&test_ratio)[4])
+
+bool Ekf::fuseHorizontalVelocity(const Vector3f &innov, const Vector2f &innov_gate,
+				 const Vector3f &obs_var, Vector3f &innov_var, Vector2f &test_ratio)
 {
-	// check position, velocity and height innovations sequentially and if checks are passed fuse it
-	// treat 2D horizintal velocity, vertical velocity, 2D horizontal position and vertical height as separate sensors
-	// At the moment we still fuse velocity as 3D measurement, but this should be split in the future
+	innov_var(0) = P[4][4] + obs_var(0);
+	innov_var(1) = P[5][5] + obs_var(1);
+	test_ratio(0) = fmaxf( sq(innov(0)) / (sq(innov_gate(0)) * innov_var(0)),
+			       sq(innov(1)) / (sq(innov_gate(0)) * innov_var(1)));
 
-	// horizontal and vertical velocity
-	if(fuse_mask[HVEL] && fuse_mask[VVEL]){
-		innov_var[0] = P[4][4] + obs_var[0];
-		innov_var[1] = P[5][5] + obs_var[1];
-		test_ratio[HVEL] = fmaxf( sq(innov[0]) / (sq(innov_gate[HVEL]) * innov_var[0]),
-					sq(innov[1]) / (sq(innov_gate[HVEL]) * innov_var[1]));
+	bool innov_check_pass = (test_ratio(0) <= 1.0f);
+	if (innov_check_pass)
+	{
+		_time_last_hor_vel_fuse = _time_last_imu;
+		_innov_check_fail_status.flags.reject_hor_vel = false;
 
-		innov_var[2] = P[6][6] + obs_var[2];
-		test_ratio[VVEL] = sq(innov[2]) / (sq(innov_gate[VVEL]) * innov_var[2]);
+		fuseVelPosHeight(innov(0),innov_var(0),0);
+		fuseVelPosHeight(innov(1),innov_var(1),1);
 
-		bool innov_check_pass = (test_ratio[HVEL] <= 1.0f) && (test_ratio[VVEL] <= 1.0f);
-		if (innov_check_pass) {
-			_time_last_vel_fuse = _time_last_imu;
-			_innov_check_fail_status.flags.reject_vel_NED = false;
-
-			// fuse the horizontal and vertical velocity measurements
-			fuseVelPosHeight(innov[0],innov_var[0],0);
-			fuseVelPosHeight(innov[1],innov_var[1],1);
-			fuseVelPosHeight(innov[2],innov_var[2],2);
-
-		}else{
-			fuse_mask[HVEL] = fuse_mask[VVEL] = false;
-			_innov_check_fail_status.flags.reject_vel_NED = true;
-		}
+		return true;
+	}else{
+		_innov_check_fail_status.flags.reject_hor_vel = true;
+		return false;
 	}
+}
 
-	// horizontal position
-	if(fuse_mask[HPOS]){
-		innov_var[3] = P[7][7] + obs_var[3];
-		innov_var[4] = P[8][8] + obs_var[4];
-		test_ratio[HPOS] = fmaxf( sq(innov[3]) / (sq(innov_gate[HPOS]) * innov_var[3]),
-					sq(innov[4]) / (sq(innov_gate[HPOS]) * innov_var[4]));
+bool Ekf::fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate,
+				 const Vector3f &obs_var, Vector3f &innov_var, Vector2f &test_ratio)
+{
+	innov_var(2) = P[6][6] + obs_var(2);
+	test_ratio(1) = sq(innov(2)) / (sq(innov_gate(1)) * innov_var(2));
 
-		bool innov_check_pass = (test_ratio[HPOS] <= 1.0f) || !_control_status.flags.tilt_align;
+	bool innov_check_pass = (test_ratio(1) <= 1.0f);
+	if (innov_check_pass) {
+		_time_last_ver_vel_fuse = _time_last_imu;
+		_innov_check_fail_status.flags.reject_ver_vel = false;
+
+		fuseVelPosHeight(innov(2),innov_var(2),2);
+
+		return true;
+	}else{
+		_innov_check_fail_status.flags.reject_ver_vel = true;
+		return false;
+	}
+}
+
+bool Ekf::fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_gate,
+				 const Vector3f &obs_var, Vector3f &innov_var, Vector2f &test_ratio)
+{
+		innov_var(0) = P[7][7] + obs_var(0);
+		innov_var(1) = P[8][8] + obs_var(1);
+		test_ratio(0) = fmaxf( sq(innov(0)) / (sq(innov_gate(0)) * innov_var(0)),
+				       sq(innov(1)) / (sq(innov_gate(0)) * innov_var(1)));
+
+		bool innov_check_pass = (test_ratio(0) <= 1.0f) || !_control_status.flags.tilt_align;
 		if (innov_check_pass) {
 			if (!_fuse_hpos_as_odom) {
-				_time_last_pos_fuse = _time_last_imu;
+				_time_last_hor_pos_fuse = _time_last_imu;
 
 			} else {
 				_time_last_delpos_fuse = _time_last_imu;
 			}
-			_innov_check_fail_status.flags.reject_pos_NE = false;
+			_innov_check_fail_status.flags.reject_hor_pos = false;
 
-			// fuse the horizontal position measurements
-			fuseVelPosHeight(innov[3],innov_var[3],3);
-			fuseVelPosHeight(innov[4],innov_var[4],4);
+			fuseVelPosHeight(innov(0),innov_var(0),3);
+			fuseVelPosHeight(innov(1),innov_var(1),4);
 
+			return true;
 		}else{
-			fuse_mask[HPOS] = false;
-			_innov_check_fail_status.flags.reject_pos_NE = true;
+			_innov_check_fail_status.flags.reject_hor_pos = true;
+			return false;
 		}
+}
+
+bool Ekf::fuseVerticalPosition(const Vector3f &innov, const Vector2f &innov_gate,
+				 const Vector3f &obs_var, Vector3f &innov_var, Vector2f &test_ratio)
+{
+	innov_var(2) = P[9][9] + obs_var(2);
+	test_ratio(1) = sq(innov(2)) / (sq(innov_gate(1)) * innov_var(2));
+
+	bool innov_check_pass = (test_ratio(1) <= 1.0f) || !_control_status.flags.tilt_align;
+	if (innov_check_pass) {
+		_time_last_hgt_fuse = _time_last_imu;
+		_innov_check_fail_status.flags.reject_ver_pos = false;
+
+		fuseVelPosHeight(innov(2),innov_var(2),5);
+
+		return true;
+	}else{
+		_innov_check_fail_status.flags.reject_ver_pos = true;
+		return false;
 	}
-
-	// vertical position
-	if(fuse_mask[VPOS]){
-		innov_var[5] = P[9][9] + obs_var[5];
-		test_ratio[VPOS] = sq(innov[5]) / (sq(innov_gate[VPOS]) * innov_var[5]);
-
-		bool innov_check_pass = (test_ratio[VPOS] <= 1.0f) || !_control_status.flags.tilt_align;
-		if (innov_check_pass) {
-			_time_last_hgt_fuse = _time_last_imu;
-			_innov_check_fail_status.flags.reject_pos_D = false;
-
-			// fuse the horizontal position measurements
-			fuseVelPosHeight(innov[5],innov_var[5],5);
-
-		}else{
-			fuse_mask[VPOS] = false;
-			_innov_check_fail_status.flags.reject_pos_D = true;
-		}
-	}
-
 }
 
 // Helper function that fuses a single velocity or position measurement
@@ -170,10 +169,10 @@ void Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int o
 
 			healthy = false;
 
-			setVelPosFaultStatus(obs_index,true);
+			setVelPosFaultStatus(obs_index, true);
 
 		} else {
-			setVelPosFaultStatus(obs_index,false);
+			setVelPosFaultStatus(obs_index, false);
 		}
 	}
 

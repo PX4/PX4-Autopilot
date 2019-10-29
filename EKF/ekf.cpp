@@ -302,9 +302,9 @@ bool Ekf::initialiseFilter()
 
 		// reset the essential fusion timeout counters
 		_time_last_hgt_fuse = _time_last_imu;
-		_time_last_pos_fuse = _time_last_imu;
+		_time_last_hor_pos_fuse = _time_last_imu;
 		_time_last_delpos_fuse = _time_last_imu;
-		_time_last_vel_fuse = _time_last_imu;
+		_time_last_hor_vel_fuse = _time_last_imu;
 		_time_last_hagl_fuse = _time_last_imu;
 		_time_last_of_fuse = _time_last_imu;
 

@@ -330,10 +330,12 @@ private:
 	uint64_t _time_ins_deadreckon_start{0};	///< amount of time we have been doing inertial only deadreckoning (uSec)
 	bool _using_synthetic_position{false};	///< true if we are using a synthetic position to constrain drift
 
-	uint64_t _time_last_pos_fuse{0};	///< time the last fusion of horizontal position measurements was performed (uSec)
+	// TODO: Split those into sensor and measurement specifics
+	uint64_t _time_last_hor_pos_fuse{0};	///< time the last fusion of horizontal position measurements was performed (uSec)
+	uint64_t _time_last_hgt_fuse{0};	///< time the last fusion of vertical position measurements was performed (uSec)
+	uint64_t _time_last_hor_vel_fuse{0};	///< time the last fusion of horizontal velocity measurements was performed (uSec)
+	uint64_t _time_last_ver_vel_fuse{0};	///< time the last fusion of verticalvelocity measurements was performed (uSec)
 	uint64_t _time_last_delpos_fuse{0};	///< time the last fusion of incremental horizontal position measurements was performed (uSec)
-	uint64_t _time_last_vel_fuse{0};	///< time the last fusion of velocity measurements was performed (uSec)
-	uint64_t _time_last_hgt_fuse{0};	///< time the last fusion of height measurements was performed (uSec)
 	uint64_t _time_last_of_fuse{0};		///< time the last fusion of optical flow measurements were performed (uSec)
 	uint64_t _time_last_arsp_fuse{0};	///< time the last fusion of airspeed measurements were performed (uSec)
 	uint64_t _time_last_beta_fuse{0};	///< time the last fusion of synthetic sideslip measurements were performed (uSec)
@@ -373,17 +375,20 @@ private:
 	Vector3f _delta_angle_bias_var_accum;	///< kahan summation algorithm accumulator for delta angle bias variance
 
 
-	float _vel_pos_innov[6] {};	///< velocity and position innovations: 0-2 vel (m/sec),  3-5 pos (m)
-	float _vel_pos_innov_var[6] {};	///< velocity and position innovation variances: 0-2 vel ((m/sec)**2), 3-5 pos (m**2)
+	Vector3f _gps_vel_innov {};	///< GPS velocity innovations (m/sec)
+	Vector3f _gps_vel_innov_var {};	///< GPS velocity innovation variances ((m/sec)**2)
 
-	float _gps_vel_pos_innov[6] {};	///< GPS velocity and position innovations: 0-2 vel (m/sec),  3-5 pos (m)
-	float _gps_vel_pos_innov_var[6] {};	///< GPS velocity and position innovation variances: 0-2 vel ((m/sec)**2), 3-5 pos (m**2)
+	Vector3f _gps_pos_innov {};	///< GPS position innovations (m)
+	Vector3f _gps_pos_innov_var {};	///< GPS position innovation variances (m**2)
 
-	float _ev_vel_pos_innov[6] {};	///< external vision velocity and position innovations: 0-2 vel (m/sec),  3-5 pos (m)
-	float _ev_vel_pos_innov_var[6] {};	///< external vision velocity and position innovation variances: 0-2 vel ((m/sec)**2), 3-5 pos (m**2)
+	Vector3f _ev_vel_innov {};	///< external vision velocity innovations (m/sec)
+	Vector3f _ev_vel_innov_var {};	///< external vision velocity innovation variances ((m/sec)**2)
 
-	float _aux_vel_innov[2] {};	///< horizontal auxiliary velocity innovations: (m/sec)
-	float _aux_vel_innov_var[2] {};	///< horizontal auxiliary velocity innovation variances: ((m/sec)**2)
+	Vector3f _ev_pos_innov {};	///< external vision position innovations (m)
+	Vector3f _ev_pos_innov_var {};	///< external vision position innovation variances (m**2)
+
+	Vector3f _aux_vel_innov {};	///< horizontal auxiliary velocity innovations: (m/sec)
+	Vector3f _aux_vel_innov_var {};	///< horizontal auxiliary velocity innovation variances: ((m/sec)**2)
 
 	float _heading_innov{0.0f};	///< heading measurement innovation (rad)
 	float _heading_innov_var{0.0f};	///< heading measurement innovation variance (rad**2)
@@ -546,11 +551,6 @@ private:
 	// fuse body frame drag specific forces for multi-rotor wind estimation
 	void fuseDrag();
 
-	// fuse velocity and position measurements sequentially
-	void fuseVelPosHeightSeq(const float (&innov)[6], const float (&innov_gate)[4],
-				 const float (obs_var)[6], bool (&fuse_mask)[4],
-				 float (&innov_var)[6], float (&test_ratio)[4]);
-
 	// fuse single velocity and position measurement
 	void fuseVelPosHeight(const float innov, const float innov_var, const int obs_index);
 
@@ -559,6 +559,18 @@ private:
 
 	// fuse optical flow line of sight rate measurements
 	void fuseOptFlow();
+
+	bool fuseHorizontalVelocity(const Vector3f &innov, const Vector2f &innov_gate,
+				 const Vector3f &obs_var, Vector3f &innov_var, Vector2f &test_ratio);
+
+	bool fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate,
+				 const Vector3f &obs_var, Vector3f &innov_var, Vector2f &test_ratio);
+
+	bool fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_gate,
+				 const Vector3f &obs_var, Vector3f &innov_var, Vector2f &test_ratio);
+
+	bool fuseVerticalPosition(const Vector3f &innov, const Vector2f &innov_gate,
+				 const Vector3f &obs_var, Vector3f &innov_var, Vector2f &test_ratio);
 
 	// calculate optical flow body angular rate compensation
 	// returns false if bias corrected body rate data is unavailable
@@ -789,37 +801,26 @@ private:
 	// sensor measurement
 	float calculate_synthetic_mag_z_measurement(Vector3f mag_meas, Vector3f mag_earth_predicted);
 
-	// stop GPS fusion
 	void stopGpsFusion();
 
-	// stop GPS position fusion
 	void stopGpsPosFusion();
 
-	// stop GPS velocity fusion
 	void stopGpsVelFusion();
 
-	// stop GPS yaw fusion
 	void stopGpsYawFusion();
 
-	// stop external vision fusion
 	void stopEvFusion();
 
-	// stop external vision position fusion
 	void stopEvPosFusion();
 
-	// stop external vision velocity fusion
 	void stopEvVelFusion();
 
-	// stop external vision yaw fusion
 	void stopEvYawFusion();
 
-	// stop auxiliary horizontal velocity fusion
 	void stopAuxVelFusion();
 
-	// stop optical flow fusion
 	void stopFlowFusion();
 
-	// Helper function to set velPos fault status
 	void setVelPosFaultStatus(const int index, const bool status);
 
 };
