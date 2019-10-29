@@ -535,12 +535,15 @@ bool UART_node::baudrate_to_speed(uint32_t bauds, speed_t *speed)
 	return true;
 }
 
-UDP_node::UDP_node(uint16_t _udp_port_recv, uint16_t _udp_port_send):
+UDP_node::UDP_node(const char* _udp_ip, uint16_t _udp_port_recv, uint16_t _udp_port_send):
 	sender_fd(-1),
 	receiver_fd(-1),
 	udp_port_recv(_udp_port_recv),
 	udp_port_send(_udp_port_send)
 {
+    if (nullptr != _udp_ip) {
+            strcpy(udp_ip, _udp_ip);
+    }
 }
 
 UDP_node::~UDP_node()
@@ -564,7 +567,7 @@ bool UDP_node::fds_OK()
 
 int UDP_node::init_receiver(uint16_t udp_port)
 {
-#ifndef __PX4_NUTTX
+#if !defined (__PX4_NUTTX) || (defined (CONFIG_NET) && defined (__PX4_NUTTX))
 	// udp socket data
 	memset((char *)&receiver_inaddr, 0, sizeof(receiver_inaddr));
 	receiver_inaddr.sin_family = AF_INET;
@@ -604,7 +607,7 @@ int UDP_node::init_receiver(uint16_t udp_port)
 
 int UDP_node::init_sender(uint16_t udp_port)
 {
-#ifndef __PX4_NUTTX
+#if !defined (__PX4_NUTTX) || (defined (CONFIG_NET) && defined (__PX4_NUTTX))
 
 	if ((sender_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 #ifndef PX4_ERR
@@ -619,7 +622,7 @@ int UDP_node::init_sender(uint16_t udp_port)
 	sender_outaddr.sin_family = AF_INET;
 	sender_outaddr.sin_port = htons(udp_port);
 
-	if (inet_aton("127.0.0.1", &sender_outaddr.sin_addr) == 0) {
+	if (inet_aton(udp_ip, &sender_outaddr.sin_addr) == 0) {
 #ifndef PX4_ERR
 		printf("inet_aton() failed");
 #else
@@ -635,7 +638,7 @@ int UDP_node::init_sender(uint16_t udp_port)
 
 uint8_t UDP_node::close()
 {
-#ifndef __PX4_NUTTX
+#if !defined (__PX4_NUTTX) || (defined (CONFIG_NET) && defined (__PX4_NUTTX))
 
 	if (sender_fd != -1) {
 #ifndef PX4_WARN
@@ -670,7 +673,7 @@ ssize_t UDP_node::node_read(void *buffer, size_t len)
 	}
 
 	int ret = 0;
-#ifndef __PX4_NUTTX
+#if !defined (__PX4_NUTTX) || (defined (CONFIG_NET) && defined (__PX4_NUTTX))
 	// Blocking call
 	static socklen_t addrlen = sizeof(receiver_outaddr);
 	ret = recvfrom(receiver_fd, buffer, len, 0, (struct sockaddr *) &receiver_outaddr, &addrlen);
@@ -685,7 +688,7 @@ ssize_t UDP_node::node_write(void *buffer, size_t len)
 	}
 
 	int ret = 0;
-#ifndef __PX4_NUTTX
+#if !defined (__PX4_NUTTX) || (defined (CONFIG_NET) && defined (__PX4_NUTTX))
 	ret = sendto(sender_fd, buffer, len, 0, (struct sockaddr *)&sender_outaddr, sizeof(sender_outaddr));
 #endif /* __PX4_NUTTX */
 	return ret;
