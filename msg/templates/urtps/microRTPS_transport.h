@@ -113,7 +113,7 @@ protected:
 class UDP_node: public Transport_node
 {
 public:
-	UDP_node(uint16_t udp_port_recv, uint16_t udp_port_send);
+	UDP_node(const char* _udp_ip, uint16_t udp_port_recv, uint16_t udp_port_send);
 	virtual ~UDP_node();
 
 	int init();
@@ -128,6 +128,7 @@ protected:
 
 	int sender_fd;
 	int receiver_fd;
+	char udp_ip[16] = {};
 	uint16_t udp_port_recv;
 	uint16_t udp_port_send;
 	struct sockaddr_in sender_outaddr;
