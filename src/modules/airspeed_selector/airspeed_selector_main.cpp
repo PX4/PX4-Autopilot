@@ -477,7 +477,7 @@ void AirspeedModule::select_airspeed_and_publish()
 	bool airspeed_sensor_switching_necessary = _prev_airspeed_index < airspeed_index::FIRST_SENSOR_INDEX ||
 			!_airspeed_validator[_prev_airspeed_index - 1].get_airspeed_valid();
 	bool airspeed_sensor_switching_allowed = _number_of_airspeed_sensors > 0 &&
-			_param_airspeed_primary_index.get() > 0 &&	_param_airspeed_checks_on.get();
+			_param_airspeed_primary_index.get() > airspeed_index::GROUND_MINUS_WIND_INDEX &&	_param_airspeed_checks_on.get();
 
 	if (airspeed_sensor_switching_necessary && airspeed_sensor_switching_allowed) {
 
@@ -492,12 +492,14 @@ void AirspeedModule::select_airspeed_and_publish()
 		}
 	}
 
-	/* No valid airspeed sensor available, or Primary set to 0 or -1. Thus set index to ground-wind one (if position is valid), otherwise to disabled*/
+	/* Airspeed not disabled by user (Primary set to 0 or -1), and no valid airspeed sensor available. Thus set index to ground-wind one (if position is valid), otherwise to disabled*/
 	if (_param_airspeed_primary_index.get() >= airspeed_index::GROUND_MINUS_WIND_INDEX &&
 	    _valid_airspeed_index < airspeed_index::FIRST_SENSOR_INDEX) {
 
 		/* _vehicle_local_position_valid determines if ground-wind estimate is valid */
-		if (_param_airspeed_fallback.get() && _vehicle_local_position_valid) {
+		/* To use ground-windspeed as airspeed source, either the primary has to be set this way or fallback be enabled */
+		if (_vehicle_local_position_valid && (_param_airspeed_fallback.get()
+						      || _param_airspeed_primary_index.get() == airspeed_index::GROUND_MINUS_WIND_INDEX)) {
 			_valid_airspeed_index = airspeed_index::GROUND_MINUS_WIND_INDEX;
 
 		} else {
