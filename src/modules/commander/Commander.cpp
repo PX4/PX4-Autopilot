@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -809,7 +809,11 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 				if (!enforce_in_air && !land_detector.landed && !is_ground_rover(&status)) {
 					if (cmd_arms) {
-						mavlink_log_critical(&mavlink_log_pub, "Arming denied! Not landed");
+						if (armed_local->armed) {
+							mavlink_log_warning(&mavlink_log_pub, "Arming denied! Already armed");
+						} else {
+							mavlink_log_critical(&mavlink_log_pub, "Arming denied! Not landed");
+						}
 
 					} else {
 						mavlink_log_critical(&mavlink_log_pub, "Disarming denied! Not landed");
