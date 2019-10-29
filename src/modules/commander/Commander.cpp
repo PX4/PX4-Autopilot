@@ -839,7 +839,9 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 						// Refuse to arm if in manual with non-zero throttle
 						if (cmd_arms
-						    && (status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL
+						    && (status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL
+							|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL
+							|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL
 							|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO
 							|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_STAB
 							|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_RATTITUDE)
