@@ -47,6 +47,16 @@ get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 add_subdirectory(NuttX ${PX4_BINARY_DIR}/NuttX)
 
 set(nuttx_libs)
+if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
+  set(SCRIPT_PREFIX ${PX4_BOARD_LABEL}_)
+  add_subdirectory(src/bootloader)
+  list(APPEND nuttx_libs
+	bootloader
+	bootloader_lib
+	drivers_board
+  )
+endif()
+
 list(APPEND nuttx_libs
 	nuttx_apps
 	nuttx_arch
@@ -94,7 +104,7 @@ target_link_libraries(px4 PRIVATE
 	-fno-exceptions
 	-fno-rtti
 
-	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx-config/scripts/script.ld
+	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx-config/scripts/${SCRIPT_PREFIX}script.ld
 	-Wl,-Map=${PX4_CONFIG}.map
 	-Wl,--warn-common
 	-Wl,--gc-sections
@@ -205,6 +215,9 @@ if(NOT PX4_BUILD MATCHES "px4_io-v2")
 	elseif(CONFIG_ARCH_CHIP_STM32F777NI)
 		set(DEBUG_DEVICE "STM32F777NI")
 		set(DEBUG_SVD_FILE "STM32F7x7.svd")
+	elseif(CONFIG_ARCH_CHIP_STM32H743ZI)
+		set(DEBUG_DEVICE "STM32H743ZI")
+		set(DEBUG_SVD_FILE "STM32H7x3.svd")
 	endif()
 
 	file(GLOB_RECURSE DEBUG_SVD_FILE_PATH ${CMAKE_SOURCE_DIR}/../cmsis-svd/*/${DEBUG_SVD_FILE})
