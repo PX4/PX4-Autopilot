@@ -323,7 +323,7 @@ PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
  * @decimal 0
  * @increment 1
  */
-PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 3);
+PARAM_DEFINE_INT32(COM_LOW_BAT_ACT, 0);
 
 /**
  * Time-out to wait when offboard connection is lost before triggering offboard lost action.
