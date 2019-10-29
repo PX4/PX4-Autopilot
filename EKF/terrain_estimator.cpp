@@ -307,5 +307,3 @@ void Ekf::getTerrainVertPos(float *ret)
 {
 	memcpy(ret, &_terrain_vpos, sizeof(float));
 }
-
-}
