@@ -150,7 +150,7 @@ LidarLiteI2C::probe()
 			}
 
 			_retries = 3;
-			return reset_sensor();
+			return OK;
 		}
 
 		PX4_DEBUG("probe failed unit_id=0x%02x hw_version=0x%02x sw_version=0x%02x",
