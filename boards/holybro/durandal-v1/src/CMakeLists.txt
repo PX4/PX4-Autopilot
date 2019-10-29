@@ -30,7 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 ############################################################################
+if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
+add_library(drivers_board
+	bootloader_main.c
+	usb.c
+)
+target_link_libraries(drivers_board
+	PRIVATE
+		nuttx_arch # sdio
+		nuttx_drivers # sdio
+		bootloader
+)
 
+else()
 add_library(drivers_board
 	can.c
 	init.c
@@ -51,3 +63,4 @@ target_link_libraries(drivers_board
 		nuttx_drivers # sdio
 		px4_layer
 )
+endif()
