@@ -90,8 +90,8 @@ protected:
 	 */
 	static float _constrainAbsPrioritizeMin(float val, float min, float max);
 
-	float _getSpeedAtTarget() const;
-	float _getMaxSpeedFromDistance(float braking_distance) const;
+	float _getSpeedAtTarget(float final_speed) const;
+	float _getMaxSpeedFromDistance(float braking_distance, float final_speed) const;
 
 	void _prepareSetpoints(); /**< Generate velocity target points for the trajectory generator. */
 	void _updateTrajConstraints();
