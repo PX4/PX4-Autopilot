@@ -57,9 +57,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <px4_tasks.h>
-#include <px4_module.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/getopt.h>
 #include <systemlib/err.h>
 #include <termios.h>
 #include <drivers/drv_hrt.h>
@@ -736,7 +736,7 @@ int frsky_telemetry_main(int argc, char *argv[])
 		frsky_task = px4_task_spawn_cmd("frsky_telemetry",
 						SCHED_DEFAULT,
 						SCHED_PRIORITY_DEFAULT + 4,
-						1320,
+						1380,
 						frsky_telemetry_thread_main,
 						(char *const *)argv);
 

@@ -38,7 +38,7 @@
  *
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <drivers/device/device.h>
 
 #include <drivers/device/i2c.h>
@@ -58,7 +58,7 @@
 
 Airspeed::Airspeed(int bus, int address, unsigned conversion_interval, const char *path) :
 	I2C("Airspeed", path, bus, address, 100000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_sensor_ok(false),
 	_measure_interval(0),
 	_collect_phase(false),

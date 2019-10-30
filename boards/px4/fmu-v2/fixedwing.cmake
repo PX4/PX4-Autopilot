@@ -9,7 +9,9 @@ px4_add_board(
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
 	#TESTING
+	CONSTRAINED_FLASH
 	#UAVCAN_INTERFACES 2
+	CONSTRAINED_FLASH
 
 	SERIAL_PORTS
 		GPS1:/dev/ttyS3
@@ -18,6 +20,7 @@ px4_add_board(
 		TEL4:/dev/ttyS6
 
 	DRIVERS
+		adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		batt_smbus
@@ -29,15 +32,12 @@ px4_add_board(
 		imu/l3gd20
 		imu/lsm303d
 		imu/mpu6000
-		imu/mpu9250
+		#imu/mpu9250
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		px4fmu
 		px4io
-		stm32
-		stm32/adc
-		stm32/tone_alarm
 		#telemetry # all available telemetry drivers
 		telemetry/iridiumsbd
 		tone_alarm
@@ -56,9 +56,10 @@ px4_add_board(
 		logger
 		mavlink
 		navigator
+		battery_status
 		sensors
 		vmount
-		wind_estimator
+		airspeed_selector
 
 	SYSTEMCMDS
 		bl_update
@@ -66,6 +67,7 @@ px4_add_board(
 		#dumpfile
 		#esc_calib
 		hardfault_log
+		i2cdetect
 		#led_control
 		mixer
 		#motor_ramp
@@ -82,4 +84,6 @@ px4_add_board(
 		tune_control
 		usb_connected
 		ver
+		work_queue
+
 	)

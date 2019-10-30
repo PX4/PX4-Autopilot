@@ -44,7 +44,8 @@ const char *const UavcanMagnetometerBridge::NAME = "mag";
 
 UavcanMagnetometerBridge::UavcanMagnetometerBridge(uavcan::INode &node) :
 	UavcanCDevSensorBridgeBase("uavcan_mag", "/dev/uavcan/mag", MAG_BASE_DEVICE_PATH, ORB_ID(sensor_mag)),
-	_sub_mag(node)
+	_sub_mag(node),
+	_sub_mag2(node)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_HMC5883;     // <-- Why?
 
@@ -53,7 +54,8 @@ UavcanMagnetometerBridge::UavcanMagnetometerBridge(uavcan::INode &node) :
 	_scale.z_scale = 1.0F;
 }
 
-int UavcanMagnetometerBridge::init()
+int
+UavcanMagnetometerBridge::init()
 {
 	int res = device::CDev::init();
 
@@ -64,40 +66,22 @@ int UavcanMagnetometerBridge::init()
 	res = _sub_mag.start(MagCbBinder(this, &UavcanMagnetometerBridge::mag_sub_cb));
 
 	if (res < 0) {
-		DEVICE_LOG("failed to start uavcan sub: %d", res);
+		PX4_ERR("failed to start uavcan sub: %d", res);
+		return res;
+	}
+
+	res = _sub_mag2.start(Mag2CbBinder(this, &UavcanMagnetometerBridge::mag2_sub_cb));
+
+	if (res < 0) {
+		PX4_ERR("failed to start uavcan sub2: %d", res);
 		return res;
 	}
 
 	return 0;
 }
 
-ssize_t UavcanMagnetometerBridge::read(struct file *filp, char *buffer, size_t buflen)
-{
-	static uint64_t last_read = 0;
-	struct mag_report *mag_buf = reinterpret_cast<struct mag_report *>(buffer);
-
-	/* buffer must be large enough */
-	unsigned count = buflen / sizeof(struct mag_report);
-
-	if (count < 1) {
-		return -ENOSPC;
-	}
-
-	if (last_read < _report.timestamp) {
-		/* copy report */
-		lock();
-		*mag_buf = _report;
-		last_read = _report.timestamp;
-		unlock();
-		return sizeof(struct mag_report);
-
-	} else {
-		/* no new data available, warn caller */
-		return -EAGAIN;
-	}
-}
-
-int UavcanMagnetometerBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
+int
+UavcanMagnetometerBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 
@@ -127,9 +111,33 @@ int UavcanMagnetometerBridge::ioctl(struct file *filp, int cmd, unsigned long ar
 	}
 }
 
-void UavcanMagnetometerBridge::mag_sub_cb(const
-		uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength>
-		&msg)
+void
+UavcanMagnetometerBridge::mag_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength>
+				     &msg)
+{
+	lock();
+	/*
+	 * FIXME HACK
+	 * This code used to rely on msg.getMonotonicTimestamp().toUSec() instead of HRT.
+	 * It stopped working when the time sync feature has been introduced, because it caused libuavcan
+	 * to use an independent time source (based on hardware TIM5) instead of HRT.
+	 * The proper solution is to be developed.
+	 */
+	_report.timestamp = hrt_absolute_time();
+	_report.device_id = _device_id.devid;
+	_report.is_external = true;
+
+	_report.x = (msg.magnetic_field_ga[0] - _scale.x_offset) * _scale.x_scale;
+	_report.y = (msg.magnetic_field_ga[1] - _scale.y_offset) * _scale.y_scale;
+	_report.z = (msg.magnetic_field_ga[2] - _scale.z_offset) * _scale.z_scale;
+	unlock();
+
+	publish(msg.getSrcNodeID().get(), &_report);
+}
+
+void
+UavcanMagnetometerBridge::mag2_sub_cb(const
+				      uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength2> &msg)
 {
 	lock();
 	/*

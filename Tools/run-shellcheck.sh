@@ -25,6 +25,7 @@ echo "Running shellcheck in '$search_directory'."
 # SC2166: allow the form [ $OUTPUT_MODE == fmu -o $OUTPUT_MODE == io ]
 # SC2148: allow files w/o shebang
 # SC2039: In POSIX sh, array references are undefined. TODO: fix this
+# SC2181: Check exit code directly with e.g. 'if mycmd;', not indirectly with $?.
 shellcheck -x \
 	-e SC1008 \
 	-e SC2086 \
@@ -32,6 +33,7 @@ shellcheck -x \
 	-e SC2148 \
 	-e SC2166 \
 	-e SC2039 \
+	-e SC2181 \
 	--shell=dash \
 	$scripts
 ret=$?

@@ -44,8 +44,8 @@
 
 #include <drivers/drv_hrt.h>
 #include <perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_micro_hal.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/micro_hal.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_accel.h>
@@ -188,21 +188,18 @@ bool MicroBenchORB::time_px4_uorb_direct()
 
 	uORB::Subscription vstatus{ORB_ID(vehicle_status)};
 	PERF("uORB::Subscription orb_check vehicle_status", ret = vstatus.updated(), 1000);
-	PERF("uORB::Subscription orb_stat vehicle_status", time = vstatus.last_update(), 1000);
 	PERF("uORB::Subscription orb_copy vehicle_status", ret = vstatus.copy(&status), 1000);
 
 	printf("\n");
 
 	uORB::Subscription local_pos{ORB_ID(vehicle_local_position)};
 	PERF("uORB::Subscription orb_check vehicle_local_position", ret = local_pos.updated(), 1000);
-	PERF("uORB::Subscription orb_stat vehicle_local_position", time = local_pos.last_update(), 1000);
 	PERF("uORB::Subscription orb_copy vehicle_local_position", ret = local_pos.copy(&lpos), 1000);
 
 	printf("\n");
 
 	uORB::Subscription sens_gyro{ORB_ID(sensor_gyro)};
 	PERF("uORB::Subscription orb_check sensor_gyro", ret = sens_gyro.updated(), 1000);
-	PERF("uORB::Subscription orb_stat sensor_gyro", time = sens_gyro.last_update(), 1000);
 	PERF("uORB::Subscription orb_copy sensor_gyro", ret = sens_gyro.copy(&gyro), 1000);
 
 	return true;

@@ -72,8 +72,14 @@ struct mpu6000_bus_option {
 #if defined(PX4_SPI_BUS_EXT)
 	{ MPU6000_BUS_SPI_EXTERNAL1, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH_EXT, &MPU6000_SPI_interface, PX4_SPI_BUS_EXT,  true, NULL },
 #endif
-#ifdef PX4_SPIDEV_ICM_20602
+#if defined(PX4_SPIDEV_ICM_20602) && defined(PX4_SPI_BUS_SENSORS)
 	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_ICM20602, ICM20602_DEVICE_PATH, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
+#endif
+#if defined(PX4_SPIDEV_ICM_20602) && defined(PX4_SPI_BUS_SENSORS1)
+	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_ICM20602, ICM20602_DEVICE_PATH, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS1,  false, NULL },
+#endif
+#if defined(PX4_SPIDEV_ICM_20602) && defined(PX4_SPI_BUS_1)
+	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_ICM20602, ICM20602_DEVICE_PATH, &MPU6000_SPI_interface, PX4_SPI_BUS_1,  false, NULL },
 #endif
 #ifdef PX4_SPIDEV_ICM_20608
 	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_ICM20608, ICM20608_DEVICE_PATH, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
@@ -98,7 +104,9 @@ void	reset(enum MPU6000_BUS busid);
 void	info(enum MPU6000_BUS busid);
 void	regdump(enum MPU6000_BUS busid);
 void	testerror(enum MPU6000_BUS busid);
+#ifndef CONSTRAINED_FLASH
 void	factorytest(enum MPU6000_BUS busid);
+#endif
 void	usage();
 
 /**
@@ -287,6 +295,7 @@ testerror(enum MPU6000_BUS busid)
 	exit(0);
 }
 
+#ifndef CONSTRAINED_FLASH
 /**
  * Dump the register information
  */
@@ -304,11 +313,16 @@ factorytest(enum MPU6000_BUS busid)
 
 	exit(0);
 }
+#endif
 
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'stop',\n'reset', 'regdump', 'factorytest', 'testerror'");
+	warnx("missing command: try 'start', 'info', 'stop',\n'reset', 'regdump', 'testerror'"
+#ifndef CONSTRAINED_FLASH
+	      ", 'factorytest'"
+#endif
+	     );
 	warnx("options:");
 	warnx("    -X external I2C bus");
 	warnx("    -I internal I2C bus");
@@ -415,9 +429,13 @@ mpu6000_main(int argc, char *argv[])
 		mpu6000::regdump(busid);
 	}
 
+#ifndef CONSTRAINED_FLASH
+
 	if (!strcmp(verb, "factorytest")) {
 		mpu6000::factorytest(busid);
 	}
+
+#endif
 
 	if (!strcmp(verb, "testerror")) {
 		mpu6000::testerror(busid);

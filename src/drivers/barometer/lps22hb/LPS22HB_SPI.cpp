@@ -39,13 +39,6 @@
 
 #include "LPS22HB.hpp"
 
-#include <cstring>
-
-#include <px4_config.h>
-
-#include <drivers/device/spi.h>
-#include <drivers/drv_device.h>
-
 #ifdef PX4_SPIDEV_LPS22HB
 
 /* SPI protocol address bits */

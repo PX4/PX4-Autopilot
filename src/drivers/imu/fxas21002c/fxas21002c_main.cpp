@@ -33,10 +33,6 @@
 
 #include "FXAS21002C.hpp"
 
-#include <px4_getopt.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-
 extern "C" { __EXPORT int fxas21002c_main(int argc, char *argv[]); }
 
 /**

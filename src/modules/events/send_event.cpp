@@ -36,8 +36,8 @@
 
 #include <math.h>
 
-#include <px4_getopt.h>
-#include <px4_log.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
 #include <drivers/drv_hrt.h>
 
 namespace events
@@ -81,13 +81,8 @@ SendEvent::SendEvent() : ModuleParams(nullptr)
 
 SendEvent::~SendEvent()
 {
-	if (_status_display != nullptr) {
-		delete _status_display;
-	}
-
-	if (_rc_loss_alarm != nullptr) {
-		delete _rc_loss_alarm;
-	}
+	delete _status_display;
+	delete _rc_loss_alarm;
 }
 
 int SendEvent::start()
@@ -120,7 +115,7 @@ void SendEvent::initialize_trampoline(void *arg)
 
 void SendEvent::cycle_trampoline(void *arg)
 {
-	SendEvent *obj = reinterpret_cast<SendEvent *>(arg);
+	SendEvent *obj = static_cast<SendEvent *>(arg);
 
 	obj->cycle();
 }
@@ -195,20 +190,15 @@ void SendEvent::process_commands()
 void SendEvent::answer_command(const vehicle_command_s &cmd, unsigned result)
 {
 	/* publish ACK */
-	vehicle_command_ack_s command_ack = {};
+	vehicle_command_ack_s command_ack{};
 	command_ack.timestamp = hrt_absolute_time();
 	command_ack.command = cmd.command;
 	command_ack.result = (uint8_t)result;
 	command_ack.target_system = cmd.source_system;
 	command_ack.target_component = cmd.source_component;
 
-	if (_command_ack_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_command_ack), _command_ack_pub, &command_ack);
-
-	} else {
-		_command_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-						       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-	}
+	uORB::PublicationQueued<vehicle_command_ack_s>	command_ack_pub{ORB_ID(vehicle_command_ack)};
+	command_ack_pub.publish(command_ack);
 }
 
 int SendEvent::print_usage(const char *reason)
@@ -275,7 +265,7 @@ int SendEvent::custom_command(int argc, char *argv[])
 			}
 		}
 
-		vehicle_command_s vcmd = {};
+		vehicle_command_s vcmd{};
 		vcmd.timestamp = hrt_absolute_time();
 		vcmd.param1 = (float)((gyro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
 		vcmd.param2 = NAN;
@@ -286,7 +276,8 @@ int SendEvent::custom_command(int argc, char *argv[])
 		vcmd.param7 = (float)((baro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
 		vcmd.command = vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION;
 
-		orb_advertise_queue(ORB_ID(vehicle_command), &vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
+		uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
+		vcmd_pub.publish(vcmd);
 
 	} else {
 		print_usage("unrecognized command");

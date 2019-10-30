@@ -37,8 +37,8 @@
  * Driver for the QMC5883 magnetometer connected via I2C or SPI.
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
 
 #include <drivers/device/i2c.h>
 
@@ -56,7 +56,7 @@
 #include <unistd.h>
 
 #include <nuttx/arch.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <nuttx/clock.h>
 
 #include <board_config.h>
@@ -261,7 +261,7 @@ extern "C" __EXPORT int qmc5883_main(int argc, char *argv[]);
 
 QMC5883::QMC5883(device::Device *interface, const char *path, enum Rotation rotation) :
 	CDev("QMC5883", path),
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_reports(nullptr),
 	_scale{},

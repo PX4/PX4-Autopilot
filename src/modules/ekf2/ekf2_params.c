@@ -495,7 +495,7 @@ PARAM_DEFINE_INT32(EKF2_DECL_TYPE, 7);
  * @value 0 Automatic
  * @value 1 Magnetic heading
  * @value 2 3-axis
- * @value 3 VTOL customn
+ * @value 3 VTOL custom
  * @value 4 MC custom
  * @value 5 None
  * @reboot_required true
@@ -616,7 +616,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  *
  * @group EKF2
  * @min 0
- * @max 255
+ * @max 511
  * @bit 0 use GPS
  * @bit 1 use optical flow
  * @bit 2 inhibit IMU bias estimation
@@ -625,6 +625,7 @@ PARAM_DEFINE_FLOAT(EKF2_TAS_GATE, 3.0f);
  * @bit 5 multi-rotor drag fusion
  * @bit 6 rotate external vision
  * @bit 7 GPS yaw fusion
+ * @bit 8 vision velocity fusion
  * @reboot_required true
  */
 PARAM_DEFINE_INT32(EKF2_AID_MASK, 1);
@@ -689,7 +690,9 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_SFE, 0.05f);
 PARAM_DEFINE_FLOAT(EKF2_RNG_GATE, 5.0f);
 
 /**
- * Minimum valid range for the range finder
+ * Expected range finder reading when on ground.
+ *
+ * If the vehicle is on ground, is not moving as determined by the motion test controlled by EKF2_MOVE_TEST and the range finder is returning invalid or no data, then an assumed range value of EKF2_MIN_RNG will be used by the terrain estimator so that a terrain height estimate is avilable at the start of flight in situations where the range finder may be inside its minimum measurements distance when on ground.
  *
  * @group EKF2
  * @min 0.01
@@ -698,6 +701,15 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_GATE, 5.0f);
  */
 PARAM_DEFINE_FLOAT(EKF2_MIN_RNG, 0.1f);
 
+/**
+ * Whether to set the external vision observation noise from the parameter or from vision message
+ *
+ * If set to true the observation noise is set from the parameters directly, if set to false the measurement noise is taken from the vision message and the parameter are used as a lower bound.
+ *
+ * @boolean
+ * @group EKF2
+ */
+PARAM_DEFINE_INT32(EKF2_EV_NOISE_MD, 0);
 
 /**
  * Measurement noise for vision position observations used when the vision system does not supply error estimates
@@ -707,7 +719,17 @@ PARAM_DEFINE_FLOAT(EKF2_MIN_RNG, 0.1f);
  * @unit m
  * @decimal 2
  */
-PARAM_DEFINE_FLOAT(EKF2_EVP_NOISE, 0.05f);
+PARAM_DEFINE_FLOAT(EKF2_EVP_NOISE, 0.1f);
+
+/**
+ * Measurement noise for vision velocity observations used when the vision system does not supply error estimates
+ *
+ * @group EKF2
+ * @min 0.01
+ * @unit m/s
+ * @decimal 2
+*/
+PARAM_DEFINE_FLOAT(EKF2_EVV_NOISE, 0.1f);
 
 /**
  * Measurement noise for vision angle observations used when the vision system does not supply error estimates
@@ -718,18 +740,6 @@ PARAM_DEFINE_FLOAT(EKF2_EVP_NOISE, 0.05f);
  * @decimal 2
  */
 PARAM_DEFINE_FLOAT(EKF2_EVA_NOISE, 0.05f);
-
-/**
- * Gate size for vision estimate fusion
- *
- * Sets the number of standard deviations used by the innovation consistency test.
- *
- * @group EKF2
- * @min 1.0
- * @unit SD
- * @decimal 1
- */
-PARAM_DEFINE_FLOAT(EKF2_EV_GATE, 5.0f);
 
 /**
  * Measurement noise for the optical flow sensor when it's reported quality metric is at the maximum
@@ -1129,6 +1139,7 @@ PARAM_DEFINE_INT32(EKF2_RNG_AID, 0);
  * @group EKF2
  * @min 0.1
  * @max 2
+ * @unit m/s
  */
 PARAM_DEFINE_FLOAT(EKF2_RNG_A_VMAX, 1.0f);
 
@@ -1141,6 +1152,7 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_A_VMAX, 1.0f);
  * @group EKF2
  * @min 1.0
  * @max 10.0
+ * @unit m
  */
 PARAM_DEFINE_FLOAT(EKF2_RNG_A_HMAX, 5.0f);
 
@@ -1156,6 +1168,28 @@ PARAM_DEFINE_FLOAT(EKF2_RNG_A_HMAX, 5.0f);
  * @max 5.0
  */
 PARAM_DEFINE_FLOAT(EKF2_RNG_A_IGATE, 1.0f);
+
+/**
+ * Gate size for vision velocity estimate fusion
+ *
+ * Sets the number of standard deviations used by the innovation consistency test.
+ *
+ * @group EKF2
+ * @min 1.0
+ * @unit SD
+ * @decimal 1
+*/
+PARAM_DEFINE_FLOAT(EKF2_EVV_GATE, 3.0f);
+
+/**
+ * Gate size for vision position fusion
+ * Sets the number of standard deviations used by the innovation consistency test.
+ * @group EKF2
+ * @min 1.0
+ * @unit SD
+ * @decimal 1
+*/
+PARAM_DEFINE_FLOAT(EKF2_EVP_GATE, 5.0f);
 
 /**
  * Specific drag force observation noise variance used by the multi-rotor specific drag force model.

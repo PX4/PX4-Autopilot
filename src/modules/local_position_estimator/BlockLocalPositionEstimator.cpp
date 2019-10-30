@@ -25,6 +25,7 @@ BlockLocalPositionEstimator::BlockLocalPositionEstimator() :
 	_sub_armed(ORB_ID(actuator_armed), 1000 / 2, 0, &getSubscriptions()),
 	_sub_land(ORB_ID(vehicle_land_detected), 1000 / 2, 0, &getSubscriptions()),
 	_sub_att(ORB_ID(vehicle_attitude), 1000 / 100, 0, &getSubscriptions()),
+	_sub_angular_velocity(ORB_ID(vehicle_angular_velocity), 1000 / 100, 0, &getSubscriptions()),
 	// set flow max update rate higher than expected to we don't lose packets
 	_sub_flow(ORB_ID(optical_flow), 1000 / 100, 0, &getSubscriptions()),
 	// main prediction loop, 100 hz
@@ -663,9 +664,9 @@ void BlockLocalPositionEstimator::publishOdom()
 		_pub_odom.get().vz = xLP(X_vz);		// vel down
 
 		// angular velocity
-		_pub_odom.get().rollspeed = _sub_att.get().rollspeed;	// roll rate
-		_pub_odom.get().pitchspeed = _sub_att.get().pitchspeed;	// pitch rate
-		_pub_odom.get().yawspeed = _sub_att.get().yawspeed;	// yaw rate
+		_pub_odom.get().rollspeed = _sub_angular_velocity.get().xyz[0]; // roll rate
+		_pub_odom.get().pitchspeed = _sub_angular_velocity.get().xyz[1]; // pitch rate
+		_pub_odom.get().yawspeed = _sub_angular_velocity.get().xyz[2]; // yaw rate
 
 		// get the covariance matrix size
 		const size_t POS_URT_SIZE = sizeof(_pub_odom.get().pose_covariance) / sizeof(_pub_odom.get().pose_covariance[0]);

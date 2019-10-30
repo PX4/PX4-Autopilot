@@ -42,7 +42,7 @@
 
 #include "../CDev.hpp"
 
-#include <px4_i2c.h>
+#include <px4_platform_common/i2c.h>
 
 #if !defined(CONFIG_I2C)
 #  error I2C support requires CONFIG_I2C
@@ -59,7 +59,13 @@ class __EXPORT I2C : public CDev
 
 public:
 
-	virtual int	init();
+	// no copy, assignment, move, move assignment
+	I2C(const I2C &) = delete;
+	I2C &operator=(const I2C &) = delete;
+	I2C(I2C &&) = delete;
+	I2C &operator=(I2C &&) = delete;
+
+	virtual int	init() override;
 
 	static int	set_bus_clock(unsigned bus, unsigned clock_hz);
 
@@ -81,7 +87,7 @@ protected:
 	 * @param address	I2C bus address, or zero if set_address will be used
 	 * @param frequency	I2C bus frequency for the device (currently not used)
 	 */
-	I2C(const char *name, const char *devname, int bus, uint16_t address, uint32_t frequency);
+	I2C(const char *name, const char *devname, const int bus, const uint16_t address, const uint32_t frequency);
 	virtual ~I2C();
 
 	/**
@@ -101,16 +107,14 @@ protected:
 	 * @return		OK if the transfer was successful, -errno
 	 *			otherwise.
 	 */
-	int		transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len);
+	int		transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len);
 
-	bool		external() { return px4_i2c_bus_external(_device_id.devid_s.bus); }
+	virtual bool	external() const override { return px4_i2c_bus_external(_device_id.devid_s.bus); }
 
 private:
 	uint32_t		_frequency{0};
 	px4_i2c_dev_t		*_dev{nullptr};
 
-	I2C(const device::I2C &);
-	I2C operator=(const device::I2C &);
 };
 
 } // namespace device

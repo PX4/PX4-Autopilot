@@ -60,4 +60,4 @@
 #define PX4_NUMBER_I2C_BUSES 1
 
 #include <system_config.h>
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>

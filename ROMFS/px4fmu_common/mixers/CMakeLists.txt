@@ -52,7 +52,7 @@ px4_add_romfs_files(
 	firefly6.main.mix
 	fw_generic_wing.main.mix
 	FX79.main.mix
-	generic_differential_rover.main.mix
+	generic_diff_rover.main.mix
 	hexa_cox.main.mix
 	hexa_+.main.mix
 	hexa_x.main.mix
@@ -86,4 +86,6 @@ px4_add_romfs_files(
 	vtol_delta.aux.mix
 	wingwing.main.mix
 	zmr250.main.mix
+	if750a_FMU.aux.mix
+	if750a_IO.main.mix
 )

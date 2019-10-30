@@ -43,7 +43,7 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
@@ -496,12 +496,8 @@
 
 /* RC Serial port */
 
-#define RC_UXART_BASE                      STM32_USART6_BASE
 #define RC_SERIAL_PORT                     "/dev/ttyS4"
-#define BOARD_HAS_SINGLE_WIRE              1 /* HW is capable of Single Wire */
-#define BOARD_HAS_SINGLE_WIRE_ON_TX        1 /* HW default is wired as Single Wire On TX pin */
-#define BOARD_HAS_RX_TX_SWAP               1 /* HW Can swap TX and RX */
-#define RC_SERIAL_PORT_IS_SWAPED           0 /* Board wired with RC's TX is on cpu RX */
+#define RC_SERIAL_SINGLEWIRE
 
 /* Input Capture Channels. */
 #define INPUT_CAP1_TIMER                  2
@@ -675,6 +671,10 @@
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
+#define BOARD_NUM_IO_TIMERS 5
+
+#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5, 6, 7};
+
 __BEGIN_DECLS
 
 /****************************************************************************************************
@@ -737,7 +737,7 @@ extern void board_peripheral_reset(int ms);
 int nsh_archinitialize(void);
 #endif
 
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */
 

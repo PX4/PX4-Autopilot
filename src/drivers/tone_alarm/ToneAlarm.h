@@ -43,12 +43,13 @@
 #include <circuit_breaker/circuit_breaker.h>
 #include <drivers/device/device.h>
 #include <drivers/drv_tone_alarm.h>
-#include <lib/drivers/tone_alarm/ToneAlarmInterface.h>
 #include <lib/tunes/tunes.h>
-#include <px4_defines.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-#include <string.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/tune_control.h>
 
+#include <string.h>
 
 #if !defined(UNUSED)
 #  define UNUSED(a) ((void)(a))
@@ -109,7 +110,7 @@ private:
 
 	unsigned int _silence_length{0};	///< If nonzero, silence before next note.
 
-	int _tune_control_sub{-1};
+	uORB::Subscription _tune_control_sub{ORB_ID(tune_control)};
 
 	tune_control_s _tune{};
 

@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-include(px4_base)
-
 #=============================================================================
 #
 #	px4_add_board
@@ -183,6 +181,9 @@ function(px4_add_board)
 	set(PX4_PLATFORM ${PLATFORM} CACHE STRING "PX4 board OS" FORCE)
 	list(APPEND CMAKE_MODULE_PATH ${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake)
 
+	# platform-specific include path
+	include_directories(${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/common/include)
+
 	if(ARCHITECTURE)
 		set(CMAKE_SYSTEM_PROCESSOR ${ARCHITECTURE} CACHE INTERNAL "system processor" FORCE)
 	endif()
@@ -217,6 +218,7 @@ function(px4_add_board)
 
 	if(CONSTRAINED_FLASH)
 		set(px4_constrained_flash_build "1" CACHE INTERNAL "constrained flash build" FORCE)
+		add_definitions(-DCONSTRAINED_FLASH)
 	endif()
 
 	if(TESTING)
@@ -261,8 +263,8 @@ function(px4_add_board)
 		foreach(driver ${DF_DRIVERS})
 			list(APPEND config_df_driver_list ${driver})
 
-			if(EXISTS "${PX4_SOURCE_DIR}/src/platforms/posix/drivers/df_${driver}_wrapper")
-				list(APPEND config_module_list platforms/posix/drivers/df_${driver}_wrapper)
+			if(EXISTS "${PX4_SOURCE_DIR}/src/drivers/driver_framework_wrapper/df_${driver}_wrapper")
+				list(APPEND config_module_list drivers/driver_framework_wrapper/df_${driver}_wrapper)
 			endif()
 		endforeach()
 		set(config_df_driver_list ${config_df_driver_list} PARENT_SCOPE)

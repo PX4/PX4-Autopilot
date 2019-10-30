@@ -1,7 +1,7 @@
 #ifndef BMM150_HPP_
 #define BMM150_HPP_
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -16,11 +16,11 @@
 #include <stdio.h>
 #include <math.h>
 #include <unistd.h>
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/conversions.h>
 
 #include <nuttx/arch.h>

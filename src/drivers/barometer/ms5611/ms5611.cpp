@@ -36,32 +36,6 @@
  * Driver for the MS5611 and MS5607 barometric pressure sensor connected via I2C or SPI.
  */
 
-#include <px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <semaphore.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-
-#include <board_config.h>
-
-#include <drivers/device/device.h>
-#include <drivers/drv_baro.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/device/ringbuffer.h>
-#include <lib/perf/perf_counter.h>
-#include <systemlib/err.h>
-#include <platforms/px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-
 #include "ms5611.h"
 
 enum MS56XX_DEVICE_TYPES {
@@ -209,7 +183,7 @@ extern "C" __EXPORT int ms5611_main(int argc, char *argv[]);
 MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *path,
 	       enum MS56XX_DEVICE_TYPES device_type) :
 	CDev(path),
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_prom(prom_buf.s),
 	_reports(nullptr),
@@ -1050,7 +1024,7 @@ info()
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'test2', 'reset'");
+	warnx("missing command: try 'start', 'info', 'test', 'reset'");
 	warnx("options:");
 	warnx("    -X    (external I2C bus)");
 	warnx("    -I    (intternal I2C bus)");

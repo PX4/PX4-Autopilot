@@ -42,30 +42,24 @@
 #include "atxxxx.h"
 #include "symbols.h"
 
-#include <uORB/topics/battery_status.h>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_status.h>
+using namespace time_literals;
 
-struct work_s OSDatxxxx::_work = {};
-
+static constexpr uint32_t OSD_UPDATE_RATE{500_ms};	// 2 Hz
 
 OSDatxxxx::OSDatxxxx(int bus) :
-	SPI("OSD", OSD_DEVICE_PATH, bus, OSD_SPIDEV, SPIDEV_MODE0, OSD_SPI_BUS_SPEED),
-	ModuleParams(nullptr)
+	SPI("OSD", nullptr, bus, PX4_MK_SPI_SEL(bus, OSD_SPIDEV), SPIDEV_MODE0, OSD_SPI_BUS_SPEED),
+	ModuleParams(nullptr),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id()))
 {
-	_battery_sub = orb_subscribe(ORB_ID(battery_status));
-	_local_position_sub = orb_subscribe(ORB_ID(vehicle_local_position));
-	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 }
 
 OSDatxxxx::~OSDatxxxx()
 {
-	orb_unsubscribe(_battery_sub);
-	orb_unsubscribe(_local_position_sub);
-	orb_unsubscribe(_vehicle_status_sub);
+	ScheduleClear();
 }
 
-int OSDatxxxx::task_spawn(int argc, char *argv[])
+int
+OSDatxxxx::task_spawn(int argc, char *argv[])
 {
 	int ch;
 	int myoptind = 1;
@@ -80,23 +74,25 @@ int OSDatxxxx::task_spawn(int argc, char *argv[])
 		}
 	}
 
-	int ret = work_queue(LPWORK, &_work, (worker_t)&OSDatxxxx::initialize_trampoline, (void *)(long)spi_bus, 0);
+	OSDatxxxx *osd = new OSDatxxxx(spi_bus);
 
-	if (ret < 0) {
-		return ret;
+	if (!osd) {
+		PX4_ERR("alloc failed");
+		return PX4_ERROR;
 	}
 
-	ret = wait_until_running();
-
-	if (ret < 0) {
-		return ret;
+	if (osd->init() != PX4_OK) {
+		delete osd;
+		return PX4_ERROR;
 	}
 
+	_object.store(osd);
 	_task_id = task_id_is_work_queue;
 
-	return 0;
-}
+	osd->start();
 
+	return PX4_OK;
+}
 
 int
 OSDatxxxx::init()
@@ -108,16 +104,20 @@ OSDatxxxx::init()
 		return ret;
 	}
 
-	if ((ret = reset()) != PX4_OK) {
+	ret = reset();
+
+	if (ret != PX4_OK) {
 		return ret;
 	}
 
-	if ((ret = init_osd()) != PX4_OK) {
+	ret = init_osd();
+
+	if (ret != PX4_OK) {
 		return ret;
 	}
 
 	// clear the screen
-	int num_rows = _param_osd_atxxxx_cfg.get() == 1 ? OSD_NUM_ROWS_NTSC : OSD_NUM_ROWS_PAL;
+	int num_rows = (_param_osd_atxxxx_cfg.get() == 1 ? OSD_NUM_ROWS_NTSC : OSD_NUM_ROWS_PAL);
 
 	for (int i = 0; i < OSD_CHARS_PER_ROW; i++) {
 		for (int j = 0; j < num_rows; j++) {
@@ -128,40 +128,13 @@ OSDatxxxx::init()
 	return ret;
 }
 
-int OSDatxxxx::start()
+int
+OSDatxxxx::start()
 {
-	if (is_running()) {
-		return 0;
-	}
+	ScheduleOnInterval(OSD_UPDATE_RATE, 10000);
 
-	init();
-
-	// Kick off the cycling. We can call it directly because we're already in the work queue context.
-	cycle();
-
-	return 0;
+	return PX4_OK;
 }
-
-void OSDatxxxx::initialize_trampoline(void *arg)
-{
-	OSDatxxxx *osd = new OSDatxxxx((long)arg);
-
-	if (!osd) {
-		PX4_ERR("alloc failed");
-		return;
-	}
-
-	osd->start();
-	_object.store(osd);
-}
-
-void OSDatxxxx::cycle_trampoline(void *arg)
-{
-	OSDatxxxx *obj = reinterpret_cast<OSDatxxxx *>(arg);
-
-	obj->cycle();
-}
-
 
 int
 OSDatxxxx::probe()
@@ -200,14 +173,13 @@ OSDatxxxx::init_osd()
 int
 OSDatxxxx::readRegister(unsigned reg, uint8_t *data, unsigned count)
 {
-	uint8_t cmd[5]; // read up to 4 bytes
-	int ret;
+	uint8_t cmd[5] {}; // read up to 4 bytes
 
 	cmd[0] = DIR_READ(reg);
 
-	ret = transfer(&cmd[0], &cmd[0], count + 1);
+	int ret = transfer(&cmd[0], &cmd[0], count + 1);
 
-	if (OK != ret) {
+	if (ret != PX4_OK) {
 		DEVICE_LOG("spi::transfer returned %d", ret);
 		return ret;
 	}
@@ -215,20 +187,17 @@ OSDatxxxx::readRegister(unsigned reg, uint8_t *data, unsigned count)
 	memcpy(&data[0], &cmd[1], count);
 
 	return ret;
-
 }
-
 
 int
 OSDatxxxx::writeRegister(unsigned reg, uint8_t data)
 {
-	uint8_t cmd[2]; // write 1 byte
-	int ret;
+	uint8_t cmd[2] {}; // write 1 byte
 
 	cmd[0] = DIR_WRITE(reg);
 	cmd[1] = data;
 
-	ret = transfer(&cmd[0], nullptr, 2);
+	int ret = transfer(&cmd[0], nullptr, 2);
 
 	if (OK != ret) {
 		DEVICE_LOG("spi::transfer returned %d", ret);
@@ -236,16 +205,14 @@ OSDatxxxx::writeRegister(unsigned reg, uint8_t data)
 	}
 
 	return ret;
-
 }
 
 int
 OSDatxxxx::add_character_to_screen(char c, uint8_t pos_x, uint8_t pos_y)
 {
-
 	uint16_t position = (OSD_CHARS_PER_ROW * pos_y) + pos_x;
-	uint8_t position_lsb;
-	int ret;
+	uint8_t position_lsb = 0;
+	int ret = PX4_ERROR;
 
 	if (position > 0xFF) {
 		position_lsb = static_cast<uint8_t>(position) - 0xFF;
@@ -256,17 +223,23 @@ OSDatxxxx::add_character_to_screen(char c, uint8_t pos_x, uint8_t pos_y)
 		ret = writeRegister(0x05, 0x00); //DMAH
 	}
 
-	if (ret != 0) { return ret; }
+	if (ret != 0) {
+		return ret;
+	}
 
 	ret = writeRegister(0x06, position_lsb); //DMAL
 
-	if (ret != 0) { return ret; }
+	if (ret != 0) {
+		return ret;
+	}
 
 	ret = writeRegister(0x07, c);
+
 	return ret;
 }
 
-void OSDatxxxx::add_string_to_screen_centered(const char *str, uint8_t pos_y, int max_length)
+void
+OSDatxxxx::add_string_to_screen_centered(const char *str, uint8_t pos_y, int max_length)
 {
 	int len = strlen(str);
 
@@ -290,7 +263,8 @@ void OSDatxxxx::add_string_to_screen_centered(const char *str, uint8_t pos_y, in
 	}
 }
 
-void OSDatxxxx::clear_line(uint8_t pos_x, uint8_t pos_y, int length)
+void
+OSDatxxxx::clear_line(uint8_t pos_x, uint8_t pos_y, int length)
 {
 	for (int i = 0; i < length; ++i) {
 		add_character_to_screen(' ', pos_x + i, pos_y);
@@ -363,7 +337,7 @@ OSDatxxxx::add_flighttime(float flight_time, uint8_t pos_x, uint8_t pos_y)
 int
 OSDatxxxx::enable_screen()
 {
-	uint8_t data;
+	uint8_t data = 0;
 	int ret = PX4_OK;
 
 	ret |= readRegister(0x00, &data, 1);
@@ -375,7 +349,7 @@ OSDatxxxx::enable_screen()
 int
 OSDatxxxx::disable_screen()
 {
-	uint8_t data;
+	uint8_t data = 0;
 	int ret = PX4_OK;
 
 	ret |= readRegister(0x00, &data, 1);
@@ -384,18 +358,13 @@ OSDatxxxx::disable_screen()
 	return ret;
 }
 
-
 int
 OSDatxxxx::update_topics()
 {
-	bool updated = false;
-
 	/* update battery subscription */
-	orb_check(_battery_sub, &updated);
-
-	if (updated) {
-		battery_status_s battery;
-		orb_copy(ORB_ID(battery_status), _battery_sub, &battery);
+	if (_battery_sub.updated()) {
+		battery_status_s battery{};
+		_battery_sub.copy(&battery);
 
 		if (battery.connected) {
 			_battery_voltage_filtered_v = battery.voltage_filtered_v;
@@ -408,23 +377,21 @@ OSDatxxxx::update_topics()
 	}
 
 	/* update vehicle local position subscription */
-	orb_check(_local_position_sub, &updated);
+	if (_local_position_sub.updated()) {
+		vehicle_local_position_s local_position{};
+		_local_position_sub.copy(&local_position);
 
-	if (updated) {
-		vehicle_local_position_s local_position;
-		orb_copy(ORB_ID(vehicle_local_position), _local_position_sub, &local_position);
+		_local_position_valid = local_position.z_valid;
 
-		if ((_local_position_valid = local_position.z_valid)) {
+		if (_local_position_valid) {
 			_local_position_z = -local_position.z;
 		}
 	}
 
 	/* update vehicle status subscription */
-	orb_check(_vehicle_status_sub, &updated);
-
-	if (updated) {
-		vehicle_status_s vehicle_status;
-		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &vehicle_status);
+	if (_vehicle_status_sub.updated()) {
+		vehicle_status_s vehicle_status{};
+		_vehicle_status_sub.copy(&vehicle_status);
 
 		if (vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED &&
 		    _arming_state != vehicle_status_s::ARMING_STATE_ARMED) {
@@ -437,14 +404,14 @@ OSDatxxxx::update_topics()
 		}
 
 		_arming_state = vehicle_status.arming_state;
-
 		_nav_state = vehicle_status.nav_state;
 	}
 
 	return PX4_OK;
 }
 
-const char *OSDatxxxx::get_flight_mode(uint8_t nav_state)
+const char *
+OSDatxxxx::get_flight_mode(uint8_t nav_state)
 {
 	const char *flight_mode = "UNKNOWN";
 
@@ -509,7 +476,6 @@ const char *OSDatxxxx::get_flight_mode(uint8_t nav_state)
 	return flight_mode;
 }
 
-
 int
 OSDatxxxx::update_screen()
 {
@@ -543,7 +509,6 @@ OSDatxxxx::update_screen()
 	add_string_to_screen_centered(flight_mode, 12, 10);
 
 	return ret;
-
 }
 
 int
@@ -556,7 +521,7 @@ OSDatxxxx::reset()
 }
 
 void
-OSDatxxxx::cycle()
+OSDatxxxx::Run()
 {
 	if (should_exit()) {
 		exit_and_cleanup();
@@ -566,17 +531,10 @@ OSDatxxxx::cycle()
 	update_topics();
 
 	update_screen();
-
-	/* schedule a fresh cycle call when the measurement is done */
-	work_queue(LPWORK,
-		   &_work,
-		   (worker_t)&OSDatxxxx::cycle_trampoline,
-		   this,
-		   USEC2TICK(OSD_UPDATE_RATE));
-
 }
 
-int OSDatxxxx::print_usage(const char *reason)
+int
+OSDatxxxx::print_usage(const char *reason)
 {
 	if (reason) {
 		printf("%s\n\n", reason);
@@ -598,12 +556,14 @@ It can be enabled with the OSD_ATXXXX_CFG parameter.
 	return 0;
 }
 
-int OSDatxxxx::custom_command(int argc, char *argv[])
+int
+OSDatxxxx::custom_command(int argc, char *argv[])
 {
 	return print_usage("unrecognized command");
 }
 
-int atxxxx_main(int argc, char *argv[])
+int
+atxxxx_main(int argc, char *argv[])
 {
 	return OSDatxxxx::main(argc, argv);
 }

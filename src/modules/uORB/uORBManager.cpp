@@ -36,9 +36,9 @@
 #include <stdarg.h>
 #include <fcntl.h>
 
-#include <px4_config.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
 
 #include "uORBDeviceNode.hpp"
 #include "uORBUtils.hpp"
@@ -53,6 +53,17 @@ bool uORB::Manager::initialize()
 	}
 
 	return _Instance != nullptr;
+}
+
+bool uORB::Manager::terminate()
+{
+	if (_Instance != nullptr) {
+		delete _Instance;
+		_Instance = nullptr;
+		return true;
+	}
+
+	return false;
 }
 
 uORB::Manager::Manager()
@@ -187,7 +198,7 @@ orb_advert_t uORB::Manager::orb_advertise_multi(const struct orb_metadata *meta,
 	int fd = node_open(meta, true, instance, priority);
 
 	if (fd == PX4_ERROR) {
-		PX4_ERR("%s advertise failed", meta->o_name);
+		PX4_ERR("%s advertise failed (%i)", meta->o_name, errno);
 		return nullptr;
 	}
 

@@ -34,4 +34,4 @@ bool enabled
 bool ok
 uint64 subsystem_type
 
-uint32 ORB_QUEUE_LENGTH = 5
+uint8 ORB_QUEUE_LENGTH = 5

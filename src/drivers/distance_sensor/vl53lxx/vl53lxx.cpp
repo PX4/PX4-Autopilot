@@ -47,8 +47,8 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_range_finder.h>
 #include <perf/perf_counter.h>
-#include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/topics/distance_sensor.h>
 
 /* Configuration Constants */
@@ -167,7 +167,7 @@ private:
 
 VL53LXX::VL53LXX(uint8_t rotation, int bus, int address) :
 	I2C("VL53LXX", VL53LXX_DEVICE_PATH, bus, address, 400000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_rotation(rotation)
 {
 	// Allow 3 retries as the device typically misses the first measure attempts.

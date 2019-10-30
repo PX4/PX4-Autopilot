@@ -65,6 +65,13 @@ namespace device __EXPORT
  */
 class __EXPORT SPI : public CDev
 {
+public:
+	// no copy, assignment, move, move assignment
+	SPI(const SPI &) = delete;
+	SPI &operator=(const SPI &) = delete;
+	SPI(SPI &&) = delete;
+	SPI &operator=(SPI &&) = delete;
+
 protected:
 	/**
 	 * Constructor
@@ -88,7 +95,7 @@ protected:
 		LOCK_NONE		/**< perform no locking, only safe if the bus is entirely private */
 	};
 
-	virtual int	init();
+	virtual int	init() override;
 
 	/**
 	 * Check for the presence of the device on the bus.
@@ -147,7 +154,7 @@ protected:
 	 * @param frequency	Frequency to set (Hz)
 	 */
 	void		set_frequency(uint32_t frequency) { _frequency = frequency; }
-	uint32_t		get_frequency() { return _frequency; }
+	uint32_t	get_frequency() { return _frequency; }
 
 	/**
 	 * Set the SPI bus locking mode
@@ -157,22 +164,22 @@ protected:
 	 *
 	 * @param mode	Locking mode
 	 */
-	void		set_lockmode(enum LockMode mode) {}
+	void		set_lockmode(enum LockMode mode) { _locking_mode = mode; }
 
 private:
-	int 			_fd{-1};
-
 	uint32_t		_device;
 	enum spi_mode_e		_mode;
 	uint32_t		_frequency;
+	int 			_fd{-1};
 
-	/* this class does not allow copying */
-	SPI(const SPI &);
-	SPI operator=(const SPI &);
+	LockMode		_locking_mode{LOCK_THREADS};	/**< selected locking mode */
 
 protected:
+	int	_transfer(uint8_t *send, uint8_t *recv, unsigned len);
 
-	bool	external() { return px4_spi_bus_external(get_device_bus()); }
+	int	_transferhword(uint16_t *send, uint16_t *recv, unsigned len);
+
+	virtual bool	external() const override { return px4_spi_bus_external(get_device_bus()); }
 
 };
 

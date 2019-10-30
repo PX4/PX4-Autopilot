@@ -40,13 +40,13 @@
  *
  */
 
-#include <px4_config.h>
-#include <px4_log.h>
-#include <px4_time.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/time.h>
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
 #include <lib/conversion/rotation.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
 #include "ak09916.hpp"
 
@@ -165,7 +165,7 @@ usage()
 // Otherwise, it will passthrough the parent AK09916
 AK09916::AK09916(int bus, const char *path, enum Rotation rotation) :
 	I2C("AK09916", path, bus, AK09916_I2C_ADDR, 400000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_px4_mag(get_device_id(), ORB_PRIO_MAX, rotation),
 	_mag_reads(perf_alloc(PC_COUNT, "ak09916_mag_reads")),
 	_mag_errors(perf_alloc(PC_COUNT, "ak09916_mag_errors")),
@@ -252,6 +252,7 @@ AK09916::measure()
 		}
 
 		_px4_mag.set_error_count(perf_event_count(_mag_errors));
+		_px4_mag.set_external(external());
 		_px4_mag.update(timestamp_sample, raw_data.x, raw_data.y, raw_data.z);
 	}
 }

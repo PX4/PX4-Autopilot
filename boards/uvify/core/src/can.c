@@ -34,14 +34,14 @@
 /**
  * @file can.c
  *
- * UVify Core specific CAN functions.
+ * Board-specific CAN functions.
  */
 
 /************************************************************************************
  * Included Files
  ************************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <errno.h>
 #include <debug.h>

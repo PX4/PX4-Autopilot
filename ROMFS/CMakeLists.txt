@@ -83,6 +83,7 @@ add_custom_command(
 		${romfs_gen_root_dir}/init.d/rcS
 		${romfs_gen_root_dir}/init.d/rc.serial
 		${romfs_gen_root_dir}/init.d/rc.autostart
+		${romfs_gen_root_dir}/init.d/rc.autostart.post
 		romfs_copy.stamp
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}
 	# TODO: we should only copy the files in ${romfs_copy_files}
@@ -107,6 +108,11 @@ add_custom_command(
 		${romfs_cmake_files}
 		${romfs_copy_files}
 		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/markdownout.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/rcout.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/srcparser.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/srcscanner.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/xmlout.py
 		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 	COMMENT "ROMFS: copying, generating airframes"
 	)
@@ -137,6 +143,7 @@ list(APPEND OPTIONAL_BOARD_RC
 	rc.board_defaults
 	rc.board_sensors
 	rc.board_extras
+	rc.board_mavlink
 )
 
 foreach(board_rc_file ${OPTIONAL_BOARD_RC})
@@ -260,6 +267,7 @@ if(SHELLCHECK_PATH)
 			--exclude=SC2166 # SC2166: Prefer [ p ] || [ q ] as [ p -o q ] is not well defined.
 			--exclude=SC2154 # SC2154: <var> is referenced but not assigned (NuttX uses different asssignment)
 			--exclude=SC2164 # SC2164: Use 'cd ... || exit' or 'cd ... || return' in case cd fails.
+			--exclude=SC2181 # SC2181: Check exit code directly with e.g. 'if mycmd;', not indirectly with $?.
 			`find ${romfs_gen_root_dir}/init.d -type f`
 		DEPENDS ${romfs_gen_root_dir}/init.d/rc.autostart
 		WORKING_DIRECTORY ${romfs_gen_root_dir}

@@ -47,9 +47,9 @@
 /*For terminal I/O interfaces, termbits.h from asm-generic versions of functions guarantees non-standard communication (100Khz, Non-blocking), not guaranteed by termios.h*/
 #include <asm-generic/termbits.h>
 #include <errno.h>
-#include <px4_config.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_defines.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/input_rc.h>
@@ -70,7 +70,7 @@ class RcInput : public px4::ScheduledWorkItem
 {
 public:
 	RcInput() :
-		ScheduledWorkItem(px4::wq_configurations::hp_default),
+		ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
 		_shouldExit(false),
 		_isRunning(false),
 		_rcinput_pub(nullptr),

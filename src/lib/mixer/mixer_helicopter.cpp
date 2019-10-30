@@ -41,7 +41,7 @@
 
 #include <mathlib/mathlib.h>
 #include <cstdio>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
@@ -200,6 +200,10 @@ HelicopterMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handl
 unsigned
 HelicopterMixer::mix(float *outputs, unsigned space)
 {
+	if (space < _mixer_info.control_count + 1u) {
+		return 0;
+	}
+
 	/* Find index to use for curves */
 	float thrust_cmd = get_control(0, 3);
 	int idx = (thrust_cmd / 0.25f);

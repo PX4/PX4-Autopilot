@@ -40,9 +40,9 @@
 
 using namespace matrix;
 
-bool FlightTaskAutoMapper::activate()
+bool FlightTaskAutoMapper::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
-	bool ret = FlightTaskAuto::activate();
+	bool ret = FlightTaskAuto::activate(last_setpoint);
 	_reset();
 	return ret;
 }
@@ -87,7 +87,7 @@ bool FlightTaskAutoMapper::update()
 	}
 
 	if (_param_com_obs_avoid.get()) {
-		_obstacle_avoidance.updateAvoidanceDesiredSetpoints(_position_setpoint, _velocity_setpoint);
+		_obstacle_avoidance.updateAvoidanceDesiredSetpoints(_position_setpoint, _velocity_setpoint, (int)_type);
 		_obstacle_avoidance.injectAvoidanceSetpoints(_position_setpoint, _velocity_setpoint, _yaw_setpoint,
 				_yawspeed_setpoint);
 	}
@@ -161,9 +161,9 @@ void FlightTaskAutoMapper::_updateAltitudeAboveGround()
 		// We have a valid distance to ground measurement
 		_alt_above_ground = _dist_to_bottom;
 
-	} else if (_sub_home_position->get().valid_alt) {
+	} else if (_sub_home_position.get().valid_alt) {
 		// if home position is set, then altitude above ground is relative to the home position
-		_alt_above_ground = -_position(2) + _sub_home_position->get().z;
+		_alt_above_ground = -_position(2) + _sub_home_position.get().z;
 	}
 }
 

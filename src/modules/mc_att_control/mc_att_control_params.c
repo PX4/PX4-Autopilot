@@ -115,6 +115,26 @@ PARAM_DEFINE_FLOAT(MC_ROLLRATE_D, 0.003f);
 PARAM_DEFINE_FLOAT(MC_ROLLRATE_FF, 0.0f);
 
 /**
+ * Roll rate controller gain
+ *
+ * Global gain of the controller.
+ *
+ * This gain scales the P, I and D terms of the controller:
+ * output = MC_ROLLRATE_K * (MC_ROLLRATE_P * error
+ * 			     + MC_ROLLRATE_I * error_integral
+ * 			     + MC_ROLLRATE_D * error_derivative)
+ * Set MC_ROLLRATE_P=1 to implement a PID in the ideal form.
+ * Set MC_ROLLRATE_K=1 to implement a PID in the parallel form.
+ *
+ * @min 0.0
+ * @max 5.0
+ * @decimal 4
+ * @increment 0.0005
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_ROLLRATE_K, 1.0f);
+
+/**
  * Pitch P gain
  *
  * Pitch proportional gain, i.e. desired angular speed in rad/s for error 1 rad.
@@ -187,6 +207,26 @@ PARAM_DEFINE_FLOAT(MC_PITCHRATE_D, 0.003f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_PITCHRATE_FF, 0.0f);
+
+/**
+ * Pitch rate controller gain
+ *
+ * Global gain of the controller.
+ *
+ * This gain scales the P, I and D terms of the controller:
+ * output = MC_PITCHRATE_K * (MC_PITCHRATE_P * error
+ * 			     + MC_PITCHRATE_I * error_integral
+ * 			     + MC_PITCHRATE_D * error_derivative)
+ * Set MC_PITCHRATE_P=1 to implement a PID in the ideal form.
+ * Set MC_PITCHRATE_K=1 to implement a PID in the parallel form.
+ *
+ * @min 0.0
+ * @max 5.0
+ * @decimal 4
+ * @increment 0.0005
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_PITCHRATE_K, 1.0f);
 
 /**
  * Yaw P gain
@@ -262,6 +302,26 @@ PARAM_DEFINE_FLOAT(MC_YAWRATE_D, 0.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_YAWRATE_FF, 0.0f);
+
+/**
+ * Yaw rate controller gain
+ *
+ * Global gain of the controller.
+ *
+ * This gain scales the P, I and D terms of the controller:
+ * output = MC_YAWRATE_K * (MC_YAWRATE_P * error
+ * 			     + MC_YAWRATE_I * error_integral
+ * 			     + MC_YAWRATE_D * error_derivative)
+ * Set MC_YAWRATE_P=1 to implement a PID in the ideal form.
+ * Set MC_YAWRATE_K=1 to implement a PID in the parallel form.
+ *
+ * @min 0.0
+ * @max 5.0
+ * @decimal 4
+ * @increment 0.0005
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_FLOAT(MC_YAWRATE_K, 1.0f);
 
 /**
  * Max roll rate
@@ -443,96 +503,6 @@ PARAM_DEFINE_FLOAT(MC_RATT_TH, 0.8f);
 PARAM_DEFINE_INT32(MC_BAT_SCALE_EN, 0);
 
 /**
- * TPA P Breakpoint
- *
- * Throttle PID Attenuation (TPA)
- * Magnitude of throttle setpoint at which to begin attenuating roll/pitch P gain
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.1
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_TPA_BREAK_P, 1.0f);
-
-/**
- * TPA I Breakpoint
- *
- * Throttle PID Attenuation (TPA)
- * Magnitude of throttle setpoint at which to begin attenuating roll/pitch I gain
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.1
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_TPA_BREAK_I, 1.0f);
-
-/**
- * TPA D Breakpoint
- *
- * Throttle PID Attenuation (TPA)
- * Magnitude of throttle setpoint at which to begin attenuating roll/pitch D gain
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.1
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_TPA_BREAK_D, 1.0f);
-
-/**
- * TPA Rate P
- *
- * Throttle PID Attenuation (TPA)
- * Rate at which to attenuate roll/pitch P gain
- * Attenuation factor is 1.0 when throttle magnitude is below the setpoint
- * Above the setpoint, the attenuation factor is (1 - rate * (throttle - breakpoint) / (1.0 - breakpoint))
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.05
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_TPA_RATE_P, 0.0f);
-
-/**
- * TPA Rate I
- *
- * Throttle PID Attenuation (TPA)
- * Rate at which to attenuate roll/pitch I gain
- * Attenuation factor is 1.0 when throttle magnitude is below the setpoint
- * Above the setpoint, the attenuation factor is (1 - rate * (throttle - breakpoint) / (1.0 - breakpoint))
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.05
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_TPA_RATE_I, 0.0f);
-
-/**
- * TPA Rate D
- *
- * Throttle PID Attenuation (TPA)
- * Rate at which to attenuate roll/pitch D gain
- * Attenuation factor is 1.0 when throttle magnitude is below the setpoint
- * Above the setpoint, the attenuation factor is (1 - rate * (throttle - breakpoint) / (1.0 - breakpoint))
- *
- * @min 0.0
- * @max 1.0
- * @decimal 2
- * @increment 0.05
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_FLOAT(MC_TPA_RATE_D, 0.0f);
-
-/**
  * Cutoff frequency for the low pass filter on the D-term in the rate controller
  *
  * The D-term uses the derivative of the rate and thus is the most susceptible to noise.
@@ -548,22 +518,4 @@ PARAM_DEFINE_FLOAT(MC_TPA_RATE_D, 0.0f);
  * @group Multicopter Attitude Control
  */
 PARAM_DEFINE_FLOAT(MC_DTERM_CUTOFF, 0.f);
-
-/**
- * Multicopter air-mode
- *
- * The air-mode enables the mixer to increase the total thrust of the multirotor
- * in order to keep attitude and rate control even at low and high throttle.
- *
- * This function should be disabled during tuning as it will help the controller
- * to diverge if the closed-loop is unstable (i.e. the vehicle is not tuned yet).
- *
- * Enabling air-mode for yaw requires the use of an arming switch.
- *
- * @value 0 Disabled
- * @value 1 Roll/Pitch
- * @value 2 Roll/Pitch/Yaw
- * @group Multicopter Attitude Control
- */
-PARAM_DEFINE_INT32(MC_AIRMODE, 0);
 

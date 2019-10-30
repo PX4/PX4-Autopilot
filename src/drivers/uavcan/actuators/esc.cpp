@@ -43,6 +43,8 @@
 
 #define MOTOR_BIT(x) (1<<(x))
 
+using namespace time_literals;
+
 UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_node(node),
 	_uavcan_pub_raw_cmd(node),
@@ -50,14 +52,6 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_orb_timer(node)
 {
 	_uavcan_pub_raw_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
-
-	if (_perfcnt_invalid_input == nullptr) {
-		errx(1, "uavcan: couldn't allocate _perfcnt_invalid_input");
-	}
-
-	if (_perfcnt_scaling_error == nullptr) {
-		errx(1, "uavcan: couldn't allocate _perfcnt_scaling_error");
-	}
 }
 
 UavcanEscController::~UavcanEscController()
@@ -66,13 +60,14 @@ UavcanEscController::~UavcanEscController()
 	perf_free(_perfcnt_scaling_error);
 }
 
-int UavcanEscController::init()
+int
+UavcanEscController::init()
 {
 	// ESC status subscription
 	int res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanEscController::esc_status_sub_cb));
 
 	if (res < 0) {
-		warnx("ESC status sub failed %i", res);
+		PX4_ERR("ESC status sub failed %i", res);
 		return res;
 	}
 
@@ -83,11 +78,13 @@ int UavcanEscController::init()
 	return res;
 }
 
-void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
+void
+UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 {
 	if ((outputs == nullptr) ||
 	    (num_outputs > uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize) ||
 	    (num_outputs > esc_status_s::CONNECTED_ESC_MAX)) {
+
 		perf_count(_perfcnt_invalid_input);
 		return;
 	}
@@ -109,9 +106,8 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	 */
 	uavcan::equipment::esc::RawCommand msg;
 
-	actuator_outputs_s actuator_outputs = {};
+	actuator_outputs_s actuator_outputs{};
 	actuator_outputs.noutputs = num_outputs;
-	actuator_outputs.timestamp = hrt_absolute_time();
 
 	static const int cmd_max = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max();
 	const float cmd_min = _run_at_idle_throttle_when_armed ? 1.0F : 0.0F;
@@ -165,21 +161,15 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	 * Publish the command message to the bus
 	 * Note that for a quadrotor it takes one CAN frame
 	 */
-	(void)_uavcan_pub_raw_cmd.broadcast(msg);
+	_uavcan_pub_raw_cmd.broadcast(msg);
 
 	// Publish actuator outputs
-	if (_actuator_outputs_pub != nullptr) {
-		orb_publish(ORB_ID(actuator_outputs), _actuator_outputs_pub, &actuator_outputs);
-
-	} else {
-		int instance;
-		_actuator_outputs_pub = orb_advertise_multi(ORB_ID(actuator_outputs), &actuator_outputs,
-					&instance, ORB_PRIO_DEFAULT);
-	}
-
+	actuator_outputs.timestamp = hrt_absolute_time();
+	_actuator_outputs_pub.publish(actuator_outputs);
 }
 
-void UavcanEscController::arm_all_escs(bool arm)
+void
+UavcanEscController::arm_all_escs(bool arm)
 {
 	if (arm) {
 		_armed_mask = -1;
@@ -189,7 +179,8 @@ void UavcanEscController::arm_all_escs(bool arm)
 	}
 }
 
-void UavcanEscController::arm_single_esc(int num, bool arm)
+void
+UavcanEscController::arm_single_esc(int num, bool arm)
 {
 	if (arm) {
 		_armed_mask = MOTOR_BIT(num);
@@ -199,16 +190,14 @@ void UavcanEscController::arm_single_esc(int num, bool arm)
 	}
 }
 
-void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
+void
+UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
 {
 	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {
-		_esc_status.esc_count = uavcan::max<int>(_esc_status.esc_count, msg.esc_index + 1);
-		_esc_status.timestamp = hrt_absolute_time();
-
 		auto &ref = _esc_status.esc[msg.esc_index];
 
 		ref.esc_address = msg.getSrcNodeID().get();
-
+		ref.timestamp       = hrt_absolute_time();
 		ref.esc_voltage     = msg.voltage;
 		ref.esc_current     = msg.current;
 		ref.esc_temperature = msg.temperature;
@@ -218,15 +207,31 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 	}
 }
 
-void UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent &)
+void
+UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent &)
 {
+	_esc_status.timestamp = hrt_absolute_time();
+	_esc_status.esc_count = _rotor_count;
 	_esc_status.counter += 1;
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
+	_esc_status.esc_online_flags = UavcanEscController::check_escs_status();
 
-	if (_esc_status_pub != nullptr) {
-		(void)orb_publish(ORB_ID(esc_status), _esc_status_pub, &_esc_status);
+	_esc_status_pub.publish(_esc_status);
+}
 
-	} else {
-		_esc_status_pub = orb_advertise(ORB_ID(esc_status), &_esc_status);
+uint8_t
+UavcanEscController::check_escs_status()
+{
+	int esc_status_flags = 0;
+	const hrt_abstime now = hrt_absolute_time();
+
+	for (int index = 0; index < esc_status_s::CONNECTED_ESC_MAX; index++) {
+
+		if (_esc_status.esc[index].timestamp > 0 && now - _esc_status.esc[index].timestamp < 1200_ms) {
+			esc_status_flags |= (1 << index);
+		}
+
 	}
+
+	return esc_status_flags;
 }

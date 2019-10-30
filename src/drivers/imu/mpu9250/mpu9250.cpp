@@ -41,17 +41,6 @@
  * based on the mpu6000 driver
  */
 
-#include <px4_config.h>
-#include <px4_time.h>
-#include <lib/ecl/geo/geo.h>
-#include <lib/perf/perf_counter.h>
-#include <systemlib/conversions.h>
-#include <systemlib/px4_macros.h>
-#include <drivers/drv_hrt.h>
-#include <drivers/device/spi.h>
-#include <lib/conversion/rotation.h>
-
-#include "MPU9250_mag.h"
 #include "mpu9250.h"
 
 /*
@@ -83,7 +72,7 @@ const uint16_t MPU9250::_mpu9250_checked_registers[MPU9250_NUM_CHECKED_REGISTERS
 
 MPU9250::MPU9250(device::Device *interface, device::Device *mag_interface, const char *path, enum Rotation rotation,
 		 bool magnetometer_only) :
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_px4_accel(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),
 	_px4_gyro(_interface->get_device_id(), (_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH), rotation),

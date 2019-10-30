@@ -1,0 +1,56 @@
+#!/bin/sh
+#
+# @name IF750
+#
+# @type Quadrotor x
+# @class Copter
+#
+# @output MAIN1 motor 1
+# @output MAIN2 motor 2
+# @output MAIN3 motor 3
+# @output MAIN4 motor 4
+#
+# @output AUX1 feed-through of RC AUX1 channel
+# @output AUX2 feed-through of RC AUX2 channel
+# @output AUX3 feed-through of RC AUX3 channel
+# @output AUX4 feed-through of RC FLAPS channel
+#
+# @maintainer Hyon Lim <lim@uvify.com>
+#
+
+sh /etc/init.d/rc.mc_defaults
+set MIXER if750a_IO
+set PWM_OUT 12345
+set MIXER_AUX if750a_FMU
+set PWM_OUT_AUX 1234
+set PARAM_DEFAULTS_VER 5
+if [ $AUTOCNF = yes ]
+then
+sh /etc/init.d/airframes/1230000_if750a_base
+param set EKF2_AID_MASK 163
+param set EKF2_BCOEF_X 45.0000
+param set EKF2_BCOEF_Y 45.0000
+param set EKF2_GND_EFF_DZ 4.0000
+param set EKF2_GPS_POS_X 0.0000
+param set EKF2_GPS_POS_Y 0.1800
+param set EKF2_GPS_POS_Z -0.1600
+param set EKF2_HGT_MODE 1
+param set EKF2_IMU_POS_X 0.0
+param set EKF2_IMU_POS_Y 0.0
+param set EKF2_IMU_POS_Z -0.075
+param set EKF2_OF_POS_X -0.1740
+param set EKF2_OF_POS_Z 0.2300
+param set EKF2_PCOEF_XN -0.1000
+param set EKF2_PCOEF_XP -0.1000
+param set EKF2_PCOEF_YN -0.1000
+param set EKF2_PCOEF_YP -0.1000
+param set EKF2_RNG_POS_X -0.1410
+param set EKF2_RNG_POS_Z 0.2300
+param set SENS_BOARD_ROT 4
+param set CAL_MAG0_ROT 0
+param set GPS_1_CONFIG 104
+param set SER_TEL4_BAUD 115200
+param set GPS_YAW_OFFSET 85.0000
+fi
+param set MAV_1_CONFIG 102
+param set SER_TEL2_BAUD 921600

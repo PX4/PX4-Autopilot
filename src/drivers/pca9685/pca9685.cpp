@@ -46,8 +46,8 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
 
 #include <drivers/device/i2c.h>
 
@@ -61,9 +61,9 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <math.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <nuttx/clock.h>
 
 #include <perf/perf_counter.h>
@@ -184,7 +184,7 @@ extern "C" __EXPORT int pca9685_main(int argc, char *argv[]);
 
 PCA9685::PCA9685(int bus, uint8_t address) :
 	I2C("pca9685", PCA9685_DEVICE_PATH, bus, address, 100000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_mode(IOX_MODE_OFF),
 	_running(false),
 	_i2cpwm_interval(1_s / 60.0f),

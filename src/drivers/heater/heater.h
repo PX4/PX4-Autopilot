@@ -41,12 +41,11 @@
 
 #pragma once
 
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_module.h>
-#include <px4_module_params.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
-
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
@@ -175,7 +174,7 @@ private:
 
 	float _integrator_value = 0.0f;
 
-	uORB::Subscription _params_sub{ORB_ID(parameter_update)};
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};
 
 	float _proportional_value = 0.0f;
 

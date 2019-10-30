@@ -35,9 +35,9 @@
  * @file led_control.cpp
  */
 
-#include <px4_getopt.h>
-#include <px4_module.h>
-#include <px4_log.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/log.h>
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -45,9 +45,10 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_led.h>
 
-static void	usage();
+#include <uORB/PublicationQueued.hpp>
+#include <uORB/topics/led_control.h>
 
-static orb_advert_t led_control_pub = nullptr;
+static void	usage();
 
 extern "C" {
 	__EXPORT int led_control_main(int argc, char *argv[]);
@@ -57,12 +58,8 @@ static void publish_led_control(led_control_s &led_control)
 {
 	led_control.timestamp = hrt_absolute_time();
 
-	if (led_control_pub == nullptr) {
-		led_control_pub = orb_advertise_queue(ORB_ID(led_control), &led_control, LED_UORB_QUEUE_LENGTH);
-
-	} else {
-		orb_publish(ORB_ID(led_control), led_control_pub, &led_control);
-	}
+	uORB::PublicationQueued<led_control_s> led_control_pub{ORB_ID(led_control)};
+	led_control_pub.publish(led_control);
 }
 
 static void run_led_test1()
