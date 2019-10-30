@@ -42,9 +42,9 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <px4_tasks.h>
-#include <px4_getopt.h>
-#include <px4_posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/posix.h>
 
 #include "video_device.h"
 #include "dump_pgm.h"

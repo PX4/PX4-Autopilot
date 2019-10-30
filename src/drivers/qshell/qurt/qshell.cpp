@@ -40,10 +40,10 @@
 
 #include "qshell.h"
 
-#include <px4_log.h>
-#include <px4_time.h>
-#include <px4_posix.h>
-#include <px4_defines.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/defines.h>
 #include <dspal_platform.h>
 
 #include <unistd.h>

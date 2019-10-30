@@ -36,8 +36,8 @@
 #include <matrix/math.hpp>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
-#include <px4_module.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/airspeed/airspeed.h>
 #include <AirspeedValidator.hpp>
@@ -76,7 +76,7 @@ public:
 
 	AirspeedModule();
 
-	~AirspeedModule();
+	~AirspeedModule() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -182,9 +182,7 @@ AirspeedModule::~AirspeedModule()
 
 	perf_free(_perf_elapsed);
 
-	if (_airspeed_validator != nullptr) {
-		delete[] _airspeed_validator;
-	}
+	delete[] _airspeed_validator;
 }
 
 int

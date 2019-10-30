@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <assert.h>
 #include <time.h>
 #include <stdlib.h>
@@ -69,7 +69,7 @@ public:
 		_y(0),
 		_fCut(this, "") // only one parameter, no need to name
 	{}
-	virtual ~BlockHighPass() {}
+	virtual ~BlockHighPass() = default;
 	float update(float input);
 // accessors
 	float getU() {return _u;}

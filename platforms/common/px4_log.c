@@ -40,7 +40,7 @@
 #define MODULE_NAME "log"
 #endif
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 #if defined(__PX4_POSIX)
 #include <px4_daemon/server_io.h>
 #endif

@@ -37,8 +37,8 @@
 //Do nothing. IP DMA V1 MCUs are not supported.
 #else
 
-#include <px4_config.h>
-#include <px4_micro_hal.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/micro_hal.h>
 #include <stm32_dma.h>
 #include <stm32_tim.h>
 #include <px4_arch/dshot.h>

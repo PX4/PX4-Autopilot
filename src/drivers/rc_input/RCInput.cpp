@@ -214,7 +214,7 @@ RCInput::cycle_trampoline_init(void *arg)
 void
 RCInput::cycle_trampoline(void *arg)
 {
-	RCInput *dev = reinterpret_cast<RCInput *>(arg);
+	RCInput *dev = static_cast<RCInput *>(arg);
 	dev->cycle();
 }
 

@@ -37,8 +37,8 @@
  */
 
 #include <sys/types.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -53,8 +53,8 @@
 #include <math.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <px4_config.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/device.h>
 #include <uORB/uORB.h>
@@ -87,11 +87,11 @@ class GPSSIM : public VirtDevObj
 public:
 	GPSSIM(bool fake_gps, bool enable_sat_info,
 	       int fix_type, int num_sat, int noise_multiplier);
-	virtual ~GPSSIM();
+	~GPSSIM() override;
 
-	virtual int			init();
+	int		init() override;
 
-	virtual int			devIOCTL(unsigned long cmd, unsigned long arg);
+	int		devIOCTL(unsigned long cmd, unsigned long arg) override;
 
 	void set(int fix_type, int num_sat, int noise_multiplier);
 
@@ -101,7 +101,7 @@ public:
 	void				print_info();
 
 protected:
-	virtual void			_measure() {}
+	void		_measure() override {}
 
 private:
 

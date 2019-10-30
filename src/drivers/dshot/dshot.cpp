@@ -46,11 +46,11 @@
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_arch/dshot.h>
-#include <px4_atomic.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_log.h>
-#include <px4_module.h>
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -492,7 +492,7 @@ void
 DShotOutput::capture_trampoline(void *context, uint32_t chan_index,
 				hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
-	DShotOutput *dev = reinterpret_cast<DShotOutput *>(context);
+	DShotOutput *dev = static_cast<DShotOutput *>(context);
 	dev->capture_callback(chan_index, edge_time, edge_state, overflow);
 }
 

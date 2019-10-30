@@ -41,8 +41,8 @@
  */
 
 #include <lib/cdev/CDev.hpp>
-#include <px4_sem.hpp>
-#include <px4_log.h>
+#include <px4_platform_common/sem.hpp>
+#include <px4_platform_common/log.h>
 
 #include <sys/ioctl.h>
 #include <unistd.h>

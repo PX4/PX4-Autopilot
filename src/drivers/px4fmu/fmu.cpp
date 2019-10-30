@@ -52,10 +52,10 @@
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_log.h>
-#include <px4_module.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
@@ -692,7 +692,7 @@ void
 PX4FMU::capture_trampoline(void *context, uint32_t chan_index,
 			   hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
-	PX4FMU *dev = reinterpret_cast<PX4FMU *>(context);
+	PX4FMU *dev = static_cast<PX4FMU *>(context);
 	dev->capture_callback(chan_index, edge_time, edge_state, overflow);
 }
 

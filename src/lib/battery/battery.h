@@ -43,7 +43,7 @@
 
 #include <uORB/topics/battery_status.h>
 #include <drivers/drv_hrt.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 
 
 class Battery : public ModuleParams

@@ -41,9 +41,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <px4_config.h>
-#include <px4_workqueue.h>
-#include <px4_defines.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/workqueue.h>
+#include <px4_platform_common/defines.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -164,7 +164,7 @@ void RcInput::stop()
 
 void RcInput::cycle_trampoline(void *arg)
 {
-	RcInput *dev = reinterpret_cast<RcInput *>(arg);
+	RcInput *dev = static_cast<RcInput *>(arg);
 	dev->_cycle();
 }
 

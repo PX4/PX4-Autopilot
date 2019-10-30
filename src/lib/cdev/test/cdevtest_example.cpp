@@ -41,8 +41,8 @@
 
 #include "cdevtest_example.h"
 
-#include <px4_tasks.h>
-#include <px4_time.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
 #include <drivers/drv_device.h>
 #include <lib/cdev/CDev.hpp>
 #include <unistd.h>
@@ -106,12 +106,12 @@ public:
 		_is_open_for_write(false),
 		_write_offset(0) {}
 
-	~CDevNode() = default;
+	~CDevNode() override = default;
 
-	virtual int open(cdev::file_t *handlep);
-	virtual int close(cdev::file_t *handlep);
-	virtual ssize_t write(cdev::file_t *handlep, const char *buffer, size_t buflen);
-	virtual ssize_t read(cdev::file_t *handlep, char *buffer, size_t buflen);
+	int open(cdev::file_t *handlep) override;
+	int close(cdev::file_t *handlep) override;
+	ssize_t write(cdev::file_t *handlep, const char *buffer, size_t buflen) override;
+	ssize_t read(cdev::file_t *handlep, char *buffer, size_t buflen) override;
 private:
 	bool _is_open_for_write;
 	size_t _write_offset;

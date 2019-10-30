@@ -26,7 +26,7 @@ extern "C" __EXPORT int rc_tests_main(int argc, char *argv[]);
 class RCTest : public UnitTest
 {
 public:
-	virtual bool run_tests();
+	bool run_tests() override;
 
 private:
 	bool crsfTest();

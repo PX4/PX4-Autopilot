@@ -62,12 +62,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <px4_time.h>
-#include <px4_log.h>
-#include <px4_init.h>
-#include <px4_getopt.h>
-#include <px4_tasks.h>
-#include <px4_posix.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/init.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/posix.h>
 
 #include "apps.h"
 #include "DriverFramework.hpp"
@@ -590,11 +590,7 @@ bool is_already_running(int instance)
 
 	if (fcntl(fd, F_SETLK, &fl) == -1) {
 		// We failed to create a file lock, must be already locked.
-		if (errno == EACCES || errno == EAGAIN) {
-			return true;
-		}
-
-		return false;
+		return errno == EACCES || errno == EAGAIN;
 	}
 
 	errno = 0;

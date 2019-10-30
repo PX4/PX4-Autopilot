@@ -45,13 +45,13 @@
 #include <lib/perf/perf_counter.h>
 #include <lib/systemlib/mavlink_log.h>
 #include <lib/WeatherVane/WeatherVane.hpp>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_module.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_posix.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
@@ -85,7 +85,7 @@ class MulticopterPositionControl : public ModuleBase<MulticopterPositionControl>
 public:
 	MulticopterPositionControl();
 
-	virtual ~MulticopterPositionControl() override;
+	~MulticopterPositionControl() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -297,9 +297,7 @@ MulticopterPositionControl::MulticopterPositionControl() :
 
 MulticopterPositionControl::~MulticopterPositionControl()
 {
-	if (_wv_controller != nullptr) {
-		delete _wv_controller;
-	}
+	delete _wv_controller;
 
 	perf_free(_cycle_perf);
 }

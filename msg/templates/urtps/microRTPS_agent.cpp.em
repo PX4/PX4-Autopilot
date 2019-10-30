@@ -80,6 +80,7 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 #define WAIT_CNST 2
 #define DEFAULT_RECV_PORT 2020
 #define DEFAULT_SEND_PORT 2019
+#define DEFAULT_IP "127.0.0.1"
 
 using namespace eprosima;
 using namespace eprosima::fastrtps;
@@ -119,6 +120,7 @@ struct options {
     int poll_ms = POLL_MS;
     uint16_t recv_port = DEFAULT_RECV_PORT;
     uint16_t send_port = DEFAULT_SEND_PORT;
+    char ip[16] = DEFAULT_IP;
 } _options;
 
 static void usage(const char *name)
@@ -130,7 +132,8 @@ static void usage(const char *name)
              "  -b <baudrate>           UART device baudrate. Default 460800\n"
              "  -p <poll_ms>            Time in ms to poll over UART. Default 1ms\n"
              "  -r <reception port>     UDP port for receiving. Default 2019\n"
-             "  -s <sending port>       UDP port for sending. Default 2020\n",
+             "  -s <sending port>       UDP port for sending. Default 2020\n"
+             "  -i <ip_address>         Target IP for UDP. Default 127.0.0.1\n",
              name);
 }
 
@@ -147,7 +150,7 @@ static int parse_options(int argc, char **argv)
 {
     int ch;
 
-    while ((ch = getopt(argc, argv, "t:d:w:b:p:r:s:")) != EOF)
+    while ((ch = getopt(argc, argv, "t:d:w:b:p:r:s:i:")) != EOF)
     {
         switch (ch)
         {
@@ -160,6 +163,7 @@ static int parse_options(int argc, char **argv)
             case 'p': _options.poll_ms        = strtol(optarg, nullptr, 10);  break;
             case 'r': _options.recv_port      = strtoul(optarg, nullptr, 10); break;
             case 's': _options.send_port      = strtoul(optarg, nullptr, 10); break;
+            case 'i': if (nullptr != optarg) strcpy(_options.ip, optarg); break;
             default:
                 usage(argv[0]);
             return -1;
@@ -237,9 +241,9 @@ int main(int argc, char** argv)
         break;
         case options::eTransports::UDP:
         {
-            transport_node = new UDP_node(_options.recv_port, _options.send_port);
-            printf("\nUDP transport: recv port: %u; send port: %u; sleep: %dus\n\n",
-                    _options.recv_port, _options.send_port, _options.sleep_us);
+            transport_node = new UDP_node(_options.ip, _options.recv_port, _options.send_port);
+            printf("\nUDP transport: ip address: %s; recv port: %u; send port: %u; sleep: %dus\n\n",
+                    _options.ip, _options.recv_port, _options.send_port, _options.sleep_us);
         }
         break;
         default:

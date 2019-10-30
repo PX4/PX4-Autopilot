@@ -41,7 +41,7 @@
 #include "output_rc.h"
 
 #include <uORB/topics/actuator_controls.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 
 namespace vmount

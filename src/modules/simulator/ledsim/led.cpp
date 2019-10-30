@@ -37,7 +37,7 @@
  * LED driver.
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <drivers/drv_board_led.h>
 #include <stdio.h>
 
@@ -63,13 +63,13 @@ class LED : public VirtDevObj
 {
 public:
 	LED();
-	virtual ~LED() = default;
+	~LED() override = default;
 
-	virtual int		init();
-	virtual int		devIOCTL(unsigned long cmd, unsigned long arg);
+	int	init() override;
+	int	devIOCTL(unsigned long cmd, unsigned long arg) override;
 
 protected:
-	virtual void		_measure() {}
+	void	_measure() override {}
 };
 
 LED::LED() :

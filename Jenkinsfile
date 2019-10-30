@@ -305,26 +305,27 @@ pipeline {
           }
         }
 
-        // stage('Clang tidy') {
-        //   agent {
-        //     docker {
-        //       image 'px4io/px4-dev-clang:2019-10-24'
-        //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-        //     }
-        //   }
-        //   steps {
-        //     sh 'export'
-        //     retry (3) {
-        //       sh 'make distclean'
-        //       sh 'make clang-tidy-quiet'
-        //     }
-        //   }
-        //   post {
-        //     always {
-        //       sh 'make distclean'
-        //     }
-        //   }
-        // }
+        stage('Clang tidy') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-clang:2019-10-24'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'git fetch --tags'
+            retry (3) {
+              sh 'make clang-tidy-quiet'
+            }
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
 
         stage('Cppcheck') {
           agent {

@@ -39,7 +39,7 @@
  */
 
 #include "mavlink_ulog.h"
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 #include <errno.h>
 #include <mathlib/mathlib.h>
 
@@ -64,10 +64,6 @@ MavlinkULog::MavlinkULog(int datarate, float max_rate_factor, uint8_t target_sys
 	_waiting_for_initial_ack = true;
 	_last_sent_time = hrt_absolute_time(); //(ab)use this timestamp during initialization
 	_next_rate_check = _last_sent_time + _rate_calculation_delta_t * 1.e6f;
-}
-
-MavlinkULog::~MavlinkULog()
-{
 }
 
 void MavlinkULog::start_ack_received()
