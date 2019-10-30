@@ -520,8 +520,6 @@ RoverPositionControl::run()
 
 			/* Only publish if any of the proper modes are enabled */
 			if (_control_mode.flag_control_velocity_enabled ||
-			    _control_mode.flag_control_rates_enabled ||
-			    _control_mode.flag_control_attitude_enabled ||
 			    manual_mode) {
 				/* publish the actuator controls */
 				if (_actuator_controls_pub != nullptr) {
