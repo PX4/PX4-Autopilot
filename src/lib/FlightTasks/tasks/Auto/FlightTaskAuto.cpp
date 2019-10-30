@@ -496,3 +496,26 @@ bool FlightTaskAuto::_compute_heading_from_2D_vector(float &heading, Vector2f v)
 	// heading unknown and therefore do not change heading
 	return false;
 }
+
+void FlightTaskAuto::_collision_prevention_limit_setpoint()
+{
+	//get velocity setpoints in case only positions are set
+	if (!PX4_ISFINITE(_velocity_setpoint(0)) || !PX4_ISFINITE(_velocity_setpoint(1))) {
+		_velocity_setpoint = _position_setpoint - _position;
+	}
+
+	Vector2f vel_sp_original = Vector2f(_velocity_setpoint);
+	Vector2f vel_sp_modified = vel_sp_original;
+	// use the minimum of the estimator and user specified limit
+	float velocity_scale = fminf(_constraints.speed_xy, _sub_vehicle_local_position.get().vxy_max);
+	// Allow for a minimum of 0.3 m/s for repositioning
+	velocity_scale = fmaxf(velocity_scale, 0.3f);
+
+	_collision_prevention.modifySetpoint(vel_sp_modified, velocity_scale, Vector2f(_position),
+					     Vector2f(_velocity));
+
+	_velocity_setpoint(0) = vel_sp_modified(0);
+	_velocity_setpoint(1) = vel_sp_modified(1);
+	_position_setpoint(0) = NAN;
+	_position_setpoint(1) = NAN;
+}

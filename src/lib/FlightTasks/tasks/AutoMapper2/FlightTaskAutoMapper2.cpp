@@ -100,6 +100,14 @@ bool FlightTaskAutoMapper2::update()
 
 	_generateSetpoints();
 
+	// COLLISION PREVENTION
+	bool follow_line = _type == WaypointType::loiter || _type == WaypointType::position;
+
+	if (_collision_prevention.is_active() && follow_line) {
+		_collision_prevention_limit_setpoint();
+	}
+
+
 	// during mission and reposition, raise the landing gears but only
 	// if altitude is high enough
 	if (_highEnoughForLandingGear()) {
