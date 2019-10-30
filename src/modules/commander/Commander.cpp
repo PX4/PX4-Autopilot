@@ -837,17 +837,23 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 							break;
 						}
 
-						// Refuse to arm if in manual with non-zero throttle
-						if (cmd_arms
-						    && (status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL
-							|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL
-							|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL
-							|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO
-							|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_STAB
-							|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_RATTITUDE)
-						    && (sp_man.z > 0.1f)) {
+						const bool throttle_above_low = (sp_man.z > 0.1f);
+						const bool throttle_above_center = (sp_man.z > 0.6f);
 
-							mavlink_log_critical(&mavlink_log_pub, "Arming denied! Manual throttle not zero");
+						if (cmd_arms && throttle_above_center &&
+							(status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL ||
+							 status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL)) {
+							mavlink_log_critical(&mavlink_log_pub, "Arming denied! Throttle not centered");
+							cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+							break;
+						}
+
+						if (cmd_arms && throttle_above_low &&
+							(status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL ||
+							 status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO ||
+							 status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_STAB ||
+							 status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_RATTITUDE)) {
+							mavlink_log_critical(&mavlink_log_pub, "Arming denied! Throttle not zero");
 							cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
 							break;
 						}
