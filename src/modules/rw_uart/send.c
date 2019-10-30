@@ -96,6 +96,9 @@ uint8_t get_warnning (bool geofence_violated, uint8_t warning ){
 
 void stp_pack (STP *stp, MSG_orb_data stp_data){
 
+    param_t param_hd;
+    float paramf;
+
     stp->head[0] = '$';
     stp->head[1] = 'S';
     stp->head[2] = 'T';
@@ -123,20 +126,24 @@ void stp_pack (STP *stp, MSG_orb_data stp_data){
     stp->rc_x = (uint8_t)(-stp_data.manual_data.x * 50.0 + 150.0);
     stp->rc_z = (uint8_t)((1-stp_data.manual_data.z) * 200.0);
 
-    if (stp_data.status_data.nav_state < 3 /*NAVIGATION_STATE_MANUAL*/ ){
+    if (stp_data.status_data.nav_state  == 0 /*NAVIGATION_STATE_MANUAL*/ ){
         stp->sp_yaw = stp->rc_yaw;
         stp->sp_y = stp->rc_y;
         stp->sp_x = stp->rc_x;
         stp->sp_z = stp->rc_z;
     }
     else {
-         stp->sp_yaw =(uint8_t)(stp_data.local_position_sp_data.yawspeed/45.0 * 50.0 + 150.0);
-         stp->sp_y = (uint8_t)(stp_data.local_position_sp_data.thrust[1] * 50.0 + 150.0);
-         stp->sp_x = (uint8_t)(stp_data.local_position_sp_data.thrust[0] * 50.0 + 150.0);
-         //stp->sp_z = (uint8_t)(stp_data.local_position_sp_data.thrust[2] * 50.0 + 150.0);
-         stp->sp_z = (uint8_t)(-stp_data.local_position_sp_data.thrust[2] * 200);
-    }
-    stp->local_vz_sp = (int16_t)(stp_data.local_position_sp_data.vz * 100.0);
+        param_hd = param_find("MPC_TILTMAX_AIR");
+        param_get(param_hd, &paramf);
+        stp->sp_y =(uint8_t)(stp_data.attitude_sp_data.roll_body *57.3/paramf* 50.0 + 150.0);
+        stp->sp_x =(uint8_t)(stp_data.attitude_sp_data.pitch_body *57.3/paramf* 50.0 + 150.0);
+        stp->sp_z =(uint8_t)((1+ stp_data.attitude_sp_data.thrust_body[2])* 200.0);
+        param_hd = param_find("MC_YAWRATE_MAX");
+        param_get(param_hd, &paramf);
+        stp->sp_yaw =(uint8_t)(stp_data.attitude_sp_data.yaw_sp_move_rate*57.3/paramf* 50.0 + 150.0);
+        }
+
+    stp->local_vz_sp = -(int16_t)(stp_data.local_position_sp_data.vz * 100.0);
     stp->local_z_sp = -(int16_t)(stp_data.local_position_sp_data.z * 10.0);
 
     float_t distance = (float_t) sqrtl(stp_data.local_position_data.z * stp_data.local_position_data.z + stp_data.local_position_data.x * stp_data.local_position_data.x
@@ -145,8 +152,8 @@ void stp_pack (STP *stp, MSG_orb_data stp_data){
     stp->distance_low8 = (uint8_t)(distance);
     stp->local_vx_high8 = (int8_t)(((int16_t)(stp_data.local_position_data.vx * 100.0) & 0xff00) >> 8);
     stp->local_vx_low8 =  (int8_t)((int16_t)(stp_data.local_position_data.vx * 100.0) & 0x00ff);
-    stp->local_vz_high8 = (int8_t)(((int16_t)(stp_data.local_position_data.vz * 100.0) & 0xff00) >> 8);
-    stp->local_vz_low8 =  (int8_t)((int16_t)(stp_data.local_position_data.vz * 100.0) & 0x00ff);
+    stp->local_vz_high8 = (int8_t)(((int16_t)(-stp_data.local_position_data.vz * 100.0) & 0xff00) >> 8);
+    stp->local_vz_low8 =  (int8_t)((int16_t)(-stp_data.local_position_data.vz * 100.0) & 0x00ff);
     stp->local_vy_high8 = (int8_t)(((int16_t)(stp_data.local_position_data.vy * 100.0) & 0xff00) >> 8);
     stp->local_vy_low8 =  (int8_t)((int16_t)(stp_data.local_position_data.vy * 100.0) & 0x00ff);
     stp->receiver_status = (uint8_t)(stp_data.status_data.nav_state > 2 /*NAVIGATION_STATE_POSCTL*/ );
@@ -168,10 +175,25 @@ void stp_pack (STP *stp, MSG_orb_data stp_data){
     stp->local_pitch = -(int32_t)(-asinf(2*(q0*q2 - q3*q1)) /3.14159 *180);
     stp->gps_yaw = atan2f(2*(q0*q3 + q1*q2), 1 - 2*(q2*q2 + q3*q3));
 
-    stp->rc_throttle_mid = 150;
-    stp->rc_pitch_mid =150;
-    stp->rc_roll_mid =150;
-    stp->rc_yaw_mid =150;
+    param_hd = param_find("RC3_MAX");
+    param_get(param_hd, &paramf);
+    stp->rc_throttle_mid = paramf;
+    param_hd = param_find("RC3_MIN");
+    param_get(param_hd, &paramf);
+    stp->rc_throttle_mid = (uint8_t)((stp->rc_throttle_mid - paramf)/10 +100);
+
+    param_hd = param_find("RC2_TRIM");
+    param_get(param_hd, &paramf);
+    stp->rc_pitch_mid =(uint8_t)(paramf/10);
+
+    param_hd = param_find("RC1_TRIM");
+    param_get(param_hd, &paramf);
+    stp->rc_roll_mid =(uint8_t)(paramf/10);
+
+    param_hd = param_find("RC4_TRIM");
+    param_get(param_hd, &paramf);
+    stp->rc_yaw_mid =(uint8_t)(paramf/10);
+
     stp->version =1000;
     stp->sum_check=0x00;
 
@@ -191,25 +213,30 @@ void stp_pack (STP *stp, MSG_orb_data stp_data){
 
     stp->warnning = get_warnning(stp_data.geofence_data.geofence_violated, stp_data.battery_data.warning);
 
-    //stp->flight_time = (uint16_t)(stp->total_time - stp_data.arm_data.armed_time_ms/1000);
-    stp->flight_time = stp_data.arm_data.armed_time_ms/1000;
+    if (stp_data.arm_data.armed == true){
+        stp->flight_time = (uint16_t)(stp->total_time - stp_data.arm_data.armed_time_ms/1000);
+    }
+    else stp->flight_time =0;
+    //stp->flight_time = stp_data.arm_data.armed_time_ms/1000;
+
     time_t t = stp_data.gps_data.time_utc_usec *1e-6;
     struct tm *lt =localtime(&t);
-    stp->year = lt->tm_year - 100;
-    //printf("year is %d\n", lt->tm_year);
-    stp->month = lt->tm_mon +1;
-    //printf("month is %d\n", lt->tm_mon);
-    stp->day = lt->tm_mday;
-    //printf("day is %d\n", lt->tm_mday);
-    stp->hour =lt->tm_hour;
-    //printf("hour is %d\n", lt->tm_hour);
-    stp->minute = lt->tm_min;
-    //printf("min is %d\n", lt->tm_min);
-    stp->second = lt->tm_sec;
-    //printf("sec is %d\n", lt->tm_sec);
+//    stp->year = lt->tm_year - 100;
+//    //printf("year is %d\n", lt->tm_year);
+//    stp->month = lt->tm_mon +1;
+//    //printf("month is %d\n", lt->tm_mon);
+//    stp->day = lt->tm_mday;
+//    //printf("day is %d\n", lt->tm_mday);
+//    stp->hour =lt->tm_hour;
+//    //printf("hour is %d\n", lt->tm_hour);
+//    stp->minute = lt->tm_min;
+//    //printf("min is %d\n", lt->tm_min);
+//    stp->second = lt->tm_sec;
+//    //printf("sec is %d\n", lt->tm_sec);
 
-    //stp->YMDHM = (lt->tm_year - 100) *1e8 + (tm_mon +1)*1e6 + lt->tm_mday *1e4 + lt->tm_hour *1e2 + lt->tm_min;
-    //stp->MM =  lt->tm_sec * 1000 + (stp_data.gps_data.time_utc_usec /1000) %100;
+    stp->YMDHM = (lt->tm_year - 100) *1e8 + (lt->tm_mon +1)*1e6 + lt->tm_mday *1e4 + lt->tm_hour *1e2 + lt->tm_min;
+    stp->MM =  lt->tm_sec * 1000 + (stp_data.gps_data.time_utc_usec /1000) %100;
+    // printf("%d %d\n", stp->YMDHM,  stp->MM);
 }
 
 void yfpa_param_pack(YFPA_param *yfpa_param, MSG_param_hd msg_hd){
@@ -312,6 +339,7 @@ void setd_pack_send (void){
     memcpy(send_message, wp_data.push, sizeof(SETD));
     send_message[26] = calculate_sum_check(send_message, sizeof(SETD));
     write(uart_read, send_message, sizeof(SETD));
+    printf("setd_pack_send finish \n");
 }
 
 void exyf_response_pack(MSG_type msg_type, MSG_param_hd msg_hd){

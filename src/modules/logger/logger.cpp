@@ -624,6 +624,7 @@ void Logger::add_default_topics()
 	add_topic("camera_trigger");
 	add_topic("camera_trigger_secondary");
 	add_topic("cpuload");
+    add_topic("dg_attitude", 100);
 	add_topic("distance_sensor", 100);
 	add_topic("ekf2_innovations", 200);
 	//add_topic("ekf_gps_drift");
@@ -632,8 +633,8 @@ void Logger::add_default_topics()
 	add_topic("home_position");
 	add_topic("input_rc", 200);
 	add_topic("manual_control_setpoint", 200);
-	//add_topic("mission");
-	//add_topic("mission_result");
+    add_topic("mission");
+    add_topic("mission_result");
 	add_topic("optical_flow", 50);
 	add_topic("position_setpoint_triplet", 200);
 	//add_topic("radio_status");

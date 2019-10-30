@@ -9,9 +9,11 @@ __EXPORT int rw_uart_main(int argc, char *argv[]);
 
 static bool rw_thread_should_exit = false;		/**< px4_uart exit flag */
 static bool rw_uart_thread_running = false;		/**< px4_uart status flag */
+
 int uart_read;
 uint8_t param_saved[62];
 Waypoint_saved wp_data;
+static uint64_t last_time_send;
 
 static int rw_uart_task;				/**< Handle of px4_uart task / thread */
 static int rw_uart_init(void);
@@ -38,7 +40,7 @@ static void usage(const char *reason)
                 printf("%s\n", reason);
         }
 
-       printf("usage: px4_uart {start|stop|status} [-p <additional params>]\n\n");
+       printf("usage: rw_uart {start|stop|status} [-p <additional params>]\n\n");
 }
 
 int set_rw_uart_baudrate(const int fd, unsigned int baud)
@@ -120,6 +122,7 @@ void msg_orb_sub (MSG_orb_sub *msg_fd)
     //msg_fd->rc_input_fd = orb_subscribe(ORB_ID(input_rc));
     msg_fd->vibe_fd = orb_subscribe(ORB_ID(estimator_status));
     msg_fd->global_position_fd = orb_subscribe(ORB_ID(vehicle_global_position));
+    msg_fd->attitude_sp_fd = orb_subscribe(ORB_ID(vehicle_attitude_setpoint));
 }
 
 
@@ -140,6 +143,7 @@ void msg_orb_data(MSG_orb_data *msg_data, MSG_orb_sub msg_fd)
    //orb_copy(ORB_ID(input_rc), msg_fd.rc_input_fd, &msg_data->input_rc_data);
    orb_copy(ORB_ID(estimator_status), msg_fd.vibe_fd, &msg_data->vibe_data);
    orb_copy(ORB_ID(vehicle_global_position), msg_fd.global_position_fd, &msg_data->global_position_data);
+   orb_copy(ORB_ID(vehicle_attitude_setpoint), msg_fd.attitude_sp_fd, &msg_data->attitude_sp_data);
 }
 
 void msg_orb_unsub (MSG_orb_sub *msg_fd)
@@ -159,6 +163,7 @@ void msg_orb_unsub (MSG_orb_sub *msg_fd)
     orb_unsubscribe(msg_fd->geofence_fd);
     orb_unsubscribe(msg_fd->vibe_fd);
     orb_unsubscribe(msg_fd->global_position_fd);
+    orb_unsubscribe(msg_fd->attitude_sp_fd);
 }
 
 void msg_param_hd_cache (MSG_param_hd *msg_hd)
@@ -277,7 +282,7 @@ int rw_uart_thread_main(int argc, char *argv[])
 
          uart_read = rw_uart_init();
 
-         if (false == set_rw_uart_baudrate(uart_read, 115200)) {
+         if (false == set_rw_uart_baudrate(uart_read, COM_PORT_BAUDRATE)) {
                  printf("set_rw_uart_baudrate is failed\n");
                  return -1;
          }
@@ -314,21 +319,22 @@ int rw_uart_thread_main(int argc, char *argv[])
 
         rw_uart_thread_running = true;
 
+        last_time_send = hrt_absolute_time();
+
         while (!rw_thread_should_exit)
         {
             data = 0;
-
-            //MSG_orb_data msg_data;
-            memset(&msg_data, 0, sizeof(msg_data));
-
-            //uint8_t buffer[65];
             memset(buffer, 0, sizeof(buffer));
 
-            msg_orb_data(&msg_data, msg_fd);
-            msg_pack_send(msg_data, &msg_pd);
-            usleep(10000);
+            if(hrt_elapsed_time(&last_time_send) > 40000)
+            {
+                memset(&msg_data, 0, sizeof(msg_data));
+                msg_orb_data(&msg_data, msg_fd);
+                msg_pack_send(msg_data, &msg_pd);
+                last_time_send = hrt_absolute_time();
+            }
 
-            int poll_ret = poll(fds,1,10);//阻塞等待10ms
+            int poll_ret = poll(fds,1,1);//阻塞等待10ms
             if (poll_ret == 0)
             {
                     /* this means none of our providers is giving us data */
@@ -352,15 +358,7 @@ int rw_uart_thread_main(int argc, char *argv[])
                        if(data == '$')
                        {//找到帧头$
                                buffer[0] = '$';
-                               //usleep(100);
                                if (read_to_buff(buffer, 1, 5)) find_r_type(buffer, &msg_data, &msg_pd, msg_hd);
-//                               for(int i = 1; i  < 5; i++)
-//                               {
-//                                read(uart_read,&data,1);//读取后面的数
-//                                buffer[i] = data;
-//                                //usleep(100);
-//                                }
-                               //find_r_type(buffer, &msg_data, &msg_pd, msg_hd);
                        }
                        //printf("data=%s\n", buffer);
                }

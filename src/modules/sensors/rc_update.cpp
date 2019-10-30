@@ -272,6 +272,7 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
     /* DG virtual stick data for x, y, z, r when rc lost*/
     if(vs_updated) {
         orb_copy(ORB_ID(virtual_stick), _vs_sub, &_vs_sp);
+        // _vs_enable_DG = _vs_sp.timestamp - vs_last_timestamp > 20000 ? 0 : _vs_sp.vs_enable;
         vs_last_timestamp = _vs_sp.timestamp;
         if(_vs_sp.rc_signal_lost){
                         struct manual_control_setpoint_s manual = {};
@@ -404,8 +405,10 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			manual.mode_slot = manual_control_setpoint_s::MODE_SLOT_NONE;
 
             /* DG virtual stick data for x, y, z, r */
-             _vs_enable_DG = rc_input.timestamp - vs_last_timestamp > 1000000 ? 0 : _vs_sp.vs_enable;
-             manual.virtual_stick_enable = _vs_enable_DG;
+            _vs_enable_DG = hrt_absolute_time() - vs_last_timestamp > 60000 ? 0 : _vs_sp.vs_enable;
+
+            manual.virtual_stick_enable = _vs_enable_DG;
+
             if (_vs_enable_DG){
             manual.data_source = 255;
             manual.x = _vs_sp.x;

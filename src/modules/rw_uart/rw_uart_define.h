@@ -3,6 +3,8 @@
 
 #include <px4_posix.h>
 
+#define COM_PORT_BAUDRATE (uint32_t)57600
+
 #define MSG_NAME_WIFI (uint8_t)0
 #define MSG_NAME_IWFI (uint8_t)1
 #define MSG_NAME_HFMR (uint8_t)2

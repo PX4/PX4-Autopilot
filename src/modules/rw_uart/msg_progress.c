@@ -3,6 +3,7 @@
 
 static double lat_save =0;
 static double lon_save =0;
+//static uint64_t vs_last_time = 0;
 
 void msg_pack_send( MSG_orb_data msg_data, MSG_orb_pub *msg_pd)
 {
@@ -303,16 +304,16 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
     case MSG_NAME_WIFI:
         switch (msg_type.command) {
         case WIFI_COMM_WAYPOINT:
-//            set_command_param(&msg_data->command_data, 192, -1, 1, 0, NAN,
-//                              ((double_t)*(int32_t*)((uint32_t)buffer + 6)) * 1e-7,
-//                              ((double_t)*(int32_t*)((uint32_t)buffer + 10))* 1e-7,
-//                              (msg_data->global_position_data.alt));
-
             set_command_param(&msg_data->command_data, 192, -1, 1, 0, NAN,
-                              lat_save,
-                              lon_save,
+                              ((double_t)*(int32_t*)((uint32_t)buffer + 6)) * 1e-7,
+                              ((double_t)*(int32_t*)((uint32_t)buffer + 10))* 1e-7,
                               (msg_data->global_position_data.alt));
-            if(lat_save != 0 && lon_save !=0)
+
+//            set_command_param(&msg_data->command_data, 192, -1, 1, 0, NAN,
+//                              lat_save,
+//                              lon_save,
+//                              (msg_data->global_position_data.alt));
+//            if(lat_save != 0 && lon_save !=0)
 
             publish_commander_pd(msg_pd, msg_data);
             printf("lat is %.7f, lon is %.7f\n", ((double_t)*(int32_t*)((uint32_t)buffer + 6)) * 1e-7,
@@ -320,7 +321,7 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             printf("Passing waypoint\n");
             break;
         case WIFI_COMM_AUTO_LAND:
-            set_command_param(&msg_data->command_data, 21, 0, 0, 0, 0,
+            set_command_param(&msg_data->command_data, 21, 0, 0, 0, NAN,
                               (msg_data->global_position_data.lat),
                               (msg_data->global_position_data.lon),
                               0);
@@ -328,10 +329,10 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             printf("Passing land\n");
             break;
         case WIFI_COMM_AUTO_TAKEOFF:
-            set_command_param(&msg_data->command_data, 22, 0, 0, 0, 0,
+            set_command_param(&msg_data->command_data, 22, 0, 0, 0, NAN,
                               (msg_data->global_position_data.lat),
                               (msg_data->global_position_data.lon),
-                              (msg_data->global_position_data.alt -10.0));
+                              (msg_data->global_position_data.alt +1.5));
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing takeoff\n");
             break;
@@ -500,11 +501,11 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
         vs_sp.y = ((float_t)(((uint16_t) buffer[7]<<8) + buffer [8])/1000.0 - 1.5)*2.0;
         vs_sp.x = ((float_t)(((uint16_t) buffer[9]<<8) + buffer [10])/1000.0 - 1.5)*2.0;
         vs_sp.z = 2.0 - (float_t)(((uint16_t) buffer[11]<<8) + buffer [12])/1000.0;
-        printf("Passing iwfi_pack, x = %.3f y = %.3f z = %.3f r = %.3f\n", vs_sp.x, vs_sp.y, vs_sp.z, vs_sp.r);
+        //printf("Passing iwfi_pack, x = %.3f y = %.3f z = %.3f r = %.3f\n", vs_sp.x, vs_sp.y, vs_sp.z, vs_sp.r);
         if (msg_data->status_data.nav_state == 2 && check_mid(&vs_sp))
             vs_sp.vs_enable = 1;
         else vs_sp.vs_enable = 0;
-        printf("vs_enable = %d nav_state = %d\n", vs_sp.vs_enable, msg_data->status_data.nav_state);
+        //printf("vs_enable = %d nav_state = %d\n", vs_sp.vs_enable, msg_data->status_data.nav_state);
         publish_vs_pd(msg_pd, &vs_sp);
         break;
 

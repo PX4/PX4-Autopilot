@@ -304,7 +304,7 @@ MulticopterAttitudeControl::vehicle_attitude_poll()
 	if (updated) {
 		uint8_t prev_quat_reset_counter = _v_att.quat_reset_counter;
 
-		orb_copy(ORB_ID(vehicle_attitude), _v_att_sub, &_v_att);
+		orb_copy(ORB_ID(vehicle_attitude), _v_att_sub, &_v_att);        
 
 		// Check for a heading reset
 		if (prev_quat_reset_counter != _v_att.quat_reset_counter) {
@@ -509,6 +509,28 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	_landing_gear.landing_gear = get_landing_gear_state();
 	_landing_gear.timestamp = hrt_absolute_time();
 	orb_publish_auto(ORB_ID(landing_gear), &_landing_gear_pub, &_landing_gear, nullptr, ORB_PRIO_DEFAULT);
+
+    //DG attitude log data
+    struct dg_attitude_s dg_att ={};
+    float q0 = _v_att.q[0];
+    float q1 = _v_att.q[1];
+    float q2 = _v_att.q[2];
+    float q3 = _v_att.q[3];
+    dg_att.roll = atan2f(2*(q0*q1 + q2*q3), 1 - 2*(q1*q1 + q2*q2));
+    dg_att.pitch = asinf(2*(q0*q2 - q3*q1));
+    dg_att.yaw = atan2f(2*(q0*q3 + q1*q2), 1 - 2*(q2*q2 + q3*q3));
+    dg_att.rollspeed = _v_att.rollspeed;
+    dg_att.pitchspeed = _v_att.pitchspeed;
+    dg_att.yawspeed = _v_att.yawspeed;
+    dg_att.timestamp = _v_att.timestamp;
+
+    if (_dg_attitude_pub != nullptr){
+            orb_publish(ORB_ID(dg_attitude), _dg_attitude_pub, &dg_att);
+    }
+    else{
+            _dg_attitude_pub = orb_advertise(ORB_ID(dg_attitude), &dg_att);
+    }
+
 }
 
 /**

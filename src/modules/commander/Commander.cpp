@@ -1526,7 +1526,7 @@ Commander::run()
                 else
                     mode_chage_count = 0;
                 timestamp_pre = sp_man.timestamp;
-                mavlink_log_critical(&mavlink_log_pub, "mode_chage_count = %d", mode_chage_count);
+                //mavlink_log_critical(&mavlink_log_pub, "mode_chage_count = %d", mode_chage_count);
                 }
                 if (mode_chage_count >3)
                 {

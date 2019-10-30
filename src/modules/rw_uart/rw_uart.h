@@ -38,6 +38,7 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_air_data.h>
 #include <uORB/topics/vehicle_attitude.h>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/input_rc.h>
@@ -59,14 +60,14 @@ typedef struct {
     int32_t gps_wp_latitude;
     float_t gps_yaw;
     uint8_t gps_num;
-    uint8_t year;
-    uint8_t month;
-    uint8_t day;
-    uint8_t hour;
-    uint8_t minute;
-    uint8_t second;
-    //uint32_t YMDHM;
-    //uint16_t MM;
+//    uint8_t year;
+//    uint8_t month;
+//    uint8_t day;
+//    uint8_t hour;
+//    uint8_t minute;
+//    uint8_t second;
+    uint32_t YMDHM;
+    uint16_t MM;
     uint8_t wp_num;
     uint8_t rc_yaw;
     uint8_t rc_y;
@@ -328,6 +329,7 @@ typedef struct {
     //int rc_input_fd;
     int vibe_fd;
     int global_position_fd;
+    int attitude_sp_fd;
 }MSG_orb_sub;
 
 typedef struct {
@@ -356,6 +358,7 @@ typedef struct {
     //struct input_rc_s input_rc_data;
     struct estimator_status_s vibe_data;
     struct vehicle_global_position_s global_position_data;
+    struct vehicle_attitude_setpoint_s attitude_sp_data;
 //    struct follow_target_s follow_target_data;
 }MSG_orb_data;
 
