@@ -63,7 +63,7 @@ RTL::on_inactive()
 }
 
 void
-RTL::find_closest_landing_point()
+RTL::find_RTL_destination()
 {
 	// get home position:
 	home_position_s &home_landing_position = *_navigator->get_home_position();
@@ -79,7 +79,8 @@ RTL::find_closest_landing_point()
 
 	_destination.type = RTL_DESTINATION_HOME;
 
-	if (_navigator->get_mission_start_land_available()) {
+	// consider the mission landing if not RTL_HOME type set
+	if (rtl_type() != RTL_HOME && _navigator->get_mission_start_land_available()) {
 		double mission_landing_lat = _navigator->get_mission_landing_lat();
 		double mission_landing_lon = _navigator->get_mission_landing_lon();
 
@@ -88,7 +89,8 @@ RTL::find_closest_landing_point()
 		dlon = mission_landing_lon - global_position.lon;
 		double dist_squared = dlat * dlat + dlon * dlon;
 
-		if (dist_squared < min_dist_squared) {
+		// set destination to mission landing if closest or in RTL_LAND or RTL_MISSION (so not in RTL_CLOSEST)
+		if (dist_squared < min_dist_squared || rtl_type() != RTL_CLOSEST) {
 			min_dist_squared = dist_squared;
 			_destination.lat = _navigator->get_mission_landing_lat();
 			_destination.lon = _navigator->get_mission_landing_lon();
@@ -158,49 +160,6 @@ RTL::find_closest_landing_point()
 		}
 	}
 
-}
-
-void
-RTL::find_RTL_destination()
-{
-	// get home position:
-	home_position_s &home_landing_position = *_navigator->get_home_position();
-
-	switch (rtl_type()) {
-	case RTL_HOME:
-		// always take home position as landing destination
-		_destination.set(home_landing_position);
-		_destination.type = RTL_DESTINATION_HOME;
-		break;
-
-	case RTL_LAND:
-
-	// take mission landing as landing destination (if available), otherwise home
-	case RTL_MISSION:
-
-		// inverse mission
-		if (_navigator->get_mission_start_land_available()) {
-			_destination.lat = _navigator->get_mission_landing_lat();
-			_destination.lon = _navigator->get_mission_landing_lon();
-			_destination.alt = _navigator->get_mission_landing_alt();
-			_destination.type = RTL_DESTINATION_MISSION_LANDING;
-
-		} else {
-			_destination.set(home_landing_position);
-			_destination.type = RTL_DESTINATION_HOME;
-		}
-
-		break;
-
-	case RTL_CLOSEST:
-		// choose closest possible landing point (consider home, mission landing and safe points)
-		find_closest_landing_point();
-		break;
-
-	default:
-		mavlink_log_critical(_navigator->get_mavlink_log_pub(), "RTL: unsupported RTL_TYPE. Change RTL_TYPE param.");
-		break;
-	}
 }
 
 int
