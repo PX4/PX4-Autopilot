@@ -24,10 +24,9 @@
 #
 # @maintainer Hyon Lim <lim@uvify.com>
 #
-
-set VEHICLE_TYPE mc
+sh /etc/init.d/rc.mc_defaults
 set MIXER hexa_x
-set PWM_OUT 123456
+set PWM_OUT 12345678
 
 if [ $AUTOCNF = yes ]
 then
@@ -88,6 +87,11 @@ then
 	# System
 	param set PWM_MAX 1950
 	param set PWM_MIN 1100
+	param set PWM_MAIN_DIS5 980
+        param set PWM_MAIN_DIS6 980
+
+	# DSHOT
+	param set DSHOT_CONFIG 600
 
 	param set COM_ARM_MAG 0.2000
 
