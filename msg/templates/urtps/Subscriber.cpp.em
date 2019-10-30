@@ -131,21 +131,7 @@ void @(topic)_Subscriber::SubListener::onSubscriptionMatched(Subscriber* sub, Ma
 void @(topic)_Subscriber::SubListener::onNewDataMessage(Subscriber* sub)
 {
         // Take data
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[    if ros2_distro]@
-        @(package)::msg::dds_::@(topic)_ st;
-@[    else]@
-        @(topic)_ st;
-@[    end if]@
-@[else]@
-@[    if ros2_distro]@
-        @(package)::msg::@(topic) st;
-@[    else]@
-        @(topic) st;
-@[    end if]@
-@[end if]@
-
-        if(sub->takeNextData(&st, &m_info))
+        if(sub->takeNextData(&msg, &m_info))
         {
             if(m_info.sampleKind == ALIVE)
             {
