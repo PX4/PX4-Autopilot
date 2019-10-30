@@ -568,4 +568,4 @@ PARAM_DEFINE_FLOAT(MC_TPA_RATE_D, 0.0f);
  * @reboot_required true
  * @group Multicopter Attitude Control
  */
-PARAM_DEFINE_INT32(HRT_INTVL_ATT, 6666);
+PARAM_DEFINE_INT32(HRT_INTVL_ATT, 5000);

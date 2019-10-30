@@ -68,6 +68,8 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/wind_estimate.h>
+#include <sensors/param_state.h> // INRIA
+ #include <uORB/topics/ekf_state.h> //INRIA
 
 using control::BlockParamFloat;
 using control::BlockParamExtFloat;
@@ -78,15 +80,34 @@ using math::constrain;
 
 extern "C" __EXPORT int ekf2_main(int argc, char *argv[]);
 
-sem_t sem_ekf2;// INRIA: semaphore to activate and block the attitude control task
-hrt_call		_call_ekf2; // INRIA
-
 extern "C" __EXPORT int ekf2_task_activation(); //INRIA
+
+sem_t sem_ekf2;// INRIA: semaphore to activate and block the ekf2 task
+hrt_call		_call_ekf2; // INRIA
+bool first_activation_ekf2; //INRIA: checking if it is a first activation of the task or not
+int sem_val_ekf2; //INRIA: value of the semaphore
+uint hrt_ekf2_count = 0; //INRIA: counting numbers of HRT interruption for ekf2 task
+uint deadline_miss_ekf2 = 0; //INRIA: to count how many times ekf2 task has missed its deadline
+uint ekf2_count = 0; //INRIA: counting numbers of execution instance of ekf2 task
+
+/* INRIA: routine for task activation called by HRT interruption */
 
 int ekf2_task_activation()
 {
-
-	sem_post(&sem_ekf2);
+	hrt_ekf2_count = hrt_ekf2_count + 1; // INRIA: we increment the counter at every period (task activation)  
+	//sem_getvalue(&sem_ekf2,&sem_val_ekf2);
+	if(first_activation_ekf2 == true) { //INRIA: we release a sem at t= 0 (first activation of the task). the value of the sem will be 1 here. Will be exectued only once.
+		sem_post(&sem_ekf2) ; 
+		first_activation_ekf2 = false;
+	}
+	else {
+		sem_post(&sem_ekf2);
+		sem_getvalue(&sem_ekf2,&sem_val_ekf2);
+		if (sem_val_ekf2 > 0) { //INRIA: since the task is blocked waiting for hrt to release a sem, the value of sem should be 0 at this stage. Otherwise, we have a deadline miss
+			sem_wait(&sem_ekf2); // INRIA: if true, then decree the value of the semaphore
+			deadline_miss_ekf2 = deadline_miss_ekf2 + 1; // INRIA: counter to count number of times the task has missed its deadline
+		}
+	}
 
 	return 0;
 
@@ -190,6 +211,7 @@ private:
 	orb_advert_t _estimator_innovations_pub{nullptr};
 	orb_advert_t _ekf2_timestamps_pub{nullptr};
 	orb_advert_t _sensor_bias_pub{nullptr};
+	orb_advert_t	_ekf_state_pub{nullptr};			/**< INRIA: state sensor topic */
 
 	uORB::Publication<vehicle_local_position_s> _vehicle_local_position_pub;
 	uORB::Publication<vehicle_global_position_s> _vehicle_global_position_pub;
@@ -489,6 +511,11 @@ int Ekf2::ekf2_sem_release() { //INRIA
 
 void Ekf2::run()
 {
+	struct ekf_state_s state = {}; // INRIA
+
+	/* INRIA: advertise the sensor_state topic and make the initial publication */
+	_ekf_state_pub = orb_advertise(ORB_ID(ekf_state), &state);
+
 	// subscribe to relevant topics
 	int sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
 	int gps_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
@@ -543,21 +570,37 @@ void Ekf2::run()
 	int32_t hrt_ekf2_param = 0;
 	param_get(hrt_param_handle, &hrt_ekf2_param);
 
+	first_activation_ekf2 = true;
+
+	sem_init(&sem_ekf2, 0, 0); // INRIA: keep this or not (sem is always initialized at 0), bc HRT will unlock a semaphore everytime its called.
+
 	//INRIA: calling ekf2_task_activation every hrt_ekf2_param (= period) using High Resolution Timer to release sem_ekf2 semaphore
 	hrt_call_every(&_call_ekf2,
 			       0,
-			       4000/*hrt_ekf2_param*/,
+			       hrt_ekf2_param,
 			       (hrt_callout)&ekf2_task_activation, this); /* Ekf2::*/
 
 	while (!should_exit()) {
 
 		sem_wait(&sem_ekf2); // INRIA
 
+		// INRIA: start of measurement
+		state.timestamp= hrt_absolute_time();
+
+		preemption_flag = 2; //INRIA: ID of the task
+
+		ekf2_count = ekf2_count + 1; // INRIA: count the number of execution of the task
+
+		/* INRIA: write datas in the buffer to log it after in the logger file */
+		state.time[0]= ekf2_count;// INRIA
+		state.time[1]= hrt_ekf2_count;// INRIA
+		state.time[2] = deadline_miss_ekf2; //INRIA
+
 		int ret = px4_poll(fds, sizeof(fds) / sizeof(fds[0]), 0); // INRIA: Don't need to wait for up to 1000 ms since we r using HRT
 
 		if (!(fds[0].revents & POLLIN)) {
 			// no new data
-			continue; 
+			//continue; //INRIA: Go through the loop anyway
 		}
 
 		if (ret < 0) {
@@ -567,7 +610,7 @@ void Ekf2::run()
 
 		} else if (ret == 0) {
 			// Poll timeout or no new data, do nothing
-			 continue;
+			 //continue; //INRIA: Go through the loop anyway
 		}
 
 		bool params_updated = false;
@@ -1135,7 +1178,7 @@ void Ekf2::run()
 					orb_publish(ORB_ID(sensor_bias), _sensor_bias_pub, &bias);
 				}
 			}
-		}
+		} 
 
 		// publish estimator status
 		estimator_status_s status;
@@ -1451,6 +1494,16 @@ void Ekf2::run()
 				orb_publish(ORB_ID(ekf2_timestamps), _ekf2_timestamps_pub, &ekf2_timestamps);
 			}
 		}
+
+		/* INRIA: write datas in the buffer to log it after in the logger file */
+		state.time[3]= sem_val_ekf2;
+		state.time[4]= preemption_flag;
+		state.time[5]= hrt_absolute_time(); // INRIA: end of measurement
+		// INRIA: publish ekf2 state topic
+		orb_publish(ORB_ID(ekf_state), _ekf_state_pub, &state);
+		ekf2_count = 0;
+		hrt_ekf2_count = 0;
+		deadline_miss_ekf2 = 0;
 	}
 
 	orb_unsubscribe(sensors_sub);
@@ -1540,7 +1593,7 @@ int Ekf2::task_spawn(int argc, char *argv[])
 {
 	_task_id = px4_task_spawn_cmd("ekf2",
 				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_ESTIMATOR,
+				      /*SCHED_PRIORITY_ESTIMATOR*/ SCHED_PRIORITY_ATTITUDE_CONTROL,
 				      6600,
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);

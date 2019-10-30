@@ -588,4 +588,4 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 0.4f);
  * @reboot_required true
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_INT32(HRT_INTVL_POS, 6666);
+PARAM_DEFINE_INT32(HRT_INTVL_POS, 5000);

@@ -122,6 +122,8 @@
 #include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/estimator_status.h>
+#include <sensors/param_state.h> // INRIA
+ #include <uORB/topics/cmdr_state.h> //INRIA
 
 typedef enum VEHICLE_MODE_FLAG
 {
@@ -259,8 +261,13 @@ static bool _last_condition_global_position_valid = false;
 
 static struct vehicle_land_detected_s land_detector = {};
 
-static sem_t sem_cmdr;// INRIA: semaphore to activate and block the commander task
+sem_t sem_cmdr;// INRIA: semaphore to activate and block the commander task
 hrt_call		_call_cmdr; // INRIA
+bool first_activation_cmdr; //INRIA: checking if it is a first activation of the task or not
+int sem_val_cmdr; //INRIA: value of the semaphore
+uint hrt_cmdr_count = 0; //INRIA: counting numbers of HRT interruption for commander task
+uint deadline_miss_cmdr = 0; //INRIA: to count how many times commander task has missed its deadline
+uint cmdr_count = 0; //INRIA: counting numbers of execution instance of commander task
 
 static int	cmdr_task_activation(void *arg); // INRIA: called by HRT periodically to release semaphore for the blocked task: commander
 
@@ -352,8 +359,26 @@ static void answer_command(struct vehicle_command_s &cmd, unsigned result,
 /* publish vehicle status flags from the global variable status_flags*/
 static void publish_status_flags(orb_advert_t &vehicle_status_flags_pub);
 
+
+/* INRIA: routine for task activation called by HRT interruption  */
+
 int cmdr_task_activation(void *arg) { //INRIA
-	sem_post(&sem_cmdr);
+
+	hrt_cmdr_count = hrt_cmdr_count + 1; // INRIA: we increment the counter at every period (task activation)
+	if(first_activation_cmdr == true) { //INRIA: we release a sem at t= 0 (first activation of the task). the value of the sem will be 1 here. Will be exectued only once.
+		sem_post(&sem_cmdr) ; 
+		first_activation_cmdr = false;
+	}
+	else {
+		sem_post(&sem_cmdr);
+		sem_getvalue(&sem_cmdr,&sem_val_cmdr);
+		if (sem_val_cmdr > 0) { //INRIA: since the task is blocked waiting for hrt to release a sem, the value of sem should be 0 at this stage. Otherwise, we have a deadline miss
+			sem_wait(&sem_cmdr); //INRIA: since the task had missed its deadline, semaphores released by HRT have to be consumed or it will increase infinitly
+			deadline_miss_cmdr = deadline_miss_cmdr + 1; // INRIA: counter to count number of times the task has missed its deadline
+			//sem_init(&sem_cmdr,0,0);
+		}
+	}
+
 	return 0;
 
 }
@@ -1309,6 +1334,13 @@ static void commander_set_home_position(orb_advert_t &homePub, home_position_s &
 
 int commander_thread_main(int argc, char *argv[])
 {
+	struct cmdr_state_s state = {}; // INRIA
+
+	orb_advert_t	_cmdr_state_pub{nullptr};			/**< INRIA: state commander topic */
+
+	/* INRIA: advertise the sensor_state topic and make the initial publication */
+	_cmdr_state_pub = orb_advertise(ORB_ID(cmdr_state), &state);
+
 	/* not yet initialized */
 	commander_initialized = false;
 
@@ -1837,6 +1869,10 @@ int commander_thread_main(int argc, char *argv[])
 	int32_t hrt_cmdr_param = 0;
 	param_get(hrt_param_handle, &hrt_cmdr_param);
 
+	first_activation_cmdr = true;
+
+	sem_init(&sem_cmdr, 0, 0); // INRIA: keep this or not (sem is always initialized at 0), bc HRT will unlock a semaphore everytime its called.
+
 	//INRIA: calling comm_task_activation at a specific period: hrt_comdr_param, using High Resolution Timer
 	hrt_call_every(&_call_cmdr,
 			       0,
@@ -1846,6 +1882,17 @@ int commander_thread_main(int argc, char *argv[])
 	while (!thread_should_exit) {
 
 		sem_wait(&sem_cmdr); // INRIA
+
+		// INRIA: start of measurement
+		state.timestamp= hrt_absolute_time();
+
+		preemption_flag = 6; //INRIA: ID of the task
+		cmdr_count = cmdr_count + 1; // INRIA: count the number of execution of the task
+		
+		/* INRIA: write datas in the buffer to log it after in the logger file */
+		state.time[0]= cmdr_count;// INRIA
+		state.time[1]= hrt_cmdr_count;// INRIA
+		state.time[2] = deadline_miss_cmdr; //INRIA
 
 		arming_ret = TRANSITION_NOT_CHANGED;
 
@@ -2076,7 +2123,7 @@ int commander_thread_main(int argc, char *argv[])
 
 		orb_check(sensor_sub, &updated);
 
-		if (updated) {
+		if (updated) { // INRIA to be commented
 			orb_copy(ORB_ID(sensor_combined), sensor_sub, &sensors);
 
 			/* Check if the barometer is healthy and issue a warning in the GCS if not so.
@@ -3327,6 +3374,18 @@ int commander_thread_main(int argc, char *argv[])
 		arm_auth_update(now);
 
 		//usleep(COMMANDER_MONITORING_INTERVAL); //INRIA: Commander task is now activated every 10ms
+
+		/* INRIA: write datas in the buffer to log it after in the logger file */
+		state.time[3]= sem_val_cmdr;//sem_value_cmdr;
+		state.time[4]=preemption_flag; 
+		state.time[5]= hrt_absolute_time(); // INRIA: end of measurement
+		// INRIA: publish commander state topic
+		orb_publish(ORB_ID(cmdr_state), _cmdr_state_pub, &state);
+		cmdr_count = 0; //INRIA
+		hrt_cmdr_count = 0;
+		deadline_miss_cmdr = 0;
+		//sem_wait(&sem_cmdr); //INRIA
+		//sem_wait(&sem_cmdr); //INRIA
 	}
 
 	/* wait for threads to complete */

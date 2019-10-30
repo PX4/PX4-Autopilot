@@ -85,6 +85,8 @@
 #include <uORB/topics/servorail_status.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/multirotor_motor_limits.h>
+#include <sensors/param_state.h> // INRIA
+ #include <uORB/topics/io_state.h> //INRIA
 
 #include <debug.h>
 
@@ -109,11 +111,32 @@ extern "C" __EXPORT int px4io_task_activation(); //INRIA
 
 sem_t sem_px4io;// INRIA: semaphore to activate and block the Px4io task
 hrt_call		_call_px4io; // INRIA
+bool first_activation_px4io; //INRIA: checking if it is a first activation of the task or not
+int sem_val_px4io; // INRIA: value of the semaphore
+uint hrt_px4io_count = 0; //INRIA: counting numbers of HRT interruption for px4io task
+static uint deadline_miss_px4io = 0; //INRIA: to count how many times px4io task has missed its deadline
+uint px4io_count = 0; //INRIA: counting numbers of execution instance of px4io (IO) task
 
-int px4io_task_activation() //INRIA
+/* INRIA: routine for task activation called by HRT interruption  */
+
+int px4io_task_activation()
 {
-
-	sem_post(&sem_px4io);
+	hrt_px4io_count = hrt_px4io_count + 1; // INRIA: we increment the counter at every period (task activation)
+	
+	if(first_activation_px4io == true) { //INRIA: we release a semaphore at t= 0 (first activation of the task). the value of the semaphore will be 1 here. Will be exectued only once.
+		sem_post(&sem_px4io) ; 
+		first_activation_px4io = false;
+	}
+	else  { // no problem since, in this case, the task should be activated as its period has arrived, so we unlock the semaphore ans the task will run.
+		sem_post(&sem_px4io);
+		sem_getvalue(&sem_px4io,&sem_val_px4io);
+		if (sem_val_px4io > 0) { //INRIA: since the task is blocked waiting for hrt to release a sem, the value of sem should be 0 at this stage. Otherwise, we have a deadline miss
+			sem_wait(&sem_px4io); // INRIA: if true, then decree the value of the semaphore
+			deadline_miss_px4io = deadline_miss_px4io + 1; // INRIA: counter to count number of times the task has missed its deadline
+			//PX4_INFO("deadline miss"); //INRIA
+		}
+	}
+	//sem_post(&sem_px4io);
 
 	return 0;
 
@@ -282,6 +305,7 @@ private:
 	orb_advert_t		_to_servorail;		///< servorail status
 	orb_advert_t		_to_safety;		///< status of safety
 	orb_advert_t 		_to_mixer_status; 	///< mixer status flags
+	orb_advert_t	_io_state_pub{nullptr};			/**< INRIA: state sensor topic */
 
 	actuator_outputs_s	_outputs;		///< mixed outputs
 	servorail_status_s	_servorail_status;	///< servorail status
@@ -880,7 +904,7 @@ PX4IO::init()
 	/* start the IO interface task */
 	_task = px4_task_spawn_cmd("px4io",
 				   SCHED_DEFAULT,
-				   SCHED_PRIORITY_ACTUATOR_OUTPUTS,
+				  /*SCHED_PRIORITY_ACTUATOR_OUTPUTS*/ SCHED_PRIORITY_ATTITUDE_CONTROL,
 				   1500,
 				   (main_t)&PX4IO::task_main_trampoline,
 				   nullptr);
@@ -919,6 +943,11 @@ PX4IO::task_main_trampoline(int argc, char *argv[])
 void
 PX4IO::task_main()
 {
+	struct io_state_s state = {}; // INRIA
+
+	/* INRIA: advertise the sensor_state topic and make the initial publication */
+	_io_state_pub = orb_advertise(ORB_ID(io_state), &state);
+
 	hrt_abstime poll_last = 0; 
 	hrt_abstime orb_check_last = 0;
 
@@ -966,10 +995,14 @@ PX4IO::task_main()
 
 	_param_update_force = true;
 
+	first_activation_px4io = true;
+
+	sem_init(&sem_px4io, 0, 0); // INRIA: keep this or not (sem is always initialized at 0), bc HRT will unlock a semaphore everytime its called.
+
 	//INRIA: calling ctrl_tasks_activation every hrt_io_param (= period) using High Resolution Timer
 	hrt_call_every(&_call_px4io,
 			       0,
-			       4000/*hrt_io_param*/,
+			       hrt_io_param,
 			       (hrt_callout)&px4io_task_activation, this); /*PX4IO::*/
 
 	/* lock against the ioctl handler */
@@ -980,8 +1013,19 @@ PX4IO::task_main()
 
 		sem_wait(&sem_px4io); //INRIA
 
+		// INRIA: start of measurement
+		state.timestamp= hrt_absolute_time();
+
+		preemption_flag = 8; //INRIA: ID of the task
+		px4io_count = px4io_count + 1; // INRIA: count the number of execution of the task
+
+		/* INRIA: write datas in the buffer to log it after in the logger file */
+		state.time[0]= px4io_count;// INRIA
+		state.time[1]= hrt_px4io_count;// INRIA
+		state.time[2] = deadline_miss_px4io; //INRIA
+
 		/* adjust update interval */ //INRIA: the task is running at a specific period see: hrt_io_param parameter
-		if (_update_interval != 0) { 
+		/*if (_update_interval != 0) { 
 			if (_update_interval < UPDATE_INTERVAL_MIN) {
 				_update_interval = UPDATE_INTERVAL_MIN;
 			}
@@ -994,7 +1038,7 @@ PX4IO::task_main()
 			//NOT changing the rate of groups 1-3 here, because only attitude really needs to run fast.
 			 
 			_update_interval = 0;
-		}
+		}*/
 
 		/* INRIA: we don't wait for data since we are using HRT */
 		unlock();
@@ -1010,18 +1054,13 @@ PX4IO::task_main()
 		perf_begin(_perf_update);
 		hrt_abstime now = hrt_absolute_time();
 
-		/* if we have new control data from the ORB, handle it */
-		if (fds[0].revents & POLLIN) {
+		//if (fds[0].revents & POLLIN) { //if we have new control data from the ORB, handle it
 
-			/* we're not nice to the lower-priority control groups and only check them
-			   when the primary group updated (which is now). */
-			(void)io_set_control_groups(); //INRIA: check the lower-priority control groups even if we don't have new data
-		}
+		(void)io_set_control_groups(); //INRIA: check the control groups
 
-		if (now >= poll_last + IO_POLL_INTERVAL) 
 		{
 			/* run at 50-250Hz */
-			poll_last = now;
+			poll_last += now; 
 
 			/* pull status and alarms from IO */
 			io_get_status();
@@ -1074,7 +1113,7 @@ PX4IO::task_main()
 			 */
 			orb_check(_t_param, &updated);
 
-			if (updated || _param_update_force) {
+			if (updated || _param_update_force) { 
 				_param_update_force = false;
 				parameter_update_s pupdate;
 				orb_copy(ORB_ID(parameter_update), _t_param, &pupdate);
@@ -1279,6 +1318,16 @@ PX4IO::task_main()
 		}
 
 		perf_end(_perf_update);
+
+		/* INRIA: write datas in the buffer to log it after in the logger file */
+		state.time[3] = sem_val_px4io;
+		state.time[4] = preemption_flag;
+		state.time[5] = hrt_absolute_time(); // INRIA: end of measurement
+		// INRIA: publish px4io state topic
+		orb_publish(ORB_ID(io_state), _io_state_pub, &state);
+		px4io_count = 0;
+		hrt_px4io_count = 0;
+		deadline_miss_px4io = 0;
 	}
 
 	unlock();

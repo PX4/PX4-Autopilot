@@ -616,6 +616,14 @@ void Logger::add_default_topics()
 	add_topic("vehicle_vision_position");
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("wind_estimate", 200);
+	add_topic("sensor_state", 100); // INRIA: log sensor_state at 100
+	add_topic("ekf_state", 100); // INRIA: log ekf_state topic at 100
+	add_topic("pos_state", 100); // INRIA: log pos_state topic at 100
+	add_topic("att_state", 100); // INRIA: log att_state topic at 100
+	add_topic("nav_state", 100); // INRIA: log nav_state topic at 100
+	add_topic("cmdr_state", 100); // INRIA: log cmdr_state topic at 100
+	add_topic("fmu_state", 100); // INRIA: log fmu_state topic at 100
+	add_topic("io_state", 100); // INRIA:log io_state topic at 100
 }
 
 void Logger::add_high_rate_topics()
@@ -627,6 +635,14 @@ void Logger::add_high_rate_topics()
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_rates_setpoint");
+	add_topic("sensor_state"); // INRIA: log sensor_state topic at full rate
+	add_topic("ekf_state"); // INRIA: log ekf_state topic at full rate
+	add_topic("pos_state"); // INRIA: log pos_state topic at full rate
+	add_topic("att_state"); // INRIA: log att_state topic at full rate
+	add_topic("nav_state"); // INRIA: log nav_state topic at full rate
+	add_topic("cmdr_state"); // INRIA: log cmdr_state topic at full rate
+	add_topic("fmu_state"); // INRIA: log fmu_state topic at full rate
+	add_topic("io_state"); // INRIA:log io_state topic at full rate
 }
 
 void Logger::add_debug_topics()

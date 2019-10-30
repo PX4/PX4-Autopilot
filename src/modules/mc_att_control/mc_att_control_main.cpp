@@ -83,6 +83,8 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/uORB.h>
+#include <sensors/param_state.h> // INRIA
+ #include <uORB/topics/att_state.h> //INRIA
 
 /**
  * Multicopter attitude control app start / stop handling function
@@ -91,15 +93,36 @@
  */
 extern "C" __EXPORT int mc_att_control_main(int argc, char *argv[]);
 
+extern "C" __EXPORT int att_task_activation(); //INRIA
+
 	sem_t sem_att;// INRIA: semaphore to activate and block the attitude control task
 	hrt_call		_call_att; // INRIA
+bool first_activation_att; //INRIA: checking if it is a first activation of the task or not
+int sem_val_att; //INRIA: value of the semaphore
+uint hrt_att_count = 0; //INRIA: counting numbers of HRT interruption for attitude control task
+uint deadline_miss_att = 0; //INRIA: to count how many times attitude controller task has missed its deadline
+uint att_count = 0; //INRIA: counting numbers of execution instance of attitude controller task
 
-extern "C" __EXPORT int att_task_activation(); //INRIA
+/* INRIA: routine for task activation called by HRT interruption */
 
 int att_task_activation() //INRIA
 {
-
-	sem_post(&sem_att);
+	hrt_att_count = hrt_att_count + 1; // INRIA: we increment the counter at every period (task activation)
+	
+	if(first_activation_att == true) { //INRIA: we release a sem at t= 0 (first activation of the task). the value of the sem will be 1 here. Will be exectued only once.
+		sem_post(&sem_att) ; 
+		first_activation_att = false;
+	}
+	else {
+		sem_post(&sem_att);
+		sem_getvalue(&sem_att,&sem_val_att);
+		if (sem_val_att > 0) { //INRIA: since the task is blocked waiting for hrt to release a sem, the value of sem should be 0 at this stage. Otherwise, we have a deadline miss
+			sem_wait(&sem_att); // INRIA: if true, then decree the value of the semaphore
+			deadline_miss_att = deadline_miss_att + 1; // INRIA: counter to count number of times the task has missed its deadline
+			//PX4_INFO("deadline miss"); //INRIA
+		}
+	}
+	//sem_post(&sem_att);
 
 	return 0;
 
@@ -163,6 +186,7 @@ private:
 	orb_advert_t	_v_rates_sp_pub;		/**< rate setpoint publication */
 	orb_advert_t	_actuators_0_pub;		/**< attitude actuator controls publication */
 	orb_advert_t	_controller_status_pub;	/**< controller status publication */
+	orb_advert_t	_att_state_pub{nullptr};			/**< INRIA: state sensor topic */
 
 	orb_id_t _rates_sp_id;	/**< pointer to correct rates setpoint uORB metadata structure */
 	orb_id_t _actuators_id;	/**< pointer to correct actuator controls0 uORB metadata structure */
@@ -1100,6 +1124,10 @@ MulticopterAttitudeControl::task_main_trampoline(int argc, char *argv[])
 void
 MulticopterAttitudeControl::task_main()
 {
+	struct att_state_s state = {}; // INRIA
+
+	/* INRIA: advertise the sensor_state topic and make the initial publication */
+	_att_state_pub = orb_advertise(ORB_ID(att_state), &state);
 
 	/*
 	 * do subscriptions
@@ -1142,15 +1170,29 @@ MulticopterAttitudeControl::task_main()
 	int32_t hrt_att_param = 0;
 	param_get(hrt_param_handle, &hrt_att_param);
 
+	first_activation_att = true;
+
+	sem_init(&sem_att, 0, 0); // INRIA: keep this or not (sem is always initialized at 0), bc HRT will unlock a semaphore everytime its called.
+
 	//INRIA: calling att_task_activation every hrt_att_param (= period) using High Resolution Timer to release sem_att semaphore
 	hrt_call_every(&_call_att,
 			       0,
-			       4000/*hrt_att_param*/,
+			       hrt_att_param,
 			       (hrt_callout)&att_task_activation, this); /*MulticopterAttitudeControl::*/
 
 	while (!_task_should_exit) {
 
 		sem_wait(&sem_att); // INRIA
+
+		// INRIA: start of measurement
+		state.timestamp= hrt_absolute_time();
+		preemption_flag = 4; //INRIA: ID of the task
+		att_count = att_count + 1; // INRIA: count the number of execution of the task
+		
+		/* INRIA: write datas in the buffer to log it after in the logger file */
+		state.time[0]= att_count;// INRIA
+		state.time[1]= hrt_att_count;// INRIA
+		state.time[2] = deadline_miss_att; //INRIA
 
 		poll_fds.fd = _sensor_gyro_sub[_selected_gyro];
 
@@ -1159,7 +1201,7 @@ MulticopterAttitudeControl::task_main()
 
 		/* timed out - periodic check for _task_should_exit */
 		if (pret == 0) {
-			continue;
+			//continue; //INRIA: Go through the loop anyway
 		}
 
 		/* this is undesirable but not much we can do - might want to flag unhappy status */
@@ -1173,7 +1215,7 @@ MulticopterAttitudeControl::task_main()
 		perf_begin(_loop_perf);
 
 		/* run controller on gyro changes */
-		if (poll_fds.revents & POLLIN) {
+		//if (poll_fds.revents & POLLIN) { //INRIA: run controller whether we have gyro changes or not
 			static uint64_t last_run = 0;
 			float dt = (hrt_absolute_time() - last_run) / 1000000.0f;
 			last_run = hrt_absolute_time();
@@ -1381,9 +1423,20 @@ MulticopterAttitudeControl::task_main()
 					}
 				}
 			}
-		}
+		//}
 
 		perf_end(_loop_perf);
+
+		/* INRIA: write datas in the buffer to log it after in the logger file */
+		state.time[3]= sem_val_att;
+		state.time[4]=preemption_flag;
+		state.time[5]= hrt_absolute_time(); // INRIA: end of measurement
+
+		// INRIA: publish attitude state topic
+		orb_publish(ORB_ID(att_state), _att_state_pub, &state);
+		att_count = 0;
+		hrt_att_count = 0;
+		deadline_miss_att = 0;
 	}
 
 	_control_task = -1;

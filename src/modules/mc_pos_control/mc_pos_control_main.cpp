@@ -67,6 +67,8 @@
 #include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
+#include <sensors/param_state.h> // INRIA
+ #include <uORB/topics/pos_state.h> //INRIA
 
 #include <float.h>
 #include <lib/geo/geo.h>
@@ -85,15 +87,36 @@
  */
 extern "C" __EXPORT int mc_pos_control_main(int argc, char *argv[]);
 
-sem_t sem_pos;// INRIA: semaphore to activate and block the attitude control task
-hrt_call		_call_pos; // INRIA
-
 extern "C" __EXPORT int pos_task_activation();
+
+sem_t sem_pos;// INRIA: semaphore to activate and block the position controller task
+hrt_call		_call_pos; // INRIA
+bool first_activation_pos; //INRIA: checking if it is a first activation of the task or not
+int sem_val_pos; //INRIA: value of the semaphore
+uint hrt_pos_count = 0; //INRIA: counting numbers of HRT interruption for position control task
+uint deadline_miss_pos = 0; //INRIA: to count how many times position controller task has missed its deadline
+uint pos_count = 0; //INRIA: counting numbers of execution instance of position controller task
+
+/* INRIA: routine for task activation called by HRT interruption  */
 
 int pos_task_activation() //INRIA
 {
+	hrt_pos_count = hrt_pos_count + 1; // INRIA: we increment the counter at every period (task activation)  
 
-	sem_post(&sem_pos);
+	if(first_activation_pos == true) { //INRIA: we release a sem at t= 0 (first activation of the task). the value of the sem will be 1 here. Will be exectued only once.
+		sem_post(&sem_pos) ; 
+		first_activation_pos = false;
+	}
+	else {
+		sem_post(&sem_pos);
+		sem_getvalue(&sem_pos,&sem_val_pos);
+		if (sem_val_pos > 0) { //INRIA: since the task is blocked waiting for hrt to release a sem, the value of sem should be 0 at this stage. Otherwise, we have a deadline miss
+			sem_wait(&sem_pos); // INRIA: if true, then decree the value of the semaphore
+			deadline_miss_pos = deadline_miss_pos + 1; // INRIA: counter to count number of times the task has missed its deadline
+			//PX4_INFO("deadline miss"); //INRIA
+		}
+	}
+
 	return 0;
 
 }
@@ -161,6 +184,7 @@ private:
 
 	orb_advert_t	_att_sp_pub;			/**< attitude setpoint publication */
 	orb_advert_t	_local_pos_sp_pub;		/**< vehicle local position setpoint publication */
+	orb_advert_t	_pos_state_pub{nullptr};			/**< INRIA: state sensor topic */
 
 	orb_id_t _attitude_setpoint_id;
 
@@ -3026,6 +3050,11 @@ bool MulticopterPositionControl::manual_wants_takeoff()
 void
 MulticopterPositionControl::task_main()
 {
+	struct pos_state_s state = {}; // INRIA
+
+	/* INRIA: advertise the sensor_state topic and make the initial publication */
+	_pos_state_pub = orb_advertise(ORB_ID(pos_state), &state);
+
 	/*
 	 * do subscriptions
 	 */
@@ -3068,15 +3097,29 @@ MulticopterPositionControl::task_main()
 	int32_t hrt_pos_param = 0;
 	param_get(hrt_param_handle, &hrt_pos_param);
 
+	first_activation_pos = true;
+
+	sem_init(&sem_pos, 0, 0); // INRIA: keep this or not (sem is always initialized at 0), bc HRT will unlock a semaphore everytime its called.
+
 	//INRIA: calling pos_task_activation every hrt_pos_param (= period) using High Resolution Timer to release sem_pos semaphore
 	hrt_call_every(&_call_pos,
 			       0,
-			       4000/*hrt_pos_param*/,
+			       hrt_pos_param,
 			       (hrt_callout)&pos_task_activation, this); /*MulticopterPositionControl::*/
 
 	while (!_task_should_exit) {
 		
 		sem_wait(&sem_pos); // INRIA 
+		// INRIA: start of measurement
+		state.timestamp= hrt_absolute_time();
+		preemption_flag = 3; //INRIA: ID of the task
+		pos_count = pos_count + 1; // INRIA: count the number of execution of the task
+
+		
+		/* INRIA: write datas in the buffer to log it after in the logger file */
+		state.time[0]= pos_count;// INRIA
+		state.time[1]= hrt_pos_count;// INRIA
+		state.time[2] = deadline_miss_pos; //INRIA
 
 		/* wait for up to 20ms for data */
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 0); // INRIA: Don't need to wait for up to 20 ms since we r using HRT
@@ -3252,6 +3295,16 @@ MulticopterPositionControl::task_main()
 				_att_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
 			}
 		}
+
+		/* INRIA: write datas in the buffer to log it after in the logger file */
+		state.time[3]= sem_val_pos;
+		state.time[4]=preemption_flag;
+		state.time[5]= hrt_absolute_time(); // INRIA: end of measurement
+		// INRIA: publish position state topic
+		orb_publish(ORB_ID(pos_state), _pos_state_pub, &state);
+		pos_count = 0;
+		hrt_pos_count = 0;
+		deadline_miss_pos = 0;
 	}
 
 	mavlink_log_info(&_mavlink_log_pub, "[mpc] stopped");
@@ -3267,7 +3320,7 @@ MulticopterPositionControl::start()
 	/* start the task */
 	_control_task = px4_task_spawn_cmd("mc_pos_control",
 					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_POSITION_CONTROL,
+					   /*SCHED_PRIORITY_POSITION_CONTROL*/ SCHED_PRIORITY_ATTITUDE_CONTROL,
 					   1900,
 					   (px4_main_t)&MulticopterPositionControl::task_main_trampoline,
 					   nullptr);

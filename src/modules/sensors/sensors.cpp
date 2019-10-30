@@ -84,6 +84,7 @@
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/sensor_preflight.h>
+ #include <uORB/topics/sensor_state.h> // INRIA
 
 #include <DevMgr.hpp>
 
@@ -129,18 +130,38 @@ using namespace sensors;
  */
 extern "C" __EXPORT int sensors_main(int argc, char *argv[]);
 
-extern "C" __EXPORT int sensors_main(int argc, char *argv[]);
+extern "C" __EXPORT int sens_task_activation(); //INRIA: function to call at every HRT interruption
 
-sem_t sem_sens;// INRIA: semaphore to activate and block the attitude control task
+sem_t sem_sens;// INRIA: semaphore to activate and block the sensors task
 hrt_call		_call_sens; // INRIA
+int sem_val_sens; //INRIA: value of the semaphore
+bool first_activation_sens; //INRIA: checking if it is a first activation of the task or not
+uint hrt_sens_count = 0; //INRIA: counting numbers of HRT interruption for sensors task
+uint deadline_miss_sens = 0; //INRIA: to count how many times sensors task has missed its deadline
+uint sens_count = 0; //INRIA: counting numbers of execution instance of sensors task
 
-extern "C" __EXPORT int sens_task_activation(); //INRIA
+
+/* INRIA: routine for task activation called by HRT interruption */
 int sens_task_activation()
 {
-	sem_post(&sem_sens);
+	hrt_sens_count = hrt_sens_count + 1; // INRIA: we increment the counter at every period (task activation)  
+	if(first_activation_sens == true) { //INRIA: we release a sem at t= 0 (first activation of the task). the value of the sem will be 1 here. Will be exectued only once.
+		sem_post(&sem_sens); 
+		first_activation_sens = false;
+	}
+	else {
+		sem_post(&sem_sens);
+		sem_getvalue(&sem_sens,&sem_val_sens); // get the value of semaphore
+		if (sem_val_sens > 0) { //INRIA: since the task is blocked waiting for hrt to release a sem, the value of sem should be 0 at this stage. Otherwise, we have a deadline miss
+			sem_wait(&sem_sens); // INRIA: if true, then decree the value of the semaphore
+			deadline_miss_sens = deadline_miss_sens + 1; // INRIA: count number of times the task has missed its deadline
+		}
+	}
 	
 	return 0;
 }
+
+int preemption_flag = 0; // INRIA
 
 class Sensors : public ModuleBase<Sensors>
 {
@@ -181,6 +202,7 @@ private:
 	int 		_params_sub{-1};			/**< notification of parameter updates */
 
 	orb_advert_t	_sensor_pub{nullptr};			/**< combined sensor data topic */
+	orb_advert_t	_sensor_state_pub{nullptr};			/**< INRIA: state sensor topic */
 	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] {};			/**< battery status */
 
 	//sem_t sem_sens;// INRIA: semaphore to activate and block the attitude control task
@@ -623,6 +645,8 @@ Sensors::run()
 
 	struct sensor_preflight_s preflt = {};
 
+	struct sensor_state_s state = {}; // INRIA
+
 	_rc_update.init();
 
 	_voted_sensors_update.init(raw);
@@ -655,6 +679,9 @@ Sensors::run()
 	/* advertise the sensor_combined topic and make the initial publication */
 	_sensor_pub = orb_advertise(ORB_ID(sensor_combined), &raw);
 
+	/* INRIA: advertise the sensor_state topic and make the initial publication */
+	_sensor_state_pub = orb_advertise(ORB_ID(sensor_state), &state);
+
 	/* advertise the sensor_preflight topic and make the initial publication */
 	preflt.accel_inconsistency_m_s_s = 0.0f;
 	preflt.gyro_inconsistency_rad_s = 0.0f;
@@ -677,15 +704,31 @@ Sensors::run()
 
 	uint64_t last_config_update = hrt_absolute_time();
 
+	first_activation_sens = true;
+
+	sem_init(&sem_sens, 0, 0); // INRIA: keep this or not (sem is always initialized at 0), bc HRT will unlock a semaphore everytime its called.
+
 	//INRIA: calling sens_task_activation every hrt_sens_param (= period) using High Resolution Timer to activate sensors task
 	hrt_call_every(&_call_sens,
 			       0,
-			       4000/*hrt_sens_param*/,
+			       hrt_sens_param,
 			       (hrt_callout)&sens_task_activation, this); /*Sensors::*/
 
 	while (!should_exit()) {
 
-		sem_wait(&sem_sens); // INRIA
+		sem_wait(&sem_sens); // INRIA: waiting for the next activation
+
+		// INRIA: start of measurement
+		state.timestamp= hrt_absolute_time();
+
+		preemption_flag = 1; //INRIA: ID of the task
+
+		sens_count = sens_count + 1; // INRIA: count the number of execution of the task
+
+		/* INRIA: write datas in the buffer to log it after in the logger file */ 
+		state.time[0] = sens_count;// INRIA:
+		state.time[1] = hrt_sens_count;// INRIA
+		state.time[2] = deadline_miss_sens; 
 
 		/* use the best-voted gyro to pace output */
 		poll_fds.fd = _voted_sensors_update.best_gyro_fd();
@@ -764,6 +807,16 @@ Sensors::run()
 		_rc_update.rc_poll(_parameter_handles);
 
 		perf_end(_loop_perf);
+
+		/* INRIA: write datas in the buffer to log it after in the logger file */
+		state.time[3] = sem_val_sens;
+		state.time[4] = preemption_flag;
+		state.time[5] = hrt_absolute_time();
+		// INRIA: publish sensor state topic
+		orb_publish(ORB_ID(sensor_state), _sensor_state_pub, &state);
+		sens_count = 0;
+		hrt_sens_count = 0;
+		deadline_miss_sens = 0;
 	}
 
 	orb_unsubscribe(_diff_pres_sub);
@@ -771,6 +824,7 @@ Sensors::run()
 	orb_unsubscribe(_params_sub);
 	orb_unsubscribe(_actuator_ctrl_0_sub);
 	orb_unadvertise(_sensor_pub);
+	orb_unadvertise(_sensor_state_pub); // INRIA
 
 	_rc_update.deinit();
 	_voted_sensors_update.deinit();
@@ -781,7 +835,7 @@ int Sensors::task_spawn(int argc, char *argv[])
 	/* start the task */
 	_task_id = px4_task_spawn_cmd("sensors",
 				      SCHED_DEFAULT,
-				      SCHED_PRIORITY_SENSOR_HUB,
+				      /*SCHED_PRIORITY_SENSOR_HUB*/ SCHED_PRIORITY_ATTITUDE_CONTROL,
 				      2000,
 				      (px4_main_t)&run_trampoline,
 				      (char *const *)argv);

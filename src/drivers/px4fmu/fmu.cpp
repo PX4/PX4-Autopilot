@@ -71,6 +71,8 @@
 #include <uORB/topics/safety.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/vehicle_status.h>
+#include <sensors/param_state.h> // INRIA
+ #include <uORB/topics/fmu_state.h> //INRIA
 
 #ifdef HRT_PPM_CHANNEL
 # include <systemlib/ppm_decode.h>
@@ -120,13 +122,34 @@ enum PortMode {
 
 sem_t sem_fmu;// INRIA: semaphore to activate and block the Fmu task
 hrt_call		_call_fmu; // INRIA
+bool first_activation_fmu; //INRIA: checking if it is a first activation of the task or not
+int sem_val_fmu; //INRIA: value of the semaphore
+uint hrt_fmu_count = 0; //INRIA: counting numbers of HRT interruption for px4fmu task
+uint deadline_miss_fmu = 0; //INRIA: to count how many times px4fmu task has missed its deadline
+uint fmu_count = 0; //INRIA: counting numbers of execution instance of px4fmu (FMU) task
 
 extern "C" __EXPORT int fmu_task_activation(); //INRIA
 
+/* INRIA: routine for task activation called by HRT interruption  */
+
 int fmu_task_activation() //INRIA
 {
-
-	sem_post(&sem_fmu);
+	hrt_fmu_count = hrt_fmu_count + 1; // INRIA: we increment the counter at every period (task activation)
+	
+	if(first_activation_fmu == true) { //INRIA: we release a sem at t= 0 (first activation of the task). the value of the sem will be 1 here. Will be exectued only once.
+		sem_post(&sem_fmu) ; 
+		first_activation_fmu = false;
+	}
+	else { // no problem since, in this case, the task should be activated as its period has arrived, so we unlock the semaphore ans the task will run.
+		sem_post(&sem_fmu);
+		sem_getvalue(&sem_fmu,&sem_val_fmu);
+		if (sem_val_fmu > 0) { //INRIA: since the task is blocked waiting for hrt to release a sem, the value of sem should be 0 at this stage. Otherwise, we have a deadline miss
+			sem_wait(&sem_fmu); // INRIA: if true, then decree the value of the semaphore
+			deadline_miss_fmu = deadline_miss_fmu + 1; // INRIA: counter to count number of times the task has missed its deadline
+		//PX4_INFO("deadline missed"); //INRIA
+		}
+	}
+	//sem_post(&sem_fmu);
 
 	return 0;
 
@@ -290,6 +313,7 @@ private:
 	bool		_safety_disabled;
 	orb_advert_t		_to_safety;
 	orb_advert_t      _to_mixer_status; 	///< mixer status flags
+	orb_advert_t	_fmu_state_pub{nullptr};			/**< INRIA: state sensor topic */
 
 	float _mot_t_max;	// maximum rise time for motor (slew rate limiting)
 	float _thr_mdl_fac;	// thrust to pwm modelling factor
@@ -1029,7 +1053,7 @@ PX4FMU::task_spawn(int argc, char *argv[])
 
 		_task_id = px4_task_spawn_cmd("fmu",
 					      SCHED_DEFAULT,
-					      SCHED_PRIORITY_ACTUATOR_OUTPUTS,
+					      /*SCHED_PRIORITY_ACTUATOR_OUTPUTS*/ SCHED_PRIORITY_ATTITUDE_CONTROL,
 					      1310,
 					      (px4_main_t)&run_trampoline,
 					      nullptr);
@@ -1196,6 +1220,11 @@ PX4FMU::run()
 void
 PX4FMU::cycle()
 {
+	struct fmu_state_s state = {}; // INRIA
+
+	/* INRIA: advertise the sensor_state topic and make the initial publication */
+	_fmu_state_pub = orb_advertise(ORB_ID(fmu_state), &state);
+
 	//INRIA: Get the handle to the hrt fmu parameter
 	param_t hrt_param_handle = PARAM_INVALID;
 	hrt_param_handle = param_find("HRT_INTVL_FMU");
@@ -1204,15 +1233,30 @@ PX4FMU::cycle()
 	int32_t hrt_fmu_param = 0;
 	param_get(hrt_param_handle, &hrt_fmu_param);
 
+	first_activation_fmu = true;
+
+	sem_init(&sem_fmu, 0, 0); // INRIA: keep this or not (sem is always initialized at 0), bc HRT will unlock a semaphore everytime its called.
+
 	//INRIA: calling fmu_task_activation every hrt_fmu_param (= period) using High Resolution Timer
 	hrt_call_every(&_call_fmu,
 			       0,
-			       4000/*hrt_fmu_param*/,
+			       hrt_fmu_param,
 			       (hrt_callout)&fmu_task_activation, this);  /*PX4FMU::*/
 
 	while (true) {
 
 		sem_wait(&sem_fmu); // INRIA
+
+		// INRIA: start of measurement
+		state.timestamp= hrt_absolute_time();
+
+		preemption_flag = 7; //INRIA: ID of the task
+		fmu_count = fmu_count + 1; // INRIA: count the number of execution of the task
+		
+		/* INRIA: write datas in the buffer to log it after in the logger file */
+		state.time[0]= fmu_count;// INRIA
+		state.time[1]= hrt_fmu_count;// INRIA
+		state.time[2] = deadline_miss_fmu; //INRIA
 
 		if (_groups_subscribed != _groups_required) {
 			subscribe();
@@ -1271,10 +1315,6 @@ PX4FMU::cycle()
 		if (ret < 0) {
 			DEVICE_LOG("poll error %d", errno);
 
-		} else if (ret == 0) {
-			/* timeout: no control data, switch to failsafe values */
-			//			PX4_WARN("no PWM: failsafe");
-
 		} else {
 			perf_begin(_ctl_latency);
 
@@ -1285,13 +1325,13 @@ PX4FMU::cycle()
 				for (unsigned i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 					if (_control_subs[i] > 0) {
 
-						if (_poll_fds[poll_id].revents & POLLIN) {
+						//if (_poll_fds[poll_id].revents & POLLIN) { INRIA: copy anyway
 							if (i == 0) {
 								n_updates++;
 							}
 
 							orb_copy(_control_topics[i], _control_subs[i], &_controls[i]);
-						}
+						//}
 
 						poll_id++;
 					}
@@ -1475,7 +1515,7 @@ PX4FMU::cycle()
 		/* vehicle command */
 		orb_check(_vehicle_cmd_sub, &updated);
 
-		if (updated) {
+		if (updated) { 
 			struct vehicle_command_s cmd;
 			orb_copy(ORB_ID(vehicle_command), _vehicle_cmd_sub, &cmd);
 
@@ -1511,7 +1551,7 @@ PX4FMU::cycle()
 
 		orb_check(_param_sub, &updated);
 
-		if (updated) {
+		if (updated) { 
 			this->update_params();
 		}
 
@@ -1519,7 +1559,7 @@ PX4FMU::cycle()
 #ifdef ADC_RC_RSSI_CHANNEL
 		orb_check(_adc_sub, &updated);
 
-		if (updated) {
+		if (updated) { 
 
 			struct adc_report_s adc;
 			orb_copy(ORB_ID(adc_report), _adc_sub, &adc);
@@ -1799,6 +1839,16 @@ PX4FMU::cycle()
 
 			break;
 		}
+
+		/* INRIA: write datas in the buffer to log it after in the logger file */
+		state.time[3]= sem_val_fmu;
+		state.time[4]=preemption_flag;
+		state.time[5]= hrt_absolute_time(); // INRIA: end of measurement
+		// INRIA: publish fmu state topic
+		orb_publish(ORB_ID(fmu_state), _fmu_state_pub, &state);
+		fmu_count = 0;
+		hrt_fmu_count = 0;
+		deadline_miss_fmu = 0;
 	}
 }
 
