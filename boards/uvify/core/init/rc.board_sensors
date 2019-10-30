@@ -15,7 +15,7 @@ then
 	mpu9250 -R 4 start
 
 	# Default GNSS with LIS3MDL magnetometer with external i2c.
-	lis3mdl -X start
+	lis3mdl -R 2 -X start
 fi
 
 # Draco
