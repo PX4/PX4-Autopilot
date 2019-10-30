@@ -518,13 +518,20 @@ RoverPositionControl::run()
 			//orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &_vehicle_att);
 			_act_controls.timestamp = hrt_absolute_time();
 
-			if (_actuator_controls_pub != nullptr) {
-				//PX4_INFO("Publishing actuator from pos control");
-				orb_publish(ORB_ID(actuator_controls_0), _actuator_controls_pub, &_act_controls);
+			/* Only publish if any of the proper modes are enabled */
+			if (_control_mode.flag_control_velocity_enabled ||
+			    _control_mode.flag_control_rates_enabled ||
+			    _control_mode.flag_control_attitude_enabled ||
+			    manual_mode) {
+				/* publish the actuator controls */
+				if (_actuator_controls_pub != nullptr) {
+					//PX4_INFO("Publishing actuator from pos control");
+					orb_publish(ORB_ID(actuator_controls_0), _actuator_controls_pub, &_act_controls);
 
-			} else {
+				} else {
 
-				_actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_0), &_act_controls);
+					_actuator_controls_pub = orb_advertise(ORB_ID(actuator_controls_0), &_act_controls);
+				}
 			}
 		}
 
