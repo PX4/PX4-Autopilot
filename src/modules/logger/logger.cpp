@@ -232,7 +232,7 @@ void Logger::print_statistics(LogType type)
 
 Logger *Logger::instantiate(int argc, char *argv[])
 {
-	uint32_t log_interval = 3500;
+	uint32_t log_interval = 1000;
 	int log_buffer_size = 12 * 1024;
 	bool log_on_start = false;
 	bool log_until_shutdown = false;
@@ -549,6 +549,9 @@ void Logger::add_default_topics()
 	add_topic("vehicle_status", 200);
 	add_topic("vehicle_status_flags");
 	add_topic("vtol_vehicle_status", 200);
+
+	add_topic_multi("sensor_accel_fifo");
+	//add_topic_multi("sensor_gyro_fifo");
 
 	add_topic_multi("actuator_outputs", 100);
 	add_topic_multi("battery_status", 500);

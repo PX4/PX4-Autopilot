@@ -11,3 +11,5 @@ uint8 samples		# number of valid samples
 int16[4] x		# acceleration in the NED X board axis in m/s/s
 int16[4] y		# acceleration in the NED Y board axis in m/s/s
 int16[4] z		# acceleration in the NED Z board axis in m/s/s
+
+uint8 ORB_QUEUE_LENGTH = 4

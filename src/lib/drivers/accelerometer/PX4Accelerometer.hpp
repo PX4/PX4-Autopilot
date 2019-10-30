@@ -43,6 +43,7 @@
 #include <lib/mathlib/math/filter/LowPassFilter2pVector3f.hpp>
 #include <px4_platform_common/module_params.h>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/sensor_accel.h>
 #include <uORB/topics/sensor_accel_control.h>
 #include <uORB/topics/sensor_accel_fifo.h>
@@ -97,7 +98,7 @@ private:
 
 	uORB::PublicationMulti<sensor_accel_s>			_sensor_pub;		// legacy message
 	uORB::PublicationMulti<sensor_accel_control_s>		_sensor_control_pub;
-	uORB::PublicationMulti<sensor_accel_fifo_s>		_sensor_fifo_pub;
+	uORB::PublicationQueued<sensor_accel_fifo_s>		_sensor_fifo_pub;
 	uORB::PublicationMulti<sensor_accel_integrated_s>	_sensor_integrated_pub;
 	uORB::PublicationMultiData<sensor_accel_status_s>	_sensor_status_pub;
 

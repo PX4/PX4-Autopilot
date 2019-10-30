@@ -44,7 +44,7 @@ PX4Accelerometer::PX4Accelerometer(uint32_t device_id, uint8_t priority, enum Ro
 	ModuleParams(nullptr),
 	_sensor_pub{ORB_ID(sensor_accel), priority},
 	_sensor_control_pub{ORB_ID(sensor_accel_control), priority},
-	_sensor_fifo_pub{ORB_ID(sensor_accel_fifo), priority},
+	_sensor_fifo_pub{ORB_ID(sensor_accel_fifo)},
 	_sensor_integrated_pub{ORB_ID(sensor_accel_integrated), priority},
 	_sensor_status_pub{ORB_ID(sensor_accel_status), priority},
 	_device_id{device_id},
