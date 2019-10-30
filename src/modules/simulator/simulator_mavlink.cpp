@@ -380,11 +380,11 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 
 		bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
-		if (armed && last_integration_us != 0) {
-			battery_percentage -= (now_us - last_integration_us) / discharge_interval_us;
-			last_integration_us = now_us;
+		if (armed) {
+			if (last_integration_us != 0) {
+				battery_percentage -= (now_us - last_integration_us) / discharge_interval_us;
+			}
 
-		} else if (armed) {
 			last_integration_us = now_us;
 
 		} else {
