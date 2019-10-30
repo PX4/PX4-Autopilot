@@ -7,4 +7,8 @@ uint16 dt	# integration time (microseconds)
 
 float32[3] delta_angle	# delta angle in the NED frame in rad/s over the integration time frame (integral_dt)
 
-bool clipping
+uint8 CLIPPING_X = 1
+uint8 CLIPPING_Y = 2
+uint8 CLIPPING_Z = 4
+
+uint8 clipping		# gyroscope was clipping during integration period

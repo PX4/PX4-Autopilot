@@ -778,6 +778,9 @@ void Ekf2::Run()
 		imu_sample_new.delta_ang = Vector3f{sensors.gyro_rad} * imu_sample_new.delta_ang_dt;
 		imu_sample_new.delta_vel_dt = sensors.accelerometer_integral_dt * 1.e-6f;
 		imu_sample_new.delta_vel = Vector3f{sensors.accelerometer_m_s2} * imu_sample_new.delta_vel_dt;
+		imu_sample_new.clipping_accel[0] = sensors.clipping_accel & sensor_combined_s::CLIPPING_ACCEL_X;
+		imu_sample_new.clipping_accel[1] = sensors.clipping_accel & sensor_combined_s::CLIPPING_ACCEL_Y;
+		imu_sample_new.clipping_accel[2] = sensors.clipping_accel & sensor_combined_s::CLIPPING_ACCEL_Z;
 
 		_ekf.setIMUData(imu_sample_new);
 

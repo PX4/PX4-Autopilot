@@ -13,3 +13,10 @@ uint32 gyro_integral_dt		# gyro measurement sampling period in us
 int32 accelerometer_timestamp_relative	# timestamp + accelerometer_timestamp_relative = Accelerometer timestamp
 float32[3] accelerometer_m_s2		# average value acceleration measured in the XYZ body frame in m/s/s over the last accelerometer sampling period
 uint32 accelerometer_integral_dt	# accelerometer measurement sampling period in us
+
+
+uint8 CLIPPING_ACCEL_X = 1
+uint8 CLIPPING_ACCEL_Y = 2
+uint8 CLIPPING_ACCEL_Z = 4
+
+uint8 clipping_accel	# accelerometer clipping bitmask

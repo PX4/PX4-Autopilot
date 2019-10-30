@@ -7,4 +7,8 @@ uint16 dt	# integration time (microseconds)
 
 float32[3] delta_velocity	# delta velocity in the NED frame in m/s over the integration time frame (dt)
 
-bool clipping
+uint8 CLIPPING_X = 1
+uint8 CLIPPING_Y = 2
+uint8 CLIPPING_Z = 4
+
+uint8 clipping		# accelerometer was clipping during integration period

@@ -12,9 +12,14 @@ float32 x_integral	# delta velocity in the NED X board axis in m/s over the inte
 float32 y_integral	# delta velocity in the NED Y board axis in m/s over the integration time frame (integral_dt)
 float32 z_integral	# delta velocity in the NED Z board axis in m/s over the integration time frame (integral_dt)
 
+uint8 CLIPPING_X = 1
+uint8 CLIPPING_Y = 2
+uint8 CLIPPING_Z = 4
+uint8 integral_clipping	# accelerometer was clipping during integration period
+
 float32 temperature	# temperature in degrees celsius
 
-float32 scaling		# scaling from raw to m/s^s
+float32 scaling		# scaling from raw to m/s^2
 int16 x_raw
 int16 y_raw
 int16 z_raw

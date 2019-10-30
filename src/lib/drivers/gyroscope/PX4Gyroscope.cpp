@@ -230,7 +230,6 @@ PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 
 
 	// status
-	bool clipping = false;
 	{
 		sensor_gyro_status_s &status = _sensor_status_pub.get();
 
@@ -240,8 +239,7 @@ PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 		for (int n = 0; n < sample.samples; n++) {
 			if (abs(sample.x[n]) > clip_limit) {
 				status.clipping[0]++;
-				_error_count++;
-				clipping = true;
+				_integrator_clipping |= sensor_gyro_integrated_s::CLIPPING_X;
 			}
 		}
 
@@ -249,8 +247,7 @@ PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 		for (int n = 0; n < sample.samples; n++) {
 			if (abs(sample.y[n]) > clip_limit) {
 				status.clipping[1]++;
-				_error_count++;
-				clipping = true;
+				_integrator_clipping |= sensor_gyro_integrated_s::CLIPPING_Y;
 			}
 		}
 
@@ -258,8 +255,7 @@ PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 		for (int n = 0; n < sample.samples; n++) {
 			if (abs(sample.z[n]) > clip_limit) {
 				status.clipping[2]++;
-				_error_count++;
-				clipping = true;
+				_integrator_clipping |= sensor_gyro_integrated_s::CLIPPING_Z;
 			}
 		}
 
@@ -350,7 +346,7 @@ PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 			val_int_calibrated.copyTo(integrated.delta_angle);
 			integrated.timestamp_sample = _integrator_timestamp_sample;
 			integrated.dt = integrator_dt_us;
-			integrated.clipping = clipping;
+			integrated.clipping = _integrator_clipping;
 			integrated.timestamp = hrt_absolute_time();
 			_sensor_integrated_pub.publish(integrated);
 
@@ -375,6 +371,7 @@ PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 			report.x_integral = val_int_calibrated(0);
 			report.y_integral = val_int_calibrated(1);
 			report.z_integral = val_int_calibrated(2);
+			report.integral_clipping = _integrator_clipping;
 
 			report.timestamp = _integrator_timestamp_sample;
 			_sensor_pub.publish(report);
@@ -411,6 +408,7 @@ PX4Gyroscope::ResetIntegrator()
 	_integrator_accum[0] = 0;
 	_integrator_accum[1] = 0;
 	_integrator_accum[2] = 0;
+	_integrator_clipping = 0;
 
 	_integrator_timestamp_sample = 0;
 	_timestamp_sample_prev = 0;

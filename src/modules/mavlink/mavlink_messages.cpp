@@ -81,6 +81,7 @@
 #include <uORB/topics/orbit_status.h>
 #include <uORB/topics/position_controller_status.h>
 #include <uORB/topics/position_setpoint_triplet.h>
+#include <uORB/topics/sensor_accel_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_bias.h>
 #include <uORB/topics/tecs_status.h>
@@ -2638,6 +2639,10 @@ private:
 	MavlinkOrbSubscription *_est_sub;
 	uint64_t _est_time;
 
+	MavlinkOrbSubscription *_sensor_accel_status_0_sub;
+	MavlinkOrbSubscription *_sensor_accel_status_1_sub;
+	MavlinkOrbSubscription *_sensor_accel_status_2_sub;
+
 	/* do not allow top copying this class */
 	MavlinkStreamEstimatorStatus(MavlinkStreamEstimatorStatus &) = delete;
 	MavlinkStreamEstimatorStatus &operator = (const MavlinkStreamEstimatorStatus &) = delete;
@@ -2645,7 +2650,10 @@ private:
 protected:
 	explicit MavlinkStreamEstimatorStatus(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_est_sub(_mavlink->add_orb_subscription(ORB_ID(estimator_status))),
-		_est_time(0)
+		_est_time(0),
+		_sensor_accel_status_0_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel_status), 0)),
+		_sensor_accel_status_1_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel_status), 1)),
+		_sensor_accel_status_2_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_accel_status), 2))
 	{}
 
 	bool send(const hrt_abstime t) override
@@ -2668,11 +2676,30 @@ protected:
 			mavlink_msg_estimator_status_send_struct(_mavlink->get_channel(), &est_msg);
 
 			// VIBRATION
-			mavlink_vibration_t msg = {};
+			mavlink_vibration_t msg{};
 			msg.time_usec = est.timestamp;
 			msg.vibration_x = est.vibe[0];
 			msg.vibration_y = est.vibe[1];
 			msg.vibration_z = est.vibe[2];
+
+			sensor_accel_status_s acc_status_0;
+
+			if (_sensor_accel_status_0_sub->update(&acc_status_0)) {
+				msg.clipping_0 = acc_status_0.clipping[0] + acc_status_0.clipping[1] + acc_status_0.clipping[2];
+			}
+
+			sensor_accel_status_s acc_status_1;
+
+			if (_sensor_accel_status_1_sub->update(&acc_status_1)) {
+				msg.clipping_1 = acc_status_1.clipping[0] + acc_status_1.clipping[1] + acc_status_1.clipping[2];
+			}
+
+			sensor_accel_status_s acc_status_2;
+
+			if (_sensor_accel_status_2_sub->update(&acc_status_2)) {
+				msg.clipping_2 = acc_status_2.clipping[0] + acc_status_2.clipping[1] + acc_status_2.clipping[2];
+			}
+
 			mavlink_msg_vibration_send_struct(_mavlink->get_channel(), &msg);
 
 			return true;

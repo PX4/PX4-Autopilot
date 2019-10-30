@@ -106,11 +106,7 @@ PX4Accelerometer::set_sample_rate(uint16_t rate)
 {
 	_sample_rate = rate;
 
-	_filter.set_cutoff_frequency(_sample_rate, _filter.get_cutoff_freq());
-
-	_filterArrayX.set_cutoff_frequency(_sample_rate, _filterArrayX.get_cutoff_freq());
-	_filterArrayY.set_cutoff_frequency(_sample_rate, _filterArrayY.get_cutoff_freq());
-	_filterArrayZ.set_cutoff_frequency(_sample_rate, _filterArrayZ.get_cutoff_freq());
+	ConfigureFilter(_filter.get_cutoff_freq());
 }
 
 void
@@ -218,7 +214,6 @@ PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 
 
 	// status
-	bool clipping = false;
 	{
 		sensor_accel_status_s &status = _sensor_status_pub.get();
 
@@ -228,8 +223,7 @@ PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 		for (int n = 0; n < sample.samples; n++) {
 			if (abs(sample.x[n]) > clip_limit) {
 				status.clipping[0]++;
-				_error_count++;
-				clipping = true;
+				_integrator_clipping |= sensor_accel_integrated_s::CLIPPING_X;
 			}
 		}
 
@@ -237,8 +231,7 @@ PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 		for (int n = 0; n < sample.samples; n++) {
 			if (abs(sample.y[n]) > clip_limit) {
 				status.clipping[1]++;
-				_error_count++;
-				clipping = true;
+				_integrator_clipping |= sensor_accel_integrated_s::CLIPPING_Y;
 			}
 		}
 
@@ -246,8 +239,7 @@ PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 		for (int n = 0; n < sample.samples; n++) {
 			if (abs(sample.z[n]) > clip_limit) {
 				status.clipping[2]++;
-				_error_count++;
-				clipping = true;
+				_integrator_clipping |= sensor_accel_integrated_s::CLIPPING_Z;
 			}
 		}
 
@@ -332,7 +324,7 @@ PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 			val_int_calibrated.copyTo(integrated.delta_velocity);
 			integrated.timestamp_sample = _integrator_timestamp_sample;
 			integrated.dt = integrator_dt_us;
-			integrated.clipping = clipping;
+			integrated.clipping = _integrator_clipping;
 			integrated.timestamp = hrt_absolute_time();
 			_sensor_integrated_pub.publish(integrated);
 
@@ -357,6 +349,7 @@ PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 			report.x_integral = val_int_calibrated(0);
 			report.y_integral = val_int_calibrated(1);
 			report.z_integral = val_int_calibrated(2);
+			report.integral_clipping = _integrator_clipping;
 
 			report.timestamp = _integrator_timestamp_sample;
 			_sensor_pub.publish(report);
@@ -393,6 +386,7 @@ PX4Accelerometer::ResetIntegrator()
 	_integrator_accum[0] = 0;
 	_integrator_accum[1] = 0;
 	_integrator_accum[2] = 0;
+	_integrator_clipping = 0;
 
 	_integrator_timestamp_sample = 0;
 	_timestamp_sample_prev = 0;

@@ -142,6 +142,7 @@ private:
 	uint8_t			_integrator_reset_samples{4};
 	uint8_t			_integrator_samples{0};
 	uint8_t			_integrator_fifo_samples{0};
+	uint8_t			_integrator_clipping{};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::IMU_ACCEL_CUTOFF>) _param_imu_accel_cutoff
