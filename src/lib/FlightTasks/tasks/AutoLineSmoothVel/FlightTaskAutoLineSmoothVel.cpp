@@ -190,8 +190,8 @@ float FlightTaskAutoLineSmoothVel::_getSpeedAtTarget() const
 	// so we have to make sure that the speed at the current waypoint allows to stop at the next waypoint.
 	float speed_at_target = 0.0f;
 
-	const float distance_current_next = Vector2f(&(_target - _next_wp)(0)).length();
-	const bool waypoint_overlap = Vector2f(&(_target - _prev_wp)(0)).length() < _target_acceptance_radius;
+	const float distance_current_next = (_target - _next_wp).xy().norm();
+	const bool waypoint_overlap = (_target - _prev_wp).xy().norm() < _target_acceptance_radius;
 	const bool yaw_align_check_pass = (_param_mpc_yaw_mode.get() != 4) || _yaw_sp_aligned;
 
 	if (distance_current_next > 0.001f &&
@@ -199,8 +199,8 @@ float FlightTaskAutoLineSmoothVel::_getSpeedAtTarget() const
 	    yaw_align_check_pass) {
 		// Max speed between current and next
 		const float max_speed_current_next = _getMaxSpeedFromDistance(distance_current_next);
-		const float alpha = acosf(Vector2f(&(_target - _prev_wp)(0)).unit_or_zero() *
-					  Vector2f(&(_target - _next_wp)(0)).unit_or_zero());
+		const float alpha = acosf(Vector2f((_target - _position).xy()).unit_or_zero().dot(
+						  Vector2f((_target - _next_wp).xy()).unit_or_zero()));
 		// We choose a maximum centripetal acceleration of MPC_ACC_HOR * MPC_XY_TRAJ_P to take in account
 		// that there is a jerk limit (a direct transition from line to circle is not possible)
 		// MPC_XY_TRAJ_P should be between 0 and 1.
@@ -264,7 +264,7 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 			if (has_reached_altitude) {
 				// Compute the minimum speed in NE frame. This is used
 				// to force the drone to pass the waypoint with a desired speed
-				Vector2f u_prev_to_target_xy((_target - _prev_wp).unit_or_zero());
+				Vector2f u_prev_to_target_xy((_target - _position).unit_or_zero());
 				vel_min_xy = u_prev_to_target_xy * _getSpeedAtTarget();
 
 			} else {
