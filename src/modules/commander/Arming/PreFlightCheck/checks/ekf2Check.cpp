@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include <PreFlightCheck.hpp>
+#include "../PreFlightCheck.hpp"
 
 #include <HealthFlags.h>
 #include <math.h>

@@ -33,8 +33,18 @@
 
 px4_add_library(PreFlightCheck
 	PreFlightCheck.cpp
+	checks/preArmCheck.cpp
+	checks/magnetometerCheck.cpp
+	checks/magConsistencyCheck.cpp
+	checks/accelerometerCheck.cpp
+	checks/gyroCheck.cpp
+	checks/baroCheck.cpp
+	checks/imuConsistencyCheck.cpp
+	checks/airspeedCheck.cpp
+	checks/rcCalibrationCheck.cpp
+	checks/powerCheck.cpp
+	checks/ekf2Check.cpp
+	checks/failureDetectorCheck.cpp
 )
 target_include_directories(PreFlightCheck PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(PreFlightCheck PUBLIC ArmAuthorization HealthFlags)
-
-add_subdirectory(checks)

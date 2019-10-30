@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include <PreFlightCheck.hpp>
+#include "../PreFlightCheck.hpp"
 
 #include <drivers/drv_hrt.h>
 #include <HealthFlags.h>

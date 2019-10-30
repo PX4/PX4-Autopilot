@@ -46,7 +46,7 @@
 #include <systemlib/mavlink_log.h>
 #include <drivers/drv_hrt.h>
 
-#include <PreFlightCheck.hpp>
+#include "Arming/PreFlightCheck/PreFlightCheck.hpp"
 #include "state_machine_helper.h"
 #include "commander_helper.h"
 

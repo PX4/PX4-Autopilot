@@ -30,7 +30,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <ArmAuthorization.h>
+#include "ArmAuthorization.h"
 
 #include <string.h>
 #include <unistd.h>

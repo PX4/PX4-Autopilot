@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include <PreFlightCheck.hpp>
+#include "../PreFlightCheck.hpp"
 
 #include <ArmAuthorization.h>
 #include <systemlib/mavlink_log.h>

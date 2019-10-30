@@ -45,9 +45,9 @@
 #include "Commander.hpp"
 
 /* commander module headers */
-#include <PreFlightCheck.hpp>
-#include <ArmAuthorization.h>
-#include <HealthFlags.h>
+#include "Arming/PreFlightCheck/PreFlightCheck.hpp"
+#include "Arming/ArmAuthorization/ArmAuthorization.h"
+#include "Arming/HealthFlags/HealthFlags.h"
 #include "accelerometer_calibration.h"
 #include "airspeed_calibration.h"
 #include "baro_calibration.h"

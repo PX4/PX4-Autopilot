@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include <PreFlightCheck.hpp>
+#include "../PreFlightCheck.hpp"
 
 #include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
