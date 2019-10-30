@@ -38,15 +38,14 @@ px4_add_board(
 		magnetometer/lis3mdl
 		magnetometer/ist8310
 		#mkblctrl
-		#optical_flow # all available optical flow drivers
-		optical_flow/px4flow
+		optical_flow # all available optical flow drivers
 		pca9685
 		pwm_input
 		pwm_out_sim
 		px4fmu
 		rc_input
 		#tap_esc
-		telemetry # all available telemetry drivers
+		#telemetry # all available telemetry drivers
 		#test_ppm
 		tone_alarm
 		uavcan
