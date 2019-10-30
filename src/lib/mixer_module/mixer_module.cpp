@@ -34,7 +34,7 @@
 #include "mixer_module.hpp"
 
 #include <uORB/PublicationQueued.hpp>
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 using namespace time_literals;
 

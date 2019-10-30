@@ -37,8 +37,8 @@
  * Tool for listening to topics.
  */
 
-#include <px4_module.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/getopt.h>
 
 #include <poll.h>
 

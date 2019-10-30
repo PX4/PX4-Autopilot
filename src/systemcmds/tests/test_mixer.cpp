@@ -42,7 +42,7 @@
 #include <unistd.h>
 #include <math.h>
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <mixer/mixer.h>
 #include <mixer/mixer_load.h>
 #include <output_limit/output_limit.h>

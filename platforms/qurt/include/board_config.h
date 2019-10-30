@@ -13,4 +13,4 @@
 #define BOARD_HAS_NO_RESET
 #define BOARD_HAS_NO_BOOTLOADER
 
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>

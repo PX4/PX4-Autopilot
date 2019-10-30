@@ -38,7 +38,7 @@
 
 #include "terrain_estimator.h"
 #include <lib/ecl/geo/geo.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 #define DISTANCE_TIMEOUT 100000		// time in usec after which laser is considered dead
 

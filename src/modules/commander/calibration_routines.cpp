@@ -38,9 +38,9 @@
  * @author Lorenz Meier <lm@inf.ethz.ch>
  */
 
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_time.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/time.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <math.h>

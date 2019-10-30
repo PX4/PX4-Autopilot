@@ -33,11 +33,11 @@
 
 #include <stdint.h>
 
-#include <px4_defines.h>
-#include <px4_module.h>
-#include <px4_tasks.h>
-#include <px4_getopt.h>
-#include <px4_posix.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/posix.h>
 #include <errno.h>
 
 #include <cmath>	// NAN
@@ -46,7 +46,7 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/cdev/CDev.hpp>
 #include <perf/perf_counter.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>

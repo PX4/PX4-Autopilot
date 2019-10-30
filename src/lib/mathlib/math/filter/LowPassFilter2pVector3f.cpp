@@ -33,7 +33,7 @@
 
 #include "LowPassFilter2pVector3f.hpp"
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 #include <cmath>
 

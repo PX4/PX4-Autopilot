@@ -40,7 +40,7 @@
 #include "uORBCommunicator.hpp"
 #endif /* ORB_COMMUNICATOR */
 
-#include <px4_sem.hpp>
+#include <px4_platform_common/sem.hpp>
 #include <systemlib/px4_macros.h>
 
 uORB::DeviceMaster::DeviceMaster()

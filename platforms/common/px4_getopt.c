@@ -36,7 +36,7 @@
  * Minimal, thread safe version of getopt
  */
 
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 #include <stdio.h>
 
 // check if p is a valid option and if the option takes an arg

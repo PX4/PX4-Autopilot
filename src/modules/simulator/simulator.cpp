@@ -39,9 +39,9 @@
  * such as jMAVSim or Gazebo.
  */
 
-#include <px4_log.h>
-#include <px4_tasks.h>
-#include <px4_time.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
 #include <pthread.h>
 #include <poll.h>
 #include <systemlib/err.h>

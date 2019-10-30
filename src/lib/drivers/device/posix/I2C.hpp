@@ -42,7 +42,7 @@
 
 #include "../CDev.hpp"
 
-#include <px4_i2c.h>
+#include <px4_platform_common/i2c.h>
 
 #ifdef __PX4_LINUX
 #include <linux/i2c.h>

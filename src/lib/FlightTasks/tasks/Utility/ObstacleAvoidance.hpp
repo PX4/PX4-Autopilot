@@ -41,8 +41,8 @@
 
 #pragma once
 
-#include <px4_defines.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module_params.h>
 #include <commander/px4_custom_mode.h>
 #include <drivers/drv_hrt.h>
 

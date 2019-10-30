@@ -42,7 +42,7 @@
 
 #include "../CDev.hpp"
 
-#include <px4_i2c.h>
+#include <px4_platform_common/i2c.h>
 
 #if !defined(CONFIG_I2C)
 #  error I2C support requires CONFIG_I2C
