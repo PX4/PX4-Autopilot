@@ -348,15 +348,12 @@ param_find_internal(const char *name, bool notification)
 			perf_end(param_find_perf);
 			return middle;
 
-		} else if (middle == front) {
-			/* An end point has been hit, but there has been no match */
-			break;
-
 		} else if (ret < 0) {
 			last = middle - 1;
 
 		} else {
 			front = middle + 1;
+
 		}
 	}
 
