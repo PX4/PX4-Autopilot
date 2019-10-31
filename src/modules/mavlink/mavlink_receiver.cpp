@@ -189,6 +189,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_landing_target(msg);
 		break;
 
+	case MAVLINK_MSG_ID_CELLULAR_STATUS:
+		handle_message_cellular_status(msg);
+		break;
+
 	case MAVLINK_MSG_ID_ADSB_VEHICLE:
 		handle_message_adsb_vehicle(msg);
 		break;
@@ -2184,6 +2188,25 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 
 		_landing_target_pose_pub.publish(landing_target_pose);
 	}
+}
+
+void
+MavlinkReceiver::handle_message_cellular_status(mavlink_message_t *msg)
+{
+	mavlink_cellular_status_t status;
+	mavlink_msg_cellular_status_decode(msg, &status);
+
+	cellular_status_s cellular_status{};
+
+	cellular_status.status = status.status;
+	cellular_status.type = status.type;
+	cellular_status.quality = status.quality;
+	cellular_status.mcc = status.mcc;
+	cellular_status.mnc = status.mnc;
+	cellular_status.lac = status.lac;
+	cellular_status.cid = status.cid;
+
+	_cellular_status_pub.publish(cellular_status);
 }
 
 void

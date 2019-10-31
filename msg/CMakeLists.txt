@@ -42,6 +42,7 @@ set(msg_files
 	battery_status.msg
 	camera_capture.msg
 	camera_trigger.msg
+	cellular_status.msg
 	collision_report.msg
 	collision_constraints.msg
 	commander_state.msg
