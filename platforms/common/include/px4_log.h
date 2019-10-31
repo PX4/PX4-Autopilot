@@ -39,4 +39,3 @@
 #pragma once
 
 #include <px4_platform_common/log.h>
-
