@@ -48,19 +48,18 @@ namespace uavcan_kinetis
 {
 #if UAVCAN_KINETIS_NUTTX
 
-struct CriticalSectionLocker
-{
-    const irqstate_t flags_;
+struct CriticalSectionLocker {
+	const irqstate_t flags_;
 
-    CriticalSectionLocker()
-        : flags_(enter_critical_section())
-    {
-    }
+	CriticalSectionLocker()
+		: flags_(enter_critical_section())
+	{
+	}
 
-    ~CriticalSectionLocker()
-    {
-        leave_critical_section(flags_);
-    }
+	~CriticalSectionLocker()
+	{
+		leave_critical_section(flags_);
+	}
 };
 
 #endif
