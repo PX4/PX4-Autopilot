@@ -70,5 +70,3 @@ private:
 #ifdef PX4_MAIN
 extern int PX4_MAIN(int argc, char *argv[]);
 #endif
-
-
