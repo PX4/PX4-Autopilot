@@ -79,6 +79,8 @@ protected:
 
 	static float _constrainOneSide(float val, float constraint); /**< Constrain val between INF and constraint */
 
+	static float _constrainAbs(float val, float max); /** Constrain the value -max <= val <= max */
+
 	/** Give 0 if next is the last target **/
 	float _getSpeedAtTarget(float next_target_speed) const;
 	float _getMaxSpeedFromDistance(float braking_distance, float final_speed) const;
