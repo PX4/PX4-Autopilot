@@ -44,6 +44,14 @@
  * @author Sander Smeets	<sander@droneslab.com>
  */
 
+  /***************************************************************************
+ *	
+ *	Parts of this code was designed and modified by Mehdi MEZOUAK and Yves Sorel 
+ *	from Inria of Paris.
+ *
+ *
+ ****************************************************************************/
+
 #include <cmath>	// NAN
 
 /* commander module headers */

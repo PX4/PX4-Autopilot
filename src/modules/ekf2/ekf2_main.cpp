@@ -31,6 +31,14 @@
  *
  ****************************************************************************/
 
+  /***************************************************************************
+ *	
+ *	Parts of this code was designed and modified by Mehdi MEZOUAK and Yves Sorel 
+ *	from Inria of Paris.
+ *
+ *
+ ****************************************************************************/
+
 /**
  * @file ekf2_main.cpp
  * Implementation of the attitude and position estimator.

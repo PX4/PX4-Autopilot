@@ -43,6 +43,14 @@
  * @author Thomas Gubler <thomasgubler@gmail.com>
  */
 
+  /***************************************************************************
+ *	
+ *	Parts of this code was designed and modified by Mehdi MEZOUAK and Yves Sorel 
+ *	from Inria of Paris.
+ *
+ *
+ ****************************************************************************/
+
 #include "navigator.h"
 
 #include <cfloat>

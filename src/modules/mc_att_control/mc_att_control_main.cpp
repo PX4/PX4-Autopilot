@@ -53,6 +53,14 @@
  * If rotation matrix setpoint is invalid it will be generated from Euler angles for compatibility with old position controllers.
  */
 
+  /***************************************************************************
+ *	
+ *	Parts of this code was designed and modified by Mehdi MEZOUAK and Yves Sorel 
+ *	from Inria of Paris.
+ *
+ *
+ ****************************************************************************/
+
 #include <conversion/rotation.h>
 #include <drivers/drv_hrt.h>
 #include <lib/geo/geo.h>

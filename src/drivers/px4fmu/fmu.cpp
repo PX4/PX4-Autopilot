@@ -37,6 +37,14 @@
  * Driver/configurator for the PX4 FMU
  */
 
+  /***************************************************************************
+ *	
+ *	Parts of this code was designed and modified by Mehdi MEZOUAK and Yves Sorel 
+ *	from Inria of Paris.
+ *
+ *
+ ****************************************************************************/
+
 #include <cfloat>
 
 #include <board_config.h>

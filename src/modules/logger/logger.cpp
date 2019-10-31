@@ -31,6 +31,14 @@
  *
  ****************************************************************************/
 
+  /***************************************************************************
+ *	
+ *	Parts of this code was designed and modified by Mehdi MEZOUAK and Yves Sorel 
+ *	from Inria of Paris.
+ *
+ *
+ ****************************************************************************/
+
 #include <px4_config.h>
 #include "logger.h"
 #include "messages.h"

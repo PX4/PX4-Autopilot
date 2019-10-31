@@ -39,6 +39,14 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
+  /***************************************************************************
+ *	
+ *	Parts of this code was designed and modified by Mehdi MEZOUAK and Yves Sorel 
+ *	from Inria of Paris.
+ *
+ *
+ ****************************************************************************/
+
 #ifndef NAVIGATOR_H
 #define NAVIGATOR_H
 

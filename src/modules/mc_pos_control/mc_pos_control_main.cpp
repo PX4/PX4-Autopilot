@@ -49,6 +49,14 @@
  * @author Anton Babushkin <anton.babushkin@me.com>
  */
 
+  /***************************************************************************
+ *	
+ *	Parts of this code was designed and modified by Mehdi MEZOUAK and Yves Sorel 
+ *	from Inria of Paris.
+ *
+ *
+ ****************************************************************************/
+
 #include <px4_config.h>
 #include <px4_defines.h>
 #include <px4_tasks.h>
