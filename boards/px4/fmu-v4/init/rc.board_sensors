@@ -68,3 +68,6 @@ then
 	# BMI160 internal SPI bus
 	bmi160 start
 fi
+
+# External RM3100 (I2C or SPI)
+rm3100 start
