@@ -31,3 +31,6 @@ bmm150 start
 # Possible internal Barro
 bmp388 -I start
 #bmp388 -J start fixme
+
+# External RM3100 (I2C or SPI)
+rm3100 start
