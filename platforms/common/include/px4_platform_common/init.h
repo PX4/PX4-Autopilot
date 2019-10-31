@@ -51,4 +51,3 @@ __EXPORT void init(int argc, char *argv[], const char *process_name);
 } // namespace px4
 
 #endif /* __cplusplus */
-

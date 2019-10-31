@@ -43,4 +43,3 @@ __BEGIN_DECLS
 int px4_getopt(int argc, char *argv[], const char *options, int *myoptind, const char **myoptarg);
 
 __END_DECLS
-
