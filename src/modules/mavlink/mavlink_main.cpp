@@ -1238,6 +1238,48 @@ Mavlink::send_protocol_version()
 	set_proto_version(curr_proto_ver);
 }
 
+void
+Mavlink::send_microservice_version(const vehicle_command_s &command)
+{
+	uint16_t requested_service_id = (uint16_t)(command.param2 + 0.5f);
+	uint16_t requested_min_version = (uint16_t)(command.param3 + 0.5f);
+	uint16_t requested_max_version = (uint16_t)(command.param4 + 0.5f);
+
+	auto &my_version = get_microservice_version(requested_service_id);
+
+	mavlink_mavlink_service_version_t msg = {};
+	msg.target_component = command.source_component;
+	msg.target_system = command.source_system;
+	msg.service_id = command.param2;
+
+	if (requested_service_id != 0 && requested_min_version != 0 && requested_max_version != 0) {
+		if (my_version.min_version > requested_max_version || my_version.max_version < requested_min_version) {
+			msg.selected_version = 0;
+			msg.service_flags = 0;
+			my_version.selected_version = 0;
+			my_version.status = UNSUPPORTED;
+
+		} else {
+			msg.selected_version = std::min(my_version.max_version, requested_max_version);
+			msg.service_flags = 1;
+			my_version.selected_version = msg.selected_version;
+			my_version.status = VALID;
+		}
+	}
+
+	mavlink_msg_mavlink_service_version_send_struct(get_channel(), &msg);
+}
+
+Mavlink::microservice_version &Mavlink::get_microservice_version(uint16_t service_id)
+{
+	if (service_id >= sizeof(_microservice_versions) / sizeof(_microservice_versions[0])) {
+		return _microservice_versions[0];
+
+	} else {
+		return _microservice_versions[service_id];
+	}
+}
+
 MavlinkOrbSubscription *
 Mavlink::add_orb_subscription(const orb_id_t topic, int instance, bool disable_sharing)
 {

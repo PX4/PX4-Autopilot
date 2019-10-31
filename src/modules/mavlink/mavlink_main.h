@@ -408,6 +408,11 @@ public:
 	 */
 	void			send_protocol_version();
 
+	/**
+	 * Send the supported version of the given microservice
+	 */
+	void 			send_microservice_version(const vehicle_command_s &command);
+
 	List<MavlinkStream *> &get_streams() { return _streams; }
 
 	float			get_rate_mult() const { return _rate_mult; }
@@ -532,6 +537,40 @@ public:
 
 	static hrt_abstime &get_first_start_time() { return _first_start_time; }
 
+	enum microservice_version_status {
+		UNSELECTED = 0,	///< The version handshake has not yet been done for this service.
+		VALID,			///< The version handshake has been done, and a version was successfully selected.
+		UNSUPPORTED		///< The version handshake has been done, and no valid version is supported.
+	};
+
+	struct microservice_version {
+		/// Current status of this version (Has it been selected? Is it supported?)
+		microservice_version_status status;
+		/// Minimum version supported by this version of PX4
+		uint16_t min_version;
+		/// Maximum version supported by this version of PX4
+		uint16_t max_version;
+		/// Currently selected version to use for this Mavlink instance.
+		/// Only valid if status != UNSELECTED
+		uint16_t selected_version;
+	};
+
+	/**
+	 * Get the version of a specific microservice.
+	 *
+	 * This means 2 different things:
+	 *  - Get the range of versions of a particular microservice supported by this current version of PX4.
+	 *    TODO: Figure out how these are defined. Probably by compile-time constants.
+	 *  - If the microservice version handshake has been done, then this function can also tell what version of
+	 *    the microservice was chosen. This version can be different for different instances of Mavlink, as the
+	 *    handshake is done separately for each instance.
+	 *
+	 * @param service_id The ID of the service for which to get information.
+	 * @return Information about the service, as documented in @see Mavlink::microservice_version. This reference is
+	 *     valid for the lifetime of this object.
+	 */
+	microservice_version &get_microservice_version(uint16_t service_id);
+
 protected:
 	Mavlink			*next{nullptr};
 
@@ -646,6 +685,19 @@ private:
 	telemetry_status_s	_tstatus {};
 
 	ping_statistics_s	_ping_stats {};
+
+	// TODO microservice versioning: Initialize this array.
+	// The index in the array is the service ID. This means the first entry in the array is not a real service.
+	// That is why it is intentionally instantiated to UNSUPPORTED.
+	static constexpr size_t MAVLINK_SERVICE_ID_MAX = 10;
+	microservice_version _microservice_versions[MAVLINK_SERVICE_ID_MAX] = {
+		{
+			.status = UNSUPPORTED,
+			.min_version = 0,
+			.max_version = 0,
+			.selected_version = 0
+		}
+	};
 
 	struct mavlink_message_buffer {
 		int write_ptr;
