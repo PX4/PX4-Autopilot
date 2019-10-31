@@ -6,18 +6,11 @@
 
 #include <uavcan_stm32/build_config.hpp>
 
-#if UAVCAN_STM32_CHIBIOS
-# include <hal.h>
-#elif UAVCAN_STM32_NUTTX
+#if UAVCAN_STM32_NUTTX
 # include <nuttx/arch.h>
 # include <arch/board/board.h>
 # include <chip/stm32_tim.h>
 # include <syslog.h>
-#elif UAVCAN_STM32_BAREMETAL
-#include <chip.h>	// See http://uavcan.org/Implementations/Libuavcan/Platforms/STM32/
-#elif UAVCAN_STM32_FREERTOS
-# include <chip.h>
-# include <cmsis_os.h>
 #else
 # error "Unknown OS"
 #endif
@@ -38,49 +31,10 @@
 /**
  * IRQ handler macros
  */
-#if UAVCAN_STM32_CHIBIOS
-# define UAVCAN_STM32_IRQ_HANDLER(id)  CH_IRQ_HANDLER(id)
-# define UAVCAN_STM32_IRQ_PROLOGUE()    CH_IRQ_PROLOGUE()
-# define UAVCAN_STM32_IRQ_EPILOGUE()    CH_IRQ_EPILOGUE()
-#elif UAVCAN_STM32_NUTTX
+#if UAVCAN_STM32_NUTTX
 # define UAVCAN_STM32_IRQ_HANDLER(id)  int id(int irq, FAR void* context, FAR void *arg)
 # define UAVCAN_STM32_IRQ_PROLOGUE()
 # define UAVCAN_STM32_IRQ_EPILOGUE()    return 0;
-#else
-# define UAVCAN_STM32_IRQ_HANDLER(id)  void id(void)
-# define UAVCAN_STM32_IRQ_PROLOGUE()
-# define UAVCAN_STM32_IRQ_EPILOGUE()
-#endif
-
-#if UAVCAN_STM32_CHIBIOS
-/**
- * Priority mask for timer and CAN interrupts.
- */
-# ifndef UAVCAN_STM32_IRQ_PRIORITY_MASK
-#  if (CH_KERNEL_MAJOR == 2)
-#   define UAVCAN_STM32_IRQ_PRIORITY_MASK  CORTEX_PRIORITY_MASK(CORTEX_MAX_KERNEL_PRIORITY)
-#  else // ChibiOS 3+
-#   define UAVCAN_STM32_IRQ_PRIORITY_MASK  CORTEX_MAX_KERNEL_PRIORITY
-#  endif
-# endif
-#endif
-
-#if UAVCAN_STM32_BAREMETAL
-/**
- * Priority mask for timer and CAN interrupts.
- */
-# ifndef UAVCAN_STM32_IRQ_PRIORITY_MASK
-#  define UAVCAN_STM32_IRQ_PRIORITY_MASK  0
-# endif
-#endif
-
-#if UAVCAN_STM32_FREERTOS
-/**
- * Priority mask for timer and CAN interrupts.
- */
-# ifndef UAVCAN_STM32_IRQ_PRIORITY_MASK
-#  define UAVCAN_STM32_IRQ_PRIORITY_MASK  configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY
-# endif
 #endif
 
 /**
@@ -94,15 +48,7 @@
 
 namespace uavcan_stm32
 {
-#if UAVCAN_STM32_CHIBIOS
-
-struct CriticalSectionLocker
-{
-    CriticalSectionLocker() { chSysSuspend(); }
-    ~CriticalSectionLocker() { chSysEnable(); }
-};
-
-#elif UAVCAN_STM32_NUTTX
+#if UAVCAN_STM32_NUTTX
 
 struct CriticalSectionLocker
 {
@@ -115,38 +61,6 @@ struct CriticalSectionLocker
     ~CriticalSectionLocker()
     {
         leave_critical_section(flags_);
-    }
-};
-
-#elif UAVCAN_STM32_BAREMETAL
-
-struct CriticalSectionLocker
-{
-
-    CriticalSectionLocker()
-    {
-      __disable_irq();
-    }
-
-    ~CriticalSectionLocker()
-    {
-      __enable_irq();
-    }
-};
-
-#elif UAVCAN_STM32_FREERTOS
-
-struct CriticalSectionLocker
-{
-
-    CriticalSectionLocker()
-    {
-        taskENTER_CRITICAL();
-    }
-
-    ~CriticalSectionLocker()
-    {
-        taskEXIT_CRITICAL();
     }
 };
 

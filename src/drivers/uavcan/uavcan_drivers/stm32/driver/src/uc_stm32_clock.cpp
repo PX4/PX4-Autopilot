@@ -14,21 +14,6 @@
 /*
  * Timer instance
  */
-# if (UAVCAN_STM32_CHIBIOS && CH_KERNEL_MAJOR == 2) || UAVCAN_STM32_BAREMETAL || UAVCAN_STM32_FREERTOS
-#  define TIMX                    UAVCAN_STM32_GLUE2(TIM, UAVCAN_STM32_TIMER_NUMBER)
-#  define TIMX_IRQn               UAVCAN_STM32_GLUE3(TIM, UAVCAN_STM32_TIMER_NUMBER, _IRQn)
-#  define TIMX_INPUT_CLOCK        STM32_TIMCLK1
-# endif
-
-# if (UAVCAN_STM32_CHIBIOS && (CH_KERNEL_MAJOR == 3 || CH_KERNEL_MAJOR == 4 || CH_KERNEL_MAJOR == 5))
-#  define TIMX                    UAVCAN_STM32_GLUE2(STM32_TIM, UAVCAN_STM32_TIMER_NUMBER)
-#  define TIMX_IRQn               UAVCAN_STM32_GLUE3(STM32_TIM, UAVCAN_STM32_TIMER_NUMBER, _NUMBER)
-#  define TIMX_IRQHandler         UAVCAN_STM32_GLUE3(STM32_TIM, UAVCAN_STM32_TIMER_NUMBER, _HANDLER)
-#  define TIMX_INPUT_CLOCK        STM32_TIMCLK1
-# else
-#  define TIMX_IRQHandler         UAVCAN_STM32_GLUE3(TIM, UAVCAN_STM32_TIMER_NUMBER, _IRQHandler)
-# endif
-
 # if UAVCAN_STM32_NUTTX
 #  define TIMX                    UAVCAN_STM32_GLUE3(STM32_TIM, UAVCAN_STM32_TIMER_NUMBER, _BASE)
 #  define  TMR_REG(o)              (TIMX + (o))
@@ -94,25 +79,6 @@ uavcan::uint64_t time_utc = 0;
 
 }
 
-#if UAVCAN_STM32_BAREMETAL || UAVCAN_STM32_FREERTOS
-
-static void nvicEnableVector(IRQn_Type irq,  uint8_t prio)
-{
-    #if !defined (USE_HAL_DRIVER)
-      NVIC_InitTypeDef NVIC_InitStructure;
-      NVIC_InitStructure.NVIC_IRQChannel = irq;
-      NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = prio;
-      NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
-      NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-      NVIC_Init(&NVIC_InitStructure);
-    #else
-      HAL_NVIC_SetPriority(irq, prio, 0);
-      HAL_NVIC_EnableIRQ(irq);
-    #endif
-
-}
-
-#endif
 
 void init()
 {
@@ -123,30 +89,6 @@ void init()
     }
     initialized = true;
 
-
-# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL || UAVCAN_STM32_FREERTOS
-    // Power-on and reset
-    TIMX_RCC_ENR |= TIMX_RCC_ENR_MASK;
-    TIMX_RCC_RSTR |=  TIMX_RCC_RSTR_MASK;
-    TIMX_RCC_RSTR &= ~TIMX_RCC_RSTR_MASK;
-
-    // Enable IRQ
-    nvicEnableVector(TIMX_IRQn,  UAVCAN_STM32_IRQ_PRIORITY_MASK);
-
-# if (TIMX_INPUT_CLOCK % 1000000) != 0
-#  error "No way, timer clock must be divisible by 1e6. FIXME!"
-# endif
-
-    // Start the timer
-    TIMX->ARR  = 0xFFFF;
-    TIMX->PSC  = (TIMX_INPUT_CLOCK / 1000000) - 1;  // 1 tick == 1 microsecond
-    TIMX->CR1  = TIM_CR1_URS;
-    TIMX->SR   = 0;
-    TIMX->EGR  = TIM_EGR_UG;     // Reload immediately
-    TIMX->DIER = TIM_DIER_UIE;
-    TIMX->CR1  = TIM_CR1_CEN;    // Start
-
-# endif
 
 # if UAVCAN_STM32_NUTTX
 
@@ -196,23 +138,6 @@ void setUtc(uavcan::UtcTime time)
 
 static uavcan::uint64_t sampleUtcFromCriticalSection()
 {
-# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL || UAVCAN_STM32_FREERTOS
-    UAVCAN_ASSERT(initialized);
-    UAVCAN_ASSERT(TIMX->DIER & TIM_DIER_UIE);
-
-    volatile uavcan::uint64_t time = time_utc;
-    volatile uavcan::uint32_t cnt = TIMX->CNT;
-
-    if (TIMX->SR & TIM_SR_UIF)
-    {
-        cnt = TIMX->CNT;
-        const uavcan::int32_t add = uavcan::int32_t(USecPerOverflow) +
-                                    (utc_accumulated_correction_nsec + utc_correction_nsec_per_overflow) / 1000;
-        time = uavcan::uint64_t(uavcan::int64_t(time) + add);
-    }
-    return time + cnt;
-# endif
-
 # if UAVCAN_STM32_NUTTX
 
     UAVCAN_ASSERT(initialized);
@@ -245,14 +170,6 @@ uavcan::MonotonicTime getMonotonic()
         CriticalSectionLocker locker;
 
         volatile uavcan::uint64_t time = time_mono;
-
-# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL || UAVCAN_STM32_FREERTOS
-
-        volatile uavcan::uint32_t cnt = TIMX->CNT;
-        if (TIMX->SR & TIM_SR_UIF)
-        {
-            cnt = TIMX->CNT;
-# endif
 
 # if UAVCAN_STM32_NUTTX
 
@@ -453,9 +370,6 @@ UAVCAN_STM32_IRQ_HANDLER(TIMX_IRQHandler)
 {
     UAVCAN_STM32_IRQ_PROLOGUE();
 
-# if UAVCAN_STM32_CHIBIOS || UAVCAN_STM32_BAREMETAL || UAVCAN_STM32_FREERTOS
-    TIMX->SR = 0;
-# endif
 # if UAVCAN_STM32_NUTTX
     putreg16(0, TMR_REG(STM32_BTIM_SR_OFFSET));
 # endif
