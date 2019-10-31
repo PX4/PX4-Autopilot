@@ -891,7 +891,8 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 		break;
 
 	case vehicle_command_s::VEHICLE_CMD_DO_SET_HOME: {
-			bool use_current = cmd.param1 > 0.5f;
+			bool use_current = cmd.param1 > 0.5f && cmd.param1 < 1.5f;
+			bool get_current = cmd.param1 > 2.0f;
 
 			if (use_current) {
 				/* use current position */
@@ -902,6 +903,8 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
 				}
 
+			} else if (get_current) {
+				_home_pub.update(_home_pub.get());
 			} else {
 				const double lat = cmd.param5;
 				const double lon = cmd.param6;
