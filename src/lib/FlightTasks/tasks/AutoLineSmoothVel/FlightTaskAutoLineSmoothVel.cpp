@@ -194,12 +194,17 @@ float FlightTaskAutoLineSmoothVel::_getSpeedAtTarget(float next_target_speed) co
 	const bool waypoint_overlap = (_target - _prev_wp).xy().norm() < _target_acceptance_radius;
 	const bool yaw_align_check_pass = (_param_mpc_yaw_mode.get() != 4) || _yaw_sp_aligned;
 
+
 	if (distance_current_next > 0.001f &&
 	    !waypoint_overlap &&
 	    yaw_align_check_pass) {
+		Vector3f pos_traj;
+		pos_traj(0) = _trajectory[0].getCurrentPosition();
+		pos_traj(1) = _trajectory[1].getCurrentPosition();
+		pos_traj(2) = _trajectory[2].getCurrentPosition();
 		// Max speed between current and next
 		const float max_speed_current_next = _getMaxSpeedFromDistance(distance_current_next, next_target_speed);
-		const float alpha = acosf(Vector2f((_target - _position).xy()).unit_or_zero().dot(
+		const float alpha = acosf(Vector2f((_target - pos_traj).xy()).unit_or_zero().dot(
 						  Vector2f((_target - _next_wp).xy()).unit_or_zero()));
 		// We choose a maximum centripetal acceleration of MPC_ACC_HOR * MPC_XY_TRAJ_P to take in account
 		// that there is a jerk limit (a direct transition from line to circle is not possible)
