@@ -32,69 +32,69 @@ class CanDriver;
  */
 class BusEvent : uavcan::Noncopyable
 {
-    using SignalCallbackHandler = void(*)();
+	using SignalCallbackHandler = void(*)();
 
-    SignalCallbackHandler signal_cb_{nullptr};
-    sem_t sem_;
+	SignalCallbackHandler signal_cb_{nullptr};
+	sem_t sem_;
 
 public:
-    BusEvent(CanDriver& can_driver);
-    ~BusEvent();
+	BusEvent(CanDriver &can_driver);
+	~BusEvent();
 
-    void registerSignalCallback(SignalCallbackHandler handler) { signal_cb_ = handler; }
+	void registerSignalCallback(SignalCallbackHandler handler) { signal_cb_ = handler; }
 
-    bool wait(uavcan::MonotonicDuration duration);
+	bool wait(uavcan::MonotonicDuration duration);
 
-    void signalFromInterrupt();
+	void signalFromInterrupt();
 };
 
 class Mutex
 {
-    pthread_mutex_t mutex_;
+	pthread_mutex_t mutex_;
 
 public:
-    Mutex()
-    {
-        init();
-    }
+	Mutex()
+	{
+		init();
+	}
 
-    int init()
-    {
-        return pthread_mutex_init(&mutex_, UAVCAN_NULLPTR);
-    }
+	int init()
+	{
+		return pthread_mutex_init(&mutex_, UAVCAN_NULLPTR);
+	}
 
-    int deinit()
-    {
-        return pthread_mutex_destroy(&mutex_);
-    }
+	int deinit()
+	{
+		return pthread_mutex_destroy(&mutex_);
+	}
 
-    void lock()
-    {
-        (void)pthread_mutex_lock(&mutex_);
-    }
+	void lock()
+	{
+		(void)pthread_mutex_lock(&mutex_);
+	}
 
-    void unlock()
-    {
-        (void)pthread_mutex_unlock(&mutex_);
-    }
+	void unlock()
+	{
+		(void)pthread_mutex_unlock(&mutex_);
+	}
 };
 #endif
 
 
 class MutexLocker
 {
-    Mutex& mutex_;
+	Mutex &mutex_;
 
 public:
-    MutexLocker(Mutex& mutex)
-        : mutex_(mutex)
-    {
-        mutex_.lock();
-    }
-    ~MutexLocker()
-    {
-        mutex_.unlock();
-    }
+	MutexLocker(Mutex &mutex)
+		: mutex_(mutex)
+	{
+		mutex_.lock();
+	}
+	~MutexLocker()
+	{
+		mutex_.unlock();
+	}
 };
 
 }
