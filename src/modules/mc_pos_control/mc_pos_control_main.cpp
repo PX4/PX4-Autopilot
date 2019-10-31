@@ -332,7 +332,7 @@ int
 MulticopterPositionControl::parameters_update(bool force)
 {
 	// check for parameter updates
-	if (_parameter_update_sub.updated()) {
+	if (_parameter_update_sub.updated() || force) {
 		// clear update
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
