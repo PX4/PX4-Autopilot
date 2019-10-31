@@ -7,20 +7,8 @@
 /**
  * OS detection
  */
-#ifndef UAVCAN_STM32_CHIBIOS
-# define UAVCAN_STM32_CHIBIOS 0
-#endif
-
 #ifndef UAVCAN_STM32_NUTTX
-# define UAVCAN_STM32_NUTTX 0
-#endif
-
-#ifndef UAVCAN_STM32_BAREMETAL
-# define UAVCAN_STM32_BAREMETAL 0
-#endif
-
-#ifndef UAVCAN_STM32_FREERTOS
-# define UAVCAN_STM32_FREERTOS 0
+# error "Only NuttX is supported"
 #endif
 
 /**
