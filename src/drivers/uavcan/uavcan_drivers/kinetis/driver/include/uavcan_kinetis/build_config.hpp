@@ -8,20 +8,8 @@
 /**
  * OS detection
  */
-#ifndef UAVCAN_KINETIS_CHIBIOS
-# define UAVCAN_KINETIS_CHIBIOS 0
-#endif
-
 #ifndef UAVCAN_KINETIS_NUTTX
-# define UAVCAN_KINETIS_NUTTX 0
-#endif
-
-#ifndef UAVCAN_KINETIS_BAREMETAL
-# define UAVCAN_KINETIS_BAREMETAL 0
-#endif
-
-#ifndef UAVCAN_KINETIS_FREERTOS
-# define UAVCAN_KINETIS_FREERTOS 0
+# error "Only NuttX is supported"
 #endif
 
 /**

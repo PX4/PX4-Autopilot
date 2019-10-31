@@ -6,9 +6,7 @@
 
 #include <uavcan_stm32/build_config.hpp>
 
-#if UAVCAN_STM32_CHIBIOS
-# include <ch.hpp>
-#elif UAVCAN_STM32_NUTTX
+#if UAVCAN_STM32_NUTTX
 # include <nuttx/config.h>
 # include <nuttx/fs/fs.h>
 # include <poll.h>
@@ -16,9 +14,6 @@
 # include <cstdio>
 # include <ctime>
 # include <cstring>
-#elif UAVCAN_STM32_BAREMETAL
-#elif UAVCAN_STM32_FREERTOS
-# include <cmsis_os.h>
 #else
 # error "Unknown OS"
 #endif
@@ -30,36 +25,7 @@ namespace uavcan_stm32
 
 class CanDriver;
 
-#if UAVCAN_STM32_CHIBIOS
-
-class BusEvent
-{
-    chibios_rt::CounterSemaphore sem_;
-
-public:
-    BusEvent(CanDriver& can_driver)
-        : sem_(0)
-    {
-        (void)can_driver;
-    }
-
-    bool wait(uavcan::MonotonicDuration duration);
-
-    void signal();
-
-    void signalFromInterrupt();
-};
-
-class Mutex
-{
-    chibios_rt::Mutex mtx_;
-
-public:
-    void lock();
-    void unlock();
-};
-
-#elif UAVCAN_STM32_NUTTX
+#if UAVCAN_STM32_NUTTX
 
 /**
  * All bus events are reported as POLLIN.
@@ -112,98 +78,6 @@ public:
         (void)pthread_mutex_unlock(&mutex_);
     }
 };
-#elif UAVCAN_STM32_BAREMETAL
-
-class BusEvent
-{
-    volatile bool ready;
-
-public:
-    BusEvent(CanDriver& can_driver)
-     : ready(false)
-    {
-        (void)can_driver;
-    }
-
-    bool wait(uavcan::MonotonicDuration duration)
-    {
-        (void)duration;
-        bool lready = ready;
-        #if defined ( __CC_ARM   )
-            return __sync_lock_test_and_set(&lready, false);
-        #elif defined   (  __GNUC__  )
-            return __atomic_exchange_n (&lready, false, __ATOMIC_SEQ_CST);
-        #else
-        # error "This compiler is not supported"
-        #endif
-    }
-
-    void signal()
-    {
-        #if defined ( __CC_ARM   )
-            __sync_lock_release(&ready);
-        #elif defined   (  __GNUC__  )
-            __atomic_store_n (&ready, true, __ATOMIC_SEQ_CST);
-        #else
-        # error "This compiler is not supported"
-        #endif
-    }
-
-    void signalFromInterrupt()
-    {
-        #if defined ( __CC_ARM   )
-            __sync_lock_release(&ready);
-        #elif defined   (  __GNUC__  )
-            __atomic_store_n (&ready, true, __ATOMIC_SEQ_CST);
-        #else
-        # error "This compiler is not supported"
-        #endif
-    }
-};
-
-class Mutex
-{
-public:
-    void lock() { }
-    void unlock() { }
-};
-
-#elif UAVCAN_STM32_FREERTOS
-
-class BusEvent
-{
-    SemaphoreHandle_t sem_;
-    BaseType_t higher_priority_task_woken;
-
-public:
-    BusEvent(CanDriver& can_driver)
-    {
-        (void)can_driver;
-        sem_ = xSemaphoreCreateBinary();
-    }
-
-    bool wait(uavcan::MonotonicDuration duration);
-
-    void signal();
-
-    void signalFromInterrupt();
-
-    void yieldFromISR();
-};
-
-class Mutex
-{
-    SemaphoreHandle_t mtx_;
-
-public:
-    Mutex(void)
-    {
-        mtx_ = xSemaphoreCreateMutex();
-    }
-    void lock();
-    void unlock();
-};
-
 #endif
 
 

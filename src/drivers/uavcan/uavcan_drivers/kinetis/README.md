@@ -18,11 +18,10 @@ and the following commandline defines:
 |UAVCAN_KINETIS_TIMER_NUMBER | - {0..3}  Sets the Periodic Interrupt Timer (PITn) channel |
 
 Things that could be improved:
-1. Support for Bare metal and other OS' (ChibiOS, FREERTOS)
-2. Build time command line configuartion of Mailbox/FIFO and filters
-3. Build time command line configuartion clock source
+1. Build time command line configuartion of Mailbox/FIFO and filters
+2. Build time command line configuartion clock source
     - Curently the driver use `const uavcan::uint8_t CLOCKSEL  = 0;` To Select OSCERCLK
-4. Dynamic filter disable. There are no filter enable bits on the FlexCAN, just the number of Filters
+3. Dynamic filter disable. There are no filter enable bits on the FlexCAN, just the number of Filters
    can be set. But this changes the memory map. So the configuration show below has been chosen. 
 
 ```
