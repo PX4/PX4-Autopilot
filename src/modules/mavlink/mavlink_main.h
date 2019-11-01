@@ -410,8 +410,16 @@ public:
 
 	/**
 	 * Send the supported version of the given microservice
+	 * TODO microservice versioning: Overload this function for the different message types.
+	 *  - vehicle_command_s: This is the REQUEST_MESSAGE command for one individual service version
+	 *  - mavlink_mavlink_service_version_t: This is a MAVLINK_SERVICE_VERSION message sent as a response.
+	 *    I don't need to send any response to this, as this will be the last step of the handshake.
+	 *  - (int min_version, int max_version): This is an internal function that sets the values in _microservice_versions,
+	 *    and doesn't bother with sending any messages.
 	 */
-	void 			send_microservice_version(const vehicle_command_s &command);
+	void 			microservice_version_handshake(const vehicle_command_s &command);
+//	void 			microservice_version_handshake(const mavlink_mavlink_service_version_t &command);
+//	int 			microservice_version_handshake(uint16_t requested_min_version, uint16_t requested_max_version);
 
 	List<MavlinkStream *> &get_streams() { return _streams; }
 
@@ -695,6 +703,13 @@ private:
 			.status = UNSUPPORTED,
 			.min_version = 0,
 			.max_version = 0,
+			.selected_version = 0
+		},
+		// TODO: Remove this. It is here for debugging.
+		{
+			.status = UNSELECTED,
+			.min_version = 1,
+			.max_version = 12,
 			.selected_version = 0
 		}
 	};

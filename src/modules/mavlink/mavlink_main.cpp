@@ -1239,7 +1239,7 @@ Mavlink::send_protocol_version()
 }
 
 void
-Mavlink::send_microservice_version(const vehicle_command_s &command)
+Mavlink::microservice_version_handshake(const vehicle_command_s &command)
 {
 	uint16_t requested_service_id = (uint16_t)(command.param2 + 0.5f);
 	uint16_t requested_min_version = (uint16_t)(command.param3 + 0.5f);
@@ -1266,6 +1266,10 @@ Mavlink::send_microservice_version(const vehicle_command_s &command)
 			my_version.status = VALID;
 		}
 	}
+
+	PX4_INFO("Request for service version %du: My range: (%du, %du), Requested: (%du, %du), Selected %du",
+		 requested_service_id, my_version.min_version, my_version.max_version, requested_min_version, requested_max_version,
+		 my_version.selected_version);
 
 	mavlink_msg_mavlink_service_version_send_struct(get_channel(), &msg);
 }
