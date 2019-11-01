@@ -272,6 +272,8 @@ rtps:
     id: 120
   - msg: vehicle_thrust_setpoint
     id: 121
+  - msg: vehicle_actuator_setpoint
+    id: 122
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150
