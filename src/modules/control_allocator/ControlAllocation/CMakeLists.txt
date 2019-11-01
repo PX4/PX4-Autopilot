@@ -33,6 +33,7 @@
 
 px4_add_library(ControlAllocation
 	ControlAllocation.cpp
+	ControlAllocationPseudoInverse.cpp
 )
 
 target_include_directories(ControlAllocation
@@ -42,3 +43,4 @@ target_include_directories(ControlAllocation
 
 target_link_libraries(ControlAllocation PRIVATE mathlib)
 
+px4_add_unit_gtest(SRC ControlAllocationPseudoInverseTest.cpp LINKLIBS ControlAllocation)
