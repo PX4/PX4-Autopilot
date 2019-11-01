@@ -43,9 +43,25 @@
 
 using namespace matrix;
 
-PositionControl::PositionControl(ModuleParams *parent) :
-	ModuleParams(parent)
-{}
+void PositionControl::setVelocityGains(const Vector3f &P, const Vector3f &I, const Vector3f &D)
+{
+	_gain_vel_p = P;
+	_gain_vel_i = I;
+	_gain_vel_d = D;
+}
+
+void PositionControl::setVelocityLimits(const float vel_horizontal, const float vel_up, const float vel_down)
+{
+	_lim_vel_horizontal = vel_horizontal;
+	_lim_vel_up = vel_up;
+	_lim_vel_down = vel_down;
+}
+
+void PositionControl::setThrustLimits(const float min, const float max)
+{
+	_lim_thr_min = min;
+	_lim_thr_max = max;
+}
 
 void PositionControl::updateState(const PositionControlStates &states)
 {
@@ -91,17 +107,17 @@ void PositionControl::generateThrustYawSetpoint(const float dt)
 		// Limit the thrust vector.
 		float thr_mag = _thr_sp.length();
 
-		if (thr_mag > _param_mpc_thr_max.get()) {
-			_thr_sp = _thr_sp.normalized() * _param_mpc_thr_max.get();
+		if (thr_mag > _lim_thr_max) {
+			_thr_sp = _thr_sp.normalized() * _lim_thr_max;
 
-		} else if (thr_mag < _param_mpc_manthr_min.get() && thr_mag > FLT_EPSILON) {
-			_thr_sp = _thr_sp.normalized() * _param_mpc_manthr_min.get();
+		} else if (thr_mag < _lim_thr_min && thr_mag > FLT_EPSILON) {
+			_thr_sp = _thr_sp.normalized() * _lim_thr_min;
 		}
 
 		// Just set the set-points equal to the current vehicle state.
 		_pos_sp = _pos;
 		_vel_sp = _vel;
-		_acc_sp = _acc;
+		_acc_sp = _vel_dot;
 
 	} else {
 		_positionController();
@@ -204,7 +220,7 @@ bool PositionControl::_interfaceMapping()
 		_thr_sp(0) = _thr_sp(1) = 0.0f;
 		// throttle down such that vehicle goes down with
 		// 70% of throttle range between min and hover
-		_thr_sp(2) = -(_param_mpc_thr_min.get() + (_param_mpc_thr_hover.get() - _param_mpc_thr_min.get()) * 0.7f);
+		_thr_sp(2) = -(_lim_thr_min + (_hover_thrust - _lim_thr_min) * 0.7f);
 		// position and velocity control-loop is currently unused (flag only for logging purpose)
 		_setCtrlFlag(false);
 	}
@@ -215,14 +231,13 @@ bool PositionControl::_interfaceMapping()
 void PositionControl::_positionController()
 {
 	// P-position controller
-	const Vector3f vel_sp_position = (_pos_sp - _pos).emult(Vector3f(_param_mpc_xy_p.get(), _param_mpc_xy_p.get(),
-					 _param_mpc_z_p.get()));
+	const Vector3f vel_sp_position = (_pos_sp - _pos).emult(_gain_pos_p);
 	_vel_sp = vel_sp_position + _vel_sp;
 
 	// Constrain horizontal velocity by prioritizing the velocity component along the
 	// the desired position setpoint over the feed-forward term.
 	const Vector2f vel_sp_xy = ControlMath::constrainXY(Vector2f(vel_sp_position),
-				   Vector2f(_vel_sp - vel_sp_position), _param_mpc_xy_vel_max.get());
+				   Vector2f(_vel_sp - vel_sp_position), _lim_vel_horizontal);
 	_vel_sp(0) = vel_sp_xy(0);
 	_vel_sp(1) = vel_sp_xy(1);
 	// Constrain velocity in z-direction.
@@ -258,12 +273,12 @@ void PositionControl::_velocityController(const float &dt)
 	const Vector3f vel_err = _vel_sp - _vel;
 
 	// Consider thrust in D-direction.
-	float thrust_desired_D = _param_mpc_z_vel_p.get() * vel_err(2) +  _param_mpc_z_vel_d.get() * _vel_dot(2) + _thr_int(
-					 2) - _param_mpc_thr_hover.get();
+	float thrust_desired_D = _gain_vel_p(2) * vel_err(2) +  _gain_vel_d(2) * _vel_dot(2) + _thr_int(
+					 2) - _hover_thrust;
 
 	// The Thrust limits are negated and swapped due to NED-frame.
-	float uMax = -_param_mpc_thr_min.get();
-	float uMin = -_param_mpc_thr_max.get();
+	float uMax = -_lim_thr_min;
+	float uMin = -_lim_thr_max;
 
 	// make sure there's always enough thrust vector length to infer the attitude
 	uMax = math::min(uMax, -10e-4f);
@@ -273,14 +288,15 @@ void PositionControl::_velocityController(const float &dt)
 			       (thrust_desired_D <= uMin && vel_err(2) <= 0.0f);
 
 	if (!stop_integral_D) {
-		_thr_int(2) += vel_err(2) * _param_mpc_z_vel_i.get() * dt;
+		_thr_int(2) += vel_err(2) * _gain_vel_i(2) * dt;
 
 		// limit thrust integral
-		_thr_int(2) = math::min(fabsf(_thr_int(2)), _param_mpc_thr_max.get()) * math::sign(_thr_int(2));
+		_thr_int(2) = math::min(fabsf(_thr_int(2)), _lim_thr_max) * math::sign(_thr_int(2));
 	}
 
 	// Saturate thrust setpoint in D-direction.
 	_thr_sp(2) = math::constrain(thrust_desired_D, uMin, uMax);
+	printf("%.3f %.3f\n", (double)uMin, (double)uMax);
 
 	if (PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1))) {
 		// Thrust set-point in NE-direction is already provided. Only
@@ -292,12 +308,13 @@ void PositionControl::_velocityController(const float &dt)
 	} else {
 		// PID-velocity controller for NE-direction.
 		Vector2f thrust_desired_NE;
-		thrust_desired_NE(0) = _param_mpc_xy_vel_p.get() * vel_err(0) + _param_mpc_xy_vel_d.get() * _vel_dot(0) + _thr_int(0);
-		thrust_desired_NE(1) = _param_mpc_xy_vel_p.get() * vel_err(1) + _param_mpc_xy_vel_d.get() * _vel_dot(1) + _thr_int(1);
+		thrust_desired_NE(0) = _gain_vel_p(0) * vel_err(0) + _gain_vel_d(0) * _vel_dot(0) + _thr_int(0);
+		thrust_desired_NE(1) = _gain_vel_p(1) * vel_err(1) + _gain_vel_d(1) * _vel_dot(1) + _thr_int(1);
 
 		// Get maximum allowed thrust in NE based on tilt and excess thrust.
 		float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);
-		float thrust_max_NE = sqrtf(_param_mpc_thr_max.get() * _param_mpc_thr_max.get() - _thr_sp(2) * _thr_sp(2));
+		float thrust_max_NE = sqrtf(_lim_thr_max * _lim_thr_max - _thr_sp(2) * _thr_sp(2));
+		printf("%.3f %.3f\n", (double)(_lim_thr_max), (double)(_thr_sp(2)));
 		thrust_max_NE = math::min(thrust_max_NE_tilt, thrust_max_NE);
 
 		// Saturate thrust in NE-direction.
@@ -312,15 +329,15 @@ void PositionControl::_velocityController(const float &dt)
 
 		// Use tracking Anti-Windup for NE-direction: during saturation, the integrator is used to unsaturate the output
 		// see Anti-Reset Windup for PID controllers, L.Rundqwist, 1990
-		float arw_gain = 2.f / _param_mpc_xy_vel_p.get();
+		float arw_gain = 2.f / _gain_vel_p(0);
 
 		Vector2f vel_err_lim;
 		vel_err_lim(0) = vel_err(0) - (thrust_desired_NE(0) - _thr_sp(0)) * arw_gain;
 		vel_err_lim(1) = vel_err(1) - (thrust_desired_NE(1) - _thr_sp(1)) * arw_gain;
 
 		// Update integral
-		_thr_int(0) += _param_mpc_xy_vel_i.get() * vel_err_lim(0) * dt;
-		_thr_int(1) += _param_mpc_xy_vel_i.get() * vel_err_lim(1) * dt;
+		_thr_int(0) += _gain_vel_i(0) * vel_err_lim(0) * dt;
+		_thr_int(1) += _gain_vel_i(1) * vel_err_lim(1) * dt;
 	}
 }
 
@@ -331,23 +348,21 @@ void PositionControl::updateConstraints(const vehicle_constraints_s &constraints
 	// For safety check if adjustable constraints are below global constraints. If they are not stricter than global
 	// constraints, then just use global constraints for the limits.
 
-	const float tilt_max_radians = math::radians(math::max(_param_mpc_tiltmax_air.get(), _param_mpc_man_tilt_max.get()));
-
 	if (!PX4_ISFINITE(constraints.tilt)
-	    || !(constraints.tilt < tilt_max_radians)) {
-		_constraints.tilt = tilt_max_radians;
+	    || !(constraints.tilt < _lim_tilt)) {
+		_constraints.tilt = _lim_tilt;
 	}
 
-	if (!PX4_ISFINITE(constraints.speed_up) || !(constraints.speed_up < _param_mpc_z_vel_max_up.get())) {
-		_constraints.speed_up = _param_mpc_z_vel_max_up.get();
+	if (!PX4_ISFINITE(constraints.speed_up) || !(constraints.speed_up < _lim_vel_up)) {
+		_constraints.speed_up = _lim_vel_up;
 	}
 
-	if (!PX4_ISFINITE(constraints.speed_down) || !(constraints.speed_down < _param_mpc_z_vel_max_dn.get())) {
-		_constraints.speed_down = _param_mpc_z_vel_max_dn.get();
+	if (!PX4_ISFINITE(constraints.speed_down) || !(constraints.speed_down < _lim_vel_down)) {
+		_constraints.speed_down = _lim_vel_down;
 	}
 
-	if (!PX4_ISFINITE(constraints.speed_xy) || !(constraints.speed_xy < _param_mpc_xy_vel_max.get())) {
-		_constraints.speed_xy = _param_mpc_xy_vel_max.get();
+	if (!PX4_ISFINITE(constraints.speed_xy) || !(constraints.speed_xy < _lim_vel_horizontal)) {
+		_constraints.speed_xy = _lim_vel_horizontal;
 	}
 }
 
@@ -369,9 +384,4 @@ void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_
 {
 	ControlMath::thrustToAttitude(_thr_sp, _yaw_sp, attitude_setpoint);
 	attitude_setpoint.yaw_sp_move_rate = _yawspeed_sp;
-}
-
-void PositionControl::updateParams()
-{
-	ModuleParams::updateParams();
 }
