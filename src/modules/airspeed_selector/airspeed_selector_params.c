@@ -60,7 +60,7 @@ PARAM_DEFINE_FLOAT(ASPD_BETA_NOISE, 0.3);
 PARAM_DEFINE_INT32(ASPD_TAS_GATE, 3);
 
 /**
- * Airspeed Selector: Gate size for true sideslip fusion
+ * Airspeed Selector: Gate size for sideslip angle fusion
  *
  * Sets the number of standard deviations used by the innovation consistency test.
  *
@@ -74,7 +74,9 @@ PARAM_DEFINE_INT32(ASPD_BETA_GATE, 1);
 /**
  * Automatic airspeed scale estimation on
  *
- * Turns the automatic airspeed scale (scale from IAS to CAS/EAS) on or off. It is recommended level (keeping altitude) while performing the estimation. Set to 1 to start estimation (best when already flying). Set to 0 to end scale estimation. The estimated scale is then saved in the ASPD_SCALE parameter.
+ * Turns the automatic airspeed scale (scale from IAS to CAS/EAS) on or off. It is recommended to fly level
+ * altitude while performing the estimation. Set to 1 to start estimation (best when already flying).
+ * Set to 0 to end scale estimation. The estimated scale is then saved using the ASPD_SCALE parameter.
  *
  * @boolean
  * @group Airspeed Validator
@@ -134,7 +136,10 @@ PARAM_DEFINE_INT32(ASPD_FALLBACK, 0);
 /**
  * Airspeed failsafe consistency threshold (Experimental)
  *
- * This specifies the minimum airspeed test ratio required to trigger a failsafe. Larger values make the check less sensitive, smaller values make it more sensitive. Start with a value of 1.0 when tuning. When tas_test_ratio is > 1.0 it indicates the inconsistency between predicted and measured airspeed is large enough to cause the navigation EKF to reject airspeed measurements. The time required to detect a fault when the threshold is exceeded depends on the size of the exceedance and is controlled by the ASPD_FS_INTEG parameter.
+ * This specifies the minimum airspeed test ratio required to trigger a failsafe. Larger values make the check less sensitive,
+ * smaller values make it more sensitive. Start with a value of 1.0 when tuning. When tas_test_ratio is > 1.0 it indicates the
+ * inconsistency between predicted and measured airspeed is large enough to cause the navigation EKF to reject airspeed measurements.
+ * The time required to detect a fault when the threshold is exceeded depends on the size of the exceedance and is controlled by the ASPD_FS_INTEG parameter.
 *
  * @min 0.5
  * @max 3.0
@@ -145,7 +150,10 @@ PARAM_DEFINE_FLOAT(ASPD_FS_INNOV, 1.0f);
 /**
  * Airspeed failsafe consistency delay (Experimental)
  *
- * This sets the time integral of airspeed test ratio exceedance above ASPD_FS_INNOV required to trigger a failsafe. For example if ASPD_FS_INNOV is 100 and estimator_status.tas_test_ratio is 2.0, then the exceedance is 1.0 and the integral will rise at a rate of 1.0/second. A negative value disables the check. Larger positive values make the check less sensitive, smaller positive values make it more sensitive.
+ * This sets the time integral of airspeed test ratio exceedance above ASPD_FS_INNOV required to trigger a failsafe.
+ * For example if ASPD_FS_INNOV is 1 and estimator_status.tas_test_ratio is 2.0, then the exceedance is 1.0 and the integral will
+ * rise at a rate of 1.0/second. A negative value disables the check. Larger positive values make the check less sensitive, smaller positive values
+ * make it more sensitive.
  *
  * @unit s
  * @max 30.0
