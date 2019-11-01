@@ -43,3 +43,5 @@ target_include_directories(ControlAllocation
 
 target_link_libraries(ControlAllocation PRIVATE mathlib)
 
+px4_add_unit_gtest(SRC ControlAllocationSimpleTest.cpp LINKLIBS ControlAllocation)
+# px4_add_unit_gtest(SRC ControlAllocationMultirotorTest.cpp LINKLIBS ControlAllocation)
