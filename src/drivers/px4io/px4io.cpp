@@ -259,6 +259,8 @@ private:
 	uORB::Subscription	_t_actuator_controls_1{ORB_ID(actuator_controls_1)};	///< actuator controls group 1 topic
 	uORB::Subscription	_t_actuator_controls_2{ORB_ID(actuator_controls_2)};;	///< actuator controls group 2 topic
 	uORB::Subscription	_t_actuator_controls_3{ORB_ID(actuator_controls_3)};;	///< actuator controls group 3 topic
+	uORB::Subscription	_t_actuator_controls_4{ORB_ID(actuator_controls_4)};;	///< actuator controls group 4 topic
+	uORB::Subscription	_t_actuator_controls_5{ORB_ID(actuator_controls_5)};;	///< actuator controls group 5 topic
 	uORB::Subscription	_t_actuator_armed{ORB_ID(actuator_armed)};		///< system armed control topic
 	uORB::Subscription 	_t_vehicle_control_mode{ORB_ID(vehicle_control_mode)};	///< vehicle control mode topic
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};	///< parameter update topic
@@ -1254,6 +1256,8 @@ PX4IO::io_set_control_groups()
 	(void)io_set_control_state(1);
 	(void)io_set_control_state(2);
 	(void)io_set_control_state(3);
+	(void)io_set_control_state(4);
+	(void)io_set_control_state(5);
 
 	return ret;
 }
@@ -1287,6 +1291,14 @@ PX4IO::io_set_control_state(unsigned group)
 
 	case 3:
 		changed = _t_actuator_controls_3.update(&controls);
+		break;
+
+	case 4:
+		changed = _t_actuator_controls_4.update(&controls);
+		break;
+
+	case 5:
+		changed = _t_actuator_controls_5.update(&controls);
 		break;
 	}
 
