@@ -21,6 +21,17 @@ then
 	param set VM_INERTIA_XX 0.0083
 	param set VM_INERTIA_YY 0.0083
 	param set VM_INERTIA_ZZ 0.0286
+
+	param set CA_AIRFRAME 0
+	param set CA_ACT0_MIN 0.0
+	param set CA_ACT1_MIN 0.0
+	param set CA_ACT2_MIN 0.0
+	param set CA_ACT3_MIN 0.0
+	param set CA_ACT0_MAX 1.0
+	param set CA_ACT1_MAX 1.0
+	param set CA_ACT2_MAX 1.0
+	param set CA_ACT3_MAX 1.0
 fi
-set MIXER quad_w
+# set MIXER quad_w
+set MIXER quad
 
