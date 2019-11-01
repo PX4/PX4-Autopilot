@@ -272,6 +272,8 @@ rtps:
     id: 119
   - msg: vehicle_thrust_setpoint
     id: 120
+  - msg: control_allocator_status
+    id: 121
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150
