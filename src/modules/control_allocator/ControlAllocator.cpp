@@ -176,6 +176,10 @@ ControlAllocator::update_allocation_method()
 			tmp = new ControlAllocationSimple();
 			break;
 
+		case 1:
+			tmp = new ControlAllocationMultirotor();
+			break;
+
 		default:
 			tmp = nullptr;
 			break;
