@@ -167,21 +167,21 @@ int main()
 
     {
         // isnan
-        TEST(!isnan(a));
+        TEST(!IsNan(a));
         Dual<float, 1> c(sqrt(-1.f),0);
-        TEST(isnan(c));
+        TEST(IsNan(c));
     }
 
     {
         // isfinite/isinf
-        TEST(isfinite(a));
-        TEST(!isinf(a));
+        TEST(IsFinite(a));
+        TEST(!IsInf(a));
         Dual<float, 1> c(sqrt(-1.f),0);
-        TEST(!isfinite(c));
-        TEST(!isinf(c));
+        TEST(!IsFinite(c));
+        TEST(!IsInf(c));
         Dual<float, 1> d(INFINITY,0);
-        TEST(!isfinite(d));
-        TEST(isinf(d));
+        TEST(!IsFinite(d));
+        TEST(IsInf(d));
     }
 
     {
