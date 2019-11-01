@@ -48,6 +48,7 @@ set(msg_files
 	collision_constraints.msg
 	collision_report.msg
 	commander_state.msg
+	control_allocator_status.msg
 	cpuload.msg
 	debug_array.msg
 	debug_key_value.msg
