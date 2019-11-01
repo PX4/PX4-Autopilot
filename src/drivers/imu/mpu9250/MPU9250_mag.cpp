@@ -52,7 +52,7 @@ MPU9250_mag::MPU9250_mag(MPU9250 *parent, device::Device *interface, enum Rotati
 	_parent(parent),
 	_mag_overruns(perf_alloc(PC_COUNT, "mpu9250_mag_overruns")),
 	_mag_overflows(perf_alloc(PC_COUNT, "mpu9250_mag_overflows")),
-	_mag_duplicates(perf_alloc(PC_COUNT, "mpu9250_mag_duplicates"))
+	_mag_errors(perf_alloc(PC_COUNT, "mpu9250_mag_errors"))
 {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_MPU9250);
 	_px4_mag.set_scale(MPU9250_MAG_RANGE_GA);
@@ -62,64 +62,75 @@ MPU9250_mag::~MPU9250_mag()
 {
 	perf_free(_mag_overruns);
 	perf_free(_mag_overflows);
-	perf_free(_mag_duplicates);
-}
-
-bool MPU9250_mag::check_duplicate(uint8_t *mag_data)
-{
-	if (memcmp(mag_data, &_last_mag_data, sizeof(_last_mag_data)) == 0) {
-		// it isn't new data - wait for next timer
-		return true;
-
-	} else {
-		memcpy(&_last_mag_data, mag_data, sizeof(_last_mag_data));
-		return false;
-	}
+	perf_free(_mag_errors);
 }
 
 void
 MPU9250_mag::measure()
 {
-	union raw_data_t {
-		struct ak8963_regs ak8963_data;
-		struct ak09916_regs ak09916_data;
-	} raw_data;
-
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
-	int ret = _interface->read(AK8963REG_ST1, &raw_data, sizeof(struct ak8963_regs));
 
-	if (ret == OK) {
-		_measure(timestamp_sample, raw_data.ak8963_data);
-	}
-}
+	uint8_t st1;
+	int ret = _interface->read(AK8963REG_ST1, &st1, sizeof(st1));
 
-void
-MPU9250_mag::_measure(hrt_abstime timestamp_sample, struct ak8963_regs data)
-{
-	if (check_duplicate((uint8_t *)&data.x) && !(data.st1 & 0x02)) {
-		perf_count(_mag_duplicates);
+	if (ret != OK) {
+		_px4_mag.set_error_count(perf_event_count(_mag_errors));
 		return;
 	}
 
-	/* monitor for if data overrun flag is ever set */
-	if (data.st1 & 0x02) {
+	/* Check if data ready is set.
+	 * This is not described to be set in continuous mode according to the
+	 * MPU9250 datasheet. However, the datasheet of the 8963 recommends to
+	 * check data ready before doing the read and before triggering the
+	 * next measurement by reading ST2. */
+	if (!(st1 & AK09916_ST1_DRDY)) {
+		return;
+	}
+
+	/* Monitor if data overrun flag is ever set. */
+	if (st1 & 0x02) {
 		perf_count(_mag_overruns);
 	}
 
-	/* monitor for if magnetic sensor overflow flag is ever set noting that st2
-	 * is usually not even refreshed, but will always be in the same place in the
-	 * mpu's buffers regardless, hence the actual count would be bogus
-	 */
+	ak8963_regs data;
+	ret = _interface->read(AK8963REG_ST1, &data, sizeof(data));
+
+	if (ret != OK) {
+		_px4_mag.set_error_count(perf_event_count(_mag_errors));
+		return;
+	}
+
+	/* Monitor magnetic sensor overflow flag. */
 	if (data.st2 & 0x08) {
 		perf_count(_mag_overflows);
 	}
 
+	_measure(timestamp_sample, data);
+}
+
+void
+MPU9250_mag::_measure(hrt_abstime timestamp_sample, ak8963_regs data)
+{
+	/* Check if data ready is set.
+	 * This is not described to be set in continuous mode according to the
+	 * MPU9250 datasheet. However, the datasheet of the 8963 recommends to
+	 * check data ready before doing the read and before triggering the
+	 * next measurement by reading ST2.
+	 *
+	 * If _measure is used in passthrough mode, all the data is already
+	 * fetched, however, we should still not use the data if the data ready
+	 * is not set. This has lead to intermittent spikes when the data was
+	 * being updated while getting read.
+	 */
+	if (!(data.st1 & AK09916_ST1_DRDY)) {
+		return;
+	}
+
 	_px4_mag.set_external(_parent->is_external());
 	_px4_mag.set_temperature(_parent->_last_temperature);
-	//_px4_mag.set_error_count(perf_event_count(_mag_errors));
 
 	/*
-	 * Align axes - note the accel & gryo are also re-aligned so this
+	 * Align axes - note the accel & gyro are also re-aligned so this
 	 *              doesn't look obvious with the datasheet
 	 */
 	_px4_mag.update(timestamp_sample, data.x, -data.y, -data.z);
