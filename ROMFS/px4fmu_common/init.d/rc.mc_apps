@@ -64,6 +64,11 @@ mc_att_control start
 mc_pos_control start
 
 #
+# Start Control Allocator
+#
+control_allocator start
+
+#
 # Start Multicopter Land Detector.
 #
 land_detector start multicopter

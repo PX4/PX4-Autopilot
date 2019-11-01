@@ -25,6 +25,11 @@ fw_pos_control_l1 start
 airspeed_selector start
 
 #
+# Start Control Allocator
+#
+control_allocator start
+
+#
 # Start Land Detector
 # Multicopter for now until we have something for VTOL
 #
