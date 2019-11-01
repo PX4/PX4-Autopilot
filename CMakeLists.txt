@@ -158,7 +158,7 @@ add_subdirectory(l1)
 add_subdirectory(tecs)
 add_subdirectory(validation)
 
-if(BUILD_TESTING)
+if(BUILD_TESTING AND CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
 	add_subdirectory(test)
 endif()
 
