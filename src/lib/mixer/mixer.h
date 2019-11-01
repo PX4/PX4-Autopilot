@@ -504,6 +504,66 @@ public:
 };
 
 /**
+ * Mixer for allocated actuators.
+ *
+ * Copies a single actuator to a single output.
+ */
+class AllocatedActuatorMixer : public Mixer
+{
+public:
+	/**
+	 * Constructor
+	 *
+	 * @param index	Actuator index (0..15)
+	 */
+	AllocatedActuatorMixer(ControlCallback control_cb,
+			       uintptr_t cb_handle,
+			       uint8_t index);
+	~AllocatedActuatorMixer();
+
+	/**
+	 * Factory method with full external configuration.
+	 *
+	 * Given a pointer to a buffer containing a text description of the mixer,
+	 * returns a pointer to a new instance of the mixer.
+	 *
+	 * @param control_cb		The callback to invoke when fetching a
+	 *				control value.
+	 * @param cb_handle		Handle passed to the control callback.
+	 * @param buf			Buffer containing a text description of
+	 *				the mixer.
+	 * @param buflen		Length of the buffer in bytes, adjusted
+	 *				to reflect the bytes consumed.
+	 * @return			A new AllocatedActuatorMixer instance, or nullptr
+	 *				if the text format is bad.
+	 */
+	static AllocatedActuatorMixer *from_text(Mixer::ControlCallback control_cb,
+			uintptr_t cb_handle,
+			const char *buf,
+			unsigned &buflen);
+
+	unsigned mix(float *outputs, unsigned space) override;
+	uint16_t get_saturation_status(void) override;
+	void groups_required(uint32_t &groups) override;
+	unsigned set_trim(float trim) override;
+	unsigned get_trim(float *trim) override;
+
+protected:
+
+private:
+	uint8_t	_control_group;	/**< group from which the input reads */
+	uint8_t	_control_index;	/**< index within the control group */
+
+	static int parse(const char *buf,
+			 unsigned &buflen,
+			 uint8_t &index);
+
+	/* do not allow to copy due to ptr data members */
+	AllocatedActuatorMixer(const AllocatedActuatorMixer &);
+	AllocatedActuatorMixer operator=(const AllocatedActuatorMixer &);
+};
+
+/**
  * Simple summing mixer.
  *
  * Collects zero or more inputs and mixes them to a single output.

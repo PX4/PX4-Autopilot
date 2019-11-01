@@ -278,6 +278,10 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 			m = NullMixer::from_text(p, resid);
 			break;
 
+		case 'A':
+			m = AllocatedActuatorMixer::from_text(_control_cb, _cb_handle, p, resid);
+			break;
+
 		case 'M':
 			m = SimpleMixer::from_text(_control_cb, _cb_handle, p, resid);
 			break;
