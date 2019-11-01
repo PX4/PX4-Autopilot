@@ -253,12 +253,16 @@ enum {							/* DSM bind states */
 #define PX4IO_P_CONTROLS_GROUP_1		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 1)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */
 #define PX4IO_P_CONTROLS_GROUP_2		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 2)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */
 #define PX4IO_P_CONTROLS_GROUP_3		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 3)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */
+#define PX4IO_P_CONTROLS_GROUP_4		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 4)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */
+#define PX4IO_P_CONTROLS_GROUP_5		(PX4IO_PROTOCOL_MAX_CONTROL_COUNT * 5)	/**< 0..PX4IO_PROTOCOL_MAX_CONTROL_COUNT - 1 */
 
 #define PX4IO_P_CONTROLS_GROUP_VALID		64
 #define PX4IO_P_CONTROLS_GROUP_VALID_GROUP0	(1 << 0) /**< group 0 is valid / received */
 #define PX4IO_P_CONTROLS_GROUP_VALID_GROUP1	(1 << 1) /**< group 1 is valid / received */
 #define PX4IO_P_CONTROLS_GROUP_VALID_GROUP2	(1 << 2) /**< group 2 is valid / received */
 #define PX4IO_P_CONTROLS_GROUP_VALID_GROUP3	(1 << 3) /**< group 3 is valid / received */
+#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP4	(1 << 4) /**< group 4 is valid / received */
+#define PX4IO_P_CONTROLS_GROUP_VALID_GROUP5	(1 << 5) /**< group 5 is valid / received */
 
 /* raw text load to the mixer parser - ignores offset */
 #define PX4IO_PAGE_MIXERLOAD			52
