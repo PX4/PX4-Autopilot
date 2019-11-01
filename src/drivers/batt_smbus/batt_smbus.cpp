@@ -174,7 +174,7 @@ void BATT_SMBUS::Run()
 	// Temporary variable for storing SMBUS reads.
 	uint16_t result;
 
-	int ret = _interface->read_word(BATT_SMBUS_VOLTAGE, &result);
+	int ret = _interface->read_word(BATT_SMBUS_VOLTAGE, result);
 
 	ret |= get_cell_voltages();
 
@@ -183,13 +183,13 @@ void BATT_SMBUS::Run()
 	new_report.voltage_filtered_v = new_report.voltage_v;
 
 	// Read current.
-	ret |= _interface->read_word(BATT_SMBUS_CURRENT, &result);
+	ret |= _interface->read_word(BATT_SMBUS_CURRENT, result);
 
 	new_report.current_a = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f);
 	new_report.current_filtered_a = new_report.current_a;
 
 	// Read average current.
-	ret |= _interface->read_word(BATT_SMBUS_AVERAGE_CURRENT, &result);
+	ret |= _interface->read_word(BATT_SMBUS_AVERAGE_CURRENT, result);
 
 	float average_current = (-1.0f * ((float)(*(int16_t *)&result)) / 1000.0f);
 
@@ -200,15 +200,15 @@ void BATT_SMBUS::Run()
 	set_undervoltage_protection(average_current);
 
 	// Read run time to empty.
-	ret |= _interface->read_word(BATT_SMBUS_RUN_TIME_TO_EMPTY, &result);
+	ret |= _interface->read_word(BATT_SMBUS_RUN_TIME_TO_EMPTY, result);
 	new_report.run_time_to_empty = result;
 
 	// Read average time to empty.
-	ret |= _interface->read_word(BATT_SMBUS_AVERAGE_TIME_TO_EMPTY, &result);
+	ret |= _interface->read_word(BATT_SMBUS_AVERAGE_TIME_TO_EMPTY, result);
 	new_report.average_time_to_empty = result;
 
 	// Read remaining capacity.
-	ret |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, &result);
+	ret |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, result);
 
 	// Calculate remaining capacity percent with complementary filter.
 	new_report.remaining = 0.8f * _last_report.remaining + 0.2f * (1.0f - (float)((float)(_batt_capacity - result) /
@@ -239,7 +239,7 @@ void BATT_SMBUS::Run()
 	}
 
 	// Read battery temperature and covert to Celsius.
-	ret |= _interface->read_word(BATT_SMBUS_TEMP, &result);
+	ret |= _interface->read_word(BATT_SMBUS_TEMP, result);
 	new_report.temperature = ((float)result / 10.0f) + CONSTANTS_ABSOLUTE_NULL_CELSIUS;
 
 	new_report.capacity = _batt_capacity;
@@ -287,19 +287,19 @@ int BATT_SMBUS::get_cell_voltages()
 	// Temporary variable for storing SMBUS reads.
 	uint16_t result = 0;
 
-	int ret = _interface->read_word(BATT_SMBUS_CELL_1_VOLTAGE, &result);
+	int ret = _interface->read_word(BATT_SMBUS_CELL_1_VOLTAGE, result);
 	// Convert millivolts to volts.
 	_cell_voltages[0] = ((float)result) / 1000.0f;
 
-	ret = _interface->read_word(BATT_SMBUS_CELL_2_VOLTAGE, &result);
+	ret = _interface->read_word(BATT_SMBUS_CELL_2_VOLTAGE, result);
 	// Convert millivolts to volts.
 	_cell_voltages[1] = ((float)result) / 1000.0f;
 
-	ret = _interface->read_word(BATT_SMBUS_CELL_3_VOLTAGE, &result);
+	ret = _interface->read_word(BATT_SMBUS_CELL_3_VOLTAGE, result);
 	// Convert millivolts to volts.
 	_cell_voltages[2] = ((float)result) / 1000.0f;
 
-	ret = _interface->read_word(BATT_SMBUS_CELL_4_VOLTAGE, &result);
+	ret = _interface->read_word(BATT_SMBUS_CELL_4_VOLTAGE, result);
 	// Convert millivolts to volts.
 	_cell_voltages[3] = ((float)result) / 1000.0f;
 
@@ -414,20 +414,17 @@ int BATT_SMBUS::get_startup_info()
 		_manufacturer_name = new char[sizeof(man_name)];
 	}
 
-	// Temporary variable for storing SMBUS reads.
-	uint16_t tmp = 0;
+	uint16_t serial_num;
+	result = _interface->read_word(BATT_SMBUS_SERIAL_NUMBER, serial_num);
 
-	result = _interface->read_word(BATT_SMBUS_SERIAL_NUMBER, &tmp);
-	uint16_t serial_num = tmp;
+	uint16_t remaining_cap;
+	result |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, remaining_cap);
 
-	result |= _interface->read_word(BATT_SMBUS_REMAINING_CAPACITY, &tmp);
-	uint16_t remaining_cap = tmp;
+	uint16_t cycle_count;
+	result |= _interface->read_word(BATT_SMBUS_CYCLE_COUNT, cycle_count);
 
-	result |= _interface->read_word(BATT_SMBUS_CYCLE_COUNT, &tmp);
-	uint16_t cycle_count = tmp;
-
-	result |= _interface->read_word(BATT_SMBUS_FULL_CHARGE_CAPACITY, &tmp);
-	uint16_t full_cap = tmp;
+	uint16_t full_cap;
+	result |= _interface->read_word(BATT_SMBUS_FULL_CHARGE_CAPACITY, full_cap);
 
 	if (!result) {
 		_serial_number = serial_num;
@@ -463,7 +460,7 @@ uint16_t BATT_SMBUS::get_serial_number()
 {
 	uint16_t serial_num = 0;
 
-	if (_interface->read_word(BATT_SMBUS_SERIAL_NUMBER, &serial_num) == PX4_OK) {
+	if (_interface->read_word(BATT_SMBUS_SERIAL_NUMBER, serial_num) == PX4_OK) {
 		return serial_num;
 	}
 
@@ -472,10 +469,8 @@ uint16_t BATT_SMBUS::get_serial_number()
 
 int BATT_SMBUS::manufacture_date()
 {
-	uint16_t date = PX4_ERROR;
-	uint8_t code = BATT_SMBUS_MANUFACTURE_DATE;
-
-	int result = _interface->read_word(code, &date);
+	uint16_t date;
+	int result = _interface->read_word(BATT_SMBUS_MANUFACTURE_DATE, date);
 
 	if (result != PX4_OK) {
 		return result;
@@ -550,9 +545,9 @@ int BATT_SMBUS::unseal()
 	// See bq40z50 technical reference.
 	uint16_t keys[2] = {0x0414, 0x3672};
 
-	int ret = _interface->write_word(BATT_SMBUS_MANUFACTURER_ACCESS, &keys[0]);
+	int ret = _interface->write_word(BATT_SMBUS_MANUFACTURER_ACCESS, keys[0]);
 
-	ret |= _interface->write_word(BATT_SMBUS_MANUFACTURER_ACCESS, &keys[1]);
+	ret |= _interface->write_word(BATT_SMBUS_MANUFACTURER_ACCESS, keys[1]);
 
 	return ret;
 }
