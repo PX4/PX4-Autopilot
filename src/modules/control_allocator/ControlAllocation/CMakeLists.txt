@@ -33,6 +33,7 @@
 
 px4_add_library(ControlAllocation
 	ControlAllocation.cpp
+	ControlAllocationSimple.cpp
 )
 
 target_include_directories(ControlAllocation
