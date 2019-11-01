@@ -52,6 +52,7 @@ px4_add_romfs_files(
 	fw_generic_wing.main.mix
 	FX79.main.mix
 	generic_diff_rover.main.mix
+	hexa.main.mix
 	hexa_cox.main.mix
 	hexa_+.main.mix
 	hexa_x.main.mix
@@ -59,12 +60,14 @@ px4_add_romfs_files(
 	mount.aux.mix
 	mount_legs.aux.mix
 	ocpoc_quad_x.main.mix
+	octo.main.mix
 	octo_cox.main.mix
 	octo_cox_w.main.mix
 	octo_+.main.mix
 	octo_x.main.mix
 	pass.aux.mix
 	phantom.main.mix
+	quad.main.mix
 	quad_dc.main.mix
 	quad_h.main.mix
 	quad_+.main.mix
