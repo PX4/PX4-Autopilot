@@ -70,7 +70,7 @@
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/test_motor.h>
 
-#define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	4
+#define NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN	actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS
 
 // we add two to allow for actuator_direct and busevent
 #define UAVCAN_NUM_POLL_FDS (NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN+2)

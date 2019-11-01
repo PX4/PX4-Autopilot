@@ -94,6 +94,8 @@ UavcanNode::UavcanNode(uavcan::ICanDriver &can_driver, uavcan::ISystemClock &sys
 	_control_topics[1] = ORB_ID(actuator_controls_1);
 	_control_topics[2] = ORB_ID(actuator_controls_2);
 	_control_topics[3] = ORB_ID(actuator_controls_3);
+	_control_topics[4] = ORB_ID(actuator_controls_4);
+	_control_topics[5] = ORB_ID(actuator_controls_5);
 
 	for (int i = 0; i < NUM_ACTUATOR_CONTROL_GROUPS_UAVCAN; ++i) {
 		_control_subs[i] = -1;
