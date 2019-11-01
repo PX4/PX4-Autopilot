@@ -85,6 +85,7 @@ add_custom_target(mixer_gen_6dof DEPENDS mixer_multirotor_6dof.generated.h)
 
 add_library(mixer
 	mixer.cpp
+	mixer_allocated_actuator.cpp
 	mixer_group.cpp
 	mixer_helicopter.cpp
 	mixer_load.c
