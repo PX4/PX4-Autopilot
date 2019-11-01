@@ -83,8 +83,6 @@ static void usage(const char *reason)
 Utility to test motors.
 
 WARNING: remove all props before using this command.
-
-Note: this can only be used for drivers which support the motor_test uorb topic (not px4io).
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("motor_test", "command");
