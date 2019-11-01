@@ -234,24 +234,42 @@ Dual<Scalar, N> min(const Dual<Scalar, N>& a, const Dual<Scalar, N>& b)
 }
 
 // isnan
-template <typename Scalar, size_t N>
-bool isnan(const Dual<Scalar, N>& a)
+template <typename Scalar>
+bool IsNan(Scalar a)
 {
-    return isnan(a.value);
+    return isnan(a);
+}
+
+template <typename Scalar, size_t N>
+bool IsNan(const Dual<Scalar, N>& a)
+{
+    return IsNan(a.value);
 }
 
 // isfinite
-template <typename Scalar, size_t N>
-bool isfinite(const Dual<Scalar, N>& a)
+template <typename Scalar>
+bool IsFinite(Scalar a)
 {
-    return isfinite(a.value);
+    return isfinite(a);
+}
+
+template <typename Scalar, size_t N>
+bool IsFinite(const Dual<Scalar, N>& a)
+{
+    return IsFinite(a.value);
 }
 
 // isinf
-template <typename Scalar, size_t N>
-bool isinf(const Dual<Scalar, N>& a)
+template <typename Scalar>
+bool IsInf(Scalar a)
 {
-    return isinf(a.value);
+    return isinf(a);
+}
+
+template <typename Scalar, size_t N>
+bool IsInf(const Dual<Scalar, N>& a)
+{
+    return IsInf(a.value);
 }
 
 // trig
