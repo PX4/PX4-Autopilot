@@ -74,7 +74,16 @@ UavcanBatteryBridge::battery_sub_cb(const uavcan::ReceivedDataStructure<uavcan::
 	battery.current_filtered_a = battery.current_a;
 	// battery.average_current_a = msg.;
 	// battery.discharged_mah = msg.;
-	battery.remaining = msg.remaining_capacity_wh / msg.full_charge_capacity_wh; // between 0 and 1
+
+	// between 0 and 1
+	if (msg.full_charge_capacity_wh > 0) {
+		battery.remaining = msg.remaining_capacity_wh / msg.full_charge_capacity_wh;
+
+	} else {
+		battery.remaining = 0;
+
+	}
+
 	// battery.scale = msg.; // Power scaling factor, >= 1, or -1 if unknown
 	battery.temperature = msg.temperature;
 	// battery.cell_count = msg.;
