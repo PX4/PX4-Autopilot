@@ -1024,7 +1024,7 @@ info()
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'test', 'test2', 'reset'");
+	warnx("missing command: try 'start', 'info', 'test', 'reset'");
 	warnx("options:");
 	warnx("    -X    (external I2C bus)");
 	warnx("    -I    (intternal I2C bus)");
