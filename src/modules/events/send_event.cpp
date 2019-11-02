@@ -201,32 +201,6 @@ void SendEvent::answer_command(const vehicle_command_s &cmd, unsigned result)
 	command_ack_pub.publish(command_ack);
 }
 
-int SendEvent::print_usage(const char *reason)
-{
-	if (reason) {
-		printf("%s\n\n", reason);
-	}
-
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Background process running periodically on the LP work queue to perform housekeeping tasks.
-It is currently only responsible for temperature calibration and tone alarm on RC Loss.
-
-The tasks can be started via CLI or uORB topics (vehicle_command from MAVLink, etc.).
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("send_event", "system");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the background task");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("temperature_calibration", "Run temperature calibration process");
-	PRINT_MODULE_USAGE_PARAM_FLAG('g', "calibrate the gyro", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('a', "calibrate the accel", true);
-	PRINT_MODULE_USAGE_PARAM_FLAG('b', "calibrate the baro (if none of these is given, all will be calibrated)", true);
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
-	return 0;
-}
-
 int SendEvent::custom_command(int argc, char *argv[])
 {
 	if (!strcmp(argv[0], "temperature_calibration")) {
@@ -267,13 +241,16 @@ int SendEvent::custom_command(int argc, char *argv[])
 
 		vehicle_command_s vcmd{};
 		vcmd.timestamp = hrt_absolute_time();
-		vcmd.param1 = (float)((gyro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
+		vcmd.param1 = (float)((gyro_calib
+				       || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
 		vcmd.param2 = NAN;
 		vcmd.param3 = NAN;
 		vcmd.param4 = NAN;
-		vcmd.param5 = ((accel_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : (double)NAN);
+		vcmd.param5 = ((accel_calib
+				|| calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : (double)NAN);
 		vcmd.param6 = (double)NAN;
-		vcmd.param7 = (float)((baro_calib || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
+		vcmd.param7 = (float)((baro_calib
+				       || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
 		vcmd.command = vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION;
 
 		uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
@@ -282,6 +259,32 @@ int SendEvent::custom_command(int argc, char *argv[])
 	} else {
 		print_usage("unrecognized command");
 	}
+
+	return 0;
+}
+
+int SendEvent::print_usage(const char *reason)
+{
+	if (reason) {
+		printf("%s\n\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Background process running periodically on the LP work queue to perform housekeeping tasks.
+It is currently only responsible for temperature calibration and tone alarm on RC Loss.
+
+The tasks can be started via CLI or uORB topics (vehicle_command from MAVLink, etc.).
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("send_event", "system");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the background task");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("temperature_calibration", "Run temperature calibration process");
+	PRINT_MODULE_USAGE_PARAM_FLAG('g', "calibrate the gyro", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('a', "calibrate the accel", true);
+	PRINT_MODULE_USAGE_PARAM_FLAG('b', "calibrate the baro (if none of these is given, all will be calibrated)", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
 }

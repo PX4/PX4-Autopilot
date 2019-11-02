@@ -536,6 +536,19 @@ int AirspeedModule::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
+int AirspeedModule::print_status()
+{
+	perf_print_counter(_perf_elapsed);
+
+	int instance = 0;
+	uORB::SubscriptionData<airspeed_validated_s> est{ORB_ID(airspeed_validated), (uint8_t)instance};
+	est.update();
+	PX4_INFO("Number of airspeed sensors: %i", _number_of_airspeed_sensors);
+	print_message(est.get());
+
+	return 0;
+}
+
 int AirspeedModule::print_usage(const char *reason)
 {
 	if (reason) {
@@ -562,23 +575,7 @@ and also publishes those.
 	return 0;
 }
 
-int AirspeedModule::print_status()
-{
-	perf_print_counter(_perf_elapsed);
-
-	int instance = 0;
-	uORB::SubscriptionData<airspeed_validated_s> est{ORB_ID(airspeed_validated), (uint8_t)instance};
-	est.update();
-	PX4_INFO("Number of airspeed sensors: %i", _number_of_airspeed_sensors);
-	print_message(est.get());
-
-	return 0;
-}
-
-extern "C" __EXPORT int airspeed_selector_main(int argc, char *argv[]);
-
-int
-airspeed_selector_main(int argc, char *argv[])
+extern "C" __EXPORT int airspeed_selector_main(int argc, char *argv[])
 {
 	return AirspeedModule::main(argc, argv);
 }

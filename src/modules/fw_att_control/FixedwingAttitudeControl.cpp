@@ -40,13 +40,6 @@ using math::constrain;
 using math::gradual;
 using math::radians;
 
-/**
- * Fixedwing attitude control app start / stop handling function
- *
- * @ingroup apps
- */
-extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[]);
-
 FixedwingAttitudeControl::FixedwingAttitudeControl() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
@@ -762,6 +755,13 @@ int FixedwingAttitudeControl::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
+int FixedwingAttitudeControl::print_status()
+{
+	PX4_INFO("Running");
+	perf_print_counter(_loop_perf);
+	return 0;
+}
+
 int FixedwingAttitudeControl::print_usage(const char *reason)
 {
 	if (reason) {
@@ -776,24 +776,13 @@ fw_att_control is the fixed wing attitude controller.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_COMMAND("start");
-
 	PRINT_MODULE_USAGE_NAME("fw_att_control", "controller");
-
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
 }
 
-int FixedwingAttitudeControl::print_status()
-{
-	PX4_INFO("Running");
-
-	perf_print_counter(_loop_perf);
-
-	return 0;
-}
-
-int fw_att_control_main(int argc, char *argv[])
+extern "C" __EXPORT int fw_att_control_main(int argc, char *argv[])
 {
 	return FixedwingAttitudeControl::main(argc, argv);
 }

@@ -778,9 +778,7 @@ tap_esc start -d /dev/ttyS2 -n <1-8>
 	return PX4_OK;
 }
 
-extern "C" __EXPORT int tap_esc_main(int argc, char *argv[]);
-
-int tap_esc_main(int argc, char *argv[])
+extern "C" __EXPORT int tap_esc_main(int argc, char *argv[])
 {
 	return TAP_ESC::main(argc, argv);
 }

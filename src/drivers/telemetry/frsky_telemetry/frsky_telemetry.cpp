@@ -208,23 +208,6 @@ static void set_uart_single_wire(int uart, bool single_wire)
 }
 
 /**
- * Print command usage information
- */
-static void usage()
-{
-	PRINT_MODULE_DESCRIPTION("FrSky Telemetry support. Auto-detects D or S.PORT protocol.");
-
-	PRINT_MODULE_USAGE_NAME("frsky_telemetry", "communication");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS6", "<file:dev>", "Select Serial Device", true);
-	PRINT_MODULE_USAGE_PARAM_INT('t', 0, 0, 60, "Scanning timeout [s] (default: no timeout)", true);
-	PRINT_MODULE_USAGE_PARAM_STRING('m', "auto", "sport|sport_single|dtype", "Select protocol (default: auto-detect)",
-					true);
-	PRINT_MODULE_USAGE_COMMAND("stop");
-	PRINT_MODULE_USAGE_COMMAND("status");
-}
-
-/**
  * The daemon thread.
  */
 static int frsky_telemetry_thread_main(int argc, char *argv[])
@@ -805,4 +788,21 @@ int frsky_telemetry_main(int argc, char *argv[])
 	PX4_ERR("unrecognized command");
 	usage();
 	return 0;
+}
+
+/**
+ * Print command usage information
+ */
+static void usage()
+{
+	PRINT_MODULE_DESCRIPTION("FrSky Telemetry support. Auto-detects D or S.PORT protocol.");
+
+	PRINT_MODULE_USAGE_NAME("frsky_telemetry", "communication");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyS6", "<file:dev>", "Select Serial Device", true);
+	PRINT_MODULE_USAGE_PARAM_INT('t', 0, 0, 60, "Scanning timeout [s] (default: no timeout)", true);
+	PRINT_MODULE_USAGE_PARAM_STRING('m', "auto", "sport|sport_single|dtype", "Select protocol (default: auto-detect)",
+					true);
+	PRINT_MODULE_USAGE_COMMAND("stop");
+	PRINT_MODULE_USAGE_COMMAND("status");
 }

@@ -46,28 +46,6 @@ extern "C" {
 	__EXPORT int dmesg_main(int argc, char *argv[]);
 }
 
-static void
-usage()
-{
-
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Command-line tool to show bootup console messages.
-Note that output from NuttX's work queues and syslog are not captured.
-
-### Examples
-
-Keep printing all messages in the background:
-$ dmesg -f &
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("dmesg", "system");
-	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Follow: wait for new messages", true);
-
-}
-
 int
 dmesg_main(int argc, char *argv[])
 {
@@ -92,4 +70,26 @@ dmesg_main(int argc, char *argv[])
 	px4_console_buffer_print(follow);
 
 	return 0;
+}
+
+static void
+usage()
+{
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+Command-line tool to show bootup console messages.
+Note that output from NuttX's work queues and syslog are not captured.
+
+### Examples
+
+Keep printing all messages in the background:
+$ dmesg -f &
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("dmesg", "system");
+	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Follow: wait for new messages", true);
+
 }
