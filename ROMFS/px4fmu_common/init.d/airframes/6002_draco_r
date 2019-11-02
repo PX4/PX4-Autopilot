@@ -88,7 +88,7 @@ then
 	param set PWM_MAX 1950
 	param set PWM_MIN 1100
 	param set PWM_MAIN_DIS5 980
-        param set PWM_MAIN_DIS6 980
+	param set PWM_MAIN_DIS6 980
 
 	# DSHOT
 	param set DSHOT_CONFIG 600

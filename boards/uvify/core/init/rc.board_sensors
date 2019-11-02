@@ -2,14 +2,15 @@
 #
 # UVify UVF4 specific board sensors init
 #------------------------------------------------------------------------------
+
 # Internal SPI
 ms5611 -T 0 -s start
 
 # Draco-R
 if param compare SYS_AUTOSTART 6002
 then
-        # GPS LED
-        rgbled_ncp5623c start -a 0x38
+	# GPS LED
+	rgbled_ncp5623c start -a 0x38
 
 	#mpu6000 -R 4 -T 20608 start
 	mpu9250 -R 4 start
