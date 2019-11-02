@@ -54,16 +54,6 @@ public:
 
 protected:
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAutoMapper2,
-					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err, // yaw-error threshold
-					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, // acceleration in flight
-					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
-					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max,
-					(ParamFloat<px4::params::MPC_JERK_AUTO>) _param_mpc_jerk_auto,
-					(ParamFloat<px4::params::MPC_XY_TRAJ_P>) _param_mpc_xy_traj_p,
-					(ParamFloat<px4::params::MPC_Z_TRAJ_P>) _param_mpc_z_traj_p
-				       );
-
 	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
 
 	/** Reset position or velocity setpoints in case of EKF reset event */
@@ -102,4 +92,14 @@ protected:
 	bool _want_takeoff{false};
 
 	VelocitySmoothing _trajectory[3]; ///< Trajectories in x, y and z directions
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAutoMapper2,
+					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err, // yaw-error threshold
+					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, // acceleration in flight
+					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
+					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max,
+					(ParamFloat<px4::params::MPC_JERK_AUTO>) _param_mpc_jerk_auto,
+					(ParamFloat<px4::params::MPC_XY_TRAJ_P>) _param_mpc_xy_traj_p,
+					(ParamFloat<px4::params::MPC_Z_TRAJ_P>) _param_mpc_z_traj_p
+				       );
 };
