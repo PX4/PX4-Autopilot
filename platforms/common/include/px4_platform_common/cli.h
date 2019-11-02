@@ -50,5 +50,3 @@
  * @return 0 on success, -errno otherwise
  */
 int px4_get_parameter_value(const char *option, int &value);
-
-

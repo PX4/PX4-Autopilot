@@ -53,4 +53,3 @@ __BEGIN_DECLS
 __EXPORT void px4_gpio_init(const uint32_t list[], int count);
 
 __END_DECLS
-

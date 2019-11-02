@@ -264,7 +264,6 @@ misc_qgc_extra_firmware: \
 alt_firmware: \
 	check_px4_cannode-v1_default \
 	check_px4_esc-v1_default \
-	check_auav_esc35-v1_default \
 	check_thiemar_s2740vc-v1_default \
 	sizes
 

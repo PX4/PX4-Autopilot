@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013-2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -804,49 +804,63 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 
 				bool cmd_arms = (static_cast<int>(cmd.param1 + 0.5f) == 1);
 
-				// Arm/disarm is enforced only when param2 is set to a magic number.
-				const bool enforce_in_air = (static_cast<int>(std::round(cmd.param2)) == 21196);
+				// Arm/disarm is enforced when param2 is set to a magic number.
+				const bool enforce = (static_cast<int>(std::round(cmd.param2)) == 21196);
 
-				if (!enforce_in_air && !land_detector.landed && !is_ground_rover(&status)) {
-					if (cmd_arms) {
-						mavlink_log_critical(&mavlink_log_pub, "Arming denied! Not landed");
+				if (!enforce) {
+					if (!land_detector.landed && !is_ground_rover(&status)) {
+						if (cmd_arms) {
+							if (armed_local->armed) {
+								mavlink_log_warning(&mavlink_log_pub, "Arming denied! Already armed");
+							} else {
+								mavlink_log_critical(&mavlink_log_pub, "Arming denied! Not landed");
+							}
+
+						} else {
+							mavlink_log_critical(&mavlink_log_pub, "Disarming denied! Not landed");
+						}
+
+						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+						break;
+					}
+
+					// Flick to inair restore first if this comes from an onboard system
+					if (cmd.source_system == status_local->system_id && cmd.source_component == status_local->component_id) {
+						status.arming_state = vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE;
 
 					} else {
-						mavlink_log_critical(&mavlink_log_pub, "Disarming denied! Not landed");
-					}
+						// Refuse to arm if preflight checks have failed
+						if ((!status_local->hil_state) != vehicle_status_s::HIL_STATE_ON
+						    && !status_flags.condition_system_sensors_initialized) {
+							mavlink_log_critical(&mavlink_log_pub, "Arming denied! Preflight checks have failed");
+							cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+							break;
+						}
 
-					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
-					break;
-				}
+						const bool throttle_above_low = (sp_man.z > 0.1f);
+						const bool throttle_above_center = (sp_man.z > 0.6f);
 
-				// Flick to inair restore first if this comes from an onboard system
-				if (cmd.source_system == status_local->system_id && cmd.source_component == status_local->component_id) {
-					status.arming_state = vehicle_status_s::ARMING_STATE_IN_AIR_RESTORE;
+						if (cmd_arms && throttle_above_center &&
+							(status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_POSCTL ||
+							 status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_ALTCTL)) {
+							mavlink_log_critical(&mavlink_log_pub, "Arming denied! Throttle not centered");
+							cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+							break;
+						}
 
-				} else {
-					// Refuse to arm if preflight checks have failed
-					if ((!status_local->hil_state) != vehicle_status_s::HIL_STATE_ON
-					    && !status_flags.condition_system_sensors_initialized) {
-						mavlink_log_critical(&mavlink_log_pub, "Arming denied! Preflight checks have failed");
-						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
-						break;
-					}
-
-					// Refuse to arm if in manual with non-zero throttle
-					if (cmd_arms
-					    && (status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL
-						|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO
-						|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_STAB
-						|| status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_RATTITUDE)
-					    && (sp_man.z > 0.1f)) {
-
-						mavlink_log_critical(&mavlink_log_pub, "Arming denied! Manual throttle not zero");
-						cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
-						break;
+						if (cmd_arms && throttle_above_low &&
+							(status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_MANUAL ||
+							 status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_ACRO ||
+							 status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_STAB ||
+							 status_local->nav_state == vehicle_status_s::NAVIGATION_STATE_RATTITUDE)) {
+							mavlink_log_critical(&mavlink_log_pub, "Arming denied! Throttle not zero");
+							cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
+							break;
+						}
 					}
 				}
 
-				transition_result_t arming_res = arm_disarm(cmd_arms, true, &mavlink_log_pub, "Arm/Disarm component command");
+				transition_result_t arming_res = arm_disarm(cmd_arms, !enforce, &mavlink_log_pub, "Arm/Disarm component command");
 
 				if (arming_res == TRANSITION_DENIED) {
 					cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_TEMPORARILY_REJECTED;
