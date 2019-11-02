@@ -52,7 +52,7 @@
  ****************************************************************************************************/
 /* Configuration ************************************************************************************/
 
-/* PX4FMU GPIOs ***********************************************************************************/
+/* UVify Core GPIOs ***********************************************************************************/
 /* LEDs */
 #define GPIO_LED1                    (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN11)
 #define GPIO_LED2                    (GPIO_OUTPUT|GPIO_OPENDRAIN|GPIO_SPEED_50MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTB|GPIO_PIN1)
@@ -343,6 +343,8 @@
 #define BOARD_DMA_ALLOC_POOL_SIZE    5120
 
 #define BOARD_HAS_ON_RESET 1
+
+#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4, 5};
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 #define BOARD_CONSOLE_BUFFER_SIZE (1024*3)
