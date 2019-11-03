@@ -291,11 +291,7 @@ RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity,
 
 		Vector3f desired_body_velocity;
 
-		if (pos_sp_triplet.current.velocity_frame == position_setpoint_s::VELOCITY_FRAME_LOCAL_NED) {
-			desired_body_velocity = R_to_body * Vector3f(desired_velocity(0), desired_velocity(1),
-						desired_velocity(2));
-
-		} else if (pos_sp_triplet.current.velocity_frame == position_setpoint_s::VELOCITY_FRAME_BODY_NED) {
+		if (pos_sp_triplet.current.velocity_frame == position_setpoint_s::VELOCITY_FRAME_BODY_NED) {
 			desired_body_velocity = Vector3f(desired_velocity(0), desired_velocity(1),
 							 desired_velocity(2));
 
