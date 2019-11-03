@@ -83,6 +83,7 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 			.start_ccr_register = TIM_DMABASE_CCR2,
 			.channels_number = 2u // CCR2 and CCR3
 		}
+
 	}
 };
 
