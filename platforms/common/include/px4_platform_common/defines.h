@@ -105,17 +105,6 @@ typedef param_t px4_param_t;
 #define PX4_O_MODE_666 0666
 #define PX4_O_MODE_600 0600
 
-#ifndef PRIu64
-#  define PRIu64 "llu"
-#endif
-#ifndef PRId64
-#  define PRId64 "lld"
-#endif
-
-#ifndef offsetof
-#  define offsetof(TYPE, MEMBER) __builtin_offsetof (TYPE, MEMBER)
-#endif
-
 #elif defined(__PX4_POSIX)
 /****************************************************************************
  * POSIX Specific defines
