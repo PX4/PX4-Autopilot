@@ -178,6 +178,8 @@ __END_DECLS
 #define ERROR -1
 #define MAX_RAND 32767
 
+#endif // defined(__PX4_POSIX)
+
 /* Math macro's for float literals. Do not use M_PI et al as they aren't
  * defined (neither C nor the C++ standard define math constants) */
 #define M_E_F			2.71828183f
@@ -207,5 +209,3 @@ __END_DECLS
 
 #define M_DEG_TO_RAD 		0.017453292519943295
 #define M_RAD_TO_DEG 		57.295779513082323
-
-#endif // defined(__PX4_POSIX)
