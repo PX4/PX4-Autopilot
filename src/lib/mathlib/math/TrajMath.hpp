@@ -90,5 +90,6 @@ inline float computeMaxSpeedInWaypoint(const float alpha, const float accel, con
 
 	return max_speed_in_turn;
 }
+
 } /* namespace traj */
 } /* namespace math */

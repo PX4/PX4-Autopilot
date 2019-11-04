@@ -41,6 +41,68 @@
 
 using namespace matrix;
 
+namespace
+{
+
+
+struct vehicle_dynamic_limits {
+	float z_accept_rad;
+	float xy_accept_rad;
+
+	float max_acc_xy;
+	float max_jerk_xy;
+
+	float desired_vel_xy;
+
+	// TODO: remove this
+	float max_acc_xy_radius_scale;
+};
+
+/*
+ *
+ *
+ *
+ */
+inline float computeCurrentSpeedFromWaypoints(const Vector3f &start_position, const Vector3f &target,
+		const Vector3f &next_target, float final_speed, const vehicle_dynamic_limits &config)
+{
+	// Compute the maximum allowed speed at the waypoint assuming that we want to
+	// connect the two lines (prev-current and current-next)
+	// with a tangent circle with constant speed and desired centripetal acceleration: a_centripetal = speed^2 / radius
+	// The circle should in theory start and end at the intersection of the lines and the waypoint's acceptance radius.
+	// This is not exactly true in reality since Navigator switches the waypoint so we have to take in account that
+	// the real acceptance radius is smaller.
+	// It can be that the next waypoint is the last one or that the drone will have to stop for some other reason
+	// so we have to make sure that the speed at the current waypoint allows to stop at the next waypoint.
+
+	float speed_at_target = 0.0f;
+
+	const float distance_current_next = (target - next_target).xy().norm();
+	const bool waypoint_overlap = (target - next_target).xy().norm() < config.xy_accept_rad;
+	const bool has_reached_altitude = fabsf(target(2) - start_position(2)) < config.z_accept_rad;
+	const bool altitude_stays_same = fabsf(next_target(2) - target(2)) < config.z_accept_rad;
+
+	if (distance_current_next > 0.001f &&
+	    !waypoint_overlap &&
+	    has_reached_altitude &&
+	    altitude_stays_same
+	   ) {
+		const float max_speed_current_next = math::trajectory::computeMaxSpeedFromDistance(config.max_jerk_xy,
+						     config.max_acc_xy, distance_current_next, final_speed);
+		const float alpha = acosf(Vector2f((target - start_position).xy()).unit_or_zero().dot(
+						  Vector2f((target - next_target).xy()).unit_or_zero()));
+		float accel_tmp = config.max_acc_xy_radius_scale * config.max_acc_xy;
+		float max_speed_in_turn = math::trajectory::computeMaxSpeedInWaypoint(alpha,
+					  accel_tmp,
+					  config.xy_accept_rad);
+		speed_at_target = math::min(math::min(max_speed_in_turn, max_speed_current_next), config.desired_vel_xy);
+	}
+
+	return speed_at_target;
+}
+
+}
+
 bool FlightTaskAutoLineSmoothVel::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
 	bool ret = FlightTaskAutoMapper2::activate(last_setpoint);
@@ -180,48 +242,26 @@ float FlightTaskAutoLineSmoothVel::_constrainAbs(float val, float max)
 
 float FlightTaskAutoLineSmoothVel::_getSpeedAtTarget(float next_target_speed) const
 {
-	// Compute the maximum allowed speed at the waypoint assuming that we want to
-	// connect the two lines (prev-current and current-next)
-	// with a tangent circle with constant speed and desired centripetal acceleration: a_centripetal = speed^2 / radius
-	// The circle should in theory start and end at the intersection of the lines and the waypoint's acceptance radius.
-	// This is not exactly true in reality since Navigator switches the waypoint so we have to take in account that
-	// the real acceptance radius is smaller.
-	// It can be that the next waypoint is the last one or that the drone will have to stop for some other reason
-	// so we have to make sure that the speed at the current waypoint allows to stop at the next waypoint.
-	float speed_at_target = 0.0f;
 
-	const float distance_current_next = (_target - _next_wp).xy().norm();
-	const bool waypoint_overlap = (_target - _prev_wp).xy().norm() < _target_acceptance_radius;
-	const bool yaw_align_check_pass = (_param_mpc_yaw_mode.get() != 4) || _yaw_sp_aligned;
-	const bool has_reached_altitude = fabsf(_target(2) - _trajectory[2].getCurrentPosition()) < _param_nav_mc_alt_rad.get();
-	const bool altitude_stays_same = fabsf(_next_wp(2) - _target(2)) < _param_nav_mc_alt_rad.get();
-
-
-	if (distance_current_next > 0.001f &&
-	    !waypoint_overlap &&
-	    yaw_align_check_pass &&
-	    has_reached_altitude &&
-	    altitude_stays_same
-	   ) {
-		Vector3f pos_traj;
-		pos_traj(0) = _trajectory[0].getCurrentPosition();
-		pos_traj(1) = _trajectory[1].getCurrentPosition();
-		pos_traj(2) = _trajectory[2].getCurrentPosition();
-		// Max speed between current and next
-		const float max_speed_current_next = _getMaxSpeedFromDistance(distance_current_next, next_target_speed);
-		const float alpha = acosf(Vector2f((_target - pos_traj).xy()).unit_or_zero().dot(
-						  Vector2f((_target - _next_wp).xy()).unit_or_zero()));
-		// We choose a maximum centripetal acceleration of MPC_ACC_HOR * MPC_XY_TRAJ_P to take in account
-		// that there is a jerk limit (a direct transition from line to circle is not possible)
-		// MPC_XY_TRAJ_P should be between 0 and 1.
-		float accel_tmp = _param_mpc_xy_traj_p.get() * _param_mpc_acc_hor.get();
-		float max_speed_in_turn = math::trajectory::computeMaxSpeedInWaypoint(alpha,
-					  accel_tmp,
-					  _target_acceptance_radius);
-		speed_at_target = math::min(math::min(max_speed_in_turn, max_speed_current_next), _mc_cruise_speed);
+	// short circuit if we have to stop anyways
+	if (_param_mpc_yaw_mode.get() == 4 && !_yaw_sp_aligned) {
+		return 0.f;
 	}
 
-	return speed_at_target;
+	Vector3f pos_traj;
+	pos_traj(0) = _trajectory[0].getCurrentPosition();
+	pos_traj(1) = _trajectory[1].getCurrentPosition();
+	pos_traj(2) = _trajectory[2].getCurrentPosition();
+
+	vehicle_dynamic_limits config;
+	config.z_accept_rad = _param_nav_mc_alt_rad.get();
+	config.xy_accept_rad = _target_acceptance_radius;
+	config.max_acc_xy = _param_mpc_acc_hor.get();
+	config.max_jerk_xy = _param_mpc_jerk_auto.get();
+	config.desired_vel_xy = _mc_cruise_speed;
+	config.max_acc_xy_radius_scale = _param_mpc_xy_traj_p.get();
+
+	return computeCurrentSpeedFromWaypoints(pos_traj, _target, _next_wp, next_target_speed, config);
 }
 
 float FlightTaskAutoLineSmoothVel::_getMaxSpeedFromDistance(float braking_distance, float final_speed) const
