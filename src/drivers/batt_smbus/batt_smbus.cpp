@@ -620,7 +620,7 @@ int BATT_SMBUS::custom_command(int argc, char *argv[])
 	}
 
 	if (!strcmp(input, "write_flash")) {
-		if (argv[1] && argv[2]) {
+		if (argc >= 3) {
 			uint16_t address = atoi(argv[1]);
 			unsigned length = atoi(argv[2]);
 			uint8_t tx_buf[32] = {};
@@ -632,7 +632,9 @@ int BATT_SMBUS::custom_command(int argc, char *argv[])
 
 			// Data needs to be fed in 1 byte (0x01) at a time.
 			for (unsigned i = 0; i < length; i++) {
-				tx_buf[i] = atoi(argv[3 + i]);
+				if ((unsigned)argc <= 3 + i) {
+					tx_buf[i] = atoi(argv[3 + i]);
+				}
 			}
 
 			if (PX4_OK != obj->dataflash_write(address, tx_buf, length)) {
