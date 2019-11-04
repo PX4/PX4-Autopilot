@@ -132,7 +132,7 @@ int BATT_SMBUS::task_spawn(int argc, char *argv[])
 				return PX4_ERROR;
 			}
 
-			dev->ScheduleNow();
+			dev->ScheduleOnInterval(BATT_SMBUS_MEASUREMENT_INTERVAL_US);
 
 			return PX4_OK;
 
@@ -145,6 +145,12 @@ int BATT_SMBUS::task_spawn(int argc, char *argv[])
 
 void BATT_SMBUS::Run()
 {
+	if (should_exit()) {
+		ScheduleClear();
+		exit_and_cleanup();
+		return;
+	}
+
 	// Get the current time.
 	uint64_t now = hrt_absolute_time();
 
@@ -242,29 +248,16 @@ void BATT_SMBUS::Run()
 
 		_last_report = new_report;
 	}
-
-	if (should_exit()) {
-		exit_and_cleanup();
-
-	} else {
-
-		while (_should_suspend) {
-			px4_usleep(200000);
-		}
-
-		// Schedule a fresh cycle call when the measurement is done.
-		ScheduleDelayed(BATT_SMBUS_MEASUREMENT_INTERVAL_US);
-	}
 }
 
 void BATT_SMBUS::suspend()
 {
-	_should_suspend = true;
+	ScheduleClear();
 }
 
 void BATT_SMBUS::resume()
 {
-	_should_suspend = false;
+	ScheduleOnInterval(BATT_SMBUS_MEASUREMENT_INTERVAL_US);
 }
 
 int BATT_SMBUS::get_cell_voltages()
