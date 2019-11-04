@@ -46,7 +46,7 @@ TEST(ControlMathTest, ThrottleAttitudeMapping)
 	Vector3f thr{0.0f, 0.0f, -1.0f};
 	float yaw = 0.0f;
 	vehicle_attitude_setpoint_s att{};
-	att = thrustToAttitude(thr, yaw);
+	thrustToAttitude(thr, yaw, att);
 	EXPECT_EQ(att.roll_body, 0);
 	EXPECT_EQ(att.pitch_body, 0);
 	EXPECT_EQ(att.yaw_body, 0);
@@ -55,7 +55,7 @@ TEST(ControlMathTest, ThrottleAttitudeMapping)
 	/* expected: same as before but with 90 yaw
 	 * reason: only yaw changed */
 	yaw = M_PI_2_F;
-	att = thrustToAttitude(thr, yaw);
+	thrustToAttitude(thr, yaw, att);
 	EXPECT_EQ(att.roll_body, 0);
 	EXPECT_EQ(att.pitch_body, 0);
 	EXPECT_EQ(att.yaw_body, M_PI_2_F);
@@ -65,7 +65,7 @@ TEST(ControlMathTest, ThrottleAttitudeMapping)
 	 * reason: thrust points straight down and order Euler
 	 * order is: 1. roll, 2. pitch, 3. yaw */
 	thr = Vector3f(0.0f, 0.0f, 1.0f);
-	att = thrustToAttitude(thr, yaw);
+	thrustToAttitude(thr, yaw, att);
 	EXPECT_NEAR(att.roll_body, -M_PI_F, 1e-4);
 	EXPECT_EQ(att.pitch_body, 0);
 	EXPECT_EQ(att.yaw_body, M_PI_2_F);
