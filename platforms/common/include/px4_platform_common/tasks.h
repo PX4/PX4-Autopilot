@@ -190,4 +190,3 @@ __EXPORT int px4_prctl(int option, const char *arg2, px4_task_t pid);
 __EXPORT const char *px4_get_taskname(void);
 
 __END_DECLS
-

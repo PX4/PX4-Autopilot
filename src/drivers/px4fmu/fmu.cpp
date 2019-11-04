@@ -2173,6 +2173,59 @@ int PX4FMU::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
+int PX4FMU::print_status()
+{
+	PX4_INFO("Max update rate: %i Hz", _current_update_rate);
+
+	const char *mode_str = nullptr;
+
+	switch (_mode) {
+	case MODE_NONE: mode_str = "no pwm"; break;
+
+	case MODE_1PWM: mode_str = "pwm1"; break;
+
+	case MODE_2PWM: mode_str = "pwm2"; break;
+
+	case MODE_2PWM2CAP: mode_str = "pwm2cap2"; break;
+
+	case MODE_3PWM: mode_str = "pwm3"; break;
+
+	case MODE_3PWM1CAP: mode_str = "pwm3cap1"; break;
+
+	case MODE_4PWM: mode_str = "pwm4"; break;
+
+	case MODE_4PWM1CAP: mode_str = "pwm4cap1"; break;
+
+	case MODE_4PWM2CAP: mode_str = "pwm4cap2"; break;
+
+	case MODE_5PWM: mode_str = "pwm5"; break;
+
+	case MODE_5PWM1CAP: mode_str = "pwm5cap1"; break;
+
+	case MODE_6PWM: mode_str = "pwm6"; break;
+
+	case MODE_8PWM: mode_str = "pwm8"; break;
+
+	case MODE_4CAP: mode_str = "cap4"; break;
+
+	case MODE_5CAP: mode_str = "cap5"; break;
+
+	case MODE_6CAP: mode_str = "cap6"; break;
+
+	default:
+		break;
+	}
+
+	if (mode_str) {
+		PX4_INFO("PWM Mode: %s", mode_str);
+	}
+
+	perf_print_counter(_cycle_perf);
+	_mixing_output.printStatus();
+
+	return 0;
+}
+
 int PX4FMU::print_usage(const char *reason)
 {
 	if (reason) {
@@ -2252,64 +2305,7 @@ mixer files.
 	return 0;
 }
 
-int PX4FMU::print_status()
-{
-	PX4_INFO("Max update rate: %i Hz", _current_update_rate);
-
-	const char *mode_str = nullptr;
-
-	switch (_mode) {
-
-	case MODE_NONE: mode_str = "no pwm"; break;
-
-	case MODE_1PWM: mode_str = "pwm1"; break;
-
-	case MODE_2PWM: mode_str = "pwm2"; break;
-
-	case MODE_2PWM2CAP: mode_str = "pwm2cap2"; break;
-
-	case MODE_3PWM: mode_str = "pwm3"; break;
-
-	case MODE_3PWM1CAP: mode_str = "pwm3cap1"; break;
-
-	case MODE_4PWM: mode_str = "pwm4"; break;
-
-  	case MODE_4PWM1CAP: mode_str = "pwm4cap1"; break;
-
-	case MODE_4PWM2CAP: mode_str = "pwm4cap2"; break;
-
-  	case MODE_5PWM: mode_str = "pwm5"; break;
-
-  	case MODE_5PWM1CAP: mode_str = "pwm5cap1"; break;
-
-  	case MODE_6PWM: mode_str = "pwm6"; break;
-
-	case MODE_8PWM: mode_str = "pwm8"; break;
-
-	case MODE_4CAP: mode_str = "cap4"; break;
-
-	case MODE_5CAP: mode_str = "cap5"; break;
-
-	case MODE_6CAP: mode_str = "cap6"; break;
-
-	default:
-		break;
-	}
-
-	if (mode_str) {
-		PX4_INFO("PWM Mode: %s", mode_str);
-	}
-
-	perf_print_counter(_cycle_perf);
-	_mixing_output.printStatus();
-
-	return 0;
-}
-
-extern "C" __EXPORT int fmu_main(int argc, char *argv[]);
-
-int
-fmu_main(int argc, char *argv[])
+extern "C" __EXPORT int fmu_main(int argc, char *argv[])
 {
 	return PX4FMU::main(argc, argv);
 }

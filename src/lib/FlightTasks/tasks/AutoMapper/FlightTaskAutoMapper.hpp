@@ -52,6 +52,16 @@ public:
 
 protected:
 
+	virtual void _generateSetpoints() = 0; /**< Generate velocity and position setpoint for following line. */
+
+	void _generateIdleSetpoints();
+	void _generateLandSetpoints();
+	void _generateVelocitySetpoints();
+	void _generateTakeoffSetpoints();
+
+	void _updateAltitudeAboveGround(); /**< Computes altitude above ground based on sensors available. */
+	void updateParams() override; /**< See ModuleParam class */
+
 	float _alt_above_ground{0.0f}; /**< If home provided, then it is altitude above home, otherwise it is altitude above local position reference. */
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAuto,
@@ -63,16 +73,6 @@ protected:
 					_param_mpc_land_alt2, // altitude at which speed limit downwards reached minimum speed
 					(ParamFloat<px4::params::MPC_TKO_SPEED>) _param_mpc_tko_speed
 				       );
-
-	virtual void _generateSetpoints() = 0; /**< Generate velocity and position setpoint for following line. */
-
-	void _generateIdleSetpoints();
-	void _generateLandSetpoints();
-	void _generateVelocitySetpoints();
-	void _generateTakeoffSetpoints();
-
-	void _updateAltitudeAboveGround(); /**< Computes altitude above ground based on sensors available. */
-	void updateParams() override; /**< See ModuleParam class */
 
 private:
 

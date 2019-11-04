@@ -96,4 +96,3 @@ __EXPORT int px4_shutdown_lock(void);
 __EXPORT int px4_shutdown_unlock(void);
 
 __END_DECLS
-

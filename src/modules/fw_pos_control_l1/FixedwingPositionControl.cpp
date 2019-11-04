@@ -33,8 +33,6 @@
 
 #include "FixedwingPositionControl.hpp"
 
-extern "C" __EXPORT int fw_pos_control_l1_main(int argc, char *argv[]);
-
 FixedwingPositionControl::FixedwingPositionControl() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
@@ -1972,6 +1970,13 @@ int FixedwingPositionControl::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
+int FixedwingPositionControl::print_status()
+{
+	PX4_INFO("Running");
+	perf_print_counter(_loop_perf);
+	return 0;
+}
+
 int FixedwingPositionControl::print_usage(const char *reason)
 {
 	if (reason) {
@@ -1993,16 +1998,7 @@ fw_pos_control_l1 is the fixed wing position controller.
 	return 0;
 }
 
-int FixedwingPositionControl::print_status()
-{
-	PX4_INFO("Running");
-
-	perf_print_counter(_loop_perf);
-
-	return 0;
-}
-
-int fw_pos_control_l1_main(int argc, char *argv[])
+extern "C" __EXPORT int fw_pos_control_l1_main(int argc, char *argv[])
 {
 	return FixedwingPositionControl::main(argc, argv);
 }

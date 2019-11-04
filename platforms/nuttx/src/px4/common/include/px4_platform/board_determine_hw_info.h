@@ -59,4 +59,3 @@ __BEGIN_DECLS
 __EXPORT int board_determine_hw_info(void);
 
 __END_DECLS
-
