@@ -1780,10 +1780,10 @@ MavlinkReceiver::handle_message_play_tune(mavlink_message_t *msg)
 
 		while (tunes.get_next_note(frequency, duration, silence, volume) > 0) {
 			tune_control.tune_id = 0;
-			tune_control.frequency = (uint16_t)frequency;
-			tune_control.duration = (uint32_t)duration;
-			tune_control.silence = (uint32_t)silence;
-			tune_control.volume = (uint8_t)volume;
+			tune_control.frequency = static_cast<uint16_t>(frequency);
+			tune_control.duration = static_cast<uint32_t>(duration);
+			tune_control.silence = static_cast<uint32_t>(silence);
+			tune_control.volume = static_cast<uint8_t>(volume);
 			tune_control.timestamp = hrt_absolute_time();
 			_tune_control_pub.publish(tune_control);
 
