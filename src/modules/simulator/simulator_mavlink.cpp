@@ -32,6 +32,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#define DEBUG_BUILD
 
 #include <termios.h>
 #include <px4_platform_common/log.h>
@@ -354,8 +355,9 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 	px4_clock_settime(CLOCK_MONOTONIC, &ts);
 
 	hrt_abstime now_us = hrt_absolute_time();
+	printf("received HIL sensors %llu %llu\n", now_us, imu.time_usec);
 
-#if 0
+#if 1
 	// This is just for to debug missing HIL_SENSOR messages.
 	static hrt_abstime last_time = 0;
 	hrt_abstime diff = now_us - last_time;

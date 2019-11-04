@@ -442,6 +442,7 @@ MulticopterAttitudeControl::Run()
 
 	if (_vehicle_angular_velocity_sub.update(&angular_velocity)) {
 		const hrt_abstime now = hrt_absolute_time();
+		printf("angular velocity update %i\n", _v_control_mode.flag_control_rates_enabled);
 
 		// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
 		const float dt = math::constrain(((now - _last_run) / 1e6f), 0.0002f, 0.02f);

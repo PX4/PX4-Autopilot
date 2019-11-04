@@ -83,6 +83,7 @@ PWMSim::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigne
 {
 	// Nothing to do, as we are only interested in the actuator_outputs topic publication.
 	// That should only be published once we receive actuator_controls (important for lock-step to work correctly)
+	printf("sending actuator outputs: %i\n", num_control_groups_updated);
 	return num_control_groups_updated > 0;
 }
 

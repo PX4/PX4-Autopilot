@@ -562,6 +562,7 @@ int px4_clock_settime(clockid_t clk_id, const struct timespec *ts)
 
 		if (px4_timestart_monotonic == 0) {
 			px4_timestart_monotonic = time_us;
+			printf("px4_timestart_monotonic=%lli  ---------------------------------------\n", px4_timestart_monotonic);
 		}
 
 		lockstep_scheduler->set_absolute_time(time_us);
