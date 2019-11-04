@@ -62,6 +62,12 @@ bool FlightTaskAutoMapper2::update()
 		_thrust_setpoint = Vector3f(NAN, NAN, NAN);
 	}
 
+	// during mission and reposition, raise the landing gears but only
+	// if altitude is high enough
+	if (_highEnoughForLandingGear()) {
+		_gear.landing_gear = landing_gear_s::GEAR_UP;
+	}
+
 	switch (_type) {
 	case WaypointType::idle:
 		_prepareIdleSetpoints();
@@ -99,12 +105,6 @@ bool FlightTaskAutoMapper2::update()
 
 
 	_generateSetpoints();
-
-	// during mission and reposition, raise the landing gears but only
-	// if altitude is high enough
-	if (_highEnoughForLandingGear()) {
-		_gear.landing_gear = landing_gear_s::GEAR_UP;
-	}
 
 	// update previous type
 	_type_previous = _type;
