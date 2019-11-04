@@ -125,26 +125,6 @@ struct batt_smbus_bus_option {
 #endif
 };
 
-/**
- * @brief Nuttshell accessible method to return the battery manufacture date.
- * @return Returns PX4_OK on success, PX4_ERROR on failure.
- */
-int manufacture_date();
-
-/**
- * @brief Nuttshell accessible method to return the battery manufacturer name.
- * @return Returns PX4_OK on success, PX4_ERROR on failure.
- */
-int manufacturer_name();
-
-/**
- * @brief Nuttshell accessible method to return the battery serial number.
- * @return Returns PX4_OK on success, PX4_ERROR on failure.
- */
-int serial_number();
-
-
-
 class BATT_SMBUS : public ModuleBase<BATT_SMBUS>, public px4::ScheduledWorkItem
 {
 public:
@@ -163,6 +143,9 @@ public:
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
+
+	/** @see ModuleBase::print_status() */
+	int print_status() override;
 
 	/**
 	 * @brief Reads data from flash.
@@ -192,12 +175,6 @@ public:
 	* @return Returns PX4_OK on success, PX4_ERROR on failure.
 	*/
 	int get_startup_info();
-
-	/**
-	 * @brief Prints the latest report.
-	 */
-	void print_report();
-
 
 	/**
 	 * @brief Gets the SBS manufacture date of the battery.
@@ -231,12 +208,6 @@ public:
 	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
 	 */
 	int manufacturer_write(const uint16_t cmd_code, void *data, const unsigned length);
-
-	/**
-	 * @brief Search all possible slave addresses for a smart battery.
-	 * @return Returns PX4_OK on success, PX4_ERROR on failure.
-	 */
-	int search_addresses();
 
 	/**
 	 * @brief Unseals the battery to allow writing to restricted flash.
@@ -273,19 +244,20 @@ public:
 	 */
 	void set_undervoltage_protection(float average_current);
 
-	SMBus *_interface;
-
 	void suspend();
 
 	void resume();
 
-private:
+protected:
 
 	void Run() override;
 
-	perf_counter_t _cycle;
+private:
+	SMBus *_interface;
 
-	float _cell_voltages[4] = {};
+	perf_counter_t _cycle{perf_alloc(PC_ELAPSED, "batt_smbus_cycle")};
+
+	float _cell_voltages[4] {};
 
 	float _max_cell_voltage_delta{0};
 
@@ -294,45 +266,44 @@ private:
 	bool _should_suspend{false};
 
 	/** @param _last_report Last published report, used for test(). */
-	battery_status_s _last_report = battery_status_s{};
+	battery_status_s _last_report{};
 
 	/** @param _batt_topic uORB battery topic. */
-	orb_advert_t _batt_topic;
+	orb_advert_t _batt_topic{nullptr};
 
 	/** @param _cell_count Number of series cell. */
-	uint8_t _cell_count;
+	uint8_t _cell_count{4};
 
 	/** @param _batt_capacity Battery design capacity in mAh (0 means unknown). */
-	uint16_t _batt_capacity;
+	uint16_t _batt_capacity{0};
 
 	/** @param _batt_startup_capacity Battery remaining capacity in mAh on startup. */
-	uint16_t _batt_startup_capacity;
+	uint16_t _batt_startup_capacity{0};
 
 	/** @param _cycle_count The number of cycles the battery has experienced. */
-	uint16_t _cycle_count;
+	uint16_t _cycle_count{0};
 
 	/** @param _serial_number Serial number register. */
-	uint16_t _serial_number;
+	uint16_t _serial_number{0};
 
 	/** @param _crit_thr Critical battery threshold param. */
-	float _crit_thr;
+	float _crit_thr{0.f};
 
 	/** @param _emergency_thr Emergency battery threshold param. */
-	float _emergency_thr;
+	float _emergency_thr{0.f};
 
 	/** @param _low_thr Low battery threshold param. */
-	float _low_thr;
+	float _low_thr{0.f};
 
 	/** @param _manufacturer_name Name of the battery manufacturer. */
-	char *_manufacturer_name;
+	char *_manufacturer_name{nullptr};
 
 	/** @param _lifetime_max_delta_cell_voltage Max lifetime delta of the battery cells */
-	float _lifetime_max_delta_cell_voltage;
+	float _lifetime_max_delta_cell_voltage{0.f};
 
 	/** @param _cell_undervoltage_protection_status 0 if protection disabled, 1 if enabled */
-	uint8_t _cell_undervoltage_protection_status;
+	uint8_t _cell_undervoltage_protection_status{1};
 
-	/** Do not allow copy construction or move assignment of this class. */
-	BATT_SMBUS(const BATT_SMBUS &);
-	BATT_SMBUS operator=(const BATT_SMBUS &);
+	BATT_SMBUS(const BATT_SMBUS &) = delete;
+	BATT_SMBUS operator=(const BATT_SMBUS &) = delete;
 };
