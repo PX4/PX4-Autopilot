@@ -492,9 +492,10 @@ void AirspeedModule::select_airspeed_and_publish()
 		}
 	}
 
-	/* Airspeed not disabled by user (Primary set to 0 or -1), and no valid airspeed sensor available. Thus set index to ground-wind one (if position is valid), otherwise to disabled*/
-	if (_param_airspeed_primary_index.get() >= airspeed_index::GROUND_MINUS_WIND_INDEX &&
-	    _valid_airspeed_index < airspeed_index::FIRST_SENSOR_INDEX) {
+	/* Airspeed enabled by user (Primary set to > -1), and no valid airspeed sensor available or primary set to 0. Thus set index to ground-wind one (if position is valid), otherwise to disabled*/
+	if (_param_airspeed_primary_index.get() > airspeed_index::DISABLED_INDEX &&
+	    (_valid_airspeed_index < airspeed_index::FIRST_SENSOR_INDEX
+	     || _param_airspeed_primary_index.get() == airspeed_index::GROUND_MINUS_WIND_INDEX)) {
 
 		/* _vehicle_local_position_valid determines if ground-wind estimate is valid */
 		/* To use ground-windspeed as airspeed source, either the primary has to be set this way or fallback be enabled */
@@ -533,13 +534,10 @@ void AirspeedModule::select_airspeed_and_publish()
 		break;
 
 	case airspeed_index::GROUND_MINUS_WIND_INDEX:
-		if (_param_airspeed_fallback.get()) {
-			/* Take IAS, EAS, TAS from groundspeed-windspeed */
-			airspeed_validated.indicated_airspeed_m_s = _ground_minus_wind_EAS;
-			airspeed_validated.equivalent_airspeed_m_s = _ground_minus_wind_EAS;
-			airspeed_validated.true_airspeed_m_s = _ground_minus_wind_TAS;
-		}
-
+		/* Take IAS, EAS, TAS from groundspeed-windspeed */
+		airspeed_validated.indicated_airspeed_m_s = _ground_minus_wind_EAS;
+		airspeed_validated.equivalent_airspeed_m_s = _ground_minus_wind_EAS;
+		airspeed_validated.true_airspeed_m_s = _ground_minus_wind_TAS;
 		airspeed_validated.equivalent_ground_minus_wind_m_s = _ground_minus_wind_EAS;
 		airspeed_validated.true_ground_minus_wind_m_s = _ground_minus_wind_TAS;
 
