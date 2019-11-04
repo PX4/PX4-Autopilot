@@ -263,8 +263,6 @@ private:
 
 	float _min_cell_voltage{0};
 
-	bool _should_suspend{false};
-
 	/** @param _last_report Last published report, used for test(). */
 	battery_status_s _last_report{};
 
