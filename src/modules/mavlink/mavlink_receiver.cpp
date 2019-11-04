@@ -1762,34 +1762,39 @@ MavlinkReceiver::handle_message_play_tune(mavlink_message_t *msg)
 	if ((mavlink_system.sysid == play_tune.target_system || play_tune.target_system == 0) &&
 	    (mavlink_system.compid == play_tune.target_component || play_tune.target_component == 0)) {
 
-		Tunes tunes;
-
-		tune_control_s tune_control {};
-		tune_control.tune_id = 0;
-		tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
-
 		// Let's make sure the input is 0 terminated and we don't ever overrun it.
 		play_tune.tune2[sizeof(play_tune.tune2) - 1] = '\0';
 
-		tunes.set_string(play_tune.tune, tune_control.volume);
+		publish_tune(play_tune.tune);
+	}
+}
 
-		unsigned frequency;
-		unsigned duration;
-		unsigned silence;
-		uint8_t volume;
+void MavlinkReceiver::publish_tune(const char *tune)
+{
 
-		while (tunes.get_next_note(frequency, duration, silence, volume) > 0) {
-			tune_control.tune_id = 0;
-			tune_control.frequency = static_cast<uint16_t>(frequency);
-			tune_control.duration = static_cast<uint32_t>(duration);
-			tune_control.silence = static_cast<uint32_t>(silence);
-			tune_control.volume = static_cast<uint8_t>(volume);
-			tune_control.timestamp = hrt_absolute_time();
-			_tune_control_pub.publish(tune_control);
+	tune_control_s tune_control {};
+	tune_control.tune_id = 0;
+	tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
 
-			// FIXME: this blocks this receiver thread
-			px4_usleep(duration + silence);
-		}
+	Tunes tunes;
+	tunes.set_string(tune, tune_control.volume);
+
+	unsigned frequency;
+	unsigned duration;
+	unsigned silence;
+	uint8_t volume;
+
+	while (tunes.get_next_note(frequency, duration, silence, volume) > 0) {
+		tune_control.tune_id = 0;
+		tune_control.frequency = static_cast<uint16_t>(frequency);
+		tune_control.duration = static_cast<uint32_t>(duration);
+		tune_control.silence = static_cast<uint32_t>(silence);
+		tune_control.volume = static_cast<uint8_t>(volume);
+		tune_control.timestamp = hrt_absolute_time();
+		_tune_control_pub.publish(tune_control);
+
+		// FIXME: this blocks this receiver thread
+		px4_usleep(duration + silence);
 	}
 }
 
