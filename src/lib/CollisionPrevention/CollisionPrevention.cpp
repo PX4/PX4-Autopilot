@@ -439,7 +439,7 @@ CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint, const Vec
 						const float stop_distance = math::max(0.f, distance - min_dist_to_keep - delay_distance);
 						const float vel_max_posctrl = xy_p * stop_distance;
 
-						const float vel_max_smooth = math::trajectory::computeMaxSpeedFromBrakingDistance(max_jerk, max_accel, stop_distance);
+						const float vel_max_smooth = math::trajectory::computeMaxSpeedFromDistance(max_jerk, max_accel, stop_distance, 0.f);
 						const float projection = bin_direction.dot(setpoint_dir);
 						float vel_max_bin = vel_max;
 
