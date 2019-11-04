@@ -18,6 +18,14 @@
 
 #include "math.hpp"
 
+// There is a bug in GCC 4.8, which causes the compiler to segfault due to array {} constructors.
+// Do for-loop constructors just for GCC 4.8
+#ifdef __GNUC__
+#define MATRIX_GCC_4_8_WORKAROUND (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 9))
+#else
+#define MATRIX_GCC_4_8_WORKAROUND 0
+#endif
+
 namespace matrix
 {
 
@@ -33,24 +41,27 @@ class Slice;
 template<typename Type, size_t M, size_t N>
 class Matrix
 {
-
+#if MATRIX_GCC_4_8_WORKAROUND
     Type _data[M][N];
+#else
+    Type _data[M][N] {};
+#endif
 
 public:
 
     // Constructors
+#if MATRIX_GCC_4_8_WORKAROUND
     Matrix()
     {
-#ifdef  __STDC_IEC_559__
-        memset(_data, 0, sizeof(_data)); //workaround for GCC 4.8 bug, don't use {} for array init
-#else
         for (size_t i = 0; i < M; i++) {
             for (size_t j = 0; j < N; j++) {
                 _data[i][j] = Type{};
             }
         }
-#endif
     }
+#else
+    Matrix() = default;
+#endif
 
     explicit Matrix(const Type data_[M*N])
     {
@@ -304,17 +315,7 @@ public:
 
     bool operator==(const Matrix<Type, M, N> &other) const
     {
-        const Matrix<Type, M, N> &self = *this;
-
-        for (size_t i = 0; i < M; i++) {
-            for (size_t j = 0; j < N; j++) {
-                if (!isEqualF(self(i, j), other(i, j))) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
+        return isEqual(*this, other);
     }
 
     bool operator!=(const Matrix<Type, M, N> &other) const
