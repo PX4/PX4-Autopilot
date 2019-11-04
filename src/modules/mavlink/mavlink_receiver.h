@@ -207,6 +207,8 @@ private:
 
 	void fill_thrust(float *thrust_body_array, uint8_t vehicle_type, float thrust);
 
+	void publish_tune(const char *tune);
+
 	/**
 	 * @brief Updates the battery, optical flow, and flight ID subscribed parameters.
 	 */
