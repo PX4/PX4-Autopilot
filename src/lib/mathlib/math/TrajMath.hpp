@@ -53,16 +53,17 @@ namespace trajectory
  *
  * @param jerk maximum jerk
  * @param accel maximum acceleration
- * @param braking_distance distance to the desired stopping point
+ * @param braking_distance distance to the desired point
+ * @param final_speed the still-remaining speed of the vehicle when it reaches the braking_distance
  *
  * @return maximum speed
  */
 inline float computeMaxSpeedFromDistance(const float jerk, const float accel, const float braking_distance,
-		const float final_velocity)
+		const float final_speed)
 {
 	auto sqr = [](float f) {return f * f;};
 	float b =  4.0f * sqr(accel) / jerk;
-	float c = - 2.0f * accel * braking_distance - sqr(final_velocity);
+	float c = - 2.0f * accel * braking_distance - sqr(final_speed);
 	float max_speed = 0.5f * (-b + sqrtf(sqr(b) - 4.0f * c));
 
 	return max_speed;

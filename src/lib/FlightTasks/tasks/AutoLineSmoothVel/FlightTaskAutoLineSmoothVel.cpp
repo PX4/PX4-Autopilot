@@ -224,8 +224,7 @@ float FlightTaskAutoLineSmoothVel::_getMaxSpeedFromDistance(float braking_distan
 	float max_speed = math::trajectory::computeMaxSpeedFromDistance(_param_mpc_jerk_auto.get(),
 			  _param_mpc_acc_hor.get(),
 			  braking_distance,
-			  final_speed
-								       );
+			  final_speed);
 
 	return max_speed;
 }
