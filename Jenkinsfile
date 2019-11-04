@@ -262,6 +262,24 @@ pipeline {
           }
           post {
             always {
+              // Process the CTest xml output with the xUnit plugin
+              xunit (
+                testTimeMargin: '3000',
+                thresholdMode: 1,
+                thresholds: [
+                  skipped(failureThreshold: '0'),
+                  failed(failureThreshold: '0')
+                ],
+              reduceLog: false,
+              tools: [CTest(
+                  pattern: 'build/px4_sitl_test/Testing/**/*.xml',
+                  deleteOutputFiles: true,
+                  failIfNotNew: false,
+                  skipNoTestFiles: true,
+                  stopProcessingIfError: true
+                )]
+              )
+
               sh 'make distclean'
             }
           }
