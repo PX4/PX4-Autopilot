@@ -21,8 +21,8 @@ px4_add_board(
 		adc
 		barometer/ms5611
 		#batt_smbus
-		camera_capture
-		camera_trigger
+		#camera_capture
+		#camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
@@ -39,7 +39,7 @@ px4_add_board(
 		lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
 		#md25
-		mkblctrl
+		#mkblctrl
 		optical_flow # all available optical flow drivers
 		#pca9685
 		#protocol_splitter

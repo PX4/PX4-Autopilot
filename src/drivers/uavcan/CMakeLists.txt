@@ -68,7 +68,11 @@ add_definitions(
 		-DUAVCAN_PLATFORM=${UAVCAN_PLATFORM}
 		)
 
-add_compile_options(-Wno-cast-align) # TODO: fix and enable
+add_compile_options(
+	-Wno-cast-align # TODO: fix and enable
+	-Wno-deprecated-copy # TODO: fix
+	-Wno-address-of-packed-member
+)
 add_subdirectory(libuavcan EXCLUDE_FROM_ALL)
 add_dependencies(uavcan prebuild_targets)
 
@@ -78,7 +82,6 @@ target_include_directories(uavcan_${UAVCAN_DRIVER}_driver PUBLIC
 	./libuavcan/libuavcan/include
 	./libuavcan/libuavcan/include/dsdlc_generated
 	)
-
 
 # generated DSDL
 set(DSDLC_INPUTS "${CMAKE_CURRENT_SOURCE_DIR}/dsdl/com" "${CMAKE_CURRENT_SOURCE_DIR}/libuavcan/dsdl/uavcan")

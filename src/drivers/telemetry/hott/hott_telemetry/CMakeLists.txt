@@ -34,6 +34,7 @@ px4_add_module(
 	MODULE drivers__hott__hott_telemetry
 	MAIN hott_telemetry
 	COMPILE_FLAGS
+		-Wno-error
 	SRCS
 		hott_telemetry.cpp
 	MODULE_CONFIG
