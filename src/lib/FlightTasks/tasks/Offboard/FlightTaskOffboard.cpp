@@ -174,7 +174,7 @@ bool FlightTaskOffboard::update()
 	//When velocity setpoint is given in Body-coordinate, transform it to Local(NED) coordinate.
 	Vector3f vel_setpoint_local;
 	if((_sub_triplet_setpoint.get().current.velocity_frame == position_setpoint_s::VELOCITY_FRAME_BODY_NED) && (velocity_ctrl_xy || velocity_ctrl_z)) {
-		const matrix::Dcmf R_to_local(matrix::Quatf(_sub_attitude.get().q))
+		const matrix::Dcmf R_to_local(matrix::Quatf(_sub_attitude.get().q));
 		const Vector3f vel_valid_setpoints = Vector3f(velocity_ctrl_xy ? (_sub_triplet_setpoint.get().current.vx) : 0.0f, velocity_ctrl_xy ? (_sub_triplet_setpoint.get().current.vy) : 0.0f, velocity_ctrl_z ? (_sub_triplet_setpoint.get().current.vy) : 0.0f);
 		vel_setpoint_local = R_to_local * vel_valid_setpoints;
 	}
