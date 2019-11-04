@@ -193,11 +193,16 @@ float FlightTaskAutoLineSmoothVel::_getSpeedAtTarget(float next_target_speed) co
 	const float distance_current_next = (_target - _next_wp).xy().norm();
 	const bool waypoint_overlap = (_target - _prev_wp).xy().norm() < _target_acceptance_radius;
 	const bool yaw_align_check_pass = (_param_mpc_yaw_mode.get() != 4) || _yaw_sp_aligned;
+	const bool has_reached_altitude = fabsf(_target(2) - _trajectory[2].getCurrentPosition()) < _param_nav_mc_alt_rad.get();
+	const bool altitude_stays_same = fabsf(_next_wp(2) - _target(2)) < _param_nav_mc_alt_rad.get();
 
 
 	if (distance_current_next > 0.001f &&
 	    !waypoint_overlap &&
-	    yaw_align_check_pass) {
+	    yaw_align_check_pass &&
+	    has_reached_altitude &&
+	    altitude_stays_same
+	   ) {
 		Vector3f pos_traj;
 		pos_traj(0) = _trajectory[0].getCurrentPosition();
 		pos_traj(1) = _trajectory[1].getCurrentPosition();
@@ -225,7 +230,6 @@ float FlightTaskAutoLineSmoothVel::_getMaxSpeedFromDistance(float braking_distan
 			  _param_mpc_acc_hor.get(),
 			  braking_distance,
 			  final_speed);
-
 	return max_speed;
 }
 
@@ -254,14 +258,11 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 			Vector2f pos_traj_to_dest_xy = (_position_setpoint - pos_traj).xy();
 			Vector2f u_pos_traj_to_dest_xy(pos_traj_to_dest_xy.unit_or_zero());
 
-			const bool has_reached_altitude = fabsf(_position_setpoint(2) - pos_traj(2)) < _param_nav_mc_alt_rad.get();
-
 			// If the drone has to change altitude, stop at the waypoint, otherwise fly through
-			const float arrival_speed = has_reached_altitude ? _getSpeedAtTarget(0.f) : 0.f;
-			const Vector2f max_arrival_vel = u_pos_traj_to_dest_xy * arrival_speed;
+			const Vector2f max_arrival_vel = u_pos_traj_to_dest_xy * _getSpeedAtTarget(0.f);
 
-			Vector2f vel_abs_max_xy(_getMaxSpeedFromDistance(fabsf(pos_traj_to_dest_xy(0)), max_arrival_vel(0)),
-						_getMaxSpeedFromDistance(fabsf(pos_traj_to_dest_xy(1)), max_arrival_vel(1)));
+			Vector2f vel_abs_max_xy(_getMaxSpeedFromDistance(fabsf(pos_traj_to_dest_xy(0)), fabsf(max_arrival_vel(0))),
+						_getMaxSpeedFromDistance(fabsf(pos_traj_to_dest_xy(1)), fabsf(max_arrival_vel(1))));
 
 
 			const Vector2f vel_sp_xy = u_pos_traj_to_dest_xy * _mc_cruise_speed;
