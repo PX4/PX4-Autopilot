@@ -571,6 +571,11 @@ int BATT_SMBUS::custom_command(int argc, char *argv[])
 	uint8_t man_name[22];
 	int result = 0;
 
+	if (!is_running()) {
+		PX4_ERR("not running");
+		return -1;
+	}
+
 	BATT_SMBUS *obj = get_instance();
 
 	if (!strcmp(input, "man_info")) {
