@@ -50,32 +50,26 @@ struct vehicle_dynamic_limits {
 	float xy_accept_rad;
 
 	float max_acc_xy;
-	float max_acc_z;
 	float max_jerk;
 
-	float desired_vel_xy;
+	float max_speed_xy;
 
 	// TODO: remove this
 	float max_acc_xy_radius_scale;
 };
 
 /*
- *
- *
+ * Compute the maximum allowed speed at the waypoint assuming that we want to
+ * connect the two lines (current-target and target-next)
+ * with a tangent circle with constant speed and desired centripetal acceleration: a_centripetal = speed^2 / radius
+ * The circle should in theory start and end at the intersection of the lines and the waypoint's acceptance radius.
+ * This is not exactly true in reality since Navigator switches the waypoint so we have to take in account that
+ * the real acceptance radius is smaller.
  *
  */
 inline float computeCurrentXYSpeedFromWaypoints(const Vector3f &start_position, const Vector3f &target,
 		const Vector3f &next_target, float final_speed, const vehicle_dynamic_limits &config)
 {
-	// Compute the maximum allowed speed at the waypoint assuming that we want to
-	// connect the two lines (prev-current and current-next)
-	// with a tangent circle with constant speed and desired centripetal acceleration: a_centripetal = speed^2 / radius
-	// The circle should in theory start and end at the intersection of the lines and the waypoint's acceptance radius.
-	// This is not exactly true in reality since Navigator switches the waypoint so we have to take in account that
-	// the real acceptance radius is smaller.
-	// It can be that the next waypoint is the last one or that the drone will have to stop for some other reason
-	// so we have to make sure that the speed at the current waypoint allows to stop at the next waypoint.
-
 	float speed_at_target = 0.0f;
 	const float distance_target_next = (target - next_target).xy().norm();
 
@@ -101,13 +95,13 @@ inline float computeCurrentXYSpeedFromWaypoints(const Vector3f &start_position, 
 					  config.xy_accept_rad);
 		speed_at_target = math::min(math::min(max_speed_in_turn,
 						      max_speed_current_next),
-					    config.desired_vel_xy);
+					    config.max_speed_xy);
 	}
 
 	return math::min(math::trajectory::computeMaxSpeedFromDistance(config.max_jerk,
 			 config.max_acc_xy,
 			 (start_position - target).xy().norm(),
-			 speed_at_target), config.desired_vel_xy);
+			 speed_at_target), config.max_speed_xy);
 }
 
 }
@@ -266,9 +260,8 @@ float FlightTaskAutoLineSmoothVel::_getMaxXYSpeed() const
 	config.z_accept_rad = _param_nav_mc_alt_rad.get();
 	config.xy_accept_rad = _target_acceptance_radius;
 	config.max_acc_xy = _trajectory[0].getMaxAccel();
-	config.max_acc_z = _trajectory[2].getMaxAccel();
 	config.max_jerk = _trajectory[0].getMaxJerk();
-	config.desired_vel_xy = _mc_cruise_speed;
+	config.max_speed_xy = _trajectory[0].getMaxVel();
 	config.max_acc_xy_radius_scale = _param_mpc_xy_traj_p.get();
 	const float next_target_speed = 0.f;
 
@@ -277,28 +270,13 @@ float FlightTaskAutoLineSmoothVel::_getMaxXYSpeed() const
 
 float FlightTaskAutoLineSmoothVel::_getMaxZSpeed() const
 {
+	const float distance_start_target = fabs(_target(2) - _trajectory[2].getCurrentPosition());
 
-	// short circuit if we have to stop anyways
-	if (_param_mpc_yaw_mode.get() == 4 && !_yaw_sp_aligned) {
-		return 0.f;
-	}
-
-	Vector3f pos_traj;
-	pos_traj(0) = _trajectory[0].getCurrentPosition();
-	pos_traj(1) = _trajectory[1].getCurrentPosition();
-	pos_traj(2) = _trajectory[2].getCurrentPosition();
-
-	vehicle_dynamic_limits config;
-	config.z_accept_rad = _param_nav_mc_alt_rad.get();
-	config.xy_accept_rad = _target_acceptance_radius;
-	config.max_acc_xy = _trajectory[0].getMaxAccel();
-	config.max_acc_z = _trajectory[2].getMaxAccel();
-	config.max_jerk = _trajectory[0].getMaxJerk();
-	config.desired_vel_xy = _mc_cruise_speed;
-	config.max_acc_xy_radius_scale = _param_mpc_xy_traj_p.get();
-	const float next_target_speed = 0.f;
-
-	return computeCurrentXYSpeedFromWaypoints(pos_traj, _target, _next_wp, next_target_speed, config);
+	return math::min(_trajectory[2].getMaxVel(),
+			 math::trajectory::computeMaxSpeedFromDistance(_trajectory[2].getMaxJerk(),
+					 _trajectory[2].getMaxAccel(),
+					 distance_start_target,
+					 0));
 }
 
 void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
@@ -340,8 +318,8 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 		}
 
 		if (PX4_ISFINITE(_position_setpoint(2))) {
-			const float vel_sp_z = (_position_setpoint(2) - _trajectory[2].getCurrentPosition()) *
-					       _param_mpc_z_traj_p.get(); // Generate a velocity target for the trajectory using a simple P loop
+			const float z_dir = math::sign(_position_setpoint(2) - _trajectory[2].getCurrentPosition());
+			const float vel_sp_z = z_dir * _getMaxZSpeed();
 
 			// If available, constrain the velocity using _velocity_setpoint(.)
 			if (PX4_ISFINITE(_velocity_setpoint(2))) {
