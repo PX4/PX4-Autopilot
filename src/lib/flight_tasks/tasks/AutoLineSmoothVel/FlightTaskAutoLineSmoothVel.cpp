@@ -50,7 +50,8 @@ struct vehicle_dynamic_limits {
 	float xy_accept_rad;
 
 	float max_acc_xy;
-	float max_jerk_xy;
+	float max_acc_z;
+	float max_jerk;
 
 	float desired_vel_xy;
 
@@ -63,7 +64,7 @@ struct vehicle_dynamic_limits {
  *
  *
  */
-inline float computeCurrentSpeedFromWaypoints(const Vector3f &start_position, const Vector3f &target,
+inline float computeCurrentXYSpeedFromWaypoints(const Vector3f &start_position, const Vector3f &target,
 		const Vector3f &next_target, float final_speed, const vehicle_dynamic_limits &config)
 {
 	// Compute the maximum allowed speed at the waypoint assuming that we want to
@@ -76,29 +77,37 @@ inline float computeCurrentSpeedFromWaypoints(const Vector3f &start_position, co
 	// so we have to make sure that the speed at the current waypoint allows to stop at the next waypoint.
 
 	float speed_at_target = 0.0f;
+	const float distance_target_next = (target - next_target).xy().norm();
 
-	const float distance_current_next = (target - next_target).xy().norm();
+	const bool target_next_different = distance_target_next  > 0.001f;
 	const bool waypoint_overlap = (target - next_target).xy().norm() < config.xy_accept_rad;
 	const bool has_reached_altitude = fabsf(target(2) - start_position(2)) < config.z_accept_rad;
 	const bool altitude_stays_same = fabsf(next_target(2) - target(2)) < config.z_accept_rad;
 
-	if (distance_current_next > 0.001f &&
+	if (target_next_different &&
 	    !waypoint_overlap &&
 	    has_reached_altitude &&
 	    altitude_stays_same
 	   ) {
-		const float max_speed_current_next = math::trajectory::computeMaxSpeedFromDistance(config.max_jerk_xy,
-						     config.max_acc_xy, distance_current_next, final_speed);
+		const float max_speed_current_next = math::trajectory::computeMaxSpeedFromDistance(config.max_jerk,
+						     config.max_acc_xy,
+						     distance_target_next,
+						     final_speed);
 		const float alpha = acosf(Vector2f((target - start_position).xy()).unit_or_zero().dot(
 						  Vector2f((target - next_target).xy()).unit_or_zero()));
 		float accel_tmp = config.max_acc_xy_radius_scale * config.max_acc_xy;
 		float max_speed_in_turn = math::trajectory::computeMaxSpeedInWaypoint(alpha,
 					  accel_tmp,
 					  config.xy_accept_rad);
-		speed_at_target = math::min(math::min(max_speed_in_turn, max_speed_current_next), config.desired_vel_xy);
+		speed_at_target = math::min(math::min(max_speed_in_turn,
+						      max_speed_current_next),
+					    config.desired_vel_xy);
 	}
 
-	return speed_at_target;
+	return math::min(math::trajectory::computeMaxSpeedFromDistance(config.max_jerk,
+			 config.max_acc_xy,
+			 (start_position - target).xy().norm(),
+			 speed_at_target), config.desired_vel_xy);
 }
 
 }
@@ -240,7 +249,7 @@ float FlightTaskAutoLineSmoothVel::_constrainAbs(float val, float max)
 	return math::sign(val) * math::min(fabsf(val), fabsf(max));
 }
 
-float FlightTaskAutoLineSmoothVel::_getSpeedAtTarget(float next_target_speed) const
+float FlightTaskAutoLineSmoothVel::_getMaxXYSpeed() const
 {
 
 	// short circuit if we have to stop anyways
@@ -256,21 +265,40 @@ float FlightTaskAutoLineSmoothVel::_getSpeedAtTarget(float next_target_speed) co
 	vehicle_dynamic_limits config;
 	config.z_accept_rad = _param_nav_mc_alt_rad.get();
 	config.xy_accept_rad = _target_acceptance_radius;
-	config.max_acc_xy = _param_mpc_acc_hor.get();
-	config.max_jerk_xy = _param_mpc_jerk_auto.get();
+	config.max_acc_xy = _trajectory[0].getMaxAccel();
+	config.max_acc_z = _trajectory[2].getMaxAccel();
+	config.max_jerk = _trajectory[0].getMaxJerk();
 	config.desired_vel_xy = _mc_cruise_speed;
 	config.max_acc_xy_radius_scale = _param_mpc_xy_traj_p.get();
+	const float next_target_speed = 0.f;
 
-	return computeCurrentSpeedFromWaypoints(pos_traj, _target, _next_wp, next_target_speed, config);
+	return computeCurrentXYSpeedFromWaypoints(pos_traj, _target, _next_wp, next_target_speed, config);
 }
 
-float FlightTaskAutoLineSmoothVel::_getMaxSpeedFromDistance(float braking_distance, float final_speed) const
+float FlightTaskAutoLineSmoothVel::_getMaxZSpeed() const
 {
-	float max_speed = math::trajectory::computeMaxSpeedFromDistance(_param_mpc_jerk_auto.get(),
-			  _param_mpc_acc_hor.get(),
-			  braking_distance,
-			  final_speed);
-	return max_speed;
+
+	// short circuit if we have to stop anyways
+	if (_param_mpc_yaw_mode.get() == 4 && !_yaw_sp_aligned) {
+		return 0.f;
+	}
+
+	Vector3f pos_traj;
+	pos_traj(0) = _trajectory[0].getCurrentPosition();
+	pos_traj(1) = _trajectory[1].getCurrentPosition();
+	pos_traj(2) = _trajectory[2].getCurrentPosition();
+
+	vehicle_dynamic_limits config;
+	config.z_accept_rad = _param_nav_mc_alt_rad.get();
+	config.xy_accept_rad = _target_acceptance_radius;
+	config.max_acc_xy = _trajectory[0].getMaxAccel();
+	config.max_acc_z = _trajectory[2].getMaxAccel();
+	config.max_jerk = _trajectory[0].getMaxJerk();
+	config.desired_vel_xy = _mc_cruise_speed;
+	config.max_acc_xy_radius_scale = _param_mpc_xy_traj_p.get();
+	const float next_target_speed = 0.f;
+
+	return computeCurrentXYSpeedFromWaypoints(pos_traj, _target, _next_wp, next_target_speed, config);
 }
 
 void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
@@ -298,18 +326,7 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 			Vector2f pos_traj_to_dest_xy = (_position_setpoint - pos_traj).xy();
 			Vector2f u_pos_traj_to_dest_xy(pos_traj_to_dest_xy.unit_or_zero());
 
-			// If the drone has to change altitude, stop at the waypoint, otherwise fly through
-			const Vector2f max_arrival_vel = u_pos_traj_to_dest_xy * _getSpeedAtTarget(0.f);
-
-			Vector2f vel_abs_max_xy(_getMaxSpeedFromDistance(fabsf(pos_traj_to_dest_xy(0)), fabsf(max_arrival_vel(0))),
-						_getMaxSpeedFromDistance(fabsf(pos_traj_to_dest_xy(1)), fabsf(max_arrival_vel(1))));
-
-
-			const Vector2f vel_sp_xy = u_pos_traj_to_dest_xy * _mc_cruise_speed;
-
-			// Constrain the norm of each component using min and max values
-			Vector2f vel_sp_constrained_xy(_constrainAbs(vel_sp_xy(0), vel_abs_max_xy(0)),
-						       _constrainAbs(vel_sp_xy(1), vel_abs_max_xy(1)));
+			Vector2f vel_sp_constrained_xy = u_pos_traj_to_dest_xy * _getMaxXYSpeed();
 
 			for (int i = 0; i < 2; i++) {
 				// If available, constrain the velocity using _velocity_setpoint(.)
