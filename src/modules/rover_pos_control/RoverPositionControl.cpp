@@ -284,8 +284,8 @@ RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity,
 	float dt = 0.01; // Using non zero value to a avoid division by zero
 
 	const float mission_throttle = _param_throttle_cruise.get();
-	const matrix::Vector3f desired_local_velocity{pos_sp_triplet.current.vx, pos_sp_triplet.current.vy, pos_sp_triplet.current.vz};
-	const float desired_speed = desired_local_velocity.norm();
+	const matrix::Vector3f desired_velocity{pos_sp_triplet.current.vx, pos_sp_triplet.current.vy, pos_sp_triplet.current.vz};
+	const float desired_speed = desired_velocity.norm();
 
 	if (desired_speed > 0.01f) {
 
@@ -297,11 +297,21 @@ RoverPositionControl::control_velocity(const matrix::Vector3f &current_velocity,
 
 		const float control_throttle = pid_calculate(&_speed_ctrl, desired_speed, x_vel, x_acc, dt);
 
+		//Constrain maximum throttle to mission throttle
 		_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = math::constrain(control_throttle, 0.0f, mission_throttle);
 
-		const Vector3f desired_velocity = R_to_body * Vector3f(desired_local_velocity(0), desired_local_velocity(1),
-						  desired_local_velocity(2));
-		const float desired_theta = atan2f(desired_velocity(1), desired_velocity(0));
+		Vector3f desired_body_velocity;
+
+		if (pos_sp_triplet.current.velocity_frame == position_setpoint_s::VELOCITY_FRAME_BODY_NED) {
+			desired_body_velocity = desired_velocity;
+
+		} else {
+			// If the frame of the velocity setpoint is unknown, assume it is in local frame
+			desired_body_velocity = R_to_body * desired_velocity;
+
+		}
+
+		const float desired_theta = atan2f(desired_body_velocity(1), desired_body_velocity(0));
 		float control_effort = desired_theta / _param_max_turn_angle.get();
 		control_effort = math::constrain(control_effort, -1.0f, 1.0f);
 
