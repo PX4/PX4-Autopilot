@@ -104,6 +104,26 @@ inline float computeCurrentXYSpeedFromWaypoints(const Vector3f &start_position, 
 			 speed_at_target), config.max_speed_xy);
 }
 
+void clampToXYNorm(Vector3f &target, float maxXYNorm)
+{
+	const float xynorm = target.xy().norm();
+	const float scale_factor = maxXYNorm / xynorm;
+
+	if (scale_factor < 1 && !isnan(scale_factor) && !isinf(scale_factor)) {
+		target *= scale_factor;
+	}
+}
+
+void clampToZNorm(Vector3f &target, float maxZNorm)
+{
+	float znorm = fabs(target(2));
+	const float scale_factor = maxZNorm / znorm;
+
+	if (scale_factor < 1 && !isnan(scale_factor) && !isinf(scale_factor)) {
+		target *= scale_factor;
+	}
+}
+
 }
 
 bool FlightTaskAutoLineSmoothVel::activate(vehicle_local_position_setpoint_s last_setpoint)
@@ -245,12 +265,6 @@ float FlightTaskAutoLineSmoothVel::_constrainAbs(float val, float max)
 
 float FlightTaskAutoLineSmoothVel::_getMaxXYSpeed() const
 {
-
-	// short circuit if we have to stop anyways
-	if (_param_mpc_yaw_mode.get() == 4 && !_yaw_sp_aligned) {
-		return 0.f;
-	}
-
 	Vector3f pos_traj;
 	pos_traj(0) = _trajectory[0].getCurrentPosition();
 	pos_traj(1) = _trajectory[1].getCurrentPosition();
@@ -292,16 +306,43 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 		_velocity_setpoint.setAll(0.f);
 
 	} else {
-		if (PX4_ISFINITE(_position_setpoint(0)) &&
-		    PX4_ISFINITE(_position_setpoint(1))) {
+
+		const bool xy_pos_setpoint_valid = PX4_ISFINITE(_position_setpoint(0)) && PX4_ISFINITE(_position_setpoint(1));
+		const bool z_pos_setpoint_valid = PX4_ISFINITE(_position_setpoint(2));
+
+		if (xy_pos_setpoint_valid && z_pos_setpoint_valid) {
+			// We have a 3D position setpoint, so generate a 3D velocity setpoint
+			Vector3f pos_traj(_trajectory[0].getCurrentPosition(),
+					  _trajectory[1].getCurrentPosition(),
+					  _trajectory[2].getCurrentPosition());
+			Vector3f u_pos_traj_to_dest = (_position_setpoint - pos_traj).unit_or_zero();
+
+			const float xy_speed = _getMaxXYSpeed();
+			const float z_speed = _getMaxZSpeed();
+
+			Vector3f vel_sp_constrained = u_pos_traj_to_dest * hypot(xy_speed, z_speed);
+			clampToXYNorm(vel_sp_constrained, xy_speed);
+			clampToZNorm(vel_sp_constrained, z_speed);
+
+			for (int i = 0; i < 3; i++) {
+				// If available, constrain the velocity using _velocity_setpoint(.)
+				if (PX4_ISFINITE(_velocity_setpoint(i))) {
+					_velocity_setpoint(i) = _constrainOneSide(vel_sp_constrained(i), _velocity_setpoint(i));
+
+				} else {
+					_velocity_setpoint(i) = vel_sp_constrained(i);
+				}
+			}
+
+		}
+
+		else if (xy_pos_setpoint_valid) {
 			// Use position setpoints to generate velocity setpoints
 
 			// Get various path specific vectors
-			Vector3f pos_traj;
-			pos_traj(0) = _trajectory[0].getCurrentPosition();
-			pos_traj(1) = _trajectory[1].getCurrentPosition();
-			pos_traj(2) = _trajectory[2].getCurrentPosition();
-			Vector2f pos_traj_to_dest_xy = (_position_setpoint - pos_traj).xy();
+			Vector2f pos_traj(_trajectory[0].getCurrentPosition(),
+					  _trajectory[1].getCurrentPosition());
+			Vector2f pos_traj_to_dest_xy = Vector2f(_position_setpoint.xy()) - pos_traj;
 			Vector2f u_pos_traj_to_dest_xy(pos_traj_to_dest_xy.unit_or_zero());
 
 			Vector2f vel_sp_constrained_xy = u_pos_traj_to_dest_xy * _getMaxXYSpeed();
@@ -317,7 +358,7 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 			}
 		}
 
-		if (PX4_ISFINITE(_position_setpoint(2))) {
+		else if (z_pos_setpoint_valid) {
 			const float z_dir = math::sign(_position_setpoint(2) - _trajectory[2].getCurrentPosition());
 			const float vel_sp_z = z_dir * _getMaxZSpeed();
 
@@ -329,8 +370,10 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 				_velocity_setpoint(2) = vel_sp_z;
 			}
 
-			_want_takeoff = _velocity_setpoint(2) < -0.3f;
 		}
+
+		_want_takeoff = _velocity_setpoint(2) < -0.3f;
+
 	}
 }
 
@@ -397,7 +440,7 @@ void FlightTaskAutoLineSmoothVel::_generateTrajectory()
 		_trajectory[i].updateDurations(_velocity_setpoint(i));
 	}
 
-	VelocitySmoothing::timeSynchronization(_trajectory, 2); // Synchronize x and y only
+	VelocitySmoothing::timeSynchronization(_trajectory, 3);
 
 	_jerk_setpoint = jerk_sp_smooth;
 	_acceleration_setpoint = accel_sp_smooth;
