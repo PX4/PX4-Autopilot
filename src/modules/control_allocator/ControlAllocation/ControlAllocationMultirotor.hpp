@@ -47,12 +47,10 @@
 
 #include "ControlAllocation.hpp"
 
-#define MIXER_MULTIROTOR_USE_MOCK_GEOMETRY
-#include <lib/mixer/mixer.h>
-
 class ControlAllocationMultirotor: public ControlAllocation
 {
 public:
+
 	ControlAllocationMultirotor() = default;
 	virtual ~ControlAllocationMultirotor() = default;
 
@@ -60,7 +58,13 @@ public:
 	void setEffectivenessMatrix(const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &B) override;
 
 private:
-	static int mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &control);
+	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _A;
 
-	MultirotorMixer* _mixer{nullptr};
+	ControlAxis _axis_prio_increasing [NUM_AXES] = {ControlAxis::YAW, ControlAxis::THRUST_Y, ControlAxis::THRUST_X, ControlAxis::THRUST_Z, ControlAxis::PITCH, ControlAxis::ROLL};
+
+	ActuatorVector desaturateActuators(ActuatorVector actuator_sp, ControlAxis axis);
+
+	ActuatorVector getDesaturationVector(ControlAxis axis);
+
+	float computeDesaturationGain(ActuatorVector desaturation_vector, ActuatorVector actuator_sp);
 };

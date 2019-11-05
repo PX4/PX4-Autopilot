@@ -37,35 +37,18 @@
  * Control Allocation Algorithm for multirotors
  *
  * @author Julien Lecoeur <julien.lecoeur@gmail.com>
+ * @author Roman Bapst <roman@auterion.com>
  */
 
 #include "ControlAllocationMultirotor.hpp"
+
+
 
 void
 ControlAllocationMultirotor::setEffectivenessMatrix(const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &B)
 {
 	_B = B;
-
-	// Pseudo-inverse
-	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> A = matrix::geninv(_B);
-
-	// Convert A to MultirotorMixer::Rotor
-	MultirotorMixer::Rotor rotors[NUM_ACTUATORS];
-
-	for (size_t i = 0; i < NUM_ACTUATORS; i++)
-	{
-		rotors[i].roll_scale = A(i, 0);
-		rotors[i].pitch_scale = A(i, 1);
-		rotors[i].yaw_scale = A(i, 2);
-		rotors[i].thrust_scale = -A(i, 5); // -Z thrust
-	}
-
-	// Update mixer
-	if (_mixer != nullptr) {
-		free(_mixer);
-	}
-
-	_mixer = new MultirotorMixer(mixer_callback, (uintptr_t)this, rotors, NUM_ACTUATORS);
+	_A = matrix::geninv(_B);
 }
 
 
@@ -73,13 +56,11 @@ void
 ControlAllocationMultirotor::allocate()
 {
 	// Allocate
-	if (_mixer != nullptr) {
-		float outputs[NUM_ACTUATORS];
-		_mixer->mix(outputs, NUM_ACTUATORS);
-		_actuator_sp = matrix::Vector<float, NUM_ACTUATORS>(outputs);
+	_actuator_sp = _A * _control_sp;
 
-	} else {
-		_actuator_sp *= 0.0f;
+	// go through control axes from lowest to highest priority and unsaturate the actuators
+	for (unsigned i = 0; i < NUM_AXES; i++) {
+		_actuator_sp = desaturateActuators(_actuator_sp, _axis_prio_increasing[i]);
 	}
 
 	// Clip
@@ -89,27 +70,64 @@ ControlAllocationMultirotor::allocate()
 	_control_allocated = _B * _actuator_sp;
 }
 
-int
-ControlAllocationMultirotor::mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index,
-		float &control)
+ControlAllocation::ActuatorVector ControlAllocationMultirotor::desaturateActuators(ActuatorVector actuator_sp,
+		ControlAxis axis)
 {
-	matrix::Vector<float, NUM_AXES> control_sp = ((ControlAllocationMultirotor *)(handle))->getControlSetpoint();
+	ActuatorVector desaturation_vector = getDesaturationVector(axis);
 
-	switch (control_index) {
-	case 0:
-	case 1:
-	case 2:
-		control = control_sp(control_index);
-		break;
+	float gain = computeDesaturationGain(desaturation_vector, actuator_sp);
 
-	case 3:
-		control = -control_sp(5); // -Z thrust
-		break;
+	actuator_sp = actuator_sp + gain * desaturation_vector;
 
-	default:
-		control = 0.0f;
-		break;
+	gain = computeDesaturationGain(desaturation_vector, actuator_sp);
+
+	actuator_sp = actuator_sp + 0.5f * gain * desaturation_vector;
+
+	return actuator_sp;
+
+}
+
+ControlAllocation::ActuatorVector ControlAllocationMultirotor::getDesaturationVector(ControlAxis axis)
+{
+	ActuatorVector ret;
+
+	for (unsigned i = 0; i < NUM_ACTUATORS; i++) {
+		ret(i) = _A(i, axis);
 	}
 
-	return 0;
+	return ret;
+}
+
+
+float ControlAllocationMultirotor::computeDesaturationGain(ActuatorVector desaturation_vector,
+		ActuatorVector actuator_sp)
+{
+	float k_min = 0.f;
+	float k_max = 0.f;
+
+	for (unsigned i = 0; i < NUM_ACTUATORS; i++) {
+		// Avoid division by zero. If desaturation_vector(i) is zero, there's nothing we can do to unsaturate anyway
+		if (fabsf(desaturation_vector(i)) < FLT_EPSILON) {
+			continue;
+		}
+
+		if (actuator_sp(i) < _actuator_min(i)) {
+			float k = (_actuator_min(i) - actuator_sp(i)) / desaturation_vector(i);
+
+			if (k < k_min) { k_min = k; }
+
+			if (k > k_max) { k_max = k; }
+		}
+
+		if (actuator_sp(i) > _actuator_max(i)) {
+			float k = (_actuator_max(i) - actuator_sp(i)) / desaturation_vector(i);
+
+			if (k < k_min) { k_min = k; }
+
+			if (k > k_max) { k_max = k; }
+		}
+	}
+
+	// Reduce the saturation as much as possible
+	return k_min + k_max;
 }
