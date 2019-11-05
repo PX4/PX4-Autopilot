@@ -95,7 +95,7 @@
 #define BATT_SMBUS_ENABLED_PROTECTIONS_A_DEFAULT        0xcf
 #define BATT_SMBUS_ENABLED_PROTECTIONS_A_CUV_DISABLED   0xce
 
-#define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
+#define NUM_BUS_OPTIONS (sizeof(smbus_bus_options)/sizeof(smbus_bus_options[0]))
 
 enum BATT_SMBUS_BUS {
 	BATT_SMBUS_BUS_ALL = 0,
@@ -109,7 +109,7 @@ struct batt_smbus_bus_option {
 	enum BATT_SMBUS_BUS busid;
 	const char *devpath;
 	uint8_t busnum;
-} bus_options[] = {
+} const smbus_bus_options[] = {
 	{ BATT_SMBUS_BUS_I2C_EXTERNAL, "/dev/batt_smbus_ext", PX4_I2C_BUS_EXPANSION},
 #ifdef PX4_I2C_BUS_EXPANSION1
 	{ BATT_SMBUS_BUS_I2C_EXTERNAL1, "/dev/batt_smbus_ext1", PX4_I2C_BUS_EXPANSION1},
