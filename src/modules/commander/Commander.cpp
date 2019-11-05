@@ -45,20 +45,20 @@
 #include "Commander.hpp"
 
 /* commander module headers */
+#include "Arming/PreFlightCheck/PreFlightCheck.hpp"
+#include "Arming/ArmAuthorization/ArmAuthorization.h"
+#include "Arming/HealthFlags/HealthFlags.h"
 #include "accelerometer_calibration.h"
 #include "airspeed_calibration.h"
-#include "arm_auth.h"
 #include "baro_calibration.h"
 #include "calibration_routines.h"
 #include "commander_helper.h"
 #include "esc_calibration.h"
 #include "gyro_calibration.h"
 #include "mag_calibration.h"
-#include "PreflightCheck.h"
 #include "px4_custom_mode.h"
 #include "rc_calibration.h"
 #include "state_machine_helper.h"
-#include "health_flag_helper.h"
 
 /* PX4 headers */
 #include <dataman/dataman.h>
@@ -156,7 +156,7 @@ static struct vehicle_status_flags_s status_flags = {};
 
 static uint64_t rc_signal_lost_timestamp;		// Time at which the RC reception was lost
 
-static uint8_t arm_requirements = ARM_REQ_NONE;
+static uint8_t arm_requirements = PreFlightCheck::ARM_REQ_NONE;
 
 static bool _last_condition_local_altitude_valid = false;
 static bool _last_condition_local_position_valid = false;
@@ -374,7 +374,7 @@ int commander_main(int argc, char *argv[])
 		bool preflight_check_res = Commander::preflight_check(true);
 		PX4_INFO("Preflight check: %s", preflight_check_res ? "OK" : "FAILED");
 
-		bool prearm_check_res = prearm_check(&mavlink_log_pub, status_flags, safety, arm_requirements);
+		bool prearm_check_res = PreFlightCheck::preArmCheck(&mavlink_log_pub, status_flags, safety, arm_requirements);
 		PX4_INFO("Prearm check: %s", prearm_check_res ? "OK" : "FAILED");
 
 		return 0;
@@ -1392,15 +1392,17 @@ Commander::run()
 
 	int32_t arm_without_gps_param = 0;
 	param_get(_param_arm_without_gps, &arm_without_gps_param);
-	arm_requirements = (arm_without_gps_param == 1) ? ARM_REQ_NONE : ARM_REQ_GPS_BIT;
+	arm_requirements = (arm_without_gps_param == 1) ? PreFlightCheck::ARM_REQ_NONE : PreFlightCheck::ARM_REQ_GPS_BIT;
 
 	int32_t arm_mission_required_param = 0;
 	param_get(_param_arm_mission_required, &arm_mission_required_param);
-	arm_requirements |= (arm_mission_required_param & (ARM_REQ_MISSION_BIT | ARM_REQ_ARM_AUTH_BIT));
+	arm_requirements |= (arm_mission_required_param &
+			     (PreFlightCheck::ARM_REQ_MISSION_BIT | PreFlightCheck::ARM_REQ_ARM_AUTH_BIT));
 
 	int32_t arm_escs_checks_required_param = 0;
 	param_get(_param_escs_checks_required, &arm_escs_checks_required_param);
-	arm_requirements |= (arm_escs_checks_required_param == 0) ? ARM_REQ_NONE : ARM_REQ_ESCS_CHECK_BIT;
+	arm_requirements |= (arm_escs_checks_required_param == 0) ? PreFlightCheck::ARM_REQ_NONE :
+			    PreFlightCheck::ARM_REQ_ESCS_CHECK_BIT;
 
 	status.rc_input_mode = rc_in_off;
 
@@ -1528,11 +1530,13 @@ Commander::run()
 			param_get(_param_arm_switch_is_button, &arm_switch_is_button);
 
 			param_get(_param_arm_without_gps, &arm_without_gps_param);
-			arm_requirements = (arm_without_gps_param == 1) ? ARM_REQ_NONE : ARM_REQ_GPS_BIT;
+			arm_requirements = (arm_without_gps_param == 1) ? PreFlightCheck::ARM_REQ_NONE : PreFlightCheck::ARM_REQ_GPS_BIT;
 			param_get(_param_arm_mission_required, &arm_mission_required_param);
-			arm_requirements |= (arm_mission_required_param & (ARM_REQ_MISSION_BIT | ARM_REQ_ARM_AUTH_BIT));
+			arm_requirements |= (arm_mission_required_param &
+					     (PreFlightCheck::ARM_REQ_MISSION_BIT | PreFlightCheck::ARM_REQ_ARM_AUTH_BIT));
 			param_get(_param_escs_checks_required, &arm_escs_checks_required_param);
-			arm_requirements |= (arm_escs_checks_required_param == 0) ? ARM_REQ_NONE : ARM_REQ_ESCS_CHECK_BIT;
+			arm_requirements |= (arm_escs_checks_required_param == 0) ? PreFlightCheck::ARM_REQ_NONE :
+					    PreFlightCheck::ARM_REQ_ESCS_CHECK_BIT;
 
 
 			/* flight mode slots */
@@ -3755,9 +3759,9 @@ void Commander::mission_init()
 
 bool Commander::preflight_check(bool report)
 {
-	const bool checkGNSS = (arm_requirements & ARM_REQ_GPS_BIT);
+	const bool checkGNSS = (arm_requirements & PreFlightCheck::ARM_REQ_GPS_BIT);
 
-	const bool success = Preflight::preflightCheck(&mavlink_log_pub, status, status_flags, checkGNSS, report, false,
+	const bool success = PreFlightCheck::preflightCheck(&mavlink_log_pub, status, status_flags, checkGNSS, report, false,
 			     hrt_elapsed_time(&commander_boot_timestamp));
 
 	if (success) {

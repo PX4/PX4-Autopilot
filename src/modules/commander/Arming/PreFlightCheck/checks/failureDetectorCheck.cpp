@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,50 +31,35 @@
  *
  ****************************************************************************/
 
-/**
- * @file health_flag_helper.cpp
- *
- * Contains helper functions to efficiently set the system health flags from commander and preflight check.
- *
- * @author Philipp Oettershagen (philipp.oettershagen@mavt.ethz.ch)
- */
+#include "../PreFlightCheck.hpp"
 
-#include "health_flag_helper.h"
+#include <systemlib/mavlink_log.h>
 
-void set_health_flags(uint64_t subsystem_type, bool present, bool enabled, bool ok, vehicle_status_s &status)
+bool PreFlightCheck::failureDetectorCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
+		const bool report_fail, const bool prearm)
 {
-	PX4_DEBUG("set_health_flags: Type %llu pres=%u enabl=%u ok=%u", subsystem_type, present, enabled, ok);
-
-	if (present) {
-		status.onboard_control_sensors_present |= (uint32_t)subsystem_type;
-
-	} else {
-		status.onboard_control_sensors_present &= ~(uint32_t)subsystem_type;
+	// Ignore failure detector check after arming
+	if (!prearm) {
+		return true;
 	}
 
-	if (enabled) {
-		status.onboard_control_sensors_enabled |= (uint32_t)subsystem_type;
+	if (status.failure_detector_status != vehicle_status_s::FAILURE_NONE) {
+		if (report_fail) {
+			if (status.failure_detector_status & vehicle_status_s::FAILURE_ROLL) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Roll failure detected");
+			}
 
-	} else {
-		status.onboard_control_sensors_enabled &= ~(uint32_t)subsystem_type;
+			if (status.failure_detector_status & vehicle_status_s::FAILURE_PITCH) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Pitch failure detected");
+			}
+
+			if (status.failure_detector_status & vehicle_status_s::FAILURE_ALT) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Altitude failure detected");
+			}
+		}
+
+		return false;
 	}
 
-	if (ok) {
-		status.onboard_control_sensors_health |= (uint32_t)subsystem_type;
-
-	} else {
-		status.onboard_control_sensors_health &= ~(uint32_t)subsystem_type;
-	}
-}
-
-void set_health_flags_present_healthy(uint64_t subsystem_type, bool present, bool healthy, vehicle_status_s &status)
-{
-	set_health_flags(subsystem_type, present, status.onboard_control_sensors_enabled & (uint32_t)subsystem_type, healthy,
-			 status);
-}
-
-void set_health_flags_healthy(uint64_t subsystem_type, bool healthy, vehicle_status_s &status)
-{
-	set_health_flags(subsystem_type, status.onboard_control_sensors_present & (uint32_t)subsystem_type,
-			 status.onboard_control_sensors_enabled & (uint32_t)subsystem_type, healthy, status);
+	return true;
 }
