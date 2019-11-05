@@ -12,12 +12,11 @@ pipeline {
             armhf: "px4io/px4-dev-armhf:2019-10-24",
             base: "px4io/px4-dev-base-bionic:2019-10-24",
             nuttx: "px4io/px4-dev-nuttx:2019-10-24",
-            rpi: "px4io/px4-dev-raspi:2019-10-24",
             snapdragon: "lorenzmeier/px4-dev-snapdragon:2018-09-12"
           ]
 
           def armhf_builds = [
-            target: ["aerotenna_ocpoc_ubuntu"],
+            target: ["aerotenna_ocpoc_ubuntu", "emlid_navio2_cross", "parrot_bebop_default"],
             image: docker_images.armhf,
             archive: false
           ]
@@ -49,12 +48,6 @@ pipeline {
             archive: false
           ]
 
-          def rpi_builds = [
-            target: ["emlid_navio2_cross", "parrot_bebop_default"],
-            image: docker_images.rpi,
-            archive: false
-          ]
-
           def snapdragon_builds = [
             target: ["atlflight_eagle_qurt-default", "atlflight_eagle_default"],
             image: docker_images.snapdragon,
@@ -62,7 +55,7 @@ pipeline {
           ]
 
           def docker_builds = [
-            armhf_builds, base_builds, nuttx_builds_archive, nuttx_builds_other, rpi_builds, snapdragon_builds
+            armhf_builds, base_builds, nuttx_builds_archive, nuttx_builds_other, snapdragon_builds
           ]
 
           for (def build_type = 0; build_type < docker_builds.size(); build_type++) {
