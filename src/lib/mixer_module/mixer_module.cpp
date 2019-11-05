@@ -236,6 +236,7 @@ unsigned MixingOutput::motorTest()
 
 	while (_motor_test.test_motor_sub.update(&test_motor)) {
 		if (test_motor.driver_instance != _driver_instance ||
+		    test_motor.timestamp == 0 ||
 		    hrt_elapsed_time(&test_motor.timestamp) > 100_ms) {
 			continue;
 		}
