@@ -74,6 +74,9 @@ except AttributeError:
 #include "@(topic)PubSubTypes.h"
 @[end if]@
 
+#include <atomic>
+#include <condition_variable>
+
 using namespace eprosima::fastrtps;
 using namespace eprosima::fastrtps::rtps;
 
@@ -82,7 +85,7 @@ class @(topic)_Subscriber
 public:
     @(topic)_Subscriber();
     virtual ~@(topic)_Subscriber();
-    bool init();
+    bool init(std::condition_variable* cv);
     void run();
     bool hasMsg();
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
@@ -105,7 +108,7 @@ private:
     class SubListener : public SubscriberListener
     {
     public:
-        SubListener() : n_matched(0), n_msg(0){};
+        SubListener() : n_matched(0), n_msg(0), has_msg(false){};
         ~SubListener(){};
         void onSubscriptionMatched(Subscriber* sub, MatchingInfo& info);
         void onNewDataMessage(Subscriber* sub);
@@ -125,7 +128,8 @@ private:
         @(topic) msg;
 @[    end if]@
 @[end if]@
-        bool has_msg = false;
+        std::atomic_bool has_msg;
+        std::condition_variable* cv_msg;
 
     } m_listener;
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
