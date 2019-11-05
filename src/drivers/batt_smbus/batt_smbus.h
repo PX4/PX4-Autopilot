@@ -62,12 +62,10 @@
 #define BATT_CURRENT_UNDERVOLTAGE_THRESHOLD             5.0f            ///< Threshold in amps to disable undervoltage protection
 #define BATT_VOLTAGE_UNDERVOLTAGE_THRESHOLD             3.4f            ///< Threshold in volts to re-enable undervoltage protection
 
+#define BATT_SMBUS_ADDR                                 0x0B            ///< Default 7 bit address I2C address. 8 bit = 0x16
+
 #define BATT_SMBUS_CURRENT                              0x0A            ///< current register
 #define BATT_SMBUS_AVERAGE_CURRENT                      0x0B            ///< current register
-#define BATT_SMBUS_ADDR                                 0x0B            ///< Default 7 bit address I2C address. 8 bit = 0x16
-#define BATT_SMBUS_ADDR_MIN                             0x00            ///< lowest possible address
-#define BATT_SMBUS_ADDR_MAX                             0xFF            ///< highest possible address
-#define BATT_SMBUS_PEC_POLYNOMIAL                       0x07            ///< Polynomial for calculating PEC
 #define BATT_SMBUS_TEMP                                 0x08            ///< temperature register
 #define BATT_SMBUS_VOLTAGE                              0x09            ///< voltage register
 #define BATT_SMBUS_FULL_CHARGE_CAPACITY                 0x10            ///< capacity when fully charged
@@ -81,7 +79,6 @@
 #define BATT_SMBUS_MANUFACTURE_DATE                     0x1B            ///< manufacture date register
 #define BATT_SMBUS_SERIAL_NUMBER                        0x1C            ///< serial number register
 #define BATT_SMBUS_MEASUREMENT_INTERVAL_US              100000          ///< time in microseconds, measure at 10Hz
-#define BATT_SMBUS_TIMEOUT_US                           1000000         ///< timeout looking for battery 10seconds after startup
 #define BATT_SMBUS_MANUFACTURER_ACCESS                  0x00
 #define BATT_SMBUS_MANUFACTURER_DATA                    0x23
 #define BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS            0x44
