@@ -70,7 +70,7 @@ FindWorkQueueByName(const char *name)
 		return nullptr;
 	}
 
-	auto lg = _wq_manager_wqs_list->getLockGuard();
+	LockGuard lg{_wq_manager_wqs_list->mutex()};
 
 	// search list
 	for (WorkQueue *wq : *_wq_manager_wqs_list) {
@@ -304,7 +304,7 @@ WorkQueueManagerStop()
 		// first ask all WQs to stop
 		if (_wq_manager_wqs_list != nullptr) {
 			{
-				auto lg = _wq_manager_wqs_list->getLockGuard();
+				LockGuard lg{_wq_manager_wqs_list->mutex()};
 
 				// ask all work queues (threads) to stop
 				// NOTE: not currently safe without all WorkItems stopping first
@@ -348,7 +348,7 @@ WorkQueueManagerStatus()
 		const size_t num_wqs = _wq_manager_wqs_list->size();
 		PX4_INFO_RAW("\nWork Queue: %-1zu threads                      RATE        INTERVAL\n", num_wqs);
 
-		auto lg = _wq_manager_wqs_list->getLockGuard();
+		LockGuard lg{_wq_manager_wqs_list->mutex()};
 		size_t i = 0;
 
 		for (WorkQueue *wq : *_wq_manager_wqs_list) {
