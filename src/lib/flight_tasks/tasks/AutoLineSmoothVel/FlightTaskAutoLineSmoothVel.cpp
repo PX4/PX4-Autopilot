@@ -36,95 +36,10 @@
  */
 
 #include "FlightTaskAutoLineSmoothVel.hpp"
-#include <mathlib/mathlib.h>
-#include <float.h>
+
+#include "TrajectoryConstraints.hpp"
 
 using namespace matrix;
-
-namespace
-{
-
-
-struct vehicle_dynamic_limits {
-	float z_accept_rad;
-	float xy_accept_rad;
-
-	float max_acc_xy;
-	float max_jerk;
-
-	float max_speed_xy;
-
-	// TODO: remove this
-	float max_acc_xy_radius_scale;
-};
-
-/*
- * Compute the maximum allowed speed at the waypoint assuming that we want to
- * connect the two lines (current-target and target-next)
- * with a tangent circle with constant speed and desired centripetal acceleration: a_centripetal = speed^2 / radius
- * The circle should in theory start and end at the intersection of the lines and the waypoint's acceptance radius.
- * This is not exactly true in reality since Navigator switches the waypoint so we have to take in account that
- * the real acceptance radius is smaller.
- *
- */
-inline float computeCurrentXYSpeedFromWaypoints(const Vector3f &start_position, const Vector3f &target,
-		const Vector3f &next_target, float final_speed, const vehicle_dynamic_limits &config)
-{
-	float speed_at_target = 0.0f;
-	const float distance_target_next = (target - next_target).xy().norm();
-
-	const bool target_next_different = distance_target_next  > 0.001f;
-	const bool waypoint_overlap = (target - next_target).xy().norm() < config.xy_accept_rad;
-	const bool has_reached_altitude = fabsf(target(2) - start_position(2)) < config.z_accept_rad;
-	const bool altitude_stays_same = fabsf(next_target(2) - target(2)) < config.z_accept_rad;
-
-	if (target_next_different &&
-	    !waypoint_overlap &&
-	    has_reached_altitude &&
-	    altitude_stays_same
-	   ) {
-		const float max_speed_current_next = math::trajectory::computeMaxSpeedFromDistance(config.max_jerk,
-						     config.max_acc_xy,
-						     distance_target_next,
-						     final_speed);
-		const float alpha = acosf(Vector2f((target - start_position).xy()).unit_or_zero().dot(
-						  Vector2f((target - next_target).xy()).unit_or_zero()));
-		float accel_tmp = config.max_acc_xy_radius_scale * config.max_acc_xy;
-		float max_speed_in_turn = math::trajectory::computeMaxSpeedInWaypoint(alpha,
-					  accel_tmp,
-					  config.xy_accept_rad);
-		speed_at_target = math::min(math::min(max_speed_in_turn,
-						      max_speed_current_next),
-					    config.max_speed_xy);
-	}
-
-	return math::min(math::trajectory::computeMaxSpeedFromDistance(config.max_jerk,
-			 config.max_acc_xy,
-			 (start_position - target).xy().norm(),
-			 speed_at_target), config.max_speed_xy);
-}
-
-void clampToXYNorm(Vector3f &target, float maxXYNorm)
-{
-	const float xynorm = target.xy().norm();
-	const float scale_factor = maxXYNorm / xynorm;
-
-	if (scale_factor < 1 && !isnan(scale_factor) && !isinf(scale_factor)) {
-		target *= scale_factor;
-	}
-}
-
-void clampToZNorm(Vector3f &target, float maxZNorm)
-{
-	float znorm = fabs(target(2));
-	const float scale_factor = maxZNorm / znorm;
-
-	if (scale_factor < 1 && !isnan(scale_factor) && !isinf(scale_factor)) {
-		target *= scale_factor;
-	}
-}
-
-}
 
 bool FlightTaskAutoLineSmoothVel::activate(vehicle_local_position_setpoint_s last_setpoint)
 {
@@ -270,7 +185,7 @@ float FlightTaskAutoLineSmoothVel::_getMaxXYSpeed() const
 	pos_traj(1) = _trajectory[1].getCurrentPosition();
 	pos_traj(2) = _trajectory[2].getCurrentPosition();
 
-	vehicle_dynamic_limits config;
+	math::trajectory::vehicle_dynamic_limits config;
 	config.z_accept_rad = _param_nav_mc_alt_rad.get();
 	config.xy_accept_rad = _target_acceptance_radius;
 	config.max_acc_xy = _trajectory[0].getMaxAccel();
@@ -279,7 +194,7 @@ float FlightTaskAutoLineSmoothVel::_getMaxXYSpeed() const
 	config.max_acc_xy_radius_scale = _param_mpc_xy_traj_p.get();
 	const float next_target_speed = 0.f;
 
-	return computeCurrentXYSpeedFromWaypoints(pos_traj, _target, _next_wp, next_target_speed, config);
+	return computeStartXYSpeedFromWaypoints(pos_traj, _target, _next_wp, next_target_speed, config);
 }
 
 float FlightTaskAutoLineSmoothVel::_getMaxZSpeed() const
@@ -311,7 +226,7 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 		const bool z_pos_setpoint_valid = PX4_ISFINITE(_position_setpoint(2));
 
 		if (xy_pos_setpoint_valid && z_pos_setpoint_valid) {
-			// We have a 3D position setpoint, so generate a 3D velocity setpoint
+			// Use 3D position setpoint to generate a 3D velocity setpoint
 			Vector3f pos_traj(_trajectory[0].getCurrentPosition(),
 					  _trajectory[1].getCurrentPosition(),
 					  _trajectory[2].getCurrentPosition());
@@ -321,8 +236,8 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 			const float z_speed = _getMaxZSpeed();
 
 			Vector3f vel_sp_constrained = u_pos_traj_to_dest * hypot(xy_speed, z_speed);
-			clampToXYNorm(vel_sp_constrained, xy_speed);
-			clampToZNorm(vel_sp_constrained, z_speed);
+			math::trajectory::clampToXYNorm(vel_sp_constrained, xy_speed);
+			math::trajectory::clampToZNorm(vel_sp_constrained, z_speed);
 
 			for (int i = 0; i < 3; i++) {
 				// If available, constrain the velocity using _velocity_setpoint(.)
@@ -337,7 +252,7 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 		}
 
 		else if (xy_pos_setpoint_valid) {
-			// Use position setpoints to generate velocity setpoints
+			// Use 2D position setpoint to generate a 2D velocity setpoint
 
 			// Get various path specific vectors
 			Vector2f pos_traj(_trajectory[0].getCurrentPosition(),
@@ -359,6 +274,8 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 		}
 
 		else if (z_pos_setpoint_valid) {
+			// Use Z position setpoint to generate a Z velocity setpoint
+
 			const float z_dir = math::sign(_position_setpoint(2) - _trajectory[2].getCurrentPosition());
 			const float vel_sp_z = z_dir * _getMaxZSpeed();
 
@@ -373,7 +290,6 @@ void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
 		}
 
 		_want_takeoff = _velocity_setpoint(2) < -0.3f;
-
 	}
 }
 
