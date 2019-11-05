@@ -74,8 +74,10 @@ except AttributeError:
 
 @(topic)_Subscriber::~@(topic)_Subscriber() {   Domain::removeParticipant(mp_participant);}
 
-bool @(topic)_Subscriber::init()
+bool @(topic)_Subscriber::init(std::condition_variable* cv)
 {
+    m_listener.cv_msg = cv;
+
     // Create RTPSParticipant
     ParticipantAttributes PParam;
     PParam.rtps.builtin.domainId = 0; // MUST BE THE SAME AS IN THE PUBLISHER
@@ -131,21 +133,7 @@ void @(topic)_Subscriber::SubListener::onSubscriptionMatched(Subscriber* sub, Ma
 void @(topic)_Subscriber::SubListener::onNewDataMessage(Subscriber* sub)
 {
         // Take data
-@[if 1.5 <= fastrtpsgen_version <= 1.7]@
-@[    if ros2_distro]@
-        @(package)::msg::dds_::@(topic)_ st;
-@[    else]@
-        @(topic)_ st;
-@[    end if]@
-@[else]@
-@[    if ros2_distro]@
-        @(package)::msg::@(topic) st;
-@[    else]@
-        @(topic) st;
-@[    end if]@
-@[end if]@
-
-        if(sub->takeNextData(&st, &m_info))
+        if(sub->takeNextData(&msg, &m_info))
         {
             if(m_info.sampleKind == ALIVE)
             {
@@ -153,6 +141,8 @@ void @(topic)_Subscriber::SubListener::onNewDataMessage(Subscriber* sub)
                 ++n_msg;
                 //std::cout << "Sample received, count=" << n_msg << std::endl;
                 has_msg = true;
+                
+                cv_msg->notify_all();
 
             }
         }
@@ -167,7 +157,7 @@ void @(topic)_Subscriber::run()
 
 bool @(topic)_Subscriber::hasMsg()
 {
-    return m_listener.has_msg;
+    return m_listener.has_msg.load();
 }
 
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@

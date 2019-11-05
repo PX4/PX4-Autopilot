@@ -59,6 +59,7 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 #include <ctime>
 #include <csignal>
 #include <termios.h>
+#include <condition_variable>
 
 #include <fastcdr/Cdr.h>
 #include <fastcdr/FastCdr.h>
@@ -188,11 +189,16 @@ void signal_handler(int signum)
 
 @[if recv_topics]@
 std::atomic<bool> exit_sender_thread(false);
+std::condition_variable cv_msg;
+std::mutex cv_m; 
+
 void t_send(void *data)
 {
     char data_buffer[BUFFER_SIZE] = {};
     int length = 0;
     uint8_t topic_ID = 255;
+    
+    std::unique_lock<std::mutex> lk(cv_m);
 
     while (running)
     {
@@ -214,7 +220,7 @@ void t_send(void *data)
             }
         }
 
-        usleep(_options.sleep_us);
+        cv_msg.wait_for(lk, std::chrono::microseconds(_options.sleep_us));
     }
 }
 @[end if]@
@@ -268,7 +274,7 @@ int main(int argc, char** argv)
     std::chrono::time_point<std::chrono::steady_clock> start, end;
 @[end if]@
 
-    topics.init();
+    topics.init(&cv_msg);
 
     running = true;
 @[if recv_topics]@
