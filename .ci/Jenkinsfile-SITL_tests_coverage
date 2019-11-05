@@ -107,7 +107,7 @@ pipeline {
             sh 'export'
             sh 'make distclean'
             sh 'git fetch --tags'
-            sh 'make px4_sitl_test test_results_junit'
+            sh 'make tests'
             withCredentials([string(credentialsId: 'FIRMWARE_CODECOV_TOKEN', variable: 'CODECOV_TOKEN')]) {
               sh 'curl -s https://codecov.io/bash | bash -s - -F unittest'
             }

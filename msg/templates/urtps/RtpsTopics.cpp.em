@@ -61,12 +61,12 @@ except AttributeError:
 
 #include "RtpsTopics.h"
 
-bool RtpsTopics::init()
+bool RtpsTopics::init(std::condition_variable* cv)
 {
 @[if recv_topics]@
     // Initialise subscribers
 @[for topic in recv_topics]@
-    if (_@(topic)_sub.init()) {
+    if (_@(topic)_sub.init(cv)) {
         std::cout << "@(topic) subscriber started" << std::endl;
     } else {
         std::cout << "ERROR starting @(topic) subscriber" << std::endl;

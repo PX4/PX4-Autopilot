@@ -234,7 +234,7 @@ private:
 	 * Thrust is adjusted to support the land-detector during detection.
 	 * @param setpoint gets adjusted based on land-detector state
 	 */
-	void limit_thrust_during_landing(vehicle_local_position_setpoint_s &setpoint);
+	void limit_thrust_during_landing(vehicle_attitude_setpoint_s &setpoint);
 
 	/**
 	 * Start flightasks based on navigation state.
@@ -258,11 +258,6 @@ private:
 	void reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint);
 
 	/**
-	 * Shim for calling task_main from task_create.
-	 */
-	static int	task_main_trampoline(int argc, char *argv[]);
-
-	/**
 	 * check if task should be switched because of failsafe
 	 */
 	void check_failure(bool task_failure, uint8_t nav_state);
@@ -271,11 +266,6 @@ private:
 	 * send vehicle command to inform commander about failsafe
 	 */
 	void send_vehicle_cmd_do(uint8_t nav_state);
-
-	/**
-	 * Main sensor collection task.
-	 */
-	void		task_main();
 };
 
 MulticopterPositionControl::MulticopterPositionControl() :
@@ -679,17 +669,16 @@ MulticopterPositionControl::Run()
 			// This is used to properly initialize the velocity setpoint when onpening the position loop (position unlock)
 			_flight_tasks.updateVelocityControllerIO(_control.getVelSp(), Vector3f(local_pos_sp.thrust));
 
-			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
-			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.
-			// Note: only adust thrust output if there was not thrust-setpoint demand in D-direction.
-			if (_takeoff.getTakeoffState() > TakeoffState::rampup && !PX4_ISFINITE(setpoint.thrust[2])) {
-				limit_thrust_during_landing(local_pos_sp);
-			}
-
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 			attitude_setpoint.timestamp = time_stamp_now;
 			_control.getAttitudeSetpoint(attitude_setpoint);
 
+			// Part of landing logic: if ground-contact/maybe landed was detected, turn off
+			// controller. This message does not have to be logged as part of the vehicle_local_position_setpoint topic.
+			// Note: only adust thrust output if there was not thrust-setpoint demand in D-direction.
+			if (_takeoff.getTakeoffState() > TakeoffState::rampup && !PX4_ISFINITE(setpoint.thrust[2])) {
+				limit_thrust_during_landing(attitude_setpoint);
+			}
 
 			// publish attitude setpoint
 			// Note: this requires review. The reason for not sending
@@ -938,16 +927,16 @@ MulticopterPositionControl::start_flight_task()
 }
 
 void
-MulticopterPositionControl::limit_thrust_during_landing(vehicle_local_position_setpoint_s &setpoint)
+MulticopterPositionControl::limit_thrust_during_landing(vehicle_attitude_setpoint_s &setpoint)
 {
 	if (_vehicle_land_detected.ground_contact
 	    || _vehicle_land_detected.maybe_landed) {
-		// we set thrust to zero, this will help to decide if we are actually landed or not
-		setpoint.thrust[0] = setpoint.thrust[1] = setpoint.thrust[2] = 0.0f;
-		// set yaw-sp to current yaw to avoid any corrections
-		setpoint.yaw = _states.yaw;
-		setpoint.yawspeed = 0.f;
-		// prevent any integrator windup
+		// we set the collective thrust to zero, this will help to decide if we are actually landed or not
+		setpoint.thrust_body[2] = 0.f;
+		// go level to avoid corrections but keep the heading we have
+		Quatf(AxisAngle<float>(0, 0, _states.yaw)).copyTo(setpoint.q_d);
+		setpoint.yaw_sp_move_rate = 0.f;
+		// prevent any position control integrator windup
 		_control.resetIntegralXY();
 		_control.resetIntegralZ();
 	}

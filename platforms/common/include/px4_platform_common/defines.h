@@ -105,17 +105,6 @@ typedef param_t px4_param_t;
 #define PX4_O_MODE_666 0666
 #define PX4_O_MODE_600 0600
 
-#ifndef PRIu64
-#  define PRIu64 "llu"
-#endif
-#ifndef PRId64
-#  define PRId64 "lld"
-#endif
-
-#ifndef offsetof
-#  define offsetof(TYPE, MEMBER) __builtin_offsetof (TYPE, MEMBER)
-#endif
-
 #elif defined(__PX4_POSIX)
 /****************************************************************************
  * POSIX Specific defines
@@ -178,6 +167,8 @@ __END_DECLS
 #define ERROR -1
 #define MAX_RAND 32767
 
+#endif // defined(__PX4_POSIX)
+
 /* Math macro's for float literals. Do not use M_PI et al as they aren't
  * defined (neither C nor the C++ standard define math constants) */
 #define M_E_F			2.71828183f
@@ -207,5 +198,3 @@ __END_DECLS
 
 #define M_DEG_TO_RAD 		0.017453292519943295
 #define M_RAD_TO_DEG 		57.295779513082323
-
-#endif // defined(__PX4_POSIX)

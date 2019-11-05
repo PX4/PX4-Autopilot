@@ -35,7 +35,7 @@
  * @file init.c
  *
  * PX4FMU-specific early startup code.  This file implements the
- * nsh_archinitialize() function that is called early by nsh during startup.
+ * board_app_initialize() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
  * subsystems and perform board-specific initialisation.

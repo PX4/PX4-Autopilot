@@ -367,7 +367,7 @@ void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s
 
 void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const
 {
-	attitude_setpoint = ControlMath::thrustToAttitude(_thr_sp, _yaw_sp);
+	ControlMath::thrustToAttitude(_thr_sp, _yaw_sp, attitude_setpoint);
 	attitude_setpoint.yaw_sp_move_rate = _yawspeed_sp;
 }
 

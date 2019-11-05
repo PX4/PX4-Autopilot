@@ -70,7 +70,7 @@ FindWorkQueueByName(const char *name)
 		return nullptr;
 	}
 
-	auto lg = _wq_manager_wqs_list->getLockGuard();
+	LockGuard lg{_wq_manager_wqs_list->mutex()};
 
 	// search list
 	for (WorkQueue *wq : *_wq_manager_wqs_list) {
@@ -203,10 +203,16 @@ WorkQueueManagerRun(int, char **)
 			}
 
 			// stack size
-#ifndef __PX4_QURT
-			const size_t stacksize = math::max(PTHREAD_STACK_MIN, PX4_STACK_ADJUSTED(wq->stacksize));
-#else
+#if defined(__PX4_QURT)
 			const size_t stacksize = math::max(8 * 1024, PX4_STACK_ADJUSTED(wq->stacksize));
+#elif defined(__PX4_NUTTX)
+			const size_t stacksize = math::max((uint16_t)PTHREAD_STACK_MIN, wq->stacksize);
+#elif defined(__PX4_POSIX)
+			// On posix system , the desired stacksize round to the nearest multiplier of the system pagesize
+			// It is a requirement of the  pthread_attr_setstacksize* function
+			const unsigned int page_size = sysconf(_SC_PAGESIZE);
+			const size_t stacksize_adj = math::max(PTHREAD_STACK_MIN, PX4_STACK_ADJUSTED(wq->stacksize));
+			const size_t stacksize = (stacksize_adj + page_size - (stacksize_adj % page_size));
 #endif
 			int ret_setstacksize = pthread_attr_setstacksize(&attr, stacksize);
 
@@ -298,7 +304,7 @@ WorkQueueManagerStop()
 		// first ask all WQs to stop
 		if (_wq_manager_wqs_list != nullptr) {
 			{
-				auto lg = _wq_manager_wqs_list->getLockGuard();
+				LockGuard lg{_wq_manager_wqs_list->mutex()};
 
 				// ask all work queues (threads) to stop
 				// NOTE: not currently safe without all WorkItems stopping first
@@ -342,7 +348,7 @@ WorkQueueManagerStatus()
 		const size_t num_wqs = _wq_manager_wqs_list->size();
 		PX4_INFO_RAW("\nWork Queue: %-1zu threads                      RATE        INTERVAL\n", num_wqs);
 
-		auto lg = _wq_manager_wqs_list->getLockGuard();
+		LockGuard lg{_wq_manager_wqs_list->mutex()};
 		size_t i = 0;
 
 		for (WorkQueue *wq : *_wq_manager_wqs_list) {
