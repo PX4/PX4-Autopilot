@@ -258,11 +258,6 @@ private:
 	void reset_setpoint_to_nan(vehicle_local_position_setpoint_s &setpoint);
 
 	/**
-	 * Shim for calling task_main from task_create.
-	 */
-	static int	task_main_trampoline(int argc, char *argv[]);
-
-	/**
 	 * check if task should be switched because of failsafe
 	 */
 	void check_failure(bool task_failure, uint8_t nav_state);
@@ -271,11 +266,6 @@ private:
 	 * send vehicle command to inform commander about failsafe
 	 */
 	void send_vehicle_cmd_do(uint8_t nav_state);
-
-	/**
-	 * Main sensor collection task.
-	 */
-	void		task_main();
 };
 
 MulticopterPositionControl::MulticopterPositionControl() :
