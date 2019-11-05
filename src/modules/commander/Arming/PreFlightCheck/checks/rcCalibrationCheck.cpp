@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,30 +31,28 @@
  *
  ****************************************************************************/
 
-/**
- * @file rc_check.c
- *
- * RC calibration check
- */
-
-#include "rc_check.h"
-
-#include <px4_platform_common/px4_config.h>
-#include <px4_platform_common/time.h>
-
-#include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-
-#include <systemlib/err.h>
+#include "../PreFlightCheck.hpp"
 
 #include <parameters/param.h>
 #include <systemlib/mavlink_log.h>
-#include <drivers/drv_rc_input.h>
+#include <uORB/topics/input_rc.h>
 
-#define RC_INPUT_MAP_UNMAPPED 0
+/**
+ * Maximum deadzone value
+ */
+#define RC_INPUT_MAX_DEADZONE_US	500
 
-int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool isVTOL)
+/**
+ * Minimum value
+ */
+#define RC_INPUT_LOWEST_MIN_US	500
+
+/**
+ * Maximum value
+ */
+#define RC_INPUT_HIGHEST_MAX_US	2500
+
+int PreFlightCheck::rcCalibrationCheck(orb_advert_t *mavlink_log_pub, bool report_fail, bool isVTOL)
 {
 	char nbuf[20];
 	param_t _parameter_handles_min, _parameter_handles_trim, _parameter_handles_max,
@@ -91,7 +89,6 @@ int rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool i
 			}
 		}
 	}
-
 
 	/* first check channel mappings */
 	while (rc_map_mandatory[j] != nullptr) {

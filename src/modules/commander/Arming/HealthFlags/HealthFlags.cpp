@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2014 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,49 +32,49 @@
  ****************************************************************************/
 
 /**
- * @file drv_rc_input.h
+ * @file HealthFlags.cpp
  *
- * R/C input interface.
- */
-
-#ifndef _DRV_RC_INPUT_H
-#define _DRV_RC_INPUT_H
-
-#include <stdint.h>
-#include <sys/ioctl.h>
-#include <uORB/topics/input_rc.h>
-
-#include "drv_orb_dev.h"
-
-/**
- * Path for the default R/C input device.
+ * Contains helper functions to efficiently set the system health flags from commander and preflight check.
  *
- * Note that on systems with more than one R/C input path (e.g.
- * PX4FMU with PX4IO connected) there may be other devices that
- * respond to this protocol.
- *
- * Input data may be obtained by subscribing to the input_rc
- * object, or by poll/reading from the device.
+ * @author Philipp Oettershagen (philipp.oettershagen@mavt.ethz.ch)
  */
-#define RC_INPUT0_DEVICE_PATH	"/dev/input_rc0"
 
-/**
- * Maximum RSSI value
- */
-#define RC_INPUT_RSSI_MAX	100
+#include "HealthFlags.h"
 
-/**
- * Input signal type, value is a control position from zero to 100
- * percent.
- */
-typedef uint16_t		rc_input_t;
+void set_health_flags(uint64_t subsystem_type, bool present, bool enabled, bool ok, vehicle_status_s &status)
+{
+	PX4_DEBUG("set_health_flags: Type %llu pres=%u enabl=%u ok=%u", subsystem_type, present, enabled, ok);
 
-#define _RC_INPUT_BASE		0x2b00
+	if (present) {
+		status.onboard_control_sensors_present |= (uint32_t)subsystem_type;
 
-/** Enable RSSI input via ADC */
-#define RC_INPUT_ENABLE_RSSI_ANALOG	_IOC(_RC_INPUT_BASE, 1)
+	} else {
+		status.onboard_control_sensors_present &= ~(uint32_t)subsystem_type;
+	}
 
-/** Enable RSSI input via PWM signal */
-#define RC_INPUT_ENABLE_RSSI_PWM	_IOC(_RC_INPUT_BASE, 2)
+	if (enabled) {
+		status.onboard_control_sensors_enabled |= (uint32_t)subsystem_type;
 
-#endif /* _DRV_RC_INPUT_H */
+	} else {
+		status.onboard_control_sensors_enabled &= ~(uint32_t)subsystem_type;
+	}
+
+	if (ok) {
+		status.onboard_control_sensors_health |= (uint32_t)subsystem_type;
+
+	} else {
+		status.onboard_control_sensors_health &= ~(uint32_t)subsystem_type;
+	}
+}
+
+void set_health_flags_present_healthy(uint64_t subsystem_type, bool present, bool healthy, vehicle_status_s &status)
+{
+	set_health_flags(subsystem_type, present, status.onboard_control_sensors_enabled & (uint32_t)subsystem_type, healthy,
+			 status);
+}
+
+void set_health_flags_healthy(uint64_t subsystem_type, bool healthy, vehicle_status_s &status)
+{
+	set_health_flags(subsystem_type, status.onboard_control_sensors_present & (uint32_t)subsystem_type,
+			 status.onboard_control_sensors_enabled & (uint32_t)subsystem_type, healthy, status);
+}

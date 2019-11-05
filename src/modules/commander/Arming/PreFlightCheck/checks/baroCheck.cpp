@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,19 +31,45 @@
  *
  ****************************************************************************/
 
-/**
- * @file rc_check.h
- *
- * RC calibration check
- */
-#include <uORB/uORB.h>
+#include "../PreFlightCheck.hpp"
 
-#pragma once
+#include <drivers/drv_hrt.h>
+#include <HealthFlags.h>
+#include <px4_defines.h>
+#include <systemlib/mavlink_log.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/sensor_baro.h>
+#include <uORB/topics/subsystem_info.h>
 
-/**
- * Check the RC calibration
- *
- * @return			0 / OK if RC calibration is ok, index + 1 of the first
- *				channel that failed else (so 1 == first channel failed)
- */
-int	rc_calibration_check(orb_advert_t *mavlink_log_pub, bool report_fail, bool isVTOL);
+using namespace time_literals;
+
+bool PreFlightCheck::baroCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
+			       const bool optional, int32_t &device_id, const bool report_fail)
+{
+	const bool exists = (orb_exists(ORB_ID(sensor_baro), instance) == PX4_OK);
+	bool baro_valid = false;
+
+	if (exists) {
+		uORB::SubscriptionData<sensor_baro_s> baro{ORB_ID(sensor_baro), instance};
+
+		baro_valid = (hrt_elapsed_time(&baro.get().timestamp) < 1_s);
+
+		if (!baro_valid) {
+			if (report_fail) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: no valid data from Baro #%u", instance);
+			}
+		}
+
+
+	} else {
+		if (!optional && report_fail) {
+			mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Baro Sensor #%u missing", instance);
+		}
+	}
+
+	if (instance == 0) {
+		set_health_flags(subsystem_info_s::SUBSYSTEM_TYPE_ABSPRESSURE, exists, !optional, baro_valid, status);
+	}
+
+	return baro_valid;
+}

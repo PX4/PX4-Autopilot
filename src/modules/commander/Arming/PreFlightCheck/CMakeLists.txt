@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -31,37 +31,20 @@
 #
 ############################################################################
 
-add_subdirectory(failure_detector)
-add_subdirectory(Arming)
-
-px4_add_module(
-	MODULE modules__commander
-	MAIN commander
-	COMPILE_FLAGS
-	SRCS
-		accelerometer_calibration.cpp
-		airspeed_calibration.cpp
-		baro_calibration.cpp
-		calibration_routines.cpp
-		Commander.cpp
-		commander_helper.cpp
-		esc_calibration.cpp
-		gyro_calibration.cpp
-		mag_calibration.cpp
-		rc_calibration.cpp
-		state_machine_helper.cpp
-	DEPENDS
-		circuit_breaker
-		df_driver_framework
-		failure_detector
-		git_ecl
-		ecl_geo
-		hysteresis
-		PreFlightCheck
-		ArmAuthorization
-		HealthFlags
-	)
-
-if(PX4_TESTING)
-	add_subdirectory(commander_tests)
-endif()
+px4_add_library(PreFlightCheck
+	PreFlightCheck.cpp
+	checks/preArmCheck.cpp
+	checks/magnetometerCheck.cpp
+	checks/magConsistencyCheck.cpp
+	checks/accelerometerCheck.cpp
+	checks/gyroCheck.cpp
+	checks/baroCheck.cpp
+	checks/imuConsistencyCheck.cpp
+	checks/airspeedCheck.cpp
+	checks/rcCalibrationCheck.cpp
+	checks/powerCheck.cpp
+	checks/ekf2Check.cpp
+	checks/failureDetectorCheck.cpp
+)
+target_include_directories(PreFlightCheck PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(PreFlightCheck PUBLIC ArmAuthorization HealthFlags)

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2013 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,19 +31,56 @@
  *
  ****************************************************************************/
 
-/**
- * @file health_flag_helper.h
- *
- * Contains helper functions to efficiently set the system health flags from commander and preflight check.
- *
- * @author Philipp Oettershagen (philipp.oettershagen@mavt.ethz.ch)
- */
+#include "../PreFlightCheck.hpp"
 
-#pragma once
+#include <drivers/drv_hrt.h>
+#include <systemlib/mavlink_log.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/topics/system_power.h>
 
-#include <px4_platform_common/log.h>
-#include <uORB/topics/vehicle_status.h>
+using namespace time_literals;
 
-void set_health_flags(uint64_t subsystem_type, bool present, bool enabled, bool ok, vehicle_status_s &status);
-void set_health_flags_present_healthy(uint64_t subsystem_type, bool present, bool healthy, vehicle_status_s &status);
-void set_health_flags_healthy(uint64_t subsystem_type, bool healthy, vehicle_status_s &status);
+bool PreFlightCheck::powerCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status, const bool report_fail,
+				const bool prearm)
+{
+	bool success = true;
+
+	if (!prearm) {
+		// Ignore power check after arming.
+		return true;
+
+	} else {
+		uORB::SubscriptionData<system_power_s> system_power_sub{ORB_ID(system_power)};
+		system_power_sub.update();
+		const system_power_s &system_power = system_power_sub.get();
+
+		if (hrt_elapsed_time(&system_power.timestamp) < 200_ms) {
+
+			/* copy avionics voltage */
+			float avionics_power_rail_voltage = system_power.voltage5v_v;
+
+			// avionics rail
+			// Check avionics rail voltages
+			if (avionics_power_rail_voltage < 4.5f) {
+				success = false;
+
+				if (report_fail) {
+					mavlink_log_critical(mavlink_log_pub, "Preflight Fail: Avionics Power low: %6.2f Volt",
+							     (double)avionics_power_rail_voltage);
+				}
+
+			} else if (avionics_power_rail_voltage < 4.9f) {
+				if (report_fail) {
+					mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics Power low: %6.2f Volt", (double)avionics_power_rail_voltage);
+				}
+
+			} else if (avionics_power_rail_voltage > 5.4f) {
+				if (report_fail) {
+					mavlink_log_critical(mavlink_log_pub, "CAUTION: Avionics Power high: %6.2f Volt", (double)avionics_power_rail_voltage);
+				}
+			}
+		}
+	}
+
+	return success;
+}
