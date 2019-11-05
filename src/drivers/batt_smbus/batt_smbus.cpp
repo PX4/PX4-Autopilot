@@ -117,10 +117,10 @@ int BATT_SMBUS::task_spawn(int argc, char *argv[])
 
 	for (unsigned i = 0; i < NUM_BUS_OPTIONS; i++) {
 
-		if (!is_running() && (busid == BATT_SMBUS_BUS_ALL || bus_options[i].busid == busid)) {
+		if (!is_running() && (busid == BATT_SMBUS_BUS_ALL || smbus_bus_options[i].busid == busid)) {
 
-			SMBus *interface = new SMBus(bus_options[i].busnum, BATT_SMBUS_ADDR);
-			BATT_SMBUS *dev = new BATT_SMBUS(interface, bus_options[i].devpath);
+			SMBus *interface = new SMBus(smbus_bus_options[i].busnum, BATT_SMBUS_ADDR);
+			BATT_SMBUS *dev = new BATT_SMBUS(interface, smbus_bus_options[i].devpath);
 
 			// Successful read of device type, we've found our battery
 			_object.store(dev);
