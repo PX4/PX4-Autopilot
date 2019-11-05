@@ -122,15 +122,16 @@ int BATT_SMBUS::task_spawn(int argc, char *argv[])
 			SMBus *interface = new SMBus(smbus_bus_options[i].busnum, BATT_SMBUS_ADDR);
 			BATT_SMBUS *dev = new BATT_SMBUS(interface, smbus_bus_options[i].devpath);
 
-			// Successful read of device type, we've found our battery
-			_object.store(dev);
-			_task_id = task_id_is_work_queue;
-
 			int result = dev->get_startup_info();
 
 			if (result != PX4_OK) {
-				return PX4_ERROR;
+				delete dev;
+				continue;
 			}
+
+			// Successful read of device type, we've found our battery
+			_object.store(dev);
+			_task_id = task_id_is_work_queue;
 
 			dev->ScheduleOnInterval(BATT_SMBUS_MEASUREMENT_INTERVAL_US);
 
