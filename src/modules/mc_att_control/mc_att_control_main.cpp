@@ -575,6 +575,9 @@ MulticopterAttitudeControl::Run()
 		}
 
 		parameter_update_poll();
+
+	} else {
+		printf("angular velocity update failed\n");
 	}
 
 	perf_end(_loop_perf);

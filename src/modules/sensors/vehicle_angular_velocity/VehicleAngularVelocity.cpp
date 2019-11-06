@@ -103,6 +103,7 @@ VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 			if (_selected_sensor_device_id != sensor_selection.gyro_device_id) {
 				_selected_sensor_device_id = sensor_selection.gyro_device_id;
 				force = true;
+				printf("SensorCorrectionsUpdate initialized\n");
 			}
 		}
 	}
@@ -134,6 +135,8 @@ VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 		// update the latest sensor selection
 		if ((_selected_sensor != corrections.selected_gyro_instance) || force) {
 			if (corrections.selected_gyro_instance < MAX_SENSOR_COUNT) {
+				printf("clear all registered callbacks\n");
+
 				// clear all registered callbacks
 				for (auto &sub : _sensor_control_sub) {
 					sub.unregisterCallback();
@@ -153,7 +156,7 @@ VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 
 					if ((report.device_id != 0) && (report.device_id == _selected_sensor_device_id)) {
 						if (_sensor_control_sub[i].registerCallback()) {
-							PX4_DEBUG("selected sensor (control) changed %d -> %d", _selected_sensor, i);
+							PX4_INFO("selected sensor (control) changed %d -> %d", _selected_sensor, i);
 							_selected_sensor_control = i;
 
 							_sensor_control_available = true;
@@ -170,7 +173,7 @@ VehicleAngularVelocity::SensorCorrectionsUpdate(bool force)
 				_sensor_control_available = false;
 
 				if (_sensor_sub[sensor_new].registerCallback()) {
-					PX4_DEBUG("selected sensor changed %d -> %d", _selected_sensor, sensor_new);
+					PX4_INFO("selected sensor changed %d -> %d", _selected_sensor, sensor_new);
 					_selected_sensor = sensor_new;
 
 					return true;
@@ -213,10 +216,12 @@ VehicleAngularVelocity::Run()
 	SensorCorrectionsUpdate();
 
 	if (_sensor_control_available) {
+		printf("available: %lu\n", hrt_absolute_time());
 		//  using sensor_gyro_control is preferred, but currently not all drivers (eg df_*) provide sensor_gyro_control
 		sensor_gyro_control_s sensor_data;
 
 		if (_sensor_control_sub[_selected_sensor].update(&sensor_data)) {
+			printf("update ok: %lu for timestamp: %lu\n", hrt_absolute_time(), sensor_data.timestamp);
 			ParametersUpdate();
 			SensorBiasUpdate();
 
@@ -235,9 +240,13 @@ VehicleAngularVelocity::Run()
 			angular_velocity.timestamp = hrt_absolute_time();
 
 			_vehicle_angular_velocity_pub.publish(angular_velocity);
+
+		} else {
+			printf("update not ok: %lu\n", hrt_absolute_time());
 		}
 
 	} else {
+		printf("not available\n");
 		// otherwise fallback to using sensor_gyro (legacy that will be removed)
 		sensor_gyro_s sensor_data;
 
@@ -263,6 +272,7 @@ VehicleAngularVelocity::Run()
 			angular_velocity.timestamp = hrt_absolute_time();
 
 			_vehicle_angular_velocity_pub.publish(angular_velocity);
+			printf("published fallback at %lu\n", hrt_absolute_time());
 		}
 	}
 }
