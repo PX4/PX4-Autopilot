@@ -95,7 +95,7 @@ then
 	if ver hwcmp PX4FMU_V4 PX4FMU_V4PRO MINDPX_V2
 	then
 		# This is TELEM4 on Pixhawk 3 Pro
-		frsky_telemetry start -d /dev/ttyS6 -t 15
+		mavlink start -m normal -w -b 57600 -d /dev/ttyS0
 	fi
 fi
 
@@ -164,7 +164,6 @@ then
 	if param compare SYS_COMPANION 357600
 	then
 		mavlink start -d ${MAVLINK_COMPANION_DEVICE} -b 57600 -r 1000 -x -f
-		# Serial mavlink
 		mavlink start -m custom -w -b 57600 -d /dev/ttyS6
 	fi
 	if param compare SYS_COMPANION 557600
