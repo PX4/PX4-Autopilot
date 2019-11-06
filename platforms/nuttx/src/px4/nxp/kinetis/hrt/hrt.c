@@ -67,7 +67,7 @@
 
 
 #include "kinetis.h"
-#include "chip/kinetis_sim.h"
+#include "hardware/kinetis_sim.h"
 #include "kinetis_tpm.h"
 
 #undef PPM_DEBUG
