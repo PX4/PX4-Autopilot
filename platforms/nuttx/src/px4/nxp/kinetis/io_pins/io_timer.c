@@ -59,8 +59,8 @@
 #include <px4_arch/io_timer.h>
 
 #include <kinetis.h>
-#include "chip/kinetis_sim.h"
-#include "chip/kinetis_ftm.h"
+#include "hardware/kinetis_sim.h"
+#include "hardware/kinetis_ftm.h"
 
 /* The FTM pre-scalers are limited to Divide by 2^n where n={1-7}
  * Therefore we use Y1 at 16 Mhz to drive FTM_CLKIN0 (PCT12)
