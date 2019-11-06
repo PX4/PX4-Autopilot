@@ -210,13 +210,14 @@ void
 VehicleAngularVelocity::Run()
 {
 	// update corrections first to set _selected_sensor
-	SensorCorrectionsUpdate();
+	bool sensor_select_update = SensorCorrectionsUpdate();
 
 	if (_sensor_control_available) {
 		//  using sensor_gyro_control is preferred, but currently not all drivers (eg df_*) provide sensor_gyro_control
-		sensor_gyro_control_s sensor_data;
+		if (_sensor_control_sub[_selected_sensor].updated() || sensor_select_update) {
+			sensor_gyro_control_s sensor_data;
+			_sensor_control_sub[_selected_sensor].copy(&sensor_data);
 
-		if (_sensor_control_sub[_selected_sensor].update(&sensor_data)) {
 			ParametersUpdate();
 			SensorBiasUpdate();
 
@@ -239,9 +240,10 @@ VehicleAngularVelocity::Run()
 
 	} else {
 		// otherwise fallback to using sensor_gyro (legacy that will be removed)
-		sensor_gyro_s sensor_data;
+		if (_sensor_sub[_selected_sensor].updated() || sensor_select_update) {
+			sensor_gyro_s sensor_data;
+			_sensor_sub[_selected_sensor].copy(&sensor_data);
 
-		if (_sensor_sub[_selected_sensor].update(&sensor_data)) {
 			ParametersUpdate();
 			SensorBiasUpdate();
 
