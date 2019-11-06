@@ -44,7 +44,6 @@
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/time.h>
 #include <stdint.h>
-#include <signal.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <queue.h>
@@ -78,26 +77,6 @@ px4_sem_t _hrt_work_lock;
  * Private Functions
  ****************************************************************************/
 static void hrt_work_process(void);
-
-static void _sighandler(int sig_num);
-
-/****************************************************************************
- * Name: _sighandler
- *
- * Description:
- *   This is the handler for the signal to wake the queue processing thread
- *
- * Input parameters:
- *   sig_num - the received signal
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-static void _sighandler(int sig_num)
-{
-	PX4_DEBUG("RECEIVED SIGNAL %d", sig_num);
-}
 
 /****************************************************************************
  * Name: work_process
@@ -212,12 +191,11 @@ static void hrt_work_process()
 		}
 	}
 
-	/* Wait awhile to check the work list.  We will wait here until either
-	 * the time elapses or until we are awakened by a signal.
+	/* Wait awhile to check the work list.  We will wait here until
+	 * the time elapses.
 	 */
 	hrt_work_unlock();
 
-	/* might sleep less if a signal received and new item was queued */
 	//PX4_INFO("Sleeping for %u usec", next);
 	px4_usleep(next);
 }
@@ -285,12 +263,5 @@ void hrt_work_queue_init(void)
 					    2000,
 					    work_hrtthread,
 					    (char *const *)NULL);
-
-
-#ifdef __PX4_QURT
-	signal(SIGALRM, _sighandler);
-#else
-	signal(SIGCONT, _sighandler);
-#endif
 }
 
