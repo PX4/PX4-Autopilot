@@ -171,11 +171,12 @@ void
 VehicleAcceleration::Run()
 {
 	// update corrections first to set _selected_sensor
-	SensorCorrectionsUpdate();
+	bool sensor_select_update = SensorCorrectionsUpdate();
 
-	sensor_accel_s sensor_data;
+	if (_sensor_sub[_selected_sensor].updated() || sensor_select_update) {
+		sensor_accel_s sensor_data;
+		_sensor_sub[_selected_sensor].copy(&sensor_data);
 
-	if (_sensor_sub[_selected_sensor].update(&sensor_data)) {
 		ParametersUpdate();
 		SensorBiasUpdate();
 
