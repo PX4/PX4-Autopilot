@@ -67,7 +67,7 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
-		events
+		#events
 		fw_att_control
 		fw_pos_control_l1
 		#rover_pos_control
@@ -110,7 +110,7 @@ px4_add_board(
 		tune_control
 		#usb_connected
 		ver
-		work_queue
+		#work_queue
 
 	EXAMPLES
 		#bottle_drop # OBC challenge
