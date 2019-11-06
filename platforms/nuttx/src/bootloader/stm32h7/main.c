@@ -87,7 +87,7 @@ struct boardinfo board_info = {
 	.board_type	= BOARD_TYPE,
 	.board_rev	= 0,
 	.fw_size	= 0,
-	.systick_mhz	= 416,
+	.systick_mhz	= 480,
 };
 
 static void board_init(void);
