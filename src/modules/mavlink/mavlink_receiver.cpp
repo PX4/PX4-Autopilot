@@ -1102,6 +1102,12 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 	     set_actuator_control_target.target_component == 0) &&
 	    values_finite) {
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		PX4_ERR("SET_ACTUATOR_CONTROL_TARGET not supported with lockstep enabled");
+		PX4_ERR("Please disable lockstep for actuator offboard control:");
+		PX4_ERR("https://dev.px4.io/master/en/simulation/#disable-lockstep-simulation");
+		return;
+#endif
 		/* Ignore all setpoints except when controlling the gimbal(group_mlx==2) as we are setting raw actuators here */
 		bool ignore_setpoints = bool(set_actuator_control_target.group_mlx != 2);
 
