@@ -192,20 +192,25 @@ float FlightTaskAutoLineSmoothVel::_getMaxXYSpeed() const
 	config.max_jerk = _trajectory[0].getMaxJerk();
 	config.max_speed_xy = _trajectory[0].getMaxVel();
 	config.max_acc_xy_radius_scale = _param_mpc_xy_traj_p.get();
-	const float next_target_speed = 0.f;
 
-	return computeStartXYSpeedFromWaypoints(pos_traj, _target, _next_wp, next_target_speed, config);
+	Vector3f waypoints[3] = {pos_traj, _target, _next_wp};
+	float max_speed = math::trajectory::computeXYSpeedFromWaypoints<3>(waypoints, config);
+
+	return max_speed;
 }
 
 float FlightTaskAutoLineSmoothVel::_getMaxZSpeed() const
 {
 	const float distance_start_target = fabs(_target(2) - _trajectory[2].getCurrentPosition());
+	const float arrival_z_speed = 0.f;
 
-	return math::min(_trajectory[2].getMaxVel(),
-			 math::trajectory::computeMaxSpeedFromDistance(_trajectory[2].getMaxJerk(),
-					 _trajectory[2].getMaxAccel(),
-					 distance_start_target,
-					 0));
+	float max_speed =  math::min(_trajectory[2].getMaxVel(),
+				     math::trajectory::computeMaxSpeedFromDistance(_trajectory[2].getMaxJerk(),
+						     _trajectory[2].getMaxAccel(),
+						     distance_start_target,
+						     arrival_z_speed));
+
+	return max_speed;
 }
 
 void FlightTaskAutoLineSmoothVel::_prepareSetpoints()
