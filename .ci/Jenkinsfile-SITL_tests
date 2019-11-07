@@ -149,6 +149,9 @@ def createTestNode(Map test_def) {
             test_ok = false
           }
 
+          // upload log to flight review (https://logs.px4.io/)
+          sh('px4-px4_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
+
           // log analysis
           // process ekf log data
           try {
@@ -159,9 +162,6 @@ def createTestNode(Map test_def) {
             // FIXME: don't let the script to fail the build
             // test_ok = false
           }
-
-          // upload log to flight review (https://logs.px4.io/)
-          sh('px4-px4_sitl_default*/px4/Tools/upload_log.py -q --description "${JOB_NAME}: ${STAGE_NAME}" --feedback "${JOB_NAME} ${CHANGE_TITLE} ${CHANGE_URL}" --source CI .ros/log/*/*.ulg')
 
           if (!test_ok) {
             error('ROS Test failed')
