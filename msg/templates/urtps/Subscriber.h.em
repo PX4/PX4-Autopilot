@@ -76,6 +76,7 @@ except AttributeError:
 
 #include <atomic>
 #include <condition_variable>
+#include <queue>
 
 using namespace eprosima::fastrtps;
 using namespace eprosima::fastrtps::rtps;
@@ -85,7 +86,7 @@ class @(topic)_Subscriber
 public:
     @(topic)_Subscriber();
     virtual ~@(topic)_Subscriber();
-    bool init(std::condition_variable* cv);
+    bool init(uint8_t topic_ID, std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue);
     void run();
     bool hasMsg();
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
@@ -101,6 +102,8 @@ public:
     @(topic) getMsg();
 @[    end if]@
 @[end if]@
+    void unlockMsg();
+
 private:
     Participant *mp_participant;
     Subscriber *mp_subscriber;
@@ -129,7 +132,12 @@ private:
 @[    end if]@
 @[end if]@
         std::atomic_bool has_msg;
-        std::condition_variable* cv_msg;
+        uint8_t topic_ID;
+        std::condition_variable* t_send_queue_cv;
+        std::mutex* t_send_queue_mutex; 
+        std::queue<uint8_t>* t_send_queue;
+        std::condition_variable has_msg_cv;
+        std::mutex has_msg_mutex; 
 
     } m_listener;
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
