@@ -558,7 +558,6 @@ Commander::Commander() :
 	_failure_detector(this)
 {
 	_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_preflight.get() * 1_s);
-	_auto_disarm_killed.set_hysteresis_time_from(false, 5_s);
 
 	// We want to accept RC inputs as default
 	status.rc_input_mode = vehicle_status_s::RC_IN_MODE_DEFAULT;
@@ -1548,6 +1547,8 @@ Commander::run()
 			param_get(_param_fmode_6, &_flight_mode_slots[5]);
 
 			param_get(_param_takeoff_finished_action, &takeoff_complete_act);
+
+			_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
 
 			/* check for unsafe Airmode settings: yaw airmode requires the use of an arming switch */
 			if (_param_airmode != PARAM_INVALID && _param_rc_map_arm_switch != PARAM_INVALID) {

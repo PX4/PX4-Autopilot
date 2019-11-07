@@ -977,3 +977,14 @@ PARAM_DEFINE_INT32(COM_PREARM_MODE, 1);
  * @group Commander
  */
 PARAM_DEFINE_INT32(COM_MOT_TEST_EN, 1);
+
+/**
+ * Timeout value for disarming when kill switch is engaged
+ *
+ * @group Commander
+ * @unit s
+ * @min 0.0
+ * @max 30.0
+ * @increment 0.1
+ */
+PARAM_DEFINE_FLOAT(COM_KILL_DISARM, 5.0f);
