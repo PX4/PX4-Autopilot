@@ -55,6 +55,7 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 
 #include <fastcdr/Cdr.h>
 #include <condition_variable>
+#include <queue>
 
 @[for topic in send_topics]@
 #include "@(topic)_Publisher.h"
@@ -65,12 +66,11 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 
 class RtpsTopics {
 public:
-    bool init(std::condition_variable* cv);
+    bool init(std::condition_variable* t_send_queue_cv, std::mutex* t_send_queue_mutex, std::queue<uint8_t>* t_send_queue);
 @[if send_topics]@
     void publish(uint8_t topic_ID, char data_buffer[], size_t len);
 @[end if]@
 @[if recv_topics]@
-    bool hasMsg(uint8_t *topic_ID);
     bool getMsg(const uint8_t topic_ID, eprosima::fastcdr::Cdr &scdr);
 @[end if]@
 
@@ -88,11 +88,5 @@ private:
     @(topic)_Subscriber _@(topic)_sub;
 @[end for]@
 
-    unsigned _next_sub_idx = 0;
-    unsigned char _sub_topics[@(len(recv_topics))] = {
-@[for topic in recv_topics]@
-        @(rtps_message_id(ids, topic)), // @(topic)
-@[end for]@
-    };
 @[end if]@
 };
