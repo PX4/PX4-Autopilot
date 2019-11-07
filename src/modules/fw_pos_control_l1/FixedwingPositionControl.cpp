@@ -679,7 +679,8 @@ FixedwingPositionControl::update_desired_altitude(float dt)
 		float pitch = -(_manual.x + deadBand) / factor;
 		_hold_alt += (_parameters.max_climb_rate * dt) * pitch;
 		_was_in_deadband = false;
-		climbout_mode = (pitch > MANUAL_THROTTLE_CLIMBOUT_THRESH);
+		// climbout_mode = (pitch > MANUAL_THROTTLE_CLIMBOUT_THRESH);
+		climbout_mode = false;
 
 	} else if (!_was_in_deadband) {
 		/* store altitude at which manual.x was inside deadBand
