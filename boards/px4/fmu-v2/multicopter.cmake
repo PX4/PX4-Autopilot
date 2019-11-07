@@ -59,7 +59,7 @@ px4_add_board(
 		vmount
 
 	SYSTEMCMDS
-		bl_update
+		#bl_update
 		#config
 		#dumpfile
 		#esc_calib
