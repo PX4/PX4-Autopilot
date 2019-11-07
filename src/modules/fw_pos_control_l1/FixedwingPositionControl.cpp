@@ -1933,6 +1933,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 		}
 	}
 
+	climbout_mode = false;
 	_tecs.update_pitch_throttle(_R_nb, pitch_for_tecs,
 				    _global_pos.alt, alt_sp,
 				    airspeed_sp, _airspeed, _eas2tas,
