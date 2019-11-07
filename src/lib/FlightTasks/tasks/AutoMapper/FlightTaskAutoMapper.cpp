@@ -70,6 +70,12 @@ bool FlightTaskAutoMapper::update()
 		_thrust_setpoint = Vector3f(NAN, NAN, NAN);
 	}
 
+	// during mission and reposition, raise the landing gears but only
+	// if altitude is high enough
+	if (_highEnoughForLandingGear()) {
+		_gear.landing_gear = _mission_gear;
+	}
+
 	if (_type == WaypointType::idle) {
 		_generateIdleSetpoints();
 
@@ -90,12 +96,6 @@ bool FlightTaskAutoMapper::update()
 		_obstacle_avoidance.updateAvoidanceDesiredSetpoints(_position_setpoint, _velocity_setpoint, (int)_type);
 		_obstacle_avoidance.injectAvoidanceSetpoints(_position_setpoint, _velocity_setpoint, _yaw_setpoint,
 				_yawspeed_setpoint);
-	}
-
-	// during mission and reposition, raise the landing gears but only
-	// if altitude is high enough
-	if (_highEnoughForLandingGear()) {
-		_gear.landing_gear = _mission_gear;
 	}
 
 	// update previous type
