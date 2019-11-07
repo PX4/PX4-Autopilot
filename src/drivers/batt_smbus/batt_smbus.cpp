@@ -687,6 +687,7 @@ $ batt_smbus -X write_flash 19069 2 27 0
 	PRINT_MODULE_USAGE_ARG("address", "The address to start writing.", true);
 	PRINT_MODULE_USAGE_ARG("number of bytes", "Number of bytes to send.", true);
 	PRINT_MODULE_USAGE_ARG("data[0]...data[n]", "One byte of data at a time separated by spaces.", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return PX4_OK;
 }
