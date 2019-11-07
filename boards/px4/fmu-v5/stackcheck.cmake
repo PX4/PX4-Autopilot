@@ -84,7 +84,7 @@ px4_add_board(
 		airspeed_selector
 
 	SYSTEMCMDS
-		bl_update
+		#bl_update
 		config
 		dmesg
 		dumpfile
