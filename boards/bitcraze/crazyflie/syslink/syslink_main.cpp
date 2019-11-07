@@ -420,7 +420,7 @@ Syslink::handle_message(syslink_message_t *msg)
 		}
 
 		/* With the usb plugged in and battery disconnected, it appears to be charged. The voltage check ensures that a battery is connected  */
-		else if (powered && !charging && _battery_status.voltage_filtered_v > 3.7f) {
+		else if (powered && !charging && vbat > 3.7f) {
 			_bstate = BAT_CHARGED;
 
 		} else {

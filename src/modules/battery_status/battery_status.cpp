@@ -66,10 +66,9 @@
 
 #include <DevMgr.hpp>
 
-#include "parameters.h"
+#include "analog_battery.h"
 
 using namespace DriverFramework;
-using namespace battery_status;
 using namespace time_literals;
 
 /**
@@ -137,24 +136,24 @@ private:
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};				/**< notification of parameter updates */
 	uORB::Subscription	_vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
 
-	orb_advert_t	_battery_pub[BOARD_NUMBER_BRICKS] {};			/**< battery status */
-	Battery		_battery[BOARD_NUMBER_BRICKS];			/**< Helper lib to publish battery_status topic. */
+	AnalogBattery _battery1;
+
+#if BOARD_NUMBER_BRICKS > 1
+	AnalogBattery _battery2;
+#endif
+
+	AnalogBattery *_analogBatteries[BOARD_NUMBER_BRICKS] {
+		&_battery1,
+#if BOARD_NUMBER_BRICKS > 1
+		&_battery2,
+#endif
+	}; // End _analogBatteries
 
 #if BOARD_NUMBER_BRICKS > 1
 	int 			_battery_pub_intance0ndx {0}; /**< track the index of instance 0 */
 #endif /* BOARD_NUMBER_BRICKS > 1 */
 
 	perf_counter_t	_loop_perf;			/**< loop performance counter */
-
-	hrt_abstime	_last_config_update{0};
-
-	Parameters		_parameters{};			/**< local copies of interesting parameters */
-	ParameterHandles	_parameter_handles{};		/**< handles for interesting parameters */
-
-	/**
-	 * Update our local parameter cache.
-	 */
-	int		parameters_update();
 
 	/**
 	 * Do adc-related initialisation.
@@ -178,31 +177,18 @@ private:
 BatteryStatus::BatteryStatus() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	_battery1(1, this),
+#if BOARD_NUMBER_BRICKS > 1
+	_battery2(2, this),
+#endif
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME))
 {
-	initialize_parameter_handles(_parameter_handles);
-
-	for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
-		_battery[b].setParent(this);
-	}
+	updateParams();
 }
 
 BatteryStatus::~BatteryStatus()
 {
 	ScheduleClear();
-}
-
-int
-BatteryStatus::parameters_update()
-{
-	/* read the parameter values into _parameters */
-	int ret = update_parameters(_parameter_handles, _parameters);
-
-	if (ret) {
-		return ret;
-	}
-
-	return ret;
 }
 
 int
@@ -228,7 +214,6 @@ BatteryStatus::parameter_update_poll(bool forced)
 		_parameter_update_sub.copy(&pupdate);
 
 		// update parameters from storage
-		parameters_update();
 		updateParams();
 	}
 }
@@ -242,30 +227,15 @@ BatteryStatus::adc_poll()
 	/* read all channels available */
 	int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
 
-	//todo:abosorb into new class Power
-
 	/* For legacy support we publish the battery_status for the Battery that is
 	 * associated with the Brick that is the selected source for VDD_5V_IN
 	 * Selection is done in HW ala a LTC4417 or similar, or may be hard coded
 	 * Like in the FMUv4
 	 */
 
-	/* The ADC channels that  are associated with each brick, in power controller
-	 * priority order highest to lowest, as defined by the board config.
-	 */
-	int bat_voltage_v_chan[BOARD_NUMBER_BRICKS] = BOARD_BATT_V_LIST;
-	int bat_voltage_i_chan[BOARD_NUMBER_BRICKS] = BOARD_BATT_I_LIST;
-
-	if (_parameters.battery_adc_channel >= 0) {  // overwrite default
-		bat_voltage_v_chan[0] = _parameters.battery_adc_channel;
-	}
-
-	/* The valid signals (HW dependent) are associated with each brick */
-	bool  valid_chan[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
-
 	/* Per Brick readings with default unread channels at 0 */
-	float bat_current_a[BOARD_NUMBER_BRICKS] = {0.0f};
-	float bat_voltage_v[BOARD_NUMBER_BRICKS] = {0.0f};
+	int32_t bat_current_adc_readings[BOARD_NUMBER_BRICKS] {};
+	int32_t bat_voltage_adc_readings[BOARD_NUMBER_BRICKS] {};
 
 	/* Based on the valid_chan, used to indicate the selected the lowest index
 	 * (highest priority) supply that is the source for the VDD_5V_IN
@@ -284,7 +254,7 @@ BatteryStatus::adc_poll()
 					/* Once we have subscriptions, Do this once for the lowest (highest priority
 					 * supply on power controller) that is valid.
 					 */
-					if (_battery_pub[b] != nullptr && selected_source < 0 && valid_chan[b]) {
+					if (selected_source < 0 && _analogBatteries[b]->is_valid()) {
 						/* Indicate the lowest brick (highest priority supply on power controller)
 						 * that is valid as the one that is the selected source for the
 						 * VDD_5V_IN
@@ -294,54 +264,41 @@ BatteryStatus::adc_poll()
 
 						/* Move the selected_source to instance 0 */
 						if (_battery_pub_intance0ndx != selected_source) {
-
-							orb_advert_t tmp_h = _battery_pub[_battery_pub_intance0ndx];
-							_battery_pub[_battery_pub_intance0ndx] = _battery_pub[selected_source];
-							_battery_pub[selected_source] = tmp_h;
+							_analogBatteries[_battery_pub_intance0ndx]->swapUorbAdvert(
+								*_analogBatteries[selected_source]
+							);
 							_battery_pub_intance0ndx = selected_source;
 						}
 
 #  endif /* BOARD_NUMBER_BRICKS > 1 */
 					}
 
-					// todo:per brick scaling
 					/* look for specific channels and process the raw voltage to measurement data */
-					if (bat_voltage_v_chan[b] == buf_adc[i].am_channel) {
+					if (_analogBatteries[b]->get_voltage_channel() == buf_adc[i].am_channel) {
 						/* Voltage in volts */
-						bat_voltage_v[b] = (buf_adc[i].am_data * _parameters.battery_voltage_scaling) * _parameters.battery_v_div;
+						bat_voltage_adc_readings[b] = buf_adc[i].am_data;
 
-					} else if (bat_voltage_i_chan[b] == buf_adc[i].am_channel) {
-						bat_current_a[b] = ((buf_adc[i].am_data * _parameters.battery_current_scaling)
-								    - _parameters.battery_current_offset) * _parameters.battery_a_per_v;
+					} else if (_analogBatteries[b]->get_current_channel() == buf_adc[i].am_channel) {
+						bat_current_adc_readings[b] = buf_adc[i].am_data;
 					}
 				}
 			}
 		}
 
-		if (_parameters.battery_source == 0) {
-			for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
-
-				/* Consider the brick connected if there is a voltage */
-				bool connected = bat_voltage_v[b] > BOARD_ADC_OPEN_CIRCUIT_V;
-
-				/* In the case where the BOARD_ADC_OPEN_CIRCUIT_V is
-				 * greater than the BOARD_VALID_UV let the HW qualify that it
-				 * is connected.
-				 */
-				if (BOARD_ADC_OPEN_CIRCUIT_V > BOARD_VALID_UV) {
-					connected &= valid_chan[b];
-				}
-
+		for (int b = 0; b < BOARD_NUMBER_BRICKS; b++) {
+			if (_analogBatteries[b]->source() == 0) {
 				actuator_controls_s ctrl{};
 				_actuator_ctrl_0_sub.copy(&ctrl);
 
-				battery_status_s battery_status{};
-				_battery[b].updateBatteryStatus(hrt_absolute_time(), bat_voltage_v[b], bat_current_a[b],
-								connected, selected_source == b, b,
-								ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-								_armed, &battery_status);
-				int instance;
-				orb_publish_auto(ORB_ID(battery_status), &_battery_pub[b], &battery_status, &instance, ORB_PRIO_DEFAULT);
+				_analogBatteries[b]->updateBatteryStatusRawADC(
+					hrt_absolute_time(),
+					bat_voltage_adc_readings[b],
+					bat_current_adc_readings[b],
+					selected_source == b,
+					b,
+					ctrl.control[actuator_controls_s::INDEX_THROTTLE],
+					_armed
+				);
 			}
 		}
 	}

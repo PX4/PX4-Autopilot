@@ -17,6 +17,7 @@ uint16 cycle_count         # number of discharge cycles the battery has experien
 uint16 run_time_to_empty   # predicted remaining battery capacity based on the present rate of discharge in min
 uint16 average_time_to_empty   # predicted remaining battery capacity based on the average rate of discharge in min
 uint16 serial_number       # serial number of the battery pack
+uint8 id                # ID number of a battery. Should be unique and consistent for the lifetime of a vehicle. 1-indexed.
 
 float32[4] voltage_cell_v   # Battery individual cell voltages
 float32 max_cell_voltage_delta   # Max difference between individual cell voltages
