@@ -249,8 +249,15 @@ AirspeedModule::init()
 	if (_param_airspeed_primary_index.get() > _number_of_airspeed_sensors) {
 		/* constrain the index to the number of sensors connected*/
 		_valid_airspeed_index = math::min(_param_airspeed_primary_index.get(), _number_of_airspeed_sensors);
-		mavlink_and_console_log_info(&_mavlink_log_pub,
-					     "Primary airspeed index bigger than number connected sensors. Take last sensor.");
+
+		if (_number_of_airspeed_sensors == 0) {
+			mavlink_and_console_log_info(&_mavlink_log_pub,
+						     "No airspeed sensor detected. Switch to non-airspeed mode.");
+
+		} else {
+			mavlink_and_console_log_info(&_mavlink_log_pub,
+						     "Primary airspeed index bigger than number connected sensors. Take last sensor.");
+		}
 
 	} else {
 		_valid_airspeed_index =

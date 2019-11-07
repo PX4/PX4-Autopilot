@@ -362,6 +362,7 @@ FixedwingPositionControl::airspeed_poll()
 	if (!_parameters.airspeed_disabled && _airspeed_validated_sub.update()) {
 
 		const airspeed_validated_s &airspeed_validated = _airspeed_validated_sub.get();
+		_eas2tas = 1.0f; //this is the default value, taken in case of invalid airspeed
 
 		if (PX4_ISFINITE(airspeed_validated.equivalent_airspeed_m_s)
 		    && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
