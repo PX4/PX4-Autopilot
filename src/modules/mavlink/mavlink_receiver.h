@@ -82,6 +82,7 @@
 #include <uORB/topics/vehicle_rates_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/dg_mission.h>
 
 #include "mavlink_ftp.h"
 #include "mavlink_log_handler.h"
@@ -214,6 +215,7 @@ private:
 	vehicle_local_position_s _hil_local_pos {};
 	vehicle_land_detected_s _hil_land_detector {};
 	vehicle_control_mode_s _control_mode {};
+    //dg_mission_s _dg_mission {};
 
 	orb_advert_t _accel_pub{nullptr};
 	orb_advert_t _actuator_controls_pubs[4] {nullptr, nullptr, nullptr, nullptr};
@@ -260,12 +262,15 @@ private:
 	int _actuator_armed_sub{orb_subscribe(ORB_ID(actuator_armed))};
 	int _control_mode_sub{orb_subscribe(ORB_ID(vehicle_control_mode))};
 	int _vehicle_attitude_sub{orb_subscribe(ORB_ID(vehicle_attitude))};
+    int _dg_mission_sub{orb_subscribe(ORB_ID(dg_mission))};
 
 	int _orb_class_instance{-1};
 
 	uint64_t _global_ref_timestamp{0};
 
 	bool _hil_local_proj_inited{false};
+
+    //bool _dg_mission_updated{false};
 
 	float _hil_local_alt0{0.0f};
 

@@ -1526,7 +1526,7 @@ Commander::run()
                 else
                     mode_chage_count = 0;
                 timestamp_pre = sp_man.timestamp;
-                //mavlink_log_critical(&mavlink_log_pub, "mode_chage_count = %d", mode_chage_count);
+                mavlink_log_critical(&mavlink_log_pub, "mode_chage_count = %d", mode_chage_count);
                 }
                 if (mode_chage_count >3)
                 {
@@ -1981,6 +1981,7 @@ Commander::run()
                 if (rc_override != 0 && (_battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL) &&
                     (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
                      internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
+                     internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL ||
                      internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER)) {
                         // transition to previous state if sticks are touched
 
@@ -2713,11 +2714,11 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
             }else if(status.nav_state==vehicle_status_s::vehicle_status_s::NAVIGATION_STATE_AUTO_RTL){
                 led_mode  = led_control_s::MODE_ON;
                 led_color = led_control_s::COLOR_RED;
-            }else if(status.data_link_lost){
+            /*}else if(status.data_link_lost){
                  led_mode = led_control_s::MODE_BLINK_FAST;
                  led_color = led_control_s::COLOR_RED;
                  led_color|= (led_control_s::COLOR_BLUE)<<4;
-                 led_color|= 1<<7;
+                 led_color|= 1<<7;*/
             }else{
                 led_mode  = led_control_s::MODE_BLINK_NORMAL;
                 led_color = led_control_s::COLOR_GREEN;
@@ -2938,13 +2939,13 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
                                     if (sp_man.mode_switch==manual_control_setpoint_s::SWITCH_POS_ON)
                                         new_mode=commander_state_s::MAIN_STATE_AUTO_RTL;
                                     else if (sp_man.mode_switch==manual_control_setpoint_s::SWITCH_POS_MIDDLE)
-                                         new_mode=commander_state_s::MAIN_STATE_AUTO_MISSION;
+                                         new_mode=commander_state_s::MAIN_STATE_AUTO_LOITER;
                                     else
                                           new_mode=commander_state_s::MAIN_STATE_POSCTL;
                                     break;
                                case 2:
                                case 3:
-                                     new_mode=commander_state_s::MAIN_STATE_ALTCTL;
+                                     new_mode=commander_state_s::MAIN_STATE_MANUAL;
                                      break;
                                case 5:
                                case 6:

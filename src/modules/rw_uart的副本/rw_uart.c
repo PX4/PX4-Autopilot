@@ -242,7 +242,7 @@ int rw_uart_main(int argc, char *argv[])
                 rw_thread_should_exit = false;//定义一个守护进程
                 rw_uart_task = px4_task_spawn_cmd("rw_uart",
                         SCHED_DEFAULT,
-                        SCHED_PRIORITY_DEFAULT,//调度优先级
+                        SCHED_PRIORITY_SLOW_DRIVER,//调度优先级
                         8000,//堆栈分配大小
                         rw_uart_thread_main,
                         (argv) ? (char *const *)&argv[2] : (char *const *)NULL);
@@ -305,11 +305,11 @@ int rw_uart_thread_main(int argc, char *argv[])
 
         //uint8_t data;
 
-//        px4_pollfd_struct_t fds[] = {
-//               { .fd = uart_read,   .events = POLLIN },
-//           };
+        px4_pollfd_struct_t fds[] = {
+               { .fd = uart_read,   .events = POLLIN },
+           };
 
-//        int error_counter = 0;
+        int error_counter = 0;
 
         memset(param_saved, 0, sizeof(param_saved));
         msg_param_saved_get(msg_hd);
@@ -326,7 +326,7 @@ int rw_uart_thread_main(int argc, char *argv[])
             //data = 0;
             memset(buffer, 0, sizeof(buffer));
 
-            if (hrt_absolute_time() - last_time_send  > 200000)
+            if (hrt_absolute_time() - last_time_send  > 40000)
             {
                 memset(&msg_data, 0, sizeof(msg_data));
                 msg_orb_data(&msg_data, msg_fd);
@@ -334,37 +334,37 @@ int rw_uart_thread_main(int argc, char *argv[])
                 last_time_send = hrt_absolute_time();
             }
 
-//            int poll_ret = poll(fds,1,10);//阻塞等待10ms
-//            if (poll_ret == 0)
-//            {
-//                    /* this means none of our providers is giving us data */
-//                  //printf("No receive data for 10ms\n");
-//            } else if (poll_ret < 0)
-//            {
-//               /* this is seriously bad - should be an emergency */
-//               if (error_counter < 10 || error_counter % 50 == 0)
-//               {
-//                       /* use a counter to prevent flooding (and slowing us down) */
-//                       printf("ERROR return value from poll(): %d\n", poll_ret);
-//               }
-//                   error_counter++;
-//            }
-//            else
-//            {
-//               if (fds[0].revents & POLLIN)
-//               {
+            int poll_ret = poll(fds,1,10);//阻塞等待10ms
+            if (poll_ret == 0)
+            {
+                    /* this means none of our providers is giving us data */
+                  //printf("No receive data for 10ms\n");
+            } else if (poll_ret < 0)
+            {
+               /* this is seriously bad - should be an emergency */
+               if (error_counter < 10 || error_counter % 50 == 0)
+               {
+                       /* use a counter to prevent flooding (and slowing us down) */
+                       printf("ERROR return value from poll(): %d\n", poll_ret);
+               }
+                   error_counter++;
+            }
+            else
+            {
+               if (fds[0].revents & POLLIN)
+               {
                        /*接收服务系统发过来的消息*/
                        //read(uart_read,&data,1);//读取串口数据
-                        read_to_buff(buffer, 0, 1);
+                       read_to_buff(buffer, 0, 1);
                        if(buffer[0] == '$')
                        {//找到帧头$
                                buffer[0] = '$';
                                if (read_to_buff(buffer, 1, 5)) find_r_type(buffer, &msg_data, &msg_pd, msg_hd);
                        }
                        //printf("data=%s\n", buffer);
-                       usleep(50000);
-//               }
-//            }
+                       //usleep(40000);
+               }
+            }
         }
 
         msg_orb_unsub(&msg_fd);

@@ -57,7 +57,7 @@ RCUpdate::RCUpdate(const Parameters &parameters)
 	  _filter_yaw(50.0f, 10.f),
 	  _filter_throttle(50.0f, 10.f)
 {
-	memset(&_rc, 0, sizeof(_rc));
+    memset(&_rc, 0, sizeof(_rc));
 	memset(&_rc_parameter_map, 0, sizeof(_rc_parameter_map));
 	memset(&_param_rc_values, 0, sizeof(_param_rc_values));
     memset(&_vs_sp, 0, sizeof(_vs_sp));
@@ -267,28 +267,62 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 	bool rc_updated;
 	orb_check(_rc_sub, &rc_updated);
 
-    bool vs_updated;
-    orb_check(_vs_sub, &vs_updated);
+        bool vs_updated;
+        orb_check(_vs_sub, &vs_updated);
 
-    /* DG virtual stick data for x, y, z, r when rc lost*/
-    if(vs_updated) {
-        orb_copy(ORB_ID(virtual_stick), _vs_sub, &_vs_sp);
-        //vs_last_timestamp = hrt_absolute_time();
-       // _vs_enable_DG = _vs_sp.timestamp - vs_last_timestamp > 40000 ? 0 : _vs_sp.vs_enable;
-        if(_vs_sp.rc_signal_lost){
-                        struct manual_control_setpoint_s manual = {};
-                        manual.timestamp = vs_last_timestamp;
-                        manual.data_source = 255;
-                        manual.x = _vs_sp.x;
-                        manual.y = _vs_sp.y;
-                        manual.r = _vs_sp.r;
-                        manual.z = _vs_sp.z;
-                        manual.virtual_stick_enable = true;
-                        int instance;
-                        orb_publish_auto(ORB_ID(manual_control_setpoint), &_manual_control_pub, &manual, &instance,
-                             ORB_PRIO_HIGH);
+        /* DG virtual stick data for x, y, z, r when rc lost*/
+        if (vs_updated) {
+            orb_copy(ORB_ID(virtual_stick), _vs_sub, &_vs_sp);
+            vs_last_timestamp = hrt_absolute_time();
         }
-    }
+
+        _vs_enable_DG = hrt_absolute_time()- vs_last_timestamp >80000 ? 0 : _vs_sp.vs_enable;
+        //_vs_enable_DG = _vs_sp.timestamp - vs_last_timestamp > 50000 ? 0: _vs_enable_DG;
+
+        if (_vs_sp.rc_signal_lost || _vs_enable_DG){
+           struct manual_control_setpoint_s manual_vs = {};
+           manual_vs.timestamp = vs_last_timestamp;
+           manual_vs.data_source = manual_control_setpoint_s::SOURCE_RC;
+           manual_vs.x = _vs_sp.x;
+           manual_vs.y = _vs_sp.y;
+           manual_vs.r = _vs_sp.r;
+           manual_vs.z = _vs_sp.z;
+           manual_vs.virtual_stick_enable = true;
+
+           if (_parameters.rc_map_flightmode > 0) {
+
+           /* the number of valid slots equals the index of the max marker minus one */
+           const int num_slots = manual_control_setpoint_s::MODE_SLOT_MAX;
+
+            /* the half width of the range of a slot is the total range
+            * divided by the number of slots, again divided by two
+           */
+           const float slot_width_half = 2.0f / num_slots / 2.0f;
+
+           /* min is -1, max is +1, range is 2. We offset below min and max */
+           const float slot_min = -1.0f - 0.05f;
+           const float slot_max = 1.0f + 0.05f;
+
+          /* the slot gets mapped by first normalizing into a 0..1 interval using min
+           *and max. Then the right slot is obtained by multiplying with the number of
+           * slots. And finally we add half a slot width to ensure that integer rounding
+           * will take us to the correct final index.
+           */
+            manual_vs.mode_slot = (((((_rc.channels[_parameters.rc_map_flightmode - 1] - slot_min) * num_slots) + slot_width_half) /
+                                         (slot_max - slot_min)) + (1.0f / num_slots));
+
+            if (manual_vs.mode_slot >= num_slots) { manual_vs.mode_slot = num_slots - 1; }
+
+           }
+
+           manual_vs.mode_switch = get_rc_sw3pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_MODE, _parameters.rc_auto_th,
+                                _parameters.rc_auto_inv, _parameters.rc_assist_th, _parameters.rc_assist_inv);
+
+           int instance_vs;
+
+           orb_publish_auto(ORB_ID(manual_control_setpoint), &_manual_control_pub, &manual_vs, &instance_vs,
+               ORB_PRIO_VERY_HIGH);
+        }
 
     if (rc_updated) {
 		/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
@@ -393,27 +427,13 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 		orb_publish_auto(ORB_ID(rc_channels), &_rc_pub, &_rc, &instance, ORB_PRIO_DEFAULT);
 
 		/* only publish manual control if the signal is still present and was present once */
-        if ((!signal_lost && rc_input.timestamp_last_signal > 0)) {
+        if ((!signal_lost && rc_input.timestamp_last_signal > 0) && !_vs_enable_DG) {
 
 			/* initialize manual setpoint */
 			struct manual_control_setpoint_s manual = {};
 			/* set mode slot to unassigned */
 			manual.mode_slot = manual_control_setpoint_s::MODE_SLOT_NONE;
 
-            /* DG virtual stick data for x, y, z, r */
-            _vs_enable_DG = _rc.timestamp - vs_last_timestamp > 75000 ? 0 : _vs_sp.vs_enable;
-
-            manual.virtual_stick_enable = _vs_enable_DG;
-
-            if (_vs_enable_DG){
-            manual.data_source = 255;
-            manual.x = _vs_sp.x;
-            manual.y = _vs_sp.y;
-            manual.r = _vs_sp.r;
-            manual.z = _vs_sp.z;
-            }
-
-            else {
 			/* set the timestamp to the last signal time */
 			manual.data_source = manual_control_setpoint_s::SOURCE_RC;
 
@@ -422,13 +442,6 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			manual.x = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_PITCH, -1.0, 1.0);
 			manual.r = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_YAW, -1.0, 1.0);
 			manual.z = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE, 0.0, 1.0);
-
-            /* filter controls */
-//            manual.y = math::constrain(_filter_roll.apply(manual.y), -1.f, 1.f);
-//            manual.x = math::constrain(_filter_pitch.apply(manual.x), -1.f, 1.f);
-//            manual.r = math::constrain(_filter_yaw.apply(manual.r), -1.f, 1.f);
-//            manual.z = math::constrain(_filter_throttle.apply(manual.z), 0.f, 1.f);
-            }
 
             manual.timestamp = rc_input.timestamp_last_signal;
 			manual.flaps = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS, -1.0, 1.0);
@@ -439,11 +452,11 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			manual.aux5 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5, -1.0, 1.0);
 			manual.aux6 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_6, -1.0, 1.0);
 
-            /* filter controls */
-            manual.y = math::constrain(_filter_roll.apply(manual.y), -1.f, 1.f);
-            manual.x = math::constrain(_filter_pitch.apply(manual.x), -1.f, 1.f);
-            manual.r = math::constrain(_filter_yaw.apply(manual.r), -1.f, 1.f);
-            manual.z = math::constrain(_filter_throttle.apply(manual.z), 0.f, 1.f);
+			/* filter controls */
+			manual.y = math::constrain(_filter_roll.apply(manual.y), -1.f, 1.f);
+			manual.x = math::constrain(_filter_pitch.apply(manual.x), -1.f, 1.f);
+			manual.r = math::constrain(_filter_yaw.apply(manual.r), -1.f, 1.f);
+			manual.z = math::constrain(_filter_throttle.apply(manual.z), 0.f, 1.f);
 
 			if (_parameters.rc_map_flightmode > 0) {
 
@@ -502,7 +515,7 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 					    _parameters.rc_man_th, _parameters.rc_man_inv);
 
 			/* publish manual_control_setpoint topic */
-			orb_publish_auto(ORB_ID(manual_control_setpoint), &_manual_control_pub, &manual, &instance,
+                        orb_publish_auto(ORB_ID(manual_control_setpoint), &_manual_control_pub, &manual, &instance,
 					 ORB_PRIO_HIGH);
 
 			/* copy from mapped manual control to control group 3 */
@@ -530,5 +543,4 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			}
 		}
 	}
-    if(vs_updated)  vs_last_timestamp = _rc.timestamp;
 }

@@ -145,35 +145,6 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	// Check if triplet is valid. There must be at least a valid altitude.
 
-
-    if(_type == WaypointType::idle){
-        if(!PX4_ISFINITE(_position_setpoint(0))
-           && !PX4_ISFINITE(_position_setpoint(1))
-           && !PX4_ISFINITE(_position_setpoint(2))
-           && !PX4_ISFINITE(_velocity_setpoint(0))
-           && !PX4_ISFINITE(_velocity_setpoint(1))
-           && !PX4_ISFINITE(_velocity_setpoint(2))
-           && !PX4_ISFINITE(_thrust_setpoint(0))
-           && !PX4_ISFINITE(_thrust_setpoint(1))
-           && !PX4_ISFINITE(_thrust_setpoint(2))  ){
-           if(hrt_elapsed_time(&(_sub_triplet_setpoint->get().timestamp))>1000000){
-               _prev_prev_wp = _triplet_prev_wp = _triplet_target = _triplet_next_wp = _target = _position;
-             _type = WaypointType::position;
-               //_yaw=NAN;
-              // _yawspeed_setpoint=_constraints.yawspeed;
-               //_yaw_setpoint = _yaw;
-              // _yawspeed_setpoint = _ext_yaw_handler->get_weathervane_yawrate();
-               _mc_cruise_speed = _constraints.speed_xy;
-               //_type = WaypointType::position;
-               return true;
-           }
-        }
-    }
-//    if(hrt_elapsed_time(&(_sub_triplet_setpoint->get().timestamp))>1000000){
-
-//        return true;
-//    }
-
 	if (!_sub_triplet_setpoint->get().current.valid || !PX4_ISFINITE(_sub_triplet_setpoint->get().current.alt)) {
 		// Best we can do is to just set all waypoints to current state and return false.
 		_prev_prev_wp = _triplet_prev_wp = _triplet_target = _triplet_next_wp = _position;

@@ -2670,7 +2670,7 @@ Mavlink::start(int argc, char *argv[])
 	// instance starting. XXX do a real lock.
 
 	// Sleep 500 us between each attempt
-	const unsigned sleeptime = 500;
+    const unsigned sleeptime = 500;
 
 	// Wait 100 ms max for the startup.
 	const unsigned limit = 100 * 1000 / sleeptime;

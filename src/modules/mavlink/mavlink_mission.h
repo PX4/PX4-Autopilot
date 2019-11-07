@@ -47,6 +47,7 @@
 
 #include <dataman/dataman.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/dg_mission.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_rate_limiter.h"
@@ -88,6 +89,10 @@ public:
 	void handle_message(const mavlink_message_t *msg);
 
 	void check_active_mission(void);
+
+    bool _dg_mission_updated{false};
+
+    dg_mission_s _dg_mission {};
 
 private:
 	enum MAVLINK_WPM_STATES _state {MAVLINK_WPM_STATE_IDLE};	///< Current state

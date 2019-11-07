@@ -31,7 +31,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/mission_result.h>
-//#include <uORB/topics/mission.h>
+#include <uORB/topics/mission.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
@@ -48,7 +48,6 @@
 #include <uORB/topics/virtual_stick.h>
 #include <uORB/topics/dg_vehicle_status.h>
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/dg_mission.h>
 
 #define WP_DATA_NUM_MAX (uint16_t) 20
 
@@ -302,7 +301,6 @@ typedef struct {
 }MSG_send;
 
 typedef struct {
-   uint16_t total_num;
    uint16_t num;
    SETD *push;
    //SETD *pop;
@@ -342,7 +340,7 @@ typedef struct {
     //orb_advert_t status_pd;
     orb_advert_t follow_target_pd;
     orb_advert_t dg_vehicle_status_pd;
-    orb_advert_t dg_mission_pd;
+    orb_advert_t mission_pd;
 }MSG_orb_pub;
 
 typedef struct {

@@ -146,6 +146,7 @@ set(msg_files
 	virtual_stick.msg
 	dg_vehicle_status.msg
 	dg_attitude.msg
+	dg_mission.msg	
 	)
 
 if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")

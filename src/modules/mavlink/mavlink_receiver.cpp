@@ -106,6 +106,7 @@ MavlinkReceiver::~MavlinkReceiver()
 	orb_unsubscribe(_control_mode_sub);
 	orb_unsubscribe(_actuator_armed_sub);
 	orb_unsubscribe(_vehicle_attitude_sub);
+    orb_unsubscribe(_dg_mission_sub);
 }
 
 void
@@ -2594,6 +2595,16 @@ MavlinkReceiver::receive_thread(void *arg)
 	hrt_abstime last_send_update = 0;
 
 	while (!_mavlink->_task_should_exit) {
+
+        orb_check(_dg_mission_sub, &_mission_manager._dg_mission_updated);
+        if (_mission_manager._dg_mission_updated)
+        {
+            msg = {};
+            orb_copy(ORB_ID(dg_mission), _dg_mission_sub, &_mission_manager._dg_mission);
+            _mission_manager.handle_message(&msg);
+            //_mission_manager._dg_mission_updated =false;
+        }
+
 		if (poll(&fds[0], 1, timeout) > 0) {
 			if (_mavlink->get_protocol() == SERIAL) {
 

@@ -1,4 +1,4 @@
-/****************************************************************************
+﻿/****************************************************************************
  *
  *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
  *
@@ -158,7 +158,10 @@ MavlinkMissionManager::load_safepoint_stats()
 int
 MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq)
 {
-	// We want to make sure the whole struct is initialized including padding before getting written by dataman.
+
+    _mavlink->send_statustext_info("Enter update_active_mission function");
+
+    // We want to make sure the whole struct is initialized including padding before getting written by dataman.
 	mission_s mission {};
 	mission.timestamp = hrt_absolute_time();
 	mission.dataman_id = dataman_id;
@@ -563,7 +566,18 @@ MavlinkMissionManager::send(const hrt_abstime now)
 void
 MavlinkMissionManager::handle_message(const mavlink_message_t *msg)
 {
-	switch (msg->msgid) {
+
+    if (_dg_mission_updated){
+        if (_dg_mission.msg_type == 0) {
+            handle_mission_item(msg);
+        }
+        else if (_dg_mission.msg_type == 1) {
+            handle_mission_clear_all(msg);
+            handle_mission_count(msg);
+        }
+    }
+
+    switch (msg->msgid) {
 	case MAVLINK_MSG_ID_MISSION_ACK:
 		handle_mission_ack(msg);
 		break;
@@ -602,7 +616,7 @@ MavlinkMissionManager::handle_message(const mavlink_message_t *msg)
 
 	default:
 		break;
-	}
+    }
 }
 
 
@@ -659,7 +673,10 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 void
 MavlinkMissionManager::handle_mission_set_current(const mavlink_message_t *msg)
 {
-	mavlink_mission_set_current_t wpc;
+
+    _mavlink->send_statustext_info("Enter handle_mission_set_current function");
+
+    mavlink_mission_set_current_t wpc;
 	mavlink_msg_mission_set_current_decode(msg, &wpc);
 
 	if (CHECK_SYSID_COMPID_MISSION(wpc)) {
@@ -694,7 +711,10 @@ MavlinkMissionManager::handle_mission_set_current(const mavlink_message_t *msg)
 void
 MavlinkMissionManager::handle_mission_request_list(const mavlink_message_t *msg)
 {
-	mavlink_mission_request_list_t wprl;
+
+    _mavlink->send_statustext_info("Enter handle_mission_request_list function");
+
+    mavlink_mission_request_list_t wprl;
 	mavlink_msg_mission_request_list_decode(msg, &wprl);
 
 	if (CHECK_SYSID_COMPID_MISSION(wprl)) {
@@ -757,6 +777,9 @@ void
 MavlinkMissionManager::handle_mission_request_int(const mavlink_message_t *msg)
 {
 	// The request comes in the new int mode, so we switch to it.
+
+    _mavlink->send_statustext_info("Enter handle_mission_request_int function");
+
 	if (!_int_mode) {
 		_int_mode = true;
 	}
@@ -851,8 +874,20 @@ MavlinkMissionManager::handle_mission_request_both(const mavlink_message_t *msg)
 void
 MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 {
-	mavlink_mission_count_t wpc;
-	mavlink_msg_mission_count_decode(msg, &wpc);
+
+    _mavlink->send_statustext_info("Enter handle_mission_count function");
+
+    mavlink_mission_count_t wpc;
+
+    if (_dg_mission_updated){
+        wpc.count = _dg_mission.count;
+        wpc.mission_type = _dg_mission.mission_type;
+        wpc.target_component = _dg_mission.target_component;
+        wpc.target_system = _dg_mission.target_system;
+    }
+    else {
+        mavlink_msg_mission_count_decode(msg, &wpc);
+    }
 
 	if (CHECK_SYSID_COMPID_MISSION(wpc)) {
 		if (_state == MAVLINK_WPM_STATE_IDLE) {
@@ -1005,11 +1040,32 @@ void
 MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 {
 
+    _mavlink->send_statustext_info("Enter handle_mission_item_both function");
+
 	// The mavlink_message could also contain a mavlink_mission_item_int_t. We ignore that here
 	// and take care of it later in parse_mavlink_mission_item depending on _int_mode.
-
 	mavlink_mission_item_t wp;
-	mavlink_msg_mission_item_decode(msg, &wp);
+
+    if (_dg_mission_updated){
+        wp.autocontinue = _dg_mission.autocontinue;
+        wp.command = _dg_mission.command;
+        wp.current = _dg_mission.current;
+        wp.frame = _dg_mission.frame;
+        wp.mission_type = _dg_mission.mission_type;
+        wp.seq = _dg_mission.seq;
+        wp.target_component = _dg_mission.target_component;
+        wp.target_system = _dg_mission.target_system;
+        wp.x = _dg_mission.x;
+        wp.y = _dg_mission.y;
+        wp.z = _dg_mission.z;
+        wp.param1 = _dg_mission.param1;
+        wp.param2 = _dg_mission.param2;
+        wp.param3 = _dg_mission.param3;
+        wp.param4 = _dg_mission.param4;
+    }
+    else {
+        mavlink_msg_mission_item_decode(msg, &wp);
+    }
 
 	if (CHECK_SYSID_COMPID_MISSION(wp)) {
 
@@ -1218,8 +1274,19 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 void
 MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 {
-	mavlink_mission_clear_all_t wpca;
-	mavlink_msg_mission_clear_all_decode(msg, &wpca);
+
+    _mavlink->send_statustext_info("Enter handle_mission_clear_all function");
+
+    mavlink_mission_clear_all_t wpca;
+
+    if(_dg_mission_updated){
+        wpca.mission_type = _dg_mission.mission_type;
+        wpca.target_component =_dg_mission.target_component;
+        wpca.target_system = _dg_mission.target_system;
+    }
+    else {
+        mavlink_msg_mission_clear_all_decode(msg, &wpca);
+    }
 
 	if (CHECK_SYSID_COMPID_MISSION(wpca)) {
 
