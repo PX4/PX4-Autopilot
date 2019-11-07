@@ -693,7 +693,8 @@ protected:
 			if (_battery_status_sub[i]->update(&_battery_status_timestamp[i], &battery_status)) {
 				/* battery status message with higher resolution */
 				mavlink_battery_status_t bat_msg{};
-				bat_msg.id = i;
+				// TODO: Determine how to better map between battery ID within the firmware and in MAVLink
+				bat_msg.id = battery_status.id - 1;
 				bat_msg.battery_function = MAV_BATTERY_FUNCTION_ALL;
 				bat_msg.type = MAV_BATTERY_TYPE_LIPO;
 				bat_msg.current_consumed = (battery_status.connected) ? battery_status.discharged_mah : -1;

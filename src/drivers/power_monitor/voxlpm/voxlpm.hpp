@@ -160,10 +160,8 @@ private:
 
 	perf_counter_t		_sample_perf;
 
-	uORB::PublicationMulti<battery_status_s>	_bat_pub_topic{ORB_ID(battery_status)};
 	uORB::PublicationMulti<power_monitor_s>		_pm_pub_topic{ORB_ID(power_monitor)};
 
-	battery_status_s	_bat_status{};
 	power_monitor_s 	_pm_status{};
 
 	VOXLPM_CH_TYPE		_ch_type;

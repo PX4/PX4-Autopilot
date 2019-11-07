@@ -42,7 +42,7 @@
 
 #pragma once
 
-#include <battery/battery_base.h>
+#include <battery/battery.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_rc_input.h>
 #include <lib/drivers/accelerometer/PX4Accelerometer.hpp>
@@ -73,6 +73,7 @@
 
 #include <v2.0/common/mavlink.h>
 #include <v2.0/mavlink_types.h>
+#include <lib/battery/battery.h>
 
 namespace simulator
 {
@@ -237,22 +238,22 @@ private:
 	hrt_abstime _last_sitl_timestamp{0};
 	hrt_abstime _last_battery_timestamp{0};
 
-	// Because the simulator doesn't actually care about the real values of these, just stick
-	// in some good defaults.
-	// This is an anonymous class, because BatteryBase is abstract and can't directly be instantiated.
-	class : public BatteryBase
+	class : public Battery
 	{
-		float _get_bat_v_empty() override { return 3.5; }
-		float _get_bat_v_charged() override { return 4.05; }
-		int _get_bat_n_cells() override { return 4; }
-		float _get_bat_capacity() override { return 10.0; }
-		float _get_bat_v_load_drop() override { return 0; }
-		float _get_bat_r_internal() override { return 0; }
-		float _get_bat_low_thr() override { return 0.15; }
-		float _get_bat_crit_thr() override { return 0.07; }
-		float _get_bat_emergen_thr() override { return 0.05; }
-		int _get_source() override { return 0; }
-	} _battery {};
+		virtual void updateParams() override
+		{
+			_params.v_empty = 3.5f;
+			_params.v_charged = 4.05f;
+			_params.n_cells = 4;
+			_params.capacity = 10.0f;
+			_params.v_load_drop = 0.0f;
+			_params.r_internal = 0.0f;
+			_params.low_thr = 0.15f;
+			_params.crit_thr = 0.07f;
+			_params.emergen_thr = 0.05f;
+			_params.source = 0;
+		}
+	} _battery;
 
 #ifndef __PX4_QURT
 

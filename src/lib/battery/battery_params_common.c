@@ -39,10 +39,6 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <px4_config.h>
-#include <parameters/param.h>
-
-
 /**
  * Low threshold
  *
@@ -92,53 +88,3 @@ PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.07f);
  * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(BAT_EMERGEN_THR, 0.05f);
-
-/**
- * Scaling from ADC counts to volt on the ADC input (battery voltage)
- *
- * This is not the battery voltage, but the intermediate ADC voltage.
- * A value of -1 signifies that the board defaults are used, which is
- * highly recommended.
- *
- * @group Battery Calibration
- * @decimal 8
- */
-PARAM_DEFINE_FLOAT(BAT_CNT_V_VOLT, -1.0f);
-
-/**
- * Scaling from ADC counts to volt on the ADC input (battery current)
- *
- * This is not the battery current, but the intermediate ADC voltage.
- * A value of -1 signifies that the board defaults are used, which is
- * highly recommended.
- *
- * @group Battery Calibration
- * @decimal 8
- */
-PARAM_DEFINE_FLOAT(BAT_CNT_V_CURR, -1.0);
-
-/**
- * Offset in volt as seen by the ADC input of the current sensor.
- *
- * This offset will be subtracted before calculating the battery
- * current based on the voltage.
- *
- * @group Battery Calibration
- * @decimal 8
- */
-PARAM_DEFINE_FLOAT(BAT_V_OFFS_CURR, 0.0);
-
-/**
- * Battery monitoring source.
- *
- * This parameter controls the source of battery data. The value 'Power Module'
- * means that measurements are expected to come from a power module. If the value is set to
- * 'External' then the system expects to receive mavlink battery status messages.
- *
- * @min 0
- * @max 1
- * @value 0 Power Module
- * @value 1 External
- * @group Battery Calibration
- */
-PARAM_DEFINE_INT32(BAT_SOURCE, 0);

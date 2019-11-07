@@ -72,7 +72,6 @@
 
 #include "parameters.h"
 #include "voted_sensors_update.h"
-#include "power.h"
 #include "vehicle_acceleration/VehicleAcceleration.hpp"
 #include "vehicle_angular_velocity/VehicleAngularVelocity.hpp"
 
