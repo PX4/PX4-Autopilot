@@ -146,36 +146,18 @@ PARAM_DEFINE_INT32(BAT_N_CELLS, 0);
 PARAM_DEFINE_FLOAT(BAT_CAPACITY, -1.0f);
 
 /**
- * This parameter is deprecated. Please use BAT1_V_DIV instead.
+ * This parameter is deprecated. Please use BAT1_SOURCE instead.
  *
- * This is the divider from battery 1 voltage to 3.3V ADC voltage.
- * If using e.g. Mauch power modules the value from the datasheet
- * can be applied straight here. A value of -1 means to use
- * the board default.
+ * Battery monitoring source.
  *
- * @group Battery Calibration
- * @decimal 8
- */
-PARAM_DEFINE_FLOAT(BAT_V_DIV, -1.0);
-
-/**
- * This parameter is deprecated. Please use BAT1_A_PER_V instead.
+ * This parameter controls the source of battery data. The value 'Power Module'
+ * means that measurements are expected to come from a power module. If the value is set to
+ * 'External' then the system expects to receive mavlink battery status messages.
  *
- * The voltage seen by the 3.3V ADC multiplied by this factor
- * will determine the battery current. A value of -1 means to use
- * the board default.
- *
- * @group Battery Calibration
- * @decimal 8
- */
-PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
-
-/**
- * This parameter is deprecated. Please use BAT1_ADC_CHANNEL instead.
- *
- * This parameter specifies the ADC channel used to monitor voltage of main power battery.
- * A value of -1 means to use the board default.
- *
+ * @min 0
+ * @max 1
+ * @value 0 Power Module
+ * @value 1 External
  * @group Battery Calibration
  */
-PARAM_DEFINE_INT32(BAT_ADC_CHANNEL, -1);
+PARAM_DEFINE_INT32(BAT_SOURCE, 0);
