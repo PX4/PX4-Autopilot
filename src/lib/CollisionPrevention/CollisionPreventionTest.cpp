@@ -421,8 +421,8 @@ TEST_F(CollisionPreventionTest, outsideFOV)
 			matrix::Vector2f setpoint_dir = modified_setpoint / setpoint_length;
 			float sp_angle_body_frame = atan2(setpoint_dir(1), setpoint_dir(0));
 			float sp_angle_deg = math::degrees(matrix::wrap_2pi(sp_angle_body_frame));
-			EXPECT_GT(sp_angle_deg, 45.f);
-			EXPECT_LT(sp_angle_deg, 225.f);
+			EXPECT_GE(sp_angle_deg, 45.f);
+			EXPECT_LE(sp_angle_deg, 225.f);
 		}
 	}
 
