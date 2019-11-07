@@ -68,7 +68,7 @@ struct vehicle_dynamic_limits {
  *
  */
 inline float computeStartXYSpeedFromWaypoints(const Vector3f &start_position, const Vector3f &target,
-		const Vector3f &next_target, float exit_speed, const vehicle_dynamic_limits &config, bool from_vehicle)
+		const Vector3f &next_target, float exit_speed, const vehicle_dynamic_limits &config)
 {
 	const float distance_target_next = (target - next_target).xy().norm();
 
@@ -92,11 +92,8 @@ inline float computeStartXYSpeedFromWaypoints(const Vector3f &start_position, co
 		speed_at_target = min(min(max_speed_in_turn, exit_speed), config.max_speed_xy);
 	}
 
-	// all large jerk should take place in the first segment, after that jerk delay is negligible
-	float effective_jerk = from_vehicle ? config.max_jerk : INFINITY;
-
 	float start_to_target = (start_position - target).xy().norm();
-	float max_speed = computeMaxSpeedFromDistance(effective_jerk, config.max_acc_xy, start_to_target, speed_at_target);
+	float max_speed = computeMaxSpeedFromDistance(config.max_jerk, config.max_acc_xy, start_to_target, speed_at_target);
 
 	return min(config.max_speed_xy, max_speed);
 }
@@ -116,19 +113,17 @@ float computeXYSpeedFromWaypoints(const Vector3f waypoints[N], const vehicle_dyn
 {
 	static_assert(N >= 2, "Need at least 2 points to compute speed");
 
-	float last = 0.f;
+	float max_speed = 0.f;
 
-	for (size_t i = N - 2; i > 0; i--) {
-		last = computeStartXYSpeedFromWaypoints(waypoints[i],
-							waypoints[i + 1],
-							waypoints[min(i + 2, N - 1)],
-							last, config, false);
+	for (size_t j = 0; j < N - 1; j++) {
+		size_t i = N - 2 - j;
+		max_speed = computeStartXYSpeedFromWaypoints(waypoints[i],
+				waypoints[i + 1],
+				waypoints[min(i + 2, N - 1)],
+				max_speed, config);
 	}
 
-	return computeStartXYSpeedFromWaypoints(waypoints[0],
-						waypoints[1],
-						waypoints[min(size_t(2), N - 1)],
-						last, config, true);
+	return max_speed;
 }
 
 inline void clampToXYNorm(Vector3f &target, float maxXYNorm)

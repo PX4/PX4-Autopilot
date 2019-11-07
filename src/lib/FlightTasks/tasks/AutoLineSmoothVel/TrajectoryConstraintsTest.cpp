@@ -47,7 +47,8 @@ public:
 TEST_F(TrajectoryConstraintsTest, testStraight)
 {
 	// GIVEN: 3 waypoints in straight line
-	next_target = target + (target - vehicle_location);
+	next_target = target + 2.f * (target - vehicle_location);
+	target = vehicle_location + 0.5f * (next_target - vehicle_location);
 
 	// WHEN: we get the speed for straight line travel
 	Vector3f waypoints[3] = {vehicle_location, target, next_target};
@@ -60,21 +61,11 @@ TEST_F(TrajectoryConstraintsTest, testStraight)
 	EXPECT_FLOAT_EQ(through_speed, direct_speed);
 }
 
-TEST_F(TrajectoryConstraintsTest, DISABLED_testStraightLowJerkClose)
+TEST_F(TrajectoryConstraintsTest, testStraightLowJerkClose)
 {
-	/*
-	 * This test is disabled because in order to be conservative with the behavior of the deceleration, we need to
-	 * assume that we need to saturate the acceleration for the period of accel_max/jerk_max. These constraints are
-	 * stateless, and will cause the vehicle to slow down in a straight line if the accel_max/jerk_max takes longer
-	 * at max speed than the time to cross the acceptance radius.
-	 *
-	 * TLDR:
-	 * The vehicle will slow down along straight lines if:         cruise_speed*accel_max/jerk_max > xy_accept_rad
-	 */
-
 	// GIVEN: 3 waypoints in straight line
-	next_target = target + (target - vehicle_location);
-	target = vehicle_location + 0.1f * (next_target - vehicle_location);
+	next_target = target + 2.f * (target - vehicle_location);
+	target = vehicle_location + 0.05f * (next_target - vehicle_location);
 	config.max_jerk = 8.f;
 
 	// WHEN: we get the speed for straight line travel
@@ -88,11 +79,11 @@ TEST_F(TrajectoryConstraintsTest, DISABLED_testStraightLowJerkClose)
 	EXPECT_FLOAT_EQ(through_speed, direct_speed);
 }
 
-TEST_F(TrajectoryConstraintsTest, DISABLED_testStraightMidClose)
+TEST_F(TrajectoryConstraintsTest, testStraightMidClose)
 {
 	// GIVEN: 3 waypoints in straight line
-	next_target = target + (target - vehicle_location);
-	target = vehicle_location + 0.1f * (next_target - vehicle_location);
+	next_target = target + 2.f * (target - vehicle_location);
+	target = vehicle_location + 0.05f * (next_target - vehicle_location);
 
 	// WHEN: we get the speed for straight line travel
 	Vector3f waypoints[3] = {vehicle_location, target, next_target};
@@ -108,8 +99,8 @@ TEST_F(TrajectoryConstraintsTest, DISABLED_testStraightMidClose)
 TEST_F(TrajectoryConstraintsTest, testStraightMidFar)
 {
 	// GIVEN: 3 waypoints in straight line
-	next_target = target + (target - vehicle_location);
-	target = vehicle_location + 0.9f * (next_target - vehicle_location);
+	next_target = target + 2.f * (target - vehicle_location);
+	target = vehicle_location + 0.95f * (next_target - vehicle_location);
 
 	// WHEN: we get the speed for straight line travel
 	Vector3f waypoints[3] = {vehicle_location, target, next_target};
