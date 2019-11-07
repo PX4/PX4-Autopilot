@@ -69,6 +69,8 @@ void limitTilt(matrix::Vector3f &body_unit, const matrix::Vector3f &world_unit, 
  */
 void bodyzToAttitude(matrix::Vector3f body_z, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp);
 
+matrix::Quatf bodyzToQuaternion(matrix::Vector3f body_z, const float yaw_sp);
+
 /**
  * Outputs the sum of two vectors but respecting the limits and priority.
  * The sum of two vectors are constraint such that v0 has priority over v1.
