@@ -301,6 +301,7 @@ private:
 		_param_nav_mc_alt_rad,	/**< acceptance radius for multicopter altitude */
 		(ParamInt<px4::params::NAV_FORCE_VT>) _param_nav_force_vt,	/**< acceptance radius for multicopter altitude */
 		(ParamInt<px4::params::NAV_TRAFF_AVOID>) _param_nav_traff_avoid,	/**< avoiding other aircraft is enabled */
+		(ParamInt<px4::params::NAV_TRAFF_A_RAD>) _param_nav_traff_a_rad,	/**< avoidance Distance*/
 
 		// non-navigator parameters
 		// Mission (MIS_*)

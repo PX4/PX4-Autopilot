@@ -962,9 +962,9 @@ void Navigator::check_traffic()
 
 
 		//ADSB Transmitter 14 = UAV
-		if (tr.emitter_type == 14) {
-			horizontal_separation = 10;
-			vertical_separation = 10;
+		if (tr.emitter_type == ADSB_EMITTER_TYPE_UAV) {
+			horizontal_separation = _param_nav_traff_a_rad.get();
+			vertical_separation = _param_nav_traff_a_rad.get();
 		}
 
 		float d_hor, d_vert;
