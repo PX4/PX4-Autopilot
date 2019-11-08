@@ -700,29 +700,38 @@ protected:
 				bat_msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100 : -1;
 				bat_msg.battery_remaining = (battery_status.connected) ? ceilf(battery_status.remaining * 100.0f) : -1;
 
-				if (battery_status.warning == battery_status_s::BATTERY_WARNING_NONE) {
+				switch (battery_status.state) {
+				case (battery_status_s::BATTERY_STATE_OK):
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_OK;
+					break;
 
-				} else if (battery_status.warning == battery_status_s::BATTERY_WARNING_LOW) {
+				case (battery_status_s::BATTERY_STATE_LOW):
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_LOW;
+					break;
 
-				} else if (battery_status.warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
+				case (battery_status_s::BATTERY_STATE_CRITICAL):
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_CRITICAL;
+					break;
 
-				} else if (battery_status.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
+				case (battery_status_s::BATTERY_STATE_EMERGENCY):
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_EMERGENCY;
+					break;
 
-				} else if (battery_status.warning == battery_status_s::BATTERY_WARNING_FAILED) {
+				case (battery_status_s::BATTERY_STATE_FAILED):
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_FAILED;
+					break;
 
-				} else if (battery_status.warning == battery_status_s::BATTERY_WARNING_UNHEALTHY) {
+				case (battery_status_s::BATTERY_STATE_UNHEALTHY):
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_UNHEALTHY;
+					break;
 
-				} else if (battery_status.warning == battery_status_s::BATTERY_WARNING_CHARGING) {
+				case (battery_status_s::BATTERY_STATE_CHARGING):
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_CHARGING;
+					break;
 
-				} else {
+				default:
 					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_UNDEFINED;
+					break;
 				}
 
 				// check if temperature valid

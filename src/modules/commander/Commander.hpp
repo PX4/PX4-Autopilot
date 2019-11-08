@@ -272,7 +272,7 @@ private:
 	int  _last_esc_online_flags{-1};
 
 	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
-	uint8_t _battery_warning{battery_status_s::BATTERY_WARNING_NONE};
+	uint8_t _battery_state{battery_status_s::BATTERY_STATE_OK};
 	float _battery_current{0.0f};
 
 	systemlib::Hysteresis	_auto_disarm_landed{false};

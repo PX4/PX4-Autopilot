@@ -1008,22 +1008,19 @@ void reset_offboard_loss_globals(actuator_armed_s *armed, const bool old_failsaf
 	}
 }
 
-
-
-
 void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &status,
-		      const vehicle_status_flags_s &status_flags, commander_state_s *internal_state, const uint8_t battery_warning,
+		      const vehicle_status_flags_s &status_flags, commander_state_s *internal_state, const uint8_t battery_state,
 		      const low_battery_action_t low_battery_action)
 {
-	switch (battery_warning) {
-	case battery_status_s::BATTERY_WARNING_NONE:
+	switch (battery_state) {
+	case battery_status_s::BATTERY_STATE_OK:
 		break;
 
-	case battery_status_s::BATTERY_WARNING_LOW:
+	case battery_status_s::BATTERY_STATE_LOW:
 		mavlink_log_critical(mavlink_log_pub, "Low battery level! Return advised");
 		break;
 
-	case battery_status_s::BATTERY_WARNING_CRITICAL:
+	case battery_status_s::BATTERY_STATE_CRITICAL:
 
 		static constexpr char battery_critical[] = "Critical battery level!";
 
@@ -1060,7 +1057,7 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 
 		break;
 
-	case battery_status_s::BATTERY_WARNING_EMERGENCY:
+	case battery_status_s::BATTERY_STATE_EMERGENCY:
 
 		static constexpr char battery_dangerous[] = "Dangerous battery level!";
 
@@ -1096,7 +1093,7 @@ void battery_failsafe(orb_advert_t *mavlink_log_pub, const vehicle_status_s &sta
 
 		break;
 
-	case battery_status_s::BATTERY_WARNING_FAILED:
+	case battery_status_s::BATTERY_STATE_FAILED:
 		mavlink_log_emergency(mavlink_log_pub, "Battery failure detected");
 		break;
 	}

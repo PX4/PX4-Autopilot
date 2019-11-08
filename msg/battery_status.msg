@@ -23,13 +23,12 @@ float32 max_cell_voltage_delta   # Max difference between individual cell voltag
 
 bool is_powering_off		# Power off event imminent indication, false if unknown
 
+uint8 BATTERY_STATE_OK = 0       # no battery low voltage warning active
+uint8 BATTERY_STATE_LOW = 1        # warning of low voltage
+uint8 BATTERY_STATE_CRITICAL = 2   # critical voltage, return / abort immediately
+uint8 BATTERY_STATE_EMERGENCY = 3  # immediate landing required
+uint8 BATTERY_STATE_FAILED = 4     # the battery has failed completely
+uint8 BATTERY_STATE_UNHEALTHY = 5  # battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited.
+uint8 BATTERY_STATE_CHARGING = 6   # battery is charging
 
-uint8 BATTERY_WARNING_NONE = 0       # no battery low voltage warning active
-uint8 BATTERY_WARNING_LOW = 1        # warning of low voltage
-uint8 BATTERY_WARNING_CRITICAL = 2   # critical voltage, return / abort immediately
-uint8 BATTERY_WARNING_EMERGENCY = 3  # immediate landing required
-uint8 BATTERY_WARNING_FAILED = 4     # the battery has failed completely
-uint8 BATTERY_WARNING_UNHEALTHY = 5  # battery is diagnosed to be defective or an error occurred, usage is discouraged / prohibited.
-uint8 BATTERY_WARNING_CHARGING = 6   # battery is charging
-
-uint8 warning    # current battery warning
+uint8 state    # current battery state/warning
