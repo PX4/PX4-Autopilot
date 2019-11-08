@@ -248,15 +248,15 @@ float MulticopterLandDetector::_get_max_altitude()
 		return INFINITY;
 	}
 
-	if (_battery_status.state == battery_status_s::BATTERY_STATE_LOW) {
+	if (_battery_status.warning == battery_status_s::BATTERY_WARNING_LOW) {
 		valid_altitude_max = _param_lndmc_alt_max.get() * 0.75f;
 	}
 
-	if (_battery_status.state == battery_status_s::BATTERY_STATE_CRITICAL) {
+	if (_battery_status.warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
 		valid_altitude_max = _param_lndmc_alt_max.get() * 0.5f;
 	}
 
-	if (_battery_status.state == battery_status_s::BATTERY_STATE_EMERGENCY) {
+	if (_battery_status.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) {
 		valid_altitude_max = _param_lndmc_alt_max.get() * 0.25f;
 	}
 

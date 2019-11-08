@@ -186,7 +186,7 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[]);
 void usage(const char *reason);
 
 void control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed, bool changed,
-			 const uint8_t battery_state, const cpuload_s *cpuload_local);
+			 const uint8_t battery_warning, const cpuload_s *cpuload_local);
 
 bool stabilization_required();
 
@@ -1349,7 +1349,7 @@ Commander::run()
 
 	vtol_status.vtol_in_rw_mode = true;		// default for vtol is rotary wing
 
-	control_status_leds(&status, &armed, true, _battery_state, &cpuload);
+	control_status_leds(&status, &armed, true, _battery_warning, &cpuload);
 
 	thread_running = true;
 
@@ -1852,7 +1852,7 @@ Commander::run()
 
 		// Geofence actions
 		const bool geofence_action_enabled = geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE;
-		const bool not_in_battery_failsafe = _battery_state < battery_status_s::BATTERY_STATE_CRITICAL;
+		const bool not_in_battery_failsafe = _battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL;
 
 		if (armed.armed
 		    && geofence_action_enabled
@@ -1931,7 +1931,7 @@ Commander::run()
 
 		// abort auto mode or geofence reaction if sticks are moved significantly
 		// but only if not in a low battery handling action
-		const bool not_in_low_battery_reaction = _battery_state < battery_status_s::BATTERY_STATE_CRITICAL;
+		const bool not_in_low_battery_reaction = _battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL;
 		const bool is_rotary_wing = status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 		const bool manual_mode_before_geofence =
 			main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
@@ -2427,12 +2427,12 @@ Commander::run()
 
 		} else if (!status_flags.usb_connected &&
 			   (status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
-			   (_battery_state == battery_status_s::BATTERY_STATE_CRITICAL)) {
+			   (_battery_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
 			/* play tune on battery critical */
 			set_tune(TONE_BATTERY_WARNING_FAST_TUNE);
 
 		} else if ((status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
-			   (_battery_state == battery_status_s::BATTERY_STATE_LOW)) {
+			   (_battery_warning == battery_status_s::BATTERY_WARNING_LOW)) {
 			/* play tune on battery warning */
 			set_tune(TONE_BATTERY_WARNING_SLOW_TUNE);
 
@@ -2473,12 +2473,12 @@ Commander::run()
 			/* blinking LED message, don't touch LEDs */
 			if (blink_state == 2) {
 				/* blinking LED message completed, restore normal state */
-				control_status_leds(&status, &armed, true, _battery_state, &cpuload);
+				control_status_leds(&status, &armed, true, _battery_warning, &cpuload);
 			}
 
 		} else {
 			/* normal state */
-			control_status_leds(&status, &armed, status_changed, _battery_state, &cpuload);
+			control_status_leds(&status, &armed, status_changed, _battery_warning, &cpuload);
 		}
 
 		status_changed = false;
@@ -2545,7 +2545,7 @@ Commander::check_valid(const hrt_abstime &timestamp, const hrt_abstime &timeout,
 
 void
 control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actuator_armed,
-		    bool changed, const uint8_t battery_state, const cpuload_s *cpuload_local)
+		    bool changed, const uint8_t battery_warning, const cpuload_s *cpuload_local)
 {
 	static hrt_abstime overload_start = 0;
 
@@ -2601,10 +2601,10 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
 			if (status.failsafe) {
 				led_color = led_control_s::COLOR_PURPLE;
 
-			} else if (battery_state == battery_status_s::BATTERY_STATE_LOW) {
+			} else if (battery_warning == battery_status_s::BATTERY_WARNING_LOW) {
 				led_color = led_control_s::COLOR_AMBER;
 
-			} else if (battery_state == battery_status_s::BATTERY_STATE_CRITICAL) {
+			} else if (battery_warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
 				led_color = led_control_s::COLOR_RED;
 
 			} else {
@@ -3960,7 +3960,7 @@ void Commander::battery_status_check()
 
 			if ((hrt_elapsed_time(&battery.timestamp) < 5_s)
 			    && battery.connected
-			    && (_battery_state == battery_status_s::BATTERY_STATE_OK)) {
+			    && (_battery_warning == battery_status_s::BATTERY_WARNING_NONE)) {
 
 				status_flags.condition_battery_healthy = true;
 
@@ -3970,16 +3970,16 @@ void Commander::battery_status_check()
 
 			// execute battery failsafe if the state has gotten worse
 			if (armed.armed) {
-				if (battery.state > _battery_state) {
-					battery_failsafe(&mavlink_log_pub, status, status_flags, &internal_state, battery.state,
+				if (battery.warning > _battery_warning) {
+					battery_failsafe(&mavlink_log_pub, status, status_flags, &internal_state, battery.warning,
 							 (low_battery_action_t)_param_com_low_bat_act.get());
 				}
 			}
 
 			// Handle shutdown request from emergency battery action
-			if (battery.state != _battery_state) {
+			if (battery.warning != _battery_warning) {
 
-				if ((battery.state == battery_status_s::BATTERY_STATE_EMERGENCY) && shutdown_if_allowed()) {
+				if ((battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) && shutdown_if_allowed()) {
 					mavlink_log_critical(&mavlink_log_pub, "Dangerously low battery! Shutting system down");
 					px4_usleep(200000);
 
@@ -3995,7 +3995,7 @@ void Commander::battery_status_check()
 			}
 
 			// save last value
-			_battery_state = battery.state;
+			_battery_warning = battery.warning;
 			_battery_current = battery.current_filtered_a;
 		}
 	}

@@ -546,7 +546,7 @@ BlinkM::Run()
 				num_of_cells = battery_status.cell_count;
 
 			} else {
-				if (battery_status.state == battery_status_s::BATTERY_STATE_CRITICAL) {
+				if (battery_status.warning == battery_status_s::BATTERY_WARNING_CRITICAL) {
 					/* LED Pattern for battery critical alerting */
 					led_color_1 = LED_RED;
 					led_color_2 = LED_RED;
@@ -570,7 +570,7 @@ BlinkM::Run()
 					led_color_8 = LED_BLUE;
 					led_blink = LED_BLINK;
 
-				} else if (battery_status.state == battery_status_s::BATTERY_STATE_LOW) {
+				} else if (battery_status.warning == battery_status_s::BATTERY_WARNING_LOW) {
 					/* LED Pattern for battery low warning */
 					led_color_1 = LED_YELLOW;
 					led_color_2 = LED_YELLOW;

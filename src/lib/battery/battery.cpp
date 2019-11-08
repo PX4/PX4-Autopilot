@@ -46,7 +46,7 @@
 
 Battery::Battery() :
 	ModuleParams(nullptr),
-	_state(battery_status_s::BATTERY_STATE_OK),
+	_warning(battery_status_s::BATTERY_WARNING_NONE),
 	_last_timestamp(0)
 {
 }
@@ -59,8 +59,8 @@ Battery::reset(battery_status_s *battery_status)
 	battery_status->remaining = 1.f;
 	battery_status->scale = 1.f;
 	battery_status->cell_count = _param_bat_n_cells.get();
-	// TODO: check if it is sane to reset state to NONE
-	battery_status->state = battery_status_s::BATTERY_STATE_OK;
+	// TODO: check if it is sane to reset warning to NONE
+	battery_status->warning = battery_status_s::BATTERY_WARNING_NONE;
 	battery_status->connected = false;
 }
 
@@ -91,7 +91,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		battery_status->current_a = current_a;
 		battery_status->current_filtered_a = _current_filtered_a;
 		battery_status->discharged_mah = _discharged_mah;
-		battery_status->state = _state;
+		battery_status->warning = _warning;
 		battery_status->remaining = _remaining;
 		battery_status->connected = connected;
 		battery_status->system_source = selected_source;
@@ -209,15 +209,15 @@ void
 Battery::determineWarning(bool connected)
 {
 	if (connected) {
-		// propagate state state only if the state is higher, otherwise remain in current warning state
-		if (_remaining < _param_bat_emergen_thr.get() || (_state == battery_status_s::BATTERY_STATE_EMERGENCY)) {
-			_state = battery_status_s::BATTERY_STATE_EMERGENCY;
+		// propagate warning state only if the state is higher, otherwise remain in current warning state
+		if (_remaining < _param_bat_emergen_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_EMERGENCY)) {
+			_warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
 
-		} else if (_remaining < _param_bat_crit_thr.get() || (_state == battery_status_s::BATTERY_STATE_CRITICAL)) {
-			_state = battery_status_s::BATTERY_STATE_CRITICAL;
+		} else if (_remaining < _param_bat_crit_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
+			_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
 
-		} else if (_remaining < _param_bat_low_thr.get() || (_state == battery_status_s::BATTERY_STATE_LOW)) {
-			_state = battery_status_s::BATTERY_STATE_LOW;
+		} else if (_remaining < _param_bat_low_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_LOW)) {
+			_warning = battery_status_s::BATTERY_WARNING_LOW;
 		}
 	}
 }
