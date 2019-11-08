@@ -104,7 +104,7 @@ void Ekf::fuseMag()
 		_fault_status.flags.bad_mag_x = true;
 
 		// we need to re-initialise covariances and abort this fusion step
-		resetMagCovariance();
+		resetMagRelatedCovariances();
 		ECL_ERR_TIMESTAMPED("EKF magX fusion numerical error - covariance reset");
 		return;
 
@@ -123,7 +123,7 @@ void Ekf::fuseMag()
 		_fault_status.flags.bad_mag_y = true;
 
 		// we need to re-initialise covariances and abort this fusion step
-		resetMagCovariance();
+		resetMagRelatedCovariances();
 		ECL_ERR_TIMESTAMPED("EKF magY fusion numerical error - covariance reset");
 		return;
 
@@ -142,7 +142,7 @@ void Ekf::fuseMag()
 		_fault_status.flags.bad_mag_z = true;
 
 		// we need to re-initialise covariances and abort this fusion step
-		resetMagCovariance();
+		resetMagRelatedCovariances();
 		ECL_ERR_TIMESTAMPED("EKF magZ fusion numerical error - covariance reset");
 		return;
 
@@ -171,7 +171,7 @@ void Ekf::fuseMag()
 		return;
 	}
 
-	bool update_all_states = !_control_status.flags.update_mag_states_only && !_flt_mag_align_converging;
+	bool update_all_states = !_flt_mag_align_converging;
 
 	// update the states and covariance using sequential fusion of the magnetometer components
 	for (uint8_t index = 0; index <= 2; index++) {

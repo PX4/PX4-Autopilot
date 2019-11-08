@@ -34,6 +34,7 @@
 add_library(ecl_EKF
 	airspeed_fusion.cpp
 	control.cpp
+	mag_control.cpp
 	covariance.cpp
 	drag_fusion.cpp
 	ekf.cpp

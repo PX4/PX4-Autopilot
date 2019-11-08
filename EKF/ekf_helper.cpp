@@ -433,7 +433,7 @@ bool Ekf::realignYawGPS()
 			ECL_WARN_TIMESTAMPED("EKF bad yaw corrected using GPS course");
 
 			// declare the magnetometer as failed if a bad yaw has occurred more than once
-			if (_control_status.flags.mag_align_complete && (_num_bad_flight_yaw_events >= 2) && !_control_status.flags.mag_fault) {
+			if (_control_status.flags.mag_aligned_in_flight && (_num_bad_flight_yaw_events >= 2) && !_control_status.flags.mag_fault) {
 				ECL_WARN_TIMESTAMPED("EKF stopping magnetometer use");
 				_control_status.flags.mag_fault = true;
 			}
@@ -448,11 +448,11 @@ bool Ekf::realignYawGPS()
 			Eulerf euler321(_state.quat_nominal);
 
 			// apply yaw correction
-			if (!_control_status.flags.mag_align_complete) {
+			if (!_control_status.flags.mag_aligned_in_flight) {
 				// This is our first flight alignment so we can assume that the recent change in velocity has occurred due to a
 				// forward direction takeoff or launch and therefore the inertial and GPS ground course discrepancy is due to yaw error
 				euler321(2) += courseYawError;
-				_control_status.flags.mag_align_complete = true;
+				_control_status.flags.mag_aligned_in_flight = true;
 
 			} else if (_control_status.flags.wind) {
 				// we have previously aligned yaw in-flight and have wind estimates so set the yaw such that the vehicle nose is
@@ -488,9 +488,7 @@ bool Ekf::realignYawGPS()
 			increaseQuatYawErrVariance(sq(asinf(sineYawError)));
 
 			// reset the corresponding rows and columns in the covariance matrix and set the variances on the magnetic field states to the measurement variance
-			zeroRows(P, 16, 21);
-			zeroCols(P, 16, 21);
-			_mag_decl_cov_reset = false;
+			clearMagCov();
 
 			if (_control_status.flags.mag_3D) {
 				for (uint8_t index = 16; index <= 21; index ++) {
@@ -498,7 +496,7 @@ bool Ekf::realignYawGPS()
 				}
 
 				// save covariance data for re-use when auto-switching between heading and 3-axis fusion
-				save_mag_cov_data();
+				saveMagCovData();
 			}
 
 			// record the start time for the magnetic field alignment
@@ -528,9 +526,7 @@ bool Ekf::realignYawGPS()
 			_state.mag_I = _R_to_earth * _mag_sample_delayed.mag;
 
 			// reset the corresponding rows and columns in the covariance matrix and set the variances on the magnetic field states to the measurement variance
-			zeroRows(P, 16, 21);
-			zeroCols(P, 16, 21);
-			_mag_decl_cov_reset = false;
+			clearMagCov();
 
 			if (_control_status.flags.mag_3D) {
 				for (uint8_t index = 16; index <= 21; index ++) {
@@ -538,7 +534,7 @@ bool Ekf::realignYawGPS()
 				}
 
 				// save covariance data for re-use when auto-switching between heading and 3-axis fusion
-				save_mag_cov_data();
+				saveMagCovData();
 			}
 
 			// record the start time for the magnetic field alignment
@@ -549,13 +545,13 @@ bool Ekf::realignYawGPS()
 
 	} else {
 		// attempt a normal alignment using the magnetometer
-		return resetMagHeading(_mag_sample_delayed.mag);
+		return resetMagHeading(_mag_lpf.getState());
 
 	}
 }
 
 // Reset heading and magnetic field states
-bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update_buffer)
+bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool update_buffer)
 {
 	// prevent a reset being performed more than once on the same frame
 	if (_imu_sample_delayed.time_us == _flt_mag_align_start_time) {
@@ -563,17 +559,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update
 	}
 
 	if (_params.mag_fusion_type >= MAG_FUSE_TYPE_NONE) {
-		// do not use the magnetometer and deactivate magnetic field states
-		// save covariance data for re-use if currently doing 3-axis fusion
-		if (_control_status.flags.mag_3D) {
-			save_mag_cov_data();
-			_control_status.flags.mag_3D = false;
-		}
-		zeroRows(P, 16, 21);
-		zeroCols(P, 16, 21);
-		_mag_decl_cov_reset = false;
-		_control_status.flags.mag_hdg = false;
-
+		stopMagFusion();
 		return false;
 	}
 
@@ -603,7 +589,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update
 			// calculate the yaw angle for a 312 sequence
 			euler321(2) = atan2f(R_to_earth_ev(1, 0), R_to_earth_ev(0, 0));
 
-		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_AUTOFW) {
+		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
 			Vector3f mag_earth_pred = R_to_earth * mag_init;
 			// the angle of the projection onto the horizontal gives the yaw angle
@@ -661,7 +647,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update
 			// calculate the yaw angle for a 312 sequence
 			euler312(0) = atan2f(-R_to_earth_ev(0, 1), R_to_earth_ev(1, 1));
 
-		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_AUTOFW) {
+		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
 			Vector3f mag_earth_pred = R_to_earth * mag_init;
 			// the angle of the projection onto the horizontal gives the yaw angle
@@ -699,9 +685,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update
 	_state.mag_I = R_to_earth_after * mag_init;
 
 	// reset the corresponding rows and columns in the covariance matrix and set the variances on the magnetic field states to the measurement variance
-	zeroRows(P, 16, 21);
-	zeroCols(P, 16, 21);
-	_mag_decl_cov_reset = false;
+	clearMagCov();
 
 	if (_control_status.flags.mag_3D) {
 		for (uint8_t index = 16; index <= 21; index ++) {
@@ -709,7 +693,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update
 		}
 
 		// save covariance data for re-use when auto-switching between heading and 3-axis fusion
-		save_mag_cov_data();
+		saveMagCovData();
 	}
 
 	// record the time for the magnetic field alignment event
@@ -739,7 +723,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update
 		if (_control_status.flags.ev_yaw) {
 			// using error estimate from external vision data
 			increaseQuatYawErrVariance(sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f)));
-		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_AUTOFW) {
+		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
 			// using magnetic heading tuning parameter
 			increaseQuatYawErrVariance(sq(fmaxf(_params.mag_heading_noise, 1.0e-2f)));
 		}
@@ -766,7 +750,7 @@ bool Ekf::resetMagHeading(Vector3f &mag_init, bool increase_yaw_var, bool update
 float Ekf::getMagDeclination()
 {
 	// set source of magnetic declination for internal use
-	if (_control_status.flags.mag_align_complete) {
+	if (_control_status.flags.mag_aligned_in_flight) {
 		// Use value consistent with earth field state
 		return atan2f(_state.mag_I(1), _state.mag_I(0));
 
@@ -1594,6 +1578,43 @@ void Ekf::setControlEVHeight()
 	_control_status.flags.rng_hgt = false;
 }
 
+void Ekf::stopMagFusion()
+{
+	stopMag3DFusion();
+	stopMagHdgFusion();
+	clearMagCov();
+}
+
+void Ekf::stopMag3DFusion()
+{
+	// save covariance data for re-use if currently doing 3-axis fusion
+	if (_control_status.flags.mag_3D) {
+		saveMagCovData();
+		_control_status.flags.mag_3D = false;
+	}
+}
+
+void Ekf::stopMagHdgFusion()
+{
+	_control_status.flags.mag_hdg = false;
+}
+
+void Ekf::startMagHdgFusion()
+{
+	stopMag3DFusion();
+	_control_status.flags.mag_hdg = true;
+}
+
+void Ekf::startMag3DFusion()
+{
+	if (!_control_status.flags.mag_3D) {
+		stopMagHdgFusion();
+		zeroMagCov();
+		loadMagCovData();
+		_control_status.flags.mag_3D = true;
+	}
+}
+
 // update the estimated misalignment between the EV navigation frame and the EKF navigation frame
 // and calculate a rotation matrix which rotates EV measurements into the EKF's navigation frame
 void Ekf::calcExtVisRotMat()
@@ -1709,7 +1730,7 @@ void Ekf::increaseQuatYawErrVariance(float yaw_variance)
 }
 
 // save covariance data for re-use when auto-switching between heading and 3-axis fusion
-void Ekf::save_mag_cov_data()
+void Ekf::saveMagCovData()
 {
 	// save variances for the D earth axis and XYZ body axis field
 	for (uint8_t index = 0; index <= 3; index ++) {
@@ -1720,6 +1741,20 @@ void Ekf::save_mag_cov_data()
 	for (uint8_t row = 0; row <= 1; row ++) {
 		for (uint8_t col = 0; col <= 1; col ++) {
 			_saved_mag_ef_covmat[row][col] = P[row + 16][col + 16];
+		}
+	}
+}
+
+void Ekf::loadMagCovData()
+{
+	// re-instate variances for the D earth axis and XYZ body axis field
+	for (uint8_t index = 0; index <= 3; index ++) {
+		P[index + 18][index + 18] = _saved_mag_bf_variance[index];
+	}
+	// re-instate the NE axis covariance sub-matrix
+	for (uint8_t row = 0; row <= 1; row ++) {
+		for (uint8_t col = 0; col <= 1; col ++) {
+			P[row + 16][col + 16] = _saved_mag_ef_covmat[row][col];
 		}
 	}
 }

@@ -44,6 +44,7 @@
 #include <ecl.h>
 #include "common.h"
 #include "RingBuffer.h"
+#include "AlphaFilter.hpp"
 
 #include <geo/geo.h>
 #include <matrix/math.hpp>
@@ -55,6 +56,8 @@ class EstimatorInterface
 {
 
 public:
+	typedef AlphaFilter<Vector3f> AlphaFilterVector3f;
+
 	EstimatorInterface() = default;
 	virtual ~EstimatorInterface() = default;
 
@@ -245,9 +248,6 @@ public:
 		_time_last_gnd_effect_on = _time_last_imu;
 	}
 
-	// set flag if only only mag states should be updated by the magnetometer
-	void set_update_mag_states_only_flag(bool update_mag_states_only) {_control_status.flags.update_mag_states_only = update_mag_states_only;}
-
 	// set air density used by the multi-rotor specific drag force fusion
 	void set_air_density(float air_density) {_air_density = air_density;}
 
@@ -272,7 +272,7 @@ public:
 	// return true if the EKF is dead reckoning the position using inertial data only
 	bool inertial_dead_reckoning() {return _is_dead_reckoning;}
 
-	virtual bool isTerrainEstimateValid() = 0;
+	virtual bool isTerrainEstimateValid() const = 0;
 	//[[deprecated("Replaced by isTerrainEstimateValid")]]
 	bool get_terrain_valid() { return isTerrainEstimateValid(); }
 

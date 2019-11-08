@@ -94,7 +94,7 @@ static constexpr const int8_t inclination_table[13][37] = \
 	{ 71,71,72,73,75,77,78,80,81,81,80,79,77,76,74,73,73,73,73,73,73,74,74,75,76,77,78,78,78,78,77,75,73,72,71,71,71 },
 };
 
-// strength data in centi-Tesla
+// strength data in micro-Tesla or centi-Gauss
 static constexpr const int8_t strength_table[13][37] = \
 {
 	{ 62,60,58,56,54,52,49,46,43,41,38,36,34,32,31,31,30,30,30,31,33,35,38,42,46,51,55,59,62,64,66,67,67,66,65,64,62 },

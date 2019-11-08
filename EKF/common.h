@@ -200,7 +200,7 @@ struct auxVelSample {
 #define MAG_FUSE_TYPE_AUTO      0	///< The selection of either heading or 3D magnetometer fusion will be automatic
 #define MAG_FUSE_TYPE_HEADING   1	///< Simple yaw angle fusion will always be used. This is less accurate, but less affected by earth field distortions. It should not be used for pitch angles outside the range from -60 to +60 deg
 #define MAG_FUSE_TYPE_3D        2	///< Magnetometer 3-axis fusion will always be used. This is more accurate, but more affected by localised earth field distortions
-#define MAG_FUSE_TYPE_AUTOFW    3	///< The same as option 0, but if fusing airspeed, magnetometer fusion is only allowed to modify the magnetic field states.
+#define MAG_FUSE_TYPE_UNUSED    3	///< Not implemented
 #define MAG_FUSE_TYPE_INDOOR    4	///< The same as option 0, but magnetometer or yaw fusion will not be used unless earth frame external aiding (GPS or External Vision) is being used. This prevents inconsistent magnetic fields associated with indoor operation degrading state estimates.
 #define MAG_FUSE_TYPE_NONE	5	///< Do not use magnetometer under any circumstance. Other sources of yaw may be used if selected via the EKF2_AID_MASK parameter.
 
@@ -361,6 +361,7 @@ struct parameters {
 
 	// compute synthetic magnetomter Z value if possible
 	int32_t synthesize_mag_z{0};
+	bool check_mag_strength{false};
 };
 
 struct stateSample {
@@ -453,14 +454,14 @@ union filter_control_status_u {
 		uint32_t ev_yaw      : 1; ///< 13 - true when yaw data from external vision measurements is being fused
 		uint32_t ev_hgt      : 1; ///< 14 - true when height data from external vision measurements is being fused
 		uint32_t fuse_beta   : 1; ///< 15 - true when synthetic sideslip measurements are being fused
-		uint32_t update_mag_states_only   : 1; ///< 16 - true when only the magnetometer states are updated by the magnetometer
+		uint32_t mag_field_disturbed : 1; ///< 16 - true when the mag field does not match the expected strength
 		uint32_t fixed_wing  : 1; ///< 17 - true when the vehicle is operating as a fixed wing vehicle
 		uint32_t mag_fault   : 1; ///< 18 - true when the magnetometer has been declared faulty and is no longer being used
 		uint32_t fuse_aspd   : 1; ///< 19 - true when airspeed measurements are being fused
 		uint32_t gnd_effect  : 1; ///< 20 - true when protection from ground effect induced static pressure rise is active
 		uint32_t rng_stuck   : 1; ///< 21 - true when rng data wasn't ready for more than 10s and new rng values haven't changed enough
 		uint32_t gps_yaw     : 1; ///< 22 - true when yaw (not ground course) data from a GPS receiver is being fused
-		uint32_t mag_align_complete   : 1; ///< 23 - true when the in-flight mag field alignment has been completed
+		uint32_t mag_aligned_in_flight   : 1; ///< 23 - true when the in-flight mag field alignment has been completed
 		uint32_t ev_vel      : 1; ///< 24 - true when local earth frame velocity data from external vision measurements are being fused
 		uint32_t synthetic_mag_z : 1; ///< 25 - true when we are using a synthesized measurement for the magnetometer Z component
 	} flags;

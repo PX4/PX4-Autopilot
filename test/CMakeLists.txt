@@ -38,6 +38,7 @@ set(SRCS
 	test_EKF_basics.cpp
 	test_EKF_ringbuffer.cpp
 	test_EKF_imuSampling.cpp
+	test_AlphaFilter.cpp
    )
 add_executable(ECL_GTESTS ${SRCS})
 
