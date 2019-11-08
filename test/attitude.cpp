@@ -265,6 +265,12 @@ int main()
     TEST(isEqual(q_non_canonical,q_canonical_ref));
     TEST(isEqual(q_canonical,q_canonical_ref));
 
+    // quaternion setIdentity
+    Quatf q_nonIdentity(-0.7f, 0.4f, 0.5f, -0.3f);
+    Quatf q_identity(1.0f, 0.0f, 0.0f, 0.0f);
+    q_nonIdentity.setIdentity();
+    TEST(isEqual(q_nonIdentity, q_identity));
+
     // non-unit quaternion invese
     Quatf qI(1.0f, 0.0f, 0.0f, 0.0f);
     Quatf q_nonunit(0.1f, 0.2f, 0.3f, 0.4f);
