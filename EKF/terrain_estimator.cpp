@@ -284,7 +284,7 @@ void Ekf::fuseFlowForTerrain()
 	}
 }
 
-bool Ekf::isTerrainEstimateValid()
+bool Ekf::isTerrainEstimateValid() const
 {
 	return _hagl_valid;
 }

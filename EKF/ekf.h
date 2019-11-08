@@ -200,7 +200,7 @@ public:
 	// check if the EKF is dead reckoning horizontal velocity using inertial data only
 	void update_deadreckoning_status();
 
-	bool isTerrainEstimateValid() override;
+	bool isTerrainEstimateValid() const override;
 
 	void updateTerrainValidity();
 
@@ -430,7 +430,7 @@ private:
 	uint32_t _mag_counter{0};		///< number of magnetometer samples read during initialisation
 	uint32_t _ev_counter{0};		///< number of external vision samples read during initialisation
 	uint64_t _time_last_mag{0};		///< measurement time of last magnetomter sample (uSec)
-	Vector3f _mag_filt_state;		///< filtered magnetometer measurement (Gauss)
+	AlphaFilterVector3f _mag_lpf;		///< filtered magnetometer measurement (Gauss)
 	Vector3f _delVel_sum;			///< summed delta velocity (m/sec)
 	float _hgt_sensor_offset{0.0f};		///< set as necessary if desired to maintain the same height after a height reset (m)
 	float _baro_hgt_offset{0.0f};		///< baro height reading at the local NED origin (m)
@@ -439,7 +439,7 @@ private:
 	float _last_on_ground_posD{0.0f};	///< last vertical position when the in_air status was false (m)
 	bool _flt_mag_align_converging{false};	///< true when the in-flight mag field post alignment convergence is being performd
 	uint64_t _flt_mag_align_start_time{0};	///< time that inflight magnetic field alignment started (uSec)
-	uint64_t _time_last_movement{0};	///< last system time that sufficient movement to use 3-axis magnetometer fusion was detected (uSec)
+	uint64_t _time_last_mov_3d_mag_suitable{0};	///< last system time that sufficient movement to use 3-axis magnetometer fusion was detected (uSec)
 	float _saved_mag_bf_variance[4] {};	///< magnetic field state variances that have been saved for use at the next initialisation (Gauss**2)
 	float _saved_mag_ef_covmat[2][2] {};    ///< NE magnetic field state covariance sub-matrix saved for use at the next initialisation (Gauss**2)
 	bool _velpos_reset_request{false};	///< true when a large yaw error has been fixed and a velocity and position state reset is required
@@ -561,7 +561,7 @@ private:
 
 	// reset the heading and magnetic field states using the declination and magnetometer/external vision measurements
 	// return true if successful
-	bool resetMagHeading(Vector3f &mag_init, bool increase_yaw_var = true, bool update_buffer=true);
+	bool resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var = true, bool update_buffer=true);
 
 	// Do a forced re-alignment of the yaw angle to align with the horizontal velocity vector from the GPS.
 	// It is used to align the yaw angle after launch or takeoff for fixed wing vehicle.
@@ -621,6 +621,38 @@ private:
 
 	// control fusion of magnetometer observations
 	void controlMagFusion();
+	void updateMagFilter();
+
+	bool canRunMagFusion() const;
+
+	void checkHaglYawResetReq();
+	float getTerrainVPos() const;
+
+	void runOnGroundYawReset();
+	bool isYawResetAuthorized() const;
+	bool canResetMagHeading() const;
+	void runInAirYawReset();
+	bool canRealignYawUsingGps() const;
+	void runVelPosReset();
+
+	void selectMagAuto();
+	void check3DMagFusionSuitability();
+	void checkYawAngleObservability();
+	void checkMagBiasObservability();
+	bool isYawAngleObservable() const;
+	bool isMagBiasObservable() const;
+	bool canUse3DMagFusion() const;
+
+	void checkMagDeclRequired();
+	void checkMagInhibition();
+	bool shouldInhibitMag() const;
+	void checkMagFieldStrength();
+	bool isStrongMagneticDisturbance() const;
+	bool isMeasuredMatchingGpsMagStrength() const;
+	bool isMeasuredMatchingAverageMagStrength() const;
+	static bool isMeasuredMatchingExpected(float measured, float expected, float gate);
+	void runMagAndMagDeclFusions();
+	void run3DMagAndDeclFusions();
 
 	// control fusion of range finder observations
 	void controlRangeFinderFusion();
@@ -674,6 +706,12 @@ private:
 	// set control flags to use external vision height
 	void setControlEVHeight();
 
+	void stopMagFusion();
+	void stopMag3DFusion();
+	void stopMagHdgFusion();
+	void startMagHdgFusion();
+	void startMag3DFusion();
+
 	// zero the specified range of rows in the state covariance matrix
 	void zeroRows(float (&cov_mat)[_k_num_states][_k_num_states], uint8_t first, uint8_t last);
 
@@ -697,7 +735,7 @@ private:
 	void initialiseQuatCovariances(Vector3f &rot_vec_var);
 
 	// perform a limited reset of the magnetic field state covariances
-	void resetMagCovariance();
+	void resetMagRelatedCovariances();
 
 	// perform a limited reset of the wind state covariances
 	void resetWindCovariance();
@@ -714,8 +752,11 @@ private:
 	// Argument is additional yaw variance in rad**2
 	void increaseQuatYawErrVariance(float yaw_variance);
 
-	// save mag field state covariance data for re-use
-	void save_mag_cov_data();
+	// load and save mag field state covariance data for re-use
+	void loadMagCovData();
+	void saveMagCovData();
+	void clearMagCov();
+	void zeroMagCov();
 
 	// uncorrelate quaternion states from other states
 	void uncorrelateQuatStates();
