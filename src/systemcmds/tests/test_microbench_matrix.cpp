@@ -101,7 +101,14 @@ private:
 	matrix::Quatf q;
 	matrix::Eulerf e;
 	matrix::Dcmf d;
-
+	matrix::Matrix<float, 16, 6> A16;
+	matrix::Matrix<float, 6, 16> B16;
+	matrix::Matrix<float, 12, 6> A12;
+	matrix::Matrix<float, 6, 12> B12;
+	matrix::Matrix<float, 8, 6> A8;
+	matrix::Matrix<float, 6, 8> B8;
+	matrix::Matrix<float, 4, 6> A4;
+	matrix::Matrix<float, 6, 4> B4;
 };
 
 bool MicroBenchMatrix::run_tests()
@@ -126,6 +133,29 @@ void MicroBenchMatrix::reset()
 	q = matrix::Quatf(rand(), rand(), rand(), rand());
 	e = matrix::Eulerf(random(-2.0 * M_PI, 2.0 * M_PI), random(-2.0 * M_PI, 2.0 * M_PI), random(-2.0 * M_PI, 2.0 * M_PI));
 	d = q;
+
+	for (size_t j = 0; j < 6; j++) {
+		for (size_t i = 0; i < 16; i++) {
+			A16(i, j) = random(-10.0, 10.0);
+			B16(j, i) = random(-10.0, 10.0);
+		}
+
+		for (size_t i = 0; i < 12; i++) {
+			A12(i, j) = random(-10.0, 10.0);
+			B12(j, i) = random(-10.0, 10.0);
+		}
+
+		for (size_t i = 0; i < 8; i++) {
+			A8(i, j) = random(-10.0, 10.0);
+			B8(j, i) = random(-10.0, 10.0);
+		}
+
+		for (size_t i = 0; i < 4; i++) {
+			A4(i, j) = random(-10.0, 10.0);
+			B4(j, i) = random(-10.0, 10.0);
+		}
+	}
+
 }
 
 ut_declare_test_c(test_microbench_matrix, MicroBenchMatrix)
@@ -140,6 +170,18 @@ bool MicroBenchMatrix::time_px4_matrix()
 
 	PERF("matrix Dcm from Euler", d = e, 1000);
 	PERF("matrix Dcm from Quaternion", d = q, 1000);
+
+	PERF("matrix 16x6 pseudo inverse", B16 = matrix::geninv(A16), 1000);
+	PERF("matrix 6x16 pseudo inverse", A16 = matrix::geninv(B16), 1000);
+
+	PERF("matrix 12x6 pseudo inverse", B12 = matrix::geninv(A12), 1000);
+	PERF("matrix 6x12 pseudo inverse", A12 = matrix::geninv(B12), 1000);
+
+	PERF("matrix 8x6 pseudo inverse", B8 = matrix::geninv(A8), 1000);
+	PERF("matrix 6x8 pseudo inverse", A8 = matrix::geninv(B8), 1000);
+
+	PERF("matrix 4x6 pseudo inverse", B4 = matrix::geninv(A4), 1000);
+	PERF("matrix 6x4 pseudo inverse", A4 = matrix::geninv(B4), 1000);
 
 	return true;
 }
