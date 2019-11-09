@@ -50,6 +50,7 @@
 #include <errno.h>
 
 #include <systemlib/err.h>
+#include <lib/parameters/param.h>
 #include <perf/perf_counter.h>
 #include <systemlib/mavlink_log.h>
 

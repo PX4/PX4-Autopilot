@@ -81,7 +81,6 @@ px4_add_module(
 		uavcanesc_main.cpp
 		indication_controller.cpp
 		led.cpp
-		uavcanesc_params.c
 	DEPENDS
 		drivers_bootloaders
 		git_uavcan

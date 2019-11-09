@@ -34,6 +34,8 @@
 #include "../PreFlightCheck.hpp"
 
 #include <HealthFlags.h>
+
+#include <lib/parameters/param.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/sensor_preflight.h>

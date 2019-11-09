@@ -63,6 +63,7 @@
 #include <drivers/drv_range_finder.h>
 #include <drivers/device/device.h>
 #include <drivers/device/ringbuffer.h>
+#include <lib/parameters/param.h>
 
 #include <uORB/uORB.h>
 #include <uORB/topics/distance_sensor.h>

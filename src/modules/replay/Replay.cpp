@@ -46,6 +46,7 @@
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/time.h>
 #include <px4_platform_common/shutdown.h>
+#include <lib/parameters/param.h>
 
 #include <cstring>
 #include <float.h>
