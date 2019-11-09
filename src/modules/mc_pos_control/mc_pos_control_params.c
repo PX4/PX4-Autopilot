@@ -396,6 +396,18 @@ PARAM_DEFINE_FLOAT(MPC_MAN_TILT_MAX, 35.0f);
 PARAM_DEFINE_FLOAT(MPC_MAN_Y_MAX, 150.0f);
 
 /**
+ * Manual yaw rate input filter time constant
+ * Setting this parameter to 0 disables the filter
+ *
+ * @unit s
+ * @min 0.0
+ * @max 5.0
+ * @decimal 2
+ * @group Multicopter Position Control
+ */
+PARAM_DEFINE_FLOAT(MPC_MAN_Y_TAU, 0.08f);
+
+/**
  * Deadzone of sticks where position hold is enabled
  *
  * @min 0.0
