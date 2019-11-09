@@ -52,19 +52,19 @@ set(NUTTX_APPS_DIR ${PX4_BINARY_DIR}/NuttX/apps CACHE FILEPATH "NuttX apps direc
 px4_add_git_submodule(TARGET git_nuttx PATH "${NUTTX_SRC_DIR}/nuttx")
 px4_add_git_submodule(TARGET git_nuttx_apps PATH "${NUTTX_SRC_DIR}/apps")
 
-if (CMAKE_HOST_APPLE OR CMAKE_HOST_WIN32)
+if(CMAKE_HOST_APPLE OR CMAKE_HOST_WIN32)
 	# copy with rsync and create file dependencies
-	set(cp_cmd "rsync")
-	set(cp_opts)
-	list(APPEND cp_opts
+	set(NUTTX_COPY_CMD "rsync")
+	set(NUTTX_COPY_CMD_OPTS)
+	list(APPEND NUTTX_COPY_CMD_OPTS
 		-rp
 		--inplace
 	)
 else()
 	# copy with hard links
 	# archive, recursive, force, link (hardlinks)
-	set(cp_cmd "cp")
-	set(cp_opts "-aRfl")
+	set(NUTTX_COPY_CMD "cp")
+	set(NUTTX_COPY_CMD_OPTS "-aRfl")
 endif()
 
 ###############################################################################
@@ -73,9 +73,12 @@ endif()
 file(RELATIVE_PATH CP_SRC ${CMAKE_SOURCE_DIR} ${NUTTX_SRC_DIR}/nuttx)
 file(RELATIVE_PATH CP_DST ${CMAKE_SOURCE_DIR} ${PX4_BINARY_DIR}/NuttX)
 
-# copy during cmake configure
-execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${NUTTX_DIR})
-execute_process(COMMAND ${cp_cmd} ${cp_opts} ${CP_SRC} ${CP_DST} WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+# copy nuttx during cmake configure
+if(NOT EXISTS ${NUTTX_DIR}/nuttx_copy.stamp)
+	execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${NUTTX_DIR})
+	execute_process(COMMAND ${NUTTX_COPY_CMD} ${NUTTX_COPY_CMD_OPTS} ${CP_SRC} ${CP_DST} WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+	execute_process(COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx_copy.stamp)
+endif()
 
 ###############################################################################
 # NuttX apps: copy to build directory
@@ -83,47 +86,48 @@ execute_process(COMMAND ${cp_cmd} ${cp_opts} ${CP_SRC} ${CP_DST} WORKING_DIRECTO
 file(RELATIVE_PATH CP_SRC ${CMAKE_SOURCE_DIR} ${NUTTX_SRC_DIR}/apps)
 file(RELATIVE_PATH CP_DST ${CMAKE_SOURCE_DIR} ${PX4_BINARY_DIR}/NuttX)
 
-# copy during cmake configure
-execute_process(COMMAND ${cp_cmd} ${cp_opts} ${CP_SRC} ${CP_DST} WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-
-###############################################################################
-# nuttx-config: copy to build directory
-###############################################################################
-
-set(NUTTX_DEFCONFIG ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig CACHE FILEPATH "path to defconfig" FORCE)
-
-###############################################################################
-# Create a temporary Toplevel Make.defs for the oldconfig step
-###############################################################################
-configure_file(${NUTTX_SRC_DIR}/Make.defs.in ${NUTTX_DIR}/Make.defs)
-
-# If the board provides a Kconfig Use it or create an empty one
-if(EXISTS ${NUTTX_CONFIG_DIR}/Kconfig)
-	execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_CONFIG_DIR}/Kconfig ${NUTTX_DIR}/boards/dummy/Kconfig)
-else()
-	execute_process(COMMAND ${CMAKE_COMMAND} -E touch ${NUTTX_DIR}/boards/dummy/Kconfig)
+# copy apps during cmake configure
+if(NOT EXISTS ${NUTTX_DIR}/apps_copy.stamp)
+	execute_process(COMMAND ${NUTTX_COPY_CMD} ${NUTTX_COPY_CMD_OPTS} ${CP_SRC} ${CP_DST} WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+	execute_process(COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/apps_copy.stamp)
 endif()
 
-execute_process(
-	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/NuttX/nuttx-config/src
-	COMMAND ${CMAKE_COMMAND} -E copy_directory ${NUTTX_CONFIG_DIR}/ ${PX4_BINARY_DIR}/NuttX/nuttx-config
-)
+###############################################################################
+# board nuttx-config
+###############################################################################
 
-# NuttX extra files
-execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_SRC_DIR}/nsh_romfsimg.h ${PX4_BINARY_DIR}/NuttX/nuttx-config/include/nsh_romfsimg.h)
+# If the board provides a Kconfig Use it or create an empty one
+if(NOT EXISTS ${NUTTX_DIR}/nuttx_config_kconfig.stamp)
+	if(EXISTS ${NUTTX_CONFIG_DIR}/Kconfig)
+		execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_CONFIG_DIR}/Kconfig ${NUTTX_DIR}/boards/dummy/Kconfig)
+	else()
+		execute_process(COMMAND ${CMAKE_COMMAND} -E touch ${NUTTX_DIR}/boards/dummy/Kconfig)
+	endif()
 
-# copy defconfig
-execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DEFCONFIG} ${NUTTX_DIR}/.config)
+	execute_process(COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx_config_kconfig.stamp)
+endif()
 
-# create empty drivers/Kconfig
-execute_process(
-	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/NuttX/nuttx-config/drivers
-	COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx-config/drivers/Kconfig
-	)
+if(NOT EXISTS ${NUTTX_DIR}/nuttx_copy_config_dir.stamp)
 
-# copy PX4 board config into nuttx
-file(STRINGS ${NUTTX_DEFCONFIG} config_expanded REGEX "# Automatically generated file; DO NOT EDIT.")
-if (NOT config_expanded)
+	# copy board's nuttx-config to NuttX/nuttx-config
+	file(RELATIVE_PATH CP_SRC ${CMAKE_SOURCE_DIR} ${PX4_BOARD_DIR}/nuttx-config)
+	file(RELATIVE_PATH CP_DST ${CMAKE_SOURCE_DIR} ${PX4_BINARY_DIR}/NuttX)
+	execute_process(COMMAND ${NUTTX_COPY_CMD} ${NUTTX_COPY_CMD_OPTS} ${CP_SRC} ${CP_DST} WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+	execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/NuttX/nuttx-config/drivers)
+	execute_process(COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx-config/drivers/Kconfig)
+	execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/NuttX/nuttx-config/src)
+	execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_SRC_DIR}/nsh_romfsimg.h ${PX4_BINARY_DIR}/NuttX/nuttx-config/include/nsh_romfsimg.h)
+
+	execute_process(COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx_copy_config_dir.stamp)
+
+endif()
+
+# make olddefconfig (inflate defconfig to full .config)
+if(NOT EXISTS ${NUTTX_DIR}/.config)
+	set(NUTTX_DEFCONFIG ${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}/defconfig CACHE FILEPATH "path to defconfig" FORCE)
+	configure_file(${NUTTX_SRC_DIR}/Make.defs.in ${NUTTX_DIR}/Make.defs) # Create a temporary Toplevel Make.defs for the oldconfig step
+	execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DEFCONFIG} ${NUTTX_DIR}/.config)
 	set(ENV{PATH} "${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/tools:$ENV{PATH}")
 	execute_process(
 		COMMAND make --no-print-directory --silent -C ${NUTTX_DIR} CONFIG_ARCH_BOARD_CUSTOM=y olddefconfig
@@ -135,9 +139,11 @@ if (NOT config_expanded)
 	if(NOT ret EQUAL "0")
 		# Show the log here as it will be deleted due to the incomplete configure step
 		file(READ ${NUTTX_DIR}/nuttx_olddefconfig.log DEFCONFIG_LOG)
-		message( STATUS "${DEFCONFIG_LOG}")
-		message( FATAL_ERROR "NuttX olddefconfig target failed. \
-Possible cause: the board (${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}) has the wrong directory structure (i.e. missing files).")
+		message(STATUS "${DEFCONFIG_LOG}")
+		message(FATAL_ERROR "NuttX olddefconfig target failed. \
+			Possible cause: the board (${NUTTX_CONFIG_DIR}/${NUTTX_CONFIG}) has the wrong directory structure (i.e. missing files).")
+	else()
+		execute_process(COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx_olddefconfig.stamp)
 	endif()
 	# remove Toplevel Make.defs
 	file(REMOVE ${NUTTX_DIR}/Make.defs)

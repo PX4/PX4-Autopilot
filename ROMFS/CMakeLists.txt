@@ -155,7 +155,7 @@ foreach(board_rc_file ${OPTIONAL_BOARD_RC})
 			OUTPUT
 				${romfs_gen_root_dir}/init.d/${board_rc_file}
 				${board_rc_file}.stamp
-			COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BOARD_DIR}/init/${board_rc_file} ${romfs_gen_root_dir}/init.d/${board_rc_file}
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PX4_BOARD_DIR}/init/${board_rc_file} ${romfs_gen_root_dir}/init.d/${board_rc_file}
 			COMMAND ${CMAKE_COMMAND} -E touch ${board_rc_file}.stamp
 			DEPENDS
 				${PX4_BOARD_DIR}/init/${board_rc_file}
@@ -196,7 +196,7 @@ if("${CONFIG_FS_CROMFS}" STREQUAL "y")
 	add_custom_command(
 		OUTPUT ${CMAKE_BINARY_DIR}/gencromfs
 		COMMAND make --no-print-directory --silent -f Makefile.host gencromfs
-		COMMAND ${CMAKE_COMMAND} -E copy gencromfs ${CMAKE_BINARY_DIR}/gencromfs
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different gencromfs ${CMAKE_BINARY_DIR}/gencromfs
 		DEPENDS ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/tools/gencromfs.c
 		WORKING_DIRECTORY ${NUTTX_DIR}/tools
 	)
