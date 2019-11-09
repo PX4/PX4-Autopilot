@@ -31,6 +31,10 @@
 #
 ############################################################################
 
+if(POLICY CMP0079)
+	cmake_policy(SET CMP0079 NEW)
+endif()
+
 include(cygwin_cygpath)
 
 set(NUTTX_DIR ${PX4_BINARY_DIR}/NuttX/nuttx)
@@ -47,14 +51,14 @@ get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 add_subdirectory(NuttX ${PX4_BINARY_DIR}/NuttX)
 
 set(nuttx_libs)
-if("${PX4_BOARD_LABEL}" STREQUAL  "bootloader")
-  set(SCRIPT_PREFIX ${PX4_BOARD_LABEL}_)
-  add_subdirectory(src/bootloader)
-  list(APPEND nuttx_libs
-	bootloader
-	bootloader_lib
-	drivers_board
-  )
+if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
+	set(SCRIPT_PREFIX ${PX4_BOARD_LABEL}_)
+	add_subdirectory(src/bootloader)
+	list(APPEND nuttx_libs
+		bootloader
+		bootloader_lib
+		drivers_board
+	)
 endif()
 
 list(APPEND nuttx_libs
@@ -80,10 +84,6 @@ file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_D
 # only in the cygwin environment: convert absolute linker script path to mixed windows (C:/...)
 # because even relative linker script paths are different for linux, mac and windows
 CYGPATH(PX4_BINARY_DIR PX4_BINARY_DIR_CYG)
-
-if(POLICY CMP0079)
-	cmake_policy(SET CMP0079 NEW)
-endif()
 
 target_link_libraries(nuttx_arch
 	INTERFACE
