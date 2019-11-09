@@ -51,7 +51,6 @@ px4_add_module(
 		${FC_ADDON}/flight_controller/hexagon/inc
 	SRCS
 		mpu9x50_main.cpp
-		mpu9x50_params.c
 	DEPENDS
 	)
 target_link_libraries(platforms__qurt__fc_addon__mpu_spi PRIVATE mpu9x50)

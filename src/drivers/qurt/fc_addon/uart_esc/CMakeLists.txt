@@ -51,7 +51,6 @@ px4_add_module(
 		${FC_ADDON}/flight_controller/hexagon/inc
 	SRCS
 		uart_esc_main.cpp
-		uart_esc_params.c
 	DEPENDS
 	)
 target_link_libraries(platforms__qurt__fc_addon__uart_esc PRIVATE uart_esc)

@@ -81,7 +81,6 @@ px4_add_module(
 		sim_controller.cpp
 		led.cpp
 		resources.cpp
-		uavcannode_params.c
 	DEPENDS
 		drivers_bootloaders
 		git_uavcan

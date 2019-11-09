@@ -47,6 +47,7 @@
 
 #include <termios.h>
 
+#include <lib/parameters/param.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 #include <px4_platform_common/cli.h>

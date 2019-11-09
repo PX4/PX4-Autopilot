@@ -35,6 +35,7 @@
 
 #include <HealthFlags.h>
 #include <math.h>
+#include <lib/parameters/param.h>
 #include <systemlib/mavlink_log.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/estimator_status.h>
