@@ -61,6 +61,7 @@
 #include <math.h>
 #include <unistd.h>
 
+#include <lib/parameters/param.h>
 #include <perf/perf_counter.h>
 
 #include <drivers/drv_hrt.h>

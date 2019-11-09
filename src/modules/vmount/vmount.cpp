@@ -52,6 +52,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <systemlib/err.h>
+#include <lib/parameters/param.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/tasks.h>
 

@@ -44,6 +44,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 #include <drivers/device/i2c.h>
+#include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>

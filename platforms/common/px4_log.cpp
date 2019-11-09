@@ -49,7 +49,7 @@
 #include <uORB/topics/log_message.h>
 #include <drivers/drv_hrt.h>
 
-static orb_advert_t orb_log_message_pub = NULL;
+static orb_advert_t orb_log_message_pub = nullptr;
 
 __EXPORT const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1] = { "DEBUG", "INFO", "WARN", "ERROR", "PANIC" };
 __EXPORT const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1] =
@@ -58,7 +58,7 @@ __EXPORT const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1] =
 
 void px4_log_initialize(void)
 {
-	assert(orb_log_message_pub == NULL);
+	assert(orb_log_message_pub == nullptr);
 
 	/* we need to advertise with a valid message */
 	struct log_message_s log_message;
