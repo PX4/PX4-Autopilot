@@ -20,9 +20,3 @@ config BOARD_USE_PROBES
 		Select to use GPIO TEST1(PD2), TEST2(PB3), TEST3(PB4), TEST4(PC12) as PROBE_1-4 to provide timing signals	from selected drivers.
 
 endif
-
-# Hack to ensure ARCH_MATH_H is kept
-config BOARD_HAVE_MATH_H
-	bool "Provide ARCH math.h (selects ARCH_HAVE_MATH_H)"
-	default y
-	select ARCH_HAVE_MATH_H

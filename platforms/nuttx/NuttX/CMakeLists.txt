@@ -144,19 +144,19 @@ add_custom_target(nuttx_config_kconfig_target
 # copy NuttX config directory
 add_custom_command(
 	OUTPUT
-		${NUTTX_DIR}/arch/arm/include/math.h
 		${PX4_BINARY_DIR}/NuttX/nuttx-config/include/board.h
 		${PX4_BINARY_DIR}/NuttX/nuttx-config/include/nsh_romfsimg.h
 		${PX4_BINARY_DIR}/NuttX/nuttx-config/scripts/script.ld
+		${PX4_BINARY_DIR}/NuttX/nuttx-config/drivers/Kconfig
 		${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy_config_dir.stamp
 	COMMAND ${CMAKE_COMMAND} -E remove -f ${NUTTX_DIR}/include/nuttx/config.h
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${NUTTX_CONFIG_DIR}/ ${PX4_BINARY_DIR}/NuttX/nuttx-config
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/NuttX/nuttx-config/drivers
+	COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx-config/drivers/Kconfig
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/NuttX/nuttx-config/src
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_SRC_DIR}/math.h ${NUTTX_DIR}/arch/arm/include/math.h # copy arm math.h into NuttX source
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_SRC_DIR}/nsh_romfsimg.h ${PX4_BINARY_DIR}/NuttX/nuttx-config/include/nsh_romfsimg.h
 	COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy_config_dir.stamp
 	DEPENDS
-		${NUTTX_SRC_DIR}/math.h
 		${NUTTX_SRC_DIR}/nsh_romfsimg.h
 		${NUTTX_CONFIG_DIR}/include/board.h
 		${NUTTX_CONFIG_DIR}/scripts/script.ld
