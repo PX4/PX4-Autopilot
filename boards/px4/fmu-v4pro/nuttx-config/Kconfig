@@ -20,9 +20,3 @@ config BOARD_USE_PROBES
 		Select to use GPIO FMU-CH1-6 to provide timing signals from selected drivers.
 
 endif
-
-# Hack to ensure ARCH_MATH_H is kept
-config BOARD_HAVE_MATH_H
-	bool "Provide ARCH math.h (selects ARCH_HAVE_MATH_H)"
-	default y
-	select ARCH_HAVE_MATH_H

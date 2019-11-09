@@ -71,6 +71,9 @@ function(px4_os_add_flags)
 	add_definitions(
 		-D__PX4_NUTTX
 		-D__DF_NUTTX
+
+		-D_SYS_CDEFS_H_ # skip toolchain's <sys/cdefs.h>
+		-D_SYS_REENT_H_	# skip toolchain's <sys/reent.h>
 		)
 
 	if("${CONFIG_ARMV7M_STACKCHECK}" STREQUAL "y")

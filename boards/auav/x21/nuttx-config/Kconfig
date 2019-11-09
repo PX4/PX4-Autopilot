@@ -1,5 +1,0 @@
-# Hack to ensure ARCH_MATH_H is kept
-config BOARD_HAVE_MATH_H
-	bool "Provide ARCH math.h (selects ARCH_HAVE_MATH_H)"
-	default y
-	select ARCH_HAVE_MATH_H
