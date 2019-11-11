@@ -11,7 +11,7 @@
 #include "autopilot_tester.h"
 
 
-TEST_CASE("Takeoff and land", "[multicopter]")
+TEST_CASE("Takeoff and land", "[multicopter][vtol]")
 {
     AutopilotTester tester;
     tester.connect(connection_url);
@@ -23,7 +23,7 @@ TEST_CASE("Takeoff and land", "[multicopter]")
     tester.wait_until_disarmed();
 }
 
-TEST_CASE("Fly a square missions", "[multicopter]")
+TEST_CASE("Fly a square missions", "[multicopter][vtol]")
 {
     AutopilotTester tester;
     tester.connect(connection_url);
