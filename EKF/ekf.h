@@ -63,65 +63,65 @@ public:
 	// should be called every time new data is pushed into the filter
 	bool update() override;
 
-	void getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos);
+	void getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) override;
 
-	void getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos);
+	void getGpsVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) override;
 
-	void getGpsVelPosInnovRatio(float& hvel, float &vvel, float& hpos, float &vpos);
+	void getGpsVelPosInnovRatio(float& hvel, float &vvel, float& hpos, float &vpos) override;
 
-	void getEvVelPosInnov(float hvel[2], float& vvel, float hpos[2], float& vpos);
+	void getEvVelPosInnov(float hvel[2], float& vvel, float hpos[2], float& vpos) override;
 
-	void getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos);
+	void getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) override;
 
-	void getEvVelPosInnovRatio(float& hvel, float &vvel, float& hpos, float &vpos);
+	void getEvVelPosInnovRatio(float& hvel, float &vvel, float& hpos, float &vpos) override;
 
-	void getAuxVelInnov(float aux_vel_innov[2]);
+	void getAuxVelInnov(float aux_vel_innov[2]) override;
 
-	void getAuxVelInnovVar(float aux_vel_innov[2]);
+	void getAuxVelInnovVar(float aux_vel_innov[2]) override;
 
-	void getAuxVelInnovRatio(float &aux_vel_innov_ratio);
+	void getAuxVelInnovRatio(float &aux_vel_innov_ratio) override;
 
-	void getFlowInnov(float flow_innov[2]);
+	void getFlowInnov(float flow_innov[2]) override;
 
-	void getFlowInnovVar(float flow_innov_var[2]);
+	void getFlowInnovVar(float flow_innov_var[2]) override;
 
-	void getFlowInnovRatio(float &flow_innov_ratio);
+	void getFlowInnovRatio(float &flow_innov_ratio) override;
 
-	void getHeadingInnov(float &heading_innov);
+	void getHeadingInnov(float &heading_innov) override;
 
-	void getHeadingInnovVar(float &heading_innov_var);
+	void getHeadingInnovVar(float &heading_innov_var) override;
 
-	void getHeadingInnovRatio(float &heading_innov_ratio);
+	void getHeadingInnovRatio(float &heading_innov_ratio) override;
 
-	void getMagInnov(float mag_innov[3]);
+	void getMagInnov(float mag_innov[3]) override;
 
-	void getMagInnovVar(float mag_innov_var[3]);
+	void getMagInnovVar(float mag_innov_var[3]) override;
 
-	void getMagInnovRatio(float &mag_innov_ratio);
+	void getMagInnovRatio(float &mag_innov_ratio) override;
 
-	void getDragInnov(float drag_innov[2]);
+	void getDragInnov(float drag_innov[2]) override;
 
-	void getDragInnovVar(float drag_innov_var[2]);
+	void getDragInnovVar(float drag_innov_var[2]) override;
 
-	void getDragInnovRatio(float drag_innov_ratio[2]);
+	void getDragInnovRatio(float drag_innov_ratio[2]) override;
 
-	void getAirspeedInnov(float &airspeed_innov);
+	void getAirspeedInnov(float &airspeed_innov) override;
 
-	void getAirspeedInnovVar(float &airspeed_innov_var);
+	void getAirspeedInnovVar(float &airspeed_innov_var) override;
 
-	void getAirspeedInnovRatio(float &airspeed_innov_ratio);
+	void getAirspeedInnovRatio(float &airspeed_innov_ratio) override;
 
-	void getBetaInnov(float &beta_innov);
+	void getBetaInnov(float &beta_innov) override;
 
-	void getBetaInnovVar(float &beta_innov_var);
+	void getBetaInnovVar(float &beta_innov_var) override;
 
-	void getBetaInnovRatio(float &beta_innov_ratio);
+	void getBetaInnovRatio(float &beta_innov_ratio) override;
 
-	void getHaglInnov(float &hagl_innov);
+	void getHaglInnov(float &hagl_innov) override;
 
-	void getHaglInnovVar(float &hagl_innov_var);
+	void getHaglInnovVar(float &hagl_innov_var) override;
 
-	void getHaglInnovRatio(float &hagl_innov_ratio);
+	void getHaglInnovRatio(float &hagl_innov_ratio) override;
 
 	// get the state vector at the delayed time horizon
 	void get_state_delayed(float *state) override;
@@ -261,7 +261,7 @@ public:
 	// Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.
 	// A value > 1 indicates that the sensor measurement has exceeded the maximum acceptable level and has been rejected by the EKF
 	// Where a measurement type is a vector quantity, eg magnetometer, GPS position, etc, the maximum value is returned.
-	void get_innovation_test_status(uint16_t &status, float &mag, float &gps_vel, float &gps_pos, float &ev_vel, float &ev_pos, float &hgt, float &tas, float &hagl, float &beta);
+	void get_innovation_test_status(uint16_t &status, float &mag, float &gps_vel, float &gps_pos, float &ev_vel, float &ev_pos, float &hgt, float &tas, float &hagl, float &beta) override;
 
 	// return a bitmask integer that describes which state estimates can be used for flight control
 	void get_ekf_soln_status(uint16_t *status) override;
