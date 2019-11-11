@@ -94,7 +94,7 @@ pipeline {
           }
         }
 
-        stage('px4_fmu-v2 (bloaty)') {
+        stage('px4_fmu-v3 (bloaty)') {
           agent {
             docker {
               image 'px4io/px4-dev-nuttx:2019-10-24'
@@ -106,14 +106,14 @@ pipeline {
             sh 'make distclean'
             sh 'ccache -z'
             sh 'git fetch --tags'
-            sh 'make px4_fmu-v2_default'
-            sh 'make px4_fmu-v2_default bloaty_compileunits'
-            sh 'make px4_fmu-v2_default bloaty_inlines'
-            sh 'make px4_fmu-v2_default bloaty_sections'
-            sh 'make px4_fmu-v2_default bloaty_segments'
-            sh 'make px4_fmu-v2_default bloaty_symbols'
-            sh 'make px4_fmu-v2_default bloaty_templates'
-            sh 'make px4_fmu-v2_default bloaty_compare_master'
+            sh 'make px4_fmu-v3_default'
+            sh 'make px4_fmu-v3_default bloaty_compileunits'
+            sh 'make px4_fmu-v3_default bloaty_inlines'
+            sh 'make px4_fmu-v3_default bloaty_sections'
+            sh 'make px4_fmu-v3_default bloaty_segments'
+            sh 'make px4_fmu-v3_default bloaty_symbols'
+            sh 'make px4_fmu-v3_default bloaty_templates'
+            sh 'make px4_fmu-v3_default bloaty_compare_master'
             sh 'make sizes'
             sh 'ccache -s'
           }
@@ -394,7 +394,7 @@ pipeline {
             sh 'export'
             sh 'make distclean'
             sh 'git fetch --tags'
-            sh 'make px4_fmu-v2_default stack_check'
+            sh 'make px4_fmu-v3_default stack_check'
           }
           post {
             always {

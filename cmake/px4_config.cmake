@@ -56,8 +56,8 @@ if(NOT PX4_CONFIG_FILE)
 
 			set(board "${vendor}${model}")
 
-			# <VENDOR>_<MODEL>_<LABEL> (eg px4_fmu-v2_default)
-			# <VENDOR>_<MODEL>_default (eg px4_fmu-v2) # allow skipping label if "default"
+			# <VENDOR>_<MODEL>_<LABEL> (eg px4_fmu-v3_default)
+			# <VENDOR>_<MODEL>_default (eg px4_fmu-v3) # allow skipping label if "default"
 			if ((${CONFIG} MATCHES "${vendor}_${model}_${label}") OR # match full vendor, model, label
 			    ((${label} STREQUAL "default") AND (${CONFIG} STREQUAL "${vendor}_${model}")) # default label can be omitted
 			)
@@ -65,8 +65,8 @@ if(NOT PX4_CONFIG_FILE)
 				break()
 			endif()
 
-			# <BOARD>_<LABEL> (eg px4_fmu-v2_default)
-			# <BOARD>_default (eg px4_fmu-v2) # allow skipping label if "default"
+			# <BOARD>_<LABEL> (eg px4_fmu-v3_default)
+			# <BOARD>_default (eg px4_fmu-v3) # allow skipping label if "default"
 			if ((${CONFIG} MATCHES "${board}_${label}") OR # match full board, label
 			    ((${label} STREQUAL "default") AND (${CONFIG} STREQUAL "${board}")) # default label can be omitted
 			)
@@ -76,7 +76,7 @@ if(NOT PX4_CONFIG_FILE)
 
 
 			# LEGACY form
-			# <OS>_<BOARD>_<LABEL> (eg nuttx_px4_fmu-v2_default)
+			# <OS>_<BOARD>_<LABEL> (eg nuttx_px4_fmu-v3_default)
 			string(REGEX REPLACE "^nuttx_|^posix_|^qurt_" "" config_no_os ${CONFIG}) # ignore OS prefix
 
 			if ((${config_no_os} MATCHES "${board}_${label}"))

@@ -48,12 +48,12 @@ endif
 #
 # Example usage:
 #
-# make px4_fmu-v2_default 			(builds)
-# make px4_fmu-v2_default upload 	(builds and uploads)
-# make px4_fmu-v2_default test 		(builds and tests)
+# make px4_fmu-v3_default 			(builds)
+# make px4_fmu-v3_default upload 	(builds and uploads)
+# make px4_fmu-v3_default test 		(builds and tests)
 #
 # This tells cmake to build the nuttx px4_fmu-v2 default config in the
-# directory build/px4_fmu-v2_default and then call make
+# directory build/px4_fmu-v3_default and then call make
 # in that directory with the target upload.
 
 # explicity set default build target
@@ -241,9 +241,16 @@ excelsior_rtps: atlflight_excelsior_rtps atlflight_excelsior_qurt-rtps
 qgc_firmware: px4fmu_firmware misc_qgc_extra_firmware
 
 # px4fmu NuttX firmware
+px4_fmu-v2_default:
+	@echo "Note: The target px4_fmu-v2_default has been deprecated"
+	@echo ""
+	@echo "      Consider switching to px4_fmu-v3_default, for more info:"
+	@echo "      https://docs.px4.io/master/en/config/firmware.html#bootloader"
+	@echo ""
+	@echo "      or use px4_fmu-v2_multicopter or px4_fmu-v2_fixedwing."
+
 px4fmu_firmware: \
 	check_px4_io-v2_default \
-	check_px4_fmu-v2_default \
 	check_px4_fmu-v3_default \
 	check_px4_fmu-v4_default \
 	check_px4_fmu-v4pro_default \
@@ -275,7 +282,7 @@ check_rtps: \
 	check_px4_sitl_rtps \
 	sizes
 
-.PHONY: sizes check quick_check check_rtps uorb_graphs
+.PHONY: sizes check quick_check check_rtps uorb_graphs px4_fmu-v2_default
 
 sizes:
 	@-find build -name *.elf -type f | xargs size 2> /dev/null || :
@@ -295,7 +302,7 @@ check_%:
 uorb_graphs:
 	@./Tools/uorb_graph/create_from_startupscript.sh
 	@./Tools/uorb_graph/create.py --src-path src --exclude-path src/examples --file Tools/uorb_graph/graph_full
-	@$(MAKE) --no-print-directory px4_fmu-v2_default uorb_graph
+	@$(MAKE) --no-print-directory px4_fmu-v3_default uorb_graph
 	@$(MAKE) --no-print-directory px4_fmu-v4_default uorb_graph
 	@$(MAKE) --no-print-directory px4_sitl_default uorb_graph
 

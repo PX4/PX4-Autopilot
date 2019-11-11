@@ -642,7 +642,8 @@ class uploader(object):
                     and not force:
                 raise RuntimeError("\nThe Board uses bootloader revision 4 and can therefore not determine\n"
                                    "if flashing more than 1 MB (px4_fmu-v3_default) is safe, chances are\n"
-                                   "high that it is not safe! If unsure, use px4_fmu-v2_default.\n"
+                                   "high that it is not safe! Fore more info, check:\n"
+                                   "https://docs.px4.io/master/en/config/firmware.html#bootloader\n"
                                    "\n"
                                    "If you know you that the board does not have the silicon errata, use\n"
                                    "this script with --force, or update the bootloader. If you are invoking\n"
