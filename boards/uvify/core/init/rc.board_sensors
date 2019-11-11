@@ -3,6 +3,8 @@
 # UVify UVF4 specific board sensors init
 #------------------------------------------------------------------------------
 
+adc start
+
 # Internal SPI
 ms5611 -T 0 -s start
 
