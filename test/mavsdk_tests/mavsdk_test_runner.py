@@ -124,7 +124,7 @@ class TestRunner(Runner):
         super().__init__(log_dir)
         self.env = {"PATH": os.environ['PATH']}
         self.cmd = workspace_dir + \
-            "/build/px4_sitl_default/test_mission_multicopter"
+            "/build/px4_sitl_default/mavsdk_tests"
         self.args = [config['test_filter']]
         self.log_prefix = "test_runner"
 
