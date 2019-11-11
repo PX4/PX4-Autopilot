@@ -522,7 +522,8 @@ private:
 		(ParamExtFloat<px4::params::EKF2_MOVE_TEST>)
 		_param_ekf2_move_test,	///< scaling applied to IMU data thresholds used to determine if the vehicle is static or moving.
 
-		(ParamFloat<px4::params::EKF2_REQ_GPS_H>) _param_ekf2_req_gps_h	///< Required GPS health time
+		(ParamFloat<px4::params::EKF2_REQ_GPS_H>) _param_ekf2_req_gps_h, ///< Required GPS health time
+		(ParamExtInt<px4::params::EKF2_MAG_CHECK>) _param_ekf2_mag_check ///< Mag field strength check
 
 	)
 
@@ -627,7 +628,8 @@ Ekf2::Ekf2(bool replay_mode):
 	_param_ekf2_drag_noise(_params->drag_noise),
 	_param_ekf2_bcoef_x(_params->bcoef_x),
 	_param_ekf2_bcoef_y(_params->bcoef_y),
-	_param_ekf2_move_test(_params->is_moving_scaler)
+	_param_ekf2_move_test(_params->is_moving_scaler),
+	_param_ekf2_mag_check(_params->check_mag_strength)
 {
 	// initialise parameter cache
 	updateParams();
@@ -1541,6 +1543,7 @@ void Ekf2::Run()
 			status.pre_flt_fail_innov_vel_horiz = _preflt_checker.hasHorizVelFailed();
 			status.pre_flt_fail_innov_vel_vert = _preflt_checker.hasVertVelFailed();
 			status.pre_flt_fail_innov_height = _preflt_checker.hasHeightFailed();
+			status.pre_flt_fail_mag_field_disturbed = control_status.flags.mag_field_disturbed;
 
 			_estimator_status_pub.publish(status);
 

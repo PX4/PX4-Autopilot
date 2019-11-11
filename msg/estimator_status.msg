@@ -110,6 +110,7 @@ bool pre_flt_fail_innov_heading
 bool pre_flt_fail_innov_vel_horiz
 bool pre_flt_fail_innov_vel_vert
 bool pre_flt_fail_innov_height
+bool pre_flt_fail_mag_field_disturbed
 
 # legacy local position estimator (LPE) flags
 uint8 health_flags		# Bitmask to indicate sensor health states (vel, pos, hgt)
