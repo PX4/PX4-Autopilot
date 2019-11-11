@@ -3,6 +3,7 @@
 import argparse
 import atexit
 import datetime
+import errno
 import os
 import psutil
 import subprocess
@@ -55,11 +56,15 @@ class Runner:
 
         atexit.register(self.stop)
 
-    def wait(self, timeout_s):
+    def wait(self, timeout_min):
         try:
-            return self.process.wait(timeout=timeout_s)
+            return self.process.wait(timeout=timeout_min*60)
         except subprocess.TimeoutExpired:
+            print("Timeout of {} min{} reached, stopping...".
+                  format(timeout_min, "s" if timeout_min > 1 else ""))
             self.stop()
+            print("stopped.")
+            return errno.ETIMEDOUT
 
     def stop(self):
         atexit.unregister(self.stop)
@@ -166,7 +171,7 @@ def main():
         test_runner = TestRunner(os.getcwd(), args.log_dir, group)
         test_runner.start(group)
 
-        returncode = test_runner.wait(group['timeout_min']*60)
+        returncode = test_runner.wait(group['timeout_min'])
         print("Test exited with {}".format(returncode))
 
         returncode = gazebo_runner.stop()
