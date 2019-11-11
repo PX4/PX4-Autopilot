@@ -361,7 +361,7 @@ struct parameters {
 
 	// compute synthetic magnetomter Z value if possible
 	int32_t synthesize_mag_z{0};
-	bool check_mag_strength{false};
+	int32_t check_mag_strength{0};
 };
 
 struct stateSample {
