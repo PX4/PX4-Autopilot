@@ -42,7 +42,7 @@
 #pragma once
 
 #include <uORB/topics/vehicle_status.h>
-#include <uORB/topics/ekf2_innovations.h>
+#include <uORB/topics/estimator_innovations.h>
 
 #include <matrix/matrix/math.hpp>
 
@@ -66,7 +66,7 @@ public:
 	 * @param dt the sampling time
 	 * @param innov the ekf2_innovation_s struct containing the current innovations
 	 */
-	void update(float dt, const ekf2_innovations_s &innov);
+	void update(float dt, const estimator_innovations_s &innov);
 
 	/*
 	 * If set to true, the checker will use a less conservative heading innovation check
@@ -76,6 +76,7 @@ public:
 	void setUsingGpsAiding(bool val) { _is_using_gps_aiding = val; }
 	void setUsingFlowAiding(bool val) { _is_using_flow_aiding = val; }
 	void setUsingEvPosAiding(bool val) { _is_using_ev_pos_aiding = val; }
+	void setUsingEvVelAiding(bool val) { _is_using_ev_vel_aiding = val; }
 
 	bool hasHeadingFailed() const { return _has_heading_failed; }
 	bool hasHorizVelFailed() const { return _has_horiz_vel_failed; }
@@ -127,12 +128,12 @@ public:
 	static constexpr float sq(float var) { return var * var; }
 
 private:
-	bool preFlightCheckHeadingFailed(const ekf2_innovations_s &innov, float alpha);
+	bool preFlightCheckHeadingFailed(const estimator_innovations_s &innov, float alpha);
 	float selectHeadingTestLimit();
 
-	bool preFlightCheckHorizVelFailed(const ekf2_innovations_s &innov, float alpha);
-	bool preFlightCheckVertVelFailed(const ekf2_innovations_s &innov, float alpha);
-	bool preFlightCheckHeightFailed(const ekf2_innovations_s &innov, float alpha);
+	bool preFlightCheckHorizVelFailed(const estimator_innovations_s &innov, float alpha);
+	bool preFlightCheckVertVelFailed(const estimator_innovations_s &innov, float alpha);
+	bool preFlightCheckHeightFailed(const estimator_innovations_s &innov, float alpha);
 
 	void resetPreFlightChecks();
 
@@ -145,6 +146,7 @@ private:
 	bool _is_using_gps_aiding{};
 	bool _is_using_flow_aiding{};
 	bool _is_using_ev_pos_aiding{};
+	bool _is_using_ev_vel_aiding{};
 
 	// Low-pass filters for innovation pre-flight checks
 	InnovationLpf _filter_vel_n_innov;	///< Preflight low pass filter N axis velocity innovations (m/sec)
