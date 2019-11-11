@@ -335,11 +335,17 @@ RoverPositionControl::control_attitude(const vehicle_attitude_s &att, const vehi
 	float control_effort = euler_sp(2) / _param_max_turn_angle.get();
 	control_effort = math::constrain(control_effort, -1.0f, 1.0f);
 
-	_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
+	const float control_throttle = math::constrain(att_sp.thrust_body[0], -1.0f, 1.0f);
 
-	const float control_throttle = att_sp.thrust_body[0];
+	if (control_throttle >= 0.0f) {
+		_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
 
-	_act_controls.control[actuator_controls_s::INDEX_THROTTLE] =  math::constrain(control_throttle, 0.0f, 1.0f);
+	} else {
+		// reverse steering, if driving backwards
+		_act_controls.control[actuator_controls_s::INDEX_YAW] = -control_effort;
+	}
+
+	_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = control_throttle;
 
 }
 
