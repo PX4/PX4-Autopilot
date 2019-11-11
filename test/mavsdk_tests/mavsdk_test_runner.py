@@ -139,18 +139,32 @@ class TestRunner(Runner):
         self.log_prefix = "test_runner"
 
 
+def is_running(process_name):
+    for proc in psutil.process_iter(attrs=['name']):
+        if proc.info['name'] == process_name:
+            True
+    return False
+
+
 def is_everything_ready():
     result = True
-    for proc in psutil.process_iter(attrs=['name']):
-        if proc.info['name'] == 'gzserver':
-            print("gzserver process already running\n"
-                  "run `killall gzserver` and try again")
-            result = False
-        elif proc.info['name'] == 'px4':
-            print("px4 process already running\n"
-                  "run `killall px4` and try again")
-            result = False
-
+    if is_running('px4'):
+        print("px4 process already running\n"
+              "run `killall px4` and try again")
+        result = False
+    if is_running('gzserver'):
+        print("gzserver process already running\n"
+              "run `killall gzserver` and try again")
+        result = False
+    if not os.path.isfile('build/px4_sitl_default/bin/px4'):
+        print("PX4 SITL is not built\n"
+              "run `PX4_MAVSDK_TESTING=y DONT_RUN=1 "
+              "make px4_sitl gazebo mavsdk_tests`")
+    if not os.path.isfile('build/px4_sitl_default/mavsdk_tests'):
+        print("Test runner is not built\n"
+              "run `PX4_MAVSDK_TESTING=y DONT_RUN=1 "
+              "make px4_sitl gazebo mavsdk_tests`")
+        result = False
     return result
 
 
