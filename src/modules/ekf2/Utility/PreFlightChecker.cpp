@@ -38,7 +38,7 @@
 
 #include "PreFlightChecker.hpp"
 
-void PreFlightChecker::update(const float dt, const ekf2_innovations_s &innov)
+void PreFlightChecker::update(const float dt, const estimator_innovations_s &innov)
 {
 	const float alpha = InnovationLpf::computeAlphaFromDtAndTauInv(dt, _innov_lpf_tau_inv);
 
@@ -48,14 +48,14 @@ void PreFlightChecker::update(const float dt, const ekf2_innovations_s &innov)
 	_has_height_failed = preFlightCheckHeightFailed(innov, alpha);
 }
 
-bool PreFlightChecker::preFlightCheckHeadingFailed(const ekf2_innovations_s &innov, const float alpha)
+bool PreFlightChecker::preFlightCheckHeadingFailed(const estimator_innovations_s &innov, const float alpha)
 {
 	const float heading_test_limit = selectHeadingTestLimit();
 	const float heading_innov_spike_lim = 2.0f * heading_test_limit;
 
-	const float heading_innov_lpf = _filter_heading_innov.update(innov.heading_innov, alpha, heading_innov_spike_lim);
+	const float heading_innov_lpf = _filter_heading_innov.update(innov.heading, alpha, heading_innov_spike_lim);
 
-	return checkInnovFailed(innov.heading_innov, heading_innov_lpf, heading_test_limit);
+	return checkInnovFailed(innov.heading, heading_innov_lpf, heading_test_limit);
 }
 
 float PreFlightChecker::selectHeadingTestLimit()
@@ -69,12 +69,13 @@ float PreFlightChecker::selectHeadingTestLimit()
 	       : _heading_innov_test_lim; // less restrictive test limit
 }
 
-bool PreFlightChecker::preFlightCheckHorizVelFailed(const ekf2_innovations_s &innov, const float alpha)
+bool PreFlightChecker::preFlightCheckHorizVelFailed(const estimator_innovations_s &innov, const float alpha)
 {
 	bool has_failed = false;
 
-	if (_is_using_gps_aiding || _is_using_ev_pos_aiding) {
-		const Vector2f vel_ne_innov = Vector2f(innov.vel_pos_innov);
+	if (_is_using_gps_aiding || _is_using_ev_vel_aiding) {
+		const Vector2f vel_ne_innov = Vector2f(fmaxf(fabsf(innov.gps_hvel[0]), fabsf(innov.ev_hvel[0])),
+						       fmaxf(fabsf(innov.gps_hvel[1]), fabsf(innov.ev_hvel[1])));
 		Vector2f vel_ne_innov_lpf;
 		vel_ne_innov_lpf(0) = _filter_vel_n_innov.update(vel_ne_innov(0), alpha, _vel_innov_spike_lim);
 		vel_ne_innov_lpf(1) = _filter_vel_n_innov.update(vel_ne_innov(1), alpha, _vel_innov_spike_lim);
@@ -82,7 +83,7 @@ bool PreFlightChecker::preFlightCheckHorizVelFailed(const ekf2_innovations_s &in
 	}
 
 	if (_is_using_flow_aiding) {
-		const Vector2f flow_innov = Vector2f(innov.flow_innov);
+		const Vector2f flow_innov = Vector2f(innov.flow);
 		Vector2f flow_innov_lpf;
 		flow_innov_lpf(0) = _filter_flow_x_innov.update(flow_innov(0), alpha, _flow_innov_spike_lim);
 		flow_innov_lpf(1) = _filter_flow_x_innov.update(flow_innov(1), alpha, _flow_innov_spike_lim);
@@ -92,16 +93,16 @@ bool PreFlightChecker::preFlightCheckHorizVelFailed(const ekf2_innovations_s &in
 	return has_failed;
 }
 
-bool PreFlightChecker::preFlightCheckVertVelFailed(const ekf2_innovations_s &innov, const float alpha)
+bool PreFlightChecker::preFlightCheckVertVelFailed(const estimator_innovations_s &innov, const float alpha)
 {
-	const float vel_d_innov = innov.vel_pos_innov[2];
+	const float vel_d_innov = fmaxf(fabsf(innov.gps_vvel), fabs(innov.ev_vvel));
 	const float vel_d_innov_lpf = _filter_vel_d_innov.update(vel_d_innov, alpha, _vel_innov_spike_lim);
 	return checkInnovFailed(vel_d_innov, vel_d_innov_lpf, _vel_innov_test_lim);
 }
 
-bool PreFlightChecker::preFlightCheckHeightFailed(const ekf2_innovations_s &innov, const float alpha)
+bool PreFlightChecker::preFlightCheckHeightFailed(const estimator_innovations_s &innov, const float alpha)
 {
-	const float hgt_innov = innov.vel_pos_innov[5];
+	const float hgt_innov = innov.gps_vpos;    // HACK: height innovation independent of sensor is published on gps_vpos
 	const float hgt_innov_lpf = _filter_hgt_innov.update(hgt_innov, alpha, _hgt_innov_spike_lim);
 	return checkInnovFailed(hgt_innov, hgt_innov_lpf, _hgt_innov_test_lim);
 }
@@ -122,6 +123,7 @@ void PreFlightChecker::reset()
 	_is_using_gps_aiding = false;
 	_is_using_flow_aiding = false;
 	_is_using_ev_pos_aiding = false;
+	_is_using_ev_vel_aiding = false;
 	_has_heading_failed = false;
 	_has_horiz_vel_failed = false;
 	_has_vert_vel_failed = false;

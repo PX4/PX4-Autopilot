@@ -56,7 +56,7 @@
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/distance_sensor.h>
-#include <uORB/topics/ekf2_innovations.h>
+#include <uORB/topics/estimator_innovations.h>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/ekf_gps_position.h>
 #include <uORB/topics/estimator_status.h>
@@ -120,7 +120,7 @@ private:
 	PreFlightChecker _preflt_checker;
 	void runPreFlightChecks(float dt, const filter_control_status_u &control_status,
 				const vehicle_status_s &vehicle_status,
-				const ekf2_innovations_s &innov);
+				const estimator_innovations_s &innov);
 	void resetPreFlightChecks();
 
 	template<typename Param>
@@ -267,7 +267,9 @@ private:
 	vehicle_land_detected_s		_vehicle_land_detected{};
 	vehicle_status_s		_vehicle_status{};
 
-	uORB::Publication<ekf2_innovations_s>			_estimator_innovations_pub{ORB_ID(ekf2_innovations)};
+	uORB::Publication<estimator_innovations_s>			_estimator_innovations_pub{ORB_ID(estimator_innovations)};
+	uORB::Publication<estimator_innovations_s>			_estimator_innovation_variances_pub{ORB_ID(estimator_innovation_variances)};
+	uORB::Publication<estimator_innovations_s>			_estimator_innovation_test_ratios_pub{ORB_ID(estimator_innovation_test_ratios)};
 	uORB::Publication<ekf2_timestamps_s>			_ekf2_timestamps_pub{ORB_ID(ekf2_timestamps)};
 	uORB::Publication<ekf_gps_drift_s>			_ekf_gps_drift_pub{ORB_ID(ekf_gps_drift)};
 	uORB::Publication<ekf_gps_position_s>			_blended_gps_pub{ORB_ID(ekf_gps_position)};
@@ -1484,16 +1486,17 @@ void Ekf2::Run()
 			_ekf.get_state_delayed(status.states);
 			status.n_states = 24;
 			_ekf.covariances_diagonal().copyTo(status.covariances);
+			_ekf.get_output_tracking_error(&status.output_tracking_error[0]);
 			_ekf.get_gps_check_status(&status.gps_check_fail_flags);
 			// only report enabled GPS check failures (the param indexes are shifted by 1 bit, because they don't include
 			// the GPS Fix bit, which is always checked)
 			status.gps_check_fail_flags &= ((uint16_t)_params->gps_check_mask << 1) | 1;
 			status.control_mode_flags = control_status.value;
 			_ekf.get_filter_fault_status(&status.filter_fault_flags);
-			_ekf.get_innovation_test_status(&status.innovation_check_flags, &status.mag_test_ratio,
-							&status.vel_test_ratio, &status.pos_test_ratio,
-							&status.hgt_test_ratio, &status.tas_test_ratio,
-							&status.hagl_test_ratio, &status.beta_test_ratio);
+			_ekf.get_innovation_test_status(status.innovation_check_flags, status.mag_test_ratio,
+							status.vel_test_ratio, status.pos_test_ratio,
+							status.hgt_test_ratio, status.tas_test_ratio,
+							status.hagl_test_ratio, status.beta_test_ratio);
 
 			status.pos_horiz_accuracy = _vehicle_local_position_pub.get().eph;
 			status.pos_vert_accuracy = _vehicle_local_position_pub.get().epv;
@@ -1602,28 +1605,51 @@ void Ekf2::Run()
 
 			{
 				// publish estimator innovation data
-				ekf2_innovations_s innovations;
+				estimator_innovations_s innovations;
 				innovations.timestamp = now;
-				_ekf.get_vel_pos_innov(&innovations.vel_pos_innov[0]);
-				_ekf.get_aux_vel_innov(&innovations.aux_vel_innov[0]);
-				_ekf.get_mag_innov(&innovations.mag_innov[0]);
-				_ekf.get_heading_innov(&innovations.heading_innov);
-				_ekf.get_airspeed_innov(&innovations.airspeed_innov);
-				_ekf.get_beta_innov(&innovations.beta_innov);
-				_ekf.get_flow_innov(&innovations.flow_innov[0]);
-				_ekf.get_hagl_innov(&innovations.hagl_innov);
-				_ekf.get_drag_innov(&innovations.drag_innov[0]);
+				_ekf.getGpsVelPosInnov(&innovations.gps_hvel[0], innovations.gps_vvel, &innovations.gps_hpos[0],
+						       innovations.gps_vpos);
+				_ekf.getEvVelPosInnov(&innovations.ev_hvel[0], innovations.ev_vvel, &innovations.ev_hpos[0], innovations.ev_vpos);
+				_ekf.getAuxVelInnov(&innovations.aux_hvel[0]);
+				_ekf.getFlowInnov(&innovations.flow[0]);
+				_ekf.getHeadingInnov(innovations.heading);
+				_ekf.getMagInnov(innovations.mag_field);
+				_ekf.getDragInnov(&innovations.drag[0]);
+				_ekf.getAirspeedInnov(innovations.airspeed);
+				_ekf.getBetaInnov(innovations.beta);
+				_ekf.getHaglInnov(innovations.hagl);
 
-				_ekf.get_vel_pos_innov_var(&innovations.vel_pos_innov_var[0]);
-				_ekf.get_mag_innov_var(&innovations.mag_innov_var[0]);
-				_ekf.get_heading_innov_var(&innovations.heading_innov_var);
-				_ekf.get_airspeed_innov_var(&innovations.airspeed_innov_var);
-				_ekf.get_beta_innov_var(&innovations.beta_innov_var);
-				_ekf.get_flow_innov_var(&innovations.flow_innov_var[0]);
-				_ekf.get_hagl_innov_var(&innovations.hagl_innov_var);
-				_ekf.get_drag_innov_var(&innovations.drag_innov_var[0]);
+				// publish estimator innovation variance data
+				estimator_innovations_s innovation_var;
+				innovation_var.timestamp = now;
+				_ekf.getGpsVelPosInnovVar(&innovation_var.gps_hvel[0], innovation_var.gps_vvel, &innovation_var.gps_hpos[0],
+							  innovation_var.gps_vpos);
+				_ekf.getEvVelPosInnovVar(&innovation_var.ev_hvel[0], innovation_var.ev_vvel, &innovation_var.ev_hpos[0],
+							 innovation_var.ev_vpos);
+				_ekf.getAuxVelInnovVar(&innovation_var.aux_hvel[0]);
+				_ekf.getFlowInnovVar(&innovation_var.flow[0]);
+				_ekf.getHeadingInnovVar(innovation_var.heading);
+				_ekf.getMagInnovVar(&innovation_var.mag_field[0]);
+				_ekf.getDragInnovVar(&innovation_var.drag[0]);
+				_ekf.getAirspeedInnovVar(innovation_var.airspeed);
+				_ekf.getBetaInnovVar(innovation_var.beta);
+				_ekf.getHaglInnovVar(innovation_var.hagl);
 
-				_ekf.get_output_tracking_error(&innovations.output_tracking_error[0]);
+				// publish estimator innovation test ratio data
+				estimator_innovations_s test_ratios;
+				test_ratios.timestamp = now;
+				_ekf.getGpsVelPosInnovRatio(test_ratios.gps_hvel[0], test_ratios.gps_vvel, test_ratios.gps_hpos[0],
+							    test_ratios.gps_vpos);
+				_ekf.getEvVelPosInnovRatio(test_ratios.ev_hvel[0], test_ratios.ev_vvel, test_ratios.ev_hpos[0],
+							   test_ratios.ev_vpos);
+				_ekf.getAuxVelInnovRatio(test_ratios.aux_hvel[0]);
+				_ekf.getFlowInnovRatio(test_ratios.flow[0]);
+				_ekf.getHeadingInnovRatio(test_ratios.heading);
+				_ekf.getMagInnovRatio(test_ratios.mag_field[0]);
+				_ekf.getDragInnovRatio(&test_ratios.drag[0]);
+				_ekf.getAirspeedInnovRatio(test_ratios.airspeed);
+				_ekf.getBetaInnovRatio(test_ratios.beta);
+				_ekf.getHaglInnovRatio(test_ratios.hagl);
 
 				// calculate noise filtered velocity innovations which are used for pre-flight checking
 				if (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
@@ -1635,6 +1661,9 @@ void Ekf2::Run()
 				}
 
 				_estimator_innovations_pub.publish(innovations);
+				_estimator_innovation_variances_pub.publish(innovation_var);
+				_estimator_innovation_test_ratios_pub.publish(test_ratios);
+
 			}
 		}
 
@@ -1667,7 +1696,7 @@ void Ekf2::fillGpsMsgWithVehicleGpsPosData(gps_message &msg, const vehicle_gps_p
 void Ekf2::runPreFlightChecks(const float dt,
 			      const filter_control_status_u &control_status,
 			      const vehicle_status_s &vehicle_status,
-			      const ekf2_innovations_s &innov)
+			      const estimator_innovations_s &innov)
 {
 	const bool can_observe_heading_in_flight = (vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING);
 
@@ -1675,6 +1704,7 @@ void Ekf2::runPreFlightChecks(const float dt,
 	_preflt_checker.setUsingGpsAiding(control_status.flags.gps);
 	_preflt_checker.setUsingFlowAiding(control_status.flags.opt_flow);
 	_preflt_checker.setUsingEvPosAiding(control_status.flags.ev_pos);
+	_preflt_checker.setUsingEvVelAiding(control_status.flags.ev_vel);
 
 	_preflt_checker.update(dt, innov);
 }
@@ -1736,10 +1766,10 @@ bool Ekf2::publish_wind_estimate(const hrt_abstime &timestamp)
 		float wind_var[2];
 		_ekf.get_wind_velocity(velNE_wind);
 		_ekf.get_wind_velocity_var(wind_var);
-		_ekf.get_airspeed_innov(&wind_estimate.tas_innov);
-		_ekf.get_airspeed_innov_var(&wind_estimate.tas_innov_var);
-		_ekf.get_beta_innov(&wind_estimate.beta_innov);
-		_ekf.get_beta_innov_var(&wind_estimate.beta_innov_var);
+		_ekf.getAirspeedInnov(wind_estimate.tas_innov);
+		_ekf.getAirspeedInnovVar(wind_estimate.tas_innov_var);
+		_ekf.getBetaInnov(wind_estimate.beta_innov);
+		_ekf.getBetaInnovVar(wind_estimate.beta_innov_var);
 		wind_estimate.timestamp = timestamp;
 		wind_estimate.windspeed_north = velNE_wind[0];
 		wind_estimate.windspeed_east = velNE_wind[1];
