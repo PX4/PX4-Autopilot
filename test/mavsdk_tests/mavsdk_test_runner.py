@@ -6,6 +6,7 @@ import datetime
 import errno
 import os
 import psutil
+import signal
 import subprocess
 import sys
 
@@ -73,15 +74,24 @@ class Runner:
         if returncode is not None:
             return returncode
 
-        print("Sending terminate to {}".format(self.process.pid))
+        print("Sending SIGINT to {}".format(self.process.pid))
+        self.process.send_signal(signal.SIGINT)
+        try:
+            return self.process.wait(timeout=1)
+        except subprocess.TimeoutExpired:
+            pass
+
+        print("Sending SIGTERM to {}".format(self.process.pid))
         self.process.terminate()
 
         try:
-            return self.process.wait(timeout=3)
+            return self.process.wait(timeout=1)
         except subprocess.TimeoutExpired:
-            print("Sending kill to {}".format(self.process.pid))
-            self.process.kill()
-            return self.process.returncode
+            pass
+
+        print("Sending SIGKILL to {}".format(self.process.pid))
+        self.process.kill()
+        return self.process.returncode
 
 
 class Px4Runner(Runner):
