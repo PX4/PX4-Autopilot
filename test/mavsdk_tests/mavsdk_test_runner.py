@@ -80,7 +80,7 @@ class Runner:
 
 
 class Px4Runner(Runner):
-    def __init__(self, workspace_dir, log_dir):
+    def __init__(self, workspace_dir, log_dir, speed_factor):
         super().__init__(log_dir)
         self.cmd = workspace_dir + "/build/px4_sitl_default/bin/px4"
         self.cwd = workspace_dir + "/build/px4_sitl_default/tmp/rootfs"
@@ -93,12 +93,13 @@ class Px4Runner(Runner):
                 "-d"
             ]
         self.env = {"PATH": os.environ['PATH'],
-                    "PX4_SIM_MODEL": "iris"}
+                    "PX4_SIM_MODEL": "iris",
+                    "PX4_SIM_SPEED_FACTOR": speed_factor}
         self.log_prefix = "px4"
 
 
 class GazeboRunner(Runner):
-    def __init__(self, workspace_dir, log_dir):
+    def __init__(self, workspace_dir, log_dir, speed_factor):
         super().__init__(log_dir)
         self.env = {"PATH": os.environ['PATH'],
                     "HOME": os.environ['HOME'],
@@ -106,7 +107,7 @@ class GazeboRunner(Runner):
                     workspace_dir + "/build/px4_sitl_default/build_gazebo",
                     "GAZEBO_MODEL_PATH":
                     workspace_dir + "/Tools/sitl_gazebo/models",
-                    "PX4_SIM_SPEED_FACTOR": "5"}
+                    "PX4_SIM_SPEED_FACTOR": speed_factor}
         self.cmd = "gzserver"
         self.args = ["--verbose",
                      workspace_dir + "/Tools/sitl_gazebo/worlds/iris.world"]
@@ -143,6 +144,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--log-dir",
                         help="Directory for log files, stdout if not provided")
+    parser.add_argument("--speed-factor", default=1,
+                        help="How fast to run the simulation")
     args = parser.parse_args()
 
     if not is_everything_ready():
@@ -152,10 +155,12 @@ def main():
         print("Running test group for '{}' with filter '{}'"
               .format(group['model'], group['test_filter']))
 
-        px4_runner = Px4Runner(os.getcwd(), args.log_dir)
+        px4_runner = Px4Runner(
+            os.getcwd(), args.log_dir, args.speed_factor)
         px4_runner.start(group)
 
-        gazebo_runner = GazeboRunner(os.getcwd(), args.log_dir)
+        gazebo_runner = GazeboRunner(
+            os.getcwd(), args.log_dir, args.speed_factor)
         gazebo_runner.start(group)
 
         test_runner = TestRunner(os.getcwd(), args.log_dir, group)
