@@ -1403,3 +1403,17 @@ PARAM_DEFINE_FLOAT(EKF2_MOVE_TEST, 1.0f);
  * @reboot_required true
  */
 PARAM_DEFINE_FLOAT(EKF2_REQ_GPS_H, 10.0f);
+
+/**
+ * Magnetic field strength test selection
+ *
+ * When set, the EKF checks the strength of the magnetic field
+ * to decide whether the magnetometer data is valid.
+ * If GPS data is received, the magnetic field is compared to a World
+ * Magnetic Model (WMM), otherwise an average value is used.
+ * This check is useful to reject occasional hard iron disturbance.
+ *
+ * @group EKF2
+ * @boolean
+ */
+PARAM_DEFINE_INT32(EKF2_MAG_CHECK, 0);
