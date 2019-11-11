@@ -156,6 +156,8 @@ def main():
     if not is_everything_ready():
         return
 
+    overall_success = True
+
     for group in test_matrix:
         print("Running test group for '{}' with filter '{}'"
               .format(group['model'], group['test_filter']))
@@ -172,13 +174,20 @@ def main():
         test_runner.start(group)
 
         returncode = test_runner.wait(group['timeout_min'])
-        print("Test exited with {}".format(returncode))
+        was_success = (returncode == 0)
+        print("Test group: {}".format("Success" if was_success else "Fail"))
+        if not was_success:
+            overall_success = False
 
         returncode = gazebo_runner.stop()
         print("Gazebo exited with {}".format(returncode))
 
         px4_runner.stop()
         print("PX4 exited with {}".format(returncode))
+
+    print("Overall result: {}".
+          format("SUCCESS" if overall_success else "FAIL"))
+    return 0 if overall_success else 1
 
 
 if __name__ == '__main__':
