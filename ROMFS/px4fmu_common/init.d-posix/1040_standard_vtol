@@ -38,6 +38,14 @@ then
 	param set VT_TYPE 2
 
 	param set WEST_EN 1
+
+	param set TRIG_ACT_TIME 3000
+	param set TRIG_DISTANCE 25
+	param set TRIG_INTERFACE 3
+	param set TRIG_INTERVAL 5000
+	param set TRIG_MODE 1
+
+
 fi
 
 set MIXER_FILE etc/mixers-sitl/standard_vtol_sitl.main.mix

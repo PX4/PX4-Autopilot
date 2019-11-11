@@ -7,8 +7,8 @@
 #include "pwm.h"
 
 // TODO : make these parameters later
-#define PWM_CAMERA_SHOOT 1900
-#define PWM_CAMERA_NEUTRAL 1500
+#define PWM_CAMERA_SHOOT 2000
+#define PWM_CAMERA_NEUTRAL 1000
 
 CameraInterfacePWM::CameraInterfacePWM():
 	CameraInterface()
@@ -20,7 +20,7 @@ CameraInterfacePWM::CameraInterfacePWM():
 CameraInterfacePWM::~CameraInterfacePWM()
 {
 	// Deinitialise trigger channels
-	up_pwm_trigger_deinit();
+        up_pwm_trigger_deinit();
 }
 
 void CameraInterfacePWM::setup()
@@ -35,23 +35,23 @@ void CameraInterfacePWM::setup()
 	}
 
 	// Initialize and arm channels
-	up_pwm_trigger_init(pin_bitmask);
+        up_pwm_trigger_init(pin_bitmask);
 
 	// Set neutral pulsewidths
 	for (unsigned i = 0; i < arraySize(_pins); i++) {
 		if (_pins[i] >= 0) {
-			up_pwm_trigger_set(_pins[i], math::constrain(PWM_CAMERA_NEUTRAL, PWM_CAMERA_NEUTRAL, 2000));
+                        up_pwm_trigger_set(_pins[i], math::constrain(PWM_CAMERA_NEUTRAL, PWM_CAMERA_NEUTRAL, 2000));
 		}
 	}
 
 }
 
 void CameraInterfacePWM::trigger(bool trigger_on_true)
-{
-	for (unsigned i = 0; i < arraySize(_pins); i++) {
+{        
+        for (unsigned i = 0; i < arraySize(_pins); i++) {
 		if (_pins[i] >= 0) {
 			// Set all valid pins to shoot or neutral levels
-			up_pwm_trigger_set(_pins[i], math::constrain(trigger_on_true ? PWM_CAMERA_SHOOT : PWM_CAMERA_NEUTRAL, 1000, 2000));
+                        up_pwm_trigger_set(_pins[i], math::constrain(trigger_on_true ? PWM_CAMERA_SHOOT : PWM_CAMERA_NEUTRAL, 1000, 2000));
 		}
 	}
 }

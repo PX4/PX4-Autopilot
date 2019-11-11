@@ -206,6 +206,8 @@ __EXPORT void board_on_reset(int status)
  *
  ************************************************************************************/
 
+#define GPIO_FRSKY          (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_CLEAR|GPIO_PORTA|GPIO_PIN10)
+
 __EXPORT void
 stm32_boardinitialize(void)
 {
@@ -253,6 +255,8 @@ stm32_boardinitialize(void)
 	stm32_configgpio(GPIO_8266_RST);
 	stm32_configgpio(GPIO_BTN_SAFETY_FMU);
 
+	stm32_configgpio(GPIO_FRSKY);
+	stm32_gpiowrite(GPIO_FRSKY, 0);
 
 	/* configure SPI interfaces
 	 * is deferred to board_app_initialize

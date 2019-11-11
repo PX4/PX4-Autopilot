@@ -523,7 +523,8 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 		orb_copy(ORB_ID(vehicle_command), trig->_command_sub, &cmd);
 
-		if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL) {
+                //NAV_CMD_IMAGE_START_CAPTURE
+                if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_DIGICAM_CONTROL) {
 
 			need_ack = true;
 
@@ -541,7 +542,14 @@ CameraTrigger::cycle_trampoline(void *arg)
 
 			cmd_result = vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 
-		} else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL) {
+                } else if (cmd.command == 2000) {
+                    need_ack = true;
+
+                    // Schedule shot
+                    trig->_one_shot = true;
+
+
+                } else if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_TRIGGER_CONTROL) {
 
 			need_ack = true;
 
