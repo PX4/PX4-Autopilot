@@ -104,6 +104,9 @@ private:
 	const float _velocity_max = 10.f;
 	const float _acceleration_max = 2.f;
 
+	uint8_t _yaw_behavior = 0;
+	float _initial_heading = 0.f;
+
 	uORB::Publication<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
 
 	DEFINE_PARAMETERS(
