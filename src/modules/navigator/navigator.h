@@ -258,6 +258,7 @@ public:
 	 */
 	float 		get_yaw_acceptance(float mission_item_yaw);
 
+
 	orb_advert_t	*get_mavlink_log_pub() { return &_mavlink_log_pub; }
 
 	void		increment_mission_instance_count() { _mission_result.instance_count++; }
@@ -284,6 +285,9 @@ public:
 	float		get_yaw_timeout() const { return _param_mis_yaw_tmt.get(); }
 	float		get_yaw_threshold() const { return _param_mis_yaw_err.get(); }
 
+	//float		get_nav_traff_a_radu() const { return _param_nav_traff_a_radu.get(); }
+	//float		get_nav_traff_a_radm() const { return _param_nav_traff_a_radm.get(); }
+
 	float		get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss; }
 	float		get_vtol_reverse_delay() const { return _param_reverse_delay; }
 
@@ -301,7 +305,8 @@ private:
 		_param_nav_mc_alt_rad,	/**< acceptance radius for multicopter altitude */
 		(ParamInt<px4::params::NAV_FORCE_VT>) _param_nav_force_vt,	/**< acceptance radius for multicopter altitude */
 		(ParamInt<px4::params::NAV_TRAFF_AVOID>) _param_nav_traff_avoid,	/**< avoiding other aircraft is enabled */
-		(ParamInt<px4::params::NAV_TRAFF_A_RAD>) _param_nav_traff_a_rad,	/**< avoidance Distance*/
+		(ParamFloat<px4::params::NAV_TRAFF_A_RADU>) _param_nav_traff_a_radu,	/**< avoidance Distance Unmanned*/
+		(ParamFloat<px4::params::NAV_TRAFF_A_RADM>) _param_nav_traff_a_radm,	/**< avoidance Distance Manned*/
 
 		// non-navigator parameters
 		// Mission (MIS_*)
