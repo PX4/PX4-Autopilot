@@ -41,8 +41,8 @@
  *
  */
 
-#include <px4_defines.h>
-#include <px4_posix.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdint.h>
@@ -108,6 +108,12 @@ bool is_vtol(const struct vehicle_status_s *current_status)
 		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED3 ||
 		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED4 ||
 		current_status->system_type == VEHICLE_TYPE_VTOL_RESERVED5);
+}
+
+bool is_vtol_tailsitter(const struct vehicle_status_s *current_status)
+{
+	return (current_status->system_type == VEHICLE_TYPE_VTOL_DUOROTOR ||
+		current_status->system_type == VEHICLE_TYPE_VTOL_QUADROTOR);
 }
 
 bool is_fixed_wing(const struct vehicle_status_s *current_status)

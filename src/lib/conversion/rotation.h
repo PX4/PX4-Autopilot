@@ -136,8 +136,14 @@ const rot_lookup_t rot_lookup[] = {
 /**
  * Get the rotation matrix
  */
+__EXPORT matrix::Dcmf
+get_rot_matrix(enum Rotation rot);
 
-__EXPORT matrix::Dcmf get_rot_matrix(enum Rotation rot);
+/**
+ * Get the rotation quaternion
+ */
+__EXPORT matrix::Quatf
+get_rot_quaternion(enum Rotation rot);
 
 /**
  * rotate a 3 element float vector in-place

@@ -49,10 +49,12 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/pid/pid.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
@@ -68,8 +70,6 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/uORB.h>
-#include <platforms/px4_module.h>
-#include <platforms/px4_module_params.h>
 
 using matrix::Dcmf;
 
@@ -106,6 +106,7 @@ private:
 	int		_local_pos_sub{-1};
 	int		_manual_control_sub{-1};		/**< notification of manual control updates */
 	int		_pos_sp_triplet_sub{-1};
+	int 		_att_sp_sub{-1};
 	int     _vehicle_attitude_sub{-1};
 	int		_sensor_combined_sub{-1};
 
@@ -113,6 +114,7 @@ private:
 
 	manual_control_setpoint_s		_manual{};			    /**< r/c channel data */
 	position_setpoint_triplet_s		_pos_sp_triplet{};		/**< triplet of mission items */
+	vehicle_attitude_setpoint_s		_att_sp{};			/**< attitude setpoint > */
 	vehicle_control_mode_s			_control_mode{};		/**< control mode */
 	vehicle_global_position_s		_global_pos{};			/**< global vehicle position */
 	vehicle_local_position_s		_local_pos{};			/**< global vehicle position */
@@ -172,6 +174,7 @@ private:
 
 	void		manual_control_setpoint_poll();
 	void		position_setpoint_triplet_poll();
+	void		attitude_setpoint_poll();
 	void		vehicle_control_mode_poll();
 	void 		vehicle_attitude_poll();
 
@@ -181,5 +184,6 @@ private:
 	bool		control_position(const matrix::Vector2f &global_pos, const matrix::Vector3f &ground_speed,
 					 const position_setpoint_triplet_s &_pos_sp_triplet);
 	void		control_velocity(const matrix::Vector3f &current_velocity, const position_setpoint_triplet_s &pos_sp_triplet);
+	void		control_attitude(const vehicle_attitude_s &att, const vehicle_attitude_setpoint_s &att_sp);
 
 };

@@ -106,18 +106,6 @@ struct ak8963_regs {
 };
 #pragma pack(pop)
 
-#pragma pack(push, 1)
-struct ak09916_regs {
-	uint8_t st1;
-	int16_t x;
-	int16_t y;
-	int16_t z;
-	uint8_t tmps;
-	uint8_t st2;
-};
-#pragma pack(pop)
-
-
 extern device::Device *AK8963_I2C_interface(int bus, bool external_bus);
 
 typedef device::Device *(*MPU9250_mag_constructor)(int, bool);
@@ -150,11 +138,8 @@ protected:
 
 	friend class MPU9250;
 
-	/* Directly measure from the _interface if possible */
 	void measure();
-
-	/* Update the state with prefetched data (internally called by the regular measure() )*/
-	void _measure(hrt_abstime timestamp, struct ak8963_regs data);
+	void _measure(hrt_abstime timestamp_sample, ak8963_regs data);
 
 	uint8_t read_reg(unsigned reg);
 	void write_reg(unsigned reg, uint8_t value);
@@ -162,7 +147,6 @@ protected:
 	bool is_passthrough() { return _interface == nullptr; }
 
 private:
-
 	PX4Magnetometer		_px4_mag;
 
 	MPU9250 *_parent;
@@ -171,12 +155,7 @@ private:
 
 	perf_counter_t _mag_overruns;
 	perf_counter_t _mag_overflows;
-	perf_counter_t _mag_duplicates;
-
-	bool check_duplicate(uint8_t *mag_data);
-
-	// keep last mag reading for duplicate detection
-	uint8_t			_last_mag_data[6] {};
+	perf_counter_t _mag_errors;
 
 	/* do not allow to copy this class due to pointer data members */
 	MPU9250_mag(const MPU9250_mag &);

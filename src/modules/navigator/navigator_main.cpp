@@ -52,10 +52,10 @@
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
 #include <systemlib/mavlink_log.h>
 
 /**
@@ -490,9 +490,16 @@ Navigator::run()
 				const bool rtl_activated = _previous_nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
 				switch (rtl_type()) {
-				case RTL::RTL_LAND:
+				case RTL::RTL_LAND: // use mission landing
+				case RTL::RTL_CLOSEST:
 					if (rtl_activated) {
-						mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL LAND activated");
+						if (rtl_type() == RTL::RTL_LAND) {
+							mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL LAND activated");
+
+						} else {
+							mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Closest landing point activated");
+						}
+
 					}
 
 					// if RTL is set to use a mission landing and mission has a planned landing, then use MISSION to fly there directly
@@ -570,6 +577,7 @@ Navigator::run()
 
 					navigation_mode_new = &_rtl;
 					break;
+
 				}
 
 				break;

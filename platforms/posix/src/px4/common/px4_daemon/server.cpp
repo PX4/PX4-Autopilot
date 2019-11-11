@@ -52,7 +52,7 @@
 #include <sys/un.h>
 #include <vector>
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 #include "pxh.h"
 #include "server.h"

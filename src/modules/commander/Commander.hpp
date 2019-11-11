@@ -39,8 +39,8 @@
 
 #include <lib/controllib/blocks.hpp>
 #include <lib/mathlib/mathlib.h>
-#include <px4_module.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
 #include <lib/hysteresis/hysteresis.h>
 
 // publications
@@ -148,6 +148,8 @@ private:
 
 		(ParamInt<px4::params::COM_PREARM_MODE>) _param_com_prearm_mode,
 		(ParamInt<px4::params::COM_MOT_TEST_EN>) _param_com_mot_test_en,
+
+		(ParamFloat<px4::params::COM_KILL_DISARM>) _param_com_kill_disarm,
 
 		(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
 		(ParamInt<px4::params::CBRK_USB_CHK>) _param_cbrk_usb_chk,

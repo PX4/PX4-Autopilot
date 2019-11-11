@@ -34,7 +34,7 @@
 #include "mixer_module.hpp"
 
 #include <uORB/PublicationQueued.hpp>
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 using namespace time_literals;
 
@@ -236,6 +236,7 @@ unsigned MixingOutput::motorTest()
 
 	while (_motor_test.test_motor_sub.update(&test_motor)) {
 		if (test_motor.driver_instance != _driver_instance ||
+		    test_motor.timestamp == 0 ||
 		    hrt_elapsed_time(&test_motor.timestamp) > 100_ms) {
 			continue;
 		}

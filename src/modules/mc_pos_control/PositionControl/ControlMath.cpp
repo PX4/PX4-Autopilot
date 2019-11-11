@@ -37,16 +37,15 @@
  */
 
 #include "ControlMath.hpp"
-#include <platforms/px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <float.h>
 #include <mathlib/mathlib.h>
 
 using namespace matrix;
 namespace ControlMath
 {
-vehicle_attitude_setpoint_s thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp)
+void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp)
 {
-	vehicle_attitude_setpoint_s att_sp = {};
 	att_sp.yaw_body = yaw_sp;
 
 	// desired body_z axis = -normalize(thrust_vector)
@@ -103,8 +102,6 @@ vehicle_attitude_setpoint_s thrustToAttitude(const Vector3f &thr_sp, const float
 	att_sp.roll_body = euler(0);
 	att_sp.pitch_body = euler(1);
 	att_sp.thrust_body[2] = -thr_sp.length();
-
-	return att_sp;
 }
 
 Vector2f constrainXY(const Vector2f &v0, const Vector2f &v1, const float &max)

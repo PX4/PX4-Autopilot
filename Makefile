@@ -264,7 +264,6 @@ misc_qgc_extra_firmware: \
 alt_firmware: \
 	check_px4_cannode-v1_default \
 	check_px4_esc-v1_default \
-	check_auav_esc35-v1_default \
 	check_thiemar_s2740vc-v1_default \
 	sizes
 
@@ -414,7 +413,7 @@ px4_sitl_default-clang:
 	@$(PX4_MAKE) -C "$(SRC_DIR)"/build/px4_sitl_default-clang
 
 clang-tidy: px4_sitl_default-clang
-	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && "$(SRC_DIR)"/Tools/run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -p .
+	@cd "$(SRC_DIR)"/build/px4_sitl_default-clang && run-clang-tidy.py -header-filter=".*\.hpp" -j$(j) -p .
 
 # to automatically fix a single check at a time, eg modernize-redundant-void-arg
 #  % run-clang-tidy-4.0.py -fix -j4 -checks=-\*,modernize-redundant-void-arg -p .

@@ -92,7 +92,7 @@
       <min>0</min>
       <max>4000</max>
     </parameter>
-      <parameter default="0.0" name="mot_ls" type="FLOAT">
+    <parameter default="0.0" name="mot_ls" type="FLOAT">
       <short_desc>READ ONLY: Motor inductance in henries.</short_desc>
       <long_desc>READ ONLY: Motor inductance in henries. This is measured on start-up.</long_desc>
       <unit>henries</unit>
@@ -133,6 +133,68 @@
       <unit>Volts</unit>
       <decimal>3</decimal>
       <min>0</min>
+    </parameter>
+  </group>
+  <group name="UAVCAN GNSS" no_code_generation="true">
+    <parameter name="gnss.warn_dimens" default="0" type="INT32">
+      <short_desc>device health warning</short_desc>
+      <long_desc>Set the device health to Warning if the dimensionality of
+              the GNSS solution is less than this value. 3 for the full (3D)
+              solution, 2 for planar (2D) solution, 1 for time-only solution,
+              0 disables the feature.
+      </long_desc>
+      <min>0</min>
+      <max>3</max>
+      <values>
+        <value code="0">disables the feature</value>
+        <value code="1">time-only solution</value>
+        <value code="2">planar (2D) solution</value>
+        <value code="3">full (3D) solution</value>
+      </values>
+    </parameter>
+    <parameter name="gnss.warn_sats" default="0" type="INT32">
+      <short_desc></short_desc>
+      <long_desc>Set the device health to Warning if the number of satellites
+        used in the GNSS solution is below this threshold. Zero
+        disables the feature
+      </long_desc>
+    </parameter>
+    <parameter name="gnss.dyn_model" default="2" type="INT32">
+      <short_desc>GNSS dynamic model</short_desc>
+      <long_desc>Dynamic model used in the GNSS positioning engine. 0 –
+        Automotive, 1 – Sea, 2 – Airborne.
+      </long_desc>
+      <min>0</min>
+      <max>2</max>
+      <values>
+        <value code="0">Automotive</value>
+        <value code="1">Sea</value>
+        <value code="2">Airborne</value>
+      </values>
+    </parameter>
+    <parameter name="gnss.old_fix_msg" default="1" type="INT32">
+      <short_desc>Broadcast old GNSS fix message</short_desc>
+      <long_desc>Broadcast the old (deprecated) GNSS fix message
+        uavcan.equipment.gnss.Fix alongside the new alternative
+        uavcan.equipment.gnss.Fix2. It is recommended to
+        disable this feature to reduce the CAN bus traffic.
+      </long_desc>
+      <min>0</min>
+      <max>1</max>
+      <values>
+        <value code="0">Fix2</value>
+        <value code="1">Fix and Fix2</value>
+      </values>
+    </parameter>
+    <parameter name="uavcan.pubp-pres" default="0" type="INT32">
+      <short_desc></short_desc>
+      <long_desc>Set the device health to Warning if the number of satellites
+        used in the GNSS solution is below this threshold. Zero
+        disables the feature
+      </long_desc>
+      <unit>microseconds</unit>
+      <min>0</min>
+      <max>1000000</max>
     </parameter>
   </group>
 </parameters>

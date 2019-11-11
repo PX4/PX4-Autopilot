@@ -31,8 +31,8 @@
  *
  ****************************************************************************/
 
-#include <px4_config.h>
-#include <px4_console_buffer.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/console_buffer.h>
 #include "logger.h"
 #include "messages.h"
 #include "watchdog.h"
@@ -51,12 +51,12 @@
 
 #include <drivers/drv_hrt.h>
 #include <mathlib/math/Limits.hpp>
-#include <px4_getopt.h>
-#include <px4_log.h>
-#include <px4_posix.h>
-#include <px4_sem.h>
-#include <px4_shutdown.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/sem.h>
+#include <px4_platform_common/shutdown.h>
+#include <px4_platform_common/tasks.h>
 #include <systemlib/mavlink_log.h>
 #include <replay/definitions.hpp>
 #include <version/version.h>
@@ -639,6 +639,7 @@ void Logger::add_vision_and_avoidance_topics()
 {
 	add_topic("collision_constraints");
 	add_topic("obstacle_distance_fused");
+	add_topic("onboard_computer_status", 200);
 	add_topic("vehicle_mocap_odometry", 30);
 	add_topic("vehicle_trajectory_waypoint", 200);
 	add_topic("vehicle_trajectory_waypoint_desired", 200);
@@ -1151,7 +1152,7 @@ void Logger::run()
 			 * And on linux this is quite accurate as well, but under NuttX it is not accurate,
 			 * because usleep() has only a granularity of CONFIG_MSEC_PER_TICK (=1ms).
 			 */
-			while (px4_sem_wait(&timer_callback_data.semaphore) != 0);
+			while (px4_sem_wait(&timer_callback_data.semaphore) != 0) {}
 		}
 	}
 

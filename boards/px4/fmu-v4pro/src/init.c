@@ -35,7 +35,7 @@
  * @file px4fmu_init.c
  *
  * PX4FMU-specific early startup code.  This file implements the
- * nsh_archinitialize() function that is called early by nsh during startup.
+ * board_app_initializ() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
  * subsystems and perform board-specific initialisation.
@@ -45,8 +45,8 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_config.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -73,8 +73,8 @@
 
 #include <systemlib/px4_macros.h>
 
-#include <px4_init.h>
-#include <drivers/boards/common/board_dma_alloc.h>
+#include <px4_platform_common/init.h>
+#include <px4_platform/board_dma_alloc.h>
 
 /****************************************************************************
  * Pre-Processor Definitions

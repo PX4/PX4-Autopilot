@@ -40,7 +40,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <px4_posix.h>
+#include <px4_platform_common/posix.h>
 
 #define PIN_INDEX_BUFFER_MAX (16)
 #define PIN_DIRECTION_BUFFER_MAX (30 + PIN_INDEX_BUFFER_MAX)

@@ -34,12 +34,10 @@
 #include "PWMSim.hpp"
 
 #include <mathlib/mathlib.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
-
-extern "C" __EXPORT int pwm_out_sim_main(int argc, char *argv[]);
 
 PWMSim::PWMSim(bool hil_mode_enabled) :
 	CDev(PWM_OUTPUT0_DEVICE_PATH),
@@ -273,6 +271,12 @@ int PWMSim::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
+int PWMSim::print_status()
+{
+	_mixing_output.printStatus();
+	return 0;
+}
+
 int PWMSim::print_usage(const char *reason)
 {
 	if (reason) {
@@ -300,14 +304,7 @@ It is used in SITL and HITL.
 	return 0;
 }
 
-int PWMSim::print_status()
-{
-	_mixing_output.printStatus();
-	return 0;
-}
-
-int
-pwm_out_sim_main(int argc, char *argv[])
+extern "C" __EXPORT int pwm_out_sim_main(int argc, char *argv[])
 {
 	return PWMSim::main(argc, argv);
 }

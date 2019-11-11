@@ -41,7 +41,7 @@
 
 #include "BlockLowPass.hpp"
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <math.h>
 
 #include "block/Block.hpp"
@@ -68,7 +68,7 @@ public:
 		_initialized(false),
 		_lowPass(this, "LP")
 	{}
-	virtual ~BlockDerivative() {}
+	virtual ~BlockDerivative() = default;
 
 	/**
 	 * Update the state and get current derivative

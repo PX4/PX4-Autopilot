@@ -67,31 +67,6 @@ PARAM_DEFINE_FLOAT(BAT_CNT_V_CURR, -1.0);
 PARAM_DEFINE_FLOAT(BAT_V_OFFS_CURR, 0.0);
 
 /**
- * Battery voltage divider (V divider)
- *
- * This is the divider from battery voltage to 3.3V ADC voltage.
- * If using e.g. Mauch power modules the value from the datasheet
- * can be applied straight here. A value of -1 means to use
- * the board default.
- *
- * @group Battery Calibration
- * @decimal 8
- */
-PARAM_DEFINE_FLOAT(BAT_V_DIV, -1.0);
-
-/**
- * Battery current per volt (A/V)
- *
- * The voltage seen by the 3.3V ADC multiplied by this factor
- * will determine the battery current. A value of -1 means to use
- * the board default.
- *
- * @group Battery Calibration
- * @decimal 8
- */
-PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
-
-/**
  * Battery monitoring source.
  *
  * This parameter controls the source of battery data. The value 'Power Module'

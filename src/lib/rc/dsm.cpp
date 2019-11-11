@@ -39,9 +39,9 @@
  * Decodes into the global PPM buffer and updates accordingly.
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <board_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -712,7 +712,7 @@ dsm_parse(const uint64_t now, const uint8_t *frame, const unsigned len, uint16_t
 				dsm_partial_frame_count = 0;
 
 				/* if decoding failed, set proto to desync */
-				if (decode_ret == false) {
+				if (!decode_ret) {
 					dsm_decode_state = DSM_DECODE_STATE_DESYNC;
 					dsm_frame_drops++;
 				}

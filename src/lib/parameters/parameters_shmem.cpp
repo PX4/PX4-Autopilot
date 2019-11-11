@@ -50,11 +50,11 @@
 #include <math.h>
 
 #include <drivers/drv_hrt.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_sem.h>
-#include <px4_shutdown.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/sem.h>
+#include <px4_platform_common/shutdown.h>
 
 #include <perf/perf_counter.h>
 #include <systemlib/uthash/utarray.h>
@@ -73,7 +73,7 @@
 
 #include <sys/stat.h>
 
-#include "shmem.h"
+#include <px4_platform_common/shmem.h>
 
 #ifdef __PX4_QURT
 static const char *param_default_file = "/dev/fs/params";
@@ -91,7 +91,7 @@ static char *param_user_file = nullptr;
 #define PARAM_CLOSE	close
 
 #ifndef PARAM_NO_AUTOSAVE
-#include <px4_workqueue.h>
+#include <px4_platform_common/workqueue.h>
 /* autosaving variables */
 static hrt_abstime last_autosave_timestamp = 0;
 static struct work_s autosave_work;

@@ -31,10 +31,10 @@
  *
  ****************************************************************************/
 
-#include <px4_config.h>
-#include <px4_console_buffer.h>
-#include <px4_module.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/console_buffer.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/getopt.h>
 
 #ifndef BOARD_ENABLE_CONSOLE_BUFFER
 #error "This module can only be used on boards that enable BOARD_ENABLE_CONSOLE_BUFFER"
@@ -44,28 +44,6 @@ static void	usage();
 
 extern "C" {
 	__EXPORT int dmesg_main(int argc, char *argv[]);
-}
-
-static void
-usage()
-{
-
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-
-Command-line tool to show bootup console messages.
-Note that output from NuttX's work queues and syslog are not captured.
-
-### Examples
-
-Keep printing all messages in the background:
-$ dmesg -f &
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("dmesg", "system");
-	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Follow: wait for new messages", true);
-
 }
 
 int
@@ -92,4 +70,26 @@ dmesg_main(int argc, char *argv[])
 	px4_console_buffer_print(follow);
 
 	return 0;
+}
+
+static void
+usage()
+{
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+
+Command-line tool to show bootup console messages.
+Note that output from NuttX's work queues and syslog are not captured.
+
+### Examples
+
+Keep printing all messages in the background:
+$ dmesg -f &
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("dmesg", "system");
+	PRINT_MODULE_USAGE_PARAM_FLAG('f', "Follow: wait for new messages", true);
+
 }

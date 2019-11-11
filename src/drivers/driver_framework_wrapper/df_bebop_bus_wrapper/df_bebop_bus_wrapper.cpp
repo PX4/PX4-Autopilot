@@ -42,9 +42,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include <px4_tasks.h>
-#include <px4_getopt.h>
-#include <px4_posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/posix.h>
 
 #include <errno.h>
 #include <string.h>
@@ -219,7 +219,6 @@ int DfBebopBusWrapper::_publish(struct bebop_state_data &data)
 	for (int i = 0; i < 4; i++) {
 		esc_status.esc[_esc_map[i]].timestamp = esc_status.timestamp;
 		esc_status.esc[_esc_map[i]].esc_rpm = data.rpm[i];
-		esc_status.esc[_esc_map[i]].esc_setpoint_raw = esc_speed_setpoint_rpm[i];
 	}
 
 	// TODO: when is this ever blocked?

@@ -34,19 +34,20 @@
 px4_add_git_submodule(TARGET git_uavcan PATH "libuavcan")
 
 set(UAVCAN_USE_CPP03 ON CACHE BOOL "uavcan cpp03")
+set(UAVCAN_PLATFORM "generic")
 
 if(CONFIG_ARCH_CHIP)
 	if (${CONFIG_ARCH_CHIP} MATCHES "kinetis")
-		set(UAVCAN_PLATFORM "kinetis")
+		set(UAVCAN_DRIVER "kinetis")
 		set(UAVCAN_TIMER 1)
 	elseif (${CONFIG_ARCH_CHIP} MATCHES "stm32")
-		set(UAVCAN_PLATFORM "stm32")
+		set(UAVCAN_DRIVER "stm32")
 		set(UAVCAN_TIMER 5) # The default timer the 5
 	endif()
 endif()
 
-if(NOT DEFINED UAVCAN_PLATFORM)
-	message(FATAL_ERROR "UAVCAN_PLATFORM not set")
+if(NOT DEFINED UAVCAN_DRIVER)
+	message(FATAL_ERROR "UAVCAN_DRIVER not set")
 endif()
 
 if(NOT config_uavcan_num_ifaces)
@@ -54,13 +55,13 @@ if(NOT config_uavcan_num_ifaces)
 endif()
 
 string(TOUPPER "${PX4_PLATFORM}" OS_UPPER)
-string(TOUPPER "${UAVCAN_PLATFORM}" UAVCAN_PLATFORM_UPPER)
+string(TOUPPER "${UAVCAN_DRIVER}" UAVCAN_DRIVER_UPPER)
 add_definitions(
-		-DUAVCAN_${UAVCAN_PLATFORM_UPPER}_${OS_UPPER}=1
-		-DUAVCAN_${UAVCAN_PLATFORM_UPPER}_NUM_IFACES=${config_uavcan_num_ifaces}
-		-DUAVCAN_${UAVCAN_PLATFORM_UPPER}_TIMER_NUMBER=${UAVCAN_TIMER}
+		-DUAVCAN_${UAVCAN_DRIVER_UPPER}_${OS_UPPER}=1
+		-DUAVCAN_${UAVCAN_DRIVER_UPPER}_NUM_IFACES=${config_uavcan_num_ifaces}
+		-DUAVCAN_${UAVCAN_DRIVER_UPPER}_TIMER_NUMBER=${UAVCAN_TIMER}
 		-DUAVCAN_CPP_VERSION=UAVCAN_CPP03
-		-DUAVCAN_DRIVER=uavcan_${UAVCAN_PLATFORM}
+		-DUAVCAN_DRIVER=uavcan_${UAVCAN_DRIVER}
 		-DUAVCAN_IMPLEMENT_PLACEMENT_NEW=1
 		-DUAVCAN_MEM_POOL_BLOCK_SIZE=48
 		-DUAVCAN_NO_ASSERTIONS
@@ -70,6 +71,13 @@ add_definitions(
 add_compile_options(-Wno-cast-align) # TODO: fix and enable
 add_subdirectory(libuavcan EXCLUDE_FROM_ALL)
 add_dependencies(uavcan prebuild_targets)
+
+# driver
+add_subdirectory(uavcan_drivers/${UAVCAN_DRIVER}/driver EXCLUDE_FROM_ALL)
+target_include_directories(uavcan_${UAVCAN_DRIVER}_driver PUBLIC
+	./libuavcan/libuavcan/include
+	./libuavcan/libuavcan/include/dsdlc_generated
+	)
 
 
 # generated DSDL
@@ -98,7 +106,7 @@ px4_add_module(
 		libuavcan/libuavcan/include
 		libuavcan/libuavcan/include/dsdlc_generated
 		libuavcan/libuavcan_drivers/posix/include
-		libuavcan/libuavcan_drivers/${UAVCAN_PLATFORM}/driver/include
+		uavcan_drivers/${UAVCAN_DRIVER}/driver/include
 	SRCS
 		# Main
 		uavcan_main.cpp
@@ -121,11 +129,13 @@ px4_add_module(
 		px4_uavcan_dsdlc
 
 		mixer
+		mixer_module
+		output_limit
 		version
 
 		git_uavcan
+		uavcan_${UAVCAN_DRIVER}_driver
 
 		# within libuavcan
 		uavcan
-		uavcan_${UAVCAN_PLATFORM}_driver
 	)

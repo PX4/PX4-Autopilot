@@ -1,7 +1,7 @@
 /* definitions of builtin command list - automatically generated, do not edit */
-#include "px4_time.h"
-#include "px4_posix.h"
-#include "px4_log.h"
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/log.h>
 
 #include "apps.h"
 

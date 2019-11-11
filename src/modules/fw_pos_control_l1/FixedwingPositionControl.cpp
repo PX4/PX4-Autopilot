@@ -33,8 +33,6 @@
 
 #include "FixedwingPositionControl.hpp"
 
-extern "C" __EXPORT int fw_pos_control_l1_main(int argc, char *argv[]);
-
 FixedwingPositionControl::FixedwingPositionControl() :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
@@ -98,6 +96,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.heightrate_p = param_find("FW_T_HRATE_P");
 	_parameter_handles.heightrate_ff = param_find("FW_T_HRATE_FF");
 	_parameter_handles.speedrate_p = param_find("FW_T_SRATE_P");
+	_parameter_handles.loiter_radius = param_find("NAV_LOITER_RAD");
 
 	// if vehicle is vtol these handles will be set when we get the vehicle status
 	_parameter_handles.airspeed_trans = PARAM_INVALID;
@@ -165,6 +164,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_early_config_change, &(_parameters.land_early_config_change));
 	param_get(_parameter_handles.land_airspeed_scale, &(_parameters.land_airspeed_scale));
 	param_get(_parameter_handles.land_throtTC_scale, &(_parameters.land_throtTC_scale));
+	param_get(_parameter_handles.loiter_radius, &(_parameters.loiter_radius));
 
 	// VTOL parameter VTOL_TYPE
 	if (_parameter_handles.vtol_type != PARAM_INVALID) {
@@ -868,8 +868,17 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 		} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
 			/* waypoint is a loiter waypoint */
-			_l1_control.navigate_loiter(curr_wp, curr_pos, pos_sp_curr.loiter_radius,
-						    pos_sp_curr.loiter_direction, nav_speed_2d);
+			float loiter_radius = pos_sp_curr.loiter_radius;
+			uint8_t loiter_direction = pos_sp_curr.loiter_direction;
+
+			if (pos_sp_curr.loiter_radius < 0.01f || pos_sp_curr.loiter_radius > -0.01f) {
+				loiter_radius = _parameters.loiter_radius;
+				loiter_direction = (loiter_radius > 0) ? 1 : -1;
+
+			}
+
+			_l1_control.navigate_loiter(curr_wp, curr_pos, loiter_radius, loiter_direction, nav_speed_2d);
+
 			_att_sp.roll_body = _l1_control.get_roll_setpoint();
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
@@ -1961,6 +1970,13 @@ int FixedwingPositionControl::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
+int FixedwingPositionControl::print_status()
+{
+	PX4_INFO("Running");
+	perf_print_counter(_loop_perf);
+	return 0;
+}
+
 int FixedwingPositionControl::print_usage(const char *reason)
 {
 	if (reason) {
@@ -1982,16 +1998,7 @@ fw_pos_control_l1 is the fixed wing position controller.
 	return 0;
 }
 
-int FixedwingPositionControl::print_status()
-{
-	PX4_INFO("Running");
-
-	perf_print_counter(_loop_perf);
-
-	return 0;
-}
-
-int fw_pos_control_l1_main(int argc, char *argv[])
+extern "C" __EXPORT int fw_pos_control_l1_main(int argc, char *argv[])
 {
 	return FixedwingPositionControl::main(argc, argv);
 }

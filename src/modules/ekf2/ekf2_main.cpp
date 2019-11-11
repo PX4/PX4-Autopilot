@@ -44,12 +44,12 @@
 #include <lib/ecl/EKF/ekf.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_defines.h>
-#include <px4_module.h>
-#include <px4_module_params.h>
-#include <px4_posix.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_time.h>
+#include <px4_platform_common/time.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
@@ -92,12 +92,10 @@
 using math::constrain;
 using namespace time_literals;
 
-extern "C" __EXPORT int ekf2_main(int argc, char *argv[]);
-
 class Ekf2 final : public ModuleBase<Ekf2>, public ModuleParams, public px4::WorkItem
 {
 public:
-	Ekf2(bool replay_mode = false);
+	explicit Ekf2(bool replay_mode = false);
 	~Ekf2() override;
 
 	/** @see ModuleBase */
@@ -2368,35 +2366,10 @@ int Ekf2::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-int Ekf2::print_usage(const char *reason)
-{
-	if (reason) {
-		PX4_WARN("%s\n", reason);
-	}
-
-	PRINT_MODULE_DESCRIPTION(
-		R"DESCR_STR(
-### Description
-Attitude and position estimator using an Extended Kalman Filter. It is used for Multirotors and Fixed-Wing.
-
-The documentation can be found on the [ECL/EKF Overview & Tuning](https://docs.px4.io/en/advanced_config/tuning_the_ecl_ekf.html) page.
-
-ekf2 can be started in replay mode (`-r`): in this mode it does not access the system time, but only uses the
-timestamps from the sensor topics.
-
-)DESCR_STR");
-
-	PRINT_MODULE_USAGE_NAME("ekf2", "estimator");
-	PRINT_MODULE_USAGE_COMMAND("start");
-	PRINT_MODULE_USAGE_PARAM_FLAG('r', "Enable replay mode", true);
-	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
-
-	return 0;
-}
-
 int Ekf2::task_spawn(int argc, char *argv[])
 {
 	bool replay_mode = false;
+
 	if (argc > 1 && !strcmp(argv[1], "-r")) {
 		PX4_INFO("replay mode enabled");
 		replay_mode = true;
@@ -2423,7 +2396,33 @@ int Ekf2::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int ekf2_main(int argc, char *argv[])
+int Ekf2::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Attitude and position estimator using an Extended Kalman Filter. It is used for Multirotors and Fixed-Wing.
+
+The documentation can be found on the [ECL/EKF Overview & Tuning](https://docs.px4.io/en/advanced_config/tuning_the_ecl_ekf.html) page.
+
+ekf2 can be started in replay mode (`-r`): in this mode it does not access the system time, but only uses the
+timestamps from the sensor topics.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("ekf2", "estimator");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_PARAM_FLAG('r', "Enable replay mode", true);
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
+extern "C" __EXPORT int ekf2_main(int argc, char *argv[])
 {
 	return Ekf2::main(argc, argv);
 }

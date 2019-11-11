@@ -262,6 +262,24 @@ pipeline {
           }
           post {
             always {
+              // Process the CTest xml output with the xUnit plugin
+              xunit (
+                testTimeMargin: '3000',
+                thresholdMode: 1,
+                thresholds: [
+                  skipped(failureThreshold: '0'),
+                  failed(failureThreshold: '0')
+                ],
+              reduceLog: false,
+              tools: [CTest(
+                  pattern: 'build/px4_sitl_test/Testing/**/*.xml',
+                  deleteOutputFiles: true,
+                  failIfNotNew: false,
+                  skipNoTestFiles: true,
+                  stopProcessingIfError: true
+                )]
+              )
+
               sh 'make distclean'
             }
           }
@@ -305,26 +323,27 @@ pipeline {
           }
         }
 
-        // stage('Clang tidy') {
-        //   agent {
-        //     docker {
-        //       image 'px4io/px4-dev-clang:2019-10-24'
-        //       args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
-        //     }
-        //   }
-        //   steps {
-        //     sh 'export'
-        //     retry (3) {
-        //       sh 'make distclean'
-        //       sh 'make clang-tidy-quiet'
-        //     }
-        //   }
-        //   post {
-        //     always {
-        //       sh 'make distclean'
-        //     }
-        //   }
-        // }
+        stage('Clang tidy') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-clang:2019-10-24'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'git fetch --tags'
+            retry (3) {
+              sh 'make clang-tidy-quiet'
+            }
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
 
         stage('Cppcheck') {
           agent {
@@ -711,7 +730,7 @@ pipeline {
     GIT_COMMITTER_NAME = "PX4BuildBot"
   }
   options {
-    buildDiscarder(logRotator(numToKeepStr: '20', artifactDaysToKeepStr: '30'))
+    buildDiscarder(logRotator(numToKeepStr: '10', artifactDaysToKeepStr: '20'))
     timeout(time: 60, unit: 'MINUTES')
   }
 }

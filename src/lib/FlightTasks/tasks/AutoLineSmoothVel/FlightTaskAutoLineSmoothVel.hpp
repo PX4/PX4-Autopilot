@@ -54,16 +54,6 @@ public:
 
 protected:
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAutoMapper2,
-					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err, // yaw-error threshold
-					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, // acceleration in flight
-					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
-					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max,
-					(ParamFloat<px4::params::MPC_JERK_AUTO>) _param_mpc_jerk_auto,
-					(ParamFloat<px4::params::MPC_XY_TRAJ_P>) _param_mpc_xy_traj_p,
-					(ParamFloat<px4::params::MPC_Z_TRAJ_P>) _param_mpc_z_traj_p
-				       );
-
 	void checkSetpoints(vehicle_local_position_setpoint_s &setpoints);
 
 	/** Reset position or velocity setpoints in case of EKF reset event */
@@ -77,11 +67,13 @@ protected:
 	void _generateHeading();
 	bool _generateHeadingAlongTraj(); /**< Generates heading along trajectory. */
 
-	inline float _constrainOneSide(float val, float constraint); /**< Constrain val between INF and constraint */
-	inline float _constrainAbs(float val, float min, float max); /**< Constrain absolute value of val between min and max */
+	static float _constrainOneSide(float val, float constraint); /**< Constrain val between INF and constraint */
 
-	float _getSpeedAtTarget();
-	float _getMaxSpeedFromDistance(float braking_distance);
+	static float _constrainAbs(float val, float max); /** Constrain the value -max <= val <= max */
+
+	/** Give 0 if next is the last target **/
+	float _getSpeedAtTarget(float next_target_speed) const;
+	float _getMaxSpeedFromDistance(float braking_distance, float final_speed) const;
 
 	void _prepareSetpoints(); /**< Generate velocity target points for the trajectory generator. */
 	void _updateTrajConstraints();
@@ -92,4 +84,14 @@ protected:
 	bool _want_takeoff{false};
 
 	VelocitySmoothing _trajectory[3]; ///< Trajectories in x, y and z directions
+
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAutoMapper2,
+					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err, // yaw-error threshold
+					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, // acceleration in flight
+					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
+					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max,
+					(ParamFloat<px4::params::MPC_JERK_AUTO>) _param_mpc_jerk_auto,
+					(ParamFloat<px4::params::MPC_XY_TRAJ_P>) _param_mpc_xy_traj_p,
+					(ParamFloat<px4::params::MPC_Z_TRAJ_P>) _param_mpc_z_traj_p
+				       );
 };

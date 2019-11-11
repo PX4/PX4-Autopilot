@@ -478,6 +478,14 @@ VtolAttitudeControl::custom_command(int argc, char *argv[])
 }
 
 int
+VtolAttitudeControl::print_status()
+{
+	PX4_INFO("Running");
+	perf_print_counter(_loop_perf);
+	return PX4_OK;
+}
+
+int
 VtolAttitudeControl::print_usage(const char *reason)
 {
 	if (reason) {
@@ -491,22 +499,10 @@ fw_att_control is the fixed wing attitude controller.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_COMMAND("start");
-
 	PRINT_MODULE_USAGE_NAME("vtol_att_control", "controller");
-
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
-}
-
-int
-VtolAttitudeControl::print_status()
-{
-	PX4_INFO("Running");
-
-	perf_print_counter(_loop_perf);
-
-	return PX4_OK;
 }
 
 int vtol_att_control_main(int argc, char *argv[])

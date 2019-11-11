@@ -36,7 +36,7 @@
  * Tests declaration file.
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #ifndef __APPS_PX4_TESTS_H
 #define __APPS_PX4_TESTS_H

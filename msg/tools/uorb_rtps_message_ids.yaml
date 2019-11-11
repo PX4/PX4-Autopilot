@@ -3,8 +3,6 @@ rtps:
     id: 0
   - msg: actuator_controls
     id: 1
-  - msg: actuator_direct
-    id: 2
   - msg: actuator_outputs
     id: 3
   - msg: adc_report
@@ -262,6 +260,8 @@ rtps:
     id: 114
   - msg: airspeed_validated
     id: 115
+  - msg: onboard_computer_status
+    id: 116
   ########## multi topics: begin ##########
   - msg: actuator_controls_0
     id: 150
