@@ -29,9 +29,6 @@ px4_add_board(
 		gps
 		#heater
 		#imu # all available imu drivers
-		imu/bma180
-		imu/bmi160
-		imu/l3gd20
 		imu/mpu6000
 		imu/mpu9250
 		irlock
