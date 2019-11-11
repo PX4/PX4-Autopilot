@@ -372,7 +372,7 @@ RoverPositionControl::run()
 	parameters_update(true);
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[3];
+	px4_pollfd_struct_t fds[4];
 
 	/* Setup of loop */
 	fds[0].fd = _global_pos_sub;
@@ -381,6 +381,8 @@ RoverPositionControl::run()
 	fds[1].events = POLLIN;
 	fds[2].fd = _sensor_combined_sub;
 	fds[2].events = POLLIN;
+	fds[3].fd = _vehicle_attitude_sub;
+	fds[3].events = POLLIN;
 
 	while (!should_exit()) {
 
@@ -414,7 +416,6 @@ RoverPositionControl::run()
 			orb_copy(ORB_ID(vehicle_local_position), _local_pos_sub, &_local_pos);
 
 			position_setpoint_triplet_poll();
-			vehicle_attitude_poll();
 
 			//Convert Local setpoints to global setpoints
 			if (_control_mode.flag_control_offboard_enabled) {
@@ -474,14 +475,24 @@ RoverPositionControl::run()
 
 				control_velocity(current_velocity, _pos_sp_triplet);
 
-			} else if (!manual_mode && _control_mode.flag_control_attitude_enabled) {
+			}
+
+
+			perf_end(_loop_perf);
+		}
+
+		if (fds[3].revents & POLLIN) {
+
+			vehicle_attitude_poll();
+
+			if (!manual_mode && _control_mode.flag_control_attitude_enabled
+			    && !_control_mode.flag_control_position_enabled
+			    && !_control_mode.flag_control_velocity_enabled) {
 
 				control_attitude(_vehicle_att, _att_sp);
 
 			}
 
-
-			perf_end(_loop_perf);
 		}
 
 		if (fds[1].revents & POLLIN) {
