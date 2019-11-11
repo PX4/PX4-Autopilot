@@ -510,8 +510,8 @@ void Logger::add_default_topics()
 {
 	add_topic("actuator_controls_0", 100);
 	add_topic("actuator_controls_1", 100);
-	add_topic("airspeed", 200);
-	add_topic("airspeed_validated", 200);
+	add_topic("airspeed", 1000);
+	add_topic("airspeed_validated", 1000);
 	add_topic("camera_capture");
 	add_topic("camera_trigger");
 	add_topic("camera_trigger_secondary");
@@ -525,14 +525,14 @@ void Logger::add_default_topics()
 	add_topic("manual_control_setpoint", 200);
 	add_topic("mission");
 	add_topic("mission_result");
-	add_topic("optical_flow", 50);
-	add_topic("position_controller_status", 500);
+	add_topic("position_controller_status", 1000);
 	add_topic("position_setpoint_triplet", 200);
 	add_topic("radio_status");
 	add_topic("rate_ctrl_status", 200);
 	add_topic("sensor_combined", 100);
 	add_topic("sensor_preflight", 200);
-	add_topic("system_power", 500);
+	add_topic("sensor_selection", 1000);
+	add_topic("system_power", 1000);
 	add_topic("tecs_status", 200);
 	add_topic("trajectory_setpoint", 200);
 	add_topic("vehicle_air_data", 200);
@@ -550,15 +550,24 @@ void Logger::add_default_topics()
 	add_topic("vehicle_status_flags");
 	add_topic("vtol_vehicle_status", 200);
 
+	// multi topics
 	add_topic_multi("actuator_outputs", 100);
-	add_topic_multi("battery_status", 500);
-	add_topic_multi("distance_sensor", 100);
 	add_topic_multi("telemetry_status");
-	add_topic_multi("vehicle_gps_position");
 	add_topic_multi("wind_estimate", 200);
+	add_topic_multi("multirotor_motor_limits", 1000);
+
+	// log all raw sensors at minimal rate (1 Hz)
+	add_topic_multi("battery_status", 1000);
+	add_topic_multi("differential_pressure", 1000);
+	add_topic_multi("distance_sensor", 1000);
+	add_topic_multi("optical_flow", 1000);
+	add_topic_multi("sensor_accel", 1000);
+	add_topic_multi("sensor_baro", 1000);
+	add_topic_multi("sensor_gyro", 1000);
+	add_topic_multi("sensor_mag", 1000);
+	add_topic_multi("vehicle_gps_position", 1000);
 
 #ifdef CONFIG_ARCH_BOARD_PX4_SITL
-
 	add_topic("actuator_controls_virtual_fw");
 	add_topic("actuator_controls_virtual_mc");
 	add_topic("fw_virtual_attitude_setpoint");
@@ -571,9 +580,6 @@ void Logger::add_default_topics()
 	add_topic("vehicle_global_position_groundtruth", 100);
 	add_topic("vehicle_local_position_groundtruth", 100);
 	add_topic("vehicle_roi");
-
-	add_topic_multi("multirotor_motor_limits");
-
 #endif /* CONFIG_ARCH_BOARD_PX4_SITL */
 }
 

@@ -172,7 +172,7 @@ private:
 		Watchdog
 	};
 
-	static constexpr size_t 	MAX_TOPICS_NUM = 90; /**< Maximum number of logged topics */
+	static constexpr size_t 	MAX_TOPICS_NUM = 120; /**< Maximum number of logged topics */
 	static constexpr int		MAX_MISSION_TOPICS_NUM = 5; /**< Maximum number of mission topics */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
 	static constexpr const char	*LOG_ROOT[(int)LogType::Count] = {
