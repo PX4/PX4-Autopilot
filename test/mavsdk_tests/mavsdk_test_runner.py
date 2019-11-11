@@ -130,13 +130,25 @@ class GazeboRunner(Runner):
 
 
 class TestRunner(Runner):
-    def __init__(self, workspace_dir, log_dir, config):
+    def __init__(self, workspace_dir, log_dir, config, test):
         super().__init__(log_dir)
         self.env = {"PATH": os.environ['PATH']}
         self.cmd = workspace_dir + \
             "/build/px4_sitl_default/mavsdk_tests"
-        self.args = [config['test_filter']]
+        self.args = [test]
         self.log_prefix = "test_runner"
+
+
+def determine_tests(workspace_dir, filter):
+    cmd = workspace_dir + "/build/px4_sitl_default/mavsdk_tests"
+    args = ["--list-test-names-only", filter]
+    p = subprocess.Popen(
+        [cmd] + args,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT)
+    tests = str(p.stdout.read().decode("utf-8")).strip().split('\n')
+    return tests
 
 
 def is_running(process_name):
@@ -186,28 +198,35 @@ def main():
         print("Running test group for '{}' with filter '{}'"
               .format(group['model'], group['test_filter']))
 
-        px4_runner = Px4Runner(
-            os.getcwd(), args.log_dir, args.speed_factor)
-        px4_runner.start(group)
+        tests = determine_tests(os.getcwd(), group['test_filter'])
 
-        gazebo_runner = GazeboRunner(
-            os.getcwd(), args.log_dir, args.speed_factor)
-        gazebo_runner.start(group)
+        for test in tests:
 
-        test_runner = TestRunner(os.getcwd(), args.log_dir, group)
-        test_runner.start(group)
+            print("Running test '{}'".format(test))
 
-        returncode = test_runner.wait(group['timeout_min'])
-        was_success = (returncode == 0)
-        print("Test group: {}".format("Success" if was_success else "Fail"))
-        if not was_success:
-            overall_success = False
+            px4_runner = Px4Runner(
+                os.getcwd(), args.log_dir, args.speed_factor)
+            px4_runner.start(group)
 
-        returncode = gazebo_runner.stop()
-        print("Gazebo exited with {}".format(returncode))
+            gazebo_runner = GazeboRunner(
+                os.getcwd(), args.log_dir, args.speed_factor)
+            gazebo_runner.start(group)
 
-        px4_runner.stop()
-        print("PX4 exited with {}".format(returncode))
+            test_runner = TestRunner(os.getcwd(), args.log_dir, group, test)
+            test_runner.start(group)
+
+            returncode = test_runner.wait(group['timeout_min'])
+            was_success = (returncode == 0)
+            print("Test '{}': {}".
+                  format(test, "Success" if was_success else "Fail"))
+            if not was_success:
+                overall_success = False
+
+            returncode = gazebo_runner.stop()
+            print("Gazebo exited with {}".format(returncode))
+
+            px4_runner.stop()
+            print("PX4 exited with {}".format(returncode))
 
     print("Overall result: {}".
           format("SUCCESS" if overall_success else "FAIL"))
