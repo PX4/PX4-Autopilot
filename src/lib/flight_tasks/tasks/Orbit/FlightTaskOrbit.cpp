@@ -70,7 +70,24 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 
 	// commanded heading behavior
 	if (PX4_ISFINITE(command.param3)) {
-		_yaw_behavior = command.param3;
+		switch ((int)command.param3) {
+		case 1:
+			_yaw_behavior = YawBehavior::hold_last_heading;
+			break;
+
+		case 2:
+			_yaw_behavior = YawBehavior::leave_uncontrolled;
+			break;
+
+		case 3:
+			_yaw_behavior = YawBehavior::turn_towards_flight_direction;
+			break;
+
+		case 0:
+		default:
+			_yaw_behavior = YawBehavior::point_to_center;
+			break;
+		}
 	}
 
 	// TODO: apply x,y / z independently in geo library
@@ -180,43 +197,6 @@ bool FlightTaskOrbit::update()
 
 	Vector2f center_to_position = Vector2f(_position) - _center;
 
-	switch (_yaw_behavior) {
-	case 0:
-		// make vehicle front always point towards the center
-		_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
-		break;
-
-	case 1:
-		// make vehicle keep the same heading as in the beginning of the flight task
-		_yaw_setpoint = _initial_heading;
-		break;
-
-	case 2:
-		// no yaw setpoint
-		break;
-
-	case 3:
-		if (!_in_circle_approach) {
-			if (_v > 0) {
-				_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F / 2.f;
-
-			} else {
-				_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) - M_PI_F / 2.f;
-			}
-
-		} else {
-			// while approaching the circle, keep facing towards the center
-			_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
-		}
-
-		break;
-
-	default:
-		PX4_WARN("[Orbit] Invalid yaw behavior. Defaulting to poiting torwards the center.");
-		_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
-		break;
-	}
-
 	if (_in_circle_approach) {
 		generate_circle_approach_setpoints();
 
@@ -232,22 +212,21 @@ bool FlightTaskOrbit::update()
 
 void FlightTaskOrbit::generate_circle_approach_setpoints()
 {
+	Vector2f start_to_center = _center - Vector2f(_position);
+	Vector2f start_to_circle = (start_to_center.norm() - _r) * start_to_center.unit_or_zero();
+
 	if (_circle_approach_line.isEndReached()) {
 		// calculate target point on circle and plan a line trajectory
-		Vector2f start_to_center = _center - Vector2f(_position);
-		Vector2f start_to_circle = (start_to_center.norm() - _r) * start_to_center.unit_or_zero();
 		Vector2f closest_circle_point = Vector2f(_position) + start_to_circle;
 		Vector3f target = Vector3f(closest_circle_point(0), closest_circle_point(1), _position(2));
 		_circle_approach_line.setLineFromTo(_position, target);
 		_circle_approach_line.setSpeed(_param_mpc_xy_cruise.get());
+		_yaw_setpoint = atan2f(start_to_circle(1), start_to_circle(0));
 	}
 
 	// follow the planned line and switch to orbiting once the circle is reached
 	_circle_approach_line.generateSetpoints(_position_setpoint, _velocity_setpoint);
 	_in_circle_approach = !_circle_approach_line.isEndReached();
-
-	// yaw stays constant
-	_yawspeed_setpoint = NAN;
 }
 
 void FlightTaskOrbit::generate_circle_setpoints(Vector2f center_to_position)
@@ -266,4 +245,31 @@ void FlightTaskOrbit::generate_circle_setpoints(Vector2f center_to_position)
 
 	// yawspeed feed-forward because we know the necessary angular rate
 	_yawspeed_setpoint = _v / _r;
+
+	switch (_yaw_behavior) {
+	case YawBehavior::hold_last_heading:
+		// make vehicle keep the same heading as when the orbit was commanded
+		_yaw_setpoint = _initial_heading;
+		break;
+
+	case YawBehavior::leave_uncontrolled:
+		// no yaw setpoint
+		_yaw_setpoint = NAN;
+		break;
+
+	case YawBehavior::turn_towards_flight_direction:
+		if (_r > 0) {
+			_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F / 2.f;
+
+		} else {
+			_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) - M_PI_F / 2.f;
+		}
+
+		break;
+
+	case YawBehavior::point_to_center:
+	default:
+		_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
+		break;
+	}
 }
