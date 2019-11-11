@@ -23,17 +23,19 @@ px4_add_board(
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
+		dshot
 		gps
 		heater
-		imu # all available imu drivers
+		#imu # all available imu drivers
+		imu/mpu6000
+		imu/mpu9250
 		irlock
 		lights/blinkm
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		magnetometer # all available magnetometer drivers
 		mkblctrl
-		#optical_flow # all available optical flow drivers
-		optical_flow/px4flow
+		optical_flow # all available optical flow drivers
 		pca9685
 		protocol_splitter
 		pwm_input
@@ -48,7 +50,9 @@ px4_add_board(
 		uavcan
 
 	MODULES
+		airspeed_selector
 		attitude_estimator_q
+		battery_status
 		camera_feedback
 		commander
 		dataman
@@ -56,7 +60,6 @@ px4_add_board(
 		events
 		fw_att_control
 		fw_pos_control_l1
-		rover_pos_control
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -67,12 +70,11 @@ px4_add_board(
 		mc_pos_control
 		micrortps_bridge
 		navigator
-		battery_status
+		rover_pos_control
 		sensors
 		sih
 		vmount
 		vtol_att_control
-		airspeed_selector
 
 	SYSTEMCMDS
 		bl_update
