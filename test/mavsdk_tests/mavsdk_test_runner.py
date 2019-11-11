@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 import argparse
+import atexit
 import datetime
 import os
+import psutil
 import subprocess
 import sys
 
@@ -51,6 +53,8 @@ class Runner:
             stdout=f, stderr=f
         )
 
+        atexit.register(self.stop)
+
     def wait(self, timeout_s):
         try:
             return self.process.wait(timeout=timeout_s)
@@ -58,6 +62,8 @@ class Runner:
             self.stop()
 
     def stop(self):
+        atexit.unregister(self.stop)
+
         returncode = self.process.poll()
         if returncode is not None:
             return returncode
@@ -117,12 +123,30 @@ class TestRunner(Runner):
         self.log_prefix = "test_runner"
 
 
+def is_everything_ready():
+    result = True
+    for proc in psutil.process_iter(attrs=['name']):
+        if proc.info['name'] == 'gzserver':
+            print("gzserver process already running\n"
+                  "run `killall gzserver` and try again")
+            result = False
+        elif proc.info['name'] == 'px4':
+            print("px4 process already running\n"
+                  "run `killall px4` and try again")
+            result = False
+
+    return result
+
+
 def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--log-dir",
                         help="Directory for log files, stdout if not provided")
     args = parser.parse_args()
+
+    if not is_everything_ready():
+        return
 
     for group in test_matrix:
         print("Running test group for '{}' with filter '{}'"
