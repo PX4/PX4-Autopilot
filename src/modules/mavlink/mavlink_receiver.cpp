@@ -2592,30 +2592,7 @@ void MavlinkReceiver::handle_message_statustext(mavlink_message_t *msg)
 
 		log_message_s log_message{};
 
-		switch (statustext.severity) {
-		case MAV_SEVERITY_EMERGENCY:
-		case MAV_SEVERITY_ALERT:
-		case MAV_SEVERITY_CRITICAL:
-			log_message.severity = 0;
-			break;
-
-		case MAV_SEVERITY_ERROR:
-			log_message.severity = 3;
-			break;
-
-		case MAV_SEVERITY_WARNING:
-			log_message.severity = 4;
-			break;
-
-		case MAV_SEVERITY_NOTICE:
-		case MAV_SEVERITY_INFO:
-			log_message.severity = 6;
-			break;
-
-		default:
-			return;
-		}
-
+		log_message.severity = statustext.severity;
 		log_message.timestamp = hrt_absolute_time();
 
 		snprintf(log_message.text, sizeof(log_message.text),
