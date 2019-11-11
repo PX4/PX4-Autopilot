@@ -68,6 +68,11 @@ bool FlightTaskOrbit::applyCommandParameters(const vehicle_command_s &command)
 
 	ret = ret && setVelocity(v * (clockwise ? 1.f : -1.f));
 
+	// commanded heading behavior
+	if (PX4_ISFINITE(command.param3)) {
+		_yaw_behavior = command.param3;
+	}
+
 	// TODO: apply x,y / z independently in geo library
 	// commanded center coordinates
 	// if(PX4_ISFINITE(command.param5) && PX4_ISFINITE(command.param6)) {
@@ -148,6 +153,8 @@ bool FlightTaskOrbit::activate(vehicle_local_position_setpoint_s last_setpoint)
 	_center = Vector2f(_position);
 	_center(0) -= _r;
 
+	_initial_heading = _yaw;
+
 	// need a valid position and velocity
 	ret = ret && PX4_ISFINITE(_position(0))
 	      && PX4_ISFINITE(_position(1))
@@ -173,8 +180,42 @@ bool FlightTaskOrbit::update()
 
 	Vector2f center_to_position = Vector2f(_position) - _center;
 
-	// make vehicle front always point towards the center
-	_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
+	switch (_yaw_behavior) {
+	case 0:
+		// make vehicle front always point towards the center
+		_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
+		break;
+
+	case 1:
+		// make vehicle keep the same heading as in the beginning of the flight task
+		_yaw_setpoint = _initial_heading;
+		break;
+
+	case 2:
+		// no yaw setpoint
+		break;
+
+	case 3:
+		if (!_in_circle_approach) {
+			if (_v > 0) {
+				_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F / 2.f;
+
+			} else {
+				_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) - M_PI_F / 2.f;
+			}
+
+		} else {
+			// while approaching the circle, keep facing towards the center
+			_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
+		}
+
+		break;
+
+	default:
+		PX4_WARN("[Orbit] Invalid yaw behavior. Defaulting to poiting torwards the center.");
+		_yaw_setpoint = atan2f(center_to_position(1), center_to_position(0)) + M_PI_F;
+		break;
+	}
 
 	if (_in_circle_approach) {
 		generate_circle_approach_setpoints();
