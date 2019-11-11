@@ -46,6 +46,13 @@
 #include <uORB/topics/orbit_status.h>
 #include <StraightLine.hpp>
 
+enum class YawBehavior : int {
+	point_to_center = 0,
+	hold_last_heading = 1,
+	leave_uncontrolled = 2,
+	turn_towards_flight_direction = 3,
+};
+
 class FlightTaskOrbit : public FlightTaskManualAltitudeSmooth
 {
 public:
@@ -104,8 +111,9 @@ private:
 	const float _velocity_max = 10.f;
 	const float _acceleration_max = 2.f;
 
-	uint8_t _yaw_behavior = 0;
-	float _initial_heading = 0.f;
+	YawBehavior _yaw_behavior =
+		YawBehavior::point_to_center; /**<  the direction during the orbit task in which the drone looks */
+	float _initial_heading = 0.f; /**< the heading of the drone when the orbit command was issued */
 
 	uORB::Publication<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
 
