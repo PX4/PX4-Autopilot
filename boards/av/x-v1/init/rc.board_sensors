@@ -3,6 +3,7 @@
 # av_x1-v1 specific board sensors init
 #------------------------------------------------------------------------------
 
+adc start
 
 adis16477 -R 8 start
 
