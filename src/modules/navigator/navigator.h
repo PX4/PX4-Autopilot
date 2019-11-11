@@ -285,9 +285,6 @@ public:
 	float		get_yaw_timeout() const { return _param_mis_yaw_tmt.get(); }
 	float		get_yaw_threshold() const { return _param_mis_yaw_err.get(); }
 
-	//float		get_nav_traff_a_radu() const { return _param_nav_traff_a_radu.get(); }
-	//float		get_nav_traff_a_radm() const { return _param_nav_traff_a_radm.get(); }
-
 	float		get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss; }
 	float		get_vtol_reverse_delay() const { return _param_reverse_delay; }
 

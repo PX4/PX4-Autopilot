@@ -965,7 +965,8 @@ void Navigator::check_traffic()
 
 
 		//Unmanned Vehicle Seperation Distance
-		if (tr.emitter_type == mavlink_reciever::ADSB_EMITTER_TYPE_UAV) {
+		//
+		if (tr.emitter_type == ADSB_EMITTER_TYPE_UAV) {
 			horizontal_separation = NAVTrafficAvoidUnmanned;
 			vertical_separation = NAVTrafficAvoidUnmanned;
 		}
@@ -1002,7 +1003,7 @@ void Navigator::check_traffic()
 
 				if (!cr.past_end && (fabsf(cr.distance) < horizontal_separation)) {
 
-					// direction of traffic in human-readable 0..360 degree inmak earth frame
+					// direction of traffic in human-readable 0..360 degree in earth frame
 					int traffic_direction = math::degrees(tr.heading) + 180;
 
 					switch (_param_nav_traff_avoid.get()) {
