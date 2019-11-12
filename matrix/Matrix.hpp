@@ -580,6 +580,128 @@ bool isEqual(const Matrix<Type, M, N> &x,
     return true;
 }
 
+namespace typeFunction
+{
+template<typename Type>
+Type min(const Type x, const Type y) {
+    bool x_is_nan = isnan(x);
+    bool y_is_nan = isnan(y);
+    // z > nan for z != nan is required by C the standard
+    if(x_is_nan || y_is_nan) {
+        if(x_is_nan && !y_is_nan) return y;
+        if(!x_is_nan && y_is_nan) return x;
+        return x;
+    }
+    return (x < y) ? x : y;
+}
+template<typename Type>
+Type max(const Type x, const Type y) {
+    bool x_is_nan = isnan(x);
+    bool y_is_nan = isnan(y);
+    // z > nan for z != nan is required by C the standard
+    if(x_is_nan || y_is_nan) {
+        if(x_is_nan && !y_is_nan) return y;
+        if(!x_is_nan && y_is_nan) return x;
+        return x;
+    }
+    return (x > y) ? x : y;
+}
+template<typename Type>
+Type constrain(const Type x, const Type lower_bound, const Type upper_bound) {
+    if(lower_bound > upper_bound) {
+        return NAN;
+    } else if(isnan(x)) {
+        return NAN;
+    } else {
+        return typeFunction::max(lower_bound, typeFunction::min(upper_bound, x));
+    }
+}
+}
+
+template<typename Type, size_t  M, size_t N>
+Matrix<Type, M, N> min(const Matrix<Type, M, N> &x, const Type scalar_upper_bound) {
+    Matrix<Type,M,N> m;
+    for (size_t i = 0; i < M; i++) {
+        for (size_t j = 0; j < N; j++) {
+            m(i,j) = typeFunction::min(x(i,j),scalar_upper_bound);
+        }
+    }
+    return m;
+}
+
+template<typename Type, size_t  M, size_t N>
+Matrix<Type, M, N> min(const Type scalar_upper_bound, const Matrix<Type, M, N> &x) {
+    return min(x, scalar_upper_bound);
+}
+
+template<typename Type, size_t  M, size_t N>
+Matrix<Type, M, N> min(const Matrix<Type, M, N> &x1, const Matrix<Type, M, N> &x2) {
+    Matrix<Type,M,N> m;
+    for (size_t i = 0; i < M; i++) {
+        for (size_t j = 0; j < N; j++) {
+            m(i,j) = typeFunction::min(x1(i,j),x2(i,j));
+        }
+    }
+    return m;
+}
+
+template<typename Type, size_t  M, size_t N>
+Matrix<Type, M, N> max(const Matrix<Type, M, N> &x, const Type scalar_lower_bound) {
+    Matrix<Type,M,N> m;
+    for (size_t i = 0; i < M; i++) {
+        for (size_t j = 0; j < N; j++) {
+            m(i,j) = typeFunction::max(x(i,j),scalar_lower_bound);
+        }
+    }
+    return m;
+}
+
+template<typename Type, size_t  M, size_t N>
+Matrix<Type, M, N> max(const Type scalar_lower_bound, const Matrix<Type, M, N> &x) {
+    return max(x, scalar_lower_bound);
+}
+
+template<typename Type, size_t  M, size_t N>
+Matrix<Type, M, N> max(const Matrix<Type, M, N> &x1, const Matrix<Type, M, N> &x2) {
+    Matrix<Type,M,N> m;
+    for (size_t i = 0; i < M; i++) {
+        for (size_t j = 0; j < N; j++) {
+            m(i,j) = typeFunction::max(x1(i,j),x2(i,j));
+        }
+    }
+    return m;
+}
+
+template<typename Type, size_t  M, size_t N>
+Matrix<Type, M, N> constrain(const Matrix<Type, M, N> &x,
+                             const Type scalar_lower_bound,
+                             const Type scalar_upper_bound) {
+    Matrix<Type,M,N> m;
+    if(scalar_lower_bound > scalar_upper_bound) {
+        m.setNaN();
+    } else {
+        for (size_t i = 0; i < M; i++) {
+            for (size_t j = 0; j < N; j++) {
+                m(i,j) = typeFunction::constrain(x(i,j), scalar_lower_bound, scalar_upper_bound);
+            }
+        }
+    }
+    return m;
+}
+
+template<typename Type, size_t  M, size_t N>
+Matrix<Type, M, N> constrain(const Matrix<Type, M, N> &x,
+                             const Matrix<Type, M, N> &x_lower_bound,
+                             const Matrix<Type, M, N> &x_upper_bound) {
+    Matrix<Type,M,N> m;
+    for (size_t i = 0; i < M; i++) {
+        for (size_t j = 0; j < N; j++) {
+            m(i,j) = typeFunction::constrain(x(i,j), x_lower_bound(i,j), x_upper_bound(i,j));
+        }
+    }
+    return m;
+}
+
 #if defined(SUPPORT_STDIOSTREAM)
 template<typename Type, size_t  M, size_t N>
 std::ostream& operator<<(std::ostream& os,
