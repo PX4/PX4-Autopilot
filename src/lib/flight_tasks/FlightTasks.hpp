@@ -43,7 +43,7 @@
 
 #include "FlightTask.hpp"
 #include "FlightTasks_generated.hpp"
-#include <lib/WeatherVane/WeatherVane.hpp>
+#include <lib/weather_vane/WeatherVane.hpp>
 #include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_command_ack.h>

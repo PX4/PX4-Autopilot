@@ -52,7 +52,7 @@
 #include <uORB/topics/vehicle_constraints.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
-#include <lib/WeatherVane/WeatherVane.hpp>
+#include <lib/weather_vane/WeatherVane.hpp>
 
 class FlightTask : public ModuleParams
 {

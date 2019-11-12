@@ -37,7 +37,7 @@
  *
  */
 
-#include <CollisionPrevention/CollisionPrevention.hpp>
+#include "CollisionPrevention.hpp"
 
 using namespace matrix;
 using namespace time_literals;
