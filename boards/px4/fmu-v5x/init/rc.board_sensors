@@ -3,6 +3,8 @@
 # PX4 FMUv5X specific board sensors init
 #------------------------------------------------------------------------------
 
+adc start
+
 # Start Digital power monitors
 ina226 -b 1 start
 ina226 -b 2 start

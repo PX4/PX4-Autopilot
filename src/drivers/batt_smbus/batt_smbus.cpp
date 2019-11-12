@@ -43,6 +43,8 @@
 
 #include "batt_smbus.h"
 
+#include <lib/parameters/param.h>
+
 extern "C" __EXPORT int batt_smbus_main(int argc, char *argv[]);
 
 BATT_SMBUS::BATT_SMBUS(SMBus *interface, const char *path) :

@@ -3,6 +3,7 @@
 # NXP fmuk66-v3 specific board defaults
 #------------------------------------------------------------------------------
 
+adc start
 
 # Possible external compasses
 hmc5883 -C -X start

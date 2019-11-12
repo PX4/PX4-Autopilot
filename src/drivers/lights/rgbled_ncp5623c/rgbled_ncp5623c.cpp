@@ -43,6 +43,7 @@
 
 #include <drivers/device/i2c.h>
 #include <lib/led/led.h>
+#include <lib/parameters/param.h>
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Subscription.hpp>
