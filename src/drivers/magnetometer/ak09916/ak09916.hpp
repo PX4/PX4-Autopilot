@@ -54,18 +54,23 @@ static constexpr uint8_t AK09916_DEVICE_ID_A = 0x48;
 static constexpr uint8_t AK09916REG_WIA = 0x00;
 
 static constexpr uint8_t AK09916REG_ST1 = 0x10;
+static constexpr uint8_t AK09916REG_HXL = 0x11;
 static constexpr uint8_t AK09916REG_CNTL2 = 0x31;
 static constexpr uint8_t AK09916REG_CNTL3 = 0x32;
 
 static constexpr uint8_t AK09916_RESET = 0x01;
 static constexpr uint8_t AK09916_CNTL2_CONTINOUS_MODE_100HZ = 0x08;
 
+static constexpr uint8_t AK09916_ST1_DRDY = 0x01;
+static constexpr uint8_t AK09916_ST1_DOR = 0x02;
+
+static constexpr uint8_t AK09916_ST2_HOFL = 0x08;
+
 // Run at 100 Hz.
 static constexpr unsigned AK09916_CONVERSION_INTERVAL_us = 1000000 / 100;
 
 #pragma pack(push, 1)
 struct ak09916_regs {
-	uint8_t st1;
 	int16_t x;
 	int16_t y;
 	int16_t z;
@@ -84,7 +89,6 @@ public:
 	virtual int init() override;
 	void start();
 	void stop();
-	void cycle();
 	void print_info();
 	int probe();
 
@@ -93,6 +97,8 @@ protected:
 	int setup_master_i2c();
 	bool check_id();
 	void Run();
+	void try_measure();
+	bool is_ready();
 	void measure();
 	int reset();
 
@@ -110,13 +116,6 @@ private:
 	perf_counter_t _mag_errors;
 	perf_counter_t _mag_overruns;
 	perf_counter_t _mag_overflows;
-
-	perf_counter_t _mag_duplicates;
-
-	bool check_duplicate(uint8_t *mag_data);
-
-	// keep last mag reading for duplicate detection
-	uint8_t			_last_mag_data[6] {};
 
 	AK09916(const AK09916 &) = delete;
 	AK09916 operator=(const AK09916 &) = delete;

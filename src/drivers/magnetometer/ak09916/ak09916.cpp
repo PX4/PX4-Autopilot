@@ -141,8 +141,7 @@ AK09916::AK09916(int bus, const char *path, enum Rotation rotation) :
 	_mag_reads(perf_alloc(PC_COUNT, "ak09916_mag_reads")),
 	_mag_errors(perf_alloc(PC_COUNT, "ak09916_mag_errors")),
 	_mag_overruns(perf_alloc(PC_COUNT, "ak09916_mag_overruns")),
-	_mag_overflows(perf_alloc(PC_COUNT, "ak09916_mag_overflows")),
-	_mag_duplicates(perf_alloc(PC_COUNT, "ak09916_mag_duplicates"))
+	_mag_overflows(perf_alloc(PC_COUNT, "ak09916_mag_overflows"))
 {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_AK09916);
 	_px4_mag.set_scale(AK09916_MAG_RANGE_GA);
@@ -154,7 +153,6 @@ AK09916::~AK09916()
 	perf_free(_mag_errors);
 	perf_free(_mag_overruns);
 	perf_free(_mag_overflows);
-	perf_free(_mag_duplicates);
 }
 
 int
@@ -178,52 +176,56 @@ AK09916::init()
 	return PX4_OK;
 }
 
-bool AK09916::check_duplicate(uint8_t *mag_data)
+void
+AK09916::try_measure()
 {
-	if (memcmp(mag_data, &_last_mag_data, sizeof(_last_mag_data)) == 0) {
-		// It isn't new data - wait for next timer.
-		return true;
+	if (!is_ready()) {
+		return;
+	}
 
-	} else {
-		memcpy(&_last_mag_data, mag_data, sizeof(_last_mag_data));
+	measure();
+}
+
+bool
+AK09916::is_ready()
+{
+	uint8_t st1;
+	const int ret = transfer(&AK09916REG_ST1, sizeof(AK09916REG_ST1), &st1, sizeof(st1));
+
+	if (ret != OK) {
 		return false;
 	}
+
+	// Monitor if data overrun flag is ever set.
+	if (st1 & AK09916_ST1_DOR) {
+		perf_count(_mag_overruns);
+	}
+
+	return (st1 & AK09916_ST1_DRDY);
 }
 
 void
 AK09916::measure()
 {
-	uint8_t cmd = AK09916REG_ST1;
-	struct ak09916_regs raw_data;
+	ak09916_regs regs;
 
-	const hrt_abstime timestamp_sample = hrt_absolute_time();
-	uint8_t ret = transfer(&cmd, 1, (uint8_t *)(&raw_data), sizeof(struct ak09916_regs));
+	const hrt_abstime now = hrt_absolute_time();
 
-	if (ret == OK) {
-		raw_data.st2 = raw_data.st2;
+	const int ret = transfer(&AK09916REG_HXL, sizeof(AK09916REG_HXL),
+				 reinterpret_cast<uint8_t *>(&regs), sizeof(regs));
 
-		if (check_duplicate((uint8_t *)&raw_data.x) && !(raw_data.st1 & 0x02)) {
-			perf_count(_mag_duplicates);
-			return;
-		}
-
-		/* Monitor for if data overrun flag is ever set. */
-		if (raw_data.st1 & 0x02) {
-			perf_count(_mag_overruns);
-		}
-
-		/* Monitor for if magnetic sensor overflow flag is ever set noting that st2
-		 * is usually not even refreshed, but will always be in the same place in the
-		 * mpu's buffers regardless, hence the actual count would be bogus.
-		 */
-		if (raw_data.st2 & 0x08) {
-			perf_count(_mag_overflows);
-		}
-
+	if (ret != OK) {
 		_px4_mag.set_error_count(perf_event_count(_mag_errors));
-		_px4_mag.set_external(external());
-		_px4_mag.update(timestamp_sample, raw_data.x, raw_data.y, raw_data.z);
+		return;
 	}
+
+	// Monitor if magnetic sensor overflow flag is set.
+	if (regs.st2 & AK09916_ST2_HOFL) {
+		perf_count(_mag_overflows);
+	}
+
+	_px4_mag.set_external(external());
+	_px4_mag.update(now, regs.x, regs.y, regs.z);
 }
 
 void
@@ -327,7 +329,7 @@ AK09916::Run()
 		return;
 	}
 
-	measure();
+	try_measure();
 
 	if (_cycle_interval > 0) {
 		ScheduleDelayed(_cycle_interval);
