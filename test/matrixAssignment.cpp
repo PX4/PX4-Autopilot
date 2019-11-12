@@ -134,6 +134,60 @@ int main()
     m7.setNaN();
     TEST(m7 != m8);
 
+    // min, max, constrain matrix values with scalar
+    float data_m9[9] = {2, 4, 6, 8, 10, 12, 14, 16, 18};
+    float lower_bound = 7;
+    float upper_bound = 11;
+    float data_m9_lower_bounded[9] = {7, 7, 7, 8, 10, 12, 14, 16, 18};
+    float data_m9_upper_bounded[9] = {2, 4, 6, 8, 10, 11, 11, 11, 11};
+    float data_m9_lower_constrained[9] = {7, 7, 7, 8, 10, 11, 11, 11, 11};
+    Matrix3f m9(data_m9);
+    Matrix3f m9_lower_bounded(data_m9_lower_bounded);
+    Matrix3f m9_upper_bounded(data_m9_upper_bounded);
+    Matrix3f m9_lower_upper_constrained(data_m9_lower_constrained);
+    TEST(isEqual(max(m9, lower_bound), m9_lower_bounded));
+    TEST(isEqual(max(lower_bound, m9), m9_lower_bounded));
+    TEST(isEqual(min(m9, upper_bound), m9_upper_bounded));
+    TEST(isEqual(min(upper_bound, m9), m9_upper_bounded));
+    TEST(isEqual(constrain(m9, lower_bound, upper_bound), m9_lower_upper_constrained));
+    TEST(isEqual(constrain(m9, 8.0f, 7.0f), m_nan));
+
+    // min, max, constrain matrix values with matrix of same size
+    float data_m10[9] = {2, 4, 6, 8, 10, 12, 14, 16, 18};
+    float data_m10_lower_bound[9] = {5, 7, 4, 8, 19, 10, 20, 16, 18};
+    float data_m10_lower_bounded_ref[9] = {5, 7, 6, 8, 19, 12, 20, 16, 18};
+    float data_m10_upper_bound[9] = {6, 4, 8, 18, 20, 11, 30, 16, 18};
+    float data_m10_upper_bounded_ref[9] = {2, 4, 6, 8, 10, 11, 14, 16, 18};
+    float data_m10_constrained_ref[9] = {5, NAN, 6, 8, 19, 11, 20, 16, 18};
+    Matrix3f m10(data_m10);
+    Matrix3f m10_lower_bound(data_m10_lower_bound);
+    Matrix3f m10_lower_bounded_ref(data_m10_lower_bounded_ref);
+    Matrix3f m10_upper_bound(data_m10_upper_bound);
+    Matrix3f m10_upper_bounded_ref(data_m10_upper_bounded_ref);
+    Matrix3f m10_constrained_ref(data_m10_constrained_ref);
+    TEST(isEqual(max(m10, m10_lower_bound), m10_lower_bounded_ref));
+    TEST(isEqual(max(m10_lower_bound, m10), m10_lower_bounded_ref));
+    TEST(isEqual(min(m10, m10_upper_bound), m10_upper_bounded_ref));
+    TEST(isEqual(min(m10_upper_bound, m9), m10_upper_bounded_ref));
+    TEST(isEqual(constrain(m10, m10_lower_bound, m10_upper_bound), m10_constrained_ref));
+
+    // min, max, constrain with NAN
+    TEST(isEqualF(matrix::typeFunction::min(5.0f,NAN), 5.0f));
+    TEST(isEqualF(matrix::typeFunction::min(NAN,5.0f), 5.0f));
+    TEST(isEqualF(matrix::typeFunction::min(NAN,NAN), NAN));
+    TEST(isEqualF(matrix::typeFunction::max(5.0f,NAN), 5.0f));
+    TEST(isEqualF(matrix::typeFunction::max(NAN,5.0f), 5.0f));
+    TEST(isEqualF(matrix::typeFunction::max(NAN,NAN), NAN));
+    TEST(isEqualF(matrix::typeFunction::constrain(NAN,5.0f,6.0f), NAN));
+    TEST(isEqualF(matrix::typeFunction::constrain(1.0f,5.0f,4.0f), NAN));
+    TEST(isEqualF(matrix::typeFunction::constrain(6.0f,NAN,5.0f), 5.0f));
+    TEST(isEqualF(matrix::typeFunction::constrain(1.0f,5.0f,NAN), 5.0f));
+    Vector2f v1{NAN, 5.0f};
+    Vector2f v1_min = min(v1,1.0f);
+    Matrix3f m11 = min(m10_constrained_ref,NAN);
+    TEST(isEqualF(fmin(NAN,1.0f), float(v1_min(0))));
+    TEST(isEqual(m11, m10_constrained_ref));
+
     // check write_string()
     float comma[6] = {
         1.f, 12345.678f,
