@@ -70,6 +70,7 @@ static unsigned _addrlen = sizeof(_srcaddr);
 
 const unsigned mode_flag_armed = 128;
 const unsigned mode_flag_custom = 1;
+const unsigned mode_flag_lockstep = 2;
 
 using namespace simulator;
 using namespace time_literals;
@@ -125,7 +126,7 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 		}
 
 		for (unsigned i = 0; i < 16; i++) {
-			if (actuators.output[i] > PWM_DEFAULT_MIN / 2) {
+			if (armed) {
 				if (i < n) {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for rotors */
 					msg.controls[i] = (actuators.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
@@ -145,7 +146,7 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 		/* fixed wing: scale throttle to 0..1 and other channels to -1..1 */
 
 		for (unsigned i = 0; i < 16; i++) {
-			if (actuators.output[i] > PWM_DEFAULT_MIN / 2) {
+			if (armed) {
 				if (i != 4) {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for normal channels */
 					msg.controls[i] = (actuators.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
@@ -166,6 +167,10 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 	msg.mode |= (armed) ? mode_flag_armed : 0;
 	msg.flags = 0;
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+    msg.flags |= mode_flag_lockstep;
+#endif
+
 	return msg;
 }
 
@@ -173,13 +178,19 @@ void Simulator::send_controls()
 {
 	// copy new actuator data if available
 	bool updated = false;
+    bool lockstep = false;
 	orb_check(_actuator_outputs_sub, &updated);
 
-	if (updated) {
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+    // when lockstep is enabled we must send always.
+    lockstep = true;
+#endif
+
+	if (updated || lockstep) {
 		actuator_outputs_s actuators{};
 		orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub, &actuators);
 
-		if (actuators.timestamp > 0) {
+		if (actuators.timestamp > 0 || lockstep) {
 			const mavlink_hil_actuator_controls_t hil_act_control = actuator_controls_from_outputs(actuators);
 
 			mavlink_message_t message{};
@@ -702,7 +713,7 @@ void Simulator::poll_for_MAVLink_messages()
 
 	} else {
 
-		PX4_INFO("Waiting for simulator to connect on TCP port %u", _port);
+		PX4_INFO("Waiting for simulator to accept connection on TCP port %u", _port);
 
 		while (true) {
 			if ((_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
