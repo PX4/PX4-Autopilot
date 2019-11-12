@@ -35,7 +35,7 @@
  * @file px4_log.h
  * Platform dependant logging/debug implementation
  */
-
+#include "debug.h"
 #pragma once
 
 #define _PX4_LOG_LEVEL_DEBUG		0
@@ -44,7 +44,7 @@
 #define _PX4_LOG_LEVEL_ERROR		3
 #define _PX4_LOG_LEVEL_PANIC		4
 
-// Used to silence unused variable warning
+// Used to silence unused variable warning 
 static inline void do_nothing(int level, ...)
 {
 	(void)level;

@@ -83,6 +83,7 @@
 
 #include <board_config.h>
 
+#include "devices/src/minmea.h"	
 #include "devices/src/ubx.h"
 #include "devices/src/mtk.h"
 #include "devices/src/ashtech.h"
@@ -94,10 +95,12 @@
 
 #define TIMEOUT_5HZ 500
 #define RATE_MEASUREMENT_PERIOD 5000000
+#define PARSE_RTK_RTCM	0
 
 typedef enum {
 	GPS_DRIVER_MODE_NONE = 0,
 	GPS_DRIVER_MODE_UBX,
+	GPS_DRIVER_MODE_MINMEA,
 	GPS_DRIVER_MODE_MTK,
 	GPS_DRIVER_MODE_ASHTECH,
 	GPS_DRIVER_MODE_EMLIDREACH
@@ -197,8 +200,9 @@ private:
 	const bool			_fake_gps;					///< fake gps output
 
 	const Instance 			_instance;
-
+#ifdef PARSE_RTK_RTCM
 	int				_orb_inject_data_fd{-1};
+#endif
 	orb_advert_t			_dump_communication_pub{nullptr};		///< if non-null, dump communication
 	gps_dump_s			*_dump_to_device{nullptr};
 	gps_dump_s			*_dump_from_device{nullptr};
@@ -231,7 +235,7 @@ private:
 	 *	    > 0 number of bytes read
 	 */
 	int pollOrRead(uint8_t *buf, size_t buf_length, int timeout);
-
+#ifdef PARSE_RTK_RTCM
 	/**
 	 * check for new messages on the inject data topic & handle them
 	 */
@@ -243,7 +247,7 @@ private:
 	 * @param len
 	 */
 	inline bool injectData(uint8_t *data, size_t len);
-
+#endif
 	/**
 	 * set the Baudrate
 	 * @param baud
@@ -373,7 +377,9 @@ int GPS::callback(GPSCallbackType type, void *data1, int data2, void *user)
 
 int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 {
+#ifdef PARSE_RTK_RTCM
 	handleInjectDataTopic();
+#endif
 
 #if !defined(__PX4_QURT)
 
@@ -437,6 +443,7 @@ int GPS::pollOrRead(uint8_t *buf, size_t buf_length, int timeout)
 #endif
 }
 
+#ifdef PARSE_RTK_RTCM
 void GPS::handleInjectDataTopic()
 {
 	if (_orb_inject_data_fd == -1) {
@@ -471,6 +478,7 @@ bool GPS::injectData(uint8_t *data, size_t len)
 	::fsync(_serial_fd);
 	return written == len;
 }
+#endif
 
 int GPS::setBaudrate(unsigned baud)
 {
@@ -667,9 +675,9 @@ GPS::run()
 	if (handle != PARAM_INVALID) {
 		param_get(handle, &gps_ubx_dynmodel);
 	}
-
+#ifdef PARSE_RTK_RTCM
 	_orb_inject_data_fd = orb_subscribe(ORB_ID(gps_inject_data));
-
+#endif
 	initializeCommunicationDump();
 
 	uint64_t last_rate_measurement = hrt_absolute_time();
@@ -703,7 +711,6 @@ GPS::run()
 
 			/* no time and satellite information simulated */
 
-
 			publish();
 
 			px4_usleep(200000);
@@ -715,14 +722,19 @@ GPS::run()
 				_helper = nullptr;
 			}
 
+			_mode = GPS_DRIVER_MODE_MINMEA;
+			_helper = new GPSDriverMINMEA(&GPS::callback, this, &_report_gps_pos);
+/*
 			switch (_mode) {
 			case GPS_DRIVER_MODE_NONE:
 				_mode = GPS_DRIVER_MODE_UBX;
 
-			/* FALLTHROUGH */
 			case GPS_DRIVER_MODE_UBX:
-				_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info,
-							   gps_ubx_dynmodel);
+				_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info, gps_ubx_dynmodel);
+				break;
+
+			case GPS_DRIVER_MODE_MINMEA:
+				_helper = new GPSDriverMINMEA(&GPS::callback, this, &_report_gps_pos);
 				break;
 
 			case GPS_DRIVER_MODE_MTK:
@@ -740,7 +752,7 @@ GPS::run()
 			default:
 				break;
 			}
-
+*/
 			_baudrate = _configured_baudrate;
 
 			if (_helper && _helper->configure(_baudrate, GPSHelper::OutputMode::GPS) == 0) {
@@ -762,7 +774,6 @@ GPS::run()
 
 					if (helper_ret & 1) {
 						publish();
-
 						last_rate_count++;
 					}
 
@@ -785,31 +796,6 @@ GPS::run()
 					}
 
 					if (!_healthy) {
-						// Helpful for debugging, but too verbose for normal ops
-//						const char *mode_str = "unknown";
-//
-//						switch (_mode) {
-//						case GPS_DRIVER_MODE_UBX:
-//							mode_str = "UBX";
-//							break;
-//
-//						case GPS_DRIVER_MODE_MTK:
-//							mode_str = "MTK";
-//							break;
-//
-//						case GPS_DRIVER_MODE_ASHTECH:
-//							mode_str = "ASHTECH";
-//							break;
-//
-//						case GPS_DRIVER_MODE_EMLIDREACH:
-//							mode_str = "EMLID REACH";
-//							break;
-//
-//						default:
-//							break;
-//						}
-//
-//						PX4_WARN("module found: %s", mode_str);
 						_healthy = true;
 					}
 				}
@@ -820,10 +806,14 @@ GPS::run()
 					_rate_rtcm_injection = 0.0f;
 				}
 			}
-
+/*
 			if (_mode_auto) {
 				switch (_mode) {
 				case GPS_DRIVER_MODE_UBX:
+					_mode = GPS_DRIVER_MODE_MINMEA;
+					break;
+
+				case GPS_DRIVER_MODE_MINMEA:
 					_mode = GPS_DRIVER_MODE_MTK;
 					break;
 
@@ -846,15 +836,14 @@ GPS::run()
 
 			} else {
 				px4_usleep(500000);
-			}
-
+			} */ px4_usleep(500000);
 		}
 	}
 
 	PX4_INFO("exiting");
-
+#ifdef PARSE_RTK_RTCM
 	orb_unsubscribe(_orb_inject_data_fd);
-
+#endif
 	if (_dump_communication_pub) {
 		orb_unadvertise(_dump_communication_pub);
 	}
@@ -894,6 +883,10 @@ GPS::print_status()
 		switch (_mode) {
 		case GPS_DRIVER_MODE_UBX:
 			PX4_INFO("protocol: UBX");
+			break;
+		
+		case GPS_DRIVER_MODE_MINMEA:
+			PX4_INFO("protocol: MINMEA");
 			break;
 
 		case GPS_DRIVER_MODE_MTK:
@@ -973,7 +966,7 @@ GPS::reset_if_scheduled()
 void
 GPS::publish()
 {
-	if (_instance == Instance::Main || _is_gps_main_advertised) {
+	if (_instance == Instance::Main || _instance == Instance::Secondary || _is_gps_main_advertised) {
 		orb_publish_auto(ORB_ID(vehicle_gps_position), &_report_gps_pos_pub, &_report_gps_pos, &_gps_orb_instance,
 				 ORB_PRIO_DEFAULT);
 		// Heading/yaw data can be updated at a lower rate than the other navigation data.
@@ -986,7 +979,7 @@ GPS::publish()
 void
 GPS::publishSatelliteInfo()
 {
-	if (_instance == Instance::Main) {
+	if (_instance == Instance::Main || _instance == Instance::Secondary) {
 		orb_publish_auto(ORB_ID(satellite_info), &_report_sat_info_pub, _p_report_sat_info, &_gps_sat_orb_instance,
 				 ORB_PRIO_DEFAULT);
 
@@ -1086,7 +1079,7 @@ $ gps reset warm
 
 int GPS::task_spawn(int argc, char *argv[])
 {
-	return task_spawn(argc, argv, Instance::Main);
+	return task_spawn(argc, argv, Instance::Main) || task_spawn(argc, argv, Instance::Secondary);
 }
 
 int GPS::task_spawn(int argc, char *argv[], Instance instance)
@@ -1202,6 +1195,9 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 			if (!strcmp(myoptarg, "ubx")) {
 				mode = GPS_DRIVER_MODE_UBX;
 
+			} else if (!strcmp(myoptarg, "nmea")) {
+				mode = GPS_DRIVER_MODE_MINMEA;
+
 			} else if (!strcmp(myoptarg, "mtk")) {
 				mode = GPS_DRIVER_MODE_MTK;
 
@@ -1235,14 +1231,14 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 	GPS *gps;
 	if (instance == Instance::Main) {
 		gps = new GPS(device_name, mode, interface, fake_gps, enable_sat_info, instance, baudrate_main);
-
+/*
 		if (gps && device_name_secondary) {
 			task_spawn(argc, argv, Instance::Secondary);
 			// wait until running
 			int i = 0;
 
 			do {
-				/* wait up to 1s */
+				// wait up to 1s
 				px4_usleep(2500);
 
 			} while (!_secondary_instance && ++i < 400);
@@ -1250,7 +1246,7 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 			if (i == 400) {
 				PX4_ERR("Timed out while waiting for thread to start");
 			}
-		}
+		}	*/
 	} else { // secondary instance
 		gps = new GPS(device_name_secondary, mode, interface, fake_gps, enable_sat_info, instance, baudrate_secondary);
 	}
