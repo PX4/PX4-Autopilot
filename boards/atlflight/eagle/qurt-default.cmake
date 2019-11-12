@@ -46,6 +46,7 @@ px4_add_board(
 
 	DRIVERS
 		gps
+		imu/mpu9250
 		spektrum_rc
 		qshell/qurt
 		snapdragon_pwm_out
