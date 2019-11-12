@@ -168,7 +168,7 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 	msg.flags = 0;
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
-    msg.flags |= mode_flag_lockstep;
+	msg.flags |= mode_flag_lockstep;
 #endif
 
 	return msg;
@@ -178,12 +178,12 @@ void Simulator::send_controls()
 {
 	// copy new actuator data if available
 	bool updated = false;
-    bool lockstep = false;
+	bool lockstep = false;
 	orb_check(_actuator_outputs_sub, &updated);
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
-    // when lockstep is enabled we must send always.
-    lockstep = true;
+	// when lockstep is enabled we must send always.
+	lockstep = true;
 #endif
 
 	if (updated || lockstep) {
