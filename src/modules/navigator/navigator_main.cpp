@@ -57,6 +57,7 @@
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <systemlib/mavlink_log.h>
+#include <v2.0/common/mavlink.h>
 
 /**
  * navigator app start / stop handling function
@@ -964,8 +965,7 @@ void Navigator::check_traffic()
 		}
 
 
-		//Unmanned Vehicle Seperation Distance
-		//
+		//Manned/Unmanned Vehicle Seperation Distance
 		if (tr.emitter_type == ADSB_EMITTER_TYPE_UAV) {
 			horizontal_separation = NAVTrafficAvoidUnmanned;
 			vertical_separation = NAVTrafficAvoidUnmanned;

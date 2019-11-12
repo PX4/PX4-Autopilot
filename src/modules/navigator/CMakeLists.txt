@@ -34,6 +34,8 @@
 px4_add_module(
 	MODULE modules__navigator
 	MAIN navigator
+	INCLUDES
+		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS
 		navigator_main.cpp
 		navigator_mode.cpp
