@@ -129,6 +129,8 @@ device_bus_to_wq(uint32_t device_id_int)
 
 	if (bus_type == device::Device::DeviceBusType_I2C) {
 		switch (bus) {
+		case 0: return wq_configurations::I2C0;
+
 		case 1: return wq_configurations::I2C1;
 
 		case 2: return wq_configurations::I2C2;
@@ -140,6 +142,8 @@ device_bus_to_wq(uint32_t device_id_int)
 
 	} else if (bus_type == device::Device::DeviceBusType_SPI) {
 		switch (bus) {
+		case 0: return wq_configurations::SPI0;
+
 		case 1: return wq_configurations::SPI1;
 
 		case 2: return wq_configurations::SPI2;

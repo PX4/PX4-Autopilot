@@ -16,6 +16,7 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		gps
 		#imu # all available imu drivers
+		imu/mpu9250
 		lights/rgbled
 		linux_pwm_out
 		linux_sbus
