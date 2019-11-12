@@ -40,7 +40,7 @@
 
 #pragma once
 
-#include <CollisionPrevention/CollisionPrevention.hpp>
+#include <lib/collision_prevention/CollisionPrevention.hpp>
 #include "FlightTaskManualAltitude.hpp"
 
 class FlightTaskManualPosition : public FlightTaskManualAltitude
