@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file mpu9250_spi.cpp
+ * @file icm20948_spi.cpp
  *
  * Driver for the Invensense ICM20948 connected via SPI.
  *
@@ -42,7 +42,6 @@
  */
 
 #include <drivers/device/spi.h>
-
 #include "icm20948.h"
 
 #define DIR_READ			0x80
@@ -57,10 +56,10 @@
  * for a 168Mhz CPU this will be 10.5 Mhz and for a 180 Mhz CPU
  * it will be 11.250 Mhz
  */
-#define MPU9250_LOW_SPI_BUS_SPEED	1000*1000
-#define MPU9250_HIGH_SPI_BUS_SPEED	20*1000*1000
+#define ICM20948_LOW_SPI_BUS_SPEED	1000*1000
+#define ICM20948_HIGH_SPI_BUS_SPEED	20*1000*1000
 
-device::Device *ICM20948_SPI_interface(int bus, uint32_t cs, bool external_bus);
+device::Device *ICM20948_SPI_interface(int bus, uint32_t cs);
 
 class ICM20948_SPI : public device::SPI
 {
@@ -81,50 +80,41 @@ private:
 };
 
 device::Device *
-ICM20948_SPI_interface(int bus, uint32_t cs, bool external_bus)
+ICM20948_SPI_interface(int bus, uint32_t cs)
 {
 	device::Device *interface = nullptr;
 
-	if (external_bus) {
-#if !(defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_MPU))
-		errx(0, "External SPI not available");
-#endif
-	}
-
-	if (cs != SPIDEV_NONE(0)) {
-		interface = new ICM20948_SPI(bus, cs);
-	}
+	interface = new ICM20948_SPI(bus, cs);
 
 	return interface;
 }
 
 ICM20948_SPI::ICM20948_SPI(int bus, uint32_t device) :
-	SPI("ICM20948", nullptr, bus, device, SPIDEV_MODE3, MPU9250_LOW_SPI_BUS_SPEED)
+	SPI("ICM20948", nullptr, bus, device, SPIDEV_MODE3, ICM20948_LOW_SPI_BUS_SPEED)
 {
-	_device_id.devid_s.devtype = DRV_ACC_DEVTYPE_MPU9250;
+	_device_id.devid_s.devtype = DRV_DEVTYPE_ICM20948;
 }
 
 void
 ICM20948_SPI::set_bus_frequency(unsigned &reg_speed)
 {
 	/* Set the desired speed */
-	set_frequency(MPU9250_IS_HIGH_SPEED(reg_speed) ? MPU9250_HIGH_SPI_BUS_SPEED : MPU9250_LOW_SPI_BUS_SPEED);
+	set_frequency(ICM20948_IS_HIGH_SPEED(reg_speed) ? ICM20948_HIGH_SPI_BUS_SPEED : ICM20948_LOW_SPI_BUS_SPEED);
 
 	/* Isoolate the register on return */
-	reg_speed = MPU9250_REG(reg_speed);
+	reg_speed = ICM20948_REG(reg_speed);
 }
 
 int
 ICM20948_SPI::write(unsigned reg_speed, void *data, unsigned count)
 {
-	uint8_t cmd[MPU_MAX_WRITE_BUFFER_SIZE];
+	uint8_t cmd[2] {};
 
 	if (sizeof(cmd) < (count + 1)) {
 		return -EIO;
 	}
 
 	/* Set the desired speed and isolate the register */
-
 	set_bus_frequency(reg_speed);
 
 	cmd[0] = reg_speed | DIR_WRITE;
@@ -141,7 +131,7 @@ ICM20948_SPI::read(unsigned reg_speed, void *data, unsigned count)
 	 * and we need to provied the buffer large enough for the callers data
 	 * and our command.
 	 */
-	uint8_t cmd[3] = {0, 0, 0};
+	uint8_t cmd[3] {};
 
 	uint8_t *pbuff  =  count < sizeof(MPUReport) ? cmd : (uint8_t *) data ;
 
@@ -181,6 +171,10 @@ ICM20948_SPI::probe()
 	}
 
 	switch (whoami) {
+	case ICM_WHOAMI_20948:
+		ret = 0;
+		break;
+
 	default:
 		PX4_WARN("probe failed! %u", whoami);
 		ret = -EIO;
