@@ -104,7 +104,7 @@ class Px4Runner(Runner):
         self.log_prefix = "px4"
 
 
-class GazeboRunner(Runner):
+class GzserverRunner(Runner):
     def __init__(self, workspace_dir, log_dir, speed_factor):
         super().__init__(log_dir)
         self.env = {"PATH": os.environ['PATH'],
@@ -117,7 +117,22 @@ class GazeboRunner(Runner):
         self.cmd = "gzserver"
         self.args = ["--verbose",
                      workspace_dir + "/Tools/sitl_gazebo/worlds/iris.world"]
-        self.log_prefix = "gazebo"
+        self.log_prefix = "gzserver"
+
+
+class GzclientRunner(Runner):
+    def __init__(self, workspace_dir, log_dir):
+        super().__init__(log_dir)
+        self.env = {"PATH": os.environ['PATH'],
+                    "HOME": os.environ['HOME'],
+                    # "GAZEBO_PLUGIN_PATH":
+                    # workspace_dir + "/build/px4_sitl_default/build_gazebo",
+                    "GAZEBO_MODEL_PATH":
+                    workspace_dir + "/Tools/sitl_gazebo/models",
+                    "DISPLAY": ":0"}
+        self.cmd = "gzclient"
+        self.args = ["--verbose"]
+        self.log_prefix = "gzclient"
 
 
 class TestRunner(Runner):
@@ -159,6 +174,10 @@ def is_everything_ready():
         print("gzserver process already running\n"
               "run `killall gzserver` and try again")
         result = False
+    if is_running('gzclient'):
+        print("gzclient process already running\n"
+              "run `killall gzclient` and try again")
+        result = False
     if not os.path.isfile('build/px4_sitl_default/bin/px4'):
         print("PX4 SITL is not built\n"
               "run `PX4_MAVSDK_TESTING=y DONT_RUN=1 "
@@ -179,6 +198,8 @@ def main():
                         help="Directory for log files, stdout if not provided")
     parser.add_argument("--speed-factor", default=1,
                         help="How fast to run the simulation")
+    parser.add_argument("--gui", default=False,
+                        help="Display gzclient with")
     args = parser.parse_args()
 
     if not is_everything_ready():
@@ -200,9 +221,14 @@ def main():
                 os.getcwd(), args.log_dir, args.speed_factor)
             px4_runner.start(group)
 
-            gazebo_runner = GazeboRunner(
+            gzserver_runner = GzserverRunner(
                 os.getcwd(), args.log_dir, args.speed_factor)
-            gazebo_runner.start(group)
+            gzserver_runner.start(group)
+
+            if args.gui:
+                gzclient_runner = GzclientRunner(
+                    os.getcwd(), args.log_dir)
+                gzclient_runner.start(group)
 
             test_runner = TestRunner(os.getcwd(), args.log_dir, group, test)
             test_runner.start(group)
@@ -214,11 +240,15 @@ def main():
             if not was_success:
                 overall_success = False
 
-            returncode = gazebo_runner.stop()
-            print("Gazebo exited with {}".format(returncode))
+            if args.gui:
+                returncode = gzclient_runner.stop()
+                print("gzclient exited with {}".format(returncode))
+
+            returncode = gzserver_runner.stop()
+            print("gzserver exited with {}".format(returncode))
 
             px4_runner.stop()
-            print("PX4 exited with {}".format(returncode))
+            print("px4 exited with {}".format(returncode))
 
     print("Overall result: {}".
           format("SUCCESS" if overall_success else "FAIL"))
