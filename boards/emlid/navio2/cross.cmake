@@ -10,6 +10,7 @@ px4_add_board(
 
 	DRIVERS
 		#barometer # all available barometer drivers
+		barometer/ms5611
 		batt_smbus
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
