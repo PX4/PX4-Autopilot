@@ -115,6 +115,7 @@ public:
 
 private:
 	int getRangeSubIndex(); ///< get subscription index of first downward-facing range sensor
+	void fillGpsMsgWithVehicleGpsPosData(gps_message &msg, const vehicle_gps_position_s &data);
 
 	PreFlightChecker _preflt_checker;
 	void runPreFlightChecks(float dt, const filter_control_status_u &control_status,
@@ -928,24 +929,7 @@ void Ekf2::Run()
 			vehicle_gps_position_s gps;
 
 			if (_gps_subs[0].copy(&gps)) {
-				_gps_state[0].time_usec = gps.timestamp;
-				_gps_state[0].lat = gps.lat;
-				_gps_state[0].lon = gps.lon;
-				_gps_state[0].alt = gps.alt;
-				_gps_state[0].yaw = gps.heading;
-				_gps_state[0].yaw_offset = gps.heading_offset;
-				_gps_state[0].fix_type = gps.fix_type;
-				_gps_state[0].eph = gps.eph;
-				_gps_state[0].epv = gps.epv;
-				_gps_state[0].sacc = gps.s_variance_m_s;
-				_gps_state[0].vel_m_s = gps.vel_m_s;
-				_gps_state[0].vel_ned[0] = gps.vel_n_m_s;
-				_gps_state[0].vel_ned[1] = gps.vel_e_m_s;
-				_gps_state[0].vel_ned[2] = gps.vel_d_m_s;
-				_gps_state[0].vel_ned_valid = gps.vel_ned_valid;
-				_gps_state[0].nsats = gps.satellites_used;
-				const float tdop = 0.9f;
-				_gps_state[0].gdop = sqrtf(gps.hdop * gps.hdop + gps.vdop * gps.vdop + tdop * tdop);
+				fillGpsMsgWithVehicleGpsPosData(_gps_state[0], gps);
 				_gps_alttitude_ellipsoid[0] = gps.alt_ellipsoid;
 
 				ekf2_timestamps.gps_timestamp_rel = (int16_t)((int64_t)gps.timestamp / 100 - (int64_t)ekf2_timestamps.timestamp / 100);
@@ -959,24 +943,7 @@ void Ekf2::Run()
 			vehicle_gps_position_s gps;
 
 			if (_gps_subs[1].copy(&gps)) {
-				_gps_state[1].time_usec = gps.timestamp;
-				_gps_state[1].lat = gps.lat;
-				_gps_state[1].lon = gps.lon;
-				_gps_state[1].alt = gps.alt;
-				_gps_state[1].yaw = gps.heading;
-				_gps_state[1].yaw_offset = gps.heading_offset;
-				_gps_state[1].fix_type = gps.fix_type;
-				_gps_state[1].eph = gps.eph;
-				_gps_state[1].epv = gps.epv;
-				_gps_state[1].sacc = gps.s_variance_m_s;
-				_gps_state[1].vel_m_s = gps.vel_m_s;
-				_gps_state[1].vel_ned[0] = gps.vel_n_m_s;
-				_gps_state[1].vel_ned[1] = gps.vel_e_m_s;
-				_gps_state[1].vel_ned[2] = gps.vel_d_m_s;
-				_gps_state[1].vel_ned_valid = gps.vel_ned_valid;
-				_gps_state[1].nsats = gps.satellites_used;
-				const float tdop = 0.9f;
-				_gps_state[0].gdop = sqrtf(gps.hdop * gps.hdop + gps.vdop * gps.vdop + tdop * tdop);
+				fillGpsMsgWithVehicleGpsPosData(_gps_state[1], gps);
 				_gps_alttitude_ellipsoid[1] = gps.alt_ellipsoid;
 			}
 		}
@@ -1678,6 +1645,28 @@ void Ekf2::Run()
 		// publish ekf2_timestamps
 		_ekf2_timestamps_pub.publish(ekf2_timestamps);
 	}
+}
+
+void Ekf2::fillGpsMsgWithVehicleGpsPosData(gps_message &msg, const vehicle_gps_position_s &data)
+{
+	msg.time_usec = data.timestamp;
+	msg.lat = data.lat;
+	msg.lon = data.lon;
+	msg.alt = data.alt;
+	msg.yaw = data.heading;
+	msg.yaw_offset = data.heading_offset;
+	msg.fix_type = data.fix_type;
+	msg.eph = data.eph;
+	msg.epv = data.epv;
+	msg.sacc = data.s_variance_m_s;
+	msg.vel_m_s = data.vel_m_s;
+	msg.vel_ned[0] = data.vel_n_m_s;
+	msg.vel_ned[1] = data.vel_e_m_s;
+	msg.vel_ned[2] = data.vel_d_m_s;
+	msg.vel_ned_valid = data.vel_ned_valid;
+	msg.nsats = data.satellites_used;
+	const float tdop = 0.9f; // TDOP is usually never worse than 0.9
+	msg.gdop = sqrtf(data.hdop * data.hdop + data.vdop * data.vdop + tdop * tdop);
 }
 
 void Ekf2::runPreFlightChecks(const float dt,
