@@ -34,6 +34,8 @@
 px4_add_module(
 	MODULE modules__navigator
 	MAIN navigator
+	COMPILE_FLAGS
+		-Wno-cast-align # TODO: fix and enable
 	INCLUDES
 		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 	SRCS
