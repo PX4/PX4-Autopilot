@@ -45,6 +45,7 @@ px4_add_board(
 	LABEL qurt-default
 
 	DRIVERS
+		barometer/bmp280
 		gps
 		imu/mpu9250
 		spektrum_rc
