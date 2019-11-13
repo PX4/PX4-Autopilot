@@ -17,6 +17,7 @@ px4_add_board(
 		#imu # all available imu drivers
 		imu/mpu9250
 		#magnetometer # all available magnetometer drivers
+		magnetometer/hmc5883
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
 
