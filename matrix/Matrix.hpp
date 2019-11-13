@@ -587,9 +587,13 @@ Type min(const Type x, const Type y) {
     bool x_is_nan = isnan(x);
     bool y_is_nan = isnan(y);
     // z > nan for z != nan is required by C the standard
-    if(x_is_nan || y_is_nan) {
-        if(x_is_nan && !y_is_nan) return y;
-        if(!x_is_nan && y_is_nan) return x;
+    if (x_is_nan || y_is_nan) {
+        if (x_is_nan && !y_is_nan) {
+            return y;
+        }
+        if (!x_is_nan && y_is_nan) {
+            return x;
+        }
         return x;
     }
     return (x < y) ? x : y;
@@ -599,16 +603,20 @@ Type max(const Type x, const Type y) {
     bool x_is_nan = isnan(x);
     bool y_is_nan = isnan(y);
     // z > nan for z != nan is required by C the standard
-    if(x_is_nan || y_is_nan) {
-        if(x_is_nan && !y_is_nan) return y;
-        if(!x_is_nan && y_is_nan) return x;
+    if (x_is_nan || y_is_nan) {
+        if (x_is_nan && !y_is_nan) {
+            return y;
+        }
+        if (!x_is_nan && y_is_nan) {
+            return x;
+        }
         return x;
     }
     return (x > y) ? x : y;
 }
 template<typename Type>
 Type constrain(const Type x, const Type lower_bound, const Type upper_bound) {
-    if(lower_bound > upper_bound) {
+    if (lower_bound > upper_bound) {
         return NAN;
     } else if(isnan(x)) {
         return NAN;
@@ -677,7 +685,7 @@ Matrix<Type, M, N> constrain(const Matrix<Type, M, N> &x,
                              const Type scalar_lower_bound,
                              const Type scalar_upper_bound) {
     Matrix<Type,M,N> m;
-    if(scalar_lower_bound > scalar_upper_bound) {
+    if (scalar_lower_bound > scalar_upper_bound) {
         m.setNaN();
     } else {
         for (size_t i = 0; i < M; i++) {
