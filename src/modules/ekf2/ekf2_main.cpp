@@ -944,8 +944,8 @@ void Ekf2::Run()
 				_gps_state[0].vel_ned[2] = gps.vel_d_m_s;
 				_gps_state[0].vel_ned_valid = gps.vel_ned_valid;
 				_gps_state[0].nsats = gps.satellites_used;
-				//TODO: add gdop to gps topic
-				_gps_state[0].gdop = 0.0f;
+				const float tdop = 0.9f;
+				_gps_state[0].gdop = sqrtf(gps.hdop * gps.hdop + gps.vdop * gps.vdop + tdop * tdop);
 				_gps_alttitude_ellipsoid[0] = gps.alt_ellipsoid;
 
 				ekf2_timestamps.gps_timestamp_rel = (int16_t)((int64_t)gps.timestamp / 100 - (int64_t)ekf2_timestamps.timestamp / 100);
@@ -975,8 +975,8 @@ void Ekf2::Run()
 				_gps_state[1].vel_ned[2] = gps.vel_d_m_s;
 				_gps_state[1].vel_ned_valid = gps.vel_ned_valid;
 				_gps_state[1].nsats = gps.satellites_used;
-				//TODO: add gdop to gps topic
-				_gps_state[1].gdop = 0.0f;
+				const float tdop = 0.9f;
+				_gps_state[0].gdop = sqrtf(gps.hdop * gps.hdop + gps.vdop * gps.vdop + tdop * tdop);
 				_gps_alttitude_ellipsoid[1] = gps.alt_ellipsoid;
 			}
 		}
