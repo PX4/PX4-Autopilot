@@ -679,6 +679,16 @@ PARAM_DEFINE_INT32(COM_POSCTL_NAVL, 0);
 PARAM_DEFINE_INT32(COM_ARM_AUTH, 256010);
 
 /**
+ * Require arm authorization to arm
+ *
+ * The default allows to arm the vehicle without a arm authorization.
+ *
+ * @group Commander
+ * @boolean
+ */
+PARAM_DEFINE_INT32(COM_ARM_AUTH_REQ, 0);
+
+/**
  * Loss of position failsafe activation delay.
  *
  * This sets number of seconds that the position checks need to be failed before the failsafe will activate.
