@@ -6,7 +6,6 @@ import datetime
 import errno
 import os
 import psutil
-import signal
 import subprocess
 
 
@@ -73,14 +72,7 @@ class Runner:
         if returncode is not None:
             return returncode
 
-        print("Sending SIGINT to {}".format(self.process.pid))
-        self.process.send_signal(signal.SIGINT)
-        try:
-            return self.process.wait(timeout=1)
-        except subprocess.TimeoutExpired:
-            pass
-
-        print("Sending SIGTERM to {}".format(self.process.pid))
+        print("Terminating {}".format(self.process.pid))
         self.process.terminate()
 
         try:
@@ -88,7 +80,7 @@ class Runner:
         except subprocess.TimeoutExpired:
             pass
 
-        print("Sending SIGKILL to {}".format(self.process.pid))
+        print("Killing {}".format(self.process.pid))
         self.process.kill()
         return self.process.returncode
 
