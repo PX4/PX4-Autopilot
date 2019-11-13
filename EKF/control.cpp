@@ -305,7 +305,7 @@ void Ekf::controlExternalVisionFusion()
 					_ev_pos_innov(1) = _state.pos(1) - _hpos_pred_prev(1) - ev_delta_pos(1);
 
 					// observation 1-STD error, incremental pos observation is expected to have more uncertainty
-					ev_pos_obs_var(0) = ev_pos_obs_var(1) = fmaxf(_ev_sample_delayed.posErr, 0.5f);
+					ev_pos_obs_var(0) = ev_pos_obs_var(1) = sq(fmaxf(_ev_sample_delayed.posErr, 0.5f));
 				}
 
 				// record observation and estimate for use next time
@@ -322,7 +322,7 @@ void Ekf::controlExternalVisionFusion()
 				_ev_pos_innov(0) = _state.pos(0) - ev_pos_meas(0);
 				_ev_pos_innov(1) = _state.pos(1) - ev_pos_meas(1);
 				// observation 1-STD error
-				ev_pos_obs_var(0) = ev_pos_obs_var(1) = fmaxf(_ev_sample_delayed.posErr, 0.01f);
+				ev_pos_obs_var(0) = ev_pos_obs_var(1) = sq(fmaxf(_ev_sample_delayed.posErr, 0.01f));
 
 				// check if we have been deadreckoning too long
 				if ((_time_last_imu - _time_last_hor_pos_fuse) > _params.reset_timeout_max) {
@@ -374,7 +374,7 @@ void Ekf::controlExternalVisionFusion()
 			}
 
 			// observation 1-STD error
-			ev_vel_obs_var(0) = ev_vel_obs_var(1) = ev_vel_obs_var(2) = fmaxf(_ev_sample_delayed.velErr, 0.01f);
+			ev_vel_obs_var(0) = ev_vel_obs_var(1) = ev_vel_obs_var(2) = sq(fmaxf(_ev_sample_delayed.velErr, 0.01f));
 
 			// innovation gate size
 			ev_vel_innov_gates(0) = ev_vel_innov_gates(1) = fmaxf(_params.ev_vel_innov_gate, 1.0f);
@@ -708,13 +708,13 @@ void Ekf::controlGpsFusion()
 			if (_control_status.flags.opt_flow || _control_status.flags.ev_pos || _control_status.flags.ev_vel) {
 				// if we are using other sources of aiding, then relax the upper observation
 				// noise limit which prevents bad GPS perturbing the position estimate
-				gps_pos_obs_var(0) = gps_pos_obs_var(1) = fmaxf(_gps_sample_delayed.hacc, lower_limit);
+				gps_pos_obs_var(0) = gps_pos_obs_var(1) = sq(fmaxf(_gps_sample_delayed.hacc, lower_limit));
 
 			} else {
 				// if we are not using another source of aiding, then we are reliant on the GPS
 				// observations to constrain attitude errors and must limit the observation noise value.
 				float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
-				gps_pos_obs_var(0) = gps_pos_obs_var(1) = math::constrain(_gps_sample_delayed.hacc, lower_limit, upper_limit);
+				gps_pos_obs_var(0) = gps_pos_obs_var(1) = sq(math::constrain(_gps_sample_delayed.hacc, lower_limit, upper_limit));
 			}
 
 			gps_vel_obs_var(0) = gps_vel_obs_var(1) = gps_vel_obs_var(2) = sq(fmaxf(_gps_sample_delayed.sacc, _params.gps_vel_noise));
@@ -1401,10 +1401,10 @@ void Ekf::controlFakePosFusion()
 			_time_last_fake_pos = _time_last_imu;
 
 			if (_control_status.flags.in_air && _control_status.flags.tilt_align) {
-				fake_pos_obs_var(0) = fake_pos_obs_var(1) = fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise);
+				fake_pos_obs_var(0) = fake_pos_obs_var(1) = sq(fmaxf(_params.pos_noaid_noise, _params.gps_pos_noise));
 
 			} else {
-				fake_pos_obs_var(0) = fake_pos_obs_var(1) = 0.5f;
+				fake_pos_obs_var(0) = fake_pos_obs_var(1) = sq(0.5f);
 			}
 
 			_gps_pos_innov(0) = _state.pos(0) - _last_known_posNE(0);
