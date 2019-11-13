@@ -8,7 +8,6 @@ import os
 import psutil
 import signal
 import subprocess
-import sys
 
 
 test_matrix = [
@@ -44,7 +43,7 @@ class Runner:
                          datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
                         ), 'w')
         else:
-            f = sys.stdout
+            f = subprocess.STDOUT
 
         print("Running: {}".format(" ".join([self.cmd] + self.args)))
 
