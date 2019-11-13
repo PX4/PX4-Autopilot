@@ -30,32 +30,32 @@ union MBcsType {
 	volatile uint32_t w;
 	struct {
 		volatile uint32_t time_stamp : 16;
-			volatile uint32_t dlc : 4;
-			volatile uint32_t rtr : 1;
-			volatile uint32_t ide : 1;
-			volatile uint32_t srr : 1;
-			volatile uint32_t res : 1;
-			volatile uint32_t code : 4;
-			volatile uint32_t res2 : 4;
-		};
+		volatile uint32_t dlc : 4;
+		volatile uint32_t rtr : 1;
+		volatile uint32_t ide : 1;
+		volatile uint32_t srr : 1;
+		volatile uint32_t res : 1;
+		volatile uint32_t code : 4;
+		volatile uint32_t res2 : 4;
 	};
+};
 
-	union FIFOcsType {
-			volatile uint32_t cs;
-			struct {
-	volatile uint32_t time_stamp : 16;
+union FIFOcsType {
+	volatile uint32_t cs;
+	struct {
+		volatile uint32_t time_stamp : 16;
 		volatile uint32_t dlc : 4;
 		volatile uint32_t rtr : 1;
 		volatile uint32_t ide : 1;
 		volatile uint32_t srr : 1;
 		volatile uint32_t res : 9;
 	};
-	};
+};
 
-	union IDType {
-			volatile uint32_t w;
-			struct {
-	volatile uint32_t ext : 29;
+union IDType {
+	volatile uint32_t w;
+	struct {
+		volatile uint32_t ext : 29;
 		volatile uint32_t resex : 3;
 	};
 	struct {
@@ -63,12 +63,12 @@ union MBcsType {
 		volatile uint32_t std : 11;
 		volatile uint32_t resstd : 3;
 	};
-	};
+};
 
-	union FilterType {
-			volatile uint32_t w;
-			struct {
-	volatile uint32_t res : 1; // Bit 0 - Reserved
+union FilterType {
+	volatile uint32_t w;
+	struct {
+		volatile uint32_t res : 1; // Bit 0 - Reserved
 		volatile uint32_t ext : 29; // Bits 1 - 29 EID
 	};
 	struct {
@@ -76,17 +76,17 @@ union MBcsType {
 		volatile uint32_t std : 11; // StD ID
 	};
 	struct {
-	volatile uint32_t resc : 30; // Bits 0 - 29  Reserved
+		volatile uint32_t resc : 30; // Bits 0 - 29  Reserved
 		volatile uint32_t ide : 1; // Bit 30 - EID
 		volatile uint32_t rtr : 1; // Bit 31 Remote
 	};
-	};
+};
 
-	union DataType {
-			volatile uint32_t l;
-			volatile uint32_t h;
-			struct {
-	volatile uint32_t b3 : 8;
+union DataType {
+	volatile uint32_t l;
+	volatile uint32_t h;
+	struct {
+		volatile uint32_t b3 : 8;
 		volatile uint32_t b2 : 8;
 		volatile uint32_t b1 : 8;
 		volatile uint32_t b0 : 8;
@@ -95,10 +95,10 @@ union MBcsType {
 		volatile uint32_t b5 : 8;
 		volatile uint32_t b4 : 8;
 	};
-	};
+};
 
 
-	struct MessageBufferType {
+struct MessageBufferType {
 	MBcsType CS;
 	IDType ID;
 	DataType data;
