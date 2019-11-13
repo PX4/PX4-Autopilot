@@ -65,7 +65,7 @@ public:
     inline SquareMatrix<Type, M> I() const
     {
         SquareMatrix<Type, M> i;
-        if(inv(*this, i)) {
+        if (inv(*this, i)) {
             return i;
         } else {
             i.setZero();
@@ -289,7 +289,7 @@ template<typename Type, size_t M>
 SquareMatrix<Type, M> inv(const SquareMatrix<Type, M> & A)
 {
     SquareMatrix<Type, M> i;
-    if(inv(A, i)) {
+    if (inv(A, i)) {
         return i;
     } else {
         i.setZero();
