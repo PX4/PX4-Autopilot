@@ -40,6 +40,7 @@
 #pragma once
 
 #include "FlightTaskManual.hpp"
+#include "PositionLock.hpp"
 #include <uORB/topics/home_position.h>
 
 class FlightTaskManualAltitude : public FlightTaskManual
@@ -52,7 +53,6 @@ public:
 	bool update() override;
 
 protected:
-	void _updateHeadingSetpoints(); /**< sets yaw or yaw speed */
 	void _ekfResetHandlerHeading(float delta_psi) override; /**< adjust heading setpoint in case of EKF reset event */
 	virtual void _updateSetpoints(); /**< updates all setpoints */
 	virtual void _scaleSticks(); /**< scales sticks to velocity in z */
@@ -69,6 +69,8 @@ protected:
 	 *  will exit velocity control and enter position control.
 	 */
 	void _updateAltitudeLock();
+
+	PositionLock _position_lock; /**< object taking care of altitude and yaw lock logic */
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskManual,
 					(ParamFloat<px4::params::MPC_HOLD_MAX_Z>) _param_mpc_hold_max_z,
