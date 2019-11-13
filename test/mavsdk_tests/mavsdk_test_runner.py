@@ -36,7 +36,7 @@ class Runner:
     def start(self, config):
         if self.log_dir:
             f = open(self.log_dir + os.path.sep +
-                     "log-{}-{}-{}-{}.txt".format(
+                     "log-{}-{}-{}-{}.log".format(
                          self.log_prefix,
                          config['model'],
                          config['test_filter'],
