@@ -190,7 +190,7 @@ def main():
     args = parser.parse_args()
 
     if not is_everything_ready():
-        return
+        return 1
 
     overall_success = True
 
