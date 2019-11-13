@@ -108,7 +108,7 @@ class Px4Runner(Runner):
             ]
         self.env = {"PATH": os.environ['PATH'],
                     "PX4_SIM_MODEL": "iris",
-                    "PX4_SIM_SPEED_FACTOR": speed_factor}
+                    "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
         self.log_prefix = "px4"
 
 
@@ -121,7 +121,7 @@ class GazeboRunner(Runner):
                     workspace_dir + "/build/px4_sitl_default/build_gazebo",
                     "GAZEBO_MODEL_PATH":
                     workspace_dir + "/Tools/sitl_gazebo/models",
-                    "PX4_SIM_SPEED_FACTOR": speed_factor}
+                    "PX4_SIM_SPEED_FACTOR": str(speed_factor)}
         self.cmd = "gzserver"
         self.args = ["--verbose",
                      workspace_dir + "/Tools/sitl_gazebo/worlds/iris.world"]
