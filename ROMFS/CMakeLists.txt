@@ -120,15 +120,6 @@ add_custom_command(
 # copy extras into ROMFS
 set(extras_dependencies)
 
-# copy px4io binary if configured
-if(config_io_board)
-	list(APPEND extras_dependencies
-		copy_px4io_bin
-		${fw_io_bin}
-		)
-endif()
-
-
 if(config_bl_file)
 	file(MAKE_DIRECTORY ${PX4_BINARY_DIR}/romfs_extras)
 	configure_file(${config_bl_file} ${PX4_BINARY_DIR}/romfs_extras COPYONLY)
@@ -136,6 +127,21 @@ if(config_bl_file)
 	list(APPEND extras_dependencies
 		${config_bl_file}
 		)
+endif()
+
+# copy px4io binary if configured
+if(config_io_board)
+	list(APPEND extras_dependencies
+		copy_px4io_bin
+		${fw_io_bin}
+	)
+endif()
+
+if(config_build_bootloader)
+	list(APPEND extras_dependencies
+		copy_bootloader_bin
+		${bootloader_bin}
+	)
 endif()
 
 set(OPTIONAL_BOARD_RC)
