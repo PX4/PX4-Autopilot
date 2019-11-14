@@ -314,6 +314,29 @@ pipeline {
           }
         }
 
+        stage('MAVSDK tests') {
+          agent {
+            docker {
+              image 'px4io/px4-dev-base-bionic:2019-10-24'
+              args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
+            }
+          }
+          steps {
+            sh 'export'
+            sh 'make distclean'
+            sh 'ccache -z'
+            sh 'git fetch --tags'
+            sh 'PX4_MAVSDK_TESTING=y DONT_RUN=1 make px4_sitl gazebo mavsdk_tests'
+            sh 'ccache -s'
+            sh 'test/mavsdk_tests/mavsdk_test_runner.py --verbose --speed-factor 20'
+          }
+          post {
+            always {
+              sh 'make distclean'
+            }
+          }
+        }
+
         stage('Clang analyzer') {
           agent {
             docker {
