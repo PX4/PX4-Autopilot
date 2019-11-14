@@ -722,19 +722,16 @@ GPS::run()
 				_helper = nullptr;
 			}
 
-			_mode = GPS_DRIVER_MODE_MINMEA;
-			_helper = new GPSDriverMINMEA(&GPS::callback, this, &_report_gps_pos);
-/*
 			switch (_mode) {
 			case GPS_DRIVER_MODE_NONE:
-				_mode = GPS_DRIVER_MODE_UBX;
+				_mode = GPS_DRIVER_MODE_MINMEA;
+
+			case GPS_DRIVER_MODE_MINMEA:
+				_helper = new GPSDriverMINMEA(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);
+				break;
 
 			case GPS_DRIVER_MODE_UBX:
 				_helper = new GPSDriverUBX(_interface, &GPS::callback, this, &_report_gps_pos, _p_report_sat_info, gps_ubx_dynmodel);
-				break;
-
-			case GPS_DRIVER_MODE_MINMEA:
-				_helper = new GPSDriverMINMEA(&GPS::callback, this, &_report_gps_pos);
 				break;
 
 			case GPS_DRIVER_MODE_MTK:
@@ -752,7 +749,7 @@ GPS::run()
 			default:
 				break;
 			}
-*/
+
 			_baudrate = _configured_baudrate;
 
 			if (_helper && _helper->configure(_baudrate, GPSHelper::OutputMode::GPS) == 0) {
@@ -806,7 +803,7 @@ GPS::run()
 					_rate_rtcm_injection = 0.0f;
 				}
 			}
-/*
+
 			if (_mode_auto) {
 				switch (_mode) {
 				case GPS_DRIVER_MODE_UBX:
@@ -836,7 +833,7 @@ GPS::run()
 
 			} else {
 				px4_usleep(500000);
-			} */ px4_usleep(500000);
+			}
 		}
 	}
 
@@ -1228,26 +1225,10 @@ GPS *GPS::instantiate(int argc, char *argv[], Instance instance)
 		return nullptr;
 	}
 
-	GPS *gps;
-	if (instance == Instance::Main) {
+	GPS *gps = nullptr; 
+	if (instance == Instance::Main && device_name) {
 		gps = new GPS(device_name, mode, interface, fake_gps, enable_sat_info, instance, baudrate_main);
-/*
-		if (gps && device_name_secondary) {
-			task_spawn(argc, argv, Instance::Secondary);
-			// wait until running
-			int i = 0;
-
-			do {
-				// wait up to 1s
-				px4_usleep(2500);
-
-			} while (!_secondary_instance && ++i < 400);
-
-			if (i == 400) {
-				PX4_ERR("Timed out while waiting for thread to start");
-			}
-		}	*/
-	} else { // secondary instance
+	} else if (instance == Instance::Secondary && device_name_secondary){ // secondary instance
 		gps = new GPS(device_name_secondary, mode, interface, fake_gps, enable_sat_info, instance, baudrate_secondary);
 	}
 
