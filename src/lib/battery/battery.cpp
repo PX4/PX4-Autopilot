@@ -210,14 +210,17 @@ Battery::determineWarning(bool connected)
 {
 	if (connected) {
 		// propagate warning state only if the state is higher, otherwise remain in current warning state
-		if (_remaining < _param_bat_emergen_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_EMERGENCY)) {
+		if (_remaining < _param_bat_emergen_thr.get()) {
 			_warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
 
-		} else if (_remaining < _param_bat_crit_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
+		} else if (_remaining < _param_bat_crit_thr.get()) {
 			_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
 
-		} else if (_remaining < _param_bat_low_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_LOW)) {
+		} else if (_remaining < _param_bat_low_thr.get()) {
 			_warning = battery_status_s::BATTERY_WARNING_LOW;
+
+		} else {
+			_warning = battery_status_s::BATTERY_WARNING_NONE;
 		}
 	}
 }
