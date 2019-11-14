@@ -53,8 +53,11 @@
 
 #include <nuttx/progmem.h>
 
-
-#define BL_FILE_SIZE_LIMIT	16384
+#if defined(CONFIG_ARCH_CHIP_STM32H7)
+#  define BL_FILE_SIZE_LIMIT	128*1024
+#else
+#  define BL_FILE_SIZE_LIMIT  16384
+#endif
 
 __EXPORT int bl_update_main(int argc, char *argv[]);
 
