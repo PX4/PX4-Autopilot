@@ -55,8 +55,10 @@
 
 #if defined(CONFIG_ARCH_CHIP_STM32H7)
 #  define BL_FILE_SIZE_LIMIT	128*1024
+#  define STM_RAM_BASE        STM32_AXISRAM_BASE
 #else
 #  define BL_FILE_SIZE_LIMIT  16384
+#  define STM_RAM_BASE        STM32_SRAM_BASE
 #endif
 
 __EXPORT int bl_update_main(int argc, char *argv[]);
@@ -150,8 +152,8 @@ bl_update_main(int argc, char *argv[])
 
 	uint32_t *hdr = (uint32_t *)buf;
 
-	if ((hdr[0] < 0x20000000) ||			/* stack not below RAM */
-	    (hdr[0] > (0x20000000 + (128 * 1024))) ||	/* stack not above RAM */
+	if ((hdr[0] < STM_RAM_BASE) ||			/* stack not below RAM */
+	    (hdr[0] > (STM_RAM_BASE + (128 * 1024))) ||	/* stack not above RAM */
 	    (hdr[1] < PX4_FLASH_BASE) ||			/* entrypoint not below flash */
 	    ((hdr[1] - PX4_FLASH_BASE) > BL_FILE_SIZE_LIMIT))  		/* entrypoint not outside bootloader */
 	{
