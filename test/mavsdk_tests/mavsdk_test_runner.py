@@ -50,7 +50,8 @@ class Runner:
             [self.cmd] + self.args,
             cwd=self.cwd,
             env=self.env,
-            stdout=f, stderr=f
+            # FIXME: this is currently not working
+            # stdout=subprocess.STDOUT
         )
 
         atexit.register(self.stop)
