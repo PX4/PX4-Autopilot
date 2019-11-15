@@ -54,20 +54,14 @@ Heater::Heater() :
 	ModuleParams(nullptr),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default)
 {
+	// Initialize heater to off state
 	px4_arch_configgpio(GPIO_HEATER_OUTPUT);
-	px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 0);
 }
 
 Heater::~Heater()
 {
-	// Drive the heater GPIO pin low.
-	px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 0);
-
-	// Verify if GPIO is low, and if not, configure it as an input pulldown then reconfigure as an output.
-	if (px4_arch_gpioread(GPIO_HEATER_OUTPUT)) {
-		px4_arch_configgpio(GPIO_HEATER_OUTPUT);
-		px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 0);
-	}
+	// Reset heater to off state
+	px4_arch_configgpio(GPIO_HEATER_OUTPUT);
 }
 
 int Heater::custom_command(int argc, char *argv[])
@@ -92,12 +86,6 @@ void Heater::Run()
 		// Turn the heater off.
 		px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 0);
 		_heater_on = false;
-
-		// Check if GPIO is stuck on, and if so, configure it as an input pulldown then reconfigure as an output.
-		if (px4_arch_gpioread(GPIO_HEATER_OUTPUT)) {
-			px4_arch_configgpio(GPIO_HEATER_OUTPUT);
-			px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 0);
-		}
 
 	} else {
 		update_params(false);
@@ -127,7 +115,6 @@ void Heater::Run()
 
 		// Turn the heater on.
 		_heater_on = true;
-
 		px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 1);
 	}
 
