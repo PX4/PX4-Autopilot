@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,85 +32,74 @@
  ****************************************************************************/
 
 /**
- * @file ocpoc_adc.cpp
  *
  * OcPoC ADC Driver
  *
- * @author Lianying Ji <ji@aerotenna.com>
- * @author Dave Royer <dave@aerotenna.com>
  */
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/posix.h>
 #include <drivers/drv_adc.h>
-
-#include <VirtDevObj.hpp>
+#include <cdev/CDev.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <uORB/Publication.hpp>
+#include <uORB/topics/adc_report.h>
 
 #include <unistd.h>
 #include <stdio.h>
 #include <poll.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define ADC_BASE_DEV_PATH "/dev/adc"
 #define ADC_VOLTAGE_PATH "/sys/bus/iio/devices/iio:device0/in_voltage8_raw"
 
-__BEGIN_DECLS
-__EXPORT int ocpoc_adc_main(int argc, char *argv[]);
-__END_DECLS
+using namespace time_literals;
 
-class OcpocADC: public DriverFramework::VirtDevObj
+class OcpocADC : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
 	OcpocADC();
 	virtual ~OcpocADC();
 
-	virtual int init();
+	int		init() override;
 
-	virtual ssize_t devRead(void *buf, size_t count) override;
-	virtual int devIOCTL(unsigned long request, unsigned long arg) override;
+	ssize_t		read(cdev::file_t *filp, char *buffer, size_t len) override;
 
 protected:
-	virtual void _measure() override;
+	int		open_first(cdev::file_t *filp) override;
+	int		close_last(cdev::file_t *filp) override;
 
 private:
+	void			Run() override;
+
+	void			update_adc_report(hrt_abstime now);
+
+	void _measure();
 	int read(px4_adc_msg_t(*buf)[PX4_MAX_ADC_CHANNELS], unsigned int len);
 
-	pthread_mutex_t _samples_lock;
+	static const hrt_abstime	kINTERVAL{10_ms};	/**< 100Hz base rate */
+	perf_counter_t			_sample_perf;
+	uORB::Publication<adc_report_s>		_to_adc_report{ORB_ID(adc_report)};
 	px4_adc_msg_t _samples;
 };
 
-OcpocADC::OcpocADC()
-	: DriverFramework::VirtDevObj("ocpoc_adc", ADC0_DEVICE_PATH, ADC_BASE_DEV_PATH, 1e6 / 100)
+OcpocADC::OcpocADC() :
+	CDev(ADC0_DEVICE_PATH),
+	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": samples"))
 {
-	pthread_mutex_init(&_samples_lock, NULL);
 }
 
 OcpocADC::~OcpocADC()
 {
-	pthread_mutex_destroy(&_samples_lock);
 }
 
-void OcpocADC::_measure()
+int
+OcpocADC::init()
 {
-	px4_adc_msg_t tmp_samples[PX4_MAX_ADC_CHANNELS];
-
-	int ret = read(&tmp_samples, sizeof(tmp_samples));
-
-	if (ret != 0) {
-		PX4_ERR("ocpoc_adc_read: %d", ret);
-	}
-
-	pthread_mutex_lock(&_samples_lock);
-	memcpy(&_samples, &tmp_samples, sizeof(tmp_samples));
-	pthread_mutex_unlock(&_samples_lock);
-}
-
-int OcpocADC::init()
-{
-	int ret;
-
-	ret = DriverFramework::VirtDevObj::init();
+	int ret = CDev::init();
 
 	if (ret != PX4_OK) {
 		PX4_ERR("init failed");
@@ -120,33 +109,64 @@ int OcpocADC::init()
 	return PX4_OK;
 }
 
-int OcpocADC::devIOCTL(unsigned long request, unsigned long arg)
+ssize_t
+OcpocADC::read(cdev::file_t *filp, char *buffer, size_t len)
 {
-	return -ENOTTY;
-}
-
-ssize_t OcpocADC::devRead(void *buf, size_t count)
-{
+	lock();
 	const size_t maxsize = sizeof(_samples);
-	int ret;
 
-	if (count > maxsize) {
-		count = maxsize;
+	if (len > maxsize) {
+		len = maxsize;
 	}
 
-	ret = pthread_mutex_trylock(&_samples_lock);
+	memcpy(buffer, &_samples, len);
+	unlock();
 
-	if (ret != 0) {
-		return 0;
-	}
-
-	memcpy(buf, &_samples, count);
-	pthread_mutex_unlock(&_samples_lock);
-
-	return count;
+	return len;
 }
 
-int OcpocADC::read(px4_adc_msg_t(*buf)[PX4_MAX_ADC_CHANNELS], unsigned int len)
+int
+OcpocADC::open_first(cdev::file_t *filp)
+{
+	/* get fresh data */
+	Run();
+
+	/* and schedule regular updates */
+	ScheduleOnInterval(kINTERVAL, kINTERVAL);
+
+	return 0;
+}
+
+int
+OcpocADC::close_last(cdev::file_t *filp)
+{
+	ScheduleClear();
+
+	return 0;
+}
+
+void
+OcpocADC::Run()
+{
+	hrt_abstime now = hrt_absolute_time();
+	_measure();
+	update_adc_report(now);
+}
+
+void
+OcpocADC::update_adc_report(hrt_abstime now)
+{
+	adc_report_s adc{};
+	adc.timestamp = now;
+
+	adc.channel_id[0] = _samples.am_channel;
+	adc.channel_value[0] = _samples.am_data * 3.3f / 4096.0f;
+
+	_to_adc_report.publish(adc);
+}
+
+int
+OcpocADC::read(px4_adc_msg_t(*buf)[PX4_MAX_ADC_CHANNELS], unsigned int len)
 {
 	uint32_t buff[1];
 	int ret = 0;
@@ -174,14 +194,28 @@ int OcpocADC::read(px4_adc_msg_t(*buf)[PX4_MAX_ADC_CHANNELS], unsigned int len)
 	return ret;
 }
 
+void
+OcpocADC::_measure()
+{
+	lock();
+	px4_adc_msg_t tmp_samples[PX4_MAX_ADC_CHANNELS] {};
+
+	int ret = read(&tmp_samples, sizeof(tmp_samples));
+
+	if (ret != 0) {
+		PX4_ERR("ocpoc_adc_read: %d", ret);
+	}
+
+	memcpy(&_samples, &tmp_samples, sizeof(tmp_samples));
+	unlock();
+}
+
 static OcpocADC *instance = nullptr;
 
-int ocpoc_adc_main(int argc, char *argv[])
+extern "C" __EXPORT int ocpoc_adc_main(int argc, char *argv[])
 {
-	int ret;
-
 	if (argc < 2) {
-		PX4_WARN("usage: {start|stop|test}");
+		PX4_WARN("usage: {start|stop}");
 		return PX4_ERROR;
 	}
 
@@ -215,26 +249,6 @@ int ocpoc_adc_main(int argc, char *argv[])
 
 		delete instance;
 		instance = nullptr;
-		return PX4_OK;
-
-	} else if (!strcmp(argv[1], "test")) {
-		if (!instance) {
-			PX4_ERR("start first");
-			return PX4_ERROR;
-		}
-
-		px4_adc_msg_t adc_msgs[PX4_MAX_ADC_CHANNELS];
-
-		ret = instance->devRead((char *)&adc_msgs, sizeof(adc_msgs));
-
-		if (ret < 0) {
-			PX4_ERR("ret: %s (%d)\n", strerror(ret), ret);
-			return ret;
-
-		} else {
-			PX4_INFO("ADC Data: %d", adc_msgs[0].am_data);
-		}
-
 		return PX4_OK;
 
 	} else {

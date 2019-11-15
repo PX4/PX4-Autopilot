@@ -223,10 +223,7 @@ function(px4_os_add_flags)
 	if ("${PX4_BOARD}" MATCHES "sitl")
 
 		if(UNIX AND APPLE)
-			add_definitions(
-				-D__PX4_DARWIN
-				-D__DF_DARWIN
-				)
+			add_definitions(-D__PX4_DARWIN)
 
 			if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.0)
 				message(FATAL_ERROR "PX4 Firmware requires XCode 8 or newer on Mac OS. Version installed on this system: ${CMAKE_CXX_COMPILER_VERSION}")
@@ -251,48 +248,20 @@ function(px4_os_add_flags)
 				-U__CUSTOM_FILE_IO__
 				)
 		else()
-			add_definitions(
-				-D__PX4_LINUX
-				-D__DF_LINUX
-				)
+			add_definitions(-D__PX4_LINUX)
 		endif()
 
 	elseif (("${PX4_BOARD}" MATCHES "navio2") OR ("${PX4_BOARD}" MATCHES "raspberrypi"))
 
 		#TODO: move to board support
-
-		add_definitions(
-			-D__PX4_LINUX
-
-			# For DriverFramework
-			-D__DF_LINUX
-			-D__DF_RPI
-		)
-
-	elseif ("${PX4_BOARD}" MATCHES "bebop")
-
-		#TODO: move to board support
-
-		add_definitions(
-			-D__PX4_LINUX
-			-D__PX4_POSIX_BEBOP # TODO: remove
-
-			# For DriverFramework
-			-D__DF_LINUX
-			-D__DF_BEBOP
-		)
+		add_definitions(-D__PX4_LINUX)
 
 	elseif ("${PX4_BOARD}" MATCHES "aerotenna_ocpoc")
 
 		#TODO: move to board support
-
 		add_definitions(
 			-D__PX4_LINUX
 			-D__PX4_POSIX_OCPOC # TODO: remove
-
-			# For DriverFramework
-			-D__DF_LINUX
-			-D__DF_OCPOC
 		)
 
 	elseif ("${PX4_BOARD}" MATCHES "beaglebone_blue")
@@ -300,11 +269,6 @@ function(px4_os_add_flags)
 		add_definitions(
 			-D__PX4_LINUX
 			-D__PX4_POSIX_BBBLUE # TODO: remove
-
-			# For DriverFramework
-			-D__DF_LINUX
-			-D__DF_BBBLUE
-			-D__DF_BBBLUE_USE_RC_BMP280_IMP # optional
 
 			-DRC_AUTOPILOT_EXT  # Enable extensions in Robotics Cape Library, TODO: remove
 		)

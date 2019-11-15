@@ -163,16 +163,16 @@ public:
 
 	virtual int	init();
 
-	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
-	virtual ssize_t	write(struct file *filp, const char *buffer, size_t buflen);
-	virtual int	ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t	read(cdev::file_t *filp, char *buffer, size_t buflen);
+	virtual ssize_t	write(cdev::file_t *filp, const char *buffer, size_t buflen);
+	virtual int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 
 	// Makes the message available for reading to processes reading from the bridge
 	void pipe_message(crtp_message_t *msg);
 
 protected:
 
-	virtual pollevent_t poll_state(struct file *filp);
+	virtual pollevent_t poll_state(cdev::file_t *filp);
 
 private:
 
@@ -196,9 +196,9 @@ public:
 
 	virtual int	init();
 
-	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
-	virtual ssize_t	write(struct file *filp, const char *buffer, size_t buflen);
-	virtual int	ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t	read(cdev::file_t *filp, char *buffer, size_t buflen);
+	virtual ssize_t	write(cdev::file_t *filp, const char *buffer, size_t buflen);
+	virtual int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 
 private:
 	friend class Syslink;

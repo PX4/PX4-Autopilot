@@ -22,11 +22,6 @@ px4_add_board(
 
 		linux_pwm_out
 		linux_sbus
-
-	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
-		mpu9250
-		bmp280
-
 	MODULES
 		attitude_estimator_q
 		camera_feedback

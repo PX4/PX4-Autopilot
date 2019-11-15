@@ -81,7 +81,7 @@ UavcanMagnetometerBridge::init()
 }
 
 int
-UavcanMagnetometerBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
+UavcanMagnetometerBridge::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 

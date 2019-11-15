@@ -117,9 +117,9 @@ public:
 
 	virtual int init();
 
-	virtual int ioctl(struct file *file_pointer, int cmd, unsigned long arg);
+	virtual int ioctl(cdev::file_t *file_pointer, int cmd, unsigned long arg);
 
-	virtual int read(struct file *file_pointer, char *buffer, size_t buffer_len);
+	virtual int read(cdev::file_t *file_pointer, char *buffer, size_t buffer_len);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -179,7 +179,6 @@ private:
 	uint8_t _temperature_counter;
 	uint8_t _temperature_error_count;
 
-
 	/**
 	 * @brief Performs the on-sensor scale calibration routine.
 	 *
@@ -189,7 +188,7 @@ private:
 	 *
 	 * @param enable set to 1 to enable self-test strap, 0 to disable
 	 */
-	int calibrate(struct file *file_pointer, unsigned enable);
+	int calibrate(cdev::file_t *file_pointer, unsigned enable);
 
 	/**
 	 * Collect the result of the most recent measurement.

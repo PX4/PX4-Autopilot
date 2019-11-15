@@ -36,19 +36,14 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include <DevMgr.hpp>
-
 #include <drivers/drv_rgbled.h>
 
 #include "navio_rgbled.h"
-
-using namespace DriverFramework;
 
 int do_test();
 
 int do_test()
 {
-	DevHandle h;
 	RGBLED *g_dev = nullptr;
 
 	if (Framework::initialize() < 0) {
@@ -59,9 +54,9 @@ int do_test()
 	g_dev = new RGBLED("navio_rgbled test");
 	g_dev->start();
 
-	DevMgr::getHandle(RGBLED0_DEVICE_PATH, h);
+	int h = px4_open(RGBLED0_DEVICE_PATH);
 
-	if (!h.isValid()) {
+	if (h >= 0) {
 		printf("No RGB LED at " RGBLED0_DEVICE_PATH);
 		return -1;
 	}

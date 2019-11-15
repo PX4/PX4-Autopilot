@@ -1083,7 +1083,7 @@ DShotOutput::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 }
 
 int
-DShotOutput::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
+DShotOutput::capture_ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	int	ret = -EINVAL;
 

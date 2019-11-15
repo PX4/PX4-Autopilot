@@ -184,7 +184,7 @@ void IridiumSBD::test(int argc, char *argv[])
 	instance->schedule_test();
 }
 
-int IridiumSBD::ioctl(struct file *filp, int cmd, unsigned long arg)
+int IridiumSBD::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 	case FIONREAD: {
@@ -688,7 +688,7 @@ void IridiumSBD::start_test(void)
 	}
 }
 
-ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
+ssize_t IridiumSBD::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 {
 	// general check if the incoming message would be too large (the buffer should not reset in that case)
 	if ((ssize_t)buflen > SATCOM_TX_BUF_LEN) {
@@ -748,7 +748,7 @@ ssize_t IridiumSBD::write(struct file *filp, const char *buffer, size_t buflen)
 	return buflen;
 }
 
-ssize_t IridiumSBD::read(struct file *filp, char *buffer, size_t buflen)
+ssize_t IridiumSBD::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
 	pthread_mutex_lock(&_rx_buf_mutex);
 	VERBOSE_INFO("READ: LEN %d, RX: %d RX END: %d", buflen, _rx_msg_read_idx, _rx_msg_end_idx);
@@ -1018,7 +1018,7 @@ bool IridiumSBD::is_modem_ready(void)
 	}
 }
 
-pollevent_t IridiumSBD::poll_state(struct file *filp)
+pollevent_t IridiumSBD::poll_state(cdev::file_t *filp)
 {
 	pollevent_t pollstate = 0;
 
@@ -1132,14 +1132,15 @@ void IridiumSBD::publish_subsystem_status()
 	}
 }
 
-
-int	IridiumSBD::open_first(struct file *filep)
+int
+IridiumSBD::open_first(cdev::file_t *filep)
 {
 	_cdev_used = true;
 	return CDev::open_first(filep);
 }
 
-int	IridiumSBD::close_last(struct file *filep)
+int
+IridiumSBD::close_last(cdev::file_t *filep)
 {
 	_cdev_used = false;
 	return CDev::close_last(filep);

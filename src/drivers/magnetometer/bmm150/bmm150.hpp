@@ -198,8 +198,8 @@ public:
 	virtual ~BMM150();
 
 	virtual int             init();
-	virtual ssize_t       read(struct file *filp, char *buffer, size_t buflen);
-	virtual int       ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t       read(cdev::file_t *filp, char *buffer, size_t buflen);
+	virtual int       ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Stop automatic measurement.

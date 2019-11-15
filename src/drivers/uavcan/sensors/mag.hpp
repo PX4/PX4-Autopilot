@@ -57,7 +57,7 @@ public:
 
 private:
 
-	int ioctl(struct file *filp, int cmd, unsigned long arg) override;
+	int ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
 
 	void mag_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength> &msg);
 	void mag2_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::ahrs::MagneticFieldStrength2> &msg);

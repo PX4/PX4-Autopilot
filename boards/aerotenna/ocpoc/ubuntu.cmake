@@ -24,12 +24,6 @@ px4_add_board(
 		magnetometer/hmc5883
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
-
-	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
-		mpu9250
-		ms5611
-		hmc5883
-
 	MODULES
 		attitude_estimator_q
 		camera_feedback

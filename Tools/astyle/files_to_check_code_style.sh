@@ -12,7 +12,6 @@ exec find boards msg src platforms \
     -path platforms/nuttx/NuttX -prune -o \
     -path src/drivers/uavcan/libuavcan -prune -o \
     -path src/drivers/uavcan/uavcan_drivers/kinetis/driver/include/uavcan_kinetis -prune -o \
-    -path src/lib/DriverFramework -prune -o \
     -path src/lib/ecl -prune -o \
     -path src/lib/matrix -prune -o \
     -path src/lib/systemlib/uthash -prune -o \

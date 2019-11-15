@@ -107,7 +107,7 @@ public:
 	virtual int info();
 	virtual int test();
 
-	virtual ssize_t read(struct file *filp, char *buffer, size_t buflen);
+	virtual ssize_t read(cdev::file_t *filp, char *buffer, size_t buflen);
 
 private:
 
@@ -293,7 +293,7 @@ void IRLOCK::Run()
 	ScheduleDelayed(IRLOCK_CONVERSION_INTERVAL_US);
 }
 
-ssize_t IRLOCK::read(struct file *filp, char *buffer, size_t buflen)
+ssize_t IRLOCK::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct irlock_s);
 	struct irlock_s *rbuf = reinterpret_cast<struct irlock_s *>(buffer);

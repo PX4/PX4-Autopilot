@@ -40,10 +40,7 @@
 #include <px4_platform_common/px4_config.h>
 #include <drivers/drv_board_led.h>
 #include <stdio.h>
-
-#include "VirtDevObj.hpp"
-
-using namespace DriverFramework;
+#include <cdev/CDev.hpp>
 
 /*
  * Ideally we'd be able to get these from up_internal.h,
@@ -59,21 +56,18 @@ extern void led_off(int led);
 extern void led_toggle(int led);
 __END_DECLS
 
-class LED : public VirtDevObj
+class LED : public cdev::CDev
 {
 public:
 	LED();
 	~LED() override = default;
 
 	int	init() override;
-	int	devIOCTL(unsigned long cmd, unsigned long arg) override;
+	int	ioctl(cdev::file_t *filep, int cmd, unsigned long arg) override;
 
-protected:
-	void	_measure() override {}
 };
 
-LED::LED() :
-	VirtDevObj("led", "/dev/ledsim", LED_BASE_DEVICE_PATH, 0)
+LED::LED() : CDev("/dev/ledsim")
 {
 	// force immediate init/device registration
 	init();
@@ -82,7 +76,7 @@ LED::LED() :
 int
 LED::init()
 {
-	int ret = VirtDevObj::init();
+	int ret = CDev::init();
 
 	if (ret == 0) {
 		led_init();
@@ -92,7 +86,7 @@ LED::init()
 }
 
 int
-LED::devIOCTL(unsigned long cmd, unsigned long arg)
+LED::ioctl(cdev::file_t *filep, int cmd, unsigned long arg)
 {
 	int result = OK;
 
@@ -111,7 +105,7 @@ LED::devIOCTL(unsigned long cmd, unsigned long arg)
 
 
 	default:
-		result = VirtDevObj::devIOCTL(cmd, arg);
+		result = CDev::ioctl(filep, cmd, arg);
 	}
 
 	return result;
@@ -119,7 +113,7 @@ LED::devIOCTL(unsigned long cmd, unsigned long arg)
 
 namespace
 {
-LED	*gLED;
+LED *gLED = nullptr;
 }
 
 void

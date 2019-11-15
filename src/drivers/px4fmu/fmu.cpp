@@ -1512,7 +1512,7 @@ PX4FMU::peripheral_reset(int ms)
 }
 
 int
-PX4FMU::capture_ioctl(struct file *filp, int cmd, unsigned long arg)
+PX4FMU::capture_ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	int	ret = -EINVAL;
 

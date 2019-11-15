@@ -25,15 +25,6 @@ px4_add_board(
 
 		linux_pwm_out
 		linux_sbus
-
-	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
-		hmc5883
-		isl29501
-		lsm9ds1
-		mpu9250
-		ms5611
-		trone
-
 	MODULES
 		attitude_estimator_q
 		camera_feedback

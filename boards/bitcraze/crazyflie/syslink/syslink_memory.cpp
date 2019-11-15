@@ -63,13 +63,13 @@ SyslinkMemory::init()
 }
 
 ssize_t
-SyslinkMemory::read(struct file *filp, char *buffer, size_t buflen)
+SyslinkMemory::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
 	return read(_activeI, 0, buffer, buflen);
 }
 
 ssize_t
-SyslinkMemory::write(struct file *filp, const char *buffer, size_t buflen)
+SyslinkMemory::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 {
 	// For now, unsupported
 	return -1;
@@ -77,7 +77,7 @@ SyslinkMemory::write(struct file *filp, const char *buffer, size_t buflen)
 }
 
 int
-SyslinkMemory::ioctl(struct file *filp, int cmd, unsigned long arg)
+SyslinkMemory::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 	case DECKIOGNUM:

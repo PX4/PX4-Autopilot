@@ -60,13 +60,9 @@
 #include <uORB/uORB.h>
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/satellite_info.h>
+#include <cdev/CDev.hpp>
 
 #include <simulator/simulator.h>
-
-#include "DevMgr.hpp"
-#include "VirtDevObj.hpp"
-
-using namespace DriverFramework;
 
 #define GPS_DRIVER_MODE_UBX_SIM
 #define GPSSIM_DEVICE_PATH "/dev/gpssim"
@@ -82,7 +78,7 @@ public:
 };
 
 
-class GPSSIM : public VirtDevObj
+class GPSSIM : public cdev::CDev
 {
 public:
 	GPSSIM(bool fake_gps, bool enable_sat_info,
@@ -91,7 +87,7 @@ public:
 
 	int		init() override;
 
-	int		devIOCTL(unsigned long cmd, unsigned long arg) override;
+	int		ioctl(cdev::file_t *filep, int cmd, unsigned long arg) override;
 
 	void set(int fix_type, int num_sat, int noise_multiplier);
 
@@ -99,9 +95,6 @@ public:
 	 * Diagnostics - print some basic information about the driver.
 	 */
 	void				print_info();
-
-protected:
-	void		_measure() override {}
 
 private:
 
@@ -112,7 +105,7 @@ private:
 	orb_advert_t			_report_gps_pos_pub;				///< uORB pub for gps position
 	struct satellite_info_s		*_p_report_sat_info;				///< pointer to uORB topic for satellite info
 	orb_advert_t			_report_sat_info_pub;				///< uORB pub for satellite info
-	SyncObj				_sync;
+
 	int _fix_type;
 	int _num_sat;
 	int _noise_multiplier;
@@ -148,7 +141,6 @@ private:
 	int 				receive(int timeout);
 };
 
-
 /*
  * Driver 'main' command.
  */
@@ -156,15 +148,11 @@ extern "C" __EXPORT int gpssim_main(int argc, char *argv[]);
 
 namespace
 {
-
 GPSSIM	*g_dev = nullptr;
-
 }
 
-
-GPSSIM::GPSSIM(bool fake_gps, bool enable_sat_info,
-	       int fix_type, int num_sat, int noise_multiplier) :
-	VirtDevObj("gps", GPSSIM_DEVICE_PATH, nullptr, 1e6 / 10),
+GPSSIM::GPSSIM(bool fake_gps, bool enable_sat_info, int fix_type, int num_sat, int noise_multiplier) :
+	CDev(GPSSIM_DEVICE_PATH),
 	_task_should_exit(false),
 	_Sat_Info(nullptr),
 	_report_gps_pos{},
@@ -215,7 +203,7 @@ GPSSIM::init()
 	int ret = PX4_ERROR;
 
 	/* do regular cdev init */
-	if (VirtDevObj::init() != OK) {
+	if (CDev::init() != OK) {
 		goto out;
 	}
 
@@ -234,9 +222,9 @@ out:
 }
 
 int
-GPSSIM::devIOCTL(unsigned long cmd, unsigned long arg)
+GPSSIM::ioctl(cdev::file_t *filep, int cmd, unsigned long arg)
 {
-	_sync.lock();
+	lock();
 
 	int ret = OK;
 
@@ -247,11 +235,11 @@ GPSSIM::devIOCTL(unsigned long cmd, unsigned long arg)
 
 	default:
 		/* give it to parent if no one wants it */
-		ret = VirtDevObj::devIOCTL(cmd, arg);
+		ret = CDev::ioctl(filep, cmd, arg);
 		break;
 	}
 
-	_sync.unlock();
+	unlock();
 
 	return ret;
 }
@@ -406,37 +394,24 @@ void	usage(const char *reason);
 void
 start(bool fake_gps, bool enable_sat_info, int fix_type, int num_sat, int noise_multiplier)
 {
-	DevHandle h;
-
 	/* create the driver */
 	g_dev = new GPSSIM(fake_gps, enable_sat_info, fix_type, num_sat, noise_multiplier);
 
-	if (g_dev == nullptr) {
-		goto fail;
-	}
-
-	if (OK != g_dev->init()) {
-		goto fail;
+	if ((g_dev == nullptr) || (g_dev->init() != PX4_OK))  {
+		delete g_dev;
+		g_dev = nullptr;
+		PX4_ERR("start failed");
 	}
 
 	/* set the poll rate to default, starts automatic data collection */
-	DevMgr::getHandle(GPSSIM_DEVICE_PATH, h);
+	int fd = px4_open(GPSSIM_DEVICE_PATH, PX4_F_WRONLY);
 
-	if (!h.isValid()) {
-		PX4_ERR("getHandle failed: %s", GPSSIM_DEVICE_PATH);
-		goto fail;
-	}
-
-	return;
-
-fail:
-
-	if (g_dev != nullptr) {
+	if (fd < 0) {
+		PX4_ERR("open failed: %s", GPSSIM_DEVICE_PATH);
 		delete g_dev;
 		g_dev = nullptr;
+		PX4_ERR("start failed");
 	}
-
-	PX4_ERR("start failed");
 }
 
 /**
@@ -466,14 +441,14 @@ test()
 void
 reset()
 {
-	DevHandle h;
-	DevMgr::getHandle(GPSSIM_DEVICE_PATH, h);
+	int fd = px4_open(GPSSIM_DEVICE_PATH, PX4_F_WRONLY);
 
-	if (!h.isValid()) {
-		PX4_ERR("failed ");
+	if (fd < 0) {
+		PX4_ERR("failed");
+		return;
 	}
 
-	if (h.ioctl(SENSORIOCRESET, 0) < 0) {
+	if (px4_ioctl(fd, SENSORIOCRESET, 0) < 0) {
 		PX4_ERR("reset failed");
 	}
 }

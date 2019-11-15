@@ -33,7 +33,7 @@ if ("${QURT_ENABLE_STUBS}" STREQUAL "1")
 		${PX4_BINARY_DIR}/platforms/qurt/px4muorb_skel.c
 	)
 
-	target_link_libraries(px4 PRIVATE ${module_libraries} ${df_driver_libs})
+	target_link_libraries(px4 PRIVATE ${module_libraries})
 
 else()
 	# Generate the DSP lib and stubs but not the apps side executable
@@ -45,7 +45,6 @@ else()
 		LINK_LIBS
 			modules__muorb__adsp
 			${module_libraries}
-			${df_driver_libs}
 			m
 		)
 

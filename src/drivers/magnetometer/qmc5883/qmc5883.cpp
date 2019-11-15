@@ -142,8 +142,8 @@ public:
 
 	virtual int		init();
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t		read(cdev::file_t *filp, char *buffer, size_t buflen);
+	virtual int		ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Stop the automatic measurement state machine.
@@ -376,7 +376,7 @@ void QMC5883::check_conf(void)
 }
 
 ssize_t
-QMC5883::read(struct file *filp, char *buffer, size_t buflen)
+QMC5883::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct mag_report);
 	struct mag_report *mag_buf = reinterpret_cast<struct mag_report *>(buffer);
@@ -428,7 +428,7 @@ QMC5883::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-QMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
+QMC5883::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	unsigned dummy = arg;
 

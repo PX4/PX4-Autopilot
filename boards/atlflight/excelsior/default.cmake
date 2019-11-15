@@ -32,9 +32,6 @@ add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-std=gnu++11>)
 add_definitions(
 	-D__PX4_POSIX_EXCELSIOR
 	-D__PX4_LINUX
-
-	# For DriverFramework
-	-D__DF_LINUX
 )
 
 px4_add_board(

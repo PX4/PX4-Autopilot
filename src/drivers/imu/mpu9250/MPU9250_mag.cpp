@@ -294,7 +294,7 @@ MPU9250_mag::ak8963_setup_master_i2c()
 int
 MPU9250_mag::ak8963_setup()
 {
-	int retries = 10;
+	int retries = 20;
 
 	do {
 		ak8963_setup_master_i2c();
@@ -309,7 +309,7 @@ MPU9250_mag::ak8963_setup()
 		retries--;
 		PX4_WARN("AK8963: bad id %d retries %d", id, retries);
 		_parent->modify_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_RST);
-		px4_usleep(100);
+		px4_usleep(200);
 	} while (retries > 0);
 
 	if (retries > 0) {
@@ -317,10 +317,10 @@ MPU9250_mag::ak8963_setup()
 
 		while (!ak8963_read_adjustments() && retries) {
 			retries--;
-			PX4_ERR("AK8963: failed to read adjustment data. Retries %d", retries);
+			PX4_WARN("AK8963: failed to read adjustment data. Retries %d", retries);
 
 			_parent->modify_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_RST);
-			px4_usleep(100);
+			px4_usleep(200);
 			ak8963_setup_master_i2c();
 			write_reg(AK8963REG_CNTL2, AK8963_RESET);
 		}

@@ -177,9 +177,9 @@ public:
 	virtual ~PWMIN();
 
 	virtual int init();
-	virtual int open(struct file *filp);
-	virtual ssize_t read(struct file *filp, char *buffer, size_t buflen);
-	virtual int ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual int open(cdev::file_t *filp);
+	virtual ssize_t read(cdev::file_t *filp, char *buffer, size_t buflen);
+	virtual int ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 
 	void publish(uint16_t status, uint32_t period, uint32_t pulse_width);
 	void print_info(void);
@@ -359,7 +359,7 @@ PWMIN::hard_reset()
  * leave it running
  */
 int
-PWMIN::open(struct file *filp)
+PWMIN::open(cdev::file_t *filp)
 {
 	if (g_dev == nullptr) {
 		return -EIO;
@@ -379,7 +379,7 @@ PWMIN::open(struct file *filp)
  * handle ioctl requests
  */
 int
-PWMIN::ioctl(struct file *filp, int cmd, unsigned long arg)
+PWMIN::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 	case SENSORIOCRESET:
@@ -402,7 +402,7 @@ PWMIN::ioctl(struct file *filp, int cmd, unsigned long arg)
  * read some samples from the device
  */
 ssize_t
-PWMIN::read(struct file *filp, char *buffer, size_t buflen)
+PWMIN::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
 	_last_read_time = hrt_absolute_time();
 

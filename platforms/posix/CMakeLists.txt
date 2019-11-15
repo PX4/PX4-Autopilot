@@ -42,7 +42,6 @@ if (("${PX4_BOARD}" MATCHES "atlflight_eagle") OR ("${PX4_BOARD}" MATCHES "atlfl
 				px4_layer
 				parameters
 				${module_libraries}
-				${df_driver_libs}
 				${FASTRPC_ARM_LIBS}
 				pthread m rt
 			-Wl,--end-group
@@ -57,8 +56,6 @@ else()
 	target_link_libraries(px4
 		PRIVATE
 			${module_libraries}
-			${df_driver_libs}
-			df_driver_framework
 			pthread m
 
 			# horrible circular dependencies that need to be teased apart

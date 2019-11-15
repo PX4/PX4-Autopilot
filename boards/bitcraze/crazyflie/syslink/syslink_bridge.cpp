@@ -71,7 +71,7 @@ SyslinkBridge::init()
 }
 
 pollevent_t
-SyslinkBridge::poll_state(struct file *filp)
+SyslinkBridge::poll_state(cdev::file_t *filp)
 {
 	pollevent_t state = 0;
 
@@ -87,7 +87,7 @@ SyslinkBridge::poll_state(struct file *filp)
 }
 
 ssize_t
-SyslinkBridge::read(struct file *filp, char *buffer, size_t buflen)
+SyslinkBridge::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
 	int nread = 0;
 	crtp_message_t msg;
@@ -106,7 +106,7 @@ SyslinkBridge::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 ssize_t
-SyslinkBridge::write(struct file *filp, const char *buffer, size_t buflen)
+SyslinkBridge::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 {
 	int buflen_rem = buflen;
 
@@ -136,7 +136,7 @@ SyslinkBridge::write(struct file *filp, const char *buffer, size_t buflen)
 }
 
 int
-SyslinkBridge::ioctl(struct file *filp, int cmd, unsigned long arg)
+SyslinkBridge::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	// All termios commands should be silently ignored as they are handled
 

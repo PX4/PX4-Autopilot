@@ -40,5 +40,4 @@ add_executable(navio_rgbled_test
 target_link_libraries(navio_rgbled_test
 	drivers__navio_rgbled
 	drivers__navio_gpio
-	df_driver_framework
 	)

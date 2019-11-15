@@ -64,11 +64,8 @@
 #include <uORB/topics/battery_status.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-#include <DevMgr.hpp>
-
 #include "parameters.h"
 
-using namespace DriverFramework;
 using namespace battery_status;
 using namespace time_literals;
 
@@ -129,7 +126,7 @@ public:
 	int print_status() override;
 
 private:
-	DevHandle 	_h_adc;				/**< ADC driver handle */
+	int 		_fd_adc{-1};				/**< ADC driver handle */
 
 	bool		_armed{false};				/**< arming status of the vehicle */
 
@@ -208,10 +205,10 @@ BatteryStatus::parameters_update()
 int
 BatteryStatus::adc_init()
 {
-	DevMgr::getHandle(ADC0_DEVICE_PATH, _h_adc);
+	_fd_adc = px4_open(ADC0_DEVICE_PATH, PX4_F_RDONLY);
 
-	if (!_h_adc.isValid()) {
-		PX4_ERR("no ADC found: %s (%d)", ADC0_DEVICE_PATH, _h_adc.getError());
+	if (_fd_adc < 0) {
+		PX4_ERR("no ADC found: %s", ADC0_DEVICE_PATH);
 		return PX4_ERROR;
 	}
 
@@ -240,7 +237,7 @@ BatteryStatus::adc_poll()
 	px4_adc_msg_t buf_adc[PX4_MAX_ADC_CHANNELS];
 
 	/* read all channels available */
-	int ret = _h_adc.read(&buf_adc, sizeof(buf_adc));
+	int ret = px4_read(_fd_adc, &buf_adc, sizeof(buf_adc));
 
 	//todo:abosorb into new class Power
 
@@ -355,7 +352,7 @@ BatteryStatus::Run()
 		return;
 	}
 
-	if (!_h_adc.isValid()) {
+	if (_fd_adc < 0) {
 		adc_init();
 	}
 

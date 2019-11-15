@@ -122,7 +122,7 @@ public:
 	DevCommon(const char *device_path);
 	virtual ~DevCommon();
 
-	virtual int	ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 
 	virtual int	open(file *filp);
 	virtual int	close(file *filp);
@@ -131,7 +131,7 @@ public:
 
 protected:
 
-	virtual pollevent_t poll_state(struct file *filp);
+	virtual pollevent_t poll_state(cdev::file_t *filp);
 
 
 	void lock(enum Operation op)
@@ -178,7 +178,7 @@ DevCommon::~DevCommon()
 	}
 }
 
-int DevCommon::ioctl(struct file *filp, int cmd, unsigned long arg)
+int DevCommon::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	//pretend we have enough space left to write, so mavlink will not drop data and throw off
 	//our parsing state
@@ -206,7 +206,7 @@ int DevCommon::close(file *filp)
 	return 0;
 }
 
-pollevent_t DevCommon::poll_state(struct file *filp)
+pollevent_t DevCommon::poll_state(cdev::file_t *filp)
 {
 	pollfd fds[1];
 	fds[0].fd = _fd;
@@ -232,8 +232,8 @@ public:
 	Mavlink2Dev(ReadBuffer *_read_buffer);
 	virtual ~Mavlink2Dev() {}
 
-	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
-	virtual ssize_t	write(struct file *filp, const char *buffer, size_t buflen);
+	virtual ssize_t	read(cdev::file_t *filp, char *buffer, size_t buflen);
+	virtual ssize_t	write(cdev::file_t *filp, const char *buffer, size_t buflen);
 
 protected:
 	ReadBuffer *_read_buffer;
@@ -248,7 +248,7 @@ Mavlink2Dev::Mavlink2Dev(ReadBuffer *read_buffer)
 {
 }
 
-ssize_t Mavlink2Dev::read(struct file *filp, char *buffer, size_t buflen)
+ssize_t Mavlink2Dev::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
 	int i, ret;
 	uint16_t packet_len = 0;
@@ -340,7 +340,7 @@ end:
 	return ret;
 }
 
-ssize_t Mavlink2Dev::write(struct file *filp, const char *buffer, size_t buflen)
+ssize_t Mavlink2Dev::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 {
 	/*
 	 * we need to look into the data to make sure the output is locked for the duration
@@ -413,8 +413,8 @@ public:
 	RtpsDev(ReadBuffer *_read_buffer);
 	virtual ~RtpsDev() {}
 
-	virtual ssize_t	read(struct file *filp, char *buffer, size_t buflen);
-	virtual ssize_t	write(struct file *filp, const char *buffer, size_t buflen);
+	virtual ssize_t	read(cdev::file_t *filp, char *buffer, size_t buflen);
+	virtual ssize_t	write(cdev::file_t *filp, const char *buffer, size_t buflen);
 
 protected:
 	ReadBuffer *_read_buffer;
@@ -428,7 +428,7 @@ RtpsDev::RtpsDev(ReadBuffer *read_buffer)
 {
 }
 
-ssize_t RtpsDev::read(struct file *filp, char *buffer, size_t buflen)
+ssize_t RtpsDev::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
 	int i, ret;
 	uint16_t packet_len, payload_len;
@@ -484,7 +484,7 @@ end:
 	return ret;
 }
 
-ssize_t RtpsDev::write(struct file *filp, const char *buffer, size_t buflen)
+ssize_t RtpsDev::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 {
 	/*
 	 * we need to look into the data to make sure the output is locked for the duration

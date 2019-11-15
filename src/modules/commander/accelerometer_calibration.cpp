@@ -176,10 +176,6 @@ typedef struct  {
 
 int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 {
-#ifdef __PX4_NUTTX
-	int fd;
-#endif
-
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, sensor_name);
 
 	struct accel_calibration_s accel_scale;
@@ -196,25 +192,6 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 
 	/* reset all sensors */
 	for (unsigned s = 0; s < max_accel_sens; s++) {
-#ifdef __PX4_NUTTX
-		sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, s);
-		/* reset all offsets to zero and all scales to one */
-		fd = px4_open(str, 0);
-
-		if (fd < 0) {
-			continue;
-		}
-
-		device_id[s] = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
-
-		res = px4_ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
-		px4_close(fd);
-
-		if (res != PX4_OK) {
-			calibration_log_critical(mavlink_log_pub, CAL_ERROR_RESET_CAL_MSG, s);
-		}
-
-#else
 		(void)sprintf(str, "CAL_ACC%u_XOFF", s);
 		res = param_set_no_notification(param_find(str), &accel_scale.x_offset);
 
@@ -258,7 +235,6 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 		}
 
 		param_notify_changes();
-#endif
 	}
 
 	float accel_offs[max_accel_sens][3];
@@ -417,25 +393,6 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, uorb_index);
 			return PX4_ERROR;
 		}
-
-#ifdef __PX4_NUTTX
-		sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, uorb_index);
-		fd = px4_open(str, 0);
-
-		if (fd < 0) {
-			calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "sensor does not exist");
-			res = PX4_ERROR;
-
-		} else {
-			res = px4_ioctl(fd, ACCELIOCSSCALE, (long unsigned int)&accel_scale);
-			px4_close(fd);
-		}
-
-		if (res != PX4_OK) {
-			calibration_log_critical(mavlink_log_pub, CAL_ERROR_APPLY_CAL_MSG, uorb_index);
-		}
-
-#endif
 	}
 
 	if (res == PX4_OK) {
@@ -518,32 +475,10 @@ calibrate_return do_accel_calibration_measurements(orb_advert_t *mavlink_log_pub
 		for (unsigned i = 0; i < orb_accel_count && !found_cur_accel; i++) {
 			worker_data.subs[cur_accel] = orb_subscribe_multi(ORB_ID(sensor_accel), i);
 
-			sensor_accel_s report = {};
+			sensor_accel_s report{};
 			orb_copy(ORB_ID(sensor_accel), worker_data.subs[cur_accel], &report);
-
-#ifdef __PX4_NUTTX
-
-			// For NuttX, we get the UNIQUE device ID from the sensor driver via an IOCTL
-			// and match it up with the one from the uORB subscription, because the
-			// instance ordering of uORB and the order of the FDs may not be the same.
-
-			if (report.device_id == (uint32_t)device_id[cur_accel]) {
-				// Device IDs match, correct ORB instance for this accel
-				found_cur_accel = true;
-				// store initial timestamp - used to infer which sensors are active
-				timestamps[cur_accel] = report.timestamp;
-
-			} else {
-				orb_unsubscribe(worker_data.subs[cur_accel]);
-			}
-
-#else
-
-			// For the DriverFramework drivers, we fill device ID (this is the first time) by copying one report.
 			device_id[cur_accel] = report.device_id;
 			found_cur_accel = true;
-
-#endif
 		}
 
 		if (!found_cur_accel) {

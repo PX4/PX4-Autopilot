@@ -119,7 +119,7 @@ public:
 
 
 	virtual int		init();
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual int		ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 	virtual int		info();
 	virtual int		reset();
 	bool			is_running() { return _running; }
@@ -220,7 +220,7 @@ PCA9685::init()
 }
 
 int
-PCA9685::ioctl(struct file *filp, int cmd, unsigned long arg)
+PCA9685::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	int ret = -EINVAL;
 

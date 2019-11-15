@@ -43,17 +43,15 @@
 #include <px4_platform_common/posix.h>
 #include <drivers/drv_adc.h>
 
-#include <VirtDevObj.hpp>
+#include <cdev/CDev.hpp>
 
 #include <unistd.h>
 #include <stdio.h>
 #include <poll.h>
 #include <string.h>
 
-#ifdef __DF_BBBLUE
 #include <robotcontrol.h>
 #include <board_config.h>
-#endif
 
 #define ADC_BASE_DEV_PATH "/dev/null"
 
@@ -66,7 +64,7 @@ __BEGIN_DECLS
 __EXPORT int bbblue_adc_main(int argc, char *argv[]);
 __END_DECLS
 
-class BBBlueADC: public DriverFramework::VirtDevObj
+class BBBlueADC: public cdev::CDev
 {
 public:
 	BBBlueADC();
@@ -74,19 +72,18 @@ public:
 
 	virtual int init();
 
-	virtual ssize_t devRead(void *buf, size_t count) override;
-	virtual int devIOCTL(unsigned long request, unsigned long arg) override;
+	virtual ssize_t read(void *buf, size_t count) override;
+	virtual int ioctl(cdev::file_t *filep, int cmd, unsigned long arg) override;
 
 protected:
-	virtual void _measure() override;
+	virtual void _measure();
 
 private:
 	pthread_mutex_t _samples_lock;
 	px4_adc_msg_t   _samples[BBBLUE_MAX_ADC_CHANNELS];
 };
 
-BBBlueADC::BBBlueADC()
-	: DriverFramework::VirtDevObj("bbblue_adc", ADC0_DEVICE_PATH, ADC_BASE_DEV_PATH, 1e6 / 100)
+BBBlueADC::BBBlueADC() : CDev("bbblue_adc", ADC0_DEVICE_PATH, ADC_BASE_DEV_PATH, 1e6 / 100)
 {
 	pthread_mutex_init(&_samples_lock, NULL);
 }
@@ -100,7 +97,6 @@ BBBlueADC::~BBBlueADC()
 
 void BBBlueADC::_measure()
 {
-#ifdef __DF_BBBLUE
 	px4_adc_msg_t tmp_samples[BBBLUE_MAX_ADC_CHANNELS];
 
 	for (int i = 0; i < BBBLUE_MAX_ADC_USER_CHANNELS; ++i) {
@@ -117,14 +113,13 @@ void BBBlueADC::_measure()
 	pthread_mutex_lock(&_samples_lock);
 	memcpy(&_samples, &tmp_samples, sizeof(tmp_samples));
 	pthread_mutex_unlock(&_samples_lock);
-#endif
 }
 
 int BBBlueADC::init()
 {
 	rc_init();
 
-	int ret = DriverFramework::VirtDevObj::init();
+	int ret = CDev::init();
 
 	if (ret != PX4_OK) {
 		PX4_ERR("init failed");
@@ -136,12 +131,12 @@ int BBBlueADC::init()
 	return PX4_OK;
 }
 
-int BBBlueADC::devIOCTL(unsigned long request, unsigned long arg)
+int BBBlueADC::ioctl(cdev::file_t *filep, int cmd, unsigned long arg)
 {
 	return -ENOTTY;
 }
 
-ssize_t BBBlueADC::devRead(void *buf, size_t count)
+ssize_t BBBlueADC::read(void *buf, size_t count)
 {
 	const size_t maxsize = sizeof(_samples);
 	int ret;
@@ -214,7 +209,7 @@ int bbblue_adc_main(int argc, char *argv[])
 
 		px4_adc_msg_t adc_msgs[BBBLUE_MAX_ADC_CHANNELS];
 
-		ret = instance->devRead((char *)&adc_msgs, sizeof(adc_msgs));
+		ret = instance->read((char *)&adc_msgs, sizeof(adc_msgs));
 
 		if (ret < 0) {
 			PX4_ERR("ret: %s (%d)\n", strerror(ret), ret);

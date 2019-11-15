@@ -16,7 +16,7 @@ pipeline {
           ]
 
           def armhf_builds = [
-            target: ["aerotenna_ocpoc_ubuntu", "emlid_navio2_cross", "parrot_bebop_default"],
+            target: ["aerotenna_ocpoc_ubuntu", "emlid_navio2_cross"],
             image: docker_images.armhf,
             archive: false
           ]

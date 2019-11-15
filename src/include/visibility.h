@@ -85,8 +85,6 @@
 #include <time.h>
 #define system_clock_gettime clock_gettime
 #define system_clock_settime clock_settime
-/* We can't poison clock_settime/clock_gettime because they are
- * used in DriverFramework. */
 
 #if !defined(__PX4_NUTTX)
 #include <pthread.h>
@@ -99,7 +97,7 @@
 
 
 /* We don't poison usleep and sleep because it is used in dependencies
- * like uavcan and DriverFramework. */
+ * like uavcan */
 #if !defined(__PX4_NUTTX)
 #include <unistd.h>
 // We can't include this for NuttX otherwise we get conflicts for read/write

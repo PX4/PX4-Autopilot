@@ -133,7 +133,7 @@ public:
 	/*
 	 * Passes everything to CDev
 	 */
-	int ioctl(struct file *filp, int cmd, unsigned long arg);
+	int ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 
 private:
 	/*
@@ -194,12 +194,12 @@ private:
 	/*
 	 * Use to send mavlink messages directly
 	 */
-	ssize_t write(struct file *filp, const char *buffer, size_t buflen);
+	ssize_t write(cdev::file_t *filp, const char *buffer, size_t buflen);
 
 	/*
 	 * Use to read received mavlink messages directly
 	 */
-	ssize_t read(struct file *filp, char *buffer, size_t buflen);
+	ssize_t read(cdev::file_t *filp, char *buffer, size_t buflen);
 
 	/*
 	 * Write the tx buffer to the modem
@@ -249,12 +249,12 @@ private:
 	/*
 	 * Checks if the modem responds to the "AT" command
 	 */
-	bool is_modem_ready(void);
+	bool is_modem_ready();
 
 	/*
 	 * Get the poll state
 	 */
-	pollevent_t poll_state(struct file *filp);
+	pollevent_t poll_state(cdev::file_t *filp);
 
 	void publish_iridium_status(void);
 
@@ -271,7 +271,7 @@ private:
 	 * @param filep		Pointer to the NuttX file structure.
 	 * @return		OK if the open should proceed, -errno otherwise.
 	 */
-	virtual int	open_first(struct file *filep) override;
+	virtual int	open_first(cdev::file_t *filep) override;
 
 	/**
 	 * Notification of the last close of CDev.
@@ -284,7 +284,7 @@ private:
 	 * @param filep		Pointer to the NuttX file structure.
 	 * @return		OK if the open should return OK, -errno otherwise.
 	 */
-	virtual int	close_last(struct file *filep) override;
+	virtual int	close_last(cdev::file_t *filep) override;
 
 	static IridiumSBD *instance;
 	static int task_handle;

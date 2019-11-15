@@ -114,9 +114,9 @@ LIS3MDL::~LIS3MDL()
 }
 
 int
-LIS3MDL::calibrate(struct file *file_pointer, unsigned enable)
+LIS3MDL::calibrate(cdev::file_t *file_pointer, unsigned enable)
 {
-	struct mag_report report;
+	sensor_mag_s report{};
 	ssize_t sz;
 	int ret = 1;
 	uint8_t num_samples = 10;
@@ -492,7 +492,7 @@ LIS3MDL::init()
 }
 
 int
-LIS3MDL::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
+LIS3MDL::ioctl(cdev::file_t *file_pointer, int cmd, unsigned long arg)
 {
 	unsigned dummy = 0;
 
@@ -629,7 +629,7 @@ LIS3MDL::reset()
 }
 
 int
-LIS3MDL::read(struct file *file_pointer, char *buffer, size_t buffer_len)
+LIS3MDL::read(cdev::file_t *file_pointer, char *buffer, size_t buffer_len)
 {
 	unsigned count = buffer_len / sizeof(struct mag_report);
 	struct mag_report *mag_buf = reinterpret_cast<struct mag_report *>(buffer);

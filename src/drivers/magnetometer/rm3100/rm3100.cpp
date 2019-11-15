@@ -347,7 +347,7 @@ RM3100::init()
 }
 
 int
-RM3100::ioctl(struct file *file_pointer, int cmd, unsigned long arg)
+RM3100::ioctl(cdev::file_t *file_pointer, int cmd, unsigned long arg)
 {
 	unsigned dummy = 0;
 
@@ -498,7 +498,7 @@ RM3100::reset()
 }
 
 int
-RM3100::read(struct file *file_pointer, char *buffer, size_t buffer_len)
+RM3100::read(cdev::file_t *file_pointer, char *buffer, size_t buffer_len)
 {
 	unsigned count = buffer_len / sizeof(struct mag_report);
 	struct mag_report *mag_buf = reinterpret_cast<struct mag_report *>(buffer);

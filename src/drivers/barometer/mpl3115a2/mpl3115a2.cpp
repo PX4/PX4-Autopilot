@@ -69,8 +69,8 @@ public:
 
 	virtual int		init();
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t		read(cdev::file_t *filp, char *buffer, size_t buflen);
+	virtual int		ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -269,7 +269,7 @@ out:
 }
 
 ssize_t
-MPL3115A2::read(struct file *filp, char *buffer, size_t buflen)
+MPL3115A2::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(sensor_baro_s);
 	sensor_baro_s *brp = reinterpret_cast<sensor_baro_s *>(buffer);
@@ -333,7 +333,7 @@ MPL3115A2::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-MPL3115A2::ioctl(struct file *filp, int cmd, unsigned long arg)
+MPL3115A2::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 

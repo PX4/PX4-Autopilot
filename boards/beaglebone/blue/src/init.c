@@ -44,13 +44,8 @@
 #include "board_config.h"
 
 // initialize roboticscape library similar to the deprecated rc_initialize()
-int rc_init(void)
+int rc_init()
 {
-#ifdef __RC_V0_3
-	return rc_initialize();
-#else
-#ifdef __DF_BBBLUE
-
 	if (rc_get_state() == RUNNING) {  return 0; }
 
 	PX4_INFO("Initializing librobotcontrol ...");
@@ -108,24 +103,14 @@ int rc_init(void)
 		return -1;
 	}
 
-	//i2c, barometer and mpu will be initialized later
-
 	rc_set_state(RUNNING);
-#endif
-
-	return 0;
-#endif
 }
 
-
-void rc_cleaning(void)
+void rc_cleaning()
 {
-#ifdef __RC_V0_3
-	rc_cleanup();  return ;
-#else
-#ifdef __DF_BBBLUE
-
-	if (rc_get_state() == EXITING) { return; }
+	if (rc_get_state() == EXITING) {
+		return;
+	}
 
 	rc_set_state(EXITING);
 
@@ -135,20 +120,4 @@ void rc_cleaning(void)
 	rc_servo_cleanup();
 
 	rc_remove_pid_file();
-#endif
-#endif
 }
-
-
-#ifdef __RC_V0_3
-int rc_bmp_read(rc_bmp_data_t *data)
-{
-	int rtn = rc_read_barometer();
-
-	data->temp_c 		= rc_bmp_get_temperature();
-	data->alt_m  		= rc_bmp_get_altitude_m();
-	data->pressure_pa	= rc_bmp_get_pressure_pa();
-
-	return rtn;
-}
-#endif

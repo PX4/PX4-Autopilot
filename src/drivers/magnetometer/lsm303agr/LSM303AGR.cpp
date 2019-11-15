@@ -240,7 +240,7 @@ LSM303AGR::probe()
 }
 
 int
-LSM303AGR::ioctl(struct file *filp, int cmd, unsigned long arg)
+LSM303AGR::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 	case SENSORIOCSPOLLRATE: {

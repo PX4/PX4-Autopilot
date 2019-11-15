@@ -89,19 +89,14 @@ enum MS56XX_DEVICE_TYPES {
  */
 #define MS5611_CONVERSION_INTERVAL	10000	/* microseconds */
 #define MS5611_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
-#define MS5611_BARO_DEVICE_PATH_EXT	"/dev/ms5611_ext"
-#define MS5611_BARO_DEVICE_PATH_INT	"/dev/ms5611_int"
 
-class MS5611 : public cdev::CDev, public px4::ScheduledWorkItem
+class MS5611 : public px4::ScheduledWorkItem
 {
 public:
-	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *path, enum MS56XX_DEVICE_TYPES device_type);
-	~MS5611();
+	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, enum MS56XX_DEVICE_TYPES device_type);
+	virtual ~MS5611();
 
 	virtual int		init();
-
-	virtual ssize_t		read(cdev::file_t *filp, char *buffer, size_t buflen);
-	virtual int		ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -129,7 +124,6 @@ protected:
 
 	orb_advert_t		_baro_topic;
 	int			_orb_class_instance;
-	int			_class_instance;
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_measure_perf;

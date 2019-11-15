@@ -97,7 +97,7 @@ out:
 }
 
 int
-LPS22HB::ioctl(struct file *filp, int cmd, unsigned long arg)
+LPS22HB::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	unsigned dummy = arg;
 

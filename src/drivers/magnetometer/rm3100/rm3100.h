@@ -124,9 +124,9 @@ public:
 
 	virtual int init();
 
-	virtual int ioctl(struct file *file_pointer, int cmd, unsigned long arg);
+	virtual int ioctl(cdev::file_t *file_pointer, int cmd, unsigned long arg);
 
-	virtual int read(struct file *file_pointer, char *buffer, size_t buffer_len);
+	virtual int read(cdev::file_t *file_pointer, char *buffer, size_t buffer_len);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.

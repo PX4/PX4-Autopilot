@@ -55,7 +55,7 @@
 
 int test_adc(int argc, char *argv[])
 {
-	int fd = px4_open(ADC0_DEVICE_PATH, O_RDONLY);
+	int fd = px4_open(ADC0_DEVICE_PATH, PX4_F_RDONLY);
 
 	if (fd < 0) {
 		PX4_ERR("ERROR: can't open ADC device");

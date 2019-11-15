@@ -33,25 +33,24 @@
 #pragma once
 
 #include <lib/drivers/linux_gpio/linux_gpio.h>
-#include <DevObj.hpp>
-
 #include <lib/led/led.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
-class RGBLED : public DriverFramework::DevObj
+class RGBLED : public px4::ScheduledWorkItem
 {
 public:
-	RGBLED(const char *name);
+	RGBLED() : ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::lp_default) {};
 	virtual ~RGBLED() = default;
 
 	int start();
 	int stop();
 
-protected:
-	void _measure();
-
 private:
-	LedController _led_controller;
-	LinuxGPIO _gpioR;
-	LinuxGPIO _gpioG;
-	LinuxGPIO _gpioB;
+	void			Run() override;
+
+	LedController		_led_controller;
+
+	LinuxGPIO _gpioR{4};
+	LinuxGPIO _gpioG{27};
+	LinuxGPIO _gpioB{6};
 };

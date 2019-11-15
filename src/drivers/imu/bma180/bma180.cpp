@@ -130,8 +130,8 @@ public:
 
 	virtual int		init();
 
-	virtual ssize_t		read(struct file *filp, char *buffer, size_t buflen);
-	virtual int		ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t		read(cdev::file_t *filp, char *buffer, size_t buflen);
+	virtual int		ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -342,7 +342,7 @@ BMA180::probe()
 }
 
 ssize_t
-BMA180::read(struct file *filp, char *buffer, size_t buflen)
+BMA180::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(sensor_accel_s);
 	sensor_accel_s *arp = reinterpret_cast<sensor_accel_s *>(buffer);
@@ -385,7 +385,7 @@ BMA180::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-BMA180::ioctl(struct file *filp, int cmd, unsigned long arg)
+BMA180::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 

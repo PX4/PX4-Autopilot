@@ -424,7 +424,7 @@ BMM150::stop()
 }
 
 ssize_t
-BMM150::read(struct file *filp, char *buffer, size_t buflen)
+BMM150::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(mag_report);
 	struct mag_report *mag_buf = reinterpret_cast<struct mag_report *>(buffer);
@@ -705,7 +705,7 @@ BMM150::collect()
 }
 
 int
-BMM150::ioctl(struct file *filp, int cmd, unsigned long arg)
+BMM150::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 
 	switch (cmd) {

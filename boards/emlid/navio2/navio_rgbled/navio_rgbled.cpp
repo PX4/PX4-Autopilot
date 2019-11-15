@@ -32,120 +32,70 @@
  ****************************************************************************/
 
 #include <px4_platform_common/posix.h>
-#include <drivers/drv_led.h>
 
 #include <string.h>
 
 #include "navio_rgbled.h"
 
-#define RGBLED_BASE_DEVICE_PATH "/dev/rgbled"
-
-using namespace DriverFramework;
-
-
-RGBLED::RGBLED(const char *name)
-	: DevObj(name,
-		 RGBLED0_DEVICE_PATH,
-		 RGBLED_BASE_DEVICE_PATH,
-		 DeviceBusType_UNKNOWN,
-		 0)
-	, _gpioR(4)
-	, _gpioG(27)
-	, _gpioB(6)
-{
-};
-
 int RGBLED::start()
 {
-	int res = DevObj::init();
-
-	if (res != 0) {
-		DF_LOG_ERR("could not init DevObj (%i)", res);
-		return res;
-	}
-
-	res = _gpioR.exportPin();
-
-	if (res != 0) {
+	if (_gpioR.exportPin() != 0) {
 		PX4_ERR("red led: failed to export");
 		goto cleanup;
 	}
 
-	res = _gpioR.setDirection(LinuxGPIO::Direction::OUT);
-
-	if (res != 0) {
+	if (_gpioR.setDirection(LinuxGPIO::Direction::OUT) != 0) {
 		PX4_ERR("red led: failed to set direction");
 		goto cleanup;
 	}
 
-	res = _gpioG.exportPin();
-
-	if (res != 0) {
+	if (_gpioG.exportPin() != 0) {
 		PX4_ERR("green led: failed to export");
 		goto cleanup;
 	}
 
-	res = _gpioG.setDirection(LinuxGPIO::Direction::OUT);
-
-	if (res != 0) {
+	if (_gpioG.setDirection(LinuxGPIO::Direction::OUT) != 0) {
 		PX4_ERR("green led: failed to set direction");
 		goto cleanup;
 	}
 
-	res = _gpioB.exportPin();
-
-	if (res != 0) {
+	if (_gpioB.exportPin() != 0) {
 		PX4_ERR("blue led: failed to export");
 		goto cleanup;
 	}
 
-	res = _gpioB.setDirection(LinuxGPIO::Direction::OUT);
-
-	if (res != 0) {
+	if (_gpioB.setDirection(LinuxGPIO::Direction::OUT) != 0) {
 		PX4_ERR("blue led: failed to set direction");
 		goto cleanup;
 	}
 
 	// update at fixed interval
-	DevObj::setSampleInterval(_led_controller.maximum_update_interval());
+	ScheduleOnInterval(_led_controller.maximum_update_interval());
 
-	res = DevObj::start();
-
-	if (res != 0) {
-		DF_LOG_ERR("could not start DevObj (%i)", res);
-		return res;
-	}
-
-	return res;
+	return PX4_OK;
 
 cleanup:
 	_gpioR.unexportPin();
 	_gpioG.unexportPin();
 	_gpioB.unexportPin();
 
-	return res;
+	return PX4_ERROR;
 }
 
 int
 RGBLED::stop()
 {
+	ScheduleClear();
+
 	_gpioR.unexportPin();
 	_gpioG.unexportPin();
 	_gpioB.unexportPin();
-
-	int res = DevObj::stop();
-
-	if (res < 0) {
-		DF_LOG_ERR("could not stop DevObj");
-		//this may not be an error for this device
-		return res;
-	}
 
 	return 0;
 }
 
 void
-RGBLED::_measure()
+RGBLED::Run()
 {
 	LedControlData led_control_data;
 
@@ -201,6 +151,9 @@ RGBLED::_measure()
 			break;
 		}
 	}
+
+	/* re-queue ourselves to run again later */
+	ScheduleDelayed(_led_controller.maximum_update_interval());
 }
 
 extern "C" { __EXPORT int navio_rgbled_main(int argc, char *argv[]); }
@@ -215,7 +168,7 @@ RGBLED *g_dev = nullptr;
 
 int start()
 {
-	g_dev = new RGBLED("navio_rgbled");
+	g_dev = new RGBLED();
 
 	if (g_dev == nullptr) {
 		PX4_ERR("failed instantiating RGBLED");

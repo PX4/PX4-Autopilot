@@ -49,7 +49,6 @@
 #define CAL_ERROR_APPLY_CAL_MSG "FAILED APPLYING %s CAL #%u"
 
 using namespace sensors;
-using namespace DriverFramework;
 using namespace matrix;
 
 VotedSensorsUpdate::VotedSensorsUpdate(const Parameters &parameters, bool hil_enabled)
@@ -212,16 +211,14 @@ void VotedSensorsUpdate::parametersUpdate()
 	for (unsigned driver_index = 0; driver_index < GYRO_COUNT_MAX; driver_index++) {
 		_gyro.enabled[driver_index] = true;
 
-		(void)sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, driver_index);
+		sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, driver_index);
+		int fd = px4_open(str, PX4_F_WRONLY);
 
-		DevHandle h;
-		DevMgr::getHandle(str, h);
-
-		if (!h.isValid()) {
+		if (fd < 0) {
 			continue;
 		}
 
-		uint32_t driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
+		int32_t driver_device_id = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
 		bool config_ok = false;
 
 		/* run through all stored calibrations that are applied at the driver level*/
@@ -246,7 +243,7 @@ void VotedSensorsUpdate::parametersUpdate()
 			}
 
 			/* if the calibration is for this device, apply it */
-			if ((uint32_t)device_id == driver_device_id) {
+			if (device_id == driver_device_id) {
 				_gyro.enabled[driver_index] = (device_enabled == 1);
 
 				if (!_gyro.enabled[driver_index]) { _gyro.priority[driver_index] = 0; }
@@ -282,7 +279,7 @@ void VotedSensorsUpdate::parametersUpdate()
 
 				} else {
 					/* apply new scaling and offsets */
-					config_ok = applyGyroCalibration(h, &gscale, device_id);
+					config_ok = applyGyroCalibration(fd, &gscale, device_id);
 
 					if (!config_ok) {
 						PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "gyro ", i);
@@ -296,6 +293,8 @@ void VotedSensorsUpdate::parametersUpdate()
 		if (config_ok) {
 			gyro_count++;
 		}
+
+		px4_close(fd);
 	}
 
 	// There are less gyros than calibrations
@@ -315,16 +314,14 @@ void VotedSensorsUpdate::parametersUpdate()
 	for (unsigned driver_index = 0; driver_index < ACCEL_COUNT_MAX; driver_index++) {
 		_accel.enabled[driver_index] = true;
 
-		(void)sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, driver_index);
+		sprintf(str, "%s%u", ACCEL_BASE_DEVICE_PATH, driver_index);
+		int fd = px4_open(str, PX4_F_WRONLY);
 
-		DevHandle h;
-		DevMgr::getHandle(str, h);
-
-		if (!h.isValid()) {
+		if (fd < 0) {
 			continue;
 		}
 
-		uint32_t driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
+		int32_t driver_device_id = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
 		bool config_ok = false;
 
 		/* run through all stored calibrations */
@@ -349,7 +346,7 @@ void VotedSensorsUpdate::parametersUpdate()
 			}
 
 			/* if the calibration is for this device, apply it */
-			if ((uint32_t)device_id == driver_device_id) {
+			if (device_id == driver_device_id) {
 				_accel.enabled[driver_index] = (device_enabled == 1);
 
 				if (!_accel.enabled[driver_index]) { _accel.priority[driver_index] = 0; }
@@ -385,7 +382,7 @@ void VotedSensorsUpdate::parametersUpdate()
 
 				} else {
 					/* apply new scaling and offsets */
-					config_ok = applyAccelCalibration(h, &ascale, device_id);
+					config_ok = applyAccelCalibration(fd, &ascale, device_id);
 
 					if (!config_ok) {
 						PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "accel ", i);
@@ -399,6 +396,8 @@ void VotedSensorsUpdate::parametersUpdate()
 		if (config_ok) {
 			accel_count++;
 		}
+
+		px4_close(fd);
 	}
 
 	// There are less accels than calibrations
@@ -429,7 +428,7 @@ void VotedSensorsUpdate::parametersUpdate()
 	for (int topic_instance = 0; topic_instance < MAG_COUNT_MAX
 	     && topic_instance < _mag.subscription_count; ++topic_instance) {
 
-		struct mag_report report;
+		sensor_mag_s report{};
 
 		if (orb_copy(ORB_ID(sensor_mag), _mag.subscription[topic_instance], &report) != 0) {
 			continue;
@@ -440,26 +439,24 @@ void VotedSensorsUpdate::parametersUpdate()
 		_mag_device_id[topic_instance] = topic_device_id;
 
 		// find the driver handle that matches the topic_device_id
-		DevHandle h;
+		int fd = -1;
 
 		for (unsigned driver_index = 0; driver_index < MAG_COUNT_MAX; ++driver_index) {
 
-			(void)sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, driver_index);
+			sprintf(str, "%s%u", MAG_BASE_DEVICE_PATH, driver_index);
+			fd = px4_open(str, PX4_F_WRONLY);
 
-			DevMgr::getHandle(str, h);
-
-			if (!h.isValid()) {
-				/* the driver is not running, continue with the next */
+			if (fd < 0) {
 				continue;
 			}
 
-			int driver_device_id = h.ioctl(DEVIOCGDEVICEID, 0);
+			int32_t driver_device_id = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
 
 			if (driver_device_id == topic_device_id) {
 				break; // we found the matching driver
 
 			} else {
-				DevMgr::releaseHandle(h);
+				px4_close(fd);
 			}
 		}
 
@@ -555,7 +552,7 @@ void VotedSensorsUpdate::parametersUpdate()
 				} else {
 
 					/* apply new scaling and offsets */
-					config_ok = applyMagCalibration(h, &mscale, device_id);
+					config_ok = applyMagCalibration(fd, &mscale, device_id);
 
 					if (!config_ok) {
 						PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "mag ", i);
@@ -565,6 +562,8 @@ void VotedSensorsUpdate::parametersUpdate()
 				break;
 			}
 		}
+
+		px4_close(fd);
 	}
 
 }
@@ -1063,49 +1062,21 @@ void VotedSensorsUpdate::printStatus()
 }
 
 bool
-VotedSensorsUpdate::applyGyroCalibration(DevHandle &h, const struct gyro_calibration_s *gcal, const int device_id)
+VotedSensorsUpdate::applyGyroCalibration(int fd, const gyro_calibration_s *cal, const int device_id)
 {
-#if defined(__PX4_NUTTX)
-
-	/* On most systems, we can just use the IOCTL call to set the calibration params. */
-	return !h.ioctl(GYROIOCSSCALE, (long unsigned int)gcal);
-
-#else
-	/* On QURT, the params are read directly in the respective wrappers. */
-	return true;
-#endif
+	return px4_ioctl(fd, GYROIOCSSCALE, (long unsigned int)cal) == 0;
 }
 
 bool
-VotedSensorsUpdate::applyAccelCalibration(DevHandle &h, const struct accel_calibration_s *acal, const int device_id)
+VotedSensorsUpdate::applyAccelCalibration(int fd, const accel_calibration_s *cal, const int device_id)
 {
-#if defined(__PX4_NUTTX)
-
-	/* On most systems, we can just use the IOCTL call to set the calibration params. */
-	return !h.ioctl(ACCELIOCSSCALE, (long unsigned int)acal);
-
-#else
-	/* On QURT, the params are read directly in the respective wrappers. */
-	return true;
-#endif
+	return px4_ioctl(fd, ACCELIOCSSCALE, (long unsigned int)cal) == 0;
 }
 
 bool
-VotedSensorsUpdate::applyMagCalibration(DevHandle &h, const struct mag_calibration_s *mcal, const int device_id)
+VotedSensorsUpdate::applyMagCalibration(int fd, const mag_calibration_s *cal, const int device_id)
 {
-#if defined(__PX4_NUTTX)
-
-	if (!h.isValid()) {
-		return false;
-	}
-
-	/* On most systems, we can just use the IOCTL call to set the calibration params. */
-	return !h.ioctl(MAGIOCSSCALE, (long unsigned int)mcal);
-
-#else
-	/* On QURT & POSIX, the params are read directly in the respective wrappers. */
-	return true;
-#endif
+	return px4_ioctl(fd, MAGIOCSSCALE, (long unsigned int)cal) == 0;
 }
 
 void VotedSensorsUpdate::sensorsPoll(sensor_combined_s &raw, vehicle_air_data_s &airdata,

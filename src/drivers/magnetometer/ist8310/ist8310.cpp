@@ -191,8 +191,8 @@ public:
 
 	virtual int     init();
 
-	virtual ssize_t     read(struct file *filp, char *buffer, size_t buflen);
-	virtual int         ioctl(struct file *filp, int cmd, unsigned long arg);
+	virtual ssize_t     read(cdev::file_t *filp, char *buffer, size_t buflen);
+	virtual int         ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -259,7 +259,7 @@ private:
 	 *
 	 * @param enable set to 1 to enable self-test strap, 0 to disable
 	 */
-	int         calibrate(struct file *filp, unsigned enable);
+	int         calibrate(cdev::file_t *filp, unsigned enable);
 
 	/**
 	 * check the sensor configuration.
@@ -513,7 +513,7 @@ void IST8310::check_conf(void)
 }
 
 ssize_t
-IST8310::read(struct file *filp, char *buffer, size_t buflen)
+IST8310::read(cdev::file_t *filp, char *buffer, size_t buflen)
 {
 	unsigned count = buflen / sizeof(struct mag_report);
 	struct mag_report *mag_buf = reinterpret_cast<struct mag_report *>(buffer);
@@ -571,7 +571,7 @@ IST8310::read(struct file *filp, char *buffer, size_t buflen)
 }
 
 int
-IST8310::ioctl(struct file *filp, int cmd, unsigned long arg)
+IST8310::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 {
 	switch (cmd) {
 	case SENSORIOCSPOLLRATE: {
@@ -897,7 +897,7 @@ out:
 	return ret;
 }
 
-int IST8310::calibrate(struct file *filp, unsigned enable)
+int IST8310::calibrate(cdev::file_t *filp, unsigned enable)
 {
 	struct mag_report report {};
 	ssize_t sz;

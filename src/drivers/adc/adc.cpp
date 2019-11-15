@@ -64,16 +64,15 @@ class ADC : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
 	ADC(uint32_t base_address, uint32_t channels);
-	~ADC();
+	virtual ~ADC();
 
-	virtual int		init();
+	int		init() override;
 
-	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
-	virtual ssize_t		read(file *filp, char *buffer, size_t len);
+	ssize_t		read(cdev::file_t *filp, char *buffer, size_t len) override;
 
 protected:
-	virtual int		open_first(struct file *filp);
-	virtual int		close_last(struct file *filp);
+	int		open_first(cdev::file_t *filp) override;
+	int		close_last(cdev::file_t *filp) override;
 
 private:
 	void			Run() override;
@@ -105,7 +104,7 @@ private:
 ADC::ADC(uint32_t base_address, uint32_t channels) :
 	CDev(ADC0_DEVICE_PATH),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
+	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": samples")),
 	_base_address(base_address)
 {
 	/* always enable the temperature sensor */
@@ -162,31 +161,24 @@ ADC::init()
 	return CDev::init();
 }
 
-int
-ADC::ioctl(file *filp, int cmd, unsigned long arg)
-{
-	return -ENOTTY;
-}
-
 ssize_t
 ADC::read(file *filp, char *buffer, size_t len)
 {
+	lock();
 	const size_t maxsize = sizeof(px4_adc_msg_t) * _channel_count;
 
 	if (len > maxsize) {
 		len = maxsize;
 	}
 
-	/* block interrupts while copying samples to avoid racing with an update */
-	irqstate_t flags = px4_enter_critical_section();
 	memcpy(buffer, _samples, len);
-	px4_leave_critical_section(flags);
+	unlock();
 
 	return len;
 }
 
 int
-ADC::open_first(struct file *filp)
+ADC::open_first(cdev::file_t *filp)
 {
 	/* get fresh data */
 	Run();
@@ -198,7 +190,7 @@ ADC::open_first(struct file *filp)
 }
 
 int
-ADC::close_last(struct file *filp)
+ADC::close_last(cdev::file_t *filp)
 {
 	ScheduleClear();
 
@@ -222,7 +214,7 @@ ADC::Run()
 void
 ADC::update_adc_report(hrt_abstime now)
 {
-	adc_report_s adc = {};
+	adc_report_s adc{};
 	adc.timestamp = now;
 
 	unsigned max_num = _channel_count;
@@ -338,11 +330,6 @@ ADC::sample(unsigned channel)
 	return result;
 }
 
-/*
- * Driver 'main' command.
- */
-extern "C" __EXPORT int adc_main(int argc, char *argv[]);
-
 namespace
 {
 ADC	*g_adc{nullptr};
@@ -351,7 +338,7 @@ int
 test(void)
 {
 
-	int fd = open(ADC0_DEVICE_PATH, O_RDONLY);
+	int fd = px4_open(ADC0_DEVICE_PATH, O_RDONLY);
 
 	if (fd < 0) {
 		PX4_ERR("can't open ADC device %d", errno);
@@ -360,7 +347,7 @@ test(void)
 
 	for (unsigned i = 0; i < 20; i++) {
 		px4_adc_msg_t data[ADC_TOTAL_CHANNELS];
-		ssize_t count = read(fd, data, sizeof(data));
+		ssize_t count = px4_read(fd, data, sizeof(data));
 
 		if (count < 0) {
 			PX4_ERR("read error");
@@ -377,12 +364,13 @@ test(void)
 		px4_usleep(500000);
 	}
 
+	px4_close(fd);
+
 	return 0;
 }
 }
 
-int
-adc_main(int argc, char *argv[])
+extern "C" __EXPORT int adc_main(int argc, char *argv[])
 {
 	if (g_adc == nullptr) {
 		g_adc = new ADC(SYSTEM_ADC_BASE, ADC_CHANNELS);
