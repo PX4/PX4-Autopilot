@@ -26,7 +26,7 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		# dshot -- todo needslooking at
 		gps
-		#heater
+		heater
 		imu/adis16448
 		imu/adis16497
 		#imu # all available imu drivers
