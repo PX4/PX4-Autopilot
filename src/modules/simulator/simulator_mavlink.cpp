@@ -174,6 +174,8 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 	return msg;
 }
 
+uint64_t last_actuator_timestamp = 0;
+
 void Simulator::send_controls()
 {
 	// copy new actuator data if available
@@ -192,9 +194,30 @@ void Simulator::send_controls()
 
 			PX4_DEBUG("sending controls t=%ld (%ld)", actuators.timestamp, hil_act_control.time_usec);
 
+            if (last_actuator_timestamp + 1000000 < hrt_absolute_time())
+            {
+                // throttled debugging
+                last_actuator_timestamp = hrt_absolute_time();
+                PX4_INFO("sending controls %ld", last_actuator_timestamp);
+            }
 			send_mavlink_message(message);
 		}
-	}
+        else {
+            if (last_actuator_timestamp + 1000000 < hrt_absolute_time())
+            {
+                // throttled debugging
+                last_actuator_timestamp = hrt_absolute_time();
+                PX4_INFO("actuator controls actuators.timestamp is zero... %ld", last_actuator_timestamp);
+            }
+        }
+	} else {
+        if (last_actuator_timestamp + 1000000 < hrt_absolute_time())
+        {
+            // throttled debugging
+            last_actuator_timestamp = hrt_absolute_time();
+            PX4_INFO("actuator controls subscription is not updating...%ld", last_actuator_timestamp);
+        }
+    }
 }
 
 static void fill_rc_input_msg(input_rc_s *rc, mavlink_rc_channels_t *rc_channels)
@@ -349,6 +372,8 @@ void Simulator::handle_message_hil_gps(const mavlink_message_t *msg)
 	update_gps(&gps_sim);
 }
 
+uint64_t last_hil_timestamp = 0;
+
 void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 {
 	mavlink_hil_sensor_t imu;
@@ -372,6 +397,13 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 
 	last_time = now_us;
 #endif
+
+    if (last_hil_timestamp + 1000000 < now_us)
+    {
+        // throttled debugging
+        last_hil_timestamp = now_us;
+        PX4_INFO("handle_message_hil_sensor %ld", last_hil_timestamp);
+    }
 
 	update_sensors(now_us, imu);
 
@@ -624,6 +656,7 @@ void Simulator::send()
 
 		if (pret == 0) {
 			// Timed out, try again.
+            PX4_ERR("timeout waiting for _actuator_outputs_sub");
 			continue;
 		}
 
