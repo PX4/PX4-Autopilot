@@ -3,11 +3,11 @@ px4_add_board(
 	PLATFORM nuttx
 	VENDOR holybro
 	MODEL durandal-v1
-	LABEL default
+	LABEL stackcheck
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m7
 	ROMFSROOT px4fmu_common
-	BUILD_BOOTLOADER
+	#BUILD_BOOTLOADER
 	IO px4_io-v2_default
 	TESTING
 #	UAVCAN_INTERFACES 2  - No H7 or FD can support in UAVCAN
@@ -26,40 +26,38 @@ px4_add_board(
 		distance_sensor # all available distance sensor drivers
 		# dshot -- todo needslooking at
 		gps
-		heater
-		imu/adis16448
-		imu/adis16497
+		#heater
+		#imu/adis16448
+		#imu/adis16497
 		#imu # all available imu drivers
 		imu/bmi088
 		imu/mpu6000
-		imu/mpu9250
-		irlock
-		lights/blinkm
-		lights/rgbled
+		#imu/mpu9250
+		#irlock
+		#lights/blinkm
+		#lights/rgbled
 		lights/rgbled_ncp5623c
 		magnetometer # all available magnetometer drivers
 		#md25
-		mkblctrl
-		optical_flow # all available optical flow drivers
-		pca9685
-		power_monitor/ina226
+		#mkblctrl
+		#optical_flow # all available optical flow drivers
+		#pca9685
+		#power_monitor/ina226
 		#protocol_splitter
-#		pwm_input  - Need to create arch/stm32 arch/stm32h7 arch/kinetis and reloacate
-#					   all arch dependant code there
 		pwm_out_sim
 		px4fmu
 		px4io
-		roboclaw
-		tap_esc
+		#roboclaw
+		#tap_esc
 		telemetry # all available telemetry drivers
 		test_ppm
 		tone_alarm
 #		uavcan - No H7 or FD can support in UAVCAN yet
 	MODULES
 		airspeed_selector
-		attitude_estimator_q
+		#attitude_estimator_q
 		battery_status
-		camera_feedback
+		#camera_feedback
 		commander
 		dataman
 		ekf2
@@ -67,22 +65,22 @@ px4_add_board(
 		fw_att_control
 		fw_pos_control_l1
 		land_detector
-		landing_target_estimator
+		#landing_target_estimator
 		load_mon
-		local_position_estimator
+		#local_position_estimator
 		logger
 		mavlink
 		mc_att_control
 		mc_pos_control
 		navigator
-		rover_pos_control
+		#rover_pos_control
 		sensors
-		sih
+		#sih
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
-		bl_update
-		config
+		#bl_update
+		#config
 		dmesg
 		dumpfile
 		esc_calib
