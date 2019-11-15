@@ -54,6 +54,7 @@
 #include <px4_platform_common/time.h>
 #include <systemlib/mavlink_log.h>
 #include <math.h>
+#include <limits.h>
 
 #include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
@@ -5126,6 +5127,106 @@ protected:
 	}
 };
 
+class MavlinkStreamServiceVersion : public MavlinkStream
+{
+public:
+	const char *get_name() const override
+	{
+		return MavlinkStreamServiceVersion::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "MAVLINK_SERVICE_VERSION";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_MAVLINK_SERVICE_VERSION;
+	}
+
+	uint16_t get_id() override
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamServiceVersion(mavlink);
+	}
+
+	unsigned get_size() override
+	{
+		return MAVLINK_MSG_ID_MAVLINK_SERVICE_VERSION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+
+	uint16_t _current_service = 0;
+	bool _sending_all_services = false;
+	int _default_interval = -1;
+
+	static constexpr uint16_t _max_service = 10;
+
+	/* do not allow top copying this class */
+	MavlinkStreamServiceVersion(MavlinkStreamServiceVersion &) = delete;
+	MavlinkStreamServiceVersion &operator = (const MavlinkStreamServiceVersion &) = delete;
+
+protected:
+	explicit MavlinkStreamServiceVersion(Mavlink *mavlink) : MavlinkStream(mavlink)
+	{}
+
+	bool send(const hrt_abstime t) override
+	{
+		if (_current_service > 0 && _current_service <= _max_service) {
+			mavlink_mavlink_service_version_t msg;
+
+			msg.service_id = _current_service;
+			msg.selected_version = 1; // TODO microservice versioning
+			msg.service_flags = 1;    // TODO microservice versioning
+			msg.target_system = _mavlink->get_system_id();
+			msg.target_component = _mavlink->get_component_id();
+
+			mavlink_msg_mavlink_service_version_send_struct(_mavlink->get_channel(), &msg);
+
+			if (_sending_all_services) {
+				_current_service++;
+
+			} else {
+				_current_service = 0;
+			}
+
+			return true;
+
+		} else {
+			_default_interval = _interval;
+			set_interval(INT_MAX);
+			return false;
+		}
+
+	}
+
+	void request_message(float param1 = 0.0, float param2 = 0.0, float param3 = 0.0, float param4 = 0.0,
+			     float param5 = 0.0, float param6 = 0.0, float param7 = 0.0) override
+	{
+		uint16_t service_id = (uint16_t)(param2 + 0.5f);
+		uint16_t min_version = (uint16_t)(param3 + 0.5f);
+		uint16_t max_version = (uint16_t)(param4 + 0.5f);
+
+		if (service_id == 0) {
+			_sending_all_services = true;
+			_current_service = 1;
+
+		} else {
+			_sending_all_services = false;
+			_current_service = service_id;
+		}
+
+		set_interval(_default_interval);
+		reset_last_sent();
+	}
+};
+
 static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static, &MavlinkStreamHeartbeat::get_id_static),
 	StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static, &MavlinkStreamStatustext::get_id_static),
@@ -5183,7 +5284,8 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamGroundTruth::new_instance, &MavlinkStreamGroundTruth::get_name_static, &MavlinkStreamGroundTruth::get_id_static),
 	StreamListItem(&MavlinkStreamPing::new_instance, &MavlinkStreamPing::get_name_static, &MavlinkStreamPing::get_id_static),
 	StreamListItem(&MavlinkStreamOrbitStatus::new_instance, &MavlinkStreamOrbitStatus::get_name_static, &MavlinkStreamOrbitStatus::get_id_static),
-	StreamListItem(&MavlinkStreamObstacleDistance::new_instance, &MavlinkStreamObstacleDistance::get_name_static, &MavlinkStreamObstacleDistance::get_id_static)
+	StreamListItem(&MavlinkStreamObstacleDistance::new_instance, &MavlinkStreamObstacleDistance::get_name_static, &MavlinkStreamObstacleDistance::get_id_static),
+	StreamListItem(&MavlinkStreamServiceVersion::new_instance, &MavlinkStreamServiceVersion::get_name_static, &MavlinkStreamServiceVersion::get_id_static)
 };
 
 const char *get_stream_name(const uint16_t msg_id)
