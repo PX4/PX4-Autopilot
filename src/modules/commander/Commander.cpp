@@ -576,11 +576,6 @@ Commander::Commander() :
 	status_flags.avoidance_system_valid = false;
 }
 
-Commander::~Commander()
-{
-
-}
-
 bool
 Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_s &cmd, actuator_armed_s *armed_local,
 			  uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub, bool *changed)

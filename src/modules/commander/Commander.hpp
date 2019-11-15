@@ -57,7 +57,6 @@
 // subscriptions
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
-#include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/estimator_status.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/mission_result.h>
@@ -78,7 +77,6 @@ class Commander : public ModuleBase<Commander>, public ModuleParams
 {
 public:
 	Commander();
-	~Commander();
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -179,11 +177,6 @@ private:
 	bool		_nav_test_passed{false};	/**< true if the post takeoff navigation test has passed */
 	bool		_nav_test_failed{false};	/**< true if the post takeoff navigation test has failed */
 
-	/* class variables used to check for airspeed sensor failure */
-	bool _airspeed_fault_declared{false}; /**< airspeed declared faulty */
-	hrt_abstime	_time_airspeed_fault_declared{0};	/**< time airspeed was declared faulty (uSec) */
-
-
 	bool _geofence_loiter_on{false};
 	bool _geofence_rtl_on{false};
 	bool _geofence_warning_action_on{false};
@@ -225,8 +218,6 @@ private:
 	void estimator_check(bool *status_changed);
 
 	void offboard_control_update(bool &status_changed);
-
-	void airspeed_use_check();
 
 	void battery_status_check();
 
@@ -271,7 +262,6 @@ private:
 	uORB::Subscription					_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
 	uORB::SubscriptionData<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
-	uORB::SubscriptionData<airspeed_validated_s>			_airspeed_validated_sub{ORB_ID(airspeed_validated)};
 	uORB::SubscriptionData<estimator_status_s>		_estimator_status_sub{ORB_ID(estimator_status)};
 	uORB::SubscriptionData<mission_result_s>		_mission_result_sub{ORB_ID(mission_result)};
 	uORB::SubscriptionData<offboard_control_mode_s>		_offboard_control_mode_sub{ORB_ID(offboard_control_mode)};
