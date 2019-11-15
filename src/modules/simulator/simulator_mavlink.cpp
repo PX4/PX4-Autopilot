@@ -178,19 +178,13 @@ void Simulator::send_controls()
 {
 	// copy new actuator data if available
 	bool updated = false;
-	bool lockstep = false;
 	orb_check(_actuator_outputs_sub, &updated);
 
-#if defined(ENABLE_LOCKSTEP_SCHEDULER)
-	// when lockstep is enabled we must send always.
-	lockstep = true;
-#endif
-
-	if (updated || lockstep) {
+	if (updated) {
 		actuator_outputs_s actuators{};
 		orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub, &actuators);
 
-		if (actuators.timestamp > 0 || lockstep) {
+		if (actuators.timestamp > 0) {
 			const mavlink_hil_actuator_controls_t hil_act_control = actuator_controls_from_outputs(actuators);
 
 			mavlink_message_t message{};
