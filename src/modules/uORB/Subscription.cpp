@@ -98,7 +98,7 @@ Subscription::init()
 {
 	if (_meta != nullptr) {
 		// this throttles the relatively expensive calls to getDeviceNode()
-		if ((_last_generation == 0) || (_last_generation < 1000) || (_last_generation % 10 == 0))  {
+		if ((_last_generation == 0) || (_last_generation < 1000) || (_last_generation % 100 == 0))  {
 			if (subscribe()) {
 				return true;
 			}
