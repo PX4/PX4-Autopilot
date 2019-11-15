@@ -45,8 +45,8 @@
 #include <px4_platform_common/log.h>
 #include <drivers/drv_hrt.h>
 
-#ifndef GPIO_HEATER_INPUT
-#error "To use the heater driver, the board_config.h must define and initialize GPIO_HEATER_INPUT and GPIO_HEATER_OUTPUT"
+#ifndef GPIO_HEATER_OUTPUT
+#error "To use the heater driver, the board_config.h must define and initialize GPIO_HEATER_OUTPUT"
 #endif
 
 Heater::Heater() :
@@ -64,7 +64,6 @@ Heater::~Heater()
 
 	// Verify if GPIO is low, and if not, configure it as an input pulldown then reconfigure as an output.
 	if (px4_arch_gpioread(GPIO_HEATER_OUTPUT)) {
-		px4_arch_configgpio(GPIO_HEATER_INPUT);
 		px4_arch_configgpio(GPIO_HEATER_OUTPUT);
 		px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 0);
 	}
@@ -133,7 +132,6 @@ void Heater::Run()
 
 		// Check if GPIO is stuck on, and if so, configure it as an input pulldown then reconfigure as an output.
 		if (px4_arch_gpioread(GPIO_HEATER_OUTPUT)) {
-			px4_arch_configgpio(GPIO_HEATER_INPUT);
 			px4_arch_configgpio(GPIO_HEATER_OUTPUT);
 			px4_arch_gpiowrite(GPIO_HEATER_OUTPUT, 0);
 		}
@@ -248,11 +246,6 @@ uint32_t Heater::sensor_id()
 
 int Heater::start()
 {
-	if (is_running()) {
-		PX4_INFO("Driver already running.");
-		return PX4_ERROR;
-	}
-
 	update_params(true);
 	initialize_topics();
 
