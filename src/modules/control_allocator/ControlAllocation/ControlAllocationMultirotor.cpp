@@ -65,8 +65,7 @@ ControlAllocationMultirotor::allocate()
 		// Convert A to MultirotorMixer::Rotor
 		MultirotorMixer::Rotor rotors[NUM_ACTUATORS];
 
-		for (size_t i = 0; i < NUM_ACTUATORS; i++)
-		{
+		for (size_t i = 0; i < NUM_ACTUATORS; i++) {
 			rotors[i].roll_scale = A(i, 0);
 			rotors[i].pitch_scale = A(i, 1);
 			rotors[i].yaw_scale = A(i, 2);

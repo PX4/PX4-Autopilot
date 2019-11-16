@@ -209,6 +209,7 @@ ControlAllocator::update_allocation_method()
 			if (_control_allocation != nullptr) {
 				free(_control_allocation);
 			}
+
 			_control_allocation = tmp;
 
 			// Save method id

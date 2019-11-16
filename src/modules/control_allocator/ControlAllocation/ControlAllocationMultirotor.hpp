@@ -62,5 +62,5 @@ public:
 private:
 	static int mixer_callback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &control);
 
-	MultirotorMixer* _mixer{nullptr};
+	MultirotorMixer *_mixer{nullptr};
 };
