@@ -57,9 +57,9 @@ file(RELATIVE_PATH CP_DST ${CMAKE_SOURCE_DIR} ${PX4_BINARY_DIR}/NuttX)
 # setup custom command to copy changes later
 file(GLOB_RECURSE copy_nuttx_files LIST_DIRECTORIES false ${NUTTX_SRC_DIR}/nuttx/*)
 add_custom_command(
-	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
+	OUTPUT ${PX4_BINARY_DIR}/NuttX/nuttx_copy.stamp
 	COMMAND ${NUTTX_COPY_CMD} ${NUTTX_COPY_CMD_OPTS} ${CP_SRC} ${CP_DST}
-	COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
+	COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx_copy.stamp
 	DEPENDS
 		git_nuttx
 		${copy_nuttx_files}
@@ -76,9 +76,9 @@ file(RELATIVE_PATH CP_DST ${CMAKE_SOURCE_DIR} ${PX4_BINARY_DIR}/NuttX)
 # setup custom command to copy changes later
 file(GLOB_RECURSE copy_apps_files LIST_DIRECTORIES false ${NUTTX_SRC_DIR}/apps/*)
 add_custom_command(
-	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
+	OUTPUT ${PX4_BINARY_DIR}/NuttX/apps_copy.stamp
 	COMMAND ${NUTTX_COPY_CMD} ${NUTTX_COPY_CMD_OPTS} ${CP_SRC} ${CP_DST}
-	COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
+	COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/apps_copy.stamp
 	DEPENDS
 		git_nuttx_apps
 		${copy_apps_files}
@@ -96,30 +96,30 @@ set(APPS_DIR ${CMAKE_CURRENT_BINARY_DIR}/apps)
 # https://samthursfield.wordpress.com/2015/11/21/cmake-dependencies-between-targets-and-files-and-custom-commands/#custom-commands-and-parallel-make
 add_custom_target(nuttx_copy_and_apps_target
 	DEPENDS
-		${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp
-		${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
+		${PX4_BINARY_DIR}/NuttX/nuttx_copy.stamp
+		${PX4_BINARY_DIR}/NuttX/apps_copy.stamp
 )
 
 # If the board provides a Kconfig Use it or create an empty one
 if(EXISTS ${NUTTX_CONFIG_DIR}/Kconfig)
 	add_custom_command(
-		OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nuttx_config_kconfig.stamp
+		OUTPUT ${PX4_BINARY_DIR}/NuttX/nuttx_config_kconfig.stamp
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_CONFIG_DIR}/Kconfig ${NUTTX_DIR}/boards/dummy/Kconfig
-		COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/nuttx_config_kconfig.stamp
+		COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx_config_kconfig.stamp
 		DEPENDS
-			nuttx_copy_and_apps_target ${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp ${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
+			nuttx_copy_and_apps_target ${PX4_BINARY_DIR}/NuttX/nuttx_copy.stamp ${PX4_BINARY_DIR}/NuttX/apps_copy.stamp
 		)
 else()
 	add_custom_command(
-		OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nuttx_config_kconfig.stamp
+		OUTPUT ${PX4_BINARY_DIR}/NuttX/nuttx_config_kconfig.stamp
 		COMMAND ${CMAKE_COMMAND} -E touch ${NUTTX_DIR}/boards/dummy/Kconfig
-		COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/nuttx_config_kconfig.stamp
+		COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx_config_kconfig.stamp
 		DEPENDS
-			nuttx_copy_and_apps_target ${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy.stamp ${CMAKE_CURRENT_BINARY_DIR}/apps_copy.stamp
+			nuttx_copy_and_apps_target ${PX4_BINARY_DIR}/NuttX/nuttx_copy.stamp ${PX4_BINARY_DIR}/NuttX/apps_copy.stamp
 		)
 endif()
 
-add_custom_target(nuttx_config_kconfig_target DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/nuttx_config_kconfig.stamp)
+add_custom_target(nuttx_config_kconfig_target DEPENDS ${PX4_BINARY_DIR}/NuttX/nuttx_config_kconfig.stamp)
 
 ###############################################################################
 # NuttX configure
@@ -129,22 +129,22 @@ add_custom_target(nuttx_config_kconfig_target DEPENDS ${CMAKE_CURRENT_BINARY_DIR
 file(RELATIVE_PATH CP_SRC ${NUTTX_DIR} ${PX4_BOARD_DIR}/nuttx-config)
 file(RELATIVE_PATH CP_DST ${NUTTX_DIR} ${PX4_BINARY_DIR}/NuttX)
 add_custom_command(
-	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy_config_dir.stamp
+	OUTPUT ${PX4_BINARY_DIR}/NuttX/nuttx_copy_config_dir.stamp
 	COMMAND ${NUTTX_COPY_CMD} ${NUTTX_COPY_CMD_OPTS} ${CP_SRC} ${CP_DST}
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/NuttX/nuttx-config/drivers
 	COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx-config/drivers/Kconfig
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/NuttX/nuttx-config/src
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_SRC_DIR}/nsh_romfsimg.h ${PX4_BINARY_DIR}/NuttX/nuttx-config/include/nsh_romfsimg.h
-	COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy_config_dir.stamp
+	COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx_copy_config_dir.stamp
 	DEPENDS
 		${NUTTX_CONFIG_DIR}/include/board.h
 		${NUTTX_CONFIG_DIR}/scripts/script.ld
 		${NUTTX_SRC_DIR}/nsh_romfsimg.h
-		nuttx_config_kconfig_target ${CMAKE_CURRENT_BINARY_DIR}/nuttx_config_kconfig.stamp
+		nuttx_config_kconfig_target ${PX4_BINARY_DIR}/NuttX/nuttx_config_kconfig.stamp
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	COMMENT "Copying NuttX config ${NUTTX_CONFIG}"
 )
-add_custom_target(nuttx_copy_config_dir_target DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy_config_dir.stamp)
+add_custom_target(nuttx_copy_config_dir_target DEPENDS ${PX4_BINARY_DIR}/NuttX/nuttx_copy_config_dir.stamp)
 
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Make.defs.in ${NUTTX_DIR}/Make.defs)
@@ -153,19 +153,19 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Make.defs.in ${NUTTX_DIR}/Make.defs)
 add_custom_command(
 	OUTPUT
 		${NUTTX_DIR}/.config
-		${CMAKE_CURRENT_BINARY_DIR}/nuttx_olddefconfig.stamp
+		${PX4_BINARY_DIR}/NuttX/nuttx_olddefconfig.stamp
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DEFCONFIG} ${NUTTX_DIR}/.config
 	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tools/px4_nuttx_make_olddefconfig.sh > nuttx_olddefconfig.log
-	COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/nuttx_olddefconfig.stamp
+	COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx_olddefconfig.stamp
 	DEPENDS
 		${NUTTX_DIR}/Make.defs
 		${NUTTX_DEFCONFIG}
-		nuttx_copy_config_dir_target ${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy_config_dir.stamp
+		nuttx_copy_config_dir_target ${PX4_BINARY_DIR}/NuttX/nuttx_copy_config_dir.stamp
 		${CMAKE_CURRENT_SOURCE_DIR}/tools/px4_nuttx_make_olddefconfig.sh
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	COMMENT "Copying NuttX compressed config ${NUTTX_CONFIG} and inflating (make olddefconfig)"
 )
-add_custom_target(nuttx_config_target DEPENDS ${NUTTX_DIR}/.config ${CMAKE_CURRENT_BINARY_DIR}/nuttx_olddefconfig.stamp)
+add_custom_target(nuttx_config_target DEPENDS ${NUTTX_DIR}/.config ${PX4_BINARY_DIR}/NuttX/nuttx_olddefconfig.stamp)
 
 ###############################################################################
 # NuttX build
@@ -196,7 +196,7 @@ add_custom_command(
 		make ${nuttx_build_options} --no-print-directory CONFIG_ARCH_BOARD_CUSTOM=y pass1dep > nuttx_context.log
 	DEPENDS
 		${NUTTX_DIR}/Make.defs
-		nuttx_config_target ${NUTTX_DIR}/.config ${CMAKE_CURRENT_BINARY_DIR}/nuttx_olddefconfig.stamp
+		nuttx_config_target ${NUTTX_DIR}/.config ${PX4_BINARY_DIR}/NuttX/nuttx_olddefconfig.stamp
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	${nuttx_build_uses_terminal}
 )
@@ -211,17 +211,17 @@ add_custom_target(px4_config_file_target DEPENDS ${PX4_CONFIG_FILE})
 set(nuttx_builtin_list)
 if(CONFIG_NSH_LIBRARY)
 	# force builtins regeneration and apps rebuild if nuttx or px4 configuration have changed
-	add_custom_command(OUTPUT builtins_clean.stamp
+	add_custom_command(OUTPUT ${PX4_BINARY_DIR}/NuttX/builtins_clean.stamp
 		COMMAND find ${APPS_DIR}/builtin/registry -name px4_\*.bdat -delete
 		COMMAND find ${APPS_DIR}/builtin/registry -name px4_\*.pdat -delete
 		COMMAND rm -f ${APPS_DIR}/builtin/builtin_list.h
-		COMMAND ${CMAKE_COMMAND} -E touch builtins_clean.stamp
+		COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/builtins_clean.stamp
 		DEPENDS
 			nuttx_context ${NUTTX_DIR}/include/nuttx/config.h ${NUTTX_DIR}/include/nuttx/version.h
 			px4_config_file_target ${PX4_CONFIG_FILE}
 	)
 
-	add_custom_target(builtins_clean_target DEPENDS builtins_clean.stamp)
+	add_custom_target(builtins_clean_target DEPENDS ${PX4_BINARY_DIR}/NuttX/builtins_clean.stamp)
 
 	foreach(module ${module_libraries})
 		get_target_property(MAIN ${module} MAIN)
@@ -233,7 +233,7 @@ if(CONFIG_NSH_LIBRARY)
 				COMMAND echo "{ \"${MAIN}\", ${PRIORITY}, ${STACK_MAIN}, ${MAIN}_main }," > ${APPS_DIR}/builtin/registry/px4_${MAIN}_main.bdat
 				COMMAND ${CMAKE_COMMAND} -E touch ${APPS_DIR}/builtin/registry/.updated
 				DEPENDS
-					builtins_clean_target builtins_clean.stamp
+					builtins_clean_target ${PX4_BINARY_DIR}/NuttX/builtins_clean.stamp
 					nuttx_context ${NUTTX_DIR}/include/nuttx/config.h ${NUTTX_DIR}/include/nuttx/version.h
 				VERBATIM
 				)
@@ -243,7 +243,7 @@ if(CONFIG_NSH_LIBRARY)
 				COMMAND echo "int ${MAIN}_main(int argc, char *argv[]);" > ${APPS_DIR}/builtin/registry/px4_${MAIN}_main.pdat
 				COMMAND ${CMAKE_COMMAND} -E touch ${APPS_DIR}/builtin/registry/.updated
 				DEPENDS
-					builtins_clean_target builtins_clean.stamp
+					builtins_clean_target ${PX4_BINARY_DIR}/NuttX/builtins_clean.stamp
 					nuttx_context ${NUTTX_DIR}/include/nuttx/config.h ${NUTTX_DIR}/include/nuttx/version.h
 				VERBATIM
 				)

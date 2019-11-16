@@ -146,11 +146,13 @@ include(${PX4_CONFIG_FILE})
 message(STATUS "PX4 config: ${PX4_CONFIG}")
 message(STATUS "PX4 platform: ${PX4_PLATFORM}")
 
-if (ENABLE_LOCKSTEP_SCHEDULER)
-	add_definitions(-DENABLE_LOCKSTEP_SCHEDULER)
-	message(STATUS "PX4 lockstep: enabled")
-else()
-	message(STATUS "PX4 lockstep: disabled")
+if(${PX4_PLATFORM} STREQUAL "posix")
+	if(ENABLE_LOCKSTEP_SCHEDULER)
+		add_definitions(-DENABLE_LOCKSTEP_SCHEDULER)
+		message(STATUS "PX4 lockstep: enabled")
+	else()
+		message(STATUS "PX4 lockstep: disabled")
+	endif()
 endif()
 
 # external modules
@@ -328,11 +330,13 @@ set(ep_base ${PX4_BINARY_DIR}/external)
 set_property(DIRECTORY PROPERTY EP_BASE ${ep_base})
 
 # add external project install folders to build
-link_directories(${ep_base}/Install/lib)
-include_directories(${ep_base}/Install/include)
 # add the directories so cmake won't warn
-execute_process(COMMAND cmake -E make_directory ${ep_base}/Install/lib)
-execute_process(COMMAND cmake -E make_directory ${ep_base}/Install/include)
+execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${ep_base})
+execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${ep_base}/Install)
+execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${ep_base}/Install/lib)
+link_directories(${ep_base}/Install/lib)
+execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${ep_base}/Install/include)
+include_directories(${ep_base}/Install/include)
 
 #=============================================================================
 # external modules
