@@ -156,7 +156,7 @@ endif()
 # external modules
 set(EXTERNAL_MODULES_LOCATION "" CACHE STRING "External modules source location")
 
-if (NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
+if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 	get_filename_component(EXTERNAL_MODULES_LOCATION "${EXTERNAL_MODULES_LOCATION}" ABSOLUTE)
 endif()
 
@@ -170,8 +170,8 @@ if(EXISTS "${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/cmake/init.cmake")
 endif()
 
 # CMake build type (Debug Release RelWithDebInfo MinSizeRel Coverage)
-if (NOT CMAKE_BUILD_TYPE)
-	if (${PX4_PLATFORM} STREQUAL "nuttx")
+if(NOT CMAKE_BUILD_TYPE)
+	if(${PX4_PLATFORM} STREQUAL "nuttx")
 		set(PX4_BUILD_TYPE "MinSizeRel")
 	else()
 		set(PX4_BUILD_TYPE "RelWithDebInfo")
@@ -228,8 +228,7 @@ endif()
 #=============================================================================
 
 # Setup install paths
-if (${PX4_PLATFORM} STREQUAL "posix")
-
+if(${PX4_PLATFORM} STREQUAL "posix")
 	# This makes it possible to dynamically load code which depends on symbols
 	# inside the px4 executable.
 	set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -422,7 +421,7 @@ endforeach()
 
 add_custom_command(OUTPUT ${uorb_graph_config}
 	COMMAND ${PYTHON_EXECUTABLE} ${PX4_SOURCE_DIR}/Tools/uorb_graph/create.py
-		${module_list}
+		${graph_module_list}
 		--exclude-path src/examples
 		--file ${PX4_SOURCE_DIR}/Tools/uorb_graph/graph_${uorb_graph_config}
 	WORKING_DIRECTORY ${PX4_SOURCE_DIR}
