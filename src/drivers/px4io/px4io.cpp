@@ -151,8 +151,9 @@ public:
 	 * Retrieve relevant initial system parameters. Initialize PX4IO registers.
 	 *
 	 * @param disable_rc_handling set to true to forbid override / RC handling on IO
+	 * @param hitl_mode set to suppress publication of actuator_outputs - instead defer to pwm_out_sim
 	 */
-	int			init(bool disable_rc_handling);
+	int			init(bool disable_rc_handling, bool hitl_mode);
 
 	/**
 	 * Detect if a PX4IO is connected.
@@ -288,7 +289,7 @@ private:
 	bool			_analog_rc_rssi_stable; ///< true when analog RSSI input is stable
 	float			_analog_rc_rssi_volt; ///< analog RSSI voltage
 
-	bool			_test_fmu_fail; ///< To test what happens if IO looses FMU
+	bool			_test_fmu_fail; ///< To test what happens if IO loses FMU
 
 	struct MotorTest {
 		uORB::Subscription test_motor_sub{ORB_ID(test_motor)};
@@ -296,6 +297,7 @@ private:
 		hrt_abstime timeout{0};
 	};
 	MotorTest _motor_test;
+	bool                    _hitl_mode;     ///< Hardware-in-the-loop simulation mode - don't publish actuator_outputs
 
 	/**
 	 * Trampoline to the worker task
@@ -503,7 +505,8 @@ PX4IO::PX4IO(device::Device *interface) :
 	_thermal_control(-1),
 	_analog_rc_rssi_stable(false),
 	_analog_rc_rssi_volt(-1.0f),
-	_test_fmu_fail(false)
+	_test_fmu_fail(false),
+	_hitl_mode(false)
 {
 	/* we need this potentially before it could be set in task_main */
 	g_dev = this;
@@ -573,9 +576,10 @@ PX4IO::detect()
 }
 
 int
-PX4IO::init(bool rc_handling_disabled)
+PX4IO::init(bool rc_handling_disabled, bool hitl_mode)
 {
 	_rc_handling_disabled = rc_handling_disabled;
+	_hitl_mode = hitl_mode;
 	return init();
 }
 
@@ -1926,6 +1930,10 @@ PX4IO::io_publish_raw_rc()
 int
 PX4IO::io_publish_pwm_outputs()
 {
+	if (_hitl_mode) {
+		return OK;
+	}
+
 	/* get servo values from IO */
 	uint16_t ctl[_max_actuators];
 	int ret = io_reg_get(PX4IO_PAGE_SERVOS, 0, ctl, _max_actuators);
@@ -2415,6 +2423,10 @@ PX4IO::print_status(bool extended_status)
 		} else {
 			printf("\nIMU heater level %d", heater_level);
 		}
+	}
+
+	if (_hitl_mode) {
+		printf("\nHITL Mode");
 	}
 
 	printf("\n");
@@ -2992,19 +3004,22 @@ start(int argc, char *argv[])
 	}
 
 	bool rc_handling_disabled = false;
+	bool hitl_mode = false;
 
-	/* disable RC handling on request */
-	if (argc > 1) {
-		if (!strcmp(argv[1], "norc")) {
-
+	/* disable RC handling and/or actuator_output publication on request */
+	for (int extra_args = 1; extra_args < argc; extra_args++) {
+		if (!strcmp(argv[extra_args], "norc")) {
 			rc_handling_disabled = true;
+
+		} else if (!strcmp(argv[1], "hil")) {
+			hitl_mode = true;
 
 		} else {
 			warnx("unknown argument: %s", argv[1]);
 		}
 	}
 
-	if (OK != g_dev->init(rc_handling_disabled)) {
+	if (OK != g_dev->init(rc_handling_disabled, hitl_mode)) {
 		delete g_dev;
 		g_dev = nullptr;
 		errx(1, "driver init failed");
