@@ -104,7 +104,7 @@ px4_add_board(
 		reflect
 		sd_bench
 		shutdown
-		tests # tests and test runner
+		# tests # tests and test runner
 		top
 		topic_listener
 		tune_control
