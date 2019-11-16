@@ -56,6 +56,7 @@
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_controller_status.h>
@@ -98,8 +99,8 @@ public:
 	void run() override;
 
 private:
-	orb_advert_t	_pos_ctrl_status_pub{nullptr};		/**< navigation capabilities publication */
-	orb_advert_t	_actuator_controls_pub{nullptr};	/**< actuator controls publication */
+	uORB::Publication<position_controller_status_s>	_pos_ctrl_status_pub{ORB_ID(position_controller_status)};
+	uORB::Publication<actuator_controls_s>		_actuator_controls_pub{ORB_ID(actuator_controls_0)};
 
 	int		_control_mode_sub{-1};			/**< control mode subscription */
 	int		_global_pos_sub{-1};
