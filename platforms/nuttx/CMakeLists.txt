@@ -51,6 +51,7 @@ get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 add_subdirectory(NuttX ${PX4_BINARY_DIR}/NuttX)
 
 set(nuttx_libs)
+set(SCRIPT_PREFIX)
 if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
 	set(SCRIPT_PREFIX ${PX4_BOARD_LABEL}_)
 	add_subdirectory(src/bootloader)
@@ -230,7 +231,7 @@ if(NOT PX4_BUILD MATCHES "px4_io-v2")
 endif()
 
 add_custom_target(debug
-	COMMAND ${GDB} -iex 'set auto-load safe-path ${PX4_BINARY_DIR}' $<TARGET_FILE:px4>
+	COMMAND ${CMAKE_GDB} -iex 'set auto-load safe-path ${PX4_BINARY_DIR}' $<TARGET_FILE:px4>
 	DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	USES_TERMINAL

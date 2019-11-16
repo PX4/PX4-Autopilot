@@ -147,9 +147,7 @@ add_custom_command(
 add_custom_target(nuttx_copy_config_dir_target DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy_config_dir.stamp)
 
 
-# NuttX defconfig
-#  cmake should trigger reconfigure if defconfig changes
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${NUTTX_DEFCONFIG})
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Make.defs.in ${NUTTX_DIR}/Make.defs)
 
 # copy compressed PX4 defconfig into nuttx and inflate
 add_custom_command(
@@ -157,22 +155,21 @@ add_custom_command(
 		${NUTTX_DIR}/.config
 		${CMAKE_CURRENT_BINARY_DIR}/nuttx_olddefconfig.stamp
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_DEFCONFIG} ${NUTTX_DIR}/.config
-	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tools/px4_nuttx_make_olddefconfig.sh ${NUTTX_DIR}
+	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/tools/px4_nuttx_make_olddefconfig.sh > nuttx_olddefconfig.log
 	COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/nuttx_olddefconfig.stamp
 	DEPENDS
+		${NUTTX_DIR}/Make.defs
 		${NUTTX_DEFCONFIG}
 		nuttx_copy_config_dir_target ${CMAKE_CURRENT_BINARY_DIR}/nuttx_copy_config_dir.stamp
 		${CMAKE_CURRENT_SOURCE_DIR}/tools/px4_nuttx_make_olddefconfig.sh
 	WORKING_DIRECTORY ${NUTTX_DIR}
-	COMMENT "Copying NuttX compressed config ${NUTTX_CONFIG} and inflating"
+	COMMENT "Copying NuttX compressed config ${NUTTX_CONFIG} and inflating (make olddefconfig)"
 )
 add_custom_target(nuttx_config_target DEPENDS ${NUTTX_DIR}/.config ${CMAKE_CURRENT_BINARY_DIR}/nuttx_olddefconfig.stamp)
 
 ###############################################################################
 # NuttX build
 ###############################################################################
-
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Make.defs.in ${NUTTX_DIR}/Make.defs)
 
 # verbose build settings (V=1 or VERBOSE=1)
 option(PX4_NUTTX_VERBOSE "PX4 NuttX verbose build" off)
@@ -184,11 +181,9 @@ endif()
 
 if(PX4_NUTTX_VERBOSE)
 	set(nuttx_build_options)
-	set(nuttx_build_output)
 	set(nuttx_build_uses_terminal "USES_TERMINAL")
 else()
 	set(nuttx_build_options "--quiet")
-	set(nuttx_build_output ">nuttx_build.log")
 	set(nuttx_build_uses_terminal)
 endif()
 
@@ -198,8 +193,9 @@ add_custom_command(
 		${NUTTX_DIR}/include/nuttx/config.h
 		${NUTTX_DIR}/include/nuttx/version.h
 	COMMAND
-		make ${nuttx_build_options} --no-print-directory CONFIG_ARCH_BOARD_CUSTOM=y context > nuttx_context.log
+		make ${nuttx_build_options} --no-print-directory CONFIG_ARCH_BOARD_CUSTOM=y pass1dep > nuttx_context.log
 	DEPENDS
+		${NUTTX_DIR}/Make.defs
 		nuttx_config_target ${NUTTX_DIR}/.config ${CMAKE_CURRENT_BINARY_DIR}/nuttx_olddefconfig.stamp
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	${nuttx_build_uses_terminal}
@@ -264,11 +260,11 @@ add_custom_target(nuttx_builtin_list_target DEPENDS ${nuttx_builtin_list})
 # libapps.a
 add_custom_command(OUTPUT ${APPS_DIR}/libapps.a ${APPS_DIR}/platform/.built
 	COMMAND find ${APPS_DIR} -name \*.o -delete
-	COMMAND make ${nuttx_build_options} --no-print-directory TOPDIR="${NUTTX_DIR}" ../apps/libapps.a > nuttx_apps.log
+	COMMAND make ${nuttx_build_options} --no-print-directory TOPDIR="${NUTTX_DIR}"
 	DEPENDS
 		nuttx_builtin_list_target ${nuttx_builtin_list}
 		nuttx_context ${NUTTX_DIR}/include/nuttx/config.h ${NUTTX_DIR}/include/nuttx/version.h
-	WORKING_DIRECTORY ${NUTTX_DIR}
+	WORKING_DIRECTORY ${APPS_DIR}
 	${nuttx_build_uses_terminal}
 )
 add_custom_target(nuttx_apps_build DEPENDS ${APPS_DIR}/libapps.a)
@@ -285,7 +281,7 @@ function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra)
 
 	add_custom_command(OUTPUT ${NUTTX_DIR}/${nuttx_lib_dir}/lib${nuttx_lib}.a
 		COMMAND find ${nuttx_lib_dir} -type f -name *.o -delete
-		COMMAND make -C ${nuttx_lib_dir} ${nuttx_build_options} --no-print-directory all TOPDIR=${NUTTX_DIR} KERNEL=${kernel} EXTRADEFINES=${extra} ${nuttx_build_output}
+		COMMAND make -C ${nuttx_lib_dir} ${nuttx_build_options} --no-print-directory all TOPDIR=${NUTTX_DIR} KERNEL=${kernel} EXTRADEFINES=${extra}
 		DEPENDS
 			${nuttx_lib_files}
 			nuttx_context ${NUTTX_DIR}/include/nuttx/config.h ${NUTTX_DIR}/include/nuttx/version.h
