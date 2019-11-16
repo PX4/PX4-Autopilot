@@ -41,14 +41,6 @@
  */
 
 /**
- * Target IMU device ID to regulate temperature.
- *
- * @category system
- * @group Sensors
- */
-PARAM_DEFINE_INT32(SENS_TEMP_ID, 0);
-
-/**
  * Target IMU temperature.
  *
  * @category system

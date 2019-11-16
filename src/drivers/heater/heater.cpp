@@ -42,10 +42,6 @@
 
 #include "heater.h"
 
-#include <px4_platform_common/getopt.h>
-#include <px4_platform_common/log.h>
-#include <drivers/drv_hrt.h>
-
 #ifndef GPIO_HEATER_OUTPUT
 #error "To use the heater driver, the board_config.h must define and initialize GPIO_HEATER_OUTPUT"
 #endif
@@ -129,6 +125,17 @@ void Heater::Run()
 
 void Heater::initialize_topics()
 {
+	// Auto-detect primary accelerometer ID
+	uORB::Subscription sensor_selection_sub{ORB_ID(sensor_selection)};
+
+	if (!sensor_selection_sub.published()) {
+		PX4_ERR("Sensor selection not available.");
+		return;
+	}
+
+	sensor_selection_s sensor_selection;
+	sensor_selection_sub.copy(&sensor_selection);
+
 	// Get the total number of accelerometer instances.
 	uint8_t number_of_imus = orb_group_count(ORB_ID(sensor_accel));
 
@@ -143,13 +150,13 @@ void Heater::initialize_topics()
 		_sensor_accel_sub.copy(&_sensor_accel);
 
 		// If the correct ID is found, exit the for-loop with _sensor_accel_sub pointing to the correct instance.
-		if (_sensor_accel.device_id == (uint32_t)_param_sens_temp_id.get()) {
+		if (_sensor_accel.device_id == sensor_selection.accel_device_id) {
 			break;
 		}
 	}
 
 	// Exit the driver if the sensor ID does not match the desired sensor.
-	if (_sensor_accel.device_id != (uint32_t)_param_sens_temp_id.get()) {
+	if (_sensor_accel.device_id != sensor_selection.accel_device_id) {
 		request_stop();
 		PX4_ERR("Could not identify IMU sensor.");
 	}

@@ -43,12 +43,14 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
 #include <px4_platform_common/module.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_selection.h>
 
 #include <mathlib/mathlib.h>
 
@@ -187,7 +189,6 @@ private:
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SENS_IMU_TEMP_I>)  _param_sens_imu_temp_i,
 		(ParamFloat<px4::params::SENS_IMU_TEMP_P>)  _param_sens_imu_temp_p,
-		(ParamInt<px4::params::SENS_TEMP_ID>) _param_sens_temp_id,
 		(ParamFloat<px4::params::SENS_IMU_TEMP>) _param_sens_imu_temp
 	)
 };
