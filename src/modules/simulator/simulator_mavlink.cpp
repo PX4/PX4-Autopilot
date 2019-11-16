@@ -194,30 +194,29 @@ void Simulator::send_controls()
 
 			PX4_DEBUG("sending controls t=%ld (%ld)", actuators.timestamp, hil_act_control.time_usec);
 
-            if (last_actuator_timestamp + 1000000 < hrt_absolute_time())
-            {
-                // throttled debugging
-                last_actuator_timestamp = hrt_absolute_time();
-                PX4_INFO("sending controls %ld", last_actuator_timestamp);
-            }
+			if (last_actuator_timestamp + 1000000 < hrt_absolute_time()) {
+				// throttled debugging
+				last_actuator_timestamp = hrt_absolute_time();
+				PX4_INFO("sending controls %ld", last_actuator_timestamp);
+			}
+
 			send_mavlink_message(message);
+
+		} else {
+			if (last_actuator_timestamp + 1000000 < hrt_absolute_time()) {
+				// throttled debugging
+				last_actuator_timestamp = hrt_absolute_time();
+				PX4_INFO("actuator controls actuators.timestamp is zero... %ld", last_actuator_timestamp);
+			}
 		}
-        else {
-            if (last_actuator_timestamp + 1000000 < hrt_absolute_time())
-            {
-                // throttled debugging
-                last_actuator_timestamp = hrt_absolute_time();
-                PX4_INFO("actuator controls actuators.timestamp is zero... %ld", last_actuator_timestamp);
-            }
-        }
+
 	} else {
-        if (last_actuator_timestamp + 1000000 < hrt_absolute_time())
-        {
-            // throttled debugging
-            last_actuator_timestamp = hrt_absolute_time();
-            PX4_INFO("actuator controls subscription is not updating...%ld", last_actuator_timestamp);
-        }
-    }
+		if (last_actuator_timestamp + 1000000 < hrt_absolute_time()) {
+			// throttled debugging
+			last_actuator_timestamp = hrt_absolute_time();
+			PX4_INFO("actuator controls subscription is not updating...%ld", last_actuator_timestamp);
+		}
+	}
 }
 
 static void fill_rc_input_msg(input_rc_s *rc, mavlink_rc_channels_t *rc_channels)
@@ -398,12 +397,11 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 	last_time = now_us;
 #endif
 
-    if (last_hil_timestamp + 1000000 < now_us)
-    {
-        // throttled debugging
-        last_hil_timestamp = now_us;
-        PX4_INFO("handle_message_hil_sensor %ld", last_hil_timestamp);
-    }
+	if (last_hil_timestamp + 1000000 < now_us) {
+		// throttled debugging
+		last_hil_timestamp = now_us;
+		PX4_INFO("handle_message_hil_sensor %ld", last_hil_timestamp);
+	}
 
 	update_sensors(now_us, imu);
 
@@ -639,7 +637,7 @@ void Simulator::send()
 #else
 	pthread_setname_np(pthread_self(), "sim_send");
 #endif
-    uint64_t last_timestamp = 0;
+	uint64_t last_timestamp = 0;
 
 	// Before starting, we ought to send a heartbeat to initiate the SITL
 	// simulator to start sending sensor data which will set the time and
@@ -657,7 +655,7 @@ void Simulator::send()
 
 		if (pret == 0) {
 			// Timed out, try again.
-            PX4_ERR("timeout waiting for _actuator_outputs_sub");
+			PX4_ERR("timeout waiting for _actuator_outputs_sub");
 			continue;
 		}
 
@@ -671,16 +669,14 @@ void Simulator::send()
 			parameters_update(false);
 			poll_topics();
 			send_controls();
+
+		} else {
+			if (last_timestamp + 1000000 < hrt_absolute_time()) {
+				// throttled debugging
+				last_timestamp = hrt_absolute_time();
+				PX4_INFO("Simulator::send has nothing to send ...%ld", last_timestamp);
+			}
 		}
-        else
-        {
-            if (last_timestamp + 1000000 < hrt_absolute_time())
-            {
-                // throttled debugging
-                last_timestamp = hrt_absolute_time();
-                PX4_INFO("Simulator::send has nothing to send ...%ld", last_timestamp);
-            }
-        }
 	}
 }
 
