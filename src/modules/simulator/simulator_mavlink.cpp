@@ -639,6 +639,7 @@ void Simulator::send()
 #else
 	pthread_setname_np(pthread_self(), "sim_send");
 #endif
+    uint64_t last_timestamp = 0;
 
 	// Before starting, we ought to send a heartbeat to initiate the SITL
 	// simulator to start sending sensor data which will set the time and
@@ -671,6 +672,15 @@ void Simulator::send()
 			poll_topics();
 			send_controls();
 		}
+        else
+        {
+            if (last_timestamp + 1000000 < hrt_absolute_time())
+            {
+                // throttled debugging
+                last_timestamp = hrt_absolute_time();
+                PX4_INFO("Simulator::send has nothing to send ...%ld", last_timestamp);
+            }
+        }
 	}
 }
 
