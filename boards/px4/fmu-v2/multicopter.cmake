@@ -22,8 +22,8 @@ px4_add_board(
 		adc
 		barometer/ms5611
 		#batt_smbus
-		camera_capture
-		camera_trigger
+		# camera_capture
+		# camera_trigger
 		distance_sensor # all available distance sensor drivers
 		gps
 		imu/l3gd20
@@ -79,8 +79,8 @@ px4_add_board(
 		top
 		#topic_listener
 		tune_control
-		usb_connected
+		# usb_connected
 		ver
-		work_queue
+		# work_queue
 
 	)
