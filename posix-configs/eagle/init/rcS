@@ -172,7 +172,7 @@ else
 fi
 
 
-qshell mpu9250 start
+qshell mpu9250 -I start
 qshell bmp280 start
 qshell sensors start
 

@@ -39,8 +39,6 @@
 #include "MS5611.hpp"
 #include "ms5611.h"
 
-#include <cdev/CDev.hpp>
-
 MS5611::MS5611(device::Device *interface, ms5611::prom_u &prom_buf, enum MS56XX_DEVICE_TYPES device_type) :
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
@@ -88,7 +86,7 @@ MS5611::init()
 	_reports = new ringbuffer::RingBuffer(2, sizeof(sensor_baro_s));
 
 	if (_reports == nullptr) {
-		PX4_DEBUG("can't get memory for reports");
+		PX4_ERR("can't get memory for reports");
 		ret = -ENOMEM;
 		goto out;
 	}
@@ -107,6 +105,7 @@ MS5611::init()
 	while (true) {
 		/* do temperature first */
 		if (OK != measure()) {
+			PX4_ERR("temperature first measure failed");
 			ret = -EIO;
 			break;
 		}
@@ -114,12 +113,14 @@ MS5611::init()
 		px4_usleep(MS5611_CONVERSION_INTERVAL);
 
 		if (OK != collect()) {
+			PX4_ERR("collect failed");
 			ret = -EIO;
 			break;
 		}
 
 		/* now do a pressure measurement */
 		if (OK != measure()) {
+			PX4_ERR("pressure measure failed");
 			ret = -EIO;
 			break;
 		}
@@ -127,6 +128,7 @@ MS5611::init()
 		px4_usleep(MS5611_CONVERSION_INTERVAL);
 
 		if (OK != collect()) {
+			PX4_ERR("collect failed");
 			ret = -EIO;
 			break;
 		}

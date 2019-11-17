@@ -56,12 +56,16 @@
 /*
  * I2C busses
  */
+#define PX4_I2C_BUS_ONBOARD		1
 #define PX4_I2C_BUS_EXPANSION		1
 #define PX4_NUMBER_I2C_BUSES		1
 
 // SPI
 #define PX4_SPI_BUS_SENSORS		0
+#define PX4_SPIDEV_GPS			PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 0)
 #define PX4_SPIDEV_MPU			PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
+#define PX4_SPIDEV_LSM9DS1_MAG		PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2)
+#define PX4_SPIDEV_LSM9DS1_ACCEL_MAG	PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 3)
 
 #include <system_config.h>
 #include <px4_platform_common/board_common.h>
