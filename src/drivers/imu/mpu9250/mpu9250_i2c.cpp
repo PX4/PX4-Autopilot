@@ -49,7 +49,7 @@ class MPU9250_I2C : public device::I2C
 {
 public:
 	MPU9250_I2C(int bus, uint32_t address);
-	~MPU9250_I2C() override = default;
+	virtual ~MPU9250_I2C() override = default;
 
 	int	read(unsigned address, void *data, unsigned count) override;
 	int	write(unsigned address, void *data, unsigned count) override;

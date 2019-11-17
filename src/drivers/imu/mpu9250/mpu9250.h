@@ -317,8 +317,6 @@ private:
 	 * @return		The value that was read.
 	 */
 	uint8_t			read_reg(unsigned reg, uint32_t speed = MPU9250_LOW_BUS_SPEED);
-	uint16_t		read_reg16(unsigned reg);
-
 
 	/**
 	 * Read a register range from the mpu

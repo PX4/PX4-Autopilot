@@ -118,7 +118,7 @@ MPU9250::init()
 	int ret = probe();
 
 	if (ret != OK) {
-		PX4_DEBUG("probe failed");
+		PX4_ERR("probe failed");
 		return ret;
 	}
 
@@ -144,7 +144,7 @@ MPU9250::init()
 		ret = _mag.ak8963_reset();
 
 		if (ret != OK) {
-			PX4_DEBUG("mag reset failed");
+			PX4_ERR("mag reset failed");
 			return ret;
 		}
 	}
@@ -161,7 +161,6 @@ MPU9250::reset()
 	 * per the data sheet will require:
 	 *
 	 * Start-up time for register read/write From power-up Typ:11 max:100 ms
-	 *
 	 */
 	px4_usleep(110000);
 
@@ -235,7 +234,6 @@ MPU9250::reset_mpu()
 	 * controller that chip provides as a SPI to I2C bridge.
 	 * so bypass is true if the mag has an i2c non null interfaces.
 	 */
-
 	write_checked_reg(MPUREG_INT_PIN_CFG, BIT_INT_ANYRD_2CLEAR | (bypass ? BIT_INT_BYPASS_EN : 0));
 
 	write_checked_reg(MPUREG_ACCEL_CONFIG2, BITS_ACCEL_CONFIG2_41HZ);
@@ -244,7 +242,6 @@ MPU9250::reset_mpu()
 	bool all_ok = false;
 
 	while (!all_ok && retries--) {
-
 		// Assume all checked values are as expected
 		all_ok = true;
 		uint8_t reg = 0;
@@ -271,7 +268,6 @@ MPU9250::probe()
 	_whoami = read_reg(MPUREG_WHOAMI);
 
 	if (_whoami == MPU_WHOAMI_9250 || _whoami == MPU_WHOAMI_6500) {
-
 		_num_checked_registers = MPU9250_NUM_CHECKED_REGISTERS;
 		_checked_registers = _mpu9250_checked_registers;
 		memset(_checked_values, 0, MPU9250_NUM_CHECKED_REGISTERS);
@@ -283,15 +279,13 @@ MPU9250::probe()
 	_checked_bad[0] = _whoami;
 
 	if (ret != PX4_OK) {
-		PX4_DEBUG("unexpected whoami 0x%02x", _whoami);
+		PX4_WARN("unexpected whoami 0x%02x", _whoami);
 	}
 
 	return ret;
 }
 
-/*
-  set sample rate (approximate) - 1kHz to 5Hz, for both accel and gyro
-*/
+// set sample rate (approximate) - 1kHz to 5Hz, for both accel and gyro
 void
 MPU9250::_set_sample_rate(unsigned desired_sample_rate_hz)
 {
@@ -322,21 +316,17 @@ MPU9250::_set_sample_rate(unsigned desired_sample_rate_hz)
 	}
 }
 
-/*
-  set the DLPF filter frequency. This affects both accel and gyro.
- */
+// set the DLPF filter frequency. This affects both accel and gyro.
 void
 MPU9250::_set_dlpf_filter(uint16_t frequency_hz)
 {
-	uint8_t filter;
+	uint8_t filter = BITS_DLPF_CFG_3600HZ;
 
 	switch (_whoami) {
 	case MPU_WHOAMI_9250:
 	case MPU_WHOAMI_6500:
 
-		/*
-		   choose next highest filter frequency available
-		 */
+		// choose next highest filter frequency available
 		if (frequency_hz == 0) {
 			_dlpf_freq = 0;
 			filter = BITS_DLPF_CFG_3600HZ;
@@ -383,31 +373,18 @@ uint8_t
 MPU9250::read_reg(unsigned reg, uint32_t speed)
 {
 	uint8_t buf{};
-
 	_interface->read(MPU9250_SET_SPEED(reg, speed), &buf, 1);
-
 	return buf;
 }
 
 uint8_t
 MPU9250::read_reg_range(unsigned start_reg, uint32_t speed, uint8_t *buf, uint16_t count)
 {
-	if (buf == NULL) {
+	if (buf == nullptr) {
 		return PX4_ERROR;
 	}
 
 	return _interface->read(MPU9250_SET_SPEED(start_reg, speed), buf, count);
-}
-
-uint16_t
-MPU9250::read_reg16(unsigned reg)
-{
-	uint8_t buf[2] {};
-
-	// general register transfer at low clock speed
-	_interface->read(MPU9250_LOW_SPEED_OP(reg), &buf, arraySize(buf));
-
-	return (uint16_t)(buf[0] << 8) | buf[1];
 }
 
 void

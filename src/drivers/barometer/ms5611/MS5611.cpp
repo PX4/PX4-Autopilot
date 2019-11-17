@@ -91,8 +91,7 @@ MS5611::stop()
 void
 MS5611::Run()
 {
-	int ret;
-	unsigned dummy;
+	int ret = 0;
 
 	// collection phase?
 	if (_collect_phase) {
@@ -111,6 +110,7 @@ MS5611::Run()
 			}
 
 			// issue a reset command to the sensor
+			unsigned dummy;
 			_interface->ioctl(IOCTL_RESET, dummy);
 
 			/* reset the collection state machine and try again - we need
@@ -126,10 +126,9 @@ MS5611::Run()
 	}
 
 	// measurement phase
-	ret = measure();
-
-	if (ret != OK) {
+	if (measure() != OK) {
 		// issue a reset command to the sensor
+		unsigned dummy;
 		_interface->ioctl(IOCTL_RESET, dummy);
 		// reset the collection state machine and try again
 		start();
@@ -237,18 +236,12 @@ MS5611::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u\n", _measure_interval);
 }
 
-/**
- * Local functions in support of the shell command.
- */
 namespace ms5611
 {
 
-/**
- * MS5611 crc4 cribbed from the datasheet
- */
+// MS5611 crc4 cribbed from the datasheet
 bool
 crc4(uint16_t *n_prom)
 {

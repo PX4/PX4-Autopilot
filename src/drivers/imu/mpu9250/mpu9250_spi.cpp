@@ -47,15 +47,6 @@
 #define DIR_READ			0x80
 #define DIR_WRITE			0x00
 
-/*
- * The MPU9250 can only handle high SPI bus speeds of 20Mhz on the sensor and
- * interrupt status registers. All other registers have a maximum 1MHz
- * SPI speed
- *
- * The Actual Value will be rounded down by the spi driver.
- * for a 168Mhz CPU this will be 10.5 Mhz and for a 180 Mhz CPU
- * it will be 11.250 Mhz
- */
 #define MPU9250_LOW_SPI_BUS_SPEED	1000*1000
 #define MPU9250_HIGH_SPI_BUS_SPEED	20*1000*1000
 
@@ -65,7 +56,7 @@ class MPU9250_SPI : public device::SPI
 {
 public:
 	MPU9250_SPI(int bus, uint32_t device);
-	~MPU9250_SPI() override = default;
+	virtual ~MPU9250_SPI() override = default;
 
 	int	read(unsigned address, void *data, unsigned count) override;
 	int	write(unsigned address, void *data, unsigned count) override;
@@ -82,11 +73,7 @@ private:
 device::Device *
 MPU9250_SPI_interface(int bus, uint32_t cs)
 {
-	device::Device *interface = nullptr;
-
-	interface = new MPU9250_SPI(bus, cs);
-
-	return interface;
+	return new MPU9250_SPI(bus, cs);
 }
 
 MPU9250_SPI::MPU9250_SPI(int bus, uint32_t device) :

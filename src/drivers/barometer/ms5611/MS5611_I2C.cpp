@@ -191,8 +191,8 @@ MS5611_I2C::_read_prom()
 {
 	uint8_t prom_buf[2];
 	union {
-		uint8_t		b[2];
-		uint16_t	w;
+		uint8_t b[2];
+		uint16_t w;
 	} cvt;
 
 	/*
