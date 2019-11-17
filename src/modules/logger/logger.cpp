@@ -531,7 +531,7 @@ void Logger::add_default_topics()
 	add_topic("rate_ctrl_status", 200);
 	add_topic("sensor_combined", 100);
 	add_topic("sensor_preflight", 200);
-	add_topic("sensor_selection", 1000);
+	add_topic("sensor_selection");
 	add_topic("system_power", 500);
 	add_topic("tecs_status", 200);
 	add_topic("trajectory_setpoint", 200);
