@@ -172,6 +172,7 @@ public:
 	void set_ip(InternetProtocol ip);
 	void set_port(unsigned port);
 
+	void status();
 private:
 	Simulator() :
 		ModuleParams(nullptr)
@@ -285,6 +286,8 @@ private:
 
 	bool _hil_local_proj_inited{false};
 
+	int _send_controls_status{0};
+	uint64_t _send_controls_count{0};
 	double _hil_ref_lat{0};
 	double _hil_ref_lon{0};
 	float _hil_ref_alt{0.0f};

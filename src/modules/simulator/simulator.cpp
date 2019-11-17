@@ -176,6 +176,14 @@ extern "C" {
 				g_sim_task = -1;
 			}
 
+		} else if (argc == 2 && strcmp(argv[1], "status") == 0) {
+			if (g_sim_task < 0) {
+				PX4_WARN("Simulator not running");
+
+			} else {
+				Simulator::getInstance()->status();
+			}
+
 		} else {
 			usage();
 			return 1;
