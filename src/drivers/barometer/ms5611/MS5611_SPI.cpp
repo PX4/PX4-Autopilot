@@ -46,7 +46,7 @@
 
 #if defined(PX4_SPIDEV_BARO) || defined(PX4_SPIDEV_EXT_BARO)
 
-device::Device *MS5611_spi_interface(ms5611::prom_u &prom_buf, bool external_bus);
+device::Device *MS5611_spi_interface(ms5611::prom_u &prom_buf);
 
 class MS5611_SPI : public device::SPI
 {
@@ -61,41 +61,10 @@ public:
 private:
 	ms5611::prom_u	&_prom;
 
-	/**
-	 * Send a reset command to the MS5611.
-	 *
-	 * This is required after any bus reset.
-	 */
 	int		_reset();
-
-	/**
-	 * Send a measure command to the MS5611.
-	 *
-	 * @param addr		Which address to use for the measure operation.
-	 */
 	int		_measure(unsigned addr);
-
-	/**
-	 * Read the MS5611 PROM
-	 *
-	 * @return		OK if the PROM reads successfully.
-	 */
 	int		_read_prom();
-
-	/**
-	 * Read a 16-bit register value.
-	 *
-	 * @param reg		The register to read.
-	 */
 	uint16_t	_reg16(unsigned reg);
-
-	/**
-	 * Wrapper around transfer() that prevents interrupt-context transfers
-	 * from pre-empting us. The sensor may (does) share a bus with sensors
-	 * that are polled from interrupt context (or we may be pre-empted)
-	 * so we need to guarantee that transfers complete without interruption.
-	 */
-	int		_transfer(uint8_t *send, uint8_t *recv, unsigned len);
 };
 
 device::Device *
@@ -116,7 +85,7 @@ MS5611_spi_interface(ms5611::prom_u &prom_buf, uint8_t busnum)
 }
 
 MS5611_SPI::MS5611_SPI(uint8_t bus, uint32_t device, ms5611::prom_u &prom_buf) :
-	SPI("MS5611_SPI", nullptr, bus, device, SPIDEV_MODE3, 20 * 1000 * 1000 /* will be rounded to 10.4 MHz */),
+	SPI("MS5611_SPI", nullptr, bus, device, SPIDEV_MODE3, 20 * 1000 * 1000),
 	_prom(prom_buf)
 {
 }
@@ -161,7 +130,7 @@ MS5611_SPI::read(unsigned offset, void *data, unsigned count)
 	uint8_t buf[4] = { 0 | DIR_WRITE, 0, 0, 0 };
 
 	/* read the most recent measurement */
-	int ret = _transfer(&buf[0], &buf[0], sizeof(buf));
+	int ret = transfer(&buf[0], &buf[0], sizeof(buf));
 
 	if (ret == OK) {
 		/* fetch the raw value */
@@ -206,18 +175,15 @@ int
 MS5611_SPI::_reset()
 {
 	uint8_t cmd = ADDR_RESET_CMD | DIR_WRITE;
-
-	return  _transfer(&cmd, nullptr, 1);
+	return  transfer(&cmd, nullptr, 1);
 }
 
 int
 MS5611_SPI::_measure(unsigned addr)
 {
 	uint8_t cmd = addr | DIR_WRITE;
-
-	return _transfer(&cmd, nullptr, 1);
+	return transfer(&cmd, nullptr, 1);
 }
-
 
 int
 MS5611_SPI::_read_prom()
@@ -261,16 +227,8 @@ uint16_t
 MS5611_SPI::_reg16(unsigned reg)
 {
 	uint8_t cmd[3] = { (uint8_t)(reg | DIR_READ), 0, 0 };
-
-	_transfer(cmd, cmd, sizeof(cmd));
-
+	transfer(cmd, cmd, sizeof(cmd));
 	return (uint16_t)(cmd[1] << 8) | cmd[2];
-}
-
-int
-MS5611_SPI::_transfer(uint8_t *send, uint8_t *recv, unsigned len)
-{
-	return transfer(send, recv, len);
 }
 
 #endif /* PX4_SPIDEV_BARO || PX4_SPIDEV_EXT_BARO */

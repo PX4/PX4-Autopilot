@@ -89,7 +89,7 @@ static struct ms5611_bus_option *find_bus(MS5611_BUS busid)
 	return nullptr;
 }
 
-static bool start_bus(ms5611_bus_option &bus, enum MS56XX_DEVICE_TYPES device_type)
+static bool start_bus(ms5611_bus_option &bus)
 {
 	if (bus.dev != nullptr) {
 		PX4_ERR("bus option already started");
@@ -105,7 +105,7 @@ static bool start_bus(ms5611_bus_option &bus, enum MS56XX_DEVICE_TYPES device_ty
 		return false;
 	}
 
-	MS5611 *dev = new MS5611(interface, prom_buf, device_type);
+	MS5611 *dev = new MS5611(interface, prom_buf);
 
 	if (dev == nullptr || (dev->init() != PX4_OK)) {
 		PX4_ERR("driver start failed");
@@ -118,7 +118,7 @@ static bool start_bus(ms5611_bus_option &bus, enum MS56XX_DEVICE_TYPES device_ty
 	return true;
 }
 
-static int start(MS5611_BUS busid, enum MS56XX_DEVICE_TYPES device_type)
+static int start(MS5611_BUS busid)
 {
 	for (ms5611_bus_option &bus_option : bus_options) {
 		if (bus_option.dev != nullptr) {
@@ -132,7 +132,7 @@ static int start(MS5611_BUS busid, enum MS56XX_DEVICE_TYPES device_type)
 			continue;
 		}
 
-		if (start_bus(bus_option, device_type)) {
+		if (start_bus(bus_option)) {
 			return PX4_OK;
 		}
 	}
@@ -177,8 +177,6 @@ static int usage()
 	PX4_INFO("    -I    (intternal I2C bus)");
 	PX4_INFO("    -S    (external SPI bus)");
 	PX4_INFO("    -s    (internal SPI bus)");
-	PX4_INFO("    -T    5611|5607 (default 5611)");
-	PX4_INFO("    -T    0 (autodetect version)");
 
 	return 0;
 }
@@ -192,7 +190,6 @@ extern "C" int ms5611_main(int argc, char *argv[])
 	const char *myoptarg = nullptr;
 
 	MS5611_BUS busid = MS5611_BUS::ALL;
-	enum MS56XX_DEVICE_TYPES device_type = MS5611_DEVICE;
 
 	while ((ch = px4_getopt(argc, argv, "T:XISs", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
@@ -212,23 +209,6 @@ extern "C" int ms5611_main(int argc, char *argv[])
 			busid = MS5611_BUS::SPI_INTERNAL;
 			break;
 
-		case 'T': {
-				int val = atoi(myoptarg);
-
-				if (val == 5611) {
-					device_type = MS5611_DEVICE;
-					break;
-
-				} else if (val == 5607) {
-					device_type = MS5607_DEVICE;
-					break;
-
-				} else if (val == 0) {
-					device_type = MS56XX_DEVICE;
-					break;
-				}
-			}
-
 		// FALLTHROUGH
 		default:
 			return ms5611::usage();
@@ -242,7 +222,7 @@ extern "C" int ms5611_main(int argc, char *argv[])
 	const char *verb = argv[myoptind];
 
 	if (!strcmp(verb, "start")) {
-		return ms5611::start(busid, device_type);
+		return ms5611::start(busid);
 
 	} else if (!strcmp(verb, "stop")) {
 		return ms5611::stop(busid);
