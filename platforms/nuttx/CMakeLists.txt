@@ -31,6 +31,10 @@
 #
 ############################################################################
 
+if(POLICY CMP0079)
+	cmake_policy(SET CMP0079 NEW)
+endif()
+
 include(cygwin_cygpath)
 
 set(NUTTX_DIR ${PX4_BINARY_DIR}/NuttX/nuttx)
@@ -47,12 +51,23 @@ get_property(module_libraries GLOBAL PROPERTY PX4_MODULE_LIBRARIES)
 add_subdirectory(NuttX ${PX4_BINARY_DIR}/NuttX)
 
 set(nuttx_libs)
+set(SCRIPT_PREFIX)
+if("${PX4_BOARD_LABEL}" STREQUAL "bootloader")
+	set(SCRIPT_PREFIX ${PX4_BOARD_LABEL}_)
+	add_subdirectory(src/bootloader)
+	list(APPEND nuttx_libs
+		bootloader
+		bootloader_lib
+		drivers_board
+	)
+endif()
+
 list(APPEND nuttx_libs
 	nuttx_apps
 	nuttx_arch
 	nuttx_binfmt
 	nuttx_c
-	nuttx_configs
+	nuttx_boards
 	nuttx_xx
 	nuttx_drivers
 	nuttx_fs
@@ -70,10 +85,6 @@ file(RELATIVE_PATH PX4_BINARY_DIR_REL ${CMAKE_CURRENT_BINARY_DIR} ${PX4_BINARY_D
 # only in the cygwin environment: convert absolute linker script path to mixed windows (C:/...)
 # because even relative linker script paths are different for linux, mac and windows
 CYGPATH(PX4_BINARY_DIR PX4_BINARY_DIR_CYG)
-
-if(POLICY CMP0079)
-	cmake_policy(SET CMP0079 NEW)
-endif()
 
 target_link_libraries(nuttx_arch
 	INTERFACE
@@ -94,7 +105,7 @@ target_link_libraries(px4 PRIVATE
 	-fno-exceptions
 	-fno-rtti
 
-	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx-config/scripts/script.ld
+	-Wl,--script=${PX4_BINARY_DIR_CYG}/NuttX/nuttx-config/scripts/${SCRIPT_PREFIX}script.ld
 	-Wl,-Map=${PX4_CONFIG}.map
 	-Wl,--warn-common
 	-Wl,--gc-sections
@@ -205,6 +216,9 @@ if(NOT PX4_BUILD MATCHES "px4_io-v2")
 	elseif(CONFIG_ARCH_CHIP_STM32F777NI)
 		set(DEBUG_DEVICE "STM32F777NI")
 		set(DEBUG_SVD_FILE "STM32F7x7.svd")
+	elseif(CONFIG_ARCH_CHIP_STM32H743ZI)
+		set(DEBUG_DEVICE "STM32H743ZI")
+		set(DEBUG_SVD_FILE "STM32H7x3.svd")
 	endif()
 
 	file(GLOB_RECURSE DEBUG_SVD_FILE_PATH ${CMAKE_SOURCE_DIR}/../cmsis-svd/*/${DEBUG_SVD_FILE})
@@ -217,7 +231,7 @@ if(NOT PX4_BUILD MATCHES "px4_io-v2")
 endif()
 
 add_custom_target(debug
-	COMMAND ${GDB} -iex 'set auto-load safe-path ${PX4_BINARY_DIR}' $<TARGET_FILE:px4>
+	COMMAND ${CMAKE_GDB} -iex 'set auto-load safe-path ${PX4_BINARY_DIR}' $<TARGET_FILE:px4>
 	DEPENDS px4 ${PX4_BINARY_DIR}/.gdbinit
 	WORKING_DIRECTORY ${PX4_BINARY_DIR}
 	USES_TERMINAL

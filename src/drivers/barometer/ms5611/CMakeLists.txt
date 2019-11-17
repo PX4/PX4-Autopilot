@@ -40,6 +40,8 @@ px4_add_module(
 		ms5611_spi.cpp
 		ms5611_i2c.cpp
 		ms5611.cpp
+		ms5611_main.cpp
+		MS5611.hpp
 	DEPENDS
 		px4_work_queue
 	)

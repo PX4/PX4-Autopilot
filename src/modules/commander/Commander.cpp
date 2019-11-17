@@ -1268,6 +1268,7 @@ Commander::run()
 	param_t _param_arm_switch_is_button = param_find("COM_ARM_SWISBTN");
 	param_t _param_rc_override = param_find("COM_RC_OVERRIDE");
 	param_t _param_arm_mission_required = param_find("COM_ARM_MIS_REQ");
+	param_t _param_arm_auth_required = param_find("COM_ARM_AUTH_REQ");
 	param_t _param_escs_checks_required = param_find("COM_ARM_CHK_ESCS");
 	param_t _param_flight_uuid = param_find("COM_FLIGHT_UUID");
 	param_t _param_takeoff_finished_action = param_find("COM_TAKEOFF_ACT");
@@ -1395,8 +1396,13 @@ Commander::run()
 
 	int32_t arm_mission_required_param = 0;
 	param_get(_param_arm_mission_required, &arm_mission_required_param);
-	arm_requirements |= (arm_mission_required_param &
-			     (PreFlightCheck::ARM_REQ_MISSION_BIT | PreFlightCheck::ARM_REQ_ARM_AUTH_BIT));
+	arm_requirements |= (arm_mission_required_param == 0) ? PreFlightCheck::ARM_REQ_NONE :
+			    PreFlightCheck::ARM_REQ_MISSION_BIT;
+
+	int32_t arm_auth_required_param = 0;
+	param_get(_param_arm_auth_required, &arm_auth_required_param);
+	arm_requirements |= (arm_auth_required_param == 0) ? PreFlightCheck::ARM_REQ_NONE :
+			    PreFlightCheck::ARM_REQ_ARM_AUTH_BIT;
 
 	int32_t arm_escs_checks_required_param = 0;
 	param_get(_param_escs_checks_required, &arm_escs_checks_required_param);
@@ -1530,9 +1536,15 @@ Commander::run()
 
 			param_get(_param_arm_without_gps, &arm_without_gps_param);
 			arm_requirements = (arm_without_gps_param == 1) ? PreFlightCheck::ARM_REQ_NONE : PreFlightCheck::ARM_REQ_GPS_BIT;
+
 			param_get(_param_arm_mission_required, &arm_mission_required_param);
-			arm_requirements |= (arm_mission_required_param &
-					     (PreFlightCheck::ARM_REQ_MISSION_BIT | PreFlightCheck::ARM_REQ_ARM_AUTH_BIT));
+			arm_requirements |= (arm_mission_required_param == 0) ? PreFlightCheck::ARM_REQ_NONE :
+					    PreFlightCheck::ARM_REQ_MISSION_BIT;
+
+			param_get(_param_arm_auth_required, &arm_auth_required_param);
+			arm_requirements |= (arm_auth_required_param == 0) ? PreFlightCheck::ARM_REQ_NONE :
+					    PreFlightCheck::ARM_REQ_ARM_AUTH_BIT;
+
 			param_get(_param_escs_checks_required, &arm_escs_checks_required_param);
 			arm_requirements |= (arm_escs_checks_required_param == 0) ? PreFlightCheck::ARM_REQ_NONE :
 					    PreFlightCheck::ARM_REQ_ESCS_CHECK_BIT;

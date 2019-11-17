@@ -40,6 +40,12 @@
  *
  */
 
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/time.h>
+#include <lib/perf/perf_counter.h>
+#include <drivers/drv_hrt.h>
+
 #include "MPU9250_mag.h"
 #include "mpu9250.h"
 
@@ -50,9 +56,9 @@ MPU9250_mag::MPU9250_mag(MPU9250 *parent, device::Device *interface, enum Rotati
 	_px4_mag(parent->_interface->get_device_id(), (parent->_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH),
 		 rotation),
 	_parent(parent),
-	_mag_overruns(perf_alloc(PC_COUNT, "mpu9250_mag_overruns")),
-	_mag_overflows(perf_alloc(PC_COUNT, "mpu9250_mag_overflows")),
-	_mag_errors(perf_alloc(PC_COUNT, "mpu9250_mag_errors"))
+	_mag_overruns(perf_alloc(PC_COUNT, MODULE_NAME": mag_overruns")),
+	_mag_overflows(perf_alloc(PC_COUNT, MODULE_NAME": mag_overflows")),
+	_mag_errors(perf_alloc(PC_COUNT, MODULE_NAME": mag_errors"))
 {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_MPU9250);
 	_px4_mag.set_scale(MPU9250_MAG_RANGE_GA);
@@ -70,7 +76,7 @@ MPU9250_mag::measure()
 {
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
-	uint8_t st1;
+	uint8_t st1 = 0;
 	int ret = _interface->read(AK8963REG_ST1, &st1, sizeof(st1));
 
 	if (ret != OK) {
@@ -92,7 +98,7 @@ MPU9250_mag::measure()
 		perf_count(_mag_overruns);
 	}
 
-	ak8963_regs data;
+	ak8963_regs data{};
 	ret = _interface->read(AK8963REG_ST1, &data, sizeof(data));
 
 	if (ret != OK) {
@@ -218,15 +224,15 @@ MPU9250_mag::write_reg(unsigned reg, uint8_t value)
 }
 
 int
-MPU9250_mag::ak8963_reset(void)
+MPU9250_mag::ak8963_reset()
 {
 	// First initialize it to use the bus
 	int rv = ak8963_setup();
 
 	if (rv == OK) {
-
 		// Now reset the mag
 		write_reg(AK8963REG_CNTL2, AK8963_RESET);
+
 		// Then re-initialize the bus/mag
 		rv = ak8963_setup();
 	}
@@ -235,7 +241,7 @@ MPU9250_mag::ak8963_reset(void)
 }
 
 bool
-MPU9250_mag::ak8963_read_adjustments(void)
+MPU9250_mag::ak8963_read_adjustments()
 {
 	uint8_t response[3];
 	float ak8963_ASA[3];
@@ -267,7 +273,7 @@ MPU9250_mag::ak8963_read_adjustments(void)
 }
 
 int
-MPU9250_mag::ak8963_setup_master_i2c(void)
+MPU9250_mag::ak8963_setup_master_i2c()
 {
 	/* When _interface is null we are using SPI and must
 	 * use the parent interface to configure the device to act
@@ -286,12 +292,11 @@ MPU9250_mag::ak8963_setup_master_i2c(void)
 	return OK;
 }
 int
-MPU9250_mag::ak8963_setup(void)
+MPU9250_mag::ak8963_setup()
 {
 	int retries = 10;
 
 	do {
-
 		ak8963_setup_master_i2c();
 		write_reg(AK8963REG_CNTL2, AK8963_RESET);
 
@@ -304,7 +309,7 @@ MPU9250_mag::ak8963_setup(void)
 		retries--;
 		PX4_WARN("AK8963: bad id %d retries %d", id, retries);
 		_parent->modify_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_RST);
-		up_udelay(100);
+		px4_usleep(100);
 	} while (retries > 0);
 
 	if (retries > 0) {
@@ -315,7 +320,7 @@ MPU9250_mag::ak8963_setup(void)
 			PX4_ERR("AK8963: failed to read adjustment data. Retries %d", retries);
 
 			_parent->modify_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_RST);
-			up_udelay(100);
+			px4_usleep(100);
 			ak8963_setup_master_i2c();
 			write_reg(AK8963REG_CNTL2, AK8963_RESET);
 		}
@@ -325,21 +330,18 @@ MPU9250_mag::ak8963_setup(void)
 		PX4_ERR("AK8963: failed to initialize, disabled!");
 		_parent->modify_checked_reg(MPUREG_USER_CTRL, BIT_I2C_MST_EN, 0);
 		_parent->write_reg(MPUREG_I2C_MST_CTRL, 0);
+
 		return -EIO;
 	}
 
 	if (_parent->_whoami == MPU_WHOAMI_9250) {
 		write_reg(AK8963REG_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
-
 	}
 
-	if (_interface == NULL) {
-
-		/* Configure mpu' I2c Master interface to read ak8963 data
-		 * Into to fifo
-		 */
+	if (_interface == nullptr) {
+		// Configure mpu' I2C Master interface to read ak8963 data into to fifo
 		if (_parent->_whoami == MPU_WHOAMI_9250) {
-			set_passthrough(AK8963REG_ST1, sizeof(struct ak8963_regs));
+			set_passthrough(AK8963REG_ST1, sizeof(ak8963_regs));
 		}
 	}
 

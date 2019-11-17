@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -59,7 +59,7 @@
 #define MPU9250_LOW_SPI_BUS_SPEED	1000*1000
 #define MPU9250_HIGH_SPI_BUS_SPEED	20*1000*1000
 
-device::Device *MPU9250_SPI_interface(int bus, uint32_t cs, bool external_bus);
+device::Device *MPU9250_SPI_interface(int bus, uint32_t cs);
 
 class MPU9250_SPI : public device::SPI
 {
@@ -80,19 +80,11 @@ private:
 };
 
 device::Device *
-MPU9250_SPI_interface(int bus, uint32_t cs, bool external_bus)
+MPU9250_SPI_interface(int bus, uint32_t cs)
 {
 	device::Device *interface = nullptr;
 
-	if (external_bus) {
-#if !(defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_MPU))
-		errx(0, "External SPI not available");
-#endif
-	}
-
-	if (cs != SPIDEV_NONE(0)) {
-		interface = new MPU9250_SPI(bus, cs);
-	}
+	interface = new MPU9250_SPI(bus, cs);
 
 	return interface;
 }
@@ -116,14 +108,13 @@ MPU9250_SPI::set_bus_frequency(unsigned &reg_speed)
 int
 MPU9250_SPI::write(unsigned reg_speed, void *data, unsigned count)
 {
-	uint8_t cmd[MPU_MAX_WRITE_BUFFER_SIZE] {};
+	uint8_t cmd[2] {};
 
 	if (sizeof(cmd) < (count + 1)) {
 		return -EIO;
 	}
 
 	/* Set the desired speed and isolate the register */
-
 	set_bus_frequency(reg_speed);
 
 	cmd[0] = reg_speed | DIR_WRITE;

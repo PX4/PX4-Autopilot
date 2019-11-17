@@ -8,12 +8,14 @@ px4_add_board(
 
 	DRIVERS
 		#barometer # all available barometer drivers
+		barometer/bmp280
 		batt_smbus
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
 		#imu # all available imu drivers
+		imu/mpu9250
 		#magnetometer # all available magnetometer drivers
 		pwm_out_sim
 		#telemetry # all available telemetry drivers

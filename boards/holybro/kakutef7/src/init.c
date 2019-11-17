@@ -69,7 +69,6 @@
 #include <systemlib/px4_macros.h>
 #include <px4_platform_common/init.h>
 #include <px4_platform/gpio.h>
-#include <px4_platform/gpio.h>
 #include <px4_platform/board_dma_alloc.h>
 
 # if defined(FLASH_BASED_PARAMS)

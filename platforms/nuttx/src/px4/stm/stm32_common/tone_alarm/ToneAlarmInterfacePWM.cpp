@@ -145,8 +145,32 @@
 # if defined(CONFIG_STM32_TIM14)
 #  error Must not set CONFIG_STM32_TIM14 when TONE_ALARM_TIMER is 14
 # endif
+#elif TONE_ALARM_TIMER == 15
+# define TONE_ALARM_BASE                STM32_TIM15_BASE
+# define TONE_ALARM_CLOCK               STM32_APB2_TIM15_CLKIN
+# define TONE_ALARM_CLOCK_ENABLE        RCC_APB2ENR_TIM15EN
+# define TONE_ALARM_CLOCK_POWER_REG     STM32_RCC_APB2ENR
+# if defined(CONFIG_STM32_TIM15)
+#  error Must not set CONFIG_STM32_TIM15 when TONE_ALARM_TIMER is 15
+# endif
+#elif TONE_ALARM_TIMER == 16
+# define TONE_ALARM_BASE                STM32_TIM16_BASE
+# define TONE_ALARM_CLOCK               STM32_APB2_TIM16_CLKIN
+# define TONE_ALARM_CLOCK_ENABLE        RCC_APB2ENR_TIM16EN
+# define TONE_ALARM_CLOCK_POWER_REG     STM32_RCC_APB2ENR
+# if defined(CONFIG_STM32_TIM16)
+#  error Must not set CONFIG_STM32_TIM16 when TONE_ALARM_TIMER is 16
+# endif
+#elif TONE_ALARM_TIMER == 17
+# define TONE_ALARM_BASE                STM32_TIM17_BASE
+# define TONE_ALARM_CLOCK               STM32_APB2_TIM17_CLKIN
+# define TONE_ALARM_CLOCK_ENABLE        RCC_APB2ENR_TIM17EN
+# define TONE_ALARM_CLOCK_POWER_REG     STM32_RCC_APB2ENR
+# if defined(CONFIG_STM32_TIM17)
+#  error Must not set CONFIG_STM32_TIM16 when TONE_ALARM_TIMER is 17
+# endif
 #else
-# error Must set TONE_ALARM_TIMER to one of the timers between 1 and 14 (inclusive) to use this driver.
+# error Must set TONE_ALARM_TIMER to one of the timers between 1 and 17 (inclusive) to use this driver.
 #endif // TONE_ALARM_TIMER
 
 #if TONE_ALARM_CHANNEL == 1
@@ -199,6 +223,9 @@
 # define rSR            REG(STM32_ATIM_SR_OFFSET)
 #else
 # define rARR           REG(STM32_GTIM_ARR_OFFSET)
+#if TONE_ALARM_TIMER >= 15 && TONE_ALARM_TIMER <= 17 // Note: If using TIM15 - TIM17 it has a BDTR
+#   define rBDTR          REG(STM32_ATIM_BDTR_OFFSET)
+#endif
 # define rCCER          REG(STM32_GTIM_CCER_OFFSET)
 # define rCCMR1         REG(STM32_GTIM_CCMR1_OFFSET)
 # define rCCMR2         REG(STM32_GTIM_CCMR2_OFFSET)
