@@ -142,7 +142,7 @@ ControlAllocation::normalizeActuatorSetpoint() const
 			actuator_normalized(i) = -1.0f + 2.0f * (_actuator_sp(i) - _actuator_min(i)) / (_actuator_max(i) - _actuator_min(i));
 
 		} else {
-			actuator_normalized(i) = 0.0f;
+			actuator_normalized(i) = -1.0f;
 		}
 	}
 
