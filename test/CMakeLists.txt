@@ -20,6 +20,7 @@ set(tests
     least_squares
     upperRightTriangle
     dual
+    pseudoInverse
     )
 
 add_custom_target(test_build)

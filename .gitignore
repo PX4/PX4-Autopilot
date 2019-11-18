@@ -27,6 +27,7 @@ test/matrixAssignment
 test/matrixMult
 test/matrixScalarMult
 test/out/
+test/pseudoinverse
 test/setIdentity
 test/slice
 test/squareMatrix

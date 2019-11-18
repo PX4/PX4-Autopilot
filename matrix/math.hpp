@@ -18,3 +18,4 @@
 #include "AxisAngle.hpp"
 #include "LeastSquaresSolver.hpp"
 #include "Dual.hpp"
+#include "PseudoInverse.hpp"
