@@ -46,13 +46,6 @@
 #include <uORB/topics/orbit_status.h>
 #include <StraightLine.hpp>
 
-enum class YawBehavior : int {
-	point_to_center = 0,
-	hold_last_heading = 1,
-	leave_uncontrolled = 2,
-	turn_towards_flight_direction = 3,
-};
-
 class FlightTaskOrbit : public FlightTaskManualAltitudeSmooth
 {
 public:
@@ -95,8 +88,11 @@ protected:
 	bool setVelocity(const float v);
 
 private:
-	void generate_circle_approach_setpoints(); /**< generates setpoints to smoothly reach the closest point on the circle when starting from far away */
+	void generate_circle_approach_setpoints(matrix::Vector2f
+						start_to_circle); /**< generates setpoints to smoothly reach the closest point on the circle when starting from far away */
 	void generate_circle_setpoints(matrix::Vector2f center_to_position); /**< generates xy setpoints to orbit the vehicle */
+	void generate_circle_yaw_setpoints(matrix::Vector2f
+					   center_to_position); /**< generates yaw setpoints to control the vehicle's heading */
 
 	float _r = 0.f; /**< radius with which to orbit the target */
 	float _v = 0.f; /**< clockwise tangential velocity for orbiting in m/s */
@@ -111,8 +107,8 @@ private:
 	const float _velocity_max = 10.f;
 	const float _acceleration_max = 2.f;
 
-	YawBehavior _yaw_behavior =
-		YawBehavior::point_to_center; /**<  the direction during the orbit task in which the drone looks */
+	int _yaw_behaviour =
+		orbit_status_s::ORBIT_YAW_BEHAVIOUR_HOLD_FRONT_TO_CIRCLE_CENTER; /**<  yaw behaviour during the orbit flight according to MAVLink's ORBIT_YAW_BEHAVIOUR enum */
 	float _initial_heading = 0.f; /**< the heading of the drone when the orbit command was issued */
 
 	uORB::Publication<orbit_status_s> _orbit_status_pub{ORB_ID(orbit_status)};
