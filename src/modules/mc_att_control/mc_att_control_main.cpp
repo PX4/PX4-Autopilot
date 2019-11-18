@@ -465,7 +465,9 @@ MulticopterAttitudeControl::publish_torque_setpoint()
 	v_torque_sp.xyz[1] = (PX4_ISFINITE(_torque_sp(1))) ? _torque_sp(1) : 0.0f;
 	v_torque_sp.xyz[2] = (PX4_ISFINITE(_torque_sp(2))) ? _torque_sp(2) : 0.0f;
 
-	if (!_vehicle_status.is_vtol) {
+	if (!_vehicle_status.is_vtol
+	    || (_vehicle_status.is_vtol && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING))
+	    || (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode)) {
 		_vehicle_torque_setpoint_pub.publish(v_torque_sp);
 	}
 }
@@ -480,7 +482,9 @@ MulticopterAttitudeControl::publish_thrust_setpoint()
 	v_thrust_sp.xyz[1] = 0.0f;
 	v_thrust_sp.xyz[2] = (PX4_ISFINITE(-_thrust_sp)) ? (-_thrust_sp) : 0.0f;
 
-	if (!_vehicle_status.is_vtol) {
+	if (!_vehicle_status.is_vtol
+	    || (_vehicle_status.is_vtol && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING))
+	    || (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode)) {
 		_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
 	}
 }
