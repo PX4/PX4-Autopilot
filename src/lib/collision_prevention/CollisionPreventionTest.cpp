@@ -251,9 +251,9 @@ TEST_F(CollisionPreventionTest, testBehaviorOnWithDistanceMessage)
 TEST_F(CollisionPreventionTest, testPurgeOldData)
 {
 	// GIVEN: a simple setup condition
+	TestTimingCollisionPrevention cp;
 	hrt_abstime start_time = hrt_absolute_time();
 	mocked_time = start_time;
-	TestTimingCollisionPrevention cp;
 	matrix::Vector2f original_setpoint(10, 0);
 	float max_speed = 3;
 	matrix::Vector2f curr_pos(0, 0);
