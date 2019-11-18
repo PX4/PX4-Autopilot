@@ -309,10 +309,14 @@ MulticopterRateControl::Run()
 			_controller_status_pub.publish(rate_ctrl_status);
 
 			// publish controller output
-			publish_actuator_controls();
-			publish_angular_acceleration_setpoint();
-			publish_torque_setpoint();
-			publish_thrust_setpoint();
+			if (!_vehicle_status.is_vtol
+			    || (_vehicle_status.is_vtol && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING))
+			    || (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode)) {
+				publish_actuator_controls();
+				publish_angular_acceleration_setpoint();
+				publish_torque_setpoint();
+				publish_thrust_setpoint();
+			}
 
 		} else if (_v_control_mode.flag_control_termination_enabled) {
 			if (!_vehicle_status.is_vtol) {
