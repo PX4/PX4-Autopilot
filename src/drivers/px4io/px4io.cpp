@@ -3012,7 +3012,7 @@ start(int argc, char *argv[])
 		if (!strcmp(argv[extra_args], "norc")) {
 			rc_handling_disabled = true;
 
-		} else if (!strcmp(argv[1], "hil")) {
+		} else if (!strcmp(argv[extra_args], "hil")) {
 			hitl_mode = true;
 
 		} else {
