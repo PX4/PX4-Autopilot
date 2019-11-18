@@ -43,7 +43,7 @@ pipeline {
                     sh 'find /dev/serial'
                     unstash 'px4_fmu-v2_test'
                     // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v2_test/px4_fmu-v2_test.elf'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v2_test/px4_fmu-v2_test.elf'
                     sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
                   }
                 }
@@ -134,7 +134,7 @@ pipeline {
                     sh 'find /dev/serial'
                     unstash 'px4_fmu-v3_default'
                     // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v3_default/px4_fmu-v3_default.elf'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v3_default/px4_fmu-v3_default.elf'
                     sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
                   }
                 }
@@ -258,7 +258,7 @@ pipeline {
                     sh 'find /dev/serial'
                     unstash 'px4_fmu-v4_default'
                     // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v4_default/px4_fmu-v4_default.elf'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v4_default/px4_fmu-v4_default.elf'
                     sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
                   }
                 }
@@ -379,7 +379,7 @@ pipeline {
                     sh 'find /dev/serial'
                     unstash 'px4_fmu-v4pro_default'
                     // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v4pro_default/px4_fmu-v4pro_default.elf'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v4pro_default/px4_fmu-v4pro_default.elf'
                     sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
                   }
                 }
@@ -503,7 +503,7 @@ pipeline {
                     sh 'find /dev/serial'
                     unstash 'px4_fmu-v5_default'
                     // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v5_default/px4_fmu-v5_default.elf'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5_default/px4_fmu-v5_default.elf'
                     sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
                   }
                 }
@@ -627,7 +627,7 @@ pipeline {
                     sh 'find /dev/serial'
                     unstash 'px4_fmu-v5x_default'
                     // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/jlink_gdb_upload.sh build/px4_fmu-v5x_default/px4_fmu-v5x_default.elf'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/px4_fmu-v5x_default/px4_fmu-v5x_default.elf'
                     sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-SEGGER_*` --baudrate 57600'
                   }
                 }
@@ -751,7 +751,7 @@ pipeline {
                     sh 'find /dev/serial'
                     unstash 'holybro_durandal-v1_default'
                     // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/jlink_gdb_upload.sh build/holybro_durandal-v1_default/holybro_durandal-v1_default.elf'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/holybro_durandal-v1_default/holybro_durandal-v1_default.elf'
                     sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
                   }
                 }
@@ -876,7 +876,7 @@ pipeline {
                     sh 'find /dev/serial'
                     unstash 'holybro_durandal-v1_stackcheck'
                     // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/jlink_gdb_upload.sh build/holybro_durandal-v1_stackcheck/holybro_durandal-v1_stackcheck.elf'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/holybro_durandal-v1_stackcheck/holybro_durandal-v1_stackcheck.elf'
                     sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
                   }
                 }
@@ -999,7 +999,7 @@ pipeline {
                     sh 'find /dev/serial'
                     unstash 'nxp_fmuk66-v3_default'
                     // flash board and watch bootup
-                    sh './platforms/nuttx/Debug/jlink_gdb_upload.sh build/nxp_fmuk66-v3_default/nxp_fmuk66-v3_default.elf'
+                    sh './platforms/nuttx/Debug/upload_jlink_gdb.sh build/nxp_fmuk66-v3_default/nxp_fmuk66-v3_default.elf'
                     sh './Tools/HIL/monitor_firmware_upload.py --device `find /dev/serial -name *usb-FTDI_*` --baudrate 57600'
                   }
                 }
