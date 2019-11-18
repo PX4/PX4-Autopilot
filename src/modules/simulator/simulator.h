@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,6 +51,7 @@
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/ecl/geo/geo.h>
 #include <perf/perf_counter.h>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <uORB/Publication.hpp>
@@ -173,6 +174,7 @@ public:
 
 	void set_ip(InternetProtocol ip);
 	void set_port(unsigned port);
+	bool has_initialized() {return _has_initialized.load(); }
 
 private:
 	Simulator() :
@@ -261,8 +263,7 @@ private:
 
 #ifndef __PX4_QURT
 
-	mavlink_hil_actuator_controls_t actuator_controls_from_outputs(const actuator_outputs_s &actuators);
-
+	void run();
 	void handle_message(const mavlink_message_t *msg);
 	void handle_message_distance_sensor(const mavlink_message_t *msg);
 	void handle_message_hil_gps(const mavlink_message_t *msg);
@@ -275,7 +276,6 @@ private:
 	void handle_message_vision_position_estimate(const mavlink_message_t *msg);
 
 	void parameters_update(bool force);
-
 	void poll_for_MAVLink_messages();
 	void request_hil_state_quaternion();
 	void send();
@@ -286,6 +286,8 @@ private:
 	void update_gps(const mavlink_hil_gps_t *gps_sim);
 
 	static void *sending_trampoline(void *);
+
+	mavlink_hil_actuator_controls_t actuator_controls_from_outputs(const actuator_outputs_s &actuators);
 
 	// uORB publisher handlers
 	uORB::Publication<vehicle_angular_velocity_s>	_vehicle_angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
@@ -310,6 +312,10 @@ private:
 
 	// uORB data containers
 	vehicle_status_s _vehicle_status{};
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	px4::atomic<bool> _has_initialized {false};
+#endif
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval
