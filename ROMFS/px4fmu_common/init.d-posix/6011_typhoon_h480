@@ -25,8 +25,23 @@ then
 	param set TRIG_MODE 4
 	param set MNT_MODE_IN 0
 	param set MAV_PROTO_VER 2
+
+	param set CA_AIRFRAME 1
+	param set CA_ACT0_MIN 0.0
+	param set CA_ACT1_MIN 0.0
+	param set CA_ACT2_MIN 0.0
+	param set CA_ACT3_MIN 0.0
+	param set CA_ACT4_MIN 0.0
+	param set CA_ACT5_MIN 0.0
+	param set CA_ACT0_MAX 1.0
+	param set CA_ACT1_MAX 1.0
+	param set CA_ACT2_MAX 1.0
+	param set CA_ACT3_MAX 1.0
+	param set CA_ACT4_MAX 1.0
+	param set CA_ACT5_MAX 1.0
 fi
 
 set MAV_TYPE 13
 
-set MIXER hexa_x
+# set MIXER hexa_x
+set MIXER hexa
