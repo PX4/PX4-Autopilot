@@ -288,6 +288,10 @@ int main(int argc, char **argv)
 
 		ret = run_startup_script(commands_file, absolute_binary_path, instance);
 
+		if (ret != 0) {
+			return PX4_ERROR;
+		}
+
 		// We now block here until we need to exit.
 		if (pxh_off) {
 			wait_to_exit();
