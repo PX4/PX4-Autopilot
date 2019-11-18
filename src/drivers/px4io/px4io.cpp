@@ -2386,7 +2386,7 @@ PX4IO::print_status(bool extended_status)
 	       io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SBUS_RATE));
 	printf("debuglevel %u\n", io_reg_get(PX4IO_PAGE_SETUP, PX4IO_P_SETUP_SET_DEBUG));
 
-	for (unsigned group = 0; group < 4; group++) {
+	for (unsigned group = 0; group < 6; group++) {
 		printf("controls %u:", group);
 
 		for (unsigned i = 0; i < _max_controls; i++) {
