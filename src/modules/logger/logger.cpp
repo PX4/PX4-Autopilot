@@ -647,7 +647,7 @@ void Logger::add_default_topics()
 	add_topic("telemetry_status");
 	add_topic("vehicle_air_data", 200);
 	add_topic("vehicle_attitude", 30);
-    add_topic("vehicle_attitude_setpoint", 30);
+    add_topic("vehicle_attitude_setpoint", 300);
 	add_topic("vehicle_command");
     add_topic("vehicle_control_mode",30);
 	add_topic("vehicle_global_position", 200);
@@ -690,6 +690,7 @@ void Logger::add_high_rate_topics()
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_rates_setpoint");
+    add_topic("dg_attitude");
 }
 
 void Logger::add_debug_topics()

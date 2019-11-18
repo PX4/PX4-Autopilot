@@ -106,6 +106,7 @@ MavlinkReceiver::~MavlinkReceiver()
 	orb_unsubscribe(_control_mode_sub);
 	orb_unsubscribe(_actuator_armed_sub);
 	orb_unsubscribe(_vehicle_attitude_sub);
+    orb_unsubscribe(_dg_mission_sub);
 }
 
 void
@@ -1812,14 +1813,13 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 {
 	mavlink_manual_control_t man;
 	mavlink_msg_manual_control_decode(msg, &man);
-    uint8_t rc_in_mode = 0;
 
 	// Check target
 	if (man.target != 0 && man.target != _mavlink->get_system_id()) {
 		return;
 	}
-    rc_in_mode =_mavlink->get_manual_input_mode_generation();
-    if (rc_in_mode == 2) {
+
+	if (_mavlink->get_manual_input_mode_generation()) {
 
 		struct input_rc_s rc = {};
 		rc.timestamp = hrt_absolute_time();
@@ -1858,14 +1858,17 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 
 		_mom_switch_state = man.buttons;
 
-		if (_rc_pub == nullptr) {
-			_rc_pub = orb_advertise(ORB_ID(input_rc), &rc);
+//		if (_rc_pub == nullptr) {
+//			_rc_pub = orb_advertise(ORB_ID(input_rc), &rc);
 
-		} else {
-			orb_publish(ORB_ID(input_rc), _rc_pub, &rc);
-		}
+//		} else {
+//			orb_publish(ORB_ID(input_rc), _rc_pub, &rc);
+//		}
 
-    } else if (rc_in_mode == 1){
+        int m_inst;
+        orb_publish_auto(ORB_ID(input_rc), &_rc_pub, &rc, &m_inst, ORB_PRIO_VERY_HIGH);
+
+	} else {
 		struct manual_control_setpoint_s manual = {};
 
 		manual.timestamp = hrt_absolute_time();
@@ -1876,7 +1879,7 @@ MavlinkReceiver::handle_message_manual_control(mavlink_message_t *msg)
 		manual.data_source = manual_control_setpoint_s::SOURCE_MAVLINK_0 + _mavlink->get_instance_id();
 
 		int m_inst;
-		orb_publish_auto(ORB_ID(manual_control_setpoint), &_manual_pub, &manual, &m_inst, ORB_PRIO_LOW);
+        orb_publish_auto(ORB_ID(manual_control_setpoint), &_manual_pub, &manual, &m_inst, ORB_PRIO_LOW);
 	}
 }
 
@@ -2592,6 +2595,15 @@ MavlinkReceiver::receive_thread(void *arg)
 	hrt_abstime last_send_update = 0;
 
 	while (!_mavlink->_task_should_exit) {
+
+        orb_check(_dg_mission_sub, &_mission_manager._dg_mission_updated);
+        if (_mission_manager._dg_mission_updated)
+        {
+            msg = {};
+            orb_copy(ORB_ID(dg_mission), _dg_mission_sub, &_mission_manager._dg_mission);
+            _mission_manager.handle_message(&msg);
+            //_mission_manager._dg_mission_updated =false;
+        }
 		if (poll(&fds[0], 1, timeout) > 0) {
 			if (_mavlink->get_protocol() == SERIAL) {
 

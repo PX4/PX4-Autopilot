@@ -16,7 +16,7 @@ then
 	param set RTL_LAND_DELAY 0
 
 	param set PWM_MAX 1950
-	param set PWM_MIN 1075
+	param set PWM_MIN 1000
 	param set PWM_RATE 400
 fi
 
@@ -25,5 +25,5 @@ fi
 #
 set MIXER_AUX pass
 
-set PWM_AUX_OUT 1234
+set PWM_AUX_OUT 1000
 set PWM_AUX_RATE 50

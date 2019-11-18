@@ -2195,6 +2195,7 @@ Mavlink::task_main(int argc, char *argv[])
 
 	/* start the MAVLink receiver last to avoid a race */
 	MavlinkReceiver::receive_start(&_receive_thread, this);
+    MavlinkMissionManager dg_manager(this);
 
 	while (!_task_should_exit) {
 		/* main loop */
@@ -2202,6 +2203,24 @@ Mavlink::task_main(int argc, char *argv[])
 
 		perf_count(_loop_interval_perf);
 		perf_begin(_loop_perf);
+
+        orb_check(_dg_mission_sub, &_dg_mission_updated);
+        if (_dg_mission_updated){
+            mavlink_message_t msg_empty ={};
+            orb_copy(ORB_ID(dg_mission), _dg_mission_sub, &dg_manager.dg_mission);
+            dg_manager.dg_mission_enable =true;
+            if (dg_manager.dg_mission.msg_type == 0){
+                dg_manager.handle_mission_item(&msg_empty);
+            }
+            else if (dg_manager.dg_mission.msg_type == 1){
+                dg_manager.handle_mission_clear_all(&msg_empty);
+                dg_manager.handle_mission_count(&msg_empty);
+            }
+            else if (dg_manager.dg_mission.msg_type == 2){
+                dg_manager.handle_mission_set_current(&msg_empty);
+            }
+            dg_manager.dg_mission_enable =false;
+        }
 
 		hrt_abstime t = hrt_absolute_time();
 
@@ -2225,7 +2244,8 @@ Mavlink::task_main(int argc, char *argv[])
 			/* switch HIL mode if required */
 			set_hil_enabled(status.hil_state == vehicle_status_s::HIL_STATE_ON);
 
-			set_manual_input_mode_generation(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_GENERATED);
+            //set_manual_input_mode_generation(status.rc_input_mode == vehicle_status_s::RC_IN_MODE_GENERATED);
+            set_manual_input_mode_generation(status.rc_input_mode);
 
 			if (_mode == MAVLINK_MODE_IRIDIUM) {
 
@@ -2670,7 +2690,7 @@ Mavlink::start(int argc, char *argv[])
 	// instance starting. XXX do a real lock.
 
 	// Sleep 500 us between each attempt
-    const unsigned sleeptime = 500;
+	const unsigned sleeptime = 500;
 
 	// Wait 100 ms max for the startup.
 	const unsigned limit = 100 * 1000 / sleeptime;

@@ -273,8 +273,7 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
     /* DG virtual stick data for x, y, z, r when rc lost*/
     if(vs_updated) {
         orb_copy(ORB_ID(virtual_stick), _vs_sub, &_vs_sp);
-        //vs_last_timestamp = hrt_absolute_time();
-       // _vs_enable_DG = _vs_sp.timestamp - vs_last_timestamp > 40000 ? 0 : _vs_sp.vs_enable;
+        vs_last_timestamp = hrt_absolute_time();
         if(_vs_sp.rc_signal_lost){
                         struct manual_control_setpoint_s manual = {};
                         manual.timestamp = vs_last_timestamp;
@@ -400,51 +399,6 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			/* set mode slot to unassigned */
 			manual.mode_slot = manual_control_setpoint_s::MODE_SLOT_NONE;
 
-            /* DG virtual stick data for x, y, z, r */
-            _vs_enable_DG = _rc.timestamp - vs_last_timestamp > 75000 ? 0 : _vs_sp.vs_enable;
-
-            manual.virtual_stick_enable = _vs_enable_DG;
-
-            if (_vs_enable_DG){
-            manual.data_source = 255;
-            manual.x = _vs_sp.x;
-            manual.y = _vs_sp.y;
-            manual.r = _vs_sp.r;
-            manual.z = _vs_sp.z;
-            }
-
-            else {
-			/* set the timestamp to the last signal time */
-			manual.data_source = manual_control_setpoint_s::SOURCE_RC;
-
-			/* limit controls */
-			manual.y = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_ROLL, -1.0, 1.0);
-			manual.x = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_PITCH, -1.0, 1.0);
-			manual.r = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_YAW, -1.0, 1.0);
-			manual.z = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE, 0.0, 1.0);
-
-            /* filter controls */
-//            manual.y = math::constrain(_filter_roll.apply(manual.y), -1.f, 1.f);
-//            manual.x = math::constrain(_filter_pitch.apply(manual.x), -1.f, 1.f);
-//            manual.r = math::constrain(_filter_yaw.apply(manual.r), -1.f, 1.f);
-//            manual.z = math::constrain(_filter_throttle.apply(manual.z), 0.f, 1.f);
-            }
-
-            manual.timestamp = rc_input.timestamp_last_signal;
-			manual.flaps = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS, -1.0, 1.0);
-			manual.aux1 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_1, -1.0, 1.0);
-			manual.aux2 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_2, -1.0, 1.0);
-			manual.aux3 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_3, -1.0, 1.0);
-			manual.aux4 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4, -1.0, 1.0);
-			manual.aux5 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5, -1.0, 1.0);
-			manual.aux6 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_6, -1.0, 1.0);
-
-            /* filter controls */
-            manual.y = math::constrain(_filter_roll.apply(manual.y), -1.f, 1.f);
-            manual.x = math::constrain(_filter_pitch.apply(manual.x), -1.f, 1.f);
-            manual.r = math::constrain(_filter_yaw.apply(manual.r), -1.f, 1.f);
-            manual.z = math::constrain(_filter_throttle.apply(manual.z), 0.f, 1.f);
-
 			if (_parameters.rc_map_flightmode > 0) {
 
 				/* the number of valid slots equals the index of the max marker minus one */
@@ -501,6 +455,63 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			manual.man_switch = get_rc_sw2pos_position(rc_channels_s::RC_CHANNELS_FUNCTION_MAN,
 					    _parameters.rc_man_th, _parameters.rc_man_inv);
 
+            /* DG virtual stick data for x, y, z, r */
+            if (manual.mode_slot ==5 && _vs_sp.vs_enable)
+            {
+                manual.virtual_stick_enable = true;
+                //_vs_enable_DG = hrt_absolute_time() - vs_last_timestamp > 150000 ? 0 : _vs_sp.vs_enable;
+                _vs_enable_DG = hrt_absolute_time() - vs_last_timestamp > 200000 ? 0 : 1;
+                //manual.virtual_stick_enable = _vs_enable_DG;
+                manual.data_source = 255;
+
+                if (_vs_enable_DG){
+                    manual.x = _vs_sp.x;
+                    manual.y = _vs_sp.y;
+                    manual.r = _vs_sp.r;
+                    manual.z = _vs_sp.z;
+                }
+                else {
+                    manual.x = 0;
+                    manual.y = 0;
+                    manual.r = 0;
+                    manual.z = 0.5;
+                }
+            }
+
+            else {
+                manual.virtual_stick_enable = false;
+                /* set the timestamp to the last signal time */
+                manual.data_source = manual_control_setpoint_s::SOURCE_RC;
+
+                /* limit controls */
+                manual.y = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_ROLL, -1.0, 1.0);
+                manual.x = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_PITCH, -1.0, 1.0);
+                manual.r = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_YAW, -1.0, 1.0);
+                manual.z = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE, 0.0, 1.0);
+
+                /* filter controls */
+//            manual.y = math::constrain(_filter_roll.apply(manual.y), -1.f, 1.f);
+//            manual.x = math::constrain(_filter_pitch.apply(manual.x), -1.f, 1.f);
+//            manual.r = math::constrain(_filter_yaw.apply(manual.r), -1.f, 1.f);
+//            manual.z = math::constrain(_filter_throttle.apply(manual.z), 0.f, 1.f);
+            }
+
+
+            manual.timestamp = rc_input.timestamp_last_signal;
+            manual.flaps = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_FLAPS, -1.0, 1.0);
+            manual.aux1 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_1, -1.0, 1.0);
+            manual.aux2 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_2, -1.0, 1.0);
+            manual.aux3 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_3, -1.0, 1.0);
+            manual.aux4 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_4, -1.0, 1.0);
+            manual.aux5 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_5, -1.0, 1.0);
+            manual.aux6 = get_rc_value(rc_channels_s::RC_CHANNELS_FUNCTION_AUX_6, -1.0, 1.0);
+
+            /* filter controls */
+            manual.y = math::constrain(_filter_roll.apply(manual.y), -1.f, 1.f);
+            manual.x = math::constrain(_filter_pitch.apply(manual.x), -1.f, 1.f);
+            manual.r = math::constrain(_filter_yaw.apply(manual.r), -1.f, 1.f);
+            manual.z = math::constrain(_filter_throttle.apply(manual.z), 0.f, 1.f);
+
 			/* publish manual_control_setpoint topic */
 			orb_publish_auto(ORB_ID(manual_control_setpoint), &_manual_control_pub, &manual, &instance,
 					 ORB_PRIO_HIGH);
@@ -530,5 +541,5 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 			}
 		}
 	}
-    if(vs_updated)  vs_last_timestamp = _rc.timestamp;
+    //if(vs_updated)  vs_last_timestamp = _rc.timestamp;
 }

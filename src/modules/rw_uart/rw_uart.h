@@ -13,6 +13,7 @@
 #include <systemlib/err.h>
 #include <string.h>
 #include <poll.h>
+#include <pthread.h>
 
 #include <arch/board/board.h>
 
@@ -70,7 +71,7 @@ typedef struct {
 //    uint8_t second;
     uint32_t YMDHM;
     uint16_t MM;
-    uint8_t wp_num;
+    uint8_t wp_seq_low;
     uint8_t rc_yaw;
     uint8_t rc_y;
     uint8_t rc_x;
@@ -82,7 +83,7 @@ typedef struct {
     int8_t local_vx_high8;
     int8_t local_vx_low8;
     uint16_t total_time;
-    int16_t local_vz_sp;
+    int16_t wp_total;
     uint8_t distance_high8;
     uint8_t rc_throttle_mid;
     int16_t local_z_pressure;
@@ -99,7 +100,7 @@ typedef struct {
     int32_t local_roll;
     uint16_t battery_voltage;
     int16_t acc_down;
-    uint8_t mission_num;
+    uint8_t wp_seq_high;
     uint8_t control_status;
     uint16_t battery_usage;
     uint8_t warnning;
@@ -423,7 +424,7 @@ extern Waypoint_saved wp_data;
 
 extern int uart_read;
 
-extern bool read_to_buff(uint8_t *buffer, int start, int end);
+extern int read_to_buff(uint8_t *buffer, int start, int end);
 
 extern void stp_pack (STP *stp, MSG_orb_data stp_data);
 
@@ -441,7 +442,7 @@ extern uint16_t check_crc(const uint8_t *buffer, uint8_t buflen);
 
 extern void msg_pack_send(MSG_orb_data msg_data, MSG_orb_pub *msg_pd);
 
-extern void find_r_type(uint8_t *buffer, MSG_orb_data *msg_data, MSG_orb_pub *msg_pd,
+extern int find_r_type(uint8_t *buffer, MSG_orb_data *msg_data, MSG_orb_pub *msg_pd,
                         MSG_param_hd msg_hd);
 
 extern void msg_param_saved_get(MSG_param_hd msg_hd);

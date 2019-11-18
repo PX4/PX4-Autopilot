@@ -4,12 +4,14 @@ uint64 timestamp	# time since system start (microseconds)
 
 uint8 DG_MISSION_MSG = 0 
 
-uint8 DG_MISSION_COUNT_MSG =1
+uint8 DG_MISSION_COUNT_MSG = 1
 
-uint8 DG_MISSION_CLEAR_ALL_MSG =2
+uint8 DG_MISSION_SET_CURRENT = 2
+
+uint8 DG_MISSION_CLEAR_ALL_MSG = 3
 
 
-uint8  msg_type		
+uint8  msg_type
 
 
 uint16 count 		# Number of mission items in the sequence

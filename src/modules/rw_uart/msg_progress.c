@@ -17,7 +17,7 @@ void msg_pack_send( MSG_orb_data msg_data, MSG_orb_pub *msg_pd)
     write(uart_read, send_message, sizeof(STP));
     struct dg_vehicle_status_s dg_status = {};
     memcpy(&dg_status.stp, send_message, sizeof(STP));
-    dg_status.timestamp = msg_data.air_data.timestamp;
+    dg_status.timestamp = hrt_absolute_time();
     if (msg_pd->dg_vehicle_status_pd != NULL){
             orb_publish(ORB_ID(dg_vehicle_status), msg_pd->dg_vehicle_status_pd, &dg_status);
             //printf("Passing 2_1\n");
@@ -42,11 +42,12 @@ void msg_param_saved_get(MSG_param_hd msg_hd)
 }
 
 void set_rc_channel_max_min(void){
+    int input_rc_fd =orb_subscribe(ORB_ID(input_rc));
     struct input_rc_s value;
     float max_1,max_2 ,max_3, max_4;
-    max_1 = max_2 = max_3 = max_4 = 1850.0;
+    max_1 = max_2 = max_3 = max_4 = 0;
     float min_1,min_2 ,min_3, min_4;
-    min_1 = min_2 = min_3 = min_4 =1150.0;
+    min_1 = min_2 = min_3 = min_4 = 0;
     param_t channel1_max = param_find("RC1_MAX");
     param_t channel2_max = param_find("RC2_MAX");
     param_t channel3_max = param_find("RC3_MAX");
@@ -56,7 +57,19 @@ void set_rc_channel_max_min(void){
     param_t channel2_min = param_find("RC2_MIN");
     param_t channel3_min = param_find("RC3_MIN");
     param_t channel4_min = param_find("RC4_MIN");
-    int input_rc_fd =orb_subscribe(ORB_ID(input_rc));
+
+    param_set(channel1_max, &max_1);
+    param_set(channel2_max, &max_2);
+    param_set(channel3_max, &max_3);
+    param_set(channel3_trim, &max_3);
+    param_set(channel4_max, &max_4);
+    param_set(channel1_min, &min_1);
+    param_set(channel2_min, &min_2);
+    param_set(channel3_min, &min_3);
+    param_set(channel4_min, &min_4);
+
+    max_1 = max_2 = max_3 = max_4 = 1850.0;
+    min_1 = min_2 = min_3 = min_4 =1150.0;
 
     for (int i=0; i< 500; i++){
        orb_copy(ORB_ID(input_rc), input_rc_fd, &value);
@@ -86,12 +99,13 @@ void set_rc_channel_max_min(void){
 void set_rc_channel_mid(void){
     int input_rc_fd =orb_subscribe(ORB_ID(input_rc));
     struct input_rc_s value;
-    float paramf;
+    float paramf = 1500.0;
     orb_copy(ORB_ID(input_rc), input_rc_fd, &value);
     param_t rc1_mid_hd = param_find("RC1_TRIM");
     param_t rc2_mid_hd = param_find("RC2_TRIM");
     //param_t rc3_mid_hd = param_find("RC3_TRIM");
     param_t rc4_mid_hd = param_find("RC4_TRIM");
+
     paramf = value.values[0];
     param_set(rc1_mid_hd, &paramf);
     paramf = value.values[1];
@@ -136,8 +150,8 @@ void wp_save(MSG_orb_pub *msg_pd){
     mission_item.timestamp = hrt_absolute_time();
     mission_item.msg_type = 0; //DG_MISSION_MSG
     mission_item.frame = 3; //MAV_FRAME_GLOBAL_RELATIVE_ALT
-    mission_item.current = 0; //FALSE
     mission_item.seq = wp_data.push->waypoint_seq -1;
+    mission_item.current = mission_item.seq == 0 ? 1: 0;
     mission_item.mission_type = 0; //MAV_MISSION_TYPE_MISSION
     mission_item.autocontinue = wp_data.push->waypoint_seq < wp_data.total_num ? 1: 0;
     mission_item.target_system =1;
@@ -206,6 +220,7 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
 {
     int paramd;
     float paramf;
+    struct dg_mission_s mission_item = {};
 
     switch (msg_type.name) {
     case MSG_NAME_WIFI:
@@ -279,7 +294,7 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             break;
         case WIFI_COMM_WP_UPLOAD_NUM:
             wp_data.total_num = *(uint16_t*)((uint32_t)buffer + 6);
-            struct dg_mission_s mission_item = {};
+            printf("Wp total_num is %d\n", wp_data.total_num);
             mission_item.timestamp = hrt_absolute_time();
             mission_item.msg_type = 1; //DG_MISSION_COUNT_MSG
             mission_item.mission_type = 0; //MAV_MISSION_TYPE_MISSION
@@ -325,9 +340,12 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             printf("Passing gyro_calibration\n");
             break;
         case WIFI_COMM_WP_CHAGE:
-            set_command_param(&msg_data->command_data, 177, (uint16_t)buffer[7] + ((uint16_t) buffer[8]<<8),
-                                            0, 0, 0, 0, 0, 0);
-            publish_commander_pd(msg_pd, msg_data);
+            mission_item.timestamp = hrt_absolute_time();
+            mission_item.msg_type = 2; //DG_MISSION_SET_CURRENT
+            mission_item.target_system =1;
+            mission_item.target_component =1;
+            mission_item.seq = (uint16_t)buffer[7] + ((uint16_t) buffer[8]<<8) -1;
+            publish_dg_mission_pd(msg_pd, &mission_item);
             printf("Passing wp_chage\n");
             break;
         case WIFI_COMM_PARAM_GET:
@@ -365,16 +383,16 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             printf("Passing cali_off\n");
             break;
         case WIFI_COMM_AUTO_FLIGHT_ON:
-            set_command_param(&msg_data->command_data, 300,  wp_data.setd[0].waypoint_seq,
-                                           wp_data.setd[wp_data.num-1].waypoint_seq, 0, 0, 0, 0, 0);//VEHICLE_CMD_MISSION_START
+            set_command_param(&msg_data->command_data, 176, 189, 4, 4, 0, 0, 0, 0);//VEHICLE_SET_MODE :MISSION
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing atuo_on\n");
             break;
         case WIFI_COMM_AUTO_FLIGHT_OFF:
-            set_command_param(&msg_data->command_data, 17, 0, 0, 0, 0,
+/*            set_command_param(&msg_data->command_data, 17, 0, 0, 0, 0,
                               (msg_data->global_position_data.lat),
                               (msg_data->global_position_data.lon),
-                              (msg_data->global_position_data.alt));//CMD_NAV_LOITER_UNLIM
+                              (msg_data->global_position_data.alt));*///CMD_NAV_LOITER_UNLIM
+            set_command_param(&msg_data->command_data, 176, 189, 4, 3, 0, 0, 0, 0); //VEHICLE_SET_MODE :LOITER
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing auto_off\n");
             break;
@@ -421,11 +439,14 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
         vs_sp.x = ((float_t)(((uint16_t) buffer[9]<<8) + buffer [10])/1000.0 - 1.5)*2.0;
         vs_sp.z = 2.0 - (float_t)(((uint16_t) buffer[11]<<8) + buffer [12])/1000.0;
         //printf("Passing iwfi_pack, x = %.3f y = %.3f z = %.3f r = %.3f\n", vs_sp.x, vs_sp.y, vs_sp.z, vs_sp.r);
-        if ((msg_data->status_data.nav_state == 2 || msg_data->status_data.nav_state == 4) && check_mid(&vs_sp))
+        //if ((msg_data->status_data.nav_state == 2 || msg_data->status_data.nav_state == 4) && check_mid(&vs_sp))
+        if (msg_data->status_data.nav_state == 2 || msg_data->status_data.nav_state == 4)
             vs_sp.vs_enable = 1;
         else vs_sp.vs_enable = 0;
          printf("timestamp is %lld\n", vs_sp.timestamp/1000);
         //printf("vs_enable = %d nav_state = %d\n", vs_sp.vs_enable, msg_data->status_data.nav_state);
+         //int instance;
+         //orb_publish_auto(ORB_ID(virtual_stick), &msg_pd->virtual_stick_pd, &vs_sp, &instance, ORB_PRIO_VERY_HIGH);
          publish_vs_pd(msg_pd, &vs_sp);
         break;
 
@@ -581,17 +602,20 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
     }
 }
 
-void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
+int find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
                         MSG_param_hd msg_hd)
 {
     MSG_type msg_type;
     memset(&msg_type, 0, sizeof(msg_type));
+    //int nread = 0;
 
     char *name = "$WIFI";
     if (compare_buffer_n(buffer, (uint8_t*)name, 5))
     {
         printf("Passing WIFI\n");
-        if (read_to_buff(buffer, 5, 30)){
+        //nread +=read_to_buff(buffer, 5, 30);
+        //if (nread == 25)
+        {
 
             msg_type.name =MSG_NAME_WIFI;
             msg_type.command = buffer[5];
@@ -601,12 +625,12 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
             if (check_command_repeat(buffer, msg_type) && (buffer[29] == 0x3f || buffer[29] == calculate_sum_check(buffer, 30)))
             {
                 printf("Passing check\n");
-                //wifi_pack(buffer, msg_data, msg_type);
                 msg_orb_param_pro(buffer, msg_pd, msg_data, msg_hd, msg_type);
-                //msg_pack_response(msg_hd, msg_type);
+                return 30;
             }
+            else return -1;
         }
-        return;
+
     }
 
     name = "$YFWI";
@@ -614,10 +638,13 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
     {
         printf("Passing YFWI\n");
         uint8_t buflen;
-        if (!read_to_buff(buffer, 5, 6)) return;
+        //nread +=read_to_buff(buffer, 5, 6);
+        //if (nread < 1) return nread;
         buflen = buffer[5];
         printf("buffer len is %d\n", buflen);
-        if (read_to_buff(buffer, 6, buflen)) {
+        //nread +=read_to_buff(buffer, 6, buflen);
+        //if (nread == (buflen -5))
+        {
             msg_type.name =MSG_NAME_YFWI;
             msg_type.command = buffer[6];
             uint16_t  crc_receive = (uint16_t)buffer[buflen -2] + ((uint16_t)buffer[buflen -1] << 8);
@@ -628,7 +655,6 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
                 printf("Passing check\n");
                 if (msg_type.command == YFWI_COMM_CHANGE_PARAM) {
                     if (yfwi_param_set(buffer, msg_hd)) {
-                        //msg_pack_response(msg_hd, msg_type);
                         YFPA_param yfpa_param;
                          memset(&yfpa_param, 0, sizeof(YFPA_param));
                         yfpa_param_pack(&yfpa_param, msg_hd);
@@ -636,7 +662,6 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
                         uint16_t crc = check_crc(param_saved, 62);
                         param_saved[60] = (uint8_t)(crc & 0x00ff);
                         param_saved[61] = (uint8_t)((crc & 0xff00)>>8);
-                        //param_saved[61] = 0xaa;
                         write(uart_read, param_saved, sizeof(YFPA_param));
                         printf("Response Sended\n");
                     }
@@ -644,40 +669,47 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
                 else {
                     msg_orb_param_pro(buffer, msg_pd, msg_data, msg_hd, msg_type);
                 }
+                return buflen;
             }
+            else return -1;
         }
-        return;
     }
 
     name = "$IWFI";
     if (compare_buffer_n(buffer, (uint8_t*)name, 5))
     {
         printf("Passing IWFI\n");
-         if (read_to_buff(buffer, 5, 30)){
+        //nread +=read_to_buff(buffer, 5, 30);
+        //if (nread == 25)
+         {
             msg_type.name =MSG_NAME_IWFI;
             //if(check_command_repeat(buffer, msg_type) && buffer[29] == calculate_sum_check(buffer, 30))
             if (check_command_repeat(buffer, msg_type) && (buffer[29] == 0x3f || buffer[29] == calculate_sum_check(buffer, 30)))
              {
                  printf("Passing check\n");
                  msg_orb_param_pro(buffer, msg_pd, msg_data, msg_hd, msg_type);
+                 return 30;
              }
+            else return -1;
          }
-         return;
     }
 
     name = "$HFMR";
     if (compare_buffer_n(buffer, (uint8_t*)name, 5))
     {
         printf("Passing HFMR\n");
-        if (read_to_buff(buffer, 5, 30)){
+        //nread +=read_to_buff(buffer, 5, 30);
+        //if (nread == 25)
+        {
             msg_type.name =MSG_NAME_HFMR;
             if(buffer[29] == calculate_sum_check(buffer, 30))
              //if (buffer[29] == 0x3f)
              {
                 param_reset_all();
+                return 30;
              }
+            else return -1;
         }
-         return;
     }
 
     name = "$EXYF";
@@ -685,24 +717,28 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
     {
         printf("Passing EXYF\n");
         uint8_t buflen;
-        if (!read_to_buff(buffer, 5, 7)) return;
+        //nread +=read_to_buff(buffer, 5, 7);
+        //if (nread < 2) return nread;
+        //if (!read_to_buff(buffer, 5, 7)) return;
         buflen = (uint16_t)buffer[5] + ((uint16_t)buffer[6]<<8);
         printf("Buflen is %d\n", buflen);
-        if (read_to_buff(buffer, 7, buflen)){
+        //nread +=read_to_buff(buffer, 7, buflen);
+        //if (nread == (buflen - 5))
+        //if (read_to_buff(buffer, 7, buflen))
+        {
             msg_type.name =MSG_NAME_EXYF;
             msg_type.command = buffer[7];
             uint16_t  crc_receive = (uint16_t)buffer[buflen -2] + ((uint16_t)buffer[buflen -1] << 8);
             //if (check_command_repeat(buffer, msg_type) && crc_receive == check_crc(buffer, buflen))
             if (check_command_repeat(buffer, msg_type) && buffer[buflen -1] == 0x3f)
              {
-                //exyf_pack(buffer, msg_data, msg_type, msg_hd);
                 //printf("Check passed\n");
                 msg_orb_param_pro(buffer, msg_pd, msg_data, msg_hd, msg_type);
                 exyf_response_pack(msg_type, msg_hd);
-                //msg_pack_response(msg_hd, msg_type);
+                return buflen;
              }
+            else return -1;
         }
-         return;
     }
 
     name = "$EXEX";
@@ -710,9 +746,14 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
     {
         printf("Passing EXEF\n");
         uint8_t buflen;
-        if (!read_to_buff(buffer, 5, 7)) return;
+        //nread +=read_to_buff(buffer, 5, 7);
+        //if (nread < 2) return nread;
+        //if (!read_to_buff(buffer, 5, 7)) return;
         buflen = (uint16_t)buffer[5] + ((uint16_t)buffer[6]<<8);
-        if (read_to_buff(buffer, 7, buflen)){
+        //nread +=read_to_buff(buffer, 7, buflen);
+        //if (nread == (buflen - 5))
+        //if (read_to_buff(buffer, 7, buflen))
+        {
         msg_type.name =MSG_NAME_EXEX;
         msg_type.command = buffer[7];
         uint16_t  crc_receive = (uint16_t)buffer[buflen -2] + ((uint16_t)buffer[buflen -1] << 8);
@@ -720,9 +761,11 @@ void find_r_type( uint8_t *buffer, MSG_orb_data *msg_data,  MSG_orb_pub *msg_pd,
         //if (check_command_repeat(buffer, msg_type) && buffer[buflen + 8] == 0x3f)
          {
             msg_orb_param_pro(buffer ,msg_pd, msg_data, msg_hd, msg_type);
+            return buflen;
          }
+        else return -1;
         }
-         return;
     }
+    return -1;
 }
 
