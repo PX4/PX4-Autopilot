@@ -153,13 +153,13 @@ public:
 	 * 	Set the integral term in xy to 0.
 	 * 	@see _thr_int
 	 */
-	void resetIntegralXY() { _thr_int(0) = _thr_int(1) = 0.0f; }
+	void resetIntegralXY() { _thr_int(0) = _thr_int(1) = 0.f; }
 
 	/**
 	 * 	Set the integral term in z to 0.
 	 * 	@see _thr_int
 	 */
-	void resetIntegralZ() { _thr_int(2) = 0.0f; }
+	void resetIntegralZ() { _thr_int(2) = 0.f; }
 
 	/**
 	 * 	Get the
@@ -216,21 +216,21 @@ private:
 	matrix::Vector3f _gain_vel_d; ///< Velocity control derivative gain
 
 	// Limits
-	float _lim_vel_horizontal{0}; ///< Horizontal velocity limit with feed forward and position control
-	float _lim_vel_up{0}; ///< Upwards velocity limit with feed forward and position control
-	float _lim_vel_down{0}; ///< Downwards velocity limit with feed forward and position control
-	float _lim_thr_min{0}; ///< Minimum collective thrust allowed as output [-1,0] e.g. -0.9
-	float _lim_thr_max{0}; ///< Maximum collective thrust allowed as output [-1,0] e.g. -0.1
-	float _lim_tilt{0}; ///< Maximum tilt from level the output attitude is allowed to have
+	float _lim_vel_horizontal{}; ///< Horizontal velocity limit with feed forward and position control
+	float _lim_vel_up{}; ///< Upwards velocity limit with feed forward and position control
+	float _lim_vel_down{}; ///< Downwards velocity limit with feed forward and position control
+	float _lim_thr_min{}; ///< Minimum collective thrust allowed as output [-1,0] e.g. -0.9
+	float _lim_thr_max{}; ///< Maximum collective thrust allowed as output [-1,0] e.g. -0.1
+	float _lim_tilt{}; ///< Maximum tilt from level the output attitude is allowed to have
 
-	float _hover_thrust{0}; ///< Thrust [0,1] with which the vehicle hovers not aacelerating down or up with level orientation
+	float _hover_thrust{}; ///< Thrust [0,1] with which the vehicle hovers not aacelerating down or up with level orientation
 
 	// States
-	matrix::Vector3f _pos; /**< position */
-	matrix::Vector3f _vel; /**< velocity */
+	matrix::Vector3f _pos; /**< current position */
+	matrix::Vector3f _vel; /**< current velocity */
 	matrix::Vector3f _vel_dot; /**< velocity derivative (replacement for acceleration estimate) */
 	matrix::Vector3f _thr_int; /**< integral term of the velocity controller */
-	float _yaw = 0.0f; /**< yaw */
+	float _yaw{}; /**< current heading */
 
 	vehicle_constraints_s _constraints{}; /**< variable constraints */
 
@@ -239,7 +239,7 @@ private:
 	matrix::Vector3f _vel_sp; /**< desired velocity */
 	matrix::Vector3f _acc_sp; /**< desired acceleration */
 	matrix::Vector3f _thr_sp; /**< desired thrust */
-	float _yaw_sp{}; /**< desired yaw */
+	float _yaw_sp{}; /**< desired heading */
 	float _yawspeed_sp{}; /** desired yaw-speed */
 
 	bool _skip_controller{false}; /**< skips position/velocity controller. true for stabilized mode */
