@@ -22,6 +22,8 @@ then
 	param set MC_INERTIA_YY 0.0083
 	param set MC_INERTIA_ZZ 0.0286
 
+	param set CA_AIRFRAME 0
+	param set CA_METHOD 0
 	param set CA_ACT0_MIN 0.0
 	param set CA_ACT1_MIN 0.0
 	param set CA_ACT2_MIN 0.0
