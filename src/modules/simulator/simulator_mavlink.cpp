@@ -2,7 +2,7 @@
  *
  *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
  *   Copyright (c) 2016 Anton Matosov. All rights reserved.
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2017-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -374,6 +374,14 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 
 		_last_battery_timestamp = now_us;
 	}
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+
+	if (!_has_initialized.load()) {
+		_has_initialized.store(true);
+	}
+
+#endif
 }
 
 void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg)
@@ -630,7 +638,7 @@ void Simulator::send_heartbeat()
 	send_mavlink_message(message);
 }
 
-void Simulator::poll_for_MAVLink_messages()
+void Simulator::run()
 {
 #ifdef __PX4_DARWIN
 	pthread_setname_np("sim_rcv");
