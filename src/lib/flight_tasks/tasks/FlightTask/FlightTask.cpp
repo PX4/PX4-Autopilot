@@ -18,7 +18,7 @@ bool FlightTask::activate(vehicle_local_position_setpoint_s last_setpoint)
 	_gear = empty_landing_gear_default_keep;
 
 	if (!_time_stamp_mode_switch_requested) {
-		// Modeswitch for timestamp has not been set. Set it equal to actiavtion timestamp.
+		// Modeswitch for timestamp has not been set. Set it equal to activation timestamp.
 		_time_stamp_mode_switch_requested = _time_stamp_activate;
 	}
 
