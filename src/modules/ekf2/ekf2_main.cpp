@@ -652,6 +652,8 @@ Ekf2::init()
 		return false;
 	}
 
+	_ekf_reinit_eval.reset();
+
 	return true;
 }
 
