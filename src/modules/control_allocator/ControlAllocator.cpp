@@ -203,6 +203,10 @@ ControlAllocator::update_allocation_method()
 			tmp = new ControlAllocationMultirotor();
 			break;
 
+		case 2:
+			tmp = new ControlAllocationSequentialDesaturation();
+			break;
+
 		default:
 			PX4_ERR("Unknown allocation method");
 			tmp = nullptr;

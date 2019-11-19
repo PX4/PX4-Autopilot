@@ -44,6 +44,7 @@
 #include <ControlAllocation.hpp>
 #include <ControlAllocationSimple.hpp>
 #include <ControlAllocationMultirotor.hpp>
+#include <ControlAllocationSequentialDesaturation.hpp>
 
 #include <lib/matrix/matrix/math.hpp>
 #include <lib/mixer/mixer.h>

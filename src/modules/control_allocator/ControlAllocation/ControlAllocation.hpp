@@ -81,6 +81,17 @@ public:
 	static const uint8_t NUM_ACTUATORS = vehicle_actuator_setpoint_s::NUM_ACTUATOR_SETPOINT;
 	static const uint8_t NUM_AXES = 6;
 
+	typedef matrix::Vector<float, NUM_ACTUATORS> ActuatorVector;
+
+	enum ControlAxis {
+		ROLL = 0,
+		PITCH,
+		YAW,
+		THRUST_X,
+		THRUST_Y,
+		THRUST_Z
+	};
+
 	/**
 	 * Allocate control setpoint to actuators
 	 *
@@ -194,4 +205,7 @@ protected:
 	matrix::Vector<float, NUM_ACTUATORS> _actuator_sp;  	//< Actuator setpoint
 	matrix::Vector<float, NUM_AXES> _control_sp;   		//< Control setpoint
 	matrix::Vector<float, NUM_AXES> _control_allocated;  	//< Allocated control
+
+	bool _A_update_needed{false};
+
 };

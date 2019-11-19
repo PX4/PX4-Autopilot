@@ -70,6 +70,7 @@ ControlAllocation::setEffectivenessMatrix(const
 		matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &B)
 {
 	_B = B;
+	_A_update_needed = true;
 }
 
 const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &

@@ -57,8 +57,9 @@ PARAM_DEFINE_INT32(CA_AIRFRAME, 0);
  *
  * @value 0 Simple (pseudo-inverse, and output clipping)
  * @value 1 Multirotor (pseudo-inverse, and ad-hoc mixer logic)
+ * @value 2 Sequential desaturation technique (pseudo-inverse)
  * @min 0
- * @max 1
+ * @max 2
  * @group Control Allocation
  */
 PARAM_DEFINE_INT32(CA_METHOD, 0);

@@ -35,6 +35,7 @@ px4_add_library(ControlAllocation
 	ControlAllocation.cpp
 	ControlAllocationMultirotor.cpp
 	ControlAllocationSimple.cpp
+	ControlAllocationSequentialDesaturation.cpp
 )
 
 target_include_directories(ControlAllocation
