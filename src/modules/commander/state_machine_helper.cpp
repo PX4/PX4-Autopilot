@@ -407,7 +407,7 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		   const offboard_loss_rc_actions_t offb_loss_rc_act,
 		   const position_nav_loss_actions_t posctl_nav_loss_act)
 {
-	navigation_state_t nav_state_old = status->nav_state;
+	const navigation_state_t nav_state_old = status->nav_state;
 
 	const bool data_link_loss_act_configured = data_link_loss_act > link_loss_actions_t::DISABLED;
 	const bool rc_loss_act_configured = rc_loss_act > link_loss_actions_t::DISABLED;
