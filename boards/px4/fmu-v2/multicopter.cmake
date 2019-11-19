@@ -33,7 +33,7 @@ px4_add_board(
 		irlock
 		lights/rgbled
 		magnetometer/hmc5883
-		optical_flow/px4flow
+		#optical_flow/px4flow
 		px4fmu
 		px4io
 		tone_alarm
@@ -60,7 +60,7 @@ px4_add_board(
 		vmount
 
 	SYSTEMCMDS
-		bl_update
+		#bl_update
 		#config
 		#dumpfile
 		#esc_calib
@@ -82,6 +82,6 @@ px4_add_board(
 		tune_control
 		usb_connected
 		ver
-		work_queue
+		#work_queue
 
 	)

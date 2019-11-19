@@ -39,12 +39,12 @@
 #include <commander/px4_custom_mode.h>
 #include <drivers/drv_hrt.h>
 #include <lib/controllib/blocks.hpp>
-#include <lib/FlightTasks/FlightTasks.hpp>
+#include <lib/flight_tasks/FlightTasks.hpp>
 #include <lib/hysteresis/hysteresis.h>
 #include <lib/mathlib/mathlib.h>
 #include <lib/perf/perf_counter.h>
 #include <lib/systemlib/mavlink_log.h>
-#include <lib/WeatherVane/WeatherVane.hpp>
+#include <lib/weather_vane/WeatherVane.hpp>
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>

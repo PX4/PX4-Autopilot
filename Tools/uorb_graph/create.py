@@ -286,8 +286,8 @@ class Graph(object):
             self._publications.filter_modules(self._module_whitelist)
 
         # modules & topics sets
-        self._modules = set(self._publications.pubsubs.keys() +
-                self._subscriptions.pubsubs.keys())
+        self._modules = set(list(self._publications.pubsubs.keys()) +
+                list(self._subscriptions.pubsubs.keys()))
         print('number of modules: '+str(len(self._modules)))
         self._topics = self._get_topics(use_topic_pubsub_union=use_topic_pubsub_union)
         print('number of topics: '+str(len(self._topics)))
@@ -353,7 +353,7 @@ class Graph(object):
     def _extract_module_name(self, file_name):
         """ extract the module name from a CMakeLists.txt file and store
             in self._current_module if there is any """
-        datafile = file(file_name)
+        datafile = open(file_name)
         found_module_def = False
         for line in datafile:
             if 'px4_add_module' in line: # must contain 'px4_add_module'

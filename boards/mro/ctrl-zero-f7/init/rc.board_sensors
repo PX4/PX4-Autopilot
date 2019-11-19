@@ -3,6 +3,8 @@
 # mRo Control Zero specific board sensors init
 #------------------------------------------------------------------------------
 
+adc start
+
 # Internal ICM-20602
 mpu6000 -R 10 -s -T 20602 start
 

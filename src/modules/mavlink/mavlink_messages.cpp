@@ -700,6 +700,32 @@ protected:
 				bat_msg.current_battery = (battery_status.connected) ? battery_status.current_filtered_a * 100 : -1;
 				bat_msg.battery_remaining = (battery_status.connected) ? ceilf(battery_status.remaining * 100.0f) : -1;
 
+				switch (battery_status.warning) {
+				case (battery_status_s::BATTERY_WARNING_NONE):
+					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_OK;
+					break;
+
+				case (battery_status_s::BATTERY_WARNING_LOW):
+					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_LOW;
+					break;
+
+				case (battery_status_s::BATTERY_WARNING_CRITICAL):
+					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_CRITICAL;
+					break;
+
+				case (battery_status_s::BATTERY_WARNING_EMERGENCY):
+					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_EMERGENCY;
+					break;
+
+				case (battery_status_s::BATTERY_WARNING_FAILED):
+					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_FAILED;
+					break;
+
+				default:
+					bat_msg.charge_state = MAV_BATTERY_CHARGE_STATE_UNDEFINED;
+					break;
+				}
+
 				// check if temperature valid
 				if (battery_status.connected && PX4_ISFINITE(battery_status.temperature)) {
 					bat_msg.temperature = battery_status.temperature * 100.0f;

@@ -60,6 +60,7 @@ recv_topics = [(alias[idx] if alias[idx] else s.short_name) for idx, s in enumer
 #include <csignal>
 #include <termios.h>
 #include <condition_variable>
+#include <queue>
 
 #include <fastcdr/Cdr.h>
 #include <fastcdr/FastCdr.h>
@@ -189,38 +190,39 @@ void signal_handler(int signum)
 
 @[if recv_topics]@
 std::atomic<bool> exit_sender_thread(false);
-std::condition_variable cv_msg;
-std::mutex cv_m; 
+std::condition_variable t_send_queue_cv;
+std::mutex t_send_queue_mutex; 
+std::queue<uint8_t> t_send_queue;
 
 void t_send(void *data)
 {
     char data_buffer[BUFFER_SIZE] = {};
-    int length = 0;
-    uint8_t topic_ID = 255;
-    
-    std::unique_lock<std::mutex> lk(cv_m);
+    int length = 0; 
 
-    while (running)
+    while (running && !exit_sender_thread.load())
     {
-        // Send subscribed topics over UART
-        while (topics.hasMsg(&topic_ID) && !exit_sender_thread.load())
+        std::unique_lock<std::mutex> lk(t_send_queue_mutex);
+        while (t_send_queue.empty() && !exit_sender_thread.load())
         {
-            uint16_t header_length = transport_node->get_header_length();
-            /* make room for the header to fill in later */
-            eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[header_length], sizeof(data_buffer)-header_length);
-            eprosima::fastcdr::Cdr scdr(cdrbuffer);
-            if (topics.getMsg(topic_ID, scdr))
+            t_send_queue_cv.wait(lk);
+        }
+        uint8_t topic_ID = t_send_queue.front();
+        t_send_queue.pop();
+        lk.unlock();
+        
+        uint16_t header_length = transport_node->get_header_length();
+        /* make room for the header to fill in later */
+        eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[header_length], sizeof(data_buffer)-header_length);
+        eprosima::fastcdr::Cdr scdr(cdrbuffer);
+        if (topics.getMsg(topic_ID, scdr))
+        {
+            length = scdr.getSerializedDataLength();
+            if (0 < (length = transport_node->write(topic_ID, data_buffer, length)))
             {
-                length = scdr.getSerializedDataLength();
-                if (0 < (length = transport_node->write(topic_ID, data_buffer, length)))
-                {
-                    total_sent += length;
-                    ++sent;
-                }
+                total_sent += length;
+                ++sent;
             }
         }
-
-        cv_msg.wait_for(lk, std::chrono::microseconds(_options.sleep_us));
     }
 }
 @[end if]@
@@ -274,7 +276,7 @@ int main(int argc, char** argv)
     std::chrono::time_point<std::chrono::steady_clock> start, end;
 @[end if]@
 
-    topics.init(&cv_msg);
+    topics.init(&t_send_queue_cv, &t_send_queue_mutex, &t_send_queue);
 
     running = true;
 @[if recv_topics]@
@@ -307,12 +309,13 @@ int main(int argc, char** argv)
             received = sent = total_read = total_sent = 0;
             receiving = false;
         }
-
-@[end if]@
+@[else]@
         usleep(_options.sleep_us);
+@[end if]@
     }
 @[if recv_topics]@
     exit_sender_thread = true;
+    t_send_queue_cv.notify_one();
     sender_thread.join();
 @[end if]@
     delete transport_node;

@@ -37,9 +37,11 @@ px4_add_module(
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
+		BMP280.hpp
 		bmp280_spi.cpp
 		bmp280_i2c.cpp
 		bmp280.cpp
+		bmp280_main.cpp
 	DEPENDS
 		px4_work_queue
 	)

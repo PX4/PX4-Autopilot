@@ -50,7 +50,7 @@
 #include <unistd.h>
 #include <px4_platform_common/getopt.h>
 #include <errno.h>
-
+#include <lib/parameters/param.h>
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
 

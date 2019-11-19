@@ -50,7 +50,7 @@ __BEGIN_DECLS
 
 /* these headers are not C++ safe */
 #include <kinetis.h>
-#include <chip/kinetis_pinmux.h>
+#include <hardware/kinetis_pinmux.h>
 #include <arch/board/board.h>
 
 /* FMUK66 GPIOs ***********************************************************************************/
@@ -187,7 +187,7 @@ __BEGIN_DECLS
  */
 #define SD_CAED_P_EN       (GPIO_LOWDRIVE | GPIO_OUTPUT_ONE  | PIN_PORTD | PIN6)
 
-#define GPIO_SD_CARDDETECT (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTD | PIN10)
+//#define GPIO_SD_CARDDETECT (GPIO_PULLUP | PIN_INT_BOTH | PIN_PORTD | PIN10)
 
 /* SPI
  *
