@@ -152,9 +152,10 @@ void BlockLocalPositionEstimator::flowCorrect()
 	// compute polynomial value
 	float flow_vxy_stddev = p[0] * h + p[1] * h * h + p[2] * v + p[3] * v * h + p[4] * v * h * h;
 
-	float rotrate_sq = _sub_att.get().rollspeed * _sub_att.get().rollspeed
-			   + _sub_att.get().pitchspeed * _sub_att.get().pitchspeed
-			   + _sub_att.get().yawspeed * _sub_att.get().yawspeed;
+	const Vector3f rates{_sub_angular_velocity.get().xyz};
+	float rotrate_sq = rates(0) * rates(0)
+			   + rates(1) * rates(1)
+			   + rates(2) * rates(2);
 
 	matrix::Eulerf euler(matrix::Quatf(_sub_att.get().q));
 	float rot_sq = euler.phi() * euler.phi() + euler.theta() * euler.theta();

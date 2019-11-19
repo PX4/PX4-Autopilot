@@ -36,11 +36,11 @@ px4_add_module(
 	MAIN syslink
 	COMPILE_FLAGS
 		-Wno-cast-align # TODO: fix and enable
-	STACK_MAIN 1300
 	SRCS
 		syslink_main.cpp
 		syslink_bridge.cpp
 		syslink_memory.cpp
-		syslink_params.c
 		syslink.c
+	DEPENDS
+		battery
 	)

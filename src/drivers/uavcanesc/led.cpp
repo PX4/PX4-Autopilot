@@ -36,7 +36,7 @@
 #include <stdint.h>
 
 #include <arch/board/board.h>
-#include "chip/stm32_tim.h"
+#include "hardware/stm32_tim.h"
 
 
 #include "led.hpp"

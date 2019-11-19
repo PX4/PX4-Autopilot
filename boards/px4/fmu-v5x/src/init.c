@@ -35,7 +35,7 @@
  * @file init.c
  *
  * PX4FMU-specific early startup code.  This file implements the
- * nsh_archinitialize() function that is called early by nsh during startup.
+ * board_app_initializ() function that is called early by nsh during startup.
  *
  * Code here is run before the rcS script is invoked; it should start required
  * subsystems and perform board-specific initialization.
@@ -56,7 +56,6 @@
 #include <nuttx/config.h>
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
-#include <nuttx/i2c/i2c_master.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/analog/adc.h>
@@ -69,8 +68,10 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
 #include <systemlib/px4_macros.h>
-#include <px4_init.h>
-#include <drivers/boards/common/board_dma_alloc.h>
+#include <px4_platform_common/init.h>
+#include <px4_platform/gpio.h>
+#include <px4_platform/board_determine_hw_info.h>
+#include <px4_platform/board_dma_alloc.h>
 
 /****************************************************************************
  * Pre-Processor Definitions
@@ -91,51 +92,6 @@ extern void led_on(int led);
 extern void led_off(int led);
 __END_DECLS
 
-
-/************************************************************************************
- * Name: board_rc_input
- *
- * Description:
- *   All boards my optionally provide this API to invert the Serial RC input.
- *   This is needed on SoCs that support the notion RXINV or TXINV as apposed to
- *   and external XOR controlled by a GPIO
- *
- ************************************************************************************/
-
-__EXPORT void board_rc_input(bool invert_on, uint32_t uxart_base)
-{
-
-	irqstate_t irqstate = px4_enter_critical_section();
-
-	uint32_t cr1 =	getreg32(STM32_USART_CR1_OFFSET + uxart_base);
-	uint32_t cr2 =	getreg32(STM32_USART_CR2_OFFSET + uxart_base);
-	uint32_t regval = cr1;
-
-	/* {R|T}XINV bit fields can only be written when the USART is disabled (UE=0). */
-
-	regval &= ~USART_CR1_UE;
-
-	putreg32(regval, STM32_USART_CR1_OFFSET + uxart_base);
-
-	if (invert_on) {
-#if defined(BOARD_HAS_RX_TX_SWAP) &&	RC_SERIAL_PORT_IS_SWAPED == 1
-
-		/* This is only ever turned on */
-
-		cr2 |= (USART_CR2_RXINV | USART_CR2_TXINV | USART_CR2_SWAP);
-#else
-		cr2 |= (USART_CR2_RXINV | USART_CR2_TXINV);
-#endif
-
-	} else {
-		cr2 &= ~(USART_CR2_RXINV | USART_CR2_TXINV);
-	}
-
-	putreg32(cr2, STM32_USART_CR2_OFFSET + uxart_base);
-	putreg32(cr1, STM32_USART_CR1_OFFSET + uxart_base);
-
-	leave_critical_section(irqstate);
-}
 
 /************************************************************************************
  * Name: board_peripheral_reset
@@ -189,7 +145,7 @@ __EXPORT void board_on_reset(int status)
 	/* configure the GPIO pins to outputs and keep them low */
 
 	const uint32_t gpio[] = PX4_GPIO_PWM_INIT_LIST;
-	board_gpio_init(gpio, arraySize(gpio));
+	px4_gpio_init(gpio, arraySize(gpio));
 
 	if (status >= 0) {
 		up_mdelay(6);
@@ -218,7 +174,7 @@ stm32_boardinitialize(void)
 	/* configure pins */
 
 	const uint32_t gpio[] = PX4_GPIO_INIT_LIST;
-	board_gpio_init(gpio, arraySize(gpio));
+	px4_gpio_init(gpio, arraySize(gpio));
 
 	/* configure SPI interfaces */
 
@@ -227,6 +183,8 @@ stm32_boardinitialize(void)
 	/* configure USB interfaces */
 
 	stm32_usbinitialize();
+
+	VDD_3V3_ETH_POWER_EN(true);
 
 }
 
@@ -268,6 +226,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	VDD_3V3_SENSORS4_EN(true);
 	VDD_3V3_SPEKTRUM_POWER_EN(true);
 
+	/* Need hrt running before using the ADC */
+
+	px4_platform_init();
+
 
 	if (OK == board_determine_hw_info()) {
 		syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
@@ -277,7 +239,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] Failed to read HW revision and version\n");
 	}
 
-	px4_platform_init();
 
 	/* configure the DMA allocator */
 

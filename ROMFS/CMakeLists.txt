@@ -83,6 +83,7 @@ add_custom_command(
 		${romfs_gen_root_dir}/init.d/rcS
 		${romfs_gen_root_dir}/init.d/rc.serial
 		${romfs_gen_root_dir}/init.d/rc.autostart
+		${romfs_gen_root_dir}/init.d/rc.autostart.post
 		romfs_copy.stamp
 	COMMAND ${CMAKE_COMMAND} -E remove_directory ${romfs_gen_root_dir}
 	# TODO: we should only copy the files in ${romfs_copy_files}
@@ -107,21 +108,17 @@ add_custom_command(
 		${romfs_cmake_files}
 		${romfs_copy_files}
 		${PX4_SOURCE_DIR}/Tools/px_process_airframes.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/markdownout.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/rcout.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/srcparser.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/srcscanner.py
+		${PX4_SOURCE_DIR}/Tools/px4airframes/xmlout.py
 		${PX4_SOURCE_DIR}/Tools/serial/generate_config.py
 	COMMENT "ROMFS: copying, generating airframes"
 	)
 
 # copy extras into ROMFS
 set(extras_dependencies)
-
-# copy px4io binary if configured
-if(config_io_board)
-	list(APPEND extras_dependencies
-		copy_px4io_bin
-		${fw_io_bin}
-		)
-endif()
-
 
 if(config_bl_file)
 	file(MAKE_DIRECTORY ${PX4_BINARY_DIR}/romfs_extras)
@@ -132,11 +129,27 @@ if(config_bl_file)
 		)
 endif()
 
+# copy px4io binary if configured
+if(config_io_board)
+	list(APPEND extras_dependencies
+		copy_px4io_bin
+		${fw_io_bin}
+	)
+endif()
+
+if(config_build_bootloader)
+	list(APPEND extras_dependencies
+		copy_bootloader_bin
+		${bootloader_bin}
+	)
+endif()
+
 set(OPTIONAL_BOARD_RC)
 list(APPEND OPTIONAL_BOARD_RC
 	rc.board_defaults
 	rc.board_sensors
 	rc.board_extras
+	rc.board_mavlink
 )
 
 foreach(board_rc_file ${OPTIONAL_BOARD_RC})
@@ -148,7 +161,7 @@ foreach(board_rc_file ${OPTIONAL_BOARD_RC})
 			OUTPUT
 				${romfs_gen_root_dir}/init.d/${board_rc_file}
 				${board_rc_file}.stamp
-			COMMAND ${CMAKE_COMMAND} -E copy ${PX4_BOARD_DIR}/init/${board_rc_file} ${romfs_gen_root_dir}/init.d/${board_rc_file}
+			COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PX4_BOARD_DIR}/init/${board_rc_file} ${romfs_gen_root_dir}/init.d/${board_rc_file}
 			COMMAND ${CMAKE_COMMAND} -E touch ${board_rc_file}.stamp
 			DEPENDS
 				${PX4_BOARD_DIR}/init/${board_rc_file}
@@ -189,7 +202,7 @@ if("${CONFIG_FS_CROMFS}" STREQUAL "y")
 	add_custom_command(
 		OUTPUT ${CMAKE_BINARY_DIR}/gencromfs
 		COMMAND make --no-print-directory --silent -f Makefile.host gencromfs
-		COMMAND ${CMAKE_COMMAND} -E copy gencromfs ${CMAKE_BINARY_DIR}/gencromfs
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different gencromfs ${CMAKE_BINARY_DIR}/gencromfs
 		DEPENDS ${PX4_SOURCE_DIR}/platforms/nuttx/NuttX/nuttx/tools/gencromfs.c
 		WORKING_DIRECTORY ${NUTTX_DIR}/tools
 	)

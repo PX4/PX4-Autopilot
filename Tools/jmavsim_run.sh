@@ -49,6 +49,10 @@ else
 	device="-serial $device $baudrate"
 fi
 
+if [ "$HEADLESS" = "1" ]; then
+    extra_args="$extra_args -no-gui"
+fi
+
 # jMAVSim crashes with Java 9 on macOS, therefore we need to use Java 8
 if [ "$(uname)" == "Darwin" ]; then
     bold=$(tput bold)

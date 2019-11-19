@@ -37,7 +37,7 @@
  * Mixer collection.
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
@@ -196,6 +196,24 @@ MixerGroup::set_airmode(Airmode airmode)
 		mixer->set_airmode(airmode);
 		mixer = mixer->_next;
 	}
+}
+
+unsigned
+MixerGroup::get_multirotor_count()
+{
+	Mixer	*mixer = _first;
+	unsigned rotor_count = 0;
+
+	while (mixer != nullptr) {
+
+		rotor_count = mixer->get_multirotor_count();
+
+		if (rotor_count > 0) { break; }
+
+		mixer = mixer -> _next;
+	}
+
+	return rotor_count;
 }
 
 uint16_t

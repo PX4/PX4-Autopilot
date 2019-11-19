@@ -39,12 +39,12 @@
  * Based on the hmc5883 driver.
  */
 
-#include <px4_time.h>
+#include <px4_platform_common/time.h>
 #include "lis3mdl.h"
 
 LIS3MDL::LIS3MDL(device::Device *interface, const char *path, enum Rotation rotation) :
 	CDev("LIS3MDL", path),
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_reports(nullptr),
 	_scale{},
@@ -361,8 +361,8 @@ LIS3MDL::collect()
 	ret = _interface->read(ADDR_OUT_X_L, (uint8_t *)&lis_report, sizeof(lis_report));
 
 	/**
-	 * Weird behavior: the X axis will be read instead of the temperature registers if you use a pointer to a packed struct...not sure why.
-	 * This works now, but further investigation to determine why this happens would be good (I am guessing a type error somewhere)
+	 * Silicon Bug: the X axis will be read instead of the temperature registers if you do a sequential read through XYZ.
+	 * The temperature registers must be addressed directly.
 	 */
 	ret = _interface->read(ADDR_OUT_T_L, (uint8_t *)&buf_rx, sizeof(buf_rx));
 

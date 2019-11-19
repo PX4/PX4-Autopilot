@@ -127,9 +127,9 @@
 #include "calibration_routines.h"
 #include "commander_helper.h"
 
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_time.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/time.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <poll.h>
@@ -643,8 +643,7 @@ calibrate_return read_accelerometer_avg(int sensor_correction_sub, int (&subs)[m
 	}
 
 	unsigned counts[max_accel_sens] = { 0 };
-	float accel_sum[max_accel_sens][3];
-	memset(accel_sum, 0, sizeof(accel_sum));
+	float accel_sum[max_accel_sens][3] {};
 
 	unsigned errcount = 0;
 	struct sensor_correction_s sensor_correction; /**< sensor thermal corrections */
@@ -716,7 +715,10 @@ calibrate_return read_accelerometer_avg(int sensor_correction_sub, int (&subs)[m
 	for (unsigned i = 0; i < max_accel_sens; i++) {
 		matrix::Vector3f accel_sum_vec(&accel_sum[i][0]);
 		accel_sum_vec = board_rotation * accel_sum_vec;
-		memcpy(&accel_sum[i][0], accel_sum_vec.data(), sizeof(accel_sum[i]));
+
+		for (size_t j = 0; j < 3; j++) {
+			accel_sum[i][j] = accel_sum_vec(j);
+		}
 	}
 
 	for (unsigned s = 0; s < max_accel_sens; s++) {

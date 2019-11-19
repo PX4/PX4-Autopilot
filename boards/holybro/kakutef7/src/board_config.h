@@ -43,7 +43,7 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
@@ -189,21 +189,6 @@
 
 #define GPIO_RSSI_IN                       /* PC5  */ (GPIO_INPUT|GPIO_PULLUP|GPIO_PORTC|GPIO_PIN5)
 
-/* By Providing BOARD_ADC_USB_CONNECTED (using the px4_arch abstraction)
- * this board support the ADC system_power interface, and therefore
- * provides the true logic GPIO BOARD_ADC_xxxx macros.
- */
-#define BOARD_ADC_USB_CONNECTED (px4_arch_gpioread(GPIO_OTGFS_VBUS))
-
-#if BOARD_HAS_USB_VALID == 1
-#  define BOARD_ADC_USB_VALID     (!px4_arch_gpioread(GPIO_nVDD_USB_VALID))
-#else
-#  define BOARD_ADC_USB_VALID     BOARD_ADC_USB_CONNECTED
-#endif
-
-#define BOARD_ADC_SERVO_VALID     (1)
-#define BOARD_ADC_BRICK1_VALID  (1)
-
 #define BOARD_HAS_PWM  DIRECT_PWM_OUTPUT_CHANNELS
 
 /* This board provides a DMA pool and APIs */
@@ -230,6 +215,8 @@
 	}
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
+
+#define BOARD_NUM_IO_TIMERS 4
 
 __BEGIN_DECLS
 
@@ -263,27 +250,7 @@ extern void stm32_usbinitialize(void);
 
 extern void board_peripheral_reset(int ms);
 
-
-/****************************************************************************
- * Name: nsh_archinitialize
- *
- * Description:
- *   Perform architecture specific initialization for NSH.
- *
- *   CONFIG_NSH_ARCHINIT=y :
- *     Called from the NSH library
- *
- *   CONFIG_BOARD_INITIALIZE=y, CONFIG_NSH_LIBRARY=y, &&
- *   CONFIG_NSH_ARCHINIT=n :
- *     Called from board_initialize().
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NSH_LIBRARY
-int nsh_archinitialize(void);
-#endif
-
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */
 

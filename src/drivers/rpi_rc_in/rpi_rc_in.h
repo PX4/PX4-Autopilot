@@ -48,9 +48,9 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#include <px4_config.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-#include <px4_defines.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/defines.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -61,10 +61,10 @@
 
 namespace rpi_rc_in
 {
-class RcInput, public px4::ScheduledWorkItem
+class RcInput : public px4::ScheduledWorkItem
 {
 public:
-	RcInput() : ScheduledWorkItem(px4::wq_configurations::hp_default) {}
+	RcInput() : ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default) {}
 
 	~RcInput();
 

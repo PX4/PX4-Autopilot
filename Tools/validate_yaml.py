@@ -54,7 +54,7 @@ for yaml_file in yaml_files:
     if verbose: print("Validating {:}".format(yaml_file))
     document = load_yaml_file(yaml_file)
     # ignore top-level entries prefixed with __
-    for key in document.keys():
+    for key in list(document.keys()):
         if key.startswith('__'): del document[key]
 
     if not validator.validate(document):

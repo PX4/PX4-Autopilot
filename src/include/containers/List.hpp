@@ -68,13 +68,14 @@ public:
 
 	bool remove(T removeNode)
 	{
+		if (removeNode == nullptr) {
+			return false;
+		}
+
 		// base case
 		if (removeNode == _head) {
-			if (_head->getSibling() != nullptr) {
+			if (_head != nullptr) {
 				_head = _head->getSibling();
-
-			} else {
-				_head = nullptr;
 			}
 
 			return true;
@@ -100,7 +101,7 @@ public:
 
 	struct Iterator {
 		T node;
-		Iterator(T v) : node(v) {}
+		explicit Iterator(T v) : node(v) {}
 
 		operator T() const { return node; }
 		operator T &() { return node; }

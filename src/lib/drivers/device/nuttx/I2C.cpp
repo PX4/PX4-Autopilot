@@ -51,7 +51,7 @@ namespace device
 
 unsigned int I2C::_bus_clocks[BOARD_NUMBER_I2C_BUSES] = BOARD_I2C_BUS_CLOCK_INIT;
 
-I2C::I2C(const char *name, const char *devname, int bus, uint16_t address, uint32_t frequency) :
+I2C::I2C(const char *name, const char *devname, const int bus, const uint16_t address, const uint32_t frequency) :
 	CDev(name, devname),
 	_frequency(frequency)
 {
@@ -167,7 +167,7 @@ out:
 }
 
 int
-I2C::transfer(const uint8_t *send, unsigned send_len, uint8_t *recv, unsigned recv_len)
+I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const unsigned recv_len)
 {
 	px4_i2c_msg_t msgv[2];
 	unsigned msgs;

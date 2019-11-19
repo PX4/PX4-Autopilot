@@ -42,14 +42,14 @@
 
 #pragma once
 
-#include <px4_workqueue.h>
+#include <px4_platform_common/workqueue.h>
 #include <drivers/drv_hrt.h>
 #include <parameters/param.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_acceleration.h>
 #include <uORB/topics/vehicle_attitude.h>
-#include <uORB/topics/sensor_bias.h>
+#include <uORB/topics/vehicle_local_position.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/landing_target_pose.h>
 #include <uORB/topics/landing_target_innovations.h>
@@ -130,18 +130,18 @@ private:
 
 	uORB::Subscription _vehicleLocalPositionSub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _attitudeSub{ORB_ID(vehicle_attitude)};
-	uORB::Subscription _sensorBiasSub{ORB_ID(sensor_bias)};
+	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::Subscription _irlockReportSub{ORB_ID(irlock_report)};
 
 	vehicle_local_position_s	_vehicleLocalPosition{};
-	vehicle_attitude_s	_vehicleAttitude{};
-	sensor_bias_s		_sensorBias{};
-	irlock_report_s		_irlockReport{};
+	vehicle_attitude_s		_vehicleAttitude{};
+	vehicle_acceleration_s		_vehicle_acceleration{};
+	irlock_report_s			_irlockReport{};
 
 	// keep track of which topics we have received
 	bool _vehicleLocalPosition_valid{false};
 	bool _vehicleAttitude_valid{false};
-	bool _sensorBias_valid{false};
+	bool _vehicle_acceleration_valid{false};
 	bool _new_irlockReport{false};
 	bool _estimator_initialized{false};
 	// keep track of whether last measurement was rejected

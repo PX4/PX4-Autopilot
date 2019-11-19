@@ -18,6 +18,7 @@ px4_add_board(
 		TEL4:/dev/ttyS3
 
 	DRIVERS
+		adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -28,7 +29,6 @@ px4_add_board(
 		imu/mpu6000
 		irlock
 		lights/blinkm
-		lights/oreoled
 		lights/rgbled
 		lights/rgbled_ncp5623c
 		lights/rgbled_pwm
@@ -40,9 +40,7 @@ px4_add_board(
 		px4io
 		rc_input
 		roboclaw
-		stm32
-		stm32/adc
-		stm32/tone_alarm
+		safety_button
 		tap_esc
 		telemetry # all available telemetry drivers
 		tone_alarm
@@ -64,10 +62,11 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		navigator
+		battery_status
 		sensors
 		sih
 		vmount
-		wind_estimator
+		airspeed_selector
 
 	SYSTEMCMDS
 		bl_update
@@ -94,4 +93,6 @@ px4_add_board(
 		tune_control
 		usb_connected
 		ver
+		work_queue
+
 	)

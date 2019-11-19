@@ -155,10 +155,12 @@ if (NOT "${PX4_BOARD}" MATCHES "px4_io")
 			-Wno-sign-compare	# TODO: fix and enable
 	)
 else()
-	add_library(parameters ${PX4_SOURCE_DIR}/src/platforms/empty.c)
+	add_library(parameters ${PX4_SOURCE_DIR}/platforms/common/empty.c)
 endif()
 add_dependencies(parameters prebuild_targets)
 
 if(${PX4_PLATFORM} STREQUAL "nuttx")
 	target_link_libraries(parameters PRIVATE flashparams tinybson)
 endif()
+
+px4_add_functional_gtest(SRC ParameterTest.cpp LINKLIBS parameters)

@@ -220,16 +220,13 @@ class Graph(object):
     #   (the expectation is that the previous matching ORB_ID() will be passed
     #   to this, so that we can ignore it)
         special_cases_sub = [
-    ('sensors', r'voted_sensors_update\.cpp$', r'\binit_sensor_class\b\(([^,)]+)', r'^meta$'),
+    ('sensors', r'voted_sensors_update\.cpp$', r'\binitSensorClass\b\(([^,)]+)', r'^meta$'),
     ('mavlink', r'.*', r'\badd_orb_subscription\b\(([^,)]+)', r'^_topic$'),
     ('listener', r'.*', None, r'^(id)$'),
     ('logger', r'.*', None, r'^(topic|sub\.metadata|_polling_topic_meta)$'),
 
-    ('uavcan', r'uavcan_main\.cpp$', r'\b_control_topics\[[0-9]\]=([^,)]+)', r'^_control_topics\[i\]$'),
     ('tap_esc', r'.*', r'\b_control_topics\[[0-9]\]=([^,)]+)', r'^_control_topics\[i\]$'),
-    ('pwm_out_sim', r'.*', r'\b_control_topics\[[0-9]\]=([^,)]+)', r'^_control_topics\[i\]$'),
     ('snapdragon_pwm_out', r'.*', r'\b_controls_topics\[[0-9]\]=([^,)]+)', r'^_controls_topics\[i\]$'),
-    ('fmu', r'.*', r'\b_control_topics\[[0-9]\]=([^,)]+)', r'^_control_topics\[i\]$'),
     ('linux_pwm_out', r'.*', r'\b_controls_topics\[[0-9]\]=([^,)]+)', r'^_controls_topics\[i\]$'),
     ]
         special_cases_sub = [(a, re.compile(b), re.compile(c) if c is not None else None, re.compile(d))
@@ -241,9 +238,9 @@ class Graph(object):
 
 
         special_cases_pub = [
-    ('replay', r'replay_main\.cpp$', None, r'^sub\.orb_meta$'),
+    ('replay', r'Replay\.cpp$', None, r'^sub\.orb_meta$'),
     ('fw_pos_control_l1', r'FixedwingPositionControl\.cpp$', r'\b_attitude_setpoint_id=([^,)]+)', r'^_attitude_setpoint_id$'),
-    
+
     ('mc_pos_control', r'mc_pos_control_main\.cpp$', r'\b_attitude_setpoint_id=([^,)]+)', r'^_attitude_setpoint_id$'),
 
     ('mc_att_control', r'mc_att_control_main\.cpp$', r'\b_actuators_id=([^,)]+)', r'^_actuators_id$'),
@@ -289,8 +286,8 @@ class Graph(object):
             self._publications.filter_modules(self._module_whitelist)
 
         # modules & topics sets
-        self._modules = set(self._publications.pubsubs.keys() +
-                self._subscriptions.pubsubs.keys())
+        self._modules = set(list(self._publications.pubsubs.keys()) +
+                list(self._subscriptions.pubsubs.keys()))
         print('number of modules: '+str(len(self._modules)))
         self._topics = self._get_topics(use_topic_pubsub_union=use_topic_pubsub_union)
         print('number of topics: '+str(len(self._topics)))
@@ -356,7 +353,7 @@ class Graph(object):
     def _extract_module_name(self, file_name):
         """ extract the module name from a CMakeLists.txt file and store
             in self._current_module if there is any """
-        datafile = file(file_name)
+        datafile = open(file_name)
         found_module_def = False
         for line in datafile:
             if 'px4_add_module' in line: # must contain 'px4_add_module'
@@ -519,7 +516,7 @@ class OutputGraphviz(object):
                             graph.edge('t_'+topic, 'm_'+module,
                                     color=topic_colors[topic])
 
-	graph.render(file_name, view=False)
+        graph.render(file_name, view=False)
 
 
 class OutputJSON(object):
@@ -634,6 +631,3 @@ elif args.output == 'graphviz':
     output_graphviz.write(args.file+'_pubs.fv', show_subscriptions=False, engine=engine)
 else:
     print('Error: unknown output format '+args.output)
-
-
-

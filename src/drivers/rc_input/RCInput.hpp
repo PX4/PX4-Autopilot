@@ -44,11 +44,13 @@
 #include <lib/rc/sbus.h>
 #include <lib/rc/st24.h>
 #include <lib/rc/sumd.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_log.h>
-#include <px4_module.h>
-#include <px4_workqueue.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/workqueue.h>
+#include <uORB/Subscription.hpp>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/adc_report.h>
 #include <uORB/topics/input_rc.h>
 #include <uORB/topics/vehicle_command.h>
@@ -129,7 +131,7 @@ private:
 	float		_analog_rc_rssi_volt{-1.0f};
 	bool		_analog_rc_rssi_stable{false};
 
-	orb_advert_t	_to_input_rc{nullptr};
+	uORB::PublicationMulti<input_rc_s>	_to_input_rc{ORB_ID(input_rc)};
 
 	int		_rcs_fd{-1};
 	char		_device[20] {};					///< device / serial port path

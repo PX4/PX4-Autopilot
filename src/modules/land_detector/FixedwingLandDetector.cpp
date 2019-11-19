@@ -41,11 +41,6 @@
 
 #include "FixedwingLandDetector.h"
 
-#include <cmath>
-
-#include <px4_config.h>
-#include <px4_defines.h>
-
 namespace land_detector
 {
 
@@ -58,38 +53,20 @@ FixedwingLandDetector::FixedwingLandDetector()
 
 void FixedwingLandDetector::_update_topics()
 {
+	LandDetector::_update_topics();
 	_airspeed_sub.update(&_airspeed);
-	_sensor_bias_sub.update(&_sensor_bias);
-	_vehicle_local_position_sub.update(&_vehicle_local_position);
-}
-
-void FixedwingLandDetector::_update_params()
-{
-	parameter_update_s param_update;
-
-	if (_param_update_sub.update(&param_update)) {
-		_update_params();
-	}
-}
-
-float FixedwingLandDetector::_get_max_altitude()
-{
-	// TODO
-	// This means no altitude limit as the limit
-	// is always current position plus 10000 meters
-	return roundf(-_vehicle_local_position.z + 10000);
 }
 
 bool FixedwingLandDetector::_get_landed_state()
 {
-	// only trigger flight conditions if we are armed
+	// Only trigger flight conditions if we are armed.
 	if (!_actuator_armed.armed) {
 		return true;
 	}
 
 	bool landDetected = false;
 
-	if (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 500 * 1000) {
+	if (hrt_elapsed_time(&_vehicle_local_position.timestamp) < 500_ms) {
 
 		// Horizontal velocity complimentary filter.
 		float val = 0.97f * _velocity_xy_filtered + 0.03f * sqrtf(_vehicle_local_position.vx * _vehicle_local_position.vx +
@@ -110,16 +87,16 @@ bool FixedwingLandDetector::_get_landed_state()
 
 		// A leaking lowpass prevents biases from building up, but
 		// gives a mostly correct response for short impulses.
-		const float acc_hor = sqrtf(_sensor_bias.accel_x * _sensor_bias.accel_x +
-					    _sensor_bias.accel_y * _sensor_bias.accel_y);
+		const matrix::Vector3f accel{_vehicle_acceleration.xyz};
+		const float acc_hor = sqrtf(accel(0) * accel(0) + accel(1) * accel(1));
 
-		_accel_horz_lp = _accel_horz_lp * 0.8f + acc_hor * 0.18f;
+		_xy_accel_filtered = _xy_accel_filtered * 0.8f + acc_hor * 0.18f;
 
-		// crude land detector for fixedwing
-		landDetected = _accel_horz_lp           < _param_lndfw_xyaccel_max.get()
-			       && _airspeed_filtered    < _param_lndfw_airspd.get()
+		// Crude land detector for fixedwing.
+		landDetected = _airspeed_filtered       < _param_lndfw_airspd.get()
 			       && _velocity_xy_filtered < _param_lndfw_vel_xy_max.get()
-			       && _velocity_z_filtered  < _param_lndfw_vel_z_max.get();
+			       && _velocity_z_filtered  < _param_lndfw_vel_z_max.get()
+			       && _xy_accel_filtered    < _param_lndfw_xyaccel_max.get();
 
 	} else {
 		// Control state topic has timed out and we need to assume we're landed.

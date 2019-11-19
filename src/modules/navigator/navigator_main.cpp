@@ -52,10 +52,10 @@
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/mathlib/mathlib.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
 #include <systemlib/mavlink_log.h>
 
 /**
@@ -119,9 +119,6 @@ Navigator::~Navigator()
 void
 Navigator::params_update()
 {
-	parameter_update_s param_update;
-	_param_update_sub.update(&param_update);
-
 	updateParams();
 
 	if (_handle_back_trans_dec_mss != PARAM_INVALID) {
@@ -202,8 +199,13 @@ Navigator::run()
 			}
 		}
 
-		/* parameters updated */
-		if (_param_update_sub.updated()) {
+		// check for parameter updates
+		if (_parameter_update_sub.updated()) {
+			// clear update
+			parameter_update_s pupdate;
+			_parameter_update_sub.copy(&pupdate);
+
+			// update parameters from storage
 			params_update();
 		}
 
@@ -488,9 +490,16 @@ Navigator::run()
 				const bool rtl_activated = _previous_nav_state != vehicle_status_s::NAVIGATION_STATE_AUTO_RTL;
 
 				switch (rtl_type()) {
-				case RTL::RTL_LAND:
+				case RTL::RTL_LAND: // use mission landing
+				case RTL::RTL_CLOSEST:
 					if (rtl_activated) {
-						mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL LAND activated");
+						if (rtl_type() == RTL::RTL_LAND) {
+							mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL LAND activated");
+
+						} else {
+							mavlink_and_console_log_info(get_mavlink_log_pub(), "RTL Closest landing point activated");
+						}
+
 					}
 
 					// if RTL is set to use a mission landing and mission has a planned landing, then use MISSION to fly there directly
@@ -568,6 +577,7 @@ Navigator::run()
 
 					navigation_mode_new = &_rtl;
 					break;
+
 				}
 
 				break;
@@ -587,11 +597,6 @@ Navigator::run()
 			_pos_sp_triplet_published_invalid_once = false;
 			navigation_mode_new = &_precland;
 			_precland.set_mode(PrecLandMode::Required);
-			break;
-
-		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
-			_pos_sp_triplet_published_invalid_once = false;
-			navigation_mode_new = &_land;
 			break;
 
 		case vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS:
@@ -618,6 +623,7 @@ Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_ACRO:
 		case vehicle_status_s::NAVIGATION_STATE_ALTCTL:
 		case vehicle_status_s::NAVIGATION_STATE_POSCTL:
+		case vehicle_status_s::NAVIGATION_STATE_DESCEND:
 		case vehicle_status_s::NAVIGATION_STATE_TERMINATION:
 		case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
 		case vehicle_status_s::NAVIGATION_STATE_STAB:
@@ -903,7 +909,7 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 	// float vel_e = get_global_position()->vel_e;
 	// float vel_d = get_global_position()->vel_d;
 
-	transponder_report_s tr = {};
+	transponder_report_s tr{};
 	tr.timestamp = hrt_absolute_time();
 	tr.icao_address = 1234;
 	tr.lat = lat; // Latitude, expressed as degrees
@@ -923,8 +929,8 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 		   transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN; // Flags to indicate various statuses including valid data fields
 	tr.squawk = 6667;
 
-	orb_advert_t h = orb_advertise_queue(ORB_ID(transponder_report), &tr, transponder_report_s::ORB_QUEUE_LENGTH);
-	(void)orb_unadvertise(h);
+	uORB::PublicationQueued<transponder_report_s> tr_pub{ORB_ID(transponder_report)};
+	tr_pub.publish(tr);
 }
 
 void Navigator::check_traffic()
@@ -1142,12 +1148,7 @@ Navigator::publish_vehicle_cmd(vehicle_command_s *vcmd)
 		break;
 	}
 
-	if (_vehicle_cmd_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_command), _vehicle_cmd_pub, vcmd);
-
-	} else {
-		_vehicle_cmd_pub = orb_advertise_queue(ORB_ID(vehicle_command), vcmd, vehicle_command_s::ORB_QUEUE_LENGTH);
-	}
+	_vehicle_cmd_pub.publish(*vcmd);
 }
 
 void
@@ -1165,13 +1166,7 @@ Navigator::publish_vehicle_command_ack(const vehicle_command_s &cmd, uint8_t res
 	command_ack.result_param1 = 0;
 	command_ack.result_param2 = 0;
 
-	if (_vehicle_cmd_ack_pub != nullptr) {
-		orb_publish(ORB_ID(vehicle_command_ack), _vehicle_cmd_ack_pub, &command_ack);
-
-	} else {
-		_vehicle_cmd_ack_pub = orb_advertise_queue(ORB_ID(vehicle_command_ack), &command_ack,
-				       vehicle_command_ack_s::ORB_QUEUE_LENGTH);
-	}
+	_vehicle_cmd_ack_pub.publish(command_ack);
 }
 
 int Navigator::print_usage(const char *reason)

@@ -45,8 +45,8 @@ work_s RCInput::_work = {};
 constexpr char const *RCInput::RC_SCAN_STRING[];
 
 RCInput::RCInput(bool run_as_task, char *device) :
-	_cycle_perf(perf_alloc(PC_ELAPSED, "rc_input cycle time")),
-	_publish_interval_perf(perf_alloc(PC_INTERVAL, "rc_input publish interval"))
+	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time")),
+	_publish_interval_perf(perf_alloc(PC_INTERVAL, MODULE_NAME": publish interval"))
 {
 	// rc input, published to ORB
 	_rc_in.input_source = input_rc_s::RC_INPUT_SOURCE_PX4FMU_PPM;
@@ -71,8 +71,6 @@ RCInput::RCInput(bool run_as_task, char *device) :
 
 RCInput::~RCInput()
 {
-	orb_unadvertise(_to_input_rc);
-
 #ifdef RC_SERIAL_PORT
 	dsm_deinit();
 #endif
@@ -216,7 +214,7 @@ RCInput::cycle_trampoline_init(void *arg)
 void
 RCInput::cycle_trampoline(void *arg)
 {
-	RCInput *dev = reinterpret_cast<RCInput *>(arg);
+	RCInput *dev = static_cast<RCInput *>(arg);
 	dev->cycle();
 }
 
@@ -674,8 +672,7 @@ RCInput::cycle()
 		if (rc_updated) {
 			perf_count(_publish_interval_perf);
 
-			int instance;
-			orb_publish_auto(ORB_ID(input_rc), &_to_input_rc, &_rc_in, &instance, ORB_PRIO_DEFAULT);
+			_to_input_rc.publish(_rc_in);
 
 		} else if (!rc_updated && ((hrt_absolute_time() - _rc_in.timestamp_last_signal) > 1_s)) {
 			_rc_scan_locked = false;
@@ -771,7 +768,38 @@ int RCInput::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-int RCInput::print_usage(const char *reason)
+int RCInput::print_status()
+{
+	PX4_INFO("Running %s", (_run_as_task ? "as task" : "on work queue"));
+
+	if (!_run_as_task) {
+		PX4_INFO("Max update rate: %i Hz", 1000000 / _current_update_interval);
+	}
+
+	if (_device[0] != '\0') {
+		PX4_INFO("Serial device: %s", _device);
+	}
+
+	PX4_INFO("RC scan state: %s, locked: %s", RC_SCAN_STRING[_rc_scan_state], _rc_scan_locked ? "yes" : "no");
+	PX4_INFO("CRSF Telemetry: %s", _crsf_telemetry ? "yes" : "no");
+	PX4_INFO("SBUS frame drops: %u", sbus_dropped_frames());
+
+#if ADC_RC_RSSI_CHANNEL
+	PX4_INFO("vrssi: %dmV", (int)(_analog_rc_rssi_volt * 1000.0f));
+#endif
+
+	perf_print_counter(_cycle_perf);
+	perf_print_counter(_publish_interval_perf);
+
+	if (hrt_elapsed_time(&_rc_in.timestamp) < 1_s) {
+		print_message(_rc_in);
+	}
+
+	return 0;
+}
+
+int
+RCInput::print_usage(const char *reason)
 {
 	if (reason) {
 		PX4_WARN("%s\n", reason);
@@ -808,39 +836,7 @@ When running on the work queue, it schedules at a fixed frequency.
 	return 0;
 }
 
-int RCInput::print_status()
-{
-	PX4_INFO("Running %s", (_run_as_task ? "as task" : "on work queue"));
-
-	if (!_run_as_task) {
-		PX4_INFO("Max update rate: %i Hz", 1000000 / _current_update_interval);
-	}
-	if (_device[0] != '\0') {
-		PX4_INFO("Serial device: %s", _device);
-	}
-
-	PX4_INFO("RC scan state: %s, locked: %s", RC_SCAN_STRING[_rc_scan_state], _rc_scan_locked ? "yes" : "no");
-	PX4_INFO("CRSF Telemetry: %s", _crsf_telemetry ? "yes" : "no");
-	PX4_INFO("SBUS frame drops: %u", sbus_dropped_frames());
-
-#if ADC_RC_RSSI_CHANNEL
-        PX4_INFO("vrssi: %dmV", (int)(_analog_rc_rssi_volt * 1000.0f));
-#endif
-
-	perf_print_counter(_cycle_perf);
-	perf_print_counter(_publish_interval_perf);
-
-	if (hrt_elapsed_time(&_rc_in.timestamp) < 1_s) {
-		print_message(_rc_in);
-	}
-
-	return 0;
-}
-
-extern "C" __EXPORT int rc_input_main(int argc, char *argv[]);
-
-int
-rc_input_main(int argc, char *argv[])
+extern "C" __EXPORT int rc_input_main(int argc, char *argv[])
 {
 	return RCInput::main(argc, argv);
 }

@@ -123,6 +123,12 @@ parameters:
                         max:
                             # Optional maximum value (only for int32 or float)
                             type: number
+                        decimal:
+                            # Optional number of decimal places to display (only for float)
+                            type: number
+                        increment:
+                            # Optional increment step size (for a GCS) (only for float)
+                            type: number
                         unit:
                             # Optional parameter unit (only for int32 or float)
                             # (Extend this list as needed)

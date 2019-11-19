@@ -43,7 +43,7 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
@@ -66,7 +66,7 @@
 #define GPIO_SPI1_RESET_ADIS16477  /* PB15 */ (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN15)
 
 /* SPI 2 CS */
-#define GPIO_SPI2_CS1_ADIS16497    /* PI0 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN10)
+#define GPIO_SPI2_CS1_ADIS16497    /* PI0 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN0)
 
 /* SPI 4 CS */
 #define GPIO_SPI4_CS1_LPS22HB      /* PE4 */  (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_2MHz|GPIO_OUTPUT_SET|GPIO_PORTE|GPIO_PIN4)
@@ -328,6 +328,8 @@
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 
+#define BOARD_NUM_IO_TIMERS 5
+
 __BEGIN_DECLS
 
 /****************************************************************************************************
@@ -367,26 +369,8 @@ extern void stm32_spiinitialize(void);
 void board_spi_reset(int ms);
 #define board_peripheral_reset(ms)
 
-/****************************************************************************
- * Name: nsh_archinitialize
- *
- * Description:
- *   Perform architecture specific initialization for NSH.
- *
- *   CONFIG_NSH_ARCHINIT=y :
- *     Called from the NSH library
- *
- *   CONFIG_BOARD_INITIALIZE=y, CONFIG_NSH_LIBRARY=y, &&
- *   CONFIG_NSH_ARCHINIT=n :
- *     Called from board_initialize().
- *
- ****************************************************************************/
 
-#ifdef CONFIG_NSH_LIBRARY
-int nsh_archinitialize(void);
-#endif
-
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */
 

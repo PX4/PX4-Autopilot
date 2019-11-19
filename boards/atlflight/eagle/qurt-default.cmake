@@ -45,7 +45,10 @@ px4_add_board(
 	LABEL qurt-default
 
 	DRIVERS
+		barometer/bmp280
 		gps
+		imu/mpu9250
+		magnetometer/hmc5883
 		spektrum_rc
 		qshell/qurt
 		snapdragon_pwm_out
@@ -76,7 +79,7 @@ px4_add_board(
 		#sih
 		vmount
 		vtol_att_control
-		wind_estimator
+		airspeed_selector
 
 	SYSTEMCMDS
 		param

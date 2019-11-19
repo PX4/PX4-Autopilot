@@ -47,25 +47,33 @@
 #include <uavcan/uavcan.hpp>
 #include <uavcan/equipment/esc/RawCommand.hpp>
 #include <uavcan/equipment/esc/Status.hpp>
-#include <perf/perf_counter.h>
-#include <uORB/topics/esc_status.h>
+#include <lib/perf/perf_counter.h>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/actuator_outputs.h>
-
+#include <uORB/topics/esc_status.h>
+#include <drivers/drv_hrt.h>
+#include <lib/mixer_module/mixer_module.hpp>
 
 class UavcanEscController
 {
 public:
+	static constexpr int MAX_ACTUATORS = MixingOutput::MAX_ACTUATORS;
+	static constexpr unsigned MAX_RATE_HZ = 200;			///< XXX make this configurable
+	static constexpr uint16_t DISARMED_OUTPUT_VALUE = UINT16_MAX;
+
 	UavcanEscController(uavcan::INode &node);
 	~UavcanEscController();
 
 	int init();
 
-	void update_outputs(float *outputs, unsigned num_outputs);
+	void update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs);
 
-	void arm_all_escs(bool arm);
-	void arm_single_esc(int num, bool arm);
+	/**
+	 * Sets the number of rotors
+	 */
+	void set_rotor_count(uint8_t count) { _rotor_count = count; }
 
-	void enable_idle_throttle_when_armed(bool value) { _run_at_idle_throttle_when_armed = value; }
+	static int max_output_value() { return uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max(); }
 
 private:
 	/**
@@ -78,23 +86,25 @@ private:
 	 */
 	void orb_pub_timer_cb(const uavcan::TimerEvent &event);
 
+	/**
+	 * Checks all the ESCs freshness based on timestamp, if an ESC exceeds the timeout then is flagged offline.
+	 */
+	uint8_t check_escs_status();
 
-	static constexpr unsigned MAX_RATE_HZ = 200;			///< XXX make this configurable
 	static constexpr unsigned ESC_STATUS_UPDATE_RATE_HZ = 10;
 	static constexpr unsigned UAVCAN_COMMAND_TRANSFER_PRIORITY = 5;	///< 0..31, inclusive, 0 - highest, 31 - lowest
 
 	typedef uavcan::MethodBinder<UavcanEscController *,
-		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)>
-		StatusCbBinder;
+		void (UavcanEscController::*)(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status>&)> StatusCbBinder;
 
-	typedef uavcan::MethodBinder<UavcanEscController *, void (UavcanEscController::*)(const uavcan::TimerEvent &)>
-	TimerCbBinder;
+	typedef uavcan::MethodBinder<UavcanEscController *,
+		void (UavcanEscController::*)(const uavcan::TimerEvent &)> TimerCbBinder;
 
-	bool		_armed = false;
-	bool		_run_at_idle_throttle_when_armed = false;
-	esc_status_s	_esc_status = {};
-	orb_advert_t	_esc_status_pub = nullptr;
-	orb_advert_t _actuator_outputs_pub = nullptr;
+	esc_status_s	_esc_status{};
+
+	uORB::PublicationMulti<esc_status_s> _esc_status_pub{ORB_ID(esc_status)};
+
+	uint8_t		_rotor_count{0};
 
 	/*
 	 * libuavcan related things
@@ -108,12 +118,5 @@ private:
 	/*
 	 * ESC states
 	 */
-	uint32_t 			_armed_mask = 0;
-	uint8_t				_max_number_of_nonzero_outputs = 0;
-
-	/*
-	 * Perf counters
-	 */
-	perf_counter_t _perfcnt_invalid_input = perf_alloc(PC_COUNT, "uavcan_esc_invalid_input");
-	perf_counter_t _perfcnt_scaling_error = perf_alloc(PC_COUNT, "uavcan_esc_scaling_error");
+	uint8_t				_max_number_of_nonzero_outputs{0};
 };

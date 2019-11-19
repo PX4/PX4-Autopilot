@@ -31,8 +31,6 @@
 #
 ############################################################################
 
-include(px4_base)
-
 #=============================================================================
 #
 #	px4_add_common_flags
@@ -51,6 +49,7 @@ function(px4_add_common_flags)
 		-fdata-sections
 		-ffunction-sections
 		-fomit-frame-pointer
+		-fmerge-all-constants
 
 		#-funsafe-math-optimizations # Enables -fno-signed-zeros, -fno-trapping-math, -fassociative-math and -freciprocal-math
 		-fno-signed-zeros	# Allow optimizations for floating-point arithmetic that ignore the signedness of zero
@@ -87,7 +86,6 @@ function(px4_add_common_flags)
 		-Wunused-variable
 
 		# disabled warnings
-		-Wno-implicit-fallthrough # set appropriate level and update
 		-Wno-missing-field-initializers
 		-Wno-missing-include-dirs # TODO: fix and enable
 		-Wno-unused-parameter
@@ -133,9 +131,9 @@ function(px4_add_common_flags)
 		add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fcheck-new>)
 
 	elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-	  message(FATAL_ERROR "Intel compiler not yet supported")
+		message(FATAL_ERROR "Intel compiler not yet supported")
 	elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-	  message(FATAL_ERROR "MS compiler not yet supported")
+		message(FATAL_ERROR "MS compiler not yet supported")
 	endif()
 
 	# C only flags
@@ -171,18 +169,17 @@ function(px4_add_common_flags)
 
 	include_directories(
 		${PX4_BINARY_DIR}
-		${PX4_BINARY_DIR}/src
 		${PX4_BINARY_DIR}/src/lib
-		${PX4_BINARY_DIR}/src/modules
 
+		${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/${PX4_CHIP_MANUFACTURER}/${PX4_CHIP}/include
+		${PX4_SOURCE_DIR}/platforms/${PX4_PLATFORM}/src/px4/common/include
+		${PX4_SOURCE_DIR}/platforms/common/include
 		${PX4_SOURCE_DIR}/src
 		${PX4_SOURCE_DIR}/src/include
 		${PX4_SOURCE_DIR}/src/lib
 		${PX4_SOURCE_DIR}/src/lib/DriverFramework/framework/include
 		${PX4_SOURCE_DIR}/src/lib/matrix
 		${PX4_SOURCE_DIR}/src/modules
-		${PX4_SOURCE_DIR}/src/platforms
-		${PX4_SOURCE_DIR}/src/platforms/common
 		)
 
 	add_definitions(

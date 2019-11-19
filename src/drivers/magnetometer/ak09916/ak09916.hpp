@@ -34,39 +34,43 @@
 #pragma once
 
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <lib/perf/perf_counter.h>
 #include <systemlib/conversions.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/device/i2c.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 
-#define AK09916_DEVICE_PATH_MAG              "/dev/ak09916_i2c_int"
-#define AK09916_DEVICE_PATH_MAG_EXT          "/dev/ak09916_i2c_ext"
+static constexpr auto AK09916_DEVICE_PATH_MAG = "/dev/ak09916_i2c_int";
+static constexpr auto AK09916_DEVICE_PATH_MAG_EXT = "/dev/ak09916_i2c_ext";
 
-/* in 16-bit sampling mode the mag resolution is 1.5 milli Gauss per bit */
-static constexpr float AK09916_MAG_RANGE_GA{1.5e-3f};
+// in 16-bit sampling mode the mag resolution is 1.5 milli Gauss per bit.
+static constexpr float AK09916_MAG_RANGE_GA = 1.5e-3f;
 
-/* ak09916 deviating register addresses and bit definitions */
-#define AK09916_I2C_ADDR         0x0C
+static constexpr uint8_t AK09916_I2C_ADDR = 0x0C;
 
-#define AK09916_DEVICE_ID_A		0x48
-#define AK09916_DEVICE_ID_B		0x09	// additional ID byte ("INFO" on AK9063 without content specification.)
+static constexpr uint8_t AK09916_DEVICE_ID_A = 0x48;
+static constexpr uint8_t AK09916REG_WIA = 0x00;
 
-#define AK09916REG_WIA           0x00
+static constexpr uint8_t AK09916REG_ST1 = 0x10;
+static constexpr uint8_t AK09916REG_HXL = 0x11;
+static constexpr uint8_t AK09916REG_CNTL2 = 0x31;
+static constexpr uint8_t AK09916REG_CNTL3 = 0x32;
 
-#define AK09916REG_ST1        0x10
-#define AK09916REG_CNTL2          0x31
-#define AK09916REG_CNTL3          0x32
+static constexpr uint8_t AK09916_RESET = 0x01;
+static constexpr uint8_t AK09916_CNTL2_CONTINOUS_MODE_100HZ = 0x08;
 
-#define AK09916_RESET				0x01
-#define AK09916_CNTL2_SINGLE_MODE               0x01 /* default */
-#define AK09916_CNTL2_CONTINOUS_MODE_100HZ      0x08
+static constexpr uint8_t AK09916_ST1_DRDY = 0x01;
+static constexpr uint8_t AK09916_ST1_DOR = 0x02;
+
+static constexpr uint8_t AK09916_ST2_HOFL = 0x08;
+
+// Run at 100 Hz.
+static constexpr unsigned AK09916_CONVERSION_INTERVAL_us = 1000000 / 100;
 
 #pragma pack(push, 1)
 struct ak09916_regs {
-	uint8_t st1;
 	int16_t x;
 	int16_t y;
 	int16_t z;
@@ -75,57 +79,44 @@ struct ak09916_regs {
 };
 #pragma pack(pop)
 
-/**
- * Helper class implementing the magnetometer driver node.
- */
+
 class AK09916 : public device::I2C, px4::ScheduledWorkItem
 {
 public:
 	AK09916(int bus, const char *path, enum Rotation rotation);
 	~AK09916();
 
-	virtual int init();
-
-	void read_block(uint8_t reg, uint8_t *val, uint8_t count);
-
-	int reset(void);
-	int probe(void);
-	int setup(void);
-	void print_info(void);
-	int setup_master_i2c(void);
-	bool check_id(uint8_t &id);
-
-	void Run();
-
-	void start(void);
-	void stop(void);
+	virtual int init() override;
+	void start();
+	void stop();
+	void print_info();
+	int probe();
 
 protected:
-
-	/* Directly measure from the _interface if possible */
+	int setup();
+	int setup_master_i2c();
+	bool check_id();
+	void Run();
+	void try_measure();
+	bool is_ready();
 	void measure();
+	int reset();
 
 	uint8_t read_reg(uint8_t reg);
+	void read_block(uint8_t reg, uint8_t *val, uint8_t count);
 	void write_reg(uint8_t reg, uint8_t value);
 
 private:
 
 	PX4Magnetometer _px4_mag;
 
-	uint32_t _measure_interval{0};
+	uint32_t _cycle_interval{0};
 
 	perf_counter_t _mag_reads;
 	perf_counter_t _mag_errors;
 	perf_counter_t _mag_overruns;
 	perf_counter_t _mag_overflows;
-	perf_counter_t _mag_duplicates;
 
-	bool check_duplicate(uint8_t *mag_data);
-
-	// keep last mag reading for duplicate detection
-	uint8_t			_last_mag_data[6] {};
-
-	/* do not allow to copy this class due to pointer data members */
-	AK09916(const AK09916 &);
-	AK09916 operator=(const AK09916 &);
+	AK09916(const AK09916 &) = delete;
+	AK09916 operator=(const AK09916 &) = delete;
 };

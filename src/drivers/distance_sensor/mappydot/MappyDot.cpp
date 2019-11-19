@@ -45,9 +45,9 @@
 #include <drivers/device/i2c.h>
 #include <drivers/drv_range_finder.h>
 #include <perf/perf_counter.h>
-#include <px4_getopt.h>
-#include <px4_module_params.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/topics/distance_sensor.h>
 
 /* MappyDot Registers */
@@ -225,7 +225,7 @@ private:
 MappyDot::MappyDot(const int bus) :
 	I2C("MappyDot", MAPPYDOT_DEVICE_PATH, bus, MAPPYDOT_BASE_ADDR, MAPPYDOT_BUS_CLOCK),
 	ModuleParams(nullptr),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id()))
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id()))
 {}
 
 MappyDot::~MappyDot()

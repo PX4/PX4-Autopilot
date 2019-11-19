@@ -41,9 +41,9 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <px4_config.h>
-#include <px4_workqueue.h>
-#include <px4_defines.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/workqueue.h>
+#include <px4_platform_common/defines.h>
 
 #include <drivers/drv_hrt.h>
 
@@ -70,9 +70,7 @@ public:
 		_rcinput_pub(nullptr),
 		_channels(8), //D8R-II plus
 		_data{}
-	{
-		memset(_ch_fd, 0, sizeof(_ch_fd));
-	}
+	{ }
 	~RcInput()
 	{
 		work_cancel(HPWORK, &_work);
@@ -101,7 +99,7 @@ private:
 	orb_advert_t _rcinput_pub;
 
 	int _channels;
-	int _ch_fd[input_rc_s::RC_INPUT_MAX_CHANNELS];
+	int _ch_fd[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
 	struct input_rc_s _data;
 
 	int navio_rc_init();
@@ -166,7 +164,7 @@ void RcInput::stop()
 
 void RcInput::cycle_trampoline(void *arg)
 {
-	RcInput *dev = reinterpret_cast<RcInput *>(arg);
+	RcInput *dev = static_cast<RcInput *>(arg);
 	dev->_cycle();
 }
 

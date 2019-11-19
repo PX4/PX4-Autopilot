@@ -62,8 +62,8 @@
 #include <lib/drivers/device/spi.h>
 #include <lib/ecl/geo/geo.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <systemlib/conversions.h>
 #include <systemlib/px4_macros.h>
 
@@ -218,7 +218,8 @@ enum MPU_DEVICE_TYPE {
 // Product ID Description for ICM20689
 
 #define ICM20689_REV_FE		0xfe
-#define ICM20689_REV_03		0x03
+#define ICM20689_REV_03   0x03
+#define ICM20689_REV_04   0x04
 
 // Product ID Description for MPU6000
 // high 4 bits 	low 4 bits
@@ -316,12 +317,14 @@ public:
 
 	void			print_registers();
 
+#ifndef CONSTRAINED_FLASH
 	/**
 	 * Test behaviour against factory offsets
 	 *
 	 * @return 0 on success, 1 on failure
 	 */
 	int 			factory_self_test();
+#endif
 
 	// deliberately cause a sensor error
 	void 			test_error();
@@ -358,7 +361,6 @@ private:
 	unsigned		_sample_rate{1000};
 
 	perf_counter_t		_sample_perf;
-	perf_counter_t		_measure_interval;
 	perf_counter_t		_bad_transfers;
 	perf_counter_t		_bad_registers;
 	perf_counter_t		_reset_retries;

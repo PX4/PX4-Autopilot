@@ -192,7 +192,7 @@ public:
 	 * @param control_cb		Callback invoked when reading controls.
 	 */
 	Mixer(ControlCallback control_cb, uintptr_t cb_handle);
-	virtual ~Mixer() {}
+	virtual ~Mixer() = default;
 
 	/**
 	 * Perform the mixing function.
@@ -241,7 +241,7 @@ public:
 	virtual unsigned get_trim(float *trim) = 0;
 
 	/*
-	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to pwm.
+	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to motor control signal output.
 	 *
 	 * @param[in]  val   The value
 	 */
@@ -253,6 +253,8 @@ public:
 	 * @param[in]  airmode   Select airmode type (0 = disabled, 1 = roll/pitch, 2 = roll/pitch/yaw)
 	 */
 	virtual void set_airmode(Airmode airmode) {};
+
+	virtual unsigned get_multirotor_count()  {return 0;}
 
 protected:
 	/** client-supplied callback used when fetching control values */
@@ -442,13 +444,15 @@ public:
 	}
 
 	/**
-	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to pwm.
+	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to motor control signal output.
 	 *
 	 * @param[in]  val   The value
 	 */
 	void	set_thrust_factor(float val) override;
 
 	void 	set_airmode(Airmode airmode) override;
+
+	unsigned get_multirotor_count() override;
 
 private:
 	Mixer				*_first;	/**< linked list of mixers */
@@ -467,7 +471,7 @@ class NullMixer : public Mixer
 {
 public:
 	NullMixer();
-	~NullMixer() {}
+	~NullMixer() = default;
 
 	/**
 	 * Factory method.
@@ -704,7 +708,7 @@ public:
 	}
 
 	/**
-	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to pwm.
+	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to motor control signal output.
 	 *
 	 * @param[in]  val   The value
 	 */
@@ -714,6 +718,8 @@ public:
 	}
 
 	void 			set_airmode(Airmode airmode) override;
+
+	unsigned get_multirotor_count() override {return _rotor_count;}
 
 	union saturation_status {
 		struct {

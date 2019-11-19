@@ -48,7 +48,7 @@
 #include <linux/types.h>
 #include <linux/spi/spidev.h>
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 namespace device
 {
@@ -80,8 +80,6 @@ SPI::~SPI()
 int
 SPI::init()
 {
-	int ret = OK;
-
 	// Open the actual SPI device
 	char dev_path[16];
 	snprintf(dev_path, sizeof(dev_path), "/dev/spidev%i.%i", get_device_bus(), PX4_SPI_DEV_ID(_device));
@@ -94,7 +92,7 @@ SPI::init()
 	}
 
 	/* call the probe function to check whether the device is present */
-	ret = probe();
+	int ret = probe();
 
 	if (ret != OK) {
 		DEVICE_DEBUG("probe failed");

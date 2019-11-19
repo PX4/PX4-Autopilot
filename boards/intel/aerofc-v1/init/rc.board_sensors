@@ -3,6 +3,7 @@
 # intel aero specific board sensors init
 #------------------------------------------------------------------------------
 
+aerofc_adc start
 
 ms5611 -T 0 start
 mpu9250 -s -R 14 start
@@ -11,6 +12,8 @@ mpu9250 -s -R 14 start
 hmc5883 -X start
 
 ist8310 -C -b 1 -R 4 start
-aerofc_adc start
 
-ll40ls start i2c
+ll40ls start i2c -a
+
+# Internal SPI (auto detect ms5611 or ms5607)
+ms5611 -T 0 -s start

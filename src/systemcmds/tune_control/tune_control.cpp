@@ -38,15 +38,15 @@
  * To use it make sure there's a driver running, which handles the tune_control uorb topic.
  */
 
-#include <px4_getopt.h>
-#include <px4_log.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
 
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
 
-#include <px4_module.h>
+#include <px4_platform_common/module.h>
 
 #include <lib/tunes/tunes.h>
 #include <uORB/topics/tune_control.h>
@@ -69,7 +69,7 @@ static void publish_tune_control(tune_control_s &tune_control)
 
 	if (tune_control_pub == nullptr) {
 		// We have a minimum of 3 so that tune, stop, tune will fit
-		tune_control_pub = orb_advertise_queue(ORB_ID(tune_control), &tune_control, 3);
+		tune_control_pub = orb_advertise_queue(ORB_ID(tune_control), &tune_control, tune_control_s::ORB_QUEUE_LENGTH);
 
 	} else {
 		orb_publish(ORB_ID(tune_control), tune_control_pub, &tune_control);

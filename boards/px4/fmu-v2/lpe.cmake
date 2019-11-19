@@ -10,6 +10,7 @@ px4_add_board(
 	BOOTLOADER ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/extras/px4fmuv3_bl.bin
 	IO px4_io-v2_default
 	#TESTING
+	CONSTRAINED_FLASH
 	#UAVCAN_INTERFACES 2
 
 	SERIAL_PORTS
@@ -19,6 +20,7 @@ px4_add_board(
 		TEL4:/dev/ttyS6
 
 	DRIVERS
+		adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		#batt_smbus
@@ -38,7 +40,6 @@ px4_add_board(
 		#iridiumsbd
 		irlock
 		#lights/blinkm
-		#lights/oreoled
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
@@ -51,9 +52,6 @@ px4_add_board(
 		pwm_out_sim
 		px4fmu
 		px4io
-		stm32
-		stm32/adc
-		stm32/tone_alarm
 		#tap_esc
 		#telemetry # all available telemetry drivers
 		#test_ppm
@@ -79,10 +77,11 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		navigator
+		battery_status
 		sensors
 		vmount
 		#vtol_att_control
-		#wind_estimator
+		#airspeed_selector
 
 	SYSTEMCMDS
 		bl_update
@@ -107,6 +106,7 @@ px4_add_board(
 		#topic_listener
 		tune_control
 		ver
+		work_queue
 
 	EXAMPLES
 		#bottle_drop # OBC challenge
@@ -116,5 +116,4 @@ px4_add_board(
 		#px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		#rover_steering_control # Rover example app
-		#segway
 	)

@@ -20,6 +20,7 @@ px4_add_board(
 		TEL4:/dev/ttyS6
 
 	DRIVERS
+		adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
 		#batt_smbus
@@ -28,7 +29,7 @@ px4_add_board(
 		#differential_pressure # all available differential pressure drivers
 		differential_pressure/ms4525
 		#distance_sensor # all available distance sensor drivers
-		distance_sensor/ll40ls
+		#distance_sensor/ll40ls
 		#distance_sensor/sf0x
 		gps
 		#heater
@@ -41,7 +42,6 @@ px4_add_board(
 		#iridiumsbd
 		#irlock
 		#lights/blinkm
-		#lights/oreoled
 		lights/rgbled
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
@@ -55,9 +55,6 @@ px4_add_board(
 		px4fmu
 		px4io
 		#roboclaw
-		stm32
-		stm32/adc
-		stm32/tone_alarm
 		#tap_esc
 		#telemetry # all available telemetry drivers
 		#test_ppm
@@ -70,7 +67,7 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
-		events
+		#events
 		fw_att_control
 		fw_pos_control_l1
 		#rover_pos_control
@@ -83,10 +80,11 @@ px4_add_board(
 		mc_att_control
 		mc_pos_control
 		navigator
+		battery_status
 		sensors
 		vmount
 		vtol_att_control
-		#wind_estimator
+		#airspeed_selector
 
 	SYSTEMCMDS
 		bl_update
@@ -112,6 +110,7 @@ px4_add_board(
 		tune_control
 		#usb_connected
 		ver
+		#work_queue
 
 	EXAMPLES
 		#bottle_drop # OBC challenge
@@ -119,10 +118,8 @@ px4_add_board(
 		#hello
 		#hwtest # Hardware test
 		#matlab_csv_serial
-		#position_estimator_inav
 		#px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		#rover_steering_control # Rover example app
-		#segway
 		#uuv_example_app
 	)

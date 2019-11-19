@@ -52,6 +52,8 @@
 #include <lib/ecl/validation/data_validator.h>
 #include <lib/ecl/validation/data_validator_group.h>
 
+#include <uORB/Publication.hpp>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_preflight.h>
 #include <uORB/topics/sensor_correction.h>
@@ -91,56 +93,57 @@ public:
 	/**
 	 * This tries to find new sensor instances. This is called from init(), then it can be called periodically.
 	 */
-	void initialize_sensors();
+	void initializeSensors();
 
 	/**
 	 * deinitialize the object (we cannot use the destructor because it is called on the wrong thread)
 	 */
 	void deinit();
 
-	void print_status();
+	void printStatus();
 
 	/**
-	 * call this whenever parameters got updated. Make sure to have initialize_sensors() called at least
+	 * call this whenever parameters got updated. Make sure to have initializeSensors() called at least
 	 * once before calling this.
 	 */
-	void parameters_update();
+	void parametersUpdate();
 
 	/**
 	 * read new sensor data
 	 */
-	void sensors_poll(sensor_combined_s &raw, vehicle_air_data_s &airdata, vehicle_magnetometer_s &magnetometer);
+	void sensorsPoll(sensor_combined_s &raw, vehicle_air_data_s &airdata, vehicle_magnetometer_s &magnetometer);
 
 	/**
-	 * set the relative timestamps of each sensor timestamp, based on the last sensors_poll,
+	 * set the relative timestamps of each sensor timestamp, based on the last sensorsPoll,
 	 * so that the data can be published.
 	 */
-	void set_relative_timestamps(sensor_combined_s &raw);
+	void setRelativeTimestamps(sensor_combined_s &raw);
 
 	/**
 	 * check if a failover event occured. if so, report it.
 	 */
-	void check_failover();
+	void checkFailover();
 
-	int num_gyros() const { return _gyro.subscription_count; }
-	int gyro_fd(int idx) const { return _gyro.subscription[idx]; }
+	int numGyros() const { return _gyro.subscription_count; }
 
-	int best_gyro_fd() const { return _gyro.subscription[_gyro.last_best_vote]; }
+	int gyroFd(int idx) const { return _gyro.subscription[idx]; }
+
+	int bestGyroFd() const { return _gyro.subscription[_gyro.last_best_vote]; }
 
 	/**
 	 * Calculates the magnitude in m/s/s of the largest difference between the primary and any other accel sensor
 	 */
-	void calc_accel_inconsistency(sensor_preflight_s &preflt);
+	void calcAccelInconsistency(sensor_preflight_s &preflt);
 
 	/**
 	 * Calculates the magnitude in rad/s of the largest difference between the primary and any other gyro sensor
 	 */
-	void calc_gyro_inconsistency(sensor_preflight_s &preflt);
+	void calcGyroInconsistency(sensor_preflight_s &preflt);
 
 	/**
 	 * Calculates the magnitude in Gauss of the largest difference between the primary and any other magnetometers
 	 */
-	void calc_mag_inconsistency(sensor_preflight_s &preflt);
+	void calcMagInconsistency(sensor_preflight_s &preflt);
 
 private:
 
@@ -168,45 +171,45 @@ private:
 		unsigned int last_failover_count;
 	};
 
-	void	init_sensor_class(const struct orb_metadata *meta, SensorData &sensor_data, uint8_t sensor_count_max);
+	void initSensorClass(const orb_metadata *meta, SensorData &sensor_data, uint8_t sensor_count_max);
 
 	/**
 	 * Poll the accelerometer for updated data.
 	 *
-	 * @param raw			Combined sensor data structure into which
-	 *				data should be returned.
+	 * @param raw	Combined sensor data structure into which
+	 *		data should be returned.
 	 */
-	void		accel_poll(struct sensor_combined_s &raw);
+	void accelPoll(sensor_combined_s &raw);
 
 	/**
 	 * Poll the gyro for updated data.
 	 *
-	 * @param raw			Combined sensor data structure into which
-	 *				data should be returned.
+	 * @param raw	Combined sensor data structure into which
+	 *		data should be returned.
 	 */
-	void		gyro_poll(struct sensor_combined_s &raw);
+	void gyroPoll(sensor_combined_s &raw);
 
 	/**
 	 * Poll the magnetometer for updated data.
 	 *
-	 * @param raw			Combined sensor data structure into which
-	 *				data should be returned.
+	 * @param raw	Combined sensor data structure into which
+	 *		data should be returned.
 	 */
-	void		mag_poll(vehicle_magnetometer_s &magnetometer);
+	void magPoll(vehicle_magnetometer_s &magnetometer);
 
 	/**
 	 * Poll the barometer for updated data.
 	 *
-	 * @param raw			Combined sensor data structure into which
-	 *				data should be returned.
+	 * @param raw	Combined sensor data structure into which
+	 *		data should be returned.
 	 */
-	void		baro_poll(vehicle_air_data_s &airdata);
+	void baroPoll(vehicle_air_data_s &airdata);
 
 	/**
 	 * Check & handle failover of a sensor
 	 * @return true if a switch occured (could be for a non-critical reason)
 	 */
-	bool check_failover(SensorData &sensor, const char *sensor_name, const uint64_t type);
+	bool checkFailover(SensorData &sensor, const char *sensor_name, const uint64_t type);
 
 	/**
 	 * Apply a gyro calibration.
@@ -216,7 +219,7 @@ private:
 	 * @param device: the device id of the sensor.
 	 * @return: true if config is ok
 	 */
-	bool apply_gyro_calibration(DriverFramework::DevHandle &h, const struct gyro_calibration_s *gcal, const int device_id);
+	bool applyGyroCalibration(DriverFramework::DevHandle &h, const struct gyro_calibration_s *gcal, const int device_id);
 
 	/**
 	 * Apply a accel calibration.
@@ -226,8 +229,8 @@ private:
 	 * @param device: the device id of the sensor.
 	 * @return: true if config is ok
 	 */
-	bool apply_accel_calibration(DriverFramework::DevHandle &h, const struct accel_calibration_s *acal,
-				     const int device_id);
+	bool applyAccelCalibration(DriverFramework::DevHandle &h, const struct accel_calibration_s *acal,
+				   const int device_id);
 
 	/**
 	 * Apply a mag calibration.
@@ -237,53 +240,49 @@ private:
 	 * @param device: the device id of the sensor.
 	 * @return: true if config is ok
 	 */
-	bool apply_mag_calibration(DriverFramework::DevHandle &h, const struct mag_calibration_s *mcal, const int device_id);
+	bool applyMagCalibration(DriverFramework::DevHandle &h, const struct mag_calibration_s *mcal, const int device_id);
 
-	SensorData _gyro;
-	SensorData _accel;
-	SensorData _mag;
-	SensorData _baro;
+	SensorData _accel {};
+	SensorData _gyro {};
+	SensorData _mag {};
+	SensorData _baro {};
 
-	orb_advert_t	_mavlink_log_pub = nullptr;
+	orb_advert_t _mavlink_log_pub{nullptr};
 
-	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX]; /**< latest sensor data from all sensors instances */
-	vehicle_air_data_s _last_airdata[SENSOR_COUNT_MAX]; /**< latest sensor data from all sensors instances */
-	vehicle_magnetometer_s _last_magnetometer[SENSOR_COUNT_MAX]; /**< latest sensor data from all sensors instances */
+	uORB::Publication<sensor_correction_s>	_sensor_correction_pub{ORB_ID(sensor_correction)};	/**< handle to the sensor correction uORB topic */
+	uORB::Publication<sensor_selection_s>	_sensor_selection_pub{ORB_ID(sensor_selection)};	/**< handle to the sensor selection uORB topic */
 
-	uint64_t _last_accel_timestamp[ACCEL_COUNT_MAX]; /**< latest full timestamp */
+	sensor_combined_s _last_sensor_data[SENSOR_COUNT_MAX] {};	/**< latest sensor data from all sensors instances */
+	vehicle_air_data_s _last_airdata[SENSOR_COUNT_MAX] {};		/**< latest sensor data from all sensors instances */
+	vehicle_magnetometer_s _last_magnetometer[SENSOR_COUNT_MAX] {}; /**< latest sensor data from all sensors instances */
 
-	matrix::Dcmf	_board_rotation;	/**< rotation matrix for the orientation that the board is mounted */
-	matrix::Dcmf	_mag_rotation[MAG_COUNT_MAX];	/**< rotation matrix for the orientation that the external mag0 is mounted */
+	matrix::Dcmf _board_rotation {};		/**< rotation matrix for the orientation that the board is mounted */
+	matrix::Dcmf _mag_rotation[MAG_COUNT_MAX] {};	/**< rotation matrix for the orientation that the external mag0 is mounted */
 
 	const Parameters &_parameters;
-	const bool _hil_enabled; /**< is hardware-in-the-loop mode enabled? */
+	const bool _hil_enabled{false};			/**< is hardware-in-the-loop mode enabled? */
 
-	float _accel_diff[3][2];	/**< filtered accel differences between IMU units (m/s/s) */
-	float _gyro_diff[3][2];		/**< filtered gyro differences between IMU uinits (rad/s) */
-	float _mag_diff[3][2];		/**< filtered mag differences between sensor instances (Ga) */
+	bool _corrections_changed{false};
+	bool _selection_changed{false};			/**< true when a sensor selection has changed and not been published */
 
-	/* sensor thermal compensation */
-	TemperatureCompensation _temperature_compensation;
-	struct sensor_correction_s _corrections; /**< struct containing the sensor corrections to be published to the uORB*/
-	orb_advert_t _sensor_correction_pub = nullptr; /**< handle to the sensor correction uORB topic */
-	bool _corrections_changed = false;
+	float _accel_diff[3][2] {};			/**< filtered accel differences between IMU units (m/s/s) */
+	float _gyro_diff[3][2] {};			/**< filtered gyro differences between IMU uinits (rad/s) */
+	float _mag_angle_diff[2] {};			/**< filtered mag angle differences between sensor instances (Ga) */
 
-	/* sensor selection publication */
-	struct sensor_selection_s _selection = {}; /**< struct containing the sensor selection to be published to the uORB*/
-	orb_advert_t _sensor_selection_pub = nullptr; /**< handle to the sensor selection uORB topic */
-	bool _selection_changed = false; /**< true when a sensor selection has changed and not been published */
+	uint32_t _accel_device_id[SENSOR_COUNT_MAX] {};	/**< accel driver device id for each uorb instance */
+	uint32_t _baro_device_id[SENSOR_COUNT_MAX] {};	/**< baro driver device id for each uorb instance */
+	uint32_t _gyro_device_id[SENSOR_COUNT_MAX] {};	/**< gyro driver device id for each uorb instance */
+	uint32_t _mag_device_id[SENSOR_COUNT_MAX] {};	/**< mag driver device id for each uorb instance */
 
-	/* subsystem info publication */
-	struct subsystem_info_s _info;
-	orb_advert_t _info_pub = nullptr;
+	uint64_t _last_accel_timestamp[ACCEL_COUNT_MAX] {};	/**< latest full timestamp */
 
-	uint32_t _accel_device_id[SENSOR_COUNT_MAX] = {}; /**< accel driver device id for each uorb instance */
-	uint32_t _baro_device_id[SENSOR_COUNT_MAX] = {};
-	uint32_t _gyro_device_id[SENSOR_COUNT_MAX] = {};
-	uint32_t _mag_device_id[SENSOR_COUNT_MAX] = {};
+	sensor_correction_s _corrections {};		/**< struct containing the sensor corrections to be published to the uORB */
+	sensor_selection_s _selection {};		/**< struct containing the sensor selection to be published to the uORB */
+	subsystem_info_s _info {};			/**< subsystem info publication */
 
+	TemperatureCompensation _temperature_compensation{}; /**< sensor thermal compensation */
+
+	uORB::PublicationQueued<subsystem_info_s> _info_pub{ORB_ID(subsystem_info)};	/* subsystem info publication */
 };
-
-
 
 } /* namespace sensors */

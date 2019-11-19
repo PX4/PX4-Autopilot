@@ -58,8 +58,9 @@
 #include "navigation.h"
 
 #include <lib/perf/perf_counter.h>
-#include <px4_module.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <uORB/PublicationQueued.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/home_position.h>
@@ -267,7 +268,11 @@ public:
 	bool		is_planned_mission() const { return _navigation_mode == &_mission; }
 	bool		on_mission_landing() { return _mission.landing(); }
 	bool		start_mission_landing() { return _mission.land_start(); }
-	bool		mission_start_land_available() { return _mission.get_land_start_available(); }
+	bool		get_mission_start_land_available() { return _mission.get_land_start_available(); }
+	int 		get_mission_landing_index() { return _mission.get_land_start_index(); }
+	double 	get_mission_landing_lat() { return _mission.get_landing_lat(); }
+	double 	get_mission_landing_lon() { return _mission.get_landing_lon(); }
+	float 	get_mission_landing_alt() { return _mission.get_landing_alt(); }
 
 	// RTL
 	bool		mission_landing_required() { return _rtl.rtl_type() == RTL::RTL_LAND; }
@@ -316,7 +321,7 @@ private:
 	uORB::Subscription _gps_pos_sub{ORB_ID(vehicle_gps_position)};		/**< gps position subscription */
 	uORB::Subscription _home_pos_sub{ORB_ID(home_position)};		/**< home position subscription */
 	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};	/**< vehicle land detected subscription */
-	uORB::Subscription _param_update_sub{ORB_ID(parameter_update)};		/**< param update subscription */
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};	/**< param update subscription */
 	uORB::Subscription _pos_ctrl_landing_status_sub{ORB_ID(position_controller_landing_status)};	/**< position controller landing status subscription */
 	uORB::Subscription _traffic_sub{ORB_ID(transponder_report)};		/**< traffic subscription */
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */
@@ -330,8 +335,9 @@ private:
 	uORB::Publication<vehicle_roi_s>		_vehicle_roi_pub{ORB_ID(vehicle_roi)};
 
 	orb_advert_t	_mavlink_log_pub{nullptr};	/**< the uORB advert to send messages over mavlink */
-	orb_advert_t	_vehicle_cmd_ack_pub{nullptr};
-	orb_advert_t	_vehicle_cmd_pub{nullptr};
+
+	uORB::PublicationQueued<vehicle_command_ack_s>	_vehicle_cmd_ack_pub{ORB_ID(vehicle_command_ack)};
+	uORB::PublicationQueued<vehicle_command_s>	_vehicle_cmd_pub{ORB_ID(vehicle_command)};
 
 	// Subscriptions
 	home_position_s					_home_pos{};		/**< home position for RTL */

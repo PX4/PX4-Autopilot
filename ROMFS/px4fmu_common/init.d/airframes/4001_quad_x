@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# @name Generic Quadrotor x
+# @name Generic Quadcopter
 #
 # @type Quadrotor x
 # @class Copter

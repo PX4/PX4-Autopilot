@@ -38,11 +38,11 @@
  *
  */
 
-#include <px4_config.h>
-#include <px4_log.h>
-#include <px4_module.h>
-#include <px4_getopt.h>
-#include <px4_i2c.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/i2c.h>
 
 namespace i2cdetect
 {
@@ -83,14 +83,14 @@ int detect(int bus)
 				px4_i2c_msg_t msgv[2];
 
 				// send
-				msgv[0].frequency = 1000000;
+				msgv[0].frequency = 100000;
 				msgv[0].addr = addr;
 				msgv[0].flags = 0;
 				msgv[0].buffer = &send_data;
 				msgv[0].length = sizeof(send_data);
 
 				// recv
-				msgv[1].frequency = 1000000;
+				msgv[1].frequency = 100000;
 				msgv[1].addr = addr;
 				msgv[1].flags = I2C_M_READ;
 				msgv[1].buffer = &recv_data;;

@@ -42,10 +42,11 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <px4_tasks.h>
-#include <px4_sem.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/sem.h>
 #include <drivers/drv_hrt.h>
 
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/ulog_stream.h>
 #include <uORB/topics/ulog_stream_ack.h>
@@ -101,7 +102,7 @@ private:
 
 	MavlinkULog(int datarate, float max_rate_factor, uint8_t target_system, uint8_t target_component);
 
-	~MavlinkULog();
+	~MavlinkULog() = default;
 
 	static void lock()
 	{
@@ -121,7 +122,7 @@ private:
 	static const float _rate_calculation_delta_t; ///< rate update interval
 
 	uORB::SubscriptionData<ulog_stream_s> _ulog_stream_sub{ORB_ID(ulog_stream)};
-	orb_advert_t _ulog_stream_ack_pub = nullptr;
+	uORB::Publication<ulog_stream_ack_s> _ulog_stream_ack_pub{ORB_ID(ulog_stream_ack)};
 	uint16_t _wait_for_ack_sequence;
 	uint8_t _sent_tries = 0;
 	volatile bool _ack_received = false; ///< set to true if a matching ack received

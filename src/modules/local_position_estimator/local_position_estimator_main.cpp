@@ -40,9 +40,9 @@
  * Local position estimator
  */
 
-#include <px4_log.h>
-#include <px4_module.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/tasks.h>
 
 #include "BlockLocalPositionEstimator.hpp"
 
@@ -51,7 +51,7 @@ extern "C" __EXPORT int local_position_estimator_main(int argc, char *argv[]);
 class LocalPositionEstimatorModule : public ModuleBase<LocalPositionEstimatorModule>
 {
 public:
-	virtual ~LocalPositionEstimatorModule() = default;
+	~LocalPositionEstimatorModule() override = default;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);

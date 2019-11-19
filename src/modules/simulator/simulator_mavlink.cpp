@@ -34,9 +34,9 @@
  ****************************************************************************/
 
 #include <termios.h>
-#include <px4_log.h>
-#include <px4_time.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/tasks.h>
 #include "simulator.h"
 #include <simulator_config.h>
 #include "errno.h"
@@ -67,7 +67,6 @@ static int _fd;
 static unsigned char _buf[2048];
 static sockaddr_in _srcaddr;
 static unsigned _addrlen = sizeof(_srcaddr);
-static hrt_abstime batt_sim_start = 0;
 
 const unsigned mode_flag_armed = 128;
 const unsigned mode_flag_custom = 1;
@@ -371,6 +370,9 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 
 	update_sensors(now_us, imu);
 
+	static float battery_percentage = 1.0f;
+	static uint64_t last_integration_us = 0;
+
 	// battery simulation (limit update to 100Hz)
 	if (hrt_elapsed_time(&_battery_status.timestamp) >= 10_ms) {
 
@@ -378,14 +380,18 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 
 		bool armed = (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 
-		if (!armed || batt_sim_start == 0 || batt_sim_start > now_us) {
-			batt_sim_start = now_us;
+		if (armed) {
+			if (last_integration_us != 0) {
+				battery_percentage -= (now_us - last_integration_us) / discharge_interval_us;
+			}
+
+			last_integration_us = now_us;
+
+		} else {
+			last_integration_us = 0;
 		}
 
 		float ibatt = -1.0f; // no current sensor in simulation
-
-		/* Simulate the voltage of a linearly draining battery but stop at the minimum percentage */
-		float battery_percentage = 1.0f - (now_us - batt_sim_start) / discharge_interval_us;
 
 		battery_percentage = math::max(battery_percentage, _battery_min_percentage.get() / 100.f);
 		float vbatt = math::gradual(battery_percentage, 0.f, 1.f, _battery.empty_cell_voltage(), _battery.full_cell_voltage());
@@ -408,17 +414,28 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 
 	uint64_t timestamp = hrt_absolute_time();
 
+	/* angular velocity */
+	vehicle_angular_velocity_s hil_angular_velocity{};
+	{
+		hil_angular_velocity.timestamp = timestamp;
+
+		hil_angular_velocity.xyz[0] = hil_state.rollspeed;
+		hil_angular_velocity.xyz[1] = hil_state.pitchspeed;
+		hil_angular_velocity.xyz[2] = hil_state.yawspeed;
+
+		// always publish ground truth attitude message
+		int hilstate_multi;
+		orb_publish_auto(ORB_ID(vehicle_angular_velocity_groundtruth), &_vehicle_angular_velocity_pub, &hil_angular_velocity,
+				 &hilstate_multi, ORB_PRIO_HIGH);
+	}
+
 	/* attitude */
-	struct vehicle_attitude_s hil_attitude = {};
+	vehicle_attitude_s hil_attitude{};
 	{
 		hil_attitude.timestamp = timestamp;
 
 		matrix::Quatf q(hil_state.attitude_quaternion);
 		q.copyTo(hil_attitude.q);
-
-		hil_attitude.rollspeed = hil_state.rollspeed;
-		hil_attitude.pitchspeed = hil_state.pitchspeed;
-		hil_attitude.yawspeed = hil_state.yawspeed;
 
 		// always publish ground truth attitude message
 		int hilstate_multi;
@@ -426,7 +443,7 @@ void Simulator::handle_message_hil_state_quaternion(const mavlink_message_t *msg
 	}
 
 	/* global position */
-	struct vehicle_global_position_s hil_gpos = {};
+	vehicle_global_position_s hil_gpos{};
 	{
 		hil_gpos.timestamp = timestamp;
 
@@ -662,6 +679,7 @@ void Simulator::poll_for_MAVLink_messages()
 
 		if (bind(_fd, (struct sockaddr *)&_myaddr, sizeof(_myaddr)) < 0) {
 			PX4_ERR("bind for UDP port %i failed (%i)", _port, errno);
+			::close(_fd);
 			return;
 		}
 

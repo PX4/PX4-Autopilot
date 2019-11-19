@@ -39,8 +39,8 @@
  *
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
 #include <drivers/drv_hrt.h>
 
 #include "LandingTargetEstimator.h"
@@ -80,14 +80,11 @@ void LandingTargetEstimator::update()
 			float dt = (hrt_absolute_time() - _last_predict) / SEC2USEC;
 
 			// predict target position with the help of accel data
-			matrix::Vector3f a;
+			matrix::Vector3f a{_vehicle_acceleration.xyz};
 
-			if (_vehicleAttitude_valid && _sensorBias_valid) {
+			if (_vehicleAttitude_valid && _vehicle_acceleration_valid) {
 				matrix::Quaternion<float> q_att(&_vehicleAttitude.q[0]);
 				_R_att = matrix::Dcm<float>(q_att);
-				a(0) = _sensorBias.accel_x;
-				a(1) = _sensorBias.accel_y;
-				a(2) = _sensorBias.accel_z;
 				a = _R_att * a;
 
 			} else {
@@ -244,7 +241,7 @@ void LandingTargetEstimator::_update_topics()
 {
 	_vehicleLocalPosition_valid = _vehicleLocalPositionSub.update(&_vehicleLocalPosition);
 	_vehicleAttitude_valid = _attitudeSub.update(&_vehicleAttitude);
-	_sensorBias_valid = _sensorBiasSub.update(&_sensorBias);
+	_vehicle_acceleration_valid = _vehicle_acceleration_sub.update(&_vehicle_acceleration);
 
 	_new_irlockReport = _irlockReportSub.update(&_irlockReport);
 }

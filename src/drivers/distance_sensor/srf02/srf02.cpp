@@ -37,10 +37,10 @@
  * Driver for the SRF02 sonar range finder adapted from the Maxbotix sonar range finder driver (srf02).
  */
 
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <containers/Array.hpp>
 
 #include <drivers/device/i2c.h>
@@ -172,7 +172,7 @@ extern "C" __EXPORT int srf02_main(int argc, char *argv[]);
 
 SRF02::SRF02(uint8_t rotation, int bus, int address) :
 	I2C("SRF02", SRF02_DEVICE_PATH, bus, address, 100000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
+	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id())),
 	_rotation(rotation)
 {
 }

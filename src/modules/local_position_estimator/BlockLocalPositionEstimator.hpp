@@ -1,8 +1,8 @@
 #pragma once
 
-#include <px4_posix.h>
+#include <px4_platform_common/posix.h>
 #include <drivers/drv_hrt.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 #include <controllib/blocks.hpp>
 #include <mathlib/mathlib.h>
 #include <lib/ecl/geo/geo.h>
@@ -12,6 +12,7 @@
 #include <uORB/SubscriptionPollable.hpp>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/actuator_armed.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_land_detected.h>
 #include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -105,6 +106,9 @@ class BlockLocalPositionEstimator : public control::SuperBlock, public ModulePar
 //
 public:
 
+	BlockLocalPositionEstimator(const BlockLocalPositionEstimator &) = delete;
+	BlockLocalPositionEstimator operator=(const BlockLocalPositionEstimator &) = delete;
+
 	// constants
 	enum {X_x = 0, X_y, X_z, X_vx, X_vy, X_vz, X_bx, X_by, X_bz, X_tz, n_x};
 	enum {U_ax = 0, U_ay, U_az, n_u};
@@ -153,8 +157,6 @@ public:
 	virtual ~BlockLocalPositionEstimator() = default;
 
 private:
-	BlockLocalPositionEstimator(const BlockLocalPositionEstimator &) = delete;
-	BlockLocalPositionEstimator operator=(const BlockLocalPositionEstimator &) = delete;
 
 	// methods
 	// ----------------------------
@@ -249,6 +251,7 @@ private:
 	uORB::SubscriptionPollable<actuator_armed_s> _sub_armed;
 	uORB::SubscriptionPollable<vehicle_land_detected_s> _sub_land;
 	uORB::SubscriptionPollable<vehicle_attitude_s> _sub_att;
+	uORB::SubscriptionPollable<vehicle_angular_velocity_s> _sub_angular_velocity;
 	uORB::SubscriptionPollable<optical_flow_s> _sub_flow;
 	uORB::SubscriptionPollable<sensor_combined_s> _sub_sensor;
 	uORB::SubscriptionPollable<parameter_update_s> _sub_param_update;

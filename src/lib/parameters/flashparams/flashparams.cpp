@@ -42,9 +42,9 @@
  * foot print device.
  */
 
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_shutdown.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/shutdown.h>
 
 #include <string.h>
 #include <stdbool.h>

@@ -53,7 +53,7 @@
  ************************************************************************************/
 
 /* Clocking *************************************************************************/
-/* The PX4FMUV2 uses a 24MHz crystal connected to the HSE.
+/* The PX4FMUV4 uses a 24MHz crystal connected to the HSE.
  *
  * This is the "standard" configuration as set up by arch/arm/src/stm32f40xx_rcc.c:
  *   System Clock source           : PLL (HSE)
@@ -236,8 +236,8 @@
 /* UART8 has no alternate pin config */
 
 /* UART RX DMA configurations */
-#define DMAMAP_USART1_RX DMAMAP_USART1_RX_2
-#define DMAMAP_USART6_RX DMAMAP_USART6_RX_2
+#define DMAMAP_USART1_RX DMAMAP_USART1_RX_1	/*DMA2 Stream 2*/
+#define DMAMAP_USART6_RX DMAMAP_USART6_RX_1	/*DMA2 Stream 1*/
 
 /*
  * CAN

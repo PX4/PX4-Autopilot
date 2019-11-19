@@ -34,13 +34,14 @@
 set(msg_files
 	actuator_armed.msg
 	actuator_controls.msg
-	actuator_direct.msg
 	actuator_outputs.msg
 	adc_report.msg
 	airspeed.msg
+	airspeed_validated.msg
 	battery_status.msg
 	camera_capture.msg
 	camera_trigger.msg
+	cellular_status.msg
 	collision_report.msg
 	collision_constraints.msg
 	commander_state.msg
@@ -79,6 +80,7 @@ set(msg_files
 	multirotor_motor_limits.msg
 	obstacle_distance.msg
 	offboard_control_mode.msg
+	onboard_computer_status.msg
 	optical_flow.msg
 	orbit_status.msg
 	parameter_update.msg
@@ -104,6 +106,7 @@ set(msg_files
 	sensor_combined.msg
 	sensor_correction.msg
 	sensor_gyro.msg
+	sensor_gyro_control.msg
 	sensor_mag.msg
 	sensor_preflight.msg
 	sensor_selection.msg
@@ -122,7 +125,9 @@ set(msg_files
 	uavcan_parameter_value.msg
 	ulog_stream.msg
 	ulog_stream_ack.msg
+	vehicle_acceleration.msg
 	vehicle_air_data.msg
+	vehicle_angular_velocity.msg
 	vehicle_attitude.msg
 	vehicle_attitude_setpoint.msg
 	vehicle_command.msg
@@ -142,6 +147,7 @@ set(msg_files
 	vehicle_status_flags.msg
 	vehicle_trajectory_waypoint.msg
 	vtol_vehicle_status.msg
+	wheel_encoders.msg
 	wind_estimate.msg
 	)
 
@@ -172,6 +178,10 @@ foreach(msg_file ${msg_files})
 	list(APPEND uorb_sources ${msg_source_out_path}/${msg}.cpp)
 endforeach()
 
+if (px4_constrained_flash_build)
+	set(added_arguments --constrained-flash)
+endif()
+
 # Generate uORB headers
 add_custom_command(OUTPUT ${uorb_headers}
 	COMMAND ${PYTHON_EXECUTABLE} tools/px_generate_uorb_topic_files.py
@@ -182,6 +192,7 @@ add_custom_command(OUTPUT ${uorb_headers}
 		-e templates/uorb
 		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/headers
 		-q
+		${added_arguments}
 	DEPENDS
 		${msg_files}
 		templates/uorb/msg.h.em
@@ -202,6 +213,7 @@ add_custom_command(OUTPUT ${uorb_sources}
 		-e templates/uorb
 		-t ${CMAKE_CURRENT_BINARY_DIR}/tmp/sources
 		-q
+		${added_arguments}
 	DEPENDS
 		${msg_files}
 		templates/uorb/msg.cpp.em

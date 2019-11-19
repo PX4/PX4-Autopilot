@@ -162,7 +162,8 @@ then
 	param set SENS_DPRES_OFF 0.001
 	param set SYS_RESTART_TYPE 2
 
-	param set WEST_EN 0
+	param set TRIG_INTERFACE 3
+
 fi
 
 # Adapt timeout parameters if simulation runs faster or slower than realtime.
@@ -211,17 +212,13 @@ sensors start
 commander start
 navigator start
 
-if param compare WEST_EN 1
-then
-	wind_estimator start
-fi
 
-if ! param compare MNT_MODE_IN -1
+if ! param compare -s MNT_MODE_IN -1
 then
 	vmount start
 fi
 
-if param greater TRIG_MODE 0
+if param greater -s TRIG_MODE 0
 then
 	camera_trigger start
 	camera_feedback start

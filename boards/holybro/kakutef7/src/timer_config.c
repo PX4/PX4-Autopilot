@@ -46,7 +46,7 @@
 #include <stm32_tim.h>
 
 #include <drivers/drv_pwm_output.h>
-#include <drivers/stm32/drv_io_timer.h>
+#include <px4_arch/io_timer.h>
 
 #include "board_config.h"
 
@@ -60,7 +60,12 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.last_channel_index = 1,
 		.handler = io_timer_handler0,
 		.vectorno =  STM32_IRQ_TIM3,
-
+		.dshot = {
+			.dma_base = STM32_DMA1_BASE,
+			.dmamap = DMAMAP_TIM3_UP,
+			.start_ccr_register = TIM_DMABASE_CCR3,
+			.channels_number = 2u /* CCR3 and CCR4 */
+		}
 	},
 	{
 		.base = STM32_TIM1_BASE,
@@ -71,7 +76,12 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.last_channel_index = 3,
 		.handler = io_timer_handler1,
 		.vectorno =  STM32_IRQ_TIM1CC,
-
+		.dshot = {
+			.dma_base = STM32_DMA2_BASE,
+			.dmamap = DMAMAP_TIM1_UP,
+			.start_ccr_register = TIM_DMABASE_CCR1,
+			.channels_number = 2u /* CCR1 and CCR2 */
+		}
 	},
 	{
 		.base = STM32_TIM8_BASE,
@@ -82,6 +92,12 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.last_channel_index = 4,
 		.handler = io_timer_handler2,
 		.vectorno =  STM32_IRQ_TIM8CC,
+		.dshot = {
+			.dma_base = STM32_DMA2_BASE,
+			.dmamap = DMAMAP_TIM8_UP,
+			.start_ccr_register = TIM_DMABASE_CCR4,
+			.channels_number = 1u /* CCR4 */
+		}
 	},
 	{
 		.base = STM32_TIM5_BASE,
@@ -92,6 +108,12 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.last_channel_index = 5,
 		.handler = io_timer_handler3,
 		.vectorno =  STM32_IRQ_TIM5,
+		.dshot = {
+			.dma_base = STM32_DMA1_BASE,
+			.dmamap = DMAMAP_TIM5_UP_2,
+			.start_ccr_register = TIM_DMABASE_CCR4,
+			.channels_number = 1u /* CCR4 */
+		}
 	}
 };
 

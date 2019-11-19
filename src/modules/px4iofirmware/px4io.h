@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -50,7 +50,7 @@
 
 #include "protocol.h"
 
-#include <pwm_limit/pwm_limit.h>
+#include <output_limit/output_limit.h>
 
 /*
  hotfix: we are critically short of memory in px4io and this is the
@@ -160,7 +160,7 @@ extern bool update_trims;
 /*
  * PWM limit structure
  */
-extern pwm_limit_t pwm_limit;
+extern output_limit_t pwm_limit;
 
 /*
  * GPIO handling.
@@ -186,11 +186,9 @@ extern pwm_limit_t pwm_limit;
 
 #define PX4_CRITICAL_SECTION(cmd)	{ irqstate_t flags = px4_enter_critical_section(); cmd; px4_leave_critical_section(flags); }
 
-#define PX4_ATOMIC_MODIFY_OR(target, modification)	{ if ((target | (modification)) != target) { PX4_CRITICAL_SECTION(target |= (modification)); } }
-
-#define PX4_ATOMIC_MODIFY_CLEAR(target, modification)	{ if ((target & ~(modification)) != target) { PX4_CRITICAL_SECTION(target &= ~(modification)); } }
-
-#define PX4_ATOMIC_MODIFY_AND(target, modification)	{ if ((target & (modification)) != target) { PX4_CRITICAL_SECTION(target &= (modification)); } }
+void atomic_modify_or(volatile uint16_t *target, uint16_t modification);
+void atomic_modify_clear(volatile uint16_t *target, uint16_t modification);
+void atomic_modify_and(volatile uint16_t *target, uint16_t modification);
 
 /*
  * Mixer

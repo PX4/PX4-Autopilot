@@ -34,19 +34,20 @@
 px4_add_git_submodule(TARGET git_uavcan PATH "libuavcan")
 
 set(UAVCAN_USE_CPP03 ON CACHE BOOL "uavcan cpp03")
+set(UAVCAN_PLATFORM "generic")
 
 if(CONFIG_ARCH_CHIP)
 	if (${CONFIG_ARCH_CHIP} MATCHES "kinetis")
-		set(UAVCAN_PLATFORM "kinetis")
+		set(UAVCAN_DRIVER "kinetis")
 		set(UAVCAN_TIMER 1)
 	elseif (${CONFIG_ARCH_CHIP} MATCHES "stm32")
-		set(UAVCAN_PLATFORM "stm32")
+		set(UAVCAN_DRIVER "stm32")
 		set(UAVCAN_TIMER 5) # The default timer the 5
 	endif()
 endif()
 
-if(NOT DEFINED UAVCAN_PLATFORM)
-	message(FATAL_ERROR "UAVCAN_PLATFORM not set")
+if(NOT DEFINED UAVCAN_DRIVER)
+	message(FATAL_ERROR "UAVCAN_DRIVER not set")
 endif()
 
 if(NOT config_uavcan_num_ifaces)
@@ -54,13 +55,13 @@ if(NOT config_uavcan_num_ifaces)
 endif()
 
 string(TOUPPER "${PX4_PLATFORM}" OS_UPPER)
-string(TOUPPER "${UAVCAN_PLATFORM}" UAVCAN_PLATFORM_UPPER)
+string(TOUPPER "${UAVCAN_DRIVER}" UAVCAN_DRIVER_UPPER)
 add_definitions(
-		-DUAVCAN_${UAVCAN_PLATFORM_UPPER}_${OS_UPPER}=1
-		-DUAVCAN_${UAVCAN_PLATFORM_UPPER}_NUM_IFACES=${config_uavcan_num_ifaces}
-		-DUAVCAN_${UAVCAN_PLATFORM_UPPER}_TIMER_NUMBER=${UAVCAN_TIMER}
+		-DUAVCAN_${UAVCAN_DRIVER_UPPER}_${OS_UPPER}=1
+		-DUAVCAN_${UAVCAN_DRIVER_UPPER}_NUM_IFACES=${config_uavcan_num_ifaces}
+		-DUAVCAN_${UAVCAN_DRIVER_UPPER}_TIMER_NUMBER=${UAVCAN_TIMER}
 		-DUAVCAN_CPP_VERSION=UAVCAN_CPP03
-		-DUAVCAN_DRIVER=uavcan_${UAVCAN_PLATFORM}
+		-DUAVCAN_DRIVER=uavcan_${UAVCAN_DRIVER}
 		-DUAVCAN_IMPLEMENT_PLACEMENT_NEW=1
 		-DUAVCAN_MEM_POOL_BLOCK_SIZE=48
 		-DUAVCAN_NO_ASSERTIONS
@@ -71,22 +72,45 @@ add_compile_options(-Wno-cast-align) # TODO: fix and enable
 add_subdirectory(libuavcan EXCLUDE_FROM_ALL)
 add_dependencies(uavcan prebuild_targets)
 
+# driver
+add_subdirectory(uavcan_drivers/${UAVCAN_DRIVER}/driver EXCLUDE_FROM_ALL)
+target_include_directories(uavcan_${UAVCAN_DRIVER}_driver PUBLIC
+	./libuavcan/libuavcan/include
+	./libuavcan/libuavcan/include/dsdlc_generated
+	)
+
+
+# generated DSDL
+set(DSDLC_INPUTS "${CMAKE_CURRENT_SOURCE_DIR}/dsdl/com" "${CMAKE_CURRENT_SOURCE_DIR}/libuavcan/dsdl/uavcan")
+set(DSDLC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/include/dsdlc_generated")
+
+set(DSDLC_INPUT_FILES)
+foreach(DSDLC_INPUT ${DSDLC_INPUTS})
+	file(GLOB_RECURSE DSDLC_NEW_INPUT_FILES ${CMAKE_CURRENT_SOURCE_DIR} "${DSDLC_INPUT}/*.uavcan")
+	list(APPEND DSDLC_INPUT_FILES ${DSDLC_NEW_INPUT_FILES})
+endforeach(DSDLC_INPUT)
+add_custom_command(OUTPUT px4_uavcan_dsdlc_run.stamp
+                   COMMAND ${PYTHON} ${CMAKE_CURRENT_SOURCE_DIR}/libuavcan/libuavcan/dsdl_compiler/libuavcan_dsdlc ${DSDLC_INPUTS} -O${DSDLC_OUTPUT}
+                   COMMAND ${CMAKE_COMMAND} -E touch px4_uavcan_dsdlc_run.stamp
+                   DEPENDS ${DSDLC_INPUT_FILES}
+		   COMMENT "PX4 UAVCAN dsdl compiler"
+		   )
+add_custom_target(px4_uavcan_dsdlc DEPENDS px4_uavcan_dsdlc_run.stamp)
+
 px4_add_module(
 	MODULE modules__uavcan
 	MAIN uavcan
-	STACK_MAIN 3200
-	STACK_MAX 1500
 	INCLUDES
+		${DSDLC_OUTPUT}
 		${PX4_SOURCE_DIR}/mavlink/include/mavlink
 		libuavcan/libuavcan/include
 		libuavcan/libuavcan/include/dsdlc_generated
 		libuavcan/libuavcan_drivers/posix/include
-		libuavcan/libuavcan_drivers/${UAVCAN_PLATFORM}/driver/include
+		uavcan_drivers/${UAVCAN_DRIVER}/driver/include
 	SRCS
 		# Main
 		uavcan_main.cpp
 		uavcan_servers.cpp
-		uavcan_params.c
 
 		# Actuators
 		actuators/esc.cpp
@@ -97,15 +121,20 @@ px4_add_module(
 		sensors/gnss.cpp
 		sensors/mag.cpp
 		sensors/baro.cpp
+		sensors/flow.cpp
+		sensors/battery.cpp
 
 	DEPENDS
+		px4_uavcan_dsdlc
+
 		mixer
+		mixer_module
+		output_limit
 		version
 
 		git_uavcan
+		uavcan_${UAVCAN_DRIVER}_driver
 
 		# within libuavcan
-		libuavcan_dsdlc
 		uavcan
-		uavcan_${UAVCAN_PLATFORM}_driver
 	)

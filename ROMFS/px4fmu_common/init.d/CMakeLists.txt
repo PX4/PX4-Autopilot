@@ -31,13 +31,14 @@
 #
 ############################################################################
 
+add_subdirectory(airframes)
+
 px4_add_romfs_files(
 	rc.fw_apps
 	rc.fw_defaults
 	rc.interface
 	rc.io
 	rc.logging
-	rc.mavlink
 	rc.mc_apps
 	rc.mc_defaults
 	rcS

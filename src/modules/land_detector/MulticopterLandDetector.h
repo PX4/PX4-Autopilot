@@ -42,20 +42,14 @@
 
 #pragma once
 
-#include "LandDetector.h"
-
-#include <parameters/param.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/vehicle_local_position.h>
-#include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/battery_status.h>
-#include <uORB/topics/parameter_update.h>
-#include <uORB/topics/sensor_bias.h>
+#include <uORB/topics/vehicle_angular_velocity.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_control_mode.h>
-#include <uORB/topics/vehicle_local_position.h>
+#include <uORB/topics/vehicle_local_position_setpoint.h>
+
+#include "LandDetector.h"
 
 using namespace time_literals;
 
@@ -66,6 +60,7 @@ class MulticopterLandDetector : public LandDetector
 {
 public:
 	MulticopterLandDetector();
+	~MulticopterLandDetector() override = default;
 
 protected:
 	void _update_params() override;
@@ -80,6 +75,15 @@ protected:
 	float _get_max_altitude() override;
 private:
 
+	/** Get control mode dependent pilot throttle threshold with which we should quit landed state and take off. */
+	float _get_takeoff_throttle();
+
+	bool _has_low_thrust();
+	bool _has_minimal_thrust();
+	bool _has_altitude_lock();
+	bool _has_position_lock();
+	bool _is_climb_rate_enabled();
+
 	/** Time in us that landing conditions have to hold before triggering a land. */
 	static constexpr hrt_abstime LAND_DETECTOR_TRIGGER_TIME_US = 300_ms;
 
@@ -92,67 +96,51 @@ private:
 	/** Time interval in us in which wider acceptance thresholds are used after landed. */
 	static constexpr hrt_abstime LAND_DETECTOR_LAND_PHASE_TIME_US = 2_s;
 
-	/**
-	* @brief Handles for interesting parameters
-	**/
+	/** Handles for interesting parameters. **/
 	struct {
-		param_t maxClimbRate;
-		param_t maxVelocity;
-		param_t maxRotation;
 		param_t minThrottle;
 		param_t hoverThrottle;
 		param_t minManThrottle;
-		param_t freefall_acc_threshold;
-		param_t freefall_trigger_time;
-		param_t altitude_max;
 		param_t landSpeed;
-		param_t low_thrust_threshold;
 	} _paramHandle{};
 
 	struct {
-		float maxClimbRate;
-		float maxVelocity;
-		float maxRotation_rad_s;
 		float minThrottle;
 		float hoverThrottle;
 		float minManThrottle;
-		float freefall_acc_threshold;
-		float freefall_trigger_time;
-		float altitude_max;
 		float landSpeed;
-		float low_thrust_threshold;
 	} _params{};
 
 	uORB::Subscription _actuator_controls_sub{ORB_ID(actuator_controls_0)};
 	uORB::Subscription _battery_sub{ORB_ID(battery_status)};
-	uORB::Subscription _sensor_bias_sub{ORB_ID(sensor_bias)};
-	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};
+	uORB::Subscription _vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
+	uORB::Subscription _vehicle_angular_velocity_sub{ORB_ID(vehicle_angular_velocity)};
 	uORB::Subscription _vehicle_control_mode_sub{ORB_ID(vehicle_control_mode)};
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_local_position_setpoint_sub{ORB_ID(vehicle_local_position_setpoint)};
 
 	actuator_controls_s               _actuator_controls {};
 	battery_status_s                  _battery_status {};
-	vehicle_control_mode_s            _control_mode {};
-	sensor_bias_s                     _sensor_bias {};
-	vehicle_attitude_s                _vehicle_attitude {};
-	vehicle_local_position_s          _vehicle_local_position {};
+	vehicle_angular_velocity_s        _vehicle_angular_velocity{};
+	vehicle_control_mode_s            _vehicle_control_mode {};
 	vehicle_local_position_setpoint_s _vehicle_local_position_setpoint {};
 
-	hrt_abstime _min_trust_start{0};		///< timestamp when minimum trust was applied first
+	hrt_abstime _min_trust_start{0};	///< timestamp when minimum trust was applied first
 	hrt_abstime _landed_time{0};
 
-	bool _in_descend{false};	///< vehicle is desending
+	bool _in_descend{false};		///< vehicle is desending
 	bool _horizontal_movement{false};	///< vehicle is moving horizontally
 
-	/* get control mode dependent pilot throttle threshold with which we should quit landed state and take off */
-	float _get_takeoff_throttle();
-	bool _has_altitude_lock();
-	bool _has_position_lock();
-	bool _has_minimal_thrust();
-	bool _has_low_thrust();
-	bool _is_climb_rate_enabled();
+	DEFINE_PARAMETERS_CUSTOM_PARENT(
+		LandDetector,
+		(ParamFloat<px4::params::LNDMC_ALT_MAX>)    _param_lndmc_alt_max,
+		(ParamFloat<px4::params::LNDMC_FFALL_THR>)  _param_lndmc_ffall_thr,
+		(ParamFloat<px4::params::LNDMC_FFALL_TTRI>) _param_lndmc_ffall_ttri,
+		(ParamFloat<px4::params::LNDMC_LOW_T_THR>)  _param_lndmc_low_t_thr,
+		(ParamFloat<px4::params::LNDMC_ROT_MAX>)    _param_lndmc_rot_max,
+		(ParamFloat<px4::params::LNDMC_XY_VEL_MAX>) _param_lndmc_xy_vel_max,
+		(ParamFloat<px4::params::LNDMC_Z_VEL_MAX>)  _param_lndmc_z_vel_max
+	);
 };
-
 
 } // namespace land_detector

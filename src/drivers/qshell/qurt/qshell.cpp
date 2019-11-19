@@ -40,11 +40,10 @@
 
 #include "qshell.h"
 
-#include <px4_log.h>
-#include <px4_time.h>
-#include <px4_posix.h>
-#include <px4_middleware.h>
-#include <px4_defines.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/defines.h>
 #include <dspal_platform.h>
 
 #include <unistd.h>
@@ -117,7 +116,7 @@ int QShell::main()
 
 			struct qshell_retval_s retval;
 			retval.return_value = run_cmd(appargs);
-			retval.sequence = m_qshell_req.sequence;
+			retval.return_sequence = m_qshell_req.request_sequence;
 
 			if (retval.return_value) {
 				PX4_ERR("Failed to execute command: %s", m_qshell_req.cmd);

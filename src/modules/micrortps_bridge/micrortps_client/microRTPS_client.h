@@ -41,11 +41,11 @@
 #include <termios.h>
 
 #include <ucdr/microcdr.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
-#include <px4_time.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
 #include <uORB/uORB.h>
 
 #define BUFFER_SIZE 1024
@@ -62,6 +62,7 @@
 #endif
 #define DEVICE "/dev/ttyACM0"
 #define POLL_MS 1
+#define IP "127.0.0.1"
 #define DEFAULT_RECV_PORT 2019
 #define DEFAULT_SEND_PORT 2020
 
@@ -85,6 +86,7 @@ struct options {
 	int sleep_ms = SLEEP_MS;
 	struct baudtype baudrate = {.code = BAUDRATE, .val = BAUDRATE_VAL};
 	int poll_ms = POLL_MS;
+	char ip[16] = IP;
 	uint16_t recv_port = DEFAULT_RECV_PORT;
 	uint16_t send_port = DEFAULT_SEND_PORT;
 };
