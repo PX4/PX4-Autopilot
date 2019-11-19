@@ -731,6 +731,11 @@ MulticopterPositionControl::Run()
 			q_sp.copyTo(_att_sp.q_d);
 			_att_sp.q_d_valid = true;
 			_att_sp.thrust_body[2] = 0.0f;
+
+			// reset the numerical derivatives to not generate d term spikes when coming from non-position controlled operation
+			_vel_x_deriv.reset();
+			_vel_y_deriv.reset();
+			_vel_z_deriv.reset();
 		}
 	}
 
