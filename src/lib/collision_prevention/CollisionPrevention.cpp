@@ -224,10 +224,10 @@ CollisionPrevention::_updateObstacleMap()
 		if (getElapsedTime(&obstacle_distance.timestamp) < RANGE_STREAM_TIMEOUT_US && obstacle_distance.increment > 0.f) {
 			//update message description
 			_obstacle_map_body_frame.timestamp = math::max(_obstacle_map_body_frame.timestamp, obstacle_distance.timestamp);
-			_obstacle_map_body_frame.max_distance = math::max((int)_obstacle_map_body_frame.max_distance,
-								(int)obstacle_distance.max_distance);
-			_obstacle_map_body_frame.min_distance = math::min((int)_obstacle_map_body_frame.min_distance,
-								(int)obstacle_distance.min_distance);
+			_obstacle_map_body_frame.max_distance = math::max(_obstacle_map_body_frame.max_distance,
+								obstacle_distance.max_distance);
+			_obstacle_map_body_frame.min_distance = math::min(_obstacle_map_body_frame.min_distance,
+								obstacle_distance.min_distance);
 			_addObstacleSensorData(obstacle_distance, Quatf(_sub_vehicle_attitude.get().q));
 		}
 	}
