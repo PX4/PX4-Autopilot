@@ -40,6 +40,7 @@
 #include "parameters.h"
 
 #include <px4_platform_common/log.h>
+#include <drivers/drv_adc.h>
 
 namespace battery_status
 {
@@ -67,7 +68,7 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 
 	} else if (parameters.battery_voltage_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
-		parameters.battery_voltage_scaling = (3.3f / 4096);
+		parameters.battery_voltage_scaling = (3.3f / px4_arch_adc_dn_fullcount());
 		param_set_no_notification(parameter_handles.battery_voltage_scaling, &parameters.battery_voltage_scaling);
 	}
 
@@ -77,7 +78,7 @@ int update_parameters(const ParameterHandles &parameter_handles, Parameters &par
 
 	} else if (parameters.battery_current_scaling < 0.0f) {
 		/* apply scaling according to defaults if set to default */
-		parameters.battery_current_scaling = (3.3f / 4096);
+		parameters.battery_current_scaling = (3.3f / px4_arch_adc_dn_fullcount());
 		param_set_no_notification(parameter_handles.battery_current_scaling, &parameters.battery_current_scaling);
 	}
 
