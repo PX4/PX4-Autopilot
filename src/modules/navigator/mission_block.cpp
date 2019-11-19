@@ -590,6 +590,7 @@ MissionBlock::mission_item_to_position_setpoint(const mission_item_s &item, posi
 	}
 
 	sp->valid = true;
+	sp->timestamp = hrt_absolute_time();
 
 	return sp->valid;
 }
