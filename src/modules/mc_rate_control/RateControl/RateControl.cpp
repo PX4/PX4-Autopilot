@@ -72,7 +72,7 @@ Vector3f RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, cons
 	Vector3f rate_error = rate_sp - rate;
 
 	// prepare D-term based on low-pass filtered rates
-	Vector3f rate_filtered(_lp_filters_d.apply(rate));
+	const Vector3f rate_filtered(_lp_filters_d.apply(rate));
 	Vector3f rate_d;
 
 	if (dt > FLT_EPSILON) {
@@ -80,7 +80,7 @@ Vector3f RateControl::update(const Vector3f &rate, const Vector3f &rate_sp, cons
 	}
 
 	// PID control with feed forward
-	Vector3f torque = _gain_p.emult(rate_error) + _rate_int - _gain_d.emult(rate_d) + _gain_ff.emult(rate_sp);
+	const Vector3f torque = _gain_p.emult(rate_error) + _rate_int - _gain_d.emult(rate_d) + _gain_ff.emult(rate_sp);
 
 	_rate_prev = rate;
 	_rate_prev_filtered = rate_filtered;
