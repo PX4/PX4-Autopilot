@@ -665,9 +665,11 @@ Navigator::run()
 
 			_pos_sp_triplet.current.type = position_setpoint_s::SETPOINT_TYPE_IDLE;
 			_pos_sp_triplet.current.valid = true;
-			_pos_sp_triplet.previous.valid = false;
-			_pos_sp_triplet.next.valid = false;
+			_pos_sp_triplet.current.timestamp = hrt_absolute_time();
 
+			_pos_sp_triplet.previous.valid = false;
+
+			_pos_sp_triplet.next.valid = false;
 		}
 
 		/* if nothing is running, set position setpoint triplet invalid once */
