@@ -977,12 +977,8 @@ void Ekf2::Run()
 				}
 
 				// Only use selected receiver data if it has been updated
-				if ((gps1_updated && _gps_select_index == 0) || (gps2_updated && _gps_select_index == 1)) {
-					_gps_new_output_data = true;
-
-				} else {
-					_gps_new_output_data = false;
-				}
+				_gps_new_output_data = (gps1_updated && _gps_select_index == 0) ||
+						       (gps2_updated && _gps_select_index == 1);
 			}
 
 			if (_gps_new_output_data) {
