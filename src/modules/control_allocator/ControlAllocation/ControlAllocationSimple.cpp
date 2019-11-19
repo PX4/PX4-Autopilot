@@ -41,13 +41,6 @@
 
 #include "ControlAllocationSimple.hpp"
 
-void
-ControlAllocationSimple::setEffectivenessMatrix(const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &B)
-{
-	_B = B;
-	_A_update_needed = true;
-}
-
 
 void
 ControlAllocationSimple::allocate()
