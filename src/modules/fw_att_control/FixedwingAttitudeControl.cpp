@@ -655,6 +655,28 @@ void FixedwingAttitudeControl::Run()
 			}
 
 			_actuators_2_pub.publish(_actuators_airframe);
+
+			/* publish thrust and torque setpoint */
+			if (!_vehicle_status.is_vtol
+			    || (_vehicle_status.is_vtol && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING))
+			   ) {
+				vehicle_torque_setpoint_s v_torque_sp = {};
+				v_torque_sp.timestamp = hrt_absolute_time();
+				v_torque_sp.timestamp_sample = _att.timestamp;
+				v_torque_sp.xyz[0] = (PX4_ISFINITE(_actuators.control[0])) ? _actuators.control[0] : 0.0f;
+				v_torque_sp.xyz[1] = (PX4_ISFINITE(_actuators.control[1])) ? _actuators.control[1] : 0.0f;
+				v_torque_sp.xyz[2] = (PX4_ISFINITE(_actuators.control[2])) ? _actuators.control[2] : 0.0f;
+				_vehicle_torque_setpoint_pub.publish(v_torque_sp);
+
+				vehicle_thrust_setpoint_s v_thrust_sp = {};
+				v_thrust_sp.timestamp = hrt_absolute_time();
+				v_thrust_sp.timestamp_sample = _att.timestamp;
+				v_thrust_sp.xyz[0] = (PX4_ISFINITE(_actuators.control[3])) ? _actuators.control[3] : 0.0f;
+				v_thrust_sp.xyz[1] = 0.0f;
+				v_thrust_sp.xyz[2] = 0.0f;
+				_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
+
+			}
 		}
 	}
 
