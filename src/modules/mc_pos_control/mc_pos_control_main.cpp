@@ -702,6 +702,12 @@ MulticopterPositionControl::Run()
 			}
 
 			_old_landing_gear_position = gear.landing_gear;
+
+		} else {
+			// reset the numerical derivatives to not generate d term spikes when coming from non-position controlled operation
+			_vel_x_deriv.reset();
+			_vel_y_deriv.reset();
+			_vel_z_deriv.reset();
 		}
 	}
 
