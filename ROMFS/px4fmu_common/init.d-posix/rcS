@@ -55,9 +55,21 @@ fi
 
 
 uorb start
-if [ -f eeprom/parameters ]
+
+# Load parameters
+set PARAM_FILE eeprom/parameters_"$REQUESTED_AUTOSTART"
+param select $PARAM_FILE
+
+if [ -f $PARAM_FILE ]
 then
-	param load
+	if param load
+	then
+		echo "[param] Loaded: $PARAM_FILE"
+	else
+		echo "[param] FAILED loading $PARAM_FILE"
+	fi
+else
+	echo "[param] parameter file not found, creating $PARAM_FILE"
 fi
 
 # exit early when the minimal shell is requested
