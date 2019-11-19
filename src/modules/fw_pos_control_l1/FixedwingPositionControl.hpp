@@ -163,6 +163,8 @@ private:
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};		///< vehicle command subscription */
 	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	///< vehicle land detected subscription */
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			///< vehicle status subscription */
+	uORB::SubscriptionData<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
+	uORB::SubscriptionData<vehicle_acceleration_s>		_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 	uORB::SubscriptionData<vehicle_angular_velocity_s>	_vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
 
 	orb_advert_t	_attitude_sp_pub{nullptr};		///< attitude setpoint */
@@ -182,9 +184,6 @@ private:
 	vehicle_local_position_s	_local_pos {};			///< vehicle local position */
 	vehicle_land_detected_s		_vehicle_land_detected {};	///< vehicle land detected */
 	vehicle_status_s		_vehicle_status {};		///< vehicle status */
-
-	SubscriptionData<airspeed_s>			_airspeed_sub{ORB_ID(airspeed)};
-	SubscriptionData<vehicle_acceleration_s>	_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
 	perf_counter_t	_loop_perf;				///< loop performance counter */
 
@@ -329,7 +328,6 @@ private:
 		param_t throttle_damp;
 		param_t integrator_gain;
 		param_t vertical_accel_limit;
-		param_t height_comp_filter_omega;
 		param_t speed_comp_filter_omega;
 		param_t roll_throttle_compensation;
 		param_t speed_weight;
