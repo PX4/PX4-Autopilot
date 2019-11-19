@@ -306,7 +306,7 @@ __EXPORT uint8_t stm32_spi6status(FAR struct spi_dev_s *dev, uint32_t devid)
 __EXPORT void board_spi_reset(int mask_ms)
 {
 	int ms =  mask_ms & 0x00ffffff;
-	int mask = ((mask_ms & 0xff000000) >> 24) ^ 0xff;
+	int mask = ((mask_ms & 0xff000000) >> 24) & 0xff;
 
 	// disable SPI bus
 
