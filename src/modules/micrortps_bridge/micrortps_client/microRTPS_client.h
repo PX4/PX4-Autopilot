@@ -52,14 +52,7 @@
 #define UPDATE_TIME_MS 0
 #define LOOPS -1
 #define SLEEP_MS 1
-#define BAUDRATE B460800
-#define BAUDRATE_VAL 460800
-#ifndef B460800
-#define B460800 460800
-#endif
-#ifndef B921600
-#define B921600 921600
-#endif
+#define BAUDRATE 460800
 #define DEVICE "/dev/ttyACM0"
 #define POLL_MS 1
 #define IP "127.0.0.1"
@@ -84,7 +77,7 @@ struct options {
 	int update_time_ms = UPDATE_TIME_MS;
 	int loops = LOOPS;
 	int sleep_ms = SLEEP_MS;
-	struct baudtype baudrate = {.code = BAUDRATE, .val = BAUDRATE_VAL};
+	uint32_t baudrate = BAUDRATE;
 	int poll_ms = POLL_MS;
 	char ip[16] = IP;
 	uint16_t recv_port = DEFAULT_RECV_PORT;
