@@ -199,6 +199,10 @@ ControlAllocator::update_allocation_method()
 			tmp = new ControlAllocationPseudoInverse();
 			break;
 
+		case 1:
+			tmp = new ControlAllocationSequentialDesaturation();
+			break;
+
 		default:
 			PX4_ERR("Unknown allocation method");
 			tmp = nullptr;
