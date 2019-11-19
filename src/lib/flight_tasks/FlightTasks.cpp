@@ -56,7 +56,7 @@ const landing_gear_s FlightTasks::getGear()
 	}
 }
 
-FlightTaskError FlightTasks::switchTask(FlightTaskIndex new_task_index)
+FlightTaskError FlightTasks::switchTask(FlightTaskIndex new_task_index, const hrt_abstime time_stamp_mode_switch)
 {
 	// switch to the running task, nothing to do
 	if (new_task_index == _current_task.index) {
@@ -76,6 +76,9 @@ FlightTaskError FlightTasks::switchTask(FlightTaskIndex new_task_index)
 		return FlightTaskError::NoError;
 	}
 
+	// pass modeswitch timestamp
+	_current_task.task->setModeSwitchTimeStamp(time_stamp_mode_switch);
+
 	// activation failed
 	if (!_current_task.task->updateInitialize() || !_current_task.task->activate(last_setpoint)) {
 		_current_task.task->~FlightTask();
@@ -87,7 +90,7 @@ FlightTaskError FlightTasks::switchTask(FlightTaskIndex new_task_index)
 	return FlightTaskError::NoError;
 }
 
-FlightTaskError FlightTasks::switchTask(int new_task_index)
+FlightTaskError FlightTasks::switchTask(int new_task_index, const hrt_abstime time_stamp_mode_switch)
 {
 	// make sure we are in range of the enumeration before casting
 	if (static_cast<int>(FlightTaskIndex::None) <= new_task_index &&
@@ -146,7 +149,7 @@ void FlightTasks::_updateCommand()
 	}
 
 	// switch to the commanded task
-	FlightTaskError switch_result = switchTask(desired_task);
+	FlightTaskError switch_result = switchTask(desired_task, command.timestamp);
 	uint8_t cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 
 	// if we are in/switched to the desired task
@@ -159,7 +162,7 @@ void FlightTasks::_updateCommand()
 
 			// if we just switched and parameters are not accepted, go to failsafe
 			if (switch_result >= FlightTaskError::NoError) {
-				switchTask(FlightTaskIndex::ManualPosition);
+				switchTask(FlightTaskIndex::ManualPosition, command.timestamp);
 				cmd_result = vehicle_command_ack_s::VEHICLE_RESULT_FAILED;
 			}
 		}

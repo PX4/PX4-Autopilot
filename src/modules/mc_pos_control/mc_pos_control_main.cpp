@@ -769,7 +769,7 @@ MulticopterPositionControl::start_flight_task()
 	// Auto-follow me
 	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_FOLLOW_TARGET) {
 		should_disable_task = false;
-		FlightTaskError error = _flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe);
+		FlightTaskError error = _flight_tasks.switchTask(FlightTaskIndex::AutoFollowMe, _vehicle_status.nav_state_timestamp);
 
 		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
@@ -783,19 +783,35 @@ MulticopterPositionControl::start_flight_task()
 			// we want to be in this mode, reset the failure count
 			_task_failure_count = 0;
 		}
+	}
 
-	} else if (_control_mode.flag_control_auto_enabled) {
+	// Auto
+	const bool vehicle_in_auto_mode = (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS
+					   || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND
+					   || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LANDENGFAIL
+					   || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LANDGPSFAIL
+					   || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND
+					   || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION
+					   || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LOITER
+					   || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_TAKEOFF
+					   || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTL
+					   || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RTGS
+					   || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_RCRECOVER
+					   || _vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_PRECLAND);
+
+
+	if (vehicle_in_auto_mode) {
 		// Auto related maneuvers
 		should_disable_task = false;
 		FlightTaskError error = FlightTaskError::NoError;
 
 		switch (_param_mpc_auto_mode.get()) {
 		case 1:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLineSmoothVel);
+			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLineSmoothVel, _vehicle_status.nav_state_timestamp);
 			break;
 
 		default:
-			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLine);
+			error =  _flight_tasks.switchTask(FlightTaskIndex::AutoLine, _vehicle_status.nav_state_timestamp);
 			break;
 		}
 
@@ -811,14 +827,16 @@ MulticopterPositionControl::start_flight_task()
 			// we want to be in this mode, reset the failure count
 			_task_failure_count = 0;
 		}
+	}
 
-	} else if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND) {
+	// Descend without gps
+	if (_vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_DESCEND) {
 
 		// Emergency descend
 		should_disable_task = false;
 		FlightTaskError error = FlightTaskError::NoError;
 
-		error =  _flight_tasks.switchTask(FlightTaskIndex::Descend);
+		error =  _flight_tasks.switchTask(FlightTaskIndex::Descend, _vehicle_status.nav_state_timestamp);
 
 		if (error != FlightTaskError::NoError) {
 			if (prev_failure_count == 0) {
@@ -832,7 +850,6 @@ MulticopterPositionControl::start_flight_task()
 			// we want to be in this mode, reset the failure count
 			_task_failure_count = 0;
 		}
-
 	}
 
 	// manual position control

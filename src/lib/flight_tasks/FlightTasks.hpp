@@ -48,6 +48,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/vehicle_command.h>
+#include <drivers/drv_hrt.h>
 
 #include <new>
 
@@ -109,15 +110,15 @@ public:
 	 * Switch to the next task in the available list (for testing)
 	 * @return 0 on success, <0 on error
 	 */
-	FlightTaskError switchTask() { return switchTask(static_cast<int>(_current_task.index) + 1); }
+	FlightTaskError switchTask() { return switchTask(static_cast<int>(_current_task.index) + 1); };
 
 	/**
 	 * Switch to a specific task (for normal usage)
 	 * @param task index to switch to
 	 * @return 0 on success, <0 on error
 	 */
-	FlightTaskError switchTask(FlightTaskIndex new_task_index);
-	FlightTaskError switchTask(int new_task_index);
+	FlightTaskError switchTask(FlightTaskIndex new_task_index, const hrt_abstime time_stamp_mode_switch = 0);
+	FlightTaskError switchTask(int new_task_index, const hrt_abstime time_stamp_mode_switch = 0);
 
 	/**
 	 * Get the number of the active task

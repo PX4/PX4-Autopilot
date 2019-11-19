@@ -158,6 +158,11 @@ public:
 	}
 
 	/**
+	 *  Set the timestamp of the message that caused a FlightTasks-switch
+	 */
+	void setModeSwitchTimeStamp(const hrt_abstime t_stamp_mode_switch) {_time_stamp_mode_switch_requested = t_stamp_mode_switch;}
+
+	/**
 	 * Sets an external yaw handler which can be used by any flight task to implement a different yaw control strategy.
 	 * This method does nothing, each flighttask which wants to use the yaw handler needs to override this method.
 	 */
@@ -202,6 +207,7 @@ protected:
 	hrt_abstime _time_stamp_activate = 0; /**< time stamp when task was activated */
 	hrt_abstime _time_stamp_current = 0; /**< time stamp at the beginning of the current task update */
 	hrt_abstime _time_stamp_last = 0; /**< time stamp when task was last updated */
+	hrt_abstime _time_stamp_mode_switch_requested = 0; /**< time stamp when a mode switch was requested. */
 
 	/* Current vehicle state */
 	matrix::Vector3f _position; /**< current vehicle position */

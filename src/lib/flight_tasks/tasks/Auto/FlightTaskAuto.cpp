@@ -136,11 +136,20 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	// Check if triplet is valid. There must be at least a valid altitude.
 
-	if (!_sub_triplet_setpoint.get().current.valid || !PX4_ISFINITE(_sub_triplet_setpoint.get().current.alt)) {
-		// Best we can do is to just set all waypoints to current state and return false.
+	// Check if triplet is valid.
+	// * a triplet has been received
+	// * triplet is valid
+	// * at least altitude is valid
+	if ((_time_stamp_mode_switch_requested >= _sub_triplet_setpoint.get().timestamp)
+	    || !_sub_triplet_setpoint.get().current.valid
+	    || !PX4_ISFINITE(_sub_triplet_setpoint.get().current.alt)) {
+		// hover at current location
 		_prev_prev_wp = _triplet_prev_wp = _triplet_target = _triplet_next_wp = _position;
+		_yaw_setpoint = _yaw;
+		_yawspeed_setpoint = NAN;
+		_velocity_setpoint.zero();
 		_type = WaypointType::position;
-		return false;
+		return true;
 	}
 
 	_type = (WaypointType)_sub_triplet_setpoint.get().current.type;
