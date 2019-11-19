@@ -27,6 +27,7 @@ ekf2 start
 vtol_att_control start
 mc_pos_control start
 mc_att_control start
+mc_rate_control start
 fw_pos_control_l1 start
 fw_att_control start
 airspeed_selector start
@@ -54,6 +55,7 @@ navigator status
 ekf2 status
 mc_pos_control status
 mc_att_control status
+mc_rate_control status
 fw_pos_control_l1 status
 fw_att_control status
 airspeed_selector status
@@ -64,6 +66,7 @@ uorb status
 echo "Stopping all modules"
 logger stop
 pwm_out_sim stop
+mc_rate_control stop
 mc_att_control stop
 fw_att_control stop
 mc_pos_control stop
