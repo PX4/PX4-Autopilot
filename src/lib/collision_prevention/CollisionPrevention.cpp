@@ -107,14 +107,14 @@ hrt_abstime CollisionPrevention::getElapsedTime(const hrt_abstime *ptr)
 
 bool CollisionPrevention::is_active()
 {
-	bool is_active = _param_cp_dist.get() > 0;
+	bool activated = _param_cp_dist.get() > 0;
 
-	if (is_active && !_was_active) {
+	if (activated && !_was_active) {
 		_time_activated = getTime();
 	}
 
-	_was_active = is_active;
-	return is_active;
+	_was_active = activated;
+	return activated;
 }
 
 void
