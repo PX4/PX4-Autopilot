@@ -328,7 +328,6 @@ void FlightTaskManualAltitude::_lockYaw()
 	// hold the current heading when no more rotation commanded
 	if (!PX4_ISFINITE(_yaw_setpoint)) {
 		_yaw_setpoint = _yaw;
-		_yawspeed_setpoint = NAN;
 	}
 }
 
