@@ -61,7 +61,9 @@
 static constexpr uint32_t spi1selects_gpio[] = PX4_SENSORS1_BUS_CS_GPIO;
 static constexpr uint32_t spi2selects_gpio[] = PX4_SENSORS2_BUS_CS_GPIO;
 static constexpr uint32_t spi3selects_gpio[] = PX4_SENSORS3_BUS_CS_GPIO;
+#ifdef CONFIG_STM32F7_SPI4
 static constexpr uint32_t spi4selects_gpio[] = PX4_SENSORS4_BUS_CS_GPIO;
+#endif
 static constexpr uint32_t spi5selects_gpio[] = PX4_MEMORY_BUS_CS_GPIO;
 static constexpr uint32_t spi6selects_gpio[] = PX4_EXTERNAL1_BUS_CS_GPIO;
 
@@ -359,16 +361,6 @@ __EXPORT void board_spi_reset(int mask_ms)
 	}
 
 	if (mask & 8) {
-		for (auto cs : spi4selects_gpio) {
-			stm32_configgpio(_PIN_OFF(cs));
-		}
-
-		stm32_configgpio(GPIO_SPI4_SCK_OFF);
-		stm32_configgpio(GPIO_SPI4_MISO_OFF);
-		stm32_configgpio(GPIO_SPI4_MOSI_OFF);
-#if BOARD_USE_DRDY
-		stm32_configgpio(GPIO_DRDY_OFF_SPI4_DRDY1_BMM150);
-#endif
 		/* set the sensor rail off */
 		stm32_gpiowrite(GPIO_VDD_3V3_SENSORS4_EN, 0);
 	}
@@ -429,21 +421,6 @@ __EXPORT void board_spi_reset(int mask_ms)
 #if BOARD_USE_DRDY
 		stm32_configgpio(GPIO_SPI3_DRDY1_BMI088);
 		stm32_configgpio(GPIO_SPI3_DRDY2_BMI088);
-#endif
-	}
-
-	if (mask & 8) {
-		/* reconfigure the SPI pins */
-		for (auto cs : spi4selects_gpio) {
-			stm32_configgpio(cs);
-		}
-
-
-		stm32_configgpio(GPIO_SPI4_SCK);
-		stm32_configgpio(GPIO_SPI4_MISO);
-		stm32_configgpio(GPIO_SPI4_MOSI);
-#if BOARD_USE_DRDY
-		stm32_configgpio(GPIO_SPI4_DRDY1_BMM150);
 #endif
 	}
 }
