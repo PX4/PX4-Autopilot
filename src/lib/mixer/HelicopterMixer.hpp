@@ -72,6 +72,12 @@ public:
 	HelicopterMixer(ControlCallback control_cb, uintptr_t cb_handle, mixer_heli_s *mixer_info);
 	virtual ~HelicopterMixer() = default;
 
+	// no copy, assignment, move, move assignment
+	HelicopterMixer(const HelicopterMixer &) = delete;
+	HelicopterMixer &operator=(const HelicopterMixer &) = delete;
+	HelicopterMixer(HelicopterMixer &&) = delete;
+	HelicopterMixer &operator=(HelicopterMixer &&) = delete;
+
 	/**
 	 * Factory method.
 	 *
