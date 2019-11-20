@@ -53,14 +53,15 @@
 
 #include "mixer.h"
 
+#include "MixerGroup.hpp"
+
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
 //#include <debug.h>
 //#define debug(fmt, args...)	syslog(fmt "\n", ##args)
 
 MixerGroup::MixerGroup(ControlCallback control_cb, uintptr_t cb_handle) :
-	Mixer(control_cb, cb_handle),
-	_first(nullptr)
+	Mixer(control_cb, cb_handle)
 {
 }
 
@@ -72,9 +73,7 @@ MixerGroup::~MixerGroup()
 void
 MixerGroup::add_mixer(Mixer *mixer)
 {
-	Mixer **mpp;
-
-	mpp = &_first;
+	Mixer **mpp = &_first;
 
 	while (*mpp != nullptr) {
 		mpp = &((*mpp)->_next);
@@ -105,7 +104,7 @@ MixerGroup::reset()
 unsigned
 MixerGroup::mix(float *outputs, unsigned space)
 {
-	Mixer	*mixer = _first;
+	Mixer *mixer = _first;
 	unsigned index = 0;
 
 	while ((mixer != nullptr) && (index < space)) {
@@ -125,7 +124,7 @@ MixerGroup::mix(float *outputs, unsigned space)
 unsigned
 MixerGroup::set_trims(int16_t *values, unsigned n)
 {
-	Mixer	*mixer = _first;
+	Mixer *mixer = _first;
 	unsigned index = 0;
 
 	while ((mixer != nullptr) && (index < n)) {
@@ -135,7 +134,7 @@ MixerGroup::set_trims(int16_t *values, unsigned n)
 		/* to be safe, clamp offset to range of [-500, 500] usec */
 		if (offset < -1.0f) { offset = -1.0f; }
 
-		if (offset >  1.0f) { offset =  1.0f; }
+		if (offset > 1.0f) { offset = 1.0f; }
 
 		debug("set trim: %d, offset: %5.3f", values[index], (double)offset);
 		index += mixer->set_trim(offset);
@@ -154,7 +153,7 @@ MixerGroup::set_trims(int16_t *values, unsigned n)
 unsigned
 MixerGroup::get_trims(int16_t *values)
 {
-	Mixer	*mixer = _first;
+	Mixer *mixer = _first;
 	unsigned index_mixer = 0;
 	unsigned index = 0;
 	float trim;
@@ -179,7 +178,7 @@ MixerGroup::get_trims(int16_t *values)
 void
 MixerGroup::set_thrust_factor(float val)
 {
-	Mixer	*mixer = _first;
+	Mixer *mixer = _first;
 
 	while (mixer != nullptr) {
 		mixer->set_thrust_factor(val);
@@ -190,7 +189,7 @@ MixerGroup::set_thrust_factor(float val)
 void
 MixerGroup::set_airmode(Airmode airmode)
 {
-	Mixer	*mixer = _first;
+	Mixer *mixer = _first;
 
 	while (mixer != nullptr) {
 		mixer->set_airmode(airmode);
@@ -201,25 +200,25 @@ MixerGroup::set_airmode(Airmode airmode)
 unsigned
 MixerGroup::get_multirotor_count()
 {
-	Mixer	*mixer = _first;
-	unsigned rotor_count = 0;
+	Mixer *mixer = _first;
 
 	while (mixer != nullptr) {
+		unsigned rotor_count = mixer->get_multirotor_count();
 
-		rotor_count = mixer->get_multirotor_count();
+		if (rotor_count > 0) {
+			return rotor_count;
+		}
 
-		if (rotor_count > 0) { break; }
-
-		mixer = mixer -> _next;
+		mixer = mixer->_next;
 	}
 
-	return rotor_count;
+	return 0;
 }
 
 uint16_t
 MixerGroup::get_saturation_status()
 {
-	Mixer	*mixer = _first;
+	Mixer *mixer = _first;
 	uint16_t sat = 0;
 
 	while (mixer != nullptr) {
@@ -233,7 +232,7 @@ MixerGroup::get_saturation_status()
 unsigned
 MixerGroup::count()
 {
-	Mixer	*mixer = _first;
+	Mixer *mixer = _first;
 	unsigned index = 0;
 
 	while (mixer != nullptr) {
@@ -247,7 +246,7 @@ MixerGroup::count()
 void
 MixerGroup::groups_required(uint32_t &groups)
 {
-	Mixer	*mixer = _first;
+	Mixer *mixer = _first;
 
 	while (mixer != nullptr) {
 		mixer->groups_required(groups);
@@ -325,7 +324,7 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 
 void MixerGroup::set_max_delta_out_once(float delta_out_max)
 {
-	Mixer	*mixer = _first;
+	Mixer *mixer = _first;
 
 	while (mixer != nullptr) {
 		mixer->set_max_delta_out_once(delta_out_max);

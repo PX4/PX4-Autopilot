@@ -39,6 +39,8 @@
 
 #include "mixer.h"
 
+#include "HelicopterMixer.hpp"
+
 #include <mathlib/mathlib.h>
 #include <cstdio>
 #include <px4_platform_common/defines.h>
@@ -50,9 +52,7 @@
 
 using math::constrain;
 
-HelicopterMixer::HelicopterMixer(ControlCallback control_cb,
-				 uintptr_t cb_handle,
-				 mixer_heli_s *mixer_info) :
+HelicopterMixer::HelicopterMixer(ControlCallback control_cb, uintptr_t cb_handle, mixer_heli_s *mixer_info) :
 	Mixer(control_cb, cb_handle),
 	_mixer_info(*mixer_info)
 {
@@ -242,11 +242,4 @@ HelicopterMixer::mix(float *outputs, unsigned space)
 	}
 
 	return _mixer_info.control_count + 1;
-}
-
-void
-HelicopterMixer::groups_required(uint32_t &groups)
-{
-	/* XXX for now, hardcoded to indexes 0-3 in control group zero */
-	groups |= (1 << 0);
 }
