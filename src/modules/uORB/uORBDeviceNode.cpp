@@ -306,7 +306,7 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 	/* update the timestamp and generation count */
 	_last_update = hrt_absolute_time();
 
-	_published = true;
+	_advertised = true;
 
 	// callbacks
 	for (auto item : _callbacks) {
@@ -394,8 +394,8 @@ uORB::DeviceNode::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 
 		return OK;
 
-	case ORBIOCISPUBLISHED:
-		*(unsigned long *)arg = _published;
+	case ORBIOCISADVERTISED:
+		*(unsigned long *)arg = _advertised;
 
 		return OK;
 
@@ -473,7 +473,7 @@ int uORB::DeviceNode::unadvertise(orb_advert_t handle)
 	 * of subscribers and publishers. But we also do not have a leak since future
 	 * publishers reuse the same DeviceNode object.
 	 */
-	devnode->_published = false;
+	devnode->_advertised = false;
 
 	return PX4_OK;
 }
