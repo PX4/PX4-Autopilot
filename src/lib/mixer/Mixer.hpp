@@ -77,6 +77,12 @@ public:
 	Mixer(ControlCallback control_cb, uintptr_t cb_handle);
 	virtual ~Mixer() = default;
 
+	// no copy, assignment, move, move assignment
+	Mixer(const Mixer &) = delete;
+	Mixer &operator=(const Mixer &) = delete;
+	Mixer(Mixer &&) = delete;
+	Mixer &operator=(Mixer &&) = delete;
+
 	/**
 	 * Perform the mixing function.
 	 *

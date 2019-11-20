@@ -43,6 +43,12 @@ public:
 	MixerGroup(ControlCallback control_cb, uintptr_t cb_handle);
 	virtual ~MixerGroup();
 
+	// no copy, assignment, move, move assignment
+	MixerGroup(const MixerGroup &) = delete;
+	MixerGroup &operator=(const MixerGroup &) = delete;
+	MixerGroup(MixerGroup &&) = delete;
+	MixerGroup &operator=(MixerGroup &&) = delete;
+
 	unsigned		mix(float *outputs, unsigned space) override;
 	uint16_t		get_saturation_status() override;
 	void			groups_required(uint32_t &groups) override;

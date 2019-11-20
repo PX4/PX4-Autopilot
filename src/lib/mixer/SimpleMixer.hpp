@@ -67,6 +67,12 @@ public:
 	SimpleMixer(ControlCallback control_cb, uintptr_t cb_handle, mixer_simple_s *mixinfo);
 	virtual ~SimpleMixer();
 
+	// no copy, assignment, move, move assignment
+	SimpleMixer(const SimpleMixer &) = delete;
+	SimpleMixer &operator=(const SimpleMixer &) = delete;
+	SimpleMixer(SimpleMixer &&) = delete;
+	SimpleMixer &operator=(SimpleMixer &&) = delete;
+
 	/**
 	 * Factory method with full external configuration.
 	 *

@@ -96,6 +96,12 @@ public:
 	MultirotorMixer(ControlCallback control_cb, uintptr_t cb_handle, Rotor *rotors, unsigned rotor_count);
 	virtual ~MultirotorMixer();
 
+	// no copy, assignment, move, move assignment
+	MultirotorMixer(const MultirotorMixer &) = delete;
+	MultirotorMixer &operator=(const MultirotorMixer &) = delete;
+	MultirotorMixer(MultirotorMixer &&) = delete;
+	MultirotorMixer &operator=(MultirotorMixer &&) = delete;
+
 	/**
 	 * Factory method.
 	 *
