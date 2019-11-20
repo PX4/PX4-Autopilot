@@ -63,10 +63,9 @@ struct spi_calibration_s {
 class BMP388_SPI: public device::SPI, public IBMP388
 {
 public:
-	BMP388_SPI(uint8_t bus, uint32_t device, bool is_external_device);
+	BMP388_SPI(uint8_t bus, uint32_t device);
 	virtual ~BMP388_SPI() = default;
 
-	bool is_external();
 	int init();
 
 	uint8_t get_reg(uint8_t addr);
@@ -80,24 +79,17 @@ public:
 private:
 	spi_calibration_s _cal;
 	spi_data_s _data;
-	bool _external;
 };
 
-IBMP388 *bmp388_spi_interface(uint8_t busnum, uint32_t device, bool external)
+IBMP388 *bmp388_spi_interface(uint8_t busnum, uint32_t device)
 {
-	return new BMP388_SPI(busnum, device, external);
+	return new BMP388_SPI(busnum, device);
 }
 
-BMP388_SPI::BMP388_SPI(uint8_t bus, uint32_t device, bool is_external_device) :
+BMP388_SPI::BMP388_SPI(uint8_t bus, uint32_t device) :
 	SPI("BMP388_SPI", nullptr, bus, device, SPIDEV_MODE3, 10 * 1000 * 1000)
 {
-	_external = is_external_device;
 }
-
-bool BMP388_SPI::is_external()
-{
-	return _external;
-};
 
 int BMP388_SPI::init()
 {
