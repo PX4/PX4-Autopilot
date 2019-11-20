@@ -34,5 +34,8 @@ bmm150 start
 bmp388 -I start
 #bmp388 -J start fixme
 
+# Baro on I2C3
+ms5611 -X start
+
 # External RM3100 (I2C or SPI)
 rm3100 start
