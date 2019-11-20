@@ -41,13 +41,14 @@
 
 #include "NotchFilter.hpp"
 
-using namespace matrix;
 using namespace math;
+using matrix::Vector3f;
 
 class NotchFilterTest : public ::testing::Test
 {
 public:
 	NotchFilter<float> _notch_float;
+	NotchFilter<Vector3f> _notch_vector3f;
 	const float _sample_freq = 1000.f;
 	const float _cutoff_freq = 50.f;
 	const float _bandwidth = 15.f;
@@ -141,6 +142,35 @@ TEST_F(NotchFilterTest, filterOnCutoff)
 		// Let some time for the filter to settle
 		if (i > 50) {
 			EXPECT_NEAR(out, 0.f, 0.1f);
+		}
+	}
+}
+
+TEST_F(NotchFilterTest, filterVector3f)
+{
+	// Send three sinusoidal signals (25, 50 and 98.5Hz) into a 50Hz triple notch filter
+	_notch_vector3f.setParameters(_sample_freq, _cutoff_freq, _bandwidth);
+
+	const Vector3f signal_freq(25.f, 50.f, 98.4f);
+	const Vector3f omega = 2.f * M_PI_F * signal_freq;
+	const Vector3f phase_delay = Vector3f(-11.4f, 0.f, 11.4f) * M_PI_F / 180.f;
+
+	float t = 0.f;
+	float dt = 1.f / _sample_freq;
+	Vector3f out{};
+
+	for (int i = 0; i < 1000; i++) {
+		const Vector3f input(sinf(omega(0) * t), sinf(omega(1) * t), sinf(omega(2) * t));
+		const Vector3f arg = omega * t + phase_delay;
+		const Vector3f output_expected(sinf(arg(0)), 0.f, sinf(arg(2)));
+		out = _notch_vector3f.apply(input);
+		t = i * dt;
+
+		// Let some time for the filter to settle
+		if (i > 50) {
+			EXPECT_NEAR(out(0), output_expected(0), 0.1f);
+			EXPECT_NEAR(out(1), output_expected(1), 0.1f);
+			EXPECT_NEAR(out(2), output_expected(2), 0.1f);
 		}
 	}
 }
