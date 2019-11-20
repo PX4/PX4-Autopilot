@@ -147,6 +147,14 @@
 #define ADC_3V3_SCALE                    (2.0f) // The scale factor defined by HW's resistive divider (Rt+Rb)/ Rb
 #endif
 
+#ifndef BOARD_ADC_POS_REF_V_FOR_CURRENT_CHAN
+#define BOARD_ADC_POS_REF_V_FOR_CURRENT_CHAN (3.3f) // Reference voltage for reading out the current channel
+#endif
+
+#ifndef BOARD_ADC_POS_REF_V_FOR_VOLTAGE_CHAN
+#define BOARD_ADC_POS_REF_V_FOR_VOLTAGE_CHAN (3.3f) // Reference voltage for reading out the voltage channel
+#endif
+
 /* Provide define for Bricks and Battery */
 
 /* Define the default maximum voltage resulting from the bias on ADC termination */
