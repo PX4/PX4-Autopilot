@@ -191,12 +191,14 @@ Mission::on_active()
 	bool mission_sub_updated = _mission_sub.updated();
 
 	if (mission_sub_updated) {
+		_navigator->reset_triplets();
 		update_mission();
 	}
 
 	/* reset the current mission if needed */
 	if (need_to_reset_mission(true)) {
 		reset_mission(_mission);
+		_navigator->reset_triplets();
 		update_mission();
 		_navigator->reset_cruising_speed();
 		mission_sub_updated = true;
@@ -457,9 +459,6 @@ Mission::update_mission()
 {
 
 	bool failed = true;
-
-	/* reset triplets */
-	_navigator->reset_triplets();
 
 	/* Reset vehicle_roi
 	 * Missions that do not explicitly configure ROI would not override
