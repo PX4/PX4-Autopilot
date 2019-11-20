@@ -18,18 +18,20 @@ px4_add_board(
 		TEL4:/dev/ttyS3
 	DRIVERS
 		adc
-		barometer # all available barometer drivers
+		#barometer # all available barometer drivers
+		barometer/ms5611
 		batt_smbus
-		camera_capture
-		camera_trigger
+		#camera_capture
+		#camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		# dshot -- todo needslooking at
 		gps
-		#heater
-		#imu/adis16448
-		#imu/adis16497
+		heater
 		#imu # all available imu drivers
+		#imu/adis16448
+		#imu/adis16477
+		#imu/adis16497
 		imu/bmi088
 		imu/mpu6000
 		#imu/mpu9250
@@ -41,9 +43,12 @@ px4_add_board(
 		#md25
 		#mkblctrl
 		#optical_flow # all available optical flow drivers
+		#osd
 		#pca9685
 		#power_monitor/ina226
 		#protocol_splitter
+#		pwm_input  - Need to create arch/stm32 arch/stm32h7 arch/kinetis and reloacate
+#					   all arch dependant code there
 		pwm_out_sim
 		px4fmu
 		px4io
@@ -72,6 +77,7 @@ px4_add_board(
 		mavlink
 		mc_att_control
 		mc_pos_control
+		mc_rate_control
 		navigator
 		#rover_pos_control
 		sensors
@@ -107,13 +113,13 @@ px4_add_board(
 		ver
 		work_queue
 	EXAMPLES
-		# bottle_drop # OBC challenge
-		# fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
-		# hello
-		# hwtest # Hardware test
+		#bottle_drop # OBC challenge
+		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
+		#hello
+		#hwtest # Hardware test
 		#matlab_csv_serial
-		# px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
-		# px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
-		# rover_steering_control # Rover example app
-		# uuv_example_app
+		#px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
+		#px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
+		#rover_steering_control # Rover example app
+		#uuv_example_app
 	)
