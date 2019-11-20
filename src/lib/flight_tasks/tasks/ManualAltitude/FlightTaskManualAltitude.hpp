@@ -131,4 +131,6 @@ private:
 	 * _dist_to_ground_lock.
 	 */
 	float _dist_to_ground_lock = NAN;
+
+	float _yawspeed_filter_state{};
 };
