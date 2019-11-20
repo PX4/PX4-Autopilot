@@ -12,7 +12,7 @@ pipeline {
             stage("build px4_fmu-v2_test") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx:2019-10-24'
+                  image 'px4io/px4-dev-nuttx:2019-11-19'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -103,7 +103,7 @@ pipeline {
             stage("build px4_fmu-v3_default") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx:2019-10-24'
+                  image 'px4io/px4-dev-nuttx:2019-11-19'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -227,7 +227,7 @@ pipeline {
             stage("build px4_fmu-v4_default") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx:2019-10-24'
+                  image 'px4io/px4-dev-nuttx:2019-11-19'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -348,7 +348,7 @@ pipeline {
             stage("build px4_fmu-v4pro_default") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx:2019-10-24'
+                  image 'px4io/px4-dev-nuttx:2019-11-19'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -472,7 +472,7 @@ pipeline {
             stage("build px4_fmu-v5_default") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx:2019-10-24'
+                  image 'px4io/px4-dev-nuttx:2019-11-19'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -596,7 +596,7 @@ pipeline {
             stage("build px4_fmu-v5x_default") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx:2019-10-24'
+                  image 'px4io/px4-dev-nuttx:2019-11-19'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -720,7 +720,7 @@ pipeline {
             stage("build holybro_durandal-v1_default") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx:2019-10-24'
+                  image 'px4io/px4-dev-nuttx:2019-11-19'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -845,7 +845,7 @@ pipeline {
             stage("build holybro_durandal-v1_stackcheck") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx:2019-10-24'
+                  image 'px4io/px4-dev-nuttx:2019-11-19'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
@@ -968,7 +968,7 @@ pipeline {
             stage("build nxp_fmuk66-v3_default") {
               agent {
                 docker {
-                  image 'px4io/px4-dev-nuttx:2019-10-24'
+                  image 'px4io/px4-dev-nuttx:2019-11-19'
                   args '-e CCACHE_BASEDIR=$WORKSPACE -v ${CCACHE_DIR}:${CCACHE_DIR}:rw'
                 }
               }
