@@ -9,13 +9,11 @@ px4_add_board(
 	ROMFSROOT px4fmu_common
 	IO px4_io-v2_default
 	UAVCAN_INTERFACES 2
-
 	SERIAL_PORTS
 		GPS1:/dev/ttyS0
 		TEL1:/dev/ttyS1
 		TEL2:/dev/ttyS2
 		TEL4:/dev/ttyS3
-
 	DRIVERS
 		adc
 		barometer # all available barometer drivers
@@ -24,6 +22,9 @@ px4_add_board(
 		camera_trigger
 		distance_sensor # all available distance sensor drivers
 		gps
+		imu/adis16448
+		imu/adis16477
+		imu/adis16497
 		imu/bmi055
 		imu/mpu6000
 		lights/rgbled
@@ -44,26 +45,25 @@ px4_add_board(
 		telemetry # all available telemetry drivers
 		tone_alarm
 		uavcan
-
 	MODULES
+		battery_status
 		camera_feedback
 		commander
 		dataman
 		ekf2
 		events
-		rover_pos_control
 		land_detector
 		load_mon
 		logger
 		mavlink
 		navigator
-		battery_status
+		rover_pos_control
 		sensors
 		vmount
-
 	SYSTEMCMDS
 		bl_update
 		config
+		dmesg
 		dumpfile
 		esc_calib
 		hardfault_log
@@ -87,5 +87,4 @@ px4_add_board(
 		usb_connected
 		ver
 		work_queue
-
 	)

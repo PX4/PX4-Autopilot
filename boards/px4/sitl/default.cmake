@@ -5,7 +5,6 @@ px4_add_board(
 	MODEL sitl
 	LABEL default
 	TESTING
-
 	DRIVERS
 		#barometer # all available barometer drivers
 		#batt_smbus
@@ -19,8 +18,8 @@ px4_add_board(
 		#telemetry # all available telemetry drivers
 		tone_alarm
 		#uavcan
-
 	MODULES
+		airspeed_selector
 		attitude_estimator_q
 		camera_feedback
 		commander
@@ -29,7 +28,6 @@ px4_add_board(
 		events
 		fw_att_control
 		fw_pos_control_l1
-		rover_pos_control
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -37,23 +35,21 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
-		mc_rate_control
 		mc_pos_control
+		mc_rate_control
 		navigator
 		replay
+		rover_pos_control
 		sensors
+		#sih
 		simulator
 		vmount
 		vtol_att_control
-		airspeed_selector
-
 	SYSTEMCMDS
-		#bl_update
 		#config
 		#dumpfile
 		dyn
 		esc_calib
-		#hardfault_log
 		led_control
 		mixer
 		motor_ramp
@@ -72,16 +68,17 @@ px4_add_board(
 		tune_control
 		ver
 		work_queue
-
 	EXAMPLES
 		bottle_drop # OBC challenge
 		dyn_hello # dynamically loading modules example
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		#hwtest # Hardware test
+		#matlab_csv_serial
 		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
+		uuv_example_app
 	)
 
 set(config_sitl_viewer jmavsim CACHE STRING "viewer for sitl")
