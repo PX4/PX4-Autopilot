@@ -98,7 +98,8 @@ float FlightTaskManualAltitude::_applyYawspeedFilter(float yawspeed_target)
 {
 	const float den = math::max(_param_mpc_man_y_tau.get() + _deltatime, 0.001f);
 	const float alpha = _deltatime / den;
-	return (1.f - alpha) * _yawspeed_setpoint + alpha * yawspeed_target;
+	_yawspeed_filter_state = (1.f - alpha) * _yawspeed_filter_state + alpha * yawspeed_target;
+	return _yawspeed_filter_state;
 }
 
 void FlightTaskManualAltitude::_updateAltitudeLock()
@@ -327,7 +328,7 @@ void FlightTaskManualAltitude::_lockYaw()
 	// hold the current heading when no more rotation commanded
 	if (!PX4_ISFINITE(_yaw_setpoint)) {
 		_yaw_setpoint = _yaw;
-		_yawspeed_setpoint = 0.f;
+		_yawspeed_setpoint = NAN;
 	}
 }
 
