@@ -44,6 +44,12 @@ public:
 	NullMixer();
 	virtual ~NullMixer() = default;
 
+	// no copy, assignment, move, move assignment
+	NullMixer(const NullMixer &) = delete;
+	NullMixer &operator=(const NullMixer &) = delete;
+	NullMixer(NullMixer &&) = delete;
+	NullMixer &operator=(NullMixer &&) = delete;
+
 	/**
 	 * Factory method.
 	 *
