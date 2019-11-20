@@ -1277,20 +1277,18 @@ bool Ekf::reset_imu_bias()
 // Innovation Test Ratios - these are the ratio of the innovation to the acceptance threshold.
 // A value > 1 indicates that the sensor measurement has exceeded the maximum acceptable level and has been rejected by the EKF
 // Where a measurement type is a vector quantity, eg magnetometer, GPS position, etc, the maximum value is returned.
-void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &gps_vel, float &gps_pos, float &ev_vel, float &ev_pos, float &hgt, float &tas, float &hagl, float &beta)
+void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, float &pos, float &hgt, float &tas, float &hagl, float &beta)
 {
 	// return the integer bitmask containing the consistency check pass/fail status
 	status = _innov_check_fail_status.value;
 	// return the largest magnetometer innovation test ratio
 	mag = sqrtf(math::max(_yaw_test_ratio, math::max(math::max(_mag_test_ratio[0], _mag_test_ratio[1]), _mag_test_ratio[2])));
-	// return the largest NED GPS velocity innovation test ratio
-	gps_vel = sqrtf(math::max(_gps_vel_test_ratio(0), _gps_vel_test_ratio(1)));
-	// return the largest NE GPS position innovation test ratio
-	gps_pos = sqrtf(_gps_pos_test_ratio(0));
-	// return the largest external vision velocity innovation test ratio
-	ev_vel = sqrtf(math::max(_ev_vel_test_ratio(0), _ev_vel_test_ratio(1)));
-	// return the largest horizontal external vision position innovation test ratio
-	ev_pos = sqrtf(_ev_pos_test_ratio(0));
+	// return the largest velocity innovation test ratio
+	vel = math::max(sqrtf(math::max(_gps_vel_test_ratio(0), _gps_vel_test_ratio(1))),
+			sqrtf(math::max(_ev_vel_test_ratio(0), _ev_vel_test_ratio(1))));
+	// return the largest position innovation test ratio
+	pos = math::max(sqrtf(_gps_pos_test_ratio(0)),sqrtf(_ev_pos_test_ratio(0)));
+
 	// return the vertical position innovation test ratio
 	hgt = sqrtf(_gps_pos_test_ratio(0));
 	// return the airspeed fusion innovation test ratio

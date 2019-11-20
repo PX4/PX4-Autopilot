@@ -728,7 +728,7 @@ void Ekf::controlGpsFusion()
 
 			// set innovation gate size
 			gps_pos_innov_gates(0) = fmaxf(_params.gps_pos_innov_gate, 1.0f);
-			gps_pos_innov_gates(1) = fmaxf(_params.gps_vel_innov_gate, 1.0f);
+			gps_vel_innov_gates(0) = gps_vel_innov_gates(1) = fmaxf(_params.gps_vel_innov_gate, 1.0f);
 
 			// fuse GPS measurement
 			fuseHorizontalVelocity(_gps_vel_innov, gps_vel_innov_gates,gps_vel_obs_var, _gps_vel_innov_var, _gps_vel_test_ratio);
