@@ -116,7 +116,7 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 		uORB::DeviceNode *node = _device_master->getDeviceNode(meta, instance);
 
 		if (node != nullptr) {
-			if (node->is_published()) {
+			if (node->is_advertised()) {
 				return PX4_OK;
 			}
 		}
@@ -150,10 +150,10 @@ int uORB::Manager::orb_exists(const struct orb_metadata *meta, int instance)
 		int fd = px4_open(path, 0);
 
 		if (fd >= 0) {
-			unsigned long is_published;
+			unsigned long is_advertised;
 
-			if (px4_ioctl(fd, ORBIOCISPUBLISHED, (unsigned long)&is_published) == 0) {
-				if (!is_published) {
+			if (px4_ioctl(fd, ORBIOCISADVERTISED, (unsigned long)&is_advertised) == 0) {
+				if (!is_advertised) {
 					ret = PX4_ERROR;
 				}
 			}

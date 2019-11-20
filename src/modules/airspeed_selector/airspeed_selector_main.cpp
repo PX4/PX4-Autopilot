@@ -248,7 +248,7 @@ AirspeedModule::check_for_connected_airspeed_sensors()
 	if (_param_airspeed_primary_index.get() > 0) {
 
 		for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
-			if (!_airspeed_sub[i].published()) {
+			if (!_airspeed_sub[i].advertised()) {
 				break;
 			}
 

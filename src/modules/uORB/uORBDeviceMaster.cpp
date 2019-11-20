@@ -123,7 +123,7 @@ uORB::DeviceMaster::advertise(const struct orb_metadata *meta, int *instance, in
 				 * something has been published yet. */
 				uORB::DeviceNode *existing_node = getDeviceNodeLocked(meta, group_tries);
 
-				if ((existing_node != nullptr) && !(existing_node->is_published())) {
+				if (existing_node != nullptr && !existing_node->is_advertised()) {
 					/* nothing has been published yet, lets claim it */
 					existing_node->set_priority(priority);
 					ret = PX4_OK;
