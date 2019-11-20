@@ -895,7 +895,7 @@ Navigator::load_fence_from_file(const char *filename)
  *
  */
 void Navigator::fake_traffic(const char *callsign, float distance, float direction, float traffic_heading,
-			     float altitude_diff, float hor_velocity, float ver_velocity)
+			     float altitude_diff, float hor_velocity, float ver_velocity, int emitter_type)
 {
 	double lat, lon;
 	waypoint_from_heading_and_distance(get_global_position()->lat, get_global_position()->lon, direction, distance, &lat,
@@ -918,7 +918,7 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 	tr.ver_velocity = ver_velocity; //-vel_d; // The vertical velocity in m/s, positive is up
 	strncpy(&tr.callsign[0], callsign, sizeof(tr.callsign) - 1);
 	tr.callsign[sizeof(tr.callsign) - 1] = 0;
-	tr.emitter_type = 0; // Type from ADSB_EMITTER_TYPE enum
+	tr.emitter_type = emitter_type; // Type from ADSB_EMITTER_TYPE enum
 	tr.tslc = 2; // Time since last communication in seconds
 	tr.flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS | transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
 		   transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY |
@@ -1005,28 +1005,37 @@ void Navigator::check_traffic()
 
 					// direction of traffic in human-readable 0..360 degree in earth frame
 					int traffic_direction = math::degrees(tr.heading) + 180;
+					double traffic_seperation = fabsf(cr.distance);
 
 					switch (_param_nav_traff_avoid.get()) {
 
 					case 0: {
 							/* ignore */
-							PX4_WARN("TRAFFIC %s, hdg: %d", tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign :
+							PX4_WARN("TRAFFIC %s, hdg: %d, hrzl dst:: %f, type: %d",
+								 tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign :
 								 "unknown",
-								 traffic_direction);
+								 traffic_direction,
+								 traffic_seperation,
+								 tr.emitter_type);
 							break;
 						}
 
 					case 1: {
-							mavlink_log_critical(&_mavlink_log_pub, "WARNING TRAFFIC %s at heading %d, land immediately",
+							/*Warn only*/
+							mavlink_log_critical(&_mavlink_log_pub, "WARNING TRAFFIC %s at heading %d, hrzl dst: %f, type: %d",
 									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
-									     traffic_direction);
+									     traffic_direction,
+									     traffic_seperation,
+									     tr.emitter_type);
 							break;
 						}
 
 					case 2: {
-							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, returning home",
+							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, returning home! hrzl dst: %f, type: %d",
 									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
-									     traffic_direction);
+									     traffic_direction,
+									     traffic_seperation,
+									     tr.emitter_type);
 
 							// set the return altitude to minimum
 							_rtl.set_return_alt_min(true);
@@ -1090,9 +1099,10 @@ int Navigator::custom_command(int argc, char *argv[])
 		return 0;
 
 	} else if (!strcmp(argv[0], "fake_traffic")) {
-		get_instance()->fake_traffic("LX007", 500, 1.0f, -1.0f, 100.0f, 90.0f, 0.001f);
-		get_instance()->fake_traffic("LX55", 1000, 0, 0, 100.0f, 90.0f, 0.001f);
-		get_instance()->fake_traffic("LX20", 15000, 1.0f, -1.0f, 280.0f, 90.0f, 0.001f);
+		get_instance()->fake_traffic("LX007", 500, 1.0f, -1.0f, 100.0f, 90.0f, 0.001f, ADSB_EMITTER_TYPE_LIGHT);
+		get_instance()->fake_traffic("LX55", 1000, 0, 0, 100.0f, 90.0f, 0.001f, ADSB_EMITTER_TYPE_SMALL);
+		get_instance()->fake_traffic("LX20", 15000, 1.0f, -1.0f, 280.0f, 90.0f, 0.001f, ADSB_EMITTER_TYPE_LARGE);
+		get_instance()->fake_traffic("DRONE", 10, 1.0f, -1.0f, 10.0f, 10.0f, 0.001f, ADSB_EMITTER_TYPE_UAV);
 		return 0;
 	}
 
@@ -1201,7 +1211,7 @@ controller.
 	PRINT_MODULE_USAGE_NAME("navigator", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("fencefile", "load a geofence file from SD card, stored at etc/geofence.txt");
-	PRINT_MODULE_USAGE_COMMAND_DESCR("fake_traffic", "publishes 3 fake transponder_report_s uORB messages");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("fake_traffic", "publishes 4 fake transponder_report_s uORB messages");
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
