@@ -296,7 +296,6 @@ void PositionControl::_velocityController(const float &dt)
 
 	// Saturate thrust setpoint in D-direction.
 	_thr_sp(2) = math::constrain(thrust_desired_D, uMin, uMax);
-	printf("%.3f %.3f\n", (double)uMin, (double)uMax);
 
 	if (PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1))) {
 		// Thrust set-point in NE-direction is already provided. Only
@@ -314,7 +313,6 @@ void PositionControl::_velocityController(const float &dt)
 		// Get maximum allowed thrust in NE based on tilt and excess thrust.
 		float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);
 		float thrust_max_NE = sqrtf(_lim_thr_max * _lim_thr_max - _thr_sp(2) * _thr_sp(2));
-		printf("%.3f %.3f\n", (double)(_lim_thr_max), (double)(_thr_sp(2)));
 		thrust_max_NE = math::min(thrust_max_NE_tilt, thrust_max_NE);
 
 		// Saturate thrust in NE-direction.
