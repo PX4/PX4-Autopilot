@@ -51,7 +51,7 @@ int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 	/* open the mixer definition file */
 	fp = fopen(fname, "r");
 
-	if (fp == NULL) {
+	if (fp == nullptr) {
 		printf("file not found\n");
 		return -1;
 	}
@@ -64,7 +64,7 @@ int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
 		/* get a line, bail on error/EOF */
 		line[0] = '\0';
 
-		if (fgets(line, sizeof(line), fp) == NULL) {
+		if (fgets(line, sizeof(line), fp) == nullptr) {
 			break;
 		}
 

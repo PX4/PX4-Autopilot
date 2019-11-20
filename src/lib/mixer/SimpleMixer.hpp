@@ -86,22 +86,6 @@ public:
 	static SimpleMixer		*from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf,
 			unsigned &buflen);
 
-	/**
-	 * Factory method for PWM/PPM input to internal float representation.
-	 *
-	 * @param control_cb		The callback to invoke when fetching a
-	 *				control value.
-	 * @param cb_handle		Handle passed to the control callback.
-	 * @param input			The control index used when fetching the input.
-	 * @param min			The PWM/PPM value considered to be "minimum" (gives -1.0 out)
-	 * @param mid			The PWM/PPM value considered to be the midpoint (gives 0.0 out)
-	 * @param max			The PWM/PPM value considered to be "maximum" (gives 1.0 out)
-	 * @return			A new SimpleMixer instance, or nullptr if one could not be
-	 *				allocated.
-	 */
-	static SimpleMixer		*pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, unsigned input, uint16_t min,
-			uint16_t mid, uint16_t max);
-
 	unsigned			mix(float *outputs, unsigned space) override;
 
 	void				groups_required(uint32_t &groups) override;
