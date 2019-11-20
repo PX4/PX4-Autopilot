@@ -39,6 +39,8 @@
 
 #include "mixer.h"
 
+#include "Mixer.hpp"
+
 #include <math.h>
 #include <cstring>
 #include <ctype.h>
@@ -47,7 +49,6 @@
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
 
 Mixer::Mixer(ControlCallback control_cb, uintptr_t cb_handle) :
-	_next(nullptr),
 	_control_cb(control_cb),
 	_cb_handle(cb_handle)
 {
@@ -56,13 +57,12 @@ Mixer::Mixer(ControlCallback control_cb, uintptr_t cb_handle) :
 float
 Mixer::get_control(uint8_t group, uint8_t index)
 {
-	float	value;
+	float value;
 
 	_control_cb(_cb_handle, group, index, value);
 
 	return value;
 }
-
 
 float
 Mixer::scale(const mixer_scaler_s &scaler, float input)
@@ -76,14 +76,7 @@ Mixer::scale(const mixer_scaler_s &scaler, float input)
 		output = (input * scaler.positive_scale) + scaler.offset;
 	}
 
-	if (output > scaler.max_output) {
-		output = scaler.max_output;
-
-	} else if (output < scaler.min_output) {
-		output = scaler.min_output;
-	}
-
-	return output;
+	return math::constrain(output, scaler.min_output, scaler.max_output);
 }
 
 int
@@ -177,52 +170,4 @@ Mixer::string_well_formed(const char *buf, unsigned &buflen)
 	debug("pre-parser rejected: No newline in buf");
 
 	return false;
-}
-
-/****************************************************************************/
-
-NullMixer::NullMixer() :
-	Mixer(nullptr, 0)
-{
-}
-
-unsigned
-NullMixer::mix(float *outputs, unsigned space)
-{
-	if (space > 0) {
-		*outputs = NAN;
-		return 1;
-	}
-
-	return 0;
-}
-
-uint16_t
-NullMixer::get_saturation_status()
-{
-	return 0;
-}
-
-void
-NullMixer::groups_required(uint32_t &groups)
-{
-
-}
-
-NullMixer *
-NullMixer::from_text(const char *buf, unsigned &buflen)
-{
-	NullMixer *nm = nullptr;
-
-	/* enforce that the mixer ends with a new line */
-	if (!string_well_formed(buf, buflen)) {
-		return nullptr;
-	}
-
-	if ((buflen >= 2) && (buf[0] == 'Z') && (buf[1] == ':')) {
-		nm = new NullMixer;
-		buflen -= 2;
-	}
-
-	return nm;
 }

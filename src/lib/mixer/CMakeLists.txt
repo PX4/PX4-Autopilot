@@ -84,12 +84,20 @@ add_custom_command(
 add_custom_target(mixer_gen_6dof DEPENDS mixer_multirotor_6dof.generated.h)
 
 add_library(mixer
-	mixer.cpp
-	mixer_group.cpp
-	mixer_helicopter.cpp
-	mixer_load.c
-	mixer_multirotor.cpp
-	mixer_simple.cpp
+	HelicopterMixer.cpp
+	HelicopterMixer.hpp
+	Mixer.cpp
+	Mixer.hpp
+	MixerGroup.cpp
+	MixerGroup.hpp
+	MultirotorMixer.cpp
+	MultirotorMixer.hpp
+	NullMixer.cpp
+	NullMixer.hpp
+	SimpleMixer.cpp
+	SimpleMixer.hpp
+
+	load_mixer_file.cpp
 )
 target_include_directories(mixer PRIVATE ${PX4_BINARY_DIR}/src/lib/mixer)
 
@@ -100,8 +108,8 @@ if(BUILD_TESTING)
 
 	add_executable(test_mixer_multirotor
 		test_mixer_multirotor.cpp
-		mixer_multirotor.cpp
-		mixer.cpp
+		MultirotorMixer.cpp
+		Mixer.cpp
 	)
 	target_compile_definitions(test_mixer_multirotor PRIVATE MIXER_MULTIROTOR_USE_MOCK_GEOMETRY)
 	target_compile_options(test_mixer_multirotor PRIVATE -Wno-unused-result)

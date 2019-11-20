@@ -44,9 +44,7 @@
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
 
-SimpleMixer::SimpleMixer(ControlCallback control_cb,
-			 uintptr_t cb_handle,
-			 mixer_simple_s *mixinfo) :
+SimpleMixer::SimpleMixer(ControlCallback control_cb, uintptr_t cb_handle, mixer_simple_s *mixinfo) :
 	Mixer(control_cb, cb_handle),
 	_pinfo(mixinfo)
 {
@@ -306,7 +304,7 @@ out:
 unsigned
 SimpleMixer::mix(float *outputs, unsigned space)
 {
-	float		sum = 0.0f;
+	float sum = 0.0f;
 
 	if (_pinfo == nullptr) {
 		return 0;
@@ -331,12 +329,6 @@ SimpleMixer::mix(float *outputs, unsigned space)
 	return 1;
 }
 
-uint16_t
-SimpleMixer::get_saturation_status()
-{
-	return 0;
-}
-
 void
 SimpleMixer::groups_required(uint32_t &groups)
 {
@@ -348,7 +340,6 @@ SimpleMixer::groups_required(uint32_t &groups)
 int
 SimpleMixer::check()
 {
-	int ret;
 	float junk;
 
 	/* sanity that presumes that a mixer includes a control no more than once */
@@ -358,7 +349,7 @@ SimpleMixer::check()
 	}
 
 	/* validate the output scaler */
-	ret = scale_check(_pinfo->output_scaler);
+	int ret = scale_check(_pinfo->output_scaler);
 
 	if (ret != 0) {
 		return ret;
