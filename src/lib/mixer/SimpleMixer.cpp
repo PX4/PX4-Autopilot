@@ -239,68 +239,6 @@ out:
 	return sm;
 }
 
-SimpleMixer *
-SimpleMixer::pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, unsigned input, uint16_t min,
-		       uint16_t mid, uint16_t max)
-{
-	SimpleMixer *sm = nullptr;
-	mixer_simple_s *mixinfo = nullptr;
-
-	mixinfo = (mixer_simple_s *)malloc(MIXER_SIMPLE_SIZE(1));
-
-	if (mixinfo == nullptr) {
-		debug("could not allocate memory for mixer info");
-		goto out;
-	}
-
-	mixinfo->control_count = 1;
-
-	/*
-	 * Always pull from group 0, with the input value giving the channel.
-	 */
-	mixinfo->controls[0].control_group = 0;
-	mixinfo->controls[0].control_index = input;
-
-	/*
-	 * Conversion uses both the input and output side of the mixer.
-	 *
-	 * The input side is used to slide the control value such that the min argument
-	 * results in a value of zero.
-	 *
-	 * The output side is used to apply the scaling for the min/max values so that
-	 * the resulting output is a -1.0 ... 1.0 value for the min...max range.
-	 */
-	mixinfo->controls[0].scaler.negative_scale = 1.0f;
-	mixinfo->controls[0].scaler.positive_scale = 1.0f;
-	mixinfo->controls[0].scaler.offset = -mid;
-	mixinfo->controls[0].scaler.min_output = -(mid - min);
-	mixinfo->controls[0].scaler.max_output = (max - mid);
-
-	mixinfo->output_scaler.negative_scale = 500.0f / (mid - min);
-	mixinfo->output_scaler.positive_scale = 500.0f / (max - mid);
-	mixinfo->output_scaler.offset = 0.0f;
-	mixinfo->output_scaler.min_output = -1.0f;
-	mixinfo->output_scaler.max_output = 1.0f;
-
-	sm = new SimpleMixer(control_cb, cb_handle, mixinfo);
-
-	if (sm != nullptr) {
-		mixinfo = nullptr;
-		debug("PWM input mixer for %d", input);
-
-	} else {
-		debug("could not allocate memory for PWM input mixer");
-	}
-
-out:
-
-	if (mixinfo != nullptr) {
-		free(mixinfo);
-	}
-
-	return sm;
-}
-
 unsigned
 SimpleMixer::mix(float *outputs, unsigned space)
 {
