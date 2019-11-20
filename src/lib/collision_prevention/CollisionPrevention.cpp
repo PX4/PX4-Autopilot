@@ -480,7 +480,7 @@ CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint, const Vec
 
 	} else {
 		//allow no movement
-		double vel_max = 0.f;
+		float vel_max = 0.f;
 		setpoint = setpoint * vel_max;
 
 		// if distance data is stale, switch to Loiter
