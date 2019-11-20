@@ -168,14 +168,15 @@ uORB::DeviceNode::copy_locked(void *dst, unsigned &generation)
 	bool updated = false;
 
 	if ((dst != nullptr) && (_data != nullptr)) {
+		unsigned current_generation = _generation.load();
 
-		if (_generation > generation + _queue_size) {
+		if (current_generation > generation + _queue_size) {
 			// Reader is too far behind: some messages are lost
-			_lost_messages += _generation - (generation + _queue_size);
-			generation = _generation - _queue_size;
+			_lost_messages += current_generation - (generation + _queue_size);
+			generation = current_generation - _queue_size;
 		}
 
-		if ((_generation == generation) && (generation > 0)) {
+		if ((current_generation == generation) && (generation > 0)) {
 			/* The subscriber already read the latest message, but nothing new was published yet.
 			 * Return the previous message
 			 */
@@ -184,7 +185,7 @@ uORB::DeviceNode::copy_locked(void *dst, unsigned &generation)
 
 		memcpy(dst, _data + (_meta->o_size * (generation % _queue_size)), _meta->o_size);
 
-		if (generation < _generation) {
+		if (generation < current_generation) {
 			++generation;
 		}
 
@@ -297,12 +298,13 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 
 	/* Perform an atomic copy. */
 	ATOMIC_ENTER;
-	memcpy(_data + (_meta->o_size * (_generation % _queue_size)), buffer, _meta->o_size);
+	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
+	unsigned generation = _generation.fetch_add(1);
+
+	memcpy(_data + (_meta->o_size * (generation % _queue_size)), buffer, _meta->o_size);
 
 	/* update the timestamp and generation count */
 	_last_update = hrt_absolute_time();
-	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
-	_generation++;
 
 	_published = true;
 
