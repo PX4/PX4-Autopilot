@@ -31,16 +31,11 @@
  *
  ****************************************************************************/
 
-#include "mixer.h"
+#include "NullMixer.hpp"
 
 #include <math.h>
 #include <cstring>
 #include <ctype.h>
-
-NullMixer::NullMixer() :
-	Mixer(nullptr, 0)
-{
-}
 
 unsigned
 NullMixer::mix(float *outputs, unsigned space)

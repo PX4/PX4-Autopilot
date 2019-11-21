@@ -37,38 +37,18 @@
  * Mixer collection.
  */
 
-#include <px4_platform_common/px4_config.h>
-
-#include <sys/types.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <errno.h>
-#include <stdio.h>
-#include <math.h>
-#include <unistd.h>
-
-#include "mixer.h"
+#include "MixerGroup.hpp"
 
 #include "MixerGroup.hpp"
+#include "NullMixer.hpp"
+#include "SimpleMixer.hpp"
+#include "MultirotorMixer.hpp"
+#include "HelicopterMixer.hpp"
 
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
 //#include <debug.h>
 //#define debug(fmt, args...)	syslog(fmt "\n", ##args)
-
-MixerGroup::MixerGroup(ControlCallback control_cb, uintptr_t cb_handle) :
-	Mixer(control_cb, cb_handle)
-{
-}
-
-MixerGroup::~MixerGroup()
-{
-	reset();
-}
 
 void
 MixerGroup::add_mixer(Mixer *mixer)
@@ -187,7 +167,7 @@ MixerGroup::set_thrust_factor(float val)
 }
 
 void
-MixerGroup::set_airmode(Airmode airmode)
+MixerGroup::set_airmode(Mixer::Airmode airmode)
 {
 	Mixer *mixer = _first;
 
@@ -255,7 +235,7 @@ MixerGroup::groups_required(uint32_t &groups)
 }
 
 int
-MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
+MixerGroup::load_from_buf(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf, unsigned &buflen)
 {
 	int ret = -1;
 	const char *end = buf + buflen;
@@ -278,15 +258,15 @@ MixerGroup::load_from_buf(const char *buf, unsigned &buflen)
 			break;
 
 		case 'M':
-			m = SimpleMixer::from_text(_control_cb, _cb_handle, p, resid);
+			m = SimpleMixer::from_text(control_cb, cb_handle, p, resid);
 			break;
 
 		case 'R':
-			m = MultirotorMixer::from_text(_control_cb, _cb_handle, p, resid);
+			m = MultirotorMixer::from_text(control_cb, cb_handle, p, resid);
 			break;
 
 		case 'H':
-			m = HelicopterMixer::from_text(_control_cb, _cb_handle, p, resid);
+			m = HelicopterMixer::from_text(control_cb, cb_handle, p, resid);
 			break;
 
 		default:

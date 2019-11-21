@@ -37,7 +37,6 @@
 
 #include <lib/mathlib/math/filter/LowPassFilter2pVector3f.hpp>
 #include <lib/matrix/matrix/math.hpp>
-#include <lib/mixer/mixer.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_platform_common/defines.h>
 #include <px4_platform_common/module.h>

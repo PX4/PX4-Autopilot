@@ -31,16 +31,102 @@
  *
  ****************************************************************************/
 
+/**
+ * @file Mixer.hpp
+ *
+ * Generic, programmable, procedural control signal mixers.
+ *
+ * This library implements a generic mixer interface that can be used
+ * by any driver or subsytem that wants to combine several control signals
+ * into a single output.
+ *
+ * Terminology
+ * ===========
+ *
+ * control value
+ *	A mixer input value, typically provided by some controlling
+ *	component of the system.
+ *
+ * control group
+ * 	A collection of controls provided by a single controlling component.
+ *
+ * actuator
+ *	The mixer output value.
+ *
+ *
+ * Mixing basics
+ * =============
+ *
+ * An actuator derives its value from the combination of one or more
+ * control values. Each of the control values is scaled according to
+ * the actuator's configuration and then combined to produce the
+ * actuator value, which may then be further scaled to suit the specific
+ * output type.
+ *
+ * Internally, all scaling is performed using floating point values.
+ * Inputs and outputs are clamped to the range -1.0 to 1.0.
+ *
+ * control    control   control
+ *    |          |         |
+ *    v          v         v
+ *  scale      scale     scale
+ *    |          |         |
+ *    |          v         |
+ *    +-------> mix <------+
+ *               |
+ *             scale
+ *               |
+ *               v
+ *              out
+ *
+ * Scaling
+ * -------
+ *
+ * Each scaler allows the input value to be scaled independently for
+ * inputs greater/less than zero. An offset can be applied to the output,
+ * as well as lower and upper boundary constraints.
+ * Negative scaling factors cause the output to be inverted (negative input
+ * produces positive output).
+ *
+ * Scaler pseudocode:
+ *
+ * if (input < 0)
+ *     output = (input * NEGATIVE_SCALE) + OFFSET
+ * else
+ *     output = (input * POSITIVE_SCALE) + OFFSET
+ *
+ * if (output < LOWER_LIMIT)
+ *     output = LOWER_LIMIT
+ * if (output > UPPER_LIMIT)
+ *     output = UPPER_LIMIT
+ *
+ *
+ * Mixing
+ * ------
+ *
+ * Mixing behaviour varies based on the specific mixer class; each
+ * mixer class describes its behaviour in more detail.
+ *
+ *
+ * Controls
+ * --------
+ *
+ * The precise assignment of controls may vary depending on the
+ * application, but the following assignments should be used
+ * when appropriate.  Some mixer classes have specific assumptions
+ * about the assignment of controls.
+ *
+ * control | standard meaning
+ * --------+-----------------------
+ *     0   | roll
+ *     1   | pitch
+ *     2   | yaw
+ *     3   | primary thrust
+ */
+
 #pragma once
 
-/** simple channel scaler */
-struct mixer_scaler_s {
-	float			negative_scale;
-	float			positive_scale;
-	float			offset;
-	float			min_output;
-	float			max_output;
-};
+#include <mathlib/mathlib.h>
 
 /**
  * Abstract class defining a mixer mixing zero or more inputs to
@@ -74,7 +160,7 @@ public:
 	 *
 	 * @param control_cb		Callback invoked when reading controls.
 	 */
-	Mixer(ControlCallback control_cb, uintptr_t cb_handle);
+	Mixer(ControlCallback control_cb, uintptr_t cb_handle) : _control_cb(control_cb), _cb_handle(cb_handle) {}
 	virtual ~Mixer() = default;
 
 	// no copy, assignment, move, move assignment
@@ -146,6 +232,7 @@ public:
 	virtual unsigned		get_multirotor_count()  { return 0; }
 
 protected:
+
 	/** client-supplied callback used when fetching control values */
 	ControlCallback			_control_cb;
 	uintptr_t			_cb_handle;

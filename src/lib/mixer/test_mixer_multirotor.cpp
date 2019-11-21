@@ -36,7 +36,8 @@
  * via file or stdin and compares the mixer output against expected values.
  */
 
-#include "mixer.h"
+#include "MultirotorMixer.hpp"
+
 #include <cstdio>
 #include <cmath>
 
