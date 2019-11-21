@@ -43,7 +43,6 @@
 #include <ecl/geo_lookup/geo_mag_declination.h>
 #include <px4iofirmware/px4io.h>
 #include <systemlib/err.h>
-#include <lib/mixer/mixer.h>
 
 #include <math.h>
 #include <stdio.h>

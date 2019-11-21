@@ -37,8 +37,6 @@
  * Programmable multi-channel mixer library.
  */
 
-#include "mixer.h"
-
 #include "Mixer.hpp"
 
 #include <math.h>
@@ -47,12 +45,6 @@
 
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
-
-Mixer::Mixer(ControlCallback control_cb, uintptr_t cb_handle) :
-	_control_cb(control_cb),
-	_cb_handle(cb_handle)
-{
-}
 
 float
 Mixer::get_control(uint8_t group, uint8_t index)

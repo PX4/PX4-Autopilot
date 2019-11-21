@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include "Mixer.hpp"
+
 /**
  * Supported multirotor geometries.
  *
@@ -77,13 +79,8 @@ public:
 	 *				tuned to ensure that rotors never stall at the
 	 * 				low end of their control range.
 	 */
-	MultirotorMixer(ControlCallback control_cb,
-			uintptr_t cb_handle,
-			MultirotorGeometry geometry,
-			float roll_scale,
-			float pitch_scale,
-			float yaw_scale,
-			float idle_speed);
+	MultirotorMixer(ControlCallback control_cb, uintptr_t cb_handle, MultirotorGeometry geometry,
+			float roll_scale, float pitch_scale, float yaw_scale, float idle_speed);
 
 	/**
 	 * Constructor (for testing).
@@ -93,7 +90,7 @@ public:
 	 * @param rotors		control allocation matrix
 	 * @param rotor_count		length of rotors array (= number of motors)
 	 */
-	MultirotorMixer(ControlCallback control_cb, uintptr_t cb_handle, Rotor *rotors, unsigned rotor_count);
+	MultirotorMixer(ControlCallback control_cb, uintptr_t cb_handle, const Rotor *rotors, unsigned rotor_count);
 	virtual ~MultirotorMixer();
 
 	// no copy, assignment, move, move assignment

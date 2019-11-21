@@ -43,8 +43,8 @@
 #include <math.h>
 
 #include <px4_platform_common/px4_config.h>
-#include <mixer/mixer.h>
-#include <mixer/mixer_load.h>
+#include <lib/mixer/MixerGroup.hpp>
+#include <lib/mixer/mixer_load.h>
 #include <output_limit/output_limit.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_pwm_output.h>
@@ -95,7 +95,7 @@ class MixerTest : public UnitTest
 {
 public:
 	virtual bool run_tests();
-	MixerTest();
+	MixerTest() = default;
 
 private:
 	bool mixerTest();
@@ -111,11 +111,6 @@ private:
 
 	MixerGroup mixer_group;
 };
-
-MixerTest::MixerTest() :
-	mixer_group(mixer_callback, 0)
-{
-}
 
 bool MixerTest::run_tests()
 {
@@ -251,11 +246,8 @@ bool MixerTest::load_mixer(const char *filename, unsigned expected_count, bool v
 }
 
 bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loaded, unsigned expected_count,
-			   const unsigned chunk_size,
-			   bool verbose)
+			   const unsigned chunk_size, bool verbose)
 {
-
-
 	/* load the mixer in chunks, like
 	 * in the case of a remote load,
 	 * e.g. on PX4IO.
@@ -264,7 +256,7 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 	/* load at once test */
 	unsigned xx = loaded;
 	mixer_group.reset();
-	mixer_group.load_from_buf(&buf[0], xx);
+	mixer_group.load_from_buf(mixer_callback, 0, &buf[0], xx);
 
 	if (expected_count > 0) {
 		ut_compare("check number of mixers loaded", mixer_group.count(), expected_count);
@@ -275,7 +267,7 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 	empty_buf[0] = ' ';
 	empty_buf[1] = '\0';
 	mixer_group.reset();
-	mixer_group.load_from_buf(&empty_buf[0], empty_load);
+	mixer_group.load_from_buf(mixer_callback, 0, &empty_buf[0], empty_load);
 
 	if (verbose) {
 		PX4_INFO("empty buffer load: loaded %u mixers, used: %u", mixer_group.count(), empty_load);
@@ -310,7 +302,7 @@ bool MixerTest::load_mixer(const char *filename, const char *buf, unsigned loade
 
 		/* process the text buffer, adding new mixers as their descriptions can be parsed */
 		resid = mixer_text_length;
-		mixer_group.load_from_buf(&mixer_text[0], resid);
+		mixer_group.load_from_buf(mixer_callback, 0, &mixer_text[0], resid);
 
 		/* if anything was parsed */
 		if (resid != mixer_text_length) {
