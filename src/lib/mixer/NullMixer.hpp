@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include "Mixer.hpp"
+
 /**
  * Null mixer; returns zero.
  *
@@ -41,7 +43,7 @@
 class NullMixer : public Mixer
 {
 public:
-	NullMixer();
+	NullMixer() : Mixer(nullptr, 0) {}
 	virtual ~NullMixer() = default;
 
 	// no copy, assignment, move, move assignment
@@ -65,9 +67,9 @@ public:
 	 */
 	static NullMixer		*from_text(const char *buf, unsigned &buflen);
 
-	unsigned		mix(float *outputs, unsigned space) override;
+	unsigned			mix(float *outputs, unsigned space) override;
 
-	unsigned		set_trim(float trim) override { return 1; }
-	unsigned		get_trim(float *trim) override { return 1; }
+	unsigned			set_trim(float trim) override { return 1; }
+	unsigned			get_trim(float *trim) override { return 1; }
 
 };

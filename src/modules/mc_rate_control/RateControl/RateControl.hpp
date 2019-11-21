@@ -42,7 +42,7 @@
 #include <matrix/matrix/math.hpp>
 #include <mathlib/math/filter/LowPassFilter2pVector3f.hpp>
 
-#include <lib/mixer/mixer.h>
+#include <lib/mixer/MultirotorMixer.hpp>
 #include <uORB/topics/rate_ctrl_status.h>
 
 class RateControl

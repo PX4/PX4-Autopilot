@@ -37,7 +37,8 @@
  * Simple summing mixer.
  */
 
-#include "mixer.h"
+#include "SimpleMixer.hpp"
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -190,7 +191,6 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 	next_tag = findnexttag(end - buflen, buflen);
 
 	if (next_tag == 'S') {
-
 		/* No output scalers specified. Use default values.
 		 * Corresponds to:
 		 * O:      10000  10000      0 -10000  10000
@@ -202,7 +202,6 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 		mixinfo->output_scaler.max_output	= 1.0f;
 
 	} else {
-
 		if (parse_output_scaler(end - buflen, buflen, mixinfo->output_scaler)) {
 			debug("simple mixer parser failed parsing out scaler tag, ret: '%s'", buf);
 			goto out;
@@ -217,7 +216,6 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 			debug("simple mixer parser failed parsing ctrl scaler tag, ret: '%s'", buf);
 			goto out;
 		}
-
 	}
 
 	sm = new SimpleMixer(control_cb, cb_handle, mixinfo);

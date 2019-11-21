@@ -37,15 +37,13 @@
  * Multi-rotor mixers.
  */
 
-#include "mixer.h"
+#include "MultirotorMixer.hpp"
 
 #include <float.h>
 #include <cstring>
 #include <cstdio>
 
 #include <mathlib/mathlib.h>
-
-#include "MultirotorMixer.hpp"
 
 #ifdef MIXER_MULTIROTOR_USE_MOCK_GEOMETRY
 enum class MultirotorGeometry : MultirotorGeometryUnderlyingType {
@@ -81,28 +79,18 @@ const char *_config_key[] = {"4x"};
 //#include <debug.h>
 //#define debug(fmt, args...)	syslog(fmt "\n", ##args)
 
-MultirotorMixer::MultirotorMixer(ControlCallback control_cb,
-				 uintptr_t cb_handle,
-				 MultirotorGeometry geometry,
-				 float roll_scale,
-				 float pitch_scale,
-				 float yaw_scale,
-				 float idle_speed) :
-	Mixer(control_cb, cb_handle),
-	_roll_scale(roll_scale),
-	_pitch_scale(pitch_scale),
-	_yaw_scale(yaw_scale),
-	_idle_speed(-1.0f + idle_speed * 2.0f),	/* shift to output range here to avoid runtime calculation */
-	_rotor_count(_config_rotor_count[(MultirotorGeometryUnderlyingType)geometry]),
-	_rotors(_config_index[(MultirotorGeometryUnderlyingType)geometry]),
-	_outputs_prev(new float[_rotor_count]),
-	_tmp_array(new float[_rotor_count])
+MultirotorMixer::MultirotorMixer(ControlCallback control_cb, uintptr_t cb_handle, MultirotorGeometry geometry,
+				 float roll_scale, float pitch_scale, float yaw_scale, float idle_speed) :
+	MultirotorMixer(control_cb, cb_handle, _config_index[(int)geometry], _config_rotor_count[(int)geometry])
 {
-	for (unsigned i = 0; i < _rotor_count; ++i) {
-		_outputs_prev[i] = _idle_speed;
-	}
+	_roll_scale = roll_scale;
+	_pitch_scale = pitch_scale;
+	_yaw_scale = yaw_scale;
+	_idle_speed = -1.0f + idle_speed * 2.0f;	/* shift to output range here to avoid runtime calculation */
 }
-MultirotorMixer::MultirotorMixer(ControlCallback control_cb, uintptr_t cb_handle, Rotor *rotors, unsigned rotor_count) :
+
+MultirotorMixer::MultirotorMixer(ControlCallback control_cb, uintptr_t cb_handle, const Rotor *rotors,
+				 unsigned rotor_count) :
 	Mixer(control_cb, cb_handle),
 	_rotor_count(rotor_count),
 	_rotors(rotors),
@@ -423,7 +411,6 @@ MultirotorMixer::mix(float *outputs, unsigned space)
 				outputs[i] = _outputs_prev[i] - _delta_out_max;
 				clipping_low_roll_pitch = true;
 				clipping_low_yaw = true;
-
 			}
 		}
 

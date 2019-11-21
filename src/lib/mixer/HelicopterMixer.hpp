@@ -33,6 +33,8 @@
 
 #pragma once
 
+#include "Mixer.hpp"
+
 /** helicopter swash servo mixer */
 struct mixer_heli_servo_s {
 	float angle;
@@ -50,7 +52,7 @@ struct mixer_heli_s {
 	uint8_t				control_count;	/**< number of inputs */
 	float				throttle_curve[HELI_CURVES_NR_POINTS];
 	float				pitch_curve[HELI_CURVES_NR_POINTS];
-	struct mixer_heli_servo_s	servos[4];	/**< up to four inputs */
+	mixer_heli_servo_s		servos[4];	/**< up to four inputs */
 };
 
 /**
@@ -69,7 +71,7 @@ public:
 	 * @param cb_handle		Passed to control_cb.
 	 * @param mixer_info		Pointer to heli mixer configuration
 	 */
-	HelicopterMixer(ControlCallback control_cb, uintptr_t cb_handle, mixer_heli_s *mixer_info);
+	HelicopterMixer(ControlCallback control_cb, uintptr_t cb_handle, mixer_heli_s mixer_info);
 	virtual ~HelicopterMixer() = default;
 
 	// no copy, assignment, move, move assignment

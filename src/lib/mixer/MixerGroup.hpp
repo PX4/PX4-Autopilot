@@ -33,15 +33,21 @@
 
 #pragma once
 
+#include "Mixer.hpp"
+
 /**
  * Group of mixers, built up from single mixers and processed
  * in order when mixing.
  */
-class MixerGroup : public Mixer
+class MixerGroup
 {
 public:
-	MixerGroup(ControlCallback control_cb, uintptr_t cb_handle);
-	virtual ~MixerGroup();
+	MixerGroup() = default;
+
+	~MixerGroup()
+	{
+		reset();
+	}
 
 	// no copy, assignment, move, move assignment
 	MixerGroup(const MixerGroup &) = delete;
@@ -49,9 +55,11 @@ public:
 	MixerGroup(MixerGroup &&) = delete;
 	MixerGroup &operator=(MixerGroup &&) = delete;
 
-	unsigned		mix(float *outputs, unsigned space) override;
-	uint16_t		get_saturation_status() override;
-	void			groups_required(uint32_t &groups) override;
+	unsigned			mix(float *outputs, unsigned space);
+
+	uint16_t			get_saturation_status();
+
+	void				groups_required(uint32_t &groups);
 
 	/**
 	 * Add a mixer to the group.
@@ -125,7 +133,7 @@ public:
 	 *				bytes as they are consumed.
 	 * @return			Zero on successful load, nonzero otherwise.
 	 */
-	int				load_from_buf(const char *buf, unsigned &buflen);
+	int				load_from_buf(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf, unsigned &buflen);
 
 	/**
 	 * @brief      Update slew rate parameter. This tells instances of the class MultirotorMixer
@@ -137,25 +145,25 @@ public:
 	 * @param[in]  delta_out_max  Maximum delta output.
 	 *
 	 */
-	void 			set_max_delta_out_once(float delta_out_max) override;
+	void 				set_max_delta_out_once(float delta_out_max);
 
 	/*
 	 * Invoke the set_offset method of each mixer in the group
 	 * for each value in page r_page_servo_control_trim
 	 */
-	unsigned set_trims(int16_t *v, unsigned n);
-	unsigned get_trims(int16_t *values);
+	unsigned			set_trims(int16_t *v, unsigned n);
+	unsigned			get_trims(int16_t *values);
 
 	/**
 	 * @brief      Sets the thrust factor used to calculate mapping from desired thrust to motor control signal output.
 	 *
 	 * @param[in]  val   The value
 	 */
-	void	set_thrust_factor(float val) override;
+	void				set_thrust_factor(float val);
 
-	void 	set_airmode(Airmode airmode) override;
+	void				set_airmode(Mixer::Airmode airmode);
 
-	unsigned get_multirotor_count() override;
+	unsigned			get_multirotor_count();
 
 private:
 	Mixer				*_first{nullptr};	/**< linked list of mixers */
