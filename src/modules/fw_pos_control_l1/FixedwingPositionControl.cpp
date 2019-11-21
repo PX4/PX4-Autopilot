@@ -359,21 +359,21 @@ FixedwingPositionControl::airspeed_poll()
 {
 	bool airspeed_valid = _airspeed_valid;
 
-	if (!_parameters.airspeed_disabled && _airspeed_sub.update()) {
+	if (!_parameters.airspeed_disabled && _airspeed_validated_sub.update()) {
 
-		const airspeed_s &as = _airspeed_sub.get();
+		const airspeed_validated_s &airspeed_validated = _airspeed_validated_sub.get();
+		_eas2tas = 1.0f; //this is the default value, taken in case of invalid airspeed
 
-		if (PX4_ISFINITE(as.indicated_airspeed_m_s)
-		    && PX4_ISFINITE(as.true_airspeed_m_s)
-		    && (as.indicated_airspeed_m_s > 0.0f)
-		    && !_vehicle_status.aspd_use_inhibit) {
+		if (PX4_ISFINITE(airspeed_validated.equivalent_airspeed_m_s)
+		    && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
+		    && (airspeed_validated.equivalent_airspeed_m_s > 0.0f)) {
 
 			airspeed_valid = true;
 
-			_airspeed_last_valid = as.timestamp;
-			_airspeed = as.indicated_airspeed_m_s;
+			_airspeed_last_valid = airspeed_validated.timestamp;
+			_airspeed = airspeed_validated.equivalent_airspeed_m_s;
 
-			_eas2tas = constrain(as.true_airspeed_m_s / as.indicated_airspeed_m_s, 0.9f, 2.0f);
+			_eas2tas = constrain(airspeed_validated.true_airspeed_m_s / airspeed_validated.equivalent_airspeed_m_s, 0.9f, 2.0f);
 		}
 
 	} else {
