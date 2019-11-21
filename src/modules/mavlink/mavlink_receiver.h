@@ -101,6 +101,8 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 
+#include <drivers/drv_pwm_output.h>
+
 class Mavlink;
 
 class MavlinkReceiver : public ModuleParams
@@ -303,4 +305,6 @@ private:
 	// Disallow copy construction and move assignment.
 	MavlinkReceiver(const MavlinkReceiver &) = delete;
 	MavlinkReceiver operator=(const MavlinkReceiver &) = delete;
+
+	int _t_actuator_controls_3;
 };

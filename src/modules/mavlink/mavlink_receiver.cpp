@@ -69,6 +69,8 @@
 #include "mavlink_main.h"
 #include "mavlink_receiver.h"
 
+#include <systemlib/mavlink_log.h>
+
 #ifdef CONFIG_NET
 #define MAVLINK_RECEIVER_NET_ADDED_STACK 1360
 #else
@@ -86,6 +88,8 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_parameters_manager(parent),
 	_mavlink_timesync(parent)
 {
+	// Subscribing for publishing DO_SET_SERVO correctly
+	_t_actuator_controls_3 = orb_subscribe(ORB_ID(actuator_controls_3)); 
 }
 
 void
@@ -488,6 +492,46 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		if ((int)(cmd_mavlink.param2 + 0.5f) == 1) {
 			send_storage_information(cmd_mavlink.param1 + 0.5f);
 		}
+
+	} else if (cmd_mavlink.command == MAV_CMD_DO_SET_SERVO) {
+		actuator_controls_s actuators = {};
+		actuators.timestamp = hrt_absolute_time();
+
+		// Copying actual AUX values to change only one output
+		// and leave others as they are
+		orb_copy(ORB_ID(actuator_controls_3), _t_actuator_controls_3,
+			 &actuators);
+
+		int aux_num = static_cast<int>(vehicle_command.param1);
+
+		// Aux numbers corresponding pass.aux.mix mixer
+		switch (aux_num)
+		{
+			case 1:
+				aux_num = 5;
+				break;
+			
+			case 2:
+				aux_num = 6;
+				break;
+
+			case 3:
+				aux_num = 7;
+				break;
+
+			case 4:
+				aux_num = 4;
+				break;
+			
+			default:
+				break;
+		}
+
+		// aux_num - actuator number to be set
+		// param2 - new value for selected actuator in ms 1000...2000
+		actuators.control[aux_num] = (vehicle_command.param2 - static_cast<float>(PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2) / (static_cast<float>(PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+
+		_actuator_controls_pubs[3].publish(actuators);
 
 	} else {
 
