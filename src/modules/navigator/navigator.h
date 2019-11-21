@@ -316,6 +316,7 @@ private:
 	)
 
 	int		_local_pos_sub{-1};		/**< local position subscription */
+	int		_vehicle_status_sub{-1};	/**< local position subscription */
 
 	uORB::Subscription _global_pos_sub{ORB_ID(vehicle_global_position)};	/**< global position subscription */
 	uORB::Subscription _gps_pos_sub{ORB_ID(vehicle_gps_position)};		/**< gps position subscription */
@@ -325,7 +326,6 @@ private:
 	uORB::Subscription _pos_ctrl_landing_status_sub{ORB_ID(position_controller_landing_status)};	/**< position controller landing status subscription */
 	uORB::Subscription _traffic_sub{ORB_ID(transponder_report)};		/**< traffic subscription */
 	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};	/**< vehicle commands (onboard and offboard) */
-	uORB::Subscription _vstatus_sub{ORB_ID(vehicle_status)};		/**< vehicle status subscription */
 
 	uORB::SubscriptionData<position_controller_status_s>	_position_controller_status_sub{ORB_ID(position_controller_status)};
 

@@ -31,216 +31,205 @@
  *
  ****************************************************************************/
 
+#include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/getopt.h>
 
 #include "bmp388.h"
 
-enum BMP388_BUS {
-	BMP388_BUS_ALL = 0,
-	BMP388_BUS_I2C_INTERNAL,
-	BMP388_BUS_I2C_INTERNAL1,
-	BMP388_BUS_I2C_EXTERNAL,
-	BMP388_BUS_SPI_INTERNAL,
-	BMP388_BUS_SPI_EXTERNAL
+enum class BMP388_BUS {
+	ALL = 0,
+	I2C_INTERNAL,
+	I2C_INTERNAL1,
+	I2C_EXTERNAL,
+	SPI_INTERNAL,
+	SPI_EXTERNAL
 };
 
-/**
- * Local functions in support of the shell command.
- */
 namespace bmp388
 {
 
-/*
- * list of supported bus configurations
- */
+// list of supported bus configurations
 struct bmp388_bus_option {
-	enum BMP388_BUS busid;
-	const char *devpath;
+	BMP388_BUS busid;
 	BMP388_constructor interface_constructor;
 	uint8_t busnum;
-	uint32_t device;
-	bool external;
+	uint32_t address;
 	BMP388 *dev;
 } bus_options[] = {
 #if defined(PX4_SPIDEV_EXT_BARO) && defined(PX4_SPI_BUS_EXT)
-	{ BMP388_BUS_SPI_EXTERNAL, "/dev/bmp388_spi_ext", &bmp388_spi_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_BARO, true, NULL },
+	{ BMP388_BUS::SPI_EXTERNAL, &bmp388_spi_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_BARO, nullptr },
 #endif
 #if defined(PX4_SPIDEV_BARO)
 #  if defined(PX4_SPIDEV_BARO_BUS)
-	{ BMP388_BUS_SPI_INTERNAL, "/dev/bmp388_spi_int", &bmp388_spi_interface, PX4_SPIDEV_BARO_BUS, PX4_SPIDEV_BARO, false, NULL },
+	{ BMP388_BUS::SPI_INTERNAL, &bmp388_spi_interface, PX4_SPIDEV_BARO_BUS, PX4_SPIDEV_BARO, nullptr },
 #  else
-	{ BMP388_BUS_SPI_INTERNAL, "/dev/bmp388_spi_int", &bmp388_spi_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_BARO, false, NULL },
+	{ BMP388_BUS::SPI_INTERNAL, &bmp388_spi_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_BARO, nullptr },
 #  endif
 #endif
 #if defined(PX4_I2C_BUS_ONBOARD) && defined(PX4_I2C_OBDEV_BMP388)
-	{ BMP388_BUS_I2C_INTERNAL, "/dev/bmp388_i2c_int", &bmp388_i2c_interface, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_BMP388, false, NULL },
+	{ BMP388_BUS::I2C_INTERNAL, &bmp388_i2c_interface, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_BMP388, nullptr },
 #endif
 #if defined(PX4_I2C_BUS_ONBOARD) && defined(PX4_I2C_OBDEV1_BMP388)
-	{ BMP388_BUS_I2C_INTERNAL1, "/dev/bmp388_i2c_int1", &bmp388_i2c_interface, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV1_BMP388, false, NULL },
+	{ BMP388_BUS::I2C_INTERNAL1, &bmp388_i2c_interface, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV1_BMP388, nullptr },
 #endif
 #if defined(PX4_I2C_BUS_EXPANSION) && defined(PX4_I2C_OBDEV_BMP388)
-	{ BMP388_BUS_I2C_EXTERNAL, "/dev/bmp388_i2c_ext", &bmp388_i2c_interface, PX4_I2C_BUS_EXPANSION, PX4_I2C_OBDEV_BMP388, true, NULL },
+	{ BMP388_BUS::I2C_EXTERNAL, &bmp388_i2c_interface, PX4_I2C_BUS_EXPANSION, PX4_I2C_OBDEV_BMP388, nullptr },
 #endif
 };
-#define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
-/**
- * Start the driver.
- */
-bool
-start_bus(struct bmp388_bus_option &bus)
+// find a bus structure for a busid
+static struct bmp388_bus_option *find_bus(BMP388_BUS busid)
 {
-	if (bus.dev != nullptr) {
-		PX4_ERR("bus option already started");
-		exit(1);
+	for (bmp388_bus_option &bus_option : bus_options) {
+		if ((busid == BMP388_BUS::ALL ||
+		     busid == bus_option.busid) && bus_option.dev != nullptr) {
+
+			return &bus_option;
+		}
 	}
 
-	IBMP388 *interface = bus.interface_constructor(bus.busnum, bus.device, bus.external);
+	return nullptr;
+}
 
-	if (interface->init() != OK) {
-		delete interface;
+static bool start_bus(bmp388_bus_option &bus)
+{
+	IBMP388 *interface = bus.interface_constructor(bus.busnum, bus.address);
+
+	if ((interface == nullptr) || (interface->init() != PX4_OK)) {
 		PX4_WARN("no device on bus %u", (unsigned)bus.busid);
+		delete interface;
 		return false;
 	}
 
-	bus.dev = new BMP388(interface, bus.devpath);
+	BMP388 *dev = new BMP388(interface);
 
-	if (bus.dev == nullptr) {
+	if (dev == nullptr || (dev->init() != PX4_OK)) {
+		PX4_ERR("driver start failed");
+		delete dev;
+		delete interface;
 		return false;
 	}
 
-	if (OK != bus.dev->init()) {
-		delete bus.dev;
-		bus.dev = nullptr;
-		return false;
-	}
+	bus.dev = dev;
 
 	return true;
 }
 
-/**
- * Start the driver.
- *
- * This function call only returns once the driver
- * is either successfully up and running or failed to start.
- */
-void
-start(enum BMP388_BUS busid)
+static int start(BMP388_BUS busid)
 {
-	uint8_t i;
-	bool started = false;
-
-	for (i = 0; i < NUM_BUS_OPTIONS; i++) {
-		if (busid == BMP388_BUS_ALL && bus_options[i].dev != NULL) {
+	for (bmp388_bus_option &bus_option : bus_options) {
+		if (bus_option.dev != nullptr) {
 			// this device is already started
+			PX4_WARN("already started");
 			continue;
 		}
 
-		if (busid != BMP388_BUS_ALL && bus_options[i].busid != busid) {
+		if (busid != BMP388_BUS::ALL && bus_option.busid != busid) {
 			// not the one that is asked for
 			continue;
 		}
 
-		started |= start_bus(bus_options[i]);
-	}
-
-	if (!started) {
-		PX4_WARN("bus option number is %d", i);
-		PX4_ERR("driver start failed");
-		exit(1);
-	}
-
-	// one or more drivers started OK
-	exit(0);
-}
-
-/**
- * Print a little info about the driver.
- */
-void
-info()
-{
-	for (uint8_t i = 0; i < NUM_BUS_OPTIONS; i++) {
-		struct bmp388_bus_option &bus = bus_options[i];
-
-		if (bus.dev != nullptr) {
-			PX4_WARN("%s", bus.devpath);
-			bus.dev->print_info();
+		if (start_bus(bus_option)) {
+			return PX4_OK;
 		}
 	}
 
-	exit(0);
+	return PX4_ERROR;
 }
 
-void
-usage()
+static int stop(BMP388_BUS busid)
 {
-	PX4_WARN("missing command: try 'start', 'info'");
-	PX4_WARN("options:");
-	PX4_WARN("    -X    (external I2C bus TODO)");
-	PX4_WARN("    -I    (internal I2C bus TODO)");
-	PX4_WARN("    -S    (external SPI bus)");
-	PX4_WARN("    -s    (internal SPI bus)");
+	bmp388_bus_option *bus = find_bus(busid);
+
+	if (bus != nullptr && bus->dev != nullptr) {
+		delete bus->dev;
+		bus->dev = nullptr;
+
+	} else {
+		PX4_WARN("driver not running");
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
+}
+
+static int status(BMP388_BUS busid)
+{
+	bmp388_bus_option *bus = find_bus(busid);
+
+	if (bus != nullptr && bus->dev != nullptr) {
+		bus->dev->print_info();
+		return PX4_OK;
+	}
+
+	PX4_WARN("driver not running");
+	return PX4_ERROR;
+}
+
+static int usage()
+{
+	PX4_INFO("missing command: try 'start', 'stop', 'status'");
+	PX4_INFO("options:");
+	PX4_INFO("    -X    (i2c external bus)");
+	PX4_INFO("    -I    (i2c internal bus)");
+	PX4_INFO("    -J    (i2c internal bus 2)");
+	PX4_INFO("    -s    (spi internal bus)");
+	PX4_INFO("    -S    (spi external bus)");
+
+	return 0;
 }
 
 } // namespace
 
-extern "C" __EXPORT int bmp388_main(int argc, char *argv[])
+extern "C" int bmp388_main(int argc, char *argv[])
 {
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
-	enum BMP388_BUS busid = BMP388_BUS_ALL;
+	BMP388_BUS busid = BMP388_BUS::ALL;
 
 	while ((ch = px4_getopt(argc, argv, "XIJSs", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
-			busid = BMP388_BUS_I2C_EXTERNAL;
+			busid = BMP388_BUS::I2C_EXTERNAL;
 			break;
 
 		case 'I':
-			busid = BMP388_BUS_I2C_INTERNAL;
+			busid = BMP388_BUS::I2C_INTERNAL;
 			break;
 
 		case 'J':
-			busid = BMP388_BUS_I2C_INTERNAL1;
+			busid = BMP388_BUS::I2C_INTERNAL1;
 			break;
 
 		case 'S':
-			busid = BMP388_BUS_SPI_EXTERNAL;
+			busid = BMP388_BUS::SPI_EXTERNAL;
 			break;
 
 		case 's':
-			busid = BMP388_BUS_SPI_INTERNAL;
+			busid = BMP388_BUS::SPI_INTERNAL;
 			break;
 
 		default:
-			bmp388::usage();
-			return 0;
+			return bmp388::usage();
 		}
 	}
 
 	if (myoptind >= argc) {
-		bmp388::usage();
-		return -1;
+		return bmp388::usage();
 	}
 
 	const char *verb = argv[myoptind];
 
-	/*
-	 * Start/load the driver.
-	 */
 	if (!strcmp(verb, "start")) {
-		bmp388::start(busid);
+		return bmp388::start(busid);
+
+	} else if (!strcmp(verb, "stop")) {
+		return bmp388::stop(busid);
+
+	} else if (!strcmp(verb, "status")) {
+		return bmp388::status(busid);
 	}
 
-	/*
-	 * Print driver information.
-	 */
-	if (!strcmp(verb, "info")) {
-		bmp388::info();
-	}
-
-	PX4_ERR("unrecognized command, try 'start' or 'info'");
-	return -1;
+	return bmp388::usage();
 }

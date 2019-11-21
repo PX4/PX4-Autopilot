@@ -197,6 +197,7 @@ qshell commander start
 qshell land_detector start multicopter
 qshell mc_pos_control start
 qshell mc_att_control start
+qshell mc_rate_control start
 
 logger start -b 200 -t
 

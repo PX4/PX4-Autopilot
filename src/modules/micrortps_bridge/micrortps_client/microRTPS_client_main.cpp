@@ -54,20 +54,6 @@ bool _should_exit_task = false;
 Transport_node *transport_node = nullptr;
 struct options _options;
 
-const baudtype baudlist[] = {
-	[0] = {.code = B0, .val = 0},
-	[1] = {.code = B9600, .val = 9600},
-	[2] = {.code = B19200, .val = 19200},
-	[3] = {.code = B38400, .val = 38400},
-	[4] = {.code = B57600, .val = 57600},
-	[5] = {.code = B115200, .val = 115200},
-	[6] = {.code = B230400, .val = 230400},
-	[7] = {.code = B460800, .val = 460800},
-	[8] = {.code = B921600, .val = 921600}
-};
-
-baudtype getbaudrate(const char *valstr);
-
 static void usage(const char *name)
 {
 	PRINT_MODULE_USAGE_NAME("micrortps_client", "communication");
@@ -90,19 +76,6 @@ static void usage(const char *name)
 	PRINT_MODULE_USAGE_COMMAND("status");
 }
 
-baudtype getbaudrate(const char *valstr)
-{
-	int baudval;
-
-	if (px4_get_parameter_value(valstr, baudval) == 0) {
-		for (unsigned int i = 1; i < sizeof(baudlist) / sizeof(baudtype); i++) {
-			if (baudlist[i].val == (unsigned)baudval) { return baudlist[i]; }
-		}
-	}
-
-	return baudlist[0];
-}
-
 static int parse_options(int argc, char *argv[])
 {
 	int ch;
@@ -123,7 +96,7 @@ static int parse_options(int argc, char *argv[])
 
 		case 'w': _options.sleep_ms       = strtol(myoptarg, nullptr, 10);    break;
 
-		case 'b': _options.baudrate       = getbaudrate(myoptarg); break;
+		case 'b': _options.baudrate       = strtoul(myoptarg, nullptr, 10);     break;
 
 		case 'p': _options.poll_ms        = strtol(myoptarg, nullptr, 10);      break;
 
@@ -162,9 +135,9 @@ static int micrortps_start(int argc, char *argv[])
 
 	switch (_options.transport) {
 	case options::eTransports::UART: {
-			transport_node = new UART_node(_options.device, _options.baudrate.code, _options.poll_ms);
+			transport_node = new UART_node(_options.device, _options.baudrate, _options.poll_ms);
 			PX4_INFO("UART transport: device: %s; baudrate: %d; sleep: %dms; poll: %dms",
-				 _options.device, _options.baudrate.val, _options.sleep_ms, _options.poll_ms);
+				 _options.device, _options.baudrate, _options.sleep_ms, _options.poll_ms);
 		}
 		break;
 

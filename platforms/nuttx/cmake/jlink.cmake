@@ -41,7 +41,7 @@ add_custom_target(jlink_upload
 
 add_custom_target(jlink_debug
 	COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/Debug/jlink_gdb_start.sh
-	COMMAND ${GDB} -nh
+	COMMAND ${CMAKE_GDB} -nh
 		-iex 'set auto-load safe-path ${PX4_BINARY_DIR}'
 		-ex 'target remote localhost:2331'
 		-ex 'monitor reset 0'

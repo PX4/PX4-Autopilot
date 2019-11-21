@@ -58,6 +58,7 @@ uint8 VEHICLE_TYPE_ROVER = 3
 # Encodes the complete system state and is set by the commander app.
 
 uint8 nav_state				# set navigation state machine to specified value
+uint64 nav_state_timestamp              # time when current nav_state activated
 uint8 arming_state			# current arming state
 uint8 hil_state				# current hil state
 bool failsafe				# true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)
