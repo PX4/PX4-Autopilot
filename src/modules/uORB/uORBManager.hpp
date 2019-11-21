@@ -392,11 +392,9 @@ private: // class methods
 	/**
 	 * Advertise a node; don't consider it an error if the node has
 	 * already been advertised.
-	 *
-	 * @todo verify that the existing node is the same as the one
-	 *       we tried to advertise.
 	 */
-	int node_advertise(const struct orb_metadata *meta, int *instance = nullptr, int priority = ORB_PRIO_DEFAULT);
+	int node_advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance = nullptr,
+			   int priority = ORB_PRIO_DEFAULT);
 
 	/**
 	 * Common implementation for orb_advertise and orb_subscribe.
