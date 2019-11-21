@@ -89,6 +89,7 @@ uORB::DeviceNode::open(cdev::file_t *filp)
 			ret = -EBUSY;
 		}
 
+		mark_as_advertised();
 		unlock();
 
 		/* now complete the open */
@@ -275,7 +276,6 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
 	_generation++;
 
-	_advertised = true;
 
 	ATOMIC_LEAVE;
 
