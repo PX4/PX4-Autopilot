@@ -85,7 +85,7 @@ px4_add_board(
 		sensors
 		vmount
 		vtol_att_control
-		#airspeed_selector
+		airspeed_selector
 
 	SYSTEMCMDS
 		bl_update
