@@ -563,6 +563,7 @@ Commander::Commander() :
 	status.rc_input_mode = vehicle_status_s::RC_IN_MODE_DEFAULT;
 	internal_state.main_state = commander_state_s::MAIN_STATE_MANUAL;
 	status.nav_state = vehicle_status_s::NAVIGATION_STATE_MANUAL;
+	status.nav_state_timestamp = hrt_absolute_time();
 	status.arming_state = vehicle_status_s::ARMING_STATE_INIT;
 
 	/* mark all signals lost as long as they haven't been found */
@@ -2365,6 +2366,10 @@ Commander::run()
 						       (offboard_loss_actions_t)_param_com_obl_act.get(),
 						       (offboard_loss_rc_actions_t)_param_com_obl_rc_act.get(),
 						       (position_nav_loss_actions_t)_param_com_posctl_navl.get());
+
+		if (nav_state_changed) {
+			status.nav_state_timestamp = hrt_absolute_time();
+		}
 
 		if (status.failsafe != failsafe_old) {
 			status_changed = true;

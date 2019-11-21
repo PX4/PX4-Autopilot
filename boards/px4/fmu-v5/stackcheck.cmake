@@ -21,8 +21,8 @@ px4_add_board(
 		adc
 		barometer/ms5611
 		#batt_smbus
-		camera_capture
-		camera_trigger
+		#camera_capture
+		#camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
@@ -42,6 +42,7 @@ px4_add_board(
 		mkblctrl
 		optical_flow # all available optical flow drivers
 		#pca9685
+		#power_monitor/ina226
 		#protocol_splitter
 		pwm_input
 		pwm_out_sim
@@ -73,6 +74,7 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
+		mc_rate_control
 		mc_pos_control
 		#micrortps_bridge
 		navigator

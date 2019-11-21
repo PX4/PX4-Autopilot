@@ -73,6 +73,7 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
+		mc_rate_control
 		mc_pos_control
 		micrortps_bridge
 		navigator
