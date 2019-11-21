@@ -110,9 +110,22 @@ AirspeedValidator::get_wind_estimator_states(uint64_t timestamp)
 }
 
 void
+AirspeedValidator::set_airspeed_scale_manual(float airspeed_scale_manual)
+{
+	_airspeed_scale_manual = airspeed_scale_manual;
+	_wind_estimator.enforce_airspeed_scale(1.0f / airspeed_scale_manual); // scale is inverted inside the wind estimator
+}
+
+void
 AirspeedValidator::update_EAS_scale()
 {
-	_EAS_scale = 1.0f / math::constrain(_wind_estimator.get_tas_scale(), 0.75f, 1.25f);
+	if (_wind_estimator.is_estimate_valid()) {
+		_EAS_scale = 1.0f / math::constrain(_wind_estimator.get_tas_scale(), 0.5f, 2.0f);
+
+	} else {
+		_EAS_scale = _airspeed_scale_manual;
+	}
+
 }
 
 void
@@ -186,7 +199,7 @@ AirspeedValidator::check_load_factor(float accel_z)
 {
 	// Check if the airpeed reading is lower than physically possible given the load factor
 
-	bool bad_number_fail = false; // disable this for now
+	const bool bad_number_fail = false; // disable this for now
 
 	if (_in_fixed_wing_flight) {
 
@@ -214,7 +227,7 @@ void
 AirspeedValidator::update_airspeed_valid_status(const uint64_t timestamp)
 {
 
-	bool bad_number_fail = false; // disable this for now
+	const bool bad_number_fail = false; // disable this for now
 
 	// Check if sensor data is missing - assume a minimum 5Hz data rate.
 	const bool data_missing = (timestamp - _time_last_airspeed) > 200_ms;
