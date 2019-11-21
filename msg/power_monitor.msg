@@ -2,14 +2,19 @@
 
 uint64 timestamp			# Time since system start (microseconds)
 
-float32 voltage_v			# Voltage in volts, 0 if unknown
-float32 current_a		    # Current in amperes, -1 if unknown
-float32 power_w		        # power in watts, -1 if unknown
-int16 rconf
-int16 rsv
-int16 rbv
-int16 rp
-int16 rc
-int16 rcal
-int16 me
-int16 al
+# float32 voltage_v			# Voltage in volts, 0 if unknown
+# float32 current_a		    # Current in amperes, -1 if unknown
+# float32 power_w		        # power in watts, -1 if unknown
+# int16 rconf
+# int16 rsv
+# int16 rbv
+# int16 rp
+# int16 rc
+# int16 rcal
+# int16 me
+# int16 al
+
+float64 voltage_v
+float64 current_a
+float64 wiretemp_c
+float64 batttemp_c

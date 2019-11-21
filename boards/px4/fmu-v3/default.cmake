@@ -48,6 +48,7 @@ px4_add_board(
 		#optical_flow # all available optical flow drivers
 		optical_flow/px4flow
 		pca9685
+		power_monitor/ads1115
 		protocol_splitter
 		pwm_input
 		pwm_out_sim
