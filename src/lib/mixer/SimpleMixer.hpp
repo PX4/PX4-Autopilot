@@ -104,9 +104,28 @@ public:
 	unsigned			get_trim(float *trim) override;
 
 private:
-	mixer_simple_s			*_pinfo{nullptr};
+
+	/**
+	 * Perform simpler linear scaling.
+	 *
+	 * @param scaler		The scaler configuration.
+	 * @param input			The value to be scaled.
+	 * @return			The scaled value.
+	 */
+	static float			scale(const mixer_scaler_s &scaler, float input);
+
+	/**
+	 * Validate a scaler
+	 *
+	 * @param scaler		The scaler to be validated.
+	 * @return			Zero if good, nonzero otherwise.
+	 */
+	static int			scale_check(struct mixer_scaler_s &scaler);
 
 	static int parse_output_scaler(const char *buf, unsigned &buflen, mixer_scaler_s &scaler);
 	static int parse_control_scaler(const char *buf, unsigned &buflen, mixer_scaler_s &scaler, uint8_t &control_group,
 					uint8_t &control_index);
+
+	mixer_simple_s			*_pinfo{nullptr};
+
 };
