@@ -164,6 +164,8 @@ public:
 	 * and publish to this node or if another node should be tried. */
 	bool is_advertised() const { return _advertised; }
 
+	void mark_as_advertised() { _advertised = true; }
+
 	/**
 	 * Try to change the size of the queue. This can only be done as long as nobody published yet.
 	 * This is the case, for example when orb_subscribe was called before an orb_advertise.
