@@ -32,7 +32,7 @@ bmm150 start
 
 # Possible internal Barro
 bmp388 -I start
-#bmp388 -J start fixme
+bmp388 -J start
 
 # Baro on I2C3
 ms5611 -X start
