@@ -277,9 +277,6 @@ private:
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
 	int8_t _subscriber_count{0};
 
-	px4_task_t _publisher{0}; /**< if nonzero, current publisher. Only used inside the advertise call.
-						We allow one publisher to have an open file descriptor at the same time. */
-
 	// statistics
 	uint32_t _lost_messages = 0; /**< nr of lost messages for all subscribers. If two subscribers lose the same
 					message, it is counted as two. */
