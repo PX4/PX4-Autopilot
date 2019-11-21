@@ -154,23 +154,6 @@ protected:
 	float				get_control(uint8_t group, uint8_t index);
 
 	/**
-	 * Perform simpler linear scaling.
-	 *
-	 * @param scaler		The scaler configuration.
-	 * @param input			The value to be scaled.
-	 * @return			The scaled value.
-	 */
-	static float			scale(const mixer_scaler_s &scaler, float input);
-
-	/**
-	 * Validate a scaler
-	 *
-	 * @param scaler		The scaler to be validated.
-	 * @return			Zero if good, nonzero otherwise.
-	 */
-	static int			scale_check(struct mixer_scaler_s &scaler);
-
-	/**
 	 * Find a tag
 	 *
 	 * @param buf			The buffer to operate on.

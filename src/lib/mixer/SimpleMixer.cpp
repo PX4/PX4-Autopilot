@@ -314,3 +314,44 @@ SimpleMixer::check()
 
 	return 0;
 }
+
+float
+SimpleMixer::scale(const mixer_scaler_s &scaler, float input)
+{
+	float output;
+
+	if (input < 0.0f) {
+		output = (input * scaler.negative_scale) + scaler.offset;
+
+	} else {
+		output = (input * scaler.positive_scale) + scaler.offset;
+	}
+
+	return math::constrain(output, scaler.min_output, scaler.max_output);
+}
+
+int
+SimpleMixer::scale_check(mixer_scaler_s &scaler)
+{
+	if (scaler.offset > 1.001f) {
+		return 1;
+	}
+
+	if (scaler.offset < -1.001f) {
+		return 2;
+	}
+
+	if (scaler.min_output > scaler.max_output) {
+		return 3;
+	}
+
+	if (scaler.min_output < -1.001f) {
+		return 4;
+	}
+
+	if (scaler.max_output > 1.001f) {
+		return 5;
+	}
+
+	return 0;
+}
