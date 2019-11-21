@@ -107,6 +107,7 @@ Navigator::Navigator() :
 	_handle_reverse_delay = param_find("VT_B_REV_DEL");
 
 	_local_pos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
 
 	reset_triplets();
 }
@@ -114,6 +115,7 @@ Navigator::Navigator() :
 Navigator::~Navigator()
 {
 	orb_unsubscribe(_local_pos_sub);
+	orb_unsubscribe(_vehicle_status_sub);
 }
 
 void
@@ -147,11 +149,13 @@ Navigator::run()
 	params_update();
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[1] = {};
+	px4_pollfd_struct_t fds[2] {};
 
 	/* Setup of loop */
 	fds[0].fd = _local_pos_sub;
 	fds[0].events = POLLIN;
+	fds[1].fd = _vehicle_status_sub;
+	fds[1].events = POLLIN;
 
 	/* rate-limit position subscription to 20 Hz / 50 ms */
 	orb_set_interval(_local_pos_sub, 50);
@@ -181,6 +185,8 @@ Navigator::run()
 
 		perf_begin(_loop_perf);
 
+		orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &_vstatus);
+
 		/* gps updated */
 		if (_gps_pos_sub.updated()) {
 			_gps_pos_sub.copy(&_gps_pos);
@@ -209,7 +215,6 @@ Navigator::run()
 			params_update();
 		}
 
-		_vstatus_sub.update(&_vstatus);
 		_land_detected_sub.update(&_land_detected);
 		_position_controller_status_sub.update();
 		_home_pos_sub.update(&_home_pos);
