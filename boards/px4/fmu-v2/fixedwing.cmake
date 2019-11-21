@@ -23,9 +23,9 @@ px4_add_board(
 		adc
 		#barometer # all available barometer drivers
 		barometer/ms5611
-		batt_smbus
-		camera_capture
-		camera_trigger
+		# batt_smbus
+		# camera_capture
+		# camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
@@ -48,7 +48,7 @@ px4_add_board(
 		commander
 		dataman
 		ekf2
-		events
+		# events
 		fw_att_control
 		fw_pos_control_l1
 		land_detector
@@ -67,7 +67,7 @@ px4_add_board(
 		#dumpfile
 		#esc_calib
 		hardfault_log
-		i2cdetect
+		# i2cdetect
 		#led_control
 		mixer
 		#motor_ramp
@@ -82,8 +82,8 @@ px4_add_board(
 		top
 		#topic_listener
 		tune_control
-		usb_connected
+		# usb_connected
 		ver
-		work_queue
+		# work_queue
 
 	)
