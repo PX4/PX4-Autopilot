@@ -383,10 +383,10 @@ bool MixerTest::mixerTest()
 	output_limit_calc(should_arm, should_prearm, mixed, reverse_pwm_mask, r_page_servo_disarmed, r_page_servo_control_min,
 			  r_page_servo_control_max, outputs, r_page_servos, &output_limit);
 
-	//warnx("mixed %d outputs (max %d), values:", mixed, output_max);
-	for (unsigned i = 0; i < mixed; i++) {
+	//PX4_INFO("mixed %d outputs (max %d), values:", mixed, output_max);
 
-		//fprintf(stderr, "pre-arm:\t %d: out: %8.4f, servo: %d \n", i, (double)outputs[i], (int)r_page_servos[i]);
+	for (unsigned i = 0; i < mixed; i++) {
+		//PX4_ERR("pre-arm:\t %d: out: %8.4f, servo: %d", i, (double)outputs[i], (int)r_page_servos[i]);
 
 		if (i != actuator_controls_s::INDEX_THROTTLE) {
 			if (r_page_servos[i] < r_page_servo_control_min[i]) {
