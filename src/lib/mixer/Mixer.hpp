@@ -126,13 +126,14 @@
 
 #pragma once
 
+#include <containers/List.hpp>
 #include <mathlib/mathlib.h>
 
 /**
  * Abstract class defining a mixer mixing zero or more inputs to
  * one or more outputs.
  */
-class Mixer
+class Mixer : public ListNode<Mixer *>
 {
 public:
 	enum class Airmode : int32_t {
@@ -140,9 +141,6 @@ public:
 		roll_pitch = 1,
 		roll_pitch_yaw = 2
 	};
-
-	/** next mixer in a list */
-	Mixer				*_next{nullptr};
 
 	/**
 	 * Fetch a control value.
