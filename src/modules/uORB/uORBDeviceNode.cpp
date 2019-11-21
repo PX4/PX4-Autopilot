@@ -90,6 +90,7 @@ uORB::DeviceNode::open(cdev::file_t *filp)
 			ret = -EBUSY;
 		}
 
+		mark_as_advertised();
 		unlock();
 
 		/* now complete the open */
@@ -306,7 +307,6 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 	/* update the timestamp and generation count */
 	_last_update = hrt_absolute_time();
 
-	_advertised = true;
 
 	// callbacks
 	for (auto item : _callbacks) {

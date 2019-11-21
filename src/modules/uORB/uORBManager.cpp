@@ -327,14 +327,12 @@ int uORB::Manager::orb_get_interval(int handle, unsigned *interval)
 	return ret;
 }
 
-int uORB::Manager::node_advertise(const struct orb_metadata *meta, int *instance, int priority)
+int uORB::Manager::node_advertise(const struct orb_metadata *meta, bool is_advertiser, int *instance, int priority)
 {
 	int ret = PX4_ERROR;
 
-	/* fill advertiser data */
-
 	if (get_device_master()) {
-		ret = _device_master->advertise(meta, instance, priority);
+		ret = _device_master->advertise(meta, is_advertiser, instance, priority);
 	}
 
 	/* it's PX4_OK if it already exists */
@@ -384,7 +382,7 @@ int uORB::Manager::node_open(const struct orb_metadata *meta, bool advertiser, i
 	if (fd < 0) {
 
 		/* try to create the node */
-		ret = node_advertise(meta, instance, priority);
+		ret = node_advertise(meta, advertiser, instance, priority);
 
 		if (ret == PX4_OK) {
 			/* update the path, as it might have been updated during the node_advertise call */
@@ -396,7 +394,7 @@ int uORB::Manager::node_open(const struct orb_metadata *meta, bool advertiser, i
 			}
 		}
 
-		/* on success, try the open again */
+		/* on success, try to open again */
 		if (ret == PX4_OK) {
 			fd = px4_open(path, (advertiser) ? PX4_F_WRONLY : PX4_F_RDONLY);
 		}
