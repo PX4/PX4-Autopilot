@@ -138,6 +138,8 @@ private:
 
 	uORB::Publication<rc_channels_s>	_rc_pub{ORB_ID(rc_channels)};				/**< raw r/c control topic */
 	uORB::Publication<actuator_controls_s>	_actuator_group_3_pub{ORB_ID(actuator_controls_3)};	/**< manual control as actuator topic */
+	actuator_controls_s _prev_manual_controls; /**< previusly read manual controls */
+	float _actuator_changed_epsilon = 0.005;
 
 	uORB::PublicationMulti<manual_control_setpoint_s>	_manual_control_pub{ORB_ID(manual_control_setpoint), ORB_PRIO_HIGH};	/**< manual control signal topic */
 
@@ -153,6 +155,7 @@ private:
 	math::LowPassFilter2p _filter_yaw;
 	math::LowPassFilter2p _filter_throttle;
 
+	int _t_actuator_controls_3;
 };
 
 

@@ -38,6 +38,7 @@
  */
 
 #include "rc_update.h"
+#include <math.h>
 
 #include "parameters.h"
 
@@ -57,6 +58,9 @@ RCUpdate::RCUpdate() :
 	rc_parameter_map_poll(true /* forced */);
 
 	parameters_updated();
+
+	// Subscribing for not to jam other publishers (MAV_CMD_DO_SET_SERVO for example)
+        _t_actuator_controls_3 = orb_subscribe(ORB_ID(actuator_controls_3));
 }
 
 RCUpdate::~RCUpdate()
@@ -473,8 +477,38 @@ RCUpdate::Run()
 			actuator_group_3.control[6] = manual.aux2;
 			actuator_group_3.control[7] = manual.aux3;
 
-			/* publish actuator_controls_3 topic */
-			_actuator_group_3_pub.publish(actuator_group_3);
+			/* Allow publishing only if controls have changed since last post.
+			It is neccessary to make other sources (such as MAV_CMD_DO_SET_SERVO) be able to publish also */
+			bool publish_allowed = false;
+
+			actuator_controls_s current_actuator_controls_from_topic{};
+			actuator_controls_s actuator_control_from_rc{};
+
+			orb_copy(ORB_ID(actuator_controls_3), _t_actuator_controls_3, &current_actuator_controls_from_topic);
+
+			for (int i = 0; i < 8; i++) {
+				// first, store the actual input values
+				actuator_control_from_rc.control[i] = actuator_group_3.control[i];
+
+				if (fabsf(actuator_group_3.control[i] - _prev_manual_controls.control[i]) > _actuator_changed_epsilon)	{
+					// If value has been changed
+					publish_allowed = true;
+
+				} else {
+					// If value has not been changed, keep the one from topic (it is needed for not to override other publishers)
+					actuator_group_3.control[i] = current_actuator_controls_from_topic.control[i];
+				}
+			}
+
+			if (publish_allowed) {
+				/* publish actuator_controls_3 topic */
+				_actuator_group_3_pub.publish(actuator_group_3);
+
+				// Store current values for calculating changes on the next step
+				for (int i = 0; i < 8; i++) {
+					_prev_manual_controls.control[i] = actuator_control_from_rc.control[i];
+				}
+			}
 
 			/* Update parameters from RC Channels (tuning with RC) if activated */
 			if (hrt_elapsed_time(&_last_rc_to_param_map_time) > 1e6) {

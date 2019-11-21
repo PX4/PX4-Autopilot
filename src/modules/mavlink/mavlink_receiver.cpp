@@ -89,7 +89,7 @@ MavlinkReceiver::MavlinkReceiver(Mavlink *parent) :
 	_mavlink_timesync(parent)
 {
 	// Subscribing for publishing DO_SET_SERVO correctly
-	_t_actuator_controls_3 = orb_subscribe(ORB_ID(actuator_controls_3)); 
+	_t_actuator_controls_3 = orb_subscribe(ORB_ID(actuator_controls_3));
 }
 
 void
@@ -505,31 +505,31 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		int aux_num = static_cast<int>(vehicle_command.param1);
 
 		// Aux numbers corresponding pass.aux.mix mixer
-		switch (aux_num)
-		{
-			case 1:
-				aux_num = 5;
-				break;
-			
-			case 2:
-				aux_num = 6;
-				break;
+		switch (aux_num) {
+		case 1:
+			aux_num = 5;
+			break;
 
-			case 3:
-				aux_num = 7;
-				break;
+		case 2:
+			aux_num = 6;
+			break;
 
-			case 4:
-				aux_num = 4;
-				break;
-			
-			default:
-				break;
+		case 3:
+			aux_num = 7;
+			break;
+
+		case 4:
+			aux_num = 4;
+			break;
+
+		default:
+			break;
 		}
 
 		// aux_num - actuator number to be set
 		// param2 - new value for selected actuator in ms 1000...2000
-		actuators.control[aux_num] = (vehicle_command.param2 - static_cast<float>(PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2) / (static_cast<float>(PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+		actuators.control[aux_num] = (vehicle_command.param2 - static_cast<float>(PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2) /
+					     (static_cast<float>(PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 
 		_actuator_controls_pubs[3].publish(actuators);
 
