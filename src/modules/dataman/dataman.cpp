@@ -1071,7 +1071,6 @@ _ram_flash_wait(px4_sem_t *sem)
 __EXPORT ssize_t
 dm_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void *buf, size_t count)
 {
-	perf_begin(_dm_write_perf);
 	work_q_item_t *work;
 
 	/* Make sure data manager has been started and is not shutting down */
@@ -1079,8 +1078,11 @@ dm_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void
 		return -1;
 	}
 
+	perf_begin(_dm_write_perf);
+
 	/* get a work item and queue up a write request */
 	if ((work = create_work_item()) == nullptr) {
+		perf_end(_dm_write_perf);
 		return -1;
 	}
 
@@ -1101,7 +1103,6 @@ dm_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void
 __EXPORT ssize_t
 dm_read(dm_item_t item, unsigned index, void *buf, size_t count)
 {
-	perf_begin(_dm_read_perf);
 	work_q_item_t *work;
 
 	/* Make sure data manager has been started and is not shutting down */
@@ -1109,8 +1110,11 @@ dm_read(dm_item_t item, unsigned index, void *buf, size_t count)
 		return -1;
 	}
 
+	perf_begin(_dm_read_perf);
+
 	/* get a work item and queue up a read request */
 	if ((work = create_work_item()) == nullptr) {
+		perf_end(_dm_read_perf);
 		return -1;
 	}
 
@@ -1434,8 +1438,12 @@ end:
 	px4_sem_destroy(&g_work_queued_sema);
 	px4_sem_destroy(&g_sys_state_mutex_mission);
 	px4_sem_destroy(&g_sys_state_mutex_fence);
+
 	perf_free(_dm_read_perf);
+	_dm_read_perf = nullptr;
+
 	perf_free(_dm_write_perf);
+	_dm_write_perf = nullptr;
 
 	return 0;
 }
