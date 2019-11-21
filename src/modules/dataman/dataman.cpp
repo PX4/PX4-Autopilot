@@ -47,26 +47,16 @@
 #include <px4_platform_common/posix.h>
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/getopt.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <systemlib/err.h>
-#include <queue.h>
-#include <string.h>
-#include <semaphore.h>
-#include <unistd.h>
 #include <drivers/drv_hrt.h>
+#include <lib/parameters/param.h>
+#include <lib/perf/perf_counter.h>
 
 #include "dataman.h"
-#include <parameters/param.h>
 
 #if defined(FLASH_BASED_DATAMAN)
 #include <nuttx/clock.h>
 #include <nuttx/progmem.h>
 #endif
-
 
 __BEGIN_DECLS
 __EXPORT int dataman_main(int argc, char *argv[]);
@@ -246,6 +236,9 @@ static unsigned int g_key_offsets[DM_KEY_NUM_KEYS];
 static px4_sem_t *g_item_locks[DM_KEY_NUM_KEYS];
 static px4_sem_t g_sys_state_mutex_mission;
 static px4_sem_t g_sys_state_mutex_fence;
+
+static perf_counter_t _dm_read_perf{nullptr};
+static perf_counter_t _dm_write_perf{nullptr};
 
 /* The data manager store file handle and file name */
 static const char *default_device_path = PX4_STORAGEDIR "/dataman";
@@ -1085,8 +1078,11 @@ dm_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void
 		return -1;
 	}
 
+	perf_begin(_dm_write_perf);
+
 	/* get a work item and queue up a write request */
 	if ((work = create_work_item()) == nullptr) {
+		perf_end(_dm_write_perf);
 		return -1;
 	}
 
@@ -1098,7 +1094,9 @@ dm_write(dm_item_t item, unsigned index, dm_persitence_t persistence, const void
 	work->write_params.count = count;
 
 	/* Enqueue the item on the work queue and wait for the worker thread to complete processing it */
-	return (ssize_t)enqueue_work_item_and_wait_for_result(work);
+	ssize_t ret = (ssize_t)enqueue_work_item_and_wait_for_result(work);
+	perf_end(_dm_write_perf);
+	return ret;
 }
 
 /** Retrieve from the data manager file */
@@ -1112,8 +1110,11 @@ dm_read(dm_item_t item, unsigned index, void *buf, size_t count)
 		return -1;
 	}
 
+	perf_begin(_dm_read_perf);
+
 	/* get a work item and queue up a read request */
 	if ((work = create_work_item()) == nullptr) {
+		perf_end(_dm_read_perf);
 		return -1;
 	}
 
@@ -1124,7 +1125,9 @@ dm_read(dm_item_t item, unsigned index, void *buf, size_t count)
 	work->read_params.count = count;
 
 	/* Enqueue the item on the work queue and wait for the worker thread to complete processing it */
-	return (ssize_t)enqueue_work_item_and_wait_for_result(work);
+	ssize_t ret = (ssize_t)enqueue_work_item_and_wait_for_result(work);
+	perf_end(_dm_read_perf);
+	return ret;
 }
 
 /** Clear a data Item */
@@ -1307,6 +1310,9 @@ task_main(int argc, char *argv[])
 
 	px4_sem_setprotocol(&g_work_queued_sema, SEM_PRIO_NONE);
 
+	_dm_read_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": read");
+	_dm_write_perf = perf_alloc(PC_ELAPSED, MODULE_NAME": write");
+
 	/* see if we need to erase any items based on restart type */
 	int sys_restart_val;
 
@@ -1433,6 +1439,12 @@ end:
 	px4_sem_destroy(&g_sys_state_mutex_mission);
 	px4_sem_destroy(&g_sys_state_mutex_fence);
 
+	perf_free(_dm_read_perf);
+	_dm_read_perf = nullptr;
+
+	perf_free(_dm_write_perf);
+	_dm_write_perf = nullptr;
+
 	return 0;
 }
 
@@ -1471,6 +1483,8 @@ status()
 	PX4_INFO("Clears   %d", g_func_counts[dm_clear_func]);
 	PX4_INFO("Restarts %d", g_func_counts[dm_restart_func]);
 	PX4_INFO("Max Q lengths work %d, free %d", g_work_q.max_size, g_free_q.max_size);
+	perf_print_counter(_dm_read_perf);
+	perf_print_counter(_dm_write_perf);
 }
 
 static void
