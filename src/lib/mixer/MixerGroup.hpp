@@ -66,17 +66,17 @@ public:
 	 *
 	 * @param mixer			The mixer to be added.
 	 */
-	void				add_mixer(Mixer *mixer);
+	void				add_mixer(Mixer *mixer) { _mixers.add(mixer); }
 
 	/**
 	 * Remove all the mixers from the group.
 	 */
-	void				reset();
+	void				reset() { _mixers.clear(); }
 
 	/**
 	 * Count the mixers in the group.
 	 */
-	unsigned			count();
+	unsigned			count() const { return _mixers.size(); }
 
 	/**
 	 * Adds mixers to the group based on a text description in a buffer.
@@ -166,5 +166,5 @@ public:
 	unsigned			get_multirotor_count();
 
 private:
-	Mixer				*_first{nullptr};	/**< linked list of mixers */
+	List<Mixer *>			_mixers;	/**< linked list of mixers */
 };
