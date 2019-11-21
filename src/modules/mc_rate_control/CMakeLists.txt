@@ -31,14 +31,18 @@
 #
 ############################################################################
 
-px4_add_library(PositionControl
-	PositionControl.cpp
-	ControlMath.cpp
-)
-target_include_directories(PositionControl
-	PUBLIC
-	${CMAKE_CURRENT_SOURCE_DIR}
-)
+add_subdirectory(RateControl)
 
-px4_add_unit_gtest(SRC ControlMathTest.cpp LINKLIBS PositionControl)
-px4_add_unit_gtest(SRC PositionControlTest.cpp LINKLIBS PositionControl)
+px4_add_module(
+	MODULE modules__mc_rate_control
+	MAIN mc_rate_control
+	COMPILE_FLAGS
+	SRCS
+		MulticopterRateControl.cpp
+		MulticopterRateControl.hpp
+	DEPENDS
+		circuit_breaker
+		mathlib
+		RateControl
+		px4_work_queue
+	)

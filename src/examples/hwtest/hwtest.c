@@ -54,7 +54,7 @@ int ex_hwtest_main(int argc, char *argv[])
 {
 	warnx("DO NOT FORGET TO STOP THE DEFAULT CONTROL APPS!");
 	warnx("(run <commander stop>,)");
-	warnx("(    <mc_att_control stop> and)");
+	warnx("(    <mc_rate_control stop> and)");
 	warnx("(    <fw_att_control stop> to do so)");
 	warnx("usage: http://px4.io/dev/examples/write_output");
 

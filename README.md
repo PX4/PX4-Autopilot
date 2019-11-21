@@ -88,6 +88,10 @@ This repository contains code supporting these boards:
   * [Airmind MindPX V2.8](http://www.mindpx.net/assets/accessories/UserGuide_MindPX.pdf)
   * [Airmind MindRacer V1.2](http://mindpx.net/assets/accessories/mindracer_user_guide_v1.2.pdf)
   * [Bitcraze Crazyflie 2.0](https://docs.px4.io/en/flight_controller/crazyflie2.html)
+  * [Omnibus F4 SD](https://docs.px4.io/en/flight_controller/omnibus_f4_sd.html)
+  * [BeagleBone Blue](https://docs.px4.io/en/flight_controller/beaglebone_blue.html)
+  * [Holybro Durandal](https://docs.px4.io/en/flight_controller/durandal.html)
+  * [Holybro Kakute F7](https://docs.px4.io/en/flight_controller/kakutef7.html)
 
 Additional information about supported hardware can be found in [PX4 user Guide > Autopilot Hardware](https://docs.px4.io/en/flight_controller/).
 
