@@ -2810,10 +2810,6 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 		}
 		break;
 
-	case MIXERIOCGETOUTPUTCOUNT:
-		*(unsigned *)arg = _max_actuators;
-		break;
-
 	case MIXERIOCRESET:
 		ret = 0;	/* load always resets */
 		break;

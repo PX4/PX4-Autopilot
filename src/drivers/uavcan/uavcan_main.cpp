@@ -828,10 +828,6 @@ UavcanNode::ioctl(file *filp, int cmd, unsigned long arg)
 		// these are no-ops, as no safety switch
 		break;
 
-	case MIXERIOCGETOUTPUTCOUNT:
-		*(unsigned *)arg = _output_count;
-		break;
-
 	case MIXERIOCRESET:
 		_mixing_interface.mixingOutput().resetMixerThreadSafe();
 
