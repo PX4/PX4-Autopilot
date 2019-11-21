@@ -121,6 +121,7 @@ PARAM_DEFINE_FLOAT(NAV_MC_ALT_RAD, 0.8f);
  * @value 1 Warn only
  * @value 2 Return mode
  * @value 3 Land mode
+ * @value 4 Position Hold mode
  *
  * @group Mission
  */

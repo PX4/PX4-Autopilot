@@ -1026,6 +1026,34 @@ void Navigator::check_traffic()
 							publish_vehicle_cmd(&vcmd);
 							break;
 						}
+
+					case 3: {
+							/*Land Mode*/
+							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, landing",
+									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
+									     traffic_direction);
+
+							// ask the commander to land
+							vehicle_command_s vcmd = {};
+							vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LOITER_UNLIM;
+							publish_vehicle_cmd(&vcmd);
+							break;
+
+						}
+
+					case 4: {
+							/*Position hold*/
+							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, holding position",
+									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
+									     traffic_direction);
+
+							// ask the commander to Loiter until
+							vehicle_command_s vcmd = {};
+							vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LOITER_UNLIM;
+							publish_vehicle_cmd(&vcmd);
+							break;
+
+						}
 					}
 				}
 			}
