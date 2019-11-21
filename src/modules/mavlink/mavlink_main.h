@@ -82,6 +82,7 @@
 #include "mavlink_orb_subscription.h"
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
+#include "mavlink_service_versions.h"
 
 #define DEFAULT_BAUD_RATE       57600
 #define DEFAULT_DEVICE_NAME     "/dev/ttyS1"
@@ -408,18 +409,10 @@ public:
 	 */
 	void			send_protocol_version();
 
-	/**
-	 * Send the supported version of the given microservice
-	 * TODO microservice versioning: Overload this function for the different message types.
-	 *  - vehicle_command_s: This is the REQUEST_MESSAGE command for one individual service version
-	 *  - mavlink_mavlink_service_version_t: This is a MAVLINK_SERVICE_VERSION message sent as a response.
-	 *    I don't need to send any response to this, as this will be the last step of the handshake.
-	 *  - (int min_version, int max_version): This is an internal function that sets the values in _microservice_versions,
-	 *    and doesn't bother with sending any messages.
-	 */
-	void 			microservice_version_handshake(const vehicle_command_s &command);
-//	void 			microservice_version_handshake(const mavlink_mavlink_service_version_t &command);
-//	int 			microservice_version_handshake(uint16_t requested_min_version, uint16_t requested_max_version);
+	microservice_versions::service_status &get_service_status(uint16_t service_id);
+
+	microservice_versions::service_status &determine_service_version(uint16_t service_id, uint16_t min_version,
+			uint16_t max_version);
 
 	List<MavlinkStream *> &get_streams() { return _streams; }
 
@@ -545,40 +538,6 @@ public:
 
 	static hrt_abstime &get_first_start_time() { return _first_start_time; }
 
-	enum microservice_version_status {
-		UNSELECTED = 0,	///< The version handshake has not yet been done for this service.
-		VALID,			///< The version handshake has been done, and a version was successfully selected.
-		UNSUPPORTED		///< The version handshake has been done, and no valid version is supported.
-	};
-
-	struct microservice_version {
-		/// Current status of this version (Has it been selected? Is it supported?)
-		microservice_version_status status;
-		/// Minimum version supported by this version of PX4
-		uint16_t min_version;
-		/// Maximum version supported by this version of PX4
-		uint16_t max_version;
-		/// Currently selected version to use for this Mavlink instance.
-		/// Only valid if status != UNSELECTED
-		uint16_t selected_version;
-	};
-
-	/**
-	 * Get the version of a specific microservice.
-	 *
-	 * This means 2 different things:
-	 *  - Get the range of versions of a particular microservice supported by this current version of PX4.
-	 *    TODO: Figure out how these are defined. Probably by compile-time constants.
-	 *  - If the microservice version handshake has been done, then this function can also tell what version of
-	 *    the microservice was chosen. This version can be different for different instances of Mavlink, as the
-	 *    handshake is done separately for each instance.
-	 *
-	 * @param service_id The ID of the service for which to get information.
-	 * @return Information about the service, as documented in @see Mavlink::microservice_version. This reference is
-	 *     valid for the lifetime of this object.
-	 */
-	microservice_version &get_microservice_version(uint16_t service_id);
-
 protected:
 	Mavlink			*next{nullptr};
 
@@ -694,26 +653,6 @@ private:
 
 	ping_statistics_s	_ping_stats {};
 
-	// TODO microservice versioning: Initialize this array.
-	// The index in the array is the service ID. This means the first entry in the array is not a real service.
-	// That is why it is intentionally instantiated to UNSUPPORTED.
-	static constexpr size_t MAVLINK_SERVICE_ID_MAX = 10;
-	microservice_version _microservice_versions[MAVLINK_SERVICE_ID_MAX] = {
-		{
-			.status = UNSUPPORTED,
-			.min_version = 0,
-			.max_version = 0,
-			.selected_version = 0
-		},
-		// TODO: Remove this. It is here for debugging.
-		{
-			.status = UNSELECTED,
-			.min_version = 1,
-			.max_version = 12,
-			.selected_version = 0
-		}
-	};
-
 	struct mavlink_message_buffer {
 		int write_ptr;
 		int read_ptr;
@@ -725,6 +664,8 @@ private:
 
 	pthread_mutex_t		_message_buffer_mutex {};
 	pthread_mutex_t		_send_mutex {};
+
+	microservice_versions::service_status _microservice_versions[microservice_versions::NUM_SERVICES];
 
 	DEFINE_PARAMETERS(
 		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,

@@ -59,6 +59,7 @@ px4_add_module(
 		mavlink_stream.cpp
 		mavlink_ulog.cpp
 		mavlink_timesync.cpp
+		mavlink_service_versions.cpp
 	MODULE_CONFIG
 		module.yaml
 	DEPENDS

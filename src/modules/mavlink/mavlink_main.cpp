@@ -183,6 +183,15 @@ Mavlink::Mavlink() :
 	if (_first_start_time == 0) {
 		_first_start_time = hrt_absolute_time();
 	}
+
+	// Initialize microservice versions
+	for (size_t i = 0; i < microservice_versions::NUM_SERVICES; i++) {
+		_microservice_versions[i] = {
+			.metadata = &microservice_versions::services_metadata[i],
+			.status = microservice_versions::UNKNOWN,
+			.selected_version = 0
+		};
+	}
 }
 
 Mavlink::~Mavlink()
@@ -1238,50 +1247,39 @@ Mavlink::send_protocol_version()
 	set_proto_version(curr_proto_ver);
 }
 
-void
-Mavlink::microservice_version_handshake(const vehicle_command_s &command)
+microservice_versions::service_status &
+Mavlink::get_service_status(uint16_t service_id)
 {
-	uint16_t requested_service_id = (uint16_t)(command.param2 + 0.5f);
-	uint16_t requested_min_version = (uint16_t)(command.param3 + 0.5f);
-	uint16_t requested_max_version = (uint16_t)(command.param4 + 0.5f);
-
-	auto &my_version = get_microservice_version(requested_service_id);
-
-	mavlink_mavlink_service_version_t msg = {};
-	msg.target_component = command.source_component;
-	msg.target_system = command.source_system;
-	msg.service_id = command.param2;
-
-	if (requested_service_id != 0 && requested_min_version != 0 && requested_max_version != 0) {
-		if (my_version.min_version > requested_max_version || my_version.max_version < requested_min_version) {
-			msg.selected_version = 0;
-			msg.service_flags = 0;
-			my_version.selected_version = 0;
-			my_version.status = UNSUPPORTED;
-
-		} else {
-			msg.selected_version = std::min(my_version.max_version, requested_max_version);
-			msg.service_flags = 1;
-			my_version.selected_version = msg.selected_version;
-			my_version.status = VALID;
+	// TODO microservice versions: Maybe we don't have to search, and can just always place service ID 2 at index 2
+	for (size_t i = 1; i < microservice_versions::NUM_SERVICES; i++) {
+		if (_microservice_versions[i].metadata->service_id == service_id) {
+			return _microservice_versions[i];
 		}
 	}
 
-	PX4_INFO("Request for service version %du: My range: (%du, %du), Requested: (%du, %du), Selected %du",
-		 requested_service_id, my_version.min_version, my_version.max_version, requested_min_version, requested_max_version,
-		 my_version.selected_version);
-
-	mavlink_msg_mavlink_service_version_send_struct(get_channel(), &msg);
+	return _microservice_versions[0];
 }
 
-Mavlink::microservice_version &Mavlink::get_microservice_version(uint16_t service_id)
+microservice_versions::service_status &
+Mavlink::determine_service_version(uint16_t service_id, uint16_t min_version, uint16_t max_version)
 {
-	if (service_id >= sizeof(_microservice_versions) / sizeof(_microservice_versions[0])) {
-		return _microservice_versions[0];
+	microservice_versions::service_status &status = get_service_status(service_id);
+
+	if (status.metadata->service_id == microservice_versions::MAVLINK_SERVICE_UNKNOWN) {
+		return status;
+	}
+
+	if (status.metadata->max_version < min_version || status.metadata->min_version > max_version) {
+		status.status = microservice_versions::UNSUPPORTED;
+		status.selected_version = 0;
 
 	} else {
-		return _microservice_versions[service_id];
+		// In this branch, we know that there is overlap, so just pick the smaller of the two max versions.
+		status.selected_version = status.metadata->max_version < max_version ? status.metadata->max_version : max_version;
+		status.status = microservice_versions::SELECTED;
 	}
+
+	return status;
 }
 
 MavlinkOrbSubscription *

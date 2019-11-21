@@ -44,6 +44,7 @@
 #include "mavlink_command_sender.h"
 #include "mavlink_simple_analyzer.h"
 #include "mavlink_high_latency2.h"
+#include "mavlink_service_versions.h"
 
 #include <commander/px4_custom_mode.h>
 #include <drivers/drv_pwm_output.h>
@@ -5163,6 +5164,8 @@ public:
 private:
 
 	uint16_t _current_service = 0;
+	uint16_t _min_version = 0;
+	uint16_t _max_version = 0;
 	bool _sending_all_services = false;
 	int _default_interval = -1;
 
@@ -5182,10 +5185,24 @@ protected:
 			mavlink_mavlink_service_version_t msg;
 
 			msg.service_id = _current_service;
-			msg.selected_version = 1; // TODO microservice versioning
-			msg.service_flags = 1;    // TODO microservice versioning
 			msg.target_system = _mavlink->get_system_id();
 			msg.target_component = _mavlink->get_component_id();
+
+			if (_sending_all_services) {
+				microservice_versions::service_status &status = _mavlink->get_service_status(_current_service);
+
+				msg.selected_version = 0; // TODO microservice versioning: How does the handshake work in "stream all services" mode?
+				// TODO: Add min and max version
+				msg.service_flags = status.metadata->min_version == 0 ? 0 : 1;
+
+			} else {
+				microservice_versions::service_status &status =
+					_mavlink->determine_service_version(_current_service, _min_version, _max_version);
+
+				msg.selected_version = status.selected_version;
+				msg.service_flags = status.metadata->min_version == 0 ? 0 : 1;
+				// TODO add min and max
+			}
 
 			mavlink_msg_mavlink_service_version_send_struct(_mavlink->get_channel(), &msg);
 
@@ -5210,8 +5227,8 @@ protected:
 			     float param5 = 0.0, float param6 = 0.0, float param7 = 0.0) override
 	{
 		uint16_t service_id = (uint16_t)(param2 + 0.5f);
-		uint16_t min_version = (uint16_t)(param3 + 0.5f);
-		uint16_t max_version = (uint16_t)(param4 + 0.5f);
+		_min_version = (uint16_t)(param3 + 0.5f);
+		_max_version = (uint16_t)(param4 + 0.5f);
 
 		if (service_id == 0) {
 			_sending_all_services = true;
