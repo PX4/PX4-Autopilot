@@ -37,4 +37,7 @@ px4_add_module(
 		-Wno-cast-align # TODO: fix and enable
 	SRCS
 		dataman.cpp
+		dataman_file.cpp
+		dataman_ram_flash.cpp
+		dataman_ram.cpp
 	)
