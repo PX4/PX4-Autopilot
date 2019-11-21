@@ -52,6 +52,7 @@
 #include <uORB/topics/vehicle_constraints.h>
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
+#include <uORB/topics/home_position.h>
 #include <lib/weather_vane/WeatherVane.hpp>
 
 class FlightTask : public ModuleParams
@@ -170,12 +171,15 @@ protected:
 
 	uORB::SubscriptionData<vehicle_local_position_s>	_sub_vehicle_local_position{ORB_ID(vehicle_local_position)};
 	uORB::SubscriptionData<vehicle_attitude_s>		_sub_attitude{ORB_ID(vehicle_attitude)};
+	uORB::SubscriptionData<home_position_s> 		_sub_home_position{ORB_ID(home_position)};
 
 	/** Reset all setpoints to NAN */
 	void _resetSetpoints();
 
 	/** Check and update local position */
 	void _evaluateVehicleLocalPosition();
+
+	void _evaluateDistanceToGround();
 
 	/** Set constraints to default values */
 	virtual void _setDefaultConstraints();
@@ -208,6 +212,7 @@ protected:
 	matrix::Vector3f _velocity; /**< current vehicle velocity */
 	float _yaw = 0.f; /**< current vehicle yaw heading */
 	float _dist_to_bottom = 0.0f; /**< current height above ground level */
+	float _dist_to_ground = 0.f; /**< equals _dist_to_bottom if valid, height above home otherwise */
 
 	/**
 	 * Setpoints which the position controller has to execute.
