@@ -113,6 +113,8 @@ void FlightTaskManualPosition::_scaleSticks()
 		}
 	}
 
+	_velocity_scale = fminf(_computeVelXYGroundDist(), _velocity_scale);
+
 	// scale velocity to its maximum limits
 	Vector2f vel_sp_xy = stick_xy * _velocity_scale;
 
@@ -127,6 +129,20 @@ void FlightTaskManualPosition::_scaleSticks()
 
 	_velocity_setpoint(0) = vel_sp_xy(0);
 	_velocity_setpoint(1) = vel_sp_xy(1);
+}
+
+float FlightTaskManualPosition::_computeVelXYGroundDist()
+{
+	float max_vel_xy = _constraints.speed_xy;
+
+	// limit speed gradually within the altitudes MPC_LAND_ALT1 and MPC_LAND_ALT2
+	if (PX4_ISFINITE(_dist_to_ground)) {
+		max_vel_xy = math::gradual(_dist_to_ground,
+					   _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
+					   _param_mpc_land_vel_xy.get(), _constraints.speed_xy);
+	}
+
+	return max_vel_xy;
 }
 
 void FlightTaskManualPosition::_updateXYlock()
