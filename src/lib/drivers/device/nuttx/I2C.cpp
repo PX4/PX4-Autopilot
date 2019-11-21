@@ -100,6 +100,7 @@ I2C::init()
 	_dev = px4_i2cbus_initialize(get_device_bus());
 
 	if (_dev == nullptr) {
+		PX4_INFO("I2C init failed");
 		DEVICE_DEBUG("failed to init I2C");
 		ret = -ENOENT;
 		goto out;
@@ -114,6 +115,7 @@ I2C::init()
 	if (_bus_clocks[bus_index] > _frequency) {
 		(void)px4_i2cbus_uninitialize(_dev);
 		_dev = nullptr;
+		PX4_INFO("I2C speed problem?");
 		DEVICE_LOG("FAIL: too slow for bus #%u: %u KHz, device max: %u KHz)",
 			   get_device_bus(), _bus_clocks[bus_index] / 1000, _frequency / 1000);
 		ret = -EINVAL;
@@ -140,6 +142,7 @@ I2C::init()
 	ret = probe();
 
 	if (ret != OK) {
+		PX4_INFO("I2C probe failed");
 		DEVICE_DEBUG("probe failed");
 		goto out;
 	}
@@ -148,6 +151,7 @@ I2C::init()
 	ret = CDev::init();
 
 	if (ret != OK) {
+		PX4_INFO("CDev init failed");
 		DEVICE_DEBUG("cdev init failed");
 		goto out;
 	}
@@ -159,6 +163,7 @@ I2C::init()
 out:
 
 	if ((ret != OK) && (_dev != nullptr)) {
+		PX4_INFO("I2C full init failed, sent to out");
 		px4_i2cbus_uninitialize(_dev);
 		_dev = nullptr;
 	}
@@ -180,7 +185,7 @@ I2C::transfer(const uint8_t *send, const unsigned send_len, uint8_t *recv, const
 	}
 
 	do {
-		DEVICE_DEBUG("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
+		// gitPX4_INFO("transfer out %p/%u  in %p/%u", send, send_len, recv, recv_len);
 		msgs = 0;
 
 		if (send_len > 0) {
