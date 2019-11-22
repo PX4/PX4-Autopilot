@@ -33,7 +33,7 @@
 
 #pragma once
 
-#include "Mixer.hpp"
+#include <mixer/Mixer/Mixer.hpp>
 
 /**
  * Supported multirotor geometries.

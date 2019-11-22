@@ -39,11 +39,10 @@
 
 #include "MixerGroup.hpp"
 
-#include "MixerGroup.hpp"
-#include "NullMixer.hpp"
-#include "SimpleMixer.hpp"
-#include "MultirotorMixer.hpp"
-#include "HelicopterMixer.hpp"
+#include "HelicopterMixer/HelicopterMixer.hpp"
+#include "MultirotorMixer/MultirotorMixer.hpp"
+#include "NullMixer/NullMixer.hpp"
+#include "SimpleMixer/SimpleMixer.hpp"
 
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
