@@ -37,7 +37,7 @@
 
 #include <drivers/drv_hrt.h>
 #include "baro.hpp"
-#include <cmath>
+#include <math.h>
 
 const char *const UavcanBarometerBridge::NAME = "baro";
 
