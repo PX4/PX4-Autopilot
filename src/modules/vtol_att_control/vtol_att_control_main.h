@@ -65,7 +65,7 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/airspeed.h>
+#include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/position_setpoint_triplet.h>
@@ -116,7 +116,7 @@ public:
 	struct actuator_controls_s 			*get_actuators_mc_in() {return &_actuators_mc_in;}
 	struct actuator_controls_s 			*get_actuators_out0() {return &_actuators_out_0;}
 	struct actuator_controls_s 			*get_actuators_out1() {return &_actuators_out_1;}
-	struct airspeed_s 				*get_airspeed() {return &_airspeed;}
+	struct airspeed_validated_s 				*get_airspeed() {return &_airspeed_validated;}
 	struct position_setpoint_triplet_s		*get_pos_sp_triplet() {return &_pos_sp_triplet;}
 	struct tecs_status_s 				*get_tecs_status() {return &_tecs_status;}
 	struct vehicle_attitude_s 			*get_att() {return &_v_att;}
@@ -136,7 +136,7 @@ private:
 	uORB::SubscriptionCallbackWorkItem _actuator_inputs_fw{this, ORB_ID(actuator_controls_virtual_fw)};
 	uORB::SubscriptionCallbackWorkItem _actuator_inputs_mc{this, ORB_ID(actuator_controls_virtual_mc)};
 
-	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};			// airspeed subscription
+	uORB::Subscription _airspeed_validated_sub{ORB_ID(airspeed_validated)};			// airspeed subscription
 	uORB::Subscription _fw_virtual_att_sp_sub{ORB_ID(fw_virtual_attitude_setpoint)};
 	uORB::Subscription _land_detected_sub{ORB_ID(vehicle_land_detected)};
 	uORB::Subscription _local_pos_sp_sub{ORB_ID(vehicle_local_position_setpoint)};			// setpoint subscription
@@ -166,7 +166,7 @@ private:
 	actuator_controls_s			_actuators_out_0{};	//actuator controls going to the mc mixer
 	actuator_controls_s			_actuators_out_1{};	//actuator controls going to the fw mixer (used for elevons)
 
-	airspeed_s 				_airspeed{};			// airspeed
+	airspeed_validated_s 				_airspeed_validated{};			// airspeed
 	manual_control_setpoint_s		_manual_control_sp{}; //manual control setpoint
 	position_setpoint_triplet_s		_pos_sp_triplet{};
 	tecs_status_s				_tecs_status{};

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,105 +31,10 @@
  *
  ****************************************************************************/
 
-#include "cdcacm.h"
-#include <string.h>
-#include<stdio.h>
-#include<fcntl.h>
-#include<termios.h>
+#include <drivers/drv_adc.h>
 
-#include <sys/types.h>
-#include <sys/boardctl.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <debug.h>
-#include "cdcacm.h"
-
-//#define SERIAL_TRACE
-
-int g_usb_df = -1;
-char *g_device = 0;
-char *g_init = 0;
-
-#if defined(SERIAL_TRACE)
-int in = 0;
-int out = 0;
-// must be power of 2 length
-#define TRACE_SIZE      256
-#define TRACE_WRAP(f)   ((f) &=(TRACE_SIZE-1))
-char in_trace[TRACE_SIZE];
-char out_trace[TRACE_SIZE];
-#endif
-
-void usb_cinit(void *config)
+uint32_t px4_arch_adc_dn_fullcount(void)
 {
-#if defined(SERIAL_TRACE)
-	in = 0;
-	out = 0;
-	memset(in_trace, 0, sizeof(in_trace));
-	memset(out_trace, 0, sizeof(out_trace));
-#endif
-	g_init =  strdup(config ? (char *) config : "");
-	char *pt = strtok((char *) g_init, ",");
-
-	if (pt != NULL) {
-		g_device = pt;
-	}
-
-	g_usb_df = -1;
-	int fd = open(g_device, O_RDWR | O_NONBLOCK);
-
-	if (fd >= 0) {
-		g_usb_df = fd;
-		free(g_init);
-	}
+	return 1 << 12; // 12 bit ADC
 }
-void usb_cfini(void)
-{
-	close(g_usb_df);
-	g_usb_df = -1;
-}
-int usb_cin(void)
-{
-	int c = -1;
 
-	if (g_usb_df < 0) {
-
-		int fd = open(g_device, O_RDWR | O_NONBLOCK);
-
-		if (fd < 0) {
-			return c;
-		}
-
-		g_usb_df = fd;
-		free(g_init);
-	}
-
-	char b;
-
-	if (read(g_usb_df, &b, 1) == 1) {
-		c = b;
-#if defined(SERIAL_TRACE)
-		in_trace[in++] = b;
-		TRACE_WRAP(in);
-#endif
-	}
-
-	return c;
-}
-void usb_cout(uint8_t *buf, unsigned len)
-{
-	write(g_usb_df, buf, len);
-#if defined(SERIAL_TRACE)
-
-	if (len > TRACE_SIZE) {
-		len = TRACE_SIZE;
-		out = 0;
-	}
-
-	for (unsigned i = 0; i < len; i++) {
-		out_trace[out++] = buf[i];
-		TRACE_WRAP(out);
-	}
-
-#endif
-}

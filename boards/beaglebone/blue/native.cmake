@@ -5,7 +5,6 @@ px4_add_board(
 	LABEL native
 	PLATFORM posix
 	TESTING
-
 	DRIVERS
 		#barometer # all available barometer drivers
 		barometer/bmp280
@@ -16,19 +15,19 @@ px4_add_board(
 		gps
 		#imu # all available imu drivers
 		imu/mpu9250
-		#magnetometer # all available magnetometer drivers
-		pwm_out_sim
-		#telemetry # all available telemetry drivers
-
 		linux_pwm_out
 		linux_sbus
-
+		#magnetometer # all available magnetometer drivers
+		magnetometer/hmc5883
+		pwm_out_sim
+		#telemetry # all available telemetry drivers
 	DF_DRIVERS # NOTE: DriverFramework is migrating to intree PX4 drivers
-		mpu9250
 		bmp280
-
+		mpu9250
 	MODULES
+		airspeed_selector
 		attitude_estimator_q
+		battery_status
 		camera_feedback
 		commander
 		dataman
@@ -36,7 +35,6 @@ px4_add_board(
 		events
 		fw_att_control
 		fw_pos_control_l1
-		rover_pos_control
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -44,17 +42,17 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
-		mc_rate_control
 		mc_pos_control
+		mc_rate_control
 		navigator
-		battery_status
+		rover_pos_control
 		sensors
 		sih
+		#simulator
 		vmount
 		vtol_att_control
-		airspeed_selector
-
 	SYSTEMCMDS
+		dyn
 		esc_calib
 		led_control
 		mixer
@@ -64,18 +62,20 @@ px4_add_board(
 		pwm
 		reboot
 		sd_bench
+		shutdown
 		tests # tests and test runner
 		top
 		topic_listener
 		tune_control
 		ver
 		work_queue
-
 	EXAMPLES
 		bottle_drop # OBC challenge
+		dyn_hello # dynamically loading modules example
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		#hwtest # Hardware test
+		#matlab_csv_serial
 		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app

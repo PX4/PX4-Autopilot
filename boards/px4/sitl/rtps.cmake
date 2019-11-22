@@ -5,7 +5,6 @@ px4_add_board(
 	MODEL sitl
 	LABEL rtps
 	TESTING
-
 	DRIVERS
 		#barometer # all available barometer drivers
 		#batt_smbus
@@ -15,12 +14,13 @@ px4_add_board(
 		gps
 		#imu # all available imu drivers
 		#magnetometer # all available magnetometer drivers
+		#protocol_splitter
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
 		tone_alarm
 		#uavcan
-
 	MODULES
+		airspeed_selector
 		attitude_estimator_q
 		camera_feedback
 		commander
@@ -29,7 +29,6 @@ px4_add_board(
 		events
 		fw_att_control
 		fw_pos_control_l1
-		rover_pos_control
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -37,27 +36,26 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
-		mc_rate_control
 		mc_pos_control
+		mc_rate_control
 		micrortps_bridge
 		navigator
 		replay
+		rover_pos_control
 		sensors
+		#sih
 		simulator
 		vmount
 		vtol_att_control
-		airspeed_selector
-
 	SYSTEMCMDS
-		#bl_update
 		#config
 		#dumpfile
 		dyn
 		esc_calib
-		#hardfault_log
 		led_control
 		mixer
 		motor_ramp
+		motor_test
 		#mtd
 		#nshterm
 		param
@@ -72,16 +70,17 @@ px4_add_board(
 		tune_control
 		ver
 		work_queue
-
 	EXAMPLES
 		bottle_drop # OBC challenge
 		dyn_hello # dynamically loading modules example
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control
 		hello
 		#hwtest # Hardware test
+		#matlab_csv_serial
 		px4_mavlink_debug # Tutorial code from http://dev.px4.io/en/debug/debug_values.html
 		px4_simple_app # Tutorial code from http://dev.px4.io/en/apps/hello_sky.html
 		rover_steering_control # Rover example app
+		uuv_example_app
 	)
 
 set(config_sitl_viewer jmavsim CACHE STRING "viewer for sitl")
@@ -94,7 +93,7 @@ set_property(CACHE config_sitl_debugger PROPERTY STRINGS "disable;gdb;lldb")
 # support. In this case, we enable the orb publisher rules.
 set(REPLAY_FILE "$ENV{replay}")
 if(REPLAY_FILE)
-	message("Building with uorb publisher rules support")
+	message(STATUS "Building with uorb publisher rules support")
 	add_definitions(-DORB_USE_PUBLISHER_RULES)
 
 	message(STATUS "Building without lockstep for replay")
