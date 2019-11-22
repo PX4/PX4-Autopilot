@@ -196,8 +196,10 @@ float FlightTaskAutoMapper2::_getLandSpeed()
 		speed = _constraints.speed_down;
 
 	} else {
-		float land_speed = _param_mpc_land_speed.get();
-		float head_room = _constraints.speed_down - land_speed;
+		const float land_speed = math::gradual(_dist_to_ground,
+						       _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
+						       _param_mpc_land_speed.get(), _constraints.speed_down);
+		const float head_room = _constraints.speed_down - land_speed;
 
 		speed = land_speed + 2 * (0.5f - throttle) * head_room;
 
