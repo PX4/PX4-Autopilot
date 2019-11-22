@@ -52,8 +52,6 @@ bool FlightTaskAutoMapper2::update()
 	// always reset constraints because they might change depending on the type
 	_setDefaultConstraints();
 
-	_updateAltitudeAboveGround();
-
 	// The only time a thrust set-point is sent out is during
 	// idle. Hence, reset thrust set-point to NAN in case the
 	// vehicle exits idle.
@@ -144,7 +142,7 @@ void FlightTaskAutoMapper2::_prepareTakeoffSetpoints()
 {
 	// Takeoff is completely defined by target position
 	_position_setpoint = _target;
-	const float speed_tko = (_alt_above_ground > _param_mpc_land_alt1.get()) ? _constraints.speed_up :
+	const float speed_tko = (_dist_to_ground > _param_mpc_land_alt1.get()) ? _constraints.speed_up :
 				_param_mpc_tko_speed.get();
 	_velocity_setpoint = Vector3f(NAN, NAN, -speed_tko); // Limit the maximum vertical speed
 
@@ -167,21 +165,6 @@ void FlightTaskAutoMapper2::_preparePositionSetpoints()
 	_velocity_setpoint = Vector3f(NAN, NAN, NAN); // No special velocity limitations
 }
 
-void FlightTaskAutoMapper2::_updateAltitudeAboveGround()
-{
-	// Altitude above ground is by default just the negation of the current local position in D-direction.
-	_alt_above_ground = -_position(2);
-
-	if (PX4_ISFINITE(_dist_to_bottom)) {
-		// We have a valid distance to ground measurement
-		_alt_above_ground = _dist_to_bottom;
-
-	} else if (_sub_home_position.get().valid_alt) {
-		// if home position is set, then altitude above ground is relative to the home position
-		_alt_above_ground = -_position(2) + _sub_home_position.get().z;
-	}
-}
-
 void FlightTaskAutoMapper2::updateParams()
 {
 	FlightTaskAuto::updateParams();
@@ -193,7 +176,7 @@ void FlightTaskAutoMapper2::updateParams()
 bool FlightTaskAutoMapper2::_highEnoughForLandingGear()
 {
 	// return true if altitude is above two meters
-	return _alt_above_ground > 2.0f;
+	return _dist_to_ground > 2.0f;
 }
 
 float FlightTaskAutoMapper2::_getLandSpeed()
@@ -209,7 +192,7 @@ float FlightTaskAutoMapper2::_getLandSpeed()
 
 	float speed = 0;
 
-	if (_alt_above_ground > _param_mpc_land_alt1.get()) {
+	if (_dist_to_ground > _param_mpc_land_alt1.get()) {
 		speed = _constraints.speed_down;
 
 	} else {
