@@ -286,7 +286,7 @@ public:
 	float		get_takeoff_min_alt() const { return _param_mis_takeoff_alt.get(); }
 	bool		get_takeoff_required() const { return _param_mis_takeoff_req.get(); }
 	float		get_yaw_timeout() const { return _param_mis_yaw_tmt.get(); }
-	float		get_yaw_threshold() const { return _param_mis_yaw_err.get(); }
+	float		get_yaw_threshold() const { return math::radians(_param_mis_yaw_err.get()); }
 
 	float		get_vtol_back_trans_deceleration() const { return _param_back_trans_dec_mss; }
 	float		get_vtol_reverse_delay() const { return _param_reverse_delay; }
