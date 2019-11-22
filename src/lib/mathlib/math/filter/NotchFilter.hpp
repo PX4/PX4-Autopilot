@@ -54,7 +54,7 @@ public:
 	NotchFilter() = default;
 	~NotchFilter() = default;
 
-	void setParameters(float sample_freq, float cutoff_freq, float bandwidth);
+	void setParameters(float sample_freq, float notch_freq, float bandwidth);
 
 	/**
 	 * Add a new raw value to the filter
@@ -73,7 +73,7 @@ public:
 		return output;
 	}
 
-	float getCutoffFreq() const { return _cutoff_freq; }
+	float getNotchFreq() const { return _notch_freq; }
 	float getBandwidth() const { return _bandwidth; }
 
 	// Used in unit test only
@@ -90,7 +90,7 @@ public:
 	T reset(const T &sample);
 
 private:
-	float _cutoff_freq{};
+	float _notch_freq{};
 	float _bandwidth{};
 
 	// All the coefficients are normalized by a0, so a0 becomes 1 here
@@ -106,16 +106,28 @@ private:
 };
 
 template<typename T>
-void NotchFilter<T>::setParameters(float sample_freq, float cutoff_freq, float bandwidth)
+void NotchFilter<T>::setParameters(float sample_freq, float notch_freq, float bandwidth)
 {
-	_cutoff_freq = cutoff_freq;
+	_notch_freq = notch_freq;
 	_bandwidth = bandwidth;
 
 	_delay_element_1 = {};
 	_delay_element_2 = {};
 
+	if (notch_freq <= 0.f) {
+		// no filtering
+		_b0 = 1.0f;
+		_b1 = 0.0f;
+		_b2 = 0.0f;
+
+		_a1 = 0.0f;
+		_a2 = 0.0f;
+
+		return;
+	}
+
 	const float alpha = tanf(M_PI_F * bandwidth / sample_freq);
-	const float beta = -cosf(2.f * M_PI_F * cutoff_freq / sample_freq);
+	const float beta = -cosf(2.f * M_PI_F * notch_freq / sample_freq);
 	const float a0_inv = 1.f / (alpha + 1.f);
 
 	_b0 = a0_inv;
