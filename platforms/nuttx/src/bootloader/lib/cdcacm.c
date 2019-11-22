@@ -53,8 +53,11 @@ char *g_init = 0;
 #if defined(SERIAL_TRACE)
 int in = 0;
 int out = 0;
-char in_trace[254];
-char out_trace[254];
+// must be powere of 2 length
+#define TRACE_SIZE      256
+#define TRACE_WRAP(f)   (f) &=(TRACE_SIZE-1)
+char in_trace[TRACE_SIZE];
+char out_trace[TRACE_SIZE];
 #endif
 
 void usb_cinit(void *config)
@@ -72,6 +75,7 @@ void usb_cinit(void *config)
 		g_device = pt;
 	}
 
+	g_usb_df = -1;
 	int fd = open(g_device, O_RDWR | O_NONBLOCK);
 
 	if (fd >= 0) {
@@ -105,9 +109,8 @@ int usb_cin(void)
 	if (read(g_usb_df, &b, 1) == 1) {
 		c = b;
 #if defined(SERIAL_TRACE)
-		in_trace[in] = b;
-		in++;
-		in &= 255;
+		in_trace[in++] = b;
+		TRACE_WRAP(in);
 #endif
 	}
 
@@ -115,24 +118,18 @@ int usb_cin(void)
 }
 void usb_cout(uint8_t *buf, unsigned len)
 {
-	uint32_t timeout = 1000;
-
-	for (unsigned i = 0; i  < len; i++) {
-		while (timeout) {
-			if (write(g_usb_df, &buf[i], 1) == 1) {
+	write(g_usb_df, buf, len);
 #if defined(SERIAL_TRACE)
-				out_trace[out] = buf[i];
-				out++;
-				out &= 255;
-#endif
-				timeout = 1000;
-				break;
 
-			}  else {
-				if (timeout-- == 0) {
-					return;
-				}
-			}
-		}
+	if (len > TRACE_SIZE) {
+		len = TRACE_SIZE;
+		out = 0;
 	}
+
+	for (unsigned i = 0; i < len; i++) {
+		out_trace[out++] = buf[i];
+		TRACE_WRAP(out);
+	}
+
+#endif
 }

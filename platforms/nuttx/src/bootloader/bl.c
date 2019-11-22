@@ -39,6 +39,7 @@
  * Aside from the header includes below, this file should have no board-specific logic.
  */
 #include "hw_config.h"
+
 #include <inttypes.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -141,7 +142,7 @@
 #define STATE_ALLOWS_REBOOT       (STATE_PROTO_GET_SYNC)
 #  define SET_BL_STATE(s)
 #else
-#define STATE_ALLOWS_ERASE        (STATE_PROTO_GET_SYNC|STATE_PROTO_GET_DEVICE|STATE_PROTO_GET_CHIP)
+#define STATE_ALLOWS_ERASE        (STATE_PROTO_GET_SYNC|STATE_PROTO_GET_DEVICE)
 #define STATE_ALLOWS_REBOOT       (STATE_ALLOWS_ERASE|STATE_PROTO_PROG_MULTI|STATE_PROTO_GET_CRC)
 #  define SET_BL_STATE(s) bl_state |= (s)
 #endif
