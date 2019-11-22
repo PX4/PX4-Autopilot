@@ -33,24 +33,52 @@
 
 #pragma once
 
-#include "Mixer.hpp"
+#include <mixer/Mixer/Mixer.hpp>
+
+/** helicopter swash servo mixer */
+struct mixer_heli_servo_s {
+	float angle;
+	float arm_length;
+	float scale;
+	float offset;
+	float min_output;
+	float max_output;
+};
+
+#define HELI_CURVES_NR_POINTS 5
+
+/** helicopter swash plate mixer */
+struct mixer_heli_s {
+	uint8_t				control_count;	/**< number of inputs */
+	float				throttle_curve[HELI_CURVES_NR_POINTS];
+	float				pitch_curve[HELI_CURVES_NR_POINTS];
+	mixer_heli_servo_s		servos[4];	/**< up to four inputs */
+};
 
 /**
- * Null mixer; returns zero.
+ * Generic helicopter mixer for helicopters with swash plate.
  *
- * Used as a placeholder for output channels that are unassigned in groups.
+ * Collects four inputs (roll, pitch, yaw, thrust) and mixes them to servo commands
+ * for swash plate tilting and throttle- and pitch curves.
  */
-class NullMixer : public Mixer
+class HelicopterMixer : public Mixer
 {
 public:
-	NullMixer() : Mixer(nullptr, 0) {}
-	virtual ~NullMixer() = default;
+	/**
+	 * Constructor.
+	 *
+	 * @param control_cb		Callback invoked to read inputs.
+	 * @param cb_handle		Passed to control_cb.
+	 * @param mixer_info		Pointer to heli mixer configuration
+	 */
+	HelicopterMixer(ControlCallback control_cb, uintptr_t cb_handle, mixer_heli_s mixer_info);
+	virtual ~HelicopterMixer() = default;
 
 	// no copy, assignment, move, move assignment
-	NullMixer(const NullMixer &) = delete;
-	NullMixer &operator=(const NullMixer &) = delete;
-	NullMixer(NullMixer &&) = delete;
-	NullMixer &operator=(NullMixer &&) = delete;
+	HelicopterMixer(const HelicopterMixer &) = delete;
+	HelicopterMixer &operator=(const HelicopterMixer &) = delete;
+	HelicopterMixer(HelicopterMixer &&) = delete;
+	HelicopterMixer &operator=(HelicopterMixer &&) = delete;
 
 	/**
 	 * Factory method.
@@ -58,18 +86,26 @@ public:
 	 * Given a pointer to a buffer containing a text description of the mixer,
 	 * returns a pointer to a new instance of the mixer.
 	 *
+	 * @param control_cb		The callback to invoke when fetching a
+	 *				control value.
+	 * @param cb_handle		Handle passed to the control callback.
 	 * @param buf			Buffer containing a text description of
 	 *				the mixer.
 	 * @param buflen		Length of the buffer in bytes, adjusted
 	 *				to reflect the bytes consumed.
-	 * @return			A new NullMixer instance, or nullptr
+	 * @return			A new HelicopterMixer instance, or nullptr
 	 *				if the text format is bad.
 	 */
-	static NullMixer		*from_text(const char *buf, unsigned &buflen);
+	static HelicopterMixer		*from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, const char *buf,
+			unsigned &buflen);
 
 	unsigned			mix(float *outputs, unsigned space) override;
 
-	unsigned			set_trim(float trim) override { return 1; }
-	unsigned			get_trim(float *trim) override { return 1; }
+	void				groups_required(uint32_t &groups) override { groups |= (1 << 0); }
 
+	unsigned			set_trim(float trim) override { return 4; }
+	unsigned			get_trim(float *trim) override { return 4; }
+
+private:
+	mixer_heli_s			_mixer_info;
 };

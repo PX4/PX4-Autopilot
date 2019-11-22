@@ -33,7 +33,7 @@
 
 #include "mixer_module.hpp"
 
-#include <lib/mixer/MultirotorMixer.hpp>
+#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
 
 #include <uORB/PublicationQueued.hpp>
 #include <px4_platform_common/log.h>

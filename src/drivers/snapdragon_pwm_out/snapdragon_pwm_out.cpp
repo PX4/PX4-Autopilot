@@ -48,7 +48,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
-#include <lib/mixer/MultirotorMixer.hpp>
+#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
 #include <lib/mixer/MixerGroup.hpp>
 #include <lib/mixer/mixer_load.h>
 #include <lib/parameters/param.h>
