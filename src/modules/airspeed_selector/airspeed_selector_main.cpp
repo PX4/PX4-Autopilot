@@ -115,6 +115,7 @@ private:
 	uORB::Subscription _vehicle_local_position_sub{ORB_ID(vehicle_local_position)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 	uORB::Subscription _vtol_vehicle_status_sub{ORB_ID(vtol_vehicle_status)};
+	uORB::Subscription _airspeed_sub[MAX_NUM_AIRSPEED_SENSORS] {{ORB_ID(airspeed), 0}, {ORB_ID(airspeed), 1}, {ORB_ID(airspeed), 2}}; /**< raw airspeed topics subscriptions. */
 
 	estimator_status_s _estimator_status {};
 	vehicle_acceleration_s _accel {};
@@ -128,7 +129,6 @@ private:
 	WindEstimator	_wind_estimator_sideslip; /**< wind estimator instance only fusing sideslip */
 	wind_estimate_s _wind_estimate_sideslip {}; /**< wind estimate message for wind estimator instance only fusing sideslip */
 
-	int _airspeed_sub[MAX_NUM_AIRSPEED_SENSORS] {}; /**< raw airspeed topics subscriptions. Max 3 airspeeds sensors. */
 	int32_t _number_of_airspeed_sensors{0}; /**<  number of airspeed sensors in use (detected during initialization)*/
 	int32_t _prev_number_of_airspeed_sensors{0}; /**<  number of airspeed sensors in previous loop (to detect a new added sensor)*/
 	AirspeedValidator _airspeed_validator[MAX_NUM_AIRSPEED_SENSORS] {}; /**< airspeedValidator instances (one for each sensor) */
@@ -242,22 +242,24 @@ AirspeedModule::init()
 void
 AirspeedModule::check_for_connected_airspeed_sensors()
 {
-	if (_param_airspeed_primary_index.get() > 0) {
-		for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
-			if (orb_exists(ORB_ID(airspeed), i) == PX4_OK) {
-				_airspeed_sub[i] = orb_subscribe_multi(ORB_ID(airspeed), i);
+	/* check for new connected airspeed sensor */
+	int detected_airspeed_sensors = 0;
 
-			} else {
+	if (_param_airspeed_primary_index.get() > 0) {
+
+		for (int i = 0; i < MAX_NUM_AIRSPEED_SENSORS; i++) {
+			if (!_airspeed_sub[i].published()) {
 				break;
 			}
 
-			_number_of_airspeed_sensors = i + 1;
+			detected_airspeed_sensors = i + 1;
 		}
 
 	} else {
-		_number_of_airspeed_sensors = 0; //user has selected groundspeed-windspeed as primary source, or disabled airspeed
+		detected_airspeed_sensors = 0; //user has selected groundspeed-windspeed as primary source, or disabled airspeed
 	}
 
+	_number_of_airspeed_sensors = detected_airspeed_sensors;
 }
 
 
@@ -318,7 +320,7 @@ AirspeedModule::Run()
 
 			/* poll airspeed data */
 			airspeed_s airspeed_raw = {};
-			orb_copy(ORB_ID(airspeed), _airspeed_sub[i], &airspeed_raw); // poll raw airspeed topic of the i-th sensor
+			_airspeed_sub[i].copy(&airspeed_raw); // poll raw airspeed topic of the i-th sensor
 			input_data.airspeed_indicated_raw = airspeed_raw.indicated_airspeed_m_s;
 			input_data.airspeed_true_raw = airspeed_raw.true_airspeed_m_s;
 			input_data.airspeed_timestamp = airspeed_raw.timestamp;
