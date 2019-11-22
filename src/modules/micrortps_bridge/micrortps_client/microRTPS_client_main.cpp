@@ -86,35 +86,28 @@ static int parse_options(int argc, char *argv[])
 		switch (ch) {
 		case 't': _options.transport      = strcmp(myoptarg, "UDP") == 0 ?
 							    options::eTransports::UDP
-							    : options::eTransports::UART;      break;
+							    : options::eTransports::UART;   break;
 
-		case 'd': if (nullptr != myoptarg) strcpy(_options.device, myoptarg); break;
+		case 'd': if (nullptr != myoptarg) strcpy(_options.device, myoptarg);   break;
 
-		case 'u': _options.update_time_ms = strtol(myoptarg, nullptr, 10);    break;
+		case 'u': _options.update_time_ms = strtoul(myoptarg, nullptr, 10);     break;
 
-		case 'l': _options.loops          = strtol(myoptarg, nullptr, 10);    break;
+		case 'l': _options.loops          =  strtol(myoptarg, nullptr, 10);     break;
 
-		case 'w': _options.sleep_ms       = strtol(myoptarg, nullptr, 10);    break;
+		case 'w': _options.sleep_ms       = strtoul(myoptarg, nullptr, 10);     break;
 
 		case 'b': _options.baudrate       = strtoul(myoptarg, nullptr, 10);     break;
-
-		case 'p': _options.poll_ms        = strtol(myoptarg, nullptr, 10);      break;
 
 		case 'r': _options.recv_port      = strtoul(myoptarg, nullptr, 10);     break;
 
 		case 's': _options.send_port      = strtoul(myoptarg, nullptr, 10);     break;
 
-		case 'i': if (nullptr != myoptarg) strcpy(_options.ip, myoptarg); break;
+		case 'i': if (nullptr != myoptarg) strcpy(_options.ip, myoptarg);       break;
 
 		default:
 			usage(argv[1]);
 			return -1;
 		}
-	}
-
-	if (_options.sleep_ms < 1) {
-		_options.sleep_ms = 1;
-		PX4_ERR("sleep time too low, using 1 ms");
 	}
 
 	if (_options.poll_ms < 1) {
