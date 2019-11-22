@@ -31,26 +31,8 @@
 #
 ############################################################################
 
-# required by other mixers
-add_subdirectory(Mixer)
-
-add_subdirectory(HelicopterMixer)
-add_subdirectory(MultirotorMixer)
-add_subdirectory(NullMixer)
-add_subdirectory(SimpleMixer)
-
-add_library(mixer
-	MixerGroup.cpp
-	MixerGroup.hpp
-	load_mixer_file.cpp
-	mixer_load.h
+add_library(Mixer
+	Mixer.cpp
+	Mixer.hpp
 )
-
-target_link_libraries(mixer
-	PRIVATE
-		HelicopterMixer
-		MultirotorMixer
-		NullMixer
-		SimpleMixer
-	)
-add_dependencies(mixer prebuild_targets)
+add_dependencies(Mixer prebuild_targets)

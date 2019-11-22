@@ -71,7 +71,7 @@
 
 #include <lib/mathlib/mathlib.h>
 #include <lib/mixer/MixerGroup.hpp>
-#include <lib/mixer/MultirotorMixer.hpp>
+#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <parameters/param.h>
