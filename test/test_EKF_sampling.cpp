@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
-#include <cmath>
+#include <math.h>
 #include "EKF/ekf.h"
 
 class EkfImuSamplingTestParametrized : public ::testing::TestWithParam<std::tuple<float,float>>
