@@ -69,6 +69,8 @@ receive_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] =
 #include <px4_time.h>
 #include <uORB/uORB.h>
 
+#include <uORB/Publication.hpp>
+#include <uORB/Subscription.hpp>
 @[for topic in list(set(topic_names))]@
 #include <uORB/topics/@(topic).h>
 #include <uORB_microcdr/topics/@(topic).h>
@@ -86,12 +88,8 @@ void* send(void* /*unused*/)
     uint16_t header_length = 0;
 
     /* subscribe to topics */
-    int fds[@(len(send_topics))] = {};
-
-    // orb_set_interval statblish an update interval period in milliseconds.
 @[for idx, topic in enumerate(send_topics)]@
-    fds[@(idx)] = orb_subscribe(ORB_ID(@(topic)));
-    orb_set_interval(fds[@(idx)], _options.update_time_ms);
+    uORB::Subscription @(topic)_sub{ORB_ID(@(topic))};
 @[end for]@
 
     // ucdrBuffer to serialize using the user defined buffer
@@ -104,24 +102,18 @@ void* send(void* /*unused*/)
 
     while (!_should_exit_task)
     {
-        bool updated;
 @[for idx, topic in enumerate(send_topics)]@
-        orb_check(fds[@(idx)], &updated);
-        if (updated)
-        {
-            // obtained data for the file descriptor
-            struct @(send_base_types[idx])_s data;
-            // copy raw data into local buffer
-            if (orb_copy(ORB_ID(@(topic)), fds[@(idx)], &data) == 0) {
-                /* payload is shifted by header length to make room for header*/
-                serialize_@(send_base_types[idx])(&writer, &data, &data_buffer[header_length], &length);
+        @(send_base_types[idx])_s @(topic)_data;
+        if (@(topic)_sub.update(&@(topic)_data)) {
+                // copy raw data into local buffer
+                // payload is shifted by header length to make room for header
+                serialize_@(send_base_types[idx])(&writer, &@(topic)_data, &data_buffer[header_length], &length);
 
                 if (0 < (read = transport_node->write((char)@(rtps_message_id(ids, topic)), data_buffer, length)))
                 {
                     total_sent += read;
                     ++sent;
                 }
-            }
         }
 @[end for]@
 
@@ -164,8 +156,8 @@ void micrortps_start_topics(struct timespec &begin, int &total_read, uint32_t &r
 
     // Declare received topics
 @[for idx, topic in enumerate(recv_topics)]@
-    struct @(receive_base_types[idx])_s @(topic)_data;
-    orb_advert_t @(topic)_pub = nullptr;
+    @(receive_base_types[idx])_s @(topic)_data;
+    uORB::Publication<@(receive_base_types[idx])_s> @(topic)_pub{ORB_ID(@(topic))};
 @[end for]@
 
     // ucdrBuffer to deserialize using the user defined buffer
@@ -194,11 +186,7 @@ void micrortps_start_topics(struct timespec &begin, int &total_read, uint32_t &r
                 case @(rtps_message_id(ids, topic)):
                 {
                     deserialize_@(receive_base_types[idx])(&reader, &@(topic)_data, data_buffer);
-                    if (!@(topic)_pub) {
-                        @(topic)_pub = orb_advertise(ORB_ID(@(topic)), &@(topic)_data);
-                    } else {
-                        orb_publish(ORB_ID(@(topic)), @(topic)_pub, &@(topic)_data);
-                    }
+                    @(topic)_pub.publish(@(topic)_data);
                     ++received;
                 }
                 break;
