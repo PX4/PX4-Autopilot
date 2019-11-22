@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file ControlAllocationSimple.hpp
+ * @file ControlAllocationPseudoInverse.hpp
  *
  * Simple Control Allocation Algorithm
  *
@@ -47,14 +47,22 @@
 
 #include "ControlAllocation.hpp"
 
-class ControlAllocationSimple: public ControlAllocation
+class ControlAllocationPseudoInverse: public ControlAllocation
 {
 public:
-	ControlAllocationSimple() = default;
-	virtual ~ControlAllocationSimple() = default;
+	ControlAllocationPseudoInverse() = default;
+	virtual ~ControlAllocationPseudoInverse() = default;
 
 	void allocate() override;
 
-private:
+protected:
 	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _A;
+
+	bool _A_update_needed{false};
+
+	/**
+	 * Recalculate pseudo inverse if required.
+	 *
+	 */
+	void updatePseudoInverse();
 };

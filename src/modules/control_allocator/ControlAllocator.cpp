@@ -196,7 +196,7 @@ ControlAllocator::update_allocation_method()
 
 		switch (method) {
 		case 0:
-			tmp = new ControlAllocationSimple();
+			tmp = new ControlAllocationPseudoInverse();
 			break;
 
 		case 1:
@@ -245,8 +245,8 @@ ControlAllocator::update_allocation_method()
 
 	// Guard against bad initialization
 	if (_control_allocation == nullptr) {
-		PX4_ERR("Falling back to ControlAllocationSimple");
-		_control_allocation = new ControlAllocationSimple();
+		PX4_ERR("Falling back to ControlAllocationPseudoInverse");
+		_control_allocation = new ControlAllocationPseudoInverse();
 		_allocation_method_id = 0;
 	}
 }

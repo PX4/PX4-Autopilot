@@ -205,7 +205,4 @@ protected:
 	matrix::Vector<float, NUM_ACTUATORS> _actuator_sp;  	//< Actuator setpoint
 	matrix::Vector<float, NUM_AXES> _control_sp;   		//< Control setpoint
 	matrix::Vector<float, NUM_AXES> _control_allocated;  	//< Allocated control
-
-	bool _A_update_needed{false};
-
 };

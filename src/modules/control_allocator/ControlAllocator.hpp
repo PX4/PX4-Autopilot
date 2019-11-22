@@ -42,7 +42,7 @@
 #pragma once
 
 #include <ControlAllocation.hpp>
-#include <ControlAllocationSimple.hpp>
+#include <ControlAllocationPseudoInverse.hpp>
 #include <ControlAllocationMultirotor.hpp>
 #include <ControlAllocationSequentialDesaturation.hpp>
 

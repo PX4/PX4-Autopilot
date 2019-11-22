@@ -59,17 +59,16 @@ ControlAllocationMultirotor::allocate()
 {
 	// Update mixer if needed
 	if (_mixer == nullptr) {
-		// Compute pseudoinverse of effectiveness matrix
-		matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> A = matrix::geninv(_B);
+		ControlAllocationPseudoInverse::updatePseudoInverse();
 
 		// Convert A to MultirotorMixer::Rotor
 		MultirotorMixer::Rotor rotors[NUM_ACTUATORS];
 
 		for (size_t i = 0; i < NUM_ACTUATORS; i++) {
-			rotors[i].roll_scale = A(i, 0);
-			rotors[i].pitch_scale = A(i, 1);
-			rotors[i].yaw_scale = A(i, 2);
-			rotors[i].thrust_scale = -A(i, 5); // -Z thrust
+			rotors[i].roll_scale = _A(i, 0);
+			rotors[i].pitch_scale = _A(i, 1);
+			rotors[i].yaw_scale = _A(i, 2);
+			rotors[i].thrust_scale = -_A(i, 5); // -Z thrust
 		}
 
 		_mixer = new MultirotorMixer(mixer_callback, (uintptr_t)this, rotors, NUM_ACTUATORS);

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,31 +32,35 @@
  ****************************************************************************/
 
 /**
- * @file ControlAllocationSimple.hpp
+ * @file ControlAllocationTest.cpp
  *
- * Simple Control Allocation Algorithm
+ * Tests for Control Allocation Algorithms
  *
  * @author Julien Lecoeur <julien.lecoeur@gmail.com>
  */
 
-#include "ControlAllocationSimple.hpp"
+#include <gtest/gtest.h>
+#include <ControlAllocationPseudoInverse.hpp>
 
+using namespace matrix;
 
-void
-ControlAllocationSimple::allocate()
+TEST(ControlAllocationTest, AllZeroCase)
 {
-	// Compute new gains if needed
-	if (_A_update_needed) {
-		_A = matrix::geninv(_B);
-		_A_update_needed = false;
-	}
+	ControlAllocationPseudoInverse method;
 
-	// Allocate
-	_actuator_sp = _A * _control_sp;
+	matrix::Vector<float, 6> control_sp;
+	matrix::Vector<float, 6> control_allocated;
+	matrix::Vector<float, 6> control_allocated_expected;
+	matrix::Matrix<float, 6, 16> B;
+	matrix::Vector<float, 16> actuator_sp;
+	matrix::Vector<float, 16> actuator_sp_expected;
 
-	// Clip
-	_actuator_sp = clipActuatorSetpoint();
+	method.setEffectivenessMatrix(B);
+	method.setControlSetpoint(control_sp);
+	method.allocate();
+	actuator_sp = method.getAllocatedActuator();
+	control_allocated_expected = method.getAllocatedControl();
 
-	// Compute achieved control
-	_control_allocated = _B * _actuator_sp;
+	EXPECT_EQ(actuator_sp, actuator_sp_expected);
+	EXPECT_EQ(control_allocated, control_allocated_expected);
 }

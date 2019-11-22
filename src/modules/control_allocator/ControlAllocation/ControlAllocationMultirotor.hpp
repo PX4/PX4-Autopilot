@@ -45,12 +45,12 @@
 
 #pragma once
 
-#include "ControlAllocation.hpp"
+#include "ControlAllocationPseudoInverse.hpp"
 
 #define MIXER_MULTIROTOR_USE_MOCK_GEOMETRY
 #include <lib/mixer/mixer.h>
 
-class ControlAllocationMultirotor: public ControlAllocation
+class ControlAllocationMultirotor: public ControlAllocationPseudoInverse
 {
 public:
 	ControlAllocationMultirotor() = default;

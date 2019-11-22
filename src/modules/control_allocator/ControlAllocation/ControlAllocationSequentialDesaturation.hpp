@@ -43,9 +43,9 @@
 
 #pragma once
 
-#include "ControlAllocation.hpp"
+#include "ControlAllocationPseudoInverse.hpp"
 
-class ControlAllocationSequentialDesaturation: public ControlAllocation
+class ControlAllocationSequentialDesaturation: public ControlAllocationPseudoInverse
 {
 public:
 
@@ -55,7 +55,6 @@ public:
 	void allocate() override;
 
 private:
-	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _A;
 
 	/**
 	 * List of control axis used for desaturating the actuator vector. The desaturation logic will sequentially
@@ -77,7 +76,7 @@ private:
 	 * @param 	axis 			Control axis
 	 * @return 	ActuatorVector 	Column of the pseudo-inverse matrix corresponding to the given control axis.
 	 */
-	ActuatorVector getDesaturationVector(ControlAxis axis);
+	const ActuatorVector getDesaturationVector(ControlAxis axis);
 
 	/**
 	 * Compute desaturation gain.
@@ -86,5 +85,5 @@ private:
 	 * @param 	Actuator setpoint vector.
 	 * @return 	Gain which eliminates the saturation of the highest saturated actuator.
 	 */
-	float computeDesaturationGain(ActuatorVector desaturation_vector, ActuatorVector actuator_sp);
+	float computeDesaturationGain(const ActuatorVector &desaturation_vector, const ActuatorVector &actuator_sp);
 };

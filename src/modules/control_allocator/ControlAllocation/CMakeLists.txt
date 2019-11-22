@@ -34,7 +34,7 @@
 px4_add_library(ControlAllocation
 	ControlAllocation.cpp
 	ControlAllocationMultirotor.cpp
-	ControlAllocationSimple.cpp
+	ControlAllocationPseudoInverse.cpp
 	ControlAllocationSequentialDesaturation.cpp
 )
 
@@ -45,5 +45,5 @@ target_include_directories(ControlAllocation
 
 target_link_libraries(ControlAllocation PRIVATE mathlib)
 
-px4_add_unit_gtest(SRC ControlAllocationSimpleTest.cpp LINKLIBS ControlAllocation)
+px4_add_unit_gtest(SRC ControlAllocationPseudoInverseTest.cpp LINKLIBS ControlAllocation)
 # px4_add_unit_gtest(SRC ControlAllocationMultirotorTest.cpp LINKLIBS ControlAllocation)

@@ -44,11 +44,7 @@
 void
 ControlAllocationSequentialDesaturation::allocate()
 {
-	// Compute new gains if needed
-	if (_A_update_needed) {
-		_A = matrix::geninv(_B);
-		_A_update_needed = false;
-	}
+	ControlAllocationPseudoInverse::updatePseudoInverse();
 
 	// Allocate
 	_actuator_sp = _A * _control_sp;
@@ -83,20 +79,14 @@ ControlAllocation::ActuatorVector ControlAllocationSequentialDesaturation::desat
 
 }
 
-ControlAllocation::ActuatorVector ControlAllocationSequentialDesaturation::getDesaturationVector(ControlAxis axis)
+const ControlAllocation::ActuatorVector ControlAllocationSequentialDesaturation::getDesaturationVector(ControlAxis axis)
 {
-	ActuatorVector ret;
-
-	for (unsigned i = 0; i < NUM_ACTUATORS; i++) {
-		ret(i) = _A(i, axis);
-	}
-
-	return ret;
+	return _A.slice<NUM_ACTUATORS, 1>(0, axis);
 }
 
 
-float ControlAllocationSequentialDesaturation::computeDesaturationGain(ActuatorVector desaturation_vector,
-		ActuatorVector actuator_sp)
+float ControlAllocationSequentialDesaturation::computeDesaturationGain(const ActuatorVector &desaturation_vector,
+		const ActuatorVector &actuator_sp)
 {
 	float k_min = 0.f;
 	float k_max = 0.f;
