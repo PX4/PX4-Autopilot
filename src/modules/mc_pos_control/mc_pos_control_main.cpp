@@ -676,6 +676,10 @@ MulticopterPositionControl::Run()
 			vehicle_local_position_setpoint_s local_pos_sp{};
 			local_pos_sp.timestamp = time_stamp_now;
 			_control.getLocalPositionSetpoint(local_pos_sp);
+			// Temporary setpoint message adjustments while PositionControl class is still keeping involved internal setpoints
+			local_pos_sp.x = setpoint.x;
+			local_pos_sp.y = setpoint.y;
+			local_pos_sp.z = setpoint.z;
 			local_pos_sp.vx = PX4_ISFINITE(_control.getVelSp()(0)) ? _control.getVelSp()(0) : setpoint.vx;
 			local_pos_sp.vy = PX4_ISFINITE(_control.getVelSp()(1)) ? _control.getVelSp()(1) : setpoint.vy;
 			local_pos_sp.vz = PX4_ISFINITE(_control.getVelSp()(2)) ? _control.getVelSp()(2) : setpoint.vz;

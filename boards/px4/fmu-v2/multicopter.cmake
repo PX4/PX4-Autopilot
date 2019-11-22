@@ -7,23 +7,20 @@ px4_add_board(
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
-	BOOTLOADER ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/extras/px4fmuv3_bl.bin
 	IO px4_io-v2_default
-	CONSTRAINED_FLASH
 	#UAVCAN_INTERFACES 2
-
+	CONSTRAINED_FLASH
 	SERIAL_PORTS
 		GPS1:/dev/ttyS3
 		TEL1:/dev/ttyS1
 		TEL2:/dev/ttyS2
 		TEL4:/dev/ttyS6
-
 	DRIVERS
 		adc
 		barometer/ms5611
 		#batt_smbus
-		# camera_capture
-		# camera_trigger
+		#camera_capture
+		#camera_trigger
 		distance_sensor # all available distance sensor drivers
 		gps
 		imu/l3gd20
@@ -37,14 +34,14 @@ px4_add_board(
 		px4fmu
 		px4io
 		tone_alarm
-
 	MODULES
 		#attitude_estimator_q
+		battery_status
 		camera_feedback
 		commander
 		dataman
 		ekf2
-		events
+		#events
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -52,13 +49,11 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
-		mc_rate_control
 		mc_pos_control
+		mc_rate_control
 		navigator
-		battery_status
 		sensors
 		vmount
-
 	SYSTEMCMDS
 		#bl_update
 		#config
@@ -80,8 +75,7 @@ px4_add_board(
 		top
 		#topic_listener
 		tune_control
-		# usb_connected
+		#usb_connected
 		ver
 		#work_queue
-
 	)
