@@ -4721,7 +4721,8 @@ public:
 
 private:
 	MavlinkOrbSubscription *_mount_orientation_sub;
-	uint64_t _mount_orientation_time;
+	MavlinkOrbSubscription *_gpos_sub;
+	uint64_t _mount_orientation_time{0};
 
 	/* do not allow top copying this class */
 	MavlinkStreamMountOrientation(MavlinkStreamMountOrientation &) = delete;
@@ -4730,12 +4731,12 @@ private:
 protected:
 	explicit MavlinkStreamMountOrientation(Mavlink *mavlink) : MavlinkStream(mavlink),
 		_mount_orientation_sub(_mavlink->add_orb_subscription(ORB_ID(mount_orientation))),
-		_mount_orientation_time(0)
+		_gpos_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_global_position)))
 	{}
 
 	bool send(const hrt_abstime t) override
 	{
-		struct mount_orientation_s mount_orientation;
+		mount_orientation_s mount_orientation{};
 
 		if (_mount_orientation_sub->update(&_mount_orientation_time, &mount_orientation)) {
 			mavlink_mount_orientation_t msg = {};
@@ -4743,6 +4744,10 @@ protected:
 			msg.roll = math::degrees(mount_orientation.attitude_euler_angle[0]);
 			msg.pitch = math::degrees(mount_orientation.attitude_euler_angle[1]);
 			msg.yaw = math::degrees(mount_orientation.attitude_euler_angle[2]);
+
+			vehicle_global_position_s gpos{};
+			_gpos_sub->update(&gpos);
+			msg.yaw_absolute = math::degrees(matrix::wrap_2pi(gpos.yaw + mount_orientation.attitude_euler_angle[2]));
 
 			mavlink_msg_mount_orientation_send_struct(_mavlink->get_channel(), &msg);
 
