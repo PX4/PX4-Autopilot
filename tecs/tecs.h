@@ -75,7 +75,7 @@ public:
 	 */
 	void update_vehicle_state_estimates(float airspeed, const matrix::Dcmf &rotMat,
 					    const matrix::Vector3f &accel_body, bool altitude_lock, bool in_air,
-					    float altitude, bool vz_valid, float vz, float az);
+					    float altitude, float vz);
 
 	/**
 	 * Update the control loop calculations
@@ -108,7 +108,6 @@ public:
 	void set_max_sink_rate(float sink_rate) { _max_sink_rate = sink_rate; }
 	void set_max_climb_rate(float climb_rate) { _max_climb_rate = climb_rate; }
 
-	void set_height_comp_filter_omega(float omega) { _hgt_estimate_freq = omega; }
 	void set_heightrate_ff(float heightrate_ff) { _height_setpoint_gain_ff = heightrate_ff; }
 	void set_heightrate_p(float heightrate_p) { _height_error_gain = heightrate_p; }
 
@@ -169,7 +168,6 @@ public:
 
 		// reset height states
 		_vert_pos_state = altitude;
-		_vert_accel_state = 0.0f;
 		_vert_vel_state = 0.0f;
 	}
 
@@ -183,7 +181,6 @@ private:
 	uint64_t _pitch_update_timestamp{0};				///< last timestamp of the pitch function call
 
 	// controller parameters
-	float _hgt_estimate_freq{0.0f};					///< cross-over frequency of the height rate complementary filter (rad/sec)
 	float _tas_estimate_freq{0.0f};					///< cross-over frequency of the true airspeed complementary filter (rad/sec)
 	float _max_climb_rate{2.0f};					///< climb rate produced by max allowed throttle (m/sec)
 	float _min_sink_rate{1.0f};					///< sink rate produced by min allowed throttle (m/sec)
@@ -208,7 +205,6 @@ private:
 	float _pitch_setpoint{0.0f};					///< pitch angle demand (radians)
 
 	// complimentary filter states
-	float _vert_accel_state{0.0f};					///< complimentary filter state - height second derivative (m/sec**2)
 	float _vert_vel_state{0.0f};					///< complimentary filter state - height rate (m/sec)
 	float _vert_pos_state{0.0f};					///< complimentary filter state - height (m)
 	float _tas_rate_state{0.0f};					///< complimentary filter state - true airspeed first derivative (m/sec**2)

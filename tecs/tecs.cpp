@@ -56,7 +56,7 @@ static constexpr float DT_MAX = 1.0f;	///< max value of _dt allowed before a fil
  */
 void TECS::update_vehicle_state_estimates(float airspeed, const matrix::Dcmf &rotMat,
 		const matrix::Vector3f &accel_body, bool altitude_lock, bool in_air,
-		float altitude, bool vz_valid, float vz, float az)
+		float altitude, float vz)
 {
 	// calculate the time lapsed since the last update
 	uint64_t now = ecl_absolute_time();
@@ -74,16 +74,6 @@ void TECS::update_vehicle_state_estimates(float airspeed, const matrix::Dcmf &ro
 	}
 
 	if (reset_altitude) {
-		_vert_pos_state = altitude;
-
-		if (vz_valid) {
-			_vert_vel_state = -vz;
-
-		} else {
-			_vert_vel_state = 0.0f;
-		}
-
-		_vert_accel_state = 0.0f;
 		_states_initalized = false;
 	}
 
@@ -92,40 +82,9 @@ void TECS::update_vehicle_state_estimates(float airspeed, const matrix::Dcmf &ro
 
 	_in_air = in_air;
 
-	// Generate the height and climb rate state estimates
-	if (vz_valid) {
-		// Set the velocity and position state to the the INS data
-		_vert_vel_state = -vz;
-		_vert_pos_state = altitude;
-
-	} else {
-		// Get height acceleration
-		float hgt_ddot_mea = -az;
-
-		// If we have no vertical INS data, estimate the vertical velocity using a complementary filter
-		// Perform filter calculation using backwards Euler integration
-		// Coefficients selected to place all three filter poles at omega
-		// Reference Paper: Optimising the Gains of the Baro-Inertial Vertical Channel
-		// Widnall W.S, Sinha P.K, AIAA Journal of Guidance and Control, 78-1307R
-		float omega2 = _hgt_estimate_freq * _hgt_estimate_freq;
-		float hgt_err = altitude - _vert_pos_state;
-		float vert_accel_input = hgt_err * omega2 * _hgt_estimate_freq;
-		_vert_accel_state = _vert_accel_state + vert_accel_input * dt;
-		float vert_vel_input = _vert_accel_state + hgt_ddot_mea + hgt_err * omega2 * 3.0f;
-		_vert_vel_state = _vert_vel_state + vert_vel_input * dt;
-		float vert_pos_input = _vert_vel_state + hgt_err * _hgt_estimate_freq * 3.0f;
-
-		// If more than 1 second has elapsed since last update then reset the position state
-		// to the measured height
-		if (reset_altitude) {
-			_vert_pos_state = altitude;
-
-		} else {
-			_vert_pos_state = _vert_pos_state + vert_pos_input * dt;
-
-		}
-
-	}
+	// Set the velocity and position state to the the INS data
+	_vert_vel_state = -vz;
+	_vert_pos_state = altitude;
 
 	// Update and average speed rate of change if airspeed is being measured
 	if (ISFINITE(airspeed) && airspeed_sensor_enabled()) {
@@ -521,7 +480,6 @@ void TECS::_initialize_states(float pitch, float throttle_cruise, float baro_alt
 	if (_pitch_update_timestamp == 0 || _dt > DT_MAX || !_in_air || !_states_initalized) {
 		// On first time through or when not using TECS of if there has been a large time slip,
 		// states must be reset to allow filters to a clean start
-		_vert_accel_state = 0.0f;
 		_vert_vel_state = 0.0f;
 		_vert_pos_state = baro_altitude;
 		_tas_rate_state = 0.0f;
