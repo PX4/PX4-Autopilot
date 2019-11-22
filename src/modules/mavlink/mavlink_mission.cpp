@@ -117,11 +117,11 @@ MavlinkMissionManager::init_offboard_mission()
 int
 MavlinkMissionManager::load_geofence_stats()
 {
-	mission_stats_entry_s stats;
+	mission_fence_points_s stats;
 	// initialize fence points count
-	int ret = dm_read(DM_KEY_FENCE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
+	int ret = dm_read(DM_KEY_FENCE_POINTS, 0, &stats, sizeof(mission_fence_points_s));
 
-	if (ret == sizeof(mission_stats_entry_s)) {
+	if (ret == sizeof(mission_fence_points_s)) {
 		_count[MAV_MISSION_TYPE_FENCE] = stats.num_items;
 		_geofence_update_counter = stats.update_counter;
 	}
@@ -132,11 +132,11 @@ MavlinkMissionManager::load_geofence_stats()
 int
 MavlinkMissionManager::load_safepoint_stats()
 {
-	mission_stats_entry_s stats;
+	mission_safe_points_s stats;
 	// initialize safe points count
-	int ret = dm_read(DM_KEY_SAFE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
+	int ret = dm_read(DM_KEY_SAFE_POINTS, 0, &stats, sizeof(mission_safe_points_s));
 
-	if (ret == sizeof(mission_stats_entry_s)) {
+	if (ret == sizeof(mission_safe_points_s)) {
 		_count[MAV_MISSION_TYPE_RALLY] = stats.num_items;
 	}
 
@@ -150,7 +150,7 @@ int
 MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t count, int32_t seq)
 {
 	// We want to make sure the whole struct is initialized including padding before getting written by dataman.
-	mission_s mission {};
+	mission_s mission{};
 	mission.timestamp = hrt_absolute_time();
 	mission.dataman_id = dataman_id;
 	mission.count = count;
@@ -180,7 +180,7 @@ MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t coun
 		_my_dataman_id = _dataman_id;
 
 		/* mission state saved successfully, publish offboard_mission topic */
-		_offboard_mission_pub.publish(mission);
+		_mission_pub.publish(mission);
 
 		return PX4_OK;
 
@@ -197,15 +197,18 @@ MavlinkMissionManager::update_active_mission(dm_item_t dataman_id, uint16_t coun
 int
 MavlinkMissionManager::update_geofence_count(unsigned count)
 {
-	mission_stats_entry_s stats;
+	mission_fence_points_s stats{};
+	stats.timestamp = hrt_absolute_time();
 	stats.num_items = count;
 	stats.update_counter = ++_geofence_update_counter; // this makes sure navigator will reload the fence data
 
 	/* update stats in dataman */
-	int res = dm_write(DM_KEY_FENCE_POINTS, 0, DM_PERSIST_POWER_ON_RESET, &stats, sizeof(mission_stats_entry_s));
+	int res = dm_write(DM_KEY_FENCE_POINTS, 0, DM_PERSIST_POWER_ON_RESET, &stats, sizeof(mission_fence_points_s));
 
-	if (res == sizeof(mission_stats_entry_s)) {
+	if (res == sizeof(mission_fence_points_s)) {
 		_count[MAV_MISSION_TYPE_FENCE] = count;
+
+		_mission_fence_points_pub.publish(stats);
 
 	} else {
 
@@ -217,24 +220,25 @@ MavlinkMissionManager::update_geofence_count(unsigned count)
 	}
 
 	return PX4_OK;
-
 }
 
 int
 MavlinkMissionManager::update_safepoint_count(unsigned count)
 {
-	mission_stats_entry_s stats;
+	mission_safe_points_s stats{};
+	stats.timestamp = hrt_absolute_time();
 	stats.num_items = count;
 	stats.update_counter = ++_safepoint_update_counter;
 
 	/* update stats in dataman */
-	int res = dm_write(DM_KEY_SAFE_POINTS, 0, DM_PERSIST_POWER_ON_RESET, &stats, sizeof(mission_stats_entry_s));
+	int res = dm_write(DM_KEY_SAFE_POINTS, 0, DM_PERSIST_POWER_ON_RESET, &stats, sizeof(mission_safe_points_s));
 
-	if (res == sizeof(mission_stats_entry_s)) {
+	if (res == sizeof(mission_safe_points_s)) {
 		_count[MAV_MISSION_TYPE_RALLY] = count;
 
-	} else {
+		_mission_safe_points_pub.publish(stats);
 
+	} else {
 		if (_filesystem_errcount++ < FILESYSTEM_ERRCOUNT_NOTIFY_LIMIT) {
 			_mavlink->send_statustext_critical("Mission storage: Unable to write to microSD");
 		}
@@ -315,9 +319,9 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 		break;
 
 	case MAV_MISSION_TYPE_FENCE: { // Read a geofence point
-			mission_fence_point_s mission_fence_point;
-			read_success = dm_read(DM_KEY_FENCE_POINTS, seq + 1, &mission_fence_point, sizeof(mission_fence_point_s)) ==
-				       sizeof(mission_fence_point_s);
+			mission_fence_point_item_s mission_fence_point;
+			read_success = dm_read(DM_KEY_FENCE_POINTS, seq + 1, &mission_fence_point, sizeof(mission_fence_point_item_s)) ==
+				       sizeof(mission_fence_point_item_s);
 
 			mission_item.nav_cmd = mission_fence_point.nav_cmd;
 			mission_item.frame = mission_fence_point.frame;
@@ -336,9 +340,9 @@ MavlinkMissionManager::send_mission_item(uint8_t sysid, uint8_t compid, uint16_t
 		break;
 
 	case MAV_MISSION_TYPE_RALLY: { // Read a safe point / rally point
-			mission_safe_point_s mission_safe_point;
-			read_success = dm_read(DM_KEY_SAFE_POINTS, seq + 1, &mission_safe_point, sizeof(mission_safe_point_s)) ==
-				       sizeof(mission_safe_point_s);
+			mission_safe_point_item_s mission_safe_point;
+			read_success = dm_read(DM_KEY_SAFE_POINTS, seq + 1, &mission_safe_point,
+					       sizeof(mission_safe_point_item_s)) == sizeof(mission_safe_point_item_s);
 
 			mission_item.nav_cmd = MAV_CMD_NAV_RALLY_POINT;
 			mission_item.frame = mission_safe_point.frame;
@@ -1082,7 +1086,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 			break;
 
 		case MAV_MISSION_TYPE_FENCE: { // Write a geofence point
-				mission_fence_point_s mission_fence_point;
+				mission_fence_point_item_s mission_fence_point;
 				mission_fence_point.nav_cmd = mission_item.nav_cmd;
 				mission_fence_point.lat = mission_item.lat;
 				mission_fence_point.lon = mission_item.lon;
@@ -1090,6 +1094,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 
 				if (mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION ||
 				    mission_item.nav_cmd == MAV_CMD_NAV_FENCE_POLYGON_VERTEX_EXCLUSION) {
+
 					mission_fence_point.vertex_count = mission_item.vertex_count;
 
 					if (mission_item.vertex_count < 3) { // feasibility check
@@ -1106,20 +1111,19 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 
 				if (!check_failed) {
 					write_failed = dm_write(DM_KEY_FENCE_POINTS, wp.seq + 1, DM_PERSIST_POWER_ON_RESET, &mission_fence_point,
-								sizeof(mission_fence_point_s)) != sizeof(mission_fence_point_s);
+								sizeof(mission_fence_point_item_s)) != sizeof(mission_fence_point_item_s);
 				}
-
 			}
 			break;
 
 		case MAV_MISSION_TYPE_RALLY: { // Write a safe point / rally point
-				mission_safe_point_s mission_safe_point;
+				mission_safe_point_item_s mission_safe_point;
 				mission_safe_point.lat = mission_item.lat;
 				mission_safe_point.lon = mission_item.lon;
 				mission_safe_point.alt = mission_item.altitude;
 				mission_safe_point.frame = mission_item.frame;
 				write_failed = dm_write(DM_KEY_SAFE_POINTS, wp.seq + 1, DM_PERSIST_POWER_ON_RESET, &mission_safe_point,
-							sizeof(mission_safe_point_s)) != sizeof(mission_safe_point_s);
+							sizeof(mission_safe_point_item_s)) != sizeof(mission_safe_point_item_s);
 			}
 			break;
 

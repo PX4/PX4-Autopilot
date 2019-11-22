@@ -41,6 +41,8 @@
 #include <string.h>
 #include <navigator/navigation.h>
 #include <uORB/topics/mission.h>
+#include <uORB/topics/mission_fence_points.h>
+#include <uORB/topics/mission_safe_points.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -101,9 +103,10 @@ struct dataman_compat_s {
 /* increment this define whenever a binary incompatible change is performed */
 #define DM_COMPAT_VERSION	2ULL
 
-#define DM_COMPAT_KEY ((DM_COMPAT_VERSION << 32) + (sizeof(struct mission_item_s) << 24) + \
-		       (sizeof(struct mission_s) << 16) + (sizeof(struct mission_stats_entry_s) << 12) + \
-		       (sizeof(struct mission_fence_point_s) << 8) + (sizeof(struct mission_safe_point_s) << 4) + \
+#define DM_COMPAT_KEY ((DM_COMPAT_VERSION << 32) + \
+		       (sizeof(struct mission_s) << 24) + (sizeof(struct mission_item_s) << 20) + \
+		       (sizeof(struct mission_fence_points_s) << 16) + (sizeof(struct mission_fence_point_item_s) << 12) + \
+		       (sizeof(struct mission_safe_points_s) << 8) + (sizeof(struct mission_safe_point_item_s) << 4) + \
 		       sizeof(struct dataman_compat_s))
 
 /** Retrieve from the data manager store */

@@ -95,7 +95,7 @@ public:
 	 *
 	 * @return true: system is obeying fence, false: system is violating fence
 	 */
-	bool check(const struct mission_item_s &mission_item);
+	bool check(const mission_item_s &mission_item);
 
 	int clearDm();
 
@@ -166,7 +166,10 @@ private:
 		(ParamFloat<px4::params::GF_MAX_VER_DIST>) _param_gf_max_ver_dist
 	)
 
-	uORB::SubscriptionData<vehicle_air_data_s>	_sub_airdata;
+	mission_fence_points_s	_mission_fence_points{};
+
+	uORB::Subscription	_mission_fence_points_sub{ORB_ID(mission_fence_points)};
+	uORB::Subscription	_vehicle_air_data_sub{ORB_ID(vehicle_air_data)};
 
 	int _outside_counter{0};
 	uint16_t _update_counter{0}; ///< dataman update counter: if it does not match, we polygon data was updated

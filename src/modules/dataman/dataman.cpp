@@ -220,8 +220,8 @@ static const unsigned g_per_item_max_index[DM_KEY_NUM_KEYS] = {
 
 /* Table of the len of each item type */
 static constexpr size_t g_per_item_size[DM_KEY_NUM_KEYS] = {
-	sizeof(struct mission_safe_point_s) + DM_SECTOR_HDR_SIZE,
-	sizeof(struct mission_fence_point_s) + DM_SECTOR_HDR_SIZE,
+	sizeof(struct mission_safe_point_item_s) + DM_SECTOR_HDR_SIZE,
+	sizeof(struct mission_fence_point_item_s) + DM_SECTOR_HDR_SIZE,
 	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
 	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
 	sizeof(struct mission_item_s) + DM_SECTOR_HDR_SIZE,
@@ -1515,7 +1515,7 @@ Each type has a specific type and a fixed maximum amount of storage items, so th
 Reading and writing a single item is always atomic. If multiple items need to be read/modified atomically, there is
 an additional lock per item type via `dm_lock`.
 
-**DM_KEY_FENCE_POINTS** and **DM_KEY_SAFE_POINTS** items: the first data element is a `mission_stats_entry_s` struct,
+**DM_KEY_FENCE_POINTS** and **DM_KEY_SAFE_POINTS** items: the first data element is a `mission_fence_points_s` and `mission_safe_points_s` struct,
 which stores the number of items for these types. These items are always updated atomically in one transaction (from
 the mavlink mission manager). During that time, navigator will try to acquire the geofence item lock, fail, and will not
 check for geofence violations.

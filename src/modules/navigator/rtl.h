@@ -46,7 +46,9 @@
 #include "navigator_mode.h"
 #include "mission_block.h"
 
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
+#include <uORB/topics/mission_safe_points.h>
 
 class Navigator;
 
@@ -131,6 +133,8 @@ private:
 
 	float _rtl_alt{0.0f};	// AMSL altitude at which the vehicle should return to the home position
 	bool _rtl_alt_min{false};
+
+	uORB::Subscription	_mission_safe_points_sub{ORB_ID(mission_safe_points)};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::RTL_RETURN_ALT>) _param_rtl_return_alt,

@@ -99,12 +99,12 @@ RTL::find_closest_landing_point()
 	}
 
 	// compare to safe landing positions
-	mission_safe_point_s closest_safe_point {} ;
-	mission_stats_entry_s stats;
-	int ret = dm_read(DM_KEY_SAFE_POINTS, 0, &stats, sizeof(mission_stats_entry_s));
+	mission_safe_point_item_s closest_safe_point{};
+	mission_safe_points_s stats;
+	int ret = dm_read(DM_KEY_SAFE_POINTS, 0, &stats, sizeof(mission_safe_points_s));
 	int num_safe_points = 0;
 
-	if (ret == sizeof(mission_stats_entry_s)) {
+	if (ret == sizeof(mission_safe_points_s)) {
 		num_safe_points = stats.num_items;
 	}
 
@@ -112,10 +112,10 @@ RTL::find_closest_landing_point()
 	int closest_index = 0;
 
 	for (int current_seq = 1; current_seq <= num_safe_points; ++current_seq) {
-		mission_safe_point_s mission_safe_point;
+		mission_safe_point_item_s mission_safe_point;
 
-		if (dm_read(DM_KEY_SAFE_POINTS, current_seq, &mission_safe_point, sizeof(mission_safe_point_s)) !=
-		    sizeof(mission_safe_point_s)) {
+		if (dm_read(DM_KEY_SAFE_POINTS, current_seq, &mission_safe_point, sizeof(mission_safe_point_item_s)) != sizeof(mission_safe_point_item_s)) {
+
 			PX4_ERR("dm_read failed");
 			continue;
 		}
@@ -194,7 +194,15 @@ RTL::find_RTL_destination()
 
 	case RTL_CLOSEST:
 		// choose closest possible landing point (consider home, mission landing and safe points)
-		find_closest_landing_point();
+
+		if (_mission_safe_points_sub.updated()) {
+			// TODO: not a real solution yet
+			//   - copy all safe points locally into RTL
+			//   - update find_closest_landing_point() to process local points only
+			//   - separately update list on mission_safe_points publicaiton
+			find_closest_landing_point();
+		}
+
 		break;
 
 	default:

@@ -48,6 +48,9 @@
 #include <dataman/dataman.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/topics/mission.h>
+#include <uORB/topics/mission_fence_points.h>
+#include <uORB/topics/mission_safe_points.h>
 #include <uORB/topics/mission_result.h>
 
 #include "mavlink_bridge_header.h"
@@ -104,8 +107,8 @@ private:
 
 	unsigned		_filesystem_errcount{0};		///< File system error count
 
-	static dm_item_t		_dataman_id;				///< Global Dataman storage ID for active mission
-	dm_item_t			_my_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};			///< class Dataman storage ID
+	static dm_item_t	_dataman_id;				///< Global Dataman storage ID for active mission
+	dm_item_t		_my_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_0};			///< class Dataman storage ID
 
 	static bool		_dataman_init;				///< Dataman initialized
 
@@ -114,7 +117,7 @@ private:
 
 	int32_t			_last_reached{-1};			///< Last reached waypoint in active mission (-1 means nothing reached)
 
-	dm_item_t			_transfer_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_1};		///< Dataman storage ID for current transmission
+	dm_item_t		_transfer_dataman_id{DM_KEY_WAYPOINTS_OFFBOARD_1};	///< Dataman storage ID for current transmission
 
 	uint16_t		_transfer_count{0};			///< Items count in current transmission
 	uint16_t		_transfer_seq{0};			///< Item sequence in current transmission
@@ -128,7 +131,9 @@ private:
 
 	uORB::Subscription	_mission_result_sub{ORB_ID(mission_result)};
 
-	uORB::Publication<mission_s>	_offboard_mission_pub{ORB_ID(mission)};
+	uORB::Publication<mission_s>			_mission_pub{ORB_ID(mission)};
+	uORB::Publication<mission_fence_points_s>	_mission_fence_points_pub{ORB_ID(mission_fence_points)};
+	uORB::Publication<mission_safe_points_s>	_mission_safe_points_pub{ORB_ID(mission_safe_points)};
 
 	static uint16_t		_geofence_update_counter;
 	static uint16_t		_safepoint_update_counter;

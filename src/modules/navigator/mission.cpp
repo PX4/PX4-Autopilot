@@ -1502,7 +1502,7 @@ Mission::read_mission_item(int offset, struct mission_item_s *mission_item)
 		const ssize_t len = sizeof(struct mission_item_s);
 
 		/* read mission item to temp storage first to not overwrite current mission item if data damaged */
-		struct mission_item_s mission_item_tmp;
+		mission_item_s mission_item_tmp;
 
 		/* read mission item from datamanager */
 		if (dm_read(dm_item, *mission_index_ptr, &mission_item_tmp, len) != len) {
