@@ -1282,6 +1282,27 @@ Mavlink::determine_service_version(uint16_t service_id, uint16_t min_version, ui
 	return status;
 }
 
+microservice_versions::service_status &
+Mavlink::determine_service_version(uint16_t service_id)
+{
+	microservice_versions::service_status &status = get_service_status(service_id);
+
+	if (status.metadata->service_id == microservice_versions::MAVLINK_SERVICE_UNKNOWN) {
+		return status;
+	}
+
+	if (status.metadata->max_version == 0) {
+		status.status = microservice_versions::UNSUPPORTED;
+
+	} else {
+		status.status = microservice_versions::SELECTED;
+	}
+
+	status.selected_version = status.metadata->max_version;
+
+	return status;
+}
+
 MavlinkOrbSubscription *
 Mavlink::add_orb_subscription(const orb_id_t topic, int instance, bool disable_sharing)
 {

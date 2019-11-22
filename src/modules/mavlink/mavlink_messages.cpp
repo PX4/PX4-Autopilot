@@ -5169,8 +5169,6 @@ private:
 	bool _sending_all_services = false;
 	int _default_interval = -1;
 
-	static constexpr uint16_t _max_service = 10;
-
 	/* do not allow top copying this class */
 	MavlinkStreamServiceVersion(MavlinkStreamServiceVersion &) = delete;
 	MavlinkStreamServiceVersion &operator = (const MavlinkStreamServiceVersion &) = delete;
@@ -5181,28 +5179,21 @@ protected:
 
 	bool send(const hrt_abstime t) override
 	{
-		if (_current_service > 0 && _current_service <= _max_service) {
+		if (_current_service > 0 && _current_service < microservice_versions::NUM_SERVICES) {
 			mavlink_mavlink_service_version_t msg;
+
+			auto &status = _sending_all_services ? _mavlink->determine_service_version(_current_service)
+				       : _mavlink->determine_service_version(_current_service, _min_version, _max_version);
 
 			msg.service_id = _current_service;
 			msg.target_system = _mavlink->get_system_id();
 			msg.target_component = _mavlink->get_component_id();
-
-			if (_sending_all_services) {
-				microservice_versions::service_status &status = _mavlink->get_service_status(_current_service);
-
-				msg.selected_version = 0; // TODO microservice versioning: How does the handshake work in "stream all services" mode?
-				// TODO: Add min and max version
-				msg.service_flags = status.metadata->min_version == 0 ? 0 : 1;
-
-			} else {
-				microservice_versions::service_status &status =
-					_mavlink->determine_service_version(_current_service, _min_version, _max_version);
-
-				msg.selected_version = status.selected_version;
-				msg.service_flags = status.metadata->min_version == 0 ? 0 : 1;
-				// TODO add min and max
-			}
+			// TODO microservice versioning: How does the handshake work in "stream all services" mode?
+			//  The current implementation is to just select my maximum version and hope for the best.
+			msg.selected_version = status.selected_version;
+			msg.service_min_version = status.metadata->min_version;
+			msg.service_max_version = status.metadata->max_version;
+			msg.service_flags = status.metadata->min_version == 0 ? 0 : 1;
 
 			mavlink_msg_mavlink_service_version_send_struct(_mavlink->get_channel(), &msg);
 

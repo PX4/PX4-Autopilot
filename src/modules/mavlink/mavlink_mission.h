@@ -153,6 +153,8 @@ private:
 	/** get the number of item count for the current _mission_type */
 	uint16_t current_item_count();
 
+	bool int_mode();
+
 	/* do not allow top copying this class */
 	MavlinkMissionManager(MavlinkMissionManager &);
 	MavlinkMissionManager &operator = (const MavlinkMissionManager &);

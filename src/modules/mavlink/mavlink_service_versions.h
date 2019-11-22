@@ -33,7 +33,12 @@
 
 /**
  * @file mavlink_service_versions.h
- * Compile-time constants for supported MAVLink microservices
+ * Compile-time constants for supported MAVLink microservices.
+ *
+ * This file does not keep track of the status of any given microservice version handshake. Different instances of
+ * MAVLink can be using different versions of a microservice, so that is done inside of the Mavlink class.
+ *
+ * See Mavlink::determine_service_version(...)
  *
  * @author Timothy Scott <timothy@auterion.com>
  */
@@ -45,7 +50,10 @@
 namespace microservice_versions
 {
 
-constexpr size_t NUM_SERVICES = 3;
+// NUM_SERVICES should be one greater than the actual number of supported services, because index 0 contains
+// dummy metadata for any unrecognized service.
+constexpr size_t NUM_SERVICES = 4;
+// service ID to represent an unknown service
 constexpr uint16_t MAVLINK_SERVICE_UNKNOWN = 0;
 
 /// This struct represents the information about microservice versions that is known to PX4 at compile time.
@@ -84,6 +92,11 @@ struct service_status {
 	uint16_t selected_version;
 };
 
+/// Contains the actual data about what versions of what services are supported.
+/// When adding support for a new microservice, or a new version of an existing microservice, you should
+/// change the definition of this array in `mavlink_service_versions.cpp`.
+/// TODO microservice version: Determine if there is a better way to declare this. If I define it in this header file,
+///   it can potentially take up more flash space, as it will be redefined for every file in which it is included.
 extern const service_metadata services_metadata[NUM_SERVICES];
 
 //	/// Returns the metadata of a given microservice.

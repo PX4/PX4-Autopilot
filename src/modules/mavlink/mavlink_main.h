@@ -409,10 +409,39 @@ public:
 	 */
 	void			send_protocol_version();
 
+	/**
+	 * This function returns the status of the given service, without selecting a version to use.
+	 * @param service_id ID of the service in question
+	 * @return Reference to a service_status which exists for the lifetime of this Mavlink object
+	 */
 	microservice_versions::service_status &get_service_status(uint16_t service_id);
 
+	/**
+	 * Takes the min and max version supported by the communication partner, and determines the maximum version
+	 * supported by both this version of PX4 and the communication partner. This selected version is then
+	 * stored in this instance of Mavlink, and can be retrieved with Mavlink::get_service_status.
+	 *
+	 * @param service_id ID of the service being negotiated
+	 * @param min_version Minimum version of the service supported by the other system.
+	 * @param max_version Maximum version of the service supported by the other system.
+	 * @return Reference to a service_status, which exists for the lifetime of this Mavlink object, and has been
+	 * 			modified with the results of this service version handshake.
+	 */
 	microservice_versions::service_status &determine_service_version(uint16_t service_id, uint16_t min_version,
 			uint16_t max_version);
+
+	/**
+	 * See Mavlink::determine_service_version(uint16_t, uint16_t, uint16_t).
+	 *
+	 * This overloaded function performs the same task as the other determine_service_version, but it does not know the
+	 * min and max version supported by the other system, so it assumes that it supports every version (like a
+	 * GCS would), and just selects the maximum version supported by this version of PX4.
+	 *
+	 * @param service_id ID of the service
+	 * @return Reference to a service_status, which exists for the lifetime of this Mavlink object, and has been
+	 * 			modified with the results of this service version handshake.
+	 */
+	microservice_versions::service_status &determine_service_version(uint16_t service_id);
 
 	List<MavlinkStream *> &get_streams() { return _streams; }
 
