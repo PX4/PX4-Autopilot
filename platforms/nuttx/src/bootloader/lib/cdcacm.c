@@ -53,9 +53,9 @@ char *g_init = 0;
 #if defined(SERIAL_TRACE)
 int in = 0;
 int out = 0;
-// must be powere of 2 length
+// must be power of 2 length
 #define TRACE_SIZE      256
-#define TRACE_WRAP(f)   (f) &=(TRACE_SIZE-1)
+#define TRACE_WRAP(f)   ((f) &=(TRACE_SIZE-1))
 char in_trace[TRACE_SIZE];
 char out_trace[TRACE_SIZE];
 #endif
