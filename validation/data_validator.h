@@ -41,7 +41,7 @@
 
 #pragma once
 
-#include <cmath>
+#include <math.h>
 #include <stdint.h>
 
 class DataValidator

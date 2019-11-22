@@ -96,5 +96,5 @@ using ecl_abstime = uint64_t;
 
 #endif /* PX4_POSIX || PX4_NUTTX */
 
-#include <cmath>
+#include <math.h>
 #define ISFINITE(x) __builtin_isfinite(x)

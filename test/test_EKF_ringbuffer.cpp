@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 #include <gtest/gtest.h>
-#include <cmath>
+#include <math.h>
 #include "EKF/ekf.h"
 
 struct sample {
