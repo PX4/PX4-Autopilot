@@ -161,6 +161,7 @@ private:
 	static struct work_s	_work;
 
 	float			_activation_time;
+	float			_trigger_delay;
 	float			_interval;
 	float 			_distance;
 	uint32_t 		_trigger_seq;
@@ -180,6 +181,7 @@ private:
 
 	param_t			_p_mode;
 	param_t			_p_activation_time;
+	param_t			_p_trigger_delay;
 	param_t			_p_interval;
 	param_t			_p_distance;
 	param_t			_p_interface;
@@ -267,10 +269,12 @@ CameraTrigger::CameraTrigger() :
 	_p_interval = param_find("TRIG_INTERVAL");
 	_p_distance = param_find("TRIG_DISTANCE");
 	_p_activation_time = param_find("TRIG_ACT_TIME");
+	_p_trigger_delay = param_find("TRIG_DELAY");
 	_p_mode = param_find("TRIG_MODE");
 	_p_interface = param_find("TRIG_INTERFACE");
 
 	param_get(_p_activation_time, &_activation_time);
+	param_get(_p_trigger_delay, &_trigger_delay);
 	param_get(_p_interval, &_interval);
 	param_get(_p_distance, &_distance);
 	param_get(_p_mode, (int32_t *)&_trigger_mode);
@@ -422,10 +426,10 @@ CameraTrigger::shoot_once()
 	if (!_trigger_paused) {
 
 		// schedule trigger on and off calls
-		hrt_call_after(&_engagecall, 0,
+		hrt_call_after(&_engagecall, 0 + (_trigger_delay * 1000),
 			       (hrt_callout)&CameraTrigger::engage, this);
 
-		hrt_call_after(&_disengagecall, 0 + (_activation_time * 1000),
+		hrt_call_after(&_disengagecall, 0 + (_trigger_delay * 1000) + (_activation_time * 1000),
 			       (hrt_callout)&CameraTrigger::disengage, this);
 	}
 

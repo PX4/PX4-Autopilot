@@ -95,6 +95,19 @@ PARAM_DEFINE_INT32(TRIG_POLARITY, 0);
 PARAM_DEFINE_FLOAT(TRIG_ACT_TIME, 40.0f);
 
 /**
+ * Camera trigger delay
+ *
+ * This parameter sets a delay on the trigger.
+ *
+ * @unit ms
+ * @min 0.0
+ * @max 25000
+ * @decimal 1
+ * @group Camera trigger
+ */
+PARAM_DEFINE_FLOAT(TRIG_DELAY, 0.0f);
+
+/**
  * Camera trigger mode
  *
  * @value 0 Disable
