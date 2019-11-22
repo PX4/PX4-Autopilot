@@ -146,8 +146,6 @@ then
 	# LPE: GPS only mode
 	param set LPE_FUSION 145
 
-	param set MIS_TAKEOFF_ALT 2.5
-
 	param set MC_PITCH_P 6
 	param set MC_PITCHRATE_P 0.2
 	param set MC_ROLL_P 6
