@@ -107,7 +107,10 @@ if (GENERATE_RTPS_BRIDGE)
 	set(uorb_sources_microcdr)
 
 	# send topic files
+	list(SORT config_rtps_send_topics)
+	list(SORT config_rtps_send_alias_topics)
 	STRING(REGEX REPLACE ";" ", " send_list "${config_rtps_send_topics};${config_rtps_send_alias_topics}")
+	STRING(REGEX REPLACE ", +$" "" send_list ${send_list})
 	message(STATUS "RTPS send: ${send_list}")
 	set(send_topic_files)
 	foreach(topic ${config_rtps_send_topics})
@@ -117,7 +120,10 @@ if (GENERATE_RTPS_BRIDGE)
 	endforeach()
 
 	# receive topic files
+	list(SORT config_rtps_receive_topics)
+	list(SORT config_rtps_receive_alias_topics)
 	STRING(REGEX REPLACE ";" ", " rcv_list "${config_rtps_receive_topics};${config_rtps_receive_alias_topics}")
+	STRING(REGEX REPLACE ", +$" "" rcv_list ${rcv_list})
 	message(STATUS "RTPS receive: ${rcv_list}")
 	set(receive_topic_files)
 	foreach(topic ${config_rtps_receive_topics})
