@@ -31,6 +31,9 @@
 #
 ############################################################################
 
+# Support IN_LIST if() operator
+cmake_policy(SET CMP0057 NEW)
+
 set(msg_files
 	actuator_armed.msg
 	actuator_controls.msg
@@ -52,7 +55,7 @@ set(msg_files
 	debug_vect.msg
 	differential_pressure.msg
 	distance_sensor.msg
-	ekf2_innovations.msg
+	ekf2_innovations.msg		# TODO: remove as soon as https://github.com/PX4/Firmware/pull/13127 is rebased over this
 	ekf2_timestamps.msg
 	ekf_gps_drift.msg
 	ekf_gps_position.msg
@@ -150,6 +153,30 @@ set(msg_files
 	wheel_encoders.msg
 	wind_estimate.msg
 	)
+
+set(deprecated_msgs
+	# TODO: uncomment as soon as https://github.com/PX4/Firmware/pull/13127 is rebased over this
+	# ekf2_innovations.msg	# 2019-11-22, Updated estimator interface and logging; replaced by 'estimator_innovations'.
+	)
+
+foreach(msg IN LISTS deprecated_msgs)
+	if(msg IN_LIST msg_files)
+		get_filename_component(msg_we ${msg} NAME_WE)
+		list(APPEND invalid_msgs ${msg_we})
+	endif()
+endforeach()
+if(invalid_msgs)
+	list(LENGTH invalid_msgs invalid_msgs_size)
+	if(${invalid_msgs_size} GREATER 1)
+		foreach(msg IN LISTS invalid_msgs)
+			string(CONCAT invalid_msgs_cs ${invalid_msgs_cs} "'${msg}', ")
+		endforeach()
+		STRING(REGEX REPLACE ", +$" "" invalid_msgs_cs ${invalid_msgs_cs})
+		message(FATAL_ERROR "${invalid_msgs_cs} are listed as deprecated. Please use different names for the messages.")
+	else()
+		message(FATAL_ERROR "'${invalid_msgs}' is listed as deprecated. Please use a different name for the message.")
+	endif()
+endif()
 
 if(NOT EXTERNAL_MODULES_LOCATION STREQUAL "")
 	# Check that the msg directory and the CMakeLists.txt file exists

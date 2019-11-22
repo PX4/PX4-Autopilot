@@ -45,6 +45,7 @@ rtps:
   - msg: distance_sensor
     id: 17
     send: true
+  # TODO: replace with 'estimator_innovations' as https://github.com/PX4/Firmware/pull/13127 is rebased over this
   - msg: ekf2_innovations
     id: 18
   - msg: ekf2_timestamps
