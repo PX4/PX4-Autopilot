@@ -52,7 +52,7 @@ void CameraInterfacePWM::setup()
 }
 
 void CameraInterfacePWM::trigger(bool trigger_on_true)
-{        
+{
         for (unsigned i = 0; i < arraySize(_pins); i++) {
 		if (_pins[i] >= 0) {
 			// Set all valid pins to shoot or neutral levels

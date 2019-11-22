@@ -425,6 +425,8 @@ CameraTrigger::shoot_once()
 {
 	if (!_trigger_paused) {
 
+		param_get(_p_trigger_delay, &_trigger_delay);
+
 		// schedule trigger on and off calls
 		hrt_call_after(&_engagecall, 0 + (_trigger_delay * 1000),
 			       (hrt_callout)&CameraTrigger::engage, this);
@@ -750,6 +752,7 @@ void
 CameraTrigger::engage(void *arg)
 {
 
+	PX4_INFO("Trigger engage");
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
 	// Trigger the camera
@@ -784,6 +787,7 @@ CameraTrigger::engage(void *arg)
 void
 CameraTrigger::disengage(void *arg)
 {
+	PX4_INFO("Trigger disengage");
 	CameraTrigger *trig = reinterpret_cast<CameraTrigger *>(arg);
 
 	trig->_camera_interface->trigger(false);
