@@ -6,14 +6,6 @@
 	path = src/drivers/uavcan/libuavcan
 	url = https://github.com/PX4/uavcan.git
 	branch = px4
-[submodule "msg/tools/genmsg"]
-	path = msg/tools/genmsg
-	url = https://github.com/PX4/genmsg.git
-	branch = px4
-[submodule "msg/tools/gencpp"]
-	path = msg/tools/gencpp
-	url = https://github.com/PX4/gencpp.git
-	branch = px4
 [submodule "Tools/jMAVSim"]
 	path = Tools/jMAVSim
 	url = https://github.com/PX4/jMAVSim.git
