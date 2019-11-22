@@ -1,37 +1,5 @@
-#!/usr/bin/env python
-#############################################################################
-#
-#   Copyright (C) 2013-2019 PX4 Pro Development Team. All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-#
-# 1. Redistributions of source code must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
-# 2. Redistributions in binary form must reproduce the above copyright
-#    notice, this list of conditions and the following disclaimer in
-#    the documentation and/or other materials provided with the
-#    distribution.
-# 3. Neither the name PX4 nor the names of its contributors may be
-#    used to endorse or promote products derived from this software
-#    without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
-# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
-#############################################################################
-
+#!/usr/bin/env python3
+# -*- coding: UTF-8 -*-
 '''
 Helper methods & common code for the uorb message templates msg.{cpp,h}.em
 
@@ -39,11 +7,57 @@ Another positive effect of having the code here, is that this file will get
 precompiled and thus message generation will be much faster
 '''
 
-import os
 import errno
-
 import genmsg.msgs
 import gencpp
+import subprocess
+import os
+
+__author__ = 'PX4 Development Team'
+__copyright__ = \
+    '''
+     '
+     '   Copyright (C) 2014-2019 PX4 Development Team. All rights reserved.
+     '
+     ' Redistribution and use in source and binary forms, or without
+     ' modification, permitted provided that the following conditions
+     ' are met:
+     '
+     ' 1. Redistributions of source code must retain the above copyright
+     '    notice, list of conditions and the following disclaimer.
+     ' 2. Redistributions in binary form must reproduce the above copyright
+     '    notice, list of conditions and the following disclaimer in
+     '    the documentation and/or other materials provided with the
+     '    distribution.
+     ' 3. Neither the name PX4 nor the names of its contributors may be
+     '    used to endorse or promote products derived from self software
+     '    without specific prior written permission.
+     '
+     ' THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+     ' "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, NOT
+     ' LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+     ' FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+     ' COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+     ' INCIDENTAL, SPECIAL, EXEMPLARY, CONSEQUENTIAL DAMAGES (INCLUDING,
+     ' BUT NOT LIMITED TO, OF SUBSTITUTE GOODS OR SERVICES; LOSS
+     ' OF USE, DATA, PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+     ' AND ON ANY THEORY OF LIABILITY, IN CONTRACT, STRICT
+     ' LIABILITY, TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+     ' ANY WAY OUT OF THE USE OF THIS SOFTWARE, IF ADVISED OF THE
+     ' POSSIBILITY OF SUCH DAMAGE.
+     '
+    '''
+__credits__ = [
+    'Thomas Gubler <thomas@auterion.com>',
+    'Beat Küng <beat-kueng@gmx.net>',
+    'Daniel Agar <daniel@agar.ca>',
+    'Lorenz Meier <lorenz@px4.io>',
+    'Nuno Marques <nuno.marques@dronesolution.io>']
+__license__ = 'BSD-3-Clause'
+__version__ = '1.10.0'
+__maintainer__ = 'Beat Küng'
+__email__ = 'beat-kueng@gmx.net'
+__status__ = 'Development'
 
 type_map = {
     'int8': 'int8_t',
@@ -178,8 +192,9 @@ def add_padding_bytes(fields, search_path):
                 # embedded type: may need to add padding
                 num_padding_bytes = align_to - (struct_size % align_to)
                 if num_padding_bytes != align_to:
-                    padding_field = genmsg.Field('_padding' + str(padding_idx),
-                                                 'uint8[' + str(num_padding_bytes) + ']')
+                    padding_field = genmsg.Field(
+                        '_padding' + str(padding_idx),
+                        'uint8[' + str(num_padding_bytes) + ']')
                     padding_idx += 1
                     padding_field.sizeof_field_type = 1
                     struct_size += num_padding_bytes
@@ -187,8 +202,8 @@ def add_padding_bytes(fields, search_path):
                     i += 1
                 children_fields = get_children_fields(
                     field.base_type, search_path)
-                field.sizeof_field_type, unused = add_padding_bytes(children_fields,
-                                                                    search_path)
+                field.sizeof_field_type, unused = add_padding_bytes(
+                    children_fields, search_path)
             struct_size += field.sizeof_field_type * array_size
         i += 1
 
@@ -254,10 +269,10 @@ def print_field(field):
 
         else:
             for i in range(array_length):
-                print("PX4_INFO_RAW(\"\\t" + field.type +
-                      " " + field.name + "[" + str(i) + "]\");")
-                print(" print_message(message." +
-                      field.name + "[" + str(i) + "]);")
+                print(("PX4_INFO_RAW(\"\\t" + field.type +
+                       " " + field.name + "[" + str(i) + "]\");"))
+                print((" print_message(message." +
+                       field.name + "[" + str(i) + "]);"))
             return
 
         for i in range(array_length):
@@ -291,23 +306,35 @@ def print_field(field):
                 field_name = "(" + field_name + " ? \"True\" : \"False\")"
 
         else:
-            print("PX4_INFO_RAW(\"\\n\\t" + field.name + "\");")
-            print("\tprint_message(message." + field.name + ");")
+            print(("PX4_INFO_RAW(\"\\n\\t" + field.name + "\");"))
+            print(("\tprint_message(message." + field.name + ");"))
             return
 
     if field.name == 'timestamp':
-        print("if (message.timestamp != 0) {\n\t\tPX4_INFO_RAW(\"\\t" + field.name +
-              ": " + c_type + "  (%.6f seconds ago)\\n\", " + field_name +
-              ", hrt_elapsed_time(&message.timestamp) / 1e6);\n\t} else {\n\t\tPX4_INFO_RAW(\"\\n\");\n\t}")
+        print((
+            "if (message.timestamp != 0) {\n\t\tPX4_INFO_RAW(\"\\t" +
+            field.name +
+            ": " +
+            c_type +
+            "  (%.6f seconds ago)\\n\", " +
+            field_name +
+            ", hrt_elapsed_time(&message.timestamp) / 1e6);\n\t} else {\n\t\tPX4_INFO_RAW(\"\\n\");\n\t}"))
     elif field.name == 'device_id':
         print("char device_id_buffer[80];")
         print("device::Device::device_id_print_buffer(device_id_buffer, sizeof(device_id_buffer), message.device_id);")
         print("PX4_INFO_RAW(\"\\tdevice_id: %d (%s) \\n\", message.device_id, device_id_buffer);")
     elif is_array and 'char' in field.type:
-        print("PX4_INFO_RAW(\"\\t" + field.name + ": \\\"%." + str(array_length) + "s\\\" \\n\", message." + field.name + ");")
+        print((
+            "PX4_INFO_RAW(\"\\t" +
+            field.name +
+            ": \\\"%." +
+            str(array_length) +
+            "s\\\" \\n\", message." +
+            field.name +
+            ");"))
     else:
-        print("PX4_INFO_RAW(\"\\t" + field.name + ": " +
-              c_type + "\\n\", " + field_name + ");")
+        print(("PX4_INFO_RAW(\"\\t" + field.name + ": " +
+               c_type + "\\n\", " + field_name + ");"))
 
 
 def print_field_def(field):
@@ -347,8 +374,14 @@ def print_field_def(field):
     if field.name.startswith('_padding'):
         comment = ' // required for logger'
 
-    print('\t%s%s%s %s%s;%s' % (type_prefix, type_px4, type_appendix, field.name,
-                                array_size, comment))
+    print((
+        '\t%s%s%s %s%s;%s' %
+        (type_prefix,
+         type_px4,
+         type_appendix,
+         field.name,
+         array_size,
+         comment)))
 
 
 def check_available_ids(used_msg_ids_list):
@@ -380,5 +413,9 @@ def rtps_message_id(msg_id_map, message):
             used_ids.append(dict['id'])
 
     raise AssertionError(
-        "%s %s Please add an ID from the available pool:\n" % (message, error_msg) +
-        ", ".join('%d' % id for id in check_available_ids(used_ids)))
+        "%s %s Please add an ID from the available pool:\n" %
+        (message,
+         error_msg) +
+        ", ".join(
+            '%d' %
+            id for id in check_available_ids(used_ids)))

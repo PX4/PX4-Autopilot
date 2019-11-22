@@ -1,8 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
-Script to read an yaml file containing the RTPS message IDs and update the naming convention to PascalCase
+Script to read an yaml file containing the RTPS message IDs and update the
+naming convention to PascalCase
 """
 
+import errno
 import os
 import yaml
 import sys
@@ -44,7 +46,7 @@ __copyright__ = \
     '''
 __credits__ = ['Nuno Marques <nuno.marques@dronesolution.io>']
 __license__ = 'BSD-3-Clause'
-__version__ = '0.1.0'
+__version__ = '1.10.0'
 __maintainer__ = 'Nuno Marques'
 __email__ = 'nuno.marques@dronesolution.io'
 __status__ = 'Development'
@@ -73,7 +75,7 @@ def load_yaml_file(file):
     try:
         with open(file, 'r') as f:
             if verbose:
-                print("--\t[Step 1] %s yaml file loaded!" % file)
+                print(("--\t[Step 1] %s yaml file loaded!" % file))
             return yaml.safe_load(f)
     except OSError as e:
         if e.errno == errno.ENOENT:
@@ -92,17 +94,13 @@ def update_dict(list):
         num_of_msgs = 0
     for i, dictionary in enumerate(list["rtps"]):
         # implementation depends on the Python version being used
-        if sys.version_info[0] < 3:
-            dict = {k: v.title().replace('_', '') if isinstance(
-                v, basestring) else v for k, v in dictionary.iteritems()}
-        else:
-            dict = {k: v.title().replace('_', '') if isinstance(
-                v, str) else v for k, v in dictionary.items()}
+        dict = {k: v.title().replace('_', '') if isinstance(
+            v, str) else v for k, v in dictionary.items()}
         list["rtps"][i] = dict
         if verbose:
             num_of_msgs += 1
     if verbose:
-        print("--\t[Step 2] List: %d msg names updated!" % num_of_msgs)
+        print(("--\t[Step 2] List: %d msg names updated!" % num_of_msgs))
 
 
 def update_yaml_file(list, file):
@@ -121,9 +119,9 @@ def update_yaml_file(list, file):
             yaml.dump(list, f, Dumper=IndenterDumper, default_flow_style=False)
             if verbose:
                 if in_file == out_file:
-                    print("--\t[Step 3] %s updated!" % in_file)
+                    print(("--\t[Step 3] %s updated!" % in_file))
                 else:
-                    print("--\t[Step 3] %s created!" % out_file)
+                    print(("--\t[Step 3] %s created!" % out_file))
 
     except OSError as e:
         if e.errno == errno.ENOENT:
@@ -139,16 +137,26 @@ if __name__ == "__main__":
     required = parser.add_argument_group('Required')
     required.add_argument("-i", "--input-file", dest="input_file",
                           help="Yaml file to read", metavar="INFILE")
-    optional.add_argument("-o", "--output-file", dest="output_file",
-                          help="Yaml file to dump. If not set, it is the same as the input",
-                          metavar="OUTFILE", default="")
-    optional.add_argument("-q", "--quiet", action="store_false", dest="verbose",
-                          default=True, help="Don't print status messages to stdout")
+    optional.add_argument(
+        "-o",
+        "--output-file",
+        dest="output_file",
+        help="Yaml file to dump. If not set, it is the same as the input",
+        metavar="OUTFILE",
+        default="")
+    optional.add_argument(
+        "-q",
+        "--quiet",
+        action="store_false",
+        dest="verbose",
+        default=True,
+        help="Don't print status messages to stdout")
 
     args = parser.parse_args()
     verbose = args.verbose
     in_file = args.input_file
-    out_file = args.output_file if (args.output_file != in_file and args.output_file != "") else in_file
+    out_file = args.output_file if (
+        args.output_file != in_file and args.output_file != "") else in_file
 
     if verbose:
         print("-- PX4 to ROS RTPS Ids --")

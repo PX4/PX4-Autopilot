@@ -1,43 +1,58 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+"""
+Implementation of the Classifier class, for classification of RTPS msgs as
+senders, receivers or to be ignored
+"""
 
-################################################################################
-#
-# Copyright 2018 PX4 Pro Development Team. All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# 1. Redistributions of source code must retain the above copyright notice, this
-# list of conditions and the following disclaimer.
-#
-# 2. Redistributions in binary form must reproduce the above copyright notice,
-# this list of conditions and the following disclaimer in the documentation
-# and/or other materials provided with the distribution.
-#
-# 3. Neither the name of the copyright holder nor the names of its contributors
-# may be used to endorse or promote products derived from this software without
-# specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
-################################################################################
-
-import sys
-import os
 import argparse
-import yaml
-import re
 import difflib
+import errno
+import os
+import re
+import subprocess
+import sys
+import yaml
+
+__author__ = 'PX4 Development Team'
+__copyright__ = \
+    '''
+     '
+     '   Copyright (C) 2018-2019 PX4 Development Team. All rights reserved.
+     '
+     ' Redistribution and use in source and binary forms, or without
+     ' modification, permitted provided that the following conditions
+     ' are met:
+     '
+     ' 1. Redistributions of source code must retain the above copyright
+     '    notice, list of conditions and the following disclaimer.
+     ' 2. Redistributions in binary form must reproduce the above copyright
+     '    notice, list of conditions and the following disclaimer in
+     '    the documentation and/or other materials provided with the
+     '    distribution.
+     ' 3. Neither the name PX4 nor the names of its contributors may be
+     '    used to endorse or promote products derived from self software
+     '    without specific prior written permission.
+     '
+     ' THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+     ' "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, NOT
+     ' LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+     ' FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+     ' COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+     ' INCIDENTAL, SPECIAL, EXEMPLARY, CONSEQUENTIAL DAMAGES (INCLUDING,
+     ' BUT NOT LIMITED TO, OF SUBSTITUTE GOODS OR SERVICES; LOSS
+     ' OF USE, DATA, PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+     ' AND ON ANY THEORY OF LIABILITY, IN CONTRACT, STRICT
+     ' LIABILITY, TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+     ' ANY WAY OUT OF THE USE OF THIS SOFTWARE, IF ADVISED OF THE
+     ' POSSIBILITY OF SUCH DAMAGE.
+     '
+    '''
+__credits__ = ['Nuno Marques <nuno.marques@dronesolution.io>']
+__license__ = 'BSD-3-Clause'
+__version__ = '1.10.0'
+__maintainer__ = 'Nuno Marques'
+__email__ = 'nuno.marques@dronesolution.io'
+__status__ = 'Development'
 
 
 class Classifier():
@@ -75,8 +90,8 @@ class Classifier():
         send = {}
         send_alias = []
         for dict in self.msg_id_map['rtps']:
-            if 'send' in dict.keys():
-                if 'alias' in dict.keys():
+            if 'send' in list(dict.keys()):
+                if 'alias' in list(dict.keys()):
                     send_alias.append(
                         ({dict['msg']: dict['id']}, dict['alias']))
                 else:
@@ -87,8 +102,8 @@ class Classifier():
         receive = {}
         receive_alias = []
         for dict in self.msg_id_map['rtps']:
-            if 'receive' in dict.keys():
-                if 'alias' in dict.keys():
+            if 'receive' in list(dict.keys()):
+                if 'alias' in list(dict.keys()):
                     receive_alias.append(
                         ({dict['msg']: dict['id']}, dict['alias']))
                 else:
@@ -99,8 +114,9 @@ class Classifier():
         ignore = {}
         ignore_alias = []
         for dict in self.msg_id_map['rtps']:
-            if (('send' not in dict.keys()) and ('receive' not in dict.keys())):
-                if 'alias' in dict.keys():
+            if (('send' not in list(dict.keys())) and (
+                    'receive' not in list(dict.keys()))):
+                if 'alias' in list(dict.keys()):
                     ignore_alias.append(
                         ({dict['msg']: dict['id']}, dict['alias']))
                 else:
@@ -109,15 +125,15 @@ class Classifier():
 
     def set_msg_files_send(self):
         return [os.path.join(self.msg_folder, msg + ".msg")
-                for msg in self.msgs_to_send.keys()]
+                for msg in list(self.msgs_to_send.keys())]
 
     def set_msg_files_receive(self):
         return [os.path.join(self.msg_folder, msg + ".msg")
-                for msg in self.msgs_to_receive.keys()]
+                for msg in list(self.msgs_to_receive.keys())]
 
     def set_msg_files_ignore(self):
         return [os.path.join(self.msg_folder, msg + ".msg")
-                for msg in self.msgs_to_ignore.keys()]
+                for msg in list(self.msgs_to_ignore.keys())]
 
     def check_if_listed(self, yaml_file):
         """
@@ -137,7 +153,12 @@ class Classifier():
                 error_msg = "The following messages are not listen under "
 
             raise AssertionError(
-                "\n%s %s: " % (error_msg, yaml_file) + ", ".join('%s' % msg for msg in none_listed_msgs) +
+                "\n%s %s: " %
+                (error_msg,
+                 yaml_file) +
+                ", ".join(
+                    '%s' %
+                    msg for msg in none_listed_msgs) +
                 "\n\nPlease add them to the yaml file with the respective ID and, if applicable, mark them " +
                 "to be sent or received by the micro-RTPS bridge.\n"
                 "NOTE: If the message has multi-topics (#TOPICS), these should be added as well.\n")
@@ -147,11 +168,12 @@ class Classifier():
         Check if alias message has correct base type
         """
         registered_alias_msgs = list(
-            dict['alias'] for dict in self.msg_id_map['rtps'] if 'alias' in dict.keys())
+            dict['alias'] for dict in self.msg_id_map['rtps'] if 'alias' in list(
+                dict.keys()))
 
         base_types = []
         for dict in self.msg_id_map['rtps']:
-            if 'alias' not in dict.keys():
+            if 'alias' not in list(dict.keys()):
                 base_types.append(dict['msg'])
 
         incorrect_base_types = list(
@@ -164,7 +186,15 @@ class Classifier():
 
         if len(base_types_suggestion) > 0:
             raise AssertionError(
-                ('\n' + '\n'.join('\t- The multi-topic message base type \'{}\' does not exist.{}'.format(k, (' Did you mean \'' + v[0] + '\'?' if v else '')) for k, v in base_types_suggestion.items())))
+                ('\n' +
+                 '\n'.join(
+                     '\t- The multi-topic message base type \'{}\' does not exist.{}'.format(
+                         k,
+                         (' Did you mean \'' +
+                          v[0] +
+                             '\'?' if v else '')) for k,
+                     v in list(
+                         base_types_suggestion.items()))))
 
     def check_id_space(self):
         """
@@ -173,18 +203,31 @@ class Classifier():
         incorrect_base_ids = {}
         incorrect_alias_ids = {}
         for dict in self.msg_id_map['rtps']:
-            if 'alias' not in dict.keys() and dict['id'] >= self.alias_space_init_id:
+            if 'alias' not in list(dict.keys(
+            )) and dict['id'] >= self.alias_space_init_id:
                 incorrect_base_ids.update({dict['msg']: dict['id']})
-            elif 'alias' in dict.keys() and dict['id'] < self.alias_space_init_id:
+            elif 'alias' in list(dict.keys()) and dict['id'] < self.alias_space_init_id:
                 incorrect_alias_ids.update({dict['msg']: dict['id']})
 
         if len(incorrect_base_ids) > 0:
             raise AssertionError(
-                ('\n' + '\n'.join('\t- The message \'{} with ID \'{}\' is in the wrong ID space. Please use any of the available IDs from 0 to 149'.format(k, v) for k, v in incorrect_base_ids.items())))
+                ('\n' +
+                 '\n'.join(
+                     '\t- The message \'{} with ID \'{}\' is in the wrong ID space. Please use any of the available IDs from 0 to 149'.format(
+                         k,
+                         v) for k,
+                     v in list(
+                         incorrect_base_ids.items()))))
 
         if len(incorrect_alias_ids) > 0:
             raise AssertionError(
-                ('\n' + '\n'.join('\t- The alias message \'{}\' with ID \'{}\' is in the wrong ID space. Please use any of the available IDs from 149 to 255'.format(k, v) for k, v in incorrect_alias_ids.items())))
+                ('\n' +
+                 '\n'.join(
+                     '\t- The alias message \'{}\' with ID \'{}\' is in the wrong ID space. Please use any of the available IDs from 149 to 255'.format(
+                         k,
+                         v) for k,
+                     v in list(
+                         incorrect_alias_ids.items()))))
 
     @staticmethod
     def parse_yaml_msg_id_file(yaml_file):
@@ -205,81 +248,95 @@ class Classifier():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-s", "--send", dest='send',
-                        action="store_true", help="Get topics to be sent")
     parser.add_argument("-a", "--alias", dest='alias',
                         action="store_true", help="Get alias topics")
-    parser.add_argument("-r", "--receive", dest='receive',
-                        action="store_true", help="Get topics to be received")
     parser.add_argument("-i", "--ignore", dest='ignore',
                         action="store_true", help="Get topics to be ignored")
+    parser.add_argument(
+        "-m",
+        "--topic-msg-dir",
+        dest='msgdir',
+        type=str,
+        help="Topics message dir, by default msg/",
+        default="msg")
     parser.add_argument("-p", "--path", dest='path',
                         action="store_true", help="Get msgs and its paths")
-    parser.add_argument("-m", "--topic-msg-dir", dest='msgdir', type=str,
-                        help="Topics message dir, by default msg/", default="msg")
-    parser.add_argument("-y", "--rtps-ids-file", dest='yaml_file', type=str,
-                        help="RTPS msg IDs definition file absolute path, by default use relative path to msg, tools/uorb_rtps_message_ids.yaml",
-                        default='tools/uorb_rtps_message_ids.yaml')
+    parser.add_argument("-r", "--receive", dest='receive',
+                        action="store_true", help="Get topics to be received")
+    parser.add_argument("-s", "--send", dest='send',
+                        action="store_true", help="Get topics to be sent")
+    parser.add_argument(
+        "-y",
+        "--rtps-ids-file",
+        dest='yaml_file',
+        type=str,
+        help="RTPS msg IDs definition file absolute path, by default use relative path to msg, 'tools/uorb_rtps_message_ids.yaml'",
+        default='tools/uorb_rtps_message_ids.yaml')
 
     # Parse arguments
     args = parser.parse_args()
 
-    msg_dir = args.msgdir
-    if args.msgdir == 'msg':
-        msg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    else:
-        msg_dir = os.path.abspath(args.msgdir)
-    classifier = (Classifier(os.path.abspath(args.yaml_file), msg_dir) if os.path.isabs(args.yaml_file)
-                  else Classifier(os.path.join(msg_dir, args.yaml_file), msg_dir))
+    msg_dir = os.path.dirname(os.path.dirname(os.path.abspath(
+        __file__))) if args.msgdir == 'msg' else os.path.abspath(args.msgdir)
+    yaml_file = os.path.abspath(args.yaml_file) if os.path.isabs(
+        args.yaml_file) else os.path.join(msg_dir, args.yaml_file)
+
+    classifier = Classifier(yaml_file, msg_dir)
 
     if args.send:
         if args.path:
-            print ('send files: ' + ', '.join(str(msg_file)
-                                              for msg_file in classifier.msgs_files_send) + '\n')
+            print(('send files: ' + ', '.join(str(msg_file)
+                                              for msg_file in classifier.msgs_files_send) + '\n'))
         else:
             if args.alias:
-                if sys.version_info[0] < 3:
-                    print (', '.join(str(msg)
-                                     for msg in classifier.msgs_to_send.keys()) + (' alias ' + ', '.join(str(msg[0].keys()[0])
-                                                                                                         for msg in classifier.alias_msgs_to_send) if len(classifier.alias_msgs_to_send) > 0 else '') + '\n')
-                else:
-                    print (', '.join(str(msg)
-                                     for msg in classifier.msgs_to_send.keys()) + (' alias ' + ', '.join(str(list(msg[0].keys())[0])
-                                                                                                         for msg in classifier.alias_msgs_to_send) if len(classifier.alias_msgs_to_send) > 0 else '') + '\n')
+                print((
+                    ', '.join(
+                        str(msg) for msg in list(classifier.msgs_to_send.keys())) +
+                    (
+                        ' alias ' +
+                        ', '.join(
+                            str(
+                                list(msg[0].keys())[0]) for msg in classifier.alias_msgs_to_send) if len(
+                            classifier.alias_msgs_to_send) > 0 else '') +
+                    '\n'))
             else:
-                print (', '.join(str(msg)
-                                 for msg in classifier.msgs_to_send.keys()))
+                print((', '.join(str(msg)
+                                 for msg in list(classifier.msgs_to_send.keys()))))
     if args.receive:
         if args.path:
-            print ('receive files: ' + ', '.join(str(msg_file)
-                                                 for msg_file in classifier.msgs_files_receive) + '\n')
+            print(('receive files: ' + ', '.join(str(msg_file)
+                                                 for msg_file in classifier.msgs_files_receive) + '\n'))
         else:
             if args.alias:
-                if sys.version_info[0] < 3:
-                    print (', '.join(str(msg)
-                                     for msg in classifier.msgs_to_receive.keys()) + (' alias ' + ', '.join(str(msg[0].keys()[0])
-                                                                                                            for msg in classifier.alias_msgs_to_receive) if len(classifier.alias_msgs_to_receive) > 0 else '') + '\n')
-                else:
-                    print (', '.join(str(msg)
-                                     for msg in classifier.msgs_to_receive.keys()) + (' alias ' + ', '.join(str(list(msg[0].keys())[0])
-                                                                                                            for msg in classifier.alias_msgs_to_receive) if len(classifier.alias_msgs_to_receive) > 0 else '') + '\n')
+                print((
+                    ', '.join(
+                        str(msg) for msg in list(classifier.msgs_to_receive.keys())) +
+                    (
+                        ' alias ' +
+                        ', '.join(
+                            str(
+                                list(msg[0].keys())[0]) for msg in classifier.alias_msgs_to_receive) if len(
+                            classifier.alias_msgs_to_receive) > 0 else '') +
+                    '\n'))
             else:
-                print (', '.join(str(msg)
-                                 for msg in classifier.msgs_to_receive.keys()))
+                print((', '.join(str(msg)
+                                 for msg in list(classifier.msgs_to_receive.keys()))))
     if args.ignore:
         if args.path:
-            print ('ignore files: ' + ', '.join(str(msg_file)
-                                                for msg_file in classifier.msgs_files_ignore) + '\n')
+            print(('ignore files: ' + ', '.join(str(msg_file)
+                                                for msg_file in classifier.msgs_files_ignore) + '\n'))
         else:
             if args.alias:
-                if sys.version_info[0] < 3:
-                    print (', '.join(str(msg)
-                                     for msg in classifier.msgs_to_ignore.keys()) + (' alias ' + ', '.join(str(msg[0].keys()[0])
-                                                                                                           for msg in classifier.alias_msgs_to_ignore) if len(classifier.alias_msgs_to_ignore) > 0 else '') + '\n')
-                else:
-                    print (', '.join(str(msg)
-                                     for msg in classifier.msgs_to_ignore.keys()) + (' alias ' + ', '.join(str(list(msg[0].keys())[0])
-                                                                                                           for msg in classifier.alias_msgs_to_ignore) if len(classifier.alias_msgs_to_ignore) > 0 else '') + '\n')
+                print((
+                    ', '.join(
+                        str(msg) for msg in list(classifier.msgs_to_ignore.keys())) +
+                    (
+                        ' alias ' +
+                        ', '.join(
+                            str(
+                                list(msg[0].keys())[0]) for msg in classifier.alias_msgs_to_ignore) if len(
+                            classifier.alias_msgs_to_ignore) > 0 else '') +
+                    '\n'))
             else:
-                print (', '.join(str(msg)
-                                 for msg in classifier.msgs_to_ignore.keys()))
+                print((', '.join(str(msg)
+                                 for msg in list(classifier.msgs_to_ignore.keys()))))

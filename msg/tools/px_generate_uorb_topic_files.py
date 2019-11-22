@@ -1,49 +1,64 @@
-#!/usr/bin/env python
-#############################################################################
-#
-#   Copyright (C) 2013-2018 PX4 Pro Development Team. All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-#
-# 1. Redistributions of source code must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
-# 2. Redistributions in binary form must reproduce the above copyright
-#    notice, this list of conditions and the following disclaimer in
-#    the documentation and/or other materials provided with the
-#    distribution.
-# 3. Neither the name PX4 nor the names of its contributors may be
-#    used to endorse or promote products derived from this software
-#    without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
-# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
-# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
-#############################################################################
-
+#!/usr/bin/env python3
+# -*- coding: UTF-8 -*-
 """
 px_generate_uorb_topic_files.py
 Generates c/cpp header/source files for uorb topics from .msg (ROS syntax)
 message files
 """
-from __future__ import print_function
+
+import argparse
+import errno
+import filecmp
 import os
 import shutil
-import filecmp
-import argparse
+import subprocess
 import sys
-import errno
+
+__author__ = 'PX4 Development Team'
+__copyright__ = \
+    '''
+     '
+     '   Copyright (C) 2014-2019 PX4 Development Team. All rights reserved.
+     '
+     ' Redistribution and use in source and binary forms, or without
+     ' modification, permitted provided that the following conditions
+     ' are met:
+     '
+     ' 1. Redistributions of source code must retain the above copyright
+     '    notice, list of conditions and the following disclaimer.
+     ' 2. Redistributions in binary form must reproduce the above copyright
+     '    notice, list of conditions and the following disclaimer in
+     '    the documentation and/or other materials provided with the
+     '    distribution.
+     ' 3. Neither the name PX4 nor the names of its contributors may be
+     '    used to endorse or promote products derived from self software
+     '    without specific prior written permission.
+     '
+     ' THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+     ' "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, NOT
+     ' LIMITED TO, IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+     ' FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+     ' COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+     ' INCIDENTAL, SPECIAL, EXEMPLARY, CONSEQUENTIAL DAMAGES (INCLUDING,
+     ' BUT NOT LIMITED TO, OF SUBSTITUTE GOODS OR SERVICES; LOSS
+     ' OF USE, DATA, PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+     ' AND ON ANY THEORY OF LIABILITY, IN CONTRACT, STRICT
+     ' LIABILITY, TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+     ' ANY WAY OUT OF THE USE OF THIS SOFTWARE, IF ADVISED OF THE
+     ' POSSIBILITY OF SUCH DAMAGE.
+     '
+    '''
+__credits__ = [
+    'Thomas Gubler <thomas@auterion.com>',
+    'Beat Küng <beat-kueng@gmx.net>',
+    'Daniel Agar <daniel@agar.ca>',
+    'Lorenz Meier <lorenz@px4.io>',
+    'Nuno Marques <nuno.marques@dronesolution.io>']
+__license__ = 'BSD-3-Clause'
+__version__ = '1.10.0'
+__maintainer__ = 'Beat Küng'
+__email__ = 'beat-kueng@gmx.net'
+__status__ = 'Development'
 
 px4_tools_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(px4_tools_dir + "/genmsg/src")
@@ -117,7 +132,13 @@ def get_msgs_list(msgdir):
     return [fn for fn in os.listdir(msgdir) if fn.endswith(".msg")]
 
 
-def generate_output_from_file(format_idx, filename, outputdir, package, templatedir, includepath):
+def generate_output_from_file(
+        format_idx,
+        filename,
+        outputdir,
+        package,
+        templatedir,
+        includepath):
     """
     Converts a single .msg file to an uorb header/source file
     """
@@ -133,15 +154,21 @@ def generate_output_from_file(format_idx, filename, outputdir, package, template
     try:
         assert 'timestamp' in field_name_and_type
     except AssertionError:
-        print("[ERROR] uORB topic files generator:\n\tgenerate_output_from_file:\tNo 'timestamp' field found in " +
-              spec.short_name + " msg definition!")
+        print(
+            "[ERROR] uORB topic files generator:\n\tgenerate_output_from_file:\tNo 'timestamp' field found in " +
+            spec.short_name +
+            " msg definition!")
         exit(1)
     # assert if the timestamp field is of type uint64
     try:
         assert field_name_and_type.get('timestamp') == 'uint64'
     except AssertionError:
-        print("[ERROR] uORB topic files generator:\n\tgenerate_output_from_file:\t'timestamp' field in " + spec.short_name +
-              " msg definition is not of type uint64 but rather of type " + field_name_and_type.get('timestamp') + "!")
+        print(
+            "[ERROR] uORB topic files generator:\n\tgenerate_output_from_file:\t'timestamp' field in " +
+            spec.short_name +
+            " msg definition is not of type uint64 but rather of type " +
+            field_name_and_type.get('timestamp') +
+            "!")
         exit(1)
     topics = get_multi_topics(filename)
     if includepath:
@@ -173,7 +200,17 @@ def generate_output_from_file(format_idx, filename, outputdir, package, template
     return generate_by_template(output_file, template_file, em_globals)
 
 
-def generate_idl_file(filename_msg, msg_dir, alias, outputdir, templatedir, package, includepath, fastrtpsgen_version, ros2_distro, ids):
+def generate_idl_file(
+        filename_msg,
+        msg_dir,
+        alias,
+        outputdir,
+        templatedir,
+        package,
+        includepath,
+        fastrtpsgen_version,
+        ros2_distro,
+        ids):
     """
     Generates an .idl from .msg file
     """
@@ -181,11 +218,25 @@ def generate_idl_file(filename_msg, msg_dir, alias, outputdir, templatedir, pack
 
     if (alias != ""):
         em_globals = get_em_globals(
-            msg, alias, package, includepath, ids, fastrtpsgen_version, ros2_distro, MsgScope.NONE)
+            msg,
+            alias,
+            package,
+            includepath,
+            ids,
+            fastrtpsgen_version,
+            ros2_distro,
+            MsgScope.NONE)
         spec_short_name = alias
     else:
         em_globals = get_em_globals(
-            msg, "", package, includepath, ids, fastrtpsgen_version, ros2_distro, MsgScope.NONE)
+            msg,
+            "",
+            package,
+            includepath,
+            ids,
+            fastrtpsgen_version,
+            ros2_distro,
+            MsgScope.NONE)
         spec_short_name = em_globals["spec"].short_name
 
     # Make sure output directory exists:
@@ -203,8 +254,20 @@ def generate_idl_file(filename_msg, msg_dir, alias, outputdir, templatedir, pack
     return generate_by_template(output_file, template_file, em_globals)
 
 
-def generate_uRTPS_general(filename_send_msgs, filename_alias_send_msgs, filename_receive_msgs, filename_alias_receive_msgs,
-                           msg_dir, outputdir, templatedir, package, includepath, ids, fastrtpsgen_version, ros2_distro, template_name):
+def generate_uRTPS_general(
+        filename_send_msgs,
+        filename_alias_send_msgs,
+        filename_receive_msgs,
+        filename_alias_receive_msgs,
+        msg_dir,
+        outputdir,
+        templatedir,
+        package,
+        includepath,
+        ids,
+        fastrtpsgen_version,
+        ros2_distro,
+        template_name):
     """
     Generates source file by msg content
     """
@@ -213,36 +276,52 @@ def generate_uRTPS_general(filename_send_msgs, filename_alias_send_msgs, filenam
     receive_msgs = list(os.path.join(msg_dir, msg + ".msg")
                         for msg in filename_receive_msgs)
 
-    if sys.version_info[0] < 3:
-        alias_send_msgs = list([os.path.join(
-            msg_dir, msg[1] + ".msg"), msg[0].keys()[0]] for msg in filename_alias_send_msgs)
-    else:
-        alias_send_msgs = list([os.path.join(msg_dir, msg[1] + ".msg"),
-                                list(msg[0].keys())[0]] for msg in filename_alias_send_msgs)
+    alias_send_msgs = list([os.path.join(msg_dir, msg[1] + ".msg"),
+                            list(msg[0].keys())[0]] for msg in filename_alias_send_msgs)
 
-    if sys.version_info[0] < 3:
-        alias_receive_msgs = list([os.path.join(
-            msg_dir, msg[1] + ".msg"), msg[0].keys()[0]] for msg in filename_alias_receive_msgs)
-    else:
-        alias_receive_msgs = list([os.path.join(
-            msg_dir, msg[1] + ".msg"), list(msg[0].keys())[0]] for msg in filename_alias_receive_msgs)
+    alias_receive_msgs = list([os.path.join(
+        msg_dir, msg[1] + ".msg"), list(msg[0].keys())[0]] for msg in filename_alias_receive_msgs)
 
     em_globals_list = []
     if send_msgs:
-        em_globals_list.extend([get_em_globals(
-            f, "", package, includepath, ids, fastrtpsgen_version, ros2_distro, MsgScope.SEND) for f in send_msgs])
+        em_globals_list.extend([get_em_globals(f,
+                                               "",
+                                               package,
+                                               includepath,
+                                               ids,
+                                               fastrtpsgen_version,
+                                               ros2_distro,
+                                               MsgScope.SEND) for f in send_msgs])
 
     if alias_send_msgs:
-        em_globals_list.extend([get_em_globals(
-            f[0], f[1], package, includepath, ids, fastrtpsgen_version, ros2_distro, MsgScope.SEND) for f in alias_send_msgs])
+        em_globals_list.extend([get_em_globals(f[0],
+                                               f[1],
+                                               package,
+                                               includepath,
+                                               ids,
+                                               fastrtpsgen_version,
+                                               ros2_distro,
+                                               MsgScope.SEND) for f in alias_send_msgs])
 
     if receive_msgs:
-        em_globals_list.extend([get_em_globals(
-            f, "", package, includepath, ids, fastrtpsgen_version, ros2_distro, MsgScope.RECEIVE) for f in receive_msgs])
+        em_globals_list.extend([get_em_globals(f,
+                                               "",
+                                               package,
+                                               includepath,
+                                               ids,
+                                               fastrtpsgen_version,
+                                               ros2_distro,
+                                               MsgScope.RECEIVE) for f in receive_msgs])
 
     if alias_receive_msgs:
-        em_globals_list.extend([get_em_globals(
-            f[0], f[1], package, includepath, ids, fastrtpsgen_version, ros2_distro, MsgScope.RECEIVE) for f in alias_receive_msgs])
+        em_globals_list.extend([get_em_globals(f[0],
+                                               f[1],
+                                               package,
+                                               includepath,
+                                               ids,
+                                               fastrtpsgen_version,
+                                               ros2_distro,
+                                               MsgScope.RECEIVE) for f in alias_receive_msgs])
 
     merged_em_globals = merge_em_globals_list(em_globals_list)
 
@@ -257,7 +336,18 @@ def generate_uRTPS_general(filename_send_msgs, filename_alias_send_msgs, filenam
     return generate_by_template(output_file, template_file, merged_em_globals)
 
 
-def generate_topic_file(filename_msg, msg_dir, alias, outputdir, templatedir, package, includepath, ids, fastrtpsgen_version, ros2_distro, template_name):
+def generate_topic_file(
+        filename_msg,
+        msg_dir,
+        alias,
+        outputdir,
+        templatedir,
+        package,
+        includepath,
+        ids,
+        fastrtpsgen_version,
+        ros2_distro,
+        template_name):
     """
     Generates a sources and headers from .msg file
     """
@@ -265,11 +355,25 @@ def generate_topic_file(filename_msg, msg_dir, alias, outputdir, templatedir, pa
 
     if (alias):
         em_globals = get_em_globals(
-            msg, alias, package, includepath, ids, fastrtpsgen_version, ros2_distro, MsgScope.NONE)
+            msg,
+            alias,
+            package,
+            includepath,
+            ids,
+            fastrtpsgen_version,
+            ros2_distro,
+            MsgScope.NONE)
         spec_short_name = alias
     else:
         em_globals = get_em_globals(
-            msg, "", package, includepath, ids, fastrtpsgen_version, ros2_distro, MsgScope.NONE)
+            msg,
+            "",
+            package,
+            includepath,
+            ids,
+            fastrtpsgen_version,
+            ros2_distro,
+            MsgScope.NONE)
         spec_short_name = em_globals["spec"].short_name
 
     # Make sure output directory exists:
@@ -283,7 +387,15 @@ def generate_topic_file(filename_msg, msg_dir, alias, outputdir, templatedir, pa
     return generate_by_template(output_file, template_file, em_globals)
 
 
-def get_em_globals(filename_msg, alias, package, includepath, ids, fastrtpsgen_version, ros2_distro, scope):
+def get_em_globals(
+        filename_msg,
+        alias,
+        package,
+        includepath,
+        ids,
+        fastrtpsgen_version,
+        ros2_distro,
+        scope):
     """
     Generates em globals dictionary
     """
@@ -440,7 +552,15 @@ def copy_changed(inputdir, outputdir, prefix='', quiet=False):
                 print("{0}: unchanged".format(input_file))
 
 
-def convert_dir_save(format_idx, inputdir, outputdir, package, templatedir, temporarydir, prefix, quiet=False):
+def convert_dir_save(
+        format_idx,
+        inputdir,
+        outputdir,
+        package,
+        templatedir,
+        temporarydir,
+        prefix,
+        quiet=False):
     """
     Converts all .msg files in inputdir to uORB header files
     Unchanged existing files are not overwritten.
@@ -514,8 +634,12 @@ if __name__ == "__main__":
     parser.add_argument('-q', dest='quiet', default=False, action='store_true',
                         help='string added as prefix to the output file '
                         ' name when converting directories')
-    parser.add_argument('--constrained-flash', dest='constrained_flash', default=False, action='store_true',
-                        help='set to save flash space')
+    parser.add_argument(
+        '--constrained-flash',
+        dest='constrained_flash',
+        default=False,
+        action='store_true',
+        help='set to save flash space')
     args = parser.parse_args()
 
     if args.include_paths:
@@ -533,7 +657,12 @@ if __name__ == "__main__":
     if args.file is not None:
         for f in args.file:
             generate_output_from_file(
-                generate_idx, f, args.temporarydir, args.package, args.templatedir, INCL_DEFAULT)
+                generate_idx,
+                f,
+                args.temporarydir,
+                args.package,
+                args.templatedir,
+                INCL_DEFAULT)
         if generate_idx == 1:
             generate_topics_list_file_from_files(
                 args.file, args.outputdir, args.templatedir)
