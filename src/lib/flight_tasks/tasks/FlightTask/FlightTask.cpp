@@ -164,9 +164,9 @@ void FlightTask::_evaluateVehicleLocalPosition()
 
 void FlightTask::_evaluateDistanceToGround()
 {
-	_dist_to_ground = NAN;
+	// Altitude above ground is by default just the negation of the current local position in D-direction.
+	_dist_to_ground = -_position(2);
 
-	// if there is a valid distance to bottom or vertical distance to home
 	if (PX4_ISFINITE(_dist_to_bottom)) {
 		_dist_to_ground = _dist_to_bottom;
 

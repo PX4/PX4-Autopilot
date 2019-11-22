@@ -214,7 +214,7 @@ void FlightTaskAutoLine::_generateAltitudeSetpoints()
 
 		// limit vertical downwards speed (positive z) close to ground
 		// for now we use the altitude above home and assume that we want to land at same height as we took off
-		float vel_limit = math::gradual(_alt_above_ground,
+		float vel_limit = math::gradual(_dist_to_ground,
 						_param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
 						_param_mpc_land_speed.get(), _constraints.speed_down);
 
