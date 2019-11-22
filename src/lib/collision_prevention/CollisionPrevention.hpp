@@ -67,10 +67,11 @@ public:
 	CollisionPrevention(ModuleParams *parent);
 
 	virtual ~CollisionPrevention();
+
 	/**
 	 * Returs true if Collision Prevention is running
 	 */
-	bool is_active() { return _param_cp_dist.get() > 0; }
+	bool is_active();
 
 	/**
 	 * Computes collision free setpoints
@@ -122,6 +123,7 @@ protected:
 private:
 
 	bool _interfering{false};		/**< states if the collision prevention interferes with the user input */
+	bool _was_active{false};		/**< states if the collision prevention interferes with the user input */
 
 	orb_advert_t _mavlink_log_pub{nullptr};	 	/**< Mavlink log uORB handle */
 
@@ -134,8 +136,11 @@ private:
 	uORB::SubscriptionData<vehicle_attitude_s> _sub_vehicle_attitude{ORB_ID(vehicle_attitude)};
 
 	static constexpr uint64_t RANGE_STREAM_TIMEOUT_US{500_ms};
+	static constexpr uint64_t TIMEOUT_HOLD_US{5_s};
 
 	hrt_abstime	_last_collision_warning{0};
+	hrt_abstime	_last_timeout_warning{0};
+	hrt_abstime	_time_activated{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::CP_DIST>) _param_cp_dist, /**< collision prevention keep minimum distance */

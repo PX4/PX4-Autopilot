@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file px4fmu_spi.c
+ * @file spi.cpp
  *
  * Board-specific SPI functions.
  */

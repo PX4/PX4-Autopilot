@@ -105,6 +105,18 @@ hrt_abstime CollisionPrevention::getElapsedTime(const hrt_abstime *ptr)
 	return hrt_absolute_time() - *ptr;
 }
 
+bool CollisionPrevention::is_active()
+{
+	bool activated = _param_cp_dist.get() > 0;
+
+	if (activated && !_was_active) {
+		_time_activated = getTime();
+	}
+
+	_was_active = activated;
+	return activated;
+}
+
 void
 CollisionPrevention::_addObstacleSensorData(const obstacle_distance_s &obstacle, const matrix::Quatf &vehicle_attitude)
 {
@@ -467,9 +479,24 @@ CollisionPrevention::_calculateConstrainedSetpoint(Vector2f &setpoint, const Vec
 		}
 
 	} else {
+		//allow no movement
+		float vel_max = 0.f;
+		setpoint = setpoint * vel_max;
+
 		// if distance data is stale, switch to Loiter
-		_publishVehicleCmdDoLoiter();
-		mavlink_log_critical(&_mavlink_log_pub, "No range data received, loitering.");
+		if (getElapsedTime(&_last_timeout_warning) > 1_s && getElapsedTime(&_time_activated) > 1_s) {
+			mavlink_log_critical(&_mavlink_log_pub, "No range data received, no movement allowed.");
+
+			if ((constrain_time - _obstacle_map_body_frame.timestamp) > TIMEOUT_HOLD_US
+			    && getElapsedTime(&_time_activated) > TIMEOUT_HOLD_US) {
+				_publishVehicleCmdDoLoiter();
+				mavlink_log_critical(&_mavlink_log_pub, "No range data received, switch to HOLD.");
+			}
+
+			_last_timeout_warning = getTime();
+		}
+
+
 	}
 }
 
@@ -488,9 +515,9 @@ CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const float max
 				      || new_setpoint(1) > original_setpoint(1) + 0.05f * max_speed);
 
 	if (currently_interfering && !_interfering) {
-		if (hrt_elapsed_time(&_last_collision_warning) > 3_s) {
-			mavlink_log_critical(&_mavlink_log_pub, "Collision Warning");
-			_last_collision_warning = hrt_absolute_time();
+		if (getElapsedTime(&_last_collision_warning) > 3_s) {
+			mavlink_log_info(&_mavlink_log_pub, "Collision Prevention limiting velocity");
+			_last_collision_warning = getTime();
 		}
 	}
 
@@ -498,7 +525,7 @@ CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const float max
 
 	// publish constraints
 	collision_constraints_s	constraints{};
-	constraints.timestamp = hrt_absolute_time();
+	constraints.timestamp = getTime();
 	original_setpoint.copyTo(constraints.original_setpoint);
 	new_setpoint.copyTo(constraints.adapted_setpoint);
 	_constraints_pub.publish(constraints);
@@ -509,7 +536,7 @@ CollisionPrevention::modifySetpoint(Vector2f &original_setpoint, const float max
 void CollisionPrevention::_publishVehicleCmdDoLoiter()
 {
 	vehicle_command_s command{};
-	command.timestamp = hrt_absolute_time();
+	command.timestamp = getTime();
 	command.command = vehicle_command_s::VEHICLE_CMD_DO_SET_MODE;
 	command.param1 = (float)1; // base mode
 	command.param3 = (float)0; // sub mode

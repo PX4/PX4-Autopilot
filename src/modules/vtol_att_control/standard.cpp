@@ -181,17 +181,30 @@ void Standard::update_vtol_state()
 
 		} else if (_vtol_schedule.flight_mode == vtol_mode::TRANSITION_TO_FW) {
 			// continue the transition to fw mode while monitoring airspeed for a final switch to fw mode
-			if (((_params->airspeed_disabled ||
-			      _airspeed->indicated_airspeed_m_s >= _params->transition_airspeed) &&
-			     time_since_trans_start > _params->front_trans_time_min) ||
-			    can_transition_on_ground()) {
 
+			const bool airspeed_triggers_transition = PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s)
+					&& !_params->airspeed_disabled;
+			const bool minimum_trans_time_elapsed = time_since_trans_start > _params->front_trans_time_min;
+
+			bool transition_to_fw = false;
+
+			if (minimum_trans_time_elapsed) {
+				if (airspeed_triggers_transition) {
+					transition_to_fw = _airspeed_validated->equivalent_airspeed_m_s >= _params->transition_airspeed;
+
+				} else {
+					transition_to_fw = true;
+				}
+			}
+
+			transition_to_fw |= can_transition_on_ground();
+
+			if (transition_to_fw) {
 				_vtol_schedule.flight_mode = vtol_mode::FW_MODE;
 
 				// don't set pusher throttle here as it's being ramped up elsewhere
 				_trans_finished_ts = hrt_absolute_time();
 			}
-
 		}
 	}
 
@@ -242,15 +255,16 @@ void Standard::update_transition_state()
 
 		// do blending of mc and fw controls if a blending airspeed has been provided and the minimum transition time has passed
 		if (_airspeed_trans_blend_margin > 0.0f &&
-		    _airspeed->indicated_airspeed_m_s > 0.0f &&
-		    _airspeed->indicated_airspeed_m_s >= _params->airspeed_blend &&
+		    PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s) &&
+		    _airspeed_validated->equivalent_airspeed_m_s > 0.0f &&
+		    _airspeed_validated->equivalent_airspeed_m_s >= _params->airspeed_blend &&
 		    time_since_trans_start > _params->front_trans_time_min) {
 
-			mc_weight = 1.0f - fabsf(_airspeed->indicated_airspeed_m_s - _params->airspeed_blend) /
+			mc_weight = 1.0f - fabsf(_airspeed_validated->equivalent_airspeed_m_s - _params->airspeed_blend) /
 				    _airspeed_trans_blend_margin;
 			// time based blending when no airspeed sensor is set
 
-		} else if (_params->airspeed_disabled) {
+		} else if (_params->airspeed_disabled || !PX4_ISFINITE(_airspeed_validated->equivalent_airspeed_m_s)) {
 			mc_weight = 1.0f - time_since_trans_start / _params->front_trans_time_min;
 			mc_weight = math::constrain(2.0f * mc_weight, 0.0f, 1.0f);
 
