@@ -86,8 +86,7 @@ void Tailsitter::update_vtol_state()
 	 * For the backtransition the pitch is controlled in MC mode again and switches to full MC control reaching the sufficient pitch angle.
 	*/
 
-	Eulerf euler = Quatf(_v_att->q);
-	float pitch = euler.theta();
+	float pitch = Eulerf(Quatf(_v_att->q)).theta();
 
 	if (!_attc->is_fixed_wing_requested()) {
 
