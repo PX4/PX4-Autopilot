@@ -49,10 +49,10 @@ struct mixer_heli_servo_s {
 
 /** helicopter swash plate mixer */
 struct mixer_heli_s {
-	uint8_t				control_count;	/**< number of inputs */
 	float				throttle_curve[HELI_CURVES_NR_POINTS];
 	float				pitch_curve[HELI_CURVES_NR_POINTS];
 	mixer_heli_servo_s		servos[4];	/**< up to four inputs */
+	uint8_t				control_count;	/**< number of inputs */
 };
 
 /**
