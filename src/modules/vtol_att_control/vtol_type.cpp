@@ -244,7 +244,6 @@ void VtolType::check_quadchute_condition()
 
 bool VtolType::set_idle_mc()
 {
-
 	unsigned pwm_value = _params->idle_pwm_mc;
 	struct pwm_output_values pwm_values {};
 
@@ -303,7 +302,7 @@ bool VtolType::apply_pwm_limits(struct pwm_output_values &pwm_values, pwm_limit_
 
 
 	if (ret != OK) {
-		PX4_ERR("failed setting max values");
+		PX4_DEBUG("failed setting max values");
 		return false;
 	}
 
