@@ -129,6 +129,7 @@ set(msg_files
 	ulog_stream.msg
 	ulog_stream_ack.msg
 	vehicle_acceleration.msg
+	vehicle_actuator_setpoint.msg
 	vehicle_air_data.msg
 	vehicle_angular_acceleration.msg
 	vehicle_angular_acceleration_setpoint.msg
