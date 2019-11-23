@@ -46,17 +46,17 @@ struct mixer_scaler_s {
 
 /** mixer input */
 struct mixer_control_s {
+	mixer_scaler_s		scaler;		/**< scaling applied to the input before use */
 	uint8_t			control_group;	/**< group from which the input reads */
 	uint8_t			control_index;	/**< index within the control group */
-	mixer_scaler_s		scaler;		/**< scaling applied to the input before use */
 };
 
 #define MIXER_SIMPLE_SIZE(_icount)	(sizeof(struct mixer_simple_s) + (_icount) * sizeof(struct mixer_control_s))
 
 /** simple mixer */
 struct mixer_simple_s {
-	uint8_t			control_count;	/**< number of inputs */
 	mixer_scaler_s		output_scaler;	/**< scaling for the output */
+	uint8_t			control_count;	/**< number of inputs */
 	mixer_control_s		controls[];	/**< actual size of the array is set by control_count */
 };
 
