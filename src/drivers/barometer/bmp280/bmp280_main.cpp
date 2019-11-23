@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,204 +31,178 @@
  *
  ****************************************************************************/
 
-/**
- * @file bmp280.cpp
- * Driver for the BMP280 barometric pressure sensor connected via I2C TODO or SPI.
- */
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
 
 #include "BMP280.hpp"
 
-enum BMP280_BUS {
-	BMP280_BUS_ALL = 0,
-	BMP280_BUS_I2C_INTERNAL,
-	BMP280_BUS_I2C_EXTERNAL,
-	BMP280_BUS_SPI_INTERNAL,
-	BMP280_BUS_SPI_EXTERNAL
+enum class BMP280_BUS {
+	ALL = 0,
+	I2C_INTERNAL,
+	I2C_EXTERNAL,
+	SPI_INTERNAL,
+	SPI_EXTERNAL
 };
 
-/*
- * Driver 'main' command.
- */
-extern "C" __EXPORT int bmp280_main(int argc, char *argv[]);
-
-/**
- * Local functions in support of the shell command.
- */
 namespace bmp280
 {
 
-/*
-  list of supported bus configurations
- */
+// list of supported bus configurations
 struct bmp280_bus_option {
-	enum BMP280_BUS busid;
-	const char *devpath;
+	BMP280_BUS busid;
 	BMP280_constructor interface_constructor;
 	uint8_t busnum;
-	uint32_t device;
-	bool external;
-	BMP280 *dev;
+	uint32_t address;
+	BMP280	*dev;
 } bus_options[] = {
-#if defined(PX4_SPIDEV_EXT_BARO) && defined(PX4_SPI_BUS_EXT)
-	{ BMP280_BUS_SPI_EXTERNAL, "/dev/bmp280_spi_ext", &bmp280_spi_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_BARO, true, NULL },
+#if defined(PX4_SPI_BUS_EXT) && defined(PX4_SPIDEV_EXT_BARO)
+	{ BMP280_BUS::SPI_EXTERNAL, &bmp280_spi_interface, PX4_SPI_BUS_EXT, PX4_SPIDEV_EXT_BARO, nullptr },
 #endif
-#if defined(PX4_SPIDEV_BARO)
-#  if defined(PX4_SPIDEV_BARO_BUS)
-	{ BMP280_BUS_SPI_INTERNAL, "/dev/bmp280_spi_int", &bmp280_spi_interface, PX4_SPIDEV_BARO_BUS, PX4_SPIDEV_BARO, false, NULL },
-#  else
-	{ BMP280_BUS_SPI_INTERNAL, "/dev/bmp280_spi_int", &bmp280_spi_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_BARO, false, NULL },
-#  endif
+#if defined(PX4_SPIDEV_BARO_BUS) && defined(PX4_SPIDEV_BARO)
+	{ BMP280_BUS::SPI_INTERNAL, &bmp280_spi_interface, PX4_SPIDEV_BARO_BUS, PX4_SPIDEV_BARO, nullptr },
+#elif defined(PX4_SPI_BUS_SENSORS) && defined(PX4_SPIDEV_BARO)
+	{ BMP280_BUS::SPI_INTERNAL, &bmp280_spi_interface, PX4_SPI_BUS_SENSORS, PX4_SPIDEV_BARO, nullptr },
 #endif
 #if defined(PX4_I2C_BUS_ONBOARD) && defined(PX4_I2C_OBDEV_BMP280)
-	{ BMP280_BUS_I2C_INTERNAL, "/dev/bmp280_i2c_int", &bmp280_i2c_interface, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_BMP280, false, NULL },
+	{ BMP280_BUS::I2C_INTERNAL, &bmp280_i2c_interface, PX4_I2C_BUS_ONBOARD, PX4_I2C_OBDEV_BMP280, nullptr },
 #endif
 #if defined(PX4_I2C_BUS_EXPANSION) && defined(PX4_I2C_OBDEV_BMP280)
-	{ BMP280_BUS_I2C_EXTERNAL, "/dev/bmp280_i2c_ext", &bmp280_i2c_interface, PX4_I2C_BUS_EXPANSION, PX4_I2C_OBDEV_BMP280, true, NULL },
+	{ BMP280_BUS::I2C_EXTERNAL, &bmp280_i2c_interface, PX4_I2C_BUS_EXPANSION, PX4_I2C_OBDEV_BMP280, nullptr },
 #endif
 };
-#define NUM_BUS_OPTIONS (sizeof(bus_options)/sizeof(bus_options[0]))
 
-/**
- * Start the driver.
- */
-static bool
-start_bus(struct bmp280_bus_option &bus)
+// find a bus structure for a busid
+static struct bmp280_bus_option *find_bus(BMP280_BUS busid)
 {
-	if (bus.dev != nullptr) {
-		PX4_ERR("bus option already started");
-		return false;
+	for (bmp280_bus_option &bus_option : bus_options) {
+		if ((busid == BMP280_BUS::ALL ||
+		     busid == bus_option.busid) && bus_option.dev != nullptr) {
+
+			return &bus_option;
+		}
 	}
 
-	bmp280::IBMP280 *interface = bus.interface_constructor(bus.busnum, bus.device, bus.external);
+	return nullptr;
+}
 
-	if (interface->init() != OK) {
-		delete interface;
+static bool start_bus(bmp280_bus_option &bus)
+{
+	bmp280::IBMP280 *interface = bus.interface_constructor(bus.busnum, bus.address);
+
+	if ((interface == nullptr) || (interface->init() != PX4_OK)) {
 		PX4_WARN("no device on bus %u", (unsigned)bus.busid);
+		delete interface;
 		return false;
 	}
 
-	bus.dev = new BMP280(interface, bus.devpath);
+	BMP280 *dev = new BMP280(interface);
 
-	if (bus.dev == nullptr) {
+	if (dev == nullptr) {
+		PX4_ERR("driver allocate failed");
+		delete interface;
 		return false;
 	}
 
-	if (OK != bus.dev->init()) {
-		delete bus.dev;
-		bus.dev = nullptr;
+	if (dev->init() != PX4_OK) {
+		PX4_ERR("driver start failed");
+		delete dev;	// BMP280 deletes the interface
 		return false;
 	}
 
-	int fd = px4_open(bus.devpath, O_RDONLY);
+	bus.dev = dev;
 
-	/* set the poll rate to default, starts automatic data collection */
-	if (fd == -1) {
-		PX4_ERR("can't open baro device");
-		return false;
-	}
-
-	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
-		px4_close(fd);
-		PX4_ERR("failed setting default poll rate");
-		return false;
-	}
-
-	px4_close(fd);
 	return true;
 }
 
-/**
- * Start the driver.
- *
- * This function call only returns once the driver
- * is either successfully up and running or failed to start.
- */
-static int
-start(enum BMP280_BUS busid)
+static int start(BMP280_BUS busid)
 {
-	uint8_t i;
-	bool started = false;
-
-	for (i = 0; i < NUM_BUS_OPTIONS; i++) {
-		if (busid == BMP280_BUS_ALL && bus_options[i].dev != NULL) {
+	for (bmp280_bus_option &bus_option : bus_options) {
+		if (bus_option.dev != nullptr) {
 			// this device is already started
+			PX4_WARN("already started");
 			continue;
 		}
 
-		if (busid != BMP280_BUS_ALL && bus_options[i].busid != busid) {
+		if (busid != BMP280_BUS::ALL && bus_option.busid != busid) {
 			// not the one that is asked for
 			continue;
 		}
 
-		started |= start_bus(bus_options[i]);
-	}
-
-	if (!started) {
-		PX4_WARN("bus option number is %d", i);
-		PX4_ERR("driver start failed");
-		return PX4_ERROR;
-	}
-
-	// one or more drivers started OK
-	return PX4_OK;
-}
-
-/**
- * Print a little info about the driver.
- */
-static int
-info()
-{
-	for (uint8_t i = 0; i < NUM_BUS_OPTIONS; i++) {
-		struct bmp280_bus_option *bus = &bus_options[i];
-
-		if (bus != nullptr && bus->dev != nullptr) {
-			PX4_WARN("%s", bus->devpath);
-			bus->dev->print_info();
+		if (start_bus(bus_option)) {
+			return PX4_OK;
 		}
 	}
 
-	return 0;
+	return PX4_ERROR;
 }
 
-static int
-usage()
+static int stop(BMP280_BUS busid)
 {
-	PX4_WARN("missing command: try 'start', 'info'");
-	PX4_WARN("options:");
-	PX4_WARN("    -X    (external I2C bus TODO)");
-	PX4_WARN("    -I    (internal I2C bus TODO)");
-	PX4_WARN("    -S    (external SPI bus)");
-	PX4_WARN("    -s    (internal SPI bus)");
+	bmp280_bus_option *bus = find_bus(busid);
+
+	if (bus != nullptr && bus->dev != nullptr) {
+		delete bus->dev;
+		bus->dev = nullptr;
+
+	} else {
+		PX4_WARN("driver not running");
+		return PX4_ERROR;
+	}
+
+	return PX4_OK;
+}
+
+static int status(BMP280_BUS busid)
+{
+	bmp280_bus_option *bus = find_bus(busid);
+
+	if (bus != nullptr && bus->dev != nullptr) {
+		bus->dev->print_info();
+		return PX4_OK;
+	}
+
+	PX4_WARN("driver not running");
+	return PX4_ERROR;
+}
+
+static int usage()
+{
+	PX4_INFO("missing command: try 'start', 'stop', 'status'");
+	PX4_INFO("options:");
+	PX4_INFO("    -X    (i2c external bus)");
+	PX4_INFO("    -I    (i2c internal bus)");
+	PX4_INFO("    -s    (spi internal bus)");
+	PX4_INFO("    -S    (spi external bus)");
+
 	return 0;
 }
 
 } // namespace
 
-int
-bmp280_main(int argc, char *argv[])
+extern "C" int bmp280_main(int argc, char *argv[])
 {
 	int myoptind = 1;
 	int ch;
 	const char *myoptarg = nullptr;
-	enum BMP280_BUS busid = BMP280_BUS_ALL;
 
-	while ((ch = px4_getopt(argc, argv, "XISs", &myoptind, &myoptarg)) != EOF) {
+	BMP280_BUS busid = BMP280_BUS::ALL;
+
+	while ((ch = px4_getopt(argc, argv, "XISs:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'X':
-			busid = BMP280_BUS_I2C_EXTERNAL;
+			busid = BMP280_BUS::I2C_EXTERNAL;
 			break;
 
 		case 'I':
-			busid = BMP280_BUS_I2C_INTERNAL;
+			busid = BMP280_BUS::I2C_INTERNAL;
 			break;
 
 		case 'S':
-			busid = BMP280_BUS_SPI_EXTERNAL;
+			busid = BMP280_BUS::SPI_EXTERNAL;
 			break;
 
 		case 's':
-			busid = BMP280_BUS_SPI_INTERNAL;
+			busid = BMP280_BUS::SPI_INTERNAL;
 			break;
 
 		default:
@@ -242,18 +216,14 @@ bmp280_main(int argc, char *argv[])
 
 	const char *verb = argv[myoptind];
 
-	/*
-	 * Start/load the driver.
-	 */
 	if (!strcmp(verb, "start")) {
 		return bmp280::start(busid);
-	}
 
-	/*
-	 * Print driver information.
-	 */
-	if (!strcmp(verb, "info")) {
-		return bmp280::info();
+	} else if (!strcmp(verb, "stop")) {
+		return bmp280::stop(busid);
+
+	} else if (!strcmp(verb, "status")) {
+		return bmp280::status(busid);
 	}
 
 	return bmp280::usage();
