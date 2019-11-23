@@ -633,7 +633,6 @@ Navigator::run()
 		case vehicle_status_s::NAVIGATION_STATE_OFFBOARD:
 		case vehicle_status_s::NAVIGATION_STATE_STAB:
 		default:
-			_pos_sp_triplet_published_invalid_once = false;
 			navigation_mode_new = nullptr;
 			_can_loiter_at_sp = false;
 			break;
@@ -735,16 +734,8 @@ Navigator::print_status()
 void
 Navigator::publish_position_setpoint_triplet()
 {
-	// do not publish an invalid setpoint
-	if (!_pos_sp_triplet.current.valid) {
-		return;
-	}
-
 	_pos_sp_triplet.timestamp = hrt_absolute_time();
-
-	/* lazily publish the position setpoint triplet only once available */
 	_pos_sp_triplet_pub.publish(_pos_sp_triplet);
-
 	_pos_sp_triplet_updated = false;
 }
 
