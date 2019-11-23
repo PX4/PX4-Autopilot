@@ -72,7 +72,7 @@
 #include <drivers/drv_tone_alarm.h>
 
 #include <systemlib/err.h>
-#include <lib/mixer/mixer.h>
+#include <lib/mixer/MixerGroup.hpp>
 
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -1028,7 +1028,6 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_GET_COUNT:
-	case MIXERIOCGETOUTPUTCOUNT:
 		*(unsigned *)arg = _num_outputs;
 		break;
 
@@ -1045,7 +1044,7 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			unsigned buflen = strlen(buf);
 
 			if (_mixers == nullptr) {
-				_mixers = new MixerGroup(control_callback, (uintptr_t)&_controls);
+				_mixers = new MixerGroup();
 			}
 
 			if (_mixers == nullptr) {
@@ -1053,7 +1052,7 @@ MK::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 			} else {
 
-				ret = _mixers->load_from_buf(buf, buflen);
+				ret = _mixers->load_from_buf(control_callback, (uintptr_t)&_controls, buf, buflen);
 
 				if (ret != 0) {
 					DEVICE_DEBUG("mixer load failed with %d", ret);

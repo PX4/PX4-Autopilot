@@ -1277,7 +1277,6 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_GET_COUNT:
-	case MIXERIOCGETOUTPUTCOUNT:
 		switch (_mode) {
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14

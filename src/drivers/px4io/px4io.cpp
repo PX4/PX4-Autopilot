@@ -70,7 +70,8 @@
 #include <rc/dsm.h>
 
 #include <lib/mathlib/mathlib.h>
-#include <lib/mixer/mixer.h>
+#include <lib/mixer/MixerGroup.hpp>
+#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
 #include <perf/perf_counter.h>
 #include <systemlib/err.h>
 #include <parameters/param.h>
@@ -2807,10 +2808,6 @@ PX4IO::ioctl(file *filep, int cmd, unsigned long arg)
 			_motor_test.in_test_mode = (arg == PWM_SERVO_ENTER_TEST_MODE);
 			ret = (arg == PWM_SERVO_ENTER_TEST_MODE || PWM_SERVO_EXIT_TEST_MODE) ? 0 : -EINVAL;
 		}
-		break;
-
-	case MIXERIOCGETOUTPUTCOUNT:
-		*(unsigned *)arg = _max_actuators;
 		break;
 
 	case MIXERIOCRESET:
