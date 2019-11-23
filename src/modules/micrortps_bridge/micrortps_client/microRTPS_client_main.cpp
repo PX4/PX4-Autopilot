@@ -153,23 +153,22 @@ static int micrortps_start(int argc, char *argv[])
 		return -1;
 	}
 
-
 	struct timespec begin;
-
-	int total_read = 0, loop = 0;
-
-	uint32_t received = 0;
-
-	micrortps_start_topics(begin, total_read, received, loop);
 
 	struct timespec end;
 
+	uint64_t total_read = 0, received = 0;
+
+	int loop = 0;
+
+	micrortps_start_topics(begin, total_read, received, loop);
+
 	px4_clock_gettime(CLOCK_REALTIME, &end);
 
-	double elapsed_secs = double(end.tv_sec - begin.tv_sec) + double(end.tv_nsec - begin.tv_nsec) / double(1000000000);
+	double elapsed_secs = static_cast<double>(end.tv_sec - begin.tv_sec + (end.tv_nsec - begin.tv_nsec) / 1e9);
 
-	PX4_INFO("RECEIVED: %lu messages in %d LOOPS, %d bytes in %.03f seconds - %.02fKB/s",
-		 (unsigned long)received, loop, total_read, elapsed_secs, (double)total_read / (1000 * elapsed_secs));
+	PX4_INFO("RECEIVED: %" PRIu64 " messages in %d LOOPS, %" PRIu64 " bytes in %.03f seconds - %.02fKB/s",
+		 received, loop, total_read, elapsed_secs, static_cast<double>(total_read / (1e3 * elapsed_secs)));
 
 	delete transport_node;
 
@@ -235,11 +234,9 @@ int micrortps_client_main(int argc, char *argv[])
 		if (nullptr != transport_node) { transport_node->close(); }
 
 		_rtps_task = -1;
-
 		return 0;
 	}
 
 	usage(argv[0]);
-
 	return -1;
 }
