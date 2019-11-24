@@ -145,6 +145,7 @@ set(msg_files
 	vehicle_local_position.msg
 	vehicle_local_position_setpoint.msg
 	vehicle_magnetometer.msg
+	vehicle_model.msg
 	vehicle_odometry.msg
 	vehicle_rates_setpoint.msg
 	vehicle_roi.msg
