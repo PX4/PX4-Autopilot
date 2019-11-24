@@ -53,7 +53,7 @@ px4_add_board(
 		#pca9685
 		#protocol_splitter
 		#pwm_input
-		pwm_out_sim
+		#pwm_out_sim
 		px4fmu
 		px4io
 		#roboclaw
