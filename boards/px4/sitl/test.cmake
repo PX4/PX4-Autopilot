@@ -41,6 +41,7 @@ px4_add_board(
 		mc_pos_control
 		navigator
 		replay
+		rc_update
 		sensors
 		simulator
 		vmount

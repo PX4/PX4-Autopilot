@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,18 +39,53 @@
 
 #include "rc_update.h"
 
-using namespace sensors;
+#include "parameters.h"
 
-RCUpdate::RCUpdate(const Parameters &parameters)
-	: _parameters(parameters),
-	  _filter_roll(50.0f, 10.f), /* get replaced by parameter */
-	  _filter_pitch(50.0f, 10.f),
-	  _filter_yaw(50.0f, 10.f),
-	  _filter_throttle(50.0f, 10.f)
+namespace RCUpdate
 {
+
+RCUpdate::RCUpdate() :
+	ModuleParams(nullptr),
+	WorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME)),
+	_filter_roll(50.0f, 10.f), /* get replaced by parameter */
+	_filter_pitch(50.0f, 10.f),
+	_filter_yaw(50.0f, 10.f),
+	_filter_throttle(50.0f, 10.f)
+{
+	initialize_parameter_handles(_parameter_handles);
+	rc_parameter_map_poll(true /* forced */);
+
+	parameters_updated();
 }
 
-void RCUpdate::update_rc_functions()
+RCUpdate::~RCUpdate()
+{
+	perf_free(_loop_perf);
+}
+
+bool
+RCUpdate::init()
+{
+	if (!_input_rc_sub.registerCallback()) {
+		PX4_ERR("input_rc callback registration failed!");
+		return false;
+	}
+
+	return true;
+}
+
+void
+RCUpdate::parameters_updated()
+{
+	/* read the parameter values into _parameters */
+	update_parameters(_parameter_handles, _parameters);
+
+	update_rc_functions();
+}
+
+void
+RCUpdate::update_rc_functions()
 {
 	/* update RC function mappings */
 	_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE] = _parameters.rc_map_throttle - 1;
@@ -97,9 +132,9 @@ void RCUpdate::update_rc_functions()
 }
 
 void
-RCUpdate::rc_parameter_map_poll(ParameterHandles &parameter_handles, bool forced)
+RCUpdate::rc_parameter_map_poll(bool forced)
 {
-	if (_rc_parameter_map_sub.updated()) {
+	if (_rc_parameter_map_sub.updated() || forced) {
 		_rc_parameter_map_sub.copy(&_rc_parameter_map);
 
 		/* update parameter handles to which the RC channels are mapped */
@@ -113,10 +148,10 @@ RCUpdate::rc_parameter_map_poll(ParameterHandles &parameter_handles, bool forced
 
 			/* Set the handle by index if the index is set, otherwise use the id */
 			if (_rc_parameter_map.param_index[i] >= 0) {
-				parameter_handles.rc_param[i] = param_for_used_index((unsigned)_rc_parameter_map.param_index[i]);
+				_parameter_handles.rc_param[i] = param_for_used_index((unsigned)_rc_parameter_map.param_index[i]);
 
 			} else {
-				parameter_handles.rc_param[i] = param_find(&_rc_parameter_map.param_id[i * (rc_parameter_map_s::PARAM_ID_LEN + 1)]);
+				_parameter_handles.rc_param[i] = param_find(&_rc_parameter_map.param_id[i * (rc_parameter_map_s::PARAM_ID_LEN + 1)]);
 			}
 
 		}
@@ -188,7 +223,7 @@ RCUpdate::get_rc_sw2pos_position(uint8_t func, float on_th, bool on_inv)
 }
 
 void
-RCUpdate::set_params_from_rc(const ParameterHandles &parameter_handles)
+RCUpdate::set_params_from_rc()
 {
 	for (int i = 0; i < rc_parameter_map_s::RC_PARAM_MAP_NCHAN; i++) {
 		if (_rc.function[rc_channels_s::RC_CHANNELS_FUNCTION_PARAM_1 + i] < 0 || !_rc_parameter_map.valid[i]) {
@@ -207,21 +242,42 @@ RCUpdate::set_params_from_rc(const ParameterHandles &parameter_handles)
 			float param_val = math::constrain(
 						  _rc_parameter_map.value0[i] + _rc_parameter_map.scale[i] * rc_val,
 						  _rc_parameter_map.value_min[i], _rc_parameter_map.value_max[i]);
-			param_set(parameter_handles.rc_param[i], &param_val);
+			param_set(_parameter_handles.rc_param[i], &param_val);
 		}
 	}
 }
 
 void
-RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
+RCUpdate::Run()
 {
-	if (_rc_sub.updated()) {
-		/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
-		input_rc_s rc_input{};
-		_rc_sub.copy(&rc_input);
+	if (should_exit()) {
+		_input_rc_sub.unregisterCallback();
+		exit_and_cleanup();
+		return;
+	}
+
+	perf_begin(_loop_perf);
+
+	// check for parameter updates
+	if (_parameter_update_sub.updated()) {
+		// clear update
+		parameter_update_s pupdate;
+		_parameter_update_sub.copy(&pupdate);
+
+		// update parameters from storage
+		updateParams();
+		parameters_updated();
+	}
+
+	rc_parameter_map_poll();
+
+	/* read low-level values from FMU or IO RC inputs (PPM, Spektrum, S.Bus) */
+	input_rc_s rc_input;
+
+	if (_input_rc_sub.copy(&rc_input)) {
 
 		/* detect RC signal loss */
-		bool signal_lost;
+		bool signal_lost = true;
 
 		/* check flags and require at least four channels to consider the signal valid */
 		if (rc_input.rc_lost || rc_input.rc_failsafe || rc_input.channel_count < 4) {
@@ -422,9 +478,83 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 
 			/* Update parameters from RC Channels (tuning with RC) if activated */
 			if (hrt_elapsed_time(&_last_rc_to_param_map_time) > 1e6) {
-				set_params_from_rc(parameter_handles);
+				set_params_from_rc();
 				_last_rc_to_param_map_time = hrt_absolute_time();
 			}
 		}
 	}
+
+	perf_end(_loop_perf);
+}
+
+int
+RCUpdate::task_spawn(int argc, char *argv[])
+{
+	RCUpdate *instance = new RCUpdate();
+
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
+	}
+
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
+
+	return PX4_ERROR;
+}
+
+int
+RCUpdate::print_status()
+{
+	PX4_INFO("Running");
+	perf_print_counter(_loop_perf);
+
+	return 0;
+}
+
+int
+RCUpdate::custom_command(int argc, char *argv[])
+{
+	return print_usage("unknown command");
+}
+
+int
+RCUpdate::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
+	}
+
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+The rc_update module handles RC channel mapping: read the raw input channels (`input_rc`),
+then apply the calibration, map the RC channels to the configured channels & mode switches,
+low-pass filter, and then publish as `rc_channels` and `manual_control_setpoint`.
+
+### Implementation
+To reduce control latency, the module is scheduled on input_rc publications.
+
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("rc_update", "system");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return 0;
+}
+
+} // namespace RCUpdate
+
+extern "C" __EXPORT int rc_update_main(int argc, char *argv[])
+{
+	return RCUpdate::RCUpdate::main(argc, argv);
 }

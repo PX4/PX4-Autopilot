@@ -82,6 +82,7 @@ px4_add_board(
 		mc_pos_control
 		mc_rate_control
 		navigator
+		rc_update
 		#rover_pos_control
 		sensors
 		#sih

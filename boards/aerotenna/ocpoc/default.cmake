@@ -50,6 +50,7 @@ px4_add_board(
 		mc_rate_control
 		#micrortps_bridge
 		navigator
+		rc_update
 		rover_pos_control
 		sensors
 		sih
