@@ -58,7 +58,8 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/device/device.h>
 #include <uORB/PublicationMulti.hpp>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
+#include <uORB/topics/satellite_info.h>
 
 #include <simulator/simulator.h>
 
@@ -97,8 +98,8 @@ private:
 
 	bool				_task_should_exit{false};			///< flag to make the main worker task exit
 	volatile int			_task{-1};						///< worker task
-	vehicle_gps_position_s		_report_gps_pos{};				///< uORB topic for gps position
-	uORB::PublicationMulti<vehicle_gps_position_s>	_report_gps_pos_pub{ORB_ID(vehicle_gps_position)};				///< uORB pub for gps position
+	sensor_gps_s		_report_gps_pos{};				///< uORB topic for gps position
+	uORB::PublicationMulti<sensor_gps_s>	_report_gps_pos_pub{ORB_ID(sensor_gps)};				///< uORB pub for gps position
 	SyncObj				_sync;
 	int _fix_type{0};
 	int _num_sat{0};

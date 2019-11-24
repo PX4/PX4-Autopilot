@@ -58,7 +58,7 @@
 
 #include <systemlib/err.h>
 #include <uORB/uORB.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/satellite_info.h>
 #include <drivers/drv_hrt.h>
 
@@ -71,7 +71,7 @@
 #define DISABLE_MSG_INTERVAL	1000000		// us, try to disable message with this interval
 
 
-UBX::UBX(const int &fd, struct vehicle_gps_position_s *gps_position, struct satellite_info_s *satellite_info) :
+UBX::UBX(const int &fd, sensor_gps_s *gps_position, struct satellite_info_s *satellite_info) :
 	_fd(fd),
 	_gps_position(gps_position),
 	_satellite_info(satellite_info),

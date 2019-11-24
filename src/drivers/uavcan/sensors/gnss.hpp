@@ -46,6 +46,7 @@
 
 #include <uORB/Subscription.hpp>
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/vehicle_gps_position.h>
 
 #include <uavcan/uavcan.hpp>
@@ -118,7 +119,7 @@ private:
 	float		_last_gnss_auxiliary_hdop{0.0f};
 	float		_last_gnss_auxiliary_vdop{0.0f};
 
-	uORB::PublicationMulti<vehicle_gps_position_s>	_gps_pub{ORB_ID(vehicle_gps_position), ORB_PRIO_DEFAULT};
+	uORB::PublicationMulti<sensor_gps_s>		_gps_pub{ORB_ID(sensor_gps)};
 	uORB::Subscription				_orb_sub_gnss{ORB_ID(vehicle_gps_position)};
 
 	int	_receiver_node_id{-1};

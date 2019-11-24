@@ -274,7 +274,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 		}
 	}
 
-	vehicle_gps_position_s report{};
+	sensor_gps_s report{};
 
 	/*
 	 * FIXME HACK
@@ -413,7 +413,7 @@ void UavcanGnssBridge::process_fixx(const uavcan::ReceivedDataStructure<FixType>
 void
 UavcanGnssBridge::broadcast_from_orb(const uavcan::TimerEvent &)
 {
-	vehicle_gps_position_s orb_msg{};
+	sensor_gps_s orb_msg{};
 
 	if (!_orb_sub_gnss.update(&orb_msg)) {
 		return;

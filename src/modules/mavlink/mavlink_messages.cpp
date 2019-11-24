@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -84,6 +84,7 @@
 #include <uORB/topics/sensor_accel_status.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/sensor_bias.h>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/tecs_status.h>
 #include <uORB/topics/telemetry_status.h>
 #include <uORB/topics/transponder_report.h>
@@ -1527,13 +1528,13 @@ private:
 
 protected:
 	explicit MavlinkStreamGPSRawInt(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_gps_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_gps_position))),
+		_gps_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gps), 0)),
 		_gps_time(0)
 	{}
 
 	bool send(const hrt_abstime t) override
 	{
-		vehicle_gps_position_s gps;
+		sensor_gps_s gps;
 
 		if (_gps_sub->update(&_gps_time, &gps)) {
 			mavlink_gps_raw_int_t msg = {};
@@ -1606,13 +1607,13 @@ private:
 
 protected:
 	explicit MavlinkStreamGPS2Raw(Mavlink *mavlink) : MavlinkStream(mavlink),
-		_gps_sub(_mavlink->add_orb_subscription(ORB_ID(vehicle_gps_position), 1)),
+		_gps_sub(_mavlink->add_orb_subscription(ORB_ID(sensor_gps), 1)),
 		_gps_time(0)
 	{}
 
 	bool send(const hrt_abstime t) override
 	{
-		vehicle_gps_position_s gps;
+		sensor_gps_s gps;
 
 		if (_gps_sub->update(&_gps_time, &gps)) {
 			mavlink_gps2_raw_t msg = {};

@@ -53,7 +53,7 @@
 #include <uORB/topics/vehicle_angular_velocity.h>   // to publish groundtruth
 #include <uORB/topics/vehicle_attitude.h>           // to publish groundtruth
 #include <uORB/topics/vehicle_global_position.h>    // to publish groundtruth
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 
 extern "C" __EXPORT int sih_main(int argc, char *argv[]);
 
@@ -104,8 +104,8 @@ private:
 	PX4Barometer _px4_baro{ 6620172, ORB_PRIO_DEFAULT }; // 6620172: DRV_BARO_DEVTYPE_BAROSIM, BUS: 1, ADDR: 4, TYPE: SIMULATION
 
 	// to publish the gps position
-	vehicle_gps_position_s				_vehicle_gps_pos{};
-	uORB::Publication<vehicle_gps_position_s>	_vehicle_gps_pos_pub{ORB_ID(vehicle_gps_position)};
+	sensor_gps_s			          	_sensor_gps{};
+	uORB::Publication<sensor_gps_s>                 _sensor_gps_pub{ORB_ID(sensor_gps)};
 
 	// angular velocity groundtruth
 	vehicle_angular_velocity_s			_vehicle_angular_velocity_gt{};

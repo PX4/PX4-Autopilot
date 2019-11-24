@@ -41,7 +41,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <px4_platform_common/defines.h>
-#include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/sensor_gps.h>
 #include <uORB/topics/satellite_info.h>
 
 #define GPS_INFO(...) PX4_INFO(__VA_ARGS__)

@@ -57,7 +57,6 @@ set(msg_files
 	distance_sensor.msg
 	ekf2_timestamps.msg
 	ekf_gps_drift.msg
-	ekf_gps_position.msg
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
@@ -110,6 +109,7 @@ set(msg_files
 	sensor_bias.msg
 	sensor_combined.msg
 	sensor_correction.msg
+	sensor_gps.msg
 	sensor_gyro.msg
 	sensor_gyro_control.msg
 	sensor_gyro_fifo.msg
