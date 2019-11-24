@@ -568,15 +568,8 @@ MulticopterPositionControl::Run()
 		_takeoff.updateTakeoffState(_control_mode.flag_armed, _vehicle_land_detected.landed, false, 10.f,
 					    !_control_mode.flag_control_climb_rate_enabled, time_stamp_now);
 
-		// takeoff delay for motors to reach idle speed
-		if (_takeoff.getTakeoffState() >= TakeoffState::ready_for_takeoff) {
-			// when vehicle is ready switch to the required flighttask
-			start_flight_task();
-
-		} else {
-			// stop flighttask while disarmed
-			_flight_tasks.switchTask(FlightTaskIndex::None);
-		}
+		// switch to the required flighttask
+		start_flight_task();
 
 		// check if any task is active
 		if (_flight_tasks.isAnyTaskActive()) {
@@ -705,10 +698,10 @@ MulticopterPositionControl::Run()
 			}
 
 			// publish attitude setpoint
-			// Note: this requires review. The reason for not sending
-			// an attitude setpoint is because for non-flighttask modes
-			// the attitude septoint should come from another source, otherwise
-			// they might conflict with each other such as in offboard attitude control.
+			// It's important to publish also when disarmed otheriwse the attitude setpoint stays uninitialized.
+			// Not publishing when not running a flight task
+			// in stabilized mode attitude setpoints get ignored
+			// in offboard with attitude setpoints they come from MAVLink directly
 			if (_attitude_setpoint_id != nullptr) {
 				orb_publish_auto(_attitude_setpoint_id, &_vehicle_attitude_setpoint_pub, &attitude_setpoint, nullptr, ORB_PRIO_DEFAULT);
 			}
