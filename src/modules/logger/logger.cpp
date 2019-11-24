@@ -656,6 +656,7 @@ void Logger::add_system_identification_topics()
 	add_topic("vehicle_angular_acceleration");
 	add_topic("vehicle_angular_acceleration_setpoint");
 	add_topic("vehicle_torque_setpoint");
+	add_topic("vehicle_model");
 }
 
 int Logger::add_topics_from_file(const char *fname)
