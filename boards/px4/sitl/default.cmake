@@ -43,6 +43,7 @@ px4_add_board(
 		sensors
 		#sih
 		simulator
+		vehicle_model_estimator
 		vmount
 		vtol_att_control
 	SYSTEMCMDS
