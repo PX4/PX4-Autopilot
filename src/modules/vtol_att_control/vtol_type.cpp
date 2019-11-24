@@ -63,7 +63,7 @@ VtolType::VtolType(VtolAttitudeControl *att_controller) :
 	_actuators_fw_in = _attc->get_actuators_fw_in();
 	_local_pos = _attc->get_local_pos();
 	_local_pos_sp = _attc->get_local_pos_sp();
-	_airspeed = _attc->get_airspeed();
+	_airspeed_validated = _attc->get_airspeed();
 	_tecs_status = _attc->get_tecs_status();
 	_land_detected = _attc->get_land_detected();
 	_params = _attc->get_params();
@@ -244,7 +244,6 @@ void VtolType::check_quadchute_condition()
 
 bool VtolType::set_idle_mc()
 {
-
 	unsigned pwm_value = _params->idle_pwm_mc;
 	struct pwm_output_values pwm_values {};
 
@@ -303,7 +302,7 @@ bool VtolType::apply_pwm_limits(struct pwm_output_values &pwm_values, pwm_limit_
 
 
 	if (ret != OK) {
-		PX4_ERR("failed setting max values");
+		PX4_DEBUG("failed setting max values");
 		return false;
 	}
 

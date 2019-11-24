@@ -39,6 +39,7 @@
 #include <lib/cdev/CDev.hpp>
 
 #include <containers/List.hpp>
+#include <px4_platform_common/atomic.h>
 
 namespace uORB
 {
@@ -157,11 +158,13 @@ public:
 	void remove_internal_subscriber();
 
 	/**
-	 * Return true if this topic has been published.
+	 * Return true if this topic has been advertised.
 	 *
 	 * This is used in the case of multi_pub/sub to check if it's valid to advertise
 	 * and publish to this node or if another node should be tried. */
-	bool is_published() const { return _published; }
+	bool is_advertised() const { return _advertised; }
+
+	void mark_as_advertised() { _advertised = true; }
 
 	/**
 	 * Try to change the size of the queue. This can only be done as long as nobody published yet.
@@ -185,7 +188,7 @@ public:
 
 	uint32_t lost_message_count() const { return _lost_messages; }
 
-	unsigned published_message_count() const { return _generation; }
+	unsigned published_message_count() const { return _generation.load(); }
 
 	const orb_metadata *get_meta() const { return _meta; }
 
@@ -267,15 +270,12 @@ private:
 	const uint8_t _instance; /**< orb multi instance identifier */
 	uint8_t     *_data{nullptr};   /**< allocated object buffer */
 	hrt_abstime   _last_update{0}; /**< time the object was last updated */
-	volatile unsigned   _generation{0};  /**< object generation count */
+	px4::atomic<unsigned>  _generation{0};  /**< object generation count */
 	List<uORB::SubscriptionCallback *>	_callbacks;
 	uint8_t   _priority;  /**< priority of the topic */
-	bool _published{false};  /**< has ever data been published */
+	bool _advertised{false};  /**< has ever been advertised (not necessarily published data yet) */
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
 	int8_t _subscriber_count{0};
-
-	px4_task_t _publisher{0}; /**< if nonzero, current publisher. Only used inside the advertise call.
-						We allow one publisher to have an open file descriptor at the same time. */
 
 	// statistics
 	uint32_t _lost_messages = 0; /**< nr of lost messages for all subscribers. If two subscribers lose the same

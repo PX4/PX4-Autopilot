@@ -37,16 +37,15 @@
  * Simple summing mixer.
  */
 
-#include "mixer.h"
+#include "SimpleMixer.hpp"
+
 #include <stdio.h>
 #include <stdlib.h>
 
 #define debug(fmt, args...)	do { } while(0)
 //#define debug(fmt, args...)	do { printf("[mixer] " fmt "\n", ##args); } while(0)
 
-SimpleMixer::SimpleMixer(ControlCallback control_cb,
-			 uintptr_t cb_handle,
-			 mixer_simple_s *mixinfo) :
+SimpleMixer::SimpleMixer(ControlCallback control_cb, uintptr_t cb_handle, mixer_simple_s *mixinfo) :
 	Mixer(control_cb, cb_handle),
 	_pinfo(mixinfo)
 {
@@ -192,7 +191,6 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 	next_tag = findnexttag(end - buflen, buflen);
 
 	if (next_tag == 'S') {
-
 		/* No output scalers specified. Use default values.
 		 * Corresponds to:
 		 * O:      10000  10000      0 -10000  10000
@@ -204,7 +202,6 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 		mixinfo->output_scaler.max_output	= 1.0f;
 
 	} else {
-
 		if (parse_output_scaler(end - buflen, buflen, mixinfo->output_scaler)) {
 			debug("simple mixer parser failed parsing out scaler tag, ret: '%s'", buf);
 			goto out;
@@ -219,7 +216,6 @@ SimpleMixer::from_text(Mixer::ControlCallback control_cb, uintptr_t cb_handle, c
 			debug("simple mixer parser failed parsing ctrl scaler tag, ret: '%s'", buf);
 			goto out;
 		}
-
 	}
 
 	sm = new SimpleMixer(control_cb, cb_handle, mixinfo);
@@ -241,72 +237,10 @@ out:
 	return sm;
 }
 
-SimpleMixer *
-SimpleMixer::pwm_input(Mixer::ControlCallback control_cb, uintptr_t cb_handle, unsigned input, uint16_t min,
-		       uint16_t mid, uint16_t max)
-{
-	SimpleMixer *sm = nullptr;
-	mixer_simple_s *mixinfo = nullptr;
-
-	mixinfo = (mixer_simple_s *)malloc(MIXER_SIMPLE_SIZE(1));
-
-	if (mixinfo == nullptr) {
-		debug("could not allocate memory for mixer info");
-		goto out;
-	}
-
-	mixinfo->control_count = 1;
-
-	/*
-	 * Always pull from group 0, with the input value giving the channel.
-	 */
-	mixinfo->controls[0].control_group = 0;
-	mixinfo->controls[0].control_index = input;
-
-	/*
-	 * Conversion uses both the input and output side of the mixer.
-	 *
-	 * The input side is used to slide the control value such that the min argument
-	 * results in a value of zero.
-	 *
-	 * The output side is used to apply the scaling for the min/max values so that
-	 * the resulting output is a -1.0 ... 1.0 value for the min...max range.
-	 */
-	mixinfo->controls[0].scaler.negative_scale = 1.0f;
-	mixinfo->controls[0].scaler.positive_scale = 1.0f;
-	mixinfo->controls[0].scaler.offset = -mid;
-	mixinfo->controls[0].scaler.min_output = -(mid - min);
-	mixinfo->controls[0].scaler.max_output = (max - mid);
-
-	mixinfo->output_scaler.negative_scale = 500.0f / (mid - min);
-	mixinfo->output_scaler.positive_scale = 500.0f / (max - mid);
-	mixinfo->output_scaler.offset = 0.0f;
-	mixinfo->output_scaler.min_output = -1.0f;
-	mixinfo->output_scaler.max_output = 1.0f;
-
-	sm = new SimpleMixer(control_cb, cb_handle, mixinfo);
-
-	if (sm != nullptr) {
-		mixinfo = nullptr;
-		debug("PWM input mixer for %d", input);
-
-	} else {
-		debug("could not allocate memory for PWM input mixer");
-	}
-
-out:
-
-	if (mixinfo != nullptr) {
-		free(mixinfo);
-	}
-
-	return sm;
-}
-
 unsigned
 SimpleMixer::mix(float *outputs, unsigned space)
 {
-	float		sum = 0.0f;
+	float sum = 0.0f;
 
 	if (_pinfo == nullptr) {
 		return 0;
@@ -331,12 +265,6 @@ SimpleMixer::mix(float *outputs, unsigned space)
 	return 1;
 }
 
-uint16_t
-SimpleMixer::get_saturation_status()
-{
-	return 0;
-}
-
 void
 SimpleMixer::groups_required(uint32_t &groups)
 {
@@ -348,7 +276,6 @@ SimpleMixer::groups_required(uint32_t &groups)
 int
 SimpleMixer::check()
 {
-	int ret;
 	float junk;
 
 	/* sanity that presumes that a mixer includes a control no more than once */
@@ -358,7 +285,7 @@ SimpleMixer::check()
 	}
 
 	/* validate the output scaler */
-	ret = scale_check(_pinfo->output_scaler);
+	int ret = scale_check(_pinfo->output_scaler);
 
 	if (ret != 0) {
 		return ret;
@@ -381,6 +308,47 @@ SimpleMixer::check()
 		if (ret != 0) {
 			return (10 * i + ret);
 		}
+	}
+
+	return 0;
+}
+
+float
+SimpleMixer::scale(const mixer_scaler_s &scaler, float input)
+{
+	float output;
+
+	if (input < 0.0f) {
+		output = (input * scaler.negative_scale) + scaler.offset;
+
+	} else {
+		output = (input * scaler.positive_scale) + scaler.offset;
+	}
+
+	return math::constrain(output, scaler.min_output, scaler.max_output);
+}
+
+int
+SimpleMixer::scale_check(mixer_scaler_s &scaler)
+{
+	if (scaler.offset > 1.001f) {
+		return 1;
+	}
+
+	if (scaler.offset < -1.001f) {
+		return 2;
+	}
+
+	if (scaler.min_output > scaler.max_output) {
+		return 3;
+	}
+
+	if (scaler.min_output < -1.001f) {
+		return 4;
+	}
+
+	if (scaler.max_output > 1.001f) {
+		return 5;
 	}
 
 	return 0;

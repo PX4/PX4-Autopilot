@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,82 +31,45 @@
  *
  ****************************************************************************/
 
+#pragma once
+
+#include <mixer/Mixer/Mixer.hpp>
+
 /**
- * @file mixer_load.c
+ * Null mixer; returns zero.
  *
- * Programmable multi-channel mixer library.
+ * Used as a placeholder for output channels that are unassigned in groups.
  */
-
-#include <string.h>
-#include <stdio.h>
-#include <ctype.h>
-
-#include "mixer_load.h"
-
-int load_mixer_file(const char *fname, char *buf, unsigned maxlen)
+class NullMixer : public Mixer
 {
-	FILE		*fp;
-	char		line[120];
+public:
+	NullMixer() : Mixer(nullptr, 0) {}
+	virtual ~NullMixer() = default;
 
-	/* open the mixer definition file */
-	fp = fopen(fname, "r");
+	// no copy, assignment, move, move assignment
+	NullMixer(const NullMixer &) = delete;
+	NullMixer &operator=(const NullMixer &) = delete;
+	NullMixer(NullMixer &&) = delete;
+	NullMixer &operator=(NullMixer &&) = delete;
 
-	if (fp == NULL) {
-		printf("file not found\n");
-		return -1;
-	}
+	/**
+	 * Factory method.
+	 *
+	 * Given a pointer to a buffer containing a text description of the mixer,
+	 * returns a pointer to a new instance of the mixer.
+	 *
+	 * @param buf			Buffer containing a text description of
+	 *				the mixer.
+	 * @param buflen		Length of the buffer in bytes, adjusted
+	 *				to reflect the bytes consumed.
+	 * @return			A new NullMixer instance, or nullptr
+	 *				if the text format is bad.
+	 */
+	static NullMixer		*from_text(const char *buf, unsigned &buflen);
 
-	/* read valid lines from the file into a buffer */
-	buf[0] = '\0';
+	unsigned			mix(float *outputs, unsigned space) override;
 
-	for (;;) {
+	unsigned			set_trim(float trim) override { return 1; }
+	unsigned			get_trim(float *trim) override { return 1; }
 
-		/* get a line, bail on error/EOF */
-		line[0] = '\0';
-
-		if (fgets(line, sizeof(line), fp) == NULL) {
-			break;
-		}
-
-		/* if the line doesn't look like a mixer definition line, skip it */
-		if ((strlen(line) < 2) || !isupper(line[0]) || (line[1] != ':')) {
-			continue;
-		}
-
-		/* compact whitespace in the buffer */
-		char *t, *f;
-
-		for (f = line; *f != '\0'; f++) {
-			/* scan for space characters */
-			if (*f == ' ') {
-				/* look for additional spaces */
-				t = f + 1;
-
-				while (*t == ' ') {
-					t++;
-				}
-
-				if (*t == '\0') {
-					/* strip trailing whitespace */
-					*f = '\0';
-
-				} else if (t > (f + 1)) {
-					memmove(f + 1, t, strlen(t) + 1);
-				}
-			}
-		}
-
-		/* if the line is too long to fit in the buffer, bail */
-		if ((strlen(line) + strlen(buf) + 1) >= maxlen) {
-			printf("line too long\n");
-			fclose(fp);
-			return -1;
-		}
-
-		/* add the line to the buffer */
-		strcat(buf, line);
-	}
-
-	fclose(fp);
-	return 0;
-}
+};

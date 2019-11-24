@@ -6,7 +6,6 @@ px4_add_board(
 	TOOLCHAIN arm-none-eabi
 	ARCHITECTURE cortex-m4
 	ROMFSROOT px4fmu_common
-
 	DRIVERS
 		barometer/lps25h
 		distance_sensor/vl53lxx
@@ -14,7 +13,6 @@ px4_add_board(
 		imu/mpu9250
 		optical_flow/pmw3901
 		px4fmu
-
 	MODULES
 		attitude_estimator_q
 		camera_feedback
@@ -22,9 +20,6 @@ px4_add_board(
 		dataman
 		ekf2
 		events
-		#fw_att_control
-		#fw_pos_control_l1
-		#rover_pos_control
 		land_detector
 		landing_target_estimator
 		load_mon
@@ -32,14 +27,10 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
-		mc_rate_control
 		mc_pos_control
+		mc_rate_control
 		navigator
 		sensors
-		sih
-		#vtol_att_control
-		airspeed_selector
-
 	SYSTEMCMDS
 		bl_update
 		config
@@ -61,12 +52,10 @@ px4_add_board(
 		reflect
 		sd_bench
 		shutdown
-		#tests # tests and test runner
 		top
 		topic_listener
 		tune_control
 		usb_connected
 		ver
 		work_queue
-
 	)

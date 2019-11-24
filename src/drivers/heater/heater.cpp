@@ -136,7 +136,7 @@ void Heater::initialize_topics()
 	for (uint8_t x = 0; x < number_of_imus; x++) {
 		_sensor_accel_sub = uORB::Subscription{ORB_ID(sensor_accel), x};
 
-		if (!_sensor_accel_sub.published()) {
+		if (!_sensor_accel_sub.advertised()) {
 			continue;
 		}
 

@@ -32,7 +32,6 @@
 ############################################################################
 
 add_library(px4iofirmware
-	hx_stream.c
 	adc.c
 	controls.c
 	mixer.cpp
