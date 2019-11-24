@@ -35,7 +35,7 @@
  * @file px4io.cpp
  * Driver for the PX4IO board.
  *
- * PX4IO is connected via I2C or DMA enabled high-speed UART.
+ * PX4IO is connected via DMA enabled high-speed UART.
  */
 
 #include <px4_platform_common/px4_config.h>
