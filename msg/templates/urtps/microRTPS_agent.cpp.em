@@ -170,7 +170,7 @@ std::queue<uint8_t> t_send_queue;
 void t_send(void *data)
 {
     char data_buffer[BUFFER_SIZE] = {};
-    int length = 0;
+    uint32_t length = 0;
 
     while (running && !exit_sender_thread.load())
     {
@@ -183,7 +183,7 @@ void t_send(void *data)
         t_send_queue.pop();
         lk.unlock();
 
-        uint16_t header_length = transport_node->get_header_length();
+        size_t header_length = transport_node->get_header_length();
         /* make room for the header to fill in later */
         eprosima::fastcdr::FastBuffer cdrbuffer(&data_buffer[header_length], sizeof(data_buffer)-header_length);
         eprosima::fastcdr::Cdr scdr(cdrbuffer);
