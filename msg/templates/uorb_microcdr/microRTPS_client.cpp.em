@@ -85,7 +85,7 @@ void* send(void* /*unused*/)
     uint64_t sent = 0, total_sent = 0;
     int loop = 0, read = 0;
     uint32_t length = 0;
-    uint16_t header_length = 0;
+    size_t header_length = 0;
 
     /* subscribe to topics */
 @[for idx, topic in enumerate(send_topics)]@

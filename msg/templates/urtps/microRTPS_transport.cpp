@@ -213,7 +213,7 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 	return len;
 }
 
-ssize_t Transport_node::get_header_length()
+size_t Transport_node::get_header_length()
 {
     return sizeof(struct Header);
 }
