@@ -48,12 +48,12 @@ px4_add_board(
 		magnetometer/hmc5883
 		#mkblctrl
 		#optical_flow # all available optical flow drivers
-		optical_flow/px4flow
+		#optical_flow/px4flow
 		#osd
 		#pca9685
 		#protocol_splitter
 		#pwm_input
-		pwm_out_sim
+		#pwm_out_sim
 		px4fmu
 		px4io
 		#roboclaw
