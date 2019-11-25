@@ -56,13 +56,13 @@ Required python packages not installed.
 On a Debian/Ubuntu system please run:
 
   sudo apt-get install python3-empy
-  sudo pip3 install catkin_pkg
+  sudo pip3 install pyros-genmsg
 
 On MacOS please run:
-  sudo pip3 install empy catkin_pkg
+  sudo pip3 install empy pyros-genmsg
 
 On Windows please run:
-  easy_install empy catkin_pkg
+  easy_install empy pyros-genmsg
 ''')
     exit(1)
 
