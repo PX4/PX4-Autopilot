@@ -207,7 +207,7 @@ RGBLED_PWM::led()
 
 	LedControlData led_control_data;
 
-	if (_led_controller.update(led_control_data) == 1) {
+	if (_led_controller.update(led_control_data) == 1) { 
 		uint8_t brightness = led_control_data.leds[0].brightness;
 
 		switch (led_control_data.leds[0].color) {
@@ -270,7 +270,6 @@ RGBLED_PWM::send_led_rgb()
 	led_pwm_servo_set(4, _g);
 	led_pwm_servo_set(5, _b);
 #endif
-
 	return (OK);
 }
 

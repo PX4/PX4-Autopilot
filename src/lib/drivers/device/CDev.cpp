@@ -62,7 +62,7 @@ CDev::init()
 	int ret = Device::init();
 
 	if (ret != PX4_OK) {
-		goto out;
+		goto out;printf("dev 2\n");
 	}
 
 	// now register the driver

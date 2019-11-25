@@ -229,7 +229,6 @@ led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 		value--;
 	}
 
-
 	switch (led_pwm_channels[channel].timer_channel) {
 	case 1:
 		rCCR1(timer) = value;
