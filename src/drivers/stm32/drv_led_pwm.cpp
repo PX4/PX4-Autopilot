@@ -40,7 +40,6 @@
 #include <px4_config.h>
 
 #include <board_config.h>
-
 #include <sys/types.h>
 #include <stdint.h>
 #include <string.h>
