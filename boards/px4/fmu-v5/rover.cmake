@@ -56,6 +56,7 @@ px4_add_board(
 		logger
 		mavlink
 		navigator
+		rc_update
 		rover_pos_control
 		sensors
 		vmount

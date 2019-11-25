@@ -57,6 +57,7 @@ px4_add_board(
 		logger
 		mavlink
 		navigator
+		rc_update
 		sensors
 		vmount
 	SYSTEMCMDS

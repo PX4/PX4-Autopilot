@@ -60,7 +60,7 @@
 #define DEFAULT_SEND_PORT 2020
 
 void *send(void *data);
-void micrortps_start_topics(struct timespec &begin, int &total_read, uint32_t &received, int &loop);
+void micrortps_start_topics(struct timespec &begin, uint64_t &total_read, uint64_t &received, int &loop);
 
 struct baudtype {
 	speed_t code;
@@ -74,14 +74,14 @@ struct options {
 	};
 	eTransports transport = options::eTransports::UART;
 	char device[64] = DEVICE;
-	int update_time_ms = UPDATE_TIME_MS;
-	int loops = LOOPS;
-	int sleep_ms = SLEEP_MS;
-	uint32_t baudrate = BAUDRATE;
-	int poll_ms = POLL_MS;
 	char ip[16] = IP;
 	uint16_t recv_port = DEFAULT_RECV_PORT;
 	uint16_t send_port = DEFAULT_SEND_PORT;
+	uint32_t update_time_ms = UPDATE_TIME_MS;
+	uint32_t sleep_ms = SLEEP_MS;
+	uint32_t baudrate = BAUDRATE;
+	uint32_t poll_ms = POLL_MS;
+	int loops = LOOPS;
 };
 
 extern struct options _options;
