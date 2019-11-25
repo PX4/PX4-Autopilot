@@ -219,11 +219,11 @@ def create_pdf_report(ulog: ULog, output_plot_filename: str) -> None:
         # gps_check_fail_flags summary
         data_plot = CheckFlagsPlot(
             status_time, gps_fail_flags,
-            [['nsat_fail', 'gdop_fail', 'herr_fail', 'verr_fail', 'gfix_fail', 'serr_fail'],
+            [['nsat_fail', 'pdop_fail', 'herr_fail', 'verr_fail', 'gfix_fail', 'serr_fail'],
              ['hdrift_fail', 'vdrift_fail', 'hspd_fail', 'veld_diff_fail']],
             x_label='time (sec)', y_lim=(-0.1, 1.1), y_labels=['failed', 'failed'],
             sub_titles=['GPS Direct Output Check Failures', 'GPS Derived Output Check Failures'],
-            legend=[['N sats', 'GDOP', 'horiz pos error', 'vert pos error', 'fix type',
+            legend=[['N sats', 'PDOP', 'horiz pos error', 'vert pos error', 'fix type',
                      'speed error'], ['horiz drift', 'vert drift', 'horiz speed',
                                       'vert vel inconsistent']], annotate=False, pdf_handle=pdf_pages)
         data_plot.save()
