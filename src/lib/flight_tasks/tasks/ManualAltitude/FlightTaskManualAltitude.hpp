@@ -76,6 +76,7 @@ protected:
 					(ParamFloat<px4::params::MPC_HOLD_MAX_XY>) _param_mpc_hold_max_xy,
 					(ParamFloat<px4::params::MPC_Z_P>) _param_mpc_z_p, /**< position controller altitude propotional gain */
 					(ParamFloat<px4::params::MPC_MAN_Y_MAX>) _param_mpc_man_y_max, /**< scaling factor from stick to yaw rate */
+					(ParamFloat<px4::params::MPC_MAN_Y_TAU>) _param_mpc_man_y_tau,
 					(ParamFloat<px4::params::MPC_MAN_TILT_MAX>) _param_mpc_man_tilt_max, /**< maximum tilt allowed for manual flight */
 					(ParamFloat<px4::params::MPC_LAND_ALT1>) _param_mpc_land_alt1, /**< altitude at which to start downwards slowdown */
 					(ParamFloat<px4::params::MPC_LAND_ALT2>) _param_mpc_land_alt2, /**< altitude below wich to land with land speed */
@@ -85,6 +86,18 @@ protected:
 					_param_mpc_tko_speed /**< desired upwards speed when still close to the ground */
 				       )
 private:
+	bool _isYawInput();
+	void _unlockYaw();
+	void _lockYaw();
+
+	/**
+	 * Filter between stick input and yaw setpoint
+	 *
+	 * @param yawspeed_target yaw setpoint desired by the stick
+	 * @return filtered value from independent filter state
+	 */
+	float _applyYawspeedFilter(float yawspeed_target);
+
 	/**
 	 * Terrain following.
 	 * During terrain following, the position setpoint is adjusted
@@ -112,6 +125,7 @@ private:
 
 	uORB::SubscriptionData<home_position_s> _sub_home_position{ORB_ID(home_position)};
 
+	float _yawspeed_filter_state{}; /**< state of low-pass filter in rad/s */
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */
 	float _max_speed_up = 10.0f;
 	float _min_speed_down = 1.0f;

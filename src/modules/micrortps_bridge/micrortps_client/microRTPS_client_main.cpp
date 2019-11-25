@@ -86,35 +86,28 @@ static int parse_options(int argc, char *argv[])
 		switch (ch) {
 		case 't': _options.transport      = strcmp(myoptarg, "UDP") == 0 ?
 							    options::eTransports::UDP
-							    : options::eTransports::UART;      break;
+							    : options::eTransports::UART;   break;
 
-		case 'd': if (nullptr != myoptarg) strcpy(_options.device, myoptarg); break;
+		case 'd': if (nullptr != myoptarg) strcpy(_options.device, myoptarg);   break;
 
-		case 'u': _options.update_time_ms = strtol(myoptarg, nullptr, 10);    break;
+		case 'u': _options.update_time_ms = strtoul(myoptarg, nullptr, 10);     break;
 
-		case 'l': _options.loops          = strtol(myoptarg, nullptr, 10);    break;
+		case 'l': _options.loops          =  strtol(myoptarg, nullptr, 10);     break;
 
-		case 'w': _options.sleep_ms       = strtol(myoptarg, nullptr, 10);    break;
+		case 'w': _options.sleep_ms       = strtoul(myoptarg, nullptr, 10);     break;
 
 		case 'b': _options.baudrate       = strtoul(myoptarg, nullptr, 10);     break;
-
-		case 'p': _options.poll_ms        = strtol(myoptarg, nullptr, 10);      break;
 
 		case 'r': _options.recv_port      = strtoul(myoptarg, nullptr, 10);     break;
 
 		case 's': _options.send_port      = strtoul(myoptarg, nullptr, 10);     break;
 
-		case 'i': if (nullptr != myoptarg) strcpy(_options.ip, myoptarg); break;
+		case 'i': if (nullptr != myoptarg) strcpy(_options.ip, myoptarg);       break;
 
 		default:
 			usage(argv[1]);
 			return -1;
 		}
-	}
-
-	if (_options.sleep_ms < 1) {
-		_options.sleep_ms = 1;
-		PX4_ERR("sleep time too low, using 1 ms");
 	}
 
 	if (_options.poll_ms < 1) {
@@ -160,23 +153,22 @@ static int micrortps_start(int argc, char *argv[])
 		return -1;
 	}
 
-
 	struct timespec begin;
-
-	int total_read = 0, loop = 0;
-
-	uint32_t received = 0;
-
-	micrortps_start_topics(begin, total_read, received, loop);
 
 	struct timespec end;
 
+	uint64_t total_read = 0, received = 0;
+
+	int loop = 0;
+
+	micrortps_start_topics(begin, total_read, received, loop);
+
 	px4_clock_gettime(CLOCK_REALTIME, &end);
 
-	double elapsed_secs = double(end.tv_sec - begin.tv_sec) + double(end.tv_nsec - begin.tv_nsec) / double(1000000000);
+	double elapsed_secs = static_cast<double>(end.tv_sec - begin.tv_sec + (end.tv_nsec - begin.tv_nsec) / 1e9);
 
-	PX4_INFO("RECEIVED: %lu messages in %d LOOPS, %d bytes in %.03f seconds - %.02fKB/s",
-		 (unsigned long)received, loop, total_read, elapsed_secs, (double)total_read / (1000 * elapsed_secs));
+	PX4_INFO("RECEIVED: %" PRIu64 " messages in %d LOOPS, %" PRIu64 " bytes in %.03f seconds - %.02fKB/s",
+		 received, loop, total_read, elapsed_secs, static_cast<double>(total_read / (1e3 * elapsed_secs)));
 
 	delete transport_node;
 
@@ -242,11 +234,9 @@ int micrortps_client_main(int argc, char *argv[])
 		if (nullptr != transport_node) { transport_node->close(); }
 
 		_rtps_task = -1;
-
 		return 0;
 	}
 
 	usage(argv[0]);
-
 	return -1;
 }

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,55 +37,46 @@
  * SPI interface for BMP280
  */
 
-
 #include "bmp280.h"
+
+#include <px4_platform_common/px4_config.h>
+#include <drivers/device/i2c.h>
 
 #if defined(PX4_I2C_OBDEV_BMP280) || defined(PX4_I2C_EXT_OBDEV_BMP280)
 
 class BMP280_I2C: public device::I2C, public bmp280::IBMP280
 {
 public:
-	BMP280_I2C(uint8_t bus, uint32_t device, bool external);
-	virtual ~BMP280_I2C() = default;
+	BMP280_I2C(uint8_t bus, uint32_t device);
+	virtual ~BMP280_I2C() override = default;
 
-	bool is_external();
-	int init();
+	int init() override { return I2C::init(); }
 
-	uint8_t get_reg(uint8_t addr);
-	int set_reg(uint8_t value, uint8_t addr);
-	bmp280::data_s *get_data(uint8_t addr);
-	bmp280::calibration_s *get_calibration(uint8_t addr);
+	uint8_t	get_reg(uint8_t addr) override;
+	int	set_reg(uint8_t value, uint8_t addr) override;
+
+	bmp280::data_s		*get_data(uint8_t addr) override;
+	bmp280::calibration_s	*get_calibration(uint8_t addr) override;
 
 	uint32_t get_device_id() const override { return device::I2C::get_device_id(); }
 
 private:
-	struct bmp280::calibration_s _cal;
-	struct bmp280::data_s _data;
-	bool _external;
+	bmp280::calibration_s	_cal{};
+	bmp280::data_s		_data{};
 };
 
-bmp280::IBMP280 *bmp280_i2c_interface(uint8_t busnum, uint32_t device, bool external)
+bmp280::IBMP280 *bmp280_i2c_interface(uint8_t busnum, uint32_t device)
 {
-	return new BMP280_I2C(busnum, device, external);
+	return new BMP280_I2C(busnum, device);
 }
 
-BMP280_I2C::BMP280_I2C(uint8_t bus, uint32_t device, bool external) :
+BMP280_I2C::BMP280_I2C(uint8_t bus, uint32_t device) :
 	I2C("BMP280_I2C", nullptr, bus, device, 100 * 1000)
 {
-	_external = external;
 }
 
-bool BMP280_I2C::is_external()
-{
-	return _external;
-}
-
-int BMP280_I2C::init()
-{
-	return I2C::init();
-}
-
-uint8_t BMP280_I2C::get_reg(uint8_t addr)
+uint8_t
+BMP280_I2C::get_reg(uint8_t addr)
 {
 	uint8_t cmd[2] = { (uint8_t)(addr), 0};
 	transfer(&cmd[0], 1, &cmd[1], 1);
@@ -93,17 +84,19 @@ uint8_t BMP280_I2C::get_reg(uint8_t addr)
 	return cmd[1];
 }
 
-int BMP280_I2C::set_reg(uint8_t value, uint8_t addr)
+int
+BMP280_I2C::set_reg(uint8_t value, uint8_t addr)
 {
 	uint8_t cmd[2] = { (uint8_t)(addr), value};
 	return transfer(cmd, sizeof(cmd), nullptr, 0);
 }
 
-bmp280::data_s *BMP280_I2C::get_data(uint8_t addr)
+bmp280::data_s *
+BMP280_I2C::get_data(uint8_t addr)
 {
-	const uint8_t cmd = (uint8_t)(addr);
+	const uint8_t cmd = addr;
 
-	if (transfer(&cmd, sizeof(cmd), (uint8_t *)&_data, sizeof(struct bmp280::data_s)) == OK) {
+	if (transfer(&cmd, sizeof(cmd), (uint8_t *)&_data, sizeof(bmp280::data_s)) == OK) {
 		return (&_data);
 
 	} else {
@@ -111,11 +104,12 @@ bmp280::data_s *BMP280_I2C::get_data(uint8_t addr)
 	}
 }
 
-bmp280::calibration_s *BMP280_I2C::get_calibration(uint8_t addr)
+bmp280::calibration_s *
+BMP280_I2C::get_calibration(uint8_t addr)
 {
-	const uint8_t cmd = (uint8_t)(addr) ;
+	const uint8_t cmd = addr;
 
-	if (transfer(&cmd, sizeof(cmd), (uint8_t *)&_cal, sizeof(struct bmp280::calibration_s)) == OK) {
+	if (transfer(&cmd, sizeof(cmd), (uint8_t *)&_cal, sizeof(bmp280::calibration_s)) == OK) {
 		return &(_cal);
 
 	} else {

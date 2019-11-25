@@ -35,7 +35,7 @@
 
 #include <px4_platform_common/defines.h>
 
-#include <cmath>
+#include <math.h>
 
 namespace math
 {

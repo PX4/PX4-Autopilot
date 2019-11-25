@@ -42,8 +42,6 @@
 
 #include <cstring>
 
-#include <uORB/SubscriptionPollable.hpp>
-
 namespace control
 {
 
@@ -99,24 +97,6 @@ void Block::updateParams()
 	updateParamsSubclass();
 }
 
-void Block::updateSubscriptions()
-{
-	uORB::SubscriptionPollableNode *sub = getSubscriptions().getHead();
-	int count = 0;
-
-	while (sub != nullptr) {
-		if (count++ > maxSubscriptionsPerBlock) {
-			char name[blockNameLengthMax];
-			getName(name, blockNameLengthMax);
-			PX4_ERR("exceeded max subscriptions for block: %s", name);
-			break;
-		}
-
-		sub->update();
-		sub = sub->getSibling();
-	}
-}
-
 void SuperBlock::setDt(float dt)
 {
 	Block::setDt(dt);
@@ -154,25 +134,6 @@ void SuperBlock::updateChildParams()
 	}
 }
 
-void SuperBlock::updateChildSubscriptions()
-{
-	Block *child = getChildren().getHead();
-	int count = 0;
-
-	while (child != nullptr) {
-		if (count++ > maxChildrenPerBlock) {
-			char name[blockNameLengthMax];
-			getName(name, blockNameLengthMax);
-			PX4_ERR("exceeded max children for block: %s", name);
-			break;
-		}
-
-		child->updateSubscriptions();
-		child = child->getSibling();
-	}
-}
-
 } // namespace control
 
-template class List<uORB::SubscriptionPollableNode *>;
 template class List<control::BlockParamBase *>;

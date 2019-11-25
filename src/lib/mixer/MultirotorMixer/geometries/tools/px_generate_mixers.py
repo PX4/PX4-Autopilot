@@ -252,7 +252,7 @@ def generate_mixer_multirotor_header(geometries_list, use_normalized_mix=False, 
         else:
             mix = geometry['mix']['B']
 
-        buf.write(u"const MultirotorMixer::Rotor _config_{}[] = {{\n".format(geometry['info']['name']))
+        buf.write(u"static constexpr MultirotorMixer::Rotor _config_{}[] {{\n".format(geometry['info']['name']))
 
         for row in mix:
             if use_6dof:
@@ -269,19 +269,19 @@ def generate_mixer_multirotor_header(geometries_list, use_normalized_mix=False, 
         buf.write(u"};\n\n")
 
     # Print geometry indeces
-    buf.write(u"const MultirotorMixer::Rotor *_config_index[] = {\n")
+    buf.write(u"static constexpr const MultirotorMixer::Rotor *_config_index[] {\n")
     for geometry in geometries_list:
         buf.write(u"\t&_config_{}[0],\n".format(geometry['info']['name']))
     buf.write(u"};\n\n")
 
     # Print geometry rotor counts
-    buf.write(u"const unsigned _config_rotor_count[] = {\n")
+    buf.write(u"static constexpr unsigned _config_rotor_count[] {\n")
     for geometry in geometries_list:
         buf.write(u"\t{}, /* {} */\n".format(len(geometry['rotors']), geometry['info']['name']))
     buf.write(u"};\n\n")
 
     # Print geometry key
-    buf.write(u"const char* _config_key[] = {\n")
+    buf.write(u"const char* _config_key[] {\n")
     for geometry in geometries_list:
         buf.write(u"\t\"{}\",\t/* {} */\n".format(geometry['info']['key'], geometry['info']['name']))
     buf.write(u"};\n\n")

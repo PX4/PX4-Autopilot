@@ -43,7 +43,7 @@
 #include <fcntl.h>
 #include <systemlib/err.h>
 #include <parameters/param.h>
-#include <lib/mixer/mixer.h>
+#include <lib/mixer/MixerGroup.hpp>
 #include <version/version.h>
 #include <arch/board/board.h>
 #include <arch/chip/chip.h>

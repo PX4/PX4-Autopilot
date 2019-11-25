@@ -59,7 +59,7 @@ void BlockLocalPositionEstimator::landCorrect()
 	R(Y_land_agl, Y_land_agl) = _param_lpe_land_z.get() * _param_lpe_land_z.get();
 
 	// residual
-	Matrix<float, n_y_land, n_y_land> S_I = inv<float, n_y_land>((C * _P * C.transpose()) + R);
+	Matrix<float, n_y_land, n_y_land> S_I = inv<float, n_y_land>((C * m_P * C.transpose()) + R);
 	Vector<float, n_y_land> r = y - C * _x;
 	_pub_innov.get().hagl_innov = r(Y_land_agl);
 	_pub_innov.get().hagl_innov_var = R(Y_land_agl, Y_land_agl);
@@ -85,10 +85,10 @@ void BlockLocalPositionEstimator::landCorrect()
 	}
 
 	// kalman filter correction always for land detector
-	Matrix<float, n_x, n_y_land> K = _P * C.transpose() * S_I;
+	Matrix<float, n_x, n_y_land> K = m_P * C.transpose() * S_I;
 	Vector<float, n_x> dx = K * r;
 	_x += dx;
-	_P -= K * C * _P;
+	m_P -= K * C * m_P;
 }
 
 void BlockLocalPositionEstimator::landCheckTimeout()

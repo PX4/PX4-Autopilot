@@ -19,6 +19,7 @@ tone_alarm start
 gpssim start
 pwm_out_sim start
 
+rc_update start
 sensors start
 commander start
 land_detector start vtol
@@ -50,6 +51,7 @@ logger status
 pwm_out_sim status
 sensors status
 commander status
+rc_update stop
 land_detector status
 navigator status
 ekf2 status
