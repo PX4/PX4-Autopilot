@@ -571,6 +571,10 @@ void Logger::add_default_topics()
 	add_topic("vehicle_global_position_groundtruth", 100);
 	add_topic("vehicle_local_position_groundtruth", 100);
 	add_topic("vehicle_roi");
+	add_topic("actuator_controls_4", 100);
+	add_topic("actuator_controls_5", 100);
+	add_topic("vehicle_torque_setpoint", 100);
+	add_topic("vehicle_thrust_setpoint", 100);
 
 	add_topic_multi("multirotor_motor_limits");
 
