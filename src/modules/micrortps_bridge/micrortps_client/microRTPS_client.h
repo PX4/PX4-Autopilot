@@ -49,7 +49,6 @@
 #include <uORB/uORB.h>
 
 #define BUFFER_SIZE 1024
-#define UPDATE_TIME_MS 0
 #define LOOPS -1
 #define SLEEP_MS 1
 #define BAUDRATE 460800
@@ -77,7 +76,6 @@ struct options {
 	char ip[16] = IP;
 	uint16_t recv_port = DEFAULT_RECV_PORT;
 	uint16_t send_port = DEFAULT_SEND_PORT;
-	uint32_t update_time_ms = UPDATE_TIME_MS;
 	uint32_t sleep_ms = SLEEP_MS;
 	uint32_t baudrate = BAUDRATE;
 	uint32_t poll_ms = POLL_MS;
