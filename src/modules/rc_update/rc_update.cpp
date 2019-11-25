@@ -60,7 +60,7 @@ RCUpdate::RCUpdate() :
 	parameters_updated();
 
 	// Subscribing for not to jam other publishers (MAV_CMD_DO_SET_SERVO for example)
-        _t_actuator_controls_3 = orb_subscribe(ORB_ID(actuator_controls_3));
+	_t_actuator_controls_3 = orb_subscribe(ORB_ID(actuator_controls_3));
 }
 
 RCUpdate::~RCUpdate()

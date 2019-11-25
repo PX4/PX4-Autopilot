@@ -69,6 +69,9 @@ MissionBlock::MissionBlock(Navigator *navigator) :
 	_mission_item.time_inside = 0.0f;
 	_mission_item.autocontinue = true;
 	_mission_item.origin = ORIGIN_ONBOARD;
+
+	// Subscribing to publish MAV_CMD_DO_SET_SERVO
+	_t_actuator_controls_3 = orb_subscribe(ORB_ID(actuator_controls_3));
 }
 
 bool
@@ -448,13 +451,37 @@ MissionBlock::issue_command(const mission_item_s &item)
 
 		// Copying actual AUX values to change only one output
 		// and leave others as they are
-		orb_copy(ORB_ID(actuator_controls_2), _t_actuator_controls_2,
+		orb_copy(ORB_ID(actuator_controls_3), _t_actuator_controls_3,
 			 &actuators);
 
-		// params[0] actuator number to be set 0..5 (corresponds to AUX outputs 1..6)
-		// params[1] new value for selected actuator in ms 900...2000
-		actuators.control[(int)item.params[0]] =
-			(float)(((float)item.params[1] - (PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2));
+		int aux_num = static_cast<int>(item.params[0]);
+
+		// Aux numbers corresponding pass.aux.mix mixer
+		switch (aux_num) {
+		case 1:
+			aux_num = 5;
+			break;
+
+		case 2:
+			aux_num = 6;
+			break;
+
+		case 3:
+			aux_num = 7;
+			break;
+
+		case 4:
+			aux_num = 4;
+			break;
+
+		default:
+			break;
+		}
+
+		// aux_num - actuator number to be set
+		// param2 - new value for selected actuator in ms 1000...2000
+		actuators.control[aux_num] = (item.params[1] - static_cast<float>(PWM_DEFAULT_MAX + PWM_DEFAULT_MIN) / 2) /
+					     (static_cast<float>(PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 
 		_actuator_pub.publish(actuators);
 
