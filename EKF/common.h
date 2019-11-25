@@ -69,7 +69,7 @@ struct gps_message {
 	float vel_ned[3];	///< GPS ground speed NED
 	bool vel_ned_valid;	///< GPS ground speed is valid
 	uint8_t nsats;		///< number of satellites used
-	float gdop;		///< geometric dilution of precision
+	float pdop;		///< position dilution of precision
 };
 
 struct flow_message {
@@ -317,7 +317,7 @@ struct parameters {
 	float req_vacc{8.0f};			///< maximum acceptable vertical position error (m)
 	float req_sacc{1.0f};			///< maximum acceptable speed error (m/s)
 	int32_t req_nsats{6};			///< minimum acceptable satellite count
-	float req_gdop{2.0f};			///< maximum acceptable geometric dilution of precision
+	float req_pdop{2.0f};			///< maximum acceptable position dilution of precision
 	float req_hdrift{0.3f};			///< maximum acceptable horizontal drift speed (m/s)
 	float req_vdrift{0.5f};			///< maximum acceptable vertical drift speed (m/s)
 
@@ -423,7 +423,7 @@ union gps_check_fail_status_u {
 	struct {
 		uint16_t fix    : 1; ///< 0 - true if the fix type is insufficient (no 3D solution)
 		uint16_t nsats  : 1; ///< 1 - true if number of satellites used is insufficient
-		uint16_t gdop   : 1; ///< 2 - true if geometric dilution of precision is insufficient
+		uint16_t pdop   : 1; ///< 2 - true if position dilution of precision is insufficient
 		uint16_t hacc   : 1; ///< 3 - true if reported horizontal accuracy is insufficient
 		uint16_t vacc   : 1; ///< 4 - true if reported vertical accuracy is insufficient
 		uint16_t sacc   : 1; ///< 5 - true if reported speed accuracy is insufficient

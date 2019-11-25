@@ -47,7 +47,7 @@
 
 // GPS pre-flight check bit locations
 #define MASK_GPS_NSATS  (1<<0)
-#define MASK_GPS_GDOP   (1<<1)
+#define MASK_GPS_PDOP   (1<<1)
 #define MASK_GPS_HACC   (1<<2)
 #define MASK_GPS_VACC   (1<<3)
 #define MASK_GPS_SACC   (1<<4)
@@ -121,8 +121,8 @@ bool Ekf::gps_is_good(const gps_message &gps)
 	// Check the number of satellites
 	_gps_check_fail_status.flags.nsats = (gps.nsats < _params.req_nsats);
 
-	// Check the geometric dilution of precision
-	_gps_check_fail_status.flags.gdop = (gps.gdop > _params.req_gdop);
+	// Check the position dilution of precision
+	_gps_check_fail_status.flags.pdop = (gps.pdop > _params.req_pdop);
 
 	// Check the reported horizontal and vertical position accuracy
 	_gps_check_fail_status.flags.hacc = (gps.eph > _params.req_hacc);
@@ -228,7 +228,7 @@ bool Ekf::gps_is_good(const gps_message &gps)
 	if (
 		_gps_check_fail_status.flags.fix ||
 		(_gps_check_fail_status.flags.nsats   && (_params.gps_check_mask & MASK_GPS_NSATS)) ||
-		(_gps_check_fail_status.flags.gdop    && (_params.gps_check_mask & MASK_GPS_GDOP)) ||
+		(_gps_check_fail_status.flags.pdop    && (_params.gps_check_mask & MASK_GPS_PDOP)) ||
 		(_gps_check_fail_status.flags.hacc    && (_params.gps_check_mask & MASK_GPS_HACC)) ||
 		(_gps_check_fail_status.flags.vacc    && (_params.gps_check_mask & MASK_GPS_VACC)) ||
 		(_gps_check_fail_status.flags.sacc    && (_params.gps_check_mask & MASK_GPS_SACC)) ||
