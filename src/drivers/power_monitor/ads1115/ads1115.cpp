@@ -9,6 +9,7 @@
  * 2) Finish Nuttx Shell functions: start(), start_bus(), stop(), info() etc
  * 3) Fix uORB publication process
  * 4) Add computation functions: Reverse 2's compliment, Averaging, Steinhart
+ * 5) Sort out Read/Write processes, move on from confirming init() and probe() work.
  */
 
 #include <px4_platform_common/px4_config.h>
@@ -89,7 +90,7 @@ private:
 	float _measure_interval{ADS1115_CONVERSION_INTERVAL};
 
 	bool writeToConfigRegister(uint16_t value);
-	bool readFromConfigRegister(uint32_t *configRegValue);
+	bool readFromConfigRegister(uint16_t *configRegValue);
 	bool readFromConversionRegister(uint16_t *conversionRegValue);
 
 	double getVoltage();
@@ -118,37 +119,39 @@ ADS1115::~ADS1115()
 
 bool ADS1115::writeToConfigRegister(uint16_t value)
 {
-	PX4_INFO("ADS1115 write to config in progress");
+	// PX4_INFO("ADS1115 write to config in progress");
 	uint8_t data[3] = {ADS1115_CONFIG_REG,
 		((uint8_t)((value & 0xff00) >> 8)), (uint8_t)(value & 0xff)};
 	return transfer(data, sizeof(data), nullptr, 0);
 }
 
-bool ADS1115::readFromConfigRegister(uint32_t *configRegValue) // add a print for the output obtained from final transfer and change fn arg to uint32_t and check for hard reset error
+bool ADS1115::readFromConfigRegister(uint16_t *configRegValue) // add a print for the output obtained from final transfer and change fn arg to uint32_t and check for hard reset error
 {
 	// write adrptr reg operation : involves a write process only
-	PX4_INFO("ADS1115 set ptr to config in progress");
+	// PX4_INFO("ADS1115 set ptr to config in progress");
 	uint8_t setptr = ADS1115_CONFIG_REG;
 	transfer(&setptr, sizeof(setptr), nullptr, 0);
 	// read config reg operation : involves a write and read process
 	// PX4_INFO("ADS1115 send read in progress");
 	// uint8_t address = ADS1115_READ_ADDR;
 	// transfer(&address, sizeof(address), nullptr, 0);
-	PX4_INFO("ADS1115 read from config reg in progress");
+	// PX4_INFO("ADS1115 read from config reg in progress");
 	transfer(nullptr, 0, (uint8_t *)configRegValue, sizeof(configRegValue));
-	if (*configRegValue == 0x42C2FFFF)
-	{
-		PX4_INFO("configRegisterValue obtained");
-	}
+	// PX4_INFO("read from config reg");
 	// PX4_INFO("value sent %d of %d size", (unsigned int)configRegValue, sizeof(configRegValue));
 	return PX4_OK;
 }
 
 bool ADS1115::readFromConversionRegister(uint16_t *conversionRegValue)
 {
-	PX4_INFO("ADS1115 read from conv in progress");
-	uint8_t address = ADS1115_READ_ADDR;
-	return transfer(&address, sizeof(address), (uint8_t *)conversionRegValue, sizeof(conversionRegValue));
+	// PX4_INFO("ADS1115 read from conv in progress");
+	// PX4_INFO("ADS1115 set ptr to conv in progress");
+	uint8_t setptr = ADS1115_CONVERSION_REG;
+	transfer(&setptr, sizeof(setptr), nullptr, 0);
+	// PX4_INFO("Conv reg reading..");
+	transfer(nullptr, 0, (uint8_t *)conversionRegValue, sizeof(conversionRegValue));
+	// PX4_INFO("Conv reg read");
+	return PX4_OK;
 }
 
 double ADS1115::getVoltage()
@@ -159,7 +162,7 @@ double ADS1115::getVoltage()
 
 	// Read from conversion register
 	uint16_t conversionRegValue = 0;
-	if (readFromConversionRegister(&conversionRegValue))
+	if (!readFromConversionRegister(&conversionRegValue))
 	{
 		// Perform reverse 2's compliment, perform binary to decimal conversion
 		// other scaling etc., math fns as per circuit
@@ -185,7 +188,7 @@ double ADS1115::getCurrent()
 
 	// Read from conversion register
 	uint16_t conversionRegValue = 0;
-	if (readFromConversionRegister(&conversionRegValue))
+	if (!readFromConversionRegister(&conversionRegValue))
 	{
 		// Perform reverse 2's compliment, perform binary to decimal conversion
 		// other scaling etc., math fns as per circuit
@@ -211,7 +214,7 @@ double ADS1115::getWireTemp()
 
 	// Read from conversion register
 	uint16_t conversionRegValue = 0;
-	if (readFromConversionRegister(&conversionRegValue))
+	if (!readFromConversionRegister(&conversionRegValue))
 	{
 		// Perform reverse 2's compliment, perform binary to decimal conversion
 		// other scaling etc., math fns as per circuit
@@ -236,7 +239,7 @@ double ADS1115::getBattTemp()
 
 	// Read from conversion register
 	uint16_t conversionRegValue = 0;
-	if (readFromConversionRegister(&conversionRegValue))
+	if (!readFromConversionRegister(&conversionRegValue))
 	{
 		// Perform reverse 2's compliment, perform binary to decimal conversion
 		// other scaling etc., math fns as per circuit
@@ -258,7 +261,18 @@ void ADS1115::start()
 {
 	ScheduleClear();
 
-	PX4_DEBUG("start done.\n");
+	//PX4_INFO("start done.\n");
+
+	// PX4_INFO("current:");
+	// PX4_INFO("%f", getCurrent());
+	// PX4_INFO("voltage:");
+	// PX4_INFO("%f", getVoltage());
+	// PX4_INFO("batt temp:");
+	// PX4_INFO("%f", getBattTemp());
+	// PX4_INFO("wire temp:");
+	// PX4_INFO("%f", getWireTemp());
+
+	Run();
 
 	/* schedule a cycle to start things */
 	ScheduleDelayed(5);
@@ -287,7 +301,7 @@ void ADS1115::Run()
 int ADS1115::init()
 {
 	int ret = PX4_ERROR;
-	PX4_INFO("init() begun");
+	// PX4_WARN("init() begun");
 
 	/* do I2C init (and probe) first */
 	if (I2C::init() != OK)
@@ -298,13 +312,13 @@ int ADS1115::init()
 
 	if (probe() == PX4_ERROR)
 	{
-		PX4_INFO("probe() failed");
+		PX4_INFO("ADS1115 probe() failed");
 		return ret;
 	}
 
 	//set_device_address(ADS1115_BASEADDR);	/* set I2c Address */
 
-	PX4_INFO("init done.\n");
+	// PX4_INFO("init done.\n");
 
 	start();
 
@@ -313,16 +327,26 @@ int ADS1115::init()
 
 int  ADS1115::probe()
 {
-	uint32_t configRegisterValue = 0;
+	uint16_t configRegisterValue = 0;
 
-	PX4_INFO("ADS1115 probe attempt");
+	uint16_t convRegisterValue = 0;
+
+	// PX4_INFO("conv reg vel = %u", convRegisterValue);
+
+	// PX4_INFO("ADS1115 probe attempt");
 
 	writeToConfigRegister(ADS1115_CHANNEL_ONE);
 
-	if (readFromConfigRegister(&configRegisterValue))
+	if (!readFromConversionRegister(&convRegisterValue))
 	{
-		PX4_INFO("ADS1115 probe reading");
-		if (ADS1115_CHANNEL_ONE != configRegisterValue)
+		PX4_INFO("%u", convRegisterValue);
+	}
+
+	if (!readFromConfigRegister(&configRegisterValue))
+	{
+		// PX4_INFO("%u", configRegisterValue);
+		// PX4_INFO("ADS1115 probe reading");
+		if (0xA342 != configRegisterValue)
 		{
 			PX4_INFO("ADS1115 probe failed");
 			return PX4_ERROR;
@@ -334,12 +358,12 @@ int  ADS1115::probe()
 		}
 	}
 
-	return PX4_ERROR;
+	return PX4_OK;
 }
 
 void ADS1115::print_info()
 {
-	printf("ADS1115 Power monitor");
+    PX4_INFO("Driver information: ADS1115 Power Monitor Breakout Board");
 }
 
 /*-----------------------------------------------------------------------*/
@@ -430,7 +454,7 @@ namespace ads1115
 			return PX4_ERROR;
 		}
 
-		printf("state @ %p\n", g_dev);
+		PX4_INFO("state @ %p\n", g_dev);
 		g_dev->print_info();
 		return PX4_OK;
 	}
@@ -488,6 +512,18 @@ int ads1115_main(int argc, char *argv[])
 			return ads1115::sh_start_bus(i2c_bus);
 		}
 	}
+
+	if (!strcmp(argv[myoptind], "stop"))
+        {
+            return ads1115::sh_stop();
+        }
+
+	if (!strcmp(argv[myoptind], "info"))
+        {
+            ads1115_usage();
+	    return ads1115::sh_info();
+        }
+
 	out_error:
 		ads1115_usage();
 		return PX4_ERROR;
