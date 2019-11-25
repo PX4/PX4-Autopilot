@@ -383,9 +383,7 @@ MulticopterRateControl::publish_angular_acceleration_setpoint()
 	v_angular_accel_sp.xyz[1] = (PX4_ISFINITE(angular_accel_sp(1))) ? angular_accel_sp(1) : 0.0f;
 	v_angular_accel_sp.xyz[2] = (PX4_ISFINITE(angular_accel_sp(2))) ? angular_accel_sp(2) : 0.0f;
 
-	if (!_vehicle_status.is_vtol) {
-		_vehicle_angular_acceleration_setpoint_pub.publish(v_angular_accel_sp);
-	}
+	_vehicle_angular_acceleration_setpoint_pub.publish(v_angular_accel_sp);
 }
 
 void
@@ -400,9 +398,7 @@ MulticopterRateControl::publish_torque_setpoint()
 	v_torque_sp.xyz[1] = (PX4_ISFINITE(torque_sp(1))) ? torque_sp(1) : 0.0f;
 	v_torque_sp.xyz[2] = (PX4_ISFINITE(torque_sp(2))) ? torque_sp(2) : 0.0f;
 
-	if (!_vehicle_status.is_vtol) {
-		_vehicle_torque_setpoint_pub.publish(v_torque_sp);
-	}
+	_vehicle_torque_setpoint_pub.publish(v_torque_sp);
 }
 
 void
@@ -415,9 +411,7 @@ MulticopterRateControl::publish_thrust_setpoint()
 	v_thrust_sp.xyz[1] = 0.0f;
 	v_thrust_sp.xyz[2] = (PX4_ISFINITE(-_thrust_sp)) ? (-_thrust_sp) : 0.0f;
 
-	if (!_vehicle_status.is_vtol) {
-		_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
-	}
+	_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
 }
 
 int MulticopterRateControl::task_spawn(int argc, char *argv[])
