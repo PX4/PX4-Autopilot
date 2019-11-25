@@ -67,5 +67,4 @@ fi
 
 set MAV_TYPE 22
 
-set MIXER_FILE etc/mixers-sitl/standard_vtol_sitl.main.mix
-set MIXER custom
+set MIXER standard_vtol
