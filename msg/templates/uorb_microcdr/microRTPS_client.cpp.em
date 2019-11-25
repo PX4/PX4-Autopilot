@@ -114,15 +114,15 @@ void* send(void* /*unused*/)
                 }
         }
 @[end for]@
-        px4_usleep(_options.sleep_ms * 1e3);
+        px4_usleep(_options.sleep_ms * 1000);
         ++loop;
     }
 
     struct timespec end;
     px4_clock_gettime(CLOCK_REALTIME, &end);
-    double elapsed_secs = static_cast<double>(end.tv_sec - begin.tv_sec + (end.tv_nsec - begin.tv_nsec) / 1e9);
+    double elapsed_secs = end.tv_sec - begin.tv_sec + (end.tv_nsec - begin.tv_nsec) / 1e9;
     PX4_INFO("SENT: %" PRIu64 " messages in %d LOOPS, %" PRIu64 " bytes in %.03f seconds - %.02fKB/s",
-                sent, loop, total_sent, elapsed_secs, static_cast<double>(total_sent / (1e3 * elapsed_secs)));
+                sent, loop, total_sent, elapsed_secs, total_sent / (1e3 * elapsed_secs));
 
     return nullptr;
 }
@@ -198,7 +198,7 @@ void micrortps_start_topics(struct timespec &begin, uint64_t &total_read, uint64
         // loop forever if informed loop number is negative
         if (_options.loops >= 0 && loop >= _options.loops) break;
 
-        px4_usleep(_options.sleep_ms * 1e3);
+        px4_usleep(_options.sleep_ms * 1000);
         ++loop;
     }
 @[if send_topics]@
