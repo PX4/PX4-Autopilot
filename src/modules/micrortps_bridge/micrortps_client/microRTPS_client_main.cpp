@@ -1,6 +1,7 @@
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
+ * Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -63,8 +64,6 @@ static void usage(const char *name)
 	PRINT_MODULE_USAGE_PARAM_STRING('d', "/dev/ttyACM0", "<file:dev>", "Select Serial Device", true);
 	PRINT_MODULE_USAGE_PARAM_INT('b', 460800, 9600, 3000000, "Baudrate (can also be p:<param_name>)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('p', -1, 1, 1000, "Poll timeout for UART in ms", true);
-	PRINT_MODULE_USAGE_PARAM_INT('u', 0, 0, 10000,
-				     "Interval in ms to limit the update rate of all sent topics (0=unlimited)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('l', 10000, -1, 100000, "Limit number of iterations until the program exits (-1=infinite)",
 				     true);
 	PRINT_MODULE_USAGE_PARAM_INT('w', 1, 1, 1000, "Time in ms for which each iteration sleeps", true);
@@ -82,15 +81,13 @@ static int parse_options(int argc, char *argv[])
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
 
-	while ((ch = px4_getopt(argc, argv, "t:d:u:l:w:b:p:r:s:i:", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "t:d:l:w:b:p:r:s:i:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 't': _options.transport      = strcmp(myoptarg, "UDP") == 0 ?
 							    options::eTransports::UDP
 							    : options::eTransports::UART;   break;
 
 		case 'd': if (nullptr != myoptarg) strcpy(_options.device, myoptarg);   break;
-
-		case 'u': _options.update_time_ms = strtoul(myoptarg, nullptr, 10);     break;
 
 		case 'l': _options.loops          =  strtol(myoptarg, nullptr, 10);     break;
 
