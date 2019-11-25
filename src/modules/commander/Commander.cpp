@@ -76,7 +76,7 @@
 #include <circuit_breaker/circuit_breaker.h>
 #include <systemlib/mavlink_log.h>
 
-#include <cmath>
+#include <math.h>
 #include <float.h>
 #include <cstring>
 
@@ -768,7 +768,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 				bool cmd_arms = (static_cast<int>(cmd.param1 + 0.5f) == 1);
 
 				// Arm/disarm is enforced when param2 is set to a magic number.
-				const bool enforce = (static_cast<int>(std::round(cmd.param2)) == 21196);
+				const bool enforce = (static_cast<int>(roundf(cmd.param2)) == 21196);
 
 				if (!enforce) {
 					if (!land_detector.landed && !is_ground_rover(&status)) {

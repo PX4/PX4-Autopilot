@@ -39,7 +39,7 @@
 #include "MultirotorMixer.hpp"
 
 #include <cstdio>
-#include <cmath>
+#include <math.h>
 
 static const unsigned output_max = 16;
 static float actuator_controls[output_max] {};
