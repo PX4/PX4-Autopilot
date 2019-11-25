@@ -375,8 +375,8 @@ private:
 		(ParamExtFloat<px4::params::EKF2_REQ_EPV>) _param_ekf2_req_epv,	///< maximum acceptable vert position error (m)
 		(ParamExtFloat<px4::params::EKF2_REQ_SACC>) _param_ekf2_req_sacc,	///< maximum acceptable speed error (m/s)
 		(ParamExtInt<px4::params::EKF2_REQ_NSATS>) _param_ekf2_req_nsats,	///< minimum acceptable satellite count
-		(ParamExtFloat<px4::params::EKF2_REQ_GDOP>)
-		_param_ekf2_req_gdop,	///< maximum acceptable geometric dilution of precision
+		(ParamExtFloat<px4::params::EKF2_REQ_PDOP>)
+		_param_ekf2_req_pdop,	///< maximum acceptable position dilution of precision
 		(ParamExtFloat<px4::params::EKF2_REQ_HDRIFT>)
 		_param_ekf2_req_hdrift,	///< maximum acceptable horizontal drift speed (m/s)
 		(ParamExtFloat<px4::params::EKF2_REQ_VDRIFT>) _param_ekf2_req_vdrift,	///< maximum acceptable vertical drift speed (m/s)
@@ -581,7 +581,7 @@ Ekf2::Ekf2(bool replay_mode):
 	_param_ekf2_req_epv(_params->req_vacc),
 	_param_ekf2_req_sacc(_params->req_sacc),
 	_param_ekf2_req_nsats(_params->req_nsats),
-	_param_ekf2_req_gdop(_params->req_gdop),
+	_param_ekf2_req_pdop(_params->req_pdop),
 	_param_ekf2_req_hdrift(_params->req_hdrift),
 	_param_ekf2_req_vdrift(_params->req_vdrift),
 	_param_ekf2_aid_mask(_params->fusion_mode),
@@ -1661,8 +1661,7 @@ void Ekf2::fillGpsMsgWithVehicleGpsPosData(gps_message &msg, const vehicle_gps_p
 	msg.vel_ned[2] = data.vel_d_m_s;
 	msg.vel_ned_valid = data.vel_ned_valid;
 	msg.nsats = data.satellites_used;
-	const float tdop = 0.9f; // TDOP is usually never worse than 0.9
-	msg.gdop = sqrtf(data.hdop * data.hdop + data.vdop * data.vdop + tdop * tdop);
+	msg.pdop = sqrtf(data.hdop * data.hdop + data.vdop * data.vdop);
 }
 
 void Ekf2::runPreFlightChecks(const float dt,
@@ -2032,7 +2031,7 @@ void Ekf2::update_gps_blend_states()
 	_gps_blended_state.vel_ned[2] = 0.0f;
 	_gps_blended_state.vel_ned_valid = true;
 	_gps_blended_state.nsats = 0;
-	_gps_blended_state.gdop = FLT_MAX;
+	_gps_blended_state.pdop = FLT_MAX;
 
 	_blended_antenna_offset.zero();
 
@@ -2071,9 +2070,9 @@ void Ekf2::update_gps_blend_states()
 				_gps_blended_state.sacc = _gps_state[i].sacc;
 			}
 
-			if (_gps_state[i].gdop > 0
-			    && _gps_state[i].gdop < _gps_blended_state.gdop) {
-				_gps_blended_state.gdop = _gps_state[i].gdop;
+			if (_gps_state[i].pdop > 0
+			    && _gps_state[i].pdop < _gps_blended_state.pdop) {
+				_gps_blended_state.pdop = _gps_state[i].pdop;
 			}
 
 			if (_gps_state[i].nsats > 0
@@ -2257,7 +2256,7 @@ void Ekf2::apply_gps_offsets()
 		_gps_output[i].eph		= _gps_state[i].eph;
 		_gps_output[i].epv		= _gps_state[i].epv;
 		_gps_output[i].sacc		= _gps_state[i].sacc;
-		_gps_output[i].gdop		= _gps_state[i].gdop;
+		_gps_output[i].pdop		= _gps_state[i].pdop;
 		_gps_output[i].nsats		= _gps_state[i].nsats;
 		_gps_output[i].vel_ned_valid	= _gps_state[i].vel_ned_valid;
 		_gps_output[i].yaw		= _gps_state[i].yaw;
@@ -2319,7 +2318,7 @@ void Ekf2::calc_gps_blend_output()
 	_gps_output[GPS_BLENDED_INSTANCE].eph		= _gps_blended_state.eph;
 	_gps_output[GPS_BLENDED_INSTANCE].epv		= _gps_blended_state.epv;
 	_gps_output[GPS_BLENDED_INSTANCE].sacc		= _gps_blended_state.sacc;
-	_gps_output[GPS_BLENDED_INSTANCE].gdop		= _gps_blended_state.gdop;
+	_gps_output[GPS_BLENDED_INSTANCE].pdop		= _gps_blended_state.pdop;
 	_gps_output[GPS_BLENDED_INSTANCE].nsats		= _gps_blended_state.nsats;
 	_gps_output[GPS_BLENDED_INSTANCE].vel_ned_valid	= _gps_blended_state.vel_ned_valid;
 	_gps_output[GPS_BLENDED_INSTANCE].yaw		= _gps_blended_state.yaw;

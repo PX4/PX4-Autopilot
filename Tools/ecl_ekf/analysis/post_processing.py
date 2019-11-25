@@ -104,7 +104,7 @@ def get_gps_check_fail_flags(estimator_status: dict) -> dict:
 
     # 0 : insufficient fix type (no 3D solution)
     # 1 : minimum required sat count fail
-    # 2 : minimum required GDoP fail
+    # 2 : minimum required PDOP fail
     # 3 : maximum allowed horizontal position error fail
     # 4 : maximum allowed vertical position error fail
     # 5 : maximum allowed speed error fail
@@ -114,7 +114,7 @@ def get_gps_check_fail_flags(estimator_status: dict) -> dict:
     # 9 : maximum allowed vertical velocity discrepancy fail
     gps_fail_flags['gfix_fail'] = ((2 ** 0 & estimator_status['gps_check_fail_flags']) > 0) * 1
     gps_fail_flags['nsat_fail'] = ((2 ** 1 & estimator_status['gps_check_fail_flags']) > 0) * 1
-    gps_fail_flags['gdop_fail'] = ((2 ** 2 & estimator_status['gps_check_fail_flags']) > 0) * 1
+    gps_fail_flags['pdop_fail'] = ((2 ** 2 & estimator_status['gps_check_fail_flags']) > 0) * 1
     gps_fail_flags['herr_fail'] = ((2 ** 3 & estimator_status['gps_check_fail_flags']) > 0) * 1
     gps_fail_flags['verr_fail'] = ((2 ** 4 & estimator_status['gps_check_fail_flags']) > 0) * 1
     gps_fail_flags['serr_fail'] = ((2 ** 5 & estimator_status['gps_check_fail_flags']) > 0) * 1
