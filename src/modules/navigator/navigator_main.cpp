@@ -57,7 +57,6 @@
 #include <px4_posix.h>
 #include <px4_tasks.h>
 #include <systemlib/mavlink_log.h>
-#include <v2.0/common/mavlink.h>
 
 /**
  * navigator app start / stop handling function
@@ -966,7 +965,7 @@ void Navigator::check_traffic()
 
 
 		//Manned/Unmanned Vehicle Seperation Distance
-		if (tr.emitter_type == ADSB_EMITTER_TYPE_UAV) {
+		if (tr.emitter_type == transponder_report_s::ADSB_EMITTER_TYPE_UAV) {
 			horizontal_separation = NAVTrafficAvoidUnmanned;
 			vertical_separation = NAVTrafficAvoidUnmanned;
 		}
@@ -1011,7 +1010,7 @@ void Navigator::check_traffic()
 
 					case 0: {
 							/* ignore */
-							PX4_WARN("TRAFFIC %s, hdg: %d, hrzl dst:: %f, type: %d",
+							PX4_WARN("TRAFFIC %s, hdg: %d, hrzl dst:: %.0f, type: %d",
 								 tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign :
 								 "unknown",
 								 traffic_direction,
@@ -1099,10 +1098,12 @@ int Navigator::custom_command(int argc, char *argv[])
 		return 0;
 
 	} else if (!strcmp(argv[0], "fake_traffic")) {
-		get_instance()->fake_traffic("LX007", 500, 1.0f, -1.0f, 100.0f, 90.0f, 0.001f, ADSB_EMITTER_TYPE_LIGHT);
-		get_instance()->fake_traffic("LX55", 1000, 0, 0, 100.0f, 90.0f, 0.001f, ADSB_EMITTER_TYPE_SMALL);
-		get_instance()->fake_traffic("LX20", 15000, 1.0f, -1.0f, 280.0f, 90.0f, 0.001f, ADSB_EMITTER_TYPE_LARGE);
-		get_instance()->fake_traffic("DRONE", 10, 1.0f, -1.0f, 10.0f, 10.0f, 0.001f, ADSB_EMITTER_TYPE_UAV);
+		get_instance()->fake_traffic("LX007", 500, 1.0f, -1.0f, 100.0f, 90.0f, 0.001f,
+					     transponder_report_s::ADSB_EMITTER_TYPE_LIGHT);
+		get_instance()->fake_traffic("LX55", 1000, 0, 0, 100.0f, 90.0f, 0.001f, transponder_report_s::ADSB_EMITTER_TYPE_SMALL);
+		get_instance()->fake_traffic("LX20", 15000, 1.0f, -1.0f, 280.0f, 90.0f, 0.001f,
+					     transponder_report_s::ADSB_EMITTER_TYPE_LARGE);
+		get_instance()->fake_traffic("UAV", 10, 1.0f, -2.0f, 10.0f, 10.0f, 0.01f, transponder_report_s::ADSB_EMITTER_TYPE_UAV);
 		return 0;
 	}
 
