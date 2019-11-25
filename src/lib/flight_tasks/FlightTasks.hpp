@@ -110,7 +110,7 @@ public:
 	 * Switch to the next task in the available list (for testing)
 	 * @return 0 on success, <0 on error
 	 */
-	FlightTaskError switchTask() { return switchTask(static_cast<int>(_current_task.index) + 1); };
+	FlightTaskError switchTask() { return switchTask(static_cast<int>(_current_task.index) + 1); }
 
 	/**
 	 * Switch to a specific task (for normal usage)
