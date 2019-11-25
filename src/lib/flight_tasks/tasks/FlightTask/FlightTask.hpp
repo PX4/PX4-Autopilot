@@ -160,7 +160,7 @@ public:
 	/**
 	 *  Set the timestamp of the message that caused a FlightTasks-switch
 	 */
-	void setModeSwitchTimeStamp(const hrt_abstime t_stamp_mode_switch) {_time_stamp_mode_switch_requested = t_stamp_mode_switch;}
+	void setModeSwitchTimeStamp(const hrt_abstime& t_stamp_mode_switch) { _time_stamp_mode_switch_requested = t_stamp_mode_switch; }
 
 	/**
 	 * Sets an external yaw handler which can be used by any flight task to implement a different yaw control strategy.
