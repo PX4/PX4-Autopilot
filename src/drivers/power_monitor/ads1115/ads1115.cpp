@@ -5,8 +5,7 @@
  *
  * TO-DO-
  *
- * 1) Finish constructor: Add param checks, and other first run initializations
- * 2) Finish Nuttx Shell functions: start(), start_bus(), stop(), info() etc
+ * 1) Complete Constructor, Destructor
  * 3) Fix uORB publication process
  * 4) Add computation functions: Reverse 2's compliment, Averaging, Steinhart
  * 5) Sort out Read/Write processes, move on from confirming init() and probe() work.
@@ -70,221 +69,210 @@
 #define ADS1115_CHANNEL_THREE 	(0x62A3) // 0 110 001 0 101 0 0 0 11
 #define ADS1115_CHANNEL_FOUR	(0x72A3) // 0 111 001 0 101 0 0 0 11
 
-
 class ADS1115 : public device::I2C, px4::ScheduledWorkItem
 {
 public:
 	ADS1115(int bus = ADS1115_BUS_DEFAULT, int address = ADS1115_BASEADDR);
-	virtual  ~ADS1115();
+	virtual ~ADS1115();
 
-	virtual int  init();
+	virtual int init();
 
-	void  print_info();
+	void print_info();
 
 protected:
-	virtual int  probe();
+	virtual int probe();
 
 private:
 	orb_advert_t _power_monitor_topic{nullptr};
 
 	float _measure_interval{ADS1115_CONVERSION_INTERVAL};
 
-	bool writeToConfigRegister(uint16_t value);
-	bool readFromConfigRegister(uint16_t *configRegValue);
-	bool readFromConversionRegister(uint16_t *conversionRegValue);
+	int writeConfigReg(uint16_t value);
+	int readConfigReg(uint16_t *configRegValue);
+	int readConvReg(uint16_t *convRegValue);
 
 	double getVoltage();
 	double getCurrent();
 	double getWireTemp();
 	double getBattTemp();
 
-	void start();
-	void stop();
-	void Run() override;
+    void start();
+    void stop();
+    void Run() override;
 };
 
 extern "C" __EXPORT int ads1115_main(int argc, char *argv[]);
 
-ADS1115::ADS1115(int bus, int address) :
+ADS1115::ADS1115(int bus, int address) : // FILL CONSTRUCTOR
 	I2C("ADS1115", nullptr, bus, address, 100000),
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(get_device_id()))
 {
 	PX4_DEBUG("constructor\n");
 }
 
-ADS1115::~ADS1115()
+ADS1115::~ADS1115() //FILL DESTRUCTOR
 {
-	stop();
+    stop();
 }
 
-bool ADS1115::writeToConfigRegister(uint16_t value)
+int ADS1115::readConvReg(uint16_t *convRegVal)
 {
-	// PX4_INFO("ADS1115 write to config in progress");
-	uint8_t data[3] = {ADS1115_CONFIG_REG,
+    uint8_t adrRegPtr = ADS1115_CONVERSION_REG;
+
+	transfer(&adrRegPtr, sizeof(adrRegPtr), nullptr, 0);
+
+    transfer(nullptr, 0, (uint8_t *)convRegVal, sizeof(convRegVal));
+
+    return PX4_OK;
+}
+
+int ADS1115::readConfigReg(uint16_t *configRegVal)
+{
+    uint8_t adrRegPtr = ADS1115_CONFIG_REG;
+
+	transfer(&adrRegPtr, sizeof(adrRegPtr), nullptr, 0);
+
+    transfer(nullptr, 0, (uint8_t *)configRegVal, sizeof(configRegVal));
+
+    return PX4_OK;
+}
+
+int ADS1115::writeConfigReg(uint16_t value)
+{
+    uint8_t data[3] = {ADS1115_CONFIG_REG,
 		((uint8_t)((value & 0xff00) >> 8)), (uint8_t)(value & 0xff)};
-	return transfer(data, sizeof(data), nullptr, 0);
+
+	transfer(data, sizeof(data), nullptr, 0);
+
+    return PX4_OK;
 }
 
-bool ADS1115::readFromConfigRegister(uint16_t *configRegValue) // add a print for the output obtained from final transfer and change fn arg to uint32_t and check for hard reset error
+int ADS1115::probe()
 {
-	// write adrptr reg operation : involves a write process only
-	// PX4_INFO("ADS1115 set ptr to config in progress");
-	uint8_t setptr = ADS1115_CONFIG_REG;
-	transfer(&setptr, sizeof(setptr), nullptr, 0);
-	// read config reg operation : involves a write and read process
-	// PX4_INFO("ADS1115 send read in progress");
-	// uint8_t address = ADS1115_READ_ADDR;
-	// transfer(&address, sizeof(address), nullptr, 0);
-	// PX4_INFO("ADS1115 read from config reg in progress");
-	transfer(nullptr, 0, (uint8_t *)configRegValue, sizeof(configRegValue));
-	// PX4_INFO("read from config reg");
-	// PX4_INFO("value sent %d of %d size", (unsigned int)configRegValue, sizeof(configRegValue));
-	return PX4_OK;
+    uint16_t configRegVal = 0;
+    uint16_t convRegVal = 0;
+
+    writeConfigReg(ADS1115_CHANNEL_ONE);
+
+    if (!readConfigReg(&configRegVal))
+    {
+        if (0xA342 != configRegVal)
+        {
+            PX4_WARN("ADS1115::readConfigReg() failed");
+            return PX4_ERROR;
+        } else {
+            return PX4_OK;
+        }
+    }
+
+    if (!readConvReg(&convRegVal))
+    {
+        PX4_INFO("First Conv Reg read called");
+    }
+
+    PX4_INFO("ADS1115::probe() success");
+    return PX4_OK;
 }
 
-bool ADS1115::readFromConversionRegister(uint16_t *conversionRegValue)
+int ADS1115::init()
 {
-	// PX4_INFO("ADS1115 read from conv in progress");
-	// PX4_INFO("ADS1115 set ptr to conv in progress");
-	uint8_t setptr = ADS1115_CONVERSION_REG;
-	transfer(&setptr, sizeof(setptr), nullptr, 0);
-	// PX4_INFO("Conv reg reading..");
-	transfer(nullptr, 0, (uint8_t *)conversionRegValue, sizeof(conversionRegValue));
-	// PX4_INFO("Conv reg read");
-	return PX4_OK;
+    if (I2C::init() != PX4_OK)
+    {
+        PX4_WARN("!2C::init() failed, in ADS1115::init() if.1");
+        return PX4_ERROR;
+    }
+    PX4_INFO("ADS1115::init() success");
+
+    start();
+
+    return PX4_OK;
+}
+
+void ADS1115::print_info()
+{
+    PX4_INFO("Driver information: ADS1115 Power Monitor Breakout Board");
+}
+
+
+double ADS1115::getCurrent()
+{
+    double current = 0;
+    uint16_t convRegVal = 0;
+
+    writeConfigReg(ADS1115_CHANNEL_ONE);
+    if (!readConvReg(&convRegVal))
+    {
+        current = convRegVal;
+    } else
+    {
+        PX4_ERR("Current Reading Failed");
+    }
+    return current;
 }
 
 double ADS1115::getVoltage()
 {
-	double voltage = 0;
+    double voltage = 0;
+    uint16_t convRegVal = 0;
 
-	writeToConfigRegister(ADS1115_CHANNEL_ONE);
-
-	// Read from conversion register
-	uint16_t conversionRegValue = 0;
-	if (!readFromConversionRegister(&conversionRegValue))
-	{
-		// Perform reverse 2's compliment, perform binary to decimal conversion
-		// other scaling etc., math fns as per circuit
-		// double voltage = final value
-		voltage = 10;
-	}
-	else
-	{
-		PX4_DEBUG("Reading from Voltage Conversion Register failed");
-		voltage = 0.0;
-	}
-
-	ScheduleDelayed(ADS1115_CONVERSION_INTERVAL);
-
-	return voltage;
-}
-
-double ADS1115::getCurrent()
-{
-	double current = 0;
-
-	writeToConfigRegister(ADS1115_CHANNEL_TWO);
-
-	// Read from conversion register
-	uint16_t conversionRegValue = 0;
-	if (!readFromConversionRegister(&conversionRegValue))
-	{
-		// Perform reverse 2's compliment, perform binary to decimal conversion
-		// other scaling etc., math fns as per circuit
-		// double current = final value
-		current = 10;
-	}
-	else
-	{
-		PX4_DEBUG("Reading from Current Conversion Register failed");
-		current = 0.0;
-	}
-
-	ScheduleDelayed(ADS1115_CONVERSION_INTERVAL);
-
-	return current;
+    writeConfigReg(ADS1115_CHANNEL_TWO);
+    if (!readConvReg(&convRegVal))
+    {
+        voltage = convRegVal;
+    } else
+    {
+        PX4_ERR("Voltage Reading Failed");
+    }
+    return voltage;
 }
 
 double ADS1115::getWireTemp()
 {
-	double wireTemp = 0;
+    double wiretemp = 0;
+    uint16_t convRegVal = 0;
 
-	writeToConfigRegister(ADS1115_CHANNEL_THREE);
-
-	// Read from conversion register
-	uint16_t conversionRegValue = 0;
-	if (!readFromConversionRegister(&conversionRegValue))
-	{
-		// Perform reverse 2's compliment, perform binary to decimal conversion
-		// other scaling etc., math fns as per circuit
-		// double wireTemp = final value
-		wireTemp = 10;
-	}
-	else
-	{
-		PX4_DEBUG("Reading from Wire Temperature Conversion Register failed");
-		wireTemp = 0.0;
-	}
-
-	ScheduleDelayed(ADS1115_CONVERSION_INTERVAL);
-
-	return wireTemp;
+    writeConfigReg(ADS1115_CHANNEL_THREE);
+    if (!readConvReg(&convRegVal))
+    {
+        wiretemp = convRegVal;
+    } else
+    {
+        PX4_ERR("Wire Temperature Reading Failed");
+    }
+    return wiretemp;
 }
 
 double ADS1115::getBattTemp()
 {
-	double battTemp = 0;
-	writeToConfigRegister(ADS1115_CHANNEL_FOUR);
+    double battTemp = 0;
+    uint16_t convRegVal = 0;
 
-	// Read from conversion register
-	uint16_t conversionRegValue = 0;
-	if (!readFromConversionRegister(&conversionRegValue))
-	{
-		// Perform reverse 2's compliment, perform binary to decimal conversion
-		// other scaling etc., math fns as per circuit
-		// double battTemp = final value
-		battTemp = 10;
-	}
-	else
-	{
-		PX4_DEBUG("Reading from Battery Temperature Conversion Register failed");
-		battTemp = 0.0;
-	}
-
-	ScheduleDelayed(ADS1115_CONVERSION_INTERVAL);
-
-	return battTemp;
+    writeConfigReg(ADS1115_CHANNEL_FOUR);
+    if (!readConvReg(&convRegVal))
+    {
+        battTemp = convRegVal;
+    } else
+    {
+        PX4_ERR("Battery Temperature Reading Failed");
+    }
+    return battTemp;
 }
 
 void ADS1115::start()
 {
-	ScheduleClear();
-
-	//PX4_INFO("start done.\n");
-
-	// PX4_INFO("current:");
-	// PX4_INFO("%f", getCurrent());
-	// PX4_INFO("voltage:");
-	// PX4_INFO("%f", getVoltage());
-	// PX4_INFO("batt temp:");
-	// PX4_INFO("%f", getBattTemp());
-	// PX4_INFO("wire temp:");
-	// PX4_INFO("%f", getWireTemp());
-
-	Run();
-
-	/* schedule a cycle to start things */
-	ScheduleDelayed(5);
+    ScheduleClear();
+    Run();
+    ScheduleDelayed(5);
 }
 
 void ADS1115::stop()
 {
-	ScheduleClear();
+    ScheduleClear();
 }
 
 void ADS1115::Run()
 {
+    PX4_INFO("Run() in progrss");
 	struct power_monitor_s report;
 	report.timestamp = hrt_absolute_time();
 	report.voltage_v = getVoltage();
@@ -293,155 +281,67 @@ void ADS1115::Run()
 	report.batttemp_c = getBattTemp();
 
 	int instance;
-	orb_publish_auto(ORB_ID(power_monitor), &_power_monitor_topic, &report, &instance, ORB_PRIO_DEFAULT);
+	orb_publish_auto(ORB_ID(power_monitor), &_power_monitor_topic,
+        &report, &instance, ORB_PRIO_DEFAULT);
 
-	ScheduleDelayed(1000);
+    ScheduleDelayed(100);
 }
+/* ------------------------------------------------------------------------- */
 
-int ADS1115::init()
+namespace ads1115 // COMPLETE SH_MEASURE()
 {
-	int ret = PX4_ERROR;
-	// PX4_WARN("init() begun");
+    ADS1115 *g_dev;
 
-	/* do I2C init (and probe) first */
-	if (I2C::init() != OK)
-	{
-		PX4_INFO("i2c init() failed");
-		return ret;
-	}
+    int sh_init(int i2c_bus);
+    int sh_stop();
+    int sh_info();
 
-	if (probe() == PX4_ERROR)
-	{
-		PX4_INFO("ADS1115 probe() failed");
-		return ret;
-	}
+    int sh_init(int i2c_bus)
+    {
+        if (g_dev != nullptr)
+        {
+            PX4_ERR("ADS1115 Driver already started, g_dev != nullptr in sh_init if.1");
+            return PX4_ERROR;
+        }
 
-	//set_device_address(ADS1115_BASEADDR);	/* set I2c Address */
+        g_dev = new ADS1115(i2c_bus);
 
-	// PX4_INFO("init done.\n");
+        if (g_dev == nullptr)
+        {
+            PX4_ERR("ADS1115 Driver not started, g_dev = nullptr in sh_init if.2");
+            return PX4_ERROR;
+        }
 
-	start();
+        if (OK != g_dev->init())
+        {
+            PX4_ERR("ADS1115::init() failed in sh_init if.3");
+            goto fail;
+        }
 
-	return OK;
-}
+        // PX4_INFO("ADS1115 Driver sh_init() success");
+        return PX4_OK;
 
-int  ADS1115::probe()
-{
-	uint16_t configRegisterValue = 0;
+        fail:
+            if (g_dev != nullptr)
+            {
+                delete g_dev;
+                g_dev = nullptr;
+                return PX4_ERROR;
+            }
+        return PX4_ERROR;
+    }
 
-	uint16_t convRegisterValue = 0;
-
-	// PX4_INFO("conv reg vel = %u", convRegisterValue);
-
-	// PX4_INFO("ADS1115 probe attempt");
-
-	writeToConfigRegister(ADS1115_CHANNEL_ONE);
-
-	if (!readFromConversionRegister(&convRegisterValue))
-	{
-		PX4_INFO("%u", convRegisterValue);
-	}
-
-	if (!readFromConfigRegister(&configRegisterValue))
-	{
-		// PX4_INFO("%u", configRegisterValue);
-		// PX4_INFO("ADS1115 probe reading");
-		if (0xA342 != configRegisterValue)
-		{
-			PX4_INFO("ADS1115 probe failed");
-			return PX4_ERROR;
-		}
-		else
-		{
-			PX4_INFO("ADS1115 probe success");
-			return OK;
-		}
-	}
-
-	return PX4_OK;
-}
-
-void ADS1115::print_info()
-{
-    PX4_INFO("Driver information: ADS1115 Power Monitor Breakout Board");
-}
-
-/*-----------------------------------------------------------------------*/
-
-namespace ads1115
-{
-	ADS1115	*g_dev;
-
-	int sh_start();
-	int sh_start_bus(int i2c_bus);
-	int sh_stop();
-	int info();
-
-	int sh_start()
+    int sh_stop()
 	{
 		if (g_dev != nullptr)
 		{
-			PX4_ERR("Driver already started");
-			return PX4_ERROR;
-		} else
-		{
-			PX4_INFO("Driver started");
-			return OK;
-		}
-	}
-
-	int sh_start_bus(int i2c_bus)
-	{
-		if (g_dev != nullptr)
-		{
-			PX4_ERR("Driver already started");
-			return PX4_ERROR;
-		}
-
-		/* create the driver */
-		g_dev = new ADS1115(i2c_bus);
-
-		if (g_dev == nullptr)
-		{
-			goto faila;
-		}
-
-		if (OK != g_dev->init())
-		{
-			goto failb;
-		}
-
-		PX4_INFO("start_bus() success");
-		return PX4_OK;
-
-	faila:
-		if (g_dev != nullptr)
-		{
-			delete g_dev;
-			g_dev = nullptr;
-			PX4_INFO("start_bus() failed because g_dev");
-		}
-	failb:
-		if (g_dev != nullptr)
-		{
-			delete g_dev;
-			g_dev = nullptr;
-			PX4_INFO("start_bus() failed because init()");
-		}
-		return PX4_ERROR;
-	}
-
-	int sh_stop()
-	{
-		if (g_dev != nullptr)
-		{
-			PX4_INFO("stop() success");
+			PX4_INFO("ADS1115 Driver sh_stop() success");
 			delete g_dev;
 			g_dev = nullptr;
 			return PX4_OK;
 		} else
 		{
-			PX4_ERR("Driver not running yet");
+			PX4_ERR("ADS1115 Driver not running yet");
 			return PX4_ERROR;
 		}
 	}
@@ -450,7 +350,7 @@ namespace ads1115
 	{
 		if (g_dev == nullptr)
 		{
-			PX4_INFO("driver poll restart failed");
+			PX4_ERR("ADS1115 Driver not started, g_dev == nullptr in sh_info");
 			return PX4_ERROR;
 		}
 
@@ -462,71 +362,49 @@ namespace ads1115
 
 static void ads1115_usage()
 {
-	PX4_INFO("usage: ads1115 command [options]");
-	PX4_INFO("options:");
-	PX4_INFO("\t-b --bus i2cbus (%d)", ADS1115_BUS_DEFAULT);
-	PX4_INFO("\t-a --all");
-	PX4_INFO("command:");
-	PX4_INFO("\tstart|stop|test|info");
+    PX4_INFO("ads1115 [command]");
+    PX4_INFO("commands:");
+	PX4_INFO("\tinit|stop|info");
 }
-
 
 int ads1115_main(int argc, char *argv[])
 {
-	// printf("hello world");
-	// return OK;
-
-	int ch;
+    int ch;
 	int myoptind = 1;
 	const char *myoptarg = nullptr;
-	bool start_all = false;
+    int i2c_bus = ADS1115_BUS_DEFAULT;
 
-	int i2c_bus = ADS1115_BUS_DEFAULT;
+	while ((ch = px4_getopt(argc, argv, "s:R:", &myoptind, &myoptarg)) != EOF)
+    {
+        switch(ch)
+        {
+            case 's':
+                i2c_bus = atoi(myoptarg);
+                break;
+            default:
+                PX4_WARN("unknown option!");
+                goto fail;
+        }
 
-	while ((ch = px4_getopt(argc, argv, "ab:R:", &myoptind, &myoptarg)) != EOF)
-	{
-		switch (ch)
-		{
-			case 'b':
-				i2c_bus = atoi(myoptarg);
-				break;
+        if (!strcmp(argv[myoptind], "init"))
+        {
+            return ads1115::sh_init(i2c_bus);
+        }
 
-			case 'a':
-				start_all = true;
-				break;
-
-			default:
-				PX4_WARN("Unknown option!");
-				goto out_error;
-		}
-
-	if (!strcmp(argv[myoptind], "start"))
-	{
-		if (start_all)
-		{
-			return ads1115::sh_start();
-
-		}
-		else
-		{
-			return ads1115::sh_start_bus(i2c_bus);
-		}
-	}
-
-	if (!strcmp(argv[myoptind], "stop"))
+        if (!strcmp(argv[myoptind], "stop"))
         {
             return ads1115::sh_stop();
         }
 
-	if (!strcmp(argv[myoptind], "info"))
+	    if (!strcmp(argv[myoptind], "info"))
         {
             ads1115_usage();
-	    return ads1115::sh_info();
+	        return ads1115::sh_info();
         }
 
-	out_error:
-		ads1115_usage();
-		return PX4_ERROR;
-	}
-	return OK;
+        fail:
+            ads1115_usage();
+            return PX4_ERROR;
+    }
+    return PX4_OK;
 }
