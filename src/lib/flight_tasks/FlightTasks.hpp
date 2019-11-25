@@ -117,7 +117,7 @@ public:
 	 * @param task index to switch to
 	 * @return 0 on success, <0 on error
 	 */
-	FlightTaskError switchTask(FlightTaskIndex new_task_index, const hrt_abstime time_stamp_mode_switch = 0);
+	FlightTaskError switchTask(FlightTaskIndex new_task_index, const hrt_abstime& time_stamp_mode_switch = 0);
 	FlightTaskError switchTask(int new_task_index, const hrt_abstime time_stamp_mode_switch = 0);
 
 	/**
