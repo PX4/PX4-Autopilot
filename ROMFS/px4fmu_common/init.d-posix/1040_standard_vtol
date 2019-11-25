@@ -39,6 +39,30 @@ then
 	param set VT_FW_MOT_OFFID 1234
 	param set VT_TYPE 2
 
+
+	param set MC_INERTIA_XX 1.0
+	param set MC_INERTIA_YY 1.0
+	param set MC_INERTIA_ZZ 1.0
+
+	param set CA_ACT0_MIN 0.0
+	param set CA_ACT1_MIN 0.0
+	param set CA_ACT2_MIN 0.0
+	param set CA_ACT3_MIN 0.0
+	param set CA_ACT0_MAX 1.0
+	param set CA_ACT1_MAX 1.0
+	param set CA_ACT2_MAX 1.0
+	param set CA_ACT3_MAX 1.0
+
+	param set CA_ACT4_MAX 1.0
+	param set CA_ACT4_MIN 0.0
+
+	param set CA_ACT5_MAX 1.0
+	param set CA_ACT5_MIN -1.0
+	param set CA_ACT6_MAX 1.0
+	param set CA_ACT6_MIN -1.0
+	param set CA_ACT7_MAX 1.0
+	param set CA_ACT7_MIN -1.0
+
 fi
 
 set MAV_TYPE 22
