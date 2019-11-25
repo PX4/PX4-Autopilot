@@ -56,7 +56,7 @@ const landing_gear_s FlightTasks::getGear()
 	}
 }
 
-FlightTaskError FlightTasks::switchTask(FlightTaskIndex new_task_index, const hrt_abstime time_stamp_mode_switch)
+FlightTaskError FlightTasks::switchTask(FlightTaskIndex new_task_index, const hrt_abstime& time_stamp_mode_switch)
 {
 	// switch to the running task, nothing to do
 	if (new_task_index == _current_task.index) {
