@@ -282,17 +282,6 @@ VehicleModelEstimator::Run()
 			}
 		}
 
-		// Compute required buffer size
-		if (!_armed || (now - _task_start) < 3300000 || _thrust_sp_buffer.get_length() < 2) {
-			int _thrust_sp_buffer_length = (_param_vm_est_delay.get() * _loop_update_rate_hz_thrust_sp) + 1;
-
-			if (_thrust_sp_buffer.get_length() != _thrust_sp_buffer_length) {
-				if(!_thrust_sp_buffer.allocate(_thrust_sp_buffer_length)) {
-					PX4_ERR("Thrust setpoint buffer allocation failed!");
-				}
-			}
-		}
-
 		// Apply low pass filter
 		Vector3f lin_accel_filtered_new(_lpf_lin_accel.apply(Vector3f(acceleration.xyz)));
 
@@ -328,6 +317,17 @@ VehicleModelEstimator::Run()
 
 				if (fabsf(_lpf_thrust_sp.get_sample_freq() - _loop_update_rate_hz_thrust_sp) > 1.0f) {
 					_lpf_thrust_sp.set_cutoff_frequency(_loop_update_rate_hz_thrust_sp, _param_vm_est_cutoff.get());
+				}
+			}
+		}
+
+		// Compute required buffer size
+		if (!_armed || (now - _task_start) < 3300000 || _thrust_sp_buffer.get_length() < 2) {
+			int _thrust_sp_buffer_length = (_param_vm_est_delay.get() * _loop_update_rate_hz_thrust_sp) + 1;
+
+			if (_thrust_sp_buffer.get_length() != _thrust_sp_buffer_length) {
+				if(!_thrust_sp_buffer.allocate(_thrust_sp_buffer_length)) {
+					PX4_ERR("Thrust setpoint buffer allocation failed!");
 				}
 			}
 		}
