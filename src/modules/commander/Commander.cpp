@@ -2338,8 +2338,7 @@ Commander::run()
 
 			if (!armed.armed) { // increase the flight uuid upon disarming
 				++flight_uuid;
-				// no need for param notification: the only user is mavlink which reads the param upon request
-				param_set_no_notification(_param_flight_uuid, &flight_uuid);
+				param_set(_param_flight_uuid, &flight_uuid);
 				last_disarmed_timestamp = hrt_absolute_time();
 			}
 		}
