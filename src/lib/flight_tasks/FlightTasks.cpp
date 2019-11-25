@@ -90,7 +90,7 @@ FlightTaskError FlightTasks::switchTask(FlightTaskIndex new_task_index, const hr
 	return FlightTaskError::NoError;
 }
 
-FlightTaskError FlightTasks::switchTask(int new_task_index, const hrt_abstime time_stamp_mode_switch)
+FlightTaskError FlightTasks::switchTask(int new_task_index, const hrt_abstime& time_stamp_mode_switch)
 {
 	// make sure we are in range of the enumeration before casting
 	if (static_cast<int>(FlightTaskIndex::None) <= new_task_index &&
