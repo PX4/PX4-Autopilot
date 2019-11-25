@@ -48,7 +48,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
-#include <cmath>
+#include <math.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_airspeed.h>
 #include <uORB/topics/differential_pressure.h>

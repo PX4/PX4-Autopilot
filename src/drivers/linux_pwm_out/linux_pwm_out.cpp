@@ -36,7 +36,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <cmath>
+#include <math.h>
 
 #include <px4_platform_common/tasks.h>
 #include <px4_platform_common/getopt.h>

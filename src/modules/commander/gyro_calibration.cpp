@@ -50,7 +50,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <poll.h>
-#include <cmath>
+#include <math.h>
 #include <string.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/topics/sensor_combined.h>

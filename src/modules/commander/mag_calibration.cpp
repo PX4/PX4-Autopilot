@@ -50,7 +50,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <poll.h>
-#include <cmath>
+#include <math.h>
 #include <fcntl.h>
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>

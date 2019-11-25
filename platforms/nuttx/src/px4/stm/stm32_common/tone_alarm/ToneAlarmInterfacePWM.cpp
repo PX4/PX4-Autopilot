@@ -34,7 +34,7 @@
 #include <drivers/device/device.h>
 #include <drivers/drv_tone_alarm.h>
 #include <px4_platform_common/defines.h>
-#include <cmath>
+#include <math.h>
 
 /* Check that tone alarm and HRT timers are different */
 #if defined(TONE_ALARM_TIMER) && defined(HRT_TIMER)
@@ -288,7 +288,7 @@ void start_note(unsigned frequency)
 	float signal_period = (1.0f / frequency) * 0.5f;
 
 	// Calculate the hardware clock divisor rounded to the nearest integer.
-	unsigned int divisor = std::round(signal_period * TONE_ALARM_CLOCK);
+	unsigned int divisor = roundf(signal_period * TONE_ALARM_CLOCK);
 
 	// Pick the lowest prescaler value that we can use.
 	// (Note that the effective prescale value is 1 greater.)
