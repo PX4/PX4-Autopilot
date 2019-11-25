@@ -24,7 +24,7 @@ except AttributeError:
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
- * Copyright (C) 2018-2019 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -141,7 +141,7 @@ void @(topic)_Subscriber::SubListener::onNewDataMessage(Subscriber* sub)
             has_msg_cv.wait(has_msg_lock); // Wait till msg has been fetched
         }
         has_msg_lock.unlock();
-        
+
 
         // Take data
         if(sub->takeNextData(&msg, &m_info))
@@ -149,10 +149,10 @@ void @(topic)_Subscriber::SubListener::onNewDataMessage(Subscriber* sub)
             if(m_info.sampleKind == ALIVE)
             {
                 std::unique_lock<std::mutex> lk(*t_send_queue_mutex);
-            
+
                 ++n_msg;
                 has_msg = true;
-                
+
                 t_send_queue->push(topic_ID);
                 lk.unlock();
                 t_send_queue_cv->notify_one();

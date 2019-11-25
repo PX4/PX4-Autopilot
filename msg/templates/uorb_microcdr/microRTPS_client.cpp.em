@@ -27,7 +27,7 @@ receive_base_types = [s.short_name for idx, s in enumerate(spec) if scope[idx] =
 /****************************************************************************
  *
  * Copyright (c) 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
- * Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
