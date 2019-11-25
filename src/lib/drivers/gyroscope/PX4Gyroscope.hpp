@@ -59,6 +59,7 @@ public:
 	void set_scale(float scale) { _sensor_gyro_pub.get().scaling = scale; }
 	void set_temperature(float temperature) { _sensor_gyro_pub.get().temperature = temperature; }
 
+	void set_integrator_reset_interval(unsigned interval);
 	void set_sample_rate(unsigned rate);
 
 	void update(hrt_abstime timestamp, float x, float y, float z);

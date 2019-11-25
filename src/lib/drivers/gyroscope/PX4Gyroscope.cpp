@@ -100,6 +100,12 @@ PX4Gyroscope::set_device_type(uint8_t devtype)
 }
 
 void
+PX4Gyroscope::set_integrator_reset_interval(unsigned interval)
+{
+	_integrator.set_autoreset_interval(interval);
+}
+
+void
 PX4Gyroscope::set_sample_rate(unsigned rate)
 {
 	_sample_rate = rate;
