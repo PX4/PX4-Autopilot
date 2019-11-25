@@ -88,7 +88,7 @@ class EkfInitializationTest : public ::testing::Test {
 		_gps_message.vel_ned[2] = 0.0f;
 		_gps_message.vel_ned_valid = 1;
 		_gps_message.nsats = 16;
-		_gps_message.gdop = 0.0f;
+		_gps_message.pdop = 0.0f;
 
 		update_with_const_sensors(_init_duration_us);
 
