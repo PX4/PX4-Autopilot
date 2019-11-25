@@ -238,7 +238,8 @@ MulticopterRateControl::Run()
 					math::superexpo(_manual_control_sp.r, _param_mc_acro_expo_y.get(), _param_mc_acro_supexpoy.get())};
 
 				_rates_sp = man_rate_sp.emult(_acro_rate_max);
-				_thrust_sp = _manual_control_sp.z;
+				_throttle_z_sp = _manual_control_sp.z;
+				_thrust_sp = Vector3f(0, 0, -_throttle_z_sp);
 
 				// publish rate setpoint
 				vehicle_rates_setpoint_s v_rates_sp{};
@@ -247,7 +248,7 @@ MulticopterRateControl::Run()
 				v_rates_sp.yaw = _rates_sp(2);
 				v_rates_sp.thrust_body[0] = 0.0f;
 				v_rates_sp.thrust_body[1] = 0.0f;
-				v_rates_sp.thrust_body[2] = -_thrust_sp;
+				v_rates_sp.thrust_body[2] = -_throttle_z_sp;
 				v_rates_sp.timestamp = hrt_absolute_time();
 
 				_v_rates_sp_pub.publish(v_rates_sp);
@@ -261,7 +262,8 @@ MulticopterRateControl::Run()
 				_rates_sp(0) = v_rates_sp.roll;
 				_rates_sp(1) = v_rates_sp.pitch;
 				_rates_sp(2) = v_rates_sp.yaw;
-				_thrust_sp = -v_rates_sp.thrust_body[2];
+				_throttle_z_sp = -v_rates_sp.thrust_body[2];
+				_thrust_sp = Vector3f(&v_rates_sp.thrust_body[0]);
 			}
 		}
 
@@ -346,7 +348,7 @@ MulticopterRateControl::publish_actuator_controls()
 	actuators.control[actuator_controls_s::INDEX_ROLL] = PX4_ISFINITE(act_control(0)) ? act_control(0) : 0.0f;
 	actuators.control[actuator_controls_s::INDEX_PITCH] = PX4_ISFINITE(act_control(1)) ? act_control(1) : 0.0f;
 	actuators.control[actuator_controls_s::INDEX_YAW] = PX4_ISFINITE(act_control(2)) ? act_control(2) : 0.0f;
-	actuators.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(_thrust_sp) ? _thrust_sp : 0.0f;
+	actuators.control[actuator_controls_s::INDEX_THROTTLE] = PX4_ISFINITE(_throttle_z_sp) ? _throttle_z_sp : 0.0f;
 	actuators.control[actuator_controls_s::INDEX_LANDING_GEAR] = (float)_landing_gear.landing_gear;
 
 	// scale effort by battery status if enabled
@@ -407,9 +409,9 @@ MulticopterRateControl::publish_thrust_setpoint()
 	vehicle_thrust_setpoint_s v_thrust_sp = {};
 	v_thrust_sp.timestamp = hrt_absolute_time();
 	v_thrust_sp.timestamp_sample = _timestamp_sample;
-	v_thrust_sp.xyz[0] = 0.0f;
-	v_thrust_sp.xyz[1] = 0.0f;
-	v_thrust_sp.xyz[2] = (PX4_ISFINITE(-_thrust_sp)) ? (-_thrust_sp) : 0.0f;
+	v_thrust_sp.xyz[0] = (PX4_ISFINITE(_thrust_sp(0))) ? (_thrust_sp(0)) : 0.0f;
+	v_thrust_sp.xyz[1] = (PX4_ISFINITE(_thrust_sp(1))) ? (_thrust_sp(1)) : 0.0f;
+	v_thrust_sp.xyz[2] = (PX4_ISFINITE(_thrust_sp(2))) ? (_thrust_sp(2)) : 0.0f;
 
 	_vehicle_thrust_setpoint_pub.publish(v_thrust_sp);
 }
