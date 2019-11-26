@@ -3199,7 +3199,7 @@ protected:
 
 					for (unsigned i = 0; i < 16; i++) {
 						if (act.output[i] > PWM_DEFAULT_MIN / 2) {
-							if (i != 3) {
+							if (i != 4) {
 								/* scale PWM out 900..2100 us to -1..1 for normal channels */
 								msg.controls[i] = (act.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 
