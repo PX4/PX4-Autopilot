@@ -1498,16 +1498,6 @@ void Ekf::update_deadreckoning_status()
 	_deadreckon_time_exceeded = ((_time_last_imu - _time_ins_deadreckon_start) > (unsigned)_params.valid_timeout_max);
 }
 
-// perform a vector cross product
-Vector3f EstimatorInterface::cross_product(const Vector3f &vecIn1, const Vector3f &vecIn2)
-{
-	Vector3f vecOut;
-	vecOut(0) = vecIn1(1) * vecIn2(2) - vecIn1(2) * vecIn2(1);
-	vecOut(1) = vecIn1(2) * vecIn2(0) - vecIn1(0) * vecIn2(2);
-	vecOut(2) = vecIn1(0) * vecIn2(1) - vecIn1(1) * vecIn2(0);
-	return vecOut;
-}
-
 // calculate the inverse rotation matrix from a quaternion rotation
 // this produces the inverse rotation to that produced by the math library quaternion to Dcmf operator
 Matrix3f EstimatorInterface::quat_to_invrotmat(const Quatf &quat)

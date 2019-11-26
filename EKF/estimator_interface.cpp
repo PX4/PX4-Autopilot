@@ -62,7 +62,7 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 	}
 
 	// calculate a metric which indicates the amount of coning vibration
-	Vector3f temp = cross_product(imu_sample.delta_ang, _delta_ang_prev);
+	Vector3f temp = imu_sample.delta_ang % _delta_ang_prev;
 	_vibe_metrics[0] = 0.99f * _vibe_metrics[0] + 0.01f * temp.norm();
 
 	// calculate a metric which indicates the amount of high frequency gyro vibration

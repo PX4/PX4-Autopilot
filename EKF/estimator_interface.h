@@ -571,9 +571,6 @@ protected:
 	// this is the previous status of the filter control modes - used to detect mode transitions
 	filter_control_status_u _control_status_prev{};
 
-	// perform a vector cross product
-	Vector3f cross_product(const Vector3f &vecIn1, const Vector3f &vecIn2);
-
 	// calculate the inverse rotation matrix from a quaternion rotation
 	Matrix3f quat_to_invrotmat(const Quatf &quat);
 
