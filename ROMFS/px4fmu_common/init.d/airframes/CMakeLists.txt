@@ -38,8 +38,9 @@ px4_add_romfs_files(
 	1000_rc_fw_easystar.hil
 	1001_rc_quad_x.hil
 	1002_standard_vtol.hil
+	1003_plane.hil
 	1100_rc_quad_x_sih.hil
-	
+
 	# [2000, 2999] Standard planes"
 	2100_standard_plane
 	2105_maja
