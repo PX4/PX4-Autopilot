@@ -994,6 +994,7 @@ void Navigator::check_traffic()
 
 					// direction of traffic in human-readable 0..360 degree in earth frame
 					int traffic_direction = math::degrees(tr.heading) + 180;
+					int traffic_seperation = (int) fabsf(cr.distance);
 
 					switch (_param_nav_traff_avoid.get()) {
 
@@ -1006,16 +1007,18 @@ void Navigator::check_traffic()
 						}
 
 					case 1: {
-							mavlink_log_critical(&_mavlink_log_pub, "WARNING TRAFFIC %s at heading %d, land immediately",
+							mavlink_log_critical(&_mavlink_log_pub, "WARNING TRAFFIC %s at heading %d, land immediately, hrz sep: %d",
 									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
-									     traffic_direction);
+									     traffic_direction,
+									     traffic_seperation);
 							break;
 						}
 
 					case 2: {
-							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, returning home",
+							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, returning home, hrz sep: %d",
 									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
-									     traffic_direction);
+									     traffic_direction,
+									     traffic_seperation);
 
 							// set the return altitude to minimum
 							_rtl.set_return_alt_min(true);
@@ -1029,9 +1032,10 @@ void Navigator::check_traffic()
 
 					case 3: {
 							/*Land Mode*/
-							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, landing",
+							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, landing, hrz sep: %d",
 									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
-									     traffic_direction);
+									     traffic_direction,
+									     traffic_seperation);
 
 							// ask the commander to land
 							vehicle_command_s vcmd = {};
@@ -1043,9 +1047,10 @@ void Navigator::check_traffic()
 
 					case 4: {
 							/*Position hold*/
-							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, holding position",
+							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, holding position, hrz sep: %d",
 									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
-									     traffic_direction);
+									     traffic_direction,
+									     traffic_seperation);
 
 							// ask the commander to Loiter until
 							vehicle_command_s vcmd = {};
