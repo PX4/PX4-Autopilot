@@ -1004,13 +1004,13 @@ void Navigator::check_traffic()
 
 					// direction of traffic in human-readable 0..360 degree in earth frame
 					int traffic_direction = math::degrees(tr.heading) + 180;
-					double traffic_seperation = fabsf(cr.distance);
+					int traffic_seperation = (int)fabsf(cr.distance);
 
 					switch (_param_nav_traff_avoid.get()) {
 
 					case 0: {
 							/* ignore */
-							PX4_WARN("TRAFFIC %s, hdg: %d, hrzl dst:: %.0f, type: %d",
+							PX4_WARN("TRAFFIC %s, hdg: %d, hrzl dst:: %d, type: %d",
 								 tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign :
 								 "unknown",
 								 traffic_direction,
@@ -1021,7 +1021,7 @@ void Navigator::check_traffic()
 
 					case 1: {
 							/*Warn only*/
-							mavlink_log_critical(&_mavlink_log_pub, "WARNING TRAFFIC %s at heading %d, hrzl dst: %f, type: %d",
+							mavlink_log_critical(&_mavlink_log_pub, "WARNING TRAFFIC %s at heading %d, hrzl dst: %d, type: %d",
 									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
 									     traffic_direction,
 									     traffic_seperation,
@@ -1030,7 +1030,7 @@ void Navigator::check_traffic()
 						}
 
 					case 2: {
-							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, returning home! hrzl dst: %f, type: %d",
+							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, returning home! hrzl dst: %d, type: %d",
 									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
 									     traffic_direction,
 									     traffic_seperation,
