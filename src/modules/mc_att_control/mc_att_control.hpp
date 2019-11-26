@@ -59,6 +59,8 @@
 #include <uORB/topics/landing_gear.h>
 #include <vtol_att_control/vtol_type.h>
 
+#include <uORB/topics/dg_attitude.h>
+
 #include <AttitudeControl.hpp>
 
 /**
@@ -173,6 +175,7 @@ private:
 	orb_advert_t	_controller_status_pub{nullptr};	/**< controller status publication */
 	orb_advert_t	_vehicle_attitude_setpoint_pub{nullptr};
 	orb_advert_t	_landing_gear_pub{nullptr};
+    orb_advert_t  _dg_attitude_pub{nullptr};
 
 	orb_id_t _actuators_id{nullptr};	/**< pointer to correct actuator controls0 uORB metadata structure */
 	orb_id_t _attitude_sp_id{nullptr};	/**< pointer to correct attitude setpoint uORB metadata structure */

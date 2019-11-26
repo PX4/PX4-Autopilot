@@ -75,6 +75,7 @@
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/radio_status.h>
 #include <uORB/topics/telemetry_status.h>
+#include <uORB/topics/dg_mission.h>
 #include <uORB/uORB.h>
 
 #include "mavlink_command_sender.h"
@@ -82,6 +83,7 @@
 #include "mavlink_orb_subscription.h"
 #include "mavlink_shell.h"
 #include "mavlink_ulog.h"
+#include "mavlink_mission.h"
 
 #define DEFAULT_REMOTE_PORT_UDP 14550 ///< GCS port per MAVLink spec
 #define DEFAULT_DEVICE_NAME     "/dev/ttyS1"
@@ -291,7 +293,8 @@ public:
 	 *
 	 * @param generation_enabled If set to true, generate RC_INPUT messages
 	 */
-	void			set_manual_input_mode_generation(bool generation_enabled) { _generate_rc = generation_enabled; }
+    //void			set_manual_input_mode_generation(bool generation_enabled) { _generate_rc = generation_enabled; }
+    void			set_manual_input_mode_generation(uint8_t generation_enabled) { _generate_rc = generation_enabled; }
 
 	/**
 	 * Set communication protocol for this mavlink instance
@@ -303,7 +306,8 @@ public:
 	 *
 	 * @return true if manual inputs should generate RC data
 	 */
-	bool			get_manual_input_mode_generation() { return _generate_rc; }
+    //bool			get_manual_input_mode_generation() { return _generate_rc; }
+    uint8_t			get_manual_input_mode_generation() { return _generate_rc; }
 
 	/**
 	 * This is the beginning of a MAVLINK_START_UART_SEND/MAVLINK_END_UART_SEND transaction
@@ -533,6 +537,9 @@ private:
 	bool			_transmitting_enabled_commanded{false};
 	bool			_first_heartbeat_sent{false};
 
+    bool          _dg_mission_updated{false};
+    int            _dg_mission_sub{orb_subscribe(ORB_ID(dg_mission))};
+
 	orb_advert_t		_mavlink_log_pub{nullptr};
 	orb_advert_t		_telem_status_pub{nullptr};
 
@@ -548,7 +555,8 @@ private:
 
 	/* states */
 	bool			_hil_enabled{false};		/**< Hardware In the Loop mode */
-	bool			_generate_rc{false};		/**< Generate RC messages from manual input MAVLink messages */
+    //bool			_generate_rc{false};		/**< Generate RC messages from manual input MAVLink messages */
+    uint8_t      _generate_rc{0};
 	bool			_is_usb_uart{false};		/**< Port is USB */
 	bool			_wait_to_transmit{false};  	/**< Wait to transmit until received messages. */
 	bool			_received_messages{false};	/**< Whether we've received valid mavlink messages. */

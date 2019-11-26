@@ -88,19 +88,11 @@ public:
 
 	void handle_message(const mavlink_message_t *msg);
 
-	void check_active_mission(void);
+    void check_active_mission(void);
 
-    bool dg_mission_enable{false};
+    bool _dg_mission_updated{false};
 
-    dg_mission_s dg_mission{};
-
-    void handle_mission_count(const mavlink_message_t *msg);
-
-    void handle_mission_item(const mavlink_message_t *msg);
-
-    void handle_mission_clear_all(const mavlink_message_t *msg);
-
-    void handle_mission_set_current(const mavlink_message_t *msg);
+    dg_mission_s _dg_mission{};
 
 private:
 	enum MAVLINK_WPM_STATES _state {MAVLINK_WPM_STATE_IDLE};	///< Current state
@@ -218,7 +210,7 @@ private:
 
 	void handle_mission_ack(const mavlink_message_t *msg);
 
-//	void handle_mission_set_current(const mavlink_message_t *msg);
+	void handle_mission_set_current(const mavlink_message_t *msg);
 
 	void handle_mission_request_list(const mavlink_message_t *msg);
 
@@ -226,13 +218,13 @@ private:
 	void handle_mission_request_int(const mavlink_message_t *msg);
 	void handle_mission_request_both(const mavlink_message_t *msg);
 
-//	void handle_mission_count(const mavlink_message_t *msg);
+	void handle_mission_count(const mavlink_message_t *msg);
 
-//	void handle_mission_item(const mavlink_message_t *msg);
+	void handle_mission_item(const mavlink_message_t *msg);
 	void handle_mission_item_int(const mavlink_message_t *msg);
 	void handle_mission_item_both(const mavlink_message_t *msg);
 
-//	void handle_mission_clear_all(const mavlink_message_t *msg);
+	void handle_mission_clear_all(const mavlink_message_t *msg);
 
 	/**
 	 * Parse mavlink MISSION_ITEM message to get mission_item_s.
@@ -256,5 +248,5 @@ private:
 	/**
 	 * set _state to idle (and do necessary cleanup)
 	 */
-	void switch_to_idle_state();
+    void switch_to_idle_state();
 };

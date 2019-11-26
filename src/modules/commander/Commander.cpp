@@ -100,6 +100,7 @@
 #include <uORB/topics/vehicle_status_flags.h>
 #include <uORB/topics/vtol_vehicle_status.h>
 #include <uORB/topics/vehicle_gps_position.h>
+#include <uORB/topics/virtual_stick.h>
 
 typedef enum VEHICLE_MODE_FLAG {
         VEHICLE_MODE_FLAG_CUSTOM_MODE_ENABLED = 1, /* 0b00000001 Reserved for future use. | */
@@ -140,6 +141,8 @@ static uint64_t last_print_mode_reject_time = 0;
 
 static float min_stick_change = 0.25f;
 static bool pre_gps_valid = false;
+static bool pre_vir = false;
+static bool pre_h_tout = false;
 
 static struct vehicle_status_s status = {};
 static struct actuator_armed_s armed = {};
@@ -1526,7 +1529,7 @@ Commander::run()
                 else
                     mode_chage_count = 0;
                 timestamp_pre = sp_man.timestamp;
-                mavlink_log_critical(&mavlink_log_pub, "mode_chage_count = %d", mode_chage_count);
+                //mavlink_log_info(&mavlink_log_pub, "mode_chage_count = %d", mode_chage_count);
                 }
                 if (mode_chage_count >3)
                 {
@@ -1981,6 +1984,7 @@ Commander::run()
                 if (rc_override != 0 && (_battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL) &&
                     (internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
                      internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
+                     internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL ||
                      internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER)) {
                         // transition to previous state if sticks are touched
 
@@ -2595,8 +2599,15 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
         pre_gps_valid = gps_valid;
     }
 
-//    if(!status_flags.condition_system_hotplug_timeout)
-//        changed = true;
+    if(pre_vir != sp_man.virtual_stick_enable){
+        changed = true;
+        pre_vir = sp_man.virtual_stick_enable;
+    }
+
+    if(pre_h_tout != status_flags.condition_system_hotplug_timeout){
+        changed = true;
+        pre_h_tout = status_flags.condition_system_hotplug_timeout;
+    }
 
     bool overload = (cpuload_local->load > 0.80f) || (cpuload_local->ram_usage > 0.98f);
 
@@ -2698,14 +2709,14 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
                 led_mode  = led_control_s::MODE_BLINK_FAST;
                 led_color = led_control_s::COLOR_YELLOW;
             } else if(status.nav_state==vehicle_status_s::NAVIGATION_STATE_MANUAL){
-                if (gps.get().satellites_used < 6 ) {
-                      led_mode  = led_control_s::MODE_BLINK_NORMAL;
+                if (status_flags.condition_global_position_valid && status_flags.condition_local_position_valid ) {
+                      led_mode = (led_control_s::MODE_FLASH)|((led_control_s::COLOR_YELLOW)<<4);
                       led_color = led_control_s::COLOR_YELLOW;
+                      led_color|= (led_control_s::COLOR_GREEN)<<4;
+                      led_color|= 1<<7;
                 } else {
-                    led_mode = (led_control_s::MODE_FLASH)|((led_control_s::COLOR_YELLOW)<<4);
+                    led_mode  = led_control_s::MODE_BLINK_NORMAL;
                     led_color = led_control_s::COLOR_YELLOW;
-                    led_color|= (led_control_s::COLOR_GREEN)<<4;
-                    led_color|= 1<<7;
                 }
             }else if(status.nav_state==vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION){
                 led_mode  = led_control_s::MODE_BLINK_NORMAL;
@@ -2713,14 +2724,19 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
             }else if(status.nav_state==vehicle_status_s::vehicle_status_s::NAVIGATION_STATE_AUTO_RTL){
                 led_mode  = led_control_s::MODE_ON;
                 led_color = led_control_s::COLOR_RED;
-            }else if(status.data_link_lost){
+            /*}else if(status.data_link_lost){
                  led_mode = led_control_s::MODE_BLINK_FAST;
                  led_color = led_control_s::COLOR_RED;
                  led_color|= (led_control_s::COLOR_BLUE)<<4;
-                 led_color|= 1<<7;
+                 led_color|= 1<<7;*/
             }else{
-                led_mode  = led_control_s::MODE_BLINK_NORMAL;
-                led_color = led_control_s::COLOR_GREEN;
+                if(sp_man.virtual_stick_enable){
+                  led_mode  = led_control_s::MODE_BLINK_NORMAL;
+                  led_color = led_control_s::COLOR_BLUE;
+                }else{
+                  led_mode  = led_control_s::MODE_BLINK_NORMAL;
+                  led_color = led_control_s::COLOR_GREEN;
+                }
             }
 
         }
@@ -2930,25 +2946,24 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
                         /* slot is unused */
                         res = TRANSITION_NOT_CHANGED;
 
-                } else {
-            switch (sp_man.mode_slot)
+                } else {  //DG flight mode
+                        switch (sp_man.mode_slot)
                            {
                                case 0:
                                case 1:
+                                    new_mode=commander_state_s::MAIN_STATE_MANUAL;
+                                    break;
+                                case 2:
+                                case 3:
                                     if (sp_man.mode_switch==manual_control_setpoint_s::SWITCH_POS_ON)
                                         new_mode=commander_state_s::MAIN_STATE_AUTO_RTL;
                                     else if (sp_man.mode_switch==manual_control_setpoint_s::SWITCH_POS_MIDDLE)
-                                         new_mode=commander_state_s::MAIN_STATE_AUTO_MISSION;
+                                         new_mode=commander_state_s::MAIN_STATE_POSCTL;
                                     else
                                           new_mode=commander_state_s::MAIN_STATE_POSCTL;
                                     break;
-                               case 2:
-                               case 3:
-                                     new_mode=commander_state_s::MAIN_STATE_ALTCTL;
-                                     break;
                                case 5:
-                               case 6:
-                                     new_mode=commander_state_s::MAIN_STATE_MANUAL;
+                                     new_mode=commander_state_s::MAIN_STATE_POSCTL;
                                      break;
                                default:
                                    return TRANSITION_DENIED;
@@ -3072,6 +3087,23 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
                                         }
                                 }
                         }
+                }
+
+                if (_virtual_stick_pub == nullptr && sp_man.mode_slot == 5) {
+                    struct virtual_stick_s vs_sp ={};
+                    vs_sp.timestamp = hrt_absolute_time();
+                    vs_sp.r = 0;
+                    vs_sp.y = 0;
+                    vs_sp.x = 0;
+                    vs_sp.z = 0.5;
+                    if (internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL
+                        || internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER){
+                        vs_sp.vs_enable = 1;
+                    }
+                    else {
+                        vs_sp.vs_enable = 0;
+                    }
+                    orb_advertise(ORB_ID(virtual_stick), &vs_sp);
                 }
 
                 return res;

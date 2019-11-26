@@ -13,7 +13,6 @@
 #include <systemlib/err.h>
 #include <string.h>
 #include <poll.h>
-#include <pthread.h>
 
 #include <arch/board/board.h>
 
@@ -32,7 +31,7 @@
 #include <uORB/topics/vehicle_gps_position.h>
 #include <uORB/topics/vehicle_command.h>
 #include <uORB/topics/mission_result.h>
-//#include <uORB/topics/mission.h>
+#include <uORB/topics/mission.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
@@ -49,7 +48,6 @@
 #include <uORB/topics/virtual_stick.h>
 #include <uORB/topics/dg_vehicle_status.h>
 #include <uORB/topics/home_position.h>
-#include <uORB/topics/dg_mission.h>
 
 #define WP_DATA_NUM_MAX (uint16_t) 20
 
@@ -71,7 +69,7 @@ typedef struct {
 //    uint8_t second;
     uint32_t YMDHM;
     uint16_t MM;
-    uint8_t wp_seq_low;
+    uint8_t wp_num;
     uint8_t rc_yaw;
     uint8_t rc_y;
     uint8_t rc_x;
@@ -83,7 +81,7 @@ typedef struct {
     int8_t local_vx_high8;
     int8_t local_vx_low8;
     uint16_t total_time;
-    int16_t wp_total;
+    int16_t local_vz_sp;
     uint8_t distance_high8;
     uint8_t rc_throttle_mid;
     int16_t local_z_pressure;
@@ -100,7 +98,7 @@ typedef struct {
     int32_t local_roll;
     uint16_t battery_voltage;
     int16_t acc_down;
-    uint8_t wp_seq_high;
+    uint8_t mission_num;
     uint8_t control_status;
     uint16_t battery_usage;
     uint8_t warnning;
@@ -303,7 +301,6 @@ typedef struct {
 }MSG_send;
 
 typedef struct {
-   uint16_t total_num;
    uint16_t num;
    SETD *push;
    //SETD *pop;
@@ -343,7 +340,7 @@ typedef struct {
     //orb_advert_t status_pd;
     orb_advert_t follow_target_pd;
     orb_advert_t dg_vehicle_status_pd;
-    orb_advert_t dg_mission_pd;
+    orb_advert_t mission_pd;
 }MSG_orb_pub;
 
 typedef struct {
@@ -424,7 +421,7 @@ extern Waypoint_saved wp_data;
 
 extern int uart_read;
 
-extern int read_to_buff(uint8_t *buffer, int start, int end);
+extern bool read_to_buff(uint8_t *buffer, int start, int end);
 
 extern void stp_pack (STP *stp, MSG_orb_data stp_data);
 
@@ -442,7 +439,7 @@ extern uint16_t check_crc(const uint8_t *buffer, uint8_t buflen);
 
 extern void msg_pack_send(MSG_orb_data msg_data, MSG_orb_pub *msg_pd);
 
-extern int find_r_type(uint8_t *buffer, MSG_orb_data *msg_data, MSG_orb_pub *msg_pd,
+extern void find_r_type(uint8_t *buffer, MSG_orb_data *msg_data, MSG_orb_pub *msg_pd,
                         MSG_param_hd msg_hd);
 
 extern void msg_param_saved_get(MSG_param_hd msg_hd);

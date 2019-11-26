@@ -182,7 +182,7 @@ RTL::set_rtl_item()
             _mission_item.altitude_is_relative = false;
             _mission_item.yaw = get_bearing_to_next_waypoint(gpos.lat, gpos.lon, home.lat, home.lon);
             _mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-            _mission_item.time_inside = 0.0f;
+            _mission_item.time_inside = 1.0f;
             _mission_item.autocontinue = true;
             _mission_item.origin = ORIGIN_ONBOARD;
             mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: loiter1_1 %.1fs",
@@ -248,7 +248,7 @@ RTL::set_rtl_item()
             _mission_item.altitude_is_relative = false;
             _mission_item.yaw = home.yaw;
             _mission_item.acceptance_radius = _navigator->get_acceptance_radius();
-            _mission_item.time_inside = 0.0f;
+            _mission_item.time_inside = 1.0f;
             _mission_item.autocontinue = true;
             _mission_item.origin = ORIGIN_ONBOARD;
             mavlink_and_console_log_info(_navigator->get_mavlink_log_pub(), "RTL: loiter2 %.1fs",

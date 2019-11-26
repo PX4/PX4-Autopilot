@@ -974,12 +974,12 @@ MulticopterPositionControl::limit_thrust_during_landing(vehicle_local_position_s
 	}else if (_vehicle_land_detected.ground_contact
         /*||_vehicle_land_detected.dg_ground_contact */) {
 		if(_dg_land_test){
-               _dg_thrust_land_test1[0]=_dg_thrust_land_test1[0]*0.99f;
-               _dg_thrust_land_test1[1]=_dg_thrust_land_test1[1]*0.99f;
-               _dg_thrust_land_test1[2]=_dg_thrust_land_test1[2]*0.99f;
-               setpoint.thrust[0]=_dg_thrust_land_test1[0]*0.99f;
-               setpoint.thrust[1]=_dg_thrust_land_test1[1]*0.99f;
-               setpoint.thrust[2]=_dg_thrust_land_test1[2]*0.99f;
+               _dg_thrust_land_test1[0]=_dg_thrust_land_test1[0]*0.995f;
+               _dg_thrust_land_test1[1]=_dg_thrust_land_test1[1]*0.995f;
+               _dg_thrust_land_test1[2]=_dg_thrust_land_test1[2]*0.995f;
+               setpoint.thrust[0]=_dg_thrust_land_test1[0]*0.995f;
+               setpoint.thrust[1]=_dg_thrust_land_test1[1]*0.995f;
+               setpoint.thrust[2]=_dg_thrust_land_test1[2]*0.995f;
 		}
 		    else{
 			   _dg_land_test=true;
