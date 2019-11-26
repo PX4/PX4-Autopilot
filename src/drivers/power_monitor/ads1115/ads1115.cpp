@@ -6,7 +6,6 @@
  * TO-DO-
  *
  * 1) Complete Constructor, Destructor
- * 3) Fix uORB publication process
  * 4) Add computation functions: Reverse 2's compliment, Averaging, Steinhart
  * 5) Sort out Read/Write processes, move on from confirming init() and probe() work.
  */
@@ -53,21 +52,23 @@
 
 // #include "ads1115.h"
 
-#define ADS1115_BUS_DEFAULT	PX4_I2C_BUS_EXPANSION
-#define ADS1115_BASEADDR 	(0x48)
+#define ADS1115_BUS_DEFAULT     PX4_I2C_BUS_EXPANSION
+#define ADS1115_BASEADDR        (0x48)
 
-#define ADS1115_CONVERSION_INTERVAL	(0.004f) // 1/Data Rate
+#define ADS1115_CONVERSION_INTERVAL     (0.004) // 1/Data Rate
 
-#define ADS1115_WRITE_ADDR	(0x90) // 1001 000(0)
-#define ADS1115_READ_ADDR	(0x91) // 1001 000(1)
+#define ADS1115_WRITE_ADDR      (0x90) // 1001 000(0)
+#define ADS1115_READ_ADDR       (0x91) // 1001 000(1)
 
-#define ADS1115_CONFIG_REG	(0x01)
-#define ADS1115_CONVERSION_REG 	(0x00)
+#define ADS1115_CONFIG_REG      (0x01)
+#define ADS1115_CONVERSION_REG  (0x00)
 
-#define ADS1115_CHANNEL_ONE	(0x42A3) // 0 100 001 0 101 0 0 0 11
-#define ADS1115_CHANNEL_TWO	(0x52A3) // 0 101 001 0 101 0 0 0 11
+#define ADS1115_CHANNEL_ONE     (0x42A3) // 0 100 001 0 101 0 0 0 11
+#define ADS1115_CHANNEL_TWO     (0x52A3) // 0 101 001 0 101 0 0 0 11
 #define ADS1115_CHANNEL_THREE 	(0x62A3) // 0 110 001 0 101 0 0 0 11
 #define ADS1115_CHANNEL_FOUR	(0x72A3) // 0 111 001 0 101 0 0 0 11
+
+#define swap16(w)       __builtin_bswap16((w))
 
 class ADS1115 : public device::I2C, px4::ScheduledWorkItem
 {
@@ -78,6 +79,10 @@ public:
 	virtual int init();
 
 	void print_info();
+
+    void start();
+
+    void stop();
 
 protected:
 	virtual int probe();
@@ -96,8 +101,8 @@ private:
 	double getWireTemp();
 	double getBattTemp();
 
-    void start();
-    void stop();
+    double avging();
+
     void Run() override;
 };
 
@@ -122,6 +127,8 @@ int ADS1115::readConvReg(uint16_t *convRegVal)
 	transfer(&adrRegPtr, sizeof(adrRegPtr), nullptr, 0);
 
     transfer(nullptr, 0, (uint8_t *)convRegVal, sizeof(convRegVal));
+
+    // PX4_INFO("%u", swap16(&convRegVal));
 
     return PX4_OK;
 }
@@ -193,6 +200,21 @@ void ADS1115::print_info()
     PX4_INFO("Driver information: ADS1115 Power Monitor Breakout Board");
 }
 
+double ADS1115::avging()
+{
+    int n = 5;
+    uint32_t sum = 0;
+    uint16_t convRegVal;
+
+    for (int i = 0; i < n; i++)
+    {
+        readConvReg(&convRegVal);
+        sum = sum + swap16(convRegVal);
+        ScheduleDelayed(ADS1115_CONVERSION_INTERVAL);
+    }
+    uint32_t average = sum/n;
+    return average;
+}
 
 double ADS1115::getCurrent()
 {
@@ -200,9 +222,10 @@ double ADS1115::getCurrent()
     uint16_t convRegVal = 0;
 
     writeConfigReg(ADS1115_CHANNEL_ONE);
+
     if (!readConvReg(&convRegVal))
     {
-        current = convRegVal;
+        current = (((avging())*0.125)/1000);
     } else
     {
         PX4_ERR("Current Reading Failed");
@@ -216,9 +239,10 @@ double ADS1115::getVoltage()
     uint16_t convRegVal = 0;
 
     writeConfigReg(ADS1115_CHANNEL_TWO);
+
     if (!readConvReg(&convRegVal))
     {
-        voltage = convRegVal;
+        voltage = (((avging())*0.125)/1000)/0.0323;
     } else
     {
         PX4_ERR("Voltage Reading Failed");
@@ -232,9 +256,10 @@ double ADS1115::getWireTemp()
     uint16_t convRegVal = 0;
 
     writeConfigReg(ADS1115_CHANNEL_THREE);
+
     if (!readConvReg(&convRegVal))
     {
-        wiretemp = convRegVal;
+        wiretemp = swap16(convRegVal);
     } else
     {
         PX4_ERR("Wire Temperature Reading Failed");
@@ -248,9 +273,10 @@ double ADS1115::getBattTemp()
     uint16_t convRegVal = 0;
 
     writeConfigReg(ADS1115_CHANNEL_FOUR);
+
     if (!readConvReg(&convRegVal))
     {
-        battTemp = convRegVal;
+        battTemp = swap16(convRegVal);
     } else
     {
         PX4_ERR("Battery Temperature Reading Failed");
@@ -272,13 +298,16 @@ void ADS1115::stop()
 
 void ADS1115::Run()
 {
-    PX4_INFO("Run() in progrss");
+    PX4_INFO("Run() in progress");
 	struct power_monitor_s report;
 	report.timestamp = hrt_absolute_time();
 	report.voltage_v = getVoltage();
+       ScheduleDelayed(ADS1115_CONVERSION_INTERVAL);
 	report.current_a = getCurrent();
-	report.wiretemp_c = getWireTemp();
-	report.batttemp_c = getBattTemp();
+    //    ScheduleDelayed(ADS1115_CONVERSION_INTERVAL);
+	// report.wiretemp_c = getWireTemp();
+    //    ScheduleDelayed(ADS1115_CONVERSION_INTERVAL);
+	// report.batttemp_c = getBattTemp();
 
 	int instance;
 	orb_publish_auto(ORB_ID(power_monitor), &_power_monitor_topic,
@@ -335,7 +364,8 @@ namespace ads1115 // COMPLETE SH_MEASURE()
 	{
 		if (g_dev != nullptr)
 		{
-			PX4_INFO("ADS1115 Driver sh_stop() success");
+			g_dev->stop();
+            PX4_INFO("ADS1115 Driver sh_stop() success");
 			delete g_dev;
 			g_dev = nullptr;
 			return PX4_OK;
