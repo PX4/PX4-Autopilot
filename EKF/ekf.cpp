@@ -470,7 +470,7 @@ void Ekf::calculateOutputStates()
 		const Vector3f ang_rate = imu.delta_ang * (1.0f / imu.delta_ang_dt);
 
 		// calculate the velocity of the IMU relative to the body origin
-		const Vector3f vel_imu_rel_body = cross_product(ang_rate, _params.imu_pos_body);
+		const Vector3f vel_imu_rel_body = ang_rate % _params.imu_pos_body;
 
 		// rotate the relative velocity into earth frame
 		_vel_imu_rel_body_ned = _R_to_earth_now * vel_imu_rel_body;

@@ -187,9 +187,7 @@ void Ekf::fuseFlowForTerrain()
 	// calculate optical LOS rates using optical flow rates that have had the body angular rate contribution removed
 	// correct for gyro bias errors in the data used to do the motion compensation
 	// Note the sign convention used: A positive LOS rate is a RH rotation of the scene about that axis.
-	Vector2f opt_flow_rate;
-	opt_flow_rate(0) = _flowRadXYcomp(0) / _flow_sample_delayed.dt + _flow_gyro_bias(0);
-	opt_flow_rate(1) = _flowRadXYcomp(1) / _flow_sample_delayed.dt + _flow_gyro_bias(1);
+	const Vector2f opt_flow_rate = Vector2f{_flowRadXYcomp} / _flow_sample_delayed.dt + Vector2f{_flow_gyro_bias};
 
 	// get latest estimated orientation
 	float q0 = _state.quat_nominal(0);
@@ -208,7 +206,7 @@ void Ekf::fuseFlowForTerrain()
 
 	// calculate the velocity of the sensor relative to the imu in body frame
 	// Note: _flow_sample_delayed.gyroXYZ is the negative of the body angular velocity, thus use minus sign
-	Vector3f vel_rel_imu_body = cross_product(-_flow_sample_delayed.gyroXYZ / _flow_sample_delayed.dt, pos_offset_body);
+	Vector3f vel_rel_imu_body = Vector3f(-_flow_sample_delayed.gyroXYZ / _flow_sample_delayed.dt) % pos_offset_body;
 
 	// calculate the velocity of the sensor in the earth frame
 	Vector3f vel_rel_earth = _state.vel + _R_to_earth * vel_rel_imu_body;
