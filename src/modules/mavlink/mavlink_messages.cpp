@@ -2896,12 +2896,6 @@ public:
 
 		case 1:
 			return "SERVO_OUTPUT_RAW_1";
-
-		case 2:
-			return "SERVO_OUTPUT_RAW_2";
-
-		case 3:
-			return "SERVO_OUTPUT_RAW_3";
 		}
 	}
 
@@ -5098,8 +5092,6 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamHomePosition::new_instance, &MavlinkStreamHomePosition::get_name_static, &MavlinkStreamHomePosition::get_id_static),
 	StreamListItem(&MavlinkStreamServoOutputRaw<0>::new_instance, &MavlinkStreamServoOutputRaw<0>::get_name_static, &MavlinkStreamServoOutputRaw<0>::get_id_static),
 	StreamListItem(&MavlinkStreamServoOutputRaw<1>::new_instance, &MavlinkStreamServoOutputRaw<1>::get_name_static, &MavlinkStreamServoOutputRaw<1>::get_id_static),
-	StreamListItem(&MavlinkStreamServoOutputRaw<2>::new_instance, &MavlinkStreamServoOutputRaw<2>::get_name_static, &MavlinkStreamServoOutputRaw<2>::get_id_static),
-	StreamListItem(&MavlinkStreamServoOutputRaw<3>::new_instance, &MavlinkStreamServoOutputRaw<3>::get_name_static, &MavlinkStreamServoOutputRaw<3>::get_id_static),
 	StreamListItem(&MavlinkStreamHILActuatorControls::new_instance, &MavlinkStreamHILActuatorControls::get_name_static, &MavlinkStreamHILActuatorControls::get_id_static),
 	StreamListItem(&MavlinkStreamPositionTargetGlobalInt::new_instance, &MavlinkStreamPositionTargetGlobalInt::get_name_static, &MavlinkStreamPositionTargetGlobalInt::get_id_static),
 	StreamListItem(&MavlinkStreamLocalPositionSetpoint::new_instance, &MavlinkStreamLocalPositionSetpoint::get_name_static, &MavlinkStreamLocalPositionSetpoint::get_id_static),
