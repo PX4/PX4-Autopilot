@@ -45,6 +45,7 @@ px4_add_module(
 		devices/src/mtk.cpp
 		devices/src/ashtech.cpp
 		devices/src/ubx.cpp
+		devices/src/minmea.cpp
 		devices/src/rtcm.cpp
 		devices/src/emlid_reach.cpp
 	MODULE_CONFIG

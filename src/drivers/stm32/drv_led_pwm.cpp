@@ -40,7 +40,6 @@
 #include <px4_config.h>
 
 #include <board_config.h>
-
 #include <sys/types.h>
 #include <stdint.h>
 #include <string.h>
@@ -228,7 +227,6 @@ led_pwm_servo_set(unsigned channel, uint8_t  cvalue)
 	if (value > 0) {
 		value--;
 	}
-
 
 	switch (led_pwm_channels[channel].timer_channel) {
 	case 1:
