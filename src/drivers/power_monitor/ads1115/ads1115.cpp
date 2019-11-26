@@ -55,7 +55,7 @@
 #define ADS1115_BUS_DEFAULT     PX4_I2C_BUS_EXPANSION
 #define ADS1115_BASEADDR        (0x48)
 
-#define ADS1115_CONVERSION_INTERVAL     (0.004) // 1/Data Rate
+#define ADS1115_CONVERSION_INTERVAL     (8) // 1/Data Rate
 
 #define ADS1115_WRITE_ADDR      (0x90) // 1001 000(0)
 #define ADS1115_READ_ADDR       (0x91) // 1001 000(1)
@@ -204,6 +204,7 @@ double ADS1115::avging()
 {
     int n = 5;
     uint32_t sum = 0;
+    uint32_t average = 0;
     uint16_t convRegVal;
 
     for (int i = 0; i < n; i++)
@@ -212,7 +213,7 @@ double ADS1115::avging()
         sum = sum + swap16(convRegVal);
         ScheduleDelayed(ADS1115_CONVERSION_INTERVAL);
     }
-    uint32_t average = sum/n;
+    average = sum/n;
     return average;
 }
 
@@ -225,7 +226,8 @@ double ADS1115::getCurrent()
 
     if (!readConvReg(&convRegVal))
     {
-        current = (((avging())*0.125)/1000);
+        current = (swap16(convRegVal))*(0.025);
+        //current = (avging())*0.025;
     } else
     {
         PX4_ERR("Current Reading Failed");
@@ -242,6 +244,7 @@ double ADS1115::getVoltage()
 
     if (!readConvReg(&convRegVal))
     {
+        //voltage = (swap16(convRegVal))*(0.125/0.0323);
         voltage = (((avging())*0.125)/1000)/0.0323;
     } else
     {
@@ -302,7 +305,7 @@ void ADS1115::Run()
 	struct power_monitor_s report;
 	report.timestamp = hrt_absolute_time();
 	report.voltage_v = getVoltage();
-       ScheduleDelayed(ADS1115_CONVERSION_INTERVAL);
+    //   ScheduleDelayed(ADS1115_CONVERSION_INTERVAL);
 	report.current_a = getCurrent();
     //    ScheduleDelayed(ADS1115_CONVERSION_INTERVAL);
 	// report.wiretemp_c = getWireTemp();
