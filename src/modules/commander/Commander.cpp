@@ -1182,11 +1182,12 @@ Commander::set_home_position_alt_only()
 void
 Commander::run()
 {
+/*
     //DG rc_mag_cali flags
-    //uint8_t mode_slot_pre = 0;
-    //uint64_t timestamp_pre =0;
-    //int mode_chage_count = 0;
-
+    uint8_t mode_slot_pre = 0;
+    uint64_t timestamp_pre =0;
+    int mode_chage_count = 0;
+*/
     bool sensor_fail_tune_played = false;
         bool arm_tune_played = false;
         bool was_landed = true;
@@ -1520,7 +1521,7 @@ Commander::run()
 
                 if (updated) {
                         orb_copy(ORB_ID(manual_control_setpoint), sp_man_sub, &sp_man);
-
+/*
 			// DG_rc_mag_cali code
 			if (abs(sp_man.mode_slot - mode_slot_pre) >3){
 				if(sp_man.timestamp - timestamp_pre < 500000){
@@ -1541,6 +1542,7 @@ Commander::run()
 			}
 			if (sp_man.mode_slot != 3) 
 				mode_slot_pre = sp_man.mode_slot;
+*/
 		}
 
                 orb_check(offboard_control_mode_sub, &updated);
