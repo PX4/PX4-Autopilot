@@ -92,7 +92,7 @@ public:
         return (*this) / norm();
     }
 
-    Vector unit_or_zero(const Type eps = Type(1e-5)) {
+    Vector unit_or_zero(const Type eps = Type(1e-5)) const {
         const Type n = norm();
         if (n > eps) {
             return (*this) / n;
@@ -104,8 +104,7 @@ public:
         return unit();
     }
 
-    bool longerThan(Type testVal)
-    {
+    bool longerThan(Type testVal) const {
         return norm_squared() > testVal*testVal;
     }
 
