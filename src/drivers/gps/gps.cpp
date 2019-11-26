@@ -724,7 +724,7 @@ GPS::run()
 
 			switch (_mode) {
 			case GPS_DRIVER_MODE_NONE:
-				_mode = GPS_DRIVER_MODE_MINMEA;
+				_mode = GPS_DRIVER_MODE_UBX;//GPS_DRIVER_MODE_MINMEA;
 
 			case GPS_DRIVER_MODE_MINMEA:
 				_helper = new GPSDriverMINMEA(&GPS::callback, this, &_report_gps_pos, _p_report_sat_info);

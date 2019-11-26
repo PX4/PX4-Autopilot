@@ -228,7 +228,7 @@
  * can be used by the Px4 Firmware in the adc driver
  */
 
-#define ADC_V5_V_FULL_SCALE	    (6.0f)
+#define ADC_V5_V_FULL_SCALE	    (6.9f)
 
 /* ADC defines to be used in sensors.cpp to read from a particular channel */
 
