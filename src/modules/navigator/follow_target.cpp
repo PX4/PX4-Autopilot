@@ -90,6 +90,10 @@ void FollowTarget::on_activation()
 	}
 
 	_rot_matrix = (_follow_position_matricies[_follow_target_position]);
+
+	if (_follow_target_sub < 0) {
+		_follow_target_sub = orb_subscribe(ORB_ID(follow_target));
+	}
 }
 
 void FollowTarget::on_active()
@@ -97,12 +101,14 @@ void FollowTarget::on_active()
 	struct map_projection_reference_s target_ref;
 	follow_target_s target_motion_with_offset = {};
 	uint64_t current_time = hrt_absolute_time();
-	bool _radius_entered = false;
+    //bool _radius_entered = false;
 	bool _radius_exited = false;
 	bool updated = false;
 	float dt_ms = 0;
 
-	if (_follow_target_sub.updated()) {
+	orb_check(_follow_target_sub, &updated);
+
+	if (updated) {
 		follow_target_s target_motion;
 
 		_target_updates++;
@@ -111,7 +117,7 @@ void FollowTarget::on_active()
 
 		_previous_target_motion = _current_target_motion;
 
-		_follow_target_sub.copy(&target_motion);
+		orb_copy(ORB_ID(follow_target), _follow_target_sub, &target_motion);
 
 		if (_current_target_motion.timestamp == 0) {
 			_current_target_motion = target_motion;
@@ -167,7 +173,7 @@ void FollowTarget::on_active()
 			// a chance to catch up
 
 			_radius_exited = ((_target_position_offset + _target_distance).length() > (float) TARGET_ACCEPTANCE_RADIUS_M * 1.5f);
-			_radius_entered = ((_target_position_offset + _target_distance).length() < (float) TARGET_ACCEPTANCE_RADIUS_M);
+            //_radius_entered = ((_target_position_offset + _target_distance).length() < (float) TARGET_ACCEPTANCE_RADIUS_M);
 
 			// to keep the velocity increase/decrease smooth
 			// calculate how many velocity increments/decrements
@@ -240,10 +246,10 @@ void FollowTarget::on_active()
 
 	case TRACK_POSITION: {
 
-			if (_radius_entered == true) {
+            /*if (_radius_entered == true) {
 				_follow_target_state = TRACK_VELOCITY;
 
-			} else if (target_velocity_valid()) {
+            } else */if (target_velocity_valid()) {
 				set_follow_target_item(&_mission_item, _param_nav_min_ft_ht.get(), target_motion_with_offset, _yaw_angle);
 				// keep the current velocity updated with the target velocity for when it's needed
 				_current_vel = _est_target_vel;

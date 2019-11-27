@@ -45,7 +45,6 @@
  */
 
 #include <px4_config.h>
-#include <px4_log.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,10 +79,10 @@ static void
 usage(const char *reason)
 {
 	if (reason) {
-		PX4_WARN("%s", reason);
+		fprintf(stderr, "%s\n", reason);
 	}
 
-	PX4_INFO("usage: md25 {start|stop|read|status|search|test|change_address}");
+	fprintf(stderr, "usage: md25 {start|stop|read|status|search|test|change_address}\n\n");
 	exit(1);
 }
 

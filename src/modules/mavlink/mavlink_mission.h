@@ -46,8 +46,8 @@
 #pragma once
 
 #include <dataman/dataman.h>
-#include <uORB/Subscription.hpp>
-#include <uORB/topics/mission_result.h>
+#include <uORB/uORB.h>
+#include <uORB/topics/dg_mission.h>
 
 #include "mavlink_bridge_header.h"
 #include "mavlink_rate_limiter.h"
@@ -90,6 +90,18 @@ public:
 
 	void check_active_mission(void);
 
+    bool dg_mission_enable{false};
+
+    dg_mission_s dg_mission{};
+
+    void handle_mission_count(const mavlink_message_t *msg);
+
+    void handle_mission_item(const mavlink_message_t *msg);
+
+    void handle_mission_clear_all(const mavlink_message_t *msg);
+
+    void handle_mission_set_current(const mavlink_message_t *msg);
+
 private:
 	enum MAVLINK_WPM_STATES _state {MAVLINK_WPM_STATE_IDLE};	///< Current state
 	enum MAV_MISSION_TYPE _mission_type {MAV_MISSION_TYPE_MISSION};	///< mission type of current transmission (only one at a time possible)
@@ -125,7 +137,8 @@ private:
 
 	static bool		_transfer_in_progress;			///< Global variable checking for current transmission
 
-	uORB::Subscription	_mission_result_sub{ORB_ID(mission_result)};
+	int			_offboard_mission_sub{-1};
+	int			_mission_result_sub{-1};
 
 	orb_advert_t		_offboard_mission_pub{nullptr};
 
@@ -205,7 +218,7 @@ private:
 
 	void handle_mission_ack(const mavlink_message_t *msg);
 
-	void handle_mission_set_current(const mavlink_message_t *msg);
+//	void handle_mission_set_current(const mavlink_message_t *msg);
 
 	void handle_mission_request_list(const mavlink_message_t *msg);
 
@@ -213,13 +226,13 @@ private:
 	void handle_mission_request_int(const mavlink_message_t *msg);
 	void handle_mission_request_both(const mavlink_message_t *msg);
 
-	void handle_mission_count(const mavlink_message_t *msg);
+//	void handle_mission_count(const mavlink_message_t *msg);
 
-	void handle_mission_item(const mavlink_message_t *msg);
+//	void handle_mission_item(const mavlink_message_t *msg);
 	void handle_mission_item_int(const mavlink_message_t *msg);
 	void handle_mission_item_both(const mavlink_message_t *msg);
 
-	void handle_mission_clear_all(const mavlink_message_t *msg);
+//	void handle_mission_clear_all(const mavlink_message_t *msg);
 
 	/**
 	 * Parse mavlink MISSION_ITEM message to get mission_item_s.

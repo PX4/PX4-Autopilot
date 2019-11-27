@@ -42,23 +42,20 @@
 
 #pragma once
 
+#include <px4_workqueue.h>
 #include <px4_module.h>
-#include <px4_module_params.h>
-#include <lib/hysteresis/hysteresis.h>
+#include <systemlib/hysteresis/hysteresis.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
-#include <uORB/Subscription.hpp>
+#include <uORB/uORB.h>
 #include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/parameter_update.h>
 #include <uORB/topics/vehicle_land_detected.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-
-using namespace time_literals;
 
 namespace land_detector
 {
 
-class LandDetector : public ModuleBase<LandDetector>, ModuleParams, px4::ScheduledWorkItem
+
+class LandDetector : public ModuleBase<LandDetector>
 {
 public:
 	enum class LandDetectionState {
@@ -72,6 +69,7 @@ public:
 	LandDetector();
 	virtual ~LandDetector();
 
+	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[])
@@ -88,26 +86,31 @@ public:
 	/**
 	 * @return current state.
 	 */
-	LandDetectionState get_state() const { return _state; }
+	LandDetectionState get_state() const
+	{
+		return _state;
+	}
 
 	/**
 	 * Get the work queue going.
 	 */
-	void start();
-
-	static int task_spawn(int argc, char *argv[]);
+	int start();
 
 protected:
-
 	/**
-	 * Update parameters.
+	 * Called once to initialize uORB topics.
 	 */
-	virtual void _update_params() = 0;
+	virtual void _initialize_topics() = 0;
 
 	/**
 	 * Update uORB topics.
 	 */
 	virtual void _update_topics() = 0;
+
+	/**
+	 * Update parameters.
+	 */
+	virtual void _update_params() = 0;
 
 	/**
 	 * @return true if UAV is in a landed state.
@@ -139,11 +142,18 @@ protected:
 	 */
 	virtual bool _get_ground_effect_state() { return false; }
 
-	/** Run main land detector loop at this interval. */
-	static constexpr uint32_t LAND_DETECTOR_UPDATE_INTERVAL = 20_ms;
+	/**
+	 * Convenience function for polling uORB subscriptions.
+	 *
+	 * @return true if there was new data and it was successfully copied
+	 */
+	static bool _orb_update(const struct orb_metadata *meta, int handle, void *buffer);
 
-	orb_advert_t _land_detected_pub{nullptr};
-	vehicle_land_detected_s _land_detected{};
+	/** Run main land detector loop at this rate in Hz. */
+	static constexpr uint32_t LAND_DETECTOR_UPDATE_RATE_HZ = 50;
+
+	orb_advert_t _landDetectedPub{nullptr};
+	vehicle_land_detected_s _landDetected{};
 
 	LandDetectionState _state{LandDetectionState::LANDED};
 
@@ -153,34 +163,31 @@ protected:
 	systemlib::Hysteresis _ground_contact_hysteresis{true};
 	systemlib::Hysteresis _ground_effect_hysteresis{false};
 
-	actuator_armed_s _actuator_armed {};
+	struct actuator_armed_s	_arming {};
 
 private:
+	static void _cycle_trampoline(void *arg);
+
+	void _cycle();
 
 	void _check_params(bool force = false);
 
-	void Run() override;
-
 	void _update_state();
 
-	void _update_total_flight_time();
-
-	bool _previous_armed_state{false}; ///< stores the previous actuator_armed.armed state
-
+	param_t _p_total_flight_time_high{PARAM_INVALID};
+	param_t _p_total_flight_time_low{PARAM_INVALID};
 	uint64_t _total_flight_time{0}; ///< in microseconds
-
 	hrt_abstime _takeoff_time{0};
 
-	perf_counter_t _cycle_perf{perf_alloc(PC_ELAPSED, "land_detector_cycle")};
+	struct work_s	_work {};
 
-	uORB::Subscription _actuator_armed_sub{ORB_ID(actuator_armed)};
-	uORB::Subscription _param_update_sub{ORB_ID(parameter_update)};
+	perf_counter_t	_cycle_perf;
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(
-		ModuleParams,
-		(ParamInt<px4::params::LND_FLIGHT_T_HI>) _param_total_flight_time_high,
-		(ParamInt<px4::params::LND_FLIGHT_T_LO>) _param_total_flight_time_low
-	);
+	bool _previous_arming_state{false}; ///< stores the previous _arming.armed state
+
+	int _parameterSub{ -1};
+	int _armingSub{ -1};
 };
+
 
 } // namespace land_detector

@@ -23,8 +23,3 @@ uint8 ROTATION_BACKWARD_FACING = 12 # MAV_SENSOR_ROTATION_PITCH_180
 uint8 ROTATION_FORWARD_FACING  = 0  # MAV_SENSOR_ROTATION_NONE
 uint8 ROTATION_LEFT_FACING     = 6  # MAV_SENSOR_ROTATION_YAW_270
 uint8 ROTATION_RIGHT_FACING    = 2  # MAV_SENSOR_ROTATION_YAW_90
-uint8 ROTATION_CUSTOM          =100 # MAV_SENSOR_ROTATION_CUSTOM
-
-float32 h_fov # Sensor horizontal field of view (rad)
-float32 v_fov # Sensor vertical field of view (rad)
-float32[4] q # Quaterion sensor orientation with respect to the vehicle body frame to specify the orientation ROTATION_CUSTOM

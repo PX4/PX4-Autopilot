@@ -39,14 +39,43 @@
  *
  */
 
-#include <string.h>
+#include <nuttx/config.h>
 
-#include <drivers/device/device.h>
+//#include <drivers/device/i2c.h>
+
+#include <sys/types.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <px4_getopt.h>
+
+#include <nuttx/wqueue.h>
+#include <drivers/drv_hrt.h>
+
+#include <perf/perf_counter.h>
+#include <systemlib/err.h>
+
+#include <board_config.h>
+
+#include <drivers/drv_led.h>
 #include <lib/led/led.h>
+<<<<<<< HEAD
 #include <px4_getopt.h>
 #include <px4_work_queue/ScheduledWorkItem.hpp>
+=======
+#include <drivers/device/device.h>
+#include <systemlib/err.h>
 
-class RGBLED_PWM : public device::CDev, public px4::ScheduledWorkItem
+#define RGBLED_ONTIME 120
+#define RGBLED_OFFTIME 120
+>>>>>>> bucketRider
+
+class RGBLED_PWM : public device::CDev
 {
 public:
 	RGBLED_PWM();
@@ -57,6 +86,7 @@ public:
 	int			status();
 
 private:
+	work_s			_work;
 
 	uint8_t			_r{0};
 	uint8_t			_g{0};
@@ -67,7 +97,8 @@ private:
 
 	LedController		_led_controller;
 
-	void			Run() override;
+	static void		led_trampoline(void *arg);
+	void			led();
 
 	int			send_led_rgb();
 	int			get(bool &on, bool &powersave, uint8_t &r, uint8_t &g, uint8_t &b);
@@ -88,7 +119,12 @@ RGBLED_PWM *g_rgbled = nullptr;
 
 RGBLED_PWM::RGBLED_PWM() :
 	CDev("rgbled_pwm", RGBLED_PWM0_DEVICE_PATH),
-	ScheduledWorkItem(px4::wq_configurations::lp_default)
+	_work{},
+	_r(0),
+	_g(0),
+	_b(0),
+	_running(false),
+	_should_run(true)
 {
 }
 
@@ -111,9 +147,8 @@ RGBLED_PWM::init()
 	send_led_rgb();
 
 	_running = true;
-
 	// kick off work queue
-	ScheduleNow();
+	work_queue(LPWORK, &_work, (worker_t)&RGBLED_PWM::led_trampoline, this, 0);
 
 	return OK;
 }
@@ -144,11 +179,19 @@ RGBLED_PWM::status()
 	return ret;
 }
 
+void
+RGBLED_PWM::led_trampoline(void *arg)
+{
+	RGBLED_PWM *rgbl = reinterpret_cast<RGBLED_PWM *>(arg);
+
+	rgbl->led();
+}
+
 /**
  * Main loop function
  */
 void
-RGBLED_PWM::Run()
+RGBLED_PWM::led()
 {
 	if (!_should_run) {
 		_running = false;
@@ -157,7 +200,7 @@ RGBLED_PWM::Run()
 
 	LedControlData led_control_data;
 
-	if (_led_controller.update(led_control_data) == 1) {
+	if (_led_controller.update(led_control_data) == 1) { 
 		uint8_t brightness = led_control_data.leds[0].brightness;
 
 		switch (led_control_data.leds[0].color) {
@@ -199,7 +242,8 @@ RGBLED_PWM::Run()
 	}
 
 	/* re-queue ourselves to run again later */
-	ScheduleDelayed(_led_controller.maximum_update_interval());
+	work_queue(LPWORK, &_work, (worker_t)&RGBLED_PWM::led_trampoline, this,
+		   USEC2TICK(_led_controller.maximum_update_interval()));
 }
 
 /**
@@ -219,7 +263,6 @@ RGBLED_PWM::send_led_rgb()
 	led_pwm_servo_set(4, _g);
 	led_pwm_servo_set(5, _b);
 #endif
-
 	return (OK);
 }
 

@@ -47,7 +47,6 @@
 #include <matrix/math.hpp>
 
 #include <px4_module_params.h>
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/follow_target.h>
 
 class FollowTarget : public MissionBlock, public ModuleParams
@@ -100,7 +99,7 @@ private:
 	FollowTargetState _follow_target_state{SET_WAIT_FOR_TARGET_POSITION};
 	int _follow_target_position{FOLLOW_FROM_BEHIND};
 
-	uORB::Subscription _follow_target_sub{ORB_ID(follow_target)};
+	int _follow_target_sub{-1};
 	float _step_time_in_ms{0.0f};
 	float _follow_offset{OFFSET_M};
 

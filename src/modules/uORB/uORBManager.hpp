@@ -76,12 +76,6 @@ public:
 	static bool initialize();
 
 	/**
-	 * Terminate the singleton. Call this after everything else.
-	 * @return true on success
-	 */
-	static bool terminate();
-
-	/**
 	 * Method to get the singleton instance for the uORB::Manager.
 	 * Make sure initialize() is called first.
 	 * @return uORB::Manager*
@@ -422,7 +416,7 @@ private: // data members
 
 private: //class methods
 	Manager();
-	virtual ~Manager();
+	~Manager();
 
 #ifdef ORB_COMMUNICATOR
 	/**

@@ -103,9 +103,9 @@ PARAM_DEFINE_INT32(CBRK_AIRSPD_CHK, 0);
 /**
  * Circuit breaker for flight termination
  *
- * Setting this parameter to 121212 will disable the flight termination action if triggered
- * by the FailureDetector logic or if FMU is lost.
- * This circuit breaker does not affect the RC loss, data link loss and geofence safety logic.
+ * Setting this parameter to 121212 will disable the flight termination action.
+ * --> The IO driver will not do flight termination if requested by the FMU
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
  *
  * @reboot_required true
  * @min 0
@@ -154,8 +154,7 @@ PARAM_DEFINE_INT32(CBRK_GPSFAIL, 0);
  *
  * Setting this parameter to 782097 will disable the buzzer audio notification.
  *
- * Setting this parameter to 782090 will disable the startup tune, while keeping
- * all others enabled.
+ * WARNING: ENABLING THIS CIRCUIT BREAKER IS AT OWN RISK
  *
  * @reboot_required true
  * @min 0

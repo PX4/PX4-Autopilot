@@ -56,7 +56,7 @@
 #include <unistd.h>
 
 #include <nuttx/arch.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <nuttx/wqueue.h>
 #include <nuttx/clock.h>
 
 #include <board_config.h>
@@ -134,7 +134,11 @@ enum QMC5883_BUS {
 	QMC5883_BUS_SPI
 };
 
-class QMC5883 : public device::CDev, public px4::ScheduledWorkItem
+#ifndef CONFIG_SCHED_WORKQUEUE
+# error This requires CONFIG_SCHED_WORKQUEUE.
+#endif
+
+class QMC5883 : public device::CDev
 {
 public:
 	QMC5883(device::Device *interface, const char *path, enum Rotation rotation);
@@ -159,7 +163,8 @@ protected:
 	Device			*_interface;
 
 private:
-	unsigned		_measure_interval{0};
+	work_s			_work{};
+	unsigned		_measure_ticks;
 
 	ringbuffer::RingBuffer	*_reports;
 	struct mag_calibration_s	_scale;
@@ -223,7 +228,15 @@ private:
 	 * and measurement to provide the most recent measurement possible
 	 * at the next interval.
 	 */
-	void			Run() override;
+	void			cycle();
+
+	/**
+	 * Static trampoline from the workq context; because we don't have a
+	 * generic workq wrapper yet.
+	 *
+	 * @param arg		Instance pointer for the driver that is polling.
+	 */
+	static void		cycle_trampoline(void *arg);
 
 	/**
 	 * Write a register.
@@ -261,8 +274,8 @@ extern "C" __EXPORT int qmc5883_main(int argc, char *argv[]);
 
 QMC5883::QMC5883(device::Device *interface, const char *path, enum Rotation rotation) :
 	CDev("QMC5883", path),
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
+	_measure_ticks(0),
 	_reports(nullptr),
 	_scale{},
 	_range_scale(1.0f / 12000.0f),
@@ -288,6 +301,9 @@ QMC5883::QMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_device_id.devid_s.address = _interface->get_device_address();
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_QMC5883;
 
+	// enable debug() calls
+	_debug_enabled = false;
+
 	// default scaling
 	_scale.x_offset = 0;
 	_scale.x_scale = 1.0f;
@@ -295,6 +311,9 @@ QMC5883::QMC5883(device::Device *interface, const char *path, enum Rotation rota
 	_scale.y_scale = 1.0f;
 	_scale.z_offset = 0;
 	_scale.z_scale = 1.0f;
+
+	// work_cancel in the dtor will explode if we don't do this...
+	memset(&_work, 0, sizeof(_work));
 }
 
 QMC5883::~QMC5883()
@@ -388,7 +407,7 @@ QMC5883::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is enabled */
-	if (_measure_interval > 0) {
+	if (_measure_ticks > 0) {
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
 		 * Note that we may be pre-empted by the workq thread while we are doing this;
@@ -443,10 +462,10 @@ QMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_interval == 0);
+					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_interval = QMC5883_CONVERSION_INTERVAL;
+					_measure_ticks = USEC2TICK(QMC5883_CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -459,18 +478,18 @@ QMC5883::ioctl(struct file *filp, int cmd, unsigned long arg)
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_interval == 0);
+					bool want_start = (_measure_ticks == 0);
 
 					/* convert hz to tick interval via microseconds */
-					unsigned interval = (1000000 / arg);
+					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (interval < QMC5883_CONVERSION_INTERVAL) {
+					if (ticks < USEC2TICK(QMC5883_CONVERSION_INTERVAL)) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					_measure_interval = interval;
+					_measure_ticks = ticks;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -516,16 +535,16 @@ QMC5883::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	ScheduleNow();
+	work_queue(HPWORK, &_work, (worker_t)&QMC5883::cycle_trampoline, this, 1);
 }
 
 void
 QMC5883::stop()
 {
-	if (_measure_interval > 0) {
+	if (_measure_ticks > 0) {
 		/* ensure no new items are queued while we cancel this one */
-		_measure_interval = 0;
-		ScheduleClear();
+		_measure_ticks = 0;
+		work_cancel(HPWORK, &_work);
 	}
 }
 
@@ -538,6 +557,7 @@ QMC5883::reset()
 
 	/* software reset */
 	write_reg(QMC5883_ADDR_CONTROL_2, QMC5883_SOFT_RESET);
+
 
 	/* set reset period to 0x01 */
 	write_reg(QMC5883_ADDR_SET_RESET, QMC5883_SET_DEFAULT);
@@ -558,9 +578,17 @@ QMC5883::reset()
 }
 
 void
-QMC5883::Run()
+QMC5883::cycle_trampoline(void *arg)
 {
-	if (_measure_interval == 0) {
+	QMC5883 *dev = (QMC5883 *)arg;
+
+	dev->cycle();
+}
+
+void
+QMC5883::cycle()
+{
+	if (_measure_ticks == 0) {
 		return;
 	}
 
@@ -581,9 +609,14 @@ QMC5883::Run()
 		/*
 		 * Is there a collect->measure gap?
 		 */
-		if (_measure_interval > QMC5883_CONVERSION_INTERVAL) {
+		if (_measure_ticks > USEC2TICK(QMC5883_CONVERSION_INTERVAL)) {
+
 			/* schedule a fresh cycle call when we are ready to measure again */
-			ScheduleDelayed(_measure_interval - QMC5883_CONVERSION_INTERVAL);
+			work_queue(HPWORK,
+				   &_work,
+				   (worker_t)&QMC5883::cycle_trampoline,
+				   this,
+				   _measure_ticks - USEC2TICK(QMC5883_CONVERSION_INTERVAL));
 
 			return;
 		}
@@ -592,9 +625,13 @@ QMC5883::Run()
 	/* next phase is collection */
 	_collect_phase = true;
 
-	if (_measure_interval > 0) {
+	if (_measure_ticks > 0) {
 		/* schedule a fresh cycle call when the measurement is done */
-		ScheduleDelayed(QMC5883_CONVERSION_INTERVAL);
+		work_queue(HPWORK,
+			   &_work,
+			   (worker_t)&QMC5883::cycle_trampoline,
+			   this,
+			   USEC2TICK(QMC5883_CONVERSION_INTERVAL));
 	}
 }
 
@@ -792,7 +829,7 @@ QMC5883::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u us\n", _measure_interval);
+	printf("poll interval:  %u ticks\n", _measure_ticks);
 	print_message(_last_report);
 	_reports->print_info("report queue");
 }

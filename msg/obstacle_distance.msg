@@ -9,11 +9,7 @@ uint8 MAV_DISTANCE_SENSOR_RADAR = 3
 
 uint16[72] distances # Distance of obstacles around the UAV with index 0 corresponding to local North. A value of 0 means that the obstacle is right in front of the sensor. A value of max_distance +1 means no obstacle is present. A value of UINT16_MAX for unknown/not used. In a array element, one unit corresponds to 1cm.
 
-float32 increment # Angular width in degrees of each array element.
+uint8 increment # Angular width in degrees of each array element.
 
 uint16 min_distance # Minimum distance the sensor can measure in centimeters.
 uint16 max_distance # Maximum distance the sensor can measure in centimeters.
-
-float32 angle_offset # Relative angle offset of the 0-index element in the distances array. Value of 0 corresponds to forward. Positive values are offsets to the right.
-
-# TOPICS obstacle_distance obstacle_distance_fused

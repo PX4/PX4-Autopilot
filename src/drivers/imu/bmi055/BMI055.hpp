@@ -33,11 +33,14 @@
 
 #pragma once
 
+#include <drivers/device/integrator.h>
 #include <drivers/device/spi.h>
-#include <ecl/geo/geo.h>
+#include <drivers/drv_hrt.h>
+#include <lib/conversion/rotation.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_config.h>
+#include <systemlib/conversions.h>
+#include <systemlib/err.h>
 
 #define DIR_READ                0x80
 #define DIR_WRITE               0x00
@@ -55,6 +58,9 @@ class BMI055 : public device::SPI
 protected:
 
 	uint8_t         _whoami;    /** whoami result */
+
+	struct hrt_call     _call;
+	unsigned        _call_interval;
 
 	uint8_t         _register_wait;
 	uint64_t        _reset_wait;

@@ -85,23 +85,25 @@
 
 //           ordinal name                  tune                                        interruptable*     hint
 //  * Repeated tunes should always be defined as interruptable, if not an explict 'tone_control stop' is needed
+//  * dg_joneshu_20191101
+//DGX
 PX4_DEFINE_TUNE(0,  CUSTOM,                "",                                              true  /*  empty to align with the index */)
-PX4_DEFINE_TUNE(1,  STARTUP,               "MFT240L8 O4aO5dc O4aO5dc O4aO5dc L16dcdcdcdc",  true  /*  startup tune */)
-PX4_DEFINE_TUNE(2,  ERROR_TUNE,            "MBT200a8a8a8PaaaP",                             true  /*  ERROR tone */)
-PX4_DEFINE_TUNE(3,  NOTIFY_POSITIVE,       "MFT200e8a8a",                                   true  /*  Notify Positive tone */)
+PX4_DEFINE_TUNE(1,  STARTUP,               "MFT200L4AABL1F#",  true  /*  startup tune */)
+PX4_DEFINE_TUNE(2,  ERROR_TUNE,            "MBT200e8e8a8PeeaP",                             true  /*  ERROR tone */)
+PX4_DEFINE_TUNE(3,  NOTIFY_POSITIVE,       "MFT200d8a8a",                                   true  /*  Notify Positive tone */)
 PX4_DEFINE_TUNE(4,  NOTIFY_NEUTRAL,        "MFT200e8e",                                     true  /*  Notify Neutral tone */)
 PX4_DEFINE_TUNE(5,  NOTIFY_NEGATIVE,       "MFT200e8c8e8c8e8c8",                            true  /*  Notify Negative tone */)
-PX4_DEFINE_TUNE(6,  ARMING_WARNING,        "MNT75L1O2G",                                    false /*  arming warning */)
+PX4_DEFINE_TUNE(6,  ARMING_WARNING,        "MNT75C1",                                    false /*  arming warning */)
 PX4_DEFINE_TUNE(7,  BATTERY_WARNING_SLOW,  "MBNT100a8",                                     true  /*  battery warning slow */)
-PX4_DEFINE_TUNE(8,  BATTERY_WARNING_FAST,  "MBNT255a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8a8",       true  /*  battery warning fast */)
-PX4_DEFINE_TUNE(9,  GPS_WARNING,           "MFT255L4AAAL1F#",                               false /*  gps warning slow */)
+PX4_DEFINE_TUNE(8,  BATTERY_WARNING_FAST,  "MFT100d4d4d4d4",       true  /*  battery warning fast */)
+PX4_DEFINE_TUNE(9,  GPS_WARNING,           "MFT240L8 L16dcdcdcdc",                               false /*  gps warning slow */)
 PX4_DEFINE_TUNE(10, ARMING_FAILURE,        "MFT255L4<<<BAP",                                false /*  arming failure tune */)
 PX4_DEFINE_TUNE(11, PARACHUTE_RELEASE,     "MFT255L16agagagag",                             false /*  parachute release */)
 PX4_DEFINE_TUNE(12, EKF_WARNING,           "MFT255L8ddd#d#eeff",                            false /*  ekf warning */)
 PX4_DEFINE_TUNE(13, BARO_WARNING,          "MFT255L4gf#fed#d",                              false /*  baro warning */)
 PX4_DEFINE_TUNE(14, SINGLE_BEEP,           "MFT100a8",                                      false /*  single beep */)
 PX4_DEFINE_TUNE(15, HOME_SET,              "MFT100L4>G#6A#6B#4",                            false /*  home set tune */)
-PX4_DEFINE_TUNE(16, SD_INIT,               "MFAGPAG",                                       false /*  Make FS */)
+PX4_DEFINE_TUNE(16, SD_INIT,               "MBAGP",                                         false /*  Make FS */)
 PX4_DEFINE_TUNE(17, SD_ERROR,              "MNBG",                                          false /*  format failed */)
 PX4_DEFINE_TUNE(18, PROG_PX4IO,            "MLL32CP8MB",                                    false /*  Program PX4IO */)
 PX4_DEFINE_TUNE(19, PROG_PX4IO_OK,         "MLL8CDE",                                       false /*  Program PX4IO success */)

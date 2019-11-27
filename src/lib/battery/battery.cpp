@@ -97,8 +97,6 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		battery_status->system_source = selected_source;
 		battery_status->priority = priority; 
 	}
-
-	battery_status->temperature = NAN;
 }
 
 void

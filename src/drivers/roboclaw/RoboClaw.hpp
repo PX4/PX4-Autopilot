@@ -45,16 +45,9 @@
 
 #include <poll.h>
 #include <stdio.h>
-#include <termios.h>
-#include <uORB/SubscriptionPollable.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/wheel_encoders.h>
-#include <uORB/topics/actuator_armed.h>
-#include <uORB/topics/parameter_update.h>
 #include <drivers/device/i2c.h>
-#include <sys/select.h>
-#include <sys/time.h>
-#include <pthread.h>
 
 /**
  * This is a driver for the RoboClaw motor controller
@@ -62,9 +55,6 @@
 class RoboClaw
 {
 public:
-
-	void taskMain();
-	static bool taskShouldExit;
 
 	/** control channels */
 	enum e_channel {
@@ -84,9 +74,11 @@ public:
 	 * 	serial port e.g. "/dev/ttyS2"
 	 * @param address the adddress  of the motor
 	 * 	(selectable on roboclaw)
-	 * @param baudRateParam Name of the parameter that holds the baud rate of this serial port
+	 * @param pulsesPerRev # of encoder
+	 *  pulses per revolution of wheel
 	 */
-	RoboClaw(const char *deviceName, const char *baudRateParam);
+	RoboClaw(const char *deviceName, uint16_t address,
+		 uint16_t pulsesPerRev);
 
 	/**
 	 * deconstructor
@@ -109,19 +101,9 @@ public:
 	int setMotorSpeed(e_motor motor, float value);
 
 	/**
-	 * set the duty cycle of a motor
+	 * set the duty cycle of a motor, rev/sec
 	 */
 	int setMotorDutyCycle(e_motor motor, float value);
-
-	/**
-	 * Drive both motors. +1 = full forward, -1 = full backward
-	 */
-	int drive(float value);
-
-	/**
-	 * Turn. +1 = full right, -1 = full left
-	 */
-	int turn(float value);
 
 	/**
 	 * reset the encoders
@@ -130,9 +112,15 @@ public:
 	int resetEncoders();
 
 	/**
+	 * main update loop that updates RoboClaw motor
+	 * dutycycle based on actuator publication
+	 */
+	int update();
+
+	/**
 	 * read data from serial
 	 */
-	int readEncoder();
+	int readEncoder(e_motor motor);
 
 	/**
 	 * print status
@@ -140,6 +128,13 @@ public:
 	void printStatus(char *string, size_t n);
 
 private:
+
+	// Quadrature status flags
+	enum e_quadrature_status_flags {
+		STATUS_UNDERFLOW = 1 << 0, /**< encoder went below 0 **/
+		STATUS_REVERSE = 1 << 1, /**< motor doing in reverse dir **/
+		STATUS_OVERFLOW = 1 << 2, /**< encoder went above 2^32 **/
+	};
 
 	// commands
 	// We just list the commands we want from the manual here.
@@ -151,94 +146,47 @@ private:
 		CMD_DRIVE_FWD_2 = 4,
 		CMD_DRIVE_REV_2 = 5,
 
-		CMD_DRIVE_FWD_MIX = 8,
-		CMD_DRIVE_REV_MIX = 9,
-		CMD_TURN_RIGHT = 10,
-		CMD_TURN_LEFT = 11,
-
 		// encoder commands
 		CMD_READ_ENCODER_1 = 16,
 		CMD_READ_ENCODER_2 = 17,
-		CMD_READ_SPEED_1 = 18,
-		CMD_READ_SPEED_2 = 19,
 		CMD_RESET_ENCODERS = 20,
-		CMD_READ_BOTH_ENCODERS = 78,
-		CMD_READ_BOTH_SPEEDS = 79,
 
 		// advanced motor control
 		CMD_READ_SPEED_HIRES_1 = 30,
 		CMD_READ_SPEED_HIRES_2 = 31,
 		CMD_SIGNED_DUTYCYCLE_1 = 32,
 		CMD_SIGNED_DUTYCYCLE_2 = 33,
-
-		CMD_READ_STATUS = 90
 	};
 
-	struct {
-		speed_t serial_baud_rate;
-		int32_t counts_per_rev;
-		int32_t encoder_read_period_ms;
-		int32_t actuator_write_period_ms;
-		int32_t address;
-	} _parameters{};
+	static uint8_t checksum_mask;
 
-	struct {
-		param_t serial_baud_rate;
-		param_t counts_per_rev;
-		param_t encoder_read_period_ms;
-		param_t actuator_write_period_ms;
-		param_t address;
-	} _param_handles{};
+	uint16_t _address;
+	uint16_t _pulsesPerRev;
 
 	int _uart;
-	fd_set _uart_set;
-	struct timeval _uart_timeout;
+
+	/** poll structure for control packets */
+	struct pollfd _controlPoll;
 
 	/** actuator controls subscription */
-	int _actuatorsSub{-1};
-	actuator_controls_s _actuatorControls;
+	uORB::Subscription<actuator_controls_s> _actuators;
 
-	int _armedSub{-1};
-	actuator_armed_s _actuatorArmed;
+	// private data
+	float _motor1Position;
+	float _motor1Speed;
+	int16_t _motor1Overflow;
 
-	int _paramSub{-1};
-	parameter_update_s _paramUpdate;
+	float _motor2Position;
+	float _motor2Speed;
+	int16_t _motor2Overflow;
 
-	orb_advert_t _wheelEncodersAdv[2] {nullptr, nullptr};
-	wheel_encoders_s _wheelEncoderMsg[2];
-
-	uint32_t _lastEncoderCount[2] {0, 0};
-	int64_t _encoderCounts[2] {0, 0};
-	int32_t _motorSpeeds[2] {0, 0};
-
-	void _parameters_update();
-
-	static uint16_t _calcCRC(const uint8_t *buf, size_t n, uint16_t init = 0);
-	int _sendUnsigned7Bit(e_command command, float data);
-	int _sendSigned16Bit(e_command command, float data);
-	int _sendNothing(e_command);
-
-	/**
-	 * Perform a round-trip write and read.
-	 *
-	 * NOTE: This function is not thread-safe.
-	 *
-	 * @param cmd Command to send to the Roboclaw
-	 * @param wbuff Write buffer. Must not contain command, address, or checksum. For most commands, this will be
-	 *   one or two bytes. Can be null iff wbytes == 0.
-	 * @param wbytes Number of bytes to write. Can be 0.
-	 * @param rbuff Read buffer. Will be filled with the entire response, including a checksum if the Roboclaw sends
-	 *   a checksum for this command.
-	 * @param rbytes Maximum number of bytes to read.
-	 * @param send_checksum If true, then the checksum will be calculated and sent to the Roboclaw.
-	 *   This is an option because some Roboclaw commands expect no checksum.
-	 * @param recv_checksum If true, then this function will calculate the checksum of the returned data and compare
-	 *   it to the checksum received. If they are not equal, OR if fewer than 2 bytes were received, then an
-	 *   error is returned.
-	 *   If false, then this function will expect to read exactly one byte, 0xFF, and will return an error otherwise.
-	 * @return If successful, then the number of bytes read from the Roboclaw is returned. If there is a timeout
-	 *   reading from the Roboclaw, then 0 is returned. If there is an IO error, then a negative value is returned.
-	 */
-	int _transaction(e_command cmd, uint8_t *wbuff, size_t wbytes,
-			 uint8_t *rbuff, size_t rbytes, bool send_checksum = true, bool recv_checksum = false);
+	// private methods
+	uint16_t _sumBytes(uint8_t *buf, size_t n);
+	int _sendCommand(e_command cmd, uint8_t *data, size_t n_data, uint16_t &prev_sum);
 };
+
+// unit testing
+int roboclawTest(const char *deviceName, uint8_t address,
+		 uint16_t pulsesPerRev);
+
+// vi:noet:smarttab:autoindent:ts=4:sw=4:tw=78

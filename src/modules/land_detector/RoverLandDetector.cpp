@@ -46,6 +46,10 @@
 namespace land_detector
 {
 
+void RoverLandDetector::_initialize_topics()
+{
+}
+
 void RoverLandDetector::_update_topics()
 {
 }
@@ -67,7 +71,7 @@ bool RoverLandDetector::_get_maybe_landed_state()
 
 bool RoverLandDetector::_get_landed_state()
 {
-	if (!_actuator_armed.armed) {
+	if (!_arming.armed) {
 		return true;
 	}
 

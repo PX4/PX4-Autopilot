@@ -39,6 +39,7 @@ px4_add_board(
 		safety_button
 		stm32
 		stm32/adc
+		stm32/armv7-m_dcache
 		stm32/tone_alarm
 		telemetry # all available telemetry drivers
 		tone_alarm
@@ -59,7 +60,7 @@ px4_add_board(
 		navigator
 		sensors
 		vmount
-		airspeed_selector
+		wind_estimator
 
 	SYSTEMCMDS
 		bl_update
@@ -67,7 +68,6 @@ px4_add_board(
 		dumpfile
 		esc_calib
 		hardfault_log
-		i2cdetect
 		led_control
 		mixer
 		motor_ramp

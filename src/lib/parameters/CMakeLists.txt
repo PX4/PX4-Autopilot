@@ -162,5 +162,3 @@ add_dependencies(parameters prebuild_targets)
 if(${PX4_PLATFORM} STREQUAL "nuttx")
 	target_link_libraries(parameters PRIVATE flashparams tinybson)
 endif()
-
-px4_add_functional_gtest(SRC ParameterTest.cpp LINKLIBS parameters)

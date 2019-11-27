@@ -102,8 +102,10 @@ int LedController::update(LedControlData &control_data)
 			// handle state updates
 			uint16_t current_blink_duration = 0;
 
-			switch (cur_data.mode) {
+			switch (cur_data.mode&0x0f) {
 			case led_control_s::MODE_FLASH:
+			    current_blink_duration = BLINK_FLASH_DURATION / 100;
+				break;
 			case led_control_s::MODE_BLINK_FAST:
 				current_blink_duration = BLINK_FAST_DURATION / 100;
 				break;
@@ -133,18 +135,18 @@ int LedController::update(LedControlData &control_data)
 				if ((_states[i].current_blinking_time += blink_delta_t) > current_blink_duration) {
 					_states[i].current_blinking_time -= current_blink_duration;
 
-					if (cur_data.blink_times_left == 246) {
+					if (cur_data.blink_times_left == 240) {
 						// handle toggling for infinite case: decrease between 255 and 246
 						// In order to handle the flash mode infinite case it needs a
 						// total of 10 steps.
-						cur_data.blink_times_left = 255;
+						cur_data.blink_times_left = 247;
 						++num_blinking_do_not_change_state;
 
 					} else if (--cur_data.blink_times_left == 0) {
 						cur_data.mode = led_control_s::MODE_DISABLED;
 						_states[i].current_blinking_time = 0;
 
-					} else if (cur_data.blink_times_left % 2 == 1) {
+					} else if (cur_data.blink_times_left % 2 == 0) {
 						++num_blinking_do_not_change_state;
 					}
 
@@ -197,6 +199,7 @@ int LedController::update(LedControlData &control_data)
 void LedController::get_control_data(LedControlData &control_data)
 {
 	_breathe_enabled = false;
+	
 
 	for (int i = 0; i < BOARD_MAX_LEDS; ++i) {
 		control_data.leds[i].color = led_control_s::COLOR_OFF; // set output to a defined state
@@ -210,7 +213,7 @@ void LedController::get_control_data(LedControlData &control_data)
 				continue; // handle next priority
 			}
 
-			switch (cur_data.mode) {
+			switch (cur_data.mode&0x0f) {
 			case led_control_s::MODE_ON:
 				control_data.leds[i].color = cur_data.color;
 				break;
@@ -226,18 +229,45 @@ void LedController::get_control_data(LedControlData &control_data)
 				}
 
 			case led_control_s::MODE_FLASH:
-				if (cur_data.blink_times_left % 10 < 6) { // 2 blinks, then turn off for the rest of the cycle
-					flash_output_active = false;
+                                if (cur_data.blink_times_left % 8 > 2) { // 2 blinks, then turn off for the rest of the cycle
+					if(cur_data.blink_times_left % 8 == 7)
+					   control_data.leds[i].color = (cur_data.mode&0x70)>>4;
+                    else if(cur_data.blink_times_left % 8 == 5)		
+					   control_data.leds[i].color = cur_data.color&0x0f;
+				    else if(cur_data.blink_times_left % 8 == 3)
+						control_data.leds[i].color = (cur_data.color&0x70)>>4;
 				}
-
+                break;
 			/* FALLTHROUGH */
 			case led_control_s::MODE_BLINK_FAST:
 			case led_control_s::MODE_BLINK_NORMAL:
 			case led_control_s::MODE_BLINK_SLOW:
-				if (cur_data.blink_times_left % 2 == 0 && flash_output_active) {
-					control_data.leds[i].color = cur_data.color;
+			    if(cur_data.mode>0x0f){
+					if (cur_data.blink_times_left % 6 == 0 && flash_output_active) {
+				        control_data.leds[i].color = (cur_data.mode&0x70)>>4;
+						
+				    }else if(cur_data.blink_times_left % 6 == 4 && flash_output_active){
+						    control_data.leds[i].color = cur_data.color&0x0f;
+							
+					}else if(cur_data.blink_times_left % 6 == 2 && flash_output_active){
+						    control_data.leds[i].color = (cur_data.color&0x70)>>4;
+						
+					}
+				}else{
+					if(cur_data.color >= 8){
+						if (cur_data.blink_times_left % 4 == 0 && flash_output_active) {
+							control_data.leds[i].color = cur_data.color&0x0f;
+							
+						}else if (cur_data.blink_times_left % 4 == 2 && flash_output_active){
+							
+							control_data.leds[i].color = (cur_data.color&0x70)>>4;
+						}
+					}else{
+						if (cur_data.blink_times_left % 2 == 0 && flash_output_active) {
+							control_data.leds[i].color = cur_data.color;
+						}
+					}					
 				}
-
 				break;
 				// MODE_OFF does not need to be handled, it's already set above
 			}

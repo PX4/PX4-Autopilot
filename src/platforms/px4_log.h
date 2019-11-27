@@ -35,7 +35,7 @@
  * @file px4_log.h
  * Platform dependant logging/debug implementation
  */
-
+#include "debug.h"
 #pragma once
 
 #define _PX4_LOG_LEVEL_DEBUG		0
@@ -45,6 +45,7 @@
 #define _PX4_LOG_LEVEL_PANIC		4
 
 // Used to silence unused variable warning
+
 static inline void do_nothing(int level, ...)
 {
 	(void)level;
@@ -72,6 +73,7 @@ __END_DECLS
  ****************************************************************************/
 #define PX4_INFO(FMT, ...) 	qurt_log(_PX4_LOG_LEVEL_INFO, __FILE__, __LINE__, FMT, ##__VA_ARGS__)
 #define PX4_INFO_RAW(FMT, ...) 	__px4_log_omit(_PX4_LOG_LEVEL_INFO, FMT, ##__VA_ARGS__)
+#define PX4_BACKTRACE()
 
 #if defined(TRACE_BUILD)
 /****************************************************************************
@@ -127,6 +129,7 @@ __BEGIN_DECLS
 
 __EXPORT extern const char *__px4_log_level_str[_PX4_LOG_LEVEL_PANIC + 1];
 __EXPORT extern const char *__px4_log_level_color[_PX4_LOG_LEVEL_PANIC + 1];
+__EXPORT extern void px4_backtrace(void);
 __EXPORT void px4_log_modulename(int level, const char *moduleName, const char *fmt, ...)
 __attribute__((format(printf, 3, 4)));
 __EXPORT void px4_log_raw(int level, const char *fmt, ...)
@@ -139,6 +142,7 @@ __attribute__((format(printf, 2, 3)));
 
 __END_DECLS
 
+#define PX4_BACKTRACE() px4_backtrace()
 
 /****************************************************************************
  * Implementation of log section formatting based on printf

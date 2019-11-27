@@ -39,7 +39,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_gps_position.h>
 
 #include <drivers/drv_hrt.h>
@@ -73,21 +72,26 @@ bool file_exist(const char *filename)
 
 bool get_log_time(struct tm *tt, int utc_offset_sec, bool boot_time)
 {
-	uORB::Subscription vehicle_gps_position_sub{ORB_ID(vehicle_gps_position)};
+	int vehicle_gps_position_sub = orb_subscribe(ORB_ID(vehicle_gps_position));
 
-	time_t utc_time_sec;
-	bool use_clock_time = true;
+	if (vehicle_gps_position_sub < 0) {
+		return false;
+	}
 
 	/* Get the latest GPS publication */
 	vehicle_gps_position_s gps_pos;
+	time_t utc_time_sec;
+	bool use_clock_time = true;
 
-	if (vehicle_gps_position_sub.copy(&gps_pos)) {
+	if (orb_copy(ORB_ID(vehicle_gps_position), vehicle_gps_position_sub, &gps_pos) == 0) {
 		utc_time_sec = gps_pos.time_utc_usec / 1e6;
 
 		if (gps_pos.fix_type >= 2 && utc_time_sec >= GPS_EPOCH_SECS) {
 			use_clock_time = false;
 		}
 	}
+
+	orb_unsubscribe(vehicle_gps_position_sub);
 
 	if (use_clock_time) {
 		/* take clock time if there's no fix (yet) */

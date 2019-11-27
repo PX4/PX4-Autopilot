@@ -1,25 +1,12 @@
 #!/usr/bin/env python
 from __future__ import print_function
 
-import argparse
 import os
 import sys
 import subprocess
 import re
 
-parser = argparse.ArgumentParser(description="""Extract version info from git and
-generate a version header file. The working directory is expected to be
-the root of Firmware.""")
-parser.add_argument('filename', metavar='version.h', help='Header output file')
-parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
-                    help='Verbose output', default=False)
-parser.add_argument('--validate', dest='validate', action='store_true',
-                    help='Validate the tag format', default=False)
-
-args = parser.parse_args()
-filename = args.filename
-verbose = args.verbose
-validate = args.validate
+filename = sys.argv[1]
 
 try:
     fp_header = open(filename, 'r')
@@ -142,7 +129,6 @@ if (os.path.exists('platforms/nuttx/NuttX/nuttx/.git')):
 
 
 if old_header != header:
-    if verbose:
-        print('Updating header {}'.format(filename))
+    print('Updating header {}'.format(sys.argv[1]))
     fp_header = open(filename, 'w')
     fp_header.write(header)

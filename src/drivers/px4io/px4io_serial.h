@@ -252,7 +252,7 @@ private:
 	/**
 	 * IO Buffer storage
 	 */
-	static uint8_t _io_buffer_storage[] __attribute__((aligned(ARMV7M_DCACHE_LINESIZE)));
+	static uint8_t _io_buffer_storage[];
 };
 
 #else

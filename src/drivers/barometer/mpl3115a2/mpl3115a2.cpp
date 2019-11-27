@@ -37,13 +37,53 @@
  * Driver for the MPL3115A2 barometric pressure sensor connected via I2C.
  */
 
+#include <lib/cdev/CDev.hpp>
+#include <drivers/device/Device.hpp>
+#include <px4_config.h>
+#include <px4_log.h>
+
+#include <sys/types.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <semaphore.h>
+#include <string.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <errno.h>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+#include <px4_getopt.h>
+
+#include <nuttx/arch.h>
+#include <nuttx/wqueue.h>
+#include <nuttx/clock.h>
+
+#include <arch/board/board.h>
+#include <board_config.h>
+
+#include <drivers/device/device.h>
+#include <drivers/drv_baro.h>
+#include <drivers/drv_hrt.h>
+#include <drivers/device/ringbuffer.h>
+
+#include <perf/perf_counter.h>
+#include <systemlib/err.h>
+
 #include "mpl3115a2.h"
+
+
 
 enum MPL3115A2_BUS {
 	MPL3115A2_BUS_ALL = 0,
 	MPL3115A2_BUS_I2C_INTERNAL,
 	MPL3115A2_BUS_I2C_EXTERNAL,
 };
+
+#ifndef CONFIG_SCHED_WORKQUEUE
+# error This requires CONFIG_SCHED_WORKQUEUE.
+#endif
 
 /* helper macro for handling report buffer indices */
 #define INCREMENT(_x, _lim)	do { __typeof__(_x) _tmp = _x+1; if (_tmp >= _lim) _tmp = 0; _x = _tmp; } while(0)
@@ -61,7 +101,7 @@ enum MPL3115A2_BUS {
 #define MPL3115A2_BARO_DEVICE_PATH_EXT  "/dev/mpl3115a2_ext"
 #define MPL3115A2_BARO_DEVICE_PATH_INT  "/dev/mpl3115a2_int"
 
-class MPL3115A2 : public cdev::CDev, public px4::ScheduledWorkItem
+class MPL3115A2 : public cdev::CDev
 {
 public:
 	MPL3115A2(device::Device *interface, const char *path);
@@ -80,7 +120,8 @@ public:
 protected:
 	device::Device			*_interface;
 
-	unsigned		_measure_interval;
+	struct work_s		_work;
+	unsigned		_measure_ticks;
 
 	ringbuffer::RingBuffer	*_reports;
 	bool			_collect_phase;
@@ -100,17 +141,17 @@ protected:
 	/**
 	 * Initialize the automatic measurement state machine and start it.
 	 *
-	 * @param delay_us the number of microseconds before executing the next cycle
+	 * @param delay_ticks the number of queue ticks before executing the next cycle
 	 *
 	 * @note This function is called at open and error time.  It might make sense
 	 *       to make it more aggressive about resetting the bus in case of errors.
 	 */
-	void			start(unsigned delay_us = 1);
+	void			start_cycle(unsigned delay_ticks = 1);
 
 	/**
 	 * Stop the automatic measurement state machine.
 	 */
-	void			stop();
+	void			stop_cycle();
 
 	/**
 	 * Perform a poll cycle; collect from the previous measurement
@@ -125,7 +166,15 @@ protected:
 	 * and measurement to provide the most recent measurement possible
 	 * at the next interval.
 	 */
-	void			Run() override;
+	void			cycle();
+
+	/**
+	 * Static trampoline from the workq context; because we don't have a
+	 * generic workq wrapper yet.
+	 *
+	 * @param arg		Instance pointer for the driver that is polling.
+	 */
+	static void		cycle_trampoline(void *arg);
 
 	/**
 	 * Issue a measurement command for the current state.
@@ -148,9 +197,8 @@ extern "C" __EXPORT int mpl3115a2_main(int argc, char *argv[]);
 
 MPL3115A2::MPL3115A2(device::Device *interface, const char *path) :
 	CDev(path),
-	ScheduledWorkItem(px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
-	_measure_interval(0),
+	_measure_ticks(0),
 	_reports(nullptr),
 	_collect_phase(false),
 	_P(0),
@@ -162,13 +210,16 @@ MPL3115A2::MPL3115A2(device::Device *interface, const char *path) :
 	_measure_perf(perf_alloc(PC_ELAPSED, "mpl3115a2_measure")),
 	_comms_errors(perf_alloc(PC_COUNT, "mpl3115a2_com_err"))
 {
+	// work_cancel in stop_cycle called from the dtor will explode if we don't do this...
+	memset(&_work, 0, sizeof(_work));
+
 	_interface->set_device_type(DRV_BARO_DEVTYPE_MPL3115A2);
 }
 
 MPL3115A2::~MPL3115A2()
 {
 	/* make sure we are truly inactive */
-	stop();
+	stop_cycle();
 
 	if (_class_instance != -1) {
 		unregister_class_devname(get_devname(), _class_instance);
@@ -281,7 +332,7 @@ MPL3115A2::read(struct file *filp, char *buffer, size_t buflen)
 	}
 
 	/* if automatic measurement is enabled */
-	if (_measure_interval > 0) {
+	if (_measure_ticks > 0) {
 
 		/*
 		 * While there is space in the caller's buffer, and reports, copy them.
@@ -347,14 +398,14 @@ MPL3115A2::ioctl(struct file *filp, int cmd, unsigned long arg)
 			/* set default polling rate */
 			case SENSOR_POLLRATE_DEFAULT: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_interval == 0);
+					bool want_start = (_measure_ticks == 0);
 
 					/* set interval for next measurement to minimum legal value */
-					_measure_interval = MPL3115A2_CONVERSION_INTERVAL;
+					_measure_ticks = USEC2TICK(MPL3115A2_CONVERSION_INTERVAL);
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
-						start();
+						start_cycle();
 					}
 
 					return OK;
@@ -363,22 +414,22 @@ MPL3115A2::ioctl(struct file *filp, int cmd, unsigned long arg)
 			/* adjust to a legal polling interval in Hz */
 			default: {
 					/* do we need to start internal polling? */
-					bool want_start = (_measure_interval == 0);
+					bool want_start = (_measure_ticks == 0);
 
 					/* convert hz to tick interval via microseconds */
-					unsigned interval = (1000000 / arg);
+					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (interval < MPL3115A2_CONVERSION_INTERVAL) {
+					if (ticks < USEC2TICK(MPL3115A2_CONVERSION_INTERVAL)) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					_measure_interval = interval;
+					_measure_ticks = ticks;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
-						start();
+						start_cycle();
 					}
 
 					return OK;
@@ -406,24 +457,33 @@ MPL3115A2::ioctl(struct file *filp, int cmd, unsigned long arg)
 }
 
 void
-MPL3115A2::start(unsigned delay_us)
+MPL3115A2::start_cycle(unsigned delay_ticks)
 {
+
 	/* reset the report ring and state machine */
 	_collect_phase = false;
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	ScheduleDelayed(delay_us);
+	work_queue(HPWORK, &_work, (worker_t)&MPL3115A2::cycle_trampoline, this, delay_ticks);
 }
 
 void
-MPL3115A2::stop()
+MPL3115A2::stop_cycle()
 {
-	ScheduleClear();
+	work_cancel(HPWORK, &_work);
 }
 
 void
-MPL3115A2::Run()
+MPL3115A2::cycle_trampoline(void *arg)
+{
+	MPL3115A2 *dev = reinterpret_cast<MPL3115A2 *>(arg);
+
+	dev->cycle();
+}
+
+void
+MPL3115A2::cycle()
 {
 	int ret;
 	unsigned dummy;
@@ -441,15 +501,19 @@ MPL3115A2::Run()
 			 * to wait 2.8 ms after issuing the sensor reset command
 			 * according to the MPL3115A2 datasheet
 			 */
-			start(2800);
+			start_cycle(USEC2TICK(2800));
 			return;
 		}
+
 
 		if (ret == -EAGAIN) {
 
 			/* Ready read it on next cycle */
-			ScheduleDelayed(MPL3115A2_CONVERSION_INTERVAL);
-
+			work_queue(HPWORK,
+				   &_work,
+				   (worker_t)&MPL3115A2::cycle_trampoline,
+				   this,
+				   USEC2TICK(MPL3115A2_CONVERSION_INTERVAL));
 			return;
 		}
 
@@ -465,7 +529,7 @@ MPL3115A2::Run()
 		/* issue a reset command to the sensor */
 		_interface->ioctl(IOCTL_RESET, dummy);
 		/* reset the collection state machine and try again */
-		start();
+		start_cycle();
 		return;
 	}
 
@@ -473,7 +537,11 @@ MPL3115A2::Run()
 	_collect_phase = true;
 
 	/* schedule a fresh cycle call when the measurement is done */
-	ScheduleDelayed(MPL3115A2_CONVERSION_INTERVAL);
+	work_queue(HPWORK,
+		   &_work,
+		   (worker_t)&MPL3115A2::cycle_trampoline,
+		   this,
+		   USEC2TICK(MPL3115A2_CONVERSION_INTERVAL));
 }
 
 int
@@ -565,7 +633,7 @@ MPL3115A2::print_info()
 {
 	perf_print_counter(_sample_perf);
 	perf_print_counter(_comms_errors);
-	printf("poll interval:  %u\n", _measure_interval);
+	printf("poll interval:  %u ticks\n", _measure_ticks);
 	_reports->print_info("report queue");
 
 	sensor_baro_s brp = {};

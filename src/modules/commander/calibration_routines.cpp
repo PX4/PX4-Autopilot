@@ -742,7 +742,15 @@ calibrate_return calibrate_from_orientation(orb_advert_t *mavlink_log_pub,
 		px4_usleep(20000);
 		calibration_log_info(mavlink_log_pub, "[cal] hold vehicle still on a pending side");
 		px4_usleep(20000);
-		enum detect_orientation_return orient = detect_orientation(mavlink_log_pub, cancel_sub, sub_accel,
+
+        if (!side_data_collected[DETECT_ORIENTATION_RIGHTSIDE_UP] ||
+            !side_data_collected[DETECT_ORIENTATION_UPSIDE_DOWN])
+        {rgbled_set_color_and_mode(led_control_s::COLOR_GREEN, led_control_s::MODE_BLINK_FAST);}
+        else if (!side_data_collected[DETECT_ORIENTATION_TAIL_DOWN] ||
+                 !side_data_collected[DETECT_ORIENTATION_NOSE_DOWN])
+        {rgbled_set_color_and_mode(led_control_s::COLOR_YELLOW, led_control_s::MODE_BLINK_FAST);}
+
+        enum detect_orientation_return orient = detect_orientation(mavlink_log_pub, cancel_sub, sub_accel,
 							lenient_still_position);
 
 		if (orient == DETECT_ORIENTATION_ERROR) {

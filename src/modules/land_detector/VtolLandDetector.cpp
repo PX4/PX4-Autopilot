@@ -50,17 +50,26 @@ VtolLandDetector::VtolLandDetector()
 {
 }
 
+void VtolLandDetector::_initialize_topics()
+{
+	MulticopterLandDetector::_initialize_topics();
+
+	_airspeedSub = orb_subscribe(ORB_ID(airspeed));
+	_vehicle_status_sub = orb_subscribe(ORB_ID(vehicle_status));
+}
+
 void VtolLandDetector::_update_topics()
 {
 	MulticopterLandDetector::_update_topics();
-	_airspeed_sub.update(&_airspeed);
-	_vehicle_status_sub.update(&_vehicle_status);
+
+	_orb_update(ORB_ID(airspeed), _airspeedSub, &_airspeed);
+	_orb_update(ORB_ID(vehicle_status), _vehicle_status_sub, &_vehicle_status);
 }
 
 bool VtolLandDetector::_get_maybe_landed_state()
 {
 	// Only trigger in RW mode
-	if ((_vehicle_status.timestamp != 0) && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+	if ((_vehicle_status.timestamp != 0) && !_vehicle_status.is_rotary_wing) {
 		return false;
 	}
 
@@ -70,7 +79,7 @@ bool VtolLandDetector::_get_maybe_landed_state()
 bool VtolLandDetector::_get_landed_state()
 {
 	// Only trigger in RW mode
-	if ((_vehicle_status.timestamp != 0) && _vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING) {
+	if ((_vehicle_status.timestamp != 0) && !_vehicle_status.is_rotary_wing) {
 		return false;
 	}
 

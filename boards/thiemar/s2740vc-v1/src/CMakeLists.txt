@@ -35,7 +35,7 @@ message(WARNING "Configuraton is incomplete")
 message(WARNING "DO NOT RUN THIS ON HW")
 message(WARNING "IT IS NOT PINED OUT TO HW")
 
-add_library(drivers_board
+px4_add_library(drivers_board
 	can.c
 	init.c
 )

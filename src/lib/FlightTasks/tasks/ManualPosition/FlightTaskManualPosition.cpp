@@ -52,6 +52,10 @@ bool FlightTaskManualPosition::initializeSubscriptions(SubscriptionArray &subscr
 		return false;
 	}
 
+	if (!_collision_prevention.initializeSubscriptions(subscription_array)) {
+		return false;
+	}
+
 	return true;
 }
 
@@ -65,10 +69,10 @@ bool FlightTaskManualPosition::updateInitialize()
 	       && PX4_ISFINITE(_velocity(1));
 }
 
-bool FlightTaskManualPosition::activate(vehicle_local_position_setpoint_s last_setpoint)
+bool FlightTaskManualPosition::activate()
 {
 	// all requirements from altitude-mode still have to hold
-	bool ret = FlightTaskManualAltitude::activate(last_setpoint);
+	bool ret = FlightTaskManualAltitude::activate();
 
 	_constraints.tilt = math::radians(_param_mpc_tiltmax_air.get());
 
@@ -130,8 +134,7 @@ void FlightTaskManualPosition::_scaleSticks()
 
 	// collision prevention
 	if (_collision_prevention.is_active()) {
-		_collision_prevention.modifySetpoint(vel_sp_xy, _velocity_scale, Vector2f(_position),
-						     Vector2f(_velocity));
+		_collision_prevention.modifySetpoint(vel_sp_xy, _velocity_scale);
 	}
 
 	_velocity_setpoint(0) = vel_sp_xy(0);

@@ -64,33 +64,31 @@ using namespace time_literals;
  * Register accessors.
  * For now, no reason not to just use ADC1.
  */
-#define REG(base, _reg) (*(volatile uint32_t *)((base) + (_reg)))
+#define REG(_reg)	(*(volatile uint32_t *)(STM32_ADC1_BASE + _reg))
 
-#define rSR(base)    REG((base), STM32_ADC_SR_OFFSET)
-#define rCR1(base)   REG((base), STM32_ADC_CR1_OFFSET)
-#define rCR2(base)   REG((base), STM32_ADC_CR2_OFFSET)
-#define rSMPR1(base) REG((base), STM32_ADC_SMPR1_OFFSET)
-#define rSMPR2(base) REG((base), STM32_ADC_SMPR2_OFFSET)
-#define rJOFR1(base) REG((base), STM32_ADC_JOFR1_OFFSET)
-#define rJOFR2(base) REG((base), STM32_ADC_JOFR2_OFFSET)
-#define rJOFR3(base) REG((base), STM32_ADC_JOFR3_OFFSET)
-#define rJOFR4(base) REG((base), STM32_ADC_JOFR4_OFFSET)
-#define rHTR(base)   REG((base), STM32_ADC_HTR_OFFSET)
-#define rLTR(base)   REG((base), STM32_ADC_LTR_OFFSET)
-#define rSQR1(base)  REG((base), STM32_ADC_SQR1_OFFSET)
-#define rSQR2(base)  REG((base), STM32_ADC_SQR2_OFFSET)
-#define rSQR3(base)  REG((base), STM32_ADC_SQR3_OFFSET)
-#define rJSQR(base)  REG((base), STM32_ADC_JSQR_OFFSET)
-#define rJDR1(base)  REG((base), STM32_ADC_JDR1_OFFSET)
-#define rJDR2(base)  REG((base), STM32_ADC_JDR2_OFFSET)
-#define rJDR3(base)  REG((base), STM32_ADC_JDR3_OFFSET)
-#define rJDR4(base)  REG((base), STM32_ADC_JDR4_OFFSET)
-#define rDR(base)    REG((base), STM32_ADC_DR_OFFSET)
-
-
+#define rSR		REG(STM32_ADC_SR_OFFSET)
+#define rCR1		REG(STM32_ADC_CR1_OFFSET)
+#define rCR2		REG(STM32_ADC_CR2_OFFSET)
+#define rSMPR1		REG(STM32_ADC_SMPR1_OFFSET)
+#define rSMPR2		REG(STM32_ADC_SMPR2_OFFSET)
+#define rJOFR1		REG(STM32_ADC_JOFR1_OFFSET)
+#define rJOFR2		REG(STM32_ADC_JOFR2_OFFSET)
+#define rJOFR3		REG(STM32_ADC_JOFR3_OFFSET)
+#define rJOFR4		REG(STM32_ADC_JOFR4_OFFSET)
+#define rHTR		REG(STM32_ADC_HTR_OFFSET)
+#define rLTR		REG(STM32_ADC_LTR_OFFSET)
+#define rSQR1		REG(STM32_ADC_SQR1_OFFSET)
+#define rSQR2		REG(STM32_ADC_SQR2_OFFSET)
+#define rSQR3		REG(STM32_ADC_SQR3_OFFSET)
+#define rJSQR		REG(STM32_ADC_JSQR_OFFSET)
+#define rJDR1		REG(STM32_ADC_JDR1_OFFSET)
+#define rJDR2		REG(STM32_ADC_JDR2_OFFSET)
+#define rJDR3		REG(STM32_ADC_JDR3_OFFSET)
+#define rJDR4		REG(STM32_ADC_JDR4_OFFSET)
+#define rDR		REG(STM32_ADC_DR_OFFSET)
 
 #ifdef STM32_ADC_CCR
-# define rCCR(base)		REG((base), STM32_ADC_CCR_OFFSET)
+# define rCCR		REG(STM32_ADC_CCR_OFFSET)
 
 /* Assuming VDC 2.4 - 3.6 */
 
@@ -112,7 +110,7 @@ using namespace time_literals;
 class ADC : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
-	ADC(uint32_t base_address, uint32_t channels);
+	ADC(uint32_t channels);
 	~ADC();
 
 	virtual int		init();
@@ -125,7 +123,22 @@ protected:
 	virtual int		close_last(struct file *filp);
 
 private:
-	void			Run() override;
+	static const hrt_abstime _tickrate = 10000;	/**< 100Hz base rate */
+
+	hrt_call		_call;
+	perf_counter_t		_sample_perf;
+
+	unsigned		_channel_count;
+	px4_adc_msg_t		*_samples;		/**< sample buffer */
+
+	orb_advert_t		_to_system_power;
+	orb_advert_t		_to_adc_report;
+
+	/** work trampoline */
+	static void		_tick_trampoline(void *arg);
+
+	/** worker function */
+	void			_tick();
 
 	/**
 	 * Sample a single channel and return the measured value.
@@ -152,11 +165,14 @@ private:
 	uORB::Publication<system_power_s>	_to_system_power{ORB_ID(system_power)};
 };
 
-ADC::ADC(uint32_t base_address, uint32_t channels) :
+ADC::ADC(uint32_t channels) :
 	CDev(ADC0_DEVICE_PATH),
 	ScheduledWorkItem(px4::wq_configurations::hp_default),
 	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
-	_base_address(base_address)
+	_channel_count(0),
+	_samples(nullptr),
+	_to_system_power(nullptr),
+	_to_adc_report(nullptr)
 {
 	/* always enable the temperature sensor */
 	channels |= 1 << 16;
@@ -197,98 +213,75 @@ ADC::~ADC()
 	perf_free(_sample_perf);
 }
 
-int board_adc_init(uint32_t base_address)
+int board_adc_init()
 {
-	/* Perform ADC init once per ADC */
+	static bool once = false;
 
-	static uint32_t once[SYSTEM_ADC_COUNT] {};
+	if (!once) {
 
-	uint32_t *free = nullptr;
+		once = true;
 
-	for (uint32_t i = 0; i < SYSTEM_ADC_COUNT; i++) {
-		if (once[i] == base_address) {
-
-			/* This one was done already */
-
-			return OK;
-		}
-
-		/* Use first free slot */
-
-		if (free == nullptr && once[i] == 0) {
-			free = &once[i];
-		}
-	}
-
-	if (free == nullptr) {
-
-		/* ADC misconfigured SYSTEM_ADC_COUNT too small */;
-
-		PANIC();
-	}
-
-	*free = base_address;
-
-	/* do calibration if supported */
+		/* do calibration if supported */
 #ifdef ADC_CR2_CAL
-	rCR2(base_address) |= ADC_CR2_CAL;
-	px4_usleep(100);
+		rCR2 |= ADC_CR2_CAL;
+		px4_usleep(100);
 
-	if (rCR2(base_address) & ADC_CR2_CAL) {
-		return -1;
-	}
+		if (rCR2 & ADC_CR2_CAL) {
+			return -1;
+		}
 
 #endif
 
-	/* arbitrarily configure all channels for 55 cycle sample time */
-	rSMPR1(base_address) = 0b00000011011011011011011011011011;
-	rSMPR2(base_address) = 0b00011011011011011011011011011011;
+		/* arbitrarily configure all channels for 55 cycle sample time */
+		rSMPR1 = 0b00000011011011011011011011011011;
+		rSMPR2 = 0b00011011011011011011011011011011;
 
-	/* XXX for F2/4, might want to select 12-bit mode? */
-	rCR1(base_address) = 0;
+		/* XXX for F2/4, might want to select 12-bit mode? */
+		rCR1 = 0;
 
-	/* enable the temperature sensor / Vrefint channel if supported*/
-	rCR2(base_address) =
+		/* enable the temperature sensor / Vrefint channel if supported*/
+		rCR2 =
 #ifdef ADC_CR2_TSVREFE
-		/* enable the temperature sensor in CR2 */
-		ADC_CR2_TSVREFE |
+			/* enable the temperature sensor in CR2 */
+			ADC_CR2_TSVREFE |
 #endif
-		0;
+			0;
 
-	/* Soc have CCR */
+		/* Soc have CCR */
 #ifdef STM32_ADC_CCR
 #  ifdef ADC_CCR_TSVREFE
-	/* enable temperature sensor in CCR */
-	rCCR(base_address) = ADC_CCR_TSVREFE | ADC_CCR_ADCPRE_DIV;
+		/* enable temperature sensor in CCR */
+		rCCR = ADC_CCR_TSVREFE | ADC_CCR_ADCPRE_DIV;
 #  else
-	rCCR(base_address) = ADC_CCR_ADCPRE_DIV;
+		rCCR = ADC_CCR_ADCPRE_DIV;
 #  endif
 #endif
 
-	/* configure for a single-channel sequence */
-	rSQR1(base_address) = 0;
-	rSQR2(base_address) = 0;
-	rSQR3(base_address) = 0;	/* will be updated with the channel each tick */
+		/* configure for a single-channel sequence */
+		rSQR1 = 0;
+		rSQR2 = 0;
+		rSQR3 = 0;	/* will be updated with the channel each tick */
 
-	/* power-cycle the ADC and turn it on */
-	rCR2(base_address) &= ~ADC_CR2_ADON;
-	px4_usleep(10);
-	rCR2(base_address) |= ADC_CR2_ADON;
-	px4_usleep(10);
-	rCR2(base_address) |= ADC_CR2_ADON;
-	px4_usleep(10);
+		/* power-cycle the ADC and turn it on */
+		rCR2 &= ~ADC_CR2_ADON;
+		px4_usleep(10);
+		rCR2 |= ADC_CR2_ADON;
+		px4_usleep(10);
+		rCR2 |= ADC_CR2_ADON;
+		px4_usleep(10);
 
-	/* kick off a sample and wait for it to complete */
-	hrt_abstime now = hrt_absolute_time();
-	rCR2(base_address) |= ADC_CR2_SWSTART;
+		/* kick off a sample and wait for it to complete */
+		hrt_abstime now = hrt_absolute_time();
+		rCR2 |= ADC_CR2_SWSTART;
 
-	while (!(rSR(base_address) & ADC_SR_EOC)) {
+		while (!(rSR & ADC_SR_EOC)) {
 
-		/* don't wait for more than 500us, since that means something broke - should reset here if we see this */
-		if ((hrt_absolute_time() - now) > 500) {
-			return -1;
+			/* don't wait for more than 500us, since that means something broke - should reset here if we see this */
+			if ((hrt_absolute_time() - now) > 500) {
+				return -1;
+			}
 		}
-	}
+	} // once
 
 	return OK;
 }
@@ -296,7 +289,7 @@ int board_adc_init(uint32_t base_address)
 int
 ADC::init()
 {
-	int rv = board_adc_init(_base_address);
+	int rv = board_adc_init();
 
 	if (rv < 0) {
 		PX4_DEBUG("sample timeout");
@@ -441,7 +434,7 @@ ADC::update_system_power(hrt_abstime now)
 #endif
 
 	/* The valid signals (HW dependent) are associated with each brick */
-#if !defined(BOARD_NUMBER_DIGITAL_BRICKS)
+
 	bool  valid_chan[BOARD_NUMBER_BRICKS] = BOARD_BRICK_VALID_LIST;
 	system_power.brick_valid = 0;
 
@@ -449,18 +442,12 @@ ADC::update_system_power(hrt_abstime now)
 		system_power.brick_valid |=  valid_chan[b] ? 1 << b : 0;
 	}
 
-#endif
-
 	system_power.servo_valid   = BOARD_ADC_SERVO_VALID;
 
-#ifdef BOARD_ADC_PERIPH_5V_OC
 	// OC pins are active low
 	system_power.periph_5v_oc  = BOARD_ADC_PERIPH_5V_OC;
-#endif
 
-#ifdef BOARD_ADC_HIPOWER_5V_OC
 	system_power.hipower_5v_oc = BOARD_ADC_HIPOWER_5V_OC;
-#endif
 
 	/* lazily publish */
 	_to_system_power.publish(system_power);
@@ -468,23 +455,22 @@ ADC::update_system_power(hrt_abstime now)
 #endif // BOARD_ADC_USB_CONNECTED
 }
 
-uint16_t board_adc_sample(uint32_t base_address, unsigned channel)
+uint16_t board_adc_sample(unsigned channel)
 {
 	irqstate_t flags = px4_enter_critical_section();
 
-	/* clear any previous EOC */
-	if (rSR(base_address) & ADC_SR_EOC) {
-		rSR(base_address) &= ~ADC_SR_EOC;
+	if (rSR & ADC_SR_EOC) {
+		rSR &= ~ADC_SR_EOC;
 	}
 
 	/* run a single conversion right now - should take about 60 cycles (a few microseconds) max */
-	rSQR3(base_address) = channel;
-	rCR2(base_address) |= ADC_CR2_SWSTART;
+	rSQR3 = channel;
+	rCR2 |= ADC_CR2_SWSTART;
 
 	/* wait for the conversion to complete */
 	const hrt_abstime now = hrt_absolute_time();
 
-	while (!(rSR(base_address) & ADC_SR_EOC)) {
+	while (!(rSR & ADC_SR_EOC)) {
 
 		/* don't wait for more than 50us, since that means something broke - should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 50) {
@@ -494,9 +480,7 @@ uint16_t board_adc_sample(uint32_t base_address, unsigned channel)
 	}
 
 	/* read the result and clear EOC */
-	uint16_t result = rDR(base_address);
-
-	px4_leave_critical_section(flags);
+	uint16_t result = rDR;
 
 	return result;
 }
@@ -505,7 +489,7 @@ uint16_t
 ADC::sample(unsigned channel)
 {
 	perf_begin(_sample_perf);
-	uint16_t result = board_adc_sample(_base_address, channel);
+	uint16_t result = board_adc_sample(channel);
 
 	if (result == 0xffff) {
 		PX4_ERR("sample timeout");
@@ -563,7 +547,7 @@ adc_main(int argc, char *argv[])
 {
 	if (g_adc == nullptr) {
 		/* XXX this hardcodes the default channel set for the board in board_config.h - should be configurable */
-		g_adc = new ADC(SYSTEM_ADC_BASE, ADC_CHANNELS);
+		g_adc = new ADC(ADC_CHANNELS);
 
 		if (g_adc == nullptr) {
 			PX4_ERR("couldn't allocate the ADC driver");

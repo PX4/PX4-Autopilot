@@ -13,3 +13,4 @@ fi
 
 safety_button start
 
+set MIXER_AUX none

@@ -39,7 +39,5 @@ px4_add_module(
 	SRCS
 		ak09916.cpp
 	DEPENDS
-		drivers_magnetometer
-		px4_work_queue
 	)
 

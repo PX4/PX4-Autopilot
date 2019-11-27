@@ -249,9 +249,8 @@ usage()
 } // namespace bmm150
 
 
-BMM150::BMM150(int bus, const char *path, enum Rotation rotation) :
+BMM150 :: BMM150(int bus, const char *path, enum Rotation rotation) :
 	I2C("BMM150", path, bus, BMM150_SLAVE_ADDRESS, BMM150_BUS_SPEED),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 	_running(false),
 	_call_interval(0),
 	_reports(nullptr),
@@ -285,6 +284,9 @@ BMM150::BMM150(int bus, const char *path, enum Rotation rotation) :
 	_got_duplicate(false)
 {
 	_device_id.devid_s.devtype = DRV_MAG_DEVTYPE_BMM150;
+
+	// work_cancel in the dtor will explode if we don't do this...
+	memset(&_work, 0, sizeof(_work));
 
 	// default scaling
 	_scale.x_offset = 0;
@@ -413,14 +415,16 @@ BMM150::start()
 	_reports->flush();
 
 	/* schedule a cycle to start things */
-	ScheduleNow();
+	work_queue(HPWORK, &_work, (worker_t)&BMM150::cycle_trampoline, this, 1);
+
 }
 
 void
 BMM150::stop()
 {
 	_running = false;
-	ScheduleClear();
+	work_cancel(HPWORK, &_work);
+
 }
 
 ssize_t
@@ -484,17 +488,26 @@ BMM150::read(struct file *filp, char *buffer, size_t buflen)
 
 }
 
+
 void
-BMM150::Run()
+BMM150::cycle_trampoline(void *arg)
+{
+	BMM150 *dev = reinterpret_cast<BMM150 *>(arg);
+
+	/* make measurement */
+	dev->cycle();
+}
+
+void
+BMM150::cycle()
 {
 	if (_collect_phase) {
 		collect();
-		unsigned wait_gap = _call_interval - BMM150_CONVERSION_INTERVAL;
+		unsigned wait_gap = _call_interval - USEC2TICK(BMM150_CONVERSION_INTERVAL);
 
 		if ((wait_gap != 0) && (_running)) {
-			// need to wait some time before new measurement
-			ScheduleDelayed(wait_gap);
-
+			work_queue(HPWORK, &_work, (worker_t)&BMM150::cycle_trampoline, this,
+				   wait_gap); //need to wait some time before new measurement
 			return;
 		}
 
@@ -504,7 +517,11 @@ BMM150::Run()
 
 	if ((_running)) {
 		/* schedule a fresh cycle call when the measurement is done */
-		ScheduleDelayed(BMM150_CONVERSION_INTERVAL);
+		work_queue(HPWORK,
+			   &_work,
+			   (worker_t)&BMM150::cycle_trampoline,
+			   this,
+			   USEC2TICK(BMM150_CONVERSION_INTERVAL));
 	}
 
 
@@ -726,15 +743,15 @@ BMM150::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_call_interval == 0);
 
 					/* convert hz to tick interval via microseconds */
-					unsigned interval = (1000000 / arg);
+					unsigned ticks = USEC2TICK(1000000 / arg);
 
 					/* check against maximum rate */
-					if (interval < BMM150_CONVERSION_INTERVAL) {
+					if (ticks < USEC2TICK(BMM150_CONVERSION_INTERVAL)) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
-					_call_interval = interval;
+					_call_interval = ticks;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {

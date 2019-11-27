@@ -29,10 +29,10 @@ px4_add_board(
 		#magnetometer # all available magnetometer drivers
 		magnetometer/hmc5883
 		#mkblctrl
-		optical_flow/px4flow
 		#pca9685
 		#pwm_input
 		#pwm_out_sim
+		px4flow
 		px4fmu
 		rc_input
 		stm32
@@ -53,11 +53,12 @@ px4_add_board(
 		events
 		#fw_att_control
 		#fw_pos_control_l1
-		#rover_pos_control
+		#gnd_att_control
+		#gnd_pos_control
 		land_detector
 		landing_target_estimator
 		load_mon
-		#local_position_estimator
+		local_position_estimator
 		logger
 		mavlink
 		mc_att_control
@@ -67,16 +68,14 @@ px4_add_board(
 		sih
 		#vmount
 		#vtol_att_control
-		#airspeed_selector
+		#wind_estimator
 
 	SYSTEMCMDS
 		#bl_update
-		dmesg
 		config
 		dumpfile
 		esc_calib
 		hardfault_log
-		i2cdetect
 		led_control
 		mixer
 		#motor_ramp

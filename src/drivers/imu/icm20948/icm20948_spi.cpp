@@ -41,7 +41,10 @@
  * @author David sidrane
  */
 
+#include <px4_config.h>
 #include <drivers/device/spi.h>
+#include <drivers/drv_accel.h>
+#include <drivers/drv_device.h>
 
 #include "icm20948.h"
 

@@ -73,7 +73,6 @@
 #include <systemlib/px4_macros.h>
 
 #include <px4_init.h>
-#include <drivers/boards/common/board_dma_alloc.h>
 
 # if defined(FLASH_BASED_PARAMS)
 #  include <parameters/flashparams/flashfs.h>

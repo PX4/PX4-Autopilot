@@ -45,11 +45,9 @@
 #include <parameters/param.h>
 
 #include "mavlink_bridge_header.h"
-#include <uORB/PublicationQueued.hpp>
-#include <uORB/Subscription.hpp>
+#include <uORB/uORB.h>
 #include <uORB/topics/rc_parameter_map.h>
 #include <uORB/topics/uavcan_parameter_request.h>
-#include <uORB/topics/uavcan_parameter_value.h>
 #include <uORB/topics/parameter_update.h>
 #include <drivers/drv_hrt.h>
 
@@ -59,7 +57,7 @@ class MavlinkParametersManager
 {
 public:
 	explicit MavlinkParametersManager(Mavlink *mavlink);
-	~MavlinkParametersManager() = default;
+	~MavlinkParametersManager();
 
 	/**
 	 * Handle sending of messages. Call this regularly at a fixed frequency.
@@ -72,7 +70,7 @@ public:
 	void handle_message(const mavlink_message_t *msg);
 
 private:
-	int		_send_all_index{-1};
+	int		_send_all_index;
 
 	/* do not allow top copying this class */
 	MavlinkParametersManager(MavlinkParametersManager &);
@@ -121,20 +119,18 @@ protected:
 	 */
 	void dequeue_uavcan_request();
 
-	_uavcan_open_request_list_item *_uavcan_open_request_list{nullptr}; ///< Pointer to the first item in the linked list
-	bool _uavcan_waiting_for_request_response{false}; ///< We have reqested a parameter and wait for the response
-	uint16_t _uavcan_queued_request_items{0};	///< Number of stored parameter requests currently in the list
+	_uavcan_open_request_list_item *_uavcan_open_request_list; ///< Pointer to the first item in the linked list
+	bool _uavcan_waiting_for_request_response; ///< We have reqested a parameter and wait for the response
+	uint16_t _uavcan_queued_request_items;	///< Number of stored parameter requests currently in the list
 
-	orb_advert_t _rc_param_map_pub{nullptr};
-	rc_parameter_map_s _rc_param_map{};
+	orb_advert_t _rc_param_map_pub;
+	struct rc_parameter_map_s _rc_param_map;
 
-	uORB::PublicationQueued<uavcan_parameter_request_s> _uavcan_parameter_request_pub{ORB_ID(uavcan_parameter_request)};
-
-	uORB::Subscription _uavcan_parameter_value_sub{ORB_ID(uavcan_parameter_value)};
-
-	uORB::Subscription _mavlink_parameter_sub{ORB_ID(parameter_update)};
-	hrt_abstime _param_update_time{0};
-	int _param_update_index{0};
+	orb_advert_t _uavcan_parameter_request_pub;
+	int _uavcan_parameter_value_sub;
+	int _mavlink_parameter_sub;
+	hrt_abstime _param_update_time;
+	int _param_update_index;
 
 	Mavlink *_mavlink;
 };

@@ -150,7 +150,7 @@ ManualSmoothingXY::_setStateAcceleration(const Vector2f &vel_sp, const Vector2f 
 				// User wants to brake smoothly but does NOT want the vehicle to
 				// continue to fly in the opposite direction. slewrate has to be reset
 				// by setting previous velocity setpoint to current velocity. */
-				_vel_sp_prev = vel;
+                //_vel_sp_prev = vel; //DG brake halt twice
 			}
 
 			/* limit jerk when braking to zero */

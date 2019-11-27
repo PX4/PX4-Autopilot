@@ -37,21 +37,47 @@
  * magnetometer connected via SPI.
  */
 
-#include <drivers/device/integrator.h>
-#include <drivers/device/ringbuffer.h>
+#include <px4_config.h>
+#include <px4_defines.h>
+#include <ecl/geo/geo.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <semaphore.h>
+#include <string.h>
+#include <fcntl.h>
+#include <poll.h>
+#include <errno.h>
+#include <stdio.h>
+#include <math.h>
+#include <unistd.h>
+
+
+#include <px4_log.h>
+
+#include <perf/perf_counter.h>
+
+#include <nuttx/arch.h>
+#include <nuttx/clock.h>
+
+#include <drivers/drv_hrt.h>
 #include <drivers/device/spi.h>
 #include <drivers/drv_accel.h>
-#include <ecl/geo/geo.h>
-#include <lib/conversion/rotation.h>
-#include <mathlib/math/filter/LowPassFilter2p.hpp>
-#include <perf/perf_counter.h>
-#include <px4_getopt.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
-#include <systemlib/err.h>
-
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 #  include <drivers/drv_mag.h>
 #endif
+#include <drivers/device/ringbuffer.h>
+#include <drivers/device/integrator.h>
+
+#include <board_config.h>
+#include <mathlib/math/filter/LowPassFilter2p.hpp>
+#include <lib/conversion/rotation.h>
+#include <px4_getopt.h>
+#include <systemlib/err.h>
 
 /* SPI protocol address bits */
 #define DIR_READ(a)                     ((a) & 0x7f)
@@ -133,7 +159,7 @@ extern "C" { __EXPORT int fxos8701cq_main(int argc, char *argv[]); }
 class FXOS8701CQ_mag;
 #endif
 
-class FXOS8701CQ : public device::SPI, public px4::ScheduledWorkItem
+class FXOS8701CQ : public device::SPI
 {
 public:
 	FXOS8701CQ(int bus, const char *path, uint32_t device, enum Rotation rotation);
@@ -171,10 +197,9 @@ protected:
 
 private:
 
-	void Run() override;
-
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	FXOS8701CQ_mag		*_mag;
+	struct hrt_call   _mag_call;
 	unsigned    _call_mag_interval;
 	ringbuffer::RingBuffer    *_mag_reports;
 
@@ -187,9 +212,9 @@ private:
 	int16_t     _last_raw_mag_x;
 	int16_t     _last_raw_mag_y;
 	int16_t     _last_raw_mag_z;
-
-	hrt_abstime		_mag_last_measure{0};
 #endif
+
+	struct hrt_call		_accel_call;
 
 	unsigned		_call_accel_interval;
 
@@ -259,6 +284,24 @@ private:
 	 * disable I2C on the chip
 	 */
 	void			disable_i2c();
+
+	/**
+	 * Static trampoline from the hrt_call context; because we don't have a
+	 * generic hrt wrapper yet.
+	 *
+	 * Called by the HRT in interrupt context at the specified rate if
+	 * automatic polling is enabled.
+	 *
+	 * @param arg		Instance pointer for the driver that is polling.
+	 */
+	static void		measure_trampoline(void *arg);
+
+	/**
+	 * Static trampoline for the mag because it runs at a lower rate
+	 *
+	 * @param arg		Instance pointer for the driver that is polling.
+	 */
+	static void		mag_measure_trampoline(void *arg);
 
 	/**
 	 * check key registers for correct values
@@ -413,6 +456,8 @@ private:
 
 	void				measure();
 
+	void				measure_trampoline(void *arg);
+
 	/* this class does not allow copying due to ptr data members */
 	FXOS8701CQ_mag(const FXOS8701CQ_mag &);
 	FXOS8701CQ_mag operator=(const FXOS8701CQ_mag &);
@@ -422,9 +467,9 @@ private:
 FXOS8701CQ::FXOS8701CQ(int bus, const char *path, uint32_t device, enum Rotation rotation) :
 	SPI("FXOS8701CQ", path, bus, device, SPIDEV_MODE0,
 	    1 * 1000 * 1000),
-	ScheduledWorkItem(px4::device_bus_to_wq(get_device_id())),
 #if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
 	_mag(new FXOS8701CQ_mag(this)),
+	_mag_call{},
 	_call_mag_interval(0),
 	_mag_reports(nullptr),
 	_mag_scale{},
@@ -437,6 +482,7 @@ FXOS8701CQ::FXOS8701CQ(int bus, const char *path, uint32_t device, enum Rotation
 	_last_raw_mag_y(0),
 	_last_raw_mag_z(0),
 #endif
+	_accel_call {},
 	_call_accel_interval(0),
 	_accel_reports(nullptr),
 	_accel_scale{},
@@ -773,10 +819,10 @@ FXOS8701CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_call_accel_interval == 0);
 
 					/* convert hz to hrt interval via microseconds */
-					unsigned interval = 1000000 / arg;
+					unsigned ticks = 1000000 / arg;
 
 					/* check against maximum sane rate */
-					if (interval < 500) {
+					if (ticks < 500) {
 						return -EINVAL;
 					}
 
@@ -785,7 +831,9 @@ FXOS8701CQ::ioctl(struct file *filp, int cmd, unsigned long arg)
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
-					_call_accel_interval = interval;
+					_call_accel_interval = ticks;
+
+					_accel_call.period = _call_accel_interval - FXOS8701C_TIMER_REDUCTION;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -845,16 +893,16 @@ FXOS8701CQ::mag_ioctl(struct file *filp, int cmd, unsigned long arg)
 					bool want_start = (_call_mag_interval == 0);
 
 					/* convert hz to hrt interval via microseconds */
-					unsigned interval = 1000000 / arg;
+					unsigned ticks = 1000000 / arg;
 
 					/* check against maximum sane rate */
-					if (interval < 1000) {
+					if (ticks < 1000) {
 						return -EINVAL;
 					}
 
 					/* update interval for next measurement */
 					/* XXX this is a bit shady, but no other way to adjust... */
-					_call_mag_interval = interval;
+					_mag_call.period = _call_mag_interval = ticks;
 
 					/* if we need to start the poll state machine, do it */
 					if (want_start) {
@@ -1093,14 +1141,22 @@ FXOS8701CQ::start()
 #endif
 
 	/* start polling at the specified rate */
-	ScheduleOnInterval(_call_accel_interval - FXOS8701C_TIMER_REDUCTION, 10000);
+	hrt_call_every(&_accel_call,
+		       1000,
+		       _call_accel_interval - FXOS8701C_TIMER_REDUCTION,
+		       (hrt_callout)&FXOS8701CQ::measure_trampoline, this);
+#if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
+	hrt_call_every(&_mag_call, 1000, _call_mag_interval, (hrt_callout)&FXOS8701CQ::mag_measure_trampoline, this);
+#endif
 }
 
 void
 FXOS8701CQ::stop()
 {
-	ScheduleClear();
-
+	hrt_cancel(&_accel_call);
+#if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
+	hrt_cancel(&_mag_call);
+#endif
 	/* reset internal states */
 	memset(_last_accel, 0, sizeof(_last_accel));
 
@@ -1112,18 +1168,21 @@ FXOS8701CQ::stop()
 }
 
 void
-FXOS8701CQ::Run()
+FXOS8701CQ::measure_trampoline(void *arg)
 {
+	FXOS8701CQ *dev = (FXOS8701CQ *)arg;
+
 	/* make another measurement */
-	measure();
+	dev->measure();
+}
 
-#if !defined(BOARD_HAS_NOISY_FXOS8700_MAG)
+void
+FXOS8701CQ::mag_measure_trampoline(void *arg)
+{
+	FXOS8701CQ *dev = (FXOS8701CQ *)arg;
 
-	if (hrt_elapsed_time(&_mag_last_measure) >= _call_mag_interval) {
-		mag_measure();
-	}
-
-#endif
+	/* make another measurement */
+	dev->mag_measure();
 }
 
 void
@@ -1354,9 +1413,6 @@ FXOS8701CQ::mag_measure()
 	 */
 
 	mag_report.timestamp = hrt_absolute_time();
-
-	_mag_last_measure = mag_report.timestamp;
-
 	mag_report.is_external = external();
 
 	mag_report.x_raw = _last_raw_mag_x;
@@ -1524,6 +1580,11 @@ FXOS8701CQ_mag::measure()
 	_parent->mag_measure();
 }
 
+void
+FXOS8701CQ_mag::measure_trampoline(void *arg)
+{
+	_parent->mag_measure_trampoline(arg);
+}
 #endif
 
 /**

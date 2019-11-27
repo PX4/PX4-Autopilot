@@ -45,7 +45,7 @@
 #include <px4_defines.h>
 #include <px4_module.h>
 #include <px4_module_params.h>
-#include <px4_work_queue/ScheduledWorkItem.hpp>
+#include <px4_workqueue.h>
 #include <systemlib/cpuload.h>
 #include <uORB/topics/cpuload.h>
 #include <uORB/topics/task_stack_info.h>
@@ -68,7 +68,7 @@ extern "C" __EXPORT int load_mon_main(int argc, char *argv[]);
 // Run it at 1 Hz.
 const unsigned LOAD_MON_INTERVAL_US = 1000000;
 
-class LoadMon : public ModuleBase<LoadMon>, public ModuleParams, public px4::ScheduledWorkItem
+class LoadMon : public ModuleBase<LoadMon>, public ModuleParams
 {
 public:
 	LoadMon();
@@ -88,11 +88,12 @@ public:
 	/** @see ModuleBase::print_status() */
 	int print_status() override;
 
-	void start();
+	/** Trampoline for the work queue. */
+	static void cycle_trampoline(void *arg);
 
 private:
 	/** Do a compute and schedule the next cycle. */
-	void Run() override;
+	void _cycle();
 
 	/** Do a calculation of the CPU load and publish it. */
 	void _cpuload();
@@ -112,6 +113,8 @@ private:
 		(ParamBool<px4::params::SYS_STCK_EN>) _param_sys_stck_en
 	)
 
+	work_s _work{};
+
 	orb_advert_t _cpuload_pub{nullptr};
 
 	hrt_abstime _last_idle_time{0};
@@ -122,15 +125,12 @@ private:
 
 LoadMon::LoadMon() :
 	ModuleParams(nullptr),
-	ScheduledWorkItem(px4::wq_configurations::lp_default),
 	_stack_perf(perf_alloc(PC_ELAPSED, "stack_check"))
 {
 }
 
 LoadMon::~LoadMon()
 {
-	ScheduleClear();
-
 	perf_free(_stack_perf);
 }
 
@@ -143,22 +143,28 @@ int LoadMon::task_spawn(int argc, char *argv[])
 		return -1;
 	}
 
+	/* Schedule a cycle to start things. */
+	int ret = work_queue(LPWORK, &obj->_work, (worker_t)&LoadMon::cycle_trampoline, obj, 0);
+
+	if (ret < 0) {
+		delete obj;
+		return ret;
+	}
+
 	_object.store(obj);
 	_task_id = task_id_is_work_queue;
-
-	/* Schedule a cycle to start things. */
-	obj->start();
-
 	return 0;
 }
 
 void
-LoadMon::start()
+LoadMon::cycle_trampoline(void *arg)
 {
-	ScheduleOnInterval(LOAD_MON_INTERVAL_US);
+	LoadMon *dev = reinterpret_cast<LoadMon *>(arg);
+
+	dev->_cycle();
 }
 
-void LoadMon::Run()
+void LoadMon::_cycle()
 {
 	_cpuload();
 
@@ -170,8 +176,11 @@ void LoadMon::Run()
 
 #endif
 
-	if (should_exit()) {
-		ScheduleClear();
+	if (!should_exit()) {
+		work_queue(LPWORK, &_work, (worker_t)&LoadMon::cycle_trampoline, this,
+			   USEC2TICK(LOAD_MON_INTERVAL_US));
+
+	} else {
 		exit_and_cleanup();
 	}
 }
@@ -247,14 +256,12 @@ void LoadMon::_stack_usage()
 
 		task_stack_info_s task_stack_info = {};
 
-		if (system_load.tasks[task_index].valid && (system_load.tasks[task_index].tcb->pid > 0)) {
+		if (system_load.tasks[task_index].valid && system_load.tasks[task_index].tcb->pid > 0) {
 
 			stack_free = up_check_tcbstack_remain(system_load.tasks[task_index].tcb);
 
-			static_assert(sizeof(task_stack_info.task_name) == CONFIG_TASK_NAME_SIZE,
-				      "task_stack_info.task_name must match NuttX CONFIG_TASK_NAME_SIZE");
-			strncpy((char *)task_stack_info.task_name, system_load.tasks[task_index].tcb->name, CONFIG_TASK_NAME_SIZE - 1);
-			task_stack_info.task_name[CONFIG_TASK_NAME_SIZE - 1] = '\0';
+			strncpy((char *)task_stack_info.task_name, system_load.tasks[task_index].tcb->name,
+				task_stack_info_s::MAX_REPORT_TASK_NAME_LEN);
 
 #if CONFIG_NFILE_DESCRIPTORS > 0
 			FAR struct task_group_s *group = system_load.tasks[task_index].tcb->group;
@@ -271,7 +278,7 @@ void LoadMon::_stack_usage()
 				fds_free = CONFIG_NFILE_DESCRIPTORS - tcb_num_used_fds;
 			}
 
-#endif // CONFIG_NFILE_DESCRIPTORS
+#endif
 
 			checked_task = true;
 		}

@@ -3,6 +3,7 @@
  ************************************************************************************/
 
 #include <px4_config.h>
+#include <px4_log.h>
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -68,7 +69,7 @@ __EXPORT int stm32_spi_bus_initialize(void)
 	spi_expansion = stm32_spibus_initialize(PX4_SPI_BUS_EXPANSION);
 
 	if (!spi_expansion) {
-		syslog(LOG_ERR, "[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXPANSION);
+		PX4_ERR("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_EXPANSION);
 		return -ENODEV;
 	}
 
@@ -76,7 +77,7 @@ __EXPORT int stm32_spi_bus_initialize(void)
 	int ret = mmcsd_spislotinitialize(CONFIG_NSH_MMCSDMINOR, CONFIG_NSH_MMCSDSLOTNO, spi_expansion);
 
 	if (ret != OK) {
-		syslog(LOG_ERR, "[boot] FAILED to bind SPI port 1 to the MMCSD driver\n");
+		PX4_ERR("[boot] FAILED to bind SPI port 1 to the MMCSD driver\n");
 		return -ENODEV;
 	}
 

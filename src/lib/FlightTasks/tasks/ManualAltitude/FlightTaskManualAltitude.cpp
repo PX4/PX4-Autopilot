@@ -61,9 +61,9 @@ bool FlightTaskManualAltitude::updateInitialize()
 	return ret && PX4_ISFINITE(_position(2)) && PX4_ISFINITE(_velocity(2)) && PX4_ISFINITE(_yaw);
 }
 
-bool FlightTaskManualAltitude::activate(vehicle_local_position_setpoint_s last_setpoint)
+bool FlightTaskManualAltitude::activate()
 {
-	bool ret = FlightTaskManual::activate(last_setpoint);
+	bool ret = FlightTaskManual::activate();
 	_yaw_setpoint = NAN;
 	_yawspeed_setpoint = 0.0f;
 	_thrust_setpoint = matrix::Vector3f(0.0f, 0.0f, NAN); // altitude is controlled from position/velocity

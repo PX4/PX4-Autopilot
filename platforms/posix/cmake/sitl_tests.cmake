@@ -15,6 +15,7 @@ set(tests
 	file2
 	float
 	hrt
+	hysteresis
 	int
 	IntrusiveQueue
 	List
@@ -39,6 +40,7 @@ set(tests
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	list(REMOVE_ITEM tests
+		hysteresis
 		mixer
 		uorb
 	)
@@ -46,6 +48,7 @@ endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "CYGWIN")
 	list(REMOVE_ITEM tests
+		hysteresis # Intermittent timing fails.
 		uorb
 	)
 endif()

@@ -50,7 +50,7 @@ public:
 
 	virtual ~FlightTaskManualPosition() = default;
 	bool initializeSubscriptions(SubscriptionArray &subscription_array) override;
-	bool activate(vehicle_local_position_setpoint_s last_setpoint) override;
+	bool activate() override;
 	bool updateInitialize() override;
 
 	/**

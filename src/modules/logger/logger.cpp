@@ -615,7 +615,7 @@ bool Logger::try_to_subscribe_topic(LoggerSubscription &sub, int multi_instance)
 void Logger::add_default_topics()
 {
 	// Note: try to avoid setting the interval where possible, as it increases RAM usage
-	add_topic("actuator_controls_0", 100);
+    	add_topic("actuator_controls_0", 30);
 	add_topic("actuator_controls_1", 100);
 	add_topic("actuator_outputs", 100);
 	add_topic("airspeed", 200);
@@ -624,6 +624,7 @@ void Logger::add_default_topics()
 	add_topic("camera_trigger");
 	add_topic("camera_trigger_secondary");
 	add_topic("cpuload");
+    	add_topic("dg_attitude", 100);
 	add_topic("distance_sensor", 100);
 	add_topic("ekf2_innovations", 200);
 	//add_topic("ekf_gps_drift");
@@ -631,9 +632,9 @@ void Logger::add_default_topics()
 	add_topic("estimator_status", 200);
 	add_topic("home_position");
 	add_topic("input_rc", 200);
-	add_topic("manual_control_setpoint", 200);
-	//add_topic("mission");
-	//add_topic("mission_result");
+    	add_topic("manual_control_setpoint", 200); //200
+    	add_topic("mission");
+    	add_topic("mission_result");
 	add_topic("optical_flow", 50);
 	add_topic("position_setpoint_triplet", 200);
 	//add_topic("radio_status");
@@ -646,8 +647,9 @@ void Logger::add_default_topics()
 	add_topic("telemetry_status");
 	add_topic("vehicle_air_data", 200);
 	add_topic("vehicle_attitude", 30);
-	add_topic("vehicle_attitude_setpoint", 100);
+    	add_topic("vehicle_attitude_setpoint", 300);
 	add_topic("vehicle_command");
+    	add_topic("vehicle_control_mode",30);
 	add_topic("vehicle_global_position", 200);
 	add_topic("vehicle_gps_position");
 	add_topic("vehicle_land_detected");
@@ -657,6 +659,7 @@ void Logger::add_default_topics()
 	add_topic("vehicle_rates_setpoint", 30);
 	add_topic("vehicle_status", 200);
 	add_topic("vehicle_status_flags");
+    	add_topic("virtual_stick", 200); //200
 	add_topic("vtol_vehicle_status", 200);
 	add_topic("wind_estimate", 200);
 
@@ -687,6 +690,7 @@ void Logger::add_high_rate_topics()
 	add_topic("vehicle_attitude");
 	add_topic("vehicle_attitude_setpoint");
 	add_topic("vehicle_rates_setpoint");
+    add_topic("dg_attitude");
 }
 
 void Logger::add_debug_topics()

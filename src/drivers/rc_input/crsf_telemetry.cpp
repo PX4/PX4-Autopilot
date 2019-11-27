@@ -34,9 +34,21 @@
 #include "crsf_telemetry.h"
 #include <lib/rc/crsf.h>
 
-CRSFTelemetry::CRSFTelemetry(int uart_fd) :
-	_uart_fd(uart_fd)
+CRSFTelemetry::CRSFTelemetry(int uart_fd)
+	: _vehicle_gps_position_sub(orb_subscribe(ORB_ID(vehicle_gps_position))),
+	  _battery_status_sub(orb_subscribe(ORB_ID(battery_status))),
+	  _vehicle_attitude_sub(orb_subscribe(ORB_ID(vehicle_attitude))),
+	  _vehicle_status_sub(orb_subscribe(ORB_ID(vehicle_status))),
+	  _uart_fd(uart_fd)
 {
+}
+
+CRSFTelemetry::~CRSFTelemetry()
+{
+	orb_unsubscribe(_vehicle_gps_position_sub);
+	orb_unsubscribe(_battery_status_sub);
+	orb_unsubscribe(_vehicle_attitude_sub);
+	orb_unsubscribe(_vehicle_status_sub);
 }
 
 bool CRSFTelemetry::update(const hrt_abstime &now)
@@ -77,7 +89,7 @@ bool CRSFTelemetry::send_battery()
 {
 	battery_status_s battery_status;
 
-	if (!_battery_status_sub.update(&battery_status)) {
+	if (orb_copy(ORB_ID(battery_status), _battery_status_sub, &battery_status) != 0) {
 		return false;
 	}
 
@@ -92,7 +104,7 @@ bool CRSFTelemetry::send_gps()
 {
 	vehicle_gps_position_s vehicle_gps_position;
 
-	if (!_vehicle_gps_position_sub.update(&vehicle_gps_position)) {
+	if (orb_copy(ORB_ID(vehicle_gps_position), _vehicle_gps_position_sub, &vehicle_gps_position) != 0) {
 		return false;
 	}
 
@@ -111,7 +123,7 @@ bool CRSFTelemetry::send_attitude()
 {
 	vehicle_attitude_s vehicle_attitude;
 
-	if (!_vehicle_attitude_sub.update(&vehicle_attitude)) {
+	if (orb_copy(ORB_ID(vehicle_attitude), _vehicle_attitude_sub, &vehicle_attitude) != 0) {
 		return false;
 	}
 
@@ -126,7 +138,7 @@ bool CRSFTelemetry::send_flight_mode()
 {
 	vehicle_status_s vehicle_status;
 
-	if (!_vehicle_status_sub.update(&vehicle_status)) {
+	if (orb_copy(ORB_ID(vehicle_status), _vehicle_status_sub, &vehicle_status) != 0) {
 		return false;
 	}
 

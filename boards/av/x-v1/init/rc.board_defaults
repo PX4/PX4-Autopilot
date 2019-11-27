@@ -10,3 +10,4 @@ then
 fi
 
 set LOGGER_BUF 64
+set MIXER_AUX none

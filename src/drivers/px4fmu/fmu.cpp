@@ -70,6 +70,19 @@
 #include <uORB/topics/parameter_update.h>
 
 using namespace time_literals;
+#define SCHEDULE_INTERVAL	2000	/**< The schedule interval in usec (500 Hz) */
+
+static constexpr uint8_t CYCLE_COUNT = 10; /* safety switch must be held for 1 second to activate */
+static constexpr uint8_t MAX_ACTUATORS = DIRECT_PWM_OUTPUT_CHANNELS;
+
+/*
+ * Define the various LED flash sequences for each system state.
+ */
+#define LED_PATTERN_FMU_OK_TO_ARM 		0x0003		/**< slow blinking			*/
+#define LED_PATTERN_FMU_REFUSE_TO_ARM 		0x5555		/**< fast blinking			*/
+#define LED_PATTERN_IO_ARMED 			0x5050		/**< long off, then double blink 	*/
+#define LED_PATTERN_FMU_ARMED 			0x5500		/**< long off, then quad blink 		*/
+#define LED_PATTERN_IO_FMU_ARMED 		0xffff		/**< constantly on			*/
 
 /** Mode given via CLI */
 enum PortMode {
@@ -157,6 +170,9 @@ public:
 	int		set_mode(Mode mode);
 	Mode		get_mode() { return _mode; }
 
+	int		set_pwm_alt_rate(unsigned rate);
+	int		set_pwm_alt_channels(uint32_t channels);
+
 	static int	set_i2c_bus_clock(unsigned bus, unsigned clock_hz);
 
 	static void	capture_trampoline(void *context, uint32_t chan_index,
@@ -174,15 +190,7 @@ private:
 
 	hrt_abstime _time_last_mix = 0;
 
-	static constexpr uint8_t MAX_ACTUATORS = DIRECT_PWM_OUTPUT_CHANNELS;
-
-	Mode		_mode{MODE_NONE};
-
-	unsigned	_pwm_default_rate{50};
-	unsigned	_pwm_alt_rate{50};
-	uint32_t	_pwm_alt_rate_channels{0};
-
-	unsigned	_current_update_rate{0};
+	static constexpr unsigned _max_actuators = DIRECT_PWM_OUTPUT_CHANNELS;
 
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription _param_sub{ORB_ID(parameter_update)};
@@ -217,22 +225,25 @@ private:
 	static pwm_limit_t	_pwm_limit;
 	static actuator_armed_s	_armed;
 
-	uint16_t	_failsafe_pwm[MAX_ACTUATORS] {};
-	uint16_t	_disarmed_pwm[MAX_ACTUATORS] {};
-	uint16_t	_min_pwm[MAX_ACTUATORS] {};
-	uint16_t	_max_pwm[MAX_ACTUATORS] {};
-	uint16_t	_reverse_pwm_mask{0};
-	unsigned	_num_failsafe_set{0};
-	unsigned	_num_disarmed_set{0};
+	uint16_t	_failsafe_pwm[_max_actuators] {};
+	uint16_t	_disarmed_pwm[_max_actuators] {};
+	uint16_t	_min_pwm[_max_actuators] {};
+	uint16_t	_max_pwm[_max_actuators] {};
+	uint16_t	_reverse_pwm_mask;
+	unsigned	_num_failsafe_set;
+	unsigned	_num_disarmed_set;
+	bool		_safety_off;			///< State of the safety button from the subscribed safety topic
+	bool		_safety_btn_off;		///< State of the safety button read from the HW button
+	bool		_safety_disabled;
+	orb_advert_t		_to_safety;
+	orb_advert_t      _to_mixer_status; 	///< mixer status flags
 
-	float _mot_t_max{0.0f};					///< maximum rise time for motor (slew rate limiting)
-	float _thr_mdl_fac{0.0f};				///< thrust to pwm modelling factor
-	Mixer::Airmode _airmode{Mixer::Airmode::disabled};	///< multicopter air-mode
-	MotorOrdering _motor_ordering{MotorOrdering::PX4};
+	float _mot_t_max;	///< maximum rise time for motor (slew rate limiting)
+	float _thr_mdl_fac;	///< thrust to pwm modelling factor
+	Mixer::Airmode _airmode;	///< multicopter air-mode
+	MotorOrdering _motor_ordering;
 
-	perf_counter_t	_cycle_perf;
-	perf_counter_t	_cycle_interval_perf;
-	perf_counter_t	_control_latency_perf;
+	perf_counter_t	_perf_control_latency;
 
 	static bool	arm_nothrottle()
 	{
@@ -278,7 +289,7 @@ PX4FMU::PX4FMU() :
 	_cycle_interval_perf(perf_alloc(PC_INTERVAL, "px4fmu: cycle interval")),
 	_control_latency_perf(perf_alloc(PC_ELAPSED, "px4fmu: control latency"))
 {
-	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+	for (unsigned i = 0; i < _max_actuators; i++) {
 		_min_pwm[i] = PWM_DEFAULT_MIN;
 		_max_pwm[i] = PWM_DEFAULT_MAX;
 	}
@@ -571,7 +582,7 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 
 	for (unsigned pass = 0; pass < 2; pass++) {
 
-		/* We should note that group is iterated over from 0 to MAX_ACTUATORS.
+		/* We should note that group is iterated over from 0 to _max_actuators.
 		 * This allows for the ideal worlds situation: 1 channel per group
 		 * configuration.
 		 *
@@ -585,7 +596,7 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 		 * rate and mode. (See rates above.)
 		 */
 
-		for (unsigned group = 0; group < MAX_ACTUATORS; group++) {
+		for (unsigned group = 0; group < _max_actuators; group++) {
 
 			// get the channel mask for this rate group
 			uint32_t mask = up_pwm_servo_get_rate_group(group);
@@ -630,6 +641,18 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 	_current_update_rate = 0; // force update
 
 	return OK;
+}
+
+int
+PX4FMU::set_pwm_alt_rate(unsigned rate)
+{
+	return set_pwm_rate(_pwm_alt_rate_channels, _pwm_default_rate, rate);
+}
+
+int
+PX4FMU::set_pwm_alt_channels(uint32_t channels)
+{
+	return set_pwm_rate(channels, _pwm_default_rate, _pwm_alt_rate);
 }
 
 int
@@ -721,7 +744,7 @@ PX4FMU::update_pwm_rev_mask()
 		return;
 	}
 
-	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+	for (unsigned i = 0; i < _max_actuators; i++) {
 		char pname[16];
 
 		/* fill the channel reverse mask from parameters */
@@ -743,7 +766,7 @@ PX4FMU::update_pwm_trims()
 
 	if (_mixers != nullptr) {
 
-		int16_t values[MAX_ACTUATORS] = {};
+		int16_t values[_max_actuators] = {};
 
 		const char *pname_format;
 
@@ -758,7 +781,7 @@ PX4FMU::update_pwm_trims()
 			return;
 		}
 
-		for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+		for (unsigned i = 0; i < _max_actuators; i++) {
 			char pname[16];
 
 			/* fill the struct from parameters */
@@ -774,7 +797,7 @@ PX4FMU::update_pwm_trims()
 		}
 
 		/* copy the trim values to the mixer offsets */
-		unsigned n_out = _mixers->set_trims(values, MAX_ACTUATORS);
+		unsigned n_out = _mixers->set_trims(values, _max_actuators);
 		PX4_DEBUG("set %d trims", n_out);
 	}
 }
@@ -1174,7 +1197,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			/* discard if too many values are sent */
-			if (pwm->channel_count > MAX_ACTUATORS) {
+			if (pwm->channel_count > _max_actuators) {
 				ret = -EINVAL;
 				break;
 			}
@@ -1207,7 +1230,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			 */
 			_num_failsafe_set = 0;
 
-			for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+			for (unsigned i = 0; i < _max_actuators; i++) {
 				if (_failsafe_pwm[i] > 0) {
 					_num_failsafe_set++;
 				}
@@ -1219,11 +1242,11 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_FAILSAFE_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
-			for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+			for (unsigned i = 0; i < _max_actuators; i++) {
 				pwm->values[i] = _failsafe_pwm[i];
 			}
 
-			pwm->channel_count = MAX_ACTUATORS;
+			pwm->channel_count = _max_actuators;
 			break;
 		}
 
@@ -1231,7 +1254,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			/* discard if too many values are sent */
-			if (pwm->channel_count > MAX_ACTUATORS) {
+			if (pwm->channel_count > _max_actuators) {
 				ret = -EINVAL;
 				break;
 			}
@@ -1262,7 +1285,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			 */
 			_num_disarmed_set = 0;
 
-			for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+			for (unsigned i = 0; i < _max_actuators; i++) {
 				if (_disarmed_pwm[i] > 0) {
 					_num_disarmed_set++;
 				}
@@ -1274,11 +1297,11 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_DISARMED_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
-			for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+			for (unsigned i = 0; i < _max_actuators; i++) {
 				pwm->values[i] = _disarmed_pwm[i];
 			}
 
-			pwm->channel_count = MAX_ACTUATORS;
+			pwm->channel_count = _max_actuators;
 			break;
 		}
 
@@ -1286,7 +1309,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			/* discard if too many values are sent */
-			if (pwm->channel_count > MAX_ACTUATORS) {
+			if (pwm->channel_count > _max_actuators) {
 				ret = -EINVAL;
 				break;
 			}
@@ -1318,11 +1341,11 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_MIN_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
-			for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+			for (unsigned i = 0; i < _max_actuators; i++) {
 				pwm->values[i] = _min_pwm[i];
 			}
 
-			pwm->channel_count = MAX_ACTUATORS;
+			pwm->channel_count = _max_actuators;
 			arg = (unsigned long)&pwm;
 			break;
 		}
@@ -1331,7 +1354,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			/* discard if too many values are sent */
-			if (pwm->channel_count > MAX_ACTUATORS) {
+			if (pwm->channel_count > _max_actuators) {
 				ret = -EINVAL;
 				break;
 			}
@@ -1356,11 +1379,11 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_MAX_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
-			for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+			for (unsigned i = 0; i < _max_actuators; i++) {
 				pwm->values[i] = _max_pwm[i];
 			}
 
-			pwm->channel_count = MAX_ACTUATORS;
+			pwm->channel_count = _max_actuators;
 			arg = (unsigned long)&pwm;
 			break;
 		}
@@ -1369,7 +1392,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			/* discard if too many values are sent */
-			if (pwm->channel_count > MAX_ACTUATORS) {
+			if (pwm->channel_count > _max_actuators) {
 				PX4_DEBUG("error: too many trim values: %d", pwm->channel_count);
 				ret = -EINVAL;
 				break;
@@ -1761,6 +1784,28 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		}
 
 		break;
+
+	case MIXERIOCADDSIMPLE: {
+			mixer_simple_s *mixinfo = (mixer_simple_s *)arg;
+
+			SimpleMixer *mixer = new SimpleMixer(control_callback, (uintptr_t)_controls, mixinfo);
+
+			if (mixer->check()) {
+				delete mixer;
+				_groups_required = 0;
+				ret = -EINVAL;
+
+			} else {
+				if (_mixers == nullptr) {
+					_mixers = new MixerGroup(control_callback, (uintptr_t)_controls);
+				}
+
+				_mixers->add_mixer(mixer);
+				_mixers->groups_required(_groups_required);
+			}
+
+			break;
+		}
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;

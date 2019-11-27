@@ -31,7 +31,7 @@
 #
 ############################################################################
 
-add_library(drivers_board
+px4_add_library(drivers_board
 	init.c
 	led.c
 	spi.c

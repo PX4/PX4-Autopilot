@@ -58,7 +58,7 @@ px4_add_board(
 		navigator
 		sensors
 		vmount
-		airspeed_selector
+		wind_estimator
 
 	SYSTEMCMDS
 		bl_update
@@ -66,7 +66,6 @@ px4_add_board(
 		#dumpfile
 		#esc_calib
 		hardfault_log
-		i2cdetect
 		#led_control
 		mixer
 		#motor_ramp

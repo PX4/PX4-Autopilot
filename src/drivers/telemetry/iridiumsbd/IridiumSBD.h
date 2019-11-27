@@ -39,8 +39,7 @@
 #include <lib/cdev/CDev.hpp>
 #include <drivers/drv_hrt.h>
 
-#include <uORB/Publication.hpp>
-#include <uORB/PublicationQueued.hpp>
+#include <uORB/uORB.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/subsystem_info.h>
 
@@ -305,8 +304,8 @@ private:
 	bool _writing_mavlink_packet = false;
 	uint16_t _packet_length = 0;
 
-	uORB::Publication<iridiumsbd_status_s> _iridiumsbd_status_pub{ORB_ID(iridiumsbd_status)};
-	uORB::PublicationQueued<subsystem_info_s> _subsystem_pub{ORB_ID(subsystem_info)};
+	orb_advert_t _iridiumsbd_status_pub = nullptr;
+	orb_advert_t _subsystem_pub = nullptr;
 
 	bool _test_pending = false;
 	char _test_command[32];

@@ -228,6 +228,8 @@
  * can be used by the Px4 Firmware in the adc driver
  */
 
+#define ADC_V5_V_FULL_SCALE	    (6.9f)
+
 /* ADC defines to be used in sensors.cpp to read from a particular channel */
 
 #define ADC1_CH(n)                  (n)
@@ -397,15 +399,14 @@
 #define DIRECT_INPUT_TIMER_CHANNELS  8
 
 #define BOARD_HAS_LED_PWM              1
-#define BOARD_LED_PWM_DRIVE_ACTIVE_LOW 1
+//#define BOARD_LED_PWM_DRIVE_ACTIVE_LOW 1
 
 #define LED_TIM3_CH1OUT   /* PC6   T3C1  GREEN */ GPIO_TIM3_CH1OUT_3
 #define LED_TIM3_CH2OUT   /* PC7   T3C2  BLUE  */ GPIO_TIM3_CH2OUT_3
 #define LED_TIM3_CH4OUT   /* PB1   T3C4  RED   */ GPIO_TIM3_CH4OUT_1
 
 #define BOARD_HAS_UI_LED_PWM            1
-
-#define BOARD_UI_LED_PWM_DRIVE_ACTIVE_LOW 1
+//#define BOARD_UI_LED_PWM_DRIVE_ACTIVE_LOW 1
 
 #define UI_LED_TIM5_CH1OUT /* PH10  T5C1  RED   */ GPIO_TIM5_CH1OUT_2
 #define UI_LED_TIM5_CH2OUT /* PH11  T5C2  GREEN */ GPIO_TIM5_CH2OUT_2
@@ -498,10 +499,12 @@
 #define HRT_PPM_CHANNEL         /* T8C1 */  1  /* use capture/compare channel 1 */
 #define GPIO_PPM_IN             /* PI5 T8C1 */ GPIO_TIM8_CH1IN_2
 
-/* RC Serial port */
-
+#define RC_UXART_BASE                      STM32_USART6_BASE
 #define RC_SERIAL_PORT                     "/dev/ttyS4"
-#define RC_SERIAL_SINGLEWIRE
+#define BOARD_HAS_SINGLE_WIRE              1 /* HW is capable of Single Wire */
+#define BOARD_HAS_SINGLE_WIRE_ON_TX        1 /* HW default is wired as Single Wire On TX pin */
+#define BOARD_HAS_RX_TX_SWAP               1 /* HW Can swap TX and RX */
+#define RC_SERIAL_PORT_IS_SWAPED           0 /* Board wired with RC's TX is on cpu RX */
 
 /* Input Capture Channels. */
 #define INPUT_CAP1_TIMER                  2
@@ -672,8 +675,6 @@
 		GPIO_SAFETY_SWITCH_IN,            \
 		GPIO_nARMED_INIT                  \
 	}
-
-#define BOARD_ENABLE_CONSOLE_BUFFER
 
 __BEGIN_DECLS
 
