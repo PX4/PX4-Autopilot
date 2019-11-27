@@ -2051,11 +2051,10 @@ PX4IO::io_reg_modify(uint8_t page, uint8_t offset, uint16_t clearbits, uint16_t 
 int
 PX4IO::print_debug()
 {
-#ifdef CONFIG_ARCH_BOARD_PX4_FMU_V2
 	int io_fd = -1;
 
 	if (io_fd <= 0) {
-		io_fd = ::open("/dev/ttyS0", O_RDONLY | O_NONBLOCK | O_NOCTTY);
+		io_fd = ::open(PX4IO_SERIAL_DEVICE, O_RDONLY | O_NONBLOCK | O_NOCTTY);
 	}
 
 	/* read IO's output */
@@ -2087,9 +2086,7 @@ PX4IO::print_debug()
 		return 0;
 	}
 
-#endif
 	return 1;
-
 }
 
 int
@@ -2101,7 +2098,6 @@ PX4IO::mixer_send(const char *buf, unsigned buflen, unsigned retries)
 	uint8_t	frame[_max_transfer];
 
 	do {
-
 		px4io_mixdata *msg = (px4io_mixdata *)&frame[0];
 		unsigned max_len = _max_transfer - sizeof(px4io_mixdata);
 
@@ -3428,8 +3424,11 @@ px4io_main(int argc, char *argv[])
 		PX4IO_Uploader *up;
 
 		/* Assume we are using default paths */
-
-		const char *fn[4] = PX4IO_FW_SEARCH_PATHS;
+		const char *fn[] {
+			"/etc/extras/px4_io-v2_default.bin",
+			"/fs/microsd/px4_io-v2_default.bin",
+			"/fs/microsd/px4io2.bin"
+		};
 
 		/* Override defaults if a path is passed on command line */
 		if (argc > 2) {
