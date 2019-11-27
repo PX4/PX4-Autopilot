@@ -3968,6 +3968,27 @@ void Commander::battery_status_check()
 
 		if (_battery_sub.copy(&battery)) {
 
+
+			bool battery_warning_level_increased_while_armed = false;
+			bool update_internal_battery_state = false;
+
+			if (armed.armed) {
+				if (battery.warning > _battery_warning) {
+					battery_warning_level_increased_while_armed = true;
+					update_internal_battery_state = true;
+				}
+
+			} else {
+				if (_battery_warning != battery.warning) {
+					update_internal_battery_state = true;
+				}
+			}
+
+			if (update_internal_battery_state) {
+				_battery_warning = battery.warning;
+			}
+
+
 			if ((hrt_elapsed_time(&battery.timestamp) < 5_s)
 			    && battery.connected
 			    && (_battery_warning == battery_status_s::BATTERY_WARNING_NONE)) {
@@ -3978,18 +3999,16 @@ void Commander::battery_status_check()
 				status_flags.condition_battery_healthy = false;
 			}
 
-			// execute battery failsafe if the state has gotten worse
-			if (armed.armed) {
-				if (battery.warning > _battery_warning) {
-					battery_failsafe(&mavlink_log_pub, status, status_flags, &internal_state, battery.warning,
-							 (low_battery_action_t)_param_com_low_bat_act.get());
-				}
+			// execute battery failsafe if the state has gotten worse while we are armed
+			if (battery_warning_level_increased_while_armed) {
+				battery_failsafe(&mavlink_log_pub, status, status_flags, &internal_state, battery.warning,
+						 (low_battery_action_t)_param_com_low_bat_act.get());
 			}
 
 			// Handle shutdown request from emergency battery action
-			if (battery.warning != _battery_warning) {
+			if (update_internal_battery_state) {
 
-				if ((battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) && shutdown_if_allowed()) {
+				if ((_battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) && shutdown_if_allowed()) {
 					mavlink_log_critical(&mavlink_log_pub, "Dangerously low battery! Shutting system down");
 					px4_usleep(200000);
 
@@ -4004,8 +4023,6 @@ void Commander::battery_status_check()
 				}
 			}
 
-			// save last value
-			_battery_warning = battery.warning;
 			_battery_current = battery.current_filtered_a;
 		}
 	}
