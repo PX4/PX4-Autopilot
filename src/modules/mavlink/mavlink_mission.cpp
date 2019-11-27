@@ -498,10 +498,13 @@ MavlinkMissionManager::send(const hrt_abstime now)
 		send_mission_current(_current_seq);
 
 		if (mission_result.item_do_jump_changed) {
-			/* send a mission item again if the remaining DO_JUMPs has changed */
-			_mission_type = MAV_MISSION_TYPE_MISSION;
-			send_mission_item(_transfer_partner_sysid, _transfer_partner_compid,
-					  (uint16_t)mission_result.item_changed_index);
+			/* Send a mission item again if the remaining DO_JUMPs has changed, but don't interfere
+			 * if there are ongoing transfers happening already. */
+			if (_state == MAVLINK_WPM_STATE_IDLE) {
+				_mission_type = MAV_MISSION_TYPE_MISSION;
+				send_mission_item(_transfer_partner_sysid, _transfer_partner_compid,
+						  (uint16_t)mission_result.item_changed_index);
+			}
 		}
 
 	} else {
