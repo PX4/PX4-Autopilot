@@ -251,6 +251,7 @@ private:
 	     */
 	struct BMI_GyroReport {
 		uint8_t     cmd;
+		uint16_t    chip_id;
 		int16_t     gyro_x;
 		int16_t     gyro_y;
 		int16_t     gyro_z;

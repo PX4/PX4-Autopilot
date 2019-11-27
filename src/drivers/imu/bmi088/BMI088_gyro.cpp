@@ -357,7 +357,7 @@ BMI088_gyro::measure()
 	/*
 	* Fetch the full set of measurements from the BMI088 gyro in one pass.
 	*/
-	bmi_gyroreport.cmd = BMI088_GYR_X_L | DIR_READ;
+	bmi_gyroreport.cmd = BMI088_GYR_CHIP_ID | DIR_READ;
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
@@ -371,20 +371,19 @@ BMI088_gyro::measure()
 	// Get the last temperature from the accelerometer (the Gyro does not have its own temperature measurement)
 	_last_temperature = _accel_last_temperature_copy;
 
+
 	report.gyro_x = bmi_gyroreport.gyro_x;
 	report.gyro_y = bmi_gyroreport.gyro_y;
 	report.gyro_z = bmi_gyroreport.gyro_z;
 
-	if (report.gyro_x == 0 &&
-	    report.gyro_y == 0 &&
-	    report.gyro_z == 0) {
+	if ((bmi_gyroreport.chip_id & 0x0f) != BMI088_GYR_WHO_AM_I) {
 		// all zero data - probably an SPI bus error
 		perf_count(_bad_transfers);
 		perf_end(_sample_perf);
-		// note that we don't call reset() here as a reset()
-		// costs 20ms with interrupts disabled. That means if
-		// the bmi088 does go bad it would cause a FMU failure,
-		// regardless of whether another sensor is available,
+		//	// note that we don't call reset() here as a reset()
+		//	// costs 20ms with interrupts disabled. That means if
+		//	// the bmi088 does go bad it would cause a FMU failure,
+		//	// regardless of whether another sensor is available,
 		return;
 	}
 
