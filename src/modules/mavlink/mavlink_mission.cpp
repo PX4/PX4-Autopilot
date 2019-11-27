@@ -499,6 +499,7 @@ MavlinkMissionManager::send(const hrt_abstime now)
 
 		if (mission_result.item_do_jump_changed) {
 			/* send a mission item again if the remaining DO_JUMPs has changed */
+			_mission_type = MAV_MISSION_TYPE_MISSION;
 			send_mission_item(_transfer_partner_sysid, _transfer_partner_compid,
 					  (uint16_t)mission_result.item_changed_index);
 		}
