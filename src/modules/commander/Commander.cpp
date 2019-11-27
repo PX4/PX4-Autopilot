@@ -166,21 +166,31 @@ static int power_button_state_notification_cb(board_power_button_state_notificat
 	return ret;
 }
 
-static bool send_vehicle_command(uint16_t cmd, float param1 = NAN, float param2 = NAN)
+static bool send_vehicle_command(uint16_t cmd, float param1 = NAN, float param2 = NAN, float param3 = NAN,
+				 float param4 = NAN, float param5 = NAN, float param6 = NAN, float param7 = NAN)
 {
 	vehicle_command_s vcmd{};
 
-	vcmd.timestamp = hrt_absolute_time();
 	vcmd.param1 = param1;
 	vcmd.param2 = param2;
-	vcmd.param3 = NAN;
-	vcmd.param4 = NAN;
-	vcmd.param5 = (double)NAN;
-	vcmd.param6 = (double)NAN;
-	vcmd.param7 = NAN;
+	vcmd.param3 = param3;
+	vcmd.param4 = param4;
+	vcmd.param5 = (double)param5;
+	vcmd.param6 = (double)param6;
+	vcmd.param7 = param7;
+
 	vcmd.command = cmd;
-	vcmd.target_system = status.system_id;
-	vcmd.target_component = status.component_id;
+
+	uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
+	vehicle_status_sub.update();
+
+	vcmd.source_system = vehicle_status_sub.get().system_id;
+	vcmd.target_system = vehicle_status_sub.get().system_id;
+
+	vcmd.source_component = vehicle_status_sub.get().component_id;
+	vcmd.target_component = vehicle_status_sub.get().component_id;
+
+	vcmd.timestamp = hrt_absolute_time();
 
 	uORB::PublicationQueued<vehicle_command_s> vcmd_pub{ORB_ID(vehicle_command)};
 
@@ -251,37 +261,30 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "calibrate")) {
 		if (argc > 2) {
-			int calib_ret = OK;
+			if (!strcmp(argv[2], "gyro")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 1);
 
-			if (!strcmp(argv[2], "mag")) {
-				calib_ret = do_mag_calibration(&mavlink_log_pub);
+			} else if (!strcmp(argv[2], "mag")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0, 1);
 
 			} else if (!strcmp(argv[2], "accel")) {
-				calib_ret = do_accel_calibration(&mavlink_log_pub);
-
-			} else if (!strcmp(argv[2], "gyro")) {
-				calib_ret = do_gyro_calibration(&mavlink_log_pub);
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0, 0, 0, 0, 1);
 
 			} else if (!strcmp(argv[2], "level")) {
-				calib_ret = do_level_calibration(&mavlink_log_pub);
-
-			} else if (!strcmp(argv[2], "esc")) {
-				calib_ret = do_esc_calibration(&mavlink_log_pub, &armed);
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0, 0, 0, 0, 2);
 
 			} else if (!strcmp(argv[2], "airspeed")) {
-				calib_ret = do_airspeed_calibration(&mavlink_log_pub);
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0, 0, 0, 0, 0, 1);
+
+			} else if (!strcmp(argv[2], "esc")) {
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0, 0, 0, 0, 0, 0, 1);
 
 			} else {
 				PX4_ERR("argument %s unsupported.", argv[2]);
-			}
-
-			if (calib_ret) {
-				PX4_ERR("calibration failed, exiting.");
 				return 1;
-
-			} else {
-				return 0;
 			}
+
+			return 0;
 
 		} else {
 			PX4_ERR("missing argument");
@@ -359,53 +362,54 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 
 	if (!strcmp(argv[1], "mode")) {
 		if (argc > 2) {
-			uint8_t new_main_state = commander_state_s::MAIN_STATE_MAX;
 
 			if (!strcmp(argv[2], "manual")) {
-				new_main_state = commander_state_s::MAIN_STATE_MANUAL;
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_MANUAL);
 
 			} else if (!strcmp(argv[2], "altctl")) {
-				new_main_state = commander_state_s::MAIN_STATE_ALTCTL;
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_ALTCTL);
 
 			} else if (!strcmp(argv[2], "posctl")) {
-				new_main_state = commander_state_s::MAIN_STATE_POSCTL;
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_POSCTL);
 
 			} else if (!strcmp(argv[2], "auto:mission")) {
-				new_main_state = commander_state_s::MAIN_STATE_AUTO_MISSION;
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
+						     PX4_CUSTOM_SUB_MODE_AUTO_MISSION);
 
 			} else if (!strcmp(argv[2], "auto:loiter")) {
-				new_main_state = commander_state_s::MAIN_STATE_AUTO_LOITER;
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
+						     PX4_CUSTOM_SUB_MODE_AUTO_LOITER);
 
 			} else if (!strcmp(argv[2], "auto:rtl")) {
-				new_main_state = commander_state_s::MAIN_STATE_AUTO_RTL;
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
+						     PX4_CUSTOM_SUB_MODE_AUTO_RTL);
 
 			} else if (!strcmp(argv[2], "acro")) {
-				new_main_state = commander_state_s::MAIN_STATE_ACRO;
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_ACRO);
 
 			} else if (!strcmp(argv[2], "offboard")) {
-				new_main_state = commander_state_s::MAIN_STATE_OFFBOARD;
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_OFFBOARD);
 
 			} else if (!strcmp(argv[2], "stabilized")) {
-				new_main_state = commander_state_s::MAIN_STATE_STAB;
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_STABILIZED);
 
 			} else if (!strcmp(argv[2], "rattitude")) {
-				new_main_state = commander_state_s::MAIN_STATE_RATTITUDE;
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_RATTITUDE);
 
 			} else if (!strcmp(argv[2], "auto:takeoff")) {
-				new_main_state = commander_state_s::MAIN_STATE_AUTO_TAKEOFF;
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
+						     PX4_CUSTOM_SUB_MODE_AUTO_TAKEOFF);
 
 			} else if (!strcmp(argv[2], "auto:land")) {
-				new_main_state = commander_state_s::MAIN_STATE_AUTO_LAND;
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
+						     PX4_CUSTOM_SUB_MODE_AUTO_LAND);
 
 			} else if (!strcmp(argv[2], "auto:precland")) {
-				new_main_state = commander_state_s::MAIN_STATE_AUTO_PRECLAND;
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_DO_SET_MODE, 1, PX4_CUSTOM_MAIN_MODE_AUTO,
+						     PX4_CUSTOM_SUB_MODE_AUTO_PRECLAND);
 
 			} else {
 				PX4_ERR("argument %s unsupported.", argv[2]);
-			}
-
-			if (TRANSITION_DENIED == main_state_transition(status, new_main_state, status_flags, &internal_state)) {
-				PX4_ERR("mode change failed");
 			}
 
 			return 0;
