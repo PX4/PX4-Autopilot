@@ -367,7 +367,6 @@ BMI088_gyro::measure()
 
 	check_registers();
 
-
 	// Get the last temperature from the accelerometer (the Gyro does not have its own temperature measurement)
 	_last_temperature = _accel_last_temperature_copy;
 
@@ -376,14 +375,14 @@ BMI088_gyro::measure()
 	report.gyro_y = bmi_gyroreport.gyro_y;
 	report.gyro_z = bmi_gyroreport.gyro_z;
 
-	if ((bmi_gyroreport.chip_id & 0x0f) != BMI088_GYR_WHO_AM_I) {
-		// all zero data - probably an SPI bus error
+	if ((bmi_gyroreport.chip_id) != BMI088_GYR_WHO_AM_I) {
+		// If chip id is not right, assume a bus transfer error
 		perf_count(_bad_transfers);
 		perf_end(_sample_perf);
-		//	// note that we don't call reset() here as a reset()
-		//	// costs 20ms with interrupts disabled. That means if
-		//	// the bmi088 does go bad it would cause a FMU failure,
-		//	// regardless of whether another sensor is available,
+		// note that we don't call reset() here as a reset()
+		// costs 20ms with interrupts disabled. That means if
+		// the bmi088 does go bad it would cause a FMU failure,
+		// regardless of whether another sensor is available,
 		return;
 	}
 
