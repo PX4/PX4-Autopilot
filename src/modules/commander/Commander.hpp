@@ -129,20 +129,20 @@ private:
 	/**
 	 * Checks the status of all available data links and handles switching between different system telemetry states.
 	 */
-	void data_link_check(bool &status_changed);
+	void data_link_check();
 
 	void esc_status_check(const esc_status_s &esc_status);
 
-	void estimator_check(bool *status_changed);
+	void estimator_check();
 
 	bool handle_command(vehicle_status_s *status, const vehicle_command_s &cmd, actuator_armed_s *armed,
-			    uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub, bool *changed);
+			    uORB::PublicationQueued<vehicle_command_ack_s> &command_ack_pub);
 
 	unsigned handle_command_motor_test(const vehicle_command_s &cmd);
 
 	void mission_init();
 
-	void offboard_control_update(bool &status_changed);
+	void offboard_control_update();
 
 	void print_reject_arm(const char *msg);
 	void print_reject_mode(const char *msg);
@@ -338,14 +338,21 @@ private:
 	uint8_t		_last_sp_man_arm_switch{0};
 	uint8_t		_main_state_before_rtl{commander_state_s::MAIN_STATE_MAX};
 	float		_min_stick_change{0.25f};
+	uint32_t	_stick_off_counter{0};
+	uint32_t	_stick_on_counter{0};
 
 	hrt_abstime	_last_disarmed_timestamp{0};
-	uint64_t	_timestamp_engine_healthy{0}; /**< absolute time when engine was healty */
+	uint64_t	_timestamp_engine_healthy{0}; ///< absolute time when engine was healty
 
+	uint32_t	_counter{0};
+
+	bool		_status_changed{true};
 	bool		_arm_tune_played{false};
 	bool		_was_landed{true};
 	bool		_was_falling{false};
 	bool		_was_armed{false};
+	bool		_failsafe_old{false};	///< check which state machines for changes, clear "changed" flag
+	bool		_have_taken_off_since_arming{false};
 
 	cpuload_s		_cpuload{};
 	geofence_result_s	_geofence_result{};
@@ -387,6 +394,8 @@ private:
 	uORB::Publication<vehicle_status_s>			_status_pub{ORB_ID(vehicle_status)};
 
 	uORB::PublicationData<home_position_s>			_home_pub{ORB_ID(home_position)};
+
+	uORB::PublicationQueued<vehicle_command_ack_s>		_command_ack_pub{ORB_ID(vehicle_command_ack)};
 
 };
 
