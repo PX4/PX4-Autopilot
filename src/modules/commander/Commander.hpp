@@ -194,28 +194,63 @@ private:
 		(ParamFloat<px4::params::COM_DISARM_LAND>) _param_com_disarm_land,
 		(ParamFloat<px4::params::COM_DISARM_PRFLT>) _param_com_disarm_preflight,
 
-		(ParamInt<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid,
+		(ParamBool<px4::params::COM_OBS_AVOID>) _param_com_obs_avoid,
 		(ParamInt<px4::params::COM_OA_BOOT_T>) _param_com_oa_boot_t,
 
 		(ParamInt<px4::params::COM_FLT_PROFILE>) _param_com_flt_profile,
 
-
+		// Offboard
 		(ParamFloat<px4::params::COM_OF_LOSS_T>) _param_com_of_loss_t,
 		(ParamInt<px4::params::COM_OBL_ACT>) _param_com_obl_act,
 		(ParamInt<px4::params::COM_OBL_RC_ACT>) _param_com_obl_rc_act,
 
 		(ParamInt<px4::params::COM_PREARM_MODE>) _param_com_prearm_mode,
-		(ParamInt<px4::params::COM_MOT_TEST_EN>) _param_com_mot_test_en,
+		(ParamBool<px4::params::COM_MOT_TEST_EN>) _param_com_mot_test_en,
 
 		(ParamFloat<px4::params::COM_KILL_DISARM>) _param_com_kill_disarm,
 
+		// Engine failure
+		(ParamFloat<px4::params::COM_EF_THROT>) _param_ef_throttle_thres,
+		(ParamFloat<px4::params::COM_EF_C2T>) _param_ef_current2throttle_thres,
+		(ParamFloat<px4::params::COM_EF_TIME>) _param_ef_time_thres,
+
+		(ParamBool<px4::params::COM_ARM_WO_GPS>) _param_arm_without_gps,
+		(ParamBool<px4::params::COM_ARM_SWISBTN>) _param_arm_switch_is_button,
+		(ParamBool<px4::params::COM_ARM_MIS_REQ>) _param_arm_mission_required,
+		(ParamBool<px4::params::COM_ARM_AUTH_REQ>) _param_arm_auth_required,
+		(ParamBool<px4::params::COM_ARM_CHK_ESCS>) _param_escs_checks_required,
+
+		(ParamInt<px4::params::COM_FLIGHT_UUID>) _param_flight_uuid,
+		(ParamInt<px4::params::COM_TAKEOFF_ACT>) _param_takeoff_finished_action,
+
+		(ParamBool<px4::params::COM_RC_OVERRIDE>) _param_rc_override,
+		(ParamInt<px4::params::COM_RC_IN_MODE>) _param_rc_in_off,
+		(ParamInt<px4::params::COM_RC_ARM_HYST>) _param_rc_arm_hyst,
+		(ParamFloat<px4::params::COM_RC_STICK_OV>) _param_min_stick_change,
+
+		(ParamInt<px4::params::COM_FLTMODE1>) _param_fltmode_1,
+		(ParamInt<px4::params::COM_FLTMODE2>) _param_fltmode_2,
+		(ParamInt<px4::params::COM_FLTMODE3>) _param_fltmode_3,
+		(ParamInt<px4::params::COM_FLTMODE4>) _param_fltmode_4,
+		(ParamInt<px4::params::COM_FLTMODE5>) _param_fltmode_5,
+		(ParamInt<px4::params::COM_FLTMODE6>) _param_fltmode_6,
+
+		// Circuit breakers
 		(ParamInt<px4::params::CBRK_SUPPLY_CHK>) _param_cbrk_supply_chk,
 		(ParamInt<px4::params::CBRK_USB_CHK>) _param_cbrk_usb_chk,
 		(ParamInt<px4::params::CBRK_AIRSPD_CHK>) _param_cbrk_airspd_chk,
 		(ParamInt<px4::params::CBRK_ENGINEFAIL>) _param_cbrk_enginefail,
 		(ParamInt<px4::params::CBRK_GPSFAIL>) _param_cbrk_gpsfail,
 		(ParamInt<px4::params::CBRK_FLIGHTTERM>) _param_cbrk_flightterm,
-		(ParamInt<px4::params::CBRK_VELPOSERR>) _param_cbrk_velposerr
+		(ParamInt<px4::params::CBRK_VELPOSERR>) _param_cbrk_velposerr,
+
+		// Geofrence
+		(ParamInt<px4::params::GF_ACTION>) _param_geofence_action,
+
+		// Mavlink
+		(ParamInt<px4::params::MAV_COMP_ID>) _param_mav_comp_id,
+		(ParamInt<px4::params::MAV_SYS_ID>) _param_mav_sys_id,
+		(ParamInt<px4::params::MAV_TYPE>) _param_mav_type
 	)
 
 	enum class PrearmedMode {
@@ -304,7 +339,16 @@ private:
 	uint8_t		_main_state_before_rtl{commander_state_s::MAIN_STATE_MAX};
 	float		_min_stick_change{0.25f};
 
+	hrt_abstime	_last_disarmed_timestamp{0};
+	uint64_t	_timestamp_engine_healthy{0}; /**< absolute time when engine was healty */
+
+	bool		_arm_tune_played{false};
+	bool		_was_landed{true};
+	bool		_was_falling{false};
+	bool		_was_armed{false};
+
 	cpuload_s		_cpuload{};
+	geofence_result_s	_geofence_result{};
 	vehicle_land_detected_s	_land_detector{};
 	vtol_vehicle_status_s	_vtol_status{};
 

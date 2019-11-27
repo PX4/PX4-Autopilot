@@ -474,6 +474,9 @@ Commander::Commander() :
 
 	_land_detector.landed = true;
 
+	// XXX for now just set sensors as initialized
+	status_flags.condition_system_sensors_initialized = true;
+
 	// We want to accept RC inputs as default
 	status.rc_input_mode = vehicle_status_s::RC_IN_MODE_DEFAULT;
 	internal_state.main_state = commander_state_s::MAIN_STATE_MANUAL;
@@ -1156,45 +1159,10 @@ void
 Commander::run()
 {
 	bool sensor_fail_tune_played = false;
-	bool arm_tune_played = false;
-	bool was_landed = true;
-	bool was_falling = false;
-	bool was_armed = false;
 
-	// XXX for now just set sensors as initialized
-	status_flags.condition_system_sensors_initialized = true;
-
-	/* set parameters */
-	param_t _param_sys_type = param_find("MAV_TYPE");
-	param_t _param_system_id = param_find("MAV_SYS_ID");
-	param_t _param_component_id = param_find("MAV_COMP_ID");
-	param_t _param_ef_throttle_thres = param_find("COM_EF_THROT");
-	param_t _param_ef_current2throttle_thres = param_find("COM_EF_C2T");
-	param_t _param_ef_time_thres = param_find("COM_EF_TIME");
-	param_t _param_rc_in_off = param_find("COM_RC_IN_MODE");
-	param_t _param_rc_arm_hyst = param_find("COM_RC_ARM_HYST");
-	param_t _param_min_stick_change = param_find("COM_RC_STICK_OV");
-	param_t _param_geofence_action = param_find("GF_ACTION");
-	param_t _param_arm_without_gps = param_find("COM_ARM_WO_GPS");
-	param_t _param_arm_switch_is_button = param_find("COM_ARM_SWISBTN");
-	param_t _param_rc_override = param_find("COM_RC_OVERRIDE");
-	param_t _param_arm_mission_required = param_find("COM_ARM_MIS_REQ");
-	param_t _param_arm_auth_required = param_find("COM_ARM_AUTH_REQ");
-	param_t _param_escs_checks_required = param_find("COM_ARM_CHK_ESCS");
-	param_t _param_flight_uuid = param_find("COM_FLIGHT_UUID");
-	param_t _param_takeoff_finished_action = param_find("COM_TAKEOFF_ACT");
-
-	param_t _param_fmode_1 = param_find("COM_FLTMODE1");
-	param_t _param_fmode_2 = param_find("COM_FLTMODE2");
-	param_t _param_fmode_3 = param_find("COM_FLTMODE3");
-	param_t _param_fmode_4 = param_find("COM_FLTMODE4");
-	param_t _param_fmode_5 = param_find("COM_FLTMODE5");
-	param_t _param_fmode_6 = param_find("COM_FLTMODE6");
 
 	param_t _param_airmode = param_find("MC_AIRMODE");
 	param_t _param_rc_map_arm_switch = param_find("RC_MAP_ARM_SW");
-
-	status_flags.avoidance_system_required = _param_com_obs_avoid.get();
 
 	/* pthread for slow low prio thread */
 	pthread_t commander_low_prio_thread;
@@ -1226,9 +1194,6 @@ Commander::run()
 
 	get_circuit_breaker_params();
 
-	/* armed topic */
-	hrt_abstime last_disarmed_timestamp = 0;
-
 	/* command ack */
 	uORB::PublicationQueued<vehicle_command_ack_s> command_ack_pub{ORB_ID(vehicle_command_ack)};
 
@@ -1243,8 +1208,6 @@ Commander::run()
 	bool status_changed = true;
 	bool param_init_forced = true;
 
-	geofence_result_s geofence_result {};
-
 	_vtol_status.vtol_in_rw_mode = true;		// default for vtol is rotary wing
 
 	control_status_leds(&status, &armed, true, _battery_warning);
@@ -1252,9 +1215,7 @@ Commander::run()
 	thread_running = true;
 
 	/* update vehicle status to find out vehicle type (required for preflight checks) */
-	int32_t system_type;
-	param_get(_param_sys_type, &system_type); // get system type
-	status.system_type = (uint8_t)system_type;
+	status.system_type = _param_mav_type.get();
 
 	if (is_rotary_wing(&status) || is_vtol(&status)) {
 		status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
@@ -1279,55 +1240,13 @@ Commander::run()
 	_last_gpos_fail_time_us = commander_boot_timestamp;
 	_last_lvel_fail_time_us = commander_boot_timestamp;
 
-	// Run preflight check
-	int32_t rc_in_off = 0;
-
-	param_get(_param_rc_in_off, &rc_in_off);
-
-	int32_t arm_switch_is_button = 0;
-	param_get(_param_arm_switch_is_button, &arm_switch_is_button);
-
-	int32_t arm_without_gps_param = 0;
-	param_get(_param_arm_without_gps, &arm_without_gps_param);
-	arm_requirements = (arm_without_gps_param == 1) ? PreFlightCheck::ARM_REQ_NONE : PreFlightCheck::ARM_REQ_GPS_BIT;
-
-	int32_t arm_mission_required_param = 0;
-	param_get(_param_arm_mission_required, &arm_mission_required_param);
-	arm_requirements |= (arm_mission_required_param == 0) ? PreFlightCheck::ARM_REQ_NONE :
-			    PreFlightCheck::ARM_REQ_MISSION_BIT;
-
-	int32_t arm_auth_required_param = 0;
-	param_get(_param_arm_auth_required, &arm_auth_required_param);
-	arm_requirements |= (arm_auth_required_param == 0) ? PreFlightCheck::ARM_REQ_NONE :
-			    PreFlightCheck::ARM_REQ_ARM_AUTH_BIT;
-
-	int32_t arm_escs_checks_required_param = 0;
-	param_get(_param_escs_checks_required, &arm_escs_checks_required_param);
-	arm_requirements |= (arm_escs_checks_required_param == 0) ? PreFlightCheck::ARM_REQ_NONE :
-			    PreFlightCheck::ARM_REQ_ESCS_CHECK_BIT;
-
-	status.rc_input_mode = rc_in_off;
+	status.rc_input_mode = _param_rc_in_off.get();
 
 	// user adjustable duration required to assert arm/disarm via throttle/rudder stick
-	int32_t rc_arm_hyst = 100;
-	param_get(_param_rc_arm_hyst, &rc_arm_hyst);
-	rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
+	int32_t rc_arm_hyst = _param_rc_arm_hyst.get() * COMMANDER_MONITORING_LOOPSPERMSEC;
 
-	int32_t geofence_action = 0;
-	int32_t flight_uuid = 0;
 	int32_t airmode = 0;
 	int32_t rc_map_arm_switch = 0;
-
-	/* RC override auto modes */
-	int32_t rc_override = 0;
-
-	int32_t takeoff_complete_act = 0;
-
-	/* Thresholds for engine failure detection */
-	float ef_throttle_thres = 1.0f;
-	float ef_current2throttle_thres = 0.0f;
-	float ef_time_thres = 1000.0f;
-	uint64_t timestamp_engine_healthy = 0; /**< absolute time when engine was healty */
 
 	/* check which state machines for changes, clear "changed" flag */
 	bool failsafe_old = false;
@@ -1374,12 +1293,7 @@ Commander::run()
 
 			/* update parameters */
 			if (!armed.armed) {
-				if (param_get(_param_sys_type, &system_type) != OK) {
-					PX4_ERR("failed getting new system type");
-
-				} else {
-					status.system_type = (uint8_t)system_type;
-				}
+				status.system_type = _param_mav_type.get();
 
 				const bool is_rotary = is_rotary_wing(&status) || (is_vtol(&status) && _vtol_status.vtol_in_rw_mode);
 				const bool is_fixed = is_fixed_wing(&status) || (is_vtol(&status) && !_vtol_status.vtol_in_rw_mode);
@@ -1401,61 +1315,46 @@ Commander::run()
 				status.is_vtol_tailsitter = is_vtol_tailsitter(&status);
 
 				/* check and update system / component ID */
-				int32_t sys_id = 0;
-				param_get(_param_system_id, &sys_id);
-				status.system_id = sys_id;
-
-				int32_t comp_id = 0;
-				param_get(_param_component_id, &comp_id);
-				status.component_id = comp_id;
+				status.system_id = _param_mav_sys_id.get();
+				status.component_id = _param_mav_comp_id.get();
 
 				get_circuit_breaker_params();
 
 				status_changed = true;
 			}
 
-			/* Safety parameters */
-			param_get(_param_rc_in_off, &rc_in_off);
-			status.rc_input_mode = rc_in_off;
-			param_get(_param_rc_arm_hyst, &rc_arm_hyst);
-			param_get(_param_min_stick_change, &_min_stick_change);
-			param_get(_param_rc_override, &rc_override);
+			status_flags.avoidance_system_required = _param_com_obs_avoid.get();
+
+			status.rc_input_mode = _param_rc_in_off.get();
+
 			// percentage (* 0.01) needs to be doubled because RC total interval is 2, not 1
-			_min_stick_change *= 0.02f;
-			rc_arm_hyst *= COMMANDER_MONITORING_LOOPSPERMSEC;
-			param_get(_param_ef_throttle_thres, &ef_throttle_thres);
-			param_get(_param_ef_current2throttle_thres, &ef_current2throttle_thres);
-			param_get(_param_ef_time_thres, &ef_time_thres);
-			param_get(_param_geofence_action, &geofence_action);
-			param_get(_param_flight_uuid, &flight_uuid);
+			_min_stick_change = _param_min_stick_change.get() * 0.02f;
 
-			param_get(_param_arm_switch_is_button, &arm_switch_is_button);
+			rc_arm_hyst = _param_rc_arm_hyst.get() * COMMANDER_MONITORING_LOOPSPERMSEC;
 
-			param_get(_param_arm_without_gps, &arm_without_gps_param);
-			arm_requirements = (arm_without_gps_param == 1) ? PreFlightCheck::ARM_REQ_NONE : PreFlightCheck::ARM_REQ_GPS_BIT;
+			if (_param_arm_without_gps.get()) {
+				arm_requirements |= PreFlightCheck::ARM_REQ_GPS_BIT;
+			}
 
-			param_get(_param_arm_mission_required, &arm_mission_required_param);
-			arm_requirements |= (arm_mission_required_param == 0) ? PreFlightCheck::ARM_REQ_NONE :
-					    PreFlightCheck::ARM_REQ_MISSION_BIT;
+			if (_param_arm_mission_required.get()) {
+				arm_requirements |= PreFlightCheck::ARM_REQ_MISSION_BIT;
+			}
 
-			param_get(_param_arm_auth_required, &arm_auth_required_param);
-			arm_requirements |= (arm_auth_required_param == 0) ? PreFlightCheck::ARM_REQ_NONE :
-					    PreFlightCheck::ARM_REQ_ARM_AUTH_BIT;
+			if (_param_arm_auth_required.get()) {
+				arm_requirements |= PreFlightCheck::ARM_REQ_ARM_AUTH_BIT;
+			}
 
-			param_get(_param_escs_checks_required, &arm_escs_checks_required_param);
-			arm_requirements |= (arm_escs_checks_required_param == 0) ? PreFlightCheck::ARM_REQ_NONE :
-					    PreFlightCheck::ARM_REQ_ESCS_CHECK_BIT;
-
+			if (_param_escs_checks_required.get()) {
+				arm_requirements |= PreFlightCheck::ARM_REQ_ESCS_CHECK_BIT;
+			}
 
 			/* flight mode slots */
-			param_get(_param_fmode_1, &_flight_mode_slots[0]);
-			param_get(_param_fmode_2, &_flight_mode_slots[1]);
-			param_get(_param_fmode_3, &_flight_mode_slots[2]);
-			param_get(_param_fmode_4, &_flight_mode_slots[3]);
-			param_get(_param_fmode_5, &_flight_mode_slots[4]);
-			param_get(_param_fmode_6, &_flight_mode_slots[5]);
-
-			param_get(_param_takeoff_finished_action, &takeoff_complete_act);
+			_flight_mode_slots[0] = _param_fltmode_1.get();
+			_flight_mode_slots[1] = _param_fltmode_2.get();
+			_flight_mode_slots[2] = _param_fltmode_3.get();
+			_flight_mode_slots[3] = _param_fltmode_4.get();
+			_flight_mode_slots[4] = _param_fltmode_5.get();
+			_flight_mode_slots[5] = _param_fltmode_6.get();
 
 			_auto_disarm_killed.set_hysteresis_time_from(false, _param_com_kill_disarm.get() * 1_s);
 
@@ -1615,7 +1514,7 @@ Commander::run()
 
 			// Only take actions if armed
 			if (armed.armed) {
-				if (was_landed != _land_detector.landed) {
+				if (_was_landed != _land_detector.landed) {
 					if (_land_detector.landed) {
 						mavlink_and_console_log_info(&mavlink_log_pub, "Landing detected");
 
@@ -1632,15 +1531,15 @@ Commander::run()
 					}
 				}
 
-				if (was_falling != _land_detector.freefall) {
+				if (_was_falling != _land_detector.freefall) {
 					if (_land_detector.freefall) {
 						mavlink_and_console_log_info(&mavlink_log_pub, "Freefall detected");
 					}
 				}
 			}
 
-			was_landed = _land_detector.landed;
-			was_falling = _land_detector.freefall;
+			_was_landed = _land_detector.landed;
+			_was_falling = _land_detector.freefall;
 		}
 
 
@@ -1758,10 +1657,10 @@ Commander::run()
 		}
 
 		/* start geofence result check */
-		_geofence_result_sub.update(&geofence_result);
+		_geofence_result_sub.update(&_geofence_result);
 
 		// Geofence actions
-		const bool geofence_action_enabled = geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE;
+		const bool geofence_action_enabled = _geofence_result.geofence_action != geofence_result_s::GF_ACTION_NONE;
 		const bool not_in_battery_failsafe = _battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL;
 
 		if (armed.armed
@@ -1769,9 +1668,9 @@ Commander::run()
 		    && not_in_battery_failsafe) {
 
 			// check for geofence violation transition
-			if (geofence_result.geofence_violated && !_geofence_violated_prev) {
+			if (_geofence_result.geofence_violated && !_geofence_violated_prev) {
 
-				switch (geofence_result.geofence_action) {
+				switch (_geofence_result.geofence_action) {
 				case (geofence_result_s::GF_ACTION_NONE) : {
 						// do nothing
 						break;
@@ -1810,7 +1709,7 @@ Commander::run()
 				}
 			}
 
-			_geofence_violated_prev = geofence_result.geofence_violated;
+			_geofence_violated_prev = _geofence_result.geofence_violated;
 
 			// reset if no longer in LOITER or if manually switched to LOITER
 			const bool in_loiter_mode = internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER;
@@ -1856,7 +1755,7 @@ Commander::run()
 			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
 			internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER;
 
-		if (rc_override != 0 && is_rotary_wing && not_in_low_battery_reaction
+		if (_param_rc_override.get() && is_rotary_wing && not_in_low_battery_reaction
 		    && (in_auto_mode || (_geofence_warning_action_on && manual_mode_before_geofence))) {
 			// transition to previous state if sticks are touched
 			if ((_last_sp_man.timestamp != _sp_man.timestamp) &&
@@ -1912,8 +1811,8 @@ Commander::run()
 
 			const bool in_armed_state = (status.arming_state == vehicle_status_s::ARMING_STATE_ARMED);
 			const bool arm_switch_or_button_mapped = _sp_man.arm_switch != manual_control_setpoint_s::SWITCH_POS_NONE;
-			const bool arm_button_pressed = arm_switch_is_button == 1
-							&& _sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON;
+			const bool arm_button_pressed = _param_arm_switch_is_button.get()
+							&& (_sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON);
 
 			/* DISARM
 			 * check if left stick is in lower left position or arm button is pushed or arm switch has transition from arm to disarm
@@ -1921,7 +1820,7 @@ Commander::run()
 			 * do it only for rotary wings in manual mode or fixed wing if landed.
 			 * Disable stick-disarming if arming switch or button is mapped */
 			const bool stick_in_lower_left = _sp_man.r < -STICK_ON_OFF_LIMIT && (_sp_man.z < 0.1f) && !arm_switch_or_button_mapped;
-			const bool arm_switch_to_disarm_transition =  arm_switch_is_button == 0 &&
+			const bool arm_switch_to_disarm_transition = !_param_arm_switch_is_button.get() &&
 					(_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_ON) &&
 					(_sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF);
 
@@ -1945,7 +1844,7 @@ Commander::run()
 
 				stick_off_counter++;
 
-			} else if (!(arm_switch_is_button == 1 && _sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON)) {
+			} else if (!(_param_arm_switch_is_button.get() && _sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON)) {
 				/* do not reset the counter when holding the arm button longer than needed */
 				stick_off_counter = 0;
 			}
@@ -1958,22 +1857,24 @@ Commander::run()
 							  && !arm_switch_or_button_mapped;
 			/* allow a grace period for re-arming: preflight checks don't need to pass during that time,
 			 * for example for accidential in-air disarming */
-			const bool in_arming_grace_period = last_disarmed_timestamp != 0 && hrt_elapsed_time(&last_disarmed_timestamp) < 5_s;
-			const bool arm_switch_to_arm_transition = arm_switch_is_button == 0 &&
-					_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF &&
-					_sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON &&
+			const bool in_arming_grace_period = (_last_disarmed_timestamp != 0)
+							    && (hrt_elapsed_time(&_last_disarmed_timestamp) < 5_s);
+
+			const bool arm_switch_to_arm_transition = !_param_arm_switch_is_button.get() &&
+					(_last_sp_man_arm_switch == manual_control_setpoint_s::SWITCH_POS_OFF) &&
+					(_sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON) &&
 					(_sp_man.z < 0.1f || in_arming_grace_period);
 
 			if (!in_armed_state &&
-			    status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF &&
+			    (status.rc_input_mode != vehicle_status_s::RC_IN_MODE_OFF) &&
 			    (stick_in_lower_right || arm_button_pressed || arm_switch_to_arm_transition)) {
+
 				if ((stick_on_counter == rc_arm_hyst && stick_off_counter < rc_arm_hyst) || arm_switch_to_arm_transition) {
 
 					/* we check outside of the transition function here because the requirement
 					 * for being in manual mode only applies to manual arming actions.
 					 * the system can be armed in auto if armed via the GCS.
 					 */
-
 					if ((internal_state.main_state != commander_state_s::MAIN_STATE_MANUAL)
 					    && (internal_state.main_state != commander_state_s::MAIN_STATE_ACRO)
 					    && (internal_state.main_state != commander_state_s::MAIN_STATE_STAB)
@@ -1984,7 +1885,8 @@ Commander::run()
 						print_reject_arm("Not arming: Switch to a manual mode first");
 
 					} else if (!status_flags.condition_home_position_valid &&
-						   geofence_action == geofence_result_s::GF_ACTION_RTL) {
+						   (_param_geofence_action.get() == geofence_result_s::GF_ACTION_RTL)) {
+
 						print_reject_arm("Not arming: Geofence RTL requires valid home");
 
 					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
@@ -2001,7 +1903,7 @@ Commander::run()
 
 				stick_on_counter++;
 
-			} else if (!(arm_switch_is_button == 1 && _sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON)) {
+			} else if (!(_param_arm_switch_is_button.get() && _sp_man.arm_switch == manual_control_setpoint_s::SWITCH_POS_ON)) {
 				/* do not reset the counter when holding the arm button longer than needed */
 				stick_on_counter = 0;
 			}
@@ -2084,13 +1986,13 @@ Commander::run()
 				const float throttle = actuator_controls.control[actuator_controls_s::INDEX_THROTTLE];
 				const float current2throttle = _battery_current / throttle;
 
-				if (((throttle > ef_throttle_thres) && (current2throttle < ef_current2throttle_thres))
+				if (((throttle > _param_ef_throttle_thres.get()) && (current2throttle < _param_ef_current2throttle_thres.get()))
 				    || status.engine_failure) {
 
-					const float elapsed = hrt_elapsed_time(&timestamp_engine_healthy) / 1e6f;
+					const float elapsed = hrt_elapsed_time(&_timestamp_engine_healthy) / 1e6f;
 
 					/* potential failure, measure time */
-					if ((timestamp_engine_healthy > 0) && (elapsed > ef_time_thres)
+					if ((_timestamp_engine_healthy > 0) && (elapsed > _param_ef_time_thres.get())
 					    && !status.engine_failure) {
 
 						status.engine_failure = true;
@@ -2103,7 +2005,7 @@ Commander::run()
 
 			} else {
 				/* no failure reset flag */
-				timestamp_engine_healthy = hrt_absolute_time();
+				_timestamp_engine_healthy = hrt_absolute_time();
 
 				if (status.engine_failure) {
 					status.engine_failure = false;
@@ -2123,7 +2025,7 @@ Commander::run()
 			const bool mission_available = (_mission_result_sub.get().timestamp > commander_boot_timestamp)
 						       && (_mission_result_sub.get().instance_count > 0) && _mission_result_sub.get().valid;
 
-			if ((takeoff_complete_act == 1) && mission_available) {
+			if ((_param_takeoff_finished_action.get() == 1) && mission_available) {
 				main_state_transition(status, commander_state_s::MAIN_STATE_AUTO_MISSION, status_flags, &internal_state);
 
 			} else {
@@ -2194,7 +2096,7 @@ Commander::run()
 			const vehicle_local_position_s &local_position = _local_position_sub.get();
 
 			if (armed.armed) {
-				if ((!was_armed || (was_landed && !_land_detector.landed)) &&
+				if ((!_was_armed || (_was_landed && !_land_detector.landed)) &&
 				    (hrt_elapsed_time(&commander_boot_timestamp) > INAIR_RESTART_HOLDOFF_INTERVAL)) {
 
 					/* update home position on arming if at least 500 ms from commander start spent to avoid setting home on in-air restart */
@@ -2233,17 +2135,19 @@ Commander::run()
 		}
 
 		// check for arming state change
-		if (was_armed != armed.armed) {
+		if (_was_armed != armed.armed) {
 			status_changed = true;
 
 			if (!armed.armed) { // increase the flight uuid upon disarming
-				++flight_uuid;
-				param_set(_param_flight_uuid, &flight_uuid);
-				last_disarmed_timestamp = hrt_absolute_time();
+				const int32_t flight_uuid = _param_flight_uuid.get() + 1;
+				_param_flight_uuid.set(flight_uuid);
+				_param_flight_uuid.commit_no_notification();
+
+				_last_disarmed_timestamp = hrt_absolute_time();
 			}
 		}
 
-		was_armed = armed.armed;
+		_was_armed = armed.armed;
 
 		/* now set navigation state according to failsafe and main state */
 		bool nav_state_changed = set_nav_state(&status,
@@ -2329,11 +2233,12 @@ Commander::run()
 		}
 
 		/* play arming and battery warning tunes */
-		if (!arm_tune_played && armed.armed && (!safety.safety_switch_available || (safety.safety_switch_available
-							&& safety.safety_off))) {
+		if (!_arm_tune_played && armed.armed &&
+		    (!safety.safety_switch_available || (safety.safety_switch_available && safety.safety_off))) {
+
 			/* play tune when armed */
 			set_tune(TONE_ARMING_WARNING_TUNE);
-			arm_tune_played = true;
+			_arm_tune_played = true;
 
 		} else if (!status_flags.usb_connected &&
 			   (status.hil_state != vehicle_status_s::HIL_STATE_ON) &&
@@ -2357,11 +2262,11 @@ Commander::run()
 		if (!armed.armed || (safety.safety_switch_available && !safety.safety_off)) {
 
 			//Notify the user that it is safe to approach the vehicle
-			if (arm_tune_played) {
+			if (_arm_tune_played) {
 				tune_neutral(true);
 			}
 
-			arm_tune_played = false;
+			_arm_tune_played = false;
 		}
 
 		/* play sensor failure tunes if we already waited for hotplug sensors to come up and failed */
