@@ -1743,15 +1743,20 @@ Commander::run()
 		// but only if not in a low battery handling action
 		const bool low_battery_reaction = _battery_warning >= battery_status_s::BATTERY_WARNING_CRITICAL;
 		const bool is_rotary_wing = status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
-		const bool in_auto_mode =
-			_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
-			_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL ||
-			_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
-			_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER;
 
-		if (_param_rc_override.get() && is_rotary_wing && !low_battery_reaction
-		    && !_geofence_warning_action_on && in_auto_mode) {
+		const bool override_auto_mode =
+			(_param_rc_override.get() & OVERRIDE_AUTO_MODE_BIT) &&
+			(_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND    ||
+			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL 	  ||
+			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
+			 _internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER);
 
+		const bool override_offboard_mode =
+			(_param_rc_override.get() & OVERRIDE_OFFBOARD_MODE_BIT) &&
+			_internal_state.main_state == commander_state_s::MAIN_STATE_OFFBOARD;
+
+		if ((override_auto_mode || override_offboard_mode) && is_rotary_wing
+		    && !low_battery_reaction && !_geofence_warning_action_on) {
 			// transition to previous state if sticks are touched
 			if ((_last_sp_man.timestamp != _sp_man.timestamp) &&
 			    ((fabsf(_sp_man.x - _last_sp_man.x) > _min_stick_change) ||
