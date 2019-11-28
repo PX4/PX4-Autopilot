@@ -112,9 +112,9 @@ private:
 	ControlAllocation *_control_allocation{nullptr}; 	///< class for control allocation calculations
 
 	enum class Airframe {
-		QUAD_W=0,
-		HEXA_X=1,
-		STANDARD_VTOL=2
+		QUAD_W = 0,
+		HEXA_X = 1,
+		STANDARD_VTOL = 2
 	};
 
 	// Inputs
@@ -141,10 +141,10 @@ private:
 	// float _airspeed_scale_factor{1.0f};
 
 	enum class FlightPhase {
-		HOVER_FLIGHT=0,
-		FORWARD_FLIGHT=1,
-		TRANSITION_HF_TO_FF=2,
-		TRANSITION_FF_TO_HF=3
+		HOVER_FLIGHT = 0,
+		FORWARD_FLIGHT = 1,
+		TRANSITION_HF_TO_FF = 2,
+		TRANSITION_FF_TO_HF = 3
 	};
 	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};
 
