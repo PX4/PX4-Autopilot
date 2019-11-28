@@ -378,7 +378,6 @@ ControlAllocator::Run()
 		// the current mixer system and multicopter controller
 		// TODO: remove
 		publish_legacy_actuator_controls();
-		publish_legacy_multirotor_motor_limits();
 	}
 
 	perf_end(_loop_perf);
@@ -459,65 +458,6 @@ ControlAllocator::publish_legacy_actuator_controls()
 
 	_actuator_controls_4_pub.publish(actuator_controls_4);
 	_actuator_controls_5_pub.publish(actuator_controls_5);
-}
-
-void
-ControlAllocator::publish_legacy_multirotor_motor_limits()
-{
-	multirotor_motor_limits_s multirotor_motor_limits{};
-	multirotor_motor_limits.timestamp = hrt_absolute_time();
-	multirotor_motor_limits.saturation_status = 1;
-
-	// Motor saturation
-	matrix::Vector<float, NUM_ACTUATORS> actuator_norm = _control_allocation->normalizeActuatorSetpoint();
-
-	for (size_t i = 0; i < NUM_ACTUATORS; i++) {
-		if (actuator_norm(i) > (1.0f - FLT_EPSILON)) {
-			multirotor_motor_limits.saturation_status |= (1 << 1);
-
-		} else if (actuator_norm(i) < (-1.0f + FLT_EPSILON)) {
-			multirotor_motor_limits.saturation_status |= (1 << 2);
-		}
-	}
-
-	// Control saturation
-	matrix::Vector<float, NUM_AXES> unallocated_control = _control_allocation->getControlSetpoint() -
-			_control_allocation->getAllocatedControl();
-
-	// roll
-	if (unallocated_control(0) > FLT_EPSILON) {
-		multirotor_motor_limits.saturation_status |= (1 << 3);
-
-	} else if (unallocated_control(0) < -FLT_EPSILON) {
-		multirotor_motor_limits.saturation_status |= (1 << 4);
-	}
-
-	// pitch
-	if (unallocated_control(1) > FLT_EPSILON) {
-		multirotor_motor_limits.saturation_status |= (1 << 5);
-
-	} else if (unallocated_control(1) < -FLT_EPSILON) {
-		multirotor_motor_limits.saturation_status |= (1 << 6);
-	}
-
-	// yaw
-	if (unallocated_control(2) > FLT_EPSILON) {
-		multirotor_motor_limits.saturation_status |= (1 << 7);
-
-	} else if (unallocated_control(2) < -FLT_EPSILON) {
-		multirotor_motor_limits.saturation_status |= (1 << 8);
-	}
-
-	// z thrust
-	if (unallocated_control(5) > FLT_EPSILON) {
-		multirotor_motor_limits.saturation_status |= (1 << 10); 	// 10 because Z points downward
-
-	} else if (unallocated_control(5) < -FLT_EPSILON) {
-		multirotor_motor_limits.saturation_status |= (1 << 9);		// 9 because Z points downward
-	}
-
-
-	_multirotor_motor_limits_pub.publish(multirotor_motor_limits);
 }
 
 int ControlAllocator::task_spawn(int argc, char *argv[])
