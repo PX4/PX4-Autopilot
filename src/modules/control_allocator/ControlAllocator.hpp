@@ -111,6 +111,12 @@ private:
 	int _allocation_method_id{-1};
 	ControlAllocation *_control_allocation{nullptr}; 	///< class for control allocation calculations
 
+	enum class Airframe {
+		QUAD_W=0,
+		HEXA_X=1,
+		STANDARD_VTOL=2
+	};
+
 	// Inputs
 	uORB::SubscriptionCallbackWorkItem _vehicle_torque_setpoint_sub{this, ORB_ID(vehicle_torque_setpoint)};  /**< vehicle torque setpoint subscription */
 	uORB::SubscriptionCallbackWorkItem _vehicle_thrust_setpoint_sub{this, ORB_ID(vehicle_thrust_setpoint)};	 /**< vehicle thrust setpoint subscription */
