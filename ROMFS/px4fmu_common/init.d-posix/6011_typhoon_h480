@@ -26,6 +26,14 @@ then
 	param set MNT_MODE_IN 0
 	param set MAV_PROTO_VER 2
 
+	param set VM_INERTIA_XX 0.005
+	param set VM_INERTIA_YY 0.005
+	param set VM_INERTIA_ZZ 0.01
+
+	param set AVC_X_D 0.0
+	param set AVC_Y_D 0.0
+	param set AVC_Z_D 0.0
+
 	param set CA_AIRFRAME 1
 	param set CA_ACT0_MIN 0.0
 	param set CA_ACT1_MIN 0.0
