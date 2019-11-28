@@ -139,32 +139,19 @@ ControlAllocator::getEffectinvenessMatrix()
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> B;
 
 	switch (_param_ca_airframe.get()) {
+
 	case 0: {
-			if (_vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			// quad_w
+			const float B_quad_w[NUM_AXES][NUM_ACTUATORS] = {
 				// quad_w
-				const float B_quad_w[NUM_AXES][NUM_ACTUATORS] = {
-					{-0.5,  0.5,  0.5, -0.5, 0.f, 0.0f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{ 0.5, -0.5,  0.5, -0.5, 0.f, 0.f, 0.f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{ 0.28323701f,  0.28323701f, -0.28323701f, -0.28323701f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{ 0.f,  0.f,  0.f,  0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{-0.25f, -0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
-				};
-				B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_quad_w);
-
-			} else {
-				// fixed wing
-				const float B_fixed_wing[NUM_AXES][NUM_ACTUATORS] = {
-					{ 0.0, 0.0, 0.0, 0.0, 0.f, -0.5f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{ 0.0, 0.0, 0.0, 0.0, 0.f, 0.f, 0.f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{ 0.0, 0.0, 0.0, 0.0, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{ 0.f,  0.f,  0.f,  0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{ 0.0f, 0.0f, 0.0f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
-				};
-				B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_fixed_wing);
-			}
-
+				{-0.5717536f,  0.43756646f,  0.5717536f, -0.43756646f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+				{ 0.35355328f, -0.35355328f,  0.35355328f, -0.35355328f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+				{ 0.28323701f,  0.28323701f, -0.28323701f, -0.28323701f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+				{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+				{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+				{-0.25f, -0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
+			};
+			B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_quad_w);
 			break;
 		}
 
@@ -179,6 +166,35 @@ ControlAllocator::getEffectinvenessMatrix()
 				{-0.166667f, -0.166667f, -0.166667f, -0.166667f, -0.166667f, -0.166667f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
 			};
 			B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_hexa_x);
+			break;
+		}
+
+	case 2: {
+			if (_vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+				// standard_vtol_hover
+				const float B_standard_vtol_hover[NUM_AXES][NUM_ACTUATORS] = {
+					{-0.5,  0.5,  0.5, -0.5, 0.f, 0.0f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{ 0.5, -0.5,  0.5, -0.5, 0.f, 0.f, 0.f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{ 0.28323701f,  0.28323701f, -0.28323701f, -0.28323701f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{ 0.f,  0.f,  0.f,  0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{-0.25f, -0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
+				};
+				B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_standard_vtol_hover);
+
+			} else {
+				// standard_vtol_fixed_wing
+				const float B_standard_vtol_fixed_wing[NUM_AXES][NUM_ACTUATORS] = {
+					{ 0.0, 0.0, 0.0, 0.0, 0.f, -0.5f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{ 0.0, 0.0, 0.0, 0.0, 0.f, 0.f, 0.f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{ 0.0, 0.0, 0.0, 0.0, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{ 0.f,  0.f,  0.f,  0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{ 0.0f, 0.0f, 0.0f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
+				};
+				B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_standard_vtol_fixed_wing);
+			}
+
 			break;
 		}
 
