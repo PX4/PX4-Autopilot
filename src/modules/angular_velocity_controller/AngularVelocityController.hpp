@@ -61,7 +61,8 @@
 #include <uORB/topics/vehicle_torque_setpoint.h>
 
 
-class AngularVelocityController : public ModuleBase<AngularVelocityController>, public ModuleParams, public px4::WorkItem
+class AngularVelocityController : public ModuleBase<AngularVelocityController>, public ModuleParams,
+	public px4::WorkItem
 {
 public:
 	AngularVelocityController();

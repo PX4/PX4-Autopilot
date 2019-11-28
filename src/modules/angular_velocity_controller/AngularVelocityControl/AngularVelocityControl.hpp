@@ -84,7 +84,8 @@ public:
 	 * @param saturation_positive positive saturation
 	 * @param saturation_negative negative saturation
 	 */
-	void setSaturationStatus(const matrix::Vector<bool, 3> &saturation_positive, const matrix::Vector<bool, 3> &saturation_negative);
+	void setSaturationStatus(const matrix::Vector<bool, 3> &saturation_positive,
+				 const matrix::Vector<bool, 3> &saturation_negative);
 
 	/**
 	 * Run one control loop cycle calculation
@@ -94,7 +95,8 @@ public:
 	 * @param dt elapsed time since last update
 	 * @param landed whether the vehicle is on the ground
 	 */
-	void update(const matrix::Vector3f &angular_velocity, const matrix::Vector3f &angular_acceleration, const matrix::Vector3f &angular_velocity_sp, const float dt, const bool landed);
+	void update(const matrix::Vector3f &angular_velocity, const matrix::Vector3f &angular_acceleration,
+		    const matrix::Vector3f &angular_velocity_sp, const float dt, const bool landed);
 
 	/**
 	 * Get the desired angular acceleration
