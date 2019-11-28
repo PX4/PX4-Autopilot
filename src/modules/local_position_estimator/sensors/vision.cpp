@@ -162,20 +162,20 @@ void BlockLocalPositionEstimator::visionCorrect()
 	Matrix<float, n_y_vision, n_y_vision> S = C * m_P * C.transpose() + R;
 
 	// publish innovations
-	_pub_innov.get().ev_hvel[0] = NAN;
-	_pub_innov.get().ev_hvel[1] = NAN;
-	_pub_innov.get().ev_vvel    = NAN;
 	_pub_innov.get().ev_hpos[0] = r(0, 0);
 	_pub_innov.get().ev_hpos[1] = r(1, 0);
 	_pub_innov.get().ev_vpos    = r(2, 0);
+	_pub_innov.get().ev_hvel[0] = NAN;
+	_pub_innov.get().ev_hvel[1] = NAN;
+	_pub_innov.get().ev_vvel    = NAN;
 
 	// publish innovation variances
-	_pub_innov_var.get().ev_hvel[0] = NAN;
-	_pub_innov_var.get().ev_hvel[1] = NAN;
-	_pub_innov_var.get().ev_vvel    = NAN;
 	_pub_innov_var.get().ev_hpos[0] = S(0, 0);
 	_pub_innov_var.get().ev_hpos[1] = S(1, 1);
 	_pub_innov_var.get().ev_vpos    = S(2, 2);
+	_pub_innov_var.get().ev_hvel[0] = NAN;
+	_pub_innov_var.get().ev_hvel[1] = NAN;
+	_pub_innov_var.get().ev_vvel    = NAN;
 
 	// residual covariance, (inverse)
 	Matrix<float, n_y_vision, n_y_vision> S_I = inv<float, n_y_vision>(S);
