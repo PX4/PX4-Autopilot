@@ -432,7 +432,7 @@ ControlAllocator::publish_legacy_multirotor_motor_limits()
 	if (unallocated_control(0) > FLT_EPSILON) {
 		multirotor_motor_limits.saturation_status |= (1 << 3);
 
-	} else if (unallocated_control(0) < FLT_EPSILON) {
+	} else if (unallocated_control(0) < -FLT_EPSILON) {
 		multirotor_motor_limits.saturation_status |= (1 << 4);
 	}
 
@@ -440,7 +440,7 @@ ControlAllocator::publish_legacy_multirotor_motor_limits()
 	if (unallocated_control(1) > FLT_EPSILON) {
 		multirotor_motor_limits.saturation_status |= (1 << 5);
 
-	} else if (unallocated_control(1) < FLT_EPSILON) {
+	} else if (unallocated_control(1) < -FLT_EPSILON) {
 		multirotor_motor_limits.saturation_status |= (1 << 6);
 	}
 
@@ -448,7 +448,7 @@ ControlAllocator::publish_legacy_multirotor_motor_limits()
 	if (unallocated_control(2) > FLT_EPSILON) {
 		multirotor_motor_limits.saturation_status |= (1 << 7);
 
-	} else if (unallocated_control(2) < FLT_EPSILON) {
+	} else if (unallocated_control(2) < -FLT_EPSILON) {
 		multirotor_motor_limits.saturation_status |= (1 << 8);
 	}
 
@@ -456,9 +456,10 @@ ControlAllocator::publish_legacy_multirotor_motor_limits()
 	if (unallocated_control(5) > FLT_EPSILON) {
 		multirotor_motor_limits.saturation_status |= (1 << 10); 	// 10 because Z points downward
 
-	} else if (unallocated_control(5) < FLT_EPSILON) {
+	} else if (unallocated_control(5) < -FLT_EPSILON) {
 		multirotor_motor_limits.saturation_status |= (1 << 9);		// 9 because Z points downward
 	}
+
 
 	_multirotor_motor_limits_pub.publish(multirotor_motor_limits);
 }
