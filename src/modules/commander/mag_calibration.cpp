@@ -524,8 +524,8 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 
 	worker_data.mavlink_log_pub = mavlink_log_pub;
 	worker_data.done_count = 0;
-	worker_data.calibration_points_perside = calibration_total_points / calibration_sides;
-	worker_data.calibration_interval_perside_seconds = calibraton_duration_seconds / calibration_sides;
+	worker_data.calibration_points_perside = calibration_total_points / detect_orientation_side_count;
+	worker_data.calibration_interval_perside_seconds = calibraton_duration_seconds / detect_orientation_side_count;
 	worker_data.calibration_interval_perside_useconds = worker_data.calibration_interval_perside_seconds * 1000 * 1000;
 
 	// Collect: As defined by configuration
