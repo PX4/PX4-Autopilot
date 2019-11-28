@@ -289,5 +289,8 @@ mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $ud
 # Run script to start logging
 sh etc/init.d/rc.logging
 
+# Start new apps
+sh etc/init.d/rc.new_apps
+
 mavlink boot_complete
 replay trystart
