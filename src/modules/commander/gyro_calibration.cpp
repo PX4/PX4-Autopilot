@@ -78,7 +78,7 @@ static calibrate_return gyro_calibration_worker(int cancel_sub, void *data)
 {
 	gyro_worker_data_t	*worker_data = (gyro_worker_data_t *)(data);
 	unsigned		calibration_counter[max_gyros] = { 0 }, slow_count = 0;
-	const unsigned		calibration_count = 5000;
+	const unsigned		calibration_count = 250;
 	sensor_gyro_s	gyro_report;
 	unsigned		poll_errcount = 0;
 
