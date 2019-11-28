@@ -214,23 +214,13 @@ int do_mag_calibration(orb_advert_t *mavlink_log_pub)
 		device_ids[cur_mag] = px4_ioctl(fd, DEVIOCGDEVICEID, 0);
 		internal[cur_mag] = (px4_ioctl(fd, MAGIOCGEXTERNAL, 0) <= 0);
 
-		// Reset mag scale
+		// Reset mag scale & offset
 		result = px4_ioctl(fd, MAGIOCSSCALE, (long unsigned int)&mscale_null);
 
 		if (result != PX4_OK) {
 			calibration_log_critical(mavlink_log_pub, CAL_ERROR_RESET_CAL_MSG, cur_mag);
 		}
 
-		/* calibrate range */
-		if (result == PX4_OK) {
-			result = px4_ioctl(fd, MAGIOCCALIBRATE, fd);
-
-			if (result != PX4_OK) {
-				calibration_log_info(mavlink_log_pub, "[cal] Skipped scale calibration, sensor %u", cur_mag);
-				/* this is non-fatal - mark it accordingly */
-				result = PX4_OK;
-			}
-		}
 
 		px4_close(fd);
 #endif
