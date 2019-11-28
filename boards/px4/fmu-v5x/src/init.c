@@ -222,6 +222,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	VDD_5V_HIPOWER_EN(true);
 	board_spi_reset(0xff00000A);
 	VDD_3V3_SPEKTRUM_POWER_EN(true);
+	SE050_RESET(false);
 
 	/* Need hrt running before using the ADC */
 
