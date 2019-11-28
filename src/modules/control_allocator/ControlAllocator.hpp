@@ -63,6 +63,7 @@
 #include <uORB/topics/vehicle_torque_setpoint.h>
 #include <uORB/topics/vehicle_thrust_setpoint.h>
 #include <uORB/topics/vehicle_actuator_setpoint.h>
+#include <uORB/topics/vehicle_status.h>
 
 class ControlAllocator : public ModuleBase<ControlAllocator>, public ModuleParams, public px4::WorkItem
 {
@@ -102,6 +103,9 @@ private:
 	void publish_legacy_actuator_controls();
 	void publish_legacy_multirotor_motor_limits();
 
+	const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS>
+	getEffectinvenessMatrix();
+
 	static const uint8_t NUM_ACTUATORS = ControlAllocation::NUM_ACTUATORS;
 	static const uint8_t NUM_AXES = ControlAllocation::NUM_AXES;
 
@@ -126,12 +130,15 @@ private:
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		/**< parameter updates subscription */
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};			/**< battery status subscription */
 	uORB::Subscription _airspeed_sub{ORB_ID(airspeed)};				/**< airspeed subscription */
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	matrix::Vector3f _torque_sp;
 	matrix::Vector3f _thrust_sp;
 
 	// float _battery_scale_factor{1.0f};
 	// float _airspeed_scale_factor{1.0f};
+
+	uint8_t _vehicle_type{0};	/**< see vehicle_status_s::vehicle_type */
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 
