@@ -77,7 +77,8 @@ void ControlAllocationSequentialDesaturation::desaturateActuators(
 	actuator_sp = actuator_sp + 0.5f * gain * desaturation_vector;
 }
 
-ControlAllocation::ActuatorVector ControlAllocationSequentialDesaturation::getDesaturationVector(const ControlAxis &axis)
+ControlAllocation::ActuatorVector ControlAllocationSequentialDesaturation::getDesaturationVector(
+	const ControlAxis &axis)
 {
 	ActuatorVector ret;
 
