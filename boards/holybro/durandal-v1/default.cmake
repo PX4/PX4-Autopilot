@@ -24,7 +24,7 @@ px4_add_board(
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
-		# dshot -- todo needslooking at
+		dshot
 		gps
 		heater
 		#imu # all available imu drivers

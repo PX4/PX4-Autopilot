@@ -32,5 +32,18 @@
  ****************************************************************************/
 #pragma once
 
+#include <stm32_dma.h>
+
+static inline void px4_stm32_dmasetup(DMA_HANDLE handle, uint32_t paddr, uint32_t maddr,
+				      size_t ntransfers, uint32_t scr)
+{
+	struct stm32_dma_config_s cfg;
+	cfg.paddr = paddr;
+	cfg.maddr = maddr;
+	cfg.cfg1 = scr;
+	cfg.cfg2 = 0;
+	cfg.ndata = ntransfers;
+	stm32_dmasetup(handle, &cfg);
+}
 
 #include "../../../stm32_common/include/px4_arch/dshot.h"
