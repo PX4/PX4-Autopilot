@@ -60,7 +60,7 @@
 int test_uart_send(int argc, char *argv[])
 {
 	/* input handling */
-	char *uart_name = "/dev/ttyS3";
+    char *uart_name = "/dev/ttyS3";
 
 	if (argc > 1) { uart_name = argv[1]; }
 

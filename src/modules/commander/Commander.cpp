@@ -1058,7 +1058,14 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
                 // Switch to orbit state and let the orbit task handle the command further
                 main_state_transition(*status_local, commander_state_s::MAIN_STATE_ORBIT, status_flags, &internal_state);
                 break;
-
+				
+        case vehicle_command_s::VEHICLE_CMD_DO_RC_CALIBRATION:
+                if(cmd.param1 > 0.5f)
+                   dg_rc_cal_led();
+			    else 
+				   *changed=true;	
+                break;
+				
         case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
         case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
         case vehicle_command_s::VEHICLE_CMD_CUSTOM_2:
@@ -1301,7 +1308,6 @@ Commander::run()
         int subsys_sub = orb_subscribe(ORB_ID(subsystem_info));
         int system_power_sub = orb_subscribe(ORB_ID(system_power));
         int vtol_vehicle_status_sub = orb_subscribe(ORB_ID(vtol_vehicle_status));
-    //int arm_disarm_sub = orb_subscribe(ORB_ID(arm_disarm));
 
         geofence_result_s geofence_result {};
 
@@ -1655,27 +1661,6 @@ Commander::run()
                                 }
                         }
                 }
-
-//        /* update DG arm_disarm status*/
-//        orb_check(arm_disarm_sub, &updated);
-//        if(updated){
-//            struct arm_disarm_s arm_disarm_status;
-//            arm_disarm_status.arm_disarm = was_armed;
-//            orb_copy(ORB_ID(arm_disarm), arm_disarm_sub, &arm_disarm_status);
-//            warnx("_missle_ctrl.cmd_id:%d", arm_disarm_status.arm_disarm);
-//            if(arm_disarm_status.arm_disarm)
-//            {
-//                if (TRANSITION_CHANGED != arm_disarm(true, &mavlink_log_pub, "command line")) {
-//                    warnx("arming failed");
-//                }
-//            }
-//            else
-//            {
-//                if (TRANSITION_DENIED == arm_disarm(false, &mavlink_log_pub, "command line")) {
-//                    warnx("rejected disarm");
-//                }
-//            }
-//        }
 
                 /* update vtol vehicle status*/
                 orb_check(vtol_vehicle_status_sub, &updated);
@@ -2598,7 +2583,7 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
         changed = true;
         pre_gps_valid = gps_valid;
     }
-
+	
     if(pre_vir != sp_man.virtual_stick_enable){
         changed = true;
         pre_vir = sp_man.virtual_stick_enable;
@@ -2718,8 +2703,11 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
                     led_mode  = led_control_s::MODE_BLINK_NORMAL;
                     led_color = led_control_s::COLOR_YELLOW;
                 }
-            }else if(status.nav_state==vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION){
+			}else if(status.nav_state==vehicle_status_s::NAVIGATION_STATE_AUTO_MISSION){
                 led_mode  = led_control_s::MODE_BLINK_NORMAL;
+                led_color = led_control_s::COLOR_BLUE;
+            }else if(status.nav_state==vehicle_status_s::NAVIGATION_STATE_POSCTL&&sp_man.mode_switch==manual_control_setpoint_s::SWITCH_POS_MIDDLE){
+                led_mode  = led_control_s::MODE_BLINK_FAST;
                 led_color = led_control_s::COLOR_BLUE;
             }else if(status.nav_state==vehicle_status_s::vehicle_status_s::NAVIGATION_STATE_AUTO_RTL){
                 led_mode  = led_control_s::MODE_ON;
@@ -2731,9 +2719,9 @@ control_status_leds(vehicle_status_s *status_local, const actuator_armed_s *actu
                  led_color|= 1<<7;*/
             }else{
                 if(sp_man.virtual_stick_enable){
-                  led_mode  = led_control_s::MODE_BLINK_NORMAL;
-                  led_color = led_control_s::COLOR_BLUE;
-                }else{
+                  led_mode  = led_control_s::MODE_ON;
+                  led_color = led_control_s::COLOR_BLUE; 
+            }else{
                   led_mode  = led_control_s::MODE_BLINK_NORMAL;
                   led_color = led_control_s::COLOR_GREEN;
                 }
@@ -2833,7 +2821,9 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
         // Note: even if status_flags.offboard_control_set_by_command is set
         // we want to allow rc mode change to take precidence.  This is a safety
         // feature, just in case offboard control goes crazy.
-
+        if(_last_sp_man.mode_switch != sp_man.mode_switch||_last_sp_man.mode_slot != sp_man.mode_slot){
+		    *changed = true;
+        }
         const bool altitude_got_valid = !_last_condition_local_altitude_valid && status_flags.condition_local_altitude_valid;
         const bool position_got_valid = !_last_condition_global_position_valid && status_flags.condition_global_position_valid;
         const bool first_time_rc = _last_sp_man.timestamp == 0;
@@ -2957,13 +2947,16 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
                                 case 3:
                                     if (sp_man.mode_switch==manual_control_setpoint_s::SWITCH_POS_ON)
                                         new_mode=commander_state_s::MAIN_STATE_AUTO_RTL;
-                                    else if (sp_man.mode_switch==manual_control_setpoint_s::SWITCH_POS_MIDDLE)
-                                         new_mode=commander_state_s::MAIN_STATE_POSCTL;
+//                                    else if (sp_man.mode_switch==manual_control_setpoint_s::SWITCH_POS_MIDDLE)
+//                                         new_mode=commander_state_s::MAIN_STATE_POSCTL;
                                     else
                                           new_mode=commander_state_s::MAIN_STATE_POSCTL;
                                     break;
                                case 5:
-                                     new_mode=commander_state_s::MAIN_STATE_POSCTL;
+                                    if (sp_man.mode_switch==manual_control_setpoint_s::SWITCH_POS_ON)
+                                          new_mode=commander_state_s::MAIN_STATE_AUTO_RTL;
+                                    else
+                                          new_mode=commander_state_s::MAIN_STATE_POSCTL;
                                      break;
                                default:
                                    return TRANSITION_DENIED;
@@ -3087,23 +3080,6 @@ Commander::set_main_state_rc(const vehicle_status_s &status_local, bool *changed
                                         }
                                 }
                         }
-                }
-
-                if (_virtual_stick_pub == nullptr && sp_man.mode_slot == 5) {
-                    struct virtual_stick_s vs_sp ={};
-                    vs_sp.timestamp = hrt_absolute_time();
-                    vs_sp.r = 0;
-                    vs_sp.y = 0;
-                    vs_sp.x = 0;
-                    vs_sp.z = 0.5;
-                    if (internal_state.main_state == commander_state_s::MAIN_STATE_POSCTL
-                        || internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER){
-                        vs_sp.vs_enable = 1;
-                    }
-                    else {
-                        vs_sp.vs_enable = 0;
-                    }
-                    orb_advertise(ORB_ID(virtual_stick), &vs_sp);
                 }
 
                 return res;

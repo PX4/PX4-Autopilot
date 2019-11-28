@@ -115,6 +115,7 @@ private:
 	int		_rc_sub = -1;			/**< raw rc channels data subscription */
 	int		_rc_parameter_map_sub = -1;		/**< rc parameter map subscription */
     int    _vs_sub = -1; /**virtual stick by DGXY  subscription*/
+    int    _status_sub = -1;
 
     int     _vs_enable_DG = 0;   /**< virtual stick message by DGXY enable*/
     uint64_t vs_last_timestamp = 0;

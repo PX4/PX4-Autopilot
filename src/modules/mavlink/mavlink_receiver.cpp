@@ -132,8 +132,25 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 {
 	switch (msg->msgid) {
 	case MAVLINK_MSG_ID_COMMAND_LONG:
-		handle_message_command_long(msg);
-		break;
+        handle_message_command_long(msg);
+//        PX4_INFO("checksum is %x\n", msg->checksum);
+//        PX4_INFO("compat_flags is %x\n", msg->compat_flags);
+//        PX4_INFO("compid is %x\n", msg->compid);
+//        PX4_INFO("incompat_flags is %x\n", msg->incompat_flags);
+//        PX4_INFO("len is %x\n", msg->len);
+//        PX4_INFO("magic is %x\n", msg->magic);
+//        PX4_INFO("msgid is %x\n", msg->msgid);
+//        PX4_INFO("seq is %x\n", msg->seq);
+//        PX4_INFO("sysid is %x\n", msg->sysid);
+//        PX4_INFO("ck[0] is %x\n", msg->ck[0]);
+//        PX4_INFO("ck[1] is %x\n", msg->ck[1]);
+//        for (int i = 0; i < 33; ++i) {
+//           PX4_INFO("payload64[%d] is %llx\n", i, msg->payload64[i]);
+//        }
+//        for (int i = 0; i < 13; ++i) {
+//           PX4_INFO("signature[%d] is %x\n", i, msg->signature[i]);
+//        }
+        break;
 
 	case MAVLINK_MSG_ID_COMMAND_INT:
 		handle_message_command_int(msg);
@@ -427,7 +444,7 @@ MavlinkReceiver::handle_message_command_long(mavlink_message_t *msg)
 	vcmd.confirmation = cmd_mavlink.confirmation;
 	vcmd.from_external = true;
 
-	handle_message_command_both(msg, cmd_mavlink, vcmd);
+    handle_message_command_both(msg, cmd_mavlink, vcmd);
 }
 
 void

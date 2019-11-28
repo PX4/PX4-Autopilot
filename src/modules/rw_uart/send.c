@@ -83,13 +83,19 @@ uint8_t get_control_status(uint16_t command, uint8_t nav_state){
  }
 }
 
-uint8_t get_warnning (bool geofence_violated, uint8_t warning ){
+uint8_t get_warnning (bool geofence_violated, uint8_t warning, bool rc_lost ){
     uint8_t result = 0x00;
-    if (warning >0){
-        result |=0x03;
+    if (warning == 1){
+        result |=0x01;
+    }
+    if (warning == 2){
+        result |=0x02;
     }
     if (geofence_violated == true){
         result |=0x0c;
+    }
+    if (rc_lost == true){
+        result |=0x10;
     }
     return result;
 }
@@ -120,9 +126,12 @@ void stp_pack (STP *stp, MSG_orb_data stp_data){
     stp->wp_seq_high = (uint8_t)(((stp_data.mission_data.seq_current & 0xff00) +1) >> 8);
     stp->wp_total = (uint16_t)stp_data.mission_data.seq_total;
 
-    if ( (stp_data.status_data.nav_state == 2 ||  stp_data.status_data.nav_state == 4)
+    if ((stp_data.status_data.nav_state == 2 ||  stp_data.status_data.nav_state == 4)
          && stp_data.manual_data.mode_switch == 2)
         stp->control_status = get_control_status (stp_data.command_data.command, 3);
+    else if ((stp_data.status_data.nav_state == 2 ||  stp_data.status_data.nav_state == 4)
+             && stp_data.manual_data.mode_slot == 5)
+        stp->control_status = 0x0c;
     else
         stp->control_status = get_control_status (stp_data.command_data.command, stp_data.status_data.nav_state);
 
@@ -203,7 +212,7 @@ void stp_pack (STP *stp, MSG_orb_data stp_data){
     stp->rc_roll_mid = 150;
     stp->rc_yaw_mid = 150;
 
-    stp->version =1000;
+    stp->version =0x0581;
     stp->sum_check=0x00;
 
     //stp->local_z_pressure =  (int16_t)(stp_data.air_data.baro_alt_meter * 10.0);
@@ -220,7 +229,8 @@ void stp_pack (STP *stp, MSG_orb_data stp_data){
     if (param_saved[18] == 3) stp->skyway_state &= 0xfe;
     else stp->skyway_state |= 0x01;
 
-    stp->warnning = get_warnning(stp_data.geofence_data.geofence_violated, stp_data.battery_data.warning);
+    stp->warnning = get_warnning(stp_data.geofence_data.geofence_violated, stp_data.battery_data.warning,
+                                                stp_data.status_data.rc_signal_lost);
 
     if (stp_data.arm_data.armed == true){
         stp->flight_time = (uint16_t)(stp->total_time - stp_data.arm_data.armed_time_ms/1000);

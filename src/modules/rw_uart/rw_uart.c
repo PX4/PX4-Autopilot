@@ -100,7 +100,7 @@ int set_rw_uart_baudrate(const int fd, unsigned int baud)
 int rw_uart_init (void)
 {
        char *uart_name = "/dev/ttyS3";
-       //char uart_name[] = "/dev/ttyS3";
+       //char *uart_name = "/dev/ttyS2";
        int serial_fd = open(uart_name, O_RDWR | O_NONBLOCK | O_NOCTTY);
        //int serial_fd = open(uart_name, O_RDWR | O_NOCTTY);
         // 选项 O_NOCTTY 表示不能把本串口当成控制终端，否则用户的键盘输入信息将影响程序的执行

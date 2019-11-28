@@ -244,7 +244,7 @@ private:
 	Publication<home_position_s>			_home_pub{ORB_ID(home_position)};
 
 	orb_advert_t					_status_pub{nullptr};
-    orb_advert_t                   _virtual_stick_pub{nullptr};   //DG virtual stick message
+    //orb_advert_t                   _virtual_stick_pub{nullptr};   //DG virtual stick message
 };
 
 #endif /* COMMANDER_HPP_ */

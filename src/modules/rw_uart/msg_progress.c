@@ -28,6 +28,37 @@ void msg_pack_send( MSG_orb_data msg_data, MSG_orb_pub *msg_pd)
     }
 }
 
+void set_command_param(struct vehicle_command_s *command_data, int command_num, float param1, float param2,
+                                        float param3, float param4, double param5, double param6, float param7)
+{
+    command_data->command = command_num;
+    command_data->param1 = param1;
+    command_data->param2 = param2;
+    command_data->param3 = param3;
+    command_data->param4 = param4;
+    command_data->param5 = param5;
+    command_data->param6 = param6;
+    command_data->param7 = param7;
+    command_data->target_system = 1;
+    command_data->target_component =1;
+    command_data->source_system =255;
+    command_data->source_component =0;
+    command_data->confirmation =0;
+    command_data->from_external =1;
+}
+
+void publish_commander_pd(MSG_orb_pub *msg_pd, MSG_orb_data *msg_data)
+{
+    if (msg_pd->command_pd != NULL){
+            orb_publish(ORB_ID(vehicle_command), msg_pd->command_pd, &msg_data->command_data);
+            printf("Passing 2_1\n");
+    }
+    else{
+            msg_pd->command_pd = orb_advertise(ORB_ID(vehicle_command), &msg_data->command_data);
+            printf("Passing 2_2\n");
+    }
+}
+
 void msg_param_saved_get(MSG_param_hd msg_hd)
 {
     YFPA_param yfpa_param;
@@ -41,13 +72,13 @@ void msg_param_saved_get(MSG_param_hd msg_hd)
     write(uart_read, param_saved, sizeof(YFPA_param));
 }
 
-void set_rc_channel_max_min(void){
+void set_rc_channel_max_min(MSG_orb_pub *msg_pd, MSG_orb_data *msg_data){
     int input_rc_fd =orb_subscribe(ORB_ID(input_rc));
     struct input_rc_s value;
     float max_1,max_2 ,max_3, max_4;
-    max_1 = max_2 = max_3 = max_4 = 0;
+    max_1 = max_2 = max_3 = max_4 = 1850.0;;
     float min_1,min_2 ,min_3, min_4;
-    min_1 = min_2 = min_3 = min_4 = 0;
+    min_1 = min_2 = min_3 = min_4 = 1150.0;
     param_t channel1_max = param_find("RC1_MAX");
     param_t channel2_max = param_find("RC2_MAX");
     param_t channel3_max = param_find("RC3_MAX");
@@ -58,18 +89,9 @@ void set_rc_channel_max_min(void){
     param_t channel3_min = param_find("RC3_MIN");
     param_t channel4_min = param_find("RC4_MIN");
 
-    param_set(channel1_max, &max_1);
-    param_set(channel2_max, &max_2);
-    param_set(channel3_max, &max_3);
-    param_set(channel3_trim, &max_3);
-    param_set(channel4_max, &max_4);
-    param_set(channel1_min, &min_1);
-    param_set(channel2_min, &min_2);
-    param_set(channel3_min, &min_3);
-    param_set(channel4_min, &min_4);
-
-    max_1 = max_2 = max_3 = max_4 = 1850.0;
-    min_1 = min_2 = min_3 = min_4 =1150.0;
+    set_command_param(&msg_data->command_data, 223, 1, 0, 0, 0, 0, 0, 0); //VEHICLE_CMD_DO_RC_CALIBRATION
+    publish_commander_pd(msg_pd, msg_data);
+    usleep(1000000);
 
     for (int i=0; i< 500; i++){
        orb_copy(ORB_ID(input_rc), input_rc_fd, &value);
@@ -94,6 +116,9 @@ void set_rc_channel_max_min(void){
     param_set(channel3_min, &min_3);
     param_set(channel4_min, &min_4);
     orb_unsubscribe(input_rc_fd);
+
+    set_command_param(&msg_data->command_data, 223, 0, 0, 0, 0, 0, 0, 0); //VEHICLE_CMD_DO_RC_CALIBRATION
+    publish_commander_pd(msg_pd, msg_data);
 }
 
 void set_rc_channel_mid(void){
@@ -117,21 +142,21 @@ void set_rc_channel_mid(void){
     orb_unsubscribe(input_rc_fd);
 }
 
-bool check_mid(struct virtual_stick_s *vs_sp)
-{
-    int input_rc_fd =orb_subscribe(ORB_ID(input_rc));
-    struct input_rc_s value;
-    orb_copy(ORB_ID(input_rc), input_rc_fd, &value);
-    bool rc_lost;
-    rc_lost = value.rc_failsafe || value.rc_lost || (value.timestamp == 0);
-    vs_sp->rc_signal_lost = rc_lost;
-    bool check_mid_pos;
-    check_mid_pos = (abs(value.values[0] -1500) < 50) && (abs(value.values[1] -1500) < 50)
-                             && (abs(value.values[2] -1500) < 50) &&(abs(value.values[3] -1500) < 50);
-    orb_unsubscribe(input_rc_fd);
-    printf("rc_lost is %d, check_mid_pos is %d\n", rc_lost, check_mid_pos);
-    return check_mid_pos || rc_lost;
-}
+//bool check_mid(struct virtual_stick_s *vs_sp)
+//{
+//    int input_rc_fd =orb_subscribe(ORB_ID(input_rc));
+//    struct input_rc_s value ={};
+//    orb_copy(ORB_ID(input_rc), input_rc_fd, &value);
+//    bool rc_lost;
+//    rc_lost = value.rc_failsafe || value.rc_lost || (value.timestamp == 0);
+//    vs_sp->rc_signal_lost = rc_lost;
+//    bool check_mid_pos;
+//    check_mid_pos = (abs(value.values[0] -1500) < 50) && (abs(value.values[1] -1500) < 50)
+//                             && (abs(value.values[2] -1500) < 50) &&(abs(value.values[3] -1500) < 50);
+//    orb_unsubscribe(input_rc_fd);
+//    printf("rc_lost is %d, check_mid_pos is %d\n", rc_lost, check_mid_pos);
+//    return check_mid_pos || rc_lost;
+//}
 
 void publish_dg_mission_pd(MSG_orb_pub *msg_pd, struct dg_mission_s *mission_item)
 {
@@ -172,18 +197,6 @@ void wp_save(MSG_orb_pub *msg_pd){
     publish_dg_mission_pd(msg_pd, &mission_item);
 }
 
-void publish_commander_pd(MSG_orb_pub *msg_pd, MSG_orb_data *msg_data)
-{
-    if (msg_pd->command_pd != NULL){
-            orb_publish(ORB_ID(vehicle_command), msg_pd->command_pd, &msg_data->command_data);
-            printf("Passing 2_1\n");
-    }
-    else{
-            msg_pd->command_pd = orb_advertise(ORB_ID(vehicle_command), &msg_data->command_data);
-            printf("Passing 2_2\n");
-    }
-}
-
 void publish_vs_pd(MSG_orb_pub *msg_pd, struct virtual_stick_s *vs_sp)
 {
     if (msg_pd->virtual_stick_pd != NULL){
@@ -194,25 +207,6 @@ void publish_vs_pd(MSG_orb_pub *msg_pd, struct virtual_stick_s *vs_sp)
             msg_pd->virtual_stick_pd = orb_advertise(ORB_ID(virtual_stick), vs_sp);
             printf("Passing 2_2\n");
     }
-}
-
-void set_command_param(struct vehicle_command_s *command_data, int command_num, float param1, float param2,
-                                        float param3, float param4, double param5, double param6, float param7)
-{
-    command_data->command = command_num;
-    command_data->param1 = param1;
-    command_data->param2 = param2;
-    command_data->param3 = param3;
-    command_data->param4 = param4;
-    command_data->param5 = param5;
-    command_data->param6 = param6;
-    command_data->param7 = param7;
-    command_data->target_system = 1;
-    command_data->target_component =1;
-    command_data->source_system =255;
-    command_data->source_component =0;
-    command_data->confirmation =0;
-    command_data->from_external =1;
 }
 
 void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data *msg_data,
@@ -371,7 +365,6 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             orb_unsubscribe(home_position_fd);
             printf("Passing hight_change, hight is %.4f\n", (float_t)*(int16_t*)((uint32_t)buffer + 7)/10.0);
             break;
-        //case WIFI_COMM_RC_POS:
         case WIFI_COMM_ESC_CALI_ON:
             set_command_param(&msg_data->command_data, 241, 0, 0, 0, 0, 0, 0, 1);//CMD_PREFLIGHT_CALIBRATION
             publish_commander_pd(msg_pd, msg_data);
@@ -388,10 +381,6 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             printf("Passing atuo_on\n");
             break;
         case WIFI_COMM_AUTO_FLIGHT_OFF:
-/*            set_command_param(&msg_data->command_data, 17, 0, 0, 0, 0,
-                              (msg_data->global_position_data.lat),
-                              (msg_data->global_position_data.lon),
-                              (msg_data->global_position_data.alt));*///CMD_NAV_LOITER_UNLIM
             set_command_param(&msg_data->command_data, 176, 189, 4, 3, 0, 0, 0, 0); //VEHICLE_SET_MODE :LOITER
             publish_commander_pd(msg_pd, msg_data);
             printf("Passing auto_off\n");
@@ -416,7 +405,7 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
             break;
         case WIFI_COMM_RC_POS:
             printf("Set_rc_channel_limit Start\n");
-            set_rc_channel_max_min();
+            set_rc_channel_max_min(msg_pd, msg_data);
             printf("Set_rc_channel_limit Finish\n");
             //response
             docap_pack_send(1);
@@ -424,6 +413,13 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
         case WIFI_COMM_POS_SAVE:
             lat_save = msg_data->global_position_data.lat;
             lon_save = msg_data->global_position_data.lon;
+            break;
+        case WIFI_COMM_REBOOT:
+            if (msg_data->arm_data.armed == false){
+                set_command_param(&msg_data->command_data, 246,
+                                                3, 0, 0, 0, 0, 0, 0); //VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN
+                publish_commander_pd(msg_pd, msg_data);
+            }
             break;
         default:
             break;
@@ -439,14 +435,17 @@ void msg_orb_param_pro(const uint8_t *buffer, MSG_orb_pub *msg_pd, MSG_orb_data 
         vs_sp.x = ((float_t)(((uint16_t) buffer[9]<<8) + buffer [10])/1000.0 - 1.5)*2.0;
         vs_sp.z = 2.0 - (float_t)(((uint16_t) buffer[11]<<8) + buffer [12])/1000.0;
         //printf("Passing iwfi_pack, x = %.3f y = %.3f z = %.3f r = %.3f\n", vs_sp.x, vs_sp.y, vs_sp.z, vs_sp.r);
-        //if ((msg_data->status_data.nav_state == 2 || msg_data->status_data.nav_state == 4) && check_mid(&vs_sp))
-        if (msg_data->status_data.nav_state == 2 || msg_data->status_data.nav_state == 4)
+        //if ((msg_data->status_data.nav_state == 2 || msg_data->status_data.nav_state == 5) && check_mid(&vs_sp))
+        if (msg_data->status_data.nav_state >=2&& msg_data->status_data.nav_state <=5)
             vs_sp.vs_enable = 1;
         else vs_sp.vs_enable = 0;
+//        int input_rc_fd =orb_subscribe(ORB_ID(input_rc));
+//        struct input_rc_s value = {};
+//        orb_copy(ORB_ID(input_rc), input_rc_fd, &value);
+//        vs_sp.rc_signal_lost = value.rc_failsafe || value.rc_lost || (value.timestamp == 0);
+        vs_sp.rc_signal_lost = msg_data->status_data.rc_signal_lost;
          printf("timestamp is %lld\n", vs_sp.timestamp/1000);
         //printf("vs_enable = %d nav_state = %d\n", vs_sp.vs_enable, msg_data->status_data.nav_state);
-         //int instance;
-         //orb_publish_auto(ORB_ID(virtual_stick), &msg_pd->virtual_stick_pd, &vs_sp, &instance, ORB_PRIO_VERY_HIGH);
          publish_vs_pd(msg_pd, &vs_sp);
         break;
 
