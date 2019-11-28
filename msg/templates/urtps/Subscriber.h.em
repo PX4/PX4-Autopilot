@@ -24,7 +24,7 @@ except AttributeError:
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
- * Copyright (C) 2018-2019 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -134,10 +134,10 @@ private:
         std::atomic_bool has_msg;
         uint8_t topic_ID;
         std::condition_variable* t_send_queue_cv;
-        std::mutex* t_send_queue_mutex; 
+        std::mutex* t_send_queue_mutex;
         std::queue<uint8_t>* t_send_queue;
         std::condition_variable has_msg_cv;
-        std::mutex has_msg_mutex; 
+        std::mutex has_msg_mutex;
 
     } m_listener;
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
