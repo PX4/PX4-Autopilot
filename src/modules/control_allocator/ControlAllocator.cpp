@@ -126,21 +126,45 @@ ControlAllocator::parameters_updated()
 	actuator_max(15) = _param_ca_act15_max.get();
 	_control_allocation->setActuatorMax(actuator_max);
 
+	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> B = getEffectinvenessMatrix();
+
+	// Assign control effectiveness matrix
+	_control_allocation->setEffectivenessMatrix(B);
+}
+
+const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS>
+ControlAllocator::getEffectinvenessMatrix()
+{
 	// Control effectiveness
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> B;
 
 	switch (_param_ca_airframe.get()) {
 	case 0: {
-			// quad_w
-			const float B_quad_w[NUM_AXES][NUM_ACTUATORS] = {
-				{-0.5717536f,  0.43756646f,  0.5717536f, -0.43756646f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.35355328f, -0.35355328f,  0.35355328f, -0.35355328f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.28323701f,  0.28323701f, -0.28323701f, -0.28323701f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{-0.25f, -0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
-			};
-			B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_quad_w);
+			if (_vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+				// quad_w
+				const float B_quad_w[NUM_AXES][NUM_ACTUATORS] = {
+					{-0.5,  0.5,  0.5, -0.5, 0.f, 0.0f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{ 0.5, -0.5,  0.5, -0.5, 0.f, 0.f, 0.f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{ 0.28323701f,  0.28323701f, -0.28323701f, -0.28323701f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{ 0.f,  0.f,  0.f,  0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{-0.25f, -0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
+				};
+				B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_quad_w);
+
+			} else {
+				// fixed wing
+				const float B_fixed_wing[NUM_AXES][NUM_ACTUATORS] = {
+					{ 0.0, 0.0, 0.0, 0.0, 0.f, -0.5f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{ 0.0, 0.0, 0.0, 0.0, 0.f, 0.f, 0.f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{ 0.0, 0.0, 0.0, 0.0, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{ 0.f,  0.f,  0.f,  0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+					{ 0.0f, 0.0f, 0.0f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
+				};
+				B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_fixed_wing);
+			}
+
 			break;
 		}
 
@@ -163,6 +187,10 @@ ControlAllocator::parameters_updated()
 		break;
 	}
 
+
+	matrix::Vector<float, NUM_ACTUATORS> actuator_max = _control_allocation->getActuatorMax();
+	matrix::Vector<float, NUM_ACTUATORS> actuator_min = _control_allocation->getActuatorMin();
+
 	// Set 0 effectiveness for actuators that are disabled (act_min >= act_max)
 	for (size_t j = 0; j < NUM_ACTUATORS; j++) {
 		if (actuator_min(j) >= actuator_max(j)) {
@@ -173,8 +201,7 @@ ControlAllocator::parameters_updated()
 		}
 	}
 
-	// Assign control effectiveness matrix
-	_control_allocation->setEffectivenessMatrix(B);
+	return B;
 }
 
 void
@@ -267,6 +294,19 @@ ControlAllocator::Run()
 
 		updateParams();
 		parameters_updated();
+	}
+
+	if (_vehicle_status_sub.updated()) {
+		vehicle_status_s vehicle_status = {};
+		_vehicle_status_sub.update(&vehicle_status);
+
+		if (_vehicle_type != vehicle_status.vehicle_type) {
+			_vehicle_type = vehicle_status.vehicle_type;
+			matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> B = getEffectinvenessMatrix();
+
+			// Assign control effectiveness matrix
+			_control_allocation->setEffectivenessMatrix(B);
+		}
 	}
 
 
