@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# Standard apps for new control allocation and controllers
+#
+# NOTE: Script variables are declared/initialized/unset in the rcS script.
+#
+
+#
+# Start angular velocity controller
+#
+angular_velocity_controller start
+
+#
+# Start Control Allocator
+#
+control_allocator start
