@@ -78,7 +78,7 @@ public:
 	ControlAllocation() = default;
 	virtual ~ControlAllocation() = default;
 
-	static const uint8_t NUM_ACTUATORS = vehicle_actuator_setpoint_s::NUM_ACTUATOR_SETPOINT;
+	static const uint8_t NUM_ACTUATORS = 16;
 	static const uint8_t NUM_AXES = 6;
 
 	typedef matrix::Vector<float, NUM_ACTUATORS> ActuatorVector;
