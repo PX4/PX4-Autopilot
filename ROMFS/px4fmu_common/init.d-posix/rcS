@@ -300,5 +300,8 @@ else
 fi
 sh etc/init.d/rc.logging
 
+# Start new apps
+sh etc/init.d/rc.new_apps
+
 mavlink boot_complete
 replay trystart
