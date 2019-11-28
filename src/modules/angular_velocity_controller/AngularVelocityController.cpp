@@ -161,59 +161,46 @@ AngularVelocityController::Run()
 		}
 
 		// run the controller
-		bool run_control = ((_vehicle_control_mode.flag_control_rates_enabled
-				     || _vehicle_control_mode.flag_control_termination_enabled)
-				    && (!_vehicle_status.is_vtol
-					|| (_vehicle_status.is_vtol && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING))
-					|| (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode)));
+		if (_vehicle_control_mode.flag_control_rates_enabled) {
+			// reset integral if disarmed
+			if (!_vehicle_control_mode.flag_armed || _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+				_control.resetIntegral();
+			}
 
-		if (run_control) {
+			// update saturation status from mixer feedback
+			if (_control_allocator_status_sub.updated()) {
+				control_allocator_status_s control_allocator_status;
 
-			if (_vehicle_control_mode.flag_control_termination_enabled) {
-				// reset controller
-				_control.reset();
+				if (_control_allocator_status_sub.copy(&control_allocator_status)) {
+					Vector<bool, 3> saturation_positive;
+					Vector<bool, 3> saturation_negative;
 
-			} else {
-				// reset integral if disarmed
-				if (!_vehicle_control_mode.flag_armed || _vehicle_status.vehicle_type != vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-					_control.resetIntegral();
-				}
+					if (not control_allocator_status.torque_setpoint_achieved) {
+						for (size_t i = 0; i < 3; i++) {
+							if (control_allocator_status.unallocated_torque[i] > FLT_EPSILON) {
+								saturation_positive(i) = true;
 
-				// update saturation status from mixer feedback
-				if (_control_allocator_status_sub.updated()) {
-					control_allocator_status_s control_allocator_status;
-
-					if (_control_allocator_status_sub.copy(&control_allocator_status)) {
-						Vector<bool, 3> saturation_positive;
-						Vector<bool, 3> saturation_negative;
-
-						if (not control_allocator_status.torque_setpoint_achieved) {
-							for (size_t i = 0; i < 3; i++) {
-								if (control_allocator_status.unallocated_torque[i] > FLT_EPSILON) {
-									saturation_positive(i) = true;
-
-								} else if (control_allocator_status.unallocated_torque[i] < -FLT_EPSILON) {
-									saturation_negative(i) = true;
-								}
+							} else if (control_allocator_status.unallocated_torque[i] < -FLT_EPSILON) {
+								saturation_negative(i) = true;
 							}
 						}
-
-						_control.setSaturationStatus(saturation_positive, saturation_negative);
 					}
+
+					_control.setSaturationStatus(saturation_positive, saturation_negative);
 				}
-
-				// run rate controller
-				_control.update(angular_velocity, _angular_acceleration, _angular_velocity_sp, dt, _maybe_landed || _landed);
-
-				// publish rate controller status
-				rate_ctrl_status_s rate_ctrl_status{};
-				Vector3f integral = _control.getIntegral();
-				rate_ctrl_status.timestamp = hrt_absolute_time();
-				rate_ctrl_status.rollspeed_integ = integral(0);
-				rate_ctrl_status.pitchspeed_integ = integral(1);
-				rate_ctrl_status.yawspeed_integ = integral(2);
-				_rate_ctrl_status_pub.publish(rate_ctrl_status);
 			}
+
+			// run rate controller
+			_control.update(angular_velocity, _angular_acceleration, _angular_velocity_sp, dt, _maybe_landed || _landed);
+
+			// publish rate controller status
+			rate_ctrl_status_s rate_ctrl_status{};
+			Vector3f integral = _control.getIntegral();
+			rate_ctrl_status.timestamp = hrt_absolute_time();
+			rate_ctrl_status.rollspeed_integ = integral(0);
+			rate_ctrl_status.pitchspeed_integ = integral(1);
+			rate_ctrl_status.yawspeed_integ = integral(2);
+			_rate_ctrl_status_pub.publish(rate_ctrl_status);
 
 			// publish controller output
 			publish_angular_acceleration_setpoint();
