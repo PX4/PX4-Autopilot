@@ -58,11 +58,7 @@ public:
 
     Vector3 cross(const Matrix31 & b) const {
         const Vector3 &a(*this);
-        Vector3 c;
-        c(0) = a(1)*b(2,0) - a(2)*b(1,0);
-        c(1) = -a(0)*b(2,0) + a(2)*b(0,0);
-        c(2) = a(0)*b(1,0) - a(1)*b(0,0);
-        return c;
+        return {a(1)*b(2,0) - a(2)*b(1,0), -a(0)*b(2,0) + a(2)*b(0,0), a(0)*b(1,0) - a(1)*b(0,0)};
     }
 
     /**
