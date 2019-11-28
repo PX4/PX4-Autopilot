@@ -40,7 +40,6 @@
 
 using namespace matrix;
 using namespace time_literals;
-using math::radians;
 
 AngularVelocityController::AngularVelocityController() :
 	ModuleParams(nullptr),
