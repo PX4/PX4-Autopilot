@@ -522,7 +522,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 				px4_close(fd);
 
 				if (res != PX4_OK) {
-					calibration_log_critical(mavlink_log_pub, CAL_ERROR_APPLY_CAL_MSG, 1);
+					calibration_log_critical(mavlink_log_pub, CAL_ERROR_APPLY_CAL_MSG);
 				}
 
 #endif
