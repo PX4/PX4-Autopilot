@@ -28,11 +28,6 @@ fw_att_control start vtol
 fw_pos_control_l1 start vtol
 
 #
-# Start Control Allocator
-#
-control_allocator start
-
-#
 # Start Land Detector
 # Multicopter for now until we have something for VTOL
 #

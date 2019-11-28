@@ -18,11 +18,6 @@ fw_pos_control_l1 start
 airspeed_selector start
 
 #
-# Start Control Allocator
-#
-control_allocator start
-
-#
 # Start Land Detector.
 #
 land_detector start fixedwing
