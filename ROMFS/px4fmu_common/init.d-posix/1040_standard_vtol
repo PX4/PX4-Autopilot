@@ -42,9 +42,9 @@ then
 	param set VT_B_TRANS_DUR 8
 
 
-	param set MC_INERTIA_XX 1.0
-	param set MC_INERTIA_YY 1.0
-	param set MC_INERTIA_ZZ 1.0
+	param set VM_INERTIA_XX 1.0
+	param set VM_INERTIA_YY 1.0
+	param set VM_INERTIA_ZZ 1.0
 
 	param set CA_AIRFRAME 2
 
