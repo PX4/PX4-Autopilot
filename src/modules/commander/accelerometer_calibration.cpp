@@ -414,7 +414,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 		failed |= (PX4_OK != param_set_no_notification(param_find(str), &(device_id[uorb_index])));
 
 		if (failed) {
-			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, uorb_index);
+			calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
 			return PX4_ERROR;
 		}
 
@@ -432,7 +432,7 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 		}
 
 		if (res != PX4_OK) {
-			calibration_log_critical(mavlink_log_pub, CAL_ERROR_APPLY_CAL_MSG, uorb_index);
+			calibration_log_critical(mavlink_log_pub, CAL_ERROR_APPLY_CAL_MSG);
 		}
 
 #endif

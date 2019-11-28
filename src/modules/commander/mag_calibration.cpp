@@ -840,7 +840,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 #ifdef __PX4_NUTTX
 
 					if (px4_ioctl(fd_mag, MAGIOCSSCALE, (long unsigned int)&mscale) != PX4_OK) {
-						calibration_log_critical(mavlink_log_pub, CAL_ERROR_APPLY_CAL_MSG, cur_mag);
+						calibration_log_critical(mavlink_log_pub, CAL_ERROR_APPLY_CAL_MSG);
 						result = calibrate_return_error;
 					}
 
@@ -881,7 +881,7 @@ calibrate_return mag_calibrate_all(orb_advert_t *mavlink_log_pub)
 #endif
 
 					if (failed) {
-						calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG, cur_mag);
+						calibration_log_critical(mavlink_log_pub, CAL_ERROR_SET_PARAMS_MSG);
 						result = calibrate_return_error;
 
 					} else {
