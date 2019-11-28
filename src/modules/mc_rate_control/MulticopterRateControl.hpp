@@ -147,10 +147,9 @@ private:
 	static constexpr const float initial_update_rate_hz = 1000.f; /**< loop update rate used for initialization */
 	float _loop_update_rate_hz{initial_update_rate_hz};          /**< current rate-controller loop update rate in [Hz] */
 
-	matrix::Vector3f _rates_sp;			/**< angular rates setpoint */
+	matrix::Vector3f _rates_sp;		/**< angular rates setpoint */
 
-	matrix::Vector3f		_thrust_sp;		/**< thrust setpoint */
-	float 			_throttle_z_sp{0.0f};
+	matrix::Vector3f _thrust_sp;		/**< thrust setpoint */
 
 	bool _gear_state_initialized{false};		/**< true if the gear state has been initialized */
 
