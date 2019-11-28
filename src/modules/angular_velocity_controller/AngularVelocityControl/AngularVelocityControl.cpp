@@ -47,13 +47,15 @@ void AngularVelocityControl::setGains(const Vector3f &P, const Vector3f &I, cons
 	_gain_d = D;
 }
 
-void AngularVelocityControl::setSaturationStatus(const matrix::Vector<bool, 3> &saturation_positive, const matrix::Vector<bool, 3> &saturation_negative)
+void AngularVelocityControl::setSaturationStatus(const matrix::Vector<bool, 3> &saturation_positive,
+		const matrix::Vector<bool, 3> &saturation_negative)
 {
 	_saturation_positive = saturation_positive;
 	_saturation_negative = saturation_negative;
 }
 
-void AngularVelocityControl::update(const Vector3f &angular_velocity, const Vector3f &angular_acceleration, const Vector3f &angular_velocity_sp, const float dt, const bool landed)
+void AngularVelocityControl::update(const Vector3f &angular_velocity, const Vector3f &angular_acceleration,
+				    const Vector3f &angular_velocity_sp, const float dt, const bool landed)
 {
 	// angular rates error
 	Vector3f angular_velocity_error = angular_velocity_sp - angular_velocity;

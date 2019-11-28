@@ -163,10 +163,10 @@ AngularVelocityController::Run()
 
 		// run the controller
 		bool run_control = ((_vehicle_control_mode.flag_control_rates_enabled
-				|| _vehicle_control_mode.flag_control_termination_enabled)
-				&& (!_vehicle_status.is_vtol
-				|| (_vehicle_status.is_vtol && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING))
-				|| (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode)));
+				     || _vehicle_control_mode.flag_control_termination_enabled)
+				    && (!_vehicle_status.is_vtol
+					|| (_vehicle_status.is_vtol && (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING))
+					|| (_vehicle_status.is_vtol && _vehicle_status.in_transition_mode)));
 
 		if (run_control) {
 
@@ -189,7 +189,7 @@ AngularVelocityController::Run()
 						Vector<bool, 3> saturation_negative;
 
 						if (not control_allocator_status.torque_setpoint_achieved) {
-							for (size_t i=0; i < 3; i++) {
+							for (size_t i = 0; i < 3; i++) {
 								if (control_allocator_status.unallocated_torque[i] > FLT_EPSILON) {
 									saturation_positive(i) = true;
 
