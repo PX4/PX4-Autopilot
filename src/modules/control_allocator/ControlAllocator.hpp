@@ -134,7 +134,13 @@ private:
 	// float _battery_scale_factor{1.0f};
 	// float _airspeed_scale_factor{1.0f};
 
-	uint8_t _vehicle_type{0};	/**< see vehicle_status_s::vehicle_type */
+	enum class FlightPhase {
+		HOVER_FLIGHT=0,
+		FORWARD_FLIGHT=1,
+		TRANSITION_HF_TO_FF=2,
+		TRANSITION_FF_TO_HF=3
+	};
+	FlightPhase _flight_phase{FlightPhase::HOVER_FLIGHT};
 
 	perf_counter_t	_loop_perf;			/**< loop duration performance counter */
 

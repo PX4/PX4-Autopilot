@@ -170,29 +170,46 @@ ControlAllocator::getEffectinvenessMatrix()
 		}
 
 	case 2: {
-			if (_vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-				// standard_vtol_hover
-				const float B_standard_vtol_hover[NUM_AXES][NUM_ACTUATORS] = {
-					{-0.5,  0.5,  0.5, -0.5, 0.f, 0.0f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{ 0.5, -0.5,  0.5, -0.5, 0.f, 0.f, 0.f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{ 0.28323701f,  0.28323701f, -0.28323701f, -0.28323701f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+			switch (_flight_phase) {
+			case FlightPhase::HOVER_FLIGHT:  {
+					const float B_standard_vtol[NUM_AXES][NUM_ACTUATORS] = {
+						{-0.5f,  0.5f,  0.5f, -0.5f, 0.f, 0.0f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+						{ 0.5f, -0.5f,  0.5f, -0.5f, 0.f, 0.f, 0.f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+						{ 0.25f,  0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
 					{ 0.f,  0.f,  0.f,  0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
 					{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
 					{-0.25f, -0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
 				};
-				B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_standard_vtol_hover);
+					B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_standard_vtol);
+					break;
+				}
 
-			} else {
-				// standard_vtol_fixed_wing
-				const float B_standard_vtol_fixed_wing[NUM_AXES][NUM_ACTUATORS] = {
-					{ 0.0, 0.0, 0.0, 0.0, 0.f, -0.5f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{ 0.0, 0.0, 0.0, 0.0, 0.f, 0.f, 0.f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{ 0.0, 0.0, 0.0, 0.0, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{ 0.f,  0.f,  0.f,  0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{ 0.0f, 0.0f, 0.0f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
+			case FlightPhase::FORWARD_FLIGHT: {
+					const float B_standard_vtol[NUM_AXES][NUM_ACTUATORS] = {
+						{ 0.f, 0.f, 0.f, 0.f, 0.f, -0.5f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+						{ 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+						{ 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+						{ 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+						{ 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+						{ 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
+					};
+					B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_standard_vtol);
+					break;
+				}
+
+			case FlightPhase::TRANSITION_HF_TO_FF:
+			case FlightPhase::TRANSITION_FF_TO_HF: {
+					const float B_standard_vtol[NUM_AXES][NUM_ACTUATORS] = {
+						{ -0.5f,  0.5f,  0.5f, -0.5f, 0.f, -0.5f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+						{  0.5f, -0.5f,  0.5f, -0.5f, 0.f, 0.f, 0.f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+						{  0.25f,  0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+						{  0.f,  0.f,  0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+						{  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+						{-0.25f, -0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
 				};
-				B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_standard_vtol_fixed_wing);
+					B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_standard_vtol);
+					break;
+				}
 			}
 
 			break;
@@ -316,8 +333,29 @@ ControlAllocator::Run()
 		vehicle_status_s vehicle_status = {};
 		_vehicle_status_sub.update(&vehicle_status);
 
-		if (_vehicle_type != vehicle_status.vehicle_type) {
-			_vehicle_type = vehicle_status.vehicle_type;
+		FlightPhase new_flight_phase = FlightPhase::HOVER_FLIGHT;
+
+		// Check if the current flight phase is HOVER or FIXED_WING
+		if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
+			new_flight_phase = FlightPhase::HOVER_FLIGHT;
+
+		} else {
+			new_flight_phase = FlightPhase::FORWARD_FLIGHT;
+		}
+
+		// Special cases for VTOL in transition
+		if (vehicle_status.is_vtol && vehicle_status.in_transition_mode) {
+			if (vehicle_status.in_transition_to_fw) {
+				new_flight_phase = FlightPhase::TRANSITION_HF_TO_FF;
+
+			} else {
+				new_flight_phase = FlightPhase::TRANSITION_FF_TO_HF;
+			}
+		}
+
+		// Update effectiveness matrix if needed
+		if (_flight_phase != new_flight_phase) {
+			_flight_phase = new_flight_phase;
 			matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> B = getEffectinvenessMatrix();
 
 			// Assign control effectiveness matrix
