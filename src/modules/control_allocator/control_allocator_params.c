@@ -47,7 +47,10 @@
  *
  * @value 0 Test
  * @min 0
- * @max 0
+ * @max 2
+ * @value 0 quad wide
+ * @value 1 hexa x
+ * @value 2 standard vtol
  * @group Control Allocation
  */
 PARAM_DEFINE_INT32(CA_AIRFRAME, 0);
@@ -58,7 +61,7 @@ PARAM_DEFINE_INT32(CA_AIRFRAME, 0);
  * @value 0 Pseudo-inverse with output clipping (default)
  * @value 1 Pseudo-inverse with sequential desaturation technique
  * @min 0
- * @max 2
+ * @max 1
  * @group Control Allocation
  */
 PARAM_DEFINE_INT32(CA_METHOD, 0);
