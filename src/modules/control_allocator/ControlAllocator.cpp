@@ -138,10 +138,8 @@ ControlAllocator::getEffectinvenessMatrix()
 	// Control effectiveness
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> B;
 
-	switch (_param_ca_airframe.get()) {
-
-	case 0: {
-			// quad_w
+	switch ((Airframe)_param_ca_airframe.get()) {
+	case Airframe::QUAD_W: {
 			const float B_quad_w[NUM_AXES][NUM_ACTUATORS] = {
 				// quad_w
 				{-0.5717536f,  0.43756646f,  0.5717536f, -0.43756646f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
@@ -155,8 +153,7 @@ ControlAllocator::getEffectinvenessMatrix()
 			break;
 		}
 
-	case 1: {
-			// hexa_x
+	case Airframe::HEXA_X: {
 			const float B_hexa_x[NUM_AXES][NUM_ACTUATORS] = {
 				{-0.333333f,  0.333333f,  0.166667f, -0.166667f, -0.166667f,  0.166667f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
 				{ 0.f,  0.f,  0.288675f, -0.288675f,  0.288675f, -0.288675f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
@@ -169,17 +166,17 @@ ControlAllocator::getEffectinvenessMatrix()
 			break;
 		}
 
-	case 2: {
+	case Airframe::STANDARD_VTOL: {
 			switch (_flight_phase) {
 			case FlightPhase::HOVER_FLIGHT:  {
 					const float B_standard_vtol[NUM_AXES][NUM_ACTUATORS] = {
 						{-0.5f,  0.5f,  0.5f, -0.5f, 0.f, 0.0f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
 						{ 0.5f, -0.5f,  0.5f, -0.5f, 0.f, 0.f, 0.f, 0.0f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
 						{ 0.25f,  0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{ 0.f,  0.f,  0.f,  0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-					{-0.25f, -0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
-				};
+						{ 0.f,  0.f,  0.f,  0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+						{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+						{-0.25f, -0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
+					};
 					B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_standard_vtol);
 					break;
 				}
@@ -206,7 +203,7 @@ ControlAllocator::getEffectinvenessMatrix()
 						{  0.f,  0.f,  0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
 						{  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
 						{-0.25f, -0.25f, -0.25f, -0.25f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
-				};
+					};
 					B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_standard_vtol);
 					break;
 				}
@@ -219,7 +216,6 @@ ControlAllocator::getEffectinvenessMatrix()
 		// none
 		break;
 	}
-
 
 	matrix::Vector<float, NUM_ACTUATORS> actuator_max = _control_allocation->getActuatorMax();
 	matrix::Vector<float, NUM_ACTUATORS> actuator_min = _control_allocation->getActuatorMin();
