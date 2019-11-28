@@ -19,7 +19,7 @@ pipeline {
               steps {
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -z'
+                sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v2_test'
                 sh 'make sizes'
@@ -89,7 +89,7 @@ pipeline {
               steps {
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -z'
+                sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v3_default'
                 sh 'make sizes'
@@ -180,7 +180,7 @@ pipeline {
               steps {
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -z'
+                sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v4_default'
                 sh 'make sizes'
@@ -270,7 +270,7 @@ pipeline {
               steps {
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -z'
+                sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v4pro_default'
                 sh 'make sizes'
@@ -361,7 +361,7 @@ pipeline {
               steps {
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -z'
+                sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v5_default'
                 sh 'make sizes'
@@ -452,7 +452,7 @@ pipeline {
               steps {
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -z'
+                sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make px4_fmu-v5x_default'
                 sh 'make sizes'
@@ -543,7 +543,7 @@ pipeline {
               steps {
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -z'
+                sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make modalai_fc-v1_default'
                 sh 'make sizes'
@@ -633,7 +633,7 @@ pipeline {
               steps {
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -z'
+                sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make holybro_durandal-v1_default'
                 sh 'make sizes'
@@ -725,7 +725,7 @@ pipeline {
               steps {
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -z'
+                sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make holybro_durandal-v1_stackcheck'
                 sh 'make sizes'
@@ -815,7 +815,7 @@ pipeline {
               steps {
                 sh 'export'
                 sh 'make distclean'
-                sh 'ccache -z'
+                sh 'ccache -s'
                 sh 'git fetch --tags'
                 sh 'make nxp_fmuk66-v3_default'
                 sh 'make sizes'

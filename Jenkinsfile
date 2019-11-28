@@ -104,7 +104,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'ccache -z'
+            sh 'ccache -s'
             sh 'git fetch --tags'
             sh 'make px4_fmu-v2_default'
             sh 'make px4_fmu-v2_default bloaty_compileunits'
@@ -137,7 +137,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'ccache -z'
+            sh 'ccache -s'
             sh 'git fetch --tags'
             sh 'make px4_fmu-v5_default'
             sh 'make px4_fmu-v5_default bloaty_compileunits'
@@ -170,7 +170,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'ccache -z'
+            sh 'ccache -s'
             sh 'git fetch --tags'
             sh 'make px4_sitl_default'
             sh 'make px4_sitl_default bloaty_compileunits'
@@ -203,7 +203,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'ccache -z'
+            sh 'ccache -s'
             sh 'git fetch --tags'
             sh 'make px4_fmu-v5_default'
             sh 'make sizes'
@@ -229,7 +229,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'ccache -z'
+            sh 'ccache -s'
             sh 'git fetch --tags'
             sh 'make px4_sitl_default'
             sh 'make sizes'
@@ -255,7 +255,7 @@ pipeline {
           steps {
             sh 'export'
             sh 'make distclean'
-            sh 'ccache -z'
+            sh 'ccache -s'
             sh 'git fetch --tags'
             sh 'make tests'
             sh 'ccache -s'
