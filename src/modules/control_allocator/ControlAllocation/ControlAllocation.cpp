@@ -42,7 +42,7 @@
 #include "ControlAllocation.hpp"
 
 const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> &
-ControlAllocation::getAllocatedActuator() const
+ControlAllocation::getActuatorSetpoint() const
 {
 	return _actuator_sp;
 }
@@ -105,9 +105,10 @@ ControlAllocation::getActuatorMax() const
 }
 
 void
-ControlAllocation::setCurrentActuatorSetpoint(const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS>
+ControlAllocation::setActuatorSetpoint(const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS>
 		&actuator_sp)
 {
+	// Set actuator setpoint
 	_actuator_sp = actuator_sp;
 }
 
