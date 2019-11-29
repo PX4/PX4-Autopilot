@@ -97,7 +97,7 @@ int OutputMavlink::update(const ControlData *control_data)
 		break;
 
 	case 1: // Gremsy Pixy F - need to multiply the degrees by 100
-		vehicle_command.param1 = math::degrees(_angle_outputs[1] + _config.pitch_offset) * 1e2f;
+		vehicle_command.param1 = math::degrees(_angle_outputs[1] + _config.pitch_offset) * -1e2f;
 		vehicle_command.param2 = math::degrees(_angle_outputs[0] + _config.roll_offset) * 1e2f;
 		vehicle_command.param3 = math::degrees(_angle_outputs[2] + _config.yaw_offset) * 1e2f;
 		break;
