@@ -60,7 +60,12 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.last_channel_index = 3,
 		.handler = io_timer_handler0,
 		.vectorno =  STM32_IRQ_TIMCC,
-
+		.dshot = {
+			.dma_base = STM32_DMA1_BASE,
+			.dmamap = DMAMAP_DMA12_TIM1UP_0,
+			.start_ccr_register = TIM_DMABASE_CCR1,
+			.channels_number = 4u /* CCR1, CCR2, CCR3 and CCR4 */
+		}
 	},
 	{
 		.base = STM32_TIM4_BASE,
@@ -71,6 +76,12 @@ __EXPORT const io_timers_t io_timers[MAX_IO_TIMERS] = {
 		.last_channel_index = 4,
 		.handler = io_timer_handler1,
 		.vectorno =  STM32_IRQ_TIM4,
+		.dshot = {
+			.dma_base = STM32_DMA1_BASE,
+			.dmamap = DMAMAP_DMA12_TIM4UP_0,
+			.start_ccr_register = TIM_DMABASE_CCR2,
+			.channels_number = 1u /* CCR2 */
+		}
 	},
 };
 

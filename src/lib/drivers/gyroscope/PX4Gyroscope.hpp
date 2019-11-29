@@ -77,7 +77,6 @@ private:
 
 	const enum Rotation	_rotation;
 
-	matrix::Vector3f	_calibration_scale{1.0f, 1.0f, 1.0f};
 	matrix::Vector3f	_calibration_offset{0.0f, 0.0f, 0.0f};
 
 	int			_class_device_instance{-1};

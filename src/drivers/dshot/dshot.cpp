@@ -1255,6 +1255,9 @@ DShotOutput::module_new_mode(PortMode new_mode)
 		/* select 4-pin PWM mode */
 		mode = DShotOutput::MODE_4PWM;
 #endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 5
+		mode = DShotOutput::MODE_5PWM;
+#endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 6
 		mode = DShotOutput::MODE_6PWM;
 #endif
@@ -1473,6 +1476,9 @@ int DShotOutput::custom_command(int argc, char *argv[])
 
 	} else if (!strcmp(verb, "mode_pwm6")) {
 		new_mode = PORT_PWM6;
+
+#endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 5
 
 	} else if (!strcmp(verb, "mode_pwm5")) {
 		new_mode = PORT_PWM5;

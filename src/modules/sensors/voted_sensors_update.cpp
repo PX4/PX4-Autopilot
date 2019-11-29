@@ -265,18 +265,6 @@ void VotedSensorsUpdate::parametersUpdate()
 
 				failed = failed || (OK != param_get(param_find(str), &gscale.z_offset));
 
-				(void)sprintf(str, "CAL_GYRO%u_XSCALE", i);
-
-				failed = failed || (OK != param_get(param_find(str), &gscale.x_scale));
-
-				(void)sprintf(str, "CAL_GYRO%u_YSCALE", i);
-
-				failed = failed || (OK != param_get(param_find(str), &gscale.y_scale));
-
-				(void)sprintf(str, "CAL_GYRO%u_ZSCALE", i);
-
-				failed = failed || (OK != param_get(param_find(str), &gscale.z_scale));
-
 				if (failed) {
 					PX4_ERR(CAL_ERROR_APPLY_CAL_MSG, "gyro", i);
 
