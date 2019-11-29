@@ -340,6 +340,8 @@
 
 #define DIRECT_INPUT_TIMER_CHANNELS  5
 
+#define BOARD_DSHOT_MOTOR_ASSIGNMENT {3, 2, 1, 0, 4};
+
 /* User GPIOs
  *
  * GPIO0-4 are the PWM servo outputs.

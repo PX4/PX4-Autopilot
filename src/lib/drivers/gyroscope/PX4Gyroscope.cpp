@@ -71,7 +71,6 @@ PX4Gyroscope::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 			memcpy(&cal, (gyro_calibration_s *) arg, sizeof(cal));
 
 			_calibration_offset = matrix::Vector3f{cal.x_offset, cal.y_offset, cal.z_offset};
-			_calibration_scale = matrix::Vector3f{cal.x_scale, cal.y_scale, cal.z_scale};
 		}
 
 		return PX4_OK;
@@ -118,7 +117,7 @@ PX4Gyroscope::update(hrt_abstime timestamp, float x, float y, float z)
 	const matrix::Vector3f raw{x, y, z};
 
 	// Apply range scale and the calibrating offset/scale
-	const matrix::Vector3f val_calibrated{(((raw * report.scaling) - _calibration_offset).emult(_calibration_scale))};
+	const matrix::Vector3f val_calibrated{((raw * report.scaling) - _calibration_offset)};
 
 	// Filtered values
 	const matrix::Vector3f val_filtered{_filter.apply(val_calibrated)};
@@ -176,8 +175,6 @@ PX4Gyroscope::print_status()
 	PX4_INFO("sample rate: %d Hz", _sample_rate);
 	PX4_INFO("filter cutoff: %.3f Hz", (double)_filter.get_cutoff_freq());
 
-	PX4_INFO("calibration scale: %.5f %.5f %.5f", (double)_calibration_scale(0), (double)_calibration_scale(1),
-		 (double)_calibration_scale(2));
 	PX4_INFO("calibration offset: %.5f %.5f %.5f", (double)_calibration_offset(0), (double)_calibration_offset(1),
 		 (double)_calibration_offset(2));
 
