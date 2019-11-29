@@ -1039,7 +1039,7 @@ void Navigator::check_traffic()
 
 							// ask the commander to land
 							vehicle_command_s vcmd = {};
-							vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LOITER_UNLIM;
+							vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LAND;
 							publish_vehicle_cmd(&vcmd);
 							break;
 
