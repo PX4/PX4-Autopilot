@@ -319,7 +319,7 @@ private:
 
 	bool		_print_avoidance_msg_once{false};
 
-	uint64_t	_last_print_mode_reject_time{0};	///< To remember when last notification was sent
+	hrt_abstime	_last_print_mode_reject_time{0};	///< To remember when last notification was sent
 
 	float		_eph_threshold_adj{INFINITY};	///< maximum allowable horizontal position uncertainty after adjustment for flight condition
 	bool		_skip_pos_accuracy_check{false};
@@ -333,7 +333,7 @@ private:
 
 	manual_control_setpoint_s	_sp_man{};		///< the current manual control setpoint
 	manual_control_setpoint_s	_last_sp_man{};	///< the manual control setpoint valid at the last mode switch
-	uint64_t	_rc_signal_lost_timestamp{0};		///< Time at which the RC reception was lost
+	hrt_abstime	_rc_signal_lost_timestamp{0};		///< Time at which the RC reception was lost
 	int32_t		_flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_NUM] {};
 	uint8_t		_last_sp_man_arm_switch{0};
 	uint8_t		_main_state_before_rtl{commander_state_s::MAIN_STATE_MAX};
@@ -342,7 +342,7 @@ private:
 	uint32_t	_stick_on_counter{0};
 
 	hrt_abstime	_last_disarmed_timestamp{0};
-	uint64_t	_timestamp_engine_healthy{0}; ///< absolute time when engine was healty
+	hrt_abstime	_timestamp_engine_healthy{0}; ///< absolute time when engine was healty
 
 	uint32_t	_counter{0};
 
