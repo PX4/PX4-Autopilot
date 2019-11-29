@@ -133,7 +133,7 @@ ControlAllocator::parameters_updated()
 }
 
 const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS>
-ControlAllocator::getEffectinvenessMatrix()
+ControlAllocator::getEffectivenessMatrix()
 {
 	// Control effectiveness
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> B;
@@ -329,36 +329,25 @@ ControlAllocator::Run()
 		vehicle_status_s vehicle_status = {};
 		_vehicle_status_sub.update(&vehicle_status);
 
-		FlightPhase new_flight_phase = FlightPhase::HOVER_FLIGHT;
-
 		// Check if the current flight phase is HOVER or FIXED_WING
 		if (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING) {
-			new_flight_phase = FlightPhase::HOVER_FLIGHT;
+			_flight_phase = FlightPhase::HOVER_FLIGHT;
 
 		} else {
-			new_flight_phase = FlightPhase::FORWARD_FLIGHT;
+			_flight_phase = FlightPhase::FORWARD_FLIGHT;
 		}
 
 		// Special cases for VTOL in transition
 		if (vehicle_status.is_vtol && vehicle_status.in_transition_mode) {
 			if (vehicle_status.in_transition_to_fw) {
-				new_flight_phase = FlightPhase::TRANSITION_HF_TO_FF;
+				_flight_phase = FlightPhase::TRANSITION_HF_TO_FF;
 
 			} else {
-				new_flight_phase = FlightPhase::TRANSITION_FF_TO_HF;
+				_flight_phase = FlightPhase::TRANSITION_FF_TO_HF;
 			}
 		}
 
-		// Update effectiveness matrix if needed
-		if (_flight_phase != new_flight_phase) {
-			_flight_phase = new_flight_phase;
-			matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> B = getEffectinvenessMatrix();
-
-			// Assign control effectiveness matrix
-			_control_allocation->setEffectivenessMatrix(B);
-		}
 	}
-
 
 	// Guard against too small (< 0.2ms) and too large (> 20ms) dt's.
 	const hrt_abstime now = hrt_absolute_time();
@@ -390,6 +379,14 @@ ControlAllocator::Run()
 	}
 
 	if (do_update) {
+
+		// Update effectiveness matrix if needed
+		matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> B = getEffectivenessMatrix();
+
+		// Assign control effectiveness matrix
+		if ((B - _control_allocation->getEffectivenessMatrix()).abs().max() > 1e-5f) {
+			_control_allocation->setEffectivenessMatrix(B);
+		}
 
 		// Set control setpoint vector
 		matrix::Vector<float, NUM_AXES> c;
