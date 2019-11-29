@@ -87,6 +87,9 @@ public:
 
 	bool init();
 
+	static constexpr uint8_t NUM_ACTUATORS = ControlAllocation::NUM_ACTUATORS;
+	static constexpr uint8_t NUM_AXES = ControlAllocation::NUM_AXES;
+
 private:
 
 	/**
@@ -102,11 +105,7 @@ private:
 	void publish_legacy_actuator_controls();
 	void publish_legacy_multirotor_motor_limits();
 
-	const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS>
-	getEffectinvenessMatrix();
-
-	static const uint8_t NUM_ACTUATORS = ControlAllocation::NUM_ACTUATORS;
-	static const uint8_t NUM_AXES = ControlAllocation::NUM_AXES;
+	const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> getEffectivenessMatrix();
 
 	int _allocation_method_id{-1};
 	ControlAllocation *_control_allocation{nullptr}; 	///< class for control allocation calculations
