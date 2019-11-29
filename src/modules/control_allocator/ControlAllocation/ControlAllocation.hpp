@@ -72,14 +72,16 @@
 #include <matrix/matrix/math.hpp>
 #include <uORB/topics/vehicle_actuator_setpoint.h>
 
+#undef _B // This symbol is a macro on certain platforms, it interferes with local scope variables
+
 class ControlAllocation
 {
 public:
 	ControlAllocation() = default;
 	virtual ~ControlAllocation() = default;
 
-	static const uint8_t NUM_ACTUATORS = 16;
-	static const uint8_t NUM_AXES = 6;
+	static constexpr uint8_t NUM_ACTUATORS = 16;
+	static constexpr uint8_t NUM_AXES = 6;
 
 	typedef matrix::Vector<float, NUM_ACTUATORS> ActuatorVector;
 
