@@ -110,6 +110,13 @@ ControlAllocation::setActuatorSetpoint(const matrix::Vector<float, ControlAlloca
 {
 	// Set actuator setpoint
 	_actuator_sp = actuator_sp;
+
+	// Clip
+	_actuator_sp = clipActuatorSetpoint();
+
+	// Compute achieved control
+	_control_allocated = _effectiveness * _actuator_sp;
+
 }
 
 matrix::Vector<float, ControlAllocation::NUM_ACTUATORS>
