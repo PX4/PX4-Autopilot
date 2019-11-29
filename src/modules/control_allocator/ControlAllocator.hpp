@@ -113,7 +113,8 @@ private:
 	enum class Airframe {
 		QUAD_W = 0,
 		HEXA_X = 1,
-		STANDARD_VTOL = 2
+		STANDARD_VTOL = 2,
+		TILTROTOR_VTOL = 3,
 	};
 
 	// Inputs
