@@ -66,6 +66,7 @@ void tune_positive(bool use_buzzer);
 void tune_neutral(bool use_buzzer);
 void tune_negative(bool use_buzzer);
 void tune_failsafe(bool use_buzzer);
+void dg_rc_cal_led(void);
 
 int blink_msg_state();
 

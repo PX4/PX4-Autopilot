@@ -83,7 +83,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		determineWarning(connected);
 	}
 
-	if (_voltage_filtered_v > 2.1f) { 
+	if (_voltage_filtered_v > 2.1f) {
 		_battery_initialized = true;
 		battery_status->voltage_v = voltage_v;
 		battery_status->voltage_filtered_v = _voltage_filtered_v;
@@ -95,7 +95,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 		battery_status->remaining = _remaining;
 		battery_status->connected = connected;
 		battery_status->system_source = selected_source;
-		battery_status->priority = priority; 
+		battery_status->priority = priority;
 	}
 }
 
@@ -208,17 +208,15 @@ Battery::determineWarning(bool connected)
 {
 	if (connected) {
 		// propagate warning state only if the state is higher, otherwise remain in current warning state
-		if (_remaining < _param_bat_emergen_thr.get()) {
+		if (_remaining < _param_bat_emergen_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_EMERGENCY)) {
 			_warning = battery_status_s::BATTERY_WARNING_EMERGENCY;
 
-		} else if (_remaining < _param_bat_crit_thr.get()) {
+		} else if (_remaining < _param_bat_crit_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_CRITICAL)) {
 			_warning = battery_status_s::BATTERY_WARNING_CRITICAL;
 
-		} else if (_remaining < _param_bat_low_thr.get()) {
+		} else if (_remaining < _param_bat_low_thr.get() || (_warning == battery_status_s::BATTERY_WARNING_LOW)) {
 			_warning = battery_status_s::BATTERY_WARNING_LOW;
-		}else{
-			_warning = battery_status_s::BATTERY_WARNING_NONE;
-		}	
+		}
 	}
 }
 

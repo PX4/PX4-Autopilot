@@ -3,7 +3,7 @@
 
 #include <px4_posix.h>
 
-#define COM_PORT_BAUDRATE (uint32_t)57600
+#define COM_PORT_BAUDRATE (uint32_t)115200
 
 #define MSG_NAME_WIFI (uint8_t)0
 #define MSG_NAME_IWFI (uint8_t)1
@@ -40,6 +40,7 @@
 #define WIFI_COMM_FOLLOW (uint8_t)153
 #define WIFI_COMM_ONE_MINUTE (uint8_t)201
 #define WIFI_COMM_POS_SAVE (uint8_t) 202
+#define WIFI_COMM_REBOOT (uint8_t) 203
 //#define WIFI_COMM_TOUCH_CONTROL (uint8_t)255
 
 #define YFWI_COMM_CHANGE_PARAM (uint8_t)116
