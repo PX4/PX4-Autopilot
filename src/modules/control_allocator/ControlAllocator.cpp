@@ -212,6 +212,21 @@ ControlAllocator::getEffectivenessMatrix()
 			break;
 		}
 
+	case Airframe::TILTROTOR_VTOL: {
+			matrix::Vector<float, NUM_ACTUATORS> act = _control_allocation->getActuatorSetpoint();
+
+			const float B_tiltrotor_vtol[NUM_AXES][NUM_ACTUATORS] = {
+				{-0.5f * cosf(act(4)),  0.5f * cosf(act(5)),  0.5f * cosf(act(6)), -0.5f * cosf(act(7)),  0.5f * act(0) * sinf(act(4)), -0.5f * act(1) * sinf(act(5)), -0.5f * act(2) * sinf(act(6)), 0.5f * act(3) * sinf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+				{ 0.5f * cosf(act(4)), -0.5f * cosf(act(5)),  0.5f * cosf(act(6)), -0.5f * cosf(act(7)), -0.5f * act(0) * sinf(act(4)),  0.5f * act(1) * sinf(act(5)), -0.5f * act(2) * sinf(act(6)), 0.5f * act(3) * sinf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+				{ 0.5f * sinf(act(4)), -0.5f * sinf(act(5)), -0.5f * sinf(act(6)),  0.5f * sinf(act(7)),  0.5f * act(0) * cosf(act(4)), -0.5f * act(1) * cosf(act(5)), -0.5f * act(2) * cosf(act(6)), 0.5f * act(3) * cosf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+				{ 0.25f * sinf(act(4)), 0.25f * sinf(act(5)), -0.25f * sinf(act(6)), -0.25f * sinf(act(7)), 0.25f * act(0) * cosf(act(4)), 0.25f * act(1) * cosf(act(5)), -0.25f * act(2) * cosf(act(6)), -0.25f * act(3) * cosf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+				{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+				{-0.25f * cosf(act(4)), -0.25f * cosf(act(5)), -0.25f * cosf(act(6)), -0.25f * cosf(act(7)), 0.25f * act(0) * sinf(act(4)), 0.25f * act(1) * sinf(act(5)), 0.25f * act(2) * sinf(act(6)), 0.25f * act(3) * sinf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
+			};
+			B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_tiltrotor_vtol);
+			break;
+		}
+
 	default:
 		// none
 		break;
