@@ -217,14 +217,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 	worker_data.mavlink_log_pub = mavlink_log_pub;
 
-	struct gyro_calibration_s gyro_scale_zero;
-	gyro_scale_zero.x_offset = 0.0f;
-	gyro_scale_zero.x_scale = 1.0f;
-	gyro_scale_zero.y_offset = 0.0f;
-	gyro_scale_zero.y_scale = 1.0f;
-	gyro_scale_zero.z_offset = 0.0f;
-	gyro_scale_zero.z_scale = 1.0f;
-
+	gyro_calibration_s gyro_scale_zero{};
 	int device_prio_max = 0;
 	int32_t device_id_primary = 0;
 
@@ -245,7 +238,7 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 			return PX4_ERROR;
 		}
 
-		// Reset all offsets to 0 and scales to 1
+		// Reset all offsets to 0
 		(void)memcpy(&worker_data.gyro_scale[s], &gyro_scale_zero, sizeof(gyro_scale_zero));
 #ifdef __PX4_NUTTX
 		sprintf(str, "%s%u", GYRO_BASE_DEVICE_PATH, s);
@@ -279,27 +272,6 @@ int do_gyro_calibration(orb_advert_t *mavlink_log_pub)
 
 		(void)sprintf(str, "CAL_GYRO%u_ZOFF", s);
 		res = param_set_no_notification(param_find(str), &gyro_scale_zero.z_offset);
-
-		if (res != PX4_OK) {
-			PX4_ERR("unable to reset %s", str);
-		}
-
-		(void)sprintf(str, "CAL_GYRO%u_XSCALE", s);
-		res = param_set_no_notification(param_find(str), &gyro_scale_zero.x_scale);
-
-		if (res != PX4_OK) {
-			PX4_ERR("unable to reset %s", str);
-		}
-
-		(void)sprintf(str, "CAL_GYRO%u_YSCALE", s);
-		res = param_set_no_notification(param_find(str), &gyro_scale_zero.y_scale);
-
-		if (res != PX4_OK) {
-			PX4_ERR("unable to reset %s", str);
-		}
-
-		(void)sprintf(str, "CAL_GYRO%u_ZSCALE", s);
-		res = param_set_no_notification(param_find(str), &gyro_scale_zero.z_scale);
 
 		if (res != PX4_OK) {
 			PX4_ERR("unable to reset %s", str);
