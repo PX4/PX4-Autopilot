@@ -659,7 +659,7 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 void
 MavlinkMissionManager::handle_mission_set_current(const mavlink_message_t *msg)
 {
-    _mavlink->send_statustext_info("Enter handle_mission_set_current function");
+    //_mavlink->send_statustext_info("Enter handle_mission_set_current function");
 
     mavlink_mission_set_current_t wpc;
 
@@ -860,7 +860,7 @@ MavlinkMissionManager::handle_mission_request_both(const mavlink_message_t *msg)
 void
 MavlinkMissionManager::handle_mission_count(const mavlink_message_t *msg)
 {
-    _mavlink->send_statustext_info("Enter handle_mission_count function");
+    //_mavlink->send_statustext_info("Enter handle_mission_count function");
 
     mavlink_mission_count_t wpc;
     if (dg_mission_enable){
@@ -1033,7 +1033,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 	// The mavlink_message could also contain a mavlink_mission_item_int_t. We ignore that here
 	// and take care of it later in parse_mavlink_mission_item depending on _int_mode.
 
-    _mavlink->send_statustext_info("Enter handle_mission_item_both function");
+    //_mavlink->send_statustext_info("Enter handle_mission_item_both function");
 
     mavlink_mission_item_t wp;
 
@@ -1267,7 +1267,7 @@ MavlinkMissionManager::handle_mission_item_both(const mavlink_message_t *msg)
 void
 MavlinkMissionManager::handle_mission_clear_all(const mavlink_message_t *msg)
 {
-    _mavlink->send_statustext_info("Enter handle_mission_clear_all function");
+    //_mavlink->send_statustext_info("Enter handle_mission_clear_all function");
     mavlink_mission_clear_all_t wpca;
     if (dg_mission_enable){
         wpca.mission_type = dg_mission.mission_type;

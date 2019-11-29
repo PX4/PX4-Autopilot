@@ -47,6 +47,7 @@
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/input_rc.h>
+#include <uORB/topics/vehicle_status.h>
 
 using namespace sensors;
 
@@ -82,6 +83,12 @@ int RCUpdate::init()
         return -errno;
     }
 
+    _status_sub = orb_subscribe(ORB_ID(vehicle_status));
+
+    if (_status_sub < 0) {
+        return -errno;
+    }
+
     _vs_enable_DG = 0;
     vs_last_timestamp = 0;
     memset(&_vs_sp, 0, sizeof(_vs_sp));
@@ -94,6 +101,7 @@ void RCUpdate::deinit()
 	orb_unsubscribe(_rc_sub);
 	orb_unsubscribe(_rc_parameter_map_sub);
     orb_unsubscribe(_vs_sub);
+    orb_unsubscribe(_status_sub);
 }
 
 void RCUpdate::update_rc_functions()
@@ -456,7 +464,11 @@ RCUpdate::rc_poll(const ParameterHandles &parameter_handles)
 					    _parameters.rc_man_th, _parameters.rc_man_inv);
 
             /* DG virtual stick data for x, y, z, r */
-            if (manual.mode_slot ==5 && _vs_sp.vs_enable)
+            struct vehicle_status_s vehicle_status;
+            orb_copy(ORB_ID(vehicle_status), _status_sub, &vehicle_status);
+            bool vs_status_check = vehicle_status.nav_state >=2 && vehicle_status.nav_state <=5;
+
+            if (manual.mode_slot ==5 && vs_status_check)
             {
                 manual.virtual_stick_enable = true;
                 //_vs_enable_DG = hrt_absolute_time() - vs_last_timestamp > 150000 ? 0 : _vs_sp.vs_enable;

@@ -83,6 +83,8 @@ using namespace DriverFramework;
 
 #define BLINK_MSG_TIME	700000	// 3 fast blinks (in us)
 
+#define BLINK_DG_RC_TIME  5000000
+
 bool is_multirotor(const struct vehicle_status_s *current_status)
 {
 	return ((current_status->system_type == VEHICLE_TYPE_QUADROTOR) ||
@@ -254,6 +256,12 @@ void tune_failsafe(bool use_buzzer)
 	if (use_buzzer) {
 		set_tune(TONE_BATTERY_WARNING_FAST_TUNE);
 	}
+}
+
+void dg_rc_cal_led()
+{
+	blink_msg_end = hrt_absolute_time() + BLINK_DG_RC_TIME;
+	rgbled_set_color_and_mode(led_control_s::COLOR_YELLOW, led_control_s::MODE_BLINK_FAST);	
 }
 
 int blink_msg_state()
