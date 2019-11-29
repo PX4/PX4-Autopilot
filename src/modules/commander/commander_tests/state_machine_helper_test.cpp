@@ -287,7 +287,7 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 	for (size_t i = 0; i < cArmingTransitionTests; i++) {
 		const ArmingTransitionTest_t *test = &rgArmingTransitionTests[i];
 
-		const bool check_gps = false;
+		PreFlightCheck::arm_requirements_t arm_req{};
 
 		// Setup initial machine state
 		status.arming_state = test->current_state.arming_state;
@@ -305,7 +305,7 @@ bool StateMachineHelperTest::armingStateTransitionTest()
 					     true /* enable pre-arm checks */,
 					     nullptr /* no mavlink_log_pub */,
 					     &status_flags,
-					     (check_gps ? PreFlightCheck::ARM_REQ_GPS_BIT : 0),
+					     arm_req,
 					     2e6 /* 2 seconds after boot, everything should be checked */
 								    );
 

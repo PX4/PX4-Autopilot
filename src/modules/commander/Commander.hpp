@@ -34,8 +34,9 @@
 #ifndef COMMANDER_HPP_
 #define COMMANDER_HPP_
 
-#include "state_machine_helper.h"
+#include "Arming/PreFlightCheck/PreFlightCheck.hpp"
 #include "failure_detector/FailureDetector.hpp"
+#include "state_machine_helper.h"
 
 #include <lib/controllib/blocks.hpp>
 #include <lib/hysteresis/hysteresis.h>
@@ -107,12 +108,11 @@ public:
 
 	void enable_hil();
 
-	// TODO: only temporarily static until low priority thread is removed
-	static bool preflight_check(bool report);
-
 	void get_circuit_breaker_params();
 
 private:
+
+	transition_result_t arm_disarm(bool arm, bool run_preflight_checks, orb_advert_t *mavlink_log_pub, const char *armedBy);
 
 	void battery_status_check();
 
@@ -273,6 +273,7 @@ private:
 	const int64_t POSVEL_PROBATION_MIN = 1_s;	/**< minimum probation duration (usec) */
 	const int64_t POSVEL_PROBATION_MAX = 100_s;	/**< maximum probation duration (usec) */
 
+	PreFlightCheck::arm_requirements_t	_arm_requirements{};
 
 	hrt_abstime	_last_gpos_fail_time_us{0};	/**< Last time that the global position validity recovery check failed (usec) */
 	hrt_abstime	_last_lpos_fail_time_us{0};	/**< Last time that the local position validity recovery check failed (usec) */
