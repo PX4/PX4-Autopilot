@@ -136,6 +136,8 @@ int ADS1115::readConfigReg(uint16_t *configRegVal)
 	transfer(&adrRegPtr, sizeof(adrRegPtr), nullptr, 0);
 
     	return transfer(nullptr, 0, (uint8_t *)configRegVal, sizeof(configRegVal));
+
+	//return PX4_OK;
 }
 
 int ADS1115::writeConfigReg(uint16_t value)
