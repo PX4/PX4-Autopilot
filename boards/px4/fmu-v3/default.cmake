@@ -22,7 +22,7 @@ px4_add_board(
 	DRIVERS
 		adc
 		barometer # all available barometer drivers
-		#batt_smbus
+		batt_smbus
 		camera_capture
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
@@ -81,7 +81,7 @@ px4_add_board(
 		mc_rate_control
 		mc_pos_control
 		navigator
-		#battery_status
+		battery_status
 		sensors
 		sih
 		vmount
