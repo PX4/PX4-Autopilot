@@ -182,11 +182,8 @@ static bool send_vehicle_command(uint16_t cmd, float param1 = NAN, float param2 
 	vcmd.command = cmd;
 
 	uORB::SubscriptionData<vehicle_status_s> vehicle_status_sub{ORB_ID(vehicle_status)};
-	vehicle_status_sub.update();
-
 	vcmd.source_system = vehicle_status_sub.get().system_id;
 	vcmd.target_system = vehicle_status_sub.get().system_id;
-
 	vcmd.source_component = vehicle_status_sub.get().component_id;
 	vcmd.target_component = vehicle_status_sub.get().component_id;
 
@@ -262,22 +259,28 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 	if (!strcmp(argv[1], "calibrate")) {
 		if (argc > 2) {
 			if (!strcmp(argv[2], "gyro")) {
-				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 1);
+				// gyro calibration: param1 = 1
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f);
 
 			} else if (!strcmp(argv[2], "mag")) {
-				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0, 1);
+				// magnetometer calibration: param2 = 1
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 0.f);
 
 			} else if (!strcmp(argv[2], "accel")) {
-				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0, 0, 0, 0, 1);
+				// accelerometer calibration: param5 = 1
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f);
 
 			} else if (!strcmp(argv[2], "level")) {
-				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0, 0, 0, 0, 2);
+				// board level calibration: param5 = 1
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f, 0.f);
 
 			} else if (!strcmp(argv[2], "airspeed")) {
-				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0, 0, 0, 0, 0, 1);
+				// airspeed calibration: param6 = 2
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 0.f, 0.f, 0.f, 0.f, 2.f, 0.f);
 
 			} else if (!strcmp(argv[2], "esc")) {
-				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0, 0, 0, 0, 0, 0, 1);
+				// ESC calibration: param7 = 1
+				send_vehicle_command(vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 1.f);
 
 			} else {
 				PX4_ERR("argument %s unsupported.", argv[2]);
@@ -3330,16 +3333,16 @@ void *commander_low_prio_loop(void *arg)
 						/* temperature calibration: handled in events module */
 						break;
 
-					} else if ((int)(cmd.param2) == 1) {
+					} else if (roundf(cmd.param2) == 1) {
 						/* magnetometer calibration */
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
 						calib_ret = do_mag_calibration(&mavlink_log_pub);
 
-					} else if ((int)(cmd.param3) == 1) {
+					} else if (roundf(cmd.param3) == 1) {
 						/* zero-altitude pressure calibration */
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
 
-					} else if ((int)(cmd.param4) == 1) {
+					} else if (roundf(cmd.param4) == 1) {
 						/* RC calibration */
 						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
 						/* disable RC control input completely */
@@ -3755,6 +3758,27 @@ void Commander::battery_status_check()
 
 		if (_battery_sub.copy(&battery)) {
 
+
+			bool battery_warning_level_increased_while_armed = false;
+			bool update_internal_battery_state = false;
+
+			if (armed.armed) {
+				if (battery.warning > _battery_warning) {
+					battery_warning_level_increased_while_armed = true;
+					update_internal_battery_state = true;
+				}
+
+			} else {
+				if (_battery_warning != battery.warning) {
+					update_internal_battery_state = true;
+				}
+			}
+
+			if (update_internal_battery_state) {
+				_battery_warning = battery.warning;
+			}
+
+
 			if ((hrt_elapsed_time(&battery.timestamp) < 5_s)
 			    && battery.connected
 			    && (_battery_warning == battery_status_s::BATTERY_WARNING_NONE)) {
@@ -3765,18 +3789,16 @@ void Commander::battery_status_check()
 				status_flags.condition_battery_healthy = false;
 			}
 
-			// execute battery failsafe if the state has gotten worse
-			if (armed.armed) {
-				if (battery.warning > _battery_warning) {
-					battery_failsafe(&mavlink_log_pub, status, status_flags, &internal_state, battery.warning,
-							 (low_battery_action_t)_param_com_low_bat_act.get());
-				}
+			// execute battery failsafe if the state has gotten worse while we are armed
+			if (battery_warning_level_increased_while_armed) {
+				battery_failsafe(&mavlink_log_pub, status, status_flags, &internal_state, battery.warning,
+						 (low_battery_action_t)_param_com_low_bat_act.get());
 			}
 
 			// Handle shutdown request from emergency battery action
-			if (battery.warning != _battery_warning) {
+			if (update_internal_battery_state) {
 
-				if ((battery.warning == battery_status_s::BATTERY_WARNING_EMERGENCY) && shutdown_if_allowed()) {
+				if ((_battery_warning == battery_status_s::BATTERY_WARNING_EMERGENCY) && shutdown_if_allowed()) {
 					mavlink_log_critical(&mavlink_log_pub, "Dangerously low battery! Shutting system down");
 					px4_usleep(200000);
 
@@ -3791,8 +3813,6 @@ void Commander::battery_status_check()
 				}
 			}
 
-			// save last value
-			_battery_warning = battery.warning;
 			_battery_current = battery.current_filtered_a;
 		}
 	}
@@ -4054,5 +4074,5 @@ The commander module contains the state machine for mode switching and failsafe 
 	PRINT_MODULE_USAGE_ARG("off", "Turn lockdown off", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
-	return 0;
+	return 1;
 }
