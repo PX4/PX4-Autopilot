@@ -54,7 +54,7 @@
  * 	// Set control setpoint, allocate actuator setpoint, retrieve actuator setpoint
  * 	alloc.setControlSetpoint(control_sp);
  * 	alloc.allocate();
- * 	actuator_sp = alloc.getAllocatedActuator();
+ * 	actuator_sp = alloc.getActuatorSetpoint();
  *
  * 	// Check if the control setpoint was fully allocated
  *	unallocated_control = control_sp - alloc.getAllocatedControl()
@@ -111,7 +111,7 @@ public:
 	 *
 	 * @return Actuator vector
 	 */
-	const matrix::Vector<float, NUM_ACTUATORS> &getAllocatedActuator() const;
+	const matrix::Vector<float, NUM_ACTUATORS> &getActuatorSetpoint() const;
 
 	/**
 	 * Set the desired control vector
@@ -178,7 +178,7 @@ public:
 	 *
 	 * @param actuator_sp Actuator setpoint
 	 */
-	void setCurrentActuatorSetpoint(const matrix::Vector<float, NUM_ACTUATORS> &actuator_sp);
+	void setActuatorSetpoint(const matrix::Vector<float, NUM_ACTUATORS> &actuator_sp);
 
 	/**
 	 * Clip the actuator setpoint between minimum and maximum values.
