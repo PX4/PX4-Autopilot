@@ -107,7 +107,6 @@ static volatile bool thread_running = false;		/**< daemon status flag */
 
 static struct vehicle_status_s status = {};
 static struct actuator_armed_s armed = {};
-static struct safety_s safety = {};
 
 static struct vehicle_status_flags_s status_flags = {};
 
@@ -291,7 +290,8 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 		bool preflight_check_res = PreFlightCheck::preflightCheck(nullptr, status, status_flags, true, true, false, 30_s);
 		PX4_INFO("Preflight check: %s", preflight_check_res ? "OK" : "FAILED");
 
-		bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, status_flags, safety, PreFlightCheck::arm_requirements_t{});
+		bool prearm_check_res = PreFlightCheck::preArmCheck(nullptr, status_flags, safety_s{},
+					PreFlightCheck::arm_requirements_t{});
 		PX4_INFO("Prearm check: %s", prearm_check_res ? "OK" : "FAILED");
 
 		return 0;
@@ -417,7 +417,7 @@ extern "C" __EXPORT int commander_main(int argc, char *argv[])
 
 bool Commander::shutdown_if_allowed()
 {
-	return TRANSITION_DENIED != arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_SHUTDOWN,
+	return TRANSITION_DENIED != arming_state_transition(&status, _safety, vehicle_status_s::ARMING_STATE_SHUTDOWN,
 			&armed, false /* fRunPreArmChecks */, &mavlink_log_pub, &status_flags, _arm_requirements,
 			hrt_elapsed_time(&_boot_timestamp));
 }
@@ -430,7 +430,7 @@ Commander::arm_disarm(bool arm, bool run_preflight_checks, orb_advert_t *mavlink
 	// Transition the armed state. By passing mavlink_log_pub to arming_state_transition it will
 	// output appropriate error messages if the state cannot transition.
 	arming_res = arming_state_transition(&status,
-					     safety,
+					     _safety,
 					     arm ? vehicle_status_s::ARMING_STATE_ARMED : vehicle_status_s::ARMING_STATE_STANDBY,
 					     &armed,
 					     run_preflight_checks,
@@ -975,13 +975,60 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 		cmd_result = handle_command_motor_test(cmd);
 		break;
 
+	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
+
+		// do nothing for autopilot
+		if (((int)(cmd.param1)) == 0) {
+			answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+
+			break;
+		}
+
+		if (shutdown_if_allowed()) {
+			bool shutdown_ret_val = PX4_ERROR;
+
+			if (((int)(cmd.param1)) == 1) {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+				px4_usleep(200000);
+				// reboot
+				shutdown_ret_val = px4_shutdown_request(true, false);
+
+			} else if (((int)(cmd.param1)) == 2) {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+				px4_usleep(200000);
+				// shutdown
+				shutdown_ret_val = px4_shutdown_request(false, false);
+
+			} else if (((int)(cmd.param1)) == 3) {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
+				px4_usleep(200000);
+				// reboot to bootloader
+				shutdown_ret_val = px4_shutdown_request(true, true);
+
+			} else {
+				answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
+				break;
+			}
+
+			if (shutdown_ret_val) {
+				mavlink_log_critical(&mavlink_log_pub, "System does not support shutdown");
+
+			} else {
+				while (1) { px4_usleep(1); }
+			}
+
+		} else {
+			answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
+		}
+
+		break;
+
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_0:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_1:
 	case vehicle_command_s::VEHICLE_CMD_CUSTOM_2:
 	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL:
 	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE:
 	case vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONTROL_QUAT:
-	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION:
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_SET_SENSOR_OFFSETS:
 	case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_STORAGE:
@@ -1027,7 +1074,7 @@ Commander::handle_command(vehicle_status_s *status_local, const vehicle_command_
 unsigned
 Commander::handle_command_motor_test(const vehicle_command_s &cmd)
 {
-	if (armed.armed || (safety.safety_switch_available && !safety.safety_off)) {
+	if (armed.armed || (_safety.safety_switch_available && !_safety.safety_off)) {
 		return vehicle_command_s::VEHICLE_CMD_RESULT_DENIED;
 	}
 
@@ -1381,15 +1428,15 @@ Commander::run()
 
 		/* update safety topic */
 		if (_safety_sub.updated()) {
-			const bool previous_safety_off = safety.safety_off;
+			const bool previous_safety_off = _safety.safety_off;
 
-			if (_safety_sub.copy(&safety)) {
+			if (_safety_sub.copy(&_safety)) {
 
 				/* disarm if safety is now on and still armed */
 				if (armed.armed && (status.hil_state == vehicle_status_s::HIL_STATE_OFF)
-				    && safety.safety_switch_available && !safety.safety_off) {
+				    && _safety.safety_switch_available && !_safety.safety_off) {
 
-					if (TRANSITION_CHANGED == arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY,
+					if (TRANSITION_CHANGED == arming_state_transition(&status, _safety, vehicle_status_s::ARMING_STATE_STANDBY,
 							&armed, true /* fRunPreArmChecks */, &mavlink_log_pub,
 							&status_flags, _arm_requirements, hrt_elapsed_time(&_boot_timestamp))
 					   ) {
@@ -1398,9 +1445,9 @@ Commander::run()
 				}
 
 				// Notify the user if the status of the safety switch changes
-				if (safety.safety_switch_available && previous_safety_off != safety.safety_off) {
+				if (_safety.safety_switch_available && previous_safety_off != _safety.safety_off) {
 
-					if (safety.safety_off) {
+					if (_safety.safety_off) {
 						set_tune(TONE_NOTIFY_POSITIVE_TUNE);
 
 					} else {
@@ -1563,7 +1610,7 @@ Commander::run()
 		/* If in INIT state, try to proceed to STANDBY state */
 		if (!status_flags.condition_calibration_enabled && status.arming_state == vehicle_status_s::ARMING_STATE_INIT) {
 
-			arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
+			arming_ret = arming_state_transition(&status, _safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
 							     true /* fRunPreArmChecks */, &mavlink_log_pub, &status_flags,
 							     _arm_requirements, hrt_elapsed_time(&_boot_timestamp));
 
@@ -1796,7 +1843,7 @@ Commander::run()
 							     || arm_switch_to_disarm_transition;
 
 				if (rc_wants_disarm && (_land_detector.landed || manual_thrust_mode)) {
-					arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
+					arming_ret = arming_state_transition(&status, _safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
 									     true /* fRunPreArmChecks */,
 									     &mavlink_log_pub, &status_flags, _arm_requirements, hrt_elapsed_time(&_boot_timestamp));
 				}
@@ -1849,7 +1896,7 @@ Commander::run()
 						print_reject_arm("Not arming: Geofence RTL requires valid home");
 
 					} else if (status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
-						arming_ret = arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_ARMED, &armed,
+						arming_ret = arming_state_transition(&status, _safety, vehicle_status_s::ARMING_STATE_ARMED, &armed,
 										     !in_arming_grace_period /* fRunPreArmChecks */,
 										     &mavlink_log_pub, &status_flags, _arm_requirements, hrt_elapsed_time(&_boot_timestamp));
 
@@ -2163,9 +2210,9 @@ Commander::run()
 				break;
 
 			case PrearmedMode::SAFETY_BUTTON:
-				if (safety.safety_switch_available) {
+				if (_safety.safety_switch_available) {
 					/* safety switch is present, go into prearmed if safety is off */
-					armed.prearmed = safety.safety_off;
+					armed.prearmed = _safety.safety_off;
 
 				} else {
 					/* safety switch is not present, do not go into prearmed */
@@ -2193,7 +2240,7 @@ Commander::run()
 
 		/* play arming and battery warning tunes */
 		if (!_arm_tune_played && armed.armed &&
-		    (!safety.safety_switch_available || (safety.safety_switch_available && safety.safety_off))) {
+		    (_safety.safety_switch_available || (_safety.safety_switch_available && _safety.safety_off))) {
 
 			/* play tune when armed */
 			set_tune(TONE_ARMING_WARNING_TUNE);
@@ -2218,7 +2265,7 @@ Commander::run()
 		}
 
 		/* reset arm_tune_played when disarmed */
-		if (!armed.armed || (safety.safety_switch_available && !safety.safety_off)) {
+		if (!armed.armed || (_safety.safety_switch_available && !_safety.safety_off)) {
 
 			//Notify the user that it is safe to approach the vehicle
 			if (_arm_tune_played) {
@@ -2455,7 +2502,7 @@ Commander::control_status_leds(vehicle_status_s *status_local, const actuator_ar
 transition_result_t
 Commander::set_main_state(const vehicle_status_s &status_local, bool *changed)
 {
-	if (safety.override_available && safety.override_enabled) {
+	if (_safety.override_available && _safety.override_enabled) {
 		return set_main_state_override_on(status_local, changed);
 
 	} else {
@@ -3221,62 +3268,14 @@ void *commander_low_prio_loop(void *arg)
 			/* if we reach here, we have a valid command */
 			orb_copy(ORB_ID(vehicle_command), cmd_sub, &cmd);
 
-			/* ignore commands the high-prio loop or the navigator handles */
-			if (cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_MODE ||
-			    cmd.command == vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM ||
-			    cmd.command == vehicle_command_s::VEHICLE_CMD_NAV_TAKEOFF ||
-			    cmd.command == vehicle_command_s::VEHICLE_CMD_DO_SET_SERVO ||
-			    cmd.command == vehicle_command_s::VEHICLE_CMD_DO_CHANGE_SPEED) {
-
-				continue;
-			}
-
 			/* only handle low-priority commands here */
 			switch (cmd.command) {
-
-			case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_REBOOT_SHUTDOWN:
-				if (((int)(cmd.param1)) == 0) {
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-					/* do nothing for autopilot */
-					break;
-				}
-
-				if (is_safe(safety, armed)) {
-
-					if (((int)(cmd.param1)) == 1) {
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						px4_usleep(100000);
-						/* reboot */
-						px4_shutdown_request(true, false);
-
-					} else if (((int)(cmd.param1)) == 2) {
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						px4_usleep(100000);
-						/* shutdown */
-						px4_shutdown_request(false, false);
-
-					} else if (((int)(cmd.param1)) == 3) {
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED, command_ack_pub);
-						px4_usleep(100000);
-						/* reboot to bootloader */
-						px4_shutdown_request(true, true);
-
-					} else {
-						answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
-					}
-
-				} else {
-					answer_command(cmd, vehicle_command_s::VEHICLE_CMD_RESULT_DENIED, command_ack_pub);
-				}
-
-				break;
-
 			case vehicle_command_s::VEHICLE_CMD_PREFLIGHT_CALIBRATION: {
 
 					int calib_ret = PX4_ERROR;
 
 					/* try to go to INIT/PREFLIGHT arming state */
-					if (TRANSITION_DENIED == arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_INIT, &armed,
+					if (TRANSITION_DENIED == arming_state_transition(&status, safety_s{}, vehicle_status_s::ARMING_STATE_INIT, &armed,
 							false /* fRunPreArmChecks */, &mavlink_log_pub, &status_flags,
 							PreFlightCheck::arm_requirements_t{}, // arming requirements not relevant for switching to ARMING_STATE_INIT
 							30_s) // time since boot not relevant for switching to ARMING_STATE_INIT
@@ -3370,7 +3369,7 @@ void *commander_low_prio_loop(void *arg)
 							status_flags.condition_system_sensors_initialized = true;
 						}
 
-						arming_state_transition(&status, safety, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
+						arming_state_transition(&status, safety_s{}, vehicle_status_s::ARMING_STATE_STANDBY, &armed,
 									false /* fRunPreArmChecks */,
 									&mavlink_log_pub, &status_flags,
 									PreFlightCheck::arm_requirements_t{}, // arming requirements not relevant for switching to ARMING_STATE_STANDBY
