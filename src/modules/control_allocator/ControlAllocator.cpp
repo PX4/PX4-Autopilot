@@ -244,7 +244,7 @@ ControlAllocator::update_allocation_method()
 		matrix::Vector<float, NUM_ACTUATORS> actuator_sp;
 
 		if (_control_allocation != nullptr) {
-			actuator_sp = _control_allocation->getAllocatedActuator();
+			actuator_sp = _control_allocation->getActuatorSetpoint();
 		}
 
 		// try to instanciate new allocation method
@@ -291,7 +291,7 @@ ControlAllocator::update_allocation_method()
 			_allocation_method_id = method;
 
 			// Configure new allocation method
-			_control_allocation->setCurrentActuatorSetpoint(actuator_sp);
+			_control_allocation->setActuatorSetpoint(actuator_sp);
 		}
 	}
 
@@ -420,7 +420,7 @@ ControlAllocator::Run()
 void
 ControlAllocator::publish_actuator_setpoint()
 {
-	matrix::Vector<float, NUM_ACTUATORS> actuator_sp = _control_allocation->getAllocatedActuator();
+	matrix::Vector<float, NUM_ACTUATORS> actuator_sp = _control_allocation->getActuatorSetpoint();
 
 	vehicle_actuator_setpoint_s vehicle_actuator_setpoint{};
 	vehicle_actuator_setpoint.timestamp = hrt_absolute_time();
@@ -455,7 +455,7 @@ ControlAllocator::publish_control_allocator_status()
 	control_allocator_status.unallocated_thrust[2] = unallocated_control(5);
 
 	// Actuator saturation
-	matrix::Vector<float, NUM_ACTUATORS> actuator_sp = _control_allocation->getAllocatedActuator();
+	matrix::Vector<float, NUM_ACTUATORS> actuator_sp = _control_allocation->getActuatorSetpoint();
 	matrix::Vector<float, NUM_ACTUATORS> actuator_min = _control_allocation->getActuatorMin();
 	matrix::Vector<float, NUM_ACTUATORS> actuator_max = _control_allocation->getActuatorMax();
 
