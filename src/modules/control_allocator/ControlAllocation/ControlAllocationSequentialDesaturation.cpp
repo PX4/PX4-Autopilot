@@ -59,7 +59,7 @@ ControlAllocationSequentialDesaturation::allocate()
 	_actuator_sp = clipActuatorSetpoint();
 
 	// Compute achieved control
-	_control_allocated = _B * _actuator_sp;
+	_control_allocated = _effectiveness * _actuator_sp;
 }
 
 void ControlAllocationSequentialDesaturation::desaturateActuators(

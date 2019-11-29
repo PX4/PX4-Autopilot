@@ -69,13 +69,13 @@ void
 ControlAllocation::setEffectivenessMatrix(const
 		matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &B)
 {
-	_B = B;
+	_effectiveness = B;
 }
 
 const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &
 ControlAllocation::getEffectivenessMatrix() const
 {
-	return _B;
+	return _effectiveness;
 }
 
 void
