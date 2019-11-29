@@ -354,7 +354,11 @@ private:
 	bool		_was_armed{false};
 	bool		_failsafe_old{false};	///< check which state machines for changes, clear "changed" flag
 	bool		_have_taken_off_since_arming{false};
+	bool		_flight_termination_printed{false};
 
+	main_state_t	_main_state_pre_offboard{commander_state_s::MAIN_STATE_MANUAL};
+
+	commander_state_s	_internal_state{};
 	cpuload_s		_cpuload{};
 	geofence_result_s	_geofence_result{};
 	vehicle_land_detected_s	_land_detector{};
