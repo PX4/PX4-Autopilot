@@ -128,6 +128,33 @@ PARAM_DEFINE_FLOAT(NAV_MC_ALT_RAD, 0.8f);
 PARAM_DEFINE_INT32(NAV_TRAFF_AVOID, 1);
 
 /**
+ * Set NAV TRAFFIC AVOID RADIUS MANNED
+ *
+ * Defines the Radius where NAV TRAFFIC AVOID is Called
+ * For Manned Aviation
+ *
+ * @unit m
+ * @min 500
+ *
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(NAV_TRAFF_A_RADM, 500);
+
+/**
+ * Set NAV TRAFFIC AVOID RADIUS
+ *
+ * Defines the Radius where NAV TRAFFIC AVOID is Called
+ * For Unmanned Aviation
+ *
+ * @unit m
+ * @min 10
+ * @max 500
+ *
+ * @group Mission
+ */
+PARAM_DEFINE_FLOAT(NAV_TRAFF_A_RADU, 10);
+
+/**
  * Airfield home Lat
  *
  * Latitude of airfield home waypoint
@@ -171,3 +198,5 @@ PARAM_DEFINE_FLOAT(NAV_AH_ALT, 600.0f);
  * @group Mission
  */
 PARAM_DEFINE_INT32(NAV_FORCE_VT, 1);
+
+

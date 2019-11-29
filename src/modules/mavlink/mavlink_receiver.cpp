@@ -2229,7 +2229,7 @@ MavlinkReceiver::handle_message_utm_global_position(mavlink_message_t *msg)
 	// For now, set it to all 0s. This is a null-terminated string, so not explicitly giving it a null
 	// terminator could cause problems.
 	memset(&t.callsign[0], 0, sizeof(t.callsign));
-	t.emitter_type = ADSB_EMITTER_TYPE_NO_INFO;  // TODO: Is this correct?
+	t.emitter_type = ADSB_EMITTER_TYPE_UAV;  // TODO: Is this correct?x2?
 
 	// The Mavlink docs do not specify what to do if tslc (time since last communication) is out of range of
 	// an 8-bit int, or if this is the first communication.
