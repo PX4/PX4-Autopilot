@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskAuto
-	FlightTaskAuto.cpp
+px4_add_library(
+	LIBRARY FlightTaskAuto
+	SRCS FlightTaskAuto.cpp
 )
 
 target_link_libraries(FlightTaskAuto PUBLIC FlightTask FlightTaskUtility)

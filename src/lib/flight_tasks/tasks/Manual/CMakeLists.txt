@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskManual
-	FlightTaskManual.cpp
+px4_add_library(
+	LIBRARY FlightTaskManual
+	SRCS FlightTaskManual.cpp
 )
 
 target_link_libraries(FlightTaskManual PUBLIC FlightTask)

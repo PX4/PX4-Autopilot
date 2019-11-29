@@ -31,4 +31,6 @@
 #
 ############################################################################
 
-px4_add_library(landing_slope Landingslope.cpp)
+px4_add_library(
+	LIBRARY landing_slope
+	SRCS Landingslope.cpp)

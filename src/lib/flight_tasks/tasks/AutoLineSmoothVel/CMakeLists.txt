@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskAutoLineSmoothVel
-	FlightTaskAutoLineSmoothVel.cpp
+px4_add_library(
+	LIBRARY FlightTaskAutoLineSmoothVel
+	SRCS FlightTaskAutoLineSmoothVel.cpp
 )
 
 target_link_libraries(FlightTaskAutoLineSmoothVel PUBLIC FlightTaskAutoMapper2 FlightTaskUtility)

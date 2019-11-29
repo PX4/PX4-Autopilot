@@ -31,6 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(bezier
-		BezierQuad.cpp
+px4_add_library(
+	LIBRARY bezier
+	SRCS BezierQuad.cpp
 )

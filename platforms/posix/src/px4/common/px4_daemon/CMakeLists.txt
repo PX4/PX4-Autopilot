@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(px4_daemon
-		pxh.cpp
+px4_add_library(
+	LIBRARY px4_daemon
+	SRCS pxh.cpp
 		history.cpp
 		client.cpp
 		server.cpp

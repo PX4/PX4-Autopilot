@@ -31,5 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(drivers__airspeed airspeed.cpp)
+px4_add_library(
+	LIBRARY drivers__airspeed
+	SRCS airspeed.cpp)
 target_link_libraries(drivers__airspeed PRIVATE drivers__device)

@@ -31,6 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(runway_takeoff
-	RunwayTakeoff.cpp
+px4_add_library(
+	LIBRARY runway_takeoff
+	SRCS RunwayTakeoff.cpp
 )

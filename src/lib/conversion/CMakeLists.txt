@@ -31,4 +31,6 @@
 #
 ############################################################################
 
-px4_add_library(conversion rotation.cpp)
+px4_add_library(
+	LIBRARY conversion
+	SRCS rotation.cpp)

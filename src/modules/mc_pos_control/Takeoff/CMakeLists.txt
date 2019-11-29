@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(Takeoff
-	Takeoff.cpp
+px4_add_library(
+	LIBRARY Takeoff
+	SRCS Takeoff.cpp
 )
 target_include_directories(Takeoff
 	PUBLIC

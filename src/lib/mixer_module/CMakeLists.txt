@@ -31,4 +31,6 @@
 #
 ############################################################################
 
-px4_add_library(mixer_module mixer_module.cpp)
+px4_add_library(
+	LIBRARY mixer_module
+	SRCS mixer_module.cpp)

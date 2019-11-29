@@ -31,4 +31,6 @@
 #
 ############################################################################
 
-px4_add_library(circuit_breaker circuit_breaker.cpp)
+px4_add_library(
+	LIBRARY circuit_breaker
+	SRCS circuit_breaker.cpp)

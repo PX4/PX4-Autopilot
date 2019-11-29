@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(modules__muorb__adsp
-	px4muorb.cpp
+px4_add_library(
+	LIBRARY modules__muorb__adsp
+	SRCS px4muorb.cpp
 	uORBFastRpcChannel.cpp
 )
 target_include_directories(modules__muorb__adsp PRIVATE ${PX4_SOURCE_DIR}/src/modules/uORB)

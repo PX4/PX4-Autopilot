@@ -31,4 +31,6 @@
 #
 ############################################################################
 
-px4_add_library(WeatherVane WeatherVane.cpp)
+px4_add_library(
+	LIBRARY WeatherVane
+	SRCS WeatherVane.cpp)

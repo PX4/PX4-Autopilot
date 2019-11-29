@@ -31,6 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(arch_tone_alarm
-	ToneAlarmInterface.cpp
+px4_add_library(
+	LIBRARY arch_tone_alarm
+	SRCS ToneAlarmInterface.cpp
 )

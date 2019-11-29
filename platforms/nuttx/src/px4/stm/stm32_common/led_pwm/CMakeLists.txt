@@ -31,6 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(arch_led_pwm
-	led_pwm.cpp
+px4_add_library(
+	LIBRARY arch_led_pwm
+	SRCS led_pwm.cpp
 )

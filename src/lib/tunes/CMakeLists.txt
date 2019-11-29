@@ -31,7 +31,8 @@
 #
 ############################################################################
 
-px4_add_library(tunes
-	tunes.cpp
+px4_add_library(
+	LIBRARY tunes
+	SRCS tunes.cpp
 	default_tunes.cpp
 )

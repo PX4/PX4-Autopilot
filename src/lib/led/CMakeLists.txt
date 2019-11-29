@@ -31,7 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(led led.cpp)
+px4_add_library(
+	LIBRARY led
+	SRCS led.cpp)
 target_compile_options(led
 	PRIVATE -Wno-implicit-fallthrough # TODO: fix and remove
 )

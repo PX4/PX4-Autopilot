@@ -49,4 +49,4 @@ else()
 		)
 endif()
 
-px4_add_library(systemlib ${SRCS})
+px4_add_library(LIBRARY systemlib SRCS ${SRCS})

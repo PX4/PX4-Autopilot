@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskOrbit
-	FlightTaskOrbit.cpp
+px4_add_library(
+	LIBRARY FlightTaskOrbit
+	SRCS FlightTaskOrbit.cpp
 )
 
 target_link_libraries(FlightTaskOrbit PUBLIC FlightTaskManualAltitudeSmooth)

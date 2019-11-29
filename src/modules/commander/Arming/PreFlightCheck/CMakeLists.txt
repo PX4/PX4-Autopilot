@@ -31,7 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(PreFlightCheck
+px4_add_library(
+	LIBRARY PreFlightCheck
+	SRCS
 	PreFlightCheck.cpp
 	checks/preArmCheck.cpp
 	checks/magnetometerCheck.cpp

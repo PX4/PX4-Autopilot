@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskOffboard
-	FlightTaskOffboard.cpp
+px4_add_library(
+	LIBRARY FlightTaskOffboard
+	SRCS FlightTaskOffboard.cpp
 )
 
 target_link_libraries(FlightTaskOffboard PUBLIC FlightTask)

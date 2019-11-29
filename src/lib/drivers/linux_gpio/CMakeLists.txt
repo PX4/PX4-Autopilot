@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(linux_gpio
-	linux_gpio.cpp
+px4_add_library(
+	LIBRARY linux_gpio
+	SRCS linux_gpio.cpp
 	)
 
 #add_subdirectory(test)

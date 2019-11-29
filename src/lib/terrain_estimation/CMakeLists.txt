@@ -31,4 +31,6 @@
 #
 ############################################################################
 
-px4_add_library(terrain_estimation terrain_estimator.cpp)
+px4_add_library(
+	LIBRARY terrain_estimation
+	SRCS terrain_estimator.cpp)

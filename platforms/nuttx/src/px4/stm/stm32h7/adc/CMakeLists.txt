@@ -31,6 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(arch_adc
-	adc.cpp
+px4_add_library(
+	LIBRARY arch_adc
+	SRCS adc.cpp
 )

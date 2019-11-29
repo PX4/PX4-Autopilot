@@ -159,7 +159,9 @@ if (GENERATE_RTPS_BRIDGE)
 		WORKING_DIRECTORY ${PX4_SOURCE_DIR}/msg/
 		VERBATIM
 		)
-	px4_add_library(uorb_msgs_microcdr ${uorb_sources_microcdr})
+	px4_add_library(
+		LIBRARY uorb_msgs_microcdr
+		SRCS ${uorb_sources_microcdr})
 	add_dependencies(uorb_msgs_microcdr
 		uorb_headers_microcdr_gen
 		git_micro_cdr

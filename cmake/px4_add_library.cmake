@@ -37,19 +37,33 @@
 #
 #	Like add_library but with PX4 platform dependencies
 #
-function(px4_add_library target)
-	add_library(${target} EXCLUDE_FROM_ALL ${ARGN})
+function(px4_add_library)
 
-	target_compile_definitions(${target} PRIVATE MODULE_NAME="${target}")
+	px4_parse_function_args(
+			NAME px4_add_module
+			ONE_VALUE LIBRARY
+			MULTI_VALUE SRCS LIBRARY_CONFIG
+			REQUIRED LIBRARY
+			ARGN ${ARGN})
+
+	add_library(${LIBRARY} EXCLUDE_FROM_ALL ${SRCS})
+
+	target_compile_definitions(${LIBRARY} PRIVATE MODULE_NAME="${LIBRARY}")
 
 	# all PX4 libraries have access to parameters and uORB
-	add_dependencies(${target} uorb_headers)
-	target_link_libraries(${target} PRIVATE prebuild_targets parameters_interface px4_platform uorb_msgs)
+	add_dependencies(${LIBRARY} uorb_headers)
+	target_link_libraries(${LIBRARY} PRIVATE prebuild_targets parameters_interface px4_platform uorb_msgs)
 
 	# TODO: move to platform layer
 	if ("${PX4_PLATFORM}" MATCHES "nuttx")
-		target_link_libraries(${target} PRIVATE m nuttx_c)
+		target_link_libraries(${LIBRARY} PRIVATE m nuttx_c)
 	endif()
 
 	set_property(GLOBAL APPEND PROPERTY PX4_MODULE_PATHS ${CMAKE_CURRENT_SOURCE_DIR})
+
+	if(LIBRARY_CONFIG)
+		foreach(module_config ${LIBRARY_CONFIG})
+			set_property(GLOBAL APPEND PROPERTY PX4_MODULE_CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/${module_config})
+		endforeach()
+	endif()
 endfunction()

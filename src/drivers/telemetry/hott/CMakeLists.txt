@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(drivers__hott
-	messages.cpp
+px4_add_library(
+	LIBRARY drivers__hott
+	SRCS messages.cpp
 	comms.cpp
 )
 

@@ -31,7 +31,8 @@
 #
 ############################################################################
 
-px4_add_library(launchdetection
-	LaunchDetector.cpp
+px4_add_library(
+	LIBRARY launchdetection
+	SRCS LaunchDetector.cpp
 	CatapultLaunchMethod.cpp
 )

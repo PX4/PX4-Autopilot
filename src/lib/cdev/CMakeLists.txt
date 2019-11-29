@@ -43,7 +43,8 @@ else()
 	)
 endif()
 
-px4_add_library(cdev
+px4_add_library(LIBRARY cdev
+	SRCS
 	CDev.cpp
 	${SRCS_PLATFORM}
 	)

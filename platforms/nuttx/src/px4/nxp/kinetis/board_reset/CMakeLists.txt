@@ -31,6 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(arch_board_reset
-	board_reset.c
+px4_add_library(
+	LIBRARY arch_board_reset
+	SRCS board_reset.c
 )

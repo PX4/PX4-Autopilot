@@ -31,6 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(arch_board_hw_info
-	board_hw_rev_ver.c
+px4_add_library(
+	LIBRARY arch_board_hw_info
+	SRCS board_hw_rev_ver.c
 )

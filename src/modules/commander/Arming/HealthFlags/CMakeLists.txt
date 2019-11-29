@@ -31,7 +31,8 @@
 #
 ############################################################################
 
-px4_add_library(HealthFlags
-	HealthFlags.cpp
+px4_add_library(
+	LIBRARY HealthFlags
+	SRCS HealthFlags.cpp
 )
 target_include_directories(HealthFlags PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

@@ -37,5 +37,7 @@ set(SRCS
     stub_parameter.cpp
    )
 
-px4_add_library(test_stubs ${SRCS})
+px4_add_library(
+	LIBRARY test_stubs
+	SRCS ${SRCS})
 message("-- ADDING TEST STUBS")

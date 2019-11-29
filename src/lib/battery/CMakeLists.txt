@@ -31,4 +31,6 @@
 #
 ############################################################################
 
-px4_add_library(battery battery.cpp)
+px4_add_library(
+	LIBRARY battery
+	SRCS battery.cpp)

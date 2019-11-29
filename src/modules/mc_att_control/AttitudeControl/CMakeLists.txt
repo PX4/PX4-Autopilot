@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(AttitudeControl
-	AttitudeControl.cpp
+px4_add_library(
+	LIBRARY AttitudeControl
+	SRCS AttitudeControl.cpp
 )
 target_include_directories(AttitudeControl
 	PUBLIC

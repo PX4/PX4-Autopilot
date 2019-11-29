@@ -31,8 +31,9 @@
 #
 #############################################################################
 
-px4_add_library(Ekf2Utility
-	PreFlightChecker.cpp
+px4_add_library(
+	LIBRARY Ekf2Utility
+	SRCS PreFlightChecker.cpp
 )
 
 target_include_directories(Ekf2Utility

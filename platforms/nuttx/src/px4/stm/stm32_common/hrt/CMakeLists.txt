@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(arch_hrt
-	hrt.c
+px4_add_library(
+	LIBRARY arch_hrt
+	SRCS hrt.c
 )
 target_compile_options(arch_hrt PRIVATE -Wno-cast-align) # TODO: fix and enable
 

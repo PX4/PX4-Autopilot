@@ -31,4 +31,6 @@
 #
 ############################################################################
 
-px4_add_library(drivers_barometer PX4Barometer.cpp)
+px4_add_library(
+	LIBRARY drivers_barometer
+	SRCS PX4Barometer.cpp)

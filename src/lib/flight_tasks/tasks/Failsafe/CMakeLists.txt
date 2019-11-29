@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskFailsafe
-	FlightTaskFailsafe.cpp
+px4_add_library(
+	LIBRARY FlightTaskFailsafe
+	SRCS FlightTaskFailsafe.cpp
 )
 
 target_link_libraries(FlightTaskFailsafe PUBLIC FlightTask)

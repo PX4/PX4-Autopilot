@@ -31,7 +31,8 @@
 #
 ############################################################################
 
-px4_add_library(vehicle_acceleration
-	VehicleAcceleration.cpp
+px4_add_library(
+	LIBRARY vehicle_acceleration
+	SRCS VehicleAcceleration.cpp
 )
 target_link_libraries(vehicle_acceleration PRIVATE px4_work_queue)

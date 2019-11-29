@@ -31,6 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(failure_detector
-	FailureDetector.cpp
+px4_add_library(
+	LIBRARY failure_detector
+	SRCS FailureDetector.cpp
 )

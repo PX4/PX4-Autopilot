@@ -31,4 +31,6 @@
 #
 ############################################################################
 
-px4_add_library(pid pid.cpp)
+px4_add_library(
+	LIBRARY pid
+	SRCS pid.cpp)

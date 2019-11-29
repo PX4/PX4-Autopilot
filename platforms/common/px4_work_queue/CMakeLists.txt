@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(px4_work_queue
-	ScheduledWorkItem.cpp
+px4_add_library(
+	LIBRARY px4_work_queue
+	SRCS ScheduledWorkItem.cpp
 	WorkItem.cpp
 	WorkQueue.cpp
 	WorkQueueManager.cpp

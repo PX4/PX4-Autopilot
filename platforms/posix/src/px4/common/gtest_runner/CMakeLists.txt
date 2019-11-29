@@ -35,5 +35,7 @@ set(SRCS
     gtest_functional_main.cpp
    )
 
-px4_add_library(gtest_functional_main ${SRCS})
+px4_add_library(
+	LIBRARY gtest_functional_main
+	SRCS ${SRCS})
 target_link_libraries(gtest_functional_main PUBLIC gtest)

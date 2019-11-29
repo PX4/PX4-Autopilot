@@ -31,6 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(arch_px4io_serial
-	px4io_serial.cpp
+px4_add_library(
+	LIBRARY arch_px4io_serial
+	SRCS px4io_serial.cpp
 )

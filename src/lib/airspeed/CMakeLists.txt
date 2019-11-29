@@ -31,4 +31,6 @@
 #
 ############################################################################
 
-px4_add_library(airspeed airspeed.cpp)
+px4_add_library(
+	LIBRARY airspeed
+	SRCS airspeed.cpp)

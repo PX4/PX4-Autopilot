@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskTransition
-	FlightTaskTransition.cpp
+px4_add_library(
+	LIBRARY FlightTaskTransition
+	SRCS FlightTaskTransition.cpp
 )
 
 target_link_libraries(FlightTaskTransition PUBLIC FlightTask)

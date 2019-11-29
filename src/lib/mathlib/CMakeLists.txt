@@ -31,7 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(mathlib
+px4_add_library(
+	LIBRARY mathlib
+	SRCS
 	math/test/test.cpp
 	math/matrix_alg.cpp
 	math/filter/LowPassFilter2p.cpp

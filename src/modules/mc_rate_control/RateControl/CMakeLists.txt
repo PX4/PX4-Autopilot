@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(RateControl
-	RateControl.cpp
+px4_add_library(
+	LIBRARY RateControl
+	SRCS RateControl.cpp
 )
 target_include_directories(RateControl
 	PUBLIC

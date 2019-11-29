@@ -31,7 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(controllib
+px4_add_library(
+	LIBRARY controllib
+	SRCS
 	block/Block.cpp
 	block/BlockParam.cpp
 	BlockDerivative.cpp

@@ -53,7 +53,8 @@ elseif(UNIX AND NOT APPLE AND NOT (${PX4_PLATFORM} MATCHES "qurt")) #TODO: add l
 	)
 endif()
 
-px4_add_library(drivers__device
+px4_add_library(LIBRARY drivers__device
+	SRCS
 	CDev.cpp
 	ringbuffer.cpp
 	integrator.cpp

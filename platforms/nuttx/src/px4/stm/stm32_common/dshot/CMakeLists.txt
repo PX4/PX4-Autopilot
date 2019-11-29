@@ -31,6 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(arch_dshot
-	dshot.c
+px4_add_library(
+	LIBRARY arch_dshot
+	SRCS dshot.c
 )

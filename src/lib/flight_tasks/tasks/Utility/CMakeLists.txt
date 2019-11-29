@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskUtility
-	ManualSmoothingZ.cpp
+px4_add_library(
+	LIBRARY FlightTaskUtility
+	SRCS ManualSmoothingZ.cpp
 	ManualSmoothingXY.cpp
 	ObstacleAvoidance.cpp
 	StraightLine.cpp

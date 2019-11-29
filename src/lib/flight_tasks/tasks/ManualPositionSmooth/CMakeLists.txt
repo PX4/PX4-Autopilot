@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskManualPositionSmooth
-	FlightTaskManualPositionSmooth.cpp
+px4_add_library(
+	LIBRARY FlightTaskManualPositionSmooth
+	SRCS FlightTaskManualPositionSmooth.cpp
 )
 
 target_link_libraries(FlightTaskManualPositionSmooth PUBLIC FlightTaskManualPosition FlightTaskUtility)

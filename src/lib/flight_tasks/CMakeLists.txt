@@ -111,8 +111,9 @@ add_compile_options(
 	-Wno-cast-align
 	) # TODO: fix and enable
 
-px4_add_library(FlightTasks
-	FlightTasks.cpp
+px4_add_library(
+	LIBRARY FlightTasks
+	SRCS FlightTasks.cpp
 	FlightTasks_generated.cpp
 )
 

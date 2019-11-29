@@ -31,5 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(drivers__ledsim led.cpp)
+px4_add_library(
+	LIBRARY drivers__ledsim
+	SRCS led.cpp)
 target_link_libraries(drivers__ledsim PRIVATE drivers__led)

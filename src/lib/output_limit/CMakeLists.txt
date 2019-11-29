@@ -31,4 +31,6 @@
 #
 ############################################################################
 
-px4_add_library(output_limit output_limit.cpp)
+px4_add_library(
+	LIBRARY output_limit
+	SRCS output_limit.cpp)

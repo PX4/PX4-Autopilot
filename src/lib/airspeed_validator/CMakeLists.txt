@@ -31,7 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(AirspeedValidator AirspeedValidator.cpp)
+px4_add_library(
+	LIBRARY AirspeedValidator
+	SRCS AirspeedValidator.cpp)
 
 target_include_directories(AirspeedValidator
 	PUBLIC

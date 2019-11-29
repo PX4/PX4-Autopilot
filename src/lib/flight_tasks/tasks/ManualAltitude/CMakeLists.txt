@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskManualAltitude
-	FlightTaskManualAltitude.cpp
+px4_add_library(
+	LIBRARY FlightTaskManualAltitude
+	SRCS FlightTaskManualAltitude.cpp
 )
 
 target_link_libraries(FlightTaskManualAltitude PUBLIC FlightTaskManual)

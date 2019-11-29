@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskDescend
-	FlightTaskDescend.cpp
+px4_add_library(
+	LIBRARY FlightTaskDescend
+	SRCS FlightTaskDescend.cpp
 )
 
 target_link_libraries(FlightTaskDescend PUBLIC FlightTask)

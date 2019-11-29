@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(FlightTaskAutoFollowMe
-	FlightTaskAutoFollowMe.cpp
+px4_add_library(
+	LIBRARY FlightTaskAutoFollowMe
+	SRCS FlightTaskAutoFollowMe.cpp
 )
 
 target_link_libraries(FlightTaskAutoFollowMe PUBLIC FlightTaskAuto)

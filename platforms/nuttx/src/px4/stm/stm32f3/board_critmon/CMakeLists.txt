@@ -31,6 +31,7 @@
 #
 ############################################################################
 
-px4_add_library(arch_board_critmon
-	board_critmon.c
+px4_add_library(
+	LIBRARY arch_board_critmon
+	SRCS board_critmon.c
 )

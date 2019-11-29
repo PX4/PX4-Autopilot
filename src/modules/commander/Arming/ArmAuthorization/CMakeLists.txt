@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(ArmAuthorization
-	ArmAuthorization.cpp
+px4_add_library(
+	LIBRARY ArmAuthorization
+	SRCS ArmAuthorization.cpp
 )
 target_include_directories(ArmAuthorization
 	PUBLIC

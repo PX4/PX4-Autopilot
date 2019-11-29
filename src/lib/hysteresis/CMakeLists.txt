@@ -31,6 +31,8 @@
 #
 ############################################################################
 
-px4_add_library(hysteresis hysteresis.cpp)
+px4_add_library(
+	LIBRARY hysteresis
+	SRCS hysteresis.cpp)
 
 px4_add_unit_gtest(SRC HysteresisTest.cpp LINKLIBS hysteresis)

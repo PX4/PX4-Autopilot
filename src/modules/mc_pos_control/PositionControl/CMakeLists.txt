@@ -31,8 +31,9 @@
 #
 ############################################################################
 
-px4_add_library(PositionControl
-	PositionControl.cpp
+px4_add_library(
+	LIBRARY PositionControl
+	SRCS PositionControl.cpp
 	ControlMath.cpp
 )
 target_include_directories(PositionControl

@@ -31,4 +31,6 @@
 #
 ############################################################################
 
-px4_add_library(drivers__smbus SMBus.cpp)
+px4_add_library(
+	LIBRARY drivers__smbus
+	SRCS SMBus.cpp)
