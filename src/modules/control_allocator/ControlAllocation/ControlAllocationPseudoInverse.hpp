@@ -57,7 +57,7 @@ public:
 	virtual void setEffectivenessMatrix(const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &B) override;
 
 protected:
-	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _A;
+	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _mix;
 
 	bool _A_update_needed{false};
 

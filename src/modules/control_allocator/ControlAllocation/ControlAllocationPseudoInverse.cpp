@@ -53,7 +53,7 @@ void
 ControlAllocationPseudoInverse::updatePseudoInverse()
 {
 	if (_A_update_needed) {
-		_A = matrix::geninv(_effectiveness);
+		_mix = matrix::geninv(_effectiveness);
 		_A_update_needed = false;
 	}
 }
@@ -65,7 +65,7 @@ ControlAllocationPseudoInverse::allocate()
 	updatePseudoInverse();
 
 	// Allocate
-	_actuator_sp = _A * _control_sp;
+	_actuator_sp = _mix * _control_sp;
 
 	// Clip
 	_actuator_sp = clipActuatorSetpoint();

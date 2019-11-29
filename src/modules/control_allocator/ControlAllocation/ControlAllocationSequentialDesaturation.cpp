@@ -48,7 +48,7 @@ ControlAllocationSequentialDesaturation::allocate()
 	updatePseudoInverse();
 
 	// Allocate
-	_actuator_sp = _A * _control_sp;
+	_actuator_sp = _mix * _control_sp;
 
 	// go through control axes from lowest to highest priority and unsaturate the actuators
 	for (unsigned i = 0; i < NUM_AXES; i++) {
@@ -83,7 +83,7 @@ ControlAllocation::ActuatorVector ControlAllocationSequentialDesaturation::getDe
 	ActuatorVector ret;
 
 	for (unsigned i = 0; i < NUM_ACTUATORS; i++) {
-		ret(i) = _A(i, axis);
+		ret(i) = _mix(i, axis);
 	}
 
 	return ret;
