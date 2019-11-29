@@ -141,9 +141,6 @@ then
 	param set CAL_GYRO0_XOFF -0.0028
 	param set CAL_GYRO0_YOFF -0.0047
 	param set CAL_GYRO0_ZOFF -0.0034
-	param set CAL_GYRO0_XSCALE 1.0000
-	param set CAL_GYRO0_YSCALE 1.0000
-	param set CAL_GYRO0_ZSCALE 1.0000
 	param set CAL_MAG0_XOFF 0.0000
 	param set CAL_MAG0_YOFF 0.0000
 	param set CAL_MAG0_ZOFF 0.0000
