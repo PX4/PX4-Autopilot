@@ -342,6 +342,7 @@ private:
 	uint32_t	_stick_off_counter{0};
 	uint32_t	_stick_on_counter{0};
 
+	hrt_abstime	_boot_timestamp{0};
 	hrt_abstime	_last_disarmed_timestamp{0};
 	hrt_abstime	_timestamp_engine_healthy{0}; ///< absolute time when engine was healty
 
