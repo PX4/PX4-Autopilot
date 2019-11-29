@@ -45,7 +45,7 @@ void
 ControlAllocationPseudoInverse::setEffectivenessMatrix(const
 		matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &B)
 {
-	_B = B;
+	_effectiveness = B;
 	_A_update_needed = true;
 }
 
@@ -53,7 +53,7 @@ void
 ControlAllocationPseudoInverse::updatePseudoInverse()
 {
 	if (_A_update_needed) {
-		_A = matrix::geninv(_B);
+		_A = matrix::geninv(_effectiveness);
 		_A_update_needed = false;
 	}
 }
@@ -71,5 +71,5 @@ ControlAllocationPseudoInverse::allocate()
 	_actuator_sp = clipActuatorSetpoint();
 
 	// Compute achieved control
-	_control_allocated = _B * _actuator_sp;
+	_control_allocated = _effectiveness * _actuator_sp;
 }

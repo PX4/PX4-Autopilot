@@ -126,7 +126,7 @@ ControlAllocator::parameters_updated()
 	actuator_max(15) = _param_ca_act15_max.get();
 	_control_allocation->setActuatorMax(actuator_max);
 
-	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> B = getEffectinvenessMatrix();
+	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> B = getEffectivenessMatrix();
 
 	// Assign control effectiveness matrix
 	_control_allocation->setEffectivenessMatrix(B);

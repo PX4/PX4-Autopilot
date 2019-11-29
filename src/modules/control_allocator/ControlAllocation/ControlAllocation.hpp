@@ -72,8 +72,6 @@
 #include <matrix/matrix/math.hpp>
 #include <uORB/topics/vehicle_actuator_setpoint.h>
 
-#undef _B // This symbol is a macro on certain platforms, it interferes with local scope variables
-
 class ControlAllocation
 {
 public:
@@ -201,7 +199,7 @@ public:
 	matrix::Vector<float, NUM_ACTUATORS> normalizeActuatorSetpoint() const;
 
 protected:
-	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _B;  	//< Effectiveness matrix
+	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness;  //< Effectiveness matrix
 	matrix::Vector<float, NUM_ACTUATORS> _actuator_min; 	//< Minimum actuator values
 	matrix::Vector<float, NUM_ACTUATORS> _actuator_max; 	//< Maximum actuator values
 	matrix::Vector<float, NUM_ACTUATORS> _actuator_sp;  	//< Actuator setpoint
