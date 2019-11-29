@@ -95,10 +95,10 @@ private:
 	int measureWiretemp();
 	int measureBatttemp();
 
-	double getVoltage();
-	double getCurrent();
-	double getWireTemp();
-	double getBattTemp();
+	// double getVoltage();
+	// double getCurrent();
+	// double getWireTemp();
+	// double getBattTemp();
 
     	// double v_avging();
     	// double i_avging();
@@ -171,14 +171,14 @@ void ADS1115::Run()
 {
 	static int measure_count, read_count;
 	uint16_t convRegVal = 0;
-    static double current = 0;
-    static double voltage = 0;
-    static double wiretemp = 0;
-    static double batttemp = 0;
-    static double discharged = 0;
+	static double current = 0;
+	static double voltage = 0;
+	static double wiretemp = 0;
+	static double batttemp = 0;
+	static double discharged = 0;
 
 	struct power_monitor_s report;
-    struct battery_status_s mainrep;
+	struct battery_status_s mainrep;
 
 	if (_measure_interval == 0) {
 		return;
@@ -192,7 +192,7 @@ void ADS1115::Run()
 				if (!readConvReg(&convRegVal))
 				{
 					current = swap16(convRegVal);
-                    discharged += 0.001;
+                    			discharged += 0.001;
 					read_count = 1;
 					break;
 				} else
@@ -308,15 +308,15 @@ void ADS1115::Run()
 	orb_publish_auto(ORB_ID(power_monitor), &_power_monitor_topic,
         	&report, &pminstance, ORB_PRIO_DEFAULT);
 
-    mainrep.timestamp = hrt_absolute_time();
-    mainrep.current_a = current*current_gain;
-    mainrep.voltage_v = voltage*voltage_gain;
-    mainrep.voltage_filtered_v = voltage*voltage_gain;
-    mainrep.discharged_mah = discharged;
+	mainrep.timestamp = hrt_absolute_time();
+	mainrep.current_a = current*current_gain;
+	mainrep.voltage_v = voltage*voltage_gain;
+	mainrep.voltage_filtered_v = voltage*voltage_gain;
+	mainrep.discharged_mah = discharged;
 
-    int bsinstance;
-    orb_publish_auto(ORB_ID(battery_status), &_battery_status_topic,
-        &mainrep, &bsinstance, ORB_PRIO_DEFAULT);
+	int bsinstance;
+	orb_publish_auto(ORB_ID(battery_status), &_battery_status_topic,
+	        &mainrep, &bsinstance, ORB_PRIO_DEFAULT);
 }
 
 void ADS1115::start()
