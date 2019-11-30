@@ -47,7 +47,7 @@
 
 #include <drivers/drv_hrt.h>
 
-#include <uORB/uORB.h>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/input_rc.h>
 
 namespace navio_sysfs_rc_in
@@ -96,7 +96,7 @@ private:
 	bool _isRunning;
 	struct work_s _work;
 
-	orb_advert_t _rcinput_pub;
+	uORB::PublicationMulti<input_rc_s>	_rcinput_pub{ORB_ID(input_rc)};
 
 	int _channels;
 	int _ch_fd[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
@@ -124,13 +124,6 @@ int RcInput::navio_rc_init()
 
 	for (; i < input_rc_s::RC_INPUT_MAX_CHANNELS; ++i) {
 		_data.values[i] = UINT16_MAX;
-	}
-
-	_rcinput_pub = orb_advertise(ORB_ID(input_rc), &_data);
-
-	if (_rcinput_pub == nullptr) {
-		PX4_WARN("error: advertise failed");
-		return -1;
 	}
 
 	return 0;
@@ -208,7 +201,7 @@ void RcInput::_measure(void)
 	_data.rc_lost = false;
 	_data.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_PPM;
 
-	orb_publish(ORB_ID(input_rc), _rcinput_pub, &_data);
+	_rcinput_pub.publish(_data);
 }
 
 /**
