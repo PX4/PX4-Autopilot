@@ -55,11 +55,6 @@
 using namespace math;
 using namespace matrix;
 
-int Sih::print_status()
-{
-	PX4_INFO("Running");
-	return 0;
-}
 
 int Sih::custom_command(int argc, char *argv[])
 {

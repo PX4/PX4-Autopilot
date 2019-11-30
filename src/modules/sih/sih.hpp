@@ -79,9 +79,6 @@ public:
 	/** @see ModuleBase::run() */
 	void run() override;
 
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
-
 	static float generate_wgn();    // generate white Gaussian noise sample
 
 	// generate white Gaussian noise sample as a 3D vector with specified std
