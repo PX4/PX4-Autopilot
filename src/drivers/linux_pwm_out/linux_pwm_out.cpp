@@ -42,6 +42,7 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/posix.h>
 
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/actuator_outputs.h>
@@ -76,11 +77,10 @@ static char _mixer_filename[64] = "ROMFS/px4fmu_common/mixers/quad_x.main.mix";
 
 // subscriptions
 int     _controls_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
-int     _armed_sub = -1;
+uORB::Subscription	_armed_sub{ORB_ID(actuator_armed)};
 
 // publications
-orb_advert_t    _outputs_pub = nullptr;
-orb_advert_t    _rc_pub = nullptr;
+uORB::PublicationMulti<actuator_outputs_s> _outputs_pub{ORB_ID(actuator_outputs)};
 
 perf_counter_t	_perf_control_latency = nullptr;
 
@@ -207,9 +207,6 @@ void subscribe()
 			_poll_fds[_poll_fds_num].events = POLLIN;
 			_poll_fds_num++;
 		}
-
-		_armed_sub = orb_subscribe(ORB_ID(actuator_armed));
-
 	}
 }
 
@@ -272,12 +269,7 @@ void task_main(int argc, char *argv[])
 
 	while (!_task_should_exit) {
 
-		bool updated;
-		orb_check(_armed_sub, &updated);
-
-		if (updated) {
-			orb_copy(ORB_ID(actuator_armed), _armed_sub, &_armed);
-		}
+		_armed_sub.update(&_armed);
 
 		if (_mixer_group) {
 			_mixer_group->set_airmode(airmode);
@@ -395,12 +387,7 @@ void task_main(int argc, char *argv[])
 
 			_outputs.timestamp = hrt_absolute_time();
 
-			if (_outputs_pub != nullptr) {
-				orb_publish(ORB_ID(actuator_outputs), _outputs_pub, &_outputs);
-
-			} else {
-				_outputs_pub = orb_advertise(ORB_ID(actuator_outputs), &_outputs);
-			}
+			_outputs_pub.publish(_outputs);
 
 			// use first valid timestamp_sample for latency tracking
 			for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
@@ -435,11 +422,6 @@ void task_main(int argc, char *argv[])
 		if (_controls_subs[i] >= 0) {
 			orb_unsubscribe(_controls_subs[i]);
 		}
-	}
-
-	if (_armed_sub != -1) {
-		orb_unsubscribe(_armed_sub);
-		_armed_sub = -1;
 	}
 
 	if (rc_channels_sub != -1) {
