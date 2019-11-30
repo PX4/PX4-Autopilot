@@ -129,7 +129,7 @@ class FixedwingPositionControl final : public ModuleBase<FixedwingPositionContro
 	public px4::WorkItem
 {
 public:
-	FixedwingPositionControl();
+	FixedwingPositionControl(bool vtol = false);
 	~FixedwingPositionControl() override;
 
 	/** @see ModuleBase */
@@ -165,9 +165,7 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			///< vehicle status subscription
 	uORB::SubscriptionData<vehicle_angular_velocity_s>	_vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
 
-	orb_advert_t	_attitude_sp_pub{nullptr};		///< attitude setpoint
-	orb_id_t	_attitude_setpoint_id{nullptr};
-
+	uORB::Publication<vehicle_attitude_setpoint_s>		_attitude_sp_pub;
 	uORB::Publication<position_controller_status_s>		_pos_ctrl_status_pub{ORB_ID(position_controller_status)};			///< navigation capabilities publication
 	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};	///< landing status publication
 	uORB::Publication<tecs_status_s>			_tecs_status_pub{ORB_ID(tecs_status)};						///< TECS status publication
@@ -253,6 +251,8 @@ private:
 	float _asp_after_transition{0.0f};
 	bool _was_in_transition{false};
 
+	bool _vtol_tailsitter{false};
+
 	// estimator reset counters
 	uint8_t _pos_reset_counter{0};				///< captures the number of times the estimator has reset the horizontal position
 	uint8_t _alt_reset_counter{0};				///< captures the number of times the estimator has reset the altitude state
@@ -307,7 +307,6 @@ private:
 
 		// VTOL
 		float airspeed_trans;
-		int32_t vtol_type;
 	} _parameters{};					///< local copies of interesting parameters
 
 	struct {
@@ -370,8 +369,6 @@ private:
 		param_t land_airspeed_scale;
 		param_t land_throtTC_scale;
 		param_t loiter_radius;
-
-		param_t vtol_type;
 	} _parameter_handles {};				///< handles for interesting parameters
 
 	DEFINE_PARAMETERS(

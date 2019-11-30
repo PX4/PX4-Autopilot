@@ -51,11 +51,20 @@
 
 using namespace matrix;
 
-MulticopterAttitudeControl::MulticopterAttitudeControl() :
+MulticopterAttitudeControl::MulticopterAttitudeControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
+	_vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
+	if (vtol) {
+		int32_t vt_type = -1;
+
+		if (param_get(param_find("VT_TYPE"), &vt_type) == PX4_OK) {
+			_is_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
+		}
+	}
+
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
 
 	/* initialize quaternions in messages to be valid */
@@ -93,29 +102,6 @@ MulticopterAttitudeControl::parameters_updated()
 						radians(_param_mc_yawrate_max.get())));
 
 	_man_tilt_max = math::radians(_param_mpc_man_tilt_max.get());
-}
-
-void
-MulticopterAttitudeControl::vehicle_status_poll()
-{
-	/* check if there is new status information */
-	if (_vehicle_status_sub.update(&_vehicle_status)) {
-		/* set correct uORB ID, depending on if vehicle is VTOL or not */
-		if (_attitude_sp_id == nullptr) {
-			if (_vehicle_status.is_vtol) {
-				_attitude_sp_id = ORB_ID(mc_virtual_attitude_setpoint);
-
-				int32_t vt_type = -1;
-
-				if (param_get(param_find("VT_TYPE"), &vt_type) == PX4_OK) {
-					_is_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
-				}
-
-			} else {
-				_attitude_sp_id = ORB_ID(vehicle_attitude_setpoint);
-			}
-		}
-	}
 }
 
 float
@@ -233,9 +219,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_sp.z);
 	attitude_setpoint.timestamp = hrt_absolute_time();
 
-	if (_attitude_sp_id != nullptr) {
-		orb_publish_auto(_attitude_sp_id, &_vehicle_attitude_setpoint_pub, &attitude_setpoint, nullptr, ORB_PRIO_DEFAULT);
-	}
+	_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
 }
 
 /**
@@ -308,7 +292,7 @@ MulticopterAttitudeControl::Run()
 		_manual_control_sp_sub.update(&_manual_control_sp);
 		_v_control_mode_sub.update(&_v_control_mode);
 		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
-		vehicle_status_poll();
+		_vehicle_status_sub.update(&_vehicle_status);
 
 		/* Check if we are in rattitude mode and the pilot is above the threshold on pitch
 		* or roll (yaw can rotate 360 in normal att control). If both are true don't
@@ -365,7 +349,15 @@ MulticopterAttitudeControl::Run()
 
 int MulticopterAttitudeControl::task_spawn(int argc, char *argv[])
 {
-	MulticopterAttitudeControl *instance = new MulticopterAttitudeControl();
+	bool vtol = false;
+
+	if (argc > 1) {
+		if (strcmp(argv[1], "vtol") == 0) {
+			vtol = true;
+		}
+	}
+
+	MulticopterAttitudeControl *instance = new MulticopterAttitudeControl(vtol);
 
 	if (instance) {
 		_object.store(instance);
@@ -425,6 +417,7 @@ https://www.research-collection.ethz.ch/bitstream/handle/20.500.11850/154099/eth
 
 	PRINT_MODULE_USAGE_NAME("mc_att_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
