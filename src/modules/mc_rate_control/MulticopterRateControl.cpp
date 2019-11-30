@@ -356,15 +356,6 @@ int MulticopterRateControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int MulticopterRateControl::print_status()
-{
-	PX4_INFO("Running");
-
-	perf_print_counter(_loop_perf);
-
-	return 0;
-}
-
 int MulticopterRateControl::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");

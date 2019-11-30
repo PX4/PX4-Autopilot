@@ -141,9 +141,6 @@ public:
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
 
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
-
 	/**
 	 * @brief Reads data from flash.
 	 * @param address The address to start the read from.

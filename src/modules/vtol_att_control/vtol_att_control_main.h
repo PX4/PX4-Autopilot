@@ -106,9 +106,6 @@ public:
 
 	bool init();
 
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
-
 	bool is_fixed_wing_requested();
 	void abort_front_transition(const char *reason);
 

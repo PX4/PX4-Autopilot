@@ -378,15 +378,6 @@ int MulticopterAttitudeControl::task_spawn(int argc, char *argv[])
 	return PX4_ERROR;
 }
 
-int MulticopterAttitudeControl::print_status()
-{
-	PX4_INFO("Running");
-
-	perf_print_counter(_loop_perf);
-
-	return 0;
-}
-
 int MulticopterAttitudeControl::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");

@@ -87,9 +87,6 @@ public:
 	void Run() override;
 	bool init();
 
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
-
 private:
 
 	/**

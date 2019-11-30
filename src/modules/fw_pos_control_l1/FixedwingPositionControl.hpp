@@ -145,9 +145,6 @@ public:
 
 	bool init();
 
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
-
 private:
 	orb_advert_t	_mavlink_log_pub{nullptr};
 
