@@ -67,7 +67,7 @@
 
 #include <battery/battery.h>
 
-#include <uORB/uORB.h>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/power_monitor.h>
 
@@ -160,16 +160,16 @@ private:
 
 	perf_counter_t		_sample_perf;
 
-	orb_advert_t 		_bat_pub_topic;
-	orb_advert_t		_pm_pub_topic;
+	uORB::PublicationMulti<battery_status_s>	_bat_pub_topic{ORB_ID(battery_status)};
+	uORB::PublicationMulti<power_monitor_s>		_pm_pub_topic{ORB_ID(power_monitor)};
 
-	struct battery_status_s _bat_status;
-	struct power_monitor_s 	_pm_status;
+	battery_status_s	_bat_status{};
+	power_monitor_s 	_pm_status{};
 
 	VOXLPM_CH_TYPE		_ch_type;
-	float			_voltage;
-	float			_amperage;
-	float			_rsense;
+	float			_voltage{0.0f};
+	float			_amperage{0.0f};
+	float			_rsense{0.0f};
 
 	Battery 		_battery;
 
