@@ -1953,13 +1953,6 @@ int FixedwingPositionControl::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-int FixedwingPositionControl::print_status()
-{
-	PX4_INFO("Running");
-	perf_print_counter(_loop_perf);
-	return 0;
-}
-
 int FixedwingPositionControl::print_usage(const char *reason)
 {
 	if (reason) {
