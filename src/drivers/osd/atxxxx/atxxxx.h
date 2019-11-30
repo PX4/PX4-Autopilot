@@ -78,7 +78,8 @@
 
 extern "C" __EXPORT int atxxxx_main(int argc, char *argv[]);
 
-class OSDatxxxx : public device::SPI, public ModuleBase<OSDatxxxx>, public ModuleParams, public px4::ScheduledWorkItem
+class OSDatxxxx : public device::SPI, public ModuleBase<OSDatxxxx>, public ModuleParams,
+	public px4::ScheduledWorkItem
 {
 public:
 	OSDatxxxx(int bus = OSD_BUS);

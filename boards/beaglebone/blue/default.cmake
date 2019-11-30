@@ -60,6 +60,7 @@ px4_add_board(
 		esc_calib
 		led_control
 		mixer
+		modules
 		motor_ramp
 		param
 		perf

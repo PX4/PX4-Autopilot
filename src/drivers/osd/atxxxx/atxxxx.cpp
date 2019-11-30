@@ -86,8 +86,7 @@ OSDatxxxx::task_spawn(int argc, char *argv[])
 		return PX4_ERROR;
 	}
 
-	_object.store(osd);
-	_task_id = task_id_is_work_queue;
+	osd->set_task_id(task_id_is_work_queue);
 
 	osd->start();
 

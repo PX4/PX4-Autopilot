@@ -93,9 +93,7 @@ int LandDetector::task_spawn(int argc, char *argv[])
 	strncpy(_currentMode, argv[1], sizeof(_currentMode) - 1);
 	_currentMode[sizeof(_currentMode) - 1] = '\0';
 
-	_object.store(obj);
-	_task_id = task_id_is_work_queue;
-
+	obj->set_task_id(task_id_is_work_queue);
 	obj->start();
 
 	return PX4_OK;

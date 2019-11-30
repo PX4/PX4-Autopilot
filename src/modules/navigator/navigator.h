@@ -90,7 +90,7 @@ class Navigator : public ModuleBase<Navigator>, public ModuleParams
 {
 public:
 	Navigator();
-	~Navigator() override;
+	virtual ~Navigator() override;
 
 	Navigator(const Navigator &) = delete;
 	Navigator operator=(const Navigator &) = delete;

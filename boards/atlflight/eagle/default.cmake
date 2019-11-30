@@ -94,6 +94,7 @@ px4_add_board(
 		#hardfault_log
 		led_control
 		mixer
+		modules
 		motor_ramp
 		motor_test
 		#mtd

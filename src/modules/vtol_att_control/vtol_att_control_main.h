@@ -104,6 +104,8 @@ public:
 
 	void Run() override;
 
+	void request_stop() override { _task_should_exit.store(true); ScheduleNow(); }
+
 	bool init();
 
 	bool is_fixed_wing_requested();

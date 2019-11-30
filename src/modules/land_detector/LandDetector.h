@@ -165,6 +165,8 @@ private:
 
 	void Run() override;
 
+	void request_stop() override { _task_should_exit.store(true); ScheduleNow(); }
+
 	void _update_state();
 
 	void _update_total_flight_time();
