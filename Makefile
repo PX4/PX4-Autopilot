@@ -263,7 +263,6 @@ misc_qgc_extra_firmware: \
 # Other NuttX firmware
 alt_firmware: \
 	check_px4_cannode-v1_default \
-	check_px4_esc-v1_default \
 	sizes
 
 # builds with RTPS
