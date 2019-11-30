@@ -43,12 +43,6 @@ pipeline {
             archive: true
           ]
 
-          def nuttx_builds_other = [
-            target: ["px4_esc-v1_default"],
-            image: docker_images.nuttx,
-            archive: false
-          ]
-
           def snapdragon_builds = [
             target: ["atlflight_eagle_qurt-default", "atlflight_eagle_default"],
             image: docker_images.snapdragon,
@@ -56,7 +50,7 @@ pipeline {
           ]
 
           def docker_builds = [
-            armhf_builds, base_builds, nuttx_builds_archive, nuttx_builds_other, snapdragon_builds
+            armhf_builds, base_builds, nuttx_builds_archive, snapdragon_builds
           ]
 
           for (def build_type = 0; build_type < docker_builds.size(); build_type++) {
