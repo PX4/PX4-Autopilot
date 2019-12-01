@@ -217,8 +217,8 @@ ControlAllocator::getEffectivenessMatrix()
 			matrix::Vector<float, NUM_ACTUATORS> act = getActuatorTrim();
 
 			const float B_tiltrotor_vtol[NUM_AXES][NUM_ACTUATORS] = {
-				{-0.5f * cosf(act(4)),  0.5f * cosf(act(5)),  0.5f * cosf(act(6)), -0.5f * cosf(act(7)), 0.5f * act(0) *sinf(act(4)), -0.5f * act(1) *sinf(act(5)), -0.5f * act(2) *sinf(act(6)), 0.5f * act(3) *sinf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.5f * cosf(act(4)), -0.5f * cosf(act(5)),  0.5f * cosf(act(6)), -0.5f * cosf(act(7)), -0.5f * act(0) *sinf(act(4)),  0.5f * act(1) *sinf(act(5)), -0.5f * act(2) *sinf(act(6)), 0.5f * act(3) *sinf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+				{-0.5f * cosf(act(4)),  0.5f * cosf(act(5)),  0.5f * cosf(act(6)), -0.5f * cosf(act(7)), 0.5f * act(0) *sinf(act(4)), -0.5f * act(1) *sinf(act(5)), -0.5f * act(2) *sinf(act(6)), 0.5f * act(3) *sinf(act(7)), -0.5f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+				{ 0.5f * cosf(act(4)), -0.5f * cosf(act(5)),  0.5f * cosf(act(6)), -0.5f * cosf(act(7)), -0.5f * act(0) *sinf(act(4)),  0.5f * act(1) *sinf(act(5)), -0.5f * act(2) *sinf(act(6)), 0.5f * act(3) *sinf(act(7)), 0.f, 0.f, 0.5f, 0.f, 0.f, 0.f, 0.f, 0.f},
 				{-0.5f * sinf(act(4)),  0.5f * sinf(act(5)),  0.5f * sinf(act(6)), -0.5f * sinf(act(7)), -0.5f * act(0) *cosf(act(4)), 0.5f * act(1) *cosf(act(5)), 0.5f * act(2) *cosf(act(6)), -0.5f * act(3) *cosf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
 				{ 0.25f * sinf(act(4)), 0.25f * sinf(act(5)), 0.25f * sinf(act(6)), 0.25f * sinf(act(7)), 0.25f * act(0) *cosf(act(4)), 0.25f * act(1) *cosf(act(5)), 0.25f * act(2) *cosf(act(6)), 0.25f * act(3) *cosf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
 				{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
@@ -228,10 +228,6 @@ ControlAllocator::getEffectivenessMatrix()
 
 			// Temporarily disable a few controls (WIP)
 			for (size_t j = 4; j < 8; j++) {
-				// B(0, j) = 0.0f;
-				// B(1, j) = 0.0f;
-				B(2, j) = 0.0f;
-
 				B(3, j) = 0.0f;
 				B(4, j) = 0.0f;
 				B(5, j) = 0.0f;
@@ -294,7 +290,7 @@ ControlAllocator::getActuatorTrim()
 
 			case FlightPhase::TRANSITION_FF_TO_HF:
 			case FlightPhase::TRANSITION_HF_TO_FF: {
-					tilt = 0.75f;
+					tilt = 1.0f;
 					break;
 				}
 			}

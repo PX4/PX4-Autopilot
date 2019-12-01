@@ -43,8 +43,8 @@ then
 	param set VT_ELEV_MC_LOCK 0
 	param set VT_B_TRANS_DUR 8
 
-	param set VT_TYPE 1
-	# param set VT_TYPE 2
+	# param set VT_TYPE 1
+	param set VT_TYPE 2
 
 	param set CA_AIRFRAME 3
 
@@ -70,6 +70,6 @@ fi
 
 set MAV_TYPE 21
 
-set MIXER_FILE etc/mixers-sitl/tiltrotor_sitl.main.mix
-# set MIXER_FILE etc/mixers-sitl/tiltrotor_sitl_direct.main.mix
+# set MIXER_FILE etc/mixers-sitl/tiltrotor_sitl.main.mix
+set MIXER_FILE etc/mixers-sitl/tiltrotor_sitl_direct.main.mix
 set MIXER custom
