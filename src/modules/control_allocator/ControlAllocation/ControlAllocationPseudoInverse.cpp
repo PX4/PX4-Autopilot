@@ -68,7 +68,7 @@ ControlAllocationPseudoInverse::allocate()
 	_actuator_sp += _mix * (_control_sp - _control_allocated);
 
 	// Clip
-	_actuator_sp = clipActuatorSetpoint();
+	_actuator_sp = clipActuatorSetpoint(_actuator_sp);
 
 	// Compute achieved control
 	_control_allocated = _effectiveness * _actuator_sp;

@@ -185,18 +185,23 @@ public:
 	 *
 	 * The output is in the range [min; max]
 	 *
+	 * @param actuator Actuator vector to clip
+	 *
 	 * @return Clipped actuator setpoint
 	 */
-	matrix::Vector<float, NUM_ACTUATORS> clipActuatorSetpoint() const;
+	matrix::Vector<float, NUM_ACTUATORS> clipActuatorSetpoint(const matrix::Vector<float, NUM_ACTUATORS> &actuator) const;
 
 	/**
 	 * Normalize the actuator setpoint between minimum and maximum values.
 	 *
 	 * The output is in the range [-1; +1]
 	 *
+	 * @param actuator Actuator vector to normalize
+	 *
 	 * @return Clipped actuator setpoint
 	 */
-	matrix::Vector<float, NUM_ACTUATORS> normalizeActuatorSetpoint() const;
+	matrix::Vector<float, NUM_ACTUATORS> normalizeActuatorSetpoint(const matrix::Vector<float, NUM_ACTUATORS> &actuator)
+	const;
 
 protected:
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness;  //< Effectiveness matrix
