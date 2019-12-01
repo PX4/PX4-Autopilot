@@ -281,7 +281,7 @@ MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
-	_cycle_perf(perf_alloc_once(PC_ELAPSED, MODULE_NAME": cycle time"))
+	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time"))
 {
 	if (vtol) {
 		// if vehicle is a VTOL we want to enable weathervane capabilities
