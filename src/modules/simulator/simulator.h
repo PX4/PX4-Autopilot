@@ -222,7 +222,7 @@ private:
 	// uORB publisher handlers
 	uORB::Publication<battery_status_s>		_battery_pub{ORB_ID(battery_status)};
 	uORB::Publication<differential_pressure_s>	_differential_pressure_pub{ORB_ID(differential_pressure)};
-	uORB::PublicationMulti<distance_sensor_s>	_dist_pub{ORB_ID(battery_status)};
+	uORB::PublicationMulti<distance_sensor_s>	_dist_pub{ORB_ID(distance_sensor)};
 	uORB::PublicationMulti<optical_flow_s>		_flow_pub{ORB_ID(optical_flow)};
 	uORB::Publication<irlock_report_s>		_irlock_report_pub{ORB_ID(irlock_report)};
 	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
