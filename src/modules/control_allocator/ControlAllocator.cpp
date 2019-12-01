@@ -495,7 +495,9 @@ ControlAllocator::publish_legacy_actuator_controls()
 	actuator_controls_4.timestamp_sample = _timestamp_sample;
 	actuator_controls_5.timestamp_sample = _timestamp_sample;
 
-	matrix::Vector<float, NUM_ACTUATORS> actuator_sp_normalized = _control_allocation->normalizeActuatorSetpoint();
+	matrix::Vector<float, NUM_ACTUATORS> actuator_sp = _control_allocation->getActuatorSetpoint();
+	matrix::Vector<float, NUM_ACTUATORS> actuator_sp_normalized = _control_allocation->normalizeActuatorSetpoint(
+				actuator_sp);
 
 	for (size_t i = 0; i < 8; i++) {
 		actuator_controls_4.control[i] = (PX4_ISFINITE(actuator_sp_normalized(i))) ? actuator_sp_normalized(i) : 0.0f;

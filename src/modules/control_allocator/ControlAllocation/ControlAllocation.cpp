@@ -112,7 +112,7 @@ ControlAllocation::setActuatorSetpoint(const matrix::Vector<float, ControlAlloca
 	_actuator_sp = actuator_sp;
 
 	// Clip
-	_actuator_sp = clipActuatorSetpoint();
+	_actuator_sp = clipActuatorSetpoint(_actuator_sp);
 
 	// Compute achieved control
 	_control_allocated = _effectiveness * _actuator_sp;
@@ -120,9 +120,9 @@ ControlAllocation::setActuatorSetpoint(const matrix::Vector<float, ControlAlloca
 }
 
 matrix::Vector<float, ControlAllocation::NUM_ACTUATORS>
-ControlAllocation::clipActuatorSetpoint() const
+ControlAllocation::clipActuatorSetpoint(const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> &actuator) const
 {
-	matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> actuator_clipped = _actuator_sp;
+	matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> actuator_clipped;
 
 	for (size_t i = 0; i < ControlAllocation::NUM_ACTUATORS; i++) {
 		if (_actuator_max(i) < _actuator_min(i)) {
@@ -134,6 +134,9 @@ ControlAllocation::clipActuatorSetpoint() const
 
 		} else if (actuator_clipped(i) > _actuator_max(i)) {
 			actuator_clipped(i) = _actuator_max(i);
+
+		} else {
+			actuator_clipped(i) = actuator(i);
 		}
 	}
 
@@ -141,16 +144,17 @@ ControlAllocation::clipActuatorSetpoint() const
 }
 
 matrix::Vector<float, ControlAllocation::NUM_ACTUATORS>
-ControlAllocation::normalizeActuatorSetpoint() const
+ControlAllocation::normalizeActuatorSetpoint(const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> &actuator)
+const
 {
 	matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> actuator_normalized;
 
 	for (size_t i = 0; i < ControlAllocation::NUM_ACTUATORS; i++) {
 		if (_actuator_min(i) < _actuator_max(i)) {
-			actuator_normalized(i) = -1.0f + 2.0f * (_actuator_sp(i) - _actuator_min(i)) / (_actuator_max(i) - _actuator_min(i));
+			actuator_normalized(i) = -1.0f + 2.0f * (actuator(i) - _actuator_min(i)) / (_actuator_max(i) - _actuator_min(i));
 
 		} else {
-			actuator_normalized(i) = -1.0f;
+			actuator_normalized(i) = -1.0f + 2.0f * (_actuator_trim(i) - _actuator_min(i)) / (_actuator_max(i) - _actuator_min(i));
 		}
 	}
 
