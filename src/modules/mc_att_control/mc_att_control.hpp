@@ -66,9 +66,8 @@ class MulticopterAttitudeControl : public ModuleBase<MulticopterAttitudeControl>
 	public px4::WorkItem
 {
 public:
-	MulticopterAttitudeControl();
-
-	virtual ~MulticopterAttitudeControl();
+	MulticopterAttitudeControl(bool vtol = false);
+	~MulticopterAttitudeControl() override;
 
 	/** @see ModuleBase */
 	static int task_spawn(int argc, char *argv[]);
@@ -78,9 +77,6 @@ public:
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
-
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
 
 	void Run() override;
 
@@ -92,8 +88,6 @@ private:
 	 * initialize some vectors/matrices from parameters
 	 */
 	void		parameters_updated();
-
-	void		vehicle_status_poll();
 
 	void		publish_rates_setpoint();
 
@@ -122,10 +116,7 @@ private:
 	uORB::SubscriptionCallbackWorkItem _vehicle_attitude_sub{this, ORB_ID(vehicle_attitude)};
 
 	uORB::Publication<vehicle_rates_setpoint_s>	_v_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};			/**< rate setpoint publication */
-
-	orb_advert_t	_vehicle_attitude_setpoint_pub{nullptr};
-
-	orb_id_t _attitude_sp_id{nullptr};	/**< pointer to correct attitude setpoint uORB metadata structure */
+	uORB::Publication<vehicle_attitude_setpoint_s>	_vehicle_attitude_setpoint_pub;
 
 	struct vehicle_attitude_s		_v_att {};		/**< vehicle attitude */
 	struct vehicle_attitude_setpoint_s	_v_att_sp {};		/**< vehicle attitude setpoint */

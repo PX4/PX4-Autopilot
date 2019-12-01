@@ -534,7 +534,7 @@ Ekf2::Ekf2(bool replay_mode):
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
 	_replay_mode(replay_mode),
-	_ekf_update_perf(perf_alloc_once(PC_ELAPSED, MODULE_NAME": update")),
+	_ekf_update_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": update")),
 	_params(_ekf.getParamHandle()),
 	_param_ekf2_min_obs_dt(_params->sensor_interval_min_ms),
 	_param_ekf2_mag_delay(_params->mag_delay_ms),

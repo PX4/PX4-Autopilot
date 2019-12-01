@@ -53,6 +53,7 @@
 #include <perf/perf_counter.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
+#include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/battery_status.h>
@@ -214,17 +215,17 @@ private:
 
 	simulator::Report<simulator::RawGPSData>	_gps{1};
 
-	perf_counter_t _perf_gps{perf_alloc_once(PC_ELAPSED, "sim_gps_delay")};
-	perf_counter_t _perf_sim_delay{perf_alloc_once(PC_ELAPSED, "sim_network_delay")};
-	perf_counter_t _perf_sim_interval{perf_alloc(PC_INTERVAL, "sim_network_interval")};
+	perf_counter_t _perf_gps{perf_alloc(PC_ELAPSED, MODULE_NAME": gps delay")};
+	perf_counter_t _perf_sim_delay{perf_alloc(PC_ELAPSED, MODULE_NAME": network delay")};
+	perf_counter_t _perf_sim_interval{perf_alloc(PC_INTERVAL, MODULE_NAME": network interval")};
 
 	// uORB publisher handlers
-	orb_advert_t _battery_pub{nullptr};
-	orb_advert_t _differential_pressure_pub{nullptr};
-	orb_advert_t _dist_pub{nullptr};
-	orb_advert_t _flow_pub{nullptr};
-	orb_advert_t _irlock_report_pub{nullptr};
-	orb_advert_t _visual_odometry_pub{nullptr};
+	uORB::Publication<battery_status_s>		_battery_pub{ORB_ID(battery_status)};
+	uORB::Publication<differential_pressure_s>	_differential_pressure_pub{ORB_ID(differential_pressure)};
+	uORB::PublicationMulti<distance_sensor_s>	_dist_pub{ORB_ID(distance_sensor)};
+	uORB::PublicationMulti<optical_flow_s>		_flow_pub{ORB_ID(optical_flow)};
+	uORB::Publication<irlock_report_s>		_irlock_report_pub{ORB_ID(irlock_report)};
+	uORB::Publication<vehicle_odometry_s>		_visual_odometry_pub{ORB_ID(vehicle_visual_odometry)};
 
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};
 
@@ -257,7 +258,7 @@ private:
 	void handle_message_vision_position_estimate(const mavlink_message_t *msg);
 
 	void parameters_update(bool force);
-	void poll_topics();
+
 	void poll_for_MAVLink_messages();
 	void request_hil_state_quaternion();
 	void send();
@@ -270,15 +271,15 @@ private:
 	static void *sending_trampoline(void *);
 
 	// uORB publisher handlers
-	orb_advert_t _vehicle_angular_velocity_pub{nullptr};
-	orb_advert_t _attitude_pub{nullptr};
-	orb_advert_t _gpos_pub{nullptr};
-	orb_advert_t _lpos_pub{nullptr};
-	orb_advert_t _rc_channels_pub{nullptr};
+	uORB::Publication<vehicle_angular_velocity_s>	_vehicle_angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
+	uORB::Publication<vehicle_attitude_s>		_attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};
+	uORB::Publication<vehicle_global_position_s>	_gpos_ground_truth_pub{ORB_ID(vehicle_global_position_groundtruth)};
+	uORB::Publication<vehicle_local_position_s>	_lpos_ground_truth_pub{ORB_ID(vehicle_local_position_groundtruth)};
+	uORB::Publication<input_rc_s>			_input_rc_pub{ORB_ID(input_rc)};
 
 	// uORB subscription handlers
 	int _actuator_outputs_sub{-1};
-	int _vehicle_status_sub{-1};
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	// hil map_ref data
 	struct map_projection_reference_s _hil_local_proj_ref {};
@@ -291,10 +292,7 @@ private:
 	uint64_t _hil_ref_timestamp{0};
 
 	// uORB data containers
-	input_rc_s _rc_input {};
-	manual_control_setpoint_s _manual {};
-	vehicle_attitude_s _attitude {};
-	vehicle_status_s _vehicle_status {};
+	vehicle_status_s _vehicle_status{};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval

@@ -90,8 +90,6 @@ public:
 	/* run the main loop */
 	void Run() override;
 
-	int print_status() override;
-
 private:
 	static constexpr int MAX_NUM_AIRSPEED_SENSORS = 3; /**< Support max 3 airspeed sensors */
 	enum airspeed_index {
@@ -183,7 +181,7 @@ AirspeedModule::AirspeedModule():
 	// initialise parameters
 	update_params();
 
-	_perf_elapsed = perf_alloc_once(PC_ELAPSED, "airspeed_selector elapsed");
+	_perf_elapsed = perf_alloc(PC_ELAPSED, MODULE_NAME": elapsed");
 }
 
 AirspeedModule::~AirspeedModule()
@@ -191,7 +189,6 @@ AirspeedModule::~AirspeedModule()
 	ScheduleClear();
 
 	perf_free(_perf_elapsed);
-
 }
 
 int
@@ -588,19 +585,6 @@ int AirspeedModule::custom_command(int argc, char *argv[])
 	}
 
 	return print_usage("unknown command");
-}
-
-int AirspeedModule::print_status()
-{
-	perf_print_counter(_perf_elapsed);
-
-	int instance = 0;
-	uORB::SubscriptionData<airspeed_validated_s> est{ORB_ID(airspeed_validated), (uint8_t)instance};
-	est.update();
-	PX4_INFO("Number of airspeed sensors: %i", _number_of_airspeed_sensors);
-	print_message(est.get());
-
-	return 0;
 }
 
 int AirspeedModule::print_usage(const char *reason)

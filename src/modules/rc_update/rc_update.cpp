@@ -512,15 +512,6 @@ RCUpdate::task_spawn(int argc, char *argv[])
 }
 
 int
-RCUpdate::print_status()
-{
-	PX4_INFO("Running");
-	perf_print_counter(_loop_perf);
-
-	return 0;
-}
-
-int
 RCUpdate::custom_command(int argc, char *argv[])
 {
 	return print_usage("unknown command");

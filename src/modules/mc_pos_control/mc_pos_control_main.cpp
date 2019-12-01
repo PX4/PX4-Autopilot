@@ -83,8 +83,7 @@ class MulticopterPositionControl : public ModuleBase<MulticopterPositionControl>
 	public ModuleParams, public px4::WorkItem
 {
 public:
-	MulticopterPositionControl();
-
+	MulticopterPositionControl(bool vtol = false);
 	~MulticopterPositionControl() override;
 
 	/** @see ModuleBase */
@@ -106,8 +105,7 @@ public:
 private:
 	Takeoff _takeoff; /**< state machine and ramp to bring the vehicle off the ground without jumps */
 
-	orb_id_t _attitude_setpoint_id{nullptr}; ///< orb metadata to publish attitude setpoint dependent if VTOL or not
-	orb_advert_t _vehicle_attitude_setpoint_pub{nullptr}; ///< attitude setpoint publication handle
+	uORB::Publication<vehicle_attitude_setpoint_s>	_vehicle_attitude_setpoint_pub;
 	uORB::PublicationQueued<vehicle_command_s> _pub_vehicle_command{ORB_ID(vehicle_command)};	 /**< vehicle command publication */
 	orb_advert_t _mavlink_log_pub{nullptr};
 
@@ -237,11 +235,6 @@ private:
 	void warn_rate_limited(const char *str);
 
 	/**
-	 * Publish attitude.
-	 */
-	void publish_attitude();
-
-	/**
 	 * Adjust the setpoint during landing.
 	 * Thrust is adjusted to support the land-detector during detection.
 	 * @param setpoint gets adjusted based on land-detector state
@@ -280,15 +273,21 @@ private:
 	void send_vehicle_cmd_do(uint8_t nav_state);
 };
 
-MulticopterPositionControl::MulticopterPositionControl() :
+MulticopterPositionControl::MulticopterPositionControl(bool vtol) :
 	SuperBlock(nullptr, "MPC"),
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
+	_vehicle_attitude_setpoint_pub(vtol ? ORB_ID(mc_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_vel_x_deriv(this, "VELD"),
 	_vel_y_deriv(this, "VELD"),
 	_vel_z_deriv(this, "VELD"),
-	_cycle_perf(perf_alloc_once(PC_ELAPSED, MODULE_NAME": cycle time"))
+	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle time"))
 {
+	if (vtol) {
+		// if vehicle is a VTOL we want to enable weathervane capabilities
+		_wv_controller = new WeatherVane();
+	}
+
 	// fetch initial parameter values
 	parameters_update(true);
 
@@ -394,24 +393,7 @@ MulticopterPositionControl::parameters_update(bool force)
 void
 MulticopterPositionControl::poll_subscriptions()
 {
-	if (_vehicle_status_sub.update(&_vehicle_status)) {
-
-		// set correct uORB ID, depending on if vehicle is VTOL or not
-		if (!_attitude_setpoint_id) {
-			if (_vehicle_status.is_vtol) {
-				_attitude_setpoint_id = ORB_ID(mc_virtual_attitude_setpoint);
-
-			} else {
-				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
-			}
-		}
-
-		// if vehicle is a VTOL we want to enable weathervane capabilities
-		if (_wv_controller == nullptr && _vehicle_status.is_vtol) {
-			_wv_controller = new WeatherVane();
-		}
-	}
-
+	_vehicle_status_sub.update(&_vehicle_status);
 	_vehicle_land_detected_sub.update(&_vehicle_land_detected);
 	_control_mode_sub.update(&_control_mode);
 	_home_pos_sub.update(&_home_pos);
@@ -702,9 +684,7 @@ MulticopterPositionControl::Run()
 			// Not publishing when not running a flight task
 			// in stabilized mode attitude setpoints get ignored
 			// in offboard with attitude setpoints they come from MAVLink directly
-			if (_attitude_setpoint_id != nullptr) {
-				orb_publish_auto(_attitude_setpoint_id, &_vehicle_attitude_setpoint_pub, &attitude_setpoint, nullptr, ORB_PRIO_DEFAULT);
-			}
+			_vehicle_attitude_setpoint_pub.publish(attitude_setpoint);
 
 			_wv_dcm_z_sp_prev = Quatf(attitude_setpoint.q_d).dcm_z();
 
@@ -1079,7 +1059,15 @@ void MulticopterPositionControl::send_vehicle_cmd_do(uint8_t nav_state)
 
 int MulticopterPositionControl::task_spawn(int argc, char *argv[])
 {
-	MulticopterPositionControl *instance = new MulticopterPositionControl();
+	bool vtol = false;
+
+	if (argc > 1) {
+		if (strcmp(argv[1], "vtol") == 0) {
+			vtol = true;
+		}
+	}
+
+	MulticopterPositionControl *instance = new MulticopterPositionControl(vtol);
 
 	if (instance) {
 		_object.store(instance);
@@ -1124,6 +1112,7 @@ logging.
 
 	PRINT_MODULE_USAGE_NAME("mc_pos_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

@@ -475,13 +475,6 @@ int BATT_SMBUS::manufacturer_name(uint8_t *man_name, const uint8_t length)
 	return result;
 }
 
-int BATT_SMBUS::print_status()
-{
-	PX4_INFO("Running");
-	print_message(_last_report);
-	return 0;
-}
-
 int BATT_SMBUS::manufacturer_read(const uint16_t cmd_code, void *data, const unsigned length)
 {
 	uint8_t code = BATT_SMBUS_MANUFACTURER_BLOCK_ACCESS;
