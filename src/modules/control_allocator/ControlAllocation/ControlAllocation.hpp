@@ -44,7 +44,7 @@
  * [...]
  * // Initialization
  * ControlAllocationMethodImpl alloc();
- * alloc.setEffectivenessMatrix(B);
+ * alloc.setEffectivenessMatrix(effectiveness, actuator_trim);
  * alloc.setActuatorMin(actuator_min);
  * alloc.setActuatorMin(actuator_max);
  *
@@ -104,7 +104,8 @@ public:
 	 *
 	 * @param B Effectiveness matrix
 	 */
-	virtual void setEffectivenessMatrix(const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &B);
+	virtual void setEffectivenessMatrix(const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> &effectiveness,
+					    const matrix::Vector<float, NUM_ACTUATORS> &actuator_trim);
 
 	/**
 	 * Get the allocated actuator vector
@@ -205,9 +206,11 @@ public:
 
 protected:
 	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> _effectiveness;  //< Effectiveness matrix
+	matrix::Vector<float, NUM_ACTUATORS> _actuator_trim; 	//< Neutral actuator values
 	matrix::Vector<float, NUM_ACTUATORS> _actuator_min; 	//< Minimum actuator values
 	matrix::Vector<float, NUM_ACTUATORS> _actuator_max; 	//< Maximum actuator values
 	matrix::Vector<float, NUM_ACTUATORS> _actuator_sp;  	//< Actuator setpoint
 	matrix::Vector<float, NUM_AXES> _control_sp;   		//< Control setpoint
 	matrix::Vector<float, NUM_AXES> _control_allocated;  	//< Allocated control
+	matrix::Vector<float, NUM_AXES> _control_trim;  	//< Control at trim actuator values
 };
