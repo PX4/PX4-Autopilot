@@ -42,9 +42,11 @@
 #include "ControlAllocationPseudoInverse.hpp"
 
 void
-ControlAllocationPseudoInverse::setEffectivenessMatrix(const
-		matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &B)
+ControlAllocationPseudoInverse::setEffectivenessMatrix(
+	const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &effectiveness,
+	const matrix::Vector<float, ControlAllocation::NUM_ACTUATORS> &actuator_trim)
 {
+	ControlAllocation::setEffectivenessMatrix(effectiveness, actuator_trim);
 	_mix_update_needed = true;
 }
 
@@ -64,7 +66,7 @@ ControlAllocationPseudoInverse::allocate()
 	updatePseudoInverse();
 
 	// Allocate
-	_actuator_sp += _mix * (_control_sp - _control_allocated);
+	_actuator_sp = _actuator_trim + _mix * (_control_sp - _control_trim);
 
 	// Clip
 	_actuator_sp = clipActuatorSetpoint(_actuator_sp);
