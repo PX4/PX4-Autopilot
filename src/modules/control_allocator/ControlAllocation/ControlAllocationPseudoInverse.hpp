@@ -59,7 +59,7 @@ public:
 protected:
 	matrix::Matrix<float, NUM_ACTUATORS, NUM_AXES> _mix;
 
-	bool _A_update_needed{false};
+	bool _mix_update_needed{false};
 
 	/**
 	 * Recalculate pseudo inverse if required.

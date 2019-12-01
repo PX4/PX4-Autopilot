@@ -45,16 +45,15 @@ void
 ControlAllocationPseudoInverse::setEffectivenessMatrix(const
 		matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS> &B)
 {
-	_effectiveness = B;
-	_A_update_needed = true;
+	_mix_update_needed = true;
 }
 
 void
 ControlAllocationPseudoInverse::updatePseudoInverse()
 {
-	if (_A_update_needed) {
+	if (_mix_update_needed) {
 		_mix = matrix::geninv(_effectiveness);
-		_A_update_needed = false;
+		_mix_update_needed = false;
 	}
 }
 
