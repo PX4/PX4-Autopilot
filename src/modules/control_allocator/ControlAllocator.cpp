@@ -126,13 +126,14 @@ ControlAllocator::parameters_updated()
 	actuator_max(15) = _param_ca_act15_max.get();
 	_control_allocation->setActuatorMax(actuator_max);
 
-	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> B = getEffectivenessMatrix();
+	matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> effectiveness = getEffectivenessMatrix();
+	matrix::Vector<float, NUM_ACTUATORS> trim = getActuatorTrim();
 
 	// Assign control effectiveness matrix
-	_control_allocation->setEffectivenessMatrix(B);
+	_control_allocation->setEffectivenessMatrix(effectiveness, trim);
 }
 
-const matrix::Matrix<float, ControlAllocation::NUM_AXES, ControlAllocation::NUM_ACTUATORS>
+const matrix::Matrix<float, ControlAllocator::NUM_AXES, ControlAllocator::NUM_ACTUATORS>
 ControlAllocator::getEffectivenessMatrix()
 {
 	// Control effectiveness
@@ -213,17 +214,29 @@ ControlAllocator::getEffectivenessMatrix()
 		}
 
 	case Airframe::TILTROTOR_VTOL: {
-			matrix::Vector<float, NUM_ACTUATORS> act = _control_allocation->getActuatorSetpoint();
+			matrix::Vector<float, NUM_ACTUATORS> act = getActuatorTrim();
 
 			const float B_tiltrotor_vtol[NUM_AXES][NUM_ACTUATORS] = {
-				{-0.5f * cosf(act(4)),  0.5f * cosf(act(5)),  0.5f * cosf(act(6)), -0.5f * cosf(act(7)),  0.5f * act(0) * sinf(act(4)), -0.5f * act(1) * sinf(act(5)), -0.5f * act(2) * sinf(act(6)), 0.5f * act(3) * sinf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.5f * cosf(act(4)), -0.5f * cosf(act(5)),  0.5f * cosf(act(6)), -0.5f * cosf(act(7)), -0.5f * act(0) * sinf(act(4)),  0.5f * act(1) * sinf(act(5)), -0.5f * act(2) * sinf(act(6)), 0.5f * act(3) * sinf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.5f * sinf(act(4)), -0.5f * sinf(act(5)), -0.5f * sinf(act(6)),  0.5f * sinf(act(7)),  0.5f * act(0) * cosf(act(4)), -0.5f * act(1) * cosf(act(5)), -0.5f * act(2) * cosf(act(6)), 0.5f * act(3) * cosf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{ 0.25f * sinf(act(4)), 0.25f * sinf(act(5)), -0.25f * sinf(act(6)), -0.25f * sinf(act(7)), 0.25f * act(0) * cosf(act(4)), 0.25f * act(1) * cosf(act(5)), -0.25f * act(2) * cosf(act(6)), -0.25f * act(3) * cosf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+				{-0.5f * cosf(act(4)),  0.5f * cosf(act(5)),  0.5f * cosf(act(6)), -0.5f * cosf(act(7)), 0.5f * act(0) *sinf(act(4)), -0.5f * act(1) *sinf(act(5)), -0.5f * act(2) *sinf(act(6)), 0.5f * act(3) *sinf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+				{ 0.5f * cosf(act(4)), -0.5f * cosf(act(5)),  0.5f * cosf(act(6)), -0.5f * cosf(act(7)), -0.5f * act(0) *sinf(act(4)),  0.5f * act(1) *sinf(act(5)), -0.5f * act(2) *sinf(act(6)), 0.5f * act(3) *sinf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+				{-0.5f * sinf(act(4)),  0.5f * sinf(act(5)),  0.5f * sinf(act(6)), -0.5f * sinf(act(7)), -0.5f * act(0) *cosf(act(4)), 0.5f * act(1) *cosf(act(5)), 0.5f * act(2) *cosf(act(6)), -0.5f * act(3) *cosf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
+				{ 0.25f * sinf(act(4)), 0.25f * sinf(act(5)), 0.25f * sinf(act(6)), 0.25f * sinf(act(7)), 0.25f * act(0) *cosf(act(4)), 0.25f * act(1) *cosf(act(5)), 0.25f * act(2) *cosf(act(6)), 0.25f * act(3) *cosf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
 				{ 0.f,  0.f,  0.f,  0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f},
-				{-0.25f * cosf(act(4)), -0.25f * cosf(act(5)), -0.25f * cosf(act(6)), -0.25f * cosf(act(7)), 0.25f * act(0) * sinf(act(4)), 0.25f * act(1) * sinf(act(5)), 0.25f * act(2) * sinf(act(6)), 0.25f * act(3) * sinf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
+				{-0.25f * cosf(act(4)), -0.25f * cosf(act(5)), -0.25f * cosf(act(6)), -0.25f * cosf(act(7)), 0.25f * act(0) *sinf(act(4)), 0.25f * act(1) *sinf(act(5)), 0.25f * act(2) *sinf(act(6)), 0.25f * act(3) *sinf(act(7)), 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f}
 			};
 			B = matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS>(B_tiltrotor_vtol);
+
+			// Temporarily disable a few controls (WIP)
+			for (size_t j = 4; j < 8; j++) {
+				// B(0, j) = 0.0f;
+				// B(1, j) = 0.0f;
+				B(2, j) = 0.0f;
+
+				B(3, j) = 0.0f;
+				B(4, j) = 0.0f;
+				B(5, j) = 0.0f;
+			}
+
 			break;
 		}
 
@@ -247,6 +260,62 @@ ControlAllocator::getEffectivenessMatrix()
 
 	return B;
 }
+
+const matrix::Vector<float, ControlAllocator::NUM_ACTUATORS>
+ControlAllocator::getActuatorTrim()
+{
+	matrix::Vector<float, ControlAllocator::NUM_ACTUATORS> act_trim;
+
+	// Current actuator
+	// matrix::Vector<float, ControlAllocator::NUM_ACTUATORS> act = _control_allocation->getActuatorSetpoint();
+
+	switch ((Airframe)_param_ca_airframe.get()) {
+	case Airframe::QUAD_W:
+	case Airframe::HEXA_X:
+	case Airframe::STANDARD_VTOL: {
+			// zero trim
+			act_trim = matrix::Vector<float, NUM_ACTUATORS>();
+			break;
+		}
+
+	case Airframe::TILTROTOR_VTOL: {
+			float tilt = 0.0f;
+
+			switch (_flight_phase) {
+			case FlightPhase::HOVER_FLIGHT:  {
+					tilt = 0.0f;
+					break;
+				}
+
+			case FlightPhase::FORWARD_FLIGHT: {
+					tilt = 1.5f;
+					break;
+				}
+
+			case FlightPhase::TRANSITION_FF_TO_HF:
+			case FlightPhase::TRANSITION_HF_TO_FF: {
+					tilt = 0.75f;
+					break;
+				}
+			}
+
+			// Trim: half throttle, tilted motors
+			act_trim(0) = 0.5f;
+			act_trim(1) = 0.5f;
+			act_trim(2) = 0.5f;
+			act_trim(3) = 0.5f;
+			act_trim(4) = tilt;
+			act_trim(5) = tilt;
+			act_trim(6) = tilt;
+			act_trim(7) = tilt;
+
+			break;
+		}
+	}
+
+	return act_trim;
+}
+
 
 void
 ControlAllocator::update_allocation_method()
@@ -397,10 +466,11 @@ ControlAllocator::Run()
 
 		// Update effectiveness matrix if needed
 		matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> B = getEffectivenessMatrix();
+		matrix::Vector<float, NUM_ACTUATORS> trim = getActuatorTrim();
 
 		// Assign control effectiveness matrix
 		if ((B - _control_allocation->getEffectivenessMatrix()).abs().max() > 1e-5f) {
-			_control_allocation->setEffectivenessMatrix(B);
+			_control_allocation->setEffectivenessMatrix(B, trim);
 		}
 
 		// Set control setpoint vector

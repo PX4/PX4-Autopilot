@@ -106,6 +106,7 @@ private:
 	void publish_legacy_multirotor_motor_limits();
 
 	const matrix::Matrix<float, NUM_AXES, NUM_ACTUATORS> getEffectivenessMatrix();
+	const matrix::Vector<float, NUM_ACTUATORS> getActuatorTrim();
 
 	int _allocation_method_id{-1};
 	ControlAllocation *_control_allocation{nullptr}; 	///< class for control allocation calculations
