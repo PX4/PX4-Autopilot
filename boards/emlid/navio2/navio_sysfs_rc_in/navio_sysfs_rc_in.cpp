@@ -63,14 +63,8 @@ extern "C" __EXPORT int navio_sysfs_rc_in_main(int argc, char *argv[]);
 class RcInput
 {
 public:
-	RcInput() :
-		_shouldExit(false),
-		_isRunning(false),
-		_work{},
-		_rcinput_pub(nullptr),
-		_channels(8), //D8R-II plus
-		_data{}
-	{ }
+	RcInput() = default;
+
 	~RcInput()
 	{
 		work_cancel(HPWORK, &_work);
@@ -92,17 +86,19 @@ private:
 	void _cycle();
 	void _measure();
 
-	bool _shouldExit;
-	bool _isRunning;
-	struct work_s _work;
+	int navio_rc_init();
+
+	bool _shouldExit{false};
+	bool _isRunning{false};
+	work_s _work{};
 
 	uORB::PublicationMulti<input_rc_s>	_rcinput_pub{ORB_ID(input_rc)};
 
-	int _channels;
+	int _channels{8};	// D8R-II plus
 	int _ch_fd[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
-	struct input_rc_s _data;
 
-	int navio_rc_init();
+	input_rc_s _data{};
+
 };
 
 int RcInput::navio_rc_init()
@@ -131,9 +127,7 @@ int RcInput::navio_rc_init()
 
 int RcInput::start()
 {
-	int result = 0;
-
-	result = navio_rc_init();
+	int result = navio_rc_init();
 
 	if (result != 0) {
 		PX4_WARN("error: RC initialization failed");
