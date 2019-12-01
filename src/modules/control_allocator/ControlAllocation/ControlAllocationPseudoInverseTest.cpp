@@ -51,11 +51,12 @@ TEST(ControlAllocationTest, AllZeroCase)
 	matrix::Vector<float, 6> control_sp;
 	matrix::Vector<float, 6> control_allocated;
 	matrix::Vector<float, 6> control_allocated_expected;
-	matrix::Matrix<float, 6, 16> B;
+	matrix::Matrix<float, 6, 16> effectiveness;
 	matrix::Vector<float, 16> actuator_sp;
+	matrix::Vector<float, 16> actuator_trim;
 	matrix::Vector<float, 16> actuator_sp_expected;
 
-	method.setEffectivenessMatrix(B);
+	method.setEffectivenessMatrix(effectiveness, actuator_trim);
 	method.setControlSetpoint(control_sp);
 	method.allocate();
 	actuator_sp = method.getActuatorSetpoint();
