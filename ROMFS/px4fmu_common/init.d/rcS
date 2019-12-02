@@ -343,6 +343,7 @@ else
 		sh /etc/init.d/rc.sensors
 
 		battery_status start
+		ads1115 init -s 1
 		commander start
 	fi
 
