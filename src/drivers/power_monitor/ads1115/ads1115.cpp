@@ -44,7 +44,7 @@
 #define ADS1115_BUS_DEFAULT     PX4_I2C_BUS_EXPANSION
 #define ADS1115_BASEADDR        (0x48)
 
-#define ADS1115_CONVERSION_INTERVAL     (8000) // 1/Data Rate in microseconds
+#define ADS1115_CONVERSION_INTERVAL     (1200) // 1/Data Rate in microseconds
 
 #define ADS1115_WRITE_ADDR      (0x90) // 1001 000(0)
 #define ADS1115_READ_ADDR       (0x91) // 1001 000(1)
@@ -52,13 +52,16 @@
 #define ADS1115_CONFIG_REG      (0x01)
 #define ADS1115_CONVERSION_REG  (0x00)
 
-#define ADS1115_CHANNEL_ONE     (0xC383) // 1 100 001 1 100 0 0 0 11
-#define ADS1115_CHANNEL_TWO     (0xD383) // 1 101 001 1 100 0 0 0 11
-#define ADS1115_CHANNEL_THREE 	(0xE383) // 1 110 001 1 100 0 0 0 11
-#define ADS1115_CHANNEL_FOUR	(0xF383) // 1 111 001 1 100 0 0 0 11
+#define ADS1115_CHANNEL_ONE     (0xC3E3) // 1 100 001 1 111 0 0 0 11
+#define ADS1115_CHANNEL_TWO     (0xD3E3) // 1 101 001 1 111 0 0 0 11
+#define ADS1115_CHANNEL_THREE 	(0xE3E3) // 1 110 001 1 111 0 0 0 11
+#define ADS1115_CHANNEL_FOUR	(0xF3E3) // 1 111 001 1 111 0 0 0 11
 
-#define voltage_gain            (0.004) //
-#define current_gain            (0.025) //
+#define batt_capacity		(22000)
+#define voltage_gain            (0.004f) //
+#define voltage_offset		(0.370f)
+#define current_gain            (0.025f) //
+#define current_offset		(2.275f)
 
 #define swap16(w)       __builtin_bswap16((w))
 
@@ -83,6 +86,26 @@ private:
 	orb_advert_t _power_monitor_topic{nullptr};
     	orb_advert_t _battery_status_topic{nullptr};
 
+	hrt_abstime _now_timestamp = 0;
+	hrt_abstime _last_timestamp = 0;
+
+	struct power_monitor_s report;
+	struct battery_status_s mainrep;
+
+	float current_raw = 0;
+	float voltage_raw = 0;
+	float discharged = 0;
+
+	double current_avg = 0;
+	double voltage_avg = 0;
+
+	int i = 0;
+	int v = 0;
+
+	int read_count = 0;
+	int measure_count = 0;
+
+	bool batt_connected{false};
 	int _measure_interval{0};
     	bool _collect_phase{false};
 
@@ -171,30 +194,41 @@ int ADS1115::measureBatttemp()
 
 void ADS1115::Run()
 {
-	static int measure_count, read_count;
 	uint16_t convRegVal = 0;
-	static double current = 0;
-	static double voltage = 0;
-	static double wiretemp = 0;
-	static double batttemp = 0;
-	static double discharged = 0;
 
-	struct power_monitor_s report;
-	struct battery_status_s mainrep;
+	_now_timestamp = hrt_absolute_time();
 
-	if (_measure_interval == 0) {
+	// static int measure_count, read_count, state;
+	// bool batt_connected = false;
+	// static double current, voltage;
+	// static double wiretemp, batttemp;
+	// static double discharged = 0;
+
+	if (_measure_interval == 0)
+	{
 		return;
 	}
 
 	if (_collect_phase)
 	{
+		// if (read_count >= 0 | read_count <= 4)
+		// {
+		// 	state = 0;
+		// } else if (read_count >=5 | read_count <= 9)
+		// {
+		// 	state = 1;
+		// } else if (read_count < 0 | read_count > 9)
+		// {
+		// 	read_count = 0;
+		// 	state = 0;
+		// }
+
 		switch(read_count)
 		{
 			case 0:
 				if (!readConvReg(&convRegVal))
 				{
-					current = swap16(convRegVal);
-                    			discharged += 0.001;
+					current_raw = ((swap16(convRegVal)*current_gain)-current_offset);
 					read_count = 1;
 					break;
 				} else
@@ -206,8 +240,8 @@ void ADS1115::Run()
 			case 1:
 				if (!readConvReg(&convRegVal))
 				{
-					voltage = swap16(convRegVal);
-					read_count = 2;
+					voltage_raw = ((swap16(convRegVal)*voltage_gain)-voltage_offset);
+					read_count = 0;
 					break;
 				} else
 				{
@@ -215,29 +249,29 @@ void ADS1115::Run()
 					break;
 				}
 
-			case 2:
-				if (!readConvReg(&convRegVal))
-				{
-					wiretemp++;//swap16(convRegVal);
-					read_count = 3;
-					break;
-				} else
-				{
-					PX4_ERR("wire temp collect error");
-					break;
-				}
+			// case 2:
+			// 	if (!readConvReg(&convRegVal))
+			// 	{
+			// 		wiretemp++;//swap16(convRegVal);
+			// 		read_count = 3;
+			// 		break;
+			// 	} else
+			// 	{
+			// 		PX4_ERR("wire temp collect error");
+			// 		break;
+			// 	}
 
-			case 3:
-				if (!readConvReg(&convRegVal))
-				{
-					batttemp++;//swap16(convRegVal);
-					read_count = 0;
-					break;
-				} else
-				{
-					PX4_ERR("batt temp collect error");
-					break;
-				}
+			// case 3:
+			// 	if (!readConvReg(&convRegVal))
+			// 	{
+			// 		batttemp++;//swap16(convRegVal);
+			// 		read_count = 0;
+			// 		break;
+			// 	} else
+			// 	{
+			// 		PX4_ERR("batt temp collect error");
+			// 		break;
+			// 	}
 		}
 		_collect_phase = false;
 
@@ -263,34 +297,34 @@ void ADS1115::Run()
 		case 1:
 			if (!measureVoltage())
 			{
-				measure_count = 2;
+				measure_count = 0;
 				break;
 			} else
 			{
 				PX4_ERR("voltage measure error");
 				break;
 			}
-		case 2:
-			if (!measureWiretemp())
-			{
-				measure_count = 3;
-				break;
-			} else
-			{
-				PX4_ERR("wire temp measure error");
-				break;
-			}
+		// case 2:
+		// 	if (!measureWiretemp())
+		// 	{
+		// 		measure_count = 3;
+		// 		break;
+		// 	} else
+		// 	{
+		// 		PX4_ERR("wire temp measure error");
+		// 		break;
+		// 	}
 
-		case 3:
-			if (!measureBatttemp())
-			{
-				measure_count = 0;
-				break;
-			} else
-			{
-				PX4_ERR("batt temp measure error");
-				break;
-			}
+		// case 3:
+		// 	if (!measureBatttemp())
+		// 	{
+		// 		measure_count = 0;
+		// 		break;
+		// 	} else
+		// 	{
+		// 		PX4_ERR("batt temp measure error");
+		// 		break;
+		// 	}
 	}
 
 	_collect_phase = true;
@@ -300,22 +334,52 @@ void ADS1115::Run()
 		ScheduleDelayed(ADS1115_CONVERSION_INTERVAL);
 	}
 
+	if (voltage_raw > 10)
+	{
+		batt_connected = true;
+	}
+
+	if ((current_raw > 3) & (_last_timestamp != 0))
+	{
+		const float dt = (_now_timestamp - _last_timestamp) / 1e6;
+		float _discharged_temp = (current_raw * 1e3f) * (dt / 3600.f);
+		discharged += _discharged_temp;
+	}
+
+	_last_timestamp = _now_timestamp;
+
 	report.timestamp = hrt_absolute_time();
-	report.current_a = current*current_gain;
-	report.voltage_v = voltage*voltage_gain;
-	report.wiretemp_c = wiretemp;
-	report.batttemp_c = batttemp;
+	report.current_a = current_raw; //*current_gain;
+	report.voltage_v = voltage_raw;
+	report.wiretemp_c = 0;
+	report.batttemp_c = 0;
 
 	int pminstance;
 	orb_publish_auto(ORB_ID(power_monitor), &_power_monitor_topic,
         	&report, &pminstance, ORB_PRIO_DEFAULT);
 
-	mainrep.timestamp = hrt_absolute_time();
-	mainrep.current_a = current*current_gain;
-	mainrep.voltage_v = voltage*voltage_gain;
-	mainrep.voltage_filtered_v = voltage*voltage_gain;
-	mainrep.discharged_mah = discharged;
+	/*---xxxx---*/
 
+	mainrep.timestamp = hrt_absolute_time();
+	/*------*/
+	mainrep.current_a = current_raw*current_gain;
+	// mainrep.current_filtered_a = ;
+	/*------*/
+	mainrep.voltage_v = voltage_raw*voltage_gain;
+	// mainrep.voltage_filtered_v = ;
+	/*------*/
+	mainrep.discharged_mah = discharged;
+	/*------*/
+	// mainrep.temperature = batttemp;
+	/*------*/
+	mainrep.cell_count = 4;
+	/*------*/
+	mainrep.connected = batt_connected;
+	/*------*/
+	mainrep.system_source = false;
+	/*------*/
+	mainrep.capacity = batt_capacity;
+	/*------*/
 	int bsinstance;
 	orb_publish_auto(ORB_ID(battery_status), &_battery_status_topic,
 	        &mainrep, &bsinstance, ORB_PRIO_DEFAULT);
@@ -348,7 +412,7 @@ int ADS1115::probe()
 
 	if (!readConfigReg(&configRegVal))
 	{
-		if (0x8343 != configRegVal)
+		if (0xE343 != configRegVal)
 		{
 			PX4_WARN("ADS1115::readConfigReg() failed");
 			return PX4_ERROR;
