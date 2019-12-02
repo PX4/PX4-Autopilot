@@ -23,7 +23,7 @@ TEST_CASE("Takeoff and land", "[multicopter][vtol]")
     tester.wait_until_disarmed();
 }
 
-TEST_CASE("Fly a square missions", "[multicopter][vtol]")
+TEST_CASE("Fly square missions", "[multicopter][vtol]")
 {
     AutopilotTester tester;
     tester.connect(connection_url);

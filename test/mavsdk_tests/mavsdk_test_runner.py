@@ -7,6 +7,7 @@ import errno
 import os
 import psutil
 import subprocess
+import sys
 
 
 test_matrix = [
@@ -42,7 +43,7 @@ class Runner:
                          datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
                         ), 'w')
         else:
-            f = subprocess.STDOUT
+            f = None
 
         print("Running: {}".format(" ".join([self.cmd] + self.args)))
 
@@ -50,8 +51,8 @@ class Runner:
             [self.cmd] + self.args,
             cwd=self.cwd,
             env=self.env,
-            # FIXME: this is currently not working
-            # stdout=subprocess.STDOUT
+            stdout=f,
+            stderr=f
         )
 
         atexit.register(self.stop)
@@ -199,12 +200,12 @@ def main():
                         help="Directory for log files, stdout if not provided")
     parser.add_argument("--speed-factor", default=1,
                         help="How fast to run the simulation")
-    parser.add_argument("--gui", default=False,
+    parser.add_argument("--gui", default=False, action='store_true',
                         help="Display gzclient with")
     args = parser.parse_args()
 
     if not is_everything_ready():
-        return 1
+        sys.exit(1)
 
     overall_success = True
 
@@ -253,7 +254,7 @@ def main():
 
     print("Overall result: {}".
           format("SUCCESS" if overall_success else "FAIL"))
-    return 0 if overall_success else 1
+    sys.exit(0 if overall_success else 1)
 
 
 if __name__ == '__main__':
