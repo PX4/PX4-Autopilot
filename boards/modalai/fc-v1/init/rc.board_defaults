@@ -3,22 +3,81 @@
 # ModalAI FC-v1 specific board defaults
 #------------------------------------------------------------------------------
 
+#
+# Flight Core Version Information
+#   V100 - Flight Core Stand Alone configuration
+#   V110 - Flight Core VOXL-Flight configuration
 
+
+#
+# Common settings across Flight Core configurations
+#
 if [ $AUTOCNF = yes ]
 then
 	# Disable safety switch by default
 	param set CBRK_IO_SAFETY 22027
+fi
 
+#
+# Stand Alone configuration
+#
+if ver hwtypecmp V100
+then
+	echo "Configuring Flight Core V100"
+
+	if [ $AUTOCNF = yes ]
+	then
+		echo "Configuring TELEM2 on /dev/ttyS4 at 921600 in Normal Mode"
+		#
+		# TELEM2 /dev/ttyS4
+		#
+		# In Stand Alone configuration, this port is configurable
+		#
+		param set MAV_1_CONFIG 102 # TELEM2
+		param set MAV_1_MODE 0	# normal
+		param set SER_TEL2_BAUD 921600
+
+		echo "Configuring TELEM3 on /dev/ttyS1 at 57600 in Normal Mode"
+		#
+		# TELEM3 /dev/ttyS1
+		#
+		# In Stand Alone configuration, this port is configurable
+		#
+		param set MAV_2_CONFIG 103 # TELEM3
+		param set MAV_2_MODE 0	# normal
+		param set SER_TEL3_BAUD 57600
+	fi
+fi
+
+#
+# VOXL-Flight configuration
+#
+if ver hwtypecmp V110
+then
+	echo "Configuring VOXL-Flight V110"
+
+	echo "Configuring TELEM2 on /dev/ttyS4 at 921600 in Normal Mode"
 	#
 	# TELEM2 /dev/ttyS4
 	#
-	# In the VOXL-FMU, this port is connect to the VOXL internally
-	# In the FMU, this J1 port can connect to the VOXL J12
-	# By default, we use this UART connection with MAVLink at 921.6kHz
+	# In VOXL-Flight, this port is routed in the PCB, thus not configurable
 	#
 	param set MAV_1_CONFIG 102 # TELEM2
 	param set MAV_1_MODE 0	# normal
 	param set SER_TEL2_BAUD 921600
+
+	if [ $AUTOCNF = yes ]
+	then
+		echo "Configuring TELEM3 on /dev/ttyS1 at 57600 in Normal Mode"
+		#
+		# TELEM3 /dev/ttyS1
+		#
+		# In Stand Alone configuration, this port is configurable
+		#
+		param set MAV_2_CONFIG 103 # TELEM3
+		param set MAV_2_MODE 0	# normal
+		param set SER_TEL3_BAUD 57600
+	fi
 fi
 
 set LOGGER_BUF 64
