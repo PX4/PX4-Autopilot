@@ -93,7 +93,11 @@ private:
 	struct battery_status_s mainrep;
 
 	float current_raw = 0;
+	float current_sum = 0;
+	float current = 0;
 	float voltage_raw = 0;
+	float voltage_sum = 0;
+	float voltage = 0;
 	float discharged = 0;
 
 	double current_avg = 0;
@@ -346,6 +350,26 @@ void ADS1115::Run()
 		discharged += _discharged_temp;
 	}
 
+	if (i < 5)
+	{
+		current_sum += current_raw;
+		i++;
+	} else
+	{
+		i = 0;
+	}
+	current = current_sum/5;
+
+	if (v < 5)
+	{
+		voltage_sum += voltage_raw;
+		v++;
+	} else
+	{
+		v = 0;
+	}
+	voltage = voltage_sum/5;
+
 	_last_timestamp = _now_timestamp;
 
 	report.timestamp = hrt_absolute_time();
@@ -362,11 +386,11 @@ void ADS1115::Run()
 
 	mainrep.timestamp = hrt_absolute_time();
 	/*------*/
-	mainrep.current_a = current_raw*current_gain;
-	// mainrep.current_filtered_a = ;
+	mainrep.current_a = current_raw;
+	mainrep.current_filtered_a = current;
 	/*------*/
-	mainrep.voltage_v = voltage_raw*voltage_gain;
-	// mainrep.voltage_filtered_v = ;
+	mainrep.voltage_v = voltage_raw;
+	mainrep.voltage_filtered_v = voltage;
 	/*------*/
 	mainrep.discharged_mah = discharged;
 	/*------*/
