@@ -42,7 +42,7 @@ class Runner:
                          datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
                         ), 'w')
         else:
-            f = subprocess.STDOUT
+            f = None
 
         print("Running: {}".format(" ".join([self.cmd] + self.args)))
 
@@ -50,8 +50,8 @@ class Runner:
             [self.cmd] + self.args,
             cwd=self.cwd,
             env=self.env,
-            # FIXME: this is currently not working
-            # stdout=subprocess.STDOUT
+            stdout=f,
+            stderr=f
         )
 
         atexit.register(self.stop)
