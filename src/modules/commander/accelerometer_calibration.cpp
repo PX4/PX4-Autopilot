@@ -142,6 +142,7 @@
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_accel.h>
 #include <lib/ecl/geo/geo.h>
+#include <matrix/math.hpp>
 #include <conversion/rotation.h>
 #include <parameters/param.h>
 #include <systemlib/err.h>
@@ -149,6 +150,8 @@
 #include <uORB/topics/vehicle_attitude.h>
 #include <uORB/topics/sensor_correction.h>
 #include <uORB/Subscription.hpp>
+
+using namespace matrix;
 
 static const char *sensor_name = "accel";
 
@@ -294,19 +297,19 @@ int do_accel_calibration(orb_advert_t *mavlink_log_pub)
 	int32_t board_rotation_int;
 	param_get(board_rotation_h, &(board_rotation_int));
 	enum Rotation board_rotation_id = (enum Rotation)board_rotation_int;
-	matrix::Dcmf board_rotation = get_rot_matrix(board_rotation_id);
+	Dcmf board_rotation = get_rot_matrix(board_rotation_id);
 
-	matrix::Dcmf board_rotation_t = board_rotation.transpose();
+	Dcmf board_rotation_t = board_rotation.transpose();
 
 	bool tc_locked[3] = {false}; // true when the thermal parameter instance has already been adjusted by the calibrator
 
 	for (unsigned uorb_index = 0; uorb_index < active_sensors; uorb_index++) {
 
 		/* handle individual sensors, one by one */
-		matrix::Vector3f accel_offs_vec(accel_offs[uorb_index]);
-		matrix::Vector3f accel_offs_rotated = board_rotation_t *accel_offs_vec;
-		matrix::Matrix3f accel_T_mat(accel_T[uorb_index]);
-		matrix::Matrix3f accel_T_rotated = board_rotation_t *accel_T_mat * board_rotation;
+		Vector3f accel_offs_vec(accel_offs[uorb_index]);
+		Vector3f accel_offs_rotated = board_rotation_t *accel_offs_vec;
+		Matrix3f accel_T_mat(accel_T[uorb_index]);
+		Matrix3f accel_T_rotated = board_rotation_t *accel_T_mat * board_rotation;
 
 		accel_scale.x_offset = accel_offs_rotated(0);
 		accel_scale.x_scale = accel_T_rotated(0, 0);
@@ -625,15 +628,15 @@ calibrate_return read_accelerometer_avg(int sensor_correction_sub, int (&subs)[m
 	param_get(board_offset_y, &board_offset[1]);
 	param_get(board_offset_z, &board_offset[2]);
 
-	matrix::Dcmf board_rotation_offset = matrix::Eulerf(
-			M_DEG_TO_RAD_F * board_offset[0],
-			M_DEG_TO_RAD_F * board_offset[1],
-			M_DEG_TO_RAD_F * board_offset[2]);
+	Dcmf board_rotation_offset = Eulerf(
+					     M_DEG_TO_RAD_F * board_offset[0],
+					     M_DEG_TO_RAD_F * board_offset[1],
+					     M_DEG_TO_RAD_F * board_offset[2]);
 
 	int32_t board_rotation_int;
 	param_get(board_rotation_h, &(board_rotation_int));
 
-	matrix::Dcmf board_rotation = board_rotation_offset * get_rot_matrix((enum Rotation)board_rotation_int);
+	Dcmf board_rotation = board_rotation_offset * get_rot_matrix((enum Rotation)board_rotation_int);
 
 	px4_pollfd_struct_t fds[max_accel_sens];
 
@@ -713,7 +716,7 @@ calibrate_return read_accelerometer_avg(int sensor_correction_sub, int (&subs)[m
 
 	// rotate sensor measurements from sensor to body frame using board rotation matrix
 	for (unsigned i = 0; i < max_accel_sens; i++) {
-		matrix::Vector3f accel_sum_vec(&accel_sum[i][0]);
+		Vector3f accel_sum_vec(&accel_sum[i][0]);
 		accel_sum_vec = board_rotation * accel_sum_vec;
 
 		for (size_t j = 0; j < 3; j++) {
