@@ -925,6 +925,7 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 		   transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN; // Flags to indicate various statuses including valid data fields
 	tr.squawk = 6667;
 
+
 	uORB::PublicationQueued<transponder_report_s> tr_pub{ORB_ID(transponder_report)};
 	tr_pub.publish(tr);
 }
@@ -951,6 +952,7 @@ void Navigator::check_traffic()
 
 	while (changed) {
 
+		vehicle_status_s vs{};
 		transponder_report_s tr{};
 		_traffic_sub.copy(&tr);
 
@@ -963,6 +965,11 @@ void Navigator::check_traffic()
 			continue;
 		}
 
+		//Ignore selfpublished UTM messages
+		if (vs.system_id == tr.uas_id) {
+			mavlink_log_critical(&_mavlink_log_pub, "ONBOARD WARNING IGNORE");
+			continue;
+		}
 
 		//Manned/Unmanned Vehicle Seperation Distance
 		if (tr.emitter_type == transponder_report_s::ADSB_EMITTER_TYPE_UAV) {
@@ -1009,8 +1016,9 @@ void Navigator::check_traffic()
 					switch (_param_nav_traff_avoid.get()) {
 
 					case 0: {
-							/* ignore */
-							PX4_WARN("TRAFFIC %s, hdg: %d, hrzl dst:: %d, type: %d",
+							/* Ignore */
+
+							PX4_WARN("TRAFFIC %s! dst %d, hdg %d, type %d,
 								 tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign :
 								 "unknown",
 								 traffic_direction,
@@ -1020,8 +1028,9 @@ void Navigator::check_traffic()
 						}
 
 					case 1: {
-							/*Warn only*/
-							mavlink_log_critical(&_mavlink_log_pub, "WARNING TRAFFIC %s at heading %d, hrzl dst: %d, type: %d",
+							/* Warn only */
+
+							mavlink_log_critical(&_mavlink_log_pub, "Warning TRAFFIC %s! dst %d, hdg %d, type %d",
 									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
 									     traffic_direction,
 									     traffic_seperation,
@@ -1030,7 +1039,9 @@ void Navigator::check_traffic()
 						}
 
 					case 2: {
-							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, returning home! hrzl dst: %d, type: %d",
+							/* RTL Mode */
+
+							mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Returning home! dst %d, hdg %d, type %d",
 									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
 									     traffic_direction,
 									     traffic_seperation,
@@ -1047,8 +1058,9 @@ void Navigator::check_traffic()
 						}
 
 					case 3: {
-							/*Land Mode*/
-							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, landing, hrz sep: %d, type: %d",
+							/* Land Mode */
+
+							mavlink_log_critical(&_mavlink_log_pub, ""TRAFFIC: % s Landing! dst % d, hdg % d, type % d"",
 									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
 									     traffic_direction,
 									     traffic_seperation,
@@ -1063,14 +1075,15 @@ void Navigator::check_traffic()
 						}
 
 					case 4: {
-							/*Position hold*/
-							mavlink_log_critical(&_mavlink_log_pub, "AVOIDING TRAFFIC %s heading %d, holding position, hrz sep: %d, type: %d",
+							/* Position hold */
+
+							mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Holding position! dst %d, hdg %d, type %d",
 									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
 									     traffic_direction,
 									     traffic_seperation,
 									     tr.emitter_type);
 
-							// ask the commander to Loiter until
+							// ask the commander to Loiter
 							vehicle_command_s vcmd = {};
 							vcmd.command = vehicle_command_s::VEHICLE_CMD_NAV_LOITER_UNLIM;
 							publish_vehicle_cmd(&vcmd);
