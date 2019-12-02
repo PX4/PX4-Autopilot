@@ -60,6 +60,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/optical_flow.h>
@@ -174,7 +175,10 @@ public:
 
 	void set_ip(InternetProtocol ip);
 	void set_port(unsigned port);
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	bool has_initialized() {return _has_initialized.load(); }
+#endif
 
 private:
 	Simulator() :
@@ -287,7 +291,8 @@ private:
 
 	static void *sending_trampoline(void *);
 
-	mavlink_hil_actuator_controls_t actuator_controls_from_outputs(const actuator_outputs_s &actuators);
+	mavlink_hil_actuator_controls_t actuator_controls_from_outputs();
+
 
 	// uORB publisher handlers
 	uORB::Publication<vehicle_angular_velocity_s>	_vehicle_angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
@@ -298,6 +303,8 @@ private:
 
 	// uORB subscription handlers
 	int _actuator_outputs_sub{-1};
+	actuator_outputs_s _actuator_outputs{};
+
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	// hil map_ref data
@@ -315,6 +322,14 @@ private:
 
 #if defined(ENABLE_LOCKSTEP_SCHEDULER)
 	px4::atomic<bool> _has_initialized {false};
+
+	int _ekf2_timestamps_sub{-1};
+
+	enum class State {
+		WaitingForFirstEkf2Timestamp = 0,
+		WaitingForActuatorControls = 1,
+		WaitingForEkf2Timestamp = 2,
+	};
 #endif
 
 	DEFINE_PARAMETERS(
