@@ -156,11 +156,11 @@ public:
 	void remove_internal_subscriber();
 
 	/**
-	 * Return true if this topic has been published.
+	 * Return true if this topic has been advertised.
 	 *
 	 * This is used in the case of multi_pub/sub to check if it's valid to advertise
 	 * and publish to this node or if another node should be tried. */
-	bool is_published() const { return _published; }
+	bool is_advertised() const { return _advertised; }
 
 	/**
 	 * Try to change the size of the queue. This can only be done as long as nobody published yet.
@@ -228,7 +228,7 @@ private:
 	hrt_abstime   _last_update{0}; /**< time the object was last updated */
 	volatile unsigned   _generation{0};  /**< object generation count */
 	uint8_t   _priority;  /**< priority of the topic */
-	bool _published{false};  /**< has ever data been published */
+	bool _advertised{false};  /**< has ever been advertised (not necessarily published data yet) */
 	uint8_t _queue_size; /**< maximum number of elements in the queue */
 	int8_t _subscriber_count{0};
 
