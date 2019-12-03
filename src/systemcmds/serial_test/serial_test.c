@@ -979,11 +979,14 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	/* ignore HS to allow exit */
 	printf("Exiting...\n");
 
-	g_cl._rts_cts = 0;
-	setup_serial_port(baud);
+	/* ignore HS to allow exit */
+
+	if (g_cl._rts_cts != 0) {
+		g_cl._rts_cts = 0;
+		setup_serial_port(baud);
+	}
 
 	tcdrain(g_mod._fd);
 	dump_serial_port_stats();
