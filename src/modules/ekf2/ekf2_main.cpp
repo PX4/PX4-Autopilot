@@ -1610,6 +1610,8 @@ void Ekf2::Run()
 				_ekf.getGpsVelPosInnov(&innovations.gps_hvel[0], innovations.gps_vvel, &innovations.gps_hpos[0],
 						       innovations.gps_vpos);
 				_ekf.getEvVelPosInnov(&innovations.ev_hvel[0], innovations.ev_vvel, &innovations.ev_hpos[0], innovations.ev_vpos);
+				_ekf.getBaroHgtInnov(innovations.baro_vpos);
+				_ekf.getRngHgtInnov(innovations.rng_vpos);
 				_ekf.getAuxVelInnov(&innovations.aux_hvel[0]);
 				_ekf.getFlowInnov(&innovations.flow[0]);
 				_ekf.getHeadingInnov(innovations.heading);
@@ -1626,6 +1628,8 @@ void Ekf2::Run()
 							  innovation_var.gps_vpos);
 				_ekf.getEvVelPosInnovVar(&innovation_var.ev_hvel[0], innovation_var.ev_vvel, &innovation_var.ev_hpos[0],
 							 innovation_var.ev_vpos);
+				_ekf.getBaroHgtInnovVar(innovation_var.baro_vpos);
+				_ekf.getRngHgtInnovVar(innovation_var.rng_vpos);
 				_ekf.getAuxVelInnovVar(&innovation_var.aux_hvel[0]);
 				_ekf.getFlowInnovVar(&innovation_var.flow[0]);
 				_ekf.getHeadingInnovVar(innovation_var.heading);
@@ -1642,6 +1646,8 @@ void Ekf2::Run()
 							    test_ratios.gps_vpos);
 				_ekf.getEvVelPosInnovRatio(test_ratios.ev_hvel[0], test_ratios.ev_vvel, test_ratios.ev_hpos[0],
 							   test_ratios.ev_vpos);
+				_ekf.getBaroHgtInnovRatio(test_ratios.baro_vpos);
+				_ekf.getRngHgtInnovRatio(test_ratios.rng_vpos);
 				_ekf.getAuxVelInnovRatio(test_ratios.aux_hvel[0]);
 				_ekf.getFlowInnovRatio(test_ratios.flow[0]);
 				_ekf.getHeadingInnovRatio(test_ratios.heading);
