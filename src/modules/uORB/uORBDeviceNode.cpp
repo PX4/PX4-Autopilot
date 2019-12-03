@@ -275,7 +275,7 @@ uORB::DeviceNode::write(cdev::file_t *filp, const char *buffer, size_t buflen)
 	/* wrap-around happens after ~49 days, assuming a publisher rate of 1 kHz */
 	_generation++;
 
-	_published = true;
+	_advertised = true;
 
 	ATOMIC_LEAVE;
 
@@ -368,8 +368,8 @@ uORB::DeviceNode::ioctl(cdev::file_t *filp, int cmd, unsigned long arg)
 
 		return OK;
 
-	case ORBIOCISPUBLISHED:
-		*(unsigned long *)arg = _published;
+	case ORBIOCISADVERTISED:
+		*(unsigned long *)arg = _advertised;
 
 		return OK;
 
@@ -447,7 +447,7 @@ int uORB::DeviceNode::unadvertise(orb_advert_t handle)
 	 * of subscribers and publishers. But we also do not have a leak since future
 	 * publishers reuse the same DeviceNode object.
 	 */
-	devnode->_published = false;
+	devnode->_advertised = false;
 
 	return PX4_OK;
 }
