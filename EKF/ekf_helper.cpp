@@ -889,6 +889,36 @@ void Ekf::getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vp
 	vpos = _ev_pos_test_ratio(1);
 }
 
+void Ekf::getBaroHgtInnov(float &baro_hgt_innov)
+{
+	baro_hgt_innov = _baro_hgt_innov(2);
+}
+
+void Ekf::getBaroHgtInnovVar(float &baro_hgt_innov_var)
+{
+	baro_hgt_innov_var = _baro_hgt_innov_var(2);
+}
+
+void Ekf::getBaroHgtInnovRatio(float &baro_hgt_innov_ratio)
+{
+	baro_hgt_innov_ratio = _baro_hgt_test_ratio(1);
+}
+
+void Ekf::getRngHgtInnov(float &rng_hgt_innov)
+{
+	rng_hgt_innov = _rng_hgt_innov(2);
+}
+
+void Ekf::getRngHgtInnovVar(float &rng_hgt_innov_var)
+{
+	rng_hgt_innov_var = _rng_hgt_innov_var(2);
+}
+
+void Ekf::getRngHgtInnovRatio(float &rng_hgt_innov_ratio)
+{
+	rng_hgt_innov_ratio = _rng_hgt_test_ratio(1);
+}
+
 void Ekf::getAuxVelInnov(float aux_vel_innov[2])
 {
 	aux_vel_innov[0] = _aux_vel_innov(0);

@@ -1163,20 +1163,18 @@ void Ekf::controlHeightFusion()
 
 	if (_fuse_height) {
 
-		Vector2f height_innov_gate{};
-		Vector2f height_test_ratio{};
-		Vector3f height_obs_var{};
-		Vector3f height_innov_var{};
-		Vector3f height_innov{};
+
 
 		if (_control_status.flags.baro_hgt) {
-			// vertical position innovation - baro measurement has opposite sign to earth z axis
-			height_innov(2) = _state.pos(2) + _baro_sample_delayed.hgt - _baro_hgt_offset - _hgt_sensor_offset;
-			// observation variance - user parameter defined
-			height_obs_var(2) = sq(fmaxf(_params.baro_noise, 0.01f));
+			Vector2f baro_hgt_innov_gate{};
+			Vector3f baro_hgt_obs_var{};
 
+			// vertical position innovation - baro measurement has opposite sign to earth z axis
+			_baro_hgt_innov(2) = _state.pos(2) + _baro_sample_delayed.hgt - _baro_hgt_offset - _hgt_sensor_offset;
+			// observation variance - user parameter defined
+			baro_hgt_obs_var(2) = sq(fmaxf(_params.baro_noise, 0.01f));
 			// innovation gate size
-			height_innov_gate(1) = fmaxf(_params.baro_innov_gate, 1.0f);
+			baro_hgt_innov_gate(1) = fmaxf(_params.baro_innov_gate, 1.0f);
 
 			// Compensate for positive static pressure transients (negative vertical position innovations)
 			// caused by rotor wash ground interaction by applying a temporary deadzone to baro innovations.
@@ -1184,52 +1182,64 @@ void Ekf::controlHeightFusion()
 			float deadzone_end = deadzone_start + _params.gnd_effect_deadzone;
 
 			if (_control_status.flags.gnd_effect) {
-				if (height_innov(2) < -deadzone_start) {
-					if (height_innov(2) <= -deadzone_end) {
-						height_innov(2) += deadzone_end;
+				if (_baro_hgt_innov(2) < -deadzone_start) {
+					if (_baro_hgt_innov(2) <= -deadzone_end) {
+						_baro_hgt_innov(2) += deadzone_end;
 
 					} else {
-						height_innov(2) = -deadzone_start;
+						_baro_hgt_innov(2) = -deadzone_start;
 					}
 				}
 			}
+			// fuse height information
+			fuseVerticalPosition(_baro_hgt_innov,baro_hgt_innov_gate,
+				baro_hgt_obs_var, _baro_hgt_innov_var,_baro_hgt_test_ratio);
 
 		} else if (_control_status.flags.gps_hgt) {
+			Vector2f gps_hgt_innov_gate{};
+			Vector3f gps_hgt_obs_var{};
 			// vertical position innovation - gps measurement has opposite sign to earth z axis
-			height_innov(2) = _state.pos(2) + _gps_sample_delayed.hgt - _gps_alt_ref - _hgt_sensor_offset;
+			_gps_pos_innov(2) = _state.pos(2) + _gps_sample_delayed.hgt - _gps_alt_ref - _hgt_sensor_offset;
 			// observation variance - receiver defined and parameter limited
 			// use scaled horizontal position accuracy assuming typical ratio of VDOP/HDOP
 			float lower_limit = fmaxf(_params.gps_pos_noise, 0.01f);
 			float upper_limit = fmaxf(_params.pos_noaid_noise, lower_limit);
-			height_obs_var(2) = sq(1.5f * math::constrain(_gps_sample_delayed.vacc, lower_limit, upper_limit));
+			gps_hgt_obs_var(2) = sq(1.5f * math::constrain(_gps_sample_delayed.vacc, lower_limit, upper_limit));
 			// innovation gate size
-			height_innov_gate(1) = fmaxf(_params.baro_innov_gate, 1.0f);
+			gps_hgt_innov_gate(1) = fmaxf(_params.baro_innov_gate, 1.0f);
+			// fuse height information
+			fuseVerticalPosition(_gps_pos_innov,gps_hgt_innov_gate,
+				gps_hgt_obs_var, _gps_pos_innov_var,_gps_pos_test_ratio);
 
 		} else if (_control_status.flags.rng_hgt && (_R_rng_to_earth_2_2 > _params.range_cos_max_tilt)) {
+			// TODO: Tilt check does not belong here, should not set fuse height to true if tilted
+			Vector2f rng_hgt_innov_gate{};
+			Vector3f rng_hgt_obs_var{};
 			// use range finder with tilt correction
-			height_innov(2) = _state.pos(2) - (-math::max(_range_sample_delayed.rng * _R_rng_to_earth_2_2,
+			_rng_hgt_innov(2) = _state.pos(2) - (-math::max(_range_sample_delayed.rng * _R_rng_to_earth_2_2,
 							 _params.rng_gnd_clearance)) - _hgt_sensor_offset;
 			// observation variance - user parameter defined
-			height_obs_var(2) = fmaxf((sq(_params.range_noise) + sq(_params.range_noise_scaler * _range_sample_delayed.rng)) * sq(_R_rng_to_earth_2_2), 0.01f);
+			rng_hgt_obs_var(2) = fmaxf((sq(_params.range_noise) + sq(_params.range_noise_scaler * _range_sample_delayed.rng)) * sq(_R_rng_to_earth_2_2), 0.01f);
 			// innovation gate size
-			height_innov_gate(1) = fmaxf(_params.range_innov_gate, 1.0f);
+			rng_hgt_innov_gate(1) = fmaxf(_params.range_innov_gate, 1.0f);
+			// fuse height information
+			fuseVerticalPosition(_rng_hgt_innov,rng_hgt_innov_gate,
+				rng_hgt_obs_var, _rng_hgt_innov_var,_rng_hgt_test_ratio);
 
 		} else if (_control_status.flags.ev_hgt) {
+			Vector2f ev_hgt_innov_gate{};
+			Vector3f ev_hgt_obs_var{};
 			// calculate the innovation assuming the external vision observation is in local NED frame
-			height_innov(2) = _state.pos(2) - _ev_sample_delayed.pos(2);
+			_ev_pos_innov(2) = _state.pos(2) - _ev_sample_delayed.pos(2);
 			// observation variance - defined externally
-			height_obs_var(2) = sq(fmaxf(_ev_sample_delayed.hgtErr, 0.01f));
+			ev_hgt_obs_var(2) = sq(fmaxf(_ev_sample_delayed.hgtErr, 0.01f));
 			// innovation gate size
-			height_innov_gate(1) = fmaxf(_params.ev_pos_innov_gate, 1.0f);
+			ev_hgt_innov_gate(1) = fmaxf(_params.ev_pos_innov_gate, 1.0f);
+			// fuse height information
+			fuseVerticalPosition(_ev_pos_innov,ev_hgt_innov_gate,
+				ev_hgt_obs_var, _ev_pos_innov_var,_ev_pos_test_ratio);
 		}
-		// fuse height inforamtion
-		fuseVerticalPosition(height_innov,height_innov_gate,
-				height_obs_var, height_innov_var,height_test_ratio);
 
-		// This is a temporary hack until we do proper height sensor fusion
-		_gps_pos_innov(2) = height_innov(2);
-		_gps_pos_innov_var(2) = height_innov_var(2);
-		_gps_pos_test_ratio(1) = height_test_ratio(1);
 	}
 
 }
