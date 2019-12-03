@@ -75,6 +75,14 @@ public:
 	virtual void getEvVelPosInnovVar(float hvel[2], float &vvel, float hpos[2], float &vpos) = 0;
 	virtual void getEvVelPosInnovRatio(float &hvel, float &vvel, float &hpos, float &vpos) = 0;
 
+	virtual void getBaroHgtInnov(float &baro_hgt_innov) = 0;
+	virtual void getBaroHgtInnovVar(float &baro_hgt_innov_var) = 0;
+	virtual void getBaroHgtInnovRatio(float &baro_hgt_innov_ratio) = 0;
+
+	virtual void getRngHgtInnov(float &rng_hgt_innov) = 0;
+	virtual void getRngHgtInnovVar(float &rng_hgt_innov_var) = 0;
+	virtual void getRngHgtInnovRatio(float &rng_hgt_innov_ratio) = 0;
+
 	virtual void getAuxVelInnov(float aux_vel_innov[2]) = 0;
 	virtual void getAuxVelInnovVar(float aux_vel_innov[2]) = 0;
 	virtual void getAuxVelInnovRatio(float &aux_vel_innov_ratio) = 0;
@@ -479,6 +487,8 @@ protected:
 	Vector2f _ev_vel_test_ratio {};		// EV velocity innovation consistency check ratios
 	Vector2f _ev_pos_test_ratio {};		// EV position innovation consistency check ratios
 	Vector2f _aux_vel_test_ratio{};		// Auxiliray horizontal velocity innovation consistency check ratio
+	Vector2f _baro_hgt_test_ratio {};	// baro height innovation consistency check ratios
+	Vector2f _rng_hgt_test_ratio {};	// range finder height innovation consistency check ratios
 	float _optflow_test_ratio{};		// Optical flow innovation consistency check ratio
 	float _tas_test_ratio{};		// tas innovation consistency check ratio
 	float _hagl_test_ratio{};		// height above terrain measurement innovation consistency check ratio

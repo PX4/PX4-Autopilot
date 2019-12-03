@@ -75,6 +75,18 @@ public:
 
 	void getEvVelPosInnovRatio(float& hvel, float &vvel, float& hpos, float &vpos) override;
 
+	void getBaroHgtInnov(float &baro_hgt_innov) override;
+
+	void getBaroHgtInnovVar(float &baro_hgt_innov_var) override;
+
+	void getBaroHgtInnovRatio(float &baro_hgt_innov_ratio) override;
+
+	void getRngHgtInnov(float &rng_hgt_innov) override;
+
+	void getRngHgtInnovVar(float &rng_hgt_innov_var) override;
+
+	void getRngHgtInnovRatio(float &rng_hgt_innov_ratio) override;
+
 	void getAuxVelInnov(float aux_vel_innov[2]) override;
 
 	void getAuxVelInnovVar(float aux_vel_innov[2]) override;
@@ -386,6 +398,12 @@ private:
 
 	Vector3f _ev_pos_innov {};	///< external vision position innovations (m)
 	Vector3f _ev_pos_innov_var {};	///< external vision position innovation variances (m**2)
+
+	Vector3f _baro_hgt_innov {};		///< baro hgt innovations (m)
+	Vector3f _baro_hgt_innov_var {};	///< baro hgt innovation variances (m**2)
+
+	Vector3f _rng_hgt_innov {};	///< range hgt innovations (m)
+	Vector3f _rng_hgt_innov_var {};	///< range hgt innovation variances (m**2)
 
 	Vector3f _aux_vel_innov {};	///< horizontal auxiliary velocity innovations: (m/sec)
 	Vector3f _aux_vel_innov_var {};	///< horizontal auxiliary velocity innovation variances: ((m/sec)**2)
