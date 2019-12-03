@@ -95,14 +95,15 @@ bool PreFlightChecker::preFlightCheckHorizVelFailed(const estimator_innovations_
 
 bool PreFlightChecker::preFlightCheckVertVelFailed(const estimator_innovations_s &innov, const float alpha)
 {
-	const float vel_d_innov = fmaxf(fabsf(innov.gps_vvel), fabs(innov.ev_vvel));
+	const float vel_d_innov = fmaxf(fabsf(innov.gps_vvel), fabs(innov.ev_vvel));     // only temporary solution
 	const float vel_d_innov_lpf = _filter_vel_d_innov.update(vel_d_innov, alpha, _vel_innov_spike_lim);
 	return checkInnovFailed(vel_d_innov, vel_d_innov_lpf, _vel_innov_test_lim);
 }
 
 bool PreFlightChecker::preFlightCheckHeightFailed(const estimator_innovations_s &innov, const float alpha)
 {
-	const float hgt_innov = innov.gps_vpos;    // HACK: height innovation independent of sensor is published on gps_vpos
+	const float hgt_innov = fmaxf(fabsf(innov.gps_vpos), fmaxf(fabs(innov.ev_vpos),
+				      fabs(innov.rng_vpos)));    // only temporary solution
 	const float hgt_innov_lpf = _filter_hgt_innov.update(hgt_innov, alpha, _hgt_innov_spike_lim);
 	return checkInnovFailed(hgt_innov, hgt_innov_lpf, _hgt_innov_test_lim);
 }
