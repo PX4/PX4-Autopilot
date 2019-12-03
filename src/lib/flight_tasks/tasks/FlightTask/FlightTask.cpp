@@ -164,7 +164,7 @@ void FlightTask::_evaluateVehicleLocalPosition()
 
 void FlightTask::_evaluateDistanceToGround()
 {
-	// Altitude above ground is by default just the negation of the current local position in D-direction.
+	// Altitude above ground is local z-position or altitude above home or distance sensor altitude depending on what's available
 	_dist_to_ground = -_position(2);
 
 	if (PX4_ISFINITE(_dist_to_bottom)) {
