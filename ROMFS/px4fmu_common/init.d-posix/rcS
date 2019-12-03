@@ -140,6 +140,10 @@ then
 	param set EKF2_ANGERR_INIT 0.01
 	param set EKF2_HGT_MODE 0
 	param set EKF2_GBIAS_INIT 0.01
+
+	# Prevent high accel bias
+	param set COM_ARM_EKF_AB 0.005
+
 	# Speedup SITL startup
 	param set EKF2_REQ_GPS_H 0.5
 
