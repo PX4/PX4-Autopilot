@@ -7,6 +7,7 @@ import errno
 import os
 import psutil
 import subprocess
+import sys
 
 
 test_matrix = [
@@ -204,7 +205,7 @@ def main():
     args = parser.parse_args()
 
     if not is_everything_ready():
-        return 1
+        sys.exit(1)
 
     overall_success = True
 
@@ -253,7 +254,7 @@ def main():
 
     print("Overall result: {}".
           format("SUCCESS" if overall_success else "FAIL"))
-    return 0 if overall_success else 1
+    sys.exit(0 if overall_success else 1)
 
 
 if __name__ == '__main__':
