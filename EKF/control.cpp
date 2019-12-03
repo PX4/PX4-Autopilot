@@ -718,6 +718,7 @@ void Ekf::controlGpsFusion()
 			}
 
 			gps_vel_obs_var(0) = gps_vel_obs_var(1) = gps_vel_obs_var(2) = sq(fmaxf(_gps_sample_delayed.sacc, _params.gps_vel_noise));
+			gps_vel_obs_var(2) = sq(1.5f) * gps_vel_obs_var(2);
 
 			// calculate innovations
 			_gps_vel_innov(0) = _state.vel(0) - _gps_sample_delayed.vel(0);
