@@ -74,7 +74,7 @@ const unsigned mode_flag_custom = 1;
 using namespace simulator;
 using namespace time_literals;
 
-mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const actuator_outputs_s &actuators)
+mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs()
 {
 	mavlink_hil_actuator_controls_t msg{};
 
@@ -125,14 +125,14 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 		}
 
 		for (unsigned i = 0; i < 16; i++) {
-			if (actuators.output[i] > PWM_DEFAULT_MIN / 2) {
+			if (_actuator_outputs.output[i] > PWM_DEFAULT_MIN / 2) {
 				if (i < n) {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for rotors */
-					msg.controls[i] = (actuators.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+					msg.controls[i] = (_actuator_outputs.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
 
 				} else {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for other channels */
-					msg.controls[i] = (actuators.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+					msg.controls[i] = (_actuator_outputs.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 				}
 
 			} else {
@@ -145,14 +145,14 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 		/* fixed wing: scale throttle to 0..1 and other channels to -1..1 */
 
 		for (unsigned i = 0; i < 16; i++) {
-			if (actuators.output[i] > PWM_DEFAULT_MIN / 2) {
+			if (_actuator_outputs.output[i] > PWM_DEFAULT_MIN / 2) {
 				if (i != 4) {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to -1..1 for normal channels */
-					msg.controls[i] = (actuators.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
+					msg.controls[i] = (_actuator_outputs.output[i] - pwm_center) / ((PWM_DEFAULT_MAX - PWM_DEFAULT_MIN) / 2);
 
 				} else {
 					/* scale PWM out PWM_DEFAULT_MIN..PWM_DEFAULT_MAX us to 0..1 for throttle */
-					msg.controls[i] = (actuators.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
+					msg.controls[i] = (_actuator_outputs.output[i] - PWM_DEFAULT_MIN) / (PWM_DEFAULT_MAX - PWM_DEFAULT_MIN);
 				}
 
 			} else {
@@ -171,24 +171,17 @@ mavlink_hil_actuator_controls_t Simulator::actuator_controls_from_outputs(const 
 
 void Simulator::send_controls()
 {
-	// copy new actuator data if available
-	bool updated = false;
-	orb_check(_actuator_outputs_sub, &updated);
+	orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub, &_actuator_outputs);
 
-	if (updated) {
-		actuator_outputs_s actuators{};
-		orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub, &actuators);
+	if (_actuator_outputs.timestamp > 0) {
+		mavlink_hil_actuator_controls_t hil_act_control = actuator_controls_from_outputs();
 
-		if (actuators.timestamp > 0) {
-			const mavlink_hil_actuator_controls_t hil_act_control = actuator_controls_from_outputs(actuators);
+		mavlink_message_t message{};
+		mavlink_msg_hil_actuator_controls_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &hil_act_control);
 
-			mavlink_message_t message{};
-			mavlink_msg_hil_actuator_controls_encode(_param_mav_sys_id.get(), _param_mav_comp_id.get(), &message, &hil_act_control);
+		PX4_DEBUG("sending controls t=%ld (%ld)", _actuator_outputs.timestamp, hil_act_control.time_usec);
 
-			PX4_DEBUG("sending controls t=%ld (%ld)", actuators.timestamp, hil_act_control.time_usec);
-
-			send_mavlink_message(message);
-		}
+		send_mavlink_message(message);
 	}
 }
 
@@ -590,30 +583,74 @@ void Simulator::send()
 	// Without this, we get stuck at px4_poll which waits for a time update.
 	send_heartbeat();
 
-	px4_pollfd_struct_t fds[1] = {};
-	fds[0].fd = _actuator_outputs_sub;
-	fds[0].events = POLLIN;
+	px4_pollfd_struct_t fds_actuator_outputs[1] = {};
+	fds_actuator_outputs[0].fd = _actuator_outputs_sub;
+	fds_actuator_outputs[0].events = POLLIN;
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	px4_pollfd_struct_t fds_ekf2_timestamps[1] = {};
+	fds_ekf2_timestamps[0].fd = _ekf2_timestamps_sub;
+	fds_ekf2_timestamps[0].events = POLLIN;
+
+	State state = State::WaitingForFirstEkf2Timestamp;
+#endif
 
 	while (true) {
-		// Wait for up to 100ms for data.
-		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
-		if (pret == 0) {
-			// Timed out, try again.
-			continue;
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+
+		if (state == State::WaitingForActuatorControls) {
+#endif
+			// Wait for up to 100ms for data.
+			int pret = px4_poll(&fds_actuator_outputs[0], 1, 100);
+
+			if (pret == 0) {
+				// Timed out, try again.
+				continue;
+			}
+
+			if (pret < 0) {
+				PX4_ERR("poll error %s", strerror(errno));
+				continue;
+			}
+
+			if (fds_actuator_outputs[0].revents & POLLIN) {
+				// Got new data to read, update all topics.
+				parameters_update(false);
+				_vehicle_status_sub.update(&_vehicle_status);
+				send_controls();
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+				state = State::WaitingForEkf2Timestamp;
+#endif
+			}
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
 		}
 
-		if (pret < 0) {
-			PX4_ERR("poll error %s", strerror(errno));
-			continue;
+#endif
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+
+		if (state == State::WaitingForFirstEkf2Timestamp || state == State::WaitingForEkf2Timestamp) {
+			int pret = px4_poll(&fds_ekf2_timestamps[0], 1, 100);
+
+			if (pret == 0) {
+				// Timed out, try again.
+				continue;
+			}
+
+			if (pret < 0) {
+				PX4_ERR("poll error %s", strerror(errno));
+				continue;
+			}
+
+			if (fds_ekf2_timestamps[0].revents & POLLIN) {
+				orb_copy(ORB_ID(ekf2_timestamps), _ekf2_timestamps_sub, nullptr);
+				state = State::WaitingForActuatorControls;
+			}
 		}
 
-		if (fds[0].revents & POLLIN) {
-			// Got new data to read, update all topics.
-			parameters_update(false);
-			_vehicle_status_sub.update(&_vehicle_status);
-			send_controls();
-		}
+#endif
 	}
 }
 
@@ -757,6 +794,10 @@ void Simulator::run()
 	// Only subscribe to the first actuator_outputs to fill a single HIL_ACTUATOR_CONTROLS.
 	_actuator_outputs_sub = orb_subscribe_multi(ORB_ID(actuator_outputs), 0);
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	_ekf2_timestamps_sub = orb_subscribe(ORB_ID(ekf2_timestamps));
+#endif
+
 	// got data from simulator, now activate the sending thread
 	pthread_create(&sender_thread, &sender_thread_attr, Simulator::sending_trampoline, nullptr);
 	pthread_attr_destroy(&sender_thread_attr);
@@ -819,6 +860,9 @@ void Simulator::run()
 	}
 
 	orb_unsubscribe(_actuator_outputs_sub);
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	orb_unsubscribe(_ekf2_timestamps_sub);
+#endif
 }
 
 #ifdef ENABLE_UART_RC_INPUT
