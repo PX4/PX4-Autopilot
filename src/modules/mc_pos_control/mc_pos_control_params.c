@@ -352,6 +352,7 @@ PARAM_DEFINE_FLOAT(MPC_LAND_SPEED, 0.7f);
 
 /**
  * Maximum horizontal velocity during landing
+ * Set the value higher than the otherwise expected maximum to disable any slowdown.
  *
  * @unit m/s
  * @min 0
@@ -692,11 +693,12 @@ PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.0f);
 /**
  * Altitude for 1. step of slow landing (descend)
  *
- * Below this altitude descending velocity gets limited
- * to a value between "MPC_Z_VEL_MAX" and "MPC_LAND_SPEED"
- * to enable a smooth descent experience.
- * The horizontal velocity also gets limited to a value
+ * Below this altitude:
+ * - descending velocity gets limited to a value
+ * between "MPC_Z_VEL_MAX" and "MPC_LAND_SPEED"
+ * - horizontal velocity gets limited to a value
  * between "MPC_VEL_MANUAL" and "MPC_LAND_VEL_XY"
+ * for a smooth descent and landing experience.
  * Value needs to be higher than "MPC_LAND_ALT2"
  *
  * @unit m
