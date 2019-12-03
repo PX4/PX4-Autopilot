@@ -151,6 +151,7 @@
 #include <uORB/topics/sensor_correction.h>
 #include <uORB/Subscription.hpp>
 
+using namespace time_literals;
 using namespace matrix;
 
 static const char *sensor_name = "accel";
@@ -796,14 +797,9 @@ calibrate_return calculate_calibration_values(unsigned sensor,
 
 int do_level_calibration(orb_advert_t *mavlink_log_pub)
 {
-	const unsigned cal_time = 5;
-	const unsigned cal_hz = 100;
-	unsigned settle_time = 30;
-
 	bool success = false;
 	int att_sub = orb_subscribe(ORB_ID(vehicle_attitude));
-	struct vehicle_attitude_s att;
-	memset(&att, 0, sizeof(att));
+	vehicle_attitude_s att{};
 
 	calibration_log_info(mavlink_log_pub, CAL_QGC_STARTED_MSG, "level");
 
@@ -811,7 +807,7 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub)
 	param_t pitch_offset_handle = param_find("SENS_BOARD_Y_OFF");
 	param_t board_rot_handle = param_find("SENS_BOARD_ROT");
 
-	// save old values if calibration fails
+	// get old values
 	float roll_offset_current;
 	float pitch_offset_current;
 	int32_t board_rot_current = 0;
@@ -819,67 +815,82 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub)
 	param_get(pitch_offset_handle, &pitch_offset_current);
 	param_get(board_rot_handle, &board_rot_current);
 
-	// give attitude some time to settle if there have been changes to the board rotation parameters
-	if (board_rot_current == 0 && fabsf(roll_offset_current) < FLT_EPSILON && fabsf(pitch_offset_current) < FLT_EPSILON) {
-		settle_time = 0;
-	}
-
-	float zero = 0.0f;
-	param_set_no_notification(roll_offset_handle, &zero);
-	param_set_no_notification(pitch_offset_handle, &zero);
-	param_notify_changes();
+	Dcmf board_rotation_offset = Eulerf(
+					     math::radians(roll_offset_current),
+					     math::radians(pitch_offset_current),
+					     0.f);
 
 	px4_pollfd_struct_t fds[1];
-
 	fds[0].fd = att_sub;
 	fds[0].events = POLLIN;
 
 	float roll_mean = 0.0f;
 	float pitch_mean = 0.0f;
 	unsigned counter = 0;
+	bool had_motion = true;
+	int num_retries = 0;
 
-	// sleep for some time
-	hrt_abstime start = hrt_absolute_time();
+	while (had_motion && num_retries++ < 50) {
+		Vector2f min_angles{100.f, 100.f};
+		Vector2f max_angles{-100.f, -100.f};
+		roll_mean = 0.0f;
+		pitch_mean = 0.0f;
+		counter = 0;
+		int last_progress_report = -100;
+		const hrt_abstime calibration_duration = 500_ms;
+		const hrt_abstime start = hrt_absolute_time();
 
-	while (hrt_elapsed_time(&start) < settle_time * 1000000) {
-		calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG,
-				     (int)(90 * hrt_elapsed_time(&start) / 1e6f / (float)settle_time));
-		px4_sleep(settle_time / 10);
-	}
+		while (hrt_elapsed_time(&start) < calibration_duration) {
+			int pollret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
-	start = hrt_absolute_time();
+			if (pollret <= 0) {
+				// attitude estimator is not running
+				calibration_log_critical(mavlink_log_pub, "attitude estimator not running - check system boot");
+				calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "level");
+				goto out;
+			}
 
-	// average attitude for 5 seconds
-	while (hrt_elapsed_time(&start) < cal_time * 1000000) {
-		int pollret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
+			int progress = 100 * hrt_elapsed_time(&start) / calibration_duration;
 
-		if (pollret <= 0) {
-			// attitude estimator is not running
-			calibration_log_critical(mavlink_log_pub, "attitude estimator not running - check system boot");
-			calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "level");
-			goto out;
+			if (progress >= last_progress_report + 20) {
+				calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, progress);
+				last_progress_report = progress;
+			}
+
+			orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
+			Eulerf att_euler = Quatf(att.q);
+
+			// keep min + max angles
+			for (int i = 0; i < 2; ++i) {
+				if (att_euler(i) < min_angles(i)) { min_angles(i) = att_euler(i); }
+
+				if (att_euler(i) > max_angles(i)) { max_angles(i) = att_euler(i); }
+			}
+
+			att_euler(2) = 0.f; // ignore yaw
+			att_euler = Eulerf(board_rotation_offset * Dcmf(att_euler)); // subtract existing board rotation
+			roll_mean += att_euler.phi();
+			pitch_mean += att_euler.theta();
+			++counter;
 		}
 
-		orb_copy(ORB_ID(vehicle_attitude), att_sub, &att);
-		matrix::Eulerf euler = matrix::Quatf(att.q);
-		roll_mean += euler.phi();
-		pitch_mean += euler.theta();
-		counter++;
+		// motion detection: check that (max-min angle) is within a threshold.
+		// The difference is typically <0.1 deg while at rest
+		if (max_angles(0) - min_angles(0) < math::radians(0.5f) &&
+		    max_angles(1) - min_angles(1) < math::radians(0.5f)) {
+			had_motion = false;
+		}
 	}
 
 	calibration_log_info(mavlink_log_pub, CAL_QGC_PROGRESS_MSG, 100);
 
-	if (counter > (cal_time * cal_hz / 2)) {
-		roll_mean /= counter;
-		pitch_mean /= counter;
+	roll_mean /= counter;
+	pitch_mean /= counter;
 
-	} else {
-		calibration_log_info(mavlink_log_pub, "not enough measurements taken");
-		success = false;
-		goto out;
-	}
+	if (had_motion) {
+		calibration_log_critical(mavlink_log_pub, "motion during calibration");
 
-	if (fabsf(roll_mean) > 0.8f) {
+	} else if (fabsf(roll_mean) > 0.8f) {
 		calibration_log_critical(mavlink_log_pub, "excess roll angle");
 
 	} else if (fabsf(pitch_mean) > 0.8f) {
@@ -896,15 +907,13 @@ int do_level_calibration(orb_advert_t *mavlink_log_pub)
 
 out:
 
+	orb_unsubscribe(att_sub);
+
 	if (success) {
 		calibration_log_info(mavlink_log_pub, CAL_QGC_DONE_MSG, "level");
 		return 0;
 
 	} else {
-		// set old parameters
-		param_set_no_notification(roll_offset_handle, &roll_offset_current);
-		param_set_no_notification(pitch_offset_handle, &pitch_offset_current);
-		param_notify_changes();
 		calibration_log_critical(mavlink_log_pub, CAL_QGC_FAILED_MSG, "level");
 		return 1;
 	}
