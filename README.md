@@ -40,6 +40,16 @@ cmake  -DTESTING=ON ..
 make check
 ```
 
+## Formatting
+The format can be checked as following:
+```
+mkdir build
+cd build
+cmake  -DFORMAT=ON ..
+make check_format
+```
+
+
 ## Example
 
 See the test directory for detailed examples. Some simple examples are included below:
