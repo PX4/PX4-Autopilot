@@ -8,7 +8,6 @@
 #   V100 - Flight Core Stand Alone configuration
 #   V110 - Flight Core VOXL-Flight configuration
 
-
 #
 # Common settings across Flight Core configurations
 #
@@ -23,11 +22,12 @@ fi
 #
 if ver hwtypecmp V100
 then
-	echo "Configuring Flight Core V100"
+	echo "Configuring Flight Core - V100"
 
+	# User is setting defaults
 	if [ $AUTOCNF = yes ]
 	then
-		echo "Configuring TELEM2 on /dev/ttyS4 at 921600 in Normal Mode"
+		echo "V100 - Auto Configuring TELEM2 on /dev/ttyS4 at 921600 in Normal Mode"
 		#
 		# TELEM2 /dev/ttyS4
 		#
@@ -37,7 +37,7 @@ then
 		param set MAV_1_MODE 0	# normal
 		param set SER_TEL2_BAUD 921600
 
-		echo "Configuring TELEM3 on /dev/ttyS1 at 57600 in Normal Mode"
+		echo "V100 - Auto Configuring TELEM3 on /dev/ttyS1 at 57600 in Normal Mode"
 		#
 		# TELEM3 /dev/ttyS1
 		#
@@ -54,21 +54,37 @@ fi
 #
 if ver hwtypecmp V110
 then
-	echo "Configuring VOXL-Flight V110"
+	echo "Configuring VOXL-Flight - V110"
 
-	echo "Configuring TELEM2 on /dev/ttyS4 at 921600 in Normal Mode"
 	#
-	# TELEM2 /dev/ttyS4
+	# In VOXL-Flight, TELEM2 port is routed in the PCB, thus not configurable.
+	# The following will detect a fresh install, or if the user has changed the setting
+	# and revert to the VOXL-Flight default.  This does allow the user to change the mode
+	# and baud rates if they choose
 	#
-	# In VOXL-Flight, this port is routed in the PCB, thus not configurable
-	#
-	param set MAV_1_CONFIG 102 # TELEM2
-	param set MAV_1_MODE 0	# normal
-	param set SER_TEL2_BAUD 921600
+	if ! param compare MAV_1_CONFIG 102
+	then
+		#
+		# TELEM2 /dev/ttyS4
+		#
+		echo "V110 - Configure TELEM2 on /dev/ttyS4 at 921600 in Normal Mode"
+		param set MAV_1_CONFIG 102 # TELEM2
+		param set MAV_1_MODE 0	# normal
+		param set SER_TEL2_BAUD 921600
+	fi
 
+	# User is setting defaults
 	if [ $AUTOCNF = yes ]
 	then
-		echo "Configuring TELEM3 on /dev/ttyS1 at 57600 in Normal Mode"
+		#
+		# Roughly same as block just above, but let's reset to defaults
+		#
+		echo "V110 - Auto Configuring TELEM2 on /dev/ttyS4 at 921600 in Normal Mode"
+		param set MAV_1_CONFIG 102 # TELEM2
+		param set MAV_1_MODE 0	# normal
+		param set SER_TEL2_BAUD 921600
+
+		echo "V110 - Auto Configuring TELEM3 on /dev/ttyS1 at 57600 in Normal Mode"
 		#
 		# TELEM3 /dev/ttyS1
 		#
