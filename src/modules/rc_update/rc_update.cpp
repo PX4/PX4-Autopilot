@@ -416,7 +416,7 @@ RCUpdate::Run()
 			}
 
 			if (_parameters.rev[i]) {
-				_rc.channels[i] = -1.0f * _rc.channels[i];
+				_rc.channels[i] = -_rc.channels[i];
 			}
 
 
