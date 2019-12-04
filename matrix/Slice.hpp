@@ -63,6 +63,17 @@ public:
         return self;
     }
 
+    Slice<Type, P, Q, M, N>& operator=(const Type& other)
+    {
+        Slice<Type, P, Q, M, N>& self = *this;
+        for (size_t i = 0; i < P; i++) {
+            for (size_t j = 0; j < Q; j++) {
+                self(i, j) = other;
+            }
+        }
+        return self;
+    }
+
     // allow assigning vectors to a slice that are in the axis
     template <size_t DUMMY = 1> // make this a template function since it only exists for some instantiations
     Slice<Type, 1, Q, M, N>& operator=(const Vector<Type, Q>& other)

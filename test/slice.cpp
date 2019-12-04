@@ -125,6 +125,18 @@ int main()
     TEST(!v5.xy().longerThan(5.f));
     TEST(isEqualF(5.f, v5.xy().norm()));
 
+    // assign scalar value to slice
+    Matrix<float, 3, 1> L;
+    L(0,0) = -1;
+    L(1,0) = 1;
+    L(2,0) = 3;
+
+    L.slice<2,1>(0,0) = 0.0f;
+
+    float data_5_check[3] = {0, 0, 3};
+    Matrix<float, 3, 1> M (data_5_check);
+    TEST(isEqual(L, M));
+
     return 0;
 }
 
