@@ -178,7 +178,10 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Debug/gdbinit.in ${PX4_BINARY_DIR}/.g
 # vscode launch.json
 #  FIXME: hack to skip if px4_io-v2 because it's a built within another build (eg px4_fmu-v5)
 if(NOT PX4_BOARD MATCHES "px4_io-v2")
-	if(CONFIG_ARCH_CHIP_MK66FN2M0VMD18)
+	if(CONFIG_ARCH_CHIP_MIMXRT1062DVL6A)
+		set(DEBUG_DEVICE "MIMXRT1062XXX6A")
+		set(DEBUG_SVD_FILE "MIMXRT1052.svd")
+	elseif(CONFIG_ARCH_CHIP_MK66FN2M0VMD18)
 		set(DEBUG_DEVICE "MK66FN2M0xxx18")
 		set(DEBUG_SVD_FILE "MK66F18.svd")
 	elseif(CONFIG_ARCH_CHIP_STM32F100C8)
