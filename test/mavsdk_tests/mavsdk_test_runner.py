@@ -200,7 +200,7 @@ def main():
                         help="Directory for log files, stdout if not provided")
     parser.add_argument("--speed-factor", default=1,
                         help="How fast to run the simulation")
-    parser.add_argument("--gui", default=False,
+    parser.add_argument("--gui", default=False, action='store_true',
                         help="Display gzclient with")
     args = parser.parse_args()
 
