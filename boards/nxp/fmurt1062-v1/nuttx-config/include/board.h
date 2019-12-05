@@ -46,7 +46,7 @@
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
-#define ON_EVK // For Board Bring up before BIG Board on IMXRT1060-EVK
+//#define ON_EVK // For Board Bring up before BIG Board on IMXRT1060-EVK
 
 /* Clocking *************************************************************************/
 
