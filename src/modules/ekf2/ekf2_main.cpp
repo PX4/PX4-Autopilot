@@ -1620,6 +1620,10 @@ void Ekf2::Run()
 				_ekf.getAirspeedInnov(innovations.airspeed);
 				_ekf.getBetaInnov(innovations.beta);
 				_ekf.getHaglInnov(innovations.hagl);
+				// Not yet supported
+				innovations.aux_vvel = NAN;
+				innovations.fake_hpos[0] = innovations.fake_hpos[1] = innovations.fake_vpos = NAN;
+				innovations.fake_hvel[0] = innovations.fake_hvel[1] = innovations.fake_vvel = NAN;
 
 				// publish estimator innovation variance data
 				estimator_innovations_s innovation_var;
@@ -1638,6 +1642,11 @@ void Ekf2::Run()
 				_ekf.getAirspeedInnovVar(innovation_var.airspeed);
 				_ekf.getBetaInnovVar(innovation_var.beta);
 				_ekf.getHaglInnovVar(innovation_var.hagl);
+				// Not yet supported
+				innovation_var.aux_vvel = NAN;
+				innovation_var.fake_hpos[0] = innovation_var.fake_hpos[1] = innovation_var.fake_vpos = NAN;
+				innovation_var.fake_hvel[0] = innovation_var.fake_hvel[1] = innovation_var.fake_vvel = NAN;
+
 
 				// publish estimator innovation test ratio data
 				estimator_innovations_s test_ratios;
@@ -1656,6 +1665,10 @@ void Ekf2::Run()
 				_ekf.getAirspeedInnovRatio(test_ratios.airspeed);
 				_ekf.getBetaInnovRatio(test_ratios.beta);
 				_ekf.getHaglInnovRatio(test_ratios.hagl);
+				// Not yet supported
+				test_ratios.aux_vvel = NAN;
+				test_ratios.fake_hpos[0] = test_ratios.fake_hpos[1] = test_ratios.fake_vpos = NAN;
+				test_ratios.fake_hvel[0] = test_ratios.fake_hvel[1] = test_ratios.fake_vvel = NAN;
 
 				// calculate noise filtered velocity innovations which are used for pre-flight checking
 				if (_vehicle_status.arming_state == vehicle_status_s::ARMING_STATE_STANDBY) {
