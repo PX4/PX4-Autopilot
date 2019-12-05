@@ -38,7 +38,7 @@ px4_add_library(drivers_board
 	init.c
 	led.c
 	sdhc.c
-	spi.c
+	spi.cpp
 	timer_config.c
 	usb.c
 	manifest.c
