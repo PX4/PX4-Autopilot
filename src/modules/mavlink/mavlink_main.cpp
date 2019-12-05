@@ -488,18 +488,6 @@ Mavlink::forward_message(const mavlink_message_t *msg, Mavlink *self)
 }
 
 int
-Mavlink::get_uart_fd(unsigned index)
-{
-	Mavlink *inst = get_instance(index);
-
-	if (inst) {
-		return inst->get_uart_fd();
-	}
-
-	return -1;
-}
-
-int
 Mavlink::mavlink_open_uart(const int baud, const char *uart_name, const bool force_flow_control)
 {
 #ifndef B460800
