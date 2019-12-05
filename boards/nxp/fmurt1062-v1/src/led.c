@@ -63,10 +63,10 @@ __END_DECLS
 
 
 static uint32_t g_ledmap[] = {
-	0,      // Indexed by LED_BLUE
-	GPIO_nLED_RED,       // Indexed by LED_RED, LED_AMBER
+	GPIO_nLED_BLUE,   // Indexed by LED_BLUE
+	GPIO_nLED_RED,    // Indexed by LED_RED, LED_AMBER
 	GPIO_LED_SAFETY,  // Indexed by LED_SAFETY
-	GPIO_nLED_GREEN,     // Indexed by LED_GREEN
+	GPIO_nLED_GREEN,  // Indexed by LED_GREEN
 };
 
 __EXPORT void led_init(void)
@@ -81,10 +81,10 @@ __EXPORT void led_init(void)
 
 static void phy_set_led(int led, bool state)
 {
-	/* Drive High to switch on */
+	/* Drive Low to switch on */
 
 	if (g_ledmap[led] != 0) {
-		imxrt_gpio_write(g_ledmap[led], state);
+		imxrt_gpio_write(g_ledmap[led], !state);
 	}
 }
 
@@ -92,7 +92,7 @@ static bool phy_get_led(int led)
 {
 
 	if (g_ledmap[led] != 0) {
-		return imxrt_gpio_read(g_ledmap[led]);
+		return imxrt_gpio_read(!g_ledmap[led]);
 	}
 
 	return false;

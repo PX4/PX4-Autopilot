@@ -157,7 +157,7 @@ __EXPORT int imxrt1062_spi_bus_initialize(void)
 
 	/* Get the SPI port for the BARO */
 
-	spi_ext = px4_spibus_initialize(PX4_SPI_BUS_BARO);
+	spi_baro = px4_spibus_initialize(PX4_SPI_BUS_BARO);
 
 	if (!spi_baro) {
 		PX4_ERR("[boot] FAILED to initialize SPI port %d\n", PX4_SPI_BUS_BARO);
@@ -234,10 +234,8 @@ __EXPORT void imxrt_lpspi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool
 
 	/* Making sure the other peripherals are not selected */
 
-	for (size_t cs = 0; arraySize(spi1selects_gpio) > 1 && cs < arraySize(spi1selects_gpio); cs++) {
-		if (spi1selects_gpio[cs] != 0) {
-			imxrt_gpio_write(spi1selects_gpio[cs], 1);
-		}
+	for (auto cs : spi1selects_gpio) {
+		imxrt_gpio_write(cs, 1);
 	}
 
 	uint32_t gpio = spi1selects_gpio[PX4_SPI_DEV_ID(sel)];
@@ -268,10 +266,8 @@ __EXPORT void imxrt_lpspi2select(FAR struct spi_dev_s *dev, uint32_t devid, bool
 
 	/* Making sure the other peripherals are not selected */
 
-	for (int cs = 0;  arraySize(spi2selects_gpio) > 1 && cs < arraySize(spi2selects_gpio); cs++) {
-		if (spi2selects_gpio[cs] != 0) {
-			imxrt_gpio_write(spi2selects_gpio[cs], 1);
-		}
+	for (auto cs : spi2selects_gpio) {
+		imxrt_gpio_write(cs, 1);
 	}
 
 	uint32_t gpio = spi2selects_gpio[PX4_SPI_DEV_ID(sel)];
@@ -297,10 +293,8 @@ __EXPORT void imxrt_lpspi3select(FAR struct spi_dev_s *dev, uint32_t devid, bool
 
 	/* Making sure the other peripherals are not selected */
 
-	for (int cs = 0;  arraySize(spi3selects_gpio) > 1 && cs < arraySize(spi3selects_gpio); cs++) {
-		if (spi3selects_gpio[cs] != 0) {
-			imxrt_gpio_write(spi3selects_gpio[cs], 1);
-		}
+	for (auto cs : spi3selects_gpio) {
+		imxrt_gpio_write(cs, 1);
 	}
 
 	uint32_t gpio = spi3selects_gpio[PX4_SPI_DEV_ID(sel)];
@@ -321,11 +315,11 @@ __EXPORT void imxrt_lpspi4select(FAR struct spi_dev_s *dev, uint32_t devid, bool
 {
 	int sel = (int) devid;
 
-	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_BARO);
+	ASSERT(PX4_SPI_BUS_ID(sel) == PX4_SPI_BUS_EXTERNAL1);
 
 	/* Making sure the other peripherals are not selected */
-	for (size_t cs = 0; arraySize(spi4selects_gpio) > 1 && cs < arraySize(spi4selects_gpio); cs++) {
-		imxrt_gpio_write(spi4selects_gpio[cs], 1);
+	for (auto cs : spi4selects_gpio) {
+		imxrt_gpio_write(cs, 1);
 	}
 
 	uint32_t gpio = spi4selects_gpio[PX4_SPI_DEV_ID(sel)];
@@ -354,24 +348,31 @@ __EXPORT void board_spi_reset(int ms)
 #ifdef CONFIG_IMXRT_LPSPI1
 
 	/* Goal not to back feed the chips on the bus via IO lines */
-	for (size_t cs = 0;  arraySize(spi1selects_gpio) > 1 && cs < arraySize(spi1selects_gpio); cs++) {
-		if (spi1selects_gpio[cs] != 0) {
-			imxrt_config_gpio(_PIN_OFF(spi1selects_gpio[cs]));
-		}
+	for (auto cs : spi1selects_gpio) {
+		imxrt_config_gpio(_PIN_OFF(cs));
 	}
 
 	imxrt_config_gpio(GPIO_SPI1_SCK_OFF);
 	imxrt_config_gpio(GPIO_SPI1_MISO_OFF);
 	imxrt_config_gpio(GPIO_SPI1_MOSI_OFF);
 
+	for (auto cs : spi3selects_gpio) {
+		imxrt_config_gpio(_PIN_OFF(cs));
+	}
+
+	imxrt_config_gpio(GPIO_SPI3_SCK_OFF);
+	imxrt_config_gpio(GPIO_SPI3_MISO_OFF);
+	imxrt_config_gpio(GPIO_SPI3_MOSI_OFF);
+
+
+	imxrt_config_gpio(_PIN_OFF(GPIO_LPI2C3_SDA_GPIO));
+	imxrt_config_gpio(_PIN_OFF(GPIO_LPI2C3_SCL_GPIO));
 
 #  if BOARD_USE_DRDY
 	imxrt_config_gpio(GPIO_DRDY_OFF_SPI1_DRDY1_ICM20689);
 	imxrt_config_gpio(GPIO_DRDY_OFF_SPI1_DRDY2_BMI055_GYRO);
 	imxrt_config_gpio(GPIO_DRDY_OFF_SPI1_DRDY3_BMI055_ACC);
 	imxrt_config_gpio(GPIO_DRDY_OFF_SPI1_DRDY4_ICM20602);
-	imxrt_config_gpio(GPIO_DRDY_OFF_SPI1_DRDY5_BMI055_GYRO);
-	imxrt_config_gpio(GPIO_DRDY_OFF_SPI1_DRDY6_BMI055_ACC);
 #  endif
 	/* set the sensor rail off */
 	imxrt_gpio_write(GPIO_VDD_3V3_SENSORS_EN, 0);
@@ -389,23 +390,31 @@ __EXPORT void board_spi_reset(int ms)
 	usleep(100);
 
 	/* reconfigure the SPI pins */
-	for (size_t cs = 0; arraySize(spi1selects_gpio) > 1 && cs < arraySize(spi1selects_gpio); cs++) {
-		if (spi1selects_gpio[cs] != 0) {
-			imxrt_config_gpio(spi1selects_gpio[cs]);
-		}
+	for (auto cs : spi1selects_gpio) {
+		imxrt_config_gpio(cs);
 	}
 
 	imxrt_config_gpio(GPIO_LPSPI1_SCK);
 	imxrt_config_gpio(GPIO_LPSPI1_MISO);
 	imxrt_config_gpio(GPIO_LPSPI1_MOSI);
 
+	/* reconfigure the SPI pins */
+	for (auto cs : spi3selects_gpio) {
+		imxrt_config_gpio(cs);
+	}
+
+	imxrt_config_gpio(GPIO_LPSPI3_SCK);
+	imxrt_config_gpio(GPIO_LPSPI3_MISO);
+	imxrt_config_gpio(GPIO_LPSPI3_MOSI);
+
+	imxrt_config_gpio(GPIO_LPI2C3_SDA);
+	imxrt_config_gpio(GPIO_LPI2C3_SCL);
+
 #  if BOARD_USE_DRDY
 	imxrt_config_gpio(GPIO_SPI1_DRDY1_ICM20689);
 	imxrt_config_gpio(GPIO_SPI1_DRDY2_BMI055_GYRO);
 	imxrt_config_gpio(GPIO_SPI1_DRDY3_BMI055_ACC);
 	imxrt_config_gpio(GPIO_SPI1_DRDY4_ICM20602);
-	imxrt_config_gpio(GPIO_SPI1_DRDY5_BMI055_GYRO);
-	imxrt_config_gpio(GPIO_SPI1_DRDY6_BMI055_ACC);
 #  endif
 #endif /* CONFIG_IMXRT_LPSPI1 */
 
