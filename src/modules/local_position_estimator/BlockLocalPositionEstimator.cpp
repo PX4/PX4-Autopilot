@@ -493,6 +493,8 @@ void BlockLocalPositionEstimator::Run()
 		publishEstimatorStatus();
 		_pub_innov.get().timestamp = _timeStamp;
 		_pub_innov.update();
+		_pub_innov_var.get().timestamp = _timeStamp;
+		_pub_innov_var.update();
 
 		if ((_estimatorInitialized & EST_XY) && (_map_ref.init_done || _param_lpe_fake_origin.get())) {
 			publishGlobalPos();
