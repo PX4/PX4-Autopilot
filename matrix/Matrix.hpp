@@ -407,10 +407,19 @@ public:
         slice<1,N>(i,0) = row_in.transpose();
     }
 
+    void setRow(size_t i, Type val)
+    {
+        slice<1,N>(i,0) = val;
+    }
 
     void setCol(size_t j, const Matrix<Type, M, 1> &column)
     {
         slice<M,1>(0,j) = column;
+    }
+
+    void setCol(size_t j, Type val)
+    {
+        slice<M,1>(0,j) = val;
     }
 
     void setZero()

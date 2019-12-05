@@ -72,6 +72,28 @@ int main()
 
     TEST(isEqual(m3, m2));
 
+    // set rows and columns to value
+    Matrix3f m2e(data2d);
+
+    float data2e_check1[3][3] = {
+        {1, 11, 3},
+        {4, 11, 6},
+        {7, 11, 9}
+    };
+    Matrix3f m2e_check1(data2e_check1);
+
+    float data2e_check2[3][3] = {
+        {1, 11, 3},
+        {4, 11, 6},
+        {0, 0, 0}
+    };
+    Matrix3f m2e_check2(data2e_check2);
+
+    m2e.setCol(1, 11);
+    TEST(isEqual(m2e, m2e_check1));
+    m2e.setRow(2, 0);
+    TEST(isEqual(m2e, m2e_check2));
+
     float data_row_02_swap[9] = {
         7, 8, 9,
         4, 5, 6,
