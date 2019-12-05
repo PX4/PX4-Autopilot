@@ -45,9 +45,10 @@
  *    CD/DAT3      USDHC1_DATA3  GPIO_SD_B0_05
  *    CMD          USDHC1_CMD    GPIO_SD_B0_00
  *    CLK          USDHC1_CLK    GPIO_SD_B0_01
+ *    CD           USDHC1_CD     GPIO_B1_12
  *    ------------ ------------- --------
  *
- * There are no Write Protect or Card detection pins available to the IMXRT.
+ * There are no Write Protect available to the IMXRT.
  */
 
 /****************************************************************************

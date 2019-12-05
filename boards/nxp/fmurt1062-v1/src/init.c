@@ -98,46 +98,6 @@ extern void led_off(int led);
 __END_DECLS
 
 /************************************************************************************
- * Name: board_rc_input
- *
- * Description:
- *   All boards my optionally provide this API to invert the Serial RC input.
- *   This is needed on SoCs that support the notion RXINV or TXINV as apposed to
- *   and external XOR controlled by a GPIO
- *
- ************************************************************************************/
-
-__EXPORT void board_rc_input(bool invert_on, uint32_t uxart_base)
-{
-
-	irqstate_t irqstate = px4_enter_critical_section();
-
-	uint32_t cr =	getreg32(IMXRT_LPUART_CTRL_OFFSET + uxart_base);
-	uint32_t sr =	getreg32(IMXRT_LPUART_STAT_OFFSET + uxart_base);
-	uint32_t regval = cr;
-
-	/* RXINV bit field can only be written when the receiver is disabled (RE=0). */
-
-	regval &= ~LPUART_CTRL_RE;
-
-	putreg32(regval, IMXRT_LPUART_CTRL_OFFSET + uxart_base);
-
-	if (invert_on) {
-		cr |= LPUART_CTRL_TXINV;
-		sr |= LPUART_STAT_RXINV;
-
-	} else {
-		cr &= ~LPUART_CTRL_TXINV;
-		sr &= ~LPUART_STAT_RXINV;
-	}
-
-	putreg32(sr, IMXRT_LPUART_STAT_OFFSET + uxart_base);
-	putreg32(cr, IMXRT_LPUART_CTRL_OFFSET + uxart_base);
-
-	leave_critical_section(irqstate);
-}
-
-/************************************************************************************
  * Name: board_peripheral_reset
  *
  * Description:
@@ -148,7 +108,7 @@ __EXPORT void board_peripheral_reset(int ms)
 	/* set the peripheral rails off */
 
 	VDD_5V_PERIPH_EN(false);
-	VDD_3V3_SENSORS_EN(false);
+	VDD_5V_HIPOWER_EN(false);
 
 	/* wait for the peripheral rail to reach GND */
 	usleep(ms * 1000);
@@ -157,7 +117,7 @@ __EXPORT void board_peripheral_reset(int ms)
 	/* re-enable power */
 
 	/* switch the peripheral rail back on */
-	VDD_3V3_SENSORS_EN(true);
+	VDD_5V_HIPOWER_EN(true);
 	VDD_5V_PERIPH_EN(true);
 
 }
@@ -248,10 +208,14 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* Power on Interfaces */
 
+
 	VDD_3V3_SD_CARD_EN(true);
 	VDD_5V_PERIPH_EN(true);
 	VDD_5V_HIPOWER_EN(true);
 	VDD_3V3_SENSORS_EN(true);
+	VDD_3V3_SPEKTRUM_POWER_EN(true);
+
+	board_spi_reset(10);
 
 	if (OK == board_determine_hw_info()) {
 		syslog(LOG_INFO, "[boot] Rev 0x%1x : Ver 0x%1x %s\n", board_get_hw_revision(), board_get_hw_version(),
@@ -291,6 +255,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 
 	/* initial LED state */
 	drv_led_start();
+
 	led_off(LED_RED);
 	led_off(LED_GREEN);
 	led_off(LED_BLUE);
@@ -299,7 +264,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	int ret = fmurt1062_usdhc_initialize();
 
 	if (ret != OK) {
-		board_autoled_on(LED_RED);
+		led_on(LED_RED);
 		return ret;
 	}
 
@@ -310,8 +275,8 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	ret = imxrt1062_spi_bus_initialize();
 
 	if (ret != OK) {
-		board_autoled_on(LED_RED);
-		return ret
+		led_on(LED_RED);
+		return ret;
 	}
 
 #endif
