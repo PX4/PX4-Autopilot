@@ -22,7 +22,7 @@ class Vector;
 template <typename Type, size_t P, size_t Q, size_t M, size_t N>
 class Slice;
 
-template<typename Type, size_t  M>
+template <typename Type, size_t  M>
 class SquareMatrix : public Matrix<Type, M, M>
 {
 public:

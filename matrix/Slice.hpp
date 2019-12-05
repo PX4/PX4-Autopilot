@@ -119,9 +119,9 @@ public:
         }
     }
 
-    Vector<Type, P<Q?P:Q> diag()
+    Vector<Type, P<Q?P:Q> diag() const
     {
-        Slice<Type, P, Q, M, N>& self = *this;
+        const Slice<Type, P, Q, M, N>& self = *this;
         Vector<Type,P<Q?P:Q> res;
         for (size_t j = 0; j < (P<Q?P:Q); j++) {
             res(j) = self(j,j);
