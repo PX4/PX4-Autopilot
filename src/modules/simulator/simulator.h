@@ -238,10 +238,14 @@ private:
 	hrt_abstime _last_sitl_timestamp{0};
 	hrt_abstime _last_battery_timestamp{0};
 
-	class : public Battery
+	class SimulatorBattery : public Battery
 	{
+	public:
+		SimulatorBattery() : Battery(1, nullptr) {}
+
 		virtual void updateParams() override
 		{
+			Battery::updateParams();
 			_params.v_empty = 3.5f;
 			_params.v_charged = 4.05f;
 			_params.n_cells = 4;

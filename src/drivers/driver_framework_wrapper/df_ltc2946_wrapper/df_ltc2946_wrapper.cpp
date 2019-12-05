@@ -69,7 +69,7 @@ public:
 private:
 	int _publish(const struct ltc2946_sensor_data &data);
 
-	Battery _battery{};
+	Battery _battery{1, nullptr};
 
 	int _actuator_ctrl_0_sub{-1};
 	int _vcontrol_mode_sub{-1};
