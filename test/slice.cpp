@@ -137,6 +137,23 @@ int main()
     Matrix<float, 3, 1> M (data_5_check);
     TEST(isEqual(L, M));
 
+    // return diagonal elements
+    float data_6[9] = {0, 2, 3,
+                       4, 5, 6,
+                       7, 8, 10
+                      };
+    SquareMatrix<float, 3> N(data_6);
+
+    Vector3f v6 = N.slice<3,3>(0,0).diag();
+    Vector3f v6_check = {0, 5, 10};
+    TEST(isEqual(v6,v6_check));
+    Vector2f v7 = N.slice<2,3>(1,0).diag();
+    Vector2f v7_check = {4, 8};
+    TEST(isEqual(v7,v7_check));
+    Vector2f v8 = N.slice<3,2>(0,1).diag();
+    Vector2f v8_check = {2, 6};
+    TEST(isEqual(v8,v8_check));
+
     return 0;
 }
 
