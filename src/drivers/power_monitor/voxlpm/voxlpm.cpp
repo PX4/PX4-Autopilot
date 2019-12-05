@@ -46,7 +46,9 @@
 VOXLPM::VOXLPM(const char *path, int bus, int address, VOXLPM_CH_TYPE ch_type) :
 	I2C("voxlpm", path, bus, address, 400000),
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(I2C::get_device_id())),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample"))
+	ModuleParams(nullptr),
+	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
+	_battery(1, this)
 {
 	_ch_type = ch_type;
 
@@ -129,6 +131,13 @@ VOXLPM::Run()
 int
 VOXLPM::measure()
 {
+	parameter_update_s update;
+
+	if (_parameter_sub.update(&update)) {
+		updateParams();
+	}
+
+
 	_voltage = 0.0f;
 	_amperage = 0.0f;
 
