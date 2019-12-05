@@ -63,7 +63,7 @@
 class Battery : public ModuleParams
 {
 public:
-	Battery(int index = 1, ModuleParams *parent = nullptr);
+	Battery(int index, ModuleParams *parent);
 
 	/**
 	 * Reset all battery stats and report invalid/nothing.
@@ -200,19 +200,12 @@ protected:
 		if (!firstcall) {
 			if ((float) fabs((float) *old_val - (float) previous_old_val) > FLT_EPSILON
 			    && (float) fabs((float) *old_val - (float) *new_val) > FLT_EPSILON) {
-				// TODO fix this error message. I was getting hardfaults while using this message, but they stopped
-				//  after removing this message. I was unable to determine why I was getting them.
-				PX4_WARN("Detected change of deprecated parameter %s. Please use the new parameter %s instead. "
-					 "The new value of the deprecated parameter will be copied to the new parameter.",
-					 param_name(old_param), param_name(new_param));
 				param_set_no_notification(new_param, old_val);
 				param_get(new_param, new_val);
 				return true;
 
 			} else if ((float) fabs((float) *new_val - (float) previous_new_val) > FLT_EPSILON
 				   && (float) fabs((float) *old_val - (float) *new_val) > FLT_EPSILON) {
-				PX4_INFO("Copying new value for %s to deprecated parameter %s.",
-					 param_name(new_param), param_name(old_param));
 				param_set_no_notification(old_param, new_val);
 				param_get(old_param, old_val);
 				return true;
@@ -220,9 +213,6 @@ protected:
 
 		} else {
 			if ((float) fabs((float) *old_val - (float) *new_val) > FLT_EPSILON) {
-				PX4_WARN("At boot, deprecated parameter %s is different from its replacement %s."
-					 " The new value will be overwritten by the old one. This should happen only once.",
-					 param_name(old_param), param_name(new_param));
 				param_set_no_notification(new_param, old_val);
 				param_get(new_param, new_val);
 				return true;
