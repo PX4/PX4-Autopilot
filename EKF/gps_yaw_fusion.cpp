@@ -154,7 +154,7 @@ void Ekf::fuseGpsAntYaw()
 		PH[row] = 0.0f;
 
 		for (uint8_t col = 0; col <= 3; col++) {
-			PH[row] += P[row][col] * H_YAW[col];
+			PH[row] += P(row,col) * H_YAW[col];
 		}
 
 		_heading_innov_var += H_YAW[row] * PH[row];
@@ -186,7 +186,7 @@ void Ekf::fuseGpsAntYaw()
 		Kfusion[row] = 0.0f;
 
 		for (uint8_t col = 0; col <= 3; col++) {
-			Kfusion[row] += P[row][col] * H_YAW[col];
+			Kfusion[row] += P(row,col) * H_YAW[col];
 		}
 
 		Kfusion[row] *= heading_innov_var_inv;
@@ -197,7 +197,7 @@ void Ekf::fuseGpsAntYaw()
 			Kfusion[row] = 0.0f;
 
 			for (uint8_t col = 0; col <= 3; col++) {
-				Kfusion[row] += P[row][col] * H_YAW[col];
+				Kfusion[row] += P(row,col) * H_YAW[col];
 			}
 
 			Kfusion[row] *= heading_innov_var_inv;
@@ -233,7 +233,7 @@ void Ekf::fuseGpsAntYaw()
 	// apply covariance correction via P_new = (I -K*H)*P
 	// first calculate expression for KHP
 	// then calculate P - KHP
-	float KHP[_k_num_states][_k_num_states];
+	matrix::SquareMatrix<float, _k_num_states> KHP {};
 	float KH[4];
 
 	for (unsigned row = 0; row < _k_num_states; row++) {
@@ -244,11 +244,11 @@ void Ekf::fuseGpsAntYaw()
 		KH[3] = Kfusion[row] * H_YAW[3];
 
 		for (unsigned column = 0; column < _k_num_states; column++) {
-			float tmp = KH[0] * P[0][column];
-			tmp += KH[1] * P[1][column];
-			tmp += KH[2] * P[2][column];
-			tmp += KH[3] * P[3][column];
-			KHP[row][column] = tmp;
+			float tmp = KH[0] * P(0,column);
+			tmp += KH[1] * P(1,column);
+			tmp += KH[2] * P(2,column);
+			tmp += KH[3] * P(3,column);
+			KHP(row,column) = tmp;
 		}
 	}
 
@@ -258,10 +258,9 @@ void Ekf::fuseGpsAntYaw()
 	_fault_status.flags.bad_hdg = false;
 
 	for (int i = 0; i < _k_num_states; i++) {
-		if (P[i][i] < KHP[i][i]) {
+		if (P(i,i) < KHP(i,i)) {
 			// zero rows and columns
-			zeroRows(P, i, i);
-			zeroCols(P, i, i);
+			P.uncorrelateCovarianceSetVariance<1>(i, 0.0f);
 
 			//flag as unhealthy
 			healthy = false;
@@ -277,7 +276,7 @@ void Ekf::fuseGpsAntYaw()
 		// apply the covariance corrections
 		for (unsigned row = 0; row < _k_num_states; row++) {
 			for (unsigned column = 0; column < _k_num_states; column++) {
-				P[row][column] = P[row][column] - KHP[row][column];
+				P(row,column) = P(row,column) - KHP(row,column);
 			}
 		}
 
