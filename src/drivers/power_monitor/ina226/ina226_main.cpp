@@ -54,7 +54,6 @@ int get_index(int i2c_bus, int address)
 		}
 	}
 
-	//PX4_INFO("No matching guy found. First nullptr: %d", first_nullptr);
 	return first_nullptr;
 }
 
@@ -107,7 +106,7 @@ start_bus(int i2c_bus, int address, int battery_index, bool force)
 	}
 
 	if (force) {
-		if (g_dev[idx]->force_init() == OK) {
+		if (g_dev[idx]->force_init() != OK) {
 			PX4_INFO("Failed to initialize INA226 on bus %d, but will try again periodically.", i2c_bus);
 		}
 
@@ -198,6 +197,7 @@ this flag set, the battery must be plugged in before starting the driver.
 )DESCR_STR");
 
 	PRINT_MODULE_USAGE_NAME("ina226", "driver");
+
 	PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start a new instance of the driver");
 	PRINT_MODULE_USAGE_PARAM_FLAG('a', "If set, try to start the driver on each availabe I2C bus until a module is found", true);
 	PRINT_MODULE_USAGE_PARAM_FLAG('f', "If initialization fails, keep retrying periodically. Ignored if the -a flag is set. See full driver documentation for more info", true);
@@ -206,9 +206,11 @@ this flag set, the battery must be plugged in before starting the driver.
 	// we can't use hexadecimal.
 	PRINT_MODULE_USAGE_PARAM_INT('d', 65, 0, UINT8_MAX, "I2C Address (in hexadecimal)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 2, "Which battery calibration values should be used (1 or 2)", true);
+
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop one instance of the driver");
 	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 0, NUM_I2C_BUS_OPTIONS - 1, "I2C bus (default: use board-specific bus)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('d', 65, 0, UINT8_MAX, "I2C Address (in hexadecimal)", true);
+
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Status of every instance of the driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("info", "Status of every instance of the driver");
 }

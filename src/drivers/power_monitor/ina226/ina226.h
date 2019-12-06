@@ -11,7 +11,6 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/Subscription.hpp>
-#include <uORB/topics/actuator_armed.h>
 #include <uORB/topics/actuator_controls.h>
 #include <uORB/topics/parameter_update.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -145,13 +144,15 @@ private:
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
+	perf_counter_t 		_collection_errors;
+	perf_counter_t 		_measure_errors;
 
-	int16_t           _bus_volatage{0};
+	int16_t           _bus_voltage{0};
 	int16_t           _power{-1};
 	int16_t           _current{-1};
 	int16_t           _shunt{0};
 	int16_t           _cal{0};
-	bool              _mode_trigged{false};
+	bool              _mode_triggered{false};
 
 	float             _max_current{MAX_CURRENT};
 	float             _rshunt{INA226_SHUNT};
@@ -160,10 +161,8 @@ private:
 	float             _power_lsb{25.0f * _current_lsb};
 
 	actuator_controls_s  _actuator_controls{};
-	actuator_armed_s     _armed{};
 
 	Battery 		  _battery;
-	uORB::Subscription  _armed_sub{ORB_ID(actuator_armed)};
 	uORB::Subscription  _actuators_sub{ORB_ID(actuator_controls)};
 	uORB::Subscription  _parameters_sub{ORB_ID(parameter_update)};
 

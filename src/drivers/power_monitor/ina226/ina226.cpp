@@ -62,6 +62,8 @@ INA226::INA226(int battery_index, int bus, int address) :
 	index(bus),
 	_sample_perf(perf_alloc(PC_ELAPSED, "ina226_read")),
 	_comms_errors(perf_alloc(PC_COUNT, "ina226_com_err")),
+	_collection_errors(perf_alloc(PC_COUNT, "ina226_collection_err")),
+	_measure_errors(perf_alloc(PC_COUNT, "ina226_measurement_err")),
 	_battery(battery_index, this)
 {
 	float fvalue = MAX_CURRENT;
@@ -88,9 +90,9 @@ INA226::INA226(int battery_index, int bus, int address) :
 		_config = (uint16_t)value;
 	}
 
-	_mode_trigged = ((_config & INA226_MODE_MASK) >> INA226_MODE_SHIFTS) <=
-			((INA226_MODE_SHUNT_BUS_TRIG & INA226_MODE_MASK) >>
-			 INA226_MODE_SHIFTS);
+	_mode_triggered = ((_config & INA226_MODE_MASK) >> INA226_MODE_SHIFTS) <=
+			  ((INA226_MODE_SHUNT_BUS_TRIG & INA226_MODE_MASK) >>
+			   INA226_MODE_SHIFTS);
 
 	_current_lsb = _max_current / DN_MAX;
 	_power_lsb = 25 * _current_lsb;
@@ -104,6 +106,8 @@ INA226::~INA226()
 	/* free perf counters */
 	perf_free(_sample_perf);
 	perf_free(_comms_errors);
+	perf_free(_collection_errors);
+	perf_free(_measure_errors);
 }
 
 int INA226::read(uint8_t address)
@@ -150,7 +154,7 @@ INA226::init()
 
 	// If we run in continuous mode then start it here
 
-	if (!_mode_trigged) {
+	if (!_mode_triggered) {
 		ret = write(INA226_REG_CONFIGURATION, _config);
 
 	} else {
@@ -169,24 +173,9 @@ INA226::init()
 int
 INA226::force_init()
 {
-	_battery.updateBatteryStatus(
-		hrt_absolute_time(),
-		0.0,
-		0.0,
-		false,
-		false, // TODO: selected source?
-		0,
-		0.0,
-		false,
-		false
-	);
-	_battery.publish();
-
 	int ret = init();
 
-	if (ret != OK) {
-		start();
-	}
+	start();
 
 	return ret;
 }
@@ -224,7 +213,7 @@ INA226::measure()
 {
 	int ret = OK;
 
-	if (_mode_trigged) {
+	if (_mode_triggered) {
 		ret = write(INA226_REG_CONFIGURATION, _config);
 
 		if (ret < 0) {
@@ -244,10 +233,21 @@ INA226::collect()
 	/* read from the sensor */
 	perf_begin(_sample_perf);
 
-	_bus_volatage = read(INA226_REG_BUSVOLTAGE);
-	_power = read(INA226_REG_POWER);
-	_current = read(INA226_REG_CURRENT);
-	_shunt = read(INA226_REG_SHUNTVOLTAGE);
+	if (_initialized) {
+
+		_bus_voltage = read(INA226_REG_BUSVOLTAGE);
+		_power = read(INA226_REG_POWER);
+		_current = read(INA226_REG_CURRENT);
+		_shunt = read(INA226_REG_SHUNTVOLTAGE);
+
+	} else {
+		init();
+
+		_bus_voltage = -1.0f;
+		_power = -1.0f;
+		_current = -1.0f;
+		_shunt = -1.0f;
+	}
 
 	parameter_update_s param_update;
 
@@ -260,21 +260,19 @@ INA226::collect()
 	// Note: If the power module is connected backwards, then the values of _power, _current, and _shunt will
 	//  be negative but otherwise valid. This isn't important, because why should we support the case where
 	//  the power module is used incorrectly?
-	if (_bus_volatage >= 0 && _power >= 0 && _current >= 0 && _shunt >= 0) {
+	if (_bus_voltage >= 0 && _power >= 0 && _current >= 0 && _shunt >= 0) {
 
 		_actuators_sub.copy(&_actuator_controls);
-		_armed_sub.copy(&_armed);
 
 		/* publish it */
 		_battery.updateBatteryStatus(
 			hrt_absolute_time(),
-			(float) _bus_volatage * INA226_VSCALE,
+			(float) _bus_voltage * INA226_VSCALE,
 			(float) _current * _current_lsb,
 			true,
 			true, // TODO: Determine if this is the selected source
 			0,
 			_actuator_controls.control[actuator_controls_s::INDEX_THROTTLE],
-			_armed.armed,
 			true
 		);
 
@@ -289,7 +287,6 @@ INA226::collect()
 			false, // TODO: selected source?
 			0,
 			0.0,
-			false,
 			true
 		);
 		ret = -1;
@@ -333,14 +330,14 @@ INA226::Run()
 
 			/* perform collection */
 			if (OK != collect()) {
-				PX4_DEBUG("collection error");
+				perf_count(_collection_errors);
 				/* if error restart the measurement state machine */
 				start();
 				return;
 			}
 
 			/* next phase is measurement */
-			_collect_phase = !_mode_trigged;
+			_collect_phase = !_mode_triggered;
 
 			if (_measure_interval > INA226_CONVERSION_INTERVAL) {
 
@@ -354,7 +351,7 @@ INA226::Run()
 
 		/* Perform measurement */
 		if (OK != measure()) {
-			PX4_DEBUG("measure error ina226");
+			perf_count(_measure_errors);
 		}
 
 		/* next phase is collection */
@@ -364,9 +361,20 @@ INA226::Run()
 		ScheduleDelayed(INA226_CONVERSION_INTERVAL);
 
 	} else {
-		//PX4_INFO("Trying again to init");
-		init();
-		ScheduleDelayed(INA226_INIT_RETRY_INTERVAL_US);
+		_battery.updateBatteryStatus(
+			hrt_absolute_time(),
+			0.0f,
+			0.0f,
+			false,
+			false,
+			0,
+			0.0f,
+			true
+		);
+
+		if (init() != OK) {
+			ScheduleDelayed(INA226_INIT_RETRY_INTERVAL_US);
+		}
 	}
 }
 
