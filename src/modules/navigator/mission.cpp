@@ -804,7 +804,7 @@ Mission::set_mission_items()
 
 				/* move to land wp as fixed wing */
 				if (_mission_item.nav_cmd == NAV_CMD_VTOL_LAND
-				    && _work_item_type == WORK_ITEM_TYPE_DEFAULT
+				    && (_work_item_type == WORK_ITEM_TYPE_DEFAULT || _work_item_type == WORK_ITEM_TYPE_TRANSITON_AFTER_TAKEOFF)
 				    && new_work_item_type == WORK_ITEM_TYPE_DEFAULT
 				    && !_navigator->get_land_detected()->landed) {
 
