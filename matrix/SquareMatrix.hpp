@@ -61,6 +61,18 @@ public:
         return *this;
     }
 
+    template<size_t P, size_t Q>
+    const Slice<Type, P, Q, M, M> slice(size_t x0, size_t y0) const
+    {
+        return Slice<Type, P, Q, M, M>(x0, y0, this);
+    }
+
+    template<size_t P, size_t Q>
+    Slice<Type, P, Q, M, M> slice(size_t x0, size_t y0)
+    {
+        return Slice<Type, P, Q, M, M>(x0, y0, this);
+    }
+
     // inverse alias
     inline SquareMatrix<Type, M> I() const
     {
@@ -118,6 +130,119 @@ public:
         }
         return res;
     }
+
+    // zero all offdiagonal elements and keep corresponding diagonal elements
+    template <size_t Width>
+    void uncorrelateCovariance(size_t first)
+    {
+        SquareMatrix<Type, M> &self = *this;
+        Vector<Type, Width> diag_elements = self.slice<Width, Width>(first, first).diag();
+        self.uncorrelateCovarianceSetVariance(first, diag_elements);
+    }
+
+    template <size_t Width>
+    void uncorrelateCovarianceSetVariance(size_t first, const Vector<Type, Width> &vec)
+    {
+        SquareMatrix<Type, M> &self = *this;
+        // zero rows and columns
+        self.slice<Width, M>(first, 0) = 0;
+        self.slice<M, Width>(0, first) = 0;
+
+        // set diagonals
+        unsigned vec_idx = 0;
+        for (size_t idx = first; idx < first+Width; idx++) {
+            self(idx,idx) = vec(vec_idx);
+            vec_idx ++;
+        }
+    }
+
+    template <size_t Width>
+    void uncorrelateCovarianceSetVariance(size_t first, Type val)
+    {
+        SquareMatrix<Type, M> &self = *this;
+        // zero rows and columns
+        self.slice<Width, M>(first, 0) = 0;
+        self.slice<M, Width>(0, first) = 0;
+
+        // set diagonals
+        for (size_t idx = first; idx < first+Width; idx++) {
+            self(idx,idx) = val;
+        }
+    }
+
+    // make block diagonal symmetric by taking the average of the two corresponding off diagonal values
+    template <size_t Width>
+    void makeBlockSymmetric(size_t first)
+    {
+        SquareMatrix<Type, M> &self = *this;
+        if(Width>1) {
+            for (size_t row_idx = first+1; row_idx < first+Width; row_idx++) {
+                for (size_t col_idx = first; col_idx < row_idx; col_idx++) {
+                    Type tmp = self(row_idx,col_idx) + (self(col_idx,row_idx) - self(row_idx,col_idx)) / 2;
+                    self(row_idx,col_idx) = tmp;
+                    self(col_idx,row_idx) = tmp;
+                }
+            }
+        }
+    }
+
+    // make rows and columns symmetric by taking the average of the two corresponding off diagonal values
+    template <size_t Width>
+    void makeRowColSymmetric(size_t first)
+    {
+        SquareMatrix<Type, M> &self = *this;
+        self.makeBlockSymmetric<Width>(first);
+        for (size_t row_idx = first; row_idx < first+Width; row_idx++) {
+            for (size_t col_idx = 0; col_idx < first; col_idx++) {
+                Type tmp = self(row_idx,col_idx) + (self(col_idx,row_idx) - self(row_idx,col_idx)) / 2;
+                self(row_idx,col_idx) = tmp;
+                self(col_idx,row_idx) = tmp;
+            }
+            for (size_t col_idx = first+Width; col_idx < M; col_idx++) {
+                Type tmp = self(row_idx,col_idx) + (self(col_idx,row_idx) - self(row_idx,col_idx)) / 2;
+                self(row_idx,col_idx) = tmp;
+                self(col_idx,row_idx) = tmp;
+            }
+        }
+    }
+
+    // checks if block diagonal is symmetric
+    template <size_t Width>
+    bool isBlockSymmetric(size_t first, const Type eps = 1e-8f)
+    {
+        SquareMatrix<Type, M> &self = *this;
+        if(Width>1) {
+            for (size_t row_idx = first+1; row_idx < first+Width; row_idx++) {
+                for (size_t col_idx = first; col_idx < row_idx; col_idx++) {
+                    if(!isEqualF(self(row_idx,col_idx), self(col_idx,row_idx), eps)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    // checks if rows and columns are symmetric
+    template <size_t Width>
+    bool isRowColSymmetric(size_t first, const Type eps = 1e-8f)
+    {
+        SquareMatrix<Type, M> &self = *this;
+        for (size_t row_idx = first; row_idx < first+Width; row_idx++) {
+            for (size_t col_idx = 0; col_idx < first; col_idx++) {
+                if(!isEqualF(self(row_idx,col_idx), self(col_idx,row_idx), eps)) {
+                    return false;
+                }
+            }
+            for (size_t col_idx = first+Width; col_idx < M; col_idx++) {
+                if(!isEqualF(self(row_idx,col_idx), self(col_idx,row_idx), eps)) {
+                    return false;
+                }
+            }
+        }
+        return self.isBlockSymmetric<Width>(first, eps);
+    }
+
 };
 
 typedef SquareMatrix<float, 3> SquareMatrix3f;
