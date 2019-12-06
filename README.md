@@ -22,9 +22,9 @@ The library is BSD 3-clause licensed.
 By following the steps mentioned below you can create a shared library which can be included in projects using `-l` flag of gcc:
 
 ```
-mkdir Build/
-cd Build/
-cmake ../EKF
+mkdir build/
+cd build/
+cmake ..
 make
 ```
 
@@ -32,4 +32,10 @@ Alternatively, just run:
 
 ```
 ./build.sh
+```
+## Testing ECL
+By following the steps you can run the in `test/` specified checks
+
+```
+make test  // run from main folder
 ```

@@ -49,8 +49,8 @@
 bool Ekf::fuseHorizontalVelocity(const Vector3f &innov, const Vector2f &innov_gate,
 				 const Vector3f &obs_var, Vector3f &innov_var, Vector2f &test_ratio)
 {
-	innov_var(0) = P[4][4] + obs_var(0);
-	innov_var(1) = P[5][5] + obs_var(1);
+	innov_var(0) = P(4,4) + obs_var(0);
+	innov_var(1) = P(5,5) + obs_var(1);
 	test_ratio(0) = fmaxf( sq(innov(0)) / (sq(innov_gate(0)) * innov_var(0)),
 			       sq(innov(1)) / (sq(innov_gate(0)) * innov_var(1)));
 
@@ -73,7 +73,7 @@ bool Ekf::fuseHorizontalVelocity(const Vector3f &innov, const Vector2f &innov_ga
 bool Ekf::fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate,
 				 const Vector3f &obs_var, Vector3f &innov_var, Vector2f &test_ratio)
 {
-	innov_var(2) = P[6][6] + obs_var(2);
+	innov_var(2) = P(6,6) + obs_var(2);
 	test_ratio(1) = sq(innov(2)) / (sq(innov_gate(1)) * innov_var(2));
 
 	bool innov_check_pass = (test_ratio(1) <= 1.0f);
@@ -93,8 +93,8 @@ bool Ekf::fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate
 bool Ekf::fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_gate,
 				 const Vector3f &obs_var, Vector3f &innov_var, Vector2f &test_ratio)
 {
-		innov_var(0) = P[7][7] + obs_var(0);
-		innov_var(1) = P[8][8] + obs_var(1);
+		innov_var(0) = P(7,7) + obs_var(0);
+		innov_var(1) = P(8,8) + obs_var(1);
 		test_ratio(0) = fmaxf( sq(innov(0)) / (sq(innov_gate(0)) * innov_var(0)),
 				       sq(innov(1)) / (sq(innov_gate(0)) * innov_var(1)));
 
@@ -121,7 +121,7 @@ bool Ekf::fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_ga
 bool Ekf::fuseVerticalPosition(const Vector3f &innov, const Vector2f &innov_gate,
 				 const Vector3f &obs_var, Vector3f &innov_var, Vector2f &test_ratio)
 {
-	innov_var(2) = P[9][9] + obs_var(2);
+	innov_var(2) = P(9,9) + obs_var(2);
 	test_ratio(1) = sq(innov(2)) / (sq(innov_gate(1)) * innov_var(2));
 
 	bool innov_check_pass = (test_ratio(1) <= 1.0f) || !_control_status.flags.tilt_align;
@@ -146,14 +146,14 @@ void Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int o
 
 	// calculate kalman gain K = PHS, where S = 1/innovation variance
 	for (int row = 0; row < _k_num_states; row++) {
-		Kfusion[row] = P[row][state_index] / innov_var;
+		Kfusion[row] = P(row,state_index) / innov_var;
 	}
 
-	float KHP[_k_num_states][_k_num_states];
+	matrix::SquareMatrix<float, _k_num_states> KHP {};
 
 	for (unsigned row = 0; row < _k_num_states; row++) {
 		for (unsigned column = 0; column < _k_num_states; column++) {
-			KHP[row][column] = Kfusion[row] * P[state_index][column];
+			KHP(row,column) = Kfusion[row] * P(state_index,column);
 		}
 	}
 
@@ -162,10 +162,9 @@ void Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int o
 	bool healthy = true;
 
 	for (int i = 0; i < _k_num_states; i++) {
-		if (P[i][i] < KHP[i][i]) {
+		if (P(i,i) < KHP(i,i)) {
 			// zero rows and columns
-			zeroRows(P, i, i);
-			zeroCols(P, i, i);
+			P.uncorrelateCovarianceSetVariance<1>(i, 0.0f);
 
 			healthy = false;
 
@@ -182,7 +181,7 @@ void Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int o
 		// apply the covariance corrections
 		for (unsigned row = 0; row < _k_num_states; row++) {
 			for (unsigned column = 0; column < _k_num_states; column++) {
-				P[row][column] = P[row][column] - KHP[row][column];
+				P(row,column) = P(row,column) - KHP(row,column);
 			}
 		}
 
