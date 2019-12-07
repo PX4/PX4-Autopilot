@@ -37,4 +37,3 @@ uint32_t px4_arch_adc_dn_fullcount(void)
 {
 	return 1 << 12; // 12 bit ADC
 }
-
