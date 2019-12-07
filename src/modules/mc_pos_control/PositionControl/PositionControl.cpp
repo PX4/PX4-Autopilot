@@ -117,9 +117,7 @@ void PositionControl::setConstraints(const vehicle_constraints_s &constraints)
 		_constraints.speed_down = _lim_vel_down;
 	}
 
-	if (!PX4_ISFINITE(constraints.speed_xy) || !(constraints.speed_xy < _lim_vel_horizontal)) {
-		_constraints.speed_xy = _lim_vel_horizontal;
-	}
+	// ignore _constraints.speed_xy TODO: remove it completely as soon as no task uses it anymore to avoid confusion
 }
 
 void PositionControl::update(const float dt)
