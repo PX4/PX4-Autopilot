@@ -133,7 +133,7 @@ public:
 	}
 };
 
-TEST_F(PositionControlBasicDirectionTest, PositionControlDirectionP)
+TEST_F(PositionControlBasicDirectionTest, PositionDirection)
 {
 	_input_setpoint.x = .1f;
 	_input_setpoint.y = .1f;
@@ -142,7 +142,7 @@ TEST_F(PositionControlBasicDirectionTest, PositionControlDirectionP)
 	checkDirection();
 }
 
-TEST_F(PositionControlBasicDirectionTest, VelocityControlDirection)
+TEST_F(PositionControlBasicDirectionTest, VelocityDirection)
 {
 	_input_setpoint.vx = .1f;
 	_input_setpoint.vy = .1f;
@@ -151,7 +151,7 @@ TEST_F(PositionControlBasicDirectionTest, VelocityControlDirection)
 	checkDirection();
 }
 
-TEST_F(PositionControlBasicTest, PositionControlMaxTilt)
+TEST_F(PositionControlBasicTest, TiltLimit)
 {
 	_input_setpoint.x = 10.f;
 	_input_setpoint.y = 10.f;
@@ -171,7 +171,7 @@ TEST_F(PositionControlBasicTest, PositionControlMaxTilt)
 	EXPECT_LE(angle, .50001f);
 }
 
-TEST_F(PositionControlBasicTest, PositionControlMaxVelocity)
+TEST_F(PositionControlBasicTest, VelocityLimit)
 {
 	_input_setpoint.x = 10.f;
 	_input_setpoint.y = 10.f;
@@ -183,7 +183,7 @@ TEST_F(PositionControlBasicTest, PositionControlMaxVelocity)
 	EXPECT_LE(abs(_output_setpoint.vz), 1.f);
 }
 
-TEST_F(PositionControlBasicTest, PositionControlThrustLimit)
+TEST_F(PositionControlBasicTest, ThrustLimit)
 {
 	_input_setpoint.x = 10.f;
 	_input_setpoint.y = 10.f;
@@ -196,7 +196,7 @@ TEST_F(PositionControlBasicTest, PositionControlThrustLimit)
 	EXPECT_GE(_attitude.thrust_body[2], -0.9f);
 }
 
-TEST_F(PositionControlBasicTest, PositionControlFailsafeInput)
+TEST_F(PositionControlBasicTest, FailsafeInput)
 {
 	_input_setpoint.vz = .7f;
 	_input_setpoint.acceleration[0] = _input_setpoint.acceleration[1] = 0.f;
@@ -208,4 +208,40 @@ TEST_F(PositionControlBasicTest, PositionControlFailsafeInput)
 	EXPECT_GT(_output_setpoint.thrust[2], -.5f);
 	EXPECT_GT(_attitude.thrust_body[2], -.5f);
 	EXPECT_LE(_attitude.thrust_body[2], -.1f);
+}
+
+TEST_F(PositionControlBasicTest, InputCombinationsPosition)
+{
+	_input_setpoint.x = .1f;
+	_input_setpoint.y = .2f;
+	_input_setpoint.z = .3f;
+
+	runController();
+	EXPECT_EQ(_output_setpoint.x, .1f);
+	EXPECT_EQ(_output_setpoint.y, .2f);
+	EXPECT_EQ(_output_setpoint.z, .3f);
+	EXPECT_FALSE(isnan(_output_setpoint.vx));
+	EXPECT_FALSE(isnan(_output_setpoint.vy));
+	EXPECT_FALSE(isnan(_output_setpoint.vz));
+	EXPECT_FALSE(isnan(_output_setpoint.thrust[0]));
+	EXPECT_FALSE(isnan(_output_setpoint.thrust[1]));
+	EXPECT_FALSE(isnan(_output_setpoint.thrust[2]));
+}
+
+TEST_F(PositionControlBasicTest, InputCombinationsPositionVelocity)
+{
+	_input_setpoint.vx = .1f;
+	_input_setpoint.vy = .2f;
+	_input_setpoint.z = .3f; // altitude
+
+	runController();
+	// EXPECT_TRUE(isnan(_output_setpoint.x));
+	// EXPECT_TRUE(isnan(_output_setpoint.y));
+	EXPECT_EQ(_output_setpoint.z, .3f);
+	EXPECT_EQ(_output_setpoint.vx, .1f);
+	EXPECT_EQ(_output_setpoint.vy, .2f);
+	EXPECT_FALSE(isnan(_output_setpoint.vz));
+	EXPECT_FALSE(isnan(_output_setpoint.thrust[0]));
+	EXPECT_FALSE(isnan(_output_setpoint.thrust[1]));
+	EXPECT_FALSE(isnan(_output_setpoint.thrust[2]));
 }
