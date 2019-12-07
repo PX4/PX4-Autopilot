@@ -105,17 +105,15 @@ void PositionControl::setConstraints(const vehicle_constraints_s &constraints)
 
 	// For safety check if adjustable constraints are below global constraints. If they are not stricter than global
 	// constraints, then just use global constraints for the limits.
-
-	if (!PX4_ISFINITE(constraints.tilt)
-	    || !(constraints.tilt < _lim_tilt)) {
+	if (!PX4_ISFINITE(constraints.tilt) || (constraints.tilt > _lim_tilt)) {
 		_constraints.tilt = _lim_tilt;
 	}
 
-	if (!PX4_ISFINITE(constraints.speed_up) || !(constraints.speed_up < _lim_vel_up)) {
+	if (!PX4_ISFINITE(constraints.speed_up) || (constraints.speed_up > _lim_vel_up)) {
 		_constraints.speed_up = _lim_vel_up;
 	}
 
-	if (!PX4_ISFINITE(constraints.speed_down) || !(constraints.speed_down < _lim_vel_down)) {
+	if (!PX4_ISFINITE(constraints.speed_down) || (constraints.speed_down > _lim_vel_down)) {
 		_constraints.speed_down = _lim_vel_down;
 	}
 
