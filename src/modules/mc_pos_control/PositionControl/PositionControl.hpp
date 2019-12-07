@@ -121,23 +121,25 @@ public:
 	void setHoverThrust(const float thrust) { _hover_thrust = thrust; }
 
 	/**
-	 * Update the current vehicle state.
+	 * Pass the current vehicle state to the controller
 	 * @param PositionControlStates structure
 	 */
-	void updateState(const PositionControlStates &states);
+	void setState(const PositionControlStates &states);
 
 	/**
-	 * Update the desired setpoints.
+	 * Pass the desired setpoints
+	 * Note: NAN value means no feed forward/leave state uncontrolled if there's no higher order setpoint.
 	 * @param setpoint a vehicle_local_position_setpoint_s structure
-	 * @return true if setpoint has updated correctly
+	 * @return true if a valid setpoint was set
 	 */
-	bool updateSetpoint(const vehicle_local_position_setpoint_s &setpoint);
+	bool setInputSetpoint(const vehicle_local_position_setpoint_s &setpoint);
 
 	/**
-	 * Set constraints that are stricter than the global limits.
+	 * Pass constraints that are stricter than the global limits
+	 * Note: NAN value means no constraint, take maximum limit of controller.
 	 * @param constraints a PositionControl structure with supported constraints
 	 */
-	void updateConstraints(const vehicle_constraints_s &constraints);
+	void setConstraints(const vehicle_constraints_s &constraints);
 
 	/**
 	 * Apply P-position and PID-velocity controller that updates the member
@@ -145,21 +147,16 @@ public:
 	 * @see _thr_sp
 	 * @see _yaw_sp
 	 * @see _yawspeed_sp
-	 * @param dt the delta-time
+	 * @param dt time in seconds since last iteration
+	 * @return true if output setpoint is executable, false if not
 	 */
-	void generateThrustYawSetpoint(const float dt);
+	void update(const float dt);
 
 	/**
-	 * 	Set the integral term in xy to 0.
-	 * 	@see _thr_int
+	 * Set the integral term in xy to 0.
+	 * @see _vel_int
 	 */
-	void resetIntegralXY() { _thr_int(0) = _thr_int(1) = 0.f; }
-
-	/**
-	 * 	Set the integral term in z to 0.
-	 * 	@see _thr_int
-	 */
-	void resetIntegralZ() { _thr_int(2) = 0.f; }
+	void resetIntegral() { _vel_int.setZero(); }
 
 	/**
 	 * 	Get the
@@ -205,8 +202,8 @@ private:
 	 */
 	bool _interfaceMapping();
 
-	void _positionController(); /** applies the P-position-controller */
-	void _velocityController(const float &dt); /** applies the PID-velocity-controller */
+	void _positionControl(); ///< Position proportional control
+	void _velocityControl(const float dt); ///< Velocity PID control
 	void _setCtrlFlag(bool value); /**< set control-loop flags (only required for logging) */
 
 	// Gains
@@ -229,7 +226,7 @@ private:
 	matrix::Vector3f _pos; /**< current position */
 	matrix::Vector3f _vel; /**< current velocity */
 	matrix::Vector3f _vel_dot; /**< velocity derivative (replacement for acceleration estimate) */
-	matrix::Vector3f _thr_int; /**< integral term of the velocity controller */
+	matrix::Vector3f _vel_int; /**< integral term of the velocity controller */
 	float _yaw{}; /**< current heading */
 
 	vehicle_constraints_s _constraints{}; /**< variable constraints */
