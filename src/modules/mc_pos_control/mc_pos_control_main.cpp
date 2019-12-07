@@ -67,8 +67,8 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 
-#include <PositionControl.hpp>
-#include "Takeoff.hpp"
+#include "PositionControl/PositionControl.hpp"
+#include "Takeoff/Takeoff.hpp"
 
 #include <float.h>
 
