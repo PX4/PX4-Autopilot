@@ -63,7 +63,7 @@ void PositionControl::setThrustLimits(const float min, const float max)
 	_lim_thr_max = max;
 }
 
-void PositionControl::updateState(const PositionControlStates &states)
+void PositionControl::setState(const PositionControlStates &states)
 {
 	_pos = states.position;
 	_vel = states.velocity;
@@ -78,7 +78,7 @@ void PositionControl::_setCtrlFlag(bool value)
 	}
 }
 
-bool PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &setpoint)
+bool PositionControl::setInputSetpoint(const vehicle_local_position_setpoint_s &setpoint)
 {
 	// by default we use the entire position-velocity control-loop pipeline (flag only for logging purpose)
 	_setCtrlFlag(true);
@@ -99,7 +99,32 @@ bool PositionControl::updateSetpoint(const vehicle_local_position_setpoint_s &se
 	return mapping_succeeded;
 }
 
-void PositionControl::generateThrustYawSetpoint(const float dt)
+void PositionControl::setConstraints(const vehicle_constraints_s &constraints)
+{
+	_constraints = constraints;
+
+	// For safety check if adjustable constraints are below global constraints. If they are not stricter than global
+	// constraints, then just use global constraints for the limits.
+
+	if (!PX4_ISFINITE(constraints.tilt)
+	    || !(constraints.tilt < _lim_tilt)) {
+		_constraints.tilt = _lim_tilt;
+	}
+
+	if (!PX4_ISFINITE(constraints.speed_up) || !(constraints.speed_up < _lim_vel_up)) {
+		_constraints.speed_up = _lim_vel_up;
+	}
+
+	if (!PX4_ISFINITE(constraints.speed_down) || !(constraints.speed_down < _lim_vel_down)) {
+		_constraints.speed_down = _lim_vel_down;
+	}
+
+	if (!PX4_ISFINITE(constraints.speed_xy) || !(constraints.speed_xy < _lim_vel_horizontal)) {
+		_constraints.speed_xy = _lim_vel_horizontal;
+	}
+}
+
+void PositionControl::update(const float dt)
 {
 	if (_skip_controller) {
 
@@ -120,8 +145,8 @@ void PositionControl::generateThrustYawSetpoint(const float dt)
 		_acc_sp = _vel_dot;
 
 	} else {
-		_positionController();
-		_velocityController(dt);
+		_positionControl();
+		_velocityControl(dt);
 	}
 }
 
@@ -178,7 +203,7 @@ bool PositionControl::_interfaceMapping()
 			_ctrl_pos[i] = _ctrl_vel[i] = false; // position/velocity control loop is not used
 
 			// Reset the Integral term.
-			_thr_int(i) = 0.0f;
+			_vel_int(i) = 0.0f;
 			// Don't require velocity derivative.
 			_vel_dot(i) = 0.0f;
 
@@ -228,7 +253,7 @@ bool PositionControl::_interfaceMapping()
 	return !(failsafe);
 }
 
-void PositionControl::_positionController()
+void PositionControl::_positionControl()
 {
 	// P-position controller
 	const Vector3f vel_sp_position = (_pos_sp - _pos).emult(_gain_pos_p);
@@ -244,7 +269,7 @@ void PositionControl::_positionController()
 	_vel_sp(2) = math::constrain(_vel_sp(2), -_constraints.speed_up, _constraints.speed_down);
 }
 
-void PositionControl::_velocityController(const float &dt)
+void PositionControl::_velocityControl(const float dt)
 {
 	// Generate desired thrust setpoint.
 	// PID
@@ -273,7 +298,7 @@ void PositionControl::_velocityController(const float &dt)
 	const Vector3f vel_err = _vel_sp - _vel;
 
 	// Consider thrust in D-direction.
-	float thrust_desired_D = _gain_vel_p(2) * vel_err(2) +  _gain_vel_d(2) * _vel_dot(2) + _thr_int(
+	float thrust_desired_D = _gain_vel_p(2) * vel_err(2) +  _gain_vel_d(2) * _vel_dot(2) + _vel_int(
 					 2) - _hover_thrust;
 
 	// The Thrust limits are negated and swapped due to NED-frame.
@@ -288,10 +313,10 @@ void PositionControl::_velocityController(const float &dt)
 			       (thrust_desired_D <= uMin && vel_err(2) <= 0.0f);
 
 	if (!stop_integral_D) {
-		_thr_int(2) += vel_err(2) * _gain_vel_i(2) * dt;
+		_vel_int(2) += vel_err(2) * _gain_vel_i(2) * dt;
 
 		// limit thrust integral
-		_thr_int(2) = math::min(fabsf(_thr_int(2)), _lim_thr_max) * math::sign(_thr_int(2));
+		_vel_int(2) = math::min(fabsf(_vel_int(2)), _lim_thr_max) * math::sign(_vel_int(2));
 	}
 
 	// Saturate thrust setpoint in D-direction.
@@ -307,8 +332,8 @@ void PositionControl::_velocityController(const float &dt)
 	} else {
 		// PID-velocity controller for NE-direction.
 		Vector2f thrust_desired_NE;
-		thrust_desired_NE(0) = _gain_vel_p(0) * vel_err(0) + _gain_vel_d(0) * _vel_dot(0) + _thr_int(0);
-		thrust_desired_NE(1) = _gain_vel_p(1) * vel_err(1) + _gain_vel_d(1) * _vel_dot(1) + _thr_int(1);
+		thrust_desired_NE(0) = _gain_vel_p(0) * vel_err(0) + _gain_vel_d(0) * _vel_dot(0) + _vel_int(0);
+		thrust_desired_NE(1) = _gain_vel_p(1) * vel_err(1) + _gain_vel_d(1) * _vel_dot(1) + _vel_int(1);
 
 		// Get maximum allowed thrust in NE based on tilt and excess thrust.
 		float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);
@@ -334,35 +359,11 @@ void PositionControl::_velocityController(const float &dt)
 		vel_err_lim(1) = vel_err(1) - (thrust_desired_NE(1) - _thr_sp(1)) * arw_gain;
 
 		// Update integral
-		_thr_int(0) += _gain_vel_i(0) * vel_err_lim(0) * dt;
-		_thr_int(1) += _gain_vel_i(1) * vel_err_lim(1) * dt;
+		_vel_int(0) += _gain_vel_i(0) * vel_err_lim(0) * dt;
+		_vel_int(1) += _gain_vel_i(1) * vel_err_lim(1) * dt;
 	}
 }
 
-void PositionControl::updateConstraints(const vehicle_constraints_s &constraints)
-{
-	_constraints = constraints;
-
-	// For safety check if adjustable constraints are below global constraints. If they are not stricter than global
-	// constraints, then just use global constraints for the limits.
-
-	if (!PX4_ISFINITE(constraints.tilt)
-	    || !(constraints.tilt < _lim_tilt)) {
-		_constraints.tilt = _lim_tilt;
-	}
-
-	if (!PX4_ISFINITE(constraints.speed_up) || !(constraints.speed_up < _lim_vel_up)) {
-		_constraints.speed_up = _lim_vel_up;
-	}
-
-	if (!PX4_ISFINITE(constraints.speed_down) || !(constraints.speed_down < _lim_vel_down)) {
-		_constraints.speed_down = _lim_vel_down;
-	}
-
-	if (!PX4_ISFINITE(constraints.speed_xy) || !(constraints.speed_xy < _lim_vel_horizontal)) {
-		_constraints.speed_xy = _lim_vel_horizontal;
-	}
-}
 
 void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint) const
 {
