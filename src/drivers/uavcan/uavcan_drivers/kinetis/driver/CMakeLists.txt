@@ -14,4 +14,3 @@ install(DIRECTORY include/uavcan_kinetis DESTINATION include)
 install(TARGETS uavcan_kinetis_driver DESTINATION lib)
 
 # vim: set et ft=cmake fenc=utf-8 ff=unix sts=4 sw=4 ts=4 :)
-
