@@ -40,5 +40,5 @@ target_include_directories(PositionControl
 	${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-px4_add_unit_gtest(SRC PositionControlTest.cpp LINKLIBS PositionControl)
 px4_add_unit_gtest(SRC ControlMathTest.cpp LINKLIBS PositionControl)
+px4_add_unit_gtest(SRC PositionControlTest.cpp LINKLIBS PositionControl)

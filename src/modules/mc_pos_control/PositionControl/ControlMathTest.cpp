@@ -101,11 +101,11 @@ TEST(ControlMathTest, LimitTilt10degree)
 TEST(ControlMathTest, ThrottleAttitudeMapping)
 {
 	/* expected: zero roll, zero pitch, zero yaw, full thr mag
-	 * reasone: thrust pointing full upward */
+	 * reason: thrust pointing full upward */
 	Vector3f thr{0.0f, 0.0f, -1.0f};
 	float yaw = 0.0f;
 	vehicle_attitude_setpoint_s att{};
-	thrustToAttitude(att, thr, yaw);
+	thrustToAttitude(thr, yaw, att);
 	EXPECT_EQ(att.roll_body, 0);
 	EXPECT_EQ(att.pitch_body, 0);
 	EXPECT_EQ(att.yaw_body, 0);
@@ -114,7 +114,7 @@ TEST(ControlMathTest, ThrottleAttitudeMapping)
 	/* expected: same as before but with 90 yaw
 	 * reason: only yaw changed */
 	yaw = M_PI_2_F;
-	thrustToAttitude(att, thr, yaw);
+	thrustToAttitude(thr, yaw, att);
 	EXPECT_EQ(att.roll_body, 0);
 	EXPECT_EQ(att.pitch_body, 0);
 	EXPECT_EQ(att.yaw_body, M_PI_2_F);
@@ -124,8 +124,8 @@ TEST(ControlMathTest, ThrottleAttitudeMapping)
 	 * reason: thrust points straight down and order Euler
 	 * order is: 1. roll, 2. pitch, 3. yaw */
 	thr = Vector3f(0.0f, 0.0f, 1.0f);
-	thrustToAttitude(att, thr, yaw);
-	EXPECT_NEAR(abs(att.roll_body), M_PI_F, 1e4f);
+	thrustToAttitude(thr, yaw, att);
+	EXPECT_NEAR(abs(att.roll_body), M_PI_F, 1e-4f);
 	EXPECT_EQ(att.pitch_body, 0);
 	EXPECT_EQ(att.yaw_body, M_PI_2_F);
 	EXPECT_EQ(att.thrust_body[2], -1.f);
@@ -133,27 +133,25 @@ TEST(ControlMathTest, ThrottleAttitudeMapping)
 
 TEST(ControlMathTest, ConstrainXYPriorities)
 {
-	float max = 5.0f;
+	const float max = 5.0f;
 	// v0 already at max
 	Vector2f v0(max, 0);
 	Vector2f v1(v0(1), -v0(0));
 
 	Vector2f v_r = constrainXY(v0, v1, max);
 	EXPECT_EQ(v_r(0), max);
-	EXPECT_GT(v_r(0), 0);
 	EXPECT_EQ(v_r(1), 0);
 
-	// v1 exceeds max but v0 is zero
+	// norm of v1 exceeds max but v0 is zero
 	v0.zero();
 	v_r = constrainXY(v0, v1, max);
 	EXPECT_EQ(v_r(1), -max);
-	EXPECT_LT(v_r(1), 0);
 	EXPECT_EQ(v_r(0), 0);
 
 	v0 = Vector2f(0.5f, 0.5f);
 	v1 = Vector2f(0.5f, -0.5f);
 	v_r = constrainXY(v0, v1, max);
-	float diff = Vector2f(v_r - (v0 + v1)).length();
+	const float diff = Vector2f(v_r - (v0 + v1)).length();
 	EXPECT_EQ(diff, 0);
 
 	// v0 and v1 exceed max and are perpendicular
@@ -162,7 +160,7 @@ TEST(ControlMathTest, ConstrainXYPriorities)
 	v_r = constrainXY(v0, v1, max);
 	EXPECT_EQ(v_r(0), v0(0));
 	EXPECT_GT(v_r(0), 0);
-	float remaining = sqrtf(max * max - (v0(0) * v0(0)));
+	const float remaining = sqrtf(max * max - (v0(0) * v0(0)));
 	EXPECT_EQ(v_r(1), -remaining);
 }
 
@@ -188,8 +186,8 @@ TEST(ControlMathTest, CrossSphereLine)
 	 *
 	 *
 	 * On trajectory --+----o----1----+--------2/3---+-- */
-	Vector3f prev = Vector3f(0.0f, 0.0f, 0.0f);
-	Vector3f curr = Vector3f(0.0f, 0.0f, 2.0f);
+	const Vector3f prev = Vector3f(0.0f, 0.0f, 0.0f);
+	const Vector3f curr = Vector3f(0.0f, 0.0f, 2.0f);
 	Vector3f res;
 	bool retval = false;
 

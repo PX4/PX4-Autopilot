@@ -68,7 +68,7 @@ public:
 
 private:
 	matrix::Vector3f _dcm_z_sp_prev; ///< previous attitude setpoint body z axis
-	float _yaw = 0.0f;			// current yaw angle
+	float _yaw = 0.0f; ///< current yaw angle
 
 	bool _is_active = true;
 

@@ -44,14 +44,14 @@ using namespace matrix;
 
 namespace ControlMath
 {
-void thrustToAttitude(vehicle_attitude_setpoint_s &att_sp, const Vector3f &thr_sp, const float yaw_sp)
+void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp)
 {
 	bodyzToAttitude(att_sp, -thr_sp, yaw_sp);
 	att_sp.thrust_body[2] = -thr_sp.length();
 }
 
-void accelerationToAttitude(vehicle_attitude_setpoint_s &att_sp, const Vector3f &acc_sp, const float yaw_sp,
-			    const float hover_thrust, const float tilt_max)
+void accelerationToAttitude(const Vector3f &acc_sp, const float yaw_sp, const float hover_thrust, const float tilt_max,
+			    vehicle_attitude_setpoint_s &att_sp)
 {
 	// Assume standard acceleration due to gravity in vertical direction for attitude generation
 	Vector3f body_z_unit = Vector3f(-acc_sp(0), -acc_sp(1), CONSTANTS_ONE_G).unit();

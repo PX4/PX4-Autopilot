@@ -38,11 +38,11 @@
  */
 
 #pragma once
-#include <matrix/matrix/math.hpp>
 
+#include <matrix/matrix/math.hpp>
+#include <uORB/topics/vehicle_attitude_setpoint.h>
 #include <uORB/topics/vehicle_constraints.h>
 #include <uORB/topics/vehicle_local_position_setpoint.h>
-#include <uORB/topics/vehicle_attitude_setpoint.h>
 
 struct PositionControlStates {
 	matrix::Vector3f position;
@@ -162,7 +162,7 @@ public:
 	 * The acceleration or thrust setpoints can be used for attitude control.
 	 * @param local_position_setpoint reference to struct to fill up
 	 */
-	void getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint);
+	void getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint) const;
 
 	/**
 	 * Get the controllers output attitude setpoint
@@ -170,7 +170,7 @@ public:
 	 * It needs to be executed by the attitude controller to achieve velocity and position tracking.
 	 * @param attitude_setpoint reference to struct to fill up
 	 */
-	void getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint);
+	void getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const;
 
 	/** adds to the setpoint but handles NAN cases correctly */
 	void _addIfNotNan(float &setpoint, const float addition) const;
@@ -190,21 +190,21 @@ private:
 	matrix::Vector3f _gain_vel_d; ///< Velocity control derivative gain
 
 	// Limits
-	float _lim_vel_horizontal{0}; ///< Horizontal velocity limit with feed forward and position control
-	float _lim_vel_up{0}; ///< Upwards velocity limit with feed forward and position control
-	float _lim_vel_down{0}; ///< Downwards velocity limit with feed forward and position control
-	float _lim_thr_min{0}; ///< Minimum collective thrust allowed as output [-1,0] e.g. -0.9
-	float _lim_thr_max{0}; ///< Maximum collective thrust allowed as output [-1,0] e.g. -0.1
-	float _lim_tilt{0}; ///< Maximum tilt from level the output attitude is allowed to have
+	float _lim_vel_horizontal{}; ///< Horizontal velocity limit with feed forward and position control
+	float _lim_vel_up{}; ///< Upwards velocity limit with feed forward and position control
+	float _lim_vel_down{}; ///< Downwards velocity limit with feed forward and position control
+	float _lim_thr_min{}; ///< Minimum collective thrust allowed as output [-1,0] e.g. -0.9
+	float _lim_thr_max{}; ///< Maximum collective thrust allowed as output [-1,0] e.g. -0.1
+	float _lim_tilt{}; ///< Maximum tilt from level the output attitude is allowed to have
 
-	float _hover_thrust{0}; ///< Thrust [0,1] with which the vehicle hovers not aacelerating down or up with level orientation
+	float _hover_thrust{}; ///< Thrust [0,1] with which the vehicle hovers not aacelerating down or up with level orientation
 
 	// States
-	matrix::Vector3f _pos; /**< position */
-	matrix::Vector3f _vel; /**< velocity */
+	matrix::Vector3f _pos; /**< current position */
+	matrix::Vector3f _vel; /**< current velocity */
 	matrix::Vector3f _vel_dot; /**< velocity derivative (replacement for acceleration estimate) */
 	matrix::Vector3f _vel_int; /**< integral term of the velocity controller */
-	float _yaw = 0.0f; /**< yaw */
+	float _yaw{}; /**< current heading */
 
 	vehicle_constraints_s _constraints{}; /**< variable constraints */
 
@@ -213,6 +213,6 @@ private:
 	matrix::Vector3f _vel_sp; /**< desired velocity */
 	matrix::Vector3f _acc_sp; /**< desired acceleration */
 	matrix::Vector3f _thr_sp; /**< desired thrust */
-	float _yaw_sp{}; /**< desired yaw */
+	float _yaw_sp{}; /**< desired heading */
 	float _yawspeed_sp{}; /** desired yaw-speed */
 };

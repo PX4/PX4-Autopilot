@@ -50,19 +50,19 @@ namespace ControlMath
  * Converts thrust vector and yaw set-point to a desired attitude.
  * @param thr_sp a 3D vector
  * @param yaw_sp the desired yaw
- * @return vehicle_attitude_setpoints_s structure
+ * @param att_sp attitude setpoint to fill
  */
-void thrustToAttitude(vehicle_attitude_setpoint_s &att_sp, const matrix::Vector3f &thr_sp, const float yaw_sp);
+void thrustToAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp);
 
 /**
  * Converts acceleration vector and yaw set-point to a desired attitude.
  * @param acc_sp a 3D vector
  * @param yaw_sp the desired yaw setpoint
  * @param tilt_max maximum allowed tilt angle in radians
- * @return vehicle_attitude_setpoints_s struct for attitude controller
+ * @param att_sp attitude setpoint to fill
  */
-void accelerationToAttitude(vehicle_attitude_setpoint_s &att_sp, const matrix::Vector3f &acc_sp, const float yaw_sp,
-			    const float hover_thrust, const float tilt_max);
+void accelerationToAttitude(const matrix::Vector3f &acc_sp, const float yaw_sp, const float hover_thrust,
+			    const float tilt_max, vehicle_attitude_setpoint_s &att_sp);
 
 /**
  * Limits the tilt angle between two unit vectors

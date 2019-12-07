@@ -769,12 +769,11 @@ bool MatrixTest::pseudoInverseTests()
 		8.f, 9.f, 10.f, 11.f
 	};
 
-	float data0_check[12] = {
-		-0.3375f, -0.1f,  0.1375f,
-			-0.13333333f, -0.03333333f,  0.06666667f,
-			0.07083333f,  0.03333333f, -0.00416667f,
-			0.275f, 0.1f, -0.075f
-		};
+	float data0_check[12] = {-0.3375f, -0.1f,  0.1375f,
+				 -0.13333333f, -0.03333333f,  0.06666667f,
+				 0.07083333f,  0.03333333f, -0.00416667f,
+				 0.275f, 0.1f, -0.075f
+				};
 
 	Matrix<float, 3, 4> A0(data0);
 	Matrix<float, 4, 3> A0_I = geninv(A0);
@@ -790,11 +789,10 @@ bool MatrixTest::pseudoInverseTests()
 		3.f, 7.f, 11.f
 	};
 
-	float data1_check[12] = {
-		-0.3375f, -0.13333333f,  0.07083333f,  0.275f,
-			-0.1f, -0.03333333f,  0.03333333f,  0.1f,
-			0.1375f,  0.06666667f, -0.00416667f, -0.075f
-		};
+	float data1_check[12] = {-0.3375f, -0.13333333f,  0.07083333f,  0.275f,
+				 -0.1f, -0.03333333f,  0.03333333f,  0.1f,
+				 0.1375f,  0.06666667f, -0.00416667f, -0.075f
+				};
 
 	Matrix<float, 4, 3> A1(data1);
 	Matrix<float, 3, 4> A1_I = geninv(A1);
@@ -808,11 +806,10 @@ bool MatrixTest::pseudoInverseTests()
 		4, 5, 6,
 		7, 8, 10
 	};
-	float data2_check[9] = {
-		-0.4f, -0.8f,  0.6f,
-			-0.4f,  4.2f, -2.4f,
-			0.6f, -2.8f,  1.6f
-		};
+	float data2_check[9] = {-0.4f, -0.8f,  0.6f,
+				-0.4f,  4.2f, -2.4f,
+				0.6f, -2.8f,  1.6f
+			       };
 
 	SquareMatrix<float, 3> A2(data2);
 	SquareMatrix<float, 3> A2_I = inv(A2);
