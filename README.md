@@ -86,7 +86,7 @@ This repository contains code supporting these boards:
     * [Pixhawk 3 Pro](https://docs.px4.io/master/en/flight_controller/pixhawk3_pro.html)
   * FMUv5 (ARM Cortex M7)
     * [Pixhawk 4](https://docs.px4.io/master/en/flight_controller/pixhawk4.html)
-    * [Pixhawk 4 mini](https://docs.px4.io/master/en/flight_controller/pixhawk4_mini.html)  
+    * [Pixhawk 4 mini](https://docs.px4.io/master/en/flight_controller/pixhawk4_mini.html)
     * [CUAV V5+](https://docs.px4.io/master/en/flight_controller/cuav_v5_plus.html)
     * [CUAV V5 nano](https://docs.px4.io/master/en/flight_controller/cuav_v5_nano.html)
   * [Airmind MindPX V2.8](http://www.mindpx.net/assets/accessories/UserGuide_MindPX.pdf)
