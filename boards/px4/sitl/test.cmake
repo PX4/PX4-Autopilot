@@ -9,6 +9,7 @@ px4_add_board(
 	DRIVERS
 		#barometer # all available barometer drivers
 		#batt_smbus
+		camera_capture
 		camera_trigger
 		#differential_pressure # all available differential pressure drivers
 		#distance_sensor # all available distance sensor drivers
@@ -37,9 +38,11 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
+		mc_rate_control
 		mc_pos_control
 		navigator
 		replay
+		rc_update
 		sensors
 		simulator
 		vmount

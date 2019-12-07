@@ -62,8 +62,25 @@ public:
 
 	void add(T newNode)
 	{
-		newNode->setSibling(getHead());
-		_head = newNode;
+		if (_head == nullptr) {
+			// list is empty, add as head
+			_head = newNode;
+			return;
+
+		} else {
+			// find last node and add to end
+			T node = _head;
+
+			while (node != nullptr) {
+				if (node->getSibling() == nullptr) {
+					// found last node, now add newNode
+					node->setSibling(newNode);
+					return;
+				}
+
+				node = node->getSibling();
+			}
+		}
 	}
 
 	bool remove(T removeNode)
@@ -101,7 +118,7 @@ public:
 
 	struct Iterator {
 		T node;
-		Iterator(T v) : node(v) {}
+		explicit Iterator(T v) : node(v) {}
 
 		operator T() const { return node; }
 		operator T &() { return node; }

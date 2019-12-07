@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (C) 2012 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2012, 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -78,14 +78,19 @@ void px4_arch_adc_uninit(uint32_t base_address);
  * Read a sample from the ADC
  * @param base_address architecture-specific address to specify the ADC
  * @param channel specify the channel
- * @return sample, 0xffff on error
+ * @return sample, 0xffffffff on error
  */
-uint16_t px4_arch_adc_sample(uint32_t base_address, unsigned channel);
+uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel);
 
 /**
  * Get the temperature sensor channel bitmask
  */
 uint32_t px4_arch_adc_temp_sensor_mask(void);
+
+/**
+ * Get the adc digital number full count
+ */
+uint32_t px4_arch_adc_dn_fullcount(void);
 
 __END_DECLS
 

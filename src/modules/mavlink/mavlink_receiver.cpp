@@ -46,6 +46,7 @@
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_tone_alarm.h>
 #include <ecl/geo/geo.h>
+#include <systemlib/px4_macros.h>
 
 #ifdef CONFIG_NET
 #include <net/if.h>
@@ -189,6 +190,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_landing_target(msg);
 		break;
 
+	case MAVLINK_MSG_ID_CELLULAR_STATUS:
+		handle_message_cellular_status(msg);
+		break;
+
 	case MAVLINK_MSG_ID_ADSB_VEHICLE:
 		handle_message_adsb_vehicle(msg);
 		break;
@@ -243,6 +248,14 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 
 	case MAVLINK_MSG_ID_DEBUG_FLOAT_ARRAY:
 		handle_message_debug_float_array(msg);
+		break;
+
+	case MAVLINK_MSG_ID_ONBOARD_COMPUTER_STATUS:
+		handle_message_onboard_computer_status(msg);
+		break;
+
+	case MAVLINK_MSG_ID_STATUSTEXT:
+		handle_message_statustext(msg);
 		break;
 
 	default:
@@ -1093,6 +1106,12 @@ MavlinkReceiver::handle_message_set_actuator_control_target(mavlink_message_t *m
 	     set_actuator_control_target.target_component == 0) &&
 	    values_finite) {
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+		PX4_ERR("SET_ACTUATOR_CONTROL_TARGET not supported with lockstep enabled");
+		PX4_ERR("Please disable lockstep for actuator offboard control:");
+		PX4_ERR("https://dev.px4.io/master/en/simulation/#disable-lockstep-simulation");
+		return;
+#endif
 		/* Ignore all setpoints except when controlling the gimbal(group_mlx==2) as we are setting raw actuators here */
 		bool ignore_setpoints = bool(set_actuator_control_target.group_mlx != 2);
 
@@ -1289,6 +1308,54 @@ MavlinkReceiver::handle_message_odometry(mavlink_message_t *msg)
 	}
 }
 
+void MavlinkReceiver::fill_thrust(float *thrust_body_array, uint8_t vehicle_type, float thrust)
+{
+	// Fill correct field by checking frametype
+	// TODO: add as needed
+	switch (_mavlink->get_system_type()) {
+	case MAV_TYPE_GENERIC:
+		break;
+
+	case MAV_TYPE_FIXED_WING:
+	case MAV_TYPE_GROUND_ROVER:
+		thrust_body_array[0] = thrust;
+		break;
+
+	case MAV_TYPE_QUADROTOR:
+	case MAV_TYPE_HEXAROTOR:
+	case MAV_TYPE_OCTOROTOR:
+	case MAV_TYPE_TRICOPTER:
+	case MAV_TYPE_HELICOPTER:
+		thrust_body_array[2] = -thrust;
+		break;
+
+	case MAV_TYPE_VTOL_DUOROTOR:
+	case MAV_TYPE_VTOL_QUADROTOR:
+	case MAV_TYPE_VTOL_TILTROTOR:
+	case MAV_TYPE_VTOL_RESERVED2:
+	case MAV_TYPE_VTOL_RESERVED3:
+	case MAV_TYPE_VTOL_RESERVED4:
+	case MAV_TYPE_VTOL_RESERVED5:
+		switch (vehicle_type) {
+		case vehicle_status_s::VEHICLE_TYPE_FIXED_WING:
+			thrust_body_array[0] = thrust;
+
+			break;
+
+		case vehicle_status_s::VEHICLE_TYPE_ROTARY_WING:
+			thrust_body_array[2] = -thrust;
+
+			break;
+
+		default:
+			// This should never happen
+			break;
+		}
+
+		break;
+	}
+}
+
 void
 MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 {
@@ -1368,6 +1435,8 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 			_control_mode_sub.copy(&control_mode);
 
 			if (control_mode.flag_control_offboard_enabled) {
+				vehicle_status_s vehicle_status{};
+				_vehicle_status_sub.copy(&vehicle_status);
 
 				/* Publish attitude setpoint if attitude and thrust ignore bits are not set */
 				if (!(offboard_control_mode.ignore_attitude)) {
@@ -1387,31 +1456,19 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					}
 
 					if (!offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
-						// Fill correct field by checking frametype
-						// TODO: add as needed
-						switch (_mavlink->get_system_type()) {
-						case MAV_TYPE_GENERIC:
-							break;
-
-						case MAV_TYPE_FIXED_WING:
-							att_sp.thrust_body[0] = set_attitude_target.thrust;
-							break;
-
-						case MAV_TYPE_QUADROTOR:
-						case MAV_TYPE_HEXAROTOR:
-						case MAV_TYPE_OCTOROTOR:
-						case MAV_TYPE_TRICOPTER:
-						case MAV_TYPE_HELICOPTER:
-							att_sp.thrust_body[2] = -set_attitude_target.thrust;
-							break;
-
-						case MAV_TYPE_GROUND_ROVER:
-							att_sp.thrust_body[0] = set_attitude_target.thrust;
-							break;
-						}
+						fill_thrust(att_sp.thrust_body, vehicle_status.vehicle_type, set_attitude_target.thrust);
 					}
 
-					_att_sp_pub.publish(att_sp);
+					// Publish attitude setpoint
+					if (vehicle_status.is_vtol && (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING)) {
+						_mc_virtual_att_sp_pub.publish(att_sp);
+
+					} else if (vehicle_status.is_vtol && (vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING)) {
+						_fw_virtual_att_sp_pub.publish(att_sp);
+
+					} else {
+						_att_sp_pub.publish(att_sp);
+					}
 				}
 
 				/* Publish attitude rate setpoint if bodyrate and thrust ignore bits are not set */
@@ -1437,27 +1494,7 @@ MavlinkReceiver::handle_message_set_attitude_target(mavlink_message_t *msg)
 					}
 
 					if (!offboard_control_mode.ignore_thrust) { // dont't overwrite thrust if it's invalid
-						switch (_mavlink->get_system_type()) {
-						case MAV_TYPE_GENERIC:
-							break;
-
-						case MAV_TYPE_FIXED_WING:
-							rates_sp.thrust_body[0] = set_attitude_target.thrust;
-							break;
-
-						case MAV_TYPE_QUADROTOR:
-						case MAV_TYPE_HEXAROTOR:
-						case MAV_TYPE_OCTOROTOR:
-						case MAV_TYPE_TRICOPTER:
-						case MAV_TYPE_HELICOPTER:
-							rates_sp.thrust_body[2] = -set_attitude_target.thrust;
-							break;
-
-						case MAV_TYPE_GROUND_ROVER:
-							rates_sp.thrust_body[0] = set_attitude_target.thrust;
-							break;
-						}
-
+						fill_thrust(rates_sp.thrust_body, vehicle_status.vehicle_type, set_attitude_target.thrust);
 					}
 
 					_rates_sp_pub.publish(rates_sp);
@@ -1560,8 +1597,8 @@ MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 {
-	if (msg->sysid != mavlink_system.sysid) {
-		// ignore battery status of other system
+	if ((msg->sysid != mavlink_system.sysid) || (msg->compid == mavlink_system.compid)) {
+		// ignore battery status coming from other systems or from the autopilot itself
 		return;
 	}
 
@@ -2162,6 +2199,26 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 }
 
 void
+MavlinkReceiver::handle_message_cellular_status(mavlink_message_t *msg)
+{
+	mavlink_cellular_status_t status;
+	mavlink_msg_cellular_status_decode(msg, &status);
+
+	cellular_status_s cellular_status{};
+
+	cellular_status.timestamp = hrt_absolute_time();
+	cellular_status.status = status.status;
+	cellular_status.type = status.type;
+	cellular_status.quality = status.quality;
+	cellular_status.mcc = status.mcc;
+	cellular_status.mnc = status.mnc;
+	cellular_status.lac = status.lac;
+	cellular_status.cid = status.cid;
+
+	_cellular_status_pub.publish(cellular_status);
+}
+
+void
 MavlinkReceiver::handle_message_adsb_vehicle(mavlink_message_t *msg)
 {
 	mavlink_adsb_vehicle_t adsb;
@@ -2514,6 +2571,61 @@ MavlinkReceiver::handle_message_debug_float_array(mavlink_message_t *msg)
 	_debug_array_pub.publish(debug_topic);
 }
 
+void
+MavlinkReceiver::handle_message_onboard_computer_status(mavlink_message_t *msg)
+{
+	mavlink_onboard_computer_status_t status_msg;
+	mavlink_msg_onboard_computer_status_decode(msg, &status_msg);
+
+	onboard_computer_status_s onboard_computer_status_topic{};
+
+	onboard_computer_status_topic.timestamp = hrt_absolute_time();
+	onboard_computer_status_topic.uptime = status_msg.uptime;
+
+	onboard_computer_status_topic.type = status_msg.type;
+
+	memcpy(onboard_computer_status_topic.cpu_cores, status_msg.cpu_cores, sizeof(status_msg.cpu_cores));
+	memcpy(onboard_computer_status_topic.cpu_combined, status_msg.cpu_combined, sizeof(status_msg.cpu_combined));
+	memcpy(onboard_computer_status_topic.gpu_cores, status_msg.gpu_cores, sizeof(status_msg.gpu_cores));
+	memcpy(onboard_computer_status_topic.gpu_combined, status_msg.gpu_combined, sizeof(status_msg.gpu_combined));
+	onboard_computer_status_topic.temperature_board = status_msg.temperature_board;
+	memcpy(onboard_computer_status_topic.temperature_core, status_msg.temperature_core,
+	       sizeof(status_msg.temperature_core));
+	memcpy(onboard_computer_status_topic.fan_speed, status_msg.fan_speed, sizeof(status_msg.fan_speed));
+	onboard_computer_status_topic.ram_usage = status_msg.ram_usage;
+	onboard_computer_status_topic.ram_total = status_msg.ram_total;
+	memcpy(onboard_computer_status_topic.storage_type, status_msg.storage_type, sizeof(status_msg.storage_type));
+	memcpy(onboard_computer_status_topic.storage_usage, status_msg.storage_usage, sizeof(status_msg.storage_usage));
+	memcpy(onboard_computer_status_topic.storage_total, status_msg.storage_total, sizeof(status_msg.storage_total));
+	memcpy(onboard_computer_status_topic.link_type, status_msg.link_type, sizeof(status_msg.link_type));
+	memcpy(onboard_computer_status_topic.link_tx_rate, status_msg.link_tx_rate, sizeof(status_msg.link_tx_rate));
+	memcpy(onboard_computer_status_topic.link_rx_rate, status_msg.link_rx_rate, sizeof(status_msg.link_rx_rate));
+	memcpy(onboard_computer_status_topic.link_tx_max, status_msg.link_tx_max, sizeof(status_msg.link_tx_max));
+	memcpy(onboard_computer_status_topic.link_rx_max, status_msg.link_rx_max, sizeof(status_msg.link_rx_max));
+
+	_onboard_computer_status_pub.publish(onboard_computer_status_topic);
+}
+
+void MavlinkReceiver::handle_message_statustext(mavlink_message_t *msg)
+{
+	if (msg->sysid == mavlink_system.sysid) {
+		// log message from the same system
+
+		mavlink_statustext_t statustext;
+		mavlink_msg_statustext_decode(msg, &statustext);
+
+		log_message_s log_message{};
+
+		log_message.severity = statustext.severity;
+		log_message.timestamp = hrt_absolute_time();
+
+		snprintf(log_message.text, sizeof(log_message.text),
+			 "[mavlink: component %d] %." STRINGIFY(MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN) "s", msg->compid, statustext.text);
+
+		_log_message_pub.publish(log_message);
+	}
+}
+
 /**
  * Receive data from UART/UDP
  */
@@ -2632,8 +2744,8 @@ MavlinkReceiver::Run()
 				}
 			}
 
-			// only start accepting messages once we're sure who we talk to
-			if (_mavlink->get_client_source_initialized()) {
+			// only start accepting messages on UDP once we're sure who we talk to
+			if (_mavlink->get_protocol() != Protocol::UDP || _mavlink->get_client_source_initialized()) {
 #endif // MAVLINK_UDP
 
 				/* if read failed, this loop won't execute */

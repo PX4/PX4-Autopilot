@@ -35,6 +35,5 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
 
 add_library(drivers_board
 	init.c
-	${PX4_SOURCE_DIR}/src/drivers/boards/common/board_identity.c # TODO: this is horrible and should be fixed
 )
 

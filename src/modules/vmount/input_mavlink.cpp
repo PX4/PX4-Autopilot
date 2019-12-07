@@ -44,9 +44,9 @@
 #include <uORB/topics/vehicle_command_ack.h>
 #include <uORB/topics/position_setpoint_triplet.h>
 #include <drivers/drv_hrt.h>
-
-#include <px4_defines.h>
-#include <px4_posix.h>
+#include <lib/parameters/param.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
 #include <errno.h>
 #include <math.h>
 

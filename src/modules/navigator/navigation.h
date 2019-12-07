@@ -217,10 +217,10 @@ struct mission_fence_point_s {
 };
 
 /**
- * Save Point (Rally Point).
+ * Safe Point (Rally Point).
  * Corresponds to the DM_KEY_SAFE_POINTS dataman item
  */
-struct mission_save_point_s {
+struct mission_safe_point_s {
 	double lat;
 	double lon;
 	float alt;

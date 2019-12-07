@@ -32,8 +32,8 @@
  ****************************************************************************/
 
 #include <drivers/drv_hrt.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/posix.h>
 
 // for ekf2 replay
 #include <uORB/topics/airspeed.h>

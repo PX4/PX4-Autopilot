@@ -49,8 +49,8 @@
 
 #include <board_config.h>
 #include <drivers/device/i2c.h>
-#include <px4_getopt.h>
-#include <px4_module.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 
 #include "LidarLiteI2C.h"
 #include "LidarLitePWM.h"
@@ -276,7 +276,7 @@ extern "C" __EXPORT int ll40ls_main(int argc, char *argv[])
 	bool start_i2c_all = false;
 	bool start_pwm = false;
 
-	while ((ch = px4_getopt(argc, argv, "ab:R", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "ab:R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'a':
 			start_i2c_all = true;

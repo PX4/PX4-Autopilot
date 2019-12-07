@@ -55,7 +55,7 @@
  *
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
@@ -75,8 +75,8 @@
 #include <px4_arch/io_timer.h>
 
 #include <kinetis.h>
-#include "chip/kinetis_sim.h"
-#include "chip/kinetis_ftm.h"
+#include "hardware/kinetis_sim.h"
+#include "hardware/kinetis_ftm.h"
 
 
 #define _REG(_addr)	(*(volatile uint32_t *)(_addr))

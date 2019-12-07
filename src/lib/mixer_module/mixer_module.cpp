@@ -33,8 +33,10 @@
 
 #include "mixer_module.hpp"
 
+#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
+
 #include <uORB/PublicationQueued.hpp>
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 using namespace time_literals;
 
@@ -236,6 +238,7 @@ unsigned MixingOutput::motorTest()
 
 	while (_motor_test.test_motor_sub.update(&test_motor)) {
 		if (test_motor.driver_instance != _driver_instance ||
+		    test_motor.timestamp == 0 ||
 		    hrt_elapsed_time(&test_motor.timestamp) > 100_ms) {
 			continue;
 		}
@@ -253,13 +256,37 @@ unsigned MixingOutput::motorTest()
 			int idx = test_motor.motor_number;
 
 			if (idx < MAX_ACTUATORS) {
-				_current_output_value[reorderedMotorIndex(idx)] =
-					math::constrain<uint16_t>(_min_value[idx] + (uint16_t)((_max_value[idx] - _min_value[idx]) * test_motor.value),
-								  _min_value[idx], _max_value[idx]);
+				if (test_motor.value < 0.f) {
+					_current_output_value[reorderedMotorIndex(idx)] = _disarmed_value[idx];
+
+				} else {
+					_current_output_value[reorderedMotorIndex(idx)] =
+						math::constrain<uint16_t>(_min_value[idx] + (uint16_t)((_max_value[idx] - _min_value[idx]) * test_motor.value),
+									  _min_value[idx], _max_value[idx]);
+				}
+			}
+
+			if (test_motor.timeout_ms > 0) {
+				_motor_test.timeout = test_motor.timestamp + test_motor.timeout_ms * 1000;
+
+			} else {
+				_motor_test.timeout = 0;
 			}
 		}
 
 		_motor_test.in_test_mode = in_test_mode;
+		had_update = true;
+	}
+
+	// check for timeouts
+	if (_motor_test.timeout != 0 && hrt_absolute_time() > _motor_test.timeout) {
+		_motor_test.in_test_mode = false;
+		_motor_test.timeout = 0;
+
+		for (int i = 0; i < MAX_ACTUATORS; ++i) {
+			_current_output_value[i] = _disarmed_value[i];
+		}
+
 		had_update = true;
 	}
 
@@ -292,7 +319,7 @@ bool MixingOutput::update()
 	}
 
 	// check for motor test
-	if (!_armed.armed) {
+	if (!_armed.armed && !_armed.manual_lockdown) {
 		unsigned num_motor_test = motorTest();
 
 		if (num_motor_test > 0) {
@@ -518,7 +545,7 @@ void MixingOutput::resetMixer()
 int MixingOutput::loadMixer(const char *buf, unsigned len)
 {
 	if (_mixers == nullptr) {
-		_mixers = new MixerGroup(controlCallback, (uintptr_t)this);
+		_mixers = new MixerGroup();
 	}
 
 	if (_mixers == nullptr) {
@@ -526,7 +553,7 @@ int MixingOutput::loadMixer(const char *buf, unsigned len)
 		return -ENOMEM;
 	}
 
-	int ret = _mixers->load_from_buf(buf, len);
+	int ret = _mixers->load_from_buf(controlCallback, (uintptr_t)this, buf, len);
 
 	if (ret != 0) {
 		PX4_ERR("mixer load failed with %d", ret);

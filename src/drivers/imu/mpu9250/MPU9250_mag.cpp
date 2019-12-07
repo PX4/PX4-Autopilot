@@ -40,6 +40,12 @@
  *
  */
 
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/time.h>
+#include <lib/perf/perf_counter.h>
+#include <drivers/drv_hrt.h>
+
 #include "MPU9250_mag.h"
 #include "mpu9250.h"
 
@@ -50,9 +56,9 @@ MPU9250_mag::MPU9250_mag(MPU9250 *parent, device::Device *interface, enum Rotati
 	_px4_mag(parent->_interface->get_device_id(), (parent->_interface->external() ? ORB_PRIO_MAX : ORB_PRIO_HIGH),
 		 rotation),
 	_parent(parent),
-	_mag_overruns(perf_alloc(PC_COUNT, "mpu9250_mag_overruns")),
-	_mag_overflows(perf_alloc(PC_COUNT, "mpu9250_mag_overflows")),
-	_mag_duplicates(perf_alloc(PC_COUNT, "mpu9250_mag_duplicates"))
+	_mag_overruns(perf_alloc(PC_COUNT, MODULE_NAME": mag_overruns")),
+	_mag_overflows(perf_alloc(PC_COUNT, MODULE_NAME": mag_overflows")),
+	_mag_errors(perf_alloc(PC_COUNT, MODULE_NAME": mag_errors"))
 {
 	_px4_mag.set_device_type(DRV_MAG_DEVTYPE_MPU9250);
 	_px4_mag.set_scale(MPU9250_MAG_RANGE_GA);
@@ -62,64 +68,75 @@ MPU9250_mag::~MPU9250_mag()
 {
 	perf_free(_mag_overruns);
 	perf_free(_mag_overflows);
-	perf_free(_mag_duplicates);
-}
-
-bool MPU9250_mag::check_duplicate(uint8_t *mag_data)
-{
-	if (memcmp(mag_data, &_last_mag_data, sizeof(_last_mag_data)) == 0) {
-		// it isn't new data - wait for next timer
-		return true;
-
-	} else {
-		memcpy(&_last_mag_data, mag_data, sizeof(_last_mag_data));
-		return false;
-	}
+	perf_free(_mag_errors);
 }
 
 void
 MPU9250_mag::measure()
 {
-	union raw_data_t {
-		struct ak8963_regs ak8963_data;
-		struct ak09916_regs ak09916_data;
-	} raw_data;
-
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
-	int ret = _interface->read(AK8963REG_ST1, &raw_data, sizeof(struct ak8963_regs));
 
-	if (ret == OK) {
-		_measure(timestamp_sample, raw_data.ak8963_data);
-	}
-}
+	uint8_t st1 = 0;
+	int ret = _interface->read(AK8963REG_ST1, &st1, sizeof(st1));
 
-void
-MPU9250_mag::_measure(hrt_abstime timestamp_sample, struct ak8963_regs data)
-{
-	if (check_duplicate((uint8_t *)&data.x) && !(data.st1 & 0x02)) {
-		perf_count(_mag_duplicates);
+	if (ret != OK) {
+		_px4_mag.set_error_count(perf_event_count(_mag_errors));
 		return;
 	}
 
-	/* monitor for if data overrun flag is ever set */
-	if (data.st1 & 0x02) {
+	/* Check if data ready is set.
+	 * This is not described to be set in continuous mode according to the
+	 * MPU9250 datasheet. However, the datasheet of the 8963 recommends to
+	 * check data ready before doing the read and before triggering the
+	 * next measurement by reading ST2. */
+	if (!(st1 & AK09916_ST1_DRDY)) {
+		return;
+	}
+
+	/* Monitor if data overrun flag is ever set. */
+	if (st1 & 0x02) {
 		perf_count(_mag_overruns);
 	}
 
-	/* monitor for if magnetic sensor overflow flag is ever set noting that st2
-	 * is usually not even refreshed, but will always be in the same place in the
-	 * mpu's buffers regardless, hence the actual count would be bogus
-	 */
+	ak8963_regs data{};
+	ret = _interface->read(AK8963REG_ST1, &data, sizeof(data));
+
+	if (ret != OK) {
+		_px4_mag.set_error_count(perf_event_count(_mag_errors));
+		return;
+	}
+
+	/* Monitor magnetic sensor overflow flag. */
 	if (data.st2 & 0x08) {
 		perf_count(_mag_overflows);
 	}
 
+	_measure(timestamp_sample, data);
+}
+
+void
+MPU9250_mag::_measure(hrt_abstime timestamp_sample, ak8963_regs data)
+{
+	/* Check if data ready is set.
+	 * This is not described to be set in continuous mode according to the
+	 * MPU9250 datasheet. However, the datasheet of the 8963 recommends to
+	 * check data ready before doing the read and before triggering the
+	 * next measurement by reading ST2.
+	 *
+	 * If _measure is used in passthrough mode, all the data is already
+	 * fetched, however, we should still not use the data if the data ready
+	 * is not set. This has lead to intermittent spikes when the data was
+	 * being updated while getting read.
+	 */
+	if (!(data.st1 & AK09916_ST1_DRDY)) {
+		return;
+	}
+
 	_px4_mag.set_external(_parent->is_external());
 	_px4_mag.set_temperature(_parent->_last_temperature);
-	//_px4_mag.set_error_count(perf_event_count(_mag_errors));
 
 	/*
-	 * Align axes - note the accel & gryo are also re-aligned so this
+	 * Align axes - note the accel & gyro are also re-aligned so this
 	 *              doesn't look obvious with the datasheet
 	 */
 	_px4_mag.update(timestamp_sample, data.x, -data.y, -data.z);
@@ -207,15 +224,15 @@ MPU9250_mag::write_reg(unsigned reg, uint8_t value)
 }
 
 int
-MPU9250_mag::ak8963_reset(void)
+MPU9250_mag::ak8963_reset()
 {
 	// First initialize it to use the bus
 	int rv = ak8963_setup();
 
 	if (rv == OK) {
-
 		// Now reset the mag
 		write_reg(AK8963REG_CNTL2, AK8963_RESET);
+
 		// Then re-initialize the bus/mag
 		rv = ak8963_setup();
 	}
@@ -224,7 +241,7 @@ MPU9250_mag::ak8963_reset(void)
 }
 
 bool
-MPU9250_mag::ak8963_read_adjustments(void)
+MPU9250_mag::ak8963_read_adjustments()
 {
 	uint8_t response[3];
 	float ak8963_ASA[3];
@@ -256,7 +273,7 @@ MPU9250_mag::ak8963_read_adjustments(void)
 }
 
 int
-MPU9250_mag::ak8963_setup_master_i2c(void)
+MPU9250_mag::ak8963_setup_master_i2c()
 {
 	/* When _interface is null we are using SPI and must
 	 * use the parent interface to configure the device to act
@@ -275,12 +292,11 @@ MPU9250_mag::ak8963_setup_master_i2c(void)
 	return OK;
 }
 int
-MPU9250_mag::ak8963_setup(void)
+MPU9250_mag::ak8963_setup()
 {
 	int retries = 10;
 
 	do {
-
 		ak8963_setup_master_i2c();
 		write_reg(AK8963REG_CNTL2, AK8963_RESET);
 
@@ -293,7 +309,7 @@ MPU9250_mag::ak8963_setup(void)
 		retries--;
 		PX4_WARN("AK8963: bad id %d retries %d", id, retries);
 		_parent->modify_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_RST);
-		up_udelay(100);
+		px4_usleep(100);
 	} while (retries > 0);
 
 	if (retries > 0) {
@@ -304,7 +320,7 @@ MPU9250_mag::ak8963_setup(void)
 			PX4_ERR("AK8963: failed to read adjustment data. Retries %d", retries);
 
 			_parent->modify_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_RST);
-			up_udelay(100);
+			px4_usleep(100);
 			ak8963_setup_master_i2c();
 			write_reg(AK8963REG_CNTL2, AK8963_RESET);
 		}
@@ -314,21 +330,18 @@ MPU9250_mag::ak8963_setup(void)
 		PX4_ERR("AK8963: failed to initialize, disabled!");
 		_parent->modify_checked_reg(MPUREG_USER_CTRL, BIT_I2C_MST_EN, 0);
 		_parent->write_reg(MPUREG_I2C_MST_CTRL, 0);
+
 		return -EIO;
 	}
 
 	if (_parent->_whoami == MPU_WHOAMI_9250) {
 		write_reg(AK8963REG_CNTL1, AK8963_CONTINUOUS_MODE2 | AK8963_16BIT_ADC);
-
 	}
 
-	if (_interface == NULL) {
-
-		/* Configure mpu' I2c Master interface to read ak8963 data
-		 * Into to fifo
-		 */
+	if (_interface == nullptr) {
+		// Configure mpu' I2C Master interface to read ak8963 data into to fifo
 		if (_parent->_whoami == MPU_WHOAMI_9250) {
-			set_passthrough(AK8963REG_ST1, sizeof(struct ak8963_regs));
+			set_passthrough(AK8963REG_ST1, sizeof(ak8963_regs));
 		}
 	}
 

@@ -21,7 +21,7 @@ px4_add_board(
 
 	MODULES
 		attitude_estimator_q
-		camera_feedback
+		#camera_feedback
 		commander
 		dataman
 		ekf2
@@ -36,8 +36,10 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
+		mc_rate_control
 		mc_pos_control
 		navigator
+		rc_update
 		sensors
 		sih
 		#vtol_att_control

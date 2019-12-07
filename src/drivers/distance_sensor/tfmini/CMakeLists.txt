@@ -40,4 +40,6 @@ px4_add_module(
 		tfmini_parser.cpp
 	MODULE_CONFIG
 		module.yaml
+	DEPENDS
+		drivers_rangefinder
 	)

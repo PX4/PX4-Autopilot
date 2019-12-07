@@ -38,11 +38,11 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <px4_tasks.h>
-#include <px4_time.h>
-#include <px4_posix.h>
-#include <px4_init.h>
-#include <px4_defines.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/init.h>
+#include <px4_platform_common/defines.h>
 #include <dspal_platform.h>
 #include <vector>
 #include <string>

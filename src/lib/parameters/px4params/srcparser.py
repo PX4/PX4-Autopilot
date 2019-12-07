@@ -59,6 +59,7 @@ class Parameter(object):
         self.default = default
         self.volatile = "false"
         self.category = ""
+        self.boolean = False
 
     def GetName(self):
         return self.name
@@ -74,6 +75,9 @@ class Parameter(object):
 
     def GetVolatile(self):
         return self.volatile
+
+    def GetBoolean(self):
+        return self.boolean
 
     def SetField(self, code, value):
         """
@@ -98,6 +102,12 @@ class Parameter(object):
         Set volatile flag
         """
         self.volatile = "true"
+
+    def SetBoolean(self):
+        """
+        Set boolean flag
+        """
+        self.boolean = True
 
     def SetCategory(self, category):
         """
@@ -305,6 +315,8 @@ class SourceParser(object):
                                 param.SetVolatile()
                             elif tag == "category":
                                 param.SetCategory(tags[tag])
+                            elif tag == "boolean":
+                                param.SetBoolean()
                             elif tag not in self.valid_tags:
                                 sys.stderr.write("Skipping invalid documentation tag: '%s'\n" % tag)
                                 return False

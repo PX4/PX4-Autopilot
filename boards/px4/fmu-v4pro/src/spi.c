@@ -41,7 +41,7 @@
  * Included Files
  ************************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -99,15 +99,9 @@ __EXPORT void stm32_spi1select(FAR struct spi_dev_s *dev, uint32_t devid, bool s
 	/* SPI select is active low, so write !selected to select the device */
 
 	switch (devid) {
-
-	case PX4_SPIDEV_ICM:
-
-	/* Intended fallthrough */
-
 	case PX4_SPIDEV_ICM_20602:
 
-	/* Intended fallthrough */
-
+	// FALLTHROUGH
 	case PX4_SPIDEV_ICM_20608:
 
 		/* Making sure the other peripherals are not selected */

@@ -56,7 +56,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -99,6 +99,7 @@ static struct fmuk66_sdhc_state_s g_sdhc;
  * Private Functions
  ****************************************************************************/
 
+#if defined(GPIO_SD_CARDDETECT)
 /****************************************************************************
  * Name: fmuk66_mediachange
  ****************************************************************************/
@@ -143,6 +144,7 @@ static int fmuk66_cdinterrupt(int irq, FAR void *context, FAR void *args)
 	fmuk66_mediachange((struct fmuk66_sdhc_state_s *) args);
 	return OK;
 }
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -164,12 +166,13 @@ int fmuk66_sdhc_initialize(void)
 
 	VDD_3V3_SD_CARD_EN(true);
 
+#if defined(GPIO_SD_CARDDETECT)
 	kinetis_pinconfig(GPIO_SD_CARDDETECT);
 
 	/* Attached the card detect interrupt (but don't enable it yet) */
 
 	kinetis_pinirqattach(GPIO_SD_CARDDETECT, fmuk66_cdinterrupt, sdhc);
-
+#endif
 	/* Configure the write protect GPIO -- None */
 
 	/* Mount the SDHC-based MMC/SD block driver */
@@ -210,6 +213,7 @@ int fmuk66_sdhc_initialize(void)
 
 	syslog(LOG_ERR, "Successfully bound SDHC to the MMC/SD driver\n");
 
+#if defined(GPIO_SD_CARDDETECT)
 	/* Handle the initial card state */
 
 	fmuk66_mediachange(sdhc);
@@ -217,6 +221,9 @@ int fmuk66_sdhc_initialize(void)
 	/* Enable CD interrupts to handle subsequent media changes */
 
 	kinetis_pinirqenable(GPIO_SD_CARDDETECT);
+#else
+	sdhc_mediachange(sdhc->sdhc, true);
+#endif
 	return OK;
 }
 

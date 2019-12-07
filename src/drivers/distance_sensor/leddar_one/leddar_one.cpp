@@ -42,10 +42,10 @@
 #include <drivers/drv_hrt.h>
 #include <lib/drivers/rangefinder/PX4Rangefinder.hpp>
 #include <perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_getopt.h>
-#include <px4_module.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/topics/distance_sensor.h>
 
@@ -174,7 +174,7 @@ private:
 
 LeddarOne::LeddarOne(const char *device_path, const char *serial_port, uint8_t device_orientation):
 	CDev(device_path),
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(serial_port)),
 	_px4_rangefinder(0 /* device id not yet used */, ORB_PRIO_DEFAULT, device_orientation)
 {
 	_serial_port = strdup(serial_port);

@@ -286,7 +286,7 @@ BMI088_gyro::Run()
 void
 BMI088_gyro::measure_trampoline(void *arg)
 {
-	BMI088_gyro *dev = reinterpret_cast<BMI088_gyro *>(arg);
+	BMI088_gyro *dev = static_cast<BMI088_gyro *>(arg);
 
 	/* make another measurement */
 	dev->measure();
@@ -357,7 +357,7 @@ BMI088_gyro::measure()
 	/*
 	* Fetch the full set of measurements from the BMI088 gyro in one pass.
 	*/
-	bmi_gyroreport.cmd = BMI088_GYR_X_L | DIR_READ;
+	bmi_gyroreport.cmd = BMI088_GYR_CHIP_ID | DIR_READ;
 
 	const hrt_abstime timestamp_sample = hrt_absolute_time();
 
@@ -367,18 +367,16 @@ BMI088_gyro::measure()
 
 	check_registers();
 
-
 	// Get the last temperature from the accelerometer (the Gyro does not have its own temperature measurement)
 	_last_temperature = _accel_last_temperature_copy;
+
 
 	report.gyro_x = bmi_gyroreport.gyro_x;
 	report.gyro_y = bmi_gyroreport.gyro_y;
 	report.gyro_z = bmi_gyroreport.gyro_z;
 
-	if (report.gyro_x == 0 &&
-	    report.gyro_y == 0 &&
-	    report.gyro_z == 0) {
-		// all zero data - probably an SPI bus error
+	if ((bmi_gyroreport.chip_id) != BMI088_GYR_WHO_AM_I) {
+		// If chip id is not right, assume a bus transfer error
 		perf_count(_bad_transfers);
 		perf_end(_sample_perf);
 		// note that we don't call reset() here as a reset()

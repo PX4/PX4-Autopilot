@@ -42,8 +42,8 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <px4_tasks.h>
-#include <px4_sem.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/sem.h>
 #include <drivers/drv_hrt.h>
 
 #include <uORB/Publication.hpp>
@@ -102,7 +102,7 @@ private:
 
 	MavlinkULog(int datarate, float max_rate_factor, uint8_t target_system, uint8_t target_component);
 
-	~MavlinkULog();
+	~MavlinkULog() = default;
 
 	static void lock()
 	{

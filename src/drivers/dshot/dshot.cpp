@@ -46,11 +46,11 @@
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_arch/dshot.h>
-#include <px4_atomic.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_log.h>
-#include <px4_module.h>
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -492,7 +492,7 @@ void
 DShotOutput::capture_trampoline(void *context, uint32_t chan_index,
 				hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
-	DShotOutput *dev = reinterpret_cast<DShotOutput *>(context);
+	DShotOutput *dev = static_cast<DShotOutput *>(context);
 	dev->capture_callback(chan_index, edge_time, edge_state, overflow);
 }
 
@@ -877,7 +877,6 @@ DShotOutput::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	switch (cmd) {
 	case PWM_SERVO_GET_COUNT:
-	case MIXERIOCGETOUTPUTCOUNT:
 		switch (_mode) {
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
@@ -1256,6 +1255,9 @@ DShotOutput::module_new_mode(PortMode new_mode)
 		/* select 4-pin PWM mode */
 		mode = DShotOutput::MODE_4PWM;
 #endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 5
+		mode = DShotOutput::MODE_5PWM;
+#endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 6
 		mode = DShotOutput::MODE_6PWM;
 #endif
@@ -1475,6 +1477,9 @@ int DShotOutput::custom_command(int argc, char *argv[])
 	} else if (!strcmp(verb, "mode_pwm6")) {
 		new_mode = PORT_PWM6;
 
+#endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 5
+
 	} else if (!strcmp(verb, "mode_pwm5")) {
 		new_mode = PORT_PWM5;
 
@@ -1529,6 +1534,65 @@ int DShotOutput::custom_command(int argc, char *argv[])
 	}
 
 	return print_usage("unknown command");
+}
+
+int DShotOutput::print_status()
+{
+	const char *mode_str = nullptr;
+
+	switch (_mode) {
+
+	case MODE_NONE: mode_str = "no outputs"; break;
+
+	case MODE_1PWM: mode_str = "outputs1"; break;
+
+	case MODE_2PWM: mode_str = "outputs2"; break;
+
+	case MODE_2PWM2CAP: mode_str = "outputs2cap2"; break;
+
+	case MODE_3PWM: mode_str = "outputs3"; break;
+
+	case MODE_3PWM1CAP: mode_str = "outputs3cap1"; break;
+
+	case MODE_4PWM: mode_str = "outputs4"; break;
+
+	case MODE_4PWM1CAP: mode_str = "outputs4cap1"; break;
+
+	case MODE_4PWM2CAP: mode_str = "outputs4cap2"; break;
+
+	case MODE_5PWM: mode_str = "outputs5"; break;
+
+	case MODE_5PWM1CAP: mode_str = "outputs5cap1"; break;
+
+	case MODE_6PWM: mode_str = "outputs6"; break;
+
+	case MODE_8PWM: mode_str = "outputs8"; break;
+
+	case MODE_4CAP: mode_str = "cap4"; break;
+
+	case MODE_5CAP: mode_str = "cap5"; break;
+
+	case MODE_6CAP: mode_str = "cap6"; break;
+
+	default:
+		break;
+	}
+
+	if (mode_str) {
+		PX4_INFO("Mode: %s", mode_str);
+	}
+
+	PX4_INFO("Outputs initialized: %s", _outputs_initialized ? "yes" : "no");
+	PX4_INFO("Outputs on: %s", _outputs_on ? "yes" : "no");
+	perf_print_counter(_cycle_perf);
+	_mixing_output.printStatus();
+
+	if (_telemetry) {
+		PX4_INFO("telemetry on: %s", _telemetry_device);
+		_telemetry->handler.printStatus();
+	}
+
+	return 0;
 }
 
 int DShotOutput::print_usage(const char *reason)
@@ -1614,68 +1678,7 @@ After saving, the reversed direction will be regarded as the normal one. So to r
 	return 0;
 }
 
-int DShotOutput::print_status()
-{
-	const char *mode_str = nullptr;
-
-	switch (_mode) {
-
-	case MODE_NONE: mode_str = "no outputs"; break;
-
-	case MODE_1PWM: mode_str = "outputs1"; break;
-
-	case MODE_2PWM: mode_str = "outputs2"; break;
-
-	case MODE_2PWM2CAP: mode_str = "outputs2cap2"; break;
-
-	case MODE_3PWM: mode_str = "outputs3"; break;
-
-	case MODE_3PWM1CAP: mode_str = "outputs3cap1"; break;
-
-	case MODE_4PWM: mode_str = "outputs4"; break;
-
-  	case MODE_4PWM1CAP: mode_str = "outputs4cap1"; break;
-
-	case MODE_4PWM2CAP: mode_str = "outputs4cap2"; break;
-
-  	case MODE_5PWM: mode_str = "outputs5"; break;
-
-  	case MODE_5PWM1CAP: mode_str = "outputs5cap1"; break;
-
-  	case MODE_6PWM: mode_str = "outputs6"; break;
-
-	case MODE_8PWM: mode_str = "outputs8"; break;
-
-	case MODE_4CAP: mode_str = "cap4"; break;
-
-	case MODE_5CAP: mode_str = "cap5"; break;
-
-	case MODE_6CAP: mode_str = "cap6"; break;
-
-	default:
-		break;
-	}
-
-	if (mode_str) {
-		PX4_INFO("Mode: %s", mode_str);
-	}
-
-	PX4_INFO("Outputs initialized: %s", _outputs_initialized ? "yes" : "no");
-	PX4_INFO("Outputs on: %s", _outputs_on ? "yes" : "no");
-	perf_print_counter(_cycle_perf);
-	_mixing_output.printStatus();
-	if (_telemetry) {
-		PX4_INFO("telemetry on: %s", _telemetry_device);
-		_telemetry->handler.printStatus();
-	}
-
-	return 0;
-}
-
-extern "C" __EXPORT int dshot_main(int argc, char *argv[]);
-
-int
-dshot_main(int argc, char *argv[])
+extern "C" __EXPORT int dshot_main(int argc, char *argv[])
 {
 	return DShotOutput::main(argc, argv);
 }

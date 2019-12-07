@@ -219,18 +219,7 @@ This module is responsible for the safety button.
 	return 0;
 }
 
-int
-SafetyButton::print_status()
-{
-	PX4_INFO("Safety State (from button): %s", _safety_btn_off ? "off" : "on");
-
-	return 0;
-}
-
-extern "C" __EXPORT int safety_button_main(int argc, char *argv[]);
-
-int
-safety_button_main(int argc, char *argv[])
+extern "C" __EXPORT int safety_button_main(int argc, char *argv[])
 {
 	return SafetyButton::main(argc, argv);
 }

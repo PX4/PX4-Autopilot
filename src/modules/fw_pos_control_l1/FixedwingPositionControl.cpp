@@ -33,15 +33,29 @@
 
 #include "FixedwingPositionControl.hpp"
 
-extern "C" __EXPORT int fw_pos_control_l1_main(int argc, char *argv[]);
+#include <vtol_att_control/vtol_type.h>
 
-FixedwingPositionControl::FixedwingPositionControl() :
+FixedwingPositionControl::FixedwingPositionControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
-	_loop_perf(perf_alloc(PC_ELAPSED, "fw_pos_control_l1: cycle")),
+	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
+	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle")),
 	_launchDetector(this),
 	_runway_takeoff(this)
 {
+	if (vtol) {
+		_parameter_handles.airspeed_trans = param_find("VT_ARSP_TRANS");
+
+		// VTOL parameter VTOL_TYPE
+		int32_t vt_type = -1;
+		param_get(param_find("VT_TYPE"), &vt_type);
+
+		_vtol_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
+
+	} else {
+		_parameter_handles.airspeed_trans = PARAM_INVALID;
+	}
+
 	// limit to 50 Hz
 	_global_pos_sub.set_interval_ms(20);
 
@@ -98,13 +112,7 @@ FixedwingPositionControl::FixedwingPositionControl() :
 	_parameter_handles.heightrate_p = param_find("FW_T_HRATE_P");
 	_parameter_handles.heightrate_ff = param_find("FW_T_HRATE_FF");
 	_parameter_handles.speedrate_p = param_find("FW_T_SRATE_P");
-
-	// if vehicle is vtol these handles will be set when we get the vehicle status
-	_parameter_handles.airspeed_trans = PARAM_INVALID;
-	_parameter_handles.vtol_type = PARAM_INVALID;
-
-	// initialize to invalid vtol type
-	_parameters.vtol_type = -1;
+	_parameter_handles.loiter_radius = param_find("NAV_LOITER_RAD");
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -165,11 +173,7 @@ FixedwingPositionControl::parameters_update()
 	param_get(_parameter_handles.land_early_config_change, &(_parameters.land_early_config_change));
 	param_get(_parameter_handles.land_airspeed_scale, &(_parameters.land_airspeed_scale));
 	param_get(_parameter_handles.land_throtTC_scale, &(_parameters.land_throtTC_scale));
-
-	// VTOL parameter VTOL_TYPE
-	if (_parameter_handles.vtol_type != PARAM_INVALID) {
-		param_get(_parameter_handles.vtol_type, &_parameters.vtol_type);
-	}
+	param_get(_parameter_handles.loiter_radius, &(_parameters.loiter_radius));
 
 	// VTOL parameter VT_ARSP_TRANS
 	if (_parameter_handles.airspeed_trans != PARAM_INVALID) {
@@ -334,46 +338,25 @@ FixedwingPositionControl::vehicle_command_poll()
 }
 
 void
-FixedwingPositionControl::vehicle_status_poll()
-{
-	if (_vehicle_status_sub.update(&_vehicle_status)) {
-		/* set correct uORB ID, depending on if vehicle is VTOL or not */
-		if (_attitude_setpoint_id == nullptr) {
-			if (_vehicle_status.is_vtol) {
-				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
-
-				_parameter_handles.airspeed_trans = param_find("VT_ARSP_TRANS");
-				_parameter_handles.vtol_type = param_find("VT_TYPE");
-
-				parameters_update();
-
-			} else {
-				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
-			}
-		}
-	}
-}
-
-void
 FixedwingPositionControl::airspeed_poll()
 {
 	bool airspeed_valid = _airspeed_valid;
 
-	if (!_parameters.airspeed_disabled && _airspeed_sub.update()) {
+	if (!_parameters.airspeed_disabled && _airspeed_validated_sub.update()) {
 
-		const airspeed_s &as = _airspeed_sub.get();
+		const airspeed_validated_s &airspeed_validated = _airspeed_validated_sub.get();
+		_eas2tas = 1.0f; //this is the default value, taken in case of invalid airspeed
 
-		if (PX4_ISFINITE(as.indicated_airspeed_m_s)
-		    && PX4_ISFINITE(as.true_airspeed_m_s)
-		    && (as.indicated_airspeed_m_s > 0.0f)
-		    && !_vehicle_status.aspd_use_inhibit) {
+		if (PX4_ISFINITE(airspeed_validated.equivalent_airspeed_m_s)
+		    && PX4_ISFINITE(airspeed_validated.true_airspeed_m_s)
+		    && (airspeed_validated.equivalent_airspeed_m_s > 0.0f)) {
 
 			airspeed_valid = true;
 
-			_airspeed_last_valid = as.timestamp;
-			_airspeed = as.indicated_airspeed_m_s;
+			_airspeed_last_valid = airspeed_validated.timestamp;
+			_airspeed = airspeed_validated.equivalent_airspeed_m_s;
 
-			_eas2tas = constrain(as.true_airspeed_m_s / as.indicated_airspeed_m_s, 0.9f, 2.0f);
+			_eas2tas = constrain(airspeed_validated.true_airspeed_m_s / airspeed_validated.equivalent_airspeed_m_s, 0.9f, 2.0f);
 		}
 
 	} else {
@@ -399,12 +382,12 @@ FixedwingPositionControl::vehicle_attitude_poll()
 
 		// if the vehicle is a tailsitter we have to rotate the attitude by the pitch offset
 		// between multirotor and fixed wing flight
-		if (static_cast<vtol_type>(_parameters.vtol_type) == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
+		if (_vtol_tailsitter) {
 			Dcmf R_offset = Eulerf(0, M_PI_2_F, 0);
 			_R_nb = _R_nb * R_offset;
 		}
 
-		Eulerf euler_angles(_R_nb);
+		const Eulerf euler_angles(_R_nb);
 		_roll    = euler_angles(0);
 		_pitch   = euler_angles(1);
 		_yaw     = euler_angles(2);
@@ -868,8 +851,17 @@ FixedwingPositionControl::control_position(const Vector2f &curr_pos, const Vecto
 		} else if (pos_sp_curr.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
 
 			/* waypoint is a loiter waypoint */
-			_l1_control.navigate_loiter(curr_wp, curr_pos, pos_sp_curr.loiter_radius,
-						    pos_sp_curr.loiter_direction, nav_speed_2d);
+			float loiter_radius = pos_sp_curr.loiter_radius;
+			uint8_t loiter_direction = pos_sp_curr.loiter_direction;
+
+			if (pos_sp_curr.loiter_radius < 0.01f || pos_sp_curr.loiter_radius > -0.01f) {
+				loiter_radius = _parameters.loiter_radius;
+				loiter_direction = (loiter_radius > 0) ? 1 : -1;
+
+			}
+
+			_l1_control.navigate_loiter(curr_wp, curr_pos, loiter_radius, loiter_direction, nav_speed_2d);
+
 			_att_sp.roll_body = _l1_control.get_roll_setpoint();
 			_att_sp.yaw_body = _l1_control.nav_bearing();
 
@@ -1699,7 +1691,7 @@ FixedwingPositionControl::Run()
 		vehicle_command_poll();
 		vehicle_control_mode_poll();
 		_vehicle_land_detected_sub.update(&_vehicle_land_detected);
-		vehicle_status_poll();
+		_vehicle_status_sub.update(&_vehicle_status);
 		_vehicle_acceleration_sub.update();
 		_vehicle_rates_sub.update();
 
@@ -1744,15 +1736,7 @@ FixedwingPositionControl::Run()
 			    _control_mode.flag_control_acceleration_enabled ||
 			    _control_mode.flag_control_altitude_enabled) {
 
-				/* lazily publish the setpoint only once available */
-				if (_attitude_sp_pub != nullptr) {
-					/* publish the attitude setpoint */
-					orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &_att_sp);
-
-				} else if (_attitude_setpoint_id != nullptr) {
-					/* advertise and publish */
-					_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
-				}
+				_attitude_sp_pub.publish(_att_sp);
 
 				// only publish status in full FW mode
 				if (_vehicle_status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_FIXED_WING
@@ -1889,7 +1873,7 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 
 	// tailsitters use the multicopter frame as reference, in fixed wing
 	// we need to use the fixed wing frame
-	if (static_cast<vtol_type>(_parameters.vtol_type) == vtol_type::TAILSITTER && _vehicle_status.is_vtol) {
+	if (_vtol_tailsitter) {
 		float tmp = accel_body(0);
 		accel_body(0) = -accel_body(2);
 		accel_body(2) = tmp;
@@ -1935,7 +1919,15 @@ FixedwingPositionControl::tecs_update_pitch_throttle(float alt_sp, float airspee
 
 int FixedwingPositionControl::task_spawn(int argc, char *argv[])
 {
-	FixedwingPositionControl *instance = new FixedwingPositionControl();
+	bool vtol = false;
+
+	if (argc > 1) {
+		if (strcmp(argv[1], "vtol") == 0) {
+			vtol = true;
+		}
+	}
+
+	FixedwingPositionControl *instance = new FixedwingPositionControl(vtol);
 
 	if (instance) {
 		_object.store(instance);
@@ -1974,24 +1966,15 @@ fw_pos_control_l1 is the fixed wing position controller.
 
 )DESCR_STR");
 
-
 	PRINT_MODULE_USAGE_NAME("fw_pos_control_l1", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
 }
 
-int FixedwingPositionControl::print_status()
-{
-	PX4_INFO("Running");
-
-	perf_print_counter(_loop_perf);
-
-	return 0;
-}
-
-int fw_pos_control_l1_main(int argc, char *argv[])
+extern "C" __EXPORT int fw_pos_control_l1_main(int argc, char *argv[])
 {
 	return FixedwingPositionControl::main(argc, argv);
 }

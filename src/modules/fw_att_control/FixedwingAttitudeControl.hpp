@@ -31,28 +31,29 @@
  *
  ****************************************************************************/
 
-#include <px4_module.h>
 #include <drivers/drv_hrt.h>
-#include <ecl/attitude_fw/ecl_pitch_controller.h>
-#include <ecl/attitude_fw/ecl_roll_controller.h>
-#include <ecl/attitude_fw/ecl_wheel_controller.h>
-#include <ecl/attitude_fw/ecl_yaw_controller.h>
+#include <lib/ecl/attitude_fw/ecl_pitch_controller.h>
+#include <lib/ecl/attitude_fw/ecl_roll_controller.h>
+#include <lib/ecl/attitude_fw/ecl_wheel_controller.h>
+#include <lib/ecl/attitude_fw/ecl_yaw_controller.h>
 #include <lib/ecl/geo/geo.h>
-#include <mathlib/mathlib.h>
+#include <lib/mathlib/mathlib.h>
+#include <lib/parameters/param.h>
+#include <lib/perf/perf_counter.h>
 #include <matrix/math.hpp>
-#include <px4_config.h>
-#include <px4_defines.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
-#include <parameters/param.h>
-#include <perf/perf_counter.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
+#include <px4_platform_common/tasks.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
 #include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/airspeed.h>
+#include <uORB/topics/airspeed_validated.h>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/parameter_update.h>
@@ -71,10 +72,11 @@ using matrix::Quatf;
 
 using uORB::SubscriptionData;
 
-class FixedwingAttitudeControl final : public ModuleBase<FixedwingAttitudeControl>, public px4::WorkItem
+class FixedwingAttitudeControl final : public ModuleBase<FixedwingAttitudeControl>, public ModuleParams,
+	public px4::WorkItem
 {
 public:
-	FixedwingAttitudeControl();
+	FixedwingAttitudeControl(bool vtol = false);
 	~FixedwingAttitudeControl() override;
 
 	/** @see ModuleBase */
@@ -85,9 +87,6 @@ public:
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
-
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
 
 	void Run() override;
 
@@ -108,17 +107,13 @@ private:
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			/**< vehicle status subscription */
 	uORB::Subscription _vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
 
-	uORB::SubscriptionData<airspeed_s> _airspeed_sub{ORB_ID(airspeed)};
+	uORB::SubscriptionData<airspeed_validated_s> _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 
+	uORB::Publication<actuator_controls_s>		_actuators_0_pub;
 	uORB::Publication<actuator_controls_s>		_actuators_2_pub{ORB_ID(actuator_controls_2)};		/**< actuator control group 1 setpoint (Airframe) */
-	uORB::Publication<vehicle_rates_setpoint_s>	_rate_sp_pub{ORB_ID(vehicle_rates_setpoint)};		/**< rate setpoint publication */
-	uORB::PublicationMulti<rate_ctrl_status_s>	_rate_ctrl_status_pub{ORB_ID(rate_ctrl_status)};	/**< rate controller status publication */
-
-	orb_id_t	_attitude_setpoint_id{nullptr};
-	orb_advert_t	_attitude_sp_pub{nullptr};	/**< attitude setpoint point */
-
-	orb_id_t	_actuators_id{nullptr};		/**< pointer to correct actuator controls0 uORB metadata structure */
-	orb_advert_t	_actuators_0_pub{nullptr};	/**< actuator control group 0 setpoint */
+	uORB::Publication<vehicle_attitude_setpoint_s>	_attitude_sp_pub;
+	uORB::Publication<vehicle_rates_setpoint_s>	_rate_sp_pub{ORB_ID(vehicle_rates_setpoint)};
+	uORB::PublicationMulti<rate_ctrl_status_s>	_rate_ctrl_status_pub{ORB_ID(rate_ctrl_status)};
 
 	actuator_controls_s			_actuators {};		/**< actuator control inputs */
 	actuator_controls_s			_actuators_airframe {};	/**< actuator control inputs */
@@ -145,147 +140,80 @@ private:
 
 	bool _is_tailsitter{false};
 
-	struct {
-		float p_tc;
-		float p_p;
-		float p_i;
-		float p_ff;
-		float p_rmax_pos;
-		float p_rmax_neg;
-		float p_integrator_max;
-		float r_tc;
-		float r_p;
-		float r_i;
-		float r_ff;
-		float r_integrator_max;
-		float r_rmax;
-		float y_p;
-		float y_i;
-		float y_ff;
-		float y_integrator_max;
-		float roll_to_yaw_ff;
-		float y_rmax;
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::FW_ACRO_X_MAX>) _param_fw_acro_x_max,
+		(ParamFloat<px4::params::FW_ACRO_Y_MAX>) _param_fw_acro_y_max,
+		(ParamFloat<px4::params::FW_ACRO_Z_MAX>) _param_fw_acro_z_max,
 
-		bool w_en;
-		float w_p;
-		float w_i;
-		float w_ff;
-		float w_integrator_max;
-		float w_rmax;
+		(ParamFloat<px4::params::FW_AIRSPD_MAX>) _param_fw_airspd_max,
+		(ParamFloat<px4::params::FW_AIRSPD_MIN>) _param_fw_airspd_min,
+		(ParamFloat<px4::params::FW_AIRSPD_TRIM>) _param_fw_airspd_trim,
+		(ParamInt<px4::params::FW_ARSP_MODE>) _param_fw_arsp_mode,
 
-		float airspeed_min;
-		float airspeed_trim;
-		float airspeed_max;
+		(ParamBool<px4::params::FW_BAT_SCALE_EN>) _param_fw_bat_scale_en,
 
-		float trim_roll;
-		float trim_pitch;
-		float trim_yaw;
-		float dtrim_roll_vmin;
-		float dtrim_pitch_vmin;
-		float dtrim_yaw_vmin;
-		float dtrim_roll_vmax;
-		float dtrim_pitch_vmax;
-		float dtrim_yaw_vmax;
-		float dtrim_roll_flaps;
-		float dtrim_pitch_flaps;
-		float rollsp_offset_deg;		/**< Roll Setpoint Offset in deg */
-		float pitchsp_offset_deg;		/**< Pitch Setpoint Offset in deg */
-		float rollsp_offset_rad;		/**< Roll Setpoint Offset in rad */
-		float pitchsp_offset_rad;		/**< Pitch Setpoint Offset in rad */
-		float man_roll_max;			/**< Max Roll in rad */
-		float man_pitch_max;			/**< Max Pitch in rad */
-		float man_roll_scale;			/**< scale factor applied to roll actuator control in pure manual mode */
-		float man_pitch_scale;			/**< scale factor applied to pitch actuator control in pure manual mode */
-		float man_yaw_scale; 			/**< scale factor applied to yaw actuator control in pure manual mode */
+		(ParamFloat<px4::params::FW_DTRIM_P_FLPS>) _param_fw_dtrim_p_flps,
+		(ParamFloat<px4::params::FW_DTRIM_P_VMAX>) _param_fw_dtrim_p_vmax,
+		(ParamFloat<px4::params::FW_DTRIM_P_VMIN>) _param_fw_dtrim_p_vmin,
+		(ParamFloat<px4::params::FW_DTRIM_R_FLPS>) _param_fw_dtrim_r_flps,
+		(ParamFloat<px4::params::FW_DTRIM_R_VMAX>) _param_fw_dtrim_r_vmax,
+		(ParamFloat<px4::params::FW_DTRIM_R_VMIN>) _param_fw_dtrim_r_vmin,
+		(ParamFloat<px4::params::FW_DTRIM_Y_VMAX>) _param_fw_dtrim_y_vmax,
+		(ParamFloat<px4::params::FW_DTRIM_Y_VMIN>) _param_fw_dtrim_y_vmin,
 
-		float acro_max_x_rate_rad;
-		float acro_max_y_rate_rad;
-		float acro_max_z_rate_rad;
+		(ParamFloat<px4::params::FW_FLAPERON_SCL>) _param_fw_flaperon_scl,
+		(ParamFloat<px4::params::FW_FLAPS_LND_SCL>) _param_fw_flaps_lnd_scl,
+		(ParamFloat<px4::params::FW_FLAPS_SCL>) _param_fw_flaps_scl,
+		(ParamFloat<px4::params::FW_FLAPS_TO_SCL>) _param_fw_flaps_to_scl,
 
-		float flaps_scale;			/**< Scale factor for flaps */
-		float flaps_takeoff_scale;		/**< Scale factor for flaps on take-off */
-		float flaps_land_scale;			/**< Scale factor for flaps on landing */
-		float flaperon_scale;			/**< Scale factor for flaperons */
+		(ParamFloat<px4::params::FW_MAN_P_MAX>) _param_fw_man_p_max,
+		(ParamFloat<px4::params::FW_MAN_P_SC>) _param_fw_man_p_sc,
+		(ParamFloat<px4::params::FW_MAN_R_MAX>) _param_fw_man_r_max,
+		(ParamFloat<px4::params::FW_MAN_R_SC>) _param_fw_man_r_sc,
+		(ParamFloat<px4::params::FW_MAN_Y_SC>) _param_fw_man_y_sc,
 
-		float rattitude_thres;
+		(ParamFloat<px4::params::FW_P_RMAX_NEG>) _param_fw_p_rmax_neg,
+		(ParamFloat<px4::params::FW_P_RMAX_POS>) _param_fw_p_rmax_pos,
+		(ParamFloat<px4::params::FW_P_TC>) _param_fw_p_tc,
+		(ParamFloat<px4::params::FW_PR_FF>) _param_fw_pr_ff,
+		(ParamFloat<px4::params::FW_PR_I>) _param_fw_pr_i,
+		(ParamFloat<px4::params::FW_PR_IMAX>) _param_fw_pr_imax,
+		(ParamFloat<px4::params::FW_PR_P>) _param_fw_pr_p,
+		(ParamFloat<px4::params::FW_PSP_OFF>) _param_fw_psp_off,
 
-		int32_t bat_scale_en;			/**< Battery scaling enabled */
-		bool airspeed_disabled;
+		(ParamFloat<px4::params::FW_RATT_TH>) _param_fw_ratt_th,
 
-	} _parameters{};			/**< local copies of interesting parameters */
+		(ParamFloat<px4::params::FW_R_RMAX>) _param_fw_r_rmax,
+		(ParamFloat<px4::params::FW_R_TC>) _param_fw_r_tc,
+		(ParamFloat<px4::params::FW_RLL_TO_YAW_FF>) _param_fw_rll_to_yaw_ff,
+		(ParamFloat<px4::params::FW_RR_FF>) _param_fw_rr_ff,
+		(ParamFloat<px4::params::FW_RR_I>) _param_fw_rr_i,
+		(ParamFloat<px4::params::FW_RR_IMAX>) _param_fw_rr_imax,
+		(ParamFloat<px4::params::FW_RR_P>) _param_fw_rr_p,
+		(ParamFloat<px4::params::FW_RSP_OFF>) _param_fw_rsp_off,
 
-	struct {
+		(ParamBool<px4::params::FW_W_EN>) _param_fw_w_en,
+		(ParamFloat<px4::params::FW_W_RMAX>) _param_fw_w_rmax,
+		(ParamFloat<px4::params::FW_WR_FF>) _param_fw_wr_ff,
+		(ParamFloat<px4::params::FW_WR_I>) _param_fw_wr_i,
+		(ParamFloat<px4::params::FW_WR_IMAX>) _param_fw_wr_imax,
+		(ParamFloat<px4::params::FW_WR_P>) _param_fw_wr_p,
 
-		param_t p_tc;
-		param_t p_p;
-		param_t p_i;
-		param_t p_ff;
-		param_t p_rmax_pos;
-		param_t p_rmax_neg;
-		param_t p_integrator_max;
-		param_t r_tc;
-		param_t r_p;
-		param_t r_i;
-		param_t r_ff;
-		param_t r_integrator_max;
-		param_t r_rmax;
-		param_t y_p;
-		param_t y_i;
-		param_t y_ff;
-		param_t y_integrator_max;
-		param_t roll_to_yaw_ff;
-		param_t y_rmax;
+		(ParamFloat<px4::params::FW_Y_RMAX>) _param_fw_y_rmax,
+		(ParamFloat<px4::params::FW_YR_FF>) _param_fw_yr_ff,
+		(ParamFloat<px4::params::FW_YR_I>) _param_fw_yr_i,
+		(ParamFloat<px4::params::FW_YR_IMAX>) _param_fw_yr_imax,
+		(ParamFloat<px4::params::FW_YR_P>) _param_fw_yr_p,
 
-		param_t w_en;
-		param_t w_p;
-		param_t w_i;
-		param_t w_ff;
-		param_t w_integrator_max;
-		param_t w_rmax;
+		(ParamFloat<px4::params::TRIM_PITCH>) _param_trim_pitch,
+		(ParamFloat<px4::params::TRIM_ROLL>) _param_trim_roll,
+		(ParamFloat<px4::params::TRIM_YAW>) _param_trim_yaw
+	)
 
-		param_t airspeed_min;
-		param_t airspeed_trim;
-		param_t airspeed_max;
-
-		param_t trim_roll;
-		param_t trim_pitch;
-		param_t trim_yaw;
-		param_t dtrim_roll_vmin;
-		param_t dtrim_pitch_vmin;
-		param_t dtrim_yaw_vmin;
-		param_t dtrim_roll_vmax;
-		param_t dtrim_pitch_vmax;
-		param_t dtrim_yaw_vmax;
-		param_t dtrim_roll_flaps;
-		param_t dtrim_pitch_flaps;
-		param_t rollsp_offset_deg;
-		param_t pitchsp_offset_deg;
-		param_t man_roll_max;
-		param_t man_pitch_max;
-		param_t man_roll_scale;
-		param_t man_pitch_scale;
-		param_t man_yaw_scale;
-
-		param_t acro_max_x_rate;
-		param_t acro_max_y_rate;
-		param_t acro_max_z_rate;
-
-		param_t flaps_scale;
-		param_t flaps_takeoff_scale;
-		param_t flaps_land_scale;
-		param_t flaperon_scale;
-
-		param_t rattitude_thres;
-
-		param_t bat_scale_en;
-		param_t airspeed_mode;
-
-	} _parameter_handles{};		/**< handles for interesting parameters */
-
-	ECL_RollController				_roll_ctrl;
-	ECL_PitchController				_pitch_ctrl;
-	ECL_YawController				_yaw_ctrl;
-	ECL_WheelController			_wheel_ctrl;
+	ECL_RollController		_roll_ctrl;
+	ECL_PitchController		_pitch_ctrl;
+	ECL_YawController		_yaw_ctrl;
+	ECL_WheelController		_wheel_ctrl;
 
 	void control_flaps(const float dt);
 
@@ -298,7 +226,6 @@ private:
 	void		vehicle_manual_poll();
 	void		vehicle_attitude_setpoint_poll();
 	void		vehicle_rates_setpoint_poll();
-	void		vehicle_status_poll();
 	void		vehicle_land_detected_poll();
 
 	float 		get_airspeed_and_update_scaling();

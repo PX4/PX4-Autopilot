@@ -40,9 +40,9 @@
 #define MODULE_NAME "module"
 #endif
 
-#include <px4_module.h>
-#include <px4_defines.h>
-#include <px4_log.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/log.h>
 
 pthread_mutex_t px4_modules_mutex = PTHREAD_MUTEX_INITIALIZER;
 

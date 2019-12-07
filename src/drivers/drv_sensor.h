@@ -40,7 +40,7 @@
 #ifndef _DRV_SENSOR_H
 #define _DRV_SENSOR_H
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <stdint.h>
 #include <sys/ioctl.h>
 
@@ -116,6 +116,8 @@
 #define DRV_BARO_DEVTYPE_BAROSIM	0x65
 #define DRV_DEVTYPE_BMI088		0x66
 #define DRV_DEVTYPE_BMP388		0x67
+#define DRV_DEVTYPE_DPS310		0x68
+#define DRV_DEVTYPE_ST_ISM330DLC	0x69
 
 /*
  * ioctl() definitions

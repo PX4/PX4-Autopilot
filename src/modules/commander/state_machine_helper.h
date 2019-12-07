@@ -94,14 +94,6 @@ enum class position_nav_loss_actions_t {
 	LAND_TERMINATE = 1,	// Land/Terminate.  Assume no use of remote control after fallback. Switch to Land mode if a height estimate is available, else switch to TERMINATION.
 };
 
-typedef enum {
-	ARM_REQ_NONE = 0,
-	ARM_REQ_MISSION_BIT = (1 << 0),
-	ARM_REQ_ARM_AUTH_BIT = (1 << 1),
-	ARM_REQ_GPS_BIT = (1 << 2),
-	ARM_REQ_ESCS_CHECK_BIT = (1 << 3)
-} arm_requirements_t;
-
 extern const char *const arming_state_names[];
 
 bool is_safe(const safety_s &safety, const actuator_armed_s &armed);
@@ -125,14 +117,11 @@ bool set_nav_state(vehicle_status_s *status, actuator_armed_s *armed, commander_
 		   const position_nav_loss_actions_t posctl_nav_loss_act);
 
 /*
- * Checks the validty of position data aaainst the requirements of the current navigation
+ * Checks the validty of position data against the requirements of the current navigation
  * mode and switches mode if position data required is not available.
  */
 bool check_invalid_pos_nav_state(vehicle_status_s *status, bool old_failsafe, orb_advert_t *mavlink_log_pub,
 				 const vehicle_status_flags_s &status_flags, const bool use_rc, const bool using_global_pos);
-
-bool prearm_check(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags, const safety_s &safety,
-		  const uint8_t arm_requirements);
 
 
 // COM_LOW_BAT_ACT parameter values

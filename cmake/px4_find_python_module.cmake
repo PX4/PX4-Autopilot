@@ -31,6 +31,12 @@
 #
 ############################################################################
 
+# cmake include guard
+if(px4_find_python_module_included)
+	return()
+endif(px4_find_python_module_included)
+set(px4_find_python_module_included true)
+
 #
 #	px4_find_python_module
 #

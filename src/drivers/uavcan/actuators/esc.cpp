@@ -52,29 +52,20 @@ UavcanEscController::UavcanEscController(uavcan::INode &node) :
 	_orb_timer(node)
 {
 	_uavcan_pub_raw_cmd.setPriority(UAVCAN_COMMAND_TRANSFER_PRIORITY);
-
-	if (_perfcnt_invalid_input == nullptr) {
-		errx(1, "uavcan: couldn't allocate _perfcnt_invalid_input");
-	}
-
-	if (_perfcnt_scaling_error == nullptr) {
-		errx(1, "uavcan: couldn't allocate _perfcnt_scaling_error");
-	}
 }
 
 UavcanEscController::~UavcanEscController()
 {
-	perf_free(_perfcnt_invalid_input);
-	perf_free(_perfcnt_scaling_error);
 }
 
-int UavcanEscController::init()
+int
+UavcanEscController::init()
 {
 	// ESC status subscription
 	int res = _uavcan_sub_status.start(StatusCbBinder(this, &UavcanEscController::esc_status_sub_cb));
 
 	if (res < 0) {
-		warnx("ESC status sub failed %i", res);
+		PX4_ERR("ESC status sub failed %i", res);
 		return res;
 	}
 
@@ -85,13 +76,15 @@ int UavcanEscController::init()
 	return res;
 }
 
-void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
+void
+UavcanEscController::update_outputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS], unsigned num_outputs)
 {
-	if ((outputs == nullptr) ||
-	    (num_outputs > uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize) ||
-	    (num_outputs > esc_status_s::CONNECTED_ESC_MAX)) {
-		perf_count(_perfcnt_invalid_input);
-		return;
+	if (num_outputs > uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize) {
+		num_outputs = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::MaxSize;
+	}
+
+	if (num_outputs > esc_status_s::CONNECTED_ESC_MAX) {
+		num_outputs = esc_status_s::CONNECTED_ESC_MAX;
 	}
 
 	/*
@@ -111,36 +104,12 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	 */
 	uavcan::equipment::esc::RawCommand msg;
 
-	actuator_outputs_s actuator_outputs = {};
-	actuator_outputs.noutputs = num_outputs;
-	actuator_outputs.timestamp = hrt_absolute_time();
-
-	static const int cmd_max = uavcan::equipment::esc::RawCommand::FieldTypes::cmd::RawValueType::max();
-	const float cmd_min = _run_at_idle_throttle_when_armed ? 1.0F : 0.0F;
-
 	for (unsigned i = 0; i < num_outputs; i++) {
-		if (_armed_mask & MOTOR_BIT(i)) {
-			float scaled = (outputs[i] + 1.0F) * 0.5F * cmd_max;
-
-			// trim negative values back to minimum
-			if (scaled < cmd_min) {
-				scaled = cmd_min;
-				perf_count(_perfcnt_scaling_error);
-			}
-
-			if (scaled > cmd_max) {
-				scaled = cmd_max;
-				perf_count(_perfcnt_scaling_error);
-			}
-
-			msg.cmd.push_back(static_cast<int>(scaled));
-
-			_esc_status.esc[i].esc_setpoint_raw = abs(static_cast<int>(scaled));
-			actuator_outputs.output[i] = scaled;
+		if (stop_motors || outputs[i] == DISARMED_OUTPUT_VALUE) {
+			msg.cmd.push_back(static_cast<unsigned>(0));
 
 		} else {
-			msg.cmd.push_back(static_cast<unsigned>(0));
-			actuator_outputs.output[i] = 0.0f;
+			msg.cmd.push_back(static_cast<int>(outputs[i]));
 		}
 	}
 
@@ -167,41 +136,11 @@ void UavcanEscController::update_outputs(float *outputs, unsigned num_outputs)
 	 * Publish the command message to the bus
 	 * Note that for a quadrotor it takes one CAN frame
 	 */
-	(void)_uavcan_pub_raw_cmd.broadcast(msg);
-
-	// Publish actuator outputs
-	if (_actuator_outputs_pub != nullptr) {
-		orb_publish(ORB_ID(actuator_outputs), _actuator_outputs_pub, &actuator_outputs);
-
-	} else {
-		int instance;
-		_actuator_outputs_pub = orb_advertise_multi(ORB_ID(actuator_outputs), &actuator_outputs,
-					&instance, ORB_PRIO_DEFAULT);
-	}
-
+	_uavcan_pub_raw_cmd.broadcast(msg);
 }
 
-void UavcanEscController::arm_all_escs(bool arm)
-{
-	if (arm) {
-		_armed_mask = -1;
-
-	} else {
-		_armed_mask = 0;
-	}
-}
-
-void UavcanEscController::arm_single_esc(int num, bool arm)
-{
-	if (arm) {
-		_armed_mask = MOTOR_BIT(num);
-
-	} else {
-		_armed_mask = 0;
-	}
-}
-
-void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
+void
+UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<uavcan::equipment::esc::Status> &msg)
 {
 	if (msg.esc_index < esc_status_s::CONNECTED_ESC_MAX) {
 		auto &ref = _esc_status.esc[msg.esc_index];
@@ -211,32 +150,28 @@ void UavcanEscController::esc_status_sub_cb(const uavcan::ReceivedDataStructure<
 		ref.esc_voltage     = msg.voltage;
 		ref.esc_current     = msg.current;
 		ref.esc_temperature = msg.temperature;
-		ref.esc_setpoint    = msg.power_rating_pct;
 		ref.esc_rpm         = msg.rpm;
 		ref.esc_errorcount  = msg.error_count;
 	}
 }
 
-void UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent &)
+void
+UavcanEscController::orb_pub_timer_cb(const uavcan::TimerEvent &)
 {
 	_esc_status.timestamp = hrt_absolute_time();
 	_esc_status.esc_count = _rotor_count;
 	_esc_status.counter += 1;
 	_esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_CAN;
-	_esc_status.esc_online_flags = UavcanEscController::check_escs_status();
+	_esc_status.esc_online_flags = check_escs_status();
 
-	if (_esc_status_pub != nullptr) {
-		(void)orb_publish(ORB_ID(esc_status), _esc_status_pub, &_esc_status);
-
-	} else {
-		_esc_status_pub = orb_advertise(ORB_ID(esc_status), &_esc_status);
-	}
+	_esc_status_pub.publish(_esc_status);
 }
 
-uint8_t UavcanEscController::check_escs_status()
+uint8_t
+UavcanEscController::check_escs_status()
 {
 	int esc_status_flags = 0;
-	hrt_abstime now = hrt_absolute_time();
+	const hrt_abstime now = hrt_absolute_time();
 
 	for (int index = 0; index < esc_status_s::CONNECTED_ESC_MAX; index++) {
 

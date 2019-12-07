@@ -35,14 +35,14 @@
 #include "uORBFastRpcChannel.hpp"
 #include "uORBManager.hpp"
 
-#include <px4_tasks.h>
-#include <px4_posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/posix.h>
 #include <dspal_platform.h>
-#include "px4_log.h"
 #include "uORB/topics/sensor_combined.h"
 #include "uORB.h"
 #include <parameters/param.h>
-#include <shmem.h>
+#include <px4_platform_common/shmem.h>
+#include <px4_platform_common/log.h>
 
 __BEGIN_DECLS
 extern int dspal_main(int argc, char *argv[]);
