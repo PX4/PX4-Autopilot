@@ -102,9 +102,9 @@ public:
 
 	void runController()
 	{
-		_position_control.updateConstraints(_contraints);
-		_position_control.updateSetpoint(_input_setpoint);
-		_position_control.generateThrustYawSetpoint(.1f);
+		_position_control.setConstraints(_contraints);
+		_position_control.setInputSetpoint(_input_setpoint);
+		_position_control.update(.1f);
 		_position_control.getLocalPositionSetpoint(_output_setpoint);
 		_position_control.getAttitudeSetpoint(_attitude);
 	}
