@@ -652,9 +652,6 @@ MulticopterPositionControl::Run()
 			local_pos_sp.x = setpoint.x;
 			local_pos_sp.y = setpoint.y;
 			local_pos_sp.z = setpoint.z;
-			local_pos_sp.vx = PX4_ISFINITE(_control.getVelSp()(0)) ? _control.getVelSp()(0) : setpoint.vx;
-			local_pos_sp.vy = PX4_ISFINITE(_control.getVelSp()(1)) ? _control.getVelSp()(1) : setpoint.vy;
-			local_pos_sp.vz = PX4_ISFINITE(_control.getVelSp()(2)) ? _control.getVelSp()(2) : setpoint.vz;
 
 			// Publish local position setpoint
 			// This message will be used by other modules (such as Landdetector) to determine vehicle intention.
@@ -662,7 +659,8 @@ MulticopterPositionControl::Run()
 
 			// Inform FlightTask about the input and output of the velocity controller
 			// This is used to properly initialize the velocity setpoint when onpening the position loop (position unlock)
-			_flight_tasks.updateVelocityControllerIO(_control.getVelSp(), Vector3f(local_pos_sp.thrust));
+			_flight_tasks.updateVelocityControllerIO(Vector3f(local_pos_sp.vx, local_pos_sp.vy, local_pos_sp.vz),
+					Vector3f(local_pos_sp.thrust));
 
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 			attitude_setpoint.timestamp = time_stamp_now;

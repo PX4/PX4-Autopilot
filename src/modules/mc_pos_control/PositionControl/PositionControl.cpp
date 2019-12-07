@@ -71,18 +71,8 @@ void PositionControl::setState(const PositionControlStates &states)
 	_vel_dot = states.acceleration;
 }
 
-void PositionControl::_setCtrlFlag(bool value)
-{
-	for (int i = 0; i <= 2; i++) {
-		_ctrl_pos[i] = _ctrl_vel[i] = value;
-	}
-}
-
 bool PositionControl::setInputSetpoint(const vehicle_local_position_setpoint_s &setpoint)
 {
-	// by default we use the entire position-velocity control-loop pipeline (flag only for logging purpose)
-	_setCtrlFlag(true);
-
 	_pos_sp = Vector3f(setpoint.x, setpoint.y, setpoint.z);
 	_vel_sp = Vector3f(setpoint.vx, setpoint.vy, setpoint.vz);
 	_acc_sp = Vector3f(setpoint.acceleration);
@@ -180,7 +170,6 @@ bool PositionControl::_interfaceMapping()
 			// Velocity controller is active without position control.
 			// Set integral states and setpoints to 0
 			_pos_sp(i) = _pos(i) = 0.0f;
-			_ctrl_pos[i] = false; // position control-loop is not used
 
 			// thrust setpoint is not supported in velocity control
 			_thr_sp(i) = NAN;
@@ -196,7 +185,6 @@ bool PositionControl::_interfaceMapping()
 			// Set all integral states and setpoints to 0
 			_pos_sp(i) = _pos(i) = 0.0f;
 			_vel_sp(i) = _vel(i) = 0.0f;
-			_ctrl_pos[i] = _ctrl_vel[i] = false; // position/velocity control loop is not used
 
 			// Reset the Integral term.
 			_vel_int(i) = 0.0f;
@@ -243,7 +231,6 @@ bool PositionControl::_interfaceMapping()
 		// 70% of throttle range between min and hover
 		_thr_sp(2) = -(_lim_thr_min + (_hover_thrust - _lim_thr_min) * 0.7f);
 		// position and velocity control-loop is currently unused (flag only for logging purpose)
-		_setCtrlFlag(false);
 	}
 
 	return !(failsafe);

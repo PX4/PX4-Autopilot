@@ -159,27 +159,6 @@ public:
 	void resetIntegral() { _vel_int.setZero(); }
 
 	/**
-	 * 	Get the
-	 * 	@see _vel_sp
-	 * 	@return The velocity set-point that was executed in the control-loop. Nan if velocity control-loop was skipped.
-	 */
-	const matrix::Vector3f getVelSp() const
-	{
-		matrix::Vector3f vel_sp{};
-
-		for (int i = 0; i <= 2; i++) {
-			if (_ctrl_vel[i]) {
-				vel_sp(i) = _vel_sp(i);
-
-			} else {
-				vel_sp(i) = NAN;
-			}
-		}
-
-		return vel_sp;
-	}
-
-	/**
 	 * Get the controllers output local position setpoint
 	 * These setpoints are the ones which were executed on including PID output and feed-forward.
 	 * The acceleration or thrust setpoints can be used for attitude control.
@@ -204,7 +183,6 @@ private:
 
 	void _positionControl(); ///< Position proportional control
 	void _velocityControl(const float dt); ///< Velocity PID control
-	void _setCtrlFlag(bool value); /**< set control-loop flags (only required for logging) */
 
 	// Gains
 	matrix::Vector3f _gain_pos_p; ///< Position control proportional gain
@@ -240,6 +218,4 @@ private:
 	float _yawspeed_sp{}; /** desired yaw-speed */
 
 	bool _skip_controller{false}; /**< skips position/velocity controller. true for stabilized mode */
-	bool _ctrl_pos[3] = {true, true, true}; /**< True if the control-loop for position was used */
-	bool _ctrl_vel[3] = {true, true, true}; /**< True if the control-loop for velocity was used */
 };
