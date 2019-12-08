@@ -113,7 +113,6 @@ void PositionControl::setConstraints(const vehicle_constraints_s &constraints)
 void PositionControl::update(const float dt)
 {
 	if (_skip_controller) {
-
 		// Already received a valid thrust set-point.
 		// Limit the thrust vector.
 		float thr_mag = _thr_sp.length();
@@ -129,11 +128,11 @@ void PositionControl::update(const float dt)
 		_pos_sp = _pos;
 		_vel_sp = _vel;
 		_acc_sp = _vel_dot;
-
-	} else {
-		_positionControl();
-		_velocityControl(dt);
+		return;
 	}
+
+	_positionControl();
+	_velocityControl(dt);
 }
 
 bool PositionControl::_interfaceMapping()
