@@ -227,7 +227,7 @@ void Ekf::predictCovariance()
 	}
 
 	// compute noise variance for stationary processes
-	matrix::Vector<float, _k_num_states> process_noise {};
+	matrix::Vector<float, _k_num_states> process_noise;
 
 	// Construct the process noise variance diagonal for those states with a stationary process model
 	// These are kinematic states and their error growth is controlled separately by the IMU noise variances
@@ -323,7 +323,7 @@ void Ekf::predictCovariance()
 	SPP[10] = SF[16];
 
 	// covariance update
-	matrix::SquareMatrix<float, _k_num_states> nextP {};
+	matrix::SquareMatrix<float, _k_num_states> nextP;
 
 	// calculate variances and upper diagonal covariances for quaternion, velocity, position and gyro bias states
 	nextP(0,0) = P(0,0) + P(1,0)*SF[9] + P(2,0)*SF[11] + P(3,0)*SF[10] + P(10,0)*SF[14] + P(11,0)*SF[15] + P(12,0)*SPP[10] + (daxVar*SQ[10])/4 + SF[9]*(P(0,1) + P(1,1)*SF[9] + P(2,1)*SF[11] + P(3,1)*SF[10] + P(10,1)*SF[14] + P(11,1)*SF[15] + P(12,1)*SPP[10]) + SF[11]*(P(0,2) + P(1,2)*SF[9] + P(2,2)*SF[11] + P(3,2)*SF[10] + P(10,2)*SF[14] + P(11,2)*SF[15] + P(12,2)*SPP[10]) + SF[10]*(P(0,3) + P(1,3)*SF[9] + P(2,3)*SF[11] + P(3,3)*SF[10] + P(10,3)*SF[14] + P(11,3)*SF[15] + P(12,3)*SPP[10]) + SF[14]*(P(0,10) + P(1,10)*SF[9] + P(2,10)*SF[11] + P(3,10)*SF[10] + P(10,10)*SF[14] + P(11,10)*SF[15] + P(12,10)*SPP[10]) + SF[15]*(P(0,11) + P(1,11)*SF[9] + P(2,11)*SF[11] + P(3,11)*SF[10] + P(10,11)*SF[14] + P(11,11)*SF[15] + P(12,11)*SPP[10]) + SPP[10]*(P(0,12) + P(1,12)*SF[9] + P(2,12)*SF[11] + P(3,12)*SF[10] + P(10,12)*SF[14] + P(11,12)*SF[15] + P(12,12)*SPP[10]) + (dayVar*sq(q2))/4 + (dazVar*sq(q3))/4;
@@ -755,7 +755,6 @@ void Ekf::fixCovarianceErrors()
 
 	// accelerometer bias states
 	if ((_params.fusion_mode & MASK_INHIBIT_ACC_BIAS) || _accel_bias_inhibit) {
-
 		P.uncorrelateCovarianceSetVariance<3>(13, 0.0f);
 
 	} else {
@@ -844,7 +843,9 @@ void Ekf::fixCovarianceErrors()
 		}
 
 		// force symmetry
-		P.makeRowColSymmetric<6>(16);
+		P.makeRowColSymmetric<3>(16);
+		P.makeRowColSymmetric<3>(19);
+
 	}
 
 	// wind velocity states
@@ -865,10 +866,12 @@ void Ekf::fixCovarianceErrors()
 void Ekf::resetMagRelatedCovariances()
 {
 	// set the quaternion covariance terms to zero
-	P.uncorrelateCovarianceSetVariance<4>(0, 0.0f);
+	P.uncorrelateCovarianceSetVariance<2>(0, 0.0f);
+	P.uncorrelateCovarianceSetVariance<2>(2, 0.0f);
 
 	// reset the field state variance to the observation variance
-	P.uncorrelateCovarianceSetVariance<6>(16, sq(_params.mag_noise));
+	P.uncorrelateCovarianceSetVariance<3>(16, sq(_params.mag_noise));
+	P.uncorrelateCovarianceSetVariance<3>(19, sq(_params.mag_noise));
 
 	// save covariance data for re-use when auto-switching between heading and 3-axis fusion
 	saveMagCovData();
@@ -882,7 +885,8 @@ void Ekf::clearMagCov()
 
 void Ekf::zeroMagCov()
 {
-	P.uncorrelateCovarianceSetVariance<6>(16, 0.0f);
+	P.uncorrelateCovarianceSetVariance<3>(16, 0.0f);
+	P.uncorrelateCovarianceSetVariance<3>(19, 0.0f);
 }
 
 void Ekf::resetWindCovariance()

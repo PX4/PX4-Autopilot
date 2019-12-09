@@ -35,10 +35,15 @@ cmake_minimum_required(VERSION 3.0)
 
 project(ECL CXX)
 
-if (NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Build type" FORCE)
-	message(STATUS "set build type to ${CMAKE_BUILD_TYPE}")
+if(NOT CMAKE_BUILD_TYPE)
+	# force debug builds if we test ECL as standalone
+	if(BUILD_TESTING AND CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+		set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type" FORCE)
+	else()
+		set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "Build type" FORCE)
+	endif()
 endif()
+message(STATUS "build type is ${CMAKE_BUILD_TYPE}")
 
 set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel;Coverage")
 

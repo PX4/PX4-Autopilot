@@ -351,7 +351,7 @@ private:
 	uint64_t _time_last_arsp_fuse{0};	///< time the last fusion of airspeed measurements were performed (uSec)
 	uint64_t _time_last_beta_fuse{0};	///< time the last fusion of synthetic sideslip measurements were performed (uSec)
 	uint64_t _time_last_rng_ready{0};	///< time the last range finder measurement was ready (uSec)
-	Vector2f _last_known_posNE{};		///< last known local NE position vector (m)
+	Vector2f _last_known_posNE;		///< last known local NE position vector (m)
 	float _imu_collection_time_adj{0.0f};	///< the amount of time the IMU collection needs to be advanced to meet the target set by FILTER_UPDATE_PERIOD_MS (sec)
 
 	uint64_t _time_acc_bias_check{0};	///< last time the  accel bias check passed (uSec)
@@ -380,32 +380,32 @@ private:
 	bool _mag_decl_cov_reset{false};	///< true after the fuseDeclination() function has been used to modify the earth field covariances after a magnetic field reset event.
 	bool _synthetic_mag_z_active{false};	///< true if we are generating synthetic magnetometer Z measurements
 
-	matrix::SquareMatrix<float, _k_num_states> P {};	///< state covariance matrix
+	matrix::SquareMatrix<float, _k_num_states> P;	///< state covariance matrix
 
 	Vector3f _delta_vel_bias_var_accum;		///< kahan summation algorithm accumulator for delta velocity bias variance
 	Vector3f _delta_angle_bias_var_accum;	///< kahan summation algorithm accumulator for delta angle bias variance
 
 
-	Vector3f _gps_vel_innov {};	///< GPS velocity innovations (m/sec)
-	Vector3f _gps_vel_innov_var {};	///< GPS velocity innovation variances ((m/sec)**2)
+	Vector3f _gps_vel_innov;	///< GPS velocity innovations (m/sec)
+	Vector3f _gps_vel_innov_var;	///< GPS velocity innovation variances ((m/sec)**2)
 
-	Vector3f _gps_pos_innov {};	///< GPS position innovations (m)
-	Vector3f _gps_pos_innov_var {};	///< GPS position innovation variances (m**2)
+	Vector3f _gps_pos_innov;	///< GPS position innovations (m)
+	Vector3f _gps_pos_innov_var;	///< GPS position innovation variances (m**2)
 
-	Vector3f _ev_vel_innov {};	///< external vision velocity innovations (m/sec)
-	Vector3f _ev_vel_innov_var {};	///< external vision velocity innovation variances ((m/sec)**2)
+	Vector3f _ev_vel_innov;	///< external vision velocity innovations (m/sec)
+	Vector3f _ev_vel_innov_var;	///< external vision velocity innovation variances ((m/sec)**2)
 
-	Vector3f _ev_pos_innov {};	///< external vision position innovations (m)
-	Vector3f _ev_pos_innov_var {};	///< external vision position innovation variances (m**2)
+	Vector3f _ev_pos_innov;	///< external vision position innovations (m)
+	Vector3f _ev_pos_innov_var;	///< external vision position innovation variances (m**2)
 
-	Vector3f _baro_hgt_innov {};		///< baro hgt innovations (m)
-	Vector3f _baro_hgt_innov_var {};	///< baro hgt innovation variances (m**2)
+	Vector3f _baro_hgt_innov;		///< baro hgt innovations (m)
+	Vector3f _baro_hgt_innov_var;	///< baro hgt innovation variances (m**2)
 
-	Vector3f _rng_hgt_innov {};	///< range hgt innovations (m)
-	Vector3f _rng_hgt_innov_var {};	///< range hgt innovation variances (m**2)
+	Vector3f _rng_hgt_innov;	///< range hgt innovations (m)
+	Vector3f _rng_hgt_innov_var;	///< range hgt innovation variances (m**2)
 
-	Vector3f _aux_vel_innov {};	///< horizontal auxiliary velocity innovations: (m/sec)
-	Vector3f _aux_vel_innov_var {};	///< horizontal auxiliary velocity innovation variances: ((m/sec)**2)
+	Vector3f _aux_vel_innov;	///< horizontal auxiliary velocity innovations: (m/sec)
+	Vector3f _aux_vel_innov_var;	///< horizontal auxiliary velocity innovation variances: ((m/sec)**2)
 
 	float _heading_innov{0.0f};	///< heading measurement innovation (rad)
 	float _heading_innov_var{0.0f};	///< heading measurement innovation variance (rad**2)
@@ -484,7 +484,7 @@ private:
 
 	// variables used to inhibit accel bias learning
 	bool _accel_bias_inhibit{false};	///< true when the accel bias learning is being inhibited
-	Vector3f _accel_vec_filt{};		///< acceleration vector after application of a low pass filter (m/sec**2)
+	Vector3f _accel_vec_filt;		///< acceleration vector after application of a low pass filter (m/sec**2)
 	float _accel_mag_filt{0.0f};	///< acceleration magnitude after application of a decaying envelope filter (rad/sec)
 	float _ang_rate_mag_filt{0.0f};		///< angular rate magnitude after application of a decaying envelope filter (rad/sec)
 	Vector3f _prev_dvel_bias_var;		///< saved delta velocity XYZ bias variances (m/sec)**2
