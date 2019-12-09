@@ -171,6 +171,8 @@ private:
 	 */
 	float filter_altitude_ellipsoid(float amsl_hgt);
 
+	inline float sq(float x) { return x * x; };
+
 	const bool 	_replay_mode;			///< true when we use replay data from a log
 
 	// time slip monitoring
@@ -1106,14 +1108,15 @@ void Ekf2::Run()
 				ev_data.vel(2) = _ev_odom.vz;
 
 				// velocity measurement error from ev_data or parameters
+				float param_evv_noise_var = sq(_param_ekf2_evv_noise.get());
+
 				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE])) {
-					ev_data.velErr = fmaxf(_param_ekf2_evv_noise.get(),
-							       sqrtf(fmaxf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE],
-									   fmaxf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VY_VARIANCE],
-											   _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE]))));
+					ev_data.velVar(0) = fmaxf(param_evv_noise_var, _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VX_VARIANCE]);
+					ev_data.velVar(1) = fmaxf(param_evv_noise_var, _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VY_VARIANCE]);
+					ev_data.velVar(2) = fmaxf(param_evv_noise_var, _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_VZ_VARIANCE]);
 
 				} else {
-					ev_data.velErr = _param_ekf2_evv_noise.get();
+					ev_data.velVar.setAll(param_evv_noise_var);
 				}
 			}
 
@@ -1123,17 +1126,16 @@ void Ekf2::Run()
 				ev_data.pos(1) = _ev_odom.y;
 				ev_data.pos(2) = _ev_odom.z;
 
+				float param_evp_noise_var = sq(_param_ekf2_evp_noise.get());
+
 				// position measurement error from ev_data or parameters
 				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_X_VARIANCE])) {
-					ev_data.posErr = fmaxf(_param_ekf2_evp_noise.get(),
-							       sqrtf(fmaxf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_X_VARIANCE],
-									   _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_Y_VARIANCE])));
-					ev_data.hgtErr = fmaxf(_param_ekf2_evp_noise.get(),
-							       sqrtf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_Z_VARIANCE]));
+					ev_data.posVar(0) = fmaxf(param_evp_noise_var, _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_X_VARIANCE]);
+					ev_data.posVar(1) = fmaxf(param_evp_noise_var, _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_Y_VARIANCE]);
+					ev_data.posVar(2) = fmaxf(param_evp_noise_var, _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_Z_VARIANCE]);
 
 				} else {
-					ev_data.posErr = _param_ekf2_evp_noise.get();
-					ev_data.hgtErr = _param_ekf2_evp_noise.get();
+					ev_data.posVar.setAll(_param_ekf2_evp_noise.get());
 				}
 			}
 
@@ -1142,21 +1144,18 @@ void Ekf2::Run()
 				ev_data.quat = matrix::Quatf(_ev_odom.q);
 
 				// orientation measurement error from ev_data or parameters
-				if (!_param_ekf2_ev_noise_md.get()
-				    && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE])) {
-					ev_data.angErr = fmaxf(_param_ekf2_eva_noise.get(),
-							       sqrtf(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE]));
+				float param_eva_noise_var = sq(_param_ekf2_eva_noise.get());
+
+				if (!_param_ekf2_ev_noise_md.get() && PX4_ISFINITE(_ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE])) {
+					ev_data.angVar = fmaxf(param_eva_noise_var, _ev_odom.pose_covariance[_ev_odom.COVARIANCE_MATRIX_YAW_VARIANCE]);
 
 				} else {
-					ev_data.angErr = _param_ekf2_eva_noise.get();
+					ev_data.angVar = param_eva_noise_var;
 				}
 			}
 
-			// only set data if all positions and orientation are valid
-			if (ev_data.posErr < ep_max_std_dev && ev_data.angErr < eo_max_std_dev) {
-				// use timestamp from external computer, clocks are synchronized when using MAVROS
-				_ekf.setExtVisionData(_ev_odom.timestamp, &ev_data);
-			}
+			// use timestamp from external computer, clocks are synchronized when using MAVROS
+			_ekf.setExtVisionData(_ev_odom.timestamp, &ev_data);
 
 			ekf2_timestamps.visual_odometry_timestamp_rel = (int16_t)((int64_t)_ev_odom.timestamp / 100 -
 					(int64_t)ekf2_timestamps.timestamp / 100);
