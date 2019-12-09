@@ -1177,8 +1177,8 @@ void Ekf2::Run()
 				// we can only use the landing target if it has a fixed position and  a valid velocity estimate
 				if (landing_target_pose.is_static && landing_target_pose.rel_vel_valid) {
 					// velocity of vehicle relative to target has opposite sign to target relative to vehicle
-					float velocity[2] = { -landing_target_pose.vx_rel, -landing_target_pose.vy_rel};
-					float variance[2] = {landing_target_pose.cov_vx_rel, landing_target_pose.cov_vy_rel};
+					matrix::Vector3f velocity { -landing_target_pose.vx_rel, -landing_target_pose.vy_rel, 0.0f};
+					matrix::Vector3f variance {landing_target_pose.cov_vx_rel, landing_target_pose.cov_vy_rel, 0.0f};
 					_ekf.setAuxVelData(landing_target_pose.timestamp, velocity, variance);
 				}
 			}
