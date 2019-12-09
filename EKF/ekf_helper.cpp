@@ -1333,7 +1333,7 @@ void Ekf::get_innovation_test_status(uint16_t &status, float &mag, float &vel, f
 void Ekf::get_ekf_soln_status(uint16_t *status)
 {
 	ekf_solution_status soln_status;
-
+	// TODO: Is this accurate enough?
 	soln_status.flags.attitude = _control_status.flags.tilt_align && _control_status.flags.yaw_align && (_fault_status.value == 0);
 	soln_status.flags.velocity_horiz = (_control_status.flags.gps || _control_status.flags.ev_pos|| _control_status.flags.ev_vel || _control_status.flags.opt_flow || (_control_status.flags.fuse_beta && _control_status.flags.fuse_aspd)) && (_fault_status.value == 0);
 	soln_status.flags.velocity_vert = (_control_status.flags.baro_hgt || _control_status.flags.ev_hgt || _control_status.flags.gps_hgt || _control_status.flags.rng_hgt) && (_fault_status.value == 0);
