@@ -540,16 +540,19 @@ protected:
 	bool _drag_buffer_fail{false};
 	bool _auxvel_buffer_fail{false};
 
-	uint64_t _time_last_imu{0};	// timestamp of last imu sample in microseconds
-	uint64_t _time_last_gps{0};	// timestamp of last gps measurement in microseconds
-	uint64_t _time_last_mag{0};	// timestamp of last magnetometer measurement in microseconds
-	uint64_t _time_last_baro{0};	// timestamp of last barometer measurement in microseconds
-	uint64_t _time_last_range{0};	// timestamp of last range measurement in microseconds
-	uint64_t _time_last_airspeed{0};	// timestamp of last airspeed measurement in microseconds
-	uint64_t _time_last_ext_vision{0}; // timestamp of last external vision measurement in microseconds
+	// timestamps of latest in buffer saved measurement in microseconds
+	uint64_t _time_last_imu{0};
+	uint64_t _time_last_gps{0};
+	uint64_t _time_last_mag{0};
+	uint64_t _time_last_baro{0};
+	uint64_t _time_last_range{0};
+	uint64_t _time_last_airspeed{0};
+	uint64_t _time_last_ext_vision{0};
 	uint64_t _time_last_optflow{0};
-	uint64_t _time_last_gnd_effect_on{0};	//last time the baro ground effect compensation was turned on externally (uSec)
 	uint64_t _time_last_auxvel{0};
+	//last time the baro ground effect compensation was turned on externally (uSec)
+	uint64_t _time_last_gnd_effect_on{0};
+
 
 	fault_status_u _fault_status{};
 
