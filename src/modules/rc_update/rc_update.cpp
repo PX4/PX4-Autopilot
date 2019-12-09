@@ -112,10 +112,10 @@ RCUpdate::parameters_updated()
 	}
 
 	// make sure the filter is in its stable region -> fc < fs/2
-	const float flt_cutoff_min = _param_rc_flt_smp_rate.get() / 2.0f - 1.0f;
+	const float flt_cutoff_max = _param_rc_flt_smp_rate.get() / 2.0f - 1.0f;
 
 	if (_param_rc_flt_cutoff.get() > flt_cutoff_max) {
-		_param_rc_flt_cutoff.set(flt_cutoff_min);
+		_param_rc_flt_cutoff.set(flt_cutoff_max);
 		_param_rc_flt_cutoff.commit_no_notification();
 	}
 
