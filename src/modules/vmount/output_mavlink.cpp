@@ -75,6 +75,15 @@ int OutputMavlink::update(const ControlData *control_data)
 			vehicle_command.param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_MAVLINK_TARGETING;
 		}
 
+		// We assume that a MAVLink gimbal does the stabilization.
+		vehicle_command.param2 = 0.0f;
+		vehicle_command.param3 = 0.0f;
+		vehicle_command.param4 = 0.0f;
+
+		vehicle_command.param5 = static_cast<float>(control_data->type_data.angle.frames[0]);
+		vehicle_command.param6 = static_cast<float>(control_data->type_data.angle.frames[1]);
+		vehicle_command.param7 = static_cast<float>(control_data->type_data.angle.frames[2]);
+
 		_vehicle_command_pub.publish(vehicle_command);
 	}
 
