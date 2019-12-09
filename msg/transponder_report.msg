@@ -12,6 +12,7 @@ uint8 emitter_type 	# Type from ADSB_EMITTER_TYPE enum
 uint8 tslc 		# Time since last communication in seconds
 uint16 flags 		# Flags to indicate various statuses including valid data fields
 uint16 squawk 		# Squawk code
+uint8[18] uas_id	# Unique UAS ID
 
 # ADSB flags
 uint16 PX4_ADSB_FLAGS_VALID_COORDS = 1

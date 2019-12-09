@@ -925,7 +925,6 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 		   transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN; // Flags to indicate various statuses including valid data fields
 	tr.squawk = 6667;
 
-
 	uORB::PublicationQueued<transponder_report_s> tr_pub{ORB_ID(transponder_report)};
 	tr_pub.publish(tr);
 }
@@ -944,6 +943,10 @@ void Navigator::check_traffic()
 
 	bool changed = _traffic_sub.updated();
 
+	char guid[PX4_GUID_FORMAT_SIZE];
+	px4_guid_t px4_guid;
+	board_get_px4_guid(px4_guid);
+	board_get_px4_guid_formated(&guid[0], sizeof(guid));
 
 	float NAVTrafficAvoidUnmanned = _param_nav_traff_a_radu.get();
 	float NAVTrafficAvoidManned = _param_nav_traff_a_radm.get();
@@ -966,17 +969,29 @@ void Navigator::check_traffic()
 		}
 
 		//Ignore selfpublished UTM messages
-		//TODO change this to work with either UUID oder Mavlink ID
-		/*
-		if (vs.system_id == 999) {
-			mavlink_log_critical(&_mavlink_log_pub, "ONBOARD WARNING IGNORE");
-			continue;
-		} */
+		//GUID in Uint8 form is compared against reported UUID
+		if (sizeof(px4_guid) == sizeof(tr.uas_id) && memcmp(px4_guid, tr.uas_id, sizeof(px4_guid_t)) == 0) {
+			PX4_WARN("GUID MATCH Call sign: %s; GUID: %s",
+				 tr.callsign,
+				 guid);
+			break;
+			/*} else {
+			//Parsing UUIDs for debugging
+			mavlink_log_critical(&_mavlink_log_pub, "GUID Missmatch! GUID %s; GUIDstr %s; UASstr %s ",
+				guid,
+				px4_guid_str,
+				tr.uas_id);
+			*/
+		}
 
 		//Manned/Unmanned Vehicle Seperation Distance
 		if (tr.emitter_type == transponder_report_s::ADSB_EMITTER_TYPE_UAV) {
 			horizontal_separation = NAVTrafficAvoidUnmanned;
 			vertical_separation = NAVTrafficAvoidUnmanned;
+
+		} else {
+			horizontal_separation = NAVTrafficAvoidManned;
+			vertical_separation = NAVTrafficAvoidManned;
 		}
 
 		float d_hor, d_vert;
