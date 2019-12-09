@@ -28,15 +28,30 @@ public:
         _data(const_cast<Matrix<Type, M, N>*>(data)) {
         static_assert(P <= M, "Slice rows bigger than backing matrix");
         static_assert(Q <= N, "Slice cols bigger than backing matrix");
+        assert(x0 >= 0);
+        assert(x0 + P <= M);
+        assert(y0 >= 0);
+        assert(y0 + Q <= N);
     }
 
     Type operator()(size_t i, size_t j) const
     {
+        assert(i >= 0);
+        assert(i < P);
+        assert(j >= 0);
+        assert(j < Q);
+
         return (*_data)(_x0 + i, _y0 + j);
     }
 
     Type &operator()(size_t i, size_t j)
+
     {
+        assert(i >= 0);
+        assert(i < P);
+        assert(j >= 0);
+        assert(j < Q);
+
         return (*_data)(_x0 + i, _y0 + j);
     }
 
@@ -97,23 +112,23 @@ public:
         return Slice<Type, R, S, M, N>(x0 + _x0, y0 + _y0, _data);
     }
 
-    void copyTo(Type dst[M*N]) const
+    void copyTo(Type dst[P*Q]) const
     {
         const Slice<Type, P, Q, M, N> &self = *this;
 
-        for (size_t i = 0; i < M; i++) {
-            for (size_t j = 0; j < N; j++) {
+        for (size_t i = 0; i < P; i++) {
+            for (size_t j = 0; j < Q; j++) {
                 dst[i*N+j] = self(i, j);
             }
         }
     }
 
-    void copyToColumnMajor(Type dst[M*N]) const
+    void copyToColumnMajor(Type dst[P*Q]) const
     {
         const Slice<Type, P, Q, M, N> &self = *this;
 
-        for (size_t i = 0; i < M; i++) {
-            for (size_t j = 0; j < N; j++) {
+        for (size_t i = 0; i < P; i++) {
+            for (size_t j = 0; j < Q; j++) {
                 dst[i+(j*M)] = self(i, j);
             }
         }
