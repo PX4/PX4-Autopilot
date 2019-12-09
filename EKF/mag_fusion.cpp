@@ -626,7 +626,7 @@ void Ekf::fuseHeading()
 
 	} else if (_control_status.flags.ev_yaw) {
 		// using error estimate from external vision data
-		R_YAW = sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f));
+		R_YAW = fmaxf(_ev_sample_delayed.angVar, sq(1.0e-2f));
 
 	} else {
 		// default value

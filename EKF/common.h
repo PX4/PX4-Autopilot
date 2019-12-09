@@ -83,10 +83,9 @@ struct ext_vision_message {
 	Vector3f pos;	///< XYZ position in external vision's local reference frame (m) - Z must be aligned with down axis
 	Vector3f vel;	///< XYZ velocity in external vision's local reference frame (m/sec) - Z must be aligned with down axis
 	Quatf quat;		///< quaternion defining rotation from body to earth frame
-	float posErr;		///< 1-Sigma horizontal position accuracy (m)
-	float hgtErr;		///< 1-Sigma height accuracy (m)
-	float velErr;		///< 1-Sigma velocity accuracy (m/sec)
-	float angErr;		///< 1-Sigma angular error (rad)
+	Vector3f posVar;	///< XYZ position variances (m**2)
+	Vector3f velVar;	///< XYZ velocity variances ((m/sec)**2)
+	float angVar;		///< angular heading variance (rad**2)
 };
 
 struct outputSample {
@@ -156,10 +155,9 @@ struct extVisionSample {
 	Vector3f pos;	///< XYZ position in external vision's local reference frame (m) - Z must be aligned with down axis
 	Vector3f vel;	///< XYZ velocity in external vision's local reference frame (m/sec) - Z must be aligned with down axis
 	Quatf quat;		///< quaternion defining rotation from body to earth frame
-	float posErr;		///< 1-Sigma horizontal position accuracy (m)
-	float hgtErr;		///< 1-Sigma height accuracy (m)
-	float velErr;		///< 1-Sigma velocity accuracy (m/sec)
-	float angErr;		///< 1-Sigma angular error (rad)
+	Vector3f posVar;	///< XYZ position variances (m**2)
+	Vector3f velVar;	///< XYZ velocity variances ((m/sec)**2)
+	float angVar;		///< angular heading variance (rad**2)
 	uint64_t time_us;	///< timestamp of the measurement (uSec)
 };
 
