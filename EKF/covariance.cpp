@@ -853,7 +853,7 @@ void Ekf::fixCovarianceErrors()
 			P[15][15] = varZ;
 			_time_acc_bias_check = _time_last_imu;
 			_fault_status.flags.bad_acc_bias = false;
-			ECL_WARN_TIMESTAMPED("EKF invalid accel bias - resetting covariance");
+			ECL_WARN_TIMESTAMPED("invalid accel bias - resetting covariance");
 
 		} else {
 			// ensure the covariance values are symmetrical

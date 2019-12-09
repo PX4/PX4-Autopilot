@@ -104,7 +104,7 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 				_drag_buffer_fail = !_drag_buffer.allocate(_obs_buffer_length);
 
 				if (_drag_buffer_fail) {
-					ECL_ERR_TIMESTAMPED("EKF drag buffer allocation failed");
+					ECL_ERR_TIMESTAMPED("drag buffer allocation failed");
 					return;
 				}
 			}
@@ -170,7 +170,7 @@ void EstimatorInterface::setMagData(uint64_t time_usec, float (&data)[3])
 		_mag_buffer_fail = !_mag_buffer.allocate(_obs_buffer_length);
 
 		if (_mag_buffer_fail) {
-			ECL_ERR_TIMESTAMPED("EKF mag buffer allocation failed");
+			ECL_ERR_TIMESTAMPED("mag buffer allocation failed");
 			return;
 		}
 	}
@@ -202,7 +202,7 @@ void EstimatorInterface::setGpsData(uint64_t time_usec, const gps_message &gps)
 		_gps_buffer_fail = !_gps_buffer.allocate(_obs_buffer_length);
 
 		if (_gps_buffer_fail) {
-			ECL_ERR_TIMESTAMPED("EKF GPS buffer allocation failed");
+			ECL_ERR_TIMESTAMPED("GPS buffer allocation failed");
 			return;
 		}
 	}
@@ -263,7 +263,7 @@ void EstimatorInterface::setBaroData(uint64_t time_usec, float data)
 		_baro_buffer_fail = !_baro_buffer.allocate(_obs_buffer_length);
 
 		if (_baro_buffer_fail) {
-			ECL_ERR_TIMESTAMPED("EKF baro buffer allocation failed");
+			ECL_ERR_TIMESTAMPED("baro buffer allocation failed");
 			return;
 		}
 	}
@@ -296,7 +296,7 @@ void EstimatorInterface::setAirspeedData(uint64_t time_usec, float true_airspeed
 		_airspeed_buffer_fail = !_airspeed_buffer.allocate(_obs_buffer_length);
 
 		if (_airspeed_buffer_fail) {
-			ECL_ERR_TIMESTAMPED("EKF airspeed buffer allocation failed");
+			ECL_ERR_TIMESTAMPED("airspeed buffer allocation failed");
 			return;
 		}
 	}
@@ -326,7 +326,7 @@ void EstimatorInterface::setRangeData(uint64_t time_usec, float data, int8_t qua
 		_range_buffer_fail = !_range_buffer.allocate(_obs_buffer_length);
 
 		if (_range_buffer_fail) {
-			ECL_ERR_TIMESTAMPED("EKF range finder buffer allocation failed");
+			ECL_ERR_TIMESTAMPED("range finder buffer allocation failed");
 			return;
 		}
 	}
@@ -356,7 +356,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 		_flow_buffer_fail = !_flow_buffer.allocate(_imu_buffer_length);
 
 		if (_flow_buffer_fail) {
-			ECL_ERR_TIMESTAMPED("EKF optical flow buffer allocation failed");
+			ECL_ERR_TIMESTAMPED("optical flow buffer allocation failed");
 			return;
 		}
 	}
@@ -428,7 +428,7 @@ void EstimatorInterface::setExtVisionData(uint64_t time_usec, ext_vision_message
 		_ev_buffer_fail = !_ext_vision_buffer.allocate(_obs_buffer_length);
 
 		if (_ev_buffer_fail) {
-			ECL_ERR_TIMESTAMPED("EKF external vision buffer allocation failed");
+			ECL_ERR_TIMESTAMPED("external vision buffer allocation failed");
 			return;
 		}
 	}
@@ -468,7 +468,7 @@ void EstimatorInterface::setAuxVelData(uint64_t time_usec, float (&data)[2], flo
 		_auxvel_buffer_fail = !_auxvel_buffer.allocate(_obs_buffer_length);
 
 		if (_auxvel_buffer_fail) {
-			ECL_ERR_TIMESTAMPED("EKF aux vel buffer allocation failed");
+			ECL_ERR_TIMESTAMPED("aux vel buffer allocation failed");
 			return;
 		}
 	}
@@ -517,7 +517,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	      _output_buffer.allocate(_imu_buffer_length) &&
 	      _output_vert_buffer.allocate(_imu_buffer_length))) {
 
-		ECL_ERR_TIMESTAMPED("EKF buffer allocation failed!");
+		ECL_ERR_TIMESTAMPED("buffer allocation failed!");
 		unallocate_buffers();
 		return false;
 	}
