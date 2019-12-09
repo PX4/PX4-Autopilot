@@ -377,6 +377,10 @@ user_start(int argc, char *argv[])
 	if (minfo.mxordblk < 550) {
 
 		syslog(LOG_ERR, "ERR: not enough MEM");
+
+		/* schedule a reboot to give the FMU a chance to update */
+		schedule_reboot(2000000);
+
 		bool phase = false;
 
 		while (true) {
