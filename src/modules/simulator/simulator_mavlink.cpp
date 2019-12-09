@@ -346,7 +346,7 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 	static uint64_t last_integration_us = 0;
 
 	// battery simulation (limit update to 100Hz)
-	if (hrt_elapsed_time(&_battery_status.timestamp) >= 10_ms) {
+	if (hrt_elapsed_time(&_last_battery_timestamp) >= 10_ms) {
 
 		const float discharge_interval_us = _param_sim_bat_drain.get() * 1000 * 1000;
 
@@ -370,10 +370,9 @@ void Simulator::handle_message_hil_sensor(const mavlink_message_t *msg)
 		vbatt *= _battery.cell_count();
 
 		const float throttle = 0.0f; // simulate no throttle compensation to make the estimate predictable
-		_battery.updateBatteryStatus(now_us, vbatt, ibatt, true, true, 0, throttle, armed, &_battery_status);
+		_battery.updateBatteryStatus(now_us, vbatt, ibatt, true, true, 0, throttle, armed, true);
 
-		// publish the battery voltage
-		_battery_pub.publish(_battery_status);
+		_last_battery_timestamp = now_us;
 	}
 }
 

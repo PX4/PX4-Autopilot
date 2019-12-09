@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2012-2017 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,54 +31,37 @@
  *
  ****************************************************************************/
 
-#pragma once
-
 /**
- * @file parameters.h
+ * Scaling from ADC counts to volt on the ADC input (battery voltage)
  *
- * defines the list of parameters that are used within the sensors module
+ * This is not the battery voltage, but the intermediate ADC voltage.
+ * A value of -1 signifies that the board defaults are used, which is
+ * highly recommended.
  *
- * @author Beat Kueng <beat-kueng@gmx.net>
+ * @group Battery Calibration
+ * @decimal 8
  */
-#include <px4_platform_common/px4_config.h>
-#include <drivers/drv_rc_input.h>
-
-#include <parameters/param.h>
-#include <mathlib/mathlib.h>
-
-namespace battery_status
-{
-
-struct Parameters {
-	float battery_voltage_scaling;
-	float battery_current_scaling;
-	float battery_current_offset;
-	float battery_v_div;
-	float battery_a_per_v;
-	int32_t battery_source;
-	int32_t battery_adc_channel;
-};
-
-struct ParameterHandles {
-	param_t battery_voltage_scaling;
-	param_t battery_current_scaling;
-	param_t battery_current_offset;
-	param_t battery_v_div;
-	param_t battery_a_per_v;
-	param_t battery_source;
-	param_t battery_adc_channel;
-};
+PARAM_DEFINE_FLOAT(BAT_CNT_V_VOLT, -1.0f);
 
 /**
- * initialize ParameterHandles struct
+ * Scaling from ADC counts to volt on the ADC input (battery current)
+ *
+ * This is not the battery current, but the intermediate ADC voltage.
+ * A value of -1 signifies that the board defaults are used, which is
+ * highly recommended.
+ *
+ * @group Battery Calibration
+ * @decimal 8
  */
-void initialize_parameter_handles(ParameterHandles &parameter_handles);
-
+PARAM_DEFINE_FLOAT(BAT_CNT_V_CURR, -1.0);
 
 /**
- * Read out the parameters using the handles into the parameters struct.
- * @return 0 on success, <0 on error
+ * Offset in volt as seen by the ADC input of the current sensor.
+ *
+ * This offset will be subtracted before calculating the battery
+ * current based on the voltage.
+ *
+ * @group Battery Calibration
+ * @decimal 8
  */
-int update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters);
-
-} /* namespace sensors */
+PARAM_DEFINE_FLOAT(BAT_V_OFFS_CURR, 0.0);

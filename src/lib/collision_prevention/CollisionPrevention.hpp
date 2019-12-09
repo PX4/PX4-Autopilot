@@ -65,11 +65,10 @@ class CollisionPrevention : public ModuleParams
 {
 public:
 	CollisionPrevention(ModuleParams *parent);
-
-	virtual ~CollisionPrevention();
+	~CollisionPrevention() override = default;
 
 	/**
-	 * Returs true if Collision Prevention is running
+	 * Returns true if Collision Prevention is running
 	 */
 	bool is_active();
 

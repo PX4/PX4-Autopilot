@@ -43,4 +43,3 @@ add_subdirectory(../stm32_common/tone_alarm tone_alarm)
 add_subdirectory(../stm32_common/version version)
 
 add_subdirectory(px4io_serial)
-

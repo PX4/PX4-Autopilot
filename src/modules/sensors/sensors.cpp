@@ -72,7 +72,6 @@
 
 #include "parameters.h"
 #include "voted_sensors_update.h"
-
 #include "vehicle_acceleration/VehicleAcceleration.hpp"
 #include "vehicle_angular_velocity/VehicleAngularVelocity.hpp"
 
@@ -141,7 +140,6 @@ private:
 	ParameterHandles	_parameter_handles{};		/**< handles for interesting parameters */
 
 	VotedSensorsUpdate _voted_sensors_update;
-
 
 	VehicleAcceleration	_vehicle_acceleration;
 	VehicleAngularVelocity	_vehicle_angular_velocity;

@@ -189,10 +189,20 @@ void BlockLocalPositionEstimator::gpsCorrect()
 	Matrix<float, n_y_gps, n_y_gps> S = C * m_P * C.transpose() + R;
 
 	// publish innovations
-	for (size_t i = 0; i < 6; i++) {
-		_pub_innov.get().vel_pos_innov[i] = r(i);
-		_pub_innov.get().vel_pos_innov_var[i] = S(i, i);
-	}
+	_pub_innov.get().gps_hpos[0] = r(0);
+	_pub_innov.get().gps_hpos[1] = r(1);
+	_pub_innov.get().gps_vpos    = r(2);
+	_pub_innov.get().gps_hvel[0] = r(3);
+	_pub_innov.get().gps_hvel[1] = r(4);
+	_pub_innov.get().gps_vvel    = r(5);
+
+	// publish innovation variances
+	_pub_innov_var.get().gps_hpos[0] = S(0, 0);
+	_pub_innov_var.get().gps_hpos[1] = S(1, 1);
+	_pub_innov_var.get().gps_vpos    = S(2, 2);
+	_pub_innov_var.get().gps_hvel[0] = S(3, 3);
+	_pub_innov_var.get().gps_hvel[1] = S(4, 4);
+	_pub_innov_var.get().gps_vvel    = S(5, 5);
 
 	// residual covariance, (inverse)
 	Matrix<float, n_y_gps, n_y_gps> S_I = inv<float, n_y_gps>(S);
