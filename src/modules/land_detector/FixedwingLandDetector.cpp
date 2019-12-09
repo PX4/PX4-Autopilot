@@ -55,6 +55,11 @@ void FixedwingLandDetector::_update_topics()
 {
 	LandDetector::_update_topics();
 	_airspeed_sub.update(&_airspeed);
+
+	// zero airspeed on timeout
+	if (hrt_elapsed_time(&_airspeed.timestamp) > 1_s) {
+		_airspeed = airspeed_s{};
+	}
 }
 
 bool FixedwingLandDetector::_get_landed_state()
