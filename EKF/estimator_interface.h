@@ -203,7 +203,7 @@ public:
 	void setExtVisionData(uint64_t time_usec, ext_vision_message *evdata);
 
 	// set auxiliary velocity data
-	void setAuxVelData(uint64_t time_usec, float (&data)[2], float (&variance)[2]);
+	void setAuxVelData(uint64_t time_usec, const Vector3f &vel, const Vector3f &variance);
 
 	// return a address to the parameters struct
 	// in order to give access to the application
