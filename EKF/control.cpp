@@ -1398,14 +1398,16 @@ void Ekf::controlAuxVelFusion()
 		Vector2f aux_vel_innov_gate;
 		Vector3f aux_vel_obs_var;
 
-		_aux_vel_innov(0) = _state.vel(0) - _auxvel_sample_delayed.velNE(0);
-		_aux_vel_innov(1) = _state.vel(1) - _auxvel_sample_delayed.velNE(1);
+		_aux_vel_innov = _state.vel - _auxvel_sample_delayed.vel;
+		aux_vel_obs_var = _auxvel_sample_delayed.velVar;
 		aux_vel_innov_gate(0) = _params.auxvel_gate;
-		aux_vel_obs_var(0) = _auxvel_sample_delayed.velVarNE(0);
-		aux_vel_obs_var(1) = _auxvel_sample_delayed.velVarNE(1);
 
 		fuseHorizontalVelocity(_aux_vel_innov, aux_vel_innov_gate, aux_vel_obs_var,
 				_aux_vel_innov_var, _aux_vel_test_ratio);
+
+		// Can be enabled after bit for this is added to EKF_AID_MASK
+		// fuseVerticalVelocity(_aux_vel_innov, aux_vel_innov_gate, aux_vel_obs_var,
+		//		_aux_vel_innov_var, _aux_vel_test_ratio);
 
 	}
 }
