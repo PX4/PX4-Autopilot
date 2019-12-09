@@ -33,16 +33,19 @@
 
 #pragma once
 
-#include <drivers/device/integrator.h>
 #include <drivers/drv_accel.h>
 #include <drivers/drv_hrt.h>
 #include <lib/cdev/CDev.hpp>
 #include <lib/conversion/rotation.h>
-#include <mathlib/math/filter/LowPassFilter2pVector3f.hpp>
+#include <lib/drivers/device/integrator.h>
+#include <lib/ecl/geo/geo.h>
+#include <lib/mathlib/math/filter/LowPassFilter2pArray.hpp>
+#include <lib/mathlib/math/filter/LowPassFilter2pVector3f.hpp>
 #include <px4_platform_common/module_params.h>
-#include <uORB/uORB.h>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/sensor_accel.h>
+#include <uORB/topics/sensor_accel_fifo.h>
+#include <uORB/topics/sensor_accel_status.h>
 
 class PX4Accelerometer : public cdev::CDev, public ModuleParams
 {
@@ -53,34 +56,80 @@ public:
 
 	int	ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
 
-	void set_device_type(uint8_t devtype);
-	void set_error_count(uint64_t error_count) { _sensor_accel_pub.get().error_count = error_count; }
-	void set_scale(float scale) { _sensor_accel_pub.get().scaling = scale; }
-	void set_temperature(float temperature) { _sensor_accel_pub.get().temperature = temperature; }
+	uint32_t get_device_id() const { return _device_id; }
 
-	void set_sample_rate(unsigned rate);
+	void set_device_id(uint32_t device_id) { _device_id = device_id; }
+	void set_device_type(uint8_t devtype);
+	void set_error_count(uint64_t error_count) { _error_count += error_count; }
+	void set_range(float range) { _range = range; }
+	void set_sample_rate(uint16_t rate);
+	void set_scale(float scale) { _scale = scale; }
+	void set_temperature(float temperature) { _temperature = temperature; }
+	void set_update_rate(uint16_t rate);
 
 	void update(hrt_abstime timestamp, float x, float y, float z);
 
 	void print_status();
 
+	struct FIFOSample {
+		hrt_abstime timestamp_sample;
+		uint8_t samples; // number of samples
+		float dt; // in microseconds
+
+		int16_t x[8];
+		int16_t y[8];
+		int16_t z[8];
+	};
+	static_assert(sizeof(FIFOSample::x) == sizeof(sensor_accel_fifo_s::x), "FIFOSample.x invalid size");
+	static_assert(sizeof(FIFOSample::y) == sizeof(sensor_accel_fifo_s::y), "FIFOSample.y invalid size");
+	static_assert(sizeof(FIFOSample::z) == sizeof(sensor_accel_fifo_s::z), "FIFOSample.z invalid size");
+
+	void updateFIFO(const FIFOSample &sample);
+
 private:
 
-	void configure_filter(float cutoff_freq) { _filter.set_cutoff_frequency(_sample_rate, cutoff_freq); }
+	void		ConfigureFilter(float cutoff_freq);
+	void		ResetIntegrator();
 
-	uORB::PublicationMultiData<sensor_accel_s>	_sensor_accel_pub;
+	uORB::PublicationMulti<sensor_accel_s>			_sensor_pub;		// legacy message
+	uORB::PublicationMulti<sensor_accel_fifo_s>		_sensor_fifo_pub;
+	uORB::PublicationMultiData<sensor_accel_status_s>	_sensor_status_pub;
 
 	math::LowPassFilter2pVector3f _filter{1000, 100};
-	Integrator _integrator{4000, false};
 
-	const enum Rotation	_rotation;
+	math::LowPassFilter2pArray _filterArrayX{4000, 100};
+	math::LowPassFilter2pArray _filterArrayY{4000, 100};
+	math::LowPassFilter2pArray _filterArrayZ{4000, 100};
+
+	Integrator		_integrator{4000, false};
 
 	matrix::Vector3f	_calibration_scale{1.0f, 1.0f, 1.0f};
 	matrix::Vector3f	_calibration_offset{0.0f, 0.0f, 0.0f};
 
 	int			_class_device_instance{-1};
 
-	unsigned		_sample_rate{1000};
+
+	uint32_t		_device_id{0};
+
+	const enum Rotation	_rotation;
+
+	float			_range{16.0f * CONSTANTS_ONE_G};
+	float			_scale{1.0f};
+	float			_temperature{0.0f};
+
+	uint64_t		_error_count{0};
+
+	uint16_t		_sample_rate{1000};
+	uint16_t		_update_rate{1000};
+
+	// integrator
+	hrt_abstime		_integrator_timestamp_sample{0};
+	hrt_abstime		_timestamp_sample_prev{0};
+	int32_t			_integrator_accum[3] {};
+	uint8_t			_integrator_reset_samples{4};
+	uint8_t			_integrator_samples{0};
+	uint8_t			_integrator_fifo_samples{0};
+	uint8_t			_integrator_clipping{0};
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::IMU_ACCEL_CUTOFF>) _param_imu_accel_cutoff

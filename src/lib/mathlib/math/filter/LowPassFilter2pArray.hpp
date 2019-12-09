@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (C) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,54 +31,55 @@
  *
  ****************************************************************************/
 
+/// @file	LowPassFilter2pArray.hpp
+/// @brief	A class to implement a second order low pass filter
+
 #pragma once
 
-/**
- * @file parameters.h
- *
- * defines the list of parameters that are used within the sensors module
- *
- * @author Beat Kueng <beat-kueng@gmx.net>
- */
-#include <px4_platform_common/px4_config.h>
-#include <drivers/drv_rc_input.h>
+#include "LowPassFilter2p.hpp"
 
-#include <parameters/param.h>
-#include <mathlib/mathlib.h>
-
-namespace battery_status
+namespace math
 {
 
-struct Parameters {
-	float battery_voltage_scaling;
-	float battery_current_scaling;
-	float battery_current_offset;
-	float battery_v_div;
-	float battery_a_per_v;
-	int32_t battery_source;
-	int32_t battery_adc_channel;
+class LowPassFilter2pArray : public LowPassFilter2p
+{
+public:
+
+	LowPassFilter2pArray(float sample_freq, float cutoff_freq) : LowPassFilter2p(sample_freq, cutoff_freq)
+	{
+	}
+
+	/**
+	 * Add a new raw value to the filter
+	 *
+	 * @return retrieve the filtered result
+	 */
+	inline float apply(const int16_t samples[], uint8_t num_samples)
+	{
+		float output = 0.0f;
+
+		for (int n = 0; n < num_samples; n++) {
+			// do the filtering
+			float delay_element_0 = samples[n] - _delay_element_1 * _a1 - _delay_element_2 * _a2;
+
+			if (n == num_samples - 1) {
+				output = delay_element_0 * _b0 + _delay_element_1 * _b1 + _delay_element_2 * _b2;
+			}
+
+			_delay_element_2 = _delay_element_1;
+			_delay_element_1 = delay_element_0;
+		}
+
+		// don't allow bad values to propagate via the filter
+		if (!PX4_ISFINITE(output)) {
+			reset(samples[num_samples - 1]);
+			output = samples[num_samples - 1];
+		}
+
+		// return the value. Should be no need to check limits
+		return output;
+	}
+
 };
 
-struct ParameterHandles {
-	param_t battery_voltage_scaling;
-	param_t battery_current_scaling;
-	param_t battery_current_offset;
-	param_t battery_v_div;
-	param_t battery_a_per_v;
-	param_t battery_source;
-	param_t battery_adc_channel;
-};
-
-/**
- * initialize ParameterHandles struct
- */
-void initialize_parameter_handles(ParameterHandles &parameter_handles);
-
-
-/**
- * Read out the parameters using the handles into the parameters struct.
- * @return 0 on success, <0 on error
- */
-int update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters);
-
-} /* namespace sensors */
+} // namespace math

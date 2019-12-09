@@ -61,8 +61,8 @@ void BlockLocalPositionEstimator::landCorrect()
 	// residual
 	Matrix<float, n_y_land, n_y_land> S_I = inv<float, n_y_land>((C * m_P * C.transpose()) + R);
 	Vector<float, n_y_land> r = y - C * _x;
-	_pub_innov.get().hagl_innov = r(Y_land_agl);
-	_pub_innov.get().hagl_innov_var = R(Y_land_agl, Y_land_agl);
+	_pub_innov.get().hagl = r(Y_land_agl);
+	_pub_innov_var.get().hagl = R(Y_land_agl, Y_land_agl);
 
 	// fault detection
 	float beta = (r.transpose() * (S_I * r))(0, 0);

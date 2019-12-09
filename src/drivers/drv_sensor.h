@@ -117,6 +117,7 @@
 #define DRV_DEVTYPE_BMI088		0x66
 #define DRV_DEVTYPE_BMP388		0x67
 #define DRV_DEVTYPE_DPS310		0x68
+#define DRV_DEVTYPE_ST_ISM330DLC	0x69
 
 /*
  * ioctl() definitions

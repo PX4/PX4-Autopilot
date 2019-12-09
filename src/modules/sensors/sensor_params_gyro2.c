@@ -71,4 +71,3 @@ PARAM_DEFINE_FLOAT(CAL_GYRO2_YOFF, 0.0f);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_GYRO2_ZOFF, 0.0f);
-

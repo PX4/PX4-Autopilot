@@ -516,7 +516,9 @@ void Logger::add_default_topics()
 	add_topic("camera_trigger");
 	add_topic("camera_trigger_secondary");
 	add_topic("cpuload");
-	add_topic("ekf2_innovations", 200);
+	add_topic("estimator_innovations", 200);
+	add_topic("estimator_innovation_variances", 200);
+	add_topic("estimator_innovation_test_ratios", 200);
 	add_topic("ekf_gps_drift");
 	add_topic("esc_status", 250);
 	add_topic("estimator_status", 200);
@@ -553,6 +555,8 @@ void Logger::add_default_topics()
 	add_topic_multi("actuator_outputs", 100);
 	add_topic_multi("battery_status", 500);
 	add_topic_multi("distance_sensor", 100);
+	add_topic_multi("sensor_accel_status", 1000);
+	add_topic_multi("sensor_gyro_status", 1000);
 	add_topic_multi("telemetry_status");
 	add_topic_multi("vehicle_gps_position");
 	add_topic_multi("wind_estimate", 200);

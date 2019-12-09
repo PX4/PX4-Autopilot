@@ -135,10 +135,7 @@ private:
 	hrt_abstime _params_update[3]; // Time at which the parameters were updated
 	hrt_abstime _params_ack[3]; // Time at which the parameters were acknowledged by the nrf module
 
-	uORB::PublicationMulti<battery_status_s>	_battery_pub{ORB_ID(battery_status)};
 	uORB::PublicationMulti<input_rc_s>		_rc_pub{ORB_ID(input_rc)};
-
-	struct battery_status_s _battery_status;
 
 	Battery _battery;
 

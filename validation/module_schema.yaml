@@ -141,7 +141,7 @@ parameters:
                                 'celcius', 'gauss', 'gauss/s', 'mgauss', 'mgauss^2',
                                 'hPa', 'kg', 'kg/m^2',
                                 'mm', 'm', 'm/s', 'm/s^2', 'm/s^3', 'm/s^2/sqrt(Hz)', 'm/s/rad',
-                                'Ohm',
+                                'Ohm', 'V',
                                 'us', 'ms', 's' ]
                         bit:
                             # description of all bits for type bitmask.
