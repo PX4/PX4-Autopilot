@@ -117,8 +117,7 @@ Battery::reset()
 void
 Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a,
 			     bool connected, bool selected_source, int priority,
-			     float throttle_normalized,
-			     bool armed, bool should_publish)
+			     float throttle_normalized, bool should_publish)
 {
 	reset();
 	_battery_status.timestamp = timestamp;
@@ -126,7 +125,7 @@ Battery::updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float curre
 	filterThrottle(throttle_normalized);
 	filterCurrent(current_a);
 	sumDischarged(timestamp, current_a);
-	estimateRemaining(_voltage_filtered_v, _current_filtered_a, _throttle_filtered, armed);
+	estimateRemaining(_voltage_filtered_v, _current_filtered_a, _throttle_filtered);
 	computeScale();
 
 	if (_battery_initialized) {
@@ -235,7 +234,7 @@ Battery::sumDischarged(hrt_abstime timestamp, float current_a)
 }
 
 void
-Battery::estimateRemaining(float voltage_v, float current_a, float throttle, bool armed)
+Battery::estimateRemaining(float voltage_v, float current_a, float throttle)
 {
 	// remaining battery capacity based on voltage
 	float cell_voltage = voltage_v / _params.n_cells;

@@ -96,11 +96,10 @@ public:
 	 * @param selected_source: This battery is on the brick that the selected source for selected_source
 	 * @param priority: The brick number -1. The term priority refers to the Vn connection on the LTC4417
 	 * @param throttle_normalized: Throttle of the vehicle, between 0 and 1
-	 * @param armed: Arming state of the vehicle
 	 * @param should_publish If True, this function published a battery_status uORB message.
 	 */
 	void updateBatteryStatus(hrt_abstime timestamp, float voltage_v, float current_a, bool connected,
-				 bool selected_source, int priority, float throttle_normalized, bool armed, bool should_publish);
+				 bool selected_source, int priority, float throttle_normalized, bool should_publish);
 
 	/**
 	 * Publishes the uORB battery_status message with the most recently-updated data.
@@ -227,7 +226,7 @@ private:
 	void filterThrottle(float throttle);
 	void filterCurrent(float current_a);
 	void sumDischarged(hrt_abstime timestamp, float current_a);
-	void estimateRemaining(float voltage_v, float current_a, float throttle, bool armed);
+	void estimateRemaining(float voltage_v, float current_a, float throttle);
 	void determineWarning(bool connected);
 	void computeScale();
 

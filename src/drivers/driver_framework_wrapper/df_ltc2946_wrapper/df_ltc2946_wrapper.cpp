@@ -141,7 +141,7 @@ int DfLtc2946Wrapper::_publish(const struct ltc2946_sensor_data &data)
 	_battery.updateBatteryStatus(t, data.battery_voltage_V, data.battery_current_A,
 				     connected, true, 1,
 				     ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-				     vcontrol_mode.flag_armed, true);
+				     true);
 	return 0;
 }
 
