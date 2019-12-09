@@ -42,12 +42,18 @@ public:
 
     inline Type operator()(size_t i) const
     {
+        assert(i >= 0);
+        assert(i < M);
+
         const MatrixM1 &v = *this;
         return v(i, 0);
     }
 
     inline Type &operator()(size_t i)
     {
+        assert(i >= 0);
+        assert(i < M);
+
         MatrixM1 &v = *this;
         return v(i, 0);
     }

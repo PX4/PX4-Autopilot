@@ -96,11 +96,21 @@ public:
 
     inline Type operator()(size_t i, size_t j) const
     {
+        assert(i >= 0);
+        assert(i < M);
+        assert(j >= 0);
+        assert(j < N);
+
         return _data[i][j];
     }
 
     inline Type &operator()(size_t i, size_t j)
     {
+        assert(i >= 0);
+        assert(i < M);
+        assert(j >= 0);
+        assert(j < N);
+
         return _data[i][j];
     }
 
@@ -470,6 +480,11 @@ public:
 
     inline void swapRows(size_t a, size_t b)
     {
+        assert(a >= 0);
+        assert(a < M);
+        assert(b >= 0);
+        assert(b < M);
+
         if (a == b) {
             return;
         }
@@ -485,6 +500,11 @@ public:
 
     inline void swapCols(size_t a, size_t b)
     {
+        assert(a >= 0);
+        assert(a < N);
+        assert(b >= 0);
+        assert(b < N);
+
         if (a == b) {
             return;
         }
