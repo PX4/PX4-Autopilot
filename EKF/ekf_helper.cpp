@@ -54,7 +54,7 @@ bool Ekf::resetVelocity()
 
 	// reset EKF states
 	if (_control_status.flags.gps && _gps_check_fail_status.value==0) {
-		ECL_INFO_TIMESTAMPED("EKF reset velocity to GPS");
+		ECL_INFO_TIMESTAMPED("reset velocity to GPS");
 		// this reset is only called if we have new gps data at the fusion time horizon
 		_state.vel = _gps_sample_delayed.vel;
 
@@ -62,7 +62,7 @@ bool Ekf::resetVelocity()
 		setDiag(P, 4, 6, sq(_gps_sample_delayed.sacc));
 
 	} else if (_control_status.flags.opt_flow) {
-		ECL_INFO_TIMESTAMPED("EKF reset velocity to flow");
+		ECL_INFO_TIMESTAMPED("reset velocity to flow");
 		// constrain height above ground to be above minimum possible
 		float heightAboveGndEst = fmaxf((_terrain_vpos - _state.pos(2)), _params.rng_gnd_clearance);
 
@@ -97,7 +97,7 @@ bool Ekf::resetVelocity()
 		// reset the horizontal velocity variance using the optical flow noise variance
 		P[5][5] = P[4][4] = sq(range) * calcOptFlowMeasVar();
 	} else if (_control_status.flags.ev_vel) {
-		ECL_INFO_TIMESTAMPED("EKF reset velocity to ev velocity");
+		ECL_INFO_TIMESTAMPED("reset velocity to ev velocity");
 		Vector3f _ev_vel = _ev_sample_delayed.vel;
 		if(_params.fusion_mode & MASK_ROTATE_EV){
 			_ev_vel = _ev_rot_mat *_ev_sample_delayed.vel;
@@ -107,7 +107,7 @@ bool Ekf::resetVelocity()
 		_state.vel(2) = _ev_vel(2);
 		setDiag(P, 4, 6, sq(_ev_sample_delayed.velErr));
 	} else {
-		ECL_INFO_TIMESTAMPED("EKF reset velocity to zero");
+		ECL_INFO_TIMESTAMPED("reset velocity to zero");
 		// Used when falling back to non-aiding mode of operation
 		_state.vel(0) = 0.0f;
 		_state.vel(1) = 0.0f;
@@ -149,7 +149,7 @@ bool Ekf::resetPosition()
 	_hpos_prev_available = false;
 
 	if (_control_status.flags.gps) {
-		ECL_INFO_TIMESTAMPED("EKF reset position to GPS");
+		ECL_INFO_TIMESTAMPED("reset position to GPS");
 
 		// this reset is only called if we have new gps data at the fusion time horizon
 		_state.pos(0) = _gps_sample_delayed.pos(0);
@@ -159,7 +159,7 @@ bool Ekf::resetPosition()
 		setDiag(P, 7, 8, sq(_gps_sample_delayed.hacc));
 
 	} else if (_control_status.flags.ev_pos) {
-		ECL_INFO_TIMESTAMPED("EKF reset position to ev position");
+		ECL_INFO_TIMESTAMPED("reset position to ev position");
 
 		// this reset is only called if we have new ev data at the fusion time horizon
 		Vector3f _ev_pos = _ev_sample_delayed.pos;
@@ -173,7 +173,7 @@ bool Ekf::resetPosition()
 		setDiag(P, 7, 8, sq(_ev_sample_delayed.posErr));
 
 	} else if (_control_status.flags.opt_flow) {
-		ECL_INFO_TIMESTAMPED("EKF reset position to last known position");
+		ECL_INFO_TIMESTAMPED("reset position to last known position");
 
 		if (!_control_status.flags.in_air) {
 			// we are likely starting OF for the first time so reset the horizontal position
@@ -192,7 +192,7 @@ bool Ekf::resetPosition()
 		zeroRows(P,7,8);
 
 	} else {
-		ECL_INFO_TIMESTAMPED("EKF reset position to last known position");
+		ECL_INFO_TIMESTAMPED("reset position to last known position");
 		// Used when falling back to non-aiding mode of operation
 		_state.pos(0) = _last_known_posNE(0);
 		_state.pos(1) = _last_known_posNE(1);
@@ -439,11 +439,11 @@ bool Ekf::realignYawGPS()
 
 		// correct yaw angle using GPS ground course if compass yaw bad or yaw is previously not aligned
 		if (badMagYaw || !_control_status.flags.yaw_align) {
-			ECL_WARN_TIMESTAMPED("EKF bad yaw corrected using GPS course");
+			ECL_WARN_TIMESTAMPED("bad yaw corrected using GPS course");
 
 			// declare the magnetometer as failed if a bad yaw has occurred more than once
 			if (_control_status.flags.mag_aligned_in_flight && (_num_bad_flight_yaw_events >= 2) && !_control_status.flags.mag_fault) {
-				ECL_WARN_TIMESTAMPED("EKF stopping magnetometer use");
+				ECL_WARN_TIMESTAMPED("stopping magnetometer use");
 				_control_status.flags.mag_fault = true;
 			}
 

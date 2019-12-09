@@ -191,14 +191,14 @@ void Ekf::controlExternalVisionFusion()
 				if (_params.fusion_mode & MASK_USE_EVPOS && !_control_status.flags.ev_pos) {
 					_control_status.flags.ev_pos = true;
 					resetPosition();
-					ECL_INFO_TIMESTAMPED("EKF commencing external vision position fusion");
+					ECL_INFO_TIMESTAMPED("commencing external vision position fusion");
 				}
 
 				// turn on use of external vision measurements for velocity
 				if (_params.fusion_mode & MASK_USE_EVVEL && !_control_status.flags.ev_vel) {
 					_control_status.flags.ev_vel = true;
 					resetVelocity();
-					ECL_INFO_TIMESTAMPED("EKF commencing external vision velocity fusion");
+					ECL_INFO_TIMESTAMPED("commencing external vision velocity fusion");
 				}
 
 				if ((_params.fusion_mode & MASK_ROTATE_EV) && !(_params.fusion_mode & MASK_USE_EVYAW)
@@ -206,7 +206,7 @@ void Ekf::controlExternalVisionFusion()
 					// Reset transformation between EV and EKF navigation frames when starting fusion
 					resetExtVisRotMat();
 					_ev_rot_mat_initialised = true;
-					ECL_INFO_TIMESTAMPED("EKF external vision aligned");
+					ECL_INFO_TIMESTAMPED("external vision aligned");
 				}
 			}
 		}
@@ -261,7 +261,7 @@ void Ekf::controlExternalVisionFusion()
 				stopMagHdgFusion();
 				stopMag3DFusion();
 
-				ECL_INFO_TIMESTAMPED("EKF commencing external vision yaw fusion");
+				ECL_INFO_TIMESTAMPED("commencing external vision yaw fusion");
 			}
 		}
 
@@ -394,7 +394,7 @@ void Ekf::controlExternalVisionFusion()
 
 		// Turn off EV fusion mode if no data has been received
 		stopEvFusion();
-		ECL_INFO_TIMESTAMPED("EKF External Vision Data Stopped");
+		ECL_INFO_TIMESTAMPED("External Vision Data Stopped");
 
 	}
 }
@@ -577,7 +577,7 @@ void Ekf::controlGpsFusion()
 				stopMagHdgFusion();
 				stopMag3DFusion();
 
-				ECL_INFO_TIMESTAMPED("EKF commencing GPS yaw fusion");
+				ECL_INFO_TIMESTAMPED("commencing GPS yaw fusion");
 			}
 		}
 
@@ -628,7 +628,7 @@ void Ekf::controlGpsFusion()
 					}
 
 					if (_control_status.flags.gps) {
-						ECL_INFO_TIMESTAMPED("EKF commencing GPS fusion");
+						ECL_INFO_TIMESTAMPED("commencing GPS fusion");
 						_time_last_gps = _time_last_imu;
 					}
 				}
@@ -646,7 +646,7 @@ void Ekf::controlGpsFusion()
 			if (_control_status.flags.ev_pos && !(_params.fusion_mode & MASK_ROTATE_EV)) {
 				resetPosition();
 			}
-			ECL_WARN_TIMESTAMPED("EKF GPS data quality poor - stopping use");
+			ECL_WARN_TIMESTAMPED("GPS data quality poor - stopping use");
 		}
 
 		// handle the case when we now have GPS, but have not been using it for an extended period
@@ -671,7 +671,7 @@ void Ekf::controlGpsFusion()
 				resetVelocity();
 				resetPosition();
 				_velpos_reset_request = false;
-				ECL_WARN_TIMESTAMPED("EKF GPS fusion timeout - reset to GPS");
+				ECL_WARN_TIMESTAMPED("GPS fusion timeout - reset to GPS");
 
 				// Reset the timeout counters
 				_time_last_hor_pos_fuse = _time_last_imu;
@@ -739,12 +739,12 @@ void Ekf::controlGpsFusion()
 
 	} else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)10e6)) {
 		stopGpsFusion();
-		ECL_WARN_TIMESTAMPED("EKF GPS data stopped");
+		ECL_WARN_TIMESTAMPED("GPS data stopped");
 	}  else if (_control_status.flags.gps && (_imu_sample_delayed.time_us - _gps_sample_delayed.time_us > (uint64_t)1e6) && (_control_status.flags.opt_flow || _control_status.flags.ev_pos || _control_status.flags.ev_vel)) {
 		// Handle the case where we are fusing another position source along GPS,
 		// stop waiting for GPS after 1 s of lost signal
 		stopGpsFusion();
-		ECL_WARN_TIMESTAMPED("EKF GPS data stopped, using only EV or OF");
+		ECL_WARN_TIMESTAMPED("GPS data stopped, using only EV or OF");
 	}
 }
 
@@ -824,7 +824,7 @@ void Ekf::controlHeightSensorTimeouts()
 
 				// request a reset
 				reset_height = true;
-				ECL_WARN_TIMESTAMPED("EKF baro hgt timeout - reset to GPS");
+				ECL_WARN_TIMESTAMPED("baro hgt timeout - reset to GPS");
 
 			} else if (reset_to_baro) {
 				// set height sensor health
@@ -835,7 +835,7 @@ void Ekf::controlHeightSensorTimeouts()
 
 				// request a reset
 				reset_height = true;
-				ECL_WARN_TIMESTAMPED("EKF baro hgt timeout - reset to baro");
+				ECL_WARN_TIMESTAMPED("baro hgt timeout - reset to baro");
 
 			} else {
 				// we have nothing we can reset to
@@ -875,7 +875,7 @@ void Ekf::controlHeightSensorTimeouts()
 
 				// request a reset
 				reset_height = true;
-				ECL_WARN_TIMESTAMPED("EKF gps hgt timeout - reset to baro");
+				ECL_WARN_TIMESTAMPED("gps hgt timeout - reset to baro");
 
 			} else if (reset_to_gps) {
 				// reset the height mode
@@ -883,7 +883,7 @@ void Ekf::controlHeightSensorTimeouts()
 
 				// request a reset
 				reset_height = true;
-				ECL_WARN_TIMESTAMPED("EKF gps hgt timeout - reset to GPS");
+				ECL_WARN_TIMESTAMPED("gps hgt timeout - reset to GPS");
 
 			} else {
 				// we have nothing to reset to
@@ -909,7 +909,7 @@ void Ekf::controlHeightSensorTimeouts()
 
 				// request a reset
 				reset_height = true;
-				ECL_WARN_TIMESTAMPED("EKF rng hgt timeout - reset to rng hgt");
+				ECL_WARN_TIMESTAMPED("rng hgt timeout - reset to rng hgt");
 
 			} else if (reset_to_baro) {
 				// set height sensor health
@@ -920,7 +920,7 @@ void Ekf::controlHeightSensorTimeouts()
 
 				// request a reset
 				reset_height = true;
-				ECL_WARN_TIMESTAMPED("EKF rng hgt timeout - reset to baro");
+				ECL_WARN_TIMESTAMPED("rng hgt timeout - reset to baro");
 
 			} else {
 				// we have nothing to reset to
@@ -954,7 +954,7 @@ void Ekf::controlHeightSensorTimeouts()
 
 				// request a reset
 				reset_height = true;
-				ECL_WARN_TIMESTAMPED("EKF ev hgt timeout - reset to baro");
+				ECL_WARN_TIMESTAMPED("ev hgt timeout - reset to baro");
 
 			} else if (reset_to_ev) {
 				// reset the height mode
@@ -962,7 +962,7 @@ void Ekf::controlHeightSensorTimeouts()
 
 				// request a reset
 				reset_height = true;
-				ECL_WARN_TIMESTAMPED("EKF ev hgt timeout - reset to ev hgt");
+				ECL_WARN_TIMESTAMPED("ev hgt timeout - reset to ev hgt");
 
 			} else {
 				// we have nothing to reset to
@@ -1405,7 +1405,7 @@ void Ekf::controlFakePosFusion()
 				_fuse_hpos_as_odom = false;
 
 				if (_time_last_fake_pos != 0) {
-					ECL_WARN_TIMESTAMPED("EKF stopping navigation");
+					ECL_WARN_TIMESTAMPED("stopping navigation");
 				}
 
 			}
