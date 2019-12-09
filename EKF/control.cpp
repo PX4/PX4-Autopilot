@@ -276,8 +276,8 @@ void Ekf::controlExternalVisionFusion()
 		// determine if we should use the horizontal position observations
 		if (_control_status.flags.ev_pos) {
 
-			Vector3f ev_pos_obs_var{};
-			Vector2f ev_pos_innov_gates{};
+			Vector3f ev_pos_obs_var;
+			Vector2f ev_pos_innov_gates;
 
 			// correct position and height for offset relative to IMU
 			Vector3f pos_offset_body = _params.ev_pos_body - _params.imu_pos_body;
@@ -350,8 +350,8 @@ void Ekf::controlExternalVisionFusion()
 		// determine if we should use the velocity observations
 		if (_control_status.flags.ev_vel) {
 
-			Vector3f ev_vel_obs_var{};
-			Vector2f ev_vel_innov_gates{};
+			Vector3f ev_vel_obs_var;
+			Vector2f ev_vel_innov_gates;
 
 			Vector3f vel_aligned{_ev_sample_delayed.vel};
 
@@ -691,10 +691,10 @@ void Ekf::controlGpsFusion()
 		if (_control_status.flags.gps) {
 
 
-			Vector2f gps_vel_innov_gates{}; // [horizontal vertical]
-			Vector2f gps_pos_innov_gates{}; // [horizontal vertical]
-			Vector3f gps_vel_obs_var{};
-			Vector3f gps_pos_obs_var{};
+			Vector2f gps_vel_innov_gates; // [horizontal vertical]
+			Vector2f gps_pos_innov_gates; // [horizontal vertical]
+			Vector3f gps_vel_obs_var;
+			Vector3f gps_pos_obs_var;
 
 			// correct velocity for offset relative to IMU
 			Vector3f ang_rate = _imu_sample_delayed.delta_ang * (1.0f / _imu_sample_delayed.delta_ang_dt);
@@ -1173,8 +1173,8 @@ void Ekf::controlHeightFusion()
 
 
 		if (_control_status.flags.baro_hgt) {
-			Vector2f baro_hgt_innov_gate{};
-			Vector3f baro_hgt_obs_var{};
+			Vector2f baro_hgt_innov_gate;
+			Vector3f baro_hgt_obs_var;
 
 			// vertical position innovation - baro measurement has opposite sign to earth z axis
 			_baro_hgt_innov(2) = _state.pos(2) + _baro_sample_delayed.hgt - _baro_hgt_offset - _hgt_sensor_offset;
@@ -1203,8 +1203,8 @@ void Ekf::controlHeightFusion()
 				baro_hgt_obs_var, _baro_hgt_innov_var,_baro_hgt_test_ratio);
 
 		} else if (_control_status.flags.gps_hgt) {
-			Vector2f gps_hgt_innov_gate{};
-			Vector3f gps_hgt_obs_var{};
+			Vector2f gps_hgt_innov_gate;
+			Vector3f gps_hgt_obs_var;
 			// vertical position innovation - gps measurement has opposite sign to earth z axis
 			_gps_pos_innov(2) = _state.pos(2) + _gps_sample_delayed.hgt - _gps_alt_ref - _hgt_sensor_offset;
 			// observation variance - receiver defined and parameter limited
@@ -1220,8 +1220,8 @@ void Ekf::controlHeightFusion()
 
 		} else if (_control_status.flags.rng_hgt && (_R_rng_to_earth_2_2 > _params.range_cos_max_tilt)) {
 			// TODO: Tilt check does not belong here, should not set fuse height to true if tilted
-			Vector2f rng_hgt_innov_gate{};
-			Vector3f rng_hgt_obs_var{};
+			Vector2f rng_hgt_innov_gate;
+			Vector3f rng_hgt_obs_var;
 			// use range finder with tilt correction
 			_rng_hgt_innov(2) = _state.pos(2) - (-math::max(_range_sample_delayed.rng * _R_rng_to_earth_2_2,
 							 _params.rng_gnd_clearance)) - _hgt_sensor_offset;
@@ -1234,8 +1234,8 @@ void Ekf::controlHeightFusion()
 				rng_hgt_obs_var, _rng_hgt_innov_var,_rng_hgt_test_ratio);
 
 		} else if (_control_status.flags.ev_hgt) {
-			Vector2f ev_hgt_innov_gate{};
-			Vector3f ev_hgt_obs_var{};
+			Vector2f ev_hgt_innov_gate;
+			Vector3f ev_hgt_obs_var;
 			// calculate the innovation assuming the external vision observation is in local NED frame
 			_ev_pos_innov(2) = _state.pos(2) - _ev_sample_delayed.pos(2);
 			// observation variance - defined externally
@@ -1401,8 +1401,8 @@ void Ekf::controlFakePosFusion()
 		// Fuse synthetic position observations every 200msec
 		if (((_time_last_imu - _time_last_fake_pos) > (uint64_t)2e5) || _fuse_height) {
 
-			Vector3f fake_pos_obs_var{};
-			Vector2f fake_pos_innov_gate{};
+			Vector3f fake_pos_obs_var;
+			Vector2f fake_pos_innov_gate;
 
 
 			// Reset position and velocity states if we re-commence this aiding method
@@ -1448,8 +1448,8 @@ void Ekf::controlAuxVelFusion()
 
 	if (data_ready && primary_aiding) {
 
-		Vector2f aux_vel_innov_gate{};
-		Vector3f aux_vel_obs_var{};
+		Vector2f aux_vel_innov_gate;
+		Vector3f aux_vel_obs_var;
 
 		_aux_vel_innov(0) = _state.vel(0) - _auxvel_sample_delayed.velNE(0);
 		_aux_vel_innov(1) = _state.vel(1) - _auxvel_sample_delayed.velNE(1);

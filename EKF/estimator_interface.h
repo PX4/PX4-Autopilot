@@ -481,13 +481,13 @@ protected:
 	// innovation consistency check monitoring ratios
 	float _yaw_test_ratio{};		// yaw innovation consistency check ratio
 	float _mag_test_ratio[3] {};		// magnetometer XYZ innovation consistency check ratios
-	Vector2f _gps_vel_test_ratio {};	// GPS velocity innovation consistency check ratios
-	Vector2f _gps_pos_test_ratio {};	// GPS position innovation consistency check ratios
-	Vector2f _ev_vel_test_ratio {};		// EV velocity innovation consistency check ratios
-	Vector2f _ev_pos_test_ratio {};		// EV position innovation consistency check ratios
-	Vector2f _aux_vel_test_ratio{};		// Auxiliray horizontal velocity innovation consistency check ratio
-	Vector2f _baro_hgt_test_ratio {};	// baro height innovation consistency check ratios
-	Vector2f _rng_hgt_test_ratio {};	// range finder height innovation consistency check ratios
+	Vector2f _gps_vel_test_ratio;	// GPS velocity innovation consistency check ratios
+	Vector2f _gps_pos_test_ratio;	// GPS position innovation consistency check ratios
+	Vector2f _ev_vel_test_ratio;		// EV velocity innovation consistency check ratios
+	Vector2f _ev_pos_test_ratio ;		// EV position innovation consistency check ratios
+	Vector2f _aux_vel_test_ratio;		// Auxiliray horizontal velocity innovation consistency check ratio
+	Vector2f _baro_hgt_test_ratio;	// baro height innovation consistency check ratios
+	Vector2f _rng_hgt_test_ratio;	// range finder height innovation consistency check ratios
 	float _optflow_test_ratio{};		// Optical flow innovation consistency check ratio
 	float _tas_test_ratio{};		// tas innovation consistency check ratio
 	float _hagl_test_ratio{};		// height above terrain measurement innovation consistency check ratio

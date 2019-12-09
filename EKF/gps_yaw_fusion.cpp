@@ -233,7 +233,7 @@ void Ekf::fuseGpsAntYaw()
 	// apply covariance correction via P_new = (I -K*H)*P
 	// first calculate expression for KHP
 	// then calculate P - KHP
-	matrix::SquareMatrix<float, _k_num_states> KHP {};
+	matrix::SquareMatrix<float, _k_num_states> KHP;
 	float KH[4];
 
 	for (unsigned row = 0; row < _k_num_states; row++) {
