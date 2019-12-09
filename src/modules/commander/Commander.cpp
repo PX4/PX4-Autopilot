@@ -2081,9 +2081,6 @@ Commander::run()
 					   ) {
 						print_reject_arm("Not arming: Switch to a manual mode first");
 
-					} else if (vtol_status.vtol_in_trans_mode) {
-						print_reject_arm("Not arming: Vehicle is in transition state");
-
 					} else if (!status_flags.condition_home_position_valid &&
 						   geofence_action == geofence_result_s::GF_ACTION_RTL) {
 						print_reject_arm("Not arming: Geofence RTL requires valid home");
