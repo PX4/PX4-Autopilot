@@ -1432,8 +1432,15 @@ protected:
 		updated |= _airspeed_sub->update(&_airspeed_time, &airspeed);
 
 		if (updated) {
-			mavlink_vfr_hud_t msg = {};
-			msg.airspeed = airspeed.indicated_airspeed_m_s;
+			mavlink_vfr_hud_t msg{};
+
+			if (hrt_elapsed_time(&airspeed.timestamp) < 1_s) {
+				msg.airspeed = airspeed.indicated_airspeed_m_s;
+
+			} else {
+				msg.airspeed = NAN;
+			}
+
 			msg.groundspeed = sqrtf(pos.vx * pos.vx + pos.vy * pos.vy);
 			msg.heading = math::degrees(wrap_2pi(pos.yaw));
 
