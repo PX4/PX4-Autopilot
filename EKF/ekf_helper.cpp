@@ -100,7 +100,7 @@ bool Ekf::resetVelocity()
 			_ev_vel = _R_ev_to_ekf *_ev_sample_delayed.vel;
 		}
 		_state.vel = _ev_vel;
-		P.uncorrelateCovarianceSetVariance<3>(4, sq(_ev_sample_delayed.velErr));
+		P.uncorrelateCovarianceSetVariance<3>(4, _ev_sample_delayed.velVar);
 	} else {
 		ECL_INFO_TIMESTAMPED("reset velocity to zero");
 		// Used when falling back to non-aiding mode of operation
@@ -165,7 +165,7 @@ bool Ekf::resetPosition()
 		_state.pos(1) = _ev_pos(1);
 
 		// use EV accuracy to reset variances
-		P.uncorrelateCovarianceSetVariance<2>(7, sq(_ev_sample_delayed.posErr));
+		P.uncorrelateCovarianceSetVariance<2>(7, _ev_sample_delayed.posVar.slice<2, 1>(0, 0));
 
 	} else if (_control_status.flags.opt_flow) {
 		ECL_INFO_TIMESTAMPED("reset position to last known position");
@@ -705,7 +705,7 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 		// update the yaw angle variance using the variance of the measurement
 		if (_control_status.flags.ev_yaw) {
 			// using error estimate from external vision data
-			increaseQuatYawErrVariance(sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f)));
+			increaseQuatYawErrVariance(fmaxf(_ev_sample_delayed.angVar, sq(1.0e-2f)));
 		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
 			// using magnetic heading tuning parameter
 			increaseQuatYawErrVariance(sq(fmaxf(_params.mag_heading_noise, 1.0e-2f)));
