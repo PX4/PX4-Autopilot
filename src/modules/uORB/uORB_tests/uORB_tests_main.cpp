@@ -61,13 +61,11 @@ uorb_tests_main(int argc, char *argv[])
 		int rc = t.test();
 
 		if (rc == OK) {
-			fprintf(stdout, "  [uORBTest] \t\tPASS\n");
-			fflush(stdout);
+			PX4_INFO("PASS");
 			return 0;
 
 		} else {
-			fprintf(stderr, "  [uORBTest] \t\tFAIL\n");
-			fflush(stderr);
+			PX4_ERR("FAIL");
 			return -1;
 		}
 	}

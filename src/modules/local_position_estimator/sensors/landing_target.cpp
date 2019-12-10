@@ -82,7 +82,7 @@ void BlockLocalPositionEstimator::landingTargetCorrect()
 
 	// residual covariance, (inverse)
 	Matrix<float, n_y_target, n_y_target> S_I =
-		inv<float, n_y_target>(C * _P * C.transpose() + R);
+		inv<float, n_y_target>(C * m_P * C.transpose() + R);
 
 	// fault detection
 	float beta = (r.transpose()  * (S_I * r))(0, 0);
@@ -103,10 +103,10 @@ void BlockLocalPositionEstimator::landingTargetCorrect()
 
 	// kalman filter correction
 	Matrix<float, n_x, n_y_target> K =
-		_P * C.transpose() * S_I;
+		m_P * C.transpose() * S_I;
 	Vector<float, n_x> dx = K * r;
 	_x += dx;
-	_P -= K * C * _P;
+	m_P -= K * C * m_P;
 
 }
 

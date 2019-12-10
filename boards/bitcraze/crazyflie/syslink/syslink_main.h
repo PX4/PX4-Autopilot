@@ -40,7 +40,10 @@
 #include <drivers/device/device.h>
 #include <drivers/device/ringbuffer.h>
 
-#include <uORB/uORB.h>
+#include <uORB/PublicationMulti.hpp>
+#include <uORB/topics/parameter_update.h>
+#include <uORB/topics/battery_status.h>
+#include <uORB/topics/input_rc.h>
 
 #include "syslink.h"
 #include "crtp.h"
@@ -132,11 +135,7 @@ private:
 	hrt_abstime _params_update[3]; // Time at which the parameters were updated
 	hrt_abstime _params_ack[3]; // Time at which the parameters were acknowledged by the nrf module
 
-	orb_advert_t _battery_pub;
-	orb_advert_t _rc_pub;
-	orb_advert_t _cmd_pub;
-
-	struct battery_status_s _battery_status;
+	uORB::PublicationMulti<input_rc_s>		_rc_pub{ORB_ID(input_rc)};
 
 	Battery _battery;
 

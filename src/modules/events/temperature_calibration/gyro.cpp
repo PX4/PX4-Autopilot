@@ -60,15 +60,11 @@ void TemperatureCalibrationGyro::reset_calibration()
 {
 	/* reset all driver level calibrations */
 	float offset = 0.0f;
-	float scale = 1.0f;
 
 	for (unsigned s = 0; s < 3; s++) {
 		set_parameter("CAL_GYRO%u_XOFF", s, &offset);
 		set_parameter("CAL_GYRO%u_YOFF", s, &offset);
 		set_parameter("CAL_GYRO%u_ZOFF", s, &offset);
-		set_parameter("CAL_GYRO%u_XSCALE", s, &scale);
-		set_parameter("CAL_GYRO%u_YSCALE", s, &scale);
-		set_parameter("CAL_GYRO%u_ZSCALE", s, &scale);
 	}
 }
 

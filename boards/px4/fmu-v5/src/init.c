@@ -236,14 +236,15 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		syslog(LOG_ERR, "[boot] DMA alloc FAILED\n");
 	}
 
+#if defined(SERIAL_HAVE_RXDMA)
 	/* set up the serial DMA polling */
 	static struct hrt_call serial_dma_call;
-	struct timespec ts;
 
 	/*
 	 * Poll at 1ms intervals for received bytes that have not triggered
 	 * a DMA event.
 	 */
+	struct timespec ts;
 	ts.tv_sec = 0;
 	ts.tv_nsec = 1000000;
 
@@ -252,7 +253,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		       ts_to_abstime(&ts),
 		       (hrt_callout)stm32_serial_dma_poll,
 		       NULL);
-
+#endif
 
 	/* initial LED state */
 	drv_led_start();

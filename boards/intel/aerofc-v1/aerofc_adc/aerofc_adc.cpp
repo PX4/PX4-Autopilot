@@ -56,6 +56,13 @@
 // 10Hz
 #define CYCLE_TICKS_DELAY MSEC2TICK(100)
 
+
+uint32_t px4_arch_adc_dn_fullcount(void)
+{
+	return 1 << 12; // 12 bit ADC
+}
+
+
 enum AEROFC_ADC_BUS {
 	AEROFC_ADC_BUS_ALL = 0,
 	AEROFC_ADC_BUS_I2C_INTERNAL,

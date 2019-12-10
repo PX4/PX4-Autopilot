@@ -38,8 +38,8 @@
 
 #include <nuttx/analog/adc.h>
 #include <kinetis.h>
-#include <chip/kinetis_sim.h>
-#include <chip/kinetis_adc.h>
+#include <hardware/kinetis_sim.h>
+#include <hardware/kinetis_adc.h>
 
 
 #define _REG(_addr)	(*(volatile uint32_t *)(_addr))
@@ -146,7 +146,7 @@ void px4_arch_adc_uninit(uint32_t base_address)
 	px4_leave_critical_section(flags);
 }
 
-uint16_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
+uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 {
 	irqstate_t flags = px4_enter_critical_section();
 
@@ -169,7 +169,7 @@ uint16_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 	}
 
 	/* read the result and clear EOC */
-	uint16_t result = rRA(1);
+	uint32_t result = rRA(1);
 
 	px4_leave_critical_section(flags);
 
@@ -181,3 +181,7 @@ uint32_t px4_arch_adc_temp_sensor_mask()
 	return 1 << (ADC_SC1_ADCH_TEMP >> ADC_SC1_ADCH_SHIFT);
 }
 
+uint32_t px4_arch_adc_dn_fullcount(void)
+{
+	return 1 << 12; // 12 bit ADC
+}

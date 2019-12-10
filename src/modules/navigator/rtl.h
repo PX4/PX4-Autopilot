@@ -74,7 +74,6 @@ public:
 	void on_activation() override;
 	void on_active() override;
 
-	void find_closest_landing_point();
 	void find_RTL_destination();
 
 	void set_return_alt_min(bool min);

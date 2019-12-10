@@ -276,7 +276,7 @@ extern "C" __EXPORT int ll40ls_main(int argc, char *argv[])
 	bool start_i2c_all = false;
 	bool start_pwm = false;
 
-	while ((ch = px4_getopt(argc, argv, "ab:R", &myoptind, &myoptarg)) != EOF) {
+	while ((ch = px4_getopt(argc, argv, "ab:R:", &myoptind, &myoptarg)) != EOF) {
 		switch (ch) {
 		case 'a':
 			start_i2c_all = true;
