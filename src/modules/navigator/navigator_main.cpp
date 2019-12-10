@@ -921,9 +921,19 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 	tr.tslc = 2; // Time since last communication in seconds
 	tr.flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS | transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
 		   transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY |
-		   transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
-		   transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN; // Flags to indicate various statuses including valid data fields
+		   transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;// |
+	//transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN; // Flags to indicate various statuses including valid data fields
 	tr.squawk = 6667;
+
+	px4_guid_t px4_guid;
+	board_get_px4_guid(px4_guid);
+	//memcpy(tr.uas_id, px4_guid, sizeof(px4_guid_t)); //debug own GUID
+
+	//simulate GUID
+	for (int i = 0; i < 18 ; i++) {
+		tr.uas_id[i] = 0xe0 + i;
+	}
+
 
 	uORB::PublicationQueued<transponder_report_s> tr_pub{ORB_ID(transponder_report)};
 	tr_pub.publish(tr);
@@ -943,9 +953,11 @@ void Navigator::check_traffic()
 
 	bool changed = _traffic_sub.updated();
 
-	char guid[PX4_GUID_FORMAT_SIZE];
 	px4_guid_t px4_guid;
 	board_get_px4_guid(px4_guid);
+
+	char uas_id[PX4_GUID_FORMAT_SIZE];
+	char guid[PX4_GUID_FORMAT_SIZE];
 	board_get_px4_guid_formated(&guid[0], sizeof(guid));
 
 	float NAVTrafficAvoidUnmanned = _param_nav_traff_a_radu.get();
@@ -968,20 +980,9 @@ void Navigator::check_traffic()
 			continue;
 		}
 
-		//Ignore selfpublished UTM messages
-		//GUID in Uint8 form is compared against reported UUID
-		if (sizeof(px4_guid) == sizeof(tr.uas_id) && memcmp(px4_guid, tr.uas_id, sizeof(px4_guid_t)) == 0) {
-			PX4_WARN("GUID MATCH Call sign: %s; GUID: %s",
-				 tr.callsign,
-				 guid);
-			break;
-			/*} else {
-			//Parsing UUIDs for debugging
-			mavlink_log_critical(&_mavlink_log_pub, "GUID Missmatch! GUID %s; GUIDstr %s; UASstr %s ",
-				guid,
-				px4_guid_str,
-				tr.uas_id);
-			*/
+		//convert UAS_id byte array to char array for User Warning
+		for (int i = 0; i < 18 ; i++) {
+			snprintf(&uas_id[i * 2], sizeof(uas_id) - i * 2, "%02x", tr.uas_id[i]);
 		}
 
 		//Manned/Unmanned Vehicle Seperation Distance
@@ -1035,10 +1036,9 @@ void Navigator::check_traffic()
 					case 0: {
 							/* Ignore */
 							PX4_WARN("TRAFFIC %s! dst %d, hdg %d, type %d",
-								 tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign :
-								 "unknown",
-								 traffic_direction,
+								 tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
 								 traffic_seperation,
+								 traffic_direction,
 								 tr.emitter_type);
 							break;
 						}
@@ -1046,9 +1046,9 @@ void Navigator::check_traffic()
 					case 1: {
 							/* Warn only */
 							mavlink_log_critical(&_mavlink_log_pub, "Warning TRAFFIC %s! dst %d, hdg %d, type %d",
-									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
-									     traffic_direction,
+									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
 									     traffic_seperation,
+									     traffic_direction,
 									     tr.emitter_type);
 							break;
 						}
@@ -1056,9 +1056,9 @@ void Navigator::check_traffic()
 					case 2: {
 							/* RTL Mode */
 							mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Returning home! dst %d, hdg %d, type %d",
-									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
-									     traffic_direction,
+									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
 									     traffic_seperation,
+									     traffic_direction,
 									     tr.emitter_type);
 
 							// set the return altitude to minimum
@@ -1074,9 +1074,9 @@ void Navigator::check_traffic()
 					case 3: {
 							/* Land Mode */
 							mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Landing! dst % d, hdg % d, type % d",
-									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
-									     traffic_direction,
+									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
 									     traffic_seperation,
+									     traffic_direction,
 									     tr.emitter_type);
 
 							// ask the commander to land
@@ -1090,9 +1090,9 @@ void Navigator::check_traffic()
 					case 4: {
 							/* Position hold */
 							mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Holding position! dst %d, hdg %d, type %d",
-									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : "unknown",
-									     traffic_direction,
+									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
 									     traffic_seperation,
+									     traffic_direction,
 									     tr.emitter_type);
 
 							// ask the commander to Loiter
