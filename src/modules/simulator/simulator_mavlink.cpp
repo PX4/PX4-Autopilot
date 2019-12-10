@@ -187,6 +187,7 @@ void Simulator::send_controls()
 		orb_copy(ORB_ID(actuator_outputs), _actuator_outputs_sub, &actuators);
 
 		_send_controls_status = 12;
+
 		if (actuators.timestamp > 0) {
 			const mavlink_hil_actuator_controls_t hil_act_control = actuator_controls_from_outputs(actuators);
 
@@ -606,6 +607,7 @@ void Simulator::send()
 		int pret = px4_poll(&fds[0], (sizeof(fds) / sizeof(fds[0])), 100);
 
 		_send_controls_status = 3;
+
 		if (pret == 0) {
 			// Timed out, try again.
 			PX4_ERR("timeout waiting for _actuator_outputs_sub");
@@ -621,16 +623,17 @@ void Simulator::send()
 			_send_controls_status = 4;
 			// Got new data to read, update all topics.
 			parameters_update(false);
-            _send_controls_status = 5;
+			_send_controls_status = 5;
 			_vehicle_status_sub.update(&_vehicle_status);
-            _send_controls_status = 6;
+			_send_controls_status = 6;
 			send_controls();
 			_send_controls_status = 7;
-        }
-        else {
-            _send_controls_status = 8;
-        }
+
+		} else {
+			_send_controls_status = 8;
+		}
 	}
+
 	_send_controls_status = 99;
 }
 

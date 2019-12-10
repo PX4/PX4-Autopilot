@@ -377,15 +377,14 @@ extern "C" {
 				// Calculate an absolute time in the future
 				const unsigned billion = (1000 * 1000 * 1000);
 				uint64_t nsecs = ts.tv_nsec + ((uint64_t)timeout * 1000 * 1000);
-                uint64_t seconds = nsecs / billion;
+				uint64_t seconds = nsecs / billion;
 				ts.tv_sec += seconds;
 				nsecs -= seconds * billion;
 				ts.tv_nsec = nsecs;
 
-                if (seconds > 10)
-                {
-                    PX4_WARN("%s: px4_poll() timeout is large: %ld", thread_name, seconds);
-                }
+				if (seconds > 10) {
+					PX4_WARN("%s: px4_poll() timeout is large: %ld", thread_name, seconds);
+				}
 
 				ret = px4_sem_timedwait(&sem, &ts);
 
