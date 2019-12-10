@@ -60,10 +60,6 @@
  * Definitions
  ****************************************************************************************************/
 
-#if defined(ON_EVK)
-//# define DEBUG_CLOCK_EVK 1
-#endif
-
 /* Register accessors */
 
 #define _REG(_addr) (*(volatile uint16_t *)(_addr))
@@ -233,18 +229,4 @@ __EXPORT void fmurt1062_timer_initialize(void)
 	/* QTIMER3_TIMER0  -> Flexpwm234ExtClk  */
 
 	imxrt_xbar_connect(IMXRT_XBARA1_OUT_FLEXPWM234_EXT_CLK_SEL_OFFSET, IMXRT_XBARA1_IN_QTIMER3_TMR0_OUT);
-
-
-#if defined(DEBUG_CLOCK_EVK)
-
-	/* Make it Scope-able on J24-1 */
-
-	imxrt_xbar_connect(IMXRT_XBARA1_OUT_IOMUX_XBAR_IO17_SEL_OFFSET, IMXRT_XBARA1_IN_QTIMER3_TMR0_OUT);
-
-	imxrt_config_gpio(GPIO_XBAR1_INOUT17_1 | (IOMUX_CMOS_OUTPUT | IOMUX_DRIVE_60OHM | IOMUX_SPEED_MAX |
-			  IOMUX_SLEW_FAST));
-	modifyreg32(IMXRT_IOMUXC_GPR_GPR6, 0, GPR_GPR6_IOMUXC_XBAR_DIR_SEL_17_MASK);
-#endif /* DEBUG_CLOCK_EVK */
-
-
 }
