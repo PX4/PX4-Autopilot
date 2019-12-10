@@ -46,7 +46,6 @@
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
-//#define ON_EVK // For Board Bring up before BIG Board on IMXRT1060-EVK
 
 /* Clocking *************************************************************************/
 
@@ -226,14 +225,6 @@
 #define GPIO_LPUART2_RX   (GPIO_LPUART2_RX_1 | LPUART_IOMUX) /* EVK J22-8 */ /* GPIO_AD_B1_03 */
 #define GPIO_LPUART2_TX   (GPIO_LPUART2_TX_1 | LPUART_IOMUX) /* EVK J22-7 */ /* GPIO_AD_B1_02 */
 
-#if defined(ON_EVK)
-#define GPIO_LPUART1_RX   (GPIO_LPUART1_RX_1 | LPUART_IOMUX) /* GPIO_AD_B0_13 EVK J46-2 */
-#define GPIO_LPUART1_TX   (GPIO_LPUART1_TX_1 | LPUART_IOMUX) /* GPIO_AD_B0_12 EVK J46-2 */
-
-#define GPIO_LPUART3_RX   (GPIO_LPUART3_RX_1 | LPUART_IOMUX) /* GPIO_AD_B1_07 EVK J22-1 */
-#define GPIO_LPUART3_TX   (GPIO_LPUART3_TX_1 | LPUART_IOMUX) /* GPIO_AD_B1_06 EVK J22-2 */
-
-#else
 /* Telem 2 */
 
 #define HS_INPUT_IOMUX  (IOMUX_CMOS_INPUT | IOMUX_SLEW_SLOW | IOMUX_DRIVE_HIZ  | IOMUX_SPEED_MEDIUM | IOMUX_PULL_UP_47K)
@@ -243,7 +234,6 @@
 #define GPIO_LPUART3_TX   (GPIO_LPUART3_TX_3 | LPUART_IOMUX) /* GPIO_B0_08 */
 #define GPIO_LPUART3_CTS  (GPIO_PORT1 | GPIO_PIN8  | GPIO_INPUT  | HS_INPUT_IOMUX)  /* GPIO_AD_B0_08 GPIO1 Pin 8 (GPIO only, no HW Flow control) */
 #define GPIO_LPUART3_RTS  (GPIO_PORT4 | GPIO_PIN24 | GPIO_OUTPUT | HS_OUTPUT_IOMUX) /* GPIO_EMC_24  GPIO4 Pin 24 (GPIO only, no HW Flow control) */
-#endif
 
 /* Telem 1 */
 
@@ -290,15 +280,9 @@
 #define GPIO_LPSPI1_MISO  (GPIO_LPSPI1_SDI_1 | LPSPI_IOMUX) /* GPIO_EMC_29 */
 #define GPIO_LPSPI1_MOSI  (GPIO_LPSPI1_SDO_1 | LPSPI_IOMUX) /* GPIO_EMC_28 */
 
-#if defined(ON_EVK)
-#define GPIO_LPSPI2_SCK   (GPIO_LPSPI2_SCK_2 | LPSPI_IOMUX) /* EVK J24-6 POP R280 GPIO_SD_B0_00 */
-#define GPIO_LPSPI2_MISO  (GPIO_LPSPI1_SDI_2 | LPSPI_IOMUX) /* EVK J24-5 POP R278 GPIO_SD_B0_03 */
-#define GPIO_LPSPI2_MOSI  (GPIO_LPSPI1_SDO_2 | LPSPI_IOMUX) /* EVK J24-4 POP R279 GPIO_SD_B0_02 */
-#else
 #define GPIO_LPSPI2_SCK   (GPIO_LPSPI2_SCK_1 | LPSPI_IOMUX) /* GPIO_EMC_00 */
 #define GPIO_LPSPI2_MISO  (GPIO_LPSPI2_SDI_1 | LPSPI_IOMUX) /* GPIO_EMC_03 */
 #define GPIO_LPSPI2_MOSI  (GPIO_LPSPI2_SDO_1 | LPSPI_IOMUX) /* GPIO_EMC_02 */
-#endif
 
 #define GPIO_LPSPI3_SCK   (GPIO_LPSPI3_SCK_1 | LPSPI_IOMUX) /* GPIO_AD_B1_15 */
 #define GPIO_LPSPI3_MISO  (GPIO_LPSPI3_SDI_1 | LPSPI_IOMUX) /* GPIO_AD_B1_13 */
