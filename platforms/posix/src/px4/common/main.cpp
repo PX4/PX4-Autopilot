@@ -103,7 +103,7 @@ static int create_dirs();
 static int run_startup_script(const std::string &commands_file, const std::string &absolute_binary_path, int instance);
 static std::string get_absolute_binary_path(const std::string &argv0);
 static void wait_to_exit();
-static bool is_already_running(int instance, bool keep_locked);
+static bool is_server_running(int instance, bool server);
 static void print_usage();
 static bool dir_exists(const std::string &path);
 static bool file_exists(const std::string &name);
@@ -145,7 +145,6 @@ int main(int argc, char **argv)
 
 
 	if (is_client) {
-		// PX4_ERR("Starting PX4 client %s, process: %d", argv[0], getpid());
 		int instance = 0;
 
 		if (argc >= 3 && strcmp(argv[1], "--instance") == 0) {
@@ -160,7 +159,7 @@ int main(int argc, char **argv)
 
 		PX4_DEBUG("instance: %i", instance);
 
-		if (!is_already_running(instance, true)) {
+		if (!is_server_running(instance, false)) {
 			if (errno) {
 				PX4_ERR("Failed to communicate with daemon: %s", strerror(errno));
 
@@ -178,7 +177,6 @@ int main(int argc, char **argv)
 		return client.process_args(argc, (const char **)argv);
 
 	} else {
-		// PX4_ERR("Starting PX4 server process: %d", getpid());
 		/* Server/daemon apps need to parse the command line arguments. */
 
 		std::string data_path{};
@@ -243,7 +241,7 @@ int main(int argc, char **argv)
 			} // else: ROS argument (in the form __<name>:=<value>)
 		}
 
-		if (is_already_running(instance, false)) {
+		if (is_server_running(instance, true)) {
 			// allow running multiple instances, but the server is only started for the first
 			PX4_INFO("PX4 daemon already running for instance %i (%s)", instance, strerror(errno));
 			return -1;
@@ -575,33 +573,38 @@ void print_usage()
 	printf("        e.g.: px4-commander status\n");
 }
 
-bool is_already_running(int instance, bool keep_locked)
+bool is_server_running(int instance, bool server)
 {
 	const std::string file_lock_path = std::string(LOCK_FILE_PATH) + '-' + std::to_string(instance);
 	int fd = open(file_lock_path.c_str(), O_RDWR | O_CREAT, 0666);
 
 	if (fd < 0) {
-		PX4_ERR("is_already_running: failed to create lock file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
+		PX4_ERR("is_server_running: failed to create lock file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
 		return false;
 	}
 
-	PX4_DEBUG("is_already_running: process %d is grabbing lock...", getpid());
+	PX4_DEBUG("is_server_running: process %d is grabbing lock...", getpid());
+
+	if (!server) {
+		// this is the client checking that server is running.  Server is running if
+		// the file is locked.  This is true if the non-blocking flock returns EWOULDBLOCK.
+		if (flock(fd, LOCK_EX | LOCK_NB) == EWOULDBLOCK) {
+			return true;
+		}
+
+		// server is not running!
+		return false;
+	}
+
 	if (flock(fd, LOCK_EX) < 0) {
 		// if we cannot get the exclusive lock, then it is already running!
-		PX4_ERR("is_already_running: failed to get lock on file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
+		PX4_ERR("is_server_running: failed to get lock on file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
 		return true;
 	}
-	PX4_DEBUG("is_already_running: file locked !");
 
-	if (!keep_locked) {
-		flock(fd, LOCK_UN);
-		PX4_DEBUG("is_already_running: releasing the lock !");
-		errno = 0;
-		return false;
-	}
-
+	// we got the lock, we're good to go, returning false allows the server code path to continue.
 	errno = 0;
-	return true;
+	return false;
 }
 
 bool file_exists(const std::string &name)
