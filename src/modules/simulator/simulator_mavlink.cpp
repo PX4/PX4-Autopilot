@@ -653,7 +653,10 @@ void Simulator::send()
 			_send_controls_status = 6;
 			send_controls();
 			_send_controls_status = 7;
-		}
+        }
+        else {
+            _send_controls_status = 8;
+        }
 	}
 	_send_controls_status = 99;
 }
