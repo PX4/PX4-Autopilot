@@ -591,7 +591,6 @@ bool is_server_running(int instance, bool server)
 		}
 
 		// server is not running!
-		PX4_ERR("is_server_running: failed to create lock file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
 		return false;
 	}
 
