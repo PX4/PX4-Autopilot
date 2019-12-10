@@ -32,6 +32,7 @@
  ****************************************************************************/
 
 #include <board_config.h>
+#include <stdint.h>
 #include <drivers/drv_adc.h>
 #include <drivers/drv_hrt.h>
 #include <px4_arch/adc.h>
@@ -190,7 +191,7 @@ void px4_arch_adc_uninit(uint32_t base_address)
 	// nothing to do
 }
 
-uint16_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
+uint32_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 {
 	irqstate_t flags = px4_enter_critical_section();
 
@@ -211,12 +212,12 @@ uint16_t px4_arch_adc_sample(uint32_t base_address, unsigned channel)
 		/* don't wait for more than 50us, since that means something broke - should reset here if we see this */
 		if ((hrt_absolute_time() - now) > 50) {
 			px4_leave_critical_section(flags);
-			return 0xffff;
+			return UINT32_MAX;
 		}
 	}
 
 	/* read the result and clear EOC */
-	uint16_t result = rDR(base_address);
+	uint32_t result = rDR(base_address);
 
 	px4_leave_critical_section(flags);
 
@@ -228,3 +229,7 @@ uint32_t px4_arch_adc_temp_sensor_mask()
 	return 1 << 16;
 }
 
+uint32_t px4_arch_adc_dn_fullcount(void)
+{
+	return 1 << 12; // 12 bit ADC
+}

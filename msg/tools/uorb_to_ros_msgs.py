@@ -12,7 +12,7 @@ __author__ = 'PX4 Development Team'
 __copyright__ = \
     '''
      '
-     '   Copyright (C) 2018 PX4 Development Team. All rights reserved.
+     '   Copyright (c) 2018 PX4 Development Team. All rights reserved.
      '
      ' Redistribution and use in source and binary forms, or without
      ' modification, permitted provided that the following conditions

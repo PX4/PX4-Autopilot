@@ -148,7 +148,7 @@ def createTestNode(Map test_def) {
           try {
             sh('make distclean')
             sh 'git fetch --tags'
-            sh('ccache -z')
+            sh('ccache -s')
             sh('make px4_sitl_default')
             sh('make px4_sitl_default sitl_gazebo')
             sh('ccache -s')

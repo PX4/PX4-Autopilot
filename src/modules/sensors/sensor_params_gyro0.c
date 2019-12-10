@@ -71,27 +71,3 @@ PARAM_DEFINE_FLOAT(CAL_GYRO0_YOFF, 0.0f);
  * @group Sensor Calibration
  */
 PARAM_DEFINE_FLOAT(CAL_GYRO0_ZOFF, 0.0f);
-
-/**
- * Gyro X-axis scaling factor
- *
- * @category system
- * @group Sensor Calibration
- */
-PARAM_DEFINE_FLOAT(CAL_GYRO0_XSCALE, 1.0f);
-
-/**
- * Gyro Y-axis scaling factor
- *
- * @category system
- * @group Sensor Calibration
- */
-PARAM_DEFINE_FLOAT(CAL_GYRO0_YSCALE, 1.0f);
-
-/**
- * Gyro Z-axis scaling factor
- *
- * @category system
- * @group Sensor Calibration
- */
-PARAM_DEFINE_FLOAT(CAL_GYRO0_ZSCALE, 1.0f);

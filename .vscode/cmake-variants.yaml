@@ -66,3 +66,8 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: nxp_fmuk66-v3_default
+    holybro_durandal-v1_default:
+      short: holybro_durandal-v1
+      buildType: MinSizeRel
+      settings:
+        CONFIG: holybro_durandal-v1_default

@@ -61,7 +61,7 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <cmath>
+#include <math.h>
 #include <mathlib/mathlib.h>
 #include <matrix/math.hpp>
 

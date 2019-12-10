@@ -56,7 +56,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/esc_status.h>
 
-#include <lib/mixer/mixer.h>
+#include <lib/mixer/MixerGroup.hpp>
 #include <lib/mixer/mixer_load.h>
 #include <battery/battery.h>
 
@@ -201,13 +201,11 @@ int DfBebopBusWrapper::set_esc_speeds(const float speed_scaled[4])
 int DfBebopBusWrapper::_publish(struct bebop_state_data &data)
 {
 
-	battery_status_s battery_report;
 	const hrt_abstime timestamp = hrt_absolute_time();
 
 	// TODO Check if this is the right way for the Bebop
 	// We don't have current measurements
-	_battery.updateBatteryStatus(timestamp, data.battery_voltage_v, 0.0, true, true, 0, _last_throttle, _armed,
-				     &battery_report);
+	_battery.updateBatteryStatus(timestamp, data.battery_voltage_v, 0.0, true, true, 0, _last_throttle, _armed, false);
 
 	esc_status_s esc_status = {};
 
@@ -224,13 +222,7 @@ int DfBebopBusWrapper::_publish(struct bebop_state_data &data)
 	// TODO: when is this ever blocked?
 	if (!(m_pub_blocked)) {
 
-		if (_battery_topic == nullptr) {
-			_battery_topic = orb_advertise_multi(ORB_ID(battery_status), &battery_report,
-							     &_battery_orb_class_instance, ORB_PRIO_LOW);
-
-		} else {
-			orb_publish(ORB_ID(battery_status), _battery_topic, &battery_report);
-		}
+		_battery.publish();
 
 		if (_esc_topic == nullptr) {
 			_esc_topic = orb_advertise(ORB_ID(esc_status), &esc_status);
@@ -307,7 +299,7 @@ int initialize_mixers(const char *mixers_filename)
 	}
 
 	if (_mixers == nullptr) {
-		_mixers = new MixerGroup(mixers_control_callback, (uintptr_t)_controls);
+		_mixers = new MixerGroup();
 	}
 
 	if (_mixers == nullptr) {
@@ -315,7 +307,7 @@ int initialize_mixers(const char *mixers_filename)
 		return -1;
 
 	} else {
-		int ret = _mixers->load_from_buf(buf, buflen);
+		int ret = _mixers->load_from_buf(mixers_control_callback, (uintptr_t)_controls, buf, buflen);
 
 		if (ret != 0) {
 			PX4_ERR("Unable to parse mixers file");

@@ -33,6 +33,7 @@
 
 add_subdirectory(bmp280)
 add_subdirectory(bmp388)
+add_subdirectory(dps310)
 add_subdirectory(lps22hb)
 #add_subdirectory(lps25h) # not ready for general inclusion
 #add_subdirectory(mpl3115a2) # not ready for general inclusion

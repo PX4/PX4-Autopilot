@@ -190,6 +190,10 @@ MavlinkReceiver::handle_message(mavlink_message_t *msg)
 		handle_message_landing_target(msg);
 		break;
 
+	case MAVLINK_MSG_ID_CELLULAR_STATUS:
+		handle_message_cellular_status(msg);
+		break;
+
 	case MAVLINK_MSG_ID_ADSB_VEHICLE:
 		handle_message_adsb_vehicle(msg);
 		break;
@@ -696,7 +700,7 @@ MavlinkReceiver::handle_message_distance_sensor(mavlink_message_t *msg)
 	ds.q[3]             = dist_sensor.quaternion[3];
 	ds.signal_quality   = -1; // TODO: A dist_sensor.signal_quality field is missing from the mavlink message definition.
 	ds.type             = dist_sensor.type;
-	ds.id               = MAV_DISTANCE_SENSOR_LASER;
+	ds.id               = dist_sensor.id;
 	ds.orientation      = dist_sensor.orientation;
 
 	_distance_sensor_pub.publish(ds);
@@ -1593,8 +1597,8 @@ MavlinkReceiver::handle_message_ping(mavlink_message_t *msg)
 void
 MavlinkReceiver::handle_message_battery_status(mavlink_message_t *msg)
 {
-	if (msg->sysid != mavlink_system.sysid) {
-		// ignore battery status of other system
+	if ((msg->sysid != mavlink_system.sysid) || (msg->compid == mavlink_system.compid)) {
+		// ignore battery status coming from other systems or from the autopilot itself
 		return;
 	}
 
@@ -2192,6 +2196,26 @@ MavlinkReceiver::handle_message_landing_target(mavlink_message_t *msg)
 
 		_landing_target_pose_pub.publish(landing_target_pose);
 	}
+}
+
+void
+MavlinkReceiver::handle_message_cellular_status(mavlink_message_t *msg)
+{
+	mavlink_cellular_status_t status;
+	mavlink_msg_cellular_status_decode(msg, &status);
+
+	cellular_status_s cellular_status{};
+
+	cellular_status.timestamp = hrt_absolute_time();
+	cellular_status.status = status.status;
+	cellular_status.type = status.type;
+	cellular_status.quality = status.quality;
+	cellular_status.mcc = status.mcc;
+	cellular_status.mnc = status.mnc;
+	cellular_status.lac = status.lac;
+	cellular_status.cid = status.cid;
+
+	_cellular_status_pub.publish(cellular_status);
 }
 
 void

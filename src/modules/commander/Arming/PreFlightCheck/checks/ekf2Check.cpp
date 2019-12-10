@@ -65,7 +65,8 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 	if (status.pre_flt_fail_innov_heading ||
 	    status.pre_flt_fail_innov_vel_horiz ||
 	    status.pre_flt_fail_innov_vel_vert ||
-	    status.pre_flt_fail_innov_height) {
+	    status.pre_flt_fail_innov_height ||
+	    status.pre_flt_fail_mag_field_disturbed) {
 		if (report_fail) {
 			if (status.pre_flt_fail_innov_heading) {
 				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: heading estimate not stable");
@@ -78,6 +79,9 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 
 			} else if (status.pre_flt_fail_innov_height) {
 				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: height estimate not stable");
+
+			} else if (status.pre_flt_fail_mag_field_disturbed) {
+				mavlink_log_critical(mavlink_log_pub, "Preflight Fail: strong magnetic interference detected");
 			}
 		}
 
@@ -182,8 +186,8 @@ bool PreFlightCheck::ekf2Check(orb_advert_t *mavlink_log_pub, vehicle_status_s &
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_SAT_COUNT)) {
 					message = "Preflight%s: not enough GPS Satellites";
 
-				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_GDOP)) {
-					message = "Preflight%s: GPS GDoP too low";
+				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MIN_PDOP)) {
+					message = "Preflight%s: GPS PDOP too low";
 
 				} else if (status.gps_check_fail_flags & (1 << estimator_status_s::GPS_CHECK_FAIL_MAX_HORZ_ERR)) {
 					message = "Preflight%s: GPS Horizontal Pos Error too high";
