@@ -193,12 +193,8 @@ static int read_id_dn(int *id, uint32_t gpio_drive, uint32_t gpio_sense, int adc
 
 	uint32_t dn_sum = 0;
 	uint16_t dn = 0;
-#if defined(ON_EVK)
 
-	if (1 || high || low) { // no if
-#else
 	if ((high ^ low) && low == 0) {
-#endif
 		/* Yes - Fire up the ADC (it has once control) */
 
 		if (px4_arch_adc_init(HW_REV_VER_ADC_BASE) == OK) {

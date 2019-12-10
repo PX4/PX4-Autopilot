@@ -56,11 +56,6 @@
 /****************************************************************************************************
  * Definitions
  ****************************************************************************************************/
-#if defined(ON_EVK)
-//#define ON_EVK_SPI // Uses SDHC pins and requires R278-R281
-#define ON_EVK_SDIO //  SPI2 is mapped on Pins and requires
-//#define ON_EVK_I2C //   I2C2 is mapped on Pins and requires R278-R281
-#endif
 
 /* PX4IO connection configuration */
 
@@ -118,14 +113,10 @@
 #define OUT_IOMUX (IOMUX_CMOS_OUTPUT | IOMUX_PULL_UP_100K | IOMUX_DRIVE_50OHM | IOMUX_SPEED_MEDIUM | IOMUX_SLEW_FAST)
 
 /* SPI 1 CS */
-#if defined(ON_EVK) && defined(ON_EVK_SPI)
-#define GPIO_SPI1_CS1_ICM20689    /* J24-3 POP R280 GPIO_SD_B0_01 */  (GPIO_PORT3 | GPIO_PIN13 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | CS_IOMUX)
-#else
 #define GPIO_SPI1_CS1_ICM20689     /* GPIO_EMC_40 GPIO3_IO26 */ (GPIO_PORT3 | GPIO_PIN26 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | CS_IOMUX)
 //      GPIO_SPI1_CS2_ICM20602     is not wired from CPU
 #define GPIO_SPI1_CS3_BMI055_GYRO  /* GPIO_B1_10 GPIO2_IO26 */  (GPIO_PORT2 | GPIO_PIN26 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | CS_IOMUX)
 #define GPIO_SPI1_CS4_BMI055_ACCEL /* GPIO_B1_15 GPIO2_IO31 */  (GPIO_PORT2 | GPIO_PIN31 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | CS_IOMUX)
-#endif
 
 #define SPI1_CS5_AUX_MEM           /* GPIO_SD_B1_00 GPIO3_IO00 */ (GPIO_PORT3 | GPIO_PIN0 | GPIO_OUTPUT | GPIO_OUTPUT_ONE | CS_IOMUX)
 
@@ -240,14 +231,6 @@
 
 /* Define GPIO pins used as ADC N.B. Channel numbers are for reference, */
 
-#if defined(ON_EVK)
-#define PX4_ADC_GPIO  \
-	/* J23-2 BATTERY1_VOLTAGE       GPIO_AD_B1_11 GPIO1 Pin 27 */  ADC1_GPIO(0,  27),  \
-	/* J23-3 HW_VER_SENSE           GPIO_AD_B1_04 GPIO1 Pin 20 */  ADC1_GPIO(9,  20),  \
-	/* J23-4 SCALED_V5              GPIO_AD_B1_05 GPIO1 Pin 21 */  ADC1_GPIO(10, 21), \
-	/* J22-4 HW_REV_SENSE           GPIO_AD_B1_08 GPIO1 Pin 24 */  ADC1_GPIO(13, 24), \
-	/* J23-1 RSSI_IN                GPIO_AD_B1_10 GPIO1 Pin 26 */  ADC1_GPIO(15, 26)
-#else
 #define PX4_ADC_GPIO  \
 	/* BATTERY1_VOLTAGE       GPIO_AD_B1_11 GPIO1 Pin 27 */  ADC1_GPIO(0,  27),  \
 	/* BATTERY1_CURRENT       GPIO_AD_B0_12 GPIO1 Pin 12 */  ADC1_GPIO(1,  12),  \
@@ -260,7 +243,6 @@
 	/* HW_REV_SENSE           GPIO_AD_B1_08 GPIO1 Pin 24 */  ADC1_GPIO(13, 24), \
 	/* SPARE_1                GPIO_AD_B1_09 GPIO1 Pin 25 */  ADC1_GPIO(14, 25), \
 	/* RSSI_IN                GPIO_AD_B1_10 GPIO1 Pin 26 */  ADC1_GPIO(15, 26)
-#endif // defined(ON_EVK)
 
 /* Define Channel numbers must match above GPIO pin IN(n)*/
 
@@ -276,14 +258,6 @@
 #define ADC1_SPARE_1_CHANNEL                /* GPIO_AD_B1_09 GPIO1 Pin 25 */  ADC1_CH(14)
 #define ADC_RSSI_IN_CHANNEL                 /* GPIO_AD_B1_10 GPIO1 Pin 26 */  ADC1_CH(15)
 
-#if defined(ON_EVK)
-#define ADC_CHANNELS \
-	((1 << ADC_BATTERY1_VOLTAGE_CHANNEL)       | \
-	 (1 << ADC_RSSI_IN_CHANNEL)                | \
-	 (1 << ADC_SCALED_V5_CHANNEL)              | \
-	 (1 << ADC_HW_VER_SENSE_CHANNEL)           | \
-	 (1 << ADC_HW_REV_SENSE_CHANNEL))
-#else
 #define ADC_CHANNELS \
 	((1 << ADC_BATTERY1_VOLTAGE_CHANNEL)       | \
 	 (1 << ADC_BATTERY1_CURRENT_CHANNEL)       | \
@@ -454,7 +428,7 @@
 #define VDD_3V3_SD_CARD_EN(on_true)        px4_arch_gpiowrite(GPIO_VDD_3V3_SD_CARD_EN, (on_true))
 
 /* Tone alarm output */
-#if !defined(ON_EVK)
+
 #define TONE_ALARM_TIMER        2  /* GPT 2 */
 #define TONE_ALARM_CHANNEL      3  /* GPIO_AD_B1_07 GPT2_COMPARE3 */
 
@@ -462,7 +436,7 @@
 
 #define GPIO_TONE_ALARM_IDLE    GPIO_BUZZER_1
 #define GPIO_TONE_ALARM         GPIO_GPT2_COMPARE3_1
-#endif
+
 /* USB OTG FS
  *
  * VBUS_VALID is detected in USB_ANALOG_USB1_VBUS_DETECT_STAT
@@ -574,12 +548,6 @@
 		GPIO_GPIO0_INPUT, \
 	}
 
-#if defined(ON_EVK)
-#define PX4_GPIO_INIT_LIST { \
-		PX4_ADC_GPIO,            \
-	}
-
-#else
 #define PX4_GPIO_INIT_LIST { \
 		PX4_ADC_GPIO,                     \
 		GPIO_HW_VER_REV_DRIVE,            \
@@ -610,7 +578,6 @@
 		GPIO_nSAFETY_SWITCH_LED_OUT_INIT, \
 		GPIO_SAFETY_SWITCH_IN             \
 	}
-#endif //defined(ON_EVK)
 
 #define BOARD_ENABLE_CONSOLE_BUFFER
 __BEGIN_DECLS

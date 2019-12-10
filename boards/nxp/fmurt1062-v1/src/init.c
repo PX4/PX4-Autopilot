@@ -260,7 +260,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	led_off(LED_GREEN);
 	led_off(LED_BLUE);
 
-#if defined(ON_EVK_SDIO) && defined(CONFIG_IMXRT_USDHC)
+#if defined(CONFIG_IMXRT_USDHC)
 	int ret = fmurt1062_usdhc_initialize();
 
 	if (ret != OK) {
@@ -269,7 +269,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	}
 
 #endif
-#if defined(ON_EVK_SPI)
+
 	/* Configure SPI-based devices */
 
 	ret = imxrt1062_spi_bus_initialize();
@@ -279,7 +279,6 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 		return ret;
 	}
 
-#endif
 
 	return OK;
 }
@@ -298,16 +297,3 @@ int usbdev_unregister(struct usbdevclass_driver_s *driver)
 {
 	return -EINVAL;
 }
-
-#if defined(ON_EVK)
-#  if !defined(CONFIG_IMXRT_LPI2C)
-FAR struct i2c_master_s *imxrt_i2cbus_initialize(int port)
-{
-	return 0;
-}
-int imxrt_i2cbus_uninitialize(FAR struct i2c_master_s *dev)
-{
-	return 0;
-}
-#  endif
-#endif
