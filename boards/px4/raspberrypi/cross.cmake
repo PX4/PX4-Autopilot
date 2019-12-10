@@ -12,6 +12,7 @@ px4_add_board(
 		#barometer # all available barometer drivers
 		batt_smbus
 		camera_trigger
+		camera_capture
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
 		gps
@@ -19,14 +20,13 @@ px4_add_board(
 		#magnetometer # all available magnetometer drivers
 		pwm_out_sim
 		#telemetry # all available telemetry drivers
-
 		linux_pwm_out
+		linux_pwm_output
 		linux_sbus
 		rpi_rc_in
 
 	MODULES
 		attitude_estimator_q
-		camera_capture
 		camera_feedback
 		commander
 		dataman
