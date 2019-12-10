@@ -59,6 +59,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -102,7 +103,7 @@ static int create_dirs();
 static int run_startup_script(const std::string &commands_file, const std::string &absolute_binary_path, int instance);
 static std::string get_absolute_binary_path(const std::string &argv0);
 static void wait_to_exit();
-static bool is_already_running(int instance);
+static bool is_already_running(int instance, bool keep_locked);
 static void print_usage();
 static bool dir_exists(const std::string &path);
 static bool file_exists(const std::string &name);
@@ -144,6 +145,7 @@ int main(int argc, char **argv)
 
 
 	if (is_client) {
+		// PX4_ERR("Starting PX4 client %s, process: %d", argv[0], getpid());
 		int instance = 0;
 
 		if (argc >= 3 && strcmp(argv[1], "--instance") == 0) {
@@ -158,7 +160,7 @@ int main(int argc, char **argv)
 
 		PX4_DEBUG("instance: %i", instance);
 
-		if (!is_already_running(instance)) {
+		if (!is_already_running(instance, true)) {
 			if (errno) {
 				PX4_ERR("Failed to communicate with daemon: %s", strerror(errno));
 
@@ -176,6 +178,7 @@ int main(int argc, char **argv)
 		return client.process_args(argc, (const char **)argv);
 
 	} else {
+		// PX4_ERR("Starting PX4 server process: %d", getpid());
 		/* Server/daemon apps need to parse the command line arguments. */
 
 		std::string data_path{};
@@ -240,7 +243,7 @@ int main(int argc, char **argv)
 			} // else: ROS argument (in the form __<name>:=<value>)
 		}
 
-		if (is_already_running(instance)) {
+		if (is_already_running(instance, false)) {
 			// allow running multiple instances, but the server is only started for the first
 			PX4_INFO("PX4 daemon already running for instance %i (%s)", instance, strerror(errno));
 			return -1;
@@ -572,29 +575,33 @@ void print_usage()
 	printf("        e.g.: px4-commander status\n");
 }
 
-bool is_already_running(int instance)
+bool is_already_running(int instance, bool keep_locked)
 {
 	const std::string file_lock_path = std::string(LOCK_FILE_PATH) + '-' + std::to_string(instance);
-	struct flock fl;
 	int fd = open(file_lock_path.c_str(), O_RDWR | O_CREAT, 0666);
 
 	if (fd < 0) {
+		PX4_ERR("is_already_running: failed to create lock file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
 		return false;
 	}
 
-	fl.l_type   = F_WRLCK;
-	fl.l_whence = SEEK_SET;
-	fl.l_start  = 0;
-	fl.l_len    = 0;
-	fl.l_pid    = getpid();
+	PX4_DEBUG("is_already_running: process %d is grabbing lock...", getpid());
+	if (flock(fd, LOCK_EX) < 0) {
+		// if we cannot get the exclusive lock, then it is already running!
+		PX4_ERR("is_already_running: failed to get lock on file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
+		return true;
+	}
+	PX4_DEBUG("is_already_running: file locked !");
 
-	if (fcntl(fd, F_SETLK, &fl) == -1) {
-		// We failed to create a file lock, must be already locked.
-		return errno == EACCES || errno == EAGAIN;
+	if (!keep_locked) {
+		flock(fd, LOCK_UN);
+		PX4_DEBUG("is_already_running: releasing the lock !");
+		errno = 0;
+		return false;
 	}
 
 	errno = 0;
-	return false;
+	return true;
 }
 
 bool file_exists(const std::string &name)
