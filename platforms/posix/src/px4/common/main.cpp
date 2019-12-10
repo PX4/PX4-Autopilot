@@ -583,16 +583,15 @@ bool is_server_running(int instance, bool server)
 		return false;
 	}
 
-	PX4_DEBUG("is_server_running: process %d is grabbing lock...", getpid());
-
 	if (!server) {
 		// this is the client checking that server is running.  Server is running if
 		// the file is locked.  This is true if the non-blocking flock returns EWOULDBLOCK.
-		if (flock(fd, LOCK_EX | LOCK_NB) == EWOULDBLOCK) {
+		if (flock(fd, LOCK_EX | LOCK_NB) < 0 && errno == EWOULDBLOCK) {
 			return true;
 		}
 
 		// server is not running!
+		PX4_ERR("is_server_running: failed to create lock file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
 		return false;
 	}
 
