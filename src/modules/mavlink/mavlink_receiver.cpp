@@ -2209,11 +2209,20 @@ MavlinkReceiver::handle_message_utm_global_position(mavlink_message_t *msg)
 	mavlink_utm_global_position_t utm_pos;
 	mavlink_msg_utm_global_position_decode(msg, &utm_pos);
 
+
 	px4_guid_t px4_guid;
+
+#ifndef BOARD_HAS_NO_UUID
 	board_get_px4_guid(px4_guid);
+#else
+	// TODO Fill ID with something reasonable
+	memset(&px4_guid[0], 0, sizeof(px4_guid));
+#endif /* BOARD_HAS_NO_UUID */
+
 
 	//Ignore selfpublished UTM messages
 	if (sizeof(px4_guid) == sizeof(utm_pos.uas_id) && memcmp(px4_guid, utm_pos.uas_id, sizeof(px4_guid_t)) != 0) {
+
 		// Convert cm/s to m/s
 		float vx = utm_pos.vx / 100.0f;
 		float vy = utm_pos.vy / 100.0f;

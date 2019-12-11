@@ -921,19 +921,25 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 	tr.tslc = 2; // Time since last communication in seconds
 	tr.flags = transponder_report_s::PX4_ADSB_FLAGS_VALID_COORDS | transponder_report_s::PX4_ADSB_FLAGS_VALID_HEADING |
 		   transponder_report_s::PX4_ADSB_FLAGS_VALID_VELOCITY |
-		   transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE;// |
-	//transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN; // Flags to indicate various statuses including valid data fields
+		   transponder_report_s::PX4_ADSB_FLAGS_VALID_ALTITUDE |
+		   (transponder_report_s::ADSB_EMITTER_TYPE_UAV & emitter_type ? 0 :
+		    transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN); // Flags to indicate various statuses including valid data fields
 	tr.squawk = 6667;
 
+
+
+
+#ifndef BOARD_HAS_NO_UUID
 	px4_guid_t px4_guid;
 	board_get_px4_guid(px4_guid);
-	//memcpy(tr.uas_id, px4_guid, sizeof(px4_guid_t)); //debug own GUID
+	memcpy(tr.uas_id, px4_guid, sizeof(px4_guid_t)); //simulate own GUID
+#else
 
-	//simulate GUID
 	for (int i = 0; i < 18 ; i++) {
-		tr.uas_id[i] = 0xe0 + i;
+		tr.uas_id[i] = 0xe0 + i; //simulate GUID
 	}
 
+#endif /* BOARD_HAS_NO_UUID */
 
 	uORB::PublicationQueued<transponder_report_s> tr_pub{ORB_ID(transponder_report)};
 	tr_pub.publish(tr);
@@ -953,12 +959,7 @@ void Navigator::check_traffic()
 
 	bool changed = _traffic_sub.updated();
 
-	px4_guid_t px4_guid;
-	board_get_px4_guid(px4_guid);
-
-	char uas_id[PX4_GUID_FORMAT_SIZE];
-	char guid[PX4_GUID_FORMAT_SIZE];
-	board_get_px4_guid_formated(&guid[0], sizeof(guid));
+	char uas_id[PX4_GUID_FORMAT_SIZE]; //GUID of incoming UTM messages
 
 	float NAVTrafficAvoidUnmanned = _param_nav_traff_a_radu.get();
 	float NAVTrafficAvoidManned = _param_nav_traff_a_radm.get();
