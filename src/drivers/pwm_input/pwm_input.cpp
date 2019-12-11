@@ -73,6 +73,7 @@
 #include <systemlib/err.h>
 
 #include <uORB/uORB.h>
+#include <uORB/Publication.hpp>
 #include <uORB/topics/pwm_input.h>
 
 #include <drivers/drv_device.h>
@@ -204,6 +205,8 @@ private:
 	void _turn_off();
 	void _freeze_test();
 
+	uORB::PublicationData<pwm_input_s>	_pwm_input_pub{ORB_ID(pwm_input)};
+
 };
 
 static int pwmin_tim_isr(int irq, void *context, void *arg);
@@ -246,11 +249,17 @@ PWMIN::init()
 	 * activate the timer when requested to when the device is opened */
 	CDev::init();
 
-	_reports = new ringbuffer::RingBuffer(2, sizeof(struct pwm_input_s));
+	_reports = new ringbuffer::RingBuffer(2, sizeof(pwm_input_s));
 
 	if (_reports == nullptr) {
 		return -ENOMEM;
 	}
+
+	// TODO: why does update fail if it is not first called here?
+	_pwm_input_pub.update();
+
+	// Initialize the timer for measuring pulse widths
+	g_dev->_timer_init();
 
 	/* Schedule freeze check to invoke periodically */
 	hrt_call_every(&_freeze_test_call, 0, TIMEOUT_POLL, reinterpret_cast<hrt_callout>(&PWMIN::_freeze_test), this);
@@ -314,12 +323,12 @@ void PWMIN::_timer_init(void)
 	/* enable the timer */
 	rCR1 = GTIM_CR1_CEN;
 
-	/* enable interrupts */
-	up_enable_irq(PWMIN_TIMER_VECTOR);
+	_timer_started = true;
 
 	px4_leave_critical_section(flags);
 
-	_timer_started = true;
+	/* enable interrupts */
+	up_enable_irq(PWMIN_TIMER_VECTOR);
 }
 
 // XXX refactor this out of this driver
@@ -406,8 +415,8 @@ PWMIN::read(struct file *filp, char *buffer, size_t buflen)
 {
 	_last_read_time = hrt_absolute_time();
 
-	unsigned count = buflen / sizeof(struct pwm_input_s);
-	struct pwm_input_s *buf = reinterpret_cast<struct pwm_input_s *>(buffer);
+	unsigned count = buflen / sizeof(pwm_input_s);
+	pwm_input_s *buf = reinterpret_cast<pwm_input_s *>(buffer);
 	int ret = 0;
 
 	/* buffer must be large enough */
@@ -417,7 +426,7 @@ PWMIN::read(struct file *filp, char *buffer, size_t buflen)
 
 	while (count--) {
 		if (_reports->get(buf)) {
-			ret += sizeof(struct pwm_input_s);
+			ret += sizeof(pwm_input_s);
 			buf++;
 		}
 	}
@@ -439,13 +448,17 @@ void PWMIN::publish(uint16_t status, uint32_t period, uint32_t pulse_width)
 
 	_last_poll_time = hrt_absolute_time();
 
-	struct pwm_input_s pwmin_report;
+	pwm_input_s pwmin_report;
 	pwmin_report.timestamp = _last_poll_time;
 	pwmin_report.error_count = _error_count;
 	pwmin_report.period = period;
 	pwmin_report.pulse_width = pulse_width;
 
 	_reports->force(&pwmin_report);
+
+	// Also publish to uORB
+	// TODO: remove CDev and convert LidareLite driver to using uORB
+	_pwm_input_pub.publish(pwmin_report);
 }
 
 /*
