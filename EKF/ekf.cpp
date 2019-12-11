@@ -267,11 +267,6 @@ bool Ekf::initialiseFilter()
 			_state.pos(2) = -math::max(_rng_filt_state * _R_rng_to_earth_2_2, _params.rng_gnd_clearance);
 			ECL_INFO_TIMESTAMPED("EKF using range finder height - commencing alignment");
 
-		} else if (_control_status.flags.ev_hgt) {
-			// if we are using external vision data for height, then the vertical position state needs to be reset
-			// because the initialisation position is not the zero datum
-			resetHeight();
-
 		}
 
 		// try to initialise the terrain estimator
