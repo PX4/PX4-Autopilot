@@ -590,6 +590,13 @@ bool is_server_running(int instance, bool server)
 		if (errno == EWOULDBLOCK) {
 			result = true;
 
+			if (server) {
+				// another server is running!
+				errno = 0;
+				close(fd);
+				return true;
+			}
+
 		} else {
 			PX4_ERR("is_server_running: failed to get lock on file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
 			result = false;
