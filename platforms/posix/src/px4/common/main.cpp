@@ -143,7 +143,6 @@ int main(int argc, char **argv)
 		absolute_binary_path = get_absolute_binary_path(full_binary_name);
 	}
 
-
 	if (is_client) {
 		int instance = 0;
 
@@ -583,19 +582,19 @@ bool is_server_running(int instance, bool server)
 		return false;
 	}
 
-	if (!server) {
-		// this is the client checking that server is running.  Server is running if
-		// the file is locked.  This is true if the non-blocking flock returns EWOULDBLOCK.
-		if (flock(fd, LOCK_EX | LOCK_NB) < 0 && errno == EWOULDBLOCK) {
-			return true;
-		}
-
-		// server is not running!
-		return false;
+	// Server is running if the file is locked.
+	// This is true if the non-blocking flock returns EWOULDBLOCK.
+	if (flock(fd, LOCK_EX | LOCK_NB) < 0 && errno == EWOULDBLOCK) {
+		return true;
 	}
 
-	if (flock(fd, LOCK_EX) < 0) {
-		// if we cannot get the exclusive lock, then it is already running!
+	if (!server) {
+		// server is not running yet, and this is the client, so just return false so that the server
+		// can lock the file when it's ready.
+		return false;
+
+	} else if (flock(fd, LOCK_EX) < 0) {
+		// if we cannot get the exclusive lock, then another server snuck in just under the wire!
 		PX4_ERR("is_server_running: failed to get lock on file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
 		return true;
 	}
