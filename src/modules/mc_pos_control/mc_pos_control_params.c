@@ -506,21 +506,6 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR, 3.0f);
 PARAM_DEFINE_FLOAT(MPC_DEC_HOR_SLOW, 5.0f);
 
 /**
- * Horizontal acceleration in manual modes when te estimator speed limit is removed.
- * If full stick is being applied and the estimator stops demanding a speed limit,
- * which it had been before (e.g if GPS is gained while flying on optical flow/vision only),
- * the vehicle will accelerate at this rate until the normal position control speed is achieved.
- *
- * @unit m/s/s
- * @min 0.2
- * @max 2.0
- * @increment 0.1
- * @decimal 1
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_ACC_HOR_ESTM, 0.5f);
-
-/**
  * Maximum vertical acceleration in velocity controlled modes upward
  *
  * @unit m/s/s
