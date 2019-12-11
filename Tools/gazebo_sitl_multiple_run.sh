@@ -3,8 +3,8 @@
 # It assumes px4 is already built, with 'make px4_sitl_default'
 
 # The simulator is expected to send to TCP port 4560+i for i in [0, N-1]
-# For example jmavsim can be run like this:
-#./Tools/jmavsim_run.sh -p 4561 -l
+# For example gazebo can be run like this:
+#./Tools/gazebo_sitl_multiple_run.sh <number_of_vehicles>
 
 sitl_num=2
 [ -n "$1" ] && sitl_num="$1"
