@@ -254,10 +254,7 @@ bool Ekf::initialiseFilter()
 		initialiseCovariance();
 
 		// update the yaw angle variance using the variance of the measurement
-		if (_control_status.flags.ev_yaw) {
-			// using error estimate from external vision data TODO: this is never true
-			increaseQuatYawErrVariance(sq(fmaxf(_ev_sample_delayed.angErr, 1.0e-2f)));
-		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
+		if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
 			// using magnetic heading tuning parameter
 			increaseQuatYawErrVariance(sq(fmaxf(_params.mag_heading_noise, 1.0e-2f)));
 		}
