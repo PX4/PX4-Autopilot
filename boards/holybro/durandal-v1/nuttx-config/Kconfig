@@ -15,4 +15,3 @@ config BOARD_USE_PROBES
 
 	---help---
 		Select to use GPIO FMU-CH1-5, CAP1-6  to provide timing signals from selected drivers.
-

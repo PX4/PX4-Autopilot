@@ -78,7 +78,7 @@ VOXLPM::init()
 	write_reg(DEFAULT_CTRLA_REG_VAL, VOXLPM_LTC2946_CTRLA_REG);
 	write_reg(DEFAULT_CTRLB_REG_VAL, VOXLPM_LTC2946_CTRLB_REG);
 
-	_battery.reset(&_bat_status);
+	_battery.reset();
 
 	start();
 
@@ -153,9 +153,7 @@ VOXLPM::measure()
 
 		switch (_ch_type) {
 		case VOXLPM_CH_TYPE_VBATT: {
-				_battery.updateBatteryStatus(tnow, _voltage, _amperage, true, true, 0, 0, false, &_bat_status);
-
-				_bat_pub_topic.publish(_bat_status);
+				_battery.updateBatteryStatus(tnow, _voltage, _amperage, true, true, 0, 0, false, true);
 			}
 
 		// fallthrough
@@ -176,9 +174,7 @@ VOXLPM::measure()
 	} else {
 		switch (_ch_type) {
 		case VOXLPM_CH_TYPE_VBATT: {
-				_battery.updateBatteryStatus(tnow, 0.0, 0.0, true, true, 0, 0, false, &_bat_status);
-
-				_bat_pub_topic.publish(_bat_status);
+				_battery.updateBatteryStatus(tnow, 0.0, 0.0, true, true, 0, 0, false, true);
 			}
 			break;
 
