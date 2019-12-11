@@ -466,7 +466,6 @@ private:
 	uint32_t _hgt_counter{0};		///< number of height samples read during initialisation
 	float _rng_filt_state{0.0f};		///< filtered height measurement (m)
 	uint32_t _mag_counter{0};		///< number of magnetometer samples read during initialisation
-	uint32_t _ev_counter{0};		///< number of external vision samples read during initialisation
 	uint64_t _time_last_mag{0};		///< measurement time of last magnetomter sample (uSec)
 	AlphaFilterVector3f _mag_lpf;		///< filtered magnetometer measurement (Gauss)
 	Vector3f _delVel_sum;			///< summed delta velocity (m/sec)

@@ -177,26 +177,6 @@ bool Ekf::initialiseFilter()
 		}
 	}
 
-	// Count the number of external vision measurements received
-	if (_ext_vision_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_ev_sample_delayed)) {
-		if ((_ev_counter == 0) && (_ev_sample_delayed.time_us != 0)) {
-			// initialise the counter
-			_ev_counter = 1;
-
-			// set the height fusion mode to use external vision data when we start getting valid data from the buffer
-			if (_primary_hgt_source == VDIST_SENSOR_EV) {
-				_control_status.flags.baro_hgt = false;
-				_control_status.flags.gps_hgt = false;
-				_control_status.flags.rng_hgt = false;
-				_control_status.flags.ev_hgt = true;
-			}
-
-		} else if ((_ev_counter != 0) && (_ev_sample_delayed.time_us != 0)) {
-			// increment the sample count
-			_ev_counter ++;
-		}
-	}
-
 	// set the default height source from the adjustable parameter
 	if (_hgt_counter == 0) {
 		_primary_hgt_source = _params.vdist_sensor_type;
