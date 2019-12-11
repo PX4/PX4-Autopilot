@@ -101,16 +101,8 @@ void FlightTaskManualPosition::_scaleSticks()
 		// Allow for a minimum of 0.3 m/s for repositioning
 		_velocity_scale = fmaxf(_velocity_scale, 0.3f);
 
-	} else if (stick_xy.length() > 0.5f) {
-		// raise the limit at a constant rate up to the user specified value
-
-		if (_velocity_scale < _constraints.speed_xy) {
-			_velocity_scale += _deltatime * _param_mpc_acc_hor_estm.get();
-
-		} else {
-			_velocity_scale = _constraints.speed_xy;
-
-		}
+	} else {
+		_velocity_scale = _constraints.speed_xy;
 	}
 
 	_velocity_scale = fminf(_computeVelXYGroundDist(), _velocity_scale);
