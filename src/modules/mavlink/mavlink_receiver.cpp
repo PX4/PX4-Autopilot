@@ -2209,9 +2209,7 @@ MavlinkReceiver::handle_message_utm_global_position(mavlink_message_t *msg)
 	mavlink_utm_global_position_t utm_pos;
 	mavlink_msg_utm_global_position_decode(msg, &utm_pos);
 
-
 	px4_guid_t px4_guid;
-
 #ifndef BOARD_HAS_NO_UUID
 	board_get_px4_guid(px4_guid);
 #else

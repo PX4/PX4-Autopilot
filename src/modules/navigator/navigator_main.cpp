@@ -935,7 +935,7 @@ void Navigator::fake_traffic(const char *callsign, float distance, float directi
 	memcpy(tr.uas_id, px4_guid, sizeof(px4_guid_t)); //simulate own GUID
 #else
 
-	for (int i = 0; i < 18 ; i++) {
+	for (int i = 0; i < PX4_GUID_BYTE_LENGTH ; i++) {
 		tr.uas_id[i] = 0xe0 + i; //simulate GUID
 	}
 
@@ -959,7 +959,7 @@ void Navigator::check_traffic()
 
 	bool changed = _traffic_sub.updated();
 
-	char uas_id[PX4_GUID_FORMAT_SIZE]; //GUID of incoming UTM messages
+	char uas_id[11]; //GUID of incoming UTM messages
 
 	float NAVTrafficAvoidUnmanned = _param_nav_traff_a_radu.get();
 	float NAVTrafficAvoidManned = _param_nav_traff_a_radm.get();
@@ -982,18 +982,14 @@ void Navigator::check_traffic()
 		}
 
 		//convert UAS_id byte array to char array for User Warning
-		for (int i = 0; i < 18 ; i++) {
-			snprintf(&uas_id[i * 2], sizeof(uas_id) - i * 2, "%02x", tr.uas_id[i]);
+		for (int i = 0; i < 5; i++) {
+			snprintf(&uas_id[i * 2], sizeof(uas_id) - i * 2, "%02x", tr.uas_id[PX4_GUID_BYTE_LENGTH - 5 + i]);
 		}
 
 		//Manned/Unmanned Vehicle Seperation Distance
 		if (tr.emitter_type == transponder_report_s::ADSB_EMITTER_TYPE_UAV) {
 			horizontal_separation = NAVTrafficAvoidUnmanned;
 			vertical_separation = NAVTrafficAvoidUnmanned;
-
-		} else {
-			horizontal_separation = NAVTrafficAvoidManned;
-			vertical_separation = NAVTrafficAvoidManned;
 		}
 
 		float d_hor, d_vert;
@@ -1036,31 +1032,28 @@ void Navigator::check_traffic()
 
 					case 0: {
 							/* Ignore */
-							PX4_WARN("TRAFFIC %s! dst %d, hdg %d, type %d",
+							PX4_WARN("TRAFFIC %s! dst %d, hdg %d",
 								 tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
 								 traffic_seperation,
-								 traffic_direction,
-								 tr.emitter_type);
+								 traffic_direction);
 							break;
 						}
 
 					case 1: {
 							/* Warn only */
-							mavlink_log_critical(&_mavlink_log_pub, "Warning TRAFFIC %s! dst %d, hdg %d, type %d",
+							mavlink_log_critical(&_mavlink_log_pub, "Warning TRAFFIC %s! dst %d, hdg %d",
 									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
 									     traffic_seperation,
-									     traffic_direction,
-									     tr.emitter_type);
+									     traffic_direction);
 							break;
 						}
 
 					case 2: {
 							/* RTL Mode */
-							mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Returning home! dst %d, hdg %d, type %d",
+							mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Returning home! dst %d, hdg %d",
 									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
 									     traffic_seperation,
-									     traffic_direction,
-									     tr.emitter_type);
+									     traffic_direction);
 
 							// set the return altitude to minimum
 							_rtl.set_return_alt_min(true);
@@ -1074,11 +1067,10 @@ void Navigator::check_traffic()
 
 					case 3: {
 							/* Land Mode */
-							mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Landing! dst % d, hdg % d, type % d",
+							mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Landing! dst %d, hdg % d",
 									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
 									     traffic_seperation,
-									     traffic_direction,
-									     tr.emitter_type);
+									     traffic_direction);
 
 							// ask the commander to land
 							vehicle_command_s vcmd = {};
@@ -1090,11 +1082,10 @@ void Navigator::check_traffic()
 
 					case 4: {
 							/* Position hold */
-							mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Holding position! dst %d, hdg %d, type %d",
+							mavlink_log_critical(&_mavlink_log_pub, "TRAFFIC: %s Holding position! dst %d, hdg %d",
 									     tr.flags & transponder_report_s::PX4_ADSB_FLAGS_VALID_CALLSIGN ? tr.callsign : uas_id,
 									     traffic_seperation,
-									     traffic_direction,
-									     tr.emitter_type);
+									     traffic_direction);
 
 							// ask the commander to Loiter
 							vehicle_command_s vcmd = {};
