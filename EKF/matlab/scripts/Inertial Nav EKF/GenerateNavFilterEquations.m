@@ -510,5 +510,6 @@ load('Drag.mat');
 fileName = strcat('SymbolicOutput',int2str(nStates),'.mat');
 save(fileName);
 SaveScriptCode(nStates);
-ConvertToM(nStates);
-ConvertToC(nStates);
+ConvertToM(nStates); % convert symbolic expressions to Matlab expressions
+ConvertToC(nStates); % convert Matlab expressions to C code expressions
+ConvertCtoC(nStates); % convert covariance matrix expressions from array to matrix syntax
