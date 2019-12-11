@@ -36,7 +36,7 @@ while [ $n -lt $sitl_num ]; do
 	pushd "$working_dir" &>/dev/null
 	echo "starting instance $n in $(pwd)"
 	../bin/px4 -i $n -d "$src_path/ROMFS/px4fmu_common" -w sitl_iris_${n} -s etc/init.d-posix/rcS >out.log 2>err.log &
-	xacro ${src_path}/Tools/sitl_gazebo/models/rotors_description/urdf/iris_base.xacro rotors_description_dir:=${src_path}/Tools/sitl_gazebo/models/rotors_description mavlink_udp_port:=$((14560+$n)) mavlink_tcp_port:=$((4560+$n)) --inorder > /tmp/${PX4_SIM_MODEL}_${n}.urdf
+	python3 ${src_path}/Tools/sitl_gazebo/scripts/xacro.py ${src_path}/Tools/sitl_gazebo/models/rotors_description/urdf/iris_base.xacro rotors_description_dir:=${src_path}/Tools/sitl_gazebo/models/rotors_description mavlink_udp_port:=$(($mavlink_udp_port+$n)) mavlink_tcp_port:=$(($mavlink_tcp_port+$n))  -o /tmp/${PX4_SIM_MODEL}_${n}.urdf
 	echo "Spawning ${PX4_SIM_MODEL}_${n}"
 	gz model --spawn-file=/tmp/${PX4_SIM_MODEL}_${n}.urdf --model-name=${PX4_SIM_MODEL}_${n} -x 0.0 -y ${n} -z 0.0
 
