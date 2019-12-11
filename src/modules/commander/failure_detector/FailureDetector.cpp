@@ -61,6 +61,11 @@ FailureDetector::update(const vehicle_status_s &vehicle_status)
 	if (isAttitudeStabilized(vehicle_status)) {
 		updated = updateAttitudeStatus();
 
+		if (_param_ext_ats_en.get())
+		{
+			updated |= updateExternalAtsStatus();
+		}
+
 	} else {
 		updated = resetStatus();
 	}
@@ -125,6 +130,29 @@ FailureDetector::updateAttitudeStatus()
 
 		if (_pitch_failure_hysteresis.get_state()) {
 			_status |= FAILURE_PITCH;
+		}
+
+		updated = true;
+	}
+
+	return updated;
+}
+
+bool
+FailureDetector::updateExternalAtsStatus()
+{
+	bool updated(false);
+	pwm_input_s pwm_input;
+
+	if (_sub_pwm_input.update(&pwm_input)) {
+
+		uint32_t pulse_width = pwm_input.pulse_width;
+
+		_status &= ~FAILURE_EXT;
+
+		if (pulse_width >= (uint32_t)_param_ext_ats_pwm_trig.get())
+		{
+			_status |= FAILURE_EXT;
 		}
 
 		updated = true;
