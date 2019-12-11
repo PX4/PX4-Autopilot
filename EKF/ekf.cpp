@@ -259,16 +259,6 @@ bool Ekf::initialiseFilter()
 			increaseQuatYawErrVariance(sq(fmaxf(_params.mag_heading_noise, 1.0e-2f)));
 		}
 
-		if (_control_status.flags.rng_hgt) {
-			// if we are using the range finder as the primary source, then calculate the baro height at origin so  we can use baro as a backup
-			// so it can be used as a backup ad set the initial height using the range finder
-			const baroSample &baro_newest = _baro_buffer.get_newest();
-			_baro_hgt_offset = baro_newest.hgt;
-			_state.pos(2) = -math::max(_rng_filt_state * _R_rng_to_earth_2_2, _params.rng_gnd_clearance);
-			ECL_INFO_TIMESTAMPED("EKF using range finder height - commencing alignment");
-
-		}
-
 		// try to initialise the terrain estimator
 		_terrain_initialised = initHagl();
 
