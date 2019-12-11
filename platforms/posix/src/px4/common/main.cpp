@@ -582,26 +582,40 @@ bool is_server_running(int instance, bool server)
 		return false;
 	}
 
+	bool result = false;
+
 	// Server is running if the file is locked.
 	// This is true if the non-blocking flock returns EWOULDBLOCK.
-	if (flock(fd, LOCK_EX | LOCK_NB) < 0 && errno == EWOULDBLOCK) {
-		return true;
+	if (flock(fd, LOCK_EX | LOCK_NB) < 0) {
+		if (errno == EWOULDBLOCK) {
+			result = true;
+
+		} else {
+			PX4_ERR("is_server_running: failed to get lock on file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
+			result = false;
+		}
+
+	} else if (!server) {
+		// server is not running yet, and this is the client, so just return false so that the server
+		// can lock the file when it's ready.
+		flock(fd, LOCK_UN);
+		result = false;
+
+	} else {
+		result = true;
 	}
 
 	if (!server) {
-		// server is not running yet, and this is the client, so just return false so that the server
-		// can lock the file when it's ready.
-		return false;
+		close(fd);
 
-	} else if (flock(fd, LOCK_EX) < 0) {
-		// if we cannot get the exclusive lock, then another server snuck in just under the wire!
-		PX4_ERR("is_server_running: failed to get lock on file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
-		return true;
+	} else {
+		// note: server leaks the file handle once, on purpose, in order to keep the lock on the file until the process terminates.
+		// in this case we have the lock but we return false so the server code path continues.
+		result = false;
 	}
 
-	// we got the lock, we're good to go, returning false allows the server code path to continue.
 	errno = 0;
-	return false;
+	return result;
 }
 
 bool file_exists(const std::string &name)
