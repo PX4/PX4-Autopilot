@@ -35,15 +35,15 @@
  * @file ToneAlarmInterface.cpp
  */
 
-#include "chip/kinetis_sim.h"
+#include "hardware/kinetis_sim.h"
 #include "kinetis_tpm.h"
 
 #include <drivers/device/device.h>
 #include <drivers/drv_tone_alarm.h>
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <systemlib/px4_macros.h>
 
-#include <cmath>
+#include <math.h>
 
 #define CAT3_(A, B, C)    A##B##C
 #define CAT3(A, B, C)     CAT3_(A, B, C)
@@ -166,7 +166,7 @@ void start_note(unsigned frequency)
 	float signal_period = (1.0f / frequency) * 0.5f;
 
 	// Calculate the hardware clock divisor rounded to the nearest integer.
-	unsigned int divisor = std::round(signal_period * TONE_ALARM_CLOCK);
+	unsigned int divisor = roundf(signal_period * TONE_ALARM_CLOCK);
 
 	rCNT = 0;
 	rMOD = divisor;        // Load new signal switching period.

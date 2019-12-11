@@ -38,7 +38,7 @@
  * @author Julian Oes <julian@oes.ch>
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -48,9 +48,9 @@
 #include <string.h>
 #include <math.h>
 #include <unistd.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/getopt.h>
 #include <errno.h>
-
+#include <lib/parameters/param.h>
 #include <systemlib/err.h>
 #include <perf/perf_counter.h>
 #include <systemlib/mavlink_log.h>
@@ -224,9 +224,6 @@ DfMpu9250Wrapper::DfMpu9250Wrapper(bool mag_enabled, enum Rotation rotation) :
 	_accel_calibration.y_offset = 0.0f;
 	_accel_calibration.z_offset = 0.0f;
 
-	_gyro_calibration.x_scale = 1.0f;
-	_gyro_calibration.y_scale = 1.0f;
-	_gyro_calibration.z_scale = 1.0f;
 	_gyro_calibration.x_offset = 0.0f;
 	_gyro_calibration.y_offset = 0.0f;
 	_gyro_calibration.z_offset = 0.0f;
@@ -387,27 +384,6 @@ void DfMpu9250Wrapper::_update_gyro_calibration()
 			continue;
 		}
 
-		(void)sprintf(str, "CAL_GYRO%u_XSCALE", i);
-		res = param_get(param_find(str), &_gyro_calibration.x_scale);
-
-		if (res != OK) {
-			PX4_ERR("Could not access param %s", str);
-		}
-
-		(void)sprintf(str, "CAL_GYRO%u_YSCALE", i);
-		res = param_get(param_find(str), &_gyro_calibration.y_scale);
-
-		if (res != OK) {
-			PX4_ERR("Could not access param %s", str);
-		}
-
-		(void)sprintf(str, "CAL_GYRO%u_ZSCALE", i);
-		res = param_get(param_find(str), &_gyro_calibration.z_scale);
-
-		if (res != OK) {
-			PX4_ERR("Could not access param %s", str);
-		}
-
 		(void)sprintf(str, "CAL_GYRO%u_XOFF", i);
 		res = param_get(param_find(str), &_gyro_calibration.x_offset);
 
@@ -433,9 +409,6 @@ void DfMpu9250Wrapper::_update_gyro_calibration()
 		return;
 	}
 
-	_gyro_calibration.x_scale = 1.0f;
-	_gyro_calibration.y_scale = 1.0f;
-	_gyro_calibration.z_scale = 1.0f;
 	_gyro_calibration.x_offset = 0.0f;
 	_gyro_calibration.y_offset = 0.0f;
 	_gyro_calibration.z_offset = 0.0f;
@@ -668,9 +641,9 @@ int DfMpu9250Wrapper::_publish(struct imu_sensor_data &data)
 	gyro_report.z_raw = (int16_t)(zraw_f * 1000); // (int16) [rad / s * 1000];
 
 	// adjust values according to the calibration
-	float x_gyro_in_new = (xraw_f - _gyro_calibration.x_offset) * _gyro_calibration.x_scale;
-	float y_gyro_in_new = (yraw_f - _gyro_calibration.y_offset) * _gyro_calibration.y_scale;
-	float z_gyro_in_new = (zraw_f - _gyro_calibration.z_offset) * _gyro_calibration.z_scale;
+	float x_gyro_in_new = xraw_f - _gyro_calibration.x_offset;
+	float y_gyro_in_new = yraw_f - _gyro_calibration.y_offset;
+	float z_gyro_in_new = zraw_f - _gyro_calibration.z_offset;
 
 	gyro_report.x = _gyro_filter_x.apply(x_gyro_in_new);
 	gyro_report.y = _gyro_filter_y.apply(y_gyro_in_new);

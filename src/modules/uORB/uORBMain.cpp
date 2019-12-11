@@ -37,8 +37,8 @@
 #include "uORB.h"
 #include "uORBCommon.hpp"
 
-#include <px4_log.h>
-#include <px4_module.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
 
 extern "C" { __EXPORT int uorb_main(int argc, char *argv[]); }
 

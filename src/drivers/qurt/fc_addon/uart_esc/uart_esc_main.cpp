@@ -33,9 +33,9 @@
 
 #include <stdint.h>
 
-#include <px4_tasks.h>
-#include <px4_getopt.h>
-#include <px4_posix.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/posix.h>
 #include <errno.h>
 
 #include <uORB/uORB.h>
@@ -46,7 +46,7 @@
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_mixer.h>
-#include <lib/mixer/mixer.h>
+#include <lib/mixer/MixerGroup.hpp>
 #include <lib/mixer/mixer_multirotor_normalized.generated.h>
 #include <parameters/param.h>
 

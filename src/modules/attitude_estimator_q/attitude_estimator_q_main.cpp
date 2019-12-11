@@ -47,11 +47,13 @@
 #include <lib/mathlib/mathlib.h>
 #include <lib/parameters/param.h>
 #include <matrix/math.hpp>
-#include <px4_config.h>
-#include <px4_posix.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/defines.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/posix.h>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
+#include <uORB/SubscriptionCallback.hpp>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/sensor_combined.h>
 #include <uORB/topics/vehicle_attitude.h>
@@ -59,55 +61,51 @@
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/topics/vehicle_odometry.h>
 
-extern "C" __EXPORT int attitude_estimator_q_main(int argc, char *argv[]);
-
 using matrix::Dcmf;
 using matrix::Eulerf;
 using matrix::Quatf;
 using matrix::Vector3f;
 using matrix::wrap_pi;
 
-class AttitudeEstimatorQ;
+using namespace time_literals;
 
-namespace attitude_estimator_q
-{
-AttitudeEstimatorQ *instance;
-} // namespace attitude_estimator_q
-
-
-class AttitudeEstimatorQ
+class AttitudeEstimatorQ : public ModuleBase<AttitudeEstimatorQ>, public ModuleParams, public px4::WorkItem
 {
 public:
-	/**
-	 * Constructor
-	 */
+
 	AttitudeEstimatorQ();
+	~AttitudeEstimatorQ() override = default;
 
-	/**
-	 * Destructor, also kills task.
-	 */
-	~AttitudeEstimatorQ();
+	/** @see ModuleBase */
+	static int task_spawn(int argc, char *argv[]);
 
-	/**
-	 * Start task.
-	 *
-	 * @return		OK on success.
-	 */
-	int		start();
+	/** @see ModuleBase */
+	static int custom_command(int argc, char *argv[]);
 
-	static int	task_main_trampoline(int argc, char *argv[]);
+	/** @see ModuleBase */
+	static int print_usage(const char *reason = nullptr);
 
-	void		task_main();
+	void Run() override;
+
+	bool init();
 
 private:
+
+	void update_parameters(bool force = false);
+
+	bool init_attq();
+
+	bool update(float dt);
+
+	// Update magnetic declination (in rads) immediately changing yaw rotation
+	void update_mag_declination(float new_declination);
+
+
 	const float _eo_max_std_dev = 100.0f;		/**< Maximum permissible standard deviation for estimated orientation */
 	const float _dt_min = 0.00001f;
 	const float _dt_max = 0.02f;
 
-	bool		_task_should_exit = false;	/**< if true, task should exit */
-	int		_control_task = -1;		/**< task handle for task */
-
-	int		_sensors_sub = -1;
+	uORB::SubscriptionCallbackWorkItem _sensors_sub{this, ORB_ID(sensor_combined)};
 
 	uORB::Subscription		_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription		_global_pos_sub{ORB_ID(vehicle_global_position)};
@@ -117,28 +115,8 @@ private:
 
 	uORB::Publication<vehicle_attitude_s>	_att_pub{ORB_ID(vehicle_attitude)};
 
-	struct {
-		param_t	w_acc;
-		param_t	w_mag;
-		param_t	w_ext_hdg;
-		param_t	w_gyro_bias;
-		param_t	mag_decl;
-		param_t	mag_decl_auto;
-		param_t	acc_comp;
-		param_t	bias_max;
-		param_t	ext_hdg_mode;
-		param_t	has_mag;
-	} _params_handles{};		/**< handles for interesting parameters */
-
-	float		_w_accel = 0.0f;
-	float		_w_mag = 0.0f;
-	float		_w_ext_hdg = 0.0f;
-	float		_w_gyro_bias = 0.0f;
-	float		_mag_decl = 0.0f;
-	bool		_mag_decl_auto = false;
-	bool		_acc_comp = false;
-	float		_bias_max = 0.0f;
-	int32_t		_ext_hdg_mode = 0;
+	float		_mag_decl{0.0f};
+	float		_bias_max{0.0f};
 
 	Vector3f	_gyro;
 	Vector3f	_accel;
@@ -152,40 +130,34 @@ private:
 	Vector3f	_gyro_bias;
 
 	Vector3f	_vel_prev;
-	hrt_abstime	_vel_prev_t = 0;
+	hrt_abstime	_vel_prev_t{0};
 
 	Vector3f	_pos_acc;
 
-	bool		_inited = false;
-	bool		_data_good = false;
-	bool		_ext_hdg_good = false;
+	hrt_abstime	_last_time{0};
 
-	void update_parameters(bool force);
+	bool		_inited{false};
+	bool		_data_good{false};
+	bool		_ext_hdg_good{false};
 
-	int update_subscriptions();
-
-	bool init();
-
-	bool update(float dt);
-
-	// Update magnetic declination (in rads) immediately changing yaw rotation
-	void update_mag_declination(float new_declination);
+	DEFINE_PARAMETERS(
+		(ParamFloat<px4::params::ATT_W_ACC>) _param_att_w_acc,
+		(ParamFloat<px4::params::ATT_W_MAG>) _param_att_w_mag,
+		(ParamFloat<px4::params::ATT_W_EXT_HDG>) _param_att_w_ext_hdg,
+		(ParamFloat<px4::params::ATT_W_GYRO_BIAS>) _param_att_w_gyro_bias,
+		(ParamFloat<px4::params::ATT_MAG_DECL>) _param_att_mag_decl,
+		(ParamInt<px4::params::ATT_MAG_DECL_A>) _param_att_mag_decl_a,
+		(ParamInt<px4::params::ATT_EXT_HDG_M>) _param_att_ext_hdg_m,
+		(ParamInt<px4::params::ATT_ACC_COMP>) _param_att_acc_comp,
+		(ParamFloat<px4::params::ATT_BIAS_MAX>) _param_att_bias_mas,
+		(ParamInt<px4::params::SYS_HAS_MAG>) _param_sys_has_mag
+	)
 };
 
-
-AttitudeEstimatorQ::AttitudeEstimatorQ()
+AttitudeEstimatorQ::AttitudeEstimatorQ() :
+	ModuleParams(nullptr),
+	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl)
 {
-	_params_handles.w_acc		= param_find("ATT_W_ACC");
-	_params_handles.w_mag		= param_find("ATT_W_MAG");
-	_params_handles.w_ext_hdg	= param_find("ATT_W_EXT_HDG");
-	_params_handles.w_gyro_bias	= param_find("ATT_W_GYRO_BIAS");
-	_params_handles.mag_decl	= param_find("ATT_MAG_DECL");
-	_params_handles.mag_decl_auto	= param_find("ATT_MAG_DECL_A");
-	_params_handles.acc_comp	= param_find("ATT_ACC_COMP");
-	_params_handles.bias_max	= param_find("ATT_BIAS_MAX");
-	_params_handles.ext_hdg_mode	= param_find("ATT_EXT_HDG_M");
-	_params_handles.has_mag		= param_find("SYS_HAS_MAG");
-
 	_vel_prev.zero();
 	_pos_acc.zero();
 
@@ -199,112 +171,52 @@ AttitudeEstimatorQ::AttitudeEstimatorQ()
 	_q.zero();
 	_rates.zero();
 	_gyro_bias.zero();
-}
-
-/**
- * Destructor, also kills task.
- */
-AttitudeEstimatorQ::~AttitudeEstimatorQ()
-{
-	if (_control_task != -1) {
-		/* task wakes up every 100ms or so at the longest */
-		_task_should_exit = true;
-
-		/* wait for a second for the task to quit at our request */
-		unsigned i = 0;
-
-		do {
-			/* wait 20ms */
-			px4_usleep(20000);
-
-			/* if we have given up, kill it */
-			if (++i > 50) {
-				px4_task_delete(_control_task);
-				break;
-			}
-		} while (_control_task != -1);
-	}
-
-	attitude_estimator_q::instance = nullptr;
-}
-
-int AttitudeEstimatorQ::start()
-{
-	/* start the task */
-	_control_task = px4_task_spawn_cmd("attitude_estimator_q",
-					   SCHED_DEFAULT,
-					   SCHED_PRIORITY_ESTIMATOR,
-					   2000,
-					   (px4_main_t)&AttitudeEstimatorQ::task_main_trampoline,
-					   nullptr);
-
-	if (_control_task < 0) {
-		warn("task start failed");
-		return -errno;
-	}
-
-	return OK;
-}
-
-int AttitudeEstimatorQ::task_main_trampoline(int argc, char *argv[])
-{
-	attitude_estimator_q::instance->task_main();
-	return 0;
-}
-
-void AttitudeEstimatorQ::task_main()
-{
-	_sensors_sub = orb_subscribe(ORB_ID(sensor_combined));
 
 	update_parameters(true);
+}
 
-	hrt_abstime last_time = 0;
+bool
+AttitudeEstimatorQ::init()
+{
+	if (!_sensors_sub.registerCallback()) {
+		PX4_ERR("sensor combined callback registration failed!");
+		return false;
+	}
 
-	px4_pollfd_struct_t fds[1] = {};
-	fds[0].fd = _sensors_sub;
-	fds[0].events = POLLIN;
+	return true;
+}
 
-	while (!_task_should_exit) {
-		int ret = px4_poll(fds, 1, 1000);
+void
+AttitudeEstimatorQ::Run()
+{
+	if (should_exit()) {
+		_sensors_sub.unregisterCallback();
+		exit_and_cleanup();
+		return;
+	}
 
-		if (ret < 0) {
-			// Poll error, sleep and try again
-			px4_usleep(10000);
-			PX4_WARN("POLL ERROR");
-			continue;
+	sensor_combined_s sensors;
 
-		} else if (ret == 0) {
-			// Poll timeout, do nothing
-			PX4_WARN("POLL TIMEOUT");
-			continue;
+	if (_sensors_sub.update(&sensors)) {
+
+		update_parameters();
+
+		// Feed validator with recent sensor data
+		if (sensors.timestamp > 0) {
+			_gyro(0) = sensors.gyro_rad[0];
+			_gyro(1) = sensors.gyro_rad[1];
+			_gyro(2) = sensors.gyro_rad[2];
 		}
 
-		update_parameters(false);
+		if (sensors.accelerometer_timestamp_relative != sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
+			_accel(0) = sensors.accelerometer_m_s2[0];
+			_accel(1) = sensors.accelerometer_m_s2[1];
+			_accel(2) = sensors.accelerometer_m_s2[2];
 
-		// Update sensors
-		sensor_combined_s sensors;
-
-		if (orb_copy(ORB_ID(sensor_combined), _sensors_sub, &sensors) == PX4_OK) {
-			// Feed validator with recent sensor data
-
-			if (sensors.timestamp > 0) {
-				_gyro(0) = sensors.gyro_rad[0];
-				_gyro(1) = sensors.gyro_rad[1];
-				_gyro(2) = sensors.gyro_rad[2];
+			if (_accel.length() < 0.01f) {
+				PX4_ERR("degenerate accel!");
+				return;
 			}
-
-			if (sensors.accelerometer_timestamp_relative != sensor_combined_s::RELATIVE_TIMESTAMP_INVALID) {
-				_accel(0) = sensors.accelerometer_m_s2[0];
-				_accel(1) = sensors.accelerometer_m_s2[1];
-				_accel(2) = sensors.accelerometer_m_s2[2];
-
-				if (_accel.length() < 0.01f) {
-					PX4_ERR("degenerate accel!");
-					continue;
-				}
-			}
-
-			_data_good = true;
 		}
 
 		// Update magnetometer
@@ -318,11 +230,13 @@ void AttitudeEstimatorQ::task_main()
 
 				if (_mag.length() < 0.01f) {
 					PX4_ERR("degenerate mag!");
-					continue;
+					return;
 				}
 			}
 
 		}
+
+		_data_good = true;
 
 		// Update vision and motion capture heading
 		_ext_hdg_good = false;
@@ -348,7 +262,7 @@ void AttitudeEstimatorQ::task_main()
 					_vision_hdg = Rvis.transpose() * v;
 
 					// vision external heading usage (ATT_EXT_HDG_M 1)
-					if (_ext_hdg_mode == 1) {
+					if (_param_att_ext_hdg_m.get() == 1) {
 						// Check for timeouts on data
 						_ext_hdg_good = vision.timestamp > 0 && (hrt_elapsed_time(&vision.timestamp) < 500000);
 					}
@@ -377,7 +291,7 @@ void AttitudeEstimatorQ::task_main()
 					_mocap_hdg = Rmoc.transpose() * v;
 
 					// Motion Capture external heading usage (ATT_EXT_HDG_M 2)
-					if (_ext_hdg_mode == 2) {
+					if (_param_att_ext_hdg_m.get() == 2) {
 						// Check for timeouts on data
 						_ext_hdg_good = mocap.timestamp > 0 && (hrt_elapsed_time(&mocap.timestamp) < 500000);
 					}
@@ -389,12 +303,14 @@ void AttitudeEstimatorQ::task_main()
 			vehicle_global_position_s gpos;
 
 			if (_global_pos_sub.copy(&gpos)) {
-				if (_mag_decl_auto && gpos.eph < 20.0f && hrt_elapsed_time(&gpos.timestamp) < 1000000) {
+				if (_param_att_mag_decl_a.get() && gpos.eph < 20.0f && hrt_elapsed_time(&gpos.timestamp) < 1_s) {
 					/* set magnetic declination automatically */
 					update_mag_declination(math::radians(get_mag_declination(gpos.lat, gpos.lon)));
 				}
 
-				if (_acc_comp && gpos.timestamp != 0 && hrt_absolute_time() < gpos.timestamp + 20000 && gpos.eph < 5.0f && _inited) {
+				if (_param_att_acc_comp.get() && gpos.timestamp != 0 && hrt_absolute_time() < gpos.timestamp + 20000 && gpos.eph < 5.0f
+				    && _inited) {
+
 					/* position data is actual */
 					Vector3f vel(gpos.vel_n, gpos.vel_e, gpos.vel_d);
 
@@ -419,8 +335,8 @@ void AttitudeEstimatorQ::task_main()
 
 		/* time from previous iteration */
 		hrt_abstime now = hrt_absolute_time();
-		const float dt = math::constrain((now  - last_time) / 1e6f, _dt_min, _dt_max);
-		last_time = now;
+		const float dt = math::constrain((now - _last_time) / 1e6f, _dt_min, _dt_max);
+		_last_time = now;
 
 		if (update(dt)) {
 			vehicle_attitude_s att = {};
@@ -431,11 +347,10 @@ void AttitudeEstimatorQ::task_main()
 			_att_pub.publish(att);
 		}
 	}
-
-	orb_unsubscribe(_sensors_sub);
 }
 
-void AttitudeEstimatorQ::update_parameters(bool force)
+void
+AttitudeEstimatorQ::update_parameters(bool force)
 {
 	// check for parameter updates
 	if (_parameter_update_sub.updated() || force) {
@@ -443,46 +358,27 @@ void AttitudeEstimatorQ::update_parameters(bool force)
 		parameter_update_s pupdate;
 		_parameter_update_sub.copy(&pupdate);
 
-		// update parameters
-		param_get(_params_handles.w_acc, &_w_accel);
-		param_get(_params_handles.w_mag, &_w_mag);
+		// update parameters from storage
+		updateParams();
 
 		// disable mag fusion if the system does not have a mag
-		if (_params_handles.has_mag != PARAM_INVALID) {
-			int32_t has_mag;
-
-			if (param_get(_params_handles.has_mag, &has_mag) == 0 && has_mag == 0) {
-				_w_mag = 0.f;
-			}
+		if (_param_sys_has_mag.get() == 0) {
+			_param_att_w_mag.set(0.0f);
 		}
 
-		if (_w_mag < FLT_EPSILON) { // if the weight is zero (=mag disabled), make sure the estimator initializes
+		// if the weight is zero (=mag disabled), make sure the estimator initializes
+		if (_param_att_w_mag.get() < FLT_EPSILON) {
 			_mag(0) = 1.f;
 			_mag(1) = 0.f;
 			_mag(2) = 0.f;
 		}
 
-		param_get(_params_handles.w_ext_hdg, &_w_ext_hdg);
-		param_get(_params_handles.w_gyro_bias, &_w_gyro_bias);
-
-		float mag_decl_deg = 0.0f;
-		param_get(_params_handles.mag_decl, &mag_decl_deg);
-		update_mag_declination(math::radians(mag_decl_deg));
-
-		int32_t mag_decl_auto_int;
-		param_get(_params_handles.mag_decl_auto, &mag_decl_auto_int);
-		_mag_decl_auto = (mag_decl_auto_int != 0);
-
-		int32_t acc_comp_int;
-		param_get(_params_handles.acc_comp, &acc_comp_int);
-		_acc_comp = (acc_comp_int != 0);
-
-		param_get(_params_handles.bias_max, &_bias_max);
-		param_get(_params_handles.ext_hdg_mode, &_ext_hdg_mode);
+		update_mag_declination(math::radians(_param_att_mag_decl.get()));
 	}
 }
 
-bool AttitudeEstimatorQ::init()
+bool
+AttitudeEstimatorQ::init_attq()
 {
 	// Rotation matrix can be easily constructed from acceleration and mag field vectors
 	// 'k' is Earth Z axis (Down) unit vector in body frame
@@ -523,7 +419,8 @@ bool AttitudeEstimatorQ::init()
 	return _inited;
 }
 
-bool AttitudeEstimatorQ::update(float dt)
+bool
+AttitudeEstimatorQ::update(float dt)
 {
 	if (!_inited) {
 
@@ -531,7 +428,7 @@ bool AttitudeEstimatorQ::update(float dt)
 			return false;
 		}
 
-		return init();
+		return init_attq();
 	}
 
 	Quatf q_last = _q;
@@ -540,27 +437,27 @@ bool AttitudeEstimatorQ::update(float dt)
 	Vector3f corr;
 	float spinRate = _gyro.length();
 
-	if (_ext_hdg_mode > 0 && _ext_hdg_good) {
-		if (_ext_hdg_mode == 1) {
+	if (_param_att_ext_hdg_m.get() > 0 && _ext_hdg_good) {
+		if (_param_att_ext_hdg_m.get() == 1) {
 			// Vision heading correction
 			// Project heading to global frame and extract XY component
 			Vector3f vision_hdg_earth = _q.conjugate(_vision_hdg);
 			float vision_hdg_err = wrap_pi(atan2f(vision_hdg_earth(1), vision_hdg_earth(0)));
 			// Project correction to body frame
-			corr += _q.conjugate_inversed(Vector3f(0.0f, 0.0f, -vision_hdg_err)) * _w_ext_hdg;
+			corr += _q.conjugate_inversed(Vector3f(0.0f, 0.0f, -vision_hdg_err)) * _param_att_w_ext_hdg.get();
 		}
 
-		if (_ext_hdg_mode == 2) {
+		if (_param_att_ext_hdg_m.get() == 2) {
 			// Mocap heading correction
 			// Project heading to global frame and extract XY component
 			Vector3f mocap_hdg_earth = _q.conjugate(_mocap_hdg);
 			float mocap_hdg_err = wrap_pi(atan2f(mocap_hdg_earth(1), mocap_hdg_earth(0)));
 			// Project correction to body frame
-			corr += _q.conjugate_inversed(Vector3f(0.0f, 0.0f, -mocap_hdg_err)) * _w_ext_hdg;
+			corr += _q.conjugate_inversed(Vector3f(0.0f, 0.0f, -mocap_hdg_err)) * _param_att_w_ext_hdg.get();
 		}
 	}
 
-	if (_ext_hdg_mode == 0 || !_ext_hdg_good) {
+	if (_param_att_ext_hdg_m.get() == 0 || !_ext_hdg_good) {
 		// Magnetometer correction
 		// Project mag field vector to global frame and extract XY component
 		Vector3f mag_earth = _q.conjugate(_mag);
@@ -573,7 +470,7 @@ bool AttitudeEstimatorQ::update(float dt)
 		}
 
 		// Project magnetometer correction to body frame
-		corr += _q.conjugate_inversed(Vector3f(0.0f, 0.0f, -mag_err)) * _w_mag * gainMult;
+		corr += _q.conjugate_inversed(Vector3f(0.0f, 0.0f, -mag_err)) * _param_att_w_mag.get() * gainMult;
 	}
 
 	_q.normalize();
@@ -595,14 +492,15 @@ bool AttitudeEstimatorQ::update(float dt)
 	const float upper_accel_limit = CONSTANTS_ONE_G * 1.1f;
 	const float lower_accel_limit = CONSTANTS_ONE_G * 0.9f;
 
-	if (_acc_comp || (accel_norm_sq > lower_accel_limit * lower_accel_limit &&
-			  accel_norm_sq < upper_accel_limit * upper_accel_limit)) {
-		corr += (k % (_accel - _pos_acc).normalized()) * _w_accel;
+	if (_param_att_acc_comp.get() || ((accel_norm_sq > lower_accel_limit * lower_accel_limit) &&
+					  (accel_norm_sq < upper_accel_limit * upper_accel_limit))) {
+
+		corr += (k % (_accel - _pos_acc).normalized()) * _param_att_w_acc.get();
 	}
 
 	// Gyro bias estimation
 	if (spinRate < 0.175f) {
-		_gyro_bias += corr * (_w_gyro_bias * dt);
+		_gyro_bias += corr * (_param_att_w_gyro_bias.get() * dt);
 
 		for (int i = 0; i < 3; i++) {
 			_gyro_bias(i) = math::constrain(_gyro_bias(i), -_bias_max, _bias_max);
@@ -623,6 +521,7 @@ bool AttitudeEstimatorQ::update(float dt)
 
 	if (!(PX4_ISFINITE(_q(0)) && PX4_ISFINITE(_q(1)) &&
 	      PX4_ISFINITE(_q(2)) && PX4_ISFINITE(_q(3)))) {
+
 		// Reset quaternion to last good state
 		_q = q_last;
 		_rates.zero();
@@ -633,7 +532,8 @@ bool AttitudeEstimatorQ::update(float dt)
 	return true;
 }
 
-void AttitudeEstimatorQ::update_mag_declination(float new_declination)
+void
+AttitudeEstimatorQ::update_mag_declination(float new_declination)
 {
 	// Apply initial declination or trivial rotations without changing estimation
 	if (!_inited || fabsf(new_declination - _mag_decl) < 0.0001f) {
@@ -647,59 +547,58 @@ void AttitudeEstimatorQ::update_mag_declination(float new_declination)
 	}
 }
 
-int attitude_estimator_q_main(int argc, char *argv[])
+int
+AttitudeEstimatorQ::custom_command(int argc, char *argv[])
 {
-	if (argc < 2) {
-		warnx("usage: attitude_estimator_q {start|stop|status}");
-		return 1;
+	return print_usage("unknown command");
+}
+
+int
+AttitudeEstimatorQ::task_spawn(int argc, char *argv[])
+{
+	AttitudeEstimatorQ *instance = new AttitudeEstimatorQ();
+
+	if (instance) {
+		_object.store(instance);
+		_task_id = task_id_is_work_queue;
+
+		if (instance->init()) {
+			return PX4_OK;
+		}
+
+	} else {
+		PX4_ERR("alloc failed");
 	}
 
-	if (!strcmp(argv[1], "start")) {
+	delete instance;
+	_object.store(nullptr);
+	_task_id = -1;
 
-		if (attitude_estimator_q::instance != nullptr) {
-			warnx("already running");
-			return 1;
-		}
+	return PX4_ERROR;
+}
 
-		attitude_estimator_q::instance = new AttitudeEstimatorQ;
-
-		if (attitude_estimator_q::instance == nullptr) {
-			warnx("alloc failed");
-			return 1;
-		}
-
-		if (OK != attitude_estimator_q::instance->start()) {
-			delete attitude_estimator_q::instance;
-			attitude_estimator_q::instance = nullptr;
-			warnx("start failed");
-			return 1;
-		}
-
-		return 0;
+int
+AttitudeEstimatorQ::print_usage(const char *reason)
+{
+	if (reason) {
+		PX4_WARN("%s\n", reason);
 	}
 
-	if (!strcmp(argv[1], "stop")) {
-		if (attitude_estimator_q::instance == nullptr) {
-			warnx("not running");
-			return 1;
-		}
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Attitude estimator q.
 
-		delete attitude_estimator_q::instance;
-		attitude_estimator_q::instance = nullptr;
-		return 0;
-	}
+)DESCR_STR");
 
-	if (!strcmp(argv[1], "status")) {
-		if (attitude_estimator_q::instance) {
-			warnx("running");
-			return 0;
+	PRINT_MODULE_USAGE_NAME("AttitudeEstimatorQ", "estimator");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
-		} else {
-			warnx("not running");
-			return 1;
-		}
-	}
+	return 0;
+}
 
-	warnx("unrecognized command");
-	return 1;
+extern "C" __EXPORT int attitude_estimator_q_main(int argc, char *argv[])
+{
+	return AttitudeEstimatorQ::main(argc, argv);
 }

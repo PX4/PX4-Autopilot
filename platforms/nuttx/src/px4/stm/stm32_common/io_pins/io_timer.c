@@ -35,7 +35,7 @@
  * @file drv_io_timer.c
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
@@ -492,10 +492,14 @@ static inline void io_timer_set_oneshot_mode(unsigned timer)
 	rEGR(timer) = GTIM_EGR_UG;
 }
 
-void io_timer_update_generation(uint8_t timer)
+void io_timer_update_dma_req(uint8_t timer, bool enable)
 {
-	// Re-initialize the counter and generate an update of the registers
-	rEGR(timer) = ATIM_EGR_UG;
+	if (enable) {
+		rDIER(timer) |= ATIM_DIER_UDE;
+
+	} else {
+		rDIER(timer) &= ~ATIM_DIER_UDE;
+	}
 }
 
 int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_t dma_burst_length)
@@ -524,7 +528,6 @@ int io_timer_set_dshot_mode(uint8_t timer, unsigned dshot_pwm_freq, uint8_t dma_
 		rPSC(timer)  = ((int)(io_timers[timer].clock_freq / dshot_pwm_freq) / DSHOT_MOTOR_PWM_BIT_WIDTH) - 1;
 		rEGR(timer)  = ATIM_EGR_UG;
 		rDCR(timer)  = (io_timers[timer].dshot.start_ccr_register | tim_dma_burst_length);
-		rDIER(timer) = ATIM_DIER_UDE;
 	}
 
 	return ret_val;
@@ -559,7 +562,7 @@ void io_timer_trigger(void)
 
 		irqstate_t flags = px4_enter_critical_section();
 
-		for (actions = 0; action_cache[actions] != 0 &&  actions < MAX_IO_TIMERS; actions++) {
+		for (actions = 0; actions < MAX_IO_TIMERS && action_cache[actions] != 0; actions++) {
 			_REG32(action_cache[actions], STM32_GTIM_EGR_OFFSET) |= GTIM_EGR_UG;
 		}
 

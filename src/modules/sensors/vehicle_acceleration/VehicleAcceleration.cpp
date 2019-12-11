@@ -33,25 +33,20 @@
 
 #include "VehicleAcceleration.hpp"
 
-#include <px4_log.h>
+#include <px4_platform_common/log.h>
 
 using namespace matrix;
 using namespace time_literals;
 
 VehicleAcceleration::VehicleAcceleration() :
 	ModuleParams(nullptr),
-	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
-	_cycle_perf(perf_alloc(PC_ELAPSED, "vehicle_acceleration: cycle time")),
-	_sensor_latency_perf(perf_alloc(PC_ELAPSED, "vehicle_acceleration: sensor latency"))
+	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl)
 {
 }
 
 VehicleAcceleration::~VehicleAcceleration()
 {
 	Stop();
-
-	perf_free(_cycle_perf);
-	perf_free(_sensor_latency_perf);
 }
 
 bool
@@ -175,15 +170,12 @@ VehicleAcceleration::ParametersUpdate(bool force)
 void
 VehicleAcceleration::Run()
 {
-	perf_begin(_cycle_perf);
-
 	// update corrections first to set _selected_sensor
-	SensorCorrectionsUpdate();
+	bool sensor_select_update = SensorCorrectionsUpdate();
 
-	sensor_accel_s sensor_data;
-
-	if (_sensor_sub[_selected_sensor].update(&sensor_data)) {
-		perf_set_elapsed(_sensor_latency_perf, hrt_elapsed_time(&sensor_data.timestamp));
+	if (_sensor_sub[_selected_sensor].updated() || sensor_select_update) {
+		sensor_accel_s sensor_data;
+		_sensor_sub[_selected_sensor].copy(&sensor_data);
 
 		ParametersUpdate();
 		SensorBiasUpdate();
@@ -207,15 +199,10 @@ VehicleAcceleration::Run()
 
 		_vehicle_acceleration_pub.publish(out);
 	}
-
-	perf_end(_cycle_perf);
 }
 
 void
 VehicleAcceleration::PrintStatus()
 {
 	PX4_INFO("selected sensor: %d", _selected_sensor);
-
-	perf_print_counter(_cycle_perf);
-	perf_print_counter(_sensor_latency_perf);
 }

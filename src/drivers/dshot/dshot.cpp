@@ -46,11 +46,11 @@
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <px4_arch/dshot.h>
-#include <px4_atomic.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_log.h>
-#include <px4_module.h>
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -122,9 +122,6 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	static DShotOutput *instantiate(int argc, char *argv[]);
-
-	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
 
 	/** @see ModuleBase */
@@ -149,7 +146,7 @@ public:
 					   hrt_abstime edge_time, uint32_t edge_state,
 					   uint32_t overflow);
 
-	void updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 	void mixerChanged() override;
@@ -168,6 +165,8 @@ public:
 	bool telemetryEnabled() const { return _telemetry != nullptr; }
 
 private:
+	static constexpr uint16_t DISARMED_VALUE = 0;
+
 	enum class DShotConfig {
 		Disabled = 0,
 		DShot150 = 150,
@@ -197,7 +196,7 @@ private:
 
 	int requestESCInfo();
 
-	MixingOutput _mixing_output{*this, MixingOutput::SchedulingPolicy::Auto, false, false};
+	MixingOutput _mixing_output{DIRECT_PWM_OUTPUT_CHANNELS, *this, MixingOutput::SchedulingPolicy::Auto, false, false};
 
 	Telemetry *_telemetry{nullptr};
 	static char _telemetry_device[20];
@@ -221,7 +220,6 @@ private:
 	bool		_outputs_initialized{false};
 
 	perf_counter_t	_cycle_perf;
-	perf_counter_t	_cycle_interval_perf;
 
 	void		capture_callback(uint32_t chan_index,
 					 hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
@@ -248,11 +246,10 @@ px4::atomic_bool DShotOutput::_request_telemetry_init{false};
 DShotOutput::DShotOutput() :
 	CDev("/dev/dshot"),
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
-	_cycle_perf(perf_alloc(PC_ELAPSED, "dshot: cycle")),
-	_cycle_interval_perf(perf_alloc(PC_INTERVAL, "dshot: cycle interval"))
+	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
-	_mixing_output.setAllDisarmedValues(0);
-	_mixing_output.setAllMinValues(1);
+	_mixing_output.setAllDisarmedValues(DISARMED_VALUE);
+	_mixing_output.setAllMinValues(DISARMED_VALUE + 1);
 	_mixing_output.setAllMaxValues(DSHOT_MAX_THROTTLE);
 
 }
@@ -266,7 +263,6 @@ DShotOutput::~DShotOutput()
 	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
 
 	perf_free(_cycle_perf);
-	perf_free(_cycle_interval_perf);
 	delete _telemetry;
 }
 
@@ -288,6 +284,8 @@ DShotOutput::init()
 	} else if (_class_instance < 0) {
 		PX4_ERR("FAILED registering class device");
 	}
+
+	_mixing_output.setDriverInstance(_class_instance);
 
 	// Getting initial parameter values
 	update_params();
@@ -494,7 +492,7 @@ void
 DShotOutput::capture_trampoline(void *context, uint32_t chan_index,
 				hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
-	DShotOutput *dev = reinterpret_cast<DShotOutput *>(context);
+	DShotOutput *dev = static_cast<DShotOutput *>(context);
 	dev->capture_callback(chan_index, edge_time, edge_state, overflow);
 }
 
@@ -598,7 +596,7 @@ void DShotOutput::handleNewTelemetryData(int motor_index, const DShotTelemetry::
 	}
 
 	// publish when motor index wraps (which is robust against motor timeouts)
-	if (motor_index < _telemetry->last_motor_index) {
+	if (motor_index <= _telemetry->last_motor_index) {
 		esc_status.timestamp = hrt_absolute_time();
 		esc_status.esc_connectiontype = esc_status_s::ESC_CONNECTION_TYPE_DSHOT;
 		esc_status.esc_count = _telemetry->handler.numMotors();
@@ -685,11 +683,11 @@ void DShotOutput::mixerChanged()
 	updateTelemetryNumMotors();
 }
 
-void DShotOutput::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool DShotOutput::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 				unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	if (!_outputs_on) {
-		return;
+		return false;
 	}
 
 	int requested_telemetry_index = -1;
@@ -724,7 +722,12 @@ void DShotOutput::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS
 
 	} else {
 		for (int i = 0; i < (int)num_outputs; i++) {
-			up_dshot_motor_data_set(i, math::min(outputs[i], (uint16_t)DSHOT_MAX_THROTTLE), i == requested_telemetry_index);
+			if (outputs[i] == DISARMED_VALUE) {
+				up_dshot_motor_command(i, DShot_cmd_motor_stop, i == requested_telemetry_index);
+
+			} else {
+				up_dshot_motor_data_set(i, math::min(outputs[i], (uint16_t)DSHOT_MAX_THROTTLE), i == requested_telemetry_index);
+			}
 		}
 
 		// clear commands when motors are running
@@ -734,6 +737,8 @@ void DShotOutput::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS
 	if (stop_motors || num_control_groups_updated > 0) {
 		up_dshot_trigger();
 	}
+
+	return true;
 }
 
 void
@@ -748,7 +753,6 @@ DShotOutput::Run()
 	}
 
 	perf_begin(_cycle_perf);
-	perf_count(_cycle_interval_perf);
 
 	_mixing_output.update();
 
@@ -808,8 +812,8 @@ void DShotOutput::update_params()
 	updateParams();
 
 	// we use a minimum value of 1, since 0 is for disarmed
-	_mixing_output.setAllMinValues(math::constrain((int)(_param_dshot_min.get() * (float)DSHOT_MAX_THROTTLE), 1,
-				       DSHOT_MAX_THROTTLE));
+	_mixing_output.setAllMinValues(math::constrain((int)(_param_dshot_min.get() * (float)DSHOT_MAX_THROTTLE),
+				       DISARMED_VALUE + 1, DSHOT_MAX_THROTTLE));
 }
 
 
@@ -873,7 +877,6 @@ DShotOutput::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	switch (cmd) {
 	case PWM_SERVO_GET_COUNT:
-	case MIXERIOCGETOUTPUTCOUNT:
 		switch (_mode) {
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
@@ -1062,7 +1065,7 @@ DShotOutput::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
-			unsigned buflen = strnlen(buf, 1024);
+			unsigned buflen = strlen(buf);
 			ret = _mixing_output.loadMixerThreadSafe(buf, buflen);
 
 			break;
@@ -1251,6 +1254,9 @@ DShotOutput::module_new_mode(PortMode new_mode)
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 4
 		/* select 4-pin PWM mode */
 		mode = DShotOutput::MODE_4PWM;
+#endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 5
+		mode = DShotOutput::MODE_5PWM;
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 6
 		mode = DShotOutput::MODE_6PWM;
@@ -1471,6 +1477,9 @@ int DShotOutput::custom_command(int argc, char *argv[])
 	} else if (!strcmp(verb, "mode_pwm6")) {
 		new_mode = PORT_PWM6;
 
+#endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 5
+
 	} else if (!strcmp(verb, "mode_pwm5")) {
 		new_mode = PORT_PWM5;
 
@@ -1525,6 +1534,65 @@ int DShotOutput::custom_command(int argc, char *argv[])
 	}
 
 	return print_usage("unknown command");
+}
+
+int DShotOutput::print_status()
+{
+	const char *mode_str = nullptr;
+
+	switch (_mode) {
+
+	case MODE_NONE: mode_str = "no outputs"; break;
+
+	case MODE_1PWM: mode_str = "outputs1"; break;
+
+	case MODE_2PWM: mode_str = "outputs2"; break;
+
+	case MODE_2PWM2CAP: mode_str = "outputs2cap2"; break;
+
+	case MODE_3PWM: mode_str = "outputs3"; break;
+
+	case MODE_3PWM1CAP: mode_str = "outputs3cap1"; break;
+
+	case MODE_4PWM: mode_str = "outputs4"; break;
+
+	case MODE_4PWM1CAP: mode_str = "outputs4cap1"; break;
+
+	case MODE_4PWM2CAP: mode_str = "outputs4cap2"; break;
+
+	case MODE_5PWM: mode_str = "outputs5"; break;
+
+	case MODE_5PWM1CAP: mode_str = "outputs5cap1"; break;
+
+	case MODE_6PWM: mode_str = "outputs6"; break;
+
+	case MODE_8PWM: mode_str = "outputs8"; break;
+
+	case MODE_4CAP: mode_str = "cap4"; break;
+
+	case MODE_5CAP: mode_str = "cap5"; break;
+
+	case MODE_6CAP: mode_str = "cap6"; break;
+
+	default:
+		break;
+	}
+
+	if (mode_str) {
+		PX4_INFO("Mode: %s", mode_str);
+	}
+
+	PX4_INFO("Outputs initialized: %s", _outputs_initialized ? "yes" : "no");
+	PX4_INFO("Outputs on: %s", _outputs_on ? "yes" : "no");
+	perf_print_counter(_cycle_perf);
+	_mixing_output.printStatus();
+
+	if (_telemetry) {
+		PX4_INFO("telemetry on: %s", _telemetry_device);
+		_telemetry->handler.printStatus();
+	}
+
+	return 0;
 }
 
 int DShotOutput::print_usage(const char *reason)
@@ -1610,69 +1678,7 @@ After saving, the reversed direction will be regarded as the normal one. So to r
 	return 0;
 }
 
-int DShotOutput::print_status()
-{
-	const char *mode_str = nullptr;
-
-	switch (_mode) {
-
-	case MODE_NONE: mode_str = "no outputs"; break;
-
-	case MODE_1PWM: mode_str = "outputs1"; break;
-
-	case MODE_2PWM: mode_str = "outputs2"; break;
-
-	case MODE_2PWM2CAP: mode_str = "outputs2cap2"; break;
-
-	case MODE_3PWM: mode_str = "outputs3"; break;
-
-	case MODE_3PWM1CAP: mode_str = "outputs3cap1"; break;
-
-	case MODE_4PWM: mode_str = "outputs4"; break;
-
-  	case MODE_4PWM1CAP: mode_str = "outputs4cap1"; break;
-
-	case MODE_4PWM2CAP: mode_str = "outputs4cap2"; break;
-
-  	case MODE_5PWM: mode_str = "outputs5"; break;
-
-  	case MODE_5PWM1CAP: mode_str = "outputs5cap1"; break;
-
-  	case MODE_6PWM: mode_str = "outputs6"; break;
-
-	case MODE_8PWM: mode_str = "outputs8"; break;
-
-	case MODE_4CAP: mode_str = "cap4"; break;
-
-	case MODE_5CAP: mode_str = "cap5"; break;
-
-	case MODE_6CAP: mode_str = "cap6"; break;
-
-	default:
-		break;
-	}
-
-	if (mode_str) {
-		PX4_INFO("Mode: %s", mode_str);
-	}
-
-	PX4_INFO("Outputs initialized: %s", _outputs_initialized ? "yes" : "no");
-	PX4_INFO("Outputs on: %s", _outputs_on ? "yes" : "no");
-	perf_print_counter(_cycle_perf);
-	perf_print_counter(_cycle_interval_perf);
-	_mixing_output.printStatus();
-	if (_telemetry) {
-		PX4_INFO("telemetry on: %s", _telemetry_device);
-		_telemetry->handler.printStatus();
-	}
-
-	return 0;
-}
-
-extern "C" __EXPORT int dshot_main(int argc, char *argv[]);
-
-int
-dshot_main(int argc, char *argv[])
+extern "C" __EXPORT int dshot_main(int argc, char *argv[])
 {
 	return DShotOutput::main(argc, argv);
 }

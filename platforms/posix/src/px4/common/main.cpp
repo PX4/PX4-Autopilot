@@ -62,12 +62,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <px4_time.h>
-#include <px4_log.h>
-#include <px4_init.h>
-#include <px4_getopt.h>
-#include <px4_tasks.h>
-#include <px4_posix.h>
+#include <px4_platform_common/time.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/init.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/posix.h>
 
 #include "apps.h"
 #include "DriverFramework.hpp"
@@ -178,10 +178,10 @@ int main(int argc, char **argv)
 	} else {
 		/* Server/daemon apps need to parse the command line arguments. */
 
-		std::string data_path;
+		std::string data_path{};
 		std::string commands_file = "etc/init.d/rcS";
-		std::string test_data_path;
-		std::string working_directory;
+		std::string test_data_path{};
+		std::string working_directory{};
 		int instance = 0;
 
 		int myoptind = 1;
@@ -590,11 +590,7 @@ bool is_already_running(int instance)
 
 	if (fcntl(fd, F_SETLK, &fl) == -1) {
 		// We failed to create a file lock, must be already locked.
-		if (errno == EACCES || errno == EAGAIN) {
-			return true;
-		}
-
-		return false;
+		return errno == EACCES || errno == EAGAIN;
 	}
 
 	errno = 0;

@@ -10,15 +10,13 @@ px4_add_board(
 	BOOTLOADER ${PX4_SOURCE_DIR}/ROMFS/px4fmu_common/extras/px4fmuv3_bl.bin
 	IO px4_io-v2_default
 	#TESTING
-	CONSTRAINED_FLASH
 	#UAVCAN_INTERFACES 2
-
+	CONSTRAINED_FLASH
 	SERIAL_PORTS
 		GPS1:/dev/ttyS3
 		TEL1:/dev/ttyS1
 		TEL2:/dev/ttyS2
 		TEL4:/dev/ttyS6
-
 	DRIVERS
 		adc
 		#barometer # all available barometer drivers
@@ -31,10 +29,13 @@ px4_add_board(
 		#distance_sensor # all available distance sensor drivers
 		#distance_sensor/ll40ls
 		#distance_sensor/sf0x
+		#dshot
 		gps
 		#heater
-		#imu/adis16448
 		#imu # all available imu drivers
+		#imu/adis16448
+		#imu/adis16477
+		#imu/adis16497
 		imu/l3gd20
 		imu/lsm303d
 		imu/mpu6000
@@ -47,11 +48,12 @@ px4_add_board(
 		magnetometer/hmc5883
 		#mkblctrl
 		#optical_flow # all available optical flow drivers
-		optical_flow/px4flow
+		#optical_flow/px4flow
+		#osd
 		#pca9685
 		#protocol_splitter
 		#pwm_input
-		pwm_out_sim
+		#pwm_out_sim
 		px4fmu
 		px4io
 		#roboclaw
@@ -60,17 +62,17 @@ px4_add_board(
 		#test_ppm
 		tone_alarm
 		#uavcan
-
 	MODULES
+		airspeed_selector
 		#attitude_estimator_q
-		camera_feedback
+		battery_status
+		#camera_feedback
 		commander
 		dataman
 		ekf2
-		events
+		#events
 		fw_att_control
 		fw_pos_control_l1
-		#rover_pos_control
 		land_detector
 		#landing_target_estimator
 		load_mon
@@ -79,15 +81,18 @@ px4_add_board(
 		mavlink
 		mc_att_control
 		mc_pos_control
+		mc_rate_control
 		navigator
+		rc_update
+		#rover_pos_control
 		sensors
+		#sih
 		vmount
 		vtol_att_control
-		#airspeed_selector
-
 	SYSTEMCMDS
 		bl_update
 		#config
+		#dmesg
 		#dumpfile
 		#esc_calib
 		hardfault_log
@@ -102,15 +107,16 @@ px4_add_board(
 		perf
 		pwm
 		reboot
+		#reflect
 		#sd_bench
+		#shutdown
 		#tests # tests and test runner
 		top
 		#topic_listener
 		tune_control
 		#usb_connected
 		ver
-		work_queue
-
+		#work_queue
 	EXAMPLES
 		#bottle_drop # OBC challenge
 		#fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control

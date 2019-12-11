@@ -38,7 +38,7 @@
  * @author Lorenz Meier <lorenz@px4.io>
  */
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include "platform/cxxinitialize.h"
 
 #include <stdio.h>	// required for task_create
@@ -91,6 +91,27 @@ static char msg[NUM_MSG][CONFIG_USART1_TXBUFSIZE];
 static void heartbeat_blink(void);
 static void ring_blink(void);
 static void update_mem_usage(void);
+
+void atomic_modify_or(volatile uint16_t *target, uint16_t modification)
+{
+	if ((*target | modification) != *target) {
+		PX4_CRITICAL_SECTION(*target |= modification);
+	}
+}
+
+void atomic_modify_clear(volatile uint16_t *target, uint16_t modification)
+{
+	if ((*target & ~modification) != *target) {
+		PX4_CRITICAL_SECTION(*target &= ~modification);
+	}
+}
+
+void atomic_modify_and(volatile uint16_t *target, uint16_t modification)
+{
+	if ((*target & modification) != *target) {
+		PX4_CRITICAL_SECTION(*target &= modification);
+	}
+}
 
 /*
  * add a debug message to be printed on the console
@@ -353,7 +374,7 @@ user_start(int argc, char *argv[])
 	 * documented in the dev guide.
 	 *
 	 */
-	if (minfo.mxordblk < 600) {
+	if (minfo.mxordblk < 550) {
 
 		syslog(LOG_ERR, "ERR: not enough MEM");
 		bool phase = false;

@@ -16,11 +16,15 @@ import gencpp
 from px_generate_uorb_topic_helper import * # this is in Tools/
 
 topic = alias if alias else spec.short_name
+try:
+    ros2_distro = ros2_distro.decode("utf-8")
+except AttributeError:
+    pass
 }@
 /****************************************************************************
  *
  * Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
- * Copyright (C) 2018-2019 PX4 Development Team. All rights reserved.
+ * Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -81,9 +85,17 @@ public:
     bool init();
     void run();
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[    if ros2_distro]@
+    void publish(@(package)::msg::dds_::@(topic)_* st);
+@[    else]@
     void publish(@(topic)_* st);
+@[    end if]@
 @[else]@
+@[    if ros2_distro]@
+    void publish(@(package)::msg::@(topic)* st);
+@[    else]@
     void publish(@(topic)* st);
+@[    end if]@
 @[end if]@
 private:
     Participant *mp_participant;
@@ -98,9 +110,17 @@ private:
         int n_matched;
     } m_listener;
 @[if 1.5 <= fastrtpsgen_version <= 1.7]@
+@[    if ros2_distro]@
+    @(package)::msg::dds_::@(topic)_PubSubType myType;
+@[    else]@
     @(topic)_PubSubType myType;
+@[    end if]@
 @[else]@
+@[    if ros2_distro]@
+    @(package)::msg::@(topic)PubSubType myType;
+@[    else]@
     @(topic)PubSubType myType;
+@[    end if]@
 @[end if]@
 };
 

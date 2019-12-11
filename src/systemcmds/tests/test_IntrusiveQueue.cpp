@@ -243,7 +243,7 @@ bool IntrusiveQueueTest::test_remove()
 		for (auto t : q1) {
 			if (t->i == remove_i) {
 				ut_assert_true(q1.remove(t));
-				t = removed;
+				removed = t;
 			}
 		}
 

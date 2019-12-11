@@ -46,7 +46,6 @@ namespace mpu6000
 struct mpu6000_bus_option {
 	enum MPU6000_BUS busid;
 	MPU_DEVICE_TYPE device_type;
-	const char *devpath;
 	MPU6000_constructor interface_constructor;
 	uint8_t busnum;
 	bool external;
@@ -54,42 +53,42 @@ struct mpu6000_bus_option {
 } bus_options[] = {
 #if defined (USE_I2C)
 #	if defined(PX4_I2C_BUS_ONBOARD)
-	{ MPU6000_BUS_I2C_INTERNAL, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH,  &MPU6000_I2C_interface, PX4_I2C_BUS_ONBOARD, false, NULL },
+	{ MPU6000_BUS_I2C_INTERNAL, MPU_DEVICE_TYPE_MPU6000,  &MPU6000_I2C_interface, PX4_I2C_BUS_ONBOARD, false, NULL },
 #	endif
 #	if defined(PX4_I2C_BUS_EXPANSION)
-	{ MPU6000_BUS_I2C_EXTERNAL, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH_EXT, &MPU6000_I2C_interface, PX4_I2C_BUS_EXPANSION,  true, NULL },
+	{ MPU6000_BUS_I2C_EXTERNAL, MPU_DEVICE_TYPE_MPU6000, &MPU6000_I2C_interface, PX4_I2C_BUS_EXPANSION,  true, NULL },
 #	endif
 #	if defined(PX4_I2C_BUS_EXPANSION1)
-	{ MPU6000_BUS_I2C_EXTERNAL, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH_EXT1, &MPU6000_I2C_interface, PX4_I2C_BUS_EXPANSION1,  true, NULL },
+	{ MPU6000_BUS_I2C_EXTERNAL, MPU_DEVICE_TYPE_MPU6000, &MPU6000_I2C_interface, PX4_I2C_BUS_EXPANSION1,  true, NULL },
 #	endif
 #	if defined(PX4_I2C_BUS_EXPANSION2)
-	{ MPU6000_BUS_I2C_EXTERNAL, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH_EXT2, &MPU6000_I2C_interface, PX4_I2C_BUS_EXPANSION2,  true, NULL },
+	{ MPU6000_BUS_I2C_EXTERNAL, MPU_DEVICE_TYPE_MPU6000, &MPU6000_I2C_interface, PX4_I2C_BUS_EXPANSION2,  true, NULL },
 #	endif
 #endif
 #ifdef PX4_SPIDEV_MPU
-	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
+	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_MPU6000, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
 #endif
 #if defined(PX4_SPI_BUS_EXT)
-	{ MPU6000_BUS_SPI_EXTERNAL1, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH_EXT, &MPU6000_SPI_interface, PX4_SPI_BUS_EXT,  true, NULL },
+	{ MPU6000_BUS_SPI_EXTERNAL1, MPU_DEVICE_TYPE_MPU6000, &MPU6000_SPI_interface, PX4_SPI_BUS_EXT,  true, NULL },
 #endif
 #if defined(PX4_SPIDEV_ICM_20602) && defined(PX4_SPI_BUS_SENSORS)
-	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_ICM20602, ICM20602_DEVICE_PATH, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
+	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_ICM20602, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
 #endif
 #if defined(PX4_SPIDEV_ICM_20602) && defined(PX4_SPI_BUS_SENSORS1)
-	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_ICM20602, ICM20602_DEVICE_PATH, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS1,  false, NULL },
+	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_ICM20602, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS1,  false, NULL },
 #endif
 #if defined(PX4_SPIDEV_ICM_20602) && defined(PX4_SPI_BUS_1)
-	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_ICM20602, ICM20602_DEVICE_PATH, &MPU6000_SPI_interface, PX4_SPI_BUS_1,  false, NULL },
+	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_ICM20602, &MPU6000_SPI_interface, PX4_SPI_BUS_1,  false, NULL },
 #endif
 #ifdef PX4_SPIDEV_ICM_20608
-	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_ICM20608, ICM20608_DEVICE_PATH, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
+	{ MPU6000_BUS_SPI_INTERNAL1, MPU_DEVICE_TYPE_ICM20608, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
 #endif
 #ifdef PX4_SPIDEV_ICM_20689
-	{ MPU6000_BUS_SPI_INTERNAL2, MPU_DEVICE_TYPE_ICM20689, ICM20689_DEVICE_PATH, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
+	{ MPU6000_BUS_SPI_INTERNAL2, MPU_DEVICE_TYPE_ICM20689, &MPU6000_SPI_interface, PX4_SPI_BUS_SENSORS,  false, NULL },
 #endif
 #if defined(PX4_SPI_BUS_EXTERNAL)
-	{ MPU6000_BUS_SPI_EXTERNAL1, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH_EXT, &MPU6000_SPI_interface, PX4_SPI_BUS_EXTERNAL, true,  NULL },
-	{ MPU6000_BUS_SPI_EXTERNAL2, MPU_DEVICE_TYPE_MPU6000, MPU_DEVICE_PATH_EXT1, &MPU6000_SPI_interface, PX4_SPI_BUS_EXTERNAL, true,  NULL },
+	{ MPU6000_BUS_SPI_EXTERNAL1, MPU_DEVICE_TYPE_MPU6000, &MPU6000_SPI_interface, PX4_SPI_BUS_EXTERNAL, true,  NULL },
+	{ MPU6000_BUS_SPI_EXTERNAL2, MPU_DEVICE_TYPE_MPU6000, &MPU6000_SPI_interface, PX4_SPI_BUS_EXTERNAL, true,  NULL },
 #endif
 };
 
@@ -104,7 +103,9 @@ void	reset(enum MPU6000_BUS busid);
 void	info(enum MPU6000_BUS busid);
 void	regdump(enum MPU6000_BUS busid);
 void	testerror(enum MPU6000_BUS busid);
+#ifndef CONSTRAINED_FLASH
 void	factorytest(enum MPU6000_BUS busid);
+#endif
 void	usage();
 
 /**
@@ -146,7 +147,7 @@ start_bus(struct mpu6000_bus_option &bus, enum Rotation rotation, int device_typ
 		return false;
 	}
 
-	bus.dev = new MPU6000(interface, bus.devpath, rotation, device_type);
+	bus.dev = new MPU6000(interface, rotation, device_type);
 
 	if (bus.dev == nullptr) {
 		delete interface;
@@ -293,6 +294,7 @@ testerror(enum MPU6000_BUS busid)
 	exit(0);
 }
 
+#ifndef CONSTRAINED_FLASH
 /**
  * Dump the register information
  */
@@ -310,11 +312,16 @@ factorytest(enum MPU6000_BUS busid)
 
 	exit(0);
 }
+#endif
 
 void
 usage()
 {
-	warnx("missing command: try 'start', 'info', 'stop',\n'reset', 'regdump', 'factorytest', 'testerror'");
+	warnx("missing command: try 'start', 'info', 'stop',\n'reset', 'regdump', 'testerror'"
+#ifndef CONSTRAINED_FLASH
+	      ", 'factorytest'"
+#endif
+	     );
 	warnx("options:");
 	warnx("    -X external I2C bus");
 	warnx("    -I internal I2C bus");
@@ -421,9 +428,13 @@ mpu6000_main(int argc, char *argv[])
 		mpu6000::regdump(busid);
 	}
 
+#ifndef CONSTRAINED_FLASH
+
 	if (!strcmp(verb, "factorytest")) {
 		mpu6000::factorytest(busid);
 	}
+
+#endif
 
 	if (!strcmp(verb, "testerror")) {
 		mpu6000::testerror(busid);

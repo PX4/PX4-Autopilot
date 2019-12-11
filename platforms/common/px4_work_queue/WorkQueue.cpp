@@ -36,8 +36,8 @@
 
 #include <string.h>
 
-#include <px4_tasks.h>
-#include <px4_time.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/time.h>
 #include <drivers/drv_hrt.h>
 
 namespace px4
@@ -99,9 +99,7 @@ WorkQueue::Detach(WorkItem *item)
 		PX4_DEBUG("stopping: %s, last active WorkItem closing", _config.name);
 
 		request_stop();
-
-		// Wake up the worker thread
-		px4_sem_post(&_process_lock);
+		signal_worker_thread();
 	}
 
 	work_unlock();
@@ -114,8 +112,17 @@ WorkQueue::Add(WorkItem *item)
 	_q.push(item);
 	work_unlock();
 
-	// Wake up the worker thread
-	px4_sem_post(&_process_lock);
+	signal_worker_thread();
+}
+
+void
+WorkQueue::signal_worker_thread()
+{
+	int sem_val;
+
+	if (px4_sem_getvalue(&_process_lock, &sem_val) == 0 && sem_val <= 0) {
+		px4_sem_post(&_process_lock);
+	}
 }
 
 void

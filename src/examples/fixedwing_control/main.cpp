@@ -49,8 +49,8 @@
 #include <drivers/drv_hrt.h>
 #include <lib/ecl/geo/geo.h>
 #include <matrix/math.hpp>
-#include <px4_config.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
 #include <systemlib/err.h>
 #include <parameters/param.h>
 #include <perf/perf_counter.h>
@@ -102,13 +102,6 @@ int fixedwing_control_thread_main(int argc, char *argv[]);
  */
 static void usage(const char *reason);
 
-int parameters_init(struct param_handles *h);
-
-/**
- * Update all parameters
- *
- */
-int parameters_update(const struct param_handles *h, struct params *p);
 
 /**
  * Control roll and pitch angle.

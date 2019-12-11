@@ -40,9 +40,9 @@
  * @author Dave Royer <dave@aerotenna.com>
  */
 
-#include <px4_config.h>
-#include <px4_tasks.h>
-#include <px4_posix.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/tasks.h>
+#include <px4_platform_common/posix.h>
 #include <drivers/drv_adc.h>
 
 #include <VirtDevObj.hpp>
@@ -245,4 +245,9 @@ int ocpoc_adc_main(int argc, char *argv[])
 
 	return PX4_OK;
 
+}
+// This is a replacement for the hardcoded 4096
+uint32_t px4_arch_adc_dn_fullcount(void)
+{
+	return 1 << 12; // 12 bit ADC
 }

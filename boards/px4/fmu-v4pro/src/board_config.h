@@ -43,7 +43,7 @@
  * Included Files
  ****************************************************************************************************/
 
-#include <px4_config.h>
+#include <px4_platform_common/px4_config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
 
@@ -162,18 +162,13 @@
 
 /* Use these in place of the uint32_t enumeration to select a specific SPI device on SPI1 */
 
-#define PX4_SPIDEV_GYRO         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
-#define PX4_SPIDEV_ACCEL_MAG    PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2)
-#define PX4_SPIDEV_BARO         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 3)
-#define PX4_SPIDEV_MPU          PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 4)
-#define PX4_SPIDEV_HMC          PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 5)
-#define PX4_SPIDEV_ICM          PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 6)
-#define PX4_SPIDEV_LIS          PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 7)
-#define PX4_SPIDEV_BMI          PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 8)
-#define PX4_SPIDEV_BMA          PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 9)
-#define PX4_SPIDEV_EEPROM       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 12)
-#define PX4_SPIDEV_ICM_20608    PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 13)
-#define PX4_SPIDEV_ICM_20602    PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 14)
+#define PX4_SPIDEV_BARO         PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 1)
+#define PX4_SPIDEV_MPU          PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 2)
+#define PX4_SPIDEV_HMC          PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 3)
+#define PX4_SPIDEV_LIS          PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 4)
+#define PX4_SPIDEV_EEPROM       PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 5)
+#define PX4_SPIDEV_ICM_20608    PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 6)
+#define PX4_SPIDEV_ICM_20602    PX4_MK_SPI_SEL(PX4_SPI_BUS_SENSORS, 7)
 
 #define PX4_SPIDEV_EXT0         PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT0, 1)
 #define PX4_SPIDEV_EXT1         PX4_MK_SPI_SEL(PX4_SPI_BUS_EXT1, 1)
@@ -331,9 +326,8 @@
 
 #define BOARD_HAS_PWM	DIRECT_PWM_OUTPUT_CHANNELS
 
-/* This board provides a DMA pool and APIs */
-
-#define BOARD_DMA_ALLOC_POOL_SIZE 5120
+/* This board provides a DMA pool and APIs. */
+#define BOARD_DMA_ALLOC_POOL_SIZE (5120 + 512 + 1008)	// 5120 fat + 512 + 1008 spi
 
 #define BOARD_HAS_ON_RESET 1
 
@@ -370,27 +364,7 @@ extern void stm32_usbinitialize(void);
 
 extern void board_peripheral_reset(int ms);
 
-
-/****************************************************************************
- * Name: nsh_archinitialize
- *
- * Description:
- *   Perform architecture specific initialization for NSH.
- *
- *   CONFIG_NSH_ARCHINIT=y :
- *     Called from the NSH library
- *
- *   CONFIG_BOARD_INITIALIZE=y, CONFIG_NSH_LIBRARY=y, &&
- *   CONFIG_NSH_ARCHINIT=n :
- *     Called from board_initialize().
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NSH_LIBRARY
-int nsh_archinitialize(void);
-#endif
-
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>
 
 #endif /* __ASSEMBLY__ */
 

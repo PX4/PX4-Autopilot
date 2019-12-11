@@ -55,4 +55,4 @@
 #define ADC_BATTERY_CURRENT_CHANNEL 1
 
 #include <system_config.h>
-#include <drivers/boards/common/board_common.h>
+#include <px4_platform_common/board_common.h>

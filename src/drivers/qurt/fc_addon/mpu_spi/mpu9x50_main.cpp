@@ -36,10 +36,10 @@
 #include <unistd.h>
 #include <signal.h>
 
-#include <px4_tasks.h>
+#include <px4_platform_common/tasks.h>
 
-#include <px4_log.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/getopt.h>
 
 // TODO-JYW:
 // Include references to the driver framework.  This will produce a duplicate definition
@@ -114,11 +114,8 @@ struct {
 	param_t accel_z_offset;
 	param_t accel_z_scale;
 	param_t gyro_x_offset;
-	param_t gyro_x_scale;
 	param_t gyro_y_offset;
-	param_t gyro_y_scale;
 	param_t gyro_z_offset;
-	param_t gyro_z_scale;
 	param_t mag_x_offset;
 	param_t mag_x_scale;
 	param_t mag_y_offset;
@@ -245,29 +242,14 @@ void parameters_update()
 		PX4_DEBUG("mpu9x50_parameters_update gyro_x_offset %f", v);
 	}
 
-	if (param_get(_params_handles.gyro_x_scale, &v) == 0) {
-		_gyro_sc.x_scale  = v;
-		PX4_DEBUG("mpu9x50_parameters_update gyro_x_scale %f", v);
-	}
-
 	if (param_get(_params_handles.gyro_y_offset, &v) == 0) {
 		_gyro_sc.y_offset  = v;
 		PX4_DEBUG("mpu9x50_parameters_update gyro_y_offset %f", v);
 	}
 
-	if (param_get(_params_handles.gyro_y_scale, &v) == 0) {
-		_gyro_sc.y_scale  = v;
-		PX4_DEBUG("mpu9x50_parameters_update gyro_y_scale %f", v);
-	}
-
 	if (param_get(_params_handles.gyro_z_offset, &v) == 0) {
 		_gyro_sc.z_offset  = v;
 		PX4_DEBUG("mpu9x50_parameters_update gyro_z_offset %f", v);
-	}
-
-	if (param_get(_params_handles.gyro_z_scale, &v) == 0) {
-		_gyro_sc.z_scale  = v;
-		PX4_DEBUG("mpu9x50_parameters_update gyro_z_scale %f", v);
 	}
 
 	// mag params
@@ -343,11 +325,8 @@ void parameters_init()
 	_params_handles.accel_z_scale		=	param_find("CAL_ACC0_ZSCALE");
 
 	_params_handles.gyro_x_offset		=	param_find("CAL_GYRO0_XOFF");
-	_params_handles.gyro_x_scale		=	param_find("CAL_GYRO0_XSCALE");
 	_params_handles.gyro_y_offset		=	param_find("CAL_GYRO0_YOFF");
-	_params_handles.gyro_y_scale		=	param_find("CAL_GYRO0_YSCALE");
 	_params_handles.gyro_z_offset		=	param_find("CAL_GYRO0_ZOFF");
-	_params_handles.gyro_z_scale		=	param_find("CAL_GYRO0_ZSCALE");
 
 	_params_handles.mag_x_offset		=	param_find("CAL_MAG0_XOFF");
 	_params_handles.mag_x_scale		=	param_find("CAL_MAG0_XSCALE");
@@ -401,9 +380,9 @@ bool create_pubs()
 void update_reports()
 {
 	_gyro.timestamp = _data.timestamp;
-	_gyro.x = ((_data.gyro_raw[0] * _data.gyro_scaling) - _gyro_sc.x_offset) * _gyro_sc.x_scale;
-	_gyro.y = ((_data.gyro_raw[1] * _data.gyro_scaling) - _gyro_sc.y_offset) * _gyro_sc.y_scale;
-	_gyro.z = ((_data.gyro_raw[2] * _data.gyro_scaling) - _gyro_sc.z_offset) * _gyro_sc.z_scale;
+	_gyro.x = (_data.gyro_raw[0] * _data.gyro_scaling) - _gyro_sc.x_offset;
+	_gyro.y = (_data.gyro_raw[1] * _data.gyro_scaling) - _gyro_sc.y_offset;
+	_gyro.z = (_data.gyro_raw[2] * _data.gyro_scaling) - _gyro_sc.z_offset;
 	_gyro.temperature = _data.temperature;
 	_gyro.scaling = _data.gyro_scaling;
 	_gyro.x_raw = _data.gyro_raw[0];

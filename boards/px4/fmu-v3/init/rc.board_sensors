@@ -3,6 +3,8 @@
 # PX4 FMUv3 specific board sensors init
 #------------------------------------------------------------------------------
 
+adc start
+
 # External I2C bus
 hmc5883 -C -T -X start
 lis3mdl -X start
@@ -114,5 +116,8 @@ else
 	l3gd20 start
 	lsm303d start
 fi
+
+# External RM3100 (I2C or SPI)
+rm3100 start
 
 unset BOARD_FMUV3

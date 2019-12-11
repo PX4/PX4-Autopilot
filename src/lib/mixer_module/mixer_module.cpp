@@ -33,13 +33,16 @@
 
 #include "mixer_module.hpp"
 
-#include <lib/circuit_breaker/circuit_breaker.h>
-#include <px4_log.h>
+#include <lib/mixer/MultirotorMixer/MultirotorMixer.hpp>
+
+#include <uORB/PublicationQueued.hpp>
+#include <px4_platform_common/log.h>
 
 using namespace time_literals;
 
 
-MixingOutput::MixingOutput(OutputModuleInterface &interface, SchedulingPolicy scheduling_policy,
+MixingOutput::MixingOutput(uint8_t max_num_outputs, OutputModuleInterface &interface,
+			   SchedulingPolicy scheduling_policy,
 			   bool support_esc_calibration, bool ramp_up)
 	: ModuleParams(&interface),
 	  _control_subs{
@@ -50,6 +53,7 @@ MixingOutput::MixingOutput(OutputModuleInterface &interface, SchedulingPolicy sc
 },
 _scheduling_policy(scheduling_policy),
 _support_esc_calibration(support_esc_calibration),
+_max_num_outputs(max_num_outputs < MAX_ACTUATORS ? max_num_outputs : MAX_ACTUATORS),
 _interface(interface),
 _control_latency_perf(perf_alloc(PC_ELAPSED, "control latency"))
 {
@@ -64,12 +68,13 @@ _control_latency_perf(perf_alloc(PC_ELAPSED, "control latency"))
 	_armed.force_failsafe = false;
 	_armed.in_esc_calibration_mode = false;
 
-	// If there is no safety button, disable it on init.
-#ifndef GPIO_BTN_SAFETY
-	_safety_off = true;
-#endif
-
 	px4_sem_init(&_lock, 0, 1);
+
+	// Enforce the existence of the test_motor topic, so we won't miss initial publications
+	test_motor_s test{};
+	uORB::PublicationQueued<test_motor_s> test_motor_pub{ORB_ID(test_motor)};
+	test_motor_pub.publish(test);
+	_motor_test.test_motor_sub.subscribe();
 }
 
 MixingOutput::~MixingOutput()
@@ -84,24 +89,20 @@ void MixingOutput::printStatus() const
 	perf_print_counter(_control_latency_perf);
 	PX4_INFO("Switched to rate_ctrl work queue: %i", (int)_wq_switched);
 	PX4_INFO("Mixer loaded: %s", _mixers ? "yes" : "no");
+	PX4_INFO("Driver instance: %i", _driver_instance);
 
 	PX4_INFO("Channel Configuration:");
 
-	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
-		PX4_INFO("Channel %i: failsafe: %d, disarmed: %d, min: %d, max: %d", i, _failsafe_value[i], _disarmed_value[i],
-			 _min_value[i], _max_value[i]);
+	for (unsigned i = 0; i < _max_num_outputs; i++) {
+		int reordered_i = reorderedMotorIndex(i);
+		PX4_INFO("Channel %i: value: %i, failsafe: %d, disarmed: %d, min: %d, max: %d", reordered_i, _current_output_value[i],
+			 _failsafe_value[reordered_i], _disarmed_value[reordered_i], _min_value[reordered_i], _max_value[reordered_i]);
 	}
 }
 
 void MixingOutput::updateParams()
 {
 	ModuleParams::updateParams();
-
-	bool safety_disabled = circuit_breaker_enabled_by_val(_param_cbrk_io_safety.get(), CBRK_IO_SAFETY_KEY);
-
-	if (safety_disabled) {
-		_safety_off = true;
-	}
 
 	// update mixer if we have one
 	if (_mixers) {
@@ -217,6 +218,81 @@ void MixingOutput::unregister()
 	}
 }
 
+void MixingOutput::updateOutputSlewrate()
+{
+	const hrt_abstime now = hrt_absolute_time();
+	const float dt = math::constrain((now - _time_last_mix) / 1e6f, 0.0001f, 0.02f);
+	_time_last_mix = now;
+
+	// maximum value the outputs of the multirotor mixer are allowed to change in this cycle
+	// factor 2 is needed because actuator outputs are in the range [-1,1]
+	const float delta_out_max = 2.0f * 1000.0f * dt / (_max_value[0] - _min_value[0]) / _param_mot_slew_max.get();
+	_mixers->set_max_delta_out_once(delta_out_max);
+}
+
+
+unsigned MixingOutput::motorTest()
+{
+	test_motor_s test_motor;
+	bool had_update = false;
+
+	while (_motor_test.test_motor_sub.update(&test_motor)) {
+		if (test_motor.driver_instance != _driver_instance ||
+		    test_motor.timestamp == 0 ||
+		    hrt_elapsed_time(&test_motor.timestamp) > 100_ms) {
+			continue;
+		}
+
+		bool in_test_mode = test_motor.action == test_motor_s::ACTION_RUN;
+
+		if (in_test_mode != _motor_test.in_test_mode) {
+			// reset all outputs to disarmed on state change
+			for (int i = 0; i < MAX_ACTUATORS; ++i) {
+				_current_output_value[i] = _disarmed_value[i];
+			}
+		}
+
+		if (in_test_mode) {
+			int idx = test_motor.motor_number;
+
+			if (idx < MAX_ACTUATORS) {
+				if (test_motor.value < 0.f) {
+					_current_output_value[reorderedMotorIndex(idx)] = _disarmed_value[idx];
+
+				} else {
+					_current_output_value[reorderedMotorIndex(idx)] =
+						math::constrain<uint16_t>(_min_value[idx] + (uint16_t)((_max_value[idx] - _min_value[idx]) * test_motor.value),
+									  _min_value[idx], _max_value[idx]);
+				}
+			}
+
+			if (test_motor.timeout_ms > 0) {
+				_motor_test.timeout = test_motor.timestamp + test_motor.timeout_ms * 1000;
+
+			} else {
+				_motor_test.timeout = 0;
+			}
+		}
+
+		_motor_test.in_test_mode = in_test_mode;
+		had_update = true;
+	}
+
+	// check for timeouts
+	if (_motor_test.timeout != 0 && hrt_absolute_time() > _motor_test.timeout) {
+		_motor_test.in_test_mode = false;
+		_motor_test.timeout = 0;
+
+		for (int i = 0; i < MAX_ACTUATORS; ++i) {
+			_current_output_value[i] = _disarmed_value[i];
+		}
+
+		had_update = true;
+	}
+
+	return (_motor_test.in_test_mode || had_update) ? _max_num_outputs : 0;
+}
+
 bool MixingOutput::update()
 {
 	if (!_mixers) {
@@ -228,20 +304,37 @@ bool MixingOutput::update()
 	// check arming state
 	if (_armed_sub.update(&_armed)) {
 		_armed.in_esc_calibration_mode &= _support_esc_calibration;
+
+		if (_ignore_lockdown) {
+			_armed.lockdown = false;
+		}
+
 		/* Update the armed status and check that we're not locked down.
 		 * We also need to arm throttle for the ESC calibration. */
-		_throttle_armed = (_safety_off && _armed.armed && !_armed.lockdown) || (_safety_off && _armed.in_esc_calibration_mode);
+		_throttle_armed = (_armed.armed && !_armed.lockdown) || _armed.in_esc_calibration_mode;
+
+		if (_armed.armed) {
+			_motor_test.in_test_mode = false;
+		}
+	}
+
+	// check for motor test
+	if (!_armed.armed && !_armed.manual_lockdown) {
+		unsigned num_motor_test = motorTest();
+
+		if (num_motor_test > 0) {
+			if (_interface.updateOutputs(false, _current_output_value, num_motor_test, 1)) {
+				actuator_outputs_s actuator_outputs{};
+				setAndPublishActuatorOutputs(num_motor_test, actuator_outputs);
+			}
+
+			handleCommands();
+			return true;
+		}
 	}
 
 	if (_param_mot_slew_max.get() > FLT_EPSILON) {
-		const hrt_abstime now = hrt_absolute_time();
-		const float dt = math::constrain((now - _time_last_mix) / 1e6f, 0.0001f, 0.02f);
-		_time_last_mix = now;
-
-		// maximum value the outputs of the multirotor mixer are allowed to change in this cycle
-		// factor 2 is needed because actuator outputs are in the range [-1,1]
-		const float delta_out_max = 2.0f * 1000.0f * dt / (_max_value[0] - _min_value[0]) / _param_mot_slew_max.get();
-		_mixers->set_max_delta_out_once(delta_out_max);
+		updateOutputSlewrate();
 	}
 
 	unsigned n_updates = 0;
@@ -270,54 +363,63 @@ bool MixingOutput::update()
 
 	/* do mixing */
 	float outputs[MAX_ACTUATORS] {};
-	const unsigned mixed_num_outputs = _mixers->mix(outputs, MAX_ACTUATORS);
+	const unsigned mixed_num_outputs = _mixers->mix(outputs, _max_num_outputs);
 
 	/* the output limit call takes care of out of band errors, NaN and constrains */
-	uint16_t output_limited[MAX_ACTUATORS] {};
-
 	output_limit_calc(_throttle_armed, armNoThrottle(), mixed_num_outputs, _reverse_output_mask,
-			  _disarmed_value, _min_value, _max_value, outputs, output_limited, &_output_limit);
+			  _disarmed_value, _min_value, _max_value, outputs, _current_output_value, &_output_limit);
 
 	/* overwrite outputs in case of force_failsafe with _failsafe_value values */
 	if (_armed.force_failsafe) {
 		for (size_t i = 0; i < mixed_num_outputs; i++) {
-			output_limited[i] = _failsafe_value[i];
+			_current_output_value[i] = _failsafe_value[i];
 		}
 	}
+
+	bool stop_motors = mixed_num_outputs == 0 || !_throttle_armed;
 
 	/* overwrite outputs in case of lockdown or parachute triggering with disarmed values */
 	if (_armed.lockdown || _armed.manual_lockdown) {
 		for (size_t i = 0; i < mixed_num_outputs; i++) {
-			output_limited[i] = _disarmed_value[i];
+			_current_output_value[i] = _disarmed_value[i];
 		}
-	}
 
-	bool stop_motors = true;
-
-	if (mixed_num_outputs > 0) {
-		/* assume if one (here the 1.) motor is disarmed, all of them should be stopped */
-		stop_motors = (output_limited[0] == _disarmed_value[0]);
+		stop_motors = true;
 	}
 
 	/* apply _param_mot_ordering */
-	reorderOutputs(output_limited);
+	reorderOutputs(_current_output_value);
 
 	/* now return the outputs to the driver */
-	_interface.updateOutputs(stop_motors, output_limited, mixed_num_outputs, n_updates);
+	if (_interface.updateOutputs(stop_motors, _current_output_value, mixed_num_outputs, n_updates)) {
+		actuator_outputs_s actuator_outputs{};
+		setAndPublishActuatorOutputs(mixed_num_outputs, actuator_outputs);
 
+		publishMixerStatus(actuator_outputs);
+		updateLatencyPerfCounter(actuator_outputs);
+	}
 
-	actuator_outputs_s actuator_outputs{};
-	actuator_outputs.noutputs = mixed_num_outputs;
+	handleCommands();
 
-	// zero unused outputs
-	for (size_t i = 0; i < mixed_num_outputs; ++i) {
-		actuator_outputs.output[i] = output_limited[i];
+	return true;
+}
+
+void
+MixingOutput::setAndPublishActuatorOutputs(unsigned num_outputs, actuator_outputs_s &actuator_outputs)
+{
+	actuator_outputs.noutputs = num_outputs;
+
+	for (size_t i = 0; i < num_outputs; ++i) {
+		actuator_outputs.output[i] = _current_output_value[i];
 	}
 
 	actuator_outputs.timestamp = hrt_absolute_time();
 	_outputs_pub.publish(actuator_outputs);
+}
 
-	/* publish mixer status */
+void
+MixingOutput::publishMixerStatus(const actuator_outputs_s &actuator_outputs)
+{
 	MultirotorMixer::saturation_status saturation_status;
 	saturation_status.value = _mixers->get_saturation_status();
 
@@ -328,7 +430,11 @@ bool MixingOutput::update()
 
 		_to_mixer_status.publish(motor_limits);
 	}
+}
 
+void
+MixingOutput::updateLatencyPerfCounter(const actuator_outputs_s &actuator_outputs)
+{
 	// use first valid timestamp_sample for latency tracking
 	for (int i = 0; i < actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS; i++) {
 		const bool required = _groups_required & (1 << i);
@@ -339,19 +445,6 @@ bool MixingOutput::update()
 			break;
 		}
 	}
-
-	// check safety button state
-	if (_safety_sub.updated()) {
-		safety_s safety;
-
-		if (_safety_sub.copy(&safety)) {
-			_safety_off = !safety.safety_switch_available || safety.safety_off;
-		}
-	}
-
-	handleCommands();
-
-	return true;
 }
 
 void
@@ -382,7 +475,7 @@ MixingOutput::reorderOutputs(uint16_t values[MAX_ACTUATORS])
 	 */
 }
 
-int MixingOutput::reorderedMotorIndex(int index)
+int MixingOutput::reorderedMotorIndex(int index) const
 {
 	if ((MotorOrdering)_param_mot_ordering.get() == MotorOrdering::Betaflight) {
 		switch (index) {
@@ -452,7 +545,7 @@ void MixingOutput::resetMixer()
 int MixingOutput::loadMixer(const char *buf, unsigned len)
 {
 	if (_mixers == nullptr) {
-		_mixers = new MixerGroup(controlCallback, (uintptr_t)this);
+		_mixers = new MixerGroup();
 	}
 
 	if (_mixers == nullptr) {
@@ -460,7 +553,7 @@ int MixingOutput::loadMixer(const char *buf, unsigned len)
 		return -ENOMEM;
 	}
 
-	int ret = _mixers->load_from_buf(buf, len);
+	int ret = _mixers->load_from_buf(controlCallback, (uintptr_t)this, buf, len);
 
 	if (ret != 0) {
 		PX4_ERR("mixer load failed with %d", ret);
@@ -480,11 +573,11 @@ int MixingOutput::loadMixer(const char *buf, unsigned len)
 
 void MixingOutput::handleCommands()
 {
-	if (_command.command.load() == Command::Type::None) {
+	if ((Command::Type)_command.command.load() == Command::Type::None) {
 		return;
 	}
 
-	switch (_command.command.load()) {
+	switch ((Command::Type)_command.command.load()) {
 	case Command::Type::loadMixer:
 		_command.result = loadMixer(_command.mixer_buf, _command.mixer_buf_length);
 		break;
@@ -499,12 +592,12 @@ void MixingOutput::handleCommands()
 	}
 
 	// mark as done
-	_command.command.store(Command::Type::None);
+	_command.command.store((int)Command::Type::None);
 }
 
 void MixingOutput::resetMixerThreadSafe()
 {
-	if (_command.command.load() != Command::Type::None) {
+	if ((Command::Type)_command.command.load() != Command::Type::None) {
 		// Cannot happen, because we expect only one other thread to call this.
 		// But as a safety precaution we return here.
 		PX4_ERR("Command not None");
@@ -513,14 +606,14 @@ void MixingOutput::resetMixerThreadSafe()
 
 	lock();
 
-	_command.command.store(Command::Type::resetMixer);
+	_command.command.store((int)Command::Type::resetMixer);
 
 	_interface.ScheduleNow();
 
 	unlock();
 
 	// wait until processed
-	while (_command.command.load() != Command::Type::None) {
+	while ((Command::Type)_command.command.load() != Command::Type::None) {
 		usleep(1000);
 	}
 
@@ -528,7 +621,7 @@ void MixingOutput::resetMixerThreadSafe()
 
 int MixingOutput::loadMixerThreadSafe(const char *buf, unsigned len)
 {
-	if (_command.command.load() != Command::Type::None) {
+	if ((Command::Type)_command.command.load() != Command::Type::None) {
 		// Cannot happen, because we expect only one other thread to call this.
 		// But as a safety precaution we return here.
 		PX4_ERR("Command not None");
@@ -539,14 +632,14 @@ int MixingOutput::loadMixerThreadSafe(const char *buf, unsigned len)
 
 	_command.mixer_buf = buf;
 	_command.mixer_buf_length = len;
-	_command.command.store(Command::Type::loadMixer);
+	_command.command.store((int)Command::Type::loadMixer);
 
 	_interface.ScheduleNow();
 
 	unlock();
 
 	// wait until processed
-	while (_command.command.load() != Command::Type::None) {
+	while ((Command::Type)_command.command.load() != Command::Type::None) {
 		usleep(1000);
 	}
 

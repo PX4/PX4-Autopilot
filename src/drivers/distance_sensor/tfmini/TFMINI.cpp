@@ -34,7 +34,7 @@
 #include "TFMINI.hpp"
 
 TFMINI::TFMINI(const char *port, uint8_t rotation) :
-	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
+	ScheduledWorkItem(MODULE_NAME, px4::serial_port_to_wq(port)),
 	_px4_rangefinder(0 /* TODO: device id */, ORB_PRIO_DEFAULT, rotation)
 {
 	// store port name

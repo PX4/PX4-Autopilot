@@ -41,12 +41,13 @@
 
 #include <string.h>
 
-#include <px4_config.h>
-#include <px4_getopt.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
 #include <drivers/device/i2c.h>
+#include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
-#include <uORB/uORB.h>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/power_monitor.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 
@@ -163,7 +164,7 @@ private:
 	int				        _measure_interval{0};
 	bool			        _collect_phase{false};
 
-	orb_advert_t		  _power_monitor_topic{nullptr};
+	uORB::PublicationMulti<power_monitor_s>	_power_monitor_topic{ORB_ID(power_monitor)};
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
@@ -393,7 +394,7 @@ INA226::collect()
 
 				if (_shunt >= 0) {
 
-					struct power_monitor_s report;
+					power_monitor_s report{};
 					report.timestamp = hrt_absolute_time();
 					report.voltage_v = (float) _bus_volatage * INA226_VSCALE;
 					report.current_a = (float) _current * _current_lsb;
@@ -410,8 +411,7 @@ INA226::collect()
 #endif
 
 					/* publish it */
-					int instance;
-					orb_publish_auto(ORB_ID(power_monitor), &_power_monitor_topic, &report, &instance, ORB_PRIO_DEFAULT);
+					_power_monitor_topic.publish(report);
 
 					ret = OK;
 					perf_end(_sample_perf);

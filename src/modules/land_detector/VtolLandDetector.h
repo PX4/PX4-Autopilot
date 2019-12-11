@@ -41,7 +41,6 @@
 
 #pragma once
 
-#include <uORB/Subscription.hpp>
 #include <uORB/topics/airspeed.h>
 #include <uORB/topics/vehicle_status.h>
 
@@ -53,7 +52,8 @@ namespace land_detector
 class VtolLandDetector : public MulticopterLandDetector
 {
 public:
-	VtolLandDetector();
+	VtolLandDetector() = default;
+	~VtolLandDetector() override = default;
 
 protected:
 	void _update_topics() override;

@@ -58,6 +58,7 @@ uint8 VEHICLE_TYPE_ROVER = 3
 # Encodes the complete system state and is set by the commander app.
 
 uint8 nav_state				# set navigation state machine to specified value
+uint64 nav_state_timestamp              # time when current nav_state activated
 uint8 arming_state			# current arming state
 uint8 hil_state				# current hil state
 bool failsafe				# true if system is in failsafe state (e.g.:RTL, Hover, Terminate, ...)
@@ -71,6 +72,7 @@ uint8 vehicle_type          # Type of vehicle (fixed-wing, rotary wing, ground)
                             # and VEHICLE_TYPE_FIXED_WING when flying as a fixed-wing
 
 bool is_vtol				# True if the system is VTOL capable
+bool is_vtol_tailsitter                 # True if the system performs a 90° pitch down rotation during transition from MC to FW
 bool vtol_fw_permanent_stab		# True if VTOL should stabilize attitude for fw in manual mode
 bool in_transition_mode			# True if VTOL is doing a transition
 bool in_transition_to_fw		# True if VTOL is doing a transition from MC to FW
@@ -92,11 +94,3 @@ uint8 failure_detector_status			# Bitmask containing FailureDetector status [0, 
 uint32 onboard_control_sensors_present
 uint32 onboard_control_sensors_enabled
 uint32 onboard_control_sensors_health
-
-# airspeed fault and airspeed use status
-float32 arspd_check_level	# integrated airspeed inconsistency as checked against the COM_TAS_FS_INTEG parameter
-bool aspd_check_failing		# true when airspeed consistency checks are failing
-bool aspd_fault_declared	# true when an airspeed fault has been declared
-bool aspd_use_inhibit		# true if switching to a non-airspeed control mode has been requested
-bool aspd_fail_rtl		# true if airspeed failure invoked RTL has been requested
-float32 load_factor_ratio	# ratio of measured to aerodynamic load factor limit. Greater than 1 indicates airspeed low error condition.

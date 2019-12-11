@@ -41,7 +41,6 @@ px4_add_board(
 		lights/rgbled_ncp5623c
 		#lights/rgbled_pwm
 		magnetometer # all available magnetometer drivers
-		#md25
 		mkblctrl
 		#optical_flow # all available optical flow drivers
 		optical_flow/px4flow
@@ -75,8 +74,11 @@ px4_add_board(
 		logger
 		mavlink
 		mc_att_control
+		mc_rate_control
 		mc_pos_control
 		navigator
+		battery_status
+		rc_update
 		sensors
 		sih
 		vmount

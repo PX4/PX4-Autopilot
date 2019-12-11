@@ -52,10 +52,10 @@
 #include <lib/mixer_module/mixer_module.hpp>
 #include <lib/parameters/param.h>
 #include <lib/perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_getopt.h>
-#include <px4_log.h>
-#include <px4_module.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/getopt.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module.h>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
 #include <uORB/Subscription.hpp>
@@ -124,9 +124,6 @@ public:
 	static int task_spawn(int argc, char *argv[]);
 
 	/** @see ModuleBase */
-	static PX4FMU *instantiate(int argc, char *argv[]);
-
-	/** @see ModuleBase */
 	static int custom_command(int argc, char *argv[]);
 
 	/** @see ModuleBase */
@@ -159,11 +156,14 @@ public:
 
 	void update_pwm_trims();
 
-	void updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated) override;
 
 private:
-	MixingOutput _mixing_output{*this, MixingOutput::SchedulingPolicy::Auto, true};
+	static constexpr int FMU_MAX_ACTUATORS = DIRECT_PWM_OUTPUT_CHANNELS;
+	static_assert(FMU_MAX_ACTUATORS <= MAX_ACTUATORS, "Increase MAX_ACTUATORS if this fails");
+
+	MixingOutput _mixing_output{FMU_MAX_ACTUATORS, *this, MixingOutput::SchedulingPolicy::Auto, true};
 
 	Mode		_mode{MODE_NONE};
 
@@ -187,7 +187,6 @@ private:
 	unsigned	_num_disarmed_set{0};
 
 	perf_counter_t	_cycle_perf;
-	perf_counter_t	_cycle_interval_perf;
 
 	void		capture_callback(uint32_t chan_index,
 					 hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow);
@@ -212,8 +211,7 @@ private:
 PX4FMU::PX4FMU() :
 	CDev(PX4FMU_DEVICE_PATH),
 	OutputModuleInterface(MODULE_NAME, px4::wq_configurations::hp_default),
-	_cycle_perf(perf_alloc(PC_ELAPSED, "px4fmu: cycle")),
-	_cycle_interval_perf(perf_alloc(PC_INTERVAL, "px4fmu: cycle interval"))
+	_cycle_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	_mixing_output.setAllMinValues(PWM_DEFAULT_MIN);
 	_mixing_output.setAllMaxValues(PWM_DEFAULT_MAX);
@@ -229,7 +227,6 @@ PX4FMU::~PX4FMU()
 	unregister_class_devname(PWM_OUTPUT_BASE_DEVICE_PATH, _class_instance);
 
 	perf_free(_cycle_perf);
-	perf_free(_cycle_interval_perf);
 }
 
 int
@@ -252,6 +249,8 @@ PX4FMU::init()
 	} else if (_class_instance < 0) {
 		PX4_ERR("FAILED registering class device");
 	}
+
+	_mixing_output.setDriverInstance(_class_instance);
 
 	/* force a reset of the update rate */
 	_current_update_rate = 0;
@@ -497,7 +496,7 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 
 	for (unsigned pass = 0; pass < 2; pass++) {
 
-		/* We should note that group is iterated over from 0 to MAX_ACTUATORS.
+		/* We should note that group is iterated over from 0 to FMU_MAX_ACTUATORS.
 		 * This allows for the ideal worlds situation: 1 channel per group
 		 * configuration.
 		 *
@@ -511,7 +510,7 @@ PX4FMU::set_pwm_rate(uint32_t rate_map, unsigned default_rate, unsigned alt_rate
 		 * rate and mode. (See rates above.)
 		 */
 
-		for (unsigned group = 0; group < MAX_ACTUATORS; group++) {
+		for (unsigned group = 0; group < FMU_MAX_ACTUATORS; group++) {
 
 			// get the channel mask for this rate group
 			uint32_t mask = up_pwm_servo_get_rate_group(group);
@@ -606,7 +605,7 @@ PX4FMU::update_pwm_rev_mask()
 		return;
 	}
 
-	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+	for (unsigned i = 0; i < FMU_MAX_ACTUATORS; i++) {
 		char pname[16];
 
 		/* fill the channel reverse mask from parameters */
@@ -630,7 +629,7 @@ PX4FMU::update_pwm_trims()
 		return;
 	}
 
-	int16_t values[MAX_ACTUATORS] = {};
+	int16_t values[FMU_MAX_ACTUATORS] = {};
 
 	const char *pname_format;
 
@@ -645,7 +644,7 @@ PX4FMU::update_pwm_trims()
 		return;
 	}
 
-	for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+	for (unsigned i = 0; i < FMU_MAX_ACTUATORS; i++) {
 		char pname[16];
 
 		/* fill the struct from parameters */
@@ -661,7 +660,7 @@ PX4FMU::update_pwm_trims()
 	}
 
 	/* copy the trim values to the mixer offsets */
-	unsigned n_out = _mixing_output.mixers()->set_trims(values, MAX_ACTUATORS);
+	unsigned n_out = _mixing_output.mixers()->set_trims(values, FMU_MAX_ACTUATORS);
 	PX4_DEBUG("set %d trims", n_out);
 }
 
@@ -693,7 +692,7 @@ void
 PX4FMU::capture_trampoline(void *context, uint32_t chan_index,
 			   hrt_abstime edge_time, uint32_t edge_state, uint32_t overflow)
 {
-	PX4FMU *dev = reinterpret_cast<PX4FMU *>(context);
+	PX4FMU *dev = static_cast<PX4FMU *>(context);
 	dev->capture_callback(chan_index, edge_time, edge_state, overflow);
 }
 
@@ -717,11 +716,11 @@ PX4FMU::update_pwm_out_state(bool on)
 }
 
 
-void PX4FMU::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+bool PX4FMU::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 			   unsigned num_outputs, unsigned num_control_groups_updated)
 {
 	if (_test_mode) {
-		return;
+		return false;
 	}
 
 	/* output to the servos */
@@ -737,6 +736,8 @@ void PX4FMU::updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 	if (num_control_groups_updated > 0) {
 		up_pwm_update();
 	}
+
+	return true;
 }
 
 void
@@ -751,7 +752,6 @@ PX4FMU::Run()
 	}
 
 	perf_begin(_cycle_perf);
-	perf_count(_cycle_interval_perf);
 
 	_mixing_output.update();
 
@@ -893,7 +893,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			/* discard if too many values are sent */
-			if (pwm->channel_count > MAX_ACTUATORS) {
+			if (pwm->channel_count > FMU_MAX_ACTUATORS) {
 				ret = -EINVAL;
 				break;
 			}
@@ -926,11 +926,11 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_FAILSAFE_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
-			for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+			for (unsigned i = 0; i < FMU_MAX_ACTUATORS; i++) {
 				pwm->values[i] = _mixing_output.failsafeValue(i);
 			}
 
-			pwm->channel_count = MAX_ACTUATORS;
+			pwm->channel_count = FMU_MAX_ACTUATORS;
 			break;
 		}
 
@@ -938,7 +938,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			/* discard if too many values are sent */
-			if (pwm->channel_count > MAX_ACTUATORS) {
+			if (pwm->channel_count > FMU_MAX_ACTUATORS) {
 				ret = -EINVAL;
 				break;
 			}
@@ -969,7 +969,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			 */
 			_num_disarmed_set = 0;
 
-			for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+			for (unsigned i = 0; i < FMU_MAX_ACTUATORS; i++) {
 				if (_mixing_output.disarmedValue(i) > 0) {
 					_num_disarmed_set++;
 				}
@@ -981,11 +981,11 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_DISARMED_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
-			for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+			for (unsigned i = 0; i < FMU_MAX_ACTUATORS; i++) {
 				pwm->values[i] = _mixing_output.disarmedValue(i);
 			}
 
-			pwm->channel_count = MAX_ACTUATORS;
+			pwm->channel_count = FMU_MAX_ACTUATORS;
 			break;
 		}
 
@@ -993,7 +993,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			/* discard if too many values are sent */
-			if (pwm->channel_count > MAX_ACTUATORS) {
+			if (pwm->channel_count > FMU_MAX_ACTUATORS) {
 				ret = -EINVAL;
 				break;
 			}
@@ -1025,11 +1025,11 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_MIN_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
-			for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+			for (unsigned i = 0; i < FMU_MAX_ACTUATORS; i++) {
 				pwm->values[i] = _mixing_output.minValue(i);
 			}
 
-			pwm->channel_count = MAX_ACTUATORS;
+			pwm->channel_count = FMU_MAX_ACTUATORS;
 			arg = (unsigned long)&pwm;
 			break;
 		}
@@ -1038,7 +1038,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			/* discard if too many values are sent */
-			if (pwm->channel_count > MAX_ACTUATORS) {
+			if (pwm->channel_count > FMU_MAX_ACTUATORS) {
 				ret = -EINVAL;
 				break;
 			}
@@ -1063,11 +1063,11 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_MAX_PWM: {
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
-			for (unsigned i = 0; i < MAX_ACTUATORS; i++) {
+			for (unsigned i = 0; i < FMU_MAX_ACTUATORS; i++) {
 				pwm->values[i] = _mixing_output.maxValue(i);
 			}
 
-			pwm->channel_count = MAX_ACTUATORS;
+			pwm->channel_count = FMU_MAX_ACTUATORS;
 			arg = (unsigned long)&pwm;
 			break;
 		}
@@ -1076,7 +1076,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			struct pwm_output_values *pwm = (struct pwm_output_values *)arg;
 
 			/* discard if too many values are sent */
-			if (pwm->channel_count > MAX_ACTUATORS) {
+			if (pwm->channel_count > FMU_MAX_ACTUATORS) {
 				PX4_DEBUG("error: too many trim values: %d", pwm->channel_count);
 				ret = -EINVAL;
 				break;
@@ -1146,9 +1146,12 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+#endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 5
+
 	/* FALLTHROUGH */
 	case PWM_SERVO_SET(4):
-		if (_mode < MODE_5PWM1CAP) {
+		if (_mode < MODE_5PWM) {
 			ret = -EINVAL;
 			break;
 		}
@@ -1216,9 +1219,12 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 			break;
 		}
 
+#endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 5
+
 	/* FALLTHROUGH */
 	case PWM_SERVO_GET(4):
-		if (_mode < MODE_5PWM1CAP) {
+		if (_mode < MODE_5PWM) {
 			ret = -EINVAL;
 			break;
 		}
@@ -1249,8 +1255,10 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 	case PWM_SERVO_GET_RATEGROUP(1):
 	case PWM_SERVO_GET_RATEGROUP(2):
 	case PWM_SERVO_GET_RATEGROUP(3):
-#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 5
 	case PWM_SERVO_GET_RATEGROUP(4):
+#endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 6
 	case PWM_SERVO_GET_RATEGROUP(5):
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 8
@@ -1269,7 +1277,6 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 		break;
 
 	case PWM_SERVO_GET_COUNT:
-	case MIXERIOCGETOUTPUTCOUNT:
 		switch (_mode) {
 
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 14
@@ -1466,7 +1473,7 @@ PX4FMU::pwm_ioctl(file *filp, int cmd, unsigned long arg)
 
 	case MIXERIOCLOADBUF: {
 			const char *buf = (const char *)arg;
-			unsigned buflen = strnlen(buf, 1024);
+			unsigned buflen = strlen(buf);
 			ret = _mixing_output.loadMixerThreadSafe(buf, buflen);
 			update_pwm_trims();
 
@@ -1676,6 +1683,9 @@ PX4FMU::fmu_new_mode(PortMode new_mode)
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 4
 		/* select 4-pin PWM mode */
 		servo_mode = PX4FMU::MODE_4PWM;
+#endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 5
+		servo_mode = PX4FMU::MODE_5PWM;
 #endif
 #if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM == 6
 		servo_mode = PX4FMU::MODE_6PWM;
@@ -2109,6 +2119,9 @@ int PX4FMU::custom_command(int argc, char *argv[])
 	} else if (!strcmp(verb, "mode_pwm6")) {
 		new_mode = PORT_PWM6;
 
+#endif
+#if defined(BOARD_HAS_PWM) && BOARD_HAS_PWM >= 5
+
 	} else if (!strcmp(verb, "mode_pwm5")) {
 		new_mode = PORT_PWM5;
 
@@ -2171,6 +2184,59 @@ int PX4FMU::custom_command(int argc, char *argv[])
 	}
 
 	return print_usage("unknown command");
+}
+
+int PX4FMU::print_status()
+{
+	PX4_INFO("Max update rate: %i Hz", _current_update_rate);
+
+	const char *mode_str = nullptr;
+
+	switch (_mode) {
+	case MODE_NONE: mode_str = "no pwm"; break;
+
+	case MODE_1PWM: mode_str = "pwm1"; break;
+
+	case MODE_2PWM: mode_str = "pwm2"; break;
+
+	case MODE_2PWM2CAP: mode_str = "pwm2cap2"; break;
+
+	case MODE_3PWM: mode_str = "pwm3"; break;
+
+	case MODE_3PWM1CAP: mode_str = "pwm3cap1"; break;
+
+	case MODE_4PWM: mode_str = "pwm4"; break;
+
+	case MODE_4PWM1CAP: mode_str = "pwm4cap1"; break;
+
+	case MODE_4PWM2CAP: mode_str = "pwm4cap2"; break;
+
+	case MODE_5PWM: mode_str = "pwm5"; break;
+
+	case MODE_5PWM1CAP: mode_str = "pwm5cap1"; break;
+
+	case MODE_6PWM: mode_str = "pwm6"; break;
+
+	case MODE_8PWM: mode_str = "pwm8"; break;
+
+	case MODE_4CAP: mode_str = "cap4"; break;
+
+	case MODE_5CAP: mode_str = "cap5"; break;
+
+	case MODE_6CAP: mode_str = "cap6"; break;
+
+	default:
+		break;
+	}
+
+	if (mode_str) {
+		PX4_INFO("PWM Mode: %s", mode_str);
+	}
+
+	perf_print_counter(_cycle_perf);
+	_mixing_output.printStatus();
+
+	return 0;
 }
 
 int PX4FMU::print_usage(const char *reason)
@@ -2252,65 +2318,7 @@ mixer files.
 	return 0;
 }
 
-int PX4FMU::print_status()
-{
-	PX4_INFO("Max update rate: %i Hz", _current_update_rate);
-
-	const char *mode_str = nullptr;
-
-	switch (_mode) {
-
-	case MODE_NONE: mode_str = "no pwm"; break;
-
-	case MODE_1PWM: mode_str = "pwm1"; break;
-
-	case MODE_2PWM: mode_str = "pwm2"; break;
-
-	case MODE_2PWM2CAP: mode_str = "pwm2cap2"; break;
-
-	case MODE_3PWM: mode_str = "pwm3"; break;
-
-	case MODE_3PWM1CAP: mode_str = "pwm3cap1"; break;
-
-	case MODE_4PWM: mode_str = "pwm4"; break;
-
-  	case MODE_4PWM1CAP: mode_str = "pwm4cap1"; break;
-
-	case MODE_4PWM2CAP: mode_str = "pwm4cap2"; break;
-
-  	case MODE_5PWM: mode_str = "pwm5"; break;
-
-  	case MODE_5PWM1CAP: mode_str = "pwm5cap1"; break;
-
-  	case MODE_6PWM: mode_str = "pwm6"; break;
-
-	case MODE_8PWM: mode_str = "pwm8"; break;
-
-	case MODE_4CAP: mode_str = "cap4"; break;
-
-	case MODE_5CAP: mode_str = "cap5"; break;
-
-	case MODE_6CAP: mode_str = "cap6"; break;
-
-	default:
-		break;
-	}
-
-	if (mode_str) {
-		PX4_INFO("PWM Mode: %s", mode_str);
-	}
-
-	perf_print_counter(_cycle_perf);
-	perf_print_counter(_cycle_interval_perf);
-	_mixing_output.printStatus();
-
-	return 0;
-}
-
-extern "C" __EXPORT int fmu_main(int argc, char *argv[]);
-
-int
-fmu_main(int argc, char *argv[])
+extern "C" __EXPORT int fmu_main(int argc, char *argv[])
 {
 	return PX4FMU::main(argc, argv);
 }

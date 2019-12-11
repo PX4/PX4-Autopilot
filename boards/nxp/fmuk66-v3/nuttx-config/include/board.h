@@ -483,8 +483,10 @@
  *
  */
 
-#define PIN_RMII0_MDIO  PIN_RMII0_MDIO_1
-#define PIN_RMII0_MDC   PIN_RMII0_MDC_1
+#define PIN_RMII0_MDIO    PIN_RMII0_MDIO_1
+#define PIN_RMII0_MDC     PIN_RMII0_MDC_1
+#define PIN_ENET_PHY_RST  (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN28)
+#define PIN_ENET_PHY_EN   (GPIO_LOWDRIVE | GPIO_OUTPUT_ZERO | PIN_PORTA | PIN29)
 
 /* Board provides GPIO or other Hardware for signaling to timing analyzer */
 

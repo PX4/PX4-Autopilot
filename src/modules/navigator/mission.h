@@ -52,7 +52,7 @@
 
 #include <dataman/dataman.h>
 #include <drivers/drv_hrt.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/home_position.h>
 #include <uORB/topics/mission.h>
@@ -91,6 +91,9 @@ public:
 	bool get_mission_finished() const { return _mission_type == MISSION_TYPE_NONE; }
 	bool get_mission_changed() const { return _mission_changed ; }
 	bool get_mission_waypoints_changed() const { return _mission_waypoints_changed ; }
+	double get_landing_lat() { return _landing_lat; }
+	double get_landing_lon() { return _landing_lon; }
+	float get_landing_alt() { return _landing_alt; }
 
 	void set_closest_item_as_current();
 
@@ -251,6 +254,9 @@ private:
 	// track location of planned mission landing
 	bool	_land_start_available{false};
 	uint16_t _land_start_index{UINT16_MAX};		/**< index of DO_LAND_START, INVALID_DO_LAND_START if no planned landing */
+	double _landing_lat{0.0};
+	double _landing_lon{0.0};
+	float _landing_alt{0.0f};
 
 	bool _need_takeoff{true};					/**< if true, then takeoff must be performed before going to the first waypoint (if needed) */
 

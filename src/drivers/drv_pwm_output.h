@@ -42,7 +42,7 @@
 
 #pragma once
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 
 #include <stdint.h>
 #include <sys/ioctl.h>
@@ -66,13 +66,8 @@ __BEGIN_DECLS
 
 struct pwm_output_values {
 	uint32_t channel_count;
-	uint16_t values[16];
+	uint16_t values[PWM_OUTPUT_MAX_CHANNELS];
 };
-
-/**
- * Maximum number of PWM output channels supported by the device.
- */
-//#define PWM_OUTPUT_MAX_CHANNELS	16
 
 /* Use defaults unless the board override the defaults by providing
  * PX4_PWM_ALTERNATE_RANGES and a replacement set of

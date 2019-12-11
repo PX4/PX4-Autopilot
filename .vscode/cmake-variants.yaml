@@ -51,6 +51,11 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: intel_aerofc-v1_default
+    modalai_fc-v1_default:
+      short: modalai_fc-v1_default
+      buildType: MinSizeRel
+      settings:
+        CONFIG: modalai_fc-v1_default
     mro_ctrl-zero-f7_default:
       short: mro_ctrl-zero-f7_default
       buildType: MinSizeRel
@@ -61,3 +66,8 @@ CONFIG:
       buildType: MinSizeRel
       settings:
         CONFIG: nxp_fmuk66-v3_default
+    holybro_durandal-v1_default:
+      short: holybro_durandal-v1
+      buildType: MinSizeRel
+      settings:
+        CONFIG: holybro_durandal-v1_default

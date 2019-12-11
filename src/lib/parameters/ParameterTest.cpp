@@ -31,7 +31,7 @@
  *
  ****************************************************************************/
 
-#include <px4_module_params.h>
+#include <px4_platform_common/module_params.h>
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/obstacle_distance.h>
 #include <uORB/uORBManager.hpp>
@@ -51,7 +51,7 @@ public:
 TEST_F(ParameterTest, testParamReadWrite)
 {
 	// GIVEN a parameter handle
-	param_t param = param_handle(px4::params::MPC_COL_PREV_D);
+	param_t param = param_handle(px4::params::CP_DIST);
 
 	// WHEN: we get the parameter
 	float value = -999.f;

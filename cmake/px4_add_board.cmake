@@ -46,6 +46,7 @@
 #			[ TOOLCHAIN <string> ]
 #			[ ARCHITECTURE <string> ]
 #			[ ROMFSROOT <string> ]
+#			[ BUILD_BOOTLOADER ]
 #			[ IO <string> ]
 #			[ BOOTLOADER <string> ]
 #			[ UAVCAN_INTERFACES <string> ]
@@ -67,6 +68,7 @@
 #		TOOLCHAIN		: cmake toolchain
 #		ARCHITECTURE		: name of the CPU CMake is building for (used by the toolchain)
 #		ROMFSROOT		: relative path to the ROMFS root directory (currently NuttX only)
+#		BUILD_BOOTLOADER	: flag to enable building and including the bootloader config
 #		IO			: name of IO board to be built and included in the ROMFS (requires a valid ROMFSROOT)
 #		BOOTLOADER		: bootloader file to include for flashing via bl_update (currently NuttX only)
 #		UAVCAN_INTERFACES	: number of interfaces for UAVCAN
@@ -148,6 +150,7 @@ function(px4_add_board)
 			SERIAL_PORTS
 			DF_DRIVERS
 		OPTIONS
+			BUILD_BOOTLOADER
 			CONSTRAINED_FLASH
 			TESTING
 		REQUIRED
@@ -204,6 +207,10 @@ function(px4_add_board)
 	if(ROMFSROOT)
 		set(config_romfs_root ${ROMFSROOT} CACHE INTERNAL "ROMFS root" FORCE)
 
+		if(BUILD_BOOTLOADER)
+			set(config_build_bootloader "1" CACHE INTERNAL "build bootloader" FORCE)
+		endif()
+
 		# IO board (placed in ROMFS)
 		if(IO)
 			set(config_io_board ${IO} CACHE INTERNAL "IO" FORCE)
@@ -218,6 +225,7 @@ function(px4_add_board)
 
 	if(CONSTRAINED_FLASH)
 		set(px4_constrained_flash_build "1" CACHE INTERNAL "constrained flash build" FORCE)
+		add_definitions(-DCONSTRAINED_FLASH)
 	endif()
 
 	if(TESTING)

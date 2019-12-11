@@ -42,4 +42,5 @@ px4_add_module(
 		git_driverframework
 		df_driver_framework
 		df_bebop_bus
+		battery
 	)

@@ -50,8 +50,12 @@ fi
 # kill process names that might stil
 # be running from last time
 pkill -x gazebo || true
-pkill -x px4 || true
-pkill -x px4_$model || true
+
+# Do NOT kill PX4 if debug in ide
+if [ "$debugger" != "ide" ]; then
+	pkill -x px4 || true
+	pkill -x px4_$model || true
+fi
 
 cp "$src_path/Tools/posix_lldbinit" "$rootfs/.lldbinit"
 cp "$src_path/Tools/posix.gdbinit" "$rootfs/.gdbinit"

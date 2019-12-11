@@ -3,6 +3,8 @@
 # PX4 FMUv5X specific board sensors init
 #------------------------------------------------------------------------------
 
+adc start
+
 # Start Digital power monitors
 ina226 -b 1 start
 ina226 -b 2 start
@@ -14,10 +16,10 @@ mpu6000 -R 8 -s -T 20602 start
 ism330dlc start
 
 # Internal SPI bus BMI088 accel
-bmi088 -A -R 10 start
+bmi088 -A -R 12 start
 
 # Internal SPI bus BMI088 gyro
-bmi088 -G -R 10 start
+bmi088 -G -R 12 start
 
 # Possible external compasses
 ist8310 -C -b 1 start
@@ -30,4 +32,10 @@ bmm150 start
 
 # Possible internal Barro
 bmp388 -I start
-#bmp388 -J start fixme
+bmp388 -J start
+
+# Baro on I2C3
+ms5611 -X start
+
+# External RM3100 (I2C or SPI)
+rm3100 start

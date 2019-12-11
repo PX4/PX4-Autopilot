@@ -28,6 +28,7 @@ class MarkdownTablesOutput():
                 def_val = param.GetDefault() or ''
                 unit = param.GetFieldValue("unit") or ''
                 type = param.GetType()
+                is_boolean = param.GetBoolean()
                 reboot_required = param.GetFieldValue("reboot_required") or ''
                 #board = param.GetFieldValue("board") or '' ## Disabled as no board values are defined in any parameters!
                 #decimal = param.GetFieldValue("decimal") or '' #Disabled as is intended for GCS not people
@@ -78,8 +79,12 @@ class MarkdownTablesOutput():
                         bitmask_output+='  <li><strong>%s:</strong> %s</li> \n' % (bit, bit_text)
                     bitmask_output+='</ul>\n'
 
+                if is_boolean and def_val=='1':
+                    def_val='Enabled (1)'
+                if is_boolean and def_val=='0':
+                    def_val='Disabled (0)'
                     
-                result += '<tr>\n <td style="vertical-align: top;">%s (%s)</td>\n <td style="vertical-align: top;"><p>%s</p>%s %s %s %s</td>\n <td style="vertical-align: top;">%s</td>\n <td style="vertical-align: top;">%s </td>\n <td style="vertical-align: top;">%s</td>\n</tr>\n' % (code, type, name, long_desc, enum_output, bitmask_output, reboot_required, max_min_combined, def_val, unit)
+                result += '<tr>\n <td style="vertical-align: top;">%s (%s)</td>\n <td style="vertical-align: top;"><p>%s</p>%s %s %s %s</td>\n <td style="vertical-align: top;">%s</td>\n <td style="vertical-align: top;">%s</td>\n <td style="vertical-align: top;">%s</td>\n</tr>\n' % (code, type, name, long_desc, enum_output, bitmask_output, reboot_required, max_min_combined, def_val, unit)
 
             #Close the table.
             result += '</tbody></table>\n\n'

@@ -34,11 +34,12 @@
 #pragma once
 
 #include <board_config.h>
-#include <lib/mixer/mixer.h>
+#include <drivers/drv_pwm_output.h>
+#include <lib/mixer/MixerGroup.hpp>
 #include <lib/perf/perf_counter.h>
 #include <lib/output_limit/output_limit.h>
-#include <px4_atomic.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/atomic.h>
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/PublicationMulti.hpp>
@@ -49,8 +50,7 @@
 #include <uORB/topics/actuator_outputs.h>
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
-#include <uORB/topics/safety.h>
-
+#include <uORB/topics/test_motor.h>
 
 /**
  * @class OutputModuleInterface
@@ -59,12 +59,21 @@
 class OutputModuleInterface : public px4::ScheduledWorkItem, public ModuleParams
 {
 public:
-	static constexpr int MAX_ACTUATORS = DIRECT_PWM_OUTPUT_CHANNELS;
+	static constexpr int MAX_ACTUATORS = PWM_OUTPUT_MAX_CHANNELS;
 
 	OutputModuleInterface(const char *name, const px4::wq_config_t &config)
 		: px4::ScheduledWorkItem(name, config), ModuleParams(nullptr) {}
 
-	virtual void updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
+	/**
+	 * Callback to update the (physical) actuator outputs in the driver
+	 * @param stop_motors if true, all motors must be stopped (if false, individual motors
+	 *                    might still be stopped via outputs[i] == disarmed_value)
+	 * @param outputs individual actuator outputs in range [min, max] or failsafe/disarmed value
+	 * @param num_outputs number of outputs (<= max_num_outputs)
+	 * @param num_control_groups_updated number of actuator_control groups updated
+	 * @return if true, the update got handled, and actuator_outputs can be published
+	 */
+	virtual bool updateOutputs(bool stop_motors, uint16_t outputs[MAX_ACTUATORS],
 				   unsigned num_outputs, unsigned num_control_groups_updated) = 0;
 
 	/** called whenever the mixer gets updated/reset */
@@ -90,15 +99,18 @@ public:
 
 	/**
 	 * Contructor
+	 * @param max_num_outputs maximum number of supported outputs
 	 * @param interface Parent module for scheduling, parameter updates and callbacks
 	 * @param scheduling_policy
 	 * @param support_esc_calibration true if the output module supports ESC calibration via max, then min setting
 	 * @param ramp_up true if motor ramp up from disarmed to min upon arming is wanted
 	 */
-	MixingOutput(OutputModuleInterface &interface, SchedulingPolicy scheduling_policy,
+	MixingOutput(uint8_t max_num_outputs, OutputModuleInterface &interface, SchedulingPolicy scheduling_policy,
 		     bool support_esc_calibration, bool ramp_up = true);
 
 	~MixingOutput();
+
+	void setDriverInstance(uint8_t instance) { _driver_instance = instance; }
 
 	void printStatus() const;
 
@@ -161,7 +173,9 @@ public:
 	 * @param index motor index in [0, num_motors-1]
 	 * @return reordered motor index. When out of range, the input index is returned
 	 */
-	int reorderedMotorIndex(int index);
+	int reorderedMotorIndex(int index) const;
+
+	void setIgnoreLockdown(bool ignore_lockdown) { _ignore_lockdown = ignore_lockdown; }
 
 protected:
 	void updateParams() override;
@@ -173,6 +187,14 @@ private:
 	{
 		return (_armed.prearmed && !_armed.armed) || _armed.in_esc_calibration_mode;
 	}
+
+	unsigned motorTest();
+
+	void updateOutputSlewrate();
+	void setAndPublishActuatorOutputs(unsigned num_outputs, actuator_outputs_s &actuator_outputs);
+	void publishMixerStatus(const actuator_outputs_s &actuator_outputs);
+	void updateLatencyPerfCounter(const actuator_outputs_s &actuator_outputs);
+
 	static int controlCallback(uintptr_t handle, uint8_t control_group, uint8_t control_index, float &input);
 
 	enum class MotorOrdering : int32_t {
@@ -186,7 +208,7 @@ private:
 			resetMixer,
 			loadMixer
 		};
-		px4::atomic<Type> command{Type::None};
+		px4::atomic<int> command{(int)Type::None};
 		const char *mixer_buf;
 		unsigned mixer_buf_length;
 		int result;
@@ -208,11 +230,11 @@ private:
 	uint16_t _disarmed_value[MAX_ACTUATORS] {};
 	uint16_t _min_value[MAX_ACTUATORS] {};
 	uint16_t _max_value[MAX_ACTUATORS] {};
+	uint16_t _current_output_value[MAX_ACTUATORS] {}; ///< current output values (reordered)
 	uint16_t _reverse_output_mask{0}; ///< reverses the interval [min, max] -> [max, min], NOT motor direction
 	output_limit_t _output_limit;
 
 	uORB::Subscription _armed_sub{ORB_ID(actuator_armed)};
-	uORB::Subscription _safety_sub{ORB_ID(safety)};
 	uORB::SubscriptionCallbackWorkItem _control_subs[actuator_controls_s::NUM_ACTUATOR_CONTROL_GROUPS];
 
 	uORB::PublicationMulti<actuator_outputs_s> _outputs_pub{ORB_ID(actuator_outputs), ORB_PRIO_DEFAULT};
@@ -224,8 +246,8 @@ private:
 	hrt_abstime _time_last_mix{0};
 	unsigned _max_topic_update_interval_us{0}; ///< max _control_subs topic update interval (0=unlimited)
 
-	bool _safety_off{false}; ///< State of the safety button from the subscribed _safety_sub topic
 	bool _throttle_armed{false};
+	bool _ignore_lockdown{false}; ///< if true, ignore the _armed.lockdown flag (for HIL outputs)
 
 	MixerGroup *_mixers{nullptr};
 	uint32_t _groups_required{0};
@@ -235,6 +257,15 @@ private:
 	const bool _support_esc_calibration;
 
 	bool _wq_switched{false};
+	uint8_t _driver_instance{0}; ///< for boards that supports multiple outputs (e.g. PX4IO + FMU)
+	const uint8_t _max_num_outputs;
+
+	struct MotorTest {
+		uORB::Subscription test_motor_sub{ORB_ID(test_motor)};
+		bool in_test_mode{false};
+		hrt_abstime timeout{0};
+	};
+	MotorTest _motor_test;
 
 	OutputModuleInterface &_interface;
 
@@ -244,8 +275,7 @@ private:
 		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,   ///< multicopter air-mode
 		(ParamFloat<px4::params::MOT_SLEW_MAX>) _param_mot_slew_max,
 		(ParamFloat<px4::params::THR_MDL_FAC>) _param_thr_mdl_fac, ///< thrust to motor control signal modelling factor
-		(ParamInt<px4::params::MOT_ORDERING>) _param_mot_ordering,
-		(ParamInt<px4::params::CBRK_IO_SAFETY>) _param_cbrk_io_safety
+		(ParamInt<px4::params::MOT_ORDERING>) _param_mot_ordering
 
 	)
 };

@@ -49,9 +49,9 @@
 
 #include <uORB/topics/distance_sensor.h>
 
-#include <px4_module.h>
-#include <px4_module_params.h>
-#include <px4_tasks.h>
+#include <px4_platform_common/module.h>
+#include <px4_platform_common/module_params.h>
+#include <px4_platform_common/tasks.h>
 
 
 #define PGA460_DEFAULT_PORT "/dev/ttyS6"
@@ -266,11 +266,6 @@ public:
 	 * @param diagnostic_byte The diagnostic byte that contains the bitflags.
 	 */
 	void print_diagnostics(const uint8_t diagnostic_byte);
-
-	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
-	int print_status() override;
 
 	/**
 	 * @brief Reads the threshold registers.

@@ -39,8 +39,7 @@
  */
 constexpr uint8_t MPU6000::_checked_registers[MPU6000_NUM_CHECKED_REGISTERS];
 
-MPU6000::MPU6000(device::Device *interface, const char *path, enum Rotation rotation, int device_type) :
-	CDev(path),
+MPU6000::MPU6000(device::Device *interface, enum Rotation rotation, int device_type) :
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(interface->get_device_id())),
 	_interface(interface),
 	_device_type(device_type),
@@ -97,16 +96,7 @@ MPU6000::init()
 
 	/* if probe failed, bail now */
 	if (ret != OK) {
-		PX4_DEBUG("CDev init failed");
-		return ret;
-	}
-
-	/* do init */
-	ret = CDev::init();
-
-	/* if init failed, bail now */
-	if (ret != OK) {
-		PX4_DEBUG("CDev init failed");
+		PX4_DEBUG("probe init failed");
 		return ret;
 	}
 
@@ -261,6 +251,7 @@ MPU6000::probe()
 	case ICM20608_REV_FF:
 	case ICM20689_REV_FE:
 	case ICM20689_REV_03:
+	case ICM20689_REV_04:
 	case ICM20602_REV_01:
 	case ICM20602_REV_02:
 	case MPU6050_REV_D8:
@@ -382,6 +373,7 @@ MPU6000::_set_icm_acc_dlpf_filter(uint16_t frequency_hz)
 	write_checked_reg(ICMREG_ACCEL_CONFIG2, filter);
 }
 
+#ifndef CONSTRAINED_FLASH
 /*
   perform a self-test comparison to factory trim values. This takes
   about 200ms and will return OK if the current values are within 14%
@@ -525,6 +517,7 @@ MPU6000::factory_self_test()
 
 	return ret;
 }
+#endif
 
 /*
   deliberately trigger an error in the sensor to trigger recovery

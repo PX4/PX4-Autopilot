@@ -36,9 +36,9 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include <cstdlib>
-#if __has_include("px4_log.h") && __has_include("px4_time.h")
-#include <px4_log.h>
-#include <px4_time.h>
+#if __has_include("px4_platform_common/log.h") && __has_include("px4_platform_common/time.h")
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/time.h>
 #endif
 
 #include "microRTPS_transport.h"
@@ -161,10 +161,7 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 		return -1;
 	}
 
-	/*
-	 * [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
-	 */
-
+	// [>,>,>,topic_ID,seq,payload_length_H,payload_length_L,CRCHigh,CRCLow,payloadStart, ... ,payloadEnd]
 	struct Header *header = (struct Header *)&rx_buffer[msg_start_pos];
 	uint32_t payload_len = ((uint32_t)header->payload_len_h << 8) | header->payload_len_l;
 
@@ -216,7 +213,7 @@ ssize_t Transport_node::read(uint8_t *topic_ID, char out_buffer[], size_t buffer
 	return len;
 }
 
-ssize_t Transport_node::get_header_length()
+size_t Transport_node::get_header_length()
 {
     return sizeof(struct Header);
 }
@@ -241,7 +238,6 @@ ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t leng
 	static uint8_t seq = 0;
 
 	// [>,>,>,topic_ID,seq,payload_length,CRCHigh,CRCLow,payload_start, ... ,payload_end]
-
 	uint16_t crc = crc16((uint8_t *)&buffer[sizeof(header)], length);
 
 	header.topic_ID = topic_ID;
@@ -252,7 +248,7 @@ ssize_t Transport_node::write(const uint8_t topic_ID, char buffer[], size_t leng
 	header.crc_l = crc & 0xff;
 
 	/* Headroom for header is created in client */
-	/*Fill in the header in the same payload buffer to call a single node_write */
+	/* Fill in the header in the same payload buffer to call a single node_write */
 	memcpy(buffer, &header, sizeof(header));
 	ssize_t len = node_write(buffer, length + sizeof(header));
 	if (len != ssize_t(length + sizeof(header))) {
@@ -380,11 +376,11 @@ int UART_node::init()
  * According to px4_time.h, px4_usleep() is only defined when lockstep is set
  * to be used
  */
-#ifndef ENABLE_LOCKSTEP_SCHEDULER
+#ifndef px4_usleep
 		usleep(1000);
 #else
 		px4_usleep(1000);
-#endif /* ENABLE_LOCKSTEP_SCHEDULER */
+#endif /* px4_usleep */
 	}
 
 	if (flush) {
@@ -535,12 +531,15 @@ bool UART_node::baudrate_to_speed(uint32_t bauds, speed_t *speed)
 	return true;
 }
 
-UDP_node::UDP_node(uint16_t _udp_port_recv, uint16_t _udp_port_send):
+UDP_node::UDP_node(const char* _udp_ip, uint16_t _udp_port_recv, uint16_t _udp_port_send):
 	sender_fd(-1),
 	receiver_fd(-1),
 	udp_port_recv(_udp_port_recv),
 	udp_port_send(_udp_port_send)
 {
+    if (nullptr != _udp_ip) {
+            strcpy(udp_ip, _udp_ip);
+    }
 }
 
 UDP_node::~UDP_node()
@@ -564,7 +563,7 @@ bool UDP_node::fds_OK()
 
 int UDP_node::init_receiver(uint16_t udp_port)
 {
-#ifndef __PX4_NUTTX
+#if !defined (__PX4_NUTTX) || (defined (CONFIG_NET) && defined (__PX4_NUTTX))
 	// udp socket data
 	memset((char *)&receiver_inaddr, 0, sizeof(receiver_inaddr));
 	receiver_inaddr.sin_family = AF_INET;
@@ -604,7 +603,7 @@ int UDP_node::init_receiver(uint16_t udp_port)
 
 int UDP_node::init_sender(uint16_t udp_port)
 {
-#ifndef __PX4_NUTTX
+#if !defined (__PX4_NUTTX) || (defined (CONFIG_NET) && defined (__PX4_NUTTX))
 
 	if ((sender_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 #ifndef PX4_ERR
@@ -619,7 +618,7 @@ int UDP_node::init_sender(uint16_t udp_port)
 	sender_outaddr.sin_family = AF_INET;
 	sender_outaddr.sin_port = htons(udp_port);
 
-	if (inet_aton("127.0.0.1", &sender_outaddr.sin_addr) == 0) {
+	if (inet_aton(udp_ip, &sender_outaddr.sin_addr) == 0) {
 #ifndef PX4_ERR
 		printf("inet_aton() failed");
 #else
@@ -635,7 +634,7 @@ int UDP_node::init_sender(uint16_t udp_port)
 
 uint8_t UDP_node::close()
 {
-#ifndef __PX4_NUTTX
+#if !defined (__PX4_NUTTX) || (defined (CONFIG_NET) && defined (__PX4_NUTTX))
 
 	if (sender_fd != -1) {
 #ifndef PX4_WARN
@@ -670,7 +669,7 @@ ssize_t UDP_node::node_read(void *buffer, size_t len)
 	}
 
 	int ret = 0;
-#ifndef __PX4_NUTTX
+#if !defined (__PX4_NUTTX) || (defined (CONFIG_NET) && defined (__PX4_NUTTX))
 	// Blocking call
 	static socklen_t addrlen = sizeof(receiver_outaddr);
 	ret = recvfrom(receiver_fd, buffer, len, 0, (struct sockaddr *) &receiver_outaddr, &addrlen);
@@ -685,7 +684,7 @@ ssize_t UDP_node::node_write(void *buffer, size_t len)
 	}
 
 	int ret = 0;
-#ifndef __PX4_NUTTX
+#if !defined (__PX4_NUTTX) || (defined (CONFIG_NET) && defined (__PX4_NUTTX))
 	ret = sendto(sender_fd, buffer, len, 0, (struct sockaddr *)&sender_outaddr, sizeof(sender_outaddr));
 #endif /* __PX4_NUTTX */
 	return ret;

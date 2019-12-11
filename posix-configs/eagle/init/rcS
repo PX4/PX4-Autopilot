@@ -141,9 +141,6 @@ then
 	param set CAL_GYRO0_XOFF -0.0028
 	param set CAL_GYRO0_YOFF -0.0047
 	param set CAL_GYRO0_ZOFF -0.0034
-	param set CAL_GYRO0_XSCALE 1.0000
-	param set CAL_GYRO0_YSCALE 1.0000
-	param set CAL_GYRO0_ZSCALE 1.0000
 	param set CAL_MAG0_XOFF 0.0000
 	param set CAL_MAG0_YOFF 0.0000
 	param set CAL_MAG0_ZOFF 0.0000
@@ -176,6 +173,7 @@ fi
 
 qshell df_mpu9250_wrapper start
 qshell df_bmp280_wrapper start
+qshell rc_update start
 qshell sensors start
 
 if param compare SYS_MC_EST_GROUP 1
@@ -197,6 +195,7 @@ qshell commander start
 qshell land_detector start multicopter
 qshell mc_pos_control start
 qshell mc_att_control start
+qshell mc_rate_control start
 
 logger start -b 200 -t
 

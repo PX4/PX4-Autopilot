@@ -41,7 +41,7 @@
 
 #include "BlockLowPass.hpp"
 
-#include <px4_defines.h>
+#include <px4_platform_common/defines.h>
 #include <math.h>
 
 #include "block/Block.hpp"
@@ -68,7 +68,7 @@ public:
 		_initialized(false),
 		_lowPass(this, "LP")
 	{}
-	virtual ~BlockDerivative() {}
+	virtual ~BlockDerivative() = default;
 
 	/**
 	 * Update the state and get current derivative
@@ -87,6 +87,7 @@ public:
 	float update(float input);
 // accessors
 	void setU(float u) {_u = u;}
+	void reset() { _initialized = false; };
 	float getU() {return _u;}
 	float getLP() {return _lowPass.getFCut();}
 	float getO() { return _lowPass.getState(); }

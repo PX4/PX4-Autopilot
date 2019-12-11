@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -32,14 +32,16 @@
 ############################################################################
 
 px4_add_module(
-	MODULE drivers__bmp280
+	MODULE drivers__barometer__bmp280
 	MAIN bmp280
-	COMPILE_FLAGS
-		-Wno-cast-align # TODO: fix and enable
 	SRCS
-		bmp280_spi.cpp
-		bmp280_i2c.cpp
-		bmp280.cpp
+		BMP280.cpp
+		BMP280.hpp
+		BMP280_I2C.cpp
+		BMP280_SPI.cpp
+
+		bmp280_main.cpp
 	DEPENDS
+		drivers_barometer
 		px4_work_queue
 	)

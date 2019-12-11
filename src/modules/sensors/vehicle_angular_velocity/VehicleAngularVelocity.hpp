@@ -36,10 +36,9 @@
 #include <lib/conversion/rotation.h>
 #include <lib/mathlib/math/Limits.hpp>
 #include <lib/matrix/matrix/math.hpp>
-#include <lib/perf/perf_counter.h>
-#include <px4_config.h>
-#include <px4_log.h>
-#include <px4_module_params.h>
+#include <px4_platform_common/px4_config.h>
+#include <px4_platform_common/log.h>
+#include <px4_platform_common/module_params.h>
 #include <px4_platform_common/px4_work_queue/WorkItem.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/Subscription.hpp>
@@ -108,9 +107,6 @@ private:
 	matrix::Vector3f			_offset;
 	matrix::Vector3f			_scale;
 	matrix::Vector3f			_bias;
-
-	perf_counter_t				_cycle_perf;
-	perf_counter_t				_sensor_latency_perf;
 
 	uint32_t				_selected_sensor_device_id{0};
 	uint8_t					_selected_sensor{0};
