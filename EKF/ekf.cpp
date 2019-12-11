@@ -177,11 +177,6 @@ bool Ekf::initialiseFilter()
 		}
 	}
 
-	// set the default height source from the adjustable parameter
-	if (_hgt_counter == 0) {
-		_primary_hgt_source = _params.vdist_sensor_type;
-	}
-
 	// accumulate enough height measurements to be confident in the quality of the data
 	// we use baro height initially and switch to GPS/range/EV finder later when it passes checks.
 	if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {

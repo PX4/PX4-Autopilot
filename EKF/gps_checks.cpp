@@ -90,7 +90,7 @@ bool Ekf::collect_gps(const gps_message &gps)
 		_gps_origin_epv = gps.epv;
 
 		// if the user has selected GPS as the primary height source, switch across to using it
-		if (_primary_hgt_source == VDIST_SENSOR_GPS) {
+		if (_params.vdist_sensor_type == VDIST_SENSOR_GPS) {
 			ECL_INFO_TIMESTAMPED("EKF GPS checks passed (WGS-84 origin set, using GPS height)");
 			_control_status.flags.baro_hgt = false;
 			_control_status.flags.gps_hgt = true;

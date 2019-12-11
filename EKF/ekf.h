@@ -505,7 +505,6 @@ private:
 	bool _baro_hgt_faulty{false};		///< true if valid baro data is unavailable for use
 	bool _gps_hgt_intermittent{false};	///< true if gps height into the buffer is intermittent
 	bool _rng_hgt_valid{false};		///< true if range finder sample retrieved from buffer is valid
-	int _primary_hgt_source{VDIST_SENSOR_BARO};	///< specifies primary source of height data
 	uint64_t _time_bad_rng_signal_quality{0};	///< timestamp at which range finder signal quality was 0 (used for hysteresis)
 
 	// imu fault status
