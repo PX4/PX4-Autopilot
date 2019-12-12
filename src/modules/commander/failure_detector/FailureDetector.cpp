@@ -61,7 +61,7 @@ FailureDetector::update(const vehicle_status_s &vehicle_status)
 	if (isAttitudeStabilized(vehicle_status)) {
 		updated = updateAttitudeStatus();
 
-		if (_param_ext_ats_en.get()) {
+		if (_param_fd_ext_ats_en.get()) {
 			updated |= updateExternalAtsStatus();
 		}
 
@@ -149,7 +149,7 @@ FailureDetector::updateExternalAtsStatus()
 
 		_status &= ~FAILURE_EXT;
 
-		if (pulse_width >= (uint32_t)_param_ext_ats_pwm_trig.get()) {
+		if (pulse_width >= (uint32_t)_param_fd_ext_ats_trig.get()) {
 			_status |= FAILURE_EXT;
 		}
 

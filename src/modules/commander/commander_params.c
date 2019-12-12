@@ -909,23 +909,3 @@ PARAM_DEFINE_INT32(COM_MOT_TEST_EN, 1);
  * @increment 0.1
  */
 PARAM_DEFINE_FLOAT(COM_KILL_DISARM, 5.0f);
-
-/**
- * Enable PWM input on AUX5 for engaging failsafe from an external automatic trigger system (ATS).
- *
- *
- * @boolean
- * @reboot_required true
- * @group Commander
- */
-PARAM_DEFINE_INT32(EXT_ATS_EN, 0);
-
-/**
- * The PWM threshold from external automatic trigger system for engaging failsafe.
- *
- *
- * @boolean
- * @reboot_required true
- * @group Commander
- */
-PARAM_DEFINE_INT32(EXT_ATS_PWM_TRIG, 1990);
