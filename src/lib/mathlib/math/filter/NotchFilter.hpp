@@ -44,9 +44,21 @@
 #include <px4_platform_common/defines.h>
 #include <cmath>
 #include <float.h>
+#include <matrix/math.hpp>
 
 namespace math
 {
+
+inline bool isFinite(const float &value)
+{
+	return PX4_ISFINITE(value);
+}
+
+inline bool isFinite(const matrix::Vector3f &value)
+{
+	return PX4_ISFINITE(value(0)) && PX4_ISFINITE(value(1)) && PX4_ISFINITE(value(2));
+}
+
 template<typename T>
 class NotchFilter
 {
@@ -89,7 +101,7 @@ public:
 
 	T reset(const T &sample);
 
-private:
+protected:
 	float _notch_freq{};
 	float _bandwidth{};
 

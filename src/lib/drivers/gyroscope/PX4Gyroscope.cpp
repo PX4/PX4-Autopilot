@@ -54,7 +54,7 @@ PX4Gyroscope::PX4Gyroscope(uint32_t device_id, uint8_t priority, enum Rotation r
 	// set software low pass filter for controllers
 	updateParams();
 	ConfigureFilter(_param_imu_gyro_cutoff.get());
-	configure_notch_filter(_param_imu_gyro_nf_freq.get(), _param_imu_gyro_nf_bw.get());
+	ConfigureNotchFilter(_param_imu_gyro_nf_freq.get(), _param_imu_gyro_nf_bw.get());
 }
 
 PX4Gyroscope::~PX4Gyroscope()
@@ -106,7 +106,7 @@ PX4Gyroscope::set_sample_rate(uint16_t rate)
 	_sample_rate = rate;
 
 	ConfigureFilter(_filter.get_cutoff_freq());
-	_notch_filter.setParameters(_sample_rate, _notch_filter.getNotchFreq(), _notch_filter.getBandwidth());
+	ConfigureNotchFilter(_notch_filter.getNotchFreq(), _notch_filter.getBandwidth());
 }
 
 void
@@ -190,9 +190,22 @@ void
 PX4Gyroscope::updateFIFO(const FIFOSample &sample)
 {
 	// filtered data (control)
-	float x_filtered = _filterArrayX.apply(sample.x, sample.samples);
-	float y_filtered = _filterArrayY.apply(sample.y, sample.samples);
-	float z_filtered = _filterArrayZ.apply(sample.z, sample.samples);
+	float sample_x[sample.samples];
+	float sample_y[sample.samples];
+	float sample_z[sample.samples];
+
+	for (uint8_t n = 0; n < sample.samples; n++) {
+		sample_x[n] = (float)sample.x[n];
+		sample_y[n] = (float)sample.y[n];
+		sample_z[n] = (float)sample.z[n];
+	}
+
+	_notchFilterArrayX.apply(sample_x, sample.samples);
+	_notchFilterArrayY.apply(sample_y, sample.samples);
+	_notchFilterArrayZ.apply(sample_z, sample.samples);
+	float x_filtered = _filterArrayX.apply(sample_x, sample.samples);
+	float y_filtered = _filterArrayY.apply(sample_y, sample.samples);
+	float z_filtered = _filterArrayZ.apply(sample_z, sample.samples);
 
 	// Apply rotation (before scaling)
 	rotate_3f(_rotation, x_filtered, y_filtered, z_filtered);
@@ -393,11 +406,22 @@ PX4Gyroscope::ConfigureFilter(float cutoff_freq)
 }
 
 void
+PX4Gyroscope::ConfigureNotchFilter(float notch_freq, float bandwidth)
+{
+	_notch_filter.setParameters(_sample_rate, notch_freq, bandwidth);
+	_notchFilterArrayX.setParameters(_sample_rate, notch_freq, bandwidth);
+	_notchFilterArrayY.setParameters(_sample_rate, notch_freq, bandwidth);
+	_notchFilterArrayZ.setParameters(_sample_rate, notch_freq, bandwidth);
+}
+
+void
 PX4Gyroscope::print_status()
 {
 	PX4_INFO(GYRO_BASE_DEVICE_PATH " device instance: %d", _class_device_instance);
 	PX4_INFO("sample rate: %d Hz", _sample_rate);
 	PX4_INFO("filter cutoff: %.3f Hz", (double)_filter.get_cutoff_freq());
+	PX4_INFO("notch filter freq: %.3f Hz\tbandwidth: %.3f Hz", (double)_notch_filter.getNotchFreq(),
+		 (double)_notch_filter.getBandwidth());
 
 	PX4_INFO("calibration offset: %.5f %.5f %.5f", (double)_calibration_offset(0), (double)_calibration_offset(1),
 		 (double)_calibration_offset(2));

@@ -31,55 +31,58 @@
  *
  ****************************************************************************/
 
-/// @file	LowPassFilter2pArray.hpp
-/// @brief	A class to implement a second order low pass filter
+/*
+ * @file NotchFilter.hpp
+ *
+ * @brief Notch filter with array input/output
+ *
+ * @author Mathieu Bresciani <brescianimathieu@gmail.com>
+ */
 
 #pragma once
 
-#include "LowPassFilter2p.hpp"
+#include "NotchFilter.hpp"
 
 namespace math
 {
-
-class LowPassFilter2pArray : public LowPassFilter2p
+template<typename T>
+class NotchFilterArray : public NotchFilter<T>
 {
+	using NotchFilter<T>::_delay_element_1;
+	using NotchFilter<T>::_delay_element_2;
+	using NotchFilter<T>::_a1;
+	using NotchFilter<T>::_a2;
+	using NotchFilter<T>::_b0;
+	using NotchFilter<T>::_b1;
+	using NotchFilter<T>::_b2;
+
 public:
 
-	LowPassFilter2pArray(float sample_freq, float cutoff_freq) : LowPassFilter2p(sample_freq, cutoff_freq)
-	{
-	}
+	NotchFilterArray() = default;
+	~NotchFilterArray() = default;
 
 	/**
-	 * Add a new raw value to the filter
+	 * Add new raw values to the filter
 	 *
 	 * @return retrieve the filtered result
 	 */
-	inline float apply(const float samples[], uint8_t num_samples)
+	inline void apply(T samples[], uint8_t num_samples)
 	{
-		float output = 0.0f;
-
 		for (int n = 0; n < num_samples; n++) {
-			// do the filtering
-			float delay_element_0 = samples[n] - _delay_element_1 * _a1 - _delay_element_2 * _a2;
+			// Direct Form II implementation
+			T delay_element_0{samples[n] - _delay_element_1 *_a1 - _delay_element_2 * _a2};
 
-			if (n == num_samples - 1) {
-				output = delay_element_0 * _b0 + _delay_element_1 * _b1 + _delay_element_2 * _b2;
+			// don't allow bad values to propagate via the filter
+			if (!isFinite(delay_element_0)) {
+				delay_element_0 = samples[n];
 			}
+
+			samples[n] = delay_element_0 * _b0 + _delay_element_1 * _b1 + _delay_element_2 * _b2;
 
 			_delay_element_2 = _delay_element_1;
 			_delay_element_1 = delay_element_0;
 		}
-
-		// don't allow bad values to propagate via the filter
-		if (!PX4_ISFINITE(output)) {
-			reset(samples[num_samples - 1]);
-			output = samples[num_samples - 1];
-		}
-
-		// return the value. Should be no need to check limits
-		return output;
 	}
-
 };
 
 } // namespace math
