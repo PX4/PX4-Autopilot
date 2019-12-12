@@ -57,10 +57,6 @@ AnalogBattery::updateBatteryStatusRawADC(hrt_abstime timestamp, int32_t voltage_
 				     selected_source, priority, throttle_normalized, _params.source == 0);
 }
 
-/**
- * Whether the ADC channel for the voltage of this battery is valid.
- * Corresponds to BOARD_BRICK_VALID_LIST
- */
 bool AnalogBattery::is_valid()
 {
 #ifdef BOARD_BRICK_VALID_LIST

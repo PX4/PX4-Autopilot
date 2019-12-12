@@ -101,7 +101,7 @@ private:
 	orb_advert_t _battery_topic;
 	orb_advert_t _esc_topic;
 
-	Battery _battery;
+	Battery _battery{1, nullptr};
 	bool _armed;
 	float _last_throttle;
 
@@ -114,7 +114,7 @@ private:
 };
 
 DfBebopBusWrapper::DfBebopBusWrapper() :
-	BebopBus(BEBOP_BUS_DEVICE_PATH), _battery_topic(nullptr), _esc_topic(nullptr), _battery(), _armed(false),
+	BebopBus(BEBOP_BUS_DEVICE_PATH), _battery_topic(nullptr), _esc_topic(nullptr), _battery(1, nullptr), _armed(false),
 	_last_throttle(0.0f),
 	_battery_orb_class_instance(-1)
 {}
