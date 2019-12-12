@@ -48,6 +48,7 @@ LidarLitePWM::LidarLitePWM(const uint8_t rotation) :
 	LidarLite(rotation),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default)
 {
+	px4_arch_configgpio(GPIO_VDD_RANGEFINDER_EN);
 }
 
 LidarLitePWM::~LidarLitePWM()
@@ -113,17 +114,14 @@ LidarLitePWM::measure()
 int
 LidarLitePWM::collect()
 {
-	int fd = ::open(PWMIN0_DEVICE_PATH, O_RDONLY);
+	pwm_input_s pwm_input;
 
-	if (fd == -1) {
-		return PX4_ERROR;
-	}
+	if (_sub_pwm_input.update(&pwm_input)) {
 
-	if (::read(fd, &_pwm, sizeof(_pwm)) == sizeof(_pwm)) {
-		::close(fd);
+		_pwm = pwm_input;
+
 		return PX4_OK;
 	}
 
-	::close(fd);
 	return EAGAIN;
 }
