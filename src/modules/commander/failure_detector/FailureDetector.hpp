@@ -95,6 +95,7 @@ private:
 
 	systemlib::Hysteresis _roll_failure_hysteresis{false};
 	systemlib::Hysteresis _pitch_failure_hysteresis{false};
+	systemlib::Hysteresis _ext_ats_failure_hysteresis{false};
 
 	bool resetStatus();
 	bool isAttitudeStabilized(const vehicle_status_s &vehicle_status);

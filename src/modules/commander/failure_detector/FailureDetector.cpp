@@ -145,11 +145,22 @@ FailureDetector::updateExternalAtsStatus()
 
 	if (_sub_pwm_input.update(&pwm_input)) {
 
+		bool ats_trigger_status = false;
 		uint32_t pulse_width = pwm_input.pulse_width;
+
+		if (pulse_width >= (uint32_t)_param_fd_ext_ats_trig.get()) {
+			ats_trigger_status = true;
+		}
+
+		hrt_abstime time_now = hrt_absolute_time();
+
+		// Update hysteresis
+		_ext_ats_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * 0.1f)); // 5 consecutive pulses at 50hz
+		_ext_ats_failure_hysteresis.set_state_and_update(ats_trigger_status, time_now);
 
 		_status &= ~FAILURE_EXT;
 
-		if (pulse_width >= (uint32_t)_param_fd_ext_ats_trig.get()) {
+		if (_ext_ats_failure_hysteresis.get_state()) {
 			_status |= FAILURE_EXT;
 		}
 
