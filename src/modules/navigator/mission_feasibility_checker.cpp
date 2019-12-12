@@ -87,6 +87,10 @@ MissionFeasibilityChecker::checkMissionFeasible(const mission_s &mission,
 	    || _navigator->get_vstatus()->is_vtol) {
 		failed = failed || !checkRotarywing(mission, home_alt);
 
+		if (_navigator->get_vstatus()->is_vtol) {
+			failed = failed || !checkFixedwing(mission, home_alt, false);
+		}
+
 	} else {
 		failed = failed || !checkFixedwing(mission, home_alt, land_start_req);
 	}
