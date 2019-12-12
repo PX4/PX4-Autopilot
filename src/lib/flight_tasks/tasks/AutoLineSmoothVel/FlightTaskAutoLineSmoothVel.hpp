@@ -71,9 +71,8 @@ protected:
 
 	static float _constrainAbs(float val, float max); /** Constrain the value -max <= val <= max */
 
-	/** Give 0 if next is the last target **/
-	float _getSpeedAtTarget(float next_target_speed) const;
-	float _getMaxSpeedFromDistance(float braking_distance, float final_speed) const;
+	float _getMaxXYSpeed() const;
+	float _getMaxZSpeed() const;
 
 	void _prepareSetpoints(); /**< Generate velocity target points for the trajectory generator. */
 	void _updateTrajConstraints();
@@ -91,7 +90,6 @@ protected:
 					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
 					(ParamFloat<px4::params::MPC_ACC_DOWN_MAX>) _param_mpc_acc_down_max,
 					(ParamFloat<px4::params::MPC_JERK_AUTO>) _param_mpc_jerk_auto,
-					(ParamFloat<px4::params::MPC_XY_TRAJ_P>) _param_mpc_xy_traj_p,
-					(ParamFloat<px4::params::MPC_Z_TRAJ_P>) _param_mpc_z_traj_p
+					(ParamFloat<px4::params::MPC_XY_TRAJ_P>) _param_mpc_xy_traj_p
 				       );
 };
