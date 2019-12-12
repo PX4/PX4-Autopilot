@@ -129,7 +129,7 @@ public:
 	void print_info(void);
 
 private:
-	void _timer_init(void);
+	void timer_init(void);
 
 	uint32_t _error_count {};
 	uint32_t _pulses_captured {};

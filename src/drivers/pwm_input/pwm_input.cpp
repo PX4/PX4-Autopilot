@@ -38,17 +38,17 @@ static PWMIN *g_dev;
 int
 PWMIN::init()
 {
-	// TODO: why does update fail if it is not first called here?
+	// NOTE: must first publish here, first publication cannot be in interrupt context
 	_pwm_input_pub.update();
 
 	// Initialize the timer for measuring pulse widths
-	g_dev->_timer_init();
+	g_dev->timer_init();
 
-	return OK;
+	return PX4_OK;
 }
 
 void
-PWMIN::_timer_init(void)
+PWMIN::timer_init(void)
 {
 	/* run with interrupts disabled in case the timer is already
 	 * setup. We don't want it firing while we are doing the setup */
@@ -116,7 +116,7 @@ static int pwmin_tim_isr(int irq, void *context, void *arg)
 		g_dev->publish(status, period, pulse_width);
 	}
 
-	return OK;
+	return PX4_OK;
 }
 
 void
@@ -145,9 +145,9 @@ void
 PWMIN::print_info(void)
 {
 	PX4_INFO("count=%u period=%u width=%u\n",
-		 (unsigned)_pulses_captured,
-		 (unsigned)_last_period,
-		 (unsigned)_last_width);
+		 static_cast<unsigned>(_pulses_captured),
+		 static_cast<unsigned>(_last_period),
+		 static_cast<unsigned>(_last_width));
 }
 
 namespace pwm_input
@@ -164,16 +164,16 @@ static int start()
 
 	if (g_dev == nullptr) {
 		PX4_ERR("driver allocation failed");
-		return 1;
+		return PX4_ERROR;
 
 	}
 
-	if (g_dev->init() != OK) {
+	if (g_dev->init() != PX4_OK) {
 		PX4_ERR("driver init failed");
-		return 1;
+		return PX4_ERROR;
 	}
 
-	return 0;
+	return PX4_OK;
 }
 
 static int test(void)
@@ -190,7 +190,7 @@ static int test(void)
 		px4_usleep(20);
 	}
 
-	return 0;
+	return PX4_OK;
 }
 
 static int info(void)
@@ -201,14 +201,14 @@ static int info(void)
 	}
 
 	g_dev->print_info();
-	return 0;
+	return PX4_OK;
 }
 
 static int usage()
 {
 	PX4_ERR("unrecognized command, try 'start', 'info', 'reset' or 'test'");
 
-	return -1;
+	return PX4_ERROR;
 }
 
 } // end namespace pwm_input
