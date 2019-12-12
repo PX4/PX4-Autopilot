@@ -34,128 +34,34 @@
 #include <gtest/gtest.h>
 #include <math.h>
 #include "EKF/ekf.h"
+#include "SensorSimulator.h"
+
+using namespace simulator;
 
 class EkfInitializationTest : public ::testing::Test {
  public:
 
-	Ekf _ekf{};
+	Ekf* _ekf;
+	SensorSimulator* _sensor_simulator;
 
-	// Basics sensors
-	const uint32_t _imu_dt_us{4000};	// 250 Hz	Period between IMU updates
-	const uint32_t _baro_dt_us{12500};	// 80 Hz	Period between barometer updates
-	const uint32_t _mag_dt_us{12500};	// 80 Hz	Period between magnetometer updates
-	const uint32_t _gps_dt_us{200000};	// 5 Hz		Period between GPS updates
-
-	// Flags that control if a sensor is fused
-	bool _fuse_imu{true};
-	bool _fuse_baro{true};
-	bool _fuse_mag{true};
-	bool _fuse_gps{false};	// GPS measurements are expected to not come in from beginning
-
-	// GPS message
-	gps_message _gps_message{};
-
-	uint32_t _update_dt_us{};			// greatest common divider of all basic sensor periods
-	const uint32_t _init_duration_us{2000000};	// 2s	Duration of
-
-	// counter of how many sensor measurement are put into Ekf
-	uint32_t _counter_imu{0};
-	uint32_t _counter_baro{0};
-	uint32_t _counter_mag{0};
-
-	uint32_t _t_us{0};
+	// Duration of initalization with only providing baro,mag and IMU
+	const uint32_t _init_duration_us{2000000};	// 2s
 
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
+		_ekf = new Ekf();
+		_ekf->init(0);
+		_sensor_simulator = new SensorSimulator(_ekf);
 
-		_ekf.init(0);
-
-		// setup gps message to reasonable default values
-		_gps_message.time_usec = 0;
-		_gps_message.lat = 473566094;
-		_gps_message.lon = 85190237;
-		_gps_message.alt = 422056;
-		_gps_message.yaw = 0.0f;
-		_gps_message.yaw_offset = 0.0f;
-		_gps_message.fix_type = 3;
-		_gps_message.eph = 0.5f;
-		_gps_message.epv = 0.8f;
-		_gps_message.sacc = 0.2f;
-		_gps_message.vel_m_s = 0.0;
-		_gps_message.vel_ned[0] = 0.0f;
-		_gps_message.vel_ned[1] = 0.0f;
-		_gps_message.vel_ned[2] = 0.0f;
-		_gps_message.vel_ned_valid = 1;
-		_gps_message.nsats = 16;
-		_gps_message.pdop = 0.0f;
-
-		update_with_const_sensors(_init_duration_us);
-
-		// output how many sensor measurement were put into the EKF
-		// std::cout << "Initialized EKF with:" << std::endl;
-		// std::cout << "update_dt_us: " << _update_dt_us << std::endl;
-		// std::cout << "counter_imu:  " << _counter_imu << std::endl
-		// 	  << "counter_baro: " << _counter_baro << std::endl
-		// 	  << "counter_mag:  " << _counter_mag << std::endl;
-	}
-
-	void update_with_const_sensors(uint32_t duration_us,
-			Vector3f ang_vel = Vector3f{0.0f,0.0f,0.0f},
-			Vector3f accel = Vector3f{0.0f,0.0f,-CONSTANTS_ONE_G},
-			Vector3f mag_data = Vector3f{0.2f, 0.0f, 0.4f},
-			float baro_data = 122.2f)
-	{
-		// store start time
-		uint32_t start_time_us = _t_us;
-
-		// compute update time step such that we can update the basic sensor at different rates
-		_update_dt_us = std::__gcd(_imu_dt_us,std::__gcd(_mag_dt_us,std::__gcd(_baro_dt_us,_gps_dt_us)));
-
-		// update EKF with synthetic sensor measurements
-		for( ; _t_us < start_time_us+duration_us; _t_us += _update_dt_us)
-		{
-			// Check which sensors update we should do
-			if(_fuse_imu && !(_t_us %_imu_dt_us))
-			{
-				// push imu data into estimator
-				imuSample imu_sample_new;
-				imu_sample_new.time_us = _t_us;
-				imu_sample_new.delta_ang_dt = _imu_dt_us * 1.e-6f;
-				imu_sample_new.delta_ang = ang_vel * imu_sample_new.delta_ang_dt;
-				imu_sample_new.delta_vel_dt = _imu_dt_us * 1.e-6f;
-				imu_sample_new.delta_vel = accel * imu_sample_new.delta_vel_dt;
-
-				_ekf.setIMUData(imu_sample_new);
-				_counter_imu++;
-			}
-			if(_fuse_baro && !(_t_us % _baro_dt_us))
-			{
-				_ekf.setBaroData(_t_us,baro_data);
-				_counter_baro++;
-			}
-			if(_fuse_mag && !(_t_us % _mag_dt_us))
-			{
-				float mag[3];
-				mag_data.copyTo(mag);
-				_ekf.setMagData(_t_us,mag);
-				_counter_mag++;
-			}
-			if(_fuse_gps && !(_t_us % _gps_dt_us))
-			{
-				_gps_message.time_usec = _t_us;
-				_ekf.setGpsData(_t_us,_gps_message);
-				_counter_mag++;
-			}
-
-			_ekf.update();
-		}
+		_sensor_simulator->update_with_const_sensors(_init_duration_us);
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
 	void TearDown() override
 	{
-
+		delete _sensor_simulator;
+		delete _ekf;
 	}
 };
 
@@ -164,7 +70,7 @@ TEST_F(EkfInitializationTest, tiltAlign)
 {
 	// GIVEN: reasonable static sensor data for some duration
 	// THEN: EKF should tilt align
-	EXPECT_EQ(true,_ekf.attitude_valid());
+	EXPECT_EQ(true,_ekf->attitude_valid());
 }
 
 TEST_F(EkfInitializationTest, initialControlMode)
@@ -172,7 +78,7 @@ TEST_F(EkfInitializationTest, initialControlMode)
 	// GIVEN: reasonable static sensor data for some duration
 	// THEN: EKF control status should be reasonable
 	filter_control_status_u control_status;
-	_ekf.get_control_mode(&control_status.value);
+	_ekf->get_control_mode(&control_status.value);
 
 	EXPECT_EQ(1, (int) control_status.flags.tilt_align);
 	EXPECT_EQ(1, (int) control_status.flags.yaw_align);
@@ -205,16 +111,16 @@ TEST_F(EkfInitializationTest, convergesToZero)
 {
 	// GIVEN: initialized EKF with default IMU, baro and mag input for 2s
 	// WHEN: Added more defautl sensor measurements
-	update_with_const_sensors(4000000); // for further 4s
+	_sensor_simulator->update_with_const_sensors(4000000); // for further 4s
 
 	float converged_pos[3];
 	float converged_vel[3];
 	float converged_accel_bias[3];
 	float converged_gyro_bias[3];
-	_ekf.get_position(converged_pos);
-	_ekf.get_velocity(converged_vel);
-	_ekf.get_accel_bias(converged_accel_bias);
-	_ekf.get_gyro_bias(converged_gyro_bias);
+	_ekf->get_position(converged_pos);
+	_ekf->get_velocity(converged_vel);
+	_ekf->get_accel_bias(converged_accel_bias);
+	_ekf->get_gyro_bias(converged_gyro_bias);
 
 	// THEN: EKF should stay or converge to zero
 	for(int i=0; i<3; ++i)
@@ -231,12 +137,12 @@ TEST_F(EkfInitializationTest, gpsFusion)
 	// GIVEN: initialized EKF with default IMU, baro and mag input for 2s
 	// WHEN: setting GPS measurements for 11s, minimum GPS health time is set to 10 sec
 
-	_fuse_gps = true;
-	update_with_const_sensors(11000000,Vector3f{0.0f,0.0f,0.0f},Vector3f{0.0f,0.0f,-CONSTANTS_ONE_G}); // for further 3s
+	_sensor_simulator->setGpsFusionTrue();
+	_sensor_simulator->update_with_const_sensors(11000000,Vector3f{0.0f,0.0f,0.0f},Vector3f{0.0f,0.0f,-CONSTANTS_ONE_G}); // for further 3s
 
 	// THEN: EKF should fuse GPS, but no other position sensor
 	filter_control_status_u control_status;
-	_ekf.get_control_mode(&control_status.value);
+	_ekf->get_control_mode(&control_status.value);
 	EXPECT_EQ(1, (int) control_status.flags.tilt_align);
 	EXPECT_EQ(1, (int) control_status.flags.yaw_align);
 	EXPECT_EQ(1, (int) control_status.flags.gps);
@@ -270,17 +176,17 @@ TEST_F(EkfInitializationTest, accleBiasEstimation)
 	// WHEN: Added more sensor measurements with accel bias and gps measurements
 	Vector3f accel_bias = {0.0f,0.0f,0.1f};
 
-	_fuse_gps = true;
-	update_with_const_sensors(10000000,Vector3f{0.0f,0.0f,0.0f},Vector3f{0.0f,0.0f,-CONSTANTS_ONE_G}+accel_bias); // for further 10s
+	_sensor_simulator->setGpsFusionTrue();
+	_sensor_simulator->update_with_const_sensors(10000000,Vector3f{0.0f,0.0f,0.0f},Vector3f{0.0f,0.0f,-CONSTANTS_ONE_G}+accel_bias); // for further 10s
 
 	float converged_pos[3];
 	float converged_vel[3];
 	float converged_accel_bias[3];
 	float converged_gyro_bias[3];
-	_ekf.get_position(converged_pos);
-	_ekf.get_velocity(converged_vel);
-	_ekf.get_accel_bias(converged_accel_bias);
-	_ekf.get_gyro_bias(converged_gyro_bias);
+	_ekf->get_position(converged_pos);
+	_ekf->get_velocity(converged_vel);
+	_ekf->get_accel_bias(converged_accel_bias);
+	_ekf->get_gyro_bias(converged_gyro_bias);
 
 	// THEN: EKF should estimate bias correctelly
 	for(int i=0; i<3; ++i)
