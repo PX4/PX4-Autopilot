@@ -22,6 +22,8 @@ pkill -x px4 || true
 
 sleep 1
 
+source ${src_path}/Tools/setup_gazebo.bash ${src_path} ${src_path}/build/px4_sitl_default
+
 export PX4_SIM_MODEL=iris
 
 echo "Starting gazebo"
