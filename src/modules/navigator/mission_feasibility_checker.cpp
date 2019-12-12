@@ -505,6 +505,13 @@ MissionFeasibilityChecker::checkFixedWingLanding(const mission_s &mission, bool 
 				mavlink_log_critical(_navigator->get_mavlink_log_pub(), "Mission rejected: starts with land waypoint.");
 				return false;
 			}
+
+		} else if (missionitem.nav_cmd == NAV_CMD_RETURN_TO_LAUNCH) {
+			if (land_start_found && do_land_start_index < i) {
+				mavlink_log_critical(_navigator->get_mavlink_log_pub(),
+						     "Mission rejected: land start item before RTL item not possible.");
+				return false;
+			}
 		}
 	}
 
