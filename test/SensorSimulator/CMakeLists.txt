@@ -31,19 +31,15 @@
 #
 ############################################################################
 
-include(gtest.cmake)
-
-add_subdirectory(SensorSimulator)
 
 set(SRCS
-	main.cpp
-	test_EKF_basics.cpp
-	test_EKF_ringbuffer.cpp
-	test_EKF_imuSampling.cpp
-	test_AlphaFilter.cpp
+	SensorSimulator.cpp
+	Sensor.cpp
+	Imu.cpp
+	Mag.cpp
+	Baro.cpp
+	Gps.cpp
    )
-add_executable(ECL_GTESTS ${SRCS})
 
-target_link_libraries(ECL_GTESTS gtest_main ecl_EKF SENSOR_SIMULATOR)
-
-add_test(NAME ECL_GTESTS COMMAND ECL_GTESTS)
+add_library(SENSOR_SIMULATOR ${SRCS})
+target_link_libraries(SENSOR_SIMULATOR ecl_EKF)

@@ -42,12 +42,12 @@
 
 #pragma once
 
+#include "Imu.h"
+#include "Mag.h"
+#include "Baro.h"
+#include "Gps.h"
 #include "EKF/ekf.h"
-#include <math.h>
 
-
-namespace simulator
-{
 
 class SensorSimulator
 {
@@ -55,60 +55,28 @@ public:
 	SensorSimulator(Ekf* ekf);
 	~SensorSimulator();
 
-	void update_with_const_sensors(uint32_t duration_us,
-		Vector3f ang_vel = Vector3f{0.0f,0.0f,0.0f},
-		Vector3f accel = Vector3f{0.0f,0.0f,-CONSTANTS_ONE_G},
-		Vector3f mag_data = Vector3f{0.2f, 0.0f, 0.4f},
-		float baro_data = 122.2f);
+	void setImuRate(uint32_t rate){ _imu.setRate(rate); }
+	void setMagRate(uint32_t rate){ _mag.setRate(rate); }
+	void setBaroRate(uint32_t rate){ _baro.setRate(rate); }
+	void setGpsRate(uint32_t rate){ _gps.setRate(rate); }
 
-	void setGpsFusionTrue(){ _fuse_gps = true; }
-	void setGpsFusionFalse(){ _fuse_gps = false; }
+	void run(uint32_t duration);
+
+	void startGps(){ _gps.start(); }
+	void stopGps(){ _gps.stop(); }
+
+	void setImuBias(Vector3f accel_bias, Vector3f gyro_bias);
 
 private:
 	Ekf* _ekf;
 
-	// current time
-	uint32_t _t_us{0};
+	Imu _imu;
+	Mag _mag;
+	Baro _baro;
+	Gps _gps;
 
-	// Basics sensors
-	const uint32_t _imu_dt_us{4000};	// 250 Hz	Period between IMU updates
-	const uint32_t _baro_dt_us{12500};	// 80 Hz	Period between barometer updates
-	const uint32_t _mag_dt_us{12500};	// 80 Hz	Period between magnetometer updates
-	const uint32_t _gps_dt_us{200000};	// 5 Hz		Period between GPS updates
-	// const uint32_t _flow_dt_us{20000};	// 50 Hz	Period between Flow updates
-	// const uint32_t _ev_dt_us{40000};	// 25 Hz	Period between external vision updates
+	uint32_t _time {0};	// in microseconds
 
-	uint32_t _update_dt_us{};			// greatest common divider of all basic sensor periods
-
-
-	// Flags that control if a sensor is fused
-	bool _fuse_imu{true};
-	bool _fuse_baro{true};
-	bool _fuse_mag{true};
-	// Not expected to be fused from beginning
-	bool _fuse_gps{false};
-	// bool _fuse_flow{false};
-	// bool _fuse_ev{false};
-
-	gps_message _gps_message{};
-
-	// used for debugging until now, replace with tests
-	// counter of how many sensor measurement are put into Ekf
-	uint32_t _counter_imu{0};
-	uint32_t _counter_baro{0};
-	uint32_t _counter_mag{0};
-
-
-	void setGpsMessageToDefaul();
-
-
+	gps_message getDefaultGpsData();
 
 };
-
-// Compute greatest common divider
-inline uint32_t gcd(uint32_t a, uint32_t b)
-{
-	return b == 0 ? a : gcd(b, a % b);
-}
-
-} // end of namespace
