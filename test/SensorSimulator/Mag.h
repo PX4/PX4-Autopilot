@@ -31,38 +31,26 @@
  *
  ****************************************************************************/
 
-#include <gtest/gtest.h>
-#include <math.h>
-#include "SensorSimulator.h"
-#include "EKF/ekf.h"
+/**
+ * Feeds Ekf with Mag data
+ * @author Kamil Ritz <ka.ritz@hotmail.com>
+ */
+#pragma once
 
-using namespace simulator;
+#include "Sensor.h"
 
+class Mag: public Sensor
+{
+public:
+	Mag(Ekf* ekf);
+	~Mag();
 
-class SensorSimulatorTest : public ::testing::Test {
- public:
+	void setData(Vector3f mag);
 
-	// Ekf* _ekf;
-	// SensorSimulator* _sensor_simulator;
+private:
+	Vector3f _mag_data;
 
-	void SetUp() override
-	{
-		// _ekf = new Ekf();
-		// _ekf->init(0);
-	}
+	void send(uint32_t time);
 
-	void TearDown() override
-	{
-		// delete _sensor_simulator;
-		// delete _ekf;
-	}
 };
 
-TEST_F(SensorSimulatorTest, greatestCommonDivider)
-{
-	// Test gcd function with some example
-	EXPECT_EQ(gcd(uint32_t(3), uint32_t(402)), uint32_t(3));
-	EXPECT_EQ(gcd(uint32_t(3), uint32_t(401)), uint32_t(1));
-
-
-}
