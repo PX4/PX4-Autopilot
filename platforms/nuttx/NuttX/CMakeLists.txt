@@ -126,15 +126,19 @@ add_custom_target(nuttx_config_kconfig_target DEPENDS ${PX4_BINARY_DIR}/NuttX/nu
 ###############################################################################
 
 # copy NuttX config directory
-file(RELATIVE_PATH CP_SRC ${NUTTX_DIR} ${PX4_BOARD_DIR}/nuttx-config)
-file(RELATIVE_PATH CP_DST ${NUTTX_DIR} ${PX4_BINARY_DIR}/NuttX)
 add_custom_command(
-	OUTPUT ${PX4_BINARY_DIR}/NuttX/nuttx_copy_config_dir.stamp
-	COMMAND ${NUTTX_COPY_CMD} ${NUTTX_COPY_CMD_OPTS} ${CP_SRC} ${CP_DST}
+	OUTPUT
+		${PX4_BINARY_DIR}/NuttX/nuttx-config/drivers/Kconfig
+		${PX4_BINARY_DIR}/NuttX/nuttx-config/include/board.h
+		${PX4_BINARY_DIR}/NuttX/nuttx-config/${NUTTX_CONFIG}/defconfig
+		${PX4_BINARY_DIR}/NuttX/nuttx-config/include/nsh_romfsimg.h
+		${PX4_BINARY_DIR}/NuttX/nuttx_copy_config_dir.stamp
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/NuttX/nuttx-config/drivers
 	COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx-config/drivers/Kconfig
-	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/NuttX/nuttx-config/src
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PX4_BOARD_DIR}/nuttx-config/include/board.h ${PX4_BINARY_DIR}/NuttX/nuttx-config/include/board.h
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${PX4_BOARD_DIR}/nuttx-config/${NUTTX_CONFIG}/defconfig ${PX4_BINARY_DIR}/NuttX/nuttx-config/${NUTTX_CONFIG}/defconfig
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NUTTX_SRC_DIR}/nsh_romfsimg.h ${PX4_BINARY_DIR}/NuttX/nuttx-config/include/nsh_romfsimg.h
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/NuttX/nuttx-config/src
 	COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx_copy_config_dir.stamp
 	DEPENDS
 		${NUTTX_CONFIG_DIR}/include/board.h
@@ -189,84 +193,107 @@ endif()
 
 # context
 add_custom_command(
-	OUTPUT
-		${NUTTX_DIR}/include/nuttx/config.h
-		${NUTTX_DIR}/include/nuttx/version.h
-	COMMAND
-		make ${nuttx_build_options} --no-print-directory CONFIG_ARCH_BOARD_CUSTOM=y pass1dep > nuttx_context.log
+	OUTPUT ${PX4_BINARY_DIR}/NuttX/nuttx_context.stamp
+	COMMAND make ${nuttx_build_options} --no-print-directory CONFIG_ARCH_BOARD_CUSTOM=y pass1dep > nuttx_context.log
+	COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/nuttx_context.stamp
 	DEPENDS
-		${NUTTX_DIR}/Make.defs
+		nuttx_copy_config_dir_target ${PX4_BINARY_DIR}/NuttX/nuttx_copy_config_dir.stamp
 		nuttx_config_target ${NUTTX_DIR}/.config ${PX4_BINARY_DIR}/NuttX/nuttx_olddefconfig.stamp
 	WORKING_DIRECTORY ${NUTTX_DIR}
 	${nuttx_build_uses_terminal}
 )
-add_custom_target(nuttx_context DEPENDS ${NUTTX_DIR}/include/nuttx/config.h ${NUTTX_DIR}/include/nuttx/version.h)
+add_custom_target(nuttx_context DEPENDS ${PX4_BINARY_DIR}/NuttX/nuttx_context.stamp)
 
 # library of NuttX libraries
 add_library(nuttx_build INTERFACE)
 
 add_custom_target(px4_config_file_target DEPENDS ${PX4_CONFIG_FILE})
 
+# APPS
 # builtins
-set(nuttx_builtin_list)
+
 if(CONFIG_NSH_LIBRARY)
 	# force builtins regeneration and apps rebuild if nuttx or px4 configuration have changed
-	add_custom_command(OUTPUT ${PX4_BINARY_DIR}/NuttX/builtins_clean.stamp
-		COMMAND find ${APPS_DIR}/builtin/registry -name px4_\*.bdat -delete
-		COMMAND find ${APPS_DIR}/builtin/registry -name px4_\*.pdat -delete
-		COMMAND rm -f ${APPS_DIR}/builtin/builtin_list.h
-		COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/builtins_clean.stamp
+	add_custom_command(
+		OUTPUT ${PX4_BINARY_DIR}/NuttX/px4_app_registry_clean.stamp
+		COMMAND ${CMAKE_COMMAND} -E remove_directory ${PX4_BINARY_DIR}/NuttX/px4_app_registry
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${PX4_BINARY_DIR}/NuttX/px4_app_registry
+		COMMAND ${CMAKE_COMMAND} -E touch ${PX4_BINARY_DIR}/NuttX/px4_app_registry_clean.stamp
 		DEPENDS
-			nuttx_context ${NUTTX_DIR}/include/nuttx/config.h ${NUTTX_DIR}/include/nuttx/version.h
+			nuttx_copy_and_apps_target ${PX4_BINARY_DIR}/NuttX/apps_copy.stamp
 			px4_config_file_target ${PX4_CONFIG_FILE}
 	)
 
-	add_custom_target(builtins_clean_target DEPENDS ${PX4_BINARY_DIR}/NuttX/builtins_clean.stamp)
+	add_custom_target(px4_app_registry_clean_target DEPENDS ${PX4_BINARY_DIR}/NuttX/px4_app_registry_clean.stamp)
 
+	set(px4_app_registry_list)
 	foreach(module ${module_libraries})
 		get_target_property(MAIN ${module} MAIN)
 		get_target_property(STACK_MAIN ${module} STACK_MAIN)
 		get_target_property(PRIORITY ${module} PRIORITY)
 
 		if(MAIN)
-			add_custom_command(OUTPUT ${APPS_DIR}/builtin/registry/px4_${MAIN}_main.bdat
-				COMMAND echo "{ \"${MAIN}\", ${PRIORITY}, ${STACK_MAIN}, ${MAIN}_main }," > ${APPS_DIR}/builtin/registry/px4_${MAIN}_main.bdat
-				COMMAND ${CMAKE_COMMAND} -E touch ${APPS_DIR}/builtin/registry/.updated
+			add_custom_command(OUTPUT  ${PX4_BINARY_DIR}/NuttX/px4_app_registry/px4_${MAIN}_main.bdat
+				COMMAND echo "{ \"${MAIN}\", ${PRIORITY}, ${STACK_MAIN}, ${MAIN}_main }," > ${PX4_BINARY_DIR}/NuttX/px4_app_registry/px4_${MAIN}_main.bdat
 				DEPENDS
-					builtins_clean_target ${PX4_BINARY_DIR}/NuttX/builtins_clean.stamp
-					nuttx_context ${NUTTX_DIR}/include/nuttx/config.h ${NUTTX_DIR}/include/nuttx/version.h
+					px4_app_registry_clean_target ${PX4_BINARY_DIR}/NuttX/px4_app_registry_clean.stamp
+					px4_config_file_target ${PX4_CONFIG_FILE}
 				VERBATIM
-				)
-			list(APPEND nuttx_builtin_list ${APPS_DIR}/builtin/registry/px4_${MAIN}_main.bdat)
+			)
+			list(APPEND px4_app_registry_list ${PX4_BINARY_DIR}/NuttX/px4_app_registry/px4_${MAIN}_main.bdat)
 
-			add_custom_command(OUTPUT ${APPS_DIR}/builtin/registry/px4_${MAIN}_main.pdat
-				COMMAND echo "int ${MAIN}_main(int argc, char *argv[]);" > ${APPS_DIR}/builtin/registry/px4_${MAIN}_main.pdat
-				COMMAND ${CMAKE_COMMAND} -E touch ${APPS_DIR}/builtin/registry/.updated
+			add_custom_command(OUTPUT  ${PX4_BINARY_DIR}/NuttX/px4_app_registry/px4_${MAIN}_main.pdat
+				COMMAND echo "int ${MAIN}_main(int argc, char *argv[]);" > ${PX4_BINARY_DIR}/NuttX/px4_app_registry/px4_${MAIN}_main.pdat
 				DEPENDS
-					builtins_clean_target ${PX4_BINARY_DIR}/NuttX/builtins_clean.stamp
-					nuttx_context ${NUTTX_DIR}/include/nuttx/config.h ${NUTTX_DIR}/include/nuttx/version.h
+					px4_app_registry_clean_target ${PX4_BINARY_DIR}/NuttX/px4_app_registry_clean.stamp
+					px4_config_file_target ${PX4_CONFIG_FILE}
 				VERBATIM
-				)
-			list(APPEND nuttx_builtin_list ${APPS_DIR}/builtin/registry/px4_${MAIN}_main.pdat)
+			)
+			list(APPEND px4_app_registry_list ${PX4_BINARY_DIR}/NuttX/px4_app_registry/px4_${MAIN}_main.pdat)
 
 		endif()
 	endforeach()
+
+	add_custom_target(px4_app_registry_list_target DEPENDS ${px4_app_registry_list})
+
+	# libapps.a
+	add_custom_command(
+		OUTPUT
+			${APPS_DIR}/libapps.a
+			${APPS_DIR}/platform/.built
+			${APPS_DIR}/builtin/builtin_list.h
+			${APPS_DIR}/builtin/builtin_proto.h
+			${APPS_DIR}/builtin/registry/.updated
+		COMMAND ${CMAKE_COMMAND} -E copy_directory ${PX4_BINARY_DIR}/NuttX/px4_app_registry/ ${APPS_DIR}/builtin/registry/
+		COMMAND ${CMAKE_COMMAND} -E touch ${APPS_DIR}/builtin/registry/.updated
+		COMMAND find ${APPS_DIR} -name \*.o -delete
+		COMMAND find ${APPS_DIR} -name \*.a -delete
+		COMMAND make ${nuttx_build_options} --no-print-directory TOPDIR="${NUTTX_DIR}"
+		DEPENDS
+			px4_app_registry_list_target ${px4_app_registry_list}
+			nuttx_context ${PX4_BINARY_DIR}/NuttX/nuttx_context.stamp
+		WORKING_DIRECTORY ${APPS_DIR}
+		${nuttx_build_uses_terminal}
+	)
+
+else()
+
+	# libapps.a
+	add_custom_command(
+		OUTPUT
+			${APPS_DIR}/libapps.a
+			${APPS_DIR}/platform/.built
+		COMMAND find ${APPS_DIR} -name \*.o -delete
+		COMMAND find ${APPS_DIR} -name \*.a -delete
+		COMMAND find ${APPS_DIR} -name \*.built -delete
+		COMMAND make ${nuttx_build_options} --no-print-directory TOPDIR="${NUTTX_DIR}"
+		DEPENDS
+			nuttx_context ${PX4_BINARY_DIR}/NuttX/nuttx_context.stamp
+		WORKING_DIRECTORY ${APPS_DIR}
+		${nuttx_build_uses_terminal}
+	)
 endif()
 
-add_custom_target(nuttx_builtin_list_target DEPENDS ${nuttx_builtin_list})
-
-# APPS
-
-# libapps.a
-add_custom_command(OUTPUT ${APPS_DIR}/libapps.a ${APPS_DIR}/platform/.built
-	COMMAND find ${APPS_DIR} -name \*.o -delete
-	COMMAND make ${nuttx_build_options} --no-print-directory TOPDIR="${NUTTX_DIR}"
-	DEPENDS
-		nuttx_builtin_list_target ${nuttx_builtin_list}
-		nuttx_context ${NUTTX_DIR}/include/nuttx/config.h ${NUTTX_DIR}/include/nuttx/version.h
-	WORKING_DIRECTORY ${APPS_DIR}
-	${nuttx_build_uses_terminal}
-)
 add_custom_target(nuttx_apps_build DEPENDS ${APPS_DIR}/libapps.a)
 add_library(nuttx_apps STATIC IMPORTED GLOBAL)
 set_property(TARGET nuttx_apps PROPERTY IMPORTED_LOCATION ${APPS_DIR}/libapps.a)
@@ -281,10 +308,11 @@ function(add_nuttx_dir nuttx_lib nuttx_lib_dir kernel extra)
 
 	add_custom_command(OUTPUT ${NUTTX_DIR}/${nuttx_lib_dir}/lib${nuttx_lib}.a
 		COMMAND find ${nuttx_lib_dir} -type f -name *.o -delete
+		COMMAND find ${nuttx_lib_dir} -type f -name *.a -delete
 		COMMAND make -C ${nuttx_lib_dir} ${nuttx_build_options} --no-print-directory all TOPDIR=${NUTTX_DIR} KERNEL=${kernel} EXTRADEFINES=${extra}
 		DEPENDS
 			${nuttx_lib_files}
-			nuttx_context ${NUTTX_DIR}/include/nuttx/config.h ${NUTTX_DIR}/include/nuttx/version.h
+			nuttx_context ${PX4_BINARY_DIR}/NuttX/nuttx_context.stamp
 		WORKING_DIRECTORY ${NUTTX_DIR}
 		${nuttx_build_uses_terminal}
 	)

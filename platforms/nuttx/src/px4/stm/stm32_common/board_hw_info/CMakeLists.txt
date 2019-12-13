@@ -34,3 +34,4 @@
 px4_add_library(arch_board_hw_info
 	board_hw_rev_ver.c
 )
+target_link_libraries(arch_board_hw_info PRIVATE arch_adc)
