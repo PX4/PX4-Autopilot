@@ -141,13 +141,17 @@ void init()
 
 	TONE_ALARM_CLOCK_ALL();
 
+	rCR = 0;
+
 
 	/* disable and configure the timer */
 
-	/* disable and configure the timer */
-
-	rCR =  GPT_CR_OM1_DIS | GPT_CR_OM2_DIS | GPT_CR_OM3_DIS |
-	       CR_OM | GPT_CR_FRR | GPT_CR_CLKSRC_IPG;
+	/* Use Restart mode. The FFR bit determines the behavior of the GPT
+	 * when a compare event in _channel 1_ occurs.
+	 */
+	rCR =  GPT_CR_ENMOD | GPT_CR_DBGEN | GPT_CR_WAITEN |
+	       GPT_CR_IM2_DIS | GPT_CR_IM1_DIS |
+	       CR_OM | GPT_CR_CLKSRC_IPG;
 
 	/* CLKSRC field is divided by [PRESCALER + 1] */
 
@@ -167,9 +171,15 @@ void start_note(unsigned frequency)
 	// and the divisor, rounded to the nearest integer
 	unsigned divisor = (period * TONE_ALARM_TIMER_FREQ) + 0.5f;
 
-	rCR &= ~GPT_CR_EN;
-	rOCR = divisor;		// load new toggle period
-	rCR |= GPT_CR_EN;
+	rCR  &= ~GPT_CR_EN;
+	rOCR  = divisor;   // load new toggle period
+
+	/* We must always load and run Channel 1 in parallel
+	 * with the Timer out channel used to drive the tone.
+	 * The will to initiate the reset in Restart mode.
+	 */
+	rOCR1 = divisor;
+	rCR  |= GPT_CR_EN;
 
 	// configure the GPIO to enable timer output
 	px4_arch_configgpio(GPIO_TONE_ALARM);
