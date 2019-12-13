@@ -90,6 +90,10 @@
  *                        720Mhz  = (480Mhz / 12 * 18)
  *                         90Mhz  = (720Mhz / LSPI_PODF_DIVIDER)
  *
+ * Set LPI2C PLL3 / 8 to   fOut   = (480Mhz / 8)
+ *                         60Mhz  = (480Mhz / 8)
+ *                         12Mhz  = (60Mhz / LSPI_PODF_DIVIDER)
+ *
  * Set USDHC1 PLL2 PFD2 to fOut   = (528Mhz / 24 * 18)
  *                        396Mhz  = (528Mhz / 24 * 18)
  *                        198Mhz  = (396Mhz / IMXRT_USDHC1_PODF_DIVIDER)
@@ -108,6 +112,9 @@
 
 #define IMXRT_LPSPI_CLK_SELECT    CCM_CBCMR_LPSPI_CLK_SEL_PLL3_PFD0
 #define IMXRT_LSPI_PODF_DIVIDER   8
+
+#define IMXRT_LPI2C_CLK_SELECT    CCM_CSCDR2_LPI2C_CLK_SEL_PLL3_60M
+#define IMXRT_LSI2C_PODF_DIVIDER  5
 
 #define IMXRT_USDHC1_CLK_SELECT    CCM_CSCMR1_USDHC1_CLK_SEL_PLL2_PFD0
 #define IMXRT_USDHC1_PODF_DIVIDER 2
