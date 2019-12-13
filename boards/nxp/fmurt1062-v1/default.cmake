@@ -11,13 +11,10 @@ px4_add_board(
 #	UAVCAN_INTERFACES 2
 
 	SERIAL_PORTS
-#		GPS1:/dev/ttyS0
-#		TEL1:/dev/ttyS1
-#		TEL2:/dev/ttyS2
-#		GPS2:/dev/ttyS3
-#       ON EVK
 		GPS1:/dev/ttyS1
+		TEL1:/dev/ttyS3
 		TEL2:/dev/ttyS2
+		GPS2:/dev/ttyS4
 
 	DRIVERS
 		adc
@@ -114,6 +111,7 @@ px4_add_board(
 		usb_connected
 		ver
 		work_queue
+		serial_test
 	EXAMPLES
 		bottle_drop # OBC challenge
 		fixedwing_control # Tutorial code from https://px4.io/dev/example_fixedwing_control

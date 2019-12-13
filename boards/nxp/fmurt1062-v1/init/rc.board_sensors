@@ -5,12 +5,12 @@
 #
 # UART mapping on NXP FMURT1062:
 #
-# LPUART2       /dev/ttyS0      GPS
+# LPUART7       /dev/ttyS0      CONSOLE
+# LPUART2       /dev/ttyS1      GPS
 # LPUART3       /dev/ttyS2      TELEM2 (GPIO flow control)
-# LPUART4       /dev/ttyS1      TELEM1 (UART flow control)
-# LPUART5       /dev/ttyS3      TELEM4 GPS2
-# LPUART6       /dev/ttyS4      TELEM3 (RC_INPUT)
-# LPUART7       /dev/ttyS5      CONSOLE
+# LPUART4       /dev/ttyS3      TELEM1 (UART flow control)
+# LPUART5       /dev/ttyS4      TELEM4 GPS2
+# LPUART6       /dev/ttyS5      TELEM3 (RC_INPUT)
 # LPUART8       /dev/ttyS6      PX4IO
 #
 #------------------------------------------------------------------------------
