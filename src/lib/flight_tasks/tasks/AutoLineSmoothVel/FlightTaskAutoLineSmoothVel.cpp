@@ -197,7 +197,12 @@ float FlightTaskAutoLineSmoothVel::_getMaxXYSpeed() const
 
 	// constrain velocity to go to the position setpoint first if the position setpoint has been modified by an external source
 	// (eg. Obstacle Avoidance)
-	if ((pos_traj - _position_setpoint).longerThan(_target_acceptance_radius)) {
+	bool xy_valid = PX4_ISFINITE(_position_setpoint(0)) && PX4_ISFINITE(_position_setpoint(1));
+	bool xy_modified =  xy_valid && Vector2f((_target - _position_setpoint).xy()).longerThan(FLT_EPSILON);
+	bool z_valid = PX4_ISFINITE(_position_setpoint(2));
+	bool z_modified =  z_valid && fabsf((_target - _position_setpoint)(2)) > FLT_EPSILON;
+
+	if (xy_modified || z_modified) {
 		waypoints[1] = _position_setpoint;
 		waypoints[2] = _target;
 
@@ -220,7 +225,10 @@ float FlightTaskAutoLineSmoothVel::_getMaxZSpeed() const
 
 	// constrain velocity to go to the position setpoint first if the position setpoint has been modified by an external source
 	// (eg. Obstacle Avoidance)
-	if ((pos_traj - _position_setpoint).longerThan(_target_acceptance_radius)) {
+	bool z_valid = PX4_ISFINITE(_position_setpoint(2));
+	bool z_modified =  z_valid && fabsf((_target - _position_setpoint)(2)) > FLT_EPSILON;
+
+	if (z_modified) {
 		z_setpoint = _position_setpoint(2);
 	}
 
