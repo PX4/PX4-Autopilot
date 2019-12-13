@@ -158,6 +158,7 @@ __EXPORT void board_on_reset(int status)
 
 __EXPORT void imxrt_boardinitialize(void)
 {
+
 	board_on_reset(-1); /* Reset PWM first thing */
 
 	/* configure LEDs */
