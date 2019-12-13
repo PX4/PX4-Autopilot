@@ -1692,7 +1692,7 @@ void Logger::write_console_output()
 }
 
 void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats &written_formats,
-			  ulog_message_format_s &msg, int level)
+			  ulog_message_format_s &msg, int subscription_index, int level)
 {
 	if (level > 3) {
 		// precaution: limit recursion level. If we land here it's either a bug or nested topic definitions. In the
@@ -1701,12 +1701,22 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 		return;
 	}
 
-	// check if we already wrote the format
+	// check if we already wrote the format: either if at a previous _subscriptions index or in written_formats
 	for (const auto &written_format : written_formats) {
 		if (written_format == &meta) {
+			PX4_DEBUG("already added: %s", meta.o_name);
 			return;
 		}
 	}
+
+	for (int i = 0; i < subscription_index; ++i) {
+		if (_subscriptions[i].get_topic() == &meta) {
+			PX4_DEBUG("already in _subscriptions: %s", meta.o_name);
+			return;
+		}
+	}
+
+	PX4_DEBUG("writing format for %s", meta.o_name);
 
 	// Write the current format (we don't need to check if we already added it to written_formats)
 	int format_len = snprintf(msg.format, sizeof(msg.format), "%s:%s", meta.o_name, meta.o_fields);
@@ -1715,7 +1725,7 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 
 	write_message(type, &msg, msg_size);
 
-	if (!written_formats.push_back(&meta)) {
+	if (level > 1 && !written_formats.push_back(&meta)) {
 		PX4_ERR("Array too small");
 	}
 
@@ -1780,7 +1790,7 @@ void Logger::write_format(LogType type, const orb_metadata &meta, WrittenFormats
 
 			if (found_topic) {
 
-				write_format(type, *found_topic, written_formats, msg, level + 1);
+				write_format(type, *found_topic, written_formats, msg, subscription_index, level + 1);
 
 			} else {
 				PX4_ERR("No definition for topic %s found", fmt);
@@ -1810,7 +1820,7 @@ void Logger::write_formats(LogType type)
 
 	for (size_t i = 0; i < sub_count; ++i) {
 		const LoggerSubscription &sub = _subscriptions[i];
-		write_format(type, *sub.get_topic(), written_formats, msg);
+		write_format(type, *sub.get_topic(), written_formats, msg, i);
 	}
 
 	_writer.unlock();
