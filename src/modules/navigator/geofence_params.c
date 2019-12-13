@@ -67,13 +67,13 @@ PARAM_DEFINE_INT32(GF_ACTION, 1);
 /**
  * Geofence altitude mode
  *
- * Select which altitude reference should be used
- * 0 = WGS84, 1 = AMSL
+ * Select which altitude source should be used
+ * 0 = Estimated altitude (GPS/IMU etc.), 1 = Barometer altitude.
  *
  * @min 0
  * @max 1
- * @value 0 WGS84
- * @value 1 AMSL
+ * @value 0 Estimated altitude
+ * @value 1 Barometer altitude
  * @group Geofence
  */
 PARAM_DEFINE_INT32(GF_ALTMODE, 0);
