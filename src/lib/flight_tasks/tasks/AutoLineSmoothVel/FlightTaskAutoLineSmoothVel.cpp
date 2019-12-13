@@ -195,7 +195,8 @@ float FlightTaskAutoLineSmoothVel::_getMaxXYSpeed() const
 	Vector3f waypoints[3];
 	waypoints[0] = pos_traj;
 
-	// constrain velocity to go to the position setpoint first if our tracking is really bad
+	// constrain velocity to go to the position setpoint first if the position setpoint has been modified by an external source
+	// (eg. Obstacle Avoidance)
 	if ((pos_traj - _position_setpoint).longerThan(_target_acceptance_radius)) {
 		waypoints[1] = _position_setpoint;
 		waypoints[2] = _target;
@@ -217,6 +218,8 @@ float FlightTaskAutoLineSmoothVel::_getMaxZSpeed() const
 			  _trajectory[2].getCurrentPosition());
 	float z_setpoint = _target(2);
 
+	// constrain velocity to go to the position setpoint first if the position setpoint has been modified by an external source
+	// (eg. Obstacle Avoidance)
 	if ((pos_traj - _position_setpoint).longerThan(_target_acceptance_radius)) {
 		z_setpoint = _position_setpoint(2);
 	}
