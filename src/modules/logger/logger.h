@@ -144,15 +144,15 @@ public:
 	 * @param instance orb topic instance
 	 * @return true on success
 	 */
-	bool add_topic(const char *name, uint32_t interval_ms = 0, uint8_t instance = 0);
-	bool add_topic_multi(const char *name, uint32_t interval_ms = 0);
+	bool add_topic(const char *name, uint16_t interval_ms = 0, uint8_t instance = 0);
+	bool add_topic_multi(const char *name, uint16_t interval_ms = 0);
 
 	/**
 	 * add a logged topic (called by add_topic() above).
 	 * In addition, it subscribes to the first instance of the topic, if it's advertised,
-	 * @return the newly added subscription on success, nullptr otherwise
+	 * @return true on success
 	 */
-	LoggerSubscription *add_topic(const orb_metadata *topic, uint32_t interval_ms = 0, uint8_t instance = 0);
+	bool add_topic(const orb_metadata *topic, uint16_t interval_ms = 0, uint8_t instance = 0);
 
 	/**
 	 * request the logger thread to stop (this method does not block).
@@ -172,7 +172,7 @@ private:
 		Watchdog
 	};
 
-	static constexpr size_t 	MAX_TOPICS_NUM = 90; /**< Maximum number of logged topics */
+	static constexpr int 		MAX_TOPICS_NUM = 250; /**< Maximum number of logged topics */
 	static constexpr int		MAX_MISSION_TOPICS_NUM = 5; /**< Maximum number of mission topics */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
 	static constexpr const char	*LOG_ROOT[(int)LogType::Count] = {
@@ -198,6 +198,16 @@ private:
 	struct MissionSubscription {
 		unsigned min_delta_ms{0};        ///< minimum time between 2 topic writes [ms]
 		unsigned next_write_time{0};     ///< next time to write in 0.1 seconds
+	};
+
+	struct RequestedSubscription {
+		const orb_metadata *topic;
+		uint16_t interval_ms;
+		uint8_t instance;
+	};
+	struct RequestedSubscriptionArray {
+		RequestedSubscription sub[MAX_TOPICS_NUM];
+		int count;
 	};
 
 	/**
@@ -323,6 +333,12 @@ private:
 	void add_mission_topic(const char *name, uint32_t interval_ms = 0);
 
 	/**
+	 * Add topic subscriptions from SD file if it exists, otherwise call initialize_configured_topics()
+	 * @return true on success
+	 */
+	bool initialize_topics(MissionLogType mission_log_mode);
+
+	/**
 	 * Add topic subscriptions based on the _sdlog_profile_handle parameter
 	 */
 	void initialize_configured_topics();
@@ -381,7 +397,9 @@ private:
 	LogMode						_log_mode;
 	const bool					_log_name_timestamp;
 
-	Array<LoggerSubscription, MAX_TOPICS_NUM>	_subscriptions; ///< all subscriptions for full & mission log (in front)
+	RequestedSubscriptionArray 			*_requested_subscriptions{nullptr}; ///< used during initialize_topics(), then translated to _subscriptions
+	LoggerSubscription	 			*_subscriptions{nullptr}; ///< all subscriptions for full & mission log (in front)
+	int						_num_subscriptions{0};
 	MissionSubscription 				_mission_subscriptions[MAX_MISSION_TOPICS_NUM] {}; ///< additional data for mission subscriptions
 	int						_num_mission_subs{0};
 
