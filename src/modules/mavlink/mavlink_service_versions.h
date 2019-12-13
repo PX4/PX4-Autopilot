@@ -46,6 +46,10 @@
 #pragma once
 
 #include <stdint.h>
+#include <limits.h>
+#include <math.h>
+#include "mavlink_main.h"
+#include "mavlink_stream.h"
 
 namespace microservice_versions
 {
@@ -99,6 +103,107 @@ struct service_status {
 ///   it can potentially take up more flash space, as it will be redefined for every file in which it is included.
 extern const service_metadata services_metadata[NUM_SERVICES];
 
-//	/// Returns the metadata of a given microservice.
-//	const service_metadata *get_metadata(uint16_t service_id);
+/**
+ * This class manages the microservice versioning handshake.
+ *
+ * It inherits from MavlinkStream, so that it can support the "stream all services" request, without overloading
+ * the MAVLink connection with too many messages all at once. Normally, it is idle, and streams no messages. However,
+ * when the `request_service_version(...)` function is called, it becomes active, and sends one
+ * `MAVLINK_SERVICE_VERSION` message per cycle.
+ *
+ * Once it has sent either the one service requested, or all services (if all were requested), it becomes idle again.
+ */
+class MavlinkServiceVersions : public MavlinkStream
+{
+public:
+	const char *get_name() const override;
+
+	static const char *get_name_static();
+
+	static uint16_t get_id_static();
+
+	uint16_t get_id() override;
+
+	static MavlinkStream *new_instance(Mavlink *mavlink);
+
+	unsigned get_size() override;
+
+	/**
+	 * This function returns the status of the given service, without selecting a version to use.
+	 * @param service_id ID of the service in question
+	 * @return Reference to a service_status which exists for the lifetime of this Mavlink object
+	 */
+	service_status &get_service_status(uint16_t service_id);
+
+	/**
+	 * Takes the min and max version supported by the communication partner, and determines the maximum version
+	 * supported by both this version of PX4 and the communication partner. This selected version is then
+	 * stored in this instance of Mavlink, and can be retrieved with Mavlink::get_service_status.
+	 *
+	 * @param service_id ID of the service being negotiated
+	 * @param min_version Minimum version of the service supported by the other system.
+	 * @param max_version Maximum version of the service supported by the other system.
+	 * @return Reference to a service_status, which exists for the lifetime of this Mavlink object, and has been
+	 * 			modified with the results of this service version handshake.
+	 */
+	service_status &determine_service_version(uint16_t service_id, uint16_t min_version,
+			uint16_t max_version);
+
+	/**
+	 * See MavlinkStreamServiceVersion::determine_service_version(uint16_t, uint16_t, uint16_t).
+	 *
+	 * This overloaded function performs the same task as the other determine_service_version, but it does not know the
+	 * min and max version supported by the other system, so it assumes that it supports every version (like a
+	 * GCS would), and just selects the maximum version supported by this version of PX4.
+	 *
+	 * @param service_id ID of the service
+	 * @return Reference to a service_status, which exists for the lifetime of this Mavlink object, and has been
+	 * 			modified with the results of this service version handshake.
+	 */
+	service_status &determine_service_version(uint16_t service_id);
+
+	/**
+	 * This function should be called when we receive a MAV_CMD_REQUEST_SERVICE_VERSION. It performs the whole
+	 * microservice version handshake: It chooses an appropriate version, and responds with a MAVLINK_SERVICE_VERSION
+	 * message. After this is done, you can use MavlinkServiceVersions::get_service_status to determine the result
+	 * of the handshake.
+	 *
+	 * @param service_id ID of the service to negotiate
+	 * @param min_version Minimum supported version, sent from the other system
+	 * @param max_version Maximum supported version, sent from the other system
+	 */
+	void request_serice_version(uint16_t service_id, uint16_t min_version, uint16_t max_version);
+
+protected:
+	explicit MavlinkServiceVersions(Mavlink *mavlink);
+
+	~MavlinkServiceVersions();
+
+	bool send(const hrt_abstime t) override;
+
+	// TODO microservice versioning This should probably be removed before merging. But I am keeping it here for now
+	//  just in case...
+	//  (In a previous iteration of microservice versioning, it just used the generic `MAV_CMD_REQUEST_MSG`, but now
+	//   it doesn't)
+//	void request_message(float param1 = 0.0, float param2 = 0.0, float param3 = 0.0, float param4 = 0.0,
+//						 float param5 = 0.0, float param6 = 0.0, float param7 = 0.0) override
+//	{
+//		request_serice_version((uint16_t) roundf(param2), (uint16_t) roundf(param3), (uint16_t) roundf(param4));
+//	}
+
+private:
+
+	uint16_t _current_service = 0;
+	uint16_t _min_version = 0;
+	uint16_t _max_version = 0;
+	bool _sending_all_services = false;
+	int _default_interval = -1;
+
+	service_status _microservice_versions[NUM_SERVICES];
+
+	/* do not allow top copying this class */
+	MavlinkServiceVersions(MavlinkServiceVersions &) = delete;
+
+	MavlinkServiceVersions &operator=(const MavlinkServiceVersions &) = delete;
+};
 }

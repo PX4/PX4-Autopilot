@@ -183,15 +183,6 @@ Mavlink::Mavlink() :
 	if (_first_start_time == 0) {
 		_first_start_time = hrt_absolute_time();
 	}
-
-	// Initialize microservice versions
-	for (size_t i = 0; i < microservice_versions::NUM_SERVICES; i++) {
-		_microservice_versions[i] = {
-			.metadata = &microservice_versions::services_metadata[i],
-			.status = microservice_versions::UNKNOWN,
-			.selected_version = 0
-		};
-	}
 }
 
 Mavlink::~Mavlink()
@@ -1245,62 +1236,6 @@ Mavlink::send_protocol_version()
 	mavlink_msg_protocol_version_send_struct(get_channel(), &msg);
 	// Reset to previous value
 	set_proto_version(curr_proto_ver);
-}
-
-microservice_versions::service_status &
-Mavlink::get_service_status(uint16_t service_id)
-{
-	// TODO microservice versions: Maybe we don't have to search, and can just always place service ID 2 at index 2
-	for (size_t i = 1; i < microservice_versions::NUM_SERVICES; i++) {
-		if (_microservice_versions[i].metadata->service_id == service_id) {
-			return _microservice_versions[i];
-		}
-	}
-
-	return _microservice_versions[0];
-}
-
-microservice_versions::service_status &
-Mavlink::determine_service_version(uint16_t service_id, uint16_t min_version, uint16_t max_version)
-{
-	microservice_versions::service_status &status = get_service_status(service_id);
-
-	if (status.metadata->service_id == microservice_versions::MAVLINK_SERVICE_UNKNOWN) {
-		return status;
-	}
-
-	if (status.metadata->max_version < min_version || status.metadata->min_version > max_version) {
-		status.status = microservice_versions::UNSUPPORTED;
-		status.selected_version = 0;
-
-	} else {
-		// In this branch, we know that there is overlap, so just pick the smaller of the two max versions.
-		status.selected_version = status.metadata->max_version < max_version ? status.metadata->max_version : max_version;
-		status.status = microservice_versions::SELECTED;
-	}
-
-	return status;
-}
-
-microservice_versions::service_status &
-Mavlink::determine_service_version(uint16_t service_id)
-{
-	microservice_versions::service_status &status = get_service_status(service_id);
-
-	if (status.metadata->service_id == microservice_versions::MAVLINK_SERVICE_UNKNOWN) {
-		return status;
-	}
-
-	if (status.metadata->max_version == 0) {
-		status.status = microservice_versions::UNSUPPORTED;
-
-	} else {
-		status.status = microservice_versions::SELECTED;
-	}
-
-	status.selected_version = status.metadata->max_version;
-
-	return status;
 }
 
 MavlinkOrbSubscription *

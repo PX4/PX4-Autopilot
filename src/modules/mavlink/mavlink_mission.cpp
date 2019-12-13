@@ -422,7 +422,7 @@ MavlinkMissionManager::current_item_count()
 bool
 MavlinkMissionManager::int_mode()
 {
-	auto status = _mavlink->get_service_status(MAVLINK_SERVICE_ID_MISSION);
+	auto status = _mavlink->get_service_version_stream()->get_service_status(MAVLINK_SERVICE_ID_MISSION);
 	return status.selected_version > 1;
 }
 

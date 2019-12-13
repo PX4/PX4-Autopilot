@@ -5128,113 +5128,6 @@ protected:
 	}
 };
 
-class MavlinkStreamServiceVersion : public MavlinkStream
-{
-public:
-	const char *get_name() const override
-	{
-		return MavlinkStreamServiceVersion::get_name_static();
-	}
-
-	static const char *get_name_static()
-	{
-		return "MAVLINK_SERVICE_VERSION";
-	}
-
-	static uint16_t get_id_static()
-	{
-		return MAVLINK_MSG_ID_MAVLINK_SERVICE_VERSION;
-	}
-
-	uint16_t get_id() override
-	{
-		return get_id_static();
-	}
-
-	static MavlinkStream *new_instance(Mavlink *mavlink)
-	{
-		return new MavlinkStreamServiceVersion(mavlink);
-	}
-
-	unsigned get_size() override
-	{
-		return MAVLINK_MSG_ID_MAVLINK_SERVICE_VERSION_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
-	}
-
-private:
-
-	uint16_t _current_service = 0;
-	uint16_t _min_version = 0;
-	uint16_t _max_version = 0;
-	bool _sending_all_services = false;
-	int _default_interval = -1;
-
-	/* do not allow top copying this class */
-	MavlinkStreamServiceVersion(MavlinkStreamServiceVersion &) = delete;
-	MavlinkStreamServiceVersion &operator = (const MavlinkStreamServiceVersion &) = delete;
-
-protected:
-	explicit MavlinkStreamServiceVersion(Mavlink *mavlink) : MavlinkStream(mavlink)
-	{}
-
-	bool send(const hrt_abstime t) override
-	{
-		if (_current_service > 0 && _current_service < microservice_versions::NUM_SERVICES) {
-			mavlink_mavlink_service_version_t msg;
-
-			auto &status = _sending_all_services ? _mavlink->determine_service_version(_current_service)
-				       : _mavlink->determine_service_version(_current_service, _min_version, _max_version);
-
-			msg.service_id = _current_service;
-			msg.target_system = _mavlink->get_system_id();
-			msg.target_component = _mavlink->get_component_id();
-			// TODO microservice versioning: How does the handshake work in "stream all services" mode?
-			//  The current implementation is to just select my maximum version and hope for the best.
-			msg.selected_version = status.selected_version;
-			msg.service_min_version = status.metadata->min_version;
-			msg.service_max_version = status.metadata->max_version;
-			msg.service_flags = status.metadata->min_version == 0 ? 0 : 1;
-
-			mavlink_msg_mavlink_service_version_send_struct(_mavlink->get_channel(), &msg);
-
-			if (_sending_all_services) {
-				_current_service++;
-
-			} else {
-				_current_service = 0;
-			}
-
-			return true;
-
-		} else {
-			_default_interval = _interval;
-			set_interval(INT_MAX);
-			return false;
-		}
-
-	}
-
-	void request_message(float param1 = 0.0, float param2 = 0.0, float param3 = 0.0, float param4 = 0.0,
-			     float param5 = 0.0, float param6 = 0.0, float param7 = 0.0) override
-	{
-		uint16_t service_id = (uint16_t)(param2 + 0.5f);
-		_min_version = (uint16_t)(param3 + 0.5f);
-		_max_version = (uint16_t)(param4 + 0.5f);
-
-		if (service_id == 0) {
-			_sending_all_services = true;
-			_current_service = 1;
-
-		} else {
-			_sending_all_services = false;
-			_current_service = service_id;
-		}
-
-		set_interval(_default_interval);
-		reset_last_sent();
-	}
-};
-
 static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static, &MavlinkStreamHeartbeat::get_id_static),
 	StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static, &MavlinkStreamStatustext::get_id_static),
@@ -5293,7 +5186,7 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamPing::new_instance, &MavlinkStreamPing::get_name_static, &MavlinkStreamPing::get_id_static),
 	StreamListItem(&MavlinkStreamOrbitStatus::new_instance, &MavlinkStreamOrbitStatus::get_name_static, &MavlinkStreamOrbitStatus::get_id_static),
 	StreamListItem(&MavlinkStreamObstacleDistance::new_instance, &MavlinkStreamObstacleDistance::get_name_static, &MavlinkStreamObstacleDistance::get_id_static),
-	StreamListItem(&MavlinkStreamServiceVersion::new_instance, &MavlinkStreamServiceVersion::get_name_static, &MavlinkStreamServiceVersion::get_id_static)
+	StreamListItem(&microservice_versions::MavlinkServiceVersions::new_instance, &microservice_versions::MavlinkServiceVersions::get_name_static, &microservice_versions::MavlinkServiceVersions::get_id_static)
 };
 
 const char *get_stream_name(const uint16_t msg_id)

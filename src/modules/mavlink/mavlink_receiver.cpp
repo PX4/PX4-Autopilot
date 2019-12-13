@@ -524,7 +524,8 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		for (const auto &stream : _mavlink->get_streams()) {
 			if (stream->get_id() == message_id) {
 				stream->request_message(vehicle_command.param1, vehicle_command.param2, vehicle_command.param3,
-							vehicle_command.param4, vehicle_command.param5, vehicle_command.param6, vehicle_command.param7);
+							vehicle_command.param4, vehicle_command.param5, vehicle_command.param6,
+							vehicle_command.param7);
 				stream_found = true;
 				break;
 			}
@@ -533,6 +534,16 @@ void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const 
 		// TODO: Handle the case where a message is requested which could be sent, but for which there is no stream.
 		if (!stream_found) {
 			result = vehicle_command_ack_s::VEHICLE_RESULT_DENIED;
+		}
+
+	} else if (cmd_mavlink.command == MAV_CMD_REQUEST_SERVICE_VERSION) {
+		if (_mavlink->get_service_version_stream()) {
+			_mavlink->get_service_version_stream()->request_serice_version((uint16_t) roundf(vehicle_command.param1),
+					(uint16_t) roundf(vehicle_command.param2),
+					(uint16_t) roundf(vehicle_command.param3));
+
+		} else {
+			PX4_ERR("Received MAV_CMD_REQUEST_SERVICE_VERSION, but the stream for MAVLINK_SERVICE_VERSION messages was not instantiated.");
 		}
 
 	} else {
