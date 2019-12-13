@@ -63,8 +63,7 @@ public:
 
 	virtual bool init(uint64_t timestamp) = 0;
 	virtual void reset(uint64_t timestamp) = 0;
-	virtual void resetStates() = 0;
-	virtual void resetStatesAndCovariances() = 0;
+
 	virtual bool update() = 0;
 
 	virtual void getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2], float &vpos) = 0;
