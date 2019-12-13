@@ -31,13 +31,10 @@ px4_add_board(
 		gps
 		#heater
 		imu/adis16448
+		imu/adis16477
 		imu/adis16497
-		#imu # all available imu drivers
-		imu/bma180
 		imu/bmi055
-		imu/bmi160
 		imu/mpu6000
-		imu/mpu9250
 		irlock
 		lights/blinkm
 		lights/rgbled
@@ -50,9 +47,10 @@ px4_add_board(
 		pca9685
 		power_monitor/ina226
 		#protocol_splitter
+#		pwm_input - not ptorable
 		pwm_out_sim
 		px4fmu
-#		rc_input needs serial DMA driver
+		rc_input
 		roboclaw
 		safety_button
 		tap_esc
