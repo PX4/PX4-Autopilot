@@ -365,8 +365,8 @@ __EXPORT void board_spi_reset(int ms)
 	imxrt_config_gpio(GPIO_SPI3_MOSI_OFF);
 
 
-	imxrt_config_gpio(_PIN_OFF(GPIO_LPI2C3_SDA_GPIO));
-	imxrt_config_gpio(_PIN_OFF(GPIO_LPI2C3_SCL_GPIO));
+	imxrt_config_gpio(_PIN_OFF(GPIO_LPI2C3_SDA_RESET));
+	imxrt_config_gpio(_PIN_OFF(GPIO_LPI2C3_SCL_RESET));
 
 #  if BOARD_USE_DRDY
 	imxrt_config_gpio(GPIO_DRDY_OFF_SPI1_DRDY1_ICM20689);
