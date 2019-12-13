@@ -134,6 +134,8 @@ MavlinkServiceVersions::determine_service_version(uint16_t service_id)
 void MavlinkServiceVersions::request_serice_version(uint16_t service_id, uint16_t min_version,
 		uint16_t max_version)
 {
+	// TODO microservice versioning: Remove this
+	PX4_INFO("Sending version for service %d", service_id);
 	_min_version = min_version;
 	_max_version = max_version;
 

@@ -423,7 +423,13 @@ bool
 MavlinkMissionManager::int_mode()
 {
 	auto status = _mavlink->get_service_version_stream()->get_service_status(MAVLINK_SERVICE_ID_MISSION);
-	return status.selected_version > 1;
+
+	if (status.status != microservice_versions::handshake_status::SELECTED) {
+		return _int_mode_fallback;
+
+	} else {
+		return status.selected_version > 1;
+	}
 }
 
 void
@@ -630,11 +636,11 @@ MavlinkMissionManager::handle_mission_ack(const mavlink_message_t *msg)
 				if (wpa.type == MAV_MISSION_UNSUPPORTED) {
 
 					if (int_mode()) {
-						//int_mode() = false;
+						_int_mode_fallback = false;
 						send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
 
 					} else {
-						//int_mode() = true;
+						_int_mode_fallback = true;
 						send_mission_request(_transfer_partner_sysid, _transfer_partner_compid, _transfer_seq);
 					}
 
@@ -742,9 +748,9 @@ void
 MavlinkMissionManager::handle_mission_request(const mavlink_message_t *msg)
 {
 	// The request comes in the old float mode, so we switch to it.
-//	if (int_mode()) {
-//		int_mode() = false;
-//	}
+	if (int_mode()) {
+		_int_mode_fallback = false;
+	}
 
 	handle_mission_request_both(msg);
 }
@@ -753,9 +759,9 @@ void
 MavlinkMissionManager::handle_mission_request_int(const mavlink_message_t *msg)
 {
 	// The request comes in the new int mode, so we switch to it.
-//	if (!int_mode()) {
-//		int_mode() = true;
-//	}
+	if (!int_mode()) {
+		_int_mode_fallback = true;
+	}
 
 	handle_mission_request_both(msg);
 }
@@ -978,10 +984,10 @@ MavlinkMissionManager::switch_to_idle_state()
 void
 MavlinkMissionManager::handle_mission_item(const mavlink_message_t *msg)
 {
-//	if (int_mode()) {
-//		// It seems that we should be using the float mode, let's switch out of int mode.
-//		int_mode() = false;
-//	}
+	if (int_mode()) {
+		// It seems that we should be using the float mode, let's switch out of int mode.
+		_int_mode_fallback = false;
+	}
 
 	handle_mission_item_both(msg);
 }
@@ -989,10 +995,10 @@ MavlinkMissionManager::handle_mission_item(const mavlink_message_t *msg)
 void
 MavlinkMissionManager::handle_mission_item_int(const mavlink_message_t *msg)
 {
-//	if (!int_mode()) {
-//		// It seems that we should be using the int mode, let's switch to it.
-//		int_mode() = true;
-//	}
+	if (!int_mode()) {
+		// It seems that we should be using the int mode, let's switch to it.
+		_int_mode_fallback = true;
+	}
 
 	handle_mission_item_both(msg);
 }
@@ -1279,10 +1285,10 @@ MavlinkMissionManager::parse_mavlink_mission_item(const mavlink_mission_item_t *
 			    mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT))) {
 
 		// Switch to int mode if that is what we are receiving
-//		if ((mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT ||
-//		     mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT)) {
-//			int_mode() = true;
-//		}
+		if ((mavlink_mission_item->frame == MAV_FRAME_GLOBAL_INT ||
+		     mavlink_mission_item->frame == MAV_FRAME_GLOBAL_RELATIVE_ALT_INT)) {
+			_int_mode_fallback = true;
+		}
 
 		if (int_mode()) {
 			/* The argument is actually a mavlink_mission_item_int_t in int_mode.
