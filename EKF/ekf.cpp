@@ -54,7 +54,20 @@ bool Ekf::init(uint64_t timestamp)
 
 void Ekf::reset(uint64_t timestamp)
 {
-	resetStatesAndCovariances();
+	_state.vel.setZero();
+	_state.pos.setZero();
+	_state.delta_ang_bias.setZero();
+	_state.delta_vel_bias.setZero();
+	_state.mag_I.setZero();
+	_state.mag_B.setZero();
+	_state.wind_vel.setZero();
+	_state.quat_nominal.setIdentity();
+
+	_output_new.vel.setZero();
+	_output_new.pos.setZero();
+	_output_new.quat_nominal.setIdentity();
+
+	initialiseCovariance();
 
 	_delta_angle_corr.setZero();
 	_imu_down_sampled.delta_ang.setZero();
@@ -63,10 +76,7 @@ void Ekf::reset(uint64_t timestamp)
 	_imu_down_sampled.delta_vel_dt = 0.0f;
 	_imu_down_sampled.time_us = timestamp;
 
-	_q_down_sampled(0) = 1.0f;
-	_q_down_sampled(1) = 0.0f;
-	_q_down_sampled(2) = 0.0f;
-	_q_down_sampled(3) = 0.0f;
+	_q_down_sampled.setIdentity();
 
 	_imu_updated = false;
 	_NED_origin_initialised = false;
@@ -88,30 +98,6 @@ void Ekf::reset(uint64_t timestamp)
 	_accel_mag_filt = 0.0f;
 	_ang_rate_mag_filt = 0.0f;
 	_prev_dvel_bias_var.zero();
-}
-
-void Ekf::resetStatesAndCovariances()
-{
-	resetStates();
-	initialiseCovariance();
-}
-
-void Ekf::resetStates()
-{
-	_state.vel.setZero();
-	_state.pos.setZero();
-	_state.delta_ang_bias.setZero();
-	_state.delta_vel_bias.setZero();
-	_state.mag_I.setZero();
-	_state.mag_B.setZero();
-	_state.wind_vel.setZero();
-	_state.quat_nominal.setZero();
-	_state.quat_nominal(0) = 1.0f;
-
-	_output_new.vel.setZero();
-	_output_new.pos.setZero();
-	_output_new.quat_nominal.setZero();
-	_output_new.quat_nominal(0) = 1.0f;
 }
 
 bool Ekf::update()
@@ -153,7 +139,7 @@ bool Ekf::initialiseFilter()
 {
 	// Keep accumulating measurements until we have a minimum of 10 samples for the required sensors
 
-	// Sum the IMU delta angle measurements
+	// Sum the IMU delta velocity measurements
 	const imuSample &imu_init = _imu_buffer.get_newest();
 	_delVel_sum += imu_init.delta_vel;
 
