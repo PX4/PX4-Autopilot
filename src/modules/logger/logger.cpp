@@ -515,6 +515,7 @@ void Logger::add_default_topics()
 	add_topic("camera_capture");
 	add_topic("camera_trigger");
 	add_topic("camera_trigger_secondary");
+	add_topic("cellular_status", 200);
 	add_topic("cpuload");
 	add_topic("estimator_innovations", 200);
 	add_topic("estimator_innovation_variances", 200);
@@ -641,7 +642,6 @@ void Logger::add_sensor_comparison_topics()
 
 void Logger::add_vision_and_avoidance_topics()
 {
-	add_topic("cellular_status", 200);
 	add_topic("collision_constraints");
 	add_topic("obstacle_distance_fused");
 	add_topic("onboard_computer_status", 200);
