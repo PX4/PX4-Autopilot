@@ -71,8 +71,8 @@ static const px4_hw_mft_item_t device_unsupported = {0, 0, 0};
 // declared in board_common.h
 static const px4_hw_mft_item_t hw_mft_list_v0500[] = {
 	{
-		.present     = 1,
-		.mandatory   = 1,
+		.present     = 0,
+		.mandatory   = 0,
 		.connection  = px4_hw_con_onboard,
 	},
 };
