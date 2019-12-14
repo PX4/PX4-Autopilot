@@ -41,7 +41,6 @@
 
 #include "FlightTaskManual.hpp"
 #include "PositionLock.hpp"
-#include <uORB/topics/home_position.h>
 
 class FlightTaskManualAltitude : public FlightTaskManual
 {
@@ -123,8 +122,6 @@ private:
 	 * To ensure a slowdown to land speed before hitting the ground.
 	 */
 	void _respectGroundSlowdown();
-
-	uORB::SubscriptionData<home_position_s> _sub_home_position{ORB_ID(home_position)};
 
 	float _yawspeed_filter_state{}; /**< state of low-pass filter in rad/s */
 	uint8_t _reset_counter = 0; /**< counter for estimator resets in z-direction */

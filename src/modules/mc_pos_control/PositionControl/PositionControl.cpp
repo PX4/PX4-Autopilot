@@ -196,7 +196,7 @@ void PositionControl::_accelerationControl()
 	_thr_sp = body_z * collective_thrust;
 }
 
-void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint)
+void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s &local_position_setpoint) const
 {
 	local_position_setpoint.x = _pos_sp(0);
 	local_position_setpoint.y = _pos_sp(1);
@@ -210,7 +210,7 @@ void PositionControl::getLocalPositionSetpoint(vehicle_local_position_setpoint_s
 	_thr_sp.copyTo(local_position_setpoint.thrust);
 }
 
-void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint)
+void PositionControl::getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const
 {
 	ControlMath::bodyzToAttitude(attitude_setpoint, -_thr_sp, _yaw_sp);
 	attitude_setpoint.thrust_body[2] = -_thr_sp.length();
