@@ -343,9 +343,7 @@ void FlightTaskManualAltitude::_updateSetpoints()
 		sp.normalize();
 	}
 
-	_thrust_setpoint(0) = sp(0);
-	_thrust_setpoint(1) = sp(1);
-	_thrust_setpoint(2) = NAN;
+	_thrust_setpoint.xy() = sp;
 
 	_updateAltitudeLock();
 	_respectGroundSlowdown();

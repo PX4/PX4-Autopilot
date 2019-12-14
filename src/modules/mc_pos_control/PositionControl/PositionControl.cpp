@@ -304,46 +304,37 @@ void PositionControl::_velocityControl(const float dt)
 	// Saturate thrust setpoint in D-direction.
 	_thr_sp(2) = math::constrain(thrust_desired_D, uMin, uMax);
 
-	if (PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1))) {
-		// Thrust set-point in NE-direction is already provided. Only
-		// scaling by the maximum tilt is required.
-		float thr_xy_max = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);
-		_thr_sp(0) *= thr_xy_max;
-		_thr_sp(1) *= thr_xy_max;
+	// PID-velocity controller for NE-direction.
+	Vector2f thrust_desired_NE;
+	thrust_desired_NE(0) = _gain_vel_p(0) * vel_err(0) + _gain_vel_d(0) * _vel_dot(0) + _vel_int(0);
+	thrust_desired_NE(1) = _gain_vel_p(1) * vel_err(1) + _gain_vel_d(1) * _vel_dot(1) + _vel_int(1);
 
-	} else {
-		// PID-velocity controller for NE-direction.
-		Vector2f thrust_desired_NE;
-		thrust_desired_NE(0) = _gain_vel_p(0) * vel_err(0) + _gain_vel_d(0) * _vel_dot(0) + _vel_int(0);
-		thrust_desired_NE(1) = _gain_vel_p(1) * vel_err(1) + _gain_vel_d(1) * _vel_dot(1) + _vel_int(1);
+	// Get maximum allowed thrust in NE based on tilt and excess thrust.
+	float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);
+	float thrust_max_NE = sqrtf(_lim_thr_max * _lim_thr_max - _thr_sp(2) * _thr_sp(2));
+	thrust_max_NE = math::min(thrust_max_NE_tilt, thrust_max_NE);
 
-		// Get maximum allowed thrust in NE based on tilt and excess thrust.
-		float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);
-		float thrust_max_NE = sqrtf(_lim_thr_max * _lim_thr_max - _thr_sp(2) * _thr_sp(2));
-		thrust_max_NE = math::min(thrust_max_NE_tilt, thrust_max_NE);
+	// Saturate thrust in NE-direction.
+	_thr_sp(0) = thrust_desired_NE(0);
+	_thr_sp(1) = thrust_desired_NE(1);
 
-		// Saturate thrust in NE-direction.
-		_thr_sp(0) = thrust_desired_NE(0);
-		_thr_sp(1) = thrust_desired_NE(1);
-
-		if (thrust_desired_NE * thrust_desired_NE > thrust_max_NE * thrust_max_NE) {
-			float mag = thrust_desired_NE.length();
-			_thr_sp(0) = thrust_desired_NE(0) / mag * thrust_max_NE;
-			_thr_sp(1) = thrust_desired_NE(1) / mag * thrust_max_NE;
-		}
-
-		// Use tracking Anti-Windup for NE-direction: during saturation, the integrator is used to unsaturate the output
-		// see Anti-Reset Windup for PID controllers, L.Rundqwist, 1990
-		float arw_gain = 2.f / _gain_vel_p(0);
-
-		Vector2f vel_err_lim;
-		vel_err_lim(0) = vel_err(0) - (thrust_desired_NE(0) - _thr_sp(0)) * arw_gain;
-		vel_err_lim(1) = vel_err(1) - (thrust_desired_NE(1) - _thr_sp(1)) * arw_gain;
-
-		// Update integral
-		_vel_int(0) += _gain_vel_i(0) * vel_err_lim(0) * dt;
-		_vel_int(1) += _gain_vel_i(1) * vel_err_lim(1) * dt;
+	if (thrust_desired_NE * thrust_desired_NE > thrust_max_NE * thrust_max_NE) {
+		float mag = thrust_desired_NE.length();
+		_thr_sp(0) = thrust_desired_NE(0) / mag * thrust_max_NE;
+		_thr_sp(1) = thrust_desired_NE(1) / mag * thrust_max_NE;
 	}
+
+	// Use tracking Anti-Windup for NE-direction: during saturation, the integrator is used to unsaturate the output
+	// see Anti-Reset Windup for PID controllers, L.Rundqwist, 1990
+	float arw_gain = 2.f / _gain_vel_p(0);
+
+	Vector2f vel_err_lim;
+	vel_err_lim(0) = vel_err(0) - (thrust_desired_NE(0) - _thr_sp(0)) * arw_gain;
+	vel_err_lim(1) = vel_err(1) - (thrust_desired_NE(1) - _thr_sp(1)) * arw_gain;
+
+	// Update integral
+	_vel_int(0) += _gain_vel_i(0) * vel_err_lim(0) * dt;
+	_vel_int(1) += _gain_vel_i(1) * vel_err_lim(1) * dt;
 }
 
 
