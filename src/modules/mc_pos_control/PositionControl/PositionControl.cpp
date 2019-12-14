@@ -277,11 +277,10 @@ void PositionControl::_velocityControl(const float dt)
 	// 	 consideration of the desired thrust in D-direction. In addition, the thrust in
 	// 	 NE-direction is also limited by the maximum tilt.
 
-	const Vector3f vel_err = _vel_sp - _vel;
-
-	// Consider thrust in D-direction.
-	float thrust_desired_D = _gain_vel_p(2) * vel_err(2) +  _gain_vel_d(2) * _vel_dot(2) + _vel_int(
-					 2) - _hover_thrust;
+	// PID velocity control
+	Vector3f vel_error = _vel_sp - _vel;
+	Vector3f thr_sp_velocity = vel_error.emult(_gain_vel_p) + _vel_int + _vel_dot.emult(_gain_vel_d);
+	thr_sp_velocity -= Vector3f(0.f, 0.f, _hover_thrust);
 
 	// The Thrust limits are negated and swapped due to NED-frame.
 	float uMax = -_lim_thr_min;
@@ -291,23 +290,18 @@ void PositionControl::_velocityControl(const float dt)
 	uMax = math::min(uMax, -10e-4f);
 
 	// Apply Anti-Windup in D-direction.
-	bool stop_integral_D = (thrust_desired_D >= uMax && vel_err(2) >= 0.0f) ||
-			       (thrust_desired_D <= uMin && vel_err(2) <= 0.0f);
+	bool stop_integral_D = (thr_sp_velocity(2) >= uMax && vel_error(2) >= 0.0f) ||
+			       (thr_sp_velocity(2) <= uMin && vel_error(2) <= 0.0f);
 
 	if (!stop_integral_D) {
-		_vel_int(2) += vel_err(2) * _gain_vel_i(2) * dt;
+		_vel_int(2) += vel_error(2) * _gain_vel_i(2) * dt;
 
 		// limit thrust integral
 		_vel_int(2) = math::min(fabsf(_vel_int(2)), _lim_thr_max) * math::sign(_vel_int(2));
 	}
 
 	// Saturate thrust setpoint in D-direction.
-	_thr_sp(2) = math::constrain(thrust_desired_D, uMin, uMax);
-
-	// PID-velocity controller for NE-direction.
-	Vector2f thrust_desired_NE;
-	thrust_desired_NE(0) = _gain_vel_p(0) * vel_err(0) + _gain_vel_d(0) * _vel_dot(0) + _vel_int(0);
-	thrust_desired_NE(1) = _gain_vel_p(1) * vel_err(1) + _gain_vel_d(1) * _vel_dot(1) + _vel_int(1);
+	_thr_sp(2) = math::constrain(thr_sp_velocity(2), uMin, uMax);
 
 	// Get maximum allowed thrust in NE based on tilt and excess thrust.
 	float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);
@@ -315,13 +309,15 @@ void PositionControl::_velocityControl(const float dt)
 	thrust_max_NE = math::min(thrust_max_NE_tilt, thrust_max_NE);
 
 	// Saturate thrust in NE-direction.
-	_thr_sp(0) = thrust_desired_NE(0);
-	_thr_sp(1) = thrust_desired_NE(1);
+	_thr_sp(0) = thr_sp_velocity(0);
+	_thr_sp(1) = thr_sp_velocity(1);
 
-	if (thrust_desired_NE * thrust_desired_NE > thrust_max_NE * thrust_max_NE) {
-		float mag = thrust_desired_NE.length();
-		_thr_sp(0) = thrust_desired_NE(0) / mag * thrust_max_NE;
-		_thr_sp(1) = thrust_desired_NE(1) / mag * thrust_max_NE;
+	Vector2f thrust_sp_xy(thr_sp_velocity);
+
+	if (thrust_sp_xy.norm_squared() > thrust_max_NE * thrust_max_NE) {
+		float mag = thrust_sp_xy.length();
+		_thr_sp(0) = thr_sp_velocity(0) / mag * thrust_max_NE;
+		_thr_sp(1) = thr_sp_velocity(1) / mag * thrust_max_NE;
 	}
 
 	// Use tracking Anti-Windup for NE-direction: during saturation, the integrator is used to unsaturate the output
@@ -329,8 +325,8 @@ void PositionControl::_velocityControl(const float dt)
 	float arw_gain = 2.f / _gain_vel_p(0);
 
 	Vector2f vel_err_lim;
-	vel_err_lim(0) = vel_err(0) - (thrust_desired_NE(0) - _thr_sp(0)) * arw_gain;
-	vel_err_lim(1) = vel_err(1) - (thrust_desired_NE(1) - _thr_sp(1)) * arw_gain;
+	vel_err_lim(0) = vel_error(0) - (thr_sp_velocity(0) - _thr_sp(0)) * arw_gain;
+	vel_err_lim(1) = vel_error(1) - (thr_sp_velocity(1) - _thr_sp(1)) * arw_gain;
 
 	// Update integral
 	_vel_int(0) += _gain_vel_i(0) * vel_err_lim(0) * dt;
