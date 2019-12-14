@@ -51,7 +51,7 @@ fi
 # be running from last time
 pkill -x gazebo || true
 
-# Do NOT kill PX4 if debug in ide 
+# Do NOT kill PX4 if debug in ide
 if [ "$debugger" != "ide" ]; then
 	pkill -x px4 || true
 	pkill -x px4_$model || true

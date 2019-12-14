@@ -49,5 +49,9 @@ then
 	mpu6000 -R 2 -T 20608 start
 fi
 
+# new sensor drivers (in testing)
+#icm20602 -R 8 start
+#icm20608g -R 8 start
+
 # mpu9250 internal SPI bus mpu9250 is rotated 90 deg yaw
 mpu9250 -R 2 start

@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,26 +32,59 @@
  ****************************************************************************/
 
 /**
- * Battery voltage divider (V divider)
+ * @file DPS310.cpp
  *
- * This is the divider from battery voltage to 3.3V ADC voltage.
- * If using e.g. Mauch power modules the value from the datasheet
- * can be applied straight here. A value of -1 means to use
- * the board default.
- *
- * @group Battery Calibration
- * @decimal 8
+ * Driver for the Infineon DPS310 barometer connected via I2C or SPI.
  */
-PARAM_DEFINE_FLOAT(BAT_V_DIV, -1.0);
 
-/**
- * Battery current per volt (A/V)
- *
- * The voltage seen by the 3.3V ADC multiplied by this factor
- * will determine the battery current. A value of -1 means to use
- * the board default.
- *
- * @group Battery Calibration
- * @decimal 8
- */
-PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
+#pragma once
+
+#include <drivers/device/Device.hpp>
+#include <lib/drivers/barometer/PX4Barometer.hpp>
+#include <lib/perf/perf_counter.h>
+#include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
+
+#include "Infineon_DPS310_Registers.hpp"
+
+namespace dps310
+{
+
+using Infineon_DPS310::CalibrationCoefficients;
+using Infineon_DPS310::Register;
+
+class DPS310 : public px4::ScheduledWorkItem
+{
+public:
+	DPS310(device::Device *interface);
+	virtual ~DPS310();
+
+	int			init();
+
+	void			print_info();
+
+private:
+
+	void			Run() override;
+
+	void			start();
+	void			stop();
+	int			reset();
+
+	uint8_t			RegisterRead(Register reg);
+	void			RegisterWrite(Register reg, uint8_t val);
+	void			RegisterSetBits(Register reg, uint8_t setbits);
+	void			RegisterClearBits(Register reg, uint8_t clearbits);
+
+	static constexpr uint32_t SAMPLE_RATE{32}; //
+
+	PX4Barometer		_px4_barometer;
+
+	device::Device		*_interface;
+
+	CalibrationCoefficients	_calibration{};
+
+	perf_counter_t		_sample_perf;
+	perf_counter_t		_comms_errors;
+};
+
+} // namespace dps310

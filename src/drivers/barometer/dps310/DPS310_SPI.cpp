@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2016 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,54 +31,74 @@
  *
  ****************************************************************************/
 
-#pragma once
-
 /**
- * @file parameters.h
+ * @file DPS310_SPI.cpp
  *
- * defines the list of parameters that are used within the sensors module
- *
- * @author Beat Kueng <beat-kueng@gmx.net>
+ * SPI interface for DPS310
  */
-#include <px4_platform_common/px4_config.h>
-#include <drivers/drv_rc_input.h>
 
-#include <parameters/param.h>
-#include <mathlib/mathlib.h>
+#include <lib/drivers/device/spi.h>
 
-namespace battery_status
+namespace dps310
 {
 
-struct Parameters {
-	float battery_voltage_scaling;
-	float battery_current_scaling;
-	float battery_current_offset;
-	float battery_v_div;
-	float battery_a_per_v;
-	int32_t battery_source;
-	int32_t battery_adc_channel;
+/* SPI protocol address bits */
+#define DIR_READ			(1<<7)
+#define DIR_WRITE			(0<<7)
+
+device::Device *DPS310_SPI_interface(uint8_t bus, uint32_t device);
+
+class DPS310_SPI : public device::SPI
+{
+public:
+	DPS310_SPI(uint8_t bus, uint32_t device);
+	virtual ~DPS310_SPI() = default;
+
+	virtual int	read(unsigned address, void *data, unsigned count);
+	virtual int	write(unsigned address, void *data, unsigned count);
+
 };
 
-struct ParameterHandles {
-	param_t battery_voltage_scaling;
-	param_t battery_current_scaling;
-	param_t battery_current_offset;
-	param_t battery_v_div;
-	param_t battery_a_per_v;
-	param_t battery_source;
-	param_t battery_adc_channel;
-};
+device::Device *
+DPS310_SPI_interface(uint8_t bus, uint32_t device)
+{
+	return new DPS310_SPI(bus, device);
+}
 
-/**
- * initialize ParameterHandles struct
- */
-void initialize_parameter_handles(ParameterHandles &parameter_handles);
+DPS310_SPI::DPS310_SPI(uint8_t bus, uint32_t device) :
+	SPI("DPS310_SPI", nullptr, bus, device, SPIDEV_MODE3, 10 * 1000 * 1000)
+{
+}
 
+int
+DPS310_SPI::read(unsigned address, void *data, unsigned count)
+{
+	uint8_t buf[32];
 
-/**
- * Read out the parameters using the handles into the parameters struct.
- * @return 0 on success, <0 on error
- */
-int update_parameters(const ParameterHandles &parameter_handles, Parameters &parameters);
+	if (sizeof(buf) < (count + 1)) {
+		return -EIO;
+	}
 
-} /* namespace sensors */
+	buf[0] = address | DIR_READ;
+
+	int ret = transfer(&buf[0], &buf[0], count + 1);
+	memcpy(data, &buf[1], count);
+	return ret;
+}
+
+int
+DPS310_SPI::write(unsigned address, void *data, unsigned count)
+{
+	uint8_t buf[32];
+
+	if (sizeof(buf) < (count + 1)) {
+		return -EIO;
+	}
+
+	buf[0] = address | DIR_WRITE;
+	memcpy(&buf[1], data, count);
+
+	return transfer(&buf[0], &buf[0], count + 1);
+}
+
+} // namespace dps310

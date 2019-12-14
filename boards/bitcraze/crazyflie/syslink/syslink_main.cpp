@@ -288,7 +288,7 @@ Syslink::task_main()
 	_memory = new SyslinkMemory(this);
 	_memory->init();
 
-	_battery.reset(&_battery_status);
+	_battery.reset();
 
 
 	//	int ret;
@@ -411,7 +411,7 @@ Syslink::handle_message(syslink_message_t *msg)
 		memcpy(&vbat, &msg->data[1], sizeof(float));
 		//memcpy(&iset, &msg->data[5], sizeof(float));
 
-		_battery.updateBatteryStatus(t, vbat, -1, true, true, 0, 0, false, &_battery_status);
+		_battery.updateBatteryStatus(t, vbat, -1, true, true, 0, 0, true);
 
 
 		// Update battery charge state
@@ -420,15 +420,12 @@ Syslink::handle_message(syslink_message_t *msg)
 		}
 
 		/* With the usb plugged in and battery disconnected, it appears to be charged. The voltage check ensures that a battery is connected  */
-		else if (powered && !charging && _battery_status.voltage_filtered_v > 3.7f) {
+		else if (powered && !charging && vbat > 3.7f) {
 			_bstate = BAT_CHARGED;
 
 		} else {
 			_bstate = BAT_DISCHARGING;
 		}
-
-		// announce the battery status if needed, just publish else
-		_battery_pub.publish(_battery_status);
 
 	} else if (msg->type == SYSLINK_RADIO_RSSI) {
 		uint8_t rssi = msg->data[0]; // Between 40 and 100 meaning -40 dBm to -100 dBm

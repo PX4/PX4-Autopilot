@@ -84,34 +84,27 @@ void FlightTaskManualPosition::_scaleSticks()
 	FlightTaskManualAltitude::_scaleSticks();
 
 	/* Constrain length of stick inputs to 1 for xy*/
-	Vector2f stick_xy(&_sticks_expo(0));
+	Vector2f stick_xy = _sticks_expo.slice<2, 1>(0, 0);
 
-	float mag = math::constrain(stick_xy.length(), 0.0f, 1.0f);
+	const float mag = math::constrain(stick_xy.length(), 0.0f, 1.0f);
 
 	if (mag > FLT_EPSILON) {
 		stick_xy = stick_xy.normalized() * mag;
 	}
 
-	// scale the stick inputs
-	if (PX4_ISFINITE(_sub_vehicle_local_position.get().vxy_max)) {
-		// estimator provides vehicle specific max
+	const float max_speed_from_estimator = _sub_vehicle_local_position.get().vxy_max;
 
+	if (PX4_ISFINITE(max_speed_from_estimator)) {
 		// use the minimum of the estimator and user specified limit
-		_velocity_scale = fminf(_constraints.speed_xy, _sub_vehicle_local_position.get().vxy_max);
+		_velocity_scale = fminf(_constraints.speed_xy, max_speed_from_estimator);
 		// Allow for a minimum of 0.3 m/s for repositioning
 		_velocity_scale = fmaxf(_velocity_scale, 0.3f);
 
-	} else if (stick_xy.length() > 0.5f) {
-		// raise the limit at a constant rate up to the user specified value
-
-		if (_velocity_scale < _constraints.speed_xy) {
-			_velocity_scale += _deltatime * _param_mpc_acc_hor_estm.get();
-
-		} else {
-			_velocity_scale = _constraints.speed_xy;
-
-		}
+	} else {
+		_velocity_scale = _constraints.speed_xy;
 	}
+
+	_velocity_scale = fminf(_computeVelXYGroundDist(), _velocity_scale);
 
 	// scale velocity to its maximum limits
 	Vector2f vel_sp_xy = stick_xy * _velocity_scale;
@@ -125,8 +118,21 @@ void FlightTaskManualPosition::_scaleSticks()
 						     Vector2f(_velocity));
 	}
 
-	_velocity_setpoint(0) = vel_sp_xy(0);
-	_velocity_setpoint(1) = vel_sp_xy(1);
+	_velocity_setpoint.xy() = vel_sp_xy;
+}
+
+float FlightTaskManualPosition::_computeVelXYGroundDist()
+{
+	float max_vel_xy = _constraints.speed_xy;
+
+	// limit speed gradually within the altitudes MPC_LAND_ALT1 and MPC_LAND_ALT2
+	if (PX4_ISFINITE(_dist_to_ground)) {
+		max_vel_xy = math::gradual(_dist_to_ground,
+					   _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
+					   _param_mpc_land_vel_xy.get(), _constraints.speed_xy);
+	}
+
+	return max_vel_xy;
 }
 
 void FlightTaskManualPosition::_updateXYlock()

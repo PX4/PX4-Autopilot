@@ -19,7 +19,7 @@ px4_add_board(
 	DRIVERS
 		adc
 		#barometer # all available barometer drivers
-		#barometer/dps310
+		barometer/dps310
 		batt_smbus
 		camera_capture
 		camera_trigger
@@ -29,7 +29,7 @@ px4_add_board(
 		gps
 		#heater
 		#imu # all available imu drivers
-		#imu/bmi088
+		imu/bmi088
 		imu/mpu6000
 		imu/icm20948
 		irlock

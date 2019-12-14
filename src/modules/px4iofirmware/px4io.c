@@ -374,7 +374,7 @@ user_start(int argc, char *argv[])
 	 * documented in the dev guide.
 	 *
 	 */
-	if (minfo.mxordblk < 600) {
+	if (minfo.mxordblk < 550) {
 
 		syslog(LOG_ERR, "ERR: not enough MEM");
 		bool phase = false;

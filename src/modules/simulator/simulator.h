@@ -73,6 +73,7 @@
 
 #include <v2.0/common/mavlink.h>
 #include <v2.0/mavlink_types.h>
+#include <lib/battery/battery.h>
 
 namespace simulator
 {
@@ -183,8 +184,6 @@ private:
 
 		_gps.writeData(&gps_data);
 
-		_battery_status.timestamp = hrt_absolute_time();
-
 		_px4_accel.set_sample_rate(250);
 		_px4_gyro.set_sample_rate(250);
 	}
@@ -237,10 +236,28 @@ private:
 
 	hrt_abstime _last_sim_timestamp{0};
 	hrt_abstime _last_sitl_timestamp{0};
+	hrt_abstime _last_battery_timestamp{0};
 
-	// Lib used to do the battery calculations.
-	Battery _battery {};
-	battery_status_s _battery_status{};
+	class SimulatorBattery : public Battery
+	{
+	public:
+		SimulatorBattery() : Battery(1, nullptr) {}
+
+		virtual void updateParams() override
+		{
+			Battery::updateParams();
+			_params.v_empty = 3.5f;
+			_params.v_charged = 4.05f;
+			_params.n_cells = 4;
+			_params.capacity = 10.0f;
+			_params.v_load_drop = 0.0f;
+			_params.r_internal = 0.0f;
+			_params.low_thr = 0.15f;
+			_params.crit_thr = 0.07f;
+			_params.emergen_thr = 0.05f;
+			_params.source = 0;
+		}
+	} _battery;
 
 #ifndef __PX4_QURT
 
