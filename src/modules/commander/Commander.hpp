@@ -362,7 +362,7 @@ private:
 	commander_state_s	_internal_state{};
 	cpuload_s		_cpuload{};
 	geofence_result_s	_geofence_result{};
-	vehicle_land_detected_s	_land_detector{};
+	vehicle_land_detected_s	_land_detector{ .landed = true };
 	safety_s		_safety{};
 	vtol_vehicle_status_s	_vtol_status{};
 
