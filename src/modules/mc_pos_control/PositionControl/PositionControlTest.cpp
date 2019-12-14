@@ -198,7 +198,8 @@ TEST_F(PositionControlBasicTest, ThrustLimit)
 
 TEST_F(PositionControlBasicTest, FailsafeInput)
 {
-	_input_setpoint.vz = .7f;
+	_input_setpoint.vz = .1f;
+	_input_setpoint.thrust[0] = _input_setpoint.thrust[1] = 0.f;
 	_input_setpoint.acceleration[0] = _input_setpoint.acceleration[1] = 0.f;
 
 	runController();
