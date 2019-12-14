@@ -42,7 +42,7 @@ PWMIN::init()
 	_pwm_input_pub.update();
 
 	// Initialize the timer for measuring pulse widths
-	g_dev->timer_init();
+	timer_init();
 
 	return PX4_OK;
 }

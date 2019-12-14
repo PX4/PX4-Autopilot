@@ -105,7 +105,8 @@ PARAM_DEFINE_FLOAT(FD_FAIL_R_TTRI, 0.3);
 PARAM_DEFINE_FLOAT(FD_FAIL_P_TTRI, 0.3);
 
 /**
- * Enable PWM input on AUX5 for engaging failsafe from an external automatic trigger system (ATS).
+ * Enable PWM input on AUX5 or MAIN5 (depending on board) for engaging failsafe from an external
+ * automatic trigger system (ATS).
  *
  * External ATS is required by ASTM F3322-18.
  *
@@ -124,4 +125,4 @@ PARAM_DEFINE_INT32(FD_EXT_ATS_EN, 0);
  * @reboot_required true
  * @group Commander
  */
-PARAM_DEFINE_INT32(FD_EXT_ATS_TRIG, 1990);
+PARAM_DEFINE_INT32(FD_EXT_ATS_TRIG, 1900);

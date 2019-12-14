@@ -140,17 +140,13 @@ FailureDetector::updateAttitudeStatus()
 bool
 FailureDetector::updateExternalAtsStatus()
 {
-	bool updated(false);
 	pwm_input_s pwm_input;
+	bool updated = _sub_pwm_input.update(&pwm_input);
 
-	if (_sub_pwm_input.update(&pwm_input)) {
+	if (updated) {
 
-		bool ats_trigger_status = false;
 		uint32_t pulse_width = pwm_input.pulse_width;
-
-		if (pulse_width >= (uint32_t)_param_fd_ext_ats_trig.get()) {
-			ats_trigger_status = true;
-		}
+		bool ats_trigger_status = (pulse_width >= (uint32_t)_param_fd_ext_ats_trig.get()) && (pulse_width < (1e3f * 3.0f));
 
 		hrt_abstime time_now = hrt_absolute_time();
 
@@ -163,8 +159,6 @@ FailureDetector::updateExternalAtsStatus()
 		if (_ext_ats_failure_hysteresis.get_state()) {
 			_status |= FAILURE_EXT;
 		}
-
-		updated = true;
 	}
 
 	return updated;

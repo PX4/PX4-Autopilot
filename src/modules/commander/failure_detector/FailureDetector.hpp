@@ -48,6 +48,7 @@
 #include <px4_platform_common/module_params.h>
 #include <hysteresis/hysteresis.h>
 
+
 // subscriptions
 #include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_attitude_setpoint.h>
@@ -82,7 +83,7 @@ private:
 		(ParamInt<px4::params::FD_FAIL_R>) _param_fd_fail_r,
 		(ParamFloat<px4::params::FD_FAIL_R_TTRI>) _param_fd_fail_r_ttri,
 		(ParamFloat<px4::params::FD_FAIL_P_TTRI>) _param_fd_fail_p_ttri,
-		(ParamInt<px4::params::FD_EXT_ATS_EN>) _param_fd_ext_ats_en,
+		(ParamBool<px4::params::FD_EXT_ATS_EN>) _param_fd_ext_ats_en,
 		(ParamInt<px4::params::FD_EXT_ATS_TRIG>) _param_fd_ext_ats_trig
 	)
 
