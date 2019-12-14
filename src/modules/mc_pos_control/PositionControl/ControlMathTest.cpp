@@ -177,3 +177,21 @@ TEST(ControlMathTest, CrossSphereLine)
 	EXPECT_FALSE(retval);
 	EXPECT_EQ(res, Vector3f(0.f, 0.f, 2.f));
 }
+
+TEST(ControlMathTest, addIfNotNan)
+{
+	float v = 1.f;
+	// regular addition
+	ControlMath::addIfNotNan(v, 2.f);
+	EXPECT_EQ(v, 3.f);
+	// addition is NAN and has no influence
+	ControlMath::addIfNotNan(v, NAN);
+	EXPECT_EQ(v, 3.f);
+	v = NAN;
+	// both summands are NAN
+	ControlMath::addIfNotNan(v, NAN);
+	EXPECT_TRUE(isnan(v));
+	// regular value gets added to NAN and overwrites it
+	ControlMath::addIfNotNan(v, 3.f);
+	EXPECT_EQ(v, 3.f);
+}
