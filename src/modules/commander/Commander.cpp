@@ -474,8 +474,6 @@ Commander::Commander() :
 	status_flags.condition_power_input_valid = true;
 	status_flags.rc_calibration_valid = true;
 
-	status_flags.avoidance_system_valid = false;
-
 	// default for vtol is rotary wing
 	_vtol_status.vtol_in_rw_mode = true;
 }
