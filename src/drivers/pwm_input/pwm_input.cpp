@@ -33,19 +33,34 @@
 
 #include "pwm_input.h"
 
-static PWMIN *g_dev;
-
 int
-PWMIN::init()
+PWMIN::task_spawn(int argc, char *argv[])
+{
+	auto *pwmin = new PWMIN();
+
+	if (!pwmin) {
+		PX4_ERR("driver allocation failed");
+		return PX4_ERROR;
+	}
+
+	_object.store(pwmin);
+	_task_id = task_id_is_work_queue;
+
+	pwmin->start();
+
+	return PX4_OK;
+}
+
+void
+PWMIN::start()
 {
 	// NOTE: must first publish here, first publication cannot be in interrupt context
 	_pwm_input_pub.update();
 
-	// Initialize the timer for measuring pulse widths
+	// Initialize the timer isr for measuring pulse widths. Publishing is done inside the isr.
 	timer_init();
-
-	return PX4_OK;
 }
+
 
 void
 PWMIN::timer_init(void)
@@ -58,7 +73,7 @@ PWMIN::timer_init(void)
 	px4_arch_configgpio(GPIO_PWM_IN);
 
 	/* claim our interrupt vector */
-	irq_attach(PWMIN_TIMER_VECTOR, pwmin_tim_isr, NULL);
+	irq_attach(PWMIN_TIMER_VECTOR, PWMIN::pwmin_tim_isr, NULL);
 
 	/* Clear no bits, set timer enable bit.*/
 	modifyreg32(PWMIN_TIMER_POWER_REG, 0, PWMIN_TIMER_POWER_BIT);
@@ -103,7 +118,8 @@ PWMIN::timer_init(void)
 	up_enable_irq(PWMIN_TIMER_VECTOR);
 }
 
-static int pwmin_tim_isr(int irq, void *context, void *arg)
+int
+PWMIN::pwmin_tim_isr(int irq, void *context, void *arg)
 {
 	uint16_t status = rSR;
 	uint32_t period = rCCR_PWMIN_A;
@@ -112,8 +128,10 @@ static int pwmin_tim_isr(int irq, void *context, void *arg)
 	/* ack the interrupts we just read */
 	rSR = 0;
 
-	if (g_dev != nullptr) {
-		g_dev->publish(status, period, pulse_width);
+	auto obj = get_instance();
+
+	if (obj != nullptr) {
+		obj->publish(status, period, pulse_width);
 	}
 
 	return PX4_OK;
@@ -122,7 +140,7 @@ static int pwmin_tim_isr(int irq, void *context, void *arg)
 void
 PWMIN::publish(uint16_t status, uint32_t period, uint32_t pulse_width)
 {
-	/* if we missed an edge, we have to give up */
+	// if we missed an edge, we have to give up
 	if (status & SR_OVF_PWMIN) {
 		_error_count++;
 		return;
@@ -150,88 +168,49 @@ PWMIN::print_info(void)
 		 static_cast<unsigned>(_last_width));
 }
 
-namespace pwm_input
+int
+PWMIN::print_usage(const char *reason)
 {
-
-static int start()
-{
-	if (g_dev != nullptr) {
-		PX4_ERR("driver already started");
-		return 1;
+	if (reason) {
+		printf("%s\n\n", reason);
 	}
 
-	g_dev = new PWMIN();
+	PRINT_MODULE_DESCRIPTION(
+		R"DESCR_STR(
+### Description
+Measures the PWM input on AUX5 (or MAIN5) via a timer capture ISR and publishes via the uORB 'pwm_input` message.
 
-	if (g_dev == nullptr) {
-		PX4_ERR("driver allocation failed");
+)DESCR_STR");
+
+	PRINT_MODULE_USAGE_NAME("pwm_input", "system");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_COMMAND_DESCR("test", "prints PWM capture info.");
+	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
+
+	return PX4_OK;
+}
+
+int
+PWMIN::custom_command(int argc, char *argv[])
+{
+	const char *input = argv[0];
+	auto *obj = get_instance();
+
+	if (!is_running() || !obj) {
+		PX4_ERR("not running");
 		return PX4_ERROR;
-
 	}
 
-	if (g_dev->init() != PX4_OK) {
-		PX4_ERR("driver init failed");
-		return PX4_ERROR;
+	if (!strcmp(input, "test")) {
+		obj->print_info();
+		return PX4_OK;
 	}
 
-	return PX4_OK;
-}
-
-static int test(void)
-{
-	uint64_t start_time = hrt_absolute_time();
-
-	PX4_INFO("Showing samples for 5 seconds\n");
-
-	while (hrt_absolute_time() < start_time + 5U * 1000UL * 1000UL) {
-
-		g_dev->print_info();
-
-		// sleep for PWM period (50Hz)
-		px4_usleep(20);
-	}
-
-	return PX4_OK;
-}
-
-static int info(void)
-{
-	if (g_dev == nullptr) {
-		PX4_INFO("driver not started\n");
-		return 1;
-	}
-
-	g_dev->print_info();
-	return PX4_OK;
-}
-
-static int usage()
-{
-	PX4_ERR("unrecognized command, try 'start', 'info', 'reset' or 'test'");
-
+	print_usage();
 	return PX4_ERROR;
 }
 
-} // end namespace pwm_input
-
 extern "C" __EXPORT int pwm_input_main(int argc, char *argv[])
 {
-	if (argc < 2) {
-		return pwm_input::usage();
-	}
-
-	const char *verb = argv[1];
-
-	if (!strcmp(verb, "start")) {
-		return pwm_input::start();
-	}
-
-	if (!strcmp(verb, "info")) {
-		return pwm_input::info();
-	}
-
-	if (!strcmp(verb, "test")) {
-		return pwm_input::test();
-	}
-
-	return pwm_input::usage();
+	return PWMIN::main(argc, argv);
 }

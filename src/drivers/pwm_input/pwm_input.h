@@ -32,13 +32,13 @@
  ****************************************************************************/
 
 #include <drivers/drv_hrt.h>
+#include <drivers/device/device.h>
+
+#include <px4_platform_common/module.h>
 
 #include <uORB/uORB.h>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/pwm_input.h>
-
-#include <drivers/device/device.h>
-
 
 #if HRT_TIMER == PWMIN_TIMER
 #error cannot share timer between HRT and PWMIN
@@ -120,13 +120,19 @@
 #error PWMIN_TIMER_CHANNEL must be either 1 and 2.
 #endif
 
-class PWMIN
+class PWMIN : public ModuleBase<PWMIN>
 {
 public:
-	int init();
-
+	void start();
 	void publish(uint16_t status, uint32_t period, uint32_t pulse_width);
 	void print_info(void);
+
+	static int pwmin_tim_isr(int irq, void *context, void *arg);
+
+	static int custom_command(int argc, char *argv[]);
+	static int print_usage(const char *reason = nullptr);
+	static int task_spawn(int argc, char *argv[]);
+
 
 private:
 	void timer_init(void);
@@ -140,18 +146,6 @@ private:
 
 	pwm_input_s _pwm {};
 
-	uORB::PublicationData<pwm_input_s>	_pwm_input_pub { ORB_ID(pwm_input) };
+	uORB::PublicationData<pwm_input_s> _pwm_input_pub { ORB_ID(pwm_input) };
 
 };
-
-static int pwmin_tim_isr(int irq, void *context, void *arg);
-
-namespace pwm_input
-{
-
-static int start();
-static int info(void);
-static int test(void);
-static int usage(void);
-
-}// end namespace pwm_input
