@@ -40,6 +40,8 @@
 
 #include "FailureDetector.hpp"
 
+using namespace time_literals;
+
 FailureDetector::FailureDetector(ModuleParams *parent) :
 	ModuleParams(parent)
 {
@@ -115,8 +117,8 @@ FailureDetector::updateAttitudeStatus()
 		hrt_abstime time_now = hrt_absolute_time();
 
 		// Update hysteresis
-		_roll_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _param_fd_fail_r_ttri.get()));
-		_pitch_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * _param_fd_fail_p_ttri.get()));
+		_roll_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_fail_r_ttri.get()));
+		_pitch_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1_s * _param_fd_fail_p_ttri.get()));
 		_roll_failure_hysteresis.set_state_and_update(roll_status, time_now);
 		_pitch_failure_hysteresis.set_state_and_update(pitch_status, time_now);
 
@@ -146,12 +148,12 @@ FailureDetector::updateExternalAtsStatus()
 	if (updated) {
 
 		uint32_t pulse_width = pwm_input.pulse_width;
-		bool ats_trigger_status = (pulse_width >= (uint32_t)_param_fd_ext_ats_trig.get()) && (pulse_width < (1e3f * 3.0f));
+		bool ats_trigger_status = (pulse_width >= (uint32_t)_param_fd_ext_ats_trig.get()) && (pulse_width < 3_ms);
 
 		hrt_abstime time_now = hrt_absolute_time();
 
 		// Update hysteresis
-		_ext_ats_failure_hysteresis.set_hysteresis_time_from(false, (hrt_abstime)(1e6f * 0.1f)); // 5 consecutive pulses at 50hz
+		_ext_ats_failure_hysteresis.set_hysteresis_time_from(false, 100_ms); // 5 consecutive pulses at 50hz
 		_ext_ats_failure_hysteresis.set_state_and_update(ats_trigger_status, time_now);
 
 		_status &= ~FAILURE_EXT;
