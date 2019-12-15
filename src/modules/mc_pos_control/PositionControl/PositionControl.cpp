@@ -317,12 +317,11 @@ void PositionControl::_velocityControl(const float dt)
 	thrust_max_NE = math::min(thrust_max_NE_tilt, thrust_max_NE);
 
 	// Saturate thrust in NE-direction.
-	Vector2f thrust_sp_xy(_thr_sp);
+	const Vector2f thrust_sp_xy(_thr_sp);
+	const float thrust_sp_xy_norm = thrust_sp_xy.norm();
 
-	if (thrust_sp_xy.norm_squared() > thrust_max_NE * thrust_max_NE) {
-		float mag = thrust_sp_xy.length();
-		_thr_sp(0) = _thr_sp(0) / mag * thrust_max_NE;
-		_thr_sp(1) = _thr_sp(1) / mag * thrust_max_NE;
+	if (thrust_sp_xy_norm > thrust_max_NE) {
+		_thr_sp.xy() = thrust_sp_xy / thrust_sp_xy_norm * thrust_max_NE;
 	}
 
 	// Use tracking Anti-Windup for NE-direction: during saturation, the integrator is used to unsaturate the output
