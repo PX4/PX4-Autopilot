@@ -281,6 +281,12 @@ void PositionControl::_velocityControl(const float dt)
 	Vector3f vel_error = _vel_sp - _vel;
 	Vector3f thr_sp_velocity = vel_error.emult(_gain_vel_p) + _vel_int + _vel_dot.emult(_gain_vel_d);
 	thr_sp_velocity -= Vector3f(0.f, 0.f, _hover_thrust);
+
+	if (PX4_ISFINITE(_thr_sp(0)) && PX4_ISFINITE(_thr_sp(1)) && PX4_ISFINITE(thr_sp_velocity(2))) {
+		// Thrust set-point in NE-direction from FlightTaskManualAltitude is provided. Scaling by the maximum tilt is required.
+		_thr_sp.xy() = Vector2f(_thr_sp) * fabsf(thr_sp_velocity(2)) * tanf(_constraints.tilt);
+	}
+
 	// Velocity and feed-forward thrust setpoints or velocity states being NAN results in them not having an influence
 	ControlMath::addIfNotNanVector3f(_thr_sp, thr_sp_velocity);
 
