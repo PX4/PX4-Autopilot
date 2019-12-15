@@ -238,15 +238,15 @@ bool PositionControl::_interfaceMapping()
 void PositionControl::_positionControl()
 {
 	// P-position controller
-	const Vector3f vel_sp_position = (_pos_sp - _pos).emult(_gain_pos_p);
-	_vel_sp = vel_sp_position + _vel_sp;
+	Vector3f vel_sp_position = (_pos_sp - _pos).emult(_gain_pos_p);
+	// Position and feed-forward velocity setpoints or position states being NAN results in them not having an influence
+	ControlMath::addIfNotNanVector3f(_vel_sp, vel_sp_position);
+	// make sure there are no NAN elements for further reference while constraining
+	ControlMath::setZeroIfNanVector3f(vel_sp_position);
 
 	// Constrain horizontal velocity by prioritizing the velocity component along the
 	// the desired position setpoint over the feed-forward term.
-	const Vector2f vel_sp_xy = ControlMath::constrainXY(Vector2f(vel_sp_position),
-				   Vector2f(_vel_sp - vel_sp_position), _lim_vel_horizontal);
-	_vel_sp(0) = vel_sp_xy(0);
-	_vel_sp(1) = vel_sp_xy(1);
+	_vel_sp.xy() = ControlMath::constrainXY(vel_sp_position.xy(), (_vel_sp - vel_sp_position).xy(), _lim_vel_horizontal);
 	// Constrain velocity in z-direction.
 	_vel_sp(2) = math::constrain(_vel_sp(2), -_constraints.speed_up, _constraints.speed_down);
 }
@@ -281,6 +281,8 @@ void PositionControl::_velocityControl(const float dt)
 	Vector3f vel_error = _vel_sp - _vel;
 	Vector3f thr_sp_velocity = vel_error.emult(_gain_vel_p) + _vel_int + _vel_dot.emult(_gain_vel_d);
 	thr_sp_velocity -= Vector3f(0.f, 0.f, _hover_thrust);
+	// Velocity and feed-forward thrust setpoints or velocity states being NAN results in them not having an influence
+	ControlMath::addIfNotNanVector3f(_thr_sp, thr_sp_velocity);
 
 	// The Thrust limits are negated and swapped due to NED-frame.
 	float uMax = -_lim_thr_min;
@@ -290,8 +292,8 @@ void PositionControl::_velocityControl(const float dt)
 	uMax = math::min(uMax, -10e-4f);
 
 	// Apply Anti-Windup in D-direction.
-	bool stop_integral_D = (thr_sp_velocity(2) >= uMax && vel_error(2) >= 0.0f) ||
-			       (thr_sp_velocity(2) <= uMin && vel_error(2) <= 0.0f);
+	bool stop_integral_D = (_thr_sp(2) >= uMax && vel_error(2) >= 0.0f) ||
+			       (_thr_sp(2) <= uMin && vel_error(2) <= 0.0f);
 
 	if (!stop_integral_D) {
 		_vel_int(2) += vel_error(2) * _gain_vel_i(2) * dt;
@@ -301,7 +303,7 @@ void PositionControl::_velocityControl(const float dt)
 	}
 
 	// Saturate thrust setpoint in D-direction.
-	_thr_sp(2) = math::constrain(thr_sp_velocity(2), uMin, uMax);
+	_thr_sp(2) = math::constrain(_thr_sp(2), uMin, uMax);
 
 	// Get maximum allowed thrust in NE based on tilt and excess thrust.
 	float thrust_max_NE_tilt = fabsf(_thr_sp(2)) * tanf(_constraints.tilt);
@@ -309,15 +311,12 @@ void PositionControl::_velocityControl(const float dt)
 	thrust_max_NE = math::min(thrust_max_NE_tilt, thrust_max_NE);
 
 	// Saturate thrust in NE-direction.
-	_thr_sp(0) = thr_sp_velocity(0);
-	_thr_sp(1) = thr_sp_velocity(1);
-
-	Vector2f thrust_sp_xy(thr_sp_velocity);
+	Vector2f thrust_sp_xy(_thr_sp);
 
 	if (thrust_sp_xy.norm_squared() > thrust_max_NE * thrust_max_NE) {
 		float mag = thrust_sp_xy.length();
-		_thr_sp(0) = thr_sp_velocity(0) / mag * thrust_max_NE;
-		_thr_sp(1) = thr_sp_velocity(1) / mag * thrust_max_NE;
+		_thr_sp(0) = _thr_sp(0) / mag * thrust_max_NE;
+		_thr_sp(1) = _thr_sp(1) / mag * thrust_max_NE;
 	}
 
 	// Use tracking Anti-Windup for NE-direction: during saturation, the integrator is used to unsaturate the output
