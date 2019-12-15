@@ -84,8 +84,12 @@ bool FixedwingLandDetector::_get_landed_state()
 		}
 
 		// set _airspeed_filtered to 0 if airspeed data is invalid
-		_airspeed_filtered = PX4_ISFINITE(_airspeed_validated.true_airspeed_m_s) ? 0.95f * _airspeed_filtered + 0.05f *
-				     _airspeed_validated.true_airspeed_m_s : 0.0f;
+		if (!PX4_ISFINITE(_airspeed_validated.true_airspeed_m_s) || hrt_elapsed_time(&_airspeed_validated.timestamp) > 1_s) {
+			_airspeed_filtered = 0.0f;
+
+		} else {
+			_airspeed_filtered = 0.95f * _airspeed_filtered + 0.05f * _airspeed_validated.true_airspeed_m_s;
+		}
 
 		// A leaking lowpass prevents biases from building up, but
 		// gives a mostly correct response for short impulses.
