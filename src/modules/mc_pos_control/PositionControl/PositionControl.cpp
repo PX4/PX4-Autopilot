@@ -298,14 +298,9 @@ void PositionControl::_velocityControl(const float dt)
 	uMax = math::min(uMax, -10e-4f);
 
 	// Apply Anti-Windup in D-direction.
-	bool stop_integral_D = (_thr_sp(2) >= uMax && vel_error(2) >= 0.0f) ||
-			       (_thr_sp(2) <= uMin && vel_error(2) <= 0.0f);
-
-	if (!stop_integral_D) {
-		_vel_int(2) += vel_error(2) * _gain_vel_i(2) * dt;
-
-		// limit thrust integral
-		_vel_int(2) = math::min(fabsf(_vel_int(2)), _lim_thr_max) * math::sign(_vel_int(2));
+	if ((_thr_sp(2) >= uMax && vel_error(2) >= 0.0f) ||
+	    (_thr_sp(2) <= uMin && vel_error(2) <= 0.0f)) {
+		vel_error(2) = 0.f;
 	}
 
 	// Saturate thrust setpoint in D-direction.
@@ -326,15 +321,16 @@ void PositionControl::_velocityControl(const float dt)
 
 	// Use tracking Anti-Windup for NE-direction: during saturation, the integrator is used to unsaturate the output
 	// see Anti-Reset Windup for PID controllers, L.Rundqwist, 1990
-	float arw_gain = 2.f / _gain_vel_p(0);
+	const float arw_gain = 2.f / _gain_vel_p(0);
+	vel_error.xy() = Vector2f(vel_error) - (arw_gain * (thrust_sp_xy - Vector2f(_thr_sp)));
 
-	Vector2f vel_err_lim;
-	vel_err_lim(0) = vel_error(0) - (thr_sp_velocity(0) - _thr_sp(0)) * arw_gain;
-	vel_err_lim(1) = vel_error(1) - (thr_sp_velocity(1) - _thr_sp(1)) * arw_gain;
+	// Make sure integral doesn't get NAN
+	ControlMath::setZeroIfNanVector3f(vel_error);
+	// Update integral part of velocity control
+	_vel_int += vel_error.emult(_gain_vel_i) * dt;
 
-	// Update integral
-	_vel_int(0) += _gain_vel_i(0) * vel_err_lim(0) * dt;
-	_vel_int(1) += _gain_vel_i(1) * vel_err_lim(1) * dt;
+	// limit thrust integral
+	_vel_int(2) = math::min(fabsf(_vel_int(2)), _lim_thr_max) * math::sign(_vel_int(2));
 }
 
 
