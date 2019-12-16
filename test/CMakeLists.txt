@@ -44,6 +44,6 @@ set(SRCS
    )
 add_executable(ECL_GTESTS ${SRCS})
 
-target_link_libraries(ECL_GTESTS gtest_main ecl_EKF SENSOR_SIMULATOR)
+target_link_libraries(ECL_GTESTS gtest_main ecl_EKF ecl_sensor_sim)
 
 add_test(NAME ECL_GTESTS COMMAND ECL_GTESTS)

@@ -58,7 +58,12 @@ gps_message SensorSimulator::getDefaultGpsData()
 	return gps_data;
 }
 
-void SensorSimulator::run(uint32_t duration)
+void SensorSimulator::run_seconds(float duration_seconds)
+{
+	run_microseconds( uint32_t(duration_seconds * 1e6f) );
+}
+
+void SensorSimulator::run_microseconds(uint32_t duration)
 {
 	// simulate in 1000us steps
 	uint32_t start_time = _time;

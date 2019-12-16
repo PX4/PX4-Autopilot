@@ -63,7 +63,8 @@ public:
 	void setBaroRate(uint32_t rate){ _baro.setRate(rate); }
 	void setGpsRate(uint32_t rate){ _gps.setRate(rate); }
 
-	void run(uint32_t duration);
+	void run_seconds(float duration_seconds);
+	void run_microseconds(uint32_t duration);
 
 	void startGps(){ _gps.start(); }
 	void stopGps(){ _gps.stop(); }
