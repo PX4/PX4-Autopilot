@@ -39,13 +39,15 @@
 
 #include "sensor.h"
 
-namespace sensor_simulator::sensor
+namespace sensor_simulator
+{
+namespace sensor
 {
 
 class Baro: public Sensor
 {
 public:
-	Baro(Ekf* ekf);
+	Baro(std::shared_ptr<Ekf> ekf);
 	~Baro();
 
 	void setData(float baro);
@@ -57,4 +59,5 @@ private:
 
 };
 
+} // namespace sensor
 } // namespace sensor_simulator::sensor

@@ -3,9 +3,8 @@
 namespace sensor_simulator
 {
 
-Sensor::Sensor(Ekf* ekf)
+Sensor::Sensor(std::shared_ptr<Ekf> ekf): _ekf{ekf}
 {
-	_ekf = ekf;
 }
 
 Sensor::~Sensor()
@@ -20,12 +19,12 @@ void Sensor::update(uint32_t time)
 	}
 }
 
-bool Sensor::should_send(uint32_t time)
+bool Sensor::should_send(uint32_t time) const
 {
 	return _is_running && is_time_to_send(time);
 }
 
-bool Sensor::is_time_to_send(uint32_t time)
+bool Sensor::is_time_to_send(uint32_t time) const
 {
 	return (time >= _time_last_data_sent) && ((time - _time_last_data_sent) >= _update_period);
 }

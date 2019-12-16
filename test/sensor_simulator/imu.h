@@ -39,18 +39,20 @@
 
 #include "sensor.h"
 
-namespace sensor_simulator::sensor
+namespace sensor_simulator
+{
+namespace sensor
 {
 
 class Imu: public Sensor
 {
 public:
-	Imu(Ekf* ekf);
+	Imu(std::shared_ptr<Ekf> ekf);
 	~Imu();
 
-	void setData(Vector3f accel, Vector3f gyro);
-	void setAccelData(Vector3f accel);
-	void setGyroData(Vector3f gyro);
+	void setData(const Vector3f& accel, const Vector3f& gyro);
+	void setAccelData(const Vector3f& accel);
+	void setGyroData(const Vector3f& gyro);
 
 private:
 	Vector3f _accel_data;
@@ -60,4 +62,5 @@ private:
 
 };
 
+} // namespace sensor
 } // namespace sensor_simulator::sensor

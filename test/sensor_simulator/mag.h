@@ -39,16 +39,18 @@
 
 #include "sensor.h"
 
-namespace sensor_simulator::sensor
+namespace sensor_simulator
+{
+namespace sensor
 {
 
 class Mag: public Sensor
 {
 public:
-	Mag(Ekf* ekf);
+	Mag(std::shared_ptr<Ekf> ekf);
 	~Mag();
 
-	void setData(Vector3f mag);
+	void setData(const Vector3f& mag);
 
 private:
 	Vector3f _mag_data;
@@ -57,4 +59,5 @@ private:
 
 };
 
+} // namespace sensor
 } // namespace sensor_simulator::sensor

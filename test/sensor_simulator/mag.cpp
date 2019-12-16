@@ -1,9 +1,11 @@
-#include "Mag.h"
+#include "mag.h"
 
-namespace sensor_simulator::sensor
+namespace sensor_simulator
+{
+namespace sensor
 {
 
-Mag::Mag(Ekf* ekf):Sensor(ekf)
+Mag::Mag(std::shared_ptr<Ekf> ekf):Sensor(ekf)
 {
 }
 
@@ -19,9 +21,10 @@ void Mag::send(uint32_t time)
 	_time_last_data_sent = time;
 }
 
-void Mag::setData(Vector3f mag)
+void Mag::setData(const Vector3f& mag)
 {
 	_mag_data = mag;
 }
 
+} // namespace sensor
 } // namespace sensor_simulator::sensor

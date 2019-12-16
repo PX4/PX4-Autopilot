@@ -1,13 +1,13 @@
-#include "SensorSimulator.h"
+#include "sensor_simulator.h"
 
 
-SensorSimulator::SensorSimulator(Ekf* ekf):
+SensorSimulator::SensorSimulator(std::shared_ptr<Ekf> ekf):
+_ekf{ekf},
 _imu{ekf},
 _mag{ekf},
 _baro{ekf},
 _gps{ekf}
 {
-	_ekf = ekf;
 
 	// set default sensor rate in Hz
 	_imu.setRate(250);

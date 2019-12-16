@@ -1,9 +1,11 @@
-#include "Imu.h"
+#include "imu.h"
 
-namespace sensor_simulator::sensor
+namespace sensor_simulator
+{
+namespace sensor
 {
 
-Imu::Imu(Ekf* ekf):Sensor(ekf)
+Imu::Imu(std::shared_ptr<Ekf> ekf):Sensor(ekf)
 {
 }
 
@@ -25,20 +27,21 @@ void Imu::send(uint32_t time)
 	_time_last_data_sent = time;
 }
 
-void Imu::setData(Vector3f accel, Vector3f gyro)
+void Imu::setData(const Vector3f& accel, const Vector3f& gyro)
 {
 	setAccelData(accel);
 	setGyroData(gyro);
 }
 
-void Imu::setAccelData(Vector3f accel)
+void Imu::setAccelData(const Vector3f& accel)
 {
 	_accel_data = accel;
 }
 
-void Imu::setGyroData(Vector3f gyro)
+void Imu::setGyroData(const Vector3f& gyro)
 {
 	_gyro_data = gyro;
 }
 
+} // namespace sensor
 } // namespace sensor_simulator::sensor

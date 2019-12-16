@@ -42,17 +42,20 @@
 
 #pragma once
 
+#include <memory>
+
 #include "imu.h"
 #include "mag.h"
 #include "baro.h"
 #include "gps.h"
 #include "EKF/ekf.h"
 
+using namespace sensor_simulator::sensor;
 
 class SensorSimulator
 {
 public:
-	SensorSimulator(Ekf* ekf);
+	SensorSimulator(std::shared_ptr<Ekf> ekf);
 	~SensorSimulator();
 
 	void setImuRate(uint32_t rate){ _imu.setRate(rate); }
@@ -68,7 +71,7 @@ public:
 	void setImuBias(Vector3f accel_bias, Vector3f gyro_bias);
 
 private:
-	Ekf* _ekf;
+	std::shared_ptr<Ekf> _ekf;
 
 	Imu _imu;
 	Mag _mag;

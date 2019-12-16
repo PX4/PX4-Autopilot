@@ -1,9 +1,11 @@
-#include "Baro.h"
+#include "baro.h"
 
-namespace sensor_simulator::sensor
+namespace sensor_simulator
+{
+namespace sensor
 {
 
-Baro::Baro(Ekf* ekf):Sensor(ekf)
+Baro::Baro(std::shared_ptr<Ekf> ekf):Sensor(ekf)
 {
 }
 
@@ -21,3 +23,6 @@ void Baro::setData(float baro)
 {
 	_baro_data = baro;
 }
+
+} // namespace sensor
+} // namespace sensor_simulator
