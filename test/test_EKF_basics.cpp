@@ -33,14 +33,15 @@
 
 #include <gtest/gtest.h>
 #include <math.h>
+#include <memory>
 #include "EKF/ekf.h"
-#include "SensorSimulator/SensorSimulator.h"
+#include "sensor_simulator/sensor_simulator.h"
 
 
 class EkfInitializationTest : public ::testing::Test {
  public:
 
-	Ekf* _ekf;
+	std::shared_ptr<Ekf> _ekf;
 	SensorSimulator* _sensor_simulator;
 
 	// Duration of initalization with only providing baro,mag and IMU
@@ -49,7 +50,7 @@ class EkfInitializationTest : public ::testing::Test {
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
-		_ekf = new Ekf();
+		_ekf = std::make_shared<Ekf>();
 		_ekf->init(0);
 		_sensor_simulator = new SensorSimulator(_ekf);
 
@@ -60,7 +61,6 @@ class EkfInitializationTest : public ::testing::Test {
 	void TearDown() override
 	{
 		delete _sensor_simulator;
-		delete _ekf;
 	}
 };
 

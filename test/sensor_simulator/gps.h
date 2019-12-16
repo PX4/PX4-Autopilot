@@ -39,16 +39,18 @@
 
 #include "sensor.h"
 
-namespace sensor_simulator::sensor
+namespace sensor_simulator
+{
+namespace sensor
 {
 
 class Gps: public Sensor
 {
 public:
-	Gps(Ekf* ekf);
+	Gps(std::shared_ptr<Ekf> ekf);
 	~Gps();
 
-	void setData(gps_message gps);
+	void setData(const gps_message& gps);
 
 private:
 	gps_message _gps_data;
@@ -57,4 +59,5 @@ private:
 
 };
 
+} // namespace sensor
 } // namespace sensor_simulator::sensor

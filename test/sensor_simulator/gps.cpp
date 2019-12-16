@@ -1,9 +1,11 @@
-#include "Gps.h"
+#include "gps.h"
 
-namespace sensor_simulator::sensor
+namespace sensor_simulator
+{
+namespace sensor
 {
 
-Gps::Gps(Ekf* ekf):Sensor(ekf)
+Gps::Gps(std::shared_ptr<Ekf> ekf):Sensor(ekf)
 {
 }
 
@@ -17,9 +19,10 @@ void Gps::send(uint32_t time)
 	_ekf->setGpsData(time, _gps_data);
 }
 
-void Gps::setData(gps_message gps)
+void Gps::setData(const gps_message& gps)
 {
 	_gps_data = gps;
 }
 
+} // namespace sensor
 } // namespace sensor_simulator::sensor

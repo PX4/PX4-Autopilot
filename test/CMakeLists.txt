@@ -33,7 +33,7 @@
 
 include(gtest.cmake)
 
-add_subdirectory(SensorSimulator)
+add_subdirectory(sensor_simulator)
 
 set(SRCS
 	main.cpp
