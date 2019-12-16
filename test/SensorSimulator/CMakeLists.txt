@@ -33,12 +33,12 @@
 
 
 set(SRCS
-	SensorSimulator.cpp
-	Sensor.cpp
-	Imu.cpp
-	Mag.cpp
-	Baro.cpp
-	Gps.cpp
+	sensor_simulator.cpp
+	sensor.cpp
+	imu.cpp
+	mag.cpp
+	baro.cpp
+	gps.cpp
    )
 
 add_library(SENSOR_SIMULATOR ${SRCS})

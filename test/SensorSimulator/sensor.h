@@ -32,25 +32,52 @@
  ****************************************************************************/
 
 /**
- * Feeds Ekf with Mag data
+ * Base class for defining the interface for simulaton of a sensor
  * @author Kamil Ritz <ka.ritz@hotmail.com>
  */
+
 #pragma once
 
-#include "Sensor.h"
+#include "EKF/ekf.h"
+#include <math.h>
 
-class Baro: public Sensor
+namespace sensor_simulator
+{
+
+class Sensor
 {
 public:
-	Baro(Ekf* ekf);
-	~Baro();
 
-	void setData(float baro);
+	Sensor(Ekf* ekf);
+	virtual ~Sensor();
 
-private:
-	float _baro_data;
+	void update(uint32_t time);
 
-	void send(uint32_t time);
+	void setRate(uint32_t rate){ _update_period = uint32_t(1000000)/rate; }
+
+	bool isRunning(){ return _is_running; }
+
+	void start(){ _is_running = true; }
+
+	void stop(){ _is_running = false; }
+
+protected:
+
+	Ekf* _ekf;
+	// time in microseconds
+	uint32_t _update_period;
+	uint32_t _time_last_data_sent{0};
+
+	bool _is_running{false};
+
+	bool should_send(uint32_t time);
+
+	// Checks that the right amount time passed since last send data to fulfill rate
+	bool is_time_to_send(uint32_t time);
+
+	// call set*Data function of Ekf
+	virtual void send(uint32_t time) = 0;
 
 };
 
+} // namespace sensor_simulator

@@ -37,7 +37,10 @@
  */
 #pragma once
 
-#include "Sensor.h"
+#include "sensor.h"
+
+namespace sensor_simulator::sensor
+{
 
 class Imu: public Sensor
 {
@@ -57,3 +60,4 @@ private:
 
 };
 
+} // namespace sensor_simulator::sensor

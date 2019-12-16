@@ -37,7 +37,10 @@
  */
 #pragma once
 
-#include "Sensor.h"
+#include "sensor.h"
+
+namespace sensor_simulator::sensor
+{
 
 class Gps: public Sensor
 {
@@ -54,3 +57,4 @@ private:
 
 };
 
+} // namespace sensor_simulator::sensor

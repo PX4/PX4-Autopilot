@@ -1,5 +1,8 @@
 #include "Imu.h"
 
+namespace sensor_simulator::sensor
+{
+
 Imu::Imu(Ekf* ekf):Sensor(ekf)
 {
 }
@@ -37,3 +40,5 @@ void Imu::setGyroData(Vector3f gyro)
 {
 	_gyro_data = gyro;
 }
+
+} // namespace sensor_simulator::sensor
