@@ -40,9 +40,12 @@
 
 class EkfInitializationTest : public ::testing::Test {
  public:
+	EkfInitializationTest(): ::testing::Test(),
+	_ekf{std::make_shared<Ekf>()},
+	_sensor_simulator(_ekf) {};
 
 	std::shared_ptr<Ekf> _ekf;
-	SensorSimulator* _sensor_simulator;
+	SensorSimulator _sensor_simulator;
 
 	// Duration of initalization with only providing baro,mag and IMU
 	const uint32_t _init_duration_us{2000000};	// 2s
@@ -50,17 +53,13 @@ class EkfInitializationTest : public ::testing::Test {
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
-		_ekf = std::make_shared<Ekf>();
 		_ekf->init(0);
-		_sensor_simulator = new SensorSimulator(_ekf);
-
-		_sensor_simulator->run(_init_duration_us);
+		_sensor_simulator.run(_init_duration_us);
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
 	void TearDown() override
 	{
-		delete _sensor_simulator;
 	}
 };
 
@@ -110,7 +109,7 @@ TEST_F(EkfInitializationTest, convergesToZero)
 {
 	// GIVEN: initialized EKF with default IMU, baro and mag input for 2s
 	// WHEN: Added more defautl sensor measurements
-	_sensor_simulator->run(4000000); // for further 4s
+	_sensor_simulator.run(4000000); // for further 4s
 
 	float converged_pos[3];
 	float converged_vel[3];
@@ -136,8 +135,8 @@ TEST_F(EkfInitializationTest, gpsFusion)
 	// GIVEN: initialized EKF with default IMU, baro and mag input for 2s
 	// WHEN: setting GPS measurements for 11s, minimum GPS health time is set to 10 sec
 
-	_sensor_simulator->startGps();
-	_sensor_simulator->run(11000000); // for further 3s
+	_sensor_simulator.startGps();
+	_sensor_simulator.run(11000000); // for further 3s
 
 	// THEN: EKF should fuse GPS, but no other position sensor
 	filter_control_status_u control_status;
@@ -175,9 +174,9 @@ TEST_F(EkfInitializationTest, accleBiasEstimation)
 	// WHEN: Added more sensor measurements with accel bias and gps measurements
 	Vector3f accel_bias = {0.0f,0.0f,0.1f};
 
-	_sensor_simulator->startGps();
-	_sensor_simulator->setImuBias(accel_bias, Vector3f{0.0f,0.0f,0.0f});
-	_sensor_simulator->run(10000000);
+	_sensor_simulator.startGps();
+	_sensor_simulator.setImuBias(accel_bias, Vector3f{0.0f,0.0f,0.0f});
+	_sensor_simulator.run(10000000);
 
 	float converged_pos[3];
 	float converged_vel[3];
