@@ -16,6 +16,7 @@ void Sensor::update(uint32_t time)
 	if(should_send(time))
 	{
 		send(time);
+		_time_last_data_sent = time;
 	}
 }
 
