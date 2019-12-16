@@ -32,51 +32,29 @@
  ****************************************************************************/
 
 /**
- * This class is providing methods to feed the ECL EKF with measurement.
- * It takes a pointer to the Ekf object and will manipulate the object
- * by call set*Data functions.
- * It simulates the time to allow for sensor data being set at certain rate
- * and also calls the update method of the EKF
+ * Feeds Ekf with Mag data
  * @author Kamil Ritz <ka.ritz@hotmail.com>
  */
-
 #pragma once
 
-#include "Imu.h"
-#include "Mag.h"
-#include "Baro.h"
-#include "Gps.h"
-#include "EKF/ekf.h"
+#include "sensor.h"
 
+namespace sensor_simulator::sensor
+{
 
-class SensorSimulator
+class Baro: public Sensor
 {
 public:
-	SensorSimulator(Ekf* ekf);
-	~SensorSimulator();
+	Baro(Ekf* ekf);
+	~Baro();
 
-	void setImuRate(uint32_t rate){ _imu.setRate(rate); }
-	void setMagRate(uint32_t rate){ _mag.setRate(rate); }
-	void setBaroRate(uint32_t rate){ _baro.setRate(rate); }
-	void setGpsRate(uint32_t rate){ _gps.setRate(rate); }
-
-	void run(uint32_t duration);
-
-	void startGps(){ _gps.start(); }
-	void stopGps(){ _gps.stop(); }
-
-	void setImuBias(Vector3f accel_bias, Vector3f gyro_bias);
+	void setData(float baro);
 
 private:
-	Ekf* _ekf;
+	float _baro_data;
 
-	Imu _imu;
-	Mag _mag;
-	Baro _baro;
-	Gps _gps;
-
-	uint32_t _time {0};	// in microseconds
-
-	gps_message getDefaultGpsData();
+	void send(uint32_t time);
 
 };
+
+} // namespace sensor_simulator::sensor

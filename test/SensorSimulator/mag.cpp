@@ -1,5 +1,8 @@
 #include "Mag.h"
 
+namespace sensor_simulator::sensor
+{
+
 Mag::Mag(Ekf* ekf):Sensor(ekf)
 {
 }
@@ -20,3 +23,5 @@ void Mag::setData(Vector3f mag)
 {
 	_mag_data = mag;
 }
+
+} // namespace sensor_simulator::sensor

@@ -1,5 +1,8 @@
 #include "Gps.h"
 
+namespace sensor_simulator::sensor
+{
+
 Gps::Gps(Ekf* ekf):Sensor(ekf)
 {
 }
@@ -18,3 +21,5 @@ void Gps::setData(gps_message gps)
 {
 	_gps_data = gps;
 }
+
+} // namespace sensor_simulator::sensor

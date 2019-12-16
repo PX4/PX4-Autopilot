@@ -1,5 +1,8 @@
 #include "Baro.h"
 
+namespace sensor_simulator::sensor
+{
+
 Baro::Baro(Ekf* ekf):Sensor(ekf)
 {
 }

@@ -32,47 +32,51 @@
  ****************************************************************************/
 
 /**
- * Base class for defining the interface for simulaton of a sensor
+ * This class is providing methods to feed the ECL EKF with measurement.
+ * It takes a pointer to the Ekf object and will manipulate the object
+ * by call set*Data functions.
+ * It simulates the time to allow for sensor data being set at certain rate
+ * and also calls the update method of the EKF
  * @author Kamil Ritz <ka.ritz@hotmail.com>
  */
 
 #pragma once
 
+#include "imu.h"
+#include "mag.h"
+#include "baro.h"
+#include "gps.h"
 #include "EKF/ekf.h"
-#include <math.h>
 
-class Sensor
+
+class SensorSimulator
 {
 public:
+	SensorSimulator(Ekf* ekf);
+	~SensorSimulator();
 
-	Sensor(Ekf* ekf);
-	virtual ~Sensor();
+	void setImuRate(uint32_t rate){ _imu.setRate(rate); }
+	void setMagRate(uint32_t rate){ _mag.setRate(rate); }
+	void setBaroRate(uint32_t rate){ _baro.setRate(rate); }
+	void setGpsRate(uint32_t rate){ _gps.setRate(rate); }
 
-	void update(uint32_t time);
+	void run(uint32_t duration);
 
-	void setRate(uint32_t rate){ _update_period = uint32_t(1000000)/rate; }
+	void startGps(){ _gps.start(); }
+	void stopGps(){ _gps.stop(); }
 
-	bool isRunning(){ return _is_running; }
+	void setImuBias(Vector3f accel_bias, Vector3f gyro_bias);
 
-	void start(){ _is_running = true; }
-
-	void stop(){ _is_running = false; }
-
-protected:
-
+private:
 	Ekf* _ekf;
-	// time in microseconds
-	uint32_t _update_period;
-	uint32_t _time_last_data_sent{0};
 
-	bool _is_running{false};
+	Imu _imu;
+	Mag _mag;
+	Baro _baro;
+	Gps _gps;
 
-	bool should_send(uint32_t time);
+	uint32_t _time {0};	// in microseconds
 
-	// Checks that the right amount time passed since last send data to fulfill rate
-	bool is_time_to_send(uint32_t time);
-
-	// call set*Data function of Ekf
-	virtual void send(uint32_t time) = 0;
+	gps_message getDefaultGpsData();
 
 };
