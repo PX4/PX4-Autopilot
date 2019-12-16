@@ -194,19 +194,17 @@ float FlightTaskAutoLineSmoothVel::_getMaxXYSpeed() const
 
 	// constrain velocity to go to the position setpoint first if the position setpoint has been modified by an external source
 	// (eg. Obstacle Avoidance)
-	bool xy_valid = PX4_ISFINITE(_position_setpoint(0)) && PX4_ISFINITE(_position_setpoint(1));
-	bool xy_modified =  xy_valid && Vector2f((_target - _position_setpoint).xy()).longerThan(FLT_EPSILON);
+	bool xy_modified = (_target - _position_setpoint).xy().longerThan(FLT_EPSILON);
 	bool z_valid = PX4_ISFINITE(_position_setpoint(2));
-	bool z_modified =  z_valid && fabsf((_target - _position_setpoint)(2)) > FLT_EPSILON;
+	bool z_modified =  z_valid && fabs((_target - _position_setpoint)(2)) > FLT_EPSILON;
 
-	float max_xy_speed;
+	Vector3f waypoints[3] = {pos_traj, _target, _next_wp};
 
 	if (xy_modified || z_modified) {
-		max_xy_speed = math::trajectory::computeXYSpeedFromWaypoints<2>({pos_traj, _position_setpoint}, config);
-
-	} else {
-		max_xy_speed = math::trajectory::computeXYSpeedFromWaypoints<3>({pos_traj, _target, _next_wp}, config);
+		waypoints[2] = waypoints[1] = _position_setpoint;
 	}
+
+	float max_xy_speed = math::trajectory::computeXYSpeedFromWaypoints<3>(waypoints, config);
 
 	return max_xy_speed;
 }
