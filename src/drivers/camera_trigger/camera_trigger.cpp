@@ -424,15 +424,37 @@ void
 CameraTrigger::shoot_once()
 {
 	if (!_trigger_paused) {
+            param_get(_p_trigger_delay, &_trigger_delay);
 
-		param_get(_p_trigger_delay, &_trigger_delay);
+/*
+            if (_lpos_sub < 0) {
+                    _lpos_sub = orb_subscribe(ORB_ID(vehicle_local_position));
+            }
 
-		// schedule trigger on and off calls
-		hrt_call_after(&_engagecall, 0 + (_trigger_delay * 1000),
-			       (hrt_callout)&CameraTrigger::engage, this);
+            struct vehicle_local_position_s local = {};
+            orb_copy(ORB_ID(vehicle_local_position), _lpos_sub, &local);
 
-		hrt_call_after(&_disengagecall, 0 + (_trigger_delay * 1000) + (_activation_time * 1000),
-			       (hrt_callout)&CameraTrigger::disengage, this);
+            if (local.xy_valid) {
+
+
+                float velocity = sqrtf(local.vx * local.vx + local.vy * local.vy);
+
+                if(velocity > 0.5f){
+                    param_get(_p_trigger_delay, &_trigger_delay);
+                } else {
+                    _trigger_delay = 0.0f;
+                }
+            }
+*/
+
+            // schedule trigger on and off calls
+            hrt_call_after(&_engagecall, 0 + (_trigger_delay * 1000),
+                           (hrt_callout)&CameraTrigger::engage, this);
+
+            hrt_call_after(&_disengagecall, 0 + (_trigger_delay * 1000) + (_activation_time * 1000),
+                           (hrt_callout)&CameraTrigger::disengage, this);
+
+
 	}
 
 }

@@ -27,7 +27,9 @@ public:
 private:
 	int32_t _pwm_camera_shoot = 0;
 	int32_t _pwm_camera_neutral = 0;
-	void setup();
+        int32_t _pwm_camera_shoot2 = 0;
+        int32_t _pwm_camera_neutral2 = 0;
+        void setup();
 
 };
 

@@ -156,23 +156,46 @@ PARAM_DEFINE_FLOAT(TRIG_DISTANCE, 25.0f);
 /**
  * PWM output to trigger shot.
  *
- * @min 1000
- * @max 2000
+ * @min 900
+ * @max 2100
  * @unit us
  * @group Camera trigger
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(TRIG_PWM_SHOOT, 1900);
+PARAM_DEFINE_INT32(TRIG_PWM_SHOOT, 2000);
 
 
 /**
  * PWM neutral output on trigger pin.
  *
- * @min 1000
- * @max 2000
+ * @min 900
+ * @max 2100
  * @unit us
  * @group Camera trigger
  * @reboot_required true
  */
-PARAM_DEFINE_INT32(TRIG_PWM_NEUTRAL, 1500);
+PARAM_DEFINE_INT32(TRIG_PWM_NEUTRAL, 1000);
+
+/**
+ * PWM output to trigger shot.
+ *
+ * @min 900
+ * @max 2100
+ * @unit us
+ * @group Camera trigger
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(TRIG_PWM_SHOOT2, 2000);
+
+
+/**
+ * PWM neutral output on second trigger pin.
+ *
+ * @min 900
+ * @max 2100
+ * @unit us
+ * @group Camera trigger
+ * @reboot_required true
+ */
+PARAM_DEFINE_INT32(TRIG_PWM_NEUTRAL2, 1000);
 
