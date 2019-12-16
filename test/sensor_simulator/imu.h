@@ -58,7 +58,7 @@ private:
 	Vector3f _accel_data;
 	Vector3f _gyro_data;
 
-	void send(uint32_t time);
+	void send(uint32_t time) override;
 
 };
 

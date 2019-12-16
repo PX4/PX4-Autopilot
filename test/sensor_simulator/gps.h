@@ -55,7 +55,7 @@ public:
 private:
 	gps_message _gps_data;
 
-	void send(uint32_t time);
+	void send(uint32_t time) override;
 
 };
 

@@ -55,7 +55,7 @@ public:
 private:
 	float _baro_data;
 
-	void send(uint32_t time);
+	void send(uint32_t time) override;
 
 };
 

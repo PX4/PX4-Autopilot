@@ -48,13 +48,13 @@ class EkfInitializationTest : public ::testing::Test {
 	SensorSimulator _sensor_simulator;
 
 	// Duration of initalization with only providing baro,mag and IMU
-	const uint32_t _init_duration_us{2000000};	// 2s
+	const uint32_t _init_duration_s{2};
 
 	// Setup the Ekf with synthetic measurements
 	void SetUp() override
 	{
 		_ekf->init(0);
-		_sensor_simulator.run(_init_duration_us);
+		_sensor_simulator.run_seconds(_init_duration_s);
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
@@ -107,9 +107,8 @@ TEST_F(EkfInitializationTest, initialControlMode)
 
 TEST_F(EkfInitializationTest, convergesToZero)
 {
-	// GIVEN: initialized EKF with default IMU, baro and mag input for 2s
-	// WHEN: Added more defautl sensor measurements
-	_sensor_simulator.run(4000000); // for further 4s
+	// GIVEN: initialized EKF with default IMU, baro and mag input
+	_sensor_simulator.run_seconds(4);
 
 	float converged_pos[3];
 	float converged_vel[3];
@@ -132,11 +131,11 @@ TEST_F(EkfInitializationTest, convergesToZero)
 
 TEST_F(EkfInitializationTest, gpsFusion)
 {
-	// GIVEN: initialized EKF with default IMU, baro and mag input for 2s
+	// GIVEN: initialized EKF with default IMU, baro and mag input for
 	// WHEN: setting GPS measurements for 11s, minimum GPS health time is set to 10 sec
 
 	_sensor_simulator.startGps();
-	_sensor_simulator.run(11000000); // for further 3s
+	_sensor_simulator.run_seconds(11);
 
 	// THEN: EKF should fuse GPS, but no other position sensor
 	filter_control_status_u control_status;
@@ -176,7 +175,7 @@ TEST_F(EkfInitializationTest, accleBiasEstimation)
 
 	_sensor_simulator.startGps();
 	_sensor_simulator.setImuBias(accel_bias, Vector3f{0.0f,0.0f,0.0f});
-	_sensor_simulator.run(10000000);
+	_sensor_simulator.run_seconds(10);
 
 	float converged_pos[3];
 	float converged_vel[3];

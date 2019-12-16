@@ -41,5 +41,5 @@ set(SRCS
 	gps.cpp
    )
 
-add_library(SENSOR_SIMULATOR ${SRCS})
-target_link_libraries(SENSOR_SIMULATOR ecl_EKF)
+add_library(ecl_sensor_sim ${SRCS})
+target_link_libraries(ecl_sensor_sim ecl_EKF)
