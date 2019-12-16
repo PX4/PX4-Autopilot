@@ -312,32 +312,27 @@ int InputMavlinkCmdMount::update_impl(unsigned int timeout_ms, ControlData **con
 					_ack_vehicle_command(&vehicle_command);
 
 				} else if (vehicle_command.command == vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE) {
-					_stabilize[0] = (uint8_t) vehicle_command.param2 == 1;
-					_stabilize[1] = (uint8_t) vehicle_command.param3 == 1;
-					_stabilize[2] = (uint8_t) vehicle_command.param4 == 1;
+					_stabilize[0] = (int)(vehicle_command.param2 + 0.5f) == 1;
+					_stabilize[1] = (int)(vehicle_command.param3 + 0.5f) == 1;
+					_stabilize[2] = (int)(vehicle_command.param4 + 0.5f) == 1;
+
+					const int params[] = {
+						(int)((float)vehicle_command.param5 + 0.5f),
+						(int)((float)vehicle_command.param6 + 0.5f),
+						(int)(vehicle_command.param7 + 0.5f)
+					};
 
 					for (int i = 0; i < 3; ++i) {
-						float param;
 
-						if (i == 0) {
-							param = vehicle_command.param5;
-
-						} else if (i == 1) {
-							param = vehicle_command.param6;
-
-						} else {
-							param = vehicle_command.param7;
-						}
-
-						if (int(param) == 0) {
+						if (params[i] == 0) {
 							_control_data.type_data.angle.frames[i] =
 								ControlData::TypeData::TypeAngle::Frame::AngleBodyFrame;
 
-						} else if (int(param) == 1) {
+						} else if (params[i] == 1) {
 							_control_data.type_data.angle.frames[i] =
 								ControlData::TypeData::TypeAngle::Frame::AngularRate;
 
-						} else if (int(param) == 2) {
+						} else if (params[i] == 2) {
 							_control_data.type_data.angle.frames[i] =
 								ControlData::TypeData::TypeAngle::Frame::AngleAbsoluteFrame;
 
