@@ -590,36 +590,19 @@ bool is_server_running(int instance, bool server)
 		if (errno == EWOULDBLOCK) {
 			result = true;
 
-			if (server) {
-				// another server is running!
-				errno = 0;
-				close(fd);
-				return true;
-			}
-
 		} else {
 			PX4_ERR("is_server_running: failed to get lock on file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
 			result = false;
 		}
-
-	} else if (!server) {
-		// server is not running yet, and this is the client, so just return false so that the server
-		// can lock the file when it's ready.
-		flock(fd, LOCK_UN);
-		result = false;
-
-	} else {
-		result = true;
 	}
 
-	if (!server) {
+	if (result || !server) {
+		// another server is running!
 		close(fd);
-
-	} else {
-		// note: server leaks the file handle once, on purpose, in order to keep the lock on the file until the process terminates.
-		// in this case we have the lock but we return false so the server code path continues.
-		result = false;
 	}
+
+	// note: server leaks the file handle once, on purpose, in order to keep the lock on the file until the process terminates.
+	// In this case we return false so the server code path continues now that we have the lock.
 
 	errno = 0;
 	return result;
