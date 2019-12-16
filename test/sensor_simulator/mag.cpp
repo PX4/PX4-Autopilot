@@ -18,7 +18,6 @@ void Mag::send(uint32_t time)
 	float mag[3];
 	_mag_data.copyTo(mag);
 	_ekf->setMagData(time,mag);
-	_time_last_data_sent = time;
 }
 
 void Mag::setData(const Vector3f& mag)

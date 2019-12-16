@@ -24,7 +24,6 @@ void Imu::send(uint32_t time)
 	imu_sample.delta_vel = _accel_data * imu_sample.delta_vel_dt;
 
 	_ekf->setIMUData(imu_sample);
-	_time_last_data_sent = time;
 }
 
 void Imu::setData(const Vector3f& accel, const Vector3f& gyro)
