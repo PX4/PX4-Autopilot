@@ -33,6 +33,7 @@
 
 #include <px4_platform_common/px4_config.h>
 #include <px4_platform_common/console_buffer.h>
+#include "logged_topics.h"
 #include "logger.h"
 #include "messages.h"
 #include "watchdog.h"
@@ -410,84 +411,6 @@ bool Logger::request_stop_static()
 	return true;
 }
 
-bool Logger::add_topic(const orb_metadata *topic, uint16_t interval_ms, uint8_t instance)
-{
-	size_t fields_len = strlen(topic->o_fields) + strlen(topic->o_name) + 1; //1 for ':'
-
-	if (fields_len > sizeof(ulog_message_format_s::format)) {
-		PX4_WARN("skip topic %s, format string is too large: %zu (max is %zu)", topic->o_name, fields_len,
-			 sizeof(ulog_message_format_s::format));
-
-		return false;
-	}
-
-	if (_requested_subscriptions->count >= MAX_TOPICS_NUM) {
-		PX4_WARN("Too many subscriptions, failed to add: %s %d", topic->o_name, instance);
-		return false;
-	}
-
-	RequestedSubscription &sub = _requested_subscriptions->sub[_requested_subscriptions->count++];
-	sub.topic = topic;
-	sub.interval_ms = interval_ms;
-	sub.instance = instance;
-	return true;
-}
-
-bool Logger::add_topic(const char *name, uint16_t interval_ms, uint8_t instance)
-{
-	// if we poll on a topic, we don't use the interval and let the polled topic define the maximum interval
-	if (_polling_topic_meta) {
-		interval_ms = 0;
-	}
-
-	if (!_requested_subscriptions) {
-		PX4_ERR("logic error"); // sanity-check: it is a bug if we land here
-		return false;
-	}
-
-	const orb_metadata *const *topics = orb_get_topics();
-	bool success = false;
-
-	for (size_t i = 0; i < orb_topics_count(); i++) {
-		if (strcmp(name, topics[i]->o_name) == 0) {
-			bool already_added = false;
-
-			// check if already added: if so, only update the interval
-			for (int j = 0; j < _requested_subscriptions->count; ++j) {
-				if (_requested_subscriptions->sub[j].topic == topics[i] &&
-				    _requested_subscriptions->sub[j].instance == instance) {
-
-					PX4_DEBUG("logging topic %s(%d), interval: %i, already added, only setting interval",
-						  topics[i]->o_name, instance, interval_ms);
-
-					_requested_subscriptions->sub[j].interval_ms = interval_ms;
-					success = true;
-					already_added = true;
-					break;
-				}
-			}
-
-			if (!already_added) {
-				success = add_topic(topics[i], interval_ms, instance);
-				PX4_DEBUG("logging topic: %s(%d), interval: %i", topics[i]->o_name, instance, interval_ms);
-				break;
-			}
-		}
-	}
-
-	return success;
-}
-
-bool Logger::add_topic_multi(const char *name, uint16_t interval_ms)
-{
-	// add all possible instances
-	for (uint8_t instance = 0; instance < ORB_MULTI_MAX_INSTANCES; instance++) {
-		add_topic(name, interval_ms, instance);
-	}
-
-	return true;
-}
-
 bool Logger::copy_if_updated(int sub_idx, void *buffer, bool try_to_subscribe)
 {
 	LoggerSubscription &sub = _subscriptions[sub_idx];
@@ -513,211 +436,6 @@ bool Logger::copy_if_updated(int sub_idx, void *buffer, bool try_to_subscribe)
 	return updated;
 }
 
-void Logger::add_default_topics()
-{
-	add_topic("actuator_controls_0", 100);
-	add_topic("actuator_controls_1", 100);
-	add_topic("airspeed", 200);
-	add_topic("airspeed_validated", 200);
-	add_topic("camera_capture");
-	add_topic("camera_trigger");
-	add_topic("camera_trigger_secondary");
-	add_topic("cellular_status", 200);
-	add_topic("cpuload");
-	add_topic("estimator_innovations", 200);
-	add_topic("estimator_innovation_variances", 200);
-	add_topic("estimator_innovation_test_ratios", 200);
-	add_topic("ekf_gps_drift");
-	add_topic("esc_status", 250);
-	add_topic("estimator_status", 200);
-	add_topic("home_position");
-	add_topic("input_rc", 200);
-	add_topic("manual_control_setpoint", 200);
-	add_topic("mission");
-	add_topic("mission_result");
-	add_topic("optical_flow", 50);
-	add_topic("position_controller_status", 500);
-	add_topic("position_setpoint_triplet", 200);
-	add_topic("radio_status");
-	add_topic("rate_ctrl_status", 200);
-	add_topic("sensor_combined", 100);
-	add_topic("sensor_preflight", 200);
-	add_topic("system_power", 500);
-	add_topic("tecs_status", 200);
-	add_topic("trajectory_setpoint", 200);
-	add_topic("vehicle_air_data", 200);
-	add_topic("vehicle_angular_velocity", 20);
-	add_topic("vehicle_attitude", 50);
-	add_topic("vehicle_attitude_setpoint", 100);
-	add_topic("vehicle_command");
-	add_topic("vehicle_global_position", 200);
-	add_topic("vehicle_land_detected");
-	add_topic("vehicle_local_position", 100);
-	add_topic("vehicle_local_position_setpoint", 100);
-	add_topic("vehicle_magnetometer", 200);
-	add_topic("vehicle_rates_setpoint", 20);
-	add_topic("vehicle_status", 200);
-	add_topic("vehicle_status_flags");
-	add_topic("vtol_vehicle_status", 200);
-
-	add_topic_multi("actuator_outputs", 100);
-	add_topic_multi("battery_status", 500);
-	add_topic_multi("distance_sensor", 100);
-	add_topic_multi("sensor_accel_status", 1000);
-	add_topic_multi("sensor_gyro_status", 1000);
-	add_topic_multi("telemetry_status");
-	add_topic_multi("vehicle_gps_position");
-	add_topic_multi("wind_estimate", 200);
-
-#ifdef CONFIG_ARCH_BOARD_PX4_SITL
-
-	add_topic("actuator_controls_virtual_fw");
-	add_topic("actuator_controls_virtual_mc");
-	add_topic("fw_virtual_attitude_setpoint");
-	add_topic("mc_virtual_attitude_setpoint");
-	add_topic("offboard_control_mode");
-	add_topic("position_controller_status");
-	add_topic("time_offset");
-	add_topic("vehicle_angular_velocity", 10);
-	add_topic("vehicle_attitude_groundtruth", 10);
-	add_topic("vehicle_global_position_groundtruth", 100);
-	add_topic("vehicle_local_position_groundtruth", 100);
-	add_topic("vehicle_roi");
-
-	add_topic_multi("multirotor_motor_limits");
-
-#endif /* CONFIG_ARCH_BOARD_PX4_SITL */
-}
-
-void Logger::add_high_rate_topics()
-{
-	// maximum rate to analyze fast maneuvers (e.g. for racing)
-	add_topic("actuator_controls_0");
-	add_topic("actuator_outputs");
-	add_topic("manual_control_setpoint");
-	add_topic("rate_ctrl_status");
-	add_topic("sensor_combined");
-	add_topic("vehicle_angular_velocity");
-	add_topic("vehicle_attitude");
-	add_topic("vehicle_attitude_setpoint");
-	add_topic("vehicle_rates_setpoint");
-}
-
-void Logger::add_debug_topics()
-{
-	add_topic("debug_array");
-	add_topic("debug_key_value");
-	add_topic("debug_value");
-	add_topic("debug_vect");
-}
-
-void Logger::add_estimator_replay_topics()
-{
-	// for estimator replay (need to be at full rate)
-	add_topic("ekf2_timestamps");
-	add_topic("ekf_gps_position");
-
-	// current EKF2 subscriptions
-	add_topic("airspeed");
-	add_topic("optical_flow");
-	add_topic("sensor_combined");
-	add_topic("sensor_selection");
-	add_topic("vehicle_air_data");
-	add_topic("vehicle_land_detected");
-	add_topic("vehicle_magnetometer");
-	add_topic("vehicle_status");
-	add_topic("vehicle_visual_odometry");
-	add_topic("vehicle_visual_odometry_aligned");
-	add_topic_multi("distance_sensor");
-	add_topic_multi("vehicle_gps_position");
-}
-
-void Logger::add_thermal_calibration_topics()
-{
-	add_topic_multi("sensor_accel", 100);
-	add_topic_multi("sensor_baro", 100);
-	add_topic_multi("sensor_gyro", 100);
-}
-
-void Logger::add_sensor_comparison_topics()
-{
-	add_topic_multi("sensor_accel", 100);
-	add_topic_multi("sensor_baro", 100);
-	add_topic_multi("sensor_gyro", 100);
-	add_topic_multi("sensor_mag", 100);
-}
-
-void Logger::add_vision_and_avoidance_topics()
-{
-	add_topic("collision_constraints");
-	add_topic("obstacle_distance_fused");
-	add_topic("onboard_computer_status", 200);
-	add_topic("vehicle_mocap_odometry", 30);
-	add_topic("vehicle_trajectory_waypoint", 200);
-	add_topic("vehicle_trajectory_waypoint_desired", 200);
-	add_topic("vehicle_visual_odometry", 30);
-}
-
-void Logger::add_system_identification_topics()
-{
-	// for system id need to log imu and controls at full rate
-	add_topic("actuator_controls_0");
-	add_topic("actuator_controls_1");
-	add_topic("sensor_combined");
-}
-
-int Logger::add_topics_from_file(const char *fname)
-{
-	int ntopics = 0;
-
-	/* open the topic list file */
-	FILE *fp = fopen(fname, "r");
-
-	if (fp == nullptr) {
-		return -1;
-	}
-
-	/* call add_topic for each topic line in the file */
-	for (;;) {
-		/* get a line, bail on error/EOF */
-		char line[80];
-		line[0] = '\0';
-
-		if (fgets(line, sizeof(line), fp) == nullptr) {
-			break;
-		}
-
-		/* skip comment lines */
-		if ((strlen(line) < 2) || (line[0] == '#')) {
-			continue;
-		}
-
-		// read line with format: <topic_name>[, <interval>]
-		char topic_name[80];
-		uint32_t interval_ms = 0;
-		int nfields = sscanf(line, "%s %u", topic_name, &interval_ms);
-
-		if (nfields > 0) {
-			int name_len = strlen(topic_name);
-
-			if (name_len > 0 && topic_name[name_len - 1] == ',') {
-				topic_name[name_len - 1] = '\0';
-			}
-
-			/* add topic with specified interval_ms */
-			if (add_topic(topic_name, interval_ms)) {
-				ntopics++;
-
-			} else {
-				PX4_ERR("Failed to add topic %s", topic_name);
-			}
-		}
-	}
-
-	fclose(fp);
-	return ntopics;
-}
-
 const char *Logger::configured_backend_mode() const
 {
 	switch (_writer.backend()) {
@@ -731,70 +449,7 @@ const char *Logger::configured_backend_mode() const
 	}
 }
 
-void Logger::initialize_mission_topics(MissionLogType type)
-{
-	if (type == MissionLogType::Complete) {
-		add_mission_topic("camera_capture");
-		add_mission_topic("mission_result");
-		add_mission_topic("vehicle_global_position", 1000);
-		add_mission_topic("vehicle_status", 1000);
-
-	} else if (type == MissionLogType::Geotagging) {
-		add_mission_topic("camera_capture");
-	}
-}
-
 bool Logger::initialize_topics(MissionLogType mission_log_mode)
-{
-	RequestedSubscriptionArray requested_subscriptions;
-	_requested_subscriptions = &requested_subscriptions;
-
-	// mission log topics if enabled (must be added first)
-	if (mission_log_mode != MissionLogType::Disabled) {
-		initialize_mission_topics((MissionLogType)mission_log_mode);
-
-		if (_num_mission_subs > 0) {
-			int mkdir_ret = mkdir(LOG_ROOT[(int)LogType::Mission], S_IRWXU | S_IRWXG | S_IRWXO);
-
-			if (mkdir_ret != 0 && errno != EEXIST) {
-				PX4_ERR("failed creating log root dir: %s (%i)", LOG_ROOT[(int)LogType::Mission], errno);
-			}
-		}
-	}
-
-	int ntopics = add_topics_from_file(PX4_STORAGEDIR "/etc/logging/logger_topics.txt");
-
-	if (ntopics > 0) {
-		PX4_INFO("logging %d topics from logger_topics.txt", ntopics);
-
-	} else {
-		initialize_configured_topics();
-	}
-
-	delete[](_subscriptions);
-	_subscriptions = nullptr;
-
-	// now that we know how many subscriptions we need, move _requested_subscriptions into _subscriptions
-	if (requested_subscriptions.count > 0) {
-		_subscriptions = new LoggerSubscription[requested_subscriptions.count];
-
-		if (!_subscriptions) {
-			PX4_ERR("alloc failed");
-			return false;
-		}
-
-		for (int i = 0; i < requested_subscriptions.count; ++i) {
-			const RequestedSubscription &sub = requested_subscriptions.sub[i];
-			_subscriptions[i] = LoggerSubscription(sub.topic, sub.interval_ms, sub.instance);
-		}
-	}
-
-	_num_subscriptions = requested_subscriptions.count;
-	_requested_subscriptions = nullptr;
-	return true;
-}
-
-void Logger::initialize_configured_topics()
 {
 	// get the logging profile
 	SDLogProfileMask sdlog_profile = SDLogProfileMask::DEFAULT;
@@ -808,54 +463,55 @@ void Logger::initialize_configured_topics()
 		sdlog_profile = SDLogProfileMask::DEFAULT;
 	}
 
-	// load appropriate topics for profile
-	// the order matters: if several profiles add the same topic, the logging rate of the last one will be used
-	if (sdlog_profile & SDLogProfileMask::DEFAULT) {
-		add_default_topics();
+	LoggedTopics logged_topics;
+
+	// initialize mission topics
+	logged_topics.initialize_mission_topics(mission_log_mode);
+	_num_mission_subs = logged_topics.numMissionSubscriptions();
+
+	if (_num_mission_subs > 0) {
+		if (_num_mission_subs >= MAX_MISSION_TOPICS_NUM) {
+			PX4_ERR("Max num mission topics exceeded (%i)", _num_mission_subs);
+			_num_mission_subs = MAX_MISSION_TOPICS_NUM;
+		}
+
+		for (int i = 0; i < _num_mission_subs; ++i) {
+			_mission_subscriptions[i].min_delta_ms = logged_topics.subscriptions().sub[i].interval_ms;
+			_mission_subscriptions[i].next_write_time = 0;
+		}
+
+		int mkdir_ret = mkdir(LOG_ROOT[(int)LogType::Mission], S_IRWXU | S_IRWXG | S_IRWXO);
+
+		if (mkdir_ret != 0 && errno != EEXIST) {
+			PX4_ERR("failed creating log root dir: %s (%i)", LOG_ROOT[(int)LogType::Mission], errno);
+		}
 	}
 
-	if (sdlog_profile & SDLogProfileMask::ESTIMATOR_REPLAY) {
-		add_estimator_replay_topics();
+	if (!logged_topics.initialize_logged_topics(sdlog_profile)) {
+		return false;
 	}
 
-	if (sdlog_profile & SDLogProfileMask::THERMAL_CALIBRATION) {
-		add_thermal_calibration_topics();
+	delete[](_subscriptions);
+	_subscriptions = nullptr;
+
+	if (logged_topics.subscriptions().count > 0) {
+		_subscriptions = new LoggerSubscription[logged_topics.subscriptions().count];
+
+		if (!_subscriptions) {
+			PX4_ERR("alloc failed");
+			return false;
+		}
+
+		for (int i = 0; i < logged_topics.subscriptions().count; ++i) {
+			const LoggedTopics::RequestedSubscription &sub = logged_topics.subscriptions().sub[i];
+			// if we poll on a topic, we don't use the interval and let the polled topic define the maximum interval
+			uint16_t interval_ms = _polling_topic_meta ? 0 : sub.interval_ms;
+			_subscriptions[i] = LoggerSubscription(sub.topic, interval_ms, sub.instance);
+		}
 	}
 
-	if (sdlog_profile & SDLogProfileMask::SYSTEM_IDENTIFICATION) {
-		add_system_identification_topics();
-	}
-
-	if (sdlog_profile & SDLogProfileMask::HIGH_RATE) {
-		add_high_rate_topics();
-	}
-
-	if (sdlog_profile & SDLogProfileMask::DEBUG_TOPICS) {
-		add_debug_topics();
-	}
-
-	if (sdlog_profile & SDLogProfileMask::SENSOR_COMPARISON) {
-		add_sensor_comparison_topics();
-	}
-
-	if (sdlog_profile & SDLogProfileMask::VISION_AND_AVOIDANCE) {
-		add_vision_and_avoidance_topics();
-	}
-}
-
-
-void Logger::add_mission_topic(const char *name, uint32_t interval_ms)
-{
-	if (_num_mission_subs >= MAX_MISSION_TOPICS_NUM) {
-		PX4_ERR("Max num mission topics exceeded");
-		return;
-	}
-
-	if (add_topic(name, interval_ms)) {
-		_mission_subscriptions[_num_mission_subs].min_delta_ms = interval_ms;
-		_mission_subscriptions[_num_mission_subs].next_write_time = 0;
-		++_num_mission_subs;
-	}
+	_num_subscriptions = logged_topics.subscriptions().count;
+	return true;
 }
 
 void Logger::run()

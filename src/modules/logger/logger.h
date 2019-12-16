@@ -61,28 +61,6 @@ namespace px4
 namespace logger
 {
 
-enum class SDLogProfileMask : int32_t {
-	DEFAULT =               1 << 0,
-	ESTIMATOR_REPLAY =      1 << 1,
-	THERMAL_CALIBRATION =   1 << 2,
-	SYSTEM_IDENTIFICATION = 1 << 3,
-	HIGH_RATE =             1 << 4,
-	DEBUG_TOPICS =          1 << 5,
-	SENSOR_COMPARISON =     1 << 6,
-	VISION_AND_AVOIDANCE =  1 << 7
-};
-
-enum class MissionLogType : int32_t {
-	Disabled =               0,
-	Complete =               1,
-	Geotagging =             2
-};
-
-inline bool operator&(SDLogProfileMask a, SDLogProfileMask b)
-{
-	return static_cast<int32_t>(a) & static_cast<int32_t>(b);
-}
-
 static constexpr uint8_t MSG_ID_INVALID = UINT8_MAX;
 
 struct LoggerSubscription : public uORB::SubscriptionInterval {
@@ -137,24 +115,6 @@ public:
 	void setReplayFile(const char *file_name);
 
 	/**
-	 * Add a topic to be logged. This must be called before start_log()
-	 * (because it does not write an ADD_LOGGED_MSG message).
-	 * @param name topic name
-	 * @param interval limit in milliseconds if >0, otherwise log as fast as the topic is updated.
-	 * @param instance orb topic instance
-	 * @return true on success
-	 */
-	bool add_topic(const char *name, uint16_t interval_ms = 0, uint8_t instance = 0);
-	bool add_topic_multi(const char *name, uint16_t interval_ms = 0);
-
-	/**
-	 * add a logged topic (called by add_topic() above).
-	 * In addition, it subscribes to the first instance of the topic, if it's advertised,
-	 * @return true on success
-	 */
-	bool add_topic(const orb_metadata *topic, uint16_t interval_ms = 0, uint8_t instance = 0);
-
-	/**
 	 * request the logger thread to stop (this method does not block).
 	 * @return true if the logger is stopped, false if (still) running
 	 */
@@ -172,7 +132,6 @@ private:
 		Watchdog
 	};
 
-	static constexpr int 		MAX_TOPICS_NUM = 250; /**< Maximum number of logged topics */
 	static constexpr int		MAX_MISSION_TOPICS_NUM = 5; /**< Maximum number of mission topics */
 	static constexpr unsigned	MAX_NO_LOGFILE = 999;	/**< Maximum number of log files */
 	static constexpr const char	*LOG_ROOT[(int)LogType::Count] = {
@@ -198,16 +157,6 @@ private:
 	struct MissionSubscription {
 		unsigned min_delta_ms{0};        ///< minimum time between 2 topic writes [ms]
 		unsigned next_write_time{0};     ///< next time to write in 0.1 seconds
-	};
-
-	struct RequestedSubscription {
-		const orb_metadata *topic;
-		uint16_t interval_ms;
-		uint8_t instance;
-	};
-	struct RequestedSubscriptionArray {
-		RequestedSubscription sub[MAX_TOPICS_NUM];
-		int count;
 	};
 
 	/**
@@ -312,45 +261,11 @@ private:
 	bool write_message(LogType type, void *ptr, size_t size);
 
 	/**
-	 * Parse a file containing a list of uORB topics to log, calling add_topic for each
-	 * @param fname name of file
-	 * @return number of topics added
-	 */
-	int add_topics_from_file(const char *fname);
-
-	/**
-	 * Add topic subscriptions based on the configured mission log type
-	 */
-	void initialize_mission_topics(MissionLogType type);
-
-	/**
-	 * Add a topic to be logged for the mission log (it's also added to the full log).
-	 * The interval is expected to be 0 or large (in the order of 0.1 seconds or higher).
-	 * Must be called before all other topics are added.
-	 * @param name topic name
-	 * @param interval limit rate if >0 [ms], otherwise log as fast as the topic is updated.
-	 */
-	void add_mission_topic(const char *name, uint32_t interval_ms = 0);
-
-	/**
-	 * Add topic subscriptions from SD file if it exists, otherwise call initialize_configured_topics()
+	 * Add topic subscriptions from SD file if it exists, otherwise add topics based on the configured profile.
+	 * This must be called before start_log() (because it does not write an ADD_LOGGED_MSG message).
 	 * @return true on success
 	 */
 	bool initialize_topics(MissionLogType mission_log_mode);
-
-	/**
-	 * Add topic subscriptions based on the _sdlog_profile_handle parameter
-	 */
-	void initialize_configured_topics();
-
-	void add_default_topics();
-	void add_estimator_replay_topics();
-	void add_thermal_calibration_topics();
-	void add_system_identification_topics();
-	void add_high_rate_topics();
-	void add_debug_topics();
-	void add_sensor_comparison_topics();
-	void add_vision_and_avoidance_topics();
 
 	/**
 	 * check current arming state or aux channel and start/stop logging if state changed and according to
@@ -397,7 +312,6 @@ private:
 	LogMode						_log_mode;
 	const bool					_log_name_timestamp;
 
-	RequestedSubscriptionArray 			*_requested_subscriptions{nullptr}; ///< used during initialize_topics(), then translated to _subscriptions
 	LoggerSubscription	 			*_subscriptions{nullptr}; ///< all subscriptions for full & mission log (in front)
 	int						_num_subscriptions{0};
 	MissionSubscription 				_mission_subscriptions[MAX_MISSION_TOPICS_NUM] {}; ///< additional data for mission subscriptions
