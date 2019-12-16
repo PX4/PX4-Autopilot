@@ -18,6 +18,7 @@ px4_add_board(
 		gps
 		#imu # all available imu drivers
 		imu/mpu9250
+		pca9685_pwm
 		linux_pwm_out
 		linux_sbus
 		#magnetometer # all available magnetometer drivers
