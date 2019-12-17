@@ -32,53 +32,33 @@
  ****************************************************************************/
 
 /**
- * Base class for defining the interface for simulaton of a sensor
+ * Feeds Ekf with optical flow data
  * @author Kamil Ritz <ka.ritz@hotmail.com>
  */
-
 #pragma once
 
-#include "EKF/ekf.h"
-#include <math.h>
-#include <memory>
+#include "sensor.h"
 
 namespace sensor_simulator
 {
+namespace sensor
+{
 
-class Sensor
+class Flow: public Sensor
 {
 public:
+	Flow(std::shared_ptr<Ekf> ekf);
+	~Flow();
 
-	Sensor(std::shared_ptr<Ekf> ekf);
-	virtual ~Sensor();
+	void setData(const flow_message& flow);
+	flow_message dataAtRest();
 
-	void update(uint32_t time);
+private:
+	flow_message _flow_data;
 
-	void setRateHz(uint32_t rate){ _update_period = uint32_t(1000000)/rate; }
-
-	bool isRunning() const { return _is_running; }
-
-	void start(){ _is_running = true; }
-
-	void stop(){ _is_running = false; }
-
-protected:
-
-	std::shared_ptr<Ekf> _ekf;
-	// time in microseconds
-	uint32_t _update_period;
-	uint32_t _time_last_data_sent{0};
-
-	bool _is_running{false};
-
-	bool should_send(uint32_t time) const;
-
-	// Checks that the right amount time passed since last send data to fulfill rate
-	bool is_time_to_send(uint32_t time) const;
-
-	// call set*Data function of Ekf
-	virtual void send(uint32_t time) = 0;
+	void send(uint32_t time) override;
 
 };
 
+} // namespace sensor
 } // namespace sensor_simulator

@@ -344,7 +344,7 @@ void EstimatorInterface::setRangeData(uint64_t time_usec, float data, int8_t qua
 	}
 }
 
-// set optical flow data
+// TODO: Change pointer to constant reference
 void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *flow)
 {
 	if (!_initialised || _flow_buffer_fail) {
@@ -366,7 +366,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 	if ((time_usec - _time_last_optflow) > _min_obs_interval_us) {
 		// check if enough integration time and fail if integration time is less than 50%
 		// of min arrival interval because too much data is being lost
-		float delta_time = 1e-6f * (float)flow->dt;
+		float delta_time = 1e-6f * (float)flow->dt; // in seconds
 		float delta_time_min = 5e-7f * (float)_min_obs_interval_us;
 		bool delta_time_good = delta_time >= delta_time_min;
 
@@ -407,7 +407,6 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 			optflow_sample_new.gyroXYZ = - flow->gyrodata;
 			optflow_sample_new.flowRadXY = -flow->flowdata;
 
-			// convert integration interval to seconds
 			optflow_sample_new.dt = delta_time;
 			_time_last_optflow = time_usec;
 

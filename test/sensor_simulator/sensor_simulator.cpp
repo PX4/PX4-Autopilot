@@ -3,29 +3,16 @@
 
 SensorSimulator::SensorSimulator(std::shared_ptr<Ekf> ekf):
 _ekf{ekf},
-_imu{ekf},
-_mag{ekf},
-_baro{ekf},
-_gps{ekf}
+_imu(ekf),
+_mag(ekf),
+_baro(ekf),
+_gps(ekf),
+_flow(ekf),
+_rng(ekf)
 {
-
-	// set default sensor rate in Hz
-	_imu.setRate(250);
-	_mag.setRate(80);
-	_baro.setRate(80);
-	_gps.setRate(5);
-
-	// set default sensor data
-	_imu.setData(Vector3f{0.0f,0.0f,-CONSTANTS_ONE_G},
-		     Vector3f{0.0f,0.0f,0.0f});
-	_mag.setData(Vector3f{0.2f, 0.0f, 0.4f});
-	_baro.setData(122.2f);
-	_gps.setData(getDefaultGpsData());
-
-	// start default sensor
-	_imu.start();
-	_mag.start();
-	_baro.start();
+	setSensorDataToDefault();
+	setSensorRateToDefault();
+	startBasicSensor();
 }
 
 SensorSimulator::~SensorSimulator()
@@ -33,40 +20,41 @@ SensorSimulator::~SensorSimulator()
 
 }
 
-gps_message SensorSimulator::getDefaultGpsData()
+void SensorSimulator::setSensorDataToDefault()
 {
-	// setup gps message to reasonable default values
-	gps_message gps_data{};
-	gps_data.time_usec = 0;
-	gps_data.lat = 473566094;
-	gps_data.lon = 85190237;
-	gps_data.alt = 422056;
-	gps_data.yaw = 0.0f;
-	gps_data.yaw_offset = 0.0f;
-	gps_data.fix_type = 3;
-	gps_data.eph = 0.5f;
-	gps_data.epv = 0.8f;
-	gps_data.sacc = 0.2f;
-	gps_data.vel_m_s = 0.0;
-	gps_data.vel_ned[0] = 0.0f;
-	gps_data.vel_ned[1] = 0.0f;
-	gps_data.vel_ned[2] = 0.0f;
-	gps_data.vel_ned_valid = 1;
-	gps_data.nsats = 16;
-	gps_data.pdop = 0.0f;
-
-	return gps_data;
+	_imu.setRateHz(250);
+	_mag.setRateHz(80);
+	_baro.setRateHz(80);
+	_gps.setRateHz(5);
+	_flow.setRateHz(50);
+	_rng.setRateHz(30);
+}
+void SensorSimulator::setSensorRateToDefault()
+{
+	_imu.setData(Vector3f{0.0f,0.0f,-CONSTANTS_ONE_G},
+		     Vector3f{0.0f,0.0f,0.0f});
+	_mag.setData(Vector3f{0.2f, 0.0f, 0.4f});
+	_baro.setData(122.2f);
+	_gps.setData(_gps.getDefaultGpsData());
+	_flow.setData(_flow.dataAtRest());
+	_rng.setData(0.2f, 100);
+}
+void SensorSimulator::startBasicSensor()
+{
+	_imu.start();
+	_mag.start();
+	_baro.start();
 }
 
-void SensorSimulator::run_seconds(float duration_seconds)
+void SensorSimulator::runSeconds(float duration_seconds)
 {
-	run_microseconds( uint32_t(duration_seconds * 1e6f) );
+	runMicroseconds( uint32_t(duration_seconds * 1e6f) );
 }
 
-void SensorSimulator::run_microseconds(uint32_t duration)
+void SensorSimulator::runMicroseconds(uint32_t duration)
 {
 	// simulate in 1000us steps
-	uint32_t start_time = _time;
+	const uint32_t start_time = _time;
 
 	for(;_time < start_time + duration; _time+=1000)
 	{
@@ -74,6 +62,8 @@ void SensorSimulator::run_microseconds(uint32_t duration)
 		_mag.update(_time);
 		_baro.update(_time);
 		_gps.update(_time);
+		_flow.update(_time);
+		_rng.update(_time);
 
 		_ekf->update();
 	}

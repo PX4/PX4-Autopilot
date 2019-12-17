@@ -26,4 +26,4 @@ void Mag::setData(const Vector3f& mag)
 }
 
 } // namespace sensor
-} // namespace sensor_simulator::sensor
+} // namespace sensor_simulator

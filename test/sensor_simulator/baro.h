@@ -60,4 +60,4 @@ private:
 };
 
 } // namespace sensor
-} // namespace sensor_simulator::sensor
+} // namespace sensor_simulator

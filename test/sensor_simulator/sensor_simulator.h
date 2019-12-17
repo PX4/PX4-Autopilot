@@ -48,39 +48,47 @@
 #include "mag.h"
 #include "baro.h"
 #include "gps.h"
+#include "flow.h"
+#include "range_finder.h"
 #include "EKF/ekf.h"
 
 using namespace sensor_simulator::sensor;
 
 class SensorSimulator
 {
+
+private:
+	std::shared_ptr<Ekf> _ekf;
+
+	uint32_t _time {0};	// in microseconds
+
+	void setSensorDataToDefault();
+	void setSensorRateToDefault();
+	void startBasicSensor();
+
 public:
 	SensorSimulator(std::shared_ptr<Ekf> ekf);
 	~SensorSimulator();
 
-	void setImuRate(uint32_t rate){ _imu.setRate(rate); }
-	void setMagRate(uint32_t rate){ _mag.setRate(rate); }
-	void setBaroRate(uint32_t rate){ _baro.setRate(rate); }
-	void setGpsRate(uint32_t rate){ _gps.setRate(rate); }
-
-	void run_seconds(float duration_seconds);
-	void run_microseconds(uint32_t duration);
+	void runSeconds(float duration_seconds);
+	void runMicroseconds(uint32_t duration);
 
 	void startGps(){ _gps.start(); }
 	void stopGps(){ _gps.stop(); }
 
-	void setImuBias(Vector3f accel_bias, Vector3f gyro_bias);
+	void startFlow(){ _flow.start(); }
+	void stopFlow(){ _flow.stop(); }
 
-private:
-	std::shared_ptr<Ekf> _ekf;
+	void startRangeFinder(){ _rng.start(); }
+	void stopRangeFinder(){ _rng.stop(); }
+
+	void setImuBias(Vector3f accel_bias, Vector3f gyro_bias);
 
 	Imu _imu;
 	Mag _mag;
 	Baro _baro;
 	Gps _gps;
-
-	uint32_t _time {0};	// in microseconds
-
-	gps_message getDefaultGpsData();
+	Flow _flow;
+	RangeFinder _rng;
 
 };

@@ -32,53 +32,43 @@
  ****************************************************************************/
 
 /**
- * Base class for defining the interface for simulaton of a sensor
+ * Wrapper class for Ekf object to set behavior or check status
  * @author Kamil Ritz <ka.ritz@hotmail.com>
  */
-
 #pragma once
 
-#include "EKF/ekf.h"
-#include <math.h>
 #include <memory>
+#include "EKF/ekf.h"
+#include "EKF/estimator_interface.h"
 
-namespace sensor_simulator
-{
-
-class Sensor
+class EkfWrapper
 {
 public:
+	EkfWrapper(std::shared_ptr<Ekf> ekf);
+	~EkfWrapper();
 
-	Sensor(std::shared_ptr<Ekf> ekf);
-	virtual ~Sensor();
+	void enableGpsFusion();
 
-	void update(uint32_t time);
+	void disableGpsFusion();
 
-	void setRateHz(uint32_t rate){ _update_period = uint32_t(1000000)/rate; }
+	bool isIntendingGpsFusion() const;
 
-	bool isRunning() const { return _is_running; }
+	void enableFlowFusion();
 
-	void start(){ _is_running = true; }
+	void disableFlowFusion();
 
-	void stop(){ _is_running = false; }
+	bool isIntendingFlowFusion() const;
 
-protected:
+	Vector3f getPosition() const;
+	Vector3f getVelocity() const;
+	Vector3f getAccelBias() const;
+	Vector3f getGyroBias() const;
 
+
+private:
 	std::shared_ptr<Ekf> _ekf;
-	// time in microseconds
-	uint32_t _update_period;
-	uint32_t _time_last_data_sent{0};
 
-	bool _is_running{false};
-
-	bool should_send(uint32_t time) const;
-
-	// Checks that the right amount time passed since last send data to fulfill rate
-	bool is_time_to_send(uint32_t time) const;
-
-	// call set*Data function of Ekf
-	virtual void send(uint32_t time) = 0;
+	// Pointer to Ekf internal param struct
+	parameters* _ekf_params;
 
 };
-
-} // namespace sensor_simulator
