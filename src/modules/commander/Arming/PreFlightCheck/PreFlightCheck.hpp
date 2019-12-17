@@ -82,7 +82,7 @@ public:
 				   const bool checkGNSS, bool reportFailures, const bool prearm, const hrt_abstime &time_since_boot);
 
 	static bool preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
-				const safety_s &safety, const uint8_t arm_requirements);
+				const safety_s &safety, const uint8_t arm_requirements, const vehicle_status_s &status);
 
 	typedef enum {
 		ARM_REQ_NONE = 0,
