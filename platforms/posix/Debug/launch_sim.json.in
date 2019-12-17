@@ -14,7 +14,7 @@
                 "${workspaceFolder}/test_data"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build/px4_sitl_default/tmp",
+            "cwd": "${command:cmake.buildDirectory}/tmp",
             "environment": [
                 {
                     "name": "PX4_SIM_MODEL",
@@ -63,7 +63,7 @@
                 "${workspaceFolder}/test_data"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build/px4_sitl_default/tmp",
+            "cwd": "${command:cmake.buildDirectory}/tmp",
             "environment": [
                 {
                     "name": "PX4_SIM_MODEL",
@@ -112,7 +112,7 @@
                 "${workspaceFolder}/test_data"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build/px4_sitl_default/tmp",
+            "cwd": "${command:cmake.buildDirectory}/tmp",
             "environment": [
                 {
                     "name": "PX4_SIM_MODEL",
@@ -161,7 +161,7 @@
                 "${workspaceFolder}/test_data"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build/px4_sitl_default/tmp",
+            "cwd": "${command:cmake.buildDirectory}/tmp",
             "environment": [
                 {
                     "name": "PX4_SIM_MODEL",
@@ -210,7 +210,7 @@
                 "${workspaceFolder}/test_data"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build/px4_sitl_default/tmp",
+            "cwd": "${command:cmake.buildDirectory}/tmp",
             "environment": [
                 {
                     "name": "PX4_SIM_MODEL",
@@ -258,7 +258,7 @@
                 "${workspaceFolder}/test_data"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/build/px4_sitl_default/tmp",
+            "cwd": "${command:cmake.buildDirectory}/tmp",
             "environment": [
                 {
                     "name": "PX4_SIM_MODEL",
@@ -290,6 +290,6 @@
                     }
                 ]
             }
-        },
+        }
     ]
 }

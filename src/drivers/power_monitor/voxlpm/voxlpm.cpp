@@ -46,7 +46,9 @@
 VOXLPM::VOXLPM(const char *path, int bus, int address, VOXLPM_CH_TYPE ch_type) :
 	I2C("voxlpm", path, bus, address, 400000),
 	ScheduledWorkItem(MODULE_NAME, px4::device_bus_to_wq(I2C::get_device_id())),
-	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample"))
+	ModuleParams(nullptr),
+	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
+	_battery(1, this)
 {
 	_ch_type = ch_type;
 
@@ -78,7 +80,7 @@ VOXLPM::init()
 	write_reg(DEFAULT_CTRLA_REG_VAL, VOXLPM_LTC2946_CTRLA_REG);
 	write_reg(DEFAULT_CTRLB_REG_VAL, VOXLPM_LTC2946_CTRLB_REG);
 
-	_battery.reset(&_bat_status);
+	_battery.reset();
 
 	start();
 
@@ -129,6 +131,13 @@ VOXLPM::Run()
 int
 VOXLPM::measure()
 {
+	parameter_update_s update;
+
+	if (_parameter_sub.update(&update)) {
+		updateParams();
+	}
+
+
 	_voltage = 0.0f;
 	_amperage = 0.0f;
 
@@ -153,9 +162,7 @@ VOXLPM::measure()
 
 		switch (_ch_type) {
 		case VOXLPM_CH_TYPE_VBATT: {
-				_battery.updateBatteryStatus(tnow, _voltage, _amperage, true, true, 0, 0, false, &_bat_status);
-
-				_bat_pub_topic.publish(_bat_status);
+				_battery.updateBatteryStatus(tnow, _voltage, _amperage, true, true, 0, 0, true);
 			}
 
 		// fallthrough
@@ -176,9 +183,7 @@ VOXLPM::measure()
 	} else {
 		switch (_ch_type) {
 		case VOXLPM_CH_TYPE_VBATT: {
-				_battery.updateBatteryStatus(tnow, 0.0, 0.0, true, true, 0, 0, false, &_bat_status);
-
-				_bat_pub_topic.publish(_bat_status);
+				_battery.updateBatteryStatus(tnow, 0.0, 0.0, true, true, 0, 0, true);
 			}
 			break;
 

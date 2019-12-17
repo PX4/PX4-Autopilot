@@ -1,7 +1,7 @@
 # libuavcan_kinetis
 Libuavcan platform driver for Kinetis FlexCAN
 
-The Directory contains the Kinetis FlexCAN platform driver for Libuavcan on NuttX. 
+The Directory contains the Kinetis FlexCAN platform driver for Libuavcan on NuttX.
 
 Configuation is set by the NuttX board.h for the following:
 
@@ -22,7 +22,7 @@ Things that could be improved:
 2. Build time command line configuartion clock source
     - Curently the driver use `const uavcan::uint8_t CLOCKSEL  = 0;` To Select OSCERCLK
 3. Dynamic filter disable. There are no filter enable bits on the FlexCAN, just the number of Filters
-   can be set. But this changes the memory map. So the configuration show below has been chosen. 
+   can be set. But this changes the memory map. So the configuration show below has been chosen.
 
 ```
 /* Layout of Fifo, filters and Message buffers  */

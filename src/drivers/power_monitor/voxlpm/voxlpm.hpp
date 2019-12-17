@@ -68,8 +68,10 @@
 #include <battery/battery.h>
 
 #include <uORB/PublicationMulti.hpp>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/power_monitor.h>
+#include <uORB/topics/parameter_update.h>
 
 /*
  * Note that these are unshifted addresses.
@@ -142,7 +144,7 @@ enum VOXLPM_CH_TYPE {
 	VOXLPM_CH_TYPE_P5VDC
 };
 
-class VOXLPM : public device::I2C, public px4::ScheduledWorkItem
+class VOXLPM : public device::I2C, public px4::ScheduledWorkItem, public ModuleParams
 {
 public:
 	VOXLPM(const char *path, int bus, int address, VOXLPM_CH_TYPE ch_type);
@@ -160,10 +162,9 @@ private:
 
 	perf_counter_t		_sample_perf;
 
-	uORB::PublicationMulti<battery_status_s>	_bat_pub_topic{ORB_ID(battery_status)};
 	uORB::PublicationMulti<power_monitor_s>		_pm_pub_topic{ORB_ID(power_monitor)};
+	uORB::Subscription _parameter_sub{ORB_ID(parameter_update)};
 
-	battery_status_s	_bat_status{};
 	power_monitor_s 	_pm_status{};
 
 	VOXLPM_CH_TYPE		_ch_type;

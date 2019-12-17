@@ -30,29 +30,73 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 #pragma once
 
-#include <board_config.h>
+#include <battery/battery.h>
+#include <parameters/param.h>
 
-#include <hardware/stm32_adc.h>
+class AnalogBattery : public Battery
+{
+public:
+	AnalogBattery(int index, ModuleParams *parent);
 
+	/**
+	 * Update current battery status message.
+	 *
+	 * @param voltage_raw Battery voltage read from ADC, in raw ADC counts
+	 * @param current_raw Voltage of current sense resistor, in raw ADC counts
+	 * @param timestamp Time at which the ADC was read (use hrt_absolute_time())
+	 * @param selected_source This battery is on the brick that the selected source for selected_source
+	 * @param priority: The brick number -1. The term priority refers to the Vn connection on the LTC4417
+	 * @param throttle_normalized Throttle of the vehicle, between 0 and 1
+	 */
+	void updateBatteryStatusRawADC(hrt_abstime timestamp, int32_t voltage_raw, int32_t current_raw,
+				       bool selected_source, int priority, float throttle_normalized);
 
-/* Historically PX4 used one ADC1 With FMUvnX this has changes.
- * These defines maintain compatibility while allowing the
- * new boards to override the ADC used from HW VER/REV and
- * the system one.
- *
- * Depending on HW configuration (VER/REV POP options) hardware detection
- * may or may NOT initialize a given ADC. SYSTEM_ADC_COUNT is used to size the
- * singleton array to ensure this is only done once per ADC.
- */
+	/**
+	 * Whether the ADC channel for the voltage of this battery is valid.
+	 * Corresponds to BOARD_BRICK_VALID_LIST
+	 */
+	bool is_valid();
 
-#if !defined(HW_REV_VER_ADC_BASE)
-#  define HW_REV_VER_ADC_BASE STM32_ADC1_BASE
-#endif
+	/**
+	 * Which ADC channel is used for voltage reading of this battery
+	 */
+	int get_voltage_channel();
 
-#if !defined(SYSTEM_ADC_BASE)
-#  define SYSTEM_ADC_BASE STM32_ADC1_BASE
-#endif
+	/**
+	 * Which ADC channel is used for current reading of this battery
+	 */
+	int get_current_channel();
 
-#include <px4_platform/adc.h>
+protected:
+
+	struct {
+		param_t cnt_v_volt;
+		param_t cnt_v_curr;
+		param_t v_offs_cur;
+		param_t v_div;
+		param_t a_per_v;
+		param_t adc_channel;
+
+		param_t v_div_old;
+		param_t a_per_v_old;
+		param_t adc_channel_old;
+	} _analog_param_handles;
+
+	struct {
+		float cnt_v_volt;
+		float cnt_v_curr;
+		float v_offs_cur;
+		float v_div;
+		float a_per_v;
+		int adc_channel;
+
+		float v_div_old;
+		float a_per_v_old;
+		int adc_channel_old;
+	} _analog_params;
+
+	virtual void updateParams() override;
+};

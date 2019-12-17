@@ -87,14 +87,6 @@ CollisionPrevention::CollisionPrevention(ModuleParams *parent) :
 	}
 }
 
-CollisionPrevention::~CollisionPrevention()
-{
-	//unadvertise publishers
-	if (_mavlink_log_pub != nullptr) {
-		orb_unadvertise(_mavlink_log_pub);
-	}
-}
-
 hrt_abstime CollisionPrevention::getTime()
 {
 	return hrt_absolute_time();

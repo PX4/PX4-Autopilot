@@ -112,8 +112,8 @@ void BlockLocalPositionEstimator::sonarCorrect()
 	Matrix<float, n_y_sonar, n_y_sonar> S = C * m_P * C.transpose() + R;
 
 	// publish innovations
-	_pub_innov.get().hagl_innov = r(0);
-	_pub_innov.get().hagl_innov_var = S(0, 0);
+	_pub_innov.get().hagl = r(0);
+	_pub_innov_var.get().hagl = S(0, 0);
 
 	// residual covariance, (inverse)
 	Matrix<float, n_y_sonar, n_y_sonar> S_I = inv<float, n_y_sonar>(S);

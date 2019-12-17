@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- *   Copyright (c) 2012-2019 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2013-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,26 +32,59 @@
  ****************************************************************************/
 
 /**
- * Battery voltage divider (V divider)
+ * @file battery_params.c
  *
- * This is the divider from battery voltage to 3.3V ADC voltage.
- * If using e.g. Mauch power modules the value from the datasheet
- * can be applied straight here. A value of -1 means to use
- * the board default.
+ * Parameters defined by the battery lib, shared between all batteries.
  *
- * @group Battery Calibration
- * @decimal 8
+ * @author Julian Oes <julian@oes.ch>
  */
-PARAM_DEFINE_FLOAT(BAT_V_DIV, -1.0);
 
 /**
- * Battery current per volt (A/V)
+ * Low threshold
  *
- * The voltage seen by the 3.3V ADC multiplied by this factor
- * will determine the battery current. A value of -1 means to use
- * the board default.
+ * Sets the threshold when the battery will be reported as low.
+ * This has to be higher than the critical threshold.
  *
  * @group Battery Calibration
- * @decimal 8
+ * @unit norm
+ * @min 0.12
+ * @max 0.4
+ * @decimal 2
+ * @increment 0.01
+ * @reboot_required true
  */
-PARAM_DEFINE_FLOAT(BAT_A_PER_V, -1.0);
+PARAM_DEFINE_FLOAT(BAT_LOW_THR, 0.15f);
+
+/**
+ * Critical threshold
+ *
+ * Sets the threshold when the battery will be reported as critically low.
+ * This has to be lower than the low threshold. This threshold commonly
+ * will trigger RTL.
+ *
+ * @group Battery Calibration
+ * @unit norm
+ * @min 0.05
+ * @max 0.1
+ * @decimal 2
+ * @increment 0.01
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(BAT_CRIT_THR, 0.07f);
+
+/**
+ * Emergency threshold
+ *
+ * Sets the threshold when the battery will be reported as dangerously low.
+ * This has to be lower than the critical threshold. This threshold commonly
+ * will trigger landing.
+ *
+ * @group Battery Calibration
+ * @unit norm
+ * @min 0.03
+ * @max 0.07
+ * @decimal 2
+ * @increment 0.01
+ * @reboot_required true
+ */
+PARAM_DEFINE_FLOAT(BAT_EMERGEN_THR, 0.05f);
