@@ -76,7 +76,7 @@ struct flow_message {
 	uint8_t quality;	///< Quality of Flow data
 	Vector2f flowdata;	///< Optical flow rates about the X and Y body axes (rad/sec)
 	Vector3f gyrodata;	///< Gyro rates about the XYZ body axes (rad/sec)
-	uint32_t dt;		///< integration time of flow samples (sec)
+	uint32_t dt;		///< integration time of flow samples (microseconds)
 };
 
 struct ext_vision_message {

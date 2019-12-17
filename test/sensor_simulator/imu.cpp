@@ -15,7 +15,6 @@ Imu::~Imu()
 
 void Imu::send(uint32_t time)
 {
-	// fill imu sample with stored data
 	imuSample imu_sample;
 	imu_sample.time_us = time;
 	imu_sample.delta_ang_dt = (time - _time_last_data_sent) * 1.e-6f;
@@ -43,4 +42,4 @@ void Imu::setGyroData(const Vector3f& gyro)
 }
 
 } // namespace sensor
-} // namespace sensor_simulator::sensor
+} // namespace sensor_simulator

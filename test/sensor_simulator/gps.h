@@ -51,6 +51,10 @@ public:
 	~Gps();
 
 	void setData(const gps_message& gps);
+	void stepHeightByMeters(float hgt_change);
+	void stepHorizontalPositionByMeters(Vector2f hpos_change);
+
+	gps_message getDefaultGpsData();
 
 private:
 	gps_message _gps_data;
@@ -60,4 +64,4 @@ private:
 };
 
 } // namespace sensor
-} // namespace sensor_simulator::sensor
+} // namespace sensor_simulator

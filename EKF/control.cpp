@@ -401,6 +401,7 @@ void Ekf::controlExternalVisionFusion()
 
 void Ekf::controlOpticalFlowFusion()
 {
+	// TODO: These motion checks run all the time. Pull them out of this function
 	// Check if on ground motion is un-suitable for use of optical flow
 	if (!_control_status.flags.in_air) {
 		// When on ground check if the vehicle is being shaken or moved in a way that could cause a loss of navigation
