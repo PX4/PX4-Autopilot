@@ -61,18 +61,18 @@ void Ekf::controlFusionModes()
 
 			// send alignment status message to the console
 			if (_control_status.flags.baro_hgt) {
-				ECL_INFO("EKF aligned, (pressure height, IMU buf: %i, OBS buf: %i)", (int)_imu_buffer_length, (int)_obs_buffer_length);
+				ECL_INFO("%llu: EKF aligned, (pressure height, IMU buf: %i, OBS buf: %i)", (unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
 
 			} else if (_control_status.flags.ev_hgt) {
-				ECL_INFO("EKF aligned, (EV height, IMU buf: %i, OBS buf: %i)", (int)_imu_buffer_length, (int)_obs_buffer_length);
+				ECL_INFO("%llu: EKF aligned, (EV height, IMU buf: %i, OBS buf: %i)", (unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
 
 			} else if (_control_status.flags.gps_hgt) {
-				ECL_INFO("EKF aligned, (GPS height, IMU buf: %i, OBS buf: %i)", (int)_imu_buffer_length, (int)_obs_buffer_length);
+				ECL_INFO("%llu: EKF aligned, (GPS height, IMU buf: %i, OBS buf: %i)", (unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
 
 			} else if (_control_status.flags.rng_hgt) {
-				ECL_INFO("EKF aligned, (range height, IMU buf: %i, OBS buf: %i)", (int)_imu_buffer_length, (int)_obs_buffer_length);
+				ECL_INFO("%llu: EKF aligned, (range height, IMU buf: %i, OBS buf: %i)", (unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
 			} else {
-				ECL_ERR("EKF aligned, (unknown height, IMU buf: %i, OBS buf: %i)", (int)_imu_buffer_length, (int)_obs_buffer_length);
+				ECL_ERR("%llu: EKF aligned, (unknown height, IMU buf: %i, OBS buf: %i)", (unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
 			}
 
 		}
