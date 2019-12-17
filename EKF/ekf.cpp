@@ -202,8 +202,6 @@ bool Ekf::initialiseFilter()
 		// calculate the initial magnetic field and yaw alignment
 		_control_status.flags.yaw_align = resetMagHeading(_mag_lpf.getState(), false, false);
 
-		// initialise the state covariance matrix
-		initialiseCovariance();
 
 		// update the yaw angle variance using the variance of the measurement
 		if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
