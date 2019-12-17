@@ -309,7 +309,6 @@ private:
 	stateSample _state{};		///< state struct of the ekf running at the delayed time horizon
 
 	bool _filter_initialised{false};	///< true when the EKF sttes and covariances been initialised
-	bool _earth_rate_initialised{false};	///< true when we know the earth rotatin rate (requires GPS)
 
 	bool _fuse_height{false};	///< true when baro height data should be fused
 	bool _fuse_pos{false};		///< true when gps position data should be fused
