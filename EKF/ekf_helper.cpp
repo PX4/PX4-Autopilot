@@ -592,17 +592,17 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 		Dcmf R_to_earth(euler321);
 
 		// calculate the observed yaw angle
-		if (_control_status.flags.ev_yaw) {
-			// convert the observed quaternion to a rotation matrix
-			Dcmf R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
-			// calculate the yaw angle for a 312 sequence
-			euler321(2) = atan2f(R_to_earth_ev(1, 0), R_to_earth_ev(0, 0));
-
-		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
+		if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
 			Vector3f mag_earth_pred = R_to_earth * mag_init;
 			// the angle of the projection onto the horizontal gives the yaw angle
 			euler321(2) = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
+
+		} else if (_control_status.flags.ev_yaw) {
+			// convert the observed quaternion to a rotation matrix
+			Dcmf R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
+			// calculate the yaw angle for a 312 sequence
+			euler321(2) = atan2f(R_to_earth_ev(1, 0), R_to_earth_ev(0, 0));
 
 		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR && _mag_use_inhibit) {
 			// we are operating without knowing the earth frame yaw angle
@@ -650,17 +650,17 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 		R_to_earth(2, 1) = s1;
 
 		// calculate the observed yaw angle
-		if (_control_status.flags.ev_yaw) {
-			// convert the observed quaternion to a rotation matrix
-			Dcmf R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
-			// calculate the yaw angle for a 312 sequence
-			euler312(0) = atan2f(-R_to_earth_ev(0, 1), R_to_earth_ev(1, 1));
-
-		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
+		if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
 			Vector3f mag_earth_pred = R_to_earth * mag_init;
 			// the angle of the projection onto the horizontal gives the yaw angle
 			euler312(0) = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
+
+		} else if (_control_status.flags.ev_yaw) {
+			// convert the observed quaternion to a rotation matrix
+			Dcmf R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
+			// calculate the yaw angle for a 312 sequence
+			euler312(0) = atan2f(-R_to_earth_ev(0, 1), R_to_earth_ev(1, 1));
 
 		} else if (_params.mag_fusion_type == MAG_FUSE_TYPE_INDOOR && _mag_use_inhibit) {
 			// we are operating without knowing the earth frame yaw angle
