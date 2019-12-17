@@ -74,3 +74,15 @@ void SensorSimulator::setImuBias(Vector3f accel_bias, Vector3f gyro_bias)
 	_imu.setData(Vector3f{0.0f,0.0f,-CONSTANTS_ONE_G} + accel_bias,
 		     Vector3f{0.0f,0.0f,0.0f} + gyro_bias);
 }
+
+void SensorSimulator::simulateOrientation(Quatf orientation)
+{
+	const Vector3f world_sensed_gravity = {0.0f, 0.0f, -CONSTANTS_ONE_G};
+	const Vector3f world_mag_field = Vector3f{0.2f, 0.0f, 0.4f};
+	const Dcmf R_bodyToWorld(orientation);
+	const Vector3f sensed_gravity_body = R_bodyToWorld.transpose() * world_sensed_gravity;
+	const Vector3f body_mag_field = R_bodyToWorld.transpose() * world_mag_field;
+
+	_imu.setData(sensed_gravity_body, Vector3f{0.0f,0.0f,0.0f});
+	_mag.setData(body_mag_field);
+}

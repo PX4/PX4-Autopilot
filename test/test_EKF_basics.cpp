@@ -38,9 +38,9 @@
 #include "sensor_simulator/sensor_simulator.h"
 #include "sensor_simulator/ekf_wrapper.h"
 
-class EkfInitializationTest : public ::testing::Test {
+class EkfBasicsTest : public ::testing::Test {
  public:
-	EkfInitializationTest(): ::testing::Test(),
+	EkfBasicsTest(): ::testing::Test(),
 	_ekf{std::make_shared<Ekf>()},
 	_sensor_simulator(_ekf),
 	_ekf_wrapper(_ekf) {};
@@ -67,14 +67,14 @@ class EkfInitializationTest : public ::testing::Test {
 };
 
 
-TEST_F(EkfInitializationTest, tiltAlign)
+TEST_F(EkfBasicsTest, tiltAlign)
 {
 	// GIVEN: reasonable static sensor data for some duration
 	// THEN: EKF should tilt align
 	EXPECT_TRUE(_ekf->attitude_valid());
 }
 
-TEST_F(EkfInitializationTest, initialControlMode)
+TEST_F(EkfBasicsTest, initialControlMode)
 {
 	// GIVEN: reasonable static sensor data for some duration
 	// THEN: EKF control status should be reasonable
@@ -108,7 +108,7 @@ TEST_F(EkfInitializationTest, initialControlMode)
 	EXPECT_EQ(0, (int) control_status.flags.synthetic_mag_z);
 }
 
-TEST_F(EkfInitializationTest, convergesToZero)
+TEST_F(EkfBasicsTest, convergesToZero)
 {
 	// GIVEN: initialized EKF with default IMU, baro and mag input
 	_sensor_simulator.runSeconds(4);
@@ -126,7 +126,7 @@ TEST_F(EkfInitializationTest, convergesToZero)
 	EXPECT_TRUE(matrix::isEqual(gyro_bias, ref, 0.001f));
 }
 
-TEST_F(EkfInitializationTest, gpsFusion)
+TEST_F(EkfBasicsTest, gpsFusion)
 {
 	// GIVEN: initialized EKF with default IMU, baro and mag input for
 	// WHEN: setting GPS measurements for 11s, minimum GPS health time is set to 10 sec
@@ -164,7 +164,7 @@ TEST_F(EkfInitializationTest, gpsFusion)
 	EXPECT_EQ(0, (int) control_status.flags.synthetic_mag_z);
 }
 
-TEST_F(EkfInitializationTest, accleBiasEstimation)
+TEST_F(EkfBasicsTest, accleBiasEstimation)
 {
 	// GIVEN: initialized EKF with default IMU, baro and mag input for 2s
 	// WHEN: Added more sensor measurements with accel bias and gps measurements

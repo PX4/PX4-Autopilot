@@ -69,3 +69,35 @@ Vector3f EkfWrapper::getGyroBias() const
 	_ekf->get_gyro_bias(temp);
 	return Vector3f(temp);
 }
+
+Quatf EkfWrapper::getQuaternion() const
+{
+	return _ekf->get_quaternion();
+}
+
+Eulerf EkfWrapper::getEulerAngles() const
+{
+	return Eulerf(getQuaternion());
+}
+
+matrix::Vector<float, 24> EkfWrapper::getState() const
+{
+	float state[24];
+	_ekf->get_state_delayed(state);
+	return matrix::Vector<float, 24>{state};
+}
+
+matrix::Vector<float, 4> EkfWrapper::getQuaternionVariance() const
+{
+	return matrix::Vector<float, 4>(_ekf->orientation_covariances().diag());
+}
+
+Vector3f EkfWrapper::getPositionVariance() const
+{
+	return Vector3f(_ekf->position_covariances().diag());
+}
+
+Vector3f EkfWrapper::getVelocityVariance() const
+{
+	return Vector3f(_ekf->velocity_covariances().diag());
+}

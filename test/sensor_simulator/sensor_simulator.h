@@ -83,6 +83,7 @@ public:
 	void stopRangeFinder(){ _rng.stop(); }
 
 	void setImuBias(Vector3f accel_bias, Vector3f gyro_bias);
+	void simulateOrientation(Quatf orientation);
 
 	Imu _imu;
 	Mag _mag;
