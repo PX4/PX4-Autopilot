@@ -66,7 +66,7 @@ struct gps_message {
 	float epv;		///< GPS vertical position accuracy in m
 	float sacc;		///< GPS speed accuracy in m/s
 	float vel_m_s;		///< GPS ground speed (m/sec)
-	float vel_ned[3];	///< GPS ground speed NED
+	float vel_ned[3];	///< GPS ground speed NED - TODO: make Vector3f
 	bool vel_ned_valid;	///< GPS ground speed is valid
 	uint8_t nsats;		///< number of satellites used
 	float pdop;		///< position dilution of precision
