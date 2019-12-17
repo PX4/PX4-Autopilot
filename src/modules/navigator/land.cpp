@@ -61,6 +61,7 @@ Land::on_activation()
 	mission_apply_limitation(_mission_item);
 	mission_item_to_position_setpoint(_mission_item, &pos_sp_triplet->current);
 	pos_sp_triplet->next.valid = false;
+	pos_sp_triplet->current.allow_weather_vane = true;
 
 	_navigator->set_can_loiter_at_sp(false);
 

@@ -257,6 +257,8 @@ RTL::set_rtl_item()
 
 	position_setpoint_triplet_s *pos_sp_triplet = _navigator->get_position_setpoint_triplet();
 
+	pos_sp_triplet->current.allow_weather_vane = true;
+
 	// Check if we are pretty close to the destination already.
 	const float destination_dist = get_distance_to_next_waypoint(_destination.lat, _destination.lon, gpos.lat, gpos.lon);
 

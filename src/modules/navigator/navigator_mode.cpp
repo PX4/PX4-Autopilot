@@ -91,8 +91,6 @@ NavigatorMode::on_inactivation()
 void
 NavigatorMode::on_activation()
 {
-	/* invalidate position setpoint by default */
-	_navigator->get_position_setpoint_triplet()->current.valid = false;
 }
 
 void
