@@ -178,7 +178,7 @@ transition_result_t arming_state_transition(vehicle_status_s *status, const safe
 
 					if (fRunPreArmChecks && preflight_check_ret) {
 						// only bother running prearm if preflight was successful
-						prearm_check_ret = PreFlightCheck::preArmCheck(mavlink_log_pub, *status_flags, safety, arm_requirements);
+						prearm_check_ret = PreFlightCheck::preArmCheck(mavlink_log_pub, *status_flags, safety, arm_requirements, *status);
 					}
 
 					if (!preflight_check_ret || !prearm_check_ret) {

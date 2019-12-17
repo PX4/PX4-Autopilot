@@ -38,7 +38,7 @@
 #include <uORB/topics/vehicle_command_ack.h>
 
 bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
-				 const safety_s &safety, const uint8_t arm_requirements)
+				 const safety_s &safety, const uint8_t arm_requirements, const vehicle_status_s &status)
 {
 	bool prearm_ok = true;
 
@@ -123,6 +123,13 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 	if (status_flags.condition_escs_error && (arm_requirements & ARM_REQ_ESCS_CHECK_BIT)) {
 		if (prearm_ok) {
 			mavlink_log_critical(mavlink_log_pub, "Arming denied! One or more ESCs are offline");
+			prearm_ok = false;
+		}
+	}
+
+	if (status.is_vtol && status.in_transition_mode) {
+		if (prearm_ok) {
+			mavlink_log_critical(mavlink_log_pub, "Arming denied! Vehicle is in transition state");
 			prearm_ok = false;
 		}
 	}
