@@ -584,10 +584,10 @@ bool is_server_running(int instance, bool server)
 
 	bool result = false;
 
-	// Server is running if the file is locked.
-	// This is true if the non-blocking flock returns EWOULDBLOCK.
+	// Server is running if the file is already locked.
 	if (flock(fd, LOCK_EX | LOCK_NB) < 0) {
 		if (errno == EWOULDBLOCK) {
+			// a server is running!
 			result = true;
 
 		} else {
@@ -597,7 +597,6 @@ bool is_server_running(int instance, bool server)
 	}
 
 	if (result || !server) {
-		// another server is running!
 		close(fd);
 	}
 
