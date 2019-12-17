@@ -155,56 +155,42 @@ bool Ekf::initialiseFilter()
 
 	// Sum the magnetometer measurements
 	if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
-		if ((_mag_counter == 0) && (_mag_sample_delayed.time_us != 0)) {
-			// initialise the counter when we start getting data from the buffer
-			_mag_counter = 1;
-
-		} else if ((_mag_counter != 0) && (_mag_sample_delayed.time_us != 0)) {
-			// increment the sample count and apply a LPF to the measurement
+		if(_mag_sample_delayed.time_us != 0)
+		{
 			_mag_counter ++;
-
-			// don't start using data until we can be certain all bad initial data has been flushed
-			if (_mag_counter == (uint8_t)(_obs_buffer_length + 1)) {
+			// wait for all bad initial data to be flushed
+			if (_mag_counter <= uint8_t(_obs_buffer_length + 1)) {
 				_mag_lpf.reset(_mag_sample_delayed.mag);
-
-			} else if (_mag_counter > (uint8_t)(_obs_buffer_length + 1)) {
+			} else {
 				_mag_lpf.update(_mag_sample_delayed.mag);
 			}
 		}
 	}
 
 	// accumulate enough height measurements to be confident in the quality of the data
-	// we use baro height initially and switch to GPS/range/EV finder later when it passes checks.
 	if (_baro_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_baro_sample_delayed)) {
-		if ((_hgt_counter == 0) && (_baro_sample_delayed.time_us != 0)) {
-			// initialise the counter and height fusion method when we start getting data from the buffer
-			setControlBaroHeight();
-			_hgt_counter = 1;
-
-		} else if ((_hgt_counter != 0) && (_baro_sample_delayed.time_us != 0)) {
-			// increment the sample count and apply a LPF to the measurement
-			_hgt_counter ++;
-
-			// don't start using data until we can be certain all bad initial data has been flushed
-			if (_hgt_counter == (uint8_t)(_obs_buffer_length + 1)) {
-				// initialise filter states
+		if (_baro_sample_delayed.time_us != 0)
+		{
+			_baro_counter ++;
+			// wait for all bad initial data to be flushed
+			if (_baro_counter <= uint8_t(_obs_buffer_length + 1)) {
 				_baro_hgt_offset = _baro_sample_delayed.hgt;
-
-			} else if (_hgt_counter > (uint8_t)(_obs_buffer_length + 1)) {
-				// noise filter the data
+			} else if (_baro_counter > (uint8_t)(_obs_buffer_length + 1)) {
 				_baro_hgt_offset = 0.9f * _baro_hgt_offset + 0.1f * _baro_sample_delayed.hgt;
 			}
 		}
 	}
 
-	// check to see if we have enough measurements and return false if not
-	bool hgt_count_fail = _hgt_counter <= 2u * _obs_buffer_length;
-	bool mag_count_fail = _mag_counter <= 2u * _obs_buffer_length;
+	const bool not_enough_baro_samples_accumulated = _baro_counter <= 2u * _obs_buffer_length;
+	const bool not_enough_mag_samples_accumulated = _mag_counter <= 2u * _obs_buffer_length;
 
-	if (hgt_count_fail || mag_count_fail) {
+	if (not_enough_baro_samples_accumulated || not_enough_mag_samples_accumulated) {
 		return false;
 
 	} else {
+		// we use baro height initially and switch to GPS/range/EV finder later when it passes checks.
+		setControlBaroHeight();
+
 		// reset variables that are shared with post alignment GPS checks
 		_gps_drift_velD = 0.0f;
 		_gps_alt_ref = 0.0f;
