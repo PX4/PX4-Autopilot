@@ -444,12 +444,9 @@ private:
 	float _output_tracking_error[3] {}; ///< contains the magnitude of the angle, velocity and position track errors (rad, m/s, m)
 
 	// variables used for the GPS quality checks
-	float _gpsDriftVelN{0.0f};		///< GPS north position derivative (m/sec)
-	float _gpsDriftVelE{0.0f};		///< GPS east position derivative (m/sec)
-	float _gps_drift_velD{0.0f};		///< GPS down position derivative (m/sec)
+	Vector3f _gps_pos_derived_filt;	///< GPS NED position derivative (m/sec)
+	Vector2f _gps_velNE_filt;	///< filtered GPS North and East velocity (m/sec)
 	float _gps_velD_diff_filt{0.0f};	///< GPS filtered Down velocity (m/sec)
-	float _gps_velN_filt{0.0f};		///< GPS filtered North velocity (m/sec)
-	float _gps_velE_filt{0.0f};		///< GPS filtered East velocity (m/sec)
 	uint64_t _last_gps_fail_us{0};		///< last system time in usec that the GPS failed it's checks
 	uint64_t _last_gps_pass_us{0};		///< last system time in usec that the GPS passed it's checks
 	float _gps_error_norm{1.0f};		///< normalised gps error

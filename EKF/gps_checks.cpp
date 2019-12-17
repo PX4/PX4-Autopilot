@@ -94,7 +94,7 @@ bool Ekf::collect_gps(const gps_message &gps)
 
 		if (_params.vdist_sensor_type == VDIST_SENSOR_GPS) {
 			ECL_INFO_TIMESTAMPED("GPS checks passed (WGS-84 origin set, using GPS height)");
-			setControlGPSHeight();			
+			setControlGPSHeight();
 			// zero the sensor offset
 			_hgt_sensor_offset = 0.0f;
 		} else {
@@ -146,51 +146,40 @@ bool Ekf::gps_is_good(const gps_message &gps)
 	if (!_control_status.flags.in_air && _vehicle_at_rest) {
 		// Calculate position movement since last measurement
 		float delta_posN = 0.0f;
-		float delta_PosE = 0.0f;
+		float delta_posE = 0.0f;
 
 		// calculate position movement since last GPS fix
 		if (_gps_pos_prev.timestamp > 0) {
-			map_projection_project(&_gps_pos_prev, lat, lon, &delta_posN, &delta_PosE);
+			map_projection_project(&_gps_pos_prev, lat, lon, &delta_posN, &delta_posE);
 
 		} else {
 			// no previous position has been set
 			map_projection_init_timestamped(&_gps_pos_prev, lat, lon, _time_last_imu);
 			_gps_alt_prev = 1e-3f * (float)gps.alt;
-
 		}
 
-		// Calculate the horizontal drift velocity components and limit to 10x the threshold
-		float vel_limit = 10.0f * _params.req_hdrift;
-		float velN = fminf(fmaxf(delta_posN / dt, -vel_limit), vel_limit);
-		float velE = fminf(fmaxf(delta_PosE / dt, -vel_limit), vel_limit);
+		// Calculate the horizontal and vertical drift velocity components and limit to 10x the threshold
+		const Vector3f vel_limit{_params.req_hdrift, _params.req_hdrift, _params.req_vdrift};
+		Vector3f pos_derived{delta_posN, delta_posE, (_gps_alt_prev - 1e-3f * (float)gps.alt)};
+		pos_derived = matrix::constrain(pos_derived / dt, -10.0f * vel_limit, 10.0f * vel_limit);
 
 		// Apply a low pass filter
-		_gpsDriftVelN = velN * filter_coef + _gpsDriftVelN * (1.0f - filter_coef);
-		_gpsDriftVelE = velE * filter_coef + _gpsDriftVelE * (1.0f - filter_coef);
+		_gps_pos_derived_filt = pos_derived * filter_coef + _gps_pos_derived_filt * (1.0f-filter_coef);
 
 		// Calculate the horizontal drift speed and fail if too high
-		_gps_drift_metrics[0] = sqrtf(_gpsDriftVelN * _gpsDriftVelN + _gpsDriftVelE * _gpsDriftVelE);
+		_gps_drift_metrics[0] = Vector2f{_gps_pos_derived_filt.xy()}.norm();
 		_gps_check_fail_status.flags.hdrift = (_gps_drift_metrics[0] > _params.req_hdrift);
 
-		// Calculate the vertical drift velocity and limit to 10x the threshold
-		float vz_drift_limit = 10.0f * _params.req_vdrift;
-		float gps_alt_m = 1e-3f * (float)gps.alt;
-		float velD = math::constrain(((_gps_alt_prev - gps_alt_m) / dt), -vz_drift_limit, vz_drift_limit);
-
-		// Apply a low pass filter to the vertical velocity
-		_gps_drift_velD = velD * filter_coef + _gps_drift_velD * (1.0f - filter_coef);
-
 		// Fail if the vertical drift speed is too high
-		_gps_drift_metrics[1] = fabsf(_gps_drift_velD);
+		_gps_drift_metrics[1] = fabsf(_gps_pos_derived_filt(2));
 		_gps_check_fail_status.flags.vdrift = (_gps_drift_metrics[1] > _params.req_vdrift);
 
 		// Check the magnitude of the filtered horizontal GPS velocity
-		float vxy_drift_limit = 10.0f * _params.req_hdrift;
-		float gps_velN = fminf(fmaxf(gps.vel_ned[0], -vxy_drift_limit), vxy_drift_limit);
-		float gps_velE = fminf(fmaxf(gps.vel_ned[1], -vxy_drift_limit), vxy_drift_limit);
-		_gps_velN_filt = gps_velN * filter_coef + _gps_velN_filt * (1.0f - filter_coef);
-		_gps_velE_filt  = gps_velE * filter_coef + _gps_velE_filt  * (1.0f - filter_coef);
-		_gps_drift_metrics[2] = sqrtf(_gps_velN_filt * _gps_velN_filt + _gps_velE_filt * _gps_velE_filt);
+		Vector2f gps_velNE = matrix::constrain(Vector2f{gps.vel_ned[0], gps.vel_ned[1]}, // TODO: when vel_ned vector3f use .xy()
+								-10.0f * _params.req_hdrift,
+								 10.0f * _params.req_hdrift);
+		_gps_velNE_filt = gps_velNE * filter_coef + _gps_velNE_filt * (1.0f - filter_coef);
+		_gps_drift_metrics[2] = _gps_velNE_filt.norm();
 		_gps_check_fail_status.flags.hspeed = (_gps_drift_metrics[2] > _params.req_hdrift);
 
 		_gps_drift_updated = true;
