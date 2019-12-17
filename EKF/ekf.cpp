@@ -114,6 +114,8 @@ bool Ekf::update()
 
 	// Only run the filter if IMU data in the buffer has been updated
 	if (_imu_updated) {
+		const imuSample &imu_init = _imu_buffer.get_newest();
+		_accel_lpf.update(imu_init.delta_vel);
 
 		// perform state and covariance prediction for the main filter
 		predictState();
@@ -139,9 +141,17 @@ bool Ekf::initialiseFilter()
 {
 	// Keep accumulating measurements until we have a minimum of 10 samples for the required sensors
 
-	// Sum the IMU delta velocity measurements
+	// Filter accel for tilt initialization
 	const imuSample &imu_init = _imu_buffer.get_newest();
-	_delVel_sum += imu_init.delta_vel;
+
+	if(_is_first_imu_sample){
+		_accel_lpf.reset(imu_init.delta_vel);
+		_is_first_imu_sample = false;
+	}
+	else
+	{
+		_accel_lpf.update(imu_init.delta_vel);
+	}
 
 	// Sum the magnetometer measurements
 	if (_mag_buffer.pop_first_older_than(_imu_sample_delayed.time_us, &_mag_sample_delayed)) {
@@ -199,34 +209,9 @@ bool Ekf::initialiseFilter()
 		_gps_drift_velD = 0.0f;
 		_gps_alt_ref = 0.0f;
 
-		// Zero all of the states
-		_state.vel.setZero();
-		_state.pos.setZero();
-		_state.delta_ang_bias.setZero();
-		_state.delta_vel_bias.setZero();
-		_state.mag_I.setZero();
-		_state.mag_B.setZero();
-		_state.wind_vel.setZero();
-
-		// get initial roll and pitch estimate from delta velocity vector, assuming vehicle is static
-		float pitch = 0.0f;
-		float roll = 0.0f;
-
-		if (_delVel_sum.norm() > 0.001f) {
-			_delVel_sum.normalize();
-			pitch = asinf(_delVel_sum(0));
-			roll = atan2f(-_delVel_sum(1), -_delVel_sum(2));
-
-		} else {
+		if(!initialiseTilt()){
 			return false;
 		}
-
-		// calculate initial tilt alignment
-		Eulerf euler_init(roll, pitch, 0.0f);
-		_state.quat_nominal = Quatf(euler_init);
-
-		// update transformation matrix from body to world frame
-		_R_to_earth = Dcmf(_state.quat_nominal);
 
 		// calculate the initial magnetic field and yaw alignment
 		_control_status.flags.yaw_align = resetMagHeading(_mag_lpf.getState(), false, false);
@@ -256,6 +241,25 @@ bool Ekf::initialiseFilter()
 
 		return true;
 	}
+}
+
+bool Ekf::initialiseTilt()
+{
+	if (_accel_lpf.getState().norm() < 0.001f) {
+		return false;
+	}
+
+	// get initial roll and pitch estimate from delta velocity vector, assuming vehicle is static
+	Vector3f gravity_in_body = _accel_lpf.getState();
+	gravity_in_body.normalize();
+	const float pitch = asinf(gravity_in_body(0));
+	const float roll = atan2f(-gravity_in_body(1), -gravity_in_body(2));
+
+	const Eulerf euler_init(roll, pitch, 0.0f);
+	_state.quat_nominal = Quatf(euler_init);
+	_R_to_earth = Dcmf(_state.quat_nominal);
+
+	return true;
 }
 
 void Ekf::predictState()

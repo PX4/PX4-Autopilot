@@ -57,6 +57,8 @@ public:
 	// set the internal states and status to their default value
 	void reset(uint64_t timestamp) override;
 
+	bool initialiseTilt();
+
 	// should be called every time new data is pushed into the filter
 	bool update() override;
 
@@ -462,10 +464,11 @@ private:
 	// Variables used to initialise the filter states
 	uint32_t _hgt_counter{0};		///< number of height samples read during initialisation
 	float _rng_filt_state{0.0f};		///< filtered height measurement (m)
+	bool _is_first_imu_sample{true};
 	uint32_t _mag_counter{0};		///< number of magnetometer samples read during initialisation
 	uint64_t _time_last_mag{0};		///< measurement time of last magnetomter sample (uSec)
-	AlphaFilterVector3f _mag_lpf;		///< filtered magnetometer measurement (Gauss)
-	Vector3f _delVel_sum;			///< summed delta velocity (m/sec)
+	AlphaFilterVector3f _mag_lpf;		///< filtered magnetometer measurement for instant reset(Gauss)
+	AlphaFilterVector3f _accel_lpf;		///< filtered accelerometer measurement for instant reset(Gauss)
 	float _hgt_sensor_offset{0.0f};		///< set as necessary if desired to maintain the same height after a height reset (m)
 	float _baro_hgt_offset{0.0f};		///< baro height reading at the local NED origin (m)
 

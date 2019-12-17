@@ -48,6 +48,7 @@
 // Accumulate imu data and store to buffer at desired rate
 void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 {
+	// TODO: resolve misplaced responsibility
 	if (!_initialised) {
 		init(imu_sample.time_us);
 		_initialised = true;
