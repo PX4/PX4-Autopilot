@@ -1,0 +1,20 @@
+name: SITL Tests
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: px4io/px4-dev-simulation-bionic:2019-12-18
+    steps:
+    - uses: actions/checkout@v1
+    - name: Set Python 3 as default
+      run: update-alternatives --install /usr/bin/python python /usr/bin/python3 10
+    - name: Install psutil
+      run: pip3 install psutil
+    - name: Build PX4 in simulation mode
+      # Build all targets
+      run: make px4_sitl_default sitl_gazebo mavsdk_tests
+      # Check: Are the env variables needed?run: PX4_MAVSDK_TESTING=y DONT_RUN=1 make px4_sitl gazebo mavsdk_tests
+    - name: Run simulation tests
+      run:  test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 100
