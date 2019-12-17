@@ -57,22 +57,28 @@ void Ekf::controlFusionModes()
 		// and declare the tilt alignment complete
 		if ((angle_err_var_vec(0) + angle_err_var_vec(1)) < sq(math::radians(3.0f))) {
 			_control_status.flags.tilt_align = true;
-			_control_status.flags.yaw_align = resetMagHeading(_mag_lpf.getState());
+			_control_status.flags.yaw_align = resetMagHeading(_mag_lpf.getState()); // TODO: is this needed?
+
 
 			// send alignment status message to the console
 			if (_control_status.flags.baro_hgt) {
-				ECL_INFO("%llu: EKF aligned, (pressure height, IMU buf: %i, OBS buf: %i)", (unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
+				ECL_INFO("%llu: EKF aligned, (pressure height, IMU buf: %i, OBS buf: %i)",
+					(unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
 
 			} else if (_control_status.flags.ev_hgt) {
-				ECL_INFO("%llu: EKF aligned, (EV height, IMU buf: %i, OBS buf: %i)", (unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
+				ECL_INFO("%llu: EKF aligned, (EV height, IMU buf: %i, OBS buf: %i)",
+					(unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
 
 			} else if (_control_status.flags.gps_hgt) {
-				ECL_INFO("%llu: EKF aligned, (GPS height, IMU buf: %i, OBS buf: %i)", (unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
+				ECL_INFO("%llu: EKF aligned, (GPS height, IMU buf: %i, OBS buf: %i)",
+					(unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
 
 			} else if (_control_status.flags.rng_hgt) {
-				ECL_INFO("%llu: EKF aligned, (range height, IMU buf: %i, OBS buf: %i)", (unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
+				ECL_INFO("%llu: EKF aligned, (range height, IMU buf: %i, OBS buf: %i)",
+					(unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
 			} else {
-				ECL_ERR("%llu: EKF aligned, (unknown height, IMU buf: %i, OBS buf: %i)", (unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
+				ECL_ERR("%llu: EKF aligned, (unknown height, IMU buf: %i, OBS buf: %i)",
+					(unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
 			}
 
 		}
