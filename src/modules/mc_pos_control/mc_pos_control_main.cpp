@@ -67,8 +67,8 @@
 #include <uORB/topics/vehicle_status.h>
 #include <uORB/topics/vehicle_trajectory_waypoint.h>
 
-#include <PositionControl.hpp>
-#include "Takeoff.hpp"
+#include "PositionControl/PositionControl.hpp"
+#include "Takeoff/Takeoff.hpp"
 
 #include <float.h>
 
@@ -609,8 +609,7 @@ MulticopterPositionControl::Run()
 				setpoint.yaw = _states.yaw;
 				setpoint.yawspeed = 0.f;
 				// prevent any integrator windup
-				_control.resetIntegralXY();
-				_control.resetIntegralZ();
+				_control.resetIntegral();
 				// reactivate the task which will reset the setpoint to current state
 				_flight_tasks.reActivate();
 			}
@@ -624,20 +623,18 @@ MulticopterPositionControl::Run()
 				limit_altitude(setpoint);
 			}
 
-			// Update states, setpoints and constraints.
-			_control.updateConstraints(constraints);
-			_control.updateState(_states);
+			// Run position control
+			_control.setState(_states);
+			_control.setConstraints(constraints);
 
-			// update position controller setpoints
-			if (!_control.updateSetpoint(setpoint)) {
-				warn_rate_limited("Position-Control Setpoint-Update failed");
+			if (!_control.setInputSetpoint(setpoint)) {
+				warn_rate_limited("PositionControl: invalid setpoints");
 				failsafe(setpoint, _states, true, !was_in_failsafe);
-				_control.updateSetpoint(setpoint);
+				_control.setInputSetpoint(setpoint);
 				constraints = FlightTask::empty_constraints;
 			}
 
-			// Generate desired thrust and yaw.
-			_control.generateThrustYawSetpoint(_dt);
+			_control.update(_dt);
 
 			// Fill local position, velocity and thrust setpoint.
 			// This message contains setpoints where each type of setpoint is either the input to the PositionController
@@ -655,18 +652,15 @@ MulticopterPositionControl::Run()
 			local_pos_sp.x = setpoint.x;
 			local_pos_sp.y = setpoint.y;
 			local_pos_sp.z = setpoint.z;
-			local_pos_sp.vx = PX4_ISFINITE(_control.getVelSp()(0)) ? _control.getVelSp()(0) : setpoint.vx;
-			local_pos_sp.vy = PX4_ISFINITE(_control.getVelSp()(1)) ? _control.getVelSp()(1) : setpoint.vy;
-			local_pos_sp.vz = PX4_ISFINITE(_control.getVelSp()(2)) ? _control.getVelSp()(2) : setpoint.vz;
 
 			// Publish local position setpoint
-			// This message will be used by other modules (such as Landdetector) to determine
-			// vehicle intention.
+			// This message will be used by other modules (such as Landdetector) to determine vehicle intention.
 			_local_pos_sp_pub.publish(local_pos_sp);
 
 			// Inform FlightTask about the input and output of the velocity controller
 			// This is used to properly initialize the velocity setpoint when onpening the position loop (position unlock)
-			_flight_tasks.updateVelocityControllerIO(_control.getVelSp(), Vector3f(local_pos_sp.thrust));
+			_flight_tasks.updateVelocityControllerIO(Vector3f(local_pos_sp.vx, local_pos_sp.vy, local_pos_sp.vz),
+					Vector3f(local_pos_sp.thrust));
 
 			vehicle_attitude_setpoint_s attitude_setpoint{};
 			attitude_setpoint.timestamp = time_stamp_now;
@@ -691,10 +685,8 @@ MulticopterPositionControl::Run()
 			// if there's any change in landing gear setpoint publish it
 			if (gear.landing_gear != _old_landing_gear_position
 			    && gear.landing_gear != landing_gear_s::GEAR_KEEP) {
-
-				_landing_gear.landing_gear = gear.landing_gear;
 				_landing_gear.timestamp = time_stamp_now;
-
+				_landing_gear.landing_gear = gear.landing_gear;
 				_landing_gear_pub.publish(_landing_gear);
 			}
 
@@ -940,8 +932,7 @@ MulticopterPositionControl::limit_thrust_during_landing(vehicle_attitude_setpoin
 		Quatf(AxisAngle<float>(0, 0, _states.yaw)).copyTo(setpoint.q_d);
 		setpoint.yaw_sp_move_rate = 0.f;
 		// prevent any position control integrator windup
-		_control.resetIntegralXY();
-		_control.resetIntegralZ();
+		_control.resetIntegral();
 	}
 }
 

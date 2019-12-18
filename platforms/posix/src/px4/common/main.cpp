@@ -59,6 +59,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/file.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -102,7 +103,7 @@ static int create_dirs();
 static int run_startup_script(const std::string &commands_file, const std::string &absolute_binary_path, int instance);
 static std::string get_absolute_binary_path(const std::string &argv0);
 static void wait_to_exit();
-static bool is_already_running(int instance);
+static bool is_server_running(int instance, bool server);
 static void print_usage();
 static bool dir_exists(const std::string &path);
 static bool file_exists(const std::string &name);
@@ -142,7 +143,6 @@ int main(int argc, char **argv)
 		absolute_binary_path = get_absolute_binary_path(full_binary_name);
 	}
 
-
 	if (is_client) {
 		int instance = 0;
 
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
 
 		PX4_DEBUG("instance: %i", instance);
 
-		if (!is_already_running(instance)) {
+		if (!is_server_running(instance, false)) {
 			if (errno) {
 				PX4_ERR("Failed to communicate with daemon: %s", strerror(errno));
 
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
 			} // else: ROS argument (in the form __<name>:=<value>)
 		}
 
-		if (is_already_running(instance)) {
+		if (is_server_running(instance, true)) {
 			// allow running multiple instances, but the server is only started for the first
 			PX4_INFO("PX4 daemon already running for instance %i (%s)", instance, strerror(errno));
 			return -1;
@@ -572,29 +572,39 @@ void print_usage()
 	printf("        e.g.: px4-commander status\n");
 }
 
-bool is_already_running(int instance)
+bool is_server_running(int instance, bool server)
 {
 	const std::string file_lock_path = std::string(LOCK_FILE_PATH) + '-' + std::to_string(instance);
-	struct flock fl;
 	int fd = open(file_lock_path.c_str(), O_RDWR | O_CREAT, 0666);
 
 	if (fd < 0) {
+		PX4_ERR("is_server_running: failed to create lock file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
 		return false;
 	}
 
-	fl.l_type   = F_WRLCK;
-	fl.l_whence = SEEK_SET;
-	fl.l_start  = 0;
-	fl.l_len    = 0;
-	fl.l_pid    = getpid();
+	bool result = false;
 
-	if (fcntl(fd, F_SETLK, &fl) == -1) {
-		// We failed to create a file lock, must be already locked.
-		return errno == EACCES || errno == EAGAIN;
+	// Server is running if the file is already locked.
+	if (flock(fd, LOCK_EX | LOCK_NB) < 0) {
+		if (errno == EWOULDBLOCK) {
+			// a server is running!
+			result = true;
+
+		} else {
+			PX4_ERR("is_server_running: failed to get lock on file: %s, reason=%s", file_lock_path.c_str(), strerror(errno));
+			result = false;
+		}
 	}
 
+	if (result || !server) {
+		close(fd);
+	}
+
+	// note: server leaks the file handle once, on purpose, in order to keep the lock on the file until the process terminates.
+	// In this case we return false so the server code path continues now that we have the lock.
+
 	errno = 0;
-	return false;
+	return result;
 }
 
 bool file_exists(const std::string &name)
