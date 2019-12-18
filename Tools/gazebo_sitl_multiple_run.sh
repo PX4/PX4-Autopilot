@@ -1,5 +1,5 @@
 #!/bin/bash
-# run multiple instances of the 'px4' binary, but w/o starting the simulator.
+# run multiple instances of the 'px4' binary, with the gazebo SITL simulation
 # It assumes px4 is already built, with 'make px4_sitl_default'
 
 # The simulator is expected to send to TCP port 4560+i for i in [0, N-1]
