@@ -40,10 +40,10 @@
 
 #pragma once
 
-#include "FlightTaskAutoMapper2.hpp"
+#include "FlightTaskAutoMapper.hpp"
 #include "VelocitySmoothing.hpp"
 
-class FlightTaskAutoLineSmoothVel : public FlightTaskAutoMapper2
+class FlightTaskAutoLineSmoothVel : public FlightTaskAutoMapper
 {
 public:
 	FlightTaskAutoLineSmoothVel() = default;
@@ -84,7 +84,7 @@ protected:
 
 	VelocitySmoothing _trajectory[3]; ///< Trajectories in x, y and z directions
 
-	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAutoMapper2,
+	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAutoMapper,
 					(ParamFloat<px4::params::MIS_YAW_ERR>) _param_mis_yaw_err, // yaw-error threshold
 					(ParamFloat<px4::params::MPC_ACC_HOR>) _param_mpc_acc_hor, // acceleration in flight
 					(ParamFloat<px4::params::MPC_ACC_UP_MAX>) _param_mpc_acc_up_max,
