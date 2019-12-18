@@ -48,16 +48,27 @@ public:
 	~EkfWrapper();
 
 	void enableGpsFusion();
-
 	void disableGpsFusion();
-
 	bool isIntendingGpsFusion() const;
 
 	void enableFlowFusion();
-
 	void disableFlowFusion();
-
 	bool isIntendingFlowFusion() const;
+
+	void enableExternalVisionPositionFusion();
+	void disableExternalVisionPositionFusion();
+	bool isIntendingExternalVisionPositionFusion() const;
+
+	void enableExternalVisionVelocityFusion();
+	void disableExternalVisionVelocityFusion();
+	bool isIntendingExternalVisionVelocityFusion() const;
+
+	void enableExternalVisionHeadingFusion();
+	void disableExternalVisionHeadingFusion();
+	bool isIntendingExternalVisionHeadingFusion() const;
+
+	void enableExternalVisionAlignment();
+	void disableExternalVisionAlignment();
 
 	Vector3f getPosition() const;
 	Vector3f getVelocity() const;
@@ -69,6 +80,8 @@ public:
 	matrix::Vector<float, 4> getQuaternionVariance() const;
 	Vector3f getPositionVariance() const;
 	Vector3f getVelocityVariance() const;
+
+	Quatf getVisionAlignmentQuaternion() const;
 
 private:
 	std::shared_ptr<Ekf> _ekf;
