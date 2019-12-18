@@ -32,68 +32,40 @@
  ****************************************************************************/
 
 /**
- * This class is providing methods to feed the ECL EKF with measurement.
- * It takes a pointer to the Ekf object and will manipulate the object
- * by call set*Data functions.
- * It simulates the time to allow for sensor data being set at certain rate
- * and also calls the update method of the EKF
+ * Feeds Ekf external vision data
  * @author Kamil Ritz <ka.ritz@hotmail.com>
  */
-
 #pragma once
 
-#include <memory>
+#include "sensor.h"
 
-#include "imu.h"
-#include "mag.h"
-#include "baro.h"
-#include "gps.h"
-#include "flow.h"
-#include "range_finder.h"
-#include "vio.h"
-#include "EKF/ekf.h"
-
-using namespace sensor_simulator::sensor;
-
-class SensorSimulator
+namespace sensor_simulator
+{
+namespace sensor
 {
 
-private:
-	std::shared_ptr<Ekf> _ekf;
-
-	uint32_t _time {0};	// in microseconds
-
-	void setSensorDataToDefault();
-	void setSensorRateToDefault();
-	void startBasicSensor();
-
+class Vio: public Sensor
+{
 public:
-	SensorSimulator(std::shared_ptr<Ekf> ekf);
-	~SensorSimulator();
+	Vio(std::shared_ptr<Ekf> ekf);
+	~Vio();
 
-	void runSeconds(float duration_seconds);
-	void runMicroseconds(uint32_t duration);
+	void setData(const ext_vision_message& vio_data);
+	void setVelocityVariance(const Vector3f& velVar);
+	void setPositionVariance(const Vector3f& posVar);
+	void setAngularVariance(float angVar);
+	void setVelocity(const Vector3f& vel);
+	void setPosition(const Vector3f& pos);
+	void setOrientation(const Quatf& quat);
 
-	void startGps(){ _gps.start(); }
-	void stopGps(){ _gps.stop(); }
+	ext_vision_message dataAtRest();
 
-	void startFlow(){ _flow.start(); }
-	void stopFlow(){ _flow.stop(); }
+private:
+	ext_vision_message _vio_data;
 
-	void startRangeFinder(){ _rng.start(); }
-	void stopRangeFinder(){ _rng.stop(); }
+	void send(uint32_t time) override;
 
-	void startExternalVision(){ _vio.start(); }
-	void stopExternalVision(){ _vio.stop(); }
-
-	void setImuBias(Vector3f accel_bias, Vector3f gyro_bias);
-	void simulateOrientation(Quatf orientation);
-
-	Imu _imu;
-	Mag _mag;
-	Baro _baro;
-	Gps _gps;
-	Flow _flow;
-	RangeFinder _rng;
-	Vio _vio;
 };
+
+} // namespace sensor
+} // namespace sensor_simulator

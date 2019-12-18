@@ -44,6 +44,67 @@ bool EkfWrapper::isIntendingFlowFusion() const
 	return control_status.flags.opt_flow;
 }
 
+void EkfWrapper::enableExternalVisionPositionFusion()
+{
+	_ekf_params->fusion_mode |= MASK_USE_EVPOS;
+}
+
+void EkfWrapper::disableExternalVisionPositionFusion()
+{
+	_ekf_params->fusion_mode &= ~MASK_USE_EVPOS;
+}
+
+bool EkfWrapper::isIntendingExternalVisionPositionFusion() const
+{
+	filter_control_status_u control_status;
+	_ekf->get_control_mode(&control_status.value);
+	return control_status.flags.ev_pos;
+}
+
+void EkfWrapper::enableExternalVisionVelocityFusion()
+{
+	_ekf_params->fusion_mode |= MASK_USE_EVVEL;
+}
+
+void EkfWrapper::disableExternalVisionVelocityFusion()
+{
+	_ekf_params->fusion_mode &= ~MASK_USE_EVVEL;
+}
+
+bool EkfWrapper::isIntendingExternalVisionVelocityFusion() const
+{
+	filter_control_status_u control_status;
+	_ekf->get_control_mode(&control_status.value);
+	return control_status.flags.ev_vel;
+}
+
+void EkfWrapper::enableExternalVisionHeadingFusion()
+{
+	_ekf_params->fusion_mode |= MASK_USE_EVYAW;
+}
+
+void EkfWrapper::disableExternalVisionHeadingFusion()
+{
+	_ekf_params->fusion_mode &= ~MASK_USE_EVYAW;
+}
+
+bool EkfWrapper::isIntendingExternalVisionHeadingFusion() const
+{
+	filter_control_status_u control_status;
+	_ekf->get_control_mode(&control_status.value);
+	return control_status.flags.ev_yaw;
+}
+
+void EkfWrapper::enableExternalVisionAlignment()
+{
+	_ekf_params->fusion_mode |= MASK_ROTATE_EV;
+}
+
+void EkfWrapper::disableExternalVisionAlignment()
+{
+	_ekf_params->fusion_mode &= ~MASK_ROTATE_EV;
+}
+
 Vector3f EkfWrapper::getPosition() const
 {
 	float temp[3];
@@ -100,4 +161,11 @@ Vector3f EkfWrapper::getPositionVariance() const
 Vector3f EkfWrapper::getVelocityVariance() const
 {
 	return Vector3f(_ekf->velocity_covariances().diag());
+}
+
+Quatf EkfWrapper::getVisionAlignmentQuaternion() const
+{
+	float temp[4];
+	_ekf->get_ev2ekf_quaternion(temp);
+	return Quatf(temp);
 }

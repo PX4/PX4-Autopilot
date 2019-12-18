@@ -8,7 +8,8 @@ _mag(ekf),
 _baro(ekf),
 _gps(ekf),
 _flow(ekf),
-_rng(ekf)
+_rng(ekf),
+_vio(ekf)
 {
 	setSensorDataToDefault();
 	setSensorRateToDefault();
@@ -28,6 +29,7 @@ void SensorSimulator::setSensorDataToDefault()
 	_gps.setRateHz(5);
 	_flow.setRateHz(50);
 	_rng.setRateHz(30);
+	_vio.setRateHz(30);
 }
 void SensorSimulator::setSensorRateToDefault()
 {
@@ -38,6 +40,7 @@ void SensorSimulator::setSensorRateToDefault()
 	_gps.setData(_gps.getDefaultGpsData());
 	_flow.setData(_flow.dataAtRest());
 	_rng.setData(0.2f, 100);
+	_vio.setData(_vio.dataAtRest());
 }
 void SensorSimulator::startBasicSensor()
 {
@@ -64,6 +67,7 @@ void SensorSimulator::runMicroseconds(uint32_t duration)
 		_gps.update(_time);
 		_flow.update(_time);
 		_rng.update(_time);
+		_vio.update(_time);
 
 		_ekf->update();
 	}

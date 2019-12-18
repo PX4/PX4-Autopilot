@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * Feeds Ekf with Imu data
+ * Test the fusion start and stop logic
  * @author Kamil Ritz <ka.ritz@hotmail.com>
  */
 
@@ -58,7 +58,7 @@ class EkfFusionLogicTest : public ::testing::Test {
 	void SetUp() override
 	{
 		_ekf->init(0);
-		_sensor_simulator.runSeconds(5);
+		_sensor_simulator.runSeconds(2);
 	}
 
 	// Use this method to clean up any memory, network etc. after each test
@@ -74,7 +74,7 @@ TEST_F(EkfFusionLogicTest, doGpsFusion)
 	// WHEN: we enable GPS fusion and we send good quality gps data for 11s
 	_ekf_wrapper.enableGpsFusion();
 	_sensor_simulator.startGps();
-	_sensor_simulator.runSeconds(15);
+	_sensor_simulator.runSeconds(11);
 
 	// THEN: EKF should intend to fuse GPS
 	EXPECT_TRUE(_ekf_wrapper.isIntendingGpsFusion());
@@ -151,7 +151,7 @@ TEST_F(EkfFusionLogicTest, doFlowFusion)
 	// WHEN: sending flow data without having the flow fusion enabled
 	//       flow measurement fusion should not be intended.
 	_sensor_simulator.startFlow();
-	_sensor_simulator.runSeconds(3);
+	_sensor_simulator.runSeconds(4);
 
 	// THEN: EKF should intend to fuse flow measurements
 	EXPECT_FALSE(_ekf_wrapper.isIntendingFlowFusion());

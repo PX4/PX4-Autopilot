@@ -43,6 +43,7 @@ set(SRCS
 	test_AlphaFilter.cpp
 	test_EKF_fusionLogic.cpp
 	test_EKF_initialization.cpp
+	test_EKF_externalVision.cpp
    )
 add_executable(ECL_GTESTS ${SRCS})
 

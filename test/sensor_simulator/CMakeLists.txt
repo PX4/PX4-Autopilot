@@ -42,6 +42,7 @@ set(SRCS
 	gps.cpp
 	flow.cpp
 	range_finder.cpp
+	vio.cpp
    )
 
 add_library(ecl_sensor_sim ${SRCS})
