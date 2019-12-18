@@ -255,15 +255,55 @@ int main()
     TEST(fabs(q_check(3) + q(3)) < eps);
 
     // quaternion canonical
-    Quatf q_non_canonical(-0.7f,0.4f, 0.3f, -0.3f);
-    Quatf q_canonical(0.7f,-0.4f, -0.3f, 0.3f);
-    Quatf q_canonical_ref(0.7f,-0.4f, -0.3f, 0.3f);
-    TEST(isEqual(q_non_canonical.canonical(),q_canonical_ref));
-    TEST(isEqual(q_canonical.canonical(),q_canonical_ref));
-    q_non_canonical.canonicalize();
-    q_canonical.canonicalize();
-    TEST(isEqual(q_non_canonical,q_canonical_ref));
-    TEST(isEqual(q_canonical,q_canonical_ref));
+    Quatf q_non_canonical_1(-0.7f,0.4f, 0.3f, -0.3f);
+    Quatf q_canonical_1(0.7f,-0.4f, -0.3f, 0.3f);
+    Quatf q_canonical_ref_1(0.7f,-0.4f, -0.3f, 0.3f);
+    TEST(isEqual(q_non_canonical_1.canonical(),q_canonical_ref_1));
+    TEST(isEqual(q_canonical_1.canonical(),q_canonical_ref_1));
+    q_non_canonical_1.canonicalize();
+    q_canonical_1.canonicalize();
+    TEST(isEqual(q_non_canonical_1,q_canonical_ref_1));
+    TEST(isEqual(q_canonical_1,q_canonical_ref_1));
+
+    Quatf q_non_canonical_2(0.0f, -1.0f, 0.0f, 0.0f);
+    Quatf q_canonical_2(0.0f, 1.0f, 0.0f, 0.0f);
+    Quatf q_canonical_ref_2(0.0f, 1.0f, 0.0f, 0.0f);
+    TEST(isEqual(q_non_canonical_2.canonical(),q_canonical_ref_2));
+    TEST(isEqual(q_canonical_2.canonical(),q_canonical_ref_2));
+    q_non_canonical_2.canonicalize();
+    q_canonical_2.canonicalize();
+    TEST(isEqual(q_non_canonical_2,q_canonical_ref_2));
+    TEST(isEqual(q_canonical_2,q_canonical_ref_2));
+
+    Quatf q_non_canonical_3(0.0f, 0.0f, -1.0f, 0.0f);
+    Quatf q_canonical_3(0.0f, 0.0f, 1.0f, 0.0f);
+    Quatf q_canonical_ref_3(0.0f, 0.0f, 1.0f, 0.0f);
+    TEST(isEqual(q_non_canonical_3.canonical(),q_canonical_ref_3));
+    TEST(isEqual(q_canonical_3.canonical(),q_canonical_ref_3));
+    q_non_canonical_3.canonicalize();
+    q_canonical_3.canonicalize();
+    TEST(isEqual(q_non_canonical_3,q_canonical_ref_3));
+    TEST(isEqual(q_canonical_3,q_canonical_ref_3));
+
+    Quatf q_non_canonical_4(0.0f, 0.0f, 0.0f, -1.0f);
+    Quatf q_canonical_4(0.0f, 0.0f, 0.0f, 1.0f);
+    Quatf q_canonical_ref_4(0.0f, 0.0f, 0.0f, 1.0f);
+    TEST(isEqual(q_non_canonical_4.canonical(),q_canonical_ref_4));
+    TEST(isEqual(q_canonical_4.canonical(),q_canonical_ref_4));
+    q_non_canonical_4.canonicalize();
+    q_canonical_4.canonicalize();
+    TEST(isEqual(q_non_canonical_4,q_canonical_ref_4));
+    TEST(isEqual(q_canonical_4,q_canonical_ref_4));
+
+    Quatf q_non_canonical_5(0.0f, 0.0f, 0.0f, 0.0f);
+    Quatf q_canonical_5(0.0f, 0.0f, 0.0f, 0.0f);
+    Quatf q_canonical_ref_5(0.0f, 0.0f, 0.0f, 0.0f);
+    TEST(isEqual(q_non_canonical_5.canonical(),q_canonical_ref_5));
+    TEST(isEqual(q_canonical_5.canonical(),q_canonical_ref_5));
+    q_non_canonical_5.canonicalize();
+    q_canonical_5.canonicalize();
+    TEST(isEqual(q_non_canonical_5,q_canonical_ref_5));
+    TEST(isEqual(q_canonical_5,q_canonical_ref_5));
 
     // quaternion setIdentity
     Quatf q_nonIdentity(-0.7f, 0.4f, 0.5f, -0.3f);

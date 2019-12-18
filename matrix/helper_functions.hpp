@@ -78,4 +78,10 @@ Type wrap_2pi(Type x)
     return wrap(x, Type(0), Type(M_TWOPI));
 }
 
+template<typename T>
+int sign(T val)
+{
+    return (T(FLT_EPSILON) < val) - (val < T(FLT_EPSILON));
 }
+
+} // namespace matrix
