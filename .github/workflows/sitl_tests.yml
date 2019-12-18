@@ -5,14 +5,10 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-ros-melodic:2019-10-24
+    container: px4io/px4-dev-base-bionic:2019-10-24
     steps:
     - uses: actions/checkout@v1
     - name: Build PX4 in simulation mode
-      run: make px4_sitl_default
-    - name: Build simulator plugin
-      run: make px4_sitl_default sitl_gazebo
-    - name: Install MAVSDK
-      run: pip3 install mavsdk
+      run: PX4_MAVSDK_TESTING=y DONT_RUN=1 make px4_sitl gazebo mavsdk_tests
     - name: Run simulation tests
-      run: PX4_MAVSDK_TESTING=y DONT_RUN=1 make px4_sitl gazebo mavsdk_tests && test/mavsdk_tests/mavsdk_test_runner.py --verbose --speed-factor 20
+      run:  test/mavsdk_tests/mavsdk_test_runner.py --verbose --speed-factor 20
