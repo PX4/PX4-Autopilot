@@ -59,30 +59,29 @@ void Ekf::controlFusionModes()
 			_control_status.flags.tilt_align = true;
 			_control_status.flags.yaw_align = resetMagHeading(_mag_lpf.getState()); // TODO: is this needed?
 
-
 			// send alignment status message to the console
+			const char* height_source = nullptr;
 			if (_control_status.flags.baro_hgt) {
-				ECL_INFO("%llu: EKF aligned, (pressure height, IMU buf: %i, OBS buf: %i)",
-					(unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
+				height_source = "baro";
 
 			} else if (_control_status.flags.ev_hgt) {
-				ECL_INFO("%llu: EKF aligned, (EV height, IMU buf: %i, OBS buf: %i)",
-					(unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
+				height_source = "ev";
 
 			} else if (_control_status.flags.gps_hgt) {
-				ECL_INFO("%llu: EKF aligned, (GPS height, IMU buf: %i, OBS buf: %i)",
-					(unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
+				height_source = "gps";
 
 			} else if (_control_status.flags.rng_hgt) {
-				ECL_INFO("%llu: EKF aligned, (range height, IMU buf: %i, OBS buf: %i)",
-					(unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
+				height_source = "range";
+
 			} else {
-				ECL_ERR("%llu: EKF aligned, (unknown height, IMU buf: %i, OBS buf: %i)",
-					(unsigned long long)_imu_sample_delayed.time_us, (int)_imu_buffer_length, (int)_obs_buffer_length);
+				height_source = "unknown";
+
 			}
-
+			if(height_source){
+				ECL_INFO("%llu: EKF aligned, (%s height, IMU buf: %i, OBS buf: %i)",
+					(unsigned long long)_imu_sample_delayed.time_us, height_source, (int)_imu_buffer_length, (int)_obs_buffer_length);
+			}
 		}
-
 	}
 
 	// check for intermittent data (before pop_first_older_than)
