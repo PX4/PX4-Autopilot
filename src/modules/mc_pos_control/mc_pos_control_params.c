@@ -260,22 +260,6 @@ PARAM_DEFINE_FLOAT(MPC_XY_CRUISE, 5.0f);
 PARAM_DEFINE_FLOAT(MPC_XY_TRAJ_P, 0.5f);
 
 /**
- * Cruise speed when angle prev-current/current-next setpoint
- * is 90 degrees. It should be lower than MPC_XY_CRUISE.
- *
- * Applies only in AUTO modes (includes
- * also RTL / hold / etc.)
- *
- * @unit m/s
- * @min 1.0
- * @max 20.0
- * @increment 1
- * @decimal 2
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_FLOAT(MPC_CRUISE_90, 3.0f);
-
-/**
  * Maximum horizontal velocity setpoint for manual controlled mode
  * If velocity setpoint larger than MPC_XY_VEL_MAX is set, then
  * the setpoint will be capped to MPC_XY_VEL_MAX
@@ -454,8 +438,7 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
 /**
  * Maximum horizontal acceleration for auto mode and for manual mode
  *
- * Manual mode: Maximum deceleration for MPC_POS_MODE 1 and 2. Maximum acceleration and deceleration for MPC_POS_MODE 3.
- * Auto mode: Used with MPC_AUTO_MODE 0 only. For MPC_AUTO_MODE 1, MPC_ACC_HOR is always used.
+ * Maximum deceleration for MPC_POS_MODE 1 and 2. Maximum acceleration and deceleration for MPC_POS_MODE 3.
  *
  * @unit m/s/s
  * @min 2.0
@@ -568,8 +551,6 @@ PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 8.0f);
  * Limit the maximum jerk of the vehicle (how fast the acceleration can change).
  * A lower value leads to smoother vehicle motions, but it also limits its
  * agility.
- *
- * Note: This is only used in jerk-limited trajectory mode (MPC_AUTO_MODE 1)
  *
  * @unit m/s/s/s
  * @min 5.0
@@ -732,15 +713,6 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 3.0f);
  * @group Multicopter Position Control
  */
 PARAM_DEFINE_INT32(MPC_POS_MODE, 3);
-
-/**
- * Auto sub-mode
- *
- * @value 0 Default line tracking
- * @value 1 Jerk-limited trajectory
- * @group Multicopter Position Control
- */
-PARAM_DEFINE_INT32(MPC_AUTO_MODE, 1);
 
 /**
  * Enforced delay between arming and takeoff

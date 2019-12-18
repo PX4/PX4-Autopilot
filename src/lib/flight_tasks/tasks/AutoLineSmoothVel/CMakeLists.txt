@@ -35,7 +35,7 @@ px4_add_library(FlightTaskAutoLineSmoothVel
 	FlightTaskAutoLineSmoothVel.cpp
 )
 
-target_link_libraries(FlightTaskAutoLineSmoothVel PUBLIC FlightTaskAutoMapper2 FlightTaskUtility)
+target_link_libraries(FlightTaskAutoLineSmoothVel PUBLIC FlightTaskAutoMapper FlightTaskUtility)
 target_include_directories(FlightTaskAutoLineSmoothVel PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 
