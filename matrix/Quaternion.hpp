@@ -367,11 +367,13 @@ public:
     Quaternion canonical() const
     {
         const Quaternion &q = *this;
-        if (q(0) < Type(0)) {
-            return Quaternion(-q(0),-q(1),-q(2),-q(3));
-        } else {
-            return Quaternion(q(0),q(1),q(2),q(3));
+
+        for (size_t i = 0; i < 4; i++) {
+            if (fabs(q(i)) > FLT_EPSILON) {
+                return q * Type(matrix::sign(q(i)));
+            }
         }
+        return q;
     }
 
     /**

@@ -15,7 +15,7 @@ int main()
     float eps = 1e-6f;
 
     // Vector3 copyTo
-    Vector3f v(1, 2, 3);
+    const Vector3f v(1, 2, 3);
     float dst3[3] = {};
     v.copyTo(dst3);
     for (size_t i = 0; i < 3; i++) {
