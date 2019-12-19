@@ -301,7 +301,7 @@ void Ekf::fuseDrag()
 				}
 
 				// correct the covariance matrix for gross errors
-				fixCovarianceErrors();
+				fixCovarianceErrors(true);
 
 				// apply the state corrections
 				fuse(Kfusion, _drag_innov[axis_index]);

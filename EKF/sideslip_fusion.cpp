@@ -274,7 +274,7 @@ void Ekf::fuseSideslip()
 			}
 
 			// correct the covariance matrix for gross errors
-			fixCovarianceErrors();
+			fixCovarianceErrors(true);
 
 			// apply the state corrections
 			fuse(Kfusion, _beta_innov);

@@ -222,7 +222,7 @@ void Ekf::fuseAirspeed()
 			P = P - KHP;
 
 			// correct the covariance matrix for gross errors
-			fixCovarianceErrors();
+			fixCovarianceErrors(true);
 
 			// apply the state corrections
 			fuse(Kfusion, _airspeed_innov);

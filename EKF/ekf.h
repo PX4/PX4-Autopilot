@@ -634,7 +634,8 @@ private:
 	void resetExtVisRotMat();
 
 	// limit the diagonal of the covariance matrix
-	void fixCovarianceErrors();
+	// force symmetry when the argument is true
+	void fixCovarianceErrors(bool force_symmetry);
 
 	// constrain the ekf states
 	void constrainStates();

@@ -281,7 +281,7 @@ void Ekf::fuseGpsAntYaw()
 		}
 
 		// correct the covariance matrix for gross errors
-		fixCovarianceErrors();
+		fixCovarianceErrors(true);
 
 		// apply the state corrections
 		fuse(Kfusion, _heading_innov);
