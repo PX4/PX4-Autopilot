@@ -44,6 +44,7 @@
 #include <px4_platform_common/module.h>
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_mixer.h>
+#include <px4_platform_common/getopt.h>
 
 #include "PCA9685.h"
 
@@ -504,28 +505,30 @@ int PWMDriverWrapper::task_spawn(int argc, char **argv) {
         _task_id = task_id_is_work_queue;
 
         int ch;
-        opterr = 0; // turn off parse error output
-        optind=1; // reset parse index
         int address=PCA9685_DEFAULT_ADDRESS;
         int iicbus=PCA9685_DEFAULT_IICBUS;
-        while ((ch = getopt(argc, argv, "a:b:")) != -1) {
+
+        int myoptind = 1;
+        const char *myoptarg = nullptr;
+        while ((ch = px4_getopt(argc, argv, "a:b:", &myoptind, &myoptarg)) != EOF) {
             switch (ch) {
                 case 'a':
-                    address = atoi(optarg);
+                    address = atoi(myoptarg);
                     break;
 
                 case 'b':
-                    iicbus = atoi(optarg);
+                    iicbus = atoi(myoptarg);
                     break;
 
                 case '?':
-                    PX4_WARN("Unsupported arg: %c", optopt);
+                    PX4_WARN("Unsupported args");
                     goto driverInstanceAllocFailed;
 
                 default:
                     break;
             }
         }
+
         instance->pca9685= new PCA9685(iicbus, address);
         if(instance->pca9685==nullptr){
             PX4_ERR("alloc failed");
