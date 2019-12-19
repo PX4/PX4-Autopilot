@@ -10,7 +10,6 @@ import colorsys
 import json
 
 
-
 parser = argparse.ArgumentParser(
     description='Generate uORB pub/sub dependency graph from source code')
 
