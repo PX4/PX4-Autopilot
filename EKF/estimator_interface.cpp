@@ -62,85 +62,64 @@ void EstimatorInterface::setIMUData(const imuSample &imu_sample)
 		_dt_imu_avg = 0.8f * _dt_imu_avg + 0.2f * dt;
 	}
 
+	_newest_high_rate_imu_sample = imu_sample;
+
+	// Do not change order of computeVibrationMetric and checkIfVehicleAtRest
+	computeVibrationMetric();
+	_vehicle_at_rest = checkIfVehicleAtRest(dt);
+
+	const bool new_downsampled_imu_sample_ready = _imu_down_sampler.update(_newest_high_rate_imu_sample);
+	_imu_updated = new_downsampled_imu_sample_ready;
+
+	// accumulate and down-sample imu data and push to the buffer when new downsampled data becomes available
+	if (new_downsampled_imu_sample_ready) {
+
+		_imu_buffer.push(_imu_down_sampler.getDownSampledImuAndTriggerReset());
+
+		// get the oldest data from the buffer
+		_imu_sample_delayed = _imu_buffer.get_oldest();
+
+		// calculate the minimum interval between observations required to guarantee no loss of data
+		// this will occur if data is overwritten before its time stamp falls behind the fusion time horizon
+		_min_obs_interval_us = (_newest_high_rate_imu_sample.time_us - _imu_sample_delayed.time_us) / (_obs_buffer_length - 1);
+
+		setDragData();
+	}
+}
+
+void EstimatorInterface::computeVibrationMetric()
+{
 	// calculate a metric which indicates the amount of coning vibration
-	Vector3f temp = imu_sample.delta_ang % _delta_ang_prev;
+	Vector3f temp = _newest_high_rate_imu_sample.delta_ang % _delta_ang_prev;
 	_vibe_metrics[0] = 0.99f * _vibe_metrics[0] + 0.01f * temp.norm();
 
 	// calculate a metric which indicates the amount of high frequency gyro vibration
-	temp = imu_sample.delta_ang - _delta_ang_prev;
-	_delta_ang_prev = imu_sample.delta_ang;
+	temp = _newest_high_rate_imu_sample.delta_ang - _delta_ang_prev;
+	_delta_ang_prev = _newest_high_rate_imu_sample.delta_ang;
 	_vibe_metrics[1] = 0.99f * _vibe_metrics[1] + 0.01f * temp.norm();
 
 	// calculate a metric which indicates the amount of high frequency accelerometer vibration
-	temp = imu_sample.delta_vel - _delta_vel_prev;
-	_delta_vel_prev = imu_sample.delta_vel;
+	temp = _newest_high_rate_imu_sample.delta_vel - _delta_vel_prev;
+	_delta_vel_prev = _newest_high_rate_imu_sample.delta_vel;
 	_vibe_metrics[2] = 0.99f * _vibe_metrics[2] + 0.01f * temp.norm();
+}
 
+bool EstimatorInterface::checkIfVehicleAtRest(float dt)
+{
 	// detect if the vehicle is not moving when on ground
 	if (!_control_status.flags.in_air) {
 		if ((_vibe_metrics[1] * 4.0E4f > _params.is_moving_scaler)
 				|| (_vibe_metrics[2] * 2.1E2f > _params.is_moving_scaler)
-				|| ((imu_sample.delta_ang.norm() / dt) > 0.05f * _params.is_moving_scaler)) {
+				|| ((_newest_high_rate_imu_sample.delta_ang.norm() / dt) > 0.05f * _params.is_moving_scaler)) {
 
-			_time_last_move_detect_us = imu_sample.time_us;
+			_time_last_move_detect_us = _newest_high_rate_imu_sample.time_us;
 		}
 
-		_vehicle_at_rest = ((imu_sample.time_us - _time_last_move_detect_us) > (uint64_t)1E6);
+		return ((_newest_high_rate_imu_sample.time_us - _time_last_move_detect_us) > (uint64_t)1E6);
 
 	} else {
-		_time_last_move_detect_us = imu_sample.time_us;
-		_vehicle_at_rest = false;
-	}
-
-	// accumulate and down-sample imu data and push to the buffer when new downsampled data becomes available
-	if (collect_imu(imu_sample)) {
-
-		// down-sample the drag specific force data by accumulating and calculating the mean when
-		// sufficient samples have been collected
-		if ((_params.fusion_mode & MASK_USE_DRAG) && !_drag_buffer_fail) {
-
-			// Allocate the required buffer size if not previously done
-			// Do not retry if allocation has failed previously
-			if (_drag_buffer.get_length() < _obs_buffer_length) {
-				_drag_buffer_fail = !_drag_buffer.allocate(_obs_buffer_length);
-
-				if (_drag_buffer_fail) {
-					ECL_ERR_TIMESTAMPED("drag buffer allocation failed");
-					return;
-				}
-			}
-
-			_drag_sample_count ++;
-			// note acceleration is accumulated as a delta velocity
-			_drag_down_sampled.accelXY(0) += imu_sample.delta_vel(0);
-			_drag_down_sampled.accelXY(1) += imu_sample.delta_vel(1);
-			_drag_down_sampled.time_us += imu_sample.time_us;
-			_drag_sample_time_dt += imu_sample.delta_vel_dt;
-
-			// calculate the downsample ratio for drag specific force data
-			uint8_t min_sample_ratio = (uint8_t) ceilf((float)_imu_buffer_length / _obs_buffer_length);
-
-			if (min_sample_ratio < 5) {
-				min_sample_ratio = 5;
-			}
-
-			// calculate and store means from accumulated values
-			if (_drag_sample_count >= min_sample_ratio) {
-				// note conversion from accumulated delta velocity to acceleration
-				_drag_down_sampled.accelXY(0) /= _drag_sample_time_dt;
-				_drag_down_sampled.accelXY(1) /= _drag_sample_time_dt;
-				_drag_down_sampled.time_us /= _drag_sample_count;
-
-				// write to buffer
-				_drag_buffer.push(_drag_down_sampled);
-
-				// reset accumulators
-				_drag_sample_count = 0;
-				_drag_down_sampled.accelXY.zero();
-				_drag_down_sampled.time_us = 0;
-				_drag_sample_time_dt = 0.0f;
-			}
-		}
+		_time_last_move_detect_us = _newest_high_rate_imu_sample.time_us;
+		return false;
 	}
 }
 
@@ -480,6 +459,56 @@ void EstimatorInterface::setAuxVelData(uint64_t time_usec, const Vector3f &veloc
 	}
 }
 
+void EstimatorInterface::setDragData()
+{
+	// down-sample the drag specific force data by accumulating and calculating the mean when
+	// sufficient samples have been collected
+	if ((_params.fusion_mode & MASK_USE_DRAG) && !_drag_buffer_fail) {
+
+		// Allocate the required buffer size if not previously done
+		// Do not retry if allocation has failed previously
+		if (_drag_buffer.get_length() < _obs_buffer_length) {
+			_drag_buffer_fail = !_drag_buffer.allocate(_obs_buffer_length);
+
+			if (_drag_buffer_fail) {
+				printBufferAllocationFailed("drag");
+				return;
+			}
+		}
+
+		_drag_sample_count ++;
+		// note acceleration is accumulated as a delta velocity
+		_drag_down_sampled.accelXY(0) += _newest_high_rate_imu_sample.delta_vel(0);
+		_drag_down_sampled.accelXY(1) += _newest_high_rate_imu_sample.delta_vel(1);
+		_drag_down_sampled.time_us += _newest_high_rate_imu_sample.time_us;
+		_drag_sample_time_dt += _newest_high_rate_imu_sample.delta_vel_dt;
+
+		// calculate the downsample ratio for drag specific force data
+		uint8_t min_sample_ratio = (uint8_t) ceilf((float)_imu_buffer_length / _obs_buffer_length);
+
+		if (min_sample_ratio < 5) {
+			min_sample_ratio = 5;
+		}
+
+		// calculate and store means from accumulated values
+		if (_drag_sample_count >= min_sample_ratio) {
+			// note conversion from accumulated delta velocity to acceleration
+			_drag_down_sampled.accelXY(0) /= _drag_sample_time_dt;
+			_drag_down_sampled.accelXY(1) /= _drag_sample_time_dt;
+			_drag_down_sampled.time_us /= _drag_sample_count;
+
+			// write to buffer
+			_drag_buffer.push(_drag_down_sampled);
+
+			// reset accumulators
+			_drag_sample_count = 0;
+			_drag_down_sampled.accelXY.zero();
+			_drag_down_sampled.time_us = 0;
+			_drag_sample_time_dt = 0.0f;
+		}
+	}
+}
+
 bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 {
 	// find the maximum time delay the buffers are required to handle
@@ -547,7 +576,7 @@ void EstimatorInterface::printBufferAllocationFailed(const char * buffer_name)
 {
 	if(buffer_name)
 	{
-		ECL_ERR_TIMESTAMPED("%s buffer allocation failed", buffer_name);
+		ECL_ERR("%s buffer allocation failed", buffer_name);
 	}
 }
 

@@ -47,12 +47,12 @@
 bool Ekf::init(uint64_t timestamp)
 {
 	bool ret = initialise_interface(timestamp);
-	reset(timestamp);
+	reset();
 
 	return ret;
 }
 
-void Ekf::reset(uint64_t timestamp)
+void Ekf::reset()
 {
 	_state.vel.setZero();
 	_state.pos.setZero();
@@ -70,13 +70,6 @@ void Ekf::reset(uint64_t timestamp)
 	initialiseCovariance();
 
 	_delta_angle_corr.setZero();
-	_imu_down_sampled.delta_ang.setZero();
-	_imu_down_sampled.delta_vel.setZero();
-	_imu_down_sampled.delta_ang_dt = 0.0f;
-	_imu_down_sampled.delta_vel_dt = 0.0f;
-	_imu_down_sampled.time_us = timestamp;
-
-	_q_down_sampled.setIdentity();
 
 	_imu_updated = false;
 	_NED_origin_initialised = false;
@@ -296,76 +289,6 @@ void Ekf::predictState()
 	_dt_ekf_avg = 0.99f * _dt_ekf_avg + 0.01f * input;
 }
 
-bool Ekf::collect_imu(const imuSample &imu)
-{
-	// accumulate and downsample IMU data across a period FILTER_UPDATE_PERIOD_MS long
-
-	// copy imu data to local variables
-	_imu_sample_new = imu;
-
-	// accumulate the time deltas
-	_imu_down_sampled.delta_ang_dt += imu.delta_ang_dt;
-	_imu_down_sampled.delta_vel_dt += imu.delta_vel_dt;
-
-	// use a quaternion to accumulate delta angle data
-	// this quaternion represents the rotation from the start to end of the accumulation period
-	Quatf delta_q;
-	delta_q.rotate(imu.delta_ang);
-	_q_down_sampled = _q_down_sampled * delta_q;
-	_q_down_sampled.normalize();
-
-	// rotate the accumulated delta velocity data forward each time so it is always in the updated rotation frame
-	Dcmf delta_R(delta_q.inversed());
-	_imu_down_sampled.delta_vel = delta_R * _imu_down_sampled.delta_vel;
-
-	// accumulate the most recent delta velocity data at the updated rotation frame
-	// assume effective sample time is halfway between the previous and current rotation frame
-	_imu_down_sampled.delta_vel += (imu.delta_vel + delta_R * imu.delta_vel) * 0.5f;
-
-	// if the target time delta between filter prediction steps has been exceeded
-	// write the accumulated IMU data to the ring buffer
-	const float target_dt = FILTER_UPDATE_PERIOD_S;
-
-	if (_imu_down_sampled.delta_ang_dt >= target_dt - _imu_collection_time_adj) {
-
-		// accumulate the amount of time to advance the IMU collection time so that we meet the
-		// average EKF update rate requirement
-		_imu_collection_time_adj += 0.01f * (_imu_down_sampled.delta_ang_dt - target_dt);
-		_imu_collection_time_adj = math::constrain(_imu_collection_time_adj, -0.5f * target_dt, 0.5f * target_dt);
-
-		imuSample imu_sample_new;
-		imu_sample_new.delta_ang = AxisAnglef(_q_down_sampled);
-		imu_sample_new.delta_vel = _imu_down_sampled.delta_vel;
-		imu_sample_new.delta_ang_dt = _imu_down_sampled.delta_ang_dt;
-		imu_sample_new.delta_vel_dt = _imu_down_sampled.delta_vel_dt;
-		imu_sample_new.time_us = imu.time_us;
-
-		_imu_buffer.push(imu_sample_new);
-
-		// get the oldest data from the buffer
-		_imu_sample_delayed = _imu_buffer.get_oldest();
-
-		// calculate the minimum interval between observations required to guarantee no loss of data
-		// this will occur if data is overwritten before its time stamp falls behind the fusion time horizon
-		_min_obs_interval_us = (imu_sample_new.time_us - _imu_sample_delayed.time_us) / (_obs_buffer_length - 1);
-
-		// reset
-		_imu_down_sampled.delta_ang.setZero();
-		_imu_down_sampled.delta_vel.setZero();
-		_imu_down_sampled.delta_ang_dt = 0.0f;
-		_imu_down_sampled.delta_vel_dt = 0.0f;
-		_q_down_sampled(0) = 1.0f;
-		_q_down_sampled(1) = _q_down_sampled(2) = _q_down_sampled(3) = 0.0f;
-
-		_imu_updated = true;
-
-	} else {
-		_imu_updated = false;
-	}
-
-	return _imu_updated;
-}
-
 /*
  * Implement a strapdown INS algorithm using the latest IMU data at the current time horizon.
  * Buffer the INS states and calculate the difference with the EKF states at the delayed fusion time horizon.
@@ -379,7 +302,7 @@ bool Ekf::collect_imu(const imuSample &imu)
 void Ekf::calculateOutputStates()
 {
 	// Use full rate IMU data at the current time horizon
-	const imuSample &imu = _imu_sample_new;
+	const imuSample &imu = _newest_high_rate_imu_sample;
 
 	// correct delta angles for bias offsets
 	const float dt_scale_correction = _dt_imu_avg / _dt_ekf_avg;
@@ -598,7 +521,7 @@ Quatf Ekf::calculate_quaternion() const
 {
 	// Correct delta angle data for bias errors using bias state estimates from the EKF and also apply
 	// corrections required to track the EKF quaternion states
-	const Vector3f delta_angle{_imu_sample_new.delta_ang - _state.delta_ang_bias * (_dt_imu_avg / _dt_ekf_avg) + _delta_angle_corr};
+	const Vector3f delta_angle{_newest_high_rate_imu_sample.delta_ang - _state.delta_ang_bias * (_dt_imu_avg / _dt_ekf_avg) + _delta_angle_corr};
 
 	// increment the quaternions using the corrected delta angle vector
 	// the quaternions must always be normalised after modification

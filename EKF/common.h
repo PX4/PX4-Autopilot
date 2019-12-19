@@ -39,6 +39,7 @@
  * @author Siddharth Bharat Purohit <siddharthbharatpurohit@gmail.com>
  *
  */
+#pragma once
 
 #include <matrix/math.hpp>
 

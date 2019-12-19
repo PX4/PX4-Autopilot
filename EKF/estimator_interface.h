@@ -45,6 +45,7 @@
 #include "common.h"
 #include "RingBuffer.h"
 #include "AlphaFilter.hpp"
+#include "imu_down_sampler.hpp"
 
 #include <geo/geo.h>
 #include <matrix/math.hpp>
@@ -58,11 +59,11 @@ class EstimatorInterface
 public:
 	typedef AlphaFilter<Vector3f> AlphaFilterVector3f;
 
-	EstimatorInterface() = default;
+	EstimatorInterface():_imu_down_sampler(FILTER_UPDATE_PERIOD_S){};
 	virtual ~EstimatorInterface() = default;
 
 	virtual bool init(uint64_t timestamp) = 0;
-	virtual void reset(uint64_t timestamp) = 0;
+	virtual void reset() = 0;
 
 	virtual bool update() = 0;
 
@@ -170,9 +171,6 @@ public:
 
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
 	virtual bool collect_gps(const gps_message &gps) = 0;
-
-	// accumulate and downsample IMU data to the EKF prediction rate
-	virtual bool collect_imu(const imuSample &imu) = 0;
 
 	void setIMUData(const imuSample &imu_sample);
 
@@ -401,6 +399,8 @@ protected:
 
 	parameters _params;		// filter parameters
 
+	ImuDownSampler _imu_down_sampler;
+
 	/*
 	 OBS_BUFFER_LENGTH defines how many observations (non-IMU measurements) we can buffer
 	 which sets the maximum frequency at which we can process non-IMU measurements. Measurements that
@@ -453,7 +453,7 @@ protected:
 	outputSample _output_new{};		// filter output on the non-delayed time horizon
 	outputVert _output_vert_delayed{};	// vertical filter output on the delayed time horizon
 	outputVert _output_vert_new{};		// vertical filter output on the non-delayed time horizon
-	imuSample _imu_sample_new{};		// imu sample capturing the newest imu data
+	imuSample _newest_high_rate_imu_sample{};		// imu sample capturing the newest imu data
 	Matrix3f _R_to_earth_now;		// rotation matrix from body to earth frame at current time
 	Vector3f _vel_imu_rel_body_ned;		// velocity of IMU relative to body origin in NED earth frame
 	Vector3f _vel_deriv_ned;		// velocity derivative at the IMU in NED earth frame (m/s/s)
@@ -566,5 +566,9 @@ protected:
 	// calculate the inverse rotation matrix from a quaternion rotation
 	Matrix3f quat_to_invrotmat(const Quatf &quat);
 
+	void setDragData();
+
+	void computeVibrationMetric();
+	bool checkIfVehicleAtRest(float dt);
 	void printBufferAllocationFailed(const char * buffer_name);
 };

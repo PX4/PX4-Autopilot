@@ -48,6 +48,7 @@ add_library(ecl_EKF
 	vel_pos_fusion.cpp
 	gps_yaw_fusion.cpp
 	range_finder_checks.cpp
+	imu_down_sampler.cpp
 )
 
 add_dependencies(ecl_EKF prebuild_targets)

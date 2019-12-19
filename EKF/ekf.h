@@ -55,7 +55,7 @@ public:
 	bool init(uint64_t timestamp) override;
 
 	// set the internal states and status to their default value
-	void reset(uint64_t timestamp) override;
+	void reset() override;
 
 	bool initialiseTilt();
 
@@ -163,8 +163,6 @@ public:
 
 	// ask estimator for sensor data collection decision and do any preprocessing if required, returns true if not defined
 	bool collect_gps(const gps_message &gps) override;
-
-	bool collect_imu(const imuSample &imu) override;
 
 	// get the ekf WGS-84 origin position and height and the system time it was last set
 	// return true if the origin is valid
@@ -438,8 +436,6 @@ private:
 
 	// output predictor states
 	Vector3f _delta_angle_corr;	///< delta angle correction vector (rad)
-	imuSample _imu_down_sampled{};	///< down sampled imu data (sensor rate -> filter update rate)
-	Quatf _q_down_sampled;		///< down sampled quaternion (tracking delta angles between ekf update steps)
 	Vector3f _vel_err_integ;	///< integral of velocity tracking error (m)
 	Vector3f _pos_err_integ;	///< integral of position tracking error (m.s)
 	float _output_tracking_error[3] {}; ///< contains the magnitude of the angle, velocity and position track errors (rad, m/s, m)
