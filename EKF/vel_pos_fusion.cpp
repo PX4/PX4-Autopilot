@@ -186,7 +186,7 @@ void Ekf::fuseVelPosHeight(const float innov, const float innov_var, const int o
 		}
 
 		// correct the covariance matrix for gross errors
-		fixCovarianceErrors();
+		fixCovarianceErrors(true);
 
 		// apply the state corrections
 		fuse(Kfusion, innov);

@@ -706,11 +706,11 @@ void Ekf::predictCovariance()
 
 	// fix gross errors in the covariance matrix and ensure rows and
 	// columns for un-used states are zero
-	fixCovarianceErrors();
+	fixCovarianceErrors(false);
 
 }
 
-void Ekf::fixCovarianceErrors()
+void Ekf::fixCovarianceErrors(bool force_symmetry)
 {
 	// NOTE: This limiting is a last resort and should not be relied on
 	// TODO: Split covariance prediction into separate F*P*transpose(F) and Q contributions
@@ -748,7 +748,9 @@ void Ekf::fixCovarianceErrors()
 	}
 
 	// force symmetry on the quaternion, velocity and position state covariances
-	P.makeRowColSymmetric<13>(0);
+	if (force_symmetry) {
+		P.makeRowColSymmetric<13>(0);
+	}
 
 	// the following states are optional and are deactivated when not required
 	// by ensuring the corresponding covariance matrix values are kept at zero
@@ -821,7 +823,7 @@ void Ekf::fixCovarianceErrors()
 			_fault_status.flags.bad_acc_bias = false;
 			ECL_WARN_TIMESTAMPED("invalid accel bias - resetting covariance");
 
-		} else {
+		} else if (force_symmetry) {
 			// ensure the covariance values are symmetrical
 			P.makeRowColSymmetric<3>(13);
 		}
@@ -843,8 +845,10 @@ void Ekf::fixCovarianceErrors()
 		}
 
 		// force symmetry
-		P.makeRowColSymmetric<3>(16);
-		P.makeRowColSymmetric<3>(19);
+		if (force_symmetry) {
+			P.makeRowColSymmetric<3>(16);
+			P.makeRowColSymmetric<3>(19);
+		}
 
 	}
 
@@ -859,7 +863,9 @@ void Ekf::fixCovarianceErrors()
 		}
 
 		// force symmetry
-		P.makeRowColSymmetric<2>(22);
+		if (force_symmetry) {
+			P.makeRowColSymmetric<2>(22);
+		}
 	}
 }
 

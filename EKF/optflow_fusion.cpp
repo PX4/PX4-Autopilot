@@ -501,7 +501,7 @@ void Ekf::fuseOptFlow()
 			}
 
 			// correct the covariance matrix for gross errors
-			fixCovarianceErrors();
+			fixCovarianceErrors(true);
 
 			// apply the state corrections
 			fuse(gain, _flow_innov[obs_index]);
