@@ -96,6 +96,18 @@ INA226::INA226(int battery_index, int bus, int address) :
 
 	_current_lsb = _max_current / DN_MAX;
 	_power_lsb = 25 * _current_lsb;
+
+	// We need to publish immediately, to guarantee that the first instance of the driver publishes to uORB instance 0
+	_battery.updateBatteryStatus(
+		hrt_absolute_time(),
+		0.0,
+		0.0,
+		false,
+		false, // TODO: selected source?
+		0,
+		0.0,
+		true
+	);
 }
 
 INA226::~INA226()
