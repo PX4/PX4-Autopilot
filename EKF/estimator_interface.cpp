@@ -171,7 +171,7 @@ void EstimatorInterface::setMagData(uint64_t time_usec, float (&data)[3])
 		_mag_buffer_fail = !_mag_buffer.allocate(_obs_buffer_length);
 
 		if (_mag_buffer_fail) {
-			ECL_ERR_TIMESTAMPED("mag buffer allocation failed");
+			printBufferAllocationFailed("mag");
 			return;
 		}
 	}
@@ -203,7 +203,7 @@ void EstimatorInterface::setGpsData(uint64_t time_usec, const gps_message &gps)
 		_gps_buffer_fail = !_gps_buffer.allocate(_obs_buffer_length);
 
 		if (_gps_buffer_fail) {
-			ECL_ERR_TIMESTAMPED("GPS buffer allocation failed");
+			printBufferAllocationFailed("GPS");
 			return;
 		}
 	}
@@ -264,7 +264,7 @@ void EstimatorInterface::setBaroData(uint64_t time_usec, float data)
 		_baro_buffer_fail = !_baro_buffer.allocate(_obs_buffer_length);
 
 		if (_baro_buffer_fail) {
-			ECL_ERR_TIMESTAMPED("baro buffer allocation failed");
+			printBufferAllocationFailed("baro");
 			return;
 		}
 	}
@@ -297,7 +297,7 @@ void EstimatorInterface::setAirspeedData(uint64_t time_usec, float true_airspeed
 		_airspeed_buffer_fail = !_airspeed_buffer.allocate(_obs_buffer_length);
 
 		if (_airspeed_buffer_fail) {
-			ECL_ERR_TIMESTAMPED("airspeed buffer allocation failed");
+			printBufferAllocationFailed("airspeed");
 			return;
 		}
 	}
@@ -327,7 +327,7 @@ void EstimatorInterface::setRangeData(uint64_t time_usec, float data, int8_t qua
 		_range_buffer_fail = !_range_buffer.allocate(_obs_buffer_length);
 
 		if (_range_buffer_fail) {
-			ECL_ERR_TIMESTAMPED("range finder buffer allocation failed");
+			printBufferAllocationFailed("range");
 			return;
 		}
 	}
@@ -357,7 +357,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 		_flow_buffer_fail = !_flow_buffer.allocate(_imu_buffer_length);
 
 		if (_flow_buffer_fail) {
-			ECL_ERR_TIMESTAMPED("optical flow buffer allocation failed");
+			printBufferAllocationFailed("flow");
 			return;
 		}
 	}
@@ -423,7 +423,7 @@ void EstimatorInterface::setExtVisionData(uint64_t time_usec, ext_vision_message
 		_ev_buffer_fail = !_ext_vision_buffer.allocate(_obs_buffer_length);
 
 		if (_ev_buffer_fail) {
-			ECL_ERR_TIMESTAMPED("external vision buffer allocation failed");
+			printBufferAllocationFailed("vision");
 			return;
 		}
 	}
@@ -459,7 +459,7 @@ void EstimatorInterface::setAuxVelData(uint64_t time_usec, const Vector3f &veloc
 		_auxvel_buffer_fail = !_auxvel_buffer.allocate(_obs_buffer_length);
 
 		if (_auxvel_buffer_fail) {
-			ECL_ERR_TIMESTAMPED("aux vel buffer allocation failed");
+			printBufferAllocationFailed("aux vel");
 			return;
 		}
 	}
@@ -508,30 +508,15 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	      _output_buffer.allocate(_imu_buffer_length) &&
 	      _output_vert_buffer.allocate(_imu_buffer_length))) {
 
-		ECL_ERR_TIMESTAMPED("buffer allocation failed!");
+		printBufferAllocationFailed("");
 		unallocate_buffers();
 		return false;
 	}
 
-	_dt_imu_avg = 0.0f;
-
-	_imu_sample_delayed.delta_ang.setZero();
-	_imu_sample_delayed.delta_vel.setZero();
-	_imu_sample_delayed.delta_ang_dt = 0.0f;
-	_imu_sample_delayed.delta_vel_dt = 0.0f;
 	_imu_sample_delayed.time_us = timestamp;
 
-	_initialised = false;
-
-	_time_last_imu = 0;
-	_time_last_gps = 0;
-	_time_last_mag = 0;
-	_time_last_baro = 0;
-	_time_last_range = 0;
-	_time_last_airspeed = 0;
-	_time_last_optflow = 0;
 	_fault_status.value = 0;
-	_time_last_ext_vision = 0;
+
 	return true;
 }
 
@@ -558,6 +543,14 @@ bool EstimatorInterface::local_position_is_valid()
 	return !_deadreckon_time_exceeded;
 }
 
+void EstimatorInterface::printBufferAllocationFailed(const char * buffer_name)
+{
+	if(buffer_name)
+	{
+		ECL_ERR_TIMESTAMPED("%s buffer allocation failed", buffer_name);
+	}
+}
+
 void EstimatorInterface::print_status()
 {
 	ECL_INFO("local position valid: %s", local_position_is_valid() ? "yes" : "no");
@@ -570,7 +563,7 @@ void EstimatorInterface::print_status()
 	ECL_INFO("range buffer: %d (%d Bytes)", _range_buffer.get_length(), _range_buffer.get_total_size());
 	ECL_INFO("airspeed buffer: %d (%d Bytes)", _airspeed_buffer.get_length(), _airspeed_buffer.get_total_size());
 	ECL_INFO("flow buffer: %d (%d Bytes)", _flow_buffer.get_length(), _flow_buffer.get_total_size());
-	ECL_INFO("ext vision buffer: %d (%d Bytes)", _ext_vision_buffer.get_length(), _ext_vision_buffer.get_total_size());
+	ECL_INFO("vision buffer: %d (%d Bytes)", _ext_vision_buffer.get_length(), _ext_vision_buffer.get_total_size());
 	ECL_INFO("output buffer: %d (%d Bytes)", _output_buffer.get_length(), _output_buffer.get_total_size());
 	ECL_INFO("output vert buffer: %d (%d Bytes)", _output_vert_buffer.get_length(), _output_vert_buffer.get_total_size());
 	ECL_INFO("drag buffer: %d (%d Bytes)", _drag_buffer.get_length(), _drag_buffer.get_total_size());

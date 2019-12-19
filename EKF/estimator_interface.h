@@ -174,35 +174,27 @@ public:
 	// accumulate and downsample IMU data to the EKF prediction rate
 	virtual bool collect_imu(const imuSample &imu) = 0;
 
-	// set delta angle imu data
 	void setIMUData(const imuSample &imu_sample);
 
 	// legacy interface for compatibility (2018-09-14)
 	void setIMUData(uint64_t time_usec, uint64_t delta_ang_dt, uint64_t delta_vel_dt, float (&delta_ang)[3], float (&delta_vel)[3]);
 
-	// set magnetometer data
 	void setMagData(uint64_t time_usec, float (&data)[3]);
 
-	// set gps data
 	void setGpsData(uint64_t time_usec, const gps_message &gps);
 
-	// set baro data
 	void setBaroData(uint64_t time_usec, float data);
 
-	// set airspeed data
 	void setAirspeedData(uint64_t time_usec, float true_airspeed, float eas2tas);
 
-	// set range data
 	void setRangeData(uint64_t time_usec, float data, int8_t quality);
 
-	// set optical flow data
 	// if optical flow sensor gyro delta angles are not available, set gyroXYZ vector fields to NaN and the EKF will use its internal delta angle data instead
 	void setOpticalFlowData(uint64_t time_usec, flow_message *flow);
 
 	// set external vision position and attitude data
 	void setExtVisionData(uint64_t time_usec, ext_vision_message *evdata);
 
-	// set auxiliary velocity data
 	void setAuxVelData(uint64_t time_usec, const Vector3f &vel, const Vector3f &variance);
 
 	// return a address to the parameters struct
@@ -574,4 +566,5 @@ protected:
 	// calculate the inverse rotation matrix from a quaternion rotation
 	Matrix3f quat_to_invrotmat(const Quatf &quat);
 
+	void printBufferAllocationFailed(const char * buffer_name);
 };
