@@ -10,9 +10,9 @@ Upload an ULog file to the logs.px4.io web server.
 from __future__ import print_function
 
 from argparse import ArgumentParser
+from six.moves import input
 import subprocess
 import sys
-
 
 try:
     import requests
@@ -38,12 +38,7 @@ def ask_value(text, default=None):
     if default != None:
         ask_string += ' (Press ENTER to use ' + default + ')'
     ask_string += ': '
-
-    if sys.version_info[0] < 3:
-        ret = raw_input(ask_string)
-    else:
-        ret = input(ask_string)
-
+    ret = input(ask_string).strip()
     if ret == "" and default != None:
         return default
     return ret
