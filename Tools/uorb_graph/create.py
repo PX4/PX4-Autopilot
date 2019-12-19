@@ -366,7 +366,7 @@ class Graph(object):
             try:
                 content = f.read()
             except:
-                print('Failed reading file: %s, skipping content.' % path)
+                print('Failed reading file: %s, skipping content.' % file_name)
                 return
 
 
