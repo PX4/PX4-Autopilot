@@ -566,9 +566,10 @@ protected:
 	// calculate the inverse rotation matrix from a quaternion rotation
 	Matrix3f quat_to_invrotmat(const Quatf &quat);
 
-	void setDragData();
+	inline void setDragData();
 
-	void computeVibrationMetric();
-	bool checkIfVehicleAtRest(float dt);
+	inline void computeVibrationMetric();
+	inline bool checkIfVehicleAtRest(float dt);
+
 	void printBufferAllocationFailed(const char * buffer_name);
 };
