@@ -170,7 +170,9 @@ void Ekf::fuseMag()
 		return;
 	}
 
-	bool update_all_states = !_flt_mag_align_converging;
+	// For the first few seconds after in-flight alignment we allow the magnetic field state estimates to stabilise
+	// before they are used to constrain heading drift
+	const bool update_all_states = ((_imu_sample_delayed.time_us - _flt_mag_align_start_time) > (uint64_t)5e6);
 
 	// update the states and covariance using sequential fusion of the magnetometer components
 	for (uint8_t index = 0; index <= 2; index++) {
