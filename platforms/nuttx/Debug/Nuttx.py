@@ -414,8 +414,9 @@ class NX_check_tcb(gdb.Command):
 		tasks = NX_task.tasks()
 		print("tcb int: ",int(args))
 		print(tasks[int(args)]._tcb)
-		a =tasks[int(args)]._tcb['xcp']['regs']
+		a = tasks[int(args)]._tcb['xcp']['regs']
 		print("relevant registers:")
+		regmap = NX_register_set.v7em_regmap
 		for reg in regmap:
 			hex_addr= hex(int(a[regmap[reg]]))
 			eval_string = 'info line *'+str(hex_addr)
