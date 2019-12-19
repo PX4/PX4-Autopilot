@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 /**
- * @file pca9685_pwm.cpp
+ * @file pca9685/main.cpp
  * A cross-platform driver and wrapper for pca9685.
  * Designed to support all control-groups by binding to correct mixer files
  * @author SalimTerryLi <lhf2613@gmail.com>
@@ -476,13 +476,13 @@ IIC communication is based on CDev::I2C
 
 ### Examples
 It is typically started with:
-$ pca9685_pwm start -a 64 -b 1
+$ pca9685 start -a 64 -b 1
 
 Use the `mixer` command to load mixer files.
 `mixer load /dev/pca9685 ROMFS/px4fmu_common/mixers/quad_x.main.mix`
 )DESCR_STR");
 
-    PRINT_MODULE_USAGE_NAME("pca9685_pwm", "driver");
+    PRINT_MODULE_USAGE_NAME("pca9685", "driver");
     PRINT_MODULE_USAGE_COMMAND_DESCR("start", "Start the task");
     PRINT_MODULE_USAGE_PARAM_INT('a',64,0,255,"device address on this bus",true);
     PRINT_MODULE_USAGE_PARAM_INT('b',1,0,255,"bus that pca9685 is connected to",true);
@@ -554,8 +554,8 @@ void PWMDriverWrapper::mixerChanged() {
     OutputModuleInterface::mixerChanged();
 }
 
-extern "C" __EXPORT int pca9685_pwm_main(int argc, char *argv[]);
+extern "C" __EXPORT int pca9685_main(int argc, char *argv[]);
 
-int pca9685_pwm_main(int argc, char *argv[]){
+int pca9685_main(int argc, char *argv[]){
 	return PWMDriverWrapper::main(argc, argv);
 }

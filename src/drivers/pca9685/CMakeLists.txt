@@ -1,6 +1,6 @@
 ############################################################################
 #
-#   Copyright (c) 2015 PX4 Development Team. All rights reserved.
+#   Copyright (c) 2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,7 +33,12 @@
 px4_add_module(
 	MODULE drivers__pca9685
 	MAIN pca9685
+	COMPILE_FLAGS
 	SRCS
-		pca9685.cpp
+		main.cpp
+		PCA9685.cpp
 	DEPENDS
+		mixer
+		mixer_module
+		output_limit
 	)
