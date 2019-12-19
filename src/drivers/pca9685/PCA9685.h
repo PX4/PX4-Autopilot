@@ -32,7 +32,7 @@
  ****************************************************************************/
 
 #pragma once
-#include <cinttypes>
+#include <cstdint>
 #include <drivers/device/i2c.h>
 #include <drivers/drv_pwm_output.h>
 

@@ -31,7 +31,6 @@
  *
  ****************************************************************************/
 
-#include <cinttypes>
 #include <px4_log.h>
 #include <cmath>
 #include "PCA9685.h"
