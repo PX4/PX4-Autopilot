@@ -220,51 +220,56 @@ RoverPositionControl::control_position(const matrix::Vector2f &current_position,
 			}
 		}
 
-		float dist = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon,
-				pos_sp_triplet.current.lat, pos_sp_triplet.current.lon);
+		float dist_target = get_distance_to_next_waypoint(_global_pos.lat, _global_pos.lon,
+				    (double)curr_wp(0), (double)curr_wp(1)); // pos_sp_triplet.current.lat, pos_sp_triplet.current.lon);
 
-		bool should_idle = true;
+		//PX4_INFO("Setpoint type %d", (int) pos_sp_triplet.current.type );
+		//PX4_INFO(" State machine state %d", (int) _pos_ctrl_state);
+		//PX4_INFO(" Setpoint Lat %f, Lon %f", (double) curr_wp(0), (double)curr_wp(1));
+		//PX4_INFO(" Distance to target %f", (double) dist_target);
 
-		if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LOITER) {
-			// Because of noise in measurements, if the rover was always trying to reach an exact point, it would
-			// move around when it should be parked. So, I try to get the rover within loiter_radius/2, but then
-			// once I reach that point, I don't move until I'm outside of loiter_radius.
-			// TODO: Find out if there's a better measurement to use than loiter_radius.
-			if (dist > pos_sp_triplet.current.loiter_radius) {
-				_waypoint_reached = false;
+		switch (_pos_ctrl_state) {
+		case GOTO_WAYPOINT: {
+				if (dist_target < _param_nav_loiter_rad.get()) {
+					_pos_ctrl_state = STOPPING;  // We are closer than loiter radius to waypoint, stop.
 
-			} else if (dist <= pos_sp_triplet.current.loiter_radius / 2) {
-				_waypoint_reached = true;
+				} else {
+					_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
+
+					_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = mission_throttle;
+
+					float desired_r = ground_speed_2d.norm_squared() / math::abs_t(_gnd_control.nav_lateral_acceleration_demand());
+					float desired_theta = (0.5f * M_PI_F) - atan2f(desired_r, _param_wheel_base.get());
+					float control_effort = (desired_theta / _param_max_turn_angle.get()) * sign(
+								       _gnd_control.nav_lateral_acceleration_demand());
+					control_effort = math::constrain(control_effort, -1.0f, 1.0f);
+					_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
+				}
 			}
+			break;
 
-			should_idle = _waypoint_reached;
+		case STOPPING: {
+				_act_controls.control[actuator_controls_s::INDEX_YAW] = 0.0f;
+				_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
+				// Note _prev_wp is different to the local prev_wp which is related to a mission waypoint.
+				float dist_between_waypoints = get_distance_to_next_waypoint((double)_prev_wp(0), (double)_prev_wp(1),
+							       (double)curr_wp(0), (double)curr_wp(1));
 
-		} else if (pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_POSITION ||
-			   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_TAKEOFF ||
-			   pos_sp_triplet.current.type == position_setpoint_s::SETPOINT_TYPE_LAND) {
-			should_idle = false;
+				if (dist_between_waypoints > 0) {
+					_pos_ctrl_state = GOTO_WAYPOINT; // A new waypoint has arrived go to it
+				}
+
+				//PX4_INFO(" Distance between prev and curr waypoints %f", (double)dist_between_waypoints);
+			}
+			break;
+
+		default:
+			PX4_ERR("Unknown Rover State");
+			_pos_ctrl_state = STOPPING;
+			break;
 		}
 
-
-		if (should_idle) {
-			_act_controls.control[actuator_controls_s::INDEX_YAW] = 0.0f;
-			_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = 0.0f;
-
-		} else {
-
-			/* waypoint is a plain navigation waypoint or the takeoff waypoint, does not matter */
-			_gnd_control.navigate_waypoints(prev_wp, curr_wp, current_position, ground_speed_2d);
-
-			_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = mission_throttle;
-
-			float desired_r = ground_speed_2d.norm_squared() / math::abs_t(_gnd_control.nav_lateral_acceleration_demand());
-			float desired_theta = (0.5f * M_PI_F) - atan2f(desired_r, _param_wheel_base.get());
-			float control_effort = (desired_theta / _param_max_turn_angle.get()) * sign(
-						       _gnd_control.nav_lateral_acceleration_demand());
-			control_effort = math::constrain(control_effort, -1.0f, 1.0f);
-			_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
-
-		}
+		_prev_wp = curr_wp;
 
 	} else {
 		_control_mode_current = UGV_POSCTRL_MODE_OTHER;
@@ -333,17 +338,11 @@ RoverPositionControl::control_attitude(const vehicle_attitude_s &att, const vehi
 	float control_effort = euler_sp(2) / _param_max_turn_angle.get();
 	control_effort = math::constrain(control_effort, -1.0f, 1.0f);
 
-	const float control_throttle = math::constrain(att_sp.thrust_body[0], -1.0f, 1.0f);
+	_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
 
-	if (control_throttle >= 0.0f) {
-		_act_controls.control[actuator_controls_s::INDEX_YAW] = control_effort;
+	const float control_throttle = att_sp.thrust_body[0];
 
-	} else {
-		// reverse steering, if driving backwards
-		_act_controls.control[actuator_controls_s::INDEX_YAW] = -control_effort;
-	}
-
-	_act_controls.control[actuator_controls_s::INDEX_THROTTLE] = control_throttle;
+	_act_controls.control[actuator_controls_s::INDEX_THROTTLE] =  math::constrain(control_throttle, 0.0f, 1.0f);
 
 }
 
@@ -370,7 +369,7 @@ RoverPositionControl::run()
 	parameters_update(true);
 
 	/* wakeup source(s) */
-	px4_pollfd_struct_t fds[4];
+	px4_pollfd_struct_t fds[5];
 
 	/* Setup of loop */
 	fds[0].fd = _global_pos_sub;
@@ -379,8 +378,10 @@ RoverPositionControl::run()
 	fds[1].events = POLLIN;
 	fds[2].fd = _sensor_combined_sub;
 	fds[2].events = POLLIN;
-	fds[3].fd = _vehicle_attitude_sub;
+	fds[3].fd = _vehicle_attitude_sub; // Poll attitude
 	fds[3].events = POLLIN;
+	fds[4].fd = _local_pos_sub;  // Added local position as source of position
+	fds[4].events = POLLIN;
 
 	while (!should_exit()) {
 
@@ -406,7 +407,7 @@ RoverPositionControl::run()
 		bool manual_mode = _control_mode.flag_control_manual_enabled;
 
 		/* only run controller if position changed */
-		if (fds[0].revents & POLLIN) {
+		if (fds[0].revents & POLLIN || fds[4].revents & POLLIN) {
 			perf_begin(_loop_perf);
 
 			/* load local copies */
@@ -462,6 +463,7 @@ RoverPositionControl::run()
 
 					_pos_ctrl_status_pub.publish(pos_ctrl_status);
 
+
 				}
 
 			} else if (!manual_mode && _control_mode.flag_control_velocity_enabled) {
@@ -514,6 +516,7 @@ RoverPositionControl::run()
 			/* Only publish if any of the proper modes are enabled */
 			if (_control_mode.flag_control_velocity_enabled ||
 			    _control_mode.flag_control_attitude_enabled ||
+			    _control_mode.flag_control_position_enabled ||
 			    manual_mode) {
 				/* publish the actuator controls */
 				_actuator_controls_pub.publish(_act_controls);
