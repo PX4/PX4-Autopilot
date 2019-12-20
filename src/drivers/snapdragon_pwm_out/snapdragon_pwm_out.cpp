@@ -37,7 +37,7 @@
 #include <px4_platform_common/getopt.h>
 #include <px4_platform_common/posix.h>
 #include <errno.h>
-#include <cmath>	// NAN
+#include <math.h>	// NAN
 #include <string.h>
 
 #include <uORB/Subscription.hpp>

@@ -76,7 +76,7 @@ class FixedwingAttitudeControl final : public ModuleBase<FixedwingAttitudeContro
 	public px4::WorkItem
 {
 public:
-	FixedwingAttitudeControl();
+	FixedwingAttitudeControl(bool vtol = false);
 	~FixedwingAttitudeControl() override;
 
 	/** @see ModuleBase */
@@ -87,9 +87,6 @@ public:
 
 	/** @see ModuleBase */
 	static int print_usage(const char *reason = nullptr);
-
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
 
 	void Run() override;
 
@@ -112,15 +109,11 @@ private:
 
 	uORB::SubscriptionData<airspeed_validated_s> _airspeed_validated_sub{ORB_ID(airspeed_validated)};
 
+	uORB::Publication<actuator_controls_s>		_actuators_0_pub;
 	uORB::Publication<actuator_controls_s>		_actuators_2_pub{ORB_ID(actuator_controls_2)};		/**< actuator control group 1 setpoint (Airframe) */
-	uORB::Publication<vehicle_rates_setpoint_s>	_rate_sp_pub{ORB_ID(vehicle_rates_setpoint)};		/**< rate setpoint publication */
-	uORB::PublicationMulti<rate_ctrl_status_s>	_rate_ctrl_status_pub{ORB_ID(rate_ctrl_status)};	/**< rate controller status publication */
-
-	orb_id_t	_attitude_setpoint_id{nullptr};
-	orb_advert_t	_attitude_sp_pub{nullptr};	/**< attitude setpoint point */
-
-	orb_id_t	_actuators_id{nullptr};		/**< pointer to correct actuator controls0 uORB metadata structure */
-	orb_advert_t	_actuators_0_pub{nullptr};	/**< actuator control group 0 setpoint */
+	uORB::Publication<vehicle_attitude_setpoint_s>	_attitude_sp_pub;
+	uORB::Publication<vehicle_rates_setpoint_s>	_rate_sp_pub{ORB_ID(vehicle_rates_setpoint)};
+	uORB::PublicationMulti<rate_ctrl_status_s>	_rate_ctrl_status_pub{ORB_ID(rate_ctrl_status)};
 
 	actuator_controls_s			_actuators {};		/**< actuator control inputs */
 	actuator_controls_s			_actuators_airframe {};	/**< actuator control inputs */
@@ -233,7 +226,6 @@ private:
 	void		vehicle_manual_poll();
 	void		vehicle_attitude_setpoint_poll();
 	void		vehicle_rates_setpoint_poll();
-	void		vehicle_status_poll();
 	void		vehicle_land_detected_poll();
 
 	float 		get_airspeed_and_update_scaling();

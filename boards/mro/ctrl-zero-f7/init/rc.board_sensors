@@ -11,11 +11,14 @@ mpu6000 -R 10 -s -T 20602 start
 # Internal ICM-20689
 #icm20689 -R 10 20689 start
 
-# Internal BMI088
-bmi088 start
+# Internal SPI bus BMI088 accel
+bmi088 -A -R 10 start
+
+# Internal SPI bus BMI088 gyro
+bmi088 -G -R 10 start
 
 # Interal DPS310 (barometer)
-dps310 start
+dps310 -s start
 
 # Possible external compasses
 ist8310 -C -b 1 start

@@ -15,7 +15,7 @@ px4_add_board(
 		TEL1:/dev/ttyS6
 		TEL2:/dev/ttyS4
 		TEL3:/dev/ttyS2
-		GPS2:/dev/ttyS0
+		GPS2:/dev/ttyS7
 	DRIVERS
 		adc
 		barometer # all available barometer drivers
@@ -24,7 +24,7 @@ px4_add_board(
 		camera_trigger
 		differential_pressure # all available differential pressure drivers
 		distance_sensor # all available distance sensor drivers
-		#dshot
+		dshot
 		gps
 		#heater
 		#imu # all available imu drivers
@@ -32,8 +32,8 @@ px4_add_board(
 		imu/adis16477
 		imu/adis16497
 		imu/bmi088
-# TBD		imu/ism330dlc - needs bus selection
 		imu/mpu6000
+		imu/st/ism330dlc
 		irlock
 		lights/blinkm
 		lights/rgbled

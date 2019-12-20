@@ -40,13 +40,21 @@ using math::constrain;
 using math::gradual;
 using math::radians;
 
-FixedwingAttitudeControl::FixedwingAttitudeControl() :
+FixedwingAttitudeControl::FixedwingAttitudeControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::att_pos_ctrl),
+	_actuators_0_pub(vtol ? ORB_ID(actuator_controls_virtual_fw) : ORB_ID(actuator_controls_0)),
+	_attitude_sp_pub(vtol ? ORB_ID(fw_virtual_attitude_setpoint) : ORB_ID(vehicle_attitude_setpoint)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	// check if VTOL first
-	vehicle_status_poll();
+	if (vtol) {
+		int32_t vt_type = -1;
+
+		if (param_get(param_find("VT_TYPE"), &vt_type) == PX4_OK) {
+			_is_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
+		}
+	}
 
 	/* fetch initial parameter values */
 	parameters_update();
@@ -165,14 +173,7 @@ FixedwingAttitudeControl::vehicle_manual_poll()
 
 					_att_sp.timestamp = hrt_absolute_time();
 
-					if (_attitude_sp_pub != nullptr) {
-						/* publish the attitude rates setpoint */
-						orb_publish(_attitude_setpoint_id, _attitude_sp_pub, &_att_sp);
-
-					} else if (_attitude_setpoint_id) {
-						/* advertise the attitude rates setpoint */
-						_attitude_sp_pub = orb_advertise(_attitude_setpoint_id, &_att_sp);
-					}
+					_attitude_sp_pub.publish(_att_sp);
 
 				} else if (_vcontrol_mode.flag_control_rates_enabled &&
 					   !_vcontrol_mode.flag_control_attitude_enabled) {
@@ -216,30 +217,6 @@ FixedwingAttitudeControl::vehicle_rates_setpoint_poll()
 			float tmp = _rates_sp.roll;
 			_rates_sp.roll = -_rates_sp.yaw;
 			_rates_sp.yaw = tmp;
-		}
-	}
-}
-
-void
-FixedwingAttitudeControl::vehicle_status_poll()
-{
-	if (_vehicle_status_sub.update(&_vehicle_status)) {
-		/* set correct uORB ID, depending on if vehicle is VTOL or not */
-		if (!_actuators_id) {
-			if (_vehicle_status.is_vtol) {
-				_actuators_id = ORB_ID(actuator_controls_virtual_fw);
-				_attitude_setpoint_id = ORB_ID(fw_virtual_attitude_setpoint);
-
-				int32_t vt_type = -1;
-
-				if (param_get(param_find("VT_TYPE"), &vt_type) == PX4_OK) {
-					_is_tailsitter = (static_cast<vtol_type>(vt_type) == vtol_type::TAILSITTER);
-				}
-
-			} else {
-				_actuators_id = ORB_ID(actuator_controls_0);
-				_attitude_setpoint_id = ORB_ID(vehicle_attitude_setpoint);
-			}
 		}
 	}
 }
@@ -378,7 +355,10 @@ void FixedwingAttitudeControl::Run()
 		const matrix::Eulerf euler_angles(R);
 
 		vehicle_attitude_setpoint_poll();
-		vehicle_status_poll(); // this poll has to be before the control_mode_poll, otherwise rate sp are not published during whole transition
+
+		// vehicle status update must be before the vehicle_control_mode_poll(), otherwise rate sp are not published during whole transition
+		_vehicle_status_sub.update(&_vehicle_status);
+
 		vehicle_control_mode_poll();
 		vehicle_manual_poll();
 		_global_pos_sub.update(&_global_pos);
@@ -646,14 +626,8 @@ void FixedwingAttitudeControl::Run()
 		if (_vcontrol_mode.flag_control_rates_enabled ||
 		    _vcontrol_mode.flag_control_attitude_enabled ||
 		    _vcontrol_mode.flag_control_manual_enabled) {
-			/* publish the actuator controls */
-			if (_actuators_0_pub != nullptr) {
-				orb_publish(_actuators_id, _actuators_0_pub, &_actuators);
 
-			} else if (_actuators_id) {
-				_actuators_0_pub = orb_advertise(_actuators_id, &_actuators);
-			}
-
+			_actuators_0_pub.publish(_actuators);
 			_actuators_2_pub.publish(_actuators_airframe);
 		}
 	}
@@ -728,7 +702,15 @@ void FixedwingAttitudeControl::control_flaps(const float dt)
 
 int FixedwingAttitudeControl::task_spawn(int argc, char *argv[])
 {
-	FixedwingAttitudeControl *instance = new FixedwingAttitudeControl();
+	bool vtol = false;
+
+	if (argc > 1) {
+		if (strcmp(argv[1], "vtol") == 0) {
+			vtol = true;
+		}
+	}
+
+	FixedwingAttitudeControl *instance = new FixedwingAttitudeControl(vtol);
 
 	if (instance) {
 		_object.store(instance);
@@ -754,13 +736,6 @@ int FixedwingAttitudeControl::custom_command(int argc, char *argv[])
 	return print_usage("unknown command");
 }
 
-int FixedwingAttitudeControl::print_status()
-{
-	PX4_INFO("Running");
-	perf_print_counter(_loop_perf);
-	return 0;
-}
-
 int FixedwingAttitudeControl::print_usage(const char *reason)
 {
 	if (reason) {
@@ -774,8 +749,9 @@ fw_att_control is the fixed wing attitude controller.
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_NAME("fw_att_control", "controller");
+	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;

@@ -9,7 +9,7 @@
 
 #if UAVCAN_KINETIS_TIMER_NUMBER
 # include <cassert>
-# include <cmath>
+# include <math.h>
 
 /*
  * Timer instance

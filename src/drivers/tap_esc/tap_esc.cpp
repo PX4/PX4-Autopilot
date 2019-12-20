@@ -40,7 +40,7 @@
 #include <px4_platform_common/posix.h>
 #include <errno.h>
 
-#include <cmath>	// NAN
+#include <math.h>	// NAN
 #include <cstring>
 
 #include <lib/mathlib/mathlib.h>

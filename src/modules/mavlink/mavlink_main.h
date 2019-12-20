@@ -164,8 +164,6 @@ public:
 
 	static void		forward_message(const mavlink_message_t *msg, Mavlink *self);
 
-	static int		get_uart_fd(unsigned index);
-
 	int			get_uart_fd() const { return _uart_fd; }
 
 	/**

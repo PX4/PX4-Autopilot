@@ -47,7 +47,7 @@
 
 #include <drivers/drv_hrt.h>
 
-#include <uORB/uORB.h>
+#include <uORB/PublicationMulti.hpp>
 #include <uORB/topics/input_rc.h>
 
 namespace navio_sysfs_rc_in
@@ -63,14 +63,8 @@ extern "C" __EXPORT int navio_sysfs_rc_in_main(int argc, char *argv[]);
 class RcInput
 {
 public:
-	RcInput() :
-		_shouldExit(false),
-		_isRunning(false),
-		_work{},
-		_rcinput_pub(nullptr),
-		_channels(8), //D8R-II plus
-		_data{}
-	{ }
+	RcInput() = default;
+
 	~RcInput()
 	{
 		work_cancel(HPWORK, &_work);
@@ -92,17 +86,19 @@ private:
 	void _cycle();
 	void _measure();
 
-	bool _shouldExit;
-	bool _isRunning;
-	struct work_s _work;
-
-	orb_advert_t _rcinput_pub;
-
-	int _channels;
-	int _ch_fd[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
-	struct input_rc_s _data;
-
 	int navio_rc_init();
+
+	bool _shouldExit{false};
+	bool _isRunning{false};
+	work_s _work{};
+
+	uORB::PublicationMulti<input_rc_s>	_rcinput_pub{ORB_ID(input_rc)};
+
+	int _channels{8};	// D8R-II plus
+	int _ch_fd[input_rc_s::RC_INPUT_MAX_CHANNELS] {};
+
+	input_rc_s _data{};
+
 };
 
 int RcInput::navio_rc_init()
@@ -126,21 +122,12 @@ int RcInput::navio_rc_init()
 		_data.values[i] = UINT16_MAX;
 	}
 
-	_rcinput_pub = orb_advertise(ORB_ID(input_rc), &_data);
-
-	if (_rcinput_pub == nullptr) {
-		PX4_WARN("error: advertise failed");
-		return -1;
-	}
-
 	return 0;
 }
 
 int RcInput::start()
 {
-	int result = 0;
-
-	result = navio_rc_init();
+	int result = navio_rc_init();
 
 	if (result != 0) {
 		PX4_WARN("error: RC initialization failed");
@@ -208,7 +195,7 @@ void RcInput::_measure(void)
 	_data.rc_lost = false;
 	_data.input_source = input_rc_s::RC_INPUT_SOURCE_PX4IO_PPM;
 
-	orb_publish(ORB_ID(input_rc), _rcinput_pub, &_data);
+	_rcinput_pub.publish(_data);
 }
 
 /**

@@ -357,7 +357,12 @@ static int vmount_thread_main(int argc, char *argv[])
 				break;
 			}
 
-			thread_data.output_obj->publish();
+			//only publish the mount orientation if the mode is not mavlink
+			//if the gimbal speaks mavlink it publishes its own orientation
+			if (params.mnt_mode_out != 1) { // 1 = MAVLINK
+				thread_data.output_obj->publish();
+			}
+
 
 		} else {
 			//wait for parameter changes. We still need to wake up regularily to check for thread exit requests

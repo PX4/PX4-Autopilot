@@ -45,8 +45,6 @@ bool FlightTaskManualAltitude::updateInitialize()
 {
 	bool ret = FlightTaskManual::updateInitialize();
 
-	_sub_home_position.update();
-
 	// in addition to manual require valid position and velocity in D-direction and valid yaw
 	return ret && PX4_ISFINITE(_position(2)) && PX4_ISFINITE(_velocity(2)) && PX4_ISFINITE(_yaw);
 }
@@ -267,22 +265,12 @@ void FlightTaskManualAltitude::_respectMaxAltitude()
 
 void FlightTaskManualAltitude::_respectGroundSlowdown()
 {
-	float dist_to_ground = NAN;
-
-	// if there is a valid distance to bottom or vertical distance to home
-	if (PX4_ISFINITE(_dist_to_bottom)) {
-		dist_to_ground = _dist_to_bottom;
-
-	} else if (_sub_home_position.get().valid_alt) {
-		dist_to_ground = -(_position(2) - _sub_home_position.get().z);
-	}
-
 	// limit speed gradually within the altitudes MPC_LAND_ALT1 and MPC_LAND_ALT2
-	if (PX4_ISFINITE(dist_to_ground)) {
-		const float limit_down = math::gradual(dist_to_ground,
+	if (PX4_ISFINITE(_dist_to_ground)) {
+		const float limit_down = math::gradual(_dist_to_ground,
 						       _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
 						       _param_mpc_land_speed.get(), _constraints.speed_down);
-		const float limit_up = math::gradual(dist_to_ground,
+		const float limit_up = math::gradual(_dist_to_ground,
 						     _param_mpc_land_alt2.get(), _param_mpc_land_alt1.get(),
 						     _param_mpc_tko_speed.get(), _constraints.speed_up);
 		_velocity_setpoint(2) = math::constrain(_velocity_setpoint(2), -limit_up, limit_down);

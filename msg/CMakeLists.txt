@@ -45,8 +45,8 @@ set(msg_files
 	camera_capture.msg
 	camera_trigger.msg
 	cellular_status.msg
-	collision_report.msg
 	collision_constraints.msg
+	collision_report.msg
 	commander_state.msg
 	cpuload.msg
 	debug_array.msg
@@ -55,13 +55,13 @@ set(msg_files
 	debug_vect.msg
 	differential_pressure.msg
 	distance_sensor.msg
-	ekf2_innovations.msg		# TODO: remove as soon as https://github.com/PX4/Firmware/pull/13127 is rebased over this
 	ekf2_timestamps.msg
 	ekf_gps_drift.msg
 	ekf_gps_position.msg
 	esc_report.msg
 	esc_status.msg
 	estimator_status.msg
+	estimator_innovations.msg
 	follow_target.msg
 	geofence_result.msg
 	gps_dump.msg
@@ -104,12 +104,16 @@ set(msg_files
 	safety.msg
 	satellite_info.msg
 	sensor_accel.msg
+	sensor_accel_fifo.msg
+	sensor_accel_status.msg
 	sensor_baro.msg
 	sensor_bias.msg
 	sensor_combined.msg
 	sensor_correction.msg
 	sensor_gyro.msg
 	sensor_gyro_control.msg
+	sensor_gyro_fifo.msg
+	sensor_gyro_status.msg
 	sensor_mag.msg
 	sensor_preflight.msg
 	sensor_selection.msg
@@ -155,8 +159,7 @@ set(msg_files
 	)
 
 set(deprecated_msgs
-	# TODO: uncomment as soon as https://github.com/PX4/Firmware/pull/13127 is rebased over this
-	# ekf2_innovations.msg	# 2019-11-22, Updated estimator interface and logging; replaced by 'estimator_innovations'.
+	ekf2_innovations.msg	# 2019-11-22, Updated estimator interface and logging; replaced by 'estimator_innovations'.
 	)
 
 foreach(msg IN LISTS deprecated_msgs)

@@ -3,7 +3,7 @@
 ################################################################################
 #
 # Copyright 2017 Proyectos y Sistemas de Mantenimiento SL (eProsima).
-#           2018-2019 PX4 Development Team. All rights reserved.
+# Copyright (c) 2018-2019 PX4 Development Team. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -53,6 +53,13 @@ try:
 except ImportError:
     raise ImportError(
         "Failed to import yaml. You may need to install it with 'sudo pip install pyyaml'")
+try:
+    from six.moves import input
+except ImportError:
+    try:
+        input = raw_input  # Python 2
+    except NameError:
+        pass  # Python 3
 
 
 def check_rtps_id_uniqueness(classifier):
@@ -281,9 +288,9 @@ if agent == False and client == False:
 
 if del_tree:
     if agent:
-        _continue = str(raw_input("\nFiles in " + agent_out_dir +
-                                  " will be erased, continue?[Y/n]\n"))
-        if _continue == "N" or _continue == "n":
+        _continue = str(input("\nFiles in " + agent_out_dir +
+                              " will be erased, continue?[Y/n]\n"))
+        if _continue.strip() in ("N", "n"):
             print("Aborting execution...")
             exit(-1)
         else:
@@ -291,9 +298,9 @@ if del_tree:
                 shutil.rmtree(agent_out_dir)
 
     if client:
-        _continue = str(raw_input(
+        _continue = str(input(
             "\nFiles in " + client_out_dir + " will be erased, continue?[Y/n]\n"))
-        if _continue == "N" or _continue == "n":
+        if _continue.strip() in ("N", "n"):
             print("Aborting execution...")
             exit(-1)
         else:

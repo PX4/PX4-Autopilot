@@ -463,14 +463,6 @@ VtolAttitudeControl::custom_command(int argc, char *argv[])
 }
 
 int
-VtolAttitudeControl::print_status()
-{
-	PX4_INFO("Running");
-	perf_print_counter(_loop_perf);
-	return PX4_OK;
-}
-
-int
 VtolAttitudeControl::print_usage(const char *reason)
 {
 	if (reason) {

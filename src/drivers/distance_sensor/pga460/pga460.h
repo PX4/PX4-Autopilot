@@ -268,11 +268,6 @@ public:
 	void print_diagnostics(const uint8_t diagnostic_byte);
 
 	/**
-	 * Diagnostics - print some basic information about the driver.
-	 */
-	int print_status() override;
-
-	/**
 	 * @brief Reads the threshold registers.
 	 * @return Returns true if the threshold registers are set to default
 	 */

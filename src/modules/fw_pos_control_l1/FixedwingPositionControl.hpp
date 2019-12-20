@@ -129,7 +129,7 @@ class FixedwingPositionControl final : public ModuleBase<FixedwingPositionContro
 	public px4::WorkItem
 {
 public:
-	FixedwingPositionControl();
+	FixedwingPositionControl(bool vtol = false);
 	~FixedwingPositionControl() override;
 
 	/** @see ModuleBase */
@@ -145,61 +145,56 @@ public:
 
 	bool init();
 
-	/** @see ModuleBase::print_status() */
-	int print_status() override;
-
 private:
 	orb_advert_t	_mavlink_log_pub{nullptr};
 
 	uORB::SubscriptionCallbackWorkItem _global_pos_sub{this, ORB_ID(vehicle_global_position)};
 
-	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};		///< control mode subscription */
+	uORB::Subscription _control_mode_sub{ORB_ID(vehicle_control_mode)};		///< control mode subscription
 	uORB::Subscription _local_pos_sub{ORB_ID(vehicle_local_position)};
-	uORB::Subscription _manual_control_sub{ORB_ID(manual_control_setpoint)};	///< notification of manual control updates */
-	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		///< notification of parameter updates */
+	uORB::Subscription _manual_control_sub{ORB_ID(manual_control_setpoint)};	///< notification of manual control updates
+	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		///< notification of parameter updates
 	uORB::Subscription _pos_sp_triplet_sub{ORB_ID(position_setpoint_triplet)};
 	uORB::Subscription _sensor_baro_sub{ORB_ID(sensor_baro)};
-	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};		///< vehicle attitude subscription */
-	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};		///< vehicle command subscription */
-	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	///< vehicle land detected subscription */
-	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			///< vehicle status subscription */
+	uORB::Subscription _vehicle_attitude_sub{ORB_ID(vehicle_attitude)};		///< vehicle attitude subscription
+	uORB::Subscription _vehicle_command_sub{ORB_ID(vehicle_command)};		///< vehicle command subscription
+	uORB::Subscription _vehicle_land_detected_sub{ORB_ID(vehicle_land_detected)};	///< vehicle land detected subscription
+	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			///< vehicle status subscription
 	uORB::SubscriptionData<vehicle_angular_velocity_s>	_vehicle_rates_sub{ORB_ID(vehicle_angular_velocity)};
 
-	orb_advert_t	_attitude_sp_pub{nullptr};		///< attitude setpoint */
-	orb_id_t	_attitude_setpoint_id{nullptr};
+	uORB::Publication<vehicle_attitude_setpoint_s>		_attitude_sp_pub;
+	uORB::Publication<position_controller_status_s>		_pos_ctrl_status_pub{ORB_ID(position_controller_status)};			///< navigation capabilities publication
+	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};	///< landing status publication
+	uORB::Publication<tecs_status_s>			_tecs_status_pub{ORB_ID(tecs_status)};						///< TECS status publication
 
-	uORB::Publication<position_controller_status_s>		_pos_ctrl_status_pub{ORB_ID(position_controller_status)};			///< navigation capabilities publication */
-	uORB::Publication<position_controller_landing_status_s>	_pos_ctrl_landing_status_pub{ORB_ID(position_controller_landing_status)};	///< landing status publication */
-	uORB::Publication<tecs_status_s>			_tecs_status_pub{ORB_ID(tecs_status)};						///< TECS status publication */
-
-	manual_control_setpoint_s	_manual {};			///< r/c channel data */
-	position_setpoint_triplet_s	_pos_sp_triplet {};		///< triplet of mission items */
-	vehicle_attitude_s		_att {};			///< vehicle attitude setpoint */
-	vehicle_attitude_setpoint_s	_att_sp {};			///< vehicle attitude setpoint */
-	vehicle_command_s		_vehicle_command {};		///< vehicle commands */
-	vehicle_control_mode_s		_control_mode {};		///< control mode */
-	vehicle_global_position_s	_global_pos {};			///< global vehicle position */
-	vehicle_local_position_s	_local_pos {};			///< vehicle local position */
-	vehicle_land_detected_s		_vehicle_land_detected {};	///< vehicle land detected */
-	vehicle_status_s		_vehicle_status {};		///< vehicle status */
+	manual_control_setpoint_s	_manual {};			///< r/c channel data
+	position_setpoint_triplet_s	_pos_sp_triplet {};		///< triplet of mission items
+	vehicle_attitude_s		_att {};			///< vehicle attitude setpoint
+	vehicle_attitude_setpoint_s	_att_sp {};			///< vehicle attitude setpoint
+	vehicle_command_s		_vehicle_command {};		///< vehicle commands
+	vehicle_control_mode_s		_control_mode {};		///< control mode
+	vehicle_global_position_s	_global_pos {};			///< global vehicle position
+	vehicle_local_position_s	_local_pos {};			///< vehicle local position
+	vehicle_land_detected_s		_vehicle_land_detected {};	///< vehicle land detected
+	vehicle_status_s		_vehicle_status {};		///< vehicle status
 
 	SubscriptionData<airspeed_validated_s>			_airspeed_validated_sub{ORB_ID(airspeed_validated)};
 	SubscriptionData<vehicle_acceleration_s>	_vehicle_acceleration_sub{ORB_ID(vehicle_acceleration)};
 
-	perf_counter_t	_loop_perf;				///< loop performance counter */
+	perf_counter_t	_loop_perf;				///< loop performance counter
 
-	float	_hold_alt{0.0f};				///< hold altitude for altitude mode */
-	float	_takeoff_ground_alt{0.0f};			///< ground altitude at which plane was launched */
-	float	_hdg_hold_yaw{0.0f};				///< hold heading for velocity mode */
-	bool	_hdg_hold_enabled{false};			///< heading hold enabled */
-	bool	_yaw_lock_engaged{false};			///< yaw is locked for heading hold */
-	float	_althold_epv{0.0f};				///< the position estimate accuracy when engaging alt hold */
-	bool	_was_in_deadband{false};			///< wether the last stick input was in althold deadband */
+	float	_hold_alt{0.0f};				///< hold altitude for altitude mode
+	float	_takeoff_ground_alt{0.0f};			///< ground altitude at which plane was launched
+	float	_hdg_hold_yaw{0.0f};				///< hold heading for velocity mode
+	bool	_hdg_hold_enabled{false};			///< heading hold enabled
+	bool	_yaw_lock_engaged{false};			///< yaw is locked for heading hold
+	float	_althold_epv{0.0f};				///< the position estimate accuracy when engaging alt hold
+	bool	_was_in_deadband{false};			///< wether the last stick input was in althold deadband
 
-	position_setpoint_s _hdg_hold_prev_wp {};		///< position where heading hold started */
-	position_setpoint_s _hdg_hold_curr_wp {};		///< position to which heading hold flies */
+	position_setpoint_s _hdg_hold_prev_wp {};		///< position where heading hold started
+	position_setpoint_s _hdg_hold_curr_wp {};		///< position to which heading hold flies
 
-	hrt_abstime _control_position_last_called{0};		///< last call of control_position  */
+	hrt_abstime _control_position_last_called{0};		///< last call of control_position
 
 	/* Landing */
 	bool _land_noreturn_horizontal{false};
@@ -211,18 +206,18 @@ private:
 
 	Landingslope _landingslope;
 
-	hrt_abstime _time_started_landing{0};			///< time at which landing started */
+	hrt_abstime _time_started_landing{0};			///< time at which landing started
 
-	float _t_alt_prev_valid{0};				///< last terrain estimate which was valid */
-	hrt_abstime _time_last_t_alt{0};			///< time at which we had last valid terrain alt */
+	float _t_alt_prev_valid{0};				///< last terrain estimate which was valid
+	hrt_abstime _time_last_t_alt{0};			///< time at which we had last valid terrain alt
 
-	float _flare_height{0.0f};				///< estimated height to ground at which flare started */
-	float _flare_pitch_sp{0.0f};			///< Current forced (i.e. not determined using TECS) flare pitch setpoint */
+	float _flare_height{0.0f};				///< estimated height to ground at which flare started
+	float _flare_pitch_sp{0.0f};			///< Current forced (i.e. not determined using TECS) flare pitch setpoint
 	float _flare_curve_alt_rel_last{0.0f};
-	float _target_bearing{0.0f};				///< estimated height to ground at which flare started */
+	float _target_bearing{0.0f};				///< estimated height to ground at which flare started
 
 	bool _was_in_air{false};				///< indicated wether the plane was in the air in the previous interation*/
-	hrt_abstime _time_went_in_air{0};			///< time at which the plane went in the air */
+	hrt_abstime _time_went_in_air{0};			///< time at which the plane went in the air
 
 	/* Takeoff launch detection and runway */
 	LaunchDetector _launchDetector;
@@ -252,6 +247,8 @@ private:
 
 	float _asp_after_transition{0.0f};
 	bool _was_in_transition{false};
+
+	bool _vtol_tailsitter{false};
 
 	// estimator reset counters
 	uint8_t _pos_reset_counter{0};				///< captures the number of times the estimator has reset the horizontal position
@@ -307,8 +304,7 @@ private:
 
 		// VTOL
 		float airspeed_trans;
-		int32_t vtol_type;
-	} _parameters{};					///< local copies of interesting parameters */
+	} _parameters{};					///< local copies of interesting parameters
 
 	struct {
 		param_t climbout_diff;
@@ -370,9 +366,7 @@ private:
 		param_t land_airspeed_scale;
 		param_t land_throtTC_scale;
 		param_t loiter_radius;
-
-		param_t vtol_type;
-	} _parameter_handles {};				///< handles for interesting parameters */
+	} _parameter_handles {};				///< handles for interesting parameters
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::FW_GND_SPD_MIN>) _groundspeed_min

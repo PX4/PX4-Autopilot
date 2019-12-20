@@ -11,7 +11,7 @@ pipeline {
       steps {
         sh 'export'
         sh 'make distclean'
-        sh 'ccache -z'
+        sh 'ccache -s'
         sh 'git fetch --tags'
         sh 'CCACHE_BASEDIR=${WORKSPACE} make emlid_navio2_native'
         sh 'ccache -s'
@@ -24,7 +24,7 @@ pipeline {
         }
       }
       options {
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(time: 60, unit: 'MINUTES')
       }
 
     }

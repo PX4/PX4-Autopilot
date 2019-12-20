@@ -42,9 +42,10 @@ using namespace matrix;
 using namespace time_literals;
 using math::radians;
 
-MulticopterRateControl::MulticopterRateControl() :
+MulticopterRateControl::MulticopterRateControl(bool vtol) :
 	ModuleParams(nullptr),
 	WorkItem(MODULE_NAME, px4::wq_configurations::rate_ctrl),
+	_actuators_0_pub(vtol ? ORB_ID(actuator_controls_virtual_mc) : ORB_ID(actuator_controls_0)),
 	_loop_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": cycle"))
 {
 	_vehicle_status.vehicle_type = vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
@@ -95,23 +96,6 @@ MulticopterRateControl::parameters_updated()
 				  radians(_param_mc_acro_y_max.get()));
 
 	_actuators_0_circuit_breaker_enabled = circuit_breaker_enabled_by_val(_param_cbrk_rate_ctrl.get(), CBRK_RATE_CTRL_KEY);
-}
-
-void
-MulticopterRateControl::vehicle_status_poll()
-{
-	/* check if there is new status information */
-	if (_vehicle_status_sub.update(&_vehicle_status)) {
-		/* set correct uORB ID, depending on if vehicle is VTOL or not */
-		if (_actuators_id == nullptr) {
-			if (_vehicle_status.is_vtol) {
-				_actuators_id = ORB_ID(actuator_controls_virtual_mc);
-
-			} else {
-				_actuators_id = ORB_ID(actuator_controls_0);
-			}
-		}
-	}
 }
 
 float
@@ -183,7 +167,7 @@ MulticopterRateControl::Run()
 			}
 		}
 
-		vehicle_status_poll();
+		_vehicle_status_sub.update(&_vehicle_status);
 
 		const bool manual_control_updated = _manual_control_sp_sub.update(&_manual_control_sp);
 
@@ -326,14 +310,14 @@ MulticopterRateControl::Run()
 			}
 
 			actuators.timestamp = hrt_absolute_time();
-			orb_publish_auto(_actuators_id, &_actuators_0_pub, &actuators, nullptr, ORB_PRIO_DEFAULT);
+			_actuators_0_pub.publish(actuators);
 
 		} else if (_v_control_mode.flag_control_termination_enabled) {
 			if (!_vehicle_status.is_vtol) {
 				// publish actuator controls
 				actuator_controls_s actuators{};
 				actuators.timestamp = hrt_absolute_time();
-				orb_publish_auto(_actuators_id, &_actuators_0_pub, &actuators, nullptr, ORB_PRIO_DEFAULT);
+				_actuators_0_pub.publish(actuators);
 			}
 		}
 	}
@@ -343,7 +327,15 @@ MulticopterRateControl::Run()
 
 int MulticopterRateControl::task_spawn(int argc, char *argv[])
 {
-	MulticopterRateControl *instance = new MulticopterRateControl();
+	bool vtol = false;
+
+	if (argc > 1) {
+		if (strcmp(argv[1], "vtol") == 0) {
+			vtol = true;
+		}
+	}
+
+	MulticopterRateControl *instance = new MulticopterRateControl(vtol);
 
 	if (instance) {
 		_object.store(instance);
@@ -362,15 +354,6 @@ int MulticopterRateControl::task_spawn(int argc, char *argv[])
 	_task_id = -1;
 
 	return PX4_ERROR;
-}
-
-int MulticopterRateControl::print_status()
-{
-	PX4_INFO("Running");
-
-	perf_print_counter(_loop_perf);
-
-	return 0;
 }
 
 int MulticopterRateControl::custom_command(int argc, char *argv[])
@@ -394,19 +377,15 @@ The controller has a PID loop for angular rate error.
 
 )DESCR_STR");
 
-	PRINT_MODULE_USAGE_NAME(MODULE_NAME, "controller");
+	PRINT_MODULE_USAGE_NAME("mc_rate_control", "controller");
 	PRINT_MODULE_USAGE_COMMAND("start");
+	PRINT_MODULE_USAGE_ARG("vtol", "VTOL mode", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
 
 	return 0;
 }
 
-/**
- * Multicopter rate control app start / stop handling function
- */
-extern "C" __EXPORT int mc_rate_control_main(int argc, char *argv[]);
-
-int mc_rate_control_main(int argc, char *argv[])
+extern "C" __EXPORT int mc_rate_control_main(int argc, char *argv[])
 {
 	return MulticopterRateControl::main(argc, argv);
 }
