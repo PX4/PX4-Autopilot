@@ -125,8 +125,8 @@
 * reading a time and writing a deadline to the timer cannot
 * result in missing the deadline.
 */
-#define HRT_INTERVAL_MIN	5
-#define HRT_INTERVAL_MAX	4294000000
+#define HRT_INTERVAL_MIN	50
+#define HRT_INTERVAL_MAX	 4294951760LL
 
 /*
 * Period of the free-running counter, in microseconds.
@@ -812,7 +812,7 @@ hrt_call_reschedule()
 	 * Determine what the next deadline will be.
 	 *
 	 * Note that we ensure that this will be within the counter
-	 * period, so that when we truncate all but the low 16 bits
+	 * period, so that when we truncate all but the low 32 bits
 	 * the next time the compare matches it will be the deadline
 	 * we want.
 	 *
