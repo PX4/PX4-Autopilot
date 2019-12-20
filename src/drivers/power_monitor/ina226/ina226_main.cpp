@@ -72,7 +72,12 @@ start()
 	for (unsigned i2c_bus = 0; i2c_bus < NUM_I2C_BUS_OPTIONS; i2c_bus++) {
 		int index = get_index(i2c_bus, INA226_BASEADDR);
 
-		if (g_dev[index] == nullptr && start_bus(i2c_bus, INA226_BASEADDR, 1, false) == PX4_OK) {
+		if (index < 0) {
+			PX4_ERR("There are already %d instances of INA226 running. No more can be instantiated.",
+				MAX_I2C_BATTERY_COUNT);
+			return PX4_ERROR;
+
+		} else if (g_dev[index] == nullptr && start_bus(i2c_bus, INA226_BASEADDR, 1, false) == PX4_OK) {
 			return PX4_OK;
 		}
 	}
@@ -90,6 +95,12 @@ int
 start_bus(int i2c_bus, int address, int battery_index, bool force)
 {
 	int idx = get_index(i2c_bus, address);
+
+	if (idx < 0) {
+		PX4_ERR("There are already %d instances of INA226 running. No more can be instantiated.",
+			MAX_I2C_BATTERY_COUNT);
+		return PX4_ERROR;
+	}
 
 	if (g_dev[idx] != nullptr) {
 		PX4_ERR("Already started on bus %d, address 0x%02X", i2c_bus, address);
@@ -139,16 +150,15 @@ stop(int bus, int address)
 {
 	int idx = get_index(bus, address);
 
-	if (g_dev[idx] != nullptr) {
-		delete g_dev[idx];
-		g_dev[idx] = nullptr;
-
-	} else {
+	if (idx < 0 || g_dev[idx] == nullptr) {
 		PX4_ERR("Driver not running on bus %d, address 0x%02X", bus, address);
 		return PX4_ERROR;
-	}
 
-	return PX4_OK;
+	} else {
+		delete g_dev[idx];
+		g_dev[idx] = nullptr;
+		return PX4_OK;
+	}
 }
 
 /**
@@ -204,12 +214,12 @@ this flag set, the battery must be plugged in before starting the driver.
 	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 0, NUM_I2C_BUS_OPTIONS - 1, "I2C bus (default: use board-specific bus)", true);
 	// The module documentation system INSISTS on decimal literals here. So we can't use a #define constant, and
 	// we can't use hexadecimal.
-	PRINT_MODULE_USAGE_PARAM_INT('d', 65, 0, UINT8_MAX, "I2C Address (in hexadecimal)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('d', 65, 0, UINT8_MAX, "I2C Address (Start with '0x' for hexadecimal)", true);
 	PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 2, "Which battery calibration values should be used (1 or 2)", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("stop", "Stop one instance of the driver");
 	PRINT_MODULE_USAGE_PARAM_INT('b', 0, 0, NUM_I2C_BUS_OPTIONS - 1, "I2C bus (default: use board-specific bus)", true);
-	PRINT_MODULE_USAGE_PARAM_INT('d', 65, 0, UINT8_MAX, "I2C Address (in hexadecimal)", true);
+	PRINT_MODULE_USAGE_PARAM_INT('d', 65, 0, UINT8_MAX, "I2C Address (Start with '0x' for hexadecimal)", true);
 
 	PRINT_MODULE_USAGE_COMMAND_DESCR("status", "Status of every instance of the driver");
 	PRINT_MODULE_USAGE_COMMAND_DESCR("info", "Status of every instance of the driver");
@@ -244,7 +254,7 @@ ina226_main(int argc, char *argv[])
 				break;
 
 			case 'd':
-				address = strtol(myoptarg, nullptr, 16);
+				address = strtol(myoptarg, nullptr, 0);
 				break;
 
 			case 't':
