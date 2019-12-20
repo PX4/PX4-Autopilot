@@ -44,6 +44,7 @@
 namespace land_detector
 {
 
+
 bool RoverLandDetector::_get_ground_contact_state()
 {
 	return true;
@@ -51,7 +52,23 @@ bool RoverLandDetector::_get_ground_contact_state()
 
 bool RoverLandDetector::_get_landed_state()
 {
-	return !_actuator_armed.armed;
+
+// I need to do the uORB subscription here, can't do it in the .hpp file (SIGSEGV if I do... but no idea why)
+uORB::Subscription vehicle_status_sub{ORB_ID(vehicle_status)};
+vehicle_status_s vehicle_status{};		/**< vehicle status */
+
+vehicle_status_sub.update(&vehicle_status);
+
+if(vehicle_status.nav_state == vehicle_status_s::NAVIGATION_STATE_AUTO_LAND)
+{
+	return true; // If Landing has been requested then say we have landed
+}
+else
+{
+	return !_actuator_armed.armed;  // If we are armed we are not landed
+					// This doesn't work very well because once it's armed it will stay armed 
+					// so when requesting land it never detects it has landed.
+}
 }
 
 } // namespace land_detector
