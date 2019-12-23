@@ -534,6 +534,9 @@ FixedwingPositionControl::status_publish()
 
 	pos_ctrl_status.yaw_acceptance = NAN;
 
+	pos_ctrl_status.launch_detection_running =
+		!_launchDetector.getLaunchDetected(); //Determines if the plane is in launch detection or not
+
 	pos_ctrl_status.timestamp = hrt_absolute_time();
 
 	_pos_ctrl_status_pub.publish(pos_ctrl_status);
