@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: px4io/px4-dev-simulation-bionic:2019-11-25
+    container: px4io/px4-dev-simulation-bionic:2019-12-18
     steps:
     - uses: actions/checkout@v1
     - name: Build PX4 in simulation mode
