@@ -159,7 +159,8 @@ void Standard::update_vtol_state()
 			float x_vel = vel(0);
 
 			if (time_since_trans_start > _params->back_trans_duration ||
-			    (_local_pos->v_xy_valid && x_vel <= _params->mpc_xy_cruise)) {
+			    (_local_pos->v_xy_valid && x_vel <= _params->mpc_xy_cruise) ||
+			    can_transition_on_ground()) {
 				_vtol_schedule.flight_mode = vtol_mode::MC_MODE;
 			}
 
