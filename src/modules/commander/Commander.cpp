@@ -1580,15 +1580,11 @@ Commander::run()
 			_auto_disarm_killed.set_state_and_update(false, hrt_absolute_time());
 		}
 
+		if (_geofence_warning_action_on
+		    && _internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
+		    && _internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LOITER
+		    && _internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
 
-		if (!_geofence_warning_action_on) {
-			// store the last good main_state when not in an navigation
-			// hold state
-			_main_state_before_rtl = _internal_state.main_state;
-
-		} else if (_internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_RTL
-			   && _internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LOITER
-			   && _internal_state.main_state != commander_state_s::MAIN_STATE_AUTO_LAND) {
 			// reset flag again when we switched out of it
 			_geofence_warning_action_on = false;
 		}
@@ -1745,23 +1741,17 @@ Commander::run()
 
 		// abort auto mode or geofence reaction if sticks are moved significantly
 		// but only if not in a low battery handling action
-		const bool not_in_low_battery_reaction = _battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL;
+		const bool low_battery_reaction = _battery_warning < battery_status_s::BATTERY_WARNING_CRITICAL;
 		const bool is_rotary_wing = status.vehicle_type == vehicle_status_s::VEHICLE_TYPE_ROTARY_WING;
-		const bool manual_mode_before_geofence =
-			_main_state_before_rtl == commander_state_s::MAIN_STATE_MANUAL ||
-			_main_state_before_rtl == commander_state_s::MAIN_STATE_ALTCTL ||
-			_main_state_before_rtl == commander_state_s::MAIN_STATE_POSCTL ||
-			_main_state_before_rtl == commander_state_s::MAIN_STATE_ACRO ||
-			_main_state_before_rtl == commander_state_s::MAIN_STATE_RATTITUDE ||
-			_main_state_before_rtl == commander_state_s::MAIN_STATE_STAB;
 		const bool in_auto_mode =
 			_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LAND ||
 			_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_RTL ||
 			_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_MISSION ||
 			_internal_state.main_state == commander_state_s::MAIN_STATE_AUTO_LOITER;
 
-		if (_param_rc_override.get() && is_rotary_wing && not_in_low_battery_reaction
-		    && (in_auto_mode || (_geofence_warning_action_on && manual_mode_before_geofence))) {
+		if (_param_rc_override.get() && is_rotary_wing && !low_battery_reaction
+		    && !_geofence_warning_action_on && in_auto_mode) {
+
 			// transition to previous state if sticks are touched
 			if ((_last_sp_man.timestamp != _sp_man.timestamp) &&
 			    ((fabsf(_sp_man.x - _last_sp_man.x) > _min_stick_change) ||
