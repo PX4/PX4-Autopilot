@@ -89,7 +89,7 @@ public:
 	};
 
 	static bool preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
-				const safety_s &safety, const arm_requirements_t &arm_requirements);
+				const safety_s &safety, const arm_requirements_t &arm_requirements, const vehicle_status_s &status);
 
 private:
 	static bool magnometerCheck(orb_advert_t *mavlink_log_pub, vehicle_status_s &status, const uint8_t instance,
