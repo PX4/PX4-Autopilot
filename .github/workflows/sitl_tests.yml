@@ -16,4 +16,5 @@ jobs:
       # Build all targets
       run: DONT_RUN=1 make px4_sitl gazebo mavsdk_tests
     - name: Run simulation tests
-      run:  test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 100
+      # Grind configuration: Run ~8 minutes for 35 iterations == close to the 6 hour limit of Github Actions
+      run:  test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 20 --iterations 1 --fail-early
