@@ -198,8 +198,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--log-dir",
                         help="Directory for log files, stdout if not provided")
-    parser.add_argument("--speed-factor", default=1,
+    parser.add_argument("--speed-factor", type=int, default=1,
                         help="How fast to run the simulation")
+    parser.add_argument("--iterations", type=int, default=1,
+                        help="How often to run the simulation")
+    parser.add_argument("--fail-early", action='store_true',
+                        help="Abort on first failure")
     parser.add_argument("--gui", default=False, action='store_true',
                         help="Display gzclient with")
     args = parser.parse_args()
@@ -209,53 +213,64 @@ def main():
 
     overall_success = True
 
-    for group in test_matrix:
-        print("Running test group for '{}' with filter '{}'"
-              .format(group['model'], group['test_filter']))
+    for x in range(args.iterations):
+        print("Test iterations: %d" % (x + 1))
+        for group in test_matrix:
+            print("Running test group for '{}' with filter '{}'"
+                .format(group['model'], group['test_filter']))
 
-        tests = determine_tests(os.getcwd(), group['test_filter'])
+            tests = determine_tests(os.getcwd(), group['test_filter'])
 
-        for test in tests:
+            for test in tests:
 
-            print("Running test '{}'".format(test))
+                print("Running test '{}'".format(test))
 
-            px4_runner = Px4Runner(
-                os.getcwd(), args.log_dir, args.speed_factor)
-            px4_runner.start(group)
+                px4_runner = Px4Runner(
+                    os.getcwd(), args.log_dir, args.speed_factor)
+                px4_runner.start(group)
 
-            gzserver_runner = GzserverRunner(
-                os.getcwd(), args.log_dir, args.speed_factor)
-            gzserver_runner.start(group)
+                gzserver_runner = GzserverRunner(
+                    os.getcwd(), args.log_dir, args.speed_factor)
+                gzserver_runner.start(group)
 
-            if args.gui:
-                gzclient_runner = GzclientRunner(
-                    os.getcwd(), args.log_dir)
-                gzclient_runner.start(group)
+                if args.gui:
+                    gzclient_runner = GzclientRunner(
+                        os.getcwd(), args.log_dir)
+                    gzclient_runner.start(group)
 
-            test_runner = TestRunner(os.getcwd(), args.log_dir, group, test)
-            test_runner.start(group)
+                test_runner = TestRunner(os.getcwd(), args.log_dir, group, test)
+                test_runner.start(group)
 
-            returncode = test_runner.wait(group['timeout_min'])
-            was_success = (returncode == 0)
-            print("Test '{}': {}".
-                  format(test, "Success" if was_success else "Fail"))
-            if not was_success:
-                overall_success = False
+                returncode = test_runner.wait(group['timeout_min'])
+                was_success = (returncode == 0)
+                print("Test '{}': {}".
+                    format(test, "Success" if was_success else "Fail"))
+                if not was_success:
+                    overall_success = False
+                    if args.fail_early:
+                        break
 
-            if args.gui:
-                returncode = gzclient_runner.stop()
-                print("gzclient exited with {}".format(returncode))
+                if args.gui:
+                    returncode = gzclient_runner.stop()
+                    print("gzclient exited with {}".format(returncode))
 
-            returncode = gzserver_runner.stop()
-            print("gzserver exited with {}".format(returncode))
+                returncode = gzserver_runner.stop()
+                print("gzserver exited with {}".format(returncode))
 
-            px4_runner.stop()
-            print("px4 exited with {}".format(returncode))
+                px4_runner.stop()
+                print("px4 exited with {}".format(returncode))
+
+        if not overall_success and x > 0:
+            print("Aborting with a failure in test run %d" % (x + 1))
+            sys.exit(0 if overall_success else 1)
 
     print("Overall result: {}".
           format("SUCCESS" if overall_success else "FAIL"))
-    sys.exit(0 if overall_success else 1)
 
+    if x > 0:
+        print("Test iterations: %d" % (x + 1))
+
+    sys.exit(0 if overall_success else 1)
 
 if __name__ == '__main__':
     main()
