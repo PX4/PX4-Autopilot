@@ -303,10 +303,7 @@ PARAM_DEFINE_INT32(COM_ARM_WO_GPS, 1);
  * If parameter set button gets handled like stick arming.
  *
  * @group Commander
- * @min 0
- * @max 1
- * @value 0 Arm switch is a switch that stays on when armed
- * @value 1 Arm switch is a button that only triggers arming and disarming
+ * @boolean
  */
 PARAM_DEFINE_INT32(COM_ARM_SWISBTN, 0);
 
