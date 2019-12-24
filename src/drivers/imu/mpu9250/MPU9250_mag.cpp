@@ -183,7 +183,8 @@ MPU9250_mag::read_reg(unsigned int reg)
 	uint8_t buf{};
 
 	if (_interface == nullptr) {
-		passthrough_read(reg, &buf, 0x01);
+		//passthrough_read(reg, &buf, 0x01);
+		read_reg_through_mpu9250(reg, &buf);
 
 	} else {
 		_interface->read(reg, &buf, 1);
@@ -195,7 +196,8 @@ MPU9250_mag::read_reg(unsigned int reg)
 bool
 MPU9250_mag::ak8963_check_id(uint8_t &deviceid)
 {
-	deviceid = read_reg(AK8963REG_WIA);
+	//deviceid = read_reg(AK8963REG_WIA);
+	read_reg_through_mpu9250(AK8963REG_WIA, &deviceid);
 
 	return (AK8963_DEVICE_ID == deviceid);
 }
@@ -216,7 +218,8 @@ MPU9250_mag::write_reg(unsigned reg, uint8_t value)
 {
 	// general register transfer at low clock speed
 	if (_interface == nullptr) {
-		passthrough_write(reg, value);
+		//passthrough_write(reg, value);
+		write_reg_through_mpu9250(reg, value);
 
 	} else {
 		_interface->write(MPU9250_LOW_SPEED_OP(reg), &value, 1);
@@ -246,17 +249,20 @@ MPU9250_mag::ak8963_read_adjustments()
 	uint8_t response[3];
 	float ak8963_ASA[3];
 
-	write_reg(AK8963REG_CNTL1, AK8963_FUZE_MODE | AK8963_16BIT_ADC);
-	px4_usleep(50);
+	write_reg_through_mpu9250(AK8963REG_CNTL1, AK8963_FUZE_MODE | AK8963_16BIT_ADC);
+	px4_usleep(1000);
 
 	if (_interface != nullptr) {
 		_interface->read(AK8963REG_ASAX, response, 3);
 
 	} else {
-		passthrough_read(AK8963REG_ASAX, response, 3);
+		//passthrough_read(AK8963REG_ASAX, response, 3);
+		for (int i = 0; i < 3; ++i) {
+			read_reg_through_mpu9250(AK8963REG_ASAX + i, response + i);
+		}
 	}
 
-	write_reg(AK8963REG_CNTL1, AK8963_POWERDOWN_MODE);
+	write_reg_through_mpu9250(AK8963REG_CNTL1, AK8963_POWERDOWN_MODE);
 
 	for (int i = 0; i < 3; i++) {
 		if (0 != response[i] && 0xff != response[i]) {
@@ -299,6 +305,7 @@ MPU9250_mag::ak8963_setup()
 	do {
 		ak8963_setup_master_i2c();
 		write_reg(AK8963REG_CNTL2, AK8963_RESET);
+		px4_usleep(1000);
 
 		uint8_t id = 0;
 
@@ -346,4 +353,101 @@ MPU9250_mag::ak8963_setup()
 	}
 
 	return OK;
+}
+
+void MPU9250_mag::write_imu_reg_verified(int reg, uint8_t val, uint8_t mask)
+{
+	uint8_t b;
+	int retry = 5;
+
+	while (retry) {
+		--retry;
+		_parent->write_reg(reg, val);
+
+		b = _parent->read_reg(reg);
+
+		if ((b & mask) != val) {
+			continue;
+
+		} else {
+			return;
+		}
+	}
+}
+
+void MPU9250_mag::read_reg_through_mpu9250(uint8_t reg, uint8_t *val)
+{
+	uint8_t b = 0;
+
+	// Read operation on the mag using the slave 4 registers.
+	write_imu_reg_verified(MPUREG_I2C_SLV4_ADDR,
+			       AK8963_I2C_ADDR | BIT_I2C_READ_FLAG, 0xff);
+
+	// Set the mag register to read from.
+	write_imu_reg_verified(MPUREG_I2C_SLV4_REG, reg, 0xff);
+
+	// Read the existing value of the SLV4 control register.
+	b = _parent->read_reg(MPUREG_I2C_SLV4_CTRL);
+
+	// Set the I2C_SLV4_EN bit in I2C_SL4_CTRL register without overwriting other
+	// bits. Enable data transfer, a read transfer as configured above.
+	b |= 0x80;
+	// Trigger the data transfer
+	_parent->write_reg(MPUREG_I2C_SLV4_CTRL, b);
+
+	// Continuously check I2C_MST_STATUS register value for the completion
+	// of I2C transfer until timeout
+
+	int loop_ctrl = 1000; // wait up to 1000 * 1ms for completion
+
+	do {
+		px4_usleep(1000);
+		b = _parent->read_reg(MPUREG_I2C_MST_STATUS);
+	} while (((b & 0x40) == 0x00) && (--loop_ctrl));
+
+	if (loop_ctrl == 0) {
+		PX4_ERR("I2C transfer timed out");
+	}
+
+	// Read the value received from the mag, and copy to the caller's out parameter.
+	*val = _parent->read_reg(MPUREG_I2C_SLV4_DI);
+}
+
+void MPU9250_mag::write_reg_through_mpu9250(uint8_t reg, uint8_t val)
+{
+	uint8_t b = 0;
+
+	// Configure a write operation to the mag using Slave 4.
+	write_imu_reg_verified(MPUREG_I2C_SLV4_ADDR,
+			       AK8963_I2C_ADDR, 0xff);
+
+	// Set the mag register address to write to using Slave 4.
+	write_imu_reg_verified(MPUREG_I2C_SLV4_REG, reg, 0xff);
+
+	// Set the value to write in the I2C_SLV4_DO register.
+	write_imu_reg_verified(MPUREG_I2C_SLV4_DO, val, 0xff);
+
+	// Read the current value of the Slave 4 control register.
+	b = _parent->read_reg(MPUREG_I2C_SLV4_CTRL);
+
+	// Set I2C_SLV4_EN bit in I2C_SL4_CTRL register without overwriting other
+	// bits.
+	b |= 0x80;
+	// Trigger the data transfer from the byte now stored in the SLV4_DO register.
+	_parent->write_reg(MPUREG_I2C_SLV4_CTRL, b);
+
+	// Continuously check I2C_MST_STATUS regsiter value for the completion
+	// of I2C transfer until timeout.
+
+	int loop_ctrl = 1000; // wait up to 1000 * 1ms for completion
+
+	do {
+		px4_usleep(1000);
+		b = _parent->read_reg(MPUREG_I2C_MST_STATUS);
+
+	} while (((b & 0x40) == 0x00) && (--loop_ctrl));
+
+	if (loop_ctrl == 0) {
+		PX4_ERR("I2C transfer to mag timed out");
+	}
 }

@@ -43,7 +43,7 @@
 
 #include "MPU9250_mag.h"
 
-#if defined(PX4_I2C_OBDEV_MPU9250) || defined(PX4_I2C_BUS_EXPANSION)
+#if defined(PX4_I2C_OBDEV_MPU9250) && defined(PX4_I2C_BUS_EXPANSION)
 #  define USE_I2C
 #endif
 

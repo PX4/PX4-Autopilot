@@ -383,7 +383,9 @@ MPU9250::read_reg(unsigned reg, uint32_t speed)
 {
 	uint8_t buf{};
 
-	_interface->read(MPU9250_SET_SPEED(reg, speed), &buf, 1);
+	if (_interface->read(MPU9250_SET_SPEED(reg, speed), &buf, 1) < 0) {
+		PX4_WARN("MPU9250::read_reg failed");
+	}
 
 	return buf;
 }
@@ -404,7 +406,9 @@ MPU9250::read_reg16(unsigned reg)
 	uint8_t buf[2] {};
 
 	// general register transfer at low clock speed
-	_interface->read(MPU9250_LOW_SPEED_OP(reg), &buf, arraySize(buf));
+	if (_interface->read(MPU9250_LOW_SPEED_OP(reg), &buf, arraySize(buf)) != 2) {
+		PX4_WARN("MPU9250::read_reg16 failed");
+	}
 
 	return (uint16_t)(buf[0] << 8) | buf[1];
 }
@@ -413,7 +417,9 @@ void
 MPU9250::write_reg(unsigned reg, uint8_t value)
 {
 	// general register transfer at low clock speed
-	_interface->write(MPU9250_LOW_SPEED_OP(reg), &value, 1);
+	if (_interface->write(MPU9250_LOW_SPEED_OP(reg), &value, 1) < 0) {
+		PX4_WARN("MPU9250::write_reg failed");
+	}
 }
 
 void

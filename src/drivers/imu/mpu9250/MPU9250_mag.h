@@ -138,6 +138,9 @@ protected:
 
 	uint8_t read_reg(unsigned reg);
 	void write_reg(unsigned reg, uint8_t value);
+	void write_imu_reg_verified(int reg, uint8_t val, uint8_t mask);
+	void read_reg_through_mpu9250(uint8_t reg, uint8_t *val);
+	void write_reg_through_mpu9250(uint8_t reg, uint8_t val);
 
 	bool is_passthrough() { return _interface == nullptr; }
 
