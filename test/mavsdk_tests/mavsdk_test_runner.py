@@ -243,12 +243,6 @@ def main():
 
                 returncode = test_runner.wait(group['timeout_min'])
                 was_success = (returncode == 0)
-                print("Test '{}': {}".
-                    format(test, "Success" if was_success else "Fail"))
-                if not was_success:
-                    overall_success = False
-                    if args.fail_early:
-                        break
 
                 if args.gui:
                     returncode = gzclient_runner.stop()
@@ -260,7 +254,16 @@ def main():
                 px4_runner.stop()
                 print("px4 exited with {}".format(returncode))
 
-        if not overall_success and x > 0:
+                # Test run results
+                print("Test '{}': {}".
+                    format(test, "Success" if was_success else "Fail"))
+
+                # Flag it as group test failure, but finish the rest of the test targets
+                if not was_success:
+                    overall_success = False
+
+        # Abort after the full matrix / test group
+        if not overall_success and x > 0 and args.fail_early:
             print("Aborting with a failure in test run %d" % (x + 1))
             sys.exit(0 if overall_success else 1)
 
