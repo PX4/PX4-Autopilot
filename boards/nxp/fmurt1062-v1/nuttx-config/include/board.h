@@ -325,6 +325,9 @@
 /* Board provides GPIO or other Hardware for signaling to timing analyzer */
 
 #if defined(CONFIG_BOARD_USE_PROBES)
+#include <imxrt_gpio.h>
+#include <imxrt_iomuxc.h>
+// add     -I<full path> build/nxp_fmurt1062-v1_default/NuttX/nuttx/arch/arm/src/chip \ to NuttX Makedefs.in
 #define PROBE_IOMUX (IOMUX_SPEED_MAX | IOMUX_SLEW_FAST | IOMUX_DRIVE_33OHM  | IOMUX_CMOS_OUTPUT | IOMUX_PULL_NONE)
 # define PROBE_N(n) (1<<((n)-1))
 # define PROBE_1 /* GPIO_B0_06    */  (GPIO_PORT2 | GPIO_PIN6  | GPIO_OUTPUT | GPIO_OUTPUT_ONE | PROBE_IOMUX)
