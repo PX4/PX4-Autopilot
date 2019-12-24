@@ -745,3 +745,17 @@ PARAM_DEFINE_FLOAT(MPC_SPOOLUP_TIME, 1.0f);
  * @group Mission
  */
 PARAM_DEFINE_INT32(MPC_YAW_MODE, 0);
+
+/**
+ * Omni-directional Controller mode.
+ *
+ * Specifies the heading in Auto.
+ *
+ * @min 0
+ * @max 2
+ * @value 0 tilted attitude
+ * @value 1 daisy-chain tilt/no-tilt attitude
+ * @value 2 constant zero tilt
+ * @group Multicopter Attitude Control
+ */
+PARAM_DEFINE_INT32(MC_OMNI_MODE, 0);
