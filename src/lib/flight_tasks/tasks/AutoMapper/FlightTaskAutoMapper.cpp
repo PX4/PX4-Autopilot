@@ -52,8 +52,6 @@ bool FlightTaskAutoMapper::update()
 	// always reset constraints because they might change depending on the type
 	_setDefaultConstraints();
 
-	_updateAltitudeAboveGround();
-
 	bool follow_line = _type == WaypointType::loiter || _type == WaypointType::position;
 	bool follow_line_prev = _type_previous == WaypointType::loiter || _type_previous == WaypointType::position;
 
@@ -67,7 +65,7 @@ bool FlightTaskAutoMapper::update()
 	// vehicle exits idle.
 
 	if (_type_previous == WaypointType::idle) {
-		_thrust_setpoint = Vector3f(NAN, NAN, NAN);
+		_thrust_setpoint.setNaN();
 	}
 
 	// during mission and reposition, raise the landing gears but only
@@ -114,8 +112,8 @@ void FlightTaskAutoMapper::_reset()
 void FlightTaskAutoMapper::_generateIdleSetpoints()
 {
 	// Send zero thrust setpoint
-	_position_setpoint = Vector3f(NAN, NAN, NAN); // Don't require any position/velocity setpoints
-	_velocity_setpoint = Vector3f(NAN, NAN, NAN);
+	_position_setpoint.setNaN(); // Don't require any position/velocity setpoints
+	_velocity_setpoint.setNaN();
 	_thrust_setpoint.zero();
 }
 
@@ -137,7 +135,7 @@ void FlightTaskAutoMapper::_generateTakeoffSetpoints()
 	_velocity_setpoint = Vector3f(NAN, NAN, NAN);
 
 	// limit vertical speed during takeoff
-	_constraints.speed_up = math::gradual(_alt_above_ground, _param_mpc_land_alt2.get(),
+	_constraints.speed_up = math::gradual(_dist_to_ground, _param_mpc_land_alt2.get(),
 					      _param_mpc_land_alt1.get(), _param_mpc_tko_speed.get(), _constraints.speed_up);
 
 	_gear.landing_gear = landing_gear_s::GEAR_DOWN;
@@ -152,21 +150,6 @@ void FlightTaskAutoMapper::_generateVelocitySetpoints()
 	_velocity_setpoint = Vector3f(vel_sp_xy(0), vel_sp_xy(1), NAN);
 }
 
-void FlightTaskAutoMapper::_updateAltitudeAboveGround()
-{
-	// Altitude above ground is by default just the negation of the current local position in D-direction.
-	_alt_above_ground = -_position(2);
-
-	if (PX4_ISFINITE(_dist_to_bottom)) {
-		// We have a valid distance to ground measurement
-		_alt_above_ground = _dist_to_bottom;
-
-	} else if (_sub_home_position.get().valid_alt) {
-		// if home position is set, then altitude above ground is relative to the home position
-		_alt_above_ground = -_position(2) + _sub_home_position.get().z;
-	}
-}
-
 void FlightTaskAutoMapper::updateParams()
 {
 	FlightTaskAuto::updateParams();
@@ -178,5 +161,5 @@ void FlightTaskAutoMapper::updateParams()
 bool FlightTaskAutoMapper::_highEnoughForLandingGear()
 {
 	// return true if altitude is above two meters
-	return _alt_above_ground > 2.0f;
+	return _dist_to_ground > 2.0f;
 }
