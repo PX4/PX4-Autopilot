@@ -163,7 +163,7 @@ extern "C" {
 					break;
 
 				} else {
-					system_sleep(1);
+					system_usleep(100);
 				}
 			}
 
