@@ -12,9 +12,8 @@ jobs:
       run: update-alternatives --install /usr/bin/python python /usr/bin/python3 10
     - name: Install psutil
       run: pip3 install psutil
-    - name: Build PX4 in simulation mode
+    - name: Build PX4 in SITL integration test mode
       # Build all targets
-      run: make px4_sitl_default sitl_gazebo mavsdk_tests
-      # Check: Are the env variables needed?run: PX4_MAVSDK_TESTING=y DONT_RUN=1 make px4_sitl gazebo mavsdk_tests
+      run: DONT_RUN=1 make px4_sitl gazebo mavsdk_tests
     - name: Run simulation tests
       run:  test/mavsdk_tests/mavsdk_test_runner.py --speed-factor 100
