@@ -337,7 +337,6 @@ private:
 	hrt_abstime	_rc_signal_lost_timestamp{0};		///< Time at which the RC reception was lost
 	int32_t		_flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_NUM] {};
 	uint8_t		_last_sp_man_arm_switch{0};
-	uint8_t		_main_state_before_rtl{commander_state_s::MAIN_STATE_MAX};
 	float		_min_stick_change{};
 	uint32_t	_stick_off_counter{0};
 	uint32_t	_stick_on_counter{0};
