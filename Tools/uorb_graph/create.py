@@ -10,7 +10,6 @@ import colorsys
 import json
 
 
-
 parser = argparse.ArgumentParser(
     description='Generate uORB pub/sub dependency graph from source code')
 
@@ -367,7 +366,7 @@ class Graph(object):
             try:
                 content = f.read()
             except:
-                print('Failed reading file: %s, skipping content.' % path)
+                print('Failed reading file: %s, skipping content.' % file_name)
                 return
 
 

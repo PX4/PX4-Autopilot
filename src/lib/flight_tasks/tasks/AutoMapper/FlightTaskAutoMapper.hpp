@@ -59,10 +59,7 @@ protected:
 	void _generateVelocitySetpoints();
 	void _generateTakeoffSetpoints();
 
-	void _updateAltitudeAboveGround(); /**< Computes altitude above ground based on sensors available. */
 	void updateParams() override; /**< See ModuleParam class */
-
-	float _alt_above_ground{0.0f}; /**< If home provided, then it is altitude above home, otherwise it is altitude above local position reference. */
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAuto,
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,

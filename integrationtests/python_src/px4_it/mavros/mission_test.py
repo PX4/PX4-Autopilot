@@ -53,6 +53,7 @@ from mavros import mavlink
 from mavros_msgs.msg import Mavlink, Waypoint, WaypointReached
 from mavros_test_common import MavrosTestCommon
 from pymavlink import mavutil
+from six.moves import xrange
 from threading import Thread
 
 

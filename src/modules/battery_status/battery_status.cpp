@@ -59,7 +59,6 @@
 #include <uORB/Subscription.hpp>
 #include <uORB/Publication.hpp>
 #include <uORB/topics/actuator_controls.h>
-#include <uORB/topics/vehicle_control_mode.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/battery_status.h>
 #include <px4_platform_common/px4_work_queue/ScheduledWorkItem.hpp>
@@ -130,11 +129,8 @@ public:
 private:
 	DevHandle 	_h_adc;				/**< ADC driver handle */
 
-	bool		_armed{false};				/**< arming status of the vehicle */
-
 	uORB::Subscription	_actuator_ctrl_0_sub{ORB_ID(actuator_controls_0)};		/**< attitude controls sub */
 	uORB::Subscription	_parameter_update_sub{ORB_ID(parameter_update)};				/**< notification of parameter updates */
-	uORB::Subscription	_vcontrol_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
 
 	AnalogBattery _battery1;
 
@@ -296,8 +292,7 @@ BatteryStatus::adc_poll()
 					bat_current_adc_readings[b],
 					selected_source == b,
 					b,
-					ctrl.control[actuator_controls_s::INDEX_THROTTLE],
-					_armed
+					ctrl.control[actuator_controls_s::INDEX_THROTTLE]
 				);
 			}
 		}
@@ -317,13 +312,6 @@ BatteryStatus::Run()
 	}
 
 	perf_begin(_loop_perf);
-
-	/* check vehicle status for changes to publication state */
-	if (_vcontrol_mode_sub.updated()) {
-		vehicle_control_mode_s vcontrol_mode{};
-		_vcontrol_mode_sub.copy(&vcontrol_mode);
-		_armed = vcontrol_mode.flag_armed;
-	}
 
 	/* check parameters for updates */
 	parameter_update_poll();
