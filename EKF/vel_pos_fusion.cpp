@@ -93,29 +93,29 @@ bool Ekf::fuseVerticalVelocity(const Vector3f &innov, const Vector2f &innov_gate
 bool Ekf::fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_gate,
 				 const Vector3f &obs_var, Vector3f &innov_var, Vector2f &test_ratio)
 {
-		innov_var(0) = P(7,7) + obs_var(0);
-		innov_var(1) = P(8,8) + obs_var(1);
-		test_ratio(0) = fmaxf( sq(innov(0)) / (sq(innov_gate(0)) * innov_var(0)),
-				       sq(innov(1)) / (sq(innov_gate(0)) * innov_var(1)));
+	innov_var(0) = P(7,7) + obs_var(0);
+	innov_var(1) = P(8,8) + obs_var(1);
+	test_ratio(0) = fmaxf( sq(innov(0)) / (sq(innov_gate(0)) * innov_var(0)),
+			       sq(innov(1)) / (sq(innov_gate(0)) * innov_var(1)));
 
-		bool innov_check_pass = (test_ratio(0) <= 1.0f) || !_control_status.flags.tilt_align;
-		if (innov_check_pass) {
-			if (!_fuse_hpos_as_odom) {
-				_time_last_hor_pos_fuse = _time_last_imu;
+	const bool innov_check_pass = (test_ratio(0) <= 1.0f) || !_control_status.flags.tilt_align;
+	if (innov_check_pass) {
+		if (!_fuse_hpos_as_odom) {
+			_time_last_hor_pos_fuse = _time_last_imu;
 
-			} else {
-				_time_last_delpos_fuse = _time_last_imu;
-			}
-			_innov_check_fail_status.flags.reject_hor_pos = false;
-
-			fuseVelPosHeight(innov(0),innov_var(0),3);
-			fuseVelPosHeight(innov(1),innov_var(1),4);
-
-			return true;
-		}else{
-			_innov_check_fail_status.flags.reject_hor_pos = true;
-			return false;
+		} else {
+			_time_last_delpos_fuse = _time_last_imu;
 		}
+		_innov_check_fail_status.flags.reject_hor_pos = false;
+
+		fuseVelPosHeight(innov(0),innov_var(0),3);
+		fuseVelPosHeight(innov(1),innov_var(1),4);
+
+		return true;
+	}else{
+		_innov_check_fail_status.flags.reject_hor_pos = true;
+		return false;
+	}
 }
 
 bool Ekf::fuseVerticalPosition(const Vector3f &innov, const Vector2f &innov_gate,
