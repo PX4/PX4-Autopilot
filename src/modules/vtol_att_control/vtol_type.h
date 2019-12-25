@@ -79,6 +79,9 @@ struct Params {
 	int vt_forward_thrust_enable_mode;
 	float mpc_land_alt1;
 	float mpc_land_alt2;
+	float hover_gain_aileron;
+	float hover_gain_elevator;
+	float hover_gain_rudder;
 };
 
 // Has to match 1:1 msg/vtol_vehicle_status.msg

@@ -385,13 +385,16 @@ void Standard::fill_actuator_outputs()
 		} else {
 			// roll
 			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
-				_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
+				_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL]  * _params->hover_gain_aileron;
 
 			// pitch
 			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
-				_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH];
+				_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] * _params->hover_gain_elevator;
 
-			_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = 0.0f;
+			// yaw
+			_actuators_out_1->control[actuator_controls_s::INDEX_YAW] =
+				_actuators_mc_in->control[actuator_controls_s::INDEX_YAW] *
+				_params->hover_gain_rudder; // use MC controller for rudder control
 			_actuators_out_1->control[actuator_controls_s::INDEX_AIRBRAKES] = 0.0f;
 		}
 	}

@@ -77,9 +77,9 @@ PARAM_DEFINE_INT32(VT_FW_PERM_STAB, 0);
 PARAM_DEFINE_INT32(VT_TYPE, 0);
 
 /**
- * Lock elevons in multicopter mode
+ * Lock the control surfaces in hover mode
  *
- * If set to 1 the elevons are locked in multicopter mode
+ * If set to 1 all the control surfaces are locked at their central position in multicopter mode.
  *
  * @boolean
  * @group VTOL Attitude Control
@@ -354,3 +354,45 @@ PARAM_DEFINE_FLOAT(VT_B_DEC_I, 0.1f);
  * @group VTOL Attitude Control
  */
 PARAM_DEFINE_INT32(VT_MC_ON_FMU, 0);
+
+/**
+* Scale for roll acutation using fixed-wing actuators in hover.
+*
+* Determines the scale between attitude error and deflection of the roll controlling surfaces (i.e. ailerons or elevons) in hover.
+* If larger than 0, that will assist the multicopter motors to stabilize the attidue of the vehicle, and can be helpful if the
+* motors alone are saturating due to aerodynamic moments.
+* Applies to standard and tiltrotor VTOL.
+*
+* @min 0
+* @max 2
+* @group VTOL Attitude Control
+*/
+PARAM_DEFINE_FLOAT(VT_MC_AILE_GAIN, 0.5f);
+
+/**
+* Scale for pitch acutation using fixed-wing actuators in hover.
+*
+* Determines the scale between attitude error and deflection of the pitch controlling surfaces (i.e. elevator or elevons) in hover.
+* If larger than 0, that will assist the multicopter motors to stabilize the attidue of the vehicle, and can be helpful if the
+* motors alone are saturating due to aerodynamic moments.
+* Applies to standard and tiltrotor VTOL.
+*
+* @min 0
+* @max 2
+* @group VTOL Attitude Control
+*/
+PARAM_DEFINE_FLOAT(VT_MC_ELEV_GAIN, 0.5f);
+
+/**
+* Scale for yaw acutation using fixed-wing actuators in hover.
+*
+* Determines the scale between attitude error and deflection of the yaw controlling surface (rudder) in hover.
+* If larger than 0, that will assist the multicopter motors to stabilize the attidue of the vehicle, and can be helpful if the
+* motors alone are saturating due to aerodynamic moments.
+* Applies to standard and tiltrotor VTOL.
+*
+* @min 0
+* @max 2
+* @group VTOL Attitude Control
+*/
+PARAM_DEFINE_FLOAT(VT_MC_RUD_GAIN, 0.5f);

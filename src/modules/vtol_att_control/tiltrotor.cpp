@@ -432,16 +432,36 @@ void Tiltrotor::fill_actuator_outputs()
 
 	_actuators_out_1->control[4] = _tilt_control;
 
-	if (_params->elevons_mc_lock && _vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
-		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = 0.0f;
-		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = 0.0f;
-		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = 0.0f;
+	if (_vtol_schedule.flight_mode == vtol_mode::MC_MODE) {
+		if (_params->elevons_mc_lock) {
+			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] = 0.0f;
+			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] = 0.0f;
+			_actuators_out_1->control[actuator_controls_s::INDEX_YAW] = 0.0f;
+
+		} else {
+			// roll
+			_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
+				_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL]  * _params->hover_gain_aileron;
+
+			// pitch
+			_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
+				_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH] * _params->hover_gain_elevator;
+
+			// yaw
+			_actuators_out_1->control[actuator_controls_s::INDEX_YAW] =
+				_actuators_mc_in->control[actuator_controls_s::INDEX_YAW] *
+				_params->hover_gain_rudder; // use MC controller for rudder control
+		}
 
 	} else {
+		// roll
 		_actuators_out_1->control[actuator_controls_s::INDEX_ROLL] =
 			_actuators_fw_in->control[actuator_controls_s::INDEX_ROLL];
+
+		// pitch
 		_actuators_out_1->control[actuator_controls_s::INDEX_PITCH] =
 			_actuators_fw_in->control[actuator_controls_s::INDEX_PITCH];
+		// yaw
 		_actuators_out_1->control[actuator_controls_s::INDEX_YAW] =
 			_actuators_fw_in->control[actuator_controls_s::INDEX_YAW];
 	}

@@ -89,6 +89,10 @@ VtolAttitudeControl::VtolAttitudeControl() :
 	_params_handles.dec_to_pitch_i = param_find("VT_B_DEC_I");
 	_params_handles.back_trans_dec_sp = param_find("VT_B_DEC_MSS");
 
+	_params_handles.hover_gain_aileron = param_find("VT_MC_AILE_GAIN");
+	_params_handles.hover_gain_elevator = param_find("VT_MC_ELEV_GAIN");
+	_params_handles.hover_gain_rudder = param_find("VT_MC_RUD_GAIN");
+
 
 	_params_handles.down_pitch_max = param_find("VT_DWN_PITCH_MAX");
 	_params_handles.forward_thrust_scale = param_find("VT_FWD_THRUST_SC");
@@ -241,6 +245,11 @@ VtolAttitudeControl::parameters_update()
 	/* vtol lock elevons in multicopter */
 	param_get(_params_handles.elevons_mc_lock, &l);
 	_params.elevons_mc_lock = (l == 1);
+
+	// scales for FW actuators (aileron, elevon, rudder) in hover
+	param_get(_params_handles.hover_gain_aileron, &_params.hover_gain_aileron);
+	param_get(_params_handles.hover_gain_elevator, &_params.hover_gain_elevator);
+	param_get(_params_handles.hover_gain_rudder, &_params.hover_gain_rudder);
 
 	/* minimum relative altitude for FW mode (QuadChute) */
 	param_get(_params_handles.fw_min_alt, &v);
