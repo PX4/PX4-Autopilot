@@ -7,6 +7,8 @@
 # @type Rover
 # @class Rover
 #
+# @board px4_fmu-v2 exclude
+#
 # @output MAIN2 steering
 # @output MAIN4 throttle
 #
