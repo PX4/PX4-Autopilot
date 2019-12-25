@@ -367,22 +367,20 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 		// check if enough integration time and fail if integration time is less than 50%
 		// of min arrival interval because too much data is being lost
 		float delta_time = 1e-6f * (float)flow->dt; // in seconds
-		float delta_time_min = 5e-7f * (float)_min_obs_interval_us;
+		float delta_time_min = 0.5f * 1e-6f * (float)_min_obs_interval_us;
 		bool delta_time_good = delta_time >= delta_time_min;
 
-		if (!delta_time_good) {
+		bool flow_magnitude_good = true;
+
+		if (delta_time_good) {
+			// check magnitude is within sensor limits
+			// use this to prevent use of a saturated flow sensor
+			// when there are other aiding sources available
+			const float flow_rate_magnitude = flow->flowdata.norm() / delta_time;
+			flow_magnitude_good = (flow_rate_magnitude <= _flow_max_rate);
+		} else {
 			// protect against overflow caused by division with very small delta_time
 			delta_time = delta_time_min;
-		}
-
-
-		// check magnitude is within sensor limits
-		// use this to prevent use of a saturated flow sensor when there are other aiding sources available
-		float flow_rate_magnitude;
-		bool flow_magnitude_good = true;
-		if (delta_time_good) {
-			flow_rate_magnitude = flow->flowdata.norm() / delta_time;
-			flow_magnitude_good = (flow_rate_magnitude <= _flow_max_rate);
 		}
 
 		const bool relying_on_flow = !_control_status.flags.gps && !_control_status.flags.ev_pos && !_control_status.flags.ev_vel;
