@@ -49,7 +49,8 @@ void Ekf::fuseDrag()
 	float H_ACC[24] = {}; // Observation Jacobian
 	float SK_ACC[9] = {}; // Variable used to optimise calculations of the Kalman gain vector
 	float Kfusion[24] = {}; // Kalman gain vector
-	float R_ACC = _params.drag_noise; // observation noise variance in specific force drag (m/sec**2)**2
+	// TODO: resolve variance vs stdDev bug
+	const float R_ACC = _params.drag_noise; // observation noise variance in specific force drag (m/sec**2)**2
 
 	const float rho = fmaxf(_air_density, 0.1f); // air density (kg/m**3)
 
