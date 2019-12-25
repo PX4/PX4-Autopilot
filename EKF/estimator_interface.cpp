@@ -451,7 +451,6 @@ void EstimatorInterface::setExtVisionData(uint64_t time_usec, ext_vision_message
 		_time_last_ext_vision = time_usec;
 
 		_ext_vision_buffer.push(ev_sample_new);
-
 	}
 }
 
