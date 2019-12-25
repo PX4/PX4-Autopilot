@@ -62,8 +62,8 @@ bool Ekf::collect_gps(const gps_message &gps)
 	_gps_checks_passed = gps_is_good(gps);
 	if (!_NED_origin_initialised && _gps_checks_passed) {
 		// If we have good GPS data set the origin's WGS-84 position to the last gps fix
-		double lat = gps.lat / 1.0e7;
-		double lon = gps.lon / 1.0e7;
+		const double lat = gps.lat / 1.0e7;
+		const double lon = gps.lon / 1.0e7;
 		map_projection_init_timestamped(&_pos_ref, lat, lon, _time_last_imu);
 
 		// if we are already doing aiding, correct for the change in position since the EKF started navigationg
@@ -137,12 +137,12 @@ bool Ekf::gps_is_good(const gps_message &gps)
 
 	// Calculate time lapsed since last update, limit to prevent numerical errors and calculate a lowpass filter coefficient
 	const float filt_time_const = 10.0f;
-	float dt = fminf(fmaxf(float(_time_last_imu - _gps_pos_prev.timestamp) * 1e-6f, 0.001f), filt_time_const);
-	float filter_coef = dt / filt_time_const;
+	const float dt = fminf(fmaxf(float(_time_last_imu - _gps_pos_prev.timestamp) * 1e-6f, 0.001f), filt_time_const);
+	const float filter_coef = dt / filt_time_const;
 
 	// The following checks are only valid when the vehicle is at rest
-	double lat = gps.lat * 1.0e-7;
-	double lon = gps.lon * 1.0e-7;
+	const double lat = gps.lat * 1.0e-7;
+	const double lon = gps.lon * 1.0e-7;
 	if (!_control_status.flags.in_air && _vehicle_at_rest) {
 		// Calculate position movement since last measurement
 		float delta_pos_n = 0.0f;

@@ -50,43 +50,43 @@ void Ekf::fuseOptFlow()
 	float gndclearance = fmaxf(_params.rng_gnd_clearance, 0.1f);
 
 	// get latest estimated orientation
-	float q0 = _state.quat_nominal(0);
-	float q1 = _state.quat_nominal(1);
-	float q2 = _state.quat_nominal(2);
-	float q3 = _state.quat_nominal(3);
+	const float q0 = _state.quat_nominal(0);
+	const float q1 = _state.quat_nominal(1);
+	const float q2 = _state.quat_nominal(2);
+	const float q3 = _state.quat_nominal(3);
 
 	// get latest velocity in earth frame
-	float vn = _state.vel(0);
-	float ve = _state.vel(1);
-	float vd = _state.vel(2);
+	const float vn = _state.vel(0);
+	const float ve = _state.vel(1);
+	const float vd = _state.vel(2);
 
 	// calculate the optical flow observation variance
-	float R_LOS = calcOptFlowMeasVar();
+	const float R_LOS = calcOptFlowMeasVar();
 
 	float H_LOS[2][24] = {}; // Optical flow observation Jacobians
 	float Kfusion[24][2] = {}; // Optical flow Kalman gains
 
 	// get rotation matrix from earth to body
-	Dcmf earth_to_body = quat_to_invrotmat(_state.quat_nominal);
+	const Dcmf earth_to_body = quat_to_invrotmat(_state.quat_nominal);
 
 	// calculate the sensor position relative to the IMU
-	Vector3f pos_offset_body = _params.flow_pos_body - _params.imu_pos_body;
+	const Vector3f pos_offset_body = _params.flow_pos_body - _params.imu_pos_body;
 
 	// calculate the velocity of the sensor relative to the imu in body frame
 	// Note: _flow_sample_delayed.gyroXYZ is the negative of the body angular velocity, thus use minus sign
-	Vector3f vel_rel_imu_body = Vector3f(-_flow_sample_delayed.gyroXYZ / _flow_sample_delayed.dt) % pos_offset_body;
+	const Vector3f vel_rel_imu_body = Vector3f(-_flow_sample_delayed.gyroXYZ / _flow_sample_delayed.dt) % pos_offset_body;
 
 	// calculate the velocity of the sensor in the earth frame
-	Vector3f vel_rel_earth = _state.vel + _R_to_earth * vel_rel_imu_body;
+	const Vector3f vel_rel_earth = _state.vel + _R_to_earth * vel_rel_imu_body;
 
 	// rotate into body frame
-	Vector3f vel_body = earth_to_body * vel_rel_earth;
+	const Vector3f vel_body = earth_to_body * vel_rel_earth;
 
 	// height above ground of the IMU
 	float heightAboveGndEst = _terrain_vpos - _state.pos(2);
 
 	// calculate the sensor position relative to the IMU in earth frame
-	Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
+	const Vector3f pos_offset_earth = _R_to_earth * pos_offset_body;
 
 	// calculate the height above the ground of the optical flow camera. Since earth frame is NED
 	// a positive offset in earth frame leads to a smaller height above the ground.
@@ -96,7 +96,7 @@ void Ekf::fuseOptFlow()
 	heightAboveGndEst = math::max(heightAboveGndEst, gndclearance);
 
 	// calculate range from focal point to centre of image
-	float range = heightAboveGndEst / earth_to_body(2, 2); // absolute distance to the frame region in view
+	const float range = heightAboveGndEst / earth_to_body(2, 2); // absolute distance to the frame region in view
 
 	// calculate optical LOS rates using optical flow rates that have had the body angular rate contribution removed
 	// correct for gyro bias errors in the data used to do the motion compensation
@@ -522,20 +522,17 @@ bool Ekf::calcOptFlowBodyRateComp()
 		return false;
 	}
 
-	bool use_flow_sensor_gyro =  ISFINITE(_flow_sample_delayed.gyroXYZ(0)) && ISFINITE(_flow_sample_delayed.gyroXYZ(1)) && ISFINITE(_flow_sample_delayed.gyroXYZ(2));
+	const bool use_flow_sensor_gyro =  ISFINITE(_flow_sample_delayed.gyroXYZ(0)) && ISFINITE(_flow_sample_delayed.gyroXYZ(1)) && ISFINITE(_flow_sample_delayed.gyroXYZ(2));
 
 	if (use_flow_sensor_gyro) {
 
 		// if accumulation time differences are not excessive and accumulation time is adequate
 		// compare the optical flow and and navigation rate data and calculate a bias error
 		if ((fabsf(_delta_time_of - _flow_sample_delayed.dt) < 0.1f) && (_delta_time_of > FLT_EPSILON)) {
-			// calculate a reference angular rate
-			Vector3f reference_body_rate;
-			reference_body_rate = _imu_del_ang_of * (1.0f / _delta_time_of);
 
-			// calculate the optical flow sensor measured body rate
-			Vector3f of_body_rate;
-			of_body_rate = _flow_sample_delayed.gyroXYZ * (1.0f / _flow_sample_delayed.dt);
+			const Vector3f reference_body_rate(_imu_del_ang_of * (1.0f / _delta_time_of));
+
+			const Vector3f measured_body_rate(_flow_sample_delayed.gyroXYZ * (1.0f / _flow_sample_delayed.dt));
 
 			// calculate the bias estimate using  a combined LPF and spike filter
 			_flow_gyro_bias(0) = 0.99f * _flow_gyro_bias(0) + 0.01f * math::constrain((of_body_rate(0) - reference_body_rate(0)),
@@ -563,8 +560,8 @@ bool Ekf::calcOptFlowBodyRateComp()
 float Ekf::calcOptFlowMeasVar()
 {
 	// calculate the observation noise variance - scaling noise linearly across flow quality range
-	float R_LOS_best = fmaxf(_params.flow_noise, 0.05f);
-	float R_LOS_worst = fmaxf(_params.flow_noise_qual_min, 0.05f);
+	const float R_LOS_best = fmaxf(_params.flow_noise, 0.05f);
+	const float R_LOS_worst = fmaxf(_params.flow_noise_qual_min, 0.05f);
 
 	// calculate a weighting that varies between 1 when flow quality is best and 0 when flow quality is worst
 	float weighting = (255.0f - (float)_params.flow_qual_min);
@@ -578,7 +575,7 @@ float Ekf::calcOptFlowMeasVar()
 	}
 
 	// take the weighted average of the observation noise for the best and wort flow quality
-	float R_LOS = sq(R_LOS_best * weighting + R_LOS_worst * (1.0f - weighting));
+	const float R_LOS = sq(R_LOS_best * weighting + R_LOS_worst * (1.0f - weighting));
 
 	return R_LOS;
 }

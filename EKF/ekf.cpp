@@ -250,7 +250,7 @@ void Ekf::predictState()
 {
 	// apply imu bias corrections
 	Vector3f corrected_delta_ang = _imu_sample_delayed.delta_ang - _state.delta_ang_bias;
-	Vector3f corrected_delta_vel = _imu_sample_delayed.delta_vel - _state.delta_vel_bias;
+	const Vector3f corrected_delta_vel = _imu_sample_delayed.delta_vel - _state.delta_vel_bias;
 
 	// correct delta angles for earth rotation rate
 	corrected_delta_ang -= -_R_to_earth.transpose() * _earth_rate_NED * _imu_sample_delayed.delta_ang_dt;
@@ -266,13 +266,13 @@ void Ekf::predictState()
 	_state.quat_nominal.normalize();
 
 	// save the previous value of velocity so we can use trapzoidal integration
-	Vector3f vel_last = _state.vel;
+	const Vector3f vel_last = _state.vel;
 
 	// update transformation matrix from body to world frame
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	// Calculate an earth frame delta velocity
-	Vector3f corrected_delta_vel_ef = _R_to_earth * corrected_delta_vel;
+	const Vector3f corrected_delta_vel_ef = _R_to_earth * corrected_delta_vel;
 
 	// calculate a filtered horizontal acceleration with a 1 sec time constant
 	// this are used for manoeuvre detection elsewhere
