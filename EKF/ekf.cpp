@@ -266,7 +266,6 @@ void Ekf::predictState()
 	// save the previous value of velocity so we can use trapzoidal integration
 	const Vector3f vel_last = _state.vel;
 
-	// update transformation matrix from body to world frame
 	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	// Calculate an earth frame delta velocity

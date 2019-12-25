@@ -1684,7 +1684,6 @@ void Ekf::resetExtVisRotMat()
 		_ev_rot_vec_filt.zero();
 	}
 
-	// reset the rotation matrix
 	_ev_rot_mat = Dcmf(q_error); // rotation from EV reference to EKF reference
 }
 

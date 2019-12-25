@@ -325,7 +325,6 @@ bool Ekf::resetGpsAntYaw()
 			euler_init(2) += yaw_delta;
 			euler_init(2) = wrap_pi(euler_init(2));
 
-			// update the quaternions
 			quat_after_reset = Quatf(euler_init);
 
 		} else {

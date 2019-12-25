@@ -59,7 +59,6 @@ void Ekf::initialiseCovariance()
 	Vector3f rot_vec_var;
 	rot_vec_var.setAll(sq(_params.initial_tilt_err));
 
-	// update the quaternion state covariances
 	initialiseQuatCovariances(rot_vec_var);
 
 	// velocity
@@ -95,8 +94,6 @@ void Ekf::initialiseCovariance()
 
 	// record IMU bias state covariance reset time - used to prevent resets being performed too often
 	_last_imu_bias_cov_reset_us = _imu_sample_delayed.time_us;
-
-	// variances for optional states
 
 	// earth frame and body frame magnetic field
 	// set to observation variance
