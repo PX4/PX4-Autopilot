@@ -53,8 +53,7 @@ void Ekf::initialiseCovariance()
 	_delta_angle_bias_var_accum.setZero();
 	_delta_vel_bias_var_accum.setZero();
 
-	// calculate average prediction time step in sec
-	float dt = FILTER_UPDATE_PERIOD_S;
+	const float dt = FILTER_UPDATE_PERIOD_S;
 
 	// define the initial angle uncertainty as variances for a rotation vector
 	Vector3f rot_vec_var;
@@ -128,39 +127,39 @@ void Ekf::get_vel_var(Vector3f &vel_var)
 void Ekf::predictCovariance()
 {
 	// assign intermediate state variables
-	float q0 = _state.quat_nominal(0);
-	float q1 = _state.quat_nominal(1);
-	float q2 = _state.quat_nominal(2);
-	float q3 = _state.quat_nominal(3);
+	const float q0 = _state.quat_nominal(0);
+	const float q1 = _state.quat_nominal(1);
+	const float q2 = _state.quat_nominal(2);
+	const float q3 = _state.quat_nominal(3);
 
-	float dax = _imu_sample_delayed.delta_ang(0);
-	float day = _imu_sample_delayed.delta_ang(1);
-	float daz = _imu_sample_delayed.delta_ang(2);
+	const float dax = _imu_sample_delayed.delta_ang(0);
+	const float day = _imu_sample_delayed.delta_ang(1);
+	const float daz = _imu_sample_delayed.delta_ang(2);
 
-	float dvx = _imu_sample_delayed.delta_vel(0);
-	float dvy = _imu_sample_delayed.delta_vel(1);
-	float dvz = _imu_sample_delayed.delta_vel(2);
+	const float dvx = _imu_sample_delayed.delta_vel(0);
+	const float dvy = _imu_sample_delayed.delta_vel(1);
+	const float dvz = _imu_sample_delayed.delta_vel(2);
 
-	float dax_b = _state.delta_ang_bias(0);
-	float day_b = _state.delta_ang_bias(1);
-	float daz_b = _state.delta_ang_bias(2);
+	const float dax_b = _state.delta_ang_bias(0);
+	const float day_b = _state.delta_ang_bias(1);
+	const float daz_b = _state.delta_ang_bias(2);
 
-	float dvx_b = _state.delta_vel_bias(0);
-	float dvy_b = _state.delta_vel_bias(1);
-	float dvz_b = _state.delta_vel_bias(2);
+	const float dvx_b = _state.delta_vel_bias(0);
+	const float dvy_b = _state.delta_vel_bias(1);
+	const float dvz_b = _state.delta_vel_bias(2);
 
-	float dt = math::constrain(_imu_sample_delayed.delta_ang_dt, 0.5f * FILTER_UPDATE_PERIOD_S, 2.0f * FILTER_UPDATE_PERIOD_S);
-	float dt_inv = 1.0f / dt;
+	const float dt = math::constrain(_imu_sample_delayed.delta_ang_dt, 0.5f * FILTER_UPDATE_PERIOD_S, 2.0f * FILTER_UPDATE_PERIOD_S);
+	const float dt_inv = 1.0f / dt;
 
 	// convert rate of change of rate gyro bias (rad/s**2) as specified by the parameter to an expected change in delta angle (rad) since the last update
-	float d_ang_bias_sig = dt * dt * math::constrain(_params.gyro_bias_p_noise, 0.0f, 1.0f);
+	const float d_ang_bias_sig = dt * dt * math::constrain(_params.gyro_bias_p_noise, 0.0f, 1.0f);
 
 	// convert rate of change of accelerometer bias (m/s**3) as specified by the parameter to an expected change in delta velocity (m/s) since the last update
-	float d_vel_bias_sig = dt * dt * math::constrain(_params.accel_bias_p_noise, 0.0f, 1.0f);
+	const float d_vel_bias_sig = dt * dt * math::constrain(_params.accel_bias_p_noise, 0.0f, 1.0f);
 
 	// inhibit learning of imu accel bias if the manoeuvre levels are too high to protect against the effect of sensor nonlinearities or bad accel data is detected
-	float alpha = math::constrain((dt / _params.acc_bias_learn_tc), 0.0f, 1.0f);
-	float beta = 1.0f - alpha;
+	const float alpha = math::constrain((dt / _params.acc_bias_learn_tc), 0.0f, 1.0f);
+	const float beta = 1.0f - alpha;
 	_ang_rate_magnitude_filt = fmaxf(dt_inv * _imu_sample_delayed.delta_ang.norm(), beta * _ang_rate_magnitude_filt);
 	_accel_magnitude_filt = fmaxf(dt_inv * _imu_sample_delayed.delta_vel.norm(), beta * _accel_magnitude_filt);
 	_accel_vec_filt = alpha * dt_inv * _imu_sample_delayed.delta_vel + beta * _accel_vec_filt;

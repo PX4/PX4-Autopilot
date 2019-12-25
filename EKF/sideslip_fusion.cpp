@@ -53,19 +53,19 @@ void Ekf::fuseSideslip()
 	float R_BETA = _params.beta_noise;
 
 	// get latest estimated orientation
-	float q0 = _state.quat_nominal(0);
-	float q1 = _state.quat_nominal(1);
-	float q2 = _state.quat_nominal(2);
-	float q3 = _state.quat_nominal(3);
+	const float q0 = _state.quat_nominal(0);
+	const float q1 = _state.quat_nominal(1);
+	const float q2 = _state.quat_nominal(2);
+	const float q3 = _state.quat_nominal(3);
 
 	// get latest velocity in earth frame
-	float vn = _state.vel(0);
-	float ve = _state.vel(1);
-	float vd = _state.vel(2);
+	const float vn = _state.vel(0);
+	const float ve = _state.vel(1);
+	const float vd = _state.vel(2);
 
 	// get latest wind velocity in earth frame
-	float vwn = _state.wind_vel(0);
-	float vwe = _state.wind_vel(1);
+	const float vwn = _state.wind_vel(0);
+	const float vwe = _state.wind_vel(1);
 
 	// relative wind velocity in earth frame
 	Vector3f rel_wind;
@@ -73,7 +73,7 @@ void Ekf::fuseSideslip()
 	rel_wind(1) = ve - vwe;
 	rel_wind(2) = vd;
 
-	Dcmf earth_to_body = quat_to_invrotmat(_state.quat_nominal);
+	const Dcmf earth_to_body = quat_to_invrotmat(_state.quat_nominal);
 
 	// rotate into body axes
 	rel_wind = earth_to_body * rel_wind;

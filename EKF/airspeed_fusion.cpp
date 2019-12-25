@@ -46,34 +46,28 @@
 
 void Ekf::fuseAirspeed()
 {
-	// Initialize variables
-	float vn; // Velocity in north direction
-	float ve; // Velocity in east direction
-	float vd; // Velocity in downwards direction
-	float vwn; // Wind speed in north direction
-	float vwe; // Wind speed in east direction
-	float v_tas_pred; // Predicted measurement
-	float R_TAS = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) * math::constrain(_airspeed_sample_delayed.eas2tas, 0.9f,
-			 10.0f)); // Variance for true airspeed measurement - (m/sec)^2
 	float SH_TAS[3] = {}; // Variable used to optimise calculations of measurement jacobian
 	float H_TAS[24] = {}; // Observation Jacobian
 	float SK_TAS[2] = {}; // Variable used to optimise calculations of the Kalman gain vector
 	float Kfusion[24] = {}; // Kalman gain vector
 
-	// Copy required states to local variable names
-	vn = _state.vel(0);
-	ve = _state.vel(1);
-	vd = _state.vel(2);
-	vwn = _state.wind_vel(0);
-	vwe = _state.wind_vel(1);
+	const float vn = _state.vel(0); // Velocity in north direction
+	const float ve = _state.vel(1); // Velocity in east direction
+	const float vd = _state.vel(2); // Velocity in downwards direction
+	const float vwn = _state.wind_vel(0); // Wind speed in north direction
+	const float vwe = _state.wind_vel(1); // Wind speed in east direction
 
 	// Calculate the predicted airspeed
-	v_tas_pred = sqrtf((ve - vwe) * (ve - vwe) + (vn - vwn) * (vn - vwn) + vd * vd);
+	const float v_tas_pred = sqrtf((ve - vwe) * (ve - vwe) + (vn - vwn) * (vn - vwn) + vd * vd);
+
+	// Variance for true airspeed measurement - (m/sec)^2
+	const float R_TAS = sq(math::constrain(_params.eas_noise, 0.5f, 5.0f) *
+			    math::constrain(_airspeed_sample_delayed.eas2tas, 0.9f, 10.0f));
 
 	// Perform fusion of True Airspeed measurement
 	if (v_tas_pred > 1.0f) {
 		// determine if we need the sideslip fusion to correct states other than wind
-		bool update_wind_only = !_is_wind_dead_reckoning;
+		const bool update_wind_only = !_is_wind_dead_reckoning;
 
 		// Calculate the observation jacobian
 		// intermediate variable from algebraic optimisation
@@ -90,7 +84,7 @@ void Ekf::fuseAirspeed()
 		H_TAS[23] = -SH_TAS[1];
 
 		// We don't want to update the innovation variance if the calculation is ill conditioned
-		float _airspeed_innov_var_temp = (R_TAS + SH_TAS[2]*(P(4,4)*SH_TAS[2] + P(5,4)*SH_TAS[1] - P(22,4)*SH_TAS[2] - P(23,4)*SH_TAS[1] + P(6,4)*vd*SH_TAS[0]) + SH_TAS[1]*(P(4,5)*SH_TAS[2] + P(5,5)*SH_TAS[1] - P(22,5)*SH_TAS[2] - P(23,5)*SH_TAS[1] + P(6,5)*vd*SH_TAS[0]) - SH_TAS[2]*(P(4,22)*SH_TAS[2] + P(5,22)*SH_TAS[1] - P(22,22)*SH_TAS[2] - P(23,22)*SH_TAS[1] + P(6,22)*vd*SH_TAS[0]) - SH_TAS[1]*(P(4,23)*SH_TAS[2] + P(5,23)*SH_TAS[1] - P(22,23)*SH_TAS[2] - P(23,23)*SH_TAS[1] + P(6,23)*vd*SH_TAS[0]) + vd*SH_TAS[0]*(P(4,6)*SH_TAS[2] + P(5,6)*SH_TAS[1] - P(22,6)*SH_TAS[2] - P(23,6)*SH_TAS[1] + P(6,6)*vd*SH_TAS[0]));
+		const float _airspeed_innov_var_temp = (R_TAS + SH_TAS[2]*(P(4,4)*SH_TAS[2] + P(5,4)*SH_TAS[1] - P(22,4)*SH_TAS[2] - P(23,4)*SH_TAS[1] + P(6,4)*vd*SH_TAS[0]) + SH_TAS[1]*(P(4,5)*SH_TAS[2] + P(5,5)*SH_TAS[1] - P(22,5)*SH_TAS[2] - P(23,5)*SH_TAS[1] + P(6,5)*vd*SH_TAS[0]) - SH_TAS[2]*(P(4,22)*SH_TAS[2] + P(5,22)*SH_TAS[1] - P(22,22)*SH_TAS[2] - P(23,22)*SH_TAS[1] + P(6,22)*vd*SH_TAS[0]) - SH_TAS[1]*(P(4,23)*SH_TAS[2] + P(5,23)*SH_TAS[1] - P(22,23)*SH_TAS[2] - P(23,23)*SH_TAS[1] + P(6,23)*vd*SH_TAS[0]) + vd*SH_TAS[0]*(P(4,6)*SH_TAS[2] + P(5,6)*SH_TAS[1] - P(22,6)*SH_TAS[2] - P(23,6)*SH_TAS[1] + P(6,6)*vd*SH_TAS[0]));
 
 		if (_airspeed_innov_var_temp >= R_TAS) { // Check for badly conditioned calculation
 			SK_TAS[0] = 1.0f / _airspeed_innov_var_temp;
@@ -256,7 +250,7 @@ void Ekf::resetWindStates()
 {
 	// get euler yaw angle
 	Eulerf euler321(_state.quat_nominal);
-	float euler_yaw = euler321(2);
+	const float euler_yaw = euler321(2);
 
 	if (_tas_data_ready && (_imu_sample_delayed.time_us - _airspeed_sample_delayed.time_us < (uint64_t)5e5)) {
 		// estimate wind using zero sideslip assumption and airspeed measurement if airspeed available
@@ -265,7 +259,6 @@ void Ekf::resetWindStates()
 
 	} else {
 		// If we don't have an airspeed measurement, then assume the wind is zero
-		_state.wind_vel(0) = 0.0f;
-		_state.wind_vel(1) = 0.0f;
+		_state.wind_vel.setZero();
 	}
 }

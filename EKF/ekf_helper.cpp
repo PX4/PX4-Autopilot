@@ -391,25 +391,26 @@ void Ekf::alignOutputFilter()
 // It is used to align the yaw angle after launch or takeoff for fixed wing vehicle only.
 bool Ekf::realignYawGPS()
 {
-	// Need at least 5 m/s of GPS horizontal speed and ratio of velocity error to velocity < 0.15  for a reliable alignment
-	float gpsSpeed = sqrtf(sq(_gps_sample_delayed.vel(0)) + sq(_gps_sample_delayed.vel(1)));
+	const float gpsSpeed = sqrtf(sq(_gps_sample_delayed.vel(0)) + sq(_gps_sample_delayed.vel(1)));
 
+	// Need at least 5 m/s of GPS horizontal speed and
+	// ratio of velocity error to velocity < 0.15  for a reliable alignment
 	if ((gpsSpeed > 5.0f) && (_gps_sample_delayed.sacc < (0.15f * gpsSpeed))) {
 		// check for excessive horizontal GPS velocity innovations
-		bool badVelInnov = (_gps_vel_test_ratio(0) > 1.0f) && _control_status.flags.gps;
+		const bool badVelInnov = (_gps_vel_test_ratio(0) > 1.0f) && _control_status.flags.gps;
 
 		// calculate GPS course over ground angle
-		float gpsCOG = atan2f(_gps_sample_delayed.vel(1), _gps_sample_delayed.vel(0));
+		const float gpsCOG = atan2f(_gps_sample_delayed.vel(1), _gps_sample_delayed.vel(0));
 
 		// calculate course yaw angle
-		float ekfGOG = atan2f(_state.vel(1), _state.vel(0));
+		const float ekfGOG = atan2f(_state.vel(1), _state.vel(0));
 
 		// Check the EKF and GPS course over ground for consistency
-		float courseYawError = gpsCOG - ekfGOG;
+		const float courseYawError = gpsCOG - ekfGOG;
 
 		// If the angles disagree and horizontal GPS velocity innovations are large or no previous yaw alignment, we declare the magnetic yaw as bad
-		bool badYawErr = fabsf(courseYawError) > 0.5f;
-		bool badMagYaw = (badYawErr && badVelInnov);
+		const bool badYawErr = fabsf(courseYawError) > 0.5f;
+		const bool badMagYaw = (badYawErr && badVelInnov);
 
 		if (badMagYaw) {
 			_num_bad_flight_yaw_events ++;
@@ -426,7 +427,7 @@ bool Ekf::realignYawGPS()
 			}
 
 			// save a copy of the quaternion state for later use in calculating the amount of reset change
-			Quatf quat_before_reset = _state.quat_nominal;
+			const Quatf quat_before_reset = _state.quat_nominal;
 
 			// update transformation matrix from body to world frame using the current state estimate
 			_R_to_earth = Dcmf(_state.quat_nominal);
@@ -455,13 +456,11 @@ bool Ekf::realignYawGPS()
 
 			// calculate new filter quaternion states using corrected yaw angle
 			_state.quat_nominal = Quatf(euler321);
+			_R_to_earth = Dcmf(_state.quat_nominal);
 			uncorrelateQuatStates();
 
 			// If heading was bad, then we also need to reset the velocity and position states
 			_velpos_reset_request = badMagYaw;
-
-			// update transformation matrix from body to world frame using the current state estimate
-			_R_to_earth = Dcmf(_state.quat_nominal);
 
 			// Use the last magnetometer measurements to reset the field states
 			_state.mag_B.zero();
@@ -551,7 +550,7 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 	}
 
 	// save a copy of the quaternion state for later use in calculating the amount of reset change
-	Quatf quat_before_reset = _state.quat_nominal;
+	const Quatf quat_before_reset = _state.quat_nominal;
 	Quatf quat_after_reset = _state.quat_nominal;
 
 	// update transformation matrix from body to world frame using the current estimate
@@ -572,13 +571,13 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 		// calculate the observed yaw angle
 		if (_control_status.flags.ev_yaw) {
 			// convert the observed quaternion to a rotation matrix
-			Dcmf R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
+			const Dcmf R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
 			// calculate the yaw angle for a 312 sequence
 			euler321(2) = atan2f(R_to_earth_ev(1, 0), R_to_earth_ev(0, 0));
 
 		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
-			Vector3f mag_earth_pred = R_to_earth * mag_init;
+			const Vector3f mag_earth_pred = R_to_earth * mag_init;
 			// the angle of the projection onto the horizontal gives the yaw angle
 			euler321(2) = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
 
@@ -630,13 +629,13 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 		// calculate the observed yaw angle
 		if (_control_status.flags.ev_yaw) {
 			// convert the observed quaternion to a rotation matrix
-			Dcmf R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
+			const Dcmf R_to_earth_ev(_ev_sample_delayed.quat);	// transformation matrix from body to world frame
 			// calculate the yaw angle for a 312 sequence
 			euler312(0) = atan2f(-R_to_earth_ev(0, 1), R_to_earth_ev(1, 1));
 
 		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
-			Vector3f mag_earth_pred = R_to_earth * mag_init;
+			const Vector3f mag_earth_pred = R_to_earth * mag_init;
 			// the angle of the projection onto the horizontal gives the yaw angle
 			euler312(0) = -atan2f(mag_earth_pred(1), mag_earth_pred(0)) + getMagDeclination();
 
@@ -668,7 +667,7 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 	}
 
 	// set the earth magnetic field states using the updated rotation
-	Dcmf R_to_earth_after(quat_after_reset);
+	const Dcmf R_to_earth_after(quat_after_reset);
 	_state.mag_I = R_to_earth_after * mag_init;
 
 	// reset the corresponding rows and columns in the covariance matrix and set the variances on the magnetic field states to the measurement variance
@@ -1198,21 +1197,21 @@ hagl_max : Maximum height above ground (meters). NaN when limiting is not needed
 void Ekf::get_ekf_ctrl_limits(float *vxy_max, float *vz_max, float *hagl_min, float *hagl_max)
 {
 	// Calculate range finder limits
-	float rangefinder_hagl_min = _rng_valid_min_val;
+	const float rangefinder_hagl_min = _rng_valid_min_val;
 	// Allow use of 75% of rangefinder maximum range to allow for angular motion
-	float rangefinder_hagl_max = 0.75f * _rng_valid_max_val;
+	const float rangefinder_hagl_max = 0.75f * _rng_valid_max_val;
 
 	// Calculate optical flow limits
 	// Allow ground relative velocity to use 50% of available flow sensor range to allow for angular motion
-	float flow_vxy_max = fmaxf(0.5f * _flow_max_rate * (_terrain_vpos - _state.pos(2)), 0.0f);
-	float flow_hagl_min = _flow_min_distance;
-	float flow_hagl_max = _flow_max_distance;
+	const float flow_vxy_max = fmaxf(0.5f * _flow_max_rate * (_terrain_vpos - _state.pos(2)), 0.0f);
+	const float flow_hagl_min = _flow_min_distance;
+	const float flow_hagl_max = _flow_max_distance;
 
 	// TODO : calculate visual odometry limits
 
-	bool relying_on_rangefinder = _control_status.flags.rng_hgt && !_params.range_aid;
+	const bool relying_on_rangefinder = _control_status.flags.rng_hgt && !_params.range_aid;
 
-	bool relying_on_optical_flow = _control_status.flags.opt_flow && !(_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel);
+	const bool relying_on_optical_flow = _control_status.flags.opt_flow && !(_control_status.flags.gps || _control_status.flags.ev_pos || _control_status.flags.ev_vel);
 
 	// Do not require limiting by default
 	*vxy_max = NAN;
@@ -1649,8 +1648,8 @@ void Ekf::calcExtVisRotMat()
 	if (rot_vec_norm > 1e-6f) {
 
 		// apply an input limiter to protect from spikes
-		Vector3f _input_delta_vec = rot_vec - _ev_rot_vec_filt;
-		float input_delta_len = _input_delta_vec.norm();
+		const Vector3f _input_delta_vec = rot_vec - _ev_rot_vec_filt;
+		const float input_delta_len = _input_delta_vec.norm();
 
 		if (input_delta_len > 0.1f) {
 			rot_vec = _ev_rot_vec_filt + _input_delta_vec * (0.1f / input_delta_len);

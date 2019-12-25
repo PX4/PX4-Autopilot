@@ -47,18 +47,17 @@
 void Ekf::fuseMag()
 {
 	// assign intermediate variables
-	float q0 = _state.quat_nominal(0);
-	float q1 = _state.quat_nominal(1);
-	float q2 = _state.quat_nominal(2);
-	float q3 = _state.quat_nominal(3);
+	const float q0 = _state.quat_nominal(0);
+	const float q1 = _state.quat_nominal(1);
+	const float q2 = _state.quat_nominal(2);
+	const float q3 = _state.quat_nominal(3);
 
-	float magN = _state.mag_I(0);
-	float magE = _state.mag_I(1);
-	float magD = _state.mag_I(2);
+	const float magN = _state.mag_I(0);
+	const float magE = _state.mag_I(1);
+	const float magD = _state.mag_I(2);
 
 	// XYZ Measurement uncertainty. Need to consider timing errors for fast rotations
-	float R_MAG = fmaxf(_params.mag_noise, 0.0f);
-	R_MAG = R_MAG * R_MAG;
+	const float R_MAG = sq(fmaxf(_params.mag_noise, 0.0f));
 
 	// intermediate variables from algebraic optimisation
 	float SH_MAG[9];
@@ -73,9 +72,9 @@ void Ekf::fuseMag()
 	SH_MAG[8] = 2.0f*magE*q3;
 
 	// rotate magnetometer earth field state into body frame
-	Dcmf R_to_body = quat_to_invrotmat(_state.quat_nominal);
+	const Dcmf R_to_body = quat_to_invrotmat(_state.quat_nominal);
 
-	Vector3f mag_I_rot = R_to_body * _state.mag_I;
+	const Vector3f mag_I_rot = R_to_body * _state.mag_I;
 
 	// compute magnetometer innovations
 	_mag_innov[0] = (mag_I_rot(0) + _state.mag_B(0)) - _mag_sample_delayed.mag(0);
@@ -437,10 +436,10 @@ void Ekf::fuseMag()
 void Ekf::fuseHeading()
 {
 	// assign intermediate state variables
-	float q0 = _state.quat_nominal(0);
-	float q1 = _state.quat_nominal(1);
-	float q2 = _state.quat_nominal(2);
-	float q3 = _state.quat_nominal(3);
+	const float q0 = _state.quat_nominal(0);
+	const float q1 = _state.quat_nominal(1);
+	const float q2 = _state.quat_nominal(2);
+	const float q3 = _state.quat_nominal(3);
 
 	float R_YAW = 1.0f;
 	float predicted_hdg;
@@ -488,7 +487,7 @@ void Ekf::fuseHeading()
 		if (_control_status.flags.mag_hdg) {
 			// Set the yaw angle to zero and rotate the measurements into earth frame using the zero yaw angle
 			euler321(2) = 0.0f;
-			Dcmf R_to_earth(euler321);
+			const Dcmf R_to_earth(euler321);
 
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
 			if (_control_status.flags.mag_3D) {
@@ -505,8 +504,8 @@ void Ekf::fuseHeading()
 		} else if (_control_status.flags.ev_yaw) {
 			// calculate the yaw angle for a 321 sequence
 			// Expressions obtained from yaw_input_321.c produced by https://github.com/PX4/ecl/blob/master/matlab/scripts/Inertial%20Nav%20EKF/quat2yaw321.m
-			float Tbn_1_0 = 2.0f*(_ev_sample_delayed.quat(0)*_ev_sample_delayed.quat(3)+_ev_sample_delayed.quat(1)*_ev_sample_delayed.quat(2));
-			float Tbn_0_0 = sq(_ev_sample_delayed.quat(0))+sq(_ev_sample_delayed.quat(1))-sq(_ev_sample_delayed.quat(2))-sq(_ev_sample_delayed.quat(3));
+			const float Tbn_1_0 = 2.0f*(_ev_sample_delayed.quat(0)*_ev_sample_delayed.quat(3)+_ev_sample_delayed.quat(1)*_ev_sample_delayed.quat(2));
+			const float Tbn_0_0 = sq(_ev_sample_delayed.quat(0))+sq(_ev_sample_delayed.quat(1))-sq(_ev_sample_delayed.quat(2))-sq(_ev_sample_delayed.quat(3));
 			measured_hdg = atan2f(Tbn_1_0,Tbn_0_0);
 
 		} else if (_mag_use_inhibit) {
@@ -561,8 +560,8 @@ void Ekf::fuseHeading()
 		[                               -cos(roll)*sin(pitch),           sin(roll),                                cos(pitch)*cos(roll)]
 		*/
 		float yaw = atan2f(-_R_to_earth(0, 1), _R_to_earth(1, 1)); // first rotation (yaw)
-		float roll = asinf(_R_to_earth(2, 1)); // second rotation (roll)
-		float pitch = atan2f(-_R_to_earth(2, 0), _R_to_earth(2, 2)); // third rotation (pitch)
+		const float roll = asinf(_R_to_earth(2, 1)); // second rotation (roll)
+		const float pitch = atan2f(-_R_to_earth(2, 0), _R_to_earth(2, 2)); // third rotation (pitch)
 
 		predicted_hdg = yaw; // we will need the predicted heading to calculate the innovation
 
@@ -813,14 +812,14 @@ void Ekf::fuseHeading()
 void Ekf::fuseDeclination(float decl_sigma)
 {
 	// assign intermediate state variables
-	float magN = _state.mag_I(0);
-	float magE = _state.mag_I(1);
+	const float magN = _state.mag_I(0);
+	const float magE = _state.mag_I(1);
 
 	// minimum horizontal field strength before calculation becomes badly conditioned (T)
-	float h_field_min = 0.001f;
+	const float h_field_min = 0.001f;
 
 	// observation variance (rad**2)
-	float R_DECL = sq(decl_sigma);
+	const float R_DECL = sq(decl_sigma);
 
 	// Calculate intermediate variables
 	float t2 = magE*magE;
@@ -889,9 +888,7 @@ void Ekf::fuseDeclination(float decl_sigma)
 	Kfusion[22] = -t4*t13*(P(22,16)*magE-P(22,17)*magN);
 	Kfusion[23] = -t4*t13*(P(23,16)*magE-P(23,17)*magN);
 
-	// calculate innovation and constrain
-	float innovation = atan2f(magE, magN) - getMagDeclination();
-	innovation = math::constrain(innovation, -0.5f, 0.5f);
+	const float innovation = math::constrain(atan2f(magE, magN) - getMagDeclination(), -0.5f, 0.5f);
 
 	// apply covariance correction via P_new = (I -K*H)*P
 	// first calculate expression for KHP
@@ -1004,7 +1001,7 @@ float Ekf::calculate_synthetic_mag_z_measurement(Vector3f mag_meas, Vector3f mag
 {
 	// theoretical magnitude of the magnetometer Z component value given X and Y sensor measurement and our knowledge
 	// of the earth magnetic field vector at the current location
-	float mag_z_abs = sqrtf(math::max(sq(mag_earth_predicted.length()) - sq(mag_meas(0)) - sq(mag_meas(1)), 0.0f));
+	const float mag_z_abs = sqrtf(math::max(sq(mag_earth_predicted.length()) - sq(mag_meas(0)) - sq(mag_meas(1)), 0.0f));
 
 	// calculate sign of synthetic magnetomter Z component based on the sign of the predicted magnetomer Z component
 	float mag_z_body_pred = _R_to_earth(0,2) * mag_earth_predicted(0) + _R_to_earth(1,2) * mag_earth_predicted(1) + _R_to_earth(2,2) * mag_earth_predicted(2);

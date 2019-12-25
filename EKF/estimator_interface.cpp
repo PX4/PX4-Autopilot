@@ -385,10 +385,9 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 			flow_magnitude_good = (flow_rate_magnitude <= _flow_max_rate);
 		}
 
-		bool relying_on_flow = !_control_status.flags.gps && !_control_status.flags.ev_pos && !_control_status.flags.ev_vel;
+		const bool relying_on_flow = !_control_status.flags.gps && !_control_status.flags.ev_pos && !_control_status.flags.ev_vel;
 
-		// check quality metric
-		bool flow_quality_good = (flow->quality >= _params.flow_qual_min);
+		const bool flow_quality_good = (flow->quality >= _params.flow_qual_min);
 
 		// Check data validity and write to buffers
 		// Invalid flow data is allowed when on ground and is handled as a special case in controlOpticalFlowFusion()
@@ -507,7 +506,7 @@ bool EstimatorInterface::initialise_interface(uint64_t timestamp)
 	// set the observation buffer length to handle the minimum time of arrival between observations in combination
 	// with the worst case delay from current time to ekf fusion time
 	// allow for worst case 50% extension of the ekf fusion time horizon delay due to timing jitter
-	uint16_t ekf_delay_ms = max_time_delay_ms + (int)(ceilf((float)max_time_delay_ms * 0.5f));
+	const uint16_t ekf_delay_ms = max_time_delay_ms + (int)(ceilf((float)max_time_delay_ms * 0.5f));
 	_obs_buffer_length = (ekf_delay_ms / _params.sensor_interval_min_ms) + 1;
 
 	// limit to be no longer than the IMU buffer (we can't process data faster than the EKF prediction rate)

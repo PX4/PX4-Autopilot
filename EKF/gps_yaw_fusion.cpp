@@ -48,10 +48,10 @@
 void Ekf::fuseGpsAntYaw()
 {
 	// assign intermediate state variables
-	float q0 = _state.quat_nominal(0);
-	float q1 = _state.quat_nominal(1);
-	float q2 = _state.quat_nominal(2);
-	float q3 = _state.quat_nominal(3);
+	const float q0 = _state.quat_nominal(0);
+	const float q1 = _state.quat_nominal(1);
+	const float q2 = _state.quat_nominal(2);
+	const float q3 = _state.quat_nominal(3);
 
 	float R_YAW = 1.0f;
 	float predicted_hdg;
@@ -295,24 +295,24 @@ bool Ekf::resetGpsAntYaw()
 	if (ISFINITE(_gps_sample_delayed.yaw)) {
 
 		// define the predicted antenna array vector and rotate into earth frame
-		Vector3f ant_vec_bf = {cosf(_gps_yaw_offset), sinf(_gps_yaw_offset), 0.0f};
-		Vector3f ant_vec_ef = _R_to_earth * ant_vec_bf;
+		const Vector3f ant_vec_bf = {cosf(_gps_yaw_offset), sinf(_gps_yaw_offset), 0.0f};
+		const Vector3f ant_vec_ef = _R_to_earth * ant_vec_bf;
 
 		// check if antenna array vector is within 30 degrees of vertical and therefore unable to provide a reliable heading
 		if (fabsf(ant_vec_ef(2)) > cosf(math::radians(30.0f)))  {
 			return false;
 		}
 
-		float predicted_yaw =  atan2f(ant_vec_ef(1),ant_vec_ef(0));
+		const float predicted_yaw =  atan2f(ant_vec_ef(1),ant_vec_ef(0));
 
 		// get measurement and correct for antenna array yaw offset
-		float measured_yaw = _gps_sample_delayed.yaw + _gps_yaw_offset;
+		const float measured_yaw = _gps_sample_delayed.yaw + _gps_yaw_offset;
 
 		// calculate the amount the yaw needs to be rotated by
 		float yaw_delta = wrap_pi(measured_yaw - predicted_yaw);
 
 		// save a copy of the quaternion state for later use in calculating the amount of reset change
-		Quatf quat_before_reset = _state.quat_nominal;
+		const Quatf quat_before_reset = _state.quat_nominal;
 		Quatf quat_after_reset = _state.quat_nominal;
 
 		// obtain the yaw angle using the best conditioned from either a Tait-Bryan 321 or 312 sequence

@@ -51,30 +51,30 @@ void Ekf::fuseDrag()
 	float Kfusion[24] = {}; // Kalman gain vector
 	float R_ACC = _params.drag_noise; // observation noise variance in specific force drag (m/sec**2)**2
 
-	float rho = fmaxf(_air_density, 0.1f); // air density (kg/m**3)
+	const float rho = fmaxf(_air_density, 0.1f); // air density (kg/m**3)
 
 	// calculate inverse of ballistic coefficient
 	if (_params.bcoef_x < 1.0f || _params.bcoef_y < 1.0f) {
 		return;
 	}
 
-	float BC_inv_x = 1.0f / _params.bcoef_x;
-	float BC_inv_y = 1.0f / _params.bcoef_y;
+	const float BC_inv_x = 1.0f / _params.bcoef_x;
+	const float BC_inv_y = 1.0f / _params.bcoef_y;
 
 	// get latest estimated orientation
-	float q0 = _state.quat_nominal(0);
-	float q1 = _state.quat_nominal(1);
-	float q2 = _state.quat_nominal(2);
-	float q3 = _state.quat_nominal(3);
+	const float q0 = _state.quat_nominal(0);
+	const float q1 = _state.quat_nominal(1);
+	const float q2 = _state.quat_nominal(2);
+	const float q3 = _state.quat_nominal(3);
 
 	// get latest velocity in earth frame
-	float vn = _state.vel(0);
-	float ve = _state.vel(1);
-	float vd = _state.vel(2);
+	const float vn = _state.vel(0);
+	const float ve = _state.vel(1);
+	const float vd = _state.vel(2);
 
 	// get latest wind velocity in earth frame
-	float vwn = _state.wind_vel(0);
-	float vwe = _state.wind_vel(1);
+	const float vwn = _state.wind_vel(0);
+	const float vwe = _state.wind_vel(1);
 
 	// predicted specific forces
 	// calculate relative wind velocity in earth frame and rotte into body frame
@@ -82,7 +82,7 @@ void Ekf::fuseDrag()
 	rel_wind(0) = vn - vwn;
 	rel_wind(1) = ve - vwe;
 	rel_wind(2) = vd;
-	Dcmf earth_to_body = quat_to_invrotmat(_state.quat_nominal);
+	const Dcmf earth_to_body = quat_to_invrotmat(_state.quat_nominal);
 	rel_wind = earth_to_body * rel_wind;
 
 	// perform sequential fusion of XY specific forces
@@ -90,12 +90,12 @@ void Ekf::fuseDrag()
 		// calculate observation jacobiam and Kalman gain vectors
 		if (axis_index == 0) {
 			// Estimate the airspeed from the measured drag force and ballistic coefficient
-			float mea_acc = _drag_sample_delayed.accelXY(axis_index)  - _state.delta_vel_bias(axis_index) / _dt_ekf_avg;
-			float airSpd = sqrtf((2.0f * fabsf(mea_acc)) / (BC_inv_x * rho));
+			const float mea_acc = _drag_sample_delayed.accelXY(axis_index)  - _state.delta_vel_bias(axis_index) / _dt_ekf_avg;
+			const float airSpd = sqrtf((2.0f * fabsf(mea_acc)) / (BC_inv_x * rho));
 
 			// Estimate the derivative of specific force wrt airspeed along the X axis
 			// Limit lower value to prevent arithmetic exceptions
-			float Kacc = fmaxf(1e-1f, rho * BC_inv_x * airSpd);
+			const float Kacc = fmaxf(1e-1f, rho * BC_inv_x * airSpd);
 
 			SH_ACC[0] = sq(q0) + sq(q1) - sq(q2) - sq(q3);
 			SH_ACC[1] = vn - vwn;
@@ -157,18 +157,18 @@ void Ekf::fuseDrag()
 				drag_sign = -1.0f;
 			}
 
-			float predAccel = -BC_inv_x * 0.5f * rho * sq(rel_wind(axis_index)) * drag_sign;
+			const float predAccel = -BC_inv_x * 0.5f * rho * sq(rel_wind(axis_index)) * drag_sign;
 			_drag_innov[axis_index] = predAccel - mea_acc;
 			_drag_test_ratio[axis_index] = sq(_drag_innov[axis_index]) / (25.0f * _drag_innov_var[axis_index]);
 
 		} else if (axis_index == 1) {
 			// Estimate the airspeed from the measured drag force and ballistic coefficient
-			float mea_acc = _drag_sample_delayed.accelXY(axis_index)  - _state.delta_vel_bias(axis_index) / _dt_ekf_avg;
-			float airSpd = sqrtf((2.0f * fabsf(mea_acc)) / (BC_inv_y * rho));
+			const float mea_acc = _drag_sample_delayed.accelXY(axis_index)  - _state.delta_vel_bias(axis_index) / _dt_ekf_avg;
+			const float airSpd = sqrtf((2.0f * fabsf(mea_acc)) / (BC_inv_y * rho));
 
 			// Estimate the derivative of specific force wrt airspeed along the X axis
 			// Limit lower value to prevent arithmetic exceptions
-			float Kacc = fmaxf(1e-1f, rho * BC_inv_y * airSpd);
+			const float Kacc = fmaxf(1e-1f, rho * BC_inv_y * airSpd);
 
 			SH_ACC[0] = sq(q0) - sq(q1) + sq(q2) - sq(q3);
 			SH_ACC[1] = vn - vwn;
@@ -232,7 +232,7 @@ void Ekf::fuseDrag()
 				drag_sign = -1.0f;
 			}
 
-			float predAccel = -BC_inv_y * 0.5f * rho * sq(rel_wind(axis_index)) * drag_sign;
+			const float predAccel = -BC_inv_y * 0.5f * rho * sq(rel_wind(axis_index)) * drag_sign;
 			_drag_innov[axis_index] = predAccel - mea_acc;
 			_drag_test_ratio[axis_index] = sq(_drag_innov[axis_index]) / (25.0f * _drag_innov_var[axis_index]);
 
