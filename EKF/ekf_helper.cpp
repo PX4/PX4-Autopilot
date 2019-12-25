@@ -791,11 +791,11 @@ void Ekf::constrainStates()
 }
 
 // calculate the earth rotation vector
-void Ekf::calcEarthRateNED(Vector3f &omega, float lat_rad) const
+Vector3f Ekf::calcEarthRateNED(float lat_rad) const
 {
-	omega(0) = CONSTANTS_EARTH_SPIN_RATE * cosf(lat_rad);
-	omega(1) = 0.0f;
-	omega(2) = -CONSTANTS_EARTH_SPIN_RATE * sinf(lat_rad);
+	return Vector3f{CONSTANTS_EARTH_SPIN_RATE * cosf(lat_rad),
+			0.0f,
+			-CONSTANTS_EARTH_SPIN_RATE * sinf(lat_rad)};
 }
 
 void Ekf::getGpsVelPosInnov(float hvel[2], float &vvel, float hpos[2],  float &vpos)

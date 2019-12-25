@@ -641,7 +641,7 @@ private:
 	void fuse(float *K, float innovation);
 
 	// calculate the earth rotation vector from a given latitude
-	void calcEarthRateNED(Vector3f &omega, float lat_rad) const;
+	Vector3f calcEarthRateNED(float lat_rad) const;
 
 	// return true id the GPS quality is good enough to set an origin and start aiding
 	bool gps_is_good(const gps_message &gps);
