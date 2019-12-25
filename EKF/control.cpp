@@ -223,8 +223,7 @@ void Ekf::controlExternalVisionFusion()
 			if (_time_last_imu - _time_last_ext_vision < 2 * EV_MAX_INTERVAL) {
 				// reset the yaw angle to the value from the observation quaternion
 				// get the roll, pitch, yaw estimates from the quaternion states
-				Quatf q_init(_state.quat_nominal);
-				Eulerf euler_init(q_init);
+				Eulerf euler_init(_state.quat_nominal);
 
 				// get initial yaw from the observation quaternion
 				const extVisionSample &ev_newest = _ext_vision_buffer.get_newest();
@@ -350,7 +349,7 @@ void Ekf::controlExternalVisionFusion()
 			Vector3f ev_vel_obs_var;
 			Vector2f ev_vel_innov_gates;
 
-			Vector3f vel_aligned{_ev_sample_delayed.vel};
+			Vector3f vel_aligned(_ev_sample_delayed.vel);
 
 			// rotate measurement into correct earth frame if required
 			if (_params.fusion_mode & MASK_ROTATE_EV) {
@@ -364,9 +363,7 @@ void Ekf::controlExternalVisionFusion()
 			const Vector3f vel_offset_earth = _R_to_earth * vel_offset_body;
 			vel_aligned -= vel_offset_earth;
 
-			_ev_vel_innov(0) = _state.vel(0) - vel_aligned(0);
-			_ev_vel_innov(1) = _state.vel(1) - vel_aligned(1);
-			_ev_vel_innov(2) = _state.vel(2) - vel_aligned(2);
+			_ev_vel_innov = _state.vel - vel_aligned;
 
 			// check if we have been deadreckoning too long
 			if ((_time_last_imu - _time_last_hor_vel_fuse) > _params.reset_timeout_max) {

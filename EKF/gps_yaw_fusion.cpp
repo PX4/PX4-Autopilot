@@ -319,8 +319,7 @@ bool Ekf::resetGpsAntYaw()
 		// to avoid gimbal lock
 		if (fabsf(_R_to_earth(2, 0)) < fabsf(_R_to_earth(2, 1))) {
 			// get the roll, pitch, yaw estimates from the quaternion states using a 321 Tait-Bryan rotation sequence
-			Quatf q_init(_state.quat_nominal);
-			Eulerf euler_init(q_init);
+			Eulerf euler_init(_state.quat_nominal);
 
 			// correct the yaw angle
 			euler_init(2) += yaw_delta;
@@ -366,8 +365,7 @@ bool Ekf::resetGpsAntYaw()
 		}
 
 		// calculate the amount that the quaternion has changed by
-		Quatf q_error =  _state.quat_nominal * quat_before_reset.inversed();
-		q_error.normalize();
+		const Quatf q_error( (_state.quat_nominal * quat_before_reset.inversed()).normalized() );
 
 		// convert the quaternion delta to a delta angle
 		Vector3f delta_ang_error;

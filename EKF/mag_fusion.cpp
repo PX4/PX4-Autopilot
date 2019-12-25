@@ -1004,7 +1004,7 @@ float Ekf::calculate_synthetic_mag_z_measurement(Vector3f mag_meas, Vector3f mag
 	const float mag_z_abs = sqrtf(math::max(sq(mag_earth_predicted.length()) - sq(mag_meas(0)) - sq(mag_meas(1)), 0.0f));
 
 	// calculate sign of synthetic magnetomter Z component based on the sign of the predicted magnetomer Z component
-	float mag_z_body_pred = _R_to_earth(0,2) * mag_earth_predicted(0) + _R_to_earth(1,2) * mag_earth_predicted(1) + _R_to_earth(2,2) * mag_earth_predicted(2);
+	const float mag_z_body_pred = mag_earth_predicted.dot(_R_to_earth.slice<3,1>(0,2));
 
 	return mag_z_body_pred < 0 ? -mag_z_abs : mag_z_abs;
 }

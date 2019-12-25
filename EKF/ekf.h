@@ -321,7 +321,7 @@ private:
 	Vector3f _pos_meas_prev;		///< previous value of NED position measurement fused using odometry assumption (m)
 	Vector2f _hpos_pred_prev;		///< previous value of NE position state used by odometry fusion (m)
 	bool _hpos_prev_available{false};	///< true when previous values of the estimate and measurement are available for use
-	Vector3f _ev_rot_vec_filt;		///< filtered rotation vector defining the rotation EV to EKF reference, initiliazied to zero rotation  (rad)
+	AxisAnglef _ev_rot_vec_filt;		///< filtered rotation vector defining the rotation EV to EKF reference, initiliazied to zero rotation  (rad)
 	Dcmf _ev_rot_mat;			///< transformation matrix that rotates observations from the EV to the EKF navigation frame, initialized with Identity
 	uint64_t _ev_rot_last_time_us{0};	///< previous time that the calculation of the EV to EKF rotation matrix was updated (uSec)
 	bool _ev_rot_mat_initialised{0};	///< _ev_rot_mat should only be initialised once in the beginning through the reset function
