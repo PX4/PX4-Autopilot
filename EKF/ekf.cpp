@@ -255,9 +255,7 @@ void Ekf::predictState()
 	// correct delta angles for earth rotation rate
 	corrected_delta_ang -= -_R_to_earth.transpose() * _earth_rate_NED * _imu_sample_delayed.delta_ang_dt;
 
-	// convert the delta angle to a delta quaternion
-	Quatf dq;
-	dq.from_axis_angle(corrected_delta_ang);
+	const Quatf dq(AxisAnglef{corrected_delta_ang});
 
 	// rotate the previous quaternion by the delta quaternion using a quaternion multiplication
 	_state.quat_nominal = _state.quat_nominal * dq;
@@ -337,7 +335,7 @@ bool Ekf::collect_imu(const imuSample &imu)
 		_imu_collection_time_adj = math::constrain(_imu_collection_time_adj, -0.5f * target_dt, 0.5f * target_dt);
 
 		imuSample imu_sample_new;
-		imu_sample_new.delta_ang = _q_down_sampled.to_axis_angle();
+		imu_sample_new.delta_ang = AxisAnglef(_q_down_sampled);
 		imu_sample_new.delta_vel = _imu_down_sampled.delta_vel;
 		imu_sample_new.delta_ang_dt = _imu_down_sampled.delta_ang_dt;
 		imu_sample_new.delta_vel_dt = _imu_down_sampled.delta_vel_dt;
@@ -400,9 +398,7 @@ void Ekf::calculateOutputStates()
 	// Note fixed coefficients are used to save operations. The exact time constant is not important.
 	_yaw_rate_lpf_ef = 0.95f * _yaw_rate_lpf_ef + 0.05f * spin_del_ang_D / imu.delta_ang_dt;
 
-	// convert the delta angle to an equivalent delta quaternions
-	Quatf dq;
-	dq.from_axis_angle(delta_angle);
+	const Quatf dq(AxisAnglef{delta_angle});
 
 	// rotate the previous INS quaternion by the delta quaternions
 	_output_new.time_us = imu.time_us;
@@ -468,9 +464,7 @@ void Ekf::calculateOutputStates()
 		_output_vert_delayed = _output_vert_buffer.get_oldest();
 
 		// calculate the quaternion delta between the INS and EKF quaternions at the EKF fusion time horizon
-		Quatf quat_inv = _state.quat_nominal.inversed();
-		Quatf q_error =  quat_inv * _output_sample_delayed.quat_nominal;
-		q_error.normalize();
+		const Quatf q_error( (_state.quat_nominal.inversed() * _output_sample_delayed.quat_nominal).normalized() );
 
 		// convert the quaternion delta to a delta angle
 		float scalar;

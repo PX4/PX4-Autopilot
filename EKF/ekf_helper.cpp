@@ -686,8 +686,7 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 	_flt_mag_align_start_time = _imu_sample_delayed.time_us;
 
 	// calculate the amount that the quaternion has changed by
-	Quatf q_error =  quat_after_reset * quat_before_reset.inversed();
-	q_error.normalize();
+	const Quatf q_error( (quat_after_reset * quat_before_reset.inversed()).normalized() );
 
 	// update quaternion states
 	_state.quat_nominal = quat_after_reset;
@@ -1637,11 +1636,10 @@ void Ekf::startMag3DFusion()
 void Ekf::calcExtVisRotMat()
 {
 	// Calculate the quaternion delta that rotates from the EV to the EKF reference frame at the EKF fusion time horizon.
-	Quatf q_error = _state.quat_nominal * _ev_sample_delayed.quat.inversed();
-	q_error.normalize();
+	const Quatf q_error( (_state.quat_nominal * _ev_sample_delayed.quat.inversed()).normalized() );
 
 	// convert to a delta angle and apply a spike and low pass filter
-	Vector3f rot_vec = q_error.to_axis_angle();
+	AxisAnglef rot_vec(q_error);
 
 	float rot_vec_norm = rot_vec.norm();
 
@@ -1663,9 +1661,7 @@ void Ekf::calcExtVisRotMat()
 
 	}
 
-	// convert filtered vector to a quaternion and then to a rotation matrix
-	q_error.from_axis_angle(_ev_rot_vec_filt);
-	_ev_rot_mat = Dcmf(q_error); // rotation from EV reference to EKF reference
+	_ev_rot_mat = Dcmf(_ev_rot_vec_filt); // rotation from EV reference to EKF reference
 
 }
 
@@ -1677,8 +1673,7 @@ void Ekf::resetExtVisRotMat()
 	Quatf q_error = _state.quat_nominal * _ev_sample_delayed.quat.inversed();
 	q_error.normalize();
 
-	// convert to a delta angle and reset
-	Vector3f rot_vec = q_error.to_axis_angle();
+	AxisAnglef rot_vec(q_error);
 
 	float rot_vec_norm = rot_vec.norm();
 
@@ -1696,8 +1691,7 @@ void Ekf::resetExtVisRotMat()
 // return the quaternions for the rotation from External Vision system reference frame to the EKF reference frame
 void Ekf::get_ev2ekf_quaternion(float *quat)
 {
-	Quatf quat_ev2ekf;
-	quat_ev2ekf.from_axis_angle(_ev_rot_vec_filt);
+	const Quatf quat_ev2ekf(_ev_rot_vec_filt);
 
 	for (unsigned i = 0; i < 4; i++) {
 		quat[i] = quat_ev2ekf(i);

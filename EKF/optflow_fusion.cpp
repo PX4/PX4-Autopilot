@@ -535,12 +535,7 @@ bool Ekf::calcOptFlowBodyRateComp()
 			const Vector3f measured_body_rate(_flow_sample_delayed.gyroXYZ * (1.0f / _flow_sample_delayed.dt));
 
 			// calculate the bias estimate using  a combined LPF and spike filter
-			_flow_gyro_bias(0) = 0.99f * _flow_gyro_bias(0) + 0.01f * math::constrain((of_body_rate(0) - reference_body_rate(0)),
-					     -0.1f, 0.1f);
-			_flow_gyro_bias(1) = 0.99f * _flow_gyro_bias(1) + 0.01f * math::constrain((of_body_rate(1) - reference_body_rate(1)),
-					     -0.1f, 0.1f);
-			_flow_gyro_bias(2) = 0.99f * _flow_gyro_bias(2) + 0.01f * math::constrain((of_body_rate(2) - reference_body_rate(2)),
-					     -0.1f, 0.1f);
+			_flow_gyro_bias = _flow_gyro_bias * 0.99f + matrix::constrain(measured_body_rate - reference_body_rate, -0.1f, 0.1f) * 0.01f;
 		}
 
 	} else {
