@@ -397,10 +397,8 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 			// calculate the system time-stamp for the trailing edge of the flow data integration period
 			optflow_sample_new.time_us = time_usec - _params.flow_delay_ms * 1000;
 
-			// copy the quality metric returned by the PX4Flow sensor
 			optflow_sample_new.quality = flow->quality;
 
-			// copy the optical and gyro measured delta angles
 			// NOTE: the EKF uses the reverse sign convention to the flow sensor. EKF assumes positive LOS rate
 			// is produced by a RH rotation of the image about the sensor axis.
 			optflow_sample_new.gyroXYZ = - flow->gyrodata;
@@ -438,7 +436,6 @@ void EstimatorInterface::setExtVisionData(uint64_t time_usec, ext_vision_message
 		// calculate the system time-stamp for the mid point of the integration period
 		ev_sample_new.time_us = time_usec - _params.ev_delay_ms * 1000;
 
-		// copy required data
 		ev_sample_new.angErr = evdata->angErr;
 		ev_sample_new.posErr = evdata->posErr;
 		ev_sample_new.velErr = evdata->velErr;
@@ -447,7 +444,6 @@ void EstimatorInterface::setExtVisionData(uint64_t time_usec, ext_vision_message
 		ev_sample_new.pos = evdata->pos;
 		ev_sample_new.vel = evdata->vel;
 
-		// record time for comparison next measurement
 		_time_last_ext_vision = time_usec;
 
 		_ext_vision_buffer.push(ev_sample_new);
