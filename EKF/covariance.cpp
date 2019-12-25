@@ -161,12 +161,12 @@ void Ekf::predictCovariance()
 	// inhibit learning of imu accel bias if the manoeuvre levels are too high to protect against the effect of sensor nonlinearities or bad accel data is detected
 	float alpha = math::constrain((dt / _params.acc_bias_learn_tc), 0.0f, 1.0f);
 	float beta = 1.0f - alpha;
-	_ang_rate_mag_filt = fmaxf(dt_inv * _imu_sample_delayed.delta_ang.norm(), beta * _ang_rate_mag_filt);
-	_accel_mag_filt = fmaxf(dt_inv * _imu_sample_delayed.delta_vel.norm(), beta * _accel_mag_filt);
+	_ang_rate_magnitude_filt = fmaxf(dt_inv * _imu_sample_delayed.delta_ang.norm(), beta * _ang_rate_magnitude_filt);
+	_accel_magnitude_filt = fmaxf(dt_inv * _imu_sample_delayed.delta_vel.norm(), beta * _accel_magnitude_filt);
 	_accel_vec_filt = alpha * dt_inv * _imu_sample_delayed.delta_vel + beta * _accel_vec_filt;
 
-	if (_ang_rate_mag_filt > _params.acc_bias_learn_gyr_lim
-	    || _accel_mag_filt > _params.acc_bias_learn_acc_lim
+	if (_ang_rate_magnitude_filt > _params.acc_bias_learn_gyr_lim
+	    || _accel_magnitude_filt > _params.acc_bias_learn_acc_lim
 	    || _bad_vert_accel_detected) {
 
 		// store the bias state variances to be reinstated later

@@ -336,11 +336,9 @@ private:
 	bool _tas_data_ready{false};	///< true when new true airspeed data has fallen behind the fusion time horizon and is available to be fused
 	bool _flow_for_terrain_data_ready{false}; /// same flag as "_flow_data_ready" but used for separate terrain estimator
 
-	uint64_t _time_last_fake_pos{0};	///< last time we faked position measurements to constrain tilt errors during operation without external aiding (uSec)
 	uint64_t _time_ins_deadreckon_start{0};	///< amount of time we have been doing inertial only deadreckoning (uSec)
 	bool _using_synthetic_position{false};	///< true if we are using a synthetic position to constrain drift
 
-	// TODO: Split those into sensor and measurement specifics
 	uint64_t _time_last_hor_pos_fuse{0};	///< time the last fusion of horizontal position measurements was performed (uSec)
 	uint64_t _time_last_hgt_fuse{0};	///< time the last fusion of vertical position measurements was performed (uSec)
 	uint64_t _time_last_hor_vel_fuse{0};	///< time the last fusion of horizontal velocity measurements was performed (uSec)
@@ -350,6 +348,9 @@ private:
 	uint64_t _time_last_arsp_fuse{0};	///< time the last fusion of airspeed measurements were performed (uSec)
 	uint64_t _time_last_beta_fuse{0};	///< time the last fusion of synthetic sideslip measurements were performed (uSec)
 	uint64_t _time_last_rng_ready{0};	///< time the last range finder measurement was ready (uSec)
+	uint64_t _time_last_mag{0};		///< measurement time of last magnetomter sample (uSec)
+	uint64_t _time_last_fake_pos{0};	///< last time we faked position measurements to constrain tilt errors during operation without external aiding (uSec)
+
 	Vector2f _last_known_posNE;		///< last known local NE position vector (m)
 	float _imu_collection_time_adj{0.0f};	///< the amount of time the IMU collection needs to be advanced to meet the target set by FILTER_UPDATE_PERIOD_MS (sec)
 
@@ -461,7 +462,6 @@ private:
 	bool _is_first_imu_sample{true};
 	uint32_t _baro_counter{0};		///< number of baro samples read during initialisation
 	uint32_t _mag_counter{0};		///< number of magnetometer samples read during initialisation
-	uint64_t _time_last_mag{0};		///< measurement time of last magnetomter sample (uSec)
 	AlphaFilterVector3f _mag_lpf;		///< filtered magnetometer measurement for instant reset(Gauss)
 	AlphaFilterVector3f _accel_lpf;		///< filtered accelerometer measurement for instant reset(Gauss)
 	float _hgt_sensor_offset{0.0f};		///< set as necessary if desired to maintain the same height after a height reset (m)
@@ -481,8 +481,8 @@ private:
 	// variables used to inhibit accel bias learning
 	bool _accel_bias_inhibit{false};	///< true when the accel bias learning is being inhibited
 	Vector3f _accel_vec_filt;		///< acceleration vector after application of a low pass filter (m/sec**2)
-	float _accel_mag_filt{0.0f};	///< acceleration magnitude after application of a decaying envelope filter (rad/sec)
-	float _ang_rate_mag_filt{0.0f};		///< angular rate magnitude after application of a decaying envelope filter (rad/sec)
+	float _accel_magnitude_filt{0.0f};	///< acceleration magnitude after application of a decaying envelope filter (rad/sec)
+	float _ang_rate_magnitude_filt{0.0f};		///< angular rate magnitude after application of a decaying envelope filter (rad/sec)
 	Vector3f _prev_dvel_bias_var;		///< saved delta velocity XYZ bias variances (m/sec)**2
 
 	// Terrain height state estimation

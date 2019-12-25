@@ -415,7 +415,7 @@ void Ekf::controlOpticalFlowFusion()
 
 		const bool motion_is_excessive = ((accel_norm > (CONSTANTS_ONE_G * 1.5f)) // upper g limit
 					    || (accel_norm < (CONSTANTS_ONE_G * 0.5f)) // lower g limit
-					    || (_ang_rate_mag_filt > _flow_max_rate) // angular rate exceeds flow sensor limit
+					    || (_ang_rate_magnitude_filt > _flow_max_rate) // angular rate exceeds flow sensor limit
 					    || (_R_to_earth(2,2) < cosf(math::radians(30.0f)))); // tilted excessively
 
 		if (motion_is_excessive) {
@@ -1136,7 +1136,7 @@ void Ekf::controlHeightFusion()
 				_hgt_sensor_offset = 0.0f;
 			}
 		}
-		// TODO: Add EV normal case here
+
 		// determine if we should use the vertical position observation
 		if (_control_status.flags.ev_hgt) {
 			_fuse_height = true;
