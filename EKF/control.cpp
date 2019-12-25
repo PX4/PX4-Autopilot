@@ -801,36 +801,29 @@ void Ekf::controlHeightSensorTimeouts()
 			const bool gps_hgt_accurate = (gps_init.vacc < _params.req_vacc);
 
 			const baroSample &baro_init = _baro_buffer.get_newest();
-			bool baro_hgt_available = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
+			const bool baro_data_available = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
 
 			// check for inertial sensing errors in the last 10 seconds
 			const bool prev_bad_vert_accel = (_time_last_imu - _time_bad_vert_accel < BADACC_PROBATION);
 
 			// reset to GPS if adequate GPS data is available and the timeout cannot be blamed on IMU data
-			bool reset_to_gps = !_gps_hgt_intermittent && gps_hgt_accurate && !prev_bad_vert_accel;
-
-			// reset to GPS if GPS data is available and there is no Baro data
-			reset_to_gps = reset_to_gps || (!_gps_hgt_intermittent && !baro_hgt_available);
-
-			// reset to Baro if we are not doing a GPS reset and baro data is available
-			bool reset_to_baro = !reset_to_gps && baro_hgt_available;
+			const bool reset_to_gps = !_gps_hgt_intermittent &&
+					    ( (gps_hgt_accurate && !prev_bad_vert_accel) || !baro_data_available );
 
 			if (reset_to_gps) {
 				// set height sensor health
 				_baro_hgt_faulty = true;
 
-				// reset the height mode
 				setControlGPSHeight();
 
 				// request a reset
 				reset_height = true;
 				ECL_WARN_TIMESTAMPED("baro hgt timeout - reset to GPS");
 
-			} else if (reset_to_baro) {
+			} else if (baro_data_available) {
 				// set height sensor health
 				_baro_hgt_faulty = false;
 
-				// reset the height mode
 				setControlBaroHeight();
 
 				// request a reset
@@ -858,27 +851,21 @@ void Ekf::controlHeightSensorTimeouts()
 			const bool baro_data_consistent = fabsf(baro_innov) < (sq(_params.baro_noise) + P(9,9)) * sq(_params.baro_innov_gate);
 
 			// if baro data is acceptable and GPS data is inaccurate, reset height to baro
-			bool reset_to_baro = baro_data_consistent && baro_data_fresh && !_baro_hgt_faulty && !gps_hgt_accurate;
-
-			// if GPS height is unavailable and baro data is available, reset height to baro
-			reset_to_baro = reset_to_baro || (_gps_hgt_intermittent && baro_data_fresh);
-
-			// if we cannot switch to baro and GPS data is available, reset height to GPS
-			bool reset_to_gps = !reset_to_baro && !_gps_hgt_intermittent;
+			const bool reset_to_baro = baro_data_fresh &&
+						   ( (baro_data_consistent && !_baro_hgt_faulty && !gps_hgt_accurate) ||
+						     _gps_hgt_intermittent );
 
 			if (reset_to_baro) {
 				// set height sensor health
 				_baro_hgt_faulty = false;
 
-				// reset the height mode
 				setControlBaroHeight();
 
 				// request a reset
 				reset_height = true;
 				ECL_WARN_TIMESTAMPED("gps hgt timeout - reset to baro");
 
-			} else if (reset_to_gps) {
-				// reset the height mode
+			} else if (!_gps_hgt_intermittent) {
 				setControlGPSHeight();
 
 				// request a reset
@@ -899,23 +886,18 @@ void Ekf::controlHeightSensorTimeouts()
 			const baroSample &baro_init = _baro_buffer.get_newest();
 			const bool baro_data_available = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
 
-			// reset to baro if we have no range data and baro data is available
-			bool reset_to_baro = !_rng_hgt_valid && baro_data_available;
-
 			if (_rng_hgt_valid) {
 
-				// reset the height mode
 				setControlRangeHeight();
 
 				// request a reset
 				reset_height = true;
 				ECL_WARN_TIMESTAMPED("rng hgt timeout - reset to rng hgt");
 
-			} else if (reset_to_baro) {
+			} else if (baro_data_available) {
 				// set height sensor health
 				_baro_hgt_faulty = false;
 
-				// reset the height mode
 				setControlBaroHeight();
 
 				// request a reset
@@ -939,30 +921,22 @@ void Ekf::controlHeightSensorTimeouts()
 			const baroSample &baro_init = _baro_buffer.get_newest();
 			const bool baro_data_available = ((_time_last_imu - baro_init.time_us) < 2 * BARO_MAX_INTERVAL);
 
-			// reset to baro if we have no vision data and baro data is available
-			bool reset_to_baro = !ev_data_available && baro_data_available;
-
-			// reset to ev data if it is available
-			bool reset_to_ev = ev_data_available;
-
-			if (reset_to_baro) {
-				// set height sensor health
-				_baro_hgt_faulty = false;
-
-				// reset the height mode
-				setControlBaroHeight();
-
-				// request a reset
-				reset_height = true;
-				ECL_WARN_TIMESTAMPED("ev hgt timeout - reset to baro");
-
-			} else if (reset_to_ev) {
-				// reset the height mode
+			if (ev_data_available) {
 				setControlEVHeight();
 
 				// request a reset
 				reset_height = true;
 				ECL_WARN_TIMESTAMPED("ev hgt timeout - reset to ev hgt");
+
+			} else if (baro_data_available) {
+				// set height sensor health
+				_baro_hgt_faulty = false;
+
+				setControlBaroHeight();
+
+				// request a reset
+				reset_height = true;
+				ECL_WARN_TIMESTAMPED("ev hgt timeout - reset to baro");
 
 			} else {
 				// we have nothing to reset to
