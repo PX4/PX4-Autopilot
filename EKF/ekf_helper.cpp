@@ -566,7 +566,6 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 
 		// Set the yaw angle to zero and calculate the rotation matrix from body to earth frame
 		euler321(2) = 0.0f;
-		Dcmf R_to_earth(euler321);
 
 		// calculate the observed yaw angle
 		if (_control_status.flags.ev_yaw) {
@@ -576,6 +575,7 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 			euler321(2) = atan2f(R_to_earth_ev(1, 0), R_to_earth_ev(0, 0));
 
 		} else if (_params.mag_fusion_type <= MAG_FUSE_TYPE_3D) {
+			const Dcmf R_to_earth(euler321);
 			// rotate the magnetometer measurements into earth frame using a zero yaw angle
 			const Vector3f mag_earth_pred = R_to_earth * mag_init;
 			// the angle of the projection onto the horizontal gives the yaw angle
@@ -690,13 +690,11 @@ bool Ekf::resetMagHeading(const Vector3f &mag_init, bool increase_yaw_var, bool 
 
 	// update quaternion states
 	_state.quat_nominal = quat_after_reset;
+	_R_to_earth = Dcmf(_state.quat_nominal);
 	uncorrelateQuatStates();
 
 	// record the state change
 	_state_reset_status.quat_change = q_error;
-
-	// update transformation matrix from body to world frame using the current estimate
-	_R_to_earth = Dcmf(_state.quat_nominal);
 
 	// reset the rotation from the EV to EKF frame of reference if it is being used
 	if ((_params.fusion_mode & MASK_ROTATE_EV) && !_control_status.flags.ev_yaw) {
@@ -1641,9 +1639,7 @@ void Ekf::calcExtVisRotMat()
 	// convert to a delta angle and apply a spike and low pass filter
 	AxisAnglef rot_vec(q_error);
 
-	float rot_vec_norm = rot_vec.norm();
-
-	if (rot_vec_norm > 1e-6f) {
+	if (rot_vec.norm() > 1e-6f) {
 
 		// apply an input limiter to protect from spikes
 		const Vector3f _input_delta_vec = rot_vec - _ev_rot_vec_filt;
