@@ -10,7 +10,6 @@ jobs:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
-        submodules: true
     - name: check_format
       env:
         CI: true
