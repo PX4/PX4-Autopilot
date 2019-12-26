@@ -1548,7 +1548,6 @@ Commander::run()
 			_was_falling = _land_detector.freefall;
 		}
 
-		//Check launch detection to see if it is running
 		if (_controller_status_sub.updated()) {
 			_controller_status_sub.copy(&controller_status);
 		}
