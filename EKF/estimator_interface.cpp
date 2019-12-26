@@ -367,7 +367,7 @@ void EstimatorInterface::setOpticalFlowData(uint64_t time_usec, flow_message *fl
 		// check if enough integration time and fail if integration time is less than 50%
 		// of min arrival interval because too much data is being lost
 		float delta_time = 1e-6f * (float)flow->dt; // in seconds
-		float delta_time_min = 0.5f * 1e-6f * (float)_min_obs_interval_us;
+		const float delta_time_min = 0.5e-6f * (float)_min_obs_interval_us;
 		bool delta_time_good = delta_time >= delta_time_min;
 
 		bool flow_magnitude_good = true;

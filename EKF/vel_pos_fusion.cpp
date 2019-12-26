@@ -51,8 +51,8 @@ bool Ekf::fuseHorizontalVelocity(const Vector3f &innov, const Vector2f &innov_ga
 {
 	innov_var(0) = P(4,4) + obs_var(0);
 	innov_var(1) = P(5,5) + obs_var(1);
-	test_ratio(0) = fmaxf( sq(innov(0)) / (sq(innov_gate(0)) * innov_var(0)),
-			       sq(innov(1)) / (sq(innov_gate(0)) * innov_var(1)));
+	test_ratio(0) = fmaxf(sq(innov(0)) / (sq(innov_gate(0)) * innov_var(0)),
+			      sq(innov(1)) / (sq(innov_gate(0)) * innov_var(1)));
 
 	const bool innov_check_pass = (test_ratio(0) <= 1.0f);
 	if (innov_check_pass)
@@ -95,8 +95,8 @@ bool Ekf::fuseHorizontalPosition(const Vector3f &innov, const Vector2f &innov_ga
 {
 	innov_var(0) = P(7,7) + obs_var(0);
 	innov_var(1) = P(8,8) + obs_var(1);
-	test_ratio(0) = fmaxf( sq(innov(0)) / (sq(innov_gate(0)) * innov_var(0)),
-			       sq(innov(1)) / (sq(innov_gate(0)) * innov_var(1)));
+	test_ratio(0) = fmaxf(sq(innov(0)) / (sq(innov_gate(0)) * innov_var(0)),
+			      sq(innov(1)) / (sq(innov_gate(0)) * innov_var(1)));
 
 	const bool innov_check_pass = (test_ratio(0) <= 1.0f) || !_control_status.flags.tilt_align;
 	if (innov_check_pass) {
