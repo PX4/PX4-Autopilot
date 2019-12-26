@@ -789,10 +789,9 @@ void Ekf::controlHeightSensorTimeouts()
 	// check if height has been inertial deadreckoning for too long
 	bool hgt_fusion_timeout = ((_time_last_imu - _time_last_hgt_fuse) > (uint64_t)5e6);
 
-	// reset the vertical position and velocity states
 	if (hgt_fusion_timeout || continuous_bad_accel_hgt) {
-		// boolean that indicates we will do a height reset
-		bool reset_height = false;
+
+		bool request_height_reset = false;
 
 		// handle the case where we are using baro for height
 		if (_control_status.flags.baro_hgt) {
@@ -816,8 +815,7 @@ void Ekf::controlHeightSensorTimeouts()
 
 				setControlGPSHeight();
 
-				// request a reset
-				reset_height = true;
+				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("baro hgt timeout - reset to GPS");
 
 			} else if (baro_data_available) {
@@ -826,14 +824,8 @@ void Ekf::controlHeightSensorTimeouts()
 
 				setControlBaroHeight();
 
-				// request a reset
-				reset_height = true;
+				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("baro hgt timeout - reset to baro");
-
-			} else {
-				// we have nothing we can reset to
-				// deny a reset
-				reset_height = false;
 
 			}
 		}
@@ -861,20 +853,14 @@ void Ekf::controlHeightSensorTimeouts()
 
 				setControlBaroHeight();
 
-				// request a reset
-				reset_height = true;
+				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("gps hgt timeout - reset to baro");
 
 			} else if (!_gps_hgt_intermittent) {
 				setControlGPSHeight();
 
-				// request a reset
-				reset_height = true;
+				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("gps hgt timeout - reset to GPS");
-
-			} else {
-				// we have nothing to reset to
-				reset_height = false;
 
 			}
 		}
@@ -890,8 +876,7 @@ void Ekf::controlHeightSensorTimeouts()
 
 				setControlRangeHeight();
 
-				// request a reset
-				reset_height = true;
+				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("rng hgt timeout - reset to rng hgt");
 
 			} else if (baro_data_available) {
@@ -900,13 +885,8 @@ void Ekf::controlHeightSensorTimeouts()
 
 				setControlBaroHeight();
 
-				// request a reset
-				reset_height = true;
+				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("rng hgt timeout - reset to baro");
-
-			} else {
-				// we have nothing to reset to
-				reset_height = false;
 
 			}
 		}
@@ -924,8 +904,7 @@ void Ekf::controlHeightSensorTimeouts()
 			if (ev_data_available) {
 				setControlEVHeight();
 
-				// request a reset
-				reset_height = true;
+				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("ev hgt timeout - reset to ev hgt");
 
 			} else if (baro_data_available) {
@@ -934,19 +913,14 @@ void Ekf::controlHeightSensorTimeouts()
 
 				setControlBaroHeight();
 
-				// request a reset
-				reset_height = true;
+				request_height_reset = true;
 				ECL_WARN_TIMESTAMPED("ev hgt timeout - reset to baro");
-
-			} else {
-				// we have nothing to reset to
-				reset_height = false;
 
 			}
 		}
 
 		// Reset vertical position and velocity states to the last measurement
-		if (reset_height) {
+		if (request_height_reset) {
 			resetHeight();
 			// Reset the timout timer
 			_time_last_hgt_fuse = _time_last_imu;
