@@ -22,5 +22,8 @@ jobs:
           ]
     steps:
     - uses: actions/checkout@v1
+      with:
+        token: ${{ secrets.ACCESS_TOKEN }}
+        submodules: true
     - name: make ${{ matrix.config }}
       run: make ${{ matrix.config }}
