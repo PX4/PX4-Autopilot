@@ -10,7 +10,6 @@ jobs:
     - uses: actions/checkout@v1
       with:
         token: ${{ secrets.ACCESS_TOKEN }}
-        submodules: true
     - name: Set Python 3 as default
       run: update-alternatives --install /usr/bin/python python /usr/bin/python3 10
     - name: Install psutil
