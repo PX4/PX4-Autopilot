@@ -6,6 +6,7 @@ matplotlib
 nose
 numpy>=1.13
 pandas>=0.21
+psutil
 pyserial>=3.0
 pyulog>=0.5.0
 pyyaml
