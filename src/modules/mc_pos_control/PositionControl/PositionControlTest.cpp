@@ -43,24 +43,24 @@ TEST(PositionControlTest, EmptySetpoint)
 
 	vehicle_local_position_setpoint_s output_setpoint{};
 	position_control.getLocalPositionSetpoint(output_setpoint);
-	EXPECT_EQ(output_setpoint.x, 0.f);
-	EXPECT_EQ(output_setpoint.y, 0.f);
-	EXPECT_EQ(output_setpoint.z, 0.f);
-	EXPECT_EQ(output_setpoint.yaw, 0.f);
-	EXPECT_EQ(output_setpoint.yawspeed, 0.f);
-	EXPECT_EQ(output_setpoint.vx, 0.f);
-	EXPECT_EQ(output_setpoint.vy, 0.f);
-	EXPECT_EQ(output_setpoint.vz, 0.f);
+	EXPECT_FLOAT_EQ(output_setpoint.x, 0.f);
+	EXPECT_FLOAT_EQ(output_setpoint.y, 0.f);
+	EXPECT_FLOAT_EQ(output_setpoint.z, 0.f);
+	EXPECT_FLOAT_EQ(output_setpoint.yaw, 0.f);
+	EXPECT_FLOAT_EQ(output_setpoint.yawspeed, 0.f);
+	EXPECT_FLOAT_EQ(output_setpoint.vx, 0.f);
+	EXPECT_FLOAT_EQ(output_setpoint.vy, 0.f);
+	EXPECT_FLOAT_EQ(output_setpoint.vz, 0.f);
 	EXPECT_EQ(Vector3f(output_setpoint.acceleration), Vector3f(0.f, 0.f, 0.f));
 	EXPECT_EQ(Vector3f(output_setpoint.jerk), Vector3f(0.f, 0.f, 0.f));
 	EXPECT_EQ(Vector3f(output_setpoint.thrust), Vector3f(0, 0, 0));
 
 	vehicle_attitude_setpoint_s attitude{};
 	position_control.getAttitudeSetpoint(attitude);
-	EXPECT_EQ(attitude.roll_body, 0.f);
-	EXPECT_EQ(attitude.pitch_body, 0.f);
-	EXPECT_EQ(attitude.yaw_body, 0.f);
-	EXPECT_EQ(attitude.yaw_sp_move_rate, 0.f);
+	EXPECT_FLOAT_EQ(attitude.roll_body, 0.f);
+	EXPECT_FLOAT_EQ(attitude.pitch_body, 0.f);
+	EXPECT_FLOAT_EQ(attitude.yaw_body, 0.f);
+	EXPECT_FLOAT_EQ(attitude.yaw_sp_move_rate, 0.f);
 	EXPECT_EQ(Quatf(attitude.q_d), Quatf(1.f, 0.f, 0.f, 0.f));
 	//EXPECT_EQ(attitude.q_d_valid, false); // TODO should not be true when there was no control
 	EXPECT_EQ(Vector3f(attitude.thrust_body), Vector3f(0.f, 0.f, 0.f));
@@ -68,7 +68,7 @@ TEST(PositionControlTest, EmptySetpoint)
 	EXPECT_EQ(attitude.pitch_reset_integral, false);
 	EXPECT_EQ(attitude.yaw_reset_integral, false);
 	EXPECT_EQ(attitude.fw_control_yaw, false);
-	EXPECT_EQ(attitude.apply_flaps, 0.f);//vehicle_attitude_setpoint_s::FLAPS_OFF); // TODO why no reference?
+	EXPECT_FLOAT_EQ(attitude.apply_flaps, 0.f);//vehicle_attitude_setpoint_s::FLAPS_OFF); // TODO why no reference?
 }
 
 class PositionControlBasicTest : public ::testing::Test
@@ -190,8 +190,8 @@ TEST_F(PositionControlBasicTest, ThrustLimit)
 	_input_setpoint.z = -10.f;
 
 	runController();
-	EXPECT_EQ(_attitude.thrust_body[0], 0.f);
-	EXPECT_EQ(_attitude.thrust_body[1], 0.f);
+	EXPECT_FLOAT_EQ(_attitude.thrust_body[0], 0.f);
+	EXPECT_FLOAT_EQ(_attitude.thrust_body[1], 0.f);
 	EXPECT_LT(_attitude.thrust_body[2], -.1f);
 	EXPECT_GE(_attitude.thrust_body[2], -0.9f);
 }
@@ -202,8 +202,8 @@ TEST_F(PositionControlBasicTest, FailsafeInput)
 	_input_setpoint.acceleration[0] = _input_setpoint.acceleration[1] = 0.f;
 
 	runController();
-	EXPECT_EQ(_attitude.thrust_body[0], 0.f);
-	EXPECT_EQ(_attitude.thrust_body[1], 0.f);
+	EXPECT_FLOAT_EQ(_attitude.thrust_body[0], 0.f);
+	EXPECT_FLOAT_EQ(_attitude.thrust_body[1], 0.f);
 	EXPECT_LT(_output_setpoint.thrust[2], -.1f);
 	EXPECT_GT(_output_setpoint.thrust[2], -.5f);
 	EXPECT_GT(_attitude.thrust_body[2], -.5f);
@@ -217,9 +217,9 @@ TEST_F(PositionControlBasicTest, InputCombinationsPosition)
 	_input_setpoint.z = .3f;
 
 	runController();
-	EXPECT_EQ(_output_setpoint.x, .1f);
-	EXPECT_EQ(_output_setpoint.y, .2f);
-	EXPECT_EQ(_output_setpoint.z, .3f);
+	EXPECT_FLOAT_EQ(_output_setpoint.x, .1f);
+	EXPECT_FLOAT_EQ(_output_setpoint.y, .2f);
+	EXPECT_FLOAT_EQ(_output_setpoint.z, .3f);
 	EXPECT_FALSE(isnan(_output_setpoint.vx));
 	EXPECT_FALSE(isnan(_output_setpoint.vy));
 	EXPECT_FALSE(isnan(_output_setpoint.vz));
@@ -237,9 +237,9 @@ TEST_F(PositionControlBasicTest, InputCombinationsPositionVelocity)
 	runController();
 	// EXPECT_TRUE(isnan(_output_setpoint.x));
 	// EXPECT_TRUE(isnan(_output_setpoint.y));
-	EXPECT_EQ(_output_setpoint.z, .3f);
-	EXPECT_EQ(_output_setpoint.vx, .1f);
-	EXPECT_EQ(_output_setpoint.vy, .2f);
+	EXPECT_FLOAT_EQ(_output_setpoint.z, .3f);
+	EXPECT_FLOAT_EQ(_output_setpoint.vx, .1f);
+	EXPECT_FLOAT_EQ(_output_setpoint.vy, .2f);
 	EXPECT_FALSE(isnan(_output_setpoint.vz));
 	EXPECT_FALSE(isnan(_output_setpoint.thrust[0]));
 	EXPECT_FALSE(isnan(_output_setpoint.thrust[1]));
