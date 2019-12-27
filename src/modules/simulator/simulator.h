@@ -1,7 +1,7 @@
 /****************************************************************************
  *
  *   Copyright (c) 2015 Mark Charlebois. All rights reserved.
- *   Copyright (c) 2018 PX4 Development Team. All rights reserved.
+ *   Copyright (c) 2016-2019 PX4 Development Team. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,6 +51,7 @@
 #include <lib/drivers/magnetometer/PX4Magnetometer.hpp>
 #include <lib/ecl/geo/geo.h>
 #include <perf/perf_counter.h>
+#include <px4_platform_common/atomic.h>
 #include <px4_platform_common/module_params.h>
 #include <px4_platform_common/posix.h>
 #include <uORB/Publication.hpp>
@@ -59,6 +60,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/differential_pressure.h>
 #include <uORB/topics/distance_sensor.h>
+#include <uORB/topics/ekf2_timestamps.h>
 #include <uORB/topics/irlock_report.h>
 #include <uORB/topics/manual_control_setpoint.h>
 #include <uORB/topics/optical_flow.h>
@@ -174,6 +176,10 @@ public:
 	void set_ip(InternetProtocol ip);
 	void set_port(unsigned port);
 
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	bool has_initialized() {return _has_initialized.load(); }
+#endif
+
 private:
 	Simulator() :
 		ModuleParams(nullptr)
@@ -261,8 +267,7 @@ private:
 
 #ifndef __PX4_QURT
 
-	mavlink_hil_actuator_controls_t actuator_controls_from_outputs(const actuator_outputs_s &actuators);
-
+	void run();
 	void handle_message(const mavlink_message_t *msg);
 	void handle_message_distance_sensor(const mavlink_message_t *msg);
 	void handle_message_hil_gps(const mavlink_message_t *msg);
@@ -275,7 +280,6 @@ private:
 	void handle_message_vision_position_estimate(const mavlink_message_t *msg);
 
 	void parameters_update(bool force);
-
 	void poll_for_MAVLink_messages();
 	void request_hil_state_quaternion();
 	void send();
@@ -287,6 +291,9 @@ private:
 
 	static void *sending_trampoline(void *);
 
+	mavlink_hil_actuator_controls_t actuator_controls_from_outputs();
+
+
 	// uORB publisher handlers
 	uORB::Publication<vehicle_angular_velocity_s>	_vehicle_angular_velocity_ground_truth_pub{ORB_ID(vehicle_angular_velocity_groundtruth)};
 	uORB::Publication<vehicle_attitude_s>		_attitude_ground_truth_pub{ORB_ID(vehicle_attitude_groundtruth)};
@@ -296,6 +303,8 @@ private:
 
 	// uORB subscription handlers
 	int _actuator_outputs_sub{-1};
+	actuator_outputs_s _actuator_outputs{};
+
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	// hil map_ref data
@@ -310,6 +319,18 @@ private:
 
 	// uORB data containers
 	vehicle_status_s _vehicle_status{};
+
+#if defined(ENABLE_LOCKSTEP_SCHEDULER)
+	px4::atomic<bool> _has_initialized {false};
+
+	int _ekf2_timestamps_sub{-1};
+
+	enum class State {
+		WaitingForFirstEkf2Timestamp = 0,
+		WaitingForActuatorControls = 1,
+		WaitingForEkf2Timestamp = 2,
+	};
+#endif
 
 	DEFINE_PARAMETERS(
 		(ParamFloat<px4::params::SIM_BAT_DRAIN>) _param_sim_bat_drain, ///< battery drain interval

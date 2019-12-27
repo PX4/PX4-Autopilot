@@ -358,7 +358,7 @@ endif()
 
 # optionally enable cmake testing (supported only on posix)
 option(CMAKE_TESTING "Configure test targets" OFF)
-if (${PX4_CONFIG} STREQUAL "px4_sitl_test")
+if(${PX4_CONFIG} STREQUAL "px4_sitl_test")
 	set(CMAKE_TESTING ON)
 endif()
 if(CMAKE_TESTING)
@@ -385,6 +385,9 @@ add_custom_target(test_results
 		COMMENT "Running tests"
 		WORKING_DIRECTORY ${PX4_BINARY_DIR})
 set_target_properties(test_results PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+# Integration testing using MAVSDK
+add_subdirectory(test/mavsdk_tests)
 
 #=============================================================================
 # subdirectories
