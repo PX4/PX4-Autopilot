@@ -44,8 +44,8 @@
 #include <drivers/device/spi.h>
 #include "mpu9250.h"
 
-#define DIR_READ			0x80
-#define DIR_WRITE			0x00
+#define DIR_READ            0x80
+#define DIR_WRITE            0x00
 
 /*
  * The MPU9250 can only handle high SPI bus speeds of 20Mhz on the sensor and
@@ -56,8 +56,8 @@
  * for a 168Mhz CPU this will be 10.5 Mhz and for a 180 Mhz CPU
  * it will be 11.250 Mhz
  */
-#define MPU9250_LOW_SPI_BUS_SPEED	1000*1000
-#define MPU9250_HIGH_SPI_BUS_SPEED	20*1000*1000
+#define MPU9250_LOW_SPI_BUS_SPEED    1000*1000
+#define MPU9250_HIGH_SPI_BUS_SPEED    20*1000*1000
 
 device::Device *MPU9250_SPI_interface(int bus, uint32_t cs);
 
@@ -65,10 +65,12 @@ class MPU9250_SPI : public device::SPI
 {
 public:
 	MPU9250_SPI(int bus, uint32_t device);
+
 	~MPU9250_SPI() override = default;
 
-	int	read(unsigned address, void *data, unsigned count) override;
-	int	write(unsigned address, void *data, unsigned count) override;
+	int read(unsigned address, void *data, unsigned count) override;
+
+	int write(unsigned address, void *data, unsigned count) override;
 
 protected:
 	int probe() override;
@@ -118,7 +120,7 @@ MPU9250_SPI::write(unsigned reg_speed, void *data, unsigned count)
 	set_bus_frequency(reg_speed);
 
 	cmd[0] = reg_speed | DIR_WRITE;
-	cmd[1] = *(uint8_t *)data;
+	cmd[1] = *(uint8_t *) data;
 
 	return transfer(&cmd[0], &cmd[0], count + 1);
 }
@@ -133,9 +135,9 @@ MPU9250_SPI::read(unsigned reg_speed, void *data, unsigned count)
 	 */
 	uint8_t cmd[3] {};
 
-	uint8_t *pbuff  =  count < sizeof(MPUReport) ? cmd : (uint8_t *) data ;
+	uint8_t *pbuff = count < sizeof(MPUReport) ? cmd : (uint8_t *) data;
 
-	if (count < sizeof(MPUReport))  {
+	if (count < sizeof(MPUReport)) {
 		/* add command */
 		count++;
 	}
@@ -143,7 +145,7 @@ MPU9250_SPI::read(unsigned reg_speed, void *data, unsigned count)
 	set_bus_frequency(reg_speed);
 
 	/* Set command */
-	pbuff[0] = reg_speed | DIR_READ ;
+	pbuff[0] = reg_speed | DIR_READ;
 
 	/* Transfer the command and get the data */
 	int ret = transfer(pbuff, pbuff, count);

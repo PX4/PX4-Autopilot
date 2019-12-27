@@ -158,23 +158,8 @@ MPU9250_mag::set_passthrough(uint8_t reg, uint8_t size, uint8_t *out)
 	}
 
 	_parent->write_reg(MPUREG_I2C_SLV0_ADDR, addr);
-	_parent->write_reg(MPUREG_I2C_SLV0_REG,  reg);
+	_parent->write_reg(MPUREG_I2C_SLV0_REG, reg);
 	_parent->write_reg(MPUREG_I2C_SLV0_CTRL, size | BIT_I2C_SLV0_EN);
-}
-
-void
-MPU9250_mag::read_block(uint8_t reg, uint8_t *val, uint8_t count)
-{
-	_parent->_interface->read(reg, val, count);
-}
-
-void
-MPU9250_mag::passthrough_read(uint8_t reg, uint8_t *buf, uint8_t size)
-{
-	set_passthrough(reg, size);
-	px4_usleep(25 + 25 * size); // wait for the value to be read from slave
-	read_block(MPUREG_EXT_SENS_DATA_00, buf, size);
-	_parent->write_reg(MPUREG_I2C_SLV0_CTRL, 0); // disable new reads
 }
 
 uint8_t
@@ -196,21 +181,9 @@ MPU9250_mag::read_reg(unsigned int reg)
 bool
 MPU9250_mag::ak8963_check_id(uint8_t &deviceid)
 {
-	//deviceid = read_reg(AK8963REG_WIA);
-	read_reg_through_mpu9250(AK8963REG_WIA, &deviceid);
+	deviceid = read_reg(AK8963REG_WIA);
 
 	return (AK8963_DEVICE_ID == deviceid);
-}
-
-/*
- * 400kHz I2C bus speed = 2.5us per bit = 25us per byte
- */
-void
-MPU9250_mag::passthrough_write(uint8_t reg, uint8_t val)
-{
-	set_passthrough(reg, 1, &val);
-	px4_usleep(50); // wait for the value to be written to slave
-	_parent->write_reg(MPUREG_I2C_SLV0_CTRL, 0); // disable new writes
 }
 
 void
@@ -218,7 +191,6 @@ MPU9250_mag::write_reg(unsigned reg, uint8_t value)
 {
 	// general register transfer at low clock speed
 	if (_interface == nullptr) {
-		//passthrough_write(reg, value);
 		write_reg_through_mpu9250(reg, value);
 
 	} else {
@@ -256,7 +228,6 @@ MPU9250_mag::ak8963_read_adjustments()
 		_interface->read(AK8963REG_ASAX, response, 3);
 
 	} else {
-		//passthrough_read(AK8963REG_ASAX, response, 3);
 		for (int i = 0; i < 3; ++i) {
 			read_reg_through_mpu9250(AK8963REG_ASAX + i, response + i);
 		}
@@ -288,7 +259,8 @@ MPU9250_mag::ak8963_setup_master_i2c()
 	if (_interface == nullptr) {
 		if (_parent->_whoami == MPU_WHOAMI_9250) {
 			_parent->modify_checked_reg(MPUREG_USER_CTRL, 0, BIT_I2C_MST_EN);
-			_parent->write_reg(MPUREG_I2C_MST_CTRL, BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
+			_parent->write_reg(MPUREG_I2C_MST_CTRL,
+					   BIT_I2C_MST_P_NSR | BIT_I2C_MST_WAIT_FOR_ES | BITS_I2C_MST_CLOCK_400HZ);
 		}
 
 	} else {
@@ -297,10 +269,11 @@ MPU9250_mag::ak8963_setup_master_i2c()
 
 	return OK;
 }
+
 int
 MPU9250_mag::ak8963_setup()
 {
-	int retries = 10;
+	int retries = 10; // actually should be executed only once without any retry.
 
 	do {
 		ak8963_setup_master_i2c();
@@ -360,13 +333,14 @@ void MPU9250_mag::write_imu_reg_verified(int reg, uint8_t val, uint8_t mask)
 	uint8_t b;
 	int retry = 5;
 
-	while (retry) {
+	while (retry) { // should not reach any retries in normal condition
 		--retry;
 		_parent->write_reg(reg, val);
 
 		b = _parent->read_reg(reg);
 
 		if ((b & mask) != val) {
+			PX4_DEBUG("MPU9250_mag::write_imu_reg_verified failed. retrying...");
 			continue;
 
 		} else {
@@ -407,6 +381,9 @@ void MPU9250_mag::read_reg_through_mpu9250(uint8_t reg, uint8_t *val)
 
 	if (loop_ctrl == 0) {
 		PX4_ERR("I2C transfer timed out");
+
+	} else {
+		PX4_DEBUG("mpu9250 SPI2IIC read delay: %dms", loop_ctrl);
 	}
 
 	// Read the value received from the mag, and copy to the caller's out parameter.
@@ -449,5 +426,8 @@ void MPU9250_mag::write_reg_through_mpu9250(uint8_t reg, uint8_t val)
 
 	if (loop_ctrl == 0) {
 		PX4_ERR("I2C transfer to mag timed out");
+
+	} else {
+		PX4_DEBUG("mpu9250 SPI2IIC write delay: %dms", loop_ctrl);
 	}
 }

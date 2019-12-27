@@ -115,10 +115,7 @@ public:
 	MPU9250_mag(MPU9250 *parent, device::Device *interface, enum Rotation rotation);
 	~MPU9250_mag();
 
-	void set_passthrough(uint8_t reg, uint8_t size, uint8_t *out = NULL);
-	void passthrough_read(uint8_t reg, uint8_t *buf, uint8_t size);
-	void passthrough_write(uint8_t reg, uint8_t val);
-	void read_block(uint8_t reg, uint8_t *val, uint8_t count);
+	void set_passthrough(uint8_t reg, uint8_t size, uint8_t *out = nullptr);
 
 	int ak8963_reset();
 	int ak8963_setup();
