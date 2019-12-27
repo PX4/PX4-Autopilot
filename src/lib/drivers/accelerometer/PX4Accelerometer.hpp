@@ -88,8 +88,9 @@ public:
 
 private:
 
-	void		ConfigureFilter(float cutoff_freq);
-	void		ResetIntegrator();
+	void ConfigureFilter(float cutoff_freq);
+	void ResetIntegrator();
+	void UpdateVibrationMetrics(const matrix::Vector3f &delta_velocity);
 
 	uORB::PublicationMulti<sensor_accel_s>			_sensor_pub;		// legacy message
 	uORB::PublicationMulti<sensor_accel_fifo_s>		_sensor_fifo_pub;
@@ -105,6 +106,9 @@ private:
 
 	matrix::Vector3f	_calibration_scale{1.0f, 1.0f, 1.0f};
 	matrix::Vector3f	_calibration_offset{0.0f, 0.0f, 0.0f};
+
+	matrix::Vector3f _delta_velocity_prev{0.0f, 0.0f, 0.0f};	// delta velocity from the previous IMU measurement
+	float _vibration_metric{0.0f};	// high frequency vibration level in the IMU delta velocity data (m/s)
 
 	int			_class_device_instance{-1};
 
