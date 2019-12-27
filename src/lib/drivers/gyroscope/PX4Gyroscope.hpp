@@ -88,8 +88,9 @@ public:
 
 private:
 
-	void		ConfigureFilter(float cutoff_freq);
-	void		ResetIntegrator();
+	void ConfigureFilter(float cutoff_freq);
+	void ResetIntegrator();
+	void UpdateVibrationMetrics(const matrix::Vector3f &delta_angle);
 
 	uORB::PublicationMulti<sensor_gyro_s>			_sensor_pub;		// legacy message
 	uORB::PublicationMulti<sensor_gyro_control_s>		_sensor_control_pub;
@@ -107,6 +108,10 @@ private:
 	Integrator		_integrator{4000, true};
 
 	matrix::Vector3f	_calibration_offset{0.0f, 0.0f, 0.0f};
+
+	matrix::Vector3f _delta_angle_prev{0.0f, 0.0f, 0.0f};	// delta angle from the previous IMU measurement
+	float _vibration_metric{0.0f};	// high frequency vibration level in the IMU delta angle data (rad)
+	float _coning_vibration{0.0f};	// Level of coning vibration in the IMU delta angles (rad^2)
 
 	int			_class_device_instance{-1};
 
