@@ -407,7 +407,7 @@ MPU9250::read_reg16(unsigned reg)
 
 	// general register transfer at low clock speed
 	if (_interface->read(MPU9250_LOW_SPEED_OP(reg), &buf, arraySize(buf)) != 2) {
-		PX4_WARN("MPU9250::read_reg16 failed");
+		PX4_DEBUG("MPU9250::read_reg16 failed");
 	}
 
 	return (uint16_t)(buf[0] << 8) | buf[1];
