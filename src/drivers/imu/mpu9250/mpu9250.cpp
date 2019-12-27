@@ -384,7 +384,7 @@ MPU9250::read_reg(unsigned reg, uint32_t speed)
 	uint8_t buf{};
 
 	if (_interface->read(MPU9250_SET_SPEED(reg, speed), &buf, 1) < 0) {
-		PX4_WARN("MPU9250::read_reg failed");
+		PX4_DEBUG("MPU9250::read_reg failed");
 	}
 
 	return buf;
