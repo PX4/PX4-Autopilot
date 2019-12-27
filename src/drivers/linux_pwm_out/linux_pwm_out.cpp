@@ -322,7 +322,7 @@ void task_main(int argc, char *argv[])
 			_controls[0].control[0] = 0.f;
 			_controls[0].control[1] = 0.f;
 			_controls[0].control[2] = 0.f;
-			int channel = rc_channels.function[rc_channels_s::RC_CHANNELS_FUNCTION_THROTTLE];
+			int channel = rc_channels.function[rc_channels_s::FUNCTION_THROTTLE];
 
 			if (ret == 0 && channel >= 0 && channel < (int)(sizeof(rc_channels.channels) / sizeof(rc_channels.channels[0]))) {
 				_controls[0].control[3] = rc_channels.channels[channel];

@@ -40,13 +40,15 @@
  * @author Thomas Gubler <thomas@px4.io>
  */
 
-#include <airspeed/airspeed.h>
 #include <commander/px4_custom_mode.h>
-#include <conversion/rotation.h>
 #include <drivers/drv_rc_input.h>
 #include <drivers/drv_tone_alarm.h>
-#include <ecl/geo/geo.h>
-#include <systemlib/px4_macros.h>
+#include <lib/airspeed/airspeed.h>
+#include <lib/ecl/geo/geo.h>
+#include <lib/conversion/rotation.h>
+#include <lib/systemlib/px4_macros.h>
+#include <uORB/topics/manual_control_switches.h>
+
 
 #include <math.h>
 #include <poll.h>
@@ -1810,7 +1812,7 @@ switch_pos_t
 MavlinkReceiver::decode_switch_pos(uint16_t buttons, unsigned sw)
 {
 	// This 2-bit method should be used in the future: (buttons >> (sw * 2)) & 3;
-	return (buttons & (1 << sw)) ? manual_control_setpoint_s::SWITCH_POS_ON : manual_control_setpoint_s::SWITCH_POS_OFF;
+	return (buttons & (1 << sw)) ? manual_control_switches_s::SWITCH_POS_ON : manual_control_switches_s::SWITCH_POS_OFF;
 }
 
 int

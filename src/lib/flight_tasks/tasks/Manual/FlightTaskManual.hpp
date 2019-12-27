@@ -42,6 +42,8 @@
 
 #include "FlightTask.hpp"
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/manual_control_switches.h>
+#include <uORB/topics/vehicle_status.h>
 
 class FlightTaskManual : public FlightTask
 {
@@ -58,16 +60,17 @@ protected:
 	bool _sticks_data_required = true; /**< let inherited task-class define if it depends on stick data */
 	matrix::Vector<float, 4> _sticks; /**< unmodified manual stick inputs */
 	matrix::Vector<float, 4> _sticks_expo; /**< modified manual sticks using expo function*/
-	int _gear_switch_old = manual_control_setpoint_s::SWITCH_POS_NONE; /**< old switch state*/
+	int _gear_switch_old = manual_control_switches_s::SWITCH_POS_NONE; /**< old switch state*/
 
 	float stickDeadzone() const { return _param_mpc_hold_dz.get(); }
 
 private:
 
 	bool _evaluateSticks(); /**< checks and sets stick inputs */
-	void _applyGearSwitch(uint8_t gswitch); /**< Sets gears according to switch */
 
-	uORB::SubscriptionData<manual_control_setpoint_s> _sub_manual_control_setpoint{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription _manual_control_switches_sub{ORB_ID(manual_control_switches)};
+	uORB::SubscriptionData<vehicle_status_s> _vehicle_status_sub{ORB_ID(vehicle_status)};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTask,
 					(ParamFloat<px4::params::MPC_HOLD_DZ>) _param_mpc_hold_dz, /**< 0-deadzone around the center for the sticks */

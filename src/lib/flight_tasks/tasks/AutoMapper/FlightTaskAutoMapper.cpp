@@ -181,13 +181,18 @@ bool FlightTaskAutoMapper::_highEnoughForLandingGear()
 
 float FlightTaskAutoMapper::_getLandSpeed()
 {
-	bool rc_assist_enabled = _param_mpc_land_rc_help.get();
-	bool rc_is_valid = !_sub_vehicle_status.get().rc_signal_lost;
-
 	float throttle = 0.5f;
 
-	if (rc_is_valid && rc_assist_enabled) {
-		throttle = _sub_manual_control_setpoint.get().z;
+	// manual landing assist if enabled and valid
+	if (_param_mpc_land_rc_help.get()) {
+		if (!_sub_vehicle_status.get().rc_signal_lost) {
+
+			manual_control_setpoint_s manual_control_setpoint;
+
+			if (_manual_control_setpoint_sub.copy(&manual_control_setpoint)) {
+				throttle = manual_control_setpoint.z;
+			}
+		}
 	}
 
 	float speed = 0;

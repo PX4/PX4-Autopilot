@@ -51,6 +51,7 @@
 #include <uORB/topics/battery_status.h>
 #include <uORB/topics/landing_gear.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/multirotor_motor_limits.h>
 #include <uORB/topics/parameter_update.h>
 #include <uORB/topics/rate_ctrl_status.h>
@@ -88,9 +89,9 @@ private:
 
 	/**
 	 * Get the landing gear state based on the manual control switch position
-	 * @return vehicle_attitude_setpoint_s::LANDING_GEAR_UP or vehicle_attitude_setpoint_s::LANDING_GEAR_DOWN
+	 * @return true if the landing gear state has updated
 	 */
-	float		get_landing_gear_state();
+	bool		update_landing_gear_state();
 
 	RateControl _rate_control; ///< class for rate control calculations
 
@@ -98,6 +99,7 @@ private:
 	uORB::Subscription _v_control_mode_sub{ORB_ID(vehicle_control_mode)};		/**< vehicle control mode subscription */
 	uORB::Subscription _parameter_update_sub{ORB_ID(parameter_update)};		/**< parameter updates subscription */
 	uORB::Subscription _manual_control_sp_sub{ORB_ID(manual_control_setpoint)};	/**< manual control setpoint subscription */
+	uORB::Subscription _manual_control_switches_sub{ORB_ID(manual_control_switches)};
 	uORB::Subscription _vehicle_status_sub{ORB_ID(vehicle_status)};			/**< vehicle status subscription */
 	uORB::Subscription _motor_limits_sub{ORB_ID(multirotor_motor_limits)};		/**< motor limits subscription */
 	uORB::Subscription _battery_status_sub{ORB_ID(battery_status)};			/**< battery status subscription */
@@ -111,7 +113,6 @@ private:
 	uORB::Publication<landing_gear_s>		_landing_gear_pub{ORB_ID(landing_gear)};
 	uORB::Publication<vehicle_rates_setpoint_s>	_v_rates_sp_pub{ORB_ID(vehicle_rates_setpoint)};			/**< rate setpoint publication */
 
-	landing_gear_s 			_landing_gear{};
 	manual_control_setpoint_s	_manual_control_sp{};
 	vehicle_control_mode_s		_v_control_mode{};
 	vehicle_status_s		_vehicle_status{};
@@ -119,6 +120,9 @@ private:
 	bool _actuators_0_circuit_breaker_enabled{false};	/**< circuit breaker to suppress output */
 	bool _landed{true};
 	bool _maybe_landed{true};
+
+	uint8_t _gear_switch{manual_control_switches_s::SWITCH_POS_NONE};
+	int8_t _landing_gear{landing_gear_s::GEAR_DOWN};
 
 	float _battery_status_scale{0.0f};
 
@@ -130,8 +134,6 @@ private:
 	matrix::Vector3f _rates_sp;			/**< angular rates setpoint */
 
 	float		_thrust_sp{0.0f};		/**< thrust setpoint */
-
-	bool _gear_state_initialized{false};		/**< true if the gear state has been initialized */
 
 	hrt_abstime _task_start{hrt_absolute_time()};
 	hrt_abstime _last_run{0};

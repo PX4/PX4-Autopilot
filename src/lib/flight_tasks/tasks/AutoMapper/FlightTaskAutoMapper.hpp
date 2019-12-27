@@ -42,6 +42,8 @@
 
 #include "FlightTaskAuto.hpp"
 
+#include <uORB/topics/manual_control_setpoint.h>
+
 class FlightTaskAutoMapper : public FlightTaskAuto
 {
 public:
@@ -61,6 +63,8 @@ protected:
 	void _preparePositionSetpoints();
 
 	void updateParams() override; /**< See ModuleParam class */
+
+	uORB::Subscription _manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(FlightTaskAuto,
 					(ParamFloat<px4::params::MPC_LAND_SPEED>) _param_mpc_land_speed,

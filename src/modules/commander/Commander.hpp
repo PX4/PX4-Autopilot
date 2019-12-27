@@ -66,6 +66,7 @@
 #include <uORB/topics/geofence_result.h>
 #include <uORB/topics/iridiumsbd_status.h>
 #include <uORB/topics/manual_control_setpoint.h>
+#include <uORB/topics/manual_control_switches.h>
 #include <uORB/topics/mission_result.h>
 #include <uORB/topics/offboard_control_mode.h>
 #include <uORB/topics/parameter_update.h>
@@ -339,8 +340,10 @@ private:
 
 	manual_control_setpoint_s	_sp_man{};		///< the current manual control setpoint
 	manual_control_setpoint_s	_last_sp_man{};	///< the manual control setpoint valid at the last mode switch
+	manual_control_switches_s	_manual_switches{};		///< the current manual control switches
+	manual_control_switches_s	_manual_switches_prev{};	///< the previous manual control switches
 	hrt_abstime	_rc_signal_lost_timestamp{0};		///< Time at which the RC reception was lost
-	int32_t		_flight_mode_slots[manual_control_setpoint_s::MODE_SLOT_NUM] {};
+	int32_t		_flight_mode_slots[manual_control_switches_s::MODE_SLOT_NUM] {};
 	uint8_t		_last_sp_man_arm_switch{0};
 	float		_min_stick_change{};
 	uint32_t	_stick_off_counter{0};
@@ -379,10 +382,11 @@ private:
 	uORB::Subscription					_geofence_result_sub{ORB_ID(geofence_result)};
 	uORB::Subscription					_iridiumsbd_status_sub{ORB_ID(iridiumsbd_status)};
 	uORB::Subscription					_land_detector_sub{ORB_ID(vehicle_land_detected)};
+	uORB::Subscription					_manual_control_setpoint_sub{ORB_ID(manual_control_setpoint)};
+	uORB::Subscription					_manual_control_switches_sub{ORB_ID(manual_control_switches)};
 	uORB::Subscription					_parameter_update_sub{ORB_ID(parameter_update)};
 	uORB::Subscription					_power_button_state_sub{ORB_ID(power_button_state)};
 	uORB::Subscription					_safety_sub{ORB_ID(safety)};
-	uORB::Subscription					_sp_man_sub{ORB_ID(manual_control_setpoint)};
 	uORB::Subscription					_subsys_sub{ORB_ID(subsystem_info)};
 	uORB::Subscription					_system_power_sub{ORB_ID(system_power)};
 	uORB::Subscription					_telemetry_status_sub{ORB_ID(telemetry_status)};

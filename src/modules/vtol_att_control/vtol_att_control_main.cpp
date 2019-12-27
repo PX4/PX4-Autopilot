@@ -172,9 +172,12 @@ VtolAttitudeControl::is_fixed_wing_requested()
 {
 	bool to_fw = false;
 
-	if (_manual_control_sp.transition_switch != manual_control_setpoint_s::SWITCH_POS_NONE &&
+	_manual_control_switches_sub.update(&_manual_control_switches);
+
+	if (_manual_control_switches.transition_switch != manual_control_switches_s::SWITCH_POS_NONE &&
 	    _v_control_mode.flag_control_manual_enabled) {
-		to_fw = (_manual_control_sp.transition_switch == manual_control_setpoint_s::SWITCH_POS_ON);
+
+		to_fw = (_manual_control_switches.transition_switch == manual_control_switches_s::SWITCH_POS_ON);
 
 	} else {
 		// listen to transition commands if not in manual or mode switch is not mapped
@@ -340,7 +343,6 @@ VtolAttitudeControl::Run()
 		}
 
 		_v_control_mode_sub.update(&_v_control_mode);
-		_manual_control_sp_sub.update(&_manual_control_sp);
 		_v_att_sub.update(&_v_att);
 		_local_pos_sub.update(&_local_pos);
 		_local_pos_sp_sub.update(&_local_pos_sp);

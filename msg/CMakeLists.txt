@@ -76,6 +76,7 @@ set(msg_files
 	led_control.msg
 	log_message.msg
 	manual_control_setpoint.msg
+	manual_control_switches.msg
 	mavlink_log.msg
 	mission.msg
 	mission_result.msg

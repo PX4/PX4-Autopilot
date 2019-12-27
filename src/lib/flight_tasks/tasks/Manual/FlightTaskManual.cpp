@@ -46,8 +46,6 @@ bool FlightTaskManual::updateInitialize()
 {
 	bool ret = FlightTask::updateInitialize();
 
-	_sub_manual_control_setpoint.update();
-
 	const bool sticks_available = _evaluateSticks();
 
 	if (_sticks_data_required) {
@@ -59,58 +57,57 @@ bool FlightTaskManual::updateInitialize()
 
 bool FlightTaskManual::_evaluateSticks()
 {
-	hrt_abstime rc_timeout = (_param_com_rc_loss_t.get() * 1.5f) * 1_s;
+	_vehicle_status_sub.update();
 
-	/* Sticks are rescaled linearly and exponentially to [-1,1] */
-	if ((_time_stamp_current - _sub_manual_control_setpoint.get().timestamp) < rc_timeout) {
-
-		/* Linear scale  */
-		_sticks(0) = _sub_manual_control_setpoint.get().x; /* NED x, "pitch" [-1,1] */
-		_sticks(1) = _sub_manual_control_setpoint.get().y; /* NED y, "roll" [-1,1] */
-		_sticks(2) = -(_sub_manual_control_setpoint.get().z - 0.5f) * 2.f; /* NED z, "thrust" resacaled from [0,1] to [-1,1] */
-		_sticks(3) = _sub_manual_control_setpoint.get().r; /* "yaw" [-1,1] */
-
-		/* Exponential scale */
-		_sticks_expo(0) = math::expo_deadzone(_sticks(0), _param_mpc_xy_man_expo.get(), _param_mpc_hold_dz.get());
-		_sticks_expo(1) = math::expo_deadzone(_sticks(1), _param_mpc_xy_man_expo.get(), _param_mpc_hold_dz.get());
-		_sticks_expo(2) = math::expo_deadzone(_sticks(2), _param_mpc_z_man_expo.get(), _param_mpc_hold_dz.get());
-		_sticks_expo(3) = math::expo_deadzone(_sticks(3), _param_mpc_yaw_expo.get(), _param_mpc_hold_dz.get());
-
-		// Only switch the landing gear up if the user switched from gear down to gear up.
-		// If the user had the switch in the gear up position and took off ignore it
-		// until he toggles the switch to avoid retracting the gear immediately on takeoff.
-		int8_t gear_switch = _sub_manual_control_setpoint.get().gear_switch;
-
-		if (_gear_switch_old != gear_switch) {
-			_applyGearSwitch(gear_switch);
-		}
-
-		_gear_switch_old = gear_switch;
-
-		// valid stick inputs are required
-		const bool valid_sticks =  PX4_ISFINITE(_sticks(0))
-					   && PX4_ISFINITE(_sticks(1))
-					   && PX4_ISFINITE(_sticks(2))
-					   && PX4_ISFINITE(_sticks(3));
-
-		return valid_sticks;
-
-	} else {
+	if (_vehicle_status_sub.get().rc_signal_lost) {
 		/* Timeout: set all sticks to zero */
 		_sticks.zero();
 		_sticks_expo.zero();
 		_gear.landing_gear = landing_gear_s::GEAR_KEEP;
 		return false;
 	}
-}
 
-void FlightTaskManual::_applyGearSwitch(uint8_t gswitch)
-{
-	if (gswitch == manual_control_setpoint_s::SWITCH_POS_OFF) {
-		_gear.landing_gear = landing_gear_s::GEAR_DOWN;
+	// Only switch the landing gear up if the user switched from gear down to gear up.
+	// If the user had the switch in the gear up position and took off ignore it
+	// until he toggles the switch to avoid retracting the gear immediately on takeoff.
+	manual_control_switches_s manual_control_switches;
+
+	if (_manual_control_switches_sub.update(&manual_control_switches)) {
+		if (_gear_switch_old != manual_control_switches.gear_switch) {
+			if (manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_OFF) {
+				_gear.landing_gear = landing_gear_s::GEAR_DOWN;
+			}
+
+			if (manual_control_switches.gear_switch == manual_control_switches_s::SWITCH_POS_ON) {
+				_gear.landing_gear = landing_gear_s::GEAR_UP;
+			}
+		}
+
+		_gear_switch_old = manual_control_switches.gear_switch;
 	}
 
-	if (gswitch == manual_control_setpoint_s::SWITCH_POS_ON) {
-		_gear.landing_gear = landing_gear_s::GEAR_UP;
+	manual_control_setpoint_s manual_control_setpoint;
+
+	if (_manual_control_setpoint_sub.update(&manual_control_setpoint)) {
+
+		/* Sticks are rescaled linearly and exponentially to [-1,1] */
+		_sticks(0) = manual_control_setpoint.x; /* NED x, "pitch" [-1,1] */
+		_sticks(1) = manual_control_setpoint.y; /* NED y, "roll" [-1,1] */
+		_sticks(2) = -(manual_control_setpoint.z - 0.5f) * 2.f; /* NED z, "thrust" resacaled from [0,1] to [-1,1] */
+		_sticks(3) = manual_control_setpoint.r; /* "yaw" [-1,1] */
+
+		/* Exponential scale */
+		_sticks_expo(0) = math::expo_deadzone(_sticks(0), _param_mpc_xy_man_expo.get(), _param_mpc_hold_dz.get());
+		_sticks_expo(1) = math::expo_deadzone(_sticks(1), _param_mpc_xy_man_expo.get(), _param_mpc_hold_dz.get());
+		_sticks_expo(2) = math::expo_deadzone(_sticks(2), _param_mpc_z_man_expo.get(), _param_mpc_hold_dz.get());
+		_sticks_expo(3) = math::expo_deadzone(_sticks(3), _param_mpc_yaw_expo.get(), _param_mpc_hold_dz.get());
 	}
+
+	// valid stick inputs are required
+	const bool valid_sticks = PX4_ISFINITE(_sticks(0))
+				  && PX4_ISFINITE(_sticks(1))
+				  && PX4_ISFINITE(_sticks(2))
+				  && PX4_ISFINITE(_sticks(3));
+
+	return valid_sticks;
 }
