@@ -37,6 +37,8 @@ then
 	param set RTL_LAND_DELAY 5
 
 	param set SDLOG_PROFILE 179
+
+	param set MC_OMNI_MODE 2
 fi
 
 set MAV_TYPE 13

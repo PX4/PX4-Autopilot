@@ -45,6 +45,8 @@ then
 	param set MPC_Z_VEL_MAX_DN 2.0
 
 	param set BAT_N_CELLS 4
+
+	param set MC_OMNI_MODE 2
 fi
 
 # Set mixer
