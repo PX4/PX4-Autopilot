@@ -123,6 +123,17 @@ PX4Accelerometer::update(hrt_abstime timestamp, float x, float y, float z)
 
 	const Vector3f raw{x, y, z};
 
+	// Clipping
+	sensor_accel_status_s &status = _sensor_status_pub.get();
+	const float clip_limit = (_range / _scale) * 0.95f;
+
+	for (int i = 0; i < 3; i++) {
+		if (fabsf(raw(i)) > clip_limit) {
+			status.clipping[i]++;
+			_integrator_clipping++;
+		}
+	}
+
 	// Apply range scale and the calibrating offset/scale
 	const Vector3f val_calibrated{(((raw * _scale) - _calibration_offset).emult(_calibration_scale))};
 
@@ -132,6 +143,8 @@ PX4Accelerometer::update(hrt_abstime timestamp, float x, float y, float z)
 	// Integrated values
 	Vector3f integrated_value;
 	uint32_t integral_dt = 0;
+
+	_integrator_samples++;
 
 	if (_integrator.put(timestamp, val_calibrated, integrated_value, integral_dt)) {
 
@@ -152,12 +165,33 @@ PX4Accelerometer::update(hrt_abstime timestamp, float x, float y, float z)
 		report.z = val_filtered(2);
 
 		report.integral_dt = integral_dt;
+		report.integral_samples = _integrator_samples;
 		report.x_integral = integrated_value(0);
 		report.y_integral = integrated_value(1);
 		report.z_integral = integrated_value(2);
+		report.integral_clip_count = _integrator_clipping;
 
 		_sensor_pub.publish(report);
+
+		// reset integrator
+		ResetIntegrator();
+
+		// update vibration metrics
+		const Vector3f delta_velocity = integrated_value * (integral_dt * 1.e-6f);
+		UpdateVibrationMetrics(delta_velocity);
 	}
+
+	// publish status
+	status.device_id = _device_id;
+	status.error_count = _error_count;
+	status.full_scale_range = _range;
+	status.rotation = _rotation;
+	status.measure_rate = _update_rate;
+	status.sample_rate = _sample_rate;
+	status.temperature = _temperature;
+	status.vibration_metric = _vibration_metric;
+	status.timestamp = hrt_absolute_time();
+	_sensor_status_pub.publish(status);
 }
 
 void
@@ -292,6 +326,9 @@ PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 			report.timestamp = _integrator_timestamp_sample;
 			_sensor_pub.publish(report);
 
+			// update vibration metrics
+			const Vector3f delta_velocity = val_int_calibrated * (integrator_dt_us * 1.e-6f);
+			UpdateVibrationMetrics(delta_velocity);
 
 			// reset integrator
 			ResetIntegrator();
@@ -338,6 +375,16 @@ PX4Accelerometer::ConfigureFilter(float cutoff_freq)
 	_filterArrayX.set_cutoff_frequency(_sample_rate, cutoff_freq);
 	_filterArrayY.set_cutoff_frequency(_sample_rate, cutoff_freq);
 	_filterArrayZ.set_cutoff_frequency(_sample_rate, cutoff_freq);
+}
+
+void
+PX4Accelerometer::UpdateVibrationMetrics(const Vector3f &delta_velocity)
+{
+	// Accel high frequency vibe = filtered length of (delta_velocity - prev_delta_velocity)
+	const Vector3f delta_velocity_diff = delta_velocity - _delta_velocity_prev;
+	_vibration_metric = 0.99f * _vibration_metric + 0.01f * delta_velocity_diff.norm();
+
+	_delta_velocity_prev = delta_velocity;
 }
 
 void
