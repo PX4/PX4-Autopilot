@@ -195,7 +195,6 @@ CameraCapture::Run()
 			// Acknowledge the command
 			vehicle_command_ack_s command_ack{};
 
-			command_ack.timestamp = hrt_absolute_time();
 			command_ack.command = cmd.command;
 			command_ack.result = (uint8_t)vehicle_command_s::VEHICLE_CMD_RESULT_ACCEPTED;
 			command_ack.target_system = cmd.source_system;

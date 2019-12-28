@@ -54,7 +54,6 @@ static void usage(const char *reason);
 void motor_test(unsigned channel, float value, uint8_t driver_instance, int timeout_ms)
 {
 	test_motor_s test_motor{};
-	test_motor.timestamp = hrt_absolute_time();
 	test_motor.motor_number = channel;
 	test_motor.value = value;
 	test_motor.action = value >= 0.f ? test_motor_s::ACTION_RUN : test_motor_s::ACTION_STOP;

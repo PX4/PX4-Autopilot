@@ -640,9 +640,7 @@ void FixedwingAttitudeControl::Run()
 		_actuators.control[7] = _manual.aux3;
 
 		/* lazily publish the setpoint only once available */
-		_actuators.timestamp = hrt_absolute_time();
 		_actuators.timestamp_sample = _att.timestamp;
-		_actuators_airframe.timestamp = hrt_absolute_time();
 		_actuators_airframe.timestamp_sample = _att.timestamp;
 
 		/* Only publish if any of the proper modes are enabled */

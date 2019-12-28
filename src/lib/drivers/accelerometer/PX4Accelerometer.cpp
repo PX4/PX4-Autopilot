@@ -155,7 +155,6 @@ void PX4Accelerometer::update(hrt_abstime timestamp_sample, float x, float y, fl
 		report.x = val_calibrated(0);
 		report.y = val_calibrated(1);
 		report.z = val_calibrated(2);
-		report.timestamp = hrt_absolute_time();
 
 		_sensor_pub.publish(report);
 	}
@@ -178,7 +177,6 @@ void PX4Accelerometer::update(hrt_abstime timestamp_sample, float x, float y, fl
 		report.dt = integral_dt;
 		report.samples = _integrator_samples;
 		report.clip_count = _integrator_clipping;
-		report.timestamp = hrt_absolute_time();
 
 		_sensor_integrated_pub.publish(report);
 
@@ -219,7 +217,6 @@ void PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 		report.x = val_calibrated(0);
 		report.y = val_calibrated(1);
 		report.z = val_calibrated(2);
-		report.timestamp = hrt_absolute_time();
 
 		_sensor_pub.publish(report);
 	}
@@ -282,7 +279,6 @@ void PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 			report.samples = _integrator_fifo_samples;
 			report.clip_count = _integrator_clipping;
 
-			report.timestamp = hrt_absolute_time();
 			_sensor_integrated_pub.publish(report);
 
 			// update vibration metrics
@@ -308,7 +304,6 @@ void PX4Accelerometer::updateFIFO(const FIFOSample &sample)
 	memcpy(fifo.y, sample.y, sizeof(sample.y[0]) * N);
 	memcpy(fifo.z, sample.z, sizeof(sample.z[0]) * N);
 
-	fifo.timestamp = hrt_absolute_time();
 	_sensor_fifo_pub.publish(fifo);
 
 
@@ -331,7 +326,6 @@ void PX4Accelerometer::PublishStatus()
 		status.clipping[0] = _clipping[0];
 		status.clipping[1] = _clipping[1];
 		status.clipping[2] = _clipping[2];
-		status.timestamp = hrt_absolute_time();
 		_sensor_status_pub.publish(status);
 
 		_status_last_publish = status.timestamp;

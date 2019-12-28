@@ -1107,8 +1107,6 @@ void IridiumSBD::publish_iridium_status()
 		_status.rx_session_pending = _rx_session_pending;
 	}
 
-	_status.timestamp = hrt_absolute_time();
-
 	// publish the status if it changed
 	if (need_to_publish) {
 		_iridiumsbd_status_pub.publish(_status);
@@ -1122,7 +1120,6 @@ void IridiumSBD::publish_subsystem_status()
 	const bool ok = _status.last_heartbeat > 0; // maybe at some point here an additional check should be made
 
 	if ((_info.present != present) || (_info.enabled != enabled) || (_info.ok != ok)) {
-		_info.timestamp = hrt_absolute_time();
 		_info.subsystem_type = subsystem_info_s::SUBSYSTEM_TYPE_SATCOM;
 		_info.present = present;
 		_info.enabled = enabled;

@@ -99,7 +99,6 @@ int QShell::_send_cmd(std::vector<std::string> &argList)
 	strcpy((char *)qshell_req.cmd, cmd.c_str());
 	qshell_req.request_sequence = _current_sequence;
 
-	qshell_req.timestamp = hrt_absolute_time();
 	_qshell_req_pub.publish(qshell_req);
 
 	return 0;

@@ -95,8 +95,6 @@ void StatusDisplay::process()
 
 void StatusDisplay::publish()
 {
-	_led_control.timestamp = hrt_absolute_time();
-
 	_led_control_pub.publish(_led_control);
 }
 

@@ -122,7 +122,6 @@ int QShell::main()
 				PX4_INFO("Ok executing command: %s", m_qshell_req.cmd);
 			}
 
-			retval.timestamp = hrt_absolute_time();
 			_qshell_retval_pub.publish(retval);
 
 		} else if (pret == 0) {

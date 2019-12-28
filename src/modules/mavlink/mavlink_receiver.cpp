@@ -104,7 +104,6 @@ MavlinkReceiver::acknowledge(uint8_t sysid, uint8_t compid, uint16_t command, ui
 {
 	vehicle_command_ack_s command_ack{};
 
-	command_ack.timestamp = hrt_absolute_time();
 	command_ack.command = command;
 	command_ack.result = result;
 	command_ack.target_system = sysid;
@@ -465,7 +464,7 @@ MavlinkReceiver::handle_message_command_int(mavlink_message_t *msg)
 
 template <class T>
 void MavlinkReceiver::handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
-		const vehicle_command_s &vehicle_command)
+		vehicle_command_s &vehicle_command)
 {
 	bool target_ok = evaluate_target_ok(cmd_mavlink.command, cmd_mavlink.target_system, cmd_mavlink.target_component);
 	bool send_ack = true;

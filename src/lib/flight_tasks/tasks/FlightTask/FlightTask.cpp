@@ -84,7 +84,6 @@ const vehicle_local_position_setpoint_s FlightTask::getPositionSetpoint()
 {
 	/* fill position setpoint message */
 	vehicle_local_position_setpoint_s vehicle_local_position_setpoint{};
-	vehicle_local_position_setpoint.timestamp = hrt_absolute_time();
 
 	vehicle_local_position_setpoint.x = _position_setpoint(0);
 	vehicle_local_position_setpoint.y = _position_setpoint(1);

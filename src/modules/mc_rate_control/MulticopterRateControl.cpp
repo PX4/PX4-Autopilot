@@ -183,7 +183,6 @@ MulticopterRateControl::Run()
 			//  limit landing gear update rate to 50 Hz
 			if (hrt_elapsed_time(&_landing_gear.timestamp) > 20_ms) {
 				_landing_gear.landing_gear = get_landing_gear_state();
-				_landing_gear.timestamp = hrt_absolute_time();
 				_landing_gear_pub.publish(_landing_gear);
 			}
 
@@ -223,7 +222,6 @@ MulticopterRateControl::Run()
 				v_rates_sp.thrust_body[0] = 0.0f;
 				v_rates_sp.thrust_body[1] = 0.0f;
 				v_rates_sp.thrust_body[2] = -_thrust_sp;
-				v_rates_sp.timestamp = hrt_absolute_time();
 
 				_v_rates_sp_pub.publish(v_rates_sp);
 			}
@@ -280,7 +278,6 @@ MulticopterRateControl::Run()
 			// publish rate controller status
 			rate_ctrl_status_s rate_ctrl_status{};
 			_rate_control.getRateControlStatus(rate_ctrl_status);
-			rate_ctrl_status.timestamp = hrt_absolute_time();
 			_controller_status_pub.publish(rate_ctrl_status);
 
 			// publish actuator controls
@@ -309,14 +306,12 @@ MulticopterRateControl::Run()
 				}
 			}
 
-			actuators.timestamp = hrt_absolute_time();
 			_actuators_0_pub.publish(actuators);
 
 		} else if (_v_control_mode.flag_control_termination_enabled) {
 			if (!_vehicle_status.is_vtol) {
 				// publish actuator controls
 				actuator_controls_s actuators{};
-				actuators.timestamp = hrt_absolute_time();
 				_actuators_0_pub.publish(actuators);
 			}
 		}

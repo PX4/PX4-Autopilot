@@ -57,7 +57,6 @@ OutputMavlink::OutputMavlink(const OutputConfig &output_config)
 int OutputMavlink::update(const ControlData *control_data)
 {
 	vehicle_command_s vehicle_command{};
-	vehicle_command.timestamp = hrt_absolute_time();
 	vehicle_command.target_system = (uint8_t)_config.mavlink_sys_id;
 	vehicle_command.target_component = (uint8_t)_config.mavlink_comp_id;
 
@@ -66,7 +65,6 @@ int OutputMavlink::update(const ControlData *control_data)
 		_set_angle_setpoints(control_data);
 
 		vehicle_command.command = vehicle_command_s::VEHICLE_CMD_DO_MOUNT_CONFIGURE;
-		vehicle_command.timestamp = hrt_absolute_time();
 
 		if (control_data->type == ControlData::Type::Neutral) {
 			vehicle_command.param1 = vehicle_command_s::VEHICLE_MOUNT_MODE_NEUTRAL;

@@ -657,7 +657,6 @@ GPS::run()
 	while (!should_exit()) {
 
 		if (_fake_gps) {
-			_report_gps_pos.timestamp = hrt_absolute_time();
 			_report_gps_pos.lat = (int32_t)47.378301e7f;
 			_report_gps_pos.lon = (int32_t)8.538777e7f;
 			_report_gps_pos.alt = (int32_t)1200e3f;

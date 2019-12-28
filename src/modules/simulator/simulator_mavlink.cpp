@@ -480,7 +480,6 @@ void Simulator::handle_message_landing_target(const mavlink_message_t *msg)
 	mavlink_msg_landing_target_decode(msg, &landing_target_mavlink);
 
 	irlock_report_s report{};
-	report.timestamp = hrt_absolute_time();
 	report.signature = landing_target_mavlink.target_num;
 	report.pos_x = landing_target_mavlink.angle_x;
 	report.pos_y = landing_target_mavlink.angle_y;
@@ -529,8 +528,6 @@ void Simulator::handle_message_rc_channels(const mavlink_message_t *msg)
 	rc_input.values[15] = rc_channels.chan16_raw;
 	rc_input.values[16] = rc_channels.chan17_raw;
 	rc_input.values[17] = rc_channels.chan18_raw;
-
-	rc_input.timestamp = hrt_absolute_time();
 
 	// publish message
 	_input_rc_pub.publish(rc_input);
@@ -963,7 +960,6 @@ int Simulator::publish_flow_topic(const mavlink_hil_optical_flow_t *flow_mavlink
 {
 	optical_flow_s flow = {};
 	flow.sensor_id = flow_mavlink->sensor_id;
-	flow.timestamp = hrt_absolute_time();;
 	flow.time_since_last_sonar_update = 0;
 	flow.frame_count_since_last_readout = 0; // ?
 	flow.integration_timespan = flow_mavlink->integration_time_us;
@@ -1111,7 +1107,6 @@ int Simulator::publish_odometry_topic(const mavlink_message_t *odom_mavlink)
 int Simulator::publish_distance_topic(const mavlink_distance_sensor_t *dist_mavlink)
 {
 	distance_sensor_s dist{};
-	dist.timestamp = hrt_absolute_time();
 	dist.min_distance = dist_mavlink->min_distance / 100.0f;
 	dist.max_distance = dist_mavlink->max_distance / 100.0f;
 	dist.current_distance = dist_mavlink->current_distance / 100.0f;

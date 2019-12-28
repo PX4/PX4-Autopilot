@@ -96,7 +96,6 @@ void LandDetector::Run()
 			_takeoff_time = now;
 		}
 
-		_land_detected.timestamp = hrt_absolute_time();
 		_land_detected.landed = landDetected;
 		_land_detected.freefall = freefallDetected;
 		_land_detected.maybe_landed = maybe_landedDetected;

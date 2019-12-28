@@ -70,7 +70,6 @@ void OutputBase::publish()
 		mount_orientation.attitude_euler_angle[i] = _angle_outputs[i];
 	}
 
-	mount_orientation.timestamp = hrt_absolute_time();
 	_mount_orientation_pub.publish(mount_orientation);
 }
 

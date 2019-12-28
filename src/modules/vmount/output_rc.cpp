@@ -66,7 +66,6 @@ int OutputRC::update(const ControlData *control_data)
 	_calculate_output_angles(t);
 
 	actuator_controls_s actuator_controls{};
-	actuator_controls.timestamp = hrt_absolute_time();
 	// _angle_outputs are in radians, actuator_controls are in [-1, 1]
 	actuator_controls.control[0] = (_angle_outputs[0] + _config.roll_offset) * _config.roll_scale;
 	actuator_controls.control[1] = (_angle_outputs[1] + _config.pitch_offset) * _config.pitch_scale;

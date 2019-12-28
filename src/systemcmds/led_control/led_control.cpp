@@ -56,8 +56,6 @@ extern "C" {
 
 static void publish_led_control(led_control_s &led_control)
 {
-	led_control.timestamp = hrt_absolute_time();
-
 	uORB::PublicationQueued<led_control_s> led_control_pub{ORB_ID(led_control)};
 	led_control_pub.publish(led_control);
 }

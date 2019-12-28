@@ -120,7 +120,6 @@ void SendEvent::answer_command(const vehicle_command_s &cmd, unsigned result)
 {
 	/* publish ACK */
 	vehicle_command_ack_s command_ack{};
-	command_ack.timestamp = hrt_absolute_time();
 	command_ack.command = cmd.command;
 	command_ack.result = (uint8_t)result;
 	command_ack.target_system = cmd.source_system;

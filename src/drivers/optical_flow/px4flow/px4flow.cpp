@@ -303,7 +303,6 @@ PX4FLOW::collect()
 
 	optical_flow_s report{};
 
-	report.timestamp = hrt_absolute_time();
 	report.pixel_flow_x_integral = static_cast<float>(_frame_integral.pixel_flow_x_integral) / 10000.0f;//convert to radians
 	report.pixel_flow_y_integral = static_cast<float>(_frame_integral.pixel_flow_y_integral) / 10000.0f;//convert to radians
 	report.frame_count_since_last_readout = _frame_integral.frame_count_since_last_readout;

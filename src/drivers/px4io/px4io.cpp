@@ -751,7 +751,6 @@ PX4IO::init()
 		if (reg & PX4IO_P_SETUP_ARMING_FORCE_FAILSAFE) {
 			mavlink_log_emergency(&_mavlink_log_pub, "IO is in failsafe, force failsafe");
 			/* send command to terminate flight via command API */
-			vcmd.timestamp = hrt_absolute_time();
 			vcmd.param1 = 1.0f; /* request flight termination */
 			vcmd.command = vehicle_command_s::VEHICLE_CMD_DO_FLIGHTTERMINATION;
 
@@ -783,7 +782,6 @@ PX4IO::init()
 		}
 
 		/* send command to arm system via command API */
-		vcmd.timestamp = hrt_absolute_time();
 		vcmd.param1 = 1.0f; /* request arming */
 		vcmd.param3 = 1234.f; /* mark the command coming from IO (for in-air restoring) */
 		vcmd.command = vehicle_command_s::VEHICLE_CMD_COMPONENT_ARM_DISARM;
@@ -1691,7 +1689,6 @@ PX4IO::io_handle_status(uint16_t status)
 	 * Get and handle the safety status
 	 */
 	safety_s safety{};
-	safety.timestamp = hrt_absolute_time();
 	safety.safety_switch_available = true;
 	safety.safety_off = (status & PX4IO_P_STATUS_FLAGS_SAFETY_OFF) ? true : false;
 	safety.override_available = _override_available;
@@ -1737,8 +1734,6 @@ void
 PX4IO::io_handle_vservo(uint16_t vservo, uint16_t vrssi)
 {
 	servorail_status_s servorail_status{};
-
-	servorail_status.timestamp = hrt_absolute_time();
 
 	/* voltage is scaled to mV */
 	servorail_status.voltage_v = vservo * 0.001f;
@@ -1818,8 +1813,6 @@ PX4IO::io_get_raw_rc_input(input_rc_s &input_rc)
 
 	_rc_chan_count = channel_count;
 
-	input_rc.timestamp = hrt_absolute_time();
-
 	input_rc.rc_ppm_frame_length = regs[PX4IO_P_RAW_RC_DATA];
 
 	if (!_analog_rc_rssi_stable) {
@@ -1888,9 +1881,8 @@ PX4IO::io_get_raw_rc_input(input_rc_s &input_rc)
 int
 PX4IO::io_publish_raw_rc()
 {
-
 	/* fetch values from IO */
-	input_rc_s	rc_val;
+	input_rc_s rc_val{};
 
 	/* set the RC status flag ORDER MATTERS! */
 	rc_val.rc_lost = !(_status & PX4IO_P_STATUS_FLAGS_RC_OK);
@@ -1945,7 +1937,6 @@ PX4IO::io_publish_pwm_outputs()
 	}
 
 	actuator_outputs_s outputs = {};
-	outputs.timestamp = hrt_absolute_time();
 	outputs.noutputs = _max_actuators;
 
 	/* convert from register format to float */
@@ -1966,7 +1957,6 @@ PX4IO::io_publish_pwm_outputs()
 	/* publish mixer status */
 	if (saturation_status.flags.valid) {
 		multirotor_motor_limits_s motor_limits{};
-		motor_limits.timestamp = hrt_absolute_time();
 		motor_limits.saturation_status = saturation_status.value;
 
 		_to_mixer_status.publish(motor_limits);

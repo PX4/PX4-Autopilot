@@ -244,7 +244,6 @@ void TemperatureCompensationModule::Run()
 						command_ack.result = vehicle_command_s::VEHICLE_CMD_RESULT_FAILED;
 					}
 
-					command_ack.timestamp = hrt_absolute_time();
 					command_ack.command = cmd.command;
 					command_ack.target_system = cmd.source_system;
 					command_ack.target_component = cmd.source_component;
@@ -271,8 +270,6 @@ void TemperatureCompensationModule::Run()
 
 	// publish sensor corrections if necessary
 	if (_corrections_changed) {
-		_corrections.timestamp = hrt_absolute_time();
-
 		_sensor_correction_pub.publish(_corrections);
 
 		_corrections_changed = false;
@@ -355,7 +352,6 @@ int TemperatureCompensationModule::custom_command(int argc, char *argv[])
 		}
 
 		vehicle_command_s vcmd{};
-		vcmd.timestamp = hrt_absolute_time();
 		vcmd.param1 = (float)((gyro_calib
 				       || calib_all) ? vehicle_command_s::PREFLIGHT_CALIBRATION_TEMPERATURE_CALIBRATION : NAN);
 		vcmd.param2 = NAN;

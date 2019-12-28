@@ -124,8 +124,7 @@ private:
 	 * Common method to handle both mavlink command types. T is one of mavlink_command_int_t or mavlink_command_long_t.
 	 */
 	template<class T>
-	void handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink,
-					 const vehicle_command_s &vehicle_command);
+	void handle_message_command_both(mavlink_message_t *msg, const T &cmd_mavlink, vehicle_command_s &vehicle_command);
 
 	void handle_message(mavlink_message_t *msg);
 

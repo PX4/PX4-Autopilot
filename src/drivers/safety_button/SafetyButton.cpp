@@ -146,14 +146,12 @@ SafetyButton::CheckPairingRequest(bool button_pressed)
 		led_control.color = led_control_s::COLOR_GREEN;
 		led_control.num_blinks = 1;
 		led_control.priority = 0;
-		led_control.timestamp = hrt_absolute_time();
 		_to_led_control.publish(led_control);
 
 		tune_control_s tune_control{};
 		tune_control.tune_id = TONE_NOTIFY_POSITIVE_TUNE;
 		tune_control.volume = tune_control_s::VOLUME_LEVEL_DEFAULT;
 		tune_control.tune_override = 0;
-		tune_control.timestamp = hrt_absolute_time();
 		_to_tune_control.publish(tune_control);
 
 		// reset state
@@ -214,7 +212,6 @@ SafetyButton::Run()
 		FlashButton();
 
 		safety_s safety{};
-		safety.timestamp = hrt_absolute_time();
 		safety.safety_switch_available = true;
 		safety.safety_off = _safety_btn_off || _safety_disabled;
 

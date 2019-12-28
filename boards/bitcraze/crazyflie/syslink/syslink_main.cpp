@@ -533,9 +533,8 @@ Syslink::handle_raw(syslink_message_t *sys)
 
 		crtp_commander *cmd = (crtp_commander *) &c->data[0];
 
-		input_rc_s rc = {};
+		input_rc_s rc{};
 
-		rc.timestamp = hrt_absolute_time();
 		rc.timestamp_last_signal = rc.timestamp;
 		rc.channel_count = 5;
 		rc.rc_failsafe = false;

@@ -82,7 +82,6 @@ static uint8_t (*arm_check_method[ARM_AUTH_METHOD_LAST])() = {
 static void arm_auth_request_msg_send()
 {
 	vehicle_command_s vcmd{};
-	vcmd.timestamp = hrt_absolute_time();
 	vcmd.command = vehicle_command_s::VEHICLE_CMD_ARM_AUTHORIZATION_REQUEST;
 	vcmd.target_system = arm_parameters.struct_value.authorizer_system_id;
 

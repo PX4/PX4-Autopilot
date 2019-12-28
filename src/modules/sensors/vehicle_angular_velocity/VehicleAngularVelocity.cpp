@@ -288,14 +288,12 @@ void VehicleAngularVelocity::Run()
 					vehicle_angular_acceleration_s v_angular_acceleration;
 					v_angular_acceleration.timestamp_sample = sensor_data.timestamp_sample;
 					angular_acceleration.copyTo(v_angular_acceleration.xyz);
-					v_angular_acceleration.timestamp = hrt_absolute_time();
 					_vehicle_angular_acceleration_pub.publish(v_angular_acceleration);
 
 					// Publish vehicle_angular_velocity
 					vehicle_angular_velocity_s v_angular_velocity;
 					v_angular_velocity.timestamp_sample = sensor_data.timestamp_sample;
 					angular_velocity.copyTo(v_angular_velocity.xyz);
-					v_angular_velocity.timestamp = hrt_absolute_time();
 					_vehicle_angular_velocity_pub.publish(v_angular_velocity);
 
 					_last_publish = v_angular_velocity.timestamp_sample;

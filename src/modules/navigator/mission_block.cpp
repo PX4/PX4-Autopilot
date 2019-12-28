@@ -441,8 +441,7 @@ MissionBlock::issue_command(const mission_item_s &item)
 		PX4_INFO("DO_SET_SERVO command");
 
 		// XXX: we should issue a vehicle command and handle this somewhere else
-		actuator_controls_s actuators = {};
-		actuators.timestamp = hrt_absolute_time();
+		actuator_controls_s actuators{};
 
 		// params[0] actuator number to be set 0..5 (corresponds to AUX outputs 1..6)
 		// params[1] new value for selected actuator in ms 900...2000
