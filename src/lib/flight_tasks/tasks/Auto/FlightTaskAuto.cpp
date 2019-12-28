@@ -238,7 +238,7 @@ bool FlightTaskAuto::_evaluateTriplets()
 
 	if (_ext_yaw_handler != nullptr) {
 		// activation/deactivation of weather vane is based on parameter WV_EN and setting of navigator (allow_weather_vane)
-		(_param_wv_en.get() && _sub_triplet_setpoint.get().current.allow_weather_vane) ?	_ext_yaw_handler->activate() :
+		(_param_wv_en.get() && !_sub_triplet_setpoint.get().current.disable_weather_vane) ?	_ext_yaw_handler->activate() :
 		_ext_yaw_handler->deactivate();
 	}
 
