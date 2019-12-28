@@ -47,10 +47,16 @@ namespace ControlMath
 void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const int omni_att_mode,
 		      vehicle_attitude_setpoint_s &att_sp)
 {
-	if (omni_att_mode > 0) {
-		thrustToOmniAttitude(thr_sp, yaw_sp, att_sp);
+	if (omni_att_mode > 2 || omni_att_mode < 0) {
+		PX4_ERR("omni_att_mode set to unknown value!");
+	}
 
-	} else {
+	switch (omni_att_mode) {
+	case 2: // Attitude is set to the fixed zero roll and pitch (used for omnidirectional vehicles)
+		thrustToZeroTiltAttitude(thr_sp, yaw_sp, att_sp);
+		break;
+
+	default:
 		bodyzToAttitude(-thr_sp, yaw_sp, att_sp);
 		att_sp.thrust_body[2] = -thr_sp.length();
 	}
@@ -109,7 +115,7 @@ void bodyzToAttitude(Vector3f body_z, const float yaw_sp, vehicle_attitude_setpo
 	att_sp.yaw_body = euler(2);
 }
 
-void thrustToOmniAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp)
+void thrustToZeroTiltAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp)
 {
 	// set Z axis to upward direction
 	Vector3f body_z = Vector3f(0.f, 0.f, 1.f);
