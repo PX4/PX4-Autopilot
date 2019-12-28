@@ -169,9 +169,10 @@ public:
 	 * Get the controllers output attitude setpoint
 	 * This attitude setpoint was generated from the resulting acceleration setpoint after position and velocity control.
 	 * It needs to be executed by the attitude controller to achieve velocity and position tracking.
+	 * @param omni_att_mode attitude mode for omnidirectional vehicles: 0-tilted 1-daisy-chain 2-zero-tilt
 	 * @param attitude_setpoint reference to struct to fill up
 	 */
-	void getAttitudeSetpoint(vehicle_attitude_setpoint_s &attitude_setpoint) const;
+	void getAttitudeSetpoint(const int omni_att_mode, vehicle_attitude_setpoint_s &attitude_setpoint) const;
 
 private:
 	/**

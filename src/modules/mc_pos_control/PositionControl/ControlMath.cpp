@@ -44,9 +44,10 @@ using namespace matrix;
 
 namespace ControlMath
 {
-void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp, const bool omni)
+void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const int omni_att_mode,
+		      vehicle_attitude_setpoint_s &att_sp)
 {
-	if (omni) {
+	if (omni_att_mode > 0) {
 		thrustToOmniAttitude(thr_sp, yaw_sp, att_sp);
 
 	} else {
