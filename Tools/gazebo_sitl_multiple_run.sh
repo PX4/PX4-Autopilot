@@ -29,7 +29,7 @@ done
 num_vehicles=${NUM_VEHICLES:=3}
 export PX4_SIM_MODEL=${VEHICLE_MODEL:=iris}
 
-if [ "$PX4_SIM_MODEL" != "iris" ]
+if [ "$PX4_SIM_MODEL" != "iris" ] & [ "$PX4_SIM_MODEL" != "plane" ]
 then
 	echo "Currently only iris vehicle model is supported!"
 	exit 1
