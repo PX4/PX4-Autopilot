@@ -405,7 +405,7 @@ MPU9250::write_reg(unsigned reg, uint8_t value)
 {
 	// general register transfer at low clock speed
 	if (_interface->write(MPU9250_LOW_SPEED_OP(reg), &value, 1) < 0) {
-		PX4_WARN("MPU9250::write_reg failed");
+		PX4_DEBUG("MPU9250::write_reg failed");
 	}
 }
 
