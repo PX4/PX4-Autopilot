@@ -623,6 +623,17 @@ PARAM_DEFINE_FLOAT(COM_ARM_IMU_GYR, 0.25f);
 PARAM_DEFINE_INT32(COM_ARM_MAG_ANG, 30);
 
 /**
+ * Enable mag strength preflight check
+ *
+ * Deny arming if the estimator detects a strong magnetic
+ * disturbance (check enabled by EKF2_MAG_CHECK)
+ *
+ * @boolean
+ * @group Commander
+ */
+PARAM_DEFINE_INT32(COM_ARM_MAG_STR, 1);
+
+/**
  * Enable RC stick override of auto modes
  *
  * When an auto mode is active (except a critical battery reaction) moving the RC sticks
