@@ -69,16 +69,11 @@ public:
     AxisAngle(const Quaternion<Type> &q)
     {
         AxisAngle &v = *this;
-        Type ang = Type(2) * acos(q(0));
-        Type mag = sin(ang/2.0f);
-        if (fabs(mag) > 0) {
-            v(0) = ang*q(1)/mag;
-            v(1) = ang*q(2)/mag;
-            v(2) = ang*q(3)/mag;
+        Type mag = Type(sqrt(q(1) * q(1) + q(2) * q(2) + q(3) * q(3)));
+        if (fabs(mag) >= Type(1e-10)) {
+            v = q.imag() * Type(Type(2) * atan2(mag, q(0)) / mag);
         } else {
-            v(0) = 0;
-            v(1) = 0;
-            v(2) = 0;
+            v = q.imag() * Type(Type(2) * Type(sign(q(0))));
         }
     }
 
@@ -93,7 +88,7 @@ public:
     AxisAngle(const Dcm<Type> &dcm)
     {
         AxisAngle &v = *this;
-        v = Quaternion<Type>(dcm);
+        v = AxisAngle<Type>(Quaternion<Type>(dcm));
     }
 
     /**
@@ -108,7 +103,7 @@ public:
     AxisAngle(const Euler<Type> &euler)
     {
         AxisAngle &v = *this;
-        v = Quaternion<Type>(euler);
+        v = AxisAngle<Type>(Quaternion<Type>(euler));
     }
 
     /**
