@@ -69,7 +69,7 @@ while [ $n -lt $num_vehicles ]; do
 	gz sdf -p  /tmp/${PX4_SIM_MODEL}_${n}.urdf > /tmp/${PX4_SIM_MODEL}_${n}.sdf
 	echo "Spawning ${PX4_SIM_MODEL}_${n}"
 
-	gz model --spawn-file=/tmp/${PX4_SIM_MODEL}_${n}.sdf --model-name=${PX4_SIM_MODEL}_${n} -x 0.0 -y ${n} -z 0.0
+	gz model --spawn-file=/tmp/${PX4_SIM_MODEL}_${n}.sdf --model-name=${PX4_SIM_MODEL}_${n} -x 0.0 -y $((2*${n})) -z 0.0
 
 	popd &>/dev/null
 
