@@ -40,6 +40,9 @@ px4_add_module(
 		SF0X.hpp
 		sf0x_main.cpp
 		sf0x_parser.cpp
+	DEPENDS
+		drivers_rangefinder
+		px4_work_queue
 	MODULE_CONFIG
 		module.yaml
 	)
