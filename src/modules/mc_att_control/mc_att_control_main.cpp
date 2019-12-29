@@ -241,8 +241,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 			h_thrust /= h_thrust_norm;
 		}
 
-		const float max_xy_thrust_ratio = 0.3;
-		h_thrust *= max_xy_thrust_ratio;
+		h_thrust *= _param_omni_max_hor_thr.get();
 
 		// Check if the total thrust has exceeded the maximum
 		Vector3f total_thrust = Vector3f(h_thrust(0), h_thrust(1), z_thrust);

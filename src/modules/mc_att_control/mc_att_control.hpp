@@ -159,7 +159,9 @@ private:
 
 		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,
 
-		(ParamInt<px4::params::OMNI_ATT_MODE>) _param_omni_att_mode
+		/* Omnidirectional vehicle params */
+		(ParamInt<px4::params::OMNI_ATT_MODE>) _param_omni_att_mode,
+		(ParamFloat<px4::params::OMNI_MAX_HOR_THR>) _param_omni_max_hor_thr
 	)
 
 	bool _is_tailsitter{false};
