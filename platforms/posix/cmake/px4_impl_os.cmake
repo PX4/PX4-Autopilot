@@ -309,17 +309,6 @@ function(px4_os_add_flags)
 			-DRC_AUTOPILOT_EXT  # Enable extensions in Robotics Cape Library, TODO: remove
 		)
 
-		set(LIBROBOTCONTROL_INSTALL_DIR $ENV{LIBROBOTCONTROL_INSTALL_DIR})
-
-		# On cross compile host system and native build system:
-		#   a) select and define LIBROBOTCONTROL_INSTALL_DIR environment variable so that
-		#      other unwanted headers will not be included
-		#   b) install robotcontrol.h and rc/* into $LIBROBOTCONTROL_INSTALL_DIR/include
-		#   c) install pre-built native (ARM) version of librobotcontrol.* into $LIBROBOTCONTROL_INSTALL_DIR/lib
-		add_compile_options(-I${LIBROBOTCONTROL_INSTALL_DIR}/include)
-
-		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${LIBROBOTCONTROL_INSTALL_DIR}/lib")
-
 	endif()
 
 endfunction()
