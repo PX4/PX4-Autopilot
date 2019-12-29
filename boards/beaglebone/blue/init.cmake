@@ -31,10 +31,26 @@
 #
 ############################################################################
 
-px4_add_module(
-	MODULE drivers__bbblue_adc
-	MAIN bbblue_adc
-	COMPILE_FLAGS
-	SRCS
-		bbblue_adc.cpp
+add_compile_options(-Wno-cast-align)
+
+include(ExternalProject)
+ExternalProject_Add(librobotcontrol
+	GIT_REPOSITORY https://github.com/dagar/librobotcontrol.git
+	GIT_TAG 1abcb0a # latest as of 2019-12-29
+	CMAKE_CACHE_ARGS -DCMAKE_TOOLCHAIN_FILE:STRING=${CMAKE_TOOLCHAIN_FILE}
+	INSTALL_COMMAND ""
+	TEST_COMMAND ""
+	LOG_DOWNLOAD ON
+	LOG_CONFIGURE ON
+	LOG_BUILD ON
 )
+
+ExternalProject_Get_Property(librobotcontrol install_dir)
+set(ROBOTCONTROL_LIB_DIR ${install_dir}/src/librobotcontrol-build/library)
+set(ROBOTCONTROL_INC_DIR ${install_dir}/src/librobotcontrol/library/include)
+
+include_directories(${ROBOTCONTROL_INC_DIR})
+link_directories(${ROBOTCONTROL_LIB_DIR})
+
+# add to prebuild
+add_dependencies(prebuild_targets librobotcontrol)
