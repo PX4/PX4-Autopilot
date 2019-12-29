@@ -38,7 +38,7 @@ then
 
 	param set SDLOG_PROFILE 179
 
-	param set MC_OMNI_MODE 2
+	param set OMNI_ATT_MODE 2
 fi
 
 set MAV_TYPE 13

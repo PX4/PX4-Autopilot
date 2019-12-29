@@ -219,7 +219,7 @@ MulticopterAttitudeControl::generate_attitude_setpoint(float dt, bool reset_yaw_
 	attitude_setpoint.thrust_body[2] = -throttle_curve(_manual_control_sp.z);
 
 	/* modify roll/pitch if we're in omni-directional mode */
-	if (_param_mc_omni_mode.get() == 2) {
+	if (_param_omni_att_mode.get() == 2) {
 		// set the euler angles, for logging only, must not be used for control
 		attitude_setpoint.roll_body = 0;
 		attitude_setpoint.pitch_body = 0;

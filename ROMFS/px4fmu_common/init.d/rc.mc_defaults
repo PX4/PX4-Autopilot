@@ -19,7 +19,7 @@ then
 	param set PWM_MIN 1075
 	param set PWM_RATE 400
 
-	param set MC_OMNI_MODE 0
+	param set OMNI_ATT_MODE 0
 fi
 
 #

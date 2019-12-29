@@ -47,8 +47,9 @@ namespace ControlMath
 void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const int omni_att_mode,
 		      vehicle_attitude_setpoint_s &att_sp)
 {
+	// Print an error if the omni_att_mode parameter is out of range
 	if (omni_att_mode > 2 || omni_att_mode < 0) {
-		PX4_ERR("omni_att_mode set to unknown value!");
+		PX4_ERR("OMNI_ATT_MODE parameter set to unknown value!");
 	}
 
 	switch (omni_att_mode) {
@@ -56,7 +57,7 @@ void thrustToAttitude(const Vector3f &thr_sp, const float yaw_sp, const int omni
 		thrustToZeroTiltAttitude(thr_sp, yaw_sp, att_sp);
 		break;
 
-	default:
+	default: // Attitude is calculated from the desired thrust direction
 		bodyzToAttitude(-thr_sp, yaw_sp, att_sp);
 		att_sp.thrust_body[2] = -thr_sp.length();
 	}

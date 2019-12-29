@@ -159,7 +159,7 @@ private:
 
 		(ParamInt<px4::params::MC_AIRMODE>) _param_mc_airmode,
 
-		(ParamInt<px4::params::MC_OMNI_MODE>) _param_mc_omni_mode
+		(ParamInt<px4::params::OMNI_ATT_MODE>) _param_omni_att_mode
 	)
 
 	bool _is_tailsitter{false};

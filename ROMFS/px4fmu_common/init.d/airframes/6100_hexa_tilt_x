@@ -46,7 +46,7 @@ then
 
 	param set BAT_N_CELLS 4
 
-	param set MC_OMNI_MODE 2
+	param set OMNI_ATT_MODE 2
 fi
 
 # Set mixer
