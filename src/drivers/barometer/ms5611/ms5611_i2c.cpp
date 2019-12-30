@@ -50,13 +50,13 @@ class MS5611_I2C : public device::I2C
 {
 public:
 	MS5611_I2C(uint8_t bus, ms5611::prom_u &prom_buf);
-	virtual ~MS5611_I2C() = default;
+	~MS5611_I2C() override = default;
 
-	virtual int	read(unsigned offset, void *data, unsigned count);
-	virtual int	ioctl(unsigned operation, unsigned &arg);
+	int	read(unsigned offset, void *data, unsigned count) override;
+	int	ioctl(unsigned operation, unsigned &arg) override;
 
 protected:
-	virtual int	probe();
+	int	probe() override;
 
 private:
 	ms5611::prom_u	&_prom;
@@ -240,7 +240,7 @@ MS5611_I2C::_read_prom()
 			last_val = prom_buf[0];
 		}
 
-		if (prom_buf[0] != last_val || prom_buf[1] != last_val) {
+		if ((prom_buf[0] != last_val) || (prom_buf[1] != last_val)) {
 			bits_stuck = false;
 		}
 
