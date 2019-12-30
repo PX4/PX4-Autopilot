@@ -35,12 +35,18 @@
 
 #include <ArmAuthorization.h>
 #include <systemlib/mavlink_log.h>
+#include <uORB/Subscription.hpp>
 #include <uORB/topics/vehicle_command_ack.h>
+#include <uORB/topics/position_setpoint_triplet.h>
+
+#include <lib/parameters/param.h>
 
 bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_status_flags_s &status_flags,
 				 const safety_s &safety, const arm_requirements_t &arm_requirements, const vehicle_status_s &status)
 {
 	bool prearm_ok = true;
+	int32_t tkoff_check = 0;
+	param_get(param_find("MIS_TAKEOFF_REQ"), &tkoff_check);
 
 	// USB not connected
 	if (!status_flags.circuit_breaker_engaged_usb_check && status_flags.usb_connected) {
@@ -142,6 +148,17 @@ bool PreFlightCheck::preArmCheck(orb_advert_t *mavlink_log_pub, const vehicle_st
 			prearm_ok = false;
 		}
 	}
+
+	uORB::Subscription setpoint_sub(ORB_ID(position_setpoint_triplet));
+	position_setpoint_triplet_s setpoint = {};
+	setpoint_sub.update(&setpoint);
+
+	if (setpoint.current.type != position_setpoint_s::SETPOINT_TYPE_TAKEOFF && tkoff_check == 1) {
+		mavlink_log_critical(mavlink_log_pub, "Arming denied! Takeoff not active");
+		prearm_ok = false;
+	}
+
+
 
 
 	return prearm_ok;
