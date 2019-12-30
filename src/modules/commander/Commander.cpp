@@ -110,7 +110,6 @@ static struct actuator_armed_s armed = {};
 
 static struct vehicle_status_flags_s status_flags = {};
 
-static struct position_controller_status_s controller_status = {}; //Struct for holding controller status
 /**
  * Loop that runs at a lower rate and priority for calibration and parameter tasks.
  */
@@ -1192,6 +1191,7 @@ void
 Commander::run()
 {
 	bool sensor_fail_tune_played = false;
+	bool launch_detection_running = false;
 
 	param_t _param_airmode = param_find("MC_AIRMODE");
 	param_t _param_rc_map_arm_switch = param_find("RC_MAP_ARM_SW");
@@ -1548,35 +1548,41 @@ Commander::run()
 			_was_falling = _land_detector.freefall;
 		}
 
-		if (_controller_status_sub.updated()) {
-			_controller_status_sub.copy(&controller_status);
-		}
 
 		// Auto disarm when landed or kill switch engaged and do not auto-disarm if launch detection is running
-		if (armed.armed && !controller_status.launch_detection_running) {
+		if (armed.armed) {
 
-			// Check for auto-disarm on landing or pre-flight
-			if (_param_com_disarm_land.get() > 0 || _param_com_disarm_preflight.get() > 0) {
-
-				if (_param_com_disarm_land.get() > 0 && _have_taken_off_since_arming) {
-					_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_land.get() * 1_s);
-					_auto_disarm_landed.set_state_and_update(_land_detector.landed, hrt_absolute_time());
-
-				} else if (_param_com_disarm_preflight.get() > 0 && !_have_taken_off_since_arming) {
-					_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_preflight.get() * 1_s);
-					_auto_disarm_landed.set_state_and_update(true, hrt_absolute_time());
-				}
-
-				if (_auto_disarm_landed.get_state()) {
-					arm_disarm(false, true, &mavlink_log_pub, "Auto disarm initiated");
-				}
+			if (_controller_status_sub.updated()) {
+				position_controller_status_s controller_status = {};
+				_controller_status_sub.copy(&controller_status);
+				launch_detection_running = controller_status.launch_detection_running;
 			}
 
-			// Auto disarm after 5 seconds if kill switch is engaged
-			_auto_disarm_killed.set_state_and_update(armed.manual_lockdown, hrt_absolute_time());
+			if (!launch_detection_running) {
 
-			if (_auto_disarm_killed.get_state()) {
-				arm_disarm(false, true, &mavlink_log_pub, "Kill-switch still engaged, disarming");
+				// Check for auto-disarm on landing or pre-flight
+				if (_param_com_disarm_land.get() > 0 || _param_com_disarm_preflight.get() > 0) {
+
+					if (_param_com_disarm_land.get() > 0 && _have_taken_off_since_arming) {
+						_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_land.get() * 1_s);
+						_auto_disarm_landed.set_state_and_update(_land_detector.landed, hrt_absolute_time());
+
+					} else if (_param_com_disarm_preflight.get() > 0 && !_have_taken_off_since_arming) {
+						_auto_disarm_landed.set_hysteresis_time_from(false, _param_com_disarm_preflight.get() * 1_s);
+						_auto_disarm_landed.set_state_and_update(true, hrt_absolute_time());
+					}
+
+					if (_auto_disarm_landed.get_state()) {
+						arm_disarm(false, true, &mavlink_log_pub, "Auto disarm initiated");
+					}
+				}
+
+				// Auto disarm after 5 seconds if kill switch is engaged
+				_auto_disarm_killed.set_state_and_update(armed.manual_lockdown, hrt_absolute_time());
+
+				if (_auto_disarm_killed.get_state()) {
+					arm_disarm(false, true, &mavlink_log_pub, "Kill-switch still engaged, disarming");
+				}
 			}
 
 		} else {
