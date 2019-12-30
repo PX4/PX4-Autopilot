@@ -64,19 +64,14 @@ class ADC : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
 	ADC(uint32_t base_address, uint32_t channels);
-	~ADC();
+	~ADC() override;
 
-	virtual int		init();
+	int		init() override;
 
-	virtual int		ioctl(file *filp, int cmd, unsigned long arg);
-	virtual ssize_t		read(file *filp, char *buffer, size_t len);
-
-protected:
-	virtual int		open_first(struct file *filp);
-	virtual int		close_last(struct file *filp);
+	ssize_t		read(file *filp, char *buffer, size_t len) override;
 
 private:
-	void			Run() override;
+	void		Run() override;
 
 	/**
 	 * Sample a single channel and return the measured value.
@@ -105,7 +100,7 @@ private:
 ADC::ADC(uint32_t base_address, uint32_t channels) :
 	CDev(ADC0_DEVICE_PATH),
 	ScheduledWorkItem(MODULE_NAME, px4::wq_configurations::hp_default),
-	_sample_perf(perf_alloc(PC_ELAPSED, "adc_samples")),
+	_sample_perf(perf_alloc(PC_ELAPSED, MODULE_NAME": sample")),
 	_base_address(base_address)
 {
 	/* always enable the temperature sensor */
@@ -140,6 +135,8 @@ ADC::ADC(uint32_t base_address, uint32_t channels) :
 
 ADC::~ADC()
 {
+	ScheduleClear();
+
 	if (_samples != nullptr) {
 		delete _samples;
 	}
@@ -151,21 +148,25 @@ ADC::~ADC()
 int
 ADC::init()
 {
-	int rv = px4_arch_adc_init(_base_address);
+	int ret_init = px4_arch_adc_init(_base_address);
 
-	if (rv < 0) {
-		PX4_DEBUG("sample timeout");
-		return rv;
+	if (ret_init < 0) {
+		PX4_ERR("arch adc init failed");
+		return ret_init;
 	}
 
 	/* create the device node */
-	return CDev::init();
-}
+	int ret_cdev = CDev::init();
 
-int
-ADC::ioctl(file *filp, int cmd, unsigned long arg)
-{
-	return -ENOTTY;
+	if (ret_cdev != PX4_OK) {
+		PX4_ERR("CDev init failed");
+		return ret_cdev;
+	}
+
+	// schedule regular updates
+	ScheduleOnInterval(kINTERVAL, kINTERVAL);
+
+	return PX4_OK;
 }
 
 ssize_t
@@ -183,26 +184,6 @@ ADC::read(file *filp, char *buffer, size_t len)
 	px4_leave_critical_section(flags);
 
 	return len;
-}
-
-int
-ADC::open_first(struct file *filp)
-{
-	/* get fresh data */
-	Run();
-
-	/* and schedule regular updates */
-	ScheduleOnInterval(kINTERVAL, kINTERVAL);
-
-	return 0;
-}
-
-int
-ADC::close_last(struct file *filp)
-{
-	ScheduleClear();
-
-	return 0;
 }
 
 void
