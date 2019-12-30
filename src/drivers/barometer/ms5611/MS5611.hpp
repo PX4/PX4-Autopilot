@@ -48,30 +48,30 @@
 #include "ms5611.h"
 
 enum MS56XX_DEVICE_TYPES {
-	MS56XX_DEVICE = 0,
-	MS5611_DEVICE = 5611,
-	MS5607_DEVICE = 5607,
+	MS56XX_DEVICE   = 0,
+	MS5611_DEVICE	= 5611,
+	MS5607_DEVICE	= 5607,
 };
 
 /* helper macro for handling report buffer indices */
-#define INCREMENT(_x, _lim)    do { __typeof__(_x) _tmp = _x+1; if (_tmp >= _lim) _tmp = 0; _x = _tmp; } while(0)
+#define INCREMENT(_x, _lim)	do { __typeof__(_x) _tmp = _x+1; if (_tmp >= _lim) _tmp = 0; _x = _tmp; } while(0)
 
 /* helper macro for arithmetic - returns the square of the argument */
-#define POW2(_x)        ((_x) * (_x))
+#define POW2(_x)		((_x) * (_x))
 
 /*
  * MS5611/MS5607 internal constants and data structures.
  */
-#define ADDR_CMD_CONVERT_D1_OSR256        0x40    /* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D1_OSR512        0x42    /* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D1_OSR1024        0x44    /* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D1_OSR2048        0x46    /* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D1_OSR4096        0x48    /* write to this address to start pressure conversion */
-#define ADDR_CMD_CONVERT_D2_OSR256        0x50    /* write to this address to start temperature conversion */
-#define ADDR_CMD_CONVERT_D2_OSR512        0x52    /* write to this address to start temperature conversion */
-#define ADDR_CMD_CONVERT_D2_OSR1024        0x54    /* write to this address to start temperature conversion */
-#define ADDR_CMD_CONVERT_D2_OSR2048        0x56    /* write to this address to start temperature conversion */
-#define ADDR_CMD_CONVERT_D2_OSR4096        0x58    /* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D1_OSR256		0x40	/* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D1_OSR512		0x42	/* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D1_OSR1024		0x44	/* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D1_OSR2048		0x46	/* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D1_OSR4096		0x48	/* write to this address to start pressure conversion */
+#define ADDR_CMD_CONVERT_D2_OSR256		0x50	/* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D2_OSR512		0x52	/* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D2_OSR1024		0x54	/* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D2_OSR2048		0x56	/* write to this address to start temperature conversion */
+#define ADDR_CMD_CONVERT_D2_OSR4096		0x58	/* write to this address to start temperature conversion */
 
 /*
   use an OSR of 1024 to reduce the self-heating effect of the
@@ -79,63 +79,61 @@ enum MS56XX_DEVICE_TYPES {
   are quite sensitive to this effect and that reducing the OSR can
   make a big difference
  */
-#define ADDR_CMD_CONVERT_D1            ADDR_CMD_CONVERT_D1_OSR1024
-#define ADDR_CMD_CONVERT_D2            ADDR_CMD_CONVERT_D2_OSR1024
+#define ADDR_CMD_CONVERT_D1			ADDR_CMD_CONVERT_D1_OSR1024
+#define ADDR_CMD_CONVERT_D2			ADDR_CMD_CONVERT_D2_OSR1024
 
 /*
  * Maximum internal conversion time for OSR 1024 is 2.28 ms. We set an update
  * rate of 100Hz which is be very safe not to read the ADC before the
  * conversion finished
  */
-#define MS5611_CONVERSION_INTERVAL    10000    /* microseconds */
-#define MS5611_MEASUREMENT_RATIO    3    /* pressure measurements per temperature measurement */
-#define MS5611_BARO_DEVICE_PATH_EXT    "/dev/ms5611_ext"
-#define MS5611_BARO_DEVICE_PATH_INT    "/dev/ms5611_int"
+#define MS5611_CONVERSION_INTERVAL	10000	/* microseconds */
+#define MS5611_MEASUREMENT_RATIO	3	/* pressure measurements per temperature measurement */
+#define MS5611_BARO_DEVICE_PATH_EXT	"/dev/ms5611_ext"
+#define MS5611_BARO_DEVICE_PATH_INT	"/dev/ms5611_int"
 
 class MS5611 : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
 	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *path, enum MS56XX_DEVICE_TYPES device_type);
-
 	~MS5611() override;
 
-	int init() override;
+	int		init() override;
 
-	ssize_t read(cdev::file_t *filp, char *buffer, size_t buflen) override;
-
-	int ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
+	ssize_t		read(cdev::file_t *filp, char *buffer, size_t buflen) override;
+	int		ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
 	 */
-	void print_info();
+	void			print_info();
 
 protected:
-	device::Device *_interface;
+	device::Device		*_interface;
 
-	ms5611::prom_s _prom;
+	ms5611::prom_s		_prom;
 
-	unsigned _measure_interval{0};
+	unsigned		_measure_interval{0};
 
-	ringbuffer::RingBuffer *_reports;
+	ringbuffer::RingBuffer	*_reports;
 	enum MS56XX_DEVICE_TYPES _device_type;
-	bool _collect_phase;
-	unsigned _measure_phase;
+	bool			_collect_phase;
+	unsigned		_measure_phase;
 
 	/* intermediate temperature values per MS5611/MS5607 datasheet */
-	int32_t _TEMP;
-	int64_t _OFF;
-	int64_t _SENS;
-	float _P;
-	float _T;
+	int32_t			_TEMP;
+	int64_t			_OFF;
+	int64_t			_SENS;
+	float			_P;
+	float			_T;
 
-	orb_advert_t _baro_topic;
-	int _orb_class_instance;
-	int _class_instance;
+	orb_advert_t		_baro_topic;
+	int			_orb_class_instance;
+	int			_class_instance;
 
-	perf_counter_t _sample_perf;
-	perf_counter_t _measure_perf;
-	perf_counter_t _comms_errors;
+	perf_counter_t		_sample_perf;
+	perf_counter_t		_measure_perf;
+	perf_counter_t		_comms_errors;
 
 	/**
 	 * Initialize the automatic measurement state machine and start it.
@@ -143,12 +141,12 @@ protected:
 	 * @note This function is called at open and error time.  It might make sense
 	 *       to make it more aggressive about resetting the bus in case of errors.
 	 */
-	void start();
+	void			start();
 
 	/**
 	 * Stop the automatic measurement state machine.
 	 */
-	void stop();
+	void			stop();
 
 	/**
 	 * Perform a poll cycle; collect from the previous measurement
@@ -163,17 +161,17 @@ protected:
 	 * and measurement to provide the most recent measurement possible
 	 * at the next interval.
 	 */
-	void Run() override;
+	void			Run() override;
 
 	/**
 	 * Issue a measurement command for the current state.
 	 *
 	 * @return		OK if the measurement command was successful.
 	 */
-	virtual int measure();
+	int			measure();
 
 	/**
 	 * Collect the result of the most recent measurement.
 	 */
-	virtual int collect();
+	int			collect();
 };

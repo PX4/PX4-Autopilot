@@ -75,10 +75,10 @@ struct ms5611_bus_option {
 	{ MS5611_BUS_SPI_INTERNAL, "/dev/ms5611_spi_int", &MS5611_spi_interface, PX4_SPI_BUS_BARO, NULL },
 #endif
 #ifdef PX4_I2C_BUS_ONBOARD
-	{MS5611_BUS_I2C_INTERNAL, "/dev/ms5611_int", &MS5611_i2c_interface, PX4_I2C_BUS_ONBOARD, NULL},
+	{ MS5611_BUS_I2C_INTERNAL, "/dev/ms5611_int", &MS5611_i2c_interface, PX4_I2C_BUS_ONBOARD, NULL },
 #endif
 #ifdef PX4_I2C_BUS_EXPANSION
-	{MS5611_BUS_I2C_EXTERNAL, "/dev/ms5611_ext", &MS5611_i2c_interface, PX4_I2C_BUS_EXPANSION, NULL},
+	{ MS5611_BUS_I2C_EXTERNAL, "/dev/ms5611_ext", &MS5611_i2c_interface, PX4_I2C_BUS_EXPANSION, NULL },
 #endif
 #ifdef PX4_I2C_BUS_EXPANSION1
 	{ MS5611_BUS_I2C_EXTERNAL, "/dev/ms5611_ext1", &MS5611_i2c_interface, PX4_I2C_BUS_EXPANSION1, NULL },
@@ -105,22 +105,20 @@ start_bus(struct ms5611_bus_option &bus, enum MS56XX_DEVICE_TYPES device_type)
 
 	if (interface->init() != OK) {
 		delete interface;
-		PX4_WARN("no device on bus %u", (unsigned) bus.busid);
+		PX4_WARN("no device on bus %u", (unsigned)bus.busid);
 		return false;
 	}
 
 	bus.dev = new MS5611(interface, prom_buf, bus.devpath, device_type);
 
-	if (bus.dev != nullptr) {
-		if (bus.dev->init() != OK) {
-			PX4_ERR("MS5611 start failed");
-			delete bus.dev;
-			bus.dev = nullptr;
-			return false;
-		}
-
-	} else {
+	if (bus.dev == nullptr) {
 		PX4_ERR("alloc failed");
+		return false;
+	}
+
+	if (bus.dev->init() != PX4_OK) {
+		delete bus.dev;
+		bus.dev = nullptr;
 		return false;
 	}
 
