@@ -71,6 +71,14 @@ void bodyzToAttitude(matrix::Vector3f body_z, const float yaw_sp, vehicle_attitu
 void thrustToZeroTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp);
 
 /**
+ * Converts thrust vector and yaw set-point to a minimum-tilt attitude for an omni-directional multirotor.
+ * @param thr_sp a 3D vector
+ * @param yaw_sp the desired yaw
+ * @param att_sp attitude setpoint to fill
+ */
+void thrustToMinTiltAttitude(const matrix::Vector3f &thr_sp, const float yaw_sp, vehicle_attitude_setpoint_s &att_sp);
+
+/**
  * Outputs the sum of two vectors but respecting the limits and priority.
  * The sum of two vectors are constraint such that v0 has priority over v1.
  * This means that if the length of (v0+v1) exceeds max, then it is constraint such
