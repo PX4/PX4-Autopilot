@@ -259,12 +259,5 @@ MS5611_I2C::_read_prom()
 
 int MS5611_I2C::init()
 {
-	int ret = I2C::init();
-
-	if (ret != PX4_OK) {
-		PX4_ERR("I2C::init failed");
-		return ret;
-	}
-
-	return probe();
+	return I2C::init();
 }
