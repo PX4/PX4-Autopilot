@@ -111,9 +111,14 @@ start_bus(struct ms5611_bus_option &bus, enum MS56XX_DEVICE_TYPES device_type)
 
 	bus.dev = new MS5611(interface, prom_buf, bus.devpath, device_type);
 
-	if (bus.dev != nullptr && OK != bus.dev->init()) {
+	if (bus.dev == nullptr) {
+		PX4_ERR("alloc failed");
+		return false;
+	}
+
+	if (bus.dev->init() != PX4_OK) {
 		delete bus.dev;
-		bus.dev = NULL;
+		bus.dev = nullptr;
 		return false;
 	}
 
@@ -125,7 +130,7 @@ start_bus(struct ms5611_bus_option &bus, enum MS56XX_DEVICE_TYPES device_type)
 		return false;
 	}
 
-	if (ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
+	if (px4_ioctl(fd, SENSORIOCSPOLLRATE, SENSOR_POLLRATE_DEFAULT) < 0) {
 		px4_close(fd);
 		PX4_ERR("failed setting default poll rate");
 		return false;

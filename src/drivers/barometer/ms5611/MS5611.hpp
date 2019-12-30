@@ -96,12 +96,12 @@ class MS5611 : public cdev::CDev, public px4::ScheduledWorkItem
 {
 public:
 	MS5611(device::Device *interface, ms5611::prom_u &prom_buf, const char *path, enum MS56XX_DEVICE_TYPES device_type);
-	~MS5611();
+	~MS5611() override;
 
-	virtual int		init();
+	int		init() override;
 
-	virtual ssize_t		read(cdev::file_t *filp, char *buffer, size_t buflen);
-	virtual int		ioctl(cdev::file_t *filp, int cmd, unsigned long arg);
+	ssize_t		read(cdev::file_t *filp, char *buffer, size_t buflen) override;
+	int		ioctl(cdev::file_t *filp, int cmd, unsigned long arg) override;
 
 	/**
 	 * Diagnostics - print some basic information about the driver.
@@ -168,10 +168,10 @@ protected:
 	 *
 	 * @return		OK if the measurement command was successful.
 	 */
-	virtual int		measure();
+	int			measure();
 
 	/**
 	 * Collect the result of the most recent measurement.
 	 */
-	virtual int		collect();
+	int			collect();
 };
